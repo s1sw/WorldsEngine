@@ -14,6 +14,17 @@ struct WorldObject {
 	AssetID mesh;
 };
 
+struct ProceduralObject {
+	ProceduralObject() {}
+	AssetID material;
+	// Behind-the-scenes Vulkan stuff handled
+	// by procedural mesh creator
+	vku::VertexBuffer vb;
+	vku::IndexBuffer ib;
+	uint32_t indexCount;
+	vk::IndexType indexType;
+};
+
 struct MVP {
 	glm::mat4 model;
 	glm::mat4 view;

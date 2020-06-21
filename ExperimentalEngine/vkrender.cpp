@@ -589,6 +589,15 @@ void VKRenderer::renderPolys(vk::UniqueCommandBuffer& cmdBuf, entt::registry& re
 		cmdBuf->bindIndexBuffer(meshPos->second.ib.buffer(), 0, meshPos->second.indexType);
 		cmdBuf->drawIndexed(meshPos->second.indexCount, 1, 0, 0, 0);
 	});
+
+	reg.view<Transform, ProceduralObject>().each([this, &cmdBuf, &cam](auto ent, Transform& transform, ProceduralObject& obj) {
+		StandardPushConstants pushConst{ glm::vec4(cam.position, 0.0f), transform.getMatrix() };
+		cmdBuf->pushConstants<StandardPushConstants>(*pipelineLayout, vk::ShaderStageFlagBits::eFragment | vk::ShaderStageFlagBits::eVertex, 0, pushConst);
+		cmdBuf->bindVertexBuffers(0, obj.vb.buffer(), vk::DeviceSize(0));
+		cmdBuf->bindIndexBuffer(obj.ib.buffer(), 0, obj.indexType);
+		cmdBuf->drawIndexed(obj.indexCount, 1, 0, 0, 0);
+	});
+
 	cmdBuf->endRenderPass();
 }
 
