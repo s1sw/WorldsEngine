@@ -538,10 +538,6 @@ void VKRenderer::doTonemap(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageIndex)
 	cmdBuf->bindDescriptorSets(vk::PipelineBindPoint::eCompute, *tonemapPipelineLayout, 0, tonemapDescriptorSet, nullptr);
 	cmdBuf->bindPipeline(vk::PipelineBindPoint::eCompute, *tonemapPipeline);
 	cmdBuf->dispatch((width + 15) / 16, (height + 15) / 16, 1);
-	//finalPrePresent.setLayout(*cmdBuf, vk::ImageLayout::eTransferSrcOptimal);
-
-	/*finalPrePresent.setLayout(*cmdBuf, vk::ImageLayout::eColorAttachmentOptimal, vk::PipelineStageFlagBits::eComputeShader, vk::PipelineStageFlagBits::eColorAttachmentOutput, vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eColorAttachmentWrite);*/
-	//finalPrePresent.setLayout(*cmdBuf, vk::ImageLayout::eGeneral);
 
 	imageBarrier(*cmdBuf, finalPrePresent.image(), vk::ImageLayout::eGeneral, vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eColorAttachmentWrite, vk::PipelineStageFlagBits::eComputeShader, vk::PipelineStageFlagBits::eColorAttachmentOutput);
 
@@ -556,6 +552,7 @@ void VKRenderer::doTonemap(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageIndex)
 	cmdBuf->beginRenderPass(rpbi, vk::SubpassContents::eInline);
 	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), *cmdBuf);
 	cmdBuf->endRenderPass();
+
 	// account for implicit renderpass transition
 	finalPrePresent.setCurrentLayout(vk::ImageLayout::eTransferSrcOptimal);
 	
@@ -628,8 +625,8 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
 	}
 
 	VP vp;
-	vp.view = cam.getViewMatrix();//glm::lookAt(glm::vec3(0.0f, 0.0f, -2.0f), glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-	vp.projection = cam.getProjectionMatrix((float)width / (float)height);//glm::perspective(72.0f, ((float)width / (float)height), 0.1f, 100.0f);
+	vp.view = cam.getViewMatrix();
+	vp.projection = cam.getProjectionMatrix((float)width / (float)height);
 	LightUB lub;
 	lub.pack0.x = 1;
 	lub.lights[0] = PackedLight{ glm::vec4(1.0f, 1.0f, 1.0f, 2.0f), glm::normalize(glm::vec4(0.0f, 0.5f, 0.5f, 0.0f)), glm::vec4(0.0f, 0.0f, -0.1f, 0.0f) };
@@ -701,11 +698,6 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
 		vk::QueryResultFlagBits::e64 | vk::QueryResultFlagBits::eWait
 	);
 	lastRenderTimeTicks = timeStamps[1] - timeStamps[0];
-
-	//if ((presentResult == vk::Result::eSuboptimalKHR || presentResult == vk::Result::eErrorOutOfDateKHR) && width != 0 && height != 0) {
-	//	std::cout << "Recreating swapchain because " << vk::to_string(presentResult) << std::endl;
-	//	recreateSwapchain();
-	//}
 }
 
 void VKRenderer::preloadMesh(AssetID id) {
