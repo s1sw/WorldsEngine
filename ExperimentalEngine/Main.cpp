@@ -12,13 +12,15 @@
 #include "cxxopts.hpp"
 #include <entt/entt.hpp>
 #include "Transform.hpp"
+#include "VoxelChunkMesher.hpp"
+#include "Physics.hpp"
 
 AssetDB g_assetDB;
 
 #undef min
 #undef max
 
-template<typename... Args> void logErr (const char* fmt, Args... args) {
+template<typename... Args> void logErr(const char* fmt, Args... args) {
 	SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, fmt, args...);
 }
 
@@ -214,15 +216,44 @@ void engine(char* argv0) {
 
 	entt::registry registry;
 
-	AssetID modelId = g_assetDB.addAsset("model.obj");
+	/*AssetID modelId = g_assetDB.addAsset("model.obj");
 	AssetID monkeyId = g_assetDB.addAsset("monk.obj");
 	renderer.preloadMesh(modelId);
 	renderer.preloadMesh(monkeyId);
 	createModelObject(registry, glm::vec3(0.0f), glm::quat(), modelId);
-	createModelObject(registry, glm::vec3(3.0f, 0.0f, 0.0f), glm::quat(), monkeyId);
+	createModelObject(registry, glm::vec3(3.0f, 0.0f, 0.0f), glm::quat(), monkeyId);*/
+
+	initPhysx();
 
 	SDL_SetRelativeMouseMode(SDL_TRUE);
 	std::memcpy(reinterpret_cast<void*>(lastState), state, SDL_NUM_SCANCODES);
+
+	auto voxEnt = registry.create();
+	registry.emplace<Transform>(voxEnt);
+	auto& voxChunk = registry.emplace<VoxelChunk>(voxEnt);
+	voxChunk.data[0][0][0] = 1;
+	voxChunk.data[1][0][0] = 1;
+	voxChunk.data[2][0][0] = 1;
+	voxChunk.data[0][2][0] = 1;
+	voxChunk.data[0][4][0] = 1;
+	voxChunk.dirty = true;
+	auto& procObj = registry.emplace<ProceduralObject>(voxEnt);
+	VoxelChunkMesher().updateVoxelChunk(voxChunk, procObj);
+	renderer.uploadProcObj(procObj);
+	physx::PxRigidActor* voxelActor = static_cast<physx::PxRigidActor*>(g_physics->createRigidStatic(physx::PxTransform(0.0f, 0.0f, 0.0f)));
+	physx::PxMaterial* mat = g_physics->createMaterial(0.5f, 0.5f, 0.1f);
+	for (int x = 0; x < 16; x++)
+		for (int y = 0; y < 16; y++)
+			for (int z = 0; z < 16; z++) {
+				if (voxChunk.data[x][y][z]) {
+					physx::PxShape* shape = g_physics->createShape(physx::PxBoxGeometry(0.5f, 0.5f, 0.5f), *mat);
+					shape->setLocalPose(physx::PxTransform(physx::PxVec3(x + 0.5f, y + 0.5f, z + 0.5f)));
+					voxelActor->attachShape(*shape);
+				}
+			}
+
+	voxelActor->userData = (void*)voxEnt;
+	g_scene->addActor(*voxelActor);
 
 	while (running) {
 		uint64_t now = SDL_GetPerformanceCounter();
@@ -249,28 +280,104 @@ void engine(char* argv0) {
 		currTime += deltaTime;
 		renderer.time = currTime;
 
+		simulate(deltaTime);
+
+		physx::PxRaycastBuffer hit;
+		if ((SDL_GetMouseState(nullptr, nullptr) & SDL_BUTTON(SDL_BUTTON_LEFT)) == SDL_BUTTON(SDL_BUTTON_LEFT)) {
+			if (g_scene->raycast(glm2Px(cam.position), glm2Px(cam.rotation * glm::vec3(0.0f, 0.0f, 1.0f)), 10.0f, hit)) {
+				auto& voxChunk = registry.get<VoxelChunk>((entt::entity)(uint32_t)hit.block.actor->userData);
+				glm::vec3 normal = glm::round(px2glm(hit.block.normal));
+				glm::vec3 pos = px2glm(hit.block.position) - (normal * 0.5f);
+				pos = glm::floor(pos); 
+				if (pos.x >= 0 && pos.y >= 0 && pos.z >= 0 && pos.x <= 15 && pos.y <= 15 && pos.z <= 15) {
+					//pos.z += 1;
+					voxChunk.data[(int)pos.x][(int)pos.y][(int)pos.z] = 0;
+					voxChunk.dirty = true;
+					std::cout << pos.x << "," << pos.y << "," << pos.z << std::endl;
+					auto& procObj = registry.get<ProceduralObject>((entt::entity)(uint32_t)hit.block.actor->userData);
+
+					VoxelChunkMesher().updateVoxelChunk(voxChunk, procObj);
+					renderer.uploadProcObj(procObj);
+				}
+			}
+		} else if ((SDL_GetMouseState(nullptr, nullptr) & SDL_BUTTON(SDL_BUTTON_RIGHT)) == SDL_BUTTON(SDL_BUTTON_RIGHT)) {
+			if (g_scene->raycast(glm2Px(cam.position), glm2Px(cam.rotation * glm::vec3(0.0f, 0.0f, 1.0f)), 10.0f, hit)) {
+				auto& voxChunk = registry.get<VoxelChunk>((entt::entity)(uint32_t)hit.block.actor->userData);
+
+				physx::PxTransform localPose = hit.block.shape->getLocalPose();
+				std::cout << "localPose p" << localPose.p.x << "," << localPose.p.y << "," << localPose.p.z << "\n";
+				glm::vec3 pos = px2glm(localPose.p) - glm::vec3(0.5f) + px2glm(hit.block.normal);
+				pos = glm::floor(pos);
+
+				if (pos.x >= 0 && pos.y >= 0 && pos.z >= 0 && pos.x <= 15 && pos.y <= 15 && pos.z <= 15) {
+					voxChunk.data[(int)pos.x][(int)pos.y][(int)pos.z] = 1;
+					voxChunk.dirty = true;
+					auto& procObj = registry.get<ProceduralObject>((entt::entity)(uint32_t)hit.block.actor->userData);
+
+					bool presentShapes[16][16][16] = {};
+
+					physx::PxShape** shapes = (physx::PxShape**)std::malloc(voxelActor->getNbShapes() * sizeof(void*));
+					int numShapes = voxelActor->getNbShapes();
+					voxelActor->getShapes(shapes, numShapes);
+					for (int i = 0; i < numShapes; i++) {
+						physx::PxShape* shape = shapes[i];
+						glm::vec3 localPos = px2glm(shape->getLocalPose().p) - glm::vec3(0.5f);
+						if (voxChunk.data[(int)localPos.x][(int)localPos.y][(int)localPos.z] == 0) {
+							voxelActor->detachShape(*shape);
+							shape->release();
+						} else {
+							presentShapes[(int)localPos.x][(int)localPos.y][(int)localPos.z] = true;
+						}
+						
+					}
+
+					for (int x = 0; x < 16; x++)
+						for (int y = 0; y < 16; y++)
+							for (int z = 0; z < 16; z++) {
+								if (voxChunk.data[x][y][z] && !presentShapes[x][y][z]) {
+									physx::PxShape* shape = g_physics->createShape(physx::PxBoxGeometry(0.5f, 0.5f, 0.5f), *mat);
+									shape->setLocalPose(physx::PxTransform(physx::PxVec3(x + 0.5f, y + 0.5f, z + 0.5f)));
+									voxelActor->attachShape(*shape);
+								}
+							}
+
+					VoxelChunkMesher().updateVoxelChunk(voxChunk, procObj);
+					renderer.uploadProcObj(procObj);
+				}
+			}
+		}
+
+		glm::vec3 prevPos = cam.position;
+
 		if (state[SDL_SCANCODE_W]) {
-			cam.position += cam.rotation * glm::vec3(0.0f, 0.0f, deltaTime * 5.0f);
+			cam.position += cam.rotation * glm::vec3(0.0f, 0.0f, deltaTime * 1.0f);
 		}
 
 		if (state[SDL_SCANCODE_S]) {
-			cam.position -= cam.rotation * glm::vec3(0.0f, 0.0f, deltaTime * 5.0f);
+			cam.position -= cam.rotation * glm::vec3(0.0f, 0.0f, deltaTime * 1.0f);
 		}
 
 		if (state[SDL_SCANCODE_A]) {
-			cam.position += cam.rotation * glm::vec3(deltaTime * 5.0f, 0.0f, 0.0f);
+			cam.position += cam.rotation * glm::vec3(deltaTime * 1.0f, 0.0f, 0.0f);
 		}
 
 		if (state[SDL_SCANCODE_D]) {
-			cam.position -= cam.rotation * glm::vec3(deltaTime * 5.0f, 0.0f, 0.0f);
+			cam.position -= cam.rotation * glm::vec3(deltaTime * 1.0f, 0.0f, 0.0f);
 		}
 
 		if (state[SDL_SCANCODE_SPACE]) {
-			cam.position += cam.rotation * glm::vec3(0.0f, deltaTime * 5.0f, 0.0f);
+			cam.position += cam.rotation * glm::vec3(0.0f, deltaTime * 1.0f, 0.0f);
 		}
 
 		if (state[SDL_SCANCODE_LCTRL]) {
-			cam.position -= cam.rotation * glm::vec3(0.0f, deltaTime * 5.0f, 0.0f);
+			cam.position -= cam.rotation * glm::vec3(0.0f, deltaTime * 1.0f, 0.0f);
+		}
+
+		physx::PxOverlapBuffer overlapBuf{};
+		physx::PxQueryFilterData filterData;
+		filterData.flags |= physx::PxQueryFlag::eANY_HIT;
+		if (g_scene->overlap(physx::PxSphereGeometry(0.05f), physx::PxTransform(cam.position.x, cam.position.y, cam.position.z), overlapBuf, filterData)) {
+			//cam.position = prevPos;
 		}
 
 		if (state[SDL_SCANCODE_RCTRL] && !lastState[SDL_SCANCODE_RCTRL]) {
@@ -314,10 +421,25 @@ void engine(char* argv0) {
 			SDL_CondSignal(sdlEventCV);
 			SDL_UnlockMutex(sdlEventMutex);
 		}
-		renderer.frame(cam, registry);
+
+		struct RenderFrameJobData {
+			Camera& cam;
+			VKRenderer& renderer;
+			entt::registry& registry;
+		};
+		RenderFrameJobData rfjd{ cam, renderer, registry };
+		auto& jobList = jobSystem.getFreeJobList();
+		jobList.begin();
+		jobList.addJob(Job([](void* data) {
+			RenderFrameJobData rfjd = *reinterpret_cast<RenderFrameJobData*>(data);
+			rfjd.renderer.frame(rfjd.cam, rfjd.registry);
+		}, &rfjd));
+		jobList.end();
+		jobSystem.signalJobListAvailable();
 		jobSystem.completeFrameJobs();
 		frameCounter++;
 	}
+	shutdownPhysx();
 	PHYSFS_deinit();
 	SDL_CondSignal(sdlEventCV);
 	SDL_Quit();
