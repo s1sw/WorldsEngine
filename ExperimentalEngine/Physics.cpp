@@ -28,18 +28,18 @@ void initPhysx() {
 	}
 
 	g_cooking = PxCreateCooking(PX_PHYSICS_VERSION, *g_physFoundation, physx::PxCookingParams(tolerancesScale));
-	g_scene = g_physics->createScene(physx::PxSceneDesc(tolerancesScale));
+	physx::PxSceneDesc desc(tolerancesScale);
+	desc.gravity = physx::PxVec3(0.0f, -9.81f, 0.0f);
+	desc.cpuDispatcher = physx::PxDefaultCpuDispatcherCreate(8);
+	desc.filterShader = physx::PxDefaultSimulationFilterShader;
+	g_scene = g_physics->createScene(desc);
+	g_scene->setVisualizationParameter(physx::PxVisualizationParameter::eSCALE, 1.0f);
+	g_scene->setVisualizationParameter(physx::PxVisualizationParameter::eCOLLISION_SHAPES, 1.0f);
 }
 
 void simulate(float deltaTime) {
 	g_scene->simulate(deltaTime);
 	g_scene->fetchResults(true);
-	uint32_t numActiveActors = 0;
-	physx::PxActor** activeActors = g_scene->getActiveActors(numActiveActors);
-
-	for (int i = 0; i < numActiveActors; i++) {
-		
-	}
 }
 
 void shutdownPhysx() {
