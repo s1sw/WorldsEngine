@@ -14,17 +14,6 @@ struct WorldObject {
 	AssetID mesh;
 };
 
-struct ProceduralObject {
-	ProceduralObject() {}
-	AssetID material;
-	// Behind-the-scenes Vulkan stuff handled
-	// by procedural mesh creator
-	vku::VertexBuffer vb;
-	vku::IndexBuffer ib;
-	uint32_t indexCount;
-	vk::IndexType indexType;
-};
-
 struct MVP {
 	glm::mat4 model;
 	glm::mat4 view;
@@ -57,6 +46,22 @@ struct Vertex {
 struct PackedMaterial {
 	glm::vec4 pack0;
 	glm::vec4 pack1;
+};
+
+struct ProceduralObject {
+	ProceduralObject() : uploaded(false), readyForUpload(false), visible(true) {}
+	AssetID material;
+	// Behind-the-scenes Vulkan stuff handled
+	// by procedural mesh creator
+	std::vector<Vertex> vertices;
+	std::vector<uint32_t> indices;
+	bool uploaded;
+	bool readyForUpload;
+	bool visible;
+	vku::VertexBuffer vb;
+	vku::IndexBuffer ib;
+	uint32_t indexCount;
+	vk::IndexType indexType;
 };
 
 struct Camera {
@@ -182,6 +187,7 @@ public:
 	void recreateSwapchain();
 	void frame(Camera& cam, entt::registry& reg);
 	void preloadMesh(AssetID id);
+	void uploadProcObj(ProceduralObject& procObj);
 	inline float getLastRenderTime() { return lastRenderTimeTicks * timestampPeriod; }
 	~VKRenderer();
 };

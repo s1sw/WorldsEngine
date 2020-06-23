@@ -555,7 +555,6 @@ void VKRenderer::doTonemap(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageIndex)
 
 	// account for implicit renderpass transition
 	finalPrePresent.setCurrentLayout(vk::ImageLayout::eTransferSrcOptimal);
-	
 }
 
 void VKRenderer::renderPolys(vk::UniqueCommandBuffer& cmdBuf, entt::registry& reg, uint32_t imageIndex, Camera& cam) {
@@ -591,6 +590,7 @@ void VKRenderer::renderPolys(vk::UniqueCommandBuffer& cmdBuf, entt::registry& re
 	});
 
 	reg.view<Transform, ProceduralObject>().each([this, &cmdBuf, &cam](auto ent, Transform& transform, ProceduralObject& obj) {
+		if (!obj.visible) return;
 		StandardPushConstants pushConst{ glm::vec4(cam.position, 0.0f), transform.getMatrix() };
 		cmdBuf->pushConstants<StandardPushConstants>(*pipelineLayout, vk::ShaderStageFlagBits::eFragment | vk::ShaderStageFlagBits::eVertex, 0, pushConst);
 		cmdBuf->bindVertexBuffers(0, obj.vb.buffer(), vk::DeviceSize(0));
@@ -725,6 +725,23 @@ void VKRenderer::preloadMesh(AssetID id) {
 	lmd.vb = vku::VertexBuffer{ *device, memProps, vertices.size() * sizeof(Vertex) };
 	lmd.vb.upload(*device, memProps, *commandPool, device->getQueue(graphicsQueueFamilyIdx, 0), vertices);
 	loadedMeshes.insert({ id, std::move(lmd) });
+}
+
+void VKRenderer::uploadProcObj(ProceduralObject& procObj) {
+	if (procObj.vertices.size() == 0) {
+		procObj.visible = false;
+		return;
+	} else {
+		procObj.visible = true;
+	}
+	device->waitIdle();
+	auto memProps = physicalDevice.getMemoryProperties();
+	procObj.indexType = vk::IndexType::eUint32;
+	procObj.indexCount = procObj.indices.size();
+	procObj.ib = vku::IndexBuffer{ *device, memProps, procObj.indices.size() * sizeof(uint32_t) };
+	procObj.ib.upload(*device, memProps, *commandPool, device->getQueue(graphicsQueueFamilyIdx, 0), procObj.indices);
+	procObj.vb = vku::VertexBuffer{ *device, memProps, procObj.vertices.size() * sizeof(Vertex) };
+	procObj.vb.upload(*device, memProps, *commandPool, device->getQueue(graphicsQueueFamilyIdx, 0), procObj.vertices);
 }
 
 VKRenderer::~VKRenderer() {
