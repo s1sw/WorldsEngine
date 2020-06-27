@@ -147,8 +147,8 @@ void VKRenderer::setupImGUI() {
 	imguiInit.PipelineCache = *pipelineCache;
 	imguiInit.Queue = device->getQueue(graphicsQueueFamilyIdx, 0);
 	imguiInit.QueueFamily = graphicsQueueFamilyIdx;
-	imguiInit.MinImageCount = swapchain->images.size();
-	imguiInit.ImageCount = swapchain->images.size();
+	imguiInit.MinImageCount = (uint32_t)swapchain->images.size();
+	imguiInit.ImageCount = (uint32_t)swapchain->images.size();
 	ImGui_ImplVulkan_Init(&imguiInit, *imguiRenderPass);
 
 	vku::executeImmediately(*device, *commandPool, device->getQueue(graphicsQueueFamilyIdx, 0), [](vk::CommandBuffer cb) {
@@ -169,6 +169,7 @@ void VKRenderer::setupStandard() {
 	dslm.buffer(1, vk::DescriptorType::eUniformBuffer, vk::ShaderStageFlagBits::eFragment, 1);
 	dslm.buffer(2, vk::DescriptorType::eUniformBuffer, vk::ShaderStageFlagBits::eFragment, 1);
 	dslm.image(3, vk::DescriptorType::eCombinedImageSampler, vk::ShaderStageFlagBits::eFragment, 1);
+	dslm.image(4, vk::DescriptorType::eCombinedImageSampler, vk::ShaderStageFlagBits::eFragment, 1);
 
 	this->dsl = dslm.createUnique(*this->device);
 
@@ -198,6 +199,8 @@ void VKRenderer::setupStandard() {
 	updater.buffer(materialUB.buffer(), 0, sizeof(PackedMaterial));
 	updater.beginImages(3, 0, vk::DescriptorType::eCombinedImageSampler);
 	updater.image(*albedoSampler, albedoTex.imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
+	updater.beginImages(4, 0, vk::DescriptorType::eCombinedImageSampler);
+	updater.image(*albedoSampler, shadowmapImage.imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
 	updater.update(*this->device);
 
 	vku::RenderpassMaker rPassMaker;
@@ -225,6 +228,74 @@ void VKRenderer::setupStandard() {
 
 	vertexShader = vku::ShaderModule{ *this->device, "test.vert.spv" };
 	fragmentShader = vku::ShaderModule{ *this->device, "test.frag.spv" };
+}
+
+const int SHADOWMAP_RES = 2048;
+
+void VKRenderer::setupShadowPass() {
+	auto memoryProps = physicalDevice.getMemoryProperties();
+	vku::DescriptorSetLayoutMaker dslm;
+	dslm.buffer(0, vk::DescriptorType::eUniformBuffer, vk::ShaderStageFlagBits::eVertex, 1);
+	shadowmapDsl = dslm.createUnique(*device);
+
+	vku::RenderpassMaker rPassMaker;
+
+	rPassMaker.attachmentBegin(vk::Format::eD32Sfloat);
+	rPassMaker.attachmentLoadOp(vk::AttachmentLoadOp::eClear);
+	rPassMaker.attachmentStencilLoadOp(vk::AttachmentLoadOp::eDontCare);
+	rPassMaker.attachmentFinalLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
+
+	rPassMaker.subpassBegin(vk::PipelineBindPoint::eGraphics);
+	rPassMaker.subpassDepthStencilAttachment(vk::ImageLayout::eDepthStencilAttachmentOptimal, 0);
+
+	rPassMaker.dependencyBegin(VK_SUBPASS_EXTERNAL, 0);
+	rPassMaker.dependencySrcStageMask(vk::PipelineStageFlagBits::eLateFragmentTests);
+	rPassMaker.dependencyDstStageMask(vk::PipelineStageFlagBits::eLateFragmentTests);
+	rPassMaker.dependencyDstAccessMask(vk::AccessFlagBits::eDepthStencilAttachmentRead | vk::AccessFlagBits::eDepthStencilAttachmentWrite);
+
+	shadowmapPass = rPassMaker.createUnique(*device);
+
+	shadowVertexShader = vku::ShaderModule{ *device, "shadowmap.vert.spv" };
+	shadowFragmentShader = vku::ShaderModule{ *device, "shadowmap.frag.spv" };
+
+	vku::DescriptorSetMaker dsm;
+	dsm.layout(*shadowmapDsl);
+	shadowmapDescriptorSet = dsm.create(*device, *descriptorPool)[0];
+
+	vku::PipelineLayoutMaker plm{};
+	plm.descriptorSetLayout(*shadowmapDsl);
+	plm.pushConstantRange(vk::ShaderStageFlagBits::eVertex, 0, sizeof(glm::mat4));
+	shadowmapPipelineLayout = plm.createUnique(*device);
+
+	vku::PipelineMaker pm{ SHADOWMAP_RES, SHADOWMAP_RES };
+	pm.shader(vk::ShaderStageFlagBits::eFragment, shadowFragmentShader);
+	pm.shader(vk::ShaderStageFlagBits::eVertex, shadowVertexShader);
+	pm.vertexBinding(0, (uint32_t)sizeof(Vertex));
+	pm.vertexAttribute(0, 0, vk::Format::eR32G32B32Sfloat, (uint32_t)offsetof(Vertex, position));
+	pm.cullMode(vk::CullModeFlagBits::eBack);
+	pm.depthWriteEnable(true).depthTestEnable(true).depthCompareOp(vk::CompareOp::eLess);
+
+	shadowmapPipeline = pm.createUnique(*device, *pipelineCache, *shadowmapPipelineLayout, *shadowmapPass);
+
+	vk::ImageCreateInfo ici;
+	ici.arrayLayers = 1;
+	ici.extent = vk::Extent3D{ SHADOWMAP_RES, SHADOWMAP_RES, 1 };
+	ici.format = vk::Format::eD32Sfloat;
+	ici.imageType = vk::ImageType::e2D;
+	ici.initialLayout = vk::ImageLayout::eUndefined;
+	ici.mipLevels = 1;
+	ici.usage = vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eSampled;
+
+	shadowmapImage = vku::GenericImage(*device, memoryProps, ici, vk::ImageViewType::e2D, vk::ImageAspectFlagBits::eDepth, false);
+
+	std::array<vk::ImageView, 1> shadowmapAttachments = { shadowmapImage.imageView() };
+	vk::FramebufferCreateInfo fci;
+	fci.attachmentCount = shadowmapAttachments.size();
+	fci.pAttachments = shadowmapAttachments.data();
+	fci.width = fci.height = SHADOWMAP_RES;
+	fci.renderPass = *shadowmapPass;
+	fci.layers = 1;
+	shadowmapFb = device->createFramebufferUnique(fci);
 }
 
 VKRenderer::VKRenderer(SDL_Window* window, bool* success) : window(window) {
@@ -271,13 +342,13 @@ VKRenderer::VKRenderer(SDL_Window* window, bool* success) : window(window) {
 		<< "\t-Memory type count: " << memoryProps.memoryTypeCount << "\n";
 
 	vk::DeviceSize totalVram = 0;
-	for (int i = 0; i < memoryProps.memoryHeapCount; i++) {
+	for (uint32_t i = 0; i < memoryProps.memoryHeapCount; i++) {
 		auto& heap = memoryProps.memoryHeaps[i];
 		totalVram += heap.size;
 		std::cout << "Heap " << i << ": " << heap.size / 1024 / 1024 << "MB\n";
 	}
 
-	for (int i = 0; i < memoryProps.memoryTypeCount; i++) {
+	for (uint32_t i = 0; i < memoryProps.memoryTypeCount; i++) {
 		auto& memType = memoryProps.memoryTypes[i];
 		std::cout << "Memory type for heap " << memType.heapIndex << ": " << vk::to_string(memType.propertyFlags) << "\n";
 	}
@@ -371,6 +442,7 @@ VKRenderer::VKRenderer(SDL_Window* window, bool* success) : window(window) {
 
 	setupTonemapping();
 	setupImGUI();
+	setupShadowPass();
 	setupStandard();
 
 	createSCDependents();
@@ -399,6 +471,7 @@ VKRenderer::VKRenderer(SDL_Window* window, bool* success) : window(window) {
 	qpci.queryCount = 2;
 	queryPool = device->createQueryPoolUnique(qpci);
 
+
 	*success = true;
 }
 
@@ -412,6 +485,9 @@ void VKRenderer::createSCDependents() {
 
 	//createFramebuffers();
 
+	vertexShader = vku::ShaderModule{ *this->device, "test.vert.spv" };
+	fragmentShader = vku::ShaderModule{ *this->device, "test.frag.spv" };
+
 	vku::PipelineMaker pm{ this->width, this->height };
 	pm.shader(vk::ShaderStageFlagBits::eFragment, fragmentShader);
 	pm.shader(vk::ShaderStageFlagBits::eVertex, vertexShader);
@@ -420,6 +496,7 @@ void VKRenderer::createSCDependents() {
 	pm.vertexAttribute(1, 0, vk::Format::eR32G32B32Sfloat, (uint32_t)offsetof(Vertex, normal));
 	pm.vertexAttribute(2, 0, vk::Format::eR32G32B32Sfloat, (uint32_t)offsetof(Vertex, tangent));
 	pm.vertexAttribute(3, 0, vk::Format::eR32G32Sfloat, (uint32_t)offsetof(Vertex, uv));
+	pm.vertexAttribute(4, 0, vk::Format::eR32Sfloat, (uint32_t)offsetof(Vertex, ao));
 	pm.cullMode(vk::CullModeFlagBits::eBack);
 	pm.depthWriteEnable(true).depthTestEnable(true).depthCompareOp(vk::CompareOp::eLess);
 	this->pipeline = pm.createUnique(*this->device, *this->pipelineCache, *this->pipelineLayout, *this->renderPass);
@@ -557,6 +634,41 @@ void VKRenderer::doTonemap(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageIndex)
 	finalPrePresent.setCurrentLayout(vk::ImageLayout::eTransferSrcOptimal);
 }
 
+glm::vec3 shadowOffset(0.0f, 0.0f, 0.001f);
+
+void VKRenderer::renderShadowmap(vk::UniqueCommandBuffer& cmdBuf, entt::registry& reg, uint32_t imageIndex, Camera& cam) {
+	vk::ClearDepthStencilValue clearDepthValue{ 1.0f, 0 };
+	std::array<vk::ClearValue, 1> clearColours{ clearDepthValue };
+
+	vk::RenderPassBeginInfo rpbi;
+
+	rpbi.renderPass = *shadowmapPass;
+	rpbi.framebuffer = *shadowmapFb;
+	rpbi.renderArea = vk::Rect2D{ {0, 0}, {SHADOWMAP_RES, SHADOWMAP_RES} };
+	rpbi.clearValueCount = (uint32_t)clearColours.size();
+	rpbi.pClearValues = clearColours.data();
+
+	cmdBuf->beginRenderPass(rpbi, vk::SubpassContents::eInline);
+	cmdBuf->bindPipeline(vk::PipelineBindPoint::eGraphics, *shadowmapPipeline);
+	cmdBuf->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *shadowmapPipelineLayout, 0, shadowmapDescriptorSet, nullptr);
+
+	glm::vec3 shadowCamPos = glm::round(cam.position + glm::vec3(0.0f, 100.0f, 0.0f));
+	glm::mat4 view = glm::lookAt(shadowCamPos, glm::round(cam.position) + shadowOffset, glm::vec3(0.0f, 1.0f, 0.0));
+	glm::mat4 projection = glm::orthoZO(-50.0f, 50.0f, -50.0f, 50.0f, 0.1f, 1000.0f);
+
+	reg.view<Transform, ProceduralObject>().each([this, &cmdBuf, &cam, &view, &projection](auto ent, Transform& transform, ProceduralObject& obj) {
+		if (!obj.visible) return;
+		glm::mat4 model = transform.getMatrix();
+		glm::mat4 mvp = projection * view * model;
+		cmdBuf->pushConstants<glm::mat4>(*shadowmapPipelineLayout, vk::ShaderStageFlagBits::eVertex, 0, mvp);
+		cmdBuf->bindVertexBuffers(0, obj.vb.buffer(), vk::DeviceSize(0));
+		cmdBuf->bindIndexBuffer(obj.ib.buffer(), 0, obj.indexType);
+		cmdBuf->drawIndexed(obj.indexCount, 1, 0, 0, 0);
+	});
+
+	cmdBuf->endRenderPass();
+}
+
 void VKRenderer::renderPolys(vk::UniqueCommandBuffer& cmdBuf, entt::registry& reg, uint32_t imageIndex, Camera& cam) {
 	// Fast path clear values for AMD
 	std::array<float, 4> clearColorValue{ 0.0f, 0.0f, 0.0f, 1 };
@@ -638,7 +750,13 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
 	vp.projection = cam.getProjectionMatrix((float)width / (float)height);
 	LightUB lub;
 	lub.pack0.x = 1;
-	lub.lights[0] = PackedLight{ glm::vec4(1.0f, 1.0f, 1.0f, 2.0f), glm::normalize(glm::vec4(0.0f, 0.5f, 0.5f, 0.0f)), glm::vec4(0.0f, 0.0f, -0.1f, 0.0f) };
+
+	glm::vec3 shadowCamPos = glm::round(cam.position + glm::vec3(0.0f, 100.0f, 0.0f));
+	glm::mat4 view = glm::lookAt(shadowCamPos, glm::round(cam.position) + shadowOffset, glm::vec3(0.0f, 1.0f, 0.0));
+	glm::mat4 projection = glm::orthoZO(-50.0f, 50.0f, -50.0f, 50.0f, 0.1f, 1000.0f);
+	lub.shadowmapMatrix = projection * view;
+
+	lub.lights[0] = PackedLight{ glm::vec4(1.0f, 1.0f, 1.0f, 2.0f), glm::normalize(glm::vec4(0.0f, 0.0f, 1.0f, 0.0f) * view), glm::vec4(0.0f, 0.0f, -0.1f, 0.0f) };
 
 	auto& cmdBuf = cmdBufs[imageIndex];
 
@@ -660,6 +778,7 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
 		vk::DependencyFlagBits::eByRegion, vk::AccessFlagBits::eHostWrite, vk::AccessFlagBits::eUniformRead,
 		graphicsQueueFamilyIdx, graphicsQueueFamilyIdx);
 
+	renderShadowmap(cmdBuf, reg, imageIndex, cam);
 	renderPolys(cmdBuf, reg, imageIndex, cam);
 	doTonemap(cmdBuf, imageIndex);
 	

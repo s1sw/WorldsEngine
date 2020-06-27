@@ -33,6 +33,7 @@ struct PackedLight {
 
 struct LightUB {
 	glm::vec4 pack0;
+	glm::mat4 shadowmapMatrix;
 	PackedLight lights[16];
 };
 
@@ -41,6 +42,7 @@ struct Vertex {
 	glm::vec3 normal;
 	glm::vec3 tangent;
 	glm::vec2 uv;
+	float ao;
 };
 
 struct PackedMaterial {
@@ -161,6 +163,17 @@ class VKRenderer {
 	vku::GenericImage finalPrePresent;
 	vk::UniqueFramebuffer finalPrePresentFB;
 
+	// shadowmapping stuff
+	vk::UniqueRenderPass shadowmapPass;
+	vk::UniquePipeline shadowmapPipeline;
+	vk::UniquePipelineLayout shadowmapPipelineLayout;
+	vku::ShaderModule shadowVertexShader;
+	vku::ShaderModule shadowFragmentShader;
+	vk::UniqueFramebuffer shadowmapFb;
+	vku::GenericImage shadowmapImage;
+	vk::DescriptorSet shadowmapDescriptorSet;
+	vk::UniqueDescriptorSetLayout shadowmapDsl;
+
 	std::vector<vk::DescriptorSet> descriptorSets;
 	SDL_Window* window;
 	vk::UniqueQueryPool queryPool;
@@ -173,9 +186,11 @@ class VKRenderer {
 	void setupTonemapping();
 	void setupImGUI();
 	void setupStandard();
+	void setupShadowPass();
 	void presentNothing(uint32_t imageIndex);
 	void loadAlbedo();
 	void doTonemap(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageIndex);
+	void renderShadowmap(vk::UniqueCommandBuffer& cmdBuf, entt::registry& reg, uint32_t imageIndex, Camera& cam);
 	void renderPolys(vk::UniqueCommandBuffer& cmdBuf, entt::registry& reg, uint32_t imageIndex, Camera& cam);
 	void updateTonemapDescriptors();
 

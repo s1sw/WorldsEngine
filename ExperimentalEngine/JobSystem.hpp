@@ -44,7 +44,7 @@ public:
 	}
 
 	void end() {
-		startJobCount = jobs.size();
+		startJobCount = (int)jobs.size();
 		completedJobs = 0;
 		completed = false;
 	}

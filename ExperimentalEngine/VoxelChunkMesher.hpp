@@ -35,7 +35,7 @@ class VoxelChunkMesher {
 		if (side1 && side2) return 0.f;
 
 		// bools are just spicy ints
-		return 3.0f - (side1 + side2 + corner);
+		return (3.0f - (side1 + side2 + corner)) * 0.33333f;
 	}
 
 	void genBlockFaces(VoxelChunk& voxelChunk, glm::vec3 pos, std::vector<Vertex>& vertices, std::vector<uint32_t>& indices) {
@@ -56,177 +56,251 @@ class VoxelChunkMesher {
 		// Top Face
 		if (!isVoxelAt(voxelChunk, iPos.x, iPos.y + 1, iPos.z)) {
 			glm::vec3 norm = up;
+			glm::vec3 widthDir = left;
+			glm::vec3 lengthDir = backward;
 
 			// front right
 			ao.x = vertexAO(
-				isVoxelAt(voxelChunk, iPos.x + 1, iPos.y + 1, iPos.z), 
-				isVoxelAt(voxelChunk, iPos.x, iPos.y + 1, iPos.z + 1), 
-				isVoxelAt(voxelChunk, iPos.x + 1, iPos.y + 1, iPos.z + 1));
-
-			// front left
-			ao.w = vertexAO(
-				isVoxelAt(voxelChunk, iPos.x - 1, iPos.y + 1, iPos.z),
-				isVoxelAt(voxelChunk, iPos.x, iPos.y + 1, iPos.z + 1),
-				isVoxelAt(voxelChunk, iPos.x - 1, iPos.y + 1, iPos.z + 1));
-
-			// back left
-			ao.z = vertexAO(
-				isVoxelAt(voxelChunk, iPos.x - 1, iPos.y + 1, iPos.z),
-				isVoxelAt(voxelChunk, iPos.x, iPos.y + 1, iPos.z - 1),
-				isVoxelAt(voxelChunk, iPos.x - 1, iPos.y + 1, iPos.z - 1));
+				isVoxelAt(voxelChunk, pos - widthDir + norm),
+				isVoxelAt(voxelChunk, pos - lengthDir + norm),
+				isVoxelAt(voxelChunk, pos - lengthDir - widthDir + norm)
+			);
 
 			// back right
 			ao.y = vertexAO(
-				isVoxelAt(voxelChunk, iPos.x + 1, iPos.y + 1, iPos.z),
-				isVoxelAt(voxelChunk, iPos.x, iPos.y + 1, iPos.z - 1),
-				isVoxelAt(voxelChunk, iPos.x + 1, iPos.y + 1, iPos.z - 1));
+				isVoxelAt(voxelChunk, pos - widthDir + norm),
+				isVoxelAt(voxelChunk, pos + lengthDir + norm),
+				isVoxelAt(voxelChunk, pos - widthDir + lengthDir + norm)
+			);
 
-			generateFace(vertices, indices, farCorner, left, backward, up, ao * 0.33f);
+			// back left
+			ao.z = vertexAO(
+				isVoxelAt(voxelChunk, pos + widthDir + norm),
+				isVoxelAt(voxelChunk, pos + lengthDir + norm),
+				isVoxelAt(voxelChunk, pos + widthDir + lengthDir + norm)
+			);
+
+			// front left
+			ao.w = vertexAO(
+				isVoxelAt(voxelChunk, pos + widthDir + norm),
+				isVoxelAt(voxelChunk, pos - lengthDir + norm),
+				isVoxelAt(voxelChunk, pos - lengthDir + widthDir + norm)
+			);
+
+			
+
+			generateFace(vertices, indices, farCorner, left, backward, up, ao);
 		}
 
 		// Bottom Face
 		if (!isVoxelAt(voxelChunk, iPos.x, iPos.y - 1, iPos.z)) {
+			//// front right
+			//ao.z = vertexAO(
+			//	isVoxelAt(voxelChunk, iPos.x + 1, iPos.y - 1, iPos.z),
+			//	isVoxelAt(voxelChunk, iPos.x, iPos.y - 1, iPos.z + 1),
+			//	isVoxelAt(voxelChunk, iPos.x + 1, iPos.y - 1, iPos.z + 1));
+
+			//// front left
+			//ao.w = vertexAO(
+			//	isVoxelAt(voxelChunk, iPos.x - 1, iPos.y - 1, iPos.z),
+			//	isVoxelAt(voxelChunk, iPos.x, iPos.y - 1, iPos.z + 1),
+			//	isVoxelAt(voxelChunk, iPos.x - 1, iPos.y - 1, iPos.z + 1));
+
+			//// back left
+			//ao.x = vertexAO(
+			//	isVoxelAt(voxelChunk, iPos.x - 1, iPos.y - 1, iPos.z),
+			//	isVoxelAt(voxelChunk, iPos.x, iPos.y - 1, iPos.z - 1),
+			//	isVoxelAt(voxelChunk, iPos.x - 1, iPos.y - 1, iPos.z - 1));
+
+			//// back right
+			//ao.y = vertexAO(
+			//	isVoxelAt(voxelChunk, iPos.x + 1, iPos.y - 1, iPos.z),
+			//	isVoxelAt(voxelChunk, iPos.x, iPos.y - 1, iPos.z - 1),
+			//	isVoxelAt(voxelChunk, iPos.x + 1, iPos.y - 1, iPos.z - 1));
+
+			glm::vec3 norm = down;
+			glm::vec3 widthDir = forward;
+			glm::vec3 lengthDir = right;
+
 			// front right
-			ao.z = vertexAO(
-				isVoxelAt(voxelChunk, iPos.x + 1, iPos.y - 1, iPos.z),
-				isVoxelAt(voxelChunk, iPos.x, iPos.y - 1, iPos.z + 1),
-				isVoxelAt(voxelChunk, iPos.x + 1, iPos.y - 1, iPos.z + 1));
+			ao.x = vertexAO(
+				isVoxelAt(voxelChunk, pos - widthDir + norm),
+				isVoxelAt(voxelChunk, pos - lengthDir + norm),
+				isVoxelAt(voxelChunk, pos - lengthDir - widthDir + norm)
+			);
 
 			// front left
 			ao.w = vertexAO(
-				isVoxelAt(voxelChunk, iPos.x - 1, iPos.y - 1, iPos.z),
-				isVoxelAt(voxelChunk, iPos.x, iPos.y - 1, iPos.z + 1),
-				isVoxelAt(voxelChunk, iPos.x - 1, iPos.y - 1, iPos.z + 1));
+				isVoxelAt(voxelChunk, pos + widthDir + norm),
+				isVoxelAt(voxelChunk, pos - lengthDir + norm),
+				isVoxelAt(voxelChunk, pos - lengthDir + widthDir + norm)
+			);
 
 			// back left
-			ao.x = vertexAO(
-				isVoxelAt(voxelChunk, iPos.x - 1, iPos.y - 1, iPos.z),
-				isVoxelAt(voxelChunk, iPos.x, iPos.y - 1, iPos.z - 1),
-				isVoxelAt(voxelChunk, iPos.x - 1, iPos.y - 1, iPos.z - 1));
+			ao.z = vertexAO(
+				isVoxelAt(voxelChunk, pos + widthDir + norm),
+				isVoxelAt(voxelChunk, pos + lengthDir + norm),
+				isVoxelAt(voxelChunk, pos + widthDir + lengthDir + norm)
+			);
 
 			// back right
 			ao.y = vertexAO(
-				isVoxelAt(voxelChunk, iPos.x + 1, iPos.y - 1, iPos.z),
-				isVoxelAt(voxelChunk, iPos.x, iPos.y - 1, iPos.z - 1),
-				isVoxelAt(voxelChunk, iPos.x + 1, iPos.y - 1, iPos.z - 1));
+				isVoxelAt(voxelChunk, pos - widthDir + norm),
+				isVoxelAt(voxelChunk, pos + lengthDir + norm),
+				isVoxelAt(voxelChunk, pos - widthDir + lengthDir + norm)
+			);
 
-			generateFace(vertices, indices, nearCorner, forward, right, down, ao * 0.33f);
+			generateFace(vertices, indices, nearCorner, forward, right, down, ao);
 		}
 
 		// Left Face
 		if (!isVoxelAt(voxelChunk, iPos.x - 1, iPos.y, iPos.z)) {
-			// top right
+			glm::vec3 norm = left;
+			glm::vec3 widthDir = up;
+			glm::vec3 lengthDir = forward;
+
+			// front right
 			ao.x = vertexAO(
-				isVoxelAt(voxelChunk, iPos.x + 1, iPos.y, iPos.z),
-				isVoxelAt(voxelChunk, iPos.x, iPos.y + 1, iPos.z),
-				isVoxelAt(voxelChunk, iPos.x + 1, iPos.y + 1, iPos.z));
+				isVoxelAt(voxelChunk, pos - widthDir + norm),
+				isVoxelAt(voxelChunk, pos - lengthDir + norm),
+				isVoxelAt(voxelChunk, pos - lengthDir - widthDir + norm)
+			);
 
-			// top left
-			ao.y = vertexAO(
-				isVoxelAt(voxelChunk, iPos.x - 1, iPos.y, iPos.z),
-				isVoxelAt(voxelChunk, iPos.x, iPos.y + 1, iPos.z),
-				isVoxelAt(voxelChunk, iPos.x - 1, iPos.y + 1, iPos.z));
-
-			// bottom left
-			ao.z = vertexAO(
-				isVoxelAt(voxelChunk, iPos.x - 1, iPos.y, iPos.z),
-				isVoxelAt(voxelChunk, iPos.x, iPos.y - 1, iPos.z),
-				isVoxelAt(voxelChunk, iPos.x - 1, iPos.y - 1, iPos.z));
-
-			// bottom right
+			// front left
 			ao.w = vertexAO(
-				isVoxelAt(voxelChunk, iPos.x + 1, iPos.y, iPos.z),
-				isVoxelAt(voxelChunk, iPos.x, iPos.y - 1, iPos.z),
-				isVoxelAt(voxelChunk, iPos.x + 1, iPos.y - 1, iPos.z));
+				isVoxelAt(voxelChunk, pos + widthDir + norm),
+				isVoxelAt(voxelChunk, pos - lengthDir + norm),
+				isVoxelAt(voxelChunk, pos - lengthDir + widthDir + norm)
+			);
 
-			generateFace(vertices, indices, nearCorner, up, forward, left, glm::vec4(1.0f));
+			// back left
+			ao.z = vertexAO(
+				isVoxelAt(voxelChunk, pos + widthDir + norm),
+				isVoxelAt(voxelChunk, pos + lengthDir + norm),
+				isVoxelAt(voxelChunk, pos + widthDir + lengthDir + norm)
+			);
+
+			// back right
+			ao.y = vertexAO(
+				isVoxelAt(voxelChunk, pos - widthDir + norm),
+				isVoxelAt(voxelChunk, pos + lengthDir + norm),
+				isVoxelAt(voxelChunk, pos - widthDir + lengthDir + norm)
+			);
+
+			generateFace(vertices, indices, nearCorner, up, forward, left, ao);
 		}
 
 		// Right Face
 		if (!isVoxelAt(voxelChunk, iPos.x + 1, iPos.y, iPos.z)) {
+			glm::vec3 norm = right;
+			glm::vec3 widthDir = backward;
+			glm::vec3 lengthDir = down;
+
 			// front right
 			ao.x = vertexAO(
-				isVoxelAt(voxelChunk, iPos.x + 1, iPos.y, iPos.z),
-				isVoxelAt(voxelChunk, iPos.x, iPos.y, iPos.z + 1),
-				isVoxelAt(voxelChunk, iPos.x + 1, iPos.y, iPos.z + 1));
+				isVoxelAt(voxelChunk, pos - widthDir + norm),
+				isVoxelAt(voxelChunk, pos - lengthDir + norm),
+				isVoxelAt(voxelChunk, pos - lengthDir - widthDir + norm)
+			);
 
 			// front left
-			ao.y = vertexAO(
-				isVoxelAt(voxelChunk, iPos.x - 1, iPos.y, iPos.z),
-				isVoxelAt(voxelChunk, iPos.x, iPos.y, iPos.z + 1),
-				isVoxelAt(voxelChunk, iPos.x - 1, iPos.y, iPos.z + 1));
+			ao.w = vertexAO(
+				isVoxelAt(voxelChunk, pos + widthDir + norm),
+				isVoxelAt(voxelChunk, pos - lengthDir + norm),
+				isVoxelAt(voxelChunk, pos - lengthDir + widthDir + norm)
+			);
 
 			// back left
 			ao.z = vertexAO(
-				isVoxelAt(voxelChunk, iPos.x - 1, iPos.y, iPos.z),
-				isVoxelAt(voxelChunk, iPos.x, iPos.y, iPos.z - 1),
-				isVoxelAt(voxelChunk, iPos.x - 1, iPos.y, iPos.z - 1));
+				isVoxelAt(voxelChunk, pos + widthDir + norm),
+				isVoxelAt(voxelChunk, pos + lengthDir + norm),
+				isVoxelAt(voxelChunk, pos + widthDir + lengthDir + norm)
+			);
 
 			// back right
-			ao.w = vertexAO(
-				isVoxelAt(voxelChunk, iPos.x + 1, iPos.y, iPos.z),
-				isVoxelAt(voxelChunk, iPos.x, iPos.y, iPos.z - 1),
-				isVoxelAt(voxelChunk, iPos.x + 1, iPos.y, iPos.z - 1));
+			ao.y = vertexAO(
+				isVoxelAt(voxelChunk, pos - widthDir + norm),
+				isVoxelAt(voxelChunk, pos + lengthDir + norm),
+				isVoxelAt(voxelChunk, pos - widthDir + lengthDir + norm)
+			);
 
-			generateFace(vertices, indices, farCorner, backward, down, right, glm::vec4(1.0f));
+			generateFace(vertices, indices, farCorner, backward, down, right, ao);
 		}
 
 		// Front Face
 		if (!isVoxelAt(voxelChunk, iPos.x, iPos.y, iPos.z - 1)) {
-			// front right
+			glm::vec3 norm = forward;
+			glm::vec3 widthDir = right;
+			glm::vec3 lengthDir = up;
+
+			// top right
 			ao.x = vertexAO(
-				isVoxelAt(voxelChunk, iPos.x + 1, iPos.y, iPos.z),
-				isVoxelAt(voxelChunk, iPos.x, iPos.y, iPos.z + 1),
-				isVoxelAt(voxelChunk, iPos.x + 1, iPos.y, iPos.z + 1));
+				isVoxelAt(voxelChunk, pos - widthDir - norm),
+				isVoxelAt(voxelChunk, pos - lengthDir - norm),
+				isVoxelAt(voxelChunk, pos - lengthDir - widthDir - norm)
+			);
 
-			// front left
+			// top left
 			ao.y = vertexAO(
-				isVoxelAt(voxelChunk, iPos.x - 1, iPos.y, iPos.z),
-				isVoxelAt(voxelChunk, iPos.x, iPos.y, iPos.z + 1),
-				isVoxelAt(voxelChunk, iPos.x - 1, iPos.y, iPos.z + 1));
+				isVoxelAt(voxelChunk, pos - widthDir - norm),
+				isVoxelAt(voxelChunk, pos + lengthDir - norm),
+				isVoxelAt(voxelChunk, pos + lengthDir - widthDir - norm)
+			);
 
-			// back left
+			// bottom left
 			ao.z = vertexAO(
-				isVoxelAt(voxelChunk, iPos.x - 1, iPos.y, iPos.z),
-				isVoxelAt(voxelChunk, iPos.x, iPos.y, iPos.z - 1),
-				isVoxelAt(voxelChunk, iPos.x - 1, iPos.y, iPos.z - 1));
+				isVoxelAt(voxelChunk, pos + widthDir - norm),
+				isVoxelAt(voxelChunk, pos + lengthDir - norm),
+				isVoxelAt(voxelChunk, pos + lengthDir + widthDir - norm)
+			);
 
-			// back right
+			// bottom right
 			ao.w = vertexAO(
-				isVoxelAt(voxelChunk, iPos.x + 1, iPos.y, iPos.z),
-				isVoxelAt(voxelChunk, iPos.x, iPos.y, iPos.z - 1),
-				isVoxelAt(voxelChunk, iPos.x + 1, iPos.y, iPos.z - 1));
+				isVoxelAt(voxelChunk, pos + widthDir - norm),
+				isVoxelAt(voxelChunk, pos - lengthDir - norm),
+				isVoxelAt(voxelChunk, pos - lengthDir + widthDir - norm)
+			);
 
-			generateFace(vertices, indices, nearCorner, right, up, forward, glm::vec4(1.0f));
+			generateFace(vertices, indices, nearCorner, right, up, forward, ao * 0.3f);
 		}
 
 		// Back Face
 		if (!isVoxelAt(voxelChunk, iPos.x, iPos.y, iPos.z + 1)) {
-			// front right
+			glm::vec3 norm = backward;
+			glm::vec3 widthDir = down;
+			glm::vec3 lengthDir = left;
+
+			// top right
 			ao.x = vertexAO(
-				isVoxelAt(voxelChunk, iPos.x + 1, iPos.y, iPos.z),
-				isVoxelAt(voxelChunk, iPos.x, iPos.y, iPos.z + 1),
-				isVoxelAt(voxelChunk, iPos.x + 1, iPos.y, iPos.z + 1));
+				isVoxelAt(voxelChunk, pos + right - norm),
+				isVoxelAt(voxelChunk, pos + up - norm),
+				isVoxelAt(voxelChunk, pos + right + up - norm)
+			);
 
-			// front left
+			// top left
 			ao.y = vertexAO(
-				isVoxelAt(voxelChunk, iPos.x - 1, iPos.y, iPos.z),
-				isVoxelAt(voxelChunk, iPos.x, iPos.y, iPos.z + 1),
-				isVoxelAt(voxelChunk, iPos.x - 1, iPos.y, iPos.z + 1));
+				isVoxelAt(voxelChunk, pos + left - norm),
+				isVoxelAt(voxelChunk, pos + up - norm),
+				isVoxelAt(voxelChunk, pos + left + up - norm)
+			);
 
-			// back left
+			// bottom left
 			ao.z = vertexAO(
-				isVoxelAt(voxelChunk, iPos.x - 1, iPos.y, iPos.z),
-				isVoxelAt(voxelChunk, iPos.x, iPos.y, iPos.z - 1),
-				isVoxelAt(voxelChunk, iPos.x - 1, iPos.y, iPos.z - 1));
+				isVoxelAt(voxelChunk, pos + left - norm),
+				isVoxelAt(voxelChunk, pos + down - norm),
+				isVoxelAt(voxelChunk, pos + left + down - norm)
+			);
 
-			// back right
+			// bottom right
 			ao.w = vertexAO(
-				isVoxelAt(voxelChunk, iPos.x + 1, iPos.y, iPos.z),
-				isVoxelAt(voxelChunk, iPos.x, iPos.y, iPos.z - 1),
-				isVoxelAt(voxelChunk, iPos.x + 1, iPos.y, iPos.z - 1));
+				isVoxelAt(voxelChunk, pos + right - norm),
+				isVoxelAt(voxelChunk, pos + down - norm),
+				isVoxelAt(voxelChunk, pos + right + down - norm)
+			);
 
-			generateFace(vertices, indices, farCorner, down, left, backward, glm::vec4(1.0f));
+			// vertex order is top right, top left, bottom left, bottom right
+
+			generateFace(vertices, indices, farCorner, down, left, backward, ao * 0.33f);
 		}
 	}
 

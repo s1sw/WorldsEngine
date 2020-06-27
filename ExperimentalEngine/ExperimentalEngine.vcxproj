@@ -115,7 +115,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NOMINMAX;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>GLM_DEPTH_ZERO_TO_ONE;NOMINMAX;_DEBUG;_CONSOLE;NOISE_STATIC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>C:\VulkanSDK\1.2.131.2\Include</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
@@ -133,7 +133,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;NOMINMAX;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>GLM_DEPTH_ZERO_TO_ONE;NDEBUG;NOMINMAX;NOISE_STATIC;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>C:\VulkanSDK\1.2.131.2\Include</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
@@ -152,6 +152,7 @@
     <ClCompile Include="glad.c" />
     <ClCompile Include="imgui_impl_sdl.cpp" />
     <ClCompile Include="imgui_impl_vulkan.cpp" />
+    <ClCompile Include="Input.cpp" />
     <ClCompile Include="JobSystem.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="physfs.cpp" />
@@ -162,18 +163,23 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AssetDB.hpp" />
+    <ClInclude Include="ChunkGenerator.hpp" />
     <ClInclude Include="Engine.hpp" />
     <ClInclude Include="glad\glad.h" />
     <ClInclude Include="imgui_impl_sdl.h" />
     <ClInclude Include="imgui_impl_vulkan.h" />
+    <ClInclude Include="Input.hpp" />
     <ClInclude Include="JobSystem.hpp" />
     <ClInclude Include="KHR\khrplatform.h" />
     <ClInclude Include="physfs.hpp" />
     <ClInclude Include="Physics.hpp" />
+    <ClInclude Include="PhysicsActor.hpp" />
     <ClInclude Include="RendererComponents.hpp" />
     <ClInclude Include="tiny_obj_loader.h" />
     <ClInclude Include="Transform.hpp" />
     <ClInclude Include="vku\vku.hpp" />
+    <ClInclude Include="VoxelChunk.hpp" />
+    <ClInclude Include="VoxelChunkMesher.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

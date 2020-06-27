@@ -23,8 +23,9 @@ Swapchain::Swapchain(
 	vk::Device& device,
 	vk::SurfaceKHR& surface,
 	QueueFamilyIndices qfi,
-	vk::SwapchainKHR oldSwapchain) :
-	device(device) {
+	vk::SwapchainKHR oldSwapchain) 
+	: device(device)
+	, format(vk::Format::eUndefined) {
 
 	auto surfaceFormat = findSurfaceFormat(physicalDevice, surface);
 
@@ -34,8 +35,8 @@ Swapchain::Swapchain(
 
 	auto pms = physicalDevice.getSurfacePresentModesKHR(surface);
 	vk::PresentModeKHR presentMode = pms[0];
-	if (std::find(pms.begin(), pms.end(), vk::PresentModeKHR::eFifo) != pms.end()) {
-		presentMode = vk::PresentModeKHR::eFifo;
+	if (std::find(pms.begin(), pms.end(), vk::PresentModeKHR::eImmediate) != pms.end()) {
+		presentMode = vk::PresentModeKHR::eImmediate;
 	} else {
 		std::cout << "No FIFO mode available\n";
 		return;

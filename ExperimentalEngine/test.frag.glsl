@@ -3,10 +3,11 @@
 
 layout(location = 0) out vec4 FragColor;
 
-layout(location = 0) in vec3 inWorldPos;
+layout(location = 0) in vec4 inWorldPos;
 layout(location = 1) in vec3 inNormal;
 layout(location = 2) in vec3 inTangent;
 layout(location = 3) in vec2 inUV;
+layout(location = 4) in float inAO;
 
 const int LT_POINT = 0;
 const int LT_SPOT = 1;
@@ -23,6 +24,7 @@ struct Light {
 
 layout(std140, binding = 1) uniform LightBuffer {
 	vec4 pack0;
+	mat4 shadowmapMatrix;
 	Light lights[16];
 };
 
@@ -34,6 +36,7 @@ layout(std140, binding = 2) uniform MaterialSettingsBuffer {
 } Material;
 
 layout (binding = 3) uniform sampler2D albedoSampler;
+layout (binding = 4) uniform sampler2D shadowSampler;
 
 layout(push_constant) uniform PushConstants {
 	vec4 viewPos;
@@ -62,6 +65,7 @@ float GeometrySchlickGGX(float NdotV, float roughness) {
 
     return num / denom;
 }
+
 float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness) {
     float NdotV = max(dot(N, V), 0.0f);
     float NdotL = max(dot(N, L), 0.0f);
@@ -106,15 +110,15 @@ vec3 calculateLighting(int lightIdx, vec3 viewDir, vec3 f0, float metallic, floa
 	vec3 lightPos = light.pack2.xyz;
 	
     if (lightType == LT_POINT) {
-        L = lightPos - inWorldPos;
+        L = lightPos - inWorldPos.xyz;
         // dot(L, L) = length(L) squared
         radiance *= 1.0 / dot(L, L);
     } else if (lightType == LT_SPOT) {
-        L = normalize(lightPos - inWorldPos);
+        L = normalize(lightPos - inWorldPos.xyz);
         float theta = dot(L, normalize(light.pack1.xyz));
         float cutoff = light.pack1.w;
         float outerCutoff = cutoff - 0.02f;
-        vec3 lToFrag = lightPos - inWorldPos;
+        vec3 lToFrag = lightPos - inWorldPos.xyz;
         radiance *= clamp((theta - outerCutoff) / (cutoff - outerCutoff), 0.0f, 1.0f) * (1.0 / dot(lToFrag, lToFrag));
     } else {
         L = light.pack1.xyz;
@@ -142,7 +146,7 @@ vec3 calculateLighting(int lightIdx, vec3 viewDir, vec3 f0, float metallic, floa
     vec3 specular = numerator / max(denominator, 0.001f);
 
     vec3 diffuse = kd;
-    vec3 lPreShadow = (specular + diffuse) * radiance * cosLi;
+    vec3 lPreShadow = (specular + diffuse) * (radiance * cosLi);
 
 	/*
     if (shadowmapSizeCorners[lightIdx].x > 0.01f && type != LT_DIRECTIONAL) {
@@ -160,6 +164,7 @@ vec3 calculateLighting(int lightIdx, vec3 viewDir, vec3 f0, float metallic, floa
 
 void main() {
 	//FragColor = vec4(1.0);
+	//FragColor = vec4(vec3(inAO), 1.0);
 	//return;
 	
 	//vec3 col = vec3(dot(inNormal, viewDir));
@@ -171,15 +176,32 @@ void main() {
 	float roughness = Material.pack0.y;
 	vec3 albedoColor = Material.pack1.rgb;
 	
-	vec3 viewDir = normalize(viewPos.xyz - inWorldPos);
+	vec3 viewDir = normalize(viewPos.xyz - inWorldPos.xyz);
 	
 	vec3 f0 = vec3(0.04f, 0.04f, 0.04f);
     f0 = mix(f0, albedoColor, metallic);
-	vec3 lo = vec3(0.05);//calculateLighting(0, f0, metallic, roughness);
+	vec3 lo = vec3(0.05) * inAO;//calculateLighting(0, f0, metallic, roughness);
 	//lo += vec3(0.1);
 	
+	vec4 lightspacePos = shadowmapMatrix * inWorldPos;
     for (int i = 0; i < lightCount; i++) {
-		lo += calculateLighting(i, viewDir, f0, metallic, roughness);
+		vec3 cLighting = calculateLighting(i, viewDir, f0, metallic, roughness);
+		//vec3 cLighting = vec3(1.0);
+		if (i == 0) {
+			float depth = (lightspacePos.z / lightspacePos.w) - 0.005;
+			vec2 texReadPoint = (lightspacePos.xy * 0.5 + 0.5);
+			
+			if (texReadPoint.x > 0.0 && texReadPoint.x < 1.0 && texReadPoint.y > 0.0 && texReadPoint.y < 1.0 && depth < 1.0 && depth > 0.0) {
+				texReadPoint.y = 1.0 - texReadPoint.y;
+				float readDepth = texture(shadowSampler, texReadPoint).x;
+				if (depth > readDepth)
+					cLighting *= 0.0;
+			} //else {
+				//cLighting = vec3(0.0);
+				//lo = vec3(1.0, 0.0, 0.2);
+			//}
+		}
+		lo += cLighting;
 	}
 	
 	// TODO: Ambient stuff - specular cubemaps + irradiance
