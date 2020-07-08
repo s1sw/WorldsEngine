@@ -1,3 +1,4 @@
+#include "PCH.hpp"
 #define SDL_MAIN_HANDLED
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_vulkan.h>
@@ -18,11 +19,17 @@
 #include "ChunkGenerator.hpp"
 #include "PhysicsActor.hpp"
 #include <execution>
+#include <glm/gtx/norm.hpp>
+#include <physx/PxQueryReport.h>
 
 AssetDB g_assetDB;
 
 #undef min
 #undef max
+
+struct DroppedBlockComponent {
+	unsigned char blockId;
+};
 
 template<typename... Args> void logErr(const char* fmt, Args... args) {
 	SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, fmt, args...);
@@ -143,10 +150,12 @@ int windowThread(void* data) {
 	return 0;
 }
 
-void createModelObject(entt::registry& reg, glm::vec3 position, glm::quat rotation, AssetID meshId) {
+entt::entity createModelObject(entt::registry& reg, glm::vec3 position, glm::quat rotation, AssetID meshId, glm::vec4 texScaleOffset = glm::vec4(1.0f, 1.0f, 0.0f, 0.0f)) {
 	auto ent = reg.create();
 	auto& transform = reg.emplace<Transform>(ent, position, rotation);
 	auto& worldObject = reg.emplace<WorldObject>(ent, 0, meshId);
+	worldObject.texScaleOffset = texScaleOffset;
+	return ent;
 }
 
 void updateChunkCollisions(physx::PxRigidActor* voxelActor, VoxelChunk& voxChunk, physx::PxMaterial* mat) {
@@ -261,36 +270,48 @@ void engine(char* argv0) {
 	createModelObject(registry, glm::vec3(0.0f), glm::quat(), modelId);
 	createModelObject(registry, glm::vec3(3.0f, 0.0f, 0.0f), glm::quat(), monkeyId);*/
 
+	AssetID droppedObjectID = g_assetDB.addAsset("droppeditem.obj");
+	renderer.preloadMesh(droppedObjectID);
+
 	initPhysx();
 
 	SDL_SetRelativeMouseMode(SDL_TRUE);
 	std::memcpy(reinterpret_cast<void*>(lastState), state, SDL_NUM_SCANCODES);
 
-	physx::PxMaterial* mat = g_physics->createMaterial(0.5f, 0.5f, 0.1f);
+	physx::PxMaterial* mat = g_physics->createMaterial(0.75f, 0.75f, 0.05f);
 
-	auto& voxJobList = jobSystem.getFreeJobList();
-	voxJobList.begin();
+	for (int x = -2; x < 2; x++)
+		for (int y = -4; y < 2; y++) {
+				for (int z = -2; z < 2; z++) {
+					auto voxEnt = registry.create();
+					registry.emplace<Transform>(voxEnt).position = glm::vec3(x * 15.0f, y * 15.0f, z * 15.0f);
+					auto& voxChunk = registry.emplace<VoxelChunk>(voxEnt);
+					voxChunk.dirty = true;
+					auto& procObj = registry.emplace<ChunkRenderObject>(voxEnt);
+				}
+		}
 
+	ChunkGenerator cg;
 
-	for (int x = -3; x < 3; x++)
-		for (int y = -3; y < 3; y++)
-			for (int z = -3; z < 3; z++) {
-				auto voxEnt = registry.create();
-				registry.emplace<Transform>(voxEnt).position = glm::vec3(x * 15.0f, y * 15.0f, z * 15.0f);
-				auto& voxChunk = registry.emplace<VoxelChunk>(voxEnt);
-				ChunkGenerator().fillChunk(voxChunk, glm::vec3(x * 16.0f, y * 16.0f, z * 16.0f));
-				voxChunk.dirty = true;
-				auto& procObj = registry.emplace<ProceduralObject>(voxEnt);
-				VoxelChunkMesher().updateVoxelChunk(voxChunk, procObj);
-				renderer.uploadProcObj(procObj);
-				physx::PxRigidActor* voxelActor = static_cast<physx::PxRigidActor*>(g_physics->createRigidStatic(physx::PxTransform(x * 15.0f, y * 15.0f, z * 15.0f)));
-				updateChunkCollisions(voxelActor, voxChunk, mat);
-				registry.emplace<PhysicsActor>(voxEnt, voxelActor);
+	auto view = registry.view<VoxelChunk, ChunkRenderObject, Transform>();
+	std::for_each(std::execution::par_unseq, view.begin(), view.end(), [&registry, &renderer, view, &cg](entt::entity ent) {
+		auto [voxChunk, procObj, tf] = view.get<VoxelChunk, ChunkRenderObject, Transform>(ent);
+		voxChunk.dirty = true;
+		cg.fillChunk(voxChunk, tf.position);
 
-				voxelActor->userData = (void*)voxEnt;
-				g_scene->addActor(*voxelActor);
-			}
-	
+		VoxelChunkMesher().updateVoxelChunk(voxChunk, procObj);
+		procObj.readyForUpload = true;
+		procObj.uploaded = false;
+	});
+
+	registry.view<ChunkRenderObject, VoxelChunk, Transform>().each([&renderer, &registry, &mat](entt::entity voxEnt, ChunkRenderObject& procObj, VoxelChunk& voxChunk, Transform& transform) {
+		renderer.uploadChunkObj(procObj);
+		physx::PxRigidActor* voxelActor = static_cast<physx::PxRigidActor*>(g_physics->createRigidStatic(physx::PxTransform(glm2Px(transform.position))));
+		updateChunkCollisions(voxelActor, voxChunk, mat);
+		registry.emplace<PhysicsActor>(voxEnt, voxelActor);
+		voxelActor->userData = (void*)voxEnt;
+		g_scene->addActor(*voxelActor);
+	});
 
 	while (running) {
 		uint64_t now = SDL_GetPerformanceCounter();
@@ -320,9 +341,22 @@ void engine(char* argv0) {
 
 		simulate((float)deltaTime);
 
+		registry.view<DynamicPhysicsActor, Transform>().each([](auto ent, DynamicPhysicsActor& dpa, Transform& transform) {
+			auto pose = dpa.actor->getGlobalPose();
+			transform.position = px2glm(pose.p);
+			transform.rotation = px2glm(pose.q);
+		});
+
+		static int placedBlock = 1;
+
+		if (ImGui::Begin("Testing")) {
+			ImGui::InputInt("Placed block ID", &placedBlock);
+		}
+		ImGui::End();
+
 		physx::PxRaycastBuffer hit;
 		if (inputManager.mouseButtonPressed(MouseButton::Left)) {
-			if (g_scene->raycast(glm2Px(cam.position), glm2Px(cam.rotation * glm::vec3(0.0f, 0.0f, 1.0f)), 10.0f, hit)) {
+			if (g_scene->raycast(glm2Px(cam.position), glm2Px(cam.rotation * glm::vec3(0.0f, 0.0f, 1.0f)), 10.0f, hit) && registry.has<VoxelChunk>((entt::entity)(uint32_t)hit.block.actor->userData)) {
 				auto& voxChunk = registry.get<VoxelChunk>((entt::entity)(uint32_t)hit.block.actor->userData);
 
 				physx::PxTransform localPose = hit.block.shape->getLocalPose();
@@ -330,19 +364,32 @@ void engine(char* argv0) {
 				pos = glm::floor(pos);
 
 				if (pos.x >= 0 && pos.y >= 0 && pos.z >= 0 && pos.x <= 15 && pos.y <= 15 && pos.z <= 15) {
+					unsigned char oldBlock = voxChunk.data[(int)pos.x][(int)pos.y][(int)pos.z];
 					voxChunk.data[(int)pos.x][(int)pos.y][(int)pos.z] = 0;
 					voxChunk.dirty = true;
-					auto& procObj = registry.get<ProceduralObject>((entt::entity)(uint32_t)hit.block.actor->userData);
+					auto& procObj = registry.get<ChunkRenderObject>((entt::entity)(uint32_t)hit.block.actor->userData);
 
 					updateChunkCollisions(hit.block.actor, voxChunk, mat);
 
 
 					VoxelChunkMesher().updateVoxelChunk(voxChunk, procObj);
-					renderer.uploadProcObj(procObj);
+					renderer.uploadChunkObj(procObj);
+					// spawn dropped obj
+					{
+						auto ent = createModelObject(registry, px2glm(hit.block.position + hit.block.normal * 0.25f), glm::quat(), droppedObjectID, glm::vec4(0.0625f, 0.0625f, 0.0625f * oldBlock, 0.0f));
+						physx::PxRigidDynamic* voxelActor = g_physics->createRigidDynamic(physx::PxTransform(hit.block.position + hit.block.normal * 0.25f));
+						voxelActor->userData = (void*)ent;
+						physx::PxShape* shape = physx::PxRigidActorExt::createExclusiveShape(*voxelActor, physx::PxBoxGeometry(physx::PxVec3(0.15f)), *mat);
+						g_scene->addActor(*voxelActor);
+						physx::PxRigidBodyExt::updateMassAndInertia(*voxelActor, 10.0f);
+						registry.emplace<DynamicPhysicsActor>(ent, voxelActor);
+						registry.emplace<DroppedBlockComponent>(ent, DroppedBlockComponent{ oldBlock });
+						voxelActor->addForce(hit.block.normal, physx::PxForceMode::eIMPULSE);
+					}
 				}
 			}
 		} else if (inputManager.mouseButtonPressed(MouseButton::Right)) {
-			if (g_scene->raycast(glm2Px(cam.position), glm2Px(cam.rotation * glm::vec3(0.0f, 0.0f, 1.0f)), 10.0f, hit)) {
+			if (g_scene->raycast(glm2Px(cam.position), glm2Px(cam.rotation * glm::vec3(0.0f, 0.0f, 1.0f)), 10.0f, hit) && registry.has<VoxelChunk>((entt::entity)(uint32_t)hit.block.actor->userData)) {
 				auto& voxChunk = registry.get<VoxelChunk>((entt::entity)(uint32_t)hit.block.actor->userData);
 
 				physx::PxTransform localPose = hit.block.shape->getLocalPose();
@@ -350,14 +397,14 @@ void engine(char* argv0) {
 				pos = glm::floor(pos);
 
 				if (pos.x >= 0 && pos.y >= 0 && pos.z >= 0 && pos.x <= 15 && pos.y <= 15 && pos.z <= 15) {
-					voxChunk.data[(int)pos.x][(int)pos.y][(int)pos.z] = 1;
+					voxChunk.data[(int)pos.x][(int)pos.y][(int)pos.z] = placedBlock;
 					voxChunk.dirty = true;
-					auto& procObj = registry.get<ProceduralObject>((entt::entity)(uint32_t)hit.block.actor->userData);
+					auto& procObj = registry.get<ChunkRenderObject>((entt::entity)(uint32_t)hit.block.actor->userData);
 
 					updateChunkCollisions(hit.block.actor, voxChunk, mat);
 
 					VoxelChunkMesher().updateVoxelChunk(voxChunk, procObj);
-					renderer.uploadProcObj(procObj);
+					renderer.uploadChunkObj(procObj);
 				}
 			}
 		}
@@ -382,27 +429,27 @@ void engine(char* argv0) {
 				cg.setLacunarity(lacunarity);
 				cg.setPersistence(persistence);
 
-				auto view = registry.view<VoxelChunk, ProceduralObject, Transform>();
+				auto view = registry.view<VoxelChunk, ChunkRenderObject, Transform>();
 				std::for_each(std::execution::par_unseq, view.begin(), view.end(), [&registry, &renderer, view, &cg](entt::entity ent) {
-					auto [voxChunk, procObj, tf] = view.get<VoxelChunk, ProceduralObject, Transform>(ent);
+					auto [voxChunk, procObj, tf] = view.get<VoxelChunk, ChunkRenderObject, Transform>(ent);
 					voxChunk.dirty = true;
-					cg.fillChunk(voxChunk, (tf.position / 15.0f) * 16.0f);
+					cg.fillChunk(voxChunk, tf.position);
 
 					VoxelChunkMesher().updateVoxelChunk(voxChunk, procObj);
 					procObj.readyForUpload = true;
 					procObj.uploaded = false;
 				});
 
-				registry.view<ProceduralObject, VoxelChunk, PhysicsActor>().each([&renderer, mat](entt::entity ent, ProceduralObject& procObj, VoxelChunk& voxChunk, PhysicsActor& physAct) {
+				registry.view<ChunkRenderObject, VoxelChunk, PhysicsActor>().each([&renderer, mat](entt::entity ent, ChunkRenderObject& procObj, VoxelChunk& voxChunk, PhysicsActor& physAct) {
 					updateChunkCollisions(physAct.actor, voxChunk, mat);
-					renderer.uploadProcObj(procObj);
+					renderer.uploadChunkObj(procObj);
 				});
 			}
 		}
 		ImGui::End();
 
 		glm::vec3 prevPos = cam.position;
-		float moveSpeed = 1.5f;
+		float moveSpeed = 5.0f;
 
 		if (state[SDL_SCANCODE_LSHIFT])
 			moveSpeed *= 2.0f;
@@ -430,12 +477,33 @@ void engine(char* argv0) {
 		if (state[SDL_SCANCODE_LCTRL]) {
 			cam.position -= cam.rotation * glm::vec3(0.0f, deltaTime * moveSpeed, 0.0f);
 		}
+		
+		{
+			physx::PxOverlapBuffer overlapBuf{};
+			physx::PxQueryFilterData filterData;
+			filterData.flags |= physx::PxQueryFlag::eANY_HIT;
+			if (g_scene->overlap(physx::PxSphereGeometry(0.05f), physx::PxTransform(cam.position.x, cam.position.y, cam.position.z), overlapBuf, filterData)) {
+				cam.position = prevPos;
+			}
+		}
 
-		physx::PxOverlapBuffer overlapBuf{};
-		physx::PxQueryFilterData filterData;
-		filterData.flags |= physx::PxQueryFlag::eANY_HIT;
-		if (g_scene->overlap(physx::PxSphereGeometry(0.05f), physx::PxTransform(cam.position.x, cam.position.y, cam.position.z), overlapBuf, filterData)) {
-			cam.position = prevPos;
+		{
+			physx::PxOverlapHit hits[16];
+			physx::PxOverlapBuffer overlapBuf{hits, 16};
+			physx::PxQueryFilterData filterData;
+			filterData.flags = physx::PxQueryFlag::eDYNAMIC | physx::PxQueryFlag::eNO_BLOCK;
+			if (g_scene->overlap(physx::PxSphereGeometry(1.0f), physx::PxTransform(cam.position.x, cam.position.y, cam.position.z), overlapBuf, filterData)) {
+				uint32_t numTouches = overlapBuf.getNbTouches();
+				for (int i = 0; i < numTouches; i++) {
+					auto& touch = overlapBuf.getTouch(i);
+					auto ent = (entt::entity)(uint32_t)touch.actor->userData;
+					if (registry.has<DroppedBlockComponent>(ent)) {
+						g_scene->removeActor(*touch.actor);
+						touch.actor->release();
+						registry.destroy(ent);
+					}
+				}
+			}
 		}
 
 		if (state[SDL_SCANCODE_RCTRL] && !lastState[SDL_SCANCODE_RCTRL]) {
@@ -483,18 +551,25 @@ void engine(char* argv0) {
 			SDL_UnlockMutex(sdlEventMutex);
 		}
 
+		glm::vec3 camPos = cam.position;
+
+		registry.sort<ProceduralObject>([&registry, &camPos](entt::entity a, entt::entity b) -> bool {
+			auto& aTransform = registry.get<Transform>(a);
+			auto& bTransform = registry.get<Transform>(b);
+			return glm::distance2(camPos, aTransform.position) < glm::distance2(camPos, aTransform.position);
+		}, entt::insertion_sort{});
+
 		struct RenderFrameJobData {
 			Camera& cam;
 			VKRenderer& renderer;
 			entt::registry& registry;
 		};
-		RenderFrameJobData rfjd{ cam, renderer, registry };
+
 		auto& jobList = jobSystem.getFreeJobList();
 		jobList.begin();
-		jobList.addJob(Job([](void* data) {
-			RenderFrameJobData rfjd = *reinterpret_cast<RenderFrameJobData*>(data);
-			rfjd.renderer.frame(rfjd.cam, rfjd.registry);
-		}, &rfjd));
+		jobList.addJob(Job([&renderer, &cam, &registry]() {
+			renderer.frame(cam, registry);
+		}));
 		jobList.end();
 		jobSystem.signalJobListAvailable();
 		jobSystem.completeFrameJobs();

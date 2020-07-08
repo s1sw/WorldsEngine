@@ -119,6 +119,8 @@
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>C:\VulkanSDK\1.2.131.2\Include</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <PrecompiledHeader>Create</PrecompiledHeader>
+      <PrecompiledHeaderFile>PCH.hpp</PrecompiledHeaderFile>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -137,6 +139,8 @@
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>C:\VulkanSDK\1.2.131.2\Include</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <PrecompiledHeader>Create</PrecompiledHeader>
+      <PrecompiledHeaderFile>PCH.hpp</PrecompiledHeaderFile>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -149,7 +153,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="AssetDB.cpp" />
-    <ClCompile Include="glad.c" />
     <ClCompile Include="imgui_impl_sdl.cpp" />
     <ClCompile Include="imgui_impl_vulkan.cpp" />
     <ClCompile Include="Input.cpp" />
@@ -165,12 +168,11 @@
     <ClInclude Include="AssetDB.hpp" />
     <ClInclude Include="ChunkGenerator.hpp" />
     <ClInclude Include="Engine.hpp" />
-    <ClInclude Include="glad\glad.h" />
     <ClInclude Include="imgui_impl_sdl.h" />
     <ClInclude Include="imgui_impl_vulkan.h" />
     <ClInclude Include="Input.hpp" />
     <ClInclude Include="JobSystem.hpp" />
-    <ClInclude Include="KHR\khrplatform.h" />
+    <ClInclude Include="PCH.hpp" />
     <ClInclude Include="physfs.hpp" />
     <ClInclude Include="Physics.hpp" />
     <ClInclude Include="PhysicsActor.hpp" />

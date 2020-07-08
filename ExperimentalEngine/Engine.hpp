@@ -1,17 +1,15 @@
 #pragma once
+#include "PCH.hpp"
 #include <SDL2/SDL.h>
-#include "vku/vku.hpp"
-#include <glm/glm.hpp>
-#include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <imgui.h>
 #include "AssetDB.hpp"
-#include <entt/entt.hpp>
 
 struct WorldObject {
-	WorldObject(AssetID material, AssetID mesh) : material(material), mesh(mesh) {}
+	WorldObject(AssetID material, AssetID mesh) : material(material), mesh(mesh), texScaleOffset(1.0f, 1.0f, 0.0f, 0.0f) {}
 	AssetID material;
 	AssetID mesh;
+	glm::vec4 texScaleOffset;
 };
 
 struct MVP {
@@ -23,6 +21,8 @@ struct MVP {
 struct VP {
 	glm::mat4 view;
 	glm::mat4 projection;
+	glm::mat4 viewLast;
+	glm::mat4 projLast;
 };
 
 struct PackedLight {
@@ -45,6 +45,13 @@ struct Vertex {
 	float ao;
 };
 
+struct ChunkVertex {
+	uint32_t packedXYZ;
+	uint32_t packedNormCorner;
+	float ao;
+	uint32_t texId;
+};
+
 struct PackedMaterial {
 	glm::vec4 pack0;
 	glm::vec4 pack1;
@@ -53,9 +60,22 @@ struct PackedMaterial {
 struct ProceduralObject {
 	ProceduralObject() : uploaded(false), readyForUpload(false), visible(true) {}
 	AssetID material;
-	// Behind-the-scenes Vulkan stuff handled
-	// by procedural mesh creator
+
 	std::vector<Vertex> vertices;
+	std::vector<uint32_t> indices;
+	bool uploaded;
+	bool readyForUpload;
+	bool visible;
+	vku::VertexBuffer vb;
+	vku::IndexBuffer ib;
+	uint32_t indexCount;
+	vk::IndexType indexType;
+};
+
+struct ChunkRenderObject {
+	ChunkRenderObject() : uploaded(false), readyForUpload(false), visible(true) {}
+
+	std::vector<ChunkVertex> vertices;
 	std::vector<uint32_t> indices;
 	bool uploaded;
 	bool readyForUpload;
@@ -137,6 +157,7 @@ class VKRenderer {
 	vk::UniqueCommandPool commandPool;
 	std::vector<vk::UniqueCommandBuffer> cmdBufs;
 	std::vector<vk::Fence> cmdBufferFences;
+	VmaAllocator allocator;
 	
 	// stuff related to standard geometry rendering
 	vku::DepthStencilImage depthStencilImage;
@@ -147,12 +168,24 @@ class VKRenderer {
 	vku::UniformBuffer vpUB;
 	vku::UniformBuffer lightsUB;
 	vku::UniformBuffer materialUB;
+	vku::UniformBuffer modelMatrixUB;
 	vku::TextureImage2D albedoTex;
 	vku::ShaderModule fragmentShader;
 	vku::ShaderModule vertexShader;
 	vk::UniqueSampler albedoSampler;
+	vk::UniqueSampler shadowSampler;
 	vk::UniqueFramebuffer renderFb;
 	vku::GenericImage polyImage;
+	vku::GenericImage motionVectorImage;
+
+	// voxel chunk specific pipeline
+	vk::UniquePipeline chunkPipeline;
+	vk::UniquePipelineLayout chunkPipelineLayout;
+	vku::ShaderModule chunkVS;
+	vku::ShaderModule chunkShadowVS;
+	vku::ShaderModule chunkFS;
+	vk::UniquePipelineLayout shadowmapChunkPipelineLayout;
+	vk::UniquePipeline shadowmapChunkPipeline;
 
 	// tonemap related stuff
 	vku::ShaderModule tonemapShader;
@@ -161,6 +194,7 @@ class VKRenderer {
 	vk::UniquePipelineLayout tonemapPipelineLayout;
 	vk::DescriptorSet tonemapDescriptorSet;
 	vku::GenericImage finalPrePresent;
+	vku::GenericImage lastFrame;
 	vk::UniqueFramebuffer finalPrePresentFB;
 
 	// shadowmapping stuff
@@ -186,6 +220,7 @@ class VKRenderer {
 	void setupTonemapping();
 	void setupImGUI();
 	void setupStandard();
+	void setupChunk();
 	void setupShadowPass();
 	void presentNothing(uint32_t imageIndex);
 	void loadAlbedo();
@@ -195,6 +230,9 @@ class VKRenderer {
 	void updateTonemapDescriptors();
 
 	std::unordered_map<AssetID, LoadedMeshData> loadedMeshes;
+	glm::mat4 lastView;
+	glm::mat4 lastProj;
+	int frameIdx;
 
 public:
 	double time;
@@ -203,6 +241,8 @@ public:
 	void frame(Camera& cam, entt::registry& reg);
 	void preloadMesh(AssetID id);
 	void uploadProcObj(ProceduralObject& procObj);
+	void uploadChunkObj(ChunkRenderObject& chunkRenderObj);
 	inline float getLastRenderTime() { return lastRenderTimeTicks * timestampPeriod; }
+
 	~VKRenderer();
 };

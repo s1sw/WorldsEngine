@@ -2,12 +2,16 @@
 #define PI 3.1415926535
 
 layout(location = 0) out vec4 FragColor;
+layout(location = 1) out vec2 MotionVector;
+layout(location = 3) out vec3 Normal;
 
 layout(location = 0) in vec4 inWorldPos;
 layout(location = 1) in vec3 inNormal;
 layout(location = 2) in vec3 inTangent;
 layout(location = 3) in vec2 inUV;
 layout(location = 4) in float inAO;
+layout(location = 5) in vec4 inLastCSPos;
+layout(location = 6) in vec4 inCSPos;
 
 const int LT_POINT = 0;
 const int LT_SPOT = 1;
@@ -23,6 +27,7 @@ struct Light {
 };
 
 layout(std140, binding = 1) uniform LightBuffer {
+	// (light count, yzw unused)
 	vec4 pack0;
 	mat4 shadowmapMatrix;
 	Light lights[16];
@@ -35,11 +40,12 @@ layout(std140, binding = 2) uniform MaterialSettingsBuffer {
 	vec4 pack1;
 } Material;
 
-layout (binding = 3) uniform sampler2D albedoSampler;
-layout (binding = 4) uniform sampler2D shadowSampler;
+layout (binding = 4) uniform sampler2D albedoSampler;
+layout (binding = 5) uniform sampler2DShadow shadowSampler;
 
 layout(push_constant) uniform PushConstants {
 	vec4 viewPos;
+	vec4 texScaleOffset;
 	mat4 model;
 };
 
@@ -113,6 +119,7 @@ vec3 calculateLighting(int lightIdx, vec3 viewDir, vec3 f0, float metallic, floa
         L = lightPos - inWorldPos.xyz;
         // dot(L, L) = length(L) squared
         radiance *= 1.0 / dot(L, L);
+		L = normalize(L);
     } else if (lightType == LT_SPOT) {
         L = normalize(lightPos - inWorldPos.xyz);
         float theta = dot(L, normalize(light.pack1.xyz));
@@ -121,10 +128,10 @@ vec3 calculateLighting(int lightIdx, vec3 viewDir, vec3 f0, float metallic, floa
         vec3 lToFrag = lightPos - inWorldPos.xyz;
         radiance *= clamp((theta - outerCutoff) / (cutoff - outerCutoff), 0.0f, 1.0f) * (1.0 / dot(lToFrag, lToFrag));
     } else {
-        L = light.pack1.xyz;
+        L = normalize(light.pack1.xyz);
     }
 	
-    L = normalize(L);
+    //L = normalize(L);
     // Boost the roughness a little bit for analytical lights otherwise the reflection of the light turns invisible
     roughness = clamp(roughness + 0.05f, 0.0, 1.0);
 
@@ -137,7 +144,8 @@ vec3 calculateLighting(int lightIdx, vec3 viewDir, vec3 f0, float metallic, floa
 
     float NDF = ndfGGX(cosLh, roughness);
     float G = gaSchlickGGX(cosLi, cosLo, roughness);
-    vec3 f = fresnelSchlick(f0, max(dot(halfway, viewDir), 0.0f));
+	// Not 100% why the clamp is necessary here but we get random NaNs without it (likely cosTheta > 1.0 causing pow's x argument to be < 0)
+    vec3 f = fresnelSchlick(f0, clamp(dot(halfway, viewDir), 0.0f, 1.0f));
 
     vec3 kd = mix(vec3(1, 1, 1) - f, vec3(0, 0, 0), 0.0);
 
@@ -147,7 +155,6 @@ vec3 calculateLighting(int lightIdx, vec3 viewDir, vec3 f0, float metallic, floa
 
     vec3 diffuse = kd;
     vec3 lPreShadow = (specular + diffuse) * (radiance * cosLi);
-
 	/*
     if (shadowmapSizeCorners[lightIdx].x > 0.01f && type != LT_DIRECTIONAL) {
         //if (dot(shadowmapSizeCorners[lightIdx], shadowmapSizeCorners[lightIdx]) > 0.01f) {
@@ -193,9 +200,7 @@ void main() {
 			
 			if (texReadPoint.x > 0.0 && texReadPoint.x < 1.0 && texReadPoint.y > 0.0 && texReadPoint.y < 1.0 && depth < 1.0 && depth > 0.0) {
 				texReadPoint.y = 1.0 - texReadPoint.y;
-				float readDepth = texture(shadowSampler, texReadPoint).x;
-				if (depth > readDepth)
-					cLighting *= 0.0;
+				cLighting *= texture(shadowSampler, vec3(texReadPoint, depth)).x;
 			} //else {
 				//cLighting = vec3(0.0);
 				//lo = vec3(1.0, 0.0, 0.2);
@@ -206,5 +211,9 @@ void main() {
 	
 	// TODO: Ambient stuff - specular cubemaps + irradiance
 	
-	FragColor = vec4(lo * texture(albedoSampler, inUV).rgb, 1.0);
+	FragColor = vec4(lo * texture(albedoSampler, (inUV * texScaleOffset.xy) + texScaleOffset.zw).rgb, 1.0);
+	
+	vec2 pos1 = inCSPos.xy / inCSPos.w;
+	vec2 pos2 = inLastCSPos.xy / inLastCSPos.w;
+	MotionVector = pos1 - pos2;
 }

@@ -5,19 +5,18 @@
 #include <thread>
 #include <atomic>
 #include "SDL2/SDL_mutex.h"
+#include <functional>
 
-typedef void (*JobFuncPtr)(void*);
-typedef void (*JobCompleteFuncPtr)(void*);
+typedef std::function<void()> JobFunc;
+typedef void (*JobCompleteFuncPtr)();
 
 struct Job {
-	Job(JobFuncPtr function, void* data = nullptr, JobCompleteFuncPtr completeFunc = nullptr)
+	Job(JobFunc function, JobCompleteFuncPtr completeFunc = nullptr)
 		: function(function)
-		, completeFunc(completeFunc)
-		, dataPtr(data) {
+		, completeFunc(completeFunc) {
 	}
 
-	void* dataPtr;
-	JobFuncPtr function;
+	JobFunc function;
 	JobCompleteFuncPtr completeFunc;
 };
 

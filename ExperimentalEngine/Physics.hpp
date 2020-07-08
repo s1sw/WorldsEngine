@@ -1,4 +1,5 @@
 #pragma once
+#include <glm/gtx/quaternion.hpp>
 #include <physx/PxPhysics.h>
 #include <physx/PxPhysicsAPI.h>
 #include <physx/PxFoundation.h>
@@ -13,6 +14,10 @@ inline physx::PxVec3 glm2Px(glm::vec3 vec) {
 
 inline glm::vec3 px2glm(physx::PxVec3 vec) {
 	return glm::vec3(vec.x, vec.y, vec.z);
+}
+
+inline glm::quat px2glm(physx::PxQuat quat) {
+	return glm::quat{quat.w, quat.x, quat.y, quat.z};
 }
 
 extern physx::PxScene* g_scene;

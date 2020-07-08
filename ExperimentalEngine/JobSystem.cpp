@@ -1,3 +1,4 @@
+#include "PCH.hpp"
 #include "JobSystem.hpp"
 #include <iostream>
 
@@ -123,9 +124,9 @@ void JobSystem::worker(int idx) {
 		}
 
 		// Run the job
-		currentJob.function(currentJob.dataPtr);
+		currentJob.function();
 		if (currentJob.completeFunc)
-			currentJob.completeFunc(currentJob.dataPtr);
+			currentJob.completeFunc();
 
 		jobListsMutex.lock();
 		// Check if we just completed the list

@@ -1,3 +1,6 @@
+#include "PCH.hpp"
+#define VMA_IMPLEMENTATION
+#include <vk_mem_alloc.h>
 #include "Engine.hpp"
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_vulkan.h>
@@ -12,7 +15,18 @@
 
 struct StandardPushConstants {
 	glm::vec4 pack0;
-	glm::mat4 model;
+	glm::vec4 texScaleOffset;
+	uint32_t modelMatrixIndex;
+};
+
+struct ChunkPushConstants {
+	glm::vec4 pack0;
+	glm::vec4 chunkOffset;
+};
+
+struct ChunkShadowPushConstants {
+	glm::mat4 vp;
+	glm::vec4 chunkOffset;
 };
 
 struct SDFUniforms {
@@ -22,6 +36,15 @@ struct SDFUniforms {
 struct SDFPushConstants {
 	glm::vec4 camPos;
 	glm::vec4 camRot;
+};
+
+struct ModelMatrices {
+	glm::mat4 modelMatrices[256];
+	glm::mat4 lastModelMatrices[256];
+};
+
+struct PostProcessPushConstants {
+	uint32_t showMotionVectors;
 };
 
 uint32_t findPresentQueue(vk::PhysicalDevice pd, vk::SurfaceKHR surface) {
@@ -77,6 +100,7 @@ void loadMesh(std::vector<Vertex>& vertices, std::vector<uint32_t>& indices, std
 		Vertex vert;
 		vert.position = glm::vec3(attrib.vertices[3 * (size_t)idx.vertex_index], attrib.vertices[3 * (size_t)idx.vertex_index + 1], attrib.vertices[3 * (size_t)idx.vertex_index + 2]);
 		vert.normal = glm::vec3(attrib.normals[3 * (size_t)idx.normal_index], attrib.normals[3 * (size_t)idx.normal_index + 1], attrib.normals[3 * (size_t)idx.normal_index + 2]);
+		vert.ao = 1.0f;
 		if (idx.texcoord_index >= 0)
 			vert.uv = glm::vec2(attrib.texcoords[2 * (size_t)idx.texcoord_index], attrib.texcoords[2 * (size_t)idx.texcoord_index + 1]);
 		vertices.push_back(vert);
@@ -87,18 +111,20 @@ void loadMesh(std::vector<Vertex>& vertices, std::vector<uint32_t>& indices, std
 void VKRenderer::loadAlbedo() {
 	auto memProps = physicalDevice.getMemoryProperties();
 	int x, y, channelsInFile;
-	stbi_uc* dat = stbi_load("albedo.png", &x, &y, &channelsInFile, 4);
+	stbi_uc* dat = stbi_load("terrain.png", &x, &y, &channelsInFile, 4);
 	albedoTex = vku::TextureImage2D{ *device, memProps, (uint32_t)x, (uint32_t)y, 1, vk::Format::eR8G8B8A8Srgb };
 
 	std::vector<uint8_t> albedoDat(dat, dat + (x * y * 4));
 
-	albedoTex.upload(*device, albedoDat, *commandPool, memProps, device->getQueue(graphicsQueueFamilyIdx, 0));
+	albedoTex.upload(*device, allocator, albedoDat, *commandPool, memProps, device->getQueue(graphicsQueueFamilyIdx, 0));
 }
 
 void VKRenderer::setupTonemapping() {
 	vku::DescriptorSetLayoutMaker tonemapDslm;
 	tonemapDslm.image(0, vk::DescriptorType::eStorageImage, vk::ShaderStageFlagBits::eCompute, 1);
 	tonemapDslm.image(1, vk::DescriptorType::eStorageImage, vk::ShaderStageFlagBits::eCompute, 1);
+	tonemapDslm.image(2, vk::DescriptorType::eCombinedImageSampler, vk::ShaderStageFlagBits::eCompute, 1);
+	tonemapDslm.image(3, vk::DescriptorType::eCombinedImageSampler, vk::ShaderStageFlagBits::eCompute, 1);
 
 	tonemapDsl = tonemapDslm.createUnique(*device);
 
@@ -106,6 +132,7 @@ void VKRenderer::setupTonemapping() {
 
 	vku::PipelineLayoutMaker plm;
 	plm.descriptorSetLayout(*tonemapDsl);
+	plm.pushConstantRange(vk::ShaderStageFlagBits::eCompute, 0, sizeof(PostProcessPushConstants));
 
 	tonemapPipelineLayout = plm.createUnique(*device);
 
@@ -125,10 +152,10 @@ void VKRenderer::setupImGUI() {
 	rPassMaker.attachmentLoadOp(vk::AttachmentLoadOp::eDontCare);
 	rPassMaker.attachmentStoreOp(vk::AttachmentStoreOp::eStore);
 	rPassMaker.attachmentFinalLayout(vk::ImageLayout::eTransferSrcOptimal);
-	rPassMaker.attachmentInitialLayout(vk::ImageLayout::eGeneral);
+	rPassMaker.attachmentInitialLayout(vk::ImageLayout::eColorAttachmentOptimal);
 
 	rPassMaker.subpassBegin(vk::PipelineBindPoint::eGraphics);
-	rPassMaker.subpassColorAttachment(vk::ImageLayout::eGeneral, 0);
+	rPassMaker.subpassColorAttachment(vk::ImageLayout::eColorAttachmentOptimal, 0);
 
 	rPassMaker.dependencyBegin(VK_SUBPASS_EXTERNAL, 0);
 	rPassMaker.dependencySrcStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput);
@@ -160,16 +187,21 @@ void VKRenderer::setupStandard() {
 	auto memoryProps = physicalDevice.getMemoryProperties();
 
 	vku::SamplerMaker sm{};
-	sm.magFilter(vk::Filter::eLinear).minFilter(vk::Filter::eLinear).mipmapMode(vk::SamplerMipmapMode::eLinear);
+	sm.magFilter(vk::Filter::eNearest).minFilter(vk::Filter::eNearest).mipmapMode(vk::SamplerMipmapMode::eNearest);
 	albedoSampler = sm.createUnique(*device);
 	loadAlbedo();
+
+	vku::SamplerMaker ssm{};
+	ssm.magFilter(vk::Filter::eLinear).minFilter(vk::Filter::eLinear).mipmapMode(vk::SamplerMipmapMode::eLinear).compareEnable(true).compareOp(vk::CompareOp::eLessOrEqual);
+	shadowSampler = ssm.createUnique(*device);
 
 	vku::DescriptorSetLayoutMaker dslm;
 	dslm.buffer(0, vk::DescriptorType::eUniformBuffer, vk::ShaderStageFlagBits::eVertex, 1);
 	dslm.buffer(1, vk::DescriptorType::eUniformBuffer, vk::ShaderStageFlagBits::eFragment, 1);
 	dslm.buffer(2, vk::DescriptorType::eUniformBuffer, vk::ShaderStageFlagBits::eFragment, 1);
-	dslm.image(3, vk::DescriptorType::eCombinedImageSampler, vk::ShaderStageFlagBits::eFragment, 1);
+	dslm.buffer(3, vk::DescriptorType::eUniformBuffer, vk::ShaderStageFlagBits::eVertex, 1);
 	dslm.image(4, vk::DescriptorType::eCombinedImageSampler, vk::ShaderStageFlagBits::eFragment, 1);
+	dslm.image(5, vk::DescriptorType::eCombinedImageSampler, vk::ShaderStageFlagBits::eFragment, 1);
 
 	this->dsl = dslm.createUnique(*this->device);
 
@@ -178,11 +210,12 @@ void VKRenderer::setupStandard() {
 	plm.descriptorSetLayout(*this->dsl);
 	this->pipelineLayout = plm.createUnique(*this->device);
 
-	this->vpUB = vku::UniformBuffer(*this->device, memoryProps, sizeof(MVP));
-	lightsUB = vku::UniformBuffer(*this->device, memoryProps, sizeof(LightUB));
-	materialUB = vku::UniformBuffer(*this->device, memoryProps, sizeof(PackedMaterial));
+	this->vpUB = vku::UniformBuffer(*this->device, allocator, sizeof(VP));
+	lightsUB = vku::UniformBuffer(*this->device, allocator, sizeof(LightUB));
+	materialUB = vku::UniformBuffer(*this->device, allocator, sizeof(PackedMaterial));
+	modelMatrixUB = vku::UniformBuffer(*device, allocator, sizeof(ModelMatrices), VMA_MEMORY_USAGE_CPU_TO_GPU);
 
-	PackedMaterial pm{ glm::vec4(0.0f, 10.0f, 0.0f, 0.0f), glm::vec4(1.0f, 1.0f, 1.0f, 0.0f) };
+	PackedMaterial pm{ glm::vec4(0.0f, 1.0f, 0.0f, 0.0f), glm::vec4(1.0f, 1.0f, 1.0f, 0.0f) };
 	materialUB.upload(*device, memoryProps, *commandPool, device->getQueue(graphicsQueueFamilyIdx, 0), pm);
 
 	vku::DescriptorSetMaker dsm;
@@ -191,16 +224,25 @@ void VKRenderer::setupStandard() {
 
 	vku::DescriptorSetUpdater updater;
 	updater.beginDescriptorSet(this->descriptorSets[0]);
+
 	updater.beginBuffers(0, 0, vk::DescriptorType::eUniformBuffer);
 	updater.buffer(this->vpUB.buffer(), 0, sizeof(VP));
+
 	updater.beginBuffers(1, 0, vk::DescriptorType::eUniformBuffer);
 	updater.buffer(lightsUB.buffer(), 0, sizeof(LightUB));
+
 	updater.beginBuffers(2, 0, vk::DescriptorType::eUniformBuffer);
 	updater.buffer(materialUB.buffer(), 0, sizeof(PackedMaterial));
-	updater.beginImages(3, 0, vk::DescriptorType::eCombinedImageSampler);
-	updater.image(*albedoSampler, albedoTex.imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
+
+	updater.beginBuffers(3, 0, vk::DescriptorType::eUniformBuffer);
+	updater.buffer(modelMatrixUB.buffer(), 0, sizeof(ModelMatrices));
+
 	updater.beginImages(4, 0, vk::DescriptorType::eCombinedImageSampler);
-	updater.image(*albedoSampler, shadowmapImage.imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
+	updater.image(*albedoSampler, albedoTex.imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
+
+	updater.beginImages(5, 0, vk::DescriptorType::eCombinedImageSampler);
+	updater.image(*shadowSampler, shadowmapImage.imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
+
 	updater.update(*this->device);
 
 	vku::RenderpassMaker rPassMaker;
@@ -210,6 +252,11 @@ void VKRenderer::setupStandard() {
 	rPassMaker.attachmentStoreOp(vk::AttachmentStoreOp::eStore);
 	rPassMaker.attachmentFinalLayout(vk::ImageLayout::eGeneral);
 
+	rPassMaker.attachmentBegin(vk::Format::eR16G16Sfloat);
+	rPassMaker.attachmentLoadOp(vk::AttachmentLoadOp::eClear);
+	rPassMaker.attachmentStoreOp(vk::AttachmentStoreOp::eStore);
+	rPassMaker.attachmentFinalLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
+
 	rPassMaker.attachmentBegin(vk::Format::eD32Sfloat);
 	rPassMaker.attachmentLoadOp(vk::AttachmentLoadOp::eClear);
 	rPassMaker.attachmentStencilLoadOp(vk::AttachmentLoadOp::eDontCare);
@@ -217,7 +264,8 @@ void VKRenderer::setupStandard() {
 
 	rPassMaker.subpassBegin(vk::PipelineBindPoint::eGraphics);
 	rPassMaker.subpassColorAttachment(vk::ImageLayout::eColorAttachmentOptimal, 0);
-	rPassMaker.subpassDepthStencilAttachment(vk::ImageLayout::eDepthStencilAttachmentOptimal, 1);
+	rPassMaker.subpassColorAttachment(vk::ImageLayout::eColorAttachmentOptimal, 1);
+	rPassMaker.subpassDepthStencilAttachment(vk::ImageLayout::eDepthStencilAttachmentOptimal, 2);
 
 	rPassMaker.dependencyBegin(VK_SUBPASS_EXTERNAL, 0);
 	rPassMaker.dependencySrcStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput);
@@ -232,10 +280,35 @@ void VKRenderer::setupStandard() {
 
 const int SHADOWMAP_RES = 2048;
 
+void VKRenderer::setupChunk() {
+	vku::PipelineLayoutMaker plm;
+	plm.pushConstantRange(vk::ShaderStageFlagBits::eFragment | vk::ShaderStageFlagBits::eVertex, 0, sizeof(ChunkPushConstants));
+	plm.descriptorSetLayout(*this->dsl);
+	chunkPipelineLayout = plm.createUnique(*device);
+
+	chunkVS = vku::ShaderModule{ *device, "voxelobj.vert.spv" };
+	chunkFS = vku::ShaderModule{ *device, "voxelobj.frag.spv" };
+	chunkShadowVS = vku::ShaderModule{ *device, "voxelobj_shadow.vert.spv" };
+
+	vku::PipelineLayoutMaker shadowPlm;
+	shadowPlm.pushConstantRange(vk::ShaderStageFlagBits::eVertex, 0, sizeof(ChunkShadowPushConstants));
+	plm.descriptorSetLayout(*shadowmapDsl);
+	shadowmapChunkPipelineLayout = shadowPlm.createUnique(*device);
+
+	vku::PipelineMaker pm{ SHADOWMAP_RES, SHADOWMAP_RES };
+	pm.shader(vk::ShaderStageFlagBits::eFragment, shadowFragmentShader);
+	pm.shader(vk::ShaderStageFlagBits::eVertex, chunkShadowVS);
+	pm.vertexBinding(0, (uint32_t)sizeof(ChunkVertex));
+	pm.vertexAttribute(0, 0, vk::Format::eR8G8B8A8Uint, (uint32_t)offsetof(ChunkVertex, packedXYZ));
+	pm.cullMode(vk::CullModeFlagBits::eBack);
+	pm.depthWriteEnable(true).depthTestEnable(true).depthCompareOp(vk::CompareOp::eLess);
+
+	shadowmapChunkPipeline = pm.createUnique(*device, *pipelineCache, *shadowmapChunkPipelineLayout, *shadowmapPass);
+}
+
 void VKRenderer::setupShadowPass() {
 	auto memoryProps = physicalDevice.getMemoryProperties();
 	vku::DescriptorSetLayoutMaker dslm;
-	dslm.buffer(0, vk::DescriptorType::eUniformBuffer, vk::ShaderStageFlagBits::eVertex, 1);
 	shadowmapDsl = dslm.createUnique(*device);
 
 	vku::RenderpassMaker rPassMaker;
@@ -298,7 +371,7 @@ void VKRenderer::setupShadowPass() {
 	shadowmapFb = device->createFramebufferUnique(fci);
 }
 
-VKRenderer::VKRenderer(SDL_Window* window, bool* success) : window(window) {
+VKRenderer::VKRenderer(SDL_Window* window, bool* success) : window(window), frameIdx(0) {
 	vku::InstanceMaker instanceMaker;
 	//instanceMaker.defaultLayers();
 	unsigned int extCount;
@@ -403,8 +476,22 @@ VKRenderer::VKRenderer(SDL_Window* window, bool* success) : window(window) {
 	vku::DeviceMaker dm{};
 	dm.defaultLayers();
 	dm.queue(this->graphicsQueueFamilyIdx);
+	vk::PhysicalDeviceDescriptorIndexingFeatures diFeatures;
+	diFeatures.descriptorBindingPartiallyBound = true;
+	diFeatures.runtimeDescriptorArray = true;
+	dm.setPNext(&diFeatures);
 	if (this->computeQueueFamilyIdx != this->graphicsQueueFamilyIdx) dm.queue(this->computeQueueFamilyIdx);
 	this->device = dm.createUnique(this->physicalDevice);
+
+	VmaAllocatorCreateInfo allocatorCreateInfo;
+	memset(&allocatorCreateInfo, 0, sizeof(allocatorCreateInfo));
+	allocatorCreateInfo.device = *device;
+	allocatorCreateInfo.frameInUseCount = 0;
+	allocatorCreateInfo.instance = *instance;
+	allocatorCreateInfo.physicalDevice = physicalDevice;
+	allocatorCreateInfo.vulkanApiVersion = VK_API_VERSION_1_1;
+	allocatorCreateInfo.flags = 0;
+	vmaCreateAllocator(&allocatorCreateInfo, &allocator);
 
 	vk::PipelineCacheCreateInfo pipelineCacheInfo{};
 	this->pipelineCache = this->device->createPipelineCacheUnique(pipelineCacheInfo);
@@ -444,6 +531,7 @@ VKRenderer::VKRenderer(SDL_Window* window, bool* success) : window(window) {
 	setupImGUI();
 	setupShadowPass();
 	setupStandard();
+	setupChunk();
 
 	createSCDependents();
 
@@ -499,7 +587,23 @@ void VKRenderer::createSCDependents() {
 	pm.vertexAttribute(4, 0, vk::Format::eR32Sfloat, (uint32_t)offsetof(Vertex, ao));
 	pm.cullMode(vk::CullModeFlagBits::eBack);
 	pm.depthWriteEnable(true).depthTestEnable(true).depthCompareOp(vk::CompareOp::eLess);
+	pm.blendBegin(false);
+	pm.blendBegin(false);
 	this->pipeline = pm.createUnique(*this->device, *this->pipelineCache, *this->pipelineLayout, *this->renderPass);
+
+	vku::PipelineMaker chunkPm{ this->width, this->height };
+	chunkPm.shader(vk::ShaderStageFlagBits::eFragment, chunkFS);
+	chunkPm.shader(vk::ShaderStageFlagBits::eVertex, chunkVS);
+	chunkPm.vertexBinding(0, (uint32_t)sizeof(ChunkVertex));
+	chunkPm.vertexAttribute(0, 0, vk::Format::eR8G8B8A8Uint, (uint32_t)offsetof(ChunkVertex, packedXYZ));
+	chunkPm.vertexAttribute(1, 0, vk::Format::eR8G8B8A8Uint, (uint32_t)offsetof(ChunkVertex, packedNormCorner));
+	chunkPm.vertexAttribute(2, 0, vk::Format::eR32Sfloat, (uint32_t)offsetof(ChunkVertex, ao));
+	chunkPm.vertexAttribute(3, 0, vk::Format::eR16G16Uint, (uint32_t)offsetof(ChunkVertex, texId));
+	chunkPm.cullMode(vk::CullModeFlagBits::eBack);
+	chunkPm.depthWriteEnable(true).depthTestEnable(true).depthCompareOp(vk::CompareOp::eLess);
+	chunkPm.blendBegin(false);
+	chunkPm.blendBegin(false);
+	chunkPipeline = chunkPm.createUnique(*device, *pipelineCache, *chunkPipelineLayout, *renderPass);
 
 	vk::ImageCreateInfo ici;
 	ici.imageType = vk::ImageType::e2D;
@@ -511,17 +615,25 @@ void VKRenderer::createSCDependents() {
 	ici.usage = vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eStorage;
 	polyImage = vku::GenericImage(*device, memoryProps, ici, vk::ImageViewType::e2D, vk::ImageAspectFlagBits::eColor, false);
 
+	ici.format = vk::Format::eR16G16Sfloat;
+	motionVectorImage = vku::GenericImage(*device, memoryProps, ici, vk::ImageViewType::e2D, vk::ImageAspectFlagBits::eColor, false);
+
 	ici.format = vk::Format::eR8G8B8A8Unorm;
 	ici.usage = vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eTransferSrc;
 	finalPrePresent = vku::GenericImage(*device, memoryProps, ici, vk::ImageViewType::e2D, vk::ImageAspectFlagBits::eColor, false);
+	ici.usage = vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled;
+	lastFrame = vku::GenericImage(*device, memoryProps, ici, vk::ImageViewType::e2D, vk::ImageAspectFlagBits::eColor, false);
+	
 	vku::executeImmediately(*device, *commandPool, device->getQueue(graphicsQueueFamilyIdx, 0), [this](vk::CommandBuffer cmdBuf) {
 		polyImage.setLayout(cmdBuf, vk::ImageLayout::eColorAttachmentOptimal);
+		motionVectorImage.setLayout(cmdBuf, vk::ImageLayout::eColorAttachmentOptimal);
 		finalPrePresent.setLayout(cmdBuf, vk::ImageLayout::eColorAttachmentOptimal);
+		lastFrame.setLayout(cmdBuf, vk::ImageLayout::eShaderReadOnlyOptimal);
 	});
 
-	vk::ImageView attachments[2] = { polyImage.imageView(), depthStencilImage.imageView() };
+	vk::ImageView attachments[3] = { polyImage.imageView(), motionVectorImage.imageView(), depthStencilImage.imageView() };
 	vk::FramebufferCreateInfo fci;
-	fci.attachmentCount = 2;
+	fci.attachmentCount = 3;
 	fci.pAttachments = attachments;
 	fci.width = this->width;
 	fci.height = this->height;
@@ -614,9 +726,36 @@ void VKRenderer::doTonemap(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageIndex)
 
 	cmdBuf->bindDescriptorSets(vk::PipelineBindPoint::eCompute, *tonemapPipelineLayout, 0, tonemapDescriptorSet, nullptr);
 	cmdBuf->bindPipeline(vk::PipelineBindPoint::eCompute, *tonemapPipeline);
+	PostProcessPushConstants pppc{3};
+	cmdBuf->pushConstants<PostProcessPushConstants>(*tonemapPipelineLayout, vk::ShaderStageFlagBits::eCompute, 0, pppc);
+
 	cmdBuf->dispatch((width + 15) / 16, (height + 15) / 16, 1);
 
-	imageBarrier(*cmdBuf, finalPrePresent.image(), vk::ImageLayout::eGeneral, vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eColorAttachmentWrite, vk::PipelineStageFlagBits::eComputeShader, vk::PipelineStageFlagBits::eColorAttachmentOutput);
+	vku::transitionLayout(*cmdBuf, finalPrePresent.image(),
+		vk::ImageLayout::eGeneral, vk::ImageLayout::eTransferSrcOptimal,
+		vk::PipelineStageFlagBits::eComputeShader, vk::PipelineStageFlagBits::eTransfer,
+		vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eTransferRead);
+
+	vku::transitionLayout(*cmdBuf, lastFrame.image(),
+		vk::ImageLayout::eShaderReadOnlyOptimal, vk::ImageLayout::eTransferDstOptimal,
+		vk::PipelineStageFlagBits::eComputeShader, vk::PipelineStageFlagBits::eTransfer,
+		vk::AccessFlagBits::eShaderRead, vk::AccessFlagBits::eTransferWrite);
+
+	vk::ImageBlit imageBlit;
+	imageBlit.srcOffsets[1] = imageBlit.dstOffsets[1] = { (int)width, (int)height, 1 };
+	imageBlit.dstSubresource = imageBlit.srcSubresource = { vk::ImageAspectFlagBits::eColor, 0, 0, 1 };
+
+	cmdBuf->blitImage(finalPrePresent.image(), vk::ImageLayout::eTransferSrcOptimal, lastFrame.image(), vk::ImageLayout::eTransferDstOptimal, imageBlit, vk::Filter::eNearest);
+
+	vku::transitionLayout(*cmdBuf, lastFrame.image(),
+		vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eShaderReadOnlyOptimal,
+		vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eComputeShader,
+		vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eShaderRead);
+
+	vku::transitionLayout(*cmdBuf, finalPrePresent.image(),
+		vk::ImageLayout::eTransferSrcOptimal, vk::ImageLayout::eColorAttachmentOptimal,
+		vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eColorAttachmentOutput,
+		vk::AccessFlagBits::eTransferRead, vk::AccessFlagBits::eColorAttachmentWrite | vk::AccessFlagBits::eColorAttachmentRead);
 
 	std::array<float, 4> clearColorValue{ 0.0f, 0.0f, 0.0f, 1 };
 	std::array<vk::ClearValue, 1> clearColours{ vk::ClearValue{clearColorValue} };
@@ -650,11 +789,26 @@ void VKRenderer::renderShadowmap(vk::UniqueCommandBuffer& cmdBuf, entt::registry
 
 	cmdBuf->beginRenderPass(rpbi, vk::SubpassContents::eInline);
 	cmdBuf->bindPipeline(vk::PipelineBindPoint::eGraphics, *shadowmapPipeline);
-	cmdBuf->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *shadowmapPipelineLayout, 0, shadowmapDescriptorSet, nullptr);
 
 	glm::vec3 shadowCamPos = glm::round(cam.position + glm::vec3(0.0f, 100.0f, 0.0f));
 	glm::mat4 view = glm::lookAt(shadowCamPos, glm::round(cam.position) + shadowOffset, glm::vec3(0.0f, 1.0f, 0.0));
 	glm::mat4 projection = glm::orthoZO(-50.0f, 50.0f, -50.0f, 50.0f, 0.1f, 1000.0f);
+
+	reg.view<Transform, WorldObject>().each([this, &cmdBuf, &cam, &view, &projection](auto ent, Transform& transform, WorldObject& obj) {
+		auto meshPos = loadedMeshes.find(obj.mesh);
+
+		if (meshPos == loadedMeshes.end()) {
+			// Haven't loaded the mesh yet
+			return;
+		}
+
+		glm::mat4 model = transform.getMatrix();
+		glm::mat4 mvp = projection * view * model;
+		cmdBuf->pushConstants<glm::mat4>(*shadowmapPipelineLayout, vk::ShaderStageFlagBits::eVertex, 0, mvp);
+		cmdBuf->bindVertexBuffers(0, meshPos->second.vb.buffer(), vk::DeviceSize(0));
+		cmdBuf->bindIndexBuffer(meshPos->second.ib.buffer(), 0, meshPos->second.indexType);
+		cmdBuf->drawIndexed(meshPos->second.indexCount, 1, 0, 0, 0);
+	});
 
 	reg.view<Transform, ProceduralObject>().each([this, &cmdBuf, &cam, &view, &projection](auto ent, Transform& transform, ProceduralObject& obj) {
 		if (!obj.visible) return;
@@ -666,14 +820,26 @@ void VKRenderer::renderShadowmap(vk::UniqueCommandBuffer& cmdBuf, entt::registry
 		cmdBuf->drawIndexed(obj.indexCount, 1, 0, 0, 0);
 	});
 
+	cmdBuf->bindPipeline(vk::PipelineBindPoint::eGraphics, *shadowmapChunkPipeline);
+
+	reg.view<Transform, ChunkRenderObject>().each([this, &cmdBuf, &cam, &view, &projection](auto ent, Transform& transform, ChunkRenderObject& obj) {
+		if (!obj.visible) return;
+		ChunkShadowPushConstants pushConst{ projection * view, glm::vec4(transform.position, 0.0f) };
+		cmdBuf->pushConstants<ChunkShadowPushConstants>(*shadowmapChunkPipelineLayout, vk::ShaderStageFlagBits::eVertex, 0, pushConst);
+		cmdBuf->bindVertexBuffers(0, obj.vb.buffer(), vk::DeviceSize(0));
+		cmdBuf->bindIndexBuffer(obj.ib.buffer(), 0, obj.indexType);
+		cmdBuf->drawIndexed(obj.indexCount, 1, 0, 0, 0);
+	});
+
 	cmdBuf->endRenderPass();
 }
 
 void VKRenderer::renderPolys(vk::UniqueCommandBuffer& cmdBuf, entt::registry& reg, uint32_t imageIndex, Camera& cam) {
 	// Fast path clear values for AMD
-	std::array<float, 4> clearColorValue{ 0.0f, 0.0f, 0.0f, 1 };
+	std::array<float, 4> clearColorValue{ 0.0f, 0.1f, 0.5f, 1 };
+	std::array<float, 4> mvecClearVal{ 0.0f, 0.0f, 0.0f, 0.0f };
 	vk::ClearDepthStencilValue clearDepthValue{ 1.0f, 0 };
-	std::array<vk::ClearValue, 2> clearColours{ vk::ClearValue{clearColorValue}, clearDepthValue };
+	std::array<vk::ClearValue, 3> clearColours{ vk::ClearValue{clearColorValue}, vk::ClearValue{mvecClearVal}, clearDepthValue };
 	vk::RenderPassBeginInfo rpbi;
 
 	rpbi.renderPass = *renderPass;
@@ -686,7 +852,8 @@ void VKRenderer::renderPolys(vk::UniqueCommandBuffer& cmdBuf, entt::registry& re
 	cmdBuf->beginRenderPass(rpbi, vk::SubpassContents::eInline);
 	cmdBuf->bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline);
 
-	reg.view<Transform, WorldObject>().each([this, &cmdBuf, &cam](auto ent, Transform& transform, WorldObject& obj) {
+	int matrixIdx = 0;
+	reg.view<Transform, WorldObject>().each([this, &cmdBuf, &cam, &matrixIdx](auto ent, Transform& transform, WorldObject& obj) {
 		auto meshPos = loadedMeshes.find(obj.mesh);
 
 		if (meshPos == loadedMeshes.end()) {
@@ -694,17 +861,30 @@ void VKRenderer::renderPolys(vk::UniqueCommandBuffer& cmdBuf, entt::registry& re
 			return;
 		}
 
-		StandardPushConstants pushConst{ glm::vec4(cam.position, 0.0f), transform.getMatrix() };
+		StandardPushConstants pushConst{ glm::vec4(cam.position, 0.0f), obj.texScaleOffset, matrixIdx };
 		cmdBuf->pushConstants<StandardPushConstants>(*pipelineLayout, vk::ShaderStageFlagBits::eFragment | vk::ShaderStageFlagBits::eVertex, 0, pushConst);
 		cmdBuf->bindVertexBuffers(0, meshPos->second.vb.buffer(), vk::DeviceSize(0));
 		cmdBuf->bindIndexBuffer(meshPos->second.ib.buffer(), 0, meshPos->second.indexType);
 		cmdBuf->drawIndexed(meshPos->second.indexCount, 1, 0, 0, 0);
+		matrixIdx++;
 	});
 
 	reg.view<Transform, ProceduralObject>().each([this, &cmdBuf, &cam](auto ent, Transform& transform, ProceduralObject& obj) {
 		if (!obj.visible) return;
-		StandardPushConstants pushConst{ glm::vec4(cam.position, 0.0f), transform.getMatrix() };
+		StandardPushConstants pushConst{ glm::vec4(cam.position, 0.0f), glm::vec4(1.0f, 1.0f, 0.0f, 0.0f), 0 };//transform.getMatrix() };
 		cmdBuf->pushConstants<StandardPushConstants>(*pipelineLayout, vk::ShaderStageFlagBits::eFragment | vk::ShaderStageFlagBits::eVertex, 0, pushConst);
+		cmdBuf->bindVertexBuffers(0, obj.vb.buffer(), vk::DeviceSize(0));
+		cmdBuf->bindIndexBuffer(obj.ib.buffer(), 0, obj.indexType);
+		cmdBuf->drawIndexed(obj.indexCount, 1, 0, 0, 0);
+	});
+
+	cmdBuf->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *chunkPipelineLayout, 0, descriptorSets[0], nullptr);
+	cmdBuf->bindPipeline(vk::PipelineBindPoint::eGraphics, *chunkPipeline);
+
+	reg.view<Transform, ChunkRenderObject>().each([this, &cmdBuf, &cam](auto ent, Transform& transform, ChunkRenderObject& obj) {
+		if (!obj.visible) return;
+		ChunkPushConstants pushConst{ glm::vec4(cam.position, 0.0f), glm::vec4(transform.position, 0.0f) };
+		cmdBuf->pushConstants<ChunkPushConstants>(*chunkPipelineLayout, vk::ShaderStageFlagBits::eFragment | vk::ShaderStageFlagBits::eVertex, 0, pushConst);
 		cmdBuf->bindVertexBuffers(0, obj.vb.buffer(), vk::DeviceSize(0));
 		cmdBuf->bindIndexBuffer(obj.ib.buffer(), 0, obj.indexType);
 		cmdBuf->drawIndexed(obj.indexCount, 1, 0, 0, 0);
@@ -716,10 +896,19 @@ void VKRenderer::renderPolys(vk::UniqueCommandBuffer& cmdBuf, entt::registry& re
 void VKRenderer::updateTonemapDescriptors() {
 	vku::DescriptorSetUpdater dsu;
 	dsu.beginDescriptorSet(tonemapDescriptorSet);
+
 	dsu.beginImages(0, 0, vk::DescriptorType::eStorageImage);
 	dsu.image(*albedoSampler, finalPrePresent.imageView(), vk::ImageLayout::eGeneral);
+
 	dsu.beginImages(1, 0, vk::DescriptorType::eStorageImage);
 	dsu.image(*albedoSampler, polyImage.imageView(), vk::ImageLayout::eGeneral);
+
+	dsu.beginImages(2, 0, vk::DescriptorType::eCombinedImageSampler);
+	dsu.image(*albedoSampler, motionVectorImage.imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
+
+	dsu.beginImages(3, 0, vk::DescriptorType::eCombinedImageSampler);
+	dsu.image(*albedoSampler, lastFrame.imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
+
 	dsu.update(*device);
 }
 
@@ -745,9 +934,34 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
 		return;
 	}
 
+	auto tfWoView = reg.view<Transform, WorldObject>();
+	static int lastWorldObjectCount = 0;
+	bool overwriteLast = lastWorldObjectCount != tfWoView.size();
+	lastWorldObjectCount = tfWoView.size();
+
+	ModelMatrices* modelMatricesMapped = static_cast<ModelMatrices*>(modelMatrixUB.map(*device));
+	int matrixIdx = 0;
+	reg.view<Transform, WorldObject>().each([&matrixIdx, modelMatricesMapped, overwriteLast](auto ent, Transform& t, WorldObject& wo) {
+		if (matrixIdx == 255)
+			return;
+		glm::mat4 m = t.getMatrix();
+		modelMatricesMapped->lastModelMatrices[matrixIdx] = overwriteLast ? m : modelMatricesMapped->modelMatrices[matrixIdx];
+		modelMatricesMapped->modelMatrices[matrixIdx] = m;
+		matrixIdx++;
+	});
+	modelMatrixUB.unmap(*device);
+
+	std::array<glm::vec3, 2> jitterVectors = {
+		glm::vec3{  0.5f,  0.5f, 0.0f },
+		         { -0.5f, -0.5f, 0.0f }
+	};
+
+	glm::vec3 jitterVec = jitterVectors[frameIdx % jitterVectors.size()] / glm::vec3(width, height, 1.0f);
 	VP vp;
 	vp.view = cam.getViewMatrix();
-	vp.projection = cam.getProjectionMatrix((float)width / (float)height);
+	vp.projection = glm::translate(glm::mat4(1.0f), jitterVec) * cam.getProjectionMatrix((float)width / (float)height);
+	vp.projLast = lastProj;
+	vp.viewLast = lastView;
 	LightUB lub;
 	lub.pack0.x = 1;
 
@@ -756,7 +970,8 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
 	glm::mat4 projection = glm::orthoZO(-50.0f, 50.0f, -50.0f, 50.0f, 0.1f, 1000.0f);
 	lub.shadowmapMatrix = projection * view;
 
-	lub.lights[0] = PackedLight{ glm::vec4(1.0f, 1.0f, 1.0f, 2.0f), glm::normalize(glm::vec4(0.0f, 0.0f, 1.0f, 0.0f) * view), glm::vec4(0.0f, 0.0f, -0.1f, 0.0f) };
+	lub.lights[0] = PackedLight{ glm::vec4(1.0f, 1.0f, 1.0f, 2.0f), glm::vec4(glm::normalize(glm::vec3(0.0f, 0.0f, 1.0f) * glm::mat3(view)), 0.0f), glm::vec4(0.0f, 0.0f, -0.1f, 0.0f) };
+	//lub.lights[1] = PackedLight{ glm::vec4(1.0f, 0.1f, 0.1f, 0.0f), glm::vec4(0.0f), glm::vec4(cam.position, 0.0f) };
 
 	auto& cmdBuf = cmdBufs[imageIndex];
 
@@ -782,12 +997,22 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
 	renderPolys(cmdBuf, reg, imageIndex, cam);
 	doTonemap(cmdBuf, imageIndex);
 	
-	vku::transitionLayout(*cmdBuf, swapchain->images[imageIndex], vk::ImageLayout::ePresentSrcKHR, vk::ImageLayout::eTransferDstOptimal, vk::PipelineStageFlagBits::eBottomOfPipe, vk::PipelineStageFlagBits::eTransfer, vk::AccessFlagBits::eMemoryRead, vk::AccessFlagBits::eTransferWrite);
+	vku::transitionLayout(*cmdBuf, swapchain->images[imageIndex], 
+		vk::ImageLayout::ePresentSrcKHR, vk::ImageLayout::eTransferDstOptimal, 
+		vk::PipelineStageFlagBits::eBottomOfPipe, vk::PipelineStageFlagBits::eTransfer, 
+		vk::AccessFlagBits::eMemoryRead, vk::AccessFlagBits::eTransferWrite);
+
+	imageBarrier(*cmdBuf, finalPrePresent.image(), vk::ImageLayout::eTransferSrcOptimal, vk::AccessFlagBits::eColorAttachmentWrite, vk::AccessFlagBits::eTransferRead, vk::PipelineStageFlagBits::eColorAttachmentOutput, vk::PipelineStageFlagBits::eTransfer);
+
 	vk::ImageBlit imageBlit;
 	imageBlit.srcOffsets[1] = imageBlit.dstOffsets[1] = { (int)width, (int)height, 1 };
 	imageBlit.dstSubresource = imageBlit.srcSubresource = { vk::ImageAspectFlagBits::eColor, 0, 0, 1 };
 	cmdBuf->blitImage(finalPrePresent.image(), vk::ImageLayout::eTransferSrcOptimal, swapchain->images[imageIndex], vk::ImageLayout::eTransferDstOptimal, imageBlit, vk::Filter::eNearest);
-	vku::transitionLayout(*cmdBuf, swapchain->images[imageIndex], vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::ePresentSrcKHR, vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eBottomOfPipe, vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eMemoryRead);
+
+	vku::transitionLayout(*cmdBuf, swapchain->images[imageIndex], 
+		vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::ePresentSrcKHR, 
+		vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eBottomOfPipe, 
+		vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eMemoryRead);
 	
 	cmdBuf->writeTimestamp(vk::PipelineStageFlagBits::eBottomOfPipe, *queryPool, 1);
 	cmdBuf->end();
@@ -826,6 +1051,9 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
 		vk::QueryResultFlagBits::e64 | vk::QueryResultFlagBits::eWait
 	);
 	lastRenderTimeTicks = timeStamps[1] - timeStamps[0];
+	lastView = vp.view;
+	lastProj = vp.projection;
+	frameIdx++;
 }
 
 void VKRenderer::preloadMesh(AssetID id) {
@@ -839,9 +1067,9 @@ void VKRenderer::preloadMesh(AssetID id) {
 	LoadedMeshData lmd;
 	lmd.indexType = vk::IndexType::eUint32;
 	lmd.indexCount = indices.size();
-	lmd.ib = vku::IndexBuffer{ *device, memProps, indices.size() * sizeof(uint32_t) };
+	lmd.ib = vku::IndexBuffer{ *device, allocator, indices.size() * sizeof(uint32_t) };
 	lmd.ib.upload(*device, memProps, *commandPool, device->getQueue(graphicsQueueFamilyIdx, 0), indices);
-	lmd.vb = vku::VertexBuffer{ *device, memProps, vertices.size() * sizeof(Vertex) };
+	lmd.vb = vku::VertexBuffer{ *device, allocator, vertices.size() * sizeof(Vertex) };
 	lmd.vb.upload(*device, memProps, *commandPool, device->getQueue(graphicsQueueFamilyIdx, 0), vertices);
 	loadedMeshes.insert({ id, std::move(lmd) });
 }
@@ -857,10 +1085,27 @@ void VKRenderer::uploadProcObj(ProceduralObject& procObj) {
 	auto memProps = physicalDevice.getMemoryProperties();
 	procObj.indexType = vk::IndexType::eUint32;
 	procObj.indexCount = procObj.indices.size();
-	procObj.ib = vku::IndexBuffer{ *device, memProps, procObj.indices.size() * sizeof(uint32_t) };
+	procObj.ib = vku::IndexBuffer{ *device, allocator, procObj.indices.size() * sizeof(uint32_t) };
 	procObj.ib.upload(*device, memProps, *commandPool, device->getQueue(graphicsQueueFamilyIdx, 0), procObj.indices);
-	procObj.vb = vku::VertexBuffer{ *device, memProps, procObj.vertices.size() * sizeof(Vertex) };
+	procObj.vb = vku::VertexBuffer{ *device, allocator, procObj.vertices.size() * sizeof(Vertex) };
 	procObj.vb.upload(*device, memProps, *commandPool, device->getQueue(graphicsQueueFamilyIdx, 0), procObj.vertices);
+}
+
+void VKRenderer::uploadChunkObj(ChunkRenderObject& chunkObj) {
+	if (chunkObj.vertices.size() == 0) {
+		chunkObj.visible = false;
+		return;
+	} else {
+		chunkObj.visible = true;
+	}
+	device->waitIdle();
+	auto memProps = physicalDevice.getMemoryProperties();
+	chunkObj.indexType = vk::IndexType::eUint32;
+	chunkObj.indexCount = chunkObj.indices.size();
+	chunkObj.ib = vku::IndexBuffer{ *device, allocator, chunkObj.indices.size() * sizeof(uint32_t) };
+	chunkObj.ib.upload(*device, memProps, *commandPool, device->getQueue(graphicsQueueFamilyIdx, 0), chunkObj.indices);
+	chunkObj.vb = vku::VertexBuffer{ *device, allocator, chunkObj.vertices.size() * sizeof(ChunkVertex) };
+	chunkObj.vb.upload(*device, memProps, *commandPool, device->getQueue(graphicsQueueFamilyIdx, 0), chunkObj.vertices);
 }
 
 VKRenderer::~VKRenderer() {

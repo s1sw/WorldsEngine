@@ -1,3 +1,4 @@
+#include "PCH.hpp"
 #include <physx/PxPhysics.h>
 #include <physx/PxPhysicsAPI.h>
 #include <physx/PxFoundation.h>
@@ -30,7 +31,7 @@ void initPhysx() {
 	g_cooking = PxCreateCooking(PX_PHYSICS_VERSION, *g_physFoundation, physx::PxCookingParams(tolerancesScale));
 	physx::PxSceneDesc desc(tolerancesScale);
 	desc.gravity = physx::PxVec3(0.0f, -9.81f, 0.0f);
-	desc.cpuDispatcher = physx::PxDefaultCpuDispatcherCreate(8);
+	desc.cpuDispatcher = physx::PxDefaultCpuDispatcherCreate(0);
 	desc.filterShader = physx::PxDefaultSimulationFilterShader;
 	g_scene = g_physics->createScene(desc);
 	//g_scene->setVisualizationParameter(physx::PxVisualizationParameter::eSCALE, 1.0f);
