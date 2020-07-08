@@ -1,6 +1,9 @@
 #include "PCH.hpp"
 #include "JobSystem.hpp"
 #include <iostream>
+#ifdef TRACY_ENABLE
+#include "tracy/Tracy.hpp"
+#endif
 
 JobSystem::JobSystem(int numWorkers)
 	: executing(true) {
@@ -92,6 +95,9 @@ int JobSystem::getFreeJobSlot() {
 }
 
 void JobSystem::worker(int idx) {
+#ifdef TRACY_ENABLE
+	ZoneScoped;
+#endif
 	while (executing) {
 		// Get a job from any of the job lists
 		jobListsMutex.lock();

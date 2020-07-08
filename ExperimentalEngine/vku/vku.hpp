@@ -14,9 +14,11 @@
 /// It should integrate with game engines nicely.
 //
 ////////////////////////////////////////////////////////////////////////////////
+// Modified for use in ExperimentalEngine by Someone Somewhere 08/07/2020
 
 #ifndef VKU_HPP
 #define VKU_HPP
+#define VOOKOO_SPIRV_SUPPORT
 
 #include <array>
 #include <fstream>
@@ -625,7 +627,20 @@ namespace vku {
 			s.ok_ = true;
 		}
 
-		/// Construct a shader module from a memory
+		/// Construct a shader module from raw memory
+		ShaderModule(const vk::Device& device, uint32_t* data, size_t size) {
+			s.opcodes_.resize(size / 4);
+			std::memcpy(s.opcodes_.data(), data, size);
+
+			vk::ShaderModuleCreateInfo ci;
+			ci.codeSize = s.opcodes_.size() * 4;
+			ci.pCode = s.opcodes_.data();
+			s.module_ = device.createShaderModuleUnique(ci);
+
+			s.ok_ = true;
+		}
+
+		/// Construct a shader module from an iterator
 		template<class InIter>
 		ShaderModule(const vk::Device& device, InIter begin, InIter end) {
 			s.opcodes_.assign(begin, end);

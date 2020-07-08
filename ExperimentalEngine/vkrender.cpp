@@ -12,6 +12,10 @@
 #include "imgui_impl_vulkan.h"
 #include "physfs.hpp"
 #include "Transform.hpp"
+#ifdef TRACY_ENABLE
+#include "tracy/Tracy.hpp"
+#include "tracy/TracyVulkan.hpp"
+#endif
 
 struct StandardPushConstants {
 	glm::vec4 pack0;
@@ -27,15 +31,6 @@ struct ChunkPushConstants {
 struct ChunkShadowPushConstants {
 	glm::mat4 vp;
 	glm::vec4 chunkOffset;
-};
-
-struct SDFUniforms {
-	glm::vec4 resolution;
-};
-
-struct SDFPushConstants {
-	glm::vec4 camPos;
-	glm::vec4 camRot;
 };
 
 struct ModelMatrices {
@@ -111,7 +106,7 @@ void loadMesh(std::vector<Vertex>& vertices, std::vector<uint32_t>& indices, std
 void VKRenderer::loadAlbedo() {
 	auto memProps = physicalDevice.getMemoryProperties();
 	int x, y, channelsInFile;
-	stbi_uc* dat = stbi_load("terrain.png", &x, &y, &channelsInFile, 4);
+	stbi_uc* dat = stbi_load("albedo.png", &x, &y, &channelsInFile, 4);
 	albedoTex = vku::TextureImage2D{ *device, memProps, (uint32_t)x, (uint32_t)y, 1, vk::Format::eR8G8B8A8Srgb };
 
 	std::vector<uint8_t> albedoDat(dat, dat + (x * y * 4));
@@ -127,8 +122,8 @@ void VKRenderer::setupTonemapping() {
 	tonemapDslm.image(3, vk::DescriptorType::eCombinedImageSampler, vk::ShaderStageFlagBits::eCompute, 1);
 
 	tonemapDsl = tonemapDslm.createUnique(*device);
-
-	tonemapShader = vku::ShaderModule{ *device, "tonemap.comp.spv" };
+	
+	tonemapShader = loadShaderAsset(g_assetDB.addAsset("Shaders/tonemap.comp.spv"));
 
 	vku::PipelineLayoutMaker plm;
 	plm.descriptorSetLayout(*tonemapDsl);
@@ -274,37 +269,13 @@ void VKRenderer::setupStandard() {
 
 	this->renderPass = rPassMaker.createUnique(*this->device);
 
-	vertexShader = vku::ShaderModule{ *this->device, "test.vert.spv" };
-	fragmentShader = vku::ShaderModule{ *this->device, "test.frag.spv" };
+	AssetID vsID = g_assetDB.addAsset("Shaders/test.vert.spv");
+	AssetID fsID = g_assetDB.addAsset("Shaders/test.frag.spv");
+	vertexShader = loadShaderAsset(vsID);
+	fragmentShader = loadShaderAsset(fsID);
 }
 
 const int SHADOWMAP_RES = 2048;
-
-void VKRenderer::setupChunk() {
-	vku::PipelineLayoutMaker plm;
-	plm.pushConstantRange(vk::ShaderStageFlagBits::eFragment | vk::ShaderStageFlagBits::eVertex, 0, sizeof(ChunkPushConstants));
-	plm.descriptorSetLayout(*this->dsl);
-	chunkPipelineLayout = plm.createUnique(*device);
-
-	chunkVS = vku::ShaderModule{ *device, "voxelobj.vert.spv" };
-	chunkFS = vku::ShaderModule{ *device, "voxelobj.frag.spv" };
-	chunkShadowVS = vku::ShaderModule{ *device, "voxelobj_shadow.vert.spv" };
-
-	vku::PipelineLayoutMaker shadowPlm;
-	shadowPlm.pushConstantRange(vk::ShaderStageFlagBits::eVertex, 0, sizeof(ChunkShadowPushConstants));
-	plm.descriptorSetLayout(*shadowmapDsl);
-	shadowmapChunkPipelineLayout = shadowPlm.createUnique(*device);
-
-	vku::PipelineMaker pm{ SHADOWMAP_RES, SHADOWMAP_RES };
-	pm.shader(vk::ShaderStageFlagBits::eFragment, shadowFragmentShader);
-	pm.shader(vk::ShaderStageFlagBits::eVertex, chunkShadowVS);
-	pm.vertexBinding(0, (uint32_t)sizeof(ChunkVertex));
-	pm.vertexAttribute(0, 0, vk::Format::eR8G8B8A8Uint, (uint32_t)offsetof(ChunkVertex, packedXYZ));
-	pm.cullMode(vk::CullModeFlagBits::eBack);
-	pm.depthWriteEnable(true).depthTestEnable(true).depthCompareOp(vk::CompareOp::eLess);
-
-	shadowmapChunkPipeline = pm.createUnique(*device, *pipelineCache, *shadowmapChunkPipelineLayout, *shadowmapPass);
-}
 
 void VKRenderer::setupShadowPass() {
 	auto memoryProps = physicalDevice.getMemoryProperties();
@@ -328,8 +299,10 @@ void VKRenderer::setupShadowPass() {
 
 	shadowmapPass = rPassMaker.createUnique(*device);
 
-	shadowVertexShader = vku::ShaderModule{ *device, "shadowmap.vert.spv" };
-	shadowFragmentShader = vku::ShaderModule{ *device, "shadowmap.frag.spv" };
+	AssetID vsID = g_assetDB.addAsset("Shaders/shadowmap.vert.spv");
+	AssetID fsID = g_assetDB.addAsset("Shaders/shadowmap.frag.spv");
+	shadowVertexShader = loadShaderAsset(vsID);
+	shadowFragmentShader = loadShaderAsset(fsID);
 
 	vku::DescriptorSetMaker dsm;
 	dsm.layout(*shadowmapDsl);
@@ -531,7 +504,6 @@ VKRenderer::VKRenderer(SDL_Window* window, bool* success) : window(window), fram
 	setupImGUI();
 	setupShadowPass();
 	setupStandard();
-	setupChunk();
 
 	createSCDependents();
 
@@ -561,6 +533,11 @@ VKRenderer::VKRenderer(SDL_Window* window, bool* success) : window(window), fram
 
 
 	*success = true;
+#ifdef TRACY_ENABLE
+	for (auto& cmdBuf : cmdBufs) {
+		tracyContexts.push_back(tracy::CreateVkContext(physicalDevice, *device, device->getQueue(graphicsQueueFamilyIdx, 0), *cmdBufs[0]));
+	}
+#endif
 }
 
 // Quite a lot of resources are dependent on either the number of images
@@ -570,11 +547,6 @@ void VKRenderer::createSCDependents() {
 	auto memoryProps = physicalDevice.getMemoryProperties();
 
 	this->depthStencilImage = vku::DepthStencilImage(*this->device, memoryProps, this->width, this->height, vk::Format::eD32Sfloat);
-
-	//createFramebuffers();
-
-	vertexShader = vku::ShaderModule{ *this->device, "test.vert.spv" };
-	fragmentShader = vku::ShaderModule{ *this->device, "test.frag.spv" };
 
 	vku::PipelineMaker pm{ this->width, this->height };
 	pm.shader(vk::ShaderStageFlagBits::eFragment, fragmentShader);
@@ -590,20 +562,6 @@ void VKRenderer::createSCDependents() {
 	pm.blendBegin(false);
 	pm.blendBegin(false);
 	this->pipeline = pm.createUnique(*this->device, *this->pipelineCache, *this->pipelineLayout, *this->renderPass);
-
-	vku::PipelineMaker chunkPm{ this->width, this->height };
-	chunkPm.shader(vk::ShaderStageFlagBits::eFragment, chunkFS);
-	chunkPm.shader(vk::ShaderStageFlagBits::eVertex, chunkVS);
-	chunkPm.vertexBinding(0, (uint32_t)sizeof(ChunkVertex));
-	chunkPm.vertexAttribute(0, 0, vk::Format::eR8G8B8A8Uint, (uint32_t)offsetof(ChunkVertex, packedXYZ));
-	chunkPm.vertexAttribute(1, 0, vk::Format::eR8G8B8A8Uint, (uint32_t)offsetof(ChunkVertex, packedNormCorner));
-	chunkPm.vertexAttribute(2, 0, vk::Format::eR32Sfloat, (uint32_t)offsetof(ChunkVertex, ao));
-	chunkPm.vertexAttribute(3, 0, vk::Format::eR16G16Uint, (uint32_t)offsetof(ChunkVertex, texId));
-	chunkPm.cullMode(vk::CullModeFlagBits::eBack);
-	chunkPm.depthWriteEnable(true).depthTestEnable(true).depthCompareOp(vk::CompareOp::eLess);
-	chunkPm.blendBegin(false);
-	chunkPm.blendBegin(false);
-	chunkPipeline = chunkPm.createUnique(*device, *pipelineCache, *chunkPipelineLayout, *renderPass);
 
 	vk::ImageCreateInfo ici;
 	ici.imageType = vk::ImageType::e2D;
@@ -720,6 +678,10 @@ void imageBarrier(vk::CommandBuffer& cb, vk::Image image, vk::ImageLayout layout
 }
 
 void VKRenderer::doTonemap(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageIndex) {
+#ifdef TRACY_ENABLE
+	ZoneScoped;
+	TracyVkZone(tracyContexts[imageIndex], *cmdBuf, "Tonemap/Postprocessing");
+#endif
 	finalPrePresent.setLayout(*cmdBuf, vk::ImageLayout::eGeneral, vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eComputeShader, vk::AccessFlagBits::eTransferRead, vk::AccessFlagBits::eShaderWrite);
 
 	imageBarrier(*cmdBuf, polyImage.image(), vk::ImageLayout::eGeneral, vk::AccessFlagBits::eColorAttachmentWrite, vk::AccessFlagBits::eShaderRead, vk::PipelineStageFlagBits::eColorAttachmentOutput, vk::PipelineStageFlagBits::eComputeShader);
@@ -776,6 +738,10 @@ void VKRenderer::doTonemap(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageIndex)
 glm::vec3 shadowOffset(0.0f, 0.0f, 0.001f);
 
 void VKRenderer::renderShadowmap(vk::UniqueCommandBuffer& cmdBuf, entt::registry& reg, uint32_t imageIndex, Camera& cam) {
+#ifdef TRACY_ENABLE
+	ZoneScoped;
+	TracyVkZone(tracyContexts[imageIndex], *cmdBuf, "Shadowmap");
+#endif
 	vk::ClearDepthStencilValue clearDepthValue{ 1.0f, 0 };
 	std::array<vk::ClearValue, 1> clearColours{ clearDepthValue };
 
@@ -820,21 +786,14 @@ void VKRenderer::renderShadowmap(vk::UniqueCommandBuffer& cmdBuf, entt::registry
 		cmdBuf->drawIndexed(obj.indexCount, 1, 0, 0, 0);
 	});
 
-	cmdBuf->bindPipeline(vk::PipelineBindPoint::eGraphics, *shadowmapChunkPipeline);
-
-	reg.view<Transform, ChunkRenderObject>().each([this, &cmdBuf, &cam, &view, &projection](auto ent, Transform& transform, ChunkRenderObject& obj) {
-		if (!obj.visible) return;
-		ChunkShadowPushConstants pushConst{ projection * view, glm::vec4(transform.position, 0.0f) };
-		cmdBuf->pushConstants<ChunkShadowPushConstants>(*shadowmapChunkPipelineLayout, vk::ShaderStageFlagBits::eVertex, 0, pushConst);
-		cmdBuf->bindVertexBuffers(0, obj.vb.buffer(), vk::DeviceSize(0));
-		cmdBuf->bindIndexBuffer(obj.ib.buffer(), 0, obj.indexType);
-		cmdBuf->drawIndexed(obj.indexCount, 1, 0, 0, 0);
-	});
-
 	cmdBuf->endRenderPass();
 }
 
 void VKRenderer::renderPolys(vk::UniqueCommandBuffer& cmdBuf, entt::registry& reg, uint32_t imageIndex, Camera& cam) {
+#ifdef TRACY_ENABLE
+	ZoneScoped;
+	TracyVkZone(tracyContexts[imageIndex], *cmdBuf, "Polys");
+#endif
 	// Fast path clear values for AMD
 	std::array<float, 4> clearColorValue{ 0.0f, 0.1f, 0.5f, 1 };
 	std::array<float, 4> mvecClearVal{ 0.0f, 0.0f, 0.0f, 0.0f };
@@ -878,22 +837,13 @@ void VKRenderer::renderPolys(vk::UniqueCommandBuffer& cmdBuf, entt::registry& re
 		cmdBuf->drawIndexed(obj.indexCount, 1, 0, 0, 0);
 	});
 
-	cmdBuf->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *chunkPipelineLayout, 0, descriptorSets[0], nullptr);
-	cmdBuf->bindPipeline(vk::PipelineBindPoint::eGraphics, *chunkPipeline);
-
-	reg.view<Transform, ChunkRenderObject>().each([this, &cmdBuf, &cam](auto ent, Transform& transform, ChunkRenderObject& obj) {
-		if (!obj.visible) return;
-		ChunkPushConstants pushConst{ glm::vec4(cam.position, 0.0f), glm::vec4(transform.position, 0.0f) };
-		cmdBuf->pushConstants<ChunkPushConstants>(*chunkPipelineLayout, vk::ShaderStageFlagBits::eFragment | vk::ShaderStageFlagBits::eVertex, 0, pushConst);
-		cmdBuf->bindVertexBuffers(0, obj.vb.buffer(), vk::DeviceSize(0));
-		cmdBuf->bindIndexBuffer(obj.ib.buffer(), 0, obj.indexType);
-		cmdBuf->drawIndexed(obj.indexCount, 1, 0, 0, 0);
-	});
-
 	cmdBuf->endRenderPass();
 }
 
 void VKRenderer::updateTonemapDescriptors() {
+#ifdef TRACY_ENABLE
+	ZoneScoped;
+#endif
 	vku::DescriptorSetUpdater dsu;
 	dsu.beginDescriptorSet(tonemapDescriptorSet);
 
@@ -912,7 +862,24 @@ void VKRenderer::updateTonemapDescriptors() {
 	dsu.update(*device);
 }
 
+vku::ShaderModule VKRenderer::loadShaderAsset(AssetID id) {
+	PHYSFS_File* file = g_assetDB.openDataFile(id);
+	size_t size = PHYSFS_fileLength(file);
+	void* buffer = std::malloc(size);
+
+	size_t readBytes = PHYSFS_readBytes(file, buffer, size);
+	assert(readBytes == size);
+	PHYSFS_close(file);
+	
+	vku::ShaderModule sm{ *device, static_cast<uint32_t*>(buffer), readBytes };
+	std::free(buffer);
+	return sm;
+}
+
 void VKRenderer::frame(Camera& cam, entt::registry& reg) {
+#ifdef TRACY_ENABLE
+	ZoneScoped;
+#endif
 	// No point rendering if it's not going to be shown
 
 	uint32_t imageIndex = 0;
@@ -971,7 +938,7 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
 	lub.shadowmapMatrix = projection * view;
 
 	lub.lights[0] = PackedLight{ glm::vec4(1.0f, 1.0f, 1.0f, 2.0f), glm::vec4(glm::normalize(glm::vec3(0.0f, 0.0f, 1.0f) * glm::mat3(view)), 0.0f), glm::vec4(0.0f, 0.0f, -0.1f, 0.0f) };
-	//lub.lights[1] = PackedLight{ glm::vec4(1.0f, 0.1f, 0.1f, 0.0f), glm::vec4(0.0f), glm::vec4(cam.position, 0.0f) };
+	lub.lights[1] = PackedLight{ glm::vec4(1.0f, 0.1f, 0.1f, 0.0f), glm::vec4(0.0f), glm::vec4(cam.position, 0.0f) };
 
 	auto& cmdBuf = cmdBufs[imageIndex];
 
@@ -1002,12 +969,17 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
 		vk::PipelineStageFlagBits::eBottomOfPipe, vk::PipelineStageFlagBits::eTransfer, 
 		vk::AccessFlagBits::eMemoryRead, vk::AccessFlagBits::eTransferWrite);
 
-	imageBarrier(*cmdBuf, finalPrePresent.image(), vk::ImageLayout::eTransferSrcOptimal, vk::AccessFlagBits::eColorAttachmentWrite, vk::AccessFlagBits::eTransferRead, vk::PipelineStageFlagBits::eColorAttachmentOutput, vk::PipelineStageFlagBits::eTransfer);
+	imageBarrier(*cmdBuf, finalPrePresent.image(), vk::ImageLayout::eTransferSrcOptimal, 
+		vk::AccessFlagBits::eColorAttachmentWrite, vk::AccessFlagBits::eTransferRead, 
+		vk::PipelineStageFlagBits::eColorAttachmentOutput, vk::PipelineStageFlagBits::eTransfer);
 
 	vk::ImageBlit imageBlit;
 	imageBlit.srcOffsets[1] = imageBlit.dstOffsets[1] = { (int)width, (int)height, 1 };
 	imageBlit.dstSubresource = imageBlit.srcSubresource = { vk::ImageAspectFlagBits::eColor, 0, 0, 1 };
-	cmdBuf->blitImage(finalPrePresent.image(), vk::ImageLayout::eTransferSrcOptimal, swapchain->images[imageIndex], vk::ImageLayout::eTransferDstOptimal, imageBlit, vk::Filter::eNearest);
+	cmdBuf->blitImage(
+		finalPrePresent.image(), vk::ImageLayout::eTransferSrcOptimal, 
+		swapchain->images[imageIndex], vk::ImageLayout::eTransferDstOptimal, 
+		imageBlit, vk::Filter::eNearest);
 
 	vku::transitionLayout(*cmdBuf, swapchain->images[imageIndex], 
 		vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::ePresentSrcKHR, 
@@ -1015,6 +987,9 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
 		vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eMemoryRead);
 	
 	cmdBuf->writeTimestamp(vk::PipelineStageFlagBits::eBottomOfPipe, *queryPool, 1);
+#ifdef TRACY_ENABLE
+	TracyVkCollect(tracyContexts[imageIndex], *cmdBuf);
+#endif
 	cmdBuf->end();
 
 	vk::SubmitInfo submit;
@@ -1054,6 +1029,9 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
 	lastView = vp.view;
 	lastProj = vp.projection;
 	frameIdx++;
+#ifdef TRACY_ENABLE
+	FrameMark
+#endif
 }
 
 void VKRenderer::preloadMesh(AssetID id) {
@@ -1089,23 +1067,6 @@ void VKRenderer::uploadProcObj(ProceduralObject& procObj) {
 	procObj.ib.upload(*device, memProps, *commandPool, device->getQueue(graphicsQueueFamilyIdx, 0), procObj.indices);
 	procObj.vb = vku::VertexBuffer{ *device, allocator, procObj.vertices.size() * sizeof(Vertex) };
 	procObj.vb.upload(*device, memProps, *commandPool, device->getQueue(graphicsQueueFamilyIdx, 0), procObj.vertices);
-}
-
-void VKRenderer::uploadChunkObj(ChunkRenderObject& chunkObj) {
-	if (chunkObj.vertices.size() == 0) {
-		chunkObj.visible = false;
-		return;
-	} else {
-		chunkObj.visible = true;
-	}
-	device->waitIdle();
-	auto memProps = physicalDevice.getMemoryProperties();
-	chunkObj.indexType = vk::IndexType::eUint32;
-	chunkObj.indexCount = chunkObj.indices.size();
-	chunkObj.ib = vku::IndexBuffer{ *device, allocator, chunkObj.indices.size() * sizeof(uint32_t) };
-	chunkObj.ib.upload(*device, memProps, *commandPool, device->getQueue(graphicsQueueFamilyIdx, 0), chunkObj.indices);
-	chunkObj.vb = vku::VertexBuffer{ *device, allocator, chunkObj.vertices.size() * sizeof(ChunkVertex) };
-	chunkObj.vb.upload(*device, memProps, *commandPool, device->getQueue(graphicsQueueFamilyIdx, 0), chunkObj.vertices);
 }
 
 VKRenderer::~VKRenderer() {

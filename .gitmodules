@@ -1,0 +1,3 @@
+[submodule "ExperimentalEngine/tracy"]
+	path = ExperimentalEngine/tracy
+	url = https://github.com/wolfpld/tracy.git

@@ -57,6 +57,11 @@ struct MaterialAsset {
 	AssetID marTex; // metallic, ambient, roughness
 };
 
+struct ShaderAsset {
+	AssetID id;
+	// TODO: fill in things like parameters
+};
+
 class AssetDB {
 public:
 	AssetDB();
@@ -64,6 +69,7 @@ public:
 	SoundAsset getSound(AssetID id);
 	MeshAsset getMesh(AssetID id);
 	MaterialAsset getMaterial(AssetID id);
+	ShaderAsset getShader(AssetID id);
 	PHYSFS_File* openDataFile(AssetID id);
 	AssetID addAsset(std::string path);
 	void save();

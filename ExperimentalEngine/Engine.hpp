@@ -4,6 +4,9 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <imgui.h>
 #include "AssetDB.hpp"
+#ifdef TRACY_ENABLE
+#include "tracy/TracyVulkan.hpp"
+#endif
 
 struct WorldObject {
 	WorldObject(AssetID material, AssetID mesh) : material(material), mesh(mesh), texScaleOffset(1.0f, 1.0f, 0.0f, 0.0f) {}
@@ -45,13 +48,6 @@ struct Vertex {
 	float ao;
 };
 
-struct ChunkVertex {
-	uint32_t packedXYZ;
-	uint32_t packedNormCorner;
-	float ao;
-	uint32_t texId;
-};
-
 struct PackedMaterial {
 	glm::vec4 pack0;
 	glm::vec4 pack1;
@@ -62,20 +58,6 @@ struct ProceduralObject {
 	AssetID material;
 
 	std::vector<Vertex> vertices;
-	std::vector<uint32_t> indices;
-	bool uploaded;
-	bool readyForUpload;
-	bool visible;
-	vku::VertexBuffer vb;
-	vku::IndexBuffer ib;
-	uint32_t indexCount;
-	vk::IndexType indexType;
-};
-
-struct ChunkRenderObject {
-	ChunkRenderObject() : uploaded(false), readyForUpload(false), visible(true) {}
-
-	std::vector<ChunkVertex> vertices;
 	std::vector<uint32_t> indices;
 	bool uploaded;
 	bool readyForUpload;
@@ -178,15 +160,6 @@ class VKRenderer {
 	vku::GenericImage polyImage;
 	vku::GenericImage motionVectorImage;
 
-	// voxel chunk specific pipeline
-	vk::UniquePipeline chunkPipeline;
-	vk::UniquePipelineLayout chunkPipelineLayout;
-	vku::ShaderModule chunkVS;
-	vku::ShaderModule chunkShadowVS;
-	vku::ShaderModule chunkFS;
-	vk::UniquePipelineLayout shadowmapChunkPipelineLayout;
-	vk::UniquePipeline shadowmapChunkPipeline;
-
 	// tonemap related stuff
 	vku::ShaderModule tonemapShader;
 	vk::UniqueDescriptorSetLayout tonemapDsl;
@@ -220,7 +193,6 @@ class VKRenderer {
 	void setupTonemapping();
 	void setupImGUI();
 	void setupStandard();
-	void setupChunk();
 	void setupShadowPass();
 	void presentNothing(uint32_t imageIndex);
 	void loadAlbedo();
@@ -228,11 +200,15 @@ class VKRenderer {
 	void renderShadowmap(vk::UniqueCommandBuffer& cmdBuf, entt::registry& reg, uint32_t imageIndex, Camera& cam);
 	void renderPolys(vk::UniqueCommandBuffer& cmdBuf, entt::registry& reg, uint32_t imageIndex, Camera& cam);
 	void updateTonemapDescriptors();
+	vku::ShaderModule loadShaderAsset(AssetID id);
 
 	std::unordered_map<AssetID, LoadedMeshData> loadedMeshes;
 	glm::mat4 lastView;
 	glm::mat4 lastProj;
 	int frameIdx;
+#ifdef TRACY_ENABLE
+	std::vector<TracyVkCtx> tracyContexts;
+#endif
 
 public:
 	double time;
@@ -241,7 +217,6 @@ public:
 	void frame(Camera& cam, entt::registry& reg);
 	void preloadMesh(AssetID id);
 	void uploadProcObj(ProceduralObject& procObj);
-	void uploadChunkObj(ChunkRenderObject& chunkRenderObj);
 	inline float getLastRenderTime() { return lastRenderTimeTicks * timestampPeriod; }
 
 	~VKRenderer();

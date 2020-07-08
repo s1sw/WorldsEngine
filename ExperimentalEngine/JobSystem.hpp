@@ -6,6 +6,9 @@
 #include <atomic>
 #include "SDL2/SDL_mutex.h"
 #include <functional>
+#ifdef TRACY_ENABLE
+#include "tracy/Tracy.hpp"
+#endif
 
 typedef std::function<void()> JobFunc;
 typedef void (*JobCompleteFuncPtr)();
@@ -35,20 +38,32 @@ public:
 	}
 
 	void begin() {
+#ifdef TRACY_ENABLE
+		ZoneScoped;
+#endif
 		jobs = std::queue<Job>();
 	}
 
 	void addJob(Job&& job) {
+#ifdef TRACY_ENABLE
+		ZoneScoped;
+#endif
 		jobs.emplace(job);
 	}
 
 	void end() {
+#ifdef TRACY_ENABLE
+		ZoneScoped;
+#endif
 		startJobCount = (int)jobs.size();
 		completedJobs = 0;
 		completed = false;
 	}
 
 	void wait() {
+#ifdef TRACY_ENABLE
+		ZoneScoped;
+#endif
 		if (completed) return;
 		SDL_LockMutex(completeMutex);
 		while (!completed) {
