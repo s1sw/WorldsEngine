@@ -38,6 +38,20 @@ struct PackedLight {
 	glm::vec4 pack2;
 };
 
+enum class LightType {
+	Point,
+	Spot,
+	Directional
+};
+
+struct WorldLight {
+	WorldLight() : type(LightType::Point), color(1.0f), spotCutoff(1.35f) {}
+	WorldLight(LightType type) : type(type), color(1.0f), spotCutoff(1.35f) {}
+	LightType type;
+	glm::vec3 color;
+	float spotCutoff;
+};
+
 struct LightUB {
 	glm::vec4 pack0;
 	glm::mat4 shadowmapMatrix;
@@ -213,6 +227,7 @@ class VKRenderer {
 	std::vector<TracyVkCtx> tracyContexts;
 #endif
 	vku::TextureImage2D textures[64];
+	vku::TextureImageCube cubemaps[64];
 public:
 	double time;
 	VKRenderer(SDL_Window* window, bool* success);

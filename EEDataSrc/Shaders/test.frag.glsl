@@ -9,6 +9,7 @@ layout(location = 1) in vec3 inNormal;
 layout(location = 2) in vec3 inTangent;
 layout(location = 3) in vec2 inUV;
 layout(location = 4) in float inAO;
+layout(location = 5) in vec4 inShadowPos;
 
 const int LT_POINT = 0;
 const int LT_SPOT = 1;
@@ -47,7 +48,7 @@ layout (binding = 5) uniform sampler2DShadow shadowSampler;
 layout(push_constant) uniform PushConstants {
 	vec4 viewPos;
 	vec4 texScaleOffset;
-    // (x: model matrix index, y: material index)
+    // (x: model matrix index, y: material index, z: specular cubemap index)
 	ivec4 ubIndices;
 };
 
@@ -174,21 +175,23 @@ void main() {
     f0 = mix(f0, albedoColor, metallic);
 	vec3 lo = vec3(0.05) * inAO;
 	
-	vec4 lightspacePos = shadowmapMatrix * inWorldPos;
+    vec4 lightspacePos = inShadowPos;
     for (int i = 0; i < lightCount; i++) {
 		vec3 cLighting = calculateLighting(i, viewDir, f0, metallic, roughness);
 		if (i == 0) {
-			float depth = (lightspacePos.z / lightspacePos.w) - 0.005;
+			float depth = (lightspacePos.z / lightspacePos.w) - 0.001;
 			vec2 texReadPoint = (lightspacePos.xy * 0.5 + 0.5);
 			
 			if (texReadPoint.x > 0.0 && texReadPoint.x < 1.0 && texReadPoint.y > 0.0 && texReadPoint.y < 1.0 && depth < 1.0 && depth > 0.0) {
                 float texelSize = 1.0 / textureSize(shadowSampler, 0).x;
 				texReadPoint.y = 1.0 - texReadPoint.y;
                 float shadowIntensity = 0.0;
-                for (int x = -1; x < 1; x++)
-                for (int y = -1; y < 1; y++)
+                const int shadowSamples = 1;
+                const float divVal = ((shadowSamples * 2) + 1) * ((shadowSamples * 2) + 1);
+                for (int x = -shadowSamples; x < shadowSamples; x++)
+                for (int y = -shadowSamples; y < shadowSamples; y++)
 				    shadowIntensity += texture(shadowSampler, vec3(texReadPoint + vec2(x, y) * texelSize, depth)).x;
-                shadowIntensity /= 9.0;
+                shadowIntensity /= divVal;
                 cLighting *= shadowIntensity;
 			}
 		}
