@@ -151,17 +151,41 @@ int windowThread(void* data) {
 	return 0;
 }
 
-entt::entity createModelObject(entt::registry& reg, glm::vec3 position, glm::quat rotation, AssetID meshId, glm::vec4 texScaleOffset = glm::vec4(1.0f, 1.0f, 0.0f, 0.0f)) {
+entt::entity createModelObject(entt::registry& reg, glm::vec3 position, glm::quat rotation, AssetID meshId, int materialId, glm::vec3 scale = glm::vec3(1.0f), glm::vec4 texScaleOffset = glm::vec4(1.0f, 1.0f, 0.0f, 0.0f)) {
 	auto ent = reg.create();
 	auto& transform = reg.emplace<Transform>(ent, position, rotation);
+	transform.scale = scale;
 	auto& worldObject = reg.emplace<WorldObject>(ent, 0, meshId);
 	worldObject.texScaleOffset = texScaleOffset;
+	worldObject.materialIndex = materialId;
 	return ent;
 }
 
 bool useEventThread = true;
 int workerThreadOverride = -1;
 extern glm::vec3 shadowOffset;
+
+template<typename Type>
+void clone(const entt::registry& from, entt::registry& to) {
+	const auto* data = from.data<Type>();
+	const auto size = from.size<Type>();
+
+	if constexpr (ENTT_IS_EMPTY(Type)) {
+		to.insert<Type>(data, data + size);
+	} else {
+		const auto* raw = from.raw<Type>();
+		to.insert<Type>(data, data + size, raw, raw + size);
+	}
+}
+
+void copyRegistry(entt::registry& normalRegistry, entt::registry& renderRegistry) {
+	//renderRegistry.clear();
+	clone<Transform>(normalRegistry, renderRegistry);
+	clone<WorldObject>(normalRegistry, renderRegistry);
+	//clone<ProceduralObject>(normalRegistry, renderRegistry);
+}
+
+struct EmptyDummyForPerf {};
 
 void engine(char* argv0) {
 #ifdef TRACY_ENABLE
@@ -203,7 +227,11 @@ void engine(char* argv0) {
 		SDL_DetachThread(SDL_CreateThread(windowThread, "Window Thread", &wtd));
 		SDL_Delay(1000);
 	} else {
-		window = SDL_CreateWindow("ExperimentalEngine", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1280, 720, SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE);
+		window = SDL_CreateWindow(
+			"ExperimentalEngine", 
+			SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 
+			1280, 720, 
+			SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE);
 		if (window == nullptr) {
 			SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "err", SDL_GetError(), NULL);
 		}
@@ -242,8 +270,9 @@ void engine(char* argv0) {
 	AssetID monkeyId = g_assetDB.addAsset("monk.obj");
 	renderer.preloadMesh(modelId);
 	renderer.preloadMesh(monkeyId);
-	createModelObject(registry, glm::vec3(0.0f), glm::quat(), modelId);
-	createModelObject(registry, glm::vec3(3.0f, 0.0f, 0.0f), glm::quat(), monkeyId);
+	entt::entity boxEnt = createModelObject(registry, glm::vec3(0.0f, -2.0f, 0.0f), glm::quat(), modelId, 0, glm::vec3(5.0f, 1.0f, 5.0f));
+
+	createModelObject(registry, glm::vec3(0.0f, 0.0f, 0.0f), glm::quat(), monkeyId, 1);
 
 	AssetID droppedObjectID = g_assetDB.addAsset("droppeditem.obj");
 	renderer.preloadMesh(droppedObjectID);
@@ -379,19 +408,18 @@ void engine(char* argv0) {
 			return glm::distance2(camPos, aTransform.position) < glm::distance2(camPos, aTransform.position);
 		}, entt::insertion_sort{});
 
+		registry.sort<WorldObject>([&registry, &camPos](entt::entity a, entt::entity b) -> bool {
+			auto& aTransform = registry.get<Transform>(a);
+			auto& bTransform = registry.get<Transform>(b);
+			return glm::distance2(camPos, aTransform.position) < glm::distance2(camPos, aTransform.position);
+			}, entt::insertion_sort{});
+
 		struct RenderFrameJobData {
 			Camera& cam;
 			VKRenderer& renderer;
 			entt::registry& registry;
 		};
 
-		//auto& jobList = jobSystem.getFreeJobList();
-		//jobList.begin();
-		//jobList.addJob(Job([&renderer, &cam, &registry]() {
-		//	renderer.frame(cam, registry);
-		//}));
-		//jobList.end();
-		//jobSystem.signalJobListAvailable();
 		renderer.frame(cam, registry);
 		jobSystem.completeFrameJobs();
 		frameCounter++;

@@ -1,17 +1,14 @@
 #version 450
+#extension GL_EXT_nonuniform_qualifier : enable
 #define PI 3.1415926535
 
 layout(location = 0) out vec4 FragColor;
-layout(location = 1) out vec2 MotionVector;
-layout(location = 3) out vec3 Normal;
 
 layout(location = 0) in vec4 inWorldPos;
 layout(location = 1) in vec3 inNormal;
 layout(location = 2) in vec3 inTangent;
 layout(location = 3) in vec2 inUV;
 layout(location = 4) in float inAO;
-layout(location = 5) in vec4 inLastCSPos;
-layout(location = 6) in vec4 inCSPos;
 
 const int LT_POINT = 0;
 const int LT_SPOT = 1;
@@ -33,20 +30,25 @@ layout(std140, binding = 1) uniform LightBuffer {
 	Light lights[16];
 };
 
-layout(std140, binding = 2) uniform MaterialSettingsBuffer {
-	// (metallic, roughness, use albedo texture, unused)
+struct Material {
+	// (metallic, roughness, albedo texture index, unused)
 	vec4 pack0;
 	// (albedo color rgb, unused)
 	vec4 pack1;
-} Material;
+};
 
-layout (binding = 4) uniform sampler2D albedoSampler;
+layout(std140, binding = 2) uniform MaterialSettingsBuffer {
+    Material materials[256];
+};
+
+layout (binding = 4) uniform sampler2D albedoSampler[];
 layout (binding = 5) uniform sampler2DShadow shadowSampler;
 
 layout(push_constant) uniform PushConstants {
 	vec4 viewPos;
 	vec4 texScaleOffset;
-	mat4 model;
+    // (x: model matrix index, y: material index)
+	ivec4 ubIndices;
 };
 
 float DistributionGGX(vec3 N, vec3 H, float roughness) {
@@ -130,8 +132,7 @@ vec3 calculateLighting(int lightIdx, vec3 viewDir, vec3 f0, float metallic, floa
     } else {
         L = normalize(light.pack1.xyz);
     }
-	
-    //L = normalize(L);
+
     // Boost the roughness a little bit for analytical lights otherwise the reflection of the light turns invisible
     roughness = clamp(roughness + 0.05f, 0.0, 1.0);
 
@@ -155,65 +156,46 @@ vec3 calculateLighting(int lightIdx, vec3 viewDir, vec3 f0, float metallic, floa
 
     vec3 diffuse = kd;
     vec3 lPreShadow = (specular + diffuse) * (radiance * cosLi);
-	/*
-    if (shadowmapSizeCorners[lightIdx].x > 0.01f && type != LT_DIRECTIONAL) {
-        //if (dot(shadowmapSizeCorners[lightIdx], shadowmapSizeCorners[lightIdx]) > 0.01f) {
-        float4 lightSpacePos = pixInput.lightSpacePos[(int)positionsShadowIdx[lightIdx].w];
-        // Ignore normal maps here
-        return lPreShadow * getShadowIntensity(lightIdx, lightSpacePos, pixInput.worldPos, pixInput.norm, L);
-    } else if (type == LT_DIRECTIONAL) {
-        return lPreShadow * getShadowCascadeIntensity(pixInput.worldPos, pixInput.position.z);
-    }*/
-    //else {
-        return lPreShadow;
-    //}
+
+    return lPreShadow;
 }
 
 void main() {
-	//FragColor = vec4(1.0);
-	//FragColor = vec4(vec3(inAO), 1.0);
-	//return;
-	
-	//vec3 col = vec3(dot(inNormal, viewDir));
-	//FragColor = vec4(col, 1.0);
-	//return;
+    Material mat = materials[ubIndices.y];
 	int lightCount = int(pack0.x);
 	
-	float metallic = Material.pack0.x;
-	float roughness = Material.pack0.y;
-	vec3 albedoColor = Material.pack1.rgb;
+	float metallic = mat.pack0.x;
+	float roughness = mat.pack0.y;
+	vec3 albedoColor = mat.pack1.rgb;
 	
 	vec3 viewDir = normalize(viewPos.xyz - inWorldPos.xyz);
 	
 	vec3 f0 = vec3(0.04f, 0.04f, 0.04f);
     f0 = mix(f0, albedoColor, metallic);
-	vec3 lo = vec3(0.05) * inAO;//calculateLighting(0, f0, metallic, roughness);
-	//lo += vec3(0.1);
+	vec3 lo = vec3(0.05) * inAO;
 	
 	vec4 lightspacePos = shadowmapMatrix * inWorldPos;
     for (int i = 0; i < lightCount; i++) {
 		vec3 cLighting = calculateLighting(i, viewDir, f0, metallic, roughness);
-		//vec3 cLighting = vec3(1.0);
 		if (i == 0) {
 			float depth = (lightspacePos.z / lightspacePos.w) - 0.005;
 			vec2 texReadPoint = (lightspacePos.xy * 0.5 + 0.5);
 			
 			if (texReadPoint.x > 0.0 && texReadPoint.x < 1.0 && texReadPoint.y > 0.0 && texReadPoint.y < 1.0 && depth < 1.0 && depth > 0.0) {
+                float texelSize = 1.0 / textureSize(shadowSampler, 0).x;
 				texReadPoint.y = 1.0 - texReadPoint.y;
-				cLighting *= texture(shadowSampler, vec3(texReadPoint, depth)).x;
-			} //else {
-				//cLighting = vec3(0.0);
-				//lo = vec3(1.0, 0.0, 0.2);
-			//}
+                float shadowIntensity = 0.0;
+                for (int x = -1; x < 1; x++)
+                for (int y = -1; y < 1; y++)
+				    shadowIntensity += texture(shadowSampler, vec3(texReadPoint + vec2(x, y) * texelSize, depth)).x;
+                shadowIntensity /= 9.0;
+                cLighting *= shadowIntensity;
+			}
 		}
 		lo += cLighting;
 	}
 	
 	// TODO: Ambient stuff - specular cubemaps + irradiance
 	
-	FragColor = vec4(lo * texture(albedoSampler, (inUV * texScaleOffset.xy) + texScaleOffset.zw).rgb, 1.0);
-	
-	vec2 pos1 = inCSPos.xy / inCSPos.w;
-	vec2 pos2 = inLastCSPos.xy / inLastCSPos.w;
-	MotionVector = pos1 - pos2;
+	FragColor = vec4(lo * texture(albedoSampler[int(mat.pack0.z)], (inUV * texScaleOffset.xy) + texScaleOffset.zw).rgb, 1.0);
 }

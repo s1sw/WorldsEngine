@@ -11,30 +11,25 @@ layout(location = 1) out vec3 outNormal;
 layout(location = 2) out vec3 outTangent;
 layout(location = 3) out vec2 outUV;
 layout(location = 4) out float outAO;
-layout(location = 5) out vec4 outLastCSPos;
-layout(location = 6) out vec4 outCSPos;
 
 layout(binding = 0) uniform VP {
 	mat4 view;
 	mat4 projection;
-	mat4 viewLast;
-	mat4 projLast;
 };
 
 layout(std140, binding = 3) uniform ModelMatrices {
-	mat4 modelMatrices[256];
-	mat4 lastModelMatrices[256];
+	mat4 modelMatrices[1024];
 };
 
 layout(push_constant) uniform PushConstants {
 	vec4 viewPos;
 	vec4 texScaleOffset;
-	uint modelMatrixIndex;
+	// (x: model matrix index, y: material index)
+	ivec4 ubIndices;
 };
 
 void main() {
-	mat4 model = modelMatrices[modelMatrixIndex];
-	mat4 lastModel = lastModelMatrices[modelMatrixIndex];
+	mat4 model = modelMatrices[ubIndices.x];
     gl_Position = projection * view * model * vec4(inPosition, 1.0); // Apply MVP transform
 	
 	
@@ -43,9 +38,5 @@ void main() {
     outTangent = normalize(model * vec4(inTangent, 0.0)).xyz;
     outWorldPos = (model * vec4(inPosition, 1.0));
 	outAO = inAO;
-	outLastCSPos = (projLast * viewLast * lastModel * vec4(inPosition, 1.0));
-	outLastCSPos.y = -outLastCSPos.y;
     gl_Position.y = -gl_Position.y; // Account for Vulkan viewport weirdness
-	outCSPos = gl_Position;
-	
 }

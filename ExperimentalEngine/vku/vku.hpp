@@ -427,12 +427,17 @@ namespace vku {
 			return *this;
 		}
 
+		DeviceMaker& setFeatures(vk::PhysicalDeviceFeatures& features) {
+			createFeatures = features;
+			return *this;
+		}
+
 		/// Create a new logical device.
 		vk::UniqueDevice createUnique(vk::PhysicalDevice physical_device) {
 			vk::DeviceCreateInfo dci{
 				{}, (uint32_t)qci_.size(), qci_.data(),
 				(uint32_t)layers_.size(), layers_.data(),
-				(uint32_t)device_extensions_.size(), device_extensions_.data() };
+				(uint32_t)device_extensions_.size(), device_extensions_.data(), &createFeatures };
 			dci.pNext = pNext;
 			return physical_device.createDeviceUnique(dci);
 		}
@@ -441,6 +446,7 @@ namespace vku {
 		std::vector<const char*> device_extensions_;
 		std::vector<std::vector<float> > queue_priorities_;
 		std::vector<vk::DeviceQueueCreateInfo> qci_;
+		vk::PhysicalDeviceFeatures createFeatures;
 		vk::ApplicationInfo app_info_;
 		void* pNext;
 	};
@@ -1059,6 +1065,12 @@ namespace vku {
 			return *this;
 		}
 
+		void specializationInfo(vk::SpecializationInfo info) {
+			info_ = info;
+			// Only set the pointer when we actually have specialization info
+			stage_.pSpecializationInfo = &info_;
+		}
+
 		/// Create a managed handle to a compute shader.
 		vk::UniquePipeline createUnique(vk::Device device, const vk::PipelineCache& pipelineCache, const vk::PipelineLayout& pipelineLayout) {
 			vk::ComputePipelineCreateInfo pipelineInfo{};
@@ -1070,6 +1082,7 @@ namespace vku {
 		}
 	private:
 		vk::PipelineShaderStageCreateInfo stage_;
+		vk::SpecializationInfo info_;
 	};
 
 	class UniqueVmaAllocation {
@@ -1392,20 +1405,29 @@ namespace vku {
 
 		void buffer(uint32_t binding, vk::DescriptorType descriptorType, vk::ShaderStageFlags stageFlags, uint32_t descriptorCount) {
 			s.bindings.emplace_back(binding, descriptorType, descriptorCount, stageFlags, nullptr);
+			s.bindFlags.push_back({});
 		}
 
 		void image(uint32_t binding, vk::DescriptorType descriptorType, vk::ShaderStageFlags stageFlags, uint32_t descriptorCount) {
 			s.bindings.emplace_back(binding, descriptorType, descriptorCount, stageFlags, nullptr);
+			s.bindFlags.push_back({});
 		}
 
 		void samplers(uint32_t binding, vk::DescriptorType descriptorType, vk::ShaderStageFlags stageFlags, const std::vector<vk::Sampler> immutableSamplers) {
 			s.samplers.push_back(immutableSamplers);
 			auto pImmutableSamplers = s.samplers.back().data();
 			s.bindings.emplace_back(binding, descriptorType, (uint32_t)immutableSamplers.size(), stageFlags, pImmutableSamplers);
+			s.bindFlags.push_back({});
 		}
 
 		void bufferView(uint32_t binding, vk::DescriptorType descriptorType, vk::ShaderStageFlags stageFlags, uint32_t descriptorCount) {
 			s.bindings.emplace_back(binding, descriptorType, descriptorCount, stageFlags, nullptr);
+			s.bindFlags.push_back({});
+		}
+
+		void bindFlag(uint32_t binding, vk::DescriptorBindingFlags flags) {
+			s.bindFlags[binding] = flags;
+			s.useBindFlags = true;
 		}
 
 		/// Create a self-deleting descriptor set object.
@@ -1413,6 +1435,13 @@ namespace vku {
 			vk::DescriptorSetLayoutCreateInfo dsci{};
 			dsci.bindingCount = (uint32_t)s.bindings.size();
 			dsci.pBindings = s.bindings.data();
+
+			if (s.useBindFlags) {
+				vk::DescriptorSetLayoutBindingFlagsCreateInfo dslbfci;
+				dslbfci.bindingCount = s.bindings.size();
+				dslbfci.pBindingFlags = s.bindFlags.data();
+				dsci.pNext = &dslbfci;
+			}
 			return device.createDescriptorSetLayoutUnique(dsci);
 		}
 
@@ -1421,6 +1450,8 @@ namespace vku {
 			std::vector<vk::DescriptorSetLayoutBinding> bindings;
 			std::vector<std::vector<vk::Sampler> > samplers;
 			int numSamplers = 0;
+			bool useBindFlags = false;
+			std::vector<vk::DescriptorBindingFlags> bindFlags;
 		};
 
 		State s;
@@ -1753,7 +1784,7 @@ namespace vku {
 		DepthStencilImage() {
 		}
 
-		DepthStencilImage(vk::Device device, const vk::PhysicalDeviceMemoryProperties& memprops, uint32_t width, uint32_t height, vk::Format format = vk::Format::eD24UnormS8Uint) {
+		DepthStencilImage(vk::Device device, const vk::PhysicalDeviceMemoryProperties& memprops, uint32_t width, uint32_t height, vk::SampleCountFlagBits samples = vk::SampleCountFlagBits::e1, vk::Format format = vk::Format::eD24UnormS8Uint) {
 			vk::ImageCreateInfo info;
 			info.flags = {};
 
@@ -1762,7 +1793,7 @@ namespace vku {
 			info.extent = vk::Extent3D{ width, height, 1U };
 			info.mipLevels = 1;
 			info.arrayLayers = 1;
-			info.samples = vk::SampleCountFlagBits::e1;
+			info.samples = samples;
 			info.tiling = vk::ImageTiling::eOptimal;
 			info.usage = vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eSampled;
 			info.sharingMode = vk::SharingMode::eExclusive;

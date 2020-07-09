@@ -9,9 +9,15 @@
 #endif
 
 struct WorldObject {
-	WorldObject(AssetID material, AssetID mesh) : material(material), mesh(mesh), texScaleOffset(1.0f, 1.0f, 0.0f, 0.0f) {}
+	WorldObject(AssetID material, AssetID mesh) 
+		: material(material)
+		, mesh(mesh)
+		, texScaleOffset(1.0f, 1.0f, 0.0f, 0.0f)
+		, materialIndex(0) {}
+
 	AssetID material;
 	AssetID mesh;
+	int materialIndex;
 	glm::vec4 texScaleOffset;
 };
 
@@ -24,8 +30,6 @@ struct MVP {
 struct VP {
 	glm::mat4 view;
 	glm::mat4 projection;
-	glm::mat4 viewLast;
-	glm::mat4 projLast;
 };
 
 struct PackedLight {
@@ -132,6 +136,8 @@ class VKRenderer {
 	uint32_t presentQueueFamilyIdx;
 	uint32_t asyncComputeQueueFamilyIdx;
 	uint32_t width, height;
+	vk::SampleCountFlagBits msaaSamples;
+	int32_t numMSAASamples;
 	vk::UniqueRenderPass imguiRenderPass;
 	std::vector<vk::UniqueFramebuffer> framebuffers;
 	vk::UniqueSemaphore imageAcquire;
@@ -158,7 +164,6 @@ class VKRenderer {
 	vk::UniqueSampler shadowSampler;
 	vk::UniqueFramebuffer renderFb;
 	vku::GenericImage polyImage;
-	vku::GenericImage motionVectorImage;
 
 	// tonemap related stuff
 	vku::ShaderModule tonemapShader;
@@ -167,7 +172,6 @@ class VKRenderer {
 	vk::UniquePipelineLayout tonemapPipelineLayout;
 	vk::DescriptorSet tonemapDescriptorSet;
 	vku::GenericImage finalPrePresent;
-	vku::GenericImage lastFrame;
 	vk::UniqueFramebuffer finalPrePresentFB;
 
 	// shadowmapping stuff
@@ -195,6 +199,7 @@ class VKRenderer {
 	void setupStandard();
 	void setupShadowPass();
 	void presentNothing(uint32_t imageIndex);
+	void loadTex(const char* path, int index);
 	void loadAlbedo();
 	void doTonemap(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageIndex);
 	void renderShadowmap(vk::UniqueCommandBuffer& cmdBuf, entt::registry& reg, uint32_t imageIndex, Camera& cam);
@@ -203,13 +208,11 @@ class VKRenderer {
 	vku::ShaderModule loadShaderAsset(AssetID id);
 
 	std::unordered_map<AssetID, LoadedMeshData> loadedMeshes;
-	glm::mat4 lastView;
-	glm::mat4 lastProj;
 	int frameIdx;
 #ifdef TRACY_ENABLE
 	std::vector<TracyVkCtx> tracyContexts;
 #endif
-
+	vku::TextureImage2D textures[64];
 public:
 	double time;
 	VKRenderer(SDL_Window* window, bool* success);

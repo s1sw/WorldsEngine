@@ -20,7 +20,7 @@
 struct StandardPushConstants {
 	glm::vec4 pack0;
 	glm::vec4 texScaleOffset;
-	uint32_t modelMatrixIndex;
+	glm::ivec4 ubIndices;
 };
 
 struct ChunkPushConstants {
@@ -34,12 +34,11 @@ struct ChunkShadowPushConstants {
 };
 
 struct ModelMatrices {
-	glm::mat4 modelMatrices[256];
-	glm::mat4 lastModelMatrices[256];
+	glm::mat4 modelMatrices[1024];
 };
 
-struct PostProcessPushConstants {
-	uint32_t showMotionVectors;
+struct MaterialsUB {
+	PackedMaterial materials[256];
 };
 
 uint32_t findPresentQueue(vk::PhysicalDevice pd, vk::SurfaceKHR surface) {
@@ -103,23 +102,26 @@ void loadMesh(std::vector<Vertex>& vertices, std::vector<uint32_t>& indices, std
 	}
 }
 
-void VKRenderer::loadAlbedo() {
+void VKRenderer::loadTex(const char* path, int index) {
 	auto memProps = physicalDevice.getMemoryProperties();
 	int x, y, channelsInFile;
-	stbi_uc* dat = stbi_load("albedo.png", &x, &y, &channelsInFile, 4);
-	albedoTex = vku::TextureImage2D{ *device, memProps, (uint32_t)x, (uint32_t)y, 1, vk::Format::eR8G8B8A8Srgb };
+	stbi_uc* dat = stbi_load(path, &x, &y, &channelsInFile, 4);
+	textures[index] = vku::TextureImage2D{ *device, memProps, (uint32_t)x, (uint32_t)y, 1, vk::Format::eR8G8B8A8Srgb };
 
 	std::vector<uint8_t> albedoDat(dat, dat + (x * y * 4));
 
-	albedoTex.upload(*device, allocator, albedoDat, *commandPool, memProps, device->getQueue(graphicsQueueFamilyIdx, 0));
+	textures[index].upload(*device, allocator, albedoDat, *commandPool, memProps, device->getQueue(graphicsQueueFamilyIdx, 0));
+}
+
+void VKRenderer::loadAlbedo() {
+	loadTex("albedo.png", 0);
+	loadTex("terrain.png", 1);
 }
 
 void VKRenderer::setupTonemapping() {
 	vku::DescriptorSetLayoutMaker tonemapDslm;
 	tonemapDslm.image(0, vk::DescriptorType::eStorageImage, vk::ShaderStageFlagBits::eCompute, 1);
-	tonemapDslm.image(1, vk::DescriptorType::eStorageImage, vk::ShaderStageFlagBits::eCompute, 1);
-	tonemapDslm.image(2, vk::DescriptorType::eCombinedImageSampler, vk::ShaderStageFlagBits::eCompute, 1);
-	tonemapDslm.image(3, vk::DescriptorType::eCombinedImageSampler, vk::ShaderStageFlagBits::eCompute, 1);
+	tonemapDslm.image(1, vk::DescriptorType::eCombinedImageSampler, vk::ShaderStageFlagBits::eCompute, 1);
 
 	tonemapDsl = tonemapDslm.createUnique(*device);
 	
@@ -127,12 +129,17 @@ void VKRenderer::setupTonemapping() {
 
 	vku::PipelineLayoutMaker plm;
 	plm.descriptorSetLayout(*tonemapDsl);
-	plm.pushConstantRange(vk::ShaderStageFlagBits::eCompute, 0, sizeof(PostProcessPushConstants));
 
 	tonemapPipelineLayout = plm.createUnique(*device);
 
 	vku::ComputePipelineMaker cpm;
 	cpm.shader(vk::ShaderStageFlagBits::eCompute, tonemapShader);
+	vk::SpecializationMapEntry samplesEntry{ 0, 0, sizeof(int32_t) };
+	vk::SpecializationInfo si;
+	si.dataSize = sizeof(int32_t);
+	si.mapEntryCount = 1;
+	si.pMapEntries = &samplesEntry;
+	si.pData = &numMSAASamples;
 	tonemapPipeline = cpm.createUnique(*device, *pipelineCache, *tonemapPipelineLayout);
 
 	vku::DescriptorSetMaker dsm;
@@ -182,7 +189,7 @@ void VKRenderer::setupStandard() {
 	auto memoryProps = physicalDevice.getMemoryProperties();
 
 	vku::SamplerMaker sm{};
-	sm.magFilter(vk::Filter::eNearest).minFilter(vk::Filter::eNearest).mipmapMode(vk::SamplerMipmapMode::eNearest);
+	sm.magFilter(vk::Filter::eLinear).minFilter(vk::Filter::eLinear).mipmapMode(vk::SamplerMipmapMode::eLinear);
 	albedoSampler = sm.createUnique(*device);
 	loadAlbedo();
 
@@ -195,8 +202,9 @@ void VKRenderer::setupStandard() {
 	dslm.buffer(1, vk::DescriptorType::eUniformBuffer, vk::ShaderStageFlagBits::eFragment, 1);
 	dslm.buffer(2, vk::DescriptorType::eUniformBuffer, vk::ShaderStageFlagBits::eFragment, 1);
 	dslm.buffer(3, vk::DescriptorType::eUniformBuffer, vk::ShaderStageFlagBits::eVertex, 1);
-	dslm.image(4, vk::DescriptorType::eCombinedImageSampler, vk::ShaderStageFlagBits::eFragment, 1);
+	dslm.image(4, vk::DescriptorType::eCombinedImageSampler, vk::ShaderStageFlagBits::eFragment, 64);
 	dslm.image(5, vk::DescriptorType::eCombinedImageSampler, vk::ShaderStageFlagBits::eFragment, 1);
+	dslm.bindFlag(4, vk::DescriptorBindingFlagBits::ePartiallyBound);
 
 	this->dsl = dslm.createUnique(*this->device);
 
@@ -207,11 +215,13 @@ void VKRenderer::setupStandard() {
 
 	this->vpUB = vku::UniformBuffer(*this->device, allocator, sizeof(VP));
 	lightsUB = vku::UniformBuffer(*this->device, allocator, sizeof(LightUB));
-	materialUB = vku::UniformBuffer(*this->device, allocator, sizeof(PackedMaterial));
+	materialUB = vku::UniformBuffer(*this->device, allocator, sizeof(MaterialsUB));
 	modelMatrixUB = vku::UniformBuffer(*device, allocator, sizeof(ModelMatrices), VMA_MEMORY_USAGE_CPU_TO_GPU);
 
-	PackedMaterial pm{ glm::vec4(0.0f, 1.0f, 0.0f, 0.0f), glm::vec4(1.0f, 1.0f, 1.0f, 0.0f) };
-	materialUB.upload(*device, memoryProps, *commandPool, device->getQueue(graphicsQueueFamilyIdx, 0), pm);
+	MaterialsUB materials;
+	materials.materials[0] = { glm::vec4(0.0f, 0.02f, 0.0f, 0.0f), glm::vec4(1.0f, 1.0f, 1.0f, 0.0f) };
+	materials.materials[1] = { glm::vec4(0.0f, 0.02f, 1.0f, 0.0f), glm::vec4(1.0f, 1.0f, 1.0f, 0.0f) };
+	materialUB.upload(*device, memoryProps, *commandPool, device->getQueue(graphicsQueueFamilyIdx, 0), materials);
 
 	vku::DescriptorSetMaker dsm;
 	dsm.layout(*this->dsl);
@@ -227,13 +237,16 @@ void VKRenderer::setupStandard() {
 	updater.buffer(lightsUB.buffer(), 0, sizeof(LightUB));
 
 	updater.beginBuffers(2, 0, vk::DescriptorType::eUniformBuffer);
-	updater.buffer(materialUB.buffer(), 0, sizeof(PackedMaterial));
+	updater.buffer(materialUB.buffer(), 0, sizeof(MaterialsUB));
 
 	updater.beginBuffers(3, 0, vk::DescriptorType::eUniformBuffer);
 	updater.buffer(modelMatrixUB.buffer(), 0, sizeof(ModelMatrices));
 
 	updater.beginImages(4, 0, vk::DescriptorType::eCombinedImageSampler);
-	updater.image(*albedoSampler, albedoTex.imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
+	updater.image(*albedoSampler, textures[0].imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
+
+	updater.beginImages(4, 1, vk::DescriptorType::eCombinedImageSampler);
+	updater.image(*albedoSampler, textures[1].imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
 
 	updater.beginImages(5, 0, vk::DescriptorType::eCombinedImageSampler);
 	updater.image(*shadowSampler, shadowmapImage.imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
@@ -245,22 +258,18 @@ void VKRenderer::setupStandard() {
 	rPassMaker.attachmentBegin(vk::Format::eR16G16B16A16Sfloat);
 	rPassMaker.attachmentLoadOp(vk::AttachmentLoadOp::eClear);
 	rPassMaker.attachmentStoreOp(vk::AttachmentStoreOp::eStore);
+	rPassMaker.attachmentSamples(msaaSamples);
 	rPassMaker.attachmentFinalLayout(vk::ImageLayout::eGeneral);
-
-	rPassMaker.attachmentBegin(vk::Format::eR16G16Sfloat);
-	rPassMaker.attachmentLoadOp(vk::AttachmentLoadOp::eClear);
-	rPassMaker.attachmentStoreOp(vk::AttachmentStoreOp::eStore);
-	rPassMaker.attachmentFinalLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
 
 	rPassMaker.attachmentBegin(vk::Format::eD32Sfloat);
 	rPassMaker.attachmentLoadOp(vk::AttachmentLoadOp::eClear);
 	rPassMaker.attachmentStencilLoadOp(vk::AttachmentLoadOp::eDontCare);
+	rPassMaker.attachmentSamples(msaaSamples);
 	rPassMaker.attachmentFinalLayout(vk::ImageLayout::eDepthStencilAttachmentOptimal);
 
 	rPassMaker.subpassBegin(vk::PipelineBindPoint::eGraphics);
 	rPassMaker.subpassColorAttachment(vk::ImageLayout::eColorAttachmentOptimal, 0);
-	rPassMaker.subpassColorAttachment(vk::ImageLayout::eColorAttachmentOptimal, 1);
-	rPassMaker.subpassDepthStencilAttachment(vk::ImageLayout::eDepthStencilAttachmentOptimal, 2);
+	rPassMaker.subpassDepthStencilAttachment(vk::ImageLayout::eDepthStencilAttachmentOptimal, 1);
 
 	rPassMaker.dependencyBegin(VK_SUBPASS_EXTERNAL, 0);
 	rPassMaker.dependencySrcStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput);
@@ -345,6 +354,9 @@ void VKRenderer::setupShadowPass() {
 }
 
 VKRenderer::VKRenderer(SDL_Window* window, bool* success) : window(window), frameIdx(0) {
+
+	msaaSamples = vk::SampleCountFlagBits::e8;
+	numMSAASamples = 8;
 	vku::InstanceMaker instanceMaker;
 	//instanceMaker.defaultLayers();
 	unsigned int extCount;
@@ -449,6 +461,11 @@ VKRenderer::VKRenderer(SDL_Window* window, bool* success) : window(window), fram
 	vku::DeviceMaker dm{};
 	dm.defaultLayers();
 	dm.queue(this->graphicsQueueFamilyIdx);
+
+	vk::PhysicalDeviceFeatures features;
+	features.shaderStorageImageMultisample = true;
+	dm.setFeatures(features);
+
 	vk::PhysicalDeviceDescriptorIndexingFeatures diFeatures;
 	diFeatures.descriptorBindingPartiallyBound = true;
 	diFeatures.runtimeDescriptorArray = true;
@@ -546,7 +563,7 @@ VKRenderer::VKRenderer(SDL_Window* window, bool* success) : window(window), fram
 void VKRenderer::createSCDependents() {
 	auto memoryProps = physicalDevice.getMemoryProperties();
 
-	this->depthStencilImage = vku::DepthStencilImage(*this->device, memoryProps, this->width, this->height, vk::Format::eD32Sfloat);
+	this->depthStencilImage = vku::DepthStencilImage(*this->device, memoryProps, this->width, this->height, msaaSamples, vk::Format::eD32Sfloat);
 
 	vku::PipelineMaker pm{ this->width, this->height };
 	pm.shader(vk::ShaderStageFlagBits::eFragment, fragmentShader);
@@ -560,7 +577,9 @@ void VKRenderer::createSCDependents() {
 	pm.cullMode(vk::CullModeFlagBits::eBack);
 	pm.depthWriteEnable(true).depthTestEnable(true).depthCompareOp(vk::CompareOp::eLess);
 	pm.blendBegin(false);
-	pm.blendBegin(false);
+	vk::PipelineMultisampleStateCreateInfo pmsci;
+	pmsci.rasterizationSamples = msaaSamples;
+	pm.multisampleState(pmsci);
 	this->pipeline = pm.createUnique(*this->device, *this->pipelineCache, *this->pipelineLayout, *this->renderPass);
 
 	vk::ImageCreateInfo ici;
@@ -570,28 +589,23 @@ void VKRenderer::createSCDependents() {
 	ici.mipLevels = 1;
 	ici.format = vk::Format::eR16G16B16A16Sfloat;
 	ici.initialLayout = vk::ImageLayout::eUndefined;
+	ici.samples = msaaSamples;
 	ici.usage = vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eStorage;
 	polyImage = vku::GenericImage(*device, memoryProps, ici, vk::ImageViewType::e2D, vk::ImageAspectFlagBits::eColor, false);
 
-	ici.format = vk::Format::eR16G16Sfloat;
-	motionVectorImage = vku::GenericImage(*device, memoryProps, ici, vk::ImageViewType::e2D, vk::ImageAspectFlagBits::eColor, false);
-
+	ici.samples = vk::SampleCountFlagBits::e1;
 	ici.format = vk::Format::eR8G8B8A8Unorm;
 	ici.usage = vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eTransferSrc;
 	finalPrePresent = vku::GenericImage(*device, memoryProps, ici, vk::ImageViewType::e2D, vk::ImageAspectFlagBits::eColor, false);
-	ici.usage = vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled;
-	lastFrame = vku::GenericImage(*device, memoryProps, ici, vk::ImageViewType::e2D, vk::ImageAspectFlagBits::eColor, false);
 	
 	vku::executeImmediately(*device, *commandPool, device->getQueue(graphicsQueueFamilyIdx, 0), [this](vk::CommandBuffer cmdBuf) {
 		polyImage.setLayout(cmdBuf, vk::ImageLayout::eColorAttachmentOptimal);
-		motionVectorImage.setLayout(cmdBuf, vk::ImageLayout::eColorAttachmentOptimal);
 		finalPrePresent.setLayout(cmdBuf, vk::ImageLayout::eColorAttachmentOptimal);
-		lastFrame.setLayout(cmdBuf, vk::ImageLayout::eShaderReadOnlyOptimal);
 	});
 
-	vk::ImageView attachments[3] = { polyImage.imageView(), motionVectorImage.imageView(), depthStencilImage.imageView() };
+	vk::ImageView attachments[2] = { polyImage.imageView(), depthStencilImage.imageView() };
 	vk::FramebufferCreateInfo fci;
-	fci.attachmentCount = 3;
+	fci.attachmentCount = 2;
 	fci.pAttachments = attachments;
 	fci.width = this->width;
 	fci.height = this->height;
@@ -688,36 +702,13 @@ void VKRenderer::doTonemap(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageIndex)
 
 	cmdBuf->bindDescriptorSets(vk::PipelineBindPoint::eCompute, *tonemapPipelineLayout, 0, tonemapDescriptorSet, nullptr);
 	cmdBuf->bindPipeline(vk::PipelineBindPoint::eCompute, *tonemapPipeline);
-	PostProcessPushConstants pppc{3};
-	cmdBuf->pushConstants<PostProcessPushConstants>(*tonemapPipelineLayout, vk::ShaderStageFlagBits::eCompute, 0, pppc);
 
 	cmdBuf->dispatch((width + 15) / 16, (height + 15) / 16, 1);
 
 	vku::transitionLayout(*cmdBuf, finalPrePresent.image(),
-		vk::ImageLayout::eGeneral, vk::ImageLayout::eTransferSrcOptimal,
-		vk::PipelineStageFlagBits::eComputeShader, vk::PipelineStageFlagBits::eTransfer,
-		vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eTransferRead);
-
-	vku::transitionLayout(*cmdBuf, lastFrame.image(),
-		vk::ImageLayout::eShaderReadOnlyOptimal, vk::ImageLayout::eTransferDstOptimal,
-		vk::PipelineStageFlagBits::eComputeShader, vk::PipelineStageFlagBits::eTransfer,
-		vk::AccessFlagBits::eShaderRead, vk::AccessFlagBits::eTransferWrite);
-
-	vk::ImageBlit imageBlit;
-	imageBlit.srcOffsets[1] = imageBlit.dstOffsets[1] = { (int)width, (int)height, 1 };
-	imageBlit.dstSubresource = imageBlit.srcSubresource = { vk::ImageAspectFlagBits::eColor, 0, 0, 1 };
-
-	cmdBuf->blitImage(finalPrePresent.image(), vk::ImageLayout::eTransferSrcOptimal, lastFrame.image(), vk::ImageLayout::eTransferDstOptimal, imageBlit, vk::Filter::eNearest);
-
-	vku::transitionLayout(*cmdBuf, lastFrame.image(),
-		vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eShaderReadOnlyOptimal,
-		vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eComputeShader,
-		vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eShaderRead);
-
-	vku::transitionLayout(*cmdBuf, finalPrePresent.image(),
-		vk::ImageLayout::eTransferSrcOptimal, vk::ImageLayout::eColorAttachmentOptimal,
-		vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eColorAttachmentOutput,
-		vk::AccessFlagBits::eTransferRead, vk::AccessFlagBits::eColorAttachmentWrite | vk::AccessFlagBits::eColorAttachmentRead);
+		vk::ImageLayout::eGeneral, vk::ImageLayout::eColorAttachmentOptimal,
+		vk::PipelineStageFlagBits::eComputeShader, vk::PipelineStageFlagBits::eColorAttachmentOutput,
+		vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eColorAttachmentWrite | vk::AccessFlagBits::eColorAttachmentRead);
 
 	std::array<float, 4> clearColorValue{ 0.0f, 0.0f, 0.0f, 1 };
 	std::array<vk::ClearValue, 1> clearColours{ vk::ClearValue{clearColorValue} };
@@ -756,9 +747,9 @@ void VKRenderer::renderShadowmap(vk::UniqueCommandBuffer& cmdBuf, entt::registry
 	cmdBuf->beginRenderPass(rpbi, vk::SubpassContents::eInline);
 	cmdBuf->bindPipeline(vk::PipelineBindPoint::eGraphics, *shadowmapPipeline);
 
-	glm::vec3 shadowCamPos = glm::round(cam.position + glm::vec3(0.0f, 100.0f, 0.0f));
+	glm::vec3 shadowCamPos = glm::round(cam.position + glm::vec3(0.0f, 20.0f, 0.0f));
 	glm::mat4 view = glm::lookAt(shadowCamPos, glm::round(cam.position) + shadowOffset, glm::vec3(0.0f, 1.0f, 0.0));
-	glm::mat4 projection = glm::orthoZO(-50.0f, 50.0f, -50.0f, 50.0f, 0.1f, 1000.0f);
+	glm::mat4 projection = glm::orthoZO(-20.0f, 20.0f, -20.0f, 20.0f, 0.1f, 100.0f);
 
 	reg.view<Transform, WorldObject>().each([this, &cmdBuf, &cam, &view, &projection](auto ent, Transform& transform, WorldObject& obj) {
 		auto meshPos = loadedMeshes.find(obj.mesh);
@@ -796,9 +787,8 @@ void VKRenderer::renderPolys(vk::UniqueCommandBuffer& cmdBuf, entt::registry& re
 #endif
 	// Fast path clear values for AMD
 	std::array<float, 4> clearColorValue{ 0.0f, 0.1f, 0.5f, 1 };
-	std::array<float, 4> mvecClearVal{ 0.0f, 0.0f, 0.0f, 0.0f };
 	vk::ClearDepthStencilValue clearDepthValue{ 1.0f, 0 };
-	std::array<vk::ClearValue, 3> clearColours{ vk::ClearValue{clearColorValue}, vk::ClearValue{mvecClearVal}, clearDepthValue };
+	std::array<vk::ClearValue, 2> clearColours{ vk::ClearValue{clearColorValue}, clearDepthValue };
 	vk::RenderPassBeginInfo rpbi;
 
 	rpbi.renderPass = *renderPass;
@@ -820,7 +810,7 @@ void VKRenderer::renderPolys(vk::UniqueCommandBuffer& cmdBuf, entt::registry& re
 			return;
 		}
 
-		StandardPushConstants pushConst{ glm::vec4(cam.position, 0.0f), obj.texScaleOffset, matrixIdx };
+		StandardPushConstants pushConst{ glm::vec4(cam.position, 0.0f), obj.texScaleOffset, glm::ivec4(matrixIdx, obj.materialIndex, 0, 0) };
 		cmdBuf->pushConstants<StandardPushConstants>(*pipelineLayout, vk::ShaderStageFlagBits::eFragment | vk::ShaderStageFlagBits::eVertex, 0, pushConst);
 		cmdBuf->bindVertexBuffers(0, meshPos->second.vb.buffer(), vk::DeviceSize(0));
 		cmdBuf->bindIndexBuffer(meshPos->second.ib.buffer(), 0, meshPos->second.indexType);
@@ -830,7 +820,7 @@ void VKRenderer::renderPolys(vk::UniqueCommandBuffer& cmdBuf, entt::registry& re
 
 	reg.view<Transform, ProceduralObject>().each([this, &cmdBuf, &cam](auto ent, Transform& transform, ProceduralObject& obj) {
 		if (!obj.visible) return;
-		StandardPushConstants pushConst{ glm::vec4(cam.position, 0.0f), glm::vec4(1.0f, 1.0f, 0.0f, 0.0f), 0 };//transform.getMatrix() };
+		StandardPushConstants pushConst{ glm::vec4(cam.position, 0.0f), glm::vec4(1.0f, 1.0f, 0.0f, 0.0f), glm::ivec4(0, 0, 0, 0) };
 		cmdBuf->pushConstants<StandardPushConstants>(*pipelineLayout, vk::ShaderStageFlagBits::eFragment | vk::ShaderStageFlagBits::eVertex, 0, pushConst);
 		cmdBuf->bindVertexBuffers(0, obj.vb.buffer(), vk::DeviceSize(0));
 		cmdBuf->bindIndexBuffer(obj.ib.buffer(), 0, obj.indexType);
@@ -850,14 +840,8 @@ void VKRenderer::updateTonemapDescriptors() {
 	dsu.beginImages(0, 0, vk::DescriptorType::eStorageImage);
 	dsu.image(*albedoSampler, finalPrePresent.imageView(), vk::ImageLayout::eGeneral);
 
-	dsu.beginImages(1, 0, vk::DescriptorType::eStorageImage);
+	dsu.beginImages(1, 0, vk::DescriptorType::eCombinedImageSampler);
 	dsu.image(*albedoSampler, polyImage.imageView(), vk::ImageLayout::eGeneral);
-
-	dsu.beginImages(2, 0, vk::DescriptorType::eCombinedImageSampler);
-	dsu.image(*albedoSampler, motionVectorImage.imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
-
-	dsu.beginImages(3, 0, vk::DescriptorType::eCombinedImageSampler);
-	dsu.image(*albedoSampler, lastFrame.imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
 
 	dsu.update(*device);
 }
@@ -902,43 +886,31 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
 	}
 
 	auto tfWoView = reg.view<Transform, WorldObject>();
-	static int lastWorldObjectCount = 0;
-	bool overwriteLast = lastWorldObjectCount != tfWoView.size();
-	lastWorldObjectCount = tfWoView.size();
 
 	ModelMatrices* modelMatricesMapped = static_cast<ModelMatrices*>(modelMatrixUB.map(*device));
 	int matrixIdx = 0;
-	reg.view<Transform, WorldObject>().each([&matrixIdx, modelMatricesMapped, overwriteLast](auto ent, Transform& t, WorldObject& wo) {
-		if (matrixIdx == 255)
+	reg.view<Transform, WorldObject>().each([&matrixIdx, modelMatricesMapped](auto ent, Transform& t, WorldObject& wo) {
+		if (matrixIdx == 1023)
 			return;
 		glm::mat4 m = t.getMatrix();
-		modelMatricesMapped->lastModelMatrices[matrixIdx] = overwriteLast ? m : modelMatricesMapped->modelMatrices[matrixIdx];
 		modelMatricesMapped->modelMatrices[matrixIdx] = m;
 		matrixIdx++;
 	});
 	modelMatrixUB.unmap(*device);
 
-	std::array<glm::vec3, 2> jitterVectors = {
-		glm::vec3{  0.5f,  0.5f, 0.0f },
-		         { -0.5f, -0.5f, 0.0f }
-	};
-
-	glm::vec3 jitterVec = jitterVectors[frameIdx % jitterVectors.size()] / glm::vec3(width, height, 1.0f);
 	VP vp;
 	vp.view = cam.getViewMatrix();
-	vp.projection = glm::translate(glm::mat4(1.0f), jitterVec) * cam.getProjectionMatrix((float)width / (float)height);
-	vp.projLast = lastProj;
-	vp.viewLast = lastView;
+	vp.projection = cam.getProjectionMatrix((float)width / (float)height);
 	LightUB lub;
 	lub.pack0.x = 1;
 
-	glm::vec3 shadowCamPos = glm::round(cam.position + glm::vec3(0.0f, 100.0f, 0.0f));
+	glm::vec3 shadowCamPos = glm::round(cam.position + glm::vec3(0.0f, 20.0f, 0.0f));
 	glm::mat4 view = glm::lookAt(shadowCamPos, glm::round(cam.position) + shadowOffset, glm::vec3(0.0f, 1.0f, 0.0));
-	glm::mat4 projection = glm::orthoZO(-50.0f, 50.0f, -50.0f, 50.0f, 0.1f, 1000.0f);
+	glm::mat4 projection = glm::orthoZO(-20.0f, 20.0f, -20.0f, 20.0f, 0.1f, 100.0f);
 	lub.shadowmapMatrix = projection * view;
 
 	lub.lights[0] = PackedLight{ glm::vec4(1.0f, 1.0f, 1.0f, 2.0f), glm::vec4(glm::normalize(glm::vec3(0.0f, 0.0f, 1.0f) * glm::mat3(view)), 0.0f), glm::vec4(0.0f, 0.0f, -0.1f, 0.0f) };
-	lub.lights[1] = PackedLight{ glm::vec4(1.0f, 0.1f, 0.1f, 0.0f), glm::vec4(0.0f), glm::vec4(cam.position, 0.0f) };
+	//lub.lights[1] = PackedLight{ glm::vec4(1.0f, 0.1f, 0.1f, 0.0f), glm::vec4(0.0f), glm::vec4(cam.position, 0.0f) };
 
 	auto& cmdBuf = cmdBufs[imageIndex];
 
@@ -1026,8 +998,6 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
 		vk::QueryResultFlagBits::e64 | vk::QueryResultFlagBits::eWait
 	);
 	lastRenderTimeTicks = timeStamps[1] - timeStamps[0];
-	lastView = vp.view;
-	lastProj = vp.projection;
 	frameIdx++;
 #ifdef TRACY_ENABLE
 	FrameMark
