@@ -230,7 +230,7 @@ class VKRenderer {
 	vku::TextureImageCube cubemaps[64];
 public:
 	double time;
-	VKRenderer(SDL_Window* window, bool* success);
+	VKRenderer(SDL_Window* window, bool* success, std::vector<std::string> additionalInstanceExtensions, std::vector<std::string> additionalDeviceExtensions);
 	void recreateSwapchain();
 	void frame(Camera& cam, entt::registry& reg);
 	void preloadMesh(AssetID id);

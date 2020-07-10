@@ -101,5 +101,8 @@
     <ClInclude Include="PCH.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="XRInterface.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

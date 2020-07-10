@@ -22,6 +22,7 @@
 #ifdef TRACY_ENABLE
 #include "tracy/Tracy.hpp"
 #endif
+#include "XRInterface.hpp"
 
 AssetDB g_assetDB;
 
@@ -185,6 +186,7 @@ void copyRegistry(entt::registry& normalRegistry, entt::registry& renderRegistry
     //clone<ProceduralObject>(normalRegistry, renderRegistry);
 }
 
+bool enableXR = false;
 
 void engine(char* argv0) {
 #ifdef TRACY_ENABLE
@@ -248,7 +250,21 @@ void engine(char* argv0) {
 
     ImGui::CreateContext();
     ImGui_ImplSDL2_InitForVulkan(window);
-    VKRenderer* renderer = new VKRenderer(window, &renderInitSuccess);
+
+    std::vector<std::string> additionalInstanceExts;
+    std::vector<std::string> additionalDeviceExts;
+
+    if (enableXR) {
+        XRInterface xrInterface;
+        xrInterface.initXR();
+        auto xrInstExts = xrInterface.getVulkanInstanceExtensions();
+        auto xrDevExts = xrInterface.getVulkanDeviceExtensions();
+
+        additionalInstanceExts.insert(additionalInstanceExts.begin(), xrInstExts.begin(), xrInstExts.end());
+        additionalDeviceExts.insert(additionalDeviceExts.begin(), xrDevExts.begin(), xrDevExts.end());
+    }
+
+    VKRenderer* renderer = new VKRenderer(window, &renderInitSuccess, additionalInstanceExts, additionalDeviceExts);
 
     if (!renderInitSuccess) {
         SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Error", "Failed to initialise renderer", window);

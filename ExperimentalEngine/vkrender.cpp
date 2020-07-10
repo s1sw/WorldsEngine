@@ -78,31 +78,6 @@ void VKRenderer::createFramebuffers() {
     }
 }
 
-void loadMesh(std::vector<Vertex>& vertices, std::vector<uint32_t>& indices, std::istream& stream) {
-    indices.clear();
-    vertices.clear();
-    tinyobj::attrib_t attrib;
-    std::vector<tinyobj::shape_t> shapes;
-    std::vector<tinyobj::material_t> materials;
-    std::string warn;
-    std::string err;
-
-    tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, &stream);
-
-    // Load the first shape
-    size_t index_offset = 0;
-    for (auto& idx : shapes[0].mesh.indices) {
-        Vertex vert;
-        vert.position = glm::vec3(attrib.vertices[3 * (size_t)idx.vertex_index], attrib.vertices[3 * (size_t)idx.vertex_index + 1], attrib.vertices[3 * (size_t)idx.vertex_index + 2]);
-        vert.normal = glm::vec3(attrib.normals[3 * (size_t)idx.normal_index], attrib.normals[3 * (size_t)idx.normal_index + 1], attrib.normals[3 * (size_t)idx.normal_index + 2]);
-        vert.ao = 1.0f;
-        if (idx.texcoord_index >= 0)
-            vert.uv = glm::vec2(attrib.texcoords[2 * (size_t)idx.texcoord_index], attrib.texcoords[2 * (size_t)idx.texcoord_index + 1]);
-        vertices.push_back(vert);
-        indices.push_back(indices.size());
-    }
-}
-
 void VKRenderer::loadTex(const char* path, int index) {
     auto memProps = physicalDevice.getMemoryProperties();
     int x, y, channelsInFile;
@@ -362,8 +337,7 @@ void VKRenderer::setupShadowPass() {
     shadowmapFb = device->createFramebufferUnique(fci);
 }
 
-VKRenderer::VKRenderer(SDL_Window* window, bool* success) : window(window), frameIdx(0) {
-
+VKRenderer::VKRenderer(SDL_Window* window, bool* success, std::vector<std::string> additionalInstanceExtensions, std::vector<std::string> additionalDeviceExtensions) : window(window), frameIdx(0) {
     msaaSamples = vk::SampleCountFlagBits::e8;
     numMSAASamples = 8;
     vku::InstanceMaker instanceMaker;
@@ -376,6 +350,9 @@ VKRenderer::VKRenderer(SDL_Window* window, bool* success) : window(window), fram
 
     for (auto extName : names)
         instanceMaker.extension(extName);
+
+    for (auto& extName : additionalInstanceExtensions)
+        instanceMaker.extension(extName.c_str());
 
 #ifndef NDEBUG
     instanceMaker.layer("VK_LAYER_KHRONOS_validation");
@@ -470,6 +447,10 @@ VKRenderer::VKRenderer(SDL_Window* window, bool* success) : window(window), fram
     vku::DeviceMaker dm{};
     dm.defaultLayers();
     dm.queue(this->graphicsQueueFamilyIdx);
+
+    for (auto& ext : additionalDeviceExtensions) {
+        dm.extension(ext.c_str());
+    }
 
     vk::PhysicalDeviceFeatures features;
     features.shaderStorageImageMultisample = true;
@@ -1054,12 +1035,43 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
 #endif
 }
 
+void loadObj(std::vector<Vertex>& vertices, std::vector<uint32_t>& indices, std::istream& stream) {
+    indices.clear();
+    vertices.clear();
+    tinyobj::attrib_t attrib;
+    std::vector<tinyobj::shape_t> shapes;
+    std::vector<tinyobj::material_t> materials;
+    std::string warn;
+    std::string err;
+
+    tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, &stream);
+
+    // Load the first shape
+    size_t index_offset = 0;
+    for (auto& idx : shapes[0].mesh.indices) {
+        Vertex vert;
+        vert.position = glm::vec3(attrib.vertices[3 * (size_t)idx.vertex_index], attrib.vertices[3 * (size_t)idx.vertex_index + 1], attrib.vertices[3 * (size_t)idx.vertex_index + 2]);
+        vert.normal = glm::vec3(attrib.normals[3 * (size_t)idx.normal_index], attrib.normals[3 * (size_t)idx.normal_index + 1], attrib.normals[3 * (size_t)idx.normal_index + 2]);
+        vert.ao = 1.0f;
+        if (idx.texcoord_index >= 0)
+            vert.uv = glm::vec2(attrib.texcoords[2 * (size_t)idx.texcoord_index], attrib.texcoords[2 * (size_t)idx.texcoord_index + 1]);
+        vertices.push_back(vert);
+        indices.push_back(indices.size());
+    }
+}
+
 void VKRenderer::preloadMesh(AssetID id) {
     std::vector<Vertex> vertices;
     std::vector<uint32_t> indices;
 
-    PhysFS::ifstream meshFileStream(g_assetDB.openDataFile(id));
-    loadMesh(vertices, indices, meshFileStream);
+    auto ext = g_assetDB.getAssetExtension(id);
+
+    if (ext == ".obj") { // obj
+        PhysFS::ifstream meshFileStream(g_assetDB.openDataFile(id));
+        loadObj(vertices, indices, meshFileStream);
+    } else if (ext == ".mdl") { // source model
+
+    }
 
     auto memProps = physicalDevice.getMemoryProperties();
     LoadedMeshData lmd;

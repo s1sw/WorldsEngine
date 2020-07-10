@@ -27,6 +27,8 @@ AssetID AssetDB::addAsset(std::string path) {
 	if (ext == ".png") {
 		std::cout << "Texture\n";
 	}
+	extensions.insert({ id, ext });
+	ids.insert({ path, id });
 
 	return id;
 }

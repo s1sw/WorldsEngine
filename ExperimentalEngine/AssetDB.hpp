@@ -72,6 +72,8 @@ public:
 	ShaderAsset getShader(AssetID id);
 	PHYSFS_File* openDataFile(AssetID id);
 	AssetID addAsset(std::string path);
+	std::string getAssetPath(AssetID id) { return paths[id]; }
+	std::string getAssetExtension(AssetID id) { return extensions[id]; }
 	void save();
 
 	template <class Archive>
@@ -81,6 +83,8 @@ public:
 private:
 	AssetID currId;
 	std::unordered_map<AssetID, std::string> paths;
+	std::unordered_map<std::string, AssetID> ids;
+	std::unordered_map<AssetID, std::string> extensions;
 	std::unordered_map<AssetID, TextureAsset> textures;
 	std::unordered_map<AssetID, SoundAsset> sounds;
 	std::unordered_map<AssetID, MeshAsset> meshes;
