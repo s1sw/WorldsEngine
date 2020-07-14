@@ -177,6 +177,12 @@ struct MaterialsUB {
 	PackedMaterial materials[256];
 };
 
+struct GraphicsSettings {
+	GraphicsSettings() : msaaLevel(2), shadowmapRes(1024) {}
+	int msaaLevel;
+	int shadowmapRes;
+};
+
 struct RenderCtx {
 	RenderCtx(vk::UniqueCommandBuffer& cmdBuf, entt::registry& reg, uint32_t imageIndex, Camera& cam)
 		: cmdBuf(cmdBuf)
@@ -186,9 +192,21 @@ struct RenderCtx {
 	}
 
 	vk::UniqueCommandBuffer& cmdBuf; 
+	vk::PipelineCache pipelineCache;
+
 	entt::registry& reg; 
 	uint32_t imageIndex;
 	Camera& cam;
+};
+
+struct VKStuff {
+	vk::PhysicalDevice physicalDevice;
+	vk::Device device;
+	vk::PipelineCache pipelineCache;
+	vk::DescriptorPool descriptorPool;
+	// Please only use the pool passed here for immediately executing commands during the setup phase.
+	vk::CommandPool pool;
+	VmaAllocator allocator;
 };
 
 class XRInterface;

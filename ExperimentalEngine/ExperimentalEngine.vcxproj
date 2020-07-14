@@ -236,6 +236,7 @@
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="physfs.cpp" />
     <ClCompile Include="Physics.cpp" />
+    <ClCompile Include="PolyRenderPass.cpp" />
     <ClCompile Include="RenderGraph.cpp" />
     <ClCompile Include="SourceModelLoader.cpp" />
     <ClCompile Include="tiny_obj_loader.cc" />

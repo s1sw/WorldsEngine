@@ -20,10 +20,14 @@ public:
 	std::function<void(RenderCtx&)> execute;
 };
 
+struct RenderPassIO {
+	std::vector<TextureUsage> inputs;
+	std::vector<TextureUsage> outputs;
+};
+
 class RenderPass {
 public:
-	virtual std::vector<TextureUsage> getInputs() = 0;
-	virtual std::vector<TextureUsage> getOutputs() = 0;
+	virtual RenderPassIO getIO() = 0;
 
 	virtual void setup() = 0;
 	virtual void execute(RenderCtx& ctx) = 0;
