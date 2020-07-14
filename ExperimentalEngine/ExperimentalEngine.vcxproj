@@ -236,15 +236,19 @@
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="physfs.cpp" />
     <ClCompile Include="Physics.cpp" />
+    <ClCompile Include="RenderGraph.cpp" />
+    <ClCompile Include="SourceModelLoader.cpp" />
     <ClCompile Include="tiny_obj_loader.cc" />
     <ClCompile Include="tracy\TracyClient.cpp" />
     <ClCompile Include="vkrender.cpp" />
+    <ClCompile Include="VkRenderActions.cpp" />
     <ClCompile Include="vkswapchain.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AssetDB.hpp" />
     <ClInclude Include="ChunkGenerator.hpp" />
     <ClInclude Include="Engine.hpp" />
+    <ClInclude Include="GlmStreamOps.hpp" />
     <ClInclude Include="imgui_impl_sdl.h" />
     <ClInclude Include="imgui_impl_vulkan.h" />
     <ClInclude Include="Input.hpp" />
@@ -254,6 +258,9 @@
     <ClInclude Include="Physics.hpp" />
     <ClInclude Include="PhysicsActor.hpp" />
     <ClInclude Include="RendererComponents.hpp" />
+    <ClInclude Include="RenderGraph.hpp" />
+    <ClInclude Include="RenderPasses.hpp" />
+    <ClInclude Include="SourceModelLoader.hpp" />
     <ClInclude Include="tiny_obj_loader.h" />
     <ClInclude Include="Transform.hpp" />
     <ClInclude Include="vku\vku.hpp" />

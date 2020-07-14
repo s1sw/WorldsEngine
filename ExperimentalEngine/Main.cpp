@@ -23,6 +23,7 @@
 #include "tracy/Tracy.hpp"
 #endif
 #include "XRInterface.hpp"
+#include "SourceModelLoader.hpp"
 
 AssetDB g_assetDB;
 
@@ -254,8 +255,9 @@ void engine(char* argv0) {
     std::vector<std::string> additionalInstanceExts;
     std::vector<std::string> additionalDeviceExts;
 
+    XRInterface xrInterface;
+
     if (enableXR) {
-        XRInterface xrInterface;
         xrInterface.initXR();
         auto xrInstExts = xrInterface.getVulkanInstanceExtensions();
         auto xrDevExts = xrInterface.getVulkanDeviceExtensions();
@@ -264,7 +266,8 @@ void engine(char* argv0) {
         additionalDeviceExts.insert(additionalDeviceExts.begin(), xrDevExts.begin(), xrDevExts.end());
     }
 
-    VKRenderer* renderer = new VKRenderer(window, &renderInitSuccess, additionalInstanceExts, additionalDeviceExts);
+    RendererInitInfo initInfo{ window, enableXR, additionalInstanceExts, additionalDeviceExts, &xrInterface };
+    VKRenderer* renderer = new VKRenderer(initInfo, &renderInitSuccess);
 
     if (!renderInitSuccess) {
         SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Error", "Failed to initialise renderer", window);

@@ -48,7 +48,7 @@ layout (binding = 5) uniform sampler2DShadow shadowSampler;
 layout(push_constant) uniform PushConstants {
 	vec4 viewPos;
 	vec4 texScaleOffset;
-    // (x: model matrix index, y: material index, z: specular cubemap index)
+    // (x: model matrix index, y: material index, z: vp index)
 	ivec4 ubIndices;
 };
 

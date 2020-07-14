@@ -4,6 +4,9 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <imgui.h>
 #include "AssetDB.hpp"
+#include <unordered_set>
+#include <functional>
+#include "RenderGraph.hpp"
 #ifdef TRACY_ENABLE
 #include "tracy/TracyVulkan.hpp"
 #endif
@@ -30,6 +33,11 @@ struct MVP {
 struct VP {
 	glm::mat4 view;
 	glm::mat4 projection;
+};
+
+struct MultiVP {
+	glm::mat4 views[8];
+	glm::mat4 projections[8];
 };
 
 struct PackedLight {
@@ -129,12 +137,81 @@ private:
 	uint32_t height;
 };
 
+typedef uint32_t RenderImageHandle;
+
+struct TextureUsage {
+	vk::ImageLayout layout;
+	vk::PipelineStageFlagBits stageFlags;
+	vk::AccessFlagBits accessFlags;
+	RenderImageHandle handle;
+};
+
+struct ImageBarrier {
+	RenderImageHandle handle;
+	vk::ImageLayout oldLayout;
+	vk::ImageLayout newLayout;
+	vk::ImageAspectFlagBits aspectMask;
+	vk::AccessFlagBits srcMask;
+	vk::AccessFlagBits dstMask;
+	vk::PipelineStageFlagBits srcStage;
+	vk::PipelineStageFlagBits dstStage;
+};
+
+struct StandardPushConstants {
+	glm::vec4 pack0;
+	glm::vec4 texScaleOffset;
+	// (x: model matrix index, y: material index, z: specular cubemap index)
+	glm::ivec4 ubIndices;
+};
+
+struct ChunkShadowPushConstants {
+	glm::mat4 vp;
+	glm::vec4 chunkOffset;
+};
+
+struct ModelMatrices {
+	glm::mat4 modelMatrices[1024];
+};
+
+struct MaterialsUB {
+	PackedMaterial materials[256];
+};
+
+struct RenderCtx {
+	RenderCtx(vk::UniqueCommandBuffer& cmdBuf, entt::registry& reg, uint32_t imageIndex, Camera& cam)
+		: cmdBuf(cmdBuf)
+		, reg(reg)
+		, imageIndex(imageIndex)
+		, cam(cam) {
+	}
+
+	vk::UniqueCommandBuffer& cmdBuf; 
+	entt::registry& reg; 
+	uint32_t imageIndex;
+	Camera& cam;
+};
+
+class XRInterface;
+
+struct RendererInitInfo {
+	SDL_Window* window;
+	bool enableVR;
+	std::vector<std::string> additionalInstanceExtensions;
+	std::vector<std::string> additionalDeviceExtensions;
+	XRInterface* xrInterface;
+};
+
 class VKRenderer {
 	struct LoadedMeshData {
 		vku::VertexBuffer vb;
 		vku::IndexBuffer ib;
 		uint32_t indexCount;
 		vk::IndexType indexType;
+	};
+
+	struct RenderTextureResource {
+		vku::GenericImage image;
+		vk::ImageAspectFlagBits aspectFlags;
 	};
 
 	vk::UniqueInstance instance;
@@ -162,7 +239,8 @@ class VKRenderer {
 	VmaAllocator allocator;
 	
 	// stuff related to standard geometry rendering
-	vku::DepthStencilImage depthStencilImage;
+	//vku::DepthStencilImage depthStencilImage;
+	RenderImageHandle depthStencilImage;
 	vk::UniqueRenderPass renderPass;
 	vk::UniquePipeline pipeline;
 	vk::UniquePipelineLayout pipelineLayout;
@@ -171,13 +249,12 @@ class VKRenderer {
 	vku::UniformBuffer lightsUB;
 	vku::UniformBuffer materialUB;
 	vku::UniformBuffer modelMatrixUB;
-	vku::TextureImage2D albedoTex;
 	vku::ShaderModule fragmentShader;
 	vku::ShaderModule vertexShader;
 	vk::UniqueSampler albedoSampler;
 	vk::UniqueSampler shadowSampler;
 	vk::UniqueFramebuffer renderFb;
-	vku::GenericImage polyImage;
+	RenderImageHandle polyImage;
 
 	// tonemap related stuff
 	vku::ShaderModule tonemapShader;
@@ -195,7 +272,7 @@ class VKRenderer {
 	vku::ShaderModule shadowVertexShader;
 	vku::ShaderModule shadowFragmentShader;
 	vk::UniqueFramebuffer shadowmapFb;
-	vku::GenericImage shadowmapImage;
+	RenderImageHandle shadowmapImage;
 	vk::DescriptorSet shadowmapDescriptorSet;
 	vk::UniqueDescriptorSetLayout shadowmapDsl;
 
@@ -205,6 +282,17 @@ class VKRenderer {
 	uint64_t lastRenderTimeTicks;
 	float timestampPeriod;
 
+	std::unordered_map<RenderImageHandle, RenderTextureResource> rtResources;
+	RenderImageHandle lastHandle;
+
+	struct RTResourceCreateInfo {
+		vk::ImageCreateInfo ici;
+		vk::ImageViewType viewType;
+		vk::ImageAspectFlagBits aspectFlags;
+	};
+
+	void imageBarrier(vk::CommandBuffer& cb, ImageBarrier& ib);
+	RenderImageHandle createRTResource(RTResourceCreateInfo resourceCreateInfo);
 	void createSwapchain(vk::SwapchainKHR oldSwapchain);
 	void createFramebuffers();
 	void createSCDependents();
@@ -215,9 +303,9 @@ class VKRenderer {
 	void presentNothing(uint32_t imageIndex);
 	void loadTex(const char* path, int index);
 	void loadAlbedo();
-	void doTonemap(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageIndex);
-	void renderShadowmap(vk::UniqueCommandBuffer& cmdBuf, entt::registry& reg, uint32_t imageIndex, Camera& cam);
-	void renderPolys(vk::UniqueCommandBuffer& cmdBuf, entt::registry& reg, uint32_t imageIndex, Camera& cam);
+	void doTonemap(RenderCtx& ctx);
+	void renderShadowmap(RenderCtx& ctx);
+	void renderPolys(RenderCtx& ctx);
 	void updateTonemapDescriptors();
 	vku::ShaderModule loadShaderAsset(AssetID id);
 
@@ -228,9 +316,13 @@ class VKRenderer {
 #endif
 	vku::TextureImage2D textures[64];
 	vku::TextureImageCube cubemaps[64];
+	GraphSolver graphSolver;
+	uint32_t shadowmapRes;
+	bool enableVR;
+
 public:
 	double time;
-	VKRenderer(SDL_Window* window, bool* success, std::vector<std::string> additionalInstanceExtensions, std::vector<std::string> additionalDeviceExtensions);
+	VKRenderer(RendererInitInfo& initInfo, bool* success);
 	void recreateSwapchain();
 	void frame(Camera& cam, entt::registry& reg);
 	void preloadMesh(AssetID id);

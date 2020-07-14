@@ -1,5 +1,7 @@
 #version 450
 
+#extension GL_EXT_multiview : enable
+
 layout(location = 0) in vec3 inPosition;
 layout(location = 1) in vec3 inNormal;
 layout(location = 2) in vec3 inTangent;
@@ -13,9 +15,9 @@ layout(location = 3) out vec2 outUV;
 layout(location = 4) out float outAO;
 layout(location = 5) out vec4 outShadowPos;
 
-layout(binding = 0) uniform VP {
-	mat4 view;
-	mat4 projection;
+layout(binding = 0) uniform MultiVP {
+	mat4 view[8];
+	mat4 projection[8];
 };
 
 struct Light {
@@ -41,13 +43,13 @@ layout(std140, binding = 3) uniform ModelMatrices {
 layout(push_constant) uniform PushConstants {
 	vec4 viewPos;
 	vec4 texScaleOffset;
-	// (x: model matrix index, y: material index)
+	// (x: model matrix index, y: material index, z: vp index)
 	ivec4 ubIndices;
 };
 
 void main() {
 	mat4 model = modelMatrices[ubIndices.x];
-    gl_Position = projection * view * model * vec4(inPosition, 1.0); // Apply MVP transform
+    gl_Position = projection[ubIndices.z + gl_ViewIndex] * view[ubIndices.z + gl_ViewIndex] * model * vec4(inPosition, 1.0); // Apply MVP transform
 	
     outUV = inUV;
     outNormal = normalize(model * vec4(inNormal, 0.0)).xyz;

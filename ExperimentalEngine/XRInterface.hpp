@@ -12,6 +12,9 @@
 class XRInterface {
     XrInstance instance;
     XrSystemId sysId;
+    XrSession session;
+    XrViewConfigurationProperties viewConfigProps;
+    std::vector<XrViewConfigurationView> viewConfigViews;
     PFN_xrGetVulkanInstanceExtensionsKHR xrGetVulkanInstanceExtensionsKHR;
     PFN_xrGetVulkanDeviceExtensionsKHR xrGetVulkanDeviceExtensionsKHR;
 
@@ -19,7 +22,7 @@ class XRInterface {
         XrDebugUtilsMessageTypeFlagsEXT messageTypes,
         const XrDebugUtilsMessengerCallbackDataEXT* callbackData,
         void* userData) {
-
+        std::cout << "OpenXR Debug: " << callbackData->message << "\n";
         return XR_TRUE;
     }
 
@@ -72,9 +75,32 @@ public:
         ici.applicationInfo = appInfo;
         ici.createFlags = 0;
         ici.next = nullptr;
-        ici.enabledExtensionCount = 1;
-        const char* extensions[] = { XR_KHR_VULKAN_ENABLE_EXTENSION_NAME };
-        ici.enabledExtensionNames = extensions;
+
+        std::vector<const char*> extensions;
+
+        extensions.push_back(XR_KHR_VULKAN_ENABLE_EXTENSION_NAME);
+
+#ifndef NDEBUG
+        extensions.push_back(XR_EXT_DEBUG_UTILS_EXTENSION_NAME);
+
+        XrDebugUtilsMessengerCreateInfoEXT mci;
+        mci.type = XR_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+        mci.messageSeverities = 0 
+            | XR_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT
+            | XR_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT
+            | XR_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT
+            | XR_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT;
+        mci.messageTypes = 0 
+            | XR_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT
+            | XR_DEBUG_UTILS_MESSAGE_TYPE_CONFORMANCE_BIT_EXT
+            | XR_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT
+            | XR_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT;
+        mci.userCallback = &XRInterface::debugCallback;
+        mci.userData = nullptr;
+        ici.next = &mci;
+#endif
+        ici.enabledExtensionCount = extensions.size();
+        ici.enabledExtensionNames = extensions.data();
 
         XrResult instanceCreateResult = xrCreateInstance(&ici, &instance);
 
@@ -92,15 +118,27 @@ public:
 
         checkResult(xrGetInstanceProcAddr(instance, "xrGetVulkanInstanceExtensionsKHR", (PFN_xrVoidFunction*)&xrGetVulkanInstanceExtensionsKHR));
         checkResult(xrGetInstanceProcAddr(instance, "xrGetVulkanDeviceExtensionsKHR", (PFN_xrVoidFunction*)&xrGetVulkanDeviceExtensionsKHR));
+
+        checkResult(xrGetViewConfigurationProperties(instance,
+            sysId,
+            XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO,
+            &viewConfigProps));
+
+        uint32_t viewConfigViewCount;
+        xrEnumerateViewConfigurationViews(instance, sysId, XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO, 0, &viewConfigViewCount, nullptr);
+
+        viewConfigViews.resize(viewConfigViewCount);
+
+        xrEnumerateViewConfigurationViews(instance, sysId, XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO, viewConfigViews.size(), &viewConfigViewCount, viewConfigViews.data());
     }
 
     std::vector<std::string> getVulkanInstanceExtensions() {
         uint32_t extCharCount = 0;
-        //checkResult(xrGetVulkanInstanceExtensionsKHR(instance, sysId, 0, &extCharCount, nullptr), "Failed to get required"
-        //" Vulkan instance extension count: %d");
+        checkResult(xrGetVulkanInstanceExtensionsKHR(instance, sysId, 0, &extCharCount, nullptr), "Failed to get required"
+            " Vulkan instance extension count: %d");
 
-        std::string str((size_t)512, 'Z');
-        
+        std::string str((size_t)extCharCount, 'Z');
+
         checkResult(xrGetVulkanInstanceExtensionsKHR(instance, sysId, str.size(), &extCharCount, str.data()));
 
         std::vector<std::string> extensions;
@@ -110,6 +148,13 @@ public:
         while (std::getline(stringStream, currExt, ' ')) {
             extensions.push_back(currExt);
         }
+
+        // Filter the extensions because SteamVR's OpenXR implemntation is... buggy
+        auto res = std::remove_if(extensions.begin(), extensions.end(),
+            [](auto const extStr) { return extStr.find("VK_NV") != std::string::npos; });
+
+        extensions.erase(res, extensions.end());
+
 
         return extensions;
     }
@@ -131,6 +176,21 @@ public:
             extensions.push_back(currExt);
         }
 
+        // Filter the extensions because SteamVR's OpenXR implemntation is... buggy
+        auto res = std::remove_if(extensions.begin(), extensions.end(),
+            [](auto const extStr) { return extStr.find("VK_NV") != std::string::npos; });
+
+        extensions.erase(res, extensions.end());
+
         return extensions;
+    }
+
+    void createSession(XrGraphicsBindingVulkanKHR graphicsBinding) {
+        session = XR_NULL_HANDLE;
+        XrSessionCreateInfo sci{ XR_TYPE_SESSION_CREATE_INFO };
+        sci.systemId = sysId;
+        sci.next = &graphicsBinding;
+
+        checkResult(xrCreateSession(instance, &sci, &session), "Failed to create session %d");
     }
 };

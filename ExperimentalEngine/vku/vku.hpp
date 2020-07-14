@@ -14,11 +14,12 @@
 /// It should integrate with game engines nicely.
 //
 ////////////////////////////////////////////////////////////////////////////////
-// Modified for use in ExperimentalEngine by Someone Somewhere 08/07/2020
+// Modified for use in ExperimentalEngine by Someone Somewhere 2020
 
 #ifndef VKU_HPP
 #define VKU_HPP
 #define VOOKOO_SPIRV_SUPPORT
+#define VMA_STATIC_VULKAN_FUNCTIONS 1
 
 #include <array>
 #include <fstream>
