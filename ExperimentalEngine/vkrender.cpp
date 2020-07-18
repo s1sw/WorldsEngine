@@ -72,11 +72,12 @@ void VKRenderer::loadTex(const char* path, int index) {
 
     if (dat == nullptr) {
     }
-    textures[index] = vku::TextureImage2D{ *device, memProps, (uint32_t)x, (uint32_t)y, 1, vk::Format::eR8G8B8A8Srgb };
+    textures[index].present = true;
+    textures[index].tex = vku::TextureImage2D{ *device, memProps, (uint32_t)x, (uint32_t)y, 1, vk::Format::eR8G8B8A8Srgb };
 
     std::vector<uint8_t> albedoDat(dat, dat + (x * y * 4));
 
-    textures[index].upload(*device, allocator, albedoDat, *commandPool, memProps, device->getQueue(graphicsQueueFamilyIdx, 0));
+    textures[index].tex.upload(*device, allocator, albedoDat, *commandPool, memProps, device->getQueue(graphicsQueueFamilyIdx, 0));
 }
 
 void VKRenderer::loadAlbedo() {
@@ -88,6 +89,7 @@ void VKRenderer::setupTonemapping() {
     vku::DescriptorSetLayoutMaker tonemapDslm;
     tonemapDslm.image(0, vk::DescriptorType::eStorageImage, vk::ShaderStageFlagBits::eCompute, 1);
     tonemapDslm.image(1, vk::DescriptorType::eCombinedImageSampler, vk::ShaderStageFlagBits::eCompute, 1);
+    tonemapDslm.image(2, vk::DescriptorType::eCombinedImageSampler, vk::ShaderStageFlagBits::eCompute, 1);
 
     tonemapDsl = tonemapDslm.createUnique(*device);
 
@@ -217,10 +219,10 @@ void VKRenderer::setupStandard() {
     updater.buffer(modelMatrixUB.buffer(), 0, sizeof(ModelMatrices));
 
     updater.beginImages(4, 0, vk::DescriptorType::eCombinedImageSampler);
-    updater.image(*albedoSampler, textures[0].imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
+    updater.image(*albedoSampler, textures[0].tex.imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
 
     updater.beginImages(4, 1, vk::DescriptorType::eCombinedImageSampler);
-    updater.image(*albedoSampler, textures[1].imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
+    updater.image(*albedoSampler, textures[1].tex.imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
 
     updater.beginImages(5, 0, vk::DescriptorType::eCombinedImageSampler);
     updater.image(*shadowSampler, rtResources.at(shadowmapImage).image.imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
@@ -877,7 +879,20 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
 
     lub.pack0.x = lightIdx;
 
+    std::vector<RenderNode> solvedNodes = graphSolver.solve();
+    std::unordered_map<RenderImageHandle, vk::ImageAspectFlagBits> rtAspects;
+
+    for (auto& pair : rtResources) {
+        rtAspects.insert({ pair.first, pair.second.aspectFlags });
+    }
+
+    std::vector<std::vector<ImageBarrier>> barriers = graphSolver.createImageBarriers(solvedNodes, rtAspects);
+
     auto& cmdBuf = cmdBufs[imageIndex];
+
+    RenderCtx rCtx{ cmdBuf, reg, imageIndex, cam, rtResources, width, height, loadedMeshes };
+
+    // TODO: Pre-pass
 
     vk::CommandBufferBeginInfo cbbi;
 
@@ -896,17 +911,6 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
         *cmdBuf, vk::PipelineStageFlagBits::eHost, vk::PipelineStageFlagBits::eFragmentShader,
         vk::DependencyFlagBits::eByRegion, vk::AccessFlagBits::eHostWrite, vk::AccessFlagBits::eUniformRead,
         graphicsQueueFamilyIdx, graphicsQueueFamilyIdx);
-
-    std::vector<RenderNode> solvedNodes = graphSolver.solve();
-    std::unordered_map<RenderImageHandle, vk::ImageAspectFlagBits> rtAspects;
-
-    for (auto& pair : rtResources) {
-        rtAspects.insert({ pair.first, pair.second.aspectFlags });
-    }
-
-    std::vector<std::vector<ImageBarrier>> barriers = graphSolver.createImageBarriers(solvedNodes, rtAspects);
-
-    RenderCtx rCtx{ cmdBuf, reg, imageIndex, cam };
 
     for (int i = 0; i < solvedNodes.size(); i++) {
         auto& node = solvedNodes[i];

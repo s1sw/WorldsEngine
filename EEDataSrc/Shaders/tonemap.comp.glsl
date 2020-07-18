@@ -1,6 +1,7 @@
 #version 450
 layout (binding = 0, rgba8) uniform writeonly image2D resultImage;
 layout (binding = 1) uniform sampler2DMS hdrImage;
+layout (binding = 2) uniform sampler2D imguiImage;
 layout (local_size_x = 16, local_size_y = 16) in;
 
 layout(constant_id = 0) const int NUM_MSAA_SAMPLES = 4;
@@ -37,5 +38,9 @@ void main() {
 		acc += tonemapCol(texelFetch(hdrImage, ivec2(gl_GlobalInvocationID.xy), i).xyz, whiteScale);
 	}
 
-	imageStore(resultImage, ivec2(gl_GlobalInvocationID.xy), vec4(acc / float(NUM_MSAA_SAMPLES), 1.0));
+	vec4 imguiCol = texture(imguiImage, vec2(gl_GlobalInvocationID.xy) / textureSize(imguiImage, 0).xy);
+	vec3 sceneCol = acc / float(NUM_MSAA_SAMPLES);
+	sceneCol *= 1.0 - imguiCol.a;
+	imguiCol.xyz *= imguiCol.a;
+	imageStore(resultImage, ivec2(gl_GlobalInvocationID.xy), vec4(sceneCol, 1 - imguiCol.a) + imguiCol);
 }

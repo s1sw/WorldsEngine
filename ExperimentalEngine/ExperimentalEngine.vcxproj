@@ -229,6 +229,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="AssetDB.cpp" />
+    <ClCompile Include="ImGuiRenderPass.cpp" />
     <ClCompile Include="imgui_impl_sdl.cpp" />
     <ClCompile Include="imgui_impl_vulkan.cpp" />
     <ClCompile Include="Input.cpp" />
@@ -238,8 +239,10 @@
     <ClCompile Include="Physics.cpp" />
     <ClCompile Include="PolyRenderPass.cpp" />
     <ClCompile Include="RenderGraph.cpp" />
+    <ClCompile Include="ShadowmapRenderPass.cpp" />
     <ClCompile Include="SourceModelLoader.cpp" />
     <ClCompile Include="tiny_obj_loader.cc" />
+    <ClCompile Include="TonemapRenderPass.cpp" />
     <ClCompile Include="tracy\TracyClient.cpp" />
     <ClCompile Include="vkrender.cpp" />
     <ClCompile Include="VkRenderActions.cpp" />

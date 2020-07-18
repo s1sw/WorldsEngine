@@ -37,6 +37,9 @@
 #endif
 
 #include <vulkan/vulkan.hpp>
+#include "AssetDB.hpp"
+#include <physfs.h>
+extern AssetDB g_assetDB;
 #undef min
 #undef max
 
@@ -2084,6 +2087,24 @@ namespace vku {
 		auto memoryBarriers = nullptr;
 		auto bufferMemoryBarriers = nullptr;
 		cb.pipelineBarrier(srcStageMask, dstStageMask, dependencyFlags, memoryBarriers, bufferMemoryBarriers, imageMemoryBarriers);
+	}
+
+	inline vk::SampleCountFlagBits sampleCountFlags(int sampleCount) {
+		return (vk::SampleCountFlagBits)sampleCount;
+	}
+
+	inline ShaderModule loadShaderAsset(vk::Device& device, AssetID id) {
+		PHYSFS_File* file = g_assetDB.openDataFile(id);
+		size_t size = PHYSFS_fileLength(file);
+		void* buffer = std::malloc(size);
+
+		size_t readBytes = PHYSFS_readBytes(file, buffer, size);
+		assert(readBytes == size);
+		PHYSFS_close(file);
+
+		vku::ShaderModule sm{ device, static_cast<uint32_t*>(buffer), readBytes };
+		std::free(buffer);
+		return sm;
 	}
 
 } // namespace vku

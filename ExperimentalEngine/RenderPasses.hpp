@@ -24,7 +24,8 @@ private:
 public:
 	PolyRenderPass(RenderImageHandle depthStencilImage, RenderImageHandle polyImage, RenderImageHandle shadowImage);
 	RenderPassIO getIO() override;
-	void setup() override;
+	void setup(PassSetupCtx& ctx, RenderCtx& rCtx) override;
+	void prePass(PassSetupCtx& ctx, RenderCtx& rCtx) override;
 	void execute(RenderCtx& ctx);
 };
 
@@ -37,10 +38,13 @@ private:
 	RenderImageHandle shadowImage;
 	vk::UniqueFramebuffer shadowFb;
 	vk::DescriptorSet descriptorSet;
+	vku::ShaderModule shadowVertexShader;
+	vku::ShaderModule shadowFragmentShader;
+	uint32_t shadowmapRes;
 public:
 	ShadowmapRenderPass(RenderImageHandle shadowImage);
 	RenderPassIO getIO() override;
-	void setup() override;
+	void setup(PassSetupCtx& ctx, RenderCtx& rCtx) override;
 	void execute(RenderCtx& ctx);
 };
 
@@ -51,11 +55,25 @@ private:
 	vk::UniquePipeline pipeline;
 	vk::UniquePipelineLayout pipelineLayout;
 	vk::DescriptorSet descriptorSet;
+	vk::UniqueSampler sampler;
 	RenderImageHandle finalPrePresent;
 	RenderImageHandle hdrImg;
+	RenderImageHandle imguiImg;
 public:
-	TonemapRenderPass(RenderImageHandle hdrImg, RenderImageHandle finalPrePresent);
+	TonemapRenderPass(RenderImageHandle hdrImg, RenderImageHandle imguiImg, RenderImageHandle finalPrePresent);
 	RenderPassIO getIO() override;
-	void setup() override;
+	void setup(PassSetupCtx& ctx, RenderCtx& rCtx) override;
+	void execute(RenderCtx& ctx) override;
+};
+
+class ImGuiRenderPass : public RenderPass {
+private:
+	vk::UniqueRenderPass renderPass;
+	vk::UniqueFramebuffer fb;
+	RenderImageHandle target;
+public:
+	ImGuiRenderPass(RenderImageHandle imguiTarget);
+	RenderPassIO getIO() override;
+	void setup(PassSetupCtx& ctx, RenderCtx& rCtx) override;
 	void execute(RenderCtx& ctx) override;
 };

@@ -183,12 +183,40 @@ struct GraphicsSettings {
 	int shadowmapRes;
 };
 
+struct Global2DTextureSlot {
+	vku::TextureImage2D tex;
+	bool present;
+};
+
+struct RenderTextureResource {
+	vku::GenericImage image;
+	vk::ImageAspectFlagBits aspectFlags;
+};
+
+struct LoadedMeshData {
+	vku::VertexBuffer vb;
+	vku::IndexBuffer ib;
+	uint32_t indexCount;
+	vk::IndexType indexType;
+};
+
 struct RenderCtx {
-	RenderCtx(vk::UniqueCommandBuffer& cmdBuf, entt::registry& reg, uint32_t imageIndex, Camera& cam)
+	RenderCtx(
+		vk::UniqueCommandBuffer& cmdBuf, 
+		entt::registry& reg, 
+		uint32_t imageIndex, 
+		Camera& cam, 
+		std::unordered_map<RenderImageHandle, RenderTextureResource>& rtResources, 
+		uint32_t width, uint32_t height, 
+		std::unordered_map<AssetID, LoadedMeshData>& loadedMeshes)
 		: cmdBuf(cmdBuf)
 		, reg(reg)
 		, imageIndex(imageIndex)
-		, cam(cam) {
+		, cam(cam)
+		, rtResources(rtResources)
+		, width(width)
+		, height(height)
+		, loadedMeshes(loadedMeshes) {
 	}
 
 	vk::UniqueCommandBuffer& cmdBuf; 
@@ -197,16 +225,22 @@ struct RenderCtx {
 	entt::registry& reg; 
 	uint32_t imageIndex;
 	Camera& cam;
+	Global2DTextureSlot* globalTexArray;
+	std::unordered_map<RenderImageHandle, RenderTextureResource>& rtResources;
+	std::unordered_map<AssetID, LoadedMeshData>& loadedMeshes;
+	uint32_t width, height;
 };
 
-struct VKStuff {
+struct PassSetupCtx {
 	vk::PhysicalDevice physicalDevice;
 	vk::Device device;
 	vk::PipelineCache pipelineCache;
 	vk::DescriptorPool descriptorPool;
 	// Please only use the pool passed here for immediately executing commands during the setup phase.
-	vk::CommandPool pool;
+	vk::CommandPool commandPool;
 	VmaAllocator allocator;
+	uint32_t graphicsQueueFamilyIdx;
+	GraphicsSettings graphicsSettings;
 };
 
 class XRInterface;
@@ -220,18 +254,6 @@ struct RendererInitInfo {
 };
 
 class VKRenderer {
-	struct LoadedMeshData {
-		vku::VertexBuffer vb;
-		vku::IndexBuffer ib;
-		uint32_t indexCount;
-		vk::IndexType indexType;
-	};
-
-	struct RenderTextureResource {
-		vku::GenericImage image;
-		vk::ImageAspectFlagBits aspectFlags;
-	};
-
 	vk::UniqueInstance instance;
 	vk::PhysicalDevice physicalDevice;
 	vk::UniqueDevice device;
@@ -332,7 +354,7 @@ class VKRenderer {
 #ifdef TRACY_ENABLE
 	std::vector<TracyVkCtx> tracyContexts;
 #endif
-	vku::TextureImage2D textures[64];
+	Global2DTextureSlot textures[64];
 	vku::TextureImageCube cubemaps[64];
 	GraphSolver graphSolver;
 	uint32_t shadowmapRes;

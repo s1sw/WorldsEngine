@@ -8,6 +8,7 @@ namespace vk {
 
 struct TextureUsage;
 struct RenderCtx;
+struct PassSetupCtx;
 struct ImageBarrier;
 typedef uint32_t RenderImageHandle;
 
@@ -29,7 +30,8 @@ class RenderPass {
 public:
 	virtual RenderPassIO getIO() = 0;
 
-	virtual void setup() = 0;
+	virtual void setup(PassSetupCtx& ctx, RenderCtx& rCtx) = 0;
+	virtual void prePass(PassSetupCtx& ctx, RenderCtx& rCtx) {}
 	virtual void execute(RenderCtx& ctx) = 0;
 };
 
