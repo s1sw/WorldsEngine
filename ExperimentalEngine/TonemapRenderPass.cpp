@@ -28,7 +28,7 @@ RenderPassIO TonemapRenderPass::getIO() {
 
     io.outputs = {
         {
-            vk::ImageLayout::eGeneral,
+            vk::ImageLayout::eTransferSrcOptimal,
             vk::PipelineStageFlagBits::eComputeShader,
             vk::AccessFlagBits::eShaderWrite,
             finalPrePresent
@@ -38,7 +38,7 @@ RenderPassIO TonemapRenderPass::getIO() {
     return io;
 }
 
-void TonemapRenderPass::setup(PassSetupCtx& ctx, RenderCtx& rCtx) {
+void TonemapRenderPass::setup(PassSetupCtx& ctx) {
     vku::DescriptorSetLayoutMaker tonemapDslm;
     tonemapDslm.image(0, vk::DescriptorType::eStorageImage, vk::ShaderStageFlagBits::eCompute, 1);
     tonemapDslm.image(1, vk::DescriptorType::eCombinedImageSampler, vk::ShaderStageFlagBits::eCompute, 1);
@@ -74,13 +74,13 @@ void TonemapRenderPass::setup(PassSetupCtx& ctx, RenderCtx& rCtx) {
     dsu.beginDescriptorSet(descriptorSet);
 
     dsu.beginImages(0, 0, vk::DescriptorType::eStorageImage);
-    dsu.image(*sampler, rCtx.rtResources.at(finalPrePresent).image.imageView(), vk::ImageLayout::eGeneral);
+    dsu.image(*sampler, ctx.rtResources.at(finalPrePresent).image.imageView(), vk::ImageLayout::eGeneral);
 
     dsu.beginImages(1, 0, vk::DescriptorType::eCombinedImageSampler);
-    dsu.image(*sampler, rCtx.rtResources.at(hdrImg).image.imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
+    dsu.image(*sampler, ctx.rtResources.at(hdrImg).image.imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
 
     dsu.beginImages(2, 0, vk::DescriptorType::eCombinedImageSampler);
-    dsu.image(*sampler, rCtx.rtResources.at(imguiImg).image.imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
+    dsu.image(*sampler, ctx.rtResources.at(imguiImg).image.imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
 
     dsu.update(ctx.device);
 }
@@ -92,6 +92,10 @@ void TonemapRenderPass::execute(RenderCtx& ctx) {
 #endif
     auto& cmdBuf = ctx.cmdBuf;
     //finalPrePresent.setLayout(*cmdBuf, vk::ImageLayout::eGeneral, vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eComputeShader, vk::AccessFlagBits::eTransferRead, vk::AccessFlagBits::eShaderWrite);
+    vku::transitionLayout(*cmdBuf, ctx.rtResources.at(finalPrePresent).image.image(),
+        vk::ImageLayout::eTransferSrcOptimal, vk::ImageLayout::eGeneral,
+        vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eComputeShader,
+        vk::AccessFlagBits::eTransferRead, vk::AccessFlagBits::eShaderWrite);
 
     //::imageBarrier(*cmdBuf, rtResources.at(polyImage).image.image(), vk::ImageLayout::eGeneral, vk::AccessFlagBits::eColorAttachmentWrite, vk::AccessFlagBits::eShaderRead, vk::PipelineStageFlagBits::eColorAttachmentOutput, vk::PipelineStageFlagBits::eComputeShader);
 
@@ -100,12 +104,10 @@ void TonemapRenderPass::execute(RenderCtx& ctx) {
 
     cmdBuf->dispatch((ctx.width + 15) / 16, (ctx.height + 15) / 16, 1);
 
-   // vku::transitionLayout(*cmdBuf, finalPrePresent.image(),
-   //     vk::ImageLayout::eGeneral, vk::ImageLayout::eColorAttachmentOptimal,
-   //     vk::PipelineStageFlagBits::eComputeShader, vk::PipelineStageFlagBits::eColorAttachmentOutput,
-   //     vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eColorAttachmentWrite | vk::AccessFlagBits::eColorAttachmentRead);
-
-    
+    vku::transitionLayout(*cmdBuf, ctx.rtResources.at(finalPrePresent).image.image(),
+        vk::ImageLayout::eGeneral, vk::ImageLayout::eTransferSrcOptimal,
+        vk::PipelineStageFlagBits::eComputeShader, vk::PipelineStageFlagBits::eTransfer,
+        vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eTransferRead);
 
     // account for implicit renderpass transition
     //finalPrePresent.setCurrentLayout(vk::ImageLayout::eTransferSrcOptimal);

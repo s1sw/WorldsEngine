@@ -17,6 +17,7 @@
 #include "tracy/TracyVulkan.hpp"
 #endif
 #include "XRInterface.hpp"
+#include "RenderPasses.hpp"
 
 uint32_t findPresentQueue(vk::PhysicalDevice pd, vk::SurfaceKHR surface) {
     auto qprops = pd.getQueueFamilyProperties();
@@ -29,10 +30,10 @@ uint32_t findPresentQueue(vk::PhysicalDevice pd, vk::SurfaceKHR surface) {
     return ~0u;
 }
 
-RenderImageHandle VKRenderer::createRTResource(RTResourceCreateInfo resourceCreateInfo) {
+RenderImageHandle VKRenderer::createRTResource(RTResourceCreateInfo resourceCreateInfo, const char* debugName) {
     auto memProps = physicalDevice.getMemoryProperties();
     RenderTextureResource rtr;
-    rtr.image = vku::GenericImage{ *device, memProps, resourceCreateInfo.ici, resourceCreateInfo.viewType, resourceCreateInfo.aspectFlags, false };
+    rtr.image = vku::GenericImage{ *device, memProps, resourceCreateInfo.ici, resourceCreateInfo.viewType, resourceCreateInfo.aspectFlags, false, debugName };
     rtr.aspectFlags = resourceCreateInfo.aspectFlags;
 
     RenderImageHandle handle = lastHandle++;
@@ -85,254 +86,6 @@ void VKRenderer::loadAlbedo() {
     loadTex("terrain.png", 1);
 }
 
-void VKRenderer::setupTonemapping() {
-    vku::DescriptorSetLayoutMaker tonemapDslm;
-    tonemapDslm.image(0, vk::DescriptorType::eStorageImage, vk::ShaderStageFlagBits::eCompute, 1);
-    tonemapDslm.image(1, vk::DescriptorType::eCombinedImageSampler, vk::ShaderStageFlagBits::eCompute, 1);
-    tonemapDslm.image(2, vk::DescriptorType::eCombinedImageSampler, vk::ShaderStageFlagBits::eCompute, 1);
-
-    tonemapDsl = tonemapDslm.createUnique(*device);
-
-    tonemapShader = loadShaderAsset(g_assetDB.addAsset("Shaders/tonemap.comp.spv"));
-
-    vku::PipelineLayoutMaker plm;
-    plm.descriptorSetLayout(*tonemapDsl);
-
-    tonemapPipelineLayout = plm.createUnique(*device);
-
-    vku::ComputePipelineMaker cpm;
-    cpm.shader(vk::ShaderStageFlagBits::eCompute, tonemapShader);
-    vk::SpecializationMapEntry samplesEntry{ 0, 0, sizeof(int32_t) };
-    vk::SpecializationInfo si;
-    si.dataSize = sizeof(int32_t);
-    si.mapEntryCount = 1;
-    si.pMapEntries = &samplesEntry;
-    si.pData = &numMSAASamples;
-    tonemapPipeline = cpm.createUnique(*device, *pipelineCache, *tonemapPipelineLayout);
-
-    vku::DescriptorSetMaker dsm;
-    dsm.layout(*tonemapDsl);
-    tonemapDescriptorSet = dsm.create(*device, *descriptorPool)[0];
-}
-
-void VKRenderer::setupImGUI() {
-    vku::RenderpassMaker rPassMaker{};
-
-    rPassMaker.attachmentBegin(vk::Format::eR8G8B8A8Unorm);
-    rPassMaker.attachmentLoadOp(vk::AttachmentLoadOp::eDontCare);
-    rPassMaker.attachmentStoreOp(vk::AttachmentStoreOp::eStore);
-    rPassMaker.attachmentFinalLayout(vk::ImageLayout::eTransferSrcOptimal);
-    rPassMaker.attachmentInitialLayout(vk::ImageLayout::eColorAttachmentOptimal);
-
-    rPassMaker.subpassBegin(vk::PipelineBindPoint::eGraphics);
-    rPassMaker.subpassColorAttachment(vk::ImageLayout::eColorAttachmentOptimal, 0);
-
-    rPassMaker.dependencyBegin(VK_SUBPASS_EXTERNAL, 0);
-    rPassMaker.dependencySrcStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput);
-    rPassMaker.dependencyDstStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput);
-    rPassMaker.dependencyDstAccessMask(vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite);
-
-    imguiRenderPass = rPassMaker.createUnique(*device);
-
-    ImGui_ImplVulkan_InitInfo imguiInit;
-    memset(&imguiInit, 0, sizeof(imguiInit));
-    imguiInit.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
-    imguiInit.Device = *device;
-    imguiInit.Instance = *instance;
-    imguiInit.DescriptorPool = *descriptorPool;
-    imguiInit.PhysicalDevice = physicalDevice;
-    imguiInit.PipelineCache = *pipelineCache;
-    imguiInit.Queue = device->getQueue(graphicsQueueFamilyIdx, 0);
-    imguiInit.QueueFamily = graphicsQueueFamilyIdx;
-    imguiInit.MinImageCount = (uint32_t)swapchain->images.size();
-    imguiInit.ImageCount = (uint32_t)swapchain->images.size();
-    ImGui_ImplVulkan_Init(&imguiInit, *imguiRenderPass);
-
-    vku::executeImmediately(*device, *commandPool, device->getQueue(graphicsQueueFamilyIdx, 0), [](vk::CommandBuffer cb) {
-        ImGui_ImplVulkan_CreateFontsTexture(cb);
-        });
-}
-
-void VKRenderer::setupStandard() {
-    auto memoryProps = physicalDevice.getMemoryProperties();
-
-    vku::SamplerMaker sm{};
-    sm.magFilter(vk::Filter::eLinear).minFilter(vk::Filter::eLinear).mipmapMode(vk::SamplerMipmapMode::eLinear);
-    albedoSampler = sm.createUnique(*device);
-    loadAlbedo();
-
-    vku::SamplerMaker ssm{};
-    ssm.magFilter(vk::Filter::eLinear).minFilter(vk::Filter::eLinear).mipmapMode(vk::SamplerMipmapMode::eLinear).compareEnable(true).compareOp(vk::CompareOp::eLessOrEqual);
-    shadowSampler = ssm.createUnique(*device);
-
-    vku::DescriptorSetLayoutMaker dslm;
-    // VP
-    dslm.buffer(0, vk::DescriptorType::eUniformBuffer, vk::ShaderStageFlagBits::eVertex, 1);
-    // Lights
-    dslm.buffer(1, vk::DescriptorType::eUniformBuffer, vk::ShaderStageFlagBits::eFragment | vk::ShaderStageFlagBits::eVertex, 1);
-    // Materials
-    dslm.buffer(2, vk::DescriptorType::eUniformBuffer, vk::ShaderStageFlagBits::eFragment, 1);
-    // Model matrices
-    dslm.buffer(3, vk::DescriptorType::eUniformBuffer, vk::ShaderStageFlagBits::eVertex, 1);
-    // Textures
-    dslm.image(4, vk::DescriptorType::eCombinedImageSampler, vk::ShaderStageFlagBits::eFragment, 64);
-    // Shadowmap
-    dslm.image(5, vk::DescriptorType::eCombinedImageSampler, vk::ShaderStageFlagBits::eFragment, 1);
-    // Cubemaps
-    dslm.image(6, vk::DescriptorType::eCombinedImageSampler, vk::ShaderStageFlagBits::eFragment, 64);
-    dslm.bindFlag(4, vk::DescriptorBindingFlagBits::ePartiallyBound);
-
-    this->dsl = dslm.createUnique(*this->device);
-
-    vku::PipelineLayoutMaker plm;
-    plm.pushConstantRange(vk::ShaderStageFlagBits::eFragment | vk::ShaderStageFlagBits::eVertex, 0, sizeof(StandardPushConstants));
-    plm.descriptorSetLayout(*this->dsl);
-    this->pipelineLayout = plm.createUnique(*this->device);
-
-    this->vpUB = vku::UniformBuffer(*this->device, allocator, sizeof(MultiVP));
-    lightsUB = vku::UniformBuffer(*this->device, allocator, sizeof(LightUB));
-    materialUB = vku::UniformBuffer(*this->device, allocator, sizeof(MaterialsUB));
-    modelMatrixUB = vku::UniformBuffer(*device, allocator, sizeof(ModelMatrices), VMA_MEMORY_USAGE_CPU_TO_GPU);
-
-    MaterialsUB materials;
-    materials.materials[0] = { glm::vec4(0.0f, 0.02f, 0.0f, 0.0f), glm::vec4(1.0f, 1.0f, 1.0f, 0.0f) };
-    materials.materials[1] = { glm::vec4(0.0f, 0.02f, 1.0f, 0.0f), glm::vec4(1.0f, 1.0f, 1.0f, 0.0f) };
-    materialUB.upload(*device, memoryProps, *commandPool, device->getQueue(graphicsQueueFamilyIdx, 0), materials);
-
-    vku::DescriptorSetMaker dsm;
-    dsm.layout(*this->dsl);
-    this->descriptorSets = dsm.create(*this->device, *this->descriptorPool);
-
-    vku::DescriptorSetUpdater updater;
-    updater.beginDescriptorSet(this->descriptorSets[0]);
-
-    updater.beginBuffers(0, 0, vk::DescriptorType::eUniformBuffer);
-    updater.buffer(this->vpUB.buffer(), 0, sizeof(MultiVP));
-
-    updater.beginBuffers(1, 0, vk::DescriptorType::eUniformBuffer);
-    updater.buffer(lightsUB.buffer(), 0, sizeof(LightUB));
-
-    updater.beginBuffers(2, 0, vk::DescriptorType::eUniformBuffer);
-    updater.buffer(materialUB.buffer(), 0, sizeof(MaterialsUB));
-
-    updater.beginBuffers(3, 0, vk::DescriptorType::eUniformBuffer);
-    updater.buffer(modelMatrixUB.buffer(), 0, sizeof(ModelMatrices));
-
-    updater.beginImages(4, 0, vk::DescriptorType::eCombinedImageSampler);
-    updater.image(*albedoSampler, textures[0].tex.imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
-
-    updater.beginImages(4, 1, vk::DescriptorType::eCombinedImageSampler);
-    updater.image(*albedoSampler, textures[1].tex.imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
-
-    updater.beginImages(5, 0, vk::DescriptorType::eCombinedImageSampler);
-    updater.image(*shadowSampler, rtResources.at(shadowmapImage).image.imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
-
-    updater.update(*this->device);
-
-    vku::RenderpassMaker rPassMaker;
-
-    rPassMaker.attachmentBegin(vk::Format::eR16G16B16A16Sfloat);
-    rPassMaker.attachmentLoadOp(vk::AttachmentLoadOp::eClear);
-    rPassMaker.attachmentStoreOp(vk::AttachmentStoreOp::eStore);
-    rPassMaker.attachmentSamples(msaaSamples);
-    rPassMaker.attachmentFinalLayout(vk::ImageLayout::eGeneral);
-
-    rPassMaker.attachmentBegin(vk::Format::eD32Sfloat);
-    rPassMaker.attachmentLoadOp(vk::AttachmentLoadOp::eClear);
-    rPassMaker.attachmentStencilLoadOp(vk::AttachmentLoadOp::eDontCare);
-    rPassMaker.attachmentSamples(msaaSamples);
-    rPassMaker.attachmentFinalLayout(vk::ImageLayout::eDepthStencilAttachmentOptimal);
-
-    rPassMaker.subpassBegin(vk::PipelineBindPoint::eGraphics);
-    rPassMaker.subpassColorAttachment(vk::ImageLayout::eColorAttachmentOptimal, 0);
-    rPassMaker.subpassDepthStencilAttachment(vk::ImageLayout::eDepthStencilAttachmentOptimal, 1);
-
-    rPassMaker.dependencyBegin(VK_SUBPASS_EXTERNAL, 0);
-    rPassMaker.dependencySrcStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput);
-    rPassMaker.dependencyDstStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput);
-    rPassMaker.dependencyDstAccessMask(vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite);
-
-    this->renderPass = rPassMaker.createUnique(*this->device);
-
-    AssetID vsID = g_assetDB.addAsset("Shaders/test.vert.spv");
-    AssetID fsID = g_assetDB.addAsset("Shaders/test.frag.spv");
-    vertexShader = loadShaderAsset(vsID);
-    fragmentShader = loadShaderAsset(fsID);
-}
-
-void VKRenderer::setupShadowPass() {
-    auto memoryProps = physicalDevice.getMemoryProperties();
-    vku::DescriptorSetLayoutMaker dslm;
-    shadowmapDsl = dslm.createUnique(*device);
-
-    vku::RenderpassMaker rPassMaker;
-
-    rPassMaker.attachmentBegin(vk::Format::eD32Sfloat);
-    rPassMaker.attachmentLoadOp(vk::AttachmentLoadOp::eClear);
-    rPassMaker.attachmentStencilLoadOp(vk::AttachmentLoadOp::eDontCare);
-    rPassMaker.attachmentFinalLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
-
-    rPassMaker.subpassBegin(vk::PipelineBindPoint::eGraphics);
-    rPassMaker.subpassDepthStencilAttachment(vk::ImageLayout::eDepthStencilAttachmentOptimal, 0);
-
-    rPassMaker.dependencyBegin(VK_SUBPASS_EXTERNAL, 0);
-    rPassMaker.dependencySrcStageMask(vk::PipelineStageFlagBits::eLateFragmentTests);
-    rPassMaker.dependencyDstStageMask(vk::PipelineStageFlagBits::eLateFragmentTests);
-    rPassMaker.dependencyDstAccessMask(vk::AccessFlagBits::eDepthStencilAttachmentRead | vk::AccessFlagBits::eDepthStencilAttachmentWrite);
-
-    shadowmapPass = rPassMaker.createUnique(*device);
-
-    AssetID vsID = g_assetDB.addAsset("Shaders/shadowmap.vert.spv");
-    AssetID fsID = g_assetDB.addAsset("Shaders/shadowmap.frag.spv");
-    shadowVertexShader = loadShaderAsset(vsID);
-    shadowFragmentShader = loadShaderAsset(fsID);
-
-    vku::DescriptorSetMaker dsm;
-    dsm.layout(*shadowmapDsl);
-    shadowmapDescriptorSet = dsm.create(*device, *descriptorPool)[0];
-
-    vku::PipelineLayoutMaker plm{};
-    plm.descriptorSetLayout(*shadowmapDsl);
-    plm.pushConstantRange(vk::ShaderStageFlagBits::eVertex, 0, sizeof(glm::mat4));
-    shadowmapPipelineLayout = plm.createUnique(*device);
-
-    vku::PipelineMaker pm{ shadowmapRes, shadowmapRes };
-    pm.shader(vk::ShaderStageFlagBits::eFragment, shadowFragmentShader);
-    pm.shader(vk::ShaderStageFlagBits::eVertex, shadowVertexShader);
-    pm.vertexBinding(0, (uint32_t)sizeof(Vertex));
-    pm.vertexAttribute(0, 0, vk::Format::eR32G32B32Sfloat, (uint32_t)offsetof(Vertex, position));
-    pm.cullMode(vk::CullModeFlagBits::eBack);
-    pm.depthWriteEnable(true).depthTestEnable(true).depthCompareOp(vk::CompareOp::eLess);
-
-    shadowmapPipeline = pm.createUnique(*device, *pipelineCache, *shadowmapPipelineLayout, *shadowmapPass);
-
-    vk::ImageCreateInfo ici;
-    ici.arrayLayers = 1;
-    ici.extent = vk::Extent3D{ shadowmapRes, shadowmapRes, 1 };
-    ici.format = vk::Format::eD32Sfloat;
-    ici.imageType = vk::ImageType::e2D;
-    ici.initialLayout = vk::ImageLayout::eUndefined;
-    ici.mipLevels = 1;
-    ici.usage = vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eSampled;
-
-    //shadowmapImage = vku::GenericImage(*device, memoryProps, ici, vk::ImageViewType::e2D, vk::ImageAspectFlagBits::eDepth, false);
-    RTResourceCreateInfo resourceCreateInfo{
-        ici,
-        vk::ImageViewType::e2D,
-        vk::ImageAspectFlagBits::eDepth
-    };
-    shadowmapImage = createRTResource(resourceCreateInfo);
-
-    std::array<vk::ImageView, 1> shadowmapAttachments = { rtResources.at(shadowmapImage).image.imageView() };
-    vk::FramebufferCreateInfo fci;
-    fci.attachmentCount = shadowmapAttachments.size();
-    fci.pAttachments = shadowmapAttachments.data();
-    fci.width = fci.height = shadowmapRes;
-    fci.renderPass = *shadowmapPass;
-    fci.layers = 1;
-    shadowmapFb = device->createFramebufferUnique(fci);
-}
-
 VKRenderer::VKRenderer(RendererInitInfo& initInfo, bool* success) 
     : window(initInfo.window)
     , frameIdx(0)
@@ -362,6 +115,7 @@ VKRenderer::VKRenderer(RendererInitInfo& initInfo, bool* success)
     instanceMaker.layer("VK_LAYER_KHRONOS_validation");
     instanceMaker.extension(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
 #endif
+    instanceMaker.extension(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 
     instanceMaker.applicationName("Experimental Game")
         .engineName("Experimental Engine")
@@ -475,9 +229,9 @@ VKRenderer::VKRenderer(RendererInitInfo& initInfo, bool* success)
     this->pipelineCache = this->device->createPipelineCacheUnique(pipelineCacheInfo);
 
     std::vector<vk::DescriptorPoolSize> poolSizes;
-    poolSizes.emplace_back(vk::DescriptorType::eUniformBuffer, 128);
-    poolSizes.emplace_back(vk::DescriptorType::eCombinedImageSampler, 128);
-    poolSizes.emplace_back(vk::DescriptorType::eStorageBuffer, 128);
+    poolSizes.emplace_back(vk::DescriptorType::eUniformBuffer, 1024);
+    poolSizes.emplace_back(vk::DescriptorType::eCombinedImageSampler, 1024);
+    poolSizes.emplace_back(vk::DescriptorType::eStorageBuffer, 1024);
 
     // Create an arbitrary number of descriptors in a pool.
     // Allow the descriptors to be freed, possibly not optimal behaviour.
@@ -505,10 +259,7 @@ VKRenderer::VKRenderer(RendererInitInfo& initInfo, bool* success)
 
     createSwapchain(vk::SwapchainKHR{});
 
-    setupTonemapping();
-    setupImGUI();
-    setupShadowPass();
-    setupStandard();
+    loadAlbedo();
 
     createSCDependents();
 
@@ -564,23 +315,17 @@ VKRenderer::VKRenderer(RendererInitInfo& initInfo, bool* success)
 void VKRenderer::createSCDependents() {
     auto memoryProps = physicalDevice.getMemoryProperties();
 
-    vku::PipelineMaker pm{ this->width, this->height };
-    pm.shader(vk::ShaderStageFlagBits::eFragment, fragmentShader);
-    pm.shader(vk::ShaderStageFlagBits::eVertex, vertexShader);
-    pm.vertexBinding(0, (uint32_t)sizeof(Vertex));
-    pm.vertexAttribute(0, 0, vk::Format::eR32G32B32Sfloat, (uint32_t)offsetof(Vertex, position));
-    pm.vertexAttribute(1, 0, vk::Format::eR32G32B32Sfloat, (uint32_t)offsetof(Vertex, normal));
-    pm.vertexAttribute(2, 0, vk::Format::eR32G32B32Sfloat, (uint32_t)offsetof(Vertex, tangent));
-    pm.vertexAttribute(3, 0, vk::Format::eR32G32Sfloat, (uint32_t)offsetof(Vertex, uv));
-    pm.vertexAttribute(4, 0, vk::Format::eR32Sfloat, (uint32_t)offsetof(Vertex, ao));
-    pm.cullMode(vk::CullModeFlagBits::eBack);
-    pm.depthWriteEnable(true).depthTestEnable(true).depthCompareOp(vk::CompareOp::eLess);
-    pm.blendBegin(false);
-    pm.frontFace(vk::FrontFace::eCounterClockwise);
-    vk::PipelineMultisampleStateCreateInfo pmsci;
-    pmsci.rasterizationSamples = msaaSamples;
-    pm.multisampleState(pmsci);
-    this->pipeline = pm.createUnique(*this->device, *this->pipelineCache, *this->pipelineLayout, *this->renderPass);
+    if (rtResources.count(polyImage) != 0) {
+        rtResources.erase(polyImage);
+    }
+
+    if (rtResources.count(depthStencilImage) != 0) {
+        rtResources.erase(depthStencilImage);
+    }
+
+    if (rtResources.count(imguiImage) != 0) {
+        rtResources.erase(imguiImage);
+    }
 
     vk::ImageCreateInfo ici;
     ici.imageType = vk::ImageType::e2D;
@@ -591,88 +336,77 @@ void VKRenderer::createSCDependents() {
     ici.initialLayout = vk::ImageLayout::eUndefined;
     ici.samples = msaaSamples;
     ici.usage = vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eStorage;
-    if (rtResources.count(polyImage) != 0) {
-        rtResources.erase(polyImage);
-    }
+
     RTResourceCreateInfo polyCreateInfo{ ici, vk::ImageViewType::e2D, vk::ImageAspectFlagBits::eColor };
-    polyImage = createRTResource(polyCreateInfo);
+    polyImage = createRTResource(polyCreateInfo, "Poly Image");
+
     ici.format = vk::Format::eD32Sfloat;
     ici.usage = vk::ImageUsageFlagBits::eDepthStencilAttachment;
     RTResourceCreateInfo depthCreateInfo{ ici, vk::ImageViewType::e2D, vk::ImageAspectFlagBits::eDepth };
-    depthStencilImage = createRTResource(depthCreateInfo);
+    depthStencilImage = createRTResource(depthCreateInfo, "Depth Stencil Image");
+
+    ici.format = vk::Format::eR8G8B8A8Unorm;
+    ici.samples = vk::SampleCountFlagBits::e1;
+    ici.usage = vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eStorage;
+
+    RTResourceCreateInfo imguiImageCreateInfo{ ici, vk::ImageViewType::e2D, vk::ImageAspectFlagBits::eColor };
+    imguiImage = createRTResource(imguiImageCreateInfo, "ImGui Image");
+
+    vk::ImageCreateInfo shadowmapIci;
+    shadowmapIci.imageType = vk::ImageType::e2D;
+    shadowmapIci.extent = vk::Extent3D{ shadowmapRes, shadowmapRes, 1 };
+    shadowmapIci.arrayLayers = 1;
+    shadowmapIci.mipLevels = 1;
+    shadowmapIci.format = vk::Format::eD32Sfloat;
+    shadowmapIci.initialLayout = vk::ImageLayout::eUndefined;
+    shadowmapIci.samples = vk::SampleCountFlagBits::e1;
+    shadowmapIci.usage = vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eSampled;
+
+    RTResourceCreateInfo shadowmapCreateInfo{ shadowmapIci, vk::ImageViewType::e2D, vk::ImageAspectFlagBits::eDepth };
+    shadowmapImage = createRTResource(shadowmapCreateInfo, "Shadowmap Image");
 
     graphSolver.clear();
     {
-        TextureUsage shadowmapOutUsage;
-        shadowmapOutUsage.layout = vk::ImageLayout::eShaderReadOnlyOptimal;
-        shadowmapOutUsage.handle = shadowmapImage;
-        shadowmapOutUsage.accessFlags = vk::AccessFlagBits::eDepthStencilAttachmentWrite;
-        shadowmapOutUsage.stageFlags = vk::PipelineStageFlagBits::eLateFragmentTests;
-        RenderNode shadowmapNode;
-        shadowmapNode.outputs.push_back(shadowmapOutUsage);
-        shadowmapNode.execute = [this](RenderCtx& ctx) { renderShadowmap(ctx); };
-        graphSolver.addNode(shadowmapNode);
+        auto srp = new ShadowmapRenderPass(shadowmapImage);
+        graphSolver.addNode(srp);
     }
 
     {
-        TextureUsage shadowmapInUsage;
-        shadowmapInUsage.layout = vk::ImageLayout::eShaderReadOnlyOptimal;
-        shadowmapInUsage.handle = shadowmapImage;
-        shadowmapInUsage.accessFlags = vk::AccessFlagBits::eShaderRead;
-        shadowmapInUsage.stageFlags = vk::PipelineStageFlagBits::eFragmentShader;
-        TextureUsage polyImgOutUsage;
-        polyImgOutUsage.handle = polyImage;
-        polyImgOutUsage.layout = vk::ImageLayout::eGeneral;
-        polyImgOutUsage.accessFlags = vk::AccessFlagBits::eColorAttachmentWrite;
-        polyImgOutUsage.stageFlags = vk::PipelineStageFlagBits::eColorAttachmentOutput;
-
-        RenderNode polyNode;
-        polyNode.inputs.push_back(shadowmapInUsage);
-        polyNode.outputs.push_back(polyImgOutUsage);
-        polyNode.execute = [this](RenderCtx& ctx) { renderPolys(ctx); };
-        graphSolver.addNode(polyNode);
+        auto prp = new PolyRenderPass(depthStencilImage, polyImage, shadowmapImage);
+        graphSolver.addNode(prp);
     }
 
     {
-        TextureUsage polyImgInUsage;
-        polyImgInUsage.handle = polyImage;
-        polyImgInUsage.layout = vk::ImageLayout::eGeneral;
-        polyImgInUsage.accessFlags = vk::AccessFlagBits::eShaderRead;
-        polyImgInUsage.stageFlags = vk::PipelineStageFlagBits::eComputeShader;
-        RenderNode tonemapNode;
-        tonemapNode.inputs.push_back(polyImgInUsage);
-        tonemapNode.execute = [this](RenderCtx& ctx) { doTonemap(ctx); };
-        graphSolver.addNode(tonemapNode);
+        auto irp = new ImGuiRenderPass(imguiImage);
+        graphSolver.addNode(irp);
     }
 
     ici.arrayLayers = 1;
     ici.samples = vk::SampleCountFlagBits::e1;
     ici.format = vk::Format::eR8G8B8A8Unorm;
     ici.usage = vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eTransferSrc;
-    finalPrePresent = vku::GenericImage(*device, memoryProps, ici, vk::ImageViewType::e2D, vk::ImageAspectFlagBits::eColor, false);
+
+    //finalPrePresent = vku::GenericImage(*device, memoryProps, ici, vk::ImageViewType::e2D, vk::ImageAspectFlagBits::eColor, false);
+    RTResourceCreateInfo finalPrePresentCI{ ici, vk::ImageViewType::e2D, vk::ImageAspectFlagBits::eColor };
+    finalPrePresent = createRTResource(finalPrePresentCI, "Final Pre-Present Image");
+
+    {
+        auto tonemapRP = new TonemapRenderPass(polyImage, imguiImage, finalPrePresent);
+        graphSolver.addNode(tonemapRP);
+    }
 
     vku::executeImmediately(*device, *commandPool, device->getQueue(graphicsQueueFamilyIdx, 0), [this](vk::CommandBuffer cmdBuf) {
-        rtResources.at(polyImage).image.setLayout(cmdBuf, vk::ImageLayout::eColorAttachmentOptimal);
-        finalPrePresent.setLayout(cmdBuf, vk::ImageLayout::eColorAttachmentOptimal);
+        rtResources.at(polyImage).image.setLayout(cmdBuf, vk::ImageLayout::eGeneral);
+        rtResources.at(finalPrePresent).image.setLayout(cmdBuf, vk::ImageLayout::eTransferSrcOptimal);
         });
 
-    vk::ImageView attachments[2] = { rtResources.at(polyImage).image.imageView(), rtResources.at(depthStencilImage).image.imageView() };
-    vk::FramebufferCreateInfo fci;
-    fci.attachmentCount = 2;
-    fci.pAttachments = attachments;
-    fci.width = this->width;
-    fci.height = this->height;
-    fci.renderPass = *this->renderPass;
-    fci.layers = enableVR ? 2 : 1;
-    renderFb = device->createFramebufferUnique(fci);
+    PassSetupCtx psc{ physicalDevice, *device, *pipelineCache, *descriptorPool, *commandPool, *instance, allocator, graphicsQueueFamilyIdx, GraphicsSettings{numMSAASamples, (int32_t)shadowmapRes}, textures, rtResources, swapchain->images.size() };
 
-    vk::ImageView finalImageView = finalPrePresent.imageView();
-    fci.attachmentCount = 1;
-    fci.pAttachments = &finalImageView;
-    fci.renderPass = *imguiRenderPass;
-    fci.layers = 1;
-    finalPrePresentFB = device->createFramebufferUnique(fci);
-    updateTonemapDescriptors();
+    auto solved = graphSolver.solve();
+
+    for (auto& node : solved) {
+        node->setup(psc);
+    }
 }
 
 void VKRenderer::recreateSwapchain() {
@@ -691,7 +425,6 @@ void VKRenderer::recreateSwapchain() {
 
     createSwapchain(*oldSwapchain->getSwapchain());
 
-    pipeline.reset();
     framebuffers.clear();
     oldSwapchain.reset();
     imageAcquire.reset();
@@ -764,24 +497,6 @@ void VKRenderer::imageBarrier(vk::CommandBuffer& cb, ImageBarrier& ib) {
     cb.pipelineBarrier(ib.srcStage, ib.dstStage, dependencyFlags, memoryBarriers, bufferMemoryBarriers, imageMemoryBarriers);
 }
 
-glm::vec3 shadowOffset(0.0f, 0.0f, 0.001f);
-
-void VKRenderer::updateTonemapDescriptors() {
-#ifdef TRACY_ENABLE
-    ZoneScoped;
-#endif
-    vku::DescriptorSetUpdater dsu;
-    dsu.beginDescriptorSet(tonemapDescriptorSet);
-
-    dsu.beginImages(0, 0, vk::DescriptorType::eStorageImage);
-    dsu.image(*albedoSampler, finalPrePresent.imageView(), vk::ImageLayout::eGeneral);
-
-    dsu.beginImages(1, 0, vk::DescriptorType::eCombinedImageSampler);
-    dsu.image(*albedoSampler, rtResources.at(polyImage).image.imageView(), vk::ImageLayout::eGeneral);
-
-    dsu.update(*device);
-}
-
 vku::ShaderModule VKRenderer::loadShaderAsset(AssetID id) {
     PHYSFS_File* file = g_assetDB.openDataFile(id);
     size_t size = PHYSFS_fileLength(file);
@@ -821,65 +536,7 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
         return;
     }
 
-    auto tfWoView = reg.view<Transform, WorldObject>();
-
-    ModelMatrices* modelMatricesMapped = static_cast<ModelMatrices*>(modelMatrixUB.map(*device));
-
-    int matrixIdx = 0;
-    reg.view<Transform, WorldObject>().each([&matrixIdx, modelMatricesMapped](auto ent, Transform& t, WorldObject& wo) {
-        if (matrixIdx == 1023)
-            return;
-        glm::mat4 m = t.getMatrix();
-        modelMatricesMapped->modelMatrices[matrixIdx] = m;
-        matrixIdx++;
-        });
-
-    reg.view<Transform, ProceduralObject>().each([&matrixIdx, modelMatricesMapped](auto ent, Transform& t, ProceduralObject& po) {
-        if (matrixIdx == 1023)
-            return;
-        glm::mat4 m = t.getMatrix();
-        modelMatricesMapped->modelMatrices[matrixIdx] = m;
-        matrixIdx++;
-        });
-
-    modelMatrixUB.unmap(*device);
-
-    MultiVP vp;
-    vp.views[0] = cam.getViewMatrix();
-    vp.projections[0] = cam.getProjectionMatrix((float)width / (float)height);
-    LightUB lub;
-
-    glm::vec3 viewPos = cam.position;
-
-    int lightIdx = 0;
-    reg.view<WorldLight, Transform>().each([&lub, &lightIdx, &viewPos](auto ent, WorldLight& l, Transform& transform) {
-        glm::vec3 lightForward = glm::normalize(transform.rotation * glm::vec3(0.0f, 0.0f, -1.0f));
-        if (l.type == LightType::Directional) {
-            const float SHADOW_DISTANCE = 50.0f;
-            glm::vec3 shadowMapPos = glm::round(viewPos - (transform.rotation * glm::vec3(0.0f, 0.f, 50.0f)));
-            glm::mat4 proj = glm::orthoZO(
-                -SHADOW_DISTANCE, SHADOW_DISTANCE,
-                -SHADOW_DISTANCE, SHADOW_DISTANCE,
-                1.0f, 1000.f);
-
-            glm::mat4 view = glm::lookAt(
-                shadowMapPos,
-                shadowMapPos - lightForward,
-                glm::vec3(0.0f, 1.0f, 0.0));
-
-            lub.shadowmapMatrix = proj * view;
-        }
-
-        lub.lights[lightIdx] = PackedLight{
-            glm::vec4(l.color, (float)l.type),
-            glm::vec4(lightForward, l.spotCutoff),
-            glm::vec4(transform.position, 0.0f) };
-        lightIdx++;
-        });
-
-    lub.pack0.x = lightIdx;
-
-    std::vector<RenderNode> solvedNodes = graphSolver.solve();
+    std::vector<RenderPass*> solvedNodes = graphSolver.solve();
     std::unordered_map<RenderImageHandle, vk::ImageAspectFlagBits> rtAspects;
 
     for (auto& pair : rtResources) {
@@ -899,18 +556,12 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
     cmdBuf->begin(cbbi);
     cmdBuf->resetQueryPool(*queryPool, 0, 2);
     cmdBuf->writeTimestamp(vk::PipelineStageFlagBits::eTopOfPipe, *queryPool, 0);
-    cmdBuf->updateBuffer<LightUB>(lightsUB.buffer(), 0, lub);
-    cmdBuf->updateBuffer<MultiVP>(vpUB.buffer(), 0, vp);
 
-    vpUB.barrier(
-        *cmdBuf, vk::PipelineStageFlagBits::eHost, vk::PipelineStageFlagBits::eVertexShader,
-        vk::DependencyFlagBits::eByRegion, vk::AccessFlagBits::eHostWrite, vk::AccessFlagBits::eUniformRead,
-        graphicsQueueFamilyIdx, graphicsQueueFamilyIdx);
+    PassSetupCtx psc{ physicalDevice, *device, *pipelineCache, *descriptorPool, *commandPool, *instance, allocator, graphicsQueueFamilyIdx, GraphicsSettings{numMSAASamples, (int32_t)shadowmapRes}, textures, rtResources, swapchain->images.size() };
 
-    lightsUB.barrier(
-        *cmdBuf, vk::PipelineStageFlagBits::eHost, vk::PipelineStageFlagBits::eFragmentShader,
-        vk::DependencyFlagBits::eByRegion, vk::AccessFlagBits::eHostWrite, vk::AccessFlagBits::eUniformRead,
-        graphicsQueueFamilyIdx, graphicsQueueFamilyIdx);
+    for (auto& node : solvedNodes) {
+        node->prePass(psc, rCtx);
+    }
 
     for (int i = 0; i < solvedNodes.size(); i++) {
         auto& node = solvedNodes[i];
@@ -918,7 +569,7 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
         for (auto& barrier : barriers[i])
             imageBarrier(*cmdBuf, barrier);
 
-        node.execute(rCtx);
+        node->execute(rCtx);
     }
 
     vku::transitionLayout(*cmdBuf, swapchain->images[imageIndex],
@@ -926,7 +577,7 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
         vk::PipelineStageFlagBits::eBottomOfPipe, vk::PipelineStageFlagBits::eTransfer,
         vk::AccessFlagBits::eMemoryRead, vk::AccessFlagBits::eTransferWrite);
 
-    ::imageBarrier(*cmdBuf, finalPrePresent.image(), vk::ImageLayout::eTransferSrcOptimal,
+    ::imageBarrier(*cmdBuf, rtResources.at(finalPrePresent).image.image(), vk::ImageLayout::eTransferSrcOptimal,
         vk::AccessFlagBits::eColorAttachmentWrite, vk::AccessFlagBits::eTransferRead,
         vk::PipelineStageFlagBits::eColorAttachmentOutput, vk::PipelineStageFlagBits::eTransfer);
 
@@ -934,7 +585,7 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
     imageBlit.srcOffsets[1] = imageBlit.dstOffsets[1] = { (int)width, (int)height, 1 };
     imageBlit.dstSubresource = imageBlit.srcSubresource = { vk::ImageAspectFlagBits::eColor, 0, 0, 1 };
     cmdBuf->blitImage(
-        finalPrePresent.image(), vk::ImageLayout::eTransferSrcOptimal,
+        rtResources.at(finalPrePresent).image.image(), vk::ImageLayout::eTransferSrcOptimal,
         swapchain->images[imageIndex], vk::ImageLayout::eTransferDstOptimal,
         imageBlit, vk::Filter::eNearest);
 
@@ -942,6 +593,8 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
         vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::ePresentSrcKHR,
         vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eBottomOfPipe,
         vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eMemoryRead);
+
+
 
 
     cmdBuf->writeTimestamp(vk::PipelineStageFlagBits::eBottomOfPipe, *queryPool, 1);
@@ -1064,6 +717,16 @@ VKRenderer::~VKRenderer() {
         for (auto& fence : this->cmdBufferFences) {
             this->device->destroyFence(fence);
         }
+
+        graphSolver.clear();
+
+        for (auto& texSlot : textures) {
+            texSlot.present = false;
+            texSlot.tex = vku::TextureImage2D{};
+        }
+        rtResources.clear();
+        loadedMeshes.clear();
+        vmaDestroyAllocator(allocator);
 
         this->swapchain.reset();
 

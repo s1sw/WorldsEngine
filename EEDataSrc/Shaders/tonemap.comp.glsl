@@ -42,5 +42,5 @@ void main() {
 	vec3 sceneCol = acc / float(NUM_MSAA_SAMPLES);
 	sceneCol *= 1.0 - imguiCol.a;
 	imguiCol.xyz *= imguiCol.a;
-	imageStore(resultImage, ivec2(gl_GlobalInvocationID.xy), vec4(sceneCol, 1 - imguiCol.a) + imguiCol);
+	imageStore(resultImage, ivec2(gl_GlobalInvocationID.xy), vec4(sceneCol + imguiCol.xyz, 1.0));
 }

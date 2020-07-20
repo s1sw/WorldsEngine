@@ -60,9 +60,6 @@
     <ClCompile Include="RenderGraph.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="VkRenderActions.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="PolyRenderPass.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

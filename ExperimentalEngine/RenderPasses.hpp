@@ -24,9 +24,10 @@ private:
 public:
 	PolyRenderPass(RenderImageHandle depthStencilImage, RenderImageHandle polyImage, RenderImageHandle shadowImage);
 	RenderPassIO getIO() override;
-	void setup(PassSetupCtx& ctx, RenderCtx& rCtx) override;
+	void setup(PassSetupCtx& ctx) override;
 	void prePass(PassSetupCtx& ctx, RenderCtx& rCtx) override;
 	void execute(RenderCtx& ctx);
+	virtual ~PolyRenderPass();
 };
 
 class ShadowmapRenderPass : public RenderPass {
@@ -44,8 +45,9 @@ private:
 public:
 	ShadowmapRenderPass(RenderImageHandle shadowImage);
 	RenderPassIO getIO() override;
-	void setup(PassSetupCtx& ctx, RenderCtx& rCtx) override;
+	void setup(PassSetupCtx& ctx) override;
 	void execute(RenderCtx& ctx);
+	virtual ~ShadowmapRenderPass() {}
 };
 
 class TonemapRenderPass : public RenderPass {
@@ -62,8 +64,9 @@ private:
 public:
 	TonemapRenderPass(RenderImageHandle hdrImg, RenderImageHandle imguiImg, RenderImageHandle finalPrePresent);
 	RenderPassIO getIO() override;
-	void setup(PassSetupCtx& ctx, RenderCtx& rCtx) override;
+	void setup(PassSetupCtx& ctx) override;
 	void execute(RenderCtx& ctx) override;
+	virtual ~TonemapRenderPass() {}
 };
 
 class ImGuiRenderPass : public RenderPass {
@@ -74,6 +77,7 @@ private:
 public:
 	ImGuiRenderPass(RenderImageHandle imguiTarget);
 	RenderPassIO getIO() override;
-	void setup(PassSetupCtx& ctx, RenderCtx& rCtx) override;
+	void setup(PassSetupCtx& ctx) override;
 	void execute(RenderCtx& ctx) override;
+	virtual ~ImGuiRenderPass() {}
 };

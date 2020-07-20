@@ -179,6 +179,11 @@ struct MaterialsUB {
 
 struct GraphicsSettings {
 	GraphicsSettings() : msaaLevel(2), shadowmapRes(1024) {}
+	GraphicsSettings(int msaaLevel, int shadowmapRes)
+		: msaaLevel(msaaLevel)
+		, shadowmapRes(shadowmapRes) {
+	}
+
 	int msaaLevel;
 	int shadowmapRes;
 };
@@ -238,9 +243,13 @@ struct PassSetupCtx {
 	vk::DescriptorPool descriptorPool;
 	// Please only use the pool passed here for immediately executing commands during the setup phase.
 	vk::CommandPool commandPool;
+	vk::Instance instance;
 	VmaAllocator allocator;
 	uint32_t graphicsQueueFamilyIdx;
 	GraphicsSettings graphicsSettings;
+	Global2DTextureSlot* globalTexArray;
+	std::unordered_map<RenderImageHandle, RenderTextureResource>& rtResources;
+	int swapchainImageCount;
 };
 
 class XRInterface;
@@ -279,42 +288,16 @@ class VKRenderer {
 	VmaAllocator allocator;
 	
 	// stuff related to standard geometry rendering
-	//vku::DepthStencilImage depthStencilImage;
 	RenderImageHandle depthStencilImage;
-	vk::UniqueRenderPass renderPass;
-	vk::UniquePipeline pipeline;
-	vk::UniquePipelineLayout pipelineLayout;
-	vk::UniqueDescriptorSetLayout dsl;
-	vku::UniformBuffer vpUB;
-	vku::UniformBuffer lightsUB;
-	vku::UniformBuffer materialUB;
-	vku::UniformBuffer modelMatrixUB;
-	vku::ShaderModule fragmentShader;
-	vku::ShaderModule vertexShader;
-	vk::UniqueSampler albedoSampler;
-	vk::UniqueSampler shadowSampler;
-	vk::UniqueFramebuffer renderFb;
 	RenderImageHandle polyImage;
 
 	// tonemap related stuff
-	vku::ShaderModule tonemapShader;
-	vk::UniqueDescriptorSetLayout tonemapDsl;
-	vk::UniquePipeline tonemapPipeline;
-	vk::UniquePipelineLayout tonemapPipelineLayout;
-	vk::DescriptorSet tonemapDescriptorSet;
-	vku::GenericImage finalPrePresent;
-	vk::UniqueFramebuffer finalPrePresentFB;
+	RenderImageHandle finalPrePresent;
 
 	// shadowmapping stuff
-	vk::UniqueRenderPass shadowmapPass;
-	vk::UniquePipeline shadowmapPipeline;
-	vk::UniquePipelineLayout shadowmapPipelineLayout;
-	vku::ShaderModule shadowVertexShader;
-	vku::ShaderModule shadowFragmentShader;
-	vk::UniqueFramebuffer shadowmapFb;
 	RenderImageHandle shadowmapImage;
-	vk::DescriptorSet shadowmapDescriptorSet;
-	vk::UniqueDescriptorSetLayout shadowmapDsl;
+
+	RenderImageHandle imguiImage;
 
 	std::vector<vk::DescriptorSet> descriptorSets;
 	SDL_Window* window;
@@ -332,21 +315,13 @@ class VKRenderer {
 	};
 
 	void imageBarrier(vk::CommandBuffer& cb, ImageBarrier& ib);
-	RenderImageHandle createRTResource(RTResourceCreateInfo resourceCreateInfo);
+	RenderImageHandle createRTResource(RTResourceCreateInfo resourceCreateInfo, const char* debugName = nullptr);
 	void createSwapchain(vk::SwapchainKHR oldSwapchain);
 	void createFramebuffers();
 	void createSCDependents();
-	void setupTonemapping();
-	void setupImGUI();
-	void setupStandard();
-	void setupShadowPass();
 	void presentNothing(uint32_t imageIndex);
 	void loadTex(const char* path, int index);
 	void loadAlbedo();
-	void doTonemap(RenderCtx& ctx);
-	void renderShadowmap(RenderCtx& ctx);
-	void renderPolys(RenderCtx& ctx);
-	void updateTonemapDescriptors();
 	vku::ShaderModule loadShaderAsset(AssetID id);
 
 	std::unordered_map<AssetID, LoadedMeshData> loadedMeshes;

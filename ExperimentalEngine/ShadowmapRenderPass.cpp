@@ -21,7 +21,7 @@ RenderPassIO ShadowmapRenderPass::getIO() {
     return io;
 }
 
-void ShadowmapRenderPass::setup(PassSetupCtx& ctx, RenderCtx& rCtx) {
+void ShadowmapRenderPass::setup(PassSetupCtx& ctx) {
     shadowmapRes = ctx.graphicsSettings.shadowmapRes;
     auto memoryProps = ctx.physicalDevice.getMemoryProperties();
     vku::DescriptorSetLayoutMaker dslm;
@@ -84,7 +84,7 @@ void ShadowmapRenderPass::setup(PassSetupCtx& ctx, RenderCtx& rCtx) {
     };
     shadowmapImage = createRTResource(resourceCreateInfo);*/
 
-    std::array<vk::ImageView, 1> shadowmapAttachments = { rCtx.rtResources.at(shadowImage).image.imageView() };
+    std::array<vk::ImageView, 1> shadowmapAttachments = { ctx.rtResources.at(shadowImage).image.imageView() };
     vk::FramebufferCreateInfo fci;
     fci.attachmentCount = shadowmapAttachments.size();
     fci.pAttachments = shadowmapAttachments.data();

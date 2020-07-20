@@ -14,9 +14,18 @@ PolyRenderPass::PolyRenderPass(
 
 RenderPassIO PolyRenderPass::getIO() {
     RenderPassIO io;
+    io.inputs = {
+        {
+            vk::ImageLayout::eShaderReadOnlyOptimal,
+            vk::PipelineStageFlagBits::eFragmentShader,
+            vk::AccessFlagBits::eShaderRead,
+            shadowImage
+        }
+    };
+
     io.outputs = {
         {
-            vk::ImageLayout::eColorAttachmentOptimal,
+            vk::ImageLayout::eShaderReadOnlyOptimal,
             vk::PipelineStageFlagBits::eColorAttachmentOutput,
             vk::AccessFlagBits::eColorAttachmentWrite,
             polyImage
@@ -25,7 +34,7 @@ RenderPassIO PolyRenderPass::getIO() {
     return io;
 }
 
-void PolyRenderPass::setup(PassSetupCtx& ctx, RenderCtx& rCtx) {
+void PolyRenderPass::setup(PassSetupCtx& ctx) {
     auto memoryProps = ctx.physicalDevice.getMemoryProperties();
 
     vku::SamplerMaker sm{};
@@ -60,10 +69,10 @@ void PolyRenderPass::setup(PassSetupCtx& ctx, RenderCtx& rCtx) {
     plm.descriptorSetLayout(*this->dsl);
     this->pipelineLayout = plm.createUnique(ctx.device);
 
-    this->vpUB = vku::UniformBuffer(ctx.device, ctx.allocator, sizeof(MultiVP));
-    lightsUB = vku::UniformBuffer(ctx.device, ctx.allocator, sizeof(LightUB));
-    materialUB = vku::UniformBuffer(ctx.device, ctx.allocator, sizeof(MaterialsUB));
-    modelMatrixUB = vku::UniformBuffer(ctx.device, ctx.allocator, sizeof(ModelMatrices), VMA_MEMORY_USAGE_CPU_TO_GPU);
+    this->vpUB = vku::UniformBuffer(ctx.device, ctx.allocator, sizeof(MultiVP), VMA_MEMORY_USAGE_CPU_TO_GPU, "VP");
+    lightsUB = vku::UniformBuffer(ctx.device, ctx.allocator, sizeof(LightUB), VMA_MEMORY_USAGE_CPU_TO_GPU, "Lights");
+    materialUB = vku::UniformBuffer(ctx.device, ctx.allocator, sizeof(MaterialsUB), VMA_MEMORY_USAGE_GPU_ONLY, "Materials");
+    modelMatrixUB = vku::UniformBuffer(ctx.device, ctx.allocator, sizeof(ModelMatrices), VMA_MEMORY_USAGE_CPU_TO_GPU, "Model matrices");
 
     MaterialsUB materials;
     materials.materials[0] = { glm::vec4(0.0f, 0.02f, 0.0f, 0.0f), glm::vec4(1.0f, 1.0f, 1.0f, 0.0f) };
@@ -90,13 +99,13 @@ void PolyRenderPass::setup(PassSetupCtx& ctx, RenderCtx& rCtx) {
     updater.buffer(modelMatrixUB.buffer(), 0, sizeof(ModelMatrices));
 
     updater.beginImages(4, 0, vk::DescriptorType::eCombinedImageSampler);
-    updater.image(*albedoSampler, rCtx.globalTexArray[0].tex.imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
+    updater.image(*albedoSampler, ctx.globalTexArray[0].tex.imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
 
     updater.beginImages(4, 1, vk::DescriptorType::eCombinedImageSampler);
-    updater.image(*albedoSampler, rCtx.globalTexArray[1].tex.imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
+    updater.image(*albedoSampler, ctx.globalTexArray[1].tex.imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
 
     updater.beginImages(5, 0, vk::DescriptorType::eCombinedImageSampler);
-    updater.image(*shadowSampler, rCtx.rtResources.at(shadowImage).image.imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
+    updater.image(*shadowSampler, ctx.rtResources.at(shadowImage).image.imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
 
     updater.update(ctx.device);
 
@@ -106,7 +115,7 @@ void PolyRenderPass::setup(PassSetupCtx& ctx, RenderCtx& rCtx) {
     rPassMaker.attachmentLoadOp(vk::AttachmentLoadOp::eClear);
     rPassMaker.attachmentStoreOp(vk::AttachmentStoreOp::eStore);
     rPassMaker.attachmentSamples(vku::sampleCountFlags(ctx.graphicsSettings.msaaLevel));
-    rPassMaker.attachmentFinalLayout(vk::ImageLayout::eGeneral);
+    rPassMaker.attachmentFinalLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
 
     rPassMaker.attachmentBegin(vk::Format::eD32Sfloat);
     rPassMaker.attachmentLoadOp(vk::AttachmentLoadOp::eClear);
@@ -125,10 +134,41 @@ void PolyRenderPass::setup(PassSetupCtx& ctx, RenderCtx& rCtx) {
 
     this->renderPass = rPassMaker.createUnique(ctx.device);
 
+    vk::ImageView attachments[2] = { ctx.rtResources.at(polyImage).image.imageView(), ctx.rtResources.at(depthStencilImage).image.imageView() };
+
+    auto extent = ctx.rtResources.at(polyImage).image.info().extent;
+    vk::FramebufferCreateInfo fci;
+    fci.attachmentCount = 2;
+    fci.pAttachments = attachments;
+    fci.width = extent.width;
+    fci.height = extent.height;
+    fci.renderPass = *this->renderPass;
+    fci.layers = false ? 2 : 1; // TODO!!!!!!!!!!!
+    renderFb = ctx.device.createFramebufferUnique(fci);
+
     AssetID vsID = g_assetDB.addAsset("Shaders/test.vert.spv");
     AssetID fsID = g_assetDB.addAsset("Shaders/test.frag.spv");
     vertexShader = vku::loadShaderAsset(ctx.device, vsID);
     fragmentShader = vku::loadShaderAsset(ctx.device, fsID);
+
+    vku::PipelineMaker pm{ extent.width, extent.height };
+    pm.shader(vk::ShaderStageFlagBits::eFragment, fragmentShader);
+    pm.shader(vk::ShaderStageFlagBits::eVertex, vertexShader);
+    pm.vertexBinding(0, (uint32_t)sizeof(Vertex));
+    pm.vertexAttribute(0, 0, vk::Format::eR32G32B32Sfloat, (uint32_t)offsetof(Vertex, position));
+    pm.vertexAttribute(1, 0, vk::Format::eR32G32B32Sfloat, (uint32_t)offsetof(Vertex, normal));
+    pm.vertexAttribute(2, 0, vk::Format::eR32G32B32Sfloat, (uint32_t)offsetof(Vertex, tangent));
+    pm.vertexAttribute(3, 0, vk::Format::eR32G32Sfloat, (uint32_t)offsetof(Vertex, uv));
+    pm.vertexAttribute(4, 0, vk::Format::eR32Sfloat, (uint32_t)offsetof(Vertex, ao));
+    pm.cullMode(vk::CullModeFlagBits::eBack);
+    pm.depthWriteEnable(true).depthTestEnable(true).depthCompareOp(vk::CompareOp::eLess);
+    pm.blendBegin(false);
+    pm.frontFace(vk::FrontFace::eCounterClockwise);
+    vk::PipelineMultisampleStateCreateInfo pmsci;
+    pmsci.rasterizationSamples = (vk::SampleCountFlagBits)ctx.graphicsSettings.msaaLevel;
+    pm.multisampleState(pmsci);
+    this->pipeline = pm.createUnique(ctx.device, ctx.pipelineCache, *pipelineLayout, *renderPass);
+
 }
 
 void PolyRenderPass::prePass(PassSetupCtx& ctx, RenderCtx& rCtx) {
@@ -155,11 +195,13 @@ void PolyRenderPass::prePass(PassSetupCtx& ctx, RenderCtx& rCtx) {
 
     modelMatrixUB.unmap(ctx.device);
 
-    MultiVP vp;
-    vp.views[0] = rCtx.cam.getViewMatrix();
-    vp.projections[0] = rCtx.cam.getProjectionMatrix((float)rCtx.width / (float)rCtx.height);
-    LightUB lub;
+    MultiVP* vp = (MultiVP*)vpUB.map(ctx.device);
+    vp->views[0] = rCtx.cam.getViewMatrix();
+    vp->projections[0] = rCtx.cam.getProjectionMatrix((float)rCtx.width / (float)rCtx.height);
+    vpUB.unmap(ctx.device);
 
+
+    LightUB* lub = (LightUB*)lightsUB.map(ctx.device);
     glm::vec3 viewPos = rCtx.cam.position;
 
     int lightIdx = 0;
@@ -178,17 +220,19 @@ void PolyRenderPass::prePass(PassSetupCtx& ctx, RenderCtx& rCtx) {
                 shadowMapPos - lightForward,
                 glm::vec3(0.0f, 1.0f, 0.0));
 
-            lub.shadowmapMatrix = proj * view;
+            lub->shadowmapMatrix = proj * view;
         }
 
-        lub.lights[lightIdx] = PackedLight{
+        lub->lights[lightIdx] = PackedLight{
             glm::vec4(l.color, (float)l.type),
             glm::vec4(lightForward, l.spotCutoff),
             glm::vec4(transform.position, 0.0f) };
         lightIdx++;
         });
 
-    lub.pack0.x = lightIdx;
+    lub->pack0.x = lightIdx;
+    lightsUB.unmap(ctx.device);
+
 }
 
 void PolyRenderPass::execute(RenderCtx& ctx) {
@@ -245,4 +289,7 @@ void PolyRenderPass::execute(RenderCtx& ctx) {
         });
 
     cmdBuf->endRenderPass();
+}
+
+PolyRenderPass::~PolyRenderPass() {
 }

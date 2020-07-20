@@ -5,9 +5,12 @@ GraphSolver::GraphSolver() {
 
 }
 
-bool isNodeConnected(RenderNode& node1, RenderNode& node2) {
-    for (auto& output : node1.outputs) {
-        for (auto& input : node2.inputs) {
+bool isNodeConnected(RenderPass* node1, RenderPass* node2) {
+    auto io1 = node1->getIO();
+    auto io2 = node2->getIO();
+
+    for (auto& output : io1.outputs) {
+        for (auto& input : io2.inputs) {
             if (output.handle == input.handle) {
                 return true;
             }
@@ -17,13 +20,13 @@ bool isNodeConnected(RenderNode& node1, RenderNode& node2) {
     return false;
 }
 
-std::vector<RenderNode> GraphSolver::solve() {
+std::vector<RenderPass*> GraphSolver::solve() {
     auto adjList = buildAdjacencyList();
 
     return topologicalSort(adjList);
 }
 
-std::vector<std::vector<ImageBarrier>> GraphSolver::createImageBarriers(std::vector<RenderNode>& solvedNodes, std::unordered_map<RenderImageHandle, vk::ImageAspectFlagBits>& imageAspects) {
+std::vector<std::vector<ImageBarrier>> GraphSolver::createImageBarriers(std::vector<RenderPass*>& solvedNodes, std::unordered_map<RenderImageHandle, vk::ImageAspectFlagBits>& imageAspects) {
     std::vector<std::vector<ImageBarrier>> imgBarriers;
     imgBarriers.resize(solvedNodes.size());
 
@@ -41,11 +44,12 @@ std::vector<std::vector<ImageBarrier>> GraphSolver::createImageBarriers(std::vec
     std::unordered_map<RenderImageHandle, std::vector<UsageInfo>> inputUsages;
 
     for (int i = 0; i < solvedNodes.size(); i++) {
-        for (auto& output : solvedNodes[i].outputs) {
+        auto currIO = solvedNodes[i]->getIO();
+        for (auto& output : currIO.outputs) {
             outputUsages.insert({ output.handle, {output, i} });
         }
 
-        for (auto& input : solvedNodes[i].inputs) {
+        for (auto& input : currIO.inputs) {
             if (inputUsages.count(input.handle) == 0) {
                 inputUsages.emplace(input.handle, std::vector<UsageInfo>());
             }
@@ -80,11 +84,11 @@ std::vector<std::vector<int>> GraphSolver::buildAdjacencyList() {
 
     for (int i = 0; i < rawNodes.size(); i++) {
         std::vector<int> connected;
-        RenderNode& node = rawNodes[i];
+        auto* node = rawNodes[i];
 
         for (int j = 0; j < rawNodes.size(); j++) {
             if (i == j) continue;
-            RenderNode& node2 = rawNodes[j];
+            auto* node2 = rawNodes[j];
 
             if (isNodeConnected(node, node2)) {
                 connected.emplace_back(j);
@@ -96,8 +100,8 @@ std::vector<std::vector<int>> GraphSolver::buildAdjacencyList() {
     return adjacencyList;
 }
 
-std::vector<RenderNode> GraphSolver::topologicalSort(std::vector<std::vector<int>>& adjacencyList) {
-    std::vector<RenderNode> sorted;
+std::vector<RenderPass*> GraphSolver::topologicalSort(std::vector<std::vector<int>>& adjacencyList) {
+    std::vector<RenderPass*> sorted;
 
     std::vector<bool> visited;
     std::vector<bool> onStack;

@@ -165,7 +165,6 @@ entt::entity createModelObject(entt::registry& reg, glm::vec3 position, glm::qua
 
 bool useEventThread = true;
 int workerThreadOverride = -1;
-extern glm::vec3 shadowOffset;
 
 template<typename Type>
 void clone(const entt::registry& from, entt::registry& to) {
@@ -398,7 +397,6 @@ void engine(char* argv0) {
             ImGui::Text("GPU render time: %.3fms", renderer->getLastRenderTime() / 1000.0f / 1000.0f);
             ImGui::Text("Frame: %i", frameCounter);
             ImGui::Text("Cam pos: %.3f, %.3f, %.3f", cam.position.x, cam.position.y, cam.position.z);
-            ImGui::DragFloat3("Shadow Offset", &shadowOffset.x);
         }
         ImGui::End();
 

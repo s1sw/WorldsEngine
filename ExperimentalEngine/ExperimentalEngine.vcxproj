@@ -245,7 +245,6 @@
     <ClCompile Include="TonemapRenderPass.cpp" />
     <ClCompile Include="tracy\TracyClient.cpp" />
     <ClCompile Include="vkrender.cpp" />
-    <ClCompile Include="VkRenderActions.cpp" />
     <ClCompile Include="vkswapchain.cpp" />
   </ItemGroup>
   <ItemGroup>
