@@ -24,6 +24,8 @@ struct WorldObject {
 	glm::vec4 texScaleOffset;
 };
 
+struct UseWireframe {};
+
 struct MVP {
 	glm::mat4 model;
 	glm::mat4 view;
@@ -137,6 +139,8 @@ private:
 	uint32_t height;
 };
 
+class PolyRenderPass;
+
 typedef uint32_t RenderImageHandle;
 
 struct TextureUsage {
@@ -155,13 +159,6 @@ struct ImageBarrier {
 	vk::AccessFlagBits dstMask;
 	vk::PipelineStageFlagBits srcStage;
 	vk::PipelineStageFlagBits dstStage;
-};
-
-struct StandardPushConstants {
-	glm::vec4 pack0;
-	glm::vec4 texScaleOffset;
-	// (x: model matrix index, y: material index, z: specular cubemap index)
-	glm::ivec4 ubIndices;
 };
 
 struct ChunkShadowPushConstants {
@@ -334,7 +331,7 @@ class VKRenderer {
 	GraphSolver graphSolver;
 	uint32_t shadowmapRes;
 	bool enableVR;
-
+	PolyRenderPass* currentPRP;
 public:
 	double time;
 	VKRenderer(RendererInitInfo& initInfo, bool* success);
@@ -342,6 +339,7 @@ public:
 	void frame(Camera& cam, entt::registry& reg);
 	void preloadMesh(AssetID id);
 	void uploadProcObj(ProceduralObject& procObj);
+	entt::entity getPickedEnt();
 	inline float getLastRenderTime() { return lastRenderTimeTicks * timestampPeriod; }
 
 	~VKRenderer();

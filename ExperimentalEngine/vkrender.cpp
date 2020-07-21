@@ -204,8 +204,30 @@ VKRenderer::VKRenderer(RendererInitInfo& initInfo, bool* success)
         dm.extension(ext.c_str());
     }
 
+    vk::PhysicalDeviceFeatures supportedFeatures = physicalDevice.getFeatures();
+    if (!supportedFeatures.shaderStorageImageMultisample) {
+        *success = false;
+        std::cout << "Missing shaderStorageImageMultisample\n";
+        return;
+    }
+
+    if (!supportedFeatures.fragmentStoresAndAtomics) {
+        std::cout << "Missing fragmentStoresAndAtomics, editor selection won't work\n";
+    }
+
+    if (!supportedFeatures.fillModeNonSolid) {
+        std::cout << "Missing fillModeNonSolid, selection wireframe won't show in editor\n";
+    }
+
+    if (!supportedFeatures.wideLines) {
+        std::cout << "Missing wideLines, selection wireframe may be thin or missing\n";
+    }
+
     vk::PhysicalDeviceFeatures features;
     features.shaderStorageImageMultisample = true;
+    features.fragmentStoresAndAtomics = true;
+    features.fillModeNonSolid = true;
+    features.wideLines = true;
     dm.setFeatures(features);
 
     vk::PhysicalDeviceDescriptorIndexingFeatures diFeatures;
@@ -372,7 +394,8 @@ void VKRenderer::createSCDependents() {
     }
 
     {
-        auto prp = new PolyRenderPass(depthStencilImage, polyImage, shadowmapImage);
+        auto prp = new PolyRenderPass(depthStencilImage, polyImage, shadowmapImage, true);
+        currentPRP = prp;
         graphSolver.addNode(prp);
     }
 
@@ -516,6 +539,7 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
     ZoneScoped;
 #endif
     // No point rendering if it's not going to be shown
+    currentPRP->setPickCoords(ImGui::GetIO().MousePos.x, ImGui::GetIO().MousePos.y);
 
     uint32_t imageIndex = 0;
     vk::Result nextImageRes = swapchain->acquireImage(*device, *imageAcquire, &imageIndex);
@@ -707,6 +731,10 @@ void VKRenderer::uploadProcObj(ProceduralObject& procObj) {
     procObj.ib.upload(*device, memProps, *commandPool, device->getQueue(graphicsQueueFamilyIdx, 0), procObj.indices);
     procObj.vb = vku::VertexBuffer{ *device, allocator, procObj.vertices.size() * sizeof(Vertex) };
     procObj.vb.upload(*device, memProps, *commandPool, device->getQueue(graphicsQueueFamilyIdx, 0), procObj.vertices);
+}
+
+entt::entity VKRenderer::getPickedEnt() {
+    return (entt::entity)currentPRP->getPickedEntity();
 }
 
 VKRenderer::~VKRenderer() {

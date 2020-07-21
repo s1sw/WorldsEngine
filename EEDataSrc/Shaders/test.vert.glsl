@@ -13,6 +13,7 @@ layout(location = 2) out vec3 outTangent;
 layout(location = 3) out vec2 outUV;
 layout(location = 4) out float outAO;
 layout(location = 5) out vec4 outShadowPos;
+layout(location = 6) out float outDepth;
 
 layout(binding = 0) uniform MultiVP {
 	mat4 view[8];
@@ -56,5 +57,6 @@ void main() {
     outWorldPos = (model * vec4(inPosition, 1.0));
 	outAO = inAO;
 	outShadowPos = shadowmapMatrix * model * vec4(inPosition, 1.0);
+	outDepth = gl_Position.z / gl_Position.w;
     gl_Position.y = -gl_Position.y; // Account for Vulkan viewport weirdness
 }

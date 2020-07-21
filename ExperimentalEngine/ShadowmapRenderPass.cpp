@@ -44,8 +44,8 @@ void ShadowmapRenderPass::setup(PassSetupCtx& ctx) {
 
     renderPass = rPassMaker.createUnique(ctx.device);
 
-    AssetID vsID = g_assetDB.addAsset("Shaders/shadowmap.vert.spv");
-    AssetID fsID = g_assetDB.addAsset("Shaders/shadowmap.frag.spv");
+    AssetID vsID = g_assetDB.addOrGetExisting("Shaders/shadowmap.vert.spv");
+    AssetID fsID = g_assetDB.addOrGetExisting("Shaders/shadowmap.frag.spv");
     shadowVertexShader = vku::loadShaderAsset(ctx.device, vsID);
     shadowFragmentShader = vku::loadShaderAsset(ctx.device, fsID);
 

@@ -74,6 +74,9 @@ public:
 	AssetID addAsset(std::string path);
 	std::string getAssetPath(AssetID id) { return paths[id]; }
 	std::string getAssetExtension(AssetID id) { return extensions[id]; }
+	bool hasId(std::string path) { return ids.find(path) != ids.end(); }
+	AssetID getExistingID(std::string path) { return ids.at(path); }
+	AssetID addOrGetExisting(std::string path) { return hasId(path) ? getExistingID(path) : addAsset(path); }
 	void save();
 
 	template <class Archive>

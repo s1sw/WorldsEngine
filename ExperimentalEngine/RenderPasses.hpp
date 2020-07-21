@@ -4,29 +4,50 @@
 
 class PolyRenderPass : public RenderPass {
 private:
+	
 	vk::UniqueRenderPass renderPass;
 	vk::UniquePipeline pipeline;
 	vk::UniquePipelineLayout pipelineLayout;
 	vk::UniqueDescriptorSetLayout dsl;
+	
+	vk::UniquePipeline wireframePipeline;
+	vk::UniquePipelineLayout wireframePipelineLayout;
+	vk::UniqueDescriptorSetLayout wireframeDsl;
+
 	vku::UniformBuffer vpUB;
 	vku::UniformBuffer lightsUB;
 	vku::UniformBuffer materialUB;
 	vku::UniformBuffer modelMatrixUB;
+	vku::GenericBuffer pickingBuffer;
+	
 	vku::ShaderModule fragmentShader;
 	vku::ShaderModule vertexShader;
+
+	vku::ShaderModule wireFragmentShader;
+	vku::ShaderModule wireVertexShader;
+	
 	vk::UniqueSampler albedoSampler;
 	vk::UniqueSampler shadowSampler;
+	
 	vk::UniqueFramebuffer renderFb;
 	vk::DescriptorSet descriptorSet;
+	vk::DescriptorSet wireframeDescriptorSet;
+	
 	RenderImageHandle depthStencilImage;
 	RenderImageHandle polyImage;
 	RenderImageHandle shadowImage;
+	
+	bool enablePicking;
+	int pickX, pickY;
+	uint32_t pickedEnt;
 public:
-	PolyRenderPass(RenderImageHandle depthStencilImage, RenderImageHandle polyImage, RenderImageHandle shadowImage);
+	PolyRenderPass(RenderImageHandle depthStencilImage, RenderImageHandle polyImage, RenderImageHandle shadowImage, bool enablePicking = false);
+	void setPickCoords(int x, int y) { pickX = x; pickY = y; }
 	RenderPassIO getIO() override;
 	void setup(PassSetupCtx& ctx) override;
 	void prePass(PassSetupCtx& ctx, RenderCtx& rCtx) override;
 	void execute(RenderCtx& ctx);
+	uint32_t getPickedEntity();
 	virtual ~PolyRenderPass();
 };
 

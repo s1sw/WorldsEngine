@@ -2,13 +2,29 @@
 #include "Engine.hpp"
 #include "Transform.hpp"
 
+struct StandardPushConstants {
+    glm::vec4 pack0;
+    glm::vec4 texScaleOffset;
+    // (x: model matrix index, y: material index, z: specular cubemap index, w: object picking id)
+    glm::ivec4 ubIndices;
+    glm::ivec4 screenSpacePickPos;
+};
+
+struct PickingBuffer {
+    uint32_t depth;
+    uint32_t objectID;
+    uint32_t lock;
+};
+
 PolyRenderPass::PolyRenderPass(
     RenderImageHandle depthStencilImage,
     RenderImageHandle polyImage,
-    RenderImageHandle shadowImage)
+    RenderImageHandle shadowImage,
+    bool enablePicking)
     : depthStencilImage(depthStencilImage)
     , polyImage(polyImage)
-    , shadowImage(shadowImage) {
+    , shadowImage(shadowImage)
+    , enablePicking(enablePicking) {
 
 }
 
@@ -58,8 +74,8 @@ void PolyRenderPass::setup(PassSetupCtx& ctx) {
     dslm.image(4, vk::DescriptorType::eCombinedImageSampler, vk::ShaderStageFlagBits::eFragment, 64);
     // Shadowmap
     dslm.image(5, vk::DescriptorType::eCombinedImageSampler, vk::ShaderStageFlagBits::eFragment, 1);
-    // Cubemaps
-    dslm.image(6, vk::DescriptorType::eCombinedImageSampler, vk::ShaderStageFlagBits::eFragment, 64);
+    // Picking
+    dslm.buffer(6, vk::DescriptorType::eStorageBuffer, vk::ShaderStageFlagBits::eFragment, 1);
     dslm.bindFlag(4, vk::DescriptorBindingFlagBits::ePartiallyBound);
 
     this->dsl = dslm.createUnique(ctx.device);
@@ -73,6 +89,7 @@ void PolyRenderPass::setup(PassSetupCtx& ctx) {
     lightsUB = vku::UniformBuffer(ctx.device, ctx.allocator, sizeof(LightUB), VMA_MEMORY_USAGE_CPU_TO_GPU, "Lights");
     materialUB = vku::UniformBuffer(ctx.device, ctx.allocator, sizeof(MaterialsUB), VMA_MEMORY_USAGE_GPU_ONLY, "Materials");
     modelMatrixUB = vku::UniformBuffer(ctx.device, ctx.allocator, sizeof(ModelMatrices), VMA_MEMORY_USAGE_CPU_TO_GPU, "Model matrices");
+    pickingBuffer = vku::GenericBuffer(ctx.device, ctx.allocator, vk::BufferUsageFlagBits::eStorageBuffer, sizeof(PickingBuffer), VMA_MEMORY_USAGE_GPU_TO_CPU, "Picking buffer");
 
     MaterialsUB materials;
     materials.materials[0] = { glm::vec4(0.0f, 0.02f, 0.0f, 0.0f), glm::vec4(1.0f, 1.0f, 1.0f, 0.0f) };
@@ -106,6 +123,9 @@ void PolyRenderPass::setup(PassSetupCtx& ctx) {
 
     updater.beginImages(5, 0, vk::DescriptorType::eCombinedImageSampler);
     updater.image(*shadowSampler, ctx.rtResources.at(shadowImage).image.imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
+
+    updater.beginBuffers(6, 0, vk::DescriptorType::eStorageBuffer);
+    updater.buffer(pickingBuffer.buffer(), 0, sizeof(PickingBuffer));
 
     updater.update(ctx.device);
 
@@ -146,13 +166,21 @@ void PolyRenderPass::setup(PassSetupCtx& ctx) {
     fci.layers = false ? 2 : 1; // TODO!!!!!!!!!!!
     renderFb = ctx.device.createFramebufferUnique(fci);
 
-    AssetID vsID = g_assetDB.addAsset("Shaders/test.vert.spv");
-    AssetID fsID = g_assetDB.addAsset("Shaders/test.frag.spv");
+    AssetID vsID = g_assetDB.addOrGetExisting("Shaders/test.vert.spv");
+    AssetID fsID = g_assetDB.addOrGetExisting("Shaders/test.frag.spv");
     vertexShader = vku::loadShaderAsset(ctx.device, vsID);
     fragmentShader = vku::loadShaderAsset(ctx.device, fsID);
 
     vku::PipelineMaker pm{ extent.width, extent.height };
-    pm.shader(vk::ShaderStageFlagBits::eFragment, fragmentShader);
+
+    vk::SpecializationMapEntry pickingEntry{ 0, 0, sizeof(bool) };
+    vk::SpecializationInfo si;
+    si.dataSize = sizeof(bool);
+    si.mapEntryCount = 1;
+    si.pMapEntries = &pickingEntry;
+    si.pData = &enablePicking;
+
+    pm.shader(vk::ShaderStageFlagBits::eFragment, fragmentShader, "main", &si);
     pm.shader(vk::ShaderStageFlagBits::eVertex, vertexShader);
     pm.vertexBinding(0, (uint32_t)sizeof(Vertex));
     pm.vertexAttribute(0, 0, vk::Format::eR32G32B32Sfloat, (uint32_t)offsetof(Vertex, position));
@@ -164,11 +192,55 @@ void PolyRenderPass::setup(PassSetupCtx& ctx) {
     pm.depthWriteEnable(true).depthTestEnable(true).depthCompareOp(vk::CompareOp::eLess);
     pm.blendBegin(false);
     pm.frontFace(vk::FrontFace::eCounterClockwise);
+
     vk::PipelineMultisampleStateCreateInfo pmsci;
     pmsci.rasterizationSamples = (vk::SampleCountFlagBits)ctx.graphicsSettings.msaaLevel;
     pm.multisampleState(pmsci);
     this->pipeline = pm.createUnique(ctx.device, ctx.pipelineCache, *pipelineLayout, *renderPass);
 
+    {
+        AssetID wvsID = g_assetDB.addOrGetExisting("Shaders/wire_obj.vert.spv");
+        AssetID wfsID = g_assetDB.addOrGetExisting("Shaders/wire_obj.frag.spv");
+        wireVertexShader = vku::loadShaderAsset(ctx.device, wvsID);
+        wireFragmentShader = vku::loadShaderAsset(ctx.device, wfsID);
+
+        vku::PipelineMaker pm{ extent.width, extent.height };
+        pm.shader(vk::ShaderStageFlagBits::eFragment, wireFragmentShader);
+        pm.shader(vk::ShaderStageFlagBits::eVertex, wireVertexShader);
+        pm.depthWriteEnable(true).depthTestEnable(true).depthCompareOp(vk::CompareOp::eLess);
+        pm.vertexBinding(0, (uint32_t)sizeof(Vertex));
+        pm.vertexAttribute(0, 0, vk::Format::eR32G32B32Sfloat, (uint32_t)offsetof(Vertex, position));
+        pm.polygonMode(vk::PolygonMode::eLine);
+        pm.lineWidth(2.0f);
+
+        vk::PipelineMultisampleStateCreateInfo pmsci;
+        pmsci.rasterizationSamples = (vk::SampleCountFlagBits)ctx.graphicsSettings.msaaLevel;
+        pm.multisampleState(pmsci);
+
+        vku::DescriptorSetLayoutMaker dslm;
+        dslm.buffer(0, vk::DescriptorType::eUniformBuffer, vk::ShaderStageFlagBits::eVertex, 1);
+        dslm.buffer(1, vk::DescriptorType::eUniformBuffer, vk::ShaderStageFlagBits::eVertex, 1);
+        wireframeDsl = dslm.createUnique(ctx.device);
+
+        vku::DescriptorSetMaker dsm;
+        dsm.layout(*wireframeDsl);
+        wireframeDescriptorSet = dsm.create(ctx.device, ctx.descriptorPool)[0];
+
+        vku::PipelineLayoutMaker plm;
+        plm.pushConstantRange(vk::ShaderStageFlagBits::eFragment | vk::ShaderStageFlagBits::eVertex, 0, sizeof(StandardPushConstants));
+        plm.descriptorSetLayout(*wireframeDsl);
+        wireframePipelineLayout = plm.createUnique(ctx.device);
+
+        wireframePipeline = pm.createUnique(ctx.device, ctx.pipelineCache, *wireframePipelineLayout, *renderPass);
+
+        vku::DescriptorSetUpdater updater;
+        updater.beginDescriptorSet(wireframeDescriptorSet);
+        updater.beginBuffers(0, 0, vk::DescriptorType::eUniformBuffer);
+        updater.buffer(vpUB.buffer(), 0, sizeof(MultiVP));
+        updater.beginBuffers(1, 0, vk::DescriptorType::eUniformBuffer);
+        updater.buffer(modelMatrixUB.buffer(), 0, sizeof(ModelMatrices));
+        updater.update(ctx.device);
+    }
 }
 
 void PolyRenderPass::prePass(PassSetupCtx& ctx, RenderCtx& rCtx) {
@@ -233,6 +305,15 @@ void PolyRenderPass::prePass(PassSetupCtx& ctx, RenderCtx& rCtx) {
     lub->pack0.x = lightIdx;
     lightsUB.unmap(ctx.device);
 
+    if (enablePicking) {
+        PickingBuffer* pickBuf = (PickingBuffer*)pickingBuffer.map(ctx.device);
+        pickedEnt = pickBuf->objectID;
+        pickBuf->objectID = UINT32_MAX;
+        pickBuf->depth = UINT32_MAX;
+        pickingBuffer.unmap(ctx.device);
+        pickingBuffer.invalidate(ctx.device);
+        pickingBuffer.flush(ctx.device);
+    }
 }
 
 void PolyRenderPass::execute(RenderCtx& ctx) {
@@ -256,11 +337,32 @@ void PolyRenderPass::execute(RenderCtx& ctx) {
     entt::registry& reg = ctx.reg;
     Camera& cam = ctx.cam;
 
-    cmdBuf->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 0, descriptorSet, nullptr);
     cmdBuf->beginRenderPass(rpbi, vk::SubpassContents::eInline);
-    cmdBuf->bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline);
+    
 
     int matrixIdx = 0;
+
+    cmdBuf->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *wireframePipelineLayout, 0, wireframeDescriptorSet, nullptr);
+    cmdBuf->bindPipeline(vk::PipelineBindPoint::eGraphics, *wireframePipeline);
+    reg.view<Transform, WorldObject, UseWireframe>().each([this, &cmdBuf, &cam, &matrixIdx, &ctx](auto ent, Transform& transform, WorldObject& obj) {
+        auto meshPos = ctx.loadedMeshes.find(obj.mesh);
+
+        if (meshPos == ctx.loadedMeshes.end()) {
+            // Haven't loaded the mesh yet
+            return;
+        }
+
+        StandardPushConstants pushConst{ glm::vec4(cam.position, 0.0f), obj.texScaleOffset, glm::ivec4(matrixIdx, obj.materialIndex, 0, ent), glm::ivec4(pickX, pickY, 0, 0) };
+        cmdBuf->pushConstants<StandardPushConstants>(*pipelineLayout, vk::ShaderStageFlagBits::eFragment | vk::ShaderStageFlagBits::eVertex, 0, pushConst);
+        cmdBuf->bindVertexBuffers(0, meshPos->second.vb.buffer(), vk::DeviceSize(0));
+        cmdBuf->bindIndexBuffer(meshPos->second.ib.buffer(), 0, meshPos->second.indexType);
+        cmdBuf->drawIndexed(meshPos->second.indexCount, 1, 0, 0, 0);
+        matrixIdx++;
+        });
+
+    matrixIdx = 0;
+    cmdBuf->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 0, descriptorSet, nullptr);
+    cmdBuf->bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline);
 
     reg.view<Transform, WorldObject>().each([this, &cmdBuf, &cam, &matrixIdx, &ctx](auto ent, Transform& transform, WorldObject& obj) {
         auto meshPos = ctx.loadedMeshes.find(obj.mesh);
@@ -270,7 +372,7 @@ void PolyRenderPass::execute(RenderCtx& ctx) {
             return;
         }
 
-        StandardPushConstants pushConst{ glm::vec4(cam.position, 0.0f), obj.texScaleOffset, glm::ivec4(matrixIdx, obj.materialIndex, 0, 0) };
+        StandardPushConstants pushConst{ glm::vec4(cam.position, 0.0f), obj.texScaleOffset, glm::ivec4(matrixIdx, obj.materialIndex, 0, ent), glm::ivec4(pickX, pickY, 0, 0) };
         cmdBuf->pushConstants<StandardPushConstants>(*pipelineLayout, vk::ShaderStageFlagBits::eFragment | vk::ShaderStageFlagBits::eVertex, 0, pushConst);
         cmdBuf->bindVertexBuffers(0, meshPos->second.vb.buffer(), vk::DeviceSize(0));
         cmdBuf->bindIndexBuffer(meshPos->second.ib.buffer(), 0, meshPos->second.indexType);
@@ -280,7 +382,7 @@ void PolyRenderPass::execute(RenderCtx& ctx) {
 
     reg.view<Transform, ProceduralObject>().each([this, &cmdBuf, &cam, &matrixIdx](auto ent, Transform& transform, ProceduralObject& obj) {
         if (!obj.visible) return;
-        StandardPushConstants pushConst{ glm::vec4(cam.position, 0.0f), glm::vec4(1.0f, 1.0f, 0.0f, 0.0f), glm::ivec4(matrixIdx, 0, 0, 0) };
+        StandardPushConstants pushConst{ glm::vec4(cam.position, 0.0f), glm::vec4(1.0f, 1.0f, 0.0f, 0.0f), glm::ivec4(matrixIdx, 0, 0, ent), glm::ivec4(pickX, pickY, 0, 0) };
         cmdBuf->pushConstants<StandardPushConstants>(*pipelineLayout, vk::ShaderStageFlagBits::eFragment | vk::ShaderStageFlagBits::eVertex, 0, pushConst);
         cmdBuf->bindVertexBuffers(0, obj.vb.buffer(), vk::DeviceSize(0));
         cmdBuf->bindIndexBuffer(obj.ib.buffer(), 0, obj.indexType);
@@ -289,6 +391,10 @@ void PolyRenderPass::execute(RenderCtx& ctx) {
         });
 
     cmdBuf->endRenderPass();
+}
+
+uint32_t PolyRenderPass::getPickedEntity() {
+    return pickedEnt;
 }
 
 PolyRenderPass::~PolyRenderPass() {

@@ -165,27 +165,6 @@ entt::entity createModelObject(entt::registry& reg, glm::vec3 position, glm::qua
 
 bool useEventThread = true;
 int workerThreadOverride = -1;
-
-template<typename Type>
-void clone(const entt::registry& from, entt::registry& to) {
-    const auto* data = from.data<Type>();
-    const auto size = from.size<Type>();
-
-    if constexpr (ENTT_IS_EMPTY(Type)) {
-        to.insert<Type>(data, data + size);
-    } else {
-        const auto* raw = from.raw<Type>();
-        to.insert<Type>(data, data + size, raw, raw + size);
-    }
-}
-
-void copyRegistry(entt::registry& normalRegistry, entt::registry& renderRegistry) {
-    //renderRegistry.clear();
-    clone<Transform>(normalRegistry, renderRegistry);
-    clone<WorldObject>(normalRegistry, renderRegistry);
-    //clone<ProceduralObject>(normalRegistry, renderRegistry);
-}
-
 bool enableXR = false;
 
 void engine(char* argv0) {
@@ -215,8 +194,6 @@ void engine(char* argv0) {
     std::cout << "Mounting " << dataStr << "\n";
     PHYSFS_init(argv0);
     PHYSFS_mount(dataStr, "/", 0);
-
-    //g_assetDB.addAsset("testTex.png");
 
     bool running = true;
 
@@ -300,8 +277,10 @@ void engine(char* argv0) {
 
     initPhysx();
 
-    SDL_SetRelativeMouseMode(SDL_TRUE);
+    //SDL_SetRelativeMouseMode(SDL_TRUE);
     std::memcpy(reinterpret_cast<void*>(lastState), state, SDL_NUM_SCANCODES);
+
+    entt::entity selectedEnt = entt::null;
 
     while (running) {
         uint64_t now = SDL_GetPerformanceCounter();
@@ -340,40 +319,49 @@ void engine(char* argv0) {
         glm::vec3 prevPos = cam.position;
         float moveSpeed = 5.0f;
 
-        if (state[SDL_SCANCODE_LSHIFT])
-            moveSpeed *= 2.0f;
+        if (inputManager.mouseButtonHeld(MouseButton::Right)) {
+            SDL_SetRelativeMouseMode(SDL_TRUE);
+            if (state[SDL_SCANCODE_LSHIFT])
+                moveSpeed *= 2.0f;
 
-        if (state[SDL_SCANCODE_W]) {
-            cam.position += cam.rotation * glm::vec3(0.0f, 0.0f, deltaTime * moveSpeed);
-        }
-
-        if (state[SDL_SCANCODE_S]) {
-            cam.position -= cam.rotation * glm::vec3(0.0f, 0.0f, deltaTime * moveSpeed);
-        }
-
-        if (state[SDL_SCANCODE_A]) {
-            cam.position += cam.rotation * glm::vec3(deltaTime * moveSpeed, 0.0f, 0.0f);
-        }
-
-        if (state[SDL_SCANCODE_D]) {
-            cam.position -= cam.rotation * glm::vec3(deltaTime * moveSpeed, 0.0f, 0.0f);
-        }
-
-        if (state[SDL_SCANCODE_SPACE]) {
-            cam.position += cam.rotation * glm::vec3(0.0f, deltaTime * moveSpeed, 0.0f);
-        }
-
-        if (state[SDL_SCANCODE_LCTRL]) {
-            cam.position -= cam.rotation * glm::vec3(0.0f, deltaTime * moveSpeed, 0.0f);
-        }
-
-        {
-            physx::PxOverlapBuffer overlapBuf{};
-            physx::PxQueryFilterData filterData;
-            filterData.flags |= physx::PxQueryFlag::eANY_HIT;
-            if (g_scene->overlap(physx::PxSphereGeometry(0.05f), physx::PxTransform(cam.position.x, cam.position.y, cam.position.z), overlapBuf, filterData)) {
-                cam.position = prevPos;
+            if (state[SDL_SCANCODE_W]) {
+                cam.position += cam.rotation * glm::vec3(0.0f, 0.0f, deltaTime * moveSpeed);
             }
+
+            if (state[SDL_SCANCODE_S]) {
+                cam.position -= cam.rotation * glm::vec3(0.0f, 0.0f, deltaTime * moveSpeed);
+            }
+
+            if (state[SDL_SCANCODE_A]) {
+                cam.position += cam.rotation * glm::vec3(deltaTime * moveSpeed, 0.0f, 0.0f);
+            }
+
+            if (state[SDL_SCANCODE_D]) {
+                cam.position -= cam.rotation * glm::vec3(deltaTime * moveSpeed, 0.0f, 0.0f);
+            }
+
+            if (state[SDL_SCANCODE_SPACE]) {
+                cam.position += cam.rotation * glm::vec3(0.0f, deltaTime * moveSpeed, 0.0f);
+            }
+
+            if (state[SDL_SCANCODE_LCTRL]) {
+                cam.position -= cam.rotation * glm::vec3(0.0f, deltaTime * moveSpeed, 0.0f);
+            }
+
+            int x, y;
+
+            SDL_GetRelativeMouseState(&x, &y);
+
+            if (!inputManager.mouseButtonPressed(MouseButton::Right)) {
+                lookX += (float)x * 0.005f;
+                lookY += (float)y * 0.005f;
+
+                lookY = glm::clamp(lookY, -glm::half_pi<float>() + 0.001f, glm::half_pi<float>() - 0.001f);
+
+                cam.rotation = glm::angleAxis(-lookX, glm::vec3(0.0f, 1.0f, 0.0f)) * glm::angleAxis(lookY, glm::vec3(1.0f, 0.0f, 0.0f));
+            }
+        } else {
+            SDL_SetRelativeMouseMode(SDL_FALSE);
         }
 
         if (state[SDL_SCANCODE_RCTRL] && !lastState[SDL_SCANCODE_RCTRL]) {
@@ -391,25 +379,27 @@ void engine(char* argv0) {
             SDL_PushEvent(&evt);
         }
 
+        if (ImGui::GetIO().MouseClicked[0]) {
+            if (registry.valid(selectedEnt))
+                registry.remove<UseWireframe>(selectedEnt);
+
+            if ((uint32_t)renderer->getPickedEnt() != UINT32_MAX) {
+                selectedEnt = renderer->getPickedEnt();
+                registry.emplace<UseWireframe>(selectedEnt);
+            } else {
+                selectedEnt = entt::null;
+            }
+        }
+
         if (ImGui::Begin("Info")) {
             ImGui::Text("Frametime: %.3fms", deltaTime * 1000.0);
             ImGui::Text("Framerate: %.3ffps", 1.0 / deltaTime);
             ImGui::Text("GPU render time: %.3fms", renderer->getLastRenderTime() / 1000.0f / 1000.0f);
             ImGui::Text("Frame: %i", frameCounter);
             ImGui::Text("Cam pos: %.3f, %.3f, %.3f", cam.position.x, cam.position.y, cam.position.z);
+            ImGui::Text("Mouse over entity: %u", renderer->getPickedEnt());   
         }
         ImGui::End();
-
-        int x, y;
-
-        SDL_GetRelativeMouseState(&x, &y);
-
-        lookX += (float)x * 0.005f;
-        lookY += (float)y * 0.005f;
-
-        lookY = glm::clamp(lookY, -glm::half_pi<float>() + 0.001f, glm::half_pi<float>() - 0.001f);
-
-        cam.rotation = glm::angleAxis(-lookX, glm::vec3(0.0f, 1.0f, 0.0f)) * glm::angleAxis(lookY, glm::vec3(1.0f, 0.0f, 0.0f));
 
         std::memcpy(reinterpret_cast<void*>(lastState), state, SDL_NUM_SCANCODES);
         ImGui::Render();
@@ -431,7 +421,7 @@ void engine(char* argv0) {
         registry.sort<WorldObject>([&registry, &camPos](entt::entity a, entt::entity b) -> bool {
             auto& aTransform = registry.get<Transform>(a);
             auto& bTransform = registry.get<Transform>(b);
-            return glm::distance2(camPos, aTransform.position) < glm::distance2(camPos, aTransform.position);
+            return glm::distance2(camPos, aTransform.position) < glm::distance2(camPos, aTransform.position) || registry.has<UseWireframe>(a);
             }, entt::insertion_sort{});
 
         renderer->frame(cam, registry);

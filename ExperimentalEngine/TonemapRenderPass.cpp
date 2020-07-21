@@ -46,7 +46,7 @@ void TonemapRenderPass::setup(PassSetupCtx& ctx) {
 
     dsl = tonemapDslm.createUnique(ctx.device);
 
-    tonemapShader = vku::loadShaderAsset(ctx.device, g_assetDB.addAsset("Shaders/tonemap.comp.spv"));
+    tonemapShader = vku::loadShaderAsset(ctx.device, g_assetDB.addOrGetExisting("Shaders/tonemap.comp.spv"));
 
     vku::PipelineLayoutMaker plm;
     plm.descriptorSetLayout(*dsl);
@@ -61,6 +61,8 @@ void TonemapRenderPass::setup(PassSetupCtx& ctx) {
     si.mapEntryCount = 1;
     si.pMapEntries = &samplesEntry;
     si.pData = &ctx.graphicsSettings.msaaLevel;
+    cpm.specializationInfo(si);
+
     pipeline = cpm.createUnique(ctx.device, ctx.pipelineCache, *pipelineLayout);
 
     vku::DescriptorSetMaker dsm;

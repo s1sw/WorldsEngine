@@ -10,6 +10,9 @@ layout(location = 2) in vec3 inTangent;
 layout(location = 3) in vec2 inUV;
 layout(location = 4) in float inAO;
 layout(location = 5) in vec4 inShadowPos;
+layout(location = 6) in float inDepth;
+
+layout(constant_id = 0) const bool ENABLE_PICKING = false;
 
 const int LT_POINT = 0;
 const int LT_SPOT = 1;
@@ -45,11 +48,18 @@ layout(std140, binding = 2) uniform MaterialSettingsBuffer {
 layout (binding = 4) uniform sampler2D albedoSampler[];
 layout (binding = 5) uniform sampler2DShadow shadowSampler;
 
+layout(std430, binding = 6) buffer PickingBuffer {
+    uint depth;
+    uint objectID;
+    uint lock;
+} pickBuf;
+
 layout(push_constant) uniform PushConstants {
 	vec4 viewPos;
 	vec4 texScaleOffset;
-    // (x: model matrix index, y: material index, z: vp index)
+    // (x: model matrix index, y: material index, z: vp index, w: object id)
 	ivec4 ubIndices;
+    ivec2 pixelPickCoords;
 };
 
 float DistributionGGX(vec3 N, vec3 H, float roughness) {
@@ -201,4 +211,26 @@ void main() {
 	// TODO: Ambient stuff - specular cubemaps + irradiance
 	
 	FragColor = vec4(lo * texture(albedoSampler[int(mat.pack0.z)], (inUV * texScaleOffset.xy) + texScaleOffset.zw).rgb, 1.0);
+
+    if (ENABLE_PICKING) {
+        if (pixelPickCoords == ivec2(gl_FragCoord.xy)) {
+            // shitty gpu spinlock
+            // it's ok, should rarely be contended
+            uint set = 0;
+
+            do {
+                if (pickBuf.lock == 1) continue;
+
+                pickBuf.lock = 1;
+                uint uiDepth = floatBitsToUint(inDepth);
+                uint origDepth = atomicMin(pickBuf.depth, uiDepth);
+
+                if (pickBuf.depth != origDepth) {
+                    pickBuf.objectID = ubIndices.w;
+                }
+                pickBuf.lock = 0;
+                set = 1;
+            } while (set == 0);
+        }
+    }
 }

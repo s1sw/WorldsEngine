@@ -883,11 +883,12 @@ namespace vku {
 
         /// Add a shader module to the pipeline.
         void shader(vk::ShaderStageFlagBits stage, vku::ShaderModule& shader,
-            const char* entryPoint = "main") {
+            const char* entryPoint = "main", vk::SpecializationInfo* pSpecializationInfo = nullptr) {
             vk::PipelineShaderStageCreateInfo info{};
             info.module = shader.module();
             info.pName = entryPoint;
             info.stage = stage;
+            info.pSpecializationInfo = pSpecializationInfo;
             modules_.emplace_back(info);
         }
 
@@ -1207,13 +1208,6 @@ namespace vku {
         ~GenericBuffer() {
             VkBuffer cBuf = buffer_.release();
             if (cBuf) {
-                VmaAllocationInfo allocInf;
-                vmaGetAllocationInfo(allocator, allocation, &allocInf);
-
-                if (debugName)
-                    std::cout << "Freed buffer " << debugName << "\n";
-                else
-                    std::cout << "Freed buffer of size " << allocInf.size << "\n";
                 vmaDestroyBuffer(allocator, cBuf, allocation);
             }
         }
