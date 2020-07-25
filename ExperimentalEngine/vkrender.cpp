@@ -76,7 +76,7 @@ void VKRenderer::loadTex(const char* path, int index) {
     textures[index].present = true;
     textures[index].tex = vku::TextureImage2D{ *device, memProps, (uint32_t)x, (uint32_t)y, 1, vk::Format::eR8G8B8A8Srgb };
 
-    std::vector<uint8_t> albedoDat(dat, dat + (x * y * 4));
+    std::vector<uint8_t> albedoDat(dat, dat + ((size_t)x * y * 4));
 
     textures[index].tex.upload(*device, allocator, albedoDat, *commandPool, memProps, device->getQueue(graphicsQueueFamilyIdx, 0));
 }
@@ -618,9 +618,6 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
         vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eBottomOfPipe,
         vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eMemoryRead);
 
-
-
-
     cmdBuf->writeTimestamp(vk::PipelineStageFlagBits::eBottomOfPipe, *queryPool, 1);
 #ifdef TRACY_ENABLE
     TracyVkCollect(tracyContexts[imageIndex], *cmdBuf);
@@ -684,7 +681,6 @@ void loadObj(std::vector<Vertex>& vertices, std::vector<uint32_t>& indices, std:
         Vertex vert;
         vert.position = glm::vec3(attrib.vertices[3 * (size_t)idx.vertex_index], attrib.vertices[3 * (size_t)idx.vertex_index + 1], attrib.vertices[3 * (size_t)idx.vertex_index + 2]);
         vert.normal = glm::vec3(attrib.normals[3 * (size_t)idx.normal_index], attrib.normals[3 * (size_t)idx.normal_index + 1], attrib.normals[3 * (size_t)idx.normal_index + 2]);
-        vert.ao = 1.0f;
         if (idx.texcoord_index >= 0)
             vert.uv = glm::vec2(attrib.texcoords[2 * (size_t)idx.texcoord_index], attrib.texcoords[2 * (size_t)idx.texcoord_index + 1]);
         vertices.push_back(vert);

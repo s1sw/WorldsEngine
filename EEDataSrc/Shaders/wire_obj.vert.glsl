@@ -2,6 +2,9 @@
 #extension GL_EXT_multiview : enable
 
 layout(location = 0) in vec3 inPosition;
+layout(location = 1) in vec2 inUV;
+
+layout(location = 0) out vec2 outUV;
 
 layout(binding = 0) uniform MultiVP {
 	mat4 view[8];
@@ -23,4 +26,5 @@ void main() {
     mat4 model = modelMatrices[ubIndices.x];
     gl_Position = projection[ubIndices.z + gl_ViewIndex] * view[ubIndices.z + gl_ViewIndex] * model * vec4(inPosition, 1.0); // Apply MVP transform
     gl_Position.y = -gl_Position.y; // Account for Vulkan viewport weirdness
+	outUV = inUV;
 }

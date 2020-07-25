@@ -24,6 +24,7 @@
 #endif
 #include "XRInterface.hpp"
 #include "SourceModelLoader.hpp"
+#include "Editor.hpp"
 
 AssetDB g_assetDB;
 
@@ -56,7 +57,7 @@ void audioCallback(void* userData, uint8_t* u8stream, int len) {
     for (int i = 0; i < len / sizeof(float); i++) {
         //stream[i] = (float)i / (float)len;
         double time = dspTime + (i * sampleLength);
-        //stream[i] = sin(time * 2.0 * glm::pi<double>() * 25.0) * 0.2;
+        //stream[i] = (sin(time * 2.0 * glm::pi<double>() * 440.0) > 0.0 ? 1.0 : -1.0) * 0.2;
     }
 
     dspTime += (double)(len / 4) / 44100.0;
@@ -166,6 +167,7 @@ entt::entity createModelObject(entt::registry& reg, glm::vec3 position, glm::qua
 bool useEventThread = true;
 int workerThreadOverride = -1;
 bool enableXR = false;
+glm::ivec2 windowSize;
 
 void engine(char* argv0) {
 #ifdef TRACY_ENABLE
@@ -280,7 +282,7 @@ void engine(char* argv0) {
     //SDL_SetRelativeMouseMode(SDL_TRUE);
     std::memcpy(reinterpret_cast<void*>(lastState), state, SDL_NUM_SCANCODES);
 
-    entt::entity selectedEnt = entt::null;
+    Editor editor(registry, inputManager, cam);
 
     while (running) {
         uint64_t now = SDL_GetPerformanceCounter();
@@ -291,6 +293,15 @@ void engine(char* argv0) {
                     running = false;
                     break;
                 }
+
+                if (evt.type == fullscreenToggleEventId) {
+                    if ((SDL_GetWindowFlags(window) & SDL_WINDOW_FULLSCREEN_DESKTOP) == SDL_WINDOW_FULLSCREEN_DESKTOP) {
+                        SDL_SetWindowFullscreen(window, 0);
+                    } else {
+                        SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP);
+                    }
+                }
+
                 if (ImGui::GetCurrentContext())
                     ImGui_ImplSDL2_ProcessEvent(&evt);
             }
@@ -310,6 +321,8 @@ void engine(char* argv0) {
 
         simulate((float)deltaTime);
 
+        SDL_GetWindowSize(window, &windowSize.x, &windowSize.y);
+
         registry.view<DynamicPhysicsActor, Transform>().each([](auto ent, DynamicPhysicsActor& dpa, Transform& transform) {
             auto pose = dpa.actor->getGlobalPose();
             transform.position = px2glm(pose.p);
@@ -318,6 +331,12 @@ void engine(char* argv0) {
 
         glm::vec3 prevPos = cam.position;
         float moveSpeed = 5.0f;
+
+        static int origMouseX, origMouseY = 0;
+
+        if (inputManager.mouseButtonPressed(MouseButton::Right)) {
+            SDL_GetMouseState(&origMouseX, &origMouseY);
+        }
 
         if (inputManager.mouseButtonHeld(MouseButton::Right)) {
             SDL_SetRelativeMouseMode(SDL_TRUE);
@@ -348,13 +367,9 @@ void engine(char* argv0) {
                 cam.position -= cam.rotation * glm::vec3(0.0f, deltaTime * moveSpeed, 0.0f);
             }
 
-            int x, y;
-
-            SDL_GetRelativeMouseState(&x, &y);
-
             if (!inputManager.mouseButtonPressed(MouseButton::Right)) {
-                lookX += (float)x * 0.005f;
-                lookY += (float)y * 0.005f;
+                lookX += (float)inputManager.getMouseDelta().x * 0.005f;
+                lookY += (float)inputManager.getMouseDelta().y * 0.005f;
 
                 lookY = glm::clamp(lookY, -glm::half_pi<float>() + 0.001f, glm::half_pi<float>() - 0.001f);
 
@@ -362,7 +377,15 @@ void engine(char* argv0) {
             }
         } else {
             SDL_SetRelativeMouseMode(SDL_FALSE);
+
+            if (inputManager.mouseButtonReleased(MouseButton::Right)) {
+                int winWidth, winHeight;
+                SDL_GetWindowSize(window, &winWidth, &winHeight);
+                SDL_WarpMouseInWindow(window, winWidth / 2, winHeight / 2);
+            }
         }
+
+        editor.update();
 
         if (state[SDL_SCANCODE_RCTRL] && !lastState[SDL_SCANCODE_RCTRL]) {
             SDL_SetRelativeMouseMode((SDL_bool)!SDL_GetRelativeMouseMode());
@@ -380,15 +403,12 @@ void engine(char* argv0) {
         }
 
         if (ImGui::GetIO().MouseClicked[0]) {
-            if (registry.valid(selectedEnt))
-                registry.remove<UseWireframe>(selectedEnt);
+            entt::entity mouseover = renderer->getPickedEnt();
 
-            if ((uint32_t)renderer->getPickedEnt() != UINT32_MAX) {
-                selectedEnt = renderer->getPickedEnt();
-                registry.emplace<UseWireframe>(selectedEnt);
-            } else {
-                selectedEnt = entt::null;
-            }
+            if ((uint32_t)mouseover == UINT32_MAX)
+                mouseover = entt::null;
+
+            editor.select(mouseover);
         }
 
         if (ImGui::Begin("Info")) {
@@ -427,6 +447,7 @@ void engine(char* argv0) {
         renderer->frame(cam, registry);
         jobSystem.completeFrameJobs();
         frameCounter++;
+        inputManager.endFrame();
     }
     
     delete renderer;

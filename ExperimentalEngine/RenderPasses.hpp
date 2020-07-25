@@ -40,6 +40,7 @@ private:
 	bool enablePicking;
 	int pickX, pickY;
 	uint32_t pickedEnt;
+	vk::UniqueEvent pickEvent;
 public:
 	PolyRenderPass(RenderImageHandle depthStencilImage, RenderImageHandle polyImage, RenderImageHandle shadowImage, bool enablePicking = false);
 	void setPickCoords(int x, int y) { pickX = x; pickY = y; }

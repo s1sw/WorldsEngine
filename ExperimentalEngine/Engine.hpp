@@ -7,9 +7,12 @@
 #include <unordered_set>
 #include <functional>
 #include "RenderGraph.hpp"
+#include "Camera.hpp"
 #ifdef TRACY_ENABLE
 #include "tracy/TracyVulkan.hpp"
 #endif
+
+extern glm::ivec2 windowSize;
 
 struct WorldObject {
 	WorldObject(AssetID material, AssetID mesh) 
@@ -73,7 +76,6 @@ struct Vertex {
 	glm::vec3 normal;
 	glm::vec3 tangent;
 	glm::vec2 uv;
-	float ao;
 };
 
 struct PackedMaterial {
@@ -94,24 +96,6 @@ struct ProceduralObject {
 	vku::IndexBuffer ib;
 	uint32_t indexCount;
 	vk::IndexType indexType;
-};
-
-struct Camera {
-	Camera() : 
-		position(0.0f), 
-		rotation(), 
-		verticalFOV(1.25f) {}
-	glm::vec3 position;
-	glm::quat rotation;
-	float verticalFOV;
-
-	glm::mat4 getViewMatrix() {
-		return glm::lookAt(position, position + (rotation * glm::vec3(0.0f, 0.0f, 1.0f)), glm::vec3(0.0f, 1.0f, 0.0f));
-	}
-
-	glm::mat4 getProjectionMatrix(float aspect) {
-		return glm::perspective(verticalFOV, aspect, 0.01f, 2500.0f);
-	}
 };
 
 extern AssetDB g_assetDB;
@@ -159,11 +143,6 @@ struct ImageBarrier {
 	vk::AccessFlagBits dstMask;
 	vk::PipelineStageFlagBits srcStage;
 	vk::PipelineStageFlagBits dstStage;
-};
-
-struct ChunkShadowPushConstants {
-	glm::mat4 vp;
-	glm::vec4 chunkOffset;
 };
 
 struct ModelMatrices {

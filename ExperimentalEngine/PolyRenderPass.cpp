@@ -1,6 +1,7 @@
 #include "RenderPasses.hpp"
 #include "Engine.hpp"
 #include "Transform.hpp"
+#include "spirv_reflect.h"
 
 struct StandardPushConstants {
     glm::vec4 pack0;
@@ -14,6 +15,7 @@ struct PickingBuffer {
     uint32_t depth;
     uint32_t objectID;
     uint32_t lock;
+    uint32_t doPicking;
 };
 
 PolyRenderPass::PolyRenderPass(
@@ -24,7 +26,10 @@ PolyRenderPass::PolyRenderPass(
     : depthStencilImage(depthStencilImage)
     , polyImage(polyImage)
     , shadowImage(shadowImage)
-    , enablePicking(enablePicking) {
+    , enablePicking(enablePicking)
+    , pickX(0) 
+    , pickY(0)
+    , pickedEnt(UINT32_MAX) {
 
 }
 
@@ -91,6 +96,8 @@ void PolyRenderPass::setup(PassSetupCtx& ctx) {
     modelMatrixUB = vku::UniformBuffer(ctx.device, ctx.allocator, sizeof(ModelMatrices), VMA_MEMORY_USAGE_CPU_TO_GPU, "Model matrices");
     pickingBuffer = vku::GenericBuffer(ctx.device, ctx.allocator, vk::BufferUsageFlagBits::eStorageBuffer, sizeof(PickingBuffer), VMA_MEMORY_USAGE_GPU_TO_CPU, "Picking buffer");
 
+    pickEvent = ctx.device.createEventUnique(vk::EventCreateInfo{});
+
     MaterialsUB materials;
     materials.materials[0] = { glm::vec4(0.0f, 0.02f, 0.0f, 0.0f), glm::vec4(1.0f, 1.0f, 1.0f, 0.0f) };
     materials.materials[1] = { glm::vec4(0.0f, 0.02f, 1.0f, 0.0f), glm::vec4(1.0f, 1.0f, 1.0f, 0.0f) };
@@ -115,11 +122,12 @@ void PolyRenderPass::setup(PassSetupCtx& ctx) {
     updater.beginBuffers(3, 0, vk::DescriptorType::eUniformBuffer);
     updater.buffer(modelMatrixUB.buffer(), 0, sizeof(ModelMatrices));
 
-    updater.beginImages(4, 0, vk::DescriptorType::eCombinedImageSampler);
-    updater.image(*albedoSampler, ctx.globalTexArray[0].tex.imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
-
-    updater.beginImages(4, 1, vk::DescriptorType::eCombinedImageSampler);
-    updater.image(*albedoSampler, ctx.globalTexArray[1].tex.imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
+    for (int i = 0; i < 64; i++) {
+        if (ctx.globalTexArray[i].present) {
+            updater.beginImages(4, i, vk::DescriptorType::eCombinedImageSampler);
+            updater.image(*albedoSampler, ctx.globalTexArray[i].tex.imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
+        }
+    }
 
     updater.beginImages(5, 0, vk::DescriptorType::eCombinedImageSampler);
     updater.image(*shadowSampler, ctx.rtResources.at(shadowImage).image.imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
@@ -187,7 +195,6 @@ void PolyRenderPass::setup(PassSetupCtx& ctx) {
     pm.vertexAttribute(1, 0, vk::Format::eR32G32B32Sfloat, (uint32_t)offsetof(Vertex, normal));
     pm.vertexAttribute(2, 0, vk::Format::eR32G32B32Sfloat, (uint32_t)offsetof(Vertex, tangent));
     pm.vertexAttribute(3, 0, vk::Format::eR32G32Sfloat, (uint32_t)offsetof(Vertex, uv));
-    pm.vertexAttribute(4, 0, vk::Format::eR32Sfloat, (uint32_t)offsetof(Vertex, ao));
     pm.cullMode(vk::CullModeFlagBits::eBack);
     pm.depthWriteEnable(true).depthTestEnable(true).depthCompareOp(vk::CompareOp::eLess);
     pm.blendBegin(false);
@@ -197,6 +204,53 @@ void PolyRenderPass::setup(PassSetupCtx& ctx) {
     pmsci.rasterizationSamples = (vk::SampleCountFlagBits)ctx.graphicsSettings.msaaLevel;
     pm.multisampleState(pmsci);
     this->pipeline = pm.createUnique(ctx.device, ctx.pipelineCache, *pipelineLayout, *renderPass);
+
+    PHYSFS_File* file = g_assetDB.openDataFile(fsID);
+    size_t fsLen = PHYSFS_fileLength(file);
+    void* fsData = std::malloc(fsLen);
+    PHYSFS_readBytes(file, fsData, fsLen);
+    PHYSFS_close(file);
+    SpvReflectShaderModule fsRefl;
+    auto res1 = spvReflectCreateShaderModule(fsLen, fsData, &fsRefl);
+
+    uint32_t inputVarCount;
+    spvReflectEnumerateInputVariables(&fsRefl, &inputVarCount, nullptr);
+
+    std::vector<SpvReflectInterfaceVariable*> inputVars(inputVarCount);
+    assert(inputVars.size() == inputVarCount);
+    spvReflectEnumerateInputVariables(&fsRefl, &inputVarCount, inputVars.data());
+
+    for (int i = 0; i < fsRefl.descriptor_sets[0].binding_count; i++) {
+        auto* typeDesc = fsRefl.descriptor_sets[0].bindings[i]->type_description;
+        if (typeDesc->op == SpvOpTypeStruct) {
+            std::cout << "Uniform buffer " << typeDesc->type_name << " has " << typeDesc->member_count << " members:\n";
+
+            for (int j = 0; j < typeDesc->member_count; j++) {
+                auto m = typeDesc->members[j];
+                std::cout << "\t";
+                if ((m.type_flags & SPV_REFLECT_TYPE_FLAG_VECTOR) == SPV_REFLECT_TYPE_FLAG_VECTOR)
+                    std::cout << "vec" << m.traits.numeric.vector.component_count;
+                else if ((m.type_flags & SPV_REFLECT_TYPE_FLAG_STRUCT) == SPV_REFLECT_TYPE_FLAG_STRUCT) {
+                    std::cout << m.type_name;
+                } else if ((m.type_flags & SPV_REFLECT_TYPE_FLAG_INT) == SPV_REFLECT_TYPE_FLAG_INT) {
+                    if (!m.traits.numeric.scalar.signedness)
+                        std::cout << "u";
+                    std::cout << "int";
+                }
+
+                std::cout << " " << m.struct_member_name;
+
+                if ((m.type_flags & SPV_REFLECT_TYPE_FLAG_ARRAY) == SPV_REFLECT_TYPE_FLAG_ARRAY)
+                    std::cout << "[" << m.traits.array.dims[0] << "]";
+
+                std::cout << "\n";
+            }
+        }
+    }
+
+    for (auto* var : inputVars) {
+        std::cout << var->name << ": " << var->location << "\n";
+    }
 
     {
         AssetID wvsID = g_assetDB.addOrGetExisting("Shaders/wire_obj.vert.spv");
@@ -210,6 +264,7 @@ void PolyRenderPass::setup(PassSetupCtx& ctx) {
         pm.depthWriteEnable(true).depthTestEnable(true).depthCompareOp(vk::CompareOp::eLess);
         pm.vertexBinding(0, (uint32_t)sizeof(Vertex));
         pm.vertexAttribute(0, 0, vk::Format::eR32G32B32Sfloat, (uint32_t)offsetof(Vertex, position));
+        pm.vertexAttribute(1, 0, vk::Format::eR32G32Sfloat, (uint32_t)offsetof(Vertex, uv));
         pm.polygonMode(vk::PolygonMode::eLine);
         pm.lineWidth(2.0f);
 
@@ -220,6 +275,9 @@ void PolyRenderPass::setup(PassSetupCtx& ctx) {
         vku::DescriptorSetLayoutMaker dslm;
         dslm.buffer(0, vk::DescriptorType::eUniformBuffer, vk::ShaderStageFlagBits::eVertex, 1);
         dslm.buffer(1, vk::DescriptorType::eUniformBuffer, vk::ShaderStageFlagBits::eVertex, 1);
+        dslm.buffer(2, vk::DescriptorType::eUniformBuffer, vk::ShaderStageFlagBits::eFragment, 1);
+        dslm.image(3, vk::DescriptorType::eCombinedImageSampler, vk::ShaderStageFlagBits::eFragment, 64);
+        dslm.bindFlag(3, vk::DescriptorBindingFlagBits::ePartiallyBound);
         wireframeDsl = dslm.createUnique(ctx.device);
 
         vku::DescriptorSetMaker dsm;
@@ -239,6 +297,16 @@ void PolyRenderPass::setup(PassSetupCtx& ctx) {
         updater.buffer(vpUB.buffer(), 0, sizeof(MultiVP));
         updater.beginBuffers(1, 0, vk::DescriptorType::eUniformBuffer);
         updater.buffer(modelMatrixUB.buffer(), 0, sizeof(ModelMatrices));
+        updater.beginBuffers(2, 0, vk::DescriptorType::eUniformBuffer);
+        updater.buffer(materialUB.buffer(), 0, sizeof(MaterialsUB));
+        
+        for (int i = 0; i < 64; i++) {
+            if (ctx.globalTexArray[i].present) {
+                updater.beginImages(3, i, vk::DescriptorType::eCombinedImageSampler);
+                updater.image(*albedoSampler, ctx.globalTexArray[i].tex.imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
+            }
+        }
+
         updater.update(ctx.device);
     }
 }
@@ -305,11 +373,13 @@ void PolyRenderPass::prePass(PassSetupCtx& ctx, RenderCtx& rCtx) {
     lub->pack0.x = lightIdx;
     lightsUB.unmap(ctx.device);
 
-    if (enablePicking) {
+    if (enablePicking && ctx.device.getEventStatus(*pickEvent) == vk::Result::eEventSet) {
         PickingBuffer* pickBuf = (PickingBuffer*)pickingBuffer.map(ctx.device);
         pickedEnt = pickBuf->objectID;
         pickBuf->objectID = UINT32_MAX;
         pickBuf->depth = UINT32_MAX;
+        pickBuf->doPicking = true;
+        
         pickingBuffer.unmap(ctx.device);
         pickingBuffer.invalidate(ctx.device);
         pickingBuffer.flush(ctx.device);
@@ -336,6 +406,20 @@ void PolyRenderPass::execute(RenderCtx& ctx) {
     vk::UniqueCommandBuffer& cmdBuf = ctx.cmdBuf;
     entt::registry& reg = ctx.reg;
     Camera& cam = ctx.cam;
+
+    vpUB.barrier(
+        *cmdBuf, vk::PipelineStageFlagBits::eHost, vk::PipelineStageFlagBits::eVertexShader,
+        vk::DependencyFlagBits::eByRegion, vk::AccessFlagBits::eHostWrite, vk::AccessFlagBits::eUniformRead,
+        VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED);
+
+    lightsUB.barrier(
+        *cmdBuf, vk::PipelineStageFlagBits::eHost, vk::PipelineStageFlagBits::eFragmentShader,
+        vk::DependencyFlagBits::eByRegion, vk::AccessFlagBits::eHostWrite, vk::AccessFlagBits::eUniformRead,
+        VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED);
+
+    pickingBuffer.barrier(*cmdBuf, vk::PipelineStageFlagBits::eHost, vk::PipelineStageFlagBits::eFragmentShader,
+        vk::DependencyFlagBits::eByRegion, vk::AccessFlagBits::eHostWrite | vk::AccessFlagBits::eHostRead, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
+        VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED);
 
     cmdBuf->beginRenderPass(rpbi, vk::SubpassContents::eInline);
     
@@ -391,6 +475,7 @@ void PolyRenderPass::execute(RenderCtx& ctx) {
         });
 
     cmdBuf->endRenderPass();
+    cmdBuf->setEvent(*pickEvent, vk::PipelineStageFlagBits::eFragmentShader);
 }
 
 uint32_t PolyRenderPass::getPickedEntity() {

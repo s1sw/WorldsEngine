@@ -8,9 +8,8 @@ layout(location = 0) in vec4 inWorldPos;
 layout(location = 1) in vec3 inNormal;
 layout(location = 2) in vec3 inTangent;
 layout(location = 3) in vec2 inUV;
-layout(location = 4) in float inAO;
-layout(location = 5) in vec4 inShadowPos;
-layout(location = 6) in float inDepth;
+layout(location = 4) in vec4 inShadowPos;
+layout(location = 5) in float inDepth;
 
 layout(constant_id = 0) const bool ENABLE_PICKING = false;
 
@@ -52,6 +51,7 @@ layout(std430, binding = 6) buffer PickingBuffer {
     uint depth;
     uint objectID;
     uint lock;
+    uint doPicking;
 } pickBuf;
 
 layout(push_constant) uniform PushConstants {
@@ -183,7 +183,7 @@ void main() {
 	
 	vec3 f0 = vec3(0.04f, 0.04f, 0.04f);
     f0 = mix(f0, albedoColor, metallic);
-	vec3 lo = vec3(0.05) * inAO;
+	vec3 lo = vec3(0.05);
 	
     vec4 lightspacePos = inShadowPos;
     for (int i = 0; i < lightCount; i++) {
@@ -212,25 +212,19 @@ void main() {
 	
 	FragColor = vec4(lo * texture(albedoSampler[int(mat.pack0.z)], (inUV * texScaleOffset.xy) + texScaleOffset.zw).rgb, 1.0);
 
-    if (ENABLE_PICKING) {
+    if (ENABLE_PICKING && pickBuf.doPicking == 1) {
         if (pixelPickCoords == ivec2(gl_FragCoord.xy)) {
             // shitty gpu spinlock
             // it's ok, should rarely be contended
             uint set = 0;
 
-            do {
-                if (pickBuf.lock == 1) continue;
+            uint uiDepth = floatBitsToUint(inDepth);
+            atomicMin(pickBuf.depth, uiDepth);
 
-                pickBuf.lock = 1;
-                uint uiDepth = floatBitsToUint(inDepth);
-                uint origDepth = atomicMin(pickBuf.depth, uiDepth);
-
-                if (pickBuf.depth != origDepth) {
-                    pickBuf.objectID = ubIndices.w;
-                }
-                pickBuf.lock = 0;
-                set = 1;
-            } while (set == 0);
+            if (pickBuf.depth == uiDepth) {
+                atomicExchange(pickBuf.objectID, ubIndices.w);
+            }
+            pickBuf.doPicking = 0;
         }
     }
 }

@@ -560,7 +560,6 @@ void loadSourceModel(AssetID mdlId, AssetID vtxId, AssetID vvdId, std::vector<Ve
 		eeVert.position = flipVec(vert.m_vecPosition);
 		eeVert.normal = flipVec(vert.m_vecNormal);
 		eeVert.uv = vert.m_vecTexCoord;
-		eeVert.ao = 1.0f;
 		vertices.push_back(eeVert);
 		vertexBlock++;
 	}

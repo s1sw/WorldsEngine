@@ -229,7 +229,9 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="AssetDB.cpp" />
+    <ClCompile Include="Editor.cpp" />
     <ClCompile Include="ImGuiRenderPass.cpp" />
+    <ClCompile Include="ImGuizmo.cpp" />
     <ClCompile Include="imgui_impl_sdl.cpp" />
     <ClCompile Include="imgui_impl_vulkan.cpp" />
     <ClCompile Include="Input.cpp" />
@@ -241,6 +243,7 @@
     <ClCompile Include="RenderGraph.cpp" />
     <ClCompile Include="ShadowmapRenderPass.cpp" />
     <ClCompile Include="SourceModelLoader.cpp" />
+    <ClCompile Include="spirv_reflect.c" />
     <ClCompile Include="tiny_obj_loader.cc" />
     <ClCompile Include="TonemapRenderPass.cpp" />
     <ClCompile Include="tracy\TracyClient.cpp" />
@@ -248,10 +251,14 @@
     <ClCompile Include="vkswapchain.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="2DClip.hpp" />
     <ClInclude Include="AssetDB.hpp" />
+    <ClInclude Include="Camera.hpp" />
     <ClInclude Include="ChunkGenerator.hpp" />
+    <ClInclude Include="Editor.hpp" />
     <ClInclude Include="Engine.hpp" />
     <ClInclude Include="GlmStreamOps.hpp" />
+    <ClInclude Include="ImGuizmo.h" />
     <ClInclude Include="imgui_impl_sdl.h" />
     <ClInclude Include="imgui_impl_vulkan.h" />
     <ClInclude Include="Input.hpp" />
@@ -264,6 +271,7 @@
     <ClInclude Include="RenderGraph.hpp" />
     <ClInclude Include="RenderPasses.hpp" />
     <ClInclude Include="SourceModelLoader.hpp" />
+    <ClInclude Include="spirv_reflect.h" />
     <ClInclude Include="tiny_obj_loader.h" />
     <ClInclude Include="Transform.hpp" />
     <ClInclude Include="vku\vku.hpp" />
