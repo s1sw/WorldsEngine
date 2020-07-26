@@ -367,9 +367,7 @@ void Editor::update(float deltaTime) {
             }
 
             glm::vec2 circlePos = ndcObjectPosition;
-            //circlePos.y = windowSize.y - circlePos.y;
             ImGui::GetBackgroundDrawList()->AddCircle(ImVec2(circlePos.x, circlePos.y), startingMouseDistance, ImColor(1.0f, 1.0f, 1.0f), getCircleSegments(startingMouseDistance));
-            //ImGui::GetForegroundDrawList()->AddCircle(ImVec2(circlePos.x, circlePos.y), 50.0f, ImColor(1.0f, 1.0f, 1.0f));
 
             float currentMouseDistance = glm::distance(ndcObjectPosition, ndcMousePos);
 
@@ -403,6 +401,14 @@ void Editor::update(float deltaTime) {
     updateCamera(deltaTime);
 
     if (reg.valid(currentSelectedEntity)) {
+        if (inputManager.keyHeld(SDL_SCANCODE_LSHIFT) && inputManager.keyPressed(SDL_SCANCODE_D)) {
+            auto newEnt = reg.create();
+
+            reg.emplace<Transform>(newEnt, reg.get<Transform>(currentSelectedEntity));
+            reg.emplace<WorldObject>(newEnt, reg.get<WorldObject>(currentSelectedEntity));
+            select(newEnt);
+        }
+
         if (ImGui::Begin("Selected entity")) {
             if (reg.has<Transform>(currentSelectedEntity)) {
                 auto& selectedTransform = reg.get<Transform>(currentSelectedEntity);
@@ -415,9 +421,12 @@ void Editor::update(float deltaTime) {
 
                 ImGui::DragFloat3("Scale", &selectedTransform.scale.x);
             }
-            
         }
 
         ImGui::End();
+
+        if (inputManager.keyPressed(SDL_SCANCODE_DELETE)) {
+            reg.destroy(currentSelectedEntity);
+        }
     }
 }
