@@ -44,8 +44,9 @@ class Editor {
 public:
     Editor(entt::registry& reg, InputManager& inputManager, Camera& cam);
     void select(entt::entity entity);
-    void update();
+    void update(float deltaTime);
 private:
+    void updateCamera(float deltaTime);
     void handleAxisButtonPress(AxisFlagBits axis);
     Tool currentTool;
     AxisFlagBits currentAxisLock;
@@ -55,6 +56,8 @@ private:
     Camera& cam;
     Transform originalObjectTransform;
     float startingMouseDistance;
+    float lookX;
+    float lookY;
 
     bool objectSnapGlobal;
 };

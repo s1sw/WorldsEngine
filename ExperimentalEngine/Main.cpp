@@ -178,7 +178,7 @@ void engine(char* argv0) {
     setupSDL();
     fullscreenToggleEventId = SDL_RegisterEvents(1);
 
-    InputManager inputManager{};
+    InputManager inputManager{window};
 
     // Ensure that we have a minimum of two workers, as one worker
     // means that jobs can be missed
@@ -257,9 +257,6 @@ void engine(char* argv0) {
     const Uint8* state = SDL_GetKeyboardState(NULL);
     Uint8 lastState[SDL_NUM_SCANCODES];
 
-    float lookX = 0.0f;
-    float lookY = 0.0f;
-
     entt::registry registry;
 
     AssetID modelId = g_assetDB.addAsset("model.obj");
@@ -311,7 +308,7 @@ void engine(char* argv0) {
         ImGui_ImplSDL2_NewFrame(window);
 
         ImGui::NewFrame();
-        inputManager.update(window);
+        inputManager.update();
 
         uint64_t deltaTicks = now - last;
         last = now;
@@ -329,63 +326,7 @@ void engine(char* argv0) {
             transform.rotation = px2glm(pose.q);
         });
 
-        glm::vec3 prevPos = cam.position;
-        float moveSpeed = 5.0f;
-
-        static int origMouseX, origMouseY = 0;
-
-        if (inputManager.mouseButtonPressed(MouseButton::Right)) {
-            SDL_GetMouseState(&origMouseX, &origMouseY);
-        }
-
-        if (inputManager.mouseButtonHeld(MouseButton::Right)) {
-            SDL_SetRelativeMouseMode(SDL_TRUE);
-            if (state[SDL_SCANCODE_LSHIFT])
-                moveSpeed *= 2.0f;
-
-            if (state[SDL_SCANCODE_W]) {
-                cam.position += cam.rotation * glm::vec3(0.0f, 0.0f, deltaTime * moveSpeed);
-            }
-
-            if (state[SDL_SCANCODE_S]) {
-                cam.position -= cam.rotation * glm::vec3(0.0f, 0.0f, deltaTime * moveSpeed);
-            }
-
-            if (state[SDL_SCANCODE_A]) {
-                cam.position += cam.rotation * glm::vec3(deltaTime * moveSpeed, 0.0f, 0.0f);
-            }
-
-            if (state[SDL_SCANCODE_D]) {
-                cam.position -= cam.rotation * glm::vec3(deltaTime * moveSpeed, 0.0f, 0.0f);
-            }
-
-            if (state[SDL_SCANCODE_SPACE]) {
-                cam.position += cam.rotation * glm::vec3(0.0f, deltaTime * moveSpeed, 0.0f);
-            }
-
-            if (state[SDL_SCANCODE_LCTRL]) {
-                cam.position -= cam.rotation * glm::vec3(0.0f, deltaTime * moveSpeed, 0.0f);
-            }
-
-            if (!inputManager.mouseButtonPressed(MouseButton::Right)) {
-                lookX += (float)inputManager.getMouseDelta().x * 0.005f;
-                lookY += (float)inputManager.getMouseDelta().y * 0.005f;
-
-                lookY = glm::clamp(lookY, -glm::half_pi<float>() + 0.001f, glm::half_pi<float>() - 0.001f);
-
-                cam.rotation = glm::angleAxis(-lookX, glm::vec3(0.0f, 1.0f, 0.0f)) * glm::angleAxis(lookY, glm::vec3(1.0f, 0.0f, 0.0f));
-            }
-        } else {
-            SDL_SetRelativeMouseMode(SDL_FALSE);
-
-            if (inputManager.mouseButtonReleased(MouseButton::Right)) {
-                int winWidth, winHeight;
-                SDL_GetWindowSize(window, &winWidth, &winHeight);
-                SDL_WarpMouseInWindow(window, winWidth / 2, winHeight / 2);
-            }
-        }
-
-        editor.update();
+        editor.update(deltaTime);
 
         if (state[SDL_SCANCODE_RCTRL] && !lastState[SDL_SCANCODE_RCTRL]) {
             SDL_SetRelativeMouseMode((SDL_bool)!SDL_GetRelativeMouseMode());
@@ -402,7 +343,7 @@ void engine(char* argv0) {
             SDL_PushEvent(&evt);
         }
 
-        if (ImGui::GetIO().MouseClicked[0]) {
+        if (inputManager.mouseButtonPressed(MouseButton::Left)) {
             entt::entity mouseover = renderer->getPickedEnt();
 
             if ((uint32_t)mouseover == UINT32_MAX)

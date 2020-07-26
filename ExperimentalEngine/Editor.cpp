@@ -4,6 +4,7 @@
 #include <glm/gtx/norm.hpp>
 #include "ImGuizmo.h"
 #include "2DClip.hpp"
+#include <glm/gtc/type_ptr.hpp>
 #undef near
 #undef far
 
@@ -43,7 +44,9 @@ Editor::Editor(entt::registry& reg, InputManager& inputManager, Camera& cam)
     , inputManager(inputManager)
     , cam(cam)
     , currentTool(Tool::None)
-    , currentAxisLock(AxisFlagBits::All) {
+    , currentAxisLock(AxisFlagBits::All)
+    , lookX(0.0f)
+    , lookY(0.0f) {
 }
 
 void Editor::select(entt::entity entity) {
@@ -110,7 +113,85 @@ int getCircleSegments(float radius) {
     return glm::max((int)glm::pow(radius, 0.8f), 6);
 }
 
-void Editor::update() {
+void Editor::updateCamera(float deltaTime) {
+    if (currentTool != Tool::None) return;
+    glm::vec3 prevPos = cam.position;
+    float moveSpeed = 5.0f;
+
+    static int origMouseX, origMouseY = 0;
+
+    if (inputManager.mouseButtonPressed(MouseButton::Right)) {
+        SDL_GetMouseState(&origMouseX, &origMouseY);
+    }
+
+    if (inputManager.mouseButtonHeld(MouseButton::Right)) {
+        //SDL_SetRelativeMouseMode(SDL_TRUE);
+        if (inputManager.keyHeld(SDL_SCANCODE_LSHIFT))
+            moveSpeed *= 2.0f;
+
+        if (inputManager.keyHeld(SDL_SCANCODE_W)) {
+            cam.position += cam.rotation * glm::vec3(0.0f, 0.0f, deltaTime * moveSpeed);
+        }
+
+        if (inputManager.keyHeld(SDL_SCANCODE_S)) {
+            cam.position -= cam.rotation * glm::vec3(0.0f, 0.0f, deltaTime * moveSpeed);
+        }
+
+        if (inputManager.keyHeld(SDL_SCANCODE_A)) {
+            cam.position += cam.rotation * glm::vec3(deltaTime * moveSpeed, 0.0f, 0.0f);
+        }
+
+        if (inputManager.keyHeld(SDL_SCANCODE_D)) {
+            cam.position -= cam.rotation * glm::vec3(deltaTime * moveSpeed, 0.0f, 0.0f);
+        }
+
+        if (inputManager.keyHeld(SDL_SCANCODE_SPACE)) {
+            cam.position += cam.rotation * glm::vec3(0.0f, deltaTime * moveSpeed, 0.0f);
+        }
+
+        if (inputManager.keyHeld(SDL_SCANCODE_LCTRL)) {
+            cam.position -= cam.rotation * glm::vec3(0.0f, deltaTime * moveSpeed, 0.0f);
+        }
+
+        auto mousePos = inputManager.getMousePosition();
+        glm::ivec2 warpAmount(0, 0);
+
+        if (mousePos.x > windowSize.x) {
+            warpAmount = glm::ivec2(-windowSize.x, 0);
+            inputManager.warpMouse(glm::ivec2(mousePos.x - windowSize.x, mousePos.y));
+        } else if (mousePos.x < 0) {
+            warpAmount = glm::ivec2(windowSize.x, 0);
+            inputManager.warpMouse(glm::ivec2(mousePos.x + windowSize.x, mousePos.y));
+        }
+
+        if (mousePos.y > windowSize.y) {
+            warpAmount = glm::ivec2(0, -windowSize.y);
+            inputManager.warpMouse(glm::ivec2(mousePos.x, mousePos.y - windowSize.y));
+        } else if (mousePos.y < 0) {
+            warpAmount = glm::ivec2(0, windowSize.y);
+            inputManager.warpMouse(glm::ivec2(mousePos.x, mousePos.y + windowSize.y));
+        }
+
+        if (!inputManager.mouseButtonPressed(MouseButton::Right)) {
+            lookX += (float)(inputManager.getMouseDelta().x - warpAmount.x) * 0.005f;
+            lookY += (float)(inputManager.getMouseDelta().y - warpAmount.y) * 0.005f;
+
+            lookY = glm::clamp(lookY, -glm::half_pi<float>() + 0.001f, glm::half_pi<float>() - 0.001f);
+
+            cam.rotation = glm::angleAxis(-lookX, glm::vec3(0.0f, 1.0f, 0.0f)) * glm::angleAxis(lookY, glm::vec3(1.0f, 0.0f, 0.0f));
+        }
+
+        
+    } else {
+        //SDL_SetRelativeMouseMode(SDL_FALSE);
+
+        //if (inputManager.mouseButtonReleased(MouseButton::Right)) {
+        //    inputManager.warpMouse(glm::ivec2(origMouseX, origMouseY));
+        //}
+    }
+}
+
+void Editor::update(float deltaTime) {
     if (currentTool == Tool::None && reg.valid(currentSelectedEntity)) {
         // Right mouse button means that the view's being moved, so we'll need the movement keys
         if (!inputManager.mouseButtonHeld(MouseButton::Right)) {
@@ -201,7 +282,6 @@ void Editor::update() {
 
             glm::vec3 newPos;
 
-            float d = -glm::dot(originalObjectTransform.position, n);
 
 
             if (currentAxisLock == AxisFlagBits::All) {
@@ -224,6 +304,8 @@ void Editor::update() {
                     n = glm::vec3(0.0f, 0.0f, 1.0f);
             }
 
+            float d = -glm::dot(originalObjectTransform.position, n);
+
 
             float t = -(glm::dot(cam.position, n) + d) / glm::dot(dir, n);
 
@@ -240,7 +322,7 @@ void Editor::update() {
             glm::mat4 vp = cam.getProjectionMatrix((float)windowSize.x / windowSize.y)* cam.getViewMatrix();
 
             if (getNumActiveAxes(currentAxisLock) == 2) {
-                ImGui::GetForegroundDrawList()->AddLine(worldToScreen(glm::vec3(0.0f), vp), worldToScreen(n, vp), ImColor(1.0f, 1.0f, 1.0f), 2.0f);
+                ImGui::GetBackgroundDrawList()->AddLine(worldToScreen(glm::vec3(0.0f), vp), worldToScreen(n, vp), ImColor(1.0f, 1.0f, 1.0f), 2.0f);
             } else if (getNumActiveAxes(currentAxisLock) == 1) {
                 glm::vec3 x(1.0f, 0.0f, 0.0f);
                 glm::vec3 y(0.0f, 1.0f, 0.0f);
@@ -250,22 +332,24 @@ void Editor::update() {
                 y *= hasAxis(currentAxisLock, AxisFlagBits::Y);
                 z *= hasAxis(currentAxisLock, AxisFlagBits::Z);
 
-                glm::vec3 start = originalObjectTransform.position - (x + y + z) * 100.0f;
-                glm::vec3 end = originalObjectTransform.position + (x + y + z) * 100.0f;
+                glm::vec3 start = selectedTransform.position - (x + y + z) * 5.0f;
+                glm::vec3 end = selectedTransform.position + (x + y + z) * 5.0f;
 
                 glm::vec2 startScreen = worldToScreenG(start, vp);
                 glm::vec2 endScreen = worldToScreenG(end, vp);
 
                 // clipping
-                bool accept = lineClip(startScreen, endScreen, glm::vec2(0.0f), windowSize);
+                //bool accept = lineClip(startScreen, endScreen, glm::vec2(0.0f), windowSize);
 
-                ImGui::GetForegroundDrawList()->AddLine(glmToImgui(startScreen), glmToImgui(endScreen), ImColor(1.0f, 1.0f, 1.0f), 2.0f);
+                glm::vec3 color = x + y + z;
+
+                ImGui::GetBackgroundDrawList()->AddLine(glmToImgui(startScreen), glmToImgui(endScreen), ImColor(color.x, color.y, color.z), 2.0f);
 
                 ImGui::Text("Start: %f, %f, %f", start.x, start.y, start.z);
                 ImGui::Text("End: %f, %f, %f", end.x, end.y, end.z);
                 ImGui::Text("Start screen: %f, %f", startScreen.x, startScreen.y);
                 ImGui::Text("End screen: %f, %f", endScreen.x, endScreen.y);
-                ImGui::Text("Accept: %i", accept);
+                //ImGui::Text("Accept: %i", accept);
             }
 
 
@@ -290,14 +374,14 @@ void Editor::update() {
 
             glm::vec2 circlePos = ndcObjectPosition;
             //circlePos.y = windowSize.y - circlePos.y;
-            ImGui::GetForegroundDrawList()->AddCircle(ImVec2(circlePos.x, circlePos.y), startingMouseDistance, ImColor(1.0f, 1.0f, 1.0f), getCircleSegments(startingMouseDistance));
+            ImGui::GetBackgroundDrawList()->AddCircle(ImVec2(circlePos.x, circlePos.y), startingMouseDistance, ImColor(1.0f, 1.0f, 1.0f), getCircleSegments(startingMouseDistance));
             //ImGui::GetForegroundDrawList()->AddCircle(ImVec2(circlePos.x, circlePos.y), 50.0f, ImColor(1.0f, 1.0f, 1.0f));
 
             float currentMouseDistance = glm::distance(ndcObjectPosition, ndcMousePos);
 
             glm::vec2 mouseDir = glm::normalize(ndcMousePos - circlePos);
             glm::vec2 lineStart = circlePos + (mouseDir * startingMouseDistance);
-            ImGui::GetForegroundDrawList()->AddLine(ImVec2(lineStart.x, lineStart.y), ImVec2(ndcMousePos.x, ndcMousePos.y), ImColor(1.0f, 1.0f, 1.0f));
+            ImGui::GetBackgroundDrawList()->AddLine(ImVec2(lineStart.x, lineStart.y), ImVec2(ndcMousePos.x, ndcMousePos.y), ImColor(1.0f, 1.0f, 1.0f));
 
 
             float scaleFac = (currentMouseDistance - startingMouseDistance) * 0.01f;
@@ -323,5 +407,26 @@ void Editor::update() {
             ImGui::Text("Current mouse distance: %f", currentMouseDistance);
             ImGui::Text("Scale: %f", selectedTransform.scale.x);
         }
+    }
+
+    updateCamera(deltaTime);
+
+    if (reg.valid(currentSelectedEntity)) {
+        if (ImGui::Begin("Selected entity")) {
+            if (reg.has<Transform>(currentSelectedEntity)) {
+                auto& selectedTransform = reg.get<Transform>(currentSelectedEntity);
+                ImGui::DragFloat3("Position", &selectedTransform.position.x);
+
+                glm::vec3 eulerRot = glm::degrees(glm::eulerAngles(selectedTransform.rotation));
+                if (ImGui::DragFloat3("Rotation", glm::value_ptr(eulerRot))) {
+                    selectedTransform.rotation = glm::radians(eulerRot);
+                }
+
+                ImGui::DragFloat3("Scale", &selectedTransform.scale.x);
+            }
+            
+        }
+
+        ImGui::End();
     }
 }

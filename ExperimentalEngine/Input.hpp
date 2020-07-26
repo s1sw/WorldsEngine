@@ -11,8 +11,8 @@ enum class MouseButton : uint32_t {
 
 class InputManager {
 public:
-	InputManager();
-	void update(SDL_Window* window);
+	InputManager(SDL_Window* window);
+	void update();
 	void endFrame();
 	bool mouseButtonHeld(MouseButton button);
 	bool mouseButtonPressed(MouseButton button);
@@ -20,9 +20,11 @@ public:
 	bool keyHeld(SDL_Scancode scancode);
 	bool keyPressed(SDL_Scancode scancode);
 	bool keyReleased(SDL_Scancode scancode);
-	glm::ivec2 getMouseDelta() { return mouseDelta; }
-	glm::ivec2 getMousePosition() { return mousePos; }
+	glm::ivec2 getMouseDelta();
+	glm::ivec2 getMousePosition();
+	void warpMouse(glm::ivec2 newPosition);
 private:
+	SDL_Window* window;
 	uint32_t mouseButtonFlags;
 	uint32_t lastMouseButtonFlags;
 	const Uint8* keyState;
