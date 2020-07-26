@@ -18,7 +18,6 @@
 
 #ifndef VKU_HPP
 #define VKU_HPP
-#define VOOKOO_SPIRV_SUPPORT
 #define VMA_STATIC_VULKAN_FUNCTIONS 1
 
 #include <array>
