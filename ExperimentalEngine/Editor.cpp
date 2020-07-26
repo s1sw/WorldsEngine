@@ -344,12 +344,6 @@ void Editor::update(float deltaTime) {
                 glm::vec3 color = x + y + z;
 
                 ImGui::GetBackgroundDrawList()->AddLine(glmToImgui(startScreen), glmToImgui(endScreen), ImColor(color.x, color.y, color.z), 2.0f);
-
-                ImGui::Text("Start: %f, %f, %f", start.x, start.y, start.z);
-                ImGui::Text("End: %f, %f, %f", end.x, end.y, end.z);
-                ImGui::Text("Start screen: %f, %f", startScreen.x, startScreen.y);
-                ImGui::Text("End screen: %f, %f", endScreen.x, endScreen.y);
-                //ImGui::Text("Accept: %i", accept);
             }
 
 
@@ -403,9 +397,6 @@ void Editor::update(float deltaTime) {
             std::string scaleStr = "Scale: " + std::to_string(selectedTransform.scale.x);
 
             ImGui::GetForegroundDrawList()->AddText(ImVec2(ndcMousePos.x, ndcMousePos.y), ImColor(1.0f, 1.0f, 1.0f), scaleStr.c_str());
-            ImGui::Text("Starting mouse distance: %f", startingMouseDistance);
-            ImGui::Text("Current mouse distance: %f", currentMouseDistance);
-            ImGui::Text("Scale: %f", selectedTransform.scale.x);
         }
     }
 
