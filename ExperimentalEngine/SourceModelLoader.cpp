@@ -2,6 +2,7 @@
 #include "Engine.hpp"
 #include "GlmStreamOps.hpp"
 #include <iostream>
+typedef unsigned char byte;
 
 #pragma pack(push, 1)
 
