@@ -1,6 +1,9 @@
 #pragma once
 #include <unordered_set>
 #include <functional>
+#include <vector>
+#include <cstdint>
+#include <unordered_map>
 
 namespace vk {
 	enum class ImageAspectFlagBits;
