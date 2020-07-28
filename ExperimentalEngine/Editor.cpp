@@ -63,10 +63,6 @@ void Editor::select(entt::entity entity) {
     reg.emplace<UseWireframe>(currentSelectedEntity);
 }
 
-glm::vec3 projectDir(glm::vec3 dir, Camera& cam) {
-    return cam.getProjectionMatrix(1280.0f / 720.0f) * glm::vec4(cam.rotation * dir, 0.0f);
-}
-
 void Editor::handleAxisButtonPress(AxisFlagBits axisFlagBit) {
     if (currentAxisLock == AxisFlagBits::All)
         currentAxisLock = axisFlagBit;
@@ -98,17 +94,11 @@ glm::vec2 worldToScreenG(glm::vec3 wPos, glm::mat4 vp) {
 
 ImVec2 worldToScreen(glm::vec3 wPos, glm::mat4 vp) {
     glm::vec2 screenPos = worldToScreenG(wPos, vp);
-
     return ImVec2(screenPos.x, screenPos.y);
 }
 
-float signedDistance(glm::vec2 a, glm::vec2 b) {
-    glm::vec2 dif = a - b;
-    float length2 = dif.x + dif.y;
-    float sign = glm::sign(length2);
-    return glm::sqrt(glm::abs(length2)) * sign;
-}
-
+// Guess roughly how many circle segments we'll need for a circle
+// of the specified radius
 int getCircleSegments(float radius) {
     return glm::max((int)glm::pow(radius, 0.8f), 6);
 }
@@ -125,7 +115,7 @@ void Editor::updateCamera(float deltaTime) {
     }
 
     if (inputManager.mouseButtonHeld(MouseButton::Right)) {
-        //SDL_SetRelativeMouseMode(SDL_TRUE);
+        // Camera movement
         if (inputManager.keyHeld(SDL_SCANCODE_LSHIFT))
             moveSpeed *= 2.0f;
 
@@ -153,6 +143,8 @@ void Editor::updateCamera(float deltaTime) {
             cam.position -= cam.rotation * glm::vec3(0.0f, deltaTime * moveSpeed, 0.0f);
         }
 
+        // Mouse wrap around
+        // If it leaves the screen, teleport it back on the screen but on the opposite side
         auto mousePos = inputManager.getMousePosition();
         glm::ivec2 warpAmount(0, 0);
 
@@ -187,21 +179,25 @@ void Editor::saveScene(AssetID id) {
 
 }
 
+void Editor::activateTool(Tool newTool) {
+    assert(reg.valid(currentSelectedEntity));
+    currentTool = newTool;
+    originalObjectTransform = reg.get<Transform>(currentSelectedEntity);
+    currentAxisLock = AxisFlagBits::All;
+    startingMouseDistance = -1.0f;
+}
+
 void Editor::update(float deltaTime) {
     if (currentTool == Tool::None && reg.valid(currentSelectedEntity)) {
         // Right mouse button means that the view's being moved, so we'll need the movement keys
         if (!inputManager.mouseButtonHeld(MouseButton::Right)) {
             if (inputManager.keyPressed(SDL_SCANCODE_G)) {
-                currentTool = Tool::Translate;
+                activateTool(Tool::Translate);
             } else if (inputManager.keyPressed(SDL_SCANCODE_R)) {
-                currentTool = Tool::Rotate;
+                activateTool(Tool::Rotate);
             } else if (inputManager.keyPressed(SDL_SCANCODE_S)) {
-                currentTool = Tool::Scale;
+                activateTool(Tool::Scale);
             }
-            originalObjectTransform = reg.get<Transform>(currentSelectedEntity);
-            currentAxisLock = AxisFlagBits::All;
-            startingMouseDistance = -1.0f;
-
         }
     } else {
         // Complex axis juggling
@@ -251,6 +247,7 @@ void Editor::update(float deltaTime) {
 
     if (currentTool != Tool::None) {
         auto& selectedTransform = reg.get<Transform>(currentSelectedEntity);
+
         if (inputManager.mouseButtonPressed(MouseButton::Right)) {
             selectedTransform = originalObjectTransform;
             currentTool = Tool::None;
@@ -345,12 +342,16 @@ void Editor::update(float deltaTime) {
         } else if (currentTool == Tool::Scale) {
             glm::vec2 halfWindowSize = glm::vec2(windowSize) * 0.5f;
 
+            // Convert selected transform position from world space to screen space
             glm::vec4 ndcObjPosPreDivide = cam.getProjectionMatrix((float)windowSize.x / windowSize.y) * cam.getViewMatrix() * glm::vec4(selectedTransform.position, 1.0f);
+
+            // NDC -> screen space
             glm::vec2 ndcObjectPosition(ndcObjPosPreDivide);
             ndcObjectPosition /= ndcObjPosPreDivide.w;
             ndcObjectPosition *= 0.5f;
             ndcObjectPosition += 0.5f;
             ndcObjectPosition *= windowSize;
+            // Not sure why flipping Y is necessary?
             ndcObjectPosition.y = windowSize.y - ndcObjectPosition.y;
 
             glm::vec2 ndcMousePos = inputManager.getMousePosition();
@@ -359,32 +360,31 @@ void Editor::update(float deltaTime) {
                 startingMouseDistance = glm::distance(ndcObjectPosition, ndcMousePos);
             }
 
+            float currentMouseDistance = glm::distance(ndcObjectPosition, ndcMousePos);
+
+            // 1.0 scale circle
             glm::vec2 circlePos = ndcObjectPosition;
             ImGui::GetBackgroundDrawList()->AddCircle(ImVec2(circlePos.x, circlePos.y), startingMouseDistance, ImColor(1.0f, 1.0f, 1.0f), getCircleSegments(startingMouseDistance));
 
-            float currentMouseDistance = glm::distance(ndcObjectPosition, ndcMousePos);
-
+            // Line from mouse to scale circle
             glm::vec2 mouseDir = glm::normalize(ndcMousePos - circlePos);
             glm::vec2 lineStart = circlePos + (mouseDir * startingMouseDistance);
             ImGui::GetBackgroundDrawList()->AddLine(ImVec2(lineStart.x, lineStart.y), ImVec2(ndcMousePos.x, ndcMousePos.y), ImColor(1.0f, 1.0f, 1.0f));
 
             float scaleFac = (currentMouseDistance - startingMouseDistance) * 0.01f;
-
-            ImGui::Text("Scale fac: %f", scaleFac);
-
+            // Probably don't want negative scale - scale < 1.0 is more useful
             if (scaleFac < 0.0f) {
                 scaleFac = (glm::pow(1.0f / (-scaleFac + 1.0f), 3.0f)) - 1.0f;
             }
 
-            ImGui::Text("Corrected scale fa: %f", scaleFac);
-
+            // Snap to increments of 0.1
             if (inputManager.keyHeld(SDL_SCANCODE_LCTRL)) {
                 scaleFac = glm::round(scaleFac * 10.0f) / 10.0f;
             }
 
             selectedTransform.scale = originalObjectTransform.scale + filterAxes(originalObjectTransform.scale * scaleFac, currentAxisLock);
 
-            std::string scaleStr = "Scale: " + std::to_string(selectedTransform.scale.x);
+            std::string scaleStr = "Avg. Scale: " + std::to_string(glm::dot(filterAxes(glm::vec3(1.0f), currentAxisLock), selectedTransform.scale) / getNumActiveAxes(currentAxisLock));
 
             ImGui::GetForegroundDrawList()->AddText(ImVec2(ndcMousePos.x, ndcMousePos.y), ImColor(1.0f, 1.0f, 1.0f), scaleStr.c_str());
         }
@@ -413,6 +413,12 @@ void Editor::update(float deltaTime) {
                 }
 
                 ImGui::DragFloat3("Scale", &selectedTransform.scale.x);
+            }
+
+            if (reg.has<WorldObject>(currentSelectedEntity)) {
+                auto& worldObject = reg.get<WorldObject>(currentSelectedEntity);
+                ImGui::DragFloat2("Texture Scale", &worldObject.texScaleOffset.x);
+                ImGui::DragFloat2("Texture Offset", &worldObject.texScaleOffset.z);
             }
         }
 

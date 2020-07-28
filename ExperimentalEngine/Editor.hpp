@@ -48,6 +48,7 @@ public:
     void update(float deltaTime);
     void saveScene(AssetID sceneId);
     void loadScene(AssetID sceneId);
+    void activateTool(Tool newTool);
 private:
     void updateCamera(float deltaTime);
     void handleAxisButtonPress(AxisFlagBits axis);
