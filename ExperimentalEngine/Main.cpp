@@ -169,6 +169,29 @@ int workerThreadOverride = -1;
 bool enableXR = false;
 glm::ivec2 windowSize;
 
+void loadEditorFont() {
+    ImGui::GetIO().Fonts->Clear();
+    PHYSFS_File* ttfFile = PHYSFS_openRead("Fonts/EditorFont.ttf");
+    size_t fileLength = PHYSFS_fileLength(ttfFile);
+
+    if (fileLength == -1) {
+        PHYSFS_close(ttfFile);
+        SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION, "Couldn't determine size of editor font file");
+        return;
+    }
+
+    void* buf = std::malloc(fileLength);
+    size_t readBytes = PHYSFS_readBytes(ttfFile, buf, fileLength);
+
+    if (readBytes != fileLength) {
+        PHYSFS_close(ttfFile);
+        SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION, "Failed to read full TTF file");
+        return;
+    }
+
+    ImGui::GetIO().Fonts->AddFontFromMemoryTTF(buf, readBytes, 18.0f);
+}
+
 void engine(char* argv0) {
 #ifdef TRACY_ENABLE
     ZoneScoped;
@@ -228,6 +251,12 @@ void engine(char* argv0) {
     bool renderInitSuccess = false;
 
     ImGui::CreateContext();
+
+    if (PHYSFS_exists("Fonts/EditorFont.ttf")) {
+        loadEditorFont();
+    } else {
+        SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION, "EditorFont doesn't exist.");
+    }
     ImGui_ImplSDL2_InitForVulkan(window);
 
     std::vector<std::string> additionalInstanceExts;
