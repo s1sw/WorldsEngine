@@ -180,15 +180,11 @@ void Editor::updateCamera(float deltaTime) {
 
             cam.rotation = glm::angleAxis(-lookX, glm::vec3(0.0f, 1.0f, 0.0f)) * glm::angleAxis(lookY, glm::vec3(1.0f, 0.0f, 0.0f));
         }
-
-        
-    } else {
-        //SDL_SetRelativeMouseMode(SDL_FALSE);
-
-        //if (inputManager.mouseButtonReleased(MouseButton::Right)) {
-        //    inputManager.warpMouse(glm::ivec2(origMouseX, origMouseY));
-        //}
     }
+}
+
+void Editor::saveScene(AssetID id) {
+
 }
 
 void Editor::update(float deltaTime) {
@@ -279,10 +275,7 @@ void Editor::update(float deltaTime) {
             dir = cam.rotation * dir;
 
             glm::vec3 n;
-
             glm::vec3 newPos;
-
-
 
             if (currentAxisLock == AxisFlagBits::All) {
                 n = cam.rotation * glm::vec3(0.0f, 0.0f, 1.0f);
@@ -375,7 +368,6 @@ void Editor::update(float deltaTime) {
             glm::vec2 lineStart = circlePos + (mouseDir * startingMouseDistance);
             ImGui::GetBackgroundDrawList()->AddLine(ImVec2(lineStart.x, lineStart.y), ImVec2(ndcMousePos.x, ndcMousePos.y), ImColor(1.0f, 1.0f, 1.0f));
 
-
             float scaleFac = (currentMouseDistance - startingMouseDistance) * 0.01f;
 
             ImGui::Text("Scale fac: %f", scaleFac);
@@ -407,6 +399,7 @@ void Editor::update(float deltaTime) {
             reg.emplace<Transform>(newEnt, reg.get<Transform>(currentSelectedEntity));
             reg.emplace<WorldObject>(newEnt, reg.get<WorldObject>(currentSelectedEntity));
             select(newEnt);
+            currentTool = Tool::Translate;
         }
 
         if (ImGui::Begin("Selected entity")) {
