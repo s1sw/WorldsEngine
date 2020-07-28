@@ -188,7 +188,7 @@ void Editor::updateCamera(float deltaTime) {
 }
 
 void Editor::saveScene(AssetID id) {
-
+    
 }
 
 void Editor::activateTool(Tool newTool) {
@@ -407,7 +407,9 @@ void Editor::update(float deltaTime) {
     updateCamera(deltaTime);
 
     if (reg.valid(currentSelectedEntity)) {
-        if (inputManager.keyHeld(SDL_SCANCODE_LSHIFT) && inputManager.keyPressed(SDL_SCANCODE_D)) {
+        if (inputManager.keyHeld(SDL_SCANCODE_LSHIFT) && 
+            inputManager.keyPressed(SDL_SCANCODE_D) && 
+            !inputManager.mouseButtonHeld(MouseButton::Right)) {
             auto newEnt = reg.create();
 
             reg.emplace<Transform>(newEnt, reg.get<Transform>(currentSelectedEntity));
