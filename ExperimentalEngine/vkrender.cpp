@@ -387,6 +387,7 @@ void VKRenderer::createSCDependents() {
     RTResourceCreateInfo shadowmapCreateInfo{ shadowmapIci, vk::ImageViewType::e2D, vk::ImageAspectFlagBits::eDepth };
     shadowmapImage = createRTResource(shadowmapCreateInfo, "Shadowmap Image");
 
+    delete irp;
     graphSolver.clear();
     {
         auto srp = new ShadowmapRenderPass(shadowmapImage);
@@ -399,11 +400,6 @@ void VKRenderer::createSCDependents() {
         graphSolver.addNode(prp);
     }
 
-    {
-        auto irp = new ImGuiRenderPass(imguiImage);
-        graphSolver.addNode(irp);
-    }
-
     ici.arrayLayers = 1;
     ici.samples = vk::SampleCountFlagBits::e1;
     ici.format = vk::Format::eR8G8B8A8Unorm;
@@ -414,9 +410,11 @@ void VKRenderer::createSCDependents() {
     finalPrePresent = createRTResource(finalPrePresentCI, "Final Pre-Present Image");
 
     {
-        auto tonemapRP = new TonemapRenderPass(polyImage, imguiImage, finalPrePresent);
+        auto tonemapRP = new TonemapRenderPass(polyImage, finalPrePresent);
         graphSolver.addNode(tonemapRP);
     }
+
+    irp = new ImGuiRenderPass(finalPrePresent);
 
     vku::executeImmediately(*device, *commandPool, device->getQueue(graphicsQueueFamilyIdx, 0), [this](vk::CommandBuffer cmdBuf) {
         rtResources.at(polyImage).image.setLayout(cmdBuf, vk::ImageLayout::eGeneral);
@@ -430,6 +428,7 @@ void VKRenderer::createSCDependents() {
     for (auto& node : solved) {
         node->setup(psc);
     }
+    irp->setup(psc);
 }
 
 void VKRenderer::recreateSwapchain() {
@@ -595,6 +594,13 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
 
         node->execute(rCtx);
     }
+
+    irp->execute(rCtx);
+
+    //vku::transitionLayout(*cmdBuf, rtResources.at(finalPrePresent).image.image(),
+    //    vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::eColorAttachmentOptimal,
+    //    vk::PipelineStageFlagBits::eColorAttachmentOutput, vk::PipelineStageFlagBits::eColorAttachmentOutput,
+    //    vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite, vk::AccessFlagBits::eTransferRead);
 
     vku::transitionLayout(*cmdBuf, swapchain->images[imageIndex],
         vk::ImageLayout::ePresentSrcKHR, vk::ImageLayout::eTransferDstOptimal,

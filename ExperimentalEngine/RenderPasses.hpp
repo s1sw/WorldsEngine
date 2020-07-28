@@ -84,7 +84,7 @@ private:
 	RenderImageHandle hdrImg;
 	RenderImageHandle imguiImg;
 public:
-	TonemapRenderPass(RenderImageHandle hdrImg, RenderImageHandle imguiImg, RenderImageHandle finalPrePresent);
+	TonemapRenderPass(RenderImageHandle hdrImg, RenderImageHandle finalPrePresent);
 	RenderPassIO getIO() override;
 	void setup(PassSetupCtx& ctx) override;
 	void execute(RenderCtx& ctx) override;

@@ -124,6 +124,7 @@ private:
 };
 
 class PolyRenderPass;
+class ImGuiRenderPass;
 
 typedef uint32_t RenderImageHandle;
 
@@ -311,6 +312,7 @@ class VKRenderer {
 	uint32_t shadowmapRes;
 	bool enableVR;
 	PolyRenderPass* currentPRP;
+	ImGuiRenderPass* irp;
 public:
 	double time;
 	VKRenderer(RendererInitInfo& initInfo, bool* success);

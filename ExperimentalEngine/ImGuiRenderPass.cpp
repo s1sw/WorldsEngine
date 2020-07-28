@@ -10,7 +10,7 @@ RenderPassIO ImGuiRenderPass::getIO() {
     RenderPassIO io;
     io.outputs = {
         {
-            vk::ImageLayout::eShaderReadOnlyOptimal,
+            vk::ImageLayout::eTransferSrcOptimal,
             vk::PipelineStageFlagBits::eColorAttachmentOutput,
             vk::AccessFlagBits::eColorAttachmentWrite,
             target
@@ -24,9 +24,10 @@ void ImGuiRenderPass::setup(PassSetupCtx& ctx) {
     vku::RenderpassMaker rPassMaker{};
 
     rPassMaker.attachmentBegin(vk::Format::eR8G8B8A8Unorm);
-    rPassMaker.attachmentLoadOp(vk::AttachmentLoadOp::eClear);
+    rPassMaker.attachmentLoadOp(vk::AttachmentLoadOp::eLoad);
     rPassMaker.attachmentStoreOp(vk::AttachmentStoreOp::eStore);
-    rPassMaker.attachmentFinalLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
+    rPassMaker.attachmentInitialLayout(vk::ImageLayout::eColorAttachmentOptimal);
+    rPassMaker.attachmentFinalLayout(vk::ImageLayout::eTransferSrcOptimal);
 
     rPassMaker.subpassBegin(vk::PipelineBindPoint::eGraphics);
     rPassMaker.subpassColorAttachment(vk::ImageLayout::eColorAttachmentOptimal, 0);
