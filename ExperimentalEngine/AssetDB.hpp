@@ -73,6 +73,7 @@ public:
 	PHYSFS_File* openAssetFileRead(AssetID id);
 	PHYSFS_File* openAssetFileWrite(AssetID id);
 	AssetID addAsset(std::string path);
+	AssetID createAsset(std::string path);
 	std::string getAssetPath(AssetID id) { return paths[id]; }
 	std::string getAssetExtension(AssetID id) { return extensions[id]; }
 	bool hasId(std::string path) { return ids.find(path) != ids.end(); }

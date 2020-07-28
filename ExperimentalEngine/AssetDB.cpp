@@ -36,3 +36,8 @@ AssetID AssetDB::addAsset(std::string path) {
 
 	return id;
 }
+
+AssetID AssetDB::createAsset(std::string path) {
+	PHYSFS_close(PHYSFS_openWrite(path.c_str()));
+	return addAsset(path);
+}
