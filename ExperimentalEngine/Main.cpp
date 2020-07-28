@@ -164,7 +164,7 @@ entt::entity createModelObject(entt::registry& reg, glm::vec3 position, glm::qua
     return ent;
 }
 
-bool useEventThread = true;
+bool useEventThread = false;
 int workerThreadOverride = -1;
 bool enableXR = false;
 glm::ivec2 windowSize;
@@ -209,10 +209,15 @@ void engine(char* argv0) {
 
     const char* dataFolder = "EEData";
     const char* dataSrcFolder = "EEDataSrc";
-    std::string dataStr = SDL_GetBasePath();
+    const char* basePath = SDL_GetBasePath();
+
+    std::string dataStr(basePath);
     dataStr += dataFolder;
-    std::string dataSrcStr = SDL_GetBasePath();
-    dataStr += dataSrcFolder;
+
+    std::string dataSrcStr(basePath);
+    dataSrcStr += dataSrcFolder;
+
+    SDL_free((void*)basePath);
 
     PHYSFS_init(argv0);
     std::cout << "Mounting " << dataStr << "\n";
@@ -220,6 +225,15 @@ void engine(char* argv0) {
     std::cout << "Mounting source " << dataSrcStr << "\n";
     PHYSFS_mount(dataSrcStr.c_str(), "/source", 1);
     PHYSFS_setWriteDir(dataStr.c_str());
+
+    for (const PHYSFS_ArchiveInfo** ppArchiveInfo = PHYSFS_supportedArchiveTypes(); *ppArchiveInfo != nullptr; ppArchiveInfo++) {
+        const PHYSFS_ArchiveInfo* pArchiveInfo = *ppArchiveInfo;
+        std::cout << "Extension: " << pArchiveInfo->extension << "\n"
+            << "Description: " << pArchiveInfo->description << "\n"
+            << "Author: " << pArchiveInfo->author << "\n"
+            << "URL: " << pArchiveInfo->url << "\n"
+            << "Supports symlinks: " << pArchiveInfo->supportsSymlinks << "\n";
+    }
 
     bool running = true;
 
