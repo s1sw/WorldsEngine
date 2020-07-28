@@ -3,6 +3,7 @@
 #include "Input.hpp"
 #include "Camera.hpp"
 #include "Transform.hpp"
+typedef uint32_t AssetID;
 
 enum class Tool {
     None,
@@ -45,6 +46,8 @@ public:
     Editor(entt::registry& reg, InputManager& inputManager, Camera& cam);
     void select(entt::entity entity);
     void update(float deltaTime);
+    void saveScene(AssetID sceneId);
+    void loadScene(AssetID sceneId);
 private:
     void updateCamera(float deltaTime);
     void handleAxisButtonPress(AxisFlagBits axis);

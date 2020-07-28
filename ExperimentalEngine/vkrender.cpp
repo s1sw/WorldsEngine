@@ -521,7 +521,7 @@ void VKRenderer::imageBarrier(vk::CommandBuffer& cb, ImageBarrier& ib) {
 }
 
 vku::ShaderModule VKRenderer::loadShaderAsset(AssetID id) {
-    PHYSFS_File* file = g_assetDB.openDataFile(id);
+    PHYSFS_File* file = g_assetDB.openAssetFileRead(id);
     size_t size = PHYSFS_fileLength(file);
     void* buffer = std::malloc(size);
 
@@ -695,7 +695,7 @@ void VKRenderer::preloadMesh(AssetID id) {
     auto ext = g_assetDB.getAssetExtension(id);
 
     if (ext == ".obj") { // obj
-        PhysFS::ifstream meshFileStream(g_assetDB.openDataFile(id));
+        PhysFS::ifstream meshFileStream(g_assetDB.openAssetFileRead(id));
         loadObj(vertices, indices, meshFileStream);
     } else if (ext == ".mdl") { // source model
 

@@ -70,7 +70,8 @@ public:
 	MeshAsset getMesh(AssetID id);
 	MaterialAsset getMaterial(AssetID id);
 	ShaderAsset getShader(AssetID id);
-	PHYSFS_File* openDataFile(AssetID id);
+	PHYSFS_File* openAssetFileRead(AssetID id);
+	PHYSFS_File* openAssetFileWrite(AssetID id);
 	AssetID addAsset(std::string path);
 	std::string getAssetPath(AssetID id) { return paths[id]; }
 	std::string getAssetExtension(AssetID id) { return extensions[id]; }

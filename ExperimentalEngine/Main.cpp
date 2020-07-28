@@ -120,7 +120,7 @@ int windowThread(void* data) {
 
     bool* running = wtd->runningPtr;
 
-    window = SDL_CreateWindow("ExperimentalEngine", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1280, 720, SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE);
+    window = SDL_CreateWindow("ExperimentalEngine", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1280, 720, SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
     if (window == nullptr) {
         SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "err", SDL_GetError(), NULL);
     }
@@ -211,7 +211,7 @@ void engine(char* argv0) {
             "ExperimentalEngine",
             SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
             1280, 720,
-            SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE);
+            SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
         if (window == nullptr) {
             SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "err", SDL_GetError(), NULL);
         }

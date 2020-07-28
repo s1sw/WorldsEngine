@@ -7,7 +7,7 @@ AssetDB::AssetDB() : currId(0) {
 
 }
 
-PHYSFS_File* AssetDB::openDataFile(AssetID id) {
+PHYSFS_File* AssetDB::openAssetFileRead(AssetID id) {
 	return PHYSFS_openRead(paths.at(id).c_str());
 }
 

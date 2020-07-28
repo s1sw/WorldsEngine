@@ -507,7 +507,7 @@ glm::vec3 flipVec(glm::vec3 vec) {
 }
 
 void loadSourceModel(AssetID mdlId, AssetID vtxId, AssetID vvdId, std::vector<Vertex>& vertices, std::vector<uint32_t>& indices) {
-	PHYSFS_File* mdlFile = g_assetDB.openDataFile(mdlId);
+	PHYSFS_File* mdlFile = g_assetDB.openAssetFileRead(mdlId);
 
 	// this is really, really awful
 	size_t mdlLen = PHYSFS_fileLength(mdlFile);
@@ -516,7 +516,7 @@ void loadSourceModel(AssetID mdlId, AssetID vtxId, AssetID vvdId, std::vector<Ve
 	PHYSFS_readBytes(mdlFile, mdl, mdlLen);
 	PHYSFS_close(mdlFile);
 
-	PHYSFS_File* vvdFile = g_assetDB.openDataFile(vvdId);
+	PHYSFS_File* vvdFile = g_assetDB.openAssetFileRead(vvdId);
 	
 	size_t vvdLen = PHYSFS_fileLength(vvdFile);
 	vertexFileHeader_t* vvd = static_cast<vertexFileHeader_t*>(std::malloc(vvdLen));
@@ -524,7 +524,7 @@ void loadSourceModel(AssetID mdlId, AssetID vtxId, AssetID vvdId, std::vector<Ve
 	PHYSFS_readBytes(vvdFile, vvd, vvdLen);
 	PHYSFS_close(vvdFile);
 
-	PHYSFS_File* vtxFile = g_assetDB.openDataFile(vtxId);
+	PHYSFS_File* vtxFile = g_assetDB.openAssetFileRead(vtxId);
 
 	size_t vtxLen = PHYSFS_fileLength(vtxFile);
 	VtxFileHeader_t* vtx = static_cast<VtxFileHeader_t*>(std::malloc(vtxLen));
