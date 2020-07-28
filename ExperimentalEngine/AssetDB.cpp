@@ -11,6 +11,10 @@ PHYSFS_File* AssetDB::openAssetFileRead(AssetID id) {
 	return PHYSFS_openRead(paths.at(id).c_str());
 }
 
+PHYSFS_File* AssetDB::openAssetFileWrite(AssetID id) {
+	return PHYSFS_openWrite(paths.at(id).c_str());
+}
+
 AssetID AssetDB::addAsset(std::string path) {
 	if (PHYSFS_exists(path.c_str()) == 0) {
 		std::cout << "Tried adding nonexistent asset\n";

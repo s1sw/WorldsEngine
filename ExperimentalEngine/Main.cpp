@@ -207,18 +207,19 @@ void engine(char* argv0) {
     // means that jobs can be missed
     JobSystem jobSystem{ workerThreadOverride == -1 ? std::max(SDL_GetCPUCount(), 2) : workerThreadOverride };
 
-    // Janky C string juggling
     const char* dataFolder = "EEData";
-    char* dataPath = SDL_GetBasePath();
-    size_t dataStrLen = strlen(dataPath) + 1 + strlen(dataFolder);
-    char* dataStr = (char*)malloc(dataStrLen);
-    strcpy_s(dataStr, dataStrLen, dataPath);
-    strcat_s(dataStr, dataStrLen, dataFolder);
-    SDL_free(dataPath);
+    const char* dataSrcFolder = "EEDataSrc";
+    std::string dataStr = SDL_GetBasePath();
+    dataStr += dataFolder;
+    std::string dataSrcStr = SDL_GetBasePath();
+    dataStr += dataSrcFolder;
 
-    std::cout << "Mounting " << dataStr << "\n";
     PHYSFS_init(argv0);
-    PHYSFS_mount(dataStr, "/", 0);
+    std::cout << "Mounting " << dataStr << "\n";
+    PHYSFS_mount(dataStr.c_str(), "/", 0);
+    std::cout << "Mounting source " << dataSrcStr << "\n";
+    PHYSFS_mount(dataSrcStr.c_str(), "/source", 1);
+    PHYSFS_setWriteDir(dataStr.c_str());
 
     bool running = true;
 
