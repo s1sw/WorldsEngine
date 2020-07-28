@@ -46,7 +46,8 @@ Editor::Editor(entt::registry& reg, InputManager& inputManager, Camera& cam)
     , currentTool(Tool::None)
     , currentAxisLock(AxisFlagBits::All)
     , lookX(0.0f)
-    , lookY(0.0f) {
+    , lookY(0.0f)
+    , settings() {
 }
 
 void Editor::select(entt::entity entity) {
@@ -101,6 +102,17 @@ ImVec2 worldToScreen(glm::vec3 wPos, glm::mat4 vp) {
 // of the specified radius
 int getCircleSegments(float radius) {
     return glm::max((int)glm::pow(radius, 0.8f), 6);
+}
+
+// Based on code from the ImGui demo
+void tooltipHover(const char* desc) {
+    if (ImGui::IsItemHovered()) {
+        ImGui::BeginTooltip();
+        ImGui::PushTextWrapPos(ImGui::GetFontSize() * 25.0f);
+        ImGui::TextUnformatted(desc);
+        ImGui::PopTextWrapPos();
+        ImGui::EndTooltip();
+    }
 }
 
 void Editor::updateCamera(float deltaTime) {
@@ -240,8 +252,10 @@ void Editor::update(float deltaTime) {
 
         ImGui::Text("Current axes: %s", buf);
         ImGui::Text("Current tool: %s", toolStr(currentTool));
-
-        ImGui::Checkbox("Global object snap", &objectSnapGlobal);
+        
+        ImGui::Checkbox("Global object snap", &settings.objectSnapGlobal);
+        tooltipHover("If this is checked, moving an object with Ctrl held will snap in increments relative to the world rather than the object's original position.");
+        ImGui::InputFloat("Scale snap increment", &settings.scaleSnapIncrement, 0.1f, 0.5f);
     }
     ImGui::End();
 
@@ -301,12 +315,12 @@ void Editor::update(float deltaTime) {
 
             glm::vec3 dif = (cam.position + dir * t) - originalObjectTransform.position;
 
-            if (inputManager.keyHeld(SDL_SCANCODE_LCTRL) && !objectSnapGlobal)
+            if (inputManager.keyHeld(SDL_SCANCODE_LCTRL) && !settings.objectSnapGlobal)
                 dif = glm::round(dif);
 
             selectedTransform.position = originalObjectTransform.position + filterAxes(dif, currentAxisLock);
 
-            if (inputManager.keyHeld(SDL_SCANCODE_LCTRL) && objectSnapGlobal)
+            if (inputManager.keyHeld(SDL_SCANCODE_LCTRL) && settings.objectSnapGlobal)
                 selectedTransform.position = glm::round(selectedTransform.position);
             
             glm::mat4 vp = cam.getProjectionMatrix((float)windowSize.x / windowSize.y)* cam.getViewMatrix();
@@ -379,7 +393,7 @@ void Editor::update(float deltaTime) {
 
             // Snap to increments of 0.1
             if (inputManager.keyHeld(SDL_SCANCODE_LCTRL)) {
-                scaleFac = glm::round(scaleFac * 10.0f) / 10.0f;
+                scaleFac = glm::round(scaleFac / settings.scaleSnapIncrement) * settings.scaleSnapIncrement;
             }
 
             selectedTransform.scale = originalObjectTransform.scale + filterAxes(originalObjectTransform.scale * scaleFac, currentAxisLock);

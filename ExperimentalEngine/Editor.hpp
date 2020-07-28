@@ -41,6 +41,14 @@ inline AxisFlagBits operator ^(AxisFlagBits lhs, AxisFlagBits rhs) {
         );
 }
 
+struct EditorSettings {
+    EditorSettings()
+        : objectSnapGlobal(false)
+        , scaleSnapIncrement(0.1f) {}
+    bool objectSnapGlobal;
+    float scaleSnapIncrement;
+};
+
 class Editor {
 public:
     Editor(entt::registry& reg, InputManager& inputManager, Camera& cam);
@@ -63,5 +71,5 @@ private:
     float lookX;
     float lookY;
 
-    bool objectSnapGlobal;
+    EditorSettings settings;
 };
