@@ -59,7 +59,7 @@ void PolyRenderPass::setup(PassSetupCtx& ctx) {
     auto memoryProps = ctx.physicalDevice.getMemoryProperties();
 
     vku::SamplerMaker sm{};
-    sm.magFilter(vk::Filter::eLinear).minFilter(vk::Filter::eLinear).mipmapMode(vk::SamplerMipmapMode::eLinear);
+    sm.magFilter(vk::Filter::eLinear).minFilter(vk::Filter::eLinear).mipmapMode(vk::SamplerMipmapMode::eLinear).anisotropyEnable(true).maxAnisotropy(16.0f);
     albedoSampler = sm.createUnique(ctx.device);
 
     vku::SamplerMaker ssm{};
@@ -174,8 +174,8 @@ void PolyRenderPass::setup(PassSetupCtx& ctx) {
     fci.layers = false ? 2 : 1; // TODO!!!!!!!!!!!
     renderFb = ctx.device.createFramebufferUnique(fci);
 
-    AssetID vsID = g_assetDB.addOrGetExisting("Shaders/test.vert.spv");
-    AssetID fsID = g_assetDB.addOrGetExisting("Shaders/test.frag.spv");
+    AssetID vsID = g_assetDB.addOrGetExisting("Shaders/standard.vert.spv");
+    AssetID fsID = g_assetDB.addOrGetExisting("Shaders/standard.frag.spv");
     vertexShader = vku::loadShaderAsset(ctx.device, vsID);
     fragmentShader = vku::loadShaderAsset(ctx.device, fsID);
 

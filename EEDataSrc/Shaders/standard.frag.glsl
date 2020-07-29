@@ -12,6 +12,7 @@ layout(location = 4) in vec4 inShadowPos;
 layout(location = 5) in float inDepth;
 
 layout(constant_id = 0) const bool ENABLE_PICKING = false;
+layout(constant_id = 1) const bool FACE_PICKING = false;
 
 const int LT_POINT = 0;
 const int LT_SPOT = 1;
