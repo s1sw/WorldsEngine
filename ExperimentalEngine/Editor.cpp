@@ -522,7 +522,7 @@ void Editor::update(float deltaTime) {
             reg.emplace<Transform>(newEnt, reg.get<Transform>(currentSelectedEntity));
             reg.emplace<WorldObject>(newEnt, reg.get<WorldObject>(currentSelectedEntity));
             select(newEnt);
-            currentTool = Tool::Translate;
+            activateTool(Tool::Translate);
         }
 
         if (ImGui::Begin("Selected entity")) {
@@ -565,16 +565,24 @@ void Editor::update(float deltaTime) {
 
     if (ImGui::Begin("Entity List")) {
         reg.each([this](auto ent) {
+            ImGui::PushID((int)ent);
             ImGui::Text("Entity %u", ent);
             ImGui::SameLine();
             if (ImGui::Button("Select"))
                 select(ent);
+            ImGui::PopID();
         });
     }
     ImGui::End();
 
     if (inputManager.keyPressed(SDL_SCANCODE_S) && inputManager.keyHeld(SDL_SCANCODE_LCTRL)) {
-        saveScene(g_assetDB.createAsset("scene.escn"));
+        AssetID sceneId;
+        std::string scenePath = "scene.escn";
+        if (g_assetDB.hasId(scenePath))
+            sceneId = g_assetDB.getExistingID(scenePath);
+        else
+            sceneId = g_assetDB.createAsset(scenePath);
+        saveScene(g_assetDB.createAsset(scenePath));
     }
 
     if (inputManager.keyPressed(SDL_SCANCODE_O) && inputManager.keyHeld(SDL_SCANCODE_LCTRL)) {
