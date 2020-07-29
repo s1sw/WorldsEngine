@@ -1567,7 +1567,7 @@ namespace vku {
                     auto depth = mipScale(s.info.extent.depth, mipLevel);
                     for (uint32_t face = 0; face != s.info.arrayLayers; ++face) {
                         copy(cb, buf, mipLevel, face, width, height, depth, offset);
-                        offset += ((bp.bytesPerBlock + 3) & ~3) * (width * height);
+                        offset += ((bp.bytesPerBlock + 3) & ~3) * ((width / bp.blockWidth) * (height / bp.blockHeight));
                     }
                 }
                 setLayout(cb, vk::ImageLayout::eShaderReadOnlyOptimal);
