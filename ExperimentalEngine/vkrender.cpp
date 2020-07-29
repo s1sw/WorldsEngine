@@ -18,6 +18,7 @@
 #endif
 #include "XRInterface.hpp"
 #include "RenderPasses.hpp"
+#include "crn_decomp.h"
 
 uint32_t findPresentQueue(vk::PhysicalDevice pd, vk::SurfaceKHR surface) {
     auto qprops = pd.getQueueFamilyProperties();
@@ -66,24 +67,113 @@ void VKRenderer::createFramebuffers() {
     }
 }
 
-void VKRenderer::loadTex(const char* path, int index) {
+uint32_t getCrunchTextureSize(crnd::crn_texture_info texInfo, int mip) {
+    const crn_uint32 width = std::max(1U, texInfo.m_width >> mip);
+    const crn_uint32 height = std::max(1U, texInfo.m_height >> mip);
+    const crn_uint32 blocks_x = std::max(1U, (width + 3) >> 2);
+    const crn_uint32 blocks_y = std::max(1U, (height + 3) >> 2);
+    const crn_uint32 row_pitch = blocks_x * crnd::crnd_get_bytes_per_dxt_block(texInfo.m_format);
+    const crn_uint32 total_face_size = row_pitch * blocks_y;
+
+    return total_face_size;
+}
+
+uint32_t getRowPitch(crnd::crn_texture_info texInfo, int mip) {
+    const crn_uint32 width = std::max(1U, texInfo.m_width >> mip);
+    const crn_uint32 height = std::max(1U, texInfo.m_height >> mip);
+    const crn_uint32 blocks_x = std::max(1U, (width + 3) >> 2);
+    const crn_uint32 row_pitch = blocks_x * crnd::crnd_get_bytes_per_dxt_block(texInfo.m_format);
+
+    return row_pitch;
+}
+
+inline int getNumMips(int w, int h) {
+    return 1 + floor(log2(glm::max(w, h)));
+}
+
+void VKRenderer::loadTex(const char* path, int index, bool crunch) {
+    
     auto memProps = physicalDevice.getMemoryProperties();
     int x, y, channelsInFile;
-    stbi_uc* dat = stbi_load(path, &x, &y, &channelsInFile, 4);
+    if (!crunch) {
+        stbi_uc* dat = stbi_load(path, &x, &y, &channelsInFile, 4);
 
-    if (dat == nullptr) {
+        if (dat == nullptr) {
+        }
+        textures[index].present = true;
+        textures[index].tex = vku::TextureImage2D{ *device, memProps, (uint32_t)x, (uint32_t)y, 1, vk::Format::eR8G8B8A8Srgb };
+
+        std::vector<uint8_t> albedoDat(dat, dat + ((size_t)x * y * 4));
+
+        textures[index].tex.upload(*device, allocator, albedoDat, *commandPool, memProps, device->getQueue(graphicsQueueFamilyIdx, 0));
+        std::free(dat);
+    } else {
+        bool isSRGB = true;
+        PHYSFS_File* file = PHYSFS_openRead(path);
+        size_t fileLen = PHYSFS_fileLength(file);
+        void* fileData = std::malloc(fileLen);
+        PHYSFS_readBytes(file, fileData, fileLen);
+        PHYSFS_close(file);
+
+        crnd::crn_texture_info texInfo;
+
+        if (!crnd::crnd_get_texture_info(fileData, fileLen, &texInfo))
+            return;
+
+        crnd::crnd_unpack_context context = crnd::crnd_unpack_begin(fileData, fileLen);
+
+        crn_format fundamentalFormat = crnd::crnd_get_fundamental_dxt_format(texInfo.m_format);
+
+        vk::Format format;
+
+        switch (fundamentalFormat) {
+        case crn_format::cCRNFmtDXT1:
+            format = isSRGB ? vk::Format::eBc1RgbaSrgbBlock : vk::Format::eBc1RgbaUnormBlock;
+            break;
+        case crn_format::cCRNFmtDXT5:
+            format = isSRGB ? vk::Format::eBc3SrgbBlock : vk::Format::eBc3UnormBlock;
+            break;
+        //case crn_format::cCRNFmtDXN_XY:
+        //    format = DXGI_FORMAT_BC5_UNORM;
+        //    viewFormat = DXGI_FORMAT_BC5_UNORM; //DXGI_FORMAT_R8G8_UNORM;
+        //    channels = 2;
+        //    break;
+        }
+
+        x = texInfo.m_width;
+        y = texInfo.m_height;
+        uint32_t pitch = getRowPitch(texInfo, 0);
+
+        size_t totalDataSize = 0;
+        for (int i = 0; i < texInfo.m_levels; i++) totalDataSize += getCrunchTextureSize(texInfo, i);
+        
+        char* data = (char*)std::malloc(totalDataSize);
+        size_t currOffset = 0;
+        for (int i = 0; i < texInfo.m_levels; i++) {
+            char* dataOffs = &data[currOffset];
+            uint32_t dataSize = getCrunchTextureSize(texInfo, i);
+            currOffset += dataSize;
+
+            if (!crnd::crnd_unpack_level(context, (void**)&dataOffs, dataSize, getRowPitch(texInfo, i), i))
+                __debugbreak();
+        }
+
+        uint32_t numMips = texInfo.m_levels;
+
+        crnd::crnd_unpack_end(context);
+
+        textures[index].present = true;
+        textures[index].tex = vku::TextureImage2D{ *device, memProps, (uint32_t)x, (uint32_t)y, numMips, format };
+        std::vector<uint8_t> albedoDat(data, data + totalDataSize);
+
+        textures[index].tex.upload(*device, allocator, albedoDat, *commandPool, memProps, device->getQueue(graphicsQueueFamilyIdx, 0));
+        std::free(data);
     }
-    textures[index].present = true;
-    textures[index].tex = vku::TextureImage2D{ *device, memProps, (uint32_t)x, (uint32_t)y, 1, vk::Format::eR8G8B8A8Srgb };
-
-    std::vector<uint8_t> albedoDat(dat, dat + ((size_t)x * y * 4));
-
-    textures[index].tex.upload(*device, allocator, albedoDat, *commandPool, memProps, device->getQueue(graphicsQueueFamilyIdx, 0));
 }
 
 void VKRenderer::loadAlbedo() {
-    loadTex("albedo.png", 0);
-    loadTex("terrain.png", 1);
+    loadTex("albedo.png", 0, false);
+    loadTex("grass.crn", 1, true);
 }
 
 VKRenderer::VKRenderer(RendererInitInfo& initInfo, bool* success) 
@@ -228,6 +318,7 @@ VKRenderer::VKRenderer(RendererInitInfo& initInfo, bool* success)
     features.fragmentStoresAndAtomics = true;
     features.fillModeNonSolid = true;
     features.wideLines = true;
+    features.samplerAnisotropy = true;
     dm.setFeatures(features);
 
     vk::PhysicalDeviceDescriptorIndexingFeatures diFeatures;
