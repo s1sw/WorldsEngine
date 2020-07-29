@@ -297,7 +297,7 @@ class VKRenderer {
 	void createFramebuffers();
 	void createSCDependents();
 	void presentNothing(uint32_t imageIndex);
-	void loadTex(const char* path, int index);
+	void loadTex(const char* path, int index, bool crunch);
 	void loadAlbedo();
 	vku::ShaderModule loadShaderAsset(AssetID id);
 
