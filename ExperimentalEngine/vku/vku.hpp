@@ -1425,8 +1425,8 @@ namespace vku {
             dsci.bindingCount = (uint32_t)s.bindings.size();
             dsci.pBindings = s.bindings.data();
 
-            if (s.useBindFlags) {
-                vk::DescriptorSetLayoutBindingFlagsCreateInfo dslbfci;
+            vk::DescriptorSetLayoutBindingFlagsCreateInfo dslbfci;
+            if (s.useBindFlags) {    
                 dslbfci.bindingCount = (uint32_t)s.bindings.size();
                 dslbfci.pBindingFlags = s.bindFlags.data();
                 dsci.pNext = &dslbfci;
