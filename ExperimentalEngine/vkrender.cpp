@@ -19,6 +19,8 @@
 #include "XRInterface.hpp"
 #include "RenderPasses.hpp"
 #include "crn_decomp.h"
+#include "Input.hpp"
+#include "OpenVRInterface.hpp"
 
 uint32_t findPresentQueue(vk::PhysicalDevice pd, vk::SurfaceKHR surface) {
     auto qprops = pd.getQueueFamilyProperties();
@@ -46,6 +48,11 @@ void VKRenderer::createSwapchain(vk::SwapchainKHR oldSwapchain) {
     QueueFamilyIndices qfi{ graphicsQueueFamilyIdx, presentQueueFamilyIdx };
     swapchain = std::make_unique<Swapchain>(physicalDevice, *device, surface, qfi, oldSwapchain);
     swapchain->getSize(&width, &height);
+
+    if (!enableVR) {
+        renderWidth = width;
+        renderHeight = height;
+    }
 
     vku::executeImmediately(*device, *commandPool, device->getQueue(graphicsQueueFamilyIdx, 0), [this](vk::CommandBuffer cb) {
         for (auto& img : swapchain->images)
@@ -92,7 +99,7 @@ inline int getNumMips(int w, int h) {
 }
 
 void VKRenderer::loadTex(const char* path, int index, bool crunch) {
-    
+
     auto memProps = physicalDevice.getMemoryProperties();
     int x, y, channelsInFile;
     if (!crunch) {
@@ -133,11 +140,11 @@ void VKRenderer::loadTex(const char* path, int index, bool crunch) {
         case crn_format::cCRNFmtDXT5:
             format = isSRGB ? vk::Format::eBc3SrgbBlock : vk::Format::eBc3UnormBlock;
             break;
-        //case crn_format::cCRNFmtDXN_XY:
-        //    format = DXGI_FORMAT_BC5_UNORM;
-        //    viewFormat = DXGI_FORMAT_BC5_UNORM; //DXGI_FORMAT_R8G8_UNORM;
-        //    channels = 2;
-        //    break;
+            //case crn_format::cCRNFmtDXN_XY:
+            //    format = DXGI_FORMAT_BC5_UNORM;
+            //    viewFormat = DXGI_FORMAT_BC5_UNORM; //DXGI_FORMAT_R8G8_UNORM;
+            //    channels = 2;
+            //    break;
         }
 
         x = texInfo.m_width;
@@ -146,7 +153,7 @@ void VKRenderer::loadTex(const char* path, int index, bool crunch) {
 
         size_t totalDataSize = 0;
         for (int i = 0; i < texInfo.m_levels; i++) totalDataSize += getCrunchTextureSize(texInfo, i);
-        
+
         char* data = (char*)std::malloc(totalDataSize);
         size_t currOffset = 0;
         for (int i = 0; i < texInfo.m_levels; i++) {
@@ -176,7 +183,7 @@ void VKRenderer::loadAlbedo() {
     loadTex("grass.crn", 1, true);
 }
 
-VKRenderer::VKRenderer(RendererInitInfo& initInfo, bool* success) 
+VKRenderer::VKRenderer(RendererInitInfo& initInfo, bool* success)
     : window(initInfo.window)
     , frameIdx(0)
     , lastHandle(0)
@@ -195,15 +202,38 @@ VKRenderer::VKRenderer(RendererInitInfo& initInfo, bool* success)
     std::vector<const char*> names(extCount);
     SDL_Vulkan_GetInstanceExtensions(window, &extCount, names.data());
 
+    std::vector<std::string> instanceExtensions;
+
     for (auto extName : names)
-        instanceMaker.extension(extName);
+        instanceExtensions.push_back(extName);
 
     for (auto& extName : initInfo.additionalInstanceExtensions)
-        instanceMaker.extension(extName.c_str());
+        instanceExtensions.push_back(extName);
+
+    if (initInfo.enableVR && initInfo.activeVrApi == VrApi::OpenVR) {
+        OpenVRInterface* vrInterface = static_cast<OpenVRInterface*>(initInfo.vrInterface);
+        auto vrInstExts = vrInterface->getVulkanInstanceExtensions();
+
+        for (auto& extName : vrInstExts) {
+            if (std::find_if(instanceExtensions.begin(), instanceExtensions.end(), [&extName](std::string val) { return val == extName; }) != instanceExtensions.end()) {
+                continue;
+            }
+            instanceExtensions.push_back(extName);
+        }
+    }
+
+    for (auto& v : vk::enumerateInstanceExtensionProperties()) {
+        std::cout << "supported extension: " << v.extensionName << "\n";
+    }
+
+    for (auto& e : instanceExtensions) {
+        std::cout << "activating extension: " << e << "\n";
+        instanceMaker.extension(e.c_str());
+    }
 
 #ifndef NDEBUG
-    instanceMaker.layer("VK_LAYER_KHRONOS_validation");
-    instanceMaker.extension(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
+    //instanceMaker.layer("VK_LAYER_KHRONOS_validation");
+    //instanceMaker.extension(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
 #endif
     instanceMaker.extension(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 
@@ -214,7 +244,7 @@ VKRenderer::VKRenderer(RendererInitInfo& initInfo, bool* success)
 
     this->instance = instanceMaker.createUnique();
 #ifndef NDEBUG
-    this->dbgCallback = vku::DebugCallback(*this->instance);
+    //this->dbgCallback = vku::DebugCallback(*this->instance);
 #endif
     auto physDevs = this->instance->enumeratePhysicalDevices();
     // TODO: Go through physical devices and select one properly
@@ -294,6 +324,19 @@ VKRenderer::VKRenderer(RendererInitInfo& initInfo, bool* success)
         dm.extension(ext.c_str());
     }
 
+    // Stupid workaround: putting this vector inside the if
+    // causes it to go out of scope, making all the const char*
+    // extension strings become invalid and screwing
+    // everything up
+    std::vector<std::string> vrDevExts;
+    if (initInfo.enableVR && initInfo.activeVrApi == VrApi::OpenVR) {
+        OpenVRInterface* vrInterface = static_cast<OpenVRInterface*>(initInfo.vrInterface);
+        vrDevExts = vrInterface->getVulkanDeviceExtensions(physicalDevice);
+        for (auto& extName : vrDevExts) {
+            dm.extension(extName.c_str());
+        }
+    }
+
     vk::PhysicalDeviceFeatures supportedFeatures = physicalDevice.getFeatures();
     if (!supportedFeatures.shaderStorageImageMultisample) {
         *success = false;
@@ -302,15 +345,15 @@ VKRenderer::VKRenderer(RendererInitInfo& initInfo, bool* success)
     }
 
     if (!supportedFeatures.fragmentStoresAndAtomics) {
-        std::cout << "Missing fragmentStoresAndAtomics, editor selection won't work\n";
+        std::cout << "Missing fragmentStoresAndAtomics\n";
     }
 
     if (!supportedFeatures.fillModeNonSolid) {
-        std::cout << "Missing fillModeNonSolid, selection wireframe won't show in editor\n";
+        std::cout << "Missing fillModeNonSolid\n";
     }
 
     if (!supportedFeatures.wideLines) {
-        std::cout << "Missing wideLines, selection wireframe may be thin or missing\n";
+        std::cout << "Missing wideLines\n";
     }
 
     vk::PhysicalDeviceFeatures features;
@@ -374,6 +417,11 @@ VKRenderer::VKRenderer(RendererInitInfo& initInfo, bool* success)
 
     loadAlbedo();
 
+    if (initInfo.activeVrApi == VrApi::OpenVR) {
+        OpenVRInterface* vrInterface = static_cast<OpenVRInterface*>(initInfo.vrInterface);
+        vrInterface->getRenderResolution(&renderWidth, &renderHeight);
+    }
+
     createSCDependents();
 
     vk::CommandBufferAllocateInfo cbai;
@@ -409,16 +457,24 @@ VKRenderer::VKRenderer(RendererInitInfo& initInfo, bool* success)
 #endif
 
     if (enableVR) {
-        XrGraphicsBindingVulkanKHR graphicsBinding;
-        graphicsBinding.type = XR_TYPE_GRAPHICS_BINDING_VULKAN_KHR;
-        graphicsBinding.instance = *instance;
-        graphicsBinding.queueFamilyIndex = graphicsQueueFamilyIdx;
-        graphicsBinding.queueIndex = 0;
-        graphicsBinding.device = *device;
-        graphicsBinding.physicalDevice = physicalDevice;
-        graphicsBinding.next = nullptr;
-        
-        initInfo.xrInterface->createSession(graphicsBinding);
+        if (initInfo.activeVrApi == VrApi::OpenXR) {
+            XrGraphicsBindingVulkanKHR graphicsBinding;
+            graphicsBinding.type = XR_TYPE_GRAPHICS_BINDING_VULKAN_KHR;
+            graphicsBinding.instance = *instance;
+            graphicsBinding.queueFamilyIndex = graphicsQueueFamilyIdx;
+            graphicsBinding.queueIndex = 0;
+            graphicsBinding.device = *device;
+            graphicsBinding.physicalDevice = physicalDevice;
+            graphicsBinding.next = nullptr;
+
+            ((XRInterface*)initInfo.vrInterface)->createSession(graphicsBinding);
+        }
+        else if (initInfo.activeVrApi == VrApi::OpenVR) {
+            vr::VRCompositor()->SetExplicitTimingMode(vr::EVRCompositorTimingMode::VRCompositorTimingMode_Explicit_RuntimePerformsPostPresentHandoff);
+        }
+
+        vrInterface = initInfo.vrInterface;
+        vrApi = initInfo.activeVrApi;
     }
 }
 
@@ -440,9 +496,17 @@ void VKRenderer::createSCDependents() {
         rtResources.erase(imguiImage);
     }
 
+    if (rtResources.count(finalPrePresent) != 0) {
+        rtResources.erase(finalPrePresent);
+    }
+
+    if (rtResources.count(finalPrePresentR) != 0) {
+        rtResources.erase(finalPrePresentR);
+    }
+
     vk::ImageCreateInfo ici;
     ici.imageType = vk::ImageType::e2D;
-    ici.extent = vk::Extent3D{ width, height, 1 };
+    ici.extent = vk::Extent3D{ renderWidth, renderHeight, 1 };
     ici.arrayLayers = enableVR ? 2 : 1;
     ici.mipLevels = 1;
     ici.format = vk::Format::eR16G16B16A16Sfloat;
@@ -450,7 +514,7 @@ void VKRenderer::createSCDependents() {
     ici.samples = msaaSamples;
     ici.usage = vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eStorage;
 
-    RTResourceCreateInfo polyCreateInfo{ ici, vk::ImageViewType::e2D, vk::ImageAspectFlagBits::eColor };
+    RTResourceCreateInfo polyCreateInfo{ ici, enableVR ? vk::ImageViewType::e2DArray : vk::ImageViewType::e2D, vk::ImageAspectFlagBits::eColor };
     polyImage = createRTResource(polyCreateInfo, "Poly Image");
 
     ici.format = vk::Format::eD32Sfloat;
@@ -500,25 +564,35 @@ void VKRenderer::createSCDependents() {
     RTResourceCreateInfo finalPrePresentCI{ ici, vk::ImageViewType::e2D, vk::ImageAspectFlagBits::eColor };
     finalPrePresent = createRTResource(finalPrePresentCI, "Final Pre-Present Image");
 
-    {
-        auto tonemapRP = new TonemapRenderPass(polyImage, finalPrePresent);
-        graphSolver.addNode(tonemapRP);
+    if (enableVR) {
+        finalPrePresentR = createRTResource(finalPrePresentCI, "Final Pre-Present Image (Right Eye)");
     }
+
+    PassSetupCtx psc{ physicalDevice, *device, *pipelineCache, *descriptorPool, *commandPool, *instance, allocator, graphicsQueueFamilyIdx, GraphicsSettings{numMSAASamples, (int32_t)shadowmapRes, enableVR}, textures, rtResources, swapchain->images.size() };
+
+    auto tonemapRP = new TonemapRenderPass(polyImage, finalPrePresent);
+    graphSolver.addNode(tonemapRP);
 
     irp = new ImGuiRenderPass(finalPrePresent);
 
     vku::executeImmediately(*device, *commandPool, device->getQueue(graphicsQueueFamilyIdx, 0), [this](vk::CommandBuffer cmdBuf) {
         rtResources.at(polyImage).image.setLayout(cmdBuf, vk::ImageLayout::eGeneral);
         rtResources.at(finalPrePresent).image.setLayout(cmdBuf, vk::ImageLayout::eTransferSrcOptimal);
+        if (enableVR) {
+            rtResources.at(finalPrePresentR).image.setLayout(cmdBuf, vk::ImageLayout::eTransferSrcOptimal);
+        }
         });
-
-    PassSetupCtx psc{ physicalDevice, *device, *pipelineCache, *descriptorPool, *commandPool, *instance, allocator, graphicsQueueFamilyIdx, GraphicsSettings{numMSAASamples, (int32_t)shadowmapRes}, textures, rtResources, swapchain->images.size() };
 
     auto solved = graphSolver.solve();
 
     for (auto& node : solved) {
         node->setup(psc);
     }
+
+    if (enableVR) {
+        tonemapRP->setRightFinalImage(psc, finalPrePresentR);
+    }
+
     irp->setup(psc);
 }
 
@@ -530,6 +604,11 @@ void VKRenderer::recreateSwapchain() {
     auto surfaceCaps = this->physicalDevice.getSurfaceCapabilitiesKHR(this->surface);
     this->width = surfaceCaps.currentExtent.width;
     this->height = surfaceCaps.currentExtent.height;
+
+    if (!enableVR) {
+        renderWidth = width;
+        renderHeight = height;
+    }
 
     if (width == 0 || height == 0)
         return;
@@ -572,14 +651,14 @@ void VKRenderer::presentNothing(uint32_t imageIndex) {
     device->getQueue(presentQueueFamilyIdx, 0).presentKHR(presentInfo);
 }
 
-void imageBarrier(vk::CommandBuffer& cb, vk::Image image, vk::ImageLayout layout, vk::AccessFlags srcMask, vk::AccessFlags dstMask, vk::PipelineStageFlags srcStageMask, vk::PipelineStageFlags dstStageMask, vk::ImageAspectFlags aspectMask = vk::ImageAspectFlagBits::eColor) {
+void imageBarrier(vk::CommandBuffer& cb, vk::Image image, vk::ImageLayout layout, vk::AccessFlags srcMask, vk::AccessFlags dstMask, vk::PipelineStageFlags srcStageMask, vk::PipelineStageFlags dstStageMask, vk::ImageAspectFlags aspectMask = vk::ImageAspectFlagBits::eColor, uint32_t numLayers = 1) {
     vk::ImageMemoryBarrier imageMemoryBarriers = {};
     imageMemoryBarriers.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     imageMemoryBarriers.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     imageMemoryBarriers.oldLayout = layout;
     imageMemoryBarriers.newLayout = layout;
     imageMemoryBarriers.image = image;
-    imageMemoryBarriers.subresourceRange = { aspectMask, 0, 1, 0, 1 };
+    imageMemoryBarriers.subresourceRange = { aspectMask, 0, 1, 0, numLayers };
 
     // Put barrier on top
     vk::DependencyFlags dependencyFlags{};
@@ -598,7 +677,7 @@ void VKRenderer::imageBarrier(vk::CommandBuffer& cb, ImageBarrier& ib) {
     imageMemoryBarriers.oldLayout = ib.oldLayout;
     imageMemoryBarriers.newLayout = ib.newLayout;
     imageMemoryBarriers.image = rtResources.at(ib.handle).image.image();
-    imageMemoryBarriers.subresourceRange = { ib.aspectMask, 0, 1, 0, 1 };
+    imageMemoryBarriers.subresourceRange = { ib.aspectMask, 0, 1, 0, rtResources.at(ib.handle).image.info().arrayLayers };
 
     // Put barrier on top
     vk::DependencyFlags dependencyFlags{};
@@ -628,8 +707,9 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
 #ifdef TRACY_ENABLE
     ZoneScoped;
 #endif
-    // No point rendering if it's not going to be shown
-    currentPRP->setPickCoords(ImGui::GetIO().MousePos.x, ImGui::GetIO().MousePos.y);
+    int mx, my;
+    SDL_GetMouseState(&mx, &my);
+    currentPRP->setPickCoords(mx, my);
 
     uint32_t imageIndex = 0;
     vk::Result nextImageRes = swapchain->acquireImage(*device, *imageAcquire, &imageIndex);
@@ -661,7 +741,18 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
 
     auto& cmdBuf = cmdBufs[imageIndex];
 
-    RenderCtx rCtx{ cmdBuf, reg, imageIndex, cam, rtResources, width, height, loadedMeshes };
+    RenderCtx rCtx{ cmdBuf, reg, imageIndex, cam, rtResources, renderWidth, renderHeight, loadedMeshes };
+    rCtx.enableVR = enableVR;
+
+    if (enableVR) {
+        if (vrApi == VrApi::OpenVR) {
+            OpenVRInterface* ovrInterface = static_cast<OpenVRInterface*>(vrInterface);
+            rCtx.vrProjMats[0] = ovrInterface->getProjMat(vr::EVREye::Eye_Left, 0.01f, 100.0f);
+            rCtx.vrProjMats[1] = ovrInterface->getProjMat(vr::EVREye::Eye_Right, 0.01f, 100.0f);
+            rCtx.vrViewMats[0] = ovrInterface->getViewMat(vr::EVREye::Eye_Left);
+            rCtx.vrViewMats[1] = ovrInterface->getViewMat(vr::EVREye::Eye_Right);
+        }
+    }
 
     // TODO: Pre-pass
 
@@ -671,7 +762,17 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
     cmdBuf->resetQueryPool(*queryPool, 0, 2);
     cmdBuf->writeTimestamp(vk::PipelineStageFlagBits::eTopOfPipe, *queryPool, 0);
 
-    PassSetupCtx psc{ physicalDevice, *device, *pipelineCache, *descriptorPool, *commandPool, *instance, allocator, graphicsQueueFamilyIdx, GraphicsSettings{numMSAASamples, (int32_t)shadowmapRes}, textures, rtResources, swapchain->images.size() };
+    PassSetupCtx psc{ physicalDevice, *device, *pipelineCache, *descriptorPool, *commandPool, *instance, allocator, graphicsQueueFamilyIdx, GraphicsSettings{numMSAASamples, (int32_t)shadowmapRes, enableVR}, textures, rtResources, swapchain->images.size() };
+
+    if (enableVR) {
+        vr::TrackedDevicePose_t hmdPose;
+        vr::TrackedDevicePose_t hmdPredictedPose;
+        vr::VRCompositor()->WaitGetPoses(&hmdPose, 1, &hmdPredictedPose, 1);
+        OpenVRInterface* ovrInterface = static_cast<OpenVRInterface*>(vrInterface);
+        for (int i = 0; i < 2; i++) {
+            rCtx.vrViewMats[i] = glm::inverse(ovrInterface->toMat4(hmdPredictedPose.mDeviceToAbsoluteTracking) * rCtx.vrViewMats[i]);
+        }
+    }
 
     for (auto& node : solvedNodes) {
         node->prePass(psc, rCtx);
@@ -710,6 +811,39 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
         swapchain->images[imageIndex], vk::ImageLayout::eTransferDstOptimal,
         imageBlit, vk::Filter::eNearest);
 
+    if (enableVR) {
+        ::imageBarrier(*cmdBuf, rtResources.at(finalPrePresentR).image.image(), vk::ImageLayout::eTransferSrcOptimal,
+            vk::AccessFlagBits::eColorAttachmentWrite, vk::AccessFlagBits::eTransferRead,
+            vk::PipelineStageFlagBits::eColorAttachmentOutput, vk::PipelineStageFlagBits::eTransfer);
+
+        // Submit to SteamVR
+        vr::VRTextureBounds_t bounds;
+        bounds.uMin = 0.0f;
+        bounds.uMax = 1.0f;
+        bounds.vMin = 0.0f;
+        bounds.vMax = 1.0f;
+
+        vr::VRVulkanTextureData_t vulkanData;
+        VkImage vkImg = rtResources.at(finalPrePresent).image.image();
+        vulkanData.m_nImage = (uint64_t)vkImg;
+        vulkanData.m_pDevice = (VkDevice_T*)*device;
+        vulkanData.m_pPhysicalDevice = (VkPhysicalDevice_T*)physicalDevice;
+        vulkanData.m_pInstance = (VkInstance_T*)*instance;
+        vulkanData.m_pQueue = (VkQueue_T*)device->getQueue(graphicsQueueFamilyIdx, 0);
+        vulkanData.m_nQueueFamilyIndex = graphicsQueueFamilyIdx;
+
+        vulkanData.m_nWidth = renderWidth;
+        vulkanData.m_nHeight = renderHeight;
+        vulkanData.m_nFormat = VK_FORMAT_R8G8B8A8_UNORM;
+        vulkanData.m_nSampleCount = 1;
+
+        vr::Texture_t texture = { &vulkanData, vr::TextureType_Vulkan, vr::ColorSpace_Auto };
+        vr::VRCompositor()->Submit(vr::Eye_Left, &texture, &bounds);
+
+        vulkanData.m_nImage = (uint64_t)(VkImage)rtResources.at(finalPrePresentR).image.image();
+        vr::VRCompositor()->Submit(vr::Eye_Right, &texture, &bounds);
+    }
+
     vku::transitionLayout(*cmdBuf, swapchain->images[imageIndex],
         vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::ePresentSrcKHR,
         vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eBottomOfPipe,
@@ -735,6 +869,9 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
 
     submit.signalSemaphoreCount = 1;
     submit.pSignalSemaphores = &waitSemaphore;
+    if (enableVR && vrApi == VrApi::OpenVR) {
+        vr::VRCompositor()->SubmitExplicitTimingData();
+    }
     device->getQueue(graphicsQueueFamilyIdx, 0).submit(1, &submit, cmdBufferFences[imageIndex]);
 
     vk::PresentInfoKHR presentInfo;
@@ -826,8 +963,12 @@ void VKRenderer::uploadProcObj(ProceduralObject& procObj) {
     procObj.vb.upload(*device, memProps, *commandPool, device->getQueue(graphicsQueueFamilyIdx, 0), procObj.vertices);
 }
 
-entt::entity VKRenderer::getPickedEnt() {
-    return (entt::entity)currentPRP->getPickedEntity();
+bool VKRenderer::getPickedEnt(entt::entity* entOut) {
+    return currentPRP->getPickedEnt((uint32_t*)entOut);
+}
+
+void VKRenderer::requestEntityPick() {
+    return currentPRP->requestEntityPick();
 }
 
 VKRenderer::~VKRenderer() {

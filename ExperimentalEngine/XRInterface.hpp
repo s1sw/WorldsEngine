@@ -8,8 +8,9 @@
 #include <vector>
 #include <sstream>
 #include <iostream>
+#include "IVRInterface.hpp"
 
-class XRInterface {
+class XRInterface : public IVRInterface {
     XrInstance instance;
     XrSystemId sysId;
     XrSession session;

@@ -6,7 +6,7 @@
 #include <iostream>
 #include <thread>
 #include "Engine.hpp"
-#include <imgui.h>
+#include "imgui.h"
 #include <physfs.h>
 #include "imgui_impl_sdl.h"
 #include "imgui_impl_vulkan.h"
@@ -25,6 +25,7 @@
 #include "XRInterface.hpp"
 #include "SourceModelLoader.hpp"
 #include "Editor.hpp"
+#include "OpenVRInterface.hpp"
 
 AssetDB g_assetDB;
 
@@ -110,6 +111,10 @@ struct WindowThreadData {
 SDL_Window* window = nullptr;
 uint32_t fullscreenToggleEventId;
 
+SDL_Window* createSDLWindow() {
+    return SDL_CreateWindow("Worlds Engine", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1280, 720, SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
+}
+
 // SDL_PollEvent blocks when the window is being resized or moved,
 // so I run it on a different thread.
 // I would put it through the job system, but thanks to Windows
@@ -120,7 +125,7 @@ int windowThread(void* data) {
 
     bool* running = wtd->runningPtr;
 
-    window = SDL_CreateWindow("ExperimentalEngine", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1280, 720, SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
+    window = createSDLWindow();
     if (window == nullptr) {
         SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "err", SDL_GetError(), NULL);
     }
@@ -167,6 +172,8 @@ entt::entity createModelObject(entt::registry& reg, glm::vec3 position, glm::qua
 bool useEventThread = false;
 int workerThreadOverride = -1;
 bool enableXR = false;
+bool enableOpenVR = false;
+bool runAsEditor = false;
 glm::ivec2 windowSize;
 
 void loadEditorFont() {
@@ -190,6 +197,9 @@ void loadEditorFont() {
     }
 
     ImGui::GetIO().Fonts->AddFontFromMemoryTTF(buf, readBytes, 18.0f);
+
+    //std::free(buf);
+    PHYSFS_close(ttfFile);
 }
 
 void engine(char* argv0) {
@@ -226,15 +236,6 @@ void engine(char* argv0) {
     PHYSFS_mount(dataSrcStr.c_str(), "/source", 1);
     PHYSFS_setWriteDir(dataStr.c_str());
 
-    for (const PHYSFS_ArchiveInfo** ppArchiveInfo = PHYSFS_supportedArchiveTypes(); *ppArchiveInfo != nullptr; ppArchiveInfo++) {
-        const PHYSFS_ArchiveInfo* pArchiveInfo = *ppArchiveInfo;
-        std::cout << "Extension: " << pArchiveInfo->extension << "\n"
-            << "Description: " << pArchiveInfo->description << "\n"
-            << "Author: " << pArchiveInfo->author << "\n"
-            << "URL: " << pArchiveInfo->url << "\n"
-            << "Supports symlinks: " << pArchiveInfo->supportsSymlinks << "\n";
-    }
-
     bool running = true;
 
     if (useEventThread) {
@@ -245,11 +246,7 @@ void engine(char* argv0) {
         SDL_DetachThread(SDL_CreateThread(windowThread, "Window Thread", &wtd));
         SDL_Delay(1000);
     } else {
-        window = SDL_CreateWindow(
-            "ExperimentalEngine",
-            SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-            1280, 720,
-            SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
+        window = createSDLWindow();
         if (window == nullptr) {
             SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "err", SDL_GetError(), NULL);
         }
@@ -265,7 +262,11 @@ void engine(char* argv0) {
     double currTime = 0.0;
     bool renderInitSuccess = false;
 
+    IMGUI_CHECKVERSION();
     ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO();
+    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;           // Enable Docking
+    io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;         // Enable Multi-Viewport / Platform Windows
 
     if (PHYSFS_exists("Fonts/EditorFont.ttf")) {
         loadEditorFont();
@@ -278,6 +279,7 @@ void engine(char* argv0) {
     std::vector<std::string> additionalDeviceExts;
 
     XRInterface xrInterface;
+    OpenVRInterface openvrInterface;
 
     if (enableXR) {
         xrInterface.initXR();
@@ -286,9 +288,21 @@ void engine(char* argv0) {
 
         additionalInstanceExts.insert(additionalInstanceExts.begin(), xrInstExts.begin(), xrInstExts.end());
         additionalDeviceExts.insert(additionalDeviceExts.begin(), xrDevExts.begin(), xrDevExts.end());
+    } else if (enableOpenVR) {
+        openvrInterface.init();
     }
 
-    RendererInitInfo initInfo{ window, enableXR, additionalInstanceExts, additionalDeviceExts, &xrInterface };
+    VrApi activeApi = VrApi::None;
+
+    if (enableXR) {
+        activeApi = VrApi::OpenXR;
+    } else if (enableOpenVR) {
+        activeApi = VrApi::OpenVR;
+    }
+
+    IVRInterface* vrInterface = enableXR ? (IVRInterface*)&xrInterface : &openvrInterface;
+
+    RendererInitInfo initInfo{ window, additionalInstanceExts, additionalDeviceExts, enableXR || enableOpenVR, activeApi, vrInterface };
     VKRenderer* renderer = new VKRenderer(initInfo, &renderInitSuccess);
 
     if (!renderInitSuccess) {
@@ -388,12 +402,15 @@ void engine(char* argv0) {
         }
 
         if (inputManager.mouseButtonPressed(MouseButton::Left)) {
-            entt::entity mouseover = renderer->getPickedEnt();
+            renderer->requestEntityPick();
+        }
 
-            if ((uint32_t)mouseover == UINT32_MAX)
-                mouseover = entt::null;
+        entt::entity picked;
+        if (renderer->getPickedEnt(&picked)) {
+            if ((uint32_t)picked == UINT32_MAX)
+                picked = entt::null;
 
-            editor.select(mouseover);
+            editor.select(picked);
         }
 
         if (ImGui::Begin("Info")) {
@@ -402,7 +419,7 @@ void engine(char* argv0) {
             ImGui::Text("GPU render time: %.3fms", renderer->getLastRenderTime() / 1000.0f / 1000.0f);
             ImGui::Text("Frame: %i", frameCounter);
             ImGui::Text("Cam pos: %.3f, %.3f, %.3f", cam.position.x, cam.position.y, cam.position.z);
-            ImGui::Text("Mouse over entity: %u", renderer->getPickedEnt());   
+            //ImGui::Text("Mouse over entity: %u", renderer->getPickedEnt());   
         }
         ImGui::End();
 
@@ -432,6 +449,9 @@ void engine(char* argv0) {
         renderer->frame(cam, registry);
         jobSystem.completeFrameJobs();
         frameCounter++;
+
+        ImGui::UpdatePlatformWindows();
+        ImGui::RenderPlatformWindowsDefault();
         inputManager.endFrame();
     }
     

@@ -2,6 +2,7 @@
 #include "Engine.hpp"
 #include "Transform.hpp"
 #include "spirv_reflect.h"
+#include <openvr.h>
 
 struct StandardPushConstants {
     glm::vec4 pack0;
@@ -15,6 +16,10 @@ struct PickingBuffer {
     uint32_t depth;
     uint32_t objectID;
     uint32_t lock;
+};
+
+struct PickBufCSPushConstants {
+    uint32_t clearObjId;
     uint32_t doPicking;
 };
 
@@ -27,9 +32,11 @@ PolyRenderPass::PolyRenderPass(
     , polyImage(polyImage)
     , shadowImage(shadowImage)
     , enablePicking(enablePicking)
-    , pickX(0) 
+    , pickX(0)
     , pickY(0)
-    , pickedEnt(UINT32_MAX) {
+    , pickedEnt(UINT32_MAX)
+    , awaitingResults(false)
+    , pickThisFrame(false) {
 
 }
 
@@ -100,7 +107,7 @@ void PolyRenderPass::setup(PassSetupCtx& ctx) {
 
     MaterialsUB materials;
     materials.materials[0] = { glm::vec4(0.0f, 0.02f, 0.0f, 0.0f), glm::vec4(1.0f, 1.0f, 1.0f, 0.0f) };
-    materials.materials[1] = { glm::vec4(0.0f, 0.02f, 1.0f, 0.0f), glm::vec4(1.0f, 1.0f, 1.0f, 0.0f) };
+    materials.materials[1] = { glm::vec4(0.0f, 0.2f, 1.0f, 0.0f), glm::vec4(1.0f, 1.0f, 1.0f, 0.0f) };
     materialUB.upload(ctx.device, memoryProps, ctx.commandPool, ctx.device.getQueue(ctx.graphicsQueueFamilyIdx, 0), materials);
 
     vku::DescriptorSetMaker dsm;
@@ -160,6 +167,27 @@ void PolyRenderPass::setup(PassSetupCtx& ctx) {
     rPassMaker.dependencyDstStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput);
     rPassMaker.dependencyDstAccessMask(vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite);
 
+    if (ctx.graphicsSettings.enableVr) {
+        /*
+            Bit mask that specifies which view rendering is broadcast to
+            0011 = Broadcast to first and second view (layer)
+        */
+        const uint32_t viewMask = 0b00000011;
+
+        /*
+            Bit mask that specifices correlation between views
+            An implementation may use this for optimizations (concurrent render)
+        */
+        const uint32_t correlationMask = 0b00000011;
+
+        vk::RenderPassMultiviewCreateInfo renderPassMultiviewCI{};
+        renderPassMultiviewCI.subpassCount = 1;
+        renderPassMultiviewCI.pViewMasks = &viewMask;
+        renderPassMultiviewCI.correlationMaskCount = 1;
+        renderPassMultiviewCI.pCorrelationMasks = &correlationMask;
+        rPassMaker.setPNext(&renderPassMultiviewCI);
+    }
+
     this->renderPass = rPassMaker.createUnique(ctx.device);
 
     vk::ImageView attachments[2] = { ctx.rtResources.at(polyImage).image.imageView(), ctx.rtResources.at(depthStencilImage).image.imageView() };
@@ -171,7 +199,7 @@ void PolyRenderPass::setup(PassSetupCtx& ctx) {
     fci.width = extent.width;
     fci.height = extent.height;
     fci.renderPass = *this->renderPass;
-    fci.layers = false ? 2 : 1; // TODO!!!!!!!!!!!
+    fci.layers = ctx.graphicsSettings.enableVr ? 2 : 1;
     renderFb = ctx.device.createFramebufferUnique(fci);
 
     AssetID vsID = g_assetDB.addOrGetExisting("Shaders/standard.vert.spv");
@@ -221,10 +249,6 @@ void PolyRenderPass::setup(PassSetupCtx& ctx) {
         pm.polygonMode(vk::PolygonMode::eLine);
         pm.lineWidth(2.0f);
 
-        vk::PipelineMultisampleStateCreateInfo pmsci;
-        pmsci.rasterizationSamples = (vk::SampleCountFlagBits)ctx.graphicsSettings.msaaLevel;
-        pm.multisampleState(pmsci);
-
         vku::DescriptorSetLayoutMaker dslm;
         dslm.buffer(0, vk::DescriptorType::eUniformBuffer, vk::ShaderStageFlagBits::eVertex, 1);
         dslm.buffer(1, vk::DescriptorType::eUniformBuffer, vk::ShaderStageFlagBits::eVertex, 1);
@@ -236,6 +260,10 @@ void PolyRenderPass::setup(PassSetupCtx& ctx) {
         vku::DescriptorSetMaker dsm;
         dsm.layout(*wireframeDsl);
         wireframeDescriptorSet = dsm.create(ctx.device, ctx.descriptorPool)[0];
+
+        vk::PipelineMultisampleStateCreateInfo pmsci;
+        pmsci.rasterizationSamples = (vk::SampleCountFlagBits)ctx.graphicsSettings.msaaLevel;
+        pm.multisampleState(pmsci);
 
         vku::PipelineLayoutMaker plm;
         plm.pushConstantRange(vk::ShaderStageFlagBits::eFragment | vk::ShaderStageFlagBits::eVertex, 0, sizeof(StandardPushConstants));
@@ -252,7 +280,7 @@ void PolyRenderPass::setup(PassSetupCtx& ctx) {
         updater.buffer(modelMatrixUB.buffer(), 0, sizeof(ModelMatrices));
         updater.beginBuffers(2, 0, vk::DescriptorType::eUniformBuffer);
         updater.buffer(materialUB.buffer(), 0, sizeof(MaterialsUB));
-        
+
         for (int i = 0; i < 64; i++) {
             if (ctx.globalTexArray[i].present) {
                 updater.beginImages(3, i, vk::DescriptorType::eCombinedImageSampler);
@@ -262,6 +290,36 @@ void PolyRenderPass::setup(PassSetupCtx& ctx) {
 
         updater.update(ctx.device);
     }
+
+    {
+        vku::DescriptorSetLayoutMaker cDslm{};
+        cDslm.buffer(0, vk::DescriptorType::eStorageBuffer, vk::ShaderStageFlagBits::eCompute, 1);
+        pickingBufCsDsl = cDslm.createUnique(ctx.device);
+
+        vku::PipelineLayoutMaker cPlm{};
+        cPlm.descriptorSetLayout(*pickingBufCsDsl);
+        cPlm.pushConstantRange(vk::ShaderStageFlagBits::eCompute, 0, sizeof(PickBufCSPushConstants));
+        pickingBufCsLayout = cPlm.createUnique(ctx.device);
+
+        vku::ComputePipelineMaker cpm{};
+        vku::ShaderModule sm = vku::loadShaderAsset(ctx.device, g_assetDB.addOrGetExisting("Shaders/clear_pick_buf.comp.spv"));
+        cpm.shader(vk::ShaderStageFlagBits::eCompute, sm);
+        pickingBufCsPipeline = cpm.createUnique(ctx.device, ctx.pipelineCache, *pickingBufCsLayout);
+
+        vku::DescriptorSetMaker dsm{};
+        dsm.layout(*pickingBufCsDsl);
+        pickingBufCsDs = dsm.create(ctx.device, ctx.descriptorPool)[0];
+
+        vku::DescriptorSetUpdater dsu{};
+        dsu.beginDescriptorSet(pickingBufCsDs);
+        dsu.beginBuffers(0, 0, vk::DescriptorType::eStorageBuffer);
+        dsu.buffer(pickingBuffer.buffer(), 0, sizeof(PickingBuffer));
+        dsu.update(ctx.device);
+    }
+
+    
+
+    ctx.device.setEvent(*pickEvent);
 }
 
 void PolyRenderPass::prePass(PassSetupCtx& ctx, RenderCtx& rCtx) {
@@ -289,10 +347,18 @@ void PolyRenderPass::prePass(PassSetupCtx& ctx, RenderCtx& rCtx) {
     modelMatrixUB.unmap(ctx.device);
 
     MultiVP* vp = (MultiVP*)vpUB.map(ctx.device);
-    vp->views[0] = rCtx.cam.getViewMatrix();
-    vp->projections[0] = rCtx.cam.getProjectionMatrix((float)rCtx.width / (float)rCtx.height);
-    vpUB.unmap(ctx.device);
 
+    if (rCtx.enableVR) {
+        vp->views[0] = rCtx.vrViewMats[0];
+        vp->views[1] = rCtx.vrViewMats[1];
+        vp->projections[0] = rCtx.vrProjMats[0];
+        vp->projections[1] = rCtx.vrProjMats[1];
+    } else {
+        vp->views[0] = rCtx.cam.getViewMatrix();
+        vp->projections[0] = rCtx.cam.getProjectionMatrix((float)rCtx.width / (float)rCtx.height);
+    }
+
+    vpUB.unmap(ctx.device);
 
     LightUB* lub = (LightUB*)lightsUB.map(ctx.device);
     glm::vec3 viewPos = rCtx.cam.position;
@@ -325,18 +391,6 @@ void PolyRenderPass::prePass(PassSetupCtx& ctx, RenderCtx& rCtx) {
 
     lub->pack0.x = lightIdx;
     lightsUB.unmap(ctx.device);
-
-    if (enablePicking && ctx.device.getEventStatus(*pickEvent) == vk::Result::eEventSet) {
-        PickingBuffer* pickBuf = (PickingBuffer*)pickingBuffer.map(ctx.device);
-        pickedEnt = pickBuf->objectID;
-        pickBuf->objectID = UINT32_MAX;
-        pickBuf->depth = UINT32_MAX;
-        pickBuf->doPicking = true;
-        
-        pickingBuffer.unmap(ctx.device);
-        pickingBuffer.invalidate(ctx.device);
-        pickingBuffer.flush(ctx.device);
-    }
 }
 
 void PolyRenderPass::execute(RenderCtx& ctx) {
@@ -370,12 +424,28 @@ void PolyRenderPass::execute(RenderCtx& ctx) {
         vk::DependencyFlagBits::eByRegion, vk::AccessFlagBits::eHostWrite, vk::AccessFlagBits::eUniformRead,
         VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED);
 
-    pickingBuffer.barrier(*cmdBuf, vk::PipelineStageFlagBits::eHost, vk::PipelineStageFlagBits::eFragmentShader,
-        vk::DependencyFlagBits::eByRegion, vk::AccessFlagBits::eHostWrite | vk::AccessFlagBits::eHostRead, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
-        VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED);
+    if (pickThisFrame) {
+        cmdBuf->bindPipeline(vk::PipelineBindPoint::eCompute, *pickingBufCsPipeline);
+        cmdBuf->bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pickingBufCsLayout, 0, pickingBufCsDs, nullptr);
+        PickBufCSPushConstants pbcspc;
+        pbcspc.clearObjId = 1;
+        pbcspc.doPicking = 1;
+        cmdBuf->pushConstants<PickBufCSPushConstants>(*pickingBufCsLayout, vk::ShaderStageFlagBits::eCompute, 0, pbcspc);
+        cmdBuf->dispatch(1, 1, 1);
+        pickingBuffer.barrier(
+            *cmdBuf, vk::PipelineStageFlagBits::eComputeShader, vk::PipelineStageFlagBits::eFragmentShader,
+            vk::DependencyFlagBits::eByRegion,
+            vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
+            VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED);
+    }
+
+    if (setEventNextFrame) {
+        cmdBuf->setEvent(*pickEvent, vk::PipelineStageFlagBits::eAllCommands);
+        setEventNextFrame = false;
+    }
 
     cmdBuf->beginRenderPass(rpbi, vk::SubpassContents::eInline);
-    
+
 
     int matrixIdx = 0;
 
@@ -428,11 +498,47 @@ void PolyRenderPass::execute(RenderCtx& ctx) {
         });
 
     cmdBuf->endRenderPass();
-    cmdBuf->setEvent(*pickEvent, vk::PipelineStageFlagBits::eFragmentShader);
+
+    if (pickThisFrame) {
+        cmdBuf->bindPipeline(vk::PipelineBindPoint::eCompute, *pickingBufCsPipeline);
+        cmdBuf->bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pickingBufCsLayout, 0, pickingBufCsDs, nullptr);
+        pickingBuffer.barrier(
+            *cmdBuf, vk::PipelineStageFlagBits::eFragmentShader, vk::PipelineStageFlagBits::eComputeShader,
+            vk::DependencyFlagBits::eByRegion,
+            vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderWrite,
+            VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED);
+        PickBufCSPushConstants pbcspc;
+        pbcspc.clearObjId = 0;
+        pbcspc.doPicking = 0;
+        cmdBuf->pushConstants<PickBufCSPushConstants>(*pickingBufCsLayout, vk::ShaderStageFlagBits::eCompute, 0, pbcspc);
+        cmdBuf->dispatch(1, 1, 1);
+
+        cmdBuf->resetEvent(*pickEvent, vk::PipelineStageFlagBits::eComputeShader);
+        pickThisFrame = false;
+    }
 }
 
-uint32_t PolyRenderPass::getPickedEntity() {
-    return pickedEnt;
+void PolyRenderPass::requestEntityPick() {
+    if (awaitingResults) return;
+    pickThisFrame = true;
+    awaitingResults = true;
+}
+
+bool PolyRenderPass::getPickedEnt(uint32_t* entOut) {
+    auto device = pickEvent.getOwner(); // bleh
+    vk::Result pickEvtRes = pickEvent.getOwner().getEventStatus(*pickEvent);
+
+    if (pickEvtRes != vk::Result::eEventReset)
+        return false;
+
+    PickingBuffer* pickBuf = (PickingBuffer*)pickingBuffer.map(device);
+    *entOut = pickBuf->objectID;
+
+    pickingBuffer.unmap(device);
+    setEventNextFrame = true;
+    awaitingResults = false;
+
+    return true;
 }
 
 PolyRenderPass::~PolyRenderPass() {

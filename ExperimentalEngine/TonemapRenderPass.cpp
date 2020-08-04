@@ -1,6 +1,10 @@
 #include "RenderPasses.hpp"
 #include "Engine.hpp"
 
+struct TonemapPushConstants {
+    int idx;
+};
+
 TonemapRenderPass::TonemapRenderPass(RenderImageHandle hdrImg, RenderImageHandle finalPrePresent)
     : hdrImg(hdrImg)
     , finalPrePresent(finalPrePresent) {
@@ -42,6 +46,7 @@ void TonemapRenderPass::setup(PassSetupCtx& ctx) {
 
     vku::PipelineLayoutMaker plm;
     plm.descriptorSetLayout(*dsl);
+    plm.pushConstantRange(vk::ShaderStageFlagBits::eCompute, 0, sizeof(TonemapPushConstants));
 
     pipelineLayout = plm.createUnique(ctx.device);
 
@@ -92,8 +97,27 @@ void TonemapRenderPass::execute(RenderCtx& ctx) {
 
     cmdBuf->bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pipelineLayout, 0, descriptorSet, nullptr);
     cmdBuf->bindPipeline(vk::PipelineBindPoint::eCompute, *pipeline);
+    TonemapPushConstants tpc{0};
+    cmdBuf->pushConstants<TonemapPushConstants>(*pipelineLayout, vk::ShaderStageFlagBits::eCompute, 0, tpc);
 
     cmdBuf->dispatch((ctx.width + 15) / 16, (ctx.height + 15) / 16, 1);
+
+    if (ctx.enableVR) {
+        vku::transitionLayout(*cmdBuf, ctx.rtResources.at(finalPrePresentR).image.image(),
+            vk::ImageLayout::eTransferSrcOptimal, vk::ImageLayout::eGeneral,
+            vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eComputeShader,
+            vk::AccessFlagBits::eTransferRead, vk::AccessFlagBits::eShaderWrite);
+
+        cmdBuf->bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pipelineLayout, 0, rDescriptorSet, nullptr);
+        TonemapPushConstants tpc{ 1 };
+        cmdBuf->pushConstants<TonemapPushConstants>(*pipelineLayout, vk::ShaderStageFlagBits::eCompute, 0, tpc);
+        cmdBuf->dispatch((ctx.width + 15) / 16, (ctx.height + 15) / 16, 1);
+
+        vku::transitionLayout(*cmdBuf, ctx.rtResources.at(finalPrePresentR).image.image(),
+            vk::ImageLayout::eGeneral, vk::ImageLayout::eColorAttachmentOptimal,
+            vk::PipelineStageFlagBits::eComputeShader, vk::PipelineStageFlagBits::eColorAttachmentOutput,
+            vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite);
+    }
 
     vku::transitionLayout(*cmdBuf, ctx.rtResources.at(finalPrePresent).image.image(),
         vk::ImageLayout::eGeneral, vk::ImageLayout::eColorAttachmentOptimal,
@@ -102,4 +126,23 @@ void TonemapRenderPass::execute(RenderCtx& ctx) {
 
     // account for implicit renderpass transition
     //finalPrePresent.setCurrentLayout(vk::ImageLayout::eTransferSrcOptimal);
+}
+
+void TonemapRenderPass::setRightFinalImage(PassSetupCtx& ctx, RenderImageHandle right) {
+    vku::DescriptorSetMaker dsm;
+    dsm.layout(*dsl);
+    rDescriptorSet = dsm.create(ctx.device, ctx.descriptorPool)[0];
+
+    vku::DescriptorSetUpdater dsu;
+    dsu.beginDescriptorSet(rDescriptorSet);
+
+    finalPrePresentR = right;
+
+    dsu.beginImages(0, 0, vk::DescriptorType::eStorageImage);
+    dsu.image(*sampler, ctx.rtResources.at(finalPrePresentR).image.imageView(), vk::ImageLayout::eGeneral);
+
+    dsu.beginImages(1, 0, vk::DescriptorType::eCombinedImageSampler);
+    dsu.image(*sampler, ctx.rtResources.at(hdrImg).image.imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
+
+    dsu.update(ctx.device);
 }

@@ -2,7 +2,7 @@
 #include "PCH.hpp"
 #include <SDL2/SDL.h>
 #include <glm/gtc/matrix_transform.hpp>
-#include <imgui.h>
+#include "imgui.h"
 #include "AssetDB.hpp"
 #include <unordered_set>
 #include <functional>
@@ -11,6 +11,7 @@
 #ifdef TRACY_ENABLE
 #include "tracy/TracyVulkan.hpp"
 #endif
+#include "IVRInterface.hpp"
 
 extern glm::ivec2 windowSize;
 
@@ -155,14 +156,16 @@ struct MaterialsUB {
 };
 
 struct GraphicsSettings {
-	GraphicsSettings() : msaaLevel(2), shadowmapRes(1024) {}
-	GraphicsSettings(int msaaLevel, int shadowmapRes)
+	GraphicsSettings() : msaaLevel(2), shadowmapRes(1024), enableVr(false) {}
+	GraphicsSettings(int msaaLevel, int shadowmapRes, bool enableVr)
 		: msaaLevel(msaaLevel)
-		, shadowmapRes(shadowmapRes) {
+		, shadowmapRes(shadowmapRes)
+		, enableVr(enableVr) {
 	}
 
 	int msaaLevel;
 	int shadowmapRes;
+	bool enableVr;
 };
 
 struct Global2DTextureSlot {
@@ -211,6 +214,9 @@ struct RenderCtx {
 	std::unordered_map<RenderImageHandle, RenderTextureResource>& rtResources;
 	std::unordered_map<AssetID, LoadedMeshData>& loadedMeshes;
 	uint32_t width, height;
+	glm::mat4 vrViewMats[2];
+	glm::mat4 vrProjMats[2];
+	bool enableVR;
 };
 
 struct PassSetupCtx {
@@ -233,10 +239,11 @@ class XRInterface;
 
 struct RendererInitInfo {
 	SDL_Window* window;
-	bool enableVR;
 	std::vector<std::string> additionalInstanceExtensions;
 	std::vector<std::string> additionalDeviceExtensions;
-	XRInterface* xrInterface;
+	bool enableVR;
+	VrApi activeVrApi;
+	IVRInterface* vrInterface;
 };
 
 class VKRenderer {
@@ -268,8 +275,11 @@ class VKRenderer {
 	RenderImageHandle depthStencilImage;
 	RenderImageHandle polyImage;
 
-	// tonemap related stuff
+	
 	RenderImageHandle finalPrePresent;
+	// openvr doesn't support presenting image layers
+	// copy to another image
+	RenderImageHandle finalPrePresentR;
 
 	// shadowmapping stuff
 	RenderImageHandle shadowmapImage;
@@ -313,6 +323,9 @@ class VKRenderer {
 	bool enableVR;
 	PolyRenderPass* currentPRP;
 	ImGuiRenderPass* irp;
+	uint32_t renderWidth, renderHeight;
+	IVRInterface* vrInterface;
+	VrApi vrApi;
 public:
 	double time;
 	VKRenderer(RendererInitInfo& initInfo, bool* success);
@@ -320,7 +333,8 @@ public:
 	void frame(Camera& cam, entt::registry& reg);
 	void preloadMesh(AssetID id);
 	void uploadProcObj(ProceduralObject& procObj);
-	entt::entity getPickedEnt();
+	void requestEntityPick();
+	bool getPickedEnt(entt::entity* entOut);
 	inline float getLastRenderTime() { return lastRenderTimeTicks * timestampPeriod; }
 
 	~VKRenderer();

@@ -43,13 +43,14 @@ layout(push_constant) uniform PushConstants {
 	vec4 texScaleOffset;
 	// (x: model matrix index, y: material index, z: vp index)
 	ivec4 ubIndices;
+    ivec2 pixelPickCoords;
 };
 
 void main() {
 	mat4 model = modelMatrices[ubIndices.x];
     gl_Position = projection[ubIndices.z + gl_ViewIndex] * view[ubIndices.z + gl_ViewIndex] * model * vec4(inPosition, 1.0); // Apply MVP transform
 	
-    outUV = inUV;
+    outUV = (inUV * texScaleOffset.xy) + texScaleOffset.zw;
     outNormal = normalize(model * vec4(inNormal, 0.0)).xyz;
     outTangent = normalize(model * vec4(inTangent, 0.0)).xyz;
     outWorldPos = (model * vec4(inPosition, 1.0));

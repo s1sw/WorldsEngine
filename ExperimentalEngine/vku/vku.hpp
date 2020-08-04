@@ -31,6 +31,7 @@
 #include <cstddef>
 #include <vk_mem_alloc.h>
 
+#define VOOKOO_SPIRV_SUPPORT
 #ifdef VOOKOO_SPIRV_SUPPORT
 #include <vulkan/spirv.hpp11>
 #endif
@@ -572,6 +573,7 @@ namespace vku {
             renderPassInfo.pSubpasses = s.subpassDescriptions.data();
             renderPassInfo.dependencyCount = (uint32_t)s.subpassDependencies.size();
             renderPassInfo.pDependencies = s.subpassDependencies.data();
+            renderPassInfo.pNext = s.pNext;
             return device.createRenderPassUnique(renderPassInfo);
         }
 
@@ -589,6 +591,7 @@ namespace vku {
         void dependencySrcAccessMask(vk::AccessFlags value) { s.subpassDependencies.back().srcAccessMask = value; };
         void dependencyDstAccessMask(vk::AccessFlags value) { s.subpassDependencies.back().dstAccessMask = value; };
         void dependencyDependencyFlags(vk::DependencyFlags value) { s.subpassDependencies.back().dependencyFlags = value; };
+        void setPNext(void* pn) { s.pNext = pn; }
     private:
         constexpr static int max_refs = 64;
 
@@ -601,6 +604,7 @@ namespace vku {
             std::vector<vk::SubpassDescription> subpassDescriptions;
             std::vector<vk::SubpassDependency> subpassDependencies;
             std::array<vk::AttachmentReference, max_refs> attachmentReferences;
+            void* pNext = nullptr;
             int num_refs = 0;
             bool ok_ = false;
         };

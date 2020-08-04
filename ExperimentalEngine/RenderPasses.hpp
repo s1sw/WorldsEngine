@@ -14,6 +14,11 @@ private:
 	vk::UniquePipelineLayout wireframePipelineLayout;
 	vk::UniqueDescriptorSetLayout wireframeDsl;
 
+	vk::UniquePipeline pickingBufCsPipeline;
+	vk::UniquePipelineLayout pickingBufCsLayout;
+	vk::UniqueDescriptorSetLayout pickingBufCsDsl;
+	vk::DescriptorSet pickingBufCsDs;
+
 	vku::UniformBuffer vpUB;
 	vku::UniformBuffer lightsUB;
 	vku::UniformBuffer materialUB;
@@ -41,6 +46,9 @@ private:
 	int pickX, pickY;
 	uint32_t pickedEnt;
 	vk::UniqueEvent pickEvent;
+	bool pickThisFrame;
+	bool awaitingResults;
+	bool setEventNextFrame;
 public:
 	PolyRenderPass(RenderImageHandle depthStencilImage, RenderImageHandle polyImage, RenderImageHandle shadowImage, bool enablePicking = false);
 	void setPickCoords(int x, int y) { pickX = x; pickY = y; }
@@ -48,7 +56,8 @@ public:
 	void setup(PassSetupCtx& ctx) override;
 	void prePass(PassSetupCtx& ctx, RenderCtx& rCtx) override;
 	void execute(RenderCtx& ctx);
-	uint32_t getPickedEntity();
+	void requestEntityPick();
+	bool getPickedEnt(uint32_t* out);
 	virtual ~PolyRenderPass();
 };
 
@@ -79,15 +88,17 @@ private:
 	vk::UniquePipeline pipeline;
 	vk::UniquePipelineLayout pipelineLayout;
 	vk::DescriptorSet descriptorSet;
+	vk::DescriptorSet rDescriptorSet;
 	vk::UniqueSampler sampler;
 	RenderImageHandle finalPrePresent;
+	RenderImageHandle finalPrePresentR;
 	RenderImageHandle hdrImg;
-	RenderImageHandle imguiImg;
 public:
 	TonemapRenderPass(RenderImageHandle hdrImg, RenderImageHandle finalPrePresent);
 	RenderPassIO getIO() override;
 	void setup(PassSetupCtx& ctx) override;
 	void execute(RenderCtx& ctx) override;
+	void setRightFinalImage(PassSetupCtx& ctx, RenderImageHandle right);
 	virtual ~TonemapRenderPass() {}
 };
 

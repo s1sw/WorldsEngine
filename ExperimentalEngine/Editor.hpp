@@ -70,6 +70,8 @@ private:
     float startingMouseDistance;
     float lookX;
     float lookY;
+    bool imguiMetricsOpen;
+    bool enableTransformGadget;
 
     EditorSettings settings;
 };
