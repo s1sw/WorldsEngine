@@ -434,13 +434,13 @@ void engine(char* argv0) {
 
         glm::vec3 camPos = cam.position;
 
-        registry.sort<ProceduralObject>([&registry, &camPos](entt::entity a, entt::entity b) -> bool {
+        registry.sort<ProceduralObject>([&registry, &camPos](entt::entity a, entt::entity b) {
             auto& aTransform = registry.get<Transform>(a);
             auto& bTransform = registry.get<Transform>(b);
             return glm::distance2(camPos, aTransform.position) < glm::distance2(camPos, aTransform.position);
             }, entt::insertion_sort{});
 
-        registry.sort<WorldObject>([&registry, &camPos](entt::entity a, entt::entity b) -> bool {
+        registry.sort<WorldObject>([&registry, &camPos](entt::entity a, entt::entity b) {
             auto& aTransform = registry.get<Transform>(a);
             auto& bTransform = registry.get<Transform>(b);
             return glm::distance2(camPos, aTransform.position) < glm::distance2(camPos, aTransform.position) || registry.has<UseWireframe>(a);
