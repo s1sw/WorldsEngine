@@ -86,7 +86,7 @@ void ShadowmapRenderPass::setup(PassSetupCtx& ctx) {
 
     std::array<vk::ImageView, 1> shadowmapAttachments = { ctx.rtResources.at(shadowImage).image.imageView() };
     vk::FramebufferCreateInfo fci;
-    fci.attachmentCount = shadowmapAttachments.size();
+    fci.attachmentCount = (uint32_t)shadowmapAttachments.size();
     fci.pAttachments = shadowmapAttachments.data();
     fci.width = fci.height = shadowmapRes;
     fci.renderPass = *renderPass;

@@ -173,9 +173,6 @@
     <ClInclude Include="ImGuizmo.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="2DClip.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="GuiUtil.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>

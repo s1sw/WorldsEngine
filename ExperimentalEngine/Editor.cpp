@@ -3,7 +3,6 @@
 #include "Transform.hpp"
 #include <glm/gtx/norm.hpp>
 #include "ImGuizmo.h"
-#include "2DClip.hpp"
 #include <glm/gtc/type_ptr.hpp>
 #include "GuiUtil.hpp"
 #include "ComponentMetadata.hpp"
@@ -11,6 +10,7 @@
 #include "imgui_internal.h"
 #include "PhysicsActor.hpp"
 #include <glm/gtx/matrix_decompose.hpp>
+#include "ShaderMetadata.hpp"
 #undef near
 #undef far
 
@@ -44,6 +44,8 @@ const char* toolStr(Tool tool) {
         return "Scale";
     case Tool::Translate:
         return "Translate";
+    default:
+        return "???";
     }
 }
 
@@ -93,7 +95,10 @@ Editor::Editor(entt::registry& reg, InputManager& inputManager, Camera& cam)
     , lookX(0.0f)
     , lookY(0.0f)
     , settings()
-    , imguiMetricsOpen(false) {
+    , imguiMetricsOpen(false)
+    , currentSelectedEntity(entt::null)
+    , enableTransformGadget(false)
+    , startingMouseDistance(0.0f) {
     REGISTER_COMPONENT_TYPE(Transform, "Transform", true, editTransform, nullptr);
     REGISTER_COMPONENT_TYPE(WorldObject, "WorldObject", true, editWorldObject, nullptr);
     REGISTER_COMPONENT_TYPE(WorldLight, "WorldLight", true, nullptr, createLight);
@@ -252,7 +257,7 @@ void Editor::saveScene(AssetID id) {
     PHYSFS_writeBytes(file, SCN_FORMAT_MAGIC, 4);
     PHYSFS_writeBytes(file, &SCN_FORMAT_ID, 1);
 
-    uint32_t numEnts = reg.size();
+    uint32_t numEnts = (uint32_t)reg.size();
     PHYSFS_writeBytes(file, &numEnts, sizeof(numEnts));
 
     reg.each([file, this](entt::entity ent) {
@@ -459,7 +464,6 @@ void Editor::update(float deltaTime) {
             dir = cam.rotation * dir;
 
             glm::vec3 n;
-            glm::vec3 newPos;
 
             if (currentAxisLock == AxisFlagBits::All) {
                 n = cam.rotation * glm::vec3(0.0f, 0.0f, 1.0f);
@@ -601,7 +605,7 @@ void Editor::update(float deltaTime) {
         if (enableTransformGadget) {
             ImGuizmo::BeginFrame();
             ImGuizmo::Enable(true);
-            ImGuizmo::SetRect(offset.x, offset.y, windowSize.x, windowSize.y);
+            ImGuizmo::SetRect(offset.x, offset.y, (float)windowSize.x, (float)windowSize.y);
             glm::mat4 view = cam.getViewMatrix();
             glm::mat4 proj = cam.getProjectionMatrix((float)windowSize.x / (float)windowSize.y);
             glm::mat4 tfMtx = selectedTransform.getMatrix();
@@ -779,6 +783,24 @@ void Editor::update(float deltaTime) {
         ImGui::ShowMetricsWindow(&imguiMetricsOpen);
 
     if (ImGui::Button("Generate shader metadata cache")) {
+        PHYSFS_enumerate("Shaders", [](void*, const char* origDir, const char* fName) {
+            std::string path = origDir;
+            path += "/";
+            path += fName;
 
+            PHYSFS_File* f = PHYSFS_openRead(path.c_str());
+            size_t len = PHYSFS_fileLength(f);
+            void* data = std::malloc(len);
+
+            PHYSFS_readBytes(f, data, len);
+            PHYSFS_close(f);
+
+            std::cout << fName << ":\n";
+            generateSpirvMetadata((uint32_t*)data, len);
+
+            std::free(data);
+
+            return PHYSFS_ENUM_OK;
+        }, nullptr);
     }
 }

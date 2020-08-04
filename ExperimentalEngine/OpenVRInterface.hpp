@@ -25,7 +25,7 @@ public:
 
         std::string str((size_t)extCharCount, 'Z');
 
-        vr::VRCompositor()->GetVulkanInstanceExtensionsRequired(str.data(), str.size());
+        vr::VRCompositor()->GetVulkanInstanceExtensionsRequired(str.data(), (uint32_t)str.size());
 
         std::vector<std::string> extensions;
 
@@ -43,7 +43,7 @@ public:
 
         std::string str((size_t)extCharCount, 'Z');
 
-        vr::VRCompositor()->GetVulkanDeviceExtensionsRequired(physDevice, str.data(), str.size());
+        vr::VRCompositor()->GetVulkanDeviceExtensionsRequired(physDevice, str.data(), (uint32_t)str.size());
 
         std::vector<std::string> extensions;
 

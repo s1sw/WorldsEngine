@@ -196,7 +196,7 @@ void loadEditorFont() {
         return;
     }
 
-    ImGui::GetIO().Fonts->AddFontFromMemoryTTF(buf, readBytes, 18.0f);
+    ImGui::GetIO().Fonts->AddFontFromMemoryTTF(buf, (int)readBytes, 18.0f);
 
     //std::free(buf);
     PHYSFS_close(ttfFile);
@@ -384,7 +384,7 @@ void engine(char* argv0) {
             transform.rotation = px2glm(pose.q);
         });
 
-        editor.update(deltaTime);
+        editor.update((float)deltaTime);
 
         if (state[SDL_SCANCODE_RCTRL] && !lastState[SDL_SCANCODE_RCTRL]) {
             SDL_SetRelativeMouseMode((SDL_bool)!SDL_GetRelativeMouseMode());

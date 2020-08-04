@@ -201,7 +201,8 @@ struct RenderCtx {
 		, rtResources(rtResources)
 		, width(width)
 		, height(height)
-		, loadedMeshes(loadedMeshes) {
+		, loadedMeshes(loadedMeshes)
+		, enableVR(false) {
 	}
 
 	vk::UniqueCommandBuffer& cmdBuf; 

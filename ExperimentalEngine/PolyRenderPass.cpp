@@ -389,7 +389,7 @@ void PolyRenderPass::prePass(PassSetupCtx& ctx, RenderCtx& rCtx) {
         lightIdx++;
         });
 
-    lub->pack0.x = lightIdx;
+    lub->pack0.x = (float)lightIdx;
     lightsUB.unmap(ctx.device);
 }
 

@@ -1,8 +1,14 @@
 #include "ShaderMetadata.hpp"
+#include <vulkan/spirv.h>
+#include "spirv_reflect.h"
+#include <vulkan/spirv.hpp>
+#include <vector>
+#include <iostream>
+#include <cassert>
 
 ShaderMetadata generateSpirvMetadata(uint32_t* data, size_t length) {
     SpvReflectShaderModule fsRefl;
-    auto res1 = spvReflectCreateShaderModule(fsLen, fsData, &fsRefl);
+    auto res1 = spvReflectCreateShaderModule(length, data, &fsRefl);
 
     uint32_t inputVarCount;
     spvReflectEnumerateInputVariables(&fsRefl, &inputVarCount, nullptr);
@@ -11,12 +17,12 @@ ShaderMetadata generateSpirvMetadata(uint32_t* data, size_t length) {
     assert(inputVars.size() == inputVarCount);
     spvReflectEnumerateInputVariables(&fsRefl, &inputVarCount, inputVars.data());
 
-    for (int i = 0; i < fsRefl.descriptor_sets[0].binding_count; i++) {
+    for (uint32_t i = 0; i < fsRefl.descriptor_sets[0].binding_count; i++) {
         auto* typeDesc = fsRefl.descriptor_sets[0].bindings[i]->type_description;
         if (typeDesc->op == SpvOpTypeStruct) {
             std::cout << "Uniform buffer " << typeDesc->type_name << " has " << typeDesc->member_count << " members:\n";
 
-            for (int j = 0; j < typeDesc->member_count; j++) {
+            for (uint32_t j = 0; j < typeDesc->member_count; j++) {
                 auto m = typeDesc->members[j];
                 std::cout << "\t";
                 if ((m.type_flags & SPV_REFLECT_TYPE_FLAG_VECTOR) == SPV_REFLECT_TYPE_FLAG_VECTOR)
@@ -43,4 +49,5 @@ ShaderMetadata generateSpirvMetadata(uint32_t* data, size_t length) {
         std::cout << var->name << ": " << var->location << "\n";
     }
 
+    return ShaderMetadata{};
 }

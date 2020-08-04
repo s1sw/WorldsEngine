@@ -19,7 +19,7 @@ private:
         if (PHYSFS_eof(file)) {
             return traits_type::eof();
         }
-        size_t bytesRead = PHYSFS_read(file, buffer, 1, bufferSize);
+        size_t bytesRead = PHYSFS_readBytes(file, buffer, bufferSize);
         if (bytesRead < 1) {
             return traits_type::eof();
         }
@@ -64,11 +64,11 @@ private:
         if (pptr() == pbase() && c == traits_type::eof()) {
             return 0; // no-op
         }
-        if (PHYSFS_write(file, pbase(), pptr() - pbase(), 1) < 1) {
+        if (PHYSFS_writeBytes(file, pbase(), pptr() - pbase()) < 1) {
             return traits_type::eof();
         }
         if (c != traits_type::eof()) {
-            if (PHYSFS_write(file, &c, 1, 1) < 1) {
+            if (PHYSFS_writeBytes(file, &c, 1) < 1) {
                 return traits_type::eof();
             }
         }

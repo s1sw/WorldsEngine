@@ -78,7 +78,7 @@ void ImGuiRenderPass::execute(RenderCtx& ctx) {
     rpbi.renderPass = *renderPass;
     rpbi.framebuffer = *fb;
     rpbi.renderArea = vk::Rect2D{ {0, 0}, {ctx.width, ctx.height} };
-    rpbi.clearValueCount = clearColours.size();
+    rpbi.clearValueCount = (uint32_t)clearColours.size();
     rpbi.pClearValues = clearColours.data();
     cmdBuf->beginRenderPass(rpbi, vk::SubpassContents::eInline);
     ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), *cmdBuf);

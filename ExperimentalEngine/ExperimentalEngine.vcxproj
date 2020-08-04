@@ -257,7 +257,6 @@
     <ClCompile Include="vkswapchain.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="2DClip.hpp" />
     <ClInclude Include="AssetDB.hpp" />
     <ClInclude Include="Camera.hpp" />
     <ClInclude Include="ChunkGenerator.hpp" />

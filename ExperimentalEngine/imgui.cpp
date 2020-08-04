@@ -735,7 +735,6 @@ CODE
 #endif
 #if defined(_WIN32) && !defined(IMGUI_DISABLE_WIN32_FUNCTIONS)
 #ifndef WIN32_LEAN_AND_MEAN
-#define NOMINMAX
 #define WIN32_LEAN_AND_MEAN
 #define NOGDICAPMASKS
 #define NOCRYPT

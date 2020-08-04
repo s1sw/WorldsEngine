@@ -95,7 +95,7 @@ uint32_t getRowPitch(crnd::crn_texture_info texInfo, int mip) {
 }
 
 inline int getNumMips(int w, int h) {
-    return 1 + floor(log2(glm::max(w, h)));
+    return (int)(1 + floor(log2(glm::max(w, h))));
 }
 
 void VKRenderer::loadTex(const char* path, int index, bool crunch) {
@@ -124,10 +124,10 @@ void VKRenderer::loadTex(const char* path, int index, bool crunch) {
 
         crnd::crn_texture_info texInfo;
 
-        if (!crnd::crnd_get_texture_info(fileData, fileLen, &texInfo))
+        if (!crnd::crnd_get_texture_info(fileData, (uint32_t)fileLen, &texInfo))
             return;
 
-        crnd::crnd_unpack_context context = crnd::crnd_unpack_begin(fileData, fileLen);
+        crnd::crnd_unpack_context context = crnd::crnd_unpack_begin(fileData, (uint32_t)fileLen);
 
         crn_format fundamentalFormat = crnd::crnd_get_fundamental_dxt_format(texInfo.m_format);
 
@@ -152,11 +152,11 @@ void VKRenderer::loadTex(const char* path, int index, bool crunch) {
         uint32_t pitch = getRowPitch(texInfo, 0);
 
         size_t totalDataSize = 0;
-        for (int i = 0; i < texInfo.m_levels; i++) totalDataSize += getCrunchTextureSize(texInfo, i);
+        for (uint32_t i = 0; i < texInfo.m_levels; i++) totalDataSize += getCrunchTextureSize(texInfo, i);
 
         char* data = (char*)std::malloc(totalDataSize);
         size_t currOffset = 0;
-        for (int i = 0; i < texInfo.m_levels; i++) {
+        for (uint32_t i = 0; i < texInfo.m_levels; i++) {
             char* dataOffs = &data[currOffset];
             uint32_t dataSize = getCrunchTextureSize(texInfo, i);
             currOffset += dataSize;
@@ -568,7 +568,7 @@ void VKRenderer::createSCDependents() {
         finalPrePresentR = createRTResource(finalPrePresentCI, "Final Pre-Present Image (Right Eye)");
     }
 
-    PassSetupCtx psc{ physicalDevice, *device, *pipelineCache, *descriptorPool, *commandPool, *instance, allocator, graphicsQueueFamilyIdx, GraphicsSettings{numMSAASamples, (int32_t)shadowmapRes, enableVR}, textures, rtResources, swapchain->images.size() };
+    PassSetupCtx psc{ physicalDevice, *device, *pipelineCache, *descriptorPool, *commandPool, *instance, allocator, graphicsQueueFamilyIdx, GraphicsSettings{numMSAASamples, (int32_t)shadowmapRes, enableVR}, textures, rtResources, (int)swapchain->images.size() };
 
     auto tonemapRP = new TonemapRenderPass(polyImage, finalPrePresent);
     graphSolver.addNode(tonemapRP);
@@ -762,7 +762,7 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
     cmdBuf->resetQueryPool(*queryPool, 0, 2);
     cmdBuf->writeTimestamp(vk::PipelineStageFlagBits::eTopOfPipe, *queryPool, 0);
 
-    PassSetupCtx psc{ physicalDevice, *device, *pipelineCache, *descriptorPool, *commandPool, *instance, allocator, graphicsQueueFamilyIdx, GraphicsSettings{numMSAASamples, (int32_t)shadowmapRes, enableVR}, textures, rtResources, swapchain->images.size() };
+    PassSetupCtx psc{ physicalDevice, *device, *pipelineCache, *descriptorPool, *commandPool, *instance, allocator, graphicsQueueFamilyIdx, GraphicsSettings{numMSAASamples, (int32_t)shadowmapRes, enableVR}, textures, rtResources, (int)swapchain->images.size() };
 
     if (enableVR) {
         vr::TrackedDevicePose_t hmdPose;
@@ -887,7 +887,7 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
 
     std::array<std::uint64_t, 2> timeStamps = { {0} };
     device->getQueryPoolResults<std::uint64_t>(
-        *queryPool, 0, timeStamps.size(),
+        *queryPool, 0, (uint32_t)timeStamps.size(),
         timeStamps, sizeof(std::uint64_t),
         vk::QueryResultFlagBits::e64 | vk::QueryResultFlagBits::eWait
         );
@@ -918,7 +918,7 @@ void loadObj(std::vector<Vertex>& vertices, std::vector<uint32_t>& indices, std:
         if (idx.texcoord_index >= 0)
             vert.uv = glm::vec2(attrib.texcoords[2 * (size_t)idx.texcoord_index], attrib.texcoords[2 * (size_t)idx.texcoord_index + 1]);
         vertices.push_back(vert);
-        indices.push_back(indices.size());
+        indices.push_back((uint32_t)indices.size());
     }
 }
 
@@ -938,7 +938,7 @@ void VKRenderer::preloadMesh(AssetID id) {
     auto memProps = physicalDevice.getMemoryProperties();
     LoadedMeshData lmd;
     lmd.indexType = vk::IndexType::eUint32;
-    lmd.indexCount = indices.size();
+    lmd.indexCount = (uint32_t)indices.size();
     lmd.ib = vku::IndexBuffer{ *device, allocator, indices.size() * sizeof(uint32_t) };
     lmd.ib.upload(*device, memProps, *commandPool, device->getQueue(graphicsQueueFamilyIdx, 0), indices);
     lmd.vb = vku::VertexBuffer{ *device, allocator, vertices.size() * sizeof(Vertex) };
@@ -956,7 +956,7 @@ void VKRenderer::uploadProcObj(ProceduralObject& procObj) {
     device->waitIdle();
     auto memProps = physicalDevice.getMemoryProperties();
     procObj.indexType = vk::IndexType::eUint32;
-    procObj.indexCount = procObj.indices.size();
+    procObj.indexCount = (uint32_t)procObj.indices.size();
     procObj.ib = vku::IndexBuffer{ *device, allocator, procObj.indices.size() * sizeof(uint32_t) };
     procObj.ib.upload(*device, memProps, *commandPool, device->getQueue(graphicsQueueFamilyIdx, 0), procObj.indices);
     procObj.vb = vku::VertexBuffer{ *device, allocator, procObj.vertices.size() * sizeof(Vertex) };

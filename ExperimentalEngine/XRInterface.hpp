@@ -45,11 +45,11 @@ public:
 
         // We have to set the type for the extension property to be considered valid!
         // This isn't set automatically by EnumerateInstanceExtensionProperties and not setting it causes an error.
-        for (int i = 0; i < numExtensionProps; i++) {
+        for (uint32_t i = 0; i < numExtensionProps; i++) {
             extensionProps[i].type = XR_TYPE_EXTENSION_PROPERTIES;
         }
 
-        checkResult(xrEnumerateInstanceExtensionProperties(nullptr, extensionProps.size(), &numExtensionProps, extensionProps.data()));
+        checkResult(xrEnumerateInstanceExtensionProperties(nullptr, (uint32_t)extensionProps.size(), &numExtensionProps, extensionProps.data()));
 
         bool foundVKExtension = false;
 
@@ -71,8 +71,8 @@ public:
         appInfo.apiVersion = XR_CURRENT_API_VERSION;
         std::strcpy(appInfo.applicationName, "ExpEng");
         std::strcpy(appInfo.engineName, "ExpEng");
-        appInfo.engineVersion = XR_MAKE_VERSION(1, 0, 0);
-        appInfo.applicationVersion = XR_MAKE_VERSION(1, 0, 0);
+        appInfo.engineVersion = (uint32_t)(XR_MAKE_VERSION(1, 0, 0));
+        appInfo.applicationVersion = (uint32_t)(XR_MAKE_VERSION(1, 0, 0));
         ici.applicationInfo = appInfo;
         ici.createFlags = 0;
         ici.next = nullptr;
@@ -100,7 +100,7 @@ public:
         mci.userData = nullptr;
         ici.next = &mci;
 #endif
-        ici.enabledExtensionCount = extensions.size();
+        ici.enabledExtensionCount = (uint32_t)extensions.size();
         ici.enabledExtensionNames = extensions.data();
 
         XrResult instanceCreateResult = xrCreateInstance(&ici, &instance);
@@ -130,7 +130,7 @@ public:
 
         viewConfigViews.resize(viewConfigViewCount);
 
-        xrEnumerateViewConfigurationViews(instance, sysId, XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO, viewConfigViews.size(), &viewConfigViewCount, viewConfigViews.data());
+        xrEnumerateViewConfigurationViews(instance, sysId, XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO, (uint32_t)viewConfigViews.size(), &viewConfigViewCount, viewConfigViews.data());
     }
 
     std::vector<std::string> getVulkanInstanceExtensions() {
@@ -140,7 +140,7 @@ public:
 
         std::string str((size_t)extCharCount, 'Z');
 
-        checkResult(xrGetVulkanInstanceExtensionsKHR(instance, sysId, str.size(), &extCharCount, str.data()));
+        checkResult(xrGetVulkanInstanceExtensionsKHR(instance, sysId, (uint32_t)str.size(), &extCharCount, str.data()));
 
         std::vector<std::string> extensions;
 
@@ -167,7 +167,7 @@ public:
 
         std::string str((size_t)extCharCount, 'Z');
 
-        checkResult(xrGetVulkanDeviceExtensionsKHR(instance, sysId, str.size(), &extCharCount, str.data()));
+        checkResult(xrGetVulkanDeviceExtensionsKHR(instance, sysId, (uint32_t)str.size(), &extCharCount, str.data()));
 
         std::vector<std::string> extensions;
 
