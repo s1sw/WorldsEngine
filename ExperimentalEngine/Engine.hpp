@@ -234,6 +234,7 @@ struct PassSetupCtx {
 	Global2DTextureSlot* globalTexArray;
 	std::unordered_map<RenderImageHandle, RenderTextureResource>& rtResources;
 	int swapchainImageCount;
+	bool enableVR;
 };
 
 class XRInterface;

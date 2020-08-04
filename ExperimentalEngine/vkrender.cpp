@@ -232,8 +232,10 @@ VKRenderer::VKRenderer(RendererInitInfo& initInfo, bool* success)
     }
 
 #ifndef NDEBUG
-    //instanceMaker.layer("VK_LAYER_KHRONOS_validation");
-    //instanceMaker.extension(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
+    if (!enableVR) {
+        instanceMaker.layer("VK_LAYER_KHRONOS_validation");
+        instanceMaker.extension(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
+    }
 #endif
     instanceMaker.extension(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 
@@ -244,7 +246,8 @@ VKRenderer::VKRenderer(RendererInitInfo& initInfo, bool* success)
 
     this->instance = instanceMaker.createUnique();
 #ifndef NDEBUG
-    //this->dbgCallback = vku::DebugCallback(*this->instance);
+    if (!enableVR)
+        dbgCallback = vku::DebugCallback(*this->instance);
 #endif
     auto physDevs = this->instance->enumeratePhysicalDevices();
     // TODO: Go through physical devices and select one properly
@@ -568,7 +571,7 @@ void VKRenderer::createSCDependents() {
         finalPrePresentR = createRTResource(finalPrePresentCI, "Final Pre-Present Image (Right Eye)");
     }
 
-    PassSetupCtx psc{ physicalDevice, *device, *pipelineCache, *descriptorPool, *commandPool, *instance, allocator, graphicsQueueFamilyIdx, GraphicsSettings{numMSAASamples, (int32_t)shadowmapRes, enableVR}, textures, rtResources, (int)swapchain->images.size() };
+    PassSetupCtx psc{ physicalDevice, *device, *pipelineCache, *descriptorPool, *commandPool, *instance, allocator, graphicsQueueFamilyIdx, GraphicsSettings{numMSAASamples, (int32_t)shadowmapRes, enableVR}, textures, rtResources, (int)swapchain->images.size(), enableVR };
 
     auto tonemapRP = new TonemapRenderPass(polyImage, finalPrePresent);
     graphSolver.addNode(tonemapRP);
@@ -762,7 +765,7 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
     cmdBuf->resetQueryPool(*queryPool, 0, 2);
     cmdBuf->writeTimestamp(vk::PipelineStageFlagBits::eTopOfPipe, *queryPool, 0);
 
-    PassSetupCtx psc{ physicalDevice, *device, *pipelineCache, *descriptorPool, *commandPool, *instance, allocator, graphicsQueueFamilyIdx, GraphicsSettings{numMSAASamples, (int32_t)shadowmapRes, enableVR}, textures, rtResources, (int)swapchain->images.size() };
+    PassSetupCtx psc{ physicalDevice, *device, *pipelineCache, *descriptorPool, *commandPool, *instance, allocator, graphicsQueueFamilyIdx, GraphicsSettings{numMSAASamples, (int32_t)shadowmapRes, enableVR}, textures, rtResources, (int)swapchain->images.size(), enableVR };
 
     if (enableVR) {
         vr::TrackedDevicePose_t hmdPose;

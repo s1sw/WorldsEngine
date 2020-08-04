@@ -42,7 +42,8 @@ void TonemapRenderPass::setup(PassSetupCtx& ctx) {
 
     dsl = tonemapDslm.createUnique(ctx.device);
 
-    tonemapShader = vku::loadShaderAsset(ctx.device, g_assetDB.addOrGetExisting("Shaders/tonemap.comp.spv"));
+    std::string shaderName = ctx.enableVR ? "tonemap.comp.spv" : "tonemap2d.comp.spv";
+    tonemapShader = vku::loadShaderAsset(ctx.device, g_assetDB.addOrGetExisting("Shaders/" + shaderName));
 
     vku::PipelineLayoutMaker plm;
     plm.descriptorSetLayout(*dsl);
