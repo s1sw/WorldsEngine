@@ -246,6 +246,7 @@
     <ClCompile Include="Physics.cpp" />
     <ClCompile Include="PolyRenderPass.cpp" />
     <ClCompile Include="RenderGraph.cpp" />
+    <ClCompile Include="SceneSerialization.cpp" />
     <ClCompile Include="ShaderMetadata.cpp" />
     <ClCompile Include="ShadowmapRenderPass.cpp" />
     <ClCompile Include="SourceModelLoader.cpp" />
@@ -283,6 +284,7 @@
     <ClInclude Include="RendererComponents.hpp" />
     <ClInclude Include="RenderGraph.hpp" />
     <ClInclude Include="RenderPasses.hpp" />
+    <ClInclude Include="SceneSerialization.hpp" />
     <ClInclude Include="ShaderMetadata.hpp" />
     <ClInclude Include="SourceModelLoader.hpp" />
     <ClInclude Include="spirv_reflect.h" />

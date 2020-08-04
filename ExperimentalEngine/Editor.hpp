@@ -54,8 +54,6 @@ public:
     Editor(entt::registry& reg, InputManager& inputManager, Camera& cam);
     void select(entt::entity entity);
     void update(float deltaTime);
-    void saveScene(AssetID sceneId);
-    void loadScene(AssetID sceneId);
     void activateTool(Tool newTool);
 private:
     void updateCamera(float deltaTime);
