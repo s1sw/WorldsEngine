@@ -757,8 +757,6 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
         }
     }
 
-    // TODO: Pre-pass
-
     vk::CommandBufferBeginInfo cbbi;
 
     cmdBuf->begin(cbbi);
@@ -776,6 +774,13 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
             rCtx.vrViewMats[i] = glm::inverse(ovrInterface->toMat4(hmdPredictedPose.mDeviceToAbsoluteTracking) * rCtx.vrViewMats[i]);
         }
     }
+
+    // Upload any necessary textures
+    // TODO: Make this async on another thread
+    reg.view<WorldObject>().each([this](auto ent, WorldObject& wo) {
+        
+        });
+
 
     for (auto& node : solvedNodes) {
         node->prePass(psc, rCtx);

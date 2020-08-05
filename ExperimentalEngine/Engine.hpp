@@ -318,6 +318,7 @@ class VKRenderer {
 #ifdef TRACY_ENABLE
 	std::vector<TracyVkCtx> tracyContexts;
 #endif
+	std::unordered_map<AssetID, uint32_t> textureIndices;
 	Global2DTextureSlot textures[64];
 	vku::TextureImageCube cubemaps[64];
 	GraphSolver graphSolver;
