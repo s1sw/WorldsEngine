@@ -673,7 +673,9 @@ void Editor::update(float deltaTime) {
     if (imguiMetricsOpen)
         ImGui::ShowMetricsWindow(&imguiMetricsOpen);
 
+    static std::vector<ShaderMetadata> shaderMdata;
     if (ImGui::Button("Generate shader metadata cache")) {
+        shaderMdata.clear();
         PHYSFS_enumerate("Shaders", [](void*, const char* origDir, const char* fName) {
             std::string path = origDir;
             path += "/";
@@ -687,11 +689,33 @@ void Editor::update(float deltaTime) {
             PHYSFS_close(f);
 
             std::cout << fName << ":\n";
-            generateSpirvMetadata((uint32_t*)data, len);
+            shaderMdata.push_back(generateSpirvMetadata((uint32_t*)data, len));
 
             std::free(data);
 
             return PHYSFS_ENUM_OK;
         }, nullptr);
+    }
+
+    for (ShaderMetadata& smData : shaderMdata) {
+        if (!smData.valid) {
+            ImGui::Text("%s (invalid)", smData.sourceFile.c_str());
+        } else {
+            ImGui::Text("%s:", smData.sourceFile.c_str());
+
+            if (smData.lightBufferBinding.has_value())
+                ImGui::BulletText("Light buffer binding: %u", smData.lightBufferBinding);
+
+            if (smData.modelMatrixBinding.has_value())
+                ImGui::BulletText("Model matrix binding: %u", smData.modelMatrixBinding);
+
+            for (auto& outVar : smData.outputVars) {
+                ImGui::BulletText("Output variable: %s (location %u)", outVar.name.c_str(), outVar.location);
+            }
+
+            for (auto& inputVar : smData.inputVars) {
+                ImGui::BulletText("Input variable: %s (location %u)", inputVar.name.c_str(), inputVar.location);
+            }
+        }
     }
 }
