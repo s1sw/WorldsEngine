@@ -14,6 +14,17 @@
                 "kind": "build",
                 "isDefault": true
             }
+        },
+        {
+            "label": "Build shaders (debug)",
+            "windows" : {
+                "type": "shell",
+                "command" : "\"${workspaceFolder}\\Shaders\\buildshaders_debug.bat\""
+            },
+            "problemMatcher": [],
+            "group": {
+                "kind": "build"
+            }
         }
     ]
 }
