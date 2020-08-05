@@ -419,7 +419,6 @@ void engine(char* argv0) {
             ImGui::Text("GPU render time: %.3fms", renderer->getLastRenderTime() / 1000.0f / 1000.0f);
             ImGui::Text("Frame: %i", frameCounter);
             ImGui::Text("Cam pos: %.3f, %.3f, %.3f", cam.position.x, cam.position.y, cam.position.z);
-            //ImGui::Text("Mouse over entity: %u", renderer->getPickedEnt());   
         }
         ImGui::End();
 
