@@ -26,7 +26,7 @@ AssetID AssetDB::addAsset(std::string path) {
 	paths.insert({ id, path });
 
 	// Figure out the file extension
-	auto ext = std::filesystem::path(path).extension().u8string();
+	auto ext = std::filesystem::path(path).extension().string();
 	std::cout << "Added asset with extension " << ext << "\n";
 	if (ext == ".png") {
 		std::cout << "Texture\n";
