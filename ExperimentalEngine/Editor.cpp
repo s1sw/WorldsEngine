@@ -718,4 +718,8 @@ void Editor::update(float deltaTime) {
             }
         }
     }
+
+    if (ImGui::Button("Save AssetDB")) {
+        g_assetDB.save();
+    }
 }
