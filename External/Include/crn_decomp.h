@@ -13,6 +13,10 @@
 #ifndef CRND_INCLUDE_CRND_H
 #define CRND_INCLUDE_CRND_H
 
+#if defined(_WIN32) && !defined(WIN32)
+#define WIN32
+#endif
+
 // Include crnlib.h (only to bring in some basic CRN-related types).
 #include "crnlib.h"
 

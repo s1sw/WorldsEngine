@@ -9,6 +9,7 @@ layout(location = 0) out vec2 outUV;
 layout(binding = 0) uniform MultiVP {
 	mat4 view[8];
 	mat4 projection[8];
+	vec4 viewPos[8];
 };
 
 layout(std140, binding = 1) uniform ModelMatrices {
@@ -16,10 +17,10 @@ layout(std140, binding = 1) uniform ModelMatrices {
 };
 
 layout(push_constant) uniform PushConstants {
-	vec4 viewPos;
 	vec4 texScaleOffset;
 	// (x: model matrix index, y: material index, z: vp index)
 	ivec4 ubIndices;
+    ivec2 pixelPickCoords;
 };
 
 void main() {

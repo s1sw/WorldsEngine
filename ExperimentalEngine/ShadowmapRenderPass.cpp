@@ -97,7 +97,7 @@ void ShadowmapRenderPass::setup(PassSetupCtx& ctx) {
 void ShadowmapRenderPass::execute(RenderCtx& ctx) {
 #ifdef TRACY_ENABLE
     ZoneScoped;
-    TracyVkZone(tracyContexts[ctx.imageIndex], *ctx.cmdBuf, "Shadowmap");
+    TracyVkZone((*ctx.tracyContexts)[ctx.imageIndex], *ctx.cmdBuf, "Shadowmap");
 #endif
     vk::ClearDepthStencilValue clearDepthValue{ 1.0f, 0 };
     std::array<vk::ClearValue, 1> clearColours{ clearDepthValue };

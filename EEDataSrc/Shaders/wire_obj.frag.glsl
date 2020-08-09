@@ -6,7 +6,6 @@ layout (location = 0) out vec4 FragColor;
 layout (location = 0) in vec2 inUV;
 
 layout(push_constant) uniform PushConstants {
-	vec4 viewPos;
 	vec4 texScaleOffset;
     // (x: model matrix index, y: material index, z: vp index, w: object id)
 	ivec4 ubIndices;

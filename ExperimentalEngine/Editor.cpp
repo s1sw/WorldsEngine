@@ -267,6 +267,8 @@ void copyComponent(entt::entity oldEnt, entt::entity newEnt, entt::registry& reg
         reg.emplace<T>(newEnt, reg.get<T>(oldEnt));
 }
 
+extern entt::entity createModelObject(entt::registry& reg, glm::vec3 position, glm::quat rotation, AssetID meshId, AssetID materialId, glm::vec3 scale = glm::vec3(1.0f), glm::vec4 texScaleOffset = glm::vec4(1.0f, 1.0f, 0.0f, 0.0f));
+
 void Editor::update(float deltaTime) {
     if (currentTool == Tool::None && reg.valid(currentSelectedEntity)) {
         // Right mouse button means that the view's being moved, so we'll need the movement keys
@@ -721,5 +723,11 @@ void Editor::update(float deltaTime) {
 
     if (ImGui::Button("Save AssetDB")) {
         g_assetDB.save();
+    }
+
+    if (ImGui::Button("Create Cube")) {
+        AssetID cubeId = g_assetDB.addOrGetExisting("model.obj");
+
+        createModelObject(reg, glm::vec3(0.0f), glm::quat(), cubeId, g_assetDB.addOrGetExisting("Materials/dev.json"), glm::vec3(1.0f));
     }
 }

@@ -85,7 +85,7 @@ void TonemapRenderPass::setup(PassSetupCtx& ctx) {
 void TonemapRenderPass::execute(RenderCtx& ctx) {
 #ifdef TRACY_ENABLE
     ZoneScoped;
-    TracyVkZone(tracyContexts[ctx.imageIndex], *ctx.cmdBuf, "Tonemap/Postprocessing");
+    TracyVkZone((*ctx.tracyContexts)[ctx.imageIndex], *ctx.cmdBuf, "Tonemap/Postprocessing");
 #endif
     auto& cmdBuf = ctx.cmdBuf;
     //finalPrePresent.setLayout(*cmdBuf, vk::ImageLayout::eGeneral, vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eComputeShader, vk::AccessFlagBits::eTransferRead, vk::AccessFlagBits::eShaderWrite);
@@ -114,10 +114,10 @@ void TonemapRenderPass::execute(RenderCtx& ctx) {
         cmdBuf->pushConstants<TonemapPushConstants>(*pipelineLayout, vk::ShaderStageFlagBits::eCompute, 0, tpc);
         cmdBuf->dispatch((ctx.width + 15) / 16, (ctx.height + 15) / 16, 1);
 
-        vku::transitionLayout(*cmdBuf, ctx.rtResources.at(finalPrePresentR).image.image(),
+       /* vku::transitionLayout(*cmdBuf, ctx.rtResources.at(finalPrePresentR).image.image(),
             vk::ImageLayout::eGeneral, vk::ImageLayout::eColorAttachmentOptimal,
             vk::PipelineStageFlagBits::eComputeShader, vk::PipelineStageFlagBits::eColorAttachmentOutput,
-            vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite);
+            vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite);*/
     }
 
     vku::transitionLayout(*cmdBuf, ctx.rtResources.at(finalPrePresent).image.image(),

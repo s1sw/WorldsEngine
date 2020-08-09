@@ -178,7 +178,7 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>vulkan-1.lib;openxr_loader.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>C:\VulkanSDK\1.2.131.2\Lib;$(SolutionDir)External\Lib</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(VULKAN_SDK)\Lib;$(SolutionDir)External\Lib</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -200,7 +200,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>C:\VulkanSDK\1.2.131.2\Lib;$(SolutionDir)External\Lib</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(VULKAN_SDK)\Lib;$(SolutionDir)External\Lib</AdditionalLibraryDirectories>
       <AdditionalDependencies>vulkan-1.lib;openxr_loader.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
@@ -223,13 +223,14 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>C:\VulkanSDK\1.2.131.2\Lib;$(SolutionDir)External\Lib</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(VULKAN_SDK)\Lib;$(SolutionDir)External\Lib</AdditionalLibraryDirectories>
       <AdditionalDependencies>vulkan-1.lib;openxr_loader.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="AssetDB.cpp" />
     <ClCompile Include="Editor.cpp" />
+    <ClCompile Include="Fatal.cpp" />
     <ClCompile Include="GuiUtil.cpp" />
     <ClCompile Include="imgui.cpp" />
     <ClCompile Include="ImGuiRenderPass.cpp" />
@@ -242,6 +243,7 @@
     <ClCompile Include="Input.cpp" />
     <ClCompile Include="JobSystem.cpp" />
     <ClCompile Include="Main.cpp" />
+    <ClCompile Include="MaterialSlots.cpp" />
     <ClCompile Include="physfs.cpp" />
     <ClCompile Include="Physics.cpp" />
     <ClCompile Include="PolyRenderPass.cpp" />
@@ -251,6 +253,7 @@
     <ClCompile Include="ShadowmapRenderPass.cpp" />
     <ClCompile Include="SourceModelLoader.cpp" />
     <ClCompile Include="spirv_reflect.c" />
+    <ClCompile Include="TextureLoader.cpp" />
     <ClCompile Include="tiny_obj_loader.cc" />
     <ClCompile Include="TonemapRenderPass.cpp" />
     <ClCompile Include="tracy\TracyClient.cpp" />
@@ -264,6 +267,7 @@
     <ClInclude Include="ComponentMetadata.hpp" />
     <ClInclude Include="Editor.hpp" />
     <ClInclude Include="Engine.hpp" />
+    <ClInclude Include="Fatal.hpp" />
     <ClInclude Include="GlmStreamOps.hpp" />
     <ClInclude Include="GuiUtil.hpp" />
     <ClInclude Include="imconfig.h" />
@@ -277,6 +281,7 @@
     <ClInclude Include="IVRInterface.hpp" />
     <ClInclude Include="JobSystem.hpp" />
     <ClInclude Include="OpenVRInterface.hpp" />
+    <ClInclude Include="PackedMaterial.hpp" />
     <ClInclude Include="PCH.hpp" />
     <ClInclude Include="physfs.hpp" />
     <ClInclude Include="Physics.hpp" />
@@ -284,12 +289,14 @@
     <ClInclude Include="RendererComponents.hpp" />
     <ClInclude Include="RenderGraph.hpp" />
     <ClInclude Include="RenderPasses.hpp" />
+    <ClInclude Include="ResourceSlots.hpp" />
     <ClInclude Include="SceneSerialization.hpp" />
     <ClInclude Include="ShaderMetadata.hpp" />
     <ClInclude Include="SourceModelLoader.hpp" />
     <ClInclude Include="spirv_reflect.h" />
     <ClInclude Include="tiny_obj_loader.h" />
     <ClInclude Include="Transform.hpp" />
+    <ClInclude Include="TextureLoader.hpp" />
     <ClInclude Include="vku\vku.hpp" />
     <ClInclude Include="XRInterface.hpp" />
   </ItemGroup>

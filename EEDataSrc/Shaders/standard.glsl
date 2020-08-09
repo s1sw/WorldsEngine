@@ -38,6 +38,7 @@ const int LT_DIRECTIONAL = 2;
 layout(binding = 0) uniform MultiVP {
 	mat4 view[8];
 	mat4 projection[8];
+    vec4 viewPos[8];
 };
 
 struct Light {
@@ -81,7 +82,6 @@ layout(std430, binding = 6) buffer PickingBuffer {
 } pickBuf;
 
 layout(push_constant) uniform PushConstants {
-	vec4 viewPos;
 	vec4 texScaleOffset;
     // (x: model matrix index, y: material index, z: vp index, w: object id)
 	ivec4 ubIndices;
@@ -193,7 +193,7 @@ void main() {
 	float roughness = mat.pack0.y;
 	vec3 albedoColor = mat.pack1.rgb * texture(albedoSampler[int(mat.pack0.z)], inUV).rgb;
 	
-	vec3 viewDir = normalize(viewPos.xyz - inWorldPos.xyz);
+	vec3 viewDir = normalize(viewPos[gl_ViewIndex].xyz - inWorldPos.xyz);
 	
 	vec3 f0 = vec3(0.04f, 0.04f, 0.04f);
     f0 = mix(f0, albedoColor, metallic);

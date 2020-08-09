@@ -5,6 +5,47 @@
 
 typedef uint32_t AssetID;
 
+enum class AssetMetaValueType {
+	Int,
+	Int64,
+	String,
+	Float
+};
+
+struct AssetMetaValue {
+	AssetMetaValueType type;
+	union {
+		int32_t intVal;
+		int64_t int64Val;
+		std::string stringVal;
+		float floatVal;
+	};
+
+	operator int32_t() {
+		assert(type == AssetMetaValueType::Int);
+		return intVal;
+	}
+
+	operator int64_t() {
+		assert(type == AssetMetaValueType::Int64);
+		return int64Val;
+	}
+	
+	operator std::string() {
+		assert(type == AssetMetaValueType::String);
+		return stringVal;
+	}
+
+	operator float() {
+		assert(type == AssetMetaValueType::Float);
+		return floatVal;
+	}
+};
+
+struct AssetMeta {
+	std::unordered_map<std::string, AssetMetaValue> metaValues;
+};
+
 class AssetDB {
 public:
 	AssetDB();

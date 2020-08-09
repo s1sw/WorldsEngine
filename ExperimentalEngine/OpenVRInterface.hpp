@@ -5,6 +5,7 @@
 #include <sstream>
 #include <vulkan/vulkan.h>
 #include <SDL2/SDL_messagebox.h>
+#include <glm/gtx/matrix_decompose.hpp>
 
 class OpenVRInterface : public IVRInterface {
     vr::IVRSystem* system;
@@ -82,5 +83,38 @@ public:
 
     glm::mat4 getProjMat(vr::EVREye eye, float near, float far) {
         return toMat4(system->GetProjectionMatrix(eye, near, far));
+    }
+
+    bool getHandTransform(vr::ETrackedControllerRole role, Transform& t) {
+        auto idx = system->GetTrackedDeviceIndexForControllerRole(role);
+        vr::VRControllerState_t state;
+        vr::TrackedDevicePose_t trackedPose;
+
+        bool success = system->GetControllerStateWithPose(
+            vr::ETrackingUniverseOrigin::TrackingUniverseStanding, 
+            idx, 
+            &state, 
+            sizeof(state), 
+            &trackedPose);
+
+        if (!success)
+            return false;
+        
+        glm::mat4 matrix = toMat4(trackedPose.mDeviceToAbsoluteTracking);
+        glm::vec3 scale;
+        glm::quat rotation;
+        glm::vec3 translation;
+        glm::vec3 skew;
+        glm::vec4 perspective;
+        glm::decompose(matrix, scale, rotation, translation, skew, perspective);
+
+        t.position = translation;
+        t.rotation = rotation;
+
+        return true;
+    }
+
+    glm::vec2 getLocomotionInput() {
+
     }
 };
