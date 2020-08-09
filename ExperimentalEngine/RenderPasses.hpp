@@ -50,6 +50,8 @@ private:
 	bool pickThisFrame;
 	bool awaitingResults;
 	bool setEventNextFrame;
+
+	void updateDescriptorSets(PassSetupCtx& ctx);
 public:
 	PolyRenderPass(RenderImageHandle depthStencilImage, RenderImageHandle polyImage, RenderImageHandle shadowImage, bool enablePicking = false);
 	void setPickCoords(int x, int y) { pickX = x; pickY = y; }

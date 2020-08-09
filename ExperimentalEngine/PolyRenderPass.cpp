@@ -22,6 +22,60 @@ struct PickBufCSPushConstants {
     uint32_t doPicking;
 };
 
+void PolyRenderPass::updateDescriptorSets(PassSetupCtx& ctx) {
+    {
+        vku::DescriptorSetUpdater updater;
+        updater.beginDescriptorSet(descriptorSet);
+
+        updater.beginBuffers(0, 0, vk::DescriptorType::eUniformBuffer);
+        updater.buffer(this->vpUB.buffer(), 0, sizeof(MultiVP));
+
+        updater.beginBuffers(1, 0, vk::DescriptorType::eUniformBuffer);
+        updater.buffer(lightsUB.buffer(), 0, sizeof(LightUB));
+
+        updater.beginBuffers(2, 0, vk::DescriptorType::eUniformBuffer);
+        updater.buffer(materialUB.buffer(), 0, sizeof(MaterialsUB));
+
+        updater.beginBuffers(3, 0, vk::DescriptorType::eUniformBuffer);
+        updater.buffer(modelMatrixUB.buffer(), 0, sizeof(ModelMatrices));
+
+        for (int i = 0; i < ctx.globalTexArray->get()->size(); i++) {
+            if ((*ctx.globalTexArray)->isSlotPresent(i)) {
+                updater.beginImages(4, i, vk::DescriptorType::eCombinedImageSampler);
+                updater.image(*albedoSampler, (*(*ctx.globalTexArray))[i].imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
+            }
+        }
+
+        updater.beginImages(5, 0, vk::DescriptorType::eCombinedImageSampler);
+        updater.image(*shadowSampler, ctx.rtResources.at(shadowImage).image.imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
+
+        updater.beginBuffers(6, 0, vk::DescriptorType::eStorageBuffer);
+        updater.buffer(pickingBuffer.buffer(), 0, sizeof(PickingBuffer));
+
+        updater.update(ctx.device);
+    }
+
+    {
+        vku::DescriptorSetUpdater updater;
+        updater.beginDescriptorSet(wireframeDescriptorSet);
+        updater.beginBuffers(0, 0, vk::DescriptorType::eUniformBuffer);
+        updater.buffer(vpUB.buffer(), 0, sizeof(MultiVP));
+        updater.beginBuffers(1, 0, vk::DescriptorType::eUniformBuffer);
+        updater.buffer(modelMatrixUB.buffer(), 0, sizeof(ModelMatrices));
+        updater.beginBuffers(2, 0, vk::DescriptorType::eUniformBuffer);
+        updater.buffer(materialUB.buffer(), 0, sizeof(MaterialsUB));
+
+        for (int i = 0; i < ctx.globalTexArray->get()->size(); i++) {
+            if ((*ctx.globalTexArray)->isSlotPresent(i)) {
+                updater.beginImages(3, i, vk::DescriptorType::eCombinedImageSampler);
+                updater.image(*albedoSampler, (*(*ctx.globalTexArray))[i].imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
+            }
+        }
+
+        updater.update(ctx.device);
+    }
+}
+
 PolyRenderPass::PolyRenderPass(
     RenderImageHandle depthStencilImage,
     RenderImageHandle polyImage,
@@ -35,7 +89,8 @@ PolyRenderPass::PolyRenderPass(
     , pickY(0)
     , pickedEnt(UINT32_MAX)
     , awaitingResults(false)
-    , pickThisFrame(false) {
+    , pickThisFrame(false)
+    , setEventNextFrame(false) {
 
 }
 
@@ -113,35 +168,7 @@ void PolyRenderPass::setup(PassSetupCtx& ctx) {
     dsm.layout(*this->dsl);
     descriptorSet = dsm.create(ctx.device, ctx.descriptorPool)[0];
 
-    vku::DescriptorSetUpdater updater;
-    updater.beginDescriptorSet(descriptorSet);
-
-    updater.beginBuffers(0, 0, vk::DescriptorType::eUniformBuffer);
-    updater.buffer(this->vpUB.buffer(), 0, sizeof(MultiVP));
-
-    updater.beginBuffers(1, 0, vk::DescriptorType::eUniformBuffer);
-    updater.buffer(lightsUB.buffer(), 0, sizeof(LightUB));
-
-    updater.beginBuffers(2, 0, vk::DescriptorType::eUniformBuffer);
-    updater.buffer(materialUB.buffer(), 0, sizeof(MaterialsUB));
-
-    updater.beginBuffers(3, 0, vk::DescriptorType::eUniformBuffer);
-    updater.buffer(modelMatrixUB.buffer(), 0, sizeof(ModelMatrices));
-
-    for (int i = 0; i < 64; i++) {
-        if ((*ctx.globalTexArray)->isSlotPresent(i)) {
-            updater.beginImages(4, i, vk::DescriptorType::eCombinedImageSampler);
-            updater.image(*albedoSampler, (*(*ctx.globalTexArray))[i].imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
-        }
-    }
-
-    updater.beginImages(5, 0, vk::DescriptorType::eCombinedImageSampler);
-    updater.image(*shadowSampler, ctx.rtResources.at(shadowImage).image.imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
-
-    updater.beginBuffers(6, 0, vk::DescriptorType::eStorageBuffer);
-    updater.buffer(pickingBuffer.buffer(), 0, sizeof(PickingBuffer));
-
-    updater.update(ctx.device);
+    
 
     vku::RenderpassMaker rPassMaker;
 
@@ -270,24 +297,6 @@ void PolyRenderPass::setup(PassSetupCtx& ctx) {
         wireframePipelineLayout = plm.createUnique(ctx.device);
 
         wireframePipeline = pm.createUnique(ctx.device, ctx.pipelineCache, *wireframePipelineLayout, *renderPass);
-
-        vku::DescriptorSetUpdater updater;
-        updater.beginDescriptorSet(wireframeDescriptorSet);
-        updater.beginBuffers(0, 0, vk::DescriptorType::eUniformBuffer);
-        updater.buffer(vpUB.buffer(), 0, sizeof(MultiVP));
-        updater.beginBuffers(1, 0, vk::DescriptorType::eUniformBuffer);
-        updater.buffer(modelMatrixUB.buffer(), 0, sizeof(ModelMatrices));
-        updater.beginBuffers(2, 0, vk::DescriptorType::eUniformBuffer);
-        updater.buffer(materialUB.buffer(), 0, sizeof(MaterialsUB));
-
-        for(int i = 0; i < 64; i++) {
-            if ((*ctx.globalTexArray)->isSlotPresent(i)) {
-                updater.beginImages(4, i, vk::DescriptorType::eCombinedImageSampler);
-                updater.image(*albedoSampler, (*(*ctx.globalTexArray))[i].imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
-            }
-        }
-
-        updater.update(ctx.device);
     }
 
     {
@@ -316,7 +325,7 @@ void PolyRenderPass::setup(PassSetupCtx& ctx) {
         dsu.update(ctx.device);
     }
 
-    
+    updateDescriptorSets(ctx);
 
     ctx.device.setEvent(*pickEvent);
 }
@@ -396,57 +405,8 @@ void PolyRenderPass::prePass(PassSetupCtx& ctx, RenderCtx& rCtx) {
         auto memoryProps = ctx.physicalDevice.getMemoryProperties();
         materialUB.upload(ctx.device, memoryProps, ctx.commandPool, ctx.device.getQueue(ctx.graphicsQueueFamilyIdx, 0), (*rCtx.materialSlots)->getSlots(), sizeof(PackedMaterial) * 256);
 
-        {
-            vku::DescriptorSetUpdater updater;
-            updater.beginDescriptorSet(wireframeDescriptorSet);
-            updater.beginBuffers(0, 0, vk::DescriptorType::eUniformBuffer);
-            updater.buffer(vpUB.buffer(), 0, sizeof(MultiVP));
-            updater.beginBuffers(1, 0, vk::DescriptorType::eUniformBuffer);
-            updater.buffer(modelMatrixUB.buffer(), 0, sizeof(ModelMatrices));
-            updater.beginBuffers(2, 0, vk::DescriptorType::eUniformBuffer);
-            updater.buffer(materialUB.buffer(), 0, sizeof(MaterialsUB));
-
-            for (int i = 0; i < 64; i++) {
-                if ((*ctx.globalTexArray)->isSlotPresent(i)) {
-                    updater.beginImages(3, i, vk::DescriptorType::eCombinedImageSampler);
-                    updater.image(*albedoSampler, (*(*ctx.globalTexArray))[i].imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
-                }
-            }
-
-            updater.update(ctx.device);
-        }
-
-        {
-            vku::DescriptorSetUpdater updater;
-            updater.beginDescriptorSet(descriptorSet);
-
-            updater.beginBuffers(0, 0, vk::DescriptorType::eUniformBuffer);
-            updater.buffer(this->vpUB.buffer(), 0, sizeof(MultiVP));
-
-            updater.beginBuffers(1, 0, vk::DescriptorType::eUniformBuffer);
-            updater.buffer(lightsUB.buffer(), 0, sizeof(LightUB));
-
-            updater.beginBuffers(2, 0, vk::DescriptorType::eUniformBuffer);
-            updater.buffer(materialUB.buffer(), 0, sizeof(MaterialsUB));
-
-            updater.beginBuffers(3, 0, vk::DescriptorType::eUniformBuffer);
-            updater.buffer(modelMatrixUB.buffer(), 0, sizeof(ModelMatrices));
-
-            for (int i = 0; i < 64; i++) {
-                if ((*ctx.globalTexArray)->isSlotPresent(i)) {
-                    updater.beginImages(4, i, vk::DescriptorType::eCombinedImageSampler);
-                    updater.image(*albedoSampler, (*(*ctx.globalTexArray))[i].imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
-                }
-            }
-
-            updater.beginImages(5, 0, vk::DescriptorType::eCombinedImageSampler);
-            updater.image(*shadowSampler, ctx.rtResources.at(shadowImage).image.imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
-
-            updater.beginBuffers(6, 0, vk::DescriptorType::eStorageBuffer);
-            updater.buffer(pickingBuffer.buffer(), 0, sizeof(PickingBuffer));
-
-            updater.update(ctx.device);
-        }
+        // Update descriptor sets to bring in any new textures
+        updateDescriptorSets(ctx);
     }
 }
 
