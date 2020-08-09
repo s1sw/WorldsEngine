@@ -229,6 +229,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="AssetDB.cpp" />
+    <ClCompile Include="Audio.cpp" />
     <ClCompile Include="Editor.cpp" />
     <ClCompile Include="Fatal.cpp" />
     <ClCompile Include="GuiUtil.cpp" />
@@ -262,6 +263,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AssetDB.hpp" />
+    <ClInclude Include="Audio.hpp" />
     <ClInclude Include="Camera.hpp" />
     <ClInclude Include="ChunkGenerator.hpp" />
     <ClInclude Include="ComponentMetadata.hpp" />
@@ -280,6 +282,7 @@
     <ClInclude Include="Input.hpp" />
     <ClInclude Include="IVRInterface.hpp" />
     <ClInclude Include="JobSystem.hpp" />
+    <ClInclude Include="Log.hpp" />
     <ClInclude Include="OpenVRInterface.hpp" />
     <ClInclude Include="PackedMaterial.hpp" />
     <ClInclude Include="PCH.hpp" />
