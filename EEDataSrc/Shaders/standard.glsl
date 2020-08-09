@@ -210,8 +210,8 @@ void main() {
                 float texelSize = 1.0 / textureSize(shadowSampler, 0).x;
 				texReadPoint.y = 1.0 - texReadPoint.y;
                 float shadowIntensity = 0.0;
-                const int shadowSamples = 1;
-                const float divVal = ((shadowSamples * 2) + 1) * ((shadowSamples * 2) + 1);
+                const int shadowSamples = 2;
+                const float divVal = ((shadowSamples * 2)) * ((shadowSamples * 2));
                 for (int x = -shadowSamples; x < shadowSamples; x++)
                 for (int y = -shadowSamples; y < shadowSamples; y++)
 				    shadowIntensity += texture(shadowSampler, vec3(texReadPoint + vec2(x, y) * texelSize, depth)).x;
