@@ -46,6 +46,7 @@ public:
     }
 
     uint32_t get(key k) const { return lookup.at(k); }
+    virtual void unload(int idx) = 0;
 };
 
 class TextureSlots : public ResourceSlots<vku::TextureImage2D, NUM_TEX_SLOTS, AssetID> {
@@ -73,6 +74,11 @@ public:
     TextureSlots(std::shared_ptr<VulkanCtx> vkCtx) : vkCtx(vkCtx) {
 
     }
+
+    void unload(int idx) {
+        present[idx] = false;
+        slots[idx] = vku::TextureImage2D{};
+    }
 };
 
 struct PackedMaterial;
@@ -88,6 +94,10 @@ private:
 public:
     MaterialSlots(std::shared_ptr<VulkanCtx> vkCtx, TextureSlots& texSlots) : vkCtx(vkCtx), texSlots(texSlots) {
 
+    }
+
+    void unload(int idx) {
+        present[idx] = false;
     }
 };
 

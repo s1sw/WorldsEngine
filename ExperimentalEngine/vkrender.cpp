@@ -23,134 +23,6 @@
 
 const bool vrValidationLayers = false;
 
-//uint32_t VKRenderer::getOrLoadTextureIdx(AssetID textureId) {
-//    auto textureIdxIter = textureIndices.find(textureId);
-//    if (textureIdxIter == textureIndices.end()) {
-//        // load the thingy
-//        uint32_t slot = ~0u;
-//        for (uint32_t i = 0; i < NUM_TEX_SLOTS; i++) {
-//            if (!textures[i].present) {
-//                slot = i;
-//                break;
-//            }
-//        }
-//
-//        if (slot > NUM_TEX_SLOTS) {
-//            fatalErr("Out of texture slots");
-//        }
-//
-//        loadTex(textureId, slot);
-//
-//        textureIndices.insert({ textureId, slot });
-//
-//        return slot;
-//    } else {
-//        return textureIdxIter->second;
-//    }
-//}
-//
-//uint32_t VKRenderer::getOrLoadCubemapIdx(AssetID cubemapId) {
-//    auto cubemapIdxIter = textureIndices.find(cubemapId);
-//    if (cubemapIdxIter == textureIndices.end()) {
-//        // load the thingy
-//        uint32_t slot = ~0u;
-//        for (uint32_t i = 0; i < NUM_CUBEMAP_SLOTS; i++) {
-//            if (!cubemaps[i].present) {
-//                slot = i;
-//                break;
-//            }
-//        }
-//
-//        if (slot > NUM_CUBEMAP_SLOTS) {
-//            fatalErr("Out of cubemap slots");
-//        }
-//
-//        loadCubemap(cubemapId, slot);
-//
-//        cubemapIndices.insert({ cubemapId, slot });
-//
-//        return slot;
-//    } else {
-//        return cubemapIdxIter->second;
-//    }
-//}
-//
-//uint32_t VKRenderer::getOrLoadMaterialIdx(AssetID materialID) {
-//    auto materialIdxIter = materialIndices.find(materialID);
-//    if (materialIdxIter == materialIndices.end()) {
-//        // load the thingy
-//        uint32_t slot = ~0u;
-//        for (uint32_t i = 0; i < NUM_MAT_SLOTS; i++) {
-//            if (!materialPresent[i]) {
-//                slot = i;
-//                break;
-//            }
-//        }
-//
-//        if (slot > NUM_MAT_SLOTS) {
-//            fatalErr("Out of material slots");
-//        }
-//
-//        parseMaterial(materialID, materials[slot]);
-//        materialPresent[slot] = true;
-//
-//        return slot;
-//    } else {
-//        return materialIdxIter->second;
-//    }
-//}
-//
-//void VKRenderer::parseMaterial(AssetID matJsonId, PackedMaterial& mat) {
-//    ZoneScoped
-//    PHYSFS_File* f = g_assetDB.openAssetFileRead(matJsonId);
-//    size_t fileSize = PHYSFS_fileLength(f);
-//    char* buffer = (char*)std::malloc(fileSize);
-//    PHYSFS_readBytes(f, buffer, fileSize);
-//    PHYSFS_close(f);
-//
-//    const sajson::document& document = sajson::parse(
-//        sajson::single_allocation(), sajson::mutable_string_view(fileSize, buffer)
-//    );
-//
-//    if (!document.is_valid()) {
-//        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Invalid material document");
-//        std::free(buffer);
-//        return;
-//    }
-//
-//    const auto& root = document.get_root();
-//
-//    if (root.get_type() != sajson::TYPE_OBJECT) {
-//        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Invalid material document");
-//        std::free(buffer);
-//        return;
-//    }
-//
-//    auto rootLength = root.get_length();
-//    auto albedoPathIdx = root.find_object_key(sajson::string("albedoPath", 10));
-//    auto metallicIdx = root.find_object_key(sajson::string("metallic", 8));
-//    auto roughnessIdx = root.find_object_key(sajson::string("roughness", 9));
-//    auto albedoColorIdx = root.find_object_key(sajson::string("albedoColor", 11));
-//
-//    auto albedoPath = root.get_object_value(albedoPathIdx).as_string();
-//    float metallic = root.get_object_value(metallicIdx).get_double_value();
-//    float roughness = root.get_object_value(roughnessIdx).get_double_value();
-//    const auto& albedoColorArr = root.get_object_value(albedoColorIdx);
-//
-//    glm::vec3 albedoColor{
-//        albedoColorArr.get_array_element(0).get_double_value(),
-//        albedoColorArr.get_array_element(1).get_double_value(),
-//        albedoColorArr.get_array_element(2).get_double_value()
-//    };
-//
-//    auto albedoAssetId = g_assetDB.addOrGetExisting(albedoPath);
-//
-//    mat.pack0 = glm::vec4(metallic, roughness, getOrLoadTextureIdx(albedoAssetId), 0.0f);
-//    mat.pack1 = glm::vec4(albedoColor, 0.0f);
-//
-//    std::free(buffer);
-//}
-
 uint32_t findPresentQueue(vk::PhysicalDevice pd, vk::SurfaceKHR surface) {
     auto qprops = pd.getQueueFamilyProperties();
     for (uint32_t qi = 0; qi != qprops.size(); ++qi) {
@@ -201,135 +73,6 @@ void VKRenderer::createFramebuffers() {
         fci.layers = 1;
         this->framebuffers.push_back(this->device->createFramebufferUnique(fci));
     }
-}
-
-//uint32_t getCrunchTextureSize(crnd::crn_texture_info texInfo, int mip) {
-//    const crn_uint32 width = std::max(1U, texInfo.m_width >> mip);
-//    const crn_uint32 height = std::max(1U, texInfo.m_height >> mip);
-//    const crn_uint32 blocks_x = std::max(1U, (width + 3) >> 2);
-//    const crn_uint32 blocks_y = std::max(1U, (height + 3) >> 2);
-//    const crn_uint32 row_pitch = blocks_x * crnd::crnd_get_bytes_per_dxt_block(texInfo.m_format);
-//    const crn_uint32 total_face_size = row_pitch * blocks_y;
-//
-//    return total_face_size;
-//}
-//
-//uint32_t getRowPitch(crnd::crn_texture_info texInfo, int mip) {
-//    const crn_uint32 width = std::max(1U, texInfo.m_width >> mip);
-//    const crn_uint32 height = std::max(1U, texInfo.m_height >> mip);
-//    const crn_uint32 blocks_x = std::max(1U, (width + 3) >> 2);
-//    const crn_uint32 row_pitch = blocks_x * crnd::crnd_get_bytes_per_dxt_block(texInfo.m_format);
-//
-//    return row_pitch;
-//}
-
-inline int getNumMips(int w, int h) {
-    return (int)(1 + floor(log2(glm::max(w, h))));
-}
-
-//void VKRenderer::loadTex(const char* path, int index, bool crunch) {
-//    loadTex(g_assetDB.addOrGetExisting(path), index);
-//}
-
-//void VKRenderer::loadTex(AssetID id, int index) {
-//    ZoneScoped
-//    auto memProps = physicalDevice.getMemoryProperties();
-//    int x, y, channelsInFile;
-//
-//    PHYSFS_File* file = g_assetDB.openAssetFileRead(id);
-//    if (!file) {
-//        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to load texture");
-//        return;
-//    }
-//    size_t fileLen = PHYSFS_fileLength(file);
-//    void* fileData = std::malloc(fileLen);
-//    PHYSFS_readBytes(file, fileData, fileLen);
-//    PHYSFS_close(file);
-//
-//    bool crunch = g_assetDB.getAssetExtension(id) == ".crn";
-//
-//    if (!crunch) {
-//        stbi_uc* dat = stbi_load_from_memory((stbi_uc*)fileData, fileLen, &x, &y, &channelsInFile, 4);
-//
-//        if (dat == nullptr) {
-//
-//        }
-//
-//        textures[index].present = true;
-//        textures[index].tex = vku::TextureImage2D{ *device, memProps, (uint32_t)x, (uint32_t)y, 1, vk::Format::eR8G8B8A8Srgb, false, g_assetDB.getAssetPath(id).c_str() };
-//
-//        std::vector<uint8_t> albedoDat(dat, dat + ((size_t)x * y * 4));
-//
-//        textures[index].tex.upload(*device, allocator, albedoDat, *commandPool, memProps, device->getQueue(graphicsQueueFamilyIdx, 0));
-//        std::free(dat);
-//    } else {
-//        bool isSRGB = true;
-//
-//        crnd::crn_texture_info texInfo;
-//
-//        if (!crnd::crnd_get_texture_info(fileData, (uint32_t)fileLen, &texInfo))
-//            return;
-//
-//        crnd::crnd_unpack_context context = crnd::crnd_unpack_begin(fileData, (uint32_t)fileLen);
-//
-//        crn_format fundamentalFormat = crnd::crnd_get_fundamental_dxt_format(texInfo.m_format);
-//
-//        vk::Format format;
-//
-//        switch (fundamentalFormat) {
-//        case crn_format::cCRNFmtDXT1:
-//            format = isSRGB ? vk::Format::eBc1RgbaSrgbBlock : vk::Format::eBc1RgbaUnormBlock;
-//            break;
-//        case crn_format::cCRNFmtDXT5:
-//            format = isSRGB ? vk::Format::eBc3SrgbBlock : vk::Format::eBc3UnormBlock;
-//            break;
-//        case crn_format::cCRNFmtDXN_XY:
-//            format = vk::Format::eBc5UnormBlock;
-//            break;
-//        }
-//
-//        x = texInfo.m_width;
-//        y = texInfo.m_height;
-//        uint32_t pitch = getRowPitch(texInfo, 0);
-//
-//        size_t totalDataSize = 0;
-//        for (uint32_t i = 0; i < texInfo.m_levels; i++) totalDataSize += getCrunchTextureSize(texInfo, i);
-//
-//        char* data = (char*)std::malloc(totalDataSize);
-//        size_t currOffset = 0;
-//        for (uint32_t i = 0; i < texInfo.m_levels; i++) {
-//            char* dataOffs = &data[currOffset];
-//            uint32_t dataSize = getCrunchTextureSize(texInfo, i);
-//            currOffset += dataSize;
-//
-//            if (!crnd::crnd_unpack_level(context, (void**)&dataOffs, dataSize, getRowPitch(texInfo, i), i))
-//                __debugbreak();
-//        }
-//
-//        uint32_t numMips = texInfo.m_levels;
-//
-//        crnd::crnd_unpack_end(context);
-//
-//        textures[index].present = true;
-//        textures[index].tex = vku::TextureImage2D{ *device, memProps, (uint32_t)x, (uint32_t)y, numMips, format, false, g_assetDB.getAssetPath(id).c_str() };
-//        std::vector<uint8_t> albedoDat(data, data + totalDataSize);
-//
-//        textures[index].tex.upload(*device, allocator, albedoDat, *commandPool, memProps, device->getQueue(graphicsQueueFamilyIdx, 0));
-//        std::free(data);
-//    }
-//
-//    std::free(fileData);
-//}
-//
-//void VKRenderer::loadCubemap(AssetID id, int index) {
-//    // "Cubemaps" in WE are actually JSON files containing the AssetIDs of the faces
-//
-//
-//}
-
-void VKRenderer::loadAlbedo() {
-    //loadTex("albedo.png", 0, false);
-    //loadTex("grass.crn", 1, true);
 }
 
 VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
@@ -568,8 +311,6 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
 
     createSwapchain(vk::SwapchainKHR{});
 
-    loadAlbedo();
-
     if (initInfo.activeVrApi == VrApi::OpenVR) {
         OpenVRInterface* vrInterface = static_cast<OpenVRInterface*>(initInfo.vrInterface);
         vrInterface->getRenderResolution(&renderWidth, &renderHeight);
@@ -733,7 +474,6 @@ void VKRenderer::createSCDependents() {
     ici.format = vk::Format::eR8G8B8A8Unorm;
     ici.usage = vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eTransferSrc;
 
-    //finalPrePresent = vku::GenericImage(*device, memoryProps, ici, vk::ImageViewType::e2D, vk::ImageAspectFlagBits::eColor, false);
     RTResourceCreateInfo finalPrePresentCI{ ici, vk::ImageViewType::e2D, vk::ImageAspectFlagBits::eColor };
     finalPrePresent = createRTResource(finalPrePresentCI, "Final Pre-Present Image");
 
@@ -966,11 +706,6 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
 
     irp->execute(rCtx);
 
-    //vku::transitionLayout(*cmdBuf, rtResources.at(finalPrePresent).image.image(),
-    //    vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::eColorAttachmentOptimal,
-    //    vk::PipelineStageFlagBits::eColorAttachmentOutput, vk::PipelineStageFlagBits::eColorAttachmentOutput,
-    //    vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite, vk::AccessFlagBits::eTransferRead);
-
     vku::transitionLayout(*cmdBuf, swapchain->images[imageIndex],
         vk::ImageLayout::ePresentSrcKHR, vk::ImageLayout::eTransferDstOptimal,
         vk::PipelineStageFlagBits::eBottomOfPipe, vk::PipelineStageFlagBits::eTransfer,
@@ -1006,20 +741,6 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
 #endif
     cmdBuf->end();
 
-    vk::SubmitInfo submit;
-    submit.waitSemaphoreCount = 1;
-    vk::Semaphore cImageAcquire = *imageAcquire;
-    submit.pWaitSemaphores = &cImageAcquire;
-    vk::PipelineStageFlags waitStages = vk::PipelineStageFlagBits::eColorAttachmentOutput;
-    submit.pWaitDstStageMask = &waitStages;
-    submit.commandBufferCount = 1;
-    vk::CommandBuffer cCmdBuf = *cmdBuf;
-    submit.pCommandBuffers = &cCmdBuf;
-
-    vk::Semaphore waitSemaphore = *commandComplete;
-
-    submit.signalSemaphoreCount = 1;
-    submit.pSignalSemaphores = &waitSemaphore;
     if (enableVR && vrApi == VrApi::OpenVR) {
         OpenVRInterface* ovrInterface = static_cast<OpenVRInterface*>(vrInterface);
 
@@ -1042,6 +763,21 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
 
         vr::VRCompositor()->SubmitExplicitTimingData();
     }
+
+    vk::SubmitInfo submit;
+    submit.waitSemaphoreCount = 1;
+    vk::Semaphore cImageAcquire = *imageAcquire;
+    submit.pWaitSemaphores = &cImageAcquire;
+    vk::PipelineStageFlags waitStages = vk::PipelineStageFlagBits::eColorAttachmentOutput;
+    submit.pWaitDstStageMask = &waitStages;
+    submit.commandBufferCount = 1;
+    vk::CommandBuffer cCmdBuf = *cmdBuf;
+    submit.pCommandBuffers = &cCmdBuf;
+
+    vk::Semaphore waitSemaphore = *commandComplete;
+
+    submit.signalSemaphoreCount = 1;
+    submit.pSignalSemaphores = &waitSemaphore;
     device->getQueue(graphicsQueueFamilyIdx, 0).submit(1, &submit, cmdBufferFences[imageIndex]);
     TracyMessageL("Queue submitted");
 
@@ -1179,7 +915,7 @@ void VKRenderer::requestEntityPick() {
 }
 
 void VKRenderer::unloadUnusedMaterials(entt::registry& reg) {
-    /*bool textureReferenced[NUM_TEX_SLOTS];
+    bool textureReferenced[NUM_TEX_SLOTS];
     bool materialReferenced[NUM_MAT_SLOTS];
 
     memset(textureReferenced, 0, sizeof(textureReferenced));
@@ -1188,27 +924,27 @@ void VKRenderer::unloadUnusedMaterials(entt::registry& reg) {
     reg.view<WorldObject>().each([&materialReferenced, &textureReferenced, this](entt::entity, WorldObject& wo) {
         materialReferenced[wo.materialIdx] = true;
 
-        uint32_t albedoIdx = materials[wo.materialIdx].pack0.z;
+        uint32_t albedoIdx = (*matSlots)[wo.materialIdx].pack0.z;
         textureReferenced[albedoIdx] = true;
         });
 
-    memcpy(materialPresent, materialReferenced, sizeof(materialPresent));
+    for (uint32_t i = 0; i < NUM_MAT_SLOTS; i++) {
+        if (!materialReferenced[i]) matSlots->unload(i);
+    }
 
     for (uint32_t i = 0; i < NUM_TEX_SLOTS; i++) {
-        if (!textureReferenced[i]) {
-            textures[i].present = false;
-            textures[i].tex = vku::TextureImage2D{};
-        }
-    }*/
+        if (!textureReferenced[i]) texSlots->unload(i);
+    }
 }
 
 void VKRenderer::reloadMatsAndTextures() {
-    /*memset(materialPresent, 0, sizeof(materialPresent));
+    for (uint32_t i = 0; i < NUM_MAT_SLOTS; i++) {
+        matSlots->unload(i);
+    }
 
     for (uint32_t i = 0; i < NUM_TEX_SLOTS; i++) {
-        textures[i].present = false;
-        textures[i].tex = vku::TextureImage2D{};
-    }*/
+        texSlots->unload(i);
+    }
 }
 
 VKRenderer::~VKRenderer() {
@@ -1222,11 +958,9 @@ VKRenderer::~VKRenderer() {
 
         graphSolver.clear();
 
-        /*for (auto& texSlot : textures) {
-            texSlot.present = false;
-            texSlot.tex = vku::TextureImage2D{};
-        }*/
         texSlots.reset();
+        matSlots.reset();
+
         rtResources.clear();
         loadedMeshes.clear();
         vmaDestroyAllocator(allocator);
