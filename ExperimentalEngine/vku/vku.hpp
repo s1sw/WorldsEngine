@@ -31,9 +31,8 @@
 #include <cstddef>
 #include <vk_mem_alloc.h>
 
-#define VOOKOO_SPIRV_SUPPORT
 #ifdef VOOKOO_SPIRV_SUPPORT
-#include <vulkan/spirv.hpp11>
+#include <vulkan/spirv.hpp>
 #endif
 
 #include <vulkan/vulkan.hpp>
@@ -1119,6 +1118,17 @@ namespace vku {
             vmaCreateBuffer(allocator, &cci, &allocInfo, &cBuf, &allocation, nullptr);
             vk::ObjectDestroy<vk::Device, vk::DispatchLoaderStatic> deleter(device);
             buffer_ = vk::UniqueBuffer(cBuf, deleter);
+
+            if (debugName) {
+                VkDebugUtilsObjectNameInfoEXT nameInfo;
+                nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+                nameInfo.pObjectName = debugName;
+                nameInfo.objectHandle = (uint64_t)(VkBuffer)(*buffer_);
+                nameInfo.objectType = VK_OBJECT_TYPE_BUFFER;
+                nameInfo.pNext = nullptr;
+                auto setObjName = (PFN_vkSetDebugUtilsObjectNameEXT)device.getProcAddr("vkSetDebugUtilsObjectNameEXT");
+                setObjName(device, &nameInfo);
+            }
         }
 
         /// For a host visible buffer, copy memory to the buffer object.
@@ -1708,6 +1718,17 @@ namespace vku {
                 viewInfo.components = { vk::ComponentSwizzle::eR, vk::ComponentSwizzle::eG, vk::ComponentSwizzle::eB, vk::ComponentSwizzle::eA };
                 viewInfo.subresourceRange = vk::ImageSubresourceRange{ aspectMask, 0, info.mipLevels, 0, info.arrayLayers };
                 s.imageView = device.createImageViewUnique(viewInfo);
+
+                if(debugName) {
+                    VkDebugUtilsObjectNameInfoEXT nameInfo;
+                    nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+                    nameInfo.pObjectName = debugName;
+                    nameInfo.objectHandle = (uint64_t)(VkImageView)(*s.imageView);
+                    nameInfo.objectType = VK_OBJECT_TYPE_IMAGE_VIEW;
+                    nameInfo.pNext = nullptr;
+                    auto setObjName = (PFN_vkSetDebugUtilsObjectNameEXT)device.getProcAddr("vkSetDebugUtilsObjectNameEXT");
+                    setObjName(device, &nameInfo);
+                }
             }
         }
 

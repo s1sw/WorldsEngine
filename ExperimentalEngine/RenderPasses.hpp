@@ -1,6 +1,7 @@
 #pragma once
 #include "RenderGraph.hpp"
 #include "vku/vku.hpp"
+#include <glm/glm.hpp>
 
 class PolyRenderPass : public RenderPass {
 private:
@@ -49,6 +50,8 @@ private:
 	bool pickThisFrame;
 	bool awaitingResults;
 	bool setEventNextFrame;
+
+	void updateDescriptorSets(PassSetupCtx& ctx);
 public:
 	PolyRenderPass(RenderImageHandle depthStencilImage, RenderImageHandle polyImage, RenderImageHandle shadowImage, bool enablePicking = false);
 	void setPickCoords(int x, int y) { pickX = x; pickY = y; }
@@ -58,6 +61,7 @@ public:
 	void execute(RenderCtx& ctx);
 	void requestEntityPick();
 	bool getPickedEnt(uint32_t* out);
+	void lateUpdateVP(glm::mat4 views[2], glm::vec3 viewPos[2], vk::Device dev);
 	virtual ~PolyRenderPass();
 };
 

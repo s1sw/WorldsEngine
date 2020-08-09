@@ -11,16 +11,145 @@
 #include "imgui_impl_vulkan.h"
 #include "physfs.hpp"
 #include "Transform.hpp"
-#ifdef TRACY_ENABLE
 #include "tracy/Tracy.hpp"
 #include "tracy/TracyC.h"
 #include "tracy/TracyVulkan.hpp"
-#endif
 #include "XRInterface.hpp"
 #include "RenderPasses.hpp"
-#include "crn_decomp.h"
 #include "Input.hpp"
 #include "OpenVRInterface.hpp"
+#include <sajson.h>
+#include "Fatal.hpp"
+
+const bool vrValidationLayers = false;
+
+//uint32_t VKRenderer::getOrLoadTextureIdx(AssetID textureId) {
+//    auto textureIdxIter = textureIndices.find(textureId);
+//    if (textureIdxIter == textureIndices.end()) {
+//        // load the thingy
+//        uint32_t slot = ~0u;
+//        for (uint32_t i = 0; i < NUM_TEX_SLOTS; i++) {
+//            if (!textures[i].present) {
+//                slot = i;
+//                break;
+//            }
+//        }
+//
+//        if (slot > NUM_TEX_SLOTS) {
+//            fatalErr("Out of texture slots");
+//        }
+//
+//        loadTex(textureId, slot);
+//
+//        textureIndices.insert({ textureId, slot });
+//
+//        return slot;
+//    } else {
+//        return textureIdxIter->second;
+//    }
+//}
+//
+//uint32_t VKRenderer::getOrLoadCubemapIdx(AssetID cubemapId) {
+//    auto cubemapIdxIter = textureIndices.find(cubemapId);
+//    if (cubemapIdxIter == textureIndices.end()) {
+//        // load the thingy
+//        uint32_t slot = ~0u;
+//        for (uint32_t i = 0; i < NUM_CUBEMAP_SLOTS; i++) {
+//            if (!cubemaps[i].present) {
+//                slot = i;
+//                break;
+//            }
+//        }
+//
+//        if (slot > NUM_CUBEMAP_SLOTS) {
+//            fatalErr("Out of cubemap slots");
+//        }
+//
+//        loadCubemap(cubemapId, slot);
+//
+//        cubemapIndices.insert({ cubemapId, slot });
+//
+//        return slot;
+//    } else {
+//        return cubemapIdxIter->second;
+//    }
+//}
+//
+//uint32_t VKRenderer::getOrLoadMaterialIdx(AssetID materialID) {
+//    auto materialIdxIter = materialIndices.find(materialID);
+//    if (materialIdxIter == materialIndices.end()) {
+//        // load the thingy
+//        uint32_t slot = ~0u;
+//        for (uint32_t i = 0; i < NUM_MAT_SLOTS; i++) {
+//            if (!materialPresent[i]) {
+//                slot = i;
+//                break;
+//            }
+//        }
+//
+//        if (slot > NUM_MAT_SLOTS) {
+//            fatalErr("Out of material slots");
+//        }
+//
+//        parseMaterial(materialID, materials[slot]);
+//        materialPresent[slot] = true;
+//
+//        return slot;
+//    } else {
+//        return materialIdxIter->second;
+//    }
+//}
+//
+//void VKRenderer::parseMaterial(AssetID matJsonId, PackedMaterial& mat) {
+//    ZoneScoped
+//    PHYSFS_File* f = g_assetDB.openAssetFileRead(matJsonId);
+//    size_t fileSize = PHYSFS_fileLength(f);
+//    char* buffer = (char*)std::malloc(fileSize);
+//    PHYSFS_readBytes(f, buffer, fileSize);
+//    PHYSFS_close(f);
+//
+//    const sajson::document& document = sajson::parse(
+//        sajson::single_allocation(), sajson::mutable_string_view(fileSize, buffer)
+//    );
+//
+//    if (!document.is_valid()) {
+//        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Invalid material document");
+//        std::free(buffer);
+//        return;
+//    }
+//
+//    const auto& root = document.get_root();
+//
+//    if (root.get_type() != sajson::TYPE_OBJECT) {
+//        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Invalid material document");
+//        std::free(buffer);
+//        return;
+//    }
+//
+//    auto rootLength = root.get_length();
+//    auto albedoPathIdx = root.find_object_key(sajson::string("albedoPath", 10));
+//    auto metallicIdx = root.find_object_key(sajson::string("metallic", 8));
+//    auto roughnessIdx = root.find_object_key(sajson::string("roughness", 9));
+//    auto albedoColorIdx = root.find_object_key(sajson::string("albedoColor", 11));
+//
+//    auto albedoPath = root.get_object_value(albedoPathIdx).as_string();
+//    float metallic = root.get_object_value(metallicIdx).get_double_value();
+//    float roughness = root.get_object_value(roughnessIdx).get_double_value();
+//    const auto& albedoColorArr = root.get_object_value(albedoColorIdx);
+//
+//    glm::vec3 albedoColor{
+//        albedoColorArr.get_array_element(0).get_double_value(),
+//        albedoColorArr.get_array_element(1).get_double_value(),
+//        albedoColorArr.get_array_element(2).get_double_value()
+//    };
+//
+//    auto albedoAssetId = g_assetDB.addOrGetExisting(albedoPath);
+//
+//    mat.pack0 = glm::vec4(metallic, roughness, getOrLoadTextureIdx(albedoAssetId), 0.0f);
+//    mat.pack1 = glm::vec4(albedoColor, 0.0f);
+//
+//    std::free(buffer);
+//}
 
 uint32_t findPresentQueue(vk::PhysicalDevice pd, vk::SurfaceKHR surface) {
     auto qprops = pd.getQueueFamilyProperties();
@@ -74,123 +203,144 @@ void VKRenderer::createFramebuffers() {
     }
 }
 
-uint32_t getCrunchTextureSize(crnd::crn_texture_info texInfo, int mip) {
-    const crn_uint32 width = std::max(1U, texInfo.m_width >> mip);
-    const crn_uint32 height = std::max(1U, texInfo.m_height >> mip);
-    const crn_uint32 blocks_x = std::max(1U, (width + 3) >> 2);
-    const crn_uint32 blocks_y = std::max(1U, (height + 3) >> 2);
-    const crn_uint32 row_pitch = blocks_x * crnd::crnd_get_bytes_per_dxt_block(texInfo.m_format);
-    const crn_uint32 total_face_size = row_pitch * blocks_y;
-
-    return total_face_size;
-}
-
-uint32_t getRowPitch(crnd::crn_texture_info texInfo, int mip) {
-    const crn_uint32 width = std::max(1U, texInfo.m_width >> mip);
-    const crn_uint32 height = std::max(1U, texInfo.m_height >> mip);
-    const crn_uint32 blocks_x = std::max(1U, (width + 3) >> 2);
-    const crn_uint32 row_pitch = blocks_x * crnd::crnd_get_bytes_per_dxt_block(texInfo.m_format);
-
-    return row_pitch;
-}
+//uint32_t getCrunchTextureSize(crnd::crn_texture_info texInfo, int mip) {
+//    const crn_uint32 width = std::max(1U, texInfo.m_width >> mip);
+//    const crn_uint32 height = std::max(1U, texInfo.m_height >> mip);
+//    const crn_uint32 blocks_x = std::max(1U, (width + 3) >> 2);
+//    const crn_uint32 blocks_y = std::max(1U, (height + 3) >> 2);
+//    const crn_uint32 row_pitch = blocks_x * crnd::crnd_get_bytes_per_dxt_block(texInfo.m_format);
+//    const crn_uint32 total_face_size = row_pitch * blocks_y;
+//
+//    return total_face_size;
+//}
+//
+//uint32_t getRowPitch(crnd::crn_texture_info texInfo, int mip) {
+//    const crn_uint32 width = std::max(1U, texInfo.m_width >> mip);
+//    const crn_uint32 height = std::max(1U, texInfo.m_height >> mip);
+//    const crn_uint32 blocks_x = std::max(1U, (width + 3) >> 2);
+//    const crn_uint32 row_pitch = blocks_x * crnd::crnd_get_bytes_per_dxt_block(texInfo.m_format);
+//
+//    return row_pitch;
+//}
 
 inline int getNumMips(int w, int h) {
     return (int)(1 + floor(log2(glm::max(w, h))));
 }
 
-void VKRenderer::loadTex(const char* path, int index, bool crunch) {
+//void VKRenderer::loadTex(const char* path, int index, bool crunch) {
+//    loadTex(g_assetDB.addOrGetExisting(path), index);
+//}
 
-    auto memProps = physicalDevice.getMemoryProperties();
-    int x, y, channelsInFile;
-    if (!crunch) {
-        stbi_uc* dat = stbi_load(path, &x, &y, &channelsInFile, 4);
-
-        if (dat == nullptr) {
-        }
-        textures[index].present = true;
-        textures[index].tex = vku::TextureImage2D{ *device, memProps, (uint32_t)x, (uint32_t)y, 1, vk::Format::eR8G8B8A8Srgb };
-
-        std::vector<uint8_t> albedoDat(dat, dat + ((size_t)x * y * 4));
-
-        textures[index].tex.upload(*device, allocator, albedoDat, *commandPool, memProps, device->getQueue(graphicsQueueFamilyIdx, 0));
-        std::free(dat);
-    } else {
-        bool isSRGB = true;
-        PHYSFS_File* file = PHYSFS_openRead(path);
-        size_t fileLen = PHYSFS_fileLength(file);
-        void* fileData = std::malloc(fileLen);
-        PHYSFS_readBytes(file, fileData, fileLen);
-        PHYSFS_close(file);
-
-        crnd::crn_texture_info texInfo;
-
-        if (!crnd::crnd_get_texture_info(fileData, (uint32_t)fileLen, &texInfo))
-            return;
-
-        crnd::crnd_unpack_context context = crnd::crnd_unpack_begin(fileData, (uint32_t)fileLen);
-
-        crn_format fundamentalFormat = crnd::crnd_get_fundamental_dxt_format(texInfo.m_format);
-
-        vk::Format format;
-
-        switch (fundamentalFormat) {
-        case crn_format::cCRNFmtDXT1:
-            format = isSRGB ? vk::Format::eBc1RgbaSrgbBlock : vk::Format::eBc1RgbaUnormBlock;
-            break;
-        case crn_format::cCRNFmtDXT5:
-            format = isSRGB ? vk::Format::eBc3SrgbBlock : vk::Format::eBc3UnormBlock;
-            break;
-            //case crn_format::cCRNFmtDXN_XY:
-            //    format = DXGI_FORMAT_BC5_UNORM;
-            //    viewFormat = DXGI_FORMAT_BC5_UNORM; //DXGI_FORMAT_R8G8_UNORM;
-            //    channels = 2;
-            //    break;
-        }
-
-        x = texInfo.m_width;
-        y = texInfo.m_height;
-        uint32_t pitch = getRowPitch(texInfo, 0);
-
-        size_t totalDataSize = 0;
-        for (uint32_t i = 0; i < texInfo.m_levels; i++) totalDataSize += getCrunchTextureSize(texInfo, i);
-
-        char* data = (char*)std::malloc(totalDataSize);
-        size_t currOffset = 0;
-        for (uint32_t i = 0; i < texInfo.m_levels; i++) {
-            char* dataOffs = &data[currOffset];
-            uint32_t dataSize = getCrunchTextureSize(texInfo, i);
-            currOffset += dataSize;
-
-            if (!crnd::crnd_unpack_level(context, (void**)&dataOffs, dataSize, getRowPitch(texInfo, i), i))
-                __debugbreak();
-        }
-
-        uint32_t numMips = texInfo.m_levels;
-
-        crnd::crnd_unpack_end(context);
-
-        textures[index].present = true;
-        textures[index].tex = vku::TextureImage2D{ *device, memProps, (uint32_t)x, (uint32_t)y, numMips, format };
-        std::vector<uint8_t> albedoDat(data, data + totalDataSize);
-
-        textures[index].tex.upload(*device, allocator, albedoDat, *commandPool, memProps, device->getQueue(graphicsQueueFamilyIdx, 0));
-        std::free(data);
-    }
-}
+//void VKRenderer::loadTex(AssetID id, int index) {
+//    ZoneScoped
+//    auto memProps = physicalDevice.getMemoryProperties();
+//    int x, y, channelsInFile;
+//
+//    PHYSFS_File* file = g_assetDB.openAssetFileRead(id);
+//    if (!file) {
+//        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to load texture");
+//        return;
+//    }
+//    size_t fileLen = PHYSFS_fileLength(file);
+//    void* fileData = std::malloc(fileLen);
+//    PHYSFS_readBytes(file, fileData, fileLen);
+//    PHYSFS_close(file);
+//
+//    bool crunch = g_assetDB.getAssetExtension(id) == ".crn";
+//
+//    if (!crunch) {
+//        stbi_uc* dat = stbi_load_from_memory((stbi_uc*)fileData, fileLen, &x, &y, &channelsInFile, 4);
+//
+//        if (dat == nullptr) {
+//
+//        }
+//
+//        textures[index].present = true;
+//        textures[index].tex = vku::TextureImage2D{ *device, memProps, (uint32_t)x, (uint32_t)y, 1, vk::Format::eR8G8B8A8Srgb, false, g_assetDB.getAssetPath(id).c_str() };
+//
+//        std::vector<uint8_t> albedoDat(dat, dat + ((size_t)x * y * 4));
+//
+//        textures[index].tex.upload(*device, allocator, albedoDat, *commandPool, memProps, device->getQueue(graphicsQueueFamilyIdx, 0));
+//        std::free(dat);
+//    } else {
+//        bool isSRGB = true;
+//
+//        crnd::crn_texture_info texInfo;
+//
+//        if (!crnd::crnd_get_texture_info(fileData, (uint32_t)fileLen, &texInfo))
+//            return;
+//
+//        crnd::crnd_unpack_context context = crnd::crnd_unpack_begin(fileData, (uint32_t)fileLen);
+//
+//        crn_format fundamentalFormat = crnd::crnd_get_fundamental_dxt_format(texInfo.m_format);
+//
+//        vk::Format format;
+//
+//        switch (fundamentalFormat) {
+//        case crn_format::cCRNFmtDXT1:
+//            format = isSRGB ? vk::Format::eBc1RgbaSrgbBlock : vk::Format::eBc1RgbaUnormBlock;
+//            break;
+//        case crn_format::cCRNFmtDXT5:
+//            format = isSRGB ? vk::Format::eBc3SrgbBlock : vk::Format::eBc3UnormBlock;
+//            break;
+//        case crn_format::cCRNFmtDXN_XY:
+//            format = vk::Format::eBc5UnormBlock;
+//            break;
+//        }
+//
+//        x = texInfo.m_width;
+//        y = texInfo.m_height;
+//        uint32_t pitch = getRowPitch(texInfo, 0);
+//
+//        size_t totalDataSize = 0;
+//        for (uint32_t i = 0; i < texInfo.m_levels; i++) totalDataSize += getCrunchTextureSize(texInfo, i);
+//
+//        char* data = (char*)std::malloc(totalDataSize);
+//        size_t currOffset = 0;
+//        for (uint32_t i = 0; i < texInfo.m_levels; i++) {
+//            char* dataOffs = &data[currOffset];
+//            uint32_t dataSize = getCrunchTextureSize(texInfo, i);
+//            currOffset += dataSize;
+//
+//            if (!crnd::crnd_unpack_level(context, (void**)&dataOffs, dataSize, getRowPitch(texInfo, i), i))
+//                __debugbreak();
+//        }
+//
+//        uint32_t numMips = texInfo.m_levels;
+//
+//        crnd::crnd_unpack_end(context);
+//
+//        textures[index].present = true;
+//        textures[index].tex = vku::TextureImage2D{ *device, memProps, (uint32_t)x, (uint32_t)y, numMips, format, false, g_assetDB.getAssetPath(id).c_str() };
+//        std::vector<uint8_t> albedoDat(data, data + totalDataSize);
+//
+//        textures[index].tex.upload(*device, allocator, albedoDat, *commandPool, memProps, device->getQueue(graphicsQueueFamilyIdx, 0));
+//        std::free(data);
+//    }
+//
+//    std::free(fileData);
+//}
+//
+//void VKRenderer::loadCubemap(AssetID id, int index) {
+//    // "Cubemaps" in WE are actually JSON files containing the AssetIDs of the faces
+//
+//
+//}
 
 void VKRenderer::loadAlbedo() {
-    loadTex("albedo.png", 0, false);
-    loadTex("grass.crn", 1, true);
+    //loadTex("albedo.png", 0, false);
+    //loadTex("grass.crn", 1, true);
 }
 
-VKRenderer::VKRenderer(RendererInitInfo& initInfo, bool* success)
+VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     : window(initInfo.window)
     , frameIdx(0)
     , lastHandle(0)
     , polyImage(std::numeric_limits<uint32_t>::max())
     , shadowmapImage(std::numeric_limits<uint32_t>::max())
     , shadowmapRes(1024)
-    , enableVR(initInfo.enableVR) {
+    , enableVR(initInfo.enableVR)
+    , vrPredictAmount(0.033f) {
     msaaSamples = vk::SampleCountFlagBits::e4;
     numMSAASamples = 4;
 
@@ -232,7 +382,7 @@ VKRenderer::VKRenderer(RendererInitInfo& initInfo, bool* success)
     }
 
 #ifndef NDEBUG
-    if (!enableVR) {
+    if (!enableVR || vrValidationLayers) {
         instanceMaker.layer("VK_LAYER_KHRONOS_validation");
         instanceMaker.extension(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
     }
@@ -246,7 +396,7 @@ VKRenderer::VKRenderer(RendererInitInfo& initInfo, bool* success)
 
     this->instance = instanceMaker.createUnique();
 #ifndef NDEBUG
-    if (!enableVR)
+    if (!enableVR || vrValidationLayers)
         dbgCallback = vku::DebugCallback(*this->instance);
 #endif
     auto physDevs = this->instance->enumeratePhysicalDevices();
@@ -425,6 +575,27 @@ VKRenderer::VKRenderer(RendererInitInfo& initInfo, bool* success)
         vrInterface->getRenderResolution(&renderWidth, &renderHeight);
     }
 
+    auto vkCtx = std::make_shared<VulkanCtx>(VulkanCtx{
+        physicalDevice,
+        *device,
+        *pipelineCache,
+        *descriptorPool,
+        *commandPool,
+        *instance,
+        allocator,
+        graphicsQueueFamilyIdx,
+        GraphicsSettings {
+            numMSAASamples,
+            (int)shadowmapRes,
+            enableVR
+        },
+        width, height,
+        renderWidth, renderHeight
+    });
+
+    texSlots = std::make_unique<TextureSlots>(vkCtx);
+    matSlots = std::make_unique<MaterialSlots>(vkCtx, *texSlots);
+
     createSCDependents();
 
     vk::CommandBufferAllocateInfo cbai;
@@ -471,8 +642,7 @@ VKRenderer::VKRenderer(RendererInitInfo& initInfo, bool* success)
             graphicsBinding.next = nullptr;
 
             ((XRInterface*)initInfo.vrInterface)->createSession(graphicsBinding);
-        }
-        else if (initInfo.activeVrApi == VrApi::OpenVR) {
+        } else if (initInfo.activeVrApi == VrApi::OpenVR) {
             vr::VRCompositor()->SetExplicitTimingMode(vr::EVRCompositorTimingMode::VRCompositorTimingMode_Explicit_RuntimePerformsPostPresentHandoff);
         }
 
@@ -553,7 +723,7 @@ void VKRenderer::createSCDependents() {
     }
 
     {
-        auto prp = new PolyRenderPass(depthStencilImage, polyImage, shadowmapImage, true);
+        auto prp = new PolyRenderPass(depthStencilImage, polyImage, shadowmapImage, !enableVR);
         currentPRP = prp;
         graphSolver.addNode(prp);
     }
@@ -571,7 +741,7 @@ void VKRenderer::createSCDependents() {
         finalPrePresentR = createRTResource(finalPrePresentCI, "Final Pre-Present Image (Right Eye)");
     }
 
-    PassSetupCtx psc{ physicalDevice, *device, *pipelineCache, *descriptorPool, *commandPool, *instance, allocator, graphicsQueueFamilyIdx, GraphicsSettings{numMSAASamples, (int32_t)shadowmapRes, enableVR}, textures, rtResources, (int)swapchain->images.size(), enableVR };
+    PassSetupCtx psc{ physicalDevice, *device, *pipelineCache, *descriptorPool, *commandPool, *instance, allocator, graphicsQueueFamilyIdx, GraphicsSettings{numMSAASamples, (int32_t)shadowmapRes, enableVR}, &texSlots, rtResources, (int)swapchain->images.size(), enableVR };
 
     auto tonemapRP = new TonemapRenderPass(polyImage, finalPrePresent);
     graphSolver.addNode(tonemapRP);
@@ -726,7 +896,7 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
     device->waitForFences(cmdBufferFences[imageIndex], 1, std::numeric_limits<uint64_t>::max());
     device->resetFences(cmdBufferFences[imageIndex]);
 
-    if (width == 0 || height == 0) {
+    if ((width == 0 || height == 0) && !enableVR) {
         // If the window has a width or height of zero, submit a blank command buffer to signal the fences.
         // This avoids unnecessary GPU work when the user can't see the output anyway.
         presentNothing(imageIndex);
@@ -746,6 +916,13 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
 
     RenderCtx rCtx{ cmdBuf, reg, imageIndex, cam, rtResources, renderWidth, renderHeight, loadedMeshes };
     rCtx.enableVR = enableVR;
+    rCtx.materialSlots = &matSlots;
+    rCtx.textureSlots = &texSlots;
+    rCtx.viewPos = cam.position;
+
+#ifdef TRACY_ENABLE
+    rCtx.tracyContexts = &tracyContexts;
+#endif
 
     if (enableVR) {
         if (vrApi == VrApi::OpenVR) {
@@ -757,25 +934,22 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
         }
     }
 
-    // TODO: Pre-pass
-
     vk::CommandBufferBeginInfo cbbi;
 
     cmdBuf->begin(cbbi);
     cmdBuf->resetQueryPool(*queryPool, 0, 2);
     cmdBuf->writeTimestamp(vk::PipelineStageFlagBits::eTopOfPipe, *queryPool, 0);
 
-    PassSetupCtx psc{ physicalDevice, *device, *pipelineCache, *descriptorPool, *commandPool, *instance, allocator, graphicsQueueFamilyIdx, GraphicsSettings{numMSAASamples, (int32_t)shadowmapRes, enableVR}, textures, rtResources, (int)swapchain->images.size(), enableVR };
+    PassSetupCtx psc{ physicalDevice, *device, *pipelineCache, *descriptorPool, *commandPool, *instance, allocator, graphicsQueueFamilyIdx, GraphicsSettings{numMSAASamples, (int32_t)shadowmapRes, enableVR}, &texSlots, rtResources, (int)swapchain->images.size(), enableVR };
 
-    if (enableVR) {
-        vr::TrackedDevicePose_t hmdPose;
-        vr::TrackedDevicePose_t hmdPredictedPose;
-        vr::VRCompositor()->WaitGetPoses(&hmdPose, 1, &hmdPredictedPose, 1);
-        OpenVRInterface* ovrInterface = static_cast<OpenVRInterface*>(vrInterface);
-        for (int i = 0; i < 2; i++) {
-            rCtx.vrViewMats[i] = glm::inverse(ovrInterface->toMat4(hmdPredictedPose.mDeviceToAbsoluteTracking) * rCtx.vrViewMats[i]);
+    // Upload any necessary materials
+    reg.view<WorldObject>().each([this, &rCtx](auto ent, WorldObject& wo) {
+        if (wo.materialIdx == ~0u) {
+            rCtx.reuploadMats = true;
+            wo.materialIdx = matSlots->loadOrGet(wo.material);
         }
-    }
+        });
+
 
     for (auto& node : solvedNodes) {
         node->prePass(psc, rCtx);
@@ -806,6 +980,13 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
         vk::AccessFlagBits::eColorAttachmentWrite, vk::AccessFlagBits::eTransferRead,
         vk::PipelineStageFlagBits::eColorAttachmentOutput, vk::PipelineStageFlagBits::eTransfer);
 
+    if (enableVR) {
+        vku::transitionLayout(*cmdBuf, rtResources.at(finalPrePresentR).image.image(),
+            vk::ImageLayout::eGeneral, vk::ImageLayout::eTransferSrcOptimal,
+            vk::PipelineStageFlagBits::eComputeShader, vk::PipelineStageFlagBits::eTransfer,
+            vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eTransferRead);
+    }
+
     vk::ImageBlit imageBlit;
     imageBlit.srcOffsets[1] = imageBlit.dstOffsets[1] = { (int)width, (int)height, 1 };
     imageBlit.dstSubresource = imageBlit.srcSubresource = { vk::ImageAspectFlagBits::eColor, 0, 0, 1 };
@@ -813,39 +994,6 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
         rtResources.at(finalPrePresent).image.image(), vk::ImageLayout::eTransferSrcOptimal,
         swapchain->images[imageIndex], vk::ImageLayout::eTransferDstOptimal,
         imageBlit, vk::Filter::eNearest);
-
-    if (enableVR) {
-        ::imageBarrier(*cmdBuf, rtResources.at(finalPrePresentR).image.image(), vk::ImageLayout::eTransferSrcOptimal,
-            vk::AccessFlagBits::eColorAttachmentWrite, vk::AccessFlagBits::eTransferRead,
-            vk::PipelineStageFlagBits::eColorAttachmentOutput, vk::PipelineStageFlagBits::eTransfer);
-
-        // Submit to SteamVR
-        vr::VRTextureBounds_t bounds;
-        bounds.uMin = 0.0f;
-        bounds.uMax = 1.0f;
-        bounds.vMin = 0.0f;
-        bounds.vMax = 1.0f;
-
-        vr::VRVulkanTextureData_t vulkanData;
-        VkImage vkImg = rtResources.at(finalPrePresent).image.image();
-        vulkanData.m_nImage = (uint64_t)vkImg;
-        vulkanData.m_pDevice = (VkDevice_T*)*device;
-        vulkanData.m_pPhysicalDevice = (VkPhysicalDevice_T*)physicalDevice;
-        vulkanData.m_pInstance = (VkInstance_T*)*instance;
-        vulkanData.m_pQueue = (VkQueue_T*)device->getQueue(graphicsQueueFamilyIdx, 0);
-        vulkanData.m_nQueueFamilyIndex = graphicsQueueFamilyIdx;
-
-        vulkanData.m_nWidth = renderWidth;
-        vulkanData.m_nHeight = renderHeight;
-        vulkanData.m_nFormat = VK_FORMAT_R8G8B8A8_UNORM;
-        vulkanData.m_nSampleCount = 1;
-
-        vr::Texture_t texture = { &vulkanData, vr::TextureType_Vulkan, vr::ColorSpace_Auto };
-        vr::VRCompositor()->Submit(vr::Eye_Left, &texture, &bounds);
-
-        vulkanData.m_nImage = (uint64_t)(VkImage)rtResources.at(finalPrePresentR).image.image();
-        vr::VRCompositor()->Submit(vr::Eye_Right, &texture, &bounds);
-    }
 
     vku::transitionLayout(*cmdBuf, swapchain->images[imageIndex],
         vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::ePresentSrcKHR,
@@ -873,9 +1021,62 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
     submit.signalSemaphoreCount = 1;
     submit.pSignalSemaphores = &waitSemaphore;
     if (enableVR && vrApi == VrApi::OpenVR) {
+        OpenVRInterface* ovrInterface = static_cast<OpenVRInterface*>(vrInterface);
+
+        vr::TrackedDevicePose_t pose;
+        vr::VRSystem()->GetDeviceToAbsoluteTrackingPose(vr::ETrackingUniverseOrigin::TrackingUniverseStanding, vrPredictAmount, &pose, 1);
+
+        glm::mat4 viewMats[2];
+        viewMats[0] = ovrInterface->getViewMat(vr::EVREye::Eye_Left);
+        viewMats[1] = ovrInterface->getViewMat(vr::EVREye::Eye_Right);
+
+        glm::vec3 viewPos[2];
+
+        for (int i = 0; i < 2; i++) {
+            viewMats[i] = glm::inverse(ovrInterface->toMat4(pose.mDeviceToAbsoluteTracking) * viewMats[i]);
+            viewPos[i] = glm::inverse(viewMats[i])[3];
+        }
+
+
+        currentPRP->lateUpdateVP(viewMats, viewPos, *device);
+
         vr::VRCompositor()->SubmitExplicitTimingData();
     }
     device->getQueue(graphicsQueueFamilyIdx, 0).submit(1, &submit, cmdBufferFences[imageIndex]);
+    TracyMessageL("Queue submitted");
+
+    if (enableVR) {
+        // Submit to SteamVR
+        vr::VRTextureBounds_t bounds;
+        bounds.uMin = 0.0f;
+        bounds.uMax = 1.0f;
+        bounds.vMin = 0.0f;
+        bounds.vMax = 1.0f;
+
+        vr::VRVulkanTextureData_t vulkanData;
+        VkImage vkImg = rtResources.at(finalPrePresent).image.image();
+        vulkanData.m_nImage = (uint64_t)vkImg;
+        vulkanData.m_pDevice = (VkDevice_T*)*device;
+        vulkanData.m_pPhysicalDevice = (VkPhysicalDevice_T*)physicalDevice;
+        vulkanData.m_pInstance = (VkInstance_T*)*instance;
+        vulkanData.m_pQueue = (VkQueue_T*)device->getQueue(graphicsQueueFamilyIdx, 0);
+        vulkanData.m_nQueueFamilyIndex = graphicsQueueFamilyIdx;
+
+        vulkanData.m_nWidth = renderWidth;
+        vulkanData.m_nHeight = renderHeight;
+        vulkanData.m_nFormat = VK_FORMAT_R8G8B8A8_UNORM;
+        vulkanData.m_nSampleCount = 1;
+
+        // Image submission with validation layers turned on causes a crash
+        // If we really want the validation layers, don't submit anything
+        if (!vrValidationLayers) {
+            vr::Texture_t texture = { &vulkanData, vr::TextureType_Vulkan, vr::ColorSpace_Auto };
+            vr::VRCompositor()->Submit(vr::Eye_Left, &texture, &bounds);
+
+            vulkanData.m_nImage = (uint64_t)(VkImage)rtResources.at(finalPrePresentR).image.image();
+            vr::VRCompositor()->Submit(vr::Eye_Right, &texture, &bounds);
+        }
+    }
 
     vk::PresentInfoKHR presentInfo;
     vk::SwapchainKHR cSwapchain = *swapchain->getSwapchain();
@@ -888,6 +1089,11 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
 
     vk::Result presentResult = device->getQueue(presentQueueFamilyIdx, 0).presentKHR(presentInfo);
 
+    TracyMessageL("Presented");
+
+    if (vrApi == VrApi::OpenVR)
+        vr::VRCompositor()->WaitGetPoses(nullptr, 0, nullptr, 0);
+
     std::array<std::uint64_t, 2> timeStamps = { {0} };
     device->getQueryPoolResults<std::uint64_t>(
         *queryPool, 0, (uint32_t)timeStamps.size(),
@@ -896,9 +1102,7 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
         );
     lastRenderTimeTicks = timeStamps[1] - timeStamps[0];
     frameIdx++;
-#ifdef TRACY_ENABLE
     FrameMark
-#endif
 }
 
 void loadObj(std::vector<Vertex>& vertices, std::vector<uint32_t>& indices, std::istream& stream) {
@@ -974,6 +1178,39 @@ void VKRenderer::requestEntityPick() {
     return currentPRP->requestEntityPick();
 }
 
+void VKRenderer::unloadUnusedMaterials(entt::registry& reg) {
+    /*bool textureReferenced[NUM_TEX_SLOTS];
+    bool materialReferenced[NUM_MAT_SLOTS];
+
+    memset(textureReferenced, 0, sizeof(textureReferenced));
+    memset(materialReferenced, 0, sizeof(materialReferenced));
+
+    reg.view<WorldObject>().each([&materialReferenced, &textureReferenced, this](entt::entity, WorldObject& wo) {
+        materialReferenced[wo.materialIdx] = true;
+
+        uint32_t albedoIdx = materials[wo.materialIdx].pack0.z;
+        textureReferenced[albedoIdx] = true;
+        });
+
+    memcpy(materialPresent, materialReferenced, sizeof(materialPresent));
+
+    for (uint32_t i = 0; i < NUM_TEX_SLOTS; i++) {
+        if (!textureReferenced[i]) {
+            textures[i].present = false;
+            textures[i].tex = vku::TextureImage2D{};
+        }
+    }*/
+}
+
+void VKRenderer::reloadMatsAndTextures() {
+    /*memset(materialPresent, 0, sizeof(materialPresent));
+
+    for (uint32_t i = 0; i < NUM_TEX_SLOTS; i++) {
+        textures[i].present = false;
+        textures[i].tex = vku::TextureImage2D{};
+    }*/
+}
+
 VKRenderer::~VKRenderer() {
     if (this->device) {
         this->device->waitIdle();
@@ -985,10 +1222,11 @@ VKRenderer::~VKRenderer() {
 
         graphSolver.clear();
 
-        for (auto& texSlot : textures) {
+        /*for (auto& texSlot : textures) {
             texSlot.present = false;
             texSlot.tex = vku::TextureImage2D{};
-        }
+        }*/
+        texSlots.reset();
         rtResources.clear();
         loadedMeshes.clear();
         vmaDestroyAllocator(allocator);

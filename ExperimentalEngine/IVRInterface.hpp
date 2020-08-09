@@ -6,4 +6,12 @@ enum class VrApi {
     OpenVR
 };
 
-class IVRInterface {};
+enum class TrackedObject {
+    HMD,
+    LeftHand,
+    RightHand
+};
+
+class IVRInterface {
+    
+};

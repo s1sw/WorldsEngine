@@ -6,7 +6,7 @@
 #include <unordered_map>
 
 namespace vk {
-	enum class ImageAspectFlagBits;
+	enum class ImageAspectFlagBits : uint32_t;
 }
 
 struct TextureUsage;

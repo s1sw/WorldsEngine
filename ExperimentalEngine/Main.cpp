@@ -159,13 +159,13 @@ int windowThread(void* data) {
     return 0;
 }
 
-entt::entity createModelObject(entt::registry& reg, glm::vec3 position, glm::quat rotation, AssetID meshId, int materialId, glm::vec3 scale = glm::vec3(1.0f), glm::vec4 texScaleOffset = glm::vec4(1.0f, 1.0f, 0.0f, 0.0f)) {
+entt::entity createModelObject(entt::registry& reg, glm::vec3 position, glm::quat rotation, AssetID meshId, AssetID materialId, glm::vec3 scale = glm::vec3(1.0f), glm::vec4 texScaleOffset = glm::vec4(1.0f, 1.0f, 0.0f, 0.0f)) {
     auto ent = reg.create();
     auto& transform = reg.emplace<Transform>(ent, position, rotation);
     transform.scale = scale;
     auto& worldObject = reg.emplace<WorldObject>(ent, 0, meshId);
     worldObject.texScaleOffset = texScaleOffset;
-    worldObject.materialIndex = materialId;
+    worldObject.material = materialId;
     return ent;
 }
 
@@ -173,7 +173,7 @@ bool useEventThread = false;
 int workerThreadOverride = -1;
 bool enableXR = false;
 bool enableOpenVR = false;
-bool runAsEditor = false;
+bool runAsEditor = true;
 glm::ivec2 windowSize;
 
 void loadEditorFont() {
@@ -235,6 +235,8 @@ void engine(char* argv0) {
     std::cout << "Mounting source " << dataSrcStr << "\n";
     PHYSFS_mount(dataSrcStr.c_str(), "/source", 1);
     PHYSFS_setWriteDir(dataStr.c_str());
+
+    g_assetDB.load();
 
     bool running = true;
 
@@ -317,20 +319,32 @@ void engine(char* argv0) {
 
     entt::registry registry;
 
-    AssetID modelId = g_assetDB.addAsset("model.obj");
-    AssetID monkeyId = g_assetDB.addAsset("monk.obj");
+    AssetID grassMatId = g_assetDB.addOrGetExisting("Materials/grass.json");
+    AssetID devMatId = g_assetDB.addOrGetExisting("Materials/dev.json");
+
+    AssetID modelId = g_assetDB.addOrGetExisting("model.obj");
+    AssetID monkeyId = g_assetDB.addOrGetExisting("monk.obj");
     renderer->preloadMesh(modelId);
     renderer->preloadMesh(monkeyId);
-    entt::entity boxEnt = createModelObject(registry, glm::vec3(0.0f, -2.0f, 0.0f), glm::quat(), modelId, 0, glm::vec3(5.0f, 1.0f, 5.0f));
+    entt::entity boxEnt = createModelObject(registry, glm::vec3(0.0f, -2.0f, 0.0f), glm::quat(), modelId, grassMatId, glm::vec3(5.0f, 1.0f, 5.0f));
 
-    createModelObject(registry, glm::vec3(0.0f, 0.0f, 0.0f), glm::quat(), monkeyId, 1);
-
-    AssetID droppedObjectID = g_assetDB.addAsset("droppeditem.obj");
-    renderer->preloadMesh(droppedObjectID);
+    createModelObject(registry, glm::vec3(0.0f, 0.0f, 0.0f), glm::quat(), monkeyId, devMatId);
 
     entt::entity dirLightEnt = registry.create();
     registry.emplace<WorldLight>(dirLightEnt, LightType::Directional);
     registry.emplace<Transform>(dirLightEnt, glm::vec3(0.0f), glm::angleAxis(glm::radians(90.01f), glm::vec3(1.0f, 0.0f, 0.0f)));
+
+    AssetID lHandId = g_assetDB.addOrGetExisting("lhand.obj");
+
+    renderer->preloadMesh(lHandId);
+
+    entt::entity lHandEnt = createModelObject(registry, glm::vec3(0.0f), glm::quat(), lHandId, devMatId, glm::vec3(0.1f));
+    entt::entity rHandEnt = createModelObject(registry, glm::vec3(0.0f), glm::quat(), modelId, devMatId, glm::vec3(0.1f));
+
+    if (!enableOpenVR) {
+        registry.destroy(lHandEnt);
+        registry.destroy(rHandEnt);
+    }
 
     initPhysx();
 
@@ -338,6 +352,8 @@ void engine(char* argv0) {
     std::memcpy(reinterpret_cast<void*>(lastState), state, SDL_NUM_SCANCODES);
 
     Editor editor(registry, inputManager, cam);
+
+    float vrPredictAmount = 0.0f;
 
     while (running) {
         uint64_t now = SDL_GetPerformanceCounter();
@@ -384,7 +400,8 @@ void engine(char* argv0) {
             transform.rotation = px2glm(pose.q);
         });
 
-        editor.update((float)deltaTime);
+        if (runAsEditor)
+            editor.update((float)deltaTime);
 
         if (state[SDL_SCANCODE_RCTRL] && !lastState[SDL_SCANCODE_RCTRL]) {
             SDL_SetRelativeMouseMode((SDL_bool)!SDL_GetRelativeMouseMode());
@@ -419,9 +436,40 @@ void engine(char* argv0) {
             ImGui::Text("GPU render time: %.3fms", renderer->getLastRenderTime() / 1000.0f / 1000.0f);
             ImGui::Text("Frame: %i", frameCounter);
             ImGui::Text("Cam pos: %.3f, %.3f, %.3f", cam.position.x, cam.position.y, cam.position.z);
-            //ImGui::Text("Mouse over entity: %u", renderer->getPickedEnt());   
+
+            if (enableOpenVR) {
+                auto pVRSystem = vr::VRSystem();
+                float vsyncToPhoton = pVRSystem->GetFloatTrackedDeviceProperty(vr::k_unTrackedDeviceIndex_Hmd, 
+                    vr::Prop_SecondsFromVsyncToPhotons_Float);
+                ImGui::Text("VSync to photon latency: %f", vsyncToPhoton);
+
+                float fSecondsSinceLastVsync;
+                pVRSystem->GetTimeSinceLastVsync(&fSecondsSinceLastVsync, NULL);
+
+                float fDisplayFrequency = pVRSystem->GetFloatTrackedDeviceProperty(vr::k_unTrackedDeviceIndex_Hmd, vr::Prop_DisplayFrequency_Float);
+                float fFrameDuration = 1.f / fDisplayFrequency;
+                float fVsyncToPhotons = pVRSystem->GetFloatTrackedDeviceProperty(vr::k_unTrackedDeviceIndex_Hmd, vr::Prop_SecondsFromVsyncToPhotons_Float);
+
+                float fPredictedSecondsFromNow = fFrameDuration - fSecondsSinceLastVsync + fVsyncToPhotons;
+
+                ImGui::Text("Predicted seconds: %f", fPredictedSecondsFromNow + fFrameDuration);
+                renderer->setVRPredictAmount(fPredictedSecondsFromNow + fFrameDuration);
+            }
+
+            if (ImGui::Button("Unload Unused Assets")) {
+                renderer->unloadUnusedMaterials(registry);
+            }
+
+            if (ImGui::Button("Reload Materials and Textures")) {
+                renderer->reloadMatsAndTextures();
+            }
         }
         ImGui::End();
+
+        if (enableOpenVR) {
+            openvrInterface.getHandTransform(vr::ETrackedControllerRole::TrackedControllerRole_LeftHand, registry.get<Transform>(lHandEnt));
+            openvrInterface.getHandTransform(vr::ETrackedControllerRole::TrackedControllerRole_RightHand, registry.get<Transform>(rHandEnt));
+        }
 
         std::memcpy(reinterpret_cast<void*>(lastState), state, SDL_NUM_SCANCODES);
         ImGui::Render();

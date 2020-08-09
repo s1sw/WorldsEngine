@@ -12,20 +12,28 @@
 #include "tracy/TracyVulkan.hpp"
 #endif
 #include "IVRInterface.hpp"
+#include "tracy/TracyVulkan.hpp"
+#include "ResourceSlots.hpp"
 
 extern glm::ivec2 windowSize;
+class VKRenderer;
+class PolyRenderPass;
 
 struct WorldObject {
 	WorldObject(AssetID material, AssetID mesh) 
 		: material(material)
 		, mesh(mesh)
 		, texScaleOffset(1.0f, 1.0f, 0.0f, 0.0f)
-		, materialIndex(0) {}
+		, materialIdx(~0u) {}
 
 	AssetID material;
 	AssetID mesh;
-	int materialIndex;
 	glm::vec4 texScaleOffset;
+
+private:
+	uint32_t materialIdx;
+	friend class VKRenderer;
+	friend class PolyRenderPass;
 };
 
 struct UseWireframe {};
@@ -44,6 +52,7 @@ struct VP {
 struct MultiVP {
 	glm::mat4 views[8];
 	glm::mat4 projections[8];
+	glm::vec4 viewPos[8];
 };
 
 struct PackedLight {
@@ -77,11 +86,6 @@ struct Vertex {
 	glm::vec3 normal;
 	glm::vec3 tangent;
 	glm::vec2 uv;
-};
-
-struct PackedMaterial {
-	glm::vec4 pack0;
-	glm::vec4 pack1;
 };
 
 struct ProceduralObject {
@@ -173,6 +177,11 @@ struct Global2DTextureSlot {
 	bool present;
 };
 
+struct GlobalCubeTextureSlot {
+	vku::TextureImageCube tex;
+	bool present;
+};
+
 struct RenderTextureResource {
 	vku::GenericImage image;
 	vk::ImageAspectFlagBits aspectFlags;
@@ -202,7 +211,8 @@ struct RenderCtx {
 		, width(width)
 		, height(height)
 		, loadedMeshes(loadedMeshes)
-		, enableVR(false) {
+		, enableVR(false)
+		, reuploadMats(false) {
 	}
 
 	vk::UniqueCommandBuffer& cmdBuf; 
@@ -211,13 +221,19 @@ struct RenderCtx {
 	entt::registry& reg; 
 	uint32_t imageIndex;
 	Camera& cam;
-	Global2DTextureSlot* globalTexArray;
+	std::unique_ptr<TextureSlots>* textureSlots;
+	std::unique_ptr<MaterialSlots>* materialSlots;
+	bool reuploadMats;
 	std::unordered_map<RenderImageHandle, RenderTextureResource>& rtResources;
 	std::unordered_map<AssetID, LoadedMeshData>& loadedMeshes;
 	uint32_t width, height;
 	glm::mat4 vrViewMats[2];
 	glm::mat4 vrProjMats[2];
+	glm::vec3 viewPos;
 	bool enableVR;
+#ifdef TRACY_ENABLE
+	std::vector<TracyVkCtx>* tracyContexts;
+#endif
 };
 
 struct PassSetupCtx {
@@ -231,10 +247,25 @@ struct PassSetupCtx {
 	VmaAllocator allocator;
 	uint32_t graphicsQueueFamilyIdx;
 	GraphicsSettings graphicsSettings;
-	Global2DTextureSlot* globalTexArray;
+	std::unique_ptr<TextureSlots>* globalTexArray;
 	std::unordered_map<RenderImageHandle, RenderTextureResource>& rtResources;
 	int swapchainImageCount;
 	bool enableVR;
+};
+
+// Holds handles to useful Vulkan objects
+struct VulkanCtx {
+	vk::PhysicalDevice physicalDevice;
+	vk::Device device;
+	vk::PipelineCache pipelineCache;
+	vk::DescriptorPool descriptorPool;
+	vk::CommandPool commandPool;
+	vk::Instance instance;
+	VmaAllocator allocator;
+	uint32_t graphicsQueueFamilyIdx;
+	GraphicsSettings graphicsSettings;
+	uint32_t width, height;
+	uint32_t renderWidth, renderHeight;
 };
 
 class XRInterface;
@@ -249,6 +280,10 @@ struct RendererInitInfo {
 };
 
 class VKRenderer {
+	const static uint32_t NUM_TEX_SLOTS = 64;
+	const static uint32_t NUM_MAT_SLOTS = 256;
+	const static uint32_t NUM_CUBEMAP_SLOTS = 64;
+
 	vk::UniqueInstance instance;
 	vk::PhysicalDevice physicalDevice;
 	vk::UniqueDevice device;
@@ -310,16 +345,21 @@ class VKRenderer {
 	void createSCDependents();
 	void presentNothing(uint32_t imageIndex);
 	void loadTex(const char* path, int index, bool crunch);
+	void loadTex(AssetID id, int index);
+	void loadCubemap(AssetID id, int index);
 	void loadAlbedo();
 	vku::ShaderModule loadShaderAsset(AssetID id);
+	uint32_t getOrLoadTextureIdx(AssetID textureId);
+	uint32_t getOrLoadCubemapIdx(AssetID cubemapId);
+	uint32_t getOrLoadMaterialIdx(AssetID materialId);
+	void parseMaterial(AssetID matJsonId, PackedMaterial& mat);
 
 	std::unordered_map<AssetID, LoadedMeshData> loadedMeshes;
 	int frameIdx;
-#ifdef TRACY_ENABLE
 	std::vector<TracyVkCtx> tracyContexts;
-#endif
-	Global2DTextureSlot textures[64];
-	vku::TextureImageCube cubemaps[64];
+	std::unique_ptr<TextureSlots> texSlots;
+	std::unique_ptr<MaterialSlots> matSlots;
+	
 	GraphSolver graphSolver;
 	uint32_t shadowmapRes;
 	bool enableVR;
@@ -328,16 +368,20 @@ class VKRenderer {
 	uint32_t renderWidth, renderHeight;
 	IVRInterface* vrInterface;
 	VrApi vrApi;
+	float vrPredictAmount;
 public:
 	double time;
-	VKRenderer(RendererInitInfo& initInfo, bool* success);
+	VKRenderer(const RendererInitInfo& initInfo, bool* success);
 	void recreateSwapchain();
 	void frame(Camera& cam, entt::registry& reg);
 	void preloadMesh(AssetID id);
 	void uploadProcObj(ProceduralObject& procObj);
 	void requestEntityPick();
+	void unloadUnusedMaterials(entt::registry& reg);
+	void reloadMatsAndTextures();
 	bool getPickedEnt(entt::entity* entOut);
-	inline float getLastRenderTime() { return lastRenderTimeTicks * timestampPeriod; }
+	inline float getLastRenderTime() const { return lastRenderTimeTicks * timestampPeriod; }
+	void setVRPredictAmount(float amt) { vrPredictAmount = amt; }
 
 	~VKRenderer();
 };

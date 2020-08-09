@@ -3,7 +3,7 @@
 #include "Engine.hpp"
 #include "Transform.hpp"
 
-const unsigned char SCN_FORMAT_ID = 0;
+const unsigned char SCN_FORMAT_ID = 1;
 const unsigned char SCN_FORMAT_MAGIC[4] = { 'E','S','C','N' };
 
 #define WRITE_FIELD(file, field) PHYSFS_writeBytes(file, &field, sizeof(field))
@@ -39,7 +39,6 @@ void saveScene(AssetID id, entt::registry& reg) {
         if (reg.has<WorldObject>(ent)) {
             WorldObject& wObj = reg.get<WorldObject>(ent);
             PHYSFS_writeBytes(file, &wObj.material, sizeof(wObj.material));
-            PHYSFS_writeBytes(file, &wObj.materialIndex, sizeof(wObj.materialIndex));
             PHYSFS_writeBytes(file, &wObj.mesh, sizeof(wObj.mesh));
             PHYSFS_writeBytes(file, &wObj.texScaleOffset, sizeof(wObj.texScaleOffset));
         }
@@ -97,7 +96,6 @@ void loadScene(AssetID id, entt::registry& reg) {
             WorldObject& wo = reg.emplace<WorldObject>(newEnt, 0, 0);
 
             PHYSFS_readBytes(file, &wo.material, sizeof(wo.material));
-            PHYSFS_readBytes(file, &wo.materialIndex, sizeof(wo.materialIndex));
             PHYSFS_readBytes(file, &wo.mesh, sizeof(wo.mesh));
             PHYSFS_readBytes(file, &wo.texScaleOffset, sizeof(wo.texScaleOffset));
         }

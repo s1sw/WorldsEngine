@@ -5,7 +5,6 @@
 #include <openvr.h>
 
 struct StandardPushConstants {
-    glm::vec4 pack0;
     glm::vec4 texScaleOffset;
     // (x: model matrix index, y: material index, z: specular cubemap index, w: object picking id)
     glm::ivec4 ubIndices;
@@ -23,6 +22,60 @@ struct PickBufCSPushConstants {
     uint32_t doPicking;
 };
 
+void PolyRenderPass::updateDescriptorSets(PassSetupCtx& ctx) {
+    {
+        vku::DescriptorSetUpdater updater;
+        updater.beginDescriptorSet(descriptorSet);
+
+        updater.beginBuffers(0, 0, vk::DescriptorType::eUniformBuffer);
+        updater.buffer(this->vpUB.buffer(), 0, sizeof(MultiVP));
+
+        updater.beginBuffers(1, 0, vk::DescriptorType::eUniformBuffer);
+        updater.buffer(lightsUB.buffer(), 0, sizeof(LightUB));
+
+        updater.beginBuffers(2, 0, vk::DescriptorType::eUniformBuffer);
+        updater.buffer(materialUB.buffer(), 0, sizeof(MaterialsUB));
+
+        updater.beginBuffers(3, 0, vk::DescriptorType::eUniformBuffer);
+        updater.buffer(modelMatrixUB.buffer(), 0, sizeof(ModelMatrices));
+
+        for (int i = 0; i < ctx.globalTexArray->get()->size(); i++) {
+            if ((*ctx.globalTexArray)->isSlotPresent(i)) {
+                updater.beginImages(4, i, vk::DescriptorType::eCombinedImageSampler);
+                updater.image(*albedoSampler, (*(*ctx.globalTexArray))[i].imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
+            }
+        }
+
+        updater.beginImages(5, 0, vk::DescriptorType::eCombinedImageSampler);
+        updater.image(*shadowSampler, ctx.rtResources.at(shadowImage).image.imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
+
+        updater.beginBuffers(6, 0, vk::DescriptorType::eStorageBuffer);
+        updater.buffer(pickingBuffer.buffer(), 0, sizeof(PickingBuffer));
+
+        updater.update(ctx.device);
+    }
+
+    {
+        vku::DescriptorSetUpdater updater;
+        updater.beginDescriptorSet(wireframeDescriptorSet);
+        updater.beginBuffers(0, 0, vk::DescriptorType::eUniformBuffer);
+        updater.buffer(vpUB.buffer(), 0, sizeof(MultiVP));
+        updater.beginBuffers(1, 0, vk::DescriptorType::eUniformBuffer);
+        updater.buffer(modelMatrixUB.buffer(), 0, sizeof(ModelMatrices));
+        updater.beginBuffers(2, 0, vk::DescriptorType::eUniformBuffer);
+        updater.buffer(materialUB.buffer(), 0, sizeof(MaterialsUB));
+
+        for (int i = 0; i < ctx.globalTexArray->get()->size(); i++) {
+            if ((*ctx.globalTexArray)->isSlotPresent(i)) {
+                updater.beginImages(3, i, vk::DescriptorType::eCombinedImageSampler);
+                updater.image(*albedoSampler, (*(*ctx.globalTexArray))[i].imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
+            }
+        }
+
+        updater.update(ctx.device);
+    }
+}
+
 PolyRenderPass::PolyRenderPass(
     RenderImageHandle depthStencilImage,
     RenderImageHandle polyImage,
@@ -36,7 +89,8 @@ PolyRenderPass::PolyRenderPass(
     , pickY(0)
     , pickedEnt(UINT32_MAX)
     , awaitingResults(false)
-    , pickThisFrame(false) {
+    , pickThisFrame(false)
+    , setEventNextFrame(false) {
 
 }
 
@@ -75,7 +129,7 @@ void PolyRenderPass::setup(PassSetupCtx& ctx) {
 
     vku::DescriptorSetLayoutMaker dslm;
     // VP
-    dslm.buffer(0, vk::DescriptorType::eUniformBuffer, vk::ShaderStageFlagBits::eVertex, 1);
+    dslm.buffer(0, vk::DescriptorType::eUniformBuffer, vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment, 1);
     // Lights
     dslm.buffer(1, vk::DescriptorType::eUniformBuffer, vk::ShaderStageFlagBits::eFragment | vk::ShaderStageFlagBits::eVertex, 1);
     // Materials
@@ -114,35 +168,7 @@ void PolyRenderPass::setup(PassSetupCtx& ctx) {
     dsm.layout(*this->dsl);
     descriptorSet = dsm.create(ctx.device, ctx.descriptorPool)[0];
 
-    vku::DescriptorSetUpdater updater;
-    updater.beginDescriptorSet(descriptorSet);
-
-    updater.beginBuffers(0, 0, vk::DescriptorType::eUniformBuffer);
-    updater.buffer(this->vpUB.buffer(), 0, sizeof(MultiVP));
-
-    updater.beginBuffers(1, 0, vk::DescriptorType::eUniformBuffer);
-    updater.buffer(lightsUB.buffer(), 0, sizeof(LightUB));
-
-    updater.beginBuffers(2, 0, vk::DescriptorType::eUniformBuffer);
-    updater.buffer(materialUB.buffer(), 0, sizeof(MaterialsUB));
-
-    updater.beginBuffers(3, 0, vk::DescriptorType::eUniformBuffer);
-    updater.buffer(modelMatrixUB.buffer(), 0, sizeof(ModelMatrices));
-
-    for (int i = 0; i < 64; i++) {
-        if (ctx.globalTexArray[i].present) {
-            updater.beginImages(4, i, vk::DescriptorType::eCombinedImageSampler);
-            updater.image(*albedoSampler, ctx.globalTexArray[i].tex.imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
-        }
-    }
-
-    updater.beginImages(5, 0, vk::DescriptorType::eCombinedImageSampler);
-    updater.image(*shadowSampler, ctx.rtResources.at(shadowImage).image.imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
-
-    updater.beginBuffers(6, 0, vk::DescriptorType::eStorageBuffer);
-    updater.buffer(pickingBuffer.buffer(), 0, sizeof(PickingBuffer));
-
-    updater.update(ctx.device);
+    
 
     vku::RenderpassMaker rPassMaker;
 
@@ -199,7 +225,7 @@ void PolyRenderPass::setup(PassSetupCtx& ctx) {
     fci.width = extent.width;
     fci.height = extent.height;
     fci.renderPass = *this->renderPass;
-    fci.layers = ctx.graphicsSettings.enableVr ? 2 : 1;
+    fci.layers = 1;
     renderFb = ctx.device.createFramebufferUnique(fci);
 
     AssetID vsID = g_assetDB.addOrGetExisting("Shaders/standard.vert.spv");
@@ -271,24 +297,6 @@ void PolyRenderPass::setup(PassSetupCtx& ctx) {
         wireframePipelineLayout = plm.createUnique(ctx.device);
 
         wireframePipeline = pm.createUnique(ctx.device, ctx.pipelineCache, *wireframePipelineLayout, *renderPass);
-
-        vku::DescriptorSetUpdater updater;
-        updater.beginDescriptorSet(wireframeDescriptorSet);
-        updater.beginBuffers(0, 0, vk::DescriptorType::eUniformBuffer);
-        updater.buffer(vpUB.buffer(), 0, sizeof(MultiVP));
-        updater.beginBuffers(1, 0, vk::DescriptorType::eUniformBuffer);
-        updater.buffer(modelMatrixUB.buffer(), 0, sizeof(ModelMatrices));
-        updater.beginBuffers(2, 0, vk::DescriptorType::eUniformBuffer);
-        updater.buffer(materialUB.buffer(), 0, sizeof(MaterialsUB));
-
-        for (int i = 0; i < 64; i++) {
-            if (ctx.globalTexArray[i].present) {
-                updater.beginImages(3, i, vk::DescriptorType::eCombinedImageSampler);
-                updater.image(*albedoSampler, ctx.globalTexArray[i].tex.imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
-            }
-        }
-
-        updater.update(ctx.device);
     }
 
     {
@@ -317,7 +325,7 @@ void PolyRenderPass::setup(PassSetupCtx& ctx) {
         dsu.update(ctx.device);
     }
 
-    
+    updateDescriptorSets(ctx);
 
     ctx.device.setEvent(*pickEvent);
 }
@@ -356,12 +364,13 @@ void PolyRenderPass::prePass(PassSetupCtx& ctx, RenderCtx& rCtx) {
     } else {
         vp->views[0] = rCtx.cam.getViewMatrix();
         vp->projections[0] = rCtx.cam.getProjectionMatrix((float)rCtx.width / (float)rCtx.height);
+        vp->viewPos[0] = glm::vec4(rCtx.cam.position, 0.0f);
     }
 
     vpUB.unmap(ctx.device);
 
     LightUB* lub = (LightUB*)lightsUB.map(ctx.device);
-    glm::vec3 viewPos = rCtx.cam.position;
+    glm::vec3 viewPos = rCtx.viewPos;
 
     int lightIdx = 0;
     rCtx.reg.view<WorldLight, Transform>().each([&lub, &lightIdx, &viewPos](auto ent, WorldLight& l, Transform& transform) {
@@ -391,12 +400,20 @@ void PolyRenderPass::prePass(PassSetupCtx& ctx, RenderCtx& rCtx) {
 
     lub->pack0.x = (float)lightIdx;
     lightsUB.unmap(ctx.device);
+
+    if (rCtx.reuploadMats) {
+        auto memoryProps = ctx.physicalDevice.getMemoryProperties();
+        materialUB.upload(ctx.device, memoryProps, ctx.commandPool, ctx.device.getQueue(ctx.graphicsQueueFamilyIdx, 0), (*rCtx.materialSlots)->getSlots(), sizeof(PackedMaterial) * 256);
+
+        // Update descriptor sets to bring in any new textures
+        updateDescriptorSets(ctx);
+    }
 }
 
 void PolyRenderPass::execute(RenderCtx& ctx) {
 #ifdef TRACY_ENABLE
     ZoneScoped;
-    TracyVkZone(tracyContexts[ctx.imageIndex], *ctx.cmdBuf, "Polys");
+    TracyVkZone((*ctx.tracyContexts)[ctx.imageIndex], *ctx.cmdBuf, "Polys");
 #endif
     // Fast path clear values for AMD
     std::array<float, 4> clearColorValue{ 0.0f, 0.0f, 0.0f, 1 };
@@ -425,6 +442,10 @@ void PolyRenderPass::execute(RenderCtx& ctx) {
         VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED);
 
     if (pickThisFrame) {
+        pickingBuffer.barrier(*cmdBuf, vk::PipelineStageFlagBits::eFragmentShader, vk::PipelineStageFlagBits::eComputeShader,
+            vk::DependencyFlagBits::eByRegion,
+            vk::AccessFlagBits::eShaderWrite | vk::AccessFlagBits::eShaderRead, vk::AccessFlagBits::eShaderWrite,
+            VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED);
         cmdBuf->bindPipeline(vk::PipelineBindPoint::eCompute, *pickingBufCsPipeline);
         cmdBuf->bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pickingBufCsLayout, 0, pickingBufCsDs, nullptr);
         PickBufCSPushConstants pbcspc;
@@ -459,7 +480,7 @@ void PolyRenderPass::execute(RenderCtx& ctx) {
             return;
         }
 
-        StandardPushConstants pushConst{ glm::vec4(cam.position, 0.0f), obj.texScaleOffset, glm::ivec4(matrixIdx, obj.materialIndex, 0, ent), glm::ivec4(pickX, pickY, 0, 0) };
+        StandardPushConstants pushConst{ obj.texScaleOffset, glm::ivec4(matrixIdx, obj.materialIdx, 0, ent), glm::ivec4(pickX, pickY, 0, 0) };
         cmdBuf->pushConstants<StandardPushConstants>(*pipelineLayout, vk::ShaderStageFlagBits::eFragment | vk::ShaderStageFlagBits::eVertex, 0, pushConst);
         cmdBuf->bindVertexBuffers(0, meshPos->second.vb.buffer(), vk::DeviceSize(0));
         cmdBuf->bindIndexBuffer(meshPos->second.ib.buffer(), 0, meshPos->second.indexType);
@@ -479,7 +500,7 @@ void PolyRenderPass::execute(RenderCtx& ctx) {
             return;
         }
 
-        StandardPushConstants pushConst{ glm::vec4(cam.position, 0.0f), obj.texScaleOffset, glm::ivec4(matrixIdx, obj.materialIndex, 0, ent), glm::ivec4(pickX, pickY, 0, 0) };
+        StandardPushConstants pushConst{ obj.texScaleOffset, glm::ivec4(matrixIdx, obj.materialIdx, 0, ent), glm::ivec4(pickX, pickY, 0, 0) };
         cmdBuf->pushConstants<StandardPushConstants>(*pipelineLayout, vk::ShaderStageFlagBits::eFragment | vk::ShaderStageFlagBits::eVertex, 0, pushConst);
         cmdBuf->bindVertexBuffers(0, meshPos->second.vb.buffer(), vk::DeviceSize(0));
         cmdBuf->bindIndexBuffer(meshPos->second.ib.buffer(), 0, meshPos->second.indexType);
@@ -489,7 +510,7 @@ void PolyRenderPass::execute(RenderCtx& ctx) {
 
     reg.view<Transform, ProceduralObject>().each([this, &cmdBuf, &cam, &matrixIdx](auto ent, Transform& transform, ProceduralObject& obj) {
         if (!obj.visible) return;
-        StandardPushConstants pushConst{ glm::vec4(cam.position, 0.0f), glm::vec4(1.0f, 1.0f, 0.0f, 0.0f), glm::ivec4(matrixIdx, 0, 0, ent), glm::ivec4(pickX, pickY, 0, 0) };
+        StandardPushConstants pushConst{ glm::vec4(1.0f, 1.0f, 0.0f, 0.0f), glm::ivec4(matrixIdx, 0, 0, ent), glm::ivec4(pickX, pickY, 0, 0) };
         cmdBuf->pushConstants<StandardPushConstants>(*pipelineLayout, vk::ShaderStageFlagBits::eFragment | vk::ShaderStageFlagBits::eVertex, 0, pushConst);
         cmdBuf->bindVertexBuffers(0, obj.vb.buffer(), vk::DeviceSize(0));
         cmdBuf->bindIndexBuffer(obj.ib.buffer(), 0, obj.indexType);
@@ -539,6 +560,15 @@ bool PolyRenderPass::getPickedEnt(uint32_t* entOut) {
     awaitingResults = false;
 
     return true;
+}
+
+void PolyRenderPass::lateUpdateVP(glm::mat4 views[2], glm::vec3 viewPos[2], vk::Device dev) {
+    MultiVP* multivp = (MultiVP*)vpUB.map(dev);
+    multivp->views[0] = views[0];
+    multivp->views[1] = views[1];
+    multivp->viewPos[0] = glm::vec4(viewPos[0], 0.0f);
+    multivp->viewPos[1] = glm::vec4(viewPos[1], 0.0f);
+    vpUB.unmap(dev);
 }
 
 PolyRenderPass::~PolyRenderPass() {
