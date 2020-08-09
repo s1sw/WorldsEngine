@@ -369,6 +369,7 @@ class VKRenderer {
 	IVRInterface* vrInterface;
 	VrApi vrApi;
 	float vrPredictAmount;
+	bool clearMaterialIndices;
 public:
 	double time;
 	VKRenderer(const RendererInitInfo& initInfo, bool* success);

@@ -168,8 +168,6 @@ void PolyRenderPass::setup(PassSetupCtx& ctx) {
     dsm.layout(*this->dsl);
     descriptorSet = dsm.create(ctx.device, ctx.descriptorPool)[0];
 
-    
-
     vku::RenderpassMaker rPassMaker;
 
     rPassMaker.attachmentBegin(vk::Format::eR16G16B16A16Sfloat);

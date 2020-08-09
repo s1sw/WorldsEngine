@@ -1588,6 +1588,28 @@ namespace vku {
                 });
         }
 
+        void upload(vk::Device device, VmaAllocator allocator, std::vector<uint8_t>& bytes, vk::PhysicalDeviceMemoryProperties memprops, vk::CommandBuffer cb) {
+            vku::GenericBuffer stagingBuffer(device, allocator, (vk::BufferUsageFlags)vk::BufferUsageFlagBits::eTransferSrc, (vk::DeviceSize)bytes.size(), VMA_MEMORY_USAGE_CPU_ONLY);
+            stagingBuffer.updateLocal(device, (const void*)bytes.data(), bytes.size());
+
+            // Copy the staging buffer to the GPU texture and set the layout.
+            {
+                auto bp = getBlockParams(s.info.format);
+                vk::Buffer buf = stagingBuffer.buffer();
+                uint32_t offset = 0;
+                for (uint32_t mipLevel = 0; mipLevel != s.info.mipLevels; ++mipLevel) {
+                    auto width = mipScale(s.info.extent.width, mipLevel);
+                    auto height = mipScale(s.info.extent.height, mipLevel);
+                    auto depth = mipScale(s.info.extent.depth, mipLevel);
+                    for (uint32_t face = 0; face != s.info.arrayLayers; ++face) {
+                        copy(cb, buf, mipLevel, face, width, height, depth, offset);
+                        offset += ((bp.bytesPerBlock + 3) & ~3) * ((width / bp.blockWidth) * (height / bp.blockHeight));
+                    }
+                }
+                setLayout(cb, vk::ImageLayout::eShaderReadOnlyOptimal);
+            }
+        }
+
         /// Change the layout of this image using a memory barrier.
         void setLayout(vk::CommandBuffer cb, vk::ImageLayout newLayout, vk::ImageAspectFlags aspectMask = vk::ImageAspectFlagBits::eColor) {
             if (newLayout == s.currentLayout) return;

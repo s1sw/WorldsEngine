@@ -83,7 +83,8 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     , shadowmapImage(std::numeric_limits<uint32_t>::max())
     , shadowmapRes(1024)
     , enableVR(initInfo.enableVR)
-    , vrPredictAmount(0.033f) {
+    , vrPredictAmount(0.033f)
+    , clearMaterialIndices(false) {
     msaaSamples = vk::SampleCountFlagBits::e4;
     numMSAASamples = 4;
 
@@ -635,6 +636,7 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
 
     device->waitForFences(cmdBufferFences[imageIndex], 1, std::numeric_limits<uint64_t>::max());
     device->resetFences(cmdBufferFences[imageIndex]);
+    destroyTempTexBuffers(imageIndex);
 
     if ((width == 0 || height == 0) && !enableVR) {
         // If the window has a width or height of zero, submit a blank command buffer to signal the fences.
@@ -679,6 +681,15 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
     cmdBuf->begin(cbbi);
     cmdBuf->resetQueryPool(*queryPool, 0, 2);
     cmdBuf->writeTimestamp(vk::PipelineStageFlagBits::eTopOfPipe, *queryPool, 0);
+
+    texSlots->setUploadCommandBuffer(*cmdBuf, imageIndex);
+
+    if (clearMaterialIndices) {
+        reg.view<WorldObject>().each([](entt::entity, WorldObject& wo) {
+            wo.materialIdx = ~0u;
+            });
+        clearMaterialIndices = false;
+    }
 
     PassSetupCtx psc{ physicalDevice, *device, *pipelineCache, *descriptorPool, *commandPool, *instance, allocator, graphicsQueueFamilyIdx, GraphicsSettings{numMSAASamples, (int32_t)shadowmapRes, enableVR}, &texSlots, rtResources, (int)swapchain->images.size(), enableVR };
 
@@ -768,7 +779,7 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
     submit.waitSemaphoreCount = 1;
     vk::Semaphore cImageAcquire = *imageAcquire;
     submit.pWaitSemaphores = &cImageAcquire;
-    vk::PipelineStageFlags waitStages = vk::PipelineStageFlagBits::eColorAttachmentOutput;
+    vk::PipelineStageFlags waitStages = vk::PipelineStageFlagBits::eBottomOfPipe;
     submit.pWaitDstStageMask = &waitStages;
     submit.commandBufferCount = 1;
     vk::CommandBuffer cCmdBuf = *cmdBuf;
@@ -938,13 +949,18 @@ void VKRenderer::unloadUnusedMaterials(entt::registry& reg) {
 }
 
 void VKRenderer::reloadMatsAndTextures() {
+    device->waitIdle();
     for (uint32_t i = 0; i < NUM_MAT_SLOTS; i++) {
-        matSlots->unload(i);
+        if (matSlots->isSlotPresent(i))
+            matSlots->unload(i);
     }
 
     for (uint32_t i = 0; i < NUM_TEX_SLOTS; i++) {
-        texSlots->unload(i);
+        if (texSlots->isSlotPresent(i))
+            texSlots->unload(i);
     }
+
+    clearMaterialIndices = true;
 }
 
 VKRenderer::~VKRenderer() {

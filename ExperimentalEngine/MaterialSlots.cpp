@@ -65,6 +65,7 @@ uint32_t MaterialSlots::load(AssetID asset) {
     parseMaterial(asset, slots[slot]);
 
     lookup.insert({ asset, slot });
+    reverseLookup.insert({ slot, asset });
 
     return slot;
 }

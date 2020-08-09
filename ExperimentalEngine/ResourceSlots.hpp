@@ -16,6 +16,7 @@ protected:
     std::array<slotType, slotCount> slots;
     std::array<bool, slotCount> present;
     std::unordered_map<key, uint32_t> lookup;
+    std::unordered_map<uint32_t, key> reverseLookup;
     virtual uint32_t load(key k) = 0;
 
     uint32_t getFreeSlot() {
@@ -61,23 +62,35 @@ protected:
         present[slot] = true;
 
         auto texData = loadTexData(asset);
-        slots[slot] = uploadTextureVk(*vkCtx, texData);
+        if (cb != VK_NULL_HANDLE)
+            slots[slot] = uploadTextureVk(*vkCtx, texData, cb, imageIndex);
+        else
+            slots[slot] = uploadTextureVk(*vkCtx, texData);
         std::free(texData.data);
 
         lookup.insert({ asset, slot });
-
+        reverseLookup.insert({ slot, asset });
         return slot;
     }
 private:
     std::shared_ptr<VulkanCtx> vkCtx;
+    vk::CommandBuffer cb;
+    uint32_t imageIndex;
 public:
-    TextureSlots(std::shared_ptr<VulkanCtx> vkCtx) : vkCtx(vkCtx) {
+    TextureSlots(std::shared_ptr<VulkanCtx> vkCtx) : vkCtx(vkCtx), cb(nullptr) {
 
+    }
+
+    void setUploadCommandBuffer(vk::CommandBuffer cb, uint32_t imageIndex) {
+        this->cb = cb;
+        this->imageIndex = imageIndex;
     }
 
     void unload(int idx) {
         present[idx] = false;
         slots[idx] = vku::TextureImage2D{};
+        lookup.erase(reverseLookup.at(idx));
+        reverseLookup.erase(idx);
     }
 };
 
@@ -98,6 +111,8 @@ public:
 
     void unload(int idx) {
         present[idx] = false;
+        lookup.erase(reverseLookup.at(idx));
+        reverseLookup.erase(idx);
     }
 };
 

@@ -30,7 +30,7 @@ inline int getNumMips(int w, int h) {
 
 TextureData loadStbTexture(void* fileData, size_t fileLen, AssetID id) {
     ZoneScoped
-    int x, y, channelsInFile;
+        int x, y, channelsInFile;
     stbi_uc* dat = stbi_load_from_memory((stbi_uc*)fileData, fileLen, &x, &y, &channelsInFile, 4);
 
     if (dat == nullptr) {
@@ -51,7 +51,7 @@ TextureData loadStbTexture(void* fileData, size_t fileLen, AssetID id) {
 
 TextureData loadCrunchTexture(void* fileData, size_t fileLen, AssetID id) {
     ZoneScoped
-    bool isSRGB = true;
+        bool isSRGB = true;
 
     crnd::crn_texture_info texInfo;
 
@@ -113,7 +113,7 @@ TextureData loadCrunchTexture(void* fileData, size_t fileLen, AssetID id) {
 TextureData loadTexData(AssetID id) {
     ZoneScoped
 
-    PHYSFS_File* file = g_assetDB.openAssetFileRead(id);
+        PHYSFS_File* file = g_assetDB.openAssetFileRead(id);
     if (!file) {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to load texture");
         return TextureData{};
@@ -136,7 +136,7 @@ TextureData loadTexData(AssetID id) {
 
 vku::TextureImage2D uploadTextureVk(VulkanCtx& ctx, TextureData& td) {
     ZoneScoped
-    auto memProps = ctx.physicalDevice.getMemoryProperties();
+        auto memProps = ctx.physicalDevice.getMemoryProperties();
     vku::TextureImage2D tex{
         ctx.device,
         memProps,
@@ -149,6 +149,57 @@ vku::TextureImage2D uploadTextureVk(VulkanCtx& ctx, TextureData& td) {
     std::vector<uint8_t> datVec(td.data, td.data + td.totalDataSize);
 
     tex.upload(ctx.device, ctx.allocator, datVec, ctx.commandPool, memProps, ctx.device.getQueue(ctx.graphicsQueueFamilyIdx, 0));
+
+    return tex;
+}
+
+// store these in a vector so they can be destroyed after the command buffer has completed
+std::vector<std::vector<vku::GenericBuffer>> tempBuffers;
+
+void ensureTempVectorExists(uint32_t imageIndex) {
+    if (imageIndex >= tempBuffers.size()) {
+        tempBuffers.resize(imageIndex + 1);
+    }
+}
+
+void destroyTempTexBuffers(uint32_t imageIndex) {
+    ensureTempVectorExists(imageIndex);
+    tempBuffers[imageIndex].clear();
+}
+
+vku::TextureImage2D uploadTextureVk(VulkanCtx& ctx, TextureData& td, vk::CommandBuffer cb, uint32_t imageIndex) {
+    ZoneScoped;
+    ensureTempVectorExists(imageIndex);
+    auto memProps = ctx.physicalDevice.getMemoryProperties();
+    vku::TextureImage2D tex{
+        ctx.device,
+        memProps,
+        td.width, td.height,
+        td.numMips, td.format,
+        false,
+        td.name.empty() ? nullptr : td.name.c_str()
+    };
+
+    vku::GenericBuffer stagingBuffer(ctx.device, ctx.allocator, (vk::BufferUsageFlags)vk::BufferUsageFlagBits::eTransferSrc, (vk::DeviceSize)td.totalDataSize, VMA_MEMORY_USAGE_CPU_ONLY);
+    stagingBuffer.updateLocal(ctx.device, td.data, td.totalDataSize);
+
+    // Copy the staging buffer to the GPU texture and set the layout.
+    {
+        auto bp = vku::getBlockParams(td.format);
+        vk::Buffer buf = stagingBuffer.buffer();
+        uint32_t offset = 0;
+        for (uint32_t mipLevel = 0; mipLevel != td.numMips; ++mipLevel) {
+            auto width = vku::mipScale(td.width, mipLevel);
+            auto height = vku::mipScale(td.height, mipLevel);
+            for (uint32_t face = 0; face != 1; ++face) {
+                tex.copy(cb, buf, mipLevel, face, width, height, 1, offset);
+                offset += ((bp.bytesPerBlock + 3) & ~3) * ((width / bp.blockWidth) * (height / bp.blockHeight));
+            }
+        }
+        tex.setLayout(cb, vk::ImageLayout::eShaderReadOnlyOptimal);
+    }
+
+    tempBuffers[imageIndex].push_back(std::move(stagingBuffer));
 
     return tex;
 }
