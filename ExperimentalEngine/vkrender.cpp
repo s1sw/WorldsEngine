@@ -842,12 +842,14 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
         vr::VRCompositor()->WaitGetPoses(nullptr, 0, nullptr, 0);
 
     std::array<std::uint64_t, 2> timeStamps = { {0} };
-    device->getQueryPoolResults<std::uint64_t>(
+    auto queryRes = device->getQueryPoolResults<std::uint64_t>(
         *queryPool, 0, (uint32_t)timeStamps.size(),
         timeStamps, sizeof(std::uint64_t),
-        vk::QueryResultFlagBits::e64 | vk::QueryResultFlagBits::eWait
+        vk::QueryResultFlagBits::e64
         );
-    lastRenderTimeTicks = timeStamps[1] - timeStamps[0];
+
+    if (queryRes == vk::Result::eSuccess)
+        lastRenderTimeTicks = timeStamps[1] - timeStamps[0];
     frameIdx++;
     FrameMark
 }
