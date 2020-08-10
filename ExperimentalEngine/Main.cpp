@@ -28,15 +28,13 @@
 #include "OpenVRInterface.hpp"
 #include "Log.hpp"
 #include "Audio.hpp"
+#include <discord_rpc.h>
+#include <stb_image.h>
 
 AssetDB g_assetDB;
 
 #undef min
 #undef max
-
-void setupSDL() {
-    SDL_Init(SDL_INIT_AUDIO | SDL_INIT_EVENTS | SDL_INIT_VIDEO);
-}
 
 SDL_cond* sdlEventCV;
 SDL_mutex* sdlEventMutex;
@@ -45,11 +43,55 @@ struct WindowThreadData {
     bool* runningPtr;
     SDL_Window** windowVarPtr;
 };
+
 SDL_Window* window = nullptr;
 uint32_t fullscreenToggleEventId;
 
+bool useEventThread = false;
+int workerThreadOverride = -1;
+bool enableXR = false;
+bool enableOpenVR = false;
+bool runAsEditor = true;
+glm::ivec2 windowSize;
+
+void onDiscordReady(const DiscordUser* user) {
+    SDL_Log("Rich presence ready for %s", user->username);
+    DiscordRichPresence richPresence;
+    memset(&richPresence, 0, sizeof(richPresence));
+    richPresence.state = runAsEditor ? "Editing." : "Exploring.";
+    richPresence.largeImageKey = "logo";
+    richPresence.largeImageText = "Private";
+    if (!runAsEditor) {
+        richPresence.partyId = "1365";
+        richPresence.partyMax = 256;
+        richPresence.partySize = 1;
+        richPresence.matchSecret = "world-aweef";
+        richPresence.joinSecret = "someone";
+    }
+    Discord_UpdatePresence(&richPresence);
+}
+
+void initRichPresence() {
+    DiscordEventHandlers handlers;
+    memset(&handlers, 0, sizeof(handlers));
+    handlers.ready = onDiscordReady;
+    Discord_Initialize("742075252028211310", &handlers, 0, nullptr);
+}
+
+void tickRichPresence() {
+    Discord_RunCallbacks();
+}
+
+void shutdownRichPresence() {
+    Discord_Shutdown();
+}
+
+void setupSDL() {
+    SDL_Init(SDL_INIT_AUDIO | SDL_INIT_EVENTS | SDL_INIT_VIDEO);
+}
+
 SDL_Window* createSDLWindow() {
-    return SDL_CreateWindow("Worlds Engine", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1280, 720, SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
+    return SDL_CreateWindow("Converge", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1280, 720, SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
 }
 
 // SDL_PollEvent blocks when the window is being resized or moved,
@@ -106,13 +148,6 @@ entt::entity createModelObject(entt::registry& reg, glm::vec3 position, glm::qua
     return ent;
 }
 
-bool useEventThread = false;
-int workerThreadOverride = -1;
-bool enableXR = false;
-bool enableOpenVR = false;
-bool runAsEditor = true;
-glm::ivec2 windowSize;
-
 void loadEditorFont() {
     ImGui::GetIO().Fonts->Clear();
     PHYSFS_File* ttfFile = PHYSFS_openRead("Fonts/EditorFont.ttf");
@@ -137,6 +172,35 @@ void loadEditorFont() {
 
     //std::free(buf);
     PHYSFS_close(ttfFile);
+}
+
+void setWindowIcon() {
+    SDL_Surface* surf;
+
+    PHYSFS_File* f = PHYSFS_openRead("icon.png");
+    int64_t fileLength = PHYSFS_fileLength(f);
+    char* buf = (char*)std::malloc(fileLength);
+    PHYSFS_readBytes(f, buf, fileLength);
+    PHYSFS_close(f);
+
+    int width, height, channels;
+    unsigned char* imgDat = stbi_load_from_memory((stbi_uc*)buf, fileLength, &width, &height, &channels, STBI_rgb_alpha);
+
+    Uint32 rmask, gmask, bmask, amask;
+#if SDL_BYTEORDER == SDL_BIG_ENDIAN
+    int shift = 0;
+    rmask = 0xff000000 >> shift;
+    gmask = 0x00ff0000 >> shift;
+    bmask = 0x0000ff00 >> shift;
+    amask = 0x000000ff;
+#else // little endian, like x86
+    rmask = 0x000000ff;
+    gmask = 0x0000ff00;
+    bmask = 0x00ff0000;
+    amask = 0xff000000;
+#endif
+    surf = SDL_CreateRGBSurfaceFrom((void*)imgDat, width, height, 32, 4 * width, rmask, gmask, bmask, amask);
+    SDL_SetWindowIcon(window, surf);
 }
 
 void engine(char* argv0) {
@@ -191,6 +255,7 @@ void engine(char* argv0) {
         }
     }
 
+    setWindowIcon();
     setupAudio();
 
     int frameCounter = 0;
@@ -292,6 +357,7 @@ void engine(char* argv0) {
 
     float vrPredictAmount = 0.0f;
 
+    initRichPresence();
     while (running) {
         uint64_t now = SDL_GetPerformanceCounter();
         if (!useEventThread) {
@@ -314,6 +380,8 @@ void engine(char* argv0) {
                     ImGui_ImplSDL2_ProcessEvent(&evt);
             }
         }
+
+        tickRichPresence();
 
         ImGui_ImplVulkan_NewFrame();
         ImGui_ImplSDL2_NewFrame(window);
@@ -440,6 +508,7 @@ void engine(char* argv0) {
         inputManager.endFrame();
     }
     
+    shutdownRichPresence();
     delete renderer;
     shutdownPhysx();
     PHYSFS_deinit();
