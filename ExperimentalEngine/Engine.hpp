@@ -341,18 +341,9 @@ class VKRenderer {
 	void imageBarrier(vk::CommandBuffer& cb, ImageBarrier& ib);
 	RenderImageHandle createRTResource(RTResourceCreateInfo resourceCreateInfo, const char* debugName = nullptr);
 	void createSwapchain(vk::SwapchainKHR oldSwapchain);
-	void createFramebuffers();
 	void createSCDependents();
 	void presentNothing(uint32_t imageIndex);
-	void loadTex(const char* path, int index, bool crunch);
-	void loadTex(AssetID id, int index);
-	void loadCubemap(AssetID id, int index);
-	void loadAlbedo();
 	vku::ShaderModule loadShaderAsset(AssetID id);
-	uint32_t getOrLoadTextureIdx(AssetID textureId);
-	uint32_t getOrLoadCubemapIdx(AssetID cubemapId);
-	uint32_t getOrLoadMaterialIdx(AssetID materialId);
-	void parseMaterial(AssetID matJsonId, PackedMaterial& mat);
 
 	std::unordered_map<AssetID, LoadedMeshData> loadedMeshes;
 	int frameIdx;

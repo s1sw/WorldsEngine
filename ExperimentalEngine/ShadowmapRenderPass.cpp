@@ -68,22 +68,6 @@ void ShadowmapRenderPass::setup(PassSetupCtx& ctx) {
 
     pipeline = pm.createUnique(ctx.device, ctx.pipelineCache, *pipelineLayout, *renderPass);
 
-   /* vk::ImageCreateInfo ici;
-    ici.arrayLayers = 1;
-    ici.extent = vk::Extent3D{ shadowmapRes, shadowmapRes, 1 };
-    ici.format = vk::Format::eD32Sfloat;
-    ici.imageType = vk::ImageType::e2D;
-    ici.initialLayout = vk::ImageLayout::eUndefined;
-    ici.mipLevels = 1;
-    ici.usage = vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eSampled;
-
-    RTResourceCreateInfo resourceCreateInfo{
-        ici,
-        vk::ImageViewType::e2D,
-        vk::ImageAspectFlagBits::eDepth
-    };
-    shadowmapImage = createRTResource(resourceCreateInfo);*/
-
     std::array<vk::ImageView, 1> shadowmapAttachments = { ctx.rtResources.at(shadowImage).image.imageView() };
     vk::FramebufferCreateInfo fci;
     fci.attachmentCount = (uint32_t)shadowmapAttachments.size();

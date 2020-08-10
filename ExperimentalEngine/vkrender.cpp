@@ -61,20 +61,6 @@ void VKRenderer::createSwapchain(vk::SwapchainKHR oldSwapchain) {
         });
 }
 
-void VKRenderer::createFramebuffers() {
-    for (int i = 0; i != swapchain->imageViews.size(); i++) {
-        vk::ImageView attachments[1] = { swapchain->imageViews[i] };
-        vk::FramebufferCreateInfo fci;
-        fci.attachmentCount = 1;
-        fci.pAttachments = attachments;
-        fci.width = this->width;
-        fci.height = this->height;
-        fci.renderPass = *this->imguiRenderPass;
-        fci.layers = 1;
-        this->framebuffers.push_back(this->device->createFramebufferUnique(fci));
-    }
-}
-
 VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     : window(initInfo.window)
     , frameIdx(0)
