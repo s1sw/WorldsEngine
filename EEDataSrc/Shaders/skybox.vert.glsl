@@ -17,6 +17,7 @@ layout (push_constant) uniform PushConstants {
 };
 
 void main() {
-    gl_Position = projection[ubIndices.y + gl_ViewIndex] * view[ubIndices.y + gl_ViewIndex] * vec4(inPos, 1.0); // Apply MVP transform
+    vec4 pos = projection[ubIndices.y + gl_ViewIndex] * view[ubIndices.y + gl_ViewIndex] * vec4(inPos, 1.0); // Apply MVP transform
+    gl_Position = pos.xyww;
     outTexCoords = inPos;
 }

@@ -37,5 +37,7 @@ void main() {
 		acc += tonemapCol(texelFetch(hdrImage, ivec2(gl_GlobalInvocationID.xy), i).xyz, whiteScale);
 	}
 
+	if (any(lessThan(acc, vec3(0.0)))) acc = vec3(1.0, 0.0, 0.0);
+
 	imageStore(resultImage, ivec2(gl_GlobalInvocationID.xy), vec4(acc / float(NUM_MSAA_SAMPLES), 1.0));
 }

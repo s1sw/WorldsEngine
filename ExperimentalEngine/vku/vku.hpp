@@ -38,7 +38,7 @@
 #include <vulkan/vulkan.hpp>
 #include "AssetDB.hpp"
 #include <physfs.h>
-extern AssetDB g_assetDB;
+#include "Log.hpp"
 #undef min
 #undef max
 
@@ -70,6 +70,16 @@ namespace vku {
         vk::CommandBufferAllocateInfo cbai{ commandPool, vk::CommandBufferLevel::ePrimary, 1 };
 
         auto cbs = device.allocateCommandBuffers(cbai);
+
+        VkDebugUtilsObjectNameInfoEXT nameInfo;
+        nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+        nameInfo.pObjectName = "Immediate Command Buffer";
+        nameInfo.objectHandle = (uint64_t)(VkCommandBuffer)(cbs[0]);
+        nameInfo.objectType = VK_OBJECT_TYPE_COMMAND_BUFFER;
+        nameInfo.pNext = nullptr;
+        auto setObjName = (PFN_vkSetDebugUtilsObjectNameEXT)device.getProcAddr("vkSetDebugUtilsObjectNameEXT");
+        setObjName(device, &nameInfo);
+
         cbs[0].begin(vk::CommandBufferBeginInfo{});
         func(cbs[0]);
         cbs[0].end();
@@ -498,7 +508,13 @@ namespace vku {
             VkDebugReportFlagsEXT flags, VkDebugReportObjectTypeEXT objectType,
             uint64_t object, size_t location, int32_t messageCode,
             const char* pLayerPrefix, const char* pMessage, void* pUserData) {
-            printf("%08x debugCallback: %s\n", flags, pMessage);
+            if ((flags & VK_DEBUG_REPORT_ERROR_BIT_EXT) == VK_DEBUG_REPORT_ERROR_BIT_EXT) {
+                logErr(worlds::WELogCategoryRender, "Vulkan: %s\n", pMessage);
+            } else if ((flags & VK_DEBUG_REPORT_WARNING_BIT_EXT) == VK_DEBUG_REPORT_WARNING_BIT_EXT) {
+                logWarn(worlds::WELogCategoryRender, "Vulkan: %s\n", pMessage);
+            } else {
+                logMsg(worlds::WELogCategoryRender, "Vulkan: %s\n", pMessage);
+            }
             return VK_FALSE;
         }
         vk::DebugReportCallbackEXT callback_;
@@ -1096,7 +1112,7 @@ namespace vku {
     /// Buffers require memory objects which represent GPU and CPU resources.
     class GenericBuffer {
     public:
-        GenericBuffer() {
+        GenericBuffer() : buffer_() {
         }
 
         GenericBuffer(vk::Device device, VmaAllocator allocator, vk::BufferUsageFlags usage, vk::DeviceSize size, VmaMemoryUsage memUsage = VMA_MEMORY_USAGE_GPU_ONLY, const char* debugName = nullptr) : debugName(debugName) {
@@ -1116,14 +1132,14 @@ namespace vku {
 
             VkBuffer cBuf;
             vmaCreateBuffer(allocator, &cci, &allocInfo, &cBuf, &allocation, nullptr);
-            vk::ObjectDestroy<vk::Device, vk::DispatchLoaderStatic> deleter(device);
-            buffer_ = vk::UniqueBuffer(cBuf, deleter);
+            //vk::ObjectDestroy<vk::Device, vk::DispatchLoaderStatic> deleter(device);
+            buffer_ = vk::Buffer(cBuf);
 
             if (debugName) {
                 VkDebugUtilsObjectNameInfoEXT nameInfo;
                 nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
                 nameInfo.pObjectName = debugName;
-                nameInfo.objectHandle = (uint64_t)(VkBuffer)(*buffer_);
+                nameInfo.objectHandle = (uint64_t)(VkBuffer)(buffer_);
                 nameInfo.objectType = VK_OBJECT_TYPE_BUFFER;
                 nameInfo.pNext = nullptr;
                 auto setObjName = (PFN_vkSetDebugUtilsObjectNameEXT)device.getProcAddr("vkSetDebugUtilsObjectNameEXT");
@@ -1151,7 +1167,7 @@ namespace vku {
 
             vku::executeImmediately(device, commandPool, queue, [&](vk::CommandBuffer cb) {
                 vk::BufferCopy bc{ 0, 0, size };
-                cb.copyBuffer(tmp.buffer(), *buffer_, bc);
+                cb.copyBuffer(tmp.buffer(), buffer_, bc);
                 });
         }
 
@@ -1166,7 +1182,7 @@ namespace vku {
         }
 
         void barrier(vk::CommandBuffer cb, vk::PipelineStageFlags srcStageMask, vk::PipelineStageFlags dstStageMask, vk::DependencyFlags dependencyFlags, vk::AccessFlags srcAccessMask, vk::AccessFlags dstAccessMask, uint32_t srcQueueFamilyIndex, uint32_t dstQueueFamilyIndex) const {
-            vk::BufferMemoryBarrier bmb{ srcAccessMask, dstAccessMask, srcQueueFamilyIndex, dstQueueFamilyIndex, *buffer_, 0, size_ };
+            vk::BufferMemoryBarrier bmb{ srcAccessMask, dstAccessMask, srcQueueFamilyIndex, dstQueueFamilyIndex, buffer_, 0, size_ };
             cb.pipelineBarrier(srcStageMask, dstStageMask, dependencyFlags, nullptr, bmb, nullptr);
         }
 
@@ -1199,34 +1215,39 @@ namespace vku {
         GenericBuffer(GenericBuffer const&) = delete;
 
         GenericBuffer(GenericBuffer&& other) noexcept
-            : buffer_(other.buffer_.release())
+            : buffer_(other.buffer_)
             , size_(other.size_)
             , allocation(other.allocation)
             , allocator(other.allocator)
             , debugName(other.debugName) {
+            other.buffer_ = nullptr;
         }
 
         GenericBuffer& operator=(GenericBuffer&& other) noexcept {
             allocation = other.allocation;
             allocator = other.allocator;
-            buffer_ = vk::UniqueBuffer(other.buffer_.release());
+            if (other.buffer_) {
+                buffer_ = other.buffer_;
+                other.buffer_ = nullptr;
+            }
             size_ = other.size_;
             debugName = other.debugName;
             return *this;
         }
 
-        vk::Buffer buffer() const { return *buffer_; }
+        vk::Buffer buffer() const { return buffer_; }
         vk::DeviceSize size() const { return size_; }
 
         ~GenericBuffer() {
-            VkBuffer cBuf = buffer_.release();
+            VkBuffer cBuf = buffer_;
             if (cBuf) {
                 vmaDestroyBuffer(allocator, cBuf, allocation);
+                buffer_ = vk::Buffer{};
             }
         }
 
     private:
-        vk::UniqueBuffer buffer_;
+        vk::Buffer buffer_;
         vk::DeviceSize size_;
         const char* debugName;
         VmaAllocation allocation;
@@ -1240,7 +1261,7 @@ namespace vku {
         VertexBuffer() {
         }
 
-        VertexBuffer(const vk::Device& device, VmaAllocator allocator, size_t size) : GenericBuffer(device, allocator, vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst, size) {
+        VertexBuffer(const vk::Device& device, VmaAllocator allocator, size_t size, const char* debugName = nullptr) : GenericBuffer(device, allocator, vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst, size, VMA_MEMORY_USAGE_GPU_ONLY, debugName) {
         }
     };
 
@@ -1263,7 +1284,7 @@ namespace vku {
         IndexBuffer() {
         }
 
-        IndexBuffer(const vk::Device& device, VmaAllocator allocator, size_t size) : GenericBuffer(device, allocator, vk::BufferUsageFlagBits::eIndexBuffer | vk::BufferUsageFlagBits::eTransferDst, size) {
+        IndexBuffer(const vk::Device& device, VmaAllocator allocator, size_t size, const char* debugName = nullptr) : GenericBuffer(device, allocator, vk::BufferUsageFlagBits::eIndexBuffer | vk::BufferUsageFlagBits::eTransferDst, size, VMA_MEMORY_USAGE_GPU_ONLY, debugName) {
         }
     };
 
@@ -1645,7 +1666,7 @@ namespace vku {
             case il::eShaderReadOnlyOptimal: srcMask = afb::eShaderRead; srcStageMask = psfb::eVertexShader; break; // TODO: Find better stage than vertex shader
             case il::eTransferSrcOptimal: srcMask = afb::eTransferRead; srcStageMask = psfb::eTransfer; break;
             case il::eTransferDstOptimal: srcMask = afb::eTransferWrite; srcStageMask = psfb::eTransfer; break;
-            case il::ePreinitialized: srcMask = afb::eTransferWrite | afb::eHostWrite; break;
+            case il::ePreinitialized: srcMask = afb::eTransferWrite | afb::eHostWrite; srcStageMask = psfb::eHost | psfb::eTransfer; break;
             case il::ePresentSrcKHR: srcMask = afb::eMemoryRead; break;
             }
 
@@ -1810,7 +1831,7 @@ namespace vku {
             info.arrayLayers = 6;
             info.samples = vk::SampleCountFlagBits::e1;
             info.tiling = hostImage ? vk::ImageTiling::eLinear : vk::ImageTiling::eOptimal;
-            info.usage = vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eTransferDst;
+            info.usage = vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eStorage;
             info.sharingMode = vk::SharingMode::eExclusive;
             info.queueFamilyIndexCount = 0;
             info.pQueueFamilyIndices = nullptr;
@@ -2132,8 +2153,8 @@ namespace vku {
         return (vk::SampleCountFlagBits)sampleCount;
     }
 
-    inline ShaderModule loadShaderAsset(vk::Device& device, AssetID id) {
-        PHYSFS_File* file = g_assetDB.openAssetFileRead(id);
+    inline ShaderModule loadShaderAsset(vk::Device& device, worlds::AssetID id) {
+        PHYSFS_File* file = worlds::g_assetDB.openAssetFileRead(id);
         size_t size = PHYSFS_fileLength(file);
         void* buffer = std::malloc(size);
 

@@ -1,0 +1,68 @@
+#pragma once
+#include <string>
+#include <unordered_map>
+#include <SDL2/SDL_log.h>
+#include "LogCategories.hpp"
+#include <fstream>
+
+namespace worlds {
+    class Console;
+    extern Console* g_console;
+
+    class ConVar {
+    public:
+        ConVar(const char* name, const char* defaultValue, const char* help = nullptr);
+        ~ConVar();
+        inline float getFloat() const { return parsedFloat;  }
+        inline int getInt() const { return parsedInt;  }
+        inline const char* getString() const { return value.c_str(); }
+        inline const char* getName() const { return name; }
+        inline const char* getHelp() const { return help; }
+        void setValue(std::string newValue);
+    private:
+        const char* help;
+        const char* name;
+        std::string value;
+        int parsedInt;
+        float parsedFloat;
+    };
+
+    typedef void(*CommandFuncPtr)(void* obj, const char* argString);
+
+    class Console {
+    public:
+        Console();
+        void registerCommand(CommandFuncPtr funcPtr, const char* name, const char* help, void* obj);
+        void drawWindow();
+        void setShowState(bool show);
+        void executeCommandStr(std::string cmdStr);
+        ~Console();
+    private:
+        bool show;
+        struct Command {
+            CommandFuncPtr func;
+            const char* name;
+            const char* help;
+            void* obj;
+        };
+
+        struct ConsoleMsg {
+            SDL_LogPriority priority;
+            std::string msg;
+            int category;
+        };
+
+        std::string currentCommand;
+        std::vector<ConsoleMsg> msgs;
+        std::unordered_map<std::string, ConVar*> conVars;
+        std::unordered_map<std::string, Command> commands;
+        std::ofstream logFileStream;
+        static void logCallback(void* con, int category, SDL_LogPriority priority, const char* msg);
+        static void cmdHelp(void* con, const char* argString);
+        static void cmdExec(void* con, const char* argString);
+        friend class ConVar;
+#ifdef _WIN32
+        void* notepadHwnd;
+#endif
+    };
+}

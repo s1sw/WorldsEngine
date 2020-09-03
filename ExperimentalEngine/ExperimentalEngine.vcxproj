@@ -56,20 +56,20 @@
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v142</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v142</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Profile|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v142</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
@@ -230,6 +230,10 @@
   <ItemGroup>
     <ClCompile Include="AssetDB.cpp" />
     <ClCompile Include="Audio.cpp" />
+    <ClCompile Include="BRDFLUTRenderer.cpp" />
+    <ClCompile Include="Console.cpp" />
+    <ClCompile Include="CubemapConvoluter.cpp" />
+    <ClCompile Include="CubemapLoader.cpp" />
     <ClCompile Include="Editor.cpp" />
     <ClCompile Include="Fatal.cpp" />
     <ClCompile Include="GuiUtil.cpp" />
@@ -242,9 +246,12 @@
     <ClCompile Include="imgui_stdlib.cpp" />
     <ClCompile Include="imgui_widgets.cpp" />
     <ClCompile Include="Input.cpp" />
+    <ClCompile Include="IOUtil.cpp" />
     <ClCompile Include="JobSystem.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="MaterialSlots.cpp" />
+    <ClCompile Include="mikktspace.c" />
+    <ClCompile Include="ObjModelLoader.cpp" />
     <ClCompile Include="physfs.cpp" />
     <ClCompile Include="Physics.cpp" />
     <ClCompile Include="PolyRenderPass.cpp" />
@@ -260,6 +267,7 @@
     <ClCompile Include="tracy\TracyClient.cpp" />
     <ClCompile Include="vkrender.cpp" />
     <ClCompile Include="vkswapchain.cpp" />
+    <ClCompile Include="weldmesh.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AssetDB.hpp" />
@@ -267,11 +275,14 @@
     <ClInclude Include="Camera.hpp" />
     <ClInclude Include="ChunkGenerator.hpp" />
     <ClInclude Include="ComponentMetadata.hpp" />
+    <ClInclude Include="Console.hpp" />
+    <ClInclude Include="CubemapLoader.hpp" />
     <ClInclude Include="Editor.hpp" />
     <ClInclude Include="Engine.hpp" />
     <ClInclude Include="Fatal.hpp" />
     <ClInclude Include="GlmStreamOps.hpp" />
     <ClInclude Include="GuiUtil.hpp" />
+    <ClInclude Include="IGameEventHandler.hpp" />
     <ClInclude Include="imconfig.h" />
     <ClInclude Include="imgui.h" />
     <ClInclude Include="ImGuizmo.h" />
@@ -280,27 +291,36 @@
     <ClInclude Include="imgui_internal.h" />
     <ClInclude Include="imgui_stdlib.h" />
     <ClInclude Include="Input.hpp" />
+    <ClInclude Include="IOUtil.hpp" />
     <ClInclude Include="IVRInterface.hpp" />
     <ClInclude Include="JobSystem.hpp" />
     <ClInclude Include="Log.hpp" />
+    <ClInclude Include="LogCategories.hpp" />
+    <ClInclude Include="MatUtil.hpp" />
+    <ClInclude Include="mikktspace.h" />
+    <ClInclude Include="ObjModelLoader.hpp" />
     <ClInclude Include="OpenVRInterface.hpp" />
     <ClInclude Include="PackedMaterial.hpp" />
     <ClInclude Include="PCH.hpp" />
     <ClInclude Include="physfs.hpp" />
     <ClInclude Include="Physics.hpp" />
     <ClInclude Include="PhysicsActor.hpp" />
+    <ClInclude Include="Render.hpp" />
     <ClInclude Include="RendererComponents.hpp" />
     <ClInclude Include="RenderGraph.hpp" />
     <ClInclude Include="RenderPasses.hpp" />
     <ClInclude Include="ResourceSlots.hpp" />
+    <ClInclude Include="Result.hpp" />
     <ClInclude Include="SceneSerialization.hpp" />
     <ClInclude Include="ShaderMetadata.hpp" />
     <ClInclude Include="SourceModelLoader.hpp" />
     <ClInclude Include="spirv_reflect.h" />
+    <ClInclude Include="TimingUtil.hpp" />
     <ClInclude Include="tiny_obj_loader.h" />
     <ClInclude Include="Transform.hpp" />
     <ClInclude Include="TextureLoader.hpp" />
     <ClInclude Include="vku\vku.hpp" />
+    <ClInclude Include="weldmesh.h" />
     <ClInclude Include="XRInterface.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

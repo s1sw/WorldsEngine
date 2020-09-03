@@ -3,118 +3,137 @@
 #include "vku/vku.hpp"
 #include <glm/glm.hpp>
 
-class PolyRenderPass : public RenderPass {
-private:
-	
-	vk::UniqueRenderPass renderPass;
-	vk::UniquePipeline pipeline;
-	vk::UniquePipelineLayout pipelineLayout;
-	vk::UniqueDescriptorSetLayout dsl;
-	
-	vk::UniquePipeline wireframePipeline;
-	vk::UniquePipelineLayout wireframePipelineLayout;
-	vk::UniqueDescriptorSetLayout wireframeDsl;
+namespace worlds {
+	class Swapchain;
+	class PolyRenderPass : public RenderPass {
+	private:
 
-	vk::UniquePipeline pickingBufCsPipeline;
-	vk::UniquePipelineLayout pickingBufCsLayout;
-	vk::UniqueDescriptorSetLayout pickingBufCsDsl;
-	vk::DescriptorSet pickingBufCsDs;
+		vk::UniqueRenderPass renderPass;
+		vk::UniquePipeline pipeline;
+		vk::UniquePipelineLayout pipelineLayout;
+		vk::UniqueDescriptorSetLayout dsl;
 
-	vku::UniformBuffer vpUB;
-	vku::UniformBuffer lightsUB;
-	vku::UniformBuffer materialUB;
-	vku::UniformBuffer modelMatrixUB;
-	vku::GenericBuffer pickingBuffer;
-	
-	vku::ShaderModule fragmentShader;
-	vku::ShaderModule vertexShader;
+		vk::UniquePipeline wireframePipeline;
+		vk::UniquePipelineLayout wireframePipelineLayout;
+		vk::UniqueDescriptorSetLayout wireframeDsl;
 
-	vku::ShaderModule wireFragmentShader;
-	vku::ShaderModule wireVertexShader;
-	
-	vk::UniqueSampler albedoSampler;
-	vk::UniqueSampler shadowSampler;
-	
-	vk::UniqueFramebuffer renderFb;
-	vk::DescriptorSet descriptorSet;
-	vk::DescriptorSet wireframeDescriptorSet;
-	
-	RenderImageHandle depthStencilImage;
-	RenderImageHandle polyImage;
-	RenderImageHandle shadowImage;
-	
-	bool enablePicking;
-	int pickX, pickY;
-	uint32_t pickedEnt;
-	vk::UniqueEvent pickEvent;
-	bool pickThisFrame;
-	bool awaitingResults;
-	bool setEventNextFrame;
+		vk::UniquePipeline linePipeline;
+		vk::UniquePipelineLayout linePipelineLayout;
+		vk::UniqueDescriptorSetLayout lineDsl;
+		vk::DescriptorSet lineDs;
 
-	void updateDescriptorSets(PassSetupCtx& ctx);
-public:
-	PolyRenderPass(RenderImageHandle depthStencilImage, RenderImageHandle polyImage, RenderImageHandle shadowImage, bool enablePicking = false);
-	void setPickCoords(int x, int y) { pickX = x; pickY = y; }
-	RenderPassIO getIO() override;
-	void setup(PassSetupCtx& ctx) override;
-	void prePass(PassSetupCtx& ctx, RenderCtx& rCtx) override;
-	void execute(RenderCtx& ctx);
-	void requestEntityPick();
-	bool getPickedEnt(uint32_t* out);
-	void lateUpdateVP(glm::mat4 views[2], glm::vec3 viewPos[2], vk::Device dev);
-	virtual ~PolyRenderPass();
-};
+		vk::UniquePipeline skyboxPipeline;
+		vk::UniquePipelineLayout skyboxPipelineLayout;
+		vk::UniqueDescriptorSetLayout skyboxDsl;
+		vk::UniqueDescriptorSet skyboxDs;
 
-class ShadowmapRenderPass : public RenderPass {
-private:
-	vk::UniqueRenderPass renderPass;
-	vk::UniquePipeline pipeline;
-	vk::UniquePipelineLayout pipelineLayout;
-	vk::UniqueDescriptorSetLayout dsl;
-	RenderImageHandle shadowImage;
-	vk::UniqueFramebuffer shadowFb;
-	vk::DescriptorSet descriptorSet;
-	vku::ShaderModule shadowVertexShader;
-	vku::ShaderModule shadowFragmentShader;
-	uint32_t shadowmapRes;
-public:
-	ShadowmapRenderPass(RenderImageHandle shadowImage);
-	RenderPassIO getIO() override;
-	void setup(PassSetupCtx& ctx) override;
-	void execute(RenderCtx& ctx);
-	virtual ~ShadowmapRenderPass() {}
-};
+		vk::UniquePipeline pickingBufCsPipeline;
+		vk::UniquePipelineLayout pickingBufCsLayout;
+		vk::UniqueDescriptorSetLayout pickingBufCsDsl;
+		vk::UniqueDescriptorSet pickingBufCsDs;
 
-class TonemapRenderPass : public RenderPass {
-private:
-	vku::ShaderModule tonemapShader;
-	vk::UniqueDescriptorSetLayout dsl;
-	vk::UniquePipeline pipeline;
-	vk::UniquePipelineLayout pipelineLayout;
-	vk::DescriptorSet descriptorSet;
-	vk::DescriptorSet rDescriptorSet;
-	vk::UniqueSampler sampler;
-	RenderImageHandle finalPrePresent;
-	RenderImageHandle finalPrePresentR;
-	RenderImageHandle hdrImg;
-public:
-	TonemapRenderPass(RenderImageHandle hdrImg, RenderImageHandle finalPrePresent);
-	RenderPassIO getIO() override;
-	void setup(PassSetupCtx& ctx) override;
-	void execute(RenderCtx& ctx) override;
-	void setRightFinalImage(PassSetupCtx& ctx, RenderImageHandle right);
-	virtual ~TonemapRenderPass() {}
-};
+		vku::UniformBuffer vpUB;
+		vku::UniformBuffer lightsUB;
+		vku::UniformBuffer materialUB;
+		vku::UniformBuffer modelMatrixUB;
+		vku::GenericBuffer pickingBuffer;
+		vku::GenericBuffer lineVB;
+		int currentLineVBSize;
+		int numLineVerts;
 
-class ImGuiRenderPass : public RenderPass {
-private:
-	vk::UniqueRenderPass renderPass;
-	vk::UniqueFramebuffer fb;
-	RenderImageHandle target;
-public:
-	ImGuiRenderPass(RenderImageHandle imguiTarget);
-	RenderPassIO getIO() override;
-	void setup(PassSetupCtx& ctx) override;
-	void execute(RenderCtx& ctx) override;
-	virtual ~ImGuiRenderPass() {}
-};
+		vku::ShaderModule fragmentShader;
+		vku::ShaderModule vertexShader;
+
+		vku::ShaderModule wireFragmentShader;
+		vku::ShaderModule wireVertexShader;
+
+		vk::UniqueSampler albedoSampler;
+		vk::UniqueSampler shadowSampler;
+
+		vk::UniqueFramebuffer renderFb;
+		vk::UniqueDescriptorSet descriptorSet;
+		vk::UniqueDescriptorSet wireframeDescriptorSet;
+
+		RenderImageHandle depthStencilImage;
+		RenderImageHandle polyImage;
+		RenderImageHandle shadowImage;
+
+		bool enablePicking;
+		int pickX, pickY;
+		uint32_t pickedEnt;
+		vk::UniqueEvent pickEvent;
+		bool pickThisFrame;
+		bool awaitingResults;
+		bool setEventNextFrame;
+
+		void updateDescriptorSets(PassSetupCtx& ctx);
+	public:
+		PolyRenderPass(RenderImageHandle depthStencilImage, RenderImageHandle polyImage, RenderImageHandle shadowImage, bool enablePicking = false);
+		void setPickCoords(int x, int y) { pickX = x; pickY = y; }
+		RenderPassIO getIO() override;
+		void setup(PassSetupCtx& ctx) override;
+		void prePass(PassSetupCtx& ctx, RenderCtx& rCtx) override;
+		void execute(RenderCtx& ctx);
+		void requestEntityPick();
+		bool getPickedEnt(uint32_t* out);
+		void lateUpdateVP(glm::mat4 views[2], glm::vec3 viewPos[2], vk::Device dev);
+		virtual ~PolyRenderPass();
+	};
+
+	class ShadowmapRenderPass : public RenderPass {
+	private:
+		vk::UniqueRenderPass renderPass;
+		vk::UniquePipeline pipeline;
+		vk::UniquePipelineLayout pipelineLayout;
+		vk::UniqueDescriptorSetLayout dsl;
+		RenderImageHandle shadowImage;
+		vk::UniqueFramebuffer shadowFb;
+		vk::DescriptorSet descriptorSet;
+		vku::ShaderModule shadowVertexShader;
+		vku::ShaderModule shadowFragmentShader;
+		uint32_t shadowmapRes;
+	public:
+		ShadowmapRenderPass(RenderImageHandle shadowImage);
+		RenderPassIO getIO() override;
+		void setup(PassSetupCtx& ctx) override;
+		void execute(RenderCtx& ctx);
+		virtual ~ShadowmapRenderPass() {}
+	};
+
+	class TonemapRenderPass : public RenderPass {
+	private:
+		vku::ShaderModule tonemapShader;
+		vk::UniqueDescriptorSetLayout dsl;
+		vk::UniquePipeline pipeline;
+		vk::UniquePipelineLayout pipelineLayout;
+		vk::DescriptorSet descriptorSet;
+		vk::DescriptorSet rDescriptorSet;
+		vk::UniqueSampler sampler;
+		RenderImageHandle finalPrePresent;
+		RenderImageHandle finalPrePresentR;
+		RenderImageHandle hdrImg;
+	public:
+		TonemapRenderPass(RenderImageHandle hdrImg, RenderImageHandle finalPrePresent);
+		RenderPassIO getIO() override;
+		void setup(PassSetupCtx& ctx) override;
+		void execute(RenderCtx& ctx) override;
+		void setRightFinalImage(PassSetupCtx& ctx, RenderImageHandle right);
+		virtual ~TonemapRenderPass() {}
+	};
+
+	class ImGuiRenderPass {
+	private:
+		vk::UniqueRenderPass renderPass;
+		vk::UniqueFramebuffer fb;
+		RenderImageHandle target;
+		Swapchain& currSwapchain;
+	public:
+		vk::RenderPass& getRenderPass() { return *renderPass; }
+		ImGuiRenderPass(Swapchain& swapchain);
+		void handleResize(PassSetupCtx& ctx, RenderImageHandle newTarget);
+		RenderPassIO getIO();
+		void setup(PassSetupCtx& ctx);
+		void execute(RenderCtx& ctx, vk::Framebuffer& currFb);
+		virtual ~ImGuiRenderPass();
+	};
+}

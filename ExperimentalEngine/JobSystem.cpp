@@ -15,6 +15,7 @@ JobSystem::JobSystem(int numWorkers)
 	for (int i = 0; i < NUM_JOB_SLOTS; i++) {
 		currentJobLists[i].completed = true;
 		currentJobLists[i].completeCV = SDL_CreateCond();
+		currentJobLists[i].completeMutex = SDL_CreateMutex();
 	}
 	jobListsMutex.unlock();
 
@@ -25,6 +26,12 @@ JobSystem::JobSystem(int numWorkers)
 
 JobSystem::~JobSystem() {
 	executing = false;
+
+	for (int i = 0; i < NUM_JOB_SLOTS; i++) {
+		SDL_DestroyCond(currentJobLists[i].completeCV);
+		SDL_DestroyMutex(currentJobLists[i].completeMutex);
+	}
+
 	newJobListCV.notify_all();
 	for (auto& w : workers) {
 		w.join();

@@ -58,7 +58,7 @@ layout(std140, binding = 1) uniform LightBuffer {
 };
 
 struct Material {
-	// (metallic, roughness, albedo texture index, unused)
+	// (metallic, roughness, albedo texture index, normal texture index)
 	vec4 pack0;
 	// (albedo color rgb, unused)
 	vec4 pack1;
@@ -74,8 +74,10 @@ layout(std140, binding = 3) uniform ModelMatrices {
 
 layout (binding = 4) uniform sampler2D albedoSampler[];
 layout (binding = 5) uniform sampler2DShadow shadowSampler;
+layout (binding = 6) uniform samplerCube cubemapSampler[];
+layout (binding = 7) uniform sampler2D brdfLutSampler;
 
-layout(std430, binding = 6) buffer PickingBuffer {
+layout(std430, binding = 8) buffer PickingBuffer {
     uint depth;
     uint objectID;
     uint doPicking;
@@ -104,7 +106,41 @@ void main() {
 #endif
 
 #ifdef FRAGMENT
-float ndfGGXDistribution(float cosLh, float roughness) {
+float DistributionGGX(vec3 N, vec3 H, float roughness) {
+    float a = roughness * roughness;
+    float a2 = a * a;
+    float NdotH = max(dot(N, H), 0.0f);
+    float NdotH2 = NdotH * NdotH;
+
+    float num = a2;
+    float denom = (NdotH2 * (a2 - 1.0f) + 1.0f);
+    denom = PI * denom * denom;
+
+    return num / denom;
+}
+
+float GeometrySchlickGGX(float NdotV, float roughness) {
+    float r = (roughness + 1.0f);
+    float k = (r * r) / 8.0f;
+
+    float num = NdotV;
+    float denom = NdotV * (1.0f - k) + k;
+
+    return num / denom;
+}
+
+float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness) {
+    float NdotV = max(dot(N, V), 0.0f);
+    float NdotL = max(dot(N, L), 0.0f);
+    float ggx2 = GeometrySchlickGGX(NdotV, roughness);
+    float ggx1 = GeometrySchlickGGX(NdotL, roughness);
+
+    return ggx1 * ggx2;
+}
+
+// GGX/Towbridge-Reitz normal distribution function.
+// Uses Disney's reparametrization of alpha = roughness^2.
+float ndfGGX(float cosLh, float roughness) {
     float alpha = roughness * roughness;
     float alphaSq = alpha * alpha;
 
@@ -112,35 +148,24 @@ float ndfGGXDistribution(float cosLh, float roughness) {
     return alphaSq / (PI * denom * denom);
 }
 
-float calcK(float roughness) {
-    return ((roughness + 1.0) * (roughness + 1.0)) / 8.0;
+// Single term for separable Schlick-GGX below.
+float gaSchlickG1(float cosTheta, float k) {
+    return cosTheta / (cosTheta * (1.0 - k) + k);
 }
 
-float schlickG1(vec3 v, vec3 n, float k) {
-    float ndotv = dot(n, v);
-    return ndotv / (ndotv * (1.0 - k)) + k;
+// Schlick-GGX approximation of geometric attenuation function using Smith's method.
+float gaSchlickGGX(float cosLi, float cosLo, float roughness) {
+    float r = roughness + 1.0;
+    float k = (r * r) / 8.0; // Epic suggests using this roughness remapping for analytic lights.
+    return gaSchlickG1(cosLi, k) * gaSchlickG1(cosLo, k);
 }
 
-float schlickG(vec3 l, vec3 v, vec3 h, vec3 n, float roughness) {
-    float k = calcK(roughness);
-    //return schlickG1(l, n, k) * schlickG1(v, n, k);
-
-    float NdotL = max(dot(n, l), 0.0);
-    float NdotV = max(dot(n, v), 0.0);
-
-    float r2 = roughness * roughness;
-
-    float attenuationL = 2.0 * NdotL / (NdotL + sqrt(r2 + (1.0 - r2) * (NdotL * NdotL)));
-	float attenuationV = 2.0 * NdotV / (NdotV + sqrt(r2 + (1.0 - r2) * (NdotV * NdotV)));
-	return attenuationL * attenuationV;
-}
-
+// Shlick's approximation of the Fresnel factor.
 vec3 fresnelSchlick(vec3 F0, float cosTheta) {
-    float a = 1.0 - cosTheta;
-    return F0 + (1.0 - F0) * a * a * a * a * a;
+    return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
 }
 
-vec3 calculateLighting(int lightIdx, vec3 viewDir, vec3 f0, float metallic, float roughness) {
+vec3 calculateLighting(int lightIdx, vec3 viewDir, vec3 f0, float metallic, float roughness, vec3 albedoColor, vec3 normal) {
 	Light light = lights[lightIdx];
 	int lightType = int(light.pack0.w);
     vec3 radiance = light.pack0.xyz;
@@ -167,22 +192,37 @@ vec3 calculateLighting(int lightIdx, vec3 viewDir, vec3 f0, float metallic, floa
     roughness = clamp(roughness + 0.05f, 0.0, 1.0);
 
     vec3 halfway = normalize(viewDir + L);
-    vec3 norm = normalize(inNormal);
+    vec3 norm = normalize(normal);
 
-    float NdotV = max(dot(norm, viewDir), 0.0);
-    float NdotL = max(dot(norm, L), 0.0);
-    float NdotH = max(dot(norm, halfway), 0.0);
+    float cosLh = max(0.0f, dot(norm, halfway));
+    float cosLi = max(0.0f, dot(norm, L));
+    float cosLo = max(0.0f, dot(norm, viewDir));
 
-    //vec3 spec = specBrdf(halfway, normalize(viewDir), L, norm, vec3(0.04), roughness);
+    float NDF = ndfGGX(cosLh, roughness);
+    float G = gaSchlickGGX(cosLi, cosLo, roughness);
+    vec3 f = fresnelSchlick(f0, max(dot(halfway, viewDir), 0.0f));
 
-    float D = ndfGGXDistribution(max(NdotH, 0.001), roughness);
-    float G = schlickG(L, viewDir, halfway, norm, roughness);
-    vec3 F = fresnelSchlick(f0, NdotV);
+    vec3 kd = mix(vec3(1.0) - f, vec3(0.0), metallic);
 
-    vec3 spec = D * F * G / max(4.0 * NdotL * NdotV, 0.001);
-    vec3 diffuse = (1.0 - F);
+    vec3 numerator = NDF * G * f;
+    float denominator = 4.0f * cosLo * cosLi;
+    vec3 specular = numerator / max(denominator, 0.001f);
 
-    return NdotL * radiance * (diffuse + spec);
+    vec3 diffuse = kd * albedoColor;
+    vec3 lPreShadow = (specular + diffuse) * radiance * cosLi;
+
+    return lPreShadow;
+}
+
+vec3 fresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness) {
+    return F0 + (max(vec3(1.0f - roughness), F0) - F0) * pow(1.0f - cosTheta, 5.0f);
+}
+
+vec3 decodeNormal (vec2 texVal) {
+    vec3 n;
+    n.xy = texVal*2-1;
+    n.z = sqrt(1-dot(n.xy, n.xy));
+    return n;
 }
 
 void main() {
@@ -195,13 +235,27 @@ void main() {
 	
 	vec3 viewDir = normalize(viewPos[gl_ViewIndex].xyz - inWorldPos.xyz);
 	
-	vec3 f0 = vec3(0.04f, 0.04f, 0.04f);
+	vec3 f0 = vec3(0.04);
     f0 = mix(f0, albedoColor, metallic);
-	vec3 lo = vec3(0.05);
+	vec3 lo = vec3(0.0);
+
+    vec3 normal = inNormal;
+
+    if (mat.pack0.w > -1.0f) {
+        vec3 bitangent = cross(inNormal, inTangent);
+
+        mat3 tbn = mat3(inTangent, bitangent, inNormal);
+
+        vec3 texNorm = normalize(decodeNormal(texture(albedoSampler[(int(mat.pack0.w))], inUV).xy));
+        normal = normalize(tbn * texNorm);
+        // (normal * 2.0) - 1.0
+        //FragColor = vec4((normal * 0.25) + 0.25, 1.0);
+        //return;
+    }
 	
     vec4 lightspacePos = inShadowPos;
     for (int i = 0; i < lightCount; i++) {
-		vec3 cLighting = calculateLighting(i, viewDir, f0, metallic, roughness);
+		vec3 cLighting = calculateLighting(i, viewDir, f0, metallic, roughness, albedoColor, normal);
 		if (int(lights[i].pack0.w) == LT_DIRECTIONAL) {
 			float depth = (lightspacePos.z / lightspacePos.w) - 0.001;
 			vec2 texReadPoint = (lightspacePos.xy * 0.5 + 0.5);
@@ -221,10 +275,27 @@ void main() {
 		}
 		lo += cLighting;
 	}
-	
-	// TODO: Ambient stuff - specular cubemaps + irradiance
-	
-	FragColor = vec4(lo * albedoColor, 1.0);
+
+    // sample both the pre-filter map and the BRDF lut and combine them together as per the Split-Sum approximation to get the IBL specular part.
+
+    // ambient lighting (we now use IBL as the ambient term)
+    vec3 F = fresnelSchlickRoughness(clamp(dot(inNormal, viewDir), 0.0, 1.0), f0, roughness);
+    
+    vec3 kS = F;
+    vec3 kD = 1.0 - kS;
+    kD *= 1.0 - metallic;
+
+    const float MAX_REFLECTION_LOD = 11.0;
+    vec3 R = reflect(-viewDir, normalize(inNormal));
+    vec3 prefilteredColor = textureLod(cubemapSampler[0], R, roughness * MAX_REFLECTION_LOD).rgb;
+    vec2 brdf  = texture(brdfLutSampler, vec2(max(dot(inNormal, viewDir), 0.0), 1.0 - metallic)).rg;
+    vec3 specularAmbient = pow(prefilteredColor, vec3(1.0/2.2)) * (F * brdf.x + brdf.y) * albedoColor;
+    vec3 diffuseAmbient = 0.05 * albedoColor;
+    vec3 ambient = kD * diffuseAmbient + specularAmbient;
+
+    //FragColor = vec4(metallic, roughness, 0.0, 1.0);
+	//FragColor = vec4(lo, 1.0);
+	FragColor = vec4(lo + ambient, 1.0);
 
     if (ENABLE_PICKING && pickBuf.doPicking == 1) {
         if (pixelPickCoords == ivec2(gl_FragCoord.xy)) {
@@ -244,31 +315,31 @@ void main() {
             uint d = floatBitsToUint(inDepth);
             uint current_d_or_locked = 0;
             do {
-               // `z` is behind the stored z value, return immediately.
-               if (d >= pickBuf.depth)
-                       return;
+                // `z` is behind the stored z value, return immediately.
+                if (d >= pickBuf.depth)
+                    return;
 
-               // Perform an atomic min. `current_d_or_locked` holds the currently stored
-               // value.
-               //picking_buffer.InterlockedMin(0, d, current_d_or_locked);
-               current_d_or_locked = atomicMin(pickBuf.depth, d);
-               // We rely on using the sign bit to indicate if the picking buffer is
-               // currently locked. This means that this branch will only be entered if the
-               // buffer is unlocked AND `d` is the less than the currently stored `d`. 
-               if (d < int(current_d_or_locked)) {
-                       uint last_d = 0;
-                       // Attempt to acquire write lock by setting the sign bit.
-                       last_d = atomicCompSwap(pickBuf.depth, d, floatBitsToUint(intBitsToFloat(-int(d))));
-                       // This branch will only be taken if taking the write lock succeded.
-                       if (last_d == d) {
-                               // Update the object identity.
-                               pickBuf.objectID = ubIndices.w;
-                               uint dummy;
-                               // Release write lock. 
-                               //picking_buffer.InterlockedExchange(0, d, dummy);
-                               atomicExchange(pickBuf.depth, d);
-                       }
-               }
+                // Perform an atomic min. `current_d_or_locked` holds the currently stored
+                // value.
+                //picking_buffer.InterlockedMin(0, d, current_d_or_locked);
+                current_d_or_locked = atomicMin(pickBuf.depth, d);
+                // We rely on using the sign bit to indicate if the picking buffer is
+                // currently locked. This means that this branch will only be entered if the
+                // buffer is unlocked AND `d` is the less than the currently stored `d`. 
+                if (d < int(current_d_or_locked)) {
+                    uint last_d = 0;
+                    // Attempt to acquire write lock by setting the sign bit.
+                    last_d = atomicCompSwap(pickBuf.depth, d, floatBitsToUint(intBitsToFloat(-int(d))));
+                    // This branch will only be taken if taking the write lock succeded.
+                    if (last_d == d) {
+                        // Update the object identity.
+                        pickBuf.objectID = ubIndices.w;
+                        uint dummy;
+                        // Release write lock. 
+                        //picking_buffer.InterlockedExchange(0, d, dummy);
+                        atomicExchange(pickBuf.depth, d);
+                    }
+                }
             // Spin until write lock has been released.
             } while(int(current_d_or_locked) < 0);
         }

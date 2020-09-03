@@ -7,21 +7,69 @@
 #include <physx/extensions/PxDefaultAllocator.h>
 #include <physx/pvd/PxPvdTransport.h>
 #include <physx/pvd/PxPvd.h>
+#include "Transform.hpp"
+#include "PhysicsActor.hpp"
 
-inline physx::PxVec3 glm2Px(glm::vec3 vec) {
-	return physx::PxVec3(vec.x, vec.y, vec.z);
+namespace worlds {
+    extern physx::PxMaterial* defaultMaterial;
+    extern physx::PxScene* g_scene;
+    extern physx::PxPhysics* g_physics;
+
+    inline physx::PxVec3 glm2px(glm::vec3 vec) {
+        return physx::PxVec3(vec.x, vec.y, vec.z);
+    }
+
+    inline physx::PxQuat glm2px(glm::quat quat) {
+        return physx::PxQuat{ quat.x, quat.y, quat.z, quat.w };
+    }
+
+    inline glm::vec3 px2glm(physx::PxVec3 vec) {
+        return glm::vec3(vec.x, vec.y, vec.z);
+    }
+
+    inline glm::quat px2glm(physx::PxQuat quat) {
+        return glm::quat{ quat.w, quat.x, quat.y, quat.z };
+    }
+
+    inline physx::PxTransform glm2px(Transform& t) {
+        return physx::PxTransform(glm2px(t.position), glm2px(t.rotation));
+    }
+
+    template <typename T>
+    void updatePhysicsShapes(T& pa) {
+        uint32_t nShapes = pa.actor->getNbShapes();
+        physx::PxShape** buf = (physx::PxShape**)std::malloc(nShapes * sizeof(physx::PxShape*));
+        pa.actor->getShapes(buf, nShapes);
+
+        for (int i = 0; i < nShapes; i++) {
+            pa.actor->detachShape(*buf[i]);
+            buf[i]->release();
+        }
+
+        std::free(buf);
+
+        for (PhysicsShape& ps : pa.physicsShapes) {
+            physx::PxShape* shape;
+
+            switch (ps.type) {
+            case PhysicsShapeType::Box:
+                shape = g_physics->createShape(physx::PxBoxGeometry(glm2px(ps.box.halfExtents)), *(ps.material == nullptr ? defaultMaterial : ps.material));
+                break;
+            default:
+                ps.sphere.radius = 0.5f;
+            case PhysicsShapeType::Sphere:
+                shape = g_physics->createShape(physx::PxSphereGeometry(ps.sphere.radius), *(ps.material == nullptr ? defaultMaterial : ps.material));
+                break;
+            case PhysicsShapeType::Capsule:
+                shape = g_physics->createShape(physx::PxCapsuleGeometry(ps.capsule.radius, ps.capsule.height * 0.5f), *(ps.material == nullptr ? defaultMaterial : ps.material));
+                break;
+            }
+
+            pa.actor->attachShape(*shape);
+        }
+    }
+
+    void initPhysx(entt::registry& reg);
+    void stepSimulation(float deltaTime);
+    void shutdownPhysx();
 }
-
-inline glm::vec3 px2glm(physx::PxVec3 vec) {
-	return glm::vec3(vec.x, vec.y, vec.z);
-}
-
-inline glm::quat px2glm(physx::PxQuat quat) {
-	return glm::quat{quat.w, quat.x, quat.y, quat.z};
-}
-
-extern physx::PxScene* g_scene;
-extern physx::PxPhysics* g_physics;
-void initPhysx();
-void simulate(float deltaTime);
-void shutdownPhysx();

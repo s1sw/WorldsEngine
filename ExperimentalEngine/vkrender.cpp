@@ -5,7 +5,6 @@
 #include <SDL2/SDL_vulkan.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include "tiny_obj_loader.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 #include "imgui_impl_vulkan.h"
@@ -20,6 +19,12 @@
 #include "OpenVRInterface.hpp"
 #include <sajson.h>
 #include "Fatal.hpp"
+#include <unordered_set>
+#include "Log.hpp"
+#include "ObjModelLoader.hpp"
+#include "Render.hpp"
+
+using namespace worlds;
 
 const bool vrValidationLayers = false;
 
@@ -46,8 +51,9 @@ RenderImageHandle VKRenderer::createRTResource(RTResourceCreateInfo resourceCrea
 }
 
 void VKRenderer::createSwapchain(vk::SwapchainKHR oldSwapchain) {
+    vk::PresentModeKHR presentMode = (useVsync && !enableVR) ? vk::PresentModeKHR::eFifoRelaxed : vk::PresentModeKHR::eImmediate;
     QueueFamilyIndices qfi{ graphicsQueueFamilyIdx, presentQueueFamilyIdx };
-    swapchain = std::make_unique<Swapchain>(physicalDevice, *device, surface, qfi, oldSwapchain);
+    swapchain = std::make_unique<Swapchain>(physicalDevice, *device, surface, qfi, oldSwapchain, presentMode);
     swapchain->getSize(&width, &height);
 
     if (!enableVR) {
@@ -61,6 +67,20 @@ void VKRenderer::createSwapchain(vk::SwapchainKHR oldSwapchain) {
         });
 }
 
+void VKRenderer::createFramebuffers() {
+    for (int i = 0; i != swapchain->imageViews.size(); i++) {
+        vk::ImageView attachments[1] = { swapchain->imageViews[i] };
+        vk::FramebufferCreateInfo fci;
+        fci.attachmentCount = 1;
+        fci.pAttachments = attachments;
+        fci.width = this->width;
+        fci.height = this->height;
+        fci.renderPass = irp->getRenderPass();
+        fci.layers = 1;
+        this->framebuffers.push_back(this->device->createFramebufferUnique(fci));
+    }
+}
+
 VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     : window(initInfo.window)
     , frameIdx(0)
@@ -70,7 +90,9 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     , shadowmapRes(1024)
     , enableVR(initInfo.enableVR)
     , vrPredictAmount(0.033f)
-    , clearMaterialIndices(false) {
+    , clearMaterialIndices(false)
+    , irp(nullptr)
+    , lowLatencyMode("r_lowLatency", "0", "Waits for GPU completion before starting the next frame. Has a significant impact on latency when VSync is enabled."){
     msaaSamples = vk::SampleCountFlagBits::e4;
     numMSAASamples = 4;
 
@@ -103,11 +125,11 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     }
 
     for (auto& v : vk::enumerateInstanceExtensionProperties()) {
-        std::cout << "supported extension: " << v.extensionName << "\n";
+        logMsg(WELogCategoryRender, "supported extension: %s", v.extensionName);
     }
 
     for (auto& e : instanceExtensions) {
-        std::cout << "activating extension: " << e << "\n";
+        logMsg(WELogCategoryRender, "activating extension: %s", e.c_str());
         instanceMaker.extension(e.c_str());
     }
 
@@ -136,29 +158,28 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     auto memoryProps = this->physicalDevice.getMemoryProperties();
 
     auto physDevProps = physicalDevice.getProperties();
-    std::cout
-        << "Physical device:\n"
-        << "\t-Name: " << physDevProps.deviceName << "\n"
-        << "\t-ID: " << physDevProps.deviceID << "\n"
-        << "\t-Vendor ID: " << physDevProps.vendorID << "\n"
-        << "\t-Device Type: " << vk::to_string(physDevProps.deviceType) << "\n"
-        << "\t-Driver Version: " << physDevProps.driverVersion << "\n"
-        << "\t-Memory heap count: " << memoryProps.memoryHeapCount << "\n"
-        << "\t-Memory type count: " << memoryProps.memoryTypeCount << "\n";
+    logMsg(worlds::WELogCategoryRender, "Physical device:\n");
+    logMsg(worlds::WELogCategoryRender, "\t-Name: %s", physDevProps.deviceName);
+    logMsg(worlds::WELogCategoryRender, "\t-ID: %u", physDevProps.deviceID);
+    logMsg(worlds::WELogCategoryRender, "\t-Vendor ID: %u", physDevProps.vendorID);
+    logMsg(worlds::WELogCategoryRender, "\t-Device Type: %s", vk::to_string(physDevProps.deviceType).c_str());
+    logMsg(worlds::WELogCategoryRender, "\t-Driver Version: %u", physDevProps.driverVersion);
+    logMsg(worlds::WELogCategoryRender, "\t-Memory heap count: %u", memoryProps.memoryHeapCount);
+    logMsg(worlds::WELogCategoryRender, "\t-Memory type count: %u", memoryProps.memoryTypeCount);
 
     vk::DeviceSize totalVram = 0;
     for (uint32_t i = 0; i < memoryProps.memoryHeapCount; i++) {
         auto& heap = memoryProps.memoryHeaps[i];
         totalVram += heap.size;
-        std::cout << "Heap " << i << ": " << heap.size / 1024 / 1024 << "MB\n";
+        logMsg(worlds::WELogCategoryRender, "Heap %i: %hu MB", i, heap.size / 1024 / 1024);
     }
 
     for (uint32_t i = 0; i < memoryProps.memoryTypeCount; i++) {
         auto& memType = memoryProps.memoryTypes[i];
-        std::cout << "Memory type for heap " << memType.heapIndex << ": " << vk::to_string(memType.propertyFlags) << "\n";
+        logMsg(worlds::WELogCategoryRender, "Memory type for heap %i: %s", memType.heapIndex, vk::to_string(memType.propertyFlags).c_str());
     }
 
-    std::cout << "Approx. " << totalVram / 1024 / 1024 << "MB total accessible graphics memory (NOT VRAM!)\n";
+    logMsg(worlds::WELogCategoryRender, "Approx. %hu MB total accessible graphics memory (NOT VRAM!)", totalVram / 1024 / 1024);
 
     auto qprops = this->physicalDevice.getQueueFamilyProperties();
     const auto badQueue = ~(uint32_t)0;
@@ -167,7 +188,7 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     vk::QueueFlags search = vk::QueueFlagBits::eGraphics | vk::QueueFlagBits::eCompute;
 
     for (auto& qprop : qprops) {
-        std::cout << "Queue with properties " << vk::to_string(qprop.queueFlags) << "\n";
+        logMsg(worlds::WELogCategoryRender, "Queue family with properties %s (supports present: %i)", vk::to_string(qprop.queueFlags).c_str());
     }
 
     // Look for a queue family with both graphics and
@@ -192,7 +213,7 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     }
 
     if (asyncComputeQueueFamilyIdx == badQueue)
-        std::cout << "Couldn't find async compute queue\n";
+        logWarn(worlds::WELogCategoryRender, "Couldn't find async compute queue");
 
     if (this->graphicsQueueFamilyIdx == badQueue || this->computeQueueFamilyIdx == badQueue) {
         *success = false;
@@ -223,20 +244,20 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     vk::PhysicalDeviceFeatures supportedFeatures = physicalDevice.getFeatures();
     if (!supportedFeatures.shaderStorageImageMultisample) {
         *success = false;
-        std::cout << "Missing shaderStorageImageMultisample\n";
+        logWarn(worlds::WELogCategoryRender, "Missing shaderStorageImageMultisample");
         return;
     }
 
     if (!supportedFeatures.fragmentStoresAndAtomics) {
-        std::cout << "Missing fragmentStoresAndAtomics\n";
+        logWarn(worlds::WELogCategoryRender, "Missing fragmentStoresAndAtomics");
     }
 
     if (!supportedFeatures.fillModeNonSolid) {
-        std::cout << "Missing fillModeNonSolid\n";
+        logWarn(worlds::WELogCategoryRender, "Missing fillModeNonSolid");
     }
 
     if (!supportedFeatures.wideLines) {
-        std::cout << "Missing wideLines\n";
+        logWarn(worlds::WELogCategoryRender, "Missing wideLines");
     }
 
     vk::PhysicalDeviceFeatures features;
@@ -247,10 +268,12 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     features.samplerAnisotropy = true;
     dm.setFeatures(features);
 
-    vk::PhysicalDeviceDescriptorIndexingFeatures diFeatures;
-    diFeatures.descriptorBindingPartiallyBound = true;
-    diFeatures.runtimeDescriptorArray = true;
-    dm.setPNext(&diFeatures);
+    vk::PhysicalDeviceVulkan12Features vk12Features;
+    vk12Features.timelineSemaphore = true;
+    vk12Features.descriptorBindingPartiallyBound = true;
+    vk12Features.runtimeDescriptorArray = true;
+    dm.setPNext(&vk12Features);
+
     if (this->computeQueueFamilyIdx != this->graphicsQueueFamilyIdx) dm.queue(this->computeQueueFamilyIdx);
     this->device = dm.createUnique(this->physicalDevice);
 
@@ -319,10 +342,24 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
         },
         width, height,
         renderWidth, renderHeight
-    });
+        });
 
     texSlots = std::make_unique<TextureSlots>(vkCtx);
     matSlots = std::make_unique<MaterialSlots>(vkCtx, *texSlots);
+    cubemapSlots = std::make_unique<CubemapSlots>(vkCtx);
+
+    vk::ImageCreateInfo brdfLutIci{ vk::ImageCreateFlags{}, vk::ImageType::e2D, vk::Format::eR16G16Sfloat, vk::Extent3D{512,512,1}, 1, 1, vk::SampleCountFlagBits::e1, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eSampled,
+        vk::SharingMode::eExclusive, graphicsQueueFamilyIdx };
+    brdfLut = vku::GenericImage{ *device, memoryProps, brdfLutIci, vk::ImageViewType::e2D, vk::ImageAspectFlagBits::eColor, false, "BRDF LUT" };
+
+    cubemapConvoluter = std::make_unique<CubemapConvoluter>(vkCtx);
+
+    vku::executeImmediately(*device, *commandPool, device->getQueue(graphicsQueueFamilyIdx, 0), [&](auto cb) {
+        brdfLut.setLayout(cb, vk::ImageLayout::eColorAttachmentOptimal);
+        });
+
+    BRDFLUTRenderer brdfLutRenderer{ *vkCtx };
+    brdfLutRenderer.render(*vkCtx, brdfLut);
 
     createSCDependents();
 
@@ -335,7 +372,13 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     for (int i = 0; i < this->cmdBufs.size(); i++) {
         vk::FenceCreateInfo fci;
         fci.flags = vk::FenceCreateFlagBits::eSignaled;
-        this->cmdBufferFences.push_back(this->device->createFence(fci));
+        vk::SemaphoreCreateInfo sci;
+        vk::SemaphoreTypeCreateInfo stci;
+        stci.initialValue = 0;
+        stci.semaphoreType = vk::SemaphoreType::eTimeline;
+        sci.pNext = &stci;
+        this->cmdBufferSemaphores.push_back(this->device->createSemaphore(sci));
+        this->cmdBufSemaphoreVals.push_back(0);
 
         vk::CommandBuffer cb = *this->cmdBufs[i];
         vk::CommandBufferBeginInfo cbbi;
@@ -377,6 +420,9 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
         vrInterface = initInfo.vrInterface;
         vrApi = initInfo.activeVrApi;
     }
+
+    uint32_t s = cubemapSlots->loadOrGet(g_assetDB.addOrGetExisting("DefaultCubemap.json"));
+    cubemapConvoluter->convolute((*cubemapSlots)[s]);
 }
 
 // Quite a lot of resources are dependent on either the number of images
@@ -443,7 +489,7 @@ void VKRenderer::createSCDependents() {
     RTResourceCreateInfo shadowmapCreateInfo{ shadowmapIci, vk::ImageViewType::e2D, vk::ImageAspectFlagBits::eDepth };
     shadowmapImage = createRTResource(shadowmapCreateInfo, "Shadowmap Image");
 
-    delete irp;
+    //delete irp;
     graphSolver.clear();
     {
         auto srp = new ShadowmapRenderPass(shadowmapImage);
@@ -468,12 +514,17 @@ void VKRenderer::createSCDependents() {
         finalPrePresentR = createRTResource(finalPrePresentCI, "Final Pre-Present Image (Right Eye)");
     }
 
-    PassSetupCtx psc{ physicalDevice, *device, *pipelineCache, *descriptorPool, *commandPool, *instance, allocator, graphicsQueueFamilyIdx, GraphicsSettings{numMSAASamples, (int32_t)shadowmapRes, enableVR}, &texSlots, rtResources, (int)swapchain->images.size(), enableVR };
+    PassSetupCtx psc{ physicalDevice, *device, *pipelineCache, *descriptorPool, *commandPool, *instance, allocator, graphicsQueueFamilyIdx, GraphicsSettings{numMSAASamples, (int32_t)shadowmapRes, enableVR}, &texSlots, &cubemapSlots, &matSlots, rtResources, (int)swapchain->images.size(), enableVR, &brdfLut };
 
     auto tonemapRP = new TonemapRenderPass(polyImage, finalPrePresent);
     graphSolver.addNode(tonemapRP);
 
-    irp = new ImGuiRenderPass(finalPrePresent);
+    if (irp == nullptr) {
+        irp = new ImGuiRenderPass(*swapchain);
+        irp->setup(psc);
+    }
+
+    createFramebuffers();
 
     vku::executeImmediately(*device, *commandPool, device->getQueue(graphicsQueueFamilyIdx, 0), [this](vk::CommandBuffer cmdBuf) {
         rtResources.at(polyImage).image.setLayout(cmdBuf, vk::ImageLayout::eGeneral);
@@ -493,7 +544,7 @@ void VKRenderer::createSCDependents() {
         tonemapRP->setRightFinalImage(psc, finalPrePresentR);
     }
 
-    irp->setup(psc);
+    irp->handleResize(psc, finalPrePresent);
 }
 
 void VKRenderer::recreateSwapchain() {
@@ -502,16 +553,25 @@ void VKRenderer::recreateSwapchain() {
 
     // Check width/height - if it's 0, just ignore it
     auto surfaceCaps = this->physicalDevice.getSurfaceCapabilitiesKHR(this->surface);
-    this->width = surfaceCaps.currentExtent.width;
-    this->height = surfaceCaps.currentExtent.height;
+    logMsg(WELogCategoryRender, "Recreating swapchain: New surface size is %ix%i", 
+        surfaceCaps.currentExtent.width, surfaceCaps.currentExtent.height);
+
+    if (surfaceCaps.currentExtent.width > 0 && surfaceCaps.currentExtent.height > 0) {
+        this->width = surfaceCaps.currentExtent.width;
+        this->height = surfaceCaps.currentExtent.height;
+    }
 
     if (!enableVR) {
         renderWidth = width;
         renderHeight = height;
     }
 
-    if (width == 0 || height == 0)
+    if (surfaceCaps.currentExtent.width == 0 || surfaceCaps.currentExtent.height == 0) {
+        isMinimised = true;
         return;
+    } else {
+        isMinimised = false;
+    }
 
     std::unique_ptr<Swapchain> oldSwapchain = std::move(swapchain);
 
@@ -524,6 +584,8 @@ void VKRenderer::recreateSwapchain() {
     imageAcquire = device->createSemaphoreUnique(sci);
 
     createSCDependents();
+
+    swapchainRecreated = true;
 }
 
 void VKRenderer::presentNothing(uint32_t imageIndex) {
@@ -546,7 +608,7 @@ void VKRenderer::presentNothing(uint32_t imageIndex) {
     vk::CommandBuffer cCmdBuf = *cmdBuf;
     submitInfo.pCommandBuffers = &cCmdBuf;
     submitInfo.commandBufferCount = 1;
-    device->getQueue(presentQueueFamilyIdx, 0).submit(submitInfo, cmdBufferFences[imageIndex]);
+    device->getQueue(presentQueueFamilyIdx, 0).submit(submitInfo, nullptr);
 
     device->getQueue(presentQueueFamilyIdx, 0).presentKHR(presentInfo);
 }
@@ -603,32 +665,50 @@ vku::ShaderModule VKRenderer::loadShaderAsset(AssetID id) {
     return sm;
 }
 
+uint32_t nextImageIdx = 0;
+bool firstFrame = true;
+
+void VKRenderer::acquireSwapchainImage(uint32_t* imageIdx) {
+    vk::Result nextImageRes = swapchain->acquireImage(*device, *imageAcquire, imageIdx);
+
+    if ((nextImageRes == vk::Result::eSuboptimalKHR || nextImageRes == vk::Result::eErrorOutOfDateKHR) && width != 0 && height != 0) {
+        recreateSwapchain();
+        
+        // acquire image from new swapchain
+        swapchain->acquireImage(*device, *imageAcquire, imageIdx);
+    }
+}
+
+bool lowLatencyLast = false;
+
 void VKRenderer::frame(Camera& cam, entt::registry& reg) {
-#ifdef TRACY_ENABLE
     ZoneScoped;
-#endif
     int mx, my;
     SDL_GetMouseState(&mx, &my);
     currentPRP->setPickCoords(mx, my);
 
-    uint32_t imageIndex = 0;
-    vk::Result nextImageRes = swapchain->acquireImage(*device, *imageAcquire, &imageIndex);
+    uint32_t imageIndex = nextImageIdx;
 
-    if ((nextImageRes == vk::Result::eSuboptimalKHR || nextImageRes == vk::Result::eErrorOutOfDateKHR) && width != 0 && height != 0) {
-        recreateSwapchain();
-        // acquire image from new swapchain
-        swapchain->acquireImage(*device, *imageAcquire, &imageIndex);
+    if (!lowLatencyMode.getInt() || !lowLatencyLast) {
+        vk::SemaphoreWaitInfo swi;
+        swi.pSemaphores = &cmdBufferSemaphores[imageIndex];
+        swi.semaphoreCount = 1;
+        swi.pValues = &cmdBufSemaphoreVals[imageIndex];
+        device->waitSemaphores(swi, UINT64_MAX);
     }
 
-    device->waitForFences(cmdBufferFences[imageIndex], 1, std::numeric_limits<uint64_t>::max());
-    device->resetFences(cmdBufferFences[imageIndex]);
     destroyTempTexBuffers(imageIndex);
 
-    if ((width == 0 || height == 0) && !enableVR) {
-        // If the window has a width or height of zero, submit a blank command buffer to signal the fences.
-        // This avoids unnecessary GPU work when the user can't see the output anyway.
-        presentNothing(imageIndex);
-        return;
+    if (!lowLatencyMode.getInt() || (!lowLatencyLast && lowLatencyMode.getInt())) {
+        if (!(lowLatencyLast && !lowLatencyMode.getInt()))
+            acquireSwapchainImage(&imageIndex);
+        lowLatencyLast = false;
+    }
+
+    if (swapchainRecreated) {
+        if (lowLatencyMode.getInt())
+            acquireSwapchainImage(&nextImageIdx);
+        swapchainRecreated = false;
     }
 
     std::vector<RenderPass*> solvedNodes = graphSolver.solve();
@@ -646,6 +726,7 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
     rCtx.enableVR = enableVR;
     rCtx.materialSlots = &matSlots;
     rCtx.textureSlots = &texSlots;
+    rCtx.cubemapSlots = &cubemapSlots;
     rCtx.viewPos = cam.position;
 
 #ifdef TRACY_ENABLE
@@ -663,6 +744,7 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
     }
 
     vk::CommandBufferBeginInfo cbbi;
+    cbbi.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
 
     cmdBuf->begin(cbbi);
     cmdBuf->resetQueryPool(*queryPool, 0, 2);
@@ -677,13 +759,24 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
         clearMaterialIndices = false;
     }
 
-    PassSetupCtx psc{ physicalDevice, *device, *pipelineCache, *descriptorPool, *commandPool, *instance, allocator, graphicsQueueFamilyIdx, GraphicsSettings{numMSAASamples, (int32_t)shadowmapRes, enableVR}, &texSlots, rtResources, (int)swapchain->images.size(), enableVR };
+    PassSetupCtx psc{ physicalDevice, *device, *pipelineCache, *descriptorPool, *commandPool, *instance, allocator, graphicsQueueFamilyIdx, GraphicsSettings{numMSAASamples, (int32_t)shadowmapRes, enableVR}, &texSlots, &cubemapSlots, &matSlots, rtResources, (int)swapchain->images.size(), enableVR, &brdfLut };
 
-    // Upload any necessary materials
+    // Upload any necessary materials + meshes
     reg.view<WorldObject>().each([this, &rCtx](auto ent, WorldObject& wo) {
         if (wo.materialIdx == ~0u) {
             rCtx.reuploadMats = true;
             wo.materialIdx = matSlots->loadOrGet(wo.material);
+        }
+
+        if (loadedMeshes.find(wo.mesh) == loadedMeshes.end()) {
+            preloadMesh(wo.mesh);
+        }
+        });
+
+    reg.view<ProceduralObject>().each([this, &rCtx](auto ent, ProceduralObject& po) {
+        if (po.materialIdx == ~0u) {
+            rCtx.reuploadMats = true;
+            po.materialIdx = matSlots->loadOrGet(po.material);
         }
         });
 
@@ -701,16 +794,18 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
         node->execute(rCtx);
     }
 
-    irp->execute(rCtx);
+    rCtx.width = width;
+    rCtx.height = height;
 
     vku::transitionLayout(*cmdBuf, swapchain->images[imageIndex],
         vk::ImageLayout::ePresentSrcKHR, vk::ImageLayout::eTransferDstOptimal,
         vk::PipelineStageFlagBits::eBottomOfPipe, vk::PipelineStageFlagBits::eTransfer,
         vk::AccessFlagBits::eMemoryRead, vk::AccessFlagBits::eTransferWrite);
 
-    ::imageBarrier(*cmdBuf, rtResources.at(finalPrePresent).image.image(), vk::ImageLayout::eTransferSrcOptimal,
-        vk::AccessFlagBits::eColorAttachmentWrite, vk::AccessFlagBits::eTransferRead,
-        vk::PipelineStageFlagBits::eColorAttachmentOutput, vk::PipelineStageFlagBits::eTransfer);
+    vku::transitionLayout(*cmdBuf, rtResources.at(finalPrePresent).image.image(),
+        vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::eTransferSrcOptimal,
+        vk::PipelineStageFlagBits::eColorAttachmentOutput, vk::PipelineStageFlagBits::eTransfer,
+        vk::AccessFlagBits::eColorAttachmentWrite, vk::AccessFlagBits::eTransferRead);
 
     if (enableVR) {
         vku::transitionLayout(*cmdBuf, rtResources.at(finalPrePresentR).image.image(),
@@ -719,18 +814,40 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
             vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eTransferRead);
     }
 
-    vk::ImageBlit imageBlit;
-    imageBlit.srcOffsets[1] = imageBlit.dstOffsets[1] = { (int)width, (int)height, 1 };
-    imageBlit.dstSubresource = imageBlit.srcSubresource = { vk::ImageAspectFlagBits::eColor, 0, 0, 1 };
-    cmdBuf->blitImage(
-        rtResources.at(finalPrePresent).image.image(), vk::ImageLayout::eTransferSrcOptimal,
-        swapchain->images[imageIndex], vk::ImageLayout::eTransferDstOptimal,
-        imageBlit, vk::Filter::eNearest);
+    
+
+    if (!enableVR) {
+        vk::ImageBlit imageBlit;
+        imageBlit.srcOffsets[1] = imageBlit.dstOffsets[1] = { (int)width, (int)height, 1 };
+        imageBlit.dstSubresource = imageBlit.srcSubresource = { vk::ImageAspectFlagBits::eColor, 0, 0, 1 };
+        cmdBuf->blitImage(
+            rtResources.at(finalPrePresent).image.image(), vk::ImageLayout::eTransferSrcOptimal,
+            swapchain->images[imageIndex], vk::ImageLayout::eTransferDstOptimal,
+            imageBlit, vk::Filter::eNearest);
+    } else {
+        // Calculate the best crop for the current window size against the VR render target
+        float scaleFac = glm::min((float)windowSize.x / renderWidth, (float)windowSize.y / renderHeight);
+
+        vk::ImageBlit imageBlit;
+        imageBlit.srcOffsets[1] = vk::Offset3D{ (int32_t)renderWidth, (int32_t)renderHeight, 1};
+        imageBlit.dstOffsets[1] = vk::Offset3D{ (int32_t)(renderWidth * scaleFac), (int32_t)(renderHeight * scaleFac), 1 };
+        imageBlit.dstSubresource = imageBlit.srcSubresource = { vk::ImageAspectFlagBits::eColor, 0, 0, 1 };
+
+        cmdBuf->blitImage(
+            rtResources.at(finalPrePresentR).image.image(), vk::ImageLayout::eTransferSrcOptimal,
+            swapchain->images[imageIndex], vk::ImageLayout::eTransferDstOptimal,
+            imageBlit, vk::Filter::eNearest);
+    }
 
     vku::transitionLayout(*cmdBuf, swapchain->images[imageIndex],
-        vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::ePresentSrcKHR,
-        vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eBottomOfPipe,
-        vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eMemoryRead);
+        vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eColorAttachmentOptimal,
+        vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eColorAttachmentOutput,
+        vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eColorAttachmentWrite | vk::AccessFlagBits::eColorAttachmentRead);
+    irp->execute(rCtx, *framebuffers[imageIndex]);
+
+    ::imageBarrier(*cmdBuf, swapchain->images[imageIndex], vk::ImageLayout::ePresentSrcKHR, 
+        vk::AccessFlagBits::eColorAttachmentWrite | vk::AccessFlagBits::eColorAttachmentRead, vk::AccessFlagBits::eMemoryRead,
+        vk::PipelineStageFlagBits::eColorAttachmentOutput, vk::PipelineStageFlagBits::eBottomOfPipe);
 
     cmdBuf->writeTimestamp(vk::PipelineStageFlagBits::eBottomOfPipe, *queryPool, 1);
 #ifdef TRACY_ENABLE
@@ -751,10 +868,9 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
         glm::vec3 viewPos[2];
 
         for (int i = 0; i < 2; i++) {
-            viewMats[i] = glm::inverse(ovrInterface->toMat4(pose.mDeviceToAbsoluteTracking) * viewMats[i]);
+            viewMats[i] = glm::inverse(ovrInterface->toMat4(pose.mDeviceToAbsoluteTracking) * viewMats[i]) * cam.getViewMatrix();
             viewPos[i] = glm::inverse(viewMats[i])[3];
         }
-
 
         currentPRP->lateUpdateVP(viewMats, viewPos, *device);
 
@@ -763,19 +879,31 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
 
     vk::SubmitInfo submit;
     submit.waitSemaphoreCount = 1;
+
     vk::Semaphore cImageAcquire = *imageAcquire;
     submit.pWaitSemaphores = &cImageAcquire;
-    vk::PipelineStageFlags waitStages = vk::PipelineStageFlagBits::eBottomOfPipe;
+
+    vk::PipelineStageFlags waitStages = vk::PipelineStageFlagBits::eColorAttachmentOutput;
     submit.pWaitDstStageMask = &waitStages;
+
     submit.commandBufferCount = 1;
     vk::CommandBuffer cCmdBuf = *cmdBuf;
     submit.pCommandBuffers = &cCmdBuf;
 
     vk::Semaphore waitSemaphore = *commandComplete;
+    submit.signalSemaphoreCount = 2;
+    vk::Semaphore signalSemaphores[] = { waitSemaphore, cmdBufferSemaphores[imageIndex] };
+    submit.pSignalSemaphores = signalSemaphores;
 
-    submit.signalSemaphoreCount = 1;
-    submit.pSignalSemaphores = &waitSemaphore;
-    device->getQueue(graphicsQueueFamilyIdx, 0).submit(1, &submit, cmdBufferFences[imageIndex]);
+    vk::TimelineSemaphoreSubmitInfo tssi{};
+    uint64_t semaphoreVals[] = { 0, cmdBufSemaphoreVals[imageIndex] + 1 };
+    tssi.pSignalSemaphoreValues = semaphoreVals;
+    tssi.signalSemaphoreValueCount = 2;
+
+    submit.pNext = &tssi;
+    auto queue = device->getQueue(graphicsQueueFamilyIdx, 0);
+    queue.submit(1, &submit, nullptr);
+    cmdBufSemaphoreVals[imageIndex]++;
     TracyMessageL("Queue submitted");
 
     if (enableVR) {
@@ -820,7 +948,10 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
     presentInfo.pWaitSemaphores = &waitSemaphore;
     presentInfo.waitSemaphoreCount = 1;
 
-    vk::Result presentResult = device->getQueue(presentQueueFamilyIdx, 0).presentKHR(presentInfo);
+    vk::Result presentResult = queue.presentKHR(presentInfo);
+
+    if (presentResult != vk::Result::eSuccess)
+        __debugbreak();
 
     TracyMessageL("Presented");
 
@@ -836,32 +967,20 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
 
     if (queryRes == vk::Result::eSuccess)
         lastRenderTimeTicks = timeStamps[1] - timeStamps[0];
-    frameIdx++;
-    FrameMark
-}
 
-void loadObj(std::vector<Vertex>& vertices, std::vector<uint32_t>& indices, std::istream& stream) {
-    indices.clear();
-    vertices.clear();
-    tinyobj::attrib_t attrib;
-    std::vector<tinyobj::shape_t> shapes;
-    std::vector<tinyobj::material_t> materials;
-    std::string warn;
-    std::string err;
+    if (lowLatencyMode.getInt()) {
+        vk::SemaphoreWaitInfo swi;
+        swi.pSemaphores = &cmdBufferSemaphores[imageIndex];
+        swi.semaphoreCount = 1;
+        swi.pValues = &cmdBufSemaphoreVals[imageIndex];
+        device->waitSemaphores(swi, UINT64_MAX);
 
-    tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, &stream);
-
-    // Load the first shape
-    size_t index_offset = 0;
-    for (auto& idx : shapes[0].mesh.indices) {
-        Vertex vert;
-        vert.position = glm::vec3(attrib.vertices[3 * (size_t)idx.vertex_index], attrib.vertices[3 * (size_t)idx.vertex_index + 1], attrib.vertices[3 * (size_t)idx.vertex_index + 2]);
-        vert.normal = glm::vec3(attrib.normals[3 * (size_t)idx.normal_index], attrib.normals[3 * (size_t)idx.normal_index + 1], attrib.normals[3 * (size_t)idx.normal_index + 2]);
-        if (idx.texcoord_index >= 0)
-            vert.uv = glm::vec2(attrib.texcoords[2 * (size_t)idx.texcoord_index], attrib.texcoords[2 * (size_t)idx.texcoord_index + 1]);
-        vertices.push_back(vert);
-        indices.push_back((uint32_t)indices.size());
+        acquireSwapchainImage(&nextImageIdx);
+        lowLatencyLast = true;
     }
+
+    frameIdx++;
+    FrameMark;
 }
 
 void VKRenderer::preloadMesh(AssetID id) {
@@ -871,6 +990,7 @@ void VKRenderer::preloadMesh(AssetID id) {
     auto ext = g_assetDB.getAssetExtension(id);
 
     if (ext == ".obj") { // obj
+        // Use C++ physfs ifstream for tinyobjloader
         PhysFS::ifstream meshFileStream(g_assetDB.openAssetFileRead(id));
         loadObj(vertices, indices, meshFileStream);
     } else if (ext == ".mdl") { // source model
@@ -881,15 +1001,19 @@ void VKRenderer::preloadMesh(AssetID id) {
     LoadedMeshData lmd;
     lmd.indexType = vk::IndexType::eUint32;
     lmd.indexCount = (uint32_t)indices.size();
-    lmd.ib = vku::IndexBuffer{ *device, allocator, indices.size() * sizeof(uint32_t) };
+    lmd.ib = vku::IndexBuffer{ *device, allocator, indices.size() * sizeof(uint32_t), "Mesh Index Buffer"};
     lmd.ib.upload(*device, memProps, *commandPool, device->getQueue(graphicsQueueFamilyIdx, 0), indices);
-    lmd.vb = vku::VertexBuffer{ *device, allocator, vertices.size() * sizeof(Vertex) };
+    lmd.vb = vku::VertexBuffer{ *device, allocator, vertices.size() * sizeof(Vertex), "Mesh Vertex Buffer"};
     lmd.vb.upload(*device, memProps, *commandPool, device->getQueue(graphicsQueueFamilyIdx, 0), vertices);
+
+    logMsg(WELogCategoryRender, "Loaded mesh %u, %u verts", id, (uint32_t)vertices.size());
+
     loadedMeshes.insert({ id, std::move(lmd) });
+
 }
 
 void VKRenderer::uploadProcObj(ProceduralObject& procObj) {
-    if (procObj.vertices.size() == 0) {
+    if (procObj.vertices.size() == 0 || procObj.indices.size() == 0) {
         procObj.visible = false;
         return;
     } else {
@@ -899,9 +1023,9 @@ void VKRenderer::uploadProcObj(ProceduralObject& procObj) {
     auto memProps = physicalDevice.getMemoryProperties();
     procObj.indexType = vk::IndexType::eUint32;
     procObj.indexCount = (uint32_t)procObj.indices.size();
-    procObj.ib = vku::IndexBuffer{ *device, allocator, procObj.indices.size() * sizeof(uint32_t) };
+    procObj.ib = vku::IndexBuffer{ *device, allocator, procObj.indices.size() * sizeof(uint32_t), procObj.dbgName.c_str() };
     procObj.ib.upload(*device, memProps, *commandPool, device->getQueue(graphicsQueueFamilyIdx, 0), procObj.indices);
-    procObj.vb = vku::VertexBuffer{ *device, allocator, procObj.vertices.size() * sizeof(Vertex) };
+    procObj.vb = vku::VertexBuffer{ *device, allocator, procObj.vertices.size() * sizeof(Vertex), procObj.dbgName.c_str() };
     procObj.vb.upload(*device, memProps, *commandPool, device->getQueue(graphicsQueueFamilyIdx, 0), procObj.vertices);
 }
 
@@ -923,16 +1047,33 @@ void VKRenderer::unloadUnusedMaterials(entt::registry& reg) {
     reg.view<WorldObject>().each([&materialReferenced, &textureReferenced, this](entt::entity, WorldObject& wo) {
         materialReferenced[wo.materialIdx] = true;
 
-        uint32_t albedoIdx = (*matSlots)[wo.materialIdx].pack0.z;
+        uint32_t albedoIdx = (uint32_t)((*matSlots)[wo.materialIdx].pack0.z);
         textureReferenced[albedoIdx] = true;
         });
 
     for (uint32_t i = 0; i < NUM_MAT_SLOTS; i++) {
-        if (!materialReferenced[i]) matSlots->unload(i);
+        if (!materialReferenced[i] && matSlots->isSlotPresent(i)) matSlots->unload(i);
     }
 
     for (uint32_t i = 0; i < NUM_TEX_SLOTS; i++) {
-        if (!textureReferenced[i]) texSlots->unload(i);
+        if (!textureReferenced[i] && texSlots->isSlotPresent(i)) texSlots->unload(i);
+    }
+
+    std::unordered_set<AssetID> referencedMeshes;
+
+    reg.view<WorldObject>().each([&referencedMeshes](entt::entity, WorldObject& wo) {
+        referencedMeshes.insert(wo.mesh);
+        });
+
+    std::vector<AssetID> toUnload;
+
+    for (auto& p : loadedMeshes) {
+        if (!referencedMeshes.contains(p.first))
+            toUnload.push_back(p.first);
+    }
+
+    for (auto& id : toUnload) {
+        loadedMeshes.erase(id);
     }
 }
 
@@ -956,21 +1097,32 @@ VKRenderer::~VKRenderer() {
         this->device->waitIdle();
         // Some stuff has to be manually destroyed
 
-        for (auto& fence : this->cmdBufferFences) {
-            this->device->destroyFence(fence);
+        for (auto& semaphore : this->cmdBufferSemaphores) {
+            this->device->destroySemaphore(semaphore);
         }
 
         graphSolver.clear();
+        delete irp;
 
         texSlots.reset();
         matSlots.reset();
 
         rtResources.clear();
         loadedMeshes.clear();
+
+#ifndef NDEBUG
+        char* statsString;
+        vmaBuildStatsString(allocator, &statsString, true);
+        std::cout << statsString << "\n";
+        vmaFreeStatsString(allocator, statsString);
+#endif
         vmaDestroyAllocator(allocator);
+        
+        dbgCallback.reset();
 
         this->swapchain.reset();
 
         this->instance->destroySurfaceKHR(this->surface);
+        logMsg(WELogCategoryRender, "Renderer destroyed.");
     }
 }
