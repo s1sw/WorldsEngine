@@ -51,7 +51,7 @@ namespace worlds {
     bool useEventThread = false;
     int workerThreadOverride = -1;
     bool enableXR = false;
-    bool enableOpenVR = true;
+    bool enableOpenVR = false;
     bool runAsEditor = false;
     bool pauseSim = false;
     glm::ivec2 windowSize;
