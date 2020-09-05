@@ -15,6 +15,7 @@
 #include "Log.hpp"
 #include "imgui.h"
 #include "ImGuizmo.h"
+#include <filesystem>
 #undef near
 #undef far
 
@@ -905,20 +906,47 @@ namespace worlds {
             createModelObject(reg, glm::vec3(0.0f), glm::quat(), cubeId, g_assetDB.addOrGetExisting("Materials/dev.json"), glm::vec3(1.0f));
         }
 
-        if (ImGui::Begin("Assets")) {
-            PHYSFS_enumerate("", [](void* regPtr, const char* origDir, const char* fName) {
-                entt::registry& reg = *((entt::registry*)regPtr);
+        struct EnumerateCallbackArgs {
+            entt::registry& reg;
+            std::string& currentDir;
+        };
 
-                AssetID id = g_assetDB.addOrGetExisting(fName);
-                if (g_assetDB.getAssetExtension(id) == ".obj") {
+        static std::string currentDir = "";
+        if (ImGui::Begin("Assets")) {
+            EnumerateCallbackArgs enumCallbackArgs{
+                reg,
+                currentDir
+            };
+
+            if (ImGui::Button("..")) {
+                std::filesystem::path p{ currentDir };
+                currentDir = p.parent_path().string();
+            }
+
+            PHYSFS_enumerate(currentDir.c_str(), [](void* regPtr, const char* origDir, const char* fName) {
+                EnumerateCallbackArgs* callbackArgs = (EnumerateCallbackArgs*)regPtr;
+                entt::registry& reg = callbackArgs->reg;
+
+                PHYSFS_Stat stat;
+                PHYSFS_stat(fName, &stat);
+
+                if (stat.filetype == PHYSFS_FILETYPE_DIRECTORY) {
                     if (ImGui::Button(fName)) {
-                        createModelObject(reg, glm::vec3(), glm::quat(), id, g_assetDB.addOrGetExisting("Materials/dev.json"));
+                        callbackArgs->currentDir += fName;
                     }
                 } else {
-                    ImGui::Text(fName);
+
+                    AssetID id = g_assetDB.addOrGetExisting(std::string(origDir) + "/" + fName);
+                    if (g_assetDB.getAssetExtension(id) == ".obj" || g_assetDB.getAssetExtension(id) == ".mdl") {
+                        if (ImGui::Button(fName)) {
+                            createModelObject(reg, glm::vec3(), glm::quat(), id, g_assetDB.addOrGetExisting("Materials/dev.json"));
+                        }
+                    } else {
+                        ImGui::Text(fName);
+                    }
                 }
                 return PHYSFS_ENUM_OK;
-                }, &reg);
+                }, &enumCallbackArgs);
         }
 
         ImGui::End();
