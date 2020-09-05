@@ -23,6 +23,7 @@
 #include "Log.hpp"
 #include "ObjModelLoader.hpp"
 #include "Render.hpp"
+#include "SourceModelLoader.hpp"
 
 using namespace worlds;
 
@@ -994,7 +995,17 @@ void VKRenderer::preloadMesh(AssetID id) {
         PhysFS::ifstream meshFileStream(g_assetDB.openAssetFileRead(id));
         loadObj(vertices, indices, meshFileStream);
     } else if (ext == ".mdl") { // source model
+        std::filesystem::path mdlPath = g_assetDB.getAssetPath(id);
+        std::string vtxPath = mdlPath.parent_path().string() + "/" + mdlPath.stem().string();
+        vtxPath += ".dx90.vtx";
+        std::string vvdPath = mdlPath.parent_path().string() + "/" + mdlPath.stem().string();
+        vvdPath += ".vvd";
 
+        logMsg("vtxPath: %s, vvdPath: %s", vtxPath.c_str(), vtxPath.c_str());
+
+        AssetID vtxId = g_assetDB.addOrGetExisting(vtxPath);
+        AssetID vvdId = g_assetDB.addOrGetExisting(vvdPath);
+        loadSourceModel(id, vtxId, vvdId, vertices, indices);
     }
 
     auto memProps = physicalDevice.getMemoryProperties();
@@ -1019,6 +1030,7 @@ void VKRenderer::uploadProcObj(ProceduralObject& procObj) {
     } else {
         procObj.visible = true;
     }
+
     device->waitIdle();
     auto memProps = physicalDevice.getMemoryProperties();
     procObj.indexType = vk::IndexType::eUint32;
