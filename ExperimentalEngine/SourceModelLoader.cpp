@@ -586,6 +586,8 @@ namespace worlds {
 
         int vertCount = vvd->numLODVertexes[0];
 
+        int idxOffset = 0;
+
         // Duplicate vertex data for fixup
 
         mstudiovertex_t* vertexBlockDup = (mstudiovertex_t*)std::malloc(vertCount * sizeof(mstudiovertex_t));
@@ -619,16 +621,22 @@ namespace worlds {
             mstudiobodyparts_t* studioBodypart = mdl->getBodyPart(i);
 
             std::cout << "Body part " << i << ": " << studioBodypart->pszName() << "\n";
+            std::cout << "Base: " << studioBodypart->base << ", model index: " << studioBodypart->modelindex << "\n";
 
             for (int j = 0; j < bph->numModels; j++) {
                 ModelHeader_t* mdh = bph->getModelHeader(j);
                 mstudiomodel_t* studioModel = studioBodypart->pModel(j);
                 ModelLODHeader_t* mlh = mdh->getModelLODHeader(0);
-                std::cout << "\t Model " << j << ": " << studioModel->pszName() << "\n";
+                std::cout << "  Model " << j << ": " << studioModel->pszName() << ", vertex index " << studioModel->vertexindex << "\n";
 
+                int minIdx = INT32_MAX;
+                int maxIdx = 0;
+                int startingOverflowCount = indexOverflowCount;
                 for (int k = 0; k < mlh->numMeshes; k++) {
                     MeshHeader_t* mh = mlh->getMeshHeader(k);
                     mstudiomesh_t* studioMesh = studioModel->pMesh(k);
+
+                    std::cout << "    Mesh " << k << ": vertex offset " << studioMesh->vertexoffset << "\n";
 
                     for (int l = 0; l < mh->numStripGroups; l++) {
                         StripGroupHeader_t* stripGroup = mh->getStripGroup(l);
@@ -636,17 +644,25 @@ namespace worlds {
                         for (int m = 0; m < stripGroup->numIndices; m++) {
                             int vertTableIndex = stripGroup->getIndex(m);
                             int index = stripGroup->getVertex(vertTableIndex)->origMeshVertID;
-                            //index += studioModel->vertexindex;
-                            index += studioMesh->vertexoffset + studioModel->vertexindex;
+                            index += studioMesh->vertexoffset + idxOffset;
 
-                            if (index >= vertices.size()) {
-                                indices.push_back(0);
-                                indexOverflowCount++;
-                            } else
-                                indices.push_back(index);
+                            if (j == 0) {
+                                if (index >= vertices.size()) {
+                                    indices.push_back(index);
+                                    indexOverflowCount++;
+                                } else
+                                    indices.push_back(index);
+                            }
+
+                            minIdx = std::min(index, minIdx);
+                            maxIdx = std::max(index, maxIdx);
                         }
                     }
                 }
+
+                idxOffset = maxIdx + 1;
+                std::cout << "    maxidx: " << maxIdx << ", minidx: " << minIdx << "\n";
+                std::cout << "    overflowed " << indexOverflowCount - startingOverflowCount << " times\n";
             }
         }
 
