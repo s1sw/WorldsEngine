@@ -928,10 +928,11 @@ namespace worlds {
                 entt::registry& reg = callbackArgs->reg;
 
                 PHYSFS_Stat stat;
-                PHYSFS_stat(fName, &stat);
+                PHYSFS_stat((std::string(origDir) + "/" + fName).c_str(), &stat);
 
                 if (stat.filetype == PHYSFS_FILETYPE_DIRECTORY) {
                     if (ImGui::Button(fName)) {
+                        callbackArgs->currentDir += "/";
                         callbackArgs->currentDir += fName;
                     }
                 } else {
