@@ -1102,6 +1102,8 @@ void VKRenderer::reloadMatsAndTextures() {
     }
 
     clearMaterialIndices = true;
+
+    loadedMeshes.clear();
 }
 
 VKRenderer::~VKRenderer() {
