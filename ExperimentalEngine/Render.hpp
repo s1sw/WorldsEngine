@@ -7,6 +7,7 @@
 #include "RenderGraph.hpp"
 #include <SDL2/SDL.h>
 #include "Console.hpp"
+#define NUM_SUBMESH_MATS 32
 
 namespace worlds {
     struct Vertex {
@@ -144,11 +145,18 @@ namespace worlds {
         vk::ImageAspectFlagBits aspectFlags;
     };
 
+    struct SubmeshInfo {
+        uint32_t indexOffset;
+        uint32_t indexCount;
+    };
+
     struct LoadedMeshData {
         vku::VertexBuffer vb;
         vku::IndexBuffer ib;
         uint32_t indexCount;
         vk::IndexType indexType;
+        SubmeshInfo submeshes[NUM_SUBMESH_MATS];
+        uint8_t numSubmeshes;
     };
 
     struct RenderCtx {
@@ -238,6 +246,7 @@ namespace worlds {
         bool enableVR;
         VrApi activeVrApi;
         IVRInterface* vrInterface;
+        bool enablePicking;
     };
 
     class BRDFLUTRenderer {
@@ -370,6 +379,7 @@ namespace worlds {
         std::unique_ptr<CubemapConvoluter> cubemapConvoluter;
         ConVar lowLatencyMode;
         bool swapchainRecreated;
+        bool enablePicking;
     public:
         double time;
         VKRenderer(const RendererInitInfo& initInfo, bool* success);

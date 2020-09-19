@@ -4,7 +4,7 @@
 #include <sajson.h>
 
 namespace worlds {
-    void MaterialSlots::parseMaterial(AssetID asset, PackedMaterial& mat) {
+    void MaterialSlots::parseMaterial(AssetID asset, PackedMaterial& mat, MatExtraData& extraDat) {
         ZoneScoped;
         PHYSFS_File* f = g_assetDB.openAssetFileRead(asset);
         size_t fileSize = PHYSFS_fileLength(f);
@@ -36,11 +36,15 @@ namespace worlds {
         auto roughnessIdx = root.find_object_key(sajson::string("roughness", 9));
         auto albedoColorIdx = root.find_object_key(sajson::string("albedoColor", 11));
         auto normalMapIdx = root.find_object_key(sajson::string("normalMapPath", 13));
+        auto alphaCutoffIdx = root.find_object_key(sajson::string("alphaCutoff", 11));
 
         auto albedoPath = root.get_object_value(albedoPathIdx).as_string();
         std::string normalMapPath;
+        float alphaCutoff = 0.0f;
         if (normalMapIdx != root.get_length())
             normalMapPath = root.get_object_value(normalMapIdx).as_string();
+        if (alphaCutoffIdx != root.get_length())
+            alphaCutoff = root.get_object_value(alphaCutoffIdx).get_double_value();
         float metallic = (float)root.get_object_value(metallicIdx).get_double_value();
         float roughness = (float)root.get_object_value(roughnessIdx).get_double_value();
         const auto& albedoColorArr = root.get_object_value(albedoColorIdx);
@@ -61,7 +65,15 @@ namespace worlds {
         }
 
         mat.pack0 = glm::vec4(metallic, roughness, texSlots.loadOrGet(albedoAssetId), nMapSlot);
-        mat.pack1 = glm::vec4(albedoColor, 0.0f);
+        mat.pack1 = glm::vec4(albedoColor, alphaCutoff);
+        
+        auto bfCullOffIdx = root.find_object_key(sajson::string("cullOff", 7));
+
+        extraDat.noCull = bfCullOffIdx != root.get_length();
+
+        auto wireframeIdx = root.find_object_key(sajson::string("wireframe", 9));
+
+        extraDat.wireframe = wireframeIdx != root.get_length();
 
         std::free(buffer);
     }
@@ -74,7 +86,7 @@ namespace worlds {
         }
 
         present[slot] = true;
-        parseMaterial(asset, slots[slot]);
+        parseMaterial(asset, slots[slot], matExtraData[slot]);
 
         lookup.insert({ asset, slot });
         reverseLookup.insert({ slot, asset });

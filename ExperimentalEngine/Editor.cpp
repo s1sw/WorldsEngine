@@ -16,6 +16,7 @@
 #include "imgui.h"
 #include "ImGuizmo.h"
 #include <filesystem>
+#include "SourceModelLoader.hpp"
 #undef near
 #undef far
 
@@ -85,12 +86,23 @@ namespace worlds {
             ImGui::DragFloat2("Texture Scale", &worldObject.texScaleOffset.x);
             ImGui::DragFloat2("Texture Offset", &worldObject.texScaleOffset.z);
 
-            ImGui::Text("Material: %s", g_assetDB.getAssetPath(worldObject.material).c_str());
-            ImGui::SameLine();
+            for (int i = 0; i < NUM_SUBMESH_MATS; i++) {
+                if (worldObject.presentMaterials[i]) {
+                    ImGui::Text("Material %i: %s", i, g_assetDB.getAssetPath(worldObject.materials[i]).c_str());
+                    
+                } else {
+                    ImGui::Text("Material %i: not set", i);
+                }
 
-            bool open = ImGui::Button("Change");
-            if (selectAssetPopup("Material", worldObject.material, open)) {
-                worldObject.materialIdx = ~0u;
+                ImGui::SameLine();
+
+                std::string idStr = "##" + std::to_string(i);
+
+                bool open = ImGui::Button(("Change" + idStr).c_str());
+                if (selectAssetPopup(("Material" + idStr).c_str(), worldObject.materials[i], open)) {
+                    worldObject.materialIdx[i] = ~0u;
+                    worldObject.presentMaterials[i] = true;
+                }
             }
             ImGui::Separator();
         }
@@ -921,29 +933,59 @@ namespace worlds {
             if (ImGui::Button("..")) {
                 std::filesystem::path p{ currentDir };
                 currentDir = p.parent_path().string();
+                if (currentDir == "/")
+                    currentDir = "";
+
+                if (currentDir[0] == '/') {
+                    currentDir = currentDir.substr(1);
+                }
+                logMsg("Navigated to %s", currentDir.c_str());
             }
 
             PHYSFS_enumerate(currentDir.c_str(), [](void* regPtr, const char* origDir, const char* fName) {
                 EnumerateCallbackArgs* callbackArgs = (EnumerateCallbackArgs*)regPtr;
                 entt::registry& reg = callbackArgs->reg;
 
+                std::string origDirStr = origDir;
+                if (origDirStr[0] == '/') {
+                    origDirStr = origDirStr.substr(1);
+                }
+
+                std::string fullPath;
+
+                if (origDirStr.empty())
+                    fullPath = fName;
+                else
+                    fullPath = origDirStr + "/" + std::string(fName);
+
                 PHYSFS_Stat stat;
-                PHYSFS_stat((std::string(origDir) + "/" + fName).c_str(), &stat);
+                PHYSFS_stat(fullPath.c_str(), &stat);
 
                 if (stat.filetype == PHYSFS_FILETYPE_DIRECTORY) {
                     if (ImGui::Button(fName)) {
-                        callbackArgs->currentDir += "/";
+                        if (callbackArgs->currentDir != "/")
+                            callbackArgs->currentDir += "/";
                         callbackArgs->currentDir += fName;
+
+                        if (currentDir[0] == '/') {
+                            currentDir = currentDir.substr(1);
+                        }
+                        logMsg("Navigated to %s", currentDir.c_str());
+                        return PHYSFS_ENUM_STOP;
                     }
                 } else {
-
-                    AssetID id = g_assetDB.addOrGetExisting(std::string(origDir) + "/" + fName);
+                    AssetID id = g_assetDB.addOrGetExisting(fullPath);
                     if (g_assetDB.getAssetExtension(id) == ".obj" || g_assetDB.getAssetExtension(id) == ".mdl") {
                         if (ImGui::Button(fName)) {
-                            createModelObject(reg, glm::vec3(), glm::quat(), id, g_assetDB.addOrGetExisting("Materials/dev.json"));
+                            entt::entity ent = createModelObject(reg, glm::vec3(), glm::quat(), id, g_assetDB.addOrGetExisting("Materials/dev.json"));
+
+                            if (g_assetDB.getAssetExtension(id) == ".mdl") {
+                                WorldObject& wo = reg.get<WorldObject>(ent);
+                                setupSourceMaterials(id, wo);
+                            }
                         }
                     } else {
-                        ImGui::Text(fName);
+                        ImGui::Text("%s (%s)", fName, g_assetDB.getAssetExtension(id).c_str());
                     }
                 }
                 return PHYSFS_ENUM_OK;

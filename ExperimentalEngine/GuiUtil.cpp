@@ -185,15 +185,25 @@ namespace worlds {
 
     bool selectAssetPopup(const char* title, AssetID& id, bool open) {
         static std::string path;
+        static bool notFoundErr = false;
         bool changed = false;
 
-        if (ImGui::BeginPopup("Select Asset")) {
+        if (ImGui::BeginPopup(title)) {
             ImGui::InputText("Path", &path);
 
+            if (notFoundErr) {
+                ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "Not found");
+            }
+
             if (ImGui::Button("Select")) {
-                id = g_assetDB.addOrGetExisting(path);
-                changed = true;
-                ImGui::CloseCurrentPopup();
+                if (PHYSFS_exists(path.c_str())) {
+                    id = g_assetDB.addOrGetExisting(path);
+                    changed = true;
+                    ImGui::CloseCurrentPopup();
+                    notFoundErr = false;
+                } else {
+                    notFoundErr = true;
+                }
             }
 
             ImGui::EndPopup();
@@ -201,7 +211,7 @@ namespace worlds {
 
         if (open) {
             path = g_assetDB.getAssetPath(id);
-            ImGui::OpenPopup("Select Asset");
+            ImGui::OpenPopup(title);
         }
 
         return changed;

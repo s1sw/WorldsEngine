@@ -231,7 +231,8 @@ void main() {
 	
 	float metallic = mat.pack0.x;
 	float roughness = mat.pack0.y;
-	vec3 albedoColor = mat.pack1.rgb * texture(albedoSampler[int(mat.pack0.z)], inUV).rgb;
+    vec4 albedoTex = texture(albedoSampler[int(mat.pack0.z)], inUV);
+	vec3 albedoColor = mat.pack1.rgb * albedoTex.rgb;
 	
 	vec3 viewDir = normalize(viewPos[gl_ViewIndex].xyz - inWorldPos.xyz);
 	
@@ -293,9 +294,16 @@ void main() {
     vec3 diffuseAmbient = 0.05 * albedoColor;
     vec3 ambient = kD * diffuseAmbient + specularAmbient;
 
+    if (mat.pack1.w > 0.0f) {
+        albedoTex.a = (albedoTex.a - mat.pack1.w) / max(fwidth(albedoTex.a), 0.0001) + 0.5;
+        if (albedoTex.a < 0.5f) {
+            //discard;
+        }
+    }
+
     //FragColor = vec4(metallic, roughness, 0.0, 1.0);
 	//FragColor = vec4(lo, 1.0);
-	FragColor = vec4(lo + ambient, 1.0);
+	FragColor = vec4(lo + ambient, mat.pack1.w > 0.0f ? albedoTex.a : 1.0f);
 
     if (ENABLE_PICKING && pickBuf.doPicking == 1) {
         if (pixelPickCoords == ivec2(gl_FragCoord.xy)) {

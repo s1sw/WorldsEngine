@@ -4,14 +4,16 @@
 #include "AssetDB.hpp"
 #include "IGameEventHandler.hpp"
 #include "JobSystem.hpp"
+#include <bitset>
 
+#define NUM_SUBMESH_MATS 32
 namespace worlds {
     extern glm::ivec2 windowSize;
     extern JobSystem* g_jobSys;
     class VKRenderer;
     class PolyRenderPass;
 
-    struct SceneInfo {
+    struct SceneInfo {  
         std::string name;
         AssetID id;
     };
@@ -26,16 +28,22 @@ namespace worlds {
 
     struct WorldObject {
         WorldObject(AssetID material, AssetID mesh)
-            : material(material)
-            , mesh(mesh)
-            , texScaleOffset(1.0f, 1.0f, 0.0f, 0.0f)
-            , materialIdx(~0u) {
+            : mesh(mesh)
+            , texScaleOffset(1.0f, 1.0f, 0.0f, 0.0f) {
+            materials[0] = material;
+            for (int i = 0; i < NUM_SUBMESH_MATS; i++) {
+                presentMaterials[i] = false;
+                materialIdx[i] = ~0u;
+            }
+
+            presentMaterials[0] = true;
         }
 
-        AssetID material;
+        AssetID materials[NUM_SUBMESH_MATS];
+        std::bitset<NUM_SUBMESH_MATS> presentMaterials;
         AssetID mesh;
         glm::vec4 texScaleOffset;
-        uint32_t materialIdx;
+        uint32_t materialIdx[NUM_SUBMESH_MATS];
     };
 
     struct UseWireframe {};

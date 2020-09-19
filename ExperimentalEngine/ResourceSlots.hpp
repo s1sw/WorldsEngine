@@ -98,16 +98,24 @@ namespace worlds {
     };
 
     struct PackedMaterial;
+    struct MatExtraData {
+        MatExtraData() : noCull(false), wireframe(false) {}
+        bool noCull;
+        bool wireframe;
+    };
 
     class MaterialSlots : public ResourceSlots<PackedMaterial, NUM_MAT_SLOTS, AssetID> {
     protected:
-        void parseMaterial(AssetID asset, PackedMaterial& mat);
+        void parseMaterial(AssetID asset, PackedMaterial& mat, MatExtraData& extraDat);
 
         uint32_t load(AssetID asset) override;
     private:
         std::shared_ptr<VulkanCtx> vkCtx;
+        std::array<MatExtraData, NUM_MAT_SLOTS> matExtraData;
         TextureSlots& texSlots;
     public:
+        MatExtraData& getExtraDat(uint32_t slot) { assert(this->present[slot]); return matExtraData[slot]; }
+
         MaterialSlots(std::shared_ptr<VulkanCtx> vkCtx, TextureSlots& texSlots) : vkCtx(vkCtx), texSlots(texSlots) {
 
         }

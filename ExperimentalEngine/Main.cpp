@@ -52,7 +52,7 @@ namespace worlds {
     int workerThreadOverride = -1;
     bool enableXR = false;
     bool enableOpenVR = false;
-    bool runAsEditor = false;
+    bool runAsEditor = true;
     bool pauseSim = false;
     glm::ivec2 windowSize;
     SceneInfo currentScene;
@@ -157,7 +157,7 @@ namespace worlds {
         transform.scale = scale;
         auto& worldObject = reg.emplace<WorldObject>(ent, 0, meshId);
         worldObject.texScaleOffset = texScaleOffset;
-        worldObject.material = materialId;
+        worldObject.materials[0] = materialId;
         return ent;
     }
 
@@ -349,7 +349,7 @@ namespace worlds {
 
         IVRInterface* vrInterface = enableXR ? (IVRInterface*)&xrInterface : &openvrInterface;
 
-        RendererInitInfo initInfo{ window, additionalInstanceExts, additionalDeviceExts, enableXR || enableOpenVR, activeApi, vrInterface };
+        RendererInitInfo initInfo{ window, additionalInstanceExts, additionalDeviceExts, enableXR || enableOpenVR, activeApi, vrInterface, runAsEditor };
         VKRenderer* renderer = new VKRenderer(initInfo, &renderInitSuccess);
 
         if (!renderInitSuccess) {
@@ -420,6 +420,15 @@ namespace worlds {
 
         bool firstFrame = true;
 
+        /*PHYSFS_File* file = g_assetDB.openAssetFileRead(g_assetDB.addOrGetExisting("torso.vtf"));
+        size_t fileLen = PHYSFS_fileLength(file);
+        std::vector<uint8_t> fileVec(fileLen);
+
+        PHYSFS_readBytes(file, fileVec.data(), fileLen);
+        PHYSFS_close(file);
+
+        loadVtfTexture(fileVec.data(), fileLen, g_assetDB.addOrGetExisting("torso.vtf"));*/
+
         while (running) {
             uint64_t now = SDL_GetPerformanceCounter();
             if (!useEventThread) {
@@ -461,7 +470,8 @@ namespace worlds {
 
             float interpAlpha = 1.0f;
 
-            evtHandler->preSimUpdate(registry, deltaTime);
+            if (evtHandler != nullptr && !runAsEditor)
+                evtHandler->preSimUpdate(registry, deltaTime);
 
             double simTime = 0.0;
             if (!pauseSim) {
@@ -507,7 +517,9 @@ namespace worlds {
                         previousState = currentState;
                         stepSimulation(simStepTime.getFloat());
                         simAccumulator -= simStepTime.getFloat();
-                        evtHandler->simulate(registry, simStepTime.getFloat());
+
+                        if (evtHandler != nullptr && !runAsEditor)
+                            evtHandler->simulate(registry, simStepTime.getFloat());
 
                         registry.view<DynamicPhysicsActor>().each([&](auto ent, DynamicPhysicsActor& dpa) {
                             currentState[ent] = dpa.actor->getGlobalPose();
@@ -526,7 +538,9 @@ namespace worlds {
                     interpAlpha = alpha;
                 } else {
                     stepSimulation(deltaTime);
-                    evtHandler->simulate(registry, deltaTime);
+
+                    if (evtHandler != nullptr && !runAsEditor)
+                        evtHandler->simulate(registry, deltaTime);
 
                     registry.view<DynamicPhysicsActor, Transform>().each([&](entt::entity ent, DynamicPhysicsActor& dpa, Transform& transform) {
                         transform.position = px2glm(dpa.actor->getGlobalPose().p);

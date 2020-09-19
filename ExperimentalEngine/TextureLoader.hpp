@@ -16,6 +16,7 @@ namespace worlds {
     struct VulkanCtx;
 
     TextureData loadTexData(AssetID id);
+    TextureData loadVtfTexture(void* fileData, size_t fileLen, AssetID id);
     vku::TextureImage2D uploadTextureVk(VulkanCtx& ctx, TextureData& td);
     vku::TextureImage2D uploadTextureVk(VulkanCtx& ctx, TextureData& td, vk::CommandBuffer cb, uint32_t imageIndex);
     void destroyTempTexBuffers(uint32_t imageIndex);

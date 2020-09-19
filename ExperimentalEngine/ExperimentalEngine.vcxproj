@@ -257,6 +257,7 @@
     <ClCompile Include="PolyRenderPass.cpp" />
     <ClCompile Include="RenderGraph.cpp" />
     <ClCompile Include="SceneSerialization.cpp" />
+    <ClCompile Include="SceneSerializationFunctions.cpp" />
     <ClCompile Include="ShaderMetadata.cpp" />
     <ClCompile Include="ShadowmapRenderPass.cpp" />
     <ClCompile Include="SourceModelLoader.cpp" />
@@ -267,6 +268,7 @@
     <ClCompile Include="tracy\TracyClient.cpp" />
     <ClCompile Include="vkrender.cpp" />
     <ClCompile Include="vkswapchain.cpp" />
+    <ClCompile Include="VTFLoader.cpp" />
     <ClCompile Include="weldmesh.c" />
   </ItemGroup>
   <ItemGroup>
@@ -312,6 +314,7 @@
     <ClInclude Include="ResourceSlots.hpp" />
     <ClInclude Include="Result.hpp" />
     <ClInclude Include="SceneSerialization.hpp" />
+    <ClInclude Include="SceneSerializationFuncs.hpp" />
     <ClInclude Include="ShaderMetadata.hpp" />
     <ClInclude Include="SourceModelLoader.hpp" />
     <ClInclude Include="spirv_reflect.h" />

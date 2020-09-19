@@ -16,6 +16,9 @@
     <Filter Include="Header Files\Components">
       <UniqueIdentifier>{3d073cc9-a8c0-4e8f-b0ca-213f8f420782}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\SceneSerializationFunctions">
+      <UniqueIdentifier>{a04a6d83-ccda-40fc-b142-057cd47cf5f1}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Main.cpp">
@@ -137,6 +140,12 @@
     </ClCompile>
     <ClCompile Include="weldmesh.c">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="VTFLoader.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="SceneSerializationFunctions.cpp">
+      <Filter>Source Files\SceneSerializationFunctions</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -294,6 +303,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="MatUtil.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="SceneSerializationFuncs.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

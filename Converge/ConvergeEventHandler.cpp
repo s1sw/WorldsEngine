@@ -138,7 +138,7 @@ namespace converge {
         worlds::g_scene->addActor(*fenderActor);
 
         fenderMat = worlds::g_physics->createMaterial(0.0f, 0.0f, 0.0f);
-        fenderWActor.physicsShapes.push_back(worlds::PhysicsShape::sphereShape(0.25f, fenderMat));
+        fenderWActor.physicsShapes.push_back(worlds::PhysicsShape::boxShape(glm::vec3(0.15f, 0.35f, 0.15f), fenderMat));
 
         worlds::updatePhysicsShapes(fenderWActor);
         physx::PxRigidBodyExt::setMassAndUpdateInertia(*fenderActor, 1.0f);

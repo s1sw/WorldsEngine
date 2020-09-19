@@ -68,7 +68,7 @@ namespace worlds {
         tcc->outVerts[(iFace * 3) + iVert] = vert;
     }
 
-    void loadObj(std::vector<Vertex>& vertices, std::vector<uint32_t>& indices, std::istream& stream) {
+    void loadObj(std::vector<Vertex>& vertices, std::vector<uint32_t>& indices, std::istream& stream, LoadedMeshData& lmd) {
         indices.clear();
         vertices.clear();
         tinyobj::attrib_t attrib;

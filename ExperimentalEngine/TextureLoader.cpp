@@ -53,7 +53,7 @@ namespace worlds {
     }
 
     TextureData loadCrunchTexture(void* fileData, size_t fileLen, AssetID id) {
-        ZoneScoped
+        ZoneScoped;
             bool isSRGB = true;
 
         crnd::crn_texture_info texInfo;
@@ -132,6 +132,10 @@ namespace worlds {
         PHYSFS_close(file);
 
         bool crunch = g_assetDB.getAssetExtension(id) == ".crn";
+
+        if (g_assetDB.getAssetExtension(id) == ".vtf") {
+            return loadVtfTexture(fileVec.data(), fileLen, id);
+        }
 
         if (!crunch) {
             return loadStbTexture(fileVec.data(), fileLen, id);

@@ -3,6 +3,7 @@
 #include "GlmStreamOps.hpp"
 #include <iostream>
 #include "Render.hpp"
+#include <filesystem>
 
 namespace worlds {
     typedef unsigned char byte;
@@ -126,21 +127,6 @@ namespace worlds {
         int 		unknown[64];
     };
 
-    struct mstudiotexture_t {
-        // Number of bytes past the beginning of this structure
-        // where the first character of the texture name can be found.
-        int		name_offset; 	// Offset for null-terminated string
-        int		flags;
-        int		used; 		// ??
-
-        int		unused; 	// ??
-
-        int	material;		// Placeholder for IMaterial
-        int	client_material;	// Placeholder for void*
-
-        int		unused2[10];
-    };
-
     struct mstudiobbox_t {
         int					bone;
         int					group;				// intersection group
@@ -169,6 +155,22 @@ namespace worlds {
         int					numhitboxes;
         int					hitboxindex;
         inline mstudiobbox_t* pHitbox(int i) const { return (mstudiobbox_t*)(((byte*)this) + hitboxindex) + i; };
+    };
+
+    struct mstudiotexture_t {
+        // Number of bytes past the beginning of this structure
+        // where the first character of the texture name can be found.
+        int		name_offset; 	// Offset for null-terminated string
+        inline char* const name() const { return ((char*)this) + name_offset; }
+        int		flags;
+        int		used; 		// ??
+
+        int		unused; 	// ??
+
+        int	material;		// Placeholder for IMaterial
+        int	client_material;	// Placeholder for void*
+
+        int		unused2[10];
     };
 
     struct studiohdr_t {
@@ -228,6 +230,7 @@ namespace worlds {
         // mstudiotexture_t
         int		texture_count;
         int		texture_offset;
+        mstudiotexture_t* getTextures() { return (mstudiotexture_t*)((byte*)this + texture_offset); }
 
         // This offset points to a series of ints.
             // Each int value, in turn, is an offset relative to the start of this header/the-file,
@@ -516,10 +519,11 @@ namespace worlds {
 #pragma pack(pop)
 
     glm::vec3 flipVec(glm::vec3 vec) {
-        return glm::vec3(vec.x, vec.z, vec.y);
+        return glm::vec3(-vec.x, vec.z, vec.y);
     }
 
-    void loadSourceModel(AssetID mdlId, AssetID vtxId, AssetID vvdId, std::vector<Vertex>& vertices, std::vector<uint32_t>& indices) {
+    void loadSourceModel(AssetID mdlId, AssetID vtxId, AssetID vvdId, std::vector<Vertex>& vertices, std::vector<uint32_t>& indices, LoadedMeshData& lmd) {
+        lmd.numSubmeshes = 0;
         PHYSFS_File* mdlFile = g_assetDB.openAssetFileRead(mdlId);
 
         // this is really, really awful
@@ -608,14 +612,21 @@ namespace worlds {
         for (int i = 0; i < vertCount; i++) {
             mstudiovertex_t vert = *vertexBlock;
             Vertex eeVert;
-            eeVert.position = flipVec(vert.m_vecPosition) * 0.01905f;
+            eeVert.position = (flipVec(vert.m_vecPosition) / 12.0f) * 0.3f;
             eeVert.normal = flipVec(vert.m_vecNormal);
             eeVert.uv = vert.m_vecTexCoord;
             vertices.push_back(eeVert);
             vertexBlock++;
         }
 
+        for (int i = 0; i < mdl->texture_count; i++) {
+            mstudiotexture_t& tex = mdl->getTextures()[i];
+            std::cout << "tex " << i << ": mat is " << tex.material << ", name is " << tex.name() << "\n";
+        }
+
+        int prevMaterial = INT_MAX;
         int indexOverflowCount = 0;
+
         for (int i = 0; i < vtx->numBodyParts; i++) {
             BodyPartHeader_t* bph = vtx->getBodyPartHeader(i);
             mstudiobodyparts_t* studioBodypart = mdl->getBodyPart(i);
@@ -636,8 +647,12 @@ namespace worlds {
                     MeshHeader_t* mh = mlh->getMeshHeader(k);
                     mstudiomesh_t* studioMesh = studioModel->pMesh(k);
 
-                    std::cout << "    Mesh " << k << ": vertex offset " << studioMesh->vertexoffset << "\n";
+                    std::cout << "    Mesh " << k << ": vertex offset " << studioMesh->vertexoffset << ", material " << studioMesh->material << "\n";
 
+                    if (j == 0)
+                        lmd.submeshes[lmd.numSubmeshes].indexOffset = indices.size();
+
+                    int numIndices = 0;
                     for (int l = 0; l < mh->numStripGroups; l++) {
                         StripGroupHeader_t* stripGroup = mh->getStripGroup(l);
 
@@ -647,6 +662,7 @@ namespace worlds {
                             index += studioMesh->vertexoffset + idxOffset;
 
                             if (j == 0) {
+                                numIndices++;
                                 if (index >= vertices.size()) {
                                     indices.push_back(index);
                                     indexOverflowCount++;
@@ -658,6 +674,14 @@ namespace worlds {
                             maxIdx = std::max(index, maxIdx);
                         }
                     }
+
+                    if (j == 0) {
+                        lmd.submeshes[lmd.numSubmeshes].indexCount = numIndices;
+                        lmd.numSubmeshes++;
+                        if (lmd.numSubmeshes == NUM_SUBMESH_MATS) {
+                            abort();
+                        }
+                    }
                 }
 
                 idxOffset = maxIdx + 1;
@@ -666,13 +690,111 @@ namespace worlds {
             }
         }
 
+        // Invert winding order
+
+        for (int i = 0; i < indices.size(); i += 3) {
+            int idx0 = indices[i + 0];
+            int idx1 = indices[i + 1];
+            int idx2 = indices[i + 2];
+
+            indices[i + 0] = idx2;
+            indices[i + 1] = idx1;
+            indices[i + 2] = idx0;
+        }
+
         std::cout << "Vertex count: " << vertices.size() << "\n";
         std::cout << "Index count: " << indices.size() << "\n";
+
+        for (int i = 0; i < lmd.numSubmeshes; i++) {
+            std::cout << "Submesh " << i << ":\n";
+            std::cout << lmd.submeshes[i].indexCount << " indices starting at " << lmd.submeshes[i].indexOffset << "\n";
+        }
 
         std::cout << "Index overflow count: " << indexOverflowCount << "\n";
 
         std::free(mdl);
         std::free(vvd);
         std::free(vtx);
+    }
+
+    void setupSourceMaterials(AssetID mdlId, WorldObject& wObj) {
+        std::filesystem::path mdlPath = g_assetDB.getAssetPath(mdlId);
+        std::string vtxPath = mdlPath.parent_path().string() + "/" + mdlPath.stem().string();
+        vtxPath += ".dx90.vtx";
+        std::string vvdPath = mdlPath.parent_path().string() + "/" + mdlPath.stem().string();
+        vvdPath += ".vvd";
+
+        logMsg("vtxPath: %s, vvdPath: %s", vtxPath.c_str(), vtxPath.c_str());
+
+        AssetID vtxId = g_assetDB.addOrGetExisting(vtxPath);
+        AssetID vvdId = g_assetDB.addOrGetExisting(vvdPath);
+
+        PHYSFS_File* mdlFile = g_assetDB.openAssetFileRead(mdlId);
+
+        // this is really, really awful
+        size_t mdlLen = PHYSFS_fileLength(mdlFile);
+        studiohdr_t* mdl = static_cast<studiohdr_t*>(std::malloc(mdlLen));
+
+        PHYSFS_readBytes(mdlFile, mdl, mdlLen);
+        PHYSFS_close(mdlFile);
+
+        PHYSFS_File* vvdFile = g_assetDB.openAssetFileRead(vvdId);
+
+        size_t vvdLen = PHYSFS_fileLength(vvdFile);
+        vertexFileHeader_t* vvd = static_cast<vertexFileHeader_t*>(std::malloc(vvdLen));
+
+        PHYSFS_readBytes(vvdFile, vvd, vvdLen);
+        PHYSFS_close(vvdFile);
+
+        PHYSFS_File* vtxFile = g_assetDB.openAssetFileRead(vtxId);
+
+        size_t vtxLen = PHYSFS_fileLength(vtxFile);
+        VtxFileHeader_t* vtx = static_cast<VtxFileHeader_t*>(std::malloc(vtxLen));
+
+        PHYSFS_readBytes(vtxFile, vtx, vtxLen);
+        PHYSFS_close(vtxFile);
+
+        int numSubmeshes = 0;
+
+        for (int i = 0; i < vtx->numBodyParts; i++) {
+            BodyPartHeader_t* bph = vtx->getBodyPartHeader(i);
+            mstudiobodyparts_t* studioBodypart = mdl->getBodyPart(i);
+
+            std::cout << "Body part " << i << ": " << studioBodypart->pszName() << "\n";
+            std::cout << "Base: " << studioBodypart->base << ", model index: " << studioBodypart->modelindex << "\n";
+
+            for (int j = 0; j < bph->numModels; j++) {
+                ModelHeader_t* mdh = bph->getModelHeader(j);
+                mstudiomodel_t* studioModel = studioBodypart->pModel(j);
+                ModelLODHeader_t* mlh = mdh->getModelLODHeader(0);
+
+                for (int k = 0; k < mlh->numMeshes; k++) {
+                    MeshHeader_t* mh = mlh->getMeshHeader(k);
+                    mstudiomesh_t* studioMesh = studioModel->pMesh(k);
+
+                    if (j == 0) {
+                        mstudiotexture_t& tex = mdl->getTextures()[studioMesh->material];
+                        //std::cout << "tex " << i << ": mat is " << tex.material << ", name is " << tex.name() << "\n";
+                        std::string path = "Materials/" + std::string(tex.name()) + ".json";
+
+                        if (PHYSFS_exists(path.c_str())) {
+                            wObj.materials[numSubmeshes] = g_assetDB.addOrGetExisting(path);
+                        } else {
+                            logWarn("MISSING SOURCE MATERIAL %s", path.c_str());
+                            wObj.materials[numSubmeshes] = g_assetDB.addOrGetExisting("Materials/dev.json");
+                        }
+
+                        wObj.presentMaterials[numSubmeshes] = true;
+
+
+                        numSubmeshes++;
+                    }
+                }
+            }
+        }
+
+        std::free(mdl);
+        std::free(vtx);
+        std::free(vvd);
     }
 }

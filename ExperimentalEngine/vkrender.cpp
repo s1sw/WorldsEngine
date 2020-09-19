@@ -93,9 +93,10 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     , vrPredictAmount(0.033f)
     , clearMaterialIndices(false)
     , irp(nullptr)
-    , lowLatencyMode("r_lowLatency", "0", "Waits for GPU completion before starting the next frame. Has a significant impact on latency when VSync is enabled."){
-    msaaSamples = vk::SampleCountFlagBits::e4;
-    numMSAASamples = 4;
+    , lowLatencyMode("r_lowLatency", "0", "Waits for GPU completion before starting the next frame. Has a significant impact on latency when VSync is enabled.")
+    , enablePicking(enablePicking) {
+    msaaSamples = vk::SampleCountFlagBits::e8;
+    numMSAASamples = 8;
 
     vku::InstanceMaker instanceMaker;
     instanceMaker.apiVersion(VK_API_VERSION_1_2);
@@ -498,7 +499,7 @@ void VKRenderer::createSCDependents() {
     }
 
     {
-        auto prp = new PolyRenderPass(depthStencilImage, polyImage, shadowmapImage, !enableVR);
+        auto prp = new PolyRenderPass(depthStencilImage, polyImage, shadowmapImage, enablePicking);
         currentPRP = prp;
         graphSolver.addNode(prp);
     }
@@ -755,7 +756,7 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
 
     if (clearMaterialIndices) {
         reg.view<WorldObject>().each([](entt::entity, WorldObject& wo) {
-            wo.materialIdx = ~0u;
+            memset(wo.materialIdx, ~0u, sizeof(wo.materialIdx));
             });
         clearMaterialIndices = false;
     }
@@ -764,9 +765,13 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
 
     // Upload any necessary materials + meshes
     reg.view<WorldObject>().each([this, &rCtx](auto ent, WorldObject& wo) {
-        if (wo.materialIdx == ~0u) {
-            rCtx.reuploadMats = true;
-            wo.materialIdx = matSlots->loadOrGet(wo.material);
+        for (int i = 0; i < NUM_SUBMESH_MATS; i++) {
+            if (!wo.presentMaterials[i]) continue;
+
+            if (wo.materialIdx[i] == ~0u) {
+                rCtx.reuploadMats = true;
+                wo.materialIdx[i] = matSlots->loadOrGet(wo.materials[i]);
+            }
         }
 
         if (loadedMeshes.find(wo.mesh) == loadedMeshes.end()) {
@@ -990,10 +995,15 @@ void VKRenderer::preloadMesh(AssetID id) {
 
     auto ext = g_assetDB.getAssetExtension(id);
 
+    LoadedMeshData lmd;
+
     if (ext == ".obj") { // obj
         // Use C++ physfs ifstream for tinyobjloader
         PhysFS::ifstream meshFileStream(g_assetDB.openAssetFileRead(id));
-        loadObj(vertices, indices, meshFileStream);
+        loadObj(vertices, indices, meshFileStream, lmd);
+        lmd.numSubmeshes = 1;
+        lmd.submeshes[0].indexCount = indices.size();
+        lmd.submeshes[0].indexOffset = 0;
     } else if (ext == ".mdl") { // source model
         std::filesystem::path mdlPath = g_assetDB.getAssetPath(id);
         std::string vtxPath = mdlPath.parent_path().string() + "/" + mdlPath.stem().string();
@@ -1005,11 +1015,10 @@ void VKRenderer::preloadMesh(AssetID id) {
 
         AssetID vtxId = g_assetDB.addOrGetExisting(vtxPath);
         AssetID vvdId = g_assetDB.addOrGetExisting(vvdPath);
-        loadSourceModel(id, vtxId, vvdId, vertices, indices);
+        loadSourceModel(id, vtxId, vvdId, vertices, indices, lmd);
     }
 
     auto memProps = physicalDevice.getMemoryProperties();
-    LoadedMeshData lmd;
     lmd.indexType = vk::IndexType::eUint32;
     lmd.indexCount = (uint32_t)indices.size();
     lmd.ib = vku::IndexBuffer{ *device, allocator, indices.size() * sizeof(uint32_t), "Mesh Index Buffer"};
@@ -1057,10 +1066,13 @@ void VKRenderer::unloadUnusedMaterials(entt::registry& reg) {
     memset(materialReferenced, 0, sizeof(materialReferenced));
 
     reg.view<WorldObject>().each([&materialReferenced, &textureReferenced, this](entt::entity, WorldObject& wo) {
-        materialReferenced[wo.materialIdx] = true;
+        for (int i = 0; i < NUM_SUBMESH_MATS; i++) {
+            if (!wo.presentMaterials[i]) continue;
+            materialReferenced[wo.materialIdx[i]] = true;
 
-        uint32_t albedoIdx = (uint32_t)((*matSlots)[wo.materialIdx].pack0.z);
-        textureReferenced[albedoIdx] = true;
+            uint32_t albedoIdx = (uint32_t)((*matSlots)[wo.materialIdx[i]].pack0.z);
+            textureReferenced[albedoIdx] = true;
+        }
         });
 
     for (uint32_t i = 0; i < NUM_MAT_SLOTS; i++) {

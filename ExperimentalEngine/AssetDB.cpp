@@ -87,7 +87,7 @@ namespace worlds {
 
 	AssetID AssetDB::addAsset(std::string path) {
 		if (PHYSFS_exists(path.c_str()) == 0) {
-			std::cout << "Tried adding nonexistent asset\n";
+			std::cout << "Tried adding nonexistent asset: " << path << "\n";
 			return ~0u;
 		}
 
@@ -97,7 +97,7 @@ namespace worlds {
 
 		// Figure out the file extension
 		auto ext = std::filesystem::path(path).extension().string();
-		std::cout << "Added asset with extension " << ext << "\n";
+		std::cout << "Added asset " << path << " with extension " << ext << "\n";
 		if (ext == ".png") {
 			std::cout << "Texture\n";
 		}

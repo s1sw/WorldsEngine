@@ -35,6 +35,10 @@ namespace worlds {
         return physx::PxTransform(glm2px(t.position), glm2px(t.rotation));
     }
 
+    inline void updateMass(DynamicPhysicsActor& pa) {
+        physx::PxRigidBodyExt::setMassAndUpdateInertia(*(physx::PxRigidBody*)pa.actor, pa.mass);
+    }
+
     template <typename T>
     void updatePhysicsShapes(T& pa) {
         uint32_t nShapes = pa.actor->getNbShapes();

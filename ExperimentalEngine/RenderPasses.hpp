@@ -10,6 +10,7 @@ namespace worlds {
 
         vk::UniqueRenderPass renderPass;
         vk::UniquePipeline pipeline;
+        vk::UniquePipeline noBackfaceCullPipeline;
         vk::UniquePipelineLayout pipelineLayout;
         vk::UniqueDescriptorSetLayout dsl;
 
