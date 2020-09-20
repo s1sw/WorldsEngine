@@ -114,7 +114,7 @@ float DistributionGGX(vec3 N, vec3 H, float roughness) {
 
     float num = a2;
     float denom = (NdotH2 * (a2 - 1.0f) + 1.0f);
-    denom = PI * denom * denom;
+    denom = max(PI * denom * denom, 0.0001);
 
     return num / denom;
 }
@@ -124,7 +124,7 @@ float GeometrySchlickGGX(float NdotV, float roughness) {
     float k = (r * r) / 8.0f;
 
     float num = NdotV;
-    float denom = NdotV * (1.0f - k) + k;
+    float denom = max(NdotV * (1.0f - k) + k, 0.0001);
 
     return num / denom;
 }
@@ -144,13 +144,13 @@ float ndfGGX(float cosLh, float roughness) {
     float alpha = roughness * roughness;
     float alphaSq = alpha * alpha;
 
-    float denom = (cosLh * cosLh) * (alphaSq - 1.0) + 1.0;
+    float denom = max((cosLh * cosLh) * (alphaSq - 1.0) + 1.0, 0.0001);
     return alphaSq / (PI * denom * denom);
 }
 
 // Single term for separable Schlick-GGX below.
 float gaSchlickG1(float cosTheta, float k) {
-    return cosTheta / (cosTheta * (1.0 - k) + k);
+    return cosTheta / max(cosTheta * (1.0 - k) + k, 0.0001);
 }
 
 // Schlick-GGX approximation of geometric attenuation function using Smith's method.
@@ -171,6 +171,9 @@ vec3 calculateLighting(int lightIdx, vec3 viewDir, vec3 f0, float metallic, floa
     vec3 radiance = light.pack0.xyz;
     vec3 L = vec3(0.0f, 0.0f, 0.0f);
 	vec3 lightPos = light.pack2.xyz;
+
+    if (dot(normal, viewDir) < 0.0)
+        normal = -normal;
 	
     if (lightType == LT_POINT) {
         L = lightPos - inWorldPos.xyz;
@@ -189,7 +192,7 @@ vec3 calculateLighting(int lightIdx, vec3 viewDir, vec3 f0, float metallic, floa
     }
 
     // Boost the roughness a little bit for analytical lights otherwise the reflection of the light turns invisible
-    roughness = clamp(roughness + 0.05f, 0.0, 1.0);
+    roughness = clamp(roughness + 0.05f, 0.001, 1.0);
 
     vec3 halfway = normalize(viewDir + L);
     vec3 norm = normalize(normal);
@@ -227,14 +230,17 @@ vec3 decodeNormal (vec2 texVal) {
 
 void main() {
     Material mat = materials[ubIndices.y];
+
+    float roughness = mat.pack0.y;
+	vec3 viewDir = normalize(viewPos[gl_ViewIndex].xyz - inWorldPos.xyz);
+
 	int lightCount = int(pack0.x);
 	
 	float metallic = mat.pack0.x;
-	float roughness = mat.pack0.y;
+	
     vec4 albedoTex = texture(albedoSampler[int(mat.pack0.z)], inUV);
 	vec3 albedoColor = mat.pack1.rgb * albedoTex.rgb;
 	
-	vec3 viewDir = normalize(viewPos[gl_ViewIndex].xyz - inWorldPos.xyz);
 	
 	vec3 f0 = vec3(0.04);
     f0 = mix(f0, albedoColor, metallic);
@@ -289,9 +295,9 @@ void main() {
     const float MAX_REFLECTION_LOD = 11.0;
     vec3 R = reflect(-viewDir, normalize(inNormal));
     vec3 prefilteredColor = textureLod(cubemapSampler[0], R, roughness * MAX_REFLECTION_LOD).rgb;
-    vec2 brdf  = texture(brdfLutSampler, vec2(max(dot(inNormal, viewDir), 0.0), 1.0 - metallic)).rg;
-    vec3 specularAmbient = pow(prefilteredColor, vec3(1.0/2.2)) * (F * brdf.x + brdf.y) * albedoColor;
-    vec3 diffuseAmbient = 0.05 * albedoColor;
+    vec2 brdf  = textureLod(brdfLutSampler, vec2(min(max(dot(inNormal, viewDir), 0.0), 0.95), roughness), 0.0).rg;
+    vec3 specularAmbient = pow(prefilteredColor, vec3(2.2)) * (F * brdf.x + brdf.y);
+    vec3 diffuseAmbient = textureLod(cubemapSampler[0], inNormal, MAX_REFLECTION_LOD * 0.5).xyz * 0.5 * albedoColor;
     vec3 ambient = kD * diffuseAmbient + specularAmbient;
 
     if (mat.pack1.w > 0.0f) {
