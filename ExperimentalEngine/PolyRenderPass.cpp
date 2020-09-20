@@ -15,6 +15,11 @@ namespace worlds {
         glm::ivec4 screenSpacePickPos;
     };
 
+    struct SkyboxPushConstants {
+        // (x: vp index, y: cubemap index)
+        glm::ivec4 ubIndices;
+    };
+
     struct PickingBuffer {
         uint32_t depth;
         uint32_t objectID;
@@ -102,6 +107,16 @@ namespace worlds {
             vku::DescriptorSetUpdater updater;
             updater.beginDescriptorSet(*skyboxDs);
             updater.beginBuffers(0, 0, vk::DescriptorType::eUniformBuffer);
+            updater.buffer(vpUB.buffer(), 0, sizeof(MultiVP));
+
+            for (uint32_t i = 0; i < ctx.cubemapSlots->get()->size(); i++) {
+                if ((*ctx.cubemapSlots)->isSlotPresent(i)) {
+                    updater.beginImages(1, i, vk::DescriptorType::eCombinedImageSampler);
+                    updater.image(*albedoSampler, (*(*ctx.cubemapSlots))[i].imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
+                }
+            }
+
+            updater.update(ctx.device);
         }
     }
 
@@ -150,7 +165,7 @@ namespace worlds {
         auto memoryProps = ctx.physicalDevice.getMemoryProperties();
 
         vku::SamplerMaker sm{};
-        sm.magFilter(vk::Filter::eLinear).minFilter(vk::Filter::eLinear).mipmapMode(vk::SamplerMipmapMode::eLinear).anisotropyEnable(true).maxAnisotropy(16.0f).maxLod(100.0f);
+        sm.magFilter(vk::Filter::eLinear).minFilter(vk::Filter::eLinear).mipmapMode(vk::SamplerMipmapMode::eLinear).anisotropyEnable(true).maxAnisotropy(16.0f).maxLod(100.0f).minLod(0.0f);
         albedoSampler = sm.createUnique(ctx.device);
 
         vku::SamplerMaker ssm{};
@@ -436,6 +451,41 @@ namespace worlds {
             linePipeline = pm.createUnique(ctx.device, ctx.pipelineCache, *linePipelineLayout, *renderPass);
         }
 
+        {
+            vku::DescriptorSetLayoutMaker dslm;
+            dslm.buffer(0, vk::DescriptorType::eUniformBuffer, vk::ShaderStageFlagBits::eVertex, 1);
+            dslm.image(1, vk::DescriptorType::eCombinedImageSampler, vk::ShaderStageFlagBits::eFragment, NUM_CUBEMAP_SLOTS);
+            dslm.bindFlag(1, vk::DescriptorBindingFlagBits::ePartiallyBound);
+            skyboxDsl = dslm.createUnique(ctx.device);
+
+            vku::DescriptorSetMaker dsm;
+            dsm.layout(*skyboxDsl);
+            skyboxDs = std::move(dsm.createUnique(ctx.device, ctx.descriptorPool)[0]);
+
+            vku::PipelineLayoutMaker skyboxPl{};
+            skyboxPl.descriptorSetLayout(*skyboxDsl);
+            skyboxPl.pushConstantRange(vk::ShaderStageFlagBits::eFragment | vk::ShaderStageFlagBits::eVertex, 0, sizeof(SkyboxPushConstants));
+            skyboxPipelineLayout = skyboxPl.createUnique(ctx.device);
+
+            vku::PipelineMaker pm{ extent.width, extent.height };
+            AssetID vsID = g_assetDB.addOrGetExisting("Shaders/skybox.vert.spv");
+            AssetID fsID = g_assetDB.addOrGetExisting("Shaders/skybox.frag.spv");
+
+            auto vert = vku::loadShaderAsset(ctx.device, vsID);
+            auto frag = vku::loadShaderAsset(ctx.device, fsID);
+
+            pm.shader(vk::ShaderStageFlagBits::eFragment, frag);
+            pm.shader(vk::ShaderStageFlagBits::eVertex, vert);
+            pm.topology(vk::PrimitiveTopology::eTriangleList);
+            pm.depthWriteEnable(true).depthTestEnable(true).depthCompareOp(vk::CompareOp::eLessOrEqual);
+
+            vk::PipelineMultisampleStateCreateInfo pmsci;
+            pmsci.rasterizationSamples = (vk::SampleCountFlagBits)ctx.graphicsSettings.msaaLevel;
+            pm.multisampleState(pmsci);
+
+            skyboxPipeline = pm.createUnique(ctx.device, ctx.pipelineCache, *skyboxPipelineLayout, *renderPass);
+        }
+
         materialUB.upload(ctx.device, memoryProps, ctx.commandPool, ctx.device.getQueue(ctx.graphicsQueueFamilyIdx, 0), (*ctx.materialSlots)->getSlots(), sizeof(PackedMaterial) * 256);
 
         updateDescriptorSets(ctx);
@@ -451,16 +501,20 @@ namespace worlds {
 
         int matrixIdx = 0;
         rCtx.reg.view<Transform, WorldObject>().each([&matrixIdx, modelMatricesMapped](auto ent, Transform& t, WorldObject& wo) {
-            if (matrixIdx == 1023)
+            if (matrixIdx == 1023) {
+                fatalErr("Out of model matrices! Either don't spam so many objects or shout at us on the bug tracker.");
                 return;
+            }
             glm::mat4 m = t.getMatrix();
             modelMatricesMapped->modelMatrices[matrixIdx] = m;
             matrixIdx++;
             });
 
         rCtx.reg.view<Transform, ProceduralObject>().each([&matrixIdx, modelMatricesMapped](auto ent, Transform& t, ProceduralObject& po) {
-            if (matrixIdx == 1023)
+            if (matrixIdx == 1023) {
+                fatalErr("Out of model matrices! Either don't spam so many objects or shout at us on the bug tracker.");
                 return;
+            }
             glm::mat4 m = t.getMatrix();
             modelMatricesMapped->modelMatrices[matrixIdx] = m;
             matrixIdx++;
@@ -756,6 +810,14 @@ namespace worlds {
             cmdBuf->bindIndexBuffer(sdi.ib, 0, vk::IndexType::eUint32);
             cmdBuf->drawIndexed(sdi.indexCount, 1, sdi.indexOffset, 0, 0);
         }
+
+        cmdBuf->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *skyboxPipelineLayout, 0, *skyboxDs, nullptr);
+        cmdBuf->bindPipeline(vk::PipelineBindPoint::eGraphics, *skyboxPipeline);
+
+        SkyboxPushConstants spc{ glm::ivec4(0) };
+        cmdBuf->pushConstants<SkyboxPushConstants>(*skyboxPipelineLayout, vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment, 0, spc);
+
+        cmdBuf->draw(36, 1, 0, 0);
 
         cmdBuf->endRenderPass();
 

@@ -94,7 +94,7 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     , clearMaterialIndices(false)
     , irp(nullptr)
     , lowLatencyMode("r_lowLatency", "0", "Waits for GPU completion before starting the next frame. Has a significant impact on latency when VSync is enabled.")
-    , enablePicking(enablePicking) {
+    , enablePicking(initInfo.enablePicking) {
     msaaSamples = vk::SampleCountFlagBits::e8;
     numMSAASamples = 8;
 
@@ -423,7 +423,7 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
         vrApi = initInfo.activeVrApi;
     }
 
-    uint32_t s = cubemapSlots->loadOrGet(g_assetDB.addOrGetExisting("DefaultCubemap.json"));
+    uint32_t s = cubemapSlots->loadOrGet(g_assetDB.addOrGetExisting("Cubemap2.json"));
     cubemapConvoluter->convolute((*cubemapSlots)[s]);
 }
 

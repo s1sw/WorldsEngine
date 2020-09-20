@@ -5,7 +5,7 @@ layout (location = 0) out vec4 FragColor;
 
 layout (location = 0) in vec3 inTexCoords;
 
-layout (binding = 0) uniform samplerCube cubemaps[];
+layout (binding = 1) uniform samplerCube cubemaps[];
 
 layout (push_constant) uniform PushConstants {
     // (x: vp index, y: cubemap index)
@@ -13,5 +13,5 @@ layout (push_constant) uniform PushConstants {
 };
 
 void main() {
-    FragColor = texture(cubemaps[ubIndices.y], inTexCoords);
+    FragColor = vec4(pow(textureLod(cubemaps[ubIndices.y], inTexCoords, 0.0).xyz, vec3(2.2)), 1.0);
 }
