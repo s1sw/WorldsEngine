@@ -23,7 +23,7 @@ layout(std140, binding = 2) uniform MaterialSettingsBuffer {
     Material materials[256];
 };
 
-layout (binding = 3) uniform sampler2D albedoSampler[];
+layout (binding = 4) uniform sampler2D albedoSampler[];
 
 void main() {
     Material mat = materials[ubIndices.y];

@@ -2,7 +2,7 @@
 #include "Render.hpp"
 
 namespace worlds {
-    const int BRDF_LUT_RES = 512;
+    const int BRDF_LUT_RES = 256;
 
     BRDFLUTRenderer::BRDFLUTRenderer(VulkanCtx& ctx) {
         vku::RenderpassMaker rpm;

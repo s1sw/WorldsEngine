@@ -554,38 +554,19 @@ namespace worlds {
         }
 
         if (vvd->checksum != mdl->checksum) {
-            std::cout << "MDL checksum doesn't match VVD checksum!\n";
+            logErr("MDL checksum doesn't match VVD checksum!");
         }
 
         if (vtx->checkSum != mdl->checksum) {
-            std::cout << "MDL checksum doesn't match VTX checksum!\n";
+            logErr("MDL checksum doesn't match VTX checksum!");
         }
 
         studiohdr2_t* hdr2 = mdl->getHdr2();
         mstudiohitboxset_t* hitboxSet = mdl->getHitboxSet();
 
-        std::cout << "Source Model Loader\n";
-        std::cout << "===================\n";
-        std::cout << "Name: " << mdl->name << "\n";
-        std::cout << "File version: " << mdl->version << " (only 48 is supported)\n";
-        std::cout << "LOD count: " << vvd->numLODs << "\n";
-        std::cout << "Num Fixups: " << vvd->numFixups << "\n";
-        
+        logMsg("Source model loader: name is %s, version is %i with %i LODs", mdl->name, mdl->version, vvd->numLODs);
 
-        // just import the root LOD for now
         auto* fixupBlock = vvd->getFixupBlock();
-        vertexFileFixup_t* lod0Fixup = nullptr;
-
-        for (int i = 0; i < vvd->numFixups; i++) {
-            std::cout << "Fixup " << i << ":\n";
-            std::cout << "LOD " << fixupBlock[i].lod << ", " << fixupBlock[i].numVertexes << " vertices, " << fixupBlock[i].sourceVertexID << " sourceVertexID\n";
-
-            if (fixupBlock[i].lod == 0) {
-                lod0Fixup = &fixupBlock[i];
-            }
-        }
-
-        
         mstudiovertex_t* vertexBlock = vvd->getVertexBlock();
 
         int vertCount = vvd->numLODVertexes[0];
@@ -621,7 +602,6 @@ namespace worlds {
 
         for (int i = 0; i < mdl->texture_count; i++) {
             mstudiotexture_t& tex = mdl->getTextures()[i];
-            std::cout << "tex " << i << ": mat is " << tex.material << ", name is " << tex.name() << "\n";
         }
 
         int prevMaterial = INT_MAX;
@@ -631,23 +611,16 @@ namespace worlds {
             BodyPartHeader_t* bph = vtx->getBodyPartHeader(i);
             mstudiobodyparts_t* studioBodypart = mdl->getBodyPart(i);
 
-            std::cout << "Body part " << i << ": " << studioBodypart->pszName() << "\n";
-            std::cout << "Base: " << studioBodypart->base << ", model index: " << studioBodypart->modelindex << "\n";
-
             for (int j = 0; j < bph->numModels; j++) {
                 ModelHeader_t* mdh = bph->getModelHeader(j);
                 mstudiomodel_t* studioModel = studioBodypart->pModel(j);
                 ModelLODHeader_t* mlh = mdh->getModelLODHeader(0);
-                std::cout << "  Model " << j << ": " << studioModel->pszName() << ", vertex index " << studioModel->vertexindex << "\n";
 
                 int minIdx = INT32_MAX;
                 int maxIdx = 0;
-                int startingOverflowCount = indexOverflowCount;
                 for (int k = 0; k < mlh->numMeshes; k++) {
                     MeshHeader_t* mh = mlh->getMeshHeader(k);
                     mstudiomesh_t* studioMesh = studioModel->pMesh(k);
-
-                    std::cout << "    Mesh " << k << ": vertex offset " << studioMesh->vertexoffset << ", material " << studioMesh->material << "\n";
 
                     if (j == 0)
                         lmd.submeshes[lmd.numSubmeshes].indexOffset = indices.size();
@@ -663,11 +636,7 @@ namespace worlds {
 
                             if (j == 0) {
                                 numIndices++;
-                                if (index >= vertices.size()) {
-                                    indices.push_back(index);
-                                    indexOverflowCount++;
-                                } else
-                                    indices.push_back(index);
+                                indices.push_back(index);
                             }
 
                             minIdx = std::min(index, minIdx);
@@ -685,8 +654,6 @@ namespace worlds {
                 }
 
                 idxOffset = maxIdx + 1;
-                std::cout << "    maxidx: " << maxIdx << ", minidx: " << minIdx << "\n";
-                std::cout << "    overflowed " << indexOverflowCount - startingOverflowCount << " times\n";
             }
         }
 
@@ -702,16 +669,6 @@ namespace worlds {
             indices[i + 2] = idx0;
         }
 
-        std::cout << "Vertex count: " << vertices.size() << "\n";
-        std::cout << "Index count: " << indices.size() << "\n";
-
-        for (int i = 0; i < lmd.numSubmeshes; i++) {
-            std::cout << "Submesh " << i << ":\n";
-            std::cout << lmd.submeshes[i].indexCount << " indices starting at " << lmd.submeshes[i].indexOffset << "\n";
-        }
-
-        std::cout << "Index overflow count: " << indexOverflowCount << "\n";
-
         std::free(mdl);
         std::free(vvd);
         std::free(vtx);
@@ -723,8 +680,6 @@ namespace worlds {
         vtxPath += ".dx90.vtx";
         std::string vvdPath = mdlPath.parent_path().string() + "/" + mdlPath.stem().string();
         vvdPath += ".vvd";
-
-        logMsg("vtxPath: %s, vvdPath: %s", vtxPath.c_str(), vtxPath.c_str());
 
         AssetID vtxId = g_assetDB.addOrGetExisting(vtxPath);
         AssetID vvdId = g_assetDB.addOrGetExisting(vvdPath);
@@ -759,9 +714,6 @@ namespace worlds {
         for (int i = 0; i < vtx->numBodyParts; i++) {
             BodyPartHeader_t* bph = vtx->getBodyPartHeader(i);
             mstudiobodyparts_t* studioBodypart = mdl->getBodyPart(i);
-
-            std::cout << "Body part " << i << ": " << studioBodypart->pszName() << "\n";
-            std::cout << "Base: " << studioBodypart->base << ", model index: " << studioBodypart->modelindex << "\n";
 
             for (int j = 0; j < bph->numModels; j++) {
                 ModelHeader_t* mdh = bph->getModelHeader(j);

@@ -50,7 +50,7 @@ namespace worlds {
         vk::DescriptorPool tmpDescriptorPool = vkCtx->device.createDescriptorPool(descriptorPoolInfo);
 
         vku::DescriptorSetMaker dsm;
-        for (int i = 1; i < cube.info().mipLevels; i++) {
+        for (uint32_t i = 1; i < cube.info().mipLevels; i++) {
             for (int j = 0; j < 6; j++) {
                 dsm.layout(*dsl);
             }
@@ -60,7 +60,7 @@ namespace worlds {
         std::vector<vk::UniqueImageView> outputViews;
         std::vector<vk::UniqueImageView> inputViews;
 
-        for (int i = 1; i < cube.info().mipLevels; i++) {
+        for (uint32_t i = 1; i < cube.info().mipLevels; i++) {
             for (int j = 0; j < 6; j++) {
                 vk::ImageViewCreateInfo viewInfo{};
                 viewInfo.image = cube.image();

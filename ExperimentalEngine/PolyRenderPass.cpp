@@ -84,26 +84,6 @@ namespace worlds {
         }
 
         {
-            vku::DescriptorSetUpdater updater(10, 128, 0);
-            updater.beginDescriptorSet(*wireframeDescriptorSet);
-            updater.beginBuffers(0, 0, vk::DescriptorType::eUniformBuffer);
-            updater.buffer(vpUB.buffer(), 0, sizeof(MultiVP));
-            updater.beginBuffers(1, 0, vk::DescriptorType::eUniformBuffer);
-            updater.buffer(modelMatrixUB.buffer(), 0, sizeof(ModelMatrices));
-            updater.beginBuffers(2, 0, vk::DescriptorType::eUniformBuffer);
-            updater.buffer(materialUB.buffer(), 0, sizeof(MaterialsUB));
-
-            for (uint32_t i = 0; i < ctx.globalTexArray->get()->size(); i++) {
-                if ((*ctx.globalTexArray)->isSlotPresent(i)) {
-                    updater.beginImages(3, i, vk::DescriptorType::eCombinedImageSampler);
-                    updater.image(*albedoSampler, (*(*ctx.globalTexArray))[i].imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
-                }
-            }
-
-            updater.update(ctx.device);
-        }
-
-        {
             vku::DescriptorSetUpdater updater;
             updater.beginDescriptorSet(*skyboxDs);
             updater.beginBuffers(0, 0, vk::DescriptorType::eUniformBuffer);
@@ -210,8 +190,8 @@ namespace worlds {
         pickEvent = ctx.device.createEventUnique(vk::EventCreateInfo{});
 
         MaterialsUB materials;
-        materials.materials[0] = { glm::vec4(0.0f, 0.02f, 0.0f, 0.0f), glm::vec4(1.0f, 1.0f, 1.0f, 0.0f) };
-        materials.materials[1] = { glm::vec4(0.0f, 0.2f, 1.0f, 0.0f), glm::vec4(1.0f, 1.0f, 1.0f, 0.0f) };
+        //materials.materials[0] = { glm::vec4(0.0f, 0.02f, 0.0f, 0.0f), glm::vec4(1.0f, 1.0f, 1.0f, 0.0f) };
+        //materials.materials[1] = { glm::vec4(0.0f, 0.2f, 1.0f, 0.0f), glm::vec4(1.0f, 1.0f, 1.0f, 0.0f) };
         materialUB.upload(ctx.device, memoryProps, ctx.commandPool, ctx.device.getQueue(ctx.graphicsQueueFamilyIdx, 0), materials);
 
         vku::DescriptorSetMaker dsm;
@@ -355,25 +335,13 @@ namespace worlds {
             pm.polygonMode(vk::PolygonMode::eLine);
             pm.lineWidth(2.0f);
 
-            vku::DescriptorSetLayoutMaker dslm;
-            dslm.buffer(0, vk::DescriptorType::eUniformBuffer, vk::ShaderStageFlagBits::eVertex, 1);
-            dslm.buffer(1, vk::DescriptorType::eUniformBuffer, vk::ShaderStageFlagBits::eVertex, 1);
-            dslm.buffer(2, vk::DescriptorType::eUniformBuffer, vk::ShaderStageFlagBits::eFragment, 1);
-            dslm.image(3, vk::DescriptorType::eCombinedImageSampler, vk::ShaderStageFlagBits::eFragment, 64);
-            dslm.bindFlag(3, vk::DescriptorBindingFlagBits::ePartiallyBound);
-            wireframeDsl = dslm.createUnique(ctx.device);
-
-            vku::DescriptorSetMaker dsm;
-            dsm.layout(*wireframeDsl);
-            wireframeDescriptorSet = std::move(dsm.createUnique(ctx.device, ctx.descriptorPool)[0]);
-
             vk::PipelineMultisampleStateCreateInfo pmsci;
             pmsci.rasterizationSamples = (vk::SampleCountFlagBits)ctx.graphicsSettings.msaaLevel;
             pm.multisampleState(pmsci);
 
             vku::PipelineLayoutMaker plm;
             plm.pushConstantRange(vk::ShaderStageFlagBits::eFragment | vk::ShaderStageFlagBits::eVertex, 0, sizeof(StandardPushConstants));
-            plm.descriptorSetLayout(*wireframeDsl);
+            plm.descriptorSetLayout(*dsl);
             wireframePipelineLayout = plm.createUnique(ctx.device);
 
             wireframePipeline = pm.createUnique(ctx.device, ctx.pipelineCache, *wireframePipelineLayout, *renderPass);
@@ -430,7 +398,7 @@ namespace worlds {
             vku::PipelineMaker pm{ extent.width, extent.height };
             AssetID vsID = g_assetDB.addOrGetExisting("Shaders/line.vert.spv");
             AssetID fsID = g_assetDB.addOrGetExisting("Shaders/line.frag.spv");
-            
+
             auto vert = vku::loadShaderAsset(ctx.device, vsID);
             auto frag = vku::loadShaderAsset(ctx.device, fsID);
 
@@ -577,7 +545,6 @@ namespace worlds {
             updateDescriptorSets(ctx);
         }
 
-        
         {
             auto& renderBuffer = g_scene->getRenderBuffer();
 
@@ -610,6 +577,7 @@ namespace worlds {
         uint32_t indexOffset;
         glm::vec4 texScaleOffset;
         entt::entity ent;
+        vk::Pipeline pipeline;
     };
 
     void PolyRenderPass::execute(RenderCtx& ctx) {
@@ -672,45 +640,8 @@ namespace worlds {
 
         int matrixIdx = 0;
 
-        std::vector<SubmeshDrawInfo> bfCulledObjs;
-        bfCulledObjs.reserve(reg.view<Transform, WorldObject>().size());
-        std::vector<SubmeshDrawInfo> noCullObjs;
-        noCullObjs.reserve(reg.view<Transform, WorldObject>().size());
-        std::vector<SubmeshDrawInfo> wireframeObjs;
-        noCullObjs.reserve(reg.view<Transform, WorldObject>().size());
-
-        reg.view<Transform, WorldObject, UseWireframe>().each([&, this](auto ent, Transform& transform, WorldObject& obj) {
-            auto meshPos = ctx.loadedMeshes.find(obj.mesh);
-
-            if (meshPos == ctx.loadedMeshes.end()) {
-                // Haven't loaded the mesh yet
-                matrixIdx++;
-                return;
-            }
-
-            for (int i = 0; i < meshPos->second.numSubmeshes; i++) {
-                auto& currSubmesh = meshPos->second.submeshes[i];
-
-                SubmeshDrawInfo sdi;
-                sdi.ib = meshPos->second.ib.buffer();
-                sdi.vb = meshPos->second.vb.buffer();
-                sdi.indexCount = currSubmesh.indexCount;
-                sdi.indexOffset = currSubmesh.indexOffset;
-                sdi.materialIdx = obj.materialIdx[i];
-                sdi.matrixIdx = matrixIdx;
-                sdi.texScaleOffset = obj.texScaleOffset;
-                sdi.ent = ent;
-
-                wireframeObjs.emplace_back(std::move(sdi));
-
-                /*StandardPushConstants pushConst{ obj.texScaleOffset, glm::ivec4(matrixIdx, obj.materialIdx[i], 0, ent), glm::ivec4(pickX, pickY, 0, 0) };
-                cmdBuf->pushConstants<StandardPushConstants>(*pipelineLayout, vk::ShaderStageFlagBits::eFragment | vk::ShaderStageFlagBits::eVertex, 0, pushConst);
-                cmdBuf->bindVertexBuffers(0, meshPos->second.vb.buffer(), vk::DeviceSize(0));
-                cmdBuf->bindIndexBuffer(meshPos->second.ib.buffer(), 0, meshPos->second.indexType);
-                cmdBuf->drawIndexed(currSubmesh.indexCount, 1, currSubmesh.indexOffset, 0, 0);*/
-            }
-            matrixIdx++;
-            });
+        std::vector<SubmeshDrawInfo> drawInfo;
+        drawInfo.reserve(reg.view<Transform, WorldObject>().size());
 
         matrixIdx = 0;
         cmdBuf->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 0, *descriptorSet, nullptr);
@@ -741,43 +672,55 @@ namespace worlds {
                 sdi.ent = ent;
 
                 auto& extraDat = ctx.materialSlots->get()->getExtraDat(obj.materialIdx[i]);
-
                 if (extraDat.noCull) {
-                    noCullObjs.emplace_back(std::move(sdi));
+                    sdi.pipeline = *noBackfaceCullPipeline;
                 } else if (extraDat.wireframe) {
-                    wireframeObjs.emplace_back(std::move(sdi));
+                    sdi.pipeline = *wireframePipeline;
+                } else if (reg.has<UseWireframe>(ent)) {
+                    sdi.pipeline = *pipeline;
+                    drawInfo.push_back(sdi);
+                    sdi.pipeline = *wireframePipeline;
                 } else {
-                    bfCulledObjs.emplace_back(std::move(sdi));
+                    sdi.pipeline = *pipeline;
                 }
 
-                /*StandardPushConstants pushConst{ obj.texScaleOffset, glm::ivec4(matrixIdx, obj.materialIdx[i], 0, ent), glm::ivec4(pickX, pickY, 0, 0) };
-                cmdBuf->pushConstants<StandardPushConstants>(*pipelineLayout, vk::ShaderStageFlagBits::eFragment | vk::ShaderStageFlagBits::eVertex, 0, pushConst);
-                cmdBuf->bindVertexBuffers(0, meshPos->second.vb.buffer(), vk::DeviceSize(0));
-                cmdBuf->bindIndexBuffer(meshPos->second.ib.buffer(), 0, meshPos->second.indexType);
-                cmdBuf->drawIndexed(currSubmesh.indexCount, 1, currSubmesh.indexOffset, 0, 0);*/
+                drawInfo.emplace_back(std::move(sdi));
             }
             matrixIdx++;
             });
 
+        std::sort(drawInfo.begin(), drawInfo.end(), [](SubmeshDrawInfo& a, SubmeshDrawInfo& b) {
+            return a.pipeline < b.pipeline;
+            });
+
         cmdBuf->bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline);
 
-        for (auto& sdi : bfCulledObjs) {
+        SubmeshDrawInfo last;
+        last.pipeline = *pipeline;
+        for (auto& sdi : drawInfo) {
+            if (last.pipeline != sdi.pipeline) {
+                cmdBuf->bindPipeline(vk::PipelineBindPoint::eGraphics, sdi.pipeline);
+            }
+
             StandardPushConstants pushConst{ sdi.texScaleOffset, glm::ivec4(sdi.matrixIdx, sdi.materialIdx, 0, sdi.ent), glm::ivec4(pickX, pickY, 0, 0) };
             cmdBuf->pushConstants<StandardPushConstants>(*pipelineLayout, vk::ShaderStageFlagBits::eFragment | vk::ShaderStageFlagBits::eVertex, 0, pushConst);
             cmdBuf->bindVertexBuffers(0, sdi.vb, vk::DeviceSize(0));
             cmdBuf->bindIndexBuffer(sdi.ib, 0, vk::IndexType::eUint32);
             cmdBuf->drawIndexed(sdi.indexCount, 1, sdi.indexOffset, 0, 0);
+
+            last = sdi;
         }
 
         cmdBuf->bindPipeline(vk::PipelineBindPoint::eGraphics, *noBackfaceCullPipeline);
 
-        for (auto& sdi : noCullObjs) {
+        cmdBuf->bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline);
+        /*for (auto& sdi : noCullObjs) {
             StandardPushConstants pushConst{ sdi.texScaleOffset, glm::ivec4(sdi.matrixIdx, sdi.materialIdx, 0, sdi.ent), glm::ivec4(pickX, pickY, 0, 0) };
             cmdBuf->pushConstants<StandardPushConstants>(*pipelineLayout, vk::ShaderStageFlagBits::eFragment | vk::ShaderStageFlagBits::eVertex, 0, pushConst);
             cmdBuf->bindVertexBuffers(0, sdi.vb, vk::DeviceSize(0));
             cmdBuf->bindIndexBuffer(sdi.ib, 0, vk::IndexType::eUint32);
             cmdBuf->drawIndexed(sdi.indexCount, 1, sdi.indexOffset, 0, 0);
-        }
+        }*/
 
         reg.view<Transform, ProceduralObject>().each([this, &cmdBuf, &cam, &matrixIdx](auto ent, Transform& transform, ProceduralObject& obj) {
             if (!obj.visible) return;
@@ -800,7 +743,7 @@ namespace worlds {
             cmdBuf->draw(numLineVerts, 1, 0, 0);
         }
 
-        cmdBuf->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *wireframePipelineLayout, 0, *wireframeDescriptorSet, nullptr);
+        /*cmdBuf->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *wireframePipelineLayout, 0, *wireframeDescriptorSet, nullptr);
         cmdBuf->bindPipeline(vk::PipelineBindPoint::eGraphics, *wireframePipeline);
 
         for (auto& sdi : wireframeObjs) {
@@ -809,7 +752,7 @@ namespace worlds {
             cmdBuf->bindVertexBuffers(0, sdi.vb, vk::DeviceSize(0));
             cmdBuf->bindIndexBuffer(sdi.ib, 0, vk::IndexType::eUint32);
             cmdBuf->drawIndexed(sdi.indexCount, 1, sdi.indexOffset, 0, 0);
-        }
+        }*/
 
         cmdBuf->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *skyboxPipelineLayout, 0, *skyboxDs, nullptr);
         cmdBuf->bindPipeline(vk::PipelineBindPoint::eGraphics, *skyboxPipeline);

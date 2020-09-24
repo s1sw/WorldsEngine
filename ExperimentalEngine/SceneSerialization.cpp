@@ -10,6 +10,7 @@
 #include "SceneSerializationFuncs.hpp"
 
 namespace worlds {
+    std::function<void(entt::registry&)> onSceneLoad;
 
     typedef void(*LoadSceneFunc)(AssetID, PHYSFS_File*, entt::registry&, bool);
 
@@ -42,5 +43,7 @@ namespace worlds {
         idFuncs[formatId](id, file, reg, additive);
 
         PHYSFS_close(file);
+        if (onSceneLoad)
+            onSceneLoad(reg);
     }
 }

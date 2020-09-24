@@ -69,6 +69,9 @@ namespace worlds {
                 break;
             }
 
+            shape->setContactOffset(0.01f);
+            shape->setRestOffset(0.005f);
+
             pa.actor->attachShape(*shape);
         }
     }

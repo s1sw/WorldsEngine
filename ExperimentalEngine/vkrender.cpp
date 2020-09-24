@@ -48,7 +48,7 @@ struct PipelineCacheDataHeader {
     uint8_t uuid[VK_UUID_SIZE]; // equal to VkPhysicalDeviceProperties::pipelineCacheUUID
 };
 
-std::string getPipelineCachePath(vk::PhysicalDeviceProperties& physDevProps) {
+std::string getPipelineCachePath(const vk::PhysicalDeviceProperties& physDevProps) {
     char* base_path = SDL_GetPrefPath("Someone Somewhere", "Worlds Engine");
     std::string ret = base_path + std::string((char*)physDevProps.deviceName.data()) + "-pipelinecache.wplc";
 
@@ -110,7 +110,7 @@ void VKRenderer::createFramebuffers() {
     }
 }
 
-void loadPipelineCache(vk::PhysicalDeviceProperties& physDevProps, vk::PipelineCacheCreateInfo& pcci) {
+void loadPipelineCache(const vk::PhysicalDeviceProperties& physDevProps, vk::PipelineCacheCreateInfo& pcci) {
     std::string pipelineCachePath = getPipelineCachePath(physDevProps);
 
     FILE* f = fopen(pipelineCachePath.c_str(), "rb");
@@ -152,22 +152,7 @@ void loadPipelineCache(vk::PhysicalDeviceProperties& physDevProps, vk::PipelineC
     }
 }
 
-VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
-    : window(initInfo.window)
-    , frameIdx(0)
-    , lastHandle(0)
-    , polyImage(std::numeric_limits<uint32_t>::max())
-    , shadowmapImage(std::numeric_limits<uint32_t>::max())
-    , shadowmapRes(1024)
-    , enableVR(initInfo.enableVR)
-    , vrPredictAmount(0.033f)
-    , clearMaterialIndices(false)
-    , irp(nullptr)
-    , lowLatencyMode("r_lowLatency", "0", "Waits for GPU completion before starting the next frame. Has a significant impact on latency when VSync is enabled.")
-    , enablePicking(initInfo.enablePicking) {
-    msaaSamples = vk::SampleCountFlagBits::e2;
-    numMSAASamples = 2;
-
+void VKRenderer::createInstance(const RendererInitInfo& initInfo) {
     vku::InstanceMaker instanceMaker;
     instanceMaker.apiVersion(VK_API_VERSION_1_2);
     unsigned int extCount;
@@ -219,15 +204,10 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
         .engineVersion(1);
 
     this->instance = instanceMaker.createUnique();
-#ifndef NDEBUG
-    if (!enableVR || vrValidationLayers)
-        dbgCallback = vku::DebugCallback(*this->instance);
-#endif
-    auto physDevs = this->instance->enumeratePhysicalDevices();
-    // TODO: Go through physical devices and select one properly
-    this->physicalDevice = physDevs[0];
+}
 
-    auto memoryProps = this->physicalDevice.getMemoryProperties();
+void logPhysDevInfo(const vk::PhysicalDevice& physicalDevice) {
+    auto memoryProps = physicalDevice.getMemoryProperties();
 
     auto physDevProps = physicalDevice.getProperties();
     logMsg(worlds::WELogCategoryRender, "Physical device:\n");
@@ -252,16 +232,81 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     }
 
     logMsg(worlds::WELogCategoryRender, "Approx. %hu MB total accessible graphics memory (NOT VRAM!)", totalVram / 1024 / 1024);
+}
 
-    auto qprops = this->physicalDevice.getQueueFamilyProperties();
+bool checkPhysicalDeviceFeatures(const vk::PhysicalDevice& physDev) {
+    vk::PhysicalDeviceFeatures supportedFeatures = physDev.getFeatures();
+    if (!supportedFeatures.shaderStorageImageMultisample) {
+        logWarn(worlds::WELogCategoryRender, "Missing shaderStorageImageMultisample");
+        return false;
+    }
+
+    if (!supportedFeatures.fragmentStoresAndAtomics) {
+        logWarn(worlds::WELogCategoryRender, "Missing fragmentStoresAndAtomics");
+    }
+
+    if (!supportedFeatures.fillModeNonSolid) {
+        logWarn(worlds::WELogCategoryRender, "Missing fillModeNonSolid");
+        return false;
+    }
+
+    if (!supportedFeatures.wideLines) {
+        logWarn(worlds::WELogCategoryRender, "Missing wideLines");
+        return false;
+    }
+
+    return true;
+}
+
+bool isDeviceBetter(vk::PhysicalDevice a, vk::PhysicalDevice b) {
+    auto aProps = a.getProperties();
+    auto bProps = b.getProperties();
+
+    if (bProps.deviceType == vk::PhysicalDeviceType::eDiscreteGpu && aProps.deviceType == vk::PhysicalDeviceType::eIntegratedGpu) {
+        return true;
+    }
+
+    return aProps.deviceID < bProps.deviceID;
+}
+
+vk::PhysicalDevice pickPhysicalDevice(std::vector<vk::PhysicalDevice>& physicalDevices) {
+    std::sort(physicalDevices.begin(), physicalDevices.end(), isDeviceBetter);
+
+    return physicalDevices[0];
+}
+
+VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
+    : window(initInfo.window)
+    , frameIdx(0)
+    , lastHandle(0)
+    , polyImage(std::numeric_limits<uint32_t>::max())
+    , shadowmapImage(std::numeric_limits<uint32_t>::max())
+    , shadowmapRes(4096)
+    , enableVR(initInfo.enableVR)
+    , vrPredictAmount(0.033f)
+    , clearMaterialIndices(false)
+    , irp(nullptr)
+    , lowLatencyMode("r_lowLatency", "0", "Waits for GPU completion before starting the next frame. Has a significant impact on latency when VSync is enabled.")
+    , enablePicking(initInfo.enablePicking) {
+    msaaSamples = vk::SampleCountFlagBits::e4;
+    numMSAASamples = 4;
+
+    createInstance(initInfo);
+
+#ifndef NDEBUG
+    if (!enableVR || vrValidationLayers)
+        dbgCallback = vku::DebugCallback(*this->instance);
+#endif
+    auto physDevs = this->instance->enumeratePhysicalDevices();
+    physicalDevice = pickPhysicalDevice(physDevs);
+
+    logPhysDevInfo(physicalDevice);
+
+    auto qprops = physicalDevice.getQueueFamilyProperties();
     const auto badQueue = ~(uint32_t)0;
     graphicsQueueFamilyIdx = badQueue;
     computeQueueFamilyIdx = badQueue;
     vk::QueueFlags search = vk::QueueFlagBits::eGraphics | vk::QueueFlagBits::eCompute;
-
-    for (auto& qprop : qprops) {
-        logMsg(worlds::WELogCategoryRender, "Queue family with properties %s (supports present: %i)", vk::to_string(qprop.queueFlags).c_str());
-    }
 
     // Look for a queue family with both graphics and
     // compute first.
@@ -313,23 +358,9 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
         }
     }
 
-    vk::PhysicalDeviceFeatures supportedFeatures = physicalDevice.getFeatures();
-    if (!supportedFeatures.shaderStorageImageMultisample) {
+    if (!checkPhysicalDeviceFeatures(physicalDevice)) {
         *success = false;
-        logWarn(worlds::WELogCategoryRender, "Missing shaderStorageImageMultisample");
         return;
-    }
-
-    if (!supportedFeatures.fragmentStoresAndAtomics) {
-        logWarn(worlds::WELogCategoryRender, "Missing fragmentStoresAndAtomics");
-    }
-
-    if (!supportedFeatures.fillModeNonSolid) {
-        logWarn(worlds::WELogCategoryRender, "Missing fillModeNonSolid");
-    }
-
-    if (!supportedFeatures.wideLines) {
-        logWarn(worlds::WELogCategoryRender, "Missing wideLines");
     }
 
     vk::PhysicalDeviceFeatures features;
@@ -361,7 +392,7 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
 
 
     vk::PipelineCacheCreateInfo pipelineCacheInfo{};
-    loadPipelineCache(physDevProps, pipelineCacheInfo);
+    loadPipelineCache(physicalDevice.getProperties(), pipelineCacheInfo);
     pipelineCache = device->createPipelineCacheUnique(pipelineCacheInfo);
     std::free((void*)pipelineCacheInfo.pInitialData);
 
@@ -385,6 +416,12 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
 
     this->surface = surface;
     this->presentQueueFamilyIdx = findPresentQueue(this->physicalDevice, this->surface);
+
+    int qfi = 0;
+    for (auto& qprop : qprops) {
+        logMsg(worlds::WELogCategoryRender, "Queue family with properties %s (supports present: %i)", vk::to_string(qprop.queueFlags).c_str(), physicalDevice.getSurfaceSupportKHR(qfi, surface));
+        qfi++;
+    }
 
     vk::SemaphoreCreateInfo sci;
     this->imageAcquire = this->device->createSemaphoreUnique(sci);
@@ -424,9 +461,9 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     matSlots = std::make_unique<MaterialSlots>(vkCtx, *texSlots);
     cubemapSlots = std::make_unique<CubemapSlots>(vkCtx);
 
-    vk::ImageCreateInfo brdfLutIci{ vk::ImageCreateFlags{}, vk::ImageType::e2D, vk::Format::eR16G16Sfloat, vk::Extent3D{512,512,1}, 1, 1, vk::SampleCountFlagBits::e1, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eSampled,
+    vk::ImageCreateInfo brdfLutIci{ vk::ImageCreateFlags{}, vk::ImageType::e2D, vk::Format::eR16G16Sfloat, vk::Extent3D{256,256,1}, 1, 1, vk::SampleCountFlagBits::e1, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eSampled,
         vk::SharingMode::eExclusive, graphicsQueueFamilyIdx };
-    brdfLut = vku::GenericImage{ *device, memoryProps, brdfLutIci, vk::ImageViewType::e2D, vk::ImageAspectFlagBits::eColor, false, "BRDF LUT" };
+    brdfLut = vku::GenericImage{ *device, physicalDevice.getMemoryProperties(), brdfLutIci, vk::ImageViewType::e2D, vk::ImageAspectFlagBits::eColor, false, "BRDF LUT" };
 
     cubemapConvoluter = std::make_unique<CubemapConvoluter>(vkCtx);
 
@@ -462,13 +499,12 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
         cb.end();
     }
 
-    timestampPeriod = physDevProps.limits.timestampPeriod;
+    timestampPeriod = physicalDevice.getProperties().limits.timestampPeriod;
 
     vk::QueryPoolCreateInfo qpci{};
     qpci.queryType = vk::QueryType::eTimestamp;
     qpci.queryCount = 2;
     queryPool = device->createQueryPoolUnique(qpci);
-
 
     *success = true;
 #ifdef TRACY_ENABLE
@@ -755,6 +791,64 @@ void VKRenderer::acquireSwapchainImage(uint32_t* imageIdx) {
     }
 }
 
+void VKRenderer::submitToOpenVR() {
+    // Submit to SteamVR
+    vr::VRTextureBounds_t bounds;
+    bounds.uMin = 0.0f;
+    bounds.uMax = 1.0f;
+    bounds.vMin = 0.0f;
+    bounds.vMax = 1.0f;
+
+    vr::VRVulkanTextureData_t vulkanData;
+    VkImage vkImg = rtResources.at(finalPrePresent).image.image();
+    vulkanData.m_nImage = (uint64_t)vkImg;
+    vulkanData.m_pDevice = (VkDevice_T*)*device;
+    vulkanData.m_pPhysicalDevice = (VkPhysicalDevice_T*)physicalDevice;
+    vulkanData.m_pInstance = (VkInstance_T*)*instance;
+    vulkanData.m_pQueue = (VkQueue_T*)device->getQueue(graphicsQueueFamilyIdx, 0);
+    vulkanData.m_nQueueFamilyIndex = graphicsQueueFamilyIdx;
+
+    vulkanData.m_nWidth = renderWidth;
+    vulkanData.m_nHeight = renderHeight;
+    vulkanData.m_nFormat = VK_FORMAT_R8G8B8A8_UNORM;
+    vulkanData.m_nSampleCount = 1;
+
+    // Image submission with validation layers turned on causes a crash
+    // If we really want the validation layers, don't submit anything
+    if (!vrValidationLayers) {
+        vr::Texture_t texture = { &vulkanData, vr::TextureType_Vulkan, vr::ColorSpace_Auto };
+        vr::VRCompositor()->Submit(vr::Eye_Left, &texture, &bounds);
+
+        vulkanData.m_nImage = (uint64_t)(VkImage)rtResources.at(finalPrePresentR).image.image();
+        vr::VRCompositor()->Submit(vr::Eye_Right, &texture, &bounds);
+    }
+}
+
+void VKRenderer::uploadSceneAssets(entt::registry& reg, RenderCtx& rCtx) {
+    // Upload any necessary materials + meshes
+    reg.view<WorldObject>().each([this, &rCtx](auto ent, WorldObject& wo) {
+        for (int i = 0; i < NUM_SUBMESH_MATS; i++) {
+            if (!wo.presentMaterials[i]) continue;
+
+            if (wo.materialIdx[i] == ~0u) {
+                rCtx.reuploadMats = true;
+                wo.materialIdx[i] = matSlots->loadOrGet(wo.materials[i]);
+            }
+        }
+
+        if (loadedMeshes.find(wo.mesh) == loadedMeshes.end()) {
+            preloadMesh(wo.mesh);
+        }
+        });
+
+    reg.view<ProceduralObject>().each([this, &rCtx](auto ent, ProceduralObject& po) {
+        if (po.materialIdx == ~0u) {
+            rCtx.reuploadMats = true;
+            po.materialIdx = matSlots->loadOrGet(po.material);
+        }
+        });
+}
+
 bool lowLatencyLast = false;
 
 void VKRenderer::frame(Camera& cam, entt::registry& reg) {
@@ -837,29 +931,7 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
 
     PassSetupCtx psc{ physicalDevice, *device, *pipelineCache, *descriptorPool, *commandPool, *instance, allocator, graphicsQueueFamilyIdx, GraphicsSettings{numMSAASamples, (int32_t)shadowmapRes, enableVR}, &texSlots, &cubemapSlots, &matSlots, rtResources, (int)swapchain->images.size(), enableVR, &brdfLut };
 
-    // Upload any necessary materials + meshes
-    reg.view<WorldObject>().each([this, &rCtx](auto ent, WorldObject& wo) {
-        for (int i = 0; i < NUM_SUBMESH_MATS; i++) {
-            if (!wo.presentMaterials[i]) continue;
-
-            if (wo.materialIdx[i] == ~0u) {
-                rCtx.reuploadMats = true;
-                wo.materialIdx[i] = matSlots->loadOrGet(wo.materials[i]);
-            }
-        }
-
-        if (loadedMeshes.find(wo.mesh) == loadedMeshes.end()) {
-            preloadMesh(wo.mesh);
-        }
-        });
-
-    reg.view<ProceduralObject>().each([this, &rCtx](auto ent, ProceduralObject& po) {
-        if (po.materialIdx == ~0u) {
-            rCtx.reuploadMats = true;
-            po.materialIdx = matSlots->loadOrGet(po.material);
-        }
-        });
-
+    uploadSceneAssets(reg, rCtx);
 
     for (auto& node : solvedNodes) {
         node->prePass(psc, rCtx);
@@ -893,8 +965,6 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
             vk::PipelineStageFlagBits::eComputeShader, vk::PipelineStageFlagBits::eTransfer,
             vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eTransferRead);
     }
-
-    
 
     if (!enableVR) {
         vk::ImageBlit imageBlit;
@@ -987,36 +1057,7 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
     TracyMessageL("Queue submitted");
 
     if (enableVR) {
-        // Submit to SteamVR
-        vr::VRTextureBounds_t bounds;
-        bounds.uMin = 0.0f;
-        bounds.uMax = 1.0f;
-        bounds.vMin = 0.0f;
-        bounds.vMax = 1.0f;
-
-        vr::VRVulkanTextureData_t vulkanData;
-        VkImage vkImg = rtResources.at(finalPrePresent).image.image();
-        vulkanData.m_nImage = (uint64_t)vkImg;
-        vulkanData.m_pDevice = (VkDevice_T*)*device;
-        vulkanData.m_pPhysicalDevice = (VkPhysicalDevice_T*)physicalDevice;
-        vulkanData.m_pInstance = (VkInstance_T*)*instance;
-        vulkanData.m_pQueue = (VkQueue_T*)device->getQueue(graphicsQueueFamilyIdx, 0);
-        vulkanData.m_nQueueFamilyIndex = graphicsQueueFamilyIdx;
-
-        vulkanData.m_nWidth = renderWidth;
-        vulkanData.m_nHeight = renderHeight;
-        vulkanData.m_nFormat = VK_FORMAT_R8G8B8A8_UNORM;
-        vulkanData.m_nSampleCount = 1;
-
-        // Image submission with validation layers turned on causes a crash
-        // If we really want the validation layers, don't submit anything
-        if (!vrValidationLayers) {
-            vr::Texture_t texture = { &vulkanData, vr::TextureType_Vulkan, vr::ColorSpace_Auto };
-            vr::VRCompositor()->Submit(vr::Eye_Left, &texture, &bounds);
-
-            vulkanData.m_nImage = (uint64_t)(VkImage)rtResources.at(finalPrePresentR).image.image();
-            vr::VRCompositor()->Submit(vr::Eye_Right, &texture, &bounds);
-        }
+        submitToOpenVR();
     }
 
     vk::PresentInfoKHR presentInfo;
@@ -1085,8 +1126,6 @@ void VKRenderer::preloadMesh(AssetID id) {
         std::string vvdPath = mdlPath.parent_path().string() + "/" + mdlPath.stem().string();
         vvdPath += ".vvd";
 
-        logMsg("vtxPath: %s, vvdPath: %s", vtxPath.c_str(), vtxPath.c_str());
-
         AssetID vtxId = g_assetDB.addOrGetExisting(vtxPath);
         AssetID vvdId = g_assetDB.addOrGetExisting(vvdPath);
         loadSourceModel(id, vtxId, vvdId, vertices, indices, lmd);
@@ -1103,7 +1142,6 @@ void VKRenderer::preloadMesh(AssetID id) {
     logMsg(WELogCategoryRender, "Loaded mesh %u, %u verts", id, (uint32_t)vertices.size());
 
     loadedMeshes.insert({ id, std::move(lmd) });
-
 }
 
 void VKRenderer::uploadProcObj(ProceduralObject& procObj) {
@@ -1144,8 +1182,14 @@ void VKRenderer::unloadUnusedMaterials(entt::registry& reg) {
             if (!wo.presentMaterials[i]) continue;
             materialReferenced[wo.materialIdx[i]] = true;
 
-            uint32_t albedoIdx = (uint32_t)((*matSlots)[wo.materialIdx[i]].pack0.z);
+            uint32_t albedoIdx = (uint32_t)((*matSlots)[wo.materialIdx[i]].albedoTexIdx);
             textureReferenced[albedoIdx] = true;
+
+            int normalTex = (*matSlots)[wo.materialIdx[i]].normalTexIdx;
+
+            if (normalTex > -1) {
+                textureReferenced[normalTex] = true;
+            }
         }
         });
 
@@ -1192,34 +1236,35 @@ void VKRenderer::reloadMatsAndTextures() {
     loadedMeshes.clear();
 }
 
+void VKRenderer::serializePipelineCache() {
+    auto dat = device->getPipelineCacheData(*pipelineCache);
+    auto physDevProps = physicalDevice.getProperties();
+
+    PipelineCacheDataHeader pipelineCacheHeader{};
+    pipelineCacheHeader.dataSize = dat.size();
+    pipelineCacheHeader.vendorID = physDevProps.vendorID;
+    pipelineCacheHeader.deviceID = physDevProps.deviceID;
+    pipelineCacheHeader.driverVersion = physDevProps.driverVersion;
+    memcpy(pipelineCacheHeader.uuid, physDevProps.pipelineCacheUUID.data(), VK_UUID_SIZE);
+
+    char* base_path = SDL_GetPrefPath("Void Productions", "Worlds Engine");
+    std::string pipelineCachePath = getPipelineCachePath(physDevProps);
+    FILE* f = fopen(pipelineCachePath.c_str(), "wb");
+    fwrite(&pipelineCacheHeader, sizeof(pipelineCacheHeader), 1, f);
+
+    fwrite(dat.data(), dat.size(), 1, f);
+    fclose(f);
+
+    logMsg(WELogCategoryRender, "Saved pipeline cache to %s", pipelineCachePath.c_str());
+}
+
 VKRenderer::~VKRenderer() {
-    if (this->device) {
-        // serialize pipeline cache
-        auto dat = device->getPipelineCacheData(*pipelineCache);
-        auto physDevProps = physicalDevice.getProperties();
-
-        PipelineCacheDataHeader pipelineCacheHeader{};
-        pipelineCacheHeader.dataSize = dat.size();
-        pipelineCacheHeader.vendorID = physDevProps.vendorID;
-        pipelineCacheHeader.deviceID = physDevProps.deviceID;
-        pipelineCacheHeader.driverVersion = physDevProps.driverVersion;
-        memcpy(pipelineCacheHeader.uuid, physDevProps.pipelineCacheUUID.data(), VK_UUID_SIZE);
-
-        char* base_path = SDL_GetPrefPath("Someone Somewhere", "Worlds Engine");
-        std::string pipelineCachePath = getPipelineCachePath(physDevProps);
-        FILE* f = fopen(pipelineCachePath.c_str(), "wb");
-        fwrite(&pipelineCacheHeader, sizeof(pipelineCacheHeader), 1, f);
-
-        fwrite(dat.data(), dat.size(), 1, f);
-        fclose(f);
-
-        logMsg(WELogCategoryRender, "Saved pipeline cache to %s", pipelineCachePath.c_str());
-
-        this->device->waitIdle();
-        // Some stuff has to be manually destroyed
+    if (device) {
+        device->waitIdle();
+        serializePipelineCache();
 
         for (auto& semaphore : this->cmdBufferSemaphores) {
-            this->device->destroySemaphore(semaphore);
+            device->destroySemaphore(semaphore);
         }
 
         graphSolver.clear();

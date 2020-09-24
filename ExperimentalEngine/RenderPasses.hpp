@@ -16,7 +16,6 @@ namespace worlds {
 
         vk::UniquePipeline wireframePipeline;
         vk::UniquePipelineLayout wireframePipelineLayout;
-        vk::UniqueDescriptorSetLayout wireframeDsl;
 
         vk::UniquePipeline linePipeline;
         vk::UniquePipelineLayout linePipelineLayout;
@@ -53,7 +52,6 @@ namespace worlds {
 
         vk::UniqueFramebuffer renderFb;
         vk::UniqueDescriptorSet descriptorSet;
-        vk::UniqueDescriptorSet wireframeDescriptorSet;
 
         RenderImageHandle depthStencilImage;
         RenderImageHandle polyImage;

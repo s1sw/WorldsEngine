@@ -144,7 +144,7 @@ namespace worlds {
             uint32_t oldEntId;
             PHYSFS_readULE32(file, &oldEntId);
 
-            auto newEnt = reg.create();
+            auto newEnt = reg.create((entt::entity)oldEntId);
 
             unsigned char compBitfield = 0;
             PHYSFS_readBytes(file, &compBitfield, sizeof(compBitfield));
@@ -259,7 +259,7 @@ namespace worlds {
             uint32_t oldEntId;
             PHYSFS_readULE32(file, &oldEntId);
 
-            auto newEnt = reg.create();
+            auto newEnt = reg.create((entt::entity)oldEntId);
 
             unsigned char compBitfield = 0;
             PHYSFS_readBytes(file, &compBitfield, sizeof(compBitfield));

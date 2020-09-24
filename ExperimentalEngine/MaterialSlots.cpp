@@ -37,16 +37,20 @@ namespace worlds {
         auto albedoColorIdx = root.find_object_key(sajson::string("albedoColor", 11));
         auto normalMapIdx = root.find_object_key(sajson::string("normalMapPath", 13));
         auto alphaCutoffIdx = root.find_object_key(sajson::string("alphaCutoff", 11));
+        auto fresnelReductionIdx = root.find_object_key(sajson::string("fresnelReduction", 16));
 
         auto albedoPath = root.get_object_value(albedoPathIdx).as_string();
         std::string normalMapPath;
         float alphaCutoff = 0.0f;
         if (normalMapIdx != root.get_length())
             normalMapPath = root.get_object_value(normalMapIdx).as_string();
+
         if (alphaCutoffIdx != root.get_length())
             alphaCutoff = root.get_object_value(alphaCutoffIdx).get_double_value();
-        float metallic = (float)root.get_object_value(metallicIdx).get_double_value();
-        float roughness = (float)root.get_object_value(roughnessIdx).get_double_value();
+        mat.alphaCutoff = alphaCutoff;
+
+        mat.metallic = (float)root.get_object_value(metallicIdx).get_double_value();
+        mat.roughness = (float)root.get_object_value(roughnessIdx).get_double_value();
         const auto& albedoColorArr = root.get_object_value(albedoColorIdx);
 
         glm::vec3 albedoColor{
@@ -54,6 +58,8 @@ namespace worlds {
             albedoColorArr.get_array_element(1).get_double_value(),
             albedoColorArr.get_array_element(2).get_double_value()
         };
+
+        mat.albedoColor = albedoColor;
 
         auto albedoAssetId = g_assetDB.addOrGetExisting(albedoPath);
 
@@ -64,8 +70,13 @@ namespace worlds {
             nMapSlot = nMapSlotU;
         }
 
-        mat.pack0 = glm::vec4(metallic, roughness, texSlots.loadOrGet(albedoAssetId), nMapSlot);
-        mat.pack1 = glm::vec4(albedoColor, alphaCutoff);
+        mat.albedoTexIdx = texSlots.loadOrGet(albedoAssetId);
+        mat.normalTexIdx = nMapSlot;
+
+        if (fresnelReductionIdx == root.get_length())
+            mat.fresnelHackFactor = 1.0f;
+        else
+            mat.fresnelHackFactor = root.get_object_value(fresnelReductionIdx).get_double_value();
         
         auto bfCullOffIdx = root.find_object_key(sajson::string("cullOff", 7));
 

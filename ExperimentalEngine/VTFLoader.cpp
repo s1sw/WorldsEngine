@@ -109,38 +109,24 @@ namespace worlds {
 
     TextureData loadVtfTexture(void* fileData, size_t fileLen, AssetID id) {
         VTFHeader* header = (VTFHeader*)fileData;
-        std::cout << "Source Texture Loader\n";
-        std::cout << "=====================\n";
-        std::cout << "Loading " << g_assetDB.getAssetPath(id) << "\n";
-        std::cout << header->signature << "\n";
-        std::cout << "Version: " << header->version[0] << "." << header->version[1] << "\n";
-        std::cout << "Size: " << header->width << "x" << header->height << "\n";
-        std::cout << (int)header->mipmapCount << " mips\n";
-        std::cout << "Header Size: " << header->headerSize << "\n";
-        std::cout << "Low-res Format: " << header->lowResImageFormat << "\n";
-        std::cout << "Low-res resolution: " << (int)header->lowResImageWidth << "x" << (int)header->lowResImageHeight << "\n";
-        std::cout << "High-res Format: " << header->highResImageFormat << "\n";
+
+        logMsg("Source texture loader: texture %s, version %i.%i (%ix%i)", g_assetDB.getAssetPath(id).c_str(), header->version[0], header->version[1], header->width, header->height);
 
 
-        // The structure of files after v7.3 is fundamentally different
+        // The structure of files after v7.3 is fundamentally different (introduces "resources")
+        // However, I haven't come across any v7.3 files in the wild yet.
         if (header->version[1] == 2) {
-            // I have no idea why the header size is multiplied by 3 here but that's how I got it to work
-            byte* dataStart = (byte*)fileData + (80) + getDataSize(16, 16, IMAGE_FORMAT_DXT1);
+            // Skip header + low resolution image
+            byte* dataStart = (byte*)fileData + header->headerSize + getDataSize(16, 16, IMAGE_FORMAT_DXT1);
 
-            /*if (header->highResImageFormat == IMAGE_FORMAT_DXT5)
-                dataStart += 16;
-            else if (header->highResImageFormat == IMAGE_FORMAT_DXT1)
-                dataStart += 8;*/
-
-            // Skip low resolution
-            //dataStart += (header->lowResImageWidth * header->lowResImageHeight * 4) / 8;
-
+            // Calculate data size for root mip
             uint32_t totalDataSize = getDataSize(header->width, header->height, (VTFFormat)header->highResImageFormat);
-            std::cout << "totalDataSize w/o mips: " << totalDataSize << "\n";
+
+            // Add other mips...
             for (int i = header->mipmapCount - 1; i > 0; i--)
                 totalDataSize += getDataSize(header->width, header->height, (VTFFormat)header->highResImageFormat, i);
-            std::cout << "totalDataSize with mips: " << totalDataSize << "\n";
 
+            // Allocate + copy texture data
             void* allTexData = std::malloc(totalDataSize);
             for (int mip = header->mipmapCount - 1; mip >= 0; mip--) {
                 byte* currentTexDataPtr = (byte*)allTexData + totalDataSize;

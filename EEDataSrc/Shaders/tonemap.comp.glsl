@@ -27,7 +27,7 @@ vec3 InverseTonemap(vec3 x) {
 vec3 tonemapCol(vec3 col, vec3 whiteScale) {
 	col *= 16.0;
 	
-	float exposureBias = 0.75;
+	float exposureBias = 0.3;
 	vec3 curr = Uncharted2Tonemap(exposureBias * col);
 
 	return pow(curr * whiteScale, vec3(1/2.2));

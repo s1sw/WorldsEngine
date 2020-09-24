@@ -10,6 +10,7 @@ namespace converge {
         void preSimUpdate(entt::registry& registry, float deltaTime) override;
         void update(entt::registry& registry, float deltaTime, float interpAlpha) override;
         void simulate(entt::registry& registry, float simStep) override;
+        void onSceneStart(entt::registry& reg);
         void shutdown(entt::registry& registry);
     private:
         worlds::IVRInterface* vrInterface;

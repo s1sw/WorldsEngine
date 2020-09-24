@@ -355,6 +355,10 @@ namespace worlds {
         void presentNothing(uint32_t imageIndex);
         vku::ShaderModule loadShaderAsset(AssetID id);
         void acquireSwapchainImage(uint32_t* imageIdx);
+        void createInstance(const RendererInitInfo& initInfo);
+        void serializePipelineCache();
+        void submitToOpenVR();
+        void uploadSceneAssets(entt::registry& reg, RenderCtx& rCtx);
 
         std::unordered_map<AssetID, LoadedMeshData> loadedMeshes;
         int frameIdx;
@@ -391,10 +395,10 @@ namespace worlds {
         void unloadUnusedMaterials(entt::registry& reg);
         void reloadMatsAndTextures();
         bool getPickedEnt(entt::entity* entOut);
-        inline float getLastRenderTime() const { return lastRenderTimeTicks * timestampPeriod; }
+        float getLastRenderTime() const { return lastRenderTimeTicks * timestampPeriod; }
         void setVRPredictAmount(float amt) { vrPredictAmount = amt; }
         void setVsync(bool vsync) { if (useVsync != vsync) { useVsync = vsync; recreateSwapchain(); } }
-        bool getVsync() { return useVsync; }
+        bool getVsync() const { return useVsync; }
 
         ~VKRenderer();
     };

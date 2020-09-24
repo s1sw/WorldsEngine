@@ -273,6 +273,7 @@ namespace worlds {
         REGISTER_COMPONENT_TYPE(DynamicPhysicsActor, "DynamicPhysicsActor", true, editDynamicPhysicsActor, createDynamicPhysicsActor, cloneDynamicPhysicsActor);
         pauseSim = true;
         defaultMaterial = g_physics->createMaterial(0.5f, 0.5f, 0.1f);
+        g_console->executeCommandStr("sim_disableInterp 1");
     }
 
 #undef REGISTER_COMPONENT_TYPE

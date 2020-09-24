@@ -12,7 +12,7 @@ layout(binding = 0) uniform MultiVP {
 	vec4 viewPos[8];
 };
 
-layout(std140, binding = 1) uniform ModelMatrices {
+layout(std140, binding = 3) uniform ModelMatrices {
 	mat4 modelMatrices[1024];
 };
 

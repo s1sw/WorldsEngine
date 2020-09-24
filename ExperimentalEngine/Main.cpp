@@ -52,7 +52,7 @@ namespace worlds {
     int workerThreadOverride = -1;
     bool enableXR = false;
     bool enableOpenVR = false;
-    bool runAsEditor = true;
+    bool runAsEditor = false;
     bool pauseSim = false;
     glm::ivec2 windowSize;
     SceneInfo currentScene;
@@ -64,6 +64,9 @@ namespace worlds {
 
         presenceUpdateTimer = SDL_AddTimer(1000, [](uint32_t interval, void*) {
             std::string state = ((runAsEditor ? "Editing " : "On ") + currentScene.name);
+#ifndef NDEBUG
+            state += "(DEVELOPMENT BUILD)";
+#endif
             DiscordRichPresence richPresence;
             memset(&richPresence, 0, sizeof(richPresence));
             richPresence.state = state.c_str();
@@ -232,6 +235,8 @@ namespace worlds {
 
     std::unordered_map<entt::entity, physx::PxTransform> currentState;
     std::unordered_map<entt::entity, physx::PxTransform> previousState;
+    extern std::function<void(entt::registry&)> onSceneLoad;
+
     void engine(char* argv0) {
         ZoneScoped;
         // Initialisation Stuffs
@@ -416,18 +421,16 @@ namespace worlds {
                 .inputManager = &inputManager
             };
             evtHandler->init(registry, interfaces);
+            evtHandler->onSceneStart(registry);
         }
 
         bool firstFrame = true;
 
-        /*PHYSFS_File* file = g_assetDB.openAssetFileRead(g_assetDB.addOrGetExisting("torso.vtf"));
-        size_t fileLen = PHYSFS_fileLength(file);
-        std::vector<uint8_t> fileVec(fileLen);
-
-        PHYSFS_readBytes(file, fileVec.data(), fileLen);
-        PHYSFS_close(file);
-
-        loadVtfTexture(fileVec.data(), fileLen, g_assetDB.addOrGetExisting("torso.vtf"));*/
+        onSceneLoad = [](entt::registry& reg) {
+            if (evtHandler && !runAsEditor) {
+                evtHandler->onSceneStart(reg);
+            }
+        };
 
         while (running) {
             uint64_t now = SDL_GetPerformanceCounter();
@@ -476,13 +479,16 @@ namespace worlds {
             double simTime = 0.0;
             if (!pauseSim) {
                 PerfTimer perfTimer;
-                /*registry.view<DynamicPhysicsActor, Transform>().each([](auto ent, DynamicPhysicsActor& dpa, Transform& transform) {
-                    auto curr = dpa.actor->getGlobalPose();
-                    if (curr.p != glm2px(transform.position) || curr.q != glm2px(transform.rotation)) {
-                        physx::PxTransform pt(glm2px(transform.position), glm2px(transform.rotation));
-                        dpa.actor->setGlobalPose(pt);
-                    }
-                    });*/
+                if (lockSimToRefresh.getInt() || disableSimInterp.getInt()) {
+                    registry.view<DynamicPhysicsActor, Transform>().each([](auto ent, DynamicPhysicsActor& dpa, Transform& transform) {
+                        auto curr = dpa.actor->getGlobalPose();
+
+                        if (curr.p != glm2px(transform.position) || curr.q != glm2px(transform.rotation)) {
+                            physx::PxTransform pt(glm2px(transform.position), glm2px(transform.rotation));
+                            dpa.actor->setGlobalPose(pt);
+                        }
+                        });
+                }
 
                     //if (runAsEditor) 
                 {

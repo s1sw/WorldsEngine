@@ -102,13 +102,13 @@ namespace worlds {
         g_console->conVars.insert({ nameLower, this });
 
         parsedInt = std::atoi(value.c_str());
-        parsedFloat = std::atof(value.c_str());
+        parsedFloat = (float)std::atof(value.c_str());
     }
 
     void ConVar::setValue(std::string value) {
         this->value = value;
         parsedInt = std::atoi(value.c_str());
-        parsedFloat = std::atof(value.c_str());
+        parsedFloat = (float)std::atof(value.c_str());
     }
 
     ConVar::~ConVar() {
@@ -214,7 +214,7 @@ namespace worlds {
 
                 if (currMsgIdx == msgs.size() - 1 && msgs.size() != lastMsgCount) {
                     ImGui::SetScrollHereY();
-                    lastMsgCount = msgs.size();
+                    lastMsgCount = (int)msgs.size();
                 }
 
                 currMsgIdx++;
