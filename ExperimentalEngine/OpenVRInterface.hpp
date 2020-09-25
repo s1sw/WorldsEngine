@@ -130,7 +130,6 @@ namespace worlds {
         }
 
         bool getHandTransform(vr::ETrackedControllerRole role, Transform& t) {
-            auto idx = system->GetTrackedDeviceIndexForControllerRole(role);
             vr::InputPoseActionData_t pose;
 
             auto retVal = vr::VRInput()->GetPoseActionDataForNextFrame(role == vr::TrackedControllerRole_LeftHand ? leftHand : rightHand, vr::TrackingUniverseStanding, &pose, sizeof(pose), vr::k_ulInvalidInputValueHandle);

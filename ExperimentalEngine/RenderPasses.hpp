@@ -72,7 +72,7 @@ namespace worlds {
         RenderPassIO getIO() override;
         void setup(PassSetupCtx& ctx) override;
         void prePass(PassSetupCtx& ctx, RenderCtx& rCtx) override;
-        void execute(RenderCtx& ctx);
+        void execute(RenderCtx& ctx) override;
         void requestEntityPick();
         bool getPickedEnt(uint32_t* out);
         void lateUpdateVP(glm::mat4 views[2], glm::vec3 viewPos[2], vk::Device dev);
@@ -95,7 +95,7 @@ namespace worlds {
         ShadowmapRenderPass(RenderImageHandle shadowImage);
         RenderPassIO getIO() override;
         void setup(PassSetupCtx& ctx) override;
-        void execute(RenderCtx& ctx);
+        void execute(RenderCtx& ctx) override;
         virtual ~ShadowmapRenderPass() {}
     };
 

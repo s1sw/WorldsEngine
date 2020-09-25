@@ -9,9 +9,9 @@ struct Camera {
 	Camera() 
 		: position(0.0f)
 		, rotation()
-		, verticalFOV(1.25f)
 		, near(0.01f)
-		, far(2500.0f) {
+		, far(2500.0f)
+		, verticalFOV(1.25f) {
 	}
 	glm::vec3 position;
 	glm::quat rotation;

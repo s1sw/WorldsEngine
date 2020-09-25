@@ -16,8 +16,8 @@ namespace worlds {
             volume(1.0f),
             isPlaying(false),
             loop(false),
-            spatialise(true),
             playOnSceneOpen(true),
+            spatialise(true),
             channel(MixerChannel::SFX) {
         }
 

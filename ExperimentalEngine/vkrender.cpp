@@ -130,6 +130,8 @@ void loadPipelineCache(const vk::PhysicalDeviceProperties& physDevProps, vk::Pip
             cacheDataHeader.vendorID != physDevProps.vendorID) {
             logErr(WELogCategoryRender, "Error while loading pipeline cache: device properties didn't match");
             fclose(f);
+            pcci.pInitialData = nullptr;
+            pcci.initialDataSize = 0;
             return;
         }
 
@@ -396,7 +398,6 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     pipelineCache = device->createPipelineCacheUnique(pipelineCacheInfo);
     std::free((void*)pipelineCacheInfo.pInitialData);
 
-
     std::vector<vk::DescriptorPoolSize> poolSizes;
     poolSizes.emplace_back(vk::DescriptorType::eUniformBuffer, 1024);
     poolSizes.emplace_back(vk::DescriptorType::eCombinedImageSampler, 1024);
@@ -541,8 +542,6 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
 // there are in the swap chain or the swapchain itself, so they need to be
 // recreated whenever the swap chain changes.
 void VKRenderer::createSCDependents() {
-    auto memoryProps = physicalDevice.getMemoryProperties();
-
     if (rtResources.count(polyImage) != 0) {
         rtResources.erase(polyImage);
     }
@@ -968,8 +967,8 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
 
     if (!enableVR) {
         vk::ImageBlit imageBlit;
-        imageBlit.srcOffsets[1] = imageBlit.dstOffsets[1] = { (int)width, (int)height, 1 };
-        imageBlit.dstSubresource = imageBlit.srcSubresource = { vk::ImageAspectFlagBits::eColor, 0, 0, 1 };
+        imageBlit.srcOffsets[1] = imageBlit.dstOffsets[1] = vk::Offset3D { (int)width, (int)height, 1 };
+        imageBlit.dstSubresource = imageBlit.srcSubresource = vk::ImageSubresourceLayers { vk::ImageAspectFlagBits::eColor, 0, 0, 1 };
         cmdBuf->blitImage(
             rtResources.at(finalPrePresent).image.image(), vk::ImageLayout::eTransferSrcOptimal,
             swapchain->images[imageIndex], vk::ImageLayout::eTransferDstOptimal,

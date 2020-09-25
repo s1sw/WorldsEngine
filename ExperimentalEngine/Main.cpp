@@ -52,7 +52,7 @@ namespace worlds {
     int workerThreadOverride = -1;
     bool enableXR = false;
     bool enableOpenVR = false;
-    bool runAsEditor = false;
+    bool runAsEditor = true;
     bool pauseSim = false;
     glm::ivec2 windowSize;
     SceneInfo currentScene;
@@ -376,7 +376,7 @@ namespace worlds {
         AssetID monkeyId = g_assetDB.addOrGetExisting("monk.obj");
         renderer->preloadMesh(modelId);
         renderer->preloadMesh(monkeyId);
-        entt::entity boxEnt = createModelObject(registry, glm::vec3(0.0f, -2.0f, 0.0f), glm::quat(), modelId, grassMatId, glm::vec3(5.0f, 1.0f, 5.0f));
+        createModelObject(registry, glm::vec3(0.0f, -2.0f, 0.0f), glm::quat(), modelId, grassMatId, glm::vec3(5.0f, 1.0f, 5.0f));
 
         createModelObject(registry, glm::vec3(0.0f, 0.0f, 0.0f), glm::quat(), monkeyId, devMatId);
 
@@ -397,8 +397,6 @@ namespace worlds {
 
         if (!runAsEditor)
             pauseSim = false;
-
-        float vrPredictAmount = 0.0f;
 
         initRichPresence();
 
@@ -423,8 +421,6 @@ namespace worlds {
             evtHandler->init(registry, interfaces);
             evtHandler->onSceneStart(registry);
         }
-
-        bool firstFrame = true;
 
         onSceneLoad = [](entt::registry& reg) {
             if (evtHandler && !runAsEditor) {
@@ -622,8 +618,6 @@ namespace worlds {
 
             if (enableOpenVR) {
                 auto pVRSystem = vr::VRSystem();
-                float vsyncToPhoton = pVRSystem->GetFloatTrackedDeviceProperty(vr::k_unTrackedDeviceIndex_Hmd,
-                    vr::Prop_SecondsFromVsyncToPhotons_Float);
 
                 float fSecondsSinceLastVsync;
                 pVRSystem->GetTimeSinceLastVsync(&fSecondsSinceLastVsync, NULL);
@@ -655,13 +649,13 @@ namespace worlds {
             registry.sort<ProceduralObject>([&registry, &camPos](entt::entity a, entt::entity b) {
                 auto& aTransform = registry.get<Transform>(a);
                 auto& bTransform = registry.get<Transform>(b);
-                return glm::distance2(camPos, aTransform.position) < glm::distance2(camPos, aTransform.position);
+                return glm::distance2(camPos, aTransform.position) < glm::distance2(camPos, bTransform.position);
                 }, entt::insertion_sort{});
 
             registry.sort<WorldObject>([&registry, &camPos](entt::entity a, entt::entity b) {
                 auto& aTransform = registry.get<Transform>(a);
                 auto& bTransform = registry.get<Transform>(b);
-                return glm::distance2(camPos, aTransform.position) < glm::distance2(camPos, aTransform.position) || registry.has<UseWireframe>(a);
+                return glm::distance2(camPos, aTransform.position) < glm::distance2(camPos, bTransform.position) || registry.has<UseWireframe>(a);
                 }, entt::insertion_sort{});
 
             ImGui::UpdatePlatformWindows();
@@ -678,7 +672,7 @@ namespace worlds {
 
         if (evtHandler != nullptr && !runAsEditor)
             evtHandler->shutdown(registry);
-        auto procObjView = registry.view<ProceduralObject>();
+
         registry.clear();
         shutdownRichPresence();
         delete renderer;

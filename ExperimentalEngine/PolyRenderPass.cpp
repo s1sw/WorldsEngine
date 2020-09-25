@@ -261,6 +261,7 @@ namespace worlds {
         AssetID fsID = g_assetDB.addOrGetExisting("Shaders/standard.frag.spv");
         vertexShader = vku::loadShaderAsset(ctx.device, vsID);
         fragmentShader = vku::loadShaderAsset(ctx.device, fsID);
+        
         {
             vku::PipelineMaker pm{ extent.width, extent.height };
 
@@ -287,7 +288,7 @@ namespace worlds {
             pmsci.rasterizationSamples = (vk::SampleCountFlagBits)ctx.graphicsSettings.msaaLevel;
             pmsci.alphaToCoverageEnable = true;
             pm.multisampleState(pmsci);
-            this->pipeline = pm.createUnique(ctx.device, ctx.pipelineCache, *pipelineLayout, *renderPass);
+            pipeline = pm.createUnique(ctx.device, ctx.pipelineCache, *pipelineLayout, *renderPass);
         }
 
         {
@@ -316,7 +317,7 @@ namespace worlds {
             pmsci.rasterizationSamples = (vk::SampleCountFlagBits)ctx.graphicsSettings.msaaLevel;
             pmsci.alphaToCoverageEnable = true;
             pm.multisampleState(pmsci);
-            this->noBackfaceCullPipeline = pm.createUnique(ctx.device, ctx.pipelineCache, *pipelineLayout, *renderPass);
+            noBackfaceCullPipeline = pm.createUnique(ctx.device, ctx.pipelineCache, *pipelineLayout, *renderPass);
         }
 
         {

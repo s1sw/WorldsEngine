@@ -31,9 +31,10 @@ const int NUM_JOB_SLOTS = 1;
 
 class JobList{
 public:
-	JobList() : completed(true),
+	JobList() :
 		startJobCount(0),
-		completedJobs(0) {
+		completedJobs(0),
+		completed(true) {
 
 	}
 

@@ -31,7 +31,7 @@ namespace worlds {
             return ~0u;
         }
     public:
-        ResourceSlots() : present(), slots() {
+        ResourceSlots() : slots(), present() {
 
         }
 
@@ -65,7 +65,7 @@ namespace worlds {
             present[slot] = true;
 
             auto texData = loadTexData(asset);
-            if (cb != VK_NULL_HANDLE)
+            if (!cb)
                 slots[slot] = uploadTextureVk(*vkCtx, texData, cb, imageIndex);
             else
                 slots[slot] = uploadTextureVk(*vkCtx, texData);
@@ -89,7 +89,7 @@ namespace worlds {
             this->imageIndex = imageIndex;
         }
 
-        void unload(int idx) {
+        void unload(int idx) override {
             present[idx] = false;
             slots[idx] = vku::TextureImage2D{};
             lookup.erase(reverseLookup.at(idx));
@@ -120,7 +120,7 @@ namespace worlds {
 
         }
 
-        void unload(int idx) {
+        void unload(int idx) override {
             present[idx] = false;
             lookup.erase(reverseLookup.at(idx));
             reverseLookup.erase(idx);
@@ -139,7 +139,7 @@ namespace worlds {
             present[slot] = true;
 
             auto cubemapData = loadCubemapData(asset);
-            if (cb == VK_NULL_HANDLE)
+            if (!cb)
                 slots[slot] = uploadCubemapVk(*vkCtx, cubemapData);
             else
                 slots[slot] = uploadCubemapVk(*vkCtx, cubemapData, cb, imageIndex);
@@ -159,7 +159,7 @@ namespace worlds {
             this->imageIndex = imageIndex;
         }
 
-        CubemapSlots(std::shared_ptr<VulkanCtx> vkCtx) : vkCtx(vkCtx) {
+        CubemapSlots(std::shared_ptr<VulkanCtx> vkCtx) : vkCtx(vkCtx), imageIndex(0) {
 
         }
 

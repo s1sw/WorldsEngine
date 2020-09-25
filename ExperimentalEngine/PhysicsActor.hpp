@@ -19,7 +19,7 @@ namespace worlds {
 
         type = newType;
 
-        return newType;
+        return type;
     }
 
     struct PhysicsShape {

@@ -172,12 +172,12 @@ namespace worlds {
             , reg(reg)
             , imageIndex(imageIndex)
             , cam(cam)
+            , reuploadMats(false)
             , rtResources(rtResources)
+            , loadedMeshes(loadedMeshes)
             , width(width)
             , height(height)
-            , loadedMeshes(loadedMeshes)
-            , enableVR(false)
-            , reuploadMats(false) {
+            , enableVR(false) {
         }
 
         vk::UniqueCommandBuffer& cmdBuf;

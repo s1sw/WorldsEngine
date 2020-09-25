@@ -101,14 +101,14 @@ namespace worlds {
             c = std::tolower(c);
         g_console->conVars.insert({ nameLower, this });
 
-        parsedInt = std::atoi(value.c_str());
-        parsedFloat = (float)std::atof(value.c_str());
+        parsedInt = std::stoi(value);
+        parsedFloat = (float)std::stof(value);
     }
 
     void ConVar::setValue(std::string value) {
         this->value = value;
-        parsedInt = std::atoi(value.c_str());
-        parsedFloat = (float)std::atof(value.c_str());
+        parsedInt = std::stoi(value);
+        parsedFloat = (float)std::stof(value);
     }
 
     ConVar::~ConVar() {

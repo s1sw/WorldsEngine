@@ -313,9 +313,9 @@ namespace vku {
         case vk::Format::ePvrtc12BppSrgbBlockIMG: return BlockParams{ 0, 0, 0 };
         case vk::Format::ePvrtc14BppSrgbBlockIMG: return BlockParams{ 0, 0, 0 };
         case vk::Format::ePvrtc22BppSrgbBlockIMG: return BlockParams{ 0, 0, 0 };
-        case vk::Format::ePvrtc24BppSrgbBlockIMG: return BlockParams{ 0, 0, 0 };
+        case vk::Format::ePvrtc24BppSrgbBlockIMG: return BlockParams{ 0, 0, 0 };  
+        default: return BlockParams{ 0, 0, 0 };
         }
-        return BlockParams{ 0, 0, 0 };
     }
 
     /// Factory for instances.
@@ -896,6 +896,8 @@ namespace vku {
             pipelineInfo.pDynamicState = dynamicState_.empty() ? nullptr : &dynState;
             pipelineInfo.subpass = subpass_;
 
+            logMsg("created pipeline");
+
             return device.createGraphicsPipelineUnique(pipelineCache, pipelineInfo);
         }
 
@@ -1161,7 +1163,6 @@ namespace vku {
         void upload(vk::Device device, const vk::PhysicalDeviceMemoryProperties& memprops, vk::CommandPool commandPool, vk::Queue queue, const void* value, vk::DeviceSize size) const {
             if (size == 0) return;
             using buf = vk::BufferUsageFlagBits;
-            using pfb = vk::MemoryPropertyFlagBits;
             auto tmp = vku::GenericBuffer(device, allocator, buf::eTransferSrc, size, VMA_MEMORY_USAGE_CPU_ONLY);
             tmp.updateLocal(device, value, size);
 
@@ -1217,9 +1218,9 @@ namespace vku {
         GenericBuffer(GenericBuffer&& other) noexcept
             : buffer_(other.buffer_)
             , size_(other.size_)
+            , debugName(other.debugName)
             , allocation(other.allocation)
-            , allocator(other.allocator)
-            , debugName(other.debugName) {
+            , allocator(other.allocator) {
             other.buffer_ = nullptr;
         }
 
