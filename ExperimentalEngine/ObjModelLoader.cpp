@@ -86,7 +86,8 @@ namespace worlds {
             vert.position = glm::vec3(attrib.vertices[3 * (size_t)idx.vertex_index], attrib.vertices[3 * (size_t)idx.vertex_index + 1], attrib.vertices[3 * (size_t)idx.vertex_index + 2]);
             vert.normal = glm::vec3(attrib.normals[3 * (size_t)idx.normal_index], attrib.normals[3 * (size_t)idx.normal_index + 1], attrib.normals[3 * (size_t)idx.normal_index + 2]);
             if (idx.texcoord_index >= 0)
-                vert.uv = glm::vec2(attrib.texcoords[2 * (size_t)idx.texcoord_index], attrib.texcoords[2 * (size_t)idx.texcoord_index + 1]);
+                vert.uv = glm::vec2(1.0f - attrib.texcoords[2 * (size_t)idx.texcoord_index], 
+                    attrib.texcoords[2 * (size_t)idx.texcoord_index + 1]);
 
             vertices.push_back(vert);
             indices.push_back((uint32_t)indices.size());
