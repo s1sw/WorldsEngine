@@ -498,9 +498,9 @@ namespace worlds {
                         });
                 }
 
-                simAccumulator += deltaTime;
-
                 if (!lockSimToRefresh.getInt()) {
+                    simAccumulator += deltaTime;
+
                     if (registry.view<DynamicPhysicsActor>().size() != currentState.size()) {
                         currentState.clear();
                         previousState.clear();
