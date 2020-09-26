@@ -1,7 +1,6 @@
 #version 450
 #extension GL_EXT_nonuniform_qualifier : enable
 #extension GL_EXT_multiview : enable
-#extension GL_EXT_scalar_block_layout : enable
 #define PI 3.1415926535
 
 #ifdef FRAGMENT
@@ -97,7 +96,7 @@ layout(std430, binding = 8) buffer PickingBuffer {
     uint doPicking;
 } pickBuf;
 
-layout(push_constant, scalar) uniform PushConstants {
+layout(push_constant) uniform PushConstants {
 	vec4 texScaleOffset;
     int modelMatrixIdx;
     int matIdx;
@@ -261,6 +260,15 @@ vec3 calcAmbient(vec3 f0, float roughness, vec3 viewDir, float metallic, vec3 al
     return kD * diffuseAmbient + (specularAmbient * specularColor);
 }
 
+vec3 getNormalMapNormal(Material mat) {
+    vec3 bitangent = cross(inNormal, inTangent);
+
+    mat3 tbn = mat3(inTangent, bitangent, inNormal);
+
+    vec3 texNorm = normalize(decodeNormal(texture(tex2dSampler[mat.normalTexIdx], inUV).xy));
+    return normalize(tbn * texNorm);
+}
+
 void main() {
     //pickBuf.objectID = 0;
     Material mat = materials[matIdx];
@@ -272,32 +280,22 @@ void main() {
     float roughness = mat.roughness;
 	float metallic = mat.metallic;
 	
-    vec4 albedoTex = texture(tex2dSampler[mat.albedoTexIdx], inUV);
-	vec3 albedoColor = mat.albedoColor * albedoTex.rgb;
+    vec4 albedoCol = texture(tex2dSampler[mat.albedoTexIdx], inUV) * vec4(mat.albedoColor, 1.0);
 	
-	vec3 f0 = vec3(0.04);
-    f0 = mix(f0, albedoColor, metallic);
+	vec3 f0 = mix(vec3(0.04), albedoCol.rgb, metallic);
 	vec3 lo = vec3(0.0);
 
-    vec3 normal = inNormal;
-    if (mat.normalTexIdx > -1) {
-        vec3 bitangent = cross(inNormal, inTangent);
-
-        mat3 tbn = mat3(inTangent, bitangent, inNormal);
-
-        vec3 texNorm = normalize(decodeNormal(texture(tex2dSampler[mat.normalTexIdx], inUV).xy));
-        normal = normalize(tbn * texNorm);
-    }
+    vec3 normal = mat.normalTexIdx > -1 ? getNormalMapNormal(mat) : inNormal;
 	
     for (int i = 0; i < lightCount; i++) {
-		vec3 cLighting = calculateLighting(i, viewDir, f0, metallic, roughness, albedoColor, normal);
+        float shadowIntensity = 1.0;
 		if (int(lights[i].pack0.w) == LT_DIRECTIONAL) {
 			float depth = (inShadowPos.z / inShadowPos.w) - 0.0001;
 			vec2 coord = (inShadowPos.xy * 0.5 + 0.5);
 			
 			if (coord.x > 0.0 && coord.x < 1.0 && coord.y > 0.0 && coord.y < 1.0 && depth < 1.0 && depth > 0.0) {
                 float texelSize = 1.0 / textureSize(shadowSampler, 0).x;
-                float shadowIntensity = 0.0;
+                shadowIntensity = 0.0;
 
                 const int shadowSamples = 2;
                 const float divVal = ((shadowSamples * 2)) * ((shadowSamples * 2));
@@ -307,17 +305,16 @@ void main() {
                     shadowIntensity += texture(shadowSampler, vec3(coord + vec2(x, y) * texelSize, depth)).x;
 
                 shadowIntensity /= divVal;
-                cLighting *= shadowIntensity;
             }
 		}
-		lo += cLighting;
+		lo += shadowIntensity * calculateLighting(i, viewDir, f0, metallic, roughness, albedoCol.rgb, normal);
 	}
 
     if (mat.alphaCutoff > 0.0f) {
-        albedoTex.a = (albedoTex.a - mat.alphaCutoff) / max(fwidth(albedoTex.a), 0.0001) + 0.5;
+        albedoCol.a = (albedoCol.a - mat.alphaCutoff) / max(fwidth(albedoCol.a), 0.0001) + 0.5;
     }
 
-	FragColor = vec4(lo + calcAmbient(f0, roughness, viewDir, metallic, albedoColor, normal), mat.alphaCutoff > 0.0f ? albedoTex.a : 1.0f);
+	FragColor = vec4(lo + calcAmbient(f0, roughness, viewDir, metallic, albedoCol.xyz, normal), mat.alphaCutoff > 0.0f ? albedoCol.a : 1.0f);
 
     if (ENABLE_PICKING && pickBuf.doPicking == 1) {
         
