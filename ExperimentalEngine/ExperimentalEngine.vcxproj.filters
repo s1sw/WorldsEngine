@@ -308,5 +308,8 @@
     <ClInclude Include="SceneSerializationFuncs.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="NameComponent.hpp">
+      <Filter>Header Files\Components</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

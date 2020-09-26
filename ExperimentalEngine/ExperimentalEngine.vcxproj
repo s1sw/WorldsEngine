@@ -309,6 +309,7 @@
     <ClInclude Include="LogCategories.hpp" />
     <ClInclude Include="MatUtil.hpp" />
     <ClInclude Include="mikktspace.h" />
+    <ClInclude Include="NameComponent.hpp" />
     <ClInclude Include="ObjModelLoader.hpp" />
     <ClInclude Include="OpenVRInterface.hpp" />
     <ClInclude Include="PackedMaterial.hpp" />
