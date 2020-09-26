@@ -17,6 +17,7 @@
 #include "ImGuizmo.h"
 #include <filesystem>
 #include "SourceModelLoader.hpp"
+#include "NameComponent.hpp"
 #undef near
 #undef far
 
@@ -150,7 +151,9 @@ namespace worlds {
         std::vector<PhysicsShape>::iterator eraseIter;
         bool erase = false;
 
+        int i = 0;
         for (auto it = actor.physicsShapes.begin(); it != actor.physicsShapes.end(); it++) {
+            ImGui::PushID(i);
             if (ImGui::BeginCombo("Collider Type", shapeTypeNames[(int)it->type])) {
                 for (int iType = 0; iType < (int)PhysicsShapeType::Count; iType++) {
                     auto type = (PhysicsShapeType)iType;
@@ -171,6 +174,8 @@ namespace worlds {
                 erase = true;
             }
 
+            ImGui::DragFloat3("Position", &it->pos.x);
+
             switch (it->type) {
             case PhysicsShapeType::Sphere:
                 ImGui::DragFloat("Radius", &it->sphere.radius);
@@ -183,6 +188,8 @@ namespace worlds {
                 ImGui::DragFloat("Radius", &it->capsule.radius);
                 break;
             }
+            ImGui::PopID();
+            i++;
         }
 
         if (erase)
@@ -253,6 +260,21 @@ namespace worlds {
         updatePhysicsShapes(newPhysActor);
     }
 
+    void editNameComponent(entt::entity ent, entt::registry& registry) {
+        auto& nc = registry.get<NameComponent>(ent);
+        
+        ImGui::InputText("Name", &nc.name);
+        ImGui::Separator();
+    }
+
+    void createNameComponent(entt::entity ent, entt::registry& registry) {
+        registry.emplace<NameComponent>(ent);
+    }
+
+    void cloneNameComponent(entt::entity a, entt::entity b, entt::registry& reg) {
+        reg.emplace<NameComponent>(a, reg.get<NameComponent>(b));
+    }
+
     Editor::Editor(entt::registry& reg, InputManager& inputManager, Camera& cam)
         : reg(reg)
         , inputManager(inputManager)
@@ -271,6 +293,7 @@ namespace worlds {
         REGISTER_COMPONENT_TYPE(WorldLight, "WorldLight", true, nullptr, createLight, nullptr);
         REGISTER_COMPONENT_TYPE(PhysicsActor, "PhysicsActor", true, editPhysicsActor, createPhysicsActor, clonePhysicsActor);
         REGISTER_COMPONENT_TYPE(DynamicPhysicsActor, "DynamicPhysicsActor", true, editDynamicPhysicsActor, createDynamicPhysicsActor, cloneDynamicPhysicsActor);
+        REGISTER_COMPONENT_TYPE(NameComponent, "NameComponent", true, editNameComponent, createNameComponent, cloneNameComponent);
         pauseSim = true;
         defaultMaterial = g_physics->createMaterial(0.5f, 0.5f, 0.1f);
         g_console->executeCommandStr("sim_disableInterp 1");
