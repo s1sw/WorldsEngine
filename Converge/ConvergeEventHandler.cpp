@@ -324,12 +324,14 @@ namespace converge {
         worlds::g_scene->addActor(*fenderActor);
 
         fenderMat = worlds::g_physics->createMaterial(0.0f, 0.0f, 0.0f);
-        fenderWActor.physicsShapes.push_back(worlds::PhysicsShape::boxShape(glm::vec3(0.2f, 0.5f, 0.2f), fenderMat));
+        auto fenderShape = worlds::PhysicsShape::capsuleShape(0.3f, 0.5f, fenderMat);
+        fenderShape.rot = glm::quat(glm::vec3(0.0f, 0.0f, glm::half_pi<float>()));
+        fenderWActor.physicsShapes.push_back(fenderShape);
 
         worlds::updatePhysicsShapes(fenderWActor);
-        physx::PxRigidBodyExt::setMassAndUpdateInertia(*fenderActor, 1.0f);
+        physx::PxRigidBodyExt::setMassAndUpdateInertia(*fenderActor, 20.0f);
 
-        fenderJoint = physx::PxD6JointCreate(*worlds::g_physics, fenderActor, physx::PxTransform{ physx::PxVec3{0.0f, -0.4f, 0.0f}, physx::PxQuat{physx::PxIdentity} }, actor, physx::PxTransform{ physx::PxIdentity });
+        fenderJoint = physx::PxD6JointCreate(*worlds::g_physics, fenderActor, physx::PxTransform{ physx::PxVec3{0.0f, -0.4f, 0.0f}, physx::PxQuat{ physx::PxIdentity } }, actor, physx::PxTransform{ physx::PxIdentity });
 
         fenderActor->setRigidDynamicLockFlag(physx::PxRigidDynamicLockFlag::eLOCK_ANGULAR_X, true);
         fenderActor->setRigidDynamicLockFlag(physx::PxRigidDynamicLockFlag::eLOCK_ANGULAR_Y, true);
@@ -352,9 +354,9 @@ namespace converge {
 
         headWActor.physicsShapes.push_back(worlds::PhysicsShape::sphereShape(0.05f));
 
-        headJoint = physx::PxD6JointCreate(*worlds::g_physics, headActor, physx::PxTransform{ physx::PxVec3{0.0f, -1.375f, 0.0f}, physx::PxQuat{physx::PxIdentity} }, fenderActor, physx::PxTransform{ physx::PxIdentity });
+        headJoint = physx::PxD6JointCreate(*worlds::g_physics, headActor, physx::PxTransform{ physx::PxVec3{0.0f, -0.65f, 0.0f}, physx::PxQuat{physx::PxIdentity} }, fenderActor, physx::PxTransform{ physx::PxIdentity });
 
-        physx::PxRigidBodyExt::setMassAndUpdateInertia(*headActor, 1.0f);
+        physx::PxRigidBodyExt::setMassAndUpdateInertia(*headActor, 5.0f);
 
         headActor->setRigidDynamicLockFlag(physx::PxRigidDynamicLockFlag::eLOCK_ANGULAR_X, true);
         headActor->setRigidDynamicLockFlag(physx::PxRigidDynamicLockFlag::eLOCK_ANGULAR_Y, true);
@@ -370,11 +372,23 @@ namespace converge {
 
         actor->setSolverIterationCounts(15, 15);
         actor->setRigidBodyFlag(physx::PxRigidBodyFlag::eENABLE_SPECULATIVE_CCD, true);
-        //fenderActor->setSolverIterationCounts(50, 1);
-        //headActor->setSolverIterationCounts(50, 1);
+        actor->setRigidBodyFlag(physx::PxRigidBodyFlag::eRETAIN_ACCELERATIONS, false);
+
+        fenderJoint->setConstraintFlag(physx::PxConstraintFlag::eCOLLISION_ENABLED, false);
+        fenderJoint->setConstraintFlag(physx::PxConstraintFlag::ePROJECTION, true);
+        fenderJoint->setProjectionLinearTolerance(0.005f);
+
+        fenderActor->setSolverIterationCounts(15, 15);
+        fenderActor->setRigidBodyFlag(physx::PxRigidBodyFlag::eENABLE_SPECULATIVE_CCD, true);
+
+        headActor->setSolverIterationCounts(15, 15);
+        headJoint->setConstraintFlag(physx::PxConstraintFlag::ePROJECTION, true);
+        headJoint->setProjectionLinearTolerance(0.005f);
         //headActor->setActorFlag(physx::PxActorFlag::eVISUALIZATION, false);
 
         worlds::updatePhysicsShapes(headWActor);
+
+        worlds::g_console->executeCommandStr("exec dbgscripts/shapes");
 
         //actor->setMaxDepenetrationVelocity(0.01f);
     }
