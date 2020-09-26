@@ -1139,6 +1139,9 @@ void VKRenderer::preloadMesh(AssetID id) {
     lmd.vb.upload(*device, memProps, *commandPool, device->getQueue(graphicsQueueFamilyIdx, 0), vertices);
 
     logMsg(WELogCategoryRender, "Loaded mesh %u, %u verts", id, (uint32_t)vertices.size());
+    for (auto& vtx : vertices) {
+        lmd.sphereRadius = std::max(glm::length(vtx.position), lmd.sphereRadius);
+    }
 
     loadedMeshes.insert({ id, std::move(lmd) });
 }

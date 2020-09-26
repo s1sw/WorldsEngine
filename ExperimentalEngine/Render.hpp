@@ -157,6 +157,7 @@ namespace worlds {
         vk::IndexType indexType;
         SubmeshInfo submeshes[NUM_SUBMESH_MATS];
         uint8_t numSubmeshes;
+        float sphereRadius;
     };
 
     struct RenderCtx {
