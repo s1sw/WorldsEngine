@@ -71,6 +71,7 @@ namespace worlds {
 
             shape->setContactOffset(0.01f);
             shape->setRestOffset(0.005f);
+            shape->setLocalPose(physx::PxTransform{ glm2px(ps.pos), glm2px(ps.rot) });
 
             pa.actor->attachShape(*shape);
         }

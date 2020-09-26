@@ -1,6 +1,7 @@
 #pragma once
 #include <physx/PxRigidActor.h>
 #include <glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp>
 #include <vector>
 
 namespace worlds {
@@ -23,7 +24,7 @@ namespace worlds {
     }
 
     struct PhysicsShape {
-        PhysicsShape() : material(nullptr) {}
+        PhysicsShape() : material(nullptr), pos(0.0f), rot(1.0f, 0.0f, 0.0f, 0.0f) {}
         PhysicsShapeType type;
         union {
             struct {
@@ -40,6 +41,8 @@ namespace worlds {
                 AssetID mesh;
             } mesh;
         };
+        glm::vec3 pos;
+        glm::quat rot;
         physx::PxMaterial* material;
 
         static PhysicsShape sphereShape(float radius, physx::PxMaterial* mat = nullptr) {
@@ -54,6 +57,15 @@ namespace worlds {
             PhysicsShape shape;
             shape.type = PhysicsShapeType::Box;
             shape.box.halfExtents = halfExtents;
+            shape.material = mat;
+            return shape;
+        }
+
+        static PhysicsShape capsuleShape(float radius, float height, physx::PxMaterial* mat = nullptr) {
+            PhysicsShape shape;
+            shape.type = PhysicsShapeType::Capsule;
+            shape.capsule.radius = radius;
+            shape.capsule.height = height;
             shape.material = mat;
             return shape;
         }
