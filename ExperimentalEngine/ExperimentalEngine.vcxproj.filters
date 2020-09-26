@@ -185,9 +185,6 @@
     <ClInclude Include="Input.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="ChunkGenerator.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="PhysicsActor.hpp">
       <Filter>Header Files\Components</Filter>
     </ClInclude>

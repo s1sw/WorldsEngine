@@ -284,7 +284,6 @@
     <ClInclude Include="AssetDB.hpp" />
     <ClInclude Include="Audio.hpp" />
     <ClInclude Include="Camera.hpp" />
-    <ClInclude Include="ChunkGenerator.hpp" />
     <ClInclude Include="ComponentMetadata.hpp" />
     <ClInclude Include="Console.hpp" />
     <ClInclude Include="CubemapLoader.hpp" />
