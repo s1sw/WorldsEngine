@@ -290,10 +290,11 @@ void main() {
     for (int i = 0; i < lightCount; i++) {
         float shadowIntensity = 1.0;
 		if (int(lights[i].pack0.w) == LT_DIRECTIONAL) {
-			float depth = (inShadowPos.z / inShadowPos.w) - 0.0001;
+            float bias = max(0.0005 * (1.0 - dot(inNormal, lights[i].pack1.xyz)), 0.0001);
+			float depth = (inShadowPos.z / inShadowPos.w) - bias;
 			vec2 coord = (inShadowPos.xy * 0.5 + 0.5);
 			
-			if (coord.x > 0.0 && coord.x < 1.0 && coord.y > 0.0 && coord.y < 1.0 && depth < 1.0 && depth > 0.0) {
+			if (coord.x > 0.0 && coord.x < 1.0 && coord.y > 0.0 && coord.y < 1.0 && depth < 1.0 && depth > 0.0) {                
                 float texelSize = 1.0 / textureSize(shadowSampler, 0).x;
                 shadowIntensity = 0.0;
 
