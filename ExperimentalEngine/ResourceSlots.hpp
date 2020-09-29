@@ -91,7 +91,7 @@ namespace worlds {
 
         void unload(int idx) override {
             present[idx] = false;
-            slots[idx] = vku::TextureImage2D{};
+            slots[idx].destroy();
             lookup.erase(reverseLookup.at(idx));
             reverseLookup.erase(idx);
         }

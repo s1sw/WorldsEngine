@@ -1524,13 +1524,35 @@ namespace vku {
         GenericImage() {
         }
 
-        GenericImage(vk::Device device, const vk::PhysicalDeviceMemoryProperties& memprops, const vk::ImageCreateInfo& info, vk::ImageViewType viewType, vk::ImageAspectFlags aspectMask, bool makeHostImage, const char* debugName = nullptr) {
-            create(device, memprops, info, viewType, aspectMask, makeHostImage, debugName);
+        GenericImage(vk::Device device, VmaAllocator allocator, const vk::ImageCreateInfo& info, vk::ImageViewType viewType, vk::ImageAspectFlags aspectMask, bool makeHostImage, const char* debugName = nullptr) {
+            create(device, allocator, info, viewType, aspectMask, makeHostImage, debugName);
+        }
+
+        GenericImage(GenericImage const&) = delete;
+
+        GenericImage(GenericImage&& other) noexcept {
+            s.allocation = other.s.allocation;
+            s.allocator = other.s.allocator;
+            s.currentLayout = other.s.currentLayout;
+            s.image = std::move(other.s.image);
+            s.imageView = std::move(other.s.imageView);
+            s.info = other.s.info;
+            s.size = other.s.size;
+        }
+
+        GenericImage& operator=(GenericImage&& other) noexcept {
+            s.allocation = other.s.allocation;
+            s.allocator = other.s.allocator;
+            s.currentLayout = other.s.currentLayout;
+            s.image = std::move(other.s.image);
+            s.imageView = std::move(other.s.imageView);
+            s.info = other.s.info;
+            s.size = other.s.size;
+            return *this;
         }
 
         vk::Image image() const { return *s.image; }
         vk::ImageView imageView() const { return *s.imageView; }
-        vk::DeviceMemory mem() const { return *s.mem; }
 
         /// Clear the colour of an image.
         void clear(vk::CommandBuffer cb, const std::array<float, 4> colour = { 1, 1, 1, 1 }) {
@@ -1548,7 +1570,9 @@ namespace vku {
                 for (uint32_t arrayLayer = 0; arrayLayer != info().arrayLayers; ++arrayLayer) {
                     vk::ImageSubresource subresource{ vk::ImageAspectFlagBits::eColor, mipLevel, arrayLayer };
                     auto srlayout = device.getImageSubresourceLayout(*s.image, subresource);
-                    uint8_t* dest = (uint8_t*)device.mapMemory(*s.mem, 0, s.size, vk::MemoryMapFlags{}) + srlayout.offset;
+                    uint8_t* dest;
+                    vmaMapMemory(s.allocator, s.allocation, (void**)&dest);
+                    dest += srlayout.offset;
                     size_t bytesPerLine = s.info.extent.width * bytesPerPixel;
                     size_t srcStride = bytesPerLine * info().arrayLayers;
                     for (int y = 0; y != s.info.extent.height; ++y) {
@@ -1556,9 +1580,9 @@ namespace vku {
                         src += srcStride;
                         dest += srlayout.rowPitch;
                     }
+                    vmaUnmapMemory(s.allocator, s.allocation);
                 }
             }
-            device.unmapMemory(*s.mem);
         }
 
         /// Copy another image to this one. This also changes the layout.
@@ -1723,8 +1747,28 @@ namespace vku {
         vk::Format format() const { return s.info.format; }
         vk::Extent3D extent() const { return s.info.extent; }
         const vk::ImageCreateInfo& info() const { return s.info; }
+
+        void destroy() {
+            VkImage cImg = *s.image;
+            if (cImg) {
+                s.image.reset();
+
+                if (s.imageView) {
+                    s.imageView.reset();
+                }
+
+                VmaAllocationInfo inf;
+                vmaGetAllocationInfo(s.allocator, s.allocation, &inf);
+                vmaFreeMemory(s.allocator, s.allocation);
+            }
+        }
+
+        ~GenericImage() {
+            destroy();
+        }
     protected:
-        void create(vk::Device device, const vk::PhysicalDeviceMemoryProperties& memprops, const vk::ImageCreateInfo& info, vk::ImageViewType viewType, vk::ImageAspectFlags aspectMask, bool hostImage, const char* debugName) {
+        void create(vk::Device device, VmaAllocator allocator, const vk::ImageCreateInfo& info, vk::ImageViewType viewType, vk::ImageAspectFlags aspectMask, bool hostImage, const char* debugName) {
+            s.allocator = allocator;
             s.currentLayout = info.initialLayout;
             s.info = info;
             s.image = device.createImageUnique(info);
@@ -1747,12 +1791,26 @@ namespace vku {
 
             // Create a memory object to bind to the buffer.
             // Note: we don't expect to be able to map the buffer.
-            vk::MemoryAllocateInfo mai{};
-            mai.allocationSize = s.size = memreq.size;
-            mai.memoryTypeIndex = vku::findMemoryTypeIndex(memprops, memreq.memoryTypeBits, search);
-            s.mem = device.allocateMemoryUnique(mai);
+            //vk::MemoryAllocateInfo mai{};
+            //mai.allocationSize = s.size = memreq.size;
+            //mai.memoryTypeIndex = vku::findMemoryTypeIndex(memprops, memreq.memoryTypeBits, search);
+            //s.mem = device.allocateMemoryUnique(mai);
 
-            device.bindImageMemory(*s.image, *s.mem, 0);
+            //device.bindImageMemory(*s.image, *s.mem, 0);
+
+            VmaAllocationCreateInfo vaci;
+            vaci.usage = hostImage ? VMA_MEMORY_USAGE_CPU_ONLY : VMA_MEMORY_USAGE_GPU_ONLY;
+            vaci.memoryTypeBits = 0;
+            vaci.pool = VK_NULL_HANDLE;
+            vaci.preferredFlags = 0;
+            vaci.requiredFlags = 0;
+            vaci.memoryTypeBits = 0;
+            vaci.pUserData = (char*)debugName;
+            vaci.flags = VMA_ALLOCATION_CREATE_USER_DATA_COPY_STRING_BIT;
+            VmaAllocationInfo vci;
+            vmaAllocateMemoryForImage(allocator, *s.image, &vaci, &s.allocation, &vci);
+            
+            device.bindImageMemory(*s.image, vci.deviceMemory, vci.offset);
 
             if (!hostImage) {
                 vk::ImageViewCreateInfo viewInfo{};
@@ -1779,11 +1837,11 @@ namespace vku {
         struct State {
             vk::UniqueImage image;
             vk::UniqueImageView imageView;
-            vk::UniqueDeviceMemory mem;
             vk::DeviceSize size;
             vk::ImageLayout currentLayout;
             vk::ImageCreateInfo info;
-
+            VmaAllocation allocation;
+            VmaAllocator allocator;
         };
 
         State s;
@@ -1796,7 +1854,7 @@ namespace vku {
         TextureImage2D() {
         }
 
-        TextureImage2D(vk::Device device, const vk::PhysicalDeviceMemoryProperties& memprops, uint32_t width, uint32_t height, uint32_t mipLevels = 1, vk::Format format = vk::Format::eR8G8B8A8Unorm, bool hostImage = false, const char* debugName = nullptr) {
+        TextureImage2D(vk::Device device, VmaAllocator allocator, uint32_t width, uint32_t height, uint32_t mipLevels = 1, vk::Format format = vk::Format::eR8G8B8A8Unorm, bool hostImage = false, const char* debugName = nullptr) {
             vk::ImageCreateInfo info;
             info.flags = {};
             info.imageType = vk::ImageType::e2D;
@@ -1811,7 +1869,7 @@ namespace vku {
             info.queueFamilyIndexCount = 0;
             info.pQueueFamilyIndices = nullptr;
             info.initialLayout = hostImage ? vk::ImageLayout::ePreinitialized : vk::ImageLayout::eUndefined;
-            create(device, memprops, info, vk::ImageViewType::e2D, vk::ImageAspectFlagBits::eColor, hostImage, debugName);
+            create(device, allocator, info, vk::ImageViewType::e2D, vk::ImageAspectFlagBits::eColor, hostImage, debugName);
         }
     private:
     };
@@ -1822,7 +1880,7 @@ namespace vku {
         TextureImageCube() {
         }
 
-        TextureImageCube(vk::Device device, const vk::PhysicalDeviceMemoryProperties& memprops, uint32_t width, uint32_t height, uint32_t mipLevels = 1, vk::Format format = vk::Format::eR8G8B8A8Unorm, bool hostImage = false, const char* debugName = nullptr) {
+        TextureImageCube(vk::Device device, VmaAllocator allocator, uint32_t width, uint32_t height, uint32_t mipLevels = 1, vk::Format format = vk::Format::eR8G8B8A8Unorm, bool hostImage = false, const char* debugName = nullptr) {
             vk::ImageCreateInfo info;
             info.flags = { vk::ImageCreateFlagBits::eCubeCompatible };
             info.imageType = vk::ImageType::e2D;
@@ -1838,7 +1896,7 @@ namespace vku {
             info.pQueueFamilyIndices = nullptr;
             //info.initialLayout = hostImage ? vk::ImageLayout::ePreinitialized : vk::ImageLayout::eUndefined;
             info.initialLayout = vk::ImageLayout::ePreinitialized;
-            create(device, memprops, info, vk::ImageViewType::eCube, vk::ImageAspectFlagBits::eColor, hostImage, debugName);
+            create(device, allocator, info, vk::ImageViewType::eCube, vk::ImageAspectFlagBits::eColor, hostImage, debugName);
         }
     private:
     };
@@ -1849,7 +1907,7 @@ namespace vku {
         DepthStencilImage() {
         }
 
-        DepthStencilImage(vk::Device device, const vk::PhysicalDeviceMemoryProperties& memprops, uint32_t width, uint32_t height, vk::SampleCountFlagBits samples = vk::SampleCountFlagBits::e1, vk::Format format = vk::Format::eD24UnormS8Uint, const char* debugName = nullptr) {
+        DepthStencilImage(vk::Device device, VmaAllocator allocator, uint32_t width, uint32_t height, vk::SampleCountFlagBits samples = vk::SampleCountFlagBits::e1, vk::Format format = vk::Format::eD24UnormS8Uint, const char* debugName = nullptr) {
             vk::ImageCreateInfo info;
             info.flags = {};
 
@@ -1866,7 +1924,7 @@ namespace vku {
             info.pQueueFamilyIndices = nullptr;
             info.initialLayout = vk::ImageLayout::eUndefined;
             typedef vk::ImageAspectFlagBits iafb;
-            create(device, memprops, info, vk::ImageViewType::e2D, iafb::eDepth, false, debugName);
+            create(device, allocator, info, vk::ImageViewType::e2D, iafb::eDepth, false, debugName);
         }
     private:
     };
@@ -1877,7 +1935,7 @@ namespace vku {
         ColorAttachmentImage() {
         }
 
-        ColorAttachmentImage(vk::Device device, const vk::PhysicalDeviceMemoryProperties& memprops, uint32_t width, uint32_t height, vk::Format format = vk::Format::eR8G8B8A8Unorm, const char* debugName = nullptr) {
+        ColorAttachmentImage(vk::Device device, VmaAllocator allocator, uint32_t width, uint32_t height, vk::Format format = vk::Format::eR8G8B8A8Unorm, const char* debugName = nullptr) {
             vk::ImageCreateInfo info;
             info.flags = {};
 
@@ -1894,7 +1952,7 @@ namespace vku {
             info.pQueueFamilyIndices = nullptr;
             info.initialLayout = vk::ImageLayout::eUndefined;
             typedef vk::ImageAspectFlagBits iafb;
-            create(device, memprops, info, vk::ImageViewType::e2D, iafb::eColor, false, debugName);
+            create(device, allocator, info, vk::ImageViewType::e2D, iafb::eColor, false, debugName);
         }
     private:
     };

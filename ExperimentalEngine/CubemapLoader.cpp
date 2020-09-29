@@ -93,7 +93,7 @@ namespace worlds {
 
         vku::TextureImageCube tex{
             ctx.device,
-            memProps,
+            ctx.allocator,
             cd.faceData[0].width, cd.faceData[0].height,
             getNumMips(cd.faceData[0].width, cd.faceData[0].height), vk::Format::eR8G8B8A8Unorm, false,
             cd.debugName.empty() ? nullptr : cd.debugName.c_str()

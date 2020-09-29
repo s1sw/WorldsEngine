@@ -71,7 +71,7 @@ uint32_t findPresentQueue(vk::PhysicalDevice pd, vk::SurfaceKHR surface) {
 RenderImageHandle VKRenderer::createRTResource(RTResourceCreateInfo resourceCreateInfo, const char* debugName) {
     auto memProps = physicalDevice.getMemoryProperties();
     RenderTextureResource rtr;
-    rtr.image = vku::GenericImage{ *device, memProps, resourceCreateInfo.ici, resourceCreateInfo.viewType, resourceCreateInfo.aspectFlags, false, debugName };
+    rtr.image = vku::GenericImage{ *device, allocator, resourceCreateInfo.ici, resourceCreateInfo.viewType, resourceCreateInfo.aspectFlags, false, debugName };
     rtr.aspectFlags = resourceCreateInfo.aspectFlags;
 
     RenderImageHandle handle = lastHandle++;
@@ -464,7 +464,7 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
 
     vk::ImageCreateInfo brdfLutIci{ vk::ImageCreateFlags{}, vk::ImageType::e2D, vk::Format::eR16G16Sfloat, vk::Extent3D{256,256,1}, 1, 1, vk::SampleCountFlagBits::e1, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eSampled,
         vk::SharingMode::eExclusive, graphicsQueueFamilyIdx };
-    brdfLut = vku::GenericImage{ *device, physicalDevice.getMemoryProperties(), brdfLutIci, vk::ImageViewType::e2D, vk::ImageAspectFlagBits::eColor, false, "BRDF LUT" };
+    brdfLut = vku::GenericImage{ *device, allocator, brdfLutIci, vk::ImageViewType::e2D, vk::ImageAspectFlagBits::eColor, false, "BRDF LUT" };
 
     cubemapConvoluter = std::make_unique<CubemapConvoluter>(vkCtx);
 
@@ -1104,7 +1104,7 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
 
     VmaBudget budget;
     vmaGetBudget(allocator, &budget);
-    dbgStats.vramUsage = budget.usage;
+    dbgStats.vramUsage = budget.allocationBytes;
 
     frameIdx++;
     FrameMark;
@@ -1287,6 +1287,9 @@ VKRenderer::~VKRenderer() {
 
         texSlots.reset();
         matSlots.reset();
+        cubemapSlots.reset();
+
+        brdfLut.destroy();
 
         rtResources.clear();
         loadedMeshes.clear();

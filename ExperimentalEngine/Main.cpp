@@ -636,7 +636,6 @@ namespace worlds {
                     ImGui::Text("Frame: %i", frameCounter);
                     ImGui::Text("Cam pos: %.3f, %.3f, %.3f", cam.position.x, cam.position.y, cam.position.z);
 
-
                     if (ImGui::Button("Unload Unused Assets")) {
                         renderer->unloadUnusedMaterials(registry);
                     }

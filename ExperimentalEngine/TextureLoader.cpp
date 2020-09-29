@@ -149,7 +149,7 @@ namespace worlds {
         auto memProps = ctx.physicalDevice.getMemoryProperties();
         vku::TextureImage2D tex{
             ctx.device,
-            memProps,
+            ctx.allocator,
             td.width, td.height,
             td.numMips, td.format,
             false,
@@ -183,14 +183,14 @@ namespace worlds {
         auto memProps = ctx.physicalDevice.getMemoryProperties();
         vku::TextureImage2D tex{
             ctx.device,
-            memProps,
+            ctx.allocator,
             td.width, td.height,
             td.numMips, td.format,
             false,
             td.name.empty() ? nullptr : td.name.c_str()
         };
 
-        vku::GenericBuffer stagingBuffer(ctx.device, ctx.allocator, (vk::BufferUsageFlags)vk::BufferUsageFlagBits::eTransferSrc, (vk::DeviceSize)td.totalDataSize, VMA_MEMORY_USAGE_CPU_ONLY);
+        vku::GenericBuffer stagingBuffer(ctx.device, ctx.allocator, (vk::BufferUsageFlags)vk::BufferUsageFlagBits::eTransferSrc, (vk::DeviceSize)td.totalDataSize, VMA_MEMORY_USAGE_CPU_ONLY, "Texture upload staging buffer");
         stagingBuffer.updateLocal(ctx.device, td.data, td.totalDataSize);
 
         // Copy the staging buffer to the GPU texture and set the layout.
