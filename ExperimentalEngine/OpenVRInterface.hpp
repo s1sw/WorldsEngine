@@ -170,5 +170,33 @@ namespace worlds {
 
             return data.bState;
         }
+
+        InputActionHandle getActionHandle(std::string actionPath) override {
+            vr::VRActionHandle_t handle;
+            vr::VRInput()->GetActionHandle(actionPath.c_str(), &handle);
+
+            return handle;
+        }
+
+        bool getActionHeld(InputActionHandle handle) override {
+            vr::InputDigitalActionData_t data;
+            vr::VRInput()->GetDigitalActionData(handle, &data, sizeof(data), vr::k_ulInvalidInputValueHandle);
+
+            return data.bState;
+        }
+
+        bool getActionPressed(InputActionHandle handle) override {
+            vr::InputDigitalActionData_t data;
+            vr::VRInput()->GetDigitalActionData(handle, &data, sizeof(data), vr::k_ulInvalidInputValueHandle);
+
+            return data.bState && data.bChanged;
+        }
+
+        bool getActionReleased(InputActionHandle handle) override {
+            vr::InputDigitalActionData_t data;
+            vr::VRInput()->GetDigitalActionData(handle, &data, sizeof(data), vr::k_ulInvalidInputValueHandle);
+
+            return !data.bState && data.bChanged;
+        }
     };
 }

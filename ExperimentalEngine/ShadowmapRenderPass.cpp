@@ -2,6 +2,7 @@
 #include "Engine.hpp"
 #include "Transform.hpp"
 #include "Render.hpp"
+#include "Frustum.hpp"
 
 namespace worlds {
     struct ShadowmapPushConstants {
@@ -131,11 +132,20 @@ namespace worlds {
             }
             });
 
-        reg.view<Transform, WorldObject>().each([this, &cmdBuf, &cam, &shadowmapMatrix, &ctx](auto ent, Transform& transform, WorldObject& obj) {
+        Frustum frustum;
+        frustum.fromVPMatrix(shadowmapMatrix);
+
+        reg.view<Transform, WorldObject>().each([&](auto ent, Transform& transform, WorldObject& obj) {
             auto meshPos = ctx.loadedMeshes.find(obj.mesh);
 
             if (meshPos == ctx.loadedMeshes.end()) {
                 // Haven't loaded the mesh yet
+                return;
+            }
+
+            float scaleMax = glm::max(transform.scale.x, glm::max(transform.scale.y, transform.scale.z));
+            if (!frustum.containsSphere(transform.position, meshPos->second.sphereRadius * scaleMax)) {
+                ctx.dbgStats->numCulledObjs++;
                 return;
             }
 
@@ -147,9 +157,10 @@ namespace worlds {
             cmdBuf->bindVertexBuffers(0, meshPos->second.vb.buffer(), vk::DeviceSize(0));
             cmdBuf->bindIndexBuffer(meshPos->second.ib.buffer(), 0, meshPos->second.indexType);
             cmdBuf->drawIndexed(meshPos->second.indexCount, 1, 0, 0, 0);
+            ctx.dbgStats->numDrawCalls++;
             });
 
-        reg.view<Transform, ProceduralObject>().each([this, &cmdBuf, &cam, &shadowmapMatrix](auto ent, Transform& transform, ProceduralObject& obj) {
+        reg.view<Transform, ProceduralObject>().each([this, &cmdBuf, &cam, &shadowmapMatrix, &ctx](auto ent, Transform& transform, ProceduralObject& obj) {
             if (!obj.visible) return;
             glm::mat4 model = transform.getMatrix();
             glm::mat4 mvp = shadowmapMatrix * model;
@@ -157,6 +168,7 @@ namespace worlds {
             cmdBuf->bindVertexBuffers(0, obj.vb.buffer(), vk::DeviceSize(0));
             cmdBuf->bindIndexBuffer(obj.ib.buffer(), 0, obj.indexType);
             cmdBuf->drawIndexed(obj.indexCount, 1, 0, 0, 0);
+            ctx.dbgStats->numDrawCalls++;
             });
 
         cmdBuf->endRenderPass();

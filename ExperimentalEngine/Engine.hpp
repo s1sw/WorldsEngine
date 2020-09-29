@@ -21,6 +21,8 @@ namespace worlds {
     struct EngineInitOptions {
         bool useEventThread;
         int workerThreadOverride;
+        bool runAsEditor;
+        bool enableVR;
         IGameEventHandler* eventHandler;
     };
 

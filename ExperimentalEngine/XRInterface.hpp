@@ -217,5 +217,21 @@ namespace worlds {
         bool getJumpInput() override {
             return false;
         }
+
+        InputActionHandle getActionHandle(std::string actionPath) override {
+            return 0;
+        }
+
+        bool getActionHeld(InputActionHandle handle) override {
+            return false;
+        }
+
+        bool getActionPressed(InputActionHandle handle) override {
+            return false;
+        }
+
+        bool getActionReleased(InputActionHandle handle) override {
+            return false;
+        }
     };
 }

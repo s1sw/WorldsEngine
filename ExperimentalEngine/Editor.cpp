@@ -105,6 +105,7 @@ namespace worlds {
                     worldObject.presentMaterials[i] = true;
                 }
             }
+
             ImGui::Separator();
         }
     }
@@ -272,7 +273,7 @@ namespace worlds {
     }
 
     void cloneNameComponent(entt::entity a, entt::entity b, entt::registry& reg) {
-        reg.emplace<NameComponent>(a, reg.get<NameComponent>(b));
+        reg.emplace<NameComponent>(b, reg.get<NameComponent>(a));
     }
 
     Editor::Editor(entt::registry& reg, InputManager& inputManager, Camera& cam)
@@ -296,7 +297,6 @@ namespace worlds {
         REGISTER_COMPONENT_TYPE(NameComponent, "NameComponent", true, editNameComponent, createNameComponent, cloneNameComponent);
         pauseSim = true;
         defaultMaterial = g_physics->createMaterial(0.5f, 0.5f, 0.1f);
-        g_console->executeCommandStr("sim_disableInterp 1");
     }
 
 #undef REGISTER_COMPONENT_TYPE
@@ -687,7 +687,8 @@ namespace worlds {
             // Not sure why flipping Y is necessary?
             ndcObjectPosition.y = windowSize.y - ndcObjectPosition.y;
 
-            ImGui::GetBackgroundDrawList()->AddCircleFilled(glmToImgui(ndcObjectPosition) + offset, 7.0f, ImColor(1.0f, 0.25f, 1.0f));
+            if (ndcObjPosPreDivide.z > 0.0f)
+                ImGui::GetBackgroundDrawList()->AddCircleFilled(glmToImgui(ndcObjectPosition) + offset, 7.0f, ImColor(0.0f, 0.0f, 0.0f));
 
             if (enableTransformGadget) {
                 ImGuizmo::BeginFrame();

@@ -158,6 +158,14 @@ namespace worlds {
         SubmeshInfo submeshes[NUM_SUBMESH_MATS];
         uint8_t numSubmeshes;
         float sphereRadius;
+        glm::vec3 aabbMin;
+        glm::vec3 aabbMax;
+    };
+
+    struct RenderDebugStats {
+        int numDrawCalls;
+        int numCulledObjs;
+        uint64_t vramUsage;
     };
 
     struct RenderCtx {
@@ -201,6 +209,7 @@ namespace worlds {
 #ifdef TRACY_ENABLE
         std::vector<TracyVkCtx>* tracyContexts;
 #endif
+        RenderDebugStats* dbgStats;
     };
 
     struct PassSetupCtx {
@@ -385,6 +394,7 @@ namespace worlds {
         ConVar lowLatencyMode;
         bool swapchainRecreated;
         bool enablePicking;
+        RenderDebugStats dbgStats;
     public:
         double time;
         VKRenderer(const RendererInitInfo& initInfo, bool* success);
@@ -400,6 +410,7 @@ namespace worlds {
         void setVRPredictAmount(float amt) { vrPredictAmount = amt; }
         void setVsync(bool vsync) { if (useVsync != vsync) { useVsync = vsync; recreateSwapchain(); } }
         bool getVsync() const { return useVsync; }
+        const RenderDebugStats& getDebugStats() const { return dbgStats; }
 
         ~VKRenderer();
     };

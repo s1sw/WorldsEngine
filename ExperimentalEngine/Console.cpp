@@ -249,7 +249,7 @@ namespace worlds {
             auto cmdPos = commands.find(cmdStr);
 
             if (cmdPos != commands.end()) {
-                msgs.push_back(ConsoleMsg{ SDL_LOG_PRIORITY_INFO, (*cmdPos).second.name, CONSOLE_RESPONSE_CATEGORY });
+                msgs.push_back(ConsoleMsg{ SDL_LOG_PRIORITY_INFO, cmdStr, CONSOLE_RESPONSE_CATEGORY });
                 (*cmdPos).second.func((*cmdPos).second.obj, "");
             } else if (convarPos != conVars.end()) {
                 msgs.push_back(ConsoleMsg{ SDL_LOG_PRIORITY_INFO, (*convarPos).second->getName() + std::string("=") + (*convarPos).second->getString(), CONSOLE_RESPONSE_CATEGORY });

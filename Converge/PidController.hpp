@@ -29,6 +29,10 @@ namespace converge {
                 integral = clampMagnitude(integral, maxIntegralMagnitude);
             }
 
+            if (glm::any(glm::isnan(integral))) {
+                integral = glm::vec3(0.0f);
+            }
+
             integral += (error - integral) / averageAmount;
 
             lastError = error;

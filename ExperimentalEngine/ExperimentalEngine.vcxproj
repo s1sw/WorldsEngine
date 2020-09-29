@@ -166,7 +166,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>GLM_DEPTH_ZERO_TO_ONE;_CRT_SECURE_NO_WARNINGS;NOMINMAX;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>GLM_FORCE_DEPTH_ZERO_TO_ONE;_CRT_SECURE_NO_WARNINGS;NOMINMAX;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(VULKAN_SDK)\Include;$(SolutionDir)External\Include</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpplatest</LanguageStandard>
@@ -290,6 +290,7 @@
     <ClInclude Include="Editor.hpp" />
     <ClInclude Include="Engine.hpp" />
     <ClInclude Include="Fatal.hpp" />
+    <ClInclude Include="Frustum.hpp" />
     <ClInclude Include="GlmStreamOps.hpp" />
     <ClInclude Include="GuiUtil.hpp" />
     <ClInclude Include="IGameEventHandler.hpp" />

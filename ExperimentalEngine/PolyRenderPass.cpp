@@ -6,6 +6,7 @@
 #include "tracy/Tracy.hpp"
 #include "Render.hpp"
 #include "Physics.hpp"
+#include "Frustum.hpp"
 
 namespace worlds {
     struct StandardPushConstants {
@@ -648,6 +649,16 @@ namespace worlds {
         cmdBuf->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 0, *descriptorSet, nullptr);
         //cmdBuf->bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline);
 
+        Frustum frustum;
+        Frustum frustumB;
+
+        if (!ctx.enableVR)
+            frustum.fromVPMatrix(ctx.cam.getProjectionMatrix((float)ctx.width / (float)ctx.height) * ctx.cam.getViewMatrix());
+        else {
+            frustum.fromVPMatrix(ctx.vrProjMats[0] * ctx.vrViewMats[0]);
+            frustumB.fromVPMatrix(ctx.vrProjMats[1] * ctx.vrViewMats[1]);
+        }
+
         reg.view<Transform, WorldObject>().each([&, this](entt::entity ent, Transform& transform, WorldObject& obj) {
             ZoneScoped;
             auto meshPos = ctx.loadedMeshes.find(obj.mesh);
@@ -659,6 +670,24 @@ namespace worlds {
                 return;
             }
 
+            float maxScale = glm::max(transform.scale.x, glm::max(transform.scale.y, transform.scale.z));
+            if (!ctx.enableVR) {
+                //if (!frustum.containsSphere(transform.position, meshPos->second.sphereRadius * maxScale)) {
+                glm::vec3 scaledMin = transform.scale * meshPos->second.aabbMin;
+                glm::vec3 scaledMax = transform.scale * meshPos->second.aabbMax;
+
+                if (!frustum.containsSphere(transform.position, meshPos->second.sphereRadius * maxScale)) {
+                    ctx.dbgStats->numCulledObjs++;
+                    matrixIdx++;
+                    return;
+                }
+            } else {
+                if (!frustum.containsSphere(transform.position, meshPos->second.sphereRadius * maxScale) && !frustumB.containsSphere(transform.position, meshPos->second.sphereRadius * maxScale)) {
+                    ctx.dbgStats->numCulledObjs++;
+                    matrixIdx++;
+                    return;
+                }
+            }
             for (int i = 0; i < meshPos->second.numSubmeshes; i++) {
                 auto& currSubmesh = meshPos->second.submeshes[i];
 
@@ -686,6 +715,7 @@ namespace worlds {
                 }
 
                 drawInfo.emplace_back(std::move(sdi));
+                ctx.dbgStats->numDrawCalls++;
             }
             matrixIdx++;
             });

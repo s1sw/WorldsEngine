@@ -852,6 +852,8 @@ bool lowLatencyLast = false;
 
 void VKRenderer::frame(Camera& cam, entt::registry& reg) {
     ZoneScoped;
+    dbgStats.numCulledObjs = 0;
+    dbgStats.numDrawCalls = 0;
     int mx, my;
     SDL_GetMouseState(&mx, &my);
     currentPRP->setPickCoords(mx, my);
@@ -897,6 +899,7 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
     rCtx.textureSlots = &texSlots;
     rCtx.cubemapSlots = &cubemapSlots;
     rCtx.viewPos = cam.position;
+    rCtx.dbgStats = &dbgStats;
 
 #ifdef TRACY_ENABLE
     rCtx.tracyContexts = &tracyContexts;
@@ -1099,6 +1102,10 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
         lowLatencyLast = true;
     }
 
+    VmaBudget budget;
+    vmaGetBudget(allocator, &budget);
+    dbgStats.vramUsage = budget.usage;
+
     frameIdx++;
     FrameMark;
 }
@@ -1138,10 +1145,16 @@ void VKRenderer::preloadMesh(AssetID id) {
     lmd.vb = vku::VertexBuffer{ *device, allocator, vertices.size() * sizeof(Vertex), "Mesh Vertex Buffer"};
     lmd.vb.upload(*device, memProps, *commandPool, device->getQueue(graphicsQueueFamilyIdx, 0), vertices);
 
-    logMsg(WELogCategoryRender, "Loaded mesh %u, %u verts", id, (uint32_t)vertices.size());
+    lmd.aabbMax = glm::vec3(0.0f);
+    lmd.aabbMin = glm::vec3(std::numeric_limits<float>::max());
+    lmd.sphereRadius = 0.0f;
     for (auto& vtx : vertices) {
         lmd.sphereRadius = std::max(glm::length(vtx.position), lmd.sphereRadius);
+        lmd.aabbMax = glm::max(lmd.aabbMax, vtx.position);
+        lmd.aabbMin = glm::min(lmd.aabbMin, vtx.position);
     }
+
+    logMsg(WELogCategoryRender, "Loaded mesh %u, %u verts. Sphere radius %f", id, (uint32_t)vertices.size(), lmd.sphereRadius);
 
     loadedMeshes.insert({ id, std::move(lmd) });
 }

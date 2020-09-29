@@ -1,6 +1,7 @@
 #pragma once
 #include <IGameEventHandler.hpp>
 #include <Console.hpp>
+#include "PidController.hpp"
 
 namespace converge {
     class EventHandler : public worlds::IGameEventHandler {
@@ -26,5 +27,14 @@ namespace converge {
         bool jumpThisFrame;
         glm::vec3 lastCamPos;
         glm::vec3 nextCamPos;
+        V3PidController lHandPid;
+        V3PidController rHandPid;
+        V3PidController lHandRotPid;
+        V3PidController rHandRotPid;
+        glm::vec3 lHandWPos;
+        glm::vec3 rHandWPos;
+        glm::quat lHandWRot;
+        glm::quat rHandWRot;
+        worlds::InputActionHandle throwHandAction;
     };
 }

@@ -33,6 +33,12 @@ namespace worlds {
         pa.actor->release();
     }
 
+    template <typename T>
+    void setPhysXActorUserdata(entt::registry& reg, entt::entity ent) {
+        auto& pa = reg.get<T>(ent);
+        pa.actor->userData = (void*)(uint32_t)ent;
+    }
+
     void cmdTogglePhysVis(void* obj, const char* arg) {
         float currentScale = g_scene->getVisualizationParameter(physx::PxVisualizationParameter::eSCALE);
         
@@ -96,6 +102,8 @@ namespace worlds {
         g_scene = g_physics->createScene(desc);
         reg.on_destroy<PhysicsActor>().connect<&destroyPhysXActor<PhysicsActor>>();
         reg.on_destroy<DynamicPhysicsActor>().connect<&destroyPhysXActor<DynamicPhysicsActor>>();
+        reg.on_construct<PhysicsActor>().connect<&setPhysXActorUserdata<PhysicsActor>>();
+        reg.on_construct<DynamicPhysicsActor>().connect<&setPhysXActorUserdata<DynamicPhysicsActor>>();
         g_console->registerCommand(cmdTogglePhysVis, "phys_toggleVis", "Toggles all physics visualisations.", nullptr);
         g_console->registerCommand(cmdToggleShapeVis, "phys_toggleShapeVis", "Toggles physics shape visualisations.", nullptr);
     }

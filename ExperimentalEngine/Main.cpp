@@ -52,7 +52,7 @@ namespace worlds {
     int workerThreadOverride = -1;
     bool enableXR = false;
     bool enableOpenVR = false;
-    bool runAsEditor = true;
+    bool runAsEditor = false;
     bool pauseSim = false;
     glm::ivec2 windowSize;
     SceneInfo currentScene;
@@ -402,16 +402,45 @@ namespace worlds {
 
         console.registerCommand(cmdLoadScene, "scene", "Loads a scene.", &registry);
         console.registerCommand(cmdToggleFullscreen, "toggleFullscreen", "Toggles fullscreen.", nullptr);
+        console.registerCommand([&](void*, const char*) {
+            runAsEditor = false;
+            evtHandler->onSceneStart(registry);
+            }, "play", "play.", nullptr);
 
-        ConVar showDebugInfo("showDebugInfo", "0", "Shows the debug info window");
+        console.registerCommand([&](void*, const char*) {
+            runAsEditor = true;
+            pauseSim = true;
+            }, "pauseAndEdit", "pause and edit.", nullptr);
+
+        console.registerCommand([&](void*, const char*) {
+            runAsEditor = true;
+            loadScene(currentScene.id, registry);
+            pauseSim = true;
+
+            }, "reloadAndEdit", "reload and edit.", nullptr);
+
+        console.registerCommand([&](void*, const char*) {
+            runAsEditor = false;
+            pauseSim = false;
+            }, "unpause", "unpause and go back to play mode.", nullptr);
+
+        ConVar showDebugInfo("showDebugInfo", "1", "Shows the debug info window");
         ConVar lockSimToRefresh("sim_lockToRefresh", "0", "Instead of using a simulation timestep, run the simulation in lockstep with the rendering.");
         ConVar disableSimInterp("sim_disableInterp", "0", "Disables interpolation and uses the results of the last run simulation step.");
         ConVar simStepTime("sim_stepTime", "0.01");
 
+        if (runAsEditor)
+            disableSimInterp.setValue("1");
+
+        if (enableOpenVR) {
+            lockSimToRefresh.setValue("1");
+            disableSimInterp.setValue("1");
+        }
+
         if (!runAsEditor && PHYSFS_exists("CommandScripts/startup.txt"))
             console.executeCommandStr("exec CommandScripts/startup");
 
-        if (evtHandler != nullptr && !runAsEditor) {
+        if (evtHandler != nullptr) {
             EngineInterfaces interfaces{
                 .vrInterface = enableOpenVR ? &openvrInterface : nullptr,
                 .renderer = renderer,
@@ -419,7 +448,9 @@ namespace worlds {
                 .inputManager = &inputManager
             };
             evtHandler->init(registry, interfaces);
-            evtHandler->onSceneStart(registry);
+
+            if (!runAsEditor)
+                evtHandler->onSceneStart(registry);
         }
 
         onSceneLoad = [](entt::registry& reg) {
@@ -605,6 +636,7 @@ namespace worlds {
                     ImGui::Text("Frame: %i", frameCounter);
                     ImGui::Text("Cam pos: %.3f, %.3f, %.3f", cam.position.x, cam.position.y, cam.position.z);
 
+
                     if (ImGui::Button("Unload Unused Assets")) {
                         renderer->unloadUnusedMaterials(registry);
                     }
@@ -612,6 +644,13 @@ namespace worlds {
                     if (ImGui::Button("Reload Materials and Textures")) {
                         renderer->reloadMatsAndTextures();
                     }
+
+                    ImGui::Separator();
+                    ImGui::Text("Render Stats");
+
+                    ImGui::Text("Draw calls: %i", renderer->getDebugStats().numDrawCalls);
+                    ImGui::Text("Frustum culled objects: %i", renderer->getDebugStats().numCulledObjs);
+                    ImGui::Text("GPU memory usage: %.3fMB", (double)renderer->getDebugStats().vramUsage / 1024.0 / 1024.0);
                 }
                 ImGui::End();
             }
@@ -687,6 +726,8 @@ namespace worlds {
         useEventThread = initOptions.useEventThread;
         workerThreadOverride = initOptions.workerThreadOverride;
         evtHandler = initOptions.eventHandler;
+        runAsEditor = initOptions.runAsEditor;
+        enableOpenVR = initOptions.enableVR;
         engine(argv0);
     }
 }

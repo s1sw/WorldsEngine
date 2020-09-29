@@ -4,6 +4,7 @@
 #include <SDL2/SDL_log.h>
 #include "LogCategories.hpp"
 #include <fstream>
+#include <functional>
 
 namespace worlds {
     class Console;
@@ -27,7 +28,7 @@ namespace worlds {
         float parsedFloat;
     };
 
-    typedef void(*CommandFuncPtr)(void* obj, const char* argString);
+    typedef std::function<void(void* obj, const char* argString)> CommandFuncPtr;
 
     class Console {
     public:
