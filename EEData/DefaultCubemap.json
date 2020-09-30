@@ -1,8 +1,8 @@
 [
-	"DefaultCubemap/px.png",
-	"DefaultCubemap/nx.png",
-	"DefaultCubemap/py.png",
-	"DefaultCubemap/ny.png",
-	"DefaultCubemap/pz.png",
-	"DefaultCubemap/nz.png"
+	"DefaultCubemap/px.hdr",
+	"DefaultCubemap/nx.hdr",
+	"DefaultCubemap/py.hdr",
+	"DefaultCubemap/ny.hdr",
+	"DefaultCubemap/pz.hdr",
+	"DefaultCubemap/nz.hdr"
 ]

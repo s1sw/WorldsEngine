@@ -240,6 +240,20 @@ namespace converge {
         return angle;
     }
 
+    void correctAngleAxis(float& angle, glm::vec3& axis) {
+        //angle = WrapAngle(angle);
+
+        if (angle > 180.0f) {
+            angle = 360.0f - angle;
+            axis = -axis;
+        }
+
+        if (angle < 0.0f) {
+            angle = -angle;
+            axis = -axis;
+        }
+    }
+
     float getQuatAngleStable(glm::quat q) {
         return 2.0f * glm::acos(q.w);
     }
@@ -255,6 +269,15 @@ namespace converge {
             q.y / omWSq,
             q.z / omWSq
         };
+    }
+
+    int getNegativeComponentCount(glm::quat q) {
+        int count = 0;
+        for (int i = 0; i < q.length(); i++) {
+            count += q[i] < 0;
+        }
+        
+        return count;
     }
 
     void EventHandler::simulate(entt::registry& registry, float simStep) {
@@ -414,11 +437,33 @@ namespace converge {
                 glm::vec3 force = lHandPid.getOutput(err, simStep);
                 body->addForce(worlds::glm2px(force));
 
-                glm::quat quaternionDifference = lHandWRot * glm::inverse(tf.rotation);
+                if (body->getAngularVelocity().magnitudeSquared() > 10.0f)
+                    body->setAngularVelocity(physx::PxVec3{ 0.0f });
 
-                float angle = glm::angle(quaternionDifference);
-                glm::vec3 axis = glm::axis(quaternionDifference);
+                glm::quat filteredQ = glm::normalize(lHandWRot);
+
+                if (glm::dot(filteredQ, tf.rotation) < 0.0f)
+                    filteredQ = -filteredQ;
+
+                glm::quat quaternionDifference = filteredQ * glm::inverse(tf.rotation);
+                ImGui::Text("L Quat Dif: %.3f, %.3f, %.3f, %.3f", quaternionDifference.w, quaternionDifference.x, quaternionDifference.y, quaternionDifference.z);
+                ImGui::Text("L HandWRot: %.3f, %.3f, %.3f, %.3f", lHandWRot.w, lHandWRot.x, lHandWRot.y, lHandWRot.z);
+
+                ImGui::Text("L filteredQ: %.3f, %.3f, %.3f, %.3f", filteredQ.w, filteredQ.x, filteredQ.y, filteredQ.z);
+                ImGui::Text("L Hand Curr: %.3f, %.3f, %.3f, %.3f", tf.rotation.w, tf.rotation.x, tf.rotation.y, tf.rotation.z);
+
+                float angle = glm::angle(filteredQ);
+                glm::vec3 axis = glm::axis(filteredQ);
+                angle = glm::degrees(angle);
+                ImGui::Text("L Pre-adjust Angle: %.3f", angle);
+
+                //correctAngleAxis(angle, axis);
                 angle = AngleToErr(angle);
+
+                ImGui::Text("L Angle: %.3f", angle);
+                ImGui::Text("L Axis: %.3f, %.3f, %.3f", axis.x, axis.y, axis.z);
+
+                angle = glm::radians(angle);
 
                 glm::vec3 torque = lHandRotPid.getOutput(angle * axis, simStep);
                 
@@ -438,7 +483,8 @@ namespace converge {
 
                 float angle = getQuatAngleStable(quaternionDifference);
                 glm::vec3 axis = getQuatAxisStable(quaternionDifference);
-                angle = AngleToErr(angle);
+                //angle = AngleToErr(angle);
+                correctAngleAxis(angle, axis);
 
                 glm::vec3 torque = rHandRotPid.getOutput(angle * axis, simStep);
 

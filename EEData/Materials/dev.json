@@ -1,6 +1,7 @@
 {
-	"albedoPath" : "albedo.png",
+	"albedoPath" : "Textures/Dev/512SimpleOrange.crn",
 	"metallic" : 0.0,
-	"roughness" : 0.2,
-	"albedoColor" : [1.0, 1.0, 1.0]
+	"roughness" : 1.0,
+	"albedoColor" : [1.0, 1.0, 1.0],
+	"fresnelReduction" : 0.25
 }

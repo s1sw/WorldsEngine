@@ -338,3 +338,7 @@ ASALocalRun/
 
 # BeatPulse healthcheck temp database
 healthchecksdb
+/EEData/sourcemodel
+/EEData/srctex
+/EEData/srcmat
+/log.txt

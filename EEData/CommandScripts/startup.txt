@@ -1,1 +1,1 @@
-scene locosphere_test.escn
+scene test.escn

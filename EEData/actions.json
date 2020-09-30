@@ -39,6 +39,10 @@
     {
       "name": "/actions/main/in/Jump",
       "type": "boolean"
+    },
+    {
+      "name": "/actions/main/in/ThrowHand",
+      "type": "boolean"
     }
   ],
   "action_sets": [
@@ -59,7 +63,8 @@
       "/actions/main/in/LeftHand": "Left Hand",
       "/actions/main/in/LeftHand_Anim": "Left Hand Animation",
       "/actions/main/in/Sprint": "Sprint",
-      "/actions/main/in/Jump": "Jump"
+      "/actions/main/in/Jump": "Jump",
+      "/actions/main/in/ThrowHand":  "Throw Hand"
     }
   ]
 }

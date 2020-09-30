@@ -2,6 +2,7 @@
 #extension GL_EXT_nonuniform_qualifier : enable
 #extension GL_EXT_multiview : enable
 #define PI 3.1415926535
+#define FRAGMENT
 
 #ifdef FRAGMENT
 layout(location = 0) out vec4 FragColor;
