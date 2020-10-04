@@ -110,6 +110,30 @@ namespace converge {
         inputManager = interfaces.inputManager;
 
         worlds::g_console->registerCommand(cmdToggleVsync, "r_toggleVsync", "Toggles Vsync.", renderer);
+        worlds::g_console->registerCommand([&](void*, const char*) {
+            auto& wActor = registry.get<worlds::DynamicPhysicsActor>(lHandEnt);
+            auto* body = static_cast<physx::PxRigidBody*>(wActor.actor);
+            body->setLinearVelocity(physx::PxVec3{ 0.0f });
+
+            auto& lTf = registry.get<Transform>(lHandEnt);
+            auto lPose = body->getGlobalPose();
+            lPose.p = worlds::glm2px(lHandWPos);
+            lTf.position = lHandWPos;
+            body->setGlobalPose(lPose);
+
+            auto& wActorR = registry.get<worlds::DynamicPhysicsActor>(rHandEnt);
+            auto* rBody = static_cast<physx::PxRigidBody*>(wActorR.actor);
+            rBody->setLinearVelocity(physx::PxVec3{ 0.0f });
+
+            auto& rTf = registry.get<Transform>(rHandEnt);
+            auto rPose = rBody->getGlobalPose();
+            rPose.p = worlds::glm2px(rHandWPos);
+            rTf.position = rHandWPos;
+            rBody->setGlobalPose(rPose);
+            
+            lHandPid.reset();
+            rHandPid.reset();
+            }, "cnvrg_resetHands", "Resets hand PID controllers.", nullptr);
     }
 
     void EventHandler::preSimUpdate(entt::registry& registry, float deltaTime) {
@@ -124,7 +148,13 @@ namespace converge {
 
     float locosphereAngVels[128];
     float locosphereLinVels[128];
-    int locosphereVelIdx = 0;
+    float lHandTorqueMag[128];
+    float rHandTorqueMag[128];
+    float lHandForceMag[128];
+    float rHandForceMag[128];
+    int physDbgIdx = 0;
+
+    glm::vec3 offset;
 
     void EventHandler::update(entt::registry& registry, float deltaTime, float interpAlpha) {
         if (!vrInterface) {
@@ -142,8 +172,8 @@ namespace converge {
 
         //ImGui::Text("Desired vel: %.3f, %.3f, %.3f", lastDesiredVel.x, lastDesiredVel.y, lastDesiredVel.z);
         if (ImGui::Begin("Locosphere")) {
-            ImGui::PlotLines("Angular Speed", locosphereAngVels, 128, locosphereVelIdx, nullptr, 0.0f, 50.0f, ImVec2(500.0f, 100.0f));
-            ImGui::PlotLines("Linear Speed", locosphereLinVels, 128, locosphereVelIdx, nullptr, 0.0f, 50.0f, ImVec2(500.0f, 100.0f));
+            ImGui::PlotLines("Angular Speed", locosphereAngVels, 128, physDbgIdx, nullptr, 0.0f, 50.0f, ImVec2(500.0f, 100.0f));
+            ImGui::PlotLines("Linear Speed", locosphereLinVels, 128, physDbgIdx, nullptr, 0.0f, 50.0f, ImVec2(500.0f, 100.0f));
 
             float maxAngVel = 0.0f;
             float maxLinVel = 0.0f;
@@ -162,10 +192,12 @@ namespace converge {
                 ImGui::DragFloat("P", &lHandPid.P);
                 ImGui::DragFloat("I", &lHandPid.I);
                 ImGui::DragFloat("D", &lHandPid.D);
+                ImGui::DragFloat("D2", &lHandPid.D2);
 
                 rHandPid.P = lHandPid.P;
                 rHandPid.I = lHandPid.I;
                 rHandPid.D = lHandPid.D;
+                rHandPid.D2 = lHandPid.D2;
 
                 ImGui::Separator();
 
@@ -173,10 +205,20 @@ namespace converge {
                 ImGui::DragFloat("P##R", &lHandRotPid.P);
                 ImGui::DragFloat("I##R", &lHandRotPid.I);
                 ImGui::DragFloat("D##R", &lHandRotPid.D);
+                ImGui::DragFloat("D2##R", &lHandRotPid.D2);
 
                 rHandRotPid.P = lHandRotPid.P;
                 rHandRotPid.I = lHandRotPid.I;
                 rHandRotPid.D = lHandRotPid.D;
+                rHandRotPid.D2 = lHandRotPid.D2;
+
+                ImGui::Separator();
+                ImGui::DragFloat3("Offset", &offset.x);
+
+                ImGui::PlotLines("L Torque", lHandTorqueMag, 128, physDbgIdx, nullptr, 0.0f, 50.0f, ImVec2(500.0f, 100.0f));
+                ImGui::PlotLines("L Force", lHandForceMag, 128, physDbgIdx, nullptr, 0.0f, 50.0f, ImVec2(500.0f, 100.0f));
+                ImGui::PlotLines("R Torque", rHandTorqueMag, 128, physDbgIdx, nullptr, 0.0f, 50.0f, ImVec2(500.0f, 100.0f));
+                ImGui::PlotLines("R Force", rHandForceMag, 128, physDbgIdx, nullptr, 0.0f, 50.0f, ImVec2(500.0f, 100.0f));
             }
             ImGui::End();
 
@@ -200,6 +242,7 @@ namespace converge {
 
                 if (((worlds::OpenVRInterface*)vrInterface)->getHandTransform(vr::ETrackedControllerRole::TrackedControllerRole_LeftHand, t)) {
                     ImGui::Text("Left Controller: %.2f, %.2f, %.2f", t.position.x, t.position.y, t.position.z);
+                    t.position += t.rotation * offset;
                     t.fromMatrix(glm::inverse(camera->getViewMatrix()) * t.getMatrix());
                     ImGui::Text("Left Controller World: %.2f, %.2f, %.2f", t.position.x, t.position.y, t.position.z);
                     lHandWPos = t.position;
@@ -212,10 +255,10 @@ namespace converge {
 
                 if (((worlds::OpenVRInterface*)vrInterface)->getHandTransform(vr::ETrackedControllerRole::TrackedControllerRole_RightHand, t)) {
                     ImGui::Text("Right Controller: %.2f, %.2f, %.2f", t.position.x, t.position.y, t.position.z);
-
+                    t.position += t.rotation * offset;
                     t.fromMatrix(glm::inverse(camera->getViewMatrix()) * t.getMatrix());
                     ImGui::Text("Right Controller World: %.2f, %.2f, %.2f", t.position.x, t.position.y, t.position.z);
-                    rHandWPos = t.position;
+                    rHandWPos = t.position + (offset * t.rotation);
                     rHandWRot = t.rotation;
                 }
             }
@@ -240,44 +283,8 @@ namespace converge {
         return angle;
     }
 
-    void correctAngleAxis(float& angle, glm::vec3& axis) {
-        //angle = WrapAngle(angle);
-
-        if (angle > 180.0f) {
-            angle = 360.0f - angle;
-            axis = -axis;
-        }
-
-        if (angle < 0.0f) {
-            angle = -angle;
-            axis = -axis;
-        }
-    }
-
-    float getQuatAngleStable(glm::quat q) {
-        return 2.0f * glm::acos(q.w);
-    }
-
-    glm::vec3 getQuatAxisStable(glm::quat q) {
-        float omWSq = glm::sqrt(1.0f - (q.w * q.w));
-        if (omWSq == 0.0f) {
-            return glm::vec3{ 1.0f, 0.0f, 0.0f };
-        }
-
-        return glm::vec3{
-            q.x / omWSq,
-            q.y / omWSq,
-            q.z / omWSq
-        };
-    }
-
-    int getNegativeComponentCount(glm::quat q) {
-        int count = 0;
-        for (int i = 0; i < q.length(); i++) {
-            count += q[i] < 0;
-        }
-        
-        return count;
+    glm::quat fixupQuat(glm::quat q) {
+        return q * glm::sign(glm::dot(q, glm::quat_identity<float, glm::packed_highp>()));
     }
 
     void EventHandler::simulate(entt::registry& registry, float simStep) {
@@ -365,11 +372,8 @@ namespace converge {
 
         glm::vec3 currLinVel = worlds::px2glm(locosphereActor->getLinearVelocity());
 
-        locosphereAngVels[locosphereVelIdx] = glm::length(currVel);
-        locosphereLinVels[locosphereVelIdx] = glm::length(currLinVel);
-        locosphereVelIdx++;
-        if (locosphereVelIdx == 128)
-            locosphereVelIdx = 0;
+        locosphereAngVels[physDbgIdx] = glm::length(currVel);
+        locosphereLinVels[physDbgIdx] = glm::length(currLinVel);
 
         if (!grounded) {
             glm::vec3 airVel = camMat * glm::vec4(inputVel, 0.0f);
@@ -436,62 +440,66 @@ namespace converge {
                 glm::vec3 err = lHandWPos - tf.position;
                 glm::vec3 force = lHandPid.getOutput(err, simStep);
                 body->addForce(worlds::glm2px(force));
+                lHandForceMag[physDbgIdx] = glm::length(force);
 
-                if (body->getAngularVelocity().magnitudeSquared() > 10.0f)
-                    body->setAngularVelocity(physx::PxVec3{ 0.0f });
+                //if (body->getAngularVelocity().magnitudeSquared() > 10.0f)
+                    //body->setAngularVelocity(physx::PxVec3{ 0.0f });
 
                 glm::quat filteredQ = glm::normalize(lHandWRot);
 
-                if (glm::dot(filteredQ, tf.rotation) < 0.0f)
-                    filteredQ = -filteredQ;
+                filteredQ = fixupQuat(filteredQ);
 
-                glm::quat quaternionDifference = filteredQ * glm::inverse(tf.rotation);
-                ImGui::Text("L Quat Dif: %.3f, %.3f, %.3f, %.3f", quaternionDifference.w, quaternionDifference.x, quaternionDifference.y, quaternionDifference.z);
-                ImGui::Text("L HandWRot: %.3f, %.3f, %.3f, %.3f", lHandWRot.w, lHandWRot.x, lHandWRot.y, lHandWRot.z);
+                glm::quat quaternionDifference = filteredQ * glm::inverse(fixupQuat(tf.rotation));
 
-                ImGui::Text("L filteredQ: %.3f, %.3f, %.3f, %.3f", filteredQ.w, filteredQ.x, filteredQ.y, filteredQ.z);
-                ImGui::Text("L Hand Curr: %.3f, %.3f, %.3f, %.3f", tf.rotation.w, tf.rotation.x, tf.rotation.y, tf.rotation.z);
+                quaternionDifference = fixupQuat(quaternionDifference);
 
-                float angle = glm::angle(filteredQ);
-                glm::vec3 axis = glm::axis(filteredQ);
+                float angle = glm::angle(quaternionDifference);
+                glm::vec3 axis = glm::axis(quaternionDifference);
                 angle = glm::degrees(angle);
-                ImGui::Text("L Pre-adjust Angle: %.3f", angle);
-
-                //correctAngleAxis(angle, axis);
                 angle = AngleToErr(angle);
-
-                ImGui::Text("L Angle: %.3f", angle);
-                ImGui::Text("L Axis: %.3f, %.3f, %.3f", axis.x, axis.y, axis.z);
-
                 angle = glm::radians(angle);
 
                 glm::vec3 torque = lHandRotPid.getOutput(angle * axis, simStep);
+                lHandTorqueMag[physDbgIdx] = glm::length(torque);
                 
-                if (!glm::any(glm::isnan(axis)))
+                if (!glm::any(glm::isnan(axis)) && !glm::any(glm::isinf(torque)))
                     body->addTorque(worlds::glm2px(torque));
             }
 
-            if (vrInterface->getActionHeld(throwHandAction)) {
+            if (!vrInterface->getActionHeld(throwHandAction)) {
                 auto& wActor = registry.get<worlds::DynamicPhysicsActor>(rHandEnt);
                 auto* body = static_cast<physx::PxRigidBody*>(wActor.actor);
                 auto& tf = registry.get<Transform>(rHandEnt);
                 glm::vec3 err = rHandWPos - tf.position;
                 glm::vec3 force = rHandPid.getOutput(err, simStep);
                 body->addForce(worlds::glm2px(force));
+                rHandForceMag[physDbgIdx] = glm::length(force);
 
-                glm::quat quaternionDifference = rHandWRot * glm::inverse(tf.rotation);
+                glm::quat filteredQ = glm::normalize(rHandWRot);
 
-                float angle = getQuatAngleStable(quaternionDifference);
-                glm::vec3 axis = getQuatAxisStable(quaternionDifference);
-                //angle = AngleToErr(angle);
-                correctAngleAxis(angle, axis);
+                filteredQ = fixupQuat(filteredQ);
+
+                glm::quat quaternionDifference = filteredQ * glm::inverse(fixupQuat(tf.rotation));
+
+                quaternionDifference = fixupQuat(quaternionDifference);
+
+                float angle = glm::angle(quaternionDifference);
+                glm::vec3 axis = glm::axis(quaternionDifference);
+                angle = glm::degrees(angle);
+                angle = AngleToErr(angle);
+                angle = glm::radians(angle);
 
                 glm::vec3 torque = rHandRotPid.getOutput(angle * axis, simStep);
+                rHandTorqueMag[physDbgIdx] = glm::length(force);
 
-                if (!glm::any(glm::isnan(axis)) && angle > 0.01f)
+                if (!glm::any(glm::isnan(axis)) && !glm::any(glm::isinf(torque)))
                     body->addTorque(worlds::glm2px(torque));
             }
         }
+
+        physDbgIdx++;
+        if (physDbgIdx == 128)
+            physDbgIdx = 0;
     }
 
     void EventHandler::onSceneStart(entt::registry& registry) {
@@ -538,17 +546,17 @@ namespace converge {
             physx::PxRigidBodyExt::setMassAndUpdateInertia(*rActor, 2.0f);
             physx::PxRigidBodyExt::setMassAndUpdateInertia(*lActor, 2.0f);
 
-            lHandPid.P = 345.0f;
-            lHandPid.D = 30.0f;
+            lHandPid.P = 1370.0f;
+            lHandPid.D = 100.0f;
 
-            rHandPid.P = 345.0f;
-            rHandPid.D = 30.0f;
+            rHandPid.P = 1370.0f;
+            rHandPid.D = 100.0f;
             
-            lHandRotPid.P = 4.0f;
-            lHandRotPid.D = 0.5f;
+            lHandRotPid.P = 2.5f;
+            lHandRotPid.D = 0.2f;
 
-            rHandRotPid.P = 4.0f;
-            rHandRotPid.D = 0.5f;
+            rHandRotPid.P = 2.5f;
+            rHandRotPid.D = 0.2f;
         }
 
         // Create physics rig

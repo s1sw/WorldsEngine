@@ -5,6 +5,7 @@ namespace converge {
     class V3PidController {
     private:
         glm::vec3 lastError;
+        glm::vec3 lastDerivative;
         glm::vec3 integral;
 
         glm::vec3 clampMagnitude(glm::vec3 in, float maxMagnitude) {
@@ -15,6 +16,7 @@ namespace converge {
         float P = 0.0f;
         float I = 0.0f;
         float D = 0.0f;
+        float D2 = 0.0f;
 
         bool clampIntegral;
         float maxIntegralMagnitude;
@@ -23,6 +25,7 @@ namespace converge {
 
         glm::vec3 getOutput(glm::vec3 error, float deltaTime) {
             glm::vec3 derivative = (error - lastError) / deltaTime;
+            glm::vec3 derivative2 = ((derivative * deltaTime) - (lastDerivative * deltaTime)) / deltaTime;
             integral += error * deltaTime;
 
             if (clampIntegral) {
@@ -36,8 +39,9 @@ namespace converge {
             integral += (error - integral) / averageAmount;
 
             lastError = error;
+            lastDerivative = derivative;
 
-            return P * error + I * integral + D * derivative;
+            return P * error + I * integral + D * derivative + D2 * derivative2;
         }
 
         void reset() {
