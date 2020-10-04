@@ -2,7 +2,6 @@
 #extension GL_EXT_nonuniform_qualifier : enable
 #extension GL_EXT_multiview : enable
 #define PI 3.1415926535
-#define FRAGMENT
 
 #ifdef FRAGMENT
 layout(location = 0) out vec4 FragColor;
@@ -109,13 +108,15 @@ layout(push_constant) uniform PushConstants {
 #ifdef VERTEX
 void main() {
 	mat4 model = modelMatrices[modelMatrixIdx];
-    gl_Position = projection[vpIdx + gl_ViewIndex] * view[vpIdx + gl_ViewIndex] * model * vec4(inPosition, 1.0); // Apply MVP transform
+    int vpMatIdx = vpIdx + gl_ViewIndex; 
+    outWorldPos = (model * vec4(inPosition, 1.0));
+
+    gl_Position = projection[vpMatIdx] * view[vpMatIdx] * outWorldPos; // Apply MVP transform
 	
     outUV = (inUV * texScaleOffset.xy) + texScaleOffset.zw;
     outNormal = normalize(model * vec4(inNormal, 0.0)).xyz;
     outTangent = normalize(model * vec4(inTangent, 0.0)).xyz;
-    outWorldPos = (model * vec4(inPosition, 1.0));
-	outShadowPos = shadowmapMatrix * model * vec4(inPosition, 1.0);
+	outShadowPos = shadowmapMatrix * outWorldPos;
     outShadowPos.y = -outShadowPos.y;
 	outDepth = gl_Position.z / gl_Position.w;
     gl_Position.y = -gl_Position.y; // Account for Vulkan viewport weirdness
