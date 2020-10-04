@@ -910,8 +910,17 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
             OpenVRInterface* ovrInterface = static_cast<OpenVRInterface*>(vrInterface);
             rCtx.vrProjMats[0] = ovrInterface->getProjMat(vr::EVREye::Eye_Left, 0.01f, 100.0f);
             rCtx.vrProjMats[1] = ovrInterface->getProjMat(vr::EVREye::Eye_Right, 0.01f, 100.0f);
+
+            vr::TrackedDevicePose_t pose;
+            vr::VRSystem()->GetDeviceToAbsoluteTrackingPose(vr::ETrackingUniverseOrigin::TrackingUniverseStanding, vrPredictAmount, &pose, 1);
+
+            glm::mat4 viewMats[2];
             rCtx.vrViewMats[0] = ovrInterface->getViewMat(vr::EVREye::Eye_Left);
             rCtx.vrViewMats[1] = ovrInterface->getViewMat(vr::EVREye::Eye_Right);
+
+            for (int i = 0; i < 2; i++) {
+                rCtx.vrViewMats[i] = glm::inverse(ovrInterface->toMat4(pose.mDeviceToAbsoluteTracking) * viewMats[i]) * cam.getViewMatrix();
+            }
         }
     }
 
