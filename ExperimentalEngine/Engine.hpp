@@ -19,6 +19,12 @@ namespace worlds {
     };
 
     struct EngineInitOptions {
+        EngineInitOptions()
+            : useEventThread(false)
+            , workerThreadOverride(-1)
+            , runAsEditor(false)
+            , enableVR(false)
+            , eventHandler(nullptr) {}
         bool useEventThread;
         int workerThreadOverride;
         bool runAsEditor;

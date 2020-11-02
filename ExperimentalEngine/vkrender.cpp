@@ -13,7 +13,6 @@
 #include "tracy/Tracy.hpp"
 #include "tracy/TracyC.h"
 #include "tracy/TracyVulkan.hpp"
-#include "XRInterface.hpp"
 #include "RenderPasses.hpp"
 #include "Input.hpp"
 #include "OpenVRInterface.hpp"
@@ -537,18 +536,7 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
 #endif
 
     if (enableVR) {
-        if (initInfo.activeVrApi == VrApi::OpenXR) {
-            XrGraphicsBindingVulkanKHR graphicsBinding;
-            graphicsBinding.type = XR_TYPE_GRAPHICS_BINDING_VULKAN_KHR;
-            graphicsBinding.instance = *instance;
-            graphicsBinding.queueFamilyIndex = graphicsQueueFamilyIdx;
-            graphicsBinding.queueIndex = 0;
-            graphicsBinding.device = *device;
-            graphicsBinding.physicalDevice = physicalDevice;
-            graphicsBinding.next = nullptr;
-
-            ((XRInterface*)initInfo.vrInterface)->createSession(graphicsBinding);
-        } else if (initInfo.activeVrApi == VrApi::OpenVR) {
+        if (initInfo.activeVrApi == VrApi::OpenVR) {
             vr::VRCompositor()->SetExplicitTimingMode(vr::EVRCompositorTimingMode::VRCompositorTimingMode_Explicit_RuntimePerformsPostPresentHandoff);
         }
 

@@ -4,7 +4,7 @@
 #include <minwindef.h>
 
 int main(int argc, char** argv) {
-    worlds::EngineInitOptions initOptions{ false, -1, false };
+    worlds::EngineInitOptions initOptions;
 
     converge::EventHandler evtHandler;
     initOptions.eventHandler = &evtHandler;

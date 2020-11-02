@@ -19,7 +19,6 @@
 #include <glm/gtx/norm.hpp>
 #include <physx/PxQueryReport.h>
 #include "tracy/Tracy.hpp"
-#include "XRInterface.hpp"
 #include "Editor.hpp"
 #include "OpenVRInterface.hpp"
 #include "Log.hpp"
@@ -54,7 +53,6 @@ namespace worlds {
 
     bool useEventThread = false;
     int workerThreadOverride = -1;
-    bool enableXR = false;
     bool enableOpenVR = false;
     bool runAsEditor = false;
     bool pauseSim = false;
@@ -316,17 +314,9 @@ namespace worlds {
         std::vector<std::string> additionalInstanceExts;
         std::vector<std::string> additionalDeviceExts;
 
-        XRInterface xrInterface;
         OpenVRInterface openvrInterface;
 
-        if (enableXR) {
-            xrInterface.initXR();
-            auto xrInstExts = xrInterface.getVulkanInstanceExtensions();
-            auto xrDevExts = xrInterface.getVulkanDeviceExtensions();
-
-            additionalInstanceExts.insert(additionalInstanceExts.begin(), xrInstExts.begin(), xrInstExts.end());
-            additionalDeviceExts.insert(additionalDeviceExts.begin(), xrDevExts.begin(), xrDevExts.end());
-        } else if (enableOpenVR) {
+        if (enableOpenVR) {
             openvrInterface.init();
             uint32_t newW, newH;
 
@@ -340,16 +330,14 @@ namespace worlds {
         }
 
         VrApi activeApi = VrApi::None;
-
-        if (enableXR) {
-            activeApi = VrApi::OpenXR;
-        } else if (enableOpenVR) {
+        
+        if (enableOpenVR) {
             activeApi = VrApi::OpenVR;
         }
 
-        IVRInterface* vrInterface = enableXR ? (IVRInterface*)&xrInterface : &openvrInterface;
+        IVRInterface* vrInterface = &openvrInterface;
 
-        RendererInitInfo initInfo{ window, additionalInstanceExts, additionalDeviceExts, enableXR || enableOpenVR, activeApi, vrInterface, runAsEditor, "Converge" };
+        RendererInitInfo initInfo{ window, additionalInstanceExts, additionalDeviceExts, enableOpenVR, activeApi, vrInterface, runAsEditor, "Converge" };
         VKRenderer* renderer = new VKRenderer(initInfo, &renderInitSuccess);
 
         if (!renderInitSuccess) {
@@ -778,8 +766,6 @@ namespace worlds {
                     newWidth = w;
                     newHeight = h;
                 }
-
-                //renderer->destroyRTTPass(screenRTTPass);
 
                 RTTPassCreateInfo screenRTTCI;
                 screenRTTCI.enableShadows = true;
