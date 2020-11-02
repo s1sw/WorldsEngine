@@ -37,14 +37,20 @@ namespace worlds {
         auto albedoColorIdx = root.find_object_key(sajson::string("albedoColor", 11));
         auto normalMapIdx = root.find_object_key(sajson::string("normalMapPath", 13));
         auto alphaCutoffIdx = root.find_object_key(sajson::string("alphaCutoff", 11));
-        auto fresnelReductionIdx = root.find_object_key(sajson::string("fresnelReduction", 16));
+        auto heightmapScaleIdx = root.find_object_key(sajson::string("heightmapScale", 14));
+        auto heightmapPathIdx = root.find_object_key(sajson::string("heightmapPath", 13));
 
         auto albedoPath = root.get_object_value(albedoPathIdx).as_string();
+
         std::string normalMapPath;
-        float alphaCutoff = 0.0f;
         if (normalMapIdx != root.get_length())
             normalMapPath = root.get_object_value(normalMapIdx).as_string();
 
+        std::string heightmapPath;
+        if (heightmapPathIdx != root.get_length())
+            heightmapPath = root.get_object_value(heightmapPathIdx).as_string();
+
+        float alphaCutoff = 0.0f;
         if (alphaCutoffIdx != root.get_length())
             alphaCutoff = root.get_object_value(alphaCutoffIdx).get_double_value();
         mat.alphaCutoff = alphaCutoff;
@@ -63,20 +69,26 @@ namespace worlds {
 
         auto albedoAssetId = g_assetDB.addOrGetExisting(albedoPath);
 
-        float nMapSlot = -1.0f;
+        int nMapSlot = -1;
         if (!normalMapPath.empty()) {
             auto normalMapId = g_assetDB.addOrGetExisting(normalMapPath);
-            uint32_t nMapSlotU = texSlots.loadOrGet(normalMapId);
-            nMapSlot = nMapSlotU;
+            nMapSlot = texSlots.loadOrGet(normalMapId);
+        }
+
+        int hMapSlot = -1;
+        if (!heightmapPath.empty()) {
+            auto heightMapId = g_assetDB.addOrGetExisting(heightmapPath);
+            hMapSlot = texSlots.loadOrGet(heightMapId);
         }
 
         mat.albedoTexIdx = texSlots.loadOrGet(albedoAssetId);
         mat.normalTexIdx = nMapSlot;
+        mat.heightmapTexIdx = hMapSlot;
 
-        if (fresnelReductionIdx == root.get_length())
-            mat.fresnelHackFactor = 1.0f;
-        else
-            mat.fresnelHackFactor = root.get_object_value(fresnelReductionIdx).get_double_value();
+        float heightmapScale = 0.0f;
+        if (heightmapScaleIdx != root.get_length())
+            heightmapScale = root.get_object_value(heightmapScaleIdx).get_double_value();
+        mat.heightmapScale = heightmapScale;
         
         auto bfCullOffIdx = root.find_object_key(sajson::string("cullOff", 7));
 

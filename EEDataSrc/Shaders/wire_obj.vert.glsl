@@ -7,13 +7,13 @@ layout(location = 1) in vec2 inUV;
 layout(location = 0) out vec2 outUV;
 
 layout(binding = 0) uniform MultiVP {
-	mat4 view[8];
-	mat4 projection[8];
-	vec4 viewPos[8];
+	mat4 view[4];
+	mat4 projection[4];
+	vec4 viewPos[4];
 };
 
 layout(std140, binding = 3) uniform ModelMatrices {
-	mat4 modelMatrices[1024];
+	mat4 modelMatrices[512];
 };
 
 layout(push_constant) uniform PushConstants {
@@ -25,7 +25,11 @@ layout(push_constant) uniform PushConstants {
 
 void main() {
     mat4 model = modelMatrices[ubIndices.x];
-    gl_Position = projection[ubIndices.z + gl_ViewIndex] * view[ubIndices.z + gl_ViewIndex] * model * vec4(inPosition, 1.0); // Apply MVP transform
+	uint vpIdx = ubIndices.z;
+	#ifndef AMD_VIEWINDEX_WORKAROUND
+	vpIdx += gl_ViewIndex;
+	#endif
+    gl_Position = projection[vpIdx] * view[vpIdx] * model * vec4(inPosition, 1.0); // Apply MVP transform
     gl_Position.y = -gl_Position.y; // Account for Vulkan viewport weirdness
 	outUV = inUV;
 }

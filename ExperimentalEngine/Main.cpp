@@ -30,6 +30,10 @@
 #include "SceneSerialization.hpp"
 #include "Render.hpp"
 #include "TimingUtil.hpp"
+#include "VKImGUIUtil.hpp"
+#define IMGUI_DEFINE_MATH_OPERATORS
+#include "imgui_internal.h"
+#include "CreateModelObject.hpp"
 
 namespace worlds {
     AssetDB g_assetDB;
@@ -151,19 +155,6 @@ namespace worlds {
         return 0;
     }
 
-    entt::entity createModelObject(entt::registry& reg, glm::vec3 position, glm::quat rotation, AssetID meshId, AssetID materialId, glm::vec3 scale = glm::vec3(1.0f), glm::vec4 texScaleOffset = glm::vec4(1.0f, 1.0f, 0.0f, 0.0f)) {
-        if (glm::length(rotation) == 0.0f) {
-            rotation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
-        }
-        auto ent = reg.create();
-        auto& transform = reg.emplace<Transform>(ent, position, rotation);
-        transform.scale = scale;
-        auto& worldObject = reg.emplace<WorldObject>(ent, 0, meshId);
-        worldObject.texScaleOffset = texScaleOffset;
-        worldObject.materials[0] = materialId;
-        return ent;
-    }
-
     void loadEditorFont() {
         ImGui::GetIO().Fonts->Clear();
         PHYSFS_File* ttfFile = PHYSFS_openRead("Fonts/EditorFont.ttf");
@@ -220,6 +211,10 @@ namespace worlds {
     }
 
     void cmdLoadScene(void* obj, const char* arg) {
+        if (!PHYSFS_exists(arg)) {
+            logErr(WELogCategoryEngine, "Couldn't find scene %s. Make sure you included the .escn file extension.", arg);
+            return;
+        }
         loadScene(g_assetDB.addOrGetExisting(arg), *(entt::registry*)obj);
     }
 
@@ -293,7 +288,6 @@ namespace worlds {
         }
 
         setWindowIcon();
-        setupAudio();
 
         int frameCounter = 0;
 
@@ -308,6 +302,7 @@ namespace worlds {
         ImGui::CreateContext();
         ImGuiIO& io = ImGui::GetIO();
         io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;           // Enable Docking
+        io.IniFilename = runAsEditor ? "imgui_editor.ini" : "imgui.ini";
         // Disabling this for now as it seems to cause random freezes
         //io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;         // Enable Multi-Viewport / Platform Windows
 
@@ -354,7 +349,7 @@ namespace worlds {
 
         IVRInterface* vrInterface = enableXR ? (IVRInterface*)&xrInterface : &openvrInterface;
 
-        RendererInitInfo initInfo{ window, additionalInstanceExts, additionalDeviceExts, enableXR || enableOpenVR, activeApi, vrInterface, runAsEditor };
+        RendererInitInfo initInfo{ window, additionalInstanceExts, additionalDeviceExts, enableXR || enableOpenVR, activeApi, vrInterface, runAsEditor, "Converge" };
         VKRenderer* renderer = new VKRenderer(initInfo, &renderInitSuccess);
 
         if (!renderInitSuccess) {
@@ -393,7 +388,17 @@ namespace worlds {
         //SDL_SetRelativeMouseMode(SDL_TRUE);
         std::memcpy(reinterpret_cast<void*>(lastState), state, SDL_NUM_SCANCODES);
 
-        Editor editor(registry, inputManager, cam);
+        EngineInterfaces interfaces{
+                .vrInterface = enableOpenVR ? &openvrInterface : nullptr,
+                .renderer = renderer,
+                .mainCamera = &cam,
+                .inputManager = &inputManager
+        };
+
+        auto vkCtx = renderer->getVKCtx();
+        VKImGUIUtil::createObjects(vkCtx);
+
+        Editor editor(registry, interfaces);
 
         if (!runAsEditor)
             pauseSim = false;
@@ -405,6 +410,11 @@ namespace worlds {
         console.registerCommand([&](void*, const char*) {
             runAsEditor = false;
             evtHandler->onSceneStart(registry);
+            registry.view<AudioSource>().each([](auto ent, auto& as) {
+                if (as.playOnSceneOpen) {
+                    as.isPlaying = true;
+                }
+            });
             }, "play", "play.", nullptr);
 
         console.registerCommand([&](void*, const char*) {
@@ -441,12 +451,7 @@ namespace worlds {
             console.executeCommandStr("exec CommandScripts/startup");
 
         if (evtHandler != nullptr) {
-            EngineInterfaces interfaces{
-                .vrInterface = enableOpenVR ? &openvrInterface : nullptr,
-                .renderer = renderer,
-                .mainCamera = &cam,
-                .inputManager = &inputManager
-            };
+            
             evtHandler->init(registry, interfaces);
 
             if (!runAsEditor)
@@ -459,21 +464,52 @@ namespace worlds {
             }
         };
 
+        uint32_t w, h;
+
+        if (enableOpenVR) {
+            openvrInterface.getRenderResolution(&w, &h);
+        } else {
+            w = 1600;
+            h = 900;
+        }
+
+        RTTPassHandle screenRTTPass;
+        RTTPassCreateInfo screenRTTCI;
+        screenRTTCI.enableShadows = true;
+        screenRTTCI.width = w;
+        screenRTTCI.height = h;
+        screenRTTCI.isVr = enableOpenVR;
+        screenRTTCI.outputToScreen = true;
+        screenRTTCI.useForPicking = false;
+        screenRTTPass = renderer->createRTTPass(screenRTTCI);
+
+
+        AudioSystem as;
+        as.initialise(registry);
+
         while (running) {
             uint64_t now = SDL_GetPerformanceCounter();
+            bool recreateScreenRTT = false;
             if (!useEventThread) {
                 SDL_Event evt;
                 while (SDL_PollEvent(&evt)) {
+                    if (evt.type == SDL_WINDOWEVENT) {
+                        if (evt.window.event == SDL_WINDOWEVENT_SIZE_CHANGED) {
+                            recreateScreenRTT = true;
+                            logMsg("Recreating screen RTT pass.");
+                        }
+                    }
+
                     if (evt.type == SDL_QUIT) {
                         running = false;
                         break;
                     }
 
                     if (evt.type == fullscreenToggleEventId) {
-                        if ((SDL_GetWindowFlags(window) & SDL_WINDOW_FULLSCREEN) == SDL_WINDOW_FULLSCREEN) {
+                        if ((SDL_GetWindowFlags(window) & SDL_WINDOW_FULLSCREEN_DESKTOP) == SDL_WINDOW_FULLSCREEN_DESKTOP) {
                             SDL_SetWindowFullscreen(window, 0);
                         } else {
-                            SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN);
+                            SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP);
                         }
                     }
 
@@ -491,6 +527,34 @@ namespace worlds {
 
             ImGui::NewFrame();
             inputManager.update();
+
+            if (runAsEditor) {
+                // Create global dock space
+                ImGuiViewport* viewport = ImGui::GetMainViewport();
+                ImGui::SetNextWindowPos(viewport->Pos);
+                ImGui::SetNextWindowSize(viewport->Size);
+                ImGui::SetNextWindowViewport(viewport->ID);
+                ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+                ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+                ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+
+                ImGui::Begin("Editor dockspace - you shouldn't be able to see this!", 0,
+                    ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_MenuBar);
+                ImGui::PopStyleVar(3);
+
+                ImGuiID dockspaceId = ImGui::GetID("EditorDockspace");
+                ImGui::DockSpace(dockspaceId);
+                ImGui::End();
+
+                // Draw black background
+                ImGui::GetBackgroundDrawList()->AddRectFilled(viewport->Pos, viewport->Size, ImColor(0.0f, 0.0f, 0.0f, 1.0f));
+            }
+
+            if (!renderer->isPassValid(screenRTTPass)) {
+                recreateScreenRTT = true;
+            } else {
+                renderer->setRTTPassActive(screenRTTPass, !runAsEditor);
+            }
 
             uint64_t deltaTicks = now - last;
             last = now;
@@ -517,7 +581,7 @@ namespace worlds {
                         });
                 }
 
-                    //if (runAsEditor) 
+                //if (runAsEditor) 
                 {
                     // Moving static physics actors in the editor is allowed
                     registry.view<PhysicsActor, Transform>().each([](auto ent, PhysicsActor& pa, Transform& transform) {
@@ -589,8 +653,8 @@ namespace worlds {
 
             SDL_GetWindowSize(window, &windowSize.x, &windowSize.y);
 
-            if (runAsEditor)
-                editor.update((float)deltaTime);
+            editor.setActive(runAsEditor);
+            editor.update((float)deltaTime);
 
             if (state[SDL_SCANCODE_RCTRL] && !lastState[SDL_SCANCODE_RCTRL]) {
                 SDL_SetRelativeMouseMode((SDL_bool)!SDL_GetRelativeMouseMode());
@@ -607,25 +671,14 @@ namespace worlds {
                 SDL_PushEvent(&evt);
             }
 
-            if (inputManager.mouseButtonPressed(MouseButton::Left)) {
-                renderer->requestEntityPick();
-            }
-
-            entt::entity picked;
-            if (renderer->getPickedEnt(&picked)) {
-                if ((uint32_t)picked == UINT32_MAX)
-                    picked = entt::null;
-
-                editor.select(picked);
-            }
-
             uint64_t updateEnd = SDL_GetPerformanceCounter();
 
             uint64_t updateLength = updateEnd - updateStart;
             double updateTime = updateLength / (double)SDL_GetPerformanceFrequency();
 
             if (showDebugInfo.getInt()) {
-                if (ImGui::Begin("Info")) {
+                bool open = true;
+                if (ImGui::Begin("Info", &open)) {
                     ImGui::Text("Frametime: %.3fms", deltaTime * 1000.0);
                     ImGui::Text("Update time: %.3fms", updateTime * 1000.0);
                     ImGui::Text("Physics time: %.3fms", simTime);
@@ -650,8 +703,13 @@ namespace worlds {
                     ImGui::Text("Draw calls: %i", renderer->getDebugStats().numDrawCalls);
                     ImGui::Text("Frustum culled objects: %i", renderer->getDebugStats().numCulledObjs);
                     ImGui::Text("GPU memory usage: %.3fMB", (double)renderer->getDebugStats().vramUsage / 1024.0 / 1024.0);
+                    ImGui::Text("Active RTT passes: %i", renderer->getDebugStats().numRTTPasses);
                 }
                 ImGui::End();
+
+                if (!open) {
+                    showDebugInfo.setValue("0");
+                }
             }
 
             if (enableOpenVR) {
@@ -671,6 +729,8 @@ namespace worlds {
             }
 
             std::memcpy(reinterpret_cast<void*>(lastState), state, SDL_NUM_SCANCODES);
+
+                as.update(registry, cam.position, cam.rotation);
 
             console.drawWindow();
 
@@ -706,6 +766,30 @@ namespace worlds {
             inputManager.endFrame();
 
             lastUpdateTime = updateTime;
+
+            if (recreateScreenRTT && !enableOpenVR) {
+                int newWidth;
+                int newHeight;
+
+                SDL_GetWindowSize(window, &newWidth, &newHeight);
+
+                if (enableOpenVR) {
+                    openvrInterface.getRenderResolution(&w, &h);
+                    newWidth = w;
+                    newHeight = h;
+                }
+
+                //renderer->destroyRTTPass(screenRTTPass);
+
+                RTTPassCreateInfo screenRTTCI;
+                screenRTTCI.enableShadows = true;
+                screenRTTCI.width = newWidth;
+                screenRTTCI.height = newHeight;
+                screenRTTCI.isVr = enableOpenVR;
+                screenRTTCI.outputToScreen = true;
+                screenRTTCI.useForPicking = false;
+                screenRTTPass = renderer->createRTTPass(screenRTTCI);
+            }
         }
 
         if (evtHandler != nullptr && !runAsEditor)
@@ -713,6 +797,7 @@ namespace worlds {
 
         registry.clear();
         shutdownRichPresence();
+        VKImGUIUtil::destroyObjects(vkCtx);
         delete renderer;
         shutdownPhysx();
         PHYSFS_deinit();

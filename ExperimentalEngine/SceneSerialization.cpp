@@ -21,7 +21,7 @@ namespace worlds {
 
     void loadScene(AssetID id, entt::registry& reg, bool additive) {
         char magicCheck[5];
-        magicCheck[4] = 0;
+        magicCheck[4] = 0; // Null byte so we can interpret it as a C string if we really need to
         PHYSFS_File* file = g_assetDB.openAssetFileRead(id);
         PHYSFS_readBytes(file, magicCheck, 4);
         unsigned char formatId;
@@ -33,7 +33,7 @@ namespace worlds {
         }
 
         if (memcmp(magicCheck, SCN_FORMAT_MAGIC, 4) != 0) {
-            logErr(WELogCategoryEngine, "failed magic check: got %s, expected", magicCheck, SCN_FORMAT_MAGIC);
+            logErr(WELogCategoryEngine, "failed magic check: got %s, expected %s", magicCheck, SCN_FORMAT_MAGIC);
             return;
         }
 

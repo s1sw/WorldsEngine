@@ -22,9 +22,7 @@ namespace worlds {
     };
 
     struct PickingBuffer {
-        uint32_t depth;
         uint32_t objectID;
-        uint32_t lock;
     };
 
     struct PickBufCSPushConstants {
@@ -186,7 +184,7 @@ namespace worlds {
         lightsUB = vku::UniformBuffer(ctx.device, ctx.allocator, sizeof(LightUB), VMA_MEMORY_USAGE_CPU_TO_GPU, "Lights");
         materialUB = vku::UniformBuffer(ctx.device, ctx.allocator, sizeof(MaterialsUB), VMA_MEMORY_USAGE_GPU_ONLY, "Materials");
         modelMatrixUB = vku::UniformBuffer(ctx.device, ctx.allocator, sizeof(ModelMatrices), VMA_MEMORY_USAGE_CPU_TO_GPU, "Model matrices");
-        pickingBuffer = vku::GenericBuffer(ctx.device, ctx.allocator, vk::BufferUsageFlagBits::eStorageBuffer, sizeof(PickingBuffer), VMA_MEMORY_USAGE_GPU_TO_CPU, "Picking buffer");
+        pickingBuffer = vku::GenericBuffer(ctx.device, ctx.allocator, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst, sizeof(PickingBuffer), VMA_MEMORY_USAGE_CPU_ONLY, "Picking buffer");
 
         pickEvent = ctx.device.createEventUnique(vk::EventCreateInfo{});
 
@@ -214,35 +212,45 @@ namespace worlds {
         rPassMaker.attachmentFinalLayout(vk::ImageLayout::eDepthStencilAttachmentOptimal);
 
         rPassMaker.subpassBegin(vk::PipelineBindPoint::eGraphics);
-        rPassMaker.subpassColorAttachment(vk::ImageLayout::eColorAttachmentOptimal, 0);
         rPassMaker.subpassDepthStencilAttachment(vk::ImageLayout::eDepthStencilAttachmentOptimal, 1);
 
         rPassMaker.dependencyBegin(VK_SUBPASS_EXTERNAL, 0);
-        rPassMaker.dependencySrcStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput);
-        rPassMaker.dependencyDstStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput);
-        rPassMaker.dependencyDstAccessMask(vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite);
+        rPassMaker.dependencySrcStageMask(vk::PipelineStageFlagBits::eEarlyFragmentTests);
+        rPassMaker.dependencyDstStageMask(vk::PipelineStageFlagBits::eEarlyFragmentTests);
+        rPassMaker.dependencyDstAccessMask(vk::AccessFlagBits::eDepthStencilAttachmentRead | vk::AccessFlagBits::eDepthStencilAttachmentWrite);
 
+        rPassMaker.subpassBegin(vk::PipelineBindPoint::eGraphics);
+        rPassMaker.subpassColorAttachment(vk::ImageLayout::eColorAttachmentOptimal, 0);
+        rPassMaker.subpassDepthStencilAttachment(vk::ImageLayout::eDepthStencilAttachmentOptimal, 1);
+
+        rPassMaker.dependencyBegin(0, 1);
+        rPassMaker.dependencySrcStageMask(vk::PipelineStageFlagBits::eEarlyFragmentTests);
+        rPassMaker.dependencyDstStageMask(vk::PipelineStageFlagBits::eEarlyFragmentTests | vk::PipelineStageFlagBits::eColorAttachmentOutput);
+        rPassMaker.dependencyDstAccessMask(vk::AccessFlagBits::eColorAttachmentRead | 
+                                           vk::AccessFlagBits::eColorAttachmentWrite |
+                                           vk::AccessFlagBits::eDepthStencilAttachmentRead | 
+                                           vk::AccessFlagBits::eDepthStencilAttachmentWrite);
+
+
+        // AMD driver bug workaround: shaders that use ViewIndex without a multiview renderpass
+        // will crash the driver, so we always set up a renderpass with multiview even if it's only
+        // one view.
         vk::RenderPassMultiviewCreateInfo renderPassMultiviewCI{};
-        /*
-                Bit mask that specifies which view rendering is broadcast to
-                0011 = Broadcast to first and second view (layer)
-            */
-        const uint32_t viewMask = 0b00000011;
+        uint32_t viewMasks[2] = { 0b00000001, 0b00000001 };
+        uint32_t correlationMask = 0b00000001;
 
-        /*
-            Bit mask that specifices correlation between views
-            An implementation may use this for optimizations (concurrent render)
-        */
-        const uint32_t correlationMask = 0b00000011;
+        if (ctx.graphicsSettings.enableVr) {
+            viewMasks[0] = 0b00000011;
+            viewMasks[1] = 0b00000011;
+            correlationMask = 0b00000011;
+        }
 
-        renderPassMultiviewCI.subpassCount = 1;
-        renderPassMultiviewCI.pViewMasks = &viewMask;
+        renderPassMultiviewCI.subpassCount = 2;
+        renderPassMultiviewCI.pViewMasks = viewMasks;
         renderPassMultiviewCI.correlationMaskCount = 1;
         renderPassMultiviewCI.pCorrelationMasks = &correlationMask;
 
-        if (ctx.graphicsSettings.enableVr) {
-            rPassMaker.setPNext(&renderPassMultiviewCI);
-        }
+        rPassMaker.setPNext(&renderPassMultiviewCI);
 
         this->renderPass = rPassMaker.createUnique(ctx.device);
 
@@ -262,6 +270,29 @@ namespace worlds {
         AssetID fsID = g_assetDB.addOrGetExisting("Shaders/standard.frag.spv");
         vertexShader = vku::loadShaderAsset(ctx.device, vsID);
         fragmentShader = vku::loadShaderAsset(ctx.device, fsID);
+
+        {
+            AssetID vsID = g_assetDB.addOrGetExisting("Shaders/depth_prepass.vert.spv");
+            AssetID fsID = g_assetDB.addOrGetExisting("Shaders/blank.frag.spv");
+            auto preVertexShader = vku::loadShaderAsset(ctx.device, vsID);
+            auto preFragmentShader = vku::loadShaderAsset(ctx.device, fsID);
+            vku::PipelineMaker pm{ extent.width, extent.height };
+
+            pm.shader(vk::ShaderStageFlagBits::eFragment, preFragmentShader);
+            pm.shader(vk::ShaderStageFlagBits::eVertex, preVertexShader);
+            pm.vertexBinding(0, (uint32_t)sizeof(Vertex));
+            pm.vertexAttribute(0, 0, vk::Format::eR32G32B32Sfloat, (uint32_t)offsetof(Vertex, position));
+            pm.cullMode(vk::CullModeFlagBits::eBack);
+            pm.depthWriteEnable(true).depthTestEnable(true).depthCompareOp(vk::CompareOp::eGreater);
+            pm.blendBegin(false);
+            pm.frontFace(vk::FrontFace::eCounterClockwise);
+
+            vk::PipelineMultisampleStateCreateInfo pmsci;
+            pmsci.rasterizationSamples = (vk::SampleCountFlagBits)ctx.graphicsSettings.msaaLevel;
+            pm.multisampleState(pmsci);
+            pm.subPass(0);
+            depthPrePipeline = pm.createUnique(ctx.device, ctx.pipelineCache, *pipelineLayout, *renderPass);
+        }
         
         {
             vku::PipelineMaker pm{ extent.width, extent.height };
@@ -281,14 +312,16 @@ namespace worlds {
             pm.vertexAttribute(2, 0, vk::Format::eR32G32B32Sfloat, (uint32_t)offsetof(Vertex, tangent));
             pm.vertexAttribute(3, 0, vk::Format::eR32G32Sfloat, (uint32_t)offsetof(Vertex, uv));
             pm.cullMode(vk::CullModeFlagBits::eBack);
-            pm.depthWriteEnable(true).depthTestEnable(true).depthCompareOp(vk::CompareOp::eLess);
+            pm.depthWriteEnable(false).depthTestEnable(true).depthCompareOp(vk::CompareOp::eEqual);
             pm.blendBegin(false);
             pm.frontFace(vk::FrontFace::eCounterClockwise);
+            pm.subPass(1);
 
             vk::PipelineMultisampleStateCreateInfo pmsci;
             pmsci.rasterizationSamples = (vk::SampleCountFlagBits)ctx.graphicsSettings.msaaLevel;
             pmsci.alphaToCoverageEnable = true;
             pm.multisampleState(pmsci);
+
             pipeline = pm.createUnique(ctx.device, ctx.pipelineCache, *pipelineLayout, *renderPass);
         }
 
@@ -310,9 +343,10 @@ namespace worlds {
             pm.vertexAttribute(2, 0, vk::Format::eR32G32B32Sfloat, (uint32_t)offsetof(Vertex, tangent));
             pm.vertexAttribute(3, 0, vk::Format::eR32G32Sfloat, (uint32_t)offsetof(Vertex, uv));
             pm.cullMode(vk::CullModeFlagBits::eNone);
-            pm.depthWriteEnable(true).depthTestEnable(true).depthCompareOp(vk::CompareOp::eLess);
+            pm.depthWriteEnable(true).depthTestEnable(true).depthCompareOp(vk::CompareOp::eGreater);
             pm.blendBegin(false);
             pm.frontFace(vk::FrontFace::eCounterClockwise);
+            pm.subPass(1);
 
             vk::PipelineMultisampleStateCreateInfo pmsci;
             pmsci.rasterizationSamples = (vk::SampleCountFlagBits)ctx.graphicsSettings.msaaLevel;
@@ -330,12 +364,13 @@ namespace worlds {
             vku::PipelineMaker pm{ extent.width, extent.height };
             pm.shader(vk::ShaderStageFlagBits::eFragment, wireFragmentShader);
             pm.shader(vk::ShaderStageFlagBits::eVertex, wireVertexShader);
-            pm.depthWriteEnable(true).depthTestEnable(true).depthCompareOp(vk::CompareOp::eLess);
+            pm.depthWriteEnable(true).depthTestEnable(true).depthCompareOp(vk::CompareOp::eGreater);
             pm.vertexBinding(0, (uint32_t)sizeof(Vertex));
             pm.vertexAttribute(0, 0, vk::Format::eR32G32B32Sfloat, (uint32_t)offsetof(Vertex, position));
             pm.vertexAttribute(1, 0, vk::Format::eR32G32Sfloat, (uint32_t)offsetof(Vertex, uv));
             pm.polygonMode(vk::PolygonMode::eLine);
             pm.lineWidth(2.0f);
+            pm.subPass(1);
 
             vk::PipelineMultisampleStateCreateInfo pmsci;
             pmsci.rasterizationSamples = (vk::SampleCountFlagBits)ctx.graphicsSettings.msaaLevel;
@@ -385,14 +420,14 @@ namespace worlds {
 
             vku::DescriptorSetMaker dsm;
             dsm.layout(*lineDsl);
-            lineDs = dsm.create(ctx.device, ctx.descriptorPool)[0];
+            lineDs = std::move(dsm.createUnique(ctx.device, ctx.descriptorPool)[0]);
 
             vku::PipelineLayoutMaker linePl{};
             linePl.descriptorSetLayout(*lineDsl);
             linePipelineLayout = linePl.createUnique(ctx.device);
 
             vku::DescriptorSetUpdater dsu;
-            dsu.beginDescriptorSet(lineDs);
+            dsu.beginDescriptorSet(*lineDs);
             dsu.beginBuffers(0, 0, vk::DescriptorType::eUniformBuffer);
             dsu.buffer(vpUB.buffer(), 0, sizeof(MultiVP));
             dsu.update(ctx.device);
@@ -412,7 +447,8 @@ namespace worlds {
             pm.polygonMode(vk::PolygonMode::eLine);
             pm.lineWidth(4.0f);
             pm.topology(vk::PrimitiveTopology::eLineList);
-            pm.depthWriteEnable(true).depthTestEnable(true).depthCompareOp(vk::CompareOp::eLess);
+            pm.depthWriteEnable(true).depthTestEnable(true).depthCompareOp(vk::CompareOp::eGreater);
+            pm.subPass(1);
 
             vk::PipelineMultisampleStateCreateInfo pmsci;
             pmsci.rasterizationSamples = (vk::SampleCountFlagBits)ctx.graphicsSettings.msaaLevel;
@@ -447,11 +483,12 @@ namespace worlds {
             pm.shader(vk::ShaderStageFlagBits::eFragment, frag);
             pm.shader(vk::ShaderStageFlagBits::eVertex, vert);
             pm.topology(vk::PrimitiveTopology::eTriangleList);
-            pm.depthWriteEnable(true).depthTestEnable(true).depthCompareOp(vk::CompareOp::eLessOrEqual);
+            pm.depthWriteEnable(true).depthTestEnable(true).depthCompareOp(vk::CompareOp::eGreaterOrEqual);
 
             vk::PipelineMultisampleStateCreateInfo pmsci;
             pmsci.rasterizationSamples = (vk::SampleCountFlagBits)ctx.graphicsSettings.msaaLevel;
             pm.multisampleState(pmsci);
+            pm.subPass(1);
 
             skyboxPipeline = pm.createUnique(ctx.device, ctx.pipelineCache, *skyboxPipelineLayout, *renderPass);
         }
@@ -471,7 +508,7 @@ namespace worlds {
 
         int matrixIdx = 0;
         rCtx.reg.view<Transform, WorldObject>().each([&matrixIdx, modelMatricesMapped](auto ent, Transform& t, WorldObject& wo) {
-            if (matrixIdx == 1023) {
+            if (matrixIdx == 511) {
                 fatalErr("Out of model matrices! Either don't spam so many objects or shout at us on the bug tracker.");
                 return;
             }
@@ -481,7 +518,7 @@ namespace worlds {
             });
 
         rCtx.reg.view<Transform, ProceduralObject>().each([&matrixIdx, modelMatricesMapped](auto ent, Transform& t, ProceduralObject& po) {
-            if (matrixIdx == 1023) {
+            if (matrixIdx == 511) {
                 fatalErr("Out of model matrices! Either don't spam so many objects or shout at us on the bug tracker.");
                 return;
             }
@@ -515,11 +552,11 @@ namespace worlds {
             glm::vec3 lightForward = glm::normalize(transform.rotation * glm::vec3(0.0f, 0.0f, -1.0f));
             if (l.type == LightType::Directional) {
                 const float SHADOW_DISTANCE = 25.0f;
-                glm::vec3 shadowMapPos = glm::round(viewPos - (transform.rotation * glm::vec3(0.0f, 0.f, 50.0f)));
+                glm::vec3 shadowMapPos = glm::round(viewPos - (transform.rotation * glm::vec3(0.0f, 0.f, 250.0f)));
                 glm::mat4 proj = glm::orthoZO(
                     -SHADOW_DISTANCE, SHADOW_DISTANCE,
                     -SHADOW_DISTANCE, SHADOW_DISTANCE,
-                    1.0f, 1000.f);
+                    1.0f, 5000.f);
 
                 glm::mat4 view = glm::lookAt(
                     shadowMapPos,
@@ -589,7 +626,7 @@ namespace worlds {
 #endif
         // Fast path clear values for AMD
         std::array<float, 4> clearColorValue{ 0.0f, 0.0f, 0.0f, 1 };
-        vk::ClearDepthStencilValue clearDepthValue{ 1.0f, 0 };
+        vk::ClearDepthStencilValue clearDepthValue{ 0.0f, 0 };
         std::array<vk::ClearValue, 2> clearColours{ vk::ClearValue{clearColorValue}, clearDepthValue };
         vk::RenderPassBeginInfo rpbi;
 
@@ -614,21 +651,18 @@ namespace worlds {
             VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED);
 
         if (pickThisFrame) {
-            pickingBuffer.barrier(*cmdBuf, vk::PipelineStageFlagBits::eFragmentShader, vk::PipelineStageFlagBits::eComputeShader,
+            pickingBuffer.barrier(*cmdBuf, vk::PipelineStageFlagBits::eHost, vk::PipelineStageFlagBits::eTransfer,
                 vk::DependencyFlagBits::eByRegion,
-                vk::AccessFlagBits::eShaderWrite | vk::AccessFlagBits::eShaderRead, vk::AccessFlagBits::eShaderWrite,
+                vk::AccessFlagBits::eHostRead, vk::AccessFlagBits::eTransferWrite,
                 VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED);
-            cmdBuf->bindPipeline(vk::PipelineBindPoint::eCompute, *pickingBufCsPipeline);
-            cmdBuf->bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pickingBufCsLayout, 0, *pickingBufCsDs, nullptr);
-            PickBufCSPushConstants pbcspc;
-            pbcspc.clearObjId = 1;
-            pbcspc.doPicking = 1;
-            cmdBuf->pushConstants<PickBufCSPushConstants>(*pickingBufCsLayout, vk::ShaderStageFlagBits::eCompute, 0, pbcspc);
-            cmdBuf->dispatch(1, 1, 1);
-            pickingBuffer.barrier(
-                *cmdBuf, vk::PipelineStageFlagBits::eComputeShader, vk::PipelineStageFlagBits::eFragmentShader,
+
+            PickingBuffer pb;
+            pb.objectID = ~0u;
+            cmdBuf->updateBuffer(pickingBuffer.buffer(), 0, sizeof(pb), &pb);
+
+            pickingBuffer.barrier(*cmdBuf, vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eFragmentShader,
                 vk::DependencyFlagBits::eByRegion,
-                vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
+                vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eShaderWrite | vk::AccessFlagBits::eShaderRead,
                 VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED);
         }
 
@@ -672,7 +706,6 @@ namespace worlds {
 
             float maxScale = glm::max(transform.scale.x, glm::max(transform.scale.y, transform.scale.z));
             if (!ctx.enableVR) {
-                //if (!frustum.containsSphere(transform.position, meshPos->second.sphereRadius * maxScale)) {
                 glm::vec3 scaledMin = transform.scale * meshPos->second.aabbMin;
                 glm::vec3 scaledMax = transform.scale * meshPos->second.aabbMax;
 
@@ -724,16 +757,35 @@ namespace worlds {
             return a.pipeline < b.pipeline;
             });
 
-        cmdBuf->bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline);
+        cmdBuf->bindPipeline(vk::PipelineBindPoint::eGraphics, *depthPrePipeline);
 
+        for (auto& sdi : drawInfo) {
+            if (sdi.pipeline != *pipeline) {
+                continue;
+            }
+
+            StandardPushConstants pushConst{ sdi.texScaleOffset, glm::ivec4(sdi.matrixIdx, sdi.materialIdx, 0, sdi.ent), glm::ivec4(pickX, pickY, pickThisFrame, 0) };
+            cmdBuf->pushConstants<StandardPushConstants>(*pipelineLayout, vk::ShaderStageFlagBits::eFragment | vk::ShaderStageFlagBits::eVertex, 0, pushConst);
+            cmdBuf->bindVertexBuffers(0, sdi.vb, vk::DeviceSize(0));
+            cmdBuf->bindIndexBuffer(sdi.ib, 0, vk::IndexType::eUint32);
+            cmdBuf->drawIndexed(sdi.indexCount, 1, sdi.indexOffset, 0, 0);
+        }
+        
+        cmdBuf->nextSubpass(vk::SubpassContents::eInline);
+
+        cmdBuf->bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline);
         SubmeshDrawInfo last;
         last.pipeline = *pipeline;
         for (auto& sdi : drawInfo) {
+            /*if (sdi.pipeline != *pipeline) {
+                continue;
+            }*/
+
             if (last.pipeline != sdi.pipeline) {
                 cmdBuf->bindPipeline(vk::PipelineBindPoint::eGraphics, sdi.pipeline);
             }
 
-            StandardPushConstants pushConst{ sdi.texScaleOffset, glm::ivec4(sdi.matrixIdx, sdi.materialIdx, 0, sdi.ent), glm::ivec4(pickX, pickY, 0, 0) };
+            StandardPushConstants pushConst{ sdi.texScaleOffset, glm::ivec4(sdi.matrixIdx, sdi.materialIdx, 0, sdi.ent), glm::ivec4(pickX, pickY, pickThisFrame, 0) };
             cmdBuf->pushConstants<StandardPushConstants>(*pipelineLayout, vk::ShaderStageFlagBits::eFragment | vk::ShaderStageFlagBits::eVertex, 0, pushConst);
             cmdBuf->bindVertexBuffers(0, sdi.vb, vk::DeviceSize(0));
             cmdBuf->bindIndexBuffer(sdi.ib, 0, vk::IndexType::eUint32);
@@ -742,74 +794,40 @@ namespace worlds {
             last = sdi;
         }
 
-        cmdBuf->bindPipeline(vk::PipelineBindPoint::eGraphics, *noBackfaceCullPipeline);
-
         cmdBuf->bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline);
-        /*for (auto& sdi : noCullObjs) {
-            StandardPushConstants pushConst{ sdi.texScaleOffset, glm::ivec4(sdi.matrixIdx, sdi.materialIdx, 0, sdi.ent), glm::ivec4(pickX, pickY, 0, 0) };
-            cmdBuf->pushConstants<StandardPushConstants>(*pipelineLayout, vk::ShaderStageFlagBits::eFragment | vk::ShaderStageFlagBits::eVertex, 0, pushConst);
-            cmdBuf->bindVertexBuffers(0, sdi.vb, vk::DeviceSize(0));
-            cmdBuf->bindIndexBuffer(sdi.ib, 0, vk::IndexType::eUint32);
-            cmdBuf->drawIndexed(sdi.indexCount, 1, sdi.indexOffset, 0, 0);
-        }*/
 
         reg.view<Transform, ProceduralObject>().each([this, &cmdBuf, &cam, &matrixIdx](auto ent, Transform& transform, ProceduralObject& obj) {
+            matrixIdx++;
+            return;
             if (!obj.visible) return;
-            StandardPushConstants pushConst{ glm::vec4(1.0f, 1.0f, 0.0f, 0.0f), glm::ivec4(matrixIdx, obj.materialIdx, 0, ent), glm::ivec4(pickX, pickY, 0, 0) };
+            StandardPushConstants pushConst{ glm::vec4(1.0f, 1.0f, 0.0f, 0.0f), glm::ivec4(matrixIdx, obj.materialIdx, 0, ent), glm::ivec4(pickX, pickY, pickThisFrame, 0) };
             cmdBuf->pushConstants<StandardPushConstants>(*pipelineLayout, vk::ShaderStageFlagBits::eFragment | vk::ShaderStageFlagBits::eVertex, 0, pushConst);
             cmdBuf->bindVertexBuffers(0, obj.vb.buffer(), vk::DeviceSize(0));
             cmdBuf->bindIndexBuffer(obj.ib.buffer(), 0, obj.indexType);
             cmdBuf->drawIndexed(obj.indexCount, 1, 0, 0, 0);
-            matrixIdx++;
             });
 
-        if (matrixIdx >= 1024) {
+        if (matrixIdx >= 512) {
             fatalErr("Out of model matrices!");
         }
 
         if (numLineVerts > 0) {
             cmdBuf->bindPipeline(vk::PipelineBindPoint::eGraphics, *linePipeline);
             cmdBuf->bindVertexBuffers(0, lineVB.buffer(), vk::DeviceSize(0));
-            cmdBuf->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *linePipelineLayout, 0, lineDs, nullptr);
+            cmdBuf->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *linePipelineLayout, 0, *lineDs, nullptr);
             cmdBuf->draw(numLineVerts, 1, 0, 0);
         }
 
-        /*cmdBuf->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *wireframePipelineLayout, 0, *wireframeDescriptorSet, nullptr);
-        cmdBuf->bindPipeline(vk::PipelineBindPoint::eGraphics, *wireframePipeline);
-
-        for (auto& sdi : wireframeObjs) {
-            StandardPushConstants pushConst{ sdi.texScaleOffset, glm::ivec4(sdi.matrixIdx, sdi.materialIdx, 0, sdi.ent), glm::ivec4(pickX, pickY, 0, 0) };
-            cmdBuf->pushConstants<StandardPushConstants>(*pipelineLayout, vk::ShaderStageFlagBits::eFragment | vk::ShaderStageFlagBits::eVertex, 0, pushConst);
-            cmdBuf->bindVertexBuffers(0, sdi.vb, vk::DeviceSize(0));
-            cmdBuf->bindIndexBuffer(sdi.ib, 0, vk::IndexType::eUint32);
-            cmdBuf->drawIndexed(sdi.indexCount, 1, sdi.indexOffset, 0, 0);
-        }*/
-
         cmdBuf->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *skyboxPipelineLayout, 0, *skyboxDs, nullptr);
         cmdBuf->bindPipeline(vk::PipelineBindPoint::eGraphics, *skyboxPipeline);
-
         SkyboxPushConstants spc{ glm::ivec4(0) };
         cmdBuf->pushConstants<SkyboxPushConstants>(*skyboxPipelineLayout, vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment, 0, spc);
-
         cmdBuf->draw(36, 1, 0, 0);
 
         cmdBuf->endRenderPass();
 
         if (pickThisFrame) {
-            cmdBuf->bindPipeline(vk::PipelineBindPoint::eCompute, *pickingBufCsPipeline);
-            cmdBuf->bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pickingBufCsLayout, 0, *pickingBufCsDs, nullptr);
-            pickingBuffer.barrier(
-                *cmdBuf, vk::PipelineStageFlagBits::eFragmentShader, vk::PipelineStageFlagBits::eComputeShader,
-                vk::DependencyFlagBits::eByRegion,
-                vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderWrite,
-                VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED);
-            PickBufCSPushConstants pbcspc;
-            pbcspc.clearObjId = 0;
-            pbcspc.doPicking = 0;
-            cmdBuf->pushConstants<PickBufCSPushConstants>(*pickingBufCsLayout, vk::ShaderStageFlagBits::eCompute, 0, pbcspc);
-            cmdBuf->dispatch(1, 1, 1);
-
-            cmdBuf->resetEvent(*pickEvent, vk::PipelineStageFlagBits::eComputeShader);
+            cmdBuf->resetEvent(*pickEvent, vk::PipelineStageFlagBits::eBottomOfPipe);
             pickThisFrame = false;
         }
     }
@@ -831,6 +849,7 @@ namespace worlds {
         *entOut = pickBuf->objectID;
 
         pickingBuffer.unmap(device);
+
         setEventNextFrame = true;
         awaitingResults = false;
 

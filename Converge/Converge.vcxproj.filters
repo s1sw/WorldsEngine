@@ -33,4 +33,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
+  <ItemGroup>
+    <Manifest Include="Manifest.xml">
+      <Filter>Header Files</Filter>
+    </Manifest>
+  </ItemGroup>
 </Project>

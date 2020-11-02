@@ -26,6 +26,8 @@ namespace worlds {
         std::string value;
         int parsedInt;
         float parsedFloat;
+
+        friend class Console;
     };
 
     typedef std::function<void(void* obj, const char* argString)> CommandFuncPtr;
@@ -62,8 +64,5 @@ namespace worlds {
         static void cmdHelp(void* con, const char* argString);
         static void cmdExec(void* con, const char* argString);
         friend class ConVar;
-#ifdef _WIN32
-        void* notepadHwnd;
-#endif
     };
 }

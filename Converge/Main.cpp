@@ -1,6 +1,7 @@
-#define SDL_MAIN_HANDLED
 #include "ConvergeEventHandler.hpp"
 #include <Engine.hpp>
+#define _AMD64_
+#include <minwindef.h>
 
 int main(int argc, char** argv) {
     worlds::EngineInitOptions initOptions{ false, -1, false };

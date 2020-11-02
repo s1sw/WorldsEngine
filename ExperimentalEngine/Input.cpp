@@ -18,20 +18,20 @@ void InputManager::update() {
 	SDL_GetMouseState(&mousePos.x, &mousePos.y);
 }
 
-bool InputManager::mouseButtonHeld(MouseButton button) {
-	if (ImGui::GetIO().WantCaptureMouse) return false;
+bool InputManager::mouseButtonHeld(MouseButton button, bool ignoreImGui) {
+	if (ImGui::GetIO().WantCaptureMouse && !ignoreImGui) return false;
 	uint32_t uButton = SDL_BUTTON((uint32_t)button);
 	return (mouseButtonFlags & uButton) == uButton;
 }
 
-bool InputManager::mouseButtonPressed(MouseButton button) {
-	if (ImGui::GetIO().WantCaptureMouse) return false;
+bool InputManager::mouseButtonPressed(MouseButton button, bool ignoreImGui) {
+	if (ImGui::GetIO().WantCaptureMouse && !ignoreImGui) return false;
 	uint32_t uButton = SDL_BUTTON((uint32_t)button);
 	return ((mouseButtonFlags & uButton) == uButton) && ((lastMouseButtonFlags & uButton) != uButton);
 }
 
-bool InputManager::mouseButtonReleased(MouseButton button) {
-	if (ImGui::GetIO().WantCaptureMouse) return false;
+bool InputManager::mouseButtonReleased(MouseButton button, bool ignoreImGui) {
+	if (ImGui::GetIO().WantCaptureMouse && !ignoreImGui) return false;
 	uint32_t uButton = SDL_BUTTON((uint32_t)button);
 	return ((mouseButtonFlags & uButton) != uButton) && ((lastMouseButtonFlags & uButton) == uButton);
 }

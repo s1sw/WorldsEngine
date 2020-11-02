@@ -6,9 +6,9 @@
 layout (location = 0) out vec3 outTexCoords;
 
 layout (binding = 0) uniform MultiVP {
-    mat4 view[8];
-	mat4 projection[8];
-    vec4 viewPos[8];
+    mat4 view[4];
+	mat4 projection[4];
+    vec4 viewPos[4];
 };
 
 layout (push_constant) uniform PushConstants {
@@ -40,8 +40,15 @@ void main() {
     float mirror = -1 + 2 * top;
     vec3 xyz = n + mirror*(1-2*(idx&1))*u + mirror*(1-2*(idx>>1))*v;
 
-    vec4 transformedPos = projection[ubIndices.y + gl_ViewIndex] * mat4(mat3(view[ubIndices.y + gl_ViewIndex])) * vec4(xyz, 1.0); // Apply MVP transform
+    uint vpIdx = ubIndices.y;
+
+    #ifndef AMD_VIEWINDEX_WORKAROUND
+    vpIdx += gl_ViewIndex;
+    #endif
+
+    vec4 transformedPos = projection[vpIdx] * mat4(mat3(view[vpIdx])) * vec4(xyz, 1.0); // Apply MVP transform
     gl_Position = transformedPos.xyww;
+    gl_Position.z = 0.0;
     gl_Position.y = - gl_Position.y;
     outTexCoords = xyz;
 }

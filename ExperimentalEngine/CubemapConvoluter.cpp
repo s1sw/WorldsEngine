@@ -98,7 +98,7 @@ namespace worlds {
             dsu.image(*sampler, cube.imageView(), vk::ImageLayout::eGeneral);
         }
 
-        if (!dsu.ok()) __debugbreak();
+        assert(dsu.ok());
 
         dsu.update(vkCtx->device);
 

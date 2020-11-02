@@ -19,6 +19,9 @@
     <Filter Include="Source Files\SceneSerializationFunctions">
       <UniqueIdentifier>{a04a6d83-ccda-40fc-b142-057cd47cf5f1}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\EditorWindows">
+      <UniqueIdentifier>{300cb36e-2721-415a-8184-0461d1b7e04b}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Main.cpp">
@@ -146,6 +149,21 @@
     </ClCompile>
     <ClCompile Include="SceneSerializationFunctions.cpp">
       <Filter>Source Files\SceneSerializationFunctions</Filter>
+    </ClCompile>
+    <ClCompile Include="VKImGUIUtil.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="stb_vorbis.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="EntityList.cpp">
+      <Filter>Source Files\EditorWindows</Filter>
+    </ClCompile>
+    <ClCompile Include="Assets.cpp">
+      <Filter>Source Files\EditorWindows</Filter>
+    </ClCompile>
+    <ClCompile Include="EntityEditor.cpp">
+      <Filter>Source Files\EditorWindows</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -309,6 +327,15 @@
       <Filter>Header Files\Components</Filter>
     </ClInclude>
     <ClInclude Include="Frustum.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="VKImGUIUtil.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="EditorWindows.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CreateModelObject.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

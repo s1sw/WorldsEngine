@@ -24,6 +24,16 @@ struct Camera {
 	}
 
 	glm::mat4 getProjectionMatrix(float aspect) {
-		return glm::perspective(verticalFOV, aspect, near, far);
+		return reverseZInfPerspective(verticalFOV, aspect, near);
+	}
+
+private:
+	glm::mat4 reverseZInfPerspective(float verticalFOV, float aspect, float zNear) {
+		float f = 1.0f / tan(verticalFOV / 2.0f);
+		return glm::mat4(
+			f / aspect, 0.0f, 0.0f, 0.0f,
+			0.0f, f, 0.0f, 0.0f,
+			0.0f, 0.0f, 0.0f, -1.0f,
+			0.0f, 0.0f, zNear, 0.0f);
 	}
 };

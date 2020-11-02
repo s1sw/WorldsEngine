@@ -2,6 +2,7 @@
 
 namespace worlds {
     typedef unsigned char byte;
+#pragma pack(push, 1)
     struct VTFHeader {
         char		signature[4];		// File signature ("VTF\0"). (or as little-endian integer, 0x00465456)
         unsigned int	version[2];		// version[0].version[1] (currently 7.2).
@@ -31,6 +32,7 @@ namespace worlds {
 
         unsigned char   padding3[8];		// Necessary on certain compilers
     };
+#pragma pack(pop)
 
     enum VTFFormat {
         IMAGE_FORMAT_NONE = -1,
@@ -107,17 +109,27 @@ namespace worlds {
         }
     }
 
+    void printHeader(VTFHeader* header) {
+        std::cout << "vtf header:" << "\n"
+            << "LRIF: " << header->lowResImageFormat << "\n"
+            << "LRW: " << header->lowResImageWidth << "\n"
+            << "LRH: " << header->lowResImageHeight << "\n"
+            << "Flags: " << header->flags << "\n";
+    }
+
     TextureData loadVtfTexture(void* fileData, size_t fileLen, AssetID id) {
         VTFHeader* header = (VTFHeader*)fileData;
 
         logMsg("Source texture loader: texture %s, version %i.%i (%ix%i)", g_assetDB.getAssetPath(id).c_str(), header->version[0], header->version[1], header->width, header->height);
+
+        printHeader(header);
 
 
         // The structure of files after v7.3 is fundamentally different (introduces "resources")
         // However, I haven't come across any v7.3 files in the wild yet.
         if (header->version[1] == 2) {
             // Skip header + low resolution image
-            byte* dataStart = (byte*)fileData + header->headerSize + getDataSize(16, 16, IMAGE_FORMAT_DXT1);
+            byte* dataStart = (byte*)fileData + header->headerSize + getDataSize(header->lowResImageWidth, header->lowResImageHeight, (VTFFormat)header->lowResImageFormat);
 
             // Calculate data size for root mip
             uint32_t totalDataSize = getDataSize(header->width, header->height, (VTFFormat)header->highResImageFormat);

@@ -11,19 +11,16 @@ namespace converge {
         void preSimUpdate(entt::registry& registry, float deltaTime) override;
         void update(entt::registry& registry, float deltaTime, float interpAlpha) override;
         void simulate(entt::registry& registry, float simStep) override;
-        void onSceneStart(entt::registry& reg);
-        void shutdown(entt::registry& registry);
+        void onSceneStart(entt::registry& reg) override;
+        void shutdown(entt::registry& registry) override;
     private:
         worlds::IVRInterface* vrInterface;
         worlds::VKRenderer* renderer;
         InputManager* inputManager;
         entt::entity lHandEnt, rHandEnt;
-        char* lHandRMName;
-        char* rHandRMName;
         Camera* camera;
         entt::entity playerLocosphere;
         entt::entity playerFender;
-        entt::entity playerHead;
         bool jumpThisFrame;
         glm::vec3 lastCamPos;
         glm::vec3 nextCamPos;
@@ -36,5 +33,7 @@ namespace converge {
         glm::quat lHandWRot;
         glm::quat rHandWRot;
         worlds::InputActionHandle throwHandAction;
+        V3PidController lspherePid;
+        float zeroThresh;
     };
 }

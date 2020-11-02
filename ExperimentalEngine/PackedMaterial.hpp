@@ -12,8 +12,8 @@ namespace worlds {
 		glm::vec3 albedoColor;
 		float alphaCutoff;
 
-		float fresnelHackFactor;
-		float pad0;
+		int heightmapTexIdx;
+		float heightmapScale;
 		float pad1;
 		float pad2;
 	};

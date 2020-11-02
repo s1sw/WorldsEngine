@@ -1,8 +1,7 @@
 #version 450
 layout(std430, binding = 0) buffer PickingBuffer {
-    uint depth;
-    uint objectID;
     uint doPicking;
+    uint objectID;
 } pickBuf;
 
 layout (std140, push_constant) uniform PC { 
@@ -12,8 +11,7 @@ layout (std140, push_constant) uniform PC {
 
 void main() {
     if (clearObjId == 1) {
-        pickBuf.depth = 4294967295;
-        pickBuf.objectID = 4294967295;
+        pickBuf.objectID = ~0u;
     }
     pickBuf.doPicking = doPicking;
 }

@@ -7,6 +7,7 @@
 #include "RenderGraph.hpp"
 #include <SDL2/SDL.h>
 #include "Console.hpp"
+#include <entt/entt.hpp>
 #define NUM_SUBMESH_MATS 32
 
 namespace worlds {
@@ -15,6 +16,7 @@ namespace worlds {
         glm::vec3 normal;
         glm::vec3 tangent;
         glm::vec2 uv;
+        float pad;
     };
 
     struct ProceduralObject {
@@ -46,9 +48,9 @@ namespace worlds {
     };
 
     struct MultiVP {
-        glm::mat4 views[8];
-        glm::mat4 projections[8];
-        glm::vec4 viewPos[8];
+        glm::mat4 views[4];
+        glm::mat4 projections[4];
+        glm::vec4 viewPos[4];
     };
 
     struct PackedLight {
@@ -110,7 +112,7 @@ namespace worlds {
     };
 
     struct ModelMatrices {
-        glm::mat4 modelMatrices[1024];
+        glm::mat4 modelMatrices[512];
     };
 
     struct MaterialsUB {
@@ -166,6 +168,7 @@ namespace worlds {
         int numDrawCalls;
         int numCulledObjs;
         uint64_t vramUsage;
+        int numRTTPasses;
     };
 
     struct RenderCtx {
@@ -257,6 +260,7 @@ namespace worlds {
         VrApi activeVrApi;
         IVRInterface* vrInterface;
         bool enablePicking;
+        const char* applicationName = nullptr;
     };
 
     class BRDFLUTRenderer {
@@ -288,6 +292,10 @@ namespace worlds {
     typedef uint32_t RTTPassHandle;
     struct RTTPassCreateInfo {
         uint32_t width, height;
+        bool isVr;
+        bool useForPicking;
+        bool enableShadows;
+        bool outputToScreen;
     };
 
     class VKRenderer {
@@ -300,6 +308,11 @@ namespace worlds {
             uint32_t width, height;
             RenderImageHandle hdrTarget;
             RenderImageHandle sdrFinalTarget;
+            RenderImageHandle depthTarget;
+            bool isVr;
+            bool outputToScreen;
+            bool enableShadows;
+            bool active;
         };
 
         vk::UniqueInstance instance;
@@ -328,8 +341,8 @@ namespace worlds {
         VmaAllocator allocator;
 
         // stuff related to standard geometry rendering
-        RenderImageHandle depthStencilImage;
-        RenderImageHandle polyImage;
+        //RenderImageHandle depthStencilImage;
+        //RenderImageHandle polyImage;
 
         RenderImageHandle finalPrePresent;
         // openvr doesn't support presenting image layers
@@ -369,6 +382,7 @@ namespace worlds {
         void serializePipelineCache();
         void submitToOpenVR();
         void uploadSceneAssets(entt::registry& reg, RenderCtx& rCtx);
+        void writeCmdBuf(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageIndex, Camera& cam, entt::registry& reg);
 
         std::unordered_map<AssetID, LoadedMeshData> loadedMeshes;
         int frameIdx;
@@ -377,10 +391,11 @@ namespace worlds {
         std::unique_ptr<MaterialSlots> matSlots;
         std::unique_ptr<CubemapSlots> cubemapSlots;
 
-        GraphSolver graphSolver;
+        //GraphSolver graphSolver;
         uint32_t shadowmapRes;
         bool enableVR;
-        PolyRenderPass* currentPRP;
+        PolyRenderPass* pickingPRP;
+        PolyRenderPass* vrPRP;
         ImGuiRenderPass* irp;
         uint32_t renderWidth, renderHeight;
         IVRInterface* vrInterface;
@@ -395,6 +410,9 @@ namespace worlds {
         bool swapchainRecreated;
         bool enablePicking;
         RenderDebugStats dbgStats;
+        RTTPassHandle vrPass;
+        RTTPassHandle nextHandle;
+        RTTPassHandle mainPass;
     public:
         double time;
         VKRenderer(const RendererInitInfo& initInfo, bool* success);
@@ -402,7 +420,7 @@ namespace worlds {
         void frame(Camera& cam, entt::registry& reg);
         void preloadMesh(AssetID id);
         void uploadProcObj(ProceduralObject& procObj);
-        void requestEntityPick();
+        void requestEntityPick(int x, int y);
         void unloadUnusedMaterials(entt::registry& reg);
         void reloadMatsAndTextures();
         bool getPickedEnt(entt::entity* entOut);
@@ -411,6 +429,15 @@ namespace worlds {
         void setVsync(bool vsync) { if (useVsync != vsync) { useVsync = vsync; recreateSwapchain(); } }
         bool getVsync() const { return useVsync; }
         const RenderDebugStats& getDebugStats() const { return dbgStats; }
+        VulkanCtx getVKCtx();
+
+        RTTPassHandle createRTTPass(RTTPassCreateInfo& ci);
+        // Pass to be late updated with new VR pose data
+        void setVRPass(RTTPassHandle handle) { vrPass = handle; } 
+        void destroyRTTPass(RTTPassHandle handle);
+        vku::GenericImage& getSDRTarget(RTTPassHandle handle) { return rtResources.at(rttPasses.at(handle).sdrFinalTarget).image; }
+        void setRTTPassActive(RTTPassHandle handle, bool active) { rttPasses.at(handle).active = active; }
+        bool isPassValid(RTTPassHandle handle) { return rttPasses.find(handle) != rttPasses.end(); }
 
         ~VKRenderer();
     };

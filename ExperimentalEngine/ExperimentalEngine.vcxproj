@@ -238,12 +238,15 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="AssetDB.cpp" />
+    <ClCompile Include="Assets.cpp" />
     <ClCompile Include="Audio.cpp" />
     <ClCompile Include="BRDFLUTRenderer.cpp" />
     <ClCompile Include="Console.cpp" />
     <ClCompile Include="CubemapConvoluter.cpp" />
     <ClCompile Include="CubemapLoader.cpp" />
     <ClCompile Include="Editor.cpp" />
+    <ClCompile Include="EntityEditor.cpp" />
+    <ClCompile Include="EntityList.cpp" />
     <ClCompile Include="Fatal.cpp" />
     <ClCompile Include="GuiUtil.cpp" />
     <ClCompile Include="imgui.cpp" />
@@ -271,10 +274,12 @@
     <ClCompile Include="ShadowmapRenderPass.cpp" />
     <ClCompile Include="SourceModelLoader.cpp" />
     <ClCompile Include="spirv_reflect.c" />
+    <ClCompile Include="stb_vorbis.c" />
     <ClCompile Include="TextureLoader.cpp" />
     <ClCompile Include="tiny_obj_loader.cc" />
     <ClCompile Include="TonemapRenderPass.cpp" />
     <ClCompile Include="tracy\TracyClient.cpp" />
+    <ClCompile Include="VKImGUIUtil.cpp" />
     <ClCompile Include="vkrender.cpp" />
     <ClCompile Include="vkswapchain.cpp" />
     <ClCompile Include="VTFLoader.cpp" />
@@ -286,8 +291,10 @@
     <ClInclude Include="Camera.hpp" />
     <ClInclude Include="ComponentMetadata.hpp" />
     <ClInclude Include="Console.hpp" />
+    <ClInclude Include="CreateModelObject.hpp" />
     <ClInclude Include="CubemapLoader.hpp" />
     <ClInclude Include="Editor.hpp" />
+    <ClInclude Include="EditorWindows.hpp" />
     <ClInclude Include="Engine.hpp" />
     <ClInclude Include="Fatal.hpp" />
     <ClInclude Include="Frustum.hpp" />
@@ -332,6 +339,7 @@
     <ClInclude Include="tiny_obj_loader.h" />
     <ClInclude Include="Transform.hpp" />
     <ClInclude Include="TextureLoader.hpp" />
+    <ClInclude Include="VKImGUIUtil.hpp" />
     <ClInclude Include="vku\vku.hpp" />
     <ClInclude Include="weldmesh.h" />
     <ClInclude Include="XRInterface.hpp" />

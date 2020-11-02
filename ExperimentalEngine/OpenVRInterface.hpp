@@ -118,8 +118,35 @@ namespace worlds {
             return toMat4(system->GetEyeToHeadTransform(eye));
         }
 
+        void ComposeProjection(float fLeft, float fRight, float fTop, float fBottom, float zNear, float zFar, glm::mat4& p) {
+            float idx = 1.0f / (fRight - fLeft);
+            float idy = 1.0f / (fBottom - fTop);
+            float idz = 1.0f / (zFar - zNear);
+            float sx = fRight + fLeft;
+            float sy = fBottom + fTop;
+
+            p[0][0] = 2 * idx; p[1][0] = 0;       p[2][0] = sx * idx;    p[3][0] = 0;
+            p[0][1] = 0;       p[1][1] = 2 * idy; p[2][1] = sy * idy;    p[3][1] = 0;
+            p[0][2] = 0;       p[1][2] = 0;       p[2][2] = 0.0f; p[3][2] = zNear;
+            p[0][3] = 0;       p[1][3] = 0;       p[2][3] = -1.0f;       p[3][3] = 0;
+        }
+
         glm::mat4 getProjMat(vr::EVREye eye, float near, float far) {
-            return toMat4(system->GetProjectionMatrix(eye, near, far));
+            float left, right, top, bottom;
+            system->GetProjectionRaw(eye, &left, &right, &top, &bottom);
+
+            glm::mat4 m;
+
+            ComposeProjection(left, right, top, bottom, near, far, m);
+
+            glm::mat4 reverseZ{
+                glm::vec4 {1.0f, 0.0f, 0.0f, 0.0f},
+                glm::vec4 {1.0f, 0.0f, 0.0f, 0.0f},
+                glm::vec4 {1.0f, 0.0f, 0.0f, 0.0f},
+                glm::vec4 {1.0f, 0.0f, 0.0f, 0.0f},
+            };
+            return m;
+            //return toMat4(system->GetProjectionMatrix(eye, near, far));
         }
 
         void updateInput() override {

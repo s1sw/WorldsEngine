@@ -14,9 +14,9 @@ public:
 	InputManager(SDL_Window* window);
 	void update();
 	void endFrame();
-	bool mouseButtonHeld(MouseButton button);
-	bool mouseButtonPressed(MouseButton button);
-	bool mouseButtonReleased(MouseButton button);
+	bool mouseButtonHeld(MouseButton button, bool ignoreImGui = false);
+	bool mouseButtonPressed(MouseButton button, bool ignoreImGui = false);
+	bool mouseButtonReleased(MouseButton button, bool ignoreImGui = false);
 	bool keyHeld(SDL_Scancode scancode);
 	bool keyPressed(SDL_Scancode scancode);
 	bool keyReleased(SDL_Scancode scancode);

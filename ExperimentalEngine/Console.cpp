@@ -10,47 +10,21 @@
 #include "IOUtil.hpp"
 #include <sstream>
 #include "LogCategories.hpp"
-
 #ifdef _WIN32
-#define WIN32_LEAN_AND_MEAN
-#define NOGDICAPMASKS
-#define NOCRYPT
-#define NOVIRTUALKEYCODES
-#define NOWINSTYLES
-#define NOSYSMETRICS
-#define NOMENUS
-#define NOICONS
-#define NOKEYSTATES
-#define NORASTEROPS
-#define NOSYSCOMMANDS
-#define NOSHOWWINDOW
-#define OEMRESOURCE
-#define NOATOM
-#define NOCOLOR
-#define NODRAWTEXT
-#define NOGDI
-#define NOKERNEL
-#define NOMB
-#define NOMEMMGR
-#define NOMETAFILE
-#define NOMSG
-#define NOOPENFILE
-#define NOSCROLL
-#define NOSERVICE
-#define NOSOUND
-#define NOTEXTMETRIC
-#define NOWH
-#define NOWINOFFSETS
-#define NOCOMM
-#define NOKANJI
-#define NOHELP
-#define NOPROFILER
-#define NODEFERWINDOWPOS
-#define NOMCX
-#include <Windows.h>
+// Just for OutputDebugStringA
+#define _AMD64_
+#include <debugapi.h>
 #endif
 
 namespace worlds {
+    // Because static initialisation is the first thing that occurs when the game is started,
+    // any static convars will fail to find the console global. To fix this, we create a linked list of convars
+    // that's added to the console when it is initialised.
+    struct ConvarLink {
+        ConVar* var;
+        ConvarLink* next;
+    };
+    ConvarLink* firstLink = nullptr;
     const int CONSOLE_RESPONSE_CATEGORY = 255;
     Console* g_console;
 
@@ -91,18 +65,30 @@ namespace worlds {
         : value(defaultValue)
         , name(name)
         , help(help) {
-        if (g_console == nullptr) {
-            fatalErr("A ConVar was created before the console! If you're a developer,\nyou've messed up (likely a static or global convar). If you're not a developer, your installation is corrupted.");
-            return;
-        }
-
-        std::string nameLower = name;
-        for (auto& c : nameLower)
-            c = std::tolower(c);
-        g_console->conVars.insert({ nameLower, this });
 
         parsedInt = std::stoi(value);
         parsedFloat = (float)std::stof(value);
+
+        if (g_console == nullptr) {
+            ConvarLink* thisLink = new ConvarLink{ this, nullptr };
+            if (firstLink) {
+                ConvarLink* next = firstLink;
+                while (next->next != nullptr) {
+                    next = next->next;
+                }
+
+                next->next = thisLink;
+            } else {
+                firstLink = thisLink;
+            }
+        } else {
+            std::string nameLower = name;
+            for (auto& c : nameLower)
+                c = std::tolower(c);
+
+            g_console->conVars.insert({ nameLower, this });
+        }
+
     }
 
     void ConVar::setValue(std::string value) {
@@ -112,8 +98,8 @@ namespace worlds {
     }
 
     ConVar::~ConVar() {
-        SDL_Log("ConVar %s destroyed", name);
-        g_console->conVars.erase(name);
+        if (g_console)
+            g_console->conVars.erase(name);
     }
 
     Console::Console()
@@ -134,11 +120,21 @@ namespace worlds {
 #endif
         }
 
-#ifdef _WIN32
-        notepadHwnd = FindWindowA(NULL, "Untitled - Notepad");
-        if (notepadHwnd == NULL)
-            notepadHwnd = FindWindowA(NULL, "*Untitled - Notepad");
-#endif
+        if (firstLink != nullptr) {
+            ConvarLink* curr = firstLink;
+
+            while (curr != nullptr) {
+                ConvarLink* next = curr->next;
+                std::string nameLower = curr->var->name;
+                for (auto& c : nameLower) {
+                    c = std::tolower(c);
+                }
+
+                conVars.insert({ nameLower, curr->var });
+                delete curr;
+                curr = next;
+            }
+        }
     }
 
     void Console::registerCommand(CommandFuncPtr cmd, const char* name, const char* help, void* obj) {
@@ -304,15 +300,12 @@ namespace worlds {
 #ifdef _WIN32
         OutputDebugStringA(outStr.c_str());
         OutputDebugStringA("\n");
-
-        HWND edit;
-        edit = FindWindowExA((HWND)con->notepadHwnd, NULL, "EDIT", NULL);
-        SendMessageA(edit, EM_REPLACESEL, TRUE, (LPARAM)(outStr + "\n").c_str());
 #endif
     }
 
     Console::~Console() {
         logFileStream << "[" << getDateTimeString() << "]" << "Closing log file." << std::endl;
         logFileStream.close();
+        g_console = nullptr;
     }
 }

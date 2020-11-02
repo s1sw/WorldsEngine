@@ -49,4 +49,45 @@ namespace converge {
             lastError = glm::vec3{ 0.0f };
         }
     };
+
+    class PidController {
+    private:
+        float lastError;
+        float integral;
+
+    public:
+        float P = 0.0f;
+        float I = 0.0f;
+        float D = 0.0f;
+        float D2 = 0.0f;
+
+        bool clampIntegral;
+        float maxIntegralMagnitude;
+
+        float averageAmount = 20.0f;
+
+        float getOutput(float error, float deltaTime) {
+            float derivative = (error - lastError) / deltaTime;
+            integral += error * deltaTime;
+
+            if (clampIntegral) {
+                integral = glm::clamp(integral, -maxIntegralMagnitude, maxIntegralMagnitude);
+            }
+
+            if (glm::isnan(integral)) {
+                integral = 0.0f;
+            }
+
+            integral += (error - integral) / averageAmount;
+
+            lastError = error;
+
+            return P * error + I * integral + D * derivative;
+        }
+
+        void reset() {
+            integral = 0.0f;
+            lastError = 0.0f;
+        }
+    };
 }

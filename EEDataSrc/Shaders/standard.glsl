@@ -4,6 +4,7 @@
 #define PI 3.1415926535
 
 #ifdef FRAGMENT
+layout(early_fragment_tests) in;
 layout(location = 0) out vec4 FragColor;
 
 layout(location = 0) in vec4 inWorldPos;
@@ -42,9 +43,9 @@ const int LT_SPOT = 1;
 const int LT_DIRECTIONAL = 2;
 
 layout(binding = 0) uniform MultiVP {
-	mat4 view[8];
-	mat4 projection[8];
-    vec4 viewPos[8];
+	mat4 view[4];
+	mat4 projection[4];
+    vec4 viewPos[4];
 };
 
 struct Light {
@@ -73,8 +74,8 @@ struct Material {
 	// (albedo color rgb, alpha cutoff)
     vec3 albedoColor;
     float alphaCutoff;
-	//vec4 pack1;
-    float fresnelHackFactor;
+    int heightmapIdx;
+    float heightScale;
 };
 
 layout(std140, binding = 2) uniform MaterialSettingsBuffer {
@@ -82,7 +83,7 @@ layout(std140, binding = 2) uniform MaterialSettingsBuffer {
 };
 
 layout(std140, binding = 3) uniform ModelMatrices {
-	mat4 modelMatrices[1024];
+	mat4 modelMatrices[512];
 };
 
 layout (binding = 4) uniform sampler2D tex2dSampler[];
@@ -91,9 +92,7 @@ layout (binding = 6) uniform samplerCube cubemapSampler[];
 layout (binding = 7) uniform sampler2D brdfLutSampler;
 
 layout(std430, binding = 8) buffer PickingBuffer {
-    uint depth;
     uint objectID;
-    uint doPicking;
 } pickBuf;
 
 layout(push_constant) uniform PushConstants {
@@ -103,13 +102,22 @@ layout(push_constant) uniform PushConstants {
     int vpIdx;
     uint objectId;
     ivec2 pixelPickCoords;
+    uint doPicking;
 };
 
 #ifdef VERTEX
 void main() {
 	mat4 model = modelMatrices[modelMatrixIdx];
-    int vpMatIdx = vpIdx + gl_ViewIndex; 
+
+    // On AMD driver 20.10.1 (and possibly earlier) using gl_ViewIndex seems to cause a driver crash
+    int vpMatIdx = vpIdx; // + gl_ViewIndex; 
+
+    #ifndef AMD_VIEWINDEX_WORKAROUND
+    vpMatIdx += gl_ViewIndex;
+    #endif
     outWorldPos = (model * vec4(inPosition, 1.0));
+
+    mat4 projMat = projection[vpMatIdx];
 
     gl_Position = projection[vpMatIdx] * view[vpMatIdx] * outWorldPos; // Apply MVP transform
 	
@@ -262,37 +270,109 @@ vec3 calcAmbient(vec3 f0, float roughness, vec3 viewDir, float metallic, vec3 al
     return kD * diffuseAmbient + (specularAmbient * specularColor);
 }
 
-vec3 getNormalMapNormal(Material mat) {
-    vec3 bitangent = cross(inNormal, inTangent);
-
-    mat3 tbn = mat3(inTangent, bitangent, inNormal);
-
-    vec3 texNorm = normalize(decodeNormal(texture(tex2dSampler[mat.normalTexIdx], inUV).xy));
+vec3 getNormalMapNormal(Material mat, vec2 tCoord, mat3 tbn) {
+    vec3 texNorm = normalize(decodeNormal(texture(tex2dSampler[mat.normalTexIdx], tCoord).xy));
     return normalize(tbn * texNorm);
+}
+
+
+vec2 pm(vec2 texCoords, vec3 viewDir, Material mat) { 
+    float height = texture(tex2dSampler[mat.heightmapIdx], texCoords).r;    
+    vec2 p = viewDir.xy / viewDir.z * (height * mat.heightScale);
+    return texCoords - p;    
+}
+
+vec2 pom(vec2 texCoords, vec3 viewDir, Material mat)
+{ 
+    // number of depth layers
+    const float minLayers = 8;
+    const float maxLayers = 32;
+    float numLayers = mix(maxLayers, minLayers, abs(dot(vec3(0.0, 0.0, 1.0), viewDir)));  
+    // calculate the size of each layer
+    float layerDepth = 1.0 / numLayers;
+    // depth of current layer
+    float currentLayerDepth = 0.0;
+    // the amount to shift the texture coordinates per layer (from vector P)
+    vec2 P = viewDir.xy / viewDir.z * mat.heightScale; 
+    vec2 deltaTexCoords = P / numLayers;
+  
+    // get initial values
+    vec2  currentTexCoords     = texCoords;
+    float currentDepthMapValue = texture(tex2dSampler[mat.heightmapIdx], currentTexCoords).r;
+    
+    const int maxIter = 10;
+    int iter = 0;
+    while(currentLayerDepth < currentDepthMapValue)
+    {
+        // shift texture coordinates along direction of P
+        currentTexCoords -= deltaTexCoords;
+        // get depthmap value at current texture coordinates
+        currentDepthMapValue = texture(tex2dSampler[mat.heightmapIdx], currentTexCoords).r;  
+        // get depth of next layer
+        currentLayerDepth += layerDepth;
+        iter++;
+
+        if (iter >= maxIter)
+            break;
+    }
+    
+    // get texture coordinates before collision (reverse operations)
+    vec2 prevTexCoords = currentTexCoords + deltaTexCoords;
+
+    // get depth after and before collision for linear interpolation
+    float afterDepth  = currentDepthMapValue - currentLayerDepth;
+    float beforeDepth = texture(tex2dSampler[mat.heightmapIdx], prevTexCoords).r - currentLayerDepth + layerDepth;
+ 
+    // interpolation of texture coordinates
+    float weight = afterDepth / (afterDepth - beforeDepth);
+    vec2 finalTexCoords = prevTexCoords * weight + currentTexCoords * (1.0 - weight);
+
+    return finalTexCoords;
+}
+
+void handleEditorPicking() {
+    if (pixelPickCoords == ivec2(gl_FragCoord.xy)) {
+        pickBuf.objectID = objectId;
+    }
 }
 
 void main() {
     //pickBuf.objectID = 0;
     Material mat = materials[matIdx];
 
+#ifndef AMD_VIEWINDEX_WORKAROUND
 	vec3 viewDir = normalize(viewPos[gl_ViewIndex].xyz - inWorldPos.xyz);
+#else
+	vec3 viewDir = normalize(viewPos[0].xyz - inWorldPos.xyz);
+#endif
 
 	int lightCount = int(pack0.x);
 
     float roughness = mat.roughness;
 	float metallic = mat.metallic;
+
+    vec3 bitangent = cross(inNormal, inTangent);
+    mat3 tbn = mat3(inTangent, bitangent, inNormal);
+
+#ifndef AMD_VIEWINDEX_WORKAROUND
+    vec3 tViewDir = normalize((tbn * viewPos[gl_ViewIndex].xyz) - (tbn * inWorldPos.xyz));
+#else
+    vec3 tViewDir = normalize((tbn * viewPos[0].xyz) - (tbn * inWorldPos.xyz));
+#endif
+
+    vec2 tCoord = mat.heightmapIdx > -1 ? pm(inUV, tViewDir, mat) : inUV;
 	
-    vec4 albedoCol = texture(tex2dSampler[mat.albedoTexIdx], inUV) * vec4(mat.albedoColor, 1.0);
+    vec4 albedoCol = texture(tex2dSampler[mat.albedoTexIdx], tCoord) * vec4(mat.albedoColor, 1.0);
 	
 	vec3 f0 = mix(vec3(0.04), albedoCol.rgb, metallic);
 	vec3 lo = vec3(0.0);
 
-    vec3 normal = mat.normalTexIdx > -1 ? getNormalMapNormal(mat) : inNormal;
+    vec3 normal = mat.normalTexIdx > -1 ? getNormalMapNormal(mat, tCoord, tbn) : inNormal;
 	
     for (int i = 0; i < lightCount; i++) {
         float shadowIntensity = 1.0;
 		if (int(lights[i].pack0.w) == LT_DIRECTIONAL) {
-            float bias = max(0.0005 * (1.0 - dot(inNormal, lights[i].pack1.xyz)), 0.0001);
+            float bias = max(0.00005 * (1.0 - dot(inNormal, lights[i].pack1.xyz)), 0.00001);
 			float depth = (inShadowPos.z / inShadowPos.w) - bias;
 			vec2 coord = (inShadowPos.xy * 0.5 + 0.5);
 			
@@ -319,53 +399,8 @@ void main() {
 
 	FragColor = vec4(lo + calcAmbient(f0, roughness, viewDir, metallic, albedoCol.xyz, normal), mat.alphaCutoff > 0.0f ? albedoCol.a : 1.0f);
 
-    if (ENABLE_PICKING && pickBuf.doPicking == 1) {
-        
-        if (pixelPickCoords == ivec2(gl_FragCoord.xy)) {
-            FragColor = vec4(1.0);
-            // shitty gpu spinlock
-            // it's ok, should rarely be contended
-            // uint set = 0;
-
-            //uint uiDepth = floatBitsToUint(inDepth);
-            //atomicMin(pickBuf.depth, uiDepth);
-
-            //if (pickBuf.depth == uiDepth) {
-            //    atomicExchange(pickBuf.objectID, ubIndices.w);
-            //}
-             //pickBuf.doPicking = 0;
-
-            uint d = floatBitsToUint(inDepth);
-            uint current_d_or_locked = 0;
-            do {
-                // `z` is behind the stored z value, return immediately.
-                if (d >= pickBuf.depth)
-                    return;
-
-                // Perform an atomic min. `current_d_or_locked` holds the currently stored
-                // value.
-                //picking_buffer.InterlockedMin(0, d, current_d_or_locked);
-                current_d_or_locked = atomicMin(pickBuf.depth, d);
-                // We rely on using the sign bit to indicate if the picking buffer is
-                // currently locked. This means that this branch will only be entered if the
-                // buffer is unlocked AND `d` is the less than the currently stored `d`. 
-                if (d < int(current_d_or_locked)) {
-                    uint last_d = 0;
-                    // Attempt to acquire write lock by setting the sign bit.
-                    last_d = atomicCompSwap(pickBuf.depth, d, floatBitsToUint(intBitsToFloat(-int(d))));
-                    // This branch will only be taken if taking the write lock succeded.
-                    if (last_d == d) {
-                        // Update the object identity.
-                        pickBuf.objectID = objectId;
-                        uint dummy;
-                        // Release write lock. 
-                        //picking_buffer.InterlockedExchange(0, d, dummy);
-                        atomicExchange(pickBuf.depth, d);
-                    }
-                }
-            // Spin until write lock has been released.
-            } while(int(current_d_or_locked) < 0);
-        }
+    if (ENABLE_PICKING && doPicking == 1) {
+        handleEditorPicking();
     }
 }
 #endif

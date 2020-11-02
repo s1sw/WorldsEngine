@@ -57,10 +57,6 @@ namespace worlds {
         shadowVertexShader = vku::loadShaderAsset(ctx.device, vsID);
         shadowFragmentShader = vku::loadShaderAsset(ctx.device, fsID);
 
-        vku::DescriptorSetMaker dsm;
-        dsm.layout(*dsl);
-        descriptorSet = dsm.create(ctx.device, ctx.descriptorPool)[0];
-
         vku::PipelineLayoutMaker plm{};
         plm.descriptorSetLayout(*dsl);
         plm.pushConstantRange(vk::ShaderStageFlagBits::eVertex, 0, sizeof(ShadowmapPushConstants));
@@ -117,11 +113,11 @@ namespace worlds {
             glm::vec3 lightForward = glm::normalize(transform.rotation * glm::vec3(0.0f, 0.0f, -1.0f));
             if (l.type == LightType::Directional) {
                 const float SHADOW_DISTANCE = 25.0f;
-                glm::vec3 shadowMapPos = glm::round(viewPos - (transform.rotation * glm::vec3(0.0f, 0.f, 50.0f)));
+                glm::vec3 shadowMapPos = glm::round(viewPos - (transform.rotation * glm::vec3(0.0f, 0.f, 250.0f)));
                 glm::mat4 proj = glm::orthoZO(
                     -SHADOW_DISTANCE, SHADOW_DISTANCE,
                     -SHADOW_DISTANCE, SHADOW_DISTANCE,
-                    1.0f, 1000.f);
+                    1.0f, 5000.f);
 
                 glm::mat4 view = glm::lookAt(
                     shadowMapPos,

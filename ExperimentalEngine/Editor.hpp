@@ -3,6 +3,8 @@
 #include "Input.hpp"
 #include "Camera.hpp"
 #include "Transform.hpp"
+#include "IGameEventHandler.hpp"
+
 namespace worlds {
     typedef uint32_t AssetID;
 
@@ -10,7 +12,8 @@ namespace worlds {
         None,
         Translate,
         Rotate,
-        Scale
+        Scale,
+        Bounds
     };
 
     enum class AxisFlagBits {
@@ -51,20 +54,41 @@ namespace worlds {
         float scaleSnapIncrement;
     };
 
+    class Editor;
+
+    class EditorWindow {
+    public:
+        EditorWindow(EngineInterfaces interfaces, Editor* editor) 
+            : interfaces(interfaces)
+            , editor(editor)
+            , active(true) {}
+
+        virtual bool isActive() { return active; }
+        virtual void setActive(bool active) { this->active = active; }
+        virtual void draw(entt::registry& reg) = 0;
+        virtual const char* getName() = 0;
+    protected:
+        EngineInterfaces interfaces;
+        Editor* editor;
+        bool active;
+    };
+
     class Editor {
     public:
-        Editor(entt::registry& reg, InputManager& inputManager, Camera& cam);
+        Editor(entt::registry& reg, EngineInterfaces interfaces);
         void select(entt::entity entity);
         void update(float deltaTime);
         void activateTool(Tool newTool);
+        void setActive(bool active) { this->active = active; }
+        entt::entity getSelectedEntity() { return currentSelectedEntity; }
     private:
         void updateCamera(float deltaTime);
         void handleAxisButtonPress(AxisFlagBits axis);
         Tool currentTool;
+        Tool lastActiveTool;
         AxisFlagBits currentAxisLock;
         entt::registry& reg;
         entt::entity currentSelectedEntity;
-        InputManager& inputManager;
         Camera& cam;
         Transform originalObjectTransform;
         float startingMouseDistance;
@@ -72,7 +96,13 @@ namespace worlds {
         float lookY;
         bool imguiMetricsOpen;
         bool enableTransformGadget;
+        bool active;
 
         EditorSettings settings;
+        EngineInterfaces interfaces;
+        InputManager& inputManager;
+        RTTPassHandle sceneViewPass;
+        std::vector<std::unique_ptr<EditorWindow>> editorWindows;
+        vk::DescriptorSet sceneViewDS;
     };
 }

@@ -8,13 +8,17 @@ layout (location = 0) out vec4 outCol;
 
 
 layout(binding = 0) uniform MultiVP {
-	mat4 view[8];
-	mat4 projection[8];
-    vec4 viewPos[8];
+	mat4 view[4];
+	mat4 projection[4];
+    vec4 viewPos[4];
 };
 
 void main() {
-    gl_Position = projection[gl_ViewIndex] * view[gl_ViewIndex] * vec4(inPos, 1.0);
+    uint vpIdx = 0;
+    #ifndef AMD_VIEWINDEX_WORKAROUND
+    vpIdx += gl_ViewIndex;
+    #endif
+    gl_Position = projection[vpIdx] * view[vpIdx] * vec4(inPos, 1.0);
     outCol = inCol;
     gl_Position.y = -gl_Position.y;
 }

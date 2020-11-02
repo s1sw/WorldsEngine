@@ -10,6 +10,8 @@
 #include <MatUtil.hpp>
 
 namespace converge {
+    const float LOCOSPHERE_RADIUS = 0.25f;
+    const float LOCOSPHERE_DIAMETER = LOCOSPHERE_RADIUS * 2.0f;
     void loadControllerRenderModel(const char* name, entt::entity ent, entt::registry& reg, worlds::VKRenderer* renderer) {
         if (!reg.valid(ent) || reg.has<worlds::ProceduralObject>(ent) || name == nullptr) return;
 
@@ -90,7 +92,6 @@ namespace converge {
     physx::PxMaterial* locosphereMat;
     physx::PxMaterial* fenderMat;
     physx::PxD6Joint* fenderJoint;
-    physx::PxD6Joint* headJoint;
 
     class NullPhysXCallback : public physx::PxRaycastCallback {
     public:
@@ -144,6 +145,8 @@ namespace converge {
         }
     }
 
+    worlds::ConVar showLocosphereDebug{ "cnvrg_showLocosphereDebug", "0", "Shows the locosphere debug menu." };
+
     glm::vec3 lastDesiredVel;
 
     float locosphereAngVels[128];
@@ -171,20 +174,37 @@ namespace converge {
         camera->position = glm::mix(lastCamPos, nextCamPos, interpAlpha);
 
         //ImGui::Text("Desired vel: %.3f, %.3f, %.3f", lastDesiredVel.x, lastDesiredVel.y, lastDesiredVel.z);
-        if (ImGui::Begin("Locosphere")) {
-            ImGui::PlotLines("Angular Speed", locosphereAngVels, 128, physDbgIdx, nullptr, 0.0f, 50.0f, ImVec2(500.0f, 100.0f));
-            ImGui::PlotLines("Linear Speed", locosphereLinVels, 128, physDbgIdx, nullptr, 0.0f, 50.0f, ImVec2(500.0f, 100.0f));
+        if (showLocosphereDebug.getInt()) {
+            if (ImGui::Begin("Locosphere")) {
+                ImGui::PlotLines("Angular Speed", locosphereAngVels, 128, physDbgIdx, nullptr, 0.0f, 50.0f, ImVec2(500.0f, 100.0f));
+                ImGui::PlotLines("Linear Speed", locosphereLinVels, 128, physDbgIdx, nullptr, 0.0f, 10.0f, ImVec2(500.0f, 100.0f));
 
-            float maxAngVel = 0.0f;
-            float maxLinVel = 0.0f;
-            for (int i = 0; i < 128; i++) {
-                maxLinVel = std::max(locosphereLinVels[i], maxLinVel);
-                maxAngVel = std::max(locosphereAngVels[i], maxAngVel);
+                float maxAngVel = 0.0f;
+                float maxLinVel = 0.0f;
+                for (int i = 0; i < 128; i++) {
+                    maxLinVel = std::max(locosphereLinVels[i], maxLinVel);
+                    maxAngVel = std::max(locosphereAngVels[i], maxAngVel);
+                }
+                ImGui::Text("Maximum angular speed: %.3f", maxAngVel);
+                ImGui::Text("Maximum linear speed: %.3f", maxLinVel);
+
+                int adjIdx = physDbgIdx - 1;
+                if (adjIdx < 0) {
+                    adjIdx = 128 - adjIdx;
+                } else if (adjIdx > 127) {
+                    adjIdx = adjIdx - 128;
+                }
+
+                ImGui::Text("Current angular speed: %.3f", locosphereAngVels[adjIdx]);
+                ImGui::Text("Current linear speed: %.3f", locosphereLinVels[adjIdx]);
+
+                ImGui::DragFloat("P", &lspherePid.P);
+                ImGui::DragFloat("I", &lspherePid.I);
+                ImGui::DragFloat("D", &lspherePid.D);
+                ImGui::DragFloat("Zero Thresh", &zeroThresh, 0.01f);
             }
-            ImGui::Text("Maximum angular speed: %.3f", maxAngVel);
-            ImGui::Text("Maximum linear speed: %.3f", maxLinVel);
+            ImGui::End();
         }
-        ImGui::End();
 
         if (vrInterface) {
             if (ImGui::Begin("Hands")) {
@@ -229,10 +249,10 @@ namespace converge {
                 procObjR.visible = !vr::VRSystem()->ShouldApplicationPause();
             }
 
-            if (lHandRMName != nullptr && rHandRMName != nullptr) {
+            /*if (lHandRMName != nullptr && rHandRMName != nullptr) {
                 loadControllerRenderModel(lHandRMName, lHandEnt, registry, renderer);
                 loadControllerRenderModel(rHandRMName, rHandEnt, registry, renderer);
-            }
+            }*/
 
             auto lIdx = vr::VRSystem()->GetTrackedDeviceIndexForControllerRole(vr::ETrackedControllerRole::TrackedControllerRole_LeftHand);
             auto rIdx = vr::VRSystem()->GetTrackedDeviceIndexForControllerRole(vr::ETrackedControllerRole::TrackedControllerRole_RightHand);
@@ -287,10 +307,20 @@ namespace converge {
         return q * glm::sign(glm::dot(q, glm::quat_identity<float, glm::packed_highp>()));
     }
 
+    glm::vec3 clampMagnitude(glm::vec3 v, float maxMagnitude) {
+        float l2 = glm::length2(v);
+
+        if (l2 > maxMagnitude * maxMagnitude) {
+            v = glm::normalize(v) * maxMagnitude;
+        }
+
+        return v;
+    }
+
     void EventHandler::simulate(entt::registry& registry, float simStep) {
         auto& locosphereTransform = registry.get<Transform>(playerLocosphere);
 
-        const float maxSpeed = 50.0f;
+        const float maxSpeed = 15.0f;
 
         auto& wActor = registry.get<worlds::DynamicPhysicsActor>(playerLocosphere);
         auto* locosphereActor = (physx::PxRigidDynamic*)wActor.actor;
@@ -301,8 +331,8 @@ namespace converge {
 
         glm::vec3 desiredVel(0.0f);
 
-        fenderJoint->setLocalPose(physx::PxJointActorIndex::eACTOR0, physx::PxTransform{ physx::PxVec3{0.0f, -0.8f,0.0f}, worlds::glm2px(glm::inverse(locosphereTransform.rotation)) });
-        fenderJoint->setLocalPose(physx::PxJointActorIndex::eACTOR1, physx::PxTransform{ physx::PxVec3{0.0f, 0.0f,0.0f}, worlds::glm2px(glm::inverse(locosphereTransform.rotation)) });
+        //fenderJoint->setLocalPose(physx::PxJointActorIndex::eACTOR0, physx::PxTransform{ physx::PxVec3{0.0f, -0.8f,0.0f}, worlds::glm2px(glm::inverse(locosphereTransform.rotation)) });
+        //fenderJoint->setLocalPose(physx::PxJointActorIndex::eACTOR1, physx::PxTransform{ physx::PxVec3{0.0f, 0.0f,0.0f}, worlds::glm2px(glm::inverse(locosphereTransform.rotation)) });
 
         if (!vrInterface) {
             if (inputManager->keyHeld(SDL_SCANCODE_W)) {
@@ -341,7 +371,6 @@ namespace converge {
         } else {
             camMat = glm::inverse(camera->getViewMatrix());
         }
-        glm::quat rot = worlds::getMatrixRotation(camMat);
 
         desiredVel = camMat * glm::vec4(desiredVel, 0.0f);
         desiredVel.y = 0.0f;
@@ -361,11 +390,13 @@ namespace converge {
 
         lastDesiredVel = desiredVel;
 
-        static float locosphereAcceleration = 0.666f;
-        //static float locosphereAcceleration = 0.666f;
         auto currVel = worlds::px2glm(locosphereActor->getAngularVelocity());
-        glm::vec3 appliedTorque = (desiredVel - currVel);
-        locosphereActor->addTorque(worlds::glm2px(appliedTorque * locosphereAcceleration * (1.0f / simStep)), physx::PxForceMode::eACCELERATION);
+        glm::vec3 torque = lspherePid.getOutput(desiredVel - currVel, simStep);
+        locosphereActor->addTorque(worlds::glm2px(torque), physx::PxForceMode::eACCELERATION);
+
+        if (locosphereActor->getLinearVelocity().magnitudeSquared() < zeroThresh * zeroThresh) {
+            locosphereActor->setLinearVelocity(physx::PxVec3(0.0f, 0.0f, 0.0f));
+        }
 
         NullPhysXCallback nullCallback{};
         bool grounded = worlds::g_scene->raycast(worlds::glm2px(locosphereTransform.position - glm::vec3(0.0f, 0.26f, 0.0f)), physx::PxVec3{ 0.0f, -1.0f, 0.0f }, 0.25f, nullCallback, physx::PxHitFlag::eDEFAULT, physx::PxQueryFilterData{ physx::PxQueryFlag::ePOSTFILTER | physx::PxQueryFlag::eDYNAMIC | physx::PxQueryFlag::eSTATIC }, &filterEnt);
@@ -388,7 +419,7 @@ namespace converge {
 
         if (jumpThisFrame) {
             if (grounded)
-                locosphereActor->addForce(physx::PxVec3{ 0.0f, 7.0f, 0.0f }, physx::PxForceMode::eVELOCITY_CHANGE);
+                locosphereActor->addForce(physx::PxVec3{ 0.0f, 7.5f, 0.0f }, physx::PxForceMode::eVELOCITY_CHANGE);
             jumpThisFrame = false;
         }
 
@@ -399,11 +430,12 @@ namespace converge {
         }
 
         lastCamPos = nextCamPos;
-        nextCamPos = locosphereTransform.position + glm::vec3(0.0f, -0.125f, 0.0f);
+        nextCamPos = locosphereTransform.position + glm::vec3(0.0f, -LOCOSPHERE_RADIUS, 0.0f);
 
         if (!vrInterface) {
             // Make all non-VR users 1.75m tall
-            nextCamPos += glm::vec3(0.0f, 1.75f - 0.25f, 0.0f);
+            // Then subtract 5cm from that to account for eye offset
+            nextCamPos += glm::vec3(0.0f, 1.7f, 0.0f);
         }
 
         if (vrInterface) {
@@ -415,7 +447,7 @@ namespace converge {
             locosphereOffset.y = 0.0f;
 
             // magic 0.375 offset to account for radius of fender + head
-            headJoint->setLocalPose(physx::PxJointActorIndex::eACTOR0, physx::PxTransform{ physx::PxVec3{0.0f, -headPos.y + 0.375f, 0.0f}, physx::PxQuat{physx::PxIdentity} });
+            //headJoint->setLocalPose(physx::PxJointActorIndex::eACTOR0, physx::PxTransform{ physx::PxVec3{0.0f, -headPos.y + 0.375f, 0.0f}, physx::PxQuat{physx::PxIdentity} });
             //ImGui::Text("VR Head Pos: %.2f, %.2f, %.2f", headPos.x, headPos.y, headPos.z);
             //ImGui::DragFloat("offs", &off);
             nextCamPos += glm::vec3(headPos.x, 0.0f, headPos.z);
@@ -504,21 +536,9 @@ namespace converge {
 
     void EventHandler::onSceneStart(entt::registry& registry) {
         if (vrInterface) {
-            auto lIdx = vr::VRSystem()->GetTrackedDeviceIndexForControllerRole(vr::ETrackedControllerRole::TrackedControllerRole_LeftHand);
-            auto rIdx = vr::VRSystem()->GetTrackedDeviceIndexForControllerRole(vr::ETrackedControllerRole::TrackedControllerRole_RightHand);
-
-            if (vr::VRSystem()->IsTrackedDeviceConnected(lIdx) && vr::VRSystem()->IsTrackedDeviceConnected(rIdx)) {
-                size_t lSize = vr::VRSystem()->GetStringTrackedDeviceProperty(lIdx, vr::Prop_RenderModelName_String, nullptr, 0);
-                size_t rSize = vr::VRSystem()->GetStringTrackedDeviceProperty(rIdx, vr::Prop_RenderModelName_String, nullptr, 0);
-
-                lHandRMName = (char*)std::malloc(lSize);
-                rHandRMName = (char*)std::malloc(rSize);
-
-                vr::VRSystem()->GetStringTrackedDeviceProperty(lIdx, vr::Prop_RenderModelName_String, lHandRMName, (uint32_t)lSize);
-                vr::VRSystem()->GetStringTrackedDeviceProperty(rIdx, vr::Prop_RenderModelName_String, rHandRMName, (uint32_t)rSize);
-            }
-
             throwHandAction = vrInterface->getActionHandle("/actions/main/in/ThrowHand");
+            
+            auto matId = worlds::g_assetDB.addOrGetExisting("Materials/dev.json");
 
             lHandEnt = registry.create();
             registry.emplace<Transform>(lHandEnt);
@@ -560,6 +580,10 @@ namespace converge {
         }
 
         // Create physics rig
+        lspherePid.P = 50.0f;
+        lspherePid.I = 0.0f;
+        lspherePid.D = 0.0f;
+        zeroThresh = 0.0f;
 
         // Locosphere
         playerLocosphere = registry.create();
@@ -571,8 +595,9 @@ namespace converge {
 
         worlds::g_scene->addActor(*actor);
 
-        locosphereMat = worlds::g_physics->createMaterial(0.5f, 15.0f, 0.0f);
-        wActor.physicsShapes.push_back(worlds::PhysicsShape::sphereShape(0.25f, locosphereMat));
+        locosphereMat = worlds::g_physics->createMaterial(2.5f, 50.0f, 0.0f);
+        locosphereMat->setFrictionCombineMode(physx::PxCombineMode::eMAX);
+        wActor.physicsShapes.push_back(worlds::PhysicsShape::sphereShape(LOCOSPHERE_RADIUS, locosphereMat));
 
         worlds::updatePhysicsShapes(wActor);
         physx::PxRigidBodyExt::setMassAndUpdateInertia(*actor, 200.0f);
@@ -586,7 +611,7 @@ namespace converge {
         worlds::g_scene->addActor(*fenderActor);
 
         fenderMat = worlds::g_physics->createMaterial(0.0f, 0.0f, 0.0f);
-        auto fenderShape = worlds::PhysicsShape::capsuleShape(0.05f, 0.5f, fenderMat);
+        auto fenderShape = worlds::PhysicsShape::capsuleShape(0.4f, 0.45f, fenderMat);
         fenderShape.rot = glm::quat(glm::vec3(0.0f, 0.0f, glm::half_pi<float>()));
         fenderWActor.physicsShapes.push_back(fenderShape);
 
@@ -607,48 +632,14 @@ namespace converge {
         fenderJoint->setMotion(physx::PxD6Axis::eSWING2, physx::PxD6Motion::eFREE);
         fenderJoint->setMotion(physx::PxD6Axis::eTWIST, physx::PxD6Motion::eFREE);
 
-        playerHead = registry.create();
-
-        auto headActor = worlds::g_physics->createRigidDynamic(physx::PxTransform{ physx::PxIdentity });
-        auto& headWActor = registry.emplace<worlds::DynamicPhysicsActor>(playerHead, headActor);
-
-        worlds::g_scene->addActor(*headActor);
-
-        headWActor.physicsShapes.push_back(worlds::PhysicsShape::sphereShape(0.05f));
-
-        headJoint = physx::PxD6JointCreate(*worlds::g_physics, headActor, physx::PxTransform{ physx::PxVec3{0.0f, -0.65f, 0.0f}, physx::PxQuat{physx::PxIdentity} }, fenderActor, physx::PxTransform{ physx::PxIdentity });
-
-        physx::PxRigidBodyExt::setMassAndUpdateInertia(*headActor, 5.0f);
-
-        headActor->setRigidDynamicLockFlag(physx::PxRigidDynamicLockFlag::eLOCK_ANGULAR_X, true);
-        headActor->setRigidDynamicLockFlag(physx::PxRigidDynamicLockFlag::eLOCK_ANGULAR_Y, true);
-        headActor->setRigidDynamicLockFlag(physx::PxRigidDynamicLockFlag::eLOCK_ANGULAR_Z, true);
-
-        headJoint->setMotion(physx::PxD6Axis::eX, physx::PxD6Motion::eLOCKED);
-        headJoint->setMotion(physx::PxD6Axis::eY, physx::PxD6Motion::eLOCKED);
-        headJoint->setMotion(physx::PxD6Axis::eZ, physx::PxD6Motion::eLOCKED);
-
-        headJoint->setMotion(physx::PxD6Axis::eSWING1, physx::PxD6Motion::eFREE);
-        headJoint->setMotion(physx::PxD6Axis::eSWING2, physx::PxD6Motion::eFREE);
-        headJoint->setMotion(physx::PxD6Axis::eTWIST, physx::PxD6Motion::eFREE);
-
-        actor->setSolverIterationCounts(15, 15);
-        actor->setRigidBodyFlag(physx::PxRigidBodyFlag::eENABLE_SPECULATIVE_CCD, true);
-        actor->setRigidBodyFlag(physx::PxRigidBodyFlag::eRETAIN_ACCELERATIONS, false);
+        actor->setSolverIterationCounts(30, 8);
 
         fenderJoint->setConstraintFlag(physx::PxConstraintFlag::eCOLLISION_ENABLED, false);
-        fenderJoint->setConstraintFlag(physx::PxConstraintFlag::ePROJECTION, true);
-        fenderJoint->setProjectionLinearTolerance(0.005f);
+        //fenderJoint->setConstraintFlag(physx::PxConstraintFlag::ePROJECTION, true);
+        //fenderJoint->setProjectionLinearTolerance(0.005f);
 
-        fenderActor->setSolverIterationCounts(15, 15);
-        fenderActor->setRigidBodyFlag(physx::PxRigidBodyFlag::eENABLE_SPECULATIVE_CCD, true);
+        fenderActor->setSolverIterationCounts(30, 8);
 
-        headActor->setSolverIterationCounts(15, 15);
-        headJoint->setConstraintFlag(physx::PxConstraintFlag::ePROJECTION, true);
-        headJoint->setProjectionLinearTolerance(0.005f);
-        //headActor->setActorFlag(physx::PxActorFlag::eVISUALIZATION, false);
-
-        worlds::updatePhysicsShapes(headWActor);
 
         //worlds::g_console->executeCommandStr("exec dbgscripts/shapes");
 

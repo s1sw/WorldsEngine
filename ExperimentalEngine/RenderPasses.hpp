@@ -11,6 +11,7 @@ namespace worlds {
         vk::UniqueRenderPass renderPass;
         vk::UniquePipeline pipeline;
         vk::UniquePipeline noBackfaceCullPipeline;
+        vk::UniquePipeline depthPrePipeline;
         vk::UniquePipelineLayout pipelineLayout;
         vk::UniqueDescriptorSetLayout dsl;
 
@@ -20,7 +21,7 @@ namespace worlds {
         vk::UniquePipeline linePipeline;
         vk::UniquePipelineLayout linePipelineLayout;
         vk::UniqueDescriptorSetLayout lineDsl;
-        vk::DescriptorSet lineDs;
+        vk::UniqueDescriptorSet lineDs;
 
         vk::UniquePipeline skyboxPipeline;
         vk::UniquePipelineLayout skyboxPipelineLayout;
@@ -87,7 +88,6 @@ namespace worlds {
         vk::UniqueDescriptorSetLayout dsl;
         RenderImageHandle shadowImage;
         vk::UniqueFramebuffer shadowFb;
-        vk::DescriptorSet descriptorSet;
         vku::ShaderModule shadowVertexShader;
         vku::ShaderModule shadowFragmentShader;
         uint32_t shadowmapRes;
@@ -105,8 +105,8 @@ namespace worlds {
         vk::UniqueDescriptorSetLayout dsl;
         vk::UniquePipeline pipeline;
         vk::UniquePipelineLayout pipelineLayout;
-        vk::DescriptorSet descriptorSet;
-        vk::DescriptorSet rDescriptorSet;
+        vk::UniqueDescriptorSet descriptorSet;
+        vk::UniqueDescriptorSet rDescriptorSet;
         vk::UniqueSampler sampler;
         RenderImageHandle finalPrePresent;
         RenderImageHandle finalPrePresentR;
@@ -117,7 +117,7 @@ namespace worlds {
         void setup(PassSetupCtx& ctx) override;
         void execute(RenderCtx& ctx) override;
         void setRightFinalImage(PassSetupCtx& ctx, RenderImageHandle right);
-        virtual ~TonemapRenderPass() {}
+        virtual ~TonemapRenderPass();
     };
 
     class ImGuiRenderPass {
