@@ -330,7 +330,7 @@ namespace worlds {
         }
 
         VrApi activeApi = VrApi::None;
-        
+
         if (enableOpenVR) {
             activeApi = VrApi::OpenVR;
         }
@@ -402,7 +402,7 @@ namespace worlds {
                 if (as.playOnSceneOpen) {
                     as.isPlaying = true;
                 }
-            });
+                });
             }, "play", "play.", nullptr);
 
         console.registerCommand([&](void*, const char*) {
@@ -439,7 +439,7 @@ namespace worlds {
             console.executeCommandStr("exec CommandScripts/startup");
 
         if (evtHandler != nullptr) {
-            
+
             evtHandler->init(registry, interfaces);
 
             if (!runAsEditor)
@@ -569,17 +569,13 @@ namespace worlds {
                         });
                 }
 
-                //if (runAsEditor) 
-                {
-                    // Moving static physics actors in the editor is allowed
-                    registry.view<PhysicsActor, Transform>().each([](auto ent, PhysicsActor& pa, Transform& transform) {
-                        auto curr = pa.actor->getGlobalPose();
-                        if (curr.p != glm2px(transform.position) || curr.q != glm2px(transform.rotation)) {
-                            physx::PxTransform pt(glm2px(transform.position), glm2px(transform.rotation));
-                            pa.actor->setGlobalPose(pt);
-                        }
-                        });
-                }
+                registry.view<PhysicsActor, Transform>().each([](auto ent, PhysicsActor& pa, Transform& transform) {
+                    auto curr = pa.actor->getGlobalPose();
+                    if (curr.p != glm2px(transform.position) || curr.q != glm2px(transform.rotation)) {
+                        physx::PxTransform pt(glm2px(transform.position), glm2px(transform.rotation));
+                        pa.actor->setGlobalPose(pt);
+                    }
+                    });
 
                 if (!lockSimToRefresh.getInt()) {
                     simAccumulator += deltaTime;
@@ -718,7 +714,7 @@ namespace worlds {
 
             std::memcpy(reinterpret_cast<void*>(lastState), state, SDL_NUM_SCANCODES);
 
-                as.update(registry, cam.position, cam.rotation);
+            as.update(registry, cam.position, cam.rotation);
 
             console.drawWindow();
 
