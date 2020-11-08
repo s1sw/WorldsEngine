@@ -33,6 +33,8 @@
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include "imgui_internal.h"
 #include "CreateModelObject.hpp"
+#include "IconsFontAwesome5.h"
+#include "IconsFontaudio.h"
 
 namespace worlds {
     AssetDB g_assetDB;
@@ -106,7 +108,11 @@ namespace worlds {
     }
 
     SDL_Window* createSDLWindow() {
-        return SDL_CreateWindow("Converge", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1600, 900, SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
+        return SDL_CreateWindow("Converge", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1600, 900, 
+            SDL_WINDOW_VULKAN | 
+            SDL_WINDOW_RESIZABLE | 
+            SDL_WINDOW_ALLOW_HIGHDPI | 
+            SDL_WINDOW_HIDDEN);
     }
 
     // SDL_PollEvent blocks when the window is being resized or moved,
@@ -153,9 +159,13 @@ namespace worlds {
         return 0;
     }
 
-    void loadEditorFont() {
-        ImGui::GetIO().Fonts->Clear();
-        PHYSFS_File* ttfFile = PHYSFS_openRead("Fonts/EditorFont.ttf");
+    void addImGuiFont(std::string fontPath, float size, ImFontConfig* config = nullptr, const ImWchar* ranges = nullptr) {
+        PHYSFS_File* ttfFile = PHYSFS_openRead(fontPath.c_str());
+        if (ttfFile == nullptr) {
+            SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION, "Couldn't open font file");
+            return;
+        }
+
         size_t fileLength = PHYSFS_fileLength(ttfFile);
 
         if (fileLength == -1) {
@@ -173,23 +183,25 @@ namespace worlds {
             return;
         }
 
-        ImGui::GetIO().Fonts->AddFontFromMemoryTTF(buf, (int)readBytes, 18.0f);
+        if (config)
+            memcpy(config->Name, fontPath.c_str(), fontPath.size());
+        ImGui::GetIO().Fonts->AddFontFromMemoryTTF(buf, (int)readBytes, size, config, ranges);
 
-        //std::free(buf);
         PHYSFS_close(ttfFile);
     }
 
-    void setWindowIcon() {
-        SDL_Surface* surf;
-
-        PHYSFS_File* f = PHYSFS_openRead("icon.png");
-        int64_t fileLength = PHYSFS_fileLength(f);
-        char* buf = (char*)std::malloc(fileLength);
-        PHYSFS_readBytes(f, buf, fileLength);
-        PHYSFS_close(f);
-
+    SDL_Surface* loadDataFileToSurface(std::string fName) {
         int width, height, channels;
-        unsigned char* imgDat = stbi_load_from_memory((stbi_uc*)buf, (int)fileLength, &width, &height, &channels, STBI_rgb_alpha);
+
+        std::string basePath = SDL_GetBasePath();
+        basePath += "EEData";
+#ifdef _WIN32
+        basePath += '\\';
+#else
+        basePath += '/';
+#endif
+        basePath += fName;
+        unsigned char* imgDat = stbi_load(basePath.c_str(), &width, &height, &channels, STBI_rgb_alpha);
 
         Uint32 rmask, gmask, bmask, amask;
 #if SDL_BYTEORDER == SDL_BIG_ENDIAN
@@ -204,8 +216,13 @@ namespace worlds {
         bmask = 0x00ff0000;
         amask = 0xff000000;
 #endif
-        surf = SDL_CreateRGBSurfaceFrom((void*)imgDat, width, height, 32, 4 * width, rmask, gmask, bmask, amask);
-        SDL_SetWindowIcon(window, surf);
+        return SDL_CreateRGBSurfaceFrom((void*)imgDat, width, height, 32, 4 * width, rmask, gmask, bmask, amask);
+    }
+
+    void setWindowIcon(SDL_Window* win) {
+        auto surf = loadDataFileToSurface("icon.png");
+        SDL_SetWindowIcon(win, surf);
+        SDL_FreeSurface(surf);
     }
 
     void cmdLoadScene(void* obj, const char* arg) {
@@ -223,6 +240,69 @@ namespace worlds {
         SDL_PushEvent(&evt);
     }
 
+    struct SplashWindow {
+        SDL_Window* win;
+        SDL_Renderer* renderer;
+        SDL_Surface* bgSurface;
+        SDL_Texture* bgTexture;
+    };
+
+    void destroySplashWindow(SplashWindow splash) {
+        SDL_DestroyTexture(splash.bgTexture);
+        SDL_DestroyRenderer(splash.renderer);
+        SDL_FreeSurface(splash.bgSurface);
+        SDL_DestroyWindow(splash.win);
+    }
+
+    void redrawSplashWindow(SplashWindow splash, std::string overlay) {
+        SDL_PumpEvents();
+
+        SDL_RenderClear(splash.renderer);
+        SDL_RenderCopy(splash.renderer, splash.bgTexture, nullptr, nullptr);
+
+        if (!overlay.empty()) {
+            SDL_Surface* s = loadDataFileToSurface("SplashText/" + overlay + ".png");
+            SDL_Texture* t = SDL_CreateTextureFromSurface(splash.renderer, s);
+
+            SDL_Rect targetRect;
+            targetRect.x = 544;
+            targetRect.y = 546;
+            targetRect.w = 256;
+            targetRect.h = 54;
+
+            SDL_RenderCopy(splash.renderer, t, nullptr, &targetRect);
+
+            SDL_DestroyTexture(t);
+            SDL_FreeSurface(s);
+        }
+
+        SDL_RenderPresent(splash.renderer);
+    }
+
+    SplashWindow createSplashWindow() {
+        SplashWindow splash;
+        
+        int nRenderDrivers = SDL_GetNumRenderDrivers();
+
+        for (int i = 0; i < nRenderDrivers; i++) {
+            SDL_RendererInfo inf;
+            SDL_GetRenderDriverInfo(i, &inf);
+
+            logMsg("Render driver: %s", inf.name);
+        }
+
+        if (SDL_CreateWindowAndRenderer(800, 600, SDL_WINDOW_BORDERLESS | SDL_WINDOW_SKIP_TASKBAR, &splash.win, &splash.renderer) != 0)
+            fatalErr("Failed to create splash screen???");
+
+        SDL_RaiseWindow(splash.win);
+
+        splash.bgSurface = loadDataFileToSurface("splash.png");
+        splash.bgTexture = SDL_CreateTextureFromSurface(splash.renderer, splash.bgSurface);
+        setWindowIcon(splash.win);
+
+        return splash;
+    }
+
     JobSystem* g_jobSys;
     double simAccumulator = 0.0;
 
@@ -230,22 +310,7 @@ namespace worlds {
     std::unordered_map<entt::entity, physx::PxTransform> previousState;
     extern std::function<void(entt::registry&)> onSceneLoad;
 
-    void engine(char* argv0) {
-        ZoneScoped;
-        // Initialisation Stuffs
-        // =====================
-        setupSDL();
-        Console console;
-
-        fullscreenToggleEventId = SDL_RegisterEvents(1);
-
-        InputManager inputManager{ window };
-
-        // Ensure that we have a minimum of two workers, as one worker
-        // means that jobs can be missed
-        JobSystem jobSystem{ workerThreadOverride == -1 ? std::max(SDL_GetCPUCount(), 2) : workerThreadOverride };
-        g_jobSys = &jobSystem;
-
+    void setupPhysfs(char* argv0) {
         const char* dataFolder = "EEData";
         const char* dataSrcFolder = "EEDataSrc";
         const char* basePath = SDL_GetBasePath();
@@ -264,9 +329,34 @@ namespace worlds {
         logMsg("Mounting source %s", dataSrcStr.c_str());
         PHYSFS_mount(dataSrcStr.c_str(), "/source", 1);
         PHYSFS_setWriteDir(dataStr.c_str());
+    }
+
+    void engine(char* argv0) {
+        ZoneScoped;
+        // Initialisation Stuffs
+        // =====================
+        setupSDL();
+
+        auto splashWindow = createSplashWindow();
+        redrawSplashWindow(splashWindow, "");
+
+        setupPhysfs(argv0);
+        redrawSplashWindow(splashWindow, "starting up");
+
+        Console console;
+
+        fullscreenToggleEventId = SDL_RegisterEvents(1);
+
+        InputManager inputManager{ window };
+
+        // Ensure that we have a minimum of two workers, as one worker
+        // means that jobs can be missed
+        JobSystem jobSystem{ workerThreadOverride == -1 ? std::max(SDL_GetCPUCount(), 2) : workerThreadOverride };
+        g_jobSys = &jobSystem;
 
         currentScene.name = "";
 
+        redrawSplashWindow(splashWindow, "loading assetdb");
         g_assetDB.load();
 
         bool running = true;
@@ -285,7 +375,7 @@ namespace worlds {
             }
         }
 
-        setWindowIcon();
+        setWindowIcon(window);
 
         int frameCounter = 0;
 
@@ -296,6 +386,8 @@ namespace worlds {
         double lastUpdateTime = 0.0;
         bool renderInitSuccess = false;
 
+        redrawSplashWindow(splashWindow, "initialising ui");
+
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();
         ImGuiIO& io = ImGui::GetIO();
@@ -303,12 +395,30 @@ namespace worlds {
         io.IniFilename = runAsEditor ? "imgui_editor.ini" : "imgui.ini";
         // Disabling this for now as it seems to cause random freezes
         //io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;         // Enable Multi-Viewport / Platform Windows
+        io.Fonts->TexDesiredWidth = 512.f;
 
-        if (PHYSFS_exists("Fonts/EditorFont.ttf")) {
-            loadEditorFont();
-        } else {
-            SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION, "EditorFont doesn't exist.");
-        }
+        if (PHYSFS_exists("Fonts/EditorFont.ttf"))
+            ImGui::GetIO().Fonts->Clear();
+
+        addImGuiFont("Fonts/EditorFont.ttf", 18.0f);
+
+        static const ImWchar iconRanges[] = { ICON_MIN_FA, ICON_MAX_FA, 0 };
+        ImFontConfig iconConfig{};
+        iconConfig.MergeMode = true; 
+        iconConfig.PixelSnapH = true;
+        iconConfig.OversampleH = 1;
+
+        addImGuiFont("Fonts/" FONT_ICON_FILE_NAME_FAR, 18.0f, &iconConfig, iconRanges);
+        addImGuiFont("Fonts/" FONT_ICON_FILE_NAME_FAS, 18.0f, &iconConfig, iconRanges);
+
+        ImFontConfig iconConfig2{};
+        iconConfig2.MergeMode = true;
+        iconConfig2.PixelSnapH = false;
+
+        static const ImWchar iconRangesFAD[] = { ICON_MIN_FAD, ICON_MAX_FAD, 0 };
+
+        addImGuiFont("Fonts/" FONT_ICON_FILE_NAME_FAD, 18.0f, &iconConfig, iconRanges);
+
         ImGui_ImplSDL2_InitForVulkan(window);
 
         std::vector<std::string> additionalInstanceExts;
@@ -336,6 +446,8 @@ namespace worlds {
         }
 
         IVRInterface* vrInterface = &openvrInterface;
+
+        redrawSplashWindow(splashWindow, "initialising renderer");
 
         RendererInitInfo initInfo{ window, additionalInstanceExts, additionalDeviceExts, enableOpenVR, activeApi, vrInterface, runAsEditor, "Converge" };
         VKRenderer* renderer = new VKRenderer(initInfo, &renderInitSuccess);
@@ -386,6 +498,8 @@ namespace worlds {
         auto vkCtx = renderer->getVKCtx();
         VKImGUIUtil::createObjects(vkCtx);
 
+        redrawSplashWindow(splashWindow, "initialising editor");
+
         Editor editor(registry, interfaces);
 
         if (!runAsEditor)
@@ -397,6 +511,7 @@ namespace worlds {
         console.registerCommand(cmdToggleFullscreen, "toggleFullscreen", "Toggles fullscreen.", nullptr);
         console.registerCommand([&](void*, const char*) {
             runAsEditor = false;
+            pauseSim = false;
             evtHandler->onSceneStart(registry);
             registry.view<AudioSource>().each([](auto ent, auto& as) {
                 if (as.playOnSceneOpen) {
@@ -471,9 +586,12 @@ namespace worlds {
         screenRTTCI.useForPicking = false;
         screenRTTPass = renderer->createRTTPass(screenRTTCI);
 
-
+        redrawSplashWindow(splashWindow, "initialising audio");
         AudioSystem as;
         as.initialise(registry);
+
+        SDL_ShowWindow(window);
+        destroySplashWindow(splashWindow);
 
         while (running) {
             uint64_t now = SDL_GetPerformanceCounter();
@@ -527,7 +645,10 @@ namespace worlds {
                 ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
 
                 ImGui::Begin("Editor dockspace - you shouldn't be able to see this!", 0,
-                    ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_MenuBar);
+                    ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | 
+                    ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | 
+                    ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus | 
+                    ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_MenuBar);
                 ImGui::PopStyleVar(3);
 
                 ImGuiID dockspaceId = ImGui::GetID("EditorDockspace");
@@ -688,6 +809,8 @@ namespace worlds {
                     ImGui::Text("Frustum culled objects: %i", renderer->getDebugStats().numCulledObjs);
                     ImGui::Text("GPU memory usage: %.3fMB", (double)renderer->getDebugStats().vramUsage / 1024.0 / 1024.0);
                     ImGui::Text("Active RTT passes: %i", renderer->getDebugStats().numRTTPasses);
+
+                    ImGui::Text((const char*)(ICON_FAD_ADR u8" hello " ICON_FAD_ADSR u8" world " ICON_FAD_ARPDOWN ICON_FAD_SPEAKER ICON_FAD_STEREO));
                 }
                 ImGui::End();
 
@@ -745,7 +868,6 @@ namespace worlds {
             renderer->frame(cam, registry);
             jobSystem.completeFrameJobs();
             frameCounter++;
-
 
             inputManager.endFrame();
 

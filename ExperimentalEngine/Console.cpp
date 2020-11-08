@@ -104,7 +104,8 @@ namespace worlds {
 
     Console::Console()
         : show(false)
-        , logFileStream("converge.log") {
+        , logFileStream("converge.log")
+        , justOpened(false) {
         g_console = this;
         SDL_LogSetOutputFunction(logCallback, this);
         SDL_LogSetPriority(CONSOLE_RESPONSE_CATEGORY, SDL_LOG_PRIORITY_INFO);
@@ -120,21 +121,21 @@ namespace worlds {
 #endif
         }
 
-        if (firstLink != nullptr) {
-            ConvarLink* curr = firstLink;
+if (firstLink != nullptr) {
+    ConvarLink* curr = firstLink;
 
-            while (curr != nullptr) {
-                ConvarLink* next = curr->next;
-                std::string nameLower = curr->var->name;
-                for (auto& c : nameLower) {
-                    c = std::tolower(c);
-                }
-
-                conVars.insert({ nameLower, curr->var });
-                delete curr;
-                curr = next;
-            }
+    while (curr != nullptr) {
+        ConvarLink* next = curr->next;
+        std::string nameLower = curr->var->name;
+        for (auto& c : nameLower) {
+            c = std::tolower(c);
         }
+
+        conVars.insert({ nameLower, curr->var });
+        delete curr;
+        curr = next;
+    }
+}
     }
 
     void Console::registerCommand(CommandFuncPtr cmd, const char* name, const char* help, void* obj) {
@@ -183,20 +184,43 @@ namespace worlds {
         }
     }
 
+    int Console::inputTextCallback(ImGuiInputTextCallbackData* data) {
+        if (data->EventFlag == ImGuiInputTextFlags_CallbackHistory) {
+            if (g_console->previousCommands.size() == 0) return 0;
+
+            if (data->EventKey == ImGuiKey_UpArrow) {
+                g_console->historyPos--;
+            }
+
+            if (data->EventKey == ImGuiKey_DownArrow) {
+                g_console->historyPos++;
+            }
+
+            g_console->historyPos = std::clamp(g_console->historyPos, (size_t)0, g_console->previousCommands.size() - 1);
+
+            auto historyCmd = g_console->previousCommands[g_console->historyPos];
+            data->DeleteChars(0, data->BufTextLen);
+            data->InsertChars(0, historyCmd.c_str());
+        }
+        return 0;
+    }
+
     void Console::drawWindow() {
         if (ImGui::GetIO().KeysDownDuration[SDL_SCANCODE_GRAVE] == 0.0f) {
             show = !show;
-            //g_engine->getInputSystem().setMouseLockState(!show);
         }
 
-        if (!show)
+        if (!show) {
+            justOpened = true;
             return;
+        }
 
         static int lastMsgCount = 0;
         if (ImGui::Begin("Console", &show)) {
             if (ImGui::Button("Clear")) {
                 msgs.clear();
             }
+
             ImGui::BeginChild("ConsoleScroll", ImVec2(0, -ImGui::GetFrameHeightWithSpacing()));
 
             int currMsgIdx = 0;
@@ -218,18 +242,25 @@ namespace worlds {
 
             ImGui::EndChild();
 
-            bool executeCmd = ImGui::InputText("##command", &currentCommand, ImGuiInputTextFlags_EnterReturnsTrue);
+            if (justOpened)
+                ImGui::SetKeyboardFocusHere();
+            bool executeCmd = ImGui::InputText("##command", &currentCommand, ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_CallbackHistory, inputTextCallback);
+
             ImGui::SameLine();
             executeCmd |= ImGui::Button("Submit");
 
             if (executeCmd) {
                 executeCommandStr(currentCommand);
+                previousCommands.push_back(currentCommand);
                 currentCommand.clear();
+                historyPos = previousCommands.size();
             }
 
             ImGui::SetItemDefaultFocus();
         }
         ImGui::End();
+
+        justOpened = false;
     }
 
     void Console::setShowState(bool show) {

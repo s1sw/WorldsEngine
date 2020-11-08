@@ -16,7 +16,7 @@ namespace worlds {
         glm::vec3 normal;
         glm::vec3 tangent;
         glm::vec2 uv;
-        float pad;
+        glm::vec2 uv2;
     };
 
     struct ProceduralObject {
@@ -112,7 +112,7 @@ namespace worlds {
     };
 
     struct ModelMatrices {
-        glm::mat4 modelMatrices[512];
+        glm::mat4 modelMatrices[1024];
     };
 
     struct MaterialsUB {

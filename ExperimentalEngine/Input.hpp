@@ -17,9 +17,9 @@ public:
 	bool mouseButtonHeld(MouseButton button, bool ignoreImGui = false);
 	bool mouseButtonPressed(MouseButton button, bool ignoreImGui = false);
 	bool mouseButtonReleased(MouseButton button, bool ignoreImGui = false);
-	bool keyHeld(SDL_Scancode scancode);
-	bool keyPressed(SDL_Scancode scancode);
-	bool keyReleased(SDL_Scancode scancode);
+	bool keyHeld(SDL_Scancode scancode, bool ignoreImGui = false);
+	bool keyPressed(SDL_Scancode scancode, bool ignoreImGui = false);
+	bool keyReleased(SDL_Scancode scancode, bool ignoreImGui = false);
 	glm::ivec2 getMouseDelta();
 	glm::ivec2 getMousePosition();
 	void warpMouse(glm::ivec2 newPosition);

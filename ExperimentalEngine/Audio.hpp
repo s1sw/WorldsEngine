@@ -18,8 +18,8 @@ namespace worlds {
             clipId(clipId),
             volume(1.0f),
             isPlaying(false),
-            loop(false),
             playOnSceneOpen(true),
+            loop(false),
             spatialise(true),
             channel(MixerChannel::SFX) {
         }

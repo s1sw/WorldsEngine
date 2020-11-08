@@ -248,10 +248,12 @@
     <ClCompile Include="EntityEditor.cpp" />
     <ClCompile Include="EntityList.cpp" />
     <ClCompile Include="Fatal.cpp" />
+    <ClCompile Include="GameControls.cpp" />
     <ClCompile Include="GuiUtil.cpp" />
     <ClCompile Include="imgui.cpp" />
     <ClCompile Include="ImGuiRenderPass.cpp" />
     <ClCompile Include="ImGuizmo.cpp" />
+    <ClCompile Include="imgui_demo.cpp" />
     <ClCompile Include="imgui_draw.cpp" />
     <ClCompile Include="imgui_impl_sdl.cpp" />
     <ClCompile Include="imgui_impl_vulkan.cpp" />
@@ -275,6 +277,7 @@
     <ClCompile Include="SourceModelLoader.cpp" />
     <ClCompile Include="spirv_reflect.c" />
     <ClCompile Include="stb_vorbis.c" />
+    <ClCompile Include="StyleEditor.cpp" />
     <ClCompile Include="TextureLoader.cpp" />
     <ClCompile Include="tiny_obj_loader.cc" />
     <ClCompile Include="TonemapRenderPass.cpp" />
@@ -300,6 +303,8 @@
     <ClInclude Include="Frustum.hpp" />
     <ClInclude Include="GlmStreamOps.hpp" />
     <ClInclude Include="GuiUtil.hpp" />
+    <ClInclude Include="IconsFontaudio.h" />
+    <ClInclude Include="IconsFontAwesome5.h" />
     <ClInclude Include="IGameEventHandler.hpp" />
     <ClInclude Include="imconfig.h" />
     <ClInclude Include="imgui.h" />

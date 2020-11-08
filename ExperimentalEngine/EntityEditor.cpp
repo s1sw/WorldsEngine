@@ -3,6 +3,7 @@
 #include "ComponentMetadata.hpp"
 #include "Engine.hpp"
 #include "imgui_stdlib.h"
+#include "IconsFontAwesome5.h"
 
 namespace worlds {
     const std::unordered_map<LightType, const char*> lightTypeNames = {
@@ -12,7 +13,7 @@ namespace worlds {
     };
 
     void EntityEditor::draw(entt::registry& reg) {
-        if (ImGui::Begin("Selected entity")) {
+        if (ImGui::Begin(ICON_FA_CUBE u8" Selected entity")) {
             entt::entity selectedEnt = editor->getSelectedEntity();
 
             if (reg.valid(selectedEnt)) {

@@ -12,6 +12,7 @@ namespace worlds {
         vk::UniquePipeline pipeline;
         vk::UniquePipeline noBackfaceCullPipeline;
         vk::UniquePipeline depthPrePipeline;
+        vk::UniquePipeline alphaTestPipeline;
         vk::UniquePipelineLayout pipelineLayout;
         vk::UniqueDescriptorSetLayout dsl;
 

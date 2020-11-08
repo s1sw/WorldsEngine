@@ -22,6 +22,8 @@
 #include "EditorWindows.hpp"
 #include "CreateModelObject.hpp"
 #include "VKImGUIUtil.hpp"
+#include "IconsFontAwesome5.h"
+#include "IconsFontaudio.h"
 #undef near
 #undef far
 
@@ -68,7 +70,7 @@ namespace worlds {
 #define REGISTER_COMPONENT_TYPE(type, name, showInInspector, editFunc, createFunc, cloneFunc) ComponentMetadataManager::registerMetadata(entt::type_info<type>::id(), ComponentMetadata {name, showInInspector, entt::type_info<type>::id(), editFunc, createFunc, cloneFunc})
 
     void editTransform(entt::entity ent, entt::registry& reg) {
-        if (ImGui::CollapsingHeader("Transform")) {
+        if (ImGui::CollapsingHeader(ICON_FA_ARROWS_ALT u8" Transform")) {
             auto& selectedTransform = reg.get<Transform>(ent);
             ImGui::DragFloat3("Position", &selectedTransform.position.x);
 
@@ -83,7 +85,7 @@ namespace worlds {
     }
 
     void editWorldObject(entt::entity ent, entt::registry& reg) {
-        if (ImGui::CollapsingHeader("WorldObject")) {
+        if (ImGui::CollapsingHeader(ICON_FA_PENCIL_ALT u8" WorldObject")) {
             if (ImGui::Button("Remove##WO")) {
                 reg.remove<WorldObject>(ent);
             } else {
@@ -204,7 +206,7 @@ namespace worlds {
 
     void editPhysicsActor(entt::entity ent, entt::registry& reg) {
         auto& pa = reg.get<PhysicsActor>(ent);
-        if (ImGui::CollapsingHeader("Physics Actor")) {
+        if (ImGui::CollapsingHeader(ICON_FA_SHAPES u8" Physics Actor")) {
             if (ImGui::Button("Remove##PA")) {
                 reg.remove<PhysicsActor>(ent);
             } else {
@@ -220,7 +222,7 @@ namespace worlds {
 
     void editDynamicPhysicsActor(entt::entity ent, entt::registry& reg) {
         auto& pa = reg.get<DynamicPhysicsActor>(ent);
-        if (ImGui::CollapsingHeader("Dynamic Physics Actor")) {
+        if (ImGui::CollapsingHeader(ICON_FA_SHAPES u8" Dynamic Physics Actor")) {
             if (ImGui::Button("Remove##DPA")) {
                 reg.remove<DynamicPhysicsActor>(ent);
             } else {
@@ -282,7 +284,7 @@ namespace worlds {
     void editAudioSource(entt::entity ent, entt::registry& registry) {
         auto& as = registry.get<AudioSource>(ent);
 
-        if (ImGui::CollapsingHeader("Audio Source")) {
+        if (ImGui::CollapsingHeader(ICON_FAD_SPEAKER u8" Audio Source")) {
             ImGui::Checkbox("Loop", &as.loop);
             ImGui::Checkbox("Spatialise", &as.spatialise);
             ImGui::Checkbox("Play on scene open", &as.playOnSceneOpen);
@@ -342,9 +344,15 @@ namespace worlds {
 
         sceneViewDS = VKImGUIUtil::createDescriptorSetFor(interfaces.renderer->getSDRTarget(sceneViewPass), vkCtx);
 
-        editorWindows.push_back(std::make_unique<EntityList>(interfaces, this));
-        editorWindows.push_back(std::make_unique<Assets>(interfaces, this));
-        editorWindows.push_back(std::make_unique<EntityEditor>(interfaces, this));
+#define ADD_EDITOR_WINDOW(type) editorWindows.push_back(std::make_unique<type>(interfaces, this))
+
+        ADD_EDITOR_WINDOW(EntityList);
+        ADD_EDITOR_WINDOW(Assets);
+        ADD_EDITOR_WINDOW(EntityEditor);
+        ADD_EDITOR_WINDOW(GameControls);
+        ADD_EDITOR_WINDOW(StyleEditor);
+
+#undef ADD_EDITOR_WINDOW
     }
 
 #undef REGISTER_COMPONENT_TYPE
@@ -461,7 +469,19 @@ namespace worlds {
             // Mouse wrap around
             // If it leaves the screen, teleport it back on the screen but on the opposite side
             auto mousePos = inputManager.getMousePosition();
-            glm::ivec2 warpAmount(0, 0);
+            static glm::ivec2 warpAmount(0, 0);
+
+            if (!inputManager.mouseButtonPressed(MouseButton::Right)) {
+                lookX += (float)(inputManager.getMouseDelta().x - warpAmount.x) * 0.005f;
+                lookY += (float)(inputManager.getMouseDelta().y - warpAmount.y) * 0.005f;
+
+                lookY = glm::clamp(lookY, -glm::half_pi<float>() + 0.001f, glm::half_pi<float>() - 0.001f);
+
+                cam.rotation = glm::angleAxis(-lookX, glm::vec3(0.0f, 1.0f, 0.0f)) * glm::angleAxis(lookY, glm::vec3(1.0f, 0.0f, 0.0f));
+            }
+
+            warpAmount = glm::ivec2{ 0 };
+
 
             if (mousePos.x > windowSize.x) {
                 warpAmount = glm::ivec2(-windowSize.x, 0);
@@ -477,15 +497,6 @@ namespace worlds {
             } else if (mousePos.y < 0) {
                 warpAmount = glm::ivec2(0, windowSize.y);
                 inputManager.warpMouse(glm::ivec2(mousePos.x, mousePos.y + windowSize.y));
-            }
-
-            if (!inputManager.mouseButtonPressed(MouseButton::Right)) {
-                lookX += (float)(inputManager.getMouseDelta().x - warpAmount.x) * 0.005f;
-                lookY += (float)(inputManager.getMouseDelta().y - warpAmount.y) * 0.005f;
-
-                lookY = glm::clamp(lookY, -glm::half_pi<float>() + 0.001f, glm::half_pi<float>() - 0.001f);
-
-                cam.rotation = glm::angleAxis(-lookX, glm::vec3(0.0f, 1.0f, 0.0f)) * glm::angleAxis(lookY, glm::vec3(1.0f, 0.0f, 0.0f));
             }
         }
     }
@@ -523,9 +534,26 @@ namespace worlds {
         }
     }
 
+    bool ctrlHeld(InputManager& inputManager) {
+        return inputManager.keyHeld(SDL_SCANCODE_LCTRL, true) || inputManager.keyHeld(SDL_SCANCODE_RCTRL, true);
+    }
+
+    bool shiftHeld(InputManager& inputManager) {
+        return inputManager.keyHeld(SDL_SCANCODE_LSHIFT, true) || inputManager.keyHeld(SDL_SCANCODE_RSHIFT, true);
+    }
+
     void Editor::update(float deltaTime) {
         interfaces.renderer->setRTTPassActive(sceneViewPass, active);
-        if (!active) return;
+
+        if (!active) {
+            if (inputManager.keyPressed(SDL_SCANCODE_P, true) && ctrlHeld(inputManager)) 
+                g_console->executeCommandStr("reloadAndEdit");
+
+            if (inputManager.keyPressed(SDL_SCANCODE_P, true) && ctrlHeld(inputManager) && shiftHeld(inputManager))
+                g_console->executeCommandStr("pauseAndEdit");
+            return;
+        }
+
         if (currentTool == Tool::None && reg.valid(currentSelectedEntity)) {
             // Right mouse button means that the view's being moved, so we'll ignore any tools
             // and assume the user's trying to move the camera
@@ -541,7 +569,7 @@ namespace worlds {
         } else {
             // Complex axis juggling
 
-            if (inputManager.keyHeld(SDL_SCANCODE_LSHIFT) || inputManager.keyHeld(SDL_SCANCODE_RSHIFT)) {
+            if (shiftHeld) {
                 if (inputManager.keyPressed(SDL_SCANCODE_X)) {
                     currentAxisLock = AxisFlagBits::Y | AxisFlagBits::Z;
                 } else if (inputManager.keyPressed(SDL_SCANCODE_Y)) {
@@ -576,7 +604,7 @@ namespace worlds {
             ImGui::EndMainMenuBar();
         }
 
-        if (ImGui::Begin("Editor")) {
+        if (ImGui::Begin(ICON_FA_EDIT u8" Editor")) {
             char buf[6];
             char* curr = buf;
 
@@ -609,7 +637,7 @@ namespace worlds {
         updateCamera(deltaTime);
 
         static ImVec2 currentSceneViewSize = ImVec2(0.0f, 0.0f);
-        if (ImGui::Begin("Scene")) {
+        if (ImGui::Begin(ICON_FA_MAP u8" Scene")) {
             ImVec2 contentRegion = ImGui::GetContentRegionAvail();
 
             if (contentRegion.x != currentSceneViewSize.x || contentRegion.y != currentSceneViewSize.y) {
@@ -630,27 +658,13 @@ namespace worlds {
 
                 sceneViewDS = VKImGUIUtil::createDescriptorSetFor(interfaces.renderer->getSDRTarget(sceneViewPass), vkCtx);
             }
+            auto wSize = ImGui::GetContentRegionAvail();
+
             ImGui::Image((ImTextureID)sceneViewDS, ImVec2(currentSceneViewSize.x, currentSceneViewSize.y));
 
             auto wPos = ImGui::GetWindowPos() + ImGui::GetCursorStartPos();
-            auto wSize = ImGui::GetWindowSize();
             auto mPos = ImGui::GetIO().MousePos;
             auto localMPos = mPos - wPos;
-
-            if (ImGui::IsWindowHovered()) {
-
-                if (inputManager.mouseButtonPressed(MouseButton::Left, true)) {
-                    interfaces.renderer->requestEntityPick((int)localMPos.x, (int)localMPos.y);
-                }
-
-                entt::entity picked;
-                if (interfaces.renderer->getPickedEnt(&picked)) {
-                    if ((uint32_t)picked == UINT32_MAX)
-                        picked = entt::null;
-
-                    select(picked);
-                }
-            }
 
             if (currentTool != Tool::None) {
                 auto& selectedTransform = reg.get<Transform>(currentSelectedEntity);
@@ -707,12 +721,12 @@ namespace worlds {
 
                     glm::vec3 dif = (cam.position + dir * t) - originalObjectTransform.position;
 
-                    if (inputManager.keyHeld(SDL_SCANCODE_LCTRL) && !settings.objectSnapGlobal)
+                    if (ctrlHeld(inputManager) && !settings.objectSnapGlobal)
                         dif = glm::round(dif);
 
                     selectedTransform.position = originalObjectTransform.position + filterAxes(dif, currentAxisLock);
 
-                    if (inputManager.keyHeld(SDL_SCANCODE_LCTRL) && settings.objectSnapGlobal)
+                    if (ctrlHeld(inputManager) && settings.objectSnapGlobal)
                         selectedTransform.position = glm::round(selectedTransform.position);
 
                     glm::mat4 vp = cam.getProjectionMatrix((float)wSize.x / wSize.y) * cam.getViewMatrix();
@@ -785,7 +799,7 @@ namespace worlds {
                     }
 
                     // Snap to increments of 0.1
-                    if (inputManager.keyHeld(SDL_SCANCODE_LCTRL)) {
+                    if (ctrlHeld(inputManager)) {
                         scaleFac = glm::round(scaleFac / settings.scaleSnapIncrement) * settings.scaleSnapIncrement;
                     }
 
@@ -819,14 +833,29 @@ namespace worlds {
                     ImGuizmo::Enable(true);
                     ImGuizmo::SetRect(wPos.x, wPos.y, (float)wSize.x, (float)wSize.y);
                     ImGuizmo::SetDrawlist();
-                    glm::mat4 view = cam.getViewMatrix();
-                    glm::mat4 proj = cam.getProjectionMatrix((float)wSize.x / (float)wSize.y);
 
-                    //reg.view<Transform>().each([&](auto ent, Transform& tf) {
+                    glm::mat4 view = cam.getViewMatrix();
+                    // We have to explicitly get the non-reversed Z matrix here otherwise ImGuizmo freaks out.
+                    glm::mat4 proj = cam.getProjectionMatrixZO((float)wSize.x / (float)wSize.y);
+
                     glm::mat4 tfMtx = selectedTransform.getMatrix();
-                    //auto tfMtx = tf.getMatrix();
-                    float snap = inputManager.keyHeld(SDL_SCANCODE_LCTRL) ? 15.0f : 0.0f;
-                    ImGuizmo::Manipulate(glm::value_ptr(view), glm::value_ptr(proj), toolToOp(lastActiveTool), ImGuizmo::MODE::WORLD, glm::value_ptr(tfMtx));
+                    glm::vec3 snap{ 0.0f };
+
+                    if (inputManager.keyHeld(SDL_SCANCODE_LCTRL, true)) {
+                        switch (lastActiveTool) {
+                        case Tool::Scale:
+                            snap = glm::vec3{ settings.scaleSnapIncrement };
+                            break;
+                        case Tool::Translate:
+                            snap = glm::vec3{ 1.0f };
+                            break;
+                        case Tool::Rotate:
+                            snap = glm::vec3{ 15.0f };
+                            break;
+                        }
+                    }
+
+                    ImGuizmo::Manipulate(glm::value_ptr(view), glm::value_ptr(proj), toolToOp(lastActiveTool), ImGuizmo::MODE::WORLD, glm::value_ptr(tfMtx), nullptr, glm::value_ptr(snap));
                     glm::vec3 scale;
                     glm::quat rotation;
                     glm::vec3 translation;
@@ -836,14 +865,11 @@ namespace worlds {
                     selectedTransform.position = translation;
                     selectedTransform.rotation = rotation;
                     selectedTransform.scale = scale;
-                    //});
-
-
                 }
 
-                if (inputManager.keyHeld(SDL_SCANCODE_LSHIFT) &&
+                if (shiftHeld(inputManager) &&
                     inputManager.keyPressed(SDL_SCANCODE_D) &&
-                    !inputManager.mouseButtonHeld(MouseButton::Right)) {
+                    !inputManager.mouseButtonHeld(MouseButton::Right, true)) {
                     auto newEnt = reg.create();
 
                     copyComponent<Transform>(currentSelectedEntity, newEnt, reg);
@@ -869,6 +895,20 @@ namespace worlds {
                     reg.destroy(currentSelectedEntity);
                 }
             }
+
+            if (ImGui::IsWindowHovered() && !ImGuizmo::IsOver()) {
+                if (inputManager.mouseButtonPressed(MouseButton::Left, true)) {
+                    interfaces.renderer->requestEntityPick((int)localMPos.x, (int)localMPos.y);
+                }
+
+                entt::entity picked;
+                if (interfaces.renderer->getPickedEnt(&picked)) {
+                    if ((uint32_t)picked == UINT32_MAX)
+                        picked = entt::null;
+
+                    select(picked);
+                }
+            }
         }
         ImGui::End();
 
@@ -878,7 +918,7 @@ namespace worlds {
             }
         }
 
-        if (inputManager.keyPressed(SDL_SCANCODE_S) && inputManager.keyHeld(SDL_SCANCODE_LCTRL)) {
+        if (inputManager.keyPressed(SDL_SCANCODE_S) && ctrlHeld(inputManager)) {
             ImGui::OpenPopup("Save Scene");
         }
 
@@ -893,7 +933,7 @@ namespace worlds {
             });
 
 
-        if (inputManager.keyPressed(SDL_SCANCODE_O) && inputManager.keyHeld(SDL_SCANCODE_LCTRL)) {
+        if (inputManager.keyPressed(SDL_SCANCODE_O) && ctrlHeld(inputManager)) {
             ImGui::OpenPopup("Open Scene");
         }
 
@@ -902,21 +942,22 @@ namespace worlds {
             loadScene(g_assetDB.addOrGetExisting(path), reg);
             });
 
-        if (inputManager.keyPressed(SDL_SCANCODE_I) && inputManager.keyHeld(SDL_SCANCODE_LCTRL) && inputManager.keyHeld(SDL_SCANCODE_LSHIFT)) {
+        if (inputManager.keyPressed(SDL_SCANCODE_I, true) && 
+            ctrlHeld(inputManager) && 
+            shiftHeld(inputManager)) {
             imguiMetricsOpen = !imguiMetricsOpen;
+        }
+
+        if (inputManager.keyPressed(SDL_SCANCODE_P, true) && ctrlHeld(inputManager)) {
+            pauseSim = false;
+            g_console->executeCommandStr("play");
+        }
+
+        if (inputManager.keyPressed(SDL_SCANCODE_P, true) && ctrlHeld(inputManager) && shiftHeld(inputManager)) {
+            g_console->executeCommandStr("unpause");
         }
 
         if (imguiMetricsOpen)
             ImGui::ShowMetricsWindow(&imguiMetricsOpen);
-
-        if (ImGui::Button("Save AssetDB")) {
-            g_assetDB.save();
-        }
-
-        if (ImGui::Button("Create Cube")) {
-            AssetID cubeId = g_assetDB.addOrGetExisting("model.obj");
-
-            createModelObject(reg, glm::vec3(0.0f), glm::quat(), cubeId, g_assetDB.addOrGetExisting("Materials/dev.json"), glm::vec3(1.0f));
-        }
     }
 }

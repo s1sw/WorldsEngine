@@ -165,6 +165,15 @@
     <ClCompile Include="EntityEditor.cpp">
       <Filter>Source Files\EditorWindows</Filter>
     </ClCompile>
+    <ClCompile Include="GameControls.cpp">
+      <Filter>Source Files\EditorWindows</Filter>
+    </ClCompile>
+    <ClCompile Include="StyleEditor.cpp">
+      <Filter>Source Files\EditorWindows</Filter>
+    </ClCompile>
+    <ClCompile Include="imgui_demo.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="JobSystem.hpp">
@@ -336,6 +345,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="CreateModelObject.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="IconsFontAwesome5.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="IconsFontaudio.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -4,6 +4,7 @@
 #include <iostream>
 #include "Render.hpp"
 #include <filesystem>
+#include "tracy/Tracy.hpp"
 
 namespace worlds {
     typedef unsigned char byte;
@@ -523,6 +524,7 @@ namespace worlds {
     }
 
     void loadSourceModel(AssetID mdlId, AssetID vtxId, AssetID vvdId, std::vector<Vertex>& vertices, std::vector<uint32_t>& indices, LoadedMeshData& lmd) {
+        ZoneScoped;
         lmd.numSubmeshes = 0;
         PHYSFS_File* mdlFile = g_assetDB.openAssetFileRead(mdlId);
 

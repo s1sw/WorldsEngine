@@ -896,8 +896,6 @@ namespace vku {
             pipelineInfo.pDynamicState = dynamicState_.empty() ? nullptr : &dynState;
             pipelineInfo.subpass = subpass_;
 
-            logMsg("created pipeline");
-
             return device.createGraphicsPipelineUnique(pipelineCache, pipelineInfo);
         }
 

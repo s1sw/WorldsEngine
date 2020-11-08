@@ -1,10 +1,11 @@
 #include "EditorWindows.hpp"
 #include "imgui.h"
 #include "NameComponent.hpp"
+#include "IconsFontAwesome5.h"
 
 namespace worlds {
     void EntityList::draw(entt::registry& reg) {
-        if (ImGui::Begin("Entity List", &active)) {
+        if (ImGui::Begin(ICON_FA_LIST u8" Entity List", &active)) {
             if (ImGui::IsWindowHovered() && ImGui::GetIO().MouseClicked[1]) {
                 ImGui::OpenPopup("AddEntity");
             }

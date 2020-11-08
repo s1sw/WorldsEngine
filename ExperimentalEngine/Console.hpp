@@ -6,6 +6,8 @@
 #include <fstream>
 #include <functional>
 
+struct ImGuiInputTextCallbackData;
+
 namespace worlds {
     class Console;
     extern Console* g_console;
@@ -14,12 +16,14 @@ namespace worlds {
     public:
         ConVar(const char* name, const char* defaultValue, const char* help = nullptr);
         ~ConVar();
-        float getFloat() const { return parsedFloat;  }
-        int getInt() const { return parsedInt;  }
+        float getFloat() const { return parsedFloat; }
+        int getInt() const { return parsedInt; }
         const char* getString() const { return value.c_str(); }
         const char* getName() const { return name; }
         const char* getHelp() const { return help; }
         void setValue(std::string newValue);
+        operator float() const { return getFloat(); }
+        operator int() const { return getInt(); }
     private:
         const char* help;
         const char* name;
@@ -42,6 +46,7 @@ namespace worlds {
         ~Console();
     private:
         bool show;
+        bool justOpened;
         struct Command {
             CommandFuncPtr func;
             const char* name;
@@ -55,11 +60,15 @@ namespace worlds {
             int category;
         };
 
+        size_t historyPos;
         std::string currentCommand;
         std::vector<ConsoleMsg> msgs;
+        std::vector<std::string> previousCommands;
         std::unordered_map<std::string, ConVar*> conVars;
         std::unordered_map<std::string, Command> commands;
         std::ofstream logFileStream;
+
+        static int inputTextCallback(ImGuiInputTextCallbackData* data);
         static void logCallback(void* con, int category, SDL_LogPriority priority, const char* msg);
         static void cmdHelp(void* con, const char* argString);
         static void cmdExec(void* con, const char* argString);

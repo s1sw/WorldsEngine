@@ -27,6 +27,11 @@ struct Camera {
 		return reverseZInfPerspective(verticalFOV, aspect, near);
 	}
 
+	// returns the non-reverse Z projection matrix
+	glm::mat4 getProjectionMatrixZO(float aspect) {
+		return glm::infinitePerspective(verticalFOV, aspect, near);
+	}
+
 private:
 	glm::mat4 reverseZInfPerspective(float verticalFOV, float aspect, float zNear) {
 		float f = 1.0f / tan(verticalFOV / 2.0f);

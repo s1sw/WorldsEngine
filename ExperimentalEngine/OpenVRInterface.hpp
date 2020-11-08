@@ -121,7 +121,6 @@ namespace worlds {
         void ComposeProjection(float fLeft, float fRight, float fTop, float fBottom, float zNear, float zFar, glm::mat4& p) {
             float idx = 1.0f / (fRight - fLeft);
             float idy = 1.0f / (fBottom - fTop);
-            float idz = 1.0f / (zFar - zNear);
             float sx = fRight + fLeft;
             float sy = fBottom + fTop;
 
@@ -138,15 +137,7 @@ namespace worlds {
             glm::mat4 m;
 
             ComposeProjection(left, right, top, bottom, near, far, m);
-
-            glm::mat4 reverseZ{
-                glm::vec4 {1.0f, 0.0f, 0.0f, 0.0f},
-                glm::vec4 {1.0f, 0.0f, 0.0f, 0.0f},
-                glm::vec4 {1.0f, 0.0f, 0.0f, 0.0f},
-                glm::vec4 {1.0f, 0.0f, 0.0f, 0.0f},
-            };
             return m;
-            //return toMat4(system->GetProjectionMatrix(eye, near, far));
         }
 
         void updateInput() override {

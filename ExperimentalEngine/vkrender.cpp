@@ -470,8 +470,17 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     matSlots = std::make_unique<MaterialSlots>(vkCtx, *texSlots);
     cubemapSlots = std::make_unique<CubemapSlots>(vkCtx);
 
-    vk::ImageCreateInfo brdfLutIci{ vk::ImageCreateFlags{}, vk::ImageType::e2D, vk::Format::eR16G16Sfloat, vk::Extent3D{256,256,1}, 1, 1, vk::SampleCountFlagBits::e1, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eSampled,
-        vk::SharingMode::eExclusive, graphicsQueueFamilyIdx };
+    vk::ImageCreateInfo brdfLutIci { 
+        vk::ImageCreateFlags{}, 
+        vk::ImageType::e2D, 
+        vk::Format::eR16G16Sfloat, 
+        vk::Extent3D{256,256,1}, 1, 1, 
+        vk::SampleCountFlagBits::e1, 
+        vk::ImageTiling::eOptimal, 
+        vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eSampled,
+        vk::SharingMode::eExclusive, graphicsQueueFamilyIdx 
+    };
+
     brdfLut = vku::GenericImage{ *device, allocator, brdfLutIci, vk::ImageViewType::e2D, vk::ImageAspectFlagBits::eColor, false, "BRDF LUT" };
 
     cubemapConvoluter = std::make_unique<CubemapConvoluter>(vkCtx);
@@ -564,7 +573,28 @@ void VKRenderer::createSCDependents() {
         rtResources.erase(finalPrePresentR);
     }
 
-    PassSetupCtx psc{ physicalDevice, *device, *pipelineCache, *descriptorPool, *commandPool, *instance, allocator, graphicsQueueFamilyIdx, GraphicsSettings{numMSAASamples, (int32_t)shadowmapRes, enableVR}, &texSlots, &cubemapSlots, &matSlots, rtResources, (int)swapchain->images.size(), enableVR, &brdfLut };
+    PassSetupCtx psc{ 
+        physicalDevice, 
+        *device, 
+        *pipelineCache, 
+        *descriptorPool, 
+        *commandPool, 
+        *instance, 
+        allocator, 
+        graphicsQueueFamilyIdx, 
+        GraphicsSettings { 
+            numMSAASamples, 
+            (int32_t)shadowmapRes, 
+            enableVR
+        }, 
+        &texSlots, 
+        &cubemapSlots, 
+        &matSlots, 
+        rtResources, 
+        (int)swapchain->images.size(), 
+        enableVR, 
+        &brdfLut 
+    };
 
     if (irp == nullptr) {
         irp = new ImGuiRenderPass(*swapchain);
@@ -572,9 +602,7 @@ void VKRenderer::createSCDependents() {
     }
 
     createFramebuffers();
-
     irp->handleResize(psc, finalPrePresent);
-
 
     vk::ImageCreateInfo ici;
     ici.imageType = vk::ImageType::e2D;
@@ -584,12 +612,17 @@ void VKRenderer::createSCDependents() {
     ici.initialLayout = vk::ImageLayout::eUndefined;
     ici.format = vk::Format::eR8G8B8A8Unorm;
     ici.samples = vk::SampleCountFlagBits::e1;
-    ici.usage = vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eStorage;
+    ici.usage = vk::ImageUsageFlagBits::eColorAttachment | 
+                vk::ImageUsageFlagBits::eSampled | 
+                vk::ImageUsageFlagBits::eStorage;
 
     RTResourceCreateInfo imguiImageCreateInfo{ ici, vk::ImageViewType::e2D, vk::ImageAspectFlagBits::eColor };
     imguiImage = createRTResource(imguiImageCreateInfo, "ImGui Image");
 
-    ici.usage = vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eTransferSrc;
+    ici.usage = vk::ImageUsageFlagBits::eColorAttachment | 
+                vk::ImageUsageFlagBits::eSampled | 
+                vk::ImageUsageFlagBits::eStorage | 
+                vk::ImageUsageFlagBits::eTransferSrc;
 
     RTResourceCreateInfo finalPrePresentCI{ ici, vk::ImageViewType::e2D, vk::ImageAspectFlagBits::eColor };
 
@@ -613,18 +646,6 @@ void VKRenderer::createSCDependents() {
     if (screenPass != ~0u) {
         destroyRTTPass(screenPass);
     }
-
-    /*if (mainPass != ~0u)
-        destroyRTTPass(mainPass);
-
-    RTTPassCreateInfo rttpci;
-    rttpci.enableShadows = true;
-    rttpci.width = renderWidth;
-    rttpci.height = renderHeight;
-    rttpci.isVr = enableVR;
-    rttpci.outputToScreen = true;
-    rttpci.useForPicking = enablePicking;
-    mainPass = createRTTPass(rttpci);*/
 }
 
 void VKRenderer::recreateSwapchain() {
@@ -633,6 +654,12 @@ void VKRenderer::recreateSwapchain() {
 
     // Check width/height - if it's 0, just ignore it
     auto surfaceCaps = this->physicalDevice.getSurfaceCapabilitiesKHR(this->surface);
+
+    if (surfaceCaps.currentExtent.width == 0 || surfaceCaps.currentExtent.height == 0) {
+        logMsg(WELogCategoryRender, "Ignoring resize with 0 width or height");
+        return;
+    }
+
     logMsg(WELogCategoryRender, "Recreating swapchain: New surface size is %ix%i",
         surfaceCaps.currentExtent.width, surfaceCaps.currentExtent.height);
 
@@ -732,6 +759,7 @@ void VKRenderer::imageBarrier(vk::CommandBuffer& cb, ImageBarrier& ib) {
 }
 
 vku::ShaderModule VKRenderer::loadShaderAsset(AssetID id) {
+    ZoneScoped;
     PHYSFS_File* file = g_assetDB.openAssetFileRead(id);
     size_t size = PHYSFS_fileLength(file);
     void* buffer = std::malloc(size);
@@ -749,6 +777,7 @@ uint32_t nextImageIdx = 0;
 bool firstFrame = true;
 
 void VKRenderer::acquireSwapchainImage(uint32_t* imageIdx) {
+    ZoneScoped;
     vk::Result nextImageRes = swapchain->acquireImage(*device, *imageAcquire, imageIdx);
 
     if ((nextImageRes == vk::Result::eSuboptimalKHR || nextImageRes == vk::Result::eErrorOutOfDateKHR) && width != 0 && height != 0) {
@@ -793,6 +822,7 @@ void VKRenderer::submitToOpenVR() {
 }
 
 void VKRenderer::uploadSceneAssets(entt::registry& reg, RenderCtx& rCtx) {
+    ZoneScoped;
     // Upload any necessary materials + meshes
     reg.view<WorldObject>().each([this, &rCtx](auto ent, WorldObject& wo) {
         for (int i = 0; i < NUM_SUBMESH_MATS; i++) {
@@ -820,6 +850,7 @@ void VKRenderer::uploadSceneAssets(entt::registry& reg, RenderCtx& rCtx) {
 bool lowLatencyLast = false;
 
 void VKRenderer::writeCmdBuf(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageIndex, Camera& cam, entt::registry& reg) {
+    ZoneScoped;
     std::unordered_map<RenderImageHandle, vk::ImageAspectFlagBits> rtAspects;
 
     for (auto& pair : rtResources) {
@@ -1118,6 +1149,7 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
 }
 
 void VKRenderer::preloadMesh(AssetID id) {
+    ZoneScoped;
     std::vector<Vertex> vertices;
     std::vector<uint32_t> indices;
 

@@ -24,7 +24,7 @@ namespace worlds {
     }
 
     struct PhysicsShape {
-        PhysicsShape() : material(nullptr), pos(0.0f), rot(1.0f, 0.0f, 0.0f, 0.0f) {}
+        PhysicsShape() : pos(0.0f), rot(1.0f, 0.0f, 0.0f, 0.0f), material(nullptr) {}
         PhysicsShapeType type;
         union {
             struct {

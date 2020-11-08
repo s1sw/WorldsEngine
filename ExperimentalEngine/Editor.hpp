@@ -67,6 +67,7 @@ namespace worlds {
         virtual void setActive(bool active) { this->active = active; }
         virtual void draw(entt::registry& reg) = 0;
         virtual const char* getName() = 0;
+        virtual ~EditorWindow() {};
     protected:
         EngineInterfaces interfaces;
         Editor* editor;

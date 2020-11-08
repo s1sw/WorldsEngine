@@ -3,6 +3,8 @@
 #include <filesystem>
 #include "SourceModelLoader.hpp"
 #include "CreateModelObject.hpp"
+#include "Console.hpp"
+#include "IconsFontAwesome5.h"
 
 namespace worlds {
     void Assets::draw(entt::registry& reg) {
@@ -12,7 +14,9 @@ namespace worlds {
         };
 
         static std::string currentDir = "";
-        if (ImGui::Begin("Assets", &active)) {
+
+        static ConVar showExts{"editor_assetExtDbg", "0", "Shows parsed file extensions in brackets."};
+        if (ImGui::Begin(ICON_FA_FOLDER u8" Assets", &active)) {
             EnumerateCallbackArgs enumCallbackArgs{
                 reg,
                 currentDir
@@ -73,7 +77,11 @@ namespace worlds {
                             }
                         }
                     } else {
-                        ImGui::Text("%s (%s)", fName, g_assetDB.getAssetExtension(id).c_str());
+
+                        if ((int)showExts)
+                            ImGui::Text("%s (%s)", fName, g_assetDB.getAssetExtension(id).c_str());
+                        else
+                            ImGui::Text("%s", fName);
                     }
                 }
                 return PHYSFS_ENUM_OK;

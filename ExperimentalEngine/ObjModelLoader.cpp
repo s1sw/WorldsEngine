@@ -3,6 +3,7 @@
 #include "tiny_obj_loader.h"
 #include "weldmesh.h"
 #include "Render.hpp"
+#include "tracy/Tracy.hpp"
 
 namespace worlds {
     struct TangentCalcCtx {
@@ -69,6 +70,7 @@ namespace worlds {
     }
 
     void loadObj(std::vector<Vertex>& vertices, std::vector<uint32_t>& indices, std::istream& stream, LoadedMeshData& lmd) {
+        ZoneScoped;
         indices.clear();
         vertices.clear();
         tinyobj::attrib_t attrib;

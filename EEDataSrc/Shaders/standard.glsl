@@ -4,7 +4,9 @@
 #define PI 3.1415926535
 
 #ifdef FRAGMENT
+#ifdef EFT
 layout(early_fragment_tests) in;
+#endif
 layout(location = 0) out vec4 FragColor;
 
 layout(location = 0) in vec4 inWorldPos;
@@ -83,7 +85,7 @@ layout(std140, binding = 2) uniform MaterialSettingsBuffer {
 };
 
 layout(std140, binding = 3) uniform ModelMatrices {
-	mat4 modelMatrices[512];
+	mat4 modelMatrices[1024];
 };
 
 layout (binding = 4) uniform sampler2D tex2dSampler[];
@@ -275,15 +277,13 @@ vec3 getNormalMapNormal(Material mat, vec2 tCoord, mat3 tbn) {
     return normalize(tbn * texNorm);
 }
 
-
 vec2 pm(vec2 texCoords, vec3 viewDir, Material mat) { 
     float height = texture(tex2dSampler[mat.heightmapIdx], texCoords).r;    
     vec2 p = viewDir.xy / viewDir.z * (height * mat.heightScale);
     return texCoords - p;    
 }
 
-vec2 pom(vec2 texCoords, vec3 viewDir, Material mat)
-{ 
+vec2 pom(vec2 texCoords, vec3 viewDir, Material mat) { 
     // number of depth layers
     const float minLayers = 8;
     const float maxLayers = 32;
@@ -395,6 +395,9 @@ void main() {
 
     if (mat.alphaCutoff > 0.0f) {
         albedoCol.a = (albedoCol.a - mat.alphaCutoff) / max(fwidth(albedoCol.a), 0.0001) + 0.5;
+
+        if (albedoCol.a <= 0.9f)
+            discard;
     }
 
 	FragColor = vec4(lo + calcAmbient(f0, roughness, viewDir, metallic, albedoCol.xyz, normal), mat.alphaCutoff > 0.0f ? albedoCol.a : 1.0f);

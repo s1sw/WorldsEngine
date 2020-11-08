@@ -7,6 +7,7 @@ namespace worlds {
         EntityList(EngineInterfaces interfaces, Editor* editor) : EditorWindow(interfaces, editor) {}
         void draw(entt::registry& reg) override;
         const char* getName() override { return "EntityList"; }
+        ~EntityList() {}
     };
 
     class Assets : public EditorWindow {
@@ -14,6 +15,7 @@ namespace worlds {
         Assets(EngineInterfaces interfaces, Editor* editor) : EditorWindow(interfaces, editor) {}
         void draw(entt::registry& reg) override;
         const char* getName() override { return "Assets"; }
+        ~Assets() {}
     };
 
     class EntityEditor : public EditorWindow {
@@ -21,5 +23,22 @@ namespace worlds {
         EntityEditor(EngineInterfaces interfaces, Editor* editor) : EditorWindow(interfaces, editor) {}
         void draw(entt::registry& reg) override;
         const char* getName() override { return "EntityEditor"; }
+        ~EntityEditor() {}
+    };
+
+    class GameControls : public EditorWindow {
+    public:
+        GameControls(EngineInterfaces interfaces, Editor* editor) : EditorWindow(interfaces, editor) {}
+        void draw(entt::registry& reg) override;
+        const char* getName() override { return "GameControls"; }
+        ~GameControls() {}
+    };
+
+    class StyleEditor : public EditorWindow {
+    public:
+        StyleEditor(EngineInterfaces interfaces, Editor* editor) : EditorWindow(interfaces, editor) { active = false; }
+        void draw(entt::registry& reg) override;
+        const char* getName() override { return "StyleEditor"; }
+        ~StyleEditor() {}
     };
 }

@@ -36,18 +36,18 @@ bool InputManager::mouseButtonReleased(MouseButton button, bool ignoreImGui) {
 	return ((mouseButtonFlags & uButton) != uButton) && ((lastMouseButtonFlags & uButton) == uButton);
 }
 
-bool InputManager::keyHeld(SDL_Scancode scancode) {
-	if (ImGui::GetIO().WantCaptureKeyboard) return false;
+bool InputManager::keyHeld(SDL_Scancode scancode, bool ignoreImGui) {
+	if (ImGui::GetIO().WantCaptureKeyboard && !ignoreImGui) return false;
 	return keyState[scancode];
 }
 
-bool InputManager::keyPressed(SDL_Scancode scancode) {
-	if (ImGui::GetIO().WantCaptureKeyboard) return false;
+bool InputManager::keyPressed(SDL_Scancode scancode, bool ignoreImGui) {
+	if (ImGui::GetIO().WantCaptureKeyboard && !ignoreImGui) return false;
 	return keyState[scancode] && !lastKeyState[scancode];
 }
 
-bool InputManager::keyReleased(SDL_Scancode scancode) {
-	if (ImGui::GetIO().WantCaptureKeyboard) return false;
+bool InputManager::keyReleased(SDL_Scancode scancode, bool ignoreImGui) {
+	if (ImGui::GetIO().WantCaptureKeyboard && !ignoreImGui) return false;
 	return !keyState[scancode] && lastKeyState[scancode];
 }
 
