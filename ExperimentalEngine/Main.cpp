@@ -108,10 +108,10 @@ namespace worlds {
     }
 
     SDL_Window* createSDLWindow() {
-        return SDL_CreateWindow("Converge", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1600, 900, 
-            SDL_WINDOW_VULKAN | 
-            SDL_WINDOW_RESIZABLE | 
-            SDL_WINDOW_ALLOW_HIGHDPI | 
+        return SDL_CreateWindow("Converge", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1600, 900,
+            SDL_WINDOW_VULKAN |
+            SDL_WINDOW_RESIZABLE |
+            SDL_WINDOW_ALLOW_HIGHDPI |
             SDL_WINDOW_HIDDEN);
     }
 
@@ -281,18 +281,37 @@ namespace worlds {
 
     SplashWindow createSplashWindow() {
         SplashWindow splash;
-        
+
         int nRenderDrivers = SDL_GetNumRenderDrivers();
+        int driverIdx = -1;
 
         for (int i = 0; i < nRenderDrivers; i++) {
             SDL_RendererInfo inf;
             SDL_GetRenderDriverInfo(i, &inf);
 
             logMsg("Render driver: %s", inf.name);
+
+#ifdef _WIN32
+            if (strcmp(inf.name, "direct3d11") == 0)
+                driverIdx = i;
+#endif
         }
 
-        if (SDL_CreateWindowAndRenderer(800, 600, SDL_WINDOW_BORDERLESS | SDL_WINDOW_SKIP_TASKBAR, &splash.win, &splash.renderer) != 0)
-            fatalErr("Failed to create splash screen???");
+        splash.win = SDL_CreateWindow("Loading...", 
+            SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 
+            800, 600, 
+            SDL_WINDOW_BORDERLESS | SDL_WINDOW_SKIP_TASKBAR
+        );
+
+        if (splash.win == nullptr) {
+            fatalErr("Failed to create splash screen");
+        }
+
+        splash.renderer = SDL_CreateRenderer(splash.win, driverIdx, SDL_RENDERER_ACCELERATED);
+
+        if (splash.renderer == nullptr) {
+            fatalErr("Failed to create splash screen renderer");
+        }
 
         SDL_RaiseWindow(splash.win);
 
@@ -337,13 +356,13 @@ namespace worlds {
         // =====================
         setupSDL();
 
+        Console console;
+
         auto splashWindow = createSplashWindow();
         redrawSplashWindow(splashWindow, "");
 
         setupPhysfs(argv0);
         redrawSplashWindow(splashWindow, "starting up");
-
-        Console console;
 
         fullscreenToggleEventId = SDL_RegisterEvents(1);
 
@@ -404,7 +423,7 @@ namespace worlds {
 
         static const ImWchar iconRanges[] = { ICON_MIN_FA, ICON_MAX_FA, 0 };
         ImFontConfig iconConfig{};
-        iconConfig.MergeMode = true; 
+        iconConfig.MergeMode = true;
         iconConfig.PixelSnapH = true;
         iconConfig.OversampleH = 1;
 
@@ -581,23 +600,26 @@ namespace worlds {
                     as.isPlaying = true;
                 }
                 });
+            renderer->reloadMatsAndTextures();
             }, "play", "play.", nullptr);
 
         console.registerCommand([&](void*, const char*) {
             runAsEditor = true;
             pauseSim = true;
+            renderer->reloadMatsAndTextures();
             }, "pauseAndEdit", "pause and edit.", nullptr);
 
         console.registerCommand([&](void*, const char*) {
             runAsEditor = true;
             loadScene(currentScene.id, registry);
             pauseSim = true;
-
+            renderer->reloadMatsAndTextures();
             }, "reloadAndEdit", "reload and edit.", nullptr);
 
         console.registerCommand([&](void*, const char*) {
             runAsEditor = false;
             pauseSim = false;
+            renderer->reloadMatsAndTextures();
             }, "unpause", "unpause and go back to play mode.", nullptr);
 
         ConVar showDebugInfo("showDebugInfo", "1", "Shows the debug info window");
@@ -708,9 +730,9 @@ namespace worlds {
                 ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
 
                 ImGui::Begin("Editor dockspace - you shouldn't be able to see this!", 0,
-                    ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | 
-                    ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | 
-                    ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus | 
+                    ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse |
+                    ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
+                    ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus |
                     ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_MenuBar);
                 ImGui::PopStyleVar(3);
 
@@ -889,7 +911,7 @@ namespace worlds {
 
                         size_t numLights = registry.view<WorldLight>().size();
                         size_t worldObjects = registry.view<WorldObject>().size();
-                        
+
                         ImGui::Text("%u light(s) / %u world object(s)", numLights, worldObjects);
                     }
                 }
