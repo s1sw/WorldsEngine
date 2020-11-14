@@ -9,10 +9,6 @@
       <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
       <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
     </Filter>
-    <Filter Include="Resource Files">
-      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
-      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
-    </Filter>
     <Filter Include="Header Files\Components">
       <UniqueIdentifier>{3d073cc9-a8c0-4e8f-b0ca-213f8f420782}</UniqueIdentifier>
     </Filter>
@@ -64,6 +60,15 @@
     <Filter Include="Header Files\Util">
       <UniqueIdentifier>{e525c035-ded6-4e46-bf54-3cb73d9f55d3}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\Loaders">
+      <UniqueIdentifier>{2ce65fdc-7def-46c1-82cd-76364064509c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Scene Serialization">
+      <UniqueIdentifier>{81526dd6-5f45-473b-a28e-99c5ce1fb5d1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Scene Serialization">
+      <UniqueIdentifier>{c3810df0-11e1-409c-ba3e-9b546fee03ce}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="EntityList.cpp">
@@ -100,9 +105,6 @@
       <Filter>Source Files\Loaders</Filter>
     </ClCompile>
     <ClCompile Include="SourceModelLoader.cpp">
-      <Filter>Source Files\Loaders</Filter>
-    </ClCompile>
-    <ClCompile Include="SceneSerialization.cpp">
       <Filter>Source Files\Loaders</Filter>
     </ClCompile>
     <ClCompile Include="TextureLoader.cpp">
@@ -213,9 +215,6 @@
     <ClCompile Include="Editor.cpp">
       <Filter>Source Files\Misc</Filter>
     </ClCompile>
-    <ClCompile Include="SceneSerializationFunctions.cpp">
-      <Filter>Source Files\Loaders</Filter>
-    </ClCompile>
     <ClCompile Include="RichPresence.cpp">
       <Filter>Source Files\Misc</Filter>
     </ClCompile>
@@ -228,11 +227,14 @@
     <ClCompile Include="EarlySDLUtil.cpp">
       <Filter>Source Files\Util</Filter>
     </ClCompile>
+    <ClCompile Include="SceneSerialization.cpp">
+      <Filter>Source Files\Scene Serialization</Filter>
+    </ClCompile>
+    <ClCompile Include="SceneSerializationFunctions.cpp">
+      <Filter>Source Files\Scene Serialization</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="JobSystem.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Transform.hpp">
       <Filter>Header Files\Components</Filter>
     </ClInclude>
@@ -242,68 +244,8 @@
     <ClInclude Include="PCH.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="SourceModelLoader.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Editor.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Camera.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="ComponentMetadata.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="ShaderMetadata.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="SceneSerialization.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Fatal.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="TextureLoader.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="ResourceSlots.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="PackedMaterial.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Log.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="CubemapLoader.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Console.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="LogCategories.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="ObjModelLoader.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="IGameEventHandler.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="SceneSerializationFuncs.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="NameComponent.hpp">
       <Filter>Header Files\Components</Filter>
-    </ClInclude>
-    <ClInclude Include="Frustum.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="EditorWindows.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="CreateModelObject.hpp">
-      <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Audio.hpp">
       <Filter>Header Files\Systems</Filter>
@@ -415,6 +357,69 @@
     </ClInclude>
     <ClInclude Include="EarlySDLUtil.hpp">
       <Filter>Header Files\Util</Filter>
+    </ClInclude>
+    <ClInclude Include="ResourceSlots.hpp">
+      <Filter>Header Files\Systems\Render</Filter>
+    </ClInclude>
+    <ClInclude Include="PackedMaterial.hpp">
+      <Filter>Header Files\Systems\Render</Filter>
+    </ClInclude>
+    <ClInclude Include="Camera.hpp">
+      <Filter>Header Files\Systems\Render</Filter>
+    </ClInclude>
+    <ClInclude Include="CubemapLoader.hpp">
+      <Filter>Header Files\Loaders</Filter>
+    </ClInclude>
+    <ClInclude Include="ObjModelLoader.hpp">
+      <Filter>Header Files\Loaders</Filter>
+    </ClInclude>
+    <ClInclude Include="TextureLoader.hpp">
+      <Filter>Header Files\Loaders</Filter>
+    </ClInclude>
+    <ClInclude Include="SourceModelLoader.hpp">
+      <Filter>Header Files\Loaders</Filter>
+    </ClInclude>
+    <ClInclude Include="Log.hpp">
+      <Filter>Header Files\Misc</Filter>
+    </ClInclude>
+    <ClInclude Include="JobSystem.hpp">
+      <Filter>Header Files\Misc</Filter>
+    </ClInclude>
+    <ClInclude Include="LogCategories.hpp">
+      <Filter>Header Files\Misc</Filter>
+    </ClInclude>
+    <ClInclude Include="IGameEventHandler.hpp">
+      <Filter>Header Files\Systems</Filter>
+    </ClInclude>
+    <ClInclude Include="Console.hpp">
+      <Filter>Header Files\Misc</Filter>
+    </ClInclude>
+    <ClInclude Include="ComponentMetadata.hpp">
+      <Filter>Header Files\Misc</Filter>
+    </ClInclude>
+    <ClInclude Include="CreateModelObject.hpp">
+      <Filter>Header Files\Util</Filter>
+    </ClInclude>
+    <ClInclude Include="Editor.hpp">
+      <Filter>Header Files\Misc</Filter>
+    </ClInclude>
+    <ClInclude Include="EditorWindows.hpp">
+      <Filter>Header Files\Misc</Filter>
+    </ClInclude>
+    <ClInclude Include="Fatal.hpp">
+      <Filter>Header Files\Misc</Filter>
+    </ClInclude>
+    <ClInclude Include="Frustum.hpp">
+      <Filter>Header Files\Systems\Render</Filter>
+    </ClInclude>
+    <ClInclude Include="ShaderMetadata.hpp">
+      <Filter>Header Files\Misc</Filter>
+    </ClInclude>
+    <ClInclude Include="SceneSerialization.hpp">
+      <Filter>Header Files\Scene Serialization</Filter>
+    </ClInclude>
+    <ClInclude Include="SceneSerializationFuncs.hpp">
+      <Filter>Header Files\Scene Serialization</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
