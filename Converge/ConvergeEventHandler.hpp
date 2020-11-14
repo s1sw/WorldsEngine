@@ -16,7 +16,7 @@ namespace converge {
     private:
         worlds::IVRInterface* vrInterface;
         worlds::VKRenderer* renderer;
-        InputManager* inputManager;
+        worlds::InputManager* inputManager;
         entt::entity lHandEnt, rHandEnt;
         Camera* camera;
         entt::entity playerLocosphere;

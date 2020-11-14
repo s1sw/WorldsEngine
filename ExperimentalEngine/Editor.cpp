@@ -28,8 +28,6 @@
 #undef far
 
 namespace worlds {
-    extern bool pauseSim;
-
     physx::PxMaterial* defaultMaterial;
 
     std::unordered_map<ENTT_ID_TYPE, ComponentMetadata> ComponentMetadataManager::metadata;
@@ -401,7 +399,7 @@ namespace worlds {
         REGISTER_COMPONENT_TYPE(DynamicPhysicsActor, "DynamicPhysicsActor", true, editDynamicPhysicsActor, createDynamicPhysicsActor, cloneDynamicPhysicsActor);
         REGISTER_COMPONENT_TYPE(AudioSource, "AudioSource", true, editAudioSource, createAudioSource, cloneAudioSource);
         REGISTER_COMPONENT_TYPE(NameComponent, "NameComponent", true, editNameComponent, createNameComponent, cloneNameComponent);
-        pauseSim = true;
+        interfaces.engine->pauseSim = true;
         defaultMaterial = g_physics->createMaterial(0.5f, 0.5f, 0.1f);
 
         RTTPassCreateInfo sceneViewPassCI;
@@ -702,7 +700,7 @@ namespace worlds {
             ImGui::Checkbox("Global object snap", &settings.objectSnapGlobal);
             tooltipHover("If this is checked, moving an object with Ctrl held will snap in increments relative to the world rather than the object's original position.");
             ImGui::Checkbox("Enable transform gadget", &enableTransformGadget);
-            ImGui::Checkbox("Pause physics", &pauseSim);
+            ImGui::Checkbox("Pause physics", &interfaces.engine->pauseSim);
             ImGui::InputFloat("Scale snap increment", &settings.scaleSnapIncrement, 0.1f, 0.5f);
         }
         ImGui::End();
@@ -1031,7 +1029,7 @@ namespace worlds {
         }
 
         if (inputManager.keyPressed(SDL_SCANCODE_P, true) && ctrlHeld(inputManager)) {
-            pauseSim = false;
+            interfaces.engine->pauseSim = false;
             g_console->executeCommandStr("play");
         }
 

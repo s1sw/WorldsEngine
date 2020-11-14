@@ -4,16 +4,17 @@
 #include "Engine.hpp"
 
 namespace worlds {
-    extern bool runAsEditor;
     extern SceneInfo currentScene;
 
     SDL_TimerID presenceUpdateTimer;
+
+    WorldsEngine* engine;
 
     void onDiscordReady(const DiscordUser* user) {
         logMsg("Rich presence ready for %s", user->username);
 
         presenceUpdateTimer = SDL_AddTimer(1000, [](uint32_t interval, void*) {
-            std::string state = ((runAsEditor ? "Editing " : "On ") + currentScene.name);
+            std::string state = ((engine->runAsEditor ? "Editing " : "On ") + currentScene.name);
 #ifndef NDEBUG
             state += "(DEVELOPMENT BUILD)";
 #endif
@@ -22,7 +23,7 @@ namespace worlds {
             richPresence.state = state.c_str();
             richPresence.largeImageKey = "logo";
             richPresence.largeImageText = "Private";
-            if (!runAsEditor) {
+            if (!engine->runAsEditor) {
                 richPresence.partyId = "1365";
                 richPresence.partyMax = 256;
                 richPresence.partySize = 1;
@@ -34,7 +35,8 @@ namespace worlds {
             }, nullptr);
     }
 
-    void initRichPresence() {
+    void initRichPresence(EngineInterfaces interfaces) {
+        engine = interfaces.engine;
         DiscordEventHandlers handlers;
         memset(&handlers, 0, sizeof(handlers));
         handlers.ready = onDiscordReady;

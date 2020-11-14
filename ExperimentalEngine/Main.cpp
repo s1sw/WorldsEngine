@@ -59,17 +59,14 @@ namespace worlds {
     bool useEventThread = false;
     int workerThreadOverride = -1;
     bool enableOpenVR = false;
-    bool runAsEditor = false;
-    bool pauseSim = false;
     glm::ivec2 windowSize;
     SceneInfo currentScene;
-    IGameEventHandler* evtHandler;
 
-    void setupSDL() {
+    void WorldsEngine::setupSDL() {
         SDL_Init(SDL_INIT_AUDIO | SDL_INIT_EVENTS | SDL_INIT_VIDEO | SDL_INIT_TIMER);
     }
 
-    SDL_Window* createSDLWindow() {
+    SDL_Window* WorldsEngine::createSDLWindow() {
         return SDL_CreateWindow("Converge", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1600, 900,
             SDL_WINDOW_VULKAN |
             SDL_WINDOW_RESIZABLE |
@@ -82,7 +79,7 @@ namespace worlds {
     // I would put it through the job system, but thanks to Windows
     // weirdness SDL_PollEvent will not work on other threads.
     // Thanks Microsoft.
-    int windowThread(void* data) {
+    int WorldsEngine::windowThread(void* data) {
         WindowThreadData* wtd = reinterpret_cast<WindowThreadData*>(data);
 
         bool* running = wtd->runningPtr;
@@ -174,7 +171,7 @@ namespace worlds {
     std::unordered_map<entt::entity, physx::PxTransform> previousState;
     extern std::function<void(entt::registry&)> onSceneLoad;
 
-    void setupPhysfs(char* argv0) {
+    void WorldsEngine::setupPhysfs(char* argv0) {
         const char* dataFolder = "EEData";
         const char* dataSrcFolder = "EEDataSrc";
         const char* basePath = SDL_GetBasePath();
@@ -197,13 +194,26 @@ namespace worlds {
 
     extern void loadDefaultUITheme();
 
-    void engine(char* argv0) {
+    ConVar showDebugInfo("showDebugInfo", "1", "Shows the debug info window");
+    ConVar lockSimToRefresh("sim_lockToRefresh", "0", "Instead of using a simulation timestep, run the simulation in lockstep with the rendering.");
+    ConVar disableSimInterp("sim_disableInterp", "0", "Disables interpolation and uses the results of the last run simulation step.");
+    ConVar simStepTime("sim_stepTime", "0.01");
+
+    WorldsEngine::WorldsEngine(EngineInitOptions initOptions, char* argv0)
+        : running(true)
+        , pauseSim(false) {
         ZoneScoped;
+        useEventThread = initOptions.useEventThread;
+        workerThreadOverride = initOptions.workerThreadOverride;
+        evtHandler = initOptions.eventHandler;
+        runAsEditor = initOptions.runAsEditor;
+        enableOpenVR = initOptions.enableVR;
+
         // Initialisation Stuffs
         // =====================
         setupSDL();
 
-        Console console;
+        console = std::make_unique<Console>();
 
         auto splashWindow = createSplashWindow();
         redrawSplashWindow(splashWindow, "");
@@ -213,19 +223,16 @@ namespace worlds {
 
         fullscreenToggleEventId = SDL_RegisterEvents(1);
 
-        InputManager inputManager{ window };
+        inputManager = std::make_unique<InputManager>(window);
 
         // Ensure that we have a minimum of two workers, as one worker
         // means that jobs can be missed
-        JobSystem jobSystem{ workerThreadOverride == -1 ? std::max(SDL_GetCPUCount(), 2) : workerThreadOverride };
-        g_jobSys = &jobSystem;
+        g_jobSys = new JobSystem{ workerThreadOverride == -1 ? std::max(SDL_GetCPUCount(), 2) : workerThreadOverride };
 
         currentScene.name = "";
 
         redrawSplashWindow(splashWindow, "loading assetdb");
         g_assetDB.load();
-
-        bool running = true;
 
         if (useEventThread) {
             sdlEventCV = SDL_CreateCond();
@@ -243,13 +250,6 @@ namespace worlds {
 
         setWindowIcon(window);
 
-        int frameCounter = 0;
-
-        uint64_t last = SDL_GetPerformanceCounter();
-
-        double deltaTime;
-        double currTime = 0.0;
-        double lastUpdateTime = 0.0;
         bool renderInitSuccess = false;
 
         redrawSplashWindow(splashWindow, "initialising ui");
@@ -294,8 +294,6 @@ namespace worlds {
         std::vector<std::string> additionalInstanceExts;
         std::vector<std::string> additionalDeviceExts;
 
-        OpenVRInterface openvrInterface;
-
         if (enableOpenVR) {
             openvrInterface.init();
             uint32_t newW, newH;
@@ -326,45 +324,22 @@ namespace worlds {
             runAsEditor, "Converge"
         };
 
-        VKRenderer* renderer = new VKRenderer(initInfo, &renderInitSuccess);
+        renderer = new VKRenderer(initInfo, &renderInitSuccess);
 
         if (!renderInitSuccess) {
             SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Error", "Failed to initialise renderer", window);
             return;
         }
 
-        Camera cam{};
         cam.position = glm::vec3(0.0f, 0.0f, -1.0f);
-        const Uint8* state = SDL_GetKeyboardState(NULL);
-        Uint8 lastState[SDL_NUM_SCANCODES];
-
-        entt::registry registry;
-
-        AssetID grassMatId = g_assetDB.addOrGetExisting("Materials/grass.json");
-        AssetID devMatId = g_assetDB.addOrGetExisting("Materials/dev.json");
-
-        AssetID modelId = g_assetDB.addOrGetExisting("model.obj");
-        AssetID monkeyId = g_assetDB.addOrGetExisting("monk.obj");
-        renderer->preloadMesh(modelId);
-        renderer->preloadMesh(monkeyId);
-        createModelObject(registry, glm::vec3(0.0f, -2.0f, 0.0f), glm::quat(), modelId, grassMatId, glm::vec3(5.0f, 1.0f, 5.0f));
-
-        createModelObject(registry, glm::vec3(0.0f, 0.0f, 0.0f), glm::quat(), monkeyId, devMatId);
-
-        entt::entity dirLightEnt = registry.create();
-        registry.emplace<WorldLight>(dirLightEnt, LightType::Directional);
-        registry.emplace<Transform>(dirLightEnt, glm::vec3(0.0f), glm::angleAxis(glm::radians(90.01f), glm::vec3(1.0f, 0.0f, 0.0f)));
 
         initPhysx(registry);
-
-        //SDL_SetRelativeMouseMode(SDL_TRUE);
-        std::memcpy(reinterpret_cast<void*>(lastState), state, SDL_NUM_SCANCODES);
 
         EngineInterfaces interfaces{
                 .vrInterface = enableOpenVR ? &openvrInterface : nullptr,
                 .renderer = renderer,
                 .mainCamera = &cam,
-                .inputManager = &inputManager
+                .inputManager = inputManager.get()
         };
 
         auto vkCtx = renderer->getVKCtx();
@@ -372,16 +347,16 @@ namespace worlds {
 
         redrawSplashWindow(splashWindow, "initialising editor");
 
-        Editor editor(registry, interfaces);
+        editor = std::make_unique<Editor>(registry, interfaces);
 
         if (!runAsEditor)
             pauseSim = false;
 
         initRichPresence();
 
-        console.registerCommand(cmdLoadScene, "scene", "Loads a scene.", &registry);
-        console.registerCommand(cmdToggleFullscreen, "toggleFullscreen", "Toggles fullscreen.", nullptr);
-        console.registerCommand([&](void*, const char*) {
+        console->registerCommand(cmdLoadScene, "scene", "Loads a scene.", &registry);
+        console->registerCommand(cmdToggleFullscreen, "toggleFullscreen", "Toggles fullscreen.", nullptr);
+        console->registerCommand([&](void*, const char*) {
             runAsEditor = false;
             pauseSim = false;
             evtHandler->onSceneStart(registry);
@@ -393,29 +368,24 @@ namespace worlds {
             renderer->reloadMatsAndTextures();
             }, "play", "play.", nullptr);
 
-        console.registerCommand([&](void*, const char*) {
+        console->registerCommand([&](void*, const char*) {
             runAsEditor = true;
             pauseSim = true;
             renderer->reloadMatsAndTextures();
             }, "pauseAndEdit", "pause and edit.", nullptr);
 
-        console.registerCommand([&](void*, const char*) {
+        console->registerCommand([&](void*, const char*) {
             runAsEditor = true;
             loadScene(currentScene.id, registry);
             pauseSim = true;
             renderer->reloadMatsAndTextures();
             }, "reloadAndEdit", "reload and edit.", nullptr);
 
-        console.registerCommand([&](void*, const char*) {
+        console->registerCommand([&](void*, const char*) {
             runAsEditor = false;
             pauseSim = false;
             renderer->reloadMatsAndTextures();
             }, "unpause", "unpause and go back to play mode.", nullptr);
-
-        ConVar showDebugInfo("showDebugInfo", "1", "Shows the debug info window");
-        ConVar lockSimToRefresh("sim_lockToRefresh", "0", "Instead of using a simulation timestep, run the simulation in lockstep with the rendering.");
-        ConVar disableSimInterp("sim_disableInterp", "0", "Disables interpolation and uses the results of the last run simulation step.");
-        ConVar simStepTime("sim_stepTime", "0.01");
 
         if (runAsEditor)
             disableSimInterp.setValue("1");
@@ -425,8 +395,11 @@ namespace worlds {
             disableSimInterp.setValue("1");
         }
 
+        if (runAsEditor)
+            createStartupScene();
+
         if (!runAsEditor && PHYSFS_exists("CommandScripts/startup.txt"))
-            console.executeCommandStr("exec CommandScripts/startup");
+            console->executeCommandStr("exec CommandScripts/startup");
 
         if (evtHandler != nullptr) {
 
@@ -436,7 +409,7 @@ namespace worlds {
                 evtHandler->onSceneStart(registry);
         }
 
-        onSceneLoad = [](entt::registry& reg) {
+        onSceneLoad = [&](entt::registry& reg) {
             if (evtHandler && !runAsEditor) {
                 evtHandler->onSceneStart(reg);
             }
@@ -451,7 +424,6 @@ namespace worlds {
             h = 900;
         }
 
-        RTTPassHandle screenRTTPass;
         RTTPassCreateInfo screenRTTCI;
         screenRTTCI.enableShadows = true;
         screenRTTCI.width = w;
@@ -462,11 +434,38 @@ namespace worlds {
         screenRTTPass = renderer->createRTTPass(screenRTTCI);
 
         redrawSplashWindow(splashWindow, "initialising audio");
-        AudioSystem as;
-        as.initialise(registry);
+        audioSystem = std::make_unique<AudioSystem>();
+        audioSystem->initialise(registry);
 
         SDL_ShowWindow(window);
         destroySplashWindow(splashWindow);
+    }
+
+    void WorldsEngine::createStartupScene() {
+        AssetID grassMatId = g_assetDB.addOrGetExisting("Materials/grass.json");
+        AssetID devMatId = g_assetDB.addOrGetExisting("Materials/dev.json");
+
+        AssetID modelId = g_assetDB.addOrGetExisting("model.obj");
+        AssetID monkeyId = g_assetDB.addOrGetExisting("monk.obj");
+        renderer->preloadMesh(modelId);
+        renderer->preloadMesh(monkeyId);
+        createModelObject(registry, glm::vec3(0.0f, -2.0f, 0.0f), glm::quat(), modelId, grassMatId, glm::vec3(5.0f, 1.0f, 5.0f));
+
+        createModelObject(registry, glm::vec3(0.0f, 0.0f, 0.0f), glm::quat(), monkeyId, devMatId);
+
+        entt::entity dirLightEnt = registry.create();
+        registry.emplace<WorldLight>(dirLightEnt, LightType::Directional);
+        registry.emplace<Transform>(dirLightEnt, glm::vec3(0.0f), glm::angleAxis(glm::radians(90.01f), glm::vec3(1.0f, 0.0f, 0.0f)));
+    }
+
+    void WorldsEngine::mainLoop() {
+        int frameCounter = 0;
+
+        uint64_t last = SDL_GetPerformanceCounter();
+
+        double deltaTime;
+        double currTime = 0.0;
+        double lastUpdateTime = 0.0;
 
         while (running) {
             uint64_t now = SDL_GetPerformanceCounter();
@@ -507,7 +506,7 @@ namespace worlds {
             ImGui_ImplSDL2_NewFrame(window);
 
             ImGui::NewFrame();
-            inputManager.update();
+            inputManager->update();
 
             if (runAsEditor) {
                 // Create global dock space
@@ -633,18 +632,18 @@ namespace worlds {
 
             SDL_GetWindowSize(window, &windowSize.x, &windowSize.y);
 
-            editor.setActive(runAsEditor);
-            editor.update((float)deltaTime);
+            editor->setActive(runAsEditor);
+            editor->update((float)deltaTime);
 
-            if (state[SDL_SCANCODE_RCTRL] && !lastState[SDL_SCANCODE_RCTRL]) {
+            if (inputManager->keyPressed(SDL_SCANCODE_RCTRL, true)) {
                 SDL_SetRelativeMouseMode((SDL_bool)!SDL_GetRelativeMouseMode());
             }
 
-            if (state[SDL_SCANCODE_F3] && !lastState[SDL_SCANCODE_F3]) {
+            if (inputManager->keyPressed(SDL_SCANCODE_F3, true)) {
                 renderer->recreateSwapchain();
             }
 
-            if (state[SDL_SCANCODE_F11] && !lastState[SDL_SCANCODE_F11]) {
+            if (inputManager->keyPressed(SDL_SCANCODE_F11, true)) {
                 SDL_Event evt;
                 SDL_zero(evt);
                 evt.type = fullscreenToggleEventId;
@@ -728,11 +727,9 @@ namespace worlds {
                 renderer->setVRPredictAmount(fPredictedSecondsFromNow + fFrameDuration);
             }
 
-            std::memcpy(reinterpret_cast<void*>(lastState), state, SDL_NUM_SCANCODES);
+            audioSystem->update(registry, cam.position, cam.rotation);
 
-            as.update(registry, cam.position, cam.rotation);
-
-            console.drawWindow();
+            console->drawWindow();
 
             ImGui::Render();
 
@@ -744,13 +741,13 @@ namespace worlds {
 
             glm::vec3 camPos = cam.position;
 
-            registry.sort<ProceduralObject>([&registry, &camPos](entt::entity a, entt::entity b) {
+            registry.sort<ProceduralObject>([&](entt::entity a, entt::entity b) {
                 auto& aTransform = registry.get<Transform>(a);
                 auto& bTransform = registry.get<Transform>(b);
                 return glm::distance2(camPos, aTransform.position) < glm::distance2(camPos, bTransform.position);
                 }, entt::insertion_sort{});
 
-            registry.sort<WorldObject>([&registry, &camPos](entt::entity a, entt::entity b) {
+            registry.sort<WorldObject>([&](entt::entity a, entt::entity b) {
                 auto& aTransform = registry.get<Transform>(a);
                 auto& bTransform = registry.get<Transform>(b);
                 return glm::distance2(camPos, aTransform.position) < glm::distance2(camPos, bTransform.position) || registry.has<UseWireframe>(a);
@@ -759,10 +756,10 @@ namespace worlds {
             ImGui::UpdatePlatformWindows();
             ImGui::RenderPlatformWindowsDefault();
             renderer->frame(cam, registry);
-            jobSystem.completeFrameJobs();
+            g_jobSys->completeFrameJobs();
             frameCounter++;
 
-            inputManager.endFrame();
+            inputManager->endFrame();
 
             lastUpdateTime = updateTime;
 
@@ -773,6 +770,7 @@ namespace worlds {
                 SDL_GetWindowSize(window, &newWidth, &newHeight);
 
                 if (enableOpenVR) {
+                    uint32_t w, h;
                     openvrInterface.getRenderResolution(&w, &h);
                     newWidth = w;
                     newHeight = h;
@@ -788,10 +786,13 @@ namespace worlds {
                 screenRTTPass = renderer->createRTTPass(screenRTTCI);
             }
         }
+    }
 
+    WorldsEngine::~WorldsEngine() {
         if (evtHandler != nullptr && !runAsEditor)
             evtHandler->shutdown(registry);
 
+        auto vkCtx = renderer->getVKCtx();
         registry.clear();
         shutdownRichPresence();
         VKImGUIUtil::destroyObjects(vkCtx);
@@ -801,14 +802,5 @@ namespace worlds {
         if (useEventThread) SDL_CondSignal(sdlEventCV);
         logMsg("Quitting SDL.");
         SDL_Quit();
-    }
-
-    void initEngine(EngineInitOptions initOptions, char* argv0) {
-        useEventThread = initOptions.useEventThread;
-        workerThreadOverride = initOptions.workerThreadOverride;
-        evtHandler = initOptions.eventHandler;
-        runAsEditor = initOptions.runAsEditor;
-        enableOpenVR = initOptions.enableVR;
-        engine(argv0);
     }
 }

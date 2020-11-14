@@ -408,7 +408,7 @@ namespace converge {
             ImGui::GetBackgroundDrawList()->AddCircleFilled(ImVec2(size.x * 0.5f, size.y * 0.5f), 2.5f, ImColor(1.0f, 1.0f, 1.0f), 16);
         }
 
-        if (inputManager->mouseButtonPressed(MouseButton::Right)) {
+        if (inputManager->mouseButtonPressed(worlds::MouseButton::Right)) {
             NullPhysXCallback nullCallback{};
             physx::PxRaycastBuffer hitBuf;
             bool hit = worlds::g_scene->raycast(worlds::glm2px(camera->position), worlds::glm2px(camera->rotation * glm::vec3{ 0.0f, 0.0f, 1.0f }), FLT_MAX, hitBuf);
@@ -426,7 +426,7 @@ namespace converge {
             }
         }
 
-        if (grappling && !inputManager->mouseButtonHeld(MouseButton::Right)) {
+        if (grappling && !inputManager->mouseButtonHeld(worlds::MouseButton::Right)) {
             grappling = false;
         }
 

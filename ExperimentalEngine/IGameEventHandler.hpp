@@ -6,11 +6,14 @@
 #include "Input.hpp"
 
 namespace worlds {
+    class WorldsEngine;
+
     struct EngineInterfaces {
         IVRInterface* vrInterface;
         VKRenderer* renderer;
         Camera* mainCamera;
         InputManager* inputManager;
+        WorldsEngine* engine;
     };
 
     class IGameEventHandler {

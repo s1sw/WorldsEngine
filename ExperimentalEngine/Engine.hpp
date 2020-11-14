@@ -5,6 +5,7 @@
 #include "IGameEventHandler.hpp"
 #include "JobSystem.hpp"
 #include <bitset>
+#include "OpenVRInterface.hpp"
 
 #define NUM_SUBMESH_MATS 32
 namespace worlds {
@@ -12,6 +13,9 @@ namespace worlds {
     extern JobSystem* g_jobSys;
     class VKRenderer;
     class PolyRenderPass;
+    class AudioSystem;
+    class InputManager;
+    class Editor;
 
     struct SceneInfo {  
         std::string name;
@@ -32,9 +36,31 @@ namespace worlds {
         IGameEventHandler* eventHandler;
     };
 
-    void engine(char* argv0);
-
-    void initEngine(EngineInitOptions initOptions, char* argv0);
+    class WorldsEngine {
+    public:
+        WorldsEngine(EngineInitOptions initOptions, char* argv0);
+        void mainLoop();
+        ~WorldsEngine();
+        bool pauseSim;
+        bool runAsEditor;
+    private:
+        static int windowThread(void* data);
+        void setupSDL();
+        static SDL_Window* createSDLWindow();
+        void setupPhysfs(char* argv0);
+        void createStartupScene();
+        bool running;
+        VKRenderer* renderer;
+        entt::registry registry;
+        IGameEventHandler* evtHandler;
+        std::unique_ptr<InputManager> inputManager;
+        std::unique_ptr<AudioSystem> audioSystem;
+        RTTPassHandle screenRTTPass;
+        Camera cam;
+        std::unique_ptr<Console> console;
+        std::unique_ptr<Editor> editor;
+        OpenVRInterface openvrInterface;
+    };
 
     struct WorldObject {
         WorldObject(AssetID material, AssetID mesh)

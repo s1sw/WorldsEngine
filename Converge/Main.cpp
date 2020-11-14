@@ -19,7 +19,8 @@ int main(int argc, char** argv) {
         }
     }
 
-    worlds::initEngine(initOptions, argv[0]);
+    worlds::WorldsEngine engine(initOptions, argv[0]);
+    engine.mainLoop();
 
     return 0;
 }

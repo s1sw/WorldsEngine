@@ -9,6 +9,7 @@
 #include <filesystem>
 #include <SDL2/SDL_filesystem.h>
 #include "MatUtil.hpp"
+#include "Transform.hpp"
 #ifdef _WIN32
 const char PATH_SEP = '\\';
 #else
