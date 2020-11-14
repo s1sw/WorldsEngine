@@ -32,6 +32,8 @@ namespace worlds {
         IGameEventHandler* eventHandler;
     };
 
+    void engine(char* argv0);
+
     void initEngine(EngineInitOptions initOptions, char* argv0);
 
     struct WorldObject {

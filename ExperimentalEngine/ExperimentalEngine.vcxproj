@@ -244,6 +244,8 @@
     <ClCompile Include="Console.cpp" />
     <ClCompile Include="CubemapConvoluter.cpp" />
     <ClCompile Include="CubemapLoader.cpp" />
+    <ClCompile Include="DefaultUITheme.cpp" />
+    <ClCompile Include="EarlySDLUtil.cpp" />
     <ClCompile Include="Editor.cpp" />
     <ClCompile Include="EntityEditor.cpp" />
     <ClCompile Include="EntityList.cpp" />
@@ -270,12 +272,14 @@
     <ClCompile Include="Physics.cpp" />
     <ClCompile Include="PolyRenderPass.cpp" />
     <ClCompile Include="RenderGraph.cpp" />
+    <ClCompile Include="RichPresence.cpp" />
     <ClCompile Include="SceneSerialization.cpp" />
     <ClCompile Include="SceneSerializationFunctions.cpp" />
     <ClCompile Include="ShaderMetadata.cpp" />
     <ClCompile Include="ShadowmapRenderPass.cpp" />
     <ClCompile Include="SourceModelLoader.cpp" />
     <ClCompile Include="spirv_reflect.c" />
+    <ClCompile Include="SplashWindow.cpp" />
     <ClCompile Include="stb_vorbis.c" />
     <ClCompile Include="StyleEditor.cpp" />
     <ClCompile Include="TextureLoader.cpp" />
@@ -296,6 +300,7 @@
     <ClInclude Include="Console.hpp" />
     <ClInclude Include="CreateModelObject.hpp" />
     <ClInclude Include="CubemapLoader.hpp" />
+    <ClInclude Include="EarlySDLUtil.hpp" />
     <ClInclude Include="Editor.hpp" />
     <ClInclude Include="EditorWindows.hpp" />
     <ClInclude Include="Engine.hpp" />
@@ -335,11 +340,13 @@
     <ClInclude Include="RenderPasses.hpp" />
     <ClInclude Include="ResourceSlots.hpp" />
     <ClInclude Include="Result.hpp" />
+    <ClInclude Include="RichPresence.hpp" />
     <ClInclude Include="SceneSerialization.hpp" />
     <ClInclude Include="SceneSerializationFuncs.hpp" />
     <ClInclude Include="ShaderMetadata.hpp" />
     <ClInclude Include="SourceModelLoader.hpp" />
     <ClInclude Include="spirv_reflect.h" />
+    <ClInclude Include="SplashWindow.hpp" />
     <ClInclude Include="TimingUtil.hpp" />
     <ClInclude Include="tiny_obj_loader.h" />
     <ClInclude Include="Transform.hpp" />

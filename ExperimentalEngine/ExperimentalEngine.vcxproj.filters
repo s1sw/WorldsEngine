@@ -216,6 +216,18 @@
     <ClCompile Include="SceneSerializationFunctions.cpp">
       <Filter>Source Files\Loaders</Filter>
     </ClCompile>
+    <ClCompile Include="RichPresence.cpp">
+      <Filter>Source Files\Misc</Filter>
+    </ClCompile>
+    <ClCompile Include="DefaultUITheme.cpp">
+      <Filter>Source Files\Misc</Filter>
+    </ClCompile>
+    <ClCompile Include="SplashWindow.cpp">
+      <Filter>Source Files\Misc</Filter>
+    </ClCompile>
+    <ClCompile Include="EarlySDLUtil.cpp">
+      <Filter>Source Files\Util</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="JobSystem.hpp">
@@ -394,6 +406,15 @@
     </ClInclude>
     <ClInclude Include="mikktspace.h">
       <Filter>Header Files\External</Filter>
+    </ClInclude>
+    <ClInclude Include="RichPresence.hpp">
+      <Filter>Header Files\Misc</Filter>
+    </ClInclude>
+    <ClInclude Include="SplashWindow.hpp">
+      <Filter>Header Files\Misc</Filter>
+    </ClInclude>
+    <ClInclude Include="EarlySDLUtil.hpp">
+      <Filter>Header Files\Util</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

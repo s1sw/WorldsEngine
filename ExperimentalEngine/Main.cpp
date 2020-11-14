@@ -35,6 +35,9 @@
 #include "CreateModelObject.hpp"
 #include "IconsFontAwesome5.h"
 #include "IconsFontaudio.h"
+#include "RichPresence.hpp"
+#include "SplashWindow.hpp"
+#include "EarlySDLUtil.hpp"
 
 namespace worlds {
     AssetDB g_assetDB;
@@ -61,47 +64,6 @@ namespace worlds {
     glm::ivec2 windowSize;
     SceneInfo currentScene;
     IGameEventHandler* evtHandler;
-
-    SDL_TimerID presenceUpdateTimer;
-    void onDiscordReady(const DiscordUser* user) {
-        logMsg("Rich presence ready for %s", user->username);
-
-        presenceUpdateTimer = SDL_AddTimer(1000, [](uint32_t interval, void*) {
-            std::string state = ((runAsEditor ? "Editing " : "On ") + currentScene.name);
-#ifndef NDEBUG
-            state += "(DEVELOPMENT BUILD)";
-#endif
-            DiscordRichPresence richPresence;
-            memset(&richPresence, 0, sizeof(richPresence));
-            richPresence.state = state.c_str();
-            richPresence.largeImageKey = "logo";
-            richPresence.largeImageText = "Private";
-            if (!runAsEditor) {
-                richPresence.partyId = "1365";
-                richPresence.partyMax = 256;
-                richPresence.partySize = 1;
-                richPresence.joinSecret = "someone";
-            }
-
-            Discord_UpdatePresence(&richPresence);
-            return interval;
-            }, nullptr);
-    }
-
-    void initRichPresence() {
-        DiscordEventHandlers handlers;
-        memset(&handlers, 0, sizeof(handlers));
-        handlers.ready = onDiscordReady;
-        Discord_Initialize("742075252028211310", &handlers, 0, nullptr);
-    }
-
-    void tickRichPresence() {
-        Discord_RunCallbacks();
-    }
-
-    void shutdownRichPresence() {
-        Discord_Shutdown();
-    }
 
     void setupSDL() {
         SDL_Init(SDL_INIT_AUDIO | SDL_INIT_EVENTS | SDL_INIT_VIDEO | SDL_INIT_TIMER);
@@ -190,41 +152,6 @@ namespace worlds {
         PHYSFS_close(ttfFile);
     }
 
-    SDL_Surface* loadDataFileToSurface(std::string fName) {
-        int width, height, channels;
-
-        std::string basePath = SDL_GetBasePath();
-        basePath += "EEData";
-#ifdef _WIN32
-        basePath += '\\';
-#else
-        basePath += '/';
-#endif
-        basePath += fName;
-        unsigned char* imgDat = stbi_load(basePath.c_str(), &width, &height, &channels, STBI_rgb_alpha);
-
-        Uint32 rmask, gmask, bmask, amask;
-#if SDL_BYTEORDER == SDL_BIG_ENDIAN
-        int shift = 0;
-        rmask = 0xff000000 >> shift;
-        gmask = 0x00ff0000 >> shift;
-        bmask = 0x0000ff00 >> shift;
-        amask = 0x000000ff;
-#else // little endian, like x86
-        rmask = 0x000000ff;
-        gmask = 0x0000ff00;
-        bmask = 0x00ff0000;
-        amask = 0xff000000;
-#endif
-        return SDL_CreateRGBSurfaceFrom((void*)imgDat, width, height, 32, 4 * width, rmask, gmask, bmask, amask);
-    }
-
-    void setWindowIcon(SDL_Window* win) {
-        auto surf = loadDataFileToSurface("icon.png");
-        SDL_SetWindowIcon(win, surf);
-        SDL_FreeSurface(surf);
-    }
-
     void cmdLoadScene(void* obj, const char* arg) {
         if (!PHYSFS_exists(arg)) {
             logErr(WELogCategoryEngine, "Couldn't find scene %s. Make sure you included the .escn file extension.", arg);
@@ -238,88 +165,6 @@ namespace worlds {
         SDL_zero(evt);
         evt.type = fullscreenToggleEventId;
         SDL_PushEvent(&evt);
-    }
-
-    struct SplashWindow {
-        SDL_Window* win;
-        SDL_Renderer* renderer;
-        SDL_Surface* bgSurface;
-        SDL_Texture* bgTexture;
-    };
-
-    void destroySplashWindow(SplashWindow splash) {
-        SDL_DestroyTexture(splash.bgTexture);
-        SDL_DestroyRenderer(splash.renderer);
-        SDL_FreeSurface(splash.bgSurface);
-        SDL_DestroyWindow(splash.win);
-    }
-
-    void redrawSplashWindow(SplashWindow splash, std::string overlay) {
-        SDL_PumpEvents();
-
-        SDL_RenderClear(splash.renderer);
-        SDL_RenderCopy(splash.renderer, splash.bgTexture, nullptr, nullptr);
-
-        if (!overlay.empty()) {
-            SDL_Surface* s = loadDataFileToSurface("SplashText/" + overlay + ".png");
-            SDL_Texture* t = SDL_CreateTextureFromSurface(splash.renderer, s);
-
-            SDL_Rect targetRect;
-            targetRect.x = 544;
-            targetRect.y = 546;
-            targetRect.w = 256;
-            targetRect.h = 54;
-
-            SDL_RenderCopy(splash.renderer, t, nullptr, &targetRect);
-
-            SDL_DestroyTexture(t);
-            SDL_FreeSurface(s);
-        }
-
-        SDL_RenderPresent(splash.renderer);
-    }
-
-    SplashWindow createSplashWindow() {
-        SplashWindow splash;
-
-        int nRenderDrivers = SDL_GetNumRenderDrivers();
-        int driverIdx = -1;
-
-        for (int i = 0; i < nRenderDrivers; i++) {
-            SDL_RendererInfo inf;
-            SDL_GetRenderDriverInfo(i, &inf);
-
-            logMsg("Render driver: %s", inf.name);
-
-#ifdef _WIN32
-            if (strcmp(inf.name, "direct3d11") == 0)
-                driverIdx = i;
-#endif
-        }
-
-        splash.win = SDL_CreateWindow("Loading...", 
-            SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 
-            800, 600, 
-            SDL_WINDOW_BORDERLESS | SDL_WINDOW_SKIP_TASKBAR
-        );
-
-        if (splash.win == nullptr) {
-            fatalErr("Failed to create splash screen");
-        }
-
-        splash.renderer = SDL_CreateRenderer(splash.win, driverIdx, SDL_RENDERER_ACCELERATED);
-
-        if (splash.renderer == nullptr) {
-            fatalErr("Failed to create splash screen renderer");
-        }
-
-        SDL_RaiseWindow(splash.win);
-
-        splash.bgSurface = loadDataFileToSurface("splash.png");
-        splash.bgTexture = SDL_CreateTextureFromSurface(splash.renderer, splash.bgSurface);
-        setWindowIcon(splash.win);
-
-        return splash;
     }
 
     JobSystem* g_jobSys;
@@ -349,6 +194,8 @@ namespace worlds {
         PHYSFS_mount(dataSrcStr.c_str(), "/source", 1);
         PHYSFS_setWriteDir(dataStr.c_str());
     }
+
+    extern void loadDefaultUITheme();
 
     void engine(char* argv0) {
         ZoneScoped;
@@ -440,66 +287,7 @@ namespace worlds {
         static const ImWchar iconRangesFAD[] = { ICON_MIN_FAD, ICON_MAX_FAD, 0 };
 
         addImGuiFont("Fonts/" FONT_ICON_FILE_NAME_FAD, 22.0f, &iconConfig2, iconRanges);
-
-        ImVec4* colors = ImGui::GetStyle().Colors;
-        colors[ImGuiCol_Text] = ImVec4(1.00f, 1.00f, 1.00f, 1.00f);
-        colors[ImGuiCol_TextDisabled] = ImVec4(0.50f, 0.50f, 0.50f, 1.00f);
-        colors[ImGuiCol_WindowBg] = ImVec4(0.079f, 0.076f, 0.090f, 1.000f);
-        colors[ImGuiCol_ChildBg] = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
-        colors[ImGuiCol_PopupBg] = ImVec4(0.15f, 0.15f, 0.17f, 0.94f);
-        colors[ImGuiCol_Border] = ImVec4(0.43f, 0.43f, 0.50f, 0.50f);
-        colors[ImGuiCol_BorderShadow] = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
-        colors[ImGuiCol_FrameBg] = ImVec4(0.31f, 0.29f, 0.37f, 0.40f);
-        colors[ImGuiCol_FrameBgHovered] = ImVec4(0.41f, 0.39f, 0.50f, 0.40f);
-        colors[ImGuiCol_FrameBgActive] = ImVec4(0.41f, 0.40f, 0.50f, 0.62f);
-        colors[ImGuiCol_TitleBg] = ImVec4(0.15f, 0.15f, 0.17f, 1.00f);
-        colors[ImGuiCol_TitleBgActive] = ImVec4(0.28f, 0.26f, 0.35f, 1.00f);
-        colors[ImGuiCol_TitleBgCollapsed] = ImVec4(0.00f, 0.00f, 0.00f, 0.51f);
-        colors[ImGuiCol_MenuBarBg] = ImVec4(0.20f, 0.19f, 0.24f, 1.00f);
-        colors[ImGuiCol_ScrollbarBg] = ImVec4(0.02f, 0.02f, 0.02f, 0.53f);
-        colors[ImGuiCol_ScrollbarGrab] = ImVec4(0.31f, 0.31f, 0.31f, 1.00f);
-        colors[ImGuiCol_ScrollbarGrabHovered] = ImVec4(0.41f, 0.41f, 0.41f, 1.00f);
-        colors[ImGuiCol_ScrollbarGrabActive] = ImVec4(0.51f, 0.51f, 0.51f, 1.00f);
-        colors[ImGuiCol_CheckMark] = ImVec4(0.60f, 0.56f, 0.77f, 1.00f);
-        colors[ImGuiCol_SliderGrab] = ImVec4(0.56f, 0.54f, 0.66f, 0.40f);
-        colors[ImGuiCol_SliderGrabActive] = ImVec4(0.76f, 0.73f, 0.88f, 0.40f);
-        colors[ImGuiCol_Button] = ImVec4(0.31f, 0.29f, 0.37f, 0.40f);
-        colors[ImGuiCol_ButtonHovered] = ImVec4(0.47f, 0.45f, 0.57f, 0.40f);
-        colors[ImGuiCol_ButtonActive] = ImVec4(0.21f, 0.20f, 0.26f, 0.40f);
-        colors[ImGuiCol_Header] = ImVec4(0.31f, 0.29f, 0.37f, 0.40f);
-        colors[ImGuiCol_HeaderHovered] = ImVec4(0.47f, 0.45f, 0.57f, 0.40f);
-        colors[ImGuiCol_HeaderActive] = ImVec4(0.21f, 0.20f, 0.25f, 0.40f);
-        colors[ImGuiCol_Separator] = ImVec4(0.43f, 0.43f, 0.50f, 0.50f);
-        colors[ImGuiCol_SeparatorHovered] = ImVec4(0.10f, 0.40f, 0.75f, 0.78f);
-        colors[ImGuiCol_SeparatorActive] = ImVec4(0.10f, 0.40f, 0.75f, 1.00f);
-        colors[ImGuiCol_ResizeGrip] = ImVec4(0.47f, 0.45f, 0.57f, 0.74f);
-        colors[ImGuiCol_ResizeGripHovered] = ImVec4(0.59f, 0.57f, 0.71f, 0.74f);
-        colors[ImGuiCol_ResizeGripActive] = ImVec4(0.35f, 0.33f, 0.41f, 0.74f);
-        colors[ImGuiCol_Tab] = ImVec4(0.456f, 0.439f, 0.541f, 0.400f);
-        colors[ImGuiCol_TabHovered] = ImVec4(0.51f, 0.49f, 0.62f, 0.40f);
-        colors[ImGuiCol_TabActive] = ImVec4(0.56f, 0.54f, 0.71f, 0.40f);
-        colors[ImGuiCol_TabUnfocused] = ImVec4(0.27f, 0.26f, 0.32f, 0.40f);
-        colors[ImGuiCol_TabUnfocusedActive] = ImVec4(0.42f, 0.39f, 0.57f, 0.40f);
-        colors[ImGuiCol_DockingPreview] = ImVec4(0.58f, 0.54f, 0.80f, 0.78f);
-        colors[ImGuiCol_DockingEmptyBg] = ImVec4(0.20f, 0.20f, 0.20f, 1.00f);
-        colors[ImGuiCol_PlotLines] = ImVec4(0.61f, 0.61f, 0.61f, 1.00f);
-        colors[ImGuiCol_PlotLinesHovered] = ImVec4(1.00f, 0.43f, 0.35f, 1.00f);
-        colors[ImGuiCol_PlotHistogram] = ImVec4(0.90f, 0.70f, 0.00f, 1.00f);
-        colors[ImGuiCol_PlotHistogramHovered] = ImVec4(1.00f, 0.60f, 0.00f, 1.00f);
-        colors[ImGuiCol_TextSelectedBg] = ImVec4(0.26f, 0.59f, 0.98f, 0.35f);
-        colors[ImGuiCol_DragDropTarget] = ImVec4(1.00f, 1.00f, 0.00f, 0.90f);
-        colors[ImGuiCol_NavHighlight] = ImVec4(0.26f, 0.59f, 0.98f, 1.00f);
-        colors[ImGuiCol_NavWindowingHighlight] = ImVec4(1.00f, 1.00f, 1.00f, 0.70f);
-        colors[ImGuiCol_NavWindowingDimBg] = ImVec4(0.80f, 0.80f, 0.80f, 0.20f);
-        colors[ImGuiCol_ModalWindowDimBg] = ImVec4(0.80f, 0.80f, 0.80f, 0.35f);
-
-        ImGui::GetStyle().WindowBorderSize = 0.0f;
-        ImGui::GetStyle().PopupBorderSize = 0.0f;
-        ImGui::GetStyle().FrameRounding = 2.0f;
-        ImGui::GetStyle().PopupRounding = 1.0f;
-        ImGui::GetStyle().ScrollbarRounding = 3.0f;
-        ImGui::GetStyle().GrabRounding = 2.0f;
-        ImGui::GetStyle().ChildBorderSize = 0.0f;
+        loadDefaultUITheme();
 
         ImGui_ImplSDL2_InitForVulkan(window);
 
@@ -531,7 +319,13 @@ namespace worlds {
 
         redrawSplashWindow(splashWindow, "initialising renderer");
 
-        RendererInitInfo initInfo{ window, additionalInstanceExts, additionalDeviceExts, enableOpenVR, activeApi, vrInterface, runAsEditor, "Converge" };
+        RendererInitInfo initInfo{
+            window,
+            additionalInstanceExts, additionalDeviceExts,
+            enableOpenVR, activeApi, vrInterface,
+            runAsEditor, "Converge"
+        };
+
         VKRenderer* renderer = new VKRenderer(initInfo, &renderInitSuccess);
 
         if (!renderInitSuccess) {
@@ -560,10 +354,6 @@ namespace worlds {
         entt::entity dirLightEnt = registry.create();
         registry.emplace<WorldLight>(dirLightEnt, LightType::Directional);
         registry.emplace<Transform>(dirLightEnt, glm::vec3(0.0f), glm::angleAxis(glm::radians(90.01f), glm::vec3(1.0f, 0.0f, 0.0f)));
-
-        AssetID lHandId = g_assetDB.addOrGetExisting("lhand.obj");
-
-        renderer->preloadMesh(lHandId);
 
         initPhysx(registry);
 
