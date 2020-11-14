@@ -1,7 +1,7 @@
 #pragma once
 
 namespace worlds {
-    void initRichPresence();
+    void initRichPresence(EngineInterfaces interfaces);
     void tickRichPresence();
     void shutdownRichPresence();
 }

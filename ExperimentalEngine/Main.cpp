@@ -339,7 +339,8 @@ namespace worlds {
                 .vrInterface = enableOpenVR ? &openvrInterface : nullptr,
                 .renderer = renderer,
                 .mainCamera = &cam,
-                .inputManager = inputManager.get()
+                .inputManager = inputManager.get(),
+                .engine = this
         };
 
         auto vkCtx = renderer->getVKCtx();
@@ -352,7 +353,7 @@ namespace worlds {
         if (!runAsEditor)
             pauseSim = false;
 
-        initRichPresence();
+        initRichPresence(interfaces);
 
         console->registerCommand(cmdLoadScene, "scene", "Loads a scene.", &registry);
         console->registerCommand(cmdToggleFullscreen, "toggleFullscreen", "Toggles fullscreen.", nullptr);
@@ -386,6 +387,10 @@ namespace worlds {
             pauseSim = false;
             renderer->reloadMatsAndTextures();
             }, "unpause", "unpause and go back to play mode.", nullptr);
+
+        console->registerCommand([&](void*, const char*) {
+            renderer->reloadMatsAndTextures();
+            }, "reloadContent", "Reloads materials, textures and meshes.", nullptr);
 
         if (runAsEditor)
             disableSimInterp.setValue("1");
@@ -655,61 +660,13 @@ namespace worlds {
             uint64_t updateLength = updateEnd - updateStart;
             double updateTime = updateLength / (double)SDL_GetPerformanceFrequency();
 
-            if (showDebugInfo.getInt()) {
-                bool open = true;
-                if (ImGui::Begin("Info", &open)) {
-                    static float historicalFrametimes[128] = { 0.0f };
-                    static int historicalFrametimeIdx = 0;
-
-                    historicalFrametimes[historicalFrametimeIdx] = deltaTime * 1000.0;
-                    historicalFrametimeIdx++;
-                    if (historicalFrametimeIdx >= 128) {
-                        historicalFrametimeIdx = 0;
-                    }
-
-                    if (ImGui::CollapsingHeader(ICON_FA_CLOCK u8" Performance")) {
-                        ImGui::PlotLines("Historical Frametimes", historicalFrametimes, 128, historicalFrametimeIdx, nullptr, 0.0f, 20.0f, ImVec2(0.0f, 125.0f));
-                        ImGui::Text("Frametime: %.3fms", deltaTime * 1000.0);
-                        ImGui::Text("Update time: %.3fms", updateTime * 1000.0);
-                        ImGui::Text("Physics time: %.3fms", simTime);
-                        ImGui::Text("Update time without physics: %.3fms", (updateTime * 1000.0) - simTime);
-                        ImGui::Text("Framerate: %.1ffps", 1.0 / deltaTime);
-                    }
-
-                    if (ImGui::CollapsingHeader(ICON_FA_BARS u8" Misc")) {
-                        ImGui::Text("Frame: %i", frameCounter);
-                        ImGui::Text("Cam pos: %.3f, %.3f, %.3f", cam.position.x, cam.position.y, cam.position.z);
-
-                        if (ImGui::Button("Unload Unused Assets")) {
-                            renderer->unloadUnusedMaterials(registry);
-                        }
-
-                        if (ImGui::Button("Reload Materials and Textures")) {
-                            renderer->reloadMatsAndTextures();
-                        }
-                    }
-
-                    if (ImGui::CollapsingHeader(ICON_FA_PENCIL_ALT u8" Render Stats")) {
-                        ImGui::Text("Draw calls: %i", renderer->getDebugStats().numDrawCalls);
-                        ImGui::Text("Frustum culled objects: %i", renderer->getDebugStats().numCulledObjs);
-                        ImGui::Text("GPU memory usage: %.3fMB", (double)renderer->getDebugStats().vramUsage / 1024.0 / 1024.0);
-                        ImGui::Text("Active RTT passes: %i", renderer->getDebugStats().numRTTPasses);
-                        ImGui::Text("Time spent in renderer: %.3fms", (deltaTime - lastUpdateTime) * 1000.0);
-                        ImGui::Text("GPU render time: %.3fms", renderer->getLastRenderTime() / 1000.0f / 1000.0f);
-                        ImGui::Text("V-Sync status: %s", renderer->getVsync() ? "On" : "Off");
-
-                        size_t numLights = registry.view<WorldLight>().size();
-                        size_t worldObjects = registry.view<WorldObject>().size();
-
-                        ImGui::Text("%u light(s) / %u world object(s)", numLights, worldObjects);
-                    }
-                }
-                ImGui::End();
-
-                if (!open) {
-                    showDebugInfo.setValue("0");
-                }
-            }
+            DebugTimeInfo dti;
+            dti.deltaTime = deltaTime;
+            dti.frameCounter = frameCounter;
+            dti.lastUpdateTime = lastUpdateTime;
+            dti.updateTime = updateTime;
+            dti.simTime = simTime;
+            drawDebugInfoWindow(dti);
 
             if (enableOpenVR) {
                 auto pVRSystem = vr::VRSystem();
@@ -741,7 +698,7 @@ namespace worlds {
 
             glm::vec3 camPos = cam.position;
 
-            registry.sort<ProceduralObject>([&](entt::entity a, entt::entity b) {
+            /*registry.sort<ProceduralObject>([&](entt::entity a, entt::entity b) {
                 auto& aTransform = registry.get<Transform>(a);
                 auto& bTransform = registry.get<Transform>(b);
                 return glm::distance2(camPos, aTransform.position) < glm::distance2(camPos, bTransform.position);
@@ -751,7 +708,7 @@ namespace worlds {
                 auto& aTransform = registry.get<Transform>(a);
                 auto& bTransform = registry.get<Transform>(b);
                 return glm::distance2(camPos, aTransform.position) < glm::distance2(camPos, bTransform.position) || registry.has<UseWireframe>(a);
-                }, entt::insertion_sort{});
+                }, entt::insertion_sort{});*/
 
             ImGui::UpdatePlatformWindows();
             ImGui::RenderPlatformWindowsDefault();
@@ -784,6 +741,64 @@ namespace worlds {
                 screenRTTCI.outputToScreen = true;
                 screenRTTCI.useForPicking = false;
                 screenRTTPass = renderer->createRTTPass(screenRTTCI);
+            }
+        }
+    }
+
+    void WorldsEngine::drawDebugInfoWindow(DebugTimeInfo timeInfo) {
+        if (showDebugInfo.getInt()) {
+            bool open = true;
+            if (ImGui::Begin("Info", &open)) {
+                static float historicalFrametimes[128] = { 0.0f };
+                static int historicalFrametimeIdx = 0;
+
+                historicalFrametimes[historicalFrametimeIdx] = timeInfo.deltaTime * 1000.0;
+                historicalFrametimeIdx++;
+                if (historicalFrametimeIdx >= 128) {
+                    historicalFrametimeIdx = 0;
+                }
+
+                if (ImGui::CollapsingHeader(ICON_FA_CLOCK u8" Performance")) {
+                    ImGui::PlotLines("Historical Frametimes", historicalFrametimes, 128, historicalFrametimeIdx, nullptr, 0.0f, 20.0f, ImVec2(0.0f, 125.0f));
+                    ImGui::Text("Frametime: %.3fms", timeInfo.deltaTime * 1000.0);
+                    ImGui::Text("Update time: %.3fms", timeInfo.updateTime * 1000.0);
+                    ImGui::Text("Physics time: %.3fms", timeInfo.simTime);
+                    ImGui::Text("Update time without physics: %.3fms", (timeInfo.updateTime * 1000.0) - timeInfo.simTime);
+                    ImGui::Text("Framerate: %.1ffps", 1.0 / timeInfo.deltaTime);
+                }
+
+                if (ImGui::CollapsingHeader(ICON_FA_BARS u8" Misc")) {
+                    ImGui::Text("Frame: %i", timeInfo.frameCounter);
+                    ImGui::Text("Cam pos: %.3f, %.3f, %.3f", cam.position.x, cam.position.y, cam.position.z);
+
+                    if (ImGui::Button("Unload Unused Assets")) {
+                        renderer->unloadUnusedMaterials(registry);
+                    }
+
+                    if (ImGui::Button("Reload Materials and Textures")) {
+                        renderer->reloadMatsAndTextures();
+                    }
+                }
+
+                if (ImGui::CollapsingHeader(ICON_FA_PENCIL_ALT u8" Render Stats")) {
+                    ImGui::Text("Draw calls: %i", renderer->getDebugStats().numDrawCalls);
+                    ImGui::Text("Frustum culled objects: %i", renderer->getDebugStats().numCulledObjs);
+                    ImGui::Text("GPU memory usage: %.3fMB", (double)renderer->getDebugStats().vramUsage / 1024.0 / 1024.0);
+                    ImGui::Text("Active RTT passes: %i", renderer->getDebugStats().numRTTPasses);
+                    ImGui::Text("Time spent in renderer: %.3fms", (timeInfo.deltaTime - timeInfo.lastUpdateTime) * 1000.0);
+                    ImGui::Text("GPU render time: %.3fms", renderer->getLastRenderTime() / 1000.0f / 1000.0f);
+                    ImGui::Text("V-Sync status: %s", renderer->getVsync() ? "On" : "Off");
+
+                    size_t numLights = registry.view<WorldLight>().size();
+                    size_t worldObjects = registry.view<WorldObject>().size();
+
+                    ImGui::Text("%u light(s) / %u world object(s)", numLights, worldObjects);
+                }
+            }
+            ImGui::End();
+
+            if (!open) {
+                showDebugInfo.setValue("0");
             }
         }
     }

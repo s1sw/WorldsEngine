@@ -44,11 +44,20 @@ namespace worlds {
         bool pauseSim;
         bool runAsEditor;
     private:
+        struct DebugTimeInfo {
+            double deltaTime;
+            double updateTime;
+            double simTime;
+            double lastUpdateTime;
+            int frameCounter;
+        };
+
         static int windowThread(void* data);
         void setupSDL();
         static SDL_Window* createSDLWindow();
         void setupPhysfs(char* argv0);
         void createStartupScene();
+        void drawDebugInfoWindow(DebugTimeInfo timeInfo);
         bool running;
         VKRenderer* renderer;
         entt::registry registry;
