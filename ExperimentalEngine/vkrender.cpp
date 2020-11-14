@@ -294,7 +294,9 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     , nextHandle(0u)
     , finalPrePresent(UINT_MAX)
     , finalPrePresentR(UINT_MAX)
-    , imguiImage(UINT_MAX) {
+    , imguiImage(UINT_MAX)
+    , minimised(false)
+    , useVsync(false) {
     msaaSamples = vk::SampleCountFlagBits::e2;
     numMSAASamples = 2;
 
@@ -555,6 +557,13 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
 
     uint32_t s = cubemapSlots->loadOrGet(g_assetDB.addOrGetExisting("Cubemap2.json"));
     cubemapConvoluter->convolute((*cubemapSlots)[s]);
+
+    g_console->registerCommand([&](void* data, const char* arg) {
+        numMSAASamples = std::atoi(arg);
+        // The sample count flags are actually identical to the number of samples
+        msaaSamples = (vk::SampleCountFlagBits)numMSAASamples;
+        recreateSwapchain();
+        }, "r_setMSAASamples", "Sets the number of MSAA samples.", nullptr);
 }
 
 // Quite a lot of resources are dependent on either the number of images
@@ -574,19 +583,7 @@ void VKRenderer::createSCDependents() {
     }
 
     PassSetupCtx psc{ 
-        physicalDevice, 
-        *device, 
-        *pipelineCache, 
-        *descriptorPool, 
-        *commandPool, 
-        *instance, 
-        allocator, 
-        graphicsQueueFamilyIdx, 
-        GraphicsSettings { 
-            numMSAASamples, 
-            (int32_t)shadowmapRes, 
-            enableVR
-        }, 
+        getVKCtx(),
         &texSlots, 
         &cubemapSlots, 
         &matSlots, 
@@ -657,8 +654,20 @@ void VKRenderer::recreateSwapchain() {
 
     if (surfaceCaps.currentExtent.width == 0 || surfaceCaps.currentExtent.height == 0) {
         logMsg(WELogCategoryRender, "Ignoring resize with 0 width or height");
+        isMinimised = true;
+
+        while (isMinimised) {
+            auto surfaceCaps = this->physicalDevice.getSurfaceCapabilitiesKHR(this->surface);
+            isMinimised = surfaceCaps.currentExtent.width == 0 || surfaceCaps.currentExtent.height == 0;
+            SDL_PumpEvents();
+            SDL_Delay(50);
+        }
+
+        recreateSwapchain();
         return;
     }
+
+    isMinimised = false;
 
     logMsg(WELogCategoryRender, "Recreating swapchain: New surface size is %ix%i",
         surfaceCaps.currentExtent.width, surfaceCaps.currentExtent.height);
@@ -904,7 +913,7 @@ void VKRenderer::writeCmdBuf(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageInde
         clearMaterialIndices = false;
     }
 
-    PassSetupCtx psc{ physicalDevice, *device, *pipelineCache, *descriptorPool, *commandPool, *instance, allocator, graphicsQueueFamilyIdx, GraphicsSettings{numMSAASamples, (int32_t)shadowmapRes, enableVR}, &texSlots, &cubemapSlots, &matSlots, rtResources, (int)swapchain->images.size(), enableVR, &brdfLut };
+    PassSetupCtx psc{ getVKCtx(), &texSlots, &cubemapSlots, &matSlots, rtResources, (int)swapchain->images.size(), enableVR, &brdfLut };
 
     uploadSceneAssets(reg, rCtx);
 
@@ -1367,7 +1376,7 @@ RTTPassHandle VKRenderer::createRTTPass(RTTPassCreateInfo& ci) {
         rpi.sdrFinalTarget = createRTResource(sdrTarget, "SDR Target");
     }
 
-    PassSetupCtx psc{ physicalDevice, *device, *pipelineCache, *descriptorPool, *commandPool, *instance, allocator, graphicsQueueFamilyIdx, GraphicsSettings{numMSAASamples, (int32_t)shadowmapRes, enableVR}, &texSlots, &cubemapSlots, &matSlots, rtResources, (int)swapchain->images.size(), ci.isVr, &brdfLut };
+    PassSetupCtx psc{ getVKCtx(), &texSlots, &cubemapSlots, &matSlots, rtResources, (int)swapchain->images.size(), ci.isVr, &brdfLut };
 
     auto tonemapRP = new TonemapRenderPass(rpi.hdrTarget, ci.outputToScreen ? finalPrePresent : rpi.sdrFinalTarget);
     rpi.graphSolver.addNode(tonemapRP);

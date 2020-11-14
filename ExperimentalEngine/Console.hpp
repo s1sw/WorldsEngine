@@ -23,7 +23,7 @@ namespace worlds {
         const char* getHelp() const { return help; }
         void setValue(std::string newValue);
         operator float() const { return getFloat(); }
-        operator int() const { return getInt(); }
+        operator bool() const { return (bool)getInt(); }
     private:
         const char* help;
         const char* name;
@@ -46,7 +46,7 @@ namespace worlds {
         ~Console();
     private:
         bool show;
-        bool justOpened;
+        bool setKeyboardFocus;
         struct Command {
             CommandFuncPtr func;
             const char* name;

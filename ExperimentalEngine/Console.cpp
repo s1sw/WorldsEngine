@@ -105,7 +105,7 @@ namespace worlds {
     Console::Console()
         : show(false)
         , logFileStream("converge.log")
-        , justOpened(false) {
+        , setKeyboardFocus(false) {
         g_console = this;
         SDL_LogSetOutputFunction(logCallback, this);
         SDL_LogSetPriority(CONSOLE_RESPONSE_CATEGORY, SDL_LOG_PRIORITY_INFO);
@@ -121,21 +121,21 @@ namespace worlds {
 #endif
         }
 
-if (firstLink != nullptr) {
-    ConvarLink* curr = firstLink;
+        if (firstLink != nullptr) {
+            ConvarLink* curr = firstLink;
 
-    while (curr != nullptr) {
-        ConvarLink* next = curr->next;
-        std::string nameLower = curr->var->name;
-        for (auto& c : nameLower) {
-            c = std::tolower(c);
+            while (curr != nullptr) {
+                ConvarLink* next = curr->next;
+                std::string nameLower = curr->var->name;
+                for (auto& c : nameLower) {
+                    c = std::tolower(c);
+                }
+
+                conVars.insert({ nameLower, curr->var });
+                delete curr;
+                curr = next;
+            }
         }
-
-        conVars.insert({ nameLower, curr->var });
-        delete curr;
-        curr = next;
-    }
-}
     }
 
     void Console::registerCommand(CommandFuncPtr cmd, const char* name, const char* help, void* obj) {
@@ -184,8 +184,16 @@ if (firstLink != nullptr) {
         }
     }
 
+    bool strCompare(const char* a, const char* b) { return strcmp(a, b) < 0; }
+
     int Console::inputTextCallback(ImGuiInputTextCallbackData* data) {
-        if (data->EventFlag == ImGuiInputTextFlags_CallbackHistory) {
+        static int completionPos = 0;
+        static bool completionsCached = false;
+        static std::vector<const char*> completions;
+
+        switch (data->EventFlag) {
+        case ImGuiInputTextFlags_CallbackHistory:
+        {
             if (g_console->previousCommands.size() == 0) return 0;
 
             if (data->EventKey == ImGuiKey_UpArrow) {
@@ -201,6 +209,59 @@ if (firstLink != nullptr) {
             auto historyCmd = g_console->previousCommands[g_console->historyPos];
             data->DeleteChars(0, data->BufTextLen);
             data->InsertChars(0, historyCmd.c_str());
+            break;
+        }
+        case ImGuiInputTextFlags_CallbackCompletion:
+        {
+            if (!completionsCached) {
+                completionPos = 0;
+                completions.clear();
+                std::string lowerified = data->Buf;
+                for (auto& c : lowerified)
+                    c = std::tolower(c);
+
+                // search for commands
+                for (auto& pair : g_console->commands) {
+                    if (pair.first.starts_with(lowerified)) {
+                        completions.push_back(pair.second.name);
+                    }
+                }
+
+                // search for convars
+                for (auto& pair : g_console->conVars) {
+                    if (pair.first.starts_with(lowerified)) {
+                        completions.push_back(pair.second->name);
+                    }
+                }
+
+                std::sort(completions.begin(), completions.end(), strCompare);
+
+                completionsCached = true;
+
+                if (completions.size() > 1) {
+                    g_console->msgs.push_back(ConsoleMsg{ SDL_LOG_PRIORITY_INFO, "completions: ", CONSOLE_RESPONSE_CATEGORY });
+                    for (auto& completion : completions) {
+                        g_console->msgs.push_back(ConsoleMsg{ SDL_LOG_PRIORITY_INFO, completion, CONSOLE_RESPONSE_CATEGORY });
+                    }
+                }
+            } else {
+                completionPos++;
+
+                if (completionPos >= completions.size())
+                    completionPos = 0;
+            }
+
+            if (!completions.empty()) {
+                data->DeleteChars(0, data->BufTextLen);
+                data->InsertChars(0, completions[completionPos]);
+            }
+            break;
+        }
+        case ImGuiInputTextFlags_CallbackEdit:
+        {
+            completionsCached = false;
+            break;
+        }
         }
         return 0;
     }
@@ -211,7 +272,7 @@ if (firstLink != nullptr) {
         }
 
         if (!show) {
-            justOpened = true;
+            setKeyboardFocus = true;
             return;
         }
 
@@ -242,25 +303,26 @@ if (firstLink != nullptr) {
 
             ImGui::EndChild();
 
-            if (justOpened)
+            if (setKeyboardFocus)
                 ImGui::SetKeyboardFocusHere();
-            bool executeCmd = ImGui::InputText("##command", &currentCommand, ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_CallbackHistory, inputTextCallback);
+            bool executeCmd = ImGui::InputText("##command", &currentCommand, ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_CallbackHistory | ImGuiInputTextFlags_CallbackCompletion | ImGuiInputTextFlags_CallbackEdit, inputTextCallback);
 
             ImGui::SameLine();
             executeCmd |= ImGui::Button("Submit");
+
+            setKeyboardFocus = false;
 
             if (executeCmd) {
                 executeCommandStr(currentCommand);
                 previousCommands.push_back(currentCommand);
                 currentCommand.clear();
                 historyPos = previousCommands.size();
+                setKeyboardFocus = true;
             }
 
             ImGui::SetItemDefaultFocus();
         }
         ImGui::End();
-
-        justOpened = false;
     }
 
     void Console::setShowState(bool show) {
@@ -293,8 +355,13 @@ if (firstLink != nullptr) {
             auto cmdPos = commands.find(cmdString);
 
             if (convarPos != conVars.end()) {
-                (*convarPos).second->setValue(argString.c_str());
-                logMsg(CONSOLE_RESPONSE_CATEGORY, "%s = %s", cmdString.c_str(), argString.c_str());
+                std::string valStr = argString;
+
+                if (argString[0] == '=')
+                    valStr = valStr.substr(1);
+
+                (*convarPos).second->setValue(valStr.c_str());
+                logMsg(CONSOLE_RESPONSE_CATEGORY, "%s = %s", cmdString.c_str(), valStr.c_str());
             } else if (cmdPos != commands.end()) {
                 (*cmdPos).second.func((*cmdPos).second.obj, argString.c_str());
                 logMsg(CONSOLE_RESPONSE_CATEGORY, cmdString.c_str());

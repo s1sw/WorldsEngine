@@ -62,7 +62,7 @@ namespace worlds {
     struct LightUB {
         glm::vec4 pack0;
         glm::mat4 shadowmapMatrix;
-        PackedLight lights[16];
+        PackedLight lights[128];
     };
 
     struct QueueFamilyIndices {
@@ -215,26 +215,6 @@ namespace worlds {
         RenderDebugStats* dbgStats;
     };
 
-    struct PassSetupCtx {
-        vk::PhysicalDevice physicalDevice;
-        vk::Device device;
-        vk::PipelineCache pipelineCache;
-        vk::DescriptorPool descriptorPool;
-        // Please only use the pool passed here for immediately executing commands during the setup phase.
-        vk::CommandPool commandPool;
-        vk::Instance instance;
-        VmaAllocator allocator;
-        uint32_t graphicsQueueFamilyIdx;
-        GraphicsSettings graphicsSettings;
-        std::unique_ptr<TextureSlots>* globalTexArray;
-        std::unique_ptr<CubemapSlots>* cubemapSlots;
-        std::unique_ptr<MaterialSlots>* materialSlots;
-        std::unordered_map<RenderImageHandle, RenderTextureResource>& rtResources;
-        int swapchainImageCount;
-        bool enableVR;
-        vku::GenericImage* brdfLut;
-    };
-
     // Holds handles to useful Vulkan objects
     struct VulkanCtx {
         vk::PhysicalDevice physicalDevice;
@@ -248,6 +228,17 @@ namespace worlds {
         GraphicsSettings graphicsSettings;
         uint32_t width, height;
         uint32_t renderWidth, renderHeight;
+    };
+
+    struct PassSetupCtx {
+        VulkanCtx vkCtx;
+        std::unique_ptr<TextureSlots>* globalTexArray;
+        std::unique_ptr<CubemapSlots>* cubemapSlots;
+        std::unique_ptr<MaterialSlots>* materialSlots;
+        std::unordered_map<RenderImageHandle, RenderTextureResource>& rtResources;
+        int swapchainImageCount;
+        bool enableVR;
+        vku::GenericImage* brdfLut;
     };
 
     class XRInterface;
@@ -413,6 +404,7 @@ namespace worlds {
         RTTPassHandle vrPass;
         RTTPassHandle nextHandle;
         RTTPassHandle mainPass;
+        bool minimised;
     public:
         double time;
         VKRenderer(const RendererInitInfo& initInfo, bool* success);

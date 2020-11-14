@@ -3,6 +3,7 @@
 #include "Transform.hpp"
 #include "Render.hpp"
 #include "Frustum.hpp"
+#include "tracy/Tracy.hpp"
 
 namespace worlds {
     struct ShadowmapPushConstants {
@@ -29,7 +30,9 @@ namespace worlds {
         return io;
     }
 
-    void ShadowmapRenderPass::setup(PassSetupCtx& ctx) {
+    void ShadowmapRenderPass::setup(PassSetupCtx& psCtx) {
+        ZoneScoped;
+        auto& ctx = psCtx.vkCtx;
         shadowmapRes = ctx.graphicsSettings.shadowmapRes;
         auto memoryProps = ctx.physicalDevice.getMemoryProperties();
         vku::DescriptorSetLayoutMaker dslm;
@@ -72,7 +75,7 @@ namespace worlds {
 
         pipeline = pm.createUnique(ctx.device, ctx.pipelineCache, *pipelineLayout, *renderPass);
 
-        std::array<vk::ImageView, 1> shadowmapAttachments = { ctx.rtResources.at(shadowImage).image.imageView() };
+        std::array<vk::ImageView, 1> shadowmapAttachments = { psCtx.rtResources.at(shadowImage).image.imageView() };
         vk::FramebufferCreateInfo fci;
         fci.attachmentCount = (uint32_t)shadowmapAttachments.size();
         fci.pAttachments = shadowmapAttachments.data();

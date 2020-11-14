@@ -16,146 +16,56 @@
     <Filter Include="Header Files\Components">
       <UniqueIdentifier>{3d073cc9-a8c0-4e8f-b0ca-213f8f420782}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\SceneSerializationFunctions">
-      <UniqueIdentifier>{a04a6d83-ccda-40fc-b142-057cd47cf5f1}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Source Files\EditorWindows">
       <UniqueIdentifier>{300cb36e-2721-415a-8184-0461d1b7e04b}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\RenderPasses">
+      <UniqueIdentifier>{46eefd04-80e1-451d-a3c7-cb6a45c47237}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Systems">
+      <UniqueIdentifier>{3c2ae36b-71b1-43a9-9eeb-54aca421b145}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Loaders">
+      <UniqueIdentifier>{9a419935-03cf-4679-ad73-08f2963f3992}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Dear ImGUI">
+      <UniqueIdentifier>{51448081-c2cc-45c6-a976-e8174bc13573}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\External">
+      <UniqueIdentifier>{fd3ab79d-0d46-40a9-9e7a-9b509ac2cdad}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Util">
+      <UniqueIdentifier>{f835e961-a5b0-4959-ae21-0c33261206f9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Systems\Render">
+      <UniqueIdentifier>{fe85f981-e051-46d3-ba22-2564e458377f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Misc">
+      <UniqueIdentifier>{0cb3c6d2-de76-434b-9b3d-84abd5a656f6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Systems">
+      <UniqueIdentifier>{9ef81e09-a44f-4f81-a0e5-e04086bd794d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\External">
+      <UniqueIdentifier>{9f6e7b43-f619-4bc5-9624-5e360449f0c3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Dear ImGUI">
+      <UniqueIdentifier>{7ba03b6b-c036-493b-95de-583a44c011fe}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Systems\Render">
+      <UniqueIdentifier>{e57ad13e-6d09-462c-9eb1-948de84a5d3c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Misc">
+      <UniqueIdentifier>{cc2bc370-592e-4fc2-8e96-f93adca32df3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\VR">
+      <UniqueIdentifier>{e37b781e-94d9-4008-b846-1d6f515f8059}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Util">
+      <UniqueIdentifier>{e525c035-ded6-4e46-bf54-3cb73d9f55d3}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Main.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="JobSystem.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="vkrender.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="tiny_obj_loader.cc">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="imgui_impl_sdl.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="imgui_impl_vulkan.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="AssetDB.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="physfs.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Physics.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="vkswapchain.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Input.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="tracy\TracyClient.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="SourceModelLoader.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="RenderGraph.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="PolyRenderPass.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="ShadowmapRenderPass.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="TonemapRenderPass.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="ImGuiRenderPass.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="spirv_reflect.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Editor.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="ImGuizmo.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="imgui_stdlib.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="imgui_draw.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="imgui_widgets.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="imgui.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="GuiUtil.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="ShaderMetadata.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="SceneSerialization.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Fatal.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="TextureLoader.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="MaterialSlots.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Audio.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="CubemapLoader.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="BRDFLUTRenderer.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="CubemapConvoluter.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Console.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="IOUtil.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="mikktspace.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="ObjModelLoader.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="weldmesh.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="VTFLoader.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="SceneSerializationFunctions.cpp">
-      <Filter>Source Files\SceneSerializationFunctions</Filter>
-    </ClCompile>
-    <ClCompile Include="VKImGUIUtil.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="stb_vorbis.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="EntityList.cpp">
       <Filter>Source Files\EditorWindows</Filter>
     </ClCompile>
@@ -171,46 +81,148 @@
     <ClCompile Include="StyleEditor.cpp">
       <Filter>Source Files\EditorWindows</Filter>
     </ClCompile>
+    <ClCompile Include="ImGuiRenderPass.cpp">
+      <Filter>Source Files\RenderPasses</Filter>
+    </ClCompile>
+    <ClCompile Include="PolyRenderPass.cpp">
+      <Filter>Source Files\RenderPasses</Filter>
+    </ClCompile>
+    <ClCompile Include="ShadowmapRenderPass.cpp">
+      <Filter>Source Files\RenderPasses</Filter>
+    </ClCompile>
+    <ClCompile Include="Main.cpp">
+      <Filter>Source Files\Systems</Filter>
+    </ClCompile>
+    <ClCompile Include="Physics.cpp">
+      <Filter>Source Files\Systems</Filter>
+    </ClCompile>
+    <ClCompile Include="CubemapLoader.cpp">
+      <Filter>Source Files\Loaders</Filter>
+    </ClCompile>
+    <ClCompile Include="SourceModelLoader.cpp">
+      <Filter>Source Files\Loaders</Filter>
+    </ClCompile>
+    <ClCompile Include="SceneSerialization.cpp">
+      <Filter>Source Files\Loaders</Filter>
+    </ClCompile>
+    <ClCompile Include="TextureLoader.cpp">
+      <Filter>Source Files\Loaders</Filter>
+    </ClCompile>
+    <ClCompile Include="VTFLoader.cpp">
+      <Filter>Source Files\Loaders</Filter>
+    </ClCompile>
+    <ClCompile Include="TonemapRenderPass.cpp">
+      <Filter>Source Files\RenderPasses</Filter>
+    </ClCompile>
+    <ClCompile Include="ObjModelLoader.cpp">
+      <Filter>Source Files\Loaders</Filter>
+    </ClCompile>
+    <ClCompile Include="Input.cpp">
+      <Filter>Source Files\Systems</Filter>
+    </ClCompile>
+    <ClCompile Include="imgui.cpp">
+      <Filter>Source Files\Dear ImGUI</Filter>
+    </ClCompile>
     <ClCompile Include="imgui_demo.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\Dear ImGUI</Filter>
+    </ClCompile>
+    <ClCompile Include="imgui_draw.cpp">
+      <Filter>Source Files\Dear ImGUI</Filter>
+    </ClCompile>
+    <ClCompile Include="imgui_impl_sdl.cpp">
+      <Filter>Source Files\Dear ImGUI</Filter>
+    </ClCompile>
+    <ClCompile Include="imgui_impl_vulkan.cpp">
+      <Filter>Source Files\Dear ImGUI</Filter>
+    </ClCompile>
+    <ClCompile Include="imgui_stdlib.cpp">
+      <Filter>Source Files\Dear ImGUI</Filter>
+    </ClCompile>
+    <ClCompile Include="imgui_widgets.cpp">
+      <Filter>Source Files\Dear ImGUI</Filter>
+    </ClCompile>
+    <ClCompile Include="ImGuizmo.cpp">
+      <Filter>Source Files\External</Filter>
+    </ClCompile>
+    <ClCompile Include="spirv_reflect.c">
+      <Filter>Source Files\External</Filter>
+    </ClCompile>
+    <ClCompile Include="stb_vorbis.c">
+      <Filter>Source Files\External</Filter>
+    </ClCompile>
+    <ClCompile Include="mikktspace.c">
+      <Filter>Source Files\External</Filter>
+    </ClCompile>
+    <ClCompile Include="weldmesh.c">
+      <Filter>Source Files\External</Filter>
+    </ClCompile>
+    <ClCompile Include="tracy\TracyClient.cpp">
+      <Filter>Source Files\External</Filter>
+    </ClCompile>
+    <ClCompile Include="tiny_obj_loader.cc">
+      <Filter>Source Files\External</Filter>
+    </ClCompile>
+    <ClCompile Include="physfs.cpp">
+      <Filter>Source Files\External</Filter>
+    </ClCompile>
+    <ClCompile Include="GuiUtil.cpp">
+      <Filter>Source Files\Util</Filter>
+    </ClCompile>
+    <ClCompile Include="IOUtil.cpp">
+      <Filter>Source Files\Util</Filter>
+    </ClCompile>
+    <ClCompile Include="VKImGUIUtil.cpp">
+      <Filter>Source Files\Util</Filter>
+    </ClCompile>
+    <ClCompile Include="vkrender.cpp">
+      <Filter>Source Files\Systems\Render</Filter>
+    </ClCompile>
+    <ClCompile Include="vkswapchain.cpp">
+      <Filter>Source Files\Systems\Render</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderGraph.cpp">
+      <Filter>Source Files\Systems\Render</Filter>
+    </ClCompile>
+    <ClCompile Include="MaterialSlots.cpp">
+      <Filter>Source Files\Systems\Render</Filter>
+    </ClCompile>
+    <ClCompile Include="BRDFLUTRenderer.cpp">
+      <Filter>Source Files\Systems\Render</Filter>
+    </ClCompile>
+    <ClCompile Include="CubemapConvoluter.cpp">
+      <Filter>Source Files\Systems\Render</Filter>
+    </ClCompile>
+    <ClCompile Include="Audio.cpp">
+      <Filter>Source Files\Systems</Filter>
+    </ClCompile>
+    <ClCompile Include="AssetDB.cpp">
+      <Filter>Source Files\Systems</Filter>
+    </ClCompile>
+    <ClCompile Include="JobSystem.cpp">
+      <Filter>Source Files\Systems</Filter>
+    </ClCompile>
+    <ClCompile Include="Console.cpp">
+      <Filter>Source Files\Misc</Filter>
+    </ClCompile>
+    <ClCompile Include="Fatal.cpp">
+      <Filter>Source Files\Misc</Filter>
+    </ClCompile>
+    <ClCompile Include="ShaderMetadata.cpp">
+      <Filter>Source Files\Misc</Filter>
+    </ClCompile>
+    <ClCompile Include="Editor.cpp">
+      <Filter>Source Files\Misc</Filter>
+    </ClCompile>
+    <ClCompile Include="SceneSerializationFunctions.cpp">
+      <Filter>Source Files\Loaders</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="JobSystem.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Engine.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="RendererComponents.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="AssetDB.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="tiny_obj_loader.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="imgui_impl_sdl.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="imgui_impl_vulkan.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="physfs.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Physics.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Transform.hpp">
       <Filter>Header Files\Components</Filter>
-    </ClInclude>
-    <ClInclude Include="vku\vku.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Input.hpp">
-      <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="PhysicsActor.hpp">
       <Filter>Header Files\Components</Filter>
@@ -218,22 +230,7 @@
     <ClInclude Include="PCH.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="XRInterface.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="SourceModelLoader.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="GlmStreamOps.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="RenderGraph.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="RenderPasses.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="spirv_reflect.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Editor.hpp">
@@ -242,31 +239,7 @@
     <ClInclude Include="Camera.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="ImGuizmo.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="GuiUtil.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="imgui_stdlib.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="imconfig.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="imgui.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="imgui_internal.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="ComponentMetadata.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="OpenVRInterface.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="IVRInterface.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="ShaderMetadata.hpp">
@@ -290,43 +263,19 @@
     <ClInclude Include="Log.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Audio.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="CubemapLoader.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Console.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="IOUtil.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Result.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="LogCategories.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="mikktspace.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="ObjModelLoader.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="weldmesh.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="IGameEventHandler.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Render.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="TimingUtil.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="MatUtil.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="SceneSerializationFuncs.hpp">
@@ -338,20 +287,113 @@
     <ClInclude Include="Frustum.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="VKImGUIUtil.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="EditorWindows.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="CreateModelObject.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="IconsFontAwesome5.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="Audio.hpp">
+      <Filter>Header Files\Systems</Filter>
+    </ClInclude>
+    <ClInclude Include="AssetDB.hpp">
+      <Filter>Header Files\Systems</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine.hpp">
+      <Filter>Header Files\Systems</Filter>
     </ClInclude>
     <ClInclude Include="IconsFontaudio.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\External</Filter>
+    </ClInclude>
+    <ClInclude Include="IconsFontAwesome5.h">
+      <Filter>Header Files\External</Filter>
+    </ClInclude>
+    <ClInclude Include="ImGuizmo.h">
+      <Filter>Header Files\External</Filter>
+    </ClInclude>
+    <ClInclude Include="imconfig.h">
+      <Filter>Header Files\Dear ImGUI</Filter>
+    </ClInclude>
+    <ClInclude Include="imgui.h">
+      <Filter>Header Files\Dear ImGUI</Filter>
+    </ClInclude>
+    <ClInclude Include="imgui_impl_sdl.h">
+      <Filter>Header Files\Dear ImGUI</Filter>
+    </ClInclude>
+    <ClInclude Include="imgui_impl_vulkan.h">
+      <Filter>Header Files\Dear ImGUI</Filter>
+    </ClInclude>
+    <ClInclude Include="imgui_internal.h">
+      <Filter>Header Files\Dear ImGUI</Filter>
+    </ClInclude>
+    <ClInclude Include="imgui_stdlib.h">
+      <Filter>Header Files\Dear ImGUI</Filter>
+    </ClInclude>
+    <ClInclude Include="Physics.hpp">
+      <Filter>Header Files\Systems</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderPasses.hpp">
+      <Filter>Header Files\Systems\Render</Filter>
+    </ClInclude>
+    <ClInclude Include="Render.hpp">
+      <Filter>Header Files\Systems\Render</Filter>
+    </ClInclude>
+    <ClInclude Include="RendererComponents.hpp">
+      <Filter>Header Files\Systems\Render</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderGraph.hpp">
+      <Filter>Header Files\Systems\Render</Filter>
+    </ClInclude>
+    <ClInclude Include="physfs.hpp">
+      <Filter>Header Files\External</Filter>
+    </ClInclude>
+    <ClInclude Include="spirv_reflect.h">
+      <Filter>Header Files\External</Filter>
+    </ClInclude>
+    <ClInclude Include="tiny_obj_loader.h">
+      <Filter>Header Files\External</Filter>
+    </ClInclude>
+    <ClInclude Include="weldmesh.h">
+      <Filter>Header Files\External</Filter>
+    </ClInclude>
+    <ClInclude Include="vku\vku.hpp">
+      <Filter>Header Files\Systems\Render</Filter>
+    </ClInclude>
+    <ClInclude Include="XRInterface.hpp">
+      <Filter>Header Files\VR</Filter>
+    </ClInclude>
+    <ClInclude Include="OpenVRInterface.hpp">
+      <Filter>Header Files\VR</Filter>
+    </ClInclude>
+    <ClInclude Include="IVRInterface.hpp">
+      <Filter>Header Files\VR</Filter>
+    </ClInclude>
+    <ClInclude Include="Input.hpp">
+      <Filter>Header Files\Systems</Filter>
+    </ClInclude>
+    <ClInclude Include="GuiUtil.hpp">
+      <Filter>Header Files\Util</Filter>
+    </ClInclude>
+    <ClInclude Include="IOUtil.hpp">
+      <Filter>Header Files\Util</Filter>
+    </ClInclude>
+    <ClInclude Include="MatUtil.hpp">
+      <Filter>Header Files\Util</Filter>
+    </ClInclude>
+    <ClInclude Include="GlmStreamOps.hpp">
+      <Filter>Header Files\Util</Filter>
+    </ClInclude>
+    <ClInclude Include="Result.hpp">
+      <Filter>Header Files\Misc</Filter>
+    </ClInclude>
+    <ClInclude Include="TimingUtil.hpp">
+      <Filter>Header Files\Util</Filter>
+    </ClInclude>
+    <ClInclude Include="VKImGUIUtil.hpp">
+      <Filter>Header Files\Util</Filter>
+    </ClInclude>
+    <ClInclude Include="mikktspace.h">
+      <Filter>Header Files\External</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

@@ -63,7 +63,7 @@ layout(std140, binding = 1) uniform LightBuffer {
 	// (light count, yzw unused)
 	vec4 pack0;
 	mat4 shadowmapMatrix;
-	Light lights[16];
+	Light lights[128];
 };
 
 struct Material {
@@ -188,7 +188,8 @@ float gaSchlickGGX(float cosLi, float cosLo, float roughness) {
 
 // Shlick's approximation of the Fresnel factor.
 vec3 fresnelSchlick(vec3 F0, float cosTheta) {
-    return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
+    float omCosTheta = 1.0 - cosTheta;
+    return F0 + (1.0 - F0) * omCosTheta * omCosTheta * omCosTheta * omCosTheta * omCosTheta;
 }
 
 vec3 calculateLighting(int lightIdx, vec3 viewDir, vec3 f0, float metallic, float roughness, vec3 albedoColor, vec3 normal) {
@@ -223,9 +224,16 @@ vec3 calculateLighting(int lightIdx, vec3 viewDir, vec3 f0, float metallic, floa
 
     vec3 halfway = normalize(viewDir + L);
     vec3 norm = normalize(normal);
-
     float cosLh = max(0.0f, dot(norm, halfway));
     float cosLi = max(0.0f, dot(norm, L));
+
+    #ifdef BLINN_PHONG
+
+    float specIntensity = pow(cosLh, (1.0 / max(roughness, 0.001)) * 50.0) * (1.0 - (roughness * roughness));
+
+    return (vec3(specIntensity) * radiance) + (1.0 - metallic) * (albedoColor * radiance * cosLi); 
+
+    #else
     float cosLo = max(0.0f, dot(norm, viewDir));
 
     float NDF = ndfGGX(cosLh, roughness);
@@ -239,6 +247,7 @@ vec3 calculateLighting(int lightIdx, vec3 viewDir, vec3 f0, float metallic, floa
     vec3 specular = numerator / max(denominator, 0.001f);
 
     return (specular + (kd * albedoColor)) * radiance * cosLi;
+    #endif
 }
 
 vec3 fresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness) {
@@ -395,12 +404,14 @@ void main() {
 
     if (mat.alphaCutoff > 0.0f) {
         albedoCol.a = (albedoCol.a - mat.alphaCutoff) / max(fwidth(albedoCol.a), 0.0001) + 0.5;
-
-        if (albedoCol.a <= 0.9f)
-            discard;
     }
 
-	FragColor = vec4(lo + calcAmbient(f0, roughness, viewDir, metallic, albedoCol.xyz, normal), mat.alphaCutoff > 0.0f ? albedoCol.a : 1.0f);
+    float finalAlpha = mat.alphaCutoff > 0.0f ? albedoCol.a : 1.0f;
+#if 0//def BLINN_PHONG
+    FragColor = vec4(lo, finalAlpha);
+#else
+	FragColor = vec4(lo + calcAmbient(f0, roughness, viewDir, metallic, albedoCol.xyz, normal), finalAlpha);
+#endif
 
     if (ENABLE_PICKING && doPicking == 1) {
         handleEditorPicking();

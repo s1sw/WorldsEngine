@@ -6,14 +6,8 @@
 #include "IconsFontAwesome5.h"
 
 namespace worlds {
-    const std::unordered_map<LightType, const char*> lightTypeNames = {
-            { LightType::Directional, "Directional" },
-            { LightType::Point, "Point" },
-            { LightType::Spot, "Spot" }
-    };
-
     void EntityEditor::draw(entt::registry& reg) {
-        if (ImGui::Begin(ICON_FA_CUBE u8" Selected entity")) {
+        if (ImGui::Begin(ICON_FA_CUBE u8" Selected entity", &active)) {
             entt::entity selectedEnt = editor->getSelectedEntity();
 
             if (reg.valid(selectedEnt)) {
@@ -29,34 +23,6 @@ namespace worlds {
                     }
                 }
 
-                if (reg.has<WorldLight>(selectedEnt)) {
-                    ImGui::Text("WorldLight");
-                    ImGui::SameLine();
-                    if (ImGui::Button("Remove##WL")) {
-                        reg.remove<WorldLight>(selectedEnt);
-                    } else {
-                        auto& worldLight = reg.get<WorldLight>(selectedEnt);
-                        ImGui::ColorEdit3("Color", &worldLight.color.x, ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
-
-                        if (ImGui::BeginCombo("Light Type", lightTypeNames.at(worldLight.type))) {
-                            for (auto& p : lightTypeNames) {
-                                bool isSelected = worldLight.type == p.first;
-                                if (ImGui::Selectable(p.second, &isSelected)) {
-                                    worldLight.type = p.first;
-                                }
-
-                                if (isSelected)
-                                    ImGui::SetItemDefaultFocus();
-                            }
-                            ImGui::EndCombo();
-                        }
-
-                        if (worldLight.type == LightType::Spot) {
-                            ImGui::DragFloat("Spot Cutoff", &worldLight.spotCutoff);
-                        }
-                    }
-                }
-
                 bool justOpened = false;
 
                 if (ImGui::Button("Add Component")) {
@@ -69,7 +35,7 @@ namespace worlds {
                     static std::vector<ComponentMetadata> filteredMetadata;
 
                     if (justOpened) {
-                        ImGui::SetKeyboardFocusHere(0);
+                        ImGui::SetKeyboardFocusHere();
                         searchTxt.clear();
                         justOpened = false;
 

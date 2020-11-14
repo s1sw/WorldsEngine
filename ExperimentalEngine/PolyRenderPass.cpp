@@ -79,7 +79,7 @@ namespace worlds {
             if (!updater.ok())
                 __debugbreak();
 
-            updater.update(ctx.device);
+            updater.update(ctx.vkCtx.device);
         }
 
         {
@@ -95,7 +95,7 @@ namespace worlds {
                 }
             }
 
-            updater.update(ctx.device);
+            updater.update(ctx.vkCtx.device);
         }
     }
 
@@ -141,8 +141,9 @@ namespace worlds {
 
     static ConVar depthPrepass("r_depthPrepass", "1");
 
-    void PolyRenderPass::setup(PassSetupCtx& ctx) {
+    void PolyRenderPass::setup(PassSetupCtx& psCtx) {
         ZoneScoped;
+        auto& ctx = psCtx.vkCtx;
         auto memoryProps = ctx.physicalDevice.getMemoryProperties();
 
         vku::SamplerMaker sm{};
@@ -254,9 +255,9 @@ namespace worlds {
 
         this->renderPass = rPassMaker.createUnique(ctx.device);
 
-        vk::ImageView attachments[2] = { ctx.rtResources.at(polyImage).image.imageView(), ctx.rtResources.at(depthStencilImage).image.imageView() };
+        vk::ImageView attachments[2] = { psCtx.rtResources.at(polyImage).image.imageView(), psCtx.rtResources.at(depthStencilImage).image.imageView() };
 
-        auto extent = ctx.rtResources.at(polyImage).image.info().extent;
+        auto extent = psCtx.rtResources.at(polyImage).image.info().extent;
         vk::FramebufferCreateInfo fci;
         fci.attachmentCount = 2;
         fci.pAttachments = attachments;
@@ -534,15 +535,16 @@ namespace worlds {
             skyboxPipeline = pm.createUnique(ctx.device, ctx.pipelineCache, *skyboxPipelineLayout, *renderPass);
         }
 
-        materialUB.upload(ctx.device, memoryProps, ctx.commandPool, ctx.device.getQueue(ctx.graphicsQueueFamilyIdx, 0), (*ctx.materialSlots)->getSlots(), sizeof(PackedMaterial) * 256);
+        materialUB.upload(ctx.device, memoryProps, ctx.commandPool, ctx.device.getQueue(ctx.graphicsQueueFamilyIdx, 0), (*psCtx.materialSlots)->getSlots(), sizeof(PackedMaterial) * 256);
 
-        updateDescriptorSets(ctx);
+        updateDescriptorSets(psCtx);
 
         ctx.device.setEvent(*pickEvent);
     }
 
-    void PolyRenderPass::prePass(PassSetupCtx& ctx, RenderCtx& rCtx) {
+    void PolyRenderPass::prePass(PassSetupCtx& psCtx, RenderCtx& rCtx) {
         ZoneScoped;
+        auto ctx = psCtx.vkCtx;
         auto tfWoView = rCtx.reg.view<Transform, WorldObject>();
 
         ModelMatrices* modelMatricesMapped = static_cast<ModelMatrices*>(modelMatrixUB.map(ctx.device));
@@ -622,7 +624,7 @@ namespace worlds {
             materialUB.upload(ctx.device, memoryProps, ctx.commandPool, ctx.device.getQueue(ctx.graphicsQueueFamilyIdx, 0), (*rCtx.materialSlots)->getSlots(), sizeof(PackedMaterial) * 256);
 
             // Update descriptor sets to bring in any new textures
-            updateDescriptorSets(ctx);
+            updateDescriptorSets(psCtx);
         }
 
         {

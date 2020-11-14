@@ -37,14 +37,15 @@ namespace worlds {
         return io;
     }
 
-    void TonemapRenderPass::setup(PassSetupCtx& ctx) {
+    void TonemapRenderPass::setup(PassSetupCtx& psCtx) {
+        auto& ctx = psCtx.vkCtx;
         vku::DescriptorSetLayoutMaker tonemapDslm;
         tonemapDslm.image(0, vk::DescriptorType::eStorageImage, vk::ShaderStageFlagBits::eCompute, 1);
         tonemapDslm.image(1, vk::DescriptorType::eCombinedImageSampler, vk::ShaderStageFlagBits::eCompute, 1);
 
         dsl = tonemapDslm.createUnique(ctx.device);
 
-        std::string shaderName = ctx.enableVR ? "tonemap.comp.spv" : "tonemap2d.comp.spv";
+        std::string shaderName = psCtx.enableVR ? "tonemap.comp.spv" : "tonemap2d.comp.spv";
         tonemapShader = vku::loadShaderAsset(ctx.device, g_assetDB.addOrGetExisting("Shaders/" + shaderName));
 
         vku::PipelineLayoutMaker plm;
@@ -76,10 +77,10 @@ namespace worlds {
         dsu.beginDescriptorSet(*descriptorSet);
 
         dsu.beginImages(0, 0, vk::DescriptorType::eStorageImage);
-        dsu.image(*sampler, ctx.rtResources.at(finalPrePresent).image.imageView(), vk::ImageLayout::eGeneral);
+        dsu.image(*sampler, psCtx.rtResources.at(finalPrePresent).image.imageView(), vk::ImageLayout::eGeneral);
 
         dsu.beginImages(1, 0, vk::DescriptorType::eCombinedImageSampler);
-        dsu.image(*sampler, ctx.rtResources.at(hdrImg).image.imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
+        dsu.image(*sampler, psCtx.rtResources.at(hdrImg).image.imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
 
         dsu.update(ctx.device);
     }
@@ -90,13 +91,10 @@ namespace worlds {
         TracyVkZone((*ctx.tracyContexts)[ctx.imageIndex], *ctx.cmdBuf, "Tonemap/Postprocessing");
 #endif
         auto& cmdBuf = ctx.cmdBuf;
-        //finalPrePresent.setLayout(*cmdBuf, vk::ImageLayout::eGeneral, vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eComputeShader, vk::AccessFlagBits::eTransferRead, vk::AccessFlagBits::eShaderWrite);
         vku::transitionLayout(*cmdBuf, ctx.rtResources.at(finalPrePresent).image.image(),
             vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::eGeneral,
             vk::PipelineStageFlagBits::eColorAttachmentOutput, vk::PipelineStageFlagBits::eComputeShader,
             vk::AccessFlagBits::eColorAttachmentWrite, vk::AccessFlagBits::eShaderWrite);
-
-        //::imageBarrier(*cmdBuf, rtResources.at(polyImage).image.image(), vk::ImageLayout::eGeneral, vk::AccessFlagBits::eColorAttachmentWrite, vk::AccessFlagBits::eShaderRead, vk::PipelineStageFlagBits::eColorAttachmentOutput, vk::PipelineStageFlagBits::eComputeShader);
 
         cmdBuf->bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pipelineLayout, 0, *descriptorSet, nullptr);
         cmdBuf->bindPipeline(vk::PipelineBindPoint::eCompute, *pipeline);
@@ -115,26 +113,18 @@ namespace worlds {
             TonemapPushConstants tpc{ 1 };
             cmdBuf->pushConstants<TonemapPushConstants>(*pipelineLayout, vk::ShaderStageFlagBits::eCompute, 0, tpc);
             cmdBuf->dispatch((ctx.width + 15) / 16, (ctx.height + 15) / 16, 1);
-
-            /* vku::transitionLayout(*cmdBuf, ctx.rtResources.at(finalPrePresentR).image.image(),
-                 vk::ImageLayout::eGeneral, vk::ImageLayout::eColorAttachmentOptimal,
-                 vk::PipelineStageFlagBits::eComputeShader, vk::PipelineStageFlagBits::eColorAttachmentOutput,
-                 vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite);*/
         }
 
         vku::transitionLayout(*cmdBuf, ctx.rtResources.at(finalPrePresent).image.image(),
             vk::ImageLayout::eGeneral, vk::ImageLayout::eColorAttachmentOptimal,
             vk::PipelineStageFlagBits::eComputeShader, vk::PipelineStageFlagBits::eColorAttachmentOutput,
             vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite);
-
-        // account for implicit renderpass transition
-        //finalPrePresent.setCurrentLayout(vk::ImageLayout::eTransferSrcOptimal);
     }
 
     void TonemapRenderPass::setRightFinalImage(PassSetupCtx& ctx, RenderImageHandle right) {
         vku::DescriptorSetMaker dsm;
         dsm.layout(*dsl);
-        rDescriptorSet = std::move(dsm.createUnique(ctx.device, ctx.descriptorPool)[0]);
+        rDescriptorSet = std::move(dsm.createUnique(ctx.vkCtx.device, ctx.vkCtx.descriptorPool)[0]);
 
         vku::DescriptorSetUpdater dsu;
         dsu.beginDescriptorSet(*rDescriptorSet);
@@ -147,7 +137,7 @@ namespace worlds {
         dsu.beginImages(1, 0, vk::DescriptorType::eCombinedImageSampler);
         dsu.image(*sampler, ctx.rtResources.at(hdrImg).image.imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
 
-        dsu.update(ctx.device);
+        dsu.update(ctx.vkCtx.device);
     }
 
     TonemapRenderPass::~TonemapRenderPass() {

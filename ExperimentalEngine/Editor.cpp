@@ -111,14 +111,52 @@ namespace worlds {
                         worldObject.presentMaterials[i] = true;
                     }
                 }
+            }
 
-                ImGui::Separator();
+            ImGui::Separator();
+        }
+    }
+
+    const std::unordered_map<LightType, const char*> lightTypeNames = {
+            { LightType::Directional, "Directional" },
+            { LightType::Point, "Point" },
+            { LightType::Spot, "Spot" }
+    };
+
+    void createLight(entt::entity ent, entt::registry& reg) {
+        reg.emplace<WorldLight>(ent);
+    }
+
+    void editLight(entt::entity ent, entt::registry& reg) {
+        if (ImGui::CollapsingHeader(ICON_FA_LIGHTBULB u8" Light")) {
+            if (ImGui::Button("Remove##WL")) {
+                reg.remove<WorldLight>(ent);
+            } else {
+                auto& worldLight = reg.get<WorldLight>(ent);
+                ImGui::ColorEdit3("Color", &worldLight.color.x, ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
+
+                if (ImGui::BeginCombo("Light Type", lightTypeNames.at(worldLight.type))) {
+                    for (auto& p : lightTypeNames) {
+                        bool isSelected = worldLight.type == p.first;
+                        if (ImGui::Selectable(p.second, &isSelected)) {
+                            worldLight.type = p.first;
+                        }
+
+                        if (isSelected)
+                            ImGui::SetItemDefaultFocus();
+                    }
+                    ImGui::EndCombo();
+                }
+
+                if (worldLight.type == LightType::Spot) {
+                    ImGui::DragFloat("Spot Cutoff", &worldLight.spotCutoff);
+                }
             }
         }
     }
 
-    void createLight(entt::entity ent, entt::registry& reg) {
-        reg.emplace<WorldLight>(ent);
+    void cloneLight(entt::entity from, entt::entity to, entt::registry& reg) {
+        reg.emplace<WorldLight>(to, reg.get<WorldLight>(from));
     }
 
     void createPhysicsActor(entt::entity ent, entt::registry& reg) {
@@ -215,8 +253,9 @@ namespace worlds {
                 }
 
                 editPhysicsShapes(pa);
-                ImGui::Separator();
             }
+
+            ImGui::Separator();
         }
     }
 
@@ -233,8 +272,9 @@ namespace worlds {
                 }
 
                 editPhysicsShapes(pa);
-                ImGui::Separator();
             }
+
+            ImGui::Separator();
         }
     }
 
@@ -290,10 +330,43 @@ namespace worlds {
             ImGui::Checkbox("Play on scene open", &as.playOnSceneOpen);
             ImGui::Text("Current Asset Path: %s", g_assetDB.getAssetPath(as.clipId).c_str());
 
-            if (ImGui::Button("Preview"))
+            static std::string newPath;
+            static bool canOpen = true;
+            if (ImGui::BeginPopup("Audio Source Path")) {
+                ImGui::InputText("Path", &newPath);
+
+                if (ImGui::Button("Set")) {
+                    if (!PHYSFS_exists(newPath.c_str())) {
+                        canOpen = false;
+                    } else {
+                        as.clipId = g_assetDB.addOrGetExisting(newPath);
+                        ImGui::CloseCurrentPopup();
+                    }
+                }
+
+                ImGui::SameLine();
+
+                if (ImGui::Button("Cancel")) {
+                    ImGui::CloseCurrentPopup();
+                }
+
+                if (!canOpen) {
+                    ImGui::TextColored(ImColor(1.0f, 0.0f, 0.0f, 1.0f), "Couldn't open file.");
+                }
+                ImGui::EndPopup();
+            }
+
+            if (ImGui::Button("Change")) {
+                newPath = g_assetDB.getAssetPath(as.clipId);
+                canOpen = true;
+                ImGui::OpenPopup("Audio Source Path");
+            }
+
+            if (ImGui::Button(ICON_FA_PLAY u8" Preview"))
                 AudioSystem::getInstance()->playOneShotClip(as.clipId, glm::vec3(0.0f));
+
+            ImGui::Separator();
         }
-        ImGui::Separator();
     }
 
     void createAudioSource(entt::entity ent, entt::registry& reg) {
@@ -323,7 +396,7 @@ namespace worlds {
         , active(true) {
         REGISTER_COMPONENT_TYPE(Transform, "Transform", true, editTransform, nullptr, nullptr);
         REGISTER_COMPONENT_TYPE(WorldObject, "WorldObject", true, editWorldObject, nullptr, nullptr);
-        REGISTER_COMPONENT_TYPE(WorldLight, "WorldLight", true, nullptr, createLight, nullptr);
+        REGISTER_COMPONENT_TYPE(WorldLight, "WorldLight", true, editLight, createLight, cloneLight);
         REGISTER_COMPONENT_TYPE(PhysicsActor, "PhysicsActor", true, editPhysicsActor, createPhysicsActor, clonePhysicsActor);
         REGISTER_COMPONENT_TYPE(DynamicPhysicsActor, "DynamicPhysicsActor", true, editDynamicPhysicsActor, createDynamicPhysicsActor, cloneDynamicPhysicsActor);
         REGISTER_COMPONENT_TYPE(AudioSource, "AudioSource", true, editAudioSource, createAudioSource, cloneAudioSource);
@@ -569,7 +642,7 @@ namespace worlds {
         } else {
             // Complex axis juggling
 
-            if (shiftHeld) {
+            if (shiftHeld(inputManager)) {
                 if (inputManager.keyPressed(SDL_SCANCODE_X)) {
                     currentAxisLock = AxisFlagBits::Y | AxisFlagBits::Z;
                 } else if (inputManager.keyPressed(SDL_SCANCODE_Y)) {
@@ -637,6 +710,12 @@ namespace worlds {
         updateCamera(deltaTime);
 
         static ImVec2 currentSceneViewSize = ImVec2(0.0f, 0.0f);
+
+        static ConVar noScenePad("editor_disableScenePad", "0");
+
+        if (noScenePad)
+            ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
+
         if (ImGui::Begin(ICON_FA_MAP u8" Scene")) {
             ImVec2 contentRegion = ImGui::GetContentRegionAvail();
 
@@ -911,6 +990,9 @@ namespace worlds {
             }
         }
         ImGui::End();
+
+        if (noScenePad)
+            ImGui::PopStyleVar();
 
         for (auto& edWindow : editorWindows) {
             if (edWindow->isActive()) {

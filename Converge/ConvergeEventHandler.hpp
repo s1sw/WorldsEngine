@@ -35,5 +35,8 @@ namespace converge {
         worlds::InputActionHandle throwHandAction;
         V3PidController lspherePid;
         float zeroThresh;
+
+        float headbobProgress;
+        bool grounded;
     };
 }

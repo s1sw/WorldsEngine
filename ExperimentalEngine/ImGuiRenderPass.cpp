@@ -22,7 +22,8 @@ namespace worlds {
         return io;
     }
 
-    void ImGuiRenderPass::setup(PassSetupCtx& ctx) {
+    void ImGuiRenderPass::setup(PassSetupCtx& psCtx) {
+        auto& ctx = psCtx.vkCtx;
         vku::RenderpassMaker rPassMaker{};
 
         rPassMaker.attachmentBegin(currSwapchain.imageFormat());
@@ -51,8 +52,8 @@ namespace worlds {
         imguiInit.PipelineCache = ctx.pipelineCache;
         imguiInit.Queue = ctx.device.getQueue(ctx.graphicsQueueFamilyIdx, 0);
         imguiInit.QueueFamily = ctx.graphicsQueueFamilyIdx;
-        imguiInit.MinImageCount = ctx.swapchainImageCount;
-        imguiInit.ImageCount = ctx.swapchainImageCount;
+        imguiInit.MinImageCount = psCtx.swapchainImageCount;
+        imguiInit.ImageCount = psCtx.swapchainImageCount;
         ImGui_ImplVulkan_Init(&imguiInit, *renderPass);
 
         vku::executeImmediately(ctx.device, ctx.commandPool, ctx.device.getQueue(ctx.graphicsQueueFamilyIdx, 0), [](vk::CommandBuffer cb) {
