@@ -9,6 +9,7 @@
 #include <imgui.h>
 #include <MatUtil.hpp>
 #include <Engine.hpp>
+#include "NameComponent.hpp"
 
 namespace converge {
     const float LOCOSPHERE_RADIUS = 0.25f;
@@ -436,8 +437,10 @@ namespace converge {
                 NullPhysXCallback nullCallback{};
                 physx::PxRaycastBuffer hitBuf;
 
-                glm::vec3 start = lHandWPos;
-                glm::vec3 dir = lHandWRot * glm::vec3(0.0f, 0.0f, 1.0f);
+                Transform& lHandTranform = registry.get<Transform>(lHandEnt);
+                glm::vec3 start = lHandTranform.position;//lHandWPos;
+                glm::vec3 dir = lHandTranform.rotation * glm::vec3(0.0f, 0.0f, -1.0f);
+                start += dir * 0.15f;
                 bool hit = worlds::g_scene->raycast(worlds::glm2px(start), worlds::glm2px(dir), FLT_MAX, hitBuf);
 
                 if (hit && hitBuf.hasBlock) {
@@ -447,13 +450,21 @@ namespace converge {
                     grappleBody = touch.actor->is<physx::PxRigidDynamic>();
                     grappleTarget = worlds::px2glm(touch.position);
 
+                    logMsg("we grapplin' to %.3f, %.3f, %.3f", grappleTarget.x, grappleTarget.y, grappleTarget.z);
+
                     if (grappleBody) {
+                        logMsg("we grapplin' to something MOVING :O");
+                        entt::entity grappleEnt = (entt::entity)(uint32_t)grappleBody->userData;
+                        if (registry.valid(grappleEnt) && registry.has<worlds::NameComponent>(grappleEnt)) {
+                            logMsg("(its name is %s)", registry.get<worlds::NameComponent>(grappleEnt).name.c_str());
+                        }
                         grappleTarget = worlds::px2glm(grappleBody->getGlobalPose().transformInv(worlds::glm2px(grappleTarget)));
                     }
                 }
             }
 
-            if (grappleBody && !vrInterface->getActionHeld(grappleHookAction)) {
+            if (grappling && vrInterface->getActionReleased(grappleHookAction)) {
+                logMsg("we no longer grapplin' :(");
                 grappling = false;
             }
         }
@@ -674,10 +685,6 @@ namespace converge {
             lastHeadPos = headPos;
             locosphereOffset.y = 0.0f;
 
-            // magic 0.375 offset to account for radius of fender + head
-            //headJoint->setLocalPose(physx::PxJointActorIndex::eACTOR0, physx::PxTransform{ physx::PxVec3{0.0f, -headPos.y + 0.375f, 0.0f}, physx::PxQuat{physx::PxIdentity} });
-            //ImGui::Text("VR Head Pos: %.2f, %.2f, %.2f", headPos.x, headPos.y, headPos.z);
-            //ImGui::DragFloat("offs", &off);
             nextCamPos += glm::vec3(headPos.x, 0.0f, headPos.z);
 
             physx::PxTransform locosphereptf = locosphereActor->getGlobalPose();
@@ -767,11 +774,13 @@ namespace converge {
 
             lHandEnt = registry.create();
             registry.emplace<worlds::WorldObject>(lHandEnt, matId, worlds::g_assetDB.addOrGetExisting("droppeditem.obj"));
-            registry.emplace<Transform>(lHandEnt);
+            registry.emplace<Transform>(lHandEnt).scale = glm::vec3(0.25f);
+            registry.emplace<worlds::NameComponent>(lHandEnt).name = "L. Handy";
 
             rHandEnt = registry.create();
             registry.emplace<worlds::WorldObject>(rHandEnt, matId, worlds::g_assetDB.addOrGetExisting("droppeditem.obj"));
-            registry.emplace<Transform>(rHandEnt);
+            registry.emplace<Transform>(rHandEnt).scale = glm::vec3(0.25f);
+            registry.emplace<worlds::NameComponent>(rHandEnt).name = "R. Handy";
 
             auto lActor = worlds::g_physics->createRigidDynamic(physx::PxTransform{ physx::PxIdentity });
             // Using the reference returned by this doesn't work unfortunately.
@@ -819,7 +828,7 @@ namespace converge {
         auto actor = worlds::g_physics->createRigidDynamic(physx::PxTransform{ physx::PxVec3{0.0f, 2.0f, 0.0f}, physx::PxQuat{physx::PxIdentity} });
         auto& wActor = registry.emplace<worlds::DynamicPhysicsActor>(playerLocosphere, actor);
 
-
+        actor->setSolverIterationCounts(30, 8);
         worlds::g_scene->addActor(*actor);
 
         locosphereMat = worlds::g_physics->createMaterial(2.5f, 50.0f, 0.0f);
@@ -829,6 +838,7 @@ namespace converge {
         worlds::updatePhysicsShapes(wActor);
         physx::PxRigidBodyExt::setMassAndUpdateInertia(*actor, 80.0f);
 
+        // Set up player fender and joint
         playerFender = registry.create();
         registry.emplace<Transform>(playerFender);
 
@@ -838,7 +848,7 @@ namespace converge {
         worlds::g_scene->addActor(*fenderActor);
 
         fenderMat = worlds::g_physics->createMaterial(0.0f, 0.0f, 0.0f);
-        auto fenderShape = worlds::PhysicsShape::capsuleShape(0.4f, 0.45f, fenderMat);
+        auto fenderShape = worlds::PhysicsShape::capsuleShape(0.3f, 0.45f, fenderMat);
         fenderShape.rot = glm::quat(glm::vec3(0.0f, 0.0f, glm::half_pi<float>()));
         fenderWActor.physicsShapes.push_back(fenderShape);
 
@@ -859,18 +869,8 @@ namespace converge {
         fenderJoint->setMotion(physx::PxD6Axis::eSWING2, physx::PxD6Motion::eFREE);
         fenderJoint->setMotion(physx::PxD6Axis::eTWIST, physx::PxD6Motion::eFREE);
 
-        actor->setSolverIterationCounts(30, 8);
-
         fenderJoint->setConstraintFlag(physx::PxConstraintFlag::eCOLLISION_ENABLED, false);
-        //fenderJoint->setConstraintFlag(physx::PxConstraintFlag::ePROJECTION, true);
-        //fenderJoint->setProjectionLinearTolerance(0.005f);
-
         fenderActor->setSolverIterationCounts(30, 8);
-
-
-        //worlds::g_console->executeCommandStr("exec dbgscripts/shapes");
-
-        //actor->setMaxDepenetrationVelocity(0.01f);
     }
 
     void EventHandler::shutdown(entt::registry& registry) {
