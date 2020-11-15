@@ -8,6 +8,7 @@
 #include <Console.hpp>
 #include <imgui.h>
 #include <MatUtil.hpp>
+#include <Engine.hpp>
 
 namespace converge {
     const float LOCOSPHERE_RADIUS = 0.25f;
@@ -245,7 +246,7 @@ namespace converge {
                 glm::sin(headbobProgress * bobSpeedX * overallSpeed) * bobAmountX * overallAmount.getFloat(), 0.0f, 0.0f } * glm::angleAxis(lookX, glm::vec3(0.0f, 1.0f, 0.0f));
 
             bobbedPosSprint.y += glm::sin(headbobProgress * bobSpeed * sprintMult * overallSpeed) * bobAmount * overallAmount.getFloat() * sprintMult;
-            bobbedPosSprint += glm::vec3{ 
+            bobbedPosSprint += glm::vec3{
                 glm::sin(headbobProgress * bobSpeedX * sprintMult * overallSpeed) * bobAmountX * overallAmount.getFloat() * sprintMult, 0.0f, 0.0f } * glm::angleAxis(lookX, glm::vec3(0.0f, 1.0f, 0.0f));
 
             camera->position = glm::mix(bobbedPosNormal, bobbedPosSprint, sprintLerp);
@@ -408,26 +409,53 @@ namespace converge {
             ImGui::GetBackgroundDrawList()->AddCircleFilled(ImVec2(size.x * 0.5f, size.y * 0.5f), 2.5f, ImColor(1.0f, 1.0f, 1.0f), 16);
         }
 
-        if (inputManager->mouseButtonPressed(worlds::MouseButton::Right)) {
-            NullPhysXCallback nullCallback{};
-            physx::PxRaycastBuffer hitBuf;
-            bool hit = worlds::g_scene->raycast(worlds::glm2px(camera->position), worlds::glm2px(camera->rotation * glm::vec3{ 0.0f, 0.0f, 1.0f }), FLT_MAX, hitBuf);
+        if (!vrInterface) {
+            if (inputManager->mouseButtonPressed(worlds::MouseButton::Right)) {
+                NullPhysXCallback nullCallback{};
+                physx::PxRaycastBuffer hitBuf;
+                bool hit = worlds::g_scene->raycast(worlds::glm2px(camera->position), worlds::glm2px(camera->rotation * glm::vec3{ 0.0f, 0.0f, 1.0f }), FLT_MAX, hitBuf);
 
-            if (hit && hitBuf.hasBlock) {
-                grappling = true;
-                auto& touch = hitBuf.block;
-                
-                grappleBody = touch.actor->is<physx::PxRigidDynamic>();
-                grappleTarget = worlds::px2glm(touch.position);
+                if (hit && hitBuf.hasBlock) {
+                    grappling = true;
+                    auto& touch = hitBuf.block;
 
-                if (grappleBody) {
-                    grappleTarget = worlds::px2glm(grappleBody->getGlobalPose().transformInv(worlds::glm2px(grappleTarget)));
+                    grappleBody = touch.actor->is<physx::PxRigidDynamic>();
+                    grappleTarget = worlds::px2glm(touch.position);
+
+                    if (grappleBody) {
+                        grappleTarget = worlds::px2glm(grappleBody->getGlobalPose().transformInv(worlds::glm2px(grappleTarget)));
+                    }
                 }
             }
-        }
 
-        if (grappling && !inputManager->mouseButtonHeld(worlds::MouseButton::Right)) {
-            grappling = false;
+            if (grappling && !inputManager->mouseButtonHeld(worlds::MouseButton::Right)) {
+                grappling = false;
+            }
+        } else {
+            if (vrInterface->getActionPressed(grappleHookAction)) {
+                NullPhysXCallback nullCallback{};
+                physx::PxRaycastBuffer hitBuf;
+
+                glm::vec3 start = lHandWPos;
+                glm::vec3 dir = lHandWRot * glm::vec3(0.0f, 0.0f, 1.0f);
+                bool hit = worlds::g_scene->raycast(worlds::glm2px(start), worlds::glm2px(dir), FLT_MAX, hitBuf);
+
+                if (hit && hitBuf.hasBlock) {
+                    grappling = true;
+                    auto& touch = hitBuf.block;
+
+                    grappleBody = touch.actor->is<physx::PxRigidDynamic>();
+                    grappleTarget = worlds::px2glm(touch.position);
+
+                    if (grappleBody) {
+                        grappleTarget = worlds::px2glm(grappleBody->getGlobalPose().transformInv(worlds::glm2px(grappleTarget)));
+                    }
+                }
+            }
+
+            if (grappleBody && !vrInterface->getActionHeld(grappleHookAction)) {
+                grappling = false;
+            }
         }
 
         if (grappling) {
@@ -451,7 +479,7 @@ namespace converge {
             ndcObjectPosition.y = vSize.y - ndcObjectPosition.y;
 
             if ((ndcObjPosPreDivide.z / ndcObjPosPreDivide.w) > 0.0f)
-            ImGui::GetBackgroundDrawList()->AddCircle(ImVec2(ndcObjectPosition.x, ndcObjectPosition.y), 500.0f / ndcObjPosPreDivide.w, ImColor(1.0f, 1.0f, 1.0f));
+                ImGui::GetBackgroundDrawList()->AddCircle(ImVec2(ndcObjectPosition.x, ndcObjectPosition.y), 500.0f / ndcObjPosPreDivide.w, ImColor(1.0f, 1.0f, 1.0f));
         }
     }
 
@@ -511,9 +539,6 @@ namespace converge {
         filterEnt.entB = (uint32_t)playerFender;
 
         glm::vec3 desiredVel(0.0f);
-
-        //fenderJoint->setLocalPose(physx::PxJointActorIndex::eACTOR0, physx::PxTransform{ physx::PxVec3{0.0f, -0.8f,0.0f}, worlds::glm2px(glm::inverse(locosphereTransform.rotation)) });
-        //fenderJoint->setLocalPose(physx::PxJointActorIndex::eACTOR1, physx::PxTransform{ physx::PxVec3{0.0f, 0.0f,0.0f}, worlds::glm2px(glm::inverse(locosphereTransform.rotation)) });
 
         if (!vrInterface) {
             if (inputManager->keyHeld(SDL_SCANCODE_W)) {
@@ -614,9 +639,11 @@ namespace converge {
         locosphereLinVelsXZ[physDbgIdx] = glm::length(glm::vec3{ currLinVel.x, 0.0f, currLinVel.z });
 
         if (!grounded) {
+            if (vrInterface) {
+                inputVel = -glm::vec3(inputVel.z, 0.0f, inputVel.x);
+            }
+
             glm::vec3 airVel = camMat * glm::vec4(inputVel, 0.0f);
-            if (vrInterface)
-                airVel = -glm::vec3(airVel.z, 0.0f, airVel.x);
             airVel = airVel * glm::angleAxis(glm::half_pi<float>(), glm::vec3(0.0f, 1.0f, 0.0f));
             airVel *= 25.0f;
             glm::vec3 addedVel = (-airVel - currLinVel);
@@ -675,9 +702,6 @@ namespace converge {
                 body->addForce(worlds::glm2px(force));
                 lHandForceMag[physDbgIdx] = glm::length(force);
 
-                //if (body->getAngularVelocity().magnitudeSquared() > 10.0f)
-                    //body->setAngularVelocity(physx::PxVec3{ 0.0f });
-
                 glm::quat filteredQ = glm::normalize(lHandWRot);
 
                 filteredQ = fixupQuat(filteredQ);
@@ -699,7 +723,7 @@ namespace converge {
                     body->addTorque(worlds::glm2px(torque));
             }
 
-            if (!vrInterface->getActionHeld(throwHandAction)) {
+            {
                 auto& wActor = registry.get<worlds::DynamicPhysicsActor>(rHandEnt);
                 auto* body = static_cast<physx::PxRigidBody*>(wActor.actor);
                 auto& tf = registry.get<Transform>(rHandEnt);
@@ -737,14 +761,16 @@ namespace converge {
 
     void EventHandler::onSceneStart(entt::registry& registry) {
         if (vrInterface) {
-            throwHandAction = vrInterface->getActionHandle("/actions/main/in/ThrowHand");
+            grappleHookAction = vrInterface->getActionHandle("/actions/main/in/ThrowHand");
 
             auto matId = worlds::g_assetDB.addOrGetExisting("Materials/dev.json");
 
             lHandEnt = registry.create();
+            registry.emplace<worlds::WorldObject>(lHandEnt, matId, worlds::g_assetDB.addOrGetExisting("droppeditem.obj"));
             registry.emplace<Transform>(lHandEnt);
 
             rHandEnt = registry.create();
+            registry.emplace<worlds::WorldObject>(rHandEnt, matId, worlds::g_assetDB.addOrGetExisting("droppeditem.obj"));
             registry.emplace<Transform>(rHandEnt);
 
             auto lActor = worlds::g_physics->createRigidDynamic(physx::PxTransform{ physx::PxIdentity });

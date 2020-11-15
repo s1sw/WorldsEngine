@@ -32,7 +32,7 @@ namespace converge {
         glm::vec3 rHandWPos;
         glm::quat lHandWRot;
         glm::quat rHandWRot;
-        worlds::InputActionHandle throwHandAction;
+        worlds::InputActionHandle grappleHookAction;
         V3PidController lspherePid;
         float zeroThresh;
 
