@@ -391,7 +391,8 @@ namespace worlds {
         , enableTransformGadget(false)
         , startingMouseDistance(0.0f)
         , inputManager(*interfaces.inputManager)
-        , active(true) {
+        , active(true)
+        , cameraSpeed(5.0f) {
         REGISTER_COMPONENT_TYPE(Transform, "Transform", true, editTransform, nullptr, nullptr);
         REGISTER_COMPONENT_TYPE(WorldObject, "WorldObject", true, editWorldObject, nullptr, nullptr);
         REGISTER_COMPONENT_TYPE(WorldLight, "WorldLight", true, editLight, createLight, cloneLight);
@@ -500,7 +501,7 @@ namespace worlds {
     void Editor::updateCamera(float deltaTime) {
         if (currentTool != Tool::None) return;
         glm::vec3 prevPos = cam.position;
-        float moveSpeed = 5.0f;
+        float moveSpeed = cameraSpeed;
 
         static int origMouseX, origMouseY = 0;
 
@@ -512,6 +513,8 @@ namespace worlds {
             // Camera movement
             if (inputManager.keyHeld(SDL_SCANCODE_LSHIFT))
                 moveSpeed *= 2.0f;
+
+            cameraSpeed += ImGui::GetIO().MouseWheel * 0.5f;
 
             if (inputManager.keyHeld(SDL_SCANCODE_W)) {
                 cam.position += cam.rotation * glm::vec3(0.0f, 0.0f, deltaTime * moveSpeed);

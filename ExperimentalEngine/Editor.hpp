@@ -95,6 +95,7 @@ namespace worlds {
         float startingMouseDistance;
         float lookX;
         float lookY;
+        float cameraSpeed;
         bool imguiMetricsOpen;
         bool enableTransformGadget;
         bool active;
