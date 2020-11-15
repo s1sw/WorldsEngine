@@ -95,9 +95,6 @@
     <ClCompile Include="ShadowmapRenderPass.cpp">
       <Filter>Source Files\RenderPasses</Filter>
     </ClCompile>
-    <ClCompile Include="Main.cpp">
-      <Filter>Source Files\Systems</Filter>
-    </ClCompile>
     <ClCompile Include="Physics.cpp">
       <Filter>Source Files\Systems</Filter>
     </ClCompile>
@@ -232,6 +229,9 @@
     </ClCompile>
     <ClCompile Include="SceneSerializationFunctions.cpp">
       <Filter>Source Files\Scene Serialization</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine.cpp">
+      <Filter>Source Files\Systems</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
