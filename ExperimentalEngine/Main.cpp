@@ -194,7 +194,34 @@ namespace worlds {
 
     extern void loadDefaultUITheme();
 
-    ConVar showDebugInfo("showDebugInfo", "1", "Shows the debug info window");
+    void setupUIFonts() {
+        if (PHYSFS_exists("Fonts/EditorFont.ttf"))
+            ImGui::GetIO().Fonts->Clear();
+
+        addImGuiFont("Fonts/EditorFont.ttf", 18.0f);
+
+        static const ImWchar iconRanges[] = { ICON_MIN_FA, ICON_MAX_FA, 0 };
+        ImFontConfig iconConfig{};
+        iconConfig.MergeMode = true;
+        iconConfig.PixelSnapH = true;
+        iconConfig.OversampleH = 1;
+
+        addImGuiFont("Fonts/" FONT_ICON_FILE_NAME_FAR, 17.0f, &iconConfig, iconRanges);
+        addImGuiFont("Fonts/" FONT_ICON_FILE_NAME_FAS, 17.0f, &iconConfig, iconRanges);
+
+        ImFontConfig iconConfig2{};
+        iconConfig2.MergeMode = true;
+        iconConfig2.PixelSnapH = true;
+        iconConfig2.OversampleH = 1;
+        iconConfig2.GlyphOffset = ImVec2(-3.0f, 5.0f);
+        iconConfig2.GlyphExtraSpacing = ImVec2(-5.0f, 0.0f);
+
+        static const ImWchar iconRangesFAD[] = { ICON_MIN_FAD, ICON_MAX_FAD, 0 };
+
+        addImGuiFont("Fonts/" FONT_ICON_FILE_NAME_FAD, 22.0f, &iconConfig2, iconRanges);
+    }
+
+    ConVar showDebugInfo("showDebugInfo", "0", "Shows the debug info window");
     ConVar lockSimToRefresh("sim_lockToRefresh", "0", "Instead of using a simulation timestep, run the simulation in lockstep with the rendering.");
     ConVar disableSimInterp("sim_disableInterp", "0", "Disables interpolation and uses the results of the last run simulation step.");
     ConVar simStepTime("sim_stepTime", "0.01");
@@ -244,13 +271,10 @@ namespace worlds {
         } else {
             window = createSDLWindow();
             if (window == nullptr) {
-                SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "err", SDL_GetError(), NULL);
+                SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Failed to create window", SDL_GetError(), NULL);
             }
         }
-
         setWindowIcon(window);
-
-        bool renderInitSuccess = false;
 
         redrawSplashWindow(splashWindow, "initialising ui");
 
@@ -263,30 +287,7 @@ namespace worlds {
         //io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;         // Enable Multi-Viewport / Platform Windows
         io.Fonts->TexDesiredWidth = 512.f;
 
-        if (PHYSFS_exists("Fonts/EditorFont.ttf"))
-            ImGui::GetIO().Fonts->Clear();
-
-        addImGuiFont("Fonts/EditorFont.ttf", 18.0f);
-
-        static const ImWchar iconRanges[] = { ICON_MIN_FA, ICON_MAX_FA, 0 };
-        ImFontConfig iconConfig{};
-        iconConfig.MergeMode = true;
-        iconConfig.PixelSnapH = true;
-        iconConfig.OversampleH = 1;
-
-        addImGuiFont("Fonts/" FONT_ICON_FILE_NAME_FAR, 17.0f, &iconConfig, iconRanges);
-        addImGuiFont("Fonts/" FONT_ICON_FILE_NAME_FAS, 17.0f, &iconConfig, iconRanges);
-
-        ImFontConfig iconConfig2{};
-        iconConfig2.MergeMode = true;
-        iconConfig2.PixelSnapH = true;
-        iconConfig2.OversampleH = 1;
-        iconConfig2.GlyphOffset = ImVec2(-3.0f, 5.0f);
-        iconConfig2.GlyphExtraSpacing = ImVec2(-5.0f, 0.0f);
-
-        static const ImWchar iconRangesFAD[] = { ICON_MIN_FAD, ICON_MAX_FAD, 0 };
-
-        addImGuiFont("Fonts/" FONT_ICON_FILE_NAME_FAD, 22.0f, &iconConfig2, iconRanges);
+        setupUIFonts();
         loadDefaultUITheme();
 
         ImGui_ImplSDL2_InitForVulkan(window);
@@ -324,6 +325,7 @@ namespace worlds {
             runAsEditor, "Converge"
         };
 
+        bool renderInitSuccess = false;
         renderer = new VKRenderer(initInfo, &renderInitSuccess);
 
         if (!renderInitSuccess) {
@@ -709,10 +711,10 @@ namespace worlds {
                 auto& bTransform = registry.get<Transform>(b);
                 return glm::distance2(camPos, aTransform.position) < glm::distance2(camPos, bTransform.position) || registry.has<UseWireframe>(a);
                 }, entt::insertion_sort{});*/
-
+            
+            renderer->frame(cam, registry);
             ImGui::UpdatePlatformWindows();
             ImGui::RenderPlatformWindowsDefault();
-            renderer->frame(cam, registry);
             g_jobSys->completeFrameJobs();
             frameCounter++;
 
