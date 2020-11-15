@@ -7,8 +7,11 @@
 #include "Render.hpp"
 #include "Physics.hpp"
 #include "Frustum.hpp"
+#include "Console.hpp"
 
 namespace worlds {
+    ConVar showWireframe("r_wireframeMode", "0", "0 - No wireframe; 1 - Wireframe only; 2 - Wireframe + solid");
+
     struct StandardPushConstants {
         glm::vec4 texScaleOffset;
         // (x: model matrix index, y: material index, z: specular cubemap index, w: object picking id)
@@ -139,7 +142,7 @@ namespace worlds {
         return io;
     }
 
-    static ConVar depthPrepass("r_depthPrepass", "1");
+    static ConVar depthPrepass("r_depthPrepass", "0");
 
     void PolyRenderPass::setup(PassSetupCtx& psCtx) {
         ZoneScoped;
@@ -551,8 +554,6 @@ namespace worlds {
         auto ctx = psCtx.vkCtx;
         auto tfWoView = rCtx.reg.view<Transform, WorldObject>();
 
-        //ModelMatrices* modelMatricesMapped = static_cast<ModelMatrices*>(modelMatrixUB.map(ctx.device));
-
         int matrixIdx = 0;
         rCtx.reg.view<Transform, WorldObject>().each([&](auto ent, Transform& t, WorldObject& wo) {
             if (matrixIdx == 1023) {
@@ -574,10 +575,6 @@ namespace worlds {
             matrixIdx++;
             });
 
-        //modelMatrixUB.unmap(ctx.device);
-
-        //MultiVP* vp = (MultiVP*)vpUB.map(ctx.device);
-
         if (rCtx.enableVR) {
             vpMapped->views[0] = rCtx.vrViewMats[0];
             vpMapped->views[1] = rCtx.vrViewMats[1];
@@ -589,9 +586,6 @@ namespace worlds {
             vpMapped->viewPos[0] = glm::vec4(rCtx.cam.position, 0.0f);
         }
 
-        //vpUB.unmap(ctx.device);
-
-        //LightUB* lub = (LightUB*)lightsUB.map(ctx.device);
         glm::vec3 viewPos = rCtx.viewPos;
 
         int lightIdx = 0;
@@ -621,7 +615,6 @@ namespace worlds {
             });
 
         lightMapped->pack0.x = (float)lightIdx;
-        //lightsUB.unmap(ctx.device);
 
         if (rCtx.reuploadMats) {
             auto memoryProps = ctx.physicalDevice.getMemoryProperties();
@@ -729,7 +722,6 @@ namespace worlds {
 
         matrixIdx = 0;
         cmdBuf->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 0, *descriptorSet, nullptr);
-        //cmdBuf->bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline);
 
         Frustum frustum;
         Frustum frustumB;
@@ -784,9 +776,9 @@ namespace worlds {
                 auto& extraDat = ctx.materialSlots->get()->getExtraDat(obj.materialIdx[i]);
                 if (extraDat.noCull) {
                     sdi.pipeline = *noBackfaceCullPipeline;
-                } else if (extraDat.wireframe) {
+                } else if (extraDat.wireframe || showWireframe.getInt() == 1) {
                     sdi.pipeline = *wireframePipeline;
-                } else if (reg.has<UseWireframe>(ent)) {
+                } else if (reg.has<UseWireframe>(ent) || showWireframe.getInt() == 2) {
                     if (sdi.opaque) {
                         sdi.pipeline = *pipeline;
                     } else {
@@ -802,8 +794,6 @@ namespace worlds {
                         sdi.pipeline = *alphaTestPipeline;
                     }
                 }
-
-                
 
                 drawInfo.emplace_back(std::move(sdi));
             }
@@ -840,10 +830,6 @@ namespace worlds {
         SubmeshDrawInfo last;
         last.pipeline = *pipeline;
         for (auto& sdi : drawInfo) {
-            /*if (sdi.pipeline != *pipeline) {
-                continue;
-            }*/
-
             if (last.pipeline != sdi.pipeline) {
                 cmdBuf->bindPipeline(vk::PipelineBindPoint::eGraphics, sdi.pipeline);
             }
@@ -924,12 +910,10 @@ namespace worlds {
     }
 
     void PolyRenderPass::lateUpdateVP(glm::mat4 views[2], glm::vec3 viewPos[2], vk::Device dev) {
-        //MultiVP* multivp = (MultiVP*)vpUB.map(dev);
         vpMapped->views[0] = views[0];
         vpMapped->views[1] = views[1];
         vpMapped->viewPos[0] = glm::vec4(viewPos[0], 0.0f);
         vpMapped->viewPos[1] = glm::vec4(viewPos[1], 0.0f);
-        //vpUB.unmap(dev);
     }
 
     PolyRenderPass::~PolyRenderPass() {
