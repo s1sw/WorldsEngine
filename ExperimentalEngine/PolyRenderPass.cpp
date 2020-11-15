@@ -189,6 +189,10 @@ namespace worlds {
         modelMatrixUB = vku::UniformBuffer(ctx.device, ctx.allocator, sizeof(ModelMatrices), VMA_MEMORY_USAGE_CPU_TO_GPU, "Model matrices");
         pickingBuffer = vku::GenericBuffer(ctx.device, ctx.allocator, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst, sizeof(PickingBuffer), VMA_MEMORY_USAGE_CPU_ONLY, "Picking buffer");
 
+        modelMatricesMapped = (ModelMatrices*)modelMatrixUB.map(ctx.device);
+        lightMapped = (LightUB*)lightsUB.map(ctx.device);
+        vpMapped = (MultiVP*)vpUB.map(ctx.device);
+
         pickEvent = ctx.device.createEventUnique(vk::EventCreateInfo{});
 
         MaterialsUB materials;
@@ -547,10 +551,10 @@ namespace worlds {
         auto ctx = psCtx.vkCtx;
         auto tfWoView = rCtx.reg.view<Transform, WorldObject>();
 
-        ModelMatrices* modelMatricesMapped = static_cast<ModelMatrices*>(modelMatrixUB.map(ctx.device));
+        //ModelMatrices* modelMatricesMapped = static_cast<ModelMatrices*>(modelMatrixUB.map(ctx.device));
 
         int matrixIdx = 0;
-        rCtx.reg.view<Transform, WorldObject>().each([&matrixIdx, modelMatricesMapped](auto ent, Transform& t, WorldObject& wo) {
+        rCtx.reg.view<Transform, WorldObject>().each([&](auto ent, Transform& t, WorldObject& wo) {
             if (matrixIdx == 1023) {
                 fatalErr("Out of model matrices! Either don't spam so many objects or shout at us on the bug tracker.");
                 return;
@@ -560,7 +564,7 @@ namespace worlds {
             matrixIdx++;
             });
 
-        rCtx.reg.view<Transform, ProceduralObject>().each([&matrixIdx, modelMatricesMapped](auto ent, Transform& t, ProceduralObject& po) {
+        rCtx.reg.view<Transform, ProceduralObject>().each([&](auto ent, Transform& t, ProceduralObject& po) {
             if (matrixIdx == 1023) {
                 fatalErr("Out of model matrices! Either don't spam so many objects or shout at us on the bug tracker.");
                 return;
@@ -570,28 +574,28 @@ namespace worlds {
             matrixIdx++;
             });
 
-        modelMatrixUB.unmap(ctx.device);
+        //modelMatrixUB.unmap(ctx.device);
 
-        MultiVP* vp = (MultiVP*)vpUB.map(ctx.device);
+        //MultiVP* vp = (MultiVP*)vpUB.map(ctx.device);
 
         if (rCtx.enableVR) {
-            vp->views[0] = rCtx.vrViewMats[0];
-            vp->views[1] = rCtx.vrViewMats[1];
-            vp->projections[0] = rCtx.vrProjMats[0];
-            vp->projections[1] = rCtx.vrProjMats[1];
+            vpMapped->views[0] = rCtx.vrViewMats[0];
+            vpMapped->views[1] = rCtx.vrViewMats[1];
+            vpMapped->projections[0] = rCtx.vrProjMats[0];
+            vpMapped->projections[1] = rCtx.vrProjMats[1];
         } else {
-            vp->views[0] = rCtx.cam.getViewMatrix();
-            vp->projections[0] = rCtx.cam.getProjectionMatrix((float)rCtx.width / (float)rCtx.height);
-            vp->viewPos[0] = glm::vec4(rCtx.cam.position, 0.0f);
+            vpMapped->views[0] = rCtx.cam.getViewMatrix();
+            vpMapped->projections[0] = rCtx.cam.getProjectionMatrix((float)rCtx.width / (float)rCtx.height);
+            vpMapped->viewPos[0] = glm::vec4(rCtx.cam.position, 0.0f);
         }
 
-        vpUB.unmap(ctx.device);
+        //vpUB.unmap(ctx.device);
 
-        LightUB* lub = (LightUB*)lightsUB.map(ctx.device);
+        //LightUB* lub = (LightUB*)lightsUB.map(ctx.device);
         glm::vec3 viewPos = rCtx.viewPos;
 
         int lightIdx = 0;
-        rCtx.reg.view<WorldLight, Transform>().each([&lub, &lightIdx, &viewPos](auto ent, WorldLight& l, Transform& transform) {
+        rCtx.reg.view<WorldLight, Transform>().each([&](auto ent, WorldLight& l, Transform& transform) {
             glm::vec3 lightForward = glm::normalize(transform.rotation * glm::vec3(0.0f, 0.0f, -1.0f));
             if (l.type == LightType::Directional) {
                 const float SHADOW_DISTANCE = 25.0f;
@@ -606,18 +610,18 @@ namespace worlds {
                     shadowMapPos - lightForward,
                     glm::vec3(0.0f, 1.0f, 0.0));
 
-                lub->shadowmapMatrix = proj * view;
+                lightMapped->shadowmapMatrix = proj * view;
             }
 
-            lub->lights[lightIdx] = PackedLight{
+            lightMapped->lights[lightIdx] = PackedLight{
                 glm::vec4(l.color, (float)l.type),
                 glm::vec4(lightForward, l.spotCutoff),
                 glm::vec4(transform.position, 0.0f) };
             lightIdx++;
             });
 
-        lub->pack0.x = (float)lightIdx;
-        lightsUB.unmap(ctx.device);
+        lightMapped->pack0.x = (float)lightIdx;
+        //lightsUB.unmap(ctx.device);
 
         if (rCtx.reuploadMats) {
             auto memoryProps = ctx.physicalDevice.getMemoryProperties();
@@ -920,14 +924,19 @@ namespace worlds {
     }
 
     void PolyRenderPass::lateUpdateVP(glm::mat4 views[2], glm::vec3 viewPos[2], vk::Device dev) {
-        MultiVP* multivp = (MultiVP*)vpUB.map(dev);
-        multivp->views[0] = views[0];
-        multivp->views[1] = views[1];
-        multivp->viewPos[0] = glm::vec4(viewPos[0], 0.0f);
-        multivp->viewPos[1] = glm::vec4(viewPos[1], 0.0f);
-        vpUB.unmap(dev);
+        //MultiVP* multivp = (MultiVP*)vpUB.map(dev);
+        vpMapped->views[0] = views[0];
+        vpMapped->views[1] = views[1];
+        vpMapped->viewPos[0] = glm::vec4(viewPos[0], 0.0f);
+        vpMapped->viewPos[1] = glm::vec4(viewPos[1], 0.0f);
+        //vpUB.unmap(dev);
     }
 
     PolyRenderPass::~PolyRenderPass() {
+        // BLEUGHHH
+        vk::Device device = pipeline.getOwner();
+        modelMatrixUB.unmap(device);
+        lightsUB.unmap(device);
+        vpUB.unmap(device);
     }
 }

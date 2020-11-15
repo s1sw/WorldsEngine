@@ -4,6 +4,9 @@
 #include <glm/glm.hpp>
 
 namespace worlds {
+    struct MultiVP;
+    struct LightUB;
+    struct ModelMatrices;
     class Swapchain;
     class PolyRenderPass : public RenderPass {
     private:
@@ -33,6 +36,10 @@ namespace worlds {
         vk::UniquePipelineLayout pickingBufCsLayout;
         vk::UniqueDescriptorSetLayout pickingBufCsDsl;
         vk::UniqueDescriptorSet pickingBufCsDs;
+
+        MultiVP* vpMapped;
+        LightUB* lightMapped;
+        ModelMatrices* modelMatricesMapped;
 
         vku::UniformBuffer vpUB;
         vku::UniformBuffer lightsUB;
