@@ -6,6 +6,9 @@
 #include "JobSystem.hpp"
 #include <bitset>
 #include "OpenVRInterface.hpp"
+#include "ISystem.hpp"
+#include "Camera.hpp"
+#include "Console.hpp"
 
 #define NUM_SUBMESH_MATS 32
 namespace worlds {
@@ -16,6 +19,7 @@ namespace worlds {
     class AudioSystem;
     class InputManager;
     class Editor;
+    typedef uint32_t RTTPassHandle;
 
     struct SceneInfo {  
         std::string name;
@@ -41,6 +45,7 @@ namespace worlds {
         WorldsEngine(EngineInitOptions initOptions, char* argv0);
         void mainLoop();
         ~WorldsEngine();
+        void addSystem(ISystem* system);
         bool pauseSim;
         bool runAsEditor;
     private:
@@ -58,7 +63,9 @@ namespace worlds {
         void setupPhysfs(char* argv0);
         void createStartupScene();
         void drawDebugInfoWindow(DebugTimeInfo timeInfo);
+        void updateSimulation(float& interpAlpha, double deltaTime);
         bool running;
+        double simAccumulator;
         VKRenderer* renderer;
         entt::registry registry;
         IGameEventHandler* evtHandler;
@@ -69,6 +76,8 @@ namespace worlds {
         std::unique_ptr<Console> console;
         std::unique_ptr<Editor> editor;
         OpenVRInterface openvrInterface;
+
+        std::vector<ISystem*> systems;
     };
 
     struct WorldObject {

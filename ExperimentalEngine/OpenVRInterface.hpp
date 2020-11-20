@@ -10,6 +10,8 @@
 #include <SDL2/SDL_filesystem.h>
 #include "MatUtil.hpp"
 #include "Transform.hpp"
+#include "IVRInterface.hpp"
+#include "Log.hpp"
 #ifdef _WIN32
 const char PATH_SEP = '\\';
 #else

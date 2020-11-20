@@ -165,7 +165,6 @@ namespace worlds {
     }
 
     JobSystem* g_jobSys;
-    double simAccumulator = 0.0;
 
     std::unordered_map<entt::entity, physx::PxTransform> currentState;
     std::unordered_map<entt::entity, physx::PxTransform> previousState;
@@ -227,8 +226,9 @@ namespace worlds {
     ConVar simStepTime("sim_stepTime", "0.01");
 
     WorldsEngine::WorldsEngine(EngineInitOptions initOptions, char* argv0)
-        : running(true)
-        , pauseSim(false) {
+        : running{ true }
+        , pauseSim{ false }
+        , simAccumulator{ 0.0 }{
         ZoneScoped;
         useEventThread = initOptions.useEventThread;
         workerThreadOverride = initOptions.workerThreadOverride;
@@ -256,7 +256,7 @@ namespace worlds {
         // means that jobs can be missed
         g_jobSys = new JobSystem{ workerThreadOverride == -1 ? std::max(SDL_GetCPUCount(), 2) : workerThreadOverride };
 
-        currentScene.name = "";
+        currentScene.name = "Untitled";
 
         redrawSplashWindow(splashWindow, "loading assetdb");
         g_assetDB.load();
@@ -362,7 +362,13 @@ namespace worlds {
         console->registerCommand([&](void*, const char*) {
             runAsEditor = false;
             pauseSim = false;
-            evtHandler->onSceneStart(registry);
+
+            if (evtHandler)
+                evtHandler->onSceneStart(registry);
+
+            for (auto* system : systems)
+                system->onSceneStart(registry);
+
             registry.view<AudioSource>().each([](auto ent, auto& as) {
                 if (as.playOnSceneOpen) {
                     as.isPlaying = true;
@@ -409,16 +415,21 @@ namespace worlds {
             console->executeCommandStr("exec CommandScripts/startup");
 
         if (evtHandler != nullptr) {
-
             evtHandler->init(registry, interfaces);
 
-            if (!runAsEditor)
+            if (!runAsEditor) {
                 evtHandler->onSceneStart(registry);
+                for (auto* system : systems)
+                    system->onSceneStart(registry);
+            }
         }
 
         onSceneLoad = [&](entt::registry& reg) {
             if (evtHandler && !runAsEditor) {
                 evtHandler->onSceneStart(reg);
+
+                for (auto* system : systems)
+                    system->onSceneStart(registry);
             }
         };
 
@@ -554,88 +565,26 @@ namespace worlds {
 
             float interpAlpha = 1.0f;
 
-            if (evtHandler != nullptr && !runAsEditor)
+            if (evtHandler != nullptr && !runAsEditor) {
                 evtHandler->preSimUpdate(registry, deltaTime);
+
+                for (auto* system : systems)
+                    system->preSimUpdate(registry, deltaTime);
+            }
 
             double simTime = 0.0;
             if (!pauseSim) {
                 PerfTimer perfTimer;
-                if (lockSimToRefresh.getInt() || disableSimInterp.getInt()) {
-                    registry.view<DynamicPhysicsActor, Transform>().each([](auto ent, DynamicPhysicsActor& dpa, Transform& transform) {
-                        auto curr = dpa.actor->getGlobalPose();
-
-                        if (curr.p != glm2px(transform.position) || curr.q != glm2px(transform.rotation)) {
-                            physx::PxTransform pt(glm2px(transform.position), glm2px(transform.rotation));
-                            dpa.actor->setGlobalPose(pt);
-                        }
-                        });
-                }
-
-                registry.view<PhysicsActor, Transform>().each([](auto ent, PhysicsActor& pa, Transform& transform) {
-                    auto curr = pa.actor->getGlobalPose();
-                    if (curr.p != glm2px(transform.position) || curr.q != glm2px(transform.rotation)) {
-                        physx::PxTransform pt(glm2px(transform.position), glm2px(transform.rotation));
-                        pa.actor->setGlobalPose(pt);
-                    }
-                    });
-
-                if (!lockSimToRefresh.getInt()) {
-                    simAccumulator += deltaTime;
-
-                    if (registry.view<DynamicPhysicsActor>().size() != currentState.size()) {
-                        currentState.clear();
-                        previousState.clear();
-
-                        currentState.reserve(registry.view<DynamicPhysicsActor>().size());
-                        previousState.reserve(registry.view<DynamicPhysicsActor>().size());
-
-                        registry.view<DynamicPhysicsActor>().each([&](auto ent, DynamicPhysicsActor& dpa) {
-                            auto startTf = dpa.actor->getGlobalPose();
-                            currentState.insert({ ent, startTf });
-                            previousState.insert({ ent, startTf });
-                            });
-                    }
-
-                    while (simAccumulator >= simStepTime.getFloat()) {
-                        previousState = currentState;
-                        stepSimulation(simStepTime.getFloat());
-                        simAccumulator -= simStepTime.getFloat();
-
-                        if (evtHandler != nullptr && !runAsEditor)
-                            evtHandler->simulate(registry, simStepTime.getFloat());
-
-                        registry.view<DynamicPhysicsActor>().each([&](auto ent, DynamicPhysicsActor& dpa) {
-                            currentState[ent] = dpa.actor->getGlobalPose();
-                            });
-                    }
-
-                    float alpha = simAccumulator / simStepTime.getFloat();
-
-                    if (disableSimInterp.getInt())
-                        alpha = 1.0f;
-
-                    registry.view<DynamicPhysicsActor, Transform>().each([&](entt::entity ent, DynamicPhysicsActor& dpa, Transform& transform) {
-                        transform.position = glm::mix(px2glm(previousState[ent].p), px2glm(currentState[ent].p), (float)alpha);
-                        transform.rotation = glm::slerp(px2glm(previousState[ent].q), px2glm(currentState[ent].q), (float)alpha);
-                        });
-                    interpAlpha = alpha;
-                } else {
-                    stepSimulation(deltaTime);
-
-                    if (evtHandler != nullptr && !runAsEditor)
-                        evtHandler->simulate(registry, deltaTime);
-
-                    registry.view<DynamicPhysicsActor, Transform>().each([&](entt::entity ent, DynamicPhysicsActor& dpa, Transform& transform) {
-                        transform.position = px2glm(dpa.actor->getGlobalPose().p);
-                        transform.rotation = px2glm(dpa.actor->getGlobalPose().q);
-                        });
-                }
-
+                updateSimulation(interpAlpha, deltaTime);
                 simTime = perfTimer.stopGetMs();
             }
 
-            if (evtHandler != nullptr && !runAsEditor)
+            if (evtHandler != nullptr && !runAsEditor) {
                 evtHandler->update(registry, deltaTime, interpAlpha);
+
+                for (auto* system : systems)
+                    system->update(registry, deltaTime, interpAlpha);
+            }
 
             SDL_GetWindowSize(window, &windowSize.x, &windowSize.y);
 
@@ -711,7 +660,7 @@ namespace worlds {
                 auto& bTransform = registry.get<Transform>(b);
                 return glm::distance2(camPos, aTransform.position) < glm::distance2(camPos, bTransform.position) || registry.has<UseWireframe>(a);
                 }, entt::insertion_sort{});*/
-            
+
             renderer->frame(cam, registry);
             ImGui::UpdatePlatformWindows();
             ImGui::RenderPlatformWindowsDefault();
@@ -805,7 +754,96 @@ namespace worlds {
         }
     }
 
+    void WorldsEngine::updateSimulation(float& interpAlpha, double deltaTime) {
+        if (lockSimToRefresh.getInt() || disableSimInterp.getInt()) {
+            registry.view<DynamicPhysicsActor, Transform>().each([](auto ent, DynamicPhysicsActor& dpa, Transform& transform) {
+                auto curr = dpa.actor->getGlobalPose();
+
+                if (curr.p != glm2px(transform.position) || curr.q != glm2px(transform.rotation)) {
+                    physx::PxTransform pt(glm2px(transform.position), glm2px(transform.rotation));
+                    dpa.actor->setGlobalPose(pt);
+                }
+                });
+        }
+
+        registry.view<PhysicsActor, Transform>().each([](auto ent, PhysicsActor& pa, Transform& transform) {
+            auto curr = pa.actor->getGlobalPose();
+            if (curr.p != glm2px(transform.position) || curr.q != glm2px(transform.rotation)) {
+                physx::PxTransform pt(glm2px(transform.position), glm2px(transform.rotation));
+                pa.actor->setGlobalPose(pt);
+            }
+            });
+
+        if (!lockSimToRefresh.getInt()) {
+            simAccumulator += deltaTime;
+
+            if (registry.view<DynamicPhysicsActor>().size() != currentState.size()) {
+                currentState.clear();
+                previousState.clear();
+
+                currentState.reserve(registry.view<DynamicPhysicsActor>().size());
+                previousState.reserve(registry.view<DynamicPhysicsActor>().size());
+
+                registry.view<DynamicPhysicsActor>().each([&](auto ent, DynamicPhysicsActor& dpa) {
+                    auto startTf = dpa.actor->getGlobalPose();
+                    currentState.insert({ ent, startTf });
+                    previousState.insert({ ent, startTf });
+                    });
+            }
+
+            while (simAccumulator >= simStepTime.getFloat()) {
+                previousState = currentState;
+                stepSimulation(simStepTime.getFloat());
+                simAccumulator -= simStepTime.getFloat();
+
+                if (evtHandler != nullptr && !runAsEditor) {
+                    evtHandler->simulate(registry, simStepTime.getFloat());
+
+                    for (auto* system : systems)
+                        system->simulate(registry, simStepTime.getFloat());
+                }
+
+                registry.view<DynamicPhysicsActor>().each([&](auto ent, DynamicPhysicsActor& dpa) {
+                    currentState[ent] = dpa.actor->getGlobalPose();
+                    });
+            }
+
+            float alpha = simAccumulator / simStepTime.getFloat();
+
+            if (disableSimInterp.getInt())
+                alpha = 1.0f;
+
+            registry.view<DynamicPhysicsActor, Transform>().each([&](entt::entity ent, DynamicPhysicsActor& dpa, Transform& transform) {
+                transform.position = glm::mix(px2glm(previousState[ent].p), px2glm(currentState[ent].p), (float)alpha);
+                transform.rotation = glm::slerp(px2glm(previousState[ent].q), px2glm(currentState[ent].q), (float)alpha);
+                });
+            interpAlpha = alpha;
+        } else {
+            stepSimulation(deltaTime);
+
+            if (evtHandler != nullptr && !runAsEditor) {
+                evtHandler->simulate(registry, deltaTime);
+
+                for (auto* system : systems)
+                    system->simulate(registry, deltaTime);
+            }
+
+            registry.view<DynamicPhysicsActor, Transform>().each([&](entt::entity ent, DynamicPhysicsActor& dpa, Transform& transform) {
+                transform.position = px2glm(dpa.actor->getGlobalPose().p);
+                transform.rotation = px2glm(dpa.actor->getGlobalPose().q);
+                });
+        }
+    }
+
+    void WorldsEngine::addSystem(ISystem* system) {
+        systems.push_back(system);
+    }
+
     WorldsEngine::~WorldsEngine() {
+        for (auto* system : systems) {
+            delete system;
+        }
+
         if (evtHandler != nullptr && !runAsEditor)
             evtHandler->shutdown(registry);
 

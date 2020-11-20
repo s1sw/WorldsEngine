@@ -15,6 +15,7 @@
 #define _AMD64_
 #include <debugapi.h>
 #endif
+#include "Log.hpp"
 
 namespace worlds {
     // Because static initialisation is the first thing that occurs when the game is started,

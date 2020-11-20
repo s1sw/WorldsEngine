@@ -173,6 +173,7 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>PCH.hpp</PrecompiledHeaderFile>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <AdditionalOptions>-Wno-microsoft-include %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -320,6 +321,7 @@
     <ClInclude Include="imgui_stdlib.h" />
     <ClInclude Include="Input.hpp" />
     <ClInclude Include="IOUtil.hpp" />
+    <ClInclude Include="ISystem.hpp" />
     <ClInclude Include="IVRInterface.hpp" />
     <ClInclude Include="JobSystem.hpp" />
     <ClInclude Include="Log.hpp" />

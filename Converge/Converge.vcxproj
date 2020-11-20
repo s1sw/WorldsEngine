@@ -32,7 +32,7 @@
     <ProjectGuid>{e1a5326c-4834-4735-9b59-02379ab29931}</ProjectGuid>
     <RootNamespace>Converge</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
-	<VcpkgConfiguration Condition="'$(Configuration)' == 'Profile'">Release</VcpkgConfiguration>
+    <VcpkgConfiguration Condition="'$(Configuration)' == 'Profile'">Release</VcpkgConfiguration>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -225,10 +225,12 @@
   <ItemGroup>
     <ClCompile Include="ConvergeEventHandler.cpp" />
     <ClCompile Include="Events.cpp" />
+    <ClCompile Include="LocospherePlayerSystem.cpp" />
     <ClCompile Include="Main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ConvergeEventHandler.hpp" />
+    <ClInclude Include="LocospherePlayerSystem.hpp" />
     <ClInclude Include="PidController.hpp" />
     <ClInclude Include="resource.h" />
   </ItemGroup>

@@ -734,7 +734,7 @@ namespace worlds {
                 sceneViewPassCI.outputToScreen = false;
                 sceneViewPassCI.useForPicking = true;
                 sceneViewPass = interfaces.renderer->createRTTPass(sceneViewPassCI);
-                vkCtx.device.freeDescriptorSets(vkCtx.descriptorPool, sceneViewDS);
+                vkCtx.device.freeDescriptorSets(vkCtx.descriptorPool, vk::DescriptorSet{ sceneViewDS });
 
                 sceneViewDS = VKImGUIUtil::createDescriptorSetFor(interfaces.renderer->getSDRTarget(sceneViewPass), vkCtx);
             }

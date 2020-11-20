@@ -1,12 +1,12 @@
 #pragma once
 #include <entt/entt.hpp>
-#include "IVRInterface.hpp"
-#include "Render.hpp"
-#include "Camera.hpp"
-#include "Input.hpp"
 
 namespace worlds {
     class WorldsEngine;
+    class VKRenderer;
+    struct Camera;
+    class InputManager;
+    class IVRInterface;
 
     struct EngineInterfaces {
         IVRInterface* vrInterface;

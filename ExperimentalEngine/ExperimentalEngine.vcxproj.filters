@@ -421,5 +421,8 @@
     <ClInclude Include="SceneSerializationFuncs.hpp">
       <Filter>Header Files\Scene Serialization</Filter>
     </ClInclude>
+    <ClInclude Include="ISystem.hpp">
+      <Filter>Header Files\Misc</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

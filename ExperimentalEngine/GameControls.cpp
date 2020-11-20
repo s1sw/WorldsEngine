@@ -1,6 +1,7 @@
 #include "EditorWindows.hpp"
 #include "imgui.h"
 #include "IconsFontAwesome5.h"
+#include "Console.hpp"
 
 namespace worlds {
     void GameControls::draw(entt::registry& reg) {

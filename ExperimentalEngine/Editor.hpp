@@ -5,8 +5,12 @@
 #include "Transform.hpp"
 #include "IGameEventHandler.hpp"
 
+struct VkDescriptorSet_T;
+typedef VkDescriptorSet_T* VkDescriptorSet;
+
 namespace worlds {
     typedef uint32_t AssetID;
+    typedef uint32_t RTTPassHandle;
 
     enum class Tool {
         None,
@@ -105,6 +109,6 @@ namespace worlds {
         InputManager& inputManager;
         RTTPassHandle sceneViewPass;
         std::vector<std::unique_ptr<EditorWindow>> editorWindows;
-        vk::DescriptorSet sceneViewDS;
+        VkDescriptorSet sceneViewDS;
     };
 }
