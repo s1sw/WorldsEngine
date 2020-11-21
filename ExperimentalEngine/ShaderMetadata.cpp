@@ -1,7 +1,7 @@
 #include "ShaderMetadata.hpp"
-#include <spirv-headers/spirv.h>
+#include <spirv/1.2/spirv.h>
 #include "spirv_reflect.h"
-#include <spirv-headers/spirv.hpp>
+#include <spirv/1.2/spirv.hpp>
 #include <vector>
 #include <iostream>
 #include <cassert>

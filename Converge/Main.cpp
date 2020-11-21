@@ -1,7 +1,5 @@
 #include "ConvergeEventHandler.hpp"
 #include <Engine.hpp>
-#define _AMD64_
-#include <minwindef.h>
 
 int main(int argc, char** argv) {
     worlds::EngineInitOptions initOptions;

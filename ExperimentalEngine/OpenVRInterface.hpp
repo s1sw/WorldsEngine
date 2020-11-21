@@ -39,9 +39,9 @@ namespace worlds {
             system = vr::VR_Init(&eError, vr::VRApplication_Scene);
 
             if (eError != vr::VRInitError_None) {
-                char buf[1024];
-                sprintf_s(buf, sizeof(buf), "Unable to init VR runtime: %s", vr::VR_GetVRInitErrorAsEnglishDescription(eError));
-                SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "VR_Init Failed", buf, NULL);
+                //sprintf_s(buf, sizeof(buf), "Unable to init VR runtime: %s", vr::VR_GetVRInitErrorAsEnglishDescription(eError));
+                std::string errMsg = std::string{"Unable to init VR runtime: "} + vr::VR_GetVRInitErrorAsEnglishDescription(eError);
+                SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "VR_Init Failed", errMsg.c_str(), NULL);
             }
             
             const char* basePath = SDL_GetBasePath();

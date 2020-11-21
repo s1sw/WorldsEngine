@@ -3,6 +3,7 @@
 #include <unordered_map>
 #include <physfs.h>
 #include <cassert>
+#include <string>
 
 namespace worlds {
     typedef uint32_t AssetID;
