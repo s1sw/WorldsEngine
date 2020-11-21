@@ -122,22 +122,28 @@ sources = [
 
 cc = meson.get_compiler('cpp')
 
+physx_lib_dir = meson.project_source_root() + '/External/Lib/linux64dbg'
+
+if get_option('buildtype').startswith('release')
+  physx_lib_dir = meson.project_source_root() + '/External/Lib/linux64rel'
+endif
+
 physx_deps = [
-    cc.find_library('PhysXCharacterKinematic_static_64', dirs: meson.project_source_root() + '/External/Lib/linux64dbg'),
-    cc.find_library('PhysXCommon_static_64', dirs: meson.project_source_root() + '/External/Lib/linux64dbg'),
-    cc.find_library('PhysXCooking_static_64', dirs: meson.project_source_root() + '/External/Lib/linux64dbg'),
-    cc.find_library('PhysXExtensions_static_64', dirs: meson.project_source_root() + '/External/Lib/linux64dbg'),
-    cc.find_library('PhysXFoundation_static_64', dirs: meson.project_source_root() + '/External/Lib/linux64dbg'),
-    cc.find_library('PhysXPvdSDK_static_64', dirs: meson.project_source_root() + '/External/Lib/linux64dbg'),
-    cc.find_library('PhysX_static_64', dirs: meson.project_source_root() + '/External/Lib/linux64dbg'),
-    cc.find_library('PhysXVehicle_static_64', dirs: meson.project_source_root() + '/External/Lib/linux64dbg'),
-    cc.find_library('SampleBase_static_64', dirs: meson.project_source_root() + '/External/Lib/linux64dbg'),
-    cc.find_library('SampleFramework_static_64', dirs: meson.project_source_root() + '/External/Lib/linux64dbg'),
-    cc.find_library('SamplePlatform_static_64', dirs: meson.project_source_root() + '/External/Lib/linux64dbg'),
-    cc.find_library('SampleRenderer_static_64', dirs: meson.project_source_root() + '/External/Lib/linux64dbg'),
-    cc.find_library('SamplesToolkit_static_64', dirs: meson.project_source_root() + '/External/Lib/linux64dbg'),
-    cc.find_library('SnippetRender_static_64', dirs: meson.project_source_root() + '/External/Lib/linux64dbg'),
-    cc.find_library('SnippetUtils_static_64', dirs: meson.project_source_root() + '/External/Lib/linux64dbg'),
+    cc.find_library('PhysXCharacterKinematic_static_64', dirs: physx_lib_dir),
+    cc.find_library('PhysXCommon_static_64', dirs: physx_lib_dir),
+    cc.find_library('PhysXCooking_static_64', dirs: physx_lib_dir),
+    cc.find_library('PhysXExtensions_static_64', dirs: physx_lib_dir),
+    cc.find_library('PhysXFoundation_static_64', dirs: physx_lib_dir),
+    cc.find_library('PhysXPvdSDK_static_64', dirs: physx_lib_dir),
+    cc.find_library('PhysX_static_64', dirs: physx_lib_dir),
+    cc.find_library('PhysXVehicle_static_64', dirs: physx_lib_dir),
+    cc.find_library('SampleBase_static_64', dirs: physx_lib_dir),
+    cc.find_library('SampleFramework_static_64', dirs: physx_lib_dir),
+    cc.find_library('SamplePlatform_static_64', dirs: physx_lib_dir),
+    cc.find_library('SampleRenderer_static_64', dirs: physx_lib_dir),
+    cc.find_library('SamplesToolkit_static_64', dirs: physx_lib_dir),
+    cc.find_library('SnippetRender_static_64', dirs: physx_lib_dir),
+    cc.find_library('SnippetUtils_static_64', dirs: physx_lib_dir)
 ]
 
 worlds_inc = include_directories('.')
