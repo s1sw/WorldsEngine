@@ -342,3 +342,6 @@ healthchecksdb
 /EEData/srctex
 /EEData/srcmat
 /log.txt
+
+build
+build_release
