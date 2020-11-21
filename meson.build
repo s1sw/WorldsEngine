@@ -14,6 +14,10 @@ if get_option('buildtype').startswith('debug')
   add_global_arguments('-D_DEBUG=1', language: 'cpp')
 endif
 
+if get_option('buildtype').startswith('release')
+  add_global_arguments('-DNDEBUG=1', language: 'cpp')
+endif
+
 if get_option('enable_discord_rpc')
   add_global_arguments('-DDISCORD_RPC=1', language: 'cpp')
 endif
