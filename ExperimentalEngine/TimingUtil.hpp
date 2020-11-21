@@ -1,10 +1,11 @@
 #pragma once
 #include <chrono>
+#include <cassert>
 
 namespace worlds {
     class TimingUtil {
     public:
-        static auto now() {
+        static std::chrono::time_point<std::chrono::high_resolution_clock> now() {
             return std::chrono::high_resolution_clock::now();
         }
 
@@ -14,8 +15,8 @@ namespace worlds {
     };
 
     class PerfTimer {
-        std::chrono::steady_clock::time_point start;
-        std::chrono::steady_clock::time_point end;
+        std::chrono::time_point<std::chrono::high_resolution_clock> start;
+        std::chrono::time_point<std::chrono::high_resolution_clock> end;
         bool stopped = false;
     public:
         PerfTimer() {

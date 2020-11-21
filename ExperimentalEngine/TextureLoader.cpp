@@ -5,6 +5,8 @@
 #include "stb_image.h"
 #include "LogCategories.hpp"
 #include "Render.hpp"
+#include "Fatal.hpp"
+#include <physfs.h>
 
 namespace worlds {
     uint32_t getCrunchTextureSize(crnd::crn_texture_info texInfo, int mip) {
@@ -97,7 +99,7 @@ namespace worlds {
             currOffset += dataSize;
 
             if (!crnd::crnd_unpack_level(context, (void**)&dataOffs, dataSize, getRowPitch(texInfo, i), i))
-                __debugbreak();
+                fatalErr("Failed to unpack texture");
         }
 
         uint32_t numMips = texInfo.m_levels;
@@ -121,7 +123,8 @@ namespace worlds {
 
         PHYSFS_File* file = g_assetDB.openAssetFileRead(id);
         if (!file) {
-            SDL_LogError(worlds::WELogCategoryEngine, "Failed to load texture");
+            std::string path = g_assetDB.getAssetPath(id);
+            SDL_LogError(worlds::WELogCategoryEngine, "Failed to load texture %s: %s", path.c_str(), PHYSFS_getLastError());
             return TextureData{};
         }
 

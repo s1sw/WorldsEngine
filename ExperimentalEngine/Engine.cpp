@@ -71,7 +71,8 @@ namespace worlds {
             SDL_WINDOW_VULKAN |
             SDL_WINDOW_RESIZABLE |
             SDL_WINDOW_ALLOW_HIGHDPI |
-            SDL_WINDOW_HIDDEN);
+            SDL_WINDOW_HIDDEN 
+            );
     }
 
     // SDL_PollEvent blocks when the window is being resized or moved,

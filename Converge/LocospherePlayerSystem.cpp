@@ -21,9 +21,13 @@ namespace converge {
         }
     };
 
+    entt::entity getActorEntity(physx::PxRigidActor* actor) {
+        return (entt::entity)(uint32_t)(uintptr_t)actor->userData;
+    }
+
     struct FilterEntity : public physx::PxQueryFilterCallback {
-        uint32_t entA;
-        uint32_t entB;
+        entt::entity entA;
+        entt::entity entB;
 
         physx::PxQueryHitType::Enum preFilter(const physx::PxFilterData& filterData, const physx::PxShape* shape, const physx::PxRigidActor* actor, physx::PxHitFlags& queryFlags) override {
             return physx::PxQueryHitType::eBLOCK;
@@ -31,7 +35,7 @@ namespace converge {
 
 
         physx::PxQueryHitType::Enum postFilter(const physx::PxFilterData& filterData, const physx::PxQueryHit& hit) override {
-            if ((uint32_t)hit.actor->userData == entA || (uint32_t)hit.actor->userData == entB) {
+            if (getActorEntity(hit.actor) == entA || getActorEntity(hit.actor) == entB) {
                 return physx::PxQueryHitType::eNONE;
             }
             return physx::PxQueryHitType::eBLOCK;
@@ -390,7 +394,7 @@ namespace converge {
 
                     if (grappleBody) {
                         logMsg("we grapplin' to something MOVING :O");
-                        entt::entity grappleEnt = (entt::entity)(uint32_t)grappleBody->userData;
+                        entt::entity grappleEnt = getActorEntity(grappleBody);
                         if (registry.valid(grappleEnt) && registry.has<worlds::NameComponent>(grappleEnt)) {
                             logMsg("(its name is %s)", registry.get<worlds::NameComponent>(grappleEnt).name.c_str());
                         }
@@ -483,8 +487,8 @@ namespace converge {
         auto* locosphereActor = (physx::PxRigidDynamic*)wActor.actor;
 
         FilterEntity filterEnt;
-        filterEnt.entA = (uint32_t)playerLocosphere;
-        filterEnt.entB = (uint32_t)playerFender;
+        filterEnt.entA = playerLocosphere;
+        filterEnt.entB = playerFender;
 
         glm::vec3 desiredVel(0.0f);
 

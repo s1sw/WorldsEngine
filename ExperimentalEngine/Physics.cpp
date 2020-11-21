@@ -10,6 +10,7 @@
 #include "Console.hpp"
 #include "imgui.h"
 #include <SDL2/SDL_cpuinfo.h>
+#include "Fatal.hpp"
 
 #define ENABLE_PVD 0
 
@@ -86,7 +87,7 @@ namespace worlds {
         g_physics = PxCreatePhysics(PX_PHYSICS_VERSION, *g_physFoundation, tolerancesScale, true, pvd);
 
         if (g_physics == nullptr) {
-            __debugbreak();
+            fatalErr("failed to create physics engine??");
         }
 
         g_cooking = PxCreateCooking(PX_PHYSICS_VERSION, *g_physFoundation, physx::PxCookingParams(tolerancesScale));

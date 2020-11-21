@@ -80,7 +80,7 @@ namespace worlds {
             updater.buffer(pickingBuffer.buffer(), 0, sizeof(PickingBuffer));
 
             if (!updater.ok())
-                __debugbreak();
+                fatalErr("updater was not ok");
 
             updater.update(ctx.vkCtx.device);
         }

@@ -10,6 +10,7 @@ namespace worlds {
 
     WorldsEngine* engine;
 
+#ifdef DISCORD_RPC
     void onDiscordReady(const DiscordUser* user) {
         logMsg("Rich presence ready for %s", user->username);
 
@@ -34,20 +35,27 @@ namespace worlds {
             return interval;
             }, nullptr);
     }
+#endif
 
     void initRichPresence(EngineInterfaces interfaces) {
+#ifdef DISCORD_RPC
         engine = interfaces.engine;
         DiscordEventHandlers handlers;
         memset(&handlers, 0, sizeof(handlers));
         handlers.ready = onDiscordReady;
         Discord_Initialize("742075252028211310", &handlers, 0, nullptr);
+#endif
     }
 
     void tickRichPresence() {
+#ifdef DISCORD_RPC
         Discord_RunCallbacks();
+#endif
     }
 
     void shutdownRichPresence() {
+#ifdef DISCORD_RPC
         Discord_Shutdown();
+#endif
     }
 }

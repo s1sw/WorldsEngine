@@ -1,3 +1,4 @@
+#include <vulkan/vulkan.hpp>
 #define VMA_IMPLEMENTATION
 #include "PCH.hpp"
 #include "Engine.hpp"
@@ -79,7 +80,7 @@ RenderImageHandle VKRenderer::createRTResource(RTResourceCreateInfo resourceCrea
 }
 
 void VKRenderer::createSwapchain(vk::SwapchainKHR oldSwapchain) {
-    vk::PresentModeKHR presentMode = (useVsync && !enableVR) ? vk::PresentModeKHR::eFifoRelaxed : vk::PresentModeKHR::eImmediate;
+    vk::PresentModeKHR presentMode = (useVsync && !enableVR) ? vk::PresentModeKHR::eFifo : vk::PresentModeKHR::eImmediate;
     QueueFamilyIndices qfi{ graphicsQueueFamilyIdx, presentQueueFamilyIdx };
     swapchain = std::make_unique<Swapchain>(physicalDevice, *device, surface, qfi, oldSwapchain, presentMode);
     swapchain->getSize(&width, &height);
@@ -296,7 +297,7 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     , finalPrePresentR(UINT_MAX)
     , imguiImage(UINT_MAX)
     , minimised(false)
-    , useVsync(false) {
+    , useVsync(true) {
     msaaSamples = vk::SampleCountFlagBits::e2;
     numMSAASamples = 2;
 
@@ -1121,7 +1122,11 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
     presentInfo.pWaitSemaphores = &waitSemaphore;
     presentInfo.waitSemaphoreCount = 1;
 
-    vk::Result presentResult = queue.presentKHR(presentInfo);
+    try {
+        vk::Result presentResult = queue.presentKHR(presentInfo);
+    } catch (vk::OutOfDateKHRError) {
+        recreateSwapchain();
+    }
 
     TracyMessageL("Presented");
 
