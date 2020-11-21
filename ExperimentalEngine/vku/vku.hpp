@@ -36,12 +36,13 @@
 #endif
 
 #include <vulkan/vulkan.hpp>
-#include "AssetDB.hpp"
+#include "../AssetDB.hpp"
 #include <physfs.h>
-#include "Log.hpp"
+#include "../Log.hpp"
 #undef min
 #undef max
 
+#define UNUSED(thing) (void)thing
 namespace vku {
 
     /// Printf-style formatting function.
@@ -55,7 +56,7 @@ namespace vku {
 
     /// Utility function for finding memory types for uniforms and images.
     inline int findMemoryTypeIndex(const vk::PhysicalDeviceMemoryProperties& memprops, uint32_t memoryTypeBits, vk::MemoryPropertyFlags search) {
-        for (int i = 0; i != memprops.memoryTypeCount; ++i, memoryTypeBits >>= 1) {
+        for (uint32_t i = 0; i != memprops.memoryTypeCount; ++i, memoryTypeBits >>= 1) {
             if (memoryTypeBits & 1) {
                 if ((memprops.memoryTypes[i].propertyFlags & search) == search) {
                     return i;
@@ -508,6 +509,14 @@ namespace vku {
             VkDebugReportFlagsEXT flags, VkDebugReportObjectTypeEXT objectType,
             uint64_t object, size_t location, int32_t messageCode,
             const char* pLayerPrefix, const char* pMessage, void* pUserData) {
+            UNUSED(objectType);
+            UNUSED(object);
+            UNUSED(location);
+            UNUSED(messageCode);
+            UNUSED(pLayerPrefix);
+            UNUSED(pMessage);
+            UNUSED(pUserData);
+
             if ((flags & VK_DEBUG_REPORT_ERROR_BIT_EXT) == VK_DEBUG_REPORT_ERROR_BIT_EXT) {
                 logErr(worlds::WELogCategoryRender, "Vulkan: %s\n", pMessage);
             } else if ((flags & VK_DEBUG_REPORT_WARNING_BIT_EXT) == VK_DEBUG_REPORT_WARNING_BIT_EXT) {
@@ -765,9 +774,9 @@ namespace vku {
             snprintf(
                 tmp, sizeof(tmp), "  0x%08x,0x%08x,0x%08x,0x%08x,0x%08x,\n", p[0], p[1], p[2], p[3], p[4]);
             os << tmp;
-            for (int i = 5; i != s.opcodes_.size(); i += s.opcodes_[i] >> 16) {
+            for (size_t i = 5; i != s.opcodes_.size(); i += s.opcodes_[i] >> 16) {
                 char* p = tmp + 2, * e = tmp + sizeof(tmp) - 2;
-                for (int j = i; j != i + (s.opcodes_[i] >> 16); ++j) {
+                for (size_t j = i; j != i + (s.opcodes_[i] >> 16); ++j) {
                     p += snprintf(p, e - p, "0x%08x,", s.opcodes_[j]);
                     if (p > e - 16) { *p++ = '\n'; *p = 0; os << tmp; p = tmp + 2; }
                 }
@@ -896,7 +905,7 @@ namespace vku {
             pipelineInfo.pDynamicState = dynamicState_.empty() ? nullptr : &dynState;
             pipelineInfo.subpass = subpass_;
 
-            return device.createGraphicsPipelineUnique(pipelineCache, pipelineInfo);
+            return device.createGraphicsPipelineUnique(pipelineCache, pipelineInfo).value;
         }
 
         /// Add a shader module to the pipeline.
@@ -1101,7 +1110,7 @@ namespace vku {
             pipelineInfo.stage = stage_;
             pipelineInfo.layout = pipelineLayout;
 
-            return device.createComputePipelineUnique(pipelineCache, pipelineInfo);
+            return device.createComputePipelineUnique(pipelineCache, pipelineInfo).value;
         }
     private:
         vk::PipelineShaderStageCreateInfo stage_;
@@ -1160,6 +1169,7 @@ namespace vku {
         /// Note that this will stall the pipeline!
         void upload(vk::Device device, const vk::PhysicalDeviceMemoryProperties& memprops, vk::CommandPool commandPool, vk::Queue queue, const void* value, vk::DeviceSize size) const {
             if (size == 0) return;
+            (void)memprops;
             using buf = vk::BufferUsageFlagBits;
             auto tmp = vku::GenericBuffer(device, allocator, buf::eTransferSrc, size, VMA_MEMORY_USAGE_CPU_ONLY);
             tmp.updateLocal(device, value, size);
@@ -1196,18 +1206,24 @@ namespace vku {
         }
 
         void* map(const vk::Device& device) const {
+            (void)device;
             void* data;
             vmaMapMemory(allocator, allocation, &data);
             return data;
         }
 
-        void unmap(const vk::Device& device) const { vmaUnmapMemory(allocator, allocation); };
+        void unmap(const vk::Device& device) const { 
+            (void)device;
+            vmaUnmapMemory(allocator, allocation); 
+        }
 
         void flush(const vk::Device& device) const {
+            (void)device;
             vmaFlushAllocation(allocator, allocation, 0, VK_WHOLE_SIZE);
         }
 
         void invalidate(const vk::Device& device) const {
+            (void)device;
             vmaInvalidateAllocation(allocator, allocation, 0, VK_WHOLE_SIZE);
         }
 
@@ -1339,7 +1355,7 @@ namespace vku {
 
         /// Call this to add a combined image sampler.
         void image(vk::Sampler sampler, vk::ImageView imageView, vk::ImageLayout imageLayout) {
-            if (!descriptorWrites_.empty() && numImages_ != imageInfo_.size() && descriptorWrites_.back().pImageInfo) {
+            if (!descriptorWrites_.empty() && (size_t)numImages_ != imageInfo_.size() && descriptorWrites_.back().pImageInfo) {
                 descriptorWrites_.back().descriptorCount++;
                 imageInfo_[numImages_++] = vk::DescriptorImageInfo{ sampler, imageView, imageLayout };
             } else {
@@ -1361,7 +1377,7 @@ namespace vku {
 
         /// Call this to add a new buffer.
         void buffer(vk::Buffer buffer, vk::DeviceSize offset, vk::DeviceSize range) {
-            if (!descriptorWrites_.empty() && numBuffers_ != bufferInfo_.size() && descriptorWrites_.back().pBufferInfo) {
+            if (!descriptorWrites_.empty() && (size_t)numBuffers_ != bufferInfo_.size() && descriptorWrites_.back().pBufferInfo) {
                 descriptorWrites_.back().descriptorCount++;
                 bufferInfo_[numBuffers_++] = vk::DescriptorBufferInfo{ buffer, offset, range };
             } else {
@@ -1383,7 +1399,7 @@ namespace vku {
 
         /// Call this to add a buffer view. (Texel images)
         void bufferView(vk::BufferView view) {
-            if (!descriptorWrites_.empty() && numBufferViews_ != bufferViews_.size() && descriptorWrites_.back().pImageInfo) {
+            if (!descriptorWrites_.empty() && (size_t)numBufferViews_ != bufferViews_.size() && descriptorWrites_.back().pImageInfo) {
                 descriptorWrites_.back().descriptorCount++;
                 bufferViews_[numBufferViews_++] = view;
             } else {
@@ -1573,7 +1589,7 @@ namespace vku {
                     dest += srlayout.offset;
                     size_t bytesPerLine = s.info.extent.width * bytesPerPixel;
                     size_t srcStride = bytesPerLine * info().arrayLayers;
-                    for (int y = 0; y != s.info.extent.height; ++y) {
+                    for (uint32_t y = 0; y != s.info.extent.height; ++y) {
                         memcpy(dest, src + arrayLayer * bytesPerLine, bytesPerLine);
                         src += srcStride;
                         dest += srlayout.rowPitch;
@@ -1611,6 +1627,7 @@ namespace vku {
         }
 
         void upload(vk::Device device, VmaAllocator allocator, std::vector<uint8_t>& bytes, vk::CommandPool commandPool, vk::PhysicalDeviceMemoryProperties memprops, vk::Queue queue) {
+            UNUSED(memprops);
             vku::GenericBuffer stagingBuffer(device, allocator, (vk::BufferUsageFlags)vk::BufferUsageFlagBits::eTransferSrc, (vk::DeviceSize)bytes.size(), VMA_MEMORY_USAGE_CPU_ONLY);
             stagingBuffer.updateLocal(device, (const void*)bytes.data(), bytes.size());
 
@@ -1633,6 +1650,7 @@ namespace vku {
         }
 
         void upload(vk::Device device, VmaAllocator allocator, std::vector<uint8_t>& bytes, vk::PhysicalDeviceMemoryProperties memprops, vk::CommandBuffer cb) {
+            UNUSED(memprops);
             vku::GenericBuffer stagingBuffer(device, allocator, (vk::BufferUsageFlags)vk::BufferUsageFlagBits::eTransferSrc, (vk::DeviceSize)bytes.size(), VMA_MEMORY_USAGE_CPU_ONLY);
             stagingBuffer.updateLocal(device, (const void*)bytes.data(), bytes.size());
 
@@ -1691,6 +1709,7 @@ namespace vku {
             case il::eTransferDstOptimal: srcMask = afb::eTransferWrite; srcStageMask = psfb::eTransfer; break;
             case il::ePreinitialized: srcMask = afb::eTransferWrite | afb::eHostWrite; srcStageMask = psfb::eHost | psfb::eTransfer; break;
             case il::ePresentSrcKHR: srcMask = afb::eMemoryRead; break;
+            default: break;
             }
 
             switch (newLayout) {
@@ -1704,6 +1723,7 @@ namespace vku {
             case il::eTransferDstOptimal: dstMask = afb::eTransferWrite; dstStageMask = psfb::eTransfer; break;
             case il::ePreinitialized: dstMask = afb::eTransferWrite; dstStageMask = psfb::eTransfer; break;
             case il::ePresentSrcKHR: dstMask = afb::eMemoryRead; break;
+            default: break;
             }
             //printf("%08x %08x\n", (VkFlags)srcMask, (VkFlags)dstMask);
 
@@ -1781,20 +1801,6 @@ namespace vku {
                 auto setObjName = (PFN_vkSetDebugUtilsObjectNameEXT)device.getProcAddr("vkSetDebugUtilsObjectNameEXT");
                 setObjName(device, &nameInfo);
             }
-
-            // Find out how much memory and which heap to allocate from.
-            auto memreq = device.getImageMemoryRequirements(*s.image);
-            vk::MemoryPropertyFlags search{};
-            if (hostImage) search = vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible;
-
-            // Create a memory object to bind to the buffer.
-            // Note: we don't expect to be able to map the buffer.
-            //vk::MemoryAllocateInfo mai{};
-            //mai.allocationSize = s.size = memreq.size;
-            //mai.memoryTypeIndex = vku::findMemoryTypeIndex(memprops, memreq.memoryTypeBits, search);
-            //s.mem = device.allocateMemoryUnique(mai);
-
-            //device.bindImageMemory(*s.image, *s.mem, 0);
 
             VmaAllocationCreateInfo vaci;
             vaci.usage = hostImage ? VMA_MEMORY_USAGE_CPU_ONLY : VMA_MEMORY_USAGE_GPU_ONLY;
@@ -2140,6 +2146,7 @@ namespace vku {
         uint32_t depth(uint32_t mipLevel) const { return mipScale(header.pixelDepth, mipLevel); }
 
         void upload(vk::Device device, VmaAllocator allocator, vku::GenericImage& image, std::vector<uint8_t>& bytes, vk::CommandPool commandPool, vk::PhysicalDeviceMemoryProperties memprops, vk::Queue queue) {
+            UNUSED(memprops);
             vku::GenericBuffer stagingBuffer(device, allocator, (vk::BufferUsageFlags)vk::BufferUsageFlagBits::eTransferSrc, (vk::DeviceSize)bytes.size(), VMA_MEMORY_USAGE_CPU_ONLY);
             stagingBuffer.updateLocal(device, (const void*)bytes.data(), bytes.size());
 
@@ -2226,4 +2233,5 @@ namespace vku {
 
 } // namespace vku
 
+#undef UNUSED
 #endif // VKU_HPP
