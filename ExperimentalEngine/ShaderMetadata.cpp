@@ -1,7 +1,10 @@
 #include "ShaderMetadata.hpp"
-#include <spirv/1.2/spirv.h>
 #include "spirv_reflect.h"
+#ifdef _WIN32
+#include <spirv-headers/spirv.hpp>
+#else
 #include <spirv/1.2/spirv.hpp>
+#endif
 #include <vector>
 #include <iostream>
 #include <cassert>
