@@ -49,7 +49,8 @@ namespace worlds {
         { WELogCategoryAudio, "Audio" },
         { WELogCategoryRender, "Render" },
         { WELogCategoryUI, "UI" },
-        { WELogCategoryApp, "Application"},
+        { WELogCategoryApp, "Application" },
+        { WELogCategoryScripting, "Scripting" },
         { CONSOLE_RESPONSE_CATEGORY, "Console Response" }
     };
 

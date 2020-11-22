@@ -7,6 +7,7 @@ namespace worlds {
         WELogCategoryAudio,
         WELogCategoryRender,
         WELogCategoryUI,
-        WELogCategoryApp
+        WELogCategoryApp,
+        WELogCategoryScripting
     };
 }

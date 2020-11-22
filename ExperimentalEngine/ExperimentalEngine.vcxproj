@@ -266,6 +266,7 @@
     <ClCompile Include="IOUtil.cpp" />
     <ClCompile Include="JobSystem.cpp" />
     <ClCompile Include="Engine.cpp" />
+    <ClCompile Include="LuaVM.cpp" />
     <ClCompile Include="MaterialSlots.cpp" />
     <ClCompile Include="mikktspace.c" />
     <ClCompile Include="ObjModelLoader.cpp" />
@@ -326,6 +327,7 @@
     <ClInclude Include="JobSystem.hpp" />
     <ClInclude Include="Log.hpp" />
     <ClInclude Include="LogCategories.hpp" />
+    <ClInclude Include="LuaVM.hpp" />
     <ClInclude Include="MatUtil.hpp" />
     <ClInclude Include="mikktspace.h" />
     <ClInclude Include="NameComponent.hpp" />

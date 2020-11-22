@@ -458,6 +458,9 @@ namespace worlds {
 
         SDL_ShowWindow(window);
         destroySplashWindow(splashWindow);
+
+        luaVM = std::make_unique<LuaVM>();
+        luaVM->bindRegistry(registry);
     }
 
     void WorldsEngine::createStartupScene() {

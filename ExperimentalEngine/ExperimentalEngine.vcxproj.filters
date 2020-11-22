@@ -69,6 +69,12 @@
     <Filter Include="Source Files\Scene Serialization">
       <UniqueIdentifier>{c3810df0-11e1-409c-ba3e-9b546fee03ce}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\Scripting">
+      <UniqueIdentifier>{f0155cc7-a0ae-42a6-b56e-2d0ba2cf08c1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Scripting">
+      <UniqueIdentifier>{157ff368-ee6e-476b-9efd-f3a2810b5b25}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="EntityList.cpp">
@@ -232,6 +238,9 @@
     </ClCompile>
     <ClCompile Include="Engine.cpp">
       <Filter>Source Files\Systems</Filter>
+    </ClCompile>
+    <ClCompile Include="LuaVM.cpp">
+      <Filter>Source Files\Scripting</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -423,6 +432,9 @@
     </ClInclude>
     <ClInclude Include="ISystem.hpp">
       <Filter>Header Files\Misc</Filter>
+    </ClInclude>
+    <ClInclude Include="LuaVM.hpp">
+      <Filter>Header Files\Scripting</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
