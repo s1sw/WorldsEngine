@@ -812,6 +812,8 @@ namespace converge {
 
         fenderJoint->setConstraintFlag(physx::PxConstraintFlag::eCOLLISION_ENABLED, false);
         fenderActor->setSolverIterationCounts(30, 8);
+
+        logMsg("locosphere entity is %u", (uint32_t)playerLocosphere);
     }
 
     void LocospherePlayerSystem::shutdown(entt::registry& registry) {

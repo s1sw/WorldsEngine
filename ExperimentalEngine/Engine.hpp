@@ -9,6 +9,7 @@
 #include "ISystem.hpp"
 #include "Camera.hpp"
 #include "Console.hpp"
+#include "LuaVM.hpp"
 
 #define NUM_SUBMESH_MATS 32
 namespace worlds {
@@ -75,6 +76,7 @@ namespace worlds {
         Camera cam;
         std::unique_ptr<Console> console;
         std::unique_ptr<Editor> editor;
+        std::unique_ptr<LuaVM> luaVM;
         OpenVRInterface openvrInterface;
 
         std::vector<ISystem*> systems;
