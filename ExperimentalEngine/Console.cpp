@@ -365,8 +365,8 @@ namespace worlds {
                 (*convarPos).second->setValue(valStr.c_str());
                 logMsg(CONSOLE_RESPONSE_CATEGORY, "%s = %s", cmdString.c_str(), valStr.c_str());
             } else if (cmdPos != commands.end()) {
+                logMsg(CONSOLE_RESPONSE_CATEGORY, cmdStr.c_str());
                 (*cmdPos).second.func((*cmdPos).second.obj, argString.c_str());
-                logMsg(CONSOLE_RESPONSE_CATEGORY, cmdString.c_str());
             } else {
                 msgs.push_back(ConsoleMsg{ SDL_LOG_PRIORITY_ERROR, "No command/convar named " + cmdString, CONSOLE_RESPONSE_CATEGORY });
             }
