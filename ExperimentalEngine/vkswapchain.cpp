@@ -57,7 +57,7 @@ namespace worlds {
         swapinfo.imageColorSpace = surfaceFormat.colorSpace;
         swapinfo.imageExtent = surfaceCaps.currentExtent;
         swapinfo.imageArrayLayers = 1;
-        swapinfo.imageUsage = vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eStorage;
+        swapinfo.imageUsage = vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferDst;
         swapinfo.imageSharingMode = sharingMode;
         swapinfo.queueFamilyIndexCount = !sameQueues ? 2 : 0;
         swapinfo.pQueueFamilyIndices = queueFamilyIndices.data();
@@ -71,6 +71,16 @@ namespace worlds {
 
         images = device.getSwapchainImagesKHR(*swapchain);
         for (auto& image : images) {
+            VkDebugUtilsObjectNameInfoEXT nameInfo;
+            nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+            nameInfo.pObjectName = "Swapchain Image";
+            nameInfo.objectHandle = (uint64_t)(VkImage)image;
+            nameInfo.objectType = VK_OBJECT_TYPE_IMAGE;
+            nameInfo.pNext = nullptr;
+
+            auto setObjName = (PFN_vkSetDebugUtilsObjectNameEXT)device.getProcAddr("vkSetDebugUtilsObjectNameEXT");
+            setObjName(device, &nameInfo);
+
             vk::ImageViewCreateInfo ivci;
             ivci.image = image;
             ivci.viewType = vk::ImageViewType::e2D;
