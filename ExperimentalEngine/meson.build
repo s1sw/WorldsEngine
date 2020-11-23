@@ -1,4 +1,3 @@
-
 sources = [
     'spirv_reflect.c',
     'mikktspace.c',
@@ -32,6 +31,7 @@ sources = [
     'GuiUtil.cpp',
     'ImGuiRenderPass.cpp',
     'Input.cpp',
+    'LuaVM.cpp',
     'MaterialSlots.cpp',
     'ObjModelLoader.cpp',
     'Physics.cpp',
@@ -82,6 +82,7 @@ sources = [
     'IOUtil.hpp',
     'Log.hpp',
     'LogCategories.hpp',
+    'LuaVM.hpp',
     'MatUtil.hpp',
     'RenderGraph.hpp',
     'Result.hpp',
@@ -150,9 +151,10 @@ worlds_inc = include_directories('.')
 tracy_inc = include_directories('./tracy/')
 physfs_dep = dependency('physfs')
 vk_dep = dependency('vulkan')
+lua_dep = dependency('lua')
 
 dl_dep = cc.find_library('dl', required : false)
 openvr_dep = cc.find_library('openvr_api')
 
-worlds = static_library('worlds', sources, include_directories: [extern_include_dir, physx_include_dir, tracy_inc], dependencies: [vk_dep, physfs_dep, sdl2_dep, physx_deps, dl_dep, openvr_dep])
+worlds = static_library('worlds', sources, include_directories: [extern_include_dir, physx_include_dir, tracy_inc], dependencies: [vk_dep, physfs_dep, sdl2_dep, physx_deps, dl_dep, openvr_dep, lua_dep])
 worlds_dep = declare_dependency(include_directories: worlds_inc, link_with: worlds)
