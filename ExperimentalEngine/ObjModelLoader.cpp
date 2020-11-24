@@ -82,7 +82,6 @@ namespace worlds {
         tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, &stream);
 
         // Load the first shape
-        size_t index_offset = 0;
         for (auto& idx : shapes[0].mesh.indices) {
             Vertex vert;
             vert.position = glm::vec3(attrib.vertices[3 * (size_t)idx.vertex_index], attrib.vertices[3 * (size_t)idx.vertex_index + 1], attrib.vertices[3 * (size_t)idx.vertex_index + 2]);
@@ -93,36 +92,6 @@ namespace worlds {
 
             vertices.push_back(vert);
             indices.push_back((uint32_t)indices.size());
-        }
-
-        std::vector<Vertex> mikkTSpaceOut(shapes[0].mesh.indices.size());
-
-        TangentCalcCtx tCalcCtx{ vertices, indices, mikkTSpaceOut };
-        
-        SMikkTSpaceInterface interface{};
-        interface.m_getNumFaces = getNumFaces;
-        interface.m_getNumVerticesOfFace = getNumVertsOfFace;
-        interface.m_getPosition = getPosition;
-        interface.m_getNormal = getNormal;
-        interface.m_getTexCoord = getTexCoord;
-        interface.m_setTSpaceBasic = setTSpace;
-
-        SMikkTSpaceContext ctx;
-        ctx.m_pInterface = &interface;
-        ctx.m_pUserData = &tCalcCtx;
-
-        genTangSpaceDefault(&ctx);
-
-        std::vector<int> remapTable;
-        remapTable.resize(mikkTSpaceOut.size());
-        vertices.resize(mikkTSpaceOut.size());
-        int finalVertCount = WeldMesh(remapTable.data(), (float*)vertices.data(), (float*)mikkTSpaceOut.data(), mikkTSpaceOut.size(), sizeof(Vertex) / sizeof(float));
-        vertices.resize(finalVertCount);
-
-        indices.clear();
-        indices.reserve(mikkTSpaceOut.size());
-        for (int i = 0; i < mikkTSpaceOut.size(); i++) {
-            indices.push_back(remapTable[i]);
         }
     }
 }
