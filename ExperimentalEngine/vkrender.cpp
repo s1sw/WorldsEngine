@@ -396,10 +396,9 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     allocatorCreateInfo.frameInUseCount = 0;
     allocatorCreateInfo.instance = *instance;
     allocatorCreateInfo.physicalDevice = physicalDevice;
-    allocatorCreateInfo.vulkanApiVersion = VK_API_VERSION_1_1;
+    allocatorCreateInfo.vulkanApiVersion = VK_API_VERSION_1_2;
     allocatorCreateInfo.flags = 0;
     vmaCreateAllocator(&allocatorCreateInfo, &allocator);
-
 
     vk::PipelineCacheCreateInfo pipelineCacheInfo{};
     loadPipelineCache(physicalDevice.getProperties(), pipelineCacheInfo);
@@ -565,6 +564,17 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
         msaaSamples = (vk::SampleCountFlagBits)numMSAASamples;
         recreateSwapchain();
         }, "r_setMSAASamples", "Sets the number of MSAA samples.", nullptr);
+
+    g_console->registerCommand([&](void*, const char*) {
+        recreateSwapchain();
+        }, "r_recreateSwapchain", "", nullptr);
+
+    g_console->registerCommand([&](void*, const char*) {
+        char* statsString;
+        vmaBuildStatsString(allocator, &statsString, true);
+        logMsg("%s", statsString);
+        vmaFreeStatsString(allocator, statsString);
+        }, "r_printAllocInfo", "", nullptr);
 }
 
 // Quite a lot of resources are dependent on either the number of images
@@ -1459,6 +1469,13 @@ VKRenderer::~VKRenderer() {
         device->waitIdle();
         serializePipelineCache();
 
+#ifndef NDEBUG
+        char* statsString;
+        vmaBuildStatsString(allocator, &statsString, true);
+        std::cout << statsString << "\n";
+        vmaFreeStatsString(allocator, statsString);
+#endif
+
         for (auto& semaphore : this->cmdBufferSemaphores) {
             device->destroySemaphore(semaphore);
         }
@@ -1485,7 +1502,6 @@ VKRenderer::~VKRenderer() {
         loadedMeshes.clear();
 
 #ifndef NDEBUG
-        char* statsString;
         vmaBuildStatsString(allocator, &statsString, true);
         std::cout << statsString << "\n";
         vmaFreeStatsString(allocator, statsString);
