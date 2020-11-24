@@ -22,5 +22,10 @@ if get_option('enable_discord_rpc')
   add_global_arguments('-DDISCORD_RPC=1', language: 'cpp')
 endif
 
+add_global_arguments('-ffast-math', language: 'cpp')
+add_global_arguments('-g', language: 'cpp') # generate debug symbols even in release
+
+subdir('ModelFormat')
+subdir('Tools')
 subdir('ExperimentalEngine')
 subdir('Converge')

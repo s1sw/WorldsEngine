@@ -67,7 +67,8 @@ namespace worlds {
                     }
                 } else {
                     AssetID id = g_assetDB.addOrGetExisting(fullPath);
-                    if (g_assetDB.getAssetExtension(id) == ".obj" || g_assetDB.getAssetExtension(id) == ".mdl") {
+                    auto ext = g_assetDB.getAssetExtension(id);
+                    if (ext == ".obj" || ext == ".mdl" || ext == ".wmdl") {
                         if (ImGui::Button(fName)) {
                             entt::entity ent = createModelObject(reg, glm::vec3(), glm::quat(), id, g_assetDB.addOrGetExisting("Materials/dev.json"));
 
