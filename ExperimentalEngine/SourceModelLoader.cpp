@@ -97,7 +97,7 @@ namespace worlds {
 
     struct mstudiobodyparts_t {
         int					sznameindex;
-        inline char* const pszName(void) const { return ((char*)this) + sznameindex; }
+        inline char* pszName(void) const { return ((char*)this) + sznameindex; }
         int					nummodels;
         int					base;
         int					modelindex; // index into models array
@@ -152,7 +152,7 @@ namespace worlds {
 
     struct mstudiohitboxset_t {
         int					sznameindex;
-        inline char* const	pszName(void) const { return ((char*)this) + sznameindex; }
+        inline char* pszName(void) const { return ((char*)this) + sznameindex; }
         int					numhitboxes;
         int					hitboxindex;
         inline mstudiobbox_t* pHitbox(int i) const { return (mstudiobbox_t*)(((byte*)this) + hitboxindex) + i; };
@@ -162,7 +162,7 @@ namespace worlds {
         // Number of bytes past the beginning of this structure
         // where the first character of the texture name can be found.
         int		name_offset; 	// Offset for null-terminated string
-        inline char* const name() const { return ((char*)this) + name_offset; }
+        inline char* name() const { return ((char*)this) + name_offset; }
         int		flags;
         int		used; 		// ??
 
@@ -563,9 +563,6 @@ namespace worlds {
             logErr("MDL checksum doesn't match VTX checksum!");
         }
 
-        studiohdr2_t* hdr2 = mdl->getHdr2();
-        mstudiohitboxset_t* hitboxSet = mdl->getHitboxSet();
-
         logMsg("Source model loader: name is %s, version is %i with %i LODs", mdl->name, mdl->version, vvd->numLODs);
 
         auto* fixupBlock = vvd->getFixupBlock();
@@ -601,13 +598,6 @@ namespace worlds {
             vertices.push_back(eeVert);
             vertexBlock++;
         }
-
-        for (int i = 0; i < mdl->texture_count; i++) {
-            mstudiotexture_t& tex = mdl->getTextures()[i];
-        }
-
-        int prevMaterial = INT_MAX;
-        int indexOverflowCount = 0;
 
         for (int i = 0; i < vtx->numBodyParts; i++) {
             BodyPartHeader_t* bph = vtx->getBodyPartHeader(i);
@@ -661,7 +651,7 @@ namespace worlds {
 
         // Invert winding order
 
-        for (int i = 0; i < indices.size(); i += 3) {
+        for (size_t i = 0; i < indices.size(); i += 3) {
             int idx0 = indices[i + 0];
             int idx1 = indices[i + 1];
             int idx2 = indices[i + 2];
@@ -723,12 +713,10 @@ namespace worlds {
                 ModelLODHeader_t* mlh = mdh->getModelLODHeader(0);
 
                 for (int k = 0; k < mlh->numMeshes; k++) {
-                    MeshHeader_t* mh = mlh->getMeshHeader(k);
                     mstudiomesh_t* studioMesh = studioModel->pMesh(k);
 
                     if (j == 0) {
                         mstudiotexture_t& tex = mdl->getTextures()[studioMesh->material];
-                        //std::cout << "tex " << i << ": mat is " << tex.material << ", name is " << tex.name() << "\n";
                         std::string path = "Materials/" + std::string(tex.name()) + ".json";
 
                         if (PHYSFS_exists(path.c_str())) {
