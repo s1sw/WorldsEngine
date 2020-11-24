@@ -59,7 +59,9 @@ flags = [
 '-x',
 'c++',
 '-I',
-'./External/Include'
+'./External/Include',
+'-I',
+'./ModelFormat'
 ]
 
 # Clang automatically sets the '-std=' flag to 'c++14' for MSVC 2015 or later,
@@ -79,7 +81,7 @@ if platform.system() != 'Windows':
 #
 # Most projects will NOT need to set this to anything; you can just change the
 # 'flags' list of compilation flags. Notice that YCM itself uses that approach.
-compilation_database_folder = ''
+compilation_database_folder = 'build'
 
 
 def IsHeaderFile( filename ):

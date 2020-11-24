@@ -24,6 +24,7 @@
 #include "ObjModelLoader.hpp"
 #include "Render.hpp"
 #include "SourceModelLoader.hpp"
+#include "WMDLLoader.hpp"
 
 using namespace worlds;
 
@@ -1198,6 +1199,8 @@ void VKRenderer::preloadMesh(AssetID id) {
         AssetID vtxId = g_assetDB.addOrGetExisting(vtxPath);
         AssetID vvdId = g_assetDB.addOrGetExisting(vvdPath);
         loadSourceModel(id, vtxId, vvdId, vertices, indices, lmd);
+    } else if (ext == ".wmdl") {
+        loadWorldsModel(id, vertices, indices, lmd);
     }
 
     auto memProps = physicalDevice.getMemoryProperties();
