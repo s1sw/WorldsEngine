@@ -70,7 +70,6 @@ uint32_t findPresentQueue(vk::PhysicalDevice pd, vk::SurfaceKHR surface) {
 }
 
 RenderImageHandle VKRenderer::createRTResource(RTResourceCreateInfo resourceCreateInfo, const char* debugName) {
-    auto memProps = physicalDevice.getMemoryProperties();
     RenderTextureResource rtr;
     rtr.image = vku::GenericImage{ *device, allocator, resourceCreateInfo.ici, resourceCreateInfo.viewType, resourceCreateInfo.aspectFlags, false, debugName };
     rtr.aspectFlags = resourceCreateInfo.aspectFlags;
@@ -279,26 +278,23 @@ vk::PhysicalDevice pickPhysicalDevice(std::vector<vk::PhysicalDevice>& physicalD
 }
 
 VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
-    : window(initInfo.window)
-    , frameIdx(0)
-    , lastHandle(0)
+    : finalPrePresent(UINT_MAX)
+    , finalPrePresentR(UINT_MAX)
     , shadowmapImage(std::numeric_limits<uint32_t>::max())
+    , imguiImage(UINT_MAX)
+    , lastHandle(0)
+    , frameIdx(0)
     , shadowmapRes(4096)
     , enableVR(initInfo.enableVR)
-    , vrPredictAmount(0.033f)
-    , clearMaterialIndices(false)
-    , irp(nullptr)
-    , lowLatencyMode("r_lowLatency", "0", "Waits for GPU completion before starting the next frame. Has a significant impact on latency when VSync is enabled.")
-    , enablePicking(initInfo.enablePicking)
     , pickingPRP(nullptr)
     , vrPRP(nullptr)
-    , mainPass(~0u)
-    , nextHandle(0u)
-    , finalPrePresent(UINT_MAX)
-    , finalPrePresentR(UINT_MAX)
-    , imguiImage(UINT_MAX)
-    , minimised(false)
-    , useVsync(true) {
+    , irp(nullptr)
+    , vrPredictAmount(0.033f)
+    , clearMaterialIndices(false)
+    , useVsync(true) 
+    , lowLatencyMode("r_lowLatency", "0", "Waits for GPU completion before starting the next frame. Has a significant impact on latency when VSync is enabled.")
+    , enablePicking(initInfo.enablePicking)
+    , nextHandle(0u) {
     msaaSamples = vk::SampleCountFlagBits::e2;
     numMSAASamples = 2;
 
@@ -635,7 +631,6 @@ void VKRenderer::createSCDependents() {
 
     RTResourceCreateInfo finalPrePresentCI{ ici, vk::ImageViewType::e2D, vk::ImageAspectFlagBits::eColor };
 
-    auto oldFinalPrePresent = finalPrePresent;
     finalPrePresent = createRTResource(finalPrePresentCI, "Final Pre-Present");
 
     if (enableVR)
@@ -738,7 +733,9 @@ void VKRenderer::presentNothing(uint32_t imageIndex) {
     submitInfo.commandBufferCount = 1;
     device->getQueue(presentQueueFamilyIdx, 0).submit(submitInfo, nullptr);
 
-    device->getQueue(presentQueueFamilyIdx, 0).presentKHR(presentInfo);
+    auto presentResult = device->getQueue(presentQueueFamilyIdx, 0).presentKHR(presentInfo);
+    if (presentResult != vk::Result::eSuccess && presentResult != vk::Result::eSuboptimalKHR)
+        fatalErr("Present failed!");
 }
 
 void imageBarrier(vk::CommandBuffer& cb, vk::Image image, vk::ImageLayout layout, vk::AccessFlags srcMask, vk::AccessFlags dstMask, vk::PipelineStageFlags srcStageMask, vk::PipelineStageFlags dstStageMask, vk::ImageAspectFlags aspectMask = vk::ImageAspectFlagBits::eColor, uint32_t numLayers = 1) {
@@ -1070,7 +1067,9 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
         swi.pSemaphores = &cmdBufferSemaphores[imageIndex];
         swi.semaphoreCount = 1;
         swi.pValues = &cmdBufSemaphoreVals[imageIndex];
-        device->waitSemaphores(swi, UINT64_MAX);
+        vk::Result semaphoreWaitResult = device->waitSemaphores(swi, UINT64_MAX);
+        if (semaphoreWaitResult != vk::Result::eSuccess)
+            fatalErr("failed to wait on semaphore");
     }
 
     destroyTempTexBuffers(imageIndex);
@@ -1116,7 +1115,11 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
 
     submit.pNext = &tssi;
     auto queue = device->getQueue(graphicsQueueFamilyIdx, 0);
-    queue.submit(1, &submit, nullptr);
+    auto submitResult = queue.submit(1, &submit, nullptr);
+
+    if (submitResult != vk::Result::eSuccess)
+        fatalErr("Failed to submit queue");
+
     cmdBufSemaphoreVals[imageIndex]++;
     TracyMessageL("Queue submitted");
 
@@ -1135,6 +1138,12 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
 
     try {
         vk::Result presentResult = queue.presentKHR(presentInfo);
+
+        if (presentResult == vk::Result::eSuboptimalKHR) {
+            recreateSwapchain();
+        } else if (presentResult != vk::Result::eSuccess) {
+            fatalErr("Failed to present");
+        }
     } catch (vk::OutOfDateKHRError) {
         recreateSwapchain();
     }
@@ -1145,6 +1154,8 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
         vr::VRCompositor()->WaitGetPoses(nullptr, 0, nullptr, 0);
 
     std::array<std::uint64_t, 2> timeStamps = { {0} };
+
+
     auto queryRes = device->getQueryPoolResults<std::uint64_t>(
         *queryPool, 0, (uint32_t)timeStamps.size(),
         timeStamps, sizeof(std::uint64_t),
@@ -1159,7 +1170,10 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
         swi.pSemaphores = &cmdBufferSemaphores[imageIndex];
         swi.semaphoreCount = 1;
         swi.pValues = &cmdBufSemaphoreVals[imageIndex];
-        device->waitSemaphores(swi, UINT64_MAX);
+        auto waitResult = device->waitSemaphores(swi, UINT64_MAX);
+
+        if (waitResult != vk::Result::eSuccess)
+            fatalErr("Failed to wait on semaphore");
 
         acquireSwapchainImage(&nextImageIdx);
         lowLatencyLast = true;
@@ -1456,7 +1470,6 @@ void VKRenderer::serializePipelineCache() {
     pipelineCacheHeader.driverVersion = physDevProps.driverVersion;
     memcpy(pipelineCacheHeader.uuid, physDevProps.pipelineCacheUUID.data(), VK_UUID_SIZE);
 
-    char* base_path = SDL_GetPrefPath("Void Productions", "Worlds Engine");
     std::string pipelineCachePath = getPipelineCachePath(physDevProps);
     FILE* f = fopen(pipelineCachePath.c_str(), "wb");
     fwrite(&pipelineCacheHeader, sizeof(pipelineCacheHeader), 1, f);

@@ -175,7 +175,7 @@ namespace worlds {
         g_scene->addActor(*actor);
     }
 
-    const const char* shapeTypeNames[(int)PhysicsShapeType::Count] = {
+    const char* shapeTypeNames[(int)PhysicsShapeType::Count] = {
         "Sphere",
         "Box",
         "Capsule",
@@ -184,7 +184,7 @@ namespace worlds {
 
     template <typename T>
     void editPhysicsShapes(T& actor) {
-        ImGui::Text("Shapes: %i", actor.physicsShapes.size());
+        ImGui::Text("Shapes: %zu", actor.physicsShapes.size());
 
         ImGui::SameLine();
 
@@ -231,6 +231,7 @@ namespace worlds {
                 ImGui::DragFloat("Height", &it->capsule.height);
                 ImGui::DragFloat("Radius", &it->capsule.radius);
                 break;
+            default: break;
             }
             ImGui::PopID();
             i++;
@@ -378,25 +379,25 @@ namespace worlds {
     void cloneAudioSource(entt::entity a, entt::entity b, entt::registry& reg) {
         auto& asA = reg.get<AudioSource>(a);
 
-        auto& asB = reg.emplace<AudioSource>(a, asA);
+        reg.emplace<AudioSource>(a, asA);
     }
 
     Editor::Editor(entt::registry& reg, EngineInterfaces interfaces)
-        : reg(reg)
-        , interfaces(interfaces)
-        , cam(*interfaces.mainCamera)
-        , currentTool(Tool::None)
+        : currentTool(Tool::None)
         , currentAxisLock(AxisFlagBits::All)
+        , reg(reg)
+        , currentSelectedEntity(entt::null)
+        , cam(*interfaces.mainCamera)
+        , startingMouseDistance(0.0f)
         , lookX(0.0f)
         , lookY(0.0f)
-        , settings()
+        , cameraSpeed(5.0f) 
         , imguiMetricsOpen(false)
-        , currentSelectedEntity(entt::null)
         , enableTransformGadget(false)
-        , startingMouseDistance(0.0f)
-        , inputManager(*interfaces.inputManager)
         , active(true)
-        , cameraSpeed(5.0f) {
+        , settings()
+        , interfaces(interfaces)
+        , inputManager(*interfaces.inputManager) {
         REGISTER_COMPONENT_TYPE(Transform, "Transform", true, editTransform, nullptr, nullptr);
         REGISTER_COMPONENT_TYPE(WorldObject, "WorldObject", true, editWorldObject, nullptr, nullptr);
         REGISTER_COMPONENT_TYPE(WorldLight, "WorldLight", true, editLight, createLight, cloneLight);
@@ -504,7 +505,6 @@ namespace worlds {
 
     void Editor::updateCamera(float deltaTime) {
         if (currentTool != Tool::None) return;
-        glm::vec3 prevPos = cam.position;
         float moveSpeed = cameraSpeed;
 
         static int origMouseX, origMouseY = 0;
@@ -845,8 +845,6 @@ namespace worlds {
                 } else if (currentTool == Tool::Rotate) {
 
                 } else if (currentTool == Tool::Scale) {
-                    glm::vec2 halfWindowSize = convVec(wSize) * 0.5f;
-
                     // Convert selected transform position from world space to screen space
                     glm::vec4 ndcObjPosPreDivide = cam.getProjectionMatrix(wSize.x / wSize.y) * cam.getViewMatrix() * glm::vec4(selectedTransform.position, 1.0f);
 
@@ -936,6 +934,9 @@ namespace worlds {
                             break;
                         case Tool::Rotate:
                             snap = glm::vec3{ 15.0f };
+                            break;
+                        default:
+                            snap = glm::vec3 { 1.0f };
                             break;
                         }
                     }

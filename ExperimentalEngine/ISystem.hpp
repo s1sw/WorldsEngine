@@ -10,5 +10,6 @@ namespace worlds {
         virtual void simulate(entt::registry& registry, float stepTime) {};
         virtual void onSceneStart(entt::registry& registry) {};
         virtual void shutdown(entt::registry& registry) {};
+        virtual ~ISystem() {}
     };
 }

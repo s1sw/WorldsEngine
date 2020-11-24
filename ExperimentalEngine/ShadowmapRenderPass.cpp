@@ -34,7 +34,6 @@ namespace worlds {
         ZoneScoped;
         auto& ctx = psCtx.vkCtx;
         shadowmapRes = ctx.graphicsSettings.shadowmapRes;
-        auto memoryProps = ctx.physicalDevice.getMemoryProperties();
         vku::DescriptorSetLayoutMaker dslm;
         dsl = dslm.createUnique(ctx.device);
 
@@ -159,7 +158,7 @@ namespace worlds {
             ctx.dbgStats->numDrawCalls++;
             });
 
-        reg.view<Transform, ProceduralObject>().each([this, &cmdBuf, &cam, &shadowmapMatrix, &ctx](auto ent, Transform& transform, ProceduralObject& obj) {
+        reg.view<Transform, ProceduralObject>().each([&](auto ent, Transform& transform, ProceduralObject& obj) {
             if (!obj.visible) return;
             glm::mat4 model = transform.getMatrix();
             glm::mat4 mvp = shadowmapMatrix * model;

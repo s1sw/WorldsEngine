@@ -4,9 +4,9 @@
 
 namespace worlds {
 	InputManager::InputManager(SDL_Window* window)
-		: mouseButtonFlags(0)
-		, lastMouseButtonFlags(0)
-		, window(window) {
+		:  window(window) 
+        , mouseButtonFlags(0)
+		, lastMouseButtonFlags(0) {
 		keyState = SDL_GetKeyboardState(nullptr);
 	}
 

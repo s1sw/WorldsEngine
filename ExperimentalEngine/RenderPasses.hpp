@@ -68,7 +68,6 @@ namespace worlds {
 
         bool enablePicking;
         int pickX, pickY;
-        uint32_t pickedEnt;
         vk::UniqueEvent pickEvent;
         bool pickThisFrame;
         bool awaitingResults;

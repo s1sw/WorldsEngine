@@ -24,5 +24,6 @@ namespace worlds {
         virtual void simulate(entt::registry& registry, float stepTime) = 0;
         virtual void onSceneStart(entt::registry& registry) = 0;
         virtual void shutdown(entt::registry& registry) = 0;
+        virtual ~IGameEventHandler() {}
     };
 }

@@ -64,9 +64,9 @@ namespace worlds {
     };
 
     ConVar::ConVar(const char* name, const char* defaultValue, const char* help)
-        : value(defaultValue)
+        : help(help) 
         , name(name)
-        , help(help) {
+        , value(defaultValue) {
 
         parsedInt = std::stoi(value);
         parsedFloat = (float)std::stof(value);
@@ -106,8 +106,8 @@ namespace worlds {
 
     Console::Console()
         : show(false)
-        , logFileStream("converge.log")
-        , setKeyboardFocus(false) {
+        , setKeyboardFocus(false) 
+        , logFileStream("converge.log") {
         g_console = this;
         SDL_LogSetOutputFunction(logCallback, this);
         SDL_LogSetPriority(CONSOLE_RESPONSE_CATEGORY, SDL_LOG_PRIORITY_INFO);

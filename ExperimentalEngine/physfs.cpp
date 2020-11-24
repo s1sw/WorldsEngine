@@ -7,6 +7,9 @@
 
 using std::streambuf;
 using std::ios_base;
+#pragma clang diagnostic push
+// Ignore deprecation - this is wrapping deprecated functions
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
 
 namespace PhysFS {
 
@@ -38,6 +41,8 @@ private:
             break;
         case std::ios_base::end:
             PHYSFS_seek(file, PHYSFS_fileLength(file) + pos);
+            break;
+        default:
             break;
         }
         if (mode & std::ios_base::in) {
@@ -85,7 +90,7 @@ private:
 protected:
     PHYSFS_File * const file;
 public:
-    fbuf(PHYSFS_File * file, std::size_t bufferSize = 2048) : file(file), bufferSize(bufferSize) {
+    fbuf(PHYSFS_File * file, std::size_t bufferSize = 2048) : bufferSize(bufferSize), file(file) {
         buffer = new char[bufferSize];
         char * end = buffer + bufferSize;
         setg(end, end, end);
@@ -393,3 +398,5 @@ string Util::utf8FromLatin1(const char* src) {
 }
 
 }
+
+#pragma clang diagnostic pop

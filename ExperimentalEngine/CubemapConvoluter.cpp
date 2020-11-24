@@ -84,7 +84,6 @@ namespace worlds {
 
         vku::DescriptorSetUpdater dsu(0, descriptorSets.size() * 3, 0);
         for (int i = 0; i < descriptorSets.size(); i++) {
-            int mipLevel = (i / 6) + 1;
             int arrayIdx = (i % 6);
 
             dsu.beginDescriptorSet(descriptorSets[i]);
