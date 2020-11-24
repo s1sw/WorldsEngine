@@ -308,6 +308,10 @@ namespace worlds {
         auto& nc = registry.get<NameComponent>(ent);
         
         ImGui::InputText("Name", &nc.name);
+        ImGui::SameLine();
+        if (ImGui::Button("Remove")) {
+            registry.remove<NameComponent>(ent);
+        }
         ImGui::Separator();
     }
 
