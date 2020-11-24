@@ -717,6 +717,7 @@ namespace worlds {
         if (noScenePad)
             ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
 
+        ImGui::SetNextWindowSizeConstraints(ImVec2(256.0f, 256.0f), ImVec2(FLT_MAX, FLT_MAX));
         if (ImGui::Begin(ICON_FA_MAP u8" Scene")) {
             ImVec2 contentRegion = ImGui::GetContentRegionAvail();
 
