@@ -89,8 +89,6 @@ namespace worlds {
             }
         }
 
-        auto memProps = ctx.physicalDevice.getMemoryProperties();
-
         vku::TextureImageCube tex{
             ctx.device,
             ctx.allocator,

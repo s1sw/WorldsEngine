@@ -38,46 +38,6 @@ JobSystem::~JobSystem() {
 	}
 }
 
-//void JobSystem::addJobs(std::queue<Job> jobs) {
-//	jobListsMutex.lock();
-//	int newJobSlot = getFreeJobSlot();
-//	currentJobLists[newJobSlot].reset(std::move(jobs));
-//
-//	newJobListCV.notify_all();
-//	jobListsMutex.unlock();
-//}
-//
-//void JobSystem::addJobsAndWait(std::queue<Job> jobs) {
-//	jobListsMutex.lock();
-//	int newJobSlot = getFreeJobSlot();
-//	currentJobLists[newJobSlot].reset(std::move(jobs));
-//
-//	newJobListCV.notify_all();
-//	jobListsMutex.unlock();
-//	currentJobLists[newJobSlot].wait();
-//}
-//
-//void JobSystem::addJob(Job job) {
-//	jobListsMutex.lock();
-//	int newJobSlot = getFreeJobSlot();
-//	currentJobLists[newJobSlot].reset({ job })));
-//
-//	newJobListCV.notify_all();
-//	jobListsMutex.unlock();
-//}
-//
-//void JobSystem::addJobAndWait(Job job) {
-//	jobListsMutex.lock();
-//	
-//	int newJobSlot = getFreeJobSlot();
-//	currentJobLists[newJobSlot].reset(std::queue<Job>({ job }));
-//
-//	newJobListCV.notify_all();
-//
-//	jobListsMutex.unlock();
-//	currentJobLists[newJobSlot].wait();
-//}
-
 JobList& JobSystem::getFreeJobList() {
 	return currentJobLists[getFreeJobSlot()];
 }
@@ -110,7 +70,6 @@ void JobSystem::worker(int idx) {
 		jobListsMutex.lock();
 		Job currentJob(nullptr);
 		JobList* pulledFromList = nullptr;
-		bool notifyFrameVar = false;
 
 		for (auto& jobList : currentJobLists) {
 			if (!jobList.completed && !jobList.jobs.empty()) {

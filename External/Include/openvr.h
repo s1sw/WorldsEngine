@@ -1,4 +1,6 @@
 #pragma once
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wnon-virtual-dtor"
 
 // openvr.h
 //========= Copyright Valve Corporation ============//
@@ -5153,3 +5155,5 @@ namespace vr
 
 #endif // OPENVR_INTERFACE_INTERNAL
 }
+
+#pragma clang diagnostic pop

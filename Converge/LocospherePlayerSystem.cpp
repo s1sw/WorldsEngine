@@ -43,7 +43,6 @@ namespace converge {
     };
 
     const float LOCOSPHERE_RADIUS = 0.25f;
-    const float LOCOSPHERE_DIAMETER = LOCOSPHERE_RADIUS * 2.0f;
 
     physx::PxMaterial* locosphereMat;
     physx::PxMaterial* fenderMat;
@@ -72,16 +71,15 @@ namespace converge {
     worlds::ConVar speedometer{ "cnvrg_speedometer", "0" };
 
     LocospherePlayerSystem::LocospherePlayerSystem(worlds::EngineInterfaces interfaces, entt::registry& registry)
-        : registry{ registry }
-        , renderer{ interfaces.renderer }
-        , vrInterface{ interfaces.vrInterface }
+        : vrInterface{ interfaces.vrInterface }
         , inputManager{ interfaces.inputManager }
+        , registry{ registry }
+        , camera{ interfaces.mainCamera }
         , lHandEnt{ entt::null }
         , rHandEnt{ entt::null }
         , playerLocosphere{ entt::null }
         , lHandPid{}
-        , rHandPid{}
-        , camera{ interfaces.mainCamera } {
+        , rHandPid{} {
         worlds::g_console->registerCommand([&](void*, const char*) {
             auto& wActor = registry.get<worlds::DynamicPhysicsActor>(lHandEnt);
             auto* body = static_cast<physx::PxRigidBody*>(wActor.actor);

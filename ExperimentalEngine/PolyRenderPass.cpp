@@ -113,9 +113,8 @@ namespace worlds {
         , enablePicking(enablePicking)
         , pickX(0)
         , pickY(0)
-        , pickedEnt(UINT32_MAX)
-        , awaitingResults(false)
         , pickThisFrame(false)
+        , awaitingResults(false)
         , setEventNextFrame(false) {
 
     }
@@ -552,7 +551,6 @@ namespace worlds {
     void PolyRenderPass::prePass(PassSetupCtx& psCtx, RenderCtx& rCtx) {
         ZoneScoped;
         auto ctx = psCtx.vkCtx;
-        auto tfWoView = rCtx.reg.view<Transform, WorldObject>();
 
         int matrixIdx = 0;
         rCtx.reg.view<Transform, WorldObject>().each([&](auto ent, Transform& t, WorldObject& wo) {
@@ -679,7 +677,6 @@ namespace worlds {
 
         vk::UniqueCommandBuffer& cmdBuf = ctx.cmdBuf;
         entt::registry& reg = ctx.reg;
-        Camera& cam = ctx.cam;
 
         vpUB.barrier(
             *cmdBuf, vk::PipelineStageFlagBits::eHost, vk::PipelineStageFlagBits::eVertexShader,

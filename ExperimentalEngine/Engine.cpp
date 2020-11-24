@@ -218,7 +218,7 @@ namespace worlds {
 
         static const ImWchar iconRangesFAD[] = { ICON_MIN_FAD, ICON_MAX_FAD, 0 };
 
-        addImGuiFont("Fonts/" FONT_ICON_FILE_NAME_FAD, 22.0f, &iconConfig2, iconRanges);
+        addImGuiFont("Fonts/" FONT_ICON_FILE_NAME_FAD, 22.0f, &iconConfig2, iconRangesFAD);
     }
 
     ConVar showDebugInfo("showDebugInfo", "0", "Shows the debug info window");
@@ -227,9 +227,9 @@ namespace worlds {
     ConVar simStepTime("sim_stepTime", "0.01");
 
     WorldsEngine::WorldsEngine(EngineInitOptions initOptions, char* argv0)
-        : running{ true }
-        , pauseSim{ false }
-        , simAccumulator{ 0.0 }{
+        : pauseSim{ false }
+        , running{ true }
+        , simAccumulator{ 0.0 } {
         ZoneScoped;
         useEventThread = initOptions.useEventThread;
         workerThreadOverride = initOptions.workerThreadOverride;
@@ -653,7 +653,7 @@ namespace worlds {
 
             glm::vec3 camPos = cam.position;
 
-            /*registry.sort<ProceduralObject>([&](entt::entity a, entt::entity b) {
+            registry.sort<ProceduralObject>([&](entt::entity a, entt::entity b) {
                 auto& aTransform = registry.get<Transform>(a);
                 auto& bTransform = registry.get<Transform>(b);
                 return glm::distance2(camPos, aTransform.position) < glm::distance2(camPos, bTransform.position);
@@ -663,7 +663,7 @@ namespace worlds {
                 auto& aTransform = registry.get<Transform>(a);
                 auto& bTransform = registry.get<Transform>(b);
                 return glm::distance2(camPos, aTransform.position) < glm::distance2(camPos, bTransform.position) || registry.has<UseWireframe>(a);
-                }, entt::insertion_sort{});*/
+                }, entt::insertion_sort{});
 
             renderer->frame(cam, registry);
             ImGui::UpdatePlatformWindows();
@@ -747,7 +747,7 @@ namespace worlds {
                     size_t numLights = registry.view<WorldLight>().size();
                     size_t worldObjects = registry.view<WorldObject>().size();
 
-                    ImGui::Text("%u light(s) / %u world object(s)", numLights, worldObjects);
+                    ImGui::Text("%zu light(s) / %zu world object(s)", numLights, worldObjects);
                 }
             }
             ImGui::End();

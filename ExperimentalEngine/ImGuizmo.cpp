@@ -675,9 +675,6 @@ namespace ImGuizmo
 
    static Context gContext;
 
-   static const float angleLimit = 0.96f;
-   static const float planeLimit = 0.2f;
-
    static const vec_t directionUnary[3] = { makeVect(1.f, 0.f, 0.f), makeVect(0.f, 1.f, 0.f), makeVect(0.f, 0.f, 1.f) };
    static const ImU32 directionColor[3] = { 0xFF0000AA, 0xFF00AA00, 0xFFAA0000 };
 
@@ -848,8 +845,6 @@ namespace ImGuizmo
 
    void BeginFrame()
    {
-      ImGuiIO& io = ImGui::GetIO();
-
       const ImU32 flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoBringToFrontOnFocus;
 
 #ifdef IMGUI_HAS_VIEWPORT
@@ -889,13 +884,6 @@ namespace ImGuizmo
          gContext.mbUsing = false;
          gContext.mbUsingBounds = false;
       }
-   }
-
-   static float GetUniform(const vec_t& position, const matrix_t& mat)
-   {
-      vec_t trf = makeVect(position.x, position.y, position.z, 1.f);
-      trf.Transform(mat);
-      return trf.w;
    }
 
    static void ComputeContext(const float* view, const float* projection, float* matrix, MODE mode)
@@ -2180,9 +2168,7 @@ namespace ImGuizmo
       {
          const float* matrix = &matrices[cube * 16];
 
-         const matrix_t& model = *(matrix_t*)matrix;
          matrix_t res = *(matrix_t*)matrix * *(matrix_t*)view * *(matrix_t*)projection;
-         matrix_t modelView = *(matrix_t*)matrix * *(matrix_t*)view;
 
          for (int iFace = 0; iFace < 6; iFace++)
          {
@@ -2379,10 +2365,6 @@ namespace ImGuizmo
             const vec_t indexVectorX = directionUnary[perpXIndex] * invert;
             const vec_t indexVectorY = directionUnary[perpYIndex] * invert;
             const vec_t boxOrigin = directionUnary[normalIndex] * -invert - indexVectorX - indexVectorY;
-            const vec_t faceCoords[4] = { directionUnary[normalIndex] + directionUnary[perpXIndex] + directionUnary[perpYIndex],
-                                          directionUnary[normalIndex] + directionUnary[perpXIndex] - directionUnary[perpYIndex],
-                                          directionUnary[normalIndex] - directionUnary[perpXIndex] - directionUnary[perpYIndex],
-                                          directionUnary[normalIndex] - directionUnary[perpXIndex] + directionUnary[perpYIndex] };
 
             // plan local space
             const vec_t n = directionUnary[normalIndex] * invert;

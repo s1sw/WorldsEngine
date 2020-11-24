@@ -331,10 +331,6 @@ namespace worlds {
         std::vector<uint64_t> cmdBufSemaphoreVals;
         VmaAllocator allocator;
 
-        // stuff related to standard geometry rendering
-        //RenderImageHandle depthStencilImage;
-        //RenderImageHandle polyImage;
-
         RenderImageHandle finalPrePresent;
         // openvr doesn't support presenting image layers
         // copy to another image
@@ -403,8 +399,6 @@ namespace worlds {
         RenderDebugStats dbgStats;
         RTTPassHandle vrPass;
         RTTPassHandle nextHandle;
-        RTTPassHandle mainPass;
-        bool minimised;
     public:
         double time;
         VKRenderer(const RendererInitInfo& initInfo, bool* success);

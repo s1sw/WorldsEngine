@@ -17,7 +17,6 @@ namespace converge {
         void shutdown(entt::registry& registry) override;
     private:
         worlds::IVRInterface* vrInterface;
-        worlds::VKRenderer* renderer;
         worlds::InputManager* inputManager;
         entt::registry& registry;
         worlds::Camera* camera;

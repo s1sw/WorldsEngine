@@ -43,15 +43,15 @@ namespace worlds {
         auto albedoPath = root.get_object_value(albedoPathIdx).as_string();
 
         std::string normalMapPath;
-        if (normalMapIdx != root.get_length())
+        if (normalMapIdx != rootLength)
             normalMapPath = root.get_object_value(normalMapIdx).as_string();
 
         std::string heightmapPath;
-        if (heightmapPathIdx != root.get_length())
+        if (heightmapPathIdx != rootLength)
             heightmapPath = root.get_object_value(heightmapPathIdx).as_string();
 
         float alphaCutoff = 0.0f;
-        if (alphaCutoffIdx != root.get_length())
+        if (alphaCutoffIdx != rootLength)
             alphaCutoff = root.get_object_value(alphaCutoffIdx).get_double_value();
         mat.alphaCutoff = alphaCutoff;
 
@@ -86,17 +86,17 @@ namespace worlds {
         mat.heightmapTexIdx = hMapSlot;
 
         float heightmapScale = 0.0f;
-        if (heightmapScaleIdx != root.get_length())
+        if (heightmapScaleIdx != rootLength)
             heightmapScale = root.get_object_value(heightmapScaleIdx).get_double_value();
         mat.heightmapScale = heightmapScale;
         
         auto bfCullOffIdx = root.find_object_key(sajson::string("cullOff", 7));
 
-        extraDat.noCull = bfCullOffIdx != root.get_length();
+        extraDat.noCull = bfCullOffIdx != rootLength;
 
         auto wireframeIdx = root.find_object_key(sajson::string("wireframe", 9));
 
-        extraDat.wireframe = wireframeIdx != root.get_length();
+        extraDat.wireframe = wireframeIdx != rootLength;
 
         std::free(buffer);
     }

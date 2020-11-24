@@ -22,7 +22,6 @@ namespace worlds {
 
     uint32_t getRowPitch(crnd::crn_texture_info texInfo, int mip) {
         const crn_uint32 width = std::max(1U, texInfo.m_width >> mip);
-        const crn_uint32 height = std::max(1U, texInfo.m_height >> mip);
         const crn_uint32 blocks_x = std::max(1U, (width + 3) >> 2);
         const crn_uint32 row_pitch = blocks_x * crnd::crnd_get_bytes_per_dxt_block(texInfo.m_format);
 
@@ -86,7 +85,6 @@ namespace worlds {
 
         uint32_t x = texInfo.m_width;
         uint32_t y = texInfo.m_height;
-        uint32_t pitch = getRowPitch(texInfo, 0);
 
         size_t totalDataSize = 0;
         for (uint32_t i = 0; i < texInfo.m_levels; i++) totalDataSize += getCrunchTextureSize(texInfo, i);
@@ -124,7 +122,8 @@ namespace worlds {
         PHYSFS_File* file = g_assetDB.openAssetFileRead(id);
         if (!file) {
             std::string path = g_assetDB.getAssetPath(id);
-            SDL_LogError(worlds::WELogCategoryEngine, "Failed to load texture %s: %s", path.c_str(), PHYSFS_getLastError());
+            auto errCode = PHYSFS_getLastErrorCode();
+            SDL_LogError(worlds::WELogCategoryEngine, "Failed to load texture %s: %s", path.c_str(), PHYSFS_getErrorByCode(errCode));
             return TextureData{};
         }
 
@@ -183,7 +182,6 @@ namespace worlds {
     vku::TextureImage2D uploadTextureVk(VulkanCtx& ctx, TextureData& td, vk::CommandBuffer cb, uint32_t imageIndex) {
         ZoneScoped;
         ensureTempVectorExists(imageIndex);
-        auto memProps = ctx.physicalDevice.getMemoryProperties();
         vku::TextureImage2D tex{
             ctx.device,
             ctx.allocator,

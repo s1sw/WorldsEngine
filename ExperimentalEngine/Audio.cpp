@@ -48,8 +48,6 @@ namespace worlds {
 
     template <typename T>
     inline void mixClip(AudioSystem::LoadedClip& clip, T& sourceInfo, int numMonoSamplesNeeded, int numSamplesNeeded, float* stream, AudioSystem* _this) {
-        float* dataStart = clip.data + sourceInfo.playbackPosition;
-
         int samplesRemaining = clip.sampleCount - sourceInfo.playbackPosition;
 
         float vol = _this->mixerVolumes[static_cast<int>(sourceInfo.channel)] * sourceInfo.volume;
@@ -246,8 +244,8 @@ namespace worlds {
                     col = ImColor(1.0f, 0.0f, 0.0f, 1.0f);
                 }
                 ImGui::TextColored(col, "CPU Usage: %.2f%%", cpuUsage * 100.0f);
-                ImGui::Text("Playing Clip Count: %ull", reg.view<AudioSource>().size());
-                ImGui::Text("Playing one shot count: %ull", oneShotClips.size());
+                ImGui::Text("Playing Clip Count: %zu", reg.view<AudioSource>().size());
+                ImGui::Text("Playing one shot count: %zu", oneShotClips.size());
                 ImGui::SliderFloat("Volume", &volume, 0.0f, 1.0f);
 
                 for (auto& p : internalAs) {

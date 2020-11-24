@@ -28,5 +28,6 @@ namespace worlds {
         virtual bool getActionHeld(InputActionHandle handle) = 0;
         virtual bool getActionPressed(InputActionHandle handle) = 0;
         virtual bool getActionReleased(InputActionHandle handle) = 0;
+        virtual ~IVRInterface() {}
     };
 }

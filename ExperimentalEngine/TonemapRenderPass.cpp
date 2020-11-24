@@ -8,8 +8,8 @@ namespace worlds {
     };
 
     TonemapRenderPass::TonemapRenderPass(RenderImageHandle hdrImg, RenderImageHandle finalPrePresent)
-        : hdrImg(hdrImg)
-        , finalPrePresent(finalPrePresent) {
+        : finalPrePresent(finalPrePresent) 
+        , hdrImg(hdrImg) {
 
     }
 
