@@ -39,6 +39,7 @@
 #include "../AssetDB.hpp"
 #include <physfs.h>
 #include "../Log.hpp"
+#include "../Fatal.hpp"
 #undef min
 #undef max
 
@@ -1140,7 +1141,10 @@ namespace vku {
             allocInfo.pUserData = (void*)debugName;
 
             VkBuffer cBuf;
-            vmaCreateBuffer(allocator, &cci, &allocInfo, &cBuf, &allocation, nullptr);
+            VkResult bufferCreateResult = vmaCreateBuffer(allocator, &cci, &allocInfo, &cBuf, &allocation, nullptr);
+            if (bufferCreateResult != VK_SUCCESS) {
+                fatalErr("error while creating buffer");
+            }
             //vk::ObjectDestroy<vk::Device, vk::DispatchLoaderStatic> deleter(device);
             buffer_ = vk::Buffer(cBuf);
 
@@ -1258,6 +1262,10 @@ namespace vku {
             if (cBuf) {
                 vmaDestroyBuffer(allocator, cBuf, allocation);
                 buffer_ = vk::Buffer{};
+
+                if (debugName) {
+                    logMsg("Destroying buffer %s", debugName);
+                }
             }
         }
 
