@@ -1,7 +1,7 @@
 sources = [
     'spirv_reflect.c',
     'mikktspace.c',
-    'weldmesh.c',
+    'weldmesh.cpp',
     'stb_vorbis.c',
     'ImGuizmo.cpp',
     'Fatal.cpp',
@@ -155,6 +155,9 @@ lua_dep = dependency('lua')
 
 dl_dep = cc.find_library('dl', required : false)
 openvr_dep = cc.find_library('openvr_api')
+
+add_global_arguments('-ffast-math', language: 'cpp')
+add_global_arguments('-g', language: 'cpp')
 
 worlds = static_library('worlds', sources, include_directories: [extern_include_dir, physx_include_dir, tracy_inc], dependencies: [vk_dep, physfs_dep, sdl2_dep, physx_deps, dl_dep, openvr_dep, lua_dep])
 worlds_dep = declare_dependency(include_directories: worlds_inc, link_with: worlds)
