@@ -74,18 +74,23 @@ namespace worlds {
                         ImGui::TextUnformatted(nc->name.c_str());
                     }
                 } else {
-                    if (ImGui::InputText("###name", &nc->name, ImGuiInputTextFlags_EnterReturnsTrue)) {
+                    if (nc == nullptr) {
+                        currentlyRenaming = entt::null;
+                    } else if (ImGui::InputText("###name", &nc->name, ImGuiInputTextFlags_EnterReturnsTrue)) {
                         currentlyRenaming = entt::null;
                     }
                 }
 
                 if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0)) {
-                    logMsg("dbl click: %s", nc->name.c_str());
                     currentlyRenaming = ent;
+
+                    if (nc == nullptr) {
+                        nc = &reg.emplace<NameComponent>(ent);
+                        nc->name = "Entity";
+                    }
                 }
 
-                ImGui::SameLine();
-                if (ImGui::Button("Select"))
+                if (ImGui::IsItemClicked())
                     editor->select(ent);
                 ImGui::PopID();
                 };
