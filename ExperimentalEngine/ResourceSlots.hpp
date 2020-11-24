@@ -35,6 +35,8 @@ namespace worlds {
 
         }
 
+        virtual ~ResourceSlots() {}
+
         constexpr uint32_t size() const { return slotCount; }
         slotType* getSlots() { return slots.data(); }
         bool isSlotPresent(int idx) const { return present[idx]; }
