@@ -1455,12 +1455,6 @@ static void QuickSort(int* pSortBuffer, int iLeft, int iRight, unsigned int uSee
 {
 	int iL, iR, n, index, iMid, iTmp;
 
-	// Random
-	unsigned int t=uSeed&31;
-	t=(uSeed<<t)|(uSeed>>(32-t));
-	uSeed=uSeed+t+3;
-	// Random end
-
 	iL=iLeft; iR=iRight;
 	n = (iR-iL)+1;
 	assert(n>=0);
@@ -1644,7 +1638,6 @@ static void BuildNeighborsSlow(STriInfo pTriInfos[], const int piTriListIn[], co
 
 static void QuickSortEdges(SEdge * pSortBuffer, int iLeft, int iRight, const int channel, unsigned int uSeed)
 {
-	unsigned int t;
 	int iL, iR, n, index, iMid;
 
 	// early out
@@ -1661,12 +1654,6 @@ static void QuickSortEdges(SEdge * pSortBuffer, int iLeft, int iRight, const int
 		}
 		return;
 	}
-
-	// Random
-	t=uSeed&31;
-	t=(uSeed<<t)|(uSeed>>(32-t));
-	uSeed=uSeed+t+3;
-	// Random end
 
 	iL = iLeft;
 	iR = iRight;
