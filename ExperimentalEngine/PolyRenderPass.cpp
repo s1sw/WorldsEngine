@@ -627,7 +627,7 @@ namespace worlds {
         {
             auto& renderBuffer = g_scene->getRenderBuffer();
 
-            if (currentLineVBSize < renderBuffer.getNbLines() * 2) {
+            if (!lineVB.buffer() || currentLineVBSize < renderBuffer.getNbLines() * 2) {
                 currentLineVBSize = (renderBuffer.getNbLines() * 2) + 128;
                 lineVB = vku::GenericBuffer{ ctx.device, ctx.allocator, vk::BufferUsageFlagBits::eVertexBuffer, sizeof(LineVert) * currentLineVBSize, VMA_MEMORY_USAGE_CPU_TO_GPU, "Line Buffer" };
             }
@@ -714,9 +714,7 @@ namespace worlds {
 
         cmdBuf->beginRenderPass(rpbi, vk::SubpassContents::eInline);
 
-
         int matrixIdx = 0;
-
         std::vector<SubmeshDrawInfo> drawInfo;
         drawInfo.reserve(reg.view<Transform, WorldObject>().size());
 
@@ -759,6 +757,7 @@ namespace worlds {
                     return;
                 }
             }
+
             for (int i = 0; i < meshPos->second.numSubmeshes; i++) {
                 auto& currSubmesh = meshPos->second.submeshes[i];
 
@@ -798,13 +797,6 @@ namespace worlds {
                 drawInfo.emplace_back(std::move(sdi));
             }
             matrixIdx++;
-            });
-
-        std::sort(drawInfo.begin(), drawInfo.end(), [](SubmeshDrawInfo& a, SubmeshDrawInfo& b) {
-            uint64_t aPriority = (uint64_t)(VkPipeline)a.pipeline + a.opaque;
-            uint64_t bPriority = (uint64_t)(VkPipeline)b.pipeline + b.opaque;
-
-            return aPriority < bPriority;
             });
 
         if ((int)depthPrepass) {
