@@ -82,7 +82,7 @@ int main(int argc, char** argv) {
             vtx.normal = toGlm(mesh->mNormals[j]);
             if (mesh->HasTangentsAndBitangents())
                 vtx.tangent = toGlm(mesh->mTangents[j]);
-            vtx.uv = mesh->HasTextureCoords(0) ? glm::vec2(0.0f) : toGlm(mesh->mTextureCoords[0][j]);
+            vtx.uv = !mesh->HasTextureCoords(0) ? glm::vec2(0.0f) : toGlm(mesh->mTextureCoords[0][j]);
             verts.push_back(vtx);
         }
 
