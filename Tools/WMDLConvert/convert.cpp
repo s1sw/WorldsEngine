@@ -73,7 +73,7 @@ int main(int argc, char** argv) {
         verts.reserve(mesh->mNumVertices);
 
         if (!mesh->HasTangentsAndBitangents()) {
-            fprintf(stderr, "warning: mesh %s doesn't have tangents! make sure everything's uv unwrapped", mesh->mName.C_Str());
+            fprintf(stderr, "warning: mesh %s doesn't have tangents! make sure everything's uv unwrapped\n", mesh->mName.C_Str());
         }
 
         for (unsigned int j = 0; j < mesh->mNumVertices; j++) {
