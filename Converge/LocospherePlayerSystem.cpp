@@ -565,6 +565,9 @@ namespace converge {
             locosphereActor->addForce(force);
 
             if (grappleBody) {
+                auto comWorldSpace = worlds::px2glm((grappleBody->getGlobalPose() * grappleBody->getCMassLocalPose()).p);
+                auto torque = glm::cross(actualGrappleTarget - comWorldSpace, worlds::px2glm(-force));
+                grappleBody->addTorque(worlds::glm2px(torque));
                 grappleBody->addForce(-force);
             }
         }
