@@ -1,5 +1,5 @@
 #pragma once
-#include <entt/entt.hpp>
+#include <entt/entt.hpp> 
 #include <IGameEventHandler.hpp>
 #include "PidController.hpp"
 #include "ISystem.hpp"
@@ -7,6 +7,18 @@
 #include <Camera.hpp>
 
 namespace converge {
+    struct HeadBobSettings {
+        HeadBobSettings()
+            : bobSpeed { 7.5f, 15.0f }
+            , bobAmount{ 0.1f, 0.05f }
+            , overallSpeed { 1.0f }
+            , sprintMult { 1.25f } {}
+        glm::vec2 bobSpeed;
+        glm::vec2 bobAmount;
+        float overallSpeed;
+        float sprintMult;
+    };
+
     class LocospherePlayerSystem : public worlds::ISystem {
     public:
         LocospherePlayerSystem(worlds::EngineInterfaces interfaces, entt::registry& registry);
@@ -16,6 +28,7 @@ namespace converge {
         void simulate(entt::registry& registry, float simStep) override;
         void shutdown(entt::registry& registry) override;
     private:
+        glm::vec3 calcHeadbobPosition(glm::vec3 desiredVel, glm::vec3 camPos, float deltaTime);
         worlds::IVRInterface* vrInterface;
         worlds::InputManager* inputManager;
         entt::registry& registry;
@@ -40,5 +53,8 @@ namespace converge {
 
         float headbobProgress;
         bool grounded;
+
+        float lookX;
+        float lookY;
     };
 }
