@@ -2,6 +2,16 @@
 #include <glm/glm.hpp>
 
 namespace converge {
+    struct PIDSettings {
+        PIDSettings()
+            : P { 0.0f }
+            , I { 0.0f }
+            , D { 0.0f } {}
+        float P;
+        float I;
+        float D;
+    };
+
     class V3PidController {
     private:
         glm::vec3 lastError;
@@ -22,6 +32,12 @@ namespace converge {
         float maxIntegralMagnitude;
 
         float averageAmount = 20.0f;
+
+        void acceptSettings(const PIDSettings& settings) {
+            P = settings.P;
+            I = settings.I;
+            D = settings.D;
+        }
 
         glm::vec3 getOutput(glm::vec3 error, float deltaTime) {
             glm::vec3 derivative = (error - lastError) / deltaTime;

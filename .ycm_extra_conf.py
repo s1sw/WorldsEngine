@@ -61,7 +61,11 @@ flags = [
 '-I',
 './External/Include',
 '-I',
-'./ModelFormat'
+'./ModelFormat',
+'-I',
+'./ExperimentalEngine',
+'-I',
+'./External/Include/physx'
 ]
 
 # Clang automatically sets the '-std=' flag to 'c++14' for MSVC 2015 or later,

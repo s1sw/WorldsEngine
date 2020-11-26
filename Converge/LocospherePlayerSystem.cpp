@@ -8,6 +8,7 @@
 #include <Console.hpp>
 #include <Input.hpp>
 #include <Camera.hpp>
+#include "MathsUtil.hpp"
 
 namespace converge {
     class NullPhysXCallback : public physx::PxRaycastCallback {
@@ -16,7 +17,7 @@ namespace converge {
 
         }
 
-        physx::PxAgain processTouches(const physx::PxRaycastHit* buffer, physx::PxU32 nbHits) override {
+        physx::PxAgain processTouches(const physx::PxRaycastHit*, physx::PxU32) override {
             return false;
         }
     };
@@ -29,12 +30,12 @@ namespace converge {
         entt::entity entA;
         entt::entity entB;
 
-        physx::PxQueryHitType::Enum preFilter(const physx::PxFilterData& filterData, const physx::PxShape* shape, const physx::PxRigidActor* actor, physx::PxHitFlags& queryFlags) override {
+        physx::PxQueryHitType::Enum preFilter(const physx::PxFilterData&, const physx::PxShape*, const physx::PxRigidActor*, physx::PxHitFlags&) override {
             return physx::PxQueryHitType::eBLOCK;
         }
 
 
-        physx::PxQueryHitType::Enum postFilter(const physx::PxFilterData& filterData, const physx::PxQueryHit& hit) override {
+        physx::PxQueryHitType::Enum postFilter(const physx::PxFilterData&, const physx::PxQueryHit& hit) override {
             if (getActorEntity(hit.actor) == entA || getActorEntity(hit.actor) == entB) {
                 return physx::PxQueryHitType::eNONE;
             }
@@ -80,33 +81,36 @@ namespace converge {
         , playerLocosphere{ entt::null }
         , lHandPid{}
         , rHandPid{} {
-        worlds::g_console->registerCommand([&](void*, const char*) {
-            auto& wActor = registry.get<worlds::DynamicPhysicsActor>(lHandEnt);
-            auto* body = static_cast<physx::PxRigidBody*>(wActor.actor);
-            body->setLinearVelocity(physx::PxVec3{ 0.0f });
 
-            auto& lTf = registry.get<Transform>(lHandEnt);
-            auto lPose = body->getGlobalPose();
-            lPose.p = worlds::glm2px(lHandWPos);
-            lTf.position = lHandWPos;
-            body->setGlobalPose(lPose);
+        if (vrInterface) { 
+            worlds::g_console->registerCommand([&](void*, const char*) {
+                auto& wActor = registry.get<worlds::DynamicPhysicsActor>(lHandEnt);
+                auto* body = static_cast<physx::PxRigidBody*>(wActor.actor);
+                body->setLinearVelocity(physx::PxVec3{ 0.0f });
 
-            auto& wActorR = registry.get<worlds::DynamicPhysicsActor>(rHandEnt);
-            auto* rBody = static_cast<physx::PxRigidBody*>(wActorR.actor);
-            rBody->setLinearVelocity(physx::PxVec3{ 0.0f });
+                auto& lTf = registry.get<Transform>(lHandEnt);
+                auto lPose = body->getGlobalPose();
+                lPose.p = worlds::glm2px(lHandWPos);
+                lTf.position = lHandWPos;
+                body->setGlobalPose(lPose);
 
-            auto& rTf = registry.get<Transform>(rHandEnt);
-            auto rPose = rBody->getGlobalPose();
-            rPose.p = worlds::glm2px(rHandWPos);
-            rTf.position = rHandWPos;
-            rBody->setGlobalPose(rPose);
+                auto& wActorR = registry.get<worlds::DynamicPhysicsActor>(rHandEnt);
+                auto* rBody = static_cast<physx::PxRigidBody*>(wActorR.actor);
+                rBody->setLinearVelocity(physx::PxVec3{ 0.0f });
 
-            lHandPid.reset();
-            rHandPid.reset();
+                auto& rTf = registry.get<Transform>(rHandEnt);
+                auto rPose = rBody->getGlobalPose();
+                rPose.p = worlds::glm2px(rHandWPos);
+                rTf.position = rHandWPos;
+                rBody->setGlobalPose(rPose);
+
+                lHandPid.reset();
+                rHandPid.reset();
             }, "cnvrg_resetHands", "Resets hand PID controllers.", nullptr);
+        }
     }
 
-    void LocospherePlayerSystem::preSimUpdate(entt::registry& registry, float deltaTime) {
+    void LocospherePlayerSystem::preSimUpdate(entt::registry&, float) {
         if (!vrInterface) {
             jumpThisFrame = jumpThisFrame || inputManager->keyPressed(SDL_SCANCODE_SPACE);
         } else {
@@ -114,9 +118,78 @@ namespace converge {
         }
     }
 
-    void LocospherePlayerSystem::update(entt::registry&, float deltaTime, float interpAlpha) {
-        static float lookX = 0.0f, lookY = 0.0f;
+    glm::vec3 LocospherePlayerSystem::calcHeadbobPosition(glm::vec3 desiredVel, glm::vec3 camPos, float deltaTime) {
+        static float headbobTime = 0.0f;
+        headbobTime += deltaTime;
 
+        static HeadBobSettings settings;
+
+        if (headBobDbg && ImGui::Begin("Head bob")) {
+            ImGui::InputFloat("Speed Y", &settings.bobSpeed.x);
+            ImGui::InputFloat("Speed X", &settings.bobSpeed.y);
+            ImGui::InputFloat("Amount Y", &settings.bobAmount.y);
+            ImGui::InputFloat("Amount X", &settings.bobAmount.x);
+            ImGui::InputFloat("Overall Speed", &settings.overallSpeed);
+        }
+
+        static float sprintLerp = 0.0f;
+
+        if (glm::length2(desiredVel) > 0.0f && grounded) {
+            headbobProgress += deltaTime;
+        }
+
+        if (inputManager->keyHeld(SDL_SCANCODE_LSHIFT)) {
+            sprintLerp += deltaTime * 5.0f;
+        } else {
+            sprintLerp -= deltaTime * 5.0f;
+        }
+
+        sprintLerp = glm::clamp(sprintLerp, 0.0f, 1.0f);
+
+        glm::vec2 bobSpeed = settings.bobSpeed * settings.overallSpeed;
+        glm::vec2 bobAmount = settings.bobAmount * overallAmount.getFloat();
+
+        glm::vec3 bobbedPosNormal = camPos;
+        glm::vec3 bobbedPosSprint = camPos;
+
+        bobbedPosNormal.y += glm::sin(headbobProgress * bobSpeed.y) * bobAmount.y;
+
+        glm::vec3 xBob{
+            glm::sin(headbobProgress * bobSpeed.x), 
+            0.0f, 
+            0.0f 
+        };
+
+        xBob *= bobAmount.x;
+        xBob = xBob * glm::angleAxis(lookX, glm::vec3(0.0f, 1.0f, 0.0f));
+
+        bobbedPosNormal += xBob;
+
+        // repeat the above but with sprinting multiplier to get
+        // the head position bobbed for sprinting
+        bobSpeed *= settings.sprintMult;
+        bobAmount *= settings.sprintMult;
+
+        bobbedPosSprint.y += glm::sin(headbobProgress * bobSpeed.y) * bobAmount.y;
+
+        glm::vec3 xBobS{
+            glm::sin(headbobProgress * bobSpeed.x), 
+            0.0f, 
+            0.0f 
+        };
+
+        xBobS *= bobAmount.x;
+        xBobS = xBobS * glm::angleAxis(lookX, glm::vec3(0.0f, 1.0f, 0.0f));
+
+        bobbedPosSprint += xBobS;
+
+        if (headBobDbg)
+            ImGui::End();
+
+        return glm::mix(bobbedPosNormal, bobbedPosSprint, sprintLerp);
+    }
+
+    void LocospherePlayerSystem::update(entt::registry&, float deltaTime, float interpAlpha) {
         if (!vrInterface) {
 
             lookX += (float)(inputManager->getMouseDelta().x) * 0.005f;
@@ -147,62 +220,11 @@ namespace converge {
             if (inputManager->keyHeld(SDL_SCANCODE_D)) {
                 desiredVel.z += 1.0f;
             }
-        } /*else {
-            vrInterface->updateInput();
+        } 
 
-            auto locIn = vrInterface->getLocomotionInput();
-            desiredVel = glm::vec3(locIn.x, 0.0f, locIn.y);
-        }*/
+        if (!vrInterface)
+            camera->position = calcHeadbobPosition(desiredVel, camera->position, deltaTime);
 
-        static float bobSpeed = 15.0f;
-        static float bobSpeedX = 7.5f;
-        static float bobAmount = 0.05f;
-        static float bobAmountX = 0.1f;
-        static float overallSpeed = 1.0f;
-        static float sprintMult = 1.25f;
-
-        if (headBobDbg && ImGui::Begin("Head bob")) {
-            ImGui::InputFloat("Speed Y", &bobSpeed);
-            ImGui::InputFloat("Speed X", &bobSpeedX);
-            ImGui::InputFloat("Amount Y", &bobAmount);
-            ImGui::InputFloat("Amount X", &bobAmountX);
-            ImGui::InputFloat("Overall Speed", &overallSpeed);
-        }
-
-        static float sprintLerp = 0.0f;
-
-        if (!vrInterface) {
-            if (glm::length2(desiredVel) > 0.0f && grounded) {
-                headbobProgress += deltaTime;
-            }
-
-            if (inputManager->keyHeld(SDL_SCANCODE_LSHIFT)) {
-                sprintLerp += deltaTime * 5.0f;
-            } else {
-                sprintLerp -= deltaTime * 5.0f;
-            }
-
-            sprintLerp = glm::clamp(sprintLerp, 0.0f, 1.0f);
-
-            glm::vec3 bobbedPosNormal = camera->position;
-            glm::vec3 bobbedPosSprint = camera->position;
-
-            bobbedPosNormal.y += glm::sin(headbobProgress * bobSpeed * overallSpeed) * bobAmount * overallAmount.getFloat();
-            bobbedPosNormal += glm::vec3{
-                glm::sin(headbobProgress * bobSpeedX * overallSpeed) * bobAmountX * overallAmount.getFloat(), 0.0f, 0.0f } *glm::angleAxis(lookX, glm::vec3(0.0f, 1.0f, 0.0f));
-
-            bobbedPosSprint.y += glm::sin(headbobProgress * bobSpeed * sprintMult * overallSpeed) * bobAmount * overallAmount.getFloat() * sprintMult;
-            bobbedPosSprint += glm::vec3{
-                glm::sin(headbobProgress * bobSpeedX * sprintMult * overallSpeed) * bobAmountX * overallAmount.getFloat() * sprintMult, 0.0f, 0.0f } *glm::angleAxis(lookX, glm::vec3(0.0f, 1.0f, 0.0f));
-
-            camera->position = glm::mix(bobbedPosNormal, bobbedPosSprint, sprintLerp);
-        }
-
-        if (headBobDbg)
-            ImGui::End();
-
-
-        //ImGui::Text("Desired vel: %.3f, %.3f, %.3f", lastDesiredVel.x, lastDesiredVel.y, lastDesiredVel.z);
         if (showLocosphereDebug.getInt()) {
             bool s = true;
             if (ImGui::Begin("Locosphere", &s)) {
@@ -280,11 +302,6 @@ namespace converge {
                 ImGui::PlotLines("R Force", rHandForceMag, 128, physDbgIdx, nullptr, 0.0f, 50.0f, ImVec2(500.0f, 100.0f));
             }
             ImGui::End();
-
-            /*if (lHandRMName != nullptr && rHandRMName != nullptr) {
-                loadControllerRenderModel(lHandRMName, lHandEnt, registry, renderer);
-                loadControllerRenderModel(rHandRMName, rHandEnt, registry, renderer);
-            }*/
 
             auto lIdx = vr::VRSystem()->GetTrackedDeviceIndexForControllerRole(vr::ETrackedControllerRole::TrackedControllerRole_LeftHand);
             auto rIdx = vr::VRSystem()->GetTrackedDeviceIndexForControllerRole(vr::ETrackedControllerRole::TrackedControllerRole_RightHand);
@@ -430,29 +447,6 @@ namespace converge {
             if ((ndcObjPosPreDivide.z / ndcObjPosPreDivide.w) > 0.0f)
                 ImGui::GetBackgroundDrawList()->AddCircle(ImVec2(ndcObjectPosition.x, ndcObjectPosition.y), 500.0f / ndcObjPosPreDivide.w, ImColor(1.0f, 1.0f, 1.0f));
         }
-    }
-
-
-    float WrapAngle(float inputAngle) {
-        //The inner % 360 restricts everything to +/- 360
-        //+360 moves negative values to the positive range, and positive ones to > 360
-        //the final % 360 caps everything to 0...360
-        return fmodf((fmodf(inputAngle, 360.0f) + 360.0f), 360.0f);
-    }
-
-    float AngleToErr(float angle) {
-        angle = WrapAngle(angle);
-        if (angle > 180.0f && angle < 360.0f) {
-            angle = 360.0f - angle;
-
-            angle *= -1.0f;
-        }
-
-        return angle;
-    }
-
-    glm::quat fixupQuat(glm::quat q) {
-        return q * glm::sign(glm::dot(q, glm::quat_identity<float, glm::packed_highp>()));
     }
 
     glm::vec3 clampMagnitude(glm::vec3 v, float maxMagnitude) {
