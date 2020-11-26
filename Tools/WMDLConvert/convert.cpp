@@ -72,11 +72,16 @@ int main(int argc, char** argv) {
         std::vector<wmdl::Vertex> verts;
         verts.reserve(mesh->mNumVertices);
 
+        if (!mesh->HasTangentsAndBitangents()) {
+            fprintf(stderr, "warning: mesh %s doesn't have tangents! make sure everything's uv unwrapped", mesh->mName.C_Str());
+        }
+
         for (unsigned int j = 0; j < mesh->mNumVertices; j++) {
             wmdl::Vertex vtx;
             vtx.position = toGlm(mesh->mVertices[j]);
             vtx.normal = toGlm(mesh->mNormals[j]);
-            vtx.tangent = toGlm(mesh->mTangents[j]);
+            if (mesh->HasTangentsAndBitangents())
+                vtx.tangent = toGlm(mesh->mTangents[j]);
             vtx.uv = mesh->HasTextureCoords(0) ? glm::vec2(0.0f) : toGlm(mesh->mTextureCoords[0][j]);
             verts.push_back(vtx);
         }
