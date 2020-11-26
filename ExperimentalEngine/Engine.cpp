@@ -330,7 +330,7 @@ namespace worlds {
         renderer = new VKRenderer(initInfo, &renderInitSuccess);
 
         if (!renderInitSuccess) {
-            SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Error", "Failed to initialise renderer", window);
+            fatalErr("Failed to initialise renderer");
             return;
         }
 
@@ -495,13 +495,6 @@ namespace worlds {
             if (!useEventThread) {
                 SDL_Event evt;
                 while (SDL_PollEvent(&evt)) {
-                    if (evt.type == SDL_WINDOWEVENT) {
-                        if (evt.window.event == SDL_WINDOWEVENT_SIZE_CHANGED) {
-                            recreateScreenRTT = true;
-                            logMsg("Recreating screen RTT pass.");
-                        }
-                    }
-
                     if (evt.type == SDL_QUIT) {
                         running = false;
                         break;
