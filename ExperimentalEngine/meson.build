@@ -34,6 +34,7 @@ sources = [
     'LuaVM.cpp',
     'MaterialSlots.cpp',
     'ObjModelLoader.cpp',
+    'OpenVRInterface.cpp',
     'Physics.cpp',
     'PolyRenderPass.cpp',
     'RichPresence.cpp',
