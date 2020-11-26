@@ -97,7 +97,7 @@ void VKRenderer::createSwapchain(vk::SwapchainKHR oldSwapchain) {
 }
 
 void VKRenderer::createFramebuffers() {
-    for (int i = 0; i != swapchain->imageViews.size(); i++) {
+    for (size_t i = 0; i != swapchain->imageViews.size(); i++) {
         vk::ImageView attachments[1] = { swapchain->imageViews[i] };
         vk::FramebufferCreateInfo fci;
         fci.attachmentCount = 1;
@@ -329,7 +329,7 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
 
     // Search for async compute queue family
     asyncComputeQueueFamilyIdx = badQueue;
-    for (int i = 0; i < qprops.size(); i++) {
+    for (size_t i = 0; i < qprops.size(); i++) {
         auto& qprop = qprops[i];
         if ((qprop.queueFlags & (vk::QueueFlagBits::eCompute)) == vk::QueueFlagBits::eCompute && i != computeQueueFamilyIdx) {
             asyncComputeQueueFamilyIdx = i;
@@ -513,7 +513,7 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     cbai.level = vk::CommandBufferLevel::ePrimary;
     this->cmdBufs = this->device->allocateCommandBuffersUnique(cbai);
 
-    for (int i = 0; i < this->cmdBufs.size(); i++) {
+    for (size_t i = 0; i < this->cmdBufs.size(); i++) {
         vk::FenceCreateInfo fci;
         fci.flags = vk::FenceCreateFlagBits::eSignaled;
         vk::SemaphoreCreateInfo sci;
@@ -556,7 +556,7 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     uint32_t s = cubemapSlots->loadOrGet(g_assetDB.addOrGetExisting("Cubemap2.json"));
     cubemapConvoluter->convolute((*cubemapSlots)[s]);
 
-    g_console->registerCommand([&](void* data, const char* arg) {
+    g_console->registerCommand([&](void*, const char* arg) {
         numMSAASamples = std::atoi(arg);
         // The sample count flags are actually identical to the number of samples
         msaaSamples = (vk::SampleCountFlagBits)numMSAASamples;
@@ -843,7 +843,7 @@ void VKRenderer::submitToOpenVR() {
 void VKRenderer::uploadSceneAssets(entt::registry& reg, RenderCtx& rCtx) {
     ZoneScoped;
     // Upload any necessary materials + meshes
-    reg.view<WorldObject>().each([this, &rCtx](auto ent, WorldObject& wo) {
+    reg.view<WorldObject>().each([this, &rCtx](auto, WorldObject& wo) {
         for (int i = 0; i < NUM_SUBMESH_MATS; i++) {
             if (!wo.presentMaterials[i]) continue;
 
@@ -858,7 +858,7 @@ void VKRenderer::uploadSceneAssets(entt::registry& reg, RenderCtx& rCtx) {
         }
         });
 
-    reg.view<ProceduralObject>().each([this, &rCtx](auto ent, ProceduralObject& po) {
+    reg.view<ProceduralObject>().each([this, &rCtx](auto, ProceduralObject& po) {
         if (po.materialIdx == ~0u) {
             rCtx.reuploadMats = true;
             po.materialIdx = matSlots->loadOrGet(po.material);
@@ -954,7 +954,7 @@ void VKRenderer::writeCmdBuf(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageInde
             node->prePass(psc, rCtx);
         }
 
-        for (int i = 0; i < solvedNodes.size(); i++) {
+        for (size_t i = 0; i < solvedNodes.size(); i++) {
             auto& node = solvedNodes[i];
             // Put in barriers for this node
             for (auto& barrier : barriers[i])
@@ -1156,12 +1156,11 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
 
     std::array<std::uint64_t, 2> timeStamps = { {0} };
 
-
-    auto queryRes = device->getQueryPoolResults<std::uint64_t>(
-        *queryPool, 0, (uint32_t)timeStamps.size(),
-        timeStamps, sizeof(std::uint64_t),
-        vk::QueryResultFlagBits::e64
-        );
+    auto queryRes = device->getQueryPoolResults(
+        *queryPool, 0, (uint32_t)timeStamps.size(), 
+        timeStamps.size() * sizeof(uint64_t), timeStamps.data(), 
+        sizeof(uint64_t), vk::QueryResultFlagBits::e64
+    );
 
     if (queryRes == vk::Result::eSuccess)
         lastRenderTimeTicks = timeStamps[1] - timeStamps[0];
