@@ -29,7 +29,7 @@ namespace worlds {
         uint32_t numEnts = (uint32_t)reg.view<Transform>().size();
         PHYSFS_writeBytes(file, &numEnts, sizeof(numEnts));
 
-        reg.view<Transform>().each([file, &reg](entt::entity ent, Transform& t) {
+        reg.view<Transform>().each([file, &reg](entt::entity ent, Transform&) {
             PHYSFS_writeBytes(file, &ent, sizeof(ent));
             unsigned char compBitfield = 0;
 
@@ -96,6 +96,9 @@ namespace worlds {
                         WRITE_FIELD(file, shape.capsule.height);
                         WRITE_FIELD(file, shape.capsule.radius);
                         break;
+                    default:
+                        logErr("invalid physics shape type??");
+                        break;
                     }
                 }
             }
@@ -124,6 +127,9 @@ namespace worlds {
                     case PhysicsShapeType::Capsule:
                         WRITE_FIELD(file, shape.capsule.height);
                         WRITE_FIELD(file, shape.capsule.radius);
+                        break;
+                    default:
+                        logErr("invalid physics shape type??");
                         break;
                     }
                 }
@@ -218,6 +224,9 @@ namespace worlds {
                         READ_FIELD(file, shape.capsule.height);
                         READ_FIELD(file, shape.capsule.radius);
                         break;
+                    default:
+                        logErr("invalid physics shape type??");
+                        break;
                     }
                 }
 
@@ -250,6 +259,9 @@ namespace worlds {
                     case PhysicsShapeType::Capsule:
                         READ_FIELD(file, shape.capsule.height);
                         READ_FIELD(file, shape.capsule.radius);
+                        break;
+                    default:
+                        logErr("invalid physics shape type??");
                         break;
                     }
                 }
@@ -345,6 +357,9 @@ namespace worlds {
                         READ_FIELD(file, shape.capsule.height);
                         READ_FIELD(file, shape.capsule.radius);
                         break;
+                    default:
+                        logErr("invalid physics shape type??");
+                        break;
                     }
                 }
 
@@ -379,6 +394,9 @@ namespace worlds {
                     case PhysicsShapeType::Capsule:
                         READ_FIELD(file, shape.capsule.height);
                         READ_FIELD(file, shape.capsule.radius);
+                        break;
+                    default:
+                        logErr("invalid physics shape type??");
                         break;
                     }
                 }
@@ -478,6 +496,9 @@ namespace worlds {
                         READ_FIELD(file, shape.capsule.height);
                         READ_FIELD(file, shape.capsule.radius);
                         break;
+                    default:
+                        logErr("invalid physics shape type??");
+                        break;
                     }
                 }
 
@@ -515,6 +536,9 @@ namespace worlds {
                     case PhysicsShapeType::Capsule:
                         READ_FIELD(file, shape.capsule.height);
                         READ_FIELD(file, shape.capsule.radius);
+                        break;
+                    default:
+                        logErr("invalid physics shape type??");
                         break;
                     }
                 }

@@ -28,6 +28,10 @@ namespace worlds {
 
     bool started = false;
 
+    void* entToPtr(entt::entity ent) {
+        return (void*)(uintptr_t)(uint32_t)ent;
+    }
+
     template <typename T>
     void destroyPhysXActor(entt::registry& reg, entt::entity ent) {
         auto& pa = reg.get<T>(ent);
@@ -37,29 +41,29 @@ namespace worlds {
     template <typename T>
     void setPhysXActorUserdata(entt::registry& reg, entt::entity ent) {
         auto& pa = reg.get<T>(ent);
-        pa.actor->userData = (void*)(uint32_t)ent;
+        pa.actor->userData = entToPtr(ent);
     }
 
-    void cmdTogglePhysVis(void* obj, const char* arg) {
+    void cmdTogglePhysVis(void*, const char*) {
         float currentScale = g_scene->getVisualizationParameter(physx::PxVisualizationParameter::eSCALE);
         
         g_scene->setVisualizationParameter(physx::PxVisualizationParameter::eSCALE, 1.0f - currentScale);
     }
 
-    void cmdToggleShapeVis(void* obj, const char* arg) {
+    void cmdToggleShapeVis(void*, const char*) {
         float currentVal = g_scene->getVisualizationParameter(physx::PxVisualizationParameter::eCOLLISION_SHAPES);
 
         g_scene->setVisualizationParameter(physx::PxVisualizationParameter::eCOLLISION_SHAPES, 1.0f - currentVal);
     }
 
     static physx::PxFilterFlags filterShader(
-        physx::PxFilterObjectAttributes attributes0,
-        physx::PxFilterData filterData0,
-        physx::PxFilterObjectAttributes attributes1,
-        physx::PxFilterData filterData1,
+        physx::PxFilterObjectAttributes,
+        physx::PxFilterData,
+        physx::PxFilterObjectAttributes,
+        physx::PxFilterData,
         physx::PxPairFlags& pairFlags,
-        const void* constantBlock,
-        physx::PxU32 constantBlockSize) {
+        const void*,
+        physx::PxU32) {
         pairFlags = physx::PxPairFlag::eSOLVE_CONTACT;
         pairFlags |= physx::PxPairFlag::eDETECT_DISCRETE_CONTACT;
         pairFlags |= physx::PxPairFlag::eDETECT_CCD_CONTACT;
