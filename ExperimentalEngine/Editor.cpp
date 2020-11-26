@@ -725,7 +725,7 @@ namespace worlds {
         if (ImGui::Begin(ICON_FA_MAP u8" Scene")) {
             ImVec2 contentRegion = ImGui::GetContentRegionAvail();
 
-            if (contentRegion.x != currentSceneViewSize.x || contentRegion.y != currentSceneViewSize.y) {
+            if ((contentRegion.x != currentSceneViewSize.x || contentRegion.y != currentSceneViewSize.y) && contentRegion.x > 256 && contentRegion.y > 256) {
                 auto vkCtx = interfaces.renderer->getVKCtx();
                 // resize!
                 currentSceneViewSize = contentRegion;
