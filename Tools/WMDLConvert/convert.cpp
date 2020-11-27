@@ -5,7 +5,8 @@
 
 enum ErrorCodes {
     Err_InvalidArgs = -1,
-    Err_ImportFailure = -2
+    Err_ImportFailure = -2,
+    Err_MiscInternal = -3
 };
 
 using namespace Assimp;
@@ -18,10 +19,14 @@ int main(int argc, char** argv) {
     if (argc != 2)
         return Err_InvalidArgs;
 
-
     Assimp::Importer importer;
 
-    const aiScene* scene = importer.ReadFile(argv[1], aiProcess_OptimizeMeshes | aiProcess_Triangulate | aiProcess_CalcTangentSpace | aiProcess_PreTransformVertices);
+    const aiScene* scene = importer.ReadFile(argv[1], 
+            aiProcess_OptimizeMeshes 
+          | aiProcess_Triangulate 
+          | aiProcess_CalcTangentSpace 
+          | aiProcess_PreTransformVertices
+          | aiProcess_JoinIdenticalVertices);
 
     if (scene == nullptr) {
         fprintf(stderr, "Failed to import file.\n");
@@ -31,7 +36,15 @@ int main(int argc, char** argv) {
     printf("Importing %s: %i meshes:\n", argv[1], scene->mNumMeshes);
     
     for (unsigned int i = 0; i < scene->mNumMeshes; i++) {
-        printf("\t-%s\n", scene->mMeshes[i]->mName.C_Str());
+        auto mesh = scene->mMeshes[i];
+        printf("\t-%s: %i verts, %i tris, material index is %i\n", mesh->mName.C_Str(), mesh->mNumVertices, mesh->mNumFaces, mesh->mMaterialIndex);
+    }
+
+    printf("File has %u materials:\n", scene->mNumMaterials);
+    for (unsigned int i = 0; i < scene->mNumMaterials; i++) {
+        auto mat = scene->mMaterials[i];
+
+        printf("\t-%s\n", mat->GetName().C_Str());
     }
 
     FILE* outputFile = fopen("output.wmdl", "wb");
@@ -61,7 +74,7 @@ int main(int argc, char** argv) {
         submeshInfo.materialIndex = mesh->mMaterialIndex;
         submeshInfo.indexOffset = currOffset;
 
-        currOffset += mesh->mNumFaces * 3 * sizeof(uint32_t);
+        currOffset += mesh->mNumFaces * 3;
 
         fwrite(&submeshInfo, sizeof(submeshInfo), 1, outputFile);
     }
@@ -90,6 +103,7 @@ int main(int argc, char** argv) {
 
     }
 
+    uint32_t meshIdxOffset = 0;
     for (unsigned int i = 0; i < scene->mNumMeshes; i++) {
         auto mesh = scene->mMeshes[i];
         std::vector<uint32_t> indices;
@@ -97,10 +111,11 @@ int main(int argc, char** argv) {
 
         for (unsigned int j = 0; j < mesh->mNumFaces; j++) {
             for (int k = 0; k < 3; k++) {
-                indices.push_back(mesh->mFaces[j].mIndices[k]);
+                indices.push_back(mesh->mFaces[j].mIndices[k] + meshIdxOffset);
             }
         }
-        
+
+        meshIdxOffset += mesh->mNumVertices;
         fwrite(indices.data(), sizeof(uint32_t), indices.size(), outputFile);
     }
 
