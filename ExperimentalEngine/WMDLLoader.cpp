@@ -18,7 +18,7 @@ namespace worlds {
         wmdl::SubmeshInfo* submeshBlock = wHdr->getSubmeshBlock();
         lmd.numSubmeshes = wHdr->numSubmeshes;
 
-        for (int i = 0; i < wHdr->numSubmeshes; i++) {
+        for (wmdl::CountType i = 0; i < wHdr->numSubmeshes; i++) {
             lmd.submeshes[i].indexCount = submeshBlock[i].numIndices;
             lmd.submeshes[i].indexOffset = submeshBlock[i].indexOffset;
         }
