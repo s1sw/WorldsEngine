@@ -1,5 +1,7 @@
 #include "GuiUtil.hpp"
 #include "Engine.hpp"
+#include "IconsFontAwesome5.h"
+#include "IconsFontaudio.h"
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include "imgui_internal.h"
 #include <filesystem>
@@ -89,7 +91,7 @@ namespace worlds {
         }
     }
 
-    void openFileModal(const char* title, std::function<void(const char*)> openCallback) {
+    void openFileModal(const char* title, std::function<void(const char*)> openCallback, const char* fileExtension) {
         ImVec2 popupSize(windowSize.x - 50.0f, windowSize.y - 50.0f);
         ImGui::SetNextWindowPos(ImGui::GetMainViewport()->Pos + ImVec2((windowSize.x / 2) - (popupSize.x / 2), (windowSize.y / 2) - (popupSize.y / 2)));
         ImGui::SetNextWindowSize(popupSize);
@@ -130,7 +132,26 @@ namespace worlds {
             for (char** currFile = files; *currFile != nullptr; currFile++) {
                 PHYSFS_Stat stat;
                 PHYSFS_stat(*currFile, &stat);
-                ImGui::Text("%s%s", *currFile, stat.filetype == PHYSFS_FILETYPE_DIRECTORY ? "/" : "");
+                std::string extension = std::filesystem::path(*currFile).extension().string();
+
+                if (fileExtension && stat.filetype == PHYSFS_FILETYPE_REGULAR && extension != fileExtension)
+                    continue;
+
+                const char* icon = "  ";
+
+                if (stat.filetype == PHYSFS_FILETYPE_DIRECTORY) {
+                    icon = (const char*)(ICON_FA_FOLDER u8" ");
+                } else if (extension == ".escn") {
+                    icon = (const char*)(ICON_FA_MAP u8" " );
+                } else if (extension == ".ogg") {
+                    icon = (const char*)(ICON_FAD_SPEAKER u8" " );
+                } else if (extension == ".crn") {
+                    icon = (const char*)(ICON_FA_IMAGE u8" " );
+                } else if (extension == ".obj" || extension == ".wmdl" || extension == ".mdl") {
+                    icon = (const char*)(ICON_FA_SHAPES u8" " );
+                }
+                
+                ImGui::Text("%s%s%s", icon, *currFile, stat.filetype == PHYSFS_FILETYPE_DIRECTORY ? "/" : "");
 
                 if (ImGui::IsItemClicked()) {
                     if (stat.filetype == PHYSFS_FILETYPE_REGULAR) {
@@ -141,7 +162,6 @@ namespace worlds {
                 }
 
                 if (ImGui::IsItemHovered()) {
-                    ImGui::GetForegroundDrawList()->AddText(ImVec2(0.0f, 0.0f), ImColor(1.0f, 0.0f, 0.0f), "hovered");
                     if (ImGui::IsMouseDoubleClicked(0)) {
                         std::filesystem::path p(*saveDir);
                         *saveDir = p.parent_path().string();
