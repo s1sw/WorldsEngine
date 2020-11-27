@@ -952,7 +952,7 @@ namespace worlds {
                 }
             }
 
-            if (ImGui::IsWindowHovered() && !ImGuizmo::IsOver()) {
+            if (ImGui::IsWindowHovered() && !(enableTransformGadget && ImGuizmo::IsOver())) {
                 if (inputManager.mouseButtonPressed(MouseButton::Left, true)) {
                     interfaces.renderer->requestEntityPick((int)localMPos.x, (int)localMPos.y);
                 }
