@@ -333,37 +333,7 @@ namespace worlds {
             ImGui::Checkbox("Play on scene open", &as.playOnSceneOpen);
             ImGui::Text("Current Asset Path: %s", g_assetDB.getAssetPath(as.clipId).c_str());
 
-            static std::string newPath;
-            static bool canOpen = true;
-            if (ImGui::BeginPopup("Audio Source Path")) {
-                ImGui::InputText("Path", &newPath);
-
-                if (ImGui::Button("Set")) {
-                    if (!PHYSFS_exists(newPath.c_str())) {
-                        canOpen = false;
-                    } else {
-                        as.clipId = g_assetDB.addOrGetExisting(newPath);
-                        ImGui::CloseCurrentPopup();
-                    }
-                }
-
-                ImGui::SameLine();
-
-                if (ImGui::Button("Cancel")) {
-                    ImGui::CloseCurrentPopup();
-                }
-
-                if (!canOpen) {
-                    ImGui::TextColored(ImColor(1.0f, 0.0f, 0.0f, 1.0f), "Couldn't open file.");
-                }
-                ImGui::EndPopup();
-            }
-
-            if (ImGui::Button("Change")) {
-                newPath = g_assetDB.getAssetPath(as.clipId);
-                canOpen = true;
-                ImGui::OpenPopup("Audio Source Path");
-            }
+            selectAssetPopup("Audio Source Path", as.clipId, ImGui::Button("Change"));
 
             if (ImGui::Button(ICON_FA_PLAY u8" Preview"))
                 AudioSystem::getInstance()->playOneShotClip(as.clipId, glm::vec3(0.0f));
@@ -1029,7 +999,7 @@ namespace worlds {
         openFileModal("Open Scene", [this](const char* path) {
             reg.clear();
             loadScene(g_assetDB.addOrGetExisting(path), reg);
-            });
+            }, ".escn");
 
         if (inputManager.keyPressed(SDL_SCANCODE_I, true) && 
             ctrlHeld(inputManager) && 
