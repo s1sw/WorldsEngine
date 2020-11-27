@@ -70,6 +70,7 @@ namespace converge {
     worlds::ConVar overallAmount{ "cnvrg_headBobAmount", "0.5" };
     worlds::ConVar headBobDbg{ "cnvrg_headBobDebug", "0" };
     worlds::ConVar speedometer{ "cnvrg_speedometer", "0" };
+    worlds::ConVar mouseSensitivity { "cnvrg_mouseSensitivity", "1.0" };
 
     LocospherePlayerSystem::LocospherePlayerSystem(worlds::EngineInterfaces interfaces, entt::registry& registry)
         : vrInterface{ interfaces.vrInterface }
@@ -192,8 +193,8 @@ namespace converge {
     void LocospherePlayerSystem::update(entt::registry&, float deltaTime, float interpAlpha) {
         if (!vrInterface) {
 
-            lookX += (float)(inputManager->getMouseDelta().x) * 0.005f;
-            lookY += (float)(inputManager->getMouseDelta().y) * 0.005f;
+            lookX += (float)(inputManager->getMouseDelta().x) * 0.005f * mouseSensitivity.getFloat();
+            lookY += (float)(inputManager->getMouseDelta().y) * 0.005f * mouseSensitivity.getFloat();
 
             lookY = glm::clamp(lookY, -glm::half_pi<float>() + 0.001f, glm::half_pi<float>() - 0.001f);
 
