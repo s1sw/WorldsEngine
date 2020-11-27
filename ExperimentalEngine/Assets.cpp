@@ -72,9 +72,14 @@ namespace worlds {
                         if (ImGui::Button(fName)) {
                             entt::entity ent = createModelObject(reg, glm::vec3(), glm::quat(), id, g_assetDB.addOrGetExisting("Materials/dev.json"));
 
+                            WorldObject& wo = reg.get<WorldObject>(ent);
                             if (g_assetDB.getAssetExtension(id) == ".mdl") {
-                                WorldObject& wo = reg.get<WorldObject>(ent);
                                 setupSourceMaterials(id, wo);
+                            } else {
+                                for (int i = 0; i < NUM_SUBMESH_MATS; i++) {
+                                    wo.materials[i] = g_assetDB.addOrGetExisting("Materials/dev.json");
+                                    wo.presentMaterials[i] = true;
+                                }
                             }
                         }
                     } else {
