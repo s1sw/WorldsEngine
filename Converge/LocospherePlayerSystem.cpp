@@ -9,6 +9,7 @@
 #include <Input.hpp>
 #include <Camera.hpp>
 #include "MathsUtil.hpp"
+#include <CreateModelObject.hpp>
 
 namespace converge {
     class NullPhysXCallback : public physx::PxRaycastCallback {
@@ -363,7 +364,8 @@ namespace converge {
             ImGui::GetBackgroundDrawList()->AddText(ImVec2(size.x - textSize2.x * 0.5f, size.y - fontSize), ImColor(1.0f, 1.0f, 1.0f, 1.0f), buf2);
         }
 
-        {
+        // dot in the centre of the screen
+        if (!vrInterface) {
             auto size = ImGui::GetMainViewport()->Size;
             ImGui::GetBackgroundDrawList()->AddCircleFilled(ImVec2(size.x * 0.5f, size.y * 0.5f), 2.5f, ImColor(1.0f, 1.0f, 1.0f), 16);
         }
@@ -396,10 +398,13 @@ namespace converge {
                 physx::PxRaycastBuffer hitBuf;
 
                 Transform& lHandTranform = registry.get<Transform>(lHandEnt);
-                glm::vec3 start = lHandTranform.position;//lHandWPos;
+                glm::vec3 start = lHandTranform.position;
                 glm::vec3 dir = lHandTranform.rotation * glm::vec3(0.0f, 0.0f, -1.0f);
-                start += dir * 0.15f;
-                bool hit = worlds::g_scene->raycast(worlds::glm2px(start), worlds::glm2px(dir), FLT_MAX, hitBuf);
+                start += dir * 0.25f;
+                FilterEntity f;
+                f.entA = lHandEnt;
+                f.entB = rHandEnt;
+                bool hit = worlds::g_scene->raycast(worlds::glm2px(start), worlds::glm2px(dir), FLT_MAX, hitBuf, physx::PxHitFlag::eDEFAULT, physx::PxQueryFilterData(), &f);
 
                 if (hit && hitBuf.hasBlock) {
                     grappling = true;
@@ -712,12 +717,12 @@ namespace converge {
             auto matId = worlds::g_assetDB.addOrGetExisting("Materials/dev.json");
 
             lHandEnt = registry.create();
-            registry.emplace<worlds::WorldObject>(lHandEnt, matId, worlds::g_assetDB.addOrGetExisting("droppeditem.obj"));
+            registry.emplace<worlds::WorldObject>(lHandEnt, matId, worlds::g_assetDB.addOrGetExisting("pinhand.obj"));
             registry.emplace<Transform>(lHandEnt).scale = glm::vec3(0.25f);
             registry.emplace<worlds::NameComponent>(lHandEnt).name = "L. Handy";
 
             rHandEnt = registry.create();
-            registry.emplace<worlds::WorldObject>(rHandEnt, matId, worlds::g_assetDB.addOrGetExisting("droppeditem.obj"));
+            registry.emplace<worlds::WorldObject>(rHandEnt, matId, worlds::g_assetDB.addOrGetExisting("pinhand.obj"));
             registry.emplace<Transform>(rHandEnt).scale = glm::vec3(0.25f);
             registry.emplace<worlds::NameComponent>(rHandEnt).name = "R. Handy";
 
