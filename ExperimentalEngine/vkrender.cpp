@@ -649,6 +649,9 @@ void VKRenderer::createSCDependents() {
     }
 
     if (screenPass != ~0u) {
+        if (rttPasses.at(screenPass).isVr) {
+            vrPRP = nullptr;
+        }
         destroyRTTPass(screenPass);
     }
 }
@@ -1049,11 +1052,11 @@ void VKRenderer::writeCmdBuf(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageInde
             viewPos[i] = glm::inverse(viewMats[i])[3];
         }
 
-        vrPRP->lateUpdateVP(viewMats, viewPos, *device);
+        if (vrPRP)
+            vrPRP->lateUpdateVP(viewMats, viewPos, *device);
 
         vr::VRCompositor()->SubmitExplicitTimingData();
     }
-
 }
 
 void VKRenderer::frame(Camera& cam, entt::registry& reg) {
