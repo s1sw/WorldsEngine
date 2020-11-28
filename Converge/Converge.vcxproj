@@ -227,10 +227,12 @@
     <ClCompile Include="Events.cpp" />
     <ClCompile Include="LocospherePlayerSystem.cpp" />
     <ClCompile Include="Main.cpp" />
+    <ClCompile Include="MathsUtil.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ConvergeEventHandler.hpp" />
     <ClInclude Include="LocospherePlayerSystem.hpp" />
+    <ClInclude Include="MathsUtil.hpp" />
     <ClInclude Include="PidController.hpp" />
     <ClInclude Include="resource.h" />
   </ItemGroup>
