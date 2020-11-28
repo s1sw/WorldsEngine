@@ -126,7 +126,7 @@ namespace worlds {
             return;
         }
 
-        size_t fileLength = PHYSFS_fileLength(ttfFile);
+        auto fileLength = PHYSFS_fileLength(ttfFile);
 
         if (fileLength == -1) {
             PHYSFS_close(ttfFile);
@@ -135,7 +135,7 @@ namespace worlds {
         }
 
         void* buf = std::malloc(fileLength);
-        size_t readBytes = PHYSFS_readBytes(ttfFile, buf, fileLength);
+        auto readBytes = PHYSFS_readBytes(ttfFile, buf, fileLength);
 
         if (readBytes != fileLength) {
             PHYSFS_close(ttfFile);
@@ -158,7 +158,7 @@ namespace worlds {
         loadScene(g_assetDB.addOrGetExisting(arg), *(entt::registry*)obj);
     }
 
-    void cmdToggleFullscreen(void* obj, const char* arg) {
+    void cmdToggleFullscreen(void*, const char*) {
         SDL_Event evt;
         SDL_zero(evt);
         evt.type = fullscreenToggleEventId;
@@ -370,7 +370,7 @@ namespace worlds {
             for (auto* system : systems)
                 system->onSceneStart(registry);
 
-            registry.view<AudioSource>().each([](auto ent, auto& as) {
+            registry.view<AudioSource>().each([](auto, auto& as) {
                 if (as.playOnSceneOpen) {
                     as.isPlaying = true;
                 }
@@ -753,7 +753,7 @@ namespace worlds {
 
     void WorldsEngine::updateSimulation(float& interpAlpha, double deltaTime) {
         if (lockSimToRefresh.getInt() || disableSimInterp.getInt()) {
-            registry.view<DynamicPhysicsActor, Transform>().each([](auto ent, DynamicPhysicsActor& dpa, Transform& transform) {
+            registry.view<DynamicPhysicsActor, Transform>().each([](auto, DynamicPhysicsActor& dpa, Transform& transform) {
                 auto curr = dpa.actor->getGlobalPose();
 
                 if (curr.p != glm2px(transform.position) || curr.q != glm2px(transform.rotation)) {
@@ -763,7 +763,7 @@ namespace worlds {
                 });
         }
 
-        registry.view<PhysicsActor, Transform>().each([](auto ent, PhysicsActor& pa, Transform& transform) {
+        registry.view<PhysicsActor, Transform>().each([](auto, PhysicsActor& pa, Transform& transform) {
             auto curr = pa.actor->getGlobalPose();
             if (curr.p != glm2px(transform.position) || curr.q != glm2px(transform.rotation)) {
                 physx::PxTransform pt(glm2px(transform.position), glm2px(transform.rotation));
@@ -810,7 +810,7 @@ namespace worlds {
             if (disableSimInterp.getInt())
                 alpha = 1.0f;
 
-            registry.view<DynamicPhysicsActor, Transform>().each([&](entt::entity ent, DynamicPhysicsActor& dpa, Transform& transform) {
+            registry.view<DynamicPhysicsActor, Transform>().each([&](entt::entity ent, DynamicPhysicsActor&, Transform& transform) {
                 transform.position = glm::mix(px2glm(previousState[ent].p), px2glm(currentState[ent].p), (float)alpha);
                 transform.rotation = glm::slerp(px2glm(previousState[ent].q), px2glm(currentState[ent].q), (float)alpha);
                 });
@@ -825,7 +825,7 @@ namespace worlds {
                     system->simulate(registry, deltaTime);
             }
 
-            registry.view<DynamicPhysicsActor, Transform>().each([&](entt::entity ent, DynamicPhysicsActor& dpa, Transform& transform) {
+            registry.view<DynamicPhysicsActor, Transform>().each([&](entt::entity, DynamicPhysicsActor& dpa, Transform& transform) {
                 transform.position = px2glm(dpa.actor->getGlobalPose().p);
                 transform.rotation = px2glm(dpa.actor->getGlobalPose().q);
                 });
