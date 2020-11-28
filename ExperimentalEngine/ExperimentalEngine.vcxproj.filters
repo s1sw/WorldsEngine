@@ -158,9 +158,6 @@
     <ClCompile Include="mikktspace.c">
       <Filter>Source Files\External</Filter>
     </ClCompile>
-    <ClCompile Include="weldmesh.c">
-      <Filter>Source Files\External</Filter>
-    </ClCompile>
     <ClCompile Include="tracy\TracyClient.cpp">
       <Filter>Source Files\External</Filter>
     </ClCompile>
@@ -241,6 +238,12 @@
     </ClCompile>
     <ClCompile Include="LuaVM.cpp">
       <Filter>Source Files\Scripting</Filter>
+    </ClCompile>
+    <ClCompile Include="WMDLLoader.cpp">
+      <Filter>Source Files\Loaders</Filter>
+    </ClCompile>
+    <ClCompile Include="OpenVRInterface.cpp">
+      <Filter>Source Files\Systems</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -435,6 +438,9 @@
     </ClInclude>
     <ClInclude Include="LuaVM.hpp">
       <Filter>Header Files\Scripting</Filter>
+    </ClInclude>
+    <ClInclude Include="WMDLLoader.hpp">
+      <Filter>Header Files\Loaders</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

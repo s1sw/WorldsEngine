@@ -168,7 +168,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>GLM_FORCE_DEPTH_ZERO_TO_ONE;_CRT_SECURE_NO_WARNINGS;NOMINMAX;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(VULKAN_SDK)\Include;$(SolutionDir)External\Include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(VULKAN_SDK)\Include;$(SolutionDir)External\Include;$(SolutionDir)ModelFormat</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>PCH.hpp</PrecompiledHeaderFile>
@@ -270,6 +270,7 @@
     <ClCompile Include="MaterialSlots.cpp" />
     <ClCompile Include="mikktspace.c" />
     <ClCompile Include="ObjModelLoader.cpp" />
+    <ClCompile Include="OpenVRInterface.cpp" />
     <ClCompile Include="physfs.cpp" />
     <ClCompile Include="Physics.cpp" />
     <ClCompile Include="PolyRenderPass.cpp" />
@@ -292,7 +293,7 @@
     <ClCompile Include="vkrender.cpp" />
     <ClCompile Include="vkswapchain.cpp" />
     <ClCompile Include="VTFLoader.cpp" />
-    <ClCompile Include="weldmesh.c" />
+    <ClCompile Include="WMDLLoader.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AssetDB.hpp" />
@@ -358,7 +359,13 @@
     <ClInclude Include="VKImGUIUtil.hpp" />
     <ClInclude Include="vku\vku.hpp" />
     <ClInclude Include="weldmesh.h" />
+    <ClInclude Include="WMDLLoader.hpp" />
     <ClInclude Include="XRInterface.hpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ModelFormat\ModelFormat.vcxproj">
+      <Project>{0346ed4c-677e-4c98-891a-40a77d3c82ed}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
