@@ -81,7 +81,9 @@ namespace converge {
         , rHandEnt{ entt::null }
         , playerLocosphere{ entt::null }
         , lHandPid{}
-        , rHandPid{} {
+        , rHandPid{}
+        , lookX{ 0.0f }
+        , lookY{ 0.0f } {
 
         if (vrInterface) { 
             worlds::g_console->registerCommand([&](void*, const char*) {
