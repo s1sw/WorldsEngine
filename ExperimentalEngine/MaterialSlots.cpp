@@ -39,6 +39,7 @@ namespace worlds {
         auto alphaCutoffIdx = root.find_object_key(sajson::string("alphaCutoff", 11));
         auto heightmapScaleIdx = root.find_object_key(sajson::string("heightmapScale", 14));
         auto heightmapPathIdx = root.find_object_key(sajson::string("heightmapPath", 13));
+        auto emissiveColorIdx = root.find_object_key(sajson::string("emissiveColor", 13));
 
         auto albedoPath = root.get_object_value(albedoPathIdx).as_string();
 
@@ -66,6 +67,16 @@ namespace worlds {
         };
 
         mat.albedoColor = albedoColor;
+
+        if (emissiveColorIdx != rootLength) {
+            const auto& emissiveColorArr = root.get_object_value(emissiveColorIdx);
+
+            mat.emissiveColor = glm::vec3 {
+               emissiveColorArr.get_array_element(0).get_double_value(), 
+               emissiveColorArr.get_array_element(1).get_double_value(), 
+               emissiveColorArr.get_array_element(2).get_double_value()
+            };
+        }
 
         auto albedoAssetId = g_assetDB.addOrGetExisting(albedoPath);
 

@@ -7,6 +7,7 @@ namespace worlds {
     struct Camera;
     class InputManager;
     class IVRInterface;
+    class JobSystem;
 
     struct EngineInterfaces {
         IVRInterface* vrInterface;

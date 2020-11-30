@@ -49,6 +49,8 @@ namespace converge {
     physx::PxMaterial* locosphereMat;
     physx::PxMaterial* fenderMat;
     physx::PxD6Joint* fenderJoint;
+    physx::PxD6Joint* lHandJoint;
+    physx::PxD6Joint* rHandJoint;
 
     worlds::ConVar showLocosphereDebug{ "cnvrg_showLocosphereDebug", "0", "Shows the locosphere debug menu." };
 
@@ -57,16 +59,12 @@ namespace converge {
     float locosphereAngVels[128];
     float locosphereLinVels[128];
     float locosphereLinVelsXZ[128];
-    float lHandTorqueMag[128];
-    float rHandTorqueMag[128];
-    float lHandForceMag[128];
-    float rHandForceMag[128];
     int physDbgIdx = 0;
     bool grappling = false;
     glm::vec3 grappleTarget;
     physx::PxRigidDynamic* grappleBody;
 
-    glm::vec3 offset;
+    glm::vec3 offset {0.0f, 0.01f, 0.1f};
 
     worlds::ConVar overallAmount{ "cnvrg_headBobAmount", "0.5" };
     worlds::ConVar headBobDbg{ "cnvrg_headBobDebug", "0" };
@@ -81,8 +79,6 @@ namespace converge {
         , lHandEnt{ entt::null }
         , rHandEnt{ entt::null }
         , playerLocosphere{ entt::null }
-        , lHandPid{}
-        , rHandPid{}
         , lookX{ 0.0f }
         , lookY{ 0.0f } {
 
@@ -93,9 +89,10 @@ namespace converge {
                 body->setLinearVelocity(physx::PxVec3{ 0.0f });
 
                 auto& lTf = registry.get<Transform>(lHandEnt);
+                auto& lPh = registry.get<PhysHand>(lHandEnt);
                 auto lPose = body->getGlobalPose();
-                lPose.p = worlds::glm2px(lHandWPos);
-                lTf.position = lHandWPos;
+                lPose.p = worlds::glm2px(lPh.targetWorldPos);
+                lTf.position = lPh.targetWorldPos;
                 body->setGlobalPose(lPose);
 
                 auto& wActorR = registry.get<worlds::DynamicPhysicsActor>(rHandEnt);
@@ -103,13 +100,17 @@ namespace converge {
                 rBody->setLinearVelocity(physx::PxVec3{ 0.0f });
 
                 auto& rTf = registry.get<Transform>(rHandEnt);
+                auto& rPh = registry.get<PhysHand>(rHandEnt);
                 auto rPose = rBody->getGlobalPose();
-                rPose.p = worlds::glm2px(rHandWPos);
-                rTf.position = rHandWPos;
+                rPose.p = worlds::glm2px(rPh.targetWorldPos);
+                rTf.position = rPh.targetWorldPos;
                 rBody->setGlobalPose(rPose);
 
-                lHandPid.reset();
-                rHandPid.reset();
+                lPh.posController.reset();
+                lPh.rotController.reset();
+
+                rPh.posController.reset();
+                rPh.rotController.reset();
             }, "cnvrg_resetHands", "Resets hand PID controllers.", nullptr);
         }
     }
@@ -204,6 +205,8 @@ namespace converge {
             camera->rotation = glm::angleAxis(-lookX, glm::vec3(0.0f, 1.0f, 0.0f)) * glm::angleAxis(lookY, glm::vec3(1.0f, 0.0f, 0.0f));
         }
 
+        ImGui::DragFloat3("Pos Offset", &offset.x);
+
         camera->position = glm::mix(lastCamPos, nextCamPos, interpAlpha);
 
         glm::vec3 desiredVel{ 0.0f };
@@ -271,71 +274,6 @@ namespace converge {
                 showLocosphereDebug.setValue("0");
         }
 
-        if (vrInterface) {
-            if (ImGui::Begin("Hands")) {
-                ImGui::Text("Positional PID");
-                ImGui::DragFloat("P", &lHandPid.P);
-                ImGui::DragFloat("I", &lHandPid.I);
-                ImGui::DragFloat("D", &lHandPid.D);
-                ImGui::DragFloat("D2", &lHandPid.D2);
-
-                rHandPid.P = lHandPid.P;
-                rHandPid.I = lHandPid.I;
-                rHandPid.D = lHandPid.D;
-                rHandPid.D2 = lHandPid.D2;
-
-                ImGui::Separator();
-
-                ImGui::Text("Rotational PID");
-                ImGui::DragFloat("P##R", &lHandRotPid.P);
-                ImGui::DragFloat("I##R", &lHandRotPid.I);
-                ImGui::DragFloat("D##R", &lHandRotPid.D);
-                ImGui::DragFloat("D2##R", &lHandRotPid.D2);
-
-                rHandRotPid.P = lHandRotPid.P;
-                rHandRotPid.I = lHandRotPid.I;
-                rHandRotPid.D = lHandRotPid.D;
-                rHandRotPid.D2 = lHandRotPid.D2;
-
-                ImGui::Separator();
-                ImGui::DragFloat3("Offset", &offset.x);
-
-                ImGui::PlotLines("L Torque", lHandTorqueMag, 128, physDbgIdx, nullptr, 0.0f, 50.0f, ImVec2(500.0f, 100.0f));
-                ImGui::PlotLines("L Force", lHandForceMag, 128, physDbgIdx, nullptr, 0.0f, 50.0f, ImVec2(500.0f, 100.0f));
-                ImGui::PlotLines("R Torque", rHandTorqueMag, 128, physDbgIdx, nullptr, 0.0f, 50.0f, ImVec2(500.0f, 100.0f));
-                ImGui::PlotLines("R Force", rHandForceMag, 128, physDbgIdx, nullptr, 0.0f, 50.0f, ImVec2(500.0f, 100.0f));
-            }
-            ImGui::End();
-
-            auto lIdx = vr::VRSystem()->GetTrackedDeviceIndexForControllerRole(vr::ETrackedControllerRole::TrackedControllerRole_LeftHand);
-            auto rIdx = vr::VRSystem()->GetTrackedDeviceIndexForControllerRole(vr::ETrackedControllerRole::TrackedControllerRole_RightHand);
-
-            if (vr::VRSystem()->IsTrackedDeviceConnected(lIdx)) {
-                Transform t;
-
-                if (((worlds::OpenVRInterface*)vrInterface)->getHandTransform(vr::ETrackedControllerRole::TrackedControllerRole_LeftHand, t)) {
-                    ImGui::Text("Left Controller: %.2f, %.2f, %.2f", t.position.x, t.position.y, t.position.z);
-                    t.position += t.rotation * offset;
-                    t.fromMatrix(glm::inverse(camera->getViewMatrix()) * t.getMatrix());
-                    ImGui::Text("Left Controller World: %.2f, %.2f, %.2f", t.position.x, t.position.y, t.position.z);
-                    lHandWPos = t.position;
-                    lHandWRot = t.rotation;
-                }
-            }
-
-            if (vr::VRSystem()->IsTrackedDeviceConnected(rIdx)) {
-                Transform t;
-
-                if (((worlds::OpenVRInterface*)vrInterface)->getHandTransform(vr::ETrackedControllerRole::TrackedControllerRole_RightHand, t)) {
-                    ImGui::Text("Right Controller: %.2f, %.2f, %.2f", t.position.x, t.position.y, t.position.z);
-                    t.position += t.rotation * offset;
-                    t.fromMatrix(glm::inverse(camera->getViewMatrix()) * t.getMatrix());
-                    ImGui::Text("Right Controller World: %.2f, %.2f, %.2f", t.position.x, t.position.y, t.position.z);
-                    rHandWPos = t.position + (offset * t.rotation);
-                    rHandWRot = t.rotation;
-                }
-            }
-        }
 
         if (speedometer) {
             auto size = ImGui::GetMainViewport()->Size;
@@ -393,23 +331,22 @@ namespace converge {
                 grappling = false;
             }
         } else {
-            if (vrInterface->getActionPressed(grappleHookAction)) {
-                NullPhysXCallback nullCallback{};
-                physx::PxRaycastBuffer hitBuf;
+            NullPhysXCallback nullCallback{};
+            physx::PxRaycastBuffer hitBuf;
 
-                Transform& lHandTranform = registry.get<Transform>(lHandEnt);
-                glm::vec3 start = lHandTranform.position;
-                glm::vec3 dir = lHandTranform.rotation * glm::vec3(0.0f, 0.0f, -1.0f);
-                start += dir * 0.25f;
-                FilterEntity f;
-                f.entA = lHandEnt;
-                f.entB = rHandEnt;
-                bool hit = worlds::g_scene->raycast(worlds::glm2px(start), worlds::glm2px(dir), FLT_MAX, hitBuf, physx::PxHitFlag::eDEFAULT, physx::PxQueryFilterData(), &f);
+            Transform& lHandTranform = registry.get<Transform>(lHandEnt);
+            glm::vec3 start = lHandTranform.position;
+            glm::vec3 dir = lHandTranform.rotation * glm::vec3(0.0f, 0.0f, -1.0f);
+            start += dir * 0.25f;
+            FilterEntity f;
+            f.entA = lHandEnt;
+            f.entB = rHandEnt;
+            bool hit = worlds::g_scene->raycast(worlds::glm2px(start), worlds::glm2px(dir), FLT_MAX, hitBuf, physx::PxHitFlag::eDEFAULT, physx::PxQueryFilterData(), &f);
 
-                if (hit && hitBuf.hasBlock) {
+            if (hit && hitBuf.hasBlock) {
+                auto& touch = hitBuf.block;
+                if (vrInterface->getActionPressed(grappleHookAction)) {
                     grappling = true;
-                    auto& touch = hitBuf.block;
-
                     grappleBody = touch.actor->is<physx::PxRigidDynamic>();
                     grappleTarget = worlds::px2glm(touch.position);
 
@@ -423,6 +360,11 @@ namespace converge {
                         }
                         grappleTarget = worlds::px2glm(grappleBody->getGlobalPose().transformInv(worlds::glm2px(grappleTarget)));
                     }
+                } 
+                if (!grappling) {
+                    auto& indicatorTransform = registry.get<Transform>(grappleIndicator);
+                    indicatorTransform.position = worlds::px2glm(touch.position + (touch.normal * 0.01f));
+                    indicatorTransform.rotation = safeQuatLookat(worlds::px2glm(touch.normal));
                 }
             }
 
@@ -479,6 +421,41 @@ namespace converge {
     }
 
     void LocospherePlayerSystem::simulate(entt::registry& registry, float simStep) {
+        if (vrInterface) {
+            auto lIdx = vr::VRSystem()->GetTrackedDeviceIndexForControllerRole(vr::ETrackedControllerRole::TrackedControllerRole_LeftHand);
+            auto rIdx = vr::VRSystem()->GetTrackedDeviceIndexForControllerRole(vr::ETrackedControllerRole::TrackedControllerRole_RightHand);
+
+            glm::vec3 controllerEulerOffset { -60.0f, 0.0f, 0.0f };
+
+            if (vr::VRSystem()->IsTrackedDeviceConnected(lIdx)) {
+                Transform t;
+
+                if (((worlds::OpenVRInterface*)vrInterface)->getHandTransform(vr::ETrackedControllerRole::TrackedControllerRole_LeftHand, t)) {
+                    t.position += t.rotation * offset;
+                    t.fromMatrix(glm::inverse(camera->getViewMatrix()) * t.getMatrix());
+                    t.rotation *= glm::quat{glm::radians(controllerEulerOffset)};
+
+                    PhysHand& hand = registry.get<PhysHand>(lHandEnt);
+                    hand.targetWorldPos = t.position;
+                    hand.targetWorldRot = t.rotation;
+                }
+            }
+
+            if (vr::VRSystem()->IsTrackedDeviceConnected(rIdx)) {
+                Transform t;
+
+                if (((worlds::OpenVRInterface*)vrInterface)->getHandTransform(vr::ETrackedControllerRole::TrackedControllerRole_RightHand, t)) {
+                    t.position += t.rotation * offset;
+                    t.fromMatrix(glm::inverse(camera->getViewMatrix()) * t.getMatrix());
+                    t.rotation *= glm::quat{glm::radians(controllerEulerOffset)};
+
+                    PhysHand& hand = registry.get<PhysHand>(rHandEnt);
+                    hand.targetWorldPos = t.position;
+                    hand.targetWorldRot = t.rotation;
+                }
+            }
+        }
+
         auto& locosphereTransform = registry.get<Transform>(playerLocosphere);
 
         const float maxSpeed = 15.0f;
@@ -623,7 +600,6 @@ namespace converge {
 
         if (vrInterface) {
             static glm::vec3 lastHeadPos{ 0.0f };
-            //static float off = 0.0f;
             glm::vec3 headPos = worlds::getMatrixTranslation(vrInterface->getHeadTransform());
             glm::vec3 locosphereOffset = lastHeadPos - headPos;
             lastHeadPos = headPos;
@@ -643,66 +619,6 @@ namespace converge {
             fenderTf.p += worlds::glm2px(locosphereOffset);
             fenderWorldsTf.position += locosphereOffset;
             fenderActor->setGlobalPose(fenderTf);
-
-            {
-                auto& wActor = registry.get<worlds::DynamicPhysicsActor>(lHandEnt);
-                auto* body = static_cast<physx::PxRigidBody*>(wActor.actor);
-                auto& tf = registry.get<Transform>(lHandEnt);
-                glm::vec3 err = lHandWPos - tf.position;
-                glm::vec3 force = lHandPid.getOutput(err, simStep);
-                body->addForce(worlds::glm2px(force));
-                lHandForceMag[physDbgIdx] = glm::length(force);
-
-                glm::quat filteredQ = glm::normalize(lHandWRot);
-
-                filteredQ = fixupQuat(filteredQ);
-
-                glm::quat quaternionDifference = filteredQ * glm::inverse(fixupQuat(tf.rotation));
-
-                quaternionDifference = fixupQuat(quaternionDifference);
-
-                float angle = glm::angle(quaternionDifference);
-                glm::vec3 axis = glm::axis(quaternionDifference);
-                angle = glm::degrees(angle);
-                angle = AngleToErr(angle);
-                angle = glm::radians(angle);
-
-                glm::vec3 torque = lHandRotPid.getOutput(angle * axis, simStep);
-                lHandTorqueMag[physDbgIdx] = glm::length(torque);
-
-                if (!glm::any(glm::isnan(axis)) && !glm::any(glm::isinf(torque)))
-                    body->addTorque(worlds::glm2px(torque));
-            }
-
-            {
-                auto& wActor = registry.get<worlds::DynamicPhysicsActor>(rHandEnt);
-                auto* body = static_cast<physx::PxRigidBody*>(wActor.actor);
-                auto& tf = registry.get<Transform>(rHandEnt);
-                glm::vec3 err = rHandWPos - tf.position;
-                glm::vec3 force = rHandPid.getOutput(err, simStep);
-                body->addForce(worlds::glm2px(force));
-                rHandForceMag[physDbgIdx] = glm::length(force);
-
-                glm::quat filteredQ = glm::normalize(rHandWRot);
-
-                filteredQ = fixupQuat(filteredQ);
-
-                glm::quat quaternionDifference = filteredQ * glm::inverse(fixupQuat(tf.rotation));
-
-                quaternionDifference = fixupQuat(quaternionDifference);
-
-                float angle = glm::angle(quaternionDifference);
-                glm::vec3 axis = glm::axis(quaternionDifference);
-                angle = glm::degrees(angle);
-                angle = AngleToErr(angle);
-                angle = glm::radians(angle);
-
-                glm::vec3 torque = rHandRotPid.getOutput(angle * axis, simStep);
-                rHandTorqueMag[physDbgIdx] = glm::length(force);
-
-                if (!glm::any(glm::isnan(axis)) && !glm::any(glm::isinf(torque)))
-                    body->addTorque(worlds::glm2px(torque));
-            }
         }
 
         physDbgIdx++;
@@ -711,54 +627,6 @@ namespace converge {
     }
 
     void LocospherePlayerSystem::onSceneStart(entt::registry& registry) {
-        if (vrInterface) {
-            grappleHookAction = vrInterface->getActionHandle("/actions/main/in/ThrowHand");
-
-            auto matId = worlds::g_assetDB.addOrGetExisting("Materials/dev.json");
-
-            lHandEnt = registry.create();
-            registry.emplace<worlds::WorldObject>(lHandEnt, matId, worlds::g_assetDB.addOrGetExisting("pinhand.obj"));
-            registry.emplace<Transform>(lHandEnt).scale = glm::vec3(0.25f);
-            registry.emplace<worlds::NameComponent>(lHandEnt).name = "L. Handy";
-
-            rHandEnt = registry.create();
-            registry.emplace<worlds::WorldObject>(rHandEnt, matId, worlds::g_assetDB.addOrGetExisting("pinhand.obj"));
-            registry.emplace<Transform>(rHandEnt).scale = glm::vec3(0.25f);
-            registry.emplace<worlds::NameComponent>(rHandEnt).name = "R. Handy";
-
-            auto lActor = worlds::g_physics->createRigidDynamic(physx::PxTransform{ physx::PxIdentity });
-            // Using the reference returned by this doesn't work unfortunately.
-            registry.emplace<worlds::DynamicPhysicsActor>(lHandEnt, lActor);
-
-            auto rActor = worlds::g_physics->createRigidDynamic(physx::PxTransform{ physx::PxIdentity });
-            auto& rwActor = registry.emplace<worlds::DynamicPhysicsActor>(rHandEnt, rActor);
-            auto& lwActor = registry.get<worlds::DynamicPhysicsActor>(lHandEnt);
-
-            rwActor.physicsShapes.emplace_back(worlds::PhysicsShape::sphereShape(0.1f));
-            lwActor.physicsShapes.emplace_back(worlds::PhysicsShape::sphereShape(0.1f));
-
-            worlds::updatePhysicsShapes(rwActor);
-            worlds::updatePhysicsShapes(lwActor);
-
-            worlds::g_scene->addActor(*rActor);
-            worlds::g_scene->addActor(*lActor);
-
-            physx::PxRigidBodyExt::setMassAndUpdateInertia(*rActor, 2.0f);
-            physx::PxRigidBodyExt::setMassAndUpdateInertia(*lActor, 2.0f);
-
-            lHandPid.P = 1370.0f;
-            lHandPid.D = 100.0f;
-
-            rHandPid.P = 1370.0f;
-            rHandPid.D = 100.0f;
-
-            lHandRotPid.P = 2.5f;
-            lHandRotPid.D = 0.2f;
-
-            rHandRotPid.P = 2.5f;
-            rHandRotPid.D = 0.2f;
-        }
-
         // Create physics rig
         lspherePid.P = 50.0f;
         lspherePid.I = 0.0f;
@@ -817,6 +685,81 @@ namespace converge {
         fenderActor->setSolverIterationCounts(30, 8);
 
         logMsg("locosphere entity is %u", (uint32_t)playerLocosphere);
+
+        if (vrInterface) {
+            grappleHookAction = vrInterface->getActionHandle("/actions/main/in/Grapple");
+
+            auto matId = worlds::g_assetDB.addOrGetExisting("Materials/dev.json");
+
+            lHandEnt = registry.create();
+            auto& lhWO = registry.emplace<worlds::WorldObject>(lHandEnt, matId, worlds::g_assetDB.addOrGetExisting("saber.wmdl"));
+            lhWO.materials[0] = worlds::g_assetDB.addOrGetExisting("Materials/saber_blade.json");
+            lhWO.materials[1] = matId;
+            lhWO.presentMaterials[1] = true;
+            registry.emplace<Transform>(lHandEnt).scale = glm::vec3(1.0f);
+            registry.emplace<worlds::NameComponent>(lHandEnt).name = "L. Handy";
+
+            rHandEnt = registry.create();
+            auto& rhWO = registry.emplace<worlds::WorldObject>(rHandEnt, matId, worlds::g_assetDB.addOrGetExisting("saber.wmdl"));
+            rhWO.materials[0] = worlds::g_assetDB.addOrGetExisting("Materials/saber_blade.json");
+            rhWO.materials[1] = matId;
+            rhWO.presentMaterials[1] = true;
+            registry.emplace<Transform>(rHandEnt).scale = glm::vec3(1.0f);
+            registry.emplace<worlds::NameComponent>(rHandEnt).name = "R. Handy";
+
+            auto indicatorId = worlds::g_assetDB.addOrGetExisting("grapple_indicator.obj");
+            grappleIndicator = worlds::createModelObject(registry, glm::vec3{0.0f}, glm::quat{}, indicatorId, matId);
+
+            auto lActor = worlds::g_physics->createRigidDynamic(physx::PxTransform{ physx::PxIdentity });
+            // Using the reference returned by this doesn't work unfortunately.
+            registry.emplace<worlds::DynamicPhysicsActor>(lHandEnt, lActor);
+
+            auto rActor = worlds::g_physics->createRigidDynamic(physx::PxTransform{ physx::PxIdentity });
+            auto& rwActor = registry.emplace<worlds::DynamicPhysicsActor>(rHandEnt, rActor);
+            auto& lwActor = registry.get<worlds::DynamicPhysicsActor>(lHandEnt);
+
+            rwActor.physicsShapes.emplace_back(worlds::PhysicsShape::sphereShape(0.1f));
+            lwActor.physicsShapes.emplace_back(worlds::PhysicsShape::sphereShape(0.1f));
+
+            worlds::updatePhysicsShapes(rwActor);
+            worlds::updatePhysicsShapes(lwActor);
+
+            worlds::g_scene->addActor(*rActor);
+            worlds::g_scene->addActor(*lActor);
+
+            physx::PxRigidBodyExt::setMassAndUpdateInertia(*rActor, 2.0f);
+            physx::PxRigidBodyExt::setMassAndUpdateInertia(*lActor, 2.0f);
+
+            auto& lHandPhys = registry.emplace<PhysHand>(lHandEnt);
+            auto& rHandPhys = registry.emplace<PhysHand>(rHandEnt);
+
+            PIDSettings posSettings {1370.0f, 0.0f, 100.0f};
+            PIDSettings rotSettings {2.5f, 0.0f, 0.2f};
+
+            lHandPhys.posController.acceptSettings(posSettings);
+            lHandPhys.rotController.acceptSettings(rotSettings);
+
+            rHandPhys.posController.acceptSettings(posSettings);
+            rHandPhys.rotController.acceptSettings(rotSettings);
+
+            lHandJoint = physx::PxD6JointCreate(*worlds::g_physics, fenderActor, physx::PxTransform { physx::PxIdentity }, lActor, physx::PxTransform { physx::PxIdentity });
+            lHandJoint->setLinearLimit(physx::PxJointLinearLimit{physx::PxTolerancesScale{}, 1.25f});
+            lHandJoint->setMotion(physx::PxD6Axis::eX, physx::PxD6Motion::eLIMITED);
+            lHandJoint->setMotion(physx::PxD6Axis::eY, physx::PxD6Motion::eLIMITED);
+            lHandJoint->setMotion(physx::PxD6Axis::eZ, physx::PxD6Motion::eLIMITED);
+            lHandJoint->setMotion(physx::PxD6Axis::eSWING1, physx::PxD6Motion::eFREE);
+            lHandJoint->setMotion(physx::PxD6Axis::eSWING2, physx::PxD6Motion::eFREE);
+            lHandJoint->setMotion(physx::PxD6Axis::eTWIST, physx::PxD6Motion::eFREE);
+
+            rHandJoint = physx::PxD6JointCreate(*worlds::g_physics, fenderActor, physx::PxTransform { physx::PxIdentity }, rActor, physx::PxTransform { physx::PxIdentity });
+            rHandJoint->setLinearLimit(physx::PxJointLinearLimit{physx::PxTolerancesScale{}, 1.25f});
+            rHandJoint->setMotion(physx::PxD6Axis::eX, physx::PxD6Motion::eLIMITED);
+            rHandJoint->setMotion(physx::PxD6Axis::eY, physx::PxD6Motion::eLIMITED);
+            rHandJoint->setMotion(physx::PxD6Axis::eZ, physx::PxD6Motion::eLIMITED);
+            rHandJoint->setMotion(physx::PxD6Axis::eSWING1, physx::PxD6Motion::eFREE);
+            rHandJoint->setMotion(physx::PxD6Axis::eSWING2, physx::PxD6Motion::eFREE);
+            rHandJoint->setMotion(physx::PxD6Axis::eTWIST, physx::PxD6Motion::eFREE);
+        }
     }
 
     void LocospherePlayerSystem::shutdown(entt::registry& registry) {

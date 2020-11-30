@@ -41,7 +41,7 @@
       "type": "boolean"
     },
     {
-      "name": "/actions/main/in/ThrowHand",
+      "name": "/actions/main/in/Grapple",
       "type": "boolean"
     }
   ],
@@ -64,7 +64,7 @@
       "/actions/main/in/LeftHand_Anim": "Left Hand Animation",
       "/actions/main/in/Sprint": "Sprint",
       "/actions/main/in/Jump": "Jump",
-      "/actions/main/in/ThrowHand":  "Throw Hand"
+      "/actions/main/in/Grapple":  "Grapple"
     }
   ]
 }

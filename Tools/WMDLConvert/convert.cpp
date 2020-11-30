@@ -2,6 +2,7 @@
 #include <assimp/scene.h>
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
+#include <vector>
 
 enum ErrorCodes {
     Err_InvalidArgs = -1,
@@ -26,7 +27,8 @@ int main(int argc, char** argv) {
           | aiProcess_Triangulate 
           | aiProcess_CalcTangentSpace 
           | aiProcess_PreTransformVertices
-          | aiProcess_JoinIdenticalVertices);
+          | aiProcess_JoinIdenticalVertices
+          | aiProcess_FlipUVs);
 
     if (scene == nullptr) {
         fprintf(stderr, "Failed to import file.\n");

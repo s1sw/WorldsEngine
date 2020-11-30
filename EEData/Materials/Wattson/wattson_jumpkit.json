@@ -1,0 +1,7 @@
+{
+	"albedoPath" : "Textures/Wattson/jumpkit_albedo.png",
+	"normalMapPath": "Textures/Wattson/jumpkit_normal.crn",
+	"metallic" : 0.0,
+	"roughness" : 0.185,
+	"albedoColor" : [1.0, 1.0, 1.0]
+}

@@ -22,4 +22,8 @@ namespace converge {
 
         return angle;
     }
+
+    glm::quat safeQuatLookat(glm::vec3 dir, glm::vec3 up, glm::vec3 fallbackUp) {
+        return glm::abs(glm::dot(dir, up)) > 0.999f ? glm::quatLookAt(dir, fallbackUp) : glm::quatLookAt(dir, up);
+    }
 }

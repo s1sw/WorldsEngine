@@ -5,6 +5,7 @@
 #include "ISystem.hpp"
 #include <IVRInterface.hpp>
 #include <Camera.hpp>
+#include "PhysHandSystem.hpp"
 
 namespace converge {
     struct HeadBobSettings {
@@ -17,6 +18,10 @@ namespace converge {
         glm::vec2 bobAmount;
         float overallSpeed;
         float sprintMult;
+    };
+
+    struct LocospherePlayerComponent {
+        float maxSpeed;
     };
 
     class LocospherePlayerSystem : public worlds::ISystem {
@@ -36,17 +41,10 @@ namespace converge {
         entt::entity lHandEnt, rHandEnt;
         entt::entity playerLocosphere;
         entt::entity playerFender;
+        entt::entity grappleIndicator;
         bool jumpThisFrame;
         glm::vec3 lastCamPos;
         glm::vec3 nextCamPos;
-        V3PidController lHandPid;
-        V3PidController rHandPid;
-        V3PidController lHandRotPid;
-        V3PidController rHandRotPid;
-        glm::vec3 lHandWPos;
-        glm::vec3 rHandWPos;
-        glm::quat lHandWRot;
-        glm::quat rHandWRot;
         worlds::InputActionHandle grappleHookAction;
         V3PidController lspherePid;
         float zeroThresh;

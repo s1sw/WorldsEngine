@@ -1,0 +1,7 @@
+{
+	"albedoPath" : "Textures/Wattson/suit_albedo.png",
+	"normalMapPath": "Textures/Wattson/suit_normal.crn",
+	"metallic" : 0.0,
+	"roughness" : 0.521,
+	"albedoColor" : [1.0, 1.0, 1.0]
+}

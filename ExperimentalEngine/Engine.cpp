@@ -339,11 +339,11 @@ namespace worlds {
         initPhysx(registry);
 
         EngineInterfaces interfaces{
-                .vrInterface = enableOpenVR ? &openvrInterface : nullptr,
-                .renderer = renderer,
-                .mainCamera = &cam,
-                .inputManager = inputManager.get(),
-                .engine = this
+            .vrInterface = enableOpenVR ? &openvrInterface : nullptr,
+            .renderer = renderer,
+            .mainCamera = &cam,
+            .inputManager = inputManager.get(),
+            .engine = this
         };
 
         auto vkCtx = renderer->getVKCtx();
