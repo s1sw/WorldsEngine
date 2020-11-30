@@ -7,8 +7,8 @@ sources = [
     'ConvergeEventHandler.hpp',
     'LocospherePlayerSystem.hpp',
     'PidController.hpp',
-    'PhysHandController.hpp',
-    'PhysHandController.cpp',
+    'PhysHandSystem.hpp',
+    'PhysHandSystem.cpp',
     'MathsUtil.hpp',
     'MathsUtil.cpp'
 ]

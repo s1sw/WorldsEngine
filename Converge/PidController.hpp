@@ -7,6 +7,12 @@ namespace converge {
             : P { 0.0f }
             , I { 0.0f }
             , D { 0.0f } {}
+
+        PIDSettings(float p, float i, float d)
+            : P { p }
+            , I { i }
+            , D { d } {}
+
         float P;
         float I;
         float D;

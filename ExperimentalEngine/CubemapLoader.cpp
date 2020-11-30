@@ -5,6 +5,7 @@
 #include "Engine.hpp"
 #include "Render.hpp"
 #include "TimingUtil.hpp"
+#include "JobSystem.hpp"
 
 namespace worlds {
     CubemapData loadCubemapData(AssetID asset) {

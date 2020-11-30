@@ -51,11 +51,11 @@
         {
           "inputs": {
             "click": {
-              "output": "/actions/main/in/ThrowHands"
+              "output": "/actions/main/in/Grapple"
             }
           },
           "mode": "button",
-          "path":  "/user/hand/right/input/Trigger"
+          "path":  "/user/hand/left/input/Trigger"
         }
       ]
     }

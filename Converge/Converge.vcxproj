@@ -174,7 +174,7 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(VULKAN_SDK)\Lib;$(SolutionDir)External\Lib;$(SolutionDir)External\Lib\win64dbg;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>vulkan-1.lib;openxr_loader.lib;physfs.lib;openvr_api.lib;SDL2d.lib;discord-rpc.lib;PhysX_64.lib;PhysXCommon_64.lib;PhysXCooking_64.lib;PhysXExtensions_static_64.lib;PhysXFoundation_64.lib;PhysXPvdSDK_static_64.lib;PhysXTask_static_64.lib;SceneQuery_static_64.lib;SDL2maind.lib;lua.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>vulkan-1.lib;openxr_loader.lib;physfs.lib;openvr_api.lib;SDL2d.lib;discord-rpc.lib;PhysX_64.lib;PhysXCommon_64.lib;PhysXCooking_64.lib;PhysXExtensions_static_64.lib;PhysXFoundation_64.lib;PhysXPvdSDK_static_64.lib;PhysXTask_static_64.lib;SceneQuery_static_64.lib;SDL2maind.lib;lua.lib;enet.lib;Ws2_32.lib;winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -194,7 +194,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(VULKAN_SDK)\Lib;$(SolutionDir)External\Lib;E:\Programming\vcpkg\installed\x64-windows\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>vulkan-1.lib;openxr_loader.lib;physfs.lib;openvr_api.lib;SDL2.lib;discord-rpc.lib;PhysX_64.lib;PhysXCommon_64.lib;PhysXCooking_64.lib;PhysXExtensions_static_64.lib;PhysXFoundation_64.lib;PhysXPvdSDK_static_64.lib;PhysXTask_static_64.lib;SceneQuery_static_64.lib;SDL2main.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>vulkan-1.lib;openxr_loader.lib;physfs.lib;openvr_api.lib;SDL2.lib;discord-rpc.lib;PhysX_64.lib;PhysXCommon_64.lib;PhysXCooking_64.lib;PhysXExtensions_static_64.lib;PhysXFoundation_64.lib;PhysXPvdSDK_static_64.lib;PhysXTask_static_64.lib;SceneQuery_static_64.lib;SDL2main.lib;enet.lib;Ws2_32.lib;winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">
@@ -228,11 +228,13 @@
     <ClCompile Include="LocospherePlayerSystem.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="MathsUtil.cpp" />
+    <ClCompile Include="PhysHandSystem.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ConvergeEventHandler.hpp" />
     <ClInclude Include="LocospherePlayerSystem.hpp" />
     <ClInclude Include="MathsUtil.hpp" />
+    <ClInclude Include="PhysHandSystem.hpp" />
     <ClInclude Include="PidController.hpp" />
     <ClInclude Include="resource.h" />
   </ItemGroup>

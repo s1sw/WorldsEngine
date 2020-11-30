@@ -11,8 +11,14 @@
 #include <Engine.hpp>
 #include "NameComponent.hpp"
 #include "LocospherePlayerSystem.hpp"
+#include "PhysHandSystem.hpp"
+#include <enet/enet.h>
+#include <JobSystem.hpp>
 
 namespace converge {
+    const int MAX_PLAYERS = 32;
+    const int CONVERGE_PORT = 3011;
+
     void loadControllerRenderModel(const char* name, entt::entity ent, entt::registry& reg, worlds::VKRenderer* renderer) {
         if (!reg.valid(ent) || reg.has<worlds::ProceduralObject>(ent) || name == nullptr) return;
 
@@ -46,7 +52,7 @@ namespace converge {
         }
 
         procObj.indices.reserve(model->unTriangleCount * 3);
-        for (int i = 0; i < model->unTriangleCount * 3; i++) {
+        for (unsigned int i = 0; i < model->unTriangleCount * 3; i++) {
             procObj.indices.push_back(model->rIndexData[i]);
         }
 
@@ -59,12 +65,15 @@ namespace converge {
         logMsg("Loaded SteamVR render model %s with %u vertices and %u triangles", name, model->unVertexCount, model->unTriangleCount);
     }
 
-    void cmdToggleVsync(void* obj, const char* arg) {
+    void cmdToggleVsync(void* obj, const char*) {
         auto renderer = (worlds::VKRenderer*)obj;
         renderer->setVsync(!renderer->getVsync());
     }
 
-    EventHandler::EventHandler() {}
+    EventHandler::EventHandler(bool dedicatedServer) 
+        : isDedicated{dedicatedServer}
+        , enetHost{nullptr} {
+    }
 
     void EventHandler::init(entt::registry& registry, worlds::EngineInterfaces interfaces) {
         vrInterface = interfaces.vrInterface;
@@ -74,6 +83,32 @@ namespace converge {
 
         worlds::g_console->registerCommand(cmdToggleVsync, "r_toggleVsync", "Toggles Vsync.", renderer);
         interfaces.engine->addSystem(new LocospherePlayerSystem{interfaces, registry});
+        interfaces.engine->addSystem(new PhysHandSystem{ interfaces, registry });
+
+        if (enet_initialize() != 0) {
+            logErr("Failed to initialize enet.");
+        }
+
+        if (isDedicated) {
+            ENetAddress address;
+            address.host = ENET_HOST_ANY;
+            address.port = 3011;
+            enetHost = enet_host_create(&address, 32, 2, 0, 0);
+            if (enetHost == NULL) {
+                logErr("An error occurred while trying to create an ENet server host.");
+                exit (EXIT_FAILURE);
+            }
+        } else {
+            enetHost = enet_host_create(nullptr, 1, 2, 0, 0);
+        }
+
+        worlds::g_console->registerCommand([&](void*, const char* arg) {
+            if (isDedicated) {
+                logErr("this is a server! what are you trying to do???");
+                return;
+            }
+
+            }, "cnvrg_connect", "Connects to the specified server.", nullptr);
     }
 
     void EventHandler::preSimUpdate(entt::registry& registry, float deltaTime) {
@@ -93,6 +128,8 @@ namespace converge {
     }
 
     void EventHandler::shutdown(entt::registry& registry) {
-        
+        if (enetHost)
+            enet_host_destroy(enetHost);
+        enet_deinitialize();
     }
 }

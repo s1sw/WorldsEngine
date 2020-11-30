@@ -67,17 +67,21 @@ layout(std140, binding = 1) uniform LightBuffer {
 };
 
 struct Material {
-	// (metallic, roughness, albedo texture index, normal texture index)
-	//vec4 pack0;
     float metallic;
     float roughness;
     int albedoTexIdx;
     int normalTexIdx;
-	// (albedo color rgb, alpha cutoff)
+
     vec3 albedoColor;
     float alphaCutoff;
+
     int heightmapIdx;
     float heightScale;
+    float pad0;
+    float pad1;
+
+    vec3 emissiveColor;
+    float pad2;
 };
 
 layout(std140, binding = 2) uniform MaterialSettingsBuffer {
@@ -410,7 +414,7 @@ void main() {
 #if 0//def BLINN_PHONG
     FragColor = vec4(lo, finalAlpha);
 #else
-	FragColor = vec4(lo + calcAmbient(f0, roughness, viewDir, metallic, albedoCol.xyz, normal), finalAlpha);
+	FragColor = vec4(lo + calcAmbient(f0, roughness, viewDir, metallic, albedoCol.xyz, normal) + mat.emissiveColor, finalAlpha);
 #endif
 
     if (ENABLE_PICKING && doPicking == 1) {
