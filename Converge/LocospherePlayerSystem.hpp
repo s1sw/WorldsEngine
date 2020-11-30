@@ -21,7 +21,9 @@ namespace converge {
     };
 
     struct LocospherePlayerComponent {
+        bool isLocal;
         float maxSpeed;
+        glm::vec2 xzMoveInput;
     };
 
     class LocospherePlayerSystem : public worlds::ISystem {
@@ -33,6 +35,9 @@ namespace converge {
         void simulate(entt::registry& registry, float simStep) override;
         void shutdown(entt::registry& registry) override;
     private:
+        void updateHands(entt::registry& reg);
+        void onPlayerConstruct(entt::registry& reg, entt::entity ent);
+        void onPlayerDestroy(entt::registry& reg, entt::entity ent);
         glm::vec3 calcHeadbobPosition(glm::vec3 desiredVel, glm::vec3 camPos, float deltaTime);
         worlds::IVRInterface* vrInterface;
         worlds::InputManager* inputManager;
