@@ -56,9 +56,6 @@ namespace converge {
 
     glm::vec3 lastDesiredVel;
 
-    float locosphereAngVels[128];
-    float locosphereLinVels[128];
-    float locosphereLinVelsXZ[128];
     int physDbgIdx = 0;
     bool grappling = false;
     glm::vec3 grappleTarget;
@@ -70,6 +67,14 @@ namespace converge {
     worlds::ConVar headBobDbg{ "cnvrg_headBobDebug", "0" };
     worlds::ConVar speedometer{ "cnvrg_speedometer", "0" };
     worlds::ConVar mouseSensitivity { "cnvrg_mouseSensitivity", "1.0" };
+
+    struct LocosphereDebugInfo {
+        float angVels[128];
+        float linVels[128];
+        float linVelsXZ[128];
+    };
+
+    std::unordered_map<entt::entity, LocosphereDebugInfo> locosphereDebug;
 
     LocospherePlayerSystem::LocospherePlayerSystem(worlds::EngineInterfaces interfaces, entt::registry& registry)
         : vrInterface{ interfaces.vrInterface }
@@ -113,6 +118,20 @@ namespace converge {
                 rPh.rotController.reset();
             }, "cnvrg_resetHands", "Resets hand PID controllers.", nullptr);
         }
+
+        auto onConstruct = registry.on_construct<LocospherePlayerComponent>();
+        onConstruct.connect<&LocospherePlayerSystem::onPlayerConstruct>(*this);
+
+        auto onDestroy = registry.on_destroy<LocospherePlayerComponent>();
+        onDestroy.connect<&LocospherePlayerSystem::onPlayerDestroy>(*this);
+    }
+
+    void LocospherePlayerSystem::onPlayerConstruct(entt::registry&, entt::entity ent) {
+        locosphereDebug.insert({ ent, LocosphereDebugInfo {} });
+    }
+
+    void LocospherePlayerSystem::onPlayerDestroy(entt::registry&, entt::entity ent) {
+        locosphereDebug.erase(ent);
     }
 
     void LocospherePlayerSystem::preSimUpdate(entt::registry&, float) {
@@ -194,7 +213,22 @@ namespace converge {
         return glm::mix(bobbedPosNormal, bobbedPosSprint, sprintLerp);
     }
 
-    void LocospherePlayerSystem::update(entt::registry&, float deltaTime, float interpAlpha) {
+    void LocospherePlayerSystem::update(entt::registry& reg, float deltaTime, float interpAlpha) {
+        entt::entity localLocosphereEnt = entt::null;
+
+        reg.view<LocospherePlayerComponent>().each([&](auto ent, auto& lpc) {
+            if (lpc.isLocal) {
+                if (!reg.valid(localLocosphereEnt))
+                    localLocosphereEnt = ent;
+                else {
+                    logWarn("more than one local locosphere!");
+                }
+            }
+        });
+
+        if (!reg.valid(localLocosphereEnt))
+            logWarn("couldn't find a local locosphere!");
+
         if (!vrInterface) {
 
             lookX += (float)(inputManager->getMouseDelta().x) * 0.005f * mouseSensitivity.getFloat();
@@ -235,18 +269,19 @@ namespace converge {
         if (showLocosphereDebug.getInt()) {
             bool s = true;
             if (ImGui::Begin("Locosphere", &s)) {
+                auto& lDebugInfo = locosphereDebug.at(localLocosphereEnt);
                 ImGui::Text("Grounded: %i", grounded);
-                ImGui::PlotLines("Angular Speed", locosphereAngVels, 128, physDbgIdx, nullptr, 0.0f, 50.0f, ImVec2(500.0f, 100.0f));
-                ImGui::PlotLines("Linear Speed", locosphereLinVels, 128, physDbgIdx, nullptr, 0.0f, 10.0f, ImVec2(500.0f, 100.0f));
-                ImGui::PlotLines("Linear XZ Speed", locosphereLinVelsXZ, 128, physDbgIdx, nullptr, 0.0f, 10.0f, ImVec2(500.0f, 100.0f));
+                ImGui::PlotLines("Angular Speed", lDebugInfo.angVels, 128, physDbgIdx, nullptr, 0.0f, 50.0f, ImVec2(500.0f, 100.0f));
+                ImGui::PlotLines("Linear Speed", lDebugInfo.linVels, 128, physDbgIdx, nullptr, 0.0f, 10.0f, ImVec2(500.0f, 100.0f));
+                ImGui::PlotLines("Linear XZ Speed", lDebugInfo.linVelsXZ, 128, physDbgIdx, nullptr, 0.0f, 10.0f, ImVec2(500.0f, 100.0f));
 
                 float maxAngVel = 0.0f;
                 float maxLinVel = 0.0f;
                 float maxLinVelXZ = 0.0f;
                 for (int i = 0; i < 128; i++) {
-                    maxLinVel = std::max(locosphereLinVels[i], maxLinVel);
-                    maxLinVelXZ = std::max(locosphereLinVelsXZ[i], maxLinVelXZ);
-                    maxAngVel = std::max(locosphereAngVels[i], maxAngVel);
+                    maxLinVel = std::max(lDebugInfo.linVels[i], maxLinVel);
+                    maxLinVelXZ = std::max(lDebugInfo.linVelsXZ[i], maxLinVelXZ);
+                    maxAngVel = std::max(lDebugInfo.angVels[i], maxAngVel);
                 }
                 ImGui::Text("Maximum angular speed: %.3f", maxAngVel);
                 ImGui::Text("Maximum linear speed: %.3f", maxLinVel);
@@ -259,9 +294,9 @@ namespace converge {
                     adjIdx = adjIdx - 128;
                 }
 
-                ImGui::Text("Current angular speed: %.3f", locosphereAngVels[adjIdx]);
-                ImGui::Text("Current linear speed: %.3f", locosphereLinVels[adjIdx]);
-                ImGui::Text("Current linear speed (excluding Y): %.3f", locosphereLinVelsXZ[adjIdx]);
+                ImGui::Text("Current angular speed: %.3f", lDebugInfo.angVels[adjIdx]);
+                ImGui::Text("Current linear speed: %.3f", lDebugInfo.linVels[adjIdx]);
+                ImGui::Text("Current linear speed (excluding Y): %.3f", lDebugInfo.linVelsXZ[adjIdx]);
 
                 ImGui::DragFloat("P", &lspherePid.P);
                 ImGui::DragFloat("I", &lspherePid.I);
@@ -290,8 +325,8 @@ namespace converge {
                 adjIdx = adjIdx - 128;
             }
 
-            sprintf(buf, "total vel: %.3fms^-1", locosphereLinVels[adjIdx]);
-            sprintf(buf2, "xz vel: %.3fms^-1", locosphereLinVelsXZ[adjIdx]);
+            //sprintf(buf, "total vel: %.3fms^-1", locosphereLinVels[adjIdx]);
+            //sprintf(buf2, "xz vel: %.3fms^-1", locosphereLinVelsXZ[adjIdx]);
 
             auto& io = ImGui::GetIO();
             float fontSize = io.Fonts->Fonts[0]->FontSize;
@@ -421,6 +456,7 @@ namespace converge {
     }
 
     void LocospherePlayerSystem::simulate(entt::registry& registry, float simStep) {
+        auto localPlayerEnt = playerLocosphere;
         if (vrInterface) {
             auto lIdx = vr::VRSystem()->GetTrackedDeviceIndexForControllerRole(vr::ETrackedControllerRole::TrackedControllerRole_LeftHand);
             auto rIdx = vr::VRSystem()->GetTrackedDeviceIndexForControllerRole(vr::ETrackedControllerRole::TrackedControllerRole_RightHand);
@@ -566,9 +602,11 @@ namespace converge {
 
         glm::vec3 currLinVel = worlds::px2glm(locosphereActor->getLinearVelocity());
 
-        locosphereAngVels[physDbgIdx] = glm::length(currVel);
-        locosphereLinVels[physDbgIdx] = glm::length(currLinVel);
-        locosphereLinVelsXZ[physDbgIdx] = glm::length(glm::vec3{ currLinVel.x, 0.0f, currLinVel.z });
+        auto& lDebugInfo = locosphereDebug.at(localPlayerEnt);
+
+        lDebugInfo.angVels[physDbgIdx] = glm::length(currVel);
+        lDebugInfo.linVels[physDbgIdx] = glm::length(currLinVel);
+        lDebugInfo.linVelsXZ[physDbgIdx] = glm::length(glm::vec3{ currLinVel.x, 0.0f, currLinVel.z });
 
         if (!grounded) {
             if (vrInterface) {
@@ -636,6 +674,7 @@ namespace converge {
         // Locosphere
         playerLocosphere = registry.create();
         registry.emplace<Transform>(playerLocosphere).position = glm::vec3(0.0f, 2.0f, 0.0f);
+        registry.emplace<LocospherePlayerComponent>(playerLocosphere).isLocal = true;
 
         auto actor = worlds::g_physics->createRigidDynamic(physx::PxTransform{ physx::PxVec3{0.0f, 2.0f, 0.0f}, physx::PxQuat{physx::PxIdentity} });
         auto& wActor = registry.emplace<worlds::DynamicPhysicsActor>(playerLocosphere, actor);
