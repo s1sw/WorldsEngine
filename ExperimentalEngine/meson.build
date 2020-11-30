@@ -155,9 +155,10 @@ tracy_inc = include_directories('./tracy/')
 physfs_dep = dependency('physfs')
 vk_dep = dependency('vulkan')
 lua_dep = dependency('lua')
+enet_dep = cc.find_library('enet')
 
 dl_dep = cc.find_library('dl', required : false)
 openvr_dep = cc.find_library('openvr_api')
 
-worlds = static_library('worlds', sources, include_directories: [extern_include_dir, physx_include_dir, tracy_inc], dependencies: [vk_dep, physfs_dep, sdl2_dep, physx_deps, dl_dep, openvr_dep, lua_dep, wmdl_dep])
+worlds = static_library('worlds', sources, include_directories: [extern_include_dir, physx_include_dir, tracy_inc], dependencies: [vk_dep, physfs_dep, sdl2_dep, physx_deps, dl_dep, openvr_dep, lua_dep, wmdl_dep, enet_dep])
 worlds_dep = declare_dependency(include_directories: worlds_inc, link_with: worlds)
