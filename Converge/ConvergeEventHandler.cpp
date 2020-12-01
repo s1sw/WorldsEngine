@@ -2,6 +2,8 @@
 #include <openvr.h>
 #include <Log.hpp>
 #include <Render.hpp>
+#include "AssetDB.hpp"
+#include "DebugArrow.hpp"
 #include "Transform.hpp"
 #include <OpenVRInterface.hpp>
 #include <Physics.hpp>
@@ -18,52 +20,6 @@
 namespace converge {
     const int MAX_PLAYERS = 32;
     const int CONVERGE_PORT = 3011;
-
-    void loadControllerRenderModel(const char* name, entt::entity ent, entt::registry& reg, worlds::VKRenderer* renderer) {
-        if (!reg.valid(ent) || reg.has<worlds::ProceduralObject>(ent) || name == nullptr) return;
-
-        vr::RenderModel_t* model;
-        auto err = vr::VRRenderModels()->LoadRenderModel_Async(name, &model);
-        if (err != vr::VRRenderModelError_None)
-            return;
-
-        if (model == nullptr) {
-            logErr(worlds::WELogCategoryEngine, "SteamVR render model was null");
-            return;
-        }
-
-        if (model->unVertexCount == 0 || model->unTriangleCount == 0) {
-            logErr(worlds::WELogCategoryEngine, "SteamVR render model was invalid");
-            return;
-        }
-
-        worlds::ProceduralObject& procObj = reg.emplace<worlds::ProceduralObject>(ent);
-        procObj.material = worlds::g_assetDB.addOrGetExisting("Materials/dev.json");
-
-        procObj.vertices.reserve(model->unVertexCount);
-
-        for (uint32_t i = 0; i < model->unVertexCount; i++) {
-            vr::RenderModel_Vertex_t vrVert = model->rVertexData[i];
-            worlds::Vertex vert;
-            vert.position = glm::vec3(vrVert.vPosition.v[0], vrVert.vPosition.v[1], vrVert.vPosition.v[2]);
-            vert.normal = glm::vec3(vrVert.vNormal.v[0], vrVert.vNormal.v[1], vrVert.vNormal.v[2]);
-            vert.uv = glm::vec2(vrVert.rfTextureCoord[0], vrVert.rfTextureCoord[1]);
-            procObj.vertices.push_back(vert);
-        }
-
-        procObj.indices.reserve(model->unTriangleCount * 3);
-        for (unsigned int i = 0; i < model->unTriangleCount * 3; i++) {
-            procObj.indices.push_back(model->rIndexData[i]);
-        }
-
-        procObj.indexType = vk::IndexType::eUint32;
-        procObj.readyForUpload = true;
-        procObj.dbgName = name;
-
-        renderer->uploadProcObj(procObj);
-
-        logMsg("Loaded SteamVR render model %s with %u vertices and %u triangles", name, model->unVertexCount, model->unTriangleCount);
-    }
 
     void cmdToggleVsync(void* obj, const char*) {
         auto renderer = (worlds::VKRenderer*)obj;
@@ -82,7 +38,8 @@ namespace converge {
         inputManager = interfaces.inputManager;
 
         worlds::g_console->registerCommand(cmdToggleVsync, "r_toggleVsync", "Toggles Vsync.", renderer);
-        interfaces.engine->addSystem(new LocospherePlayerSystem{interfaces, registry});
+        lsphereSys = new LocospherePlayerSystem { interfaces, registry };
+        interfaces.engine->addSystem(lsphereSys);
         interfaces.engine->addSystem(new PhysHandSystem{ interfaces, registry });
 
         if (enet_initialize() != 0) {
@@ -109,6 +66,23 @@ namespace converge {
             }
 
             }, "cnvrg_connect", "Connects to the specified server.", nullptr);
+
+        new DebugArrows(registry);
+
+        // create... a SECOND LOCOSPHERE :O
+        PlayerRig other = lsphereSys->createPlayerRig(registry);
+        auto& lpc = registry.get<LocospherePlayerComponent>(other.locosphere);
+        lpc.isLocal = false;
+        lpc.sprint = false;
+        lpc.maxSpeed = 0.0f;
+        lpc.xzMoveInput = glm::vec2(0.0f, 0.0f);
+        otherLocosphere = other.locosphere;
+
+        auto sphereMeshId = worlds::g_assetDB.addOrGetExisting("uvsphere.obj");
+        auto sphereMatId = worlds::g_assetDB.addOrGetExisting("Materials/dev.json");
+        registry.emplace<worlds::WorldObject>(other.locosphere, sphereMatId, sphereMeshId);
+
+        worlds::g_console->executeCommandStr("exec dbgscripts/shapes");
     }
 
     void EventHandler::preSimUpdate(entt::registry& registry, float deltaTime) {
@@ -116,7 +90,39 @@ namespace converge {
     }
 
     void EventHandler::update(entt::registry& registry, float deltaTime, float interpAlpha) {
-        
+        entt::entity localLocosphereEnt = entt::null;
+
+
+        registry.view<LocospherePlayerComponent>().each([&](auto ent, auto& lpc) {
+            if (lpc.isLocal) {
+                if (!registry.valid(localLocosphereEnt))
+                    localLocosphereEnt = ent;
+                else {
+                    logWarn("more than one local locosphere!");
+                }
+            }
+        });
+
+        if (!registry.valid(localLocosphereEnt))
+            logWarn("couldn't find a local locosphere!");
+
+        auto& t = registry.get<Transform>(localLocosphereEnt);
+        auto& t2 = registry.get<Transform>(otherLocosphere);
+        auto& lpc2 = registry.get<LocospherePlayerComponent>(otherLocosphere);
+        glm::vec3 dir = t.position - t2.position;
+        float sqDist = glm::length2(dir);
+        dir.y = 0.0f;
+        dir = glm::normalize(dir);
+
+        ImGui::Text("dir: %.3f, %.3f, %.3f", dir.x, dir.y, dir.z);
+
+        if (sqDist > 16.0f)
+            lpc2.xzMoveInput = glm::vec2 { dir.x, dir.z };
+        else
+            lpc2.xzMoveInput = glm::vec2 { 0.0f };
+        lpc2.sprint = sqDist > 100.0f; 
+
+        g_dbgArrows->newFrame();
     }
 
     void EventHandler::simulate(entt::registry& registry, float simStep) {
@@ -124,7 +130,7 @@ namespace converge {
     }
 
     void EventHandler::onSceneStart(entt::registry& registry) {
-        
+        g_dbgArrows->createEntities();
     }
 
     void EventHandler::shutdown(entt::registry& registry) {

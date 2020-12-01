@@ -4,6 +4,7 @@
 #include <Console.hpp>
 #include "PidController.hpp"
 #include <Camera.hpp>
+#include "LocospherePlayerSystem.hpp"
 
 namespace converge {
     class EventHandler : public worlds::IGameEventHandler {
@@ -20,7 +21,9 @@ namespace converge {
         worlds::VKRenderer* renderer;
         worlds::InputManager* inputManager;
         worlds::Camera* camera;
+        LocospherePlayerSystem* lsphereSys;
         bool isDedicated;
         ENetHost* enetHost;
+        entt::entity otherLocosphere;
     };
 }

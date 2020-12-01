@@ -24,6 +24,16 @@ namespace converge {
         bool isLocal;
         float maxSpeed;
         glm::vec2 xzMoveInput;
+        bool sprint;
+        bool grounded;
+    };
+
+    struct PlayerRig {
+        entt::entity locosphere;
+        entt::entity fender;
+        entt::entity lHand;
+        entt::entity rHand;
+        physx::PxD6Joint* fenderJoint;
     };
 
     class LocospherePlayerSystem : public worlds::ISystem {
@@ -34,18 +44,17 @@ namespace converge {
         void preSimUpdate(entt::registry& registry, float deltaTime) override;
         void simulate(entt::registry& registry, float simStep) override;
         void shutdown(entt::registry& registry) override;
+        PlayerRig createPlayerRig(entt::registry& registry);
     private:
         void updateHands(entt::registry& reg);
         void onPlayerConstruct(entt::registry& reg, entt::entity ent);
         void onPlayerDestroy(entt::registry& reg, entt::entity ent);
-        glm::vec3 calcHeadbobPosition(glm::vec3 desiredVel, glm::vec3 camPos, float deltaTime);
+        glm::vec3 calcHeadbobPosition(glm::vec3 desiredVel, glm::vec3 camPos, float deltaTime, bool grounded);
         worlds::IVRInterface* vrInterface;
         worlds::InputManager* inputManager;
         entt::registry& registry;
         worlds::Camera* camera;
         entt::entity lHandEnt, rHandEnt;
-        entt::entity playerLocosphere;
-        entt::entity playerFender;
         entt::entity grappleIndicator;
         bool jumpThisFrame;
         glm::vec3 lastCamPos;
@@ -55,7 +64,6 @@ namespace converge {
         float zeroThresh;
 
         float headbobProgress;
-        bool grounded;
 
         float lookX;
         float lookY;
