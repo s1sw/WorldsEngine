@@ -10,7 +10,9 @@ sources = [
     'PhysHandSystem.hpp',
     'PhysHandSystem.cpp',
     'MathsUtil.hpp',
-    'MathsUtil.cpp'
+    'MathsUtil.cpp',
+    'DebugArrow.cpp',
+    'DebugArrow.hpp'
 ]
 
 executable('converge', sources, include_directories: [physx_include_dir, extern_include_dir], dependencies: [worlds_dep])
