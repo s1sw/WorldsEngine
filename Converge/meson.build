@@ -12,7 +12,11 @@ sources = [
     'MathsUtil.hpp',
     'MathsUtil.cpp',
     'DebugArrow.cpp',
-    'DebugArrow.hpp'
+    'DebugArrow.hpp',
+    'ObjectParentSystem.cpp',
+    'ObjectParentSystem.hpp',
+    'Client.hpp',
+    'Client.cpp'
 ]
 
 executable('converge', sources, include_directories: [physx_include_dir, extern_include_dir], dependencies: [worlds_dep])
