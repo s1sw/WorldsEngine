@@ -4,6 +4,7 @@
 #include <Render.hpp>
 #include "AssetDB.hpp"
 #include "DebugArrow.hpp"
+#include "SourceModelLoader.hpp"
 #include "Transform.hpp"
 #include <OpenVRInterface.hpp>
 #include <Physics.hpp>
@@ -17,10 +18,11 @@
 #include <enet/enet.h>
 #include <JobSystem.hpp>
 #include "CreateModelObject.hpp"
+#include "ObjectParentSystem.hpp"
 
 namespace converge {
     const int MAX_PLAYERS = 32;
-    const int CONVERGE_PORT = 3011;
+    const uint16_t CONVERGE_PORT = 3011;
 
     void cmdToggleVsync(void* obj, const char*) {
         auto renderer = (worlds::VKRenderer*)obj;
@@ -28,8 +30,8 @@ namespace converge {
     }
 
     EventHandler::EventHandler(bool dedicatedServer) 
-        : isDedicated{dedicatedServer}
-        , enetHost{nullptr} {
+        : isDedicated {dedicatedServer}
+        , enetHost {nullptr} {
     }
 
     void EventHandler::init(entt::registry& registry, worlds::EngineInterfaces interfaces) {
@@ -39,6 +41,8 @@ namespace converge {
         inputManager = interfaces.inputManager;
 
         worlds::g_console->registerCommand(cmdToggleVsync, "r_toggleVsync", "Toggles Vsync.", renderer);
+        interfaces.engine->addSystem(new ObjectParentSystem);
+
         lsphereSys = new LocospherePlayerSystem { interfaces, registry };
         interfaces.engine->addSystem(lsphereSys);
         interfaces.engine->addSystem(new PhysHandSystem{ interfaces, registry });
@@ -66,29 +70,18 @@ namespace converge {
                 return;
             }
 
+            client = new Client{};
+            
+            // assume the argument is an address
+            ENetAddress addr;
+            enet_address_set_host(&addr, arg);
+            addr.port = CONVERGE_PORT;
+
+            client->connect(addr);
             }, "cnvrg_connect", "Connects to the specified server.", nullptr);
 
         new DebugArrows(registry);
 
-        // create... a SECOND LOCOSPHERE :O
-        PlayerRig other = lsphereSys->createPlayerRig(registry);
-        auto& lpc = registry.get<LocospherePlayerComponent>(other.locosphere);
-        lpc.isLocal = false;
-        lpc.sprint = false;
-        lpc.maxSpeed = 0.0f;
-        lpc.xzMoveInput = glm::vec2(0.0f, 0.0f);
-        otherLocosphere = other.locosphere;
-
-        auto sphereMeshId = worlds::g_assetDB.addOrGetExisting("uvsphere.obj");
-        auto sphereMatId = worlds::g_assetDB.addOrGetExisting("Materials/dev.json");
-        registry.emplace<worlds::WorldObject>(other.locosphere, sphereMatId, sphereMeshId);
-
-        worlds::g_console->executeCommandStr("exec dbgscripts/shapes");
-
-        auto errorMesh = worlds::g_assetDB.addOrGetExisting("srcerr/error.mdl");
-        auto errorMat = worlds::g_assetDB.addOrGetExisting("Materials/error.json");
-
-        error = worlds::createModelObject(registry, glm::vec3{0.0f}, glm::quat{}, errorMesh, errorMat);
     }
 
     void EventHandler::preSimUpdate(entt::registry& registry, float deltaTime) {
@@ -128,19 +121,43 @@ namespace converge {
             lpc2.xzMoveInput = glm::vec2 { 0.0f };
         lpc2.sprint = sqDist > 100.0f; 
 
-        registry.get<Transform>(error).position = t2.position + glm::vec3 {0.0f, 3.0f, 0.0f};
         g_dbgArrows->newFrame();
     }
 
-    void EventHandler::simulate(entt::registry& registry, float simStep) {
-        
+    void EventHandler::simulate(entt::registry&, float) {
     }
 
     void EventHandler::onSceneStart(entt::registry& registry) {
+        // create... a SECOND LOCOSPHERE :O
+        PlayerRig other = lsphereSys->createPlayerRig(registry);
+        auto& lpc = registry.get<LocospherePlayerComponent>(other.locosphere);
+        lpc.isLocal = false;
+        lpc.sprint = false;
+        lpc.maxSpeed = 0.0f;
+        lpc.xzMoveInput = glm::vec2(0.0f, 0.0f);
+        otherLocosphere = other.locosphere;
+
+        auto meshId = worlds::g_assetDB.addOrGetExisting("sourcemodel/models/konnie/isa/detroit/connor.mdl");
+        auto devMatId = worlds::g_assetDB.addOrGetExisting("Materials/dev.json");
+        auto& connorWO = registry.emplace<worlds::WorldObject>(other.locosphere, devMatId, meshId);
+        worlds::setupSourceMaterials(meshId, connorWO);
+
+        // create our lil' pal the player
+        if (!isDedicated) {
+            PlayerRig other = lsphereSys->createPlayerRig(registry);
+            auto& lpc = registry.get<LocospherePlayerComponent>(other.locosphere);
+            lpc.isLocal = true;
+            lpc.sprint = false;
+            lpc.maxSpeed = 0.0f;
+            lpc.xzMoveInput = glm::vec2(0.0f, 0.0f);
+        }
+
+        worlds::g_console->executeCommandStr("exec dbgscripts/shapes");
+
         g_dbgArrows->createEntities();
     }
 
-    void EventHandler::shutdown(entt::registry& registry) {
+    void EventHandler::shutdown(entt::registry&) {
         if (enetHost)
             enet_host_destroy(enetHost);
         enet_deinitialize();
