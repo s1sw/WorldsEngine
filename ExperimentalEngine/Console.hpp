@@ -69,11 +69,14 @@ namespace worlds {
         std::unordered_map<std::string, Command> commands;
         std::ofstream logFileStream;
         std::thread* asyncConsoleThread;
+        bool asyncCommandReady;
+        std::string asyncCommand;
 
         static int inputTextCallback(ImGuiInputTextCallbackData* data);
         static void logCallback(void* con, int category, SDL_LogPriority priority, const char* msg);
         static void cmdHelp(void* con, const char* argString);
         static void cmdExec(void* con, const char* argString);
         friend class ConVar;
+        friend void asyncConsole();
     };
 }

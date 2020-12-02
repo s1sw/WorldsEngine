@@ -433,6 +433,9 @@ namespace worlds {
 
         if (!runAsEditor && PHYSFS_exists("CommandScripts/startup.txt"))
             console->executeCommandStr("exec CommandScripts/startup");
+        
+        if (dedicatedServer)
+            console->executeCommandStr("exec CommandScripts/server_startup.txt");
 
         if (evtHandler != nullptr) {
             evtHandler->init(registry, interfaces);
@@ -496,6 +499,7 @@ namespace worlds {
             // and then we just throw away its hard work :(
             // TODO: find a better way to do this without wasting so much
             std::free(outPixels);
+            io.IniFilename = nullptr;
         }
     }
 

@@ -11,12 +11,15 @@
 #include <sstream>
 #include "LogCategories.hpp"
 #ifdef _WIN32
-// Just for OutputDebugStringA
 #define _AMD64_
 #include <debugapi.h>
+#include <ConsoleApi.h>
+#include <wtypes.h>
+#include <WinBase.h>
 #endif
 #include "Log.hpp"
 #include <thread>
+#include "Fatal.hpp"
 
 namespace worlds {
     // Because static initialisation is the first thing that occurs when the game is started,
@@ -106,12 +109,26 @@ namespace worlds {
     }
 
     void asyncConsole() {
+        while (true) {
+            std::string str;
+            std::cout << ">";
+            std::getline(std::cin, str); 
+
+            if (str.empty()) continue;
+
+            g_console->asyncCommand = str;
+            g_console->asyncCommandReady = true;
+            // wait for the console to process the command 
+            while (g_console->asyncCommandReady) continue;
+        }
     }
 
     Console::Console(bool asyncStdinConsole)
         : show(false)
         , setKeyboardFocus(false) 
-        , logFileStream("converge.log") {
+        , logFileStream("converge.log")
+        , asyncConsoleThread(nullptr)
+        , asyncCommandReady(false) {
         g_console = this;
         SDL_LogSetOutputFunction(logCallback, this);
         SDL_LogSetPriority(CONSOLE_RESPONSE_CATEGORY, SDL_LOG_PRIORITY_INFO);
@@ -145,6 +162,38 @@ namespace worlds {
 
         if (asyncStdinConsole) {
             asyncConsoleThread = new std::thread(asyncConsole);
+#ifdef _WIN32
+            if (!AttachConsole(ATTACH_PARENT_PROCESS)) {
+                if (!AllocConsole()) {
+                    fatalErr("failed to allocconsole");
+                }
+            }
+            FILE *fDummy;
+            freopen_s(&fDummy, "CONIN$", "r", stdin);
+            freopen_s(&fDummy, "CONOUT$", "w", stderr);
+            freopen_s(&fDummy, "CONOUT$", "w", stdout);
+
+            HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+            if (hOut == INVALID_HANDLE_VALUE) {
+                logWarn("Failed to get console output handle");
+                return;
+            }
+
+            DWORD dwMode = 0;
+            if (!GetConsoleMode(hOut, &dwMode)) {
+                logWarn("Failed to get console mode");
+                return;
+            } 
+
+            dwMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+            if (!SetConsoleMode(hOut, dwMode)) {
+                logWarn("Failed to set console mode");
+                return;
+            }
+
+            std::cin.clear();
+            std::cout.clear();
+#endif
         }
     }
 
@@ -155,7 +204,7 @@ namespace worlds {
         commands.insert({ nameLower, Command { cmd, name, help, obj } });
     }
 
-    void Console::cmdHelp(void* con, const char* argString) {
+    void Console::cmdHelp(void* con, const char*) {
         auto* console = reinterpret_cast<Console*>(con);
         SDL_LogInfo(CONSOLE_RESPONSE_CATEGORY, "Commands:");
         for (auto& cmd : console->commands) {
@@ -277,6 +326,11 @@ namespace worlds {
     }
 
     void Console::drawWindow() {
+        if (asyncCommandReady) {
+            executeCommandStr(asyncCommand);
+            asyncCommandReady = false;
+        }
+
         if (ImGui::GetIO().KeysDownDuration[SDL_SCANCODE_GRAVE] == 0.0f) {
             show = !show;
         }
@@ -397,18 +451,16 @@ namespace worlds {
             + "[" + priorities.at(priority) + "] "
             + msg;
 
-#ifndef _WIN32
         if (priority == SDL_LOG_PRIORITY_WARN)
             std::cout << "\033[33m";
         if (priority == SDL_LOG_PRIORITY_ERROR)
             std::cout << "\033[31m";
-        if (priority == SDL_LOG_PRIORITY_DEBUG || priority ==SDL_LOG_PRIORITY_VERBOSE)
+        if (priority == SDL_LOG_PRIORITY_DEBUG || priority == SDL_LOG_PRIORITY_VERBOSE)
             std::cout << "\033[36m";
-#endif
+
         std::cout << outStr << "\n";
-#ifndef _WIN32
+
         std::cout << "\033[0m";
-#endif
 
         // Use std::endl for the file to force a flush
         if (con->logFileStream.good())
@@ -423,8 +475,10 @@ namespace worlds {
     }
 
     Console::~Console() {
-        asyncConsoleThread->join();
-        delete asyncConsoleThread;
+        if (asyncConsoleThread) {
+            asyncConsoleThread->join();
+            delete asyncConsoleThread;
+        }
         logFileStream << "[" << getDateTimeString() << "]" << "Closing log file." << std::endl;
         logFileStream.close();
         g_console = nullptr;
