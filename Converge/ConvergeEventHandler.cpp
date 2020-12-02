@@ -16,6 +16,7 @@
 #include "PhysHandSystem.hpp"
 #include <enet/enet.h>
 #include <JobSystem.hpp>
+#include "CreateModelObject.hpp"
 
 namespace converge {
     const int MAX_PLAYERS = 32;
@@ -83,6 +84,11 @@ namespace converge {
         registry.emplace<worlds::WorldObject>(other.locosphere, sphereMatId, sphereMeshId);
 
         worlds::g_console->executeCommandStr("exec dbgscripts/shapes");
+
+        auto errorMesh = worlds::g_assetDB.addOrGetExisting("srcerr/error.mdl");
+        auto errorMat = worlds::g_assetDB.addOrGetExisting("Materials/error.json");
+
+        error = worlds::createModelObject(registry, glm::vec3{0.0f}, glm::quat{}, errorMesh, errorMat);
     }
 
     void EventHandler::preSimUpdate(entt::registry& registry, float deltaTime) {
@@ -122,6 +128,7 @@ namespace converge {
             lpc2.xzMoveInput = glm::vec2 { 0.0f };
         lpc2.sprint = sqDist > 100.0f; 
 
+        registry.get<Transform>(error).position = t2.position + glm::vec3 {0.0f, 3.0f, 0.0f};
         g_dbgArrows->newFrame();
     }
 

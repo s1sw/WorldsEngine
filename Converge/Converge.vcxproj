@@ -224,6 +224,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ConvergeEventHandler.cpp" />
+    <ClCompile Include="DebugArrow.cpp" />
     <ClCompile Include="Events.cpp" />
     <ClCompile Include="LocospherePlayerSystem.cpp" />
     <ClCompile Include="Main.cpp" />
@@ -232,6 +233,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ConvergeEventHandler.hpp" />
+    <ClInclude Include="DebugArrow.hpp" />
     <ClInclude Include="LocospherePlayerSystem.hpp" />
     <ClInclude Include="MathsUtil.hpp" />
     <ClInclude Include="PhysHandSystem.hpp" />

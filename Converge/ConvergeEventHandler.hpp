@@ -25,5 +25,6 @@ namespace converge {
         bool isDedicated;
         ENetHost* enetHost;
         entt::entity otherLocosphere;
+        entt::entity error;
     };
 }
