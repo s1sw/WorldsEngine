@@ -1,9 +1,7 @@
 {
 	"albedoPath" : "Textures/woodfloor/Albedo.crn",
 	"metallic" : 0.0,
-	"roughness" : 0.5,
+	"roughness" : 0.9,
 	"albedoColor" : [1.0, 1.0, 1.0],
-	"normalMapPath": "Textures/woodfloor/Normal.crn",
-	"heightmapPath": "Textures/woodfloor/Height.png",
-	"heightmapScale": 0.01
+	"normalMapPath": "Textures/woodfloor/Normal.crn"
 }
