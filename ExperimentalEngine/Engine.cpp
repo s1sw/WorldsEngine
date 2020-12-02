@@ -190,6 +190,8 @@ namespace worlds {
         logMsg("Mounting source %s", dataSrcStr.c_str());
         PHYSFS_mount(dataSrcStr.c_str(), "/source", 1);
         PHYSFS_setWriteDir(dataStr.c_str());
+
+        PHYSFS_permitSymbolicLinks(1);
     }
 
     extern void loadDefaultUITheme();
