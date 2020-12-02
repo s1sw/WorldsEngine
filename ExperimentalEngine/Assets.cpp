@@ -53,7 +53,7 @@ namespace worlds {
                 PHYSFS_Stat stat;
                 PHYSFS_stat(fullPath.c_str(), &stat);
 
-                if (stat.filetype == PHYSFS_FILETYPE_DIRECTORY) {
+                if (stat.filetype == PHYSFS_FILETYPE_DIRECTORY || stat.filetype == PHYSFS_FILETYPE_SYMLINK) {
                     if (ImGui::Button(fName)) {
                         if (callbackArgs->currentDir != "/")
                             callbackArgs->currentDir += "/";
