@@ -5,6 +5,7 @@
 #include "PidController.hpp"
 #include <Camera.hpp>
 #include "LocospherePlayerSystem.hpp"
+#include "Client.hpp"
 
 namespace converge {
     class EventHandler : public worlds::IGameEventHandler {
@@ -25,6 +26,6 @@ namespace converge {
         bool isDedicated;
         ENetHost* enetHost;
         entt::entity otherLocosphere;
-        entt::entity error;
+        Client* client;
     };
 }

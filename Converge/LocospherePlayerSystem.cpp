@@ -800,14 +800,12 @@ namespace converge {
         return rig;
     }
 
-    void LocospherePlayerSystem::onSceneStart(entt::registry& registry) {
+    void LocospherePlayerSystem::onSceneStart(entt::registry&) {
         // Create physics rig
         lspherePid.P = 50.0f;
         lspherePid.I = 0.0f;
         lspherePid.D = 0.0f;
         zeroThresh = 0.0f;
-
-        createPlayerRig(registry);
     }
 
     void LocospherePlayerSystem::shutdown(entt::registry& registry) {
