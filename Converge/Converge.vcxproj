@@ -223,19 +223,23 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Client.cpp" />
     <ClCompile Include="ConvergeEventHandler.cpp" />
     <ClCompile Include="DebugArrow.cpp" />
     <ClCompile Include="Events.cpp" />
     <ClCompile Include="LocospherePlayerSystem.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="MathsUtil.cpp" />
+    <ClCompile Include="ObjectParentSystem.cpp" />
     <ClCompile Include="PhysHandSystem.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Client.hpp" />
     <ClInclude Include="ConvergeEventHandler.hpp" />
     <ClInclude Include="DebugArrow.hpp" />
     <ClInclude Include="LocospherePlayerSystem.hpp" />
     <ClInclude Include="MathsUtil.hpp" />
+    <ClInclude Include="ObjectParentSystem.hpp" />
     <ClInclude Include="PhysHandSystem.hpp" />
     <ClInclude Include="PidController.hpp" />
     <ClInclude Include="resource.h" />

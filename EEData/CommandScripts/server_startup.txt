@@ -1,0 +1,2 @@
+sim_lockToRefresh 1
+sim_disableInterp 1
