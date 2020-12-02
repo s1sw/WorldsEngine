@@ -15,6 +15,7 @@
 #define ENABLE_PVD 0
 
 namespace worlds {
+    physx::PxMaterial* defaultMaterial;
     physx::PxDefaultErrorCallback gDefaultErrorCallback;
     physx::PxDefaultAllocator gDefaultAllocator;
     physx::PxFoundation* g_physFoundation;
@@ -111,6 +112,8 @@ namespace worlds {
         reg.on_construct<DynamicPhysicsActor>().connect<&setPhysXActorUserdata<DynamicPhysicsActor>>();
         g_console->registerCommand(cmdTogglePhysVis, "phys_toggleVis", "Toggles all physics visualisations.", nullptr);
         g_console->registerCommand(cmdToggleShapeVis, "phys_toggleShapeVis", "Toggles physics shape visualisations.", nullptr);
+
+        defaultMaterial = g_physics->createMaterial(0.5f, 0.5f, 0.1f);
     }
 
     void stepSimulation(float deltaTime) {

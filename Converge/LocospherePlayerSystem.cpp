@@ -225,8 +225,10 @@ namespace converge {
             }
         });
 
-        if (!reg.valid(localLocosphereEnt))
-            logWarn("couldn't find a local locosphere!");
+        if (!reg.valid(localLocosphereEnt)) {
+            //logWarn("couldn't find a local locosphere!");
+            return;
+        }
 
         if (!vrInterface) {
 
