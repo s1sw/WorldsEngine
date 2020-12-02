@@ -233,12 +233,14 @@ namespace worlds {
         int		texture_offset;
         mstudiotexture_t* getTextures() { return (mstudiotexture_t*)((byte*)this + texture_offset); }
 
+        void* getRelPtr(size_t offset) { return (byte*)this + offset; }
+
         // This offset points to a series of ints.
             // Each int value, in turn, is an offset relative to the start of this header/the-file,
             // At which there is a null-terminated string.
         int		texturedir_count;
         int		texturedir_offset;
-
+        const char* getTextureDir(int idx) { return (const char*)getRelPtr(*((int*)getRelPtr(texturedir_offset) + idx)); }
         // Each skin-family assigns a texture-id to a skin location
         int		skinreference_count;
         int		skinrfamily_count;
@@ -567,6 +569,12 @@ namespace worlds {
 
         auto* fixupBlock = vvd->getFixupBlock();
         mstudiovertex_t* vertexBlock = vvd->getVertexBlock();
+        
+        logMsg("texdir info: %i texdirs", mdl->texturedir_count);
+
+        for (int i = 0; i < mdl->texturedir_count; i++) {
+            logMsg("texdir %i: %s", i, mdl->getTextureDir(i));
+        }
 
         int vertCount = vvd->numLODVertexes[0];
 
@@ -740,3 +748,4 @@ namespace worlds {
         std::free(vvd);
     }
 }
+
