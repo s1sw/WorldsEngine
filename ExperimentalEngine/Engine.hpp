@@ -33,11 +33,13 @@ namespace worlds {
             , workerThreadOverride(-1)
             , runAsEditor(false)
             , enableVR(false)
+            , dedicatedServer(false) 
             , eventHandler(nullptr) {}
         bool useEventThread;
         int workerThreadOverride;
         bool runAsEditor;
         bool enableVR;
+        bool dedicatedServer;
         IGameEventHandler* eventHandler;
     };
 
@@ -67,6 +69,7 @@ namespace worlds {
         void updateSimulation(float& interpAlpha, double deltaTime);
         bool running;
         double simAccumulator;
+        bool dedicatedServer;
         VKRenderer* renderer;
         entt::registry registry;
         IGameEventHandler* evtHandler;

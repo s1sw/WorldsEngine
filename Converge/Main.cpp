@@ -16,6 +16,7 @@ int main(int argc, char** argv) {
 
         if (strcmp(argv[i], "--dedicated-server") == 0) {
            ds = true; 
+           initOptions.dedicatedServer = true;
         }
     }
 

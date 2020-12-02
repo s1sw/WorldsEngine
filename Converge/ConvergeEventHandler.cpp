@@ -60,9 +60,7 @@ namespace converge {
                 logErr("An error occurred while trying to create an ENet server host.");
                 exit (EXIT_FAILURE);
             }
-        } else {
-            enetHost = enet_host_create(nullptr, 1, 2, 0, 0);
-        }
+        } 
 
         worlds::g_console->registerCommand([&](void*, const char* arg) {
             if (isDedicated) {
@@ -89,8 +87,8 @@ namespace converge {
     }
 
     void EventHandler::update(entt::registry& registry, float deltaTime, float interpAlpha) {
+        g_dbgArrows->newFrame();
         entt::entity localLocosphereEnt = entt::null;
-
 
         registry.view<LocospherePlayerComponent>().each([&](auto ent, auto& lpc) {
             if (lpc.isLocal) {
@@ -102,8 +100,10 @@ namespace converge {
             }
         });
 
-        if (!registry.valid(localLocosphereEnt))
-            logWarn("couldn't find a local locosphere!");
+        if (!registry.valid(localLocosphereEnt)) {
+            //logWarn("couldn't find a local locosphere!");
+            return;
+        }
 
         auto& t = registry.get<Transform>(localLocosphereEnt);
         auto& t2 = registry.get<Transform>(otherLocosphere);
@@ -121,7 +121,6 @@ namespace converge {
             lpc2.xzMoveInput = glm::vec2 { 0.0f };
         lpc2.sprint = sqDist > 100.0f; 
 
-        g_dbgArrows->newFrame();
     }
 
     void EventHandler::simulate(entt::registry&, float) {

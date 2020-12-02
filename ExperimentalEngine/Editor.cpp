@@ -28,8 +28,6 @@
 #undef far
 
 namespace worlds {
-    physx::PxMaterial* defaultMaterial;
-
     std::unordered_map<ENTT_ID_TYPE, ComponentMetadata> ComponentMetadataManager::metadata;
 
     glm::vec3 filterAxes(glm::vec3 vec, AxisFlagBits axisFlags) {
@@ -376,7 +374,6 @@ namespace worlds {
         REGISTER_COMPONENT_TYPE(AudioSource, "AudioSource", true, editAudioSource, createAudioSource, cloneAudioSource);
         REGISTER_COMPONENT_TYPE(NameComponent, "NameComponent", true, editNameComponent, createNameComponent, cloneNameComponent);
         interfaces.engine->pauseSim = true;
-        defaultMaterial = g_physics->createMaterial(0.5f, 0.5f, 0.1f);
 
         RTTPassCreateInfo sceneViewPassCI;
         sceneViewPassCI.enableShadows = true;

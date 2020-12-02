@@ -1,5 +1,6 @@
 #pragma once
 #include <string>
+#include <thread>
 #include <unordered_map>
 #include <SDL2/SDL_log.h>
 #include "LogCategories.hpp"
@@ -38,7 +39,7 @@ namespace worlds {
 
     class Console {
     public:
-        Console();
+        Console(bool asyncStdinConsole = false);
         void registerCommand(CommandFuncPtr funcPtr, const char* name, const char* help, void* obj);
         void drawWindow();
         void setShowState(bool show);
@@ -67,6 +68,7 @@ namespace worlds {
         std::unordered_map<std::string, ConVar*> conVars;
         std::unordered_map<std::string, Command> commands;
         std::ofstream logFileStream;
+        std::thread* asyncConsoleThread;
 
         static int inputTextCallback(ImGuiInputTextCallbackData* data);
         static void logCallback(void* con, int category, SDL_LogPriority priority, const char* msg);

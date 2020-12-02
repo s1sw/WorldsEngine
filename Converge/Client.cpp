@@ -3,6 +3,7 @@
 
 namespace converge {
     Client::Client() {
+        host = enet_host_create(nullptr, 1, 2, 0, 0);
     }
 
     void Client::connect(ENetAddress address) {

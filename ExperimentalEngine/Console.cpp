@@ -16,6 +16,7 @@
 #include <debugapi.h>
 #endif
 #include "Log.hpp"
+#include <thread>
 
 namespace worlds {
     // Because static initialisation is the first thing that occurs when the game is started,
@@ -104,7 +105,10 @@ namespace worlds {
             g_console->conVars.erase(name);
     }
 
-    Console::Console()
+    void asyncConsole() {
+    }
+
+    Console::Console(bool asyncStdinConsole)
         : show(false)
         , setKeyboardFocus(false) 
         , logFileStream("converge.log") {
@@ -137,6 +141,10 @@ namespace worlds {
                 delete curr;
                 curr = next;
             }
+        }
+
+        if (asyncStdinConsole) {
+            asyncConsoleThread = new std::thread(asyncConsole);
         }
     }
 
@@ -249,7 +257,7 @@ namespace worlds {
             } else {
                 completionPos++;
 
-                if (completionPos >= completions.size())
+                if ((size_t)completionPos >= completions.size())
                     completionPos = 0;
             }
 
@@ -295,7 +303,7 @@ namespace worlds {
                     ImGui::TextUnformatted(msg.msg.c_str());
                 ImGui::PopStyleColor();
 
-                if (currMsgIdx == msgs.size() - 1 && msgs.size() != lastMsgCount) {
+                if ((size_t)currMsgIdx == msgs.size() - 1 && msgs.size() != (size_t)lastMsgCount) {
                     ImGui::SetScrollHereY();
                     lastMsgCount = (int)msgs.size();
                 }
@@ -389,7 +397,18 @@ namespace worlds {
             + "[" + priorities.at(priority) + "] "
             + msg;
 
+#ifndef _WIN32
+        if (priority == SDL_LOG_PRIORITY_WARN)
+            std::cout << "\033[33m";
+        if (priority == SDL_LOG_PRIORITY_ERROR)
+            std::cout << "\033[31m";
+        if (priority == SDL_LOG_PRIORITY_DEBUG || priority ==SDL_LOG_PRIORITY_VERBOSE)
+            std::cout << "\033[36m";
+#endif
         std::cout << outStr << "\n";
+#ifndef _WIN32
+        std::cout << "\033[0m";
+#endif
 
         // Use std::endl for the file to force a flush
         if (con->logFileStream.good())
@@ -404,6 +423,8 @@ namespace worlds {
     }
 
     Console::~Console() {
+        asyncConsoleThread->join();
+        delete asyncConsoleThread;
         logFileStream << "[" << getDateTimeString() << "]" << "Closing log file." << std::endl;
         logFileStream.close();
         g_console = nullptr;

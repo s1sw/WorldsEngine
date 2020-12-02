@@ -238,18 +238,24 @@ namespace worlds {
         evtHandler = initOptions.eventHandler;
         runAsEditor = initOptions.runAsEditor;
         enableOpenVR = initOptions.enableVR;
+        dedicatedServer = initOptions.dedicatedServer;
 
         // Initialisation Stuffs
         // =====================
         setupSDL();
 
-        console = std::make_unique<Console>();
+        console = std::make_unique<Console>(dedicatedServer);
 
-        auto splashWindow = createSplashWindow();
-        redrawSplashWindow(splashWindow, "");
+        worlds::SplashWindow splashWindow;
+
+        if (!dedicatedServer) {
+            splashWindow = createSplashWindow();
+            redrawSplashWindow(splashWindow, "");
+        }
 
         setupPhysfs(argv0);
-        redrawSplashWindow(splashWindow, "starting up");
+        if (!dedicatedServer)
+            redrawSplashWindow(splashWindow, "starting up");
 
         fullscreenToggleEventId = SDL_RegisterEvents(1);
 
@@ -261,7 +267,8 @@ namespace worlds {
 
         currentScene.name = "Untitled";
 
-        redrawSplashWindow(splashWindow, "loading assetdb");
+        if (!dedicatedServer)
+            redrawSplashWindow(splashWindow, "loading assetdb");
         g_assetDB.load();
 
         if (useEventThread) {
@@ -279,7 +286,8 @@ namespace worlds {
         }
         setWindowIcon(window);
 
-        redrawSplashWindow(splashWindow, "initialising ui");
+        if (!dedicatedServer)
+            redrawSplashWindow(splashWindow, "initialising ui");
 
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();
@@ -293,7 +301,8 @@ namespace worlds {
         setupUIFonts();
         loadDefaultUITheme();
 
-        ImGui_ImplSDL2_InitForVulkan(window);
+        if (!dedicatedServer)
+            ImGui_ImplSDL2_InitForVulkan(window);
 
         std::vector<std::string> additionalInstanceExts;
         std::vector<std::string> additionalDeviceExts;
@@ -319,7 +328,8 @@ namespace worlds {
 
         IVRInterface* vrInterface = &openvrInterface;
 
-        redrawSplashWindow(splashWindow, "initialising renderer");
+        if (!dedicatedServer)
+            redrawSplashWindow(splashWindow, "initialising renderer");
 
         RendererInitInfo initInfo{
             window,
@@ -328,12 +338,14 @@ namespace worlds {
             runAsEditor, "Converge"
         };
 
-        bool renderInitSuccess = false;
-        renderer = new VKRenderer(initInfo, &renderInitSuccess);
+        if (!dedicatedServer) {
+            bool renderInitSuccess = false;
+            renderer = new VKRenderer(initInfo, &renderInitSuccess);
 
-        if (!renderInitSuccess) {
-            fatalErr("Failed to initialise renderer");
-            return;
+            if (!renderInitSuccess) {
+                fatalErr("Failed to initialise renderer");
+                return;
+            }
         }
 
         cam.position = glm::vec3(0.0f, 0.0f, -1.0f);
@@ -348,17 +360,22 @@ namespace worlds {
             .engine = this
         };
 
-        auto vkCtx = renderer->getVKCtx();
-        VKImGUIUtil::createObjects(vkCtx);
+        if (!dedicatedServer) {
+            auto vkCtx = renderer->getVKCtx();
+            VKImGUIUtil::createObjects(vkCtx);
+        }
 
-        redrawSplashWindow(splashWindow, "initialising editor");
+        if (!dedicatedServer)
+            redrawSplashWindow(splashWindow, "initialising editor");
 
-        editor = std::make_unique<Editor>(registry, interfaces);
+        if (!dedicatedServer)
+            editor = std::make_unique<Editor>(registry, interfaces);
 
         if (!runAsEditor)
             pauseSim = false;
 
-        initRichPresence(interfaces);
+        if (!dedicatedServer)
+            initRichPresence(interfaces);
 
         console->registerCommand(cmdLoadScene, "scene", "Loads a scene.", &registry);
         console->registerCommand(cmdToggleFullscreen, "toggleFullscreen", "Toggles fullscreen.", nullptr);
@@ -444,25 +461,42 @@ namespace worlds {
             w = 1600;
             h = 900;
         }
+        
+        if (!dedicatedServer) {
+            RTTPassCreateInfo screenRTTCI;
+            screenRTTCI.enableShadows = true;
+            screenRTTCI.width = w;
+            screenRTTCI.height = h;
+            screenRTTCI.isVr = enableOpenVR;
+            screenRTTCI.outputToScreen = true;
+            screenRTTCI.useForPicking = false;
+            screenRTTPass = renderer->createRTTPass(screenRTTCI);
+            redrawSplashWindow(splashWindow, "initialising audio");
+        }
 
-        RTTPassCreateInfo screenRTTCI;
-        screenRTTCI.enableShadows = true;
-        screenRTTCI.width = w;
-        screenRTTCI.height = h;
-        screenRTTCI.isVr = enableOpenVR;
-        screenRTTCI.outputToScreen = true;
-        screenRTTCI.useForPicking = false;
-        screenRTTPass = renderer->createRTTPass(screenRTTCI);
-
-        redrawSplashWindow(splashWindow, "initialising audio");
         audioSystem = std::make_unique<AudioSystem>();
         audioSystem->initialise(registry);
 
-        SDL_ShowWindow(window);
-        destroySplashWindow(splashWindow);
+        if (!dedicatedServer) {
+            SDL_ShowWindow(window);
+            destroySplashWindow(splashWindow);
+        }
 
         luaVM = std::make_unique<LuaVM>();
         luaVM->bindRegistry(registry);
+
+        if (dedicatedServer) {
+            // do a lil' dance to make dear imgui happy
+            auto& io = ImGui::GetIO();
+            io.DisplaySize = ImVec2(800.0f, 600.0f);
+            unsigned char* outPixels;
+            int w, h;
+            io.Fonts->GetTexDataAsAlpha8(&outPixels, &w, &h);
+
+            // and then we just throw away its hard work :(
+            // TODO: find a better way to do this without wasting so much
+            std::free(outPixels);
+        }
     }
 
     void WorldsEngine::createStartupScene() {
@@ -519,13 +553,15 @@ namespace worlds {
 
             tickRichPresence();
 
-            ImGui_ImplVulkan_NewFrame();
-            ImGui_ImplSDL2_NewFrame(window);
+            if (!dedicatedServer) {
+                ImGui_ImplVulkan_NewFrame();
+                ImGui_ImplSDL2_NewFrame(window);
+            }
 
             ImGui::NewFrame();
             inputManager->update();
 
-            if (runAsEditor) {
+            if (!dedicatedServer && runAsEditor) {
                 // Create global dock space
                 ImGuiViewport* viewport = ImGui::GetMainViewport();
                 ImGui::SetNextWindowPos(viewport->Pos);
@@ -550,17 +586,20 @@ namespace worlds {
                 ImGui::GetBackgroundDrawList()->AddRectFilled(viewport->Pos, viewport->Size, ImColor(0.0f, 0.0f, 0.0f, 1.0f));
             }
 
-            if (!renderer->isPassValid(screenRTTPass)) {
-                recreateScreenRTT = true;
-            } else {
-                renderer->setRTTPassActive(screenRTTPass, !runAsEditor);
+            if (!dedicatedServer) {
+                if (!renderer->isPassValid(screenRTTPass)) {
+                    recreateScreenRTT = true;
+                } else {
+                    renderer->setRTTPassActive(screenRTTPass, !runAsEditor);
+                }
             }
 
             uint64_t deltaTicks = now - last;
             last = now;
             deltaTime = deltaTicks / (double)SDL_GetPerformanceFrequency();
             currTime += deltaTime;
-            renderer->time = currTime;
+            if (!dedicatedServer)
+                renderer->time = currTime;
 
             float interpAlpha = 1.0f;
 
@@ -587,8 +626,10 @@ namespace worlds {
 
             SDL_GetWindowSize(window, &windowSize.x, &windowSize.y);
 
-            editor->setActive(runAsEditor);
-            editor->update((float)deltaTime);
+            if (!dedicatedServer) {
+                editor->setActive(runAsEditor);
+                editor->update((float)deltaTime);
+            }
 
             if (inputManager->keyPressed(SDL_SCANCODE_RCTRL, true)) {
                 SDL_SetRelativeMouseMode((SDL_bool)!SDL_GetRelativeMouseMode());
@@ -648,19 +689,26 @@ namespace worlds {
 
             glm::vec3 camPos = cam.position;
 
-            registry.sort<ProceduralObject>([&](entt::entity a, entt::entity b) {
-                auto& aTransform = registry.get<Transform>(a);
-                auto& bTransform = registry.get<Transform>(b);
-                return glm::distance2(camPos, aTransform.position) < glm::distance2(camPos, bTransform.position);
-                }, entt::insertion_sort{});
+            if (!dedicatedServer) {
+                registry.sort<ProceduralObject>([&](entt::entity a, entt::entity b) {
+                    auto& aTransform = registry.get<Transform>(a);
+                    auto& bTransform = registry.get<Transform>(b);
+                    return glm::distance2(camPos, aTransform.position) < glm::distance2(camPos, bTransform.position);
+                    }, entt::insertion_sort{});
 
-            registry.sort<WorldObject>([&](entt::entity a, entt::entity b) {
-                auto& aTransform = registry.get<Transform>(a);
-                auto& bTransform = registry.get<Transform>(b);
-                return glm::distance2(camPos, aTransform.position) < glm::distance2(camPos, bTransform.position) || registry.has<UseWireframe>(a);
-                }, entt::insertion_sort{});
+                registry.sort<WorldObject>([&](entt::entity a, entt::entity b) {
+                    auto& aTransform = registry.get<Transform>(a);
+                    auto& bTransform = registry.get<Transform>(b);
+                    return glm::distance2(camPos, aTransform.position) < glm::distance2(camPos, bTransform.position) || registry.has<UseWireframe>(a);
+                    }, entt::insertion_sort{});
 
-            renderer->frame(cam, registry);
+                renderer->frame(cam, registry);
+            }
+
+            if (dedicatedServer) {
+                SDL_Delay(14);
+            }
+
             ImGui::UpdatePlatformWindows();
             ImGui::RenderPlatformWindowsDefault();
             g_jobSys->completeFrameJobs();
@@ -846,11 +894,16 @@ namespace worlds {
         if (evtHandler != nullptr && !runAsEditor)
             evtHandler->shutdown(registry);
 
-        auto vkCtx = renderer->getVKCtx();
         registry.clear();
-        shutdownRichPresence();
-        VKImGUIUtil::destroyObjects(vkCtx);
-        delete renderer;
+
+        if (!dedicatedServer) {
+            shutdownRichPresence();
+
+            auto vkCtx = renderer->getVKCtx();
+            VKImGUIUtil::destroyObjects(vkCtx);
+            delete renderer;
+        }
+
         shutdownPhysx();
         PHYSFS_deinit();
         if (useEventThread) SDL_CondSignal(sdlEventCV);
