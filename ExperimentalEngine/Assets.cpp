@@ -83,7 +83,6 @@ namespace worlds {
                             }
                         }
                     } else {
-
                         if ((int)showExts)
                             ImGui::Text("%s (%s)", fName, g_assetDB.getAssetExtension(id).c_str());
                         else
