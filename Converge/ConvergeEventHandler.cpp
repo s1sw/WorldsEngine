@@ -51,17 +51,6 @@ namespace converge {
             logErr("Failed to initialize enet.");
         }
 
-        if (isDedicated) {
-            ENetAddress address;
-            address.host = ENET_HOST_ANY;
-            address.port = 3011;
-            enetHost = enet_host_create(&address, 32, 2, 0, 0);
-            if (enetHost == NULL) {
-                logErr("An error occurred while trying to create an ENet server host.");
-                exit (EXIT_FAILURE);
-            }
-        } 
-
         worlds::g_console->registerCommand([&](void*, const char* arg) {
             if (isDedicated) {
                 logErr("this is a server! what are you trying to do???");
