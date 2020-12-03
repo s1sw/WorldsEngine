@@ -6,6 +6,7 @@
 #include <Camera.hpp>
 #include "LocospherePlayerSystem.hpp"
 #include "Client.hpp"
+#include "Server.hpp"
 
 namespace converge {
     class EventHandler : public worlds::IGameEventHandler {
@@ -27,5 +28,6 @@ namespace converge {
         ENetHost* enetHost;
         entt::entity otherLocosphere;
         Client* client;
+        Server* server;
     };
 }

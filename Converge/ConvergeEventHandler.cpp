@@ -21,7 +21,6 @@
 #include "ObjectParentSystem.hpp"
 
 namespace converge {
-    const int MAX_PLAYERS = 32;
     const uint16_t CONVERGE_PORT = 3011;
 
     void cmdToggleVsync(void* obj, const char*) {
@@ -51,6 +50,11 @@ namespace converge {
             logErr("Failed to initialize enet.");
         }
 
+        if (isDedicated) {
+            server = new Server{};
+            server->start();
+        }
+
         worlds::g_console->registerCommand([&](void*, const char* arg) {
             if (isDedicated) {
                 logErr("this is a server! what are you trying to do???");
@@ -76,6 +80,10 @@ namespace converge {
     }
 
     void EventHandler::update(entt::registry& registry, float deltaTime, float interpAlpha) {
+        if (isDedicated)
+            server->processMessages(nullptr);
+        if (client)
+            client->processMessages(nullptr);
         g_dbgArrows->newFrame();
         entt::entity localLocosphereEnt = entt::null;
 
