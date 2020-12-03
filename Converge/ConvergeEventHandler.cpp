@@ -30,7 +30,8 @@ namespace converge {
 
     EventHandler::EventHandler(bool dedicatedServer) 
         : isDedicated {dedicatedServer}
-        , enetHost {nullptr} {
+        , enetHost {nullptr}
+        , client {nullptr} {
     }
 
     void EventHandler::init(entt::registry& registry, worlds::EngineInterfaces interfaces) {
