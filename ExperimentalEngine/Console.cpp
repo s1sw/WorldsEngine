@@ -109,17 +109,27 @@ namespace worlds {
     }
 
     void asyncConsole() {
-        while (true) {
-            std::string str;
+        std::string str;
+        while (g_console) {
             std::cout << ">";
-            std::getline(std::cin, str); 
+
+            char c = '\0';
+            str.clear();
+            while(g_console) {
+                std::cin.get(c);
+                if (c == '\n')
+                    break;
+                str += c;
+            }
+
+            std::cin.clear();
 
             if (str.empty()) continue;
 
             g_console->asyncCommand = str;
             g_console->asyncCommandReady = true;
             // wait for the console to process the command 
-            while (g_console->asyncCommandReady) continue;
+            do {} while (g_console && g_console->asyncCommandReady);
         }
     }
 
@@ -475,12 +485,12 @@ namespace worlds {
     }
 
     Console::~Console() {
+        g_console = nullptr;
         if (asyncConsoleThread) {
             asyncConsoleThread->join();
             delete asyncConsoleThread;
         }
         logFileStream << "[" << getDateTimeString() << "]" << "Closing log file." << std::endl;
         logFileStream.close();
-        g_console = nullptr;
     }
 }

@@ -420,6 +420,10 @@ namespace worlds {
             renderer->reloadMatsAndTextures();
             }, "reloadContent", "Reloads materials, textures and meshes.", nullptr);
 
+        console->registerCommand([&](void*, const char*) {
+            running = false;
+            }, "exit", "Shuts down the engine.", nullptr);
+
         if (runAsEditor)
             disableSimInterp.setValue("1");
 
@@ -435,7 +439,7 @@ namespace worlds {
             console->executeCommandStr("exec CommandScripts/startup");
         
         if (dedicatedServer)
-            console->executeCommandStr("exec CommandScripts/server_startup.txt");
+            console->executeCommandStr("exec CommandScripts/server_startup");
 
         if (evtHandler != nullptr) {
             evtHandler->init(registry, interfaces);

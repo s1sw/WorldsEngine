@@ -1,12 +1,15 @@
 #pragma once
-#include <enet/enet.h>
+#include "Network.hpp"
 
 namespace converge {
-    class Client {
+    class Client : public NetBase {
     public:
         Client();
         void connect(ENetAddress address);
-        ENetHost* host;
         ENetPeer* serverPeer;
+    private:
+        void handleConnection(const ENetEvent& evt) override;
+        void handleDisconnection(const ENetEvent& evt) override;
+
     };
 }
