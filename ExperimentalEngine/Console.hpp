@@ -72,6 +72,8 @@ namespace worlds {
         bool asyncCommandReady;
         std::string asyncCommand;
 
+        void logConsoleResponse();
+
         static int inputTextCallback(ImGuiInputTextCallbackData* data);
         static void logCallback(void* con, int category, SDL_LogPriority priority, const char* msg);
         static void cmdHelp(void* con, const char* argString);
