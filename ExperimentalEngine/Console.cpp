@@ -29,15 +29,16 @@ namespace worlds {
         ConVar* var;
         ConvarLink* next;
     };
+
     ConvarLink* firstLink = nullptr;
     const int CONSOLE_RESPONSE_CATEGORY = 255;
     Console* g_console;
 
     const std::unordered_map<SDL_LogPriority, ImColor> priorityColors = {
         { SDL_LOG_PRIORITY_CRITICAL, ImColor(0.8f, 0.0f, 0.0f) },
-        { SDL_LOG_PRIORITY_DEBUG, ImColor(1.0f, 1.0f, 1.0f, 0.5f) },
-        { SDL_LOG_PRIORITY_INFO, ImColor(1.0f, 1.0f, 1.0f) },
-        { SDL_LOG_PRIORITY_VERBOSE, ImColor(1.0f, 1.0f, 1.0f, 0.75f) },
+        { SDL_LOG_PRIORITY_DEBUG, ImColor(0.75f, 0.75f, 0.75f, 1.0f) },
+        { SDL_LOG_PRIORITY_INFO, ImColor(0.1f, 0.75f, 1.0f, 1.0f) },
+        { SDL_LOG_PRIORITY_VERBOSE, ImColor(0.75f, 0.75f, 0.75f, 1.0f) },
         { SDL_LOG_PRIORITY_WARN, ImColor(1.0f, 1.0f, 0.0f) },
         { SDL_LOG_PRIORITY_ERROR, ImColor(1.0f, 0.0f, 0.0f) }
     };
@@ -108,29 +109,34 @@ namespace worlds {
             g_console->conVars.erase(name);
     }
 
-    void asyncConsole() {
-        std::string str;
-        while (g_console) {
-            std::cout << ">";
 
+    static std::string asyncCmdStr;
+
+    void asyncConsole() {
+        while (g_console) {
             char c = '\0';
-            str.clear();
+            asyncCmdStr.clear();
             while(g_console) {
                 std::cin.get(c);
                 if (c == '\n')
                     break;
-                str += c;
+                asyncCmdStr += c;
             }
 
             std::cin.clear();
 
-            if (str.empty()) continue;
-
-            g_console->asyncCommand = str;
+            g_console->asyncCommand = asyncCmdStr;
             g_console->asyncCommandReady = true;
-            // wait for the console to process the command 
-            do {} while (g_console && g_console->asyncCommandReady);
+            asyncCmdStr.clear();
         }
+    }
+
+    void goToSecondaryScreen() {
+        std::cout << "\033[7\033[?47h";
+    }
+
+    void returnToPrimary() {
+        std::cout << "\033[2J\033[?47l\0338";
     }
 
     Console::Console(bool asyncStdinConsole)
@@ -172,6 +178,7 @@ namespace worlds {
 
         if (asyncStdinConsole) {
             asyncConsoleThread = new std::thread(asyncConsole);
+            goToSecondaryScreen();
 #ifdef _WIN32
             if (!AttachConsole(ATTACH_PARENT_PROCESS)) {
                 if (!AllocConsole()) {
@@ -415,9 +422,9 @@ namespace worlds {
                 msgs.push_back(ConsoleMsg{ SDL_LOG_PRIORITY_INFO, cmdStr, CONSOLE_RESPONSE_CATEGORY });
                 (*cmdPos).second.func((*cmdPos).second.obj, "");
             } else if (convarPos != conVars.end()) {
-                msgs.push_back(ConsoleMsg{ SDL_LOG_PRIORITY_INFO, (*convarPos).second->getName() + std::string("=") + (*convarPos).second->getString(), CONSOLE_RESPONSE_CATEGORY });
+                logMsg(CONSOLE_RESPONSE_CATEGORY, "%s=%s", (*convarPos).second->getName(), (*convarPos).second->getString());
             } else {
-                msgs.push_back(ConsoleMsg{ SDL_LOG_PRIORITY_ERROR, "No command/convar named " + cmdStr, CONSOLE_RESPONSE_CATEGORY });
+                logErr(CONSOLE_RESPONSE_CATEGORY, "No command/convar named %s", cmdStr.c_str());
             }
         } else {
             std::string argString = cmdStr.substr(firstSpace + 1);
@@ -440,7 +447,7 @@ namespace worlds {
                 logMsg(CONSOLE_RESPONSE_CATEGORY, cmdStr.c_str());
                 (*cmdPos).second.func((*cmdPos).second.obj, argString.c_str());
             } else {
-                msgs.push_back(ConsoleMsg{ SDL_LOG_PRIORITY_ERROR, "No command/convar named " + cmdString, CONSOLE_RESPONSE_CATEGORY });
+                logErr(CONSOLE_RESPONSE_CATEGORY, "No command/convar named %s", cmdString.c_str());
             }
         }
     }
@@ -461,16 +468,25 @@ namespace worlds {
             + "[" + priorities.at(priority) + "] "
             + msg;
 
-        if (priority == SDL_LOG_PRIORITY_WARN)
-            std::cout << "\033[33m";
-        if (priority == SDL_LOG_PRIORITY_ERROR)
-            std::cout << "\033[31m";
-        if (priority == SDL_LOG_PRIORITY_DEBUG || priority == SDL_LOG_PRIORITY_VERBOSE)
-            std::cout << "\033[36m";
+        auto col = priorityColors.at(priority);
+        int r = col.Value.x * 255.0f;
+        int g = col.Value.y * 255.0f;
+        int b = col.Value.z * 255.0f;
 
-        std::cout << outStr << "\n";
+        std::string colorStr = std::string("\033[38;2;") 
+                  + std::to_string(r) 
+            + ";" + std::to_string(g) 
+            + ";" + std::to_string(b)
+            + "m";
 
-        std::cout << "\033[0m";
+        const char* clearLineCode = "\033[2K";
+
+        std::cout << "\r" << clearLineCode << colorStr << outStr << "\n";
+        if (g_console->asyncConsoleThread)
+            std::cout << "\033[32mserver> \033[0m";
+        else
+            std::cout << "\033[0m";
+        std::cout.flush();
 
         // Use std::endl for the file to force a flush
         if (con->logFileStream.good())
@@ -485,12 +501,17 @@ namespace worlds {
     }
 
     Console::~Console() {
-        g_console = nullptr;
-        if (asyncConsoleThread) {
-            asyncConsoleThread->join();
-            delete asyncConsoleThread;
-        }
         logFileStream << "[" << getDateTimeString() << "]" << "Closing log file." << std::endl;
         logFileStream.close();
+        g_console = nullptr;
+        returnToPrimary();
+
+        if (asyncConsoleThread) {
+            // here we're just detaching the thread and leaving it to its fate.
+            // this could potentially cause issues in the future, but i'm not sure
+            asyncConsoleThread->detach();
+            delete asyncConsoleThread;
+        }
+
     }
 }
