@@ -14,7 +14,17 @@ namespace converge {
         }
 
         worlds::g_console->registerCommand([&](void*, const char* arg) {
+            if (strlen(arg) == 0) {
+                logErr("missing ID to kick");
+                return;
+            }
             int id = atoi(arg);
+
+            if (id > MAX_PLAYERS || id < 0 || !players[id].present) {
+                logErr("invalid player ID");
+                return;
+            }
+                
             enet_peer_disconnect(players[id].peer, DisconnectReason_ServerShutdown);
         }, "server_kick", "Kicks a player.", nullptr);
     }
