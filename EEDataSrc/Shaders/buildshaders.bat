@@ -1,6 +1,6 @@
 @echo off
 cd /D "%~dp0"
-glslangValidator standard.glsl -DFRAGMENT -DEFT -DBLINN_PHONG -V -S frag -o standard.frag.spv 
+glslangValidator standard.glsl -DFRAGMENT -DEFT -V -S frag -o standard.frag.spv 
 glslangValidator standard.glsl -DVERTEX -V -S vert -o standard.vert.spv 
 glslangValidator tonemap.comp.glsl -V -o tonemap.comp.spv
 glslangValidator tonemap2d.comp.glsl -V -o tonemap2d.comp.spv

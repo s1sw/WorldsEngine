@@ -29,5 +29,7 @@ namespace converge {
         entt::entity otherLocosphere;
         Client* client;
         Server* server;
+        entt::entity lHandEnt, rHandEnt;
+        physx::PxD6Joint* lHandJoint, *rHandJoint;
     };
 }

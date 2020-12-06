@@ -48,6 +48,9 @@
     <ClCompile Include="NetBase.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="NetMessage.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ConvergeEventHandler.hpp">

@@ -194,7 +194,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(VULKAN_SDK)\Lib;$(SolutionDir)External\Lib;E:\Programming\vcpkg\installed\x64-windows\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>vulkan-1.lib;openxr_loader.lib;physfs.lib;openvr_api.lib;SDL2.lib;discord-rpc.lib;PhysX_64.lib;PhysXCommon_64.lib;PhysXCooking_64.lib;PhysXExtensions_static_64.lib;PhysXFoundation_64.lib;PhysXPvdSDK_static_64.lib;PhysXTask_static_64.lib;SceneQuery_static_64.lib;SDL2main.lib;enet.lib;Ws2_32.lib;winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>vulkan-1.lib;openxr_loader.lib;physfs.lib;openvr_api.lib;SDL2.lib;discord-rpc.lib;PhysX_64.lib;PhysXCommon_64.lib;PhysXCooking_64.lib;PhysXExtensions_static_64.lib;PhysXFoundation_64.lib;PhysXPvdSDK_static_64.lib;PhysXTask_static_64.lib;SceneQuery_static_64.lib;SDL2main.lib;lua.lib;enet.lib;Ws2_32.lib;winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">
@@ -231,6 +231,7 @@
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="MathsUtil.cpp" />
     <ClCompile Include="NetBase.cpp" />
+    <ClCompile Include="NetMessage.cpp" />
     <ClCompile Include="ObjectParentSystem.cpp" />
     <ClCompile Include="PhysHandSystem.cpp" />
     <ClCompile Include="Server.cpp" />

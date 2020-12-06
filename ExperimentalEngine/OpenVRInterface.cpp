@@ -102,10 +102,10 @@ namespace worlds {
         vr::VRInput()->UpdateActionState(&activeActionSet, sizeof(activeActionSet), 1);
     }
 
-    bool OpenVRInterface::getHandTransform(vr::ETrackedControllerRole role, Transform& t) {
+    bool OpenVRInterface::getHandTransform(Hand hand, Transform& t) {
         vr::InputPoseActionData_t pose;
 
-        auto retVal = vr::VRInput()->GetPoseActionDataForNextFrame(role == vr::TrackedControllerRole_LeftHand ? leftHand : rightHand, vr::TrackingUniverseStanding, &pose, sizeof(pose), vr::k_ulInvalidInputValueHandle);
+        auto retVal = vr::VRInput()->GetPoseActionDataForNextFrame(hand == Hand::LeftHand ? leftHand : rightHand, vr::TrackingUniverseStanding, &pose, sizeof(pose), vr::k_ulInvalidInputValueHandle);
 
         if (retVal != vr::VRInputError_None)
             return false;

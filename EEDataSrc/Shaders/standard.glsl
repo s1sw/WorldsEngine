@@ -349,9 +349,42 @@ void handleEditorPicking() {
     }
 }
 
+float mip_map_level() {
+    vec2  dx_vtc        = dFdx(inUV);
+    vec2  dy_vtc        = dFdy(inUV);
+    float delta_max_sqr = max(dot(dx_vtc, dx_vtc), dot(dy_vtc, dy_vtc));
+
+    return 0.5 * log2(delta_max_sqr); // == log2(sqrt(delta_max_sqr));
+}
+
+bool isTextureEnough(ivec2 texSize) {
+    vec2  dx_vtc        = dFdx(inUV);
+    vec2  dy_vtc        = dFdy(inUV);
+    vec2 d = max(dx_vtc, dy_vtc);
+
+    return all(greaterThan(d * vec2(texSize), vec2(4.0)));
+}
+
 void main() {
     //pickBuf.objectID = 0;
     Material mat = materials[matIdx];
+
+
+#ifdef MIP_MAP_DBG
+    float mipLevel = min(3, mip_map_level());
+
+    FragColor = vec4(vec3(mipLevel < 0.1, mipLevel * 0.5, mipLevel * 0.25), 0.0);
+    FragColor = max(FragColor, vec4(0.0));
+    return;
+#endif
+
+#ifdef TEXRES_DBG
+    bool ite = isTextureEnough(textureSize(tex2dSampler[mat.albedoTexIdx], 0));
+    if (!ite) {
+        FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+        return;
+    }
+#endif
 
 #ifndef AMD_VIEWINDEX_WORKAROUND
 	vec3 viewDir = normalize(viewPos[gl_ViewIndex].xyz - inWorldPos.xyz);
