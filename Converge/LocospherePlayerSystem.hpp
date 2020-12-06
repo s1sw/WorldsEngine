@@ -54,12 +54,9 @@ namespace converge {
         worlds::InputManager* inputManager;
         entt::registry& registry;
         worlds::Camera* camera;
-        entt::entity lHandEnt, rHandEnt;
-        entt::entity grappleIndicator;
         bool jumpThisFrame;
         glm::vec3 lastCamPos;
         glm::vec3 nextCamPos;
-        worlds::InputActionHandle grappleHookAction;
         V3PidController lspherePid;
         float zeroThresh;
 

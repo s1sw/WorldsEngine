@@ -20,7 +20,9 @@ sources = [
     'Server.hpp',
     'Server.cpp',
     'Network.hpp',
-    'NetBase.cpp'
+    'NetBase.cpp',
+    'NetMessage.hpp',
+    'NetMessage.cpp'
 ]
 
 executable('converge', sources, include_directories: [physx_include_dir, extern_include_dir], dependencies: [worlds_dep])

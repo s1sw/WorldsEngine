@@ -1,4 +1,5 @@
 #pragma once
+#include "Transform.hpp"
 #include <glm/glm.hpp>
 #include <string>
 
@@ -15,6 +16,11 @@ namespace worlds {
         RightHand
     };
 
+    enum class Hand {
+        LeftHand,
+        RightHand
+    };
+
     typedef uint64_t InputActionHandle;
 
     class IVRInterface {
@@ -24,6 +30,7 @@ namespace worlds {
         virtual bool getSprintInput() = 0;
         virtual bool getJumpInput() = 0;
         virtual glm::mat4 getHeadTransform() = 0;
+        virtual bool getHandTransform(Hand hand, Transform& t) = 0;
         virtual InputActionHandle getActionHandle(std::string actionPath) = 0;
         virtual bool getActionHeld(InputActionHandle handle) = 0;
         virtual bool getActionPressed(InputActionHandle handle) = 0;

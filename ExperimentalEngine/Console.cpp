@@ -37,7 +37,7 @@ namespace worlds {
     const std::unordered_map<SDL_LogPriority, ImColor> priorityColors = {
         { SDL_LOG_PRIORITY_CRITICAL, ImColor(0.8f, 0.0f, 0.0f) },
         { SDL_LOG_PRIORITY_DEBUG, ImColor(0.75f, 0.75f, 0.75f, 1.0f) },
-        { SDL_LOG_PRIORITY_INFO, ImColor(0.1f, 0.75f, 1.0f, 1.0f) },
+        { SDL_LOG_PRIORITY_INFO, ImColor(0.47f, 0.57f, 1.0f, 1.0f) },
         { SDL_LOG_PRIORITY_VERBOSE, ImColor(0.75f, 0.75f, 0.75f, 1.0f) },
         { SDL_LOG_PRIORITY_WARN, ImColor(1.0f, 1.0f, 0.0f) },
         { SDL_LOG_PRIORITY_ERROR, ImColor(1.0f, 0.0f, 0.0f) }
@@ -177,14 +177,16 @@ namespace worlds {
         }
 
         if (asyncStdinConsole) {
-            asyncConsoleThread = new std::thread(asyncConsole);
-            goToSecondaryScreen();
 #ifdef _WIN32
             if (!AttachConsole(ATTACH_PARENT_PROCESS)) {
                 if (!AllocConsole()) {
                     fatalErr("failed to allocconsole");
                 }
+                auto pid = GetCurrentProcessId();
+                std::string s = "Converge Dedicated Server (PID " + std::to_string(pid) + ")";
+                SetConsoleTitleA(s.c_str());
             }
+
             FILE *fDummy;
             freopen_s(&fDummy, "CONIN$", "r", stdin);
             freopen_s(&fDummy, "CONOUT$", "w", stderr);
@@ -211,7 +213,13 @@ namespace worlds {
             std::cin.clear();
             std::cout.clear();
 #endif
+            asyncConsoleThread = new std::thread(asyncConsole);
+            goToSecondaryScreen();
         }
+
+        registerCommand([](void*, const char* arg) {
+            logMsg("%s", arg);
+        }, "echo", "Echos the argument to the screen.", nullptr);
     }
 
     void Console::registerCommand(CommandFuncPtr cmd, const char* name, const char* help, void* obj) {
@@ -255,8 +263,15 @@ namespace worlds {
         std::stringstream stream(loadRes.value);
         std::string line;
 
+        bool printToConsole = true;
         while (std::getline(stream, line)) {
-            console->executeCommandStr(line);
+            if (line[0] == '#') {
+                continue;
+            } else if (line == "nolog") {
+                printToConsole = false;
+            }
+
+            console->executeCommandStr(line, printToConsole);
         }
     }
 
@@ -410,7 +425,7 @@ namespace worlds {
         this->show = show;
     }
 
-    void Console::executeCommandStr(std::string cmdStr) {
+    void Console::executeCommandStr(std::string cmdStr, bool log) {
         size_t firstSpace = cmdStr.find_first_of(' ');
         if (firstSpace == std::string::npos) {
             for (auto& c : cmdStr)
@@ -419,10 +434,12 @@ namespace worlds {
             auto cmdPos = commands.find(cmdStr);
 
             if (cmdPos != commands.end()) {
-                msgs.push_back(ConsoleMsg{ SDL_LOG_PRIORITY_INFO, cmdStr, CONSOLE_RESPONSE_CATEGORY });
+                if (log)
+                    msgs.push_back(ConsoleMsg{ SDL_LOG_PRIORITY_INFO, cmdStr, CONSOLE_RESPONSE_CATEGORY });
                 (*cmdPos).second.func((*cmdPos).second.obj, "");
             } else if (convarPos != conVars.end()) {
-                logMsg(CONSOLE_RESPONSE_CATEGORY, "%s=%s", (*convarPos).second->getName(), (*convarPos).second->getString());
+                if (log)
+                    logMsg(CONSOLE_RESPONSE_CATEGORY, "%s=%s", (*convarPos).second->getName(), (*convarPos).second->getString());
             } else {
                 logErr(CONSOLE_RESPONSE_CATEGORY, "No command/convar named %s", cmdStr.c_str());
             }
@@ -442,12 +459,15 @@ namespace worlds {
                     valStr = valStr.substr(1);
 
                 (*convarPos).second->setValue(valStr.c_str());
-                logMsg(CONSOLE_RESPONSE_CATEGORY, "%s = %s", cmdString.c_str(), valStr.c_str());
+                if (log)
+                    logMsg(CONSOLE_RESPONSE_CATEGORY, "%s = %s", cmdString.c_str(), valStr.c_str());
             } else if (cmdPos != commands.end()) {
-                logMsg(CONSOLE_RESPONSE_CATEGORY, cmdStr.c_str());
+                if (log)
+                    msgs.push_back(ConsoleMsg{ SDL_LOG_PRIORITY_INFO, cmdStr, CONSOLE_RESPONSE_CATEGORY });
                 (*cmdPos).second.func((*cmdPos).second.obj, argString.c_str());
             } else {
-                logErr(CONSOLE_RESPONSE_CATEGORY, "No command/convar named %s", cmdString.c_str());
+                if (log)
+                    logErr(CONSOLE_RESPONSE_CATEGORY, "No command/convar named %s", cmdString.c_str());
             }
         }
     }

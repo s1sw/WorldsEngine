@@ -43,7 +43,7 @@ namespace worlds {
         void registerCommand(CommandFuncPtr funcPtr, const char* name, const char* help, void* obj);
         void drawWindow();
         void setShowState(bool show);
-        void executeCommandStr(std::string cmdStr);
+        void executeCommandStr(std::string cmdStr, bool log = true);
         ~Console();
     private:
         bool show;

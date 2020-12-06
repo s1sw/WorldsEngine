@@ -1,5 +1,6 @@
 #include "Client.hpp"
 #include <Log.hpp>
+#include "NetMessage.hpp"
 
 namespace converge {
     Client::Client() {
@@ -8,21 +9,31 @@ namespace converge {
 
     void Client::connect(ENetAddress address) {
         serverPeer = enet_host_connect(host, &address, 2, 0);
-        ENetEvent event;
+    }
 
-        if (enet_host_service (host, &event, 100) > 0 && event.type == ENET_EVENT_TYPE_CONNECT) {
-            logMsg("connection succeded!");
-        } else {
-            logErr("connection failed :(");
-            enet_peer_reset (serverPeer);
+    void Client::sendPacketToServer(ENetPacket* p) {
+        int result = enet_peer_send(serverPeer, 0, p);
+
+        if (result != 0) {
+            logWarn("failed to send packet");
         }
+        logMsg("sent packet");
     }
 
     void Client::handleConnection(const ENetEvent& evt) {
         logMsg("connected! ping is %u", serverPeer->roundTripTime);
+
+        msgs::PlayerJoinRequest pjr;
+        pjr.gameVersion = 1;
+        pjr.userAuthId = 1;
+        pjr.userAuthUniverse = 1;
+
+        auto pjrPacket = pjr.toPacket(ENET_PACKET_FLAG_RELIABLE);
+
+        sendPacketToServer(pjrPacket);
     }
     
     void Client::handleDisconnection(const ENetEvent& evt) {
-        logMsg("disconnected :(");
+        logMsg("disconnected :(  reason was %u", evt.data);
     }
 }

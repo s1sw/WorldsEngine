@@ -17,6 +17,7 @@ namespace converge {
         NetPlayer players[MAX_PLAYERS];
     protected:
         bool findFreePlayerSlot(uint8_t& slot);
+        void handleReceivedPacket(const ENetEvent& evt, MessageCallback callback) override;
         void handleConnection(const ENetEvent& evt) override;
         void handleDisconnection(const ENetEvent& evt) override;
         ServerConnectCallback connectCallback;

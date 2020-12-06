@@ -26,7 +26,7 @@ namespace converge {
         static_assert(MAX_PLAYERS < std::numeric_limits<decltype(idx)>::max());
     };
 
-    typedef void(*MessageCallback)(const NetworkMessage&, void*);
+    typedef void(*MessageCallback)(ENetPacket*, void*);
     typedef void(*ServerConnectCallback)(NetPlayer&, void*);
     typedef void(*ClientConnectCallback)(void*);
 
@@ -37,7 +37,7 @@ namespace converge {
         void setCallbackCtx(void* obj) { callbackCtx = obj; }
         virtual ~NetBase() {}
     protected:
-        void handleReceivedPacket(const ENetEvent& evt, MessageCallback callback);
+        virtual void handleReceivedPacket(const ENetEvent& evt, MessageCallback callback);
         virtual void handleConnection(const ENetEvent& evt) = 0;
         virtual void handleDisconnection(const ENetEvent& evt) = 0;
         // callbacks

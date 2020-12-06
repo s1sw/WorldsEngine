@@ -43,16 +43,50 @@ namespace converge {
             fatalErr("An error occurred while trying to create an ENet server host.");
         }
 
-        worlds::g_console->registerCommand([&](void*, const char* arg) {
+        worlds::g_console->registerCommand([&](void*, const char*) {
             for (int i = 0; i < MAX_PLAYERS; i++) {
                 if (players[i].peer) {
                     logMsg("player %i: present %i, %u RTT", i, players[i].present, players[i].peer->roundTripTime);
-                } else {
-                    logMsg("player %i: present %i", i, players[i].present);
-                }
+                } 
             }
+        }, "list", "List players.", nullptr);
+    }
 
-        }, "server_printRTT", "", nullptr);
+    bool Server::findFreePlayerSlot(uint8_t& slot) {
+        for (int i = 0; i < MAX_PLAYERS; i++) {
+            if (!players[i].present) {
+                slot = i;
+                return true;
+            }
+        }
+
+        // no free slots, server is full
+        return false;
+    }
+
+    void Server::handleReceivedPacket(const ENetEvent& evt, MessageCallback callback) {
+        logMsg("recieved packet from %lu", (uintptr_t)evt.peer->data);
+        if (evt.packet->data[0] == MessageType::JoinRequest) {
+            msgs::PlayerJoinRequest pjr;
+            pjr.fromPacket(evt.packet);
+
+            logMsg("pjr: auth id: %lu, auth universe: %u, version %lu", 
+                    pjr.userAuthId, pjr.userAuthUniverse, pjr.gameVersion);
+
+            // reply with accept
+            msgs::PlayerJoinAcceptance pja;
+            pja.serverSideID = (uint16_t)(uintptr_t)evt.peer->data;
+
+            ENetPacket* pjaPacket = pja.toPacket(ENET_PACKET_FLAG_RELIABLE);
+            enet_peer_send(evt.peer, 0, pjaPacket);
+            enet_packet_destroy(pjaPacket);
+
+            enet_packet_destroy(evt.packet);
+            return;
+        }
+
+        NetBase::handleReceivedPacket(evt, callback);
+        enet_packet_destroy(evt.packet);
     }
 
     void Server::handleConnection(const ENetEvent& evt) {
@@ -78,20 +112,8 @@ namespace converge {
         evt.peer->data = (void*)(uintptr_t)newIdx;
     }
 
-    bool Server::findFreePlayerSlot(uint8_t& slot) {
-        for (int i = 0; i < MAX_PLAYERS; i++) {
-            if (!players[i].present) {
-                slot = i;
-                return true;
-            }
-        }
-
-        // no free slots, server is full
-        return false;
-    }
-
     void Server::handleDisconnection(const ENetEvent& evt) {
-        logMsg("received disconnection");
+        logMsg("received disconnection. reason: %i", evt.data);
         uint8_t idx = (uint8_t)(uintptr_t)evt.peer->data;
 
         if (!players[idx].present) {

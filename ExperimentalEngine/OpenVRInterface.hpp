@@ -61,7 +61,7 @@ namespace worlds {
 
         glm::mat4 getProjMat(vr::EVREye eye, float near, float far);
         void updateInput() override;
-        bool getHandTransform(vr::ETrackedControllerRole role, Transform& t);
+        bool getHandTransform(Hand hand, Transform& t) override;
         glm::mat4 getHeadTransform() override;
         glm::vec2 getLocomotionInput() override;
 
