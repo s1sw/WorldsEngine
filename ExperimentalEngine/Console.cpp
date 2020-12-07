@@ -131,11 +131,15 @@ namespace worlds {
         }
     }
 
+    const bool ENABLE_SECONDARY_SCREEN = false;
+
     void goToSecondaryScreen() {
+        if (!ENABLE_SECONDARY_SCREEN) return;
         std::cout << "\033[7\033[?47h";
     }
 
     void returnToPrimary() {
+        if (!ENABLE_SECONDARY_SCREEN) return;
         std::cout << "\033[2J\033[?47l\0338";
     }
 
