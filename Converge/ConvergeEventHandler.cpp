@@ -274,8 +274,11 @@ namespace converge {
             registry.destroy(rHandEnt);
         }
 
-        if (enetHost)
-            enet_host_destroy(enetHost);
+        if (client)
+            delete client;
+
+        if (server)
+            delete server;
 
         enet_deinitialize();
     }
