@@ -25,7 +25,7 @@ namespace converge {
 
         msgs::PlayerJoinRequest pjr;
         pjr.gameVersion = 1;
-        pjr.userAuthId = 1;
+        pjr.userAuthId = 0;
         pjr.userAuthUniverse = 1;
 
         auto pjrPacket = pjr.toPacket(ENET_PACKET_FLAG_RELIABLE);
@@ -35,5 +35,9 @@ namespace converge {
     
     void Client::handleDisconnection(const ENetEvent& evt) {
         logMsg("disconnected :(  reason was %u", evt.data);
+    }
+
+    Client::~Client() {
+        enet_peer_disconnect_now(serverPeer, DisconnectReason_PlayerLeaving);
     }
 }

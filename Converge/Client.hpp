@@ -9,6 +9,7 @@ namespace converge {
         ENetPeer* serverPeer;
         uint16_t serverSideID;
         void sendPacketToServer(ENetPacket* p);
+        ~Client();
     private:
         void handleConnection(const ENetEvent& evt) override;
         void handleDisconnection(const ENetEvent& evt) override;

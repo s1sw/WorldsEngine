@@ -1,6 +1,6 @@
 #pragma once
 #include <cassert>
-#include <string>
+#include <string.h>
 #include <stdint.h>
 #include <enet/enet.h>
 
