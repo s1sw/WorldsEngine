@@ -8,7 +8,6 @@ namespace converge {
     void NetBase::processMessages(MessageCallback callback) {
         ENetEvent evt;
         while (enet_host_service(host, &evt, 0) > 0) {
-            logMsg("EVENT!");
             switch (evt.type) {
                 case ENET_EVENT_TYPE_CONNECT:
                     handleConnection(evt);
