@@ -559,9 +559,9 @@ namespace worlds {
 
             uint64_t updateStart = SDL_GetPerformanceCounter();
 
-            tickRichPresence();
-
             if (!dedicatedServer) {
+                tickRichPresence();
+
                 ImGui_ImplVulkan_NewFrame();
                 ImGui_ImplSDL2_NewFrame(window);
             }

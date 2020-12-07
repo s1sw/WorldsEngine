@@ -1,10 +1,11 @@
-#include <discord_rpc.h>
+#include <core.h>
 #include "Log.hpp"
 #include <SDL2/SDL_timer.h>
 #include "Engine.hpp"
 
 namespace worlds {
     extern SceneInfo currentScene;
+    discord::Core* discordCore;
 
     SDL_TimerID presenceUpdateTimer;
 
@@ -14,24 +15,32 @@ namespace worlds {
     void onDiscordReady(const DiscordUser* user) {
         logMsg("Rich presence ready for %s", user->username);
 
+
         presenceUpdateTimer = SDL_AddTimer(1000, [](uint32_t interval, void*) {
             std::string state = ((engine->runAsEditor ? "Editing " : "On ") + currentScene.name);
 #ifndef NDEBUG
             state += "(DEVELOPMENT BUILD)";
 #endif
-            DiscordRichPresence richPresence;
-            memset(&richPresence, 0, sizeof(richPresence));
-            richPresence.state = state.c_str();
-            richPresence.largeImageKey = "logo";
-            richPresence.largeImageText = "Private";
+            discord::Activity activity;
+            activity.SetState(state.c_str());
+            activity.SetType(discord::ActivityType::Playing);
+            auto& actAssets = activity.GetAssets();
+            actAssets.SetLargeImage("logo");
+            actAssets.SetLargeText("Private");
+
             if (!engine->runAsEditor) {
-                richPresence.partyId = "1365";
-                richPresence.partyMax = 256;
-                richPresence.partySize = 1;
-                richPresence.joinSecret = "someone";
+                auto& party = activity.GetParty();
+                party.SetId("1365");
+                party.GetSize().SetMaxSize(256);
+                party.GetSize().SetCurrentSize(1);
+                activity.GetSecrets().SetJoin("someone");
             }
 
-            Discord_UpdatePresence(&richPresence);
+            discordCore->ActivityManager().UpdateActivity(activity, [](discord::Result res) {
+                if (res != discord::Result::Ok) {
+                    logWarn("failed to update activity");
+                }
+            });
             return interval;
             }, nullptr);
     }
@@ -40,22 +49,24 @@ namespace worlds {
     void initRichPresence(EngineInterfaces interfaces) {
 #ifdef DISCORD_RPC
         engine = interfaces.engine;
-        DiscordEventHandlers handlers;
-        memset(&handlers, 0, sizeof(handlers));
-        handlers.ready = onDiscordReady;
-        Discord_Initialize("742075252028211310", &handlers, 0, nullptr);
+
+        auto result = discord::Core::Create(742075252028211310, DiscordCreateFlags_NoRequireDiscord, &discordCore);
+
+        if (result != discord::Result::Ok) {
+            logErr("failed to initialise discord :(");
+        }
 #endif
     }
 
     void tickRichPresence() {
 #ifdef DISCORD_RPC
-        Discord_RunCallbacks();
+        discordCore->RunCallbacks();
 #endif
     }
 
     void shutdownRichPresence() {
 #ifdef DISCORD_RPC
-        Discord_Shutdown();
+        delete discordCore;
 #endif
     }
 }
