@@ -20,6 +20,7 @@ namespace converge {
         void shutdown(entt::registry& registry) override;
     private:
         static void onServerPacket(const ENetEvent&, void*);
+        static void onClientPacket(const ENetEvent&, void*);
         static void onPlayerJoin(NetPlayer&, void*);
         static void onPlayerLeave(NetPlayer&, void*);
         worlds::IVRInterface* vrInterface;
@@ -35,5 +36,6 @@ namespace converge {
         entt::entity lHandEnt, rHandEnt;
         physx::PxD6Joint* lHandJoint, *rHandJoint;
         entt::entity serverLocospheres[MAX_PLAYERS];
+        bool setClientInfo = false;
     };
 }

@@ -53,6 +53,7 @@ namespace converge {
 
             logMsg("join accepted! :)");
             logMsg("our server side id is %i", pja.serverSideID);
+            serverSideID = pja.serverSideID;
 
             enet_packet_destroy(evt.packet);
             return;
@@ -62,6 +63,7 @@ namespace converge {
     }
 
     Client::~Client() {
-        enet_peer_disconnect_now(serverPeer, DisconnectReason_PlayerLeaving);
+        if (serverPeer)
+            enet_peer_disconnect_now(serverPeer, DisconnectReason_PlayerLeaving);
     }
 }

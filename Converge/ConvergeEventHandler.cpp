@@ -1,4 +1,5 @@
 #include "ConvergeEventHandler.hpp"
+#include <RichPresence.hpp>
 #include <openvr.h>
 #include <Log.hpp>
 #include <Render.hpp>
@@ -20,6 +21,7 @@
 #include <JobSystem.hpp>
 #include "CreateModelObject.hpp"
 #include "ObjectParentSystem.hpp"
+#include <core.h>
 
 namespace converge {
     const uint16_t CONVERGE_PORT = 3011;
@@ -63,6 +65,7 @@ namespace converge {
             server->start();
         } else {
             client = new Client{};
+            client->setCallbackCtx(this);
 
             worlds::g_console->registerCommand([&](void*, const char*) {
                 if (!client->serverPeer || 
@@ -124,16 +127,42 @@ namespace converge {
         }
     }
 
-    glm::vec3 offset {0.0f, 0.01f, 0.1f};
-    void EventHandler::preSimUpdate(entt::registry& registry, float deltaTime) {
+    void EventHandler::preSimUpdate(entt::registry&, float) {
     }
 
-    void EventHandler::update(entt::registry& registry, float deltaTime, float interpAlpha) {
-        if (isDedicated)
+    void EventHandler::update(entt::registry& registry, float, float) {
+        if (isDedicated) {
             server->processMessages(onServerPacket);
 
-        if (client)
-            client->processMessages(nullptr);
+            for (int i = 0; i < MAX_PLAYERS; i++) {
+                if (!server->players[i].present) continue;
+
+                Transform& t = registry.get<Transform>(serverLocospheres[i]);
+                msgs::PlayerPosition pPos;
+                pPos.id = i;
+                pPos.pos = t.position;
+                pPos.rot = t.rotation;
+                
+                server->broadcastPacket(pPos.toPacket(0));
+            }
+        }
+
+        if (client) {
+            client->processMessages(onClientPacket);
+
+#ifdef DISCORD_RPC
+            if (!setClientInfo) {
+                discord::User currUser;
+                auto res = worlds::discordCore->UserManager().GetCurrentUser(&currUser);
+
+                if (res == discord::Result::Ok) {
+                    logMsg("got user info, setting client info for %s#%s with id %lu...", currUser.GetUsername(), currUser.GetDiscriminator(), currUser.GetId());
+                    client->setClientInfo(1, currUser.GetId(), 1);
+                    setClientInfo = true;
+                }
+            }
+#endif
+        }
 
         g_dbgArrows->newFrame();
         entt::entity localLocosphereEnt = entt::null;
@@ -318,6 +347,27 @@ namespace converge {
             auto& lpc = _this->reg->get<LocospherePlayerComponent>(locosphereEnt);
             lpc.xzMoveInput = pi.xzMoveInput;
             lpc.sprint = pi.sprint; 
+        }
+    }
+
+    void EventHandler::onClientPacket(const ENetEvent& evt, void* vp) {
+        EventHandler* _this = (EventHandler*)vp;
+
+        if (evt.packet->data[0] == MessageType::PlayerPosition) {
+            msgs::PlayerPosition pPos;
+            pPos.fromPacket(evt.packet);
+
+            if (pPos.id == _this->client->serverSideID) {
+                _this->reg->view<LocospherePlayerComponent, worlds::DynamicPhysicsActor>()
+                    .each([&](auto, LocospherePlayerComponent& lpc, worlds::DynamicPhysicsActor& dpa) {
+                    if (lpc.isLocal) {
+                        auto pose = dpa.actor->getGlobalPose();
+                        pose.p = worlds::glm2px(pPos.pos);
+                        pose.q = worlds::glm2px(pPos.rot);
+                        dpa.actor->setGlobalPose(pose);
+                    }
+                });
+            }
         }
     }
 

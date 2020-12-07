@@ -56,7 +56,7 @@ namespace converge {
         worlds::g_console->registerCommand([&](void*, const char*) {
             for (int i = 0; i < MAX_PLAYERS; i++) {
                 if (players[i].peer) {
-                    logMsg("player %i: present %i, %u RTT", i, players[i].present, players[i].peer->roundTripTime);
+                    logMsg("player %i: present %i, %ums RTT", i, players[i].present, players[i].peer->roundTripTime);
                 } 
             }
         }, "list", "List players.", nullptr);
@@ -75,7 +75,6 @@ namespace converge {
     }
 
     void Server::handleReceivedPacket(const ENetEvent& evt, MessageCallback callback) {
-        logMsg("recieved packet from %lu", (uintptr_t)evt.peer->data);
         if (evt.packet->data[0] == MessageType::JoinRequest) {
             msgs::PlayerJoinRequest pjr;
             pjr.fromPacket(evt.packet);
@@ -135,6 +134,10 @@ namespace converge {
         if (disconnectCallback)
             disconnectCallback(players[idx], callbackCtx);
         players[idx].present = false;
+    }
+
+    void Server::broadcastPacket(ENetPacket* packet) {
+        enet_host_broadcast(host, 0, packet);
     }
 
     void Server::stop() {

@@ -46,6 +46,7 @@ namespace converge {
 
         DATAPACKET(PlayerPosition) {
             MessageType type = MessageType::PlayerPosition;
+            uint8_t id;
             glm::vec3 pos;
             glm::quat rot;
         };
