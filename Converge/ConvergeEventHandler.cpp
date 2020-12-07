@@ -4,6 +4,7 @@
 #include <Render.hpp>
 #include "AssetDB.hpp"
 #include "DebugArrow.hpp"
+#include "NetMessage.hpp"
 #include "SourceModelLoader.hpp"
 #include "Transform.hpp"
 #include <OpenVRInterface.hpp>
@@ -30,8 +31,8 @@ namespace converge {
 
     EventHandler::EventHandler(bool dedicatedServer) 
         : isDedicated {dedicatedServer}
-        , enetHost {nullptr}
         , client {nullptr}
+        , server {nullptr}
         , lHandEnt {entt::null}
         , rHandEnt {entt::null} {
     }
@@ -41,6 +42,7 @@ namespace converge {
         renderer = interfaces.renderer;
         camera = interfaces.mainCamera;
         inputManager = interfaces.inputManager;
+        reg = &registry;
 
         worlds::g_console->registerCommand(cmdToggleVsync, "r_toggleVsync", "Toggles Vsync.", renderer);
         interfaces.engine->addSystem(new ObjectParentSystem);
@@ -55,7 +57,22 @@ namespace converge {
 
         if (isDedicated) {
             server = new Server{};
+            server->setCallbackCtx(this);
+            server->setConnectionCallback(onPlayerJoin);
+            server->setDisconnectionCallback(onPlayerLeave);
             server->start();
+        } else {
+            client = new Client{};
+
+            worlds::g_console->registerCommand([&](void*, const char*) {
+                if (!client->serverPeer || 
+                        client->serverPeer->state != ENET_PEER_STATE_CONNECTED) {
+                    logErr("not connected!");
+                    return;
+                }
+
+                client->disconnect();
+            }, "disconnect", "Disconnect from the server.", nullptr);
         }
 
         worlds::g_console->registerCommand([&](void*, const char* arg) {
@@ -63,8 +80,6 @@ namespace converge {
                 logErr("this is a server! what are you trying to do???");
                 return;
             }
-
-            client = new Client{};
             
             // assume the argument is an address
             ENetAddress addr;
@@ -72,7 +87,7 @@ namespace converge {
             addr.port = CONVERGE_PORT;
 
             client->connect(addr);
-            }, "cnvrg_connect", "Connects to the specified server.", nullptr);
+            }, "connect", "Connects to the specified server.", nullptr);
 
         new DebugArrows(registry);
 
@@ -115,19 +130,21 @@ namespace converge {
 
     void EventHandler::update(entt::registry& registry, float deltaTime, float interpAlpha) {
         if (isDedicated)
-            server->processMessages(nullptr);
+            server->processMessages(onServerPacket);
 
         if (client)
             client->processMessages(nullptr);
 
         g_dbgArrows->newFrame();
         entt::entity localLocosphereEnt = entt::null;
+        LocospherePlayerComponent* localLpc = nullptr;
 
         registry.view<LocospherePlayerComponent>().each([&](auto ent, auto& lpc) {
             if (lpc.isLocal) {
-                if (!registry.valid(localLocosphereEnt))
+                if (!registry.valid(localLocosphereEnt)) {
                     localLocosphereEnt = ent;
-                else {
+                    localLpc = &lpc;
+                } else {
                     logWarn("more than one local locosphere!");
                 }
             }
@@ -138,6 +155,14 @@ namespace converge {
             return;
         }
 
+        if (client->isConnected()) {
+            // send input to server
+            msgs::PlayerInput pi;
+            pi.xzMoveInput = localLpc->xzMoveInput;
+            pi.sprint = localLpc->sprint;
+            client->sendPacketToServer(pi.toPacket(0));
+        }
+
         auto& t = registry.get<Transform>(localLocosphereEnt);
         auto& t2 = registry.get<Transform>(otherLocosphere);
         auto& lpc2 = registry.get<LocospherePlayerComponent>(otherLocosphere);
@@ -146,14 +171,11 @@ namespace converge {
         dir.y = 0.0f;
         dir = glm::normalize(dir);
 
-        ImGui::Text("dir: %.3f, %.3f, %.3f", dir.x, dir.y, dir.z);
-
         if (sqDist > 16.0f)
             lpc2.xzMoveInput = glm::vec2 { dir.x, dir.z };
         else
             lpc2.xzMoveInput = glm::vec2 { 0.0f };
         lpc2.sprint = sqDist > 100.0f; 
-
     }
 
     void EventHandler::simulate(entt::registry&, float) {
@@ -281,5 +303,43 @@ namespace converge {
             delete server;
 
         enet_deinitialize();
+    }
+
+    void EventHandler::onServerPacket(const ENetEvent& evt, void* vp) {
+        auto* packet = evt.packet;
+        EventHandler* _this = (EventHandler*)vp;
+
+        if (packet->data[0] == MessageType::PlayerInput) {
+            msgs::PlayerInput pi;
+            pi.fromPacket(packet);
+            // send it to the proper locosphere!
+            uint8_t idx = (uintptr_t)evt.peer->data;
+            entt::entity locosphereEnt = _this->serverLocospheres[idx];
+            auto& lpc = _this->reg->get<LocospherePlayerComponent>(locosphereEnt);
+            lpc.xzMoveInput = pi.xzMoveInput;
+            lpc.sprint = pi.sprint; 
+        }
+    }
+
+    void EventHandler::onPlayerJoin(NetPlayer& player, void* vp) {
+        EventHandler* _this = (EventHandler*)vp;
+
+        // setup the new player's locosphere!
+        PlayerRig newRig = _this->lsphereSys->createPlayerRig(*_this->reg);
+        auto& lpc = _this->reg->get<LocospherePlayerComponent>(newRig.locosphere);
+        lpc.isLocal = false;
+        _this->serverLocospheres[player.idx] = newRig.locosphere;
+    }
+
+    void EventHandler::onPlayerLeave(NetPlayer& player, void* vp) {
+        EventHandler* _this = (EventHandler*)vp;
+
+        // destroy the full rig
+        PlayerRig& rig = _this->reg->get<PlayerRig>(_this->serverLocospheres[player.idx]);
+
+        _this->reg->destroy(rig.fender);
+        _this->reg->destroy(rig.locosphere);
+        rig.fenderJoint->release();
+        _this->serverLocospheres[player.idx] = entt::null;
     }
 }

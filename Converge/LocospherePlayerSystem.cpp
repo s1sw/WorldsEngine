@@ -522,6 +522,7 @@ namespace converge {
         PlayerRig rig;
         rig.locosphere = playerLocosphere;
         rig.fender = playerFender;
+        rig.fenderJoint = fenderJoint;
         registry.emplace<PlayerRig>(playerLocosphere, rig);
         
         return rig;

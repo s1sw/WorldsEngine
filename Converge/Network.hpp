@@ -26,7 +26,7 @@ namespace converge {
         static_assert(MAX_PLAYERS < std::numeric_limits<decltype(idx)>::max());
     };
 
-    typedef void(*MessageCallback)(ENetPacket*, void*);
+    typedef void(*MessageCallback)(const ENetEvent&, void*);
     typedef void(*ServerConnectCallback)(NetPlayer&, void*);
     typedef void(*ClientConnectCallback)(void*);
 

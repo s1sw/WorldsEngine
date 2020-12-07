@@ -4,6 +4,16 @@
 #include "Console.hpp"
 
 namespace converge {
+    const char* reasonStrs[] = {
+        "Unknown",
+        "Server Full",
+        "Kicked",
+        "Server Error",
+        "Client Error",
+        "Server Shutdown",
+        "Player Leaving"
+    };
+
     Server::Server() 
         : connectCallback(nullptr)
         , disconnectCallback(nullptr) {
@@ -79,14 +89,12 @@ namespace converge {
 
             ENetPacket* pjaPacket = pja.toPacket(ENET_PACKET_FLAG_RELIABLE);
             enet_peer_send(evt.peer, 0, pjaPacket);
-            enet_packet_destroy(pjaPacket);
 
             enet_packet_destroy(evt.packet);
             return;
         }
 
         NetBase::handleReceivedPacket(evt, callback);
-        enet_packet_destroy(evt.packet);
     }
 
     void Server::handleConnection(const ENetEvent& evt) {
@@ -113,7 +121,11 @@ namespace converge {
     }
 
     void Server::handleDisconnection(const ENetEvent& evt) {
-        logMsg("received disconnection. reason: %i", evt.data);
+        if (evt.data < sizeof(reasonStrs) / sizeof(reasonStrs[0]) && evt.data > 0) {
+            logMsg("received disconnection. reason: %i (%s)", evt.data, reasonStrs[evt.data]);
+        } else {
+            logMsg("received disconnection. reason: %i", evt.data);
+        }
         uint8_t idx = (uint8_t)(uintptr_t)evt.peer->data;
 
         if (!players[idx].present) {
@@ -135,5 +147,6 @@ namespace converge {
 
         processMessages(nullptr);
         enet_host_destroy(host);
+        host = nullptr;
     }
 }

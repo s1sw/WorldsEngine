@@ -1,5 +1,8 @@
 #pragma once
+#include "Log.hpp"
 #include <cassert>
+#include <glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp>
 #include <string.h>
 #include <stdint.h>
 #include <enet/enet.h>
@@ -7,11 +10,14 @@
 namespace converge {
     typedef enum {
         JoinRequest,
-        JoinAccept
+        JoinAccept,
+        PlayerInput,
+        PlayerPosition
     } MessageType;
 
     namespace msgs {
 #pragma pack (push, 1)
+#define DATAPACKET(name) struct name : public SimpleDataPacket<name>
         template <typename T>
         struct SimpleDataPacket {
             ENetPacket* toPacket(uint32_t flags) const {
@@ -24,7 +30,7 @@ namespace converge {
             }
         };
 
-        struct PlayerJoinRequest : public SimpleDataPacket<PlayerJoinRequest> {
+        DATAPACKET(PlayerJoinRequest) {
             MessageType type = MessageType::JoinRequest;
             uint64_t gameVersion;
             uint64_t userAuthId;
@@ -33,10 +39,23 @@ namespace converge {
             uint16_t userAuthUniverse;
         };
 
-        struct PlayerJoinAcceptance : public SimpleDataPacket<PlayerJoinRequest> {
+        DATAPACKET(PlayerJoinAcceptance) {
             MessageType type = MessageType::JoinAccept;
             uint16_t serverSideID;            
         };
+
+        DATAPACKET(PlayerPosition) {
+            MessageType type = MessageType::PlayerPosition;
+            glm::vec3 pos;
+            glm::quat rot;
+        };
+
+        DATAPACKET(PlayerInput) {
+            MessageType type = MessageType::PlayerInput;
+            glm::vec2 xzMoveInput;
+            bool sprint;
+        };
+#undef DATAPACKET
 #pragma pack (pop)
     }
 }

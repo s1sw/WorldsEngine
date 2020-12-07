@@ -3,7 +3,7 @@
 #include "NetMessage.hpp"
 
 namespace converge {
-    Client::Client() {
+    Client::Client() : serverPeer {nullptr} {
         host = enet_host_create(nullptr, 1, 2, 0, 0);
     }
 
@@ -17,16 +17,25 @@ namespace converge {
         if (result != 0) {
             logWarn("failed to send packet");
         }
-        logMsg("sent packet");
+    }
+    
+    void Client::setClientInfo(uint64_t gameVersion, uint64_t userAuthId, uint16_t userAuthUniverse) {
+        this->gameVersion = gameVersion;
+        this->userAuthId = userAuthId;
+        this->userAuthUniverse = userAuthUniverse;
+    }
+
+    void Client::disconnect() {
+        enet_peer_disconnect_now(serverPeer, DisconnectReason_PlayerLeaving);
     }
 
     void Client::handleConnection(const ENetEvent& evt) {
         logMsg("connected! ping is %u", serverPeer->roundTripTime);
 
         msgs::PlayerJoinRequest pjr;
-        pjr.gameVersion = 1;
-        pjr.userAuthId = 0;
-        pjr.userAuthUniverse = 1;
+        pjr.gameVersion = gameVersion;
+        pjr.userAuthId = userAuthId;
+        pjr.userAuthUniverse = userAuthUniverse;
 
         auto pjrPacket = pjr.toPacket(ENET_PACKET_FLAG_RELIABLE);
 
@@ -34,7 +43,22 @@ namespace converge {
     }
     
     void Client::handleDisconnection(const ENetEvent& evt) {
-        logMsg("disconnected :(  reason was %u", evt.data);
+        logMsg("disconnected :( reason was %u", evt.data);
+    }
+
+    void Client::handleReceivedPacket(const ENetEvent& evt, MessageCallback callback) {
+        if (evt.packet->data[0] == MessageType::JoinAccept) {
+            msgs::PlayerJoinAcceptance pja;
+            pja.fromPacket(evt.packet);
+
+            logMsg("join accepted! :)");
+            logMsg("our server side id is %i", pja.serverSideID);
+
+            enet_packet_destroy(evt.packet);
+            return;
+        }
+
+        NetBase::handleReceivedPacket(evt, callback);
     }
 
     Client::~Client() {

@@ -19,17 +19,21 @@ namespace converge {
         void onSceneStart(entt::registry& reg) override;
         void shutdown(entt::registry& registry) override;
     private:
+        static void onServerPacket(const ENetEvent&, void*);
+        static void onPlayerJoin(NetPlayer&, void*);
+        static void onPlayerLeave(NetPlayer&, void*);
         worlds::IVRInterface* vrInterface;
         worlds::VKRenderer* renderer;
         worlds::InputManager* inputManager;
         worlds::Camera* camera;
         LocospherePlayerSystem* lsphereSys;
+        entt::registry* reg;
         bool isDedicated;
-        ENetHost* enetHost;
         entt::entity otherLocosphere;
         Client* client;
         Server* server;
         entt::entity lHandEnt, rHandEnt;
         physx::PxD6Joint* lHandJoint, *rHandJoint;
+        entt::entity serverLocospheres[MAX_PLAYERS];
     };
 }
