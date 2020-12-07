@@ -1,5 +1,6 @@
 #pragma once
 #include "Network.hpp"
+#include <enet/enet.h>
 
 namespace converge {
     class Client : public NetBase {
@@ -9,10 +10,19 @@ namespace converge {
         ENetPeer* serverPeer;
         uint16_t serverSideID;
         void sendPacketToServer(ENetPacket* p);
+        void setClientInfo(uint64_t gameVersion, uint64_t userAuthId, uint16_t userAuthUniverse);
+        bool isConnected() { 
+            return serverPeer && serverPeer->state == ENET_PEER_STATE_CONNECTED; 
+        }
+
+        void disconnect();
         ~Client();
     private:
+        uint64_t gameVersion;
+        uint64_t userAuthId;
+        uint16_t userAuthUniverse;
         void handleConnection(const ENetEvent& evt) override;
         void handleDisconnection(const ENetEvent& evt) override;
-
+        void handleReceivedPacket(const ENetEvent& evt, MessageCallback callback) override;
     };
 }

@@ -31,6 +31,8 @@ namespace converge {
         }
 
         if (callback)
-            callback(evt.packet, callbackCtx);
+            callback(evt, callbackCtx);
+
+        enet_packet_destroy(evt.packet);
     }
 }

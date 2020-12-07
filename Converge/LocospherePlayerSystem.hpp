@@ -29,6 +29,12 @@ namespace converge {
     };
 
     struct PlayerRig {
+        PlayerRig()
+            : locosphere {entt::null}
+            , fender {entt::null}
+            , lHand {entt::null}
+            , rHand {entt::null}
+            , fenderJoint {nullptr} {}
         entt::entity locosphere;
         entt::entity fender;
         entt::entity lHand;
