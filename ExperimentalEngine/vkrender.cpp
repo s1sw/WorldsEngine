@@ -102,11 +102,11 @@ void VKRenderer::createFramebuffers() {
         vk::FramebufferCreateInfo fci;
         fci.attachmentCount = 1;
         fci.pAttachments = attachments;
-        fci.width = this->width;
-        fci.height = this->height;
+        fci.width = width;
+        fci.height = height;
         fci.renderPass = irp->getRenderPass();
         fci.layers = 1;
-        this->framebuffers.push_back(this->device->createFramebufferUnique(fci));
+        framebuffers.push_back(device->createFramebufferUnique(fci));
     }
 }
 
@@ -184,7 +184,7 @@ void VKRenderer::createInstance(const RendererInitInfo& initInfo) {
     }
 
     for (auto& v : vk::enumerateInstanceExtensionProperties()) {
-        logMsg(WELogCategoryRender, "supported extension: %s", v.extensionName);
+        logMsg(WELogCategoryRender, "supported extension: %s", v.extensionName.data());
     }
 
     for (auto& e : instanceExtensions) {
@@ -205,7 +205,7 @@ void VKRenderer::createInstance(const RendererInitInfo& initInfo) {
         .applicationVersion(1)
         .engineVersion(1);
 
-    this->instance = instanceMaker.createUnique();
+    instance = instanceMaker.createUnique();
 }
 
 void logPhysDevInfo(const vk::PhysicalDevice& physicalDevice) {
@@ -213,7 +213,7 @@ void logPhysDevInfo(const vk::PhysicalDevice& physicalDevice) {
 
     auto physDevProps = physicalDevice.getProperties();
     logMsg(worlds::WELogCategoryRender, "Physical device:\n");
-    logMsg(worlds::WELogCategoryRender, "\t-Name: %s", physDevProps.deviceName);
+    logMsg(worlds::WELogCategoryRender, "\t-Name: %s", physDevProps.deviceName.data());
     logMsg(worlds::WELogCategoryRender, "\t-ID: %u", physDevProps.deviceID);
     logMsg(worlds::WELogCategoryRender, "\t-Vendor ID: %u", physDevProps.vendorID);
     logMsg(worlds::WELogCategoryRender, "\t-Device Type: %s", vk::to_string(physDevProps.deviceType).c_str());
@@ -303,9 +303,9 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
 
 #ifndef NDEBUG
     if (!enableVR || vrValidationLayers)
-        dbgCallback = vku::DebugCallback(*this->instance);
+        dbgCallback = vku::DebugCallback(*instance);
 #endif
-    auto physDevs = this->instance->enumeratePhysicalDevices();
+    auto physDevs = instance->enumeratePhysicalDevices();
     physicalDevice = pickPhysicalDevice(physDevs);
 
     logPhysDevInfo(physicalDevice);
@@ -321,8 +321,8 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     for (uint32_t qi = 0; qi != qprops.size(); ++qi) {
         auto& qprop = qprops[qi];
         if ((qprop.queueFlags & search) == search) {
-            this->graphicsQueueFamilyIdx = qi;
-            this->computeQueueFamilyIdx = qi;
+            graphicsQueueFamilyIdx = qi;
+            computeQueueFamilyIdx = qi;
             break;
         }
     }
@@ -340,14 +340,14 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     if (asyncComputeQueueFamilyIdx == badQueue)
         logWarn(worlds::WELogCategoryRender, "Couldn't find async compute queue");
 
-    if (this->graphicsQueueFamilyIdx == badQueue || this->computeQueueFamilyIdx == badQueue) {
+    if (graphicsQueueFamilyIdx == badQueue || computeQueueFamilyIdx == badQueue) {
         *success = false;
         return;
     }
 
     vku::DeviceMaker dm{};
     dm.defaultLayers();
-    dm.queue(this->graphicsQueueFamilyIdx);
+    dm.queue(graphicsQueueFamilyIdx);
 
     for (auto& ext : initInfo.additionalDeviceExtensions) {
         dm.extension(ext.c_str());
@@ -385,8 +385,8 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     vk12Features.runtimeDescriptorArray = true;
     dm.setPNext(&vk12Features);
 
-    if (this->computeQueueFamilyIdx != this->graphicsQueueFamilyIdx) dm.queue(this->computeQueueFamilyIdx);
-    this->device = dm.createUnique(this->physicalDevice);
+    if (computeQueueFamilyIdx != graphicsQueueFamilyIdx) dm.queue(computeQueueFamilyIdx);
+    device = dm.createUnique(physicalDevice);
 
     VmaAllocatorCreateInfo allocatorCreateInfo;
     memset(&allocatorCreateInfo, 0, sizeof(allocatorCreateInfo));
@@ -415,14 +415,14 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     descriptorPoolInfo.maxSets = 256;
     descriptorPoolInfo.poolSizeCount = (uint32_t)poolSizes.size();
     descriptorPoolInfo.pPoolSizes = poolSizes.data();
-    this->descriptorPool = this->device->createDescriptorPoolUnique(descriptorPoolInfo);
+    descriptorPool = device->createDescriptorPoolUnique(descriptorPoolInfo);
 
     // Create surface and find presentation queue
     VkSurfaceKHR surface;
-    SDL_Vulkan_CreateSurface(window, *this->instance, &surface);
+    SDL_Vulkan_CreateSurface(window, *instance, &surface);
 
     this->surface = surface;
-    this->presentQueueFamilyIdx = findPresentQueue(this->physicalDevice, this->surface);
+    presentQueueFamilyIdx = findPresentQueue(physicalDevice, surface);
 
     int qfi = 0;
     for (auto& qprop : qprops) {
@@ -432,14 +432,14 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
 
     // Semaphores for presentation
     vk::SemaphoreCreateInfo sci;
-    this->imageAcquire = this->device->createSemaphoreUnique(sci);
-    this->commandComplete = this->device->createSemaphoreUnique(sci);
+    imageAcquire = device->createSemaphoreUnique(sci);
+    commandComplete = device->createSemaphoreUnique(sci);
 
     // Command pool
     vk::CommandPoolCreateInfo cpci;
     cpci.flags = vk::CommandPoolCreateFlagBits::eTransient | vk::CommandPoolCreateFlagBits::eResetCommandBuffer;
-    cpci.queueFamilyIndex = this->graphicsQueueFamilyIdx;
-    this->commandPool = this->device->createCommandPoolUnique(cpci);
+    cpci.queueFamilyIndex = graphicsQueueFamilyIdx;
+    commandPool = device->createCommandPoolUnique(cpci);
 
     createSwapchain(vk::SwapchainKHR{});
 
@@ -487,7 +487,7 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
 
     vku::executeImmediately(*device, *commandPool, device->getQueue(graphicsQueueFamilyIdx, 0), [&](auto cb) {
         brdfLut.setLayout(cb, vk::ImageLayout::eColorAttachmentOptimal);
-        });
+    });
 
     BRDFLUTRenderer brdfLutRenderer{ *vkCtx };
     brdfLutRenderer.render(*vkCtx, brdfLut);
@@ -508,12 +508,12 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     createSCDependents();
 
     vk::CommandBufferAllocateInfo cbai;
-    cbai.commandPool = *this->commandPool;
+    cbai.commandPool = *commandPool;
     cbai.commandBufferCount = 4;
     cbai.level = vk::CommandBufferLevel::ePrimary;
-    this->cmdBufs = this->device->allocateCommandBuffersUnique(cbai);
+    cmdBufs = device->allocateCommandBuffersUnique(cbai);
 
-    for (size_t i = 0; i < this->cmdBufs.size(); i++) {
+    for (size_t i = 0; i < cmdBufs.size(); i++) {
         vk::FenceCreateInfo fci;
         fci.flags = vk::FenceCreateFlagBits::eSignaled;
         vk::SemaphoreCreateInfo sci;
@@ -521,10 +521,10 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
         stci.initialValue = 0;
         stci.semaphoreType = vk::SemaphoreType::eTimeline;
         sci.pNext = &stci;
-        this->cmdBufferSemaphores.push_back(this->device->createSemaphore(sci));
-        this->cmdBufSemaphoreVals.push_back(0);
+        cmdBufferSemaphores.push_back(device->createSemaphore(sci));
+        cmdBufSemaphoreVals.push_back(0);
 
-        vk::CommandBuffer cb = *this->cmdBufs[i];
+        vk::CommandBuffer cb = *cmdBufs[i];
         vk::CommandBufferBeginInfo cbbi;
         cb.begin(cbbi);
         cb.end();
@@ -661,14 +661,14 @@ void VKRenderer::recreateSwapchain() {
     device->waitIdle();
 
     // Check width/height - if it's 0, just ignore it
-    auto surfaceCaps = this->physicalDevice.getSurfaceCapabilitiesKHR(this->surface);
+    auto surfaceCaps = physicalDevice.getSurfaceCapabilitiesKHR(surface);
 
     if (surfaceCaps.currentExtent.width == 0 || surfaceCaps.currentExtent.height == 0) {
         logMsg(WELogCategoryRender, "Ignoring resize with 0 width or height");
         isMinimised = true;
 
         while (isMinimised) {
-            auto surfaceCaps = this->physicalDevice.getSurfaceCapabilitiesKHR(this->surface);
+            auto surfaceCaps = physicalDevice.getSurfaceCapabilitiesKHR(surface);
             isMinimised = surfaceCaps.currentExtent.width == 0 || surfaceCaps.currentExtent.height == 0;
             SDL_PumpEvents();
             SDL_Delay(50);
@@ -684,8 +684,8 @@ void VKRenderer::recreateSwapchain() {
         surfaceCaps.currentExtent.width, surfaceCaps.currentExtent.height);
 
     if (surfaceCaps.currentExtent.width > 0 && surfaceCaps.currentExtent.height > 0) {
-        this->width = surfaceCaps.currentExtent.width;
-        this->height = surfaceCaps.currentExtent.height;
+        width = surfaceCaps.currentExtent.width;
+        height = surfaceCaps.currentExtent.height;
     }
 
     if (!enableVR) {
@@ -1495,7 +1495,7 @@ VKRenderer::~VKRenderer() {
         vmaFreeStatsString(allocator, statsString);
 #endif
 
-        for (auto& semaphore : this->cmdBufferSemaphores) {
+        for (auto& semaphore : cmdBufferSemaphores) {
             device->destroySemaphore(semaphore);
         }
 
@@ -1529,9 +1529,9 @@ VKRenderer::~VKRenderer() {
 
         dbgCallback.reset();
 
-        this->swapchain.reset();
+        swapchain.reset();
 
-        this->instance->destroySurfaceKHR(this->surface);
+        instance->destroySurfaceKHR(surface);
         logMsg(WELogCategoryRender, "Renderer destroyed.");
     }
 }
