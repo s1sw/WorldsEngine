@@ -633,9 +633,9 @@ namespace worlds {
                     system->update(registry, deltaTime, interpAlpha);
             }
 
-            SDL_GetWindowSize(window, &windowSize.x, &windowSize.y);
-
             if (!dedicatedServer) {
+                SDL_GetWindowSize(window, &windowSize.x, &windowSize.y);
+
                 editor->setActive(runAsEditor);
                 editor->update((float)deltaTime);
             }
