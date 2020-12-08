@@ -55,7 +55,7 @@ namespace converge {
 
         worlds::g_console->registerCommand([&](void*, const char*) {
             for (int i = 0; i < MAX_PLAYERS; i++) {
-                if (players[i].peer) {
+                if (players[i].present && players[i].peer) {
                     logMsg("player %i: present %i, %ums RTT", i, players[i].present, players[i].peer->roundTripTime);
                 } 
             }
