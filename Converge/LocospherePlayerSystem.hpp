@@ -26,6 +26,7 @@ namespace converge {
         glm::vec2 xzMoveInput;
         bool sprint;
         bool grounded;
+        bool jump;
     };
 
     struct PlayerRig {
@@ -60,7 +61,6 @@ namespace converge {
         worlds::InputManager* inputManager;
         entt::registry& registry;
         worlds::Camera* camera;
-        bool jumpThisFrame;
         glm::vec3 lastCamPos;
         glm::vec3 nextCamPos;
         V3PidController lspherePid;

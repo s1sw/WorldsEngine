@@ -2,6 +2,7 @@
 #include <enet/enet.h>
 #include <IGameEventHandler.hpp>
 #include <Console.hpp>
+#include "NetMessage.hpp"
 #include "PidController.hpp"
 #include <Camera.hpp>
 #include "LocospherePlayerSystem.hpp"
@@ -9,6 +10,10 @@
 #include "Server.hpp"
 
 namespace converge {
+    struct ServerPlayer {
+        uint16_t lastAcknowledgedInput;
+    };
+
     class EventHandler : public worlds::IGameEventHandler {
     public:
         EventHandler(bool dedicatedServer);
@@ -37,5 +42,15 @@ namespace converge {
         physx::PxD6Joint* lHandJoint, *rHandJoint;
         entt::entity serverLocospheres[MAX_PLAYERS];
         bool setClientInfo = false;
+        uint16_t clientInputIdx = 0;
+
+        struct LocosphereState {
+            glm::vec3 pos;
+            uint16_t inputIndex;
+        };
+
+        msgs::PlayerInput lastSent;
+
+        std::unordered_map<uint16_t, LocosphereState> pastLocosphereStates;
     };
 }

@@ -93,11 +93,28 @@ namespace converge {
         locosphereDebug.erase(ent);
     }
 
-    void LocospherePlayerSystem::preSimUpdate(entt::registry&, float) {
+    void LocospherePlayerSystem::preSimUpdate(entt::registry& reg, float) {
+        entt::entity localLocosphereEnt = entt::null;
+
+        reg.view<LocospherePlayerComponent>().each([&](auto ent, auto& lpc) {
+            if (lpc.isLocal) {
+                if (!reg.valid(localLocosphereEnt))
+                    localLocosphereEnt = ent;
+                else {
+                    logWarn("more than one local locosphere!");
+                }
+            }
+        });
+
+        if (!reg.valid(localLocosphereEnt)) {
+            return;
+        }
+
+        auto& lpc = reg.get<LocospherePlayerComponent>(localLocosphereEnt);
         if (!vrInterface) {
-            jumpThisFrame = jumpThisFrame || inputManager->keyPressed(SDL_SCANCODE_SPACE);
+            lpc.jump |= inputManager->keyPressed(SDL_SCANCODE_SPACE);
         } else {
-            jumpThisFrame = jumpThisFrame || vrInterface->getJumpInput();
+            lpc.jump |= vrInterface->getJumpInput();
         }
     }
 
@@ -416,12 +433,13 @@ namespace converge {
                 locosphereActor->addForce(worlds::glm2px(addedVel) * 0.25f, physx::PxForceMode::eACCELERATION);
             }
 
+            if (lpc.jump) {
+                if (lpc.grounded)
+                    locosphereActor->addForce(physx::PxVec3{ 0.0f, 7.5f, 0.0f }, physx::PxForceMode::eVELOCITY_CHANGE);
+                lpc.jump = false;
+            }
+
             if (lpc.isLocal) {
-                if (jumpThisFrame) {
-                    if (lpc.grounded)
-                        locosphereActor->addForce(physx::PxVec3{ 0.0f, 7.5f, 0.0f }, physx::PxForceMode::eVELOCITY_CHANGE);
-                    jumpThisFrame = false;
-                }
 
                 lastCamPos = nextCamPos;
                 nextCamPos = locosphereTransform.position + glm::vec3(0.0f, -LOCOSPHERE_RADIUS, 0.0f);

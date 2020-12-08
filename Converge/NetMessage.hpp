@@ -49,12 +49,17 @@ namespace converge {
             uint8_t id;
             glm::vec3 pos;
             glm::quat rot;
+            glm::vec3 linVel;
+            glm::vec3 angVel;
+            uint16_t inputIdx;
         };
 
         DATAPACKET(PlayerInput) {
             MessageType type = MessageType::PlayerInput;
             glm::vec2 xzMoveInput;
             bool sprint;
+            bool jump;
+            uint16_t inputIdx;
         };
 #undef DATAPACKET
 #pragma pack (pop)

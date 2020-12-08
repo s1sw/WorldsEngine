@@ -6,6 +6,8 @@
 #include "AssetDB.hpp"
 #include "DebugArrow.hpp"
 #include "NetMessage.hpp"
+#include "PhysicsActor.hpp"
+#include "PxRigidDynamic.h"
 #include "SourceModelLoader.hpp"
 #include "Transform.hpp"
 #include <OpenVRInterface.hpp>
@@ -131,22 +133,6 @@ namespace converge {
     }
 
     void EventHandler::update(entt::registry& registry, float, float) {
-        if (isDedicated) {
-            server->processMessages(onServerPacket);
-
-            for (int i = 0; i < MAX_PLAYERS; i++) {
-                if (!server->players[i].present) continue;
-
-                Transform& t = registry.get<Transform>(serverLocospheres[i]);
-                msgs::PlayerPosition pPos;
-                pPos.id = i;
-                pPos.pos = t.position;
-                pPos.rot = t.rotation;
-                
-                server->broadcastPacket(pPos.toPacket(0));
-            }
-        }
-
         if (client) {
             client->processMessages(onClientPacket);
 
@@ -184,14 +170,6 @@ namespace converge {
             return;
         }
 
-        if (client->isConnected()) {
-            // send input to server
-            msgs::PlayerInput pi;
-            pi.xzMoveInput = localLpc->xzMoveInput;
-            pi.sprint = localLpc->sprint;
-            client->sendPacketToServer(pi.toPacket(0));
-        }
-
         auto& t = registry.get<Transform>(localLocosphereEnt);
         auto& t2 = registry.get<Transform>(otherLocosphere);
         auto& lpc2 = registry.get<LocospherePlayerComponent>(otherLocosphere);
@@ -207,7 +185,75 @@ namespace converge {
         lpc2.sprint = sqDist > 100.0f; 
     }
 
-    void EventHandler::simulate(entt::registry&, float) {
+    void EventHandler::simulate(entt::registry& registry, float) {
+        if (isDedicated) {
+            server->processMessages(onServerPacket);
+
+            for (int i = 0; i < MAX_PLAYERS; i++) {
+                if (!server->players[i].present) continue;
+
+                auto& sp = registry.get<ServerPlayer>(serverLocospheres[i]);
+                auto& dpa = registry.get<worlds::DynamicPhysicsActor>(serverLocospheres[i]);
+                auto* rd = (physx::PxRigidDynamic*)dpa.actor;
+                auto pose = dpa.actor->getGlobalPose();
+                msgs::PlayerPosition pPos;
+                pPos.id = i;
+                pPos.pos = worlds::px2glm(pose.p);
+                pPos.rot = worlds::px2glm(pose.q);
+                pPos.linVel = worlds::px2glm(rd->getLinearVelocity());
+                pPos.angVel = worlds::px2glm(rd->getAngularVelocity());
+                pPos.inputIdx = sp.lastAcknowledgedInput;
+                
+                server->broadcastPacket(pPos.toPacket(0));
+            }
+        }
+
+        entt::entity localLocosphereEnt = entt::null;
+        LocospherePlayerComponent* localLpc = nullptr;
+
+        registry.view<LocospherePlayerComponent>().each([&](auto ent, auto& lpc) {
+            if (lpc.isLocal) {
+                if (!registry.valid(localLocosphereEnt)) {
+                    localLocosphereEnt = ent;
+                    localLpc = &lpc;
+                } else {
+                    logWarn("more than one local locosphere!");
+                }
+            }
+        });
+
+        if (!registry.valid(localLocosphereEnt)) {
+            // probably dedicated server ¯\_(ツ)_/¯
+            return;
+        }
+
+        if (client->isConnected()) {
+            auto& dpa = registry.get<worlds::DynamicPhysicsActor>(localLocosphereEnt);
+            if (ImGui::Begin("client dbg")) {
+                ImGui::Text("curr input idx: %u", clientInputIdx);
+                ImGui::Text("past locosphere state count: %zu", pastLocosphereStates.size());
+            }
+            ImGui::End();
+
+            if (lastSent.xzMoveInput != localLpc->xzMoveInput || 
+                    lastSent.sprint != localLpc->sprint ||
+                    localLpc->jump || true)
+            {
+                // send input to server
+                msgs::PlayerInput pi;
+                pi.xzMoveInput = localLpc->xzMoveInput;
+                pi.sprint = localLpc->sprint;
+                pi.inputIdx = clientInputIdx;
+                pi.jump = localLpc->jump;
+                client->sendPacketToServer(pi.toPacket(0));
+
+                auto pose = dpa.actor->getGlobalPose();
+
+                pastLocosphereStates.insert({ clientInputIdx, { worlds::px2glm(pose.p), clientInputIdx }});
+                clientInputIdx++;
+                lastSent = pi;
+            }
+        }
     }
 
     void EventHandler::onSceneStart(entt::registry& registry) {
@@ -341,12 +387,17 @@ namespace converge {
         if (packet->data[0] == MessageType::PlayerInput) {
             msgs::PlayerInput pi;
             pi.fromPacket(packet);
+
             // send it to the proper locosphere!
             uint8_t idx = (uintptr_t)evt.peer->data;
             entt::entity locosphereEnt = _this->serverLocospheres[idx];
             auto& lpc = _this->reg->get<LocospherePlayerComponent>(locosphereEnt);
             lpc.xzMoveInput = pi.xzMoveInput;
             lpc.sprint = pi.sprint; 
+            lpc.jump |= pi.jump;
+
+            auto& sp = _this->reg->get<ServerPlayer>(locosphereEnt);
+            sp.lastAcknowledgedInput = pi.inputIdx;
         }
     }
 
@@ -362,11 +413,33 @@ namespace converge {
                     .each([&](auto, LocospherePlayerComponent& lpc, worlds::DynamicPhysicsActor& dpa) {
                     if (lpc.isLocal) {
                         auto pose = dpa.actor->getGlobalPose();
-                        pose.p = worlds::glm2px(pPos.pos);
-                        pose.q = worlds::glm2px(pPos.rot);
-                        dpa.actor->setGlobalPose(pose);
+                        auto pastStateIt = _this->pastLocosphereStates.find(pPos.inputIdx);
+
+                        if (pastStateIt != _this->pastLocosphereStates.end()) {
+                            auto pastState = _this->pastLocosphereStates.at(pPos.inputIdx);
+                            
+                            if (glm::distance(pastState.pos, pPos.pos) > 0.1f) {
+                                pose.p = worlds::glm2px(pPos.pos);
+                                pose.q = worlds::glm2px(pPos.rot);
+                                dpa.actor->setGlobalPose(pose);
+                                auto* rd = (physx::PxRigidDynamic*)dpa.actor;
+                                rd->setLinearVelocity(worlds::glm2px(pPos.linVel));
+                                rd->setAngularVelocity(worlds::glm2px(pPos.angVel));
+                            }
+                        } else {
+                            pose.p = worlds::glm2px(pPos.pos);
+                            pose.q = worlds::glm2px(pPos.rot);
+                            dpa.actor->setGlobalPose(pose);
+                            auto* rd = (physx::PxRigidDynamic*)dpa.actor;
+                            rd->setLinearVelocity(worlds::glm2px(pPos.linVel));
+                            rd->setAngularVelocity(worlds::glm2px(pPos.angVel));
+                        }
                     }
                 });
+
+                _this->pastLocosphereStates.erase(std::erase_if(_this->pastLocosphereStates, [&](auto& k) {
+                    return k.first <= pPos.inputIdx;
+                }));
             }
         }
     }
@@ -378,6 +451,8 @@ namespace converge {
         PlayerRig newRig = _this->lsphereSys->createPlayerRig(*_this->reg);
         auto& lpc = _this->reg->get<LocospherePlayerComponent>(newRig.locosphere);
         lpc.isLocal = false;
+        auto& sp = _this->reg->emplace<ServerPlayer>(newRig.locosphere);
+        sp.lastAcknowledgedInput = 0;
         _this->serverLocospheres[player.idx] = newRig.locosphere;
     }
 
