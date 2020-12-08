@@ -159,6 +159,9 @@ enet_dep = cc.find_library('enet')
 
 dl_dep = cc.find_library('dl', required : false)
 openvr_dep = cc.find_library('openvr_api')
+discord_csdk_dep = cc.find_library('discord_game_sdk', dirs: meson.project_source_root() + '/External/Lib')
 
-worlds = static_library('worlds', sources, include_directories: [extern_include_dir, physx_include_dir, tracy_inc], dependencies: [vk_dep, physfs_dep, sdl2_dep, physx_deps, dl_dep, openvr_dep, lua_dep, wmdl_dep, enet_dep])
+worlds = static_library('worlds', sources, 
+  include_directories: [extern_include_dir, physx_include_dir, tracy_inc], 
+  dependencies: [vk_dep, physfs_dep, sdl2_dep, physx_deps, dl_dep, openvr_dep, lua_dep, wmdl_dep, enet_dep, discord_csdk_dep, discord_sdk_dep])
 worlds_dep = declare_dependency(include_directories: worlds_inc, link_with: worlds)
