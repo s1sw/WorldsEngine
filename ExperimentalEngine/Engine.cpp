@@ -271,23 +271,25 @@ namespace worlds {
             redrawSplashWindow(splashWindow, "loading assetdb");
         g_assetDB.load();
 
-        if (useEventThread) {
-            sdlEventCV = SDL_CreateCond();
-            sdlEventMutex = SDL_CreateMutex();
 
-            WindowThreadData wtd{ &running, &window };
-            SDL_DetachThread(SDL_CreateThread(windowThread, "Window Thread", &wtd));
-            SDL_Delay(1000);
-        } else {
-            window = createSDLWindow();
-            if (window == nullptr) {
-                SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Failed to create window", SDL_GetError(), NULL);
+        if (!dedicatedServer) {
+            if (useEventThread) {
+                sdlEventCV = SDL_CreateCond();
+                sdlEventMutex = SDL_CreateMutex();
+
+                WindowThreadData wtd{ &running, &window };
+                SDL_DetachThread(SDL_CreateThread(windowThread, "Window Thread", &wtd));
+                SDL_Delay(1000);
+            } else {
+                window = createSDLWindow();
+                if (window == nullptr) {
+                    SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Failed to create window", SDL_GetError(), NULL);
+                }
             }
-        }
-        setWindowIcon(window);
+            setWindowIcon(window);
 
-        if (!dedicatedServer)
             redrawSplashWindow(splashWindow, "initialising ui");
+        }
 
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();
@@ -298,11 +300,11 @@ namespace worlds {
         //io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;         // Enable Multi-Viewport / Platform Windows
         io.Fonts->TexDesiredWidth = 512.f;
 
-        setupUIFonts();
-        loadDefaultUITheme();
-
-        if (!dedicatedServer)
+        if (!dedicatedServer) {
             ImGui_ImplSDL2_InitForVulkan(window);
+            setupUIFonts();
+            loadDefaultUITheme();
+        }
 
         std::vector<std::string> additionalInstanceExts;
         std::vector<std::string> additionalDeviceExts;
@@ -331,14 +333,15 @@ namespace worlds {
         if (!dedicatedServer)
             redrawSplashWindow(splashWindow, "initialising renderer");
 
-        RendererInitInfo initInfo{
-            window,
-            additionalInstanceExts, additionalDeviceExts,
-            enableOpenVR, activeApi, vrInterface,
-            runAsEditor, "Converge"
-        };
 
         if (!dedicatedServer) {
+            RendererInitInfo initInfo{
+                window,
+                additionalInstanceExts, additionalDeviceExts,
+                enableOpenVR, activeApi, vrInterface,
+                runAsEditor, "Converge"
+            };
+
             bool renderInitSuccess = false;
             renderer = new VKRenderer(initInfo, &renderInitSuccess);
 
@@ -365,11 +368,10 @@ namespace worlds {
             VKImGUIUtil::createObjects(vkCtx);
         }
 
-        if (!dedicatedServer)
+        if (!dedicatedServer) {
             redrawSplashWindow(splashWindow, "initialising editor");
-
-        if (!dedicatedServer)
             editor = std::make_unique<Editor>(registry, interfaces);
+        }
 
         if (!runAsEditor)
             pauseSim = false;
@@ -378,62 +380,63 @@ namespace worlds {
             initRichPresence(interfaces);
 
         console->registerCommand(cmdLoadScene, "scene", "Loads a scene.", &registry);
-        console->registerCommand(cmdToggleFullscreen, "toggleFullscreen", "Toggles fullscreen.", nullptr);
-        console->registerCommand([&](void*, const char*) {
-            runAsEditor = false;
-            pauseSim = false;
+        if (!dedicatedServer) {
+            console->registerCommand(cmdToggleFullscreen, "toggleFullscreen", "Toggles fullscreen.", nullptr);
+            console->registerCommand([&](void*, const char*) {
+                runAsEditor = false;
+                pauseSim = false;
 
-            if (evtHandler)
-                evtHandler->onSceneStart(registry);
+                if (evtHandler)
+                    evtHandler->onSceneStart(registry);
 
-            for (auto* system : systems)
-                system->onSceneStart(registry);
+                for (auto* system : systems)
+                    system->onSceneStart(registry);
 
-            registry.view<AudioSource>().each([](auto, auto& as) {
-                if (as.playOnSceneOpen) {
-                    as.isPlaying = true;
-                }
-                });
-            renderer->reloadMatsAndTextures();
-            }, "play", "play.", nullptr);
+                registry.view<AudioSource>().each([](auto, auto& as) {
+                    if (as.playOnSceneOpen) {
+                        as.isPlaying = true;
+                    }
+                    });
+                renderer->reloadMatsAndTextures();
+                }, "play", "play.", nullptr);
 
-        console->registerCommand([&](void*, const char*) {
-            runAsEditor = true;
-            pauseSim = true;
-            renderer->reloadMatsAndTextures();
-            }, "pauseAndEdit", "pause and edit.", nullptr);
+            console->registerCommand([&](void*, const char*) {
+                runAsEditor = true;
+                pauseSim = true;
+                renderer->reloadMatsAndTextures();
+                }, "pauseAndEdit", "pause and edit.", nullptr);
 
-        console->registerCommand([&](void*, const char*) {
-            runAsEditor = true;
-            loadScene(currentScene.id, registry);
-            pauseSim = true;
-            renderer->reloadMatsAndTextures();
-            }, "reloadAndEdit", "reload and edit.", nullptr);
+            console->registerCommand([&](void*, const char*) {
+                runAsEditor = true;
+                loadScene(currentScene.id, registry);
+                pauseSim = true;
+                renderer->reloadMatsAndTextures();
+                }, "reloadAndEdit", "reload and edit.", nullptr);
 
-        console->registerCommand([&](void*, const char*) {
-            runAsEditor = false;
-            pauseSim = false;
-            renderer->reloadMatsAndTextures();
-            }, "unpause", "unpause and go back to play mode.", nullptr);
+            console->registerCommand([&](void*, const char*) {
+                runAsEditor = false;
+                pauseSim = false;
+                renderer->reloadMatsAndTextures();
+                }, "unpause", "unpause and go back to play mode.", nullptr);
 
-        console->registerCommand([&](void*, const char*) {
-            renderer->reloadMatsAndTextures();
-            }, "reloadContent", "Reloads materials, textures and meshes.", nullptr);
+            console->registerCommand([&](void*, const char*) {
+                renderer->reloadMatsAndTextures();
+                }, "reloadContent", "Reloads materials, textures and meshes.", nullptr);
+        }
 
         console->registerCommand([&](void*, const char*) {
             running = false;
             }, "exit", "Shuts down the engine.", nullptr);
-
-        if (runAsEditor)
-            disableSimInterp.setValue("1");
 
         if (enableOpenVR) {
             lockSimToRefresh.setValue("1");
             disableSimInterp.setValue("1");
         }
 
-        if (runAsEditor)
+        if (runAsEditor) {
+            disableSimInterp.setValue("1");
             createStartupScene();
+        }
 
         if (!runAsEditor && PHYSFS_exists("CommandScripts/startup.txt"))
             console->executeCommandStr("exec CommandScripts/startup");
@@ -479,12 +482,10 @@ namespace worlds {
             screenRTTCI.useForPicking = false;
             screenRTTPass = renderer->createRTTPass(screenRTTCI);
             redrawSplashWindow(splashWindow, "initialising audio");
-        }
 
-        audioSystem = std::make_unique<AudioSystem>();
-        audioSystem->initialise(registry);
+            audioSystem = std::make_unique<AudioSystem>();
+            audioSystem->initialise(registry);
 
-        if (!dedicatedServer) {
             SDL_ShowWindow(window);
             destroySplashWindow(splashWindow);
         }
@@ -683,7 +684,8 @@ namespace worlds {
                 renderer->setVRPredictAmount(fPredictedSecondsFromNow + fFrameDuration);
             }
 
-            audioSystem->update(registry, cam.position, cam.rotation);
+            if (!dedicatedServer)
+                audioSystem->update(registry, cam.position, cam.rotation);
 
             console->drawWindow();
 
@@ -711,14 +713,11 @@ namespace worlds {
                     }, entt::insertion_sort{});
 
                 renderer->frame(cam, registry);
+
+                ImGui::UpdatePlatformWindows();
+                ImGui::RenderPlatformWindowsDefault();
             }
 
-            if (dedicatedServer) {
-                SDL_Delay(14);
-            }
-
-            ImGui::UpdatePlatformWindows();
-            ImGui::RenderPlatformWindowsDefault();
             g_jobSys->completeFrameJobs();
             frameCounter++;
 
@@ -747,6 +746,15 @@ namespace worlds {
                 screenRTTCI.outputToScreen = true;
                 screenRTTCI.useForPicking = false;
                 screenRTTPass = renderer->createRTTPass(screenRTTCI);
+            }
+
+            uint64_t postUpdate = SDL_GetPerformanceCounter();
+            double completeUpdateTime = (postUpdate - now) / SDL_GetPerformanceFrequency();
+
+            if (dedicatedServer) {
+                double waitTime = simStepTime.getFloat() - completeUpdateTime;
+                if (waitTime > 0.0)
+                    SDL_Delay(waitTime * 1000.0);
             }
         }
     }
