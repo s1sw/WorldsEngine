@@ -15,6 +15,7 @@ namespace converge {
         void setConnectionCallback(ServerConnectCallback callback) { connectCallback = callback; }
         void setDisconnectionCallback(ServerConnectCallback callback) { disconnectCallback = callback; }
         void broadcastPacket(ENetPacket* packet);
+        void broadcastExcluding(ENetPacket* packet, uint8_t playerSlot);
         NetPlayer players[MAX_PLAYERS];
     protected:
         bool findFreePlayerSlot(uint8_t& slot);

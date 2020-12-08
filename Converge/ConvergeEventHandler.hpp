@@ -40,7 +40,7 @@ namespace converge {
         Server* server;
         entt::entity lHandEnt, rHandEnt;
         physx::PxD6Joint* lHandJoint, *rHandJoint;
-        entt::entity serverLocospheres[MAX_PLAYERS];
+        entt::entity playerLocospheres[MAX_PLAYERS];
         bool setClientInfo = false;
         uint16_t clientInputIdx = 0;
 

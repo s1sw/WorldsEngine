@@ -53,7 +53,6 @@ namespace converge {
         void shutdown(entt::registry& registry) override;
         PlayerRig createPlayerRig(entt::registry& registry);
     private:
-        void updateHands(entt::registry& reg);
         void onPlayerConstruct(entt::registry& reg, entt::entity ent);
         void onPlayerDestroy(entt::registry& reg, entt::entity ent);
         glm::vec3 calcHeadbobPosition(glm::vec3 desiredVel, glm::vec3 camPos, float deltaTime, bool grounded);
