@@ -27,5 +27,6 @@ add_global_arguments('-g', language: 'cpp') # generate debug symbols even in rel
 
 subdir('ModelFormat')
 subdir('Tools')
+subdir('DiscordSDK')
 subdir('ExperimentalEngine')
 subdir('Converge')

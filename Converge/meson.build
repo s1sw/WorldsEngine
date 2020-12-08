@@ -25,4 +25,6 @@ sources = [
     'NetMessage.cpp'
 ]
 
-executable('converge', sources, include_directories: [physx_include_dir, extern_include_dir], dependencies: [worlds_dep])
+executable('converge', sources, 
+  include_directories: [physx_include_dir, extern_include_dir], 
+  dependencies: [worlds_dep, discord_sdk_dep])
