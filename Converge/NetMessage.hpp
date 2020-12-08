@@ -12,7 +12,9 @@ namespace converge {
         JoinRequest,
         JoinAccept,
         PlayerInput,
-        PlayerPosition
+        PlayerPosition,
+        OtherPlayerJoin,
+        OtherPlayerLeave
     } MessageType;
 
     namespace msgs {
@@ -25,7 +27,8 @@ namespace converge {
             }
 
             void fromPacket(ENetPacket* packet) {
-                assert(packet->dataLength == sizeof(T));
+                assert(packet->dataLength == sizeof(T) && "Packet length mismatch!");
+                assert(((T*)this)->type == packet->data[0] && "Packet type mismatch!");
                 memcpy(this, packet->data, sizeof(T));
             }
         };
@@ -60,6 +63,16 @@ namespace converge {
             bool sprint;
             bool jump;
             uint16_t inputIdx;
+        };
+
+        DATAPACKET(OtherPlayerJoin) {
+            MessageType type = MessageType::OtherPlayerJoin;
+            uint8_t id;
+        };
+
+        DATAPACKET(OtherPlayerLeave) {
+            MessageType type = MessageType::OtherPlayerLeave;
+            uint8_t id;
         };
 #undef DATAPACKET
 #pragma pack (pop)

@@ -117,6 +117,15 @@ namespace converge {
             connectCallback(players[newIdx], callbackCtx);
 
         evt.peer->data = (void*)(uintptr_t)newIdx;
+
+        // send existing players
+        for (int i = 0; i < MAX_PLAYERS; i++) {
+            if (i == newIdx || !players[i].present) continue;
+            msgs::OtherPlayerJoin opj;
+            opj.id = i;
+            
+            enet_peer_send(evt.peer, 0, opj.toPacket(ENET_PACKET_FLAG_RELIABLE));
+        }
     }
 
     void Server::handleDisconnection(const ENetEvent& evt) {
@@ -138,6 +147,18 @@ namespace converge {
 
     void Server::broadcastPacket(ENetPacket* packet) {
         enet_host_broadcast(host, 0, packet);
+    }
+
+    void Server::broadcastExcluding(ENetPacket* packet, uint8_t playerSlot) {
+        for (int i = 0; i < MAX_PLAYERS; i++) {
+            ENetPacket* p = enet_packet_create(packet->data, packet->dataLength, packet->flags);
+
+            if (i == playerSlot || !players[i].present) continue;
+
+            enet_peer_send(players[i].peer, 0, p);
+        }
+
+        enet_packet_destroy(packet);
     }
 
     void Server::stop() {
