@@ -1,4 +1,5 @@
 #include "ConvergeEventHandler.hpp"
+#include <iostream>
 #include <Engine.hpp>
 
 int main(int argc, char** argv) {
@@ -20,10 +21,16 @@ int main(int argc, char** argv) {
         }
     }
 
+    if (ds && (initOptions.enableVR || initOptions.runAsEditor)) {
+        std::cerr << argv[0] << ": invalid arguments.\n";
+        return -1;
+    }
+
     converge::EventHandler evtHandler {ds};
     initOptions.eventHandler = &evtHandler;
 
     worlds::WorldsEngine engine(initOptions, argv[0]);
+    
     engine.mainLoop();
 
     return 0;

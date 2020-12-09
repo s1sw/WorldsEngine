@@ -6,6 +6,7 @@
 #include <string.h>
 #include <stdint.h>
 #include <enet/enet.h>
+#include <string>
 
 namespace converge {
     typedef enum {
@@ -14,7 +15,9 @@ namespace converge {
         PlayerInput,
         PlayerPosition,
         OtherPlayerJoin,
-        OtherPlayerLeave
+        OtherPlayerLeave,
+        SetScene,
+        RigidbodySync
     } MessageType;
 
     namespace msgs {
@@ -73,6 +76,41 @@ namespace converge {
         DATAPACKET(OtherPlayerLeave) {
             MessageType type = MessageType::OtherPlayerLeave;
             uint8_t id;
+        };
+
+        DATAPACKET(RigidbodySync) {
+            MessageType type = MessageType::RigidbodySync;
+            uint32_t entId;
+            glm::vec3 pos;
+            glm::quat rot;
+            glm::vec3 linVel;
+            glm::vec3 angVel;
+        };
+
+        struct SetScene {
+            MessageType type = MessageType::SetScene;
+            std::string sceneName;
+
+            ENetPacket* toPacket(uint32_t flags) {
+                auto* packet = enet_packet_create(nullptr, sceneName.size() + sizeof(type) + sizeof(uint16_t), flags);
+                
+                packet->data[0] = type;
+                uint16_t* nameLen = (uint16_t*)&packet->data[1];
+                *nameLen = sceneName.size();
+
+                memcpy(&packet->data[3], sceneName.data(), sceneName.size());
+
+                return packet;
+            }
+
+            void fromPacket(ENetPacket* packet) {
+                assert(packet->data[0] == MessageType::SetScene);
+
+                uint16_t nameLen = *((uint16_t*)&packet->data[1]); 
+                sceneName.resize(nameLen);
+
+                memcpy(sceneName.data(), &packet->data[3], nameLen);
+            }
         };
 #undef DATAPACKET
 #pragma pack (pop)
