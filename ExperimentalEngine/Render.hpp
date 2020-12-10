@@ -19,6 +19,13 @@ namespace worlds {
         glm::vec2 uv2;
     };
 
+    struct WorldCubemap {
+        WorldCubemap() : loadIdx(~0u) {}
+        AssetID cubemapId;
+        glm::vec3 extent;
+        uint32_t loadIdx;
+    };
+
     struct ProceduralObject {
         ProceduralObject() : uploaded(false), readyForUpload(false), visible(true), materialIdx(~0u) {}
         AssetID material;

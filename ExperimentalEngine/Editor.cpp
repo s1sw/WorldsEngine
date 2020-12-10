@@ -350,6 +350,24 @@ namespace worlds {
         reg.emplace<AudioSource>(a, asA);
     }
 
+    void createWorldCubemap(entt::entity ent, entt::registry& reg) {
+        auto& wc = reg.emplace<WorldCubemap>(ent);
+        
+        wc.cubemapId = g_assetDB.addOrGetExisting("DefaultCubemap.json"); 
+        wc.extent = glm::vec3 {1.0f};
+    }
+
+    void editWorldCubemap(entt::entity ent, entt::registry& reg) {
+        auto& wc = reg.get<WorldCubemap>(ent);
+
+        if (ImGui::CollapsingHeader(ICON_FA_CIRCLE u8" Cubemap")) {
+            ImGui::DragFloat3("Extent", &wc.extent.x);
+            ImGui::Text("Current Asset Path: %s", g_assetDB.getAssetPath(wc.cubemapId).c_str());
+            selectAssetPopup("Cubemap Path", wc.cubemapId, ImGui::Button("Change"));
+            ImGui::Separator();
+        }
+    }
+
     Editor::Editor(entt::registry& reg, EngineInterfaces interfaces)
         : currentTool(Tool::None)
         , currentAxisLock(AxisFlagBits::All)
@@ -373,6 +391,7 @@ namespace worlds {
         REGISTER_COMPONENT_TYPE(DynamicPhysicsActor, "DynamicPhysicsActor", true, editDynamicPhysicsActor, createDynamicPhysicsActor, cloneDynamicPhysicsActor);
         REGISTER_COMPONENT_TYPE(AudioSource, "AudioSource", true, editAudioSource, createAudioSource, cloneAudioSource);
         REGISTER_COMPONENT_TYPE(NameComponent, "NameComponent", true, editNameComponent, createNameComponent, cloneNameComponent);
+        REGISTER_COMPONENT_TYPE(WorldCubemap, "WorldCubemap", true, editWorldCubemap, createWorldCubemap, nullptr);
         interfaces.engine->pauseSim = true;
 
         RTTPassCreateInfo sceneViewPassCI;
