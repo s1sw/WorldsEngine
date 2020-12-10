@@ -363,7 +363,12 @@ namespace worlds {
         if (ImGui::CollapsingHeader(ICON_FA_CIRCLE u8" Cubemap")) {
             ImGui::DragFloat3("Extent", &wc.extent.x);
             ImGui::Text("Current Asset Path: %s", g_assetDB.getAssetPath(wc.cubemapId).c_str());
+            AssetID oldId = wc.cubemapId;
             selectAssetPopup("Cubemap Path", wc.cubemapId, ImGui::Button("Change"));
+
+            if (wc.cubemapId != oldId) {
+                wc.loadIdx = ~0u;
+            }
             ImGui::Separator();
         }
     }

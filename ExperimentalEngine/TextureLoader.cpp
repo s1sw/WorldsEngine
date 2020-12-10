@@ -35,7 +35,21 @@ namespace worlds {
     TextureData loadStbTexture(void* fileData, size_t fileLen, AssetID id) {
         ZoneScoped;
         int x, y, channelsInFile;
-        stbi_uc* dat = stbi_load_from_memory((stbi_uc*)fileData, (int)fileLen, &x, &y, &channelsInFile, 4);
+        bool hdr = false;
+        stbi_uc* dat;
+
+        if (g_assetDB.getAssetExtension(id) == ".hdr") {
+            float* fpDat;
+            fpDat = stbi_loadf_from_memory((stbi_uc*)fileData, (int)fileLen, &x, &y, &channelsInFile, 4);
+            dat = (stbi_uc*)fpDat;
+            hdr = true;
+            for (int xi = 0; xi < x; xi++)
+            for (int yi = 0; yi < y; yi++) {
+                //dat[xi + (yi * x)] = powf(fpDat[xi + (yi * x)], 1.0f / 2.2f);
+            }
+        } else {
+            dat = stbi_load_from_memory((stbi_uc*)fileData, (int)fileLen, &x, &y, &channelsInFile, 4);
+        }
 
         if (dat == nullptr) {
             SDL_LogError(worlds::WELogCategoryEngine, "STB Image error\n");
@@ -46,9 +60,12 @@ namespace worlds {
         td.numMips = 1;
         td.width = (uint32_t)x;
         td.height = (uint32_t)y;
-        td.format = vk::Format::eR8G8B8A8Srgb;
+        if (hdr)
+            td.format = vk::Format::eR32G32B32A32Sfloat;
+        else
+            td.format = vk::Format::eR8G8B8A8Srgb;
         td.name = g_assetDB.getAssetPath(id);
-        td.totalDataSize = x * y * 4;
+        td.totalDataSize = hdr ? x * y * 4 * sizeof(float) : x * y * 4;
 
         return td;
     }
