@@ -16,7 +16,8 @@ namespace worlds {
         glm::vec4 texScaleOffset;
         // (x: model matrix index, y: material index, z: specular cubemap index, w: object picking id)
         glm::ivec4 ubIndices;
-        glm::ivec4 screenSpacePickPos;
+        glm::ivec3 screenSpacePickPos;
+        uint32_t cubemapIdx;
     };
 
     struct SkyboxPushConstants {
@@ -804,7 +805,7 @@ namespace worlds {
                     continue;
                 }
 
-                StandardPushConstants pushConst{ sdi.texScaleOffset, glm::ivec4(sdi.matrixIdx, sdi.materialIdx, 0, sdi.ent), glm::ivec4(pickX, pickY, pickThisFrame, 0) };
+                StandardPushConstants pushConst{ sdi.texScaleOffset, glm::ivec4(sdi.matrixIdx, sdi.materialIdx, 0, sdi.ent), glm::ivec3(pickX, pickY, pickThisFrame), 0 };
                 cmdBuf->pushConstants<StandardPushConstants>(*pipelineLayout, vk::ShaderStageFlagBits::eFragment | vk::ShaderStageFlagBits::eVertex, 0, pushConst);
                 cmdBuf->bindVertexBuffers(0, sdi.vb, vk::DeviceSize(0));
                 cmdBuf->bindIndexBuffer(sdi.ib, 0, vk::IndexType::eUint32);
@@ -815,6 +816,20 @@ namespace worlds {
         
         cmdBuf->nextSubpass(vk::SubpassContents::eInline);
 
+        uint32_t currCubemapIdx = 0;
+
+        reg.view<WorldCubemap, Transform>().each([&](auto, WorldCubemap& wc, Transform& t) {
+            glm::vec3 cPos = ctx.cam.position;
+            glm::vec3 ma = wc.extent + t.position;
+            glm::vec3 mi = t.position - wc.extent;
+
+            if (cPos.x < ma.x && cPos.x > mi.x &&
+                cPos.y < ma.y && cPos.y > mi.y &&
+                cPos.z < ma.z && cPos.z > mi.z) {
+                currCubemapIdx = wc.loadIdx;
+            }
+        });
+
         cmdBuf->bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline);
         SubmeshDrawInfo last;
         last.pipeline = *pipeline;
@@ -823,7 +838,7 @@ namespace worlds {
                 cmdBuf->bindPipeline(vk::PipelineBindPoint::eGraphics, sdi.pipeline);
             }
 
-            StandardPushConstants pushConst{ sdi.texScaleOffset, glm::ivec4(sdi.matrixIdx, sdi.materialIdx, 0, sdi.ent), glm::ivec4(pickX, pickY, pickThisFrame, 0) };
+            StandardPushConstants pushConst{ sdi.texScaleOffset, glm::ivec4(sdi.matrixIdx, sdi.materialIdx, 0, sdi.ent), glm::ivec4(pickX, pickY, pickThisFrame, 0), currCubemapIdx };
             cmdBuf->pushConstants<StandardPushConstants>(*pipelineLayout, vk::ShaderStageFlagBits::eFragment | vk::ShaderStageFlagBits::eVertex, 0, pushConst);
             cmdBuf->bindVertexBuffers(0, sdi.vb, vk::DeviceSize(0));
             cmdBuf->bindIndexBuffer(sdi.ib, 0, vk::IndexType::eUint32);
@@ -839,7 +854,7 @@ namespace worlds {
             matrixIdx++;
             return;
             if (!obj.visible) return;
-            StandardPushConstants pushConst{ glm::vec4(1.0f, 1.0f, 0.0f, 0.0f), glm::ivec4(matrixIdx, obj.materialIdx, 0, ent), glm::ivec4(pickX, pickY, pickThisFrame, 0) };
+            StandardPushConstants pushConst{ glm::vec4(1.0f, 1.0f, 0.0f, 0.0f), glm::ivec4(matrixIdx, obj.materialIdx, 0, ent), glm::ivec4(pickX, pickY, pickThisFrame, 0), currCubemapIdx };
             cmdBuf->pushConstants<StandardPushConstants>(*pipelineLayout, vk::ShaderStageFlagBits::eFragment | vk::ShaderStageFlagBits::eVertex, 0, pushConst);
             cmdBuf->bindVertexBuffers(0, obj.vb.buffer(), vk::DeviceSize(0));
             cmdBuf->bindIndexBuffer(obj.ib.buffer(), 0, obj.indexType);

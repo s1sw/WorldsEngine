@@ -867,6 +867,14 @@ void VKRenderer::uploadSceneAssets(entt::registry& reg, RenderCtx& rCtx) {
             po.materialIdx = matSlots->loadOrGet(po.material);
         }
         });
+
+    reg.view<WorldCubemap>().each([&](auto, WorldCubemap& wc) {
+        if (wc.loadIdx == ~0u) {
+            wc.loadIdx = cubemapSlots->loadOrGet(wc.cubemapId);
+            cubemapConvoluter->convolute(cubemapSlots->getSlots()[wc.loadIdx]);
+            rCtx.reuploadMats = true;
+        }
+    });
 }
 
 bool lowLatencyLast = false;
