@@ -283,7 +283,7 @@ vec3 calcAmbient(vec3 f0, float roughness, vec3 viewDir, float metallic, vec3 al
 
     float horizon = min(1.0 + dot(R, normal), 1.0);
     specularAmbient *= horizon * horizon;
-    vec3 diffuseAmbient = textureLod(cubemapSampler[cubemapIdx], normal, MAX_REFLECTION_LOD * 0.5).xyz * 0.5 * albedoColor;
+    vec3 diffuseAmbient = textureLod(cubemapSampler[cubemapIdx], normal, MAX_REFLECTION_LOD * 0.75).xyz * albedoColor;
 
     return kD * diffuseAmbient + (specularAmbient * specularColor);
 }
@@ -451,6 +451,7 @@ void main() {
     FragColor = vec4(lo, finalAlpha);
 #else
 	FragColor = vec4(lo + calcAmbient(f0, roughness, viewDir, metallic, albedoCol.xyz, normal) + mat.emissiveColor, finalAlpha);
+    //FragColor = vec4(calcAmbient(f0, roughness, viewDir, metallic, albedoCol.xyz, normal) + mat.emissiveColor, finalAlpha);
 #endif
 
     if (ENABLE_PICKING && doPicking == 1) {
