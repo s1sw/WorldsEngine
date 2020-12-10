@@ -436,6 +436,11 @@ namespace converge {
             auto& lpc = _this->reg->get<LocospherePlayerComponent>(newRig.locosphere);
             lpc.isLocal = false;
             _this->playerLocospheres[opj.id] = newRig.locosphere;
+
+            auto meshId = worlds::g_assetDB.addOrGetExisting("sourcemodel/models/konnie/isa/detroit/connor.mdl");
+            auto devMatId = worlds::g_assetDB.addOrGetExisting("Materials/dev.json");
+            auto& connorWO = _this->reg->emplace<worlds::WorldObject>(newRig.locosphere, devMatId, meshId);
+            worlds::setupSourceMaterials(meshId, connorWO);
         }
 
         if (evt.packet->data[0] == MessageType::OtherPlayerLeave) {
@@ -480,6 +485,21 @@ namespace converge {
         msgs::OtherPlayerJoin opj;
         opj.id = player.idx;
         _this->server->broadcastExcluding(opj.toPacket(ENET_PACKET_FLAG_RELIABLE), player.idx);
+
+        _this->reg->view<SyncedRB, worlds::DynamicPhysicsActor>().each([&](auto ent, worlds::DynamicPhysicsActor& dpa) {
+            auto* rd = (physx::PxRigidDynamic*)dpa.actor;
+            auto pose = dpa.actor->getGlobalPose();
+
+            msgs::RigidbodySync rSync;
+            rSync.entId = (uint32_t)ent;
+
+            rSync.pos = worlds::px2glm(pose.p);
+            rSync.rot = worlds::px2glm(pose.q);
+            rSync.linVel = worlds::px2glm(rd->getLinearVelocity());
+            rSync.angVel = worlds::px2glm(rd->getAngularVelocity());
+
+            _this->server->broadcastPacket(rSync.toPacket(0));
+            });
     }
 
     void EventHandler::onPlayerLeave(NetPlayer& player, void* vp) {
