@@ -47,7 +47,7 @@ namespace converge {
         ENetAddress address;
         address.host = ENET_HOST_ANY;
         address.port = 3011;
-        host = enet_host_create(&address, MAX_PLAYERS, 2, 0, 0);
+        host = enet_host_create(&address, MAX_PLAYERS, NetChannel_Count, 0, 0);
 
         if (host == NULL) {
             fatalErr("An error occurred while trying to create an ENet server host.");
@@ -87,7 +87,7 @@ namespace converge {
             pja.serverSideID = (uint16_t)(uintptr_t)evt.peer->data;
 
             ENetPacket* pjaPacket = pja.toPacket(ENET_PACKET_FLAG_RELIABLE);
-            enet_peer_send(evt.peer, 0, pjaPacket);
+            enet_peer_send(evt.peer, NetChannel_Default, pjaPacket);
 
             enet_packet_destroy(evt.packet);
             return;
@@ -124,7 +124,7 @@ namespace converge {
             msgs::OtherPlayerJoin opj;
             opj.id = i;
             
-            enet_peer_send(evt.peer, 0, opj.toPacket(ENET_PACKET_FLAG_RELIABLE));
+            enet_peer_send(evt.peer, NetChannel_Default, opj.toPacket(ENET_PACKET_FLAG_RELIABLE));
         }
     }
 
@@ -145,8 +145,8 @@ namespace converge {
         players[idx].present = false;
     }
 
-    void Server::broadcastPacket(ENetPacket* packet) {
-        enet_host_broadcast(host, 0, packet);
+    void Server::broadcastPacket(ENetPacket* packet, NetChannel channel) {
+        enet_host_broadcast(host, channel, packet);
     }
 
     void Server::broadcastExcluding(ENetPacket* packet, uint8_t playerSlot) {

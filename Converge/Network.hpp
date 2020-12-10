@@ -16,6 +16,13 @@ namespace converge {
         DisconnectReason_PlayerLeaving
     };
 
+    enum NetChannel {
+        NetChannel_Default,
+        NetChannel_Player,
+        NetChannel_World,
+        NetChannel_Count
+    };
+
     const int MAX_PLAYERS = 32;
 
     struct NetPlayer {

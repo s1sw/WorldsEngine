@@ -9,7 +9,7 @@ namespace converge {
         void connect(ENetAddress address);
         ENetPeer* serverPeer;
         uint16_t serverSideID;
-        void sendPacketToServer(ENetPacket* p);
+        void sendPacketToServer(ENetPacket* p, NetChannel channel = NetChannel_Default);
         void setClientInfo(uint64_t gameVersion, uint64_t userAuthId, uint16_t userAuthUniverse);
         bool isConnected() { 
             return serverPeer && serverPeer->state == ENET_PEER_STATE_CONNECTED; 

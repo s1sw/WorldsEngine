@@ -176,7 +176,7 @@ namespace converge {
                 pPos.angVel = worlds::px2glm(rd->getAngularVelocity());
                 pPos.inputIdx = sp.lastAcknowledgedInput;
                 
-                server->broadcastPacket(pPos.toPacket(0));
+                server->broadcastPacket(pPos.toPacket(0), NetChannel_Player);
             }
 
             registry.view<SyncedRB, worlds::DynamicPhysicsActor>().each([&](auto ent, worlds::DynamicPhysicsActor& dpa) {
@@ -193,7 +193,7 @@ namespace converge {
                 rSync.linVel = worlds::px2glm(rd->getLinearVelocity());
                 rSync.angVel = worlds::px2glm(rd->getAngularVelocity());
 
-                server->broadcastPacket(rSync.toPacket(0));
+                server->broadcastPacket(rSync.toPacket(0), NetChannel_World);
             });
         }
 
@@ -230,7 +230,7 @@ namespace converge {
             pi.sprint = localLpc->sprint;
             pi.inputIdx = clientInputIdx;
             pi.jump = localLpc->jump;
-            client->sendPacketToServer(pi.toPacket(0));
+            client->sendPacketToServer(pi.toPacket(0), NetChannel_Player);
 
             auto pose = dpa.actor->getGlobalPose();
 
@@ -498,7 +498,7 @@ namespace converge {
             rSync.linVel = worlds::px2glm(rd->getLinearVelocity());
             rSync.angVel = worlds::px2glm(rd->getAngularVelocity());
 
-            _this->server->broadcastPacket(rSync.toPacket(0));
+            enet_peer_send(player.peer, NetChannel_World, rSync.toPacket(ENET_PACKET_FLAG_RELIABLE));
             });
     }
 
