@@ -4,15 +4,15 @@
 
 namespace converge {
     Client::Client() : serverPeer {nullptr} {
-        host = enet_host_create(nullptr, 1, 2, 0, 0);
+        host = enet_host_create(nullptr, 1, NetChannel_Count, 0, 0);
     }
 
     void Client::connect(ENetAddress address) {
-        serverPeer = enet_host_connect(host, &address, 2, 0);
+        serverPeer = enet_host_connect(host, &address, NetChannel_Count, 0);
     }
 
-    void Client::sendPacketToServer(ENetPacket* p) {
-        int result = enet_peer_send(serverPeer, 0, p);
+    void Client::sendPacketToServer(ENetPacket* p, NetChannel channel) {
+        int result = enet_peer_send(serverPeer, channel, p);
 
         if (result != 0) {
             logWarn("failed to send packet");
