@@ -826,6 +826,7 @@ namespace worlds {
             if (cPos.x < ma.x && cPos.x > mi.x &&
                 cPos.y < ma.y && cPos.y > mi.y &&
                 cPos.z < ma.z && cPos.z > mi.z) {
+                logMsg("in cubemap %u", wc.loadIdx);
                 currCubemapIdx = wc.loadIdx;
             }
         });

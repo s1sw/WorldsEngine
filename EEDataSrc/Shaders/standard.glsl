@@ -274,7 +274,7 @@ vec3 calcAmbient(vec3 f0, float roughness, vec3 viewDir, float metallic, vec3 al
     const float MAX_REFLECTION_LOD = 11.0;
     vec3 R = reflect(-viewDir, normal);
 
-    vec3 specularAmbient = pow(textureLod(cubemapSampler[cubemapIdx], R, roughness * MAX_REFLECTION_LOD).rgb, vec3(2.2));
+    vec3 specularAmbient = textureLod(cubemapSampler[cubemapIdx], R, roughness * MAX_REFLECTION_LOD).rgb;
 
     vec2 brdf  = textureLod(brdfLutSampler, vec2(min(max(dot(normal, viewDir), 0.0), 0.95), roughness), 0.0).rg;
     float f90 = clamp(50.0 * f0.g, 0.0, 1.0);

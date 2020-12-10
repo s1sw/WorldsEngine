@@ -13,5 +13,5 @@ layout (push_constant) uniform PushConstants {
 };
 
 void main() {
-    FragColor = vec4(pow(textureLod(cubemaps[ubIndices.y], inTexCoords, 0.0).xyz, vec3(2.2)), 1.0);
+    FragColor = vec4(textureLod(cubemaps[ubIndices.y], inTexCoords, 0.0).xyz, 1.0);
 }

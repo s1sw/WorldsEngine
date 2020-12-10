@@ -1,4 +1,5 @@
 #include "Engine.hpp"
+#include "TimingUtil.hpp"
 #include "Render.hpp"
 
 namespace worlds {
@@ -30,6 +31,7 @@ namespace worlds {
     }
 
     void CubemapConvoluter::convolute(vku::TextureImageCube& cube) {
+        PerfTimer pt; 
         if (cube.info().mipLevels == 1) {
             throw std::runtime_error("Can't convolute cubemap with 1 miplevel");
         }
@@ -126,5 +128,6 @@ namespace worlds {
         }
 
         vkCtx->device.destroyDescriptorPool(tmpDescriptorPool);
+        logMsg("cubemap convolution took %fms", pt.stopGetMs());
     }
 }

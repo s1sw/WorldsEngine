@@ -80,6 +80,7 @@ namespace worlds {
     }
 
     vku::TextureImageCube uploadCubemapVk(VulkanCtx& ctx, CubemapData& cd, vk::CommandBuffer cb, uint32_t imageIndex) {
+        PerfTimer pt;
         ZoneScoped;
         ensureTempVectorExistsCube(imageIndex);
         vk::Format firstFormat = cd.faceData->format;
@@ -90,11 +91,27 @@ namespace worlds {
             }
         }
 
+        vk::Format newFormat = firstFormat;
+
+        if (newFormat == vk::Format::eR8G8B8A8Srgb)
+            newFormat = vk::Format::eR8G8B8A8Unorm;
+
+        if (newFormat == vk::Format::eR8G8B8A8Unorm) {
+            for (int i = 0; i < 6; i++) {
+                for (int j = 0; j < cd.faceData[i].totalDataSize; j++) {
+                    float asFloat = (float)cd.faceData[i].data[j] / 255.0f;
+                    asFloat = pow(asFloat, 2.2);
+                    cd.faceData[i].data[j] = asFloat * 255;
+                }
+            }
+        }
+
         vku::TextureImageCube tex{
             ctx.device,
             ctx.allocator,
             cd.faceData[0].width, cd.faceData[0].height,
-            getNumMips(cd.faceData[0].width, cd.faceData[0].height), vk::Format::eR8G8B8A8Unorm, false,
+            getNumMips(cd.faceData[0].width, cd.faceData[0].height), 
+            newFormat, false,
             cd.debugName.empty() ? nullptr : cd.debugName.c_str()
         };
 
@@ -132,6 +149,8 @@ namespace worlds {
             vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eShaderRead);
 
         cubeTempBuffers[imageIndex].push_back(std::move(stagingBuffer));
+
+        logMsg("cubemap upload took %fms", pt.stopGetMs());
 
         return tex;
     }
