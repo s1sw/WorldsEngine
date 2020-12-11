@@ -17,7 +17,8 @@ namespace converge {
         OtherPlayerJoin,
         OtherPlayerLeave,
         SetScene,
-        RigidbodySync
+        RigidbodySync,
+        Count
     } MessageType;
 
     namespace msgs {

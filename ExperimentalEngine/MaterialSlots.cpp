@@ -76,17 +76,19 @@ namespace worlds {
                emissiveColorArr.get_array_element(1).get_double_value(), 
                emissiveColorArr.get_array_element(2).get_double_value()
             };
+        } else {
+            mat.emissiveColor = glm::vec3 {0.0f};
         }
 
         auto albedoAssetId = g_assetDB.addOrGetExisting(albedoPath);
 
-        int nMapSlot = -1;
+        uint32_t nMapSlot = ~0u;
         if (!normalMapPath.empty()) {
             auto normalMapId = g_assetDB.addOrGetExisting(normalMapPath);
             nMapSlot = texSlots.loadOrGet(normalMapId);
         }
 
-        int hMapSlot = -1;
+        uint32_t hMapSlot = ~0u;
         if (!heightmapPath.empty()) {
             auto heightMapId = g_assetDB.addOrGetExisting(heightmapPath);
             hMapSlot = texSlots.loadOrGet(heightMapId);

@@ -53,6 +53,7 @@ namespace converge {
     physx::PxD6Joint* rHandJoint;
 
     worlds::ConVar showLocosphereDebug{ "cnvrg_showLocosphereDebug", "0", "Shows the locosphere debug menu." };
+    worlds::ConVar drawDbgArrows { "cnvrg_locoDbgArrow", "0", "Draw a debug arrow pointing in the current input direction." };
 
     glm::vec3 lastDesiredVel;
 
@@ -265,8 +266,10 @@ namespace converge {
 
         localLpc.sprint = (vrInterface && vrInterface->getSprintInput()) || (inputManager->keyHeld(SDL_SCANCODE_LSHIFT));
 
-        auto& llstf = registry.get<Transform>(localLocosphereEnt);
-        g_dbgArrows->drawArrow(llstf.position, desiredVel);
+        if (drawDbgArrows.getInt()) {
+                auto& llstf = registry.get<Transform>(localLocosphereEnt);
+            g_dbgArrows->drawArrow(llstf.position, desiredVel);
+        }
 
         if (!vrInterface)
             camera->position = calcHeadbobPosition(desiredVel, camera->position, deltaTime, localLpc.grounded);
@@ -430,7 +433,7 @@ namespace converge {
                 airVel *= 25.0f;
                 glm::vec3 addedVel = (airVel - currLinVel);
                 addedVel.y = 0.0f;
-                locosphereActor->addForce(worlds::glm2px(addedVel) * 0.25f, physx::PxForceMode::eACCELERATION);
+                locosphereActor->addForce(worlds::glm2px(addedVel) * simStep, physx::PxForceMode::eACCELERATION);
             }
 
             if (lpc.jump) {

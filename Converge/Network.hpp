@@ -36,6 +36,16 @@ namespace converge {
     typedef void(*MessageCallback)(const ENetEvent&, void*);
     typedef void(*ServerConnectCallback)(NetPlayer&, void*);
     typedef void(*ClientConnectCallback)(void*);
+    typedef void(*PacketHandlerCallback)(const ENetEvent&, void*);
+
+    class MessageRouter {
+    public:
+        void registerHandler(MessageType type, PacketHandlerCallback callback, void* ctx);
+        void route(const ENetEvent& evt);
+    private:
+        PacketHandlerCallback callbacks[MessageType::Count];
+        void* handlerContexts[MessageType::Count];
+    };
 
     class NetBase {
     public:
@@ -51,5 +61,7 @@ namespace converge {
         MessageCallback msgCallback;
         void* callbackCtx;
         ENetHost* host;
+        MessageRouter router;
     };
+
 }
