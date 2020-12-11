@@ -398,12 +398,15 @@ namespace worlds {
                     }
                     });
                 renderer->reloadMatsAndTextures();
+                ImGui::LoadIniSettingsFromDisk("imgui.ini");
                 }, "play", "play.", nullptr);
 
             console->registerCommand([&](void*, const char*) {
                 runAsEditor = true;
                 pauseSim = true;
                 renderer->reloadMatsAndTextures();
+
+                ImGui::LoadIniSettingsFromDisk("imgui_editor.ini");
                 }, "pauseAndEdit", "pause and edit.", nullptr);
 
             console->registerCommand([&](void*, const char*) {

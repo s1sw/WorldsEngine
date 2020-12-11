@@ -25,11 +25,14 @@
 #include "ObjectParentSystem.hpp"
 #include <core.h>
 
+namespace worlds {
+    extern worlds::SceneInfo currentScene;
+}
+
 namespace converge {
     const uint16_t CONVERGE_PORT = 3011;
 
-    struct SyncedRB {
-    };
+    struct SyncedRB {};
 
     void cmdToggleVsync(void* obj, const char*) {
         auto renderer = (worlds::VKRenderer*)obj;
@@ -49,6 +52,7 @@ namespace converge {
         renderer = interfaces.renderer;
         camera = interfaces.mainCamera;
         inputManager = interfaces.inputManager;
+        engine = interfaces.engine;
         reg = &registry;
 
         worlds::g_console->registerCommand(cmdToggleVsync, "r_toggleVsync", "Toggles Vsync.", renderer);
@@ -156,45 +160,53 @@ namespace converge {
         g_dbgArrows->newFrame();
     }
 
+    worlds::ConVar sendRate {"cnvrg_sendRate", "5", "Send rate in simulation ticks. 0 = 1 packet per tick"};
+    int syncTimer = 0;
+
     void EventHandler::simulate(entt::registry& registry, float) {
         if (isDedicated) {
             server->processMessages(onServerPacket);
 
-            for (int i = 0; i < MAX_PLAYERS; i++) {
-                if (!server->players[i].present) continue;
+            syncTimer++;
+            
+            if (syncTimer >= sendRate.getInt()) {
+                for (int i = 0; i < MAX_PLAYERS; i++) {
+                    if (!server->players[i].present) continue;
 
-                auto& sp = registry.get<ServerPlayer>(playerLocospheres[i]);
-                auto& dpa = registry.get<worlds::DynamicPhysicsActor>(playerLocospheres[i]);
-                auto* rd = (physx::PxRigidDynamic*)dpa.actor;
-                auto pose = dpa.actor->getGlobalPose();
+                    auto& sp = registry.get<ServerPlayer>(playerLocospheres[i]);
+                    auto& dpa = registry.get<worlds::DynamicPhysicsActor>(playerLocospheres[i]);
+                    auto* rd = (physx::PxRigidDynamic*)dpa.actor;
+                    auto pose = dpa.actor->getGlobalPose();
 
-                msgs::PlayerPosition pPos;
-                pPos.id = i;
-                pPos.pos = worlds::px2glm(pose.p);
-                pPos.rot = worlds::px2glm(pose.q);
-                pPos.linVel = worlds::px2glm(rd->getLinearVelocity());
-                pPos.angVel = worlds::px2glm(rd->getAngularVelocity());
-                pPos.inputIdx = sp.lastAcknowledgedInput;
-                
-                server->broadcastPacket(pPos.toPacket(0), NetChannel_Player);
+                    msgs::PlayerPosition pPos;
+                    pPos.id = i;
+                    pPos.pos = worlds::px2glm(pose.p);
+                    pPos.rot = worlds::px2glm(pose.q);
+                    pPos.linVel = worlds::px2glm(rd->getLinearVelocity());
+                    pPos.angVel = worlds::px2glm(rd->getAngularVelocity());
+                    pPos.inputIdx = sp.lastAcknowledgedInput;
+                    
+                    server->broadcastPacket(pPos.toPacket(0), NetChannel_Player);
+                }
+
+                registry.view<SyncedRB, worlds::DynamicPhysicsActor>().each([&](auto ent, worlds::DynamicPhysicsActor& dpa) {
+                    auto* rd = (physx::PxRigidDynamic*)dpa.actor;
+                    auto pose = dpa.actor->getGlobalPose();
+
+                    if (rd->isSleeping()) return;
+
+                    msgs::RigidbodySync rSync;
+                    rSync.entId = (uint32_t)ent;
+
+                    rSync.pos = worlds::px2glm(pose.p);
+                    rSync.rot = worlds::px2glm(pose.q);
+                    rSync.linVel = worlds::px2glm(rd->getLinearVelocity());
+                    rSync.angVel = worlds::px2glm(rd->getAngularVelocity());
+
+                    server->broadcastPacket(rSync.toPacket(0), NetChannel_World);
+                });
+                syncTimer = 0;
             }
-
-            registry.view<SyncedRB, worlds::DynamicPhysicsActor>().each([&](auto ent, worlds::DynamicPhysicsActor& dpa) {
-                auto* rd = (physx::PxRigidDynamic*)dpa.actor;
-                auto pose = dpa.actor->getGlobalPose();
-
-                if (rd->isSleeping()) return;
-
-                msgs::RigidbodySync rSync;
-                rSync.entId = (uint32_t)ent;
-
-                rSync.pos = worlds::px2glm(pose.p);
-                rSync.rot = worlds::px2glm(pose.q);
-                rSync.linVel = worlds::px2glm(rd->getLinearVelocity());
-                rSync.angVel = worlds::px2glm(rd->getAngularVelocity());
-
-                server->broadcastPacket(rSync.toPacket(0), NetChannel_World);
-            });
         }
 
         entt::entity localLocosphereEnt = entt::null;
@@ -233,8 +245,16 @@ namespace converge {
             client->sendPacketToServer(pi.toPacket(0), NetChannel_Player);
 
             auto pose = dpa.actor->getGlobalPose();
+            auto* rd = (physx::PxRigidDynamic*)dpa.actor;
 
-            pastLocosphereStates.insert({ clientInputIdx, { worlds::px2glm(pose.p), clientInputIdx }});
+            pastLocosphereStates.insert({ clientInputIdx, 
+                { 
+                    worlds::px2glm(pose.p), 
+                    worlds::px2glm(rd->getLinearVelocity()),
+                    worlds::px2glm(rd->getAngularVelocity()),
+                    clientInputIdx 
+                }
+            });
             clientInputIdx++;
             lastSent = pi;
         }
@@ -336,6 +356,29 @@ namespace converge {
             }
         }
 
+        if (isDedicated) {
+            msgs::SetScene setScene;
+            setScene.sceneName = worlds::currentScene.name;
+            server->broadcastPacket(
+                    setScene.toPacket(ENET_PACKET_FLAG_RELIABLE),
+                    NetChannel_Default);
+
+            // recreate player locospheres
+            for (int i = 0; i < MAX_PLAYERS; i++) {
+                if (!server->players[i].present) return;
+                PlayerRig newRig = lsphereSys->createPlayerRig(*reg);
+                auto& lpc = reg->get<LocospherePlayerComponent>(newRig.locosphere);
+                lpc.isLocal = false;
+                auto& sp = reg->emplace<ServerPlayer>(newRig.locosphere);
+                sp.lastAcknowledgedInput = 0;
+                playerLocospheres[i] = newRig.locosphere;
+            }
+        }
+
+        if (client && client->isConnected()) {
+
+        }
+
         g_dbgArrows->createEntities();
     }
 
@@ -383,37 +426,40 @@ namespace converge {
             pPos.fromPacket(evt.packet);
 
             if (pPos.id == _this->client->serverSideID) {
-                _this->reg->view<LocospherePlayerComponent, worlds::DynamicPhysicsActor>()
-                    .each([&](auto, LocospherePlayerComponent& lpc, worlds::DynamicPhysicsActor& dpa) {
+                _this->reg->view<LocospherePlayerComponent, worlds::DynamicPhysicsActor, Transform>()
+                    .each([&](auto, LocospherePlayerComponent& lpc, worlds::DynamicPhysicsActor& dpa, Transform& t) {
                     if (lpc.isLocal) {
+
                         auto pose = dpa.actor->getGlobalPose();
                         auto pastStateIt = _this->pastLocosphereStates.find(pPos.inputIdx);
 
                         if (pastStateIt != _this->pastLocosphereStates.end()) {
                             auto pastState = _this->pastLocosphereStates.at(pPos.inputIdx);
+                            std::erase_if(_this->pastLocosphereStates, [&](auto& k) {
+                                return k.first <= pPos.inputIdx;
+                            });
                             
-                            if (glm::distance(pastState.pos, pPos.pos) > 0.1f) {
+                            if (glm::distance(pastState.pos, pPos.pos) > 0.25f) {
+                                logMsg("correcting");
                                 pose.p = worlds::glm2px(pPos.pos);
                                 pose.q = worlds::glm2px(pPos.rot);
-                                dpa.actor->setGlobalPose(pose);
                                 auto* rd = (physx::PxRigidDynamic*)dpa.actor;
                                 rd->setLinearVelocity(worlds::glm2px(pPos.linVel));
                                 rd->setAngularVelocity(worlds::glm2px(pPos.angVel));
+
+                                for (auto& p : _this->pastLocosphereStates) {
+                                    pose.p += worlds::glm2px(p.second.linVel * 0.01f);
+                                }
+
+                                dpa.actor->setGlobalPose(pose);
+                                t.position = worlds::px2glm(pose.p);
+                                t.rotation = worlds::px2glm(pose.q);
                             }
-                        } else {
-                            pose.p = worlds::glm2px(pPos.pos);
-                            pose.q = worlds::glm2px(pPos.rot);
-                            dpa.actor->setGlobalPose(pose);
-                            auto* rd = (physx::PxRigidDynamic*)dpa.actor;
-                            rd->setLinearVelocity(worlds::glm2px(pPos.linVel));
-                            rd->setAngularVelocity(worlds::glm2px(pPos.angVel));
-                        }
+
+                        } 
                     }
                 });
 
-                _this->pastLocosphereStates.erase(std::erase_if(_this->pastLocosphereStates, [&](auto& k) {
-                    return k.first <= pPos.inputIdx;
-                }));
             } else {
                 entt::entity lEnt = _this->playerLocospheres[pPos.id];
                 auto& dpa = _this->reg->get<worlds::DynamicPhysicsActor>(lEnt);

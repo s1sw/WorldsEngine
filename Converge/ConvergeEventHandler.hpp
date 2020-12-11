@@ -2,6 +2,7 @@
 #include <enet/enet.h>
 #include <IGameEventHandler.hpp>
 #include <Console.hpp>
+#include "Engine.hpp"
 #include "NetMessage.hpp"
 #include "PidController.hpp"
 #include <Camera.hpp>
@@ -32,6 +33,7 @@ namespace converge {
         worlds::VKRenderer* renderer;
         worlds::InputManager* inputManager;
         worlds::Camera* camera;
+        worlds::WorldsEngine* engine;
         LocospherePlayerSystem* lsphereSys;
         entt::registry* reg;
         bool isDedicated;
@@ -46,6 +48,8 @@ namespace converge {
 
         struct LocosphereState {
             glm::vec3 pos;
+            glm::vec3 linVel;
+            glm::vec3 angVel;
             uint16_t inputIndex;
         };
 
