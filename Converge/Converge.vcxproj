@@ -270,7 +270,5 @@
     <Image Include="..\ExperimentalEngine\icon.ico" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
-  <ImportGroup Label="ExtensionTargets">
-    <Import Project="..\..\..\Programming\vcpkg\scripts\buildsystems\msbuild\vcpkg.targets" />
-  </ImportGroup>
+  <ImportGroup Label="ExtensionTargets" />
 </Project>
