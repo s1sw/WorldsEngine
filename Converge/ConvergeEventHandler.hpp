@@ -50,6 +50,7 @@ namespace converge {
             glm::vec3 pos;
             glm::vec3 linVel;
             glm::vec3 angVel;
+            glm::vec3 accel;
             uint16_t inputIndex;
         };
 

@@ -247,14 +247,20 @@ namespace converge {
             auto pose = dpa.actor->getGlobalPose();
             auto* rd = (physx::PxRigidDynamic*)dpa.actor;
 
+            static glm::vec3 lastVel{ 0.0f };
+
+
             pastLocosphereStates.insert({ clientInputIdx, 
                 { 
                     worlds::px2glm(pose.p), 
                     worlds::px2glm(rd->getLinearVelocity()),
                     worlds::px2glm(rd->getAngularVelocity()),
+                    lastVel - worlds::px2glm(rd->getLinearVelocity()),
                     clientInputIdx 
                 }
             });
+
+            lastVel = worlds::px2glm(rd->getLinearVelocity());
             clientInputIdx++;
             lastSent = pi;
         }
@@ -429,7 +435,6 @@ namespace converge {
                 _this->reg->view<LocospherePlayerComponent, worlds::DynamicPhysicsActor, Transform>()
                     .each([&](auto, LocospherePlayerComponent& lpc, worlds::DynamicPhysicsActor& dpa, Transform& t) {
                     if (lpc.isLocal) {
-
                         auto pose = dpa.actor->getGlobalPose();
                         auto pastStateIt = _this->pastLocosphereStates.find(pPos.inputIdx);
 
@@ -444,16 +449,19 @@ namespace converge {
                                 pose.p = worlds::glm2px(pPos.pos);
                                 pose.q = worlds::glm2px(pPos.rot);
                                 auto* rd = (physx::PxRigidDynamic*)dpa.actor;
-                                rd->setLinearVelocity(worlds::glm2px(pPos.linVel));
+                                glm::vec3 linVel = pPos.linVel;
+                                //rd->setLinearVelocity(worlds::glm2px(pPos.linVel));
                                 rd->setAngularVelocity(worlds::glm2px(pPos.angVel));
 
                                 for (auto& p : _this->pastLocosphereStates) {
                                     pose.p += worlds::glm2px(p.second.linVel * 0.01f);
+                                    linVel += p.second.accel * 0.01f;
                                 }
 
                                 dpa.actor->setGlobalPose(pose);
                                 t.position = worlds::px2glm(pose.p);
                                 t.rotation = worlds::px2glm(pose.q);
+                                rd->setLinearVelocity(worlds::glm2px(linVel));
                             }
 
                         } 
