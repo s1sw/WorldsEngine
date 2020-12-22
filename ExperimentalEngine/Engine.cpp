@@ -297,7 +297,7 @@ namespace worlds {
         io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;           // Enable Docking
         io.IniFilename = runAsEditor ? "imgui_editor.ini" : "imgui.ini";
         // Disabling this for now as it seems to cause random freezes
-        //io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;         // Enable Multi-Viewport / Platform Windows
+        io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;         // Enable Multi-Viewport / Platform Windows
         io.Fonts->TexDesiredWidth = 512.f;
 
         if (!dedicatedServer) {
@@ -397,29 +397,22 @@ namespace worlds {
                         as.isPlaying = true;
                     }
                     });
-                renderer->reloadMatsAndTextures();
-                ImGui::LoadIniSettingsFromDisk("imgui.ini");
                 }, "play", "play.", nullptr);
 
             console->registerCommand([&](void*, const char*) {
                 runAsEditor = true;
                 pauseSim = true;
-                renderer->reloadMatsAndTextures();
-
-                ImGui::LoadIniSettingsFromDisk("imgui_editor.ini");
                 }, "pauseAndEdit", "pause and edit.", nullptr);
 
             console->registerCommand([&](void*, const char*) {
                 runAsEditor = true;
                 loadScene(currentScene.id, registry);
                 pauseSim = true;
-                renderer->reloadMatsAndTextures();
                 }, "reloadAndEdit", "reload and edit.", nullptr);
 
             console->registerCommand([&](void*, const char*) {
                 runAsEditor = false;
                 pauseSim = false;
-                renderer->reloadMatsAndTextures();
                 }, "unpause", "unpause and go back to play mode.", nullptr);
 
             console->registerCommand([&](void*, const char*) {
