@@ -68,7 +68,7 @@ namespace worlds {
 
             auto texData = loadTexData(asset);
             if (!cb)
-                slots[slot] = uploadTextureVk(*vkCtx, texData, cb, imageIndex);
+                slots[slot] = uploadTextureVk(*vkCtx, texData, cb, frameIdx);
             else
                 slots[slot] = uploadTextureVk(*vkCtx, texData);
             std::free(texData.data);
@@ -80,15 +80,15 @@ namespace worlds {
     private:
         std::shared_ptr<VulkanCtx> vkCtx;
         vk::CommandBuffer cb;
-        uint32_t imageIndex;
+        uint32_t frameIdx;
     public:
         TextureSlots(std::shared_ptr<VulkanCtx> vkCtx) : vkCtx(vkCtx), cb(nullptr) {
 
         }
 
-        void setUploadCommandBuffer(vk::CommandBuffer cb, uint32_t imageIndex) {
+        void setUploadCommandBuffer(vk::CommandBuffer cb, uint32_t frameIdx) {
             this->cb = cb;
-            this->imageIndex = imageIndex;
+            this->frameIdx = frameIdx;
         }
 
         void unload(int idx) override {

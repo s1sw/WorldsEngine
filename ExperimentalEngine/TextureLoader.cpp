@@ -185,20 +185,20 @@ namespace worlds {
     // store these in a vector so they can be destroyed after the command buffer has completed
     std::vector<std::vector<vku::GenericBuffer>> tempBuffers;
 
-    void ensureTempVectorExists(uint32_t imageIndex) {
-        if (imageIndex >= tempBuffers.size()) {
-            tempBuffers.resize(imageIndex + 1);
+    void ensureTempVectorExists(uint32_t frameIdx) {
+        if (frameIdx >= tempBuffers.size()) {
+            tempBuffers.resize(frameIdx + 1);
         }
     }
 
-    void destroyTempTexBuffers(uint32_t imageIndex) {
-        ensureTempVectorExists(imageIndex);
-        tempBuffers[imageIndex].clear();
+    void destroyTempTexBuffers(uint32_t frameIdx) {
+        ensureTempVectorExists(frameIdx);
+        tempBuffers[frameIdx].clear();
     }
 
-    vku::TextureImage2D uploadTextureVk(VulkanCtx& ctx, TextureData& td, vk::CommandBuffer cb, uint32_t imageIndex) {
+    vku::TextureImage2D uploadTextureVk(VulkanCtx& ctx, TextureData& td, vk::CommandBuffer cb, uint32_t frameIdx) {
         ZoneScoped;
-        ensureTempVectorExists(imageIndex);
+        ensureTempVectorExists(frameIdx);
         vku::TextureImage2D tex{
             ctx.device,
             ctx.allocator,
@@ -227,7 +227,7 @@ namespace worlds {
             tex.setLayout(cb, vk::ImageLayout::eShaderReadOnlyOptimal);
         }
 
-        tempBuffers[imageIndex].push_back(std::move(stagingBuffer));
+        tempBuffers[frameIdx].push_back(std::move(stagingBuffer));
 
         return tex;
     }
