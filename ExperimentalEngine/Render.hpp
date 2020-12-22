@@ -330,12 +330,13 @@ namespace worlds {
         int32_t numMSAASamples;
         vk::UniqueRenderPass imguiRenderPass;
         std::vector<vk::UniqueFramebuffer> framebuffers;
-        vk::UniqueSemaphore imageAcquire;
-        vk::UniqueSemaphore commandComplete;
         vk::UniqueCommandPool commandPool;
         std::vector<vk::UniqueCommandBuffer> cmdBufs;
+        int maxFramesInFlight = 2;
         std::vector<vk::Semaphore> cmdBufferSemaphores;
-        std::vector<uint64_t> cmdBufSemaphoreVals;
+        std::vector<vk::Semaphore> imgAvailable;
+        std::vector<vk::Fence> cmdBufFences;
+        std::vector<vk::Fence> imgFences;
         VmaAllocator allocator;
 
         RenderImageHandle finalPrePresent;
@@ -379,7 +380,6 @@ namespace worlds {
         void writeCmdBuf(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageIndex, Camera& cam, entt::registry& reg);
 
         std::unordered_map<AssetID, LoadedMeshData> loadedMeshes;
-        int frameIdx;
         std::vector<TracyVkCtx> tracyContexts;
         std::unique_ptr<TextureSlots> texSlots;
         std::unique_ptr<MaterialSlots> matSlots;
@@ -406,6 +406,7 @@ namespace worlds {
         RenderDebugStats dbgStats;
         RTTPassHandle vrPass;
         RTTPassHandle nextHandle;
+        uint32_t frameIdx;
     public:
         double time;
         VKRenderer(const RendererInitInfo& initInfo, bool* success);

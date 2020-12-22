@@ -430,11 +430,6 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
         qfi++;
     }
 
-    // Semaphores for presentation
-    vk::SemaphoreCreateInfo sci;
-    imageAcquire = device->createSemaphoreUnique(sci);
-    commandComplete = device->createSemaphoreUnique(sci);
-
     // Command pool
     vk::CommandPoolCreateInfo cpci;
     cpci.flags = vk::CommandPoolCreateFlagBits::eTransient | vk::CommandPoolCreateFlagBits::eResetCommandBuffer;
@@ -509,26 +504,25 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
 
     vk::CommandBufferAllocateInfo cbai;
     cbai.commandPool = *commandPool;
-    cbai.commandBufferCount = 4;
+    cbai.commandBufferCount = maxFramesInFlight;
     cbai.level = vk::CommandBufferLevel::ePrimary;
     cmdBufs = device->allocateCommandBuffersUnique(cbai);
 
     for (size_t i = 0; i < cmdBufs.size(); i++) {
         vk::FenceCreateInfo fci;
         fci.flags = vk::FenceCreateFlagBits::eSignaled;
+        cmdBufFences.push_back(device->createFence(fci));
+
         vk::SemaphoreCreateInfo sci;
-        vk::SemaphoreTypeCreateInfo stci;
-        stci.initialValue = 0;
-        stci.semaphoreType = vk::SemaphoreType::eTimeline;
-        sci.pNext = &stci;
         cmdBufferSemaphores.push_back(device->createSemaphore(sci));
-        cmdBufSemaphoreVals.push_back(0);
+        imgAvailable.push_back(device->createSemaphore(sci));
 
         vk::CommandBuffer cb = *cmdBufs[i];
         vk::CommandBufferBeginInfo cbbi;
         cb.begin(cbbi);
         cb.end();
     }
+    imgFences.resize(cmdBufs.size());
 
     timestampPeriod = physicalDevice.getProperties().limits.timestampPeriod;
 
@@ -706,9 +700,6 @@ void VKRenderer::recreateSwapchain() {
 
     framebuffers.clear();
     oldSwapchain.reset();
-    imageAcquire.reset();
-    vk::SemaphoreCreateInfo sci;
-    imageAcquire = device->createSemaphoreUnique(sci);
 
     createSCDependents();
 
@@ -716,7 +707,8 @@ void VKRenderer::recreateSwapchain() {
 }
 
 void VKRenderer::presentNothing(uint32_t imageIndex) {
-    vk::Semaphore waitSemaphore = *imageAcquire;
+    vk::Semaphore imgSemaphore = imgAvailable[frameIdx];
+    vk::Semaphore cmdBufSemaphore = cmdBufferSemaphores[frameIdx];
 
     vk::PresentInfoKHR presentInfo;
     vk::SwapchainKHR cSwapchain = *swapchain->getSwapchain();
@@ -724,14 +716,20 @@ void VKRenderer::presentNothing(uint32_t imageIndex) {
     presentInfo.swapchainCount = 1;
     presentInfo.pImageIndices = &imageIndex;
 
-    presentInfo.pWaitSemaphores = &waitSemaphore;
+    presentInfo.pWaitSemaphores = &cmdBufSemaphore;
     presentInfo.waitSemaphoreCount = 1;
 
     vk::CommandBufferBeginInfo cbbi;
-    auto& cmdBuf = cmdBufs[imageIndex];
+    auto& cmdBuf = cmdBufs[frameIdx];
     cmdBuf->begin(cbbi);
     cmdBuf->end();
+
     vk::SubmitInfo submitInfo;
+    submitInfo.waitSemaphoreCount = 1;
+    submitInfo.pWaitSemaphores = &imgSemaphore;
+
+    submitInfo.signalSemaphoreCount = 1;
+    submitInfo.pSignalSemaphores = &cmdBufferSemaphores[frameIdx];
     vk::CommandBuffer cCmdBuf = *cmdBuf;
     submitInfo.pCommandBuffers = &cCmdBuf;
     submitInfo.commandBufferCount = 1;
@@ -795,18 +793,15 @@ vku::ShaderModule VKRenderer::loadShaderAsset(AssetID id) {
     return sm;
 }
 
-uint32_t nextImageIdx = 0;
-bool firstFrame = true;
-
 void VKRenderer::acquireSwapchainImage(uint32_t* imageIdx) {
     ZoneScoped;
-    vk::Result nextImageRes = swapchain->acquireImage(*device, *imageAcquire, imageIdx);
+    vk::Result nextImageRes = swapchain->acquireImage(*device, imgAvailable[frameIdx], imageIdx);
 
     if ((nextImageRes == vk::Result::eSuboptimalKHR || nextImageRes == vk::Result::eErrorOutOfDateKHR) && width != 0 && height != 0) {
         recreateSwapchain();
 
         // acquire image from new swapchain
-        swapchain->acquireImage(*device, *imageAcquire, imageIdx);
+        swapchain->acquireImage(*device, imgAvailable[frameIdx], imageIdx);
     }
 }
 
@@ -925,7 +920,7 @@ void VKRenderer::writeCmdBuf(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageInde
     cmdBuf->resetQueryPool(*queryPool, 0, 2);
     cmdBuf->writeTimestamp(vk::PipelineStageFlagBits::eTopOfPipe, *queryPool, 0);
 
-    texSlots->setUploadCommandBuffer(*cmdBuf, imageIndex);
+    texSlots->setUploadCommandBuffer(*cmdBuf, frameIdx);
 
     if (clearMaterialIndices) {
         reg.view<WorldObject>().each([](entt::entity, WorldObject& wo) {
@@ -1069,44 +1064,28 @@ void VKRenderer::writeCmdBuf(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageInde
 
 void VKRenderer::frame(Camera& cam, entt::registry& reg) {
     ZoneScoped;
+    device->waitForFences(1, &cmdBufFences[frameIdx], VK_TRUE, UINT64_MAX);
+    device->resetFences(1, &cmdBufFences[frameIdx]);
+
     dbgStats.numCulledObjs = 0;
     dbgStats.numDrawCalls = 0;
+    destroyTempTexBuffers(frameIdx);
 
-    uint32_t imageIndex = nextImageIdx;
+    uint32_t imageIndex;
+    acquireSwapchainImage(&imageIndex);
 
-    if (!lowLatencyMode.getInt() || !lowLatencyLast) {
-        vk::SemaphoreWaitInfo swi;
-        swi.pSemaphores = &cmdBufferSemaphores[imageIndex];
-        swi.semaphoreCount = 1;
-        swi.pValues = &cmdBufSemaphoreVals[imageIndex];
-        vk::Result semaphoreWaitResult = device->waitSemaphores(swi, UINT64_MAX);
-        if (semaphoreWaitResult != vk::Result::eSuccess)
-            fatalErr("failed to wait on semaphore");
+    if (imgFences[imageIndex]) {
+        device->waitForFences(imgFences[imageIndex], true, UINT64_MAX);
     }
 
-    destroyTempTexBuffers(imageIndex);
+    imgFences[imageIndex] = cmdBufFences[frameIdx];
 
-    if (!lowLatencyMode.getInt() || (!lowLatencyLast && lowLatencyMode.getInt())) {
-        if (!(lowLatencyLast && !lowLatencyMode.getInt()))
-            acquireSwapchainImage(&imageIndex);
-        lowLatencyLast = false;
-    }
-
-    if (swapchainRecreated) {
-        if (lowLatencyMode.getInt())
-            acquireSwapchainImage(&nextImageIdx);
-        swapchainRecreated = false;
-    }
-
-    auto& cmdBuf = cmdBufs[imageIndex];
-
+    auto& cmdBuf = cmdBufs[frameIdx];
     writeCmdBuf(cmdBuf, imageIndex, cam, reg);
 
     vk::SubmitInfo submit;
     submit.waitSemaphoreCount = 1;
-
-    vk::Semaphore cImageAcquire = *imageAcquire;
-    submit.pWaitSemaphores = &cImageAcquire;
+    submit.pWaitSemaphores = &imgAvailable[frameIdx];
 
     vk::PipelineStageFlags waitStages = vk::PipelineStageFlagBits::eColorAttachmentOutput;
     submit.pWaitDstStageMask = &waitStages;
@@ -1114,25 +1093,17 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
     submit.commandBufferCount = 1;
     vk::CommandBuffer cCmdBuf = *cmdBuf;
     submit.pCommandBuffers = &cCmdBuf;
+    submit.pSignalSemaphores = &cmdBufferSemaphores[frameIdx];
+    submit.signalSemaphoreCount = 1;
 
-    vk::Semaphore waitSemaphore = *commandComplete;
-    submit.signalSemaphoreCount = 2;
-    vk::Semaphore signalSemaphores[] = { waitSemaphore, cmdBufferSemaphores[imageIndex] };
-    submit.pSignalSemaphores = signalSemaphores;
-
-    vk::TimelineSemaphoreSubmitInfo tssi{};
-    uint64_t semaphoreVals[] = { 0, cmdBufSemaphoreVals[imageIndex] + 1 };
-    tssi.pSignalSemaphoreValues = semaphoreVals;
-    tssi.signalSemaphoreValueCount = 2;
-
-    submit.pNext = &tssi;
     auto queue = device->getQueue(graphicsQueueFamilyIdx, 0);
-    auto submitResult = queue.submit(1, &submit, nullptr);
+    auto submitResult = queue.submit(1, &submit, cmdBufFences[frameIdx]);
 
-    if (submitResult != vk::Result::eSuccess)
-        fatalErr("Failed to submit queue");
+    if (submitResult != vk::Result::eSuccess) {
+        std::string errStr = vk::to_string(submitResult);
+        fatalErr(("Failed to submit queue (error: " + errStr + ")").c_str());
+    }
 
-    cmdBufSemaphoreVals[imageIndex]++;
     TracyMessageL("Queue submitted");
 
     if (enableVR) {
@@ -1145,7 +1116,7 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
     presentInfo.swapchainCount = 1;
     presentInfo.pImageIndices = &imageIndex;
 
-    presentInfo.pWaitSemaphores = &waitSemaphore;
+    presentInfo.pWaitSemaphores = &cmdBufferSemaphores[frameIdx];
     presentInfo.waitSemaphoreCount = 1;
 
     try {
@@ -1176,25 +1147,12 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
     if (queryRes == vk::Result::eSuccess)
         lastRenderTimeTicks = timeStamps[1] - timeStamps[0];
 
-    if (lowLatencyMode.getInt()) {
-        vk::SemaphoreWaitInfo swi;
-        swi.pSemaphores = &cmdBufferSemaphores[imageIndex];
-        swi.semaphoreCount = 1;
-        swi.pValues = &cmdBufSemaphoreVals[imageIndex];
-        auto waitResult = device->waitSemaphores(swi, UINT64_MAX);
-
-        if (waitResult != vk::Result::eSuccess)
-            fatalErr("Failed to wait on semaphore");
-
-        acquireSwapchainImage(&nextImageIdx);
-        lowLatencyLast = true;
-    }
-
     //VmaBudget budget;
     //vmaGetBudget(allocator, &budget);
     //dbgStats.vramUsage = budget.allocationBytes;
 
     frameIdx++;
+    frameIdx %= maxFramesInFlight;
     FrameMark;
 }
 
