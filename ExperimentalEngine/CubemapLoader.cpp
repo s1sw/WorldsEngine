@@ -97,13 +97,21 @@ namespace worlds {
             newFormat = vk::Format::eR8G8B8A8Unorm;
 
         if (newFormat == vk::Format::eR8G8B8A8Unorm) {
+            JobList& jl = g_jobSys->getFreeJobList();
+            jl.begin();
             for (int i = 0; i < 6; i++) {
-                for (int j = 0; j < cd.faceData[i].totalDataSize; j++) {
-                    float asFloat = (float)cd.faceData[i].data[j] / 255.0f;
-                    asFloat = pow(asFloat, 2.2);
-                    cd.faceData[i].data[j] = asFloat * 255;
-                }
+                Job j{ [&, i] {
+                    for (int j = 0; j < cd.faceData[i].totalDataSize; j++) {
+                        float asFloat = (float)cd.faceData[i].data[j] / 255.0f;
+                        asFloat = pow(asFloat, 2.2);
+                        cd.faceData[i].data[j] = asFloat * 255;
+                    }
+                } };
+                jl.addJob(std::move(j));
             }
+            jl.end();
+            g_jobSys->signalJobListAvailable();
+            jl.wait();
         }
 
         vku::TextureImageCube tex{
