@@ -2,9 +2,15 @@
 #include <SDL2/SDL_log.h>
 #include "LogCategories.hpp"
 
+#if defined(__clang__) || defined(__GNUC__)
 #define PRINTF_FMT(idx) __attribute__((__format__ (__printf__, idx, 0)))
+#ifdef __clang__
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wformat-security"
+#endif
+#else
+#define PRINTF_FMT(idx)
+#endif
 
 template<typename... Args> 
 PRINTF_FMT(1)
