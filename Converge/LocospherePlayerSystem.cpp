@@ -352,7 +352,9 @@ namespace converge {
         // dot in the centre of the screen
         if (!vrInterface) {
             auto size = ImGui::GetMainViewport()->Size;
-            ImGui::GetBackgroundDrawList()->AddCircleFilled(ImVec2(size.x * 0.5f, size.y * 0.5f), 2.5f, ImColor(1.0f, 1.0f, 1.0f), 16);
+            auto offset = ImGui::GetMainViewport()->Pos;
+            ImGui::GetBackgroundDrawList()->AddCircleFilled(
+                ImVec2(offset.x + size.x * 0.5f, offset.y + size.y * 0.5f), 2.5f, ImColor(1.0f, 1.0f, 1.0f), 16);
         }
     }
 
