@@ -1190,9 +1190,9 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
         lowLatencyLast = true;
     }
 
-    VmaBudget budget;
-    vmaGetBudget(allocator, &budget);
-    dbgStats.vramUsage = budget.allocationBytes;
+    //VmaBudget budget;
+    //vmaGetBudget(allocator, &budget);
+    //dbgStats.vramUsage = budget.allocationBytes;
 
     frameIdx++;
     FrameMark;
