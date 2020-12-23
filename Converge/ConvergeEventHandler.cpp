@@ -155,6 +155,16 @@ namespace converge {
                 }
             }
 #endif
+            if (client->isConnected()) {
+                ImGui::Begin("netdbg");
+                ImVec2 cr = ImGui::GetContentRegionAvail();
+                ImGui::PlotLines("err", lsphereErr, 128, lsphereErrIdx, nullptr, FLT_MAX, FLT_MAX, ImVec2(cr.x - 10.0f, 100.0f));
+                uint32_t idxWrapped = lsphereErrIdx - 1;
+                if (idxWrapped == -1)
+                    idxWrapped = 127;
+                ImGui::Text("curr err: %.3f", lsphereErr[idxWrapped]);
+                ImGui::End();
+            }
         }
 
         g_dbgArrows->newFrame();
@@ -440,31 +450,38 @@ namespace converge {
 
                         if (pastStateIt != _this->pastLocosphereStates.end()) {
                             auto pastState = _this->pastLocosphereStates.at(pPos.inputIdx);
-                            std::erase_if(_this->pastLocosphereStates, [&](auto& k) {
-                                return k.first <= pPos.inputIdx;
-                            });
-                            
-                            if (glm::distance(pastState.pos, pPos.pos) > 0.25f) {
-                                logMsg("correcting");
-                                pose.p = worlds::glm2px(pPos.pos);
-                                pose.q = worlds::glm2px(pPos.rot);
-                                auto* rd = (physx::PxRigidDynamic*)dpa.actor;
-                                glm::vec3 linVel = pPos.linVel;
-                                //rd->setLinearVelocity(worlds::glm2px(pPos.linVel));
-                                rd->setAngularVelocity(worlds::glm2px(pPos.angVel));
+                            float err = glm::length(pastState.pos - pPos.pos);
 
-                                for (auto& p : _this->pastLocosphereStates) {
-                                    pose.p += worlds::glm2px(p.second.linVel * 0.01f);
-                                    linVel += p.second.accel * 0.01f;
-                                }
+                            _this->lsphereErr[_this->lsphereErrIdx] = err;
+                            _this->lsphereErrIdx++;
 
-                                dpa.actor->setGlobalPose(pose);
-                                t.position = worlds::px2glm(pose.p);
-                                t.rotation = worlds::px2glm(pose.q);
-                                rd->setLinearVelocity(worlds::glm2px(linVel));
-                            }
-
+                            if (_this->lsphereErrIdx == 128)
+                                _this->lsphereErrIdx = 0;
                         } 
+
+                        std::erase_if(_this->pastLocosphereStates, [&](auto& k) {
+                            return k.first < pPos.inputIdx;
+                        });
+
+                        //if (glm::distance(pastState.pos, pPos.pos) > 0.25f) {
+                            //logMsg("correcting");
+                        pose.p = worlds::glm2px(pPos.pos);
+                        pose.q = worlds::glm2px(pPos.rot);
+                        auto* rd = (physx::PxRigidDynamic*)dpa.actor;
+                        glm::vec3 linVel = pPos.linVel;
+                        //rd->setLinearVelocity(worlds::glm2px(pPos.linVel));
+                        //rd->setAngularVelocity(worlds::glm2px(pPos.angVel));
+
+                        for (auto& p : _this->pastLocosphereStates) {
+                            pose.p += worlds::glm2px(linVel * 0.01f);
+                            linVel += p.second.accel * 0.01f;
+                        }
+
+                        dpa.actor->setGlobalPose(pose);
+                        t.position = worlds::px2glm(pose.p);
+                        t.rotation = worlds::px2glm(pose.q);
+                        rd->setLinearVelocity(worlds::glm2px(linVel));
+                    //}
                     }
                 });
 

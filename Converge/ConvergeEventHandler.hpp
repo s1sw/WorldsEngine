@@ -57,5 +57,7 @@ namespace converge {
         msgs::PlayerInput lastSent;
 
         std::unordered_map<uint16_t, LocosphereState> pastLocosphereStates;
+        float lsphereErr[128];
+        uint32_t lsphereErrIdx = 0;
     };
 }
