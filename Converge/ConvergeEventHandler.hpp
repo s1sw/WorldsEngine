@@ -9,10 +9,12 @@
 #include "LocospherePlayerSystem.hpp"
 #include "Client.hpp"
 #include "Server.hpp"
+#include <deque>
 
 namespace converge {
     struct ServerPlayer {
         uint16_t lastAcknowledgedInput;
+        std::deque<msgs::PlayerInput> inputMsgs;
     };
 
     class EventHandler : public worlds::IGameEventHandler {

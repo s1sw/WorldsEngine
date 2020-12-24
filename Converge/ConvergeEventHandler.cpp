@@ -100,7 +100,6 @@ namespace converge {
             }, "connect", "Connects to the specified server.", nullptr);
         }
 
-
         new DebugArrows(registry);
 
         if (vrInterface) { 
@@ -177,8 +176,16 @@ namespace converge {
         if (isDedicated) {
             server->processMessages(onServerPacket);
 
+            registry.view<ServerPlayer, LocospherePlayerComponent>().each([](auto, ServerPlayer& sp, LocospherePlayerComponent& lpc) {
+                if (sp.inputMsgs.size() == 0) return;
+                auto& pi = sp.inputMsgs.front();
+                lpc.xzMoveInput = pi.xzMoveInput;
+                lpc.sprint = pi.sprint;
+                lpc.jump |= pi.jump;
+                sp.inputMsgs.pop_front();
+            });
+
             syncTimer++;
-            
             if (syncTimer >= sendRate.getInt()) {
                 for (int i = 0; i < MAX_PLAYERS; i++) {
                     if (!server->players[i].present) continue;
@@ -338,7 +345,7 @@ namespace converge {
                 lHandPhys.locosphere = other.locosphere;
                 rHandPhys.locosphere = other.locosphere;
 
-                PIDSettings posSettings {1370.0f, 0.0f, 100.0f};
+                PIDSettings posSettings {2500.0f, 0.0f, 75.0f};
                 PIDSettings rotSettings {2.5f, 0.0f, 0.2f};
 
                 lHandPhys.posController.acceptSettings(posSettings);
@@ -391,10 +398,6 @@ namespace converge {
             }
         }
 
-        if (client && client->isConnected()) {
-
-        }
-
         g_dbgArrows->createEntities();
     }
 
@@ -424,12 +427,9 @@ namespace converge {
             // send it to the proper locosphere!
             uint8_t idx = (uintptr_t)evt.peer->data;
             entt::entity locosphereEnt = _this->playerLocospheres[idx];
-            auto& lpc = _this->reg->get<LocospherePlayerComponent>(locosphereEnt);
-            lpc.xzMoveInput = pi.xzMoveInput;
-            lpc.sprint = pi.sprint; 
-            lpc.jump |= pi.jump;
 
             auto& sp = _this->reg->get<ServerPlayer>(locosphereEnt);
+            sp.inputMsgs.push_back(pi);
             sp.lastAcknowledgedInput = pi.inputIdx;
         }
     }
@@ -460,7 +460,7 @@ namespace converge {
                         } 
 
                         std::erase_if(_this->pastLocosphereStates, [&](auto& k) {
-                            return k.first < pPos.inputIdx;
+                            return k.first <= pPos.inputIdx;
                         });
 
                         //if (glm::distance(pastState.pos, pPos.pos) > 0.25f) {
@@ -480,7 +480,7 @@ namespace converge {
                         dpa.actor->setGlobalPose(pose);
                         t.position = worlds::px2glm(pose.p);
                         t.rotation = worlds::px2glm(pose.q);
-                        rd->setLinearVelocity(worlds::glm2px(linVel));
+                        //rd->setLinearVelocity(worlds::glm2px(linVel));
                     //}
                     }
                 });
