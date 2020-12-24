@@ -32,11 +32,6 @@ namespace worlds {
         vk::UniqueDescriptorSetLayout skyboxDsl;
         vk::UniqueDescriptorSet skyboxDs;
 
-        vk::UniquePipeline pickingBufCsPipeline;
-        vk::UniquePipelineLayout pickingBufCsLayout;
-        vk::UniqueDescriptorSetLayout pickingBufCsDsl;
-        vk::UniqueDescriptorSet pickingBufCsDs;
-
         MultiVP* vpMapped;
         LightUB* lightMapped;
         ModelMatrices* modelMatricesMapped;
