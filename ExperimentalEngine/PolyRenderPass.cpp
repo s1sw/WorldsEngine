@@ -65,7 +65,7 @@ namespace worlds {
             }
 
             updater.beginImages(5, 0, vk::DescriptorType::eCombinedImageSampler);
-            updater.image(*shadowSampler, ctx.rtResources.at(shadowImage).image.imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
+            updater.image(*shadowSampler, shadowImage->image.imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
 
             for (uint32_t i = 0; i < ctx.cubemapSlots->get()->size(); i++) {
                 if ((*ctx.cubemapSlots)->isSlotPresent(i)) {
@@ -104,9 +104,9 @@ namespace worlds {
     }
 
     PolyRenderPass::PolyRenderPass(
-        RenderImageHandle depthStencilImage,
-        RenderImageHandle polyImage,
-        RenderImageHandle shadowImage,
+        RenderTextureResource* depthStencilImage,
+        RenderTextureResource* polyImage,
+        RenderTextureResource* shadowImage,
         bool enablePicking)
         : depthStencilImage(depthStencilImage)
         , polyImage(polyImage)
@@ -118,28 +118,6 @@ namespace worlds {
         , awaitingResults(false)
         , setEventNextFrame(false) {
 
-    }
-
-    RenderPassIO PolyRenderPass::getIO() {
-        RenderPassIO io;
-        io.inputs = {
-            {
-                vk::ImageLayout::eShaderReadOnlyOptimal,
-                vk::PipelineStageFlagBits::eFragmentShader,
-                vk::AccessFlagBits::eShaderRead,
-                shadowImage
-            }
-        };
-
-        io.outputs = {
-            {
-                vk::ImageLayout::eShaderReadOnlyOptimal,
-                vk::PipelineStageFlagBits::eColorAttachmentOutput,
-                vk::AccessFlagBits::eColorAttachmentWrite,
-                polyImage
-            }
-        };
-        return io;
     }
 
     static ConVar depthPrepass("r_depthPrepass", "0");
@@ -262,9 +240,9 @@ namespace worlds {
 
         this->renderPass = rPassMaker.createUnique(ctx.device);
 
-        vk::ImageView attachments[2] = { psCtx.rtResources.at(polyImage).image.imageView(), psCtx.rtResources.at(depthStencilImage).image.imageView() };
+        vk::ImageView attachments[2] = { polyImage->image.imageView(), depthStencilImage->image.imageView() };
 
-        auto extent = psCtx.rtResources.at(polyImage).image.info().extent;
+        auto extent = polyImage->image.info().extent;
         vk::FramebufferCreateInfo fci;
         fci.attachmentCount = 2;
         fci.pAttachments = attachments;
@@ -857,6 +835,7 @@ namespace worlds {
         ctx.dbgStats->numDrawCalls++;
 
         cmdBuf->endRenderPass();
+        polyImage->image.setCurrentLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
 
         if (pickThisFrame) {
             cmdBuf->resetEvent(*pickEvent, vk::PipelineStageFlagBits::eBottomOfPipe);

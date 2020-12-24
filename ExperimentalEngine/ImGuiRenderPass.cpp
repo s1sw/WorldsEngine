@@ -8,20 +8,6 @@ namespace worlds {
 
     }
 
-    RenderPassIO ImGuiRenderPass::getIO() {
-        RenderPassIO io;
-        io.outputs = {
-            {
-                vk::ImageLayout::eTransferSrcOptimal,
-                vk::PipelineStageFlagBits::eColorAttachmentOutput,
-                vk::AccessFlagBits::eColorAttachmentWrite,
-                target
-            }
-        };
-
-        return io;
-    }
-
     void ImGuiRenderPass::setup(PassSetupCtx& psCtx) {
         auto& ctx = psCtx.vkCtx;
         vku::RenderpassMaker rPassMaker{};
@@ -59,9 +45,6 @@ namespace worlds {
         vku::executeImmediately(ctx.device, ctx.commandPool, ctx.device.getQueue(ctx.graphicsQueueFamilyIdx, 0), [](vk::CommandBuffer cb) {
             ImGui_ImplVulkan_CreateFontsTexture(cb);
             });
-    }
-
-    void ImGuiRenderPass::handleResize(PassSetupCtx& ctx, RenderImageHandle newTarget) {
     }
 
     void ImGuiRenderPass::execute(RenderCtx& ctx, vk::Framebuffer& currFramebuffer) {

@@ -182,9 +182,6 @@
     <ClCompile Include="vkswapchain.cpp">
       <Filter>Source Files\Systems\Render</Filter>
     </ClCompile>
-    <ClCompile Include="RenderGraph.cpp">
-      <Filter>Source Files\Systems\Render</Filter>
-    </ClCompile>
     <ClCompile Include="MaterialSlots.cpp">
       <Filter>Source Files\Systems\Render</Filter>
     </ClCompile>

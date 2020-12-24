@@ -1742,6 +1742,20 @@ namespace vku {
             cb.pipelineBarrier(srcStageMask, dstStageMask, dependencyFlags, memoryBarriers, bufferMemoryBarriers, imageMemoryBarriers);
         }
 
+        void barrier(vk::CommandBuffer& cb, vk::PipelineStageFlags fromPS, vk::PipelineStageFlags toPS, vk::AccessFlagBits fromAF, vk::AccessFlagBits toAF) {
+            vk::ImageMemoryBarrier imb;
+            imb.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            imb.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            imb.srcAccessMask = fromAF;
+            imb.dstAccessMask = toAF;
+            imb.newLayout = s.currentLayout;
+            imb.oldLayout = s.currentLayout;
+            imb.subresourceRange = { vk::ImageAspectFlagBits::eColor, 0, s.info.mipLevels, 0, s.info.arrayLayers };
+            imb.image = *s.image;
+            
+            cb.pipelineBarrier(fromPS, toPS, vk::DependencyFlagBits::eByRegion, nullptr, nullptr, imb);
+        }
+
         void setLayout(vk::CommandBuffer cb, vk::ImageLayout newLayout, vk::PipelineStageFlags srcStageMask, vk::PipelineStageFlags dstStageMask, vk::AccessFlags srcMask, vk::AccessFlags dstMask, vk::ImageAspectFlags aspectMask = vk::ImageAspectFlagBits::eColor) {
             if (newLayout == s.currentLayout) return;
             vk::ImageLayout oldLayout = s.currentLayout;

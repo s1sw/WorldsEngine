@@ -7,34 +7,10 @@ namespace worlds {
         int idx;
     };
 
-    TonemapRenderPass::TonemapRenderPass(RenderImageHandle hdrImg, RenderImageHandle finalPrePresent)
+    TonemapRenderPass::TonemapRenderPass(RenderTextureResource* hdrImg, RenderTextureResource* finalPrePresent)
         : finalPrePresent(finalPrePresent) 
         , hdrImg(hdrImg) {
 
-    }
-
-    RenderPassIO TonemapRenderPass::getIO() {
-        RenderPassIO io;
-
-        io.inputs = {
-            {
-                vk::ImageLayout::eShaderReadOnlyOptimal,
-                vk::PipelineStageFlagBits::eComputeShader,
-                vk::AccessFlagBits::eShaderRead,
-                hdrImg
-            }
-        };
-
-        io.outputs = {
-            {
-                vk::ImageLayout::eColorAttachmentOptimal,
-                vk::PipelineStageFlagBits::eComputeShader,
-                vk::AccessFlagBits::eShaderWrite,
-                finalPrePresent
-            }
-        };
-
-        return io;
     }
 
     void TonemapRenderPass::setup(PassSetupCtx& psCtx) {
@@ -77,10 +53,10 @@ namespace worlds {
         dsu.beginDescriptorSet(*descriptorSet);
 
         dsu.beginImages(0, 0, vk::DescriptorType::eStorageImage);
-        dsu.image(*sampler, psCtx.rtResources.at(finalPrePresent).image.imageView(), vk::ImageLayout::eGeneral);
+        dsu.image(*sampler, finalPrePresent->image.imageView(), vk::ImageLayout::eGeneral);
 
         dsu.beginImages(1, 0, vk::DescriptorType::eCombinedImageSampler);
-        dsu.image(*sampler, psCtx.rtResources.at(hdrImg).image.imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
+        dsu.image(*sampler, hdrImg->image.imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
 
         dsu.update(ctx.device);
     }
@@ -91,8 +67,8 @@ namespace worlds {
         TracyVkZone((*ctx.tracyContexts)[ctx.imageIndex], *ctx.cmdBuf, "Tonemap/Postprocessing");
 #endif
         auto& cmdBuf = ctx.cmdBuf;
-        vku::transitionLayout(*cmdBuf, ctx.rtResources.at(finalPrePresent).image.image(),
-            vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::eGeneral,
+        finalPrePresent->image.setLayout(*cmdBuf,
+            vk::ImageLayout::eGeneral,
             vk::PipelineStageFlagBits::eColorAttachmentOutput, vk::PipelineStageFlagBits::eComputeShader,
             vk::AccessFlagBits::eColorAttachmentWrite, vk::AccessFlagBits::eShaderWrite);
 
@@ -104,8 +80,8 @@ namespace worlds {
         cmdBuf->dispatch((ctx.width + 15) / 16, (ctx.height + 15) / 16, 1);
 
         if (ctx.enableVR) {
-            vku::transitionLayout(*cmdBuf, ctx.rtResources.at(finalPrePresentR).image.image(),
-                vk::ImageLayout::eTransferSrcOptimal, vk::ImageLayout::eGeneral,
+            finalPrePresentR->image.setLayout(*cmdBuf,
+                vk::ImageLayout::eGeneral,
                 vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eComputeShader,
                 vk::AccessFlagBits::eTransferRead, vk::AccessFlagBits::eShaderWrite);
 
@@ -115,13 +91,13 @@ namespace worlds {
             cmdBuf->dispatch((ctx.width + 15) / 16, (ctx.height + 15) / 16, 1);
         }
 
-        vku::transitionLayout(*cmdBuf, ctx.rtResources.at(finalPrePresent).image.image(),
-            vk::ImageLayout::eGeneral, vk::ImageLayout::eColorAttachmentOptimal,
+        finalPrePresent->image.setLayout(*cmdBuf,
+            vk::ImageLayout::eColorAttachmentOptimal,
             vk::PipelineStageFlagBits::eComputeShader, vk::PipelineStageFlagBits::eColorAttachmentOutput,
             vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite);
     }
 
-    void TonemapRenderPass::setRightFinalImage(PassSetupCtx& ctx, RenderImageHandle right) {
+    void TonemapRenderPass::setRightFinalImage(PassSetupCtx& ctx, RenderTextureResource* right) {
         vku::DescriptorSetMaker dsm;
         dsm.layout(*dsl);
         rDescriptorSet = std::move(dsm.createUnique(ctx.vkCtx.device, ctx.vkCtx.descriptorPool)[0]);
@@ -132,10 +108,10 @@ namespace worlds {
         finalPrePresentR = right;
 
         dsu.beginImages(0, 0, vk::DescriptorType::eStorageImage);
-        dsu.image(*sampler, ctx.rtResources.at(finalPrePresentR).image.imageView(), vk::ImageLayout::eGeneral);
+        dsu.image(*sampler, finalPrePresentR->image.imageView(), vk::ImageLayout::eGeneral);
 
         dsu.beginImages(1, 0, vk::DescriptorType::eCombinedImageSampler);
-        dsu.image(*sampler, ctx.rtResources.at(hdrImg).image.imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
+        dsu.image(*sampler, hdrImg->image.imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
 
         dsu.update(ctx.vkCtx.device);
     }

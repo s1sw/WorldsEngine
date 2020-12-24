@@ -11,23 +11,9 @@ namespace worlds {
         glm::mat4 model;
     };
 
-    ShadowmapRenderPass::ShadowmapRenderPass(RenderImageHandle shadowImage)
+    ShadowmapRenderPass::ShadowmapRenderPass(RenderTextureResource* shadowImage)
         : shadowImage(shadowImage) {
 
-    }
-
-    RenderPassIO ShadowmapRenderPass::getIO() {
-        RenderPassIO io;
-        io.outputs = {
-            {
-                vk::ImageLayout::eShaderReadOnlyOptimal,
-                vk::PipelineStageFlagBits::eLateFragmentTests,
-                vk::AccessFlagBits::eDepthStencilAttachmentWrite,
-                shadowImage
-            }
-        };
-
-        return io;
     }
 
     void ShadowmapRenderPass::setup(PassSetupCtx& psCtx) {
@@ -74,7 +60,7 @@ namespace worlds {
 
         pipeline = pm.createUnique(ctx.device, ctx.pipelineCache, *pipelineLayout, *renderPass);
 
-        std::array<vk::ImageView, 1> shadowmapAttachments = { psCtx.rtResources.at(shadowImage).image.imageView() };
+        std::array<vk::ImageView, 1> shadowmapAttachments = { shadowImage->image.imageView() };
         vk::FramebufferCreateInfo fci;
         fci.attachmentCount = (uint32_t)shadowmapAttachments.size();
         fci.pAttachments = shadowmapAttachments.data();
@@ -170,5 +156,6 @@ namespace worlds {
             });
 
         cmdBuf->endRenderPass();
+        shadowImage->image.setCurrentLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
     }
 }

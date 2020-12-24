@@ -275,7 +275,6 @@
     <ClCompile Include="physfs.cpp" />
     <ClCompile Include="Physics.cpp" />
     <ClCompile Include="PolyRenderPass.cpp" />
-    <ClCompile Include="RenderGraph.cpp" />
     <ClCompile Include="RichPresence.cpp" />
     <ClCompile Include="SceneSerialization.cpp" />
     <ClCompile Include="SceneSerializationFunctions.cpp" />

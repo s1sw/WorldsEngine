@@ -97,26 +97,8 @@ namespace worlds {
 
     class PolyRenderPass;
     class ImGuiRenderPass;
-
-    typedef uint32_t RenderImageHandle;
-
-    struct TextureUsage {
-        vk::ImageLayout layout;
-        vk::PipelineStageFlagBits stageFlags;
-        vk::AccessFlagBits accessFlags;
-        RenderImageHandle handle;
-    };
-
-    struct ImageBarrier {
-        RenderImageHandle handle;
-        vk::ImageLayout oldLayout;
-        vk::ImageLayout newLayout;
-        vk::ImageAspectFlagBits aspectMask;
-        vk::AccessFlagBits srcMask;
-        vk::AccessFlagBits dstMask;
-        vk::PipelineStageFlagBits srcStage;
-        vk::PipelineStageFlagBits dstStage;
-    };
+    class TonemapRenderPass;
+    class ShadowmapRenderPass;
 
     struct ModelMatrices {
         glm::mat4 modelMatrices[1024];
@@ -152,6 +134,9 @@ namespace worlds {
     struct RenderTextureResource {
         vku::GenericImage image;
         vk::ImageAspectFlagBits aspectFlags;
+    private:
+        RenderTextureResource() {}
+        friend class VKRenderer;
     };
 
     struct SubmeshInfo {
@@ -184,7 +169,6 @@ namespace worlds {
             entt::registry& reg,
             uint32_t imageIndex,
             Camera& cam,
-            std::unordered_map<RenderImageHandle, RenderTextureResource>& rtResources,
             uint32_t width, uint32_t height,
             std::unordered_map<AssetID, LoadedMeshData>& loadedMeshes)
             : cmdBuf(cmdBuf)
@@ -192,7 +176,6 @@ namespace worlds {
             , imageIndex(imageIndex)
             , cam(cam)
             , reuploadMats(false)
-            , rtResources(rtResources)
             , loadedMeshes(loadedMeshes)
             , width(width)
             , height(height)
@@ -209,7 +192,6 @@ namespace worlds {
         std::unique_ptr<MaterialSlots>* materialSlots;
         std::unique_ptr<CubemapSlots>* cubemapSlots;
         bool reuploadMats;
-        std::unordered_map<RenderImageHandle, RenderTextureResource>& rtResources;
         std::unordered_map<AssetID, LoadedMeshData>& loadedMeshes;
         uint32_t width, height;
         glm::mat4 vrViewMats[2];
@@ -242,7 +224,6 @@ namespace worlds {
         std::unique_ptr<TextureSlots>* globalTexArray;
         std::unique_ptr<CubemapSlots>* cubemapSlots;
         std::unique_ptr<MaterialSlots>* materialSlots;
-        std::unordered_map<RenderImageHandle, RenderTextureResource>& rtResources;
         int swapchainImageCount;
         bool enableVR;
         vku::GenericImage* brdfLut;
@@ -302,11 +283,12 @@ namespace worlds {
         const static uint32_t NUM_CUBEMAP_SLOTS = 64;
 
         struct RTTPassInternal {
-            GraphSolver graphSolver;
+            PolyRenderPass* prp;
+            TonemapRenderPass* trp;
             uint32_t width, height;
-            RenderImageHandle hdrTarget;
-            RenderImageHandle sdrFinalTarget;
-            RenderImageHandle depthTarget;
+            RenderTextureResource* hdrTarget;
+            RenderTextureResource* sdrFinalTarget;
+            RenderTextureResource* depthTarget;
             bool isVr;
             bool outputToScreen;
             bool enableShadows;
@@ -322,7 +304,6 @@ namespace worlds {
         std::unique_ptr<Swapchain> swapchain;
         vku::DebugCallback dbgCallback;
         uint32_t graphicsQueueFamilyIdx;
-        uint32_t computeQueueFamilyIdx;
         uint32_t presentQueueFamilyIdx;
         uint32_t asyncComputeQueueFamilyIdx;
         uint32_t width, height;
@@ -339,15 +320,15 @@ namespace worlds {
         std::vector<vk::Fence> imgFences;
         VmaAllocator allocator;
 
-        RenderImageHandle finalPrePresent;
+        RenderTextureResource* finalPrePresent;
         // openvr doesn't support presenting image layers
         // copy to another image
-        RenderImageHandle finalPrePresentR;
+        RenderTextureResource* finalPrePresentR;
 
         // shadowmapping stuff
-        RenderImageHandle shadowmapImage;
+        RenderTextureResource* shadowmapImage;
 
-        RenderImageHandle imguiImage;
+        RenderTextureResource* imguiImage;
 
         std::vector<vk::DescriptorSet> descriptorSets;
         SDL_Window* window;
@@ -355,9 +336,7 @@ namespace worlds {
         uint64_t lastRenderTimeTicks;
         float timestampPeriod;
 
-        std::unordered_map<RenderImageHandle, RenderTextureResource> rtResources;
         std::unordered_map<RTTPassHandle, RTTPassInternal> rttPasses;
-        RenderImageHandle lastHandle;
 
         struct RTResourceCreateInfo {
             vk::ImageCreateInfo ici;
@@ -365,8 +344,7 @@ namespace worlds {
             vk::ImageAspectFlagBits aspectFlags;
         };
 
-        void imageBarrier(vk::CommandBuffer& cb, ImageBarrier& ib);
-        RenderImageHandle createRTResource(RTResourceCreateInfo resourceCreateInfo, const char* debugName = nullptr);
+        RenderTextureResource* createRTResource(RTResourceCreateInfo resourceCreateInfo, const char* debugName = nullptr);
         void createSwapchain(vk::SwapchainKHR oldSwapchain);
         void createFramebuffers();
         void createSCDependents();
@@ -407,6 +385,7 @@ namespace worlds {
         RTTPassHandle vrPass;
         RTTPassHandle nextHandle;
         uint32_t frameIdx;
+        ShadowmapRenderPass* shadowmapPass;
     public:
         double time;
         VKRenderer(const RendererInitInfo& initInfo, bool* success);
@@ -429,7 +408,7 @@ namespace worlds {
         // Pass to be late updated with new VR pose data
         void setVRPass(RTTPassHandle handle) { vrPass = handle; } 
         void destroyRTTPass(RTTPassHandle handle);
-        vku::GenericImage& getSDRTarget(RTTPassHandle handle) { return rtResources.at(rttPasses.at(handle).sdrFinalTarget).image; }
+        vku::GenericImage& getSDRTarget(RTTPassHandle handle) { return rttPasses.at(handle).sdrFinalTarget->image; }
         void setRTTPassActive(RTTPassHandle handle, bool active) { rttPasses.at(handle).active = active; }
         bool isPassValid(RTTPassHandle handle) { return rttPasses.find(handle) != rttPasses.end(); }
 

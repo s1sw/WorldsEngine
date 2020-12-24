@@ -7,8 +7,9 @@ namespace worlds {
     struct MultiVP;
     struct LightUB;
     struct ModelMatrices;
+    struct RenderTextureResource;
     class Swapchain;
-    class PolyRenderPass : public RenderPass {
+    class PolyRenderPass {
     private:
 
         vk::UniqueRenderPass renderPass;
@@ -57,9 +58,9 @@ namespace worlds {
         vk::UniqueFramebuffer renderFb;
         vk::UniqueDescriptorSet descriptorSet;
 
-        RenderImageHandle depthStencilImage;
-        RenderImageHandle polyImage;
-        RenderImageHandle shadowImage;
+        RenderTextureResource* depthStencilImage;
+        RenderTextureResource* polyImage;
+        RenderTextureResource* shadowImage;
 
         bool enablePicking;
         int pickX, pickY;
@@ -70,38 +71,36 @@ namespace worlds {
 
         void updateDescriptorSets(PassSetupCtx& ctx);
     public:
-        PolyRenderPass(RenderImageHandle depthStencilImage, RenderImageHandle polyImage, RenderImageHandle shadowImage, bool enablePicking = false);
+        PolyRenderPass(RenderTextureResource* depthStencilImage, RenderTextureResource* polyImage, RenderTextureResource* shadowImage, bool enablePicking = false);
         void setPickCoords(int x, int y) { pickX = x; pickY = y; }
-        RenderPassIO getIO() override;
-        void setup(PassSetupCtx& ctx) override;
-        void prePass(PassSetupCtx& ctx, RenderCtx& rCtx) override;
-        void execute(RenderCtx& ctx) override;
+        void setup(PassSetupCtx& ctx);
+        void prePass(PassSetupCtx& ctx, RenderCtx& rCtx);
+        void execute(RenderCtx& ctx);
         void requestEntityPick();
         bool getPickedEnt(uint32_t* out);
         void lateUpdateVP(glm::mat4 views[2], glm::vec3 viewPos[2], vk::Device dev);
         virtual ~PolyRenderPass();
     };
 
-    class ShadowmapRenderPass : public RenderPass {
+    class ShadowmapRenderPass {
     private:
         vk::UniqueRenderPass renderPass;
         vk::UniquePipeline pipeline;
         vk::UniquePipelineLayout pipelineLayout;
         vk::UniqueDescriptorSetLayout dsl;
-        RenderImageHandle shadowImage;
+        RenderTextureResource* shadowImage;
         vk::UniqueFramebuffer shadowFb;
         vku::ShaderModule shadowVertexShader;
         vku::ShaderModule shadowFragmentShader;
         uint32_t shadowmapRes;
     public:
-        ShadowmapRenderPass(RenderImageHandle shadowImage);
-        RenderPassIO getIO() override;
-        void setup(PassSetupCtx& ctx) override;
-        void execute(RenderCtx& ctx) override;
+        ShadowmapRenderPass(RenderTextureResource* shadowImage);
+        void setup(PassSetupCtx& ctx);
+        void execute(RenderCtx& ctx);
         virtual ~ShadowmapRenderPass() {}
     };
 
-    class TonemapRenderPass : public RenderPass {
+    class TonemapRenderPass {
     private:
         vku::ShaderModule tonemapShader;
         vk::UniqueDescriptorSetLayout dsl;
@@ -110,15 +109,14 @@ namespace worlds {
         vk::UniqueDescriptorSet descriptorSet;
         vk::UniqueDescriptorSet rDescriptorSet;
         vk::UniqueSampler sampler;
-        RenderImageHandle finalPrePresent;
-        RenderImageHandle finalPrePresentR;
-        RenderImageHandle hdrImg;
+        RenderTextureResource* finalPrePresent;
+        RenderTextureResource* finalPrePresentR;
+        RenderTextureResource* hdrImg;
     public:
-        TonemapRenderPass(RenderImageHandle hdrImg, RenderImageHandle finalPrePresent);
-        RenderPassIO getIO() override;
-        void setup(PassSetupCtx& ctx) override;
-        void execute(RenderCtx& ctx) override;
-        void setRightFinalImage(PassSetupCtx& ctx, RenderImageHandle right);
+        TonemapRenderPass(RenderTextureResource* hdrImg, RenderTextureResource* finalPrePresent);
+        void setup(PassSetupCtx& ctx);
+        void execute(RenderCtx& ctx);
+        void setRightFinalImage(PassSetupCtx& ctx, RenderTextureResource* right);
         virtual ~TonemapRenderPass();
     };
 
@@ -126,13 +124,11 @@ namespace worlds {
     private:
         vk::UniqueRenderPass renderPass;
         vk::UniqueFramebuffer fb;
-        RenderImageHandle target;
+        RenderTextureResource* target;
         Swapchain& currSwapchain;
     public:
         vk::RenderPass& getRenderPass() { return *renderPass; }
         ImGuiRenderPass(Swapchain& swapchain);
-        void handleResize(PassSetupCtx& ctx, RenderImageHandle newTarget);
-        RenderPassIO getIO();
         void setup(PassSetupCtx& ctx);
         void execute(RenderCtx& ctx, vk::Framebuffer& currFb);
         virtual ~ImGuiRenderPass();
