@@ -18,7 +18,7 @@ namespace converge {
         PhysHand() : locosphere {entt::null} {}
         glm::vec3 targetWorldPos;
         glm::quat targetWorldRot;
-        V3PidController posController;
+        StableHandPD posController;
         V3PidController rotController;
         FollowHand follow;
         entt::entity locosphere;

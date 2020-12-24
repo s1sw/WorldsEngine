@@ -64,11 +64,45 @@ namespace converge {
             lastDerivative = derivative;
 
             return P * error + I * integral + D * derivative + D2 * derivative2;
+
         }
 
         void reset() {
             integral = glm::vec3{0.0f};
             lastError = glm::vec3{ 0.0f };
+        }
+    };
+
+    class StableHandPD {
+    private:
+        glm::vec3 lastVelocity;
+
+        glm::vec3 clampMagnitude(glm::vec3 in, float maxMagnitude) {
+            float inLen = glm::length(in);
+            return (in / inLen) * glm::clamp(inLen, -maxMagnitude, maxMagnitude);
+        }
+    public:
+        float P = 0.0f;
+        float D = 0.0f;
+
+        void acceptSettings(const PIDSettings& settings) {
+            P = settings.P;
+            D = settings.D;
+        }
+
+        glm::vec3 getOutput(glm::vec3 currPos, glm::vec3 desiredPos, glm::vec3 velocity, float deltaTime, glm::vec3 refVel) {
+            glm::vec3 acceleration = velocity - lastVelocity;
+
+            glm::vec3 result = -P * (currPos + (deltaTime * velocity) - desiredPos) - 
+                D * (velocity + (deltaTime * acceleration) - refVel);
+
+            lastVelocity = velocity;
+
+            return result;
+        }
+
+        void reset() {
+            lastVelocity = glm::vec3{ 0.0f };
         }
     };
 

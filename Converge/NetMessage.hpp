@@ -13,6 +13,7 @@ namespace converge {
         JoinRequest,
         JoinAccept,
         PlayerInput,
+        ClientPlayerPos,
         PlayerPosition,
         OtherPlayerJoin,
         OtherPlayerLeave,
@@ -67,6 +68,12 @@ namespace converge {
             bool sprint;
             bool jump;
             uint16_t inputIdx;
+        };
+
+        DATAPACKET(ClientPlayerPos) {
+            MessageType type = MessageType::ClientPlayerPos;
+            glm::vec3 pos;
+            glm::quat rot;
         };
 
         DATAPACKET(OtherPlayerJoin) {

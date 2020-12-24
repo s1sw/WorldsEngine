@@ -26,14 +26,15 @@ namespace converge {
             glm::vec3 err = physHand.targetWorldPos - worlds::px2glm(t.p);
 
 
-            glm::vec3 vel{0.0f};
+            glm::vec3 vel = worlds::px2glm(((physx::PxRigidDynamic*)actor.actor)->getLinearVelocity());
+            glm::vec3 refVel{ 0.0f };
             
             if (registry.valid(physHand.locosphere)) {
                 worlds::DynamicPhysicsActor& lDpa = registry.get<worlds::DynamicPhysicsActor>(physHand.locosphere);
-                vel = worlds::px2glm(((physx::PxRigidDynamic*)lDpa.actor)->getLinearVelocity()) * simStep;
+                refVel = worlds::px2glm(((physx::PxRigidDynamic*)lDpa.actor)->getLinearVelocity());
             }
 
-            glm::vec3 force = physHand.posController.getOutput(err + vel, simStep);
+            glm::vec3 force = physHand.posController.getOutput(worlds::px2glm(t.p) - refVel * simStep * 2.0f, physHand.targetWorldPos, vel, simStep, refVel);   
 
             body->addForce(worlds::glm2px(force));
 
