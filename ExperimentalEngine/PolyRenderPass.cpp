@@ -279,7 +279,7 @@ namespace worlds {
         vertexShader = vku::loadShaderAsset(ctx.device, vsID);
         fragmentShader = vku::loadShaderAsset(ctx.device, fsID);
 
-        if ((int)depthPrepass) {
+       {
             AssetID vsID = g_assetDB.addOrGetExisting("Shaders/depth_prepass.vert.spv");
             AssetID fsID = g_assetDB.addOrGetExisting("Shaders/blank.frag.spv");
             auto preVertexShader = vku::loadShaderAsset(ctx.device, vsID);
@@ -432,32 +432,6 @@ namespace worlds {
             wireframePipelineLayout = plm.createUnique(ctx.device);
 
             wireframePipeline = pm.createUnique(ctx.device, ctx.pipelineCache, *wireframePipelineLayout, *renderPass);
-        }
-
-        {
-            vku::DescriptorSetLayoutMaker cDslm{};
-            cDslm.buffer(0, vk::DescriptorType::eStorageBuffer, vk::ShaderStageFlagBits::eCompute, 1);
-            pickingBufCsDsl = cDslm.createUnique(ctx.device);
-
-            vku::PipelineLayoutMaker cPlm{};
-            cPlm.descriptorSetLayout(*pickingBufCsDsl);
-            cPlm.pushConstantRange(vk::ShaderStageFlagBits::eCompute, 0, sizeof(PickBufCSPushConstants));
-            pickingBufCsLayout = cPlm.createUnique(ctx.device);
-
-            vku::ComputePipelineMaker cpm{};
-            vku::ShaderModule sm = vku::loadShaderAsset(ctx.device, g_assetDB.addOrGetExisting("Shaders/clear_pick_buf.comp.spv"));
-            cpm.shader(vk::ShaderStageFlagBits::eCompute, sm);
-            pickingBufCsPipeline = cpm.createUnique(ctx.device, ctx.pipelineCache, *pickingBufCsLayout);
-
-            vku::DescriptorSetMaker dsm{};
-            dsm.layout(*pickingBufCsDsl);
-            pickingBufCsDs = std::move(dsm.createUnique(ctx.device, ctx.descriptorPool)[0]);
-
-            vku::DescriptorSetUpdater dsu{};
-            dsu.beginDescriptorSet(*pickingBufCsDs);
-            dsu.beginBuffers(0, 0, vk::DescriptorType::eStorageBuffer);
-            dsu.buffer(pickingBuffer.buffer(), 0, sizeof(PickingBuffer));
-            dsu.update(ctx.device);
         }
 
         {
