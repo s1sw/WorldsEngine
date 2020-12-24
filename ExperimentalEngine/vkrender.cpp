@@ -69,14 +69,12 @@ uint32_t findPresentQueue(vk::PhysicalDevice pd, vk::SurfaceKHR surface) {
     return ~0u;
 }
 
-RenderImageHandle VKRenderer::createRTResource(RTResourceCreateInfo resourceCreateInfo, const char* debugName) {
-    RenderTextureResource rtr;
-    rtr.image = vku::GenericImage{ *device, allocator, resourceCreateInfo.ici, resourceCreateInfo.viewType, resourceCreateInfo.aspectFlags, false, debugName };
-    rtr.aspectFlags = resourceCreateInfo.aspectFlags;
+RenderTextureResource* VKRenderer::createRTResource(RTResourceCreateInfo resourceCreateInfo, const char* debugName) {
+    RenderTextureResource* rtr = new RenderTextureResource;
+    rtr->image = vku::GenericImage{ *device, allocator, resourceCreateInfo.ici, resourceCreateInfo.viewType, resourceCreateInfo.aspectFlags, false, debugName };
+    rtr->aspectFlags = resourceCreateInfo.aspectFlags;
 
-    RenderImageHandle handle = lastHandle++;
-    rtResources.insert({ handle, std::move(rtr) });
-    return handle;
+    return rtr;
 }
 
 void VKRenderer::createSwapchain(vk::SwapchainKHR oldSwapchain) {
@@ -278,12 +276,11 @@ vk::PhysicalDevice pickPhysicalDevice(std::vector<vk::PhysicalDevice>& physicalD
 }
 
 VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
-    : finalPrePresent(UINT_MAX)
-    , finalPrePresentR(UINT_MAX)
-    , shadowmapImage(std::numeric_limits<uint32_t>::max())
-    , imguiImage(UINT_MAX)
+    : finalPrePresent(nullptr)
+    , finalPrePresentR(nullptr)
+    , shadowmapImage(nullptr)
+    , imguiImage(nullptr)
     , window(initInfo.window)
-    , lastHandle(0)
     , frameIdx(0)
     , shadowmapRes(4096)
     , enableVR(initInfo.enableVR)
@@ -313,7 +310,6 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     auto qprops = physicalDevice.getQueueFamilyProperties();
     const auto badQueue = ~(uint32_t)0;
     graphicsQueueFamilyIdx = badQueue;
-    computeQueueFamilyIdx = badQueue;
     vk::QueueFlags search = vk::QueueFlagBits::eGraphics | vk::QueueFlagBits::eCompute;
 
     // Look for a queue family with both graphics and
@@ -322,7 +318,6 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
         auto& qprop = qprops[qi];
         if ((qprop.queueFlags & search) == search) {
             graphicsQueueFamilyIdx = qi;
-            computeQueueFamilyIdx = qi;
             break;
         }
     }
@@ -331,7 +326,7 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     asyncComputeQueueFamilyIdx = badQueue;
     for (size_t i = 0; i < qprops.size(); i++) {
         auto& qprop = qprops[i];
-        if ((qprop.queueFlags & (vk::QueueFlagBits::eCompute)) == vk::QueueFlagBits::eCompute && i != computeQueueFamilyIdx) {
+        if ((qprop.queueFlags & (vk::QueueFlagBits::eCompute)) == vk::QueueFlagBits::eCompute && i != graphicsQueueFamilyIdx) {
             asyncComputeQueueFamilyIdx = i;
             break;
         }
@@ -340,7 +335,7 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     if (asyncComputeQueueFamilyIdx == badQueue)
         logWarn(worlds::WELogCategoryRender, "Couldn't find async compute queue");
 
-    if (graphicsQueueFamilyIdx == badQueue || computeQueueFamilyIdx == badQueue) {
+    if (graphicsQueueFamilyIdx == badQueue) {
         *success = false;
         return;
     }
@@ -385,7 +380,6 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     vk12Features.runtimeDescriptorArray = true;
     dm.setPNext(&vk12Features);
 
-    if (computeQueueFamilyIdx != graphicsQueueFamilyIdx) dm.queue(computeQueueFamilyIdx);
     device = dm.createUnique(physicalDevice);
 
     VmaAllocatorCreateInfo allocatorCreateInfo;
@@ -500,6 +494,10 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     RTResourceCreateInfo shadowmapCreateInfo{ shadowmapIci, vk::ImageViewType::e2D, vk::ImageAspectFlagBits::eDepth };
     shadowmapImage = createRTResource(shadowmapCreateInfo, "Shadowmap Image");
 
+    vku::executeImmediately(*device, *commandPool, device->getQueue(graphicsQueueFamilyIdx, 0), [&](auto cb) {
+        shadowmapImage->image.setLayout(cb, vk::ImageLayout::eShaderReadOnlyOptimal, vk::ImageAspectFlagBits::eDepth);
+    });
+
     createSCDependents();
 
     vk::CommandBufferAllocateInfo cbai;
@@ -567,30 +565,34 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
         logMsg("%s", statsString);
         vmaFreeStatsString(allocator, statsString);
         }, "r_printAllocInfo", "", nullptr);
+
+    PassSetupCtx psc{
+        getVKCtx(),
+        &texSlots,
+        &cubemapSlots,
+        &matSlots,
+        (int)swapchain->images.size(),
+        enableVR,
+        &brdfLut
+    };
+
+    shadowmapPass = new ShadowmapRenderPass(shadowmapImage);
+    shadowmapPass->setup(psc);
 }
 
 // Quite a lot of resources are dependent on either the number of images
 // there are in the swap chain or the swapchain itself, so they need to be
 // recreated whenever the swap chain changes.
 void VKRenderer::createSCDependents() {
-    if (rtResources.count(imguiImage) != 0) {
-        rtResources.erase(imguiImage);
-    }
-
-    if (rtResources.count(finalPrePresent) != 0) {
-        rtResources.erase(finalPrePresent);
-    }
-
-    if (rtResources.count(finalPrePresentR) != 0) {
-        rtResources.erase(finalPrePresentR);
-    }
+    delete imguiImage;
+    delete finalPrePresent;
+    delete finalPrePresentR;
 
     PassSetupCtx psc{ 
         getVKCtx(),
         &texSlots, 
         &cubemapSlots, 
-        &matSlots, 
-        rtResources, 
+        &matSlots,
         (int)swapchain->images.size(), 
         enableVR, 
         &brdfLut 
@@ -602,7 +604,6 @@ void VKRenderer::createSCDependents() {
     }
 
     createFramebuffers();
-    irp->handleResize(psc, finalPrePresent);
 
     vk::ImageCreateInfo ici;
     ici.imageType = vk::ImageType::e2D;
@@ -632,7 +633,7 @@ void VKRenderer::createSCDependents() {
         finalPrePresentR = createRTResource(finalPrePresentCI, "Final Pre-Present R");
 
     vku::executeImmediately(*device, *commandPool, device->getQueue(graphicsQueueFamilyIdx, 0), [&](vk::CommandBuffer cmdBuf) {
-        rtResources.at(finalPrePresent).image.setLayout(cmdBuf, vk::ImageLayout::eTransferSrcOptimal);
+        finalPrePresent->image.setLayout(cmdBuf, vk::ImageLayout::eTransferSrcOptimal);
         });
 
     RTTPassHandle screenPass = ~0u;
@@ -759,25 +760,6 @@ void imageBarrier(vk::CommandBuffer& cb, vk::Image image, vk::ImageLayout layout
     cb.pipelineBarrier(srcStageMask, dstStageMask, dependencyFlags, memoryBarriers, bufferMemoryBarriers, imageMemoryBarriers);
 }
 
-void VKRenderer::imageBarrier(vk::CommandBuffer& cb, ImageBarrier& ib) {
-    vk::ImageMemoryBarrier imageMemoryBarriers = {};
-    imageMemoryBarriers.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    imageMemoryBarriers.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    imageMemoryBarriers.oldLayout = ib.oldLayout;
-    imageMemoryBarriers.newLayout = ib.newLayout;
-    imageMemoryBarriers.image = rtResources.at(ib.handle).image.image();
-    imageMemoryBarriers.subresourceRange = { ib.aspectMask, 0, 1, 0, rtResources.at(ib.handle).image.info().arrayLayers };
-
-    // Put barrier on top
-    vk::DependencyFlags dependencyFlags{};
-
-    imageMemoryBarriers.srcAccessMask = ib.srcMask;
-    imageMemoryBarriers.dstAccessMask = ib.dstMask;
-    auto memoryBarriers = nullptr;
-    auto bufferMemoryBarriers = nullptr;
-    cb.pipelineBarrier(ib.srcStage, ib.dstStage, dependencyFlags, memoryBarriers, bufferMemoryBarriers, imageMemoryBarriers);
-}
-
 vku::ShaderModule VKRenderer::loadShaderAsset(AssetID id) {
     ZoneScoped;
     PHYSFS_File* file = g_assetDB.openAssetFileRead(id);
@@ -814,7 +796,7 @@ void VKRenderer::submitToOpenVR() {
     bounds.vMax = 1.0f;
 
     vr::VRVulkanTextureData_t vulkanData;
-    VkImage vkImg = rtResources.at(finalPrePresent).image.image();
+    VkImage vkImg = finalPrePresent->image.image();
     vulkanData.m_nImage = (uint64_t)vkImg;
     vulkanData.m_pDevice = (VkDevice_T*)*device;
     vulkanData.m_pPhysicalDevice = (VkPhysicalDevice_T*)physicalDevice;
@@ -833,7 +815,7 @@ void VKRenderer::submitToOpenVR() {
         vr::Texture_t texture = { &vulkanData, vr::TextureType_Vulkan, vr::ColorSpace_Auto };
         vr::VRCompositor()->Submit(vr::Eye_Left, &texture, &bounds);
 
-        vulkanData.m_nImage = (uint64_t)(VkImage)rtResources.at(finalPrePresentR).image.image();
+        vulkanData.m_nImage = (uint64_t)(VkImage)finalPrePresentR->image.image();
         vr::VRCompositor()->Submit(vr::Eye_Right, &texture, &bounds);
     }
 }
@@ -876,13 +858,8 @@ bool lowLatencyLast = false;
 
 void VKRenderer::writeCmdBuf(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageIndex, Camera& cam, entt::registry& reg) {
     ZoneScoped;
-    std::unordered_map<RenderImageHandle, vk::ImageAspectFlagBits> rtAspects;
 
-    for (auto& pair : rtResources) {
-        rtAspects.insert({ pair.first, pair.second.aspectFlags });
-    }
-
-    RenderCtx rCtx{ cmdBuf, reg, imageIndex, cam, rtResources, renderWidth, renderHeight, loadedMeshes };
+    RenderCtx rCtx{ cmdBuf, reg, imageIndex, cam, renderWidth, renderHeight, loadedMeshes };
     rCtx.enableVR = enableVR;
     rCtx.materialSlots = &matSlots;
     rCtx.textureSlots = &texSlots;
@@ -929,25 +906,25 @@ void VKRenderer::writeCmdBuf(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageInde
         clearMaterialIndices = false;
     }
 
-    PassSetupCtx psc{ getVKCtx(), &texSlots, &cubemapSlots, &matSlots, rtResources, (int)swapchain->images.size(), enableVR, &brdfLut };
+    PassSetupCtx psc{ getVKCtx(), &texSlots, &cubemapSlots, &matSlots, (int)swapchain->images.size(), enableVR, &brdfLut };
 
     uploadSceneAssets(reg, rCtx);
 
-    vku::transitionLayout(*cmdBuf, rtResources.at(finalPrePresent).image.image(),
-        vk::ImageLayout::eTransferSrcOptimal, vk::ImageLayout::eColorAttachmentOptimal,
+    finalPrePresent->image.setLayout(*cmdBuf,
+        vk::ImageLayout::eColorAttachmentOptimal,
         vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eColorAttachmentOutput,
         vk::AccessFlagBits::eTransferRead, vk::AccessFlagBits::eColorAttachmentWrite);
+
+    shadowmapPass->execute(rCtx);
 
     int numActivePasses = 0;
     for (auto& p : rttPasses) {
         if (!p.second.active) continue;
         numActivePasses++;
-        std::vector<RenderPass*> solvedNodes = p.second.graphSolver.solve();
-        std::vector<std::vector<ImageBarrier>> barriers = p.second.graphSolver.createImageBarriers(solvedNodes, rtAspects);
 
         if (!p.second.outputToScreen) {
-            vku::transitionLayout(*cmdBuf, rtResources.at(p.second.sdrFinalTarget).image.image(),
-                vk::ImageLayout::eShaderReadOnlyOptimal, vk::ImageLayout::eColorAttachmentOptimal,
+            p.second.sdrFinalTarget->image.setLayout(*cmdBuf,
+                vk::ImageLayout::eColorAttachmentOptimal,
                 vk::PipelineStageFlagBits::eFragmentShader, vk::PipelineStageFlagBits::eColorAttachmentOutput,
                 vk::AccessFlagBits::eShaderRead, vk::AccessFlagBits::eColorAttachmentWrite);
         }
@@ -955,23 +932,19 @@ void VKRenderer::writeCmdBuf(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageInde
         auto& rpi = p.second;
         rCtx.width = rpi.width;
         rCtx.height = rpi.height;
+        
+        p.second.prp->prePass(psc, rCtx);
+        p.second.prp->execute(rCtx);
 
-        for (auto& node : solvedNodes) {
-            node->prePass(psc, rCtx);
-        }
+        p.second.hdrTarget->image.barrier(*cmdBuf,
+            vk::PipelineStageFlagBits::eColorAttachmentOutput, vk::PipelineStageFlagBits::eComputeShader,
+            vk::AccessFlagBits::eColorAttachmentWrite, vk::AccessFlagBits::eShaderRead);
 
-        for (size_t i = 0; i < solvedNodes.size(); i++) {
-            auto& node = solvedNodes[i];
-            // Put in barriers for this node
-            for (auto& barrier : barriers[i])
-                imageBarrier(*cmdBuf, barrier);
-
-            node->execute(rCtx);
-        }
+        p.second.trp->execute(rCtx);
 
         if (!p.second.outputToScreen) {
-            vku::transitionLayout(*cmdBuf, rtResources.at(p.second.sdrFinalTarget).image.image(),
-                vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::eShaderReadOnlyOptimal,
+            p.second.sdrFinalTarget->image.setLayout(*cmdBuf,
+                vk::ImageLayout::eShaderReadOnlyOptimal,
                 vk::PipelineStageFlagBits::eColorAttachmentOutput, vk::PipelineStageFlagBits::eFragmentShader,
                 vk::AccessFlagBits::eColorAttachmentWrite, vk::AccessFlagBits::eShaderRead);
         }
@@ -985,14 +958,14 @@ void VKRenderer::writeCmdBuf(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageInde
         vk::PipelineStageFlagBits::eBottomOfPipe, vk::PipelineStageFlagBits::eTransfer,
         vk::AccessFlagBits::eMemoryRead, vk::AccessFlagBits::eTransferWrite);
 
-    vku::transitionLayout(*cmdBuf, rtResources.at(finalPrePresent).image.image(),
-        vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::eTransferSrcOptimal,
+    finalPrePresent->image.setLayout(*cmdBuf,
+        vk::ImageLayout::eTransferSrcOptimal,
         vk::PipelineStageFlagBits::eColorAttachmentOutput, vk::PipelineStageFlagBits::eTransfer,
         vk::AccessFlagBits::eColorAttachmentWrite, vk::AccessFlagBits::eTransferRead);
 
     if (enableVR) {
-        vku::transitionLayout(*cmdBuf, rtResources.at(finalPrePresentR).image.image(),
-            vk::ImageLayout::eGeneral, vk::ImageLayout::eTransferSrcOptimal,
+        finalPrePresentR->image.setLayout(*cmdBuf,
+            vk::ImageLayout::eTransferSrcOptimal,
             vk::PipelineStageFlagBits::eComputeShader, vk::PipelineStageFlagBits::eTransfer,
             vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eTransferRead);
     }
@@ -1004,7 +977,7 @@ void VKRenderer::writeCmdBuf(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageInde
         imageBlit.srcOffsets[1] = imageBlit.dstOffsets[1] = vk::Offset3D{ (int)width, (int)height, 1 };
         imageBlit.dstSubresource = imageBlit.srcSubresource = vk::ImageSubresourceLayers{ vk::ImageAspectFlagBits::eColor, 0, 0, 1 };
         cmdBuf->blitImage(
-            rtResources.at(finalPrePresent).image.image(), vk::ImageLayout::eTransferSrcOptimal,
+            finalPrePresent->image.image(), vk::ImageLayout::eTransferSrcOptimal,
             swapchain->images[imageIndex], vk::ImageLayout::eTransferDstOptimal,
             imageBlit, vk::Filter::eNearest);
     } else {
@@ -1017,7 +990,7 @@ void VKRenderer::writeCmdBuf(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageInde
         imageBlit.dstSubresource = imageBlit.srcSubresource = { vk::ImageAspectFlagBits::eColor, 0, 0, 1 };
 
         cmdBuf->blitImage(
-            rtResources.at(finalPrePresentR).image.image(), vk::ImageLayout::eTransferSrcOptimal,
+            finalPrePresentR->image.image(), vk::ImageLayout::eTransferSrcOptimal,
             swapchain->images[imageIndex], vk::ImageLayout::eTransferDstOptimal,
             imageBlit, vk::Filter::eNearest);
     }
@@ -1353,18 +1326,13 @@ RTTPassHandle VKRenderer::createRTTPass(RTTPassCreateInfo& ci) {
     RTResourceCreateInfo depthCreateInfo{ ici, vk::ImageViewType::e2D, vk::ImageAspectFlagBits::eDepth };
     rpi.depthTarget = createRTResource(depthCreateInfo, "Depth Stencil Image");
 
-    if (ci.enableShadows) {
-        auto srp = new ShadowmapRenderPass(shadowmapImage);
-        rpi.graphSolver.addNode(srp);
-    }
-
     {
         auto prp = new PolyRenderPass(rpi.depthTarget, rpi.hdrTarget, shadowmapImage, enablePicking);
         if (ci.useForPicking)
             pickingPRP = prp;
         if (ci.isVr)
             vrPRP = prp;
-        rpi.graphSolver.addNode(prp);
+        rpi.prp = prp;
     }
 
     ici.arrayLayers = 1;
@@ -1377,25 +1345,22 @@ RTTPassHandle VKRenderer::createRTTPass(RTTPassCreateInfo& ci) {
         rpi.sdrFinalTarget = createRTResource(sdrTarget, "SDR Target");
     }
 
-    PassSetupCtx psc{ getVKCtx(), &texSlots, &cubemapSlots, &matSlots, rtResources, (int)swapchain->images.size(), ci.isVr, &brdfLut };
+    PassSetupCtx psc{ getVKCtx(), &texSlots, &cubemapSlots, &matSlots, (int)swapchain->images.size(), ci.isVr, &brdfLut };
 
     auto tonemapRP = new TonemapRenderPass(rpi.hdrTarget, ci.outputToScreen ? finalPrePresent : rpi.sdrFinalTarget);
-    rpi.graphSolver.addNode(tonemapRP);
+    rpi.trp = tonemapRP;
 
     vku::executeImmediately(*device, *commandPool, device->getQueue(graphicsQueueFamilyIdx, 0), [&](vk::CommandBuffer cmdBuf) {
-        rtResources.at(rpi.hdrTarget).image.setLayout(cmdBuf, vk::ImageLayout::eGeneral);
+        rpi.hdrTarget->image.setLayout(cmdBuf, vk::ImageLayout::eGeneral);
         if (!ci.outputToScreen)
-            rtResources.at(rpi.sdrFinalTarget).image.setLayout(cmdBuf, vk::ImageLayout::eShaderReadOnlyOptimal);
+            rpi.sdrFinalTarget->image.setLayout(cmdBuf, vk::ImageLayout::eShaderReadOnlyOptimal);
         if (enableVR) {
-            rtResources.at(finalPrePresentR).image.setLayout(cmdBuf, vk::ImageLayout::eTransferSrcOptimal);
+            finalPrePresentR->image.setLayout(cmdBuf, vk::ImageLayout::eTransferSrcOptimal);
         }
         });
 
-    auto solved = rpi.graphSolver.solve();
-
-    for (auto& node : solved) {
-        node->setup(psc);
-    }
+    rpi.trp->setup(psc);
+    rpi.prp->setup(psc);
 
     if (enableVR) {
         tonemapRP->setRightFinalImage(psc, finalPrePresentR);
@@ -1417,13 +1382,15 @@ RTTPassHandle VKRenderer::createRTTPass(RTTPassCreateInfo& ci) {
 void VKRenderer::destroyRTTPass(RTTPassHandle handle) {
     device->waitIdle();
     auto& rpi = rttPasses.at(handle);
-    rpi.graphSolver.clear();
+    
+    delete rpi.prp;
+    delete rpi.trp;
 
-    rtResources.erase(rpi.hdrTarget);
-    rtResources.erase(rpi.depthTarget);
+    delete rpi.hdrTarget;
+    delete rpi.depthTarget;
 
     if (!rpi.outputToScreen)
-        rtResources.erase(rpi.sdrFinalTarget);
+        delete rpi.sdrFinalTarget;
 
     rttPasses.erase(handle);
 }
@@ -1482,8 +1449,6 @@ VKRenderer::~VKRenderer() {
         cubemapSlots.reset();
 
         brdfLut.destroy();
-
-        rtResources.clear();
         loadedMeshes.clear();
 
 #ifndef NDEBUG
