@@ -1,0 +1,9 @@
+{
+	"albedoPath" : "Textures/scifibase/Central bumps_BaseColor.png",
+	"normalMapPath" : "Textures/scifibase/Central bumps_Normal_forcelin.png",
+	"metalMapPath" : "Textures/scifibase/Central bumps_Metallic.png",
+	"roughMapPath" : "Textures/scifibase/Central bumps_Roughness.png",
+	"metallic" : 1.0,
+	"roughness" : 0.2,
+	"albedoColor" : [1.0, 1.0, 1.0]
+}
