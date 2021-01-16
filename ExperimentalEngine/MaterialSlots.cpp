@@ -2,8 +2,20 @@
 #include "Engine.hpp"
 #include "tracy/Tracy.hpp"
 #include <sajson.h>
+#include <optional>
 
 namespace worlds {
+    std::optional<std::string> getString(const sajson::value& obj, const char* key) {
+        sajson::string keyStr{ key, strlen(key) };
+
+        auto idx = obj.find_object_key(keyStr);
+
+        if (idx == obj.get_length())
+            return std::nullopt;
+
+        return obj.get_object_value(idx).as_string();
+    }
+
     void MaterialSlots::parseMaterial(AssetID asset, PackedMaterial& mat, MatExtraData& extraDat) {
         ZoneScoped;
         PHYSFS_File* f = g_assetDB.openAssetFileRead(asset);
@@ -35,21 +47,11 @@ namespace worlds {
         auto metallicIdx = root.find_object_key(sajson::string("metallic", 8));
         auto roughnessIdx = root.find_object_key(sajson::string("roughness", 9));
         auto albedoColorIdx = root.find_object_key(sajson::string("albedoColor", 11));
-        auto normalMapIdx = root.find_object_key(sajson::string("normalMapPath", 13));
         auto alphaCutoffIdx = root.find_object_key(sajson::string("alphaCutoff", 11));
         auto heightmapScaleIdx = root.find_object_key(sajson::string("heightmapScale", 14));
-        auto heightmapPathIdx = root.find_object_key(sajson::string("heightmapPath", 13));
         auto emissiveColorIdx = root.find_object_key(sajson::string("emissiveColor", 13));
 
         auto albedoPath = root.get_object_value(albedoPathIdx).as_string();
-
-        std::string normalMapPath;
-        if (normalMapIdx != rootLength)
-            normalMapPath = root.get_object_value(normalMapIdx).as_string();
-
-        std::string heightmapPath;
-        if (heightmapPathIdx != rootLength)
-            heightmapPath = root.get_object_value(heightmapPathIdx).as_string();
 
         float alphaCutoff = 0.0f;
         if (alphaCutoffIdx != rootLength)
@@ -83,20 +85,34 @@ namespace worlds {
         auto albedoAssetId = g_assetDB.addOrGetExisting(albedoPath);
 
         uint32_t nMapSlot = ~0u;
-        if (!normalMapPath.empty()) {
-            auto normalMapId = g_assetDB.addOrGetExisting(normalMapPath);
+        auto normalMap = getString(root, "normalMapPath");
+        if (normalMap) {
+            auto normalMapId = g_assetDB.addOrGetExisting(*normalMap);
             nMapSlot = texSlots.loadOrGet(normalMapId);
         }
 
         uint32_t hMapSlot = ~0u;
-        if (!heightmapPath.empty()) {
-            auto heightMapId = g_assetDB.addOrGetExisting(heightmapPath);
+        auto heightmap = getString(root, "heightmapPath");
+        if (heightmap) {
+            auto heightMapId = g_assetDB.addOrGetExisting(*heightmap);
             hMapSlot = texSlots.loadOrGet(heightMapId);
         }
 
         mat.albedoTexIdx = texSlots.loadOrGet(albedoAssetId);
         mat.normalTexIdx = nMapSlot;
         mat.heightmapTexIdx = hMapSlot;
+
+        mat.metalTexIdx = ~0u;
+        mat.roughTexIdx = ~0u;
+
+        auto metalMap = getString(root, "metalMapPath");
+        auto roughMap = getString(root, "roughMapPath");
+
+        if (metalMap)
+            mat.metalTexIdx = texSlots.loadOrGet(g_assetDB.addOrGetExisting(*metalMap));
+
+        if (roughMap)
+            mat.roughTexIdx = texSlots.loadOrGet(g_assetDB.addOrGetExisting(*roughMap));
 
         float heightmapScale = 0.0f;
         if (heightmapScaleIdx != rootLength)

@@ -1,15 +1,20 @@
 #include "RenderPasses.hpp"
 #include "Engine.hpp"
 #include "Render.hpp"
+#include "ShaderCache.hpp"
 
 namespace worlds {
     struct TonemapPushConstants {
+        float aoIntensity;
         int idx;
     };
 
-    TonemapRenderPass::TonemapRenderPass(RenderTextureResource* hdrImg, RenderTextureResource* finalPrePresent)
+    static ConVar aoIntensity("r_gtaoIntensity", "1.0");
+
+    TonemapRenderPass::TonemapRenderPass(RenderTexture* hdrImg, RenderTexture* finalPrePresent, RenderTexture* gtaoImg)
         : finalPrePresent(finalPrePresent) 
-        , hdrImg(hdrImg) {
+        , hdrImg(hdrImg)
+        , gtaoImg{ gtaoImg } {
 
     }
 
@@ -18,11 +23,12 @@ namespace worlds {
         vku::DescriptorSetLayoutMaker tonemapDslm;
         tonemapDslm.image(0, vk::DescriptorType::eStorageImage, vk::ShaderStageFlagBits::eCompute, 1);
         tonemapDslm.image(1, vk::DescriptorType::eCombinedImageSampler, vk::ShaderStageFlagBits::eCompute, 1);
+        tonemapDslm.image(2, vk::DescriptorType::eCombinedImageSampler, vk::ShaderStageFlagBits::eCompute, 1);
 
         dsl = tonemapDslm.createUnique(ctx.device);
-
-        std::string shaderName = psCtx.enableVR ? "tonemap.comp.spv" : "tonemap2d.comp.spv";
-        tonemapShader = vku::loadShaderAsset(ctx.device, g_assetDB.addOrGetExisting("Shaders/" + shaderName));
+        
+        std::string shaderName = "tonemap.comp.spv";//psCtx.enableVR ? "tonemap.comp.spv" : "tonemap2d.comp.spv";
+        tonemapShader = ShaderCache::getModule(ctx.device, g_assetDB.addOrGetExisting("Shaders/" + shaderName));
 
         vku::PipelineLayoutMaker plm;
         plm.descriptorSetLayout(*dsl);
@@ -58,6 +64,9 @@ namespace worlds {
         dsu.beginImages(1, 0, vk::DescriptorType::eCombinedImageSampler);
         dsu.image(*sampler, hdrImg->image.imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
 
+        dsu.beginImages(2, 0, vk::DescriptorType::eCombinedImageSampler);
+        dsu.image(*sampler, gtaoImg->image.imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
+
         dsu.update(ctx.device);
     }
 
@@ -74,7 +83,7 @@ namespace worlds {
 
         cmdBuf->bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pipelineLayout, 0, *descriptorSet, nullptr);
         cmdBuf->bindPipeline(vk::PipelineBindPoint::eCompute, *pipeline);
-        TonemapPushConstants tpc{ 0 };
+        TonemapPushConstants tpc{ aoIntensity.getFloat(), 0 };
         cmdBuf->pushConstants<TonemapPushConstants>(*pipelineLayout, vk::ShaderStageFlagBits::eCompute, 0, tpc);
 
         cmdBuf->dispatch((ctx.width + 15) / 16, (ctx.height + 15) / 16, 1);
@@ -86,7 +95,7 @@ namespace worlds {
                 vk::AccessFlagBits::eTransferRead, vk::AccessFlagBits::eShaderWrite);
 
             cmdBuf->bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pipelineLayout, 0, *rDescriptorSet, nullptr);
-            TonemapPushConstants tpc{ 1 };
+            TonemapPushConstants tpc{ aoIntensity.getFloat(), 1 };
             cmdBuf->pushConstants<TonemapPushConstants>(*pipelineLayout, vk::ShaderStageFlagBits::eCompute, 0, tpc);
             cmdBuf->dispatch((ctx.width + 15) / 16, (ctx.height + 15) / 16, 1);
         }
@@ -97,7 +106,7 @@ namespace worlds {
             vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite);
     }
 
-    void TonemapRenderPass::setRightFinalImage(PassSetupCtx& ctx, RenderTextureResource* right) {
+    void TonemapRenderPass::setRightFinalImage(PassSetupCtx& ctx, RenderTexture* right) {
         vku::DescriptorSetMaker dsm;
         dsm.layout(*dsl);
         rDescriptorSet = std::move(dsm.createUnique(ctx.vkCtx.device, ctx.vkCtx.descriptorPool)[0]);
@@ -112,6 +121,9 @@ namespace worlds {
 
         dsu.beginImages(1, 0, vk::DescriptorType::eCombinedImageSampler);
         dsu.image(*sampler, hdrImg->image.imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
+
+        dsu.beginImages(2, 0, vk::DescriptorType::eCombinedImageSampler);
+        dsu.image(*sampler, gtaoImg->image.imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
 
         dsu.update(ctx.vkCtx.device);
     }

@@ -38,6 +38,7 @@
 #include "RichPresence.hpp"
 #include "SplashWindow.hpp"
 #include "EarlySDLUtil.hpp"
+#include "vk_mem_alloc.h"
 
 namespace worlds {
     AssetDB g_assetDB;
@@ -150,14 +151,6 @@ namespace worlds {
         PHYSFS_close(ttfFile);
     }
 
-    void cmdLoadScene(void* obj, const char* arg) {
-        if (!PHYSFS_exists(arg)) {
-            logErr(WELogCategoryEngine, "Couldn't find scene %s. Make sure you included the .escn file extension.", arg);
-            return;
-        }
-        loadScene(g_assetDB.addOrGetExisting(arg), *(entt::registry*)obj);
-    }
-
     void cmdToggleFullscreen(void*, const char*) {
         SDL_Event evt;
         SDL_zero(evt);
@@ -227,6 +220,7 @@ namespace worlds {
     ConVar lockSimToRefresh("sim_lockToRefresh", "0", "Instead of using a simulation timestep, run the simulation in lockstep with the rendering.");
     ConVar disableSimInterp("sim_disableInterp", "0", "Disables interpolation and uses the results of the last run simulation step.");
     ConVar simStepTime("sim_stepTime", "0.01");
+    ConVar showImguiConvars{ "showConvarsImGui", "0", "Shows convars in a tweakable window." };
 
     WorldsEngine::WorldsEngine(EngineInitOptions initOptions, char* argv0)
         : pauseSim{ false }
@@ -286,7 +280,11 @@ namespace worlds {
                     SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Failed to create window", SDL_GetError(), NULL);
                 }
             }
-            setWindowIcon(window);
+
+            if (runAsEditor)
+                setWindowIcon(window, "icon_engine.png");
+            else
+                setWindowIcon(window);
 
             redrawSplashWindow(splashWindow, "initialising ui");
         }
@@ -379,7 +377,20 @@ namespace worlds {
         if (!dedicatedServer)
             initRichPresence(interfaces);
 
-        console->registerCommand(cmdLoadScene, "scene", "Loads a scene.", &registry);
+        console->registerCommand([&](void*, const char* arg) {
+            if (!PHYSFS_exists(arg)) {
+                logErr(WELogCategoryEngine, "Couldn't find scene %s. Make sure you included the .escn file extension.", arg);
+                return;
+            }
+            loadScene(g_assetDB.addOrGetExisting(arg));
+            }, "scene", "Loads a scene.", nullptr);
+        console->registerCommand([&](void*, const char* arg) {
+            uint32_t id = (uint32_t)std::atoll(arg);
+            logMsg("Asset %u: %s", id, g_assetDB.getAssetPath(id).c_str());
+            }, "adb_lookupID", "Looks up an asset ID.", nullptr);
+        console->registerCommand([&](void*, const char* arg) {
+            timeScale = atof(arg);
+            }, "setTimeScale", "Sets the current time scale.", nullptr);
         if (!dedicatedServer) {
             console->registerCommand(cmdToggleFullscreen, "toggleFullscreen", "Toggles fullscreen.", nullptr);
             console->registerCommand([&](void*, const char*) {
@@ -406,7 +417,7 @@ namespace worlds {
 
             console->registerCommand([&](void*, const char*) {
                 runAsEditor = true;
-                loadScene(currentScene.id, registry);
+                loadScene(currentScene.id);
                 pauseSim = true;
                 }, "reloadAndEdit", "reload and edit.", nullptr);
 
@@ -426,7 +437,7 @@ namespace worlds {
 
         if (enableOpenVR) {
             lockSimToRefresh.setValue("1");
-            disableSimInterp.setValue("1");
+            //disableSimInterp.setValue("1");
         }
 
         if (runAsEditor) {
@@ -623,10 +634,10 @@ namespace worlds {
             }
 
             if (evtHandler != nullptr && !runAsEditor) {
-                evtHandler->update(registry, deltaTime, interpAlpha);
+                evtHandler->update(registry, deltaTime * timeScale, interpAlpha);
 
                 for (auto* system : systems)
-                    system->update(registry, deltaTime, interpAlpha);
+                    system->update(registry, deltaTime * timeScale, interpAlpha);
             }
 
             if (!dedicatedServer) {
@@ -685,7 +696,6 @@ namespace worlds {
 
             console->drawWindow();
 
-            ImGui::Render();
 
             if (useEventThread) {
                 SDL_LockMutex(sdlEventMutex);
@@ -791,10 +801,32 @@ namespace worlds {
                 }
 
                 if (ImGui::CollapsingHeader(ICON_FA_PENCIL_ALT u8" Render Stats")) {
-                    ImGui::Text("Draw calls: %i", renderer->getDebugStats().numDrawCalls);
-                    ImGui::Text("Frustum culled objects: %i", renderer->getDebugStats().numCulledObjs);
-                    ImGui::Text("GPU memory usage: %.3fMB", (double)renderer->getDebugStats().vramUsage / 1024.0 / 1024.0);
-                    ImGui::Text("Active RTT passes: %i", renderer->getDebugStats().numRTTPasses);
+                    const auto& dbgStats = renderer->getDebugStats();
+                    auto vkCtx = renderer->getVKCtx();
+
+                    VmaBudget budget[16];
+                    vmaGetBudget(vkCtx.allocator, budget);
+                    const VkPhysicalDeviceMemoryProperties* memProps;
+                    vmaGetMemoryProperties(vkCtx.allocator, &memProps);
+
+                    size_t totalUsage = 0;
+                    size_t totalBlockBytes = 0;
+                    size_t totalBudget = 0;
+
+                    for (int i = 0; i < memProps->memoryHeapCount; i++) {
+                        if (budget->budget == UINT64_MAX) continue;
+                        totalUsage += budget->allocationBytes;
+                        totalBlockBytes += budget->blockBytes;
+                        totalBudget += budget->budget;
+                    }
+
+                    ImGui::Text("Draw calls: %i", dbgStats.numDrawCalls);
+                    ImGui::Text("Frustum culled objects: %i", dbgStats.numCulledObjs);
+                    ImGui::Text("GPU memory usage: %.3fMB (%.3fMB allocated, %.3fMB available)", 
+                        (double)totalUsage / 1024.0 / 1024.0,
+                        (double)totalBlockBytes / 1024.0 / 1024.0,
+                        (double)totalBudget / 1024.0 / 1024.0);
+                    ImGui::Text("Active RTT passes: %i", dbgStats.numRTTPasses);
                     ImGui::Text("Time spent in renderer: %.3fms", (timeInfo.deltaTime - timeInfo.lastUpdateTime) * 1000.0);
                     ImGui::Text("GPU render time: %.3fms", renderer->getLastRenderTime() / 1000.0f / 1000.0f);
                     ImGui::Text("V-Sync status: %s", renderer->getVsync() ? "On" : "Off");
@@ -803,6 +835,25 @@ namespace worlds {
                     size_t worldObjects = registry.view<WorldObject>().size();
 
                     ImGui::Text("%zu light(s) / %zu world object(s)", numLights, worldObjects);
+                }
+
+                if (ImGui::CollapsingHeader(ICON_FA_MEMORY u8"Memory Stats")) {
+                    auto vkCtx = renderer->getVKCtx();
+
+                    VmaBudget budget[16];
+                    vmaGetBudget(vkCtx.allocator, budget);
+                    const VkPhysicalDeviceMemoryProperties* memProps;
+                    vmaGetMemoryProperties(vkCtx.allocator, &memProps);
+                    
+                    for (uint32_t i = 0; i < memProps->memoryHeapCount; i++) {
+                        if (ImGui::TreeNode((void*)i, "Heap %u", i)) {
+                            ImGui::Text("Available: %.3fMB", budget[i].budget / 1024.0 / 1024.0);
+                            ImGui::Text("Used: %.3fMB", budget[i].allocationBytes / 1024.0 / 1024.0);
+                            ImGui::Text("Actually allocated: %.3fMB", budget[i].usage / 1024.0 / 1024.0);
+
+                            ImGui::TreePop();
+                        }
+                    }
                 }
             }
             ImGui::End();
@@ -814,6 +865,7 @@ namespace worlds {
     }
 
     void WorldsEngine::updateSimulation(float& interpAlpha, double deltaTime) {
+        double scaledDeltaTime = deltaTime * timeScale;
         if (lockSimToRefresh.getInt() || disableSimInterp.getInt()) {
             registry.view<DynamicPhysicsActor, Transform>().each([](auto, DynamicPhysicsActor& dpa, Transform& transform) {
                 auto curr = dpa.actor->getGlobalPose();
@@ -852,14 +904,14 @@ namespace worlds {
 
             while (simAccumulator >= simStepTime.getFloat()) {
                 previousState = currentState;
-                stepSimulation(simStepTime.getFloat());
+                stepSimulation(simStepTime.getFloat() * timeScale);
                 simAccumulator -= simStepTime.getFloat();
 
                 if (evtHandler != nullptr && !runAsEditor) {
-                    evtHandler->simulate(registry, simStepTime.getFloat());
+                    evtHandler->simulate(registry, simStepTime.getFloat() * timeScale);
 
                     for (auto* system : systems)
-                        system->simulate(registry, simStepTime.getFloat());
+                        system->simulate(registry, simStepTime.getFloat() * timeScale);
                 }
 
                 registry.view<DynamicPhysicsActor>().each([&](auto ent, DynamicPhysicsActor& dpa) {
@@ -878,7 +930,7 @@ namespace worlds {
                 });
             interpAlpha = alpha;
         } else {
-            stepSimulation(deltaTime);
+            stepSimulation(deltaTime * timeScale);
 
             if (evtHandler != nullptr && !runAsEditor) {
                 evtHandler->simulate(registry, deltaTime);
@@ -892,6 +944,12 @@ namespace worlds {
                 transform.rotation = px2glm(dpa.actor->getGlobalPose().q);
                 });
         }
+    }
+
+    void WorldsEngine::loadScene(AssetID scene) {
+        deserializeScene(scene, registry);
+        renderer->uploadSceneAssets(registry);
+        renderer->unloadUnusedMaterials(registry);
     }
 
     void WorldsEngine::addSystem(ISystem* system) {

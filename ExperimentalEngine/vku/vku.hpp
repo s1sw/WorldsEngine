@@ -29,7 +29,7 @@
 #include <chrono>
 #include <functional>
 #include <cstddef>
-#include <vk_mem_alloc.h>
+#include "vk_mem_alloc.h"
 
 #ifdef VOOKOO_SPIRV_SUPPORT
 #include <vulkan/spirv.hpp>
@@ -653,26 +653,26 @@ namespace vku {
             file.seekg(0, std::ios::end);
             int length = (int)file.tellg();
 
-            s.opcodes_.resize((size_t)(length / 4));
+            char* buf = (char*)std::malloc(length);
+
             file.seekg(0, std::ios::beg);
-            file.read((char*)s.opcodes_.data(), s.opcodes_.size() * 4);
+            file.read(buf, length);
 
             vk::ShaderModuleCreateInfo ci;
-            ci.codeSize = s.opcodes_.size() * 4;
-            ci.pCode = s.opcodes_.data();
+            ci.codeSize = length;
+            ci.pCode = (uint32_t*)buf;
             s.module_ = device.createShaderModuleUnique(ci);
+
+            std::free(buf);
 
             s.ok_ = true;
         }
 
         /// Construct a shader module from raw memory
         ShaderModule(const vk::Device& device, uint32_t* data, size_t size) {
-            s.opcodes_.resize(size / 4);
-            std::memcpy(s.opcodes_.data(), data, size);
-
             vk::ShaderModuleCreateInfo ci;
-            ci.codeSize = s.opcodes_.size() * 4;
-            ci.pCode = s.opcodes_.data();
+            ci.codeSize = size;
+            ci.pCode = data;
             s.module_ = device.createShaderModuleUnique(ci);
 
             s.ok_ = true;
@@ -681,117 +681,21 @@ namespace vku {
         /// Construct a shader module from an iterator
         template<class InIter>
         ShaderModule(const vk::Device& device, InIter begin, InIter end) {
-            s.opcodes_.assign(begin, end);
+            std::vector<uint32_t> opcodes;
+            opcodes.assign(begin, end);
             vk::ShaderModuleCreateInfo ci;
-            ci.codeSize = s.opcodes_.size() * 4;
-            ci.pCode = s.opcodes_.data();
+            ci.codeSize = opcodes.size() * 4;
+            ci.pCode = opcodes.data();
             s.module_ = device.createShaderModuleUnique(ci);
 
             s.ok_ = true;
         }
 
-#ifdef VOOKOO_SPIRV_SUPPORT
-        /// A variable in a shader.
-        struct Variable {
-            // The name of the variable from the GLSL/HLSL
-            std::string debugName;
-
-            // The internal name (integer) of the variable
-            int name;
-
-            // The location in the binding.
-            int location;
-
-            // The binding in the descriptor set or I/O channel.
-            int binding;
-
-            // The descriptor set (for uniforms)
-            int set;
-            int instruction;
-
-            // Storage class of the variable, eg. spv::StorageClass::Uniform
-            spv::StorageClass storageClass;
-        };
-
-        /// Get a list of variables from the shader.
-        /// 
-        /// This exposes the Uniforms, inputs, outputs, push constants.
-        /// See spv::StorageClass for more details.
-        std::vector<Variable> getVariables() const {
-            auto bound = s.opcodes_[3];
-
-            std::unordered_map<int, int> bindings;
-            std::unordered_map<int, int> locations;
-            std::unordered_map<int, int> sets;
-            std::unordered_map<int, std::string> debugNames;
-
-            for (int i = 5; i != s.opcodes_.size(); i += s.opcodes_[i] >> 16) {
-                spv::Op op = spv::Op(s.opcodes_[i] & 0xffff);
-                if (op == spv::Op::OpDecorate) {
-                    int name = s.opcodes_[i + 1];
-                    auto decoration = spv::Decoration(s.opcodes_[i + 2]);
-                    if (decoration == spv::Decoration::Binding) {
-                        bindings[name] = s.opcodes_[i + 3];
-                    } else if (decoration == spv::Decoration::Location) {
-                        locations[name] = s.opcodes_[i + 3];
-                    } else if (decoration == spv::Decoration::DescriptorSet) {
-                        sets[name] = s.opcodes_[i + 3];
-                    }
-                } else if (op == spv::Op::OpName) {
-                    int name = s.opcodes_[i + 1];
-                    debugNames[name] = (const char*)&s.opcodes_[i + 2];
-                }
-            }
-
-            std::vector<Variable> result;
-            for (int i = 5; i != s.opcodes_.size(); i += s.opcodes_[i] >> 16) {
-                spv::Op op = spv::Op(s.opcodes_[i] & 0xffff);
-                if (op == spv::Op::OpVariable) {
-                    int name = s.opcodes_[i + 1];
-                    auto sc = spv::StorageClass(s.opcodes_[i + 3]);
-                    Variable b;
-                    b.debugName = debugNames[name];
-                    b.name = name;
-                    b.location = locations[name];
-                    b.set = sets[name];
-                    b.instruction = i;
-                    b.storageClass = sc;
-                    result.push_back(b);
-                }
-            }
-            return result;
-        }
-#endif
-
         bool ok() const { return s.ok_; }
         VkShaderModule module() { return *s.module_; }
 
-        /// Write a C++ consumable dump of the shader.
-        /// Todo: make this more idiomatic.
-        std::ostream& write(std::ostream& os) {
-            os << "static const uint32_t shader[] = {\n";
-            char tmp[256];
-            auto p = s.opcodes_.begin();
-            snprintf(
-                tmp, sizeof(tmp), "  0x%08x,0x%08x,0x%08x,0x%08x,0x%08x,\n", p[0], p[1], p[2], p[3], p[4]);
-            os << tmp;
-            for (size_t i = 5; i != s.opcodes_.size(); i += s.opcodes_[i] >> 16) {
-                char* p = tmp + 2, * e = tmp + sizeof(tmp) - 2;
-                for (size_t j = i; j != i + (s.opcodes_[i] >> 16); ++j) {
-                    p += snprintf(p, e - p, "0x%08x,", s.opcodes_[j]);
-                    if (p > e - 16) { *p++ = '\n'; *p = 0; os << tmp; p = tmp + 2; }
-                }
-                *p++ = '\n';
-                *p = 0;
-                os << tmp;
-            }
-            os << "};\n\n";
-            return os;
-        }
-
     private:
         struct State {
-            std::vector<uint32_t> opcodes_;
             vk::UniqueShaderModule module_;
             bool ok_ = false;
         };
@@ -914,6 +818,17 @@ namespace vku {
             const char* entryPoint = "main", vk::SpecializationInfo* pSpecializationInfo = nullptr) {
             vk::PipelineShaderStageCreateInfo info{};
             info.module = shader.module();
+            info.pName = entryPoint;
+            info.stage = stage;
+            info.pSpecializationInfo = pSpecializationInfo;
+            modules_.emplace_back(info);
+        }
+
+        /// Add a shader module to the pipeline.
+        void shader(vk::ShaderStageFlagBits stage, vk::ShaderModule shader,
+            const char* entryPoint = "main", vk::SpecializationInfo* pSpecializationInfo = nullptr) {
+            vk::PipelineShaderStageCreateInfo info{};
+            info.module = shader;
             info.pName = entryPoint;
             info.stage = stage;
             info.pSpecializationInfo = pSpecializationInfo;
@@ -1092,6 +1007,14 @@ namespace vku {
             stage_.stage = stage;
         }
 
+        /// Add a shader module to the pipeline.
+        void shader(vk::ShaderStageFlagBits stage, vk::ShaderModule shader,
+            const char* entryPoint = "main") {
+            stage_.module = shader;
+            stage_.pName = entryPoint;
+            stage_.stage = stage;
+        }
+
         /// Set the compute shader module.
         ComputePipelineMaker& module(const vk::PipelineShaderStageCreateInfo& value) {
             stage_ = value;
@@ -1171,9 +1094,8 @@ namespace vku {
 
         /// For a purely device local buffer, copy memory to the buffer object immediately.
         /// Note that this will stall the pipeline!
-        void upload(vk::Device device, const vk::PhysicalDeviceMemoryProperties& memprops, vk::CommandPool commandPool, vk::Queue queue, const void* value, vk::DeviceSize size) const {
+        void upload(vk::Device device, vk::CommandPool commandPool, vk::Queue queue, const void* value, vk::DeviceSize size) const {
             if (size == 0) return;
-            (void)memprops;
             using buf = vk::BufferUsageFlagBits;
             auto tmp = vku::GenericBuffer(device, allocator, buf::eTransferSrc, size, VMA_MEMORY_USAGE_CPU_ONLY);
             tmp.updateLocal(device, value, size);
@@ -1185,13 +1107,13 @@ namespace vku {
         }
 
         template<typename T>
-        void upload(vk::Device device, const vk::PhysicalDeviceMemoryProperties& memprops, vk::CommandPool commandPool, vk::Queue queue, const std::vector<T>& value) const {
-            upload(device, memprops, commandPool, queue, value.data(), value.size() * sizeof(T));
+        void upload(vk::Device device, vk::CommandPool commandPool, vk::Queue queue, const std::vector<T>& value) const {
+            upload(device, commandPool, queue, value.data(), value.size() * sizeof(T));
         }
 
         template<typename T>
-        void upload(vk::Device device, const vk::PhysicalDeviceMemoryProperties& memprops, vk::CommandPool commandPool, vk::Queue queue, const T& value) const {
-            upload(device, memprops, commandPool, queue, &value, sizeof(value));
+        void upload(vk::Device device, vk::CommandPool commandPool, vk::Queue queue, const T& value) const {
+            upload(device, commandPool, queue, &value, sizeof(value));
         }
 
         void barrier(vk::CommandBuffer cb, vk::PipelineStageFlags srcStageMask, vk::PipelineStageFlags dstStageMask, vk::DependencyFlags dependencyFlags, vk::AccessFlags srcAccessMask, vk::AccessFlags dstAccessMask, uint32_t srcQueueFamilyIndex, uint32_t dstQueueFamilyIndex) const {
@@ -1256,6 +1178,18 @@ namespace vku {
 
         vk::Buffer buffer() const { return buffer_; }
         vk::DeviceSize size() const { return size_; }
+
+        void destroy() {
+            VkBuffer cBuf = buffer_;
+            if (cBuf) {
+                vmaDestroyBuffer(allocator, cBuf, allocation);
+                buffer_ = vk::Buffer{};
+
+                if (debugName) {
+                    logMsg("Destroying buffer %s", debugName);
+                }
+            }
+        }
 
         ~GenericBuffer() {
             VkBuffer cBuf = buffer_;
@@ -1634,17 +1568,20 @@ namespace vku {
             cb.copyBufferToImage(buffer, *s.image, vk::ImageLayout::eTransferDstOptimal, region);
         }
 
-        void upload(vk::Device device, VmaAllocator allocator, std::vector<uint8_t>& bytes, vk::CommandPool commandPool, vk::PhysicalDeviceMemoryProperties memprops, vk::Queue queue) {
+        void upload(vk::Device device, VmaAllocator allocator, std::vector<uint8_t>& bytes, vk::CommandPool commandPool, vk::PhysicalDeviceMemoryProperties memprops, vk::Queue queue, uint32_t numMips = ~0u) {
             UNUSED(memprops);
             vku::GenericBuffer stagingBuffer(device, allocator, (vk::BufferUsageFlags)vk::BufferUsageFlagBits::eTransferSrc, (vk::DeviceSize)bytes.size(), VMA_MEMORY_USAGE_CPU_ONLY);
             stagingBuffer.updateLocal(device, (const void*)bytes.data(), bytes.size());
+
+            if (numMips == ~0u)
+                numMips = s.info.mipLevels;
 
             // Copy the staging buffer to the GPU texture and set the layout.
             vku::executeImmediately(device, commandPool, queue, [&](vk::CommandBuffer cb) {
                 auto bp = getBlockParams(s.info.format);
                 vk::Buffer buf = stagingBuffer.buffer();
                 uint32_t offset = 0;
-                for (uint32_t mipLevel = 0; mipLevel != s.info.mipLevels; ++mipLevel) {
+                for (uint32_t mipLevel = 0; mipLevel != numMips; ++mipLevel) {
                     auto width = mipScale(s.info.extent.width, mipLevel);
                     auto height = mipScale(s.info.extent.height, mipLevel);
                     auto depth = mipScale(s.info.extent.depth, mipLevel);
@@ -1657,17 +1594,19 @@ namespace vku {
                 });
         }
 
-        void upload(vk::Device device, VmaAllocator allocator, std::vector<uint8_t>& bytes, vk::PhysicalDeviceMemoryProperties memprops, vk::CommandBuffer cb) {
+        void upload(vk::Device device, VmaAllocator allocator, std::vector<uint8_t>& bytes, vk::PhysicalDeviceMemoryProperties memprops, vk::CommandBuffer cb, uint32_t numMips = ~0u) {
             UNUSED(memprops);
             vku::GenericBuffer stagingBuffer(device, allocator, (vk::BufferUsageFlags)vk::BufferUsageFlagBits::eTransferSrc, (vk::DeviceSize)bytes.size(), VMA_MEMORY_USAGE_CPU_ONLY);
             stagingBuffer.updateLocal(device, (const void*)bytes.data(), bytes.size());
 
             // Copy the staging buffer to the GPU texture and set the layout.
             {
+                if (numMips == ~0u)
+                    numMips = s.info.mipLevels;
                 auto bp = getBlockParams(s.info.format);
                 vk::Buffer buf = stagingBuffer.buffer();
                 uint32_t offset = 0;
-                for (uint32_t mipLevel = 0; mipLevel != s.info.mipLevels; ++mipLevel) {
+                for (uint32_t mipLevel = 0; mipLevel != numMips; ++mipLevel) {
                     auto width = mipScale(s.info.extent.width, mipLevel);
                     auto height = mipScale(s.info.extent.height, mipLevel);
                     auto depth = mipScale(s.info.extent.depth, mipLevel);
@@ -1787,6 +1726,7 @@ namespace vku {
         vk::Format format() const { return s.info.format; }
         vk::Extent3D extent() const { return s.info.extent; }
         const vk::ImageCreateInfo& info() const { return s.info; }
+        vk::ImageLayout layout() const { return s.currentLayout; }
 
         void destroy() {
             VkImage cImg = *s.image;

@@ -406,6 +406,7 @@ namespace worlds {
         sceneViewPassCI.isVr = false;
         sceneViewPassCI.outputToScreen = false;
         sceneViewPassCI.useForPicking = true;
+        sceneViewPassCI.cam = &cam;
         sceneViewPass = interfaces.renderer->createRTTPass(sceneViewPassCI);
 
         auto vkCtx = interfaces.renderer->getVKCtx();
@@ -419,6 +420,8 @@ namespace worlds {
         ADD_EDITOR_WINDOW(EntityEditor);
         ADD_EDITOR_WINDOW(GameControls);
         ADD_EDITOR_WINDOW(StyleEditor);
+        ADD_EDITOR_WINDOW(AssetDBExplorer);
+        ADD_EDITOR_WINDOW(MaterialEditor);
 
 #undef ADD_EDITOR_WINDOW
     }
@@ -673,6 +676,15 @@ namespace worlds {
             ImGui::EndMainMenuBar();
         }
 
+        if (ImGui::Begin(ICON_FA_HANDS u8" Hand Pose Editor")) {
+            static glm::vec3 centerL = glm::vec3{ NAN, NAN, NAN };
+            static glm::vec3 centerR = glm::vec3{ NAN, NAN, NAN };
+
+            ImGui::DragFloat3("Left Center", &centerL.x);
+            ImGui::DragFloat3("Right Center", &centerR.x);
+        }
+        ImGui::End();
+
         if (ImGui::Begin(ICON_FA_EDIT u8" Editor")) {
             char buf[6];
             char* curr = buf;
@@ -729,8 +741,9 @@ namespace worlds {
                 sceneViewPassCI.isVr = false;
                 sceneViewPassCI.outputToScreen = false;
                 sceneViewPassCI.useForPicking = true;
+                sceneViewPassCI.cam = &cam;
                 sceneViewPass = interfaces.renderer->createRTTPass(sceneViewPassCI);
-                vkCtx.device.freeDescriptorSets(vkCtx.descriptorPool, vk::DescriptorSet{ sceneViewDS });
+                vkCtx.device.freeDescriptorSets(vkCtx.descriptorPool, { sceneViewDS });
 
                 sceneViewDS = VKImGUIUtil::createDescriptorSetFor(interfaces.renderer->getSDRTarget(sceneViewPass), vkCtx);
             }
@@ -939,9 +952,18 @@ namespace worlds {
                     glm::vec3 skew;
                     glm::vec4 perspective;
                     glm::decompose(tfMtx, scale, rotation, translation, skew, perspective);
-                    selectedTransform.position = translation;
-                    selectedTransform.rotation = rotation;
-                    selectedTransform.scale = scale;
+
+                    switch (lastActiveTool) {
+                    case Tool::Translate:
+                        selectedTransform.position = translation;
+                        break;
+                    case Tool::Rotate:
+                        selectedTransform.rotation = rotation;
+                        break;
+                    case Tool::Scale:
+                        selectedTransform.scale = scale;
+                        break;
+                    }
                 }
 
                 if (shiftHeld(inputManager) &&
@@ -1019,7 +1041,7 @@ namespace worlds {
 
         openFileModal("Open Scene", [this](const char* path) {
             reg.clear();
-            loadScene(g_assetDB.addOrGetExisting(path), reg);
+            interfaces.engine->loadScene(g_assetDB.addOrGetExisting(path));
             }, ".escn");
 
         if (inputManager.keyPressed(SDL_SCANCODE_I, true) && 

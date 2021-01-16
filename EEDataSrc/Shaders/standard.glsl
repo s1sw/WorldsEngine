@@ -15,9 +15,6 @@ layout(location = 2) in vec3 inTangent;
 layout(location = 3) in vec2 inUV;
 layout(location = 4) in vec4 inShadowPos;
 layout(location = 5) in float inDepth;
-#ifdef LIGHTMAP
-layout(location = 6) in vec2 inLightmapUV;
-#endif
 
 layout(constant_id = 0) const bool ENABLE_PICKING = false;
 layout(constant_id = 1) const bool FACE_PICKING = false;
@@ -35,9 +32,6 @@ layout(location = 2) out vec3 outTangent;
 layout(location = 3) out vec2 outUV;
 layout(location = 4) out vec4 outShadowPos;
 layout(location = 5) out float outDepth;
-#ifdef LIGHTMAP
-layout(location = 6) in vec2 inLightmapUV;
-#endif
 #endif
 
 const int LT_POINT = 0;
@@ -77,8 +71,8 @@ struct Material {
 
     int heightmapIdx;
     float heightScale;
-    float pad0;
-    float pad1;
+    int metalTexIdx;
+    int roughTexIdx;
 
     vec3 emissiveColor;
     float pad2;
@@ -119,7 +113,7 @@ void main() {
 	mat4 model = modelMatrices[modelMatrixIdx];
 
     // On AMD driver 20.10.1 (and possibly earlier) using gl_ViewIndex seems to cause a driver crash
-    int vpMatIdx = vpIdx; // + gl_ViewIndex; 
+    int vpMatIdx = vpIdx; 
 
     #ifndef AMD_VIEWINDEX_WORKAROUND
     vpMatIdx += gl_ViewIndex;
@@ -131,8 +125,10 @@ void main() {
     gl_Position = projection[vpMatIdx] * view[vpMatIdx] * outWorldPos; // Apply MVP transform
 	
     outUV = (inUV * texScaleOffset.xy) + texScaleOffset.zw;
-    outNormal = normalize(model * vec4(inNormal, 0.0)).xyz;
-    outTangent = normalize(model * vec4(inTangent, 0.0)).xyz;
+	
+	mat3 model3 = mat3(model);
+    outNormal = normalize(model3 * inNormal);
+    outTangent = normalize(model3 * inTangent);
 	outShadowPos = shadowmapMatrix * outWorldPos;
     outShadowPos.y = -outShadowPos.y;
 	outDepth = gl_Position.z / gl_Position.w;
@@ -205,8 +201,8 @@ vec3 calculateLighting(int lightIdx, vec3 viewDir, vec3 f0, float metallic, floa
     vec3 radiance = light.pack0.xyz;
     vec3 L = vec3(0.0f, 0.0f, 0.0f);
 
-    if (dot(normal, viewDir) < 0.0)
-        normal = -normal;
+    //if (dot(normal, viewDir) < 0.0)
+        //normal = -normal;
 	
     if (lightType == LT_POINT) {
     	vec3 lightPos = light.pack2.xyz;
@@ -261,13 +257,6 @@ vec3 fresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness) {
     return F0 + (max(vec3(1.0f - roughness), F0) - F0) * pow(1.0f - cosTheta, 5.0f);
 }
 
-vec3 decodeNormal (vec2 texVal) {
-    vec3 n;
-    n.xy = texVal*2-1;
-    n.z = sqrt(1-dot(n.xy, n.xy));
-    return n;
-}
-
 vec3 calcAmbient(vec3 f0, float roughness, vec3 viewDir, float metallic, vec3 albedoColor, vec3 normal) {
     vec3 kD = (1.0 - fresnelSchlickRoughness(clamp(dot(normal, viewDir), 0.0, 1.0), f0, roughness)) * (1.0 - metallic);
 
@@ -288,20 +277,29 @@ vec3 calcAmbient(vec3 f0, float roughness, vec3 viewDir, float metallic, vec3 al
     return kD * diffuseAmbient + (specularAmbient * specularColor);
 }
 
+vec3 decodeNormal (vec2 texVal) {
+    vec3 n;
+    n.xy = (texVal*2.0)-1.0;
+    n.z = sqrt(1.0 - (n.x * n.x) - (n.y * n.y));
+    return n;
+}
+
 vec3 getNormalMapNormal(Material mat, vec2 tCoord, mat3 tbn) {
-    vec3 texNorm = normalize(decodeNormal(texture(tex2dSampler[mat.normalTexIdx], tCoord).xy));
-    return normalize(tbn * texNorm);
+    vec3 texNorm = decodeNormal(texture(tex2dSampler[mat.normalTexIdx], tCoord).xy);
+    return tbn * texNorm;
 }
 
 vec2 pm(vec2 texCoords, vec3 viewDir, Material mat) { 
-    float height = texture(tex2dSampler[mat.heightmapIdx], texCoords).r;    
+    float height = 1.0 - texture(tex2dSampler[mat.heightmapIdx], texCoords).r;
+	//viewDir = -viewDir;
     vec2 p = viewDir.xy / viewDir.z * (height * mat.heightScale);
     return texCoords - p;    
 }
 
-vec2 pom(vec2 texCoords, vec3 viewDir, Material mat) { 
+vec2 ParallaxMapping(vec2 texCoords, vec3 viewDir, sampler2D depthMap, float heightScale)
+{ 
     // number of depth layers
-    const float minLayers = 8;
+    const float minLayers = 4;
     const float maxLayers = 32;
     float numLayers = mix(maxLayers, minLayers, abs(dot(vec3(0.0, 0.0, 1.0), viewDir)));  
     // calculate the size of each layer
@@ -309,27 +307,22 @@ vec2 pom(vec2 texCoords, vec3 viewDir, Material mat) {
     // depth of current layer
     float currentLayerDepth = 0.0;
     // the amount to shift the texture coordinates per layer (from vector P)
-    vec2 P = viewDir.xy / viewDir.z * mat.heightScale; 
+    vec2 P = viewDir.xy / viewDir.z * heightScale; 
+	P.y = -P.y;
     vec2 deltaTexCoords = P / numLayers;
   
     // get initial values
     vec2  currentTexCoords     = texCoords;
-    float currentDepthMapValue = texture(tex2dSampler[mat.heightmapIdx], currentTexCoords).r;
-    
-    const int maxIter = 10;
-    int iter = 0;
+    float currentDepthMapValue = 1.0 - texture(depthMap, currentTexCoords).r;
+      
     while(currentLayerDepth < currentDepthMapValue)
     {
         // shift texture coordinates along direction of P
         currentTexCoords -= deltaTexCoords;
         // get depthmap value at current texture coordinates
-        currentDepthMapValue = texture(tex2dSampler[mat.heightmapIdx], currentTexCoords).r;  
+        currentDepthMapValue = 1.0 - texture(depthMap, currentTexCoords).r;  
         // get depth of next layer
-        currentLayerDepth += layerDepth;
-        iter++;
-
-        if (iter >= maxIter)
-            break;
+        currentLayerDepth += layerDepth;  
     }
     
     // get texture coordinates before collision (reverse operations)
@@ -337,7 +330,7 @@ vec2 pom(vec2 texCoords, vec3 viewDir, Material mat) {
 
     // get depth after and before collision for linear interpolation
     float afterDepth  = currentDepthMapValue - currentLayerDepth;
-    float beforeDepth = texture(tex2dSampler[mat.heightmapIdx], prevTexCoords).r - currentLayerDepth + layerDepth;
+    float beforeDepth = (1.0 - texture(depthMap, prevTexCoords).r) - currentLayerDepth + layerDepth;
  
     // interpolation of texture coordinates
     float weight = afterDepth / (afterDepth - beforeDepth);
@@ -372,7 +365,6 @@ void main() {
     //pickBuf.objectID = 0;
     Material mat = materials[matIdx];
 
-
 #ifdef MIP_MAP_DBG
     float mipLevel = min(3, mip_map_level());
 
@@ -396,28 +388,33 @@ void main() {
 #endif
 
 	int lightCount = int(pack0.x);
-
-    float roughness = mat.roughness;
-	float metallic = mat.metallic;
-
-    vec3 bitangent = cross(inNormal, inTangent);
+	
+	vec3 bitangent = cross(inNormal, inTangent);
     mat3 tbn = mat3(inTangent, bitangent, inNormal);
+	mat3 tbnT = transpose(tbn);
+	
+    vec3 tViewDir = normalize((tbnT * viewPos[gl_ViewIndex].xyz) - (tbnT * inWorldPos.xyz));
 
-#ifndef AMD_VIEWINDEX_WORKAROUND
-    vec3 tViewDir = normalize((tbn * viewPos[gl_ViewIndex].xyz) - (tbn * inWorldPos.xyz));
-#else
-    vec3 tViewDir = normalize((tbn * viewPos[0].xyz) - (tbn * inWorldPos.xyz));
-#endif
-
-    vec2 tCoord = mat.heightmapIdx > -1 ? pm(inUV, tViewDir, mat) : inUV;
+    vec2 tCoord = mat.heightmapIdx > -1 ? ParallaxMapping(inUV, tViewDir, tex2dSampler[mat.heightmapIdx], mat.heightScale) : inUV;
+    //vec2 tCoord = pm(inUV, tViewDir, mat);
 	
     vec4 albedoCol = texture(tex2dSampler[mat.albedoTexIdx], tCoord) * vec4(mat.albedoColor, 1.0);
+	float roughness = mat.roughTexIdx > -1 ? pow(texture(tex2dSampler[mat.roughTexIdx], tCoord).x, 1.0 / 2.2) : mat.roughness;
+	float metallic = mat.metalTexIdx > -1 ? pow(texture(tex2dSampler[mat.metalTexIdx], tCoord).x, 1.0 / 2.2) : mat.metallic;
 	
 	vec3 f0 = mix(vec3(0.04), albedoCol.rgb, metallic);
 	vec3 lo = vec3(0.0);
 
     vec3 normal = mat.normalTexIdx > -1 ? getNormalMapNormal(mat, tCoord, tbn) : inNormal;
 	
+	float finalAlpha = mat.alphaCutoff > 0.0f ? albedoCol.a : 1.0f;
+	
+	if (finalAlpha == 0.0) discard;
+	
+	//FragColor = vec4(pow((normal + 1) * 0.5, vec3(2.2)), 1.0);
+	//return;
+	//FragColor = vec4(vec3(roughness, metallic, 0.0), 1.0);
+	//return;
     for (int i = 0; i < lightCount; i++) {
         float shadowIntensity = 1.0;
 		if (int(lights[i].pack0.w) == LT_DIRECTIONAL) {
@@ -436,8 +433,8 @@ void main() {
                 for (int y = -shadowSamples; y < shadowSamples; y++)
                     shadowIntensity += texture(shadowSampler, vec3(coord + vec2(x, y) * texelSize, depth)).x;
 
-                shadowIntensity /= divVal;
-            }
+					shadowIntensity /= divVal;
+				}
 		}
 		lo += shadowIntensity * calculateLighting(i, viewDir, f0, metallic, roughness, albedoCol.rgb, normal);
 	}
@@ -445,8 +442,6 @@ void main() {
     if (mat.alphaCutoff > 0.0f) {
         albedoCol.a = (albedoCol.a - mat.alphaCutoff) / max(fwidth(albedoCol.a), 0.0001) + 0.5;
     }
-
-    float finalAlpha = mat.alphaCutoff > 0.0f ? albedoCol.a : 1.0f;
 #if 0//def BLINN_PHONG
     FragColor = vec4(lo, finalAlpha);
 #else

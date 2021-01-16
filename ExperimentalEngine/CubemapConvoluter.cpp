@@ -124,7 +124,7 @@ namespace worlds {
                     cb.dispatch((width + 15) / 16, (height + 15) / 16, 1);
                     cube.setLayout(cb, vk::ImageLayout::eShaderReadOnlyOptimal);
                 });
-            vkCtx->device.waitIdle();
+            //vkCtx->device.waitIdle();
         }
 
         vkCtx->device.destroyDescriptorPool(tmpDescriptorPool);

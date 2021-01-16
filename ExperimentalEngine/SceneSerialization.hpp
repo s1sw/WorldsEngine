@@ -5,5 +5,5 @@
 namespace worlds {
     typedef uint32_t AssetID;
     void saveScene(AssetID id, entt::registry& reg);
-    void loadScene(AssetID id, entt::registry& reg, bool additive = false);
+    void deserializeScene(AssetID id, entt::registry& reg, bool additive = false);
 }

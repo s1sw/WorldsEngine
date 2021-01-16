@@ -4,6 +4,7 @@
 #include "Render.hpp"
 #include "Frustum.hpp"
 #include "tracy/Tracy.hpp"
+#include "ShaderCache.hpp"
 
 namespace worlds {
     struct ShadowmapPushConstants {
@@ -11,7 +12,7 @@ namespace worlds {
         glm::mat4 model;
     };
 
-    ShadowmapRenderPass::ShadowmapRenderPass(RenderTextureResource* shadowImage)
+    ShadowmapRenderPass::ShadowmapRenderPass(RenderTexture* shadowImage)
         : shadowImage(shadowImage) {
 
     }
@@ -42,8 +43,8 @@ namespace worlds {
 
         AssetID vsID = g_assetDB.addOrGetExisting("Shaders/shadowmap.vert.spv");
         AssetID fsID = g_assetDB.addOrGetExisting("Shaders/shadowmap.frag.spv");
-        shadowVertexShader = vku::loadShaderAsset(ctx.device, vsID);
-        shadowFragmentShader = vku::loadShaderAsset(ctx.device, fsID);
+        shadowVertexShader = ShaderCache::getModule(ctx.device, vsID);
+        shadowFragmentShader = ShaderCache::getModule(ctx.device, fsID);
 
         vku::PipelineLayoutMaker plm{};
         plm.descriptorSetLayout(*dsl);
@@ -87,7 +88,7 @@ namespace worlds {
         rpbi.pClearValues = clearColours.data();
 
         vk::UniqueCommandBuffer& cmdBuf = ctx.cmdBuf;
-        Camera& cam = ctx.cam;
+        Camera& cam = *ctx.cam;
         entt::registry& reg = ctx.reg;
 
 

@@ -7,7 +7,7 @@
 #include <array>
 
 namespace worlds {
-    const uint32_t NUM_TEX_SLOTS = 64;
+    const uint32_t NUM_TEX_SLOTS = 256;
     const uint32_t NUM_MAT_SLOTS = 256;
     const uint32_t NUM_CUBEMAP_SLOTS = 64;
     struct VulkanCtx;
@@ -67,7 +67,11 @@ namespace worlds {
             present[slot] = true;
 
             auto texData = loadTexData(asset);
-            if (!cb)
+            if (texData.data == nullptr) {
+                return loadOrGet(g_assetDB.addOrGetExisting("Textures/missing.png"));
+            }
+
+            if (false)//cb && frameStarted)
                 slots[slot] = uploadTextureVk(*vkCtx, texData, cb, frameIdx);
             else
                 slots[slot] = uploadTextureVk(*vkCtx, texData);
@@ -82,6 +86,7 @@ namespace worlds {
         vk::CommandBuffer cb;
         uint32_t frameIdx;
     public:
+        bool frameStarted = false;
         TextureSlots(std::shared_ptr<VulkanCtx> vkCtx) : vkCtx(vkCtx), cb(nullptr) {
 
         }

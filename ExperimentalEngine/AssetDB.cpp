@@ -115,4 +115,11 @@ namespace worlds {
         PHYSFS_close(PHYSFS_openWrite(path.c_str()));
         return addAsset(path);
     }
+
+    void AssetDB::rename(AssetID id, std::string newPath) {
+        std::string currPath = paths.at(id);
+        ids.erase(currPath);
+        ids.insert({newPath, id});
+        paths[id] = newPath;
+    }
 }

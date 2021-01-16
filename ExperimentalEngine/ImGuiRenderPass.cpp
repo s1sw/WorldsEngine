@@ -49,6 +49,7 @@ namespace worlds {
 
     void ImGuiRenderPass::execute(RenderCtx& ctx, vk::Framebuffer& currFramebuffer) {
         auto& cmdBuf = ctx.cmdBuf;
+        ImGui::Render();
 
         std::array<float, 4> clearColorValue{ 0.0f, 0.0f, 0.0f, 0.0f };
         std::array<vk::ClearValue, 1> clearColours{ vk::ClearValue{clearColorValue} };

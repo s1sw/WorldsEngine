@@ -240,8 +240,10 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="AssetDB.cpp" />
+    <ClCompile Include="AssetDBExplorer.cpp" />
     <ClCompile Include="Assets.cpp" />
     <ClCompile Include="Audio.cpp" />
+    <ClCompile Include="BlurRenderPass.cpp" />
     <ClCompile Include="BRDFLUTRenderer.cpp" />
     <ClCompile Include="Console.cpp" />
     <ClCompile Include="CubemapConvoluter.cpp" />
@@ -253,6 +255,7 @@
     <ClCompile Include="EntityList.cpp" />
     <ClCompile Include="Fatal.cpp" />
     <ClCompile Include="GameControls.cpp" />
+    <ClCompile Include="GTAORenderPass.cpp" />
     <ClCompile Include="GuiUtil.cpp" />
     <ClCompile Include="imgui.cpp" />
     <ClCompile Include="ImGuiRenderPass.cpp" />
@@ -268,6 +271,7 @@
     <ClCompile Include="JobSystem.cpp" />
     <ClCompile Include="Engine.cpp" />
     <ClCompile Include="LuaVM.cpp" />
+    <ClCompile Include="MaterialEditor.cpp" />
     <ClCompile Include="MaterialSlots.cpp" />
     <ClCompile Include="mikktspace.c" />
     <ClCompile Include="ObjModelLoader.cpp" />
@@ -276,8 +280,10 @@
     <ClCompile Include="Physics.cpp" />
     <ClCompile Include="PolyRenderPass.cpp" />
     <ClCompile Include="RichPresence.cpp" />
+    <ClCompile Include="RobloxMeshLoader.cpp" />
     <ClCompile Include="SceneSerialization.cpp" />
     <ClCompile Include="SceneSerializationFunctions.cpp" />
+    <ClCompile Include="ShaderCache.cpp" />
     <ClCompile Include="ShaderMetadata.cpp" />
     <ClCompile Include="ShadowmapRenderPass.cpp" />
     <ClCompile Include="SourceModelLoader.cpp" />
@@ -292,7 +298,9 @@
     <ClCompile Include="VKImGUIUtil.cpp" />
     <ClCompile Include="vkrender.cpp" />
     <ClCompile Include="vkswapchain.cpp" />
+    <ClCompile Include="VRCullMeshRenderer.cpp" />
     <ClCompile Include="VTFLoader.cpp" />
+    <ClCompile Include="weldmesh.cpp" />
     <ClCompile Include="WMDLLoader.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -346,8 +354,10 @@
     <ClInclude Include="ResourceSlots.hpp" />
     <ClInclude Include="Result.hpp" />
     <ClInclude Include="RichPresence.hpp" />
+    <ClInclude Include="RobloxMeshLoader.hpp" />
     <ClInclude Include="SceneSerialization.hpp" />
     <ClInclude Include="SceneSerializationFuncs.hpp" />
+    <ClInclude Include="ShaderCache.hpp" />
     <ClInclude Include="ShaderMetadata.hpp" />
     <ClInclude Include="SourceModelLoader.hpp" />
     <ClInclude Include="spirv_reflect.h" />

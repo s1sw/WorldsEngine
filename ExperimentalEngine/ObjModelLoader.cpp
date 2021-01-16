@@ -87,11 +87,45 @@ namespace worlds {
             vert.position = glm::vec3(attrib.vertices[3 * (size_t)idx.vertex_index], attrib.vertices[3 * (size_t)idx.vertex_index + 1], attrib.vertices[3 * (size_t)idx.vertex_index + 2]);
             vert.normal = glm::vec3(attrib.normals[3 * (size_t)idx.normal_index], attrib.normals[3 * (size_t)idx.normal_index + 1], attrib.normals[3 * (size_t)idx.normal_index + 2]);
             if (idx.texcoord_index >= 0)
-                vert.uv = glm::vec2(1.0f - attrib.texcoords[2 * (size_t)idx.texcoord_index], 
-                    attrib.texcoords[2 * (size_t)idx.texcoord_index + 1]);
+                vert.uv = glm::vec2(attrib.texcoords[2 * (size_t)idx.texcoord_index], 
+                    1.0f - attrib.texcoords[2 * (size_t)idx.texcoord_index + 1]);
 
             vertices.push_back(vert);
             indices.push_back((uint32_t)indices.size());
         }
+
+        // Calculate tangents... only on Win32
+        // For some godforsaken reason it freezes on Linux
+#ifdef _WIN32
+        std::vector<Vertex> mikkTSpaceOut(shapes[0].mesh.indices.size());
+
+        TangentCalcCtx tCalcCtx{ vertices, indices, mikkTSpaceOut };
+
+        SMikkTSpaceInterface interface {};
+        interface.m_getNumFaces = getNumFaces;
+        interface.m_getNumVerticesOfFace = getNumVertsOfFace;
+        interface.m_getPosition = getPosition;
+        interface.m_getNormal = getNormal;
+        interface.m_getTexCoord = getTexCoord;
+        interface.m_setTSpaceBasic = setTSpace;
+
+        SMikkTSpaceContext ctx;
+        ctx.m_pInterface = &interface;
+        ctx.m_pUserData = &tCalcCtx;
+
+        genTangSpaceDefault(&ctx);
+
+        std::vector<int> remapTable;
+        remapTable.resize(mikkTSpaceOut.size());
+        vertices.resize(mikkTSpaceOut.size());
+        int finalVertCount = WeldMesh(remapTable.data(), (float*)vertices.data(), (float*)mikkTSpaceOut.data(), mikkTSpaceOut.size(), sizeof(Vertex) / sizeof(float));
+        vertices.resize(finalVertCount);
+
+        indices.clear();
+        indices.reserve(mikkTSpaceOut.size());
+        for (int i = 0; i < mikkTSpaceOut.size(); i++) {
+            indices.push_back(remapTable[i]);
+        }
+#endif
     }
 }

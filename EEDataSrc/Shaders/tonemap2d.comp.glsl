@@ -3,8 +3,13 @@ layout(constant_id = 0) const int NUM_MSAA_SAMPLES = 4;
 
 layout (binding = 0, rgba8) uniform writeonly image2D resultImage;
 layout (binding = 1) uniform sampler2DMS hdrImage;
+layout (binding = 2) uniform sampler2D gtaoImage;
 
 layout (local_size_x = 16, local_size_y = 16) in;
+
+layout (push_constant) uniform PC {
+	float aoIntensity;
+};
 
 
 #define INVERSE_TONEMAP_RESOLVE 0
@@ -55,6 +60,9 @@ void main() {
 	}
 
 	if (any(lessThan(acc, vec3(0.0)))) acc = vec3(1.0, 0.0, 0.0);
+	if (any(isnan(acc))) acc = vec3(1.0, 0.0, 1.0);	
+	
+	acc *= (1.0 - aoIntensity) + (texelFetch(gtaoImage, ivec2(gl_GlobalInvocationID.xy), 0).xyz) * aoIntensity;
 
 
 #if INVERSE_TONEMAP_RESOLVE

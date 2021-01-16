@@ -99,6 +99,7 @@ namespace worlds {
     class ImGuiRenderPass;
     class TonemapRenderPass;
     class ShadowmapRenderPass;
+    class GTAORenderPass;
 
     struct ModelMatrices {
         glm::mat4 modelMatrices[1024];
@@ -131,11 +132,11 @@ namespace worlds {
         bool present;
     };
 
-    struct RenderTextureResource {
+    struct RenderTexture {
         vku::GenericImage image;
         vk::ImageAspectFlagBits aspectFlags;
     private:
-        RenderTextureResource() {}
+        RenderTexture() {}
         friend class VKRenderer;
     };
 
@@ -168,14 +169,13 @@ namespace worlds {
             vk::UniqueCommandBuffer& cmdBuf,
             entt::registry& reg,
             uint32_t imageIndex,
-            Camera& cam,
+            Camera* cam,
             uint32_t width, uint32_t height,
             std::unordered_map<AssetID, LoadedMeshData>& loadedMeshes)
             : cmdBuf(cmdBuf)
             , reg(reg)
             , imageIndex(imageIndex)
             , cam(cam)
-            , reuploadMats(false)
             , loadedMeshes(loadedMeshes)
             , width(width)
             , height(height)
@@ -187,11 +187,10 @@ namespace worlds {
 
         entt::registry& reg;
         uint32_t imageIndex;
-        Camera& cam;
+        Camera* cam;
         std::unique_ptr<TextureSlots>* textureSlots;
         std::unique_ptr<MaterialSlots>* materialSlots;
         std::unique_ptr<CubemapSlots>* cubemapSlots;
-        bool reuploadMats;
         std::unordered_map<AssetID, LoadedMeshData>& loadedMeshes;
         uint32_t width, height;
         glm::mat4 vrViewMats[2];
@@ -220,6 +219,7 @@ namespace worlds {
     };
 
     struct PassSetupCtx {
+        vku::UniformBuffer* materialUB;
         VulkanCtx vkCtx;
         std::unique_ptr<TextureSlots>* globalTexArray;
         std::unique_ptr<CubemapSlots>* cubemapSlots;
@@ -227,6 +227,8 @@ namespace worlds {
         int swapchainImageCount;
         bool enableVR;
         vku::GenericImage* brdfLut;
+        uint32_t passWidth;
+        uint32_t passHeight;
     };
 
     class XRInterface;
@@ -270,6 +272,7 @@ namespace worlds {
 
     typedef uint32_t RTTPassHandle;
     struct RTTPassCreateInfo {
+        Camera* cam = nullptr;
         uint32_t width, height;
         bool isVr;
         bool useForPicking;
@@ -277,22 +280,31 @@ namespace worlds {
         bool outputToScreen;
     };
 
+    struct RTResourceCreateInfo {
+        vk::ImageCreateInfo ici;
+        vk::ImageViewType viewType;
+        vk::ImageAspectFlagBits aspectFlags;
+    };
+
     class VKRenderer {
-        const static uint32_t NUM_TEX_SLOTS = 64;
+        const static uint32_t NUM_TEX_SLOTS = 256;
         const static uint32_t NUM_MAT_SLOTS = 256;
         const static uint32_t NUM_CUBEMAP_SLOTS = 64;
 
         struct RTTPassInternal {
             PolyRenderPass* prp;
             TonemapRenderPass* trp;
+            GTAORenderPass* gtrp;
             uint32_t width, height;
-            RenderTextureResource* hdrTarget;
-            RenderTextureResource* sdrFinalTarget;
-            RenderTextureResource* depthTarget;
+            RenderTexture* hdrTarget;
+            RenderTexture* sdrFinalTarget;
+            RenderTexture* depthTarget;
+            RenderTexture* gtaoOut;
             bool isVr;
             bool outputToScreen;
             bool enableShadows;
             bool active;
+            Camera* cam;
         };
 
         vk::UniqueInstance instance;
@@ -319,16 +331,15 @@ namespace worlds {
         std::vector<vk::Fence> cmdBufFences;
         std::vector<vk::Fence> imgFences;
         VmaAllocator allocator;
+        vku::UniformBuffer materialUB;
 
-        RenderTextureResource* finalPrePresent;
+        RenderTexture* finalPrePresent;
         // openvr doesn't support presenting image layers
         // copy to another image
-        RenderTextureResource* finalPrePresentR;
+        RenderTexture* finalPrePresentR;
 
-        // shadowmapping stuff
-        RenderTextureResource* shadowmapImage;
-
-        RenderTextureResource* imguiImage;
+        RenderTexture* shadowmapImage;
+        RenderTexture* imguiImage;
 
         std::vector<vk::DescriptorSet> descriptorSets;
         SDL_Window* window;
@@ -338,13 +349,6 @@ namespace worlds {
 
         std::unordered_map<RTTPassHandle, RTTPassInternal> rttPasses;
 
-        struct RTResourceCreateInfo {
-            vk::ImageCreateInfo ici;
-            vk::ImageViewType viewType;
-            vk::ImageAspectFlagBits aspectFlags;
-        };
-
-        RenderTextureResource* createRTResource(RTResourceCreateInfo resourceCreateInfo, const char* debugName = nullptr);
         void createSwapchain(vk::SwapchainKHR oldSwapchain);
         void createFramebuffers();
         void createSCDependents();
@@ -354,8 +358,8 @@ namespace worlds {
         void createInstance(const RendererInitInfo& initInfo);
         void serializePipelineCache();
         void submitToOpenVR();
-        void uploadSceneAssets(entt::registry& reg, RenderCtx& rCtx);
         void writeCmdBuf(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageIndex, Camera& cam, entt::registry& reg);
+        void reuploadMaterials();
 
         std::unordered_map<AssetID, LoadedMeshData> loadedMeshes;
         std::vector<TracyVkCtx> tracyContexts;
@@ -403,6 +407,7 @@ namespace worlds {
         bool getVsync() const { return useVsync; }
         const RenderDebugStats& getDebugStats() const { return dbgStats; }
         VulkanCtx getVKCtx();
+        void uploadSceneAssets(entt::registry& reg);
 
         RTTPassHandle createRTTPass(RTTPassCreateInfo& ci);
         // Pass to be late updated with new VR pose data
@@ -411,6 +416,7 @@ namespace worlds {
         vku::GenericImage& getSDRTarget(RTTPassHandle handle) { return rttPasses.at(handle).sdrFinalTarget->image; }
         void setRTTPassActive(RTTPassHandle handle, bool active) { rttPasses.at(handle).active = active; }
         bool isPassValid(RTTPassHandle handle) { return rttPasses.find(handle) != rttPasses.end(); }
+        RenderTexture* createRTResource(RTResourceCreateInfo resourceCreateInfo, const char* debugName = nullptr);
 
         ~VKRenderer();
     };

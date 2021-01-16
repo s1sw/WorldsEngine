@@ -7,6 +7,7 @@
 #include "Render.hpp"
 #include "Fatal.hpp"
 #include <physfs.h>
+#include <algorithm>
 
 namespace worlds {
     uint32_t getCrunchTextureSize(crnd::crn_texture_info texInfo, int mip) {
@@ -36,17 +37,20 @@ namespace worlds {
         ZoneScoped;
         int x, y, channelsInFile;
         bool hdr = false;
+        bool forceLinear = false;
         stbi_uc* dat;
+
+        std::string path = g_assetDB.getAssetPath(id);
+
+        if (path.find("forcelin") != std::string::npos) {
+            forceLinear = true;
+        }
 
         if (g_assetDB.getAssetExtension(id) == ".hdr") {
             float* fpDat;
             fpDat = stbi_loadf_from_memory((stbi_uc*)fileData, (int)fileLen, &x, &y, &channelsInFile, 4);
             dat = (stbi_uc*)fpDat;
             hdr = true;
-            for (int xi = 0; xi < x; xi++)
-            for (int yi = 0; yi < y; yi++) {
-                //dat[xi + (yi * x)] = powf(fpDat[xi + (yi * x)], 1.0f / 2.2f);
-            }
         } else {
             dat = stbi_load_from_memory((stbi_uc*)fileData, (int)fileLen, &x, &y, &channelsInFile, 4);
         }
@@ -62,8 +66,10 @@ namespace worlds {
         td.height = (uint32_t)y;
         if (hdr)
             td.format = vk::Format::eR32G32B32A32Sfloat;
-        else
+        else if (!forceLinear)
             td.format = vk::Format::eR8G8B8A8Srgb;
+        else
+            td.format = vk::Format::eR8G8B8A8Unorm;
         td.name = g_assetDB.getAssetPath(id);
         td.totalDataSize = hdr ? x * y * 4 * sizeof(float) : x * y * 4;
 
@@ -72,7 +78,7 @@ namespace worlds {
 
     TextureData loadCrunchTexture(void* fileData, size_t fileLen, AssetID id) {
         ZoneScoped;
-            bool isSRGB = true;
+        bool isSRGB = true;
 
         crnd::crn_texture_info texInfo;
 
@@ -136,12 +142,16 @@ namespace worlds {
     TextureData loadTexData(AssetID id) {
         ZoneScoped;
 
+        if (!g_assetDB.hasId(id)) {
+            return TextureData{ nullptr };
+        }
+
         PHYSFS_File* file = g_assetDB.openAssetFileRead(id);
         if (!file) {
             std::string path = g_assetDB.getAssetPath(id);
             auto errCode = PHYSFS_getLastErrorCode();
             SDL_LogError(worlds::WELogCategoryEngine, "Failed to load texture %s: %s", path.c_str(), PHYSFS_getErrorByCode(errCode));
-            return TextureData{};
+            return TextureData{nullptr};
         }
 
         size_t fileLen = PHYSFS_fileLength(file);
@@ -163,21 +173,97 @@ namespace worlds {
         }
     }
 
+    void generateMips(VulkanCtx& vkCtx, vku::TextureImage2D& t, vk::CommandBuffer cb) {
+        auto currLayout = t.layout();
+        vk::ImageMemoryBarrier imb;
+        imb.subresourceRange = vk::ImageSubresourceRange{ vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1 };
+
+        imb.image = t.image();
+        imb.oldLayout = currLayout;
+        imb.newLayout = vk::ImageLayout::eTransferSrcOptimal;
+        imb.srcAccessMask = vk::AccessFlagBits::eHostWrite;
+        imb.dstAccessMask = vk::AccessFlagBits::eTransferRead;
+
+        vk::ImageMemoryBarrier imb2;
+        imb2.subresourceRange = vk::ImageSubresourceRange{ vk::ImageAspectFlagBits::eColor, 1, t.info().mipLevels - 1, 0, 1 };
+
+        imb2.image = t.image();
+        imb2.oldLayout = currLayout;
+        imb2.newLayout = vk::ImageLayout::eTransferDstOptimal;
+        imb2.srcAccessMask = vk::AccessFlagBits::eHostWrite;
+        imb2.dstAccessMask = vk::AccessFlagBits::eTransferWrite;
+        cb.pipelineBarrier(vk::PipelineStageFlagBits::eHost, vk::PipelineStageFlagBits::eTransfer, vk::DependencyFlagBits::eByRegion, nullptr, nullptr, { imb, imb2 });
+
+        int32_t mipWidth = t.info().extent.width / 2;
+        int32_t mipHeight = t.info().extent.height / 2;
+        for (uint32_t i = 1; i < t.info().mipLevels; i++) {
+            vk::ImageBlit ib;
+            ib.dstSubresource = vk::ImageSubresourceLayers{ vk::ImageAspectFlagBits::eColor, i, 0, 1 };
+            ib.dstOffsets[0] = vk::Offset3D{ 0, 0, 0 };
+            ib.dstOffsets[1] = vk::Offset3D{ mipWidth, mipHeight, 1 };
+            ib.srcSubresource = vk::ImageSubresourceLayers{ vk::ImageAspectFlagBits::eColor, 0, 0, 1 };
+            ib.srcOffsets[0] = vk::Offset3D{ 0, 0, 0 };
+            ib.srcOffsets[1] = vk::Offset3D{ (int32_t)t.info().extent.width, (int32_t)t.info().extent.height, 1 };
+
+            cb.blitImage(t.image(), vk::ImageLayout::eTransferSrcOptimal, t.image(), vk::ImageLayout::eTransferDstOptimal, ib, vk::Filter::eLinear);
+
+            mipWidth /= 2;
+            mipHeight /= 2;
+        }
+
+        vk::ImageMemoryBarrier imb3;
+        imb3.subresourceRange = vk::ImageSubresourceRange{ vk::ImageAspectFlagBits::eColor, 1, t.info().mipLevels - 1, 0, 1 };
+        imb3.oldLayout = vk::ImageLayout::eTransferDstOptimal;
+        imb3.newLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
+        imb3.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
+        imb3.dstAccessMask = vk::AccessFlagBits::eShaderRead;
+        imb3.image = t.image();
+
+        vk::ImageMemoryBarrier imb4;
+        imb4.subresourceRange = vk::ImageSubresourceRange{ vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1 };
+        imb4.oldLayout = vk::ImageLayout::eTransferSrcOptimal;
+        imb4.newLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
+        imb4.srcAccessMask = vk::AccessFlagBits::eTransferRead;
+        imb4.dstAccessMask = vk::AccessFlagBits::eShaderRead;
+        imb4.image = t.image();
+
+        cb.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eFragmentShader,
+            vk::DependencyFlagBits::eByRegion, nullptr, nullptr, { imb3, imb4 });
+    }
+
+    void generateMips(VulkanCtx& vkCtx, vku::TextureImage2D& t) {
+        vku::executeImmediately(vkCtx.device, vkCtx.commandPool, vkCtx.device.getQueue(vkCtx.graphicsQueueFamilyIdx, 0),
+            [&](vk::CommandBuffer cb) {
+                generateMips(vkCtx, t, cb);
+            });
+    }
+
     vku::TextureImage2D uploadTextureVk(VulkanCtx& ctx, TextureData& td) {
         ZoneScoped;
         auto memProps = ctx.physicalDevice.getMemoryProperties();
+        bool createMips = td.numMips == 1 && (td.format == vk::Format::eR8G8B8A8Srgb || td.format == vk::Format::eR8G8B8A8Unorm);
+        uint32_t maxMips = static_cast<uint32_t>(std::floor(std::log2(std::max(td.width, td.height)))) + 1;
+
         vku::TextureImage2D tex{
             ctx.device,
             ctx.allocator,
             td.width, td.height,
-            td.numMips, td.format,
+            createMips ? maxMips : td.numMips, td.format,
             false,
             td.name.empty() ? nullptr : td.name.c_str()
         };
 
         std::vector<uint8_t> datVec(td.data, td.data + td.totalDataSize);
 
-        tex.upload(ctx.device, ctx.allocator, datVec, ctx.commandPool, memProps, ctx.device.getQueue(ctx.graphicsQueueFamilyIdx, 0));
+        tex.upload(ctx.device, ctx.allocator, datVec, ctx.commandPool, memProps, ctx.device.getQueue(ctx.graphicsQueueFamilyIdx, 0), td.numMips);
+
+        if (createMips) {
+            generateMips(ctx, tex);
+        }
+
+        if (!td.name.empty())
+            logMsg("Uploaded %s outside of frame", td.name.c_str());
+
 
         return tex;
     }
@@ -199,11 +285,15 @@ namespace worlds {
     vku::TextureImage2D uploadTextureVk(VulkanCtx& ctx, TextureData& td, vk::CommandBuffer cb, uint32_t frameIdx) {
         ZoneScoped;
         ensureTempVectorExists(frameIdx);
+
+        bool createMips = td.numMips == 1 && (td.format == vk::Format::eR8G8B8A8Srgb || td.format == vk::Format::eR8G8B8A8Unorm);
+        uint32_t maxMips = static_cast<uint32_t>(std::floor(std::log2(std::max(td.width, td.height)))) + 1;
+
         vku::TextureImage2D tex{
             ctx.device,
             ctx.allocator,
             td.width, td.height,
-            td.numMips, td.format,
+            createMips ? maxMips : td.numMips, td.format,
             false,
             td.name.empty() ? nullptr : td.name.c_str()
         };
@@ -228,6 +318,12 @@ namespace worlds {
         }
 
         tempBuffers[frameIdx].push_back(std::move(stagingBuffer));
+
+        if (createMips)
+            generateMips(ctx, tex, cb);
+
+        if (!td.name.empty())
+            logMsg("Uploaded %s as part of frame", td.name.c_str());
 
         return tex;
     }
