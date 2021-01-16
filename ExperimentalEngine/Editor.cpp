@@ -30,24 +30,6 @@
 namespace worlds {
     std::unordered_map<ENTT_ID_TYPE, ComponentMetadata> ComponentMetadataManager::metadata;
 
-    glm::vec3 filterAxes(glm::vec3 vec, AxisFlagBits axisFlags) {
-        return vec * glm::vec3(
-            (axisFlags & AxisFlagBits::X) == AxisFlagBits::X,
-            (axisFlags & AxisFlagBits::Y) == AxisFlagBits::Y,
-            (axisFlags & AxisFlagBits::Z) == AxisFlagBits::Z);
-    }
-
-    int getNumActiveAxes(AxisFlagBits axisFlags) {
-        return
-            ((axisFlags & AxisFlagBits::X) == AxisFlagBits::X) +
-            ((axisFlags & AxisFlagBits::Y) == AxisFlagBits::Y) +
-            ((axisFlags & AxisFlagBits::Z) == AxisFlagBits::Z);
-    }
-
-    bool hasAxis(AxisFlagBits flags, AxisFlagBits axis) {
-        return (flags & axis) == axis;
-    }
-
     const char* toolStr(Tool tool) {
         switch (tool) {
         case Tool::None:
@@ -375,7 +357,6 @@ namespace worlds {
 
     Editor::Editor(entt::registry& reg, EngineInterfaces interfaces)
         : currentTool(Tool::None)
-        , currentAxisLock(AxisFlagBits::All)
         , reg(reg)
         , currentSelectedEntity(entt::null)
         , cam(*interfaces.mainCamera)
@@ -440,13 +421,6 @@ namespace worlds {
         if (!reg.valid(entity)) return;
 
         reg.emplace<UseWireframe>(currentSelectedEntity);
-    }
-
-    void Editor::handleAxisButtonPress(AxisFlagBits axisFlagBit) {
-        if (currentAxisLock == AxisFlagBits::All)
-            currentAxisLock = axisFlagBit;
-        else
-            currentAxisLock = currentAxisLock ^ axisFlagBit;
     }
 
     ImVec2 convVec(glm::vec2 gVec) {
@@ -571,7 +545,6 @@ namespace worlds {
         assert(reg.valid(currentSelectedEntity));
         currentTool = newTool;
         originalObjectTransform = reg.get<Transform>(currentSelectedEntity);
-        currentAxisLock = AxisFlagBits::All;
         startingMouseDistance = -1.0f;
         logMsg(SDL_LOG_PRIORITY_DEBUG, "activateTool(%s)", toolStr(newTool));
 

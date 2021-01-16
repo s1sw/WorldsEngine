@@ -88,10 +88,8 @@ namespace worlds {
         entt::entity getSelectedEntity() { return currentSelectedEntity; }
     private:
         void updateCamera(float deltaTime);
-        void handleAxisButtonPress(AxisFlagBits axis);
         Tool currentTool;
         Tool lastActiveTool;
-        AxisFlagBits currentAxisLock;
         entt::registry& reg;
         entt::entity currentSelectedEntity;
         Camera& cam;
