@@ -305,7 +305,7 @@ namespace worlds {
 
     void editNameComponent(entt::entity ent, entt::registry& registry) {
         auto& nc = registry.get<NameComponent>(ent);
-        
+
         ImGui::InputText("Name", &nc.name);
         ImGui::SameLine();
         if (ImGui::Button("Remove")) {
@@ -352,9 +352,9 @@ namespace worlds {
 
     void createWorldCubemap(entt::entity ent, entt::registry& reg) {
         auto& wc = reg.emplace<WorldCubemap>(ent);
-        
-        wc.cubemapId = g_assetDB.addOrGetExisting("DefaultCubemap.json"); 
-        wc.extent = glm::vec3 {1.0f};
+
+        wc.cubemapId = g_assetDB.addOrGetExisting("DefaultCubemap.json");
+        wc.extent = glm::vec3{ 1.0f };
     }
 
     void editWorldCubemap(entt::entity ent, entt::registry& reg) {
@@ -382,7 +382,7 @@ namespace worlds {
         , startingMouseDistance(0.0f)
         , lookX(0.0f)
         , lookY(0.0f)
-        , cameraSpeed(5.0f) 
+        , cameraSpeed(5.0f)
         , imguiMetricsOpen(false)
         , enableTransformGadget(false)
         , active(true)
@@ -429,7 +429,7 @@ namespace worlds {
 #undef REGISTER_COMPONENT_TYPE
 
     void Editor::select(entt::entity entity) {
-        if (currentTool != Tool::None) return;
+        if (ImGuizmo::IsUsing() || ImGuizmo::IsOver()) return;
         // Remove selection from existing entity
         if (reg.valid(currentSelectedEntity)) {
             reg.remove<UseWireframe>(currentSelectedEntity);
@@ -447,12 +447,6 @@ namespace worlds {
             currentAxisLock = axisFlagBit;
         else
             currentAxisLock = currentAxisLock ^ axisFlagBit;
-    }
-
-    glm::vec3 projectRayToPlane(glm::vec3 origin, glm::vec3 dir, glm::vec3 planeNormal, float d) {
-        float t = -(glm::dot(origin, planeNormal) + d) / glm::dot(dir, planeNormal);
-
-        return origin + (dir * t);
     }
 
     ImVec2 convVec(glm::vec2 gVec) {
@@ -498,7 +492,7 @@ namespace worlds {
     }
 
     void Editor::updateCamera(float deltaTime) {
-        if (currentTool != Tool::None) return;
+        if (ImGuizmo::IsUsing()) return;
         float moveSpeed = cameraSpeed;
 
         static int origMouseX, origMouseY = 0;
@@ -618,7 +612,7 @@ namespace worlds {
         interfaces.renderer->setRTTPassActive(sceneViewPass, active);
 
         if (!active) {
-            if (inputManager.keyPressed(SDL_SCANCODE_P, true) && ctrlHeld(inputManager)) 
+            if (inputManager.keyPressed(SDL_SCANCODE_P, true) && ctrlHeld(inputManager))
                 g_console->executeCommandStr("reloadAndEdit");
 
             if (inputManager.keyPressed(SDL_SCANCODE_P, true) && ctrlHeld(inputManager) && shiftHeld(inputManager))
@@ -626,7 +620,7 @@ namespace worlds {
             return;
         }
 
-        if (currentTool == Tool::None && reg.valid(currentSelectedEntity)) {
+        if (reg.valid(currentSelectedEntity)) {
             // Right mouse button means that the view's being moved, so we'll ignore any tools
             // and assume the user's trying to move the camera
             if (!inputManager.mouseButtonHeld(MouseButton::Right, true)) {
@@ -637,24 +631,6 @@ namespace worlds {
                 } else if (inputManager.keyPressed(SDL_SCANCODE_S)) {
                     activateTool(Tool::Scale);
                 }
-            }
-        } else {
-            // Complex axis juggling
-
-            if (shiftHeld(inputManager)) {
-                if (inputManager.keyPressed(SDL_SCANCODE_X)) {
-                    currentAxisLock = AxisFlagBits::Y | AxisFlagBits::Z;
-                } else if (inputManager.keyPressed(SDL_SCANCODE_Y)) {
-                    currentAxisLock = AxisFlagBits::X | AxisFlagBits::Z;
-                } else if (inputManager.keyPressed(SDL_SCANCODE_Z)) {
-                    currentAxisLock = AxisFlagBits::X | AxisFlagBits::Y;
-                }
-            } else if (inputManager.keyPressed(SDL_SCANCODE_X)) {
-                handleAxisButtonPress(AxisFlagBits::X);
-            } else if (inputManager.keyPressed(SDL_SCANCODE_Y)) {
-                handleAxisButtonPress(AxisFlagBits::Y);
-            } else if (inputManager.keyPressed(SDL_SCANCODE_Z)) {
-                handleAxisButtonPress(AxisFlagBits::Z);
             }
         }
 
@@ -671,40 +647,12 @@ namespace worlds {
                 }
                 ImGui::EndMenu();
             }
-            
+
 
             ImGui::EndMainMenuBar();
         }
 
-        if (ImGui::Begin(ICON_FA_HANDS u8" Hand Pose Editor")) {
-            static glm::vec3 centerL = glm::vec3{ NAN, NAN, NAN };
-            static glm::vec3 centerR = glm::vec3{ NAN, NAN, NAN };
-
-            ImGui::DragFloat3("Left Center", &centerL.x);
-            ImGui::DragFloat3("Right Center", &centerR.x);
-        }
-        ImGui::End();
-
         if (ImGui::Begin(ICON_FA_EDIT u8" Editor")) {
-            char buf[6];
-            char* curr = buf;
-
-            if (hasAxis(currentAxisLock, AxisFlagBits::X)) {
-                strcpy(curr, "X,");
-                curr += 2;
-            }
-
-            if (hasAxis(currentAxisLock, AxisFlagBits::Y)) {
-                strcpy(curr, "Y,");
-                curr += 2;
-            }
-
-            if (hasAxis(currentAxisLock, AxisFlagBits::Z)) {
-                strcpy(curr, "Z");
-                curr++;
-            }
-
-            ImGui::Text("Current axes: %s", buf);
             ImGui::Text("Current tool: %s", toolStr(currentTool));
 
             ImGui::Checkbox("Global object snap", &settings.objectSnapGlobal);
@@ -755,149 +703,6 @@ namespace worlds {
             auto mPos = ImGui::GetIO().MousePos;
             auto localMPos = mPos - wPos;
 
-            if (currentTool != Tool::None) {
-                auto& selectedTransform = reg.get<Transform>(currentSelectedEntity);
-
-                if (inputManager.mouseButtonPressed(MouseButton::Right, true)) {
-                    selectedTransform = originalObjectTransform;
-                    currentTool = Tool::None;
-                } else if (inputManager.mouseButtonPressed(MouseButton::Left, true)) {
-                    currentTool = Tool::None;
-                }
-
-                if (currentTool == Tool::Translate) {
-                    glm::vec2 halfWindowSize = convVec(wSize) * 0.5f;
-
-                    glm::vec2 ndcMousePos = convVec(localMPos);
-                    ndcMousePos -= halfWindowSize;
-                    ndcMousePos.x /= halfWindowSize.x;
-                    ndcMousePos.y /= halfWindowSize.y;
-                    ndcMousePos *= -1.0f;
-
-                    float aspect = wSize.x / wSize.y;
-                    //glm::vec3 dir = (cam.rotation * glm::normalize(glm::vec3(ndcMousePos, 1.0f)));
-                    float tanHalfFov = glm::tan(cam.verticalFOV * 0.5f);
-                    glm::vec3 dir(ndcMousePos.x * aspect * tanHalfFov, ndcMousePos.y * tanHalfFov, 1.0f);
-                    dir = glm::normalize(dir);
-                    dir = cam.rotation * dir;
-
-                    glm::vec3 n;
-
-                    if (currentAxisLock == AxisFlagBits::All) {
-                        n = cam.rotation * glm::vec3(0.0f, 0.0f, 1.0f);
-                    } else if (getNumActiveAxes(currentAxisLock) == 2) {
-                        // Construct a plane along the two active axes
-                        glm::vec3 x(1.0f, 0.0f, 0.0f);
-                        glm::vec3 y(0.0f, 1.0f, 0.0f);
-                        glm::vec3 z(0.0f, 0.0f, 1.0f);
-
-                        x *= 1 - hasAxis(currentAxisLock, AxisFlagBits::X);
-                        y *= 1 - hasAxis(currentAxisLock, AxisFlagBits::Y);
-                        z *= 1 - hasAxis(currentAxisLock, AxisFlagBits::Z);
-
-                        n = x + y + z;
-                    } else if (getNumActiveAxes(currentAxisLock) == 1) {
-                        if (currentAxisLock == AxisFlagBits::X || currentAxisLock == AxisFlagBits::Z)
-                            n = glm::vec3(0.0f, 1.0f, 0.0f);
-                        else
-                            n = glm::vec3(0.0f, 0.0f, 1.0f);
-                    }
-
-                    float d = -glm::dot(originalObjectTransform.position, n);
-
-
-                    float t = -(glm::dot(cam.position, n) + d) / glm::dot(dir, n);
-
-                    glm::vec3 dif = (cam.position + dir * t) - originalObjectTransform.position;
-
-                    if (ctrlHeld(inputManager) && !settings.objectSnapGlobal)
-                        dif = glm::round(dif);
-
-                    selectedTransform.position = originalObjectTransform.position + filterAxes(dif, currentAxisLock);
-
-                    if (ctrlHeld(inputManager) && settings.objectSnapGlobal)
-                        selectedTransform.position = glm::round(selectedTransform.position);
-
-                    glm::mat4 vp = cam.getProjectionMatrix((float)wSize.x / wSize.y) * cam.getViewMatrix();
-
-                    if (getNumActiveAxes(currentAxisLock) == 2) {
-                        ImGui::GetForegroundDrawList()->AddLine(wPos + worldToScreen(glm::vec3(0.0f), vp), wPos + worldToScreen(n, vp), ImColor(1.0f, 1.0f, 1.0f), 2.0f);
-                    } else if (getNumActiveAxes(currentAxisLock) == 1) {
-                        glm::vec3 x(1.0f, 0.0f, 0.0f);
-                        glm::vec3 y(0.0f, 1.0f, 0.0f);
-                        glm::vec3 z(0.0f, 0.0f, 1.0f);
-
-                        x *= hasAxis(currentAxisLock, AxisFlagBits::X);
-                        y *= hasAxis(currentAxisLock, AxisFlagBits::Y);
-                        z *= hasAxis(currentAxisLock, AxisFlagBits::Z);
-
-                        glm::vec3 start = selectedTransform.position - (x + y + z) * 5.0f;
-                        glm::vec3 end = selectedTransform.position + (x + y + z) * 5.0f;
-
-                        glm::vec2 startScreen = worldToScreenG(start, vp);
-                        glm::vec2 endScreen = worldToScreenG(end, vp);
-
-                        // clipping
-                        //bool accept = lineClip(startScreen, endScreen, glm::vec2(0.0f), windowSize);
-
-                        glm::vec3 color = x + y + z;
-
-                        ImGui::GetForegroundDrawList()->AddLine(wPos + convVec(startScreen), wPos + convVec(endScreen), ImColor(color.x, color.y, color.z), 2.0f);
-                    }
-
-
-                } else if (currentTool == Tool::Rotate) {
-
-                } else if (currentTool == Tool::Scale) {
-                    // Convert selected transform position from world space to screen space
-                    glm::vec4 ndcObjPosPreDivide = cam.getProjectionMatrix(wSize.x / wSize.y) * cam.getViewMatrix() * glm::vec4(selectedTransform.position, 1.0f);
-
-                    // NDC -> screen space
-                    glm::vec2 ndcObjectPosition(ndcObjPosPreDivide);
-                    ndcObjectPosition /= ndcObjPosPreDivide.w;
-                    ndcObjectPosition *= 0.5f;
-                    ndcObjectPosition += 0.5f;
-                    ndcObjectPosition *= convVec(wSize);
-                    // Not sure why flipping Y is necessary?
-                    ndcObjectPosition.y = wSize.y - ndcObjectPosition.y;
-
-                    glm::vec2 ndcMousePos = convVec(ImGui::GetIO().MousePos - wPos);
-
-                    if (startingMouseDistance == -1.0f) {
-                        startingMouseDistance = glm::distance(ndcObjectPosition, ndcMousePos);
-                    }
-
-                    float currentMouseDistance = glm::distance(ndcObjectPosition, ndcMousePos);
-
-                    // 1.0 scale circle
-                    glm::vec2 circlePos = ndcObjectPosition;
-                    ImGui::GetWindowDrawList()->AddCircle(wPos + ImVec2(circlePos.x, circlePos.y), startingMouseDistance, ImColor(1.0f, 1.0f, 1.0f), getCircleSegments(startingMouseDistance));
-
-                    // Line from mouse to scale circle
-                    glm::vec2 mouseDir = glm::normalize(ndcMousePos - circlePos);
-                    glm::vec2 lineStart = circlePos + (mouseDir * startingMouseDistance);
-                    ImGui::GetWindowDrawList()->AddLine(wPos + ImVec2(lineStart.x, lineStart.y), wPos + ImVec2(ndcMousePos.x, ndcMousePos.y), ImColor(1.0f, 1.0f, 1.0f));
-
-                    float scaleFac = (currentMouseDistance - startingMouseDistance) * 0.01f;
-
-                    // Probably don't want negative scale - scale < 1.0 is more useful
-                    if (scaleFac < 0.0f) {
-                        scaleFac = (glm::pow(1.0f / (-scaleFac + 1.0f), 3.0f)) - 1.0f;
-                    }
-
-                    // Snap to increments of 0.1
-                    if (ctrlHeld(inputManager)) {
-                        scaleFac = glm::round(scaleFac / settings.scaleSnapIncrement) * settings.scaleSnapIncrement;
-                    }
-
-                    selectedTransform.scale = originalObjectTransform.scale + filterAxes(originalObjectTransform.scale * scaleFac, currentAxisLock);
-
-                    std::string scaleStr = "Avg. Scale: " + std::to_string(glm::dot(filterAxes(glm::vec3(1.0f), currentAxisLock), selectedTransform.scale) / getNumActiveAxes(currentAxisLock));
-
-                    ImGui::GetWindowDrawList()->AddText(wPos + ImVec2(ndcMousePos.x, ndcMousePos.y), ImColor(1.0f, 1.0f, 1.0f), scaleStr.c_str());
-                }
-            }
-
             if (reg.valid(currentSelectedEntity)) {
                 auto& selectedTransform = reg.get<Transform>(currentSelectedEntity);
                 // Convert selected transform position from world space to screen space
@@ -915,55 +720,53 @@ namespace worlds {
                 if ((ndcObjPosPreDivide.z / ndcObjPosPreDivide.w) > 0.0f)
                     ImGui::GetWindowDrawList()->AddCircleFilled(convVec(ndcObjectPosition) + wPos, 7.0f, ImColor(0.0f, 0.0f, 0.0f));
 
-                if (enableTransformGadget) {
-                    ImGuizmo::BeginFrame();
-                    ImGuizmo::Enable(true);
-                    ImGuizmo::SetRect(wPos.x, wPos.y, (float)wSize.x, (float)wSize.y);
-                    ImGuizmo::SetDrawlist();
+                ImGuizmo::BeginFrame();
+                ImGuizmo::Enable(true);
+                ImGuizmo::SetRect(wPos.x, wPos.y, (float)wSize.x, (float)wSize.y);
+                ImGuizmo::SetDrawlist();
 
-                    glm::mat4 view = cam.getViewMatrix();
-                    // We have to explicitly get the non-reversed Z matrix here otherwise ImGuizmo freaks out.
-                    glm::mat4 proj = cam.getProjectionMatrixZO((float)wSize.x / (float)wSize.y);
+                glm::mat4 view = cam.getViewMatrix();
+                // We have to explicitly get the non-reversed Z matrix here otherwise ImGuizmo freaks out.
+                glm::mat4 proj = cam.getProjectionMatrixZO((float)wSize.x / (float)wSize.y);
 
-                    glm::mat4 tfMtx = selectedTransform.getMatrix();
-                    glm::vec3 snap{ 0.0f };
+                glm::mat4 tfMtx = selectedTransform.getMatrix();
+                glm::vec3 snap{ 0.0f };
 
-                    if (inputManager.keyHeld(SDL_SCANCODE_LCTRL, true)) {
-                        switch (lastActiveTool) {
-                        case Tool::Scale:
-                            snap = glm::vec3{ settings.scaleSnapIncrement };
-                            break;
-                        case Tool::Translate:
-                            snap = glm::vec3{ 1.0f };
-                            break;
-                        case Tool::Rotate:
-                            snap = glm::vec3{ 15.0f };
-                            break;
-                        default:
-                            snap = glm::vec3 { 1.0f };
-                            break;
-                        }
-                    }
-
-                    ImGuizmo::Manipulate(glm::value_ptr(view), glm::value_ptr(proj), toolToOp(lastActiveTool), ImGuizmo::MODE::WORLD, glm::value_ptr(tfMtx), nullptr, glm::value_ptr(snap));
-                    glm::vec3 scale;
-                    glm::quat rotation;
-                    glm::vec3 translation;
-                    glm::vec3 skew;
-                    glm::vec4 perspective;
-                    glm::decompose(tfMtx, scale, rotation, translation, skew, perspective);
-
+                if (inputManager.keyHeld(SDL_SCANCODE_LCTRL, true)) {
                     switch (lastActiveTool) {
+                    case Tool::Scale:
+                        snap = glm::vec3{ settings.scaleSnapIncrement };
+                        break;
                     case Tool::Translate:
-                        selectedTransform.position = translation;
+                        snap = glm::vec3{ 1.0f };
                         break;
                     case Tool::Rotate:
-                        selectedTransform.rotation = rotation;
+                        snap = glm::vec3{ 15.0f };
                         break;
-                    case Tool::Scale:
-                        selectedTransform.scale = scale;
+                    default:
+                        snap = glm::vec3{ 1.0f };
                         break;
                     }
+                }
+
+                ImGuizmo::Manipulate(glm::value_ptr(view), glm::value_ptr(proj), toolToOp(lastActiveTool), ImGuizmo::MODE::WORLD, glm::value_ptr(tfMtx), nullptr, glm::value_ptr(snap));
+                glm::vec3 scale;
+                glm::quat rotation;
+                glm::vec3 translation;
+                glm::vec3 skew;
+                glm::vec4 perspective;
+                glm::decompose(tfMtx, scale, rotation, translation, skew, perspective);
+
+                switch (lastActiveTool) {
+                case Tool::Translate:
+                    selectedTransform.position = translation;
+                    break;
+                case Tool::Rotate:
+                    selectedTransform.rotation = rotation;
+                    break;
+                case Tool::Scale:
+                    selectedTransform.scale = scale;
+                    break;
                 }
 
                 if (shiftHeld(inputManager) &&
@@ -1044,8 +847,8 @@ namespace worlds {
             interfaces.engine->loadScene(g_assetDB.addOrGetExisting(path));
             }, ".escn");
 
-        if (inputManager.keyPressed(SDL_SCANCODE_I, true) && 
-            ctrlHeld(inputManager) && 
+        if (inputManager.keyPressed(SDL_SCANCODE_I, true) &&
+            ctrlHeld(inputManager) &&
             shiftHeld(inputManager)) {
             imguiMetricsOpen = !imguiMetricsOpen;
         }
