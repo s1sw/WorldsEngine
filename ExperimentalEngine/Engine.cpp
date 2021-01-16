@@ -54,14 +54,12 @@ namespace worlds {
         SDL_Window** windowVarPtr;
     };
 
-    SDL_Window* window = nullptr;
     uint32_t fullscreenToggleEventId;
 
     bool useEventThread = false;
     int workerThreadOverride = -1;
     bool enableOpenVR = false;
     glm::ivec2 windowSize;
-    SceneInfo currentScene;
 
     void WorldsEngine::setupSDL() {
         SDL_Init(SDL_INIT_AUDIO | SDL_INIT_EVENTS | SDL_INIT_VIDEO | SDL_INIT_TIMER);
@@ -86,8 +84,8 @@ namespace worlds {
 
         bool* running = wtd->runningPtr;
 
-        window = createSDLWindow();
-        if (window == nullptr) {
+        *wtd->windowVarPtr = createSDLWindow();
+        if (*wtd->windowVarPtr == nullptr) {
             SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "err", SDL_GetError(), NULL);
         }
 
@@ -100,10 +98,10 @@ namespace worlds {
                 }
 
                 if (evt.type == fullscreenToggleEventId) {
-                    if ((SDL_GetWindowFlags(window) & SDL_WINDOW_FULLSCREEN_DESKTOP) == SDL_WINDOW_FULLSCREEN_DESKTOP) {
-                        SDL_SetWindowFullscreen(window, 0);
+                    if ((SDL_GetWindowFlags(*wtd->windowVarPtr) & SDL_WINDOW_FULLSCREEN_DESKTOP) == SDL_WINDOW_FULLSCREEN_DESKTOP) {
+                        SDL_SetWindowFullscreen(*wtd->windowVarPtr, 0);
                     } else {
-                        SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP);
+                        SDL_SetWindowFullscreen(*wtd->windowVarPtr, SDL_WINDOW_FULLSCREEN_DESKTOP);
                     }
                 }
 
@@ -263,8 +261,8 @@ namespace worlds {
 
         if (!dedicatedServer)
             redrawSplashWindow(splashWindow, "loading assetdb");
-        g_assetDB.load();
 
+        g_assetDB.load();
 
         if (!dedicatedServer) {
             if (useEventThread) {

@@ -33,6 +33,7 @@
     <RootNamespace>ExperimentalEngine</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
     <VcpkgConfiguration Condition="'$(Configuration)' == 'Profile'">Release</VcpkgConfiguration>
+    <ProjectName>WorldsEngine</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -245,6 +246,7 @@
     <ClCompile Include="Audio.cpp" />
     <ClCompile Include="BlurRenderPass.cpp" />
     <ClCompile Include="BRDFLUTRenderer.cpp" />
+    <ClCompile Include="ComponentFuncs.cpp" />
     <ClCompile Include="Console.cpp" />
     <ClCompile Include="CubemapConvoluter.cpp" />
     <ClCompile Include="CubemapLoader.cpp" />
@@ -307,6 +309,7 @@
     <ClInclude Include="AssetDB.hpp" />
     <ClInclude Include="Audio.hpp" />
     <ClInclude Include="Camera.hpp" />
+    <ClInclude Include="ComponentFuncs.hpp" />
     <ClInclude Include="ComponentMetadata.hpp" />
     <ClInclude Include="Console.hpp" />
     <ClInclude Include="CreateModelObject.hpp" />

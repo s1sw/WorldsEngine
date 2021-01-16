@@ -15,15 +15,17 @@ namespace worlds {
 		InputManager(SDL_Window* window);
 		void update();
 		void endFrame();
-		bool mouseButtonHeld(MouseButton button, bool ignoreImGui = false);
-		bool mouseButtonPressed(MouseButton button, bool ignoreImGui = false);
-		bool mouseButtonReleased(MouseButton button, bool ignoreImGui = false);
-		bool keyHeld(SDL_Scancode scancode, bool ignoreImGui = false);
-		bool keyPressed(SDL_Scancode scancode, bool ignoreImGui = false);
-		bool keyReleased(SDL_Scancode scancode, bool ignoreImGui = false);
-		glm::ivec2 getMouseDelta();
-		glm::ivec2 getMousePosition();
+		bool mouseButtonHeld(MouseButton button, bool ignoreImGui = false) const;
+		bool mouseButtonPressed(MouseButton button, bool ignoreImGui = false) const;
+		bool mouseButtonReleased(MouseButton button, bool ignoreImGui = false) const;
+		bool keyHeld(SDL_Scancode scancode, bool ignoreImGui = false) const;
+		bool keyPressed(SDL_Scancode scancode, bool ignoreImGui = false) const;
+		bool keyReleased(SDL_Scancode scancode, bool ignoreImGui = false) const;
+		glm::ivec2 getMouseDelta() const;
+		glm::ivec2 getMousePosition() const;
 		void warpMouse(glm::ivec2 newPosition);
+		bool ctrlHeld() const;
+		bool shiftHeld() const;
 	private:
 		SDL_Window* window;
 		uint32_t mouseButtonFlags;
