@@ -48,6 +48,7 @@ namespace worlds {
         WorldsEngine(EngineInitOptions initOptions, char* argv0);
         void mainLoop();
         ~WorldsEngine();
+        void loadScene(AssetID scene);
         void addSystem(ISystem* system);
         bool pauseSim;
         bool runAsEditor;
@@ -81,6 +82,7 @@ namespace worlds {
         std::unique_ptr<Editor> editor;
         std::unique_ptr<LuaVM> luaVM;
         OpenVRInterface openvrInterface;
+        double timeScale = 1.0;
 
         std::vector<ISystem*> systems;
     };

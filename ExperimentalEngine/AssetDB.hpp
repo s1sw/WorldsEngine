@@ -70,13 +70,16 @@ namespace worlds {
         std::string getAssetPath(AssetID id) { return paths[id]; }
         std::string getAssetExtension(AssetID id) { return extensions[id]; }
         bool hasId(std::string path) { return ids.find(path) != ids.end(); }
+        bool hasId(AssetID id) { return paths.find(id) != paths.end(); }
         AssetID getExistingID(std::string path) { return ids.at(path); }
         AssetID addOrGetExisting(std::string path) { return hasId(path) ? getExistingID(path) : addAsset(path); }
+        void rename(AssetID id, std::string newPath);
     private:
         AssetID currId;
         std::unordered_map<AssetID, std::string> paths;
         std::unordered_map<std::string, AssetID> ids;
         std::unordered_map<AssetID, std::string> extensions;
+        friend class AssetDBExplorer;
     };
 
     extern AssetDB g_assetDB;

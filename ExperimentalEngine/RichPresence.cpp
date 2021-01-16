@@ -47,6 +47,7 @@ namespace worlds {
 #endif
 
     void initRichPresence(EngineInterfaces interfaces) {
+        return;
 #ifdef DISCORD_RPC
         engine = interfaces.engine;
 
@@ -60,7 +61,8 @@ namespace worlds {
 
     void tickRichPresence() {
 #ifdef DISCORD_RPC
-        discordCore->RunCallbacks();
+        if (discordCore)
+            discordCore->RunCallbacks();
 #endif
     }
 

@@ -75,6 +75,9 @@
     <Filter Include="Source Files\Scripting">
       <UniqueIdentifier>{157ff368-ee6e-476b-9efd-f3a2810b5b25}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\Editor">
+      <UniqueIdentifier>{53a91d64-44e6-42b8-8986-c65457edd63e}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="EntityList.cpp">
@@ -241,6 +244,30 @@
     </ClCompile>
     <ClCompile Include="OpenVRInterface.cpp">
       <Filter>Source Files\Systems</Filter>
+    </ClCompile>
+    <ClCompile Include="GTAORenderPass.cpp">
+      <Filter>Source Files\RenderPasses</Filter>
+    </ClCompile>
+    <ClCompile Include="RobloxMeshLoader.cpp">
+      <Filter>Source Files\Loaders</Filter>
+    </ClCompile>
+    <ClCompile Include="BlurRenderPass.cpp">
+      <Filter>Source Files\RenderPasses</Filter>
+    </ClCompile>
+    <ClCompile Include="AssetDBExplorer.cpp">
+      <Filter>Source Files\EditorWindows</Filter>
+    </ClCompile>
+    <ClCompile Include="weldmesh.cpp">
+      <Filter>Source Files\External</Filter>
+    </ClCompile>
+    <ClCompile Include="MaterialEditor.cpp">
+      <Filter>Source Files\EditorWindows</Filter>
+    </ClCompile>
+    <ClCompile Include="ShaderCache.cpp">
+      <Filter>Source Files\Systems\Render</Filter>
+    </ClCompile>
+    <ClCompile Include="VRCullMeshRenderer.cpp">
+      <Filter>Source Files\Systems\Render</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -409,12 +436,6 @@
     <ClInclude Include="CreateModelObject.hpp">
       <Filter>Header Files\Util</Filter>
     </ClInclude>
-    <ClInclude Include="Editor.hpp">
-      <Filter>Header Files\Misc</Filter>
-    </ClInclude>
-    <ClInclude Include="EditorWindows.hpp">
-      <Filter>Header Files\Misc</Filter>
-    </ClInclude>
     <ClInclude Include="Fatal.hpp">
       <Filter>Header Files\Misc</Filter>
     </ClInclude>
@@ -438,6 +459,18 @@
     </ClInclude>
     <ClInclude Include="WMDLLoader.hpp">
       <Filter>Header Files\Loaders</Filter>
+    </ClInclude>
+    <ClInclude Include="RobloxMeshLoader.hpp">
+      <Filter>Header Files\Loaders</Filter>
+    </ClInclude>
+    <ClInclude Include="ShaderCache.hpp">
+      <Filter>Header Files\Systems\Render</Filter>
+    </ClInclude>
+    <ClInclude Include="Editor.hpp">
+      <Filter>Header Files\Editor</Filter>
+    </ClInclude>
+    <ClInclude Include="EditorWindows.hpp">
+      <Filter>Header Files\Editor</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

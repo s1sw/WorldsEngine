@@ -13,8 +13,8 @@ namespace worlds {
 
 		int heightmapTexIdx;
 		float heightmapScale;
-		float pad1;
-		float pad2;
+		int metalTexIdx;
+		int roughTexIdx;
 
         glm::vec3 emissiveColor;
         float pad3;

@@ -103,7 +103,7 @@ namespace worlds {
                 Job j{ [&, i] {
                     for (int j = 0; j < cd.faceData[i].totalDataSize; j++) {
                         float asFloat = (float)cd.faceData[i].data[j] / 255.0f;
-                        asFloat = pow(asFloat, 2.2);
+                        asFloat = powf(asFloat, 2.2f);
                         cd.faceData[i].data[j] = asFloat * 255;
                     }
                 } };

@@ -25,6 +25,7 @@
 #include "Render.hpp"
 #include "SourceModelLoader.hpp"
 #include "WMDLLoader.hpp"
+#include "RobloxMeshLoader.hpp"
 
 using namespace worlds;
 
@@ -69,8 +70,8 @@ uint32_t findPresentQueue(vk::PhysicalDevice pd, vk::SurfaceKHR surface) {
     return ~0u;
 }
 
-RenderTextureResource* VKRenderer::createRTResource(RTResourceCreateInfo resourceCreateInfo, const char* debugName) {
-    RenderTextureResource* rtr = new RenderTextureResource;
+RenderTexture* VKRenderer::createRTResource(RTResourceCreateInfo resourceCreateInfo, const char* debugName) {
+    RenderTexture* rtr = new RenderTexture;
     rtr->image = vku::GenericImage{ *device, allocator, resourceCreateInfo.ici, resourceCreateInfo.viewType, resourceCreateInfo.aspectFlags, false, debugName };
     rtr->aspectFlags = resourceCreateInfo.aspectFlags;
 
@@ -372,6 +373,7 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     features.fillModeNonSolid = true;
     features.wideLines = true;
     features.samplerAnisotropy = true;
+    features.shaderStorageImageWriteWithoutFormat = true;
     dm.setFeatures(features);
 
     vk::PhysicalDeviceVulkan12Features vk12Features;
@@ -563,10 +565,14 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
         char* statsString;
         vmaBuildStatsString(allocator, &statsString, true);
         logMsg("%s", statsString);
+        auto file = PHYSFS_openWrite("memory.json");
+        PHYSFS_writeBytes(file, statsString, strlen(statsString));
+        PHYSFS_close(file);
         vmaFreeStatsString(allocator, statsString);
         }, "r_printAllocInfo", "", nullptr);
 
     PassSetupCtx psc{
+        &materialUB,
         getVKCtx(),
         &texSlots,
         &cubemapSlots,
@@ -578,6 +584,11 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
 
     shadowmapPass = new ShadowmapRenderPass(shadowmapImage);
     shadowmapPass->setup(psc);
+
+    materialUB = vku::UniformBuffer(*device, allocator, sizeof(MaterialsUB), VMA_MEMORY_USAGE_GPU_ONLY, "Materials");
+
+    MaterialsUB materials;
+    materialUB.upload(*device, *commandPool, device->getQueue(graphicsQueueFamilyIdx, 0), &materials, sizeof(materials));
 }
 
 // Quite a lot of resources are dependent on either the number of images
@@ -588,7 +599,8 @@ void VKRenderer::createSCDependents() {
     delete finalPrePresent;
     delete finalPrePresentR;
 
-    PassSetupCtx psc{ 
+    PassSetupCtx psc{
+        &materialUB,
         getVKCtx(),
         &texSlots, 
         &cubemapSlots, 
@@ -820,15 +832,17 @@ void VKRenderer::submitToOpenVR() {
     }
 }
 
-void VKRenderer::uploadSceneAssets(entt::registry& reg, RenderCtx& rCtx) {
+void VKRenderer::uploadSceneAssets(entt::registry& reg) {
     ZoneScoped;
+    bool reuploadMats = false;
+
     // Upload any necessary materials + meshes
-    reg.view<WorldObject>().each([this, &rCtx](auto, WorldObject& wo) {
+    reg.view<WorldObject>().each([&](auto, WorldObject& wo) {
         for (int i = 0; i < NUM_SUBMESH_MATS; i++) {
             if (!wo.presentMaterials[i]) continue;
 
             if (wo.materialIdx[i] == ~0u) {
-                rCtx.reuploadMats = true;
+                reuploadMats = true;
                 wo.materialIdx[i] = matSlots->loadOrGet(wo.materials[i]);
             }
         }
@@ -838,9 +852,9 @@ void VKRenderer::uploadSceneAssets(entt::registry& reg, RenderCtx& rCtx) {
         }
         });
 
-    reg.view<ProceduralObject>().each([this, &rCtx](auto, ProceduralObject& po) {
+    reg.view<ProceduralObject>().each([&](auto, ProceduralObject& po) {
         if (po.materialIdx == ~0u) {
-            rCtx.reuploadMats = true;
+            reuploadMats = true;
             po.materialIdx = matSlots->loadOrGet(po.material);
         }
         });
@@ -849,17 +863,20 @@ void VKRenderer::uploadSceneAssets(entt::registry& reg, RenderCtx& rCtx) {
         if (wc.loadIdx == ~0u) {
             wc.loadIdx = cubemapSlots->loadOrGet(wc.cubemapId);
             cubemapConvoluter->convolute(cubemapSlots->getSlots()[wc.loadIdx]);
-            rCtx.reuploadMats = true;
+            reuploadMats = true;
         }
     });
+
+    if (reuploadMats)
+        reuploadMaterials();
 }
 
-bool lowLatencyLast = false;
+worlds::ConVar doGTAO{"r_doGTAO", "1"};
 
 void VKRenderer::writeCmdBuf(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageIndex, Camera& cam, entt::registry& reg) {
     ZoneScoped;
 
-    RenderCtx rCtx{ cmdBuf, reg, imageIndex, cam, renderWidth, renderHeight, loadedMeshes };
+    RenderCtx rCtx{ cmdBuf, reg, imageIndex, &cam, renderWidth, renderHeight, loadedMeshes };
     rCtx.enableVR = enableVR;
     rCtx.materialSlots = &matSlots;
     rCtx.textureSlots = &texSlots;
@@ -894,6 +911,7 @@ void VKRenderer::writeCmdBuf(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageInde
     cbbi.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
 
     cmdBuf->begin(cbbi);
+    texSlots->frameStarted = true;
     cmdBuf->resetQueryPool(*queryPool, 0, 2);
     cmdBuf->writeTimestamp(vk::PipelineStageFlagBits::eTopOfPipe, *queryPool, 0);
 
@@ -906,9 +924,9 @@ void VKRenderer::writeCmdBuf(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageInde
         clearMaterialIndices = false;
     }
 
-    PassSetupCtx psc{ getVKCtx(), &texSlots, &cubemapSlots, &matSlots, (int)swapchain->images.size(), enableVR, &brdfLut };
+    PassSetupCtx psc{ &materialUB, getVKCtx(), &texSlots, &cubemapSlots, &matSlots, (int)swapchain->images.size(), enableVR, &brdfLut };
 
-    uploadSceneAssets(reg, rCtx);
+    uploadSceneAssets(reg);
 
     finalPrePresent->image.setLayout(*cmdBuf,
         vk::ImageLayout::eColorAttachmentOptimal,
@@ -932,18 +950,27 @@ void VKRenderer::writeCmdBuf(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageInde
         auto& rpi = p.second;
         rCtx.width = rpi.width;
         rCtx.height = rpi.height;
+        if (rpi.cam)
+            rCtx.cam = rpi.cam;
+        else
+            rCtx.cam = &cam;
+        rCtx.viewPos = rCtx.cam->position;
+        rCtx.enableVR = p.second.isVr;
         
-        p.second.prp->prePass(psc, rCtx);
-        p.second.prp->execute(rCtx);
+        rpi.prp->prePass(psc, rCtx);
+        rpi.prp->execute(rCtx);
 
-        p.second.hdrTarget->image.barrier(*cmdBuf,
+        if (doGTAO.getInt())
+            rpi.gtrp->execute(rCtx);
+
+        rpi.hdrTarget->image.barrier(*cmdBuf,
             vk::PipelineStageFlagBits::eColorAttachmentOutput, vk::PipelineStageFlagBits::eComputeShader,
             vk::AccessFlagBits::eColorAttachmentWrite, vk::AccessFlagBits::eShaderRead);
 
-        p.second.trp->execute(rCtx);
+        rpi.trp->execute(rCtx);
 
-        if (!p.second.outputToScreen) {
-            p.second.sdrFinalTarget->image.setLayout(*cmdBuf,
+        if (!rpi.outputToScreen) {
+            rpi.sdrFinalTarget->image.setLayout(*cmdBuf,
                 vk::ImageLayout::eShaderReadOnlyOptimal,
                 vk::PipelineStageFlagBits::eColorAttachmentOutput, vk::PipelineStageFlagBits::eFragmentShader,
                 vk::AccessFlagBits::eColorAttachmentWrite, vk::AccessFlagBits::eShaderRead);
@@ -990,7 +1017,7 @@ void VKRenderer::writeCmdBuf(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageInde
         imageBlit.dstSubresource = imageBlit.srcSubresource = { vk::ImageAspectFlagBits::eColor, 0, 0, 1 };
 
         cmdBuf->blitImage(
-            finalPrePresentR->image.image(), vk::ImageLayout::eTransferSrcOptimal,
+            finalPrePresent->image.image(), vk::ImageLayout::eTransferSrcOptimal,
             swapchain->images[imageIndex], vk::ImageLayout::eTransferDstOptimal,
             imageBlit, vk::Filter::eNearest);
     }
@@ -1009,6 +1036,7 @@ void VKRenderer::writeCmdBuf(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageInde
 #ifdef TRACY_ENABLE
     TracyVkCollect(tracyContexts[imageIndex], *cmdBuf);
 #endif
+    texSlots->frameStarted = false;
     cmdBuf->end();
 
     if (enableVR && vrApi == VrApi::OpenVR) {
@@ -1032,6 +1060,14 @@ void VKRenderer::writeCmdBuf(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageInde
             vrPRP->lateUpdateVP(viewMats, viewPos, *device);
 
         vr::VRCompositor()->SubmitExplicitTimingData();
+    }
+}
+
+void VKRenderer::reuploadMaterials() {
+    materialUB.upload(*device, *commandPool, device->getQueue(graphicsQueueFamilyIdx, 0), matSlots->getSlots(), sizeof(PackedMaterial) * 256);
+
+    for (auto& pair : this->rttPasses) {
+        pair.second.prp->reuploadDescriptors();
     }
 }
 
@@ -1120,10 +1156,6 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
     if (queryRes == vk::Result::eSuccess)
         lastRenderTimeTicks = timeStamps[1] - timeStamps[0];
 
-    //VmaBudget budget;
-    //vmaGetBudget(allocator, &budget);
-    //dbgStats.vramUsage = budget.allocationBytes;
-
     frameIdx++;
     frameIdx %= maxFramesInFlight;
     FrameMark;
@@ -1157,15 +1189,17 @@ void VKRenderer::preloadMesh(AssetID id) {
         loadSourceModel(id, vtxId, vvdId, vertices, indices, lmd);
     } else if (ext == ".wmdl") {
         loadWorldsModel(id, vertices, indices, lmd);
+    } else if (ext == ".rblx") {
+        loadRobloxMesh(id, vertices, indices, lmd);
     }
 
     auto memProps = physicalDevice.getMemoryProperties();
     lmd.indexType = vk::IndexType::eUint32;
     lmd.indexCount = (uint32_t)indices.size();
     lmd.ib = vku::IndexBuffer{ *device, allocator, indices.size() * sizeof(uint32_t), "Mesh Index Buffer" };
-    lmd.ib.upload(*device, memProps, *commandPool, device->getQueue(graphicsQueueFamilyIdx, 0), indices);
+    lmd.ib.upload(*device, *commandPool, device->getQueue(graphicsQueueFamilyIdx, 0), indices);
     lmd.vb = vku::VertexBuffer{ *device, allocator, vertices.size() * sizeof(Vertex), "Mesh Vertex Buffer" };
-    lmd.vb.upload(*device, memProps, *commandPool, device->getQueue(graphicsQueueFamilyIdx, 0), vertices);
+    lmd.vb.upload(*device, *commandPool, device->getQueue(graphicsQueueFamilyIdx, 0), vertices);
 
     lmd.aabbMax = glm::vec3(0.0f);
     lmd.aabbMin = glm::vec3(std::numeric_limits<float>::max());
@@ -1194,9 +1228,9 @@ void VKRenderer::uploadProcObj(ProceduralObject& procObj) {
     procObj.indexType = vk::IndexType::eUint32;
     procObj.indexCount = (uint32_t)procObj.indices.size();
     procObj.ib = vku::IndexBuffer{ *device, allocator, procObj.indices.size() * sizeof(uint32_t), procObj.dbgName.c_str() };
-    procObj.ib.upload(*device, memProps, *commandPool, device->getQueue(graphicsQueueFamilyIdx, 0), procObj.indices);
+    procObj.ib.upload(*device, *commandPool, device->getQueue(graphicsQueueFamilyIdx, 0), procObj.indices);
     procObj.vb = vku::VertexBuffer{ *device, allocator, procObj.vertices.size() * sizeof(Vertex), procObj.dbgName.c_str() };
-    procObj.vb.upload(*device, memProps, *commandPool, device->getQueue(graphicsQueueFamilyIdx, 0), procObj.vertices);
+    procObj.vb.upload(*device, *commandPool, device->getQueue(graphicsQueueFamilyIdx, 0), procObj.vertices);
 }
 
 bool VKRenderer::getPickedEnt(entt::entity* entOut) {
@@ -1238,6 +1272,18 @@ void VKRenderer::unloadUnusedMaterials(entt::registry& reg) {
 
             if (heightmapTex > -1) {
                 textureReferenced[heightmapTex] = true;
+            }
+
+            int metalMapTex = (*matSlots)[wo.materialIdx[i]].metalTexIdx;
+
+            if (metalMapTex > -1) {
+                textureReferenced[metalMapTex] = true;
+            }
+
+            int roughTexIdx = (*matSlots)[wo.materialIdx[i]].roughTexIdx;
+
+            if (roughTexIdx > -1) {
+                textureReferenced[roughTexIdx] = true;
             }
         }
         });
@@ -1281,7 +1327,6 @@ void VKRenderer::reloadMatsAndTextures() {
     }
 
     clearMaterialIndices = true;
-
     loadedMeshes.clear();
 }
 
@@ -1307,6 +1352,7 @@ VulkanCtx VKRenderer::getVKCtx() {
 
 RTTPassHandle VKRenderer::createRTTPass(RTTPassCreateInfo& ci) {
     RTTPassInternal rpi;
+    rpi.cam = ci.cam;
 
     vk::ImageCreateInfo ici;
     ici.imageType = vk::ImageType::e2D;
@@ -1318,12 +1364,12 @@ RTTPassHandle VKRenderer::createRTTPass(RTTPassCreateInfo& ci) {
     ici.samples = msaaSamples;
     ici.usage = vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eStorage;
 
-    RTResourceCreateInfo polyCreateInfo{ ici, ci.isVr ? vk::ImageViewType::e2DArray : vk::ImageViewType::e2D, vk::ImageAspectFlagBits::eColor };
+    RTResourceCreateInfo polyCreateInfo{ ici, vk::ImageViewType::e2DArray, vk::ImageAspectFlagBits::eColor };
     rpi.hdrTarget = createRTResource(polyCreateInfo, "HDR Target");
 
     ici.format = vk::Format::eD32Sfloat;
-    ici.usage = vk::ImageUsageFlagBits::eDepthStencilAttachment;
-    RTResourceCreateInfo depthCreateInfo{ ici, vk::ImageViewType::e2D, vk::ImageAspectFlagBits::eDepth };
+    ici.usage = vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eSampled;
+    RTResourceCreateInfo depthCreateInfo{ ici, vk::ImageViewType::e2DArray, vk::ImageAspectFlagBits::eDepth };
     rpi.depthTarget = createRTResource(depthCreateInfo, "Depth Stencil Image");
 
     {
@@ -1335,8 +1381,13 @@ RTTPassHandle VKRenderer::createRTTPass(RTTPassCreateInfo& ci) {
         rpi.prp = prp;
     }
 
-    ici.arrayLayers = 1;
     ici.samples = vk::SampleCountFlagBits::e1;
+    ici.format = vk::Format::eR8G8B8A8Unorm;
+    ici.usage = vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled;
+    RTResourceCreateInfo gtaoTarget{ ici, vk::ImageViewType::e2DArray, vk::ImageAspectFlagBits::eColor };
+    rpi.gtaoOut = createRTResource(gtaoTarget, "GTAO Target");
+
+    ici.arrayLayers = 1;
     ici.format = vk::Format::eR8G8B8A8Unorm;
     ici.usage = vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eSampled;
 
@@ -1345,24 +1396,27 @@ RTTPassHandle VKRenderer::createRTTPass(RTTPassCreateInfo& ci) {
         rpi.sdrFinalTarget = createRTResource(sdrTarget, "SDR Target");
     }
 
-    PassSetupCtx psc{ getVKCtx(), &texSlots, &cubemapSlots, &matSlots, (int)swapchain->images.size(), ci.isVr, &brdfLut };
-
-    auto tonemapRP = new TonemapRenderPass(rpi.hdrTarget, ci.outputToScreen ? finalPrePresent : rpi.sdrFinalTarget);
+    
+    PassSetupCtx psc{ &materialUB, getVKCtx(), &texSlots, &cubemapSlots, &matSlots, (int)swapchain->images.size(), ci.isVr, &brdfLut,
+    ci.width, ci.height };
+    auto tonemapRP = new TonemapRenderPass(rpi.hdrTarget, ci.outputToScreen ? finalPrePresent : rpi.sdrFinalTarget, rpi.gtaoOut);
     rpi.trp = tonemapRP;
 
     vku::executeImmediately(*device, *commandPool, device->getQueue(graphicsQueueFamilyIdx, 0), [&](vk::CommandBuffer cmdBuf) {
         rpi.hdrTarget->image.setLayout(cmdBuf, vk::ImageLayout::eGeneral);
         if (!ci.outputToScreen)
             rpi.sdrFinalTarget->image.setLayout(cmdBuf, vk::ImageLayout::eShaderReadOnlyOptimal);
-        if (enableVR) {
+        if (ci.isVr) {
             finalPrePresentR->image.setLayout(cmdBuf, vk::ImageLayout::eTransferSrcOptimal);
         }
         });
 
+    rpi.gtrp = new GTAORenderPass{ this, rpi.depthTarget, rpi.gtaoOut };
     rpi.trp->setup(psc);
     rpi.prp->setup(psc);
+    rpi.gtrp->setup(psc);
 
-    if (enableVR) {
+    if (ci.isVr) {
         tonemapRP->setRightFinalImage(psc, finalPrePresentR);
     }
 
@@ -1385,9 +1439,11 @@ void VKRenderer::destroyRTTPass(RTTPassHandle handle) {
     
     delete rpi.prp;
     delete rpi.trp;
+    delete rpi.gtrp;
 
     delete rpi.hdrTarget;
     delete rpi.depthTarget;
+    delete rpi.gtaoOut;
 
     if (!rpi.outputToScreen)
         delete rpi.sdrFinalTarget;
@@ -1423,9 +1479,6 @@ VKRenderer::~VKRenderer() {
 
 #ifndef NDEBUG
         char* statsString;
-        vmaBuildStatsString(allocator, &statsString, true);
-        std::cout << statsString << "\n";
-        vmaFreeStatsString(allocator, statsString);
 #endif
 
         for (auto& semaphore : cmdBufferSemaphores) {
@@ -1451,9 +1504,23 @@ VKRenderer::~VKRenderer() {
         brdfLut.destroy();
         loadedMeshes.clear();
 
+        delete imguiImage;
+        delete shadowmapImage;
+        delete finalPrePresent;
+
+        if (enableVR)
+            delete finalPrePresentR;
+
+        materialUB.destroy();
+
 #ifndef NDEBUG
         vmaBuildStatsString(allocator, &statsString, true);
-        std::cout << statsString << "\n";
+        logMsg("%s", statsString);
+
+        auto file = PHYSFS_openWrite("memory_shutdown.json");
+        PHYSFS_writeBytes(file, statsString, strlen(statsString));
+        PHYSFS_close(file);
+
         vmaFreeStatsString(allocator, statsString);
 #endif
         vmaDestroyAllocator(allocator);

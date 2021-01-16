@@ -8,6 +8,7 @@
 #include "Physics.hpp"
 #include "Frustum.hpp"
 #include "Console.hpp"
+#include "ShaderCache.hpp"
 
 namespace worlds {
     ConVar showWireframe("r_wireframeMode", "0", "0 - No wireframe; 1 - Wireframe only; 2 - Wireframe + solid");
@@ -52,7 +53,7 @@ namespace worlds {
             updater.buffer(lightsUB.buffer(), 0, sizeof(LightUB));
 
             updater.beginBuffers(2, 0, vk::DescriptorType::eUniformBuffer);
-            updater.buffer(materialUB.buffer(), 0, sizeof(MaterialsUB));
+            updater.buffer(ctx.materialUB->buffer(), 0, sizeof(MaterialsUB));
 
             updater.beginBuffers(3, 0, vk::DescriptorType::eUniformBuffer);
             updater.buffer(modelMatrixUB.buffer(), 0, sizeof(ModelMatrices));
@@ -63,6 +64,9 @@ namespace worlds {
                     updater.image(*albedoSampler, (*(*ctx.globalTexArray))[i].imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
                 }
             }
+
+            logMsg("updated descriptor set to have %u textures (previously had %u)", ctx.globalTexArray->get()->size(), nTextures);
+            nTextures = ctx.globalTexArray->get()->size();
 
             updater.beginImages(5, 0, vk::DescriptorType::eCombinedImageSampler);
             updater.image(*shadowSampler, shadowImage->image.imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
@@ -101,12 +105,14 @@ namespace worlds {
 
             updater.update(ctx.vkCtx.device);
         }
+
+        dsUpdateNeeded = false;
     }
 
     PolyRenderPass::PolyRenderPass(
-        RenderTextureResource* depthStencilImage,
-        RenderTextureResource* polyImage,
-        RenderTextureResource* shadowImage,
+        RenderTexture* depthStencilImage,
+        RenderTexture* polyImage,
+        RenderTexture* shadowImage,
         bool enablePicking)
         : depthStencilImage(depthStencilImage)
         , polyImage(polyImage)
@@ -116,7 +122,8 @@ namespace worlds {
         , pickY(0)
         , pickThisFrame(false)
         , awaitingResults(false)
-        , setEventNextFrame(false) {
+        , setEventNextFrame(false)
+        , nTextures{ 0 }{
 
     }
 
@@ -128,7 +135,7 @@ namespace worlds {
         auto memoryProps = ctx.physicalDevice.getMemoryProperties();
 
         vku::SamplerMaker sm{};
-        sm.magFilter(vk::Filter::eLinear).minFilter(vk::Filter::eLinear).mipmapMode(vk::SamplerMipmapMode::eLinear).anisotropyEnable(true).maxAnisotropy(16.0f).maxLod(100.0f).minLod(0.0f);
+        sm.magFilter(vk::Filter::eLinear).minFilter(vk::Filter::eLinear).mipmapMode(vk::SamplerMipmapMode::eLinear).anisotropyEnable(true).maxAnisotropy(16.0f).maxLod(VK_LOD_CLAMP_NONE).minLod(0.0f);
         albedoSampler = sm.createUnique(ctx.device);
 
         vku::SamplerMaker ssm{};
@@ -166,7 +173,6 @@ namespace worlds {
 
         this->vpUB = vku::UniformBuffer(ctx.device, ctx.allocator, sizeof(MultiVP), VMA_MEMORY_USAGE_CPU_TO_GPU, "VP");
         lightsUB = vku::UniformBuffer(ctx.device, ctx.allocator, sizeof(LightUB), VMA_MEMORY_USAGE_CPU_TO_GPU, "Lights");
-        materialUB = vku::UniformBuffer(ctx.device, ctx.allocator, sizeof(MaterialsUB), VMA_MEMORY_USAGE_GPU_ONLY, "Materials");
         modelMatrixUB = vku::UniformBuffer(ctx.device, ctx.allocator, sizeof(ModelMatrices), VMA_MEMORY_USAGE_CPU_TO_GPU, "Model matrices");
         pickingBuffer = vku::GenericBuffer(ctx.device, ctx.allocator, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst, sizeof(PickingBuffer), VMA_MEMORY_USAGE_CPU_ONLY, "Picking buffer");
 
@@ -175,9 +181,6 @@ namespace worlds {
         vpMapped = (MultiVP*)vpUB.map(ctx.device);
 
         pickEvent = ctx.device.createEventUnique(vk::EventCreateInfo{});
-
-        MaterialsUB materials;
-        materialUB.upload(ctx.device, memoryProps, ctx.commandPool, ctx.device.getQueue(ctx.graphicsQueueFamilyIdx, 0), materials);
 
         vku::DescriptorSetMaker dsm;
         dsm.layout(*this->dsl);
@@ -225,7 +228,7 @@ namespace worlds {
         uint32_t viewMasks[2] = { 0b00000001, 0b00000001 };
         uint32_t correlationMask = 0b00000001;
 
-        if (ctx.graphicsSettings.enableVr) {
+        if (psCtx.enableVR) {
             viewMasks[0] = 0b00000011;
             viewMasks[1] = 0b00000011;
             correlationMask = 0b00000011;
@@ -254,8 +257,8 @@ namespace worlds {
 
         AssetID vsID = g_assetDB.addOrGetExisting("Shaders/standard.vert.spv");
         AssetID fsID = g_assetDB.addOrGetExisting("Shaders/standard.frag.spv");
-        vertexShader = vku::loadShaderAsset(ctx.device, vsID);
-        fragmentShader = vku::loadShaderAsset(ctx.device, fsID);
+        vertexShader = ShaderCache::getModule(ctx.device, vsID);//vku::loadShaderAsset(ctx.device, vsID);
+        fragmentShader = ShaderCache::getModule(ctx.device, fsID);//vku::loadShaderAsset(ctx.device, fsID);
 
        {
             AssetID vsID = g_assetDB.addOrGetExisting("Shaders/depth_prepass.vert.spv");
@@ -328,8 +331,7 @@ namespace worlds {
             si.mapEntryCount = 1;
             si.pMapEntries = &pickingEntry;
 
-            bool f = false;
-            si.pData = &f;
+            si.pData = &enablePicking;
 
             pm.shader(vk::ShaderStageFlagBits::eFragment, atFragmentShader, "main", &si);
             pm.shader(vk::ShaderStageFlagBits::eVertex, vertexShader);
@@ -386,8 +388,8 @@ namespace worlds {
         {
             AssetID wvsID = g_assetDB.addOrGetExisting("Shaders/wire_obj.vert.spv");
             AssetID wfsID = g_assetDB.addOrGetExisting("Shaders/wire_obj.frag.spv");
-            wireVertexShader = vku::loadShaderAsset(ctx.device, wvsID);
-            wireFragmentShader = vku::loadShaderAsset(ctx.device, wfsID);
+            wireVertexShader = ShaderCache::getModule(ctx.device, wvsID);
+            wireFragmentShader = ShaderCache::getModule(ctx.device, wfsID);
 
             vku::PipelineMaker pm{ extent.width, extent.height };
             pm.shader(vk::ShaderStageFlagBits::eFragment, wireFragmentShader);
@@ -494,9 +496,12 @@ namespace worlds {
             skyboxPipeline = pm.createUnique(ctx.device, ctx.pipelineCache, *skyboxPipelineLayout, *renderPass);
         }
 
-        materialUB.upload(ctx.device, memoryProps, ctx.commandPool, ctx.device.getQueue(ctx.graphicsQueueFamilyIdx, 0), (*psCtx.materialSlots)->getSlots(), sizeof(PackedMaterial) * 256);
-
         updateDescriptorSets(psCtx);
+
+        if (ctx.graphicsSettings.enableVr) {
+            cullMeshRenderer = new VRCullMeshRenderer{};
+            cullMeshRenderer->setup(psCtx, *renderPass);
+        }
 
         ctx.device.setEvent(*pickEvent);
     }
@@ -532,9 +537,9 @@ namespace worlds {
             vpMapped->projections[0] = rCtx.vrProjMats[0];
             vpMapped->projections[1] = rCtx.vrProjMats[1];
         } else {
-            vpMapped->views[0] = rCtx.cam.getViewMatrix();
-            vpMapped->projections[0] = rCtx.cam.getProjectionMatrix((float)rCtx.width / (float)rCtx.height);
-            vpMapped->viewPos[0] = glm::vec4(rCtx.cam.position, 0.0f);
+            vpMapped->views[0] = rCtx.cam->getViewMatrix();
+            vpMapped->projections[0] = rCtx.cam->getProjectionMatrix((float)rCtx.width / (float)rCtx.height);
+            vpMapped->viewPos[0] = glm::vec4(rCtx.cam->position, 0.0f);
         }
 
         glm::vec3 viewPos = rCtx.viewPos;
@@ -567,10 +572,7 @@ namespace worlds {
 
         lightMapped->pack0.x = (float)lightIdx;
 
-        if (rCtx.reuploadMats) {
-            auto memoryProps = ctx.physicalDevice.getMemoryProperties();
-            materialUB.upload(ctx.device, memoryProps, ctx.commandPool, ctx.device.getQueue(ctx.graphicsQueueFamilyIdx, 0), (*rCtx.materialSlots)->getSlots(), sizeof(PackedMaterial) * 256);
-
+        if (dsUpdateNeeded) {
             // Update descriptor sets to bring in any new textures
             updateDescriptorSets(psCtx);
         }
@@ -664,6 +666,10 @@ namespace worlds {
 
         cmdBuf->beginRenderPass(rpbi, vk::SubpassContents::eInline);
 
+        if (ctx.enableVR) {
+            cullMeshRenderer->draw(*cmdBuf);
+        }
+
         int matrixIdx = 0;
         std::vector<SubmeshDrawInfo> drawInfo;
         drawInfo.reserve(reg.view<Transform, WorldObject>().size());
@@ -675,7 +681,7 @@ namespace worlds {
         Frustum frustumB;
 
         if (!ctx.enableVR)
-            frustum.fromVPMatrix(ctx.cam.getProjectionMatrix((float)ctx.width / (float)ctx.height) * ctx.cam.getViewMatrix());
+            frustum.fromVPMatrix(ctx.cam->getProjectionMatrix((float)ctx.width / (float)ctx.height) * ctx.cam->getViewMatrix());
         else {
             frustum.fromVPMatrix(ctx.vrProjMats[0] * ctx.vrViewMats[0]);
             frustumB.fromVPMatrix(ctx.vrProjMats[1] * ctx.vrViewMats[1]);
@@ -771,7 +777,7 @@ namespace worlds {
         uint32_t currCubemapIdx = 0;
 
         reg.view<WorldCubemap, Transform>().each([&](auto, WorldCubemap& wc, Transform& t) {
-            glm::vec3 cPos = ctx.cam.position;
+            glm::vec3 cPos = ctx.cam->position;
             glm::vec3 ma = wc.extent + t.position;
             glm::vec3 mi = t.position - wc.extent;
 
@@ -836,6 +842,7 @@ namespace worlds {
 
         cmdBuf->endRenderPass();
         polyImage->image.setCurrentLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
+        depthStencilImage->image.setCurrentLayout(vk::ImageLayout::eDepthStencilAttachmentOptimal);
 
         if (pickThisFrame) {
             cmdBuf->resetEvent(*pickEvent, vk::PipelineStageFlagBits::eBottomOfPipe);
@@ -880,5 +887,6 @@ namespace worlds {
         modelMatrixUB.unmap(device);
         lightsUB.unmap(device);
         vpUB.unmap(device);
+        lineVB.destroy();
     }
 }

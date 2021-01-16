@@ -31,7 +31,7 @@ layout(push_constant) uniform PushConstants {
 void main() {
 	mat4 model = modelMatrices[modelMatrixIdx];
     // On AMD driver 20.10.1 (and possibly earlier) using gl_ViewIndex seems to cause a driver crash
-    int vpMatIdx = vpIdx; // + gl_ViewIndex; 
+    int vpMatIdx = vpIdx + gl_ViewIndex; 
 
     #ifndef AMD_VIEWINDEX_WORKAROUND
     vpMatIdx += gl_ViewIndex;

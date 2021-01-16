@@ -19,7 +19,7 @@ namespace worlds {
     const unsigned char SCN_FORMAT_MAGIC[5] = { 'E','S','C','N', '\0' };
     const int MAX_FORMAT_ID = 3;
 
-    void loadScene(AssetID id, entt::registry& reg, bool additive) {
+    void deserializeScene(AssetID id, entt::registry& reg, bool additive) {
         char magicCheck[5];
         magicCheck[4] = 0; // Null byte so we can interpret it as a C string if we really need to
         PHYSFS_File* file = g_assetDB.openAssetFileRead(id);

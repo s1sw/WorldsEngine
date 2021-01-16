@@ -21,7 +21,7 @@ namespace worlds {
             vkCtx.device.destroySampler(sampler);
         }
 
-        vk::DescriptorSet createDescriptorSetFor(vku::GenericImage& img, worlds::VulkanCtx& vkCtx) {
+        vk::DescriptorSet createDescriptorSetFor(vku::GenericImage& img, const worlds::VulkanCtx& vkCtx) {
             vku::DescriptorSetMaker dsm;
             dsm.layout(*layout);
 

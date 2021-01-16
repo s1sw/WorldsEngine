@@ -19,6 +19,10 @@ glslangValidator line.vert.glsl -V -o line.vert.spv
 glslangValidator depth_prepass.vert.glsl -V -o depth_prepass.vert.spv
 glslangValidator alpha_test_prepass.frag.glsl -V -o alpha_test_prepass.frag.spv
 glslangValidator standard.glsl -DFRAGMENT -V -S frag -o standard_alpha_test.frag.spv
+glslangValidator skin.comp.glsl -V -o skin.comp.spv
+glslangValidator gtao.comp.glsl -V -o gtao.comp.spv
+glslangValidator blur.comp.glsl -V -o blur.comp.spv
+glslangValidator vr_hidden.vert.glsl -V -o vr_hidden.vert.spv
 
 REM glslangValidator standard.glsl -DFRAGMENT -DAMD_VIEWINDEX_WORKAROUND -V -S frag -o standard_vi_workaround.frag.spv 
 REM glslangValidator standard.glsl -DVERTEX -DAMD_VIEWINDEX_WORKAROUND -V -S vert -o standard_vi_workaround.vert.spv 

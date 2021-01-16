@@ -90,48 +90,61 @@ namespace worlds {
             ImGui::EndPopup();
         }
     }
+    
+    const char* getIcon(std::string extension) {
+        if (extension == ".escn") {
+            return (const char*)(ICON_FA_MAP u8" ");
+        } else if (extension == ".ogg") {
+            return (const char*)(ICON_FAD_SPEAKER u8" ");
+        } else if (extension == ".crn") {
+            return (const char*)(ICON_FA_IMAGE u8" ");
+        } else if (extension == ".obj" || extension == ".wmdl" || extension == ".mdl") {
+            return (const char*)(ICON_FA_SHAPES u8" ");
+        }
+        return "";
+    }
 
-    void openFileModal(const char* title, std::function<void(const char*)> openCallback, const char* fileExtension) {
+    void openFileModal(const char* title, std::function<void(const char*)> openCallback, const char* fileExtension, const char* startingDir) {
         ImVec2 popupSize(windowSize.x - 50.0f, windowSize.y - 50.0f);
         ImGui::SetNextWindowPos(ImGui::GetMainViewport()->Pos + ImVec2((windowSize.x / 2) - (popupSize.x / 2), (windowSize.y / 2) - (popupSize.y / 2)));
         ImGui::SetNextWindowSize(popupSize);
 
         if (ImGui::BeginPopupModal(title, nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove)) {
-            std::string* pathPtr = (std::string*)ImGui::GetStateStorage()->GetVoidPtr(ImGui::GetID("savepath"));
-            std::string* saveDir = (std::string*)ImGui::GetStateStorage()->GetVoidPtr(ImGui::GetID("savedir"));
+            std::string* fullFilePath = (std::string*)ImGui::GetStateStorage()->GetVoidPtr(ImGui::GetID("savepath"));
+            std::string* currentDirectory = (std::string*)ImGui::GetStateStorage()->GetVoidPtr(ImGui::GetID("savedir"));
 
-            if (pathPtr == nullptr) {
-                pathPtr = new std::string;
-                ImGui::GetStateStorage()->SetVoidPtr(ImGui::GetID("savepath"), pathPtr);
+            if (fullFilePath == nullptr) {
+                fullFilePath = new std::string;
+                ImGui::GetStateStorage()->SetVoidPtr(ImGui::GetID("savepath"), fullFilePath);
             }
 
-            if (saveDir == nullptr) {
-                saveDir = new std::string;
-                ImGui::GetStateStorage()->SetVoidPtr(ImGui::GetID("savedir"), saveDir);
+            if (currentDirectory == nullptr) {
+                currentDirectory = new std::string;
+                if (startingDir)
+                    *currentDirectory = startingDir;
+                ImGui::GetStateStorage()->SetVoidPtr(ImGui::GetID("savedir"), currentDirectory);
             }
 
-            ImGui::Text("%s", saveDir->c_str());
+            ImGui::Text("%s", currentDirectory->c_str());
 
             ImGui::BeginChild("Stuffs", ImVec2(ImGui::GetWindowWidth() - 17.0f, ImGui::GetWindowHeight() - 90.0f), true);
-            char** files = PHYSFS_enumerateFiles(saveDir->c_str());
-
-            std::filesystem::path filePath = *saveDir;
-            filePath.append(*pathPtr);
+            char** files = PHYSFS_enumerateFiles(currentDirectory->c_str());
 
             std::string titleDoesntExist = "File Doesn't Exist##";
             titleDoesntExist += title;
 
-            if (!saveDir->empty()) {
+            if (!currentDirectory->empty()) {
                 ImGui::Text("..");
                 if (ImGui::IsItemClicked()) {
-                    std::filesystem::path p(*saveDir);
-                    *saveDir = p.parent_path().string();
+                    std::filesystem::path p(*currentDirectory);
+                    *currentDirectory = p.parent_path().string();
                 }
             }
 
             for (char** currFile = files; *currFile != nullptr; currFile++) {
+                std::string absPath = currentDirectory->empty() ? *currFile : (*currentDirectory + "/" + (*currFile));
                 PHYSFS_Stat stat;
-                PHYSFS_stat(*currFile, &stat);
+                PHYSFS_stat(absPath.c_str(), &stat);
                 std::string extension = std::filesystem::path(*currFile).extension().string();
 
                 if (fileExtension && stat.filetype == PHYSFS_FILETYPE_REGULAR && extension != fileExtension)
@@ -141,35 +154,33 @@ namespace worlds {
 
                 if (stat.filetype == PHYSFS_FILETYPE_DIRECTORY) {
                     icon = (const char*)(ICON_FA_FOLDER u8" ");
-                } else if (extension == ".escn") {
-                    icon = (const char*)(ICON_FA_MAP u8" " );
-                } else if (extension == ".ogg") {
-                    icon = (const char*)(ICON_FAD_SPEAKER u8" " );
-                } else if (extension == ".crn") {
-                    icon = (const char*)(ICON_FA_IMAGE u8" " );
-                } else if (extension == ".obj" || extension == ".wmdl" || extension == ".mdl") {
-                    icon = (const char*)(ICON_FA_SHAPES u8" " );
-                }
+                } else icon = getIcon(extension);
                 
                 ImGui::Text("%s%s%s", icon, *currFile, stat.filetype == PHYSFS_FILETYPE_DIRECTORY ? "/" : "");
 
                 if (ImGui::IsItemClicked()) {
                     if (stat.filetype == PHYSFS_FILETYPE_REGULAR) {
-                        *pathPtr = *currFile;
+                        *fullFilePath = absPath;
+                        logMsg("selected %s", fullFilePath->c_str());
                     } else {
-                        *saveDir = *currFile;
+                        if (*currentDirectory != "/")
+                            *currentDirectory += "/";
+                        *currentDirectory += *currFile;
+
+                        if ((*currentDirectory)[0] == '/') {
+                            *currentDirectory = currentDirectory->substr(1);
+                        }
+
+                        logMsg("navigated to %s", currentDirectory->c_str());
                     }
                 }
 
-                if (ImGui::IsItemHovered()) {
+                if (ImGui::IsItemHovered() && stat.filetype == PHYSFS_FILETYPE_REGULAR) {
                     if (ImGui::IsMouseDoubleClicked(0)) {
-                        std::filesystem::path p(*saveDir);
-                        *saveDir = p.parent_path().string();
-
-                        if (!PHYSFS_exists(filePath.string().c_str())) {
+                        if (!PHYSFS_exists(absPath.c_str())) {
                             ImGui::OpenPopup(titleDoesntExist.c_str());
                         } else {
-                            openCallback(filePath.string().c_str());
+                            openCallback(absPath.c_str());
                             ImGui::CloseCurrentPopup();
                         }
                     }
@@ -178,21 +189,24 @@ namespace worlds {
             ImGui::EndChild();
 
             ImGui::PushItemWidth(ImGui::GetWindowWidth() - 109.0f);
-            ImGui::InputText("", pathPtr);
+            ImGui::InputText("", fullFilePath);
 
             ImGui::SameLine();
-            if (ImGui::Button("OK") && !pathPtr->empty()) {
-                if (!PHYSFS_exists(filePath.string().c_str())) {
+            if (ImGui::Button("OK") && !fullFilePath->empty()) {
+                if (!PHYSFS_exists(fullFilePath->c_str())) {
                     ImGui::OpenPopup(titleDoesntExist.c_str());
                 } else {
-                    openCallback(filePath.string().c_str());
+                    openCallback(fullFilePath->c_str());
+                    ImGui::GetStateStorage()->Clear();
                     ImGui::CloseCurrentPopup();
                 }
             }
 
             ImGui::SameLine();
-            if (ImGui::Button("Cancel"))
+            if (ImGui::Button("Cancel")) {
+                ImGui::GetStateStorage()->Clear();
                 ImGui::CloseCurrentPopup();
+            }
 
             if (ImGui::BeginPopup(titleDoesntExist.c_str())) {
                 ImGui::Text("File not found.");
@@ -208,26 +222,13 @@ namespace worlds {
         static bool notFoundErr = false;
         bool changed = false;
 
-        if (ImGui::BeginPopup(title)) {
-            ImGui::InputText("Path", &path);
+        std::filesystem::path p(path);
+        p = p.parent_path();
 
-            if (notFoundErr) {
-                ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "Not found");
-            }
-
-            if (ImGui::Button("Select")) {
-                if (PHYSFS_exists(path.c_str())) {
-                    id = g_assetDB.addOrGetExisting(path);
-                    changed = true;
-                    ImGui::CloseCurrentPopup();
-                    notFoundErr = false;
-                } else {
-                    notFoundErr = true;
-                }
-            }
-
-            ImGui::EndPopup();
-        }
+        openFileModal(title, [&](const char* path) {
+            id = g_assetDB.addOrGetExisting(path);
+            changed = true;
+        }, nullptr, p.string().c_str());
 
         if (open) {
             path = g_assetDB.getAssetPath(id);

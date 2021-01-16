@@ -24,6 +24,7 @@
 #include "CreateModelObject.hpp"
 #include "ObjectParentSystem.hpp"
 #include <core.h>
+#include "VKImGUIUtil.hpp"
 
 namespace worlds {
     extern worlds::SceneInfo currentScene;
@@ -143,7 +144,7 @@ namespace converge {
             client->processMessages(onClientPacket);
 
 #ifdef DISCORD_RPC
-            if (!setClientInfo) {
+            if (!setClientInfo && worlds::discordCore) {
                 discord::User currUser;
                 auto res = worlds::discordCore->UserManager().GetCurrentUser(&currUser);
 
@@ -298,6 +299,7 @@ namespace converge {
             lpc.xzMoveInput = glm::vec2(0.0f, 0.0f);
 
             if (vrInterface) {
+                this->camera->rotation = glm::quat{};
                 auto matId = worlds::g_assetDB.addOrGetExisting("Materials/dev.json");
                 auto saberId = worlds::g_assetDB.addOrGetExisting("saber.wmdl");
 
