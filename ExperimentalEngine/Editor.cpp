@@ -742,7 +742,7 @@ namespace worlds {
                     break;
                 }
 
-                if (shiftHeld(inputManager) &&
+                if (ctrlHeld(inputManager) &&
                     inputManager.keyPressed(SDL_SCANCODE_D) &&
                     !inputManager.mouseButtonHeld(MouseButton::Right, true)) {
                     auto newEnt = reg.create();
