@@ -78,6 +78,9 @@
     <Filter Include="Header Files\Editor">
       <UniqueIdentifier>{53a91d64-44e6-42b8-8986-c65457edd63e}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Editor">
+      <UniqueIdentifier>{79ce4996-e15c-492f-8f2f-bb293146b968}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="EntityList.cpp">
@@ -268,6 +271,9 @@
     </ClCompile>
     <ClCompile Include="VRCullMeshRenderer.cpp">
       <Filter>Source Files\Systems\Render</Filter>
+    </ClCompile>
+    <ClCompile Include="ComponentFuncs.cpp">
+      <Filter>Source Files\Editor</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -470,6 +476,9 @@
       <Filter>Header Files\Editor</Filter>
     </ClInclude>
     <ClInclude Include="EditorWindows.hpp">
+      <Filter>Header Files\Editor</Filter>
+    </ClInclude>
+    <ClInclude Include="ComponentFuncs.hpp">
       <Filter>Header Files\Editor</Filter>
     </ClInclude>
   </ItemGroup>

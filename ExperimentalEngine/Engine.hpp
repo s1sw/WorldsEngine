@@ -50,6 +50,9 @@ namespace worlds {
         ~WorldsEngine();
         void loadScene(AssetID scene);
         void addSystem(ISystem* system);
+        SDL_Window* getMainWindow() const { return window; }
+        const SceneInfo& getCurrentSceneInfo() const { return currentScene; }
+        void quit() { running = false; }
         bool pauseSim;
         bool runAsEditor;
     private:
@@ -83,6 +86,8 @@ namespace worlds {
         std::unique_ptr<LuaVM> luaVM;
         OpenVRInterface openvrInterface;
         double timeScale = 1.0;
+        SDL_Window* window;
+        SceneInfo currentScene;
 
         std::vector<ISystem*> systems;
     };

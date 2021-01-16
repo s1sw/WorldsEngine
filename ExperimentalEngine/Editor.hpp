@@ -88,13 +88,13 @@ namespace worlds {
         entt::entity getSelectedEntity() { return currentSelectedEntity; }
     private:
         void updateCamera(float deltaTime);
+        std::string generateWindowTitle();
+        void updateWindowTitle();
         Tool currentTool;
-        Tool lastActiveTool;
         entt::registry& reg;
         entt::entity currentSelectedEntity;
         Camera& cam;
         Transform originalObjectTransform;
-        float startingMouseDistance;
         float lookX;
         float lookY;
         float cameraSpeed;
