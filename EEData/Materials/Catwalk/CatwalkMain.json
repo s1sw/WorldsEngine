@@ -1,0 +1,11 @@
+{
+	"albedoPath" : "Textures/catwalk/catwalk_Catwalk_BaseColor.png",
+	"normalMapPath" : "Textures/catwalk/catwalk_Catwalk_Normal_forcelin.png",
+	"metalMapPath" : "Textures/catwalk/catwalk_Catwalk_Metallic.png",
+	"roughMapPath" : "Textures/catwalk/catwalk_Catwalk_Roughness.png",
+	"heightmapScale" : 0.005,
+	"metallic" : 1.0,
+	"roughness" : 0.2,
+	"albedoColor" : [1.0, 1.0, 1.0],
+	"alphaCutoff" : 0.05
+}

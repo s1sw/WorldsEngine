@@ -1,0 +1,9 @@
+{
+	"albedoPath" : "Textures/bricks2.jpg",
+	"heightmapPath" : "Textures/testhm.png",
+	"normalMapPath" : "Textures/bricks2_normal.crn",
+	"heightmapScale" : 0.03,
+	"metallic" : 0.0,
+	"roughness" : 0.1,
+	"albedoColor" : [1.0, 1.0, 1.0]
+}

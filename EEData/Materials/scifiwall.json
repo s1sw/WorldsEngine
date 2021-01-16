@@ -1,0 +1,10 @@
+{
+	"albedoPath" : "Textures/scifiwall/albedo.jpg",
+	"roughMapPath" : "Textures/scifiwall/roughness.jpg",
+	"metalMapPath" : "Textures/scifiwall/metallic.jpg",
+	"heightmapPath" : "Textures/scifiwall/height.png",
+	"heightmapScale" : 0.05,
+	"metallic" : 0.0,
+	"roughness" : 1.0,
+	"albedoColor" : [1.0, 1.0, 1.0]
+}
