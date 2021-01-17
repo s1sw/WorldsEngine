@@ -948,6 +948,9 @@ namespace worlds {
         deserializeScene(scene, registry);
         renderer->uploadSceneAssets(registry);
         renderer->unloadUnusedMaterials(registry);
+
+        currentScene.name = std::filesystem::path(g_assetDB.getAssetPath(scene)).stem().string();
+        currentScene.id = scene;
     }
 
     void WorldsEngine::addSystem(ISystem* system) {

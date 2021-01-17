@@ -325,6 +325,7 @@
     <ClInclude Include="IconsFontaudio.h" />
     <ClInclude Include="IconsFontAwesome5.h" />
     <ClInclude Include="IGameEventHandler.hpp" />
+    <ClInclude Include="ImageManager.hpp" />
     <ClInclude Include="imconfig.h" />
     <ClInclude Include="imgui.h" />
     <ClInclude Include="ImGuizmo.h" />

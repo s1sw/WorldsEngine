@@ -75,4 +75,12 @@ namespace worlds {
 	bool InputManager::shiftHeld() const {
 		return keyHeld(SDL_SCANCODE_LSHIFT, true) || keyHeld(SDL_SCANCODE_RSHIFT, true);
 	}
+
+	void InputManager::captureMouse(bool capture) {
+		SDL_CaptureMouse((SDL_bool)capture);
+	}
+
+	void InputManager::lockMouse(bool lock) {
+		SDL_SetRelativeMouseMode((SDL_bool)lock);
+	}
 }
