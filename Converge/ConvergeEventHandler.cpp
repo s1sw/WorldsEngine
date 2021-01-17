@@ -26,10 +26,6 @@
 #include <core.h>
 #include "VKImGUIUtil.hpp"
 
-namespace worlds {
-    extern worlds::SceneInfo currentScene;
-}
-
 namespace converge {
     const uint16_t CONVERGE_PORT = 3011;
 
@@ -383,7 +379,7 @@ namespace converge {
 
         if (isDedicated) {
             msgs::SetScene setScene;
-            setScene.sceneName = worlds::currentScene.name;
+            setScene.sceneName = engine->getCurrentSceneInfo().name;
             server->broadcastPacket(
                     setScene.toPacket(ENET_PACKET_FLAG_RELIABLE),
                     NetChannel_Default);

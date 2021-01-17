@@ -11,7 +11,6 @@
 #include "NameComponent.hpp"
 
 namespace worlds {
-    extern SceneInfo currentScene;
 
     const unsigned char LATEST_SCN_FORMAT_ID = 3;
     const unsigned char SCN_FORMAT_MAGIC[5] = { 'E','S','C','N', '\0' };
@@ -146,8 +145,6 @@ namespace worlds {
         });
         PHYSFS_close(file);
 
-        currentScene.id = id;
-        currentScene.name = std::filesystem::path(g_assetDB.getAssetPath(id)).stem().string();
         logMsg("Saved scene in %.3fms", timer.stopGetMs());
 
         g_assetDB.save();
@@ -270,8 +267,6 @@ namespace worlds {
             }
         }
 
-        currentScene.name = std::filesystem::path(g_assetDB.getAssetPath(id)).stem().string();
-        currentScene.id = id;
         logMsg("Loaded scene in %.3fms", timer.stopGetMs());
     }
 
@@ -406,8 +401,6 @@ namespace worlds {
             }
         }
 
-        currentScene.name = std::filesystem::path(g_assetDB.getAssetPath(id)).stem().string();
-        currentScene.id = id;
         logMsg("Loaded scene in %.3fms", timer.stopGetMs());
     }
 
@@ -557,8 +550,6 @@ namespace worlds {
             }
         }
 
-        currentScene.name = std::filesystem::path(g_assetDB.getAssetPath(id)).stem().string();
-        currentScene.id = id;
         logMsg("Loaded scene in %.3fms", timer.stopGetMs());
     }
 }

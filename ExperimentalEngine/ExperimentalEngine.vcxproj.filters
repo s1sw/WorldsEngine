@@ -481,5 +481,8 @@
     <ClInclude Include="ComponentFuncs.hpp">
       <Filter>Header Files\Editor</Filter>
     </ClInclude>
+    <ClInclude Include="ImageManager.hpp">
+      <Filter>Header Files\Systems\Render</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

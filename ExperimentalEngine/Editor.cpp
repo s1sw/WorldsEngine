@@ -62,7 +62,6 @@ namespace worlds {
         , reg(reg)
         , currentSelectedEntity(entt::null)
         , cam(*interfaces.mainCamera)
-        , startingMouseDistance(0.0f)
         , lookX(0.0f)
         , lookY(0.0f)
         , cameraSpeed(5.0f)
@@ -72,7 +71,6 @@ namespace worlds {
         , settings()
         , interfaces(interfaces)
         , inputManager(*interfaces.inputManager) {
-        SDL_SetWindowTitle(interfaces.engine->getMainWindow(), "Worlds Engine Editor");
         REGISTER_COMPONENT_TYPE(Transform, "Transform", true, editTransform, nullptr, nullptr);
         REGISTER_COMPONENT_TYPE(WorldObject, "WorldObject", true, editWorldObject, nullptr, nullptr);
         REGISTER_COMPONENT_TYPE(WorldLight, "WorldLight", true, editLight, createLight, cloneLight);
@@ -176,6 +174,9 @@ namespace worlds {
 
         if (inputManager.mouseButtonPressed(MouseButton::Right, true)) {
             SDL_GetMouseState(&origMouseX, &origMouseY);
+            inputManager.captureMouse(true);
+        } else if (inputManager.mouseButtonReleased(MouseButton::Right, true)) {
+            inputManager.captureMouse(false);
         }
 
         if (inputManager.mouseButtonHeld(MouseButton::Right, true)) {

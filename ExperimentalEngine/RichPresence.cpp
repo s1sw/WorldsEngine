@@ -4,7 +4,6 @@
 #include "Engine.hpp"
 
 namespace worlds {
-    extern SceneInfo currentScene;
     discord::Core* discordCore;
 
     SDL_TimerID presenceUpdateTimer;
@@ -17,7 +16,7 @@ namespace worlds {
 
 
         presenceUpdateTimer = SDL_AddTimer(1000, [](uint32_t interval, void*) {
-            std::string state = ((engine->runAsEditor ? "Editing " : "On ") + currentScene.name);
+            std::string state = ((engine->runAsEditor ? "Editing " : "On ") + engine->getCurrentSceneInfo().name);
 #ifndef NDEBUG
             state += "(DEVELOPMENT BUILD)";
 #endif

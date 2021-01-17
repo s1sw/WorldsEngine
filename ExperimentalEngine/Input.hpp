@@ -26,6 +26,8 @@ namespace worlds {
 		void warpMouse(glm::ivec2 newPosition);
 		bool ctrlHeld() const;
 		bool shiftHeld() const;
+		void captureMouse(bool capture);
+		void lockMouse(bool lock);
 	private:
 		SDL_Window* window;
 		uint32_t mouseButtonFlags;
