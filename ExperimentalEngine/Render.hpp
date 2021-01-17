@@ -122,16 +122,6 @@ namespace worlds {
         bool enableVr;
     };
 
-    struct Global2DTextureSlot {
-        vku::TextureImage2D tex;
-        bool present;
-    };
-
-    struct GlobalCubeTextureSlot {
-        vku::TextureImageCube tex;
-        bool present;
-    };
-
     struct RenderTexture {
         vku::GenericImage image;
         vk::ImageAspectFlagBits aspectFlags;
@@ -286,6 +276,12 @@ namespace worlds {
         vk::ImageAspectFlagBits aspectFlags;
     };
 
+    class PipelineCacheSerializer {
+    public:
+        static void loadPipelineCache(const vk::PhysicalDeviceProperties&, vk::PipelineCacheCreateInfo&);
+        static void savePipelineCache(const vk::PhysicalDeviceProperties&, const vk::PipelineCache&, const vk::Device&);
+    };
+
     class VKRenderer {
         const static uint32_t NUM_TEX_SLOTS = 256;
         const static uint32_t NUM_MAT_SLOTS = 256;
@@ -356,7 +352,6 @@ namespace worlds {
         vku::ShaderModule loadShaderAsset(AssetID id);
         void acquireSwapchainImage(uint32_t* imageIdx);
         void createInstance(const RendererInitInfo& initInfo);
-        void serializePipelineCache();
         void submitToOpenVR();
         void writeCmdBuf(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageIndex, Camera& cam, entt::registry& reg);
         void reuploadMaterials();
