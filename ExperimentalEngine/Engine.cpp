@@ -406,22 +406,26 @@ namespace worlds {
                         as.isPlaying = true;
                     }
                     });
+                inputManager->lockMouse(true);
                 }, "play", "play.", nullptr);
 
             console->registerCommand([&](void*, const char*) {
                 runAsEditor = true;
                 pauseSim = true;
+                inputManager->lockMouse(false);
                 }, "pauseAndEdit", "pause and edit.", nullptr);
 
             console->registerCommand([&](void*, const char*) {
                 runAsEditor = true;
                 loadScene(currentScene.id);
                 pauseSim = true;
+                inputManager->lockMouse(false);
                 }, "reloadAndEdit", "reload and edit.", nullptr);
 
             console->registerCommand([&](void*, const char*) {
                 runAsEditor = false;
                 pauseSim = false;
+                inputManager->lockMouse(true);
                 }, "unpause", "unpause and go back to play mode.", nullptr);
 
             console->registerCommand([&](void*, const char*) {
@@ -652,7 +656,6 @@ namespace worlds {
             if (inputManager->keyPressed(SDL_SCANCODE_F3, true)) {
                 renderer->recreateSwapchain();
             }
-
             if (inputManager->keyPressed(SDL_SCANCODE_F11, true)) {
                 SDL_Event evt;
                 SDL_zero(evt);
