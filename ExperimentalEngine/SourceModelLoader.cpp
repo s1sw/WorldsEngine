@@ -725,7 +725,7 @@ namespace worlds {
 
                     if (j == 0) {
                         mstudiotexture_t& tex = mdl->getTextures()[studioMesh->material];
-                        std::string path = "Materials/" + std::string(tex.name()) + ".json";
+                        std::string path = "Materials/SourceEngine/" + std::string(tex.name()) + ".json";
 
                         if (PHYSFS_exists(path.c_str())) {
                             wObj.materials[numSubmeshes] = g_assetDB.addOrGetExisting(path);

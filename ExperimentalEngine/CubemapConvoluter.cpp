@@ -103,9 +103,18 @@ namespace worlds {
 
         dsu.update(vkCtx->device);
 
+        vk::QueryPoolCreateInfo qpci;
+        qpci.queryCount = 2;
+        qpci.queryType = vk::QueryType::eTimestamp;
+        auto qp = vkCtx->device.createQueryPoolUnique(qpci);
+
+        auto period = vkCtx->physicalDevice.getProperties().limits.timestampPeriod;
+
         for (int i = 0; i < descriptorSets.size(); i++) {
             vku::executeImmediately(vkCtx->device, vkCtx->commandPool, vkCtx->device.getQueue(vkCtx->graphicsQueueFamilyIdx, 0),
                 [&](vk::CommandBuffer cb) {
+                    cb.resetQueryPool(*qp, 0, 2);
+                    cb.writeTimestamp(vk::PipelineStageFlagBits::eComputeShader, *qp, 0);
                     cube.setLayout(cb, vk::ImageLayout::eGeneral);
                     cb.bindPipeline(vk::PipelineBindPoint::eCompute, *pipeline);
 
@@ -123,8 +132,16 @@ namespace worlds {
                     cb.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pipelineLayout, 0, descriptorSets[i], nullptr);
                     cb.dispatch((width + 15) / 16, (height + 15) / 16, 1);
                     cube.setLayout(cb, vk::ImageLayout::eShaderReadOnlyOptimal);
+                    cb.writeTimestamp(vk::PipelineStageFlagBits::eComputeShader, *qp, 1);
                 });
             vkCtx->device.waitIdle();
+            auto qr = vkCtx->device.getQueryPoolResults<uint64_t>(*qp, 
+                0, 2, 
+                sizeof(uint64_t) * 2, sizeof(uint64_t), 
+                vk::QueryResultFlagBits::eWait);
+
+            uint64_t duration = qr.value[1] - qr.value[0];
+            logMsg("convolution of %i took %.3f ms", i, (duration * period) / 1000.0f / 1000.0f);
         }
 
         vkCtx->device.destroyDescriptorPool(tmpDescriptorPool);

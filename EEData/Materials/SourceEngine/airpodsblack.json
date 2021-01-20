@@ -1,0 +1,10 @@
+{
+    "albedoColor": [
+        1.0,
+        1.0,
+        1.0
+    ],
+    "albedoPath": "srcTex/black.vtf",
+    "metallic": 0.0,
+    "roughness": 1.0
+}

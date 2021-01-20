@@ -44,11 +44,35 @@
 namespace worlds {
     AssetDB g_assetDB;
 
+    struct Cond {
+        SDL_cond* cond;
+        SDL_mutex* m;
+
+        void create() {
+            cond = SDL_CreateCond();
+            m = SDL_CreateMutex();
+        }
+
+        void wait() {
+            SDL_LockMutex(m);
+            SDL_CondWait(cond, m);
+            SDL_UnlockMutex(m);
+        }
+
+        void signal() {
+            SDL_LockMutex(m);
+            SDL_CondSignal(cond);
+            SDL_UnlockMutex(m);
+        }
+
+        void destroy() {
+            SDL_DestroyCond(cond);
+            SDL_DestroyMutex(m);
+        }
+    };
+
 #undef min
 #undef max
-
-    SDL_cond* sdlEventCV;
-    SDL_mutex* sdlEventMutex;
 
     struct WindowThreadData {
         bool* runningPtr;
@@ -56,11 +80,17 @@ namespace worlds {
     };
 
     uint32_t fullscreenToggleEventId;
+    uint32_t showWindowEventId;
 
     bool useEventThread = false;
     int workerThreadOverride = -1;
     bool enableOpenVR = false;
     glm::ivec2 windowSize;
+
+    // event thread sync
+    Cond eventCV;
+    SDL_mutex* sdlEventMutex;
+    std::queue<SDL_Event> evts;
 
     void WorldsEngine::setupSDL() {
         SDL_Init(SDL_INIT_AUDIO | SDL_INIT_EVENTS | SDL_INIT_VIDEO | SDL_INIT_TIMER);
@@ -81,38 +111,46 @@ namespace worlds {
     // weirdness SDL_PollEvent will not work on other threads.
     // Thanks Microsoft.
     int WorldsEngine::windowThread(void* data) {
-        WindowThreadData* wtd = reinterpret_cast<WindowThreadData*>(data);
+        WorldsEngine* _this = (WorldsEngine*)data;
 
-        bool* running = wtd->runningPtr;
-
-        *wtd->windowVarPtr = createSDLWindow();
-        if (*wtd->windowVarPtr == nullptr) {
+        _this->window = createSDLWindow();
+        if (_this->window == nullptr) {
             SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "err", SDL_GetError(), NULL);
         }
 
-        while (*running) {
+        if (_this->runAsEditor)
+            setWindowIcon(_this->window, "icon_engine.png");
+        else
+            setWindowIcon(_this->window);
+
+        while (_this->running) {
             SDL_Event evt;
+
             while (SDL_PollEvent(&evt)) {
                 if (evt.type == SDL_QUIT) {
-                    *running = false;
+                    _this->running = false;
                     break;
-                }
-
-                if (evt.type == fullscreenToggleEventId) {
-                    if ((SDL_GetWindowFlags(*wtd->windowVarPtr) & SDL_WINDOW_FULLSCREEN_DESKTOP) == SDL_WINDOW_FULLSCREEN_DESKTOP) {
-                        SDL_SetWindowFullscreen(*wtd->windowVarPtr, 0);
+                } else if (evt.type == fullscreenToggleEventId) {
+                    if ((SDL_GetWindowFlags(_this->window) & SDL_WINDOW_FULLSCREEN_DESKTOP) == SDL_WINDOW_FULLSCREEN_DESKTOP) {
+                        SDL_SetWindowFullscreen(_this->window, 0);
                     } else {
-                        SDL_SetWindowFullscreen(*wtd->windowVarPtr, SDL_WINDOW_FULLSCREEN_DESKTOP);
+                        SDL_SetWindowFullscreen(_this->window, SDL_WINDOW_FULLSCREEN_DESKTOP);
                     }
-                }
+                } else if (evt.type == showWindowEventId) {
+                    uint32_t flags = SDL_GetWindowFlags(_this->window);
 
-                if (ImGui::GetCurrentContext())
-                    ImGui_ImplSDL2_ProcessEvent(&evt);
+                    if (flags & SDL_WINDOW_HIDDEN)
+                        SDL_ShowWindow(_this->window);
+                    else
+                        SDL_HideWindow(_this->window);
+                } else {
+                    SDL_LockMutex(sdlEventMutex);
+                    evts.push(evt);
+                    SDL_UnlockMutex(sdlEventMutex);
+                }
             }
 
-            SDL_LockMutex(sdlEventMutex);
-            SDL_CondWait(sdlEventCV, sdlEventMutex);
-            SDL_UnlockMutex(sdlEventMutex);
+            eventCV.wait();
         }
 
         // SDL requires threads to return an int
@@ -251,6 +289,7 @@ namespace worlds {
             redrawSplashWindow(splashWindow, "starting up");
 
         fullscreenToggleEventId = SDL_RegisterEvents(1);
+        showWindowEventId = SDL_RegisterEvents(1);
 
         inputManager = std::make_unique<InputManager>(window);
 
@@ -267,23 +306,22 @@ namespace worlds {
 
         if (!dedicatedServer) {
             if (useEventThread) {
-                sdlEventCV = SDL_CreateCond();
                 sdlEventMutex = SDL_CreateMutex();
+                eventCV.create();
 
-                WindowThreadData wtd{ &running, &window };
-                SDL_DetachThread(SDL_CreateThread(windowThread, "Window Thread", &wtd));
+                SDL_DetachThread(SDL_CreateThread(windowThread, "Window Thread", this));
                 SDL_Delay(1000);
             } else {
                 window = createSDLWindow();
                 if (window == nullptr) {
                     SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Failed to create window", SDL_GetError(), NULL);
                 }
-            }
 
-            if (runAsEditor)
-                setWindowIcon(window, "icon_engine.png");
-            else
-                setWindowIcon(window);
+                if (runAsEditor)
+                    setWindowIcon(window, "icon_engine.png");
+                else
+                    setWindowIcon(window);
+            }
 
             redrawSplashWindow(splashWindow, "initialising ui");
         }
@@ -496,7 +534,14 @@ namespace worlds {
             audioSystem = std::make_unique<AudioSystem>();
             audioSystem->initialise(registry);
 
-            SDL_ShowWindow(window);
+            if (useEventThread) {
+                SDL_Event evt;
+                evt.type = showWindowEventId;
+                SDL_PushEvent(&evt);
+                eventCV.signal();
+            } else {
+                SDL_ShowWindow(window);
+            }
             destroySplashWindow(splashWindow);
         }
 
@@ -567,6 +612,15 @@ namespace worlds {
                     if (ImGui::GetCurrentContext())
                         ImGui_ImplSDL2_ProcessEvent(&evt);
                 }
+            } else {
+                SDL_LockMutex(sdlEventMutex);
+                while (!evts.empty()) {
+                    auto evt = evts.front();
+                    if (ImGui::GetCurrentContext())
+                        ImGui_ImplSDL2_ProcessEvent(&evt);
+                    evts.pop();
+                }
+                SDL_UnlockMutex(sdlEventMutex);
             }
 
             uint64_t updateStart = SDL_GetPerformanceCounter();
@@ -700,13 +754,6 @@ namespace worlds {
 
             console->drawWindow();
 
-
-            if (useEventThread) {
-                SDL_LockMutex(sdlEventMutex);
-                SDL_CondSignal(sdlEventCV);
-                SDL_UnlockMutex(sdlEventMutex);
-            }
-
             glm::vec3 camPos = cam.position;
 
             if (!dedicatedServer) {
@@ -732,6 +779,9 @@ namespace worlds {
             frameCounter++;
 
             inputManager->endFrame();
+
+            if (useEventThread)
+                eventCV.signal();
 
             lastUpdateTime = updateTime;
 
@@ -983,7 +1033,6 @@ namespace worlds {
 
         shutdownPhysx();
         PHYSFS_deinit();
-        if (useEventThread) SDL_CondSignal(sdlEventCV);
         logMsg("Quitting SDL.");
         SDL_Quit();
     }

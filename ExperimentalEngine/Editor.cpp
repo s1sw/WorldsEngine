@@ -66,7 +66,6 @@ namespace worlds {
         , lookY(0.0f)
         , cameraSpeed(5.0f)
         , imguiMetricsOpen(false)
-        , enableTransformGadget(false)
         , active(true)
         , settings()
         , interfaces(interfaces)
@@ -252,6 +251,14 @@ namespace worlds {
         logMsg(SDL_LOG_PRIORITY_DEBUG, "activateTool(%s)", toolStr(newTool));
     }
 
+    void Editor::setActive(bool active) {
+        this->active = active;
+
+        if (active) {
+            updateWindowTitle();
+        }
+    }
+
     template <typename T>
     void copyComponent(entt::entity oldEnt, entt::entity newEnt, entt::registry& reg) {
         if (reg.has<T>(oldEnt))
@@ -322,9 +329,10 @@ namespace worlds {
         if (ImGui::Begin(ICON_FA_EDIT u8" Editor")) {
             ImGui::Text("Current tool: %s", toolStr(currentTool));
 
+            ImGui::Checkbox("Manipulate in local space", &toolLocalSpace);
+
             ImGui::Checkbox("Global object snap", &settings.objectSnapGlobal);
             tooltipHover("If this is checked, moving an object with Ctrl held will snap in increments relative to the world rather than the object's original position.");
-            ImGui::Checkbox("Enable transform gadget", &enableTransformGadget);
             ImGui::Checkbox("Pause physics", &interfaces.engine->pauseSim);
             ImGui::InputFloat("Scale snap increment", &settings.scaleSnapIncrement, 0.1f, 0.5f);
         }
@@ -417,7 +425,8 @@ namespace worlds {
                     }
                 }
 
-                ImGuizmo::Manipulate(glm::value_ptr(view), glm::value_ptr(proj), toolToOp(currentTool), ImGuizmo::MODE::WORLD, glm::value_ptr(tfMtx), nullptr, glm::value_ptr(snap));
+                ImGuizmo::Manipulate(glm::value_ptr(view), glm::value_ptr(proj), 
+                    toolToOp(currentTool), toolLocalSpace ? ImGuizmo::MODE::LOCAL : ImGuizmo::MODE::WORLD, glm::value_ptr(tfMtx), nullptr, glm::value_ptr(snap));
                 glm::vec3 scale;
                 glm::quat rotation;
                 glm::vec3 translation;
@@ -444,11 +453,10 @@ namespace worlds {
 
                     copyComponent<Transform>(currentSelectedEntity, newEnt, reg);
                     copyComponent<WorldObject>(currentSelectedEntity, newEnt, reg);
-                    copyComponent<WorldLight>(currentSelectedEntity, newEnt, reg);
 
                     for (auto& mdata : ComponentMetadataManager::metadata) {
-                        ENTT_ID_TYPE t[] = { mdata.second.typeId };
-                        auto rtView = reg.runtime_view(std::cbegin(t), std::cend(t));
+                        std::array<ENTT_ID_TYPE, 1> t { mdata.second.typeId };
+                        auto rtView = reg.runtime_view(t.begin(), t.end());
                         if (!rtView.contains(currentSelectedEntity))
                             continue;
 
@@ -466,7 +474,7 @@ namespace worlds {
                 }
             }
 
-            if (ImGui::IsWindowHovered() && !(enableTransformGadget && ImGuizmo::IsOver())) {
+            if (ImGui::IsWindowHovered() && !(ImGuizmo::IsOver())) {
                 if (inputManager.mouseButtonPressed(MouseButton::Left, true)) {
                     interfaces.renderer->requestEntityPick((int)localMPos.x, (int)localMPos.y);
                 }
@@ -502,6 +510,7 @@ namespace worlds {
         saveFileModal("Save Scene", [this](const char* path) {
             AssetID sceneId = g_assetDB.addOrGetExisting(path);
             saveScene(g_assetDB.createAsset(path), reg);
+            updateWindowTitle();
             });
 
 
@@ -512,6 +521,7 @@ namespace worlds {
         openFileModal("Open Scene", [this](const char* path) {
             reg.clear();
             interfaces.engine->loadScene(g_assetDB.addOrGetExisting(path));
+            updateWindowTitle();
             }, ".escn");
 
         if (inputManager.keyPressed(SDL_SCANCODE_I, true) &&
