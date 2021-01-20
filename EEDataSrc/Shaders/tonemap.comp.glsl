@@ -29,7 +29,7 @@ vec3 InverseTonemap(vec3 x) {
 vec3 tonemapCol(vec3 col, vec3 whiteScale) {
 	col *= 16.0;
 	
-	float exposureBias = 0.3;
+	float exposureBias = 0.5;
 	vec3 curr = Uncharted2Tonemap(exposureBias * col);
 
 	return pow(curr * whiteScale, vec3(1/2.2));
@@ -45,7 +45,7 @@ void main() {
 	if (any(lessThan(acc, vec3(0.0)))) acc = vec3(1.0, 0.0, 0.0);
 	if (any(isnan(acc))) acc = vec3(1.0, 0.0, 1.0);	
 	
-	acc *= (1.0 - aoIntensity) + (texelFetch(gtaoImage, ivec3(gl_GlobalInvocationID.xy, idx), 0).xyz) * aoIntensity;
+	acc *= (1.0 - aoIntensity) + (texelFetch(gtaoImage, ivec3(gl_GlobalInvocationID.xy, idx), 0).x * aoIntensity);
 
 	imageStore(resultImage, ivec2(gl_GlobalInvocationID.xy), vec4(acc / float(NUM_MSAA_SAMPLES), 1.0));
 }

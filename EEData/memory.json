@@ -1,0 +1,288 @@
+{
+  "Total": {
+    "Blocks": 6, 
+    "Allocations": 91, 
+    "UnusedRanges": 19, 
+    "UsedBytes": 602703108, 
+    "UnusedBytes": 374831868, 
+    "AllocationSize": {"Min": 4, "Avg": 6623111, "Max": 134479872}, 
+    "UnusedRangeSize": {"Min": 4, "Avg": 19727993, "Max": 268435444}
+  }, 
+  "Heap 0": {
+    "Size": 8304721920, 
+    "Flags": ["DEVICE_LOCAL"], 
+    "Budget": {
+      "BlockBytes": 704905216, 
+      "AllocationBytes": 602554844, 
+      "Usage": 704905216, 
+      "Budget": 6643777536
+    }, 
+    "Stats": {
+      "Blocks": 4, 
+      "Allocations": 82, 
+      "UnusedRanges": 16, 
+      "UsedBytes": 602554844, 
+      "UnusedBytes": 102350372, 
+      "AllocationSize": {"Min": 144, "Avg": 7348230, "Max": 134479872}, 
+      "UnusedRangeSize": {"Min": 1120, "Avg": 6396898, "Max": 91029504}
+    }, 
+    "Type 0": {
+      "Flags": ["DEVICE_LOCAL"], 
+      "Stats": {
+        "Blocks": 4, 
+        "Allocations": 82, 
+        "UnusedRanges": 16, 
+        "UsedBytes": 602554844, 
+        "UnusedBytes": 102350372, 
+        "AllocationSize": {"Min": 144, "Avg": 7348230, "Max": 134479872}, 
+        "UnusedRangeSize": {"Min": 1120, "Avg": 6396898, "Max": 91029504}
+      }
+    }, 
+    "Type 4": {
+      "Flags": ["DEVICE_LOCAL", " DEVICE_COHERENT", " DEVICE_UNCACHED"]
+    }
+  }, 
+  "Heap 1": {
+    "Size": 8293187584, 
+    "Flags": [], 
+    "Budget": {
+      "BlockBytes": 268435456, 
+      "AllocationBytes": 8, 
+      "Usage": 268435456, 
+      "Budget": 6634550067
+    }, 
+    "Stats": {
+      "Blocks": 1, 
+      "Allocations": 2, 
+      "UnusedRanges": 2, 
+      "UsedBytes": 8, 
+      "UnusedBytes": 268435448, 
+      "AllocationSize": {"Min": 4, "Avg": 4, "Max": 4}, 
+      "UnusedRangeSize": {"Min": 4, "Avg": 134217724, "Max": 268435444}
+    }, 
+    "Type 1": {
+      "Flags": ["HOST_VISIBLE", "HOST_COHERENT"], 
+      "Stats": {
+        "Blocks": 1, 
+        "Allocations": 2, 
+        "UnusedRanges": 2, 
+        "UsedBytes": 8, 
+        "UnusedBytes": 268435448, 
+        "AllocationSize": {"Min": 4, "Avg": 4, "Max": 4}, 
+        "UnusedRangeSize": {"Min": 4, "Avg": 134217724, "Max": 268435444}
+      }
+    }, 
+    "Type 3": {
+      "Flags": ["HOST_VISIBLE", "HOST_COHERENT", "HOST_CACHED"]
+    }, 
+    "Type 5": {
+      "Flags": ["HOST_VISIBLE", "HOST_COHERENT", " DEVICE_COHERENT", " DEVICE_UNCACHED"]
+    }, 
+    "Type 7": {
+      "Flags": ["HOST_VISIBLE", "HOST_COHERENT", "HOST_CACHED", " DEVICE_COHERENT", " DEVICE_UNCACHED"]
+    }
+  }, 
+  "Heap 2": {
+    "Size": 268435456, 
+    "Flags": ["DEVICE_LOCAL"], 
+    "Budget": {
+      "BlockBytes": 4194304, 
+      "AllocationBytes": 148256, 
+      "Usage": 4194304, 
+      "Budget": 214748364
+    }, 
+    "Stats": {
+      "Blocks": 1, 
+      "Allocations": 7, 
+      "UnusedRanges": 1, 
+      "UsedBytes": 148256, 
+      "UnusedBytes": 4046048, 
+      "AllocationSize": {"Min": 576, "Avg": 21179, "Max": 65536}
+    }, 
+    "Type 2": {
+      "Flags": ["DEVICE_LOCAL", "HOST_VISIBLE", "HOST_COHERENT"], 
+      "Stats": {
+        "Blocks": 1, 
+        "Allocations": 7, 
+        "UnusedRanges": 1, 
+        "UsedBytes": 148256, 
+        "UnusedBytes": 4046048, 
+        "AllocationSize": {"Min": 576, "Avg": 21179, "Max": 65536}
+      }
+    }, 
+    "Type 6": {
+      "Flags": ["DEVICE_LOCAL", "HOST_VISIBLE", "HOST_COHERENT", " DEVICE_COHERENT", " DEVICE_UNCACHED"]
+    }
+  }, 
+  "DedicatedAllocations": {
+    "Type 0": [
+      {"Type": "IMAGE_UNKNOWN", "Size": 134479872, "UserData": "Cubemap2.json", "CreationFrameIndex": 0, "LastUseFrameIndex": 0}
+    ]
+  }, 
+  "DefaultPools": {
+    "Type 0": {
+      "PreferredBlockSize": 268435456, 
+      "Blocks": {
+        "0": {
+          "TotalBytes": 33554432, 
+          "UnusedBytes": 3490076, 
+          "Allocations": 21, 
+          "UnusedRanges": 9, 
+          "Suballocations": [
+            {"Offset": 0, "Type": "IMAGE_UNKNOWN", "Size": 266608, "UserData": "BRDF LUT", "CreationFrameIndex": 0, "LastUseFrameIndex": 0}, 
+            {"Offset": 266608, "Type": "BUFFER", "Size": 47232, "UserData": "Mesh Index Buffer", "CreationFrameIndex": 0, "LastUseFrameIndex": 0, "Usage": 66}, 
+            {"Offset": 313840, "Type": "BUFFER", "Size": 432, "UserData": "Mesh Index Buffer", "CreationFrameIndex": 0, "LastUseFrameIndex": 0, "Usage": 66}, 
+            {"Offset": 314272, "Type": "FREE", "Size": 1120}, 
+            {"Offset": 315392, "Type": "IMAGE_UNKNOWN", "Size": 4096, "UserData": "Textures/white.png", "CreationFrameIndex": 0, "LastUseFrameIndex": 0}, 
+            {"Offset": 319488, "Type": "BUFFER", "Size": 3120, "UserData": "Mesh Vertex Buffer", "CreationFrameIndex": 0, "LastUseFrameIndex": 0, "Usage": 130}, 
+            {"Offset": 322608, "Type": "BUFFER", "Size": 3840, "UserData": "Mesh Index Buffer", "CreationFrameIndex": 0, "LastUseFrameIndex": 0, "Usage": 66}, 
+            {"Offset": 326448, "Type": "FREE", "Size": 1232}, 
+            {"Offset": 327680, "Type": "IMAGE_UNKNOWN", "Size": 6848880, "UserData": "ImGui Image", "CreationFrameIndex": 0, "LastUseFrameIndex": 0}, 
+            {"Offset": 7176560, "Type": "BUFFER", "Size": 16384, "UserData": "Materials", "CreationFrameIndex": 0, "LastUseFrameIndex": 0, "Usage": 18}, 
+            {"Offset": 7192944, "Type": "BUFFER", "Size": 144, "UserData": "Mesh Index Buffer", "CreationFrameIndex": 0, "LastUseFrameIndex": 0, "Usage": 66}, 
+            {"Offset": 7193088, "Type": "BUFFER", "Size": 1248, "UserData": "Mesh Vertex Buffer", "CreationFrameIndex": 0, "LastUseFrameIndex": 0, "Usage": 130}, 
+            {"Offset": 7194336, "Type": "BUFFER", "Size": 2688, "UserData": "Mesh Index Buffer", "CreationFrameIndex": 0, "LastUseFrameIndex": 0, "Usage": 66}, 
+            {"Offset": 7197024, "Type": "FREE", "Size": 11936}, 
+            {"Offset": 7208960, "Type": "IMAGE_UNKNOWN", "Size": 6848880, "UserData": "Final Pre-Present", "CreationFrameIndex": 0, "LastUseFrameIndex": 0}, 
+            {"Offset": 14057840, "Type": "FREE", "Size": 32400}, 
+            {"Offset": 14090240, "Type": "IMAGE_UNKNOWN", "Size": 7930204, "UserData": "Depth Stencil Image", "CreationFrameIndex": 0, "LastUseFrameIndex": 0}, 
+            {"Offset": 22020444, "Type": "FREE", "Size": 1441444}, 
+            {"Offset": 23461888, "Type": "IMAGE_UNKNOWN", "Size": 2818048, "UserData": "grass.crn", "CreationFrameIndex": 0, "LastUseFrameIndex": 0}, 
+            {"Offset": 26279936, "Type": "FREE", "Size": 1048924}, 
+            {"Offset": 27328860, "Type": "BUFFER", "Size": 110032, "UserData": "Mesh Vertex Buffer", "CreationFrameIndex": 0, "LastUseFrameIndex": 0, "Usage": 130}, 
+            {"Offset": 27438892, "Type": "BUFFER", "Size": 16640, "UserData": "Mesh Vertex Buffer", "CreationFrameIndex": 0, "LastUseFrameIndex": 0, "Usage": 130}, 
+            {"Offset": 27455532, "Type": "FREE", "Size": 4052}, 
+            {"Offset": 27459584, "Type": "IMAGE_UNKNOWN", "Size": 4153712, "UserData": "SDR Target", "CreationFrameIndex": 0, "LastUseFrameIndex": 0}, 
+            {"Offset": 31613296, "Type": "BUFFER", "Size": 106200, "UserData": "Mesh Index Buffer", "CreationFrameIndex": 0, "LastUseFrameIndex": 0, "Usage": 66}, 
+            {"Offset": 31719496, "Type": "BUFFER", "Size": 32552, "UserData": "Mesh Vertex Buffer", "CreationFrameIndex": 0, "LastUseFrameIndex": 0, "Usage": 130}, 
+            {"Offset": 31752048, "Type": "FREE", "Size": 360592}, 
+            {"Offset": 32112640, "Type": "IMAGE_UNKNOWN", "Size": 393216, "UserData": "Textures/Dev/512SimpleOrange.crn", "CreationFrameIndex": 0, "LastUseFrameIndex": 0}, 
+            {"Offset": 32505856, "Type": "BUFFER", "Size": 460200, "UserData": "Mesh Vertex Buffer", "CreationFrameIndex": 0, "LastUseFrameIndex": 0, "Usage": 130}, 
+            {"Offset": 32966056, "Type": "FREE", "Size": 588376}
+          ]
+        }, 
+        "1": {
+          "TotalBytes": 268435456, 
+          "UnusedBytes": 7830792, 
+          "Allocations": 28, 
+          "UnusedRanges": 6, 
+          "Suballocations": [
+            {"Offset": 0, "Type": "IMAGE_UNKNOWN", "Size": 68157788, "UserData": "Shadowmap Image", "CreationFrameIndex": 0, "LastUseFrameIndex": 0}, 
+            {"Offset": 68157788, "Type": "FREE", "Size": 65188}, 
+            {"Offset": 68222976, "Type": "IMAGE_UNKNOWN", "Size": 17055776, "UserData": "HDR Target", "CreationFrameIndex": 0, "LastUseFrameIndex": 0}, 
+            {"Offset": 85278752, "Type": "FREE", "Size": 2801632}, 
+            {"Offset": 88080384, "Type": "IMAGE_UNKNOWN", "Size": 4587520, "UserData": "GTAO Target", "CreationFrameIndex": 0, "LastUseFrameIndex": 0}, 
+            {"Offset": 92667904, "Type": "IMAGE_UNKNOWN", "Size": 6815744, "UserData": "blur tmp", "CreationFrameIndex": 0, "LastUseFrameIndex": 0}, 
+            {"Offset": 99483648, "Type": "IMAGE_UNKNOWN", "Size": 1441792, "UserData": "Textures/llama.png", "CreationFrameIndex": 0, "LastUseFrameIndex": 0}, 
+            {"Offset": 100925440, "Type": "FREE", "Size": 786432}, 
+            {"Offset": 101711872, "Type": "IMAGE_UNKNOWN", "Size": 6815744, "UserData": "GTAO Target", "CreationFrameIndex": 0, "LastUseFrameIndex": 0}, 
+            {"Offset": 108527616, "Type": "IMAGE_UNKNOWN", "Size": 6815744, "UserData": "blur tmp", "CreationFrameIndex": 0, "LastUseFrameIndex": 0}, 
+            {"Offset": 115343360, "Type": "IMAGE_UNKNOWN", "Size": 26558496, "UserData": "HDR Target", "CreationFrameIndex": 0, "LastUseFrameIndex": 0}, 
+            {"Offset": 141901856, "Type": "FREE", "Size": 49120}, 
+            {"Offset": 141950976, "Type": "IMAGE_UNKNOWN", "Size": 13238620, "UserData": "Depth Stencil Image", "CreationFrameIndex": 0, "LastUseFrameIndex": 0}, 
+            {"Offset": 155189596, "Type": "FREE", "Size": 65188}, 
+            {"Offset": 155254784, "Type": "IMAGE_UNKNOWN", "Size": 6815744, "UserData": "GTAO Target", "CreationFrameIndex": 0, "LastUseFrameIndex": 0}, 
+            {"Offset": 162070528, "Type": "IMAGE_UNKNOWN", "Size": 6815744, "UserData": "blur tmp", "CreationFrameIndex": 0, "LastUseFrameIndex": 0}, 
+            {"Offset": 168886272, "Type": "IMAGE_UNKNOWN", "Size": 4128768, "UserData": "GTAO Target", "CreationFrameIndex": 0, "LastUseFrameIndex": 0}, 
+            {"Offset": 173015040, "Type": "IMAGE_UNKNOWN", "Size": 6815744, "UserData": "blur tmp", "CreationFrameIndex": 0, "LastUseFrameIndex": 0}, 
+            {"Offset": 179830784, "Type": "IMAGE_UNKNOWN", "Size": 5636096, "UserData": "Textures/catwalk/catwalk_CatwalkSides_Normal_forcelin.png", "CreationFrameIndex": 0, "LastUseFrameIndex": 0}, 
+            {"Offset": 185466880, "Type": "IMAGE_UNKNOWN", "Size": 5636096, "UserData": "Textures/catwalk/catwalk_CatwalkSides_Height.png", "CreationFrameIndex": 0, "LastUseFrameIndex": 0}, 
+            {"Offset": 191102976, "Type": "IMAGE_UNKNOWN", "Size": 5636096, "UserData": "Textures/catwalk/catwalk_CatwalkSides_BaseColor.png", "CreationFrameIndex": 0, "LastUseFrameIndex": 0}, 
+            {"Offset": 196739072, "Type": "IMAGE_UNKNOWN", "Size": 5636096, "UserData": "Textures/catwalk/catwalk_CatwalkSides_Metallic.png", "CreationFrameIndex": 0, "LastUseFrameIndex": 0}, 
+            {"Offset": 202375168, "Type": "IMAGE_UNKNOWN", "Size": 5636096, "UserData": "Textures/catwalk/catwalk_CatwalkSides_Roughness.png", "CreationFrameIndex": 0, "LastUseFrameIndex": 0}, 
+            {"Offset": 208011264, "Type": "IMAGE_UNKNOWN", "Size": 5636096, "UserData": "Textures/catwalk/catwalk_Catwalk_Normal_forcelin.png", "CreationFrameIndex": 0, "LastUseFrameIndex": 0}, 
+            {"Offset": 213647360, "Type": "IMAGE_UNKNOWN", "Size": 5636096, "UserData": "Textures/catwalk/catwalk_Catwalk_Height.png", "CreationFrameIndex": 0, "LastUseFrameIndex": 0}, 
+            {"Offset": 219283456, "Type": "IMAGE_UNKNOWN", "Size": 5636096, "UserData": "Textures/catwalk/catwalk_Catwalk_BaseColor.png", "CreationFrameIndex": 0, "LastUseFrameIndex": 0}, 
+            {"Offset": 224919552, "Type": "IMAGE_UNKNOWN", "Size": 5636096, "UserData": "Textures/catwalk/catwalk_Catwalk_Metallic.png", "CreationFrameIndex": 0, "LastUseFrameIndex": 0}, 
+            {"Offset": 230555648, "Type": "IMAGE_UNKNOWN", "Size": 5636096, "UserData": "Textures/catwalk/catwalk_Catwalk_Roughness.png", "CreationFrameIndex": 0, "LastUseFrameIndex": 0}, 
+            {"Offset": 236191744, "Type": "IMAGE_UNKNOWN", "Size": 5636096, "UserData": "Textures/catwalk/catwalk_rails_Normal_forcelin.png", "CreationFrameIndex": 0, "LastUseFrameIndex": 0}, 
+            {"Offset": 241827840, "Type": "IMAGE_UNKNOWN", "Size": 5636096, "UserData": "Textures/catwalk/catwalk_rails_Height.png", "CreationFrameIndex": 0, "LastUseFrameIndex": 0}, 
+            {"Offset": 247463936, "Type": "IMAGE_UNKNOWN", "Size": 5636096, "UserData": "Textures/catwalk/catwalk_rails_BaseColor.png", "CreationFrameIndex": 0, "LastUseFrameIndex": 0}, 
+            {"Offset": 253100032, "Type": "IMAGE_UNKNOWN", "Size": 5636096, "UserData": "Textures/catwalk/catwalk_rails_Metallic.png", "CreationFrameIndex": 0, "LastUseFrameIndex": 0}, 
+            {"Offset": 258736128, "Type": "IMAGE_UNKNOWN", "Size": 5636096, "UserData": "Textures/catwalk/catwalk_rails_Roughness.png", "CreationFrameIndex": 0, "LastUseFrameIndex": 0}, 
+            {"Offset": 264372224, "Type": "FREE", "Size": 4063232}
+          ]
+        }, 
+        "2": {
+          "TotalBytes": 268435456, 
+          "UnusedBytes": 91029504, 
+          "Allocations": 32, 
+          "UnusedRanges": 1, 
+          "Suballocations": [
+            {"Offset": 0, "Type": "IMAGE_UNKNOWN", "Size": 5636096, "UserData": "Textures/scifiwall/height.png", "CreationFrameIndex": 0, "LastUseFrameIndex": 0}, 
+            {"Offset": 5636096, "Type": "IMAGE_UNKNOWN", "Size": 5636096, "UserData": "Textures/scifiwall/albedo.jpg", "CreationFrameIndex": 0, "LastUseFrameIndex": 0}, 
+            {"Offset": 11272192, "Type": "IMAGE_UNKNOWN", "Size": 5636096, "UserData": "Textures/scifiwall/metallic.jpg", "CreationFrameIndex": 0, "LastUseFrameIndex": 0}, 
+            {"Offset": 16908288, "Type": "IMAGE_UNKNOWN", "Size": 5636096, "UserData": "Textures/scifiwall/roughness.jpg", "CreationFrameIndex": 0, "LastUseFrameIndex": 0}, 
+            {"Offset": 22544384, "Type": "IMAGE_UNKNOWN", "Size": 5636096, "UserData": "Textures/ceilingbit/ceiling piece_CeilingBit_Normal_forcelin.png", "CreationFrameIndex": 0, "LastUseFrameIndex": 0}, 
+            {"Offset": 28180480, "Type": "IMAGE_UNKNOWN", "Size": 5636096, "UserData": "Textures/ceilingbit/ceiling piece_CeilingBit_Height.png", "CreationFrameIndex": 0, "LastUseFrameIndex": 0}, 
+            {"Offset": 33816576, "Type": "IMAGE_UNKNOWN", "Size": 5636096, "UserData": "Textures/ceilingbit/ceiling piece_CeilingBit_BaseColor.png", "CreationFrameIndex": 0, "LastUseFrameIndex": 0}, 
+            {"Offset": 39452672, "Type": "IMAGE_UNKNOWN", "Size": 5636096, "UserData": "Textures/ceilingbit/ceiling piece_CeilingBit_Metallic.png", "CreationFrameIndex": 0, "LastUseFrameIndex": 0}, 
+            {"Offset": 45088768, "Type": "IMAGE_UNKNOWN", "Size": 5636096, "UserData": "Textures/ceilingbit/ceiling piece_CeilingBit_Roughness.png", "CreationFrameIndex": 0, "LastUseFrameIndex": 0}, 
+            {"Offset": 50724864, "Type": "IMAGE_UNKNOWN", "Size": 5636096, "UserData": "Textures/ceilingbit/ceiling piece_Pipe_Normal_forcelin.png", "CreationFrameIndex": 0, "LastUseFrameIndex": 0}, 
+            {"Offset": 56360960, "Type": "IMAGE_UNKNOWN", "Size": 5636096, "UserData": "Textures/ceilingbit/ceiling piece_Pipe_Height.png", "CreationFrameIndex": 0, "LastUseFrameIndex": 0}, 
+            {"Offset": 61997056, "Type": "IMAGE_UNKNOWN", "Size": 5636096, "UserData": "Textures/ceilingbit/ceiling piece_Pipe_BaseColor.png", "CreationFrameIndex": 0, "LastUseFrameIndex": 0}, 
+            {"Offset": 67633152, "Type": "IMAGE_UNKNOWN", "Size": 5636096, "UserData": "Textures/ceilingbit/ceiling piece_Pipe_Metallic.png", "CreationFrameIndex": 0, "LastUseFrameIndex": 0}, 
+            {"Offset": 73269248, "Type": "IMAGE_UNKNOWN", "Size": 5636096, "UserData": "Textures/ceilingbit/ceiling piece_Pipe_Roughness.png", "CreationFrameIndex": 0, "LastUseFrameIndex": 0}, 
+            {"Offset": 78905344, "Type": "IMAGE_UNKNOWN", "Size": 4128768, "UserData": "GTAO Target", "CreationFrameIndex": 0, "LastUseFrameIndex": 0}, 
+            {"Offset": 83034112, "Type": "IMAGE_UNKNOWN", "Size": 6815744, "UserData": "blur tmp", "CreationFrameIndex": 0, "LastUseFrameIndex": 0}, 
+            {"Offset": 89849856, "Type": "IMAGE_UNKNOWN", "Size": 4128768, "UserData": "GTAO Target", "CreationFrameIndex": 0, "LastUseFrameIndex": 0}, 
+            {"Offset": 93978624, "Type": "IMAGE_UNKNOWN", "Size": 6815744, "UserData": "blur tmp", "CreationFrameIndex": 0, "LastUseFrameIndex": 0}, 
+            {"Offset": 100794368, "Type": "IMAGE_UNKNOWN", "Size": 4128768, "UserData": "GTAO Target", "CreationFrameIndex": 0, "LastUseFrameIndex": 0}, 
+            {"Offset": 104923136, "Type": "IMAGE_UNKNOWN", "Size": 6815744, "UserData": "blur tmp", "CreationFrameIndex": 0, "LastUseFrameIndex": 0}, 
+            {"Offset": 111738880, "Type": "IMAGE_UNKNOWN", "Size": 4128768, "UserData": "GTAO Target", "CreationFrameIndex": 0, "LastUseFrameIndex": 0}, 
+            {"Offset": 115867648, "Type": "IMAGE_UNKNOWN", "Size": 6815744, "UserData": "blur tmp", "CreationFrameIndex": 0, "LastUseFrameIndex": 0}, 
+            {"Offset": 122683392, "Type": "IMAGE_UNKNOWN", "Size": 4128768, "UserData": "GTAO Target", "CreationFrameIndex": 0, "LastUseFrameIndex": 0}, 
+            {"Offset": 126812160, "Type": "IMAGE_UNKNOWN", "Size": 6815744, "UserData": "blur tmp", "CreationFrameIndex": 0, "LastUseFrameIndex": 0}, 
+            {"Offset": 133627904, "Type": "IMAGE_UNKNOWN", "Size": 4128768, "UserData": "GTAO Target", "CreationFrameIndex": 0, "LastUseFrameIndex": 0}, 
+            {"Offset": 137756672, "Type": "IMAGE_UNKNOWN", "Size": 6815744, "UserData": "blur tmp", "CreationFrameIndex": 0, "LastUseFrameIndex": 0}, 
+            {"Offset": 144572416, "Type": "IMAGE_UNKNOWN", "Size": 4128768, "UserData": "GTAO Target", "CreationFrameIndex": 0, "LastUseFrameIndex": 0}, 
+            {"Offset": 148701184, "Type": "IMAGE_UNKNOWN", "Size": 6815744, "UserData": "blur tmp", "CreationFrameIndex": 0, "LastUseFrameIndex": 0}, 
+            {"Offset": 155516928, "Type": "IMAGE_UNKNOWN", "Size": 4128768, "UserData": "GTAO Target", "CreationFrameIndex": 0, "LastUseFrameIndex": 0}, 
+            {"Offset": 159645696, "Type": "IMAGE_UNKNOWN", "Size": 6815744, "UserData": "blur tmp", "CreationFrameIndex": 0, "LastUseFrameIndex": 0}, 
+            {"Offset": 166461440, "Type": "IMAGE_UNKNOWN", "Size": 4128768, "UserData": "GTAO Target", "CreationFrameIndex": 0, "LastUseFrameIndex": 0}, 
+            {"Offset": 170590208, "Type": "IMAGE_UNKNOWN", "Size": 6815744, "UserData": "blur tmp", "CreationFrameIndex": 0, "LastUseFrameIndex": 0}, 
+            {"Offset": 177405952, "Type": "FREE", "Size": 91029504}
+          ]
+        }
+      }
+    }, 
+    "Type 1": {
+      "PreferredBlockSize": 268435456, 
+      "Blocks": {
+        "0": {
+          "TotalBytes": 268435456, 
+          "UnusedBytes": 268435448, 
+          "Allocations": 2, 
+          "UnusedRanges": 2, 
+          "Suballocations": [
+            {"Offset": 0, "Type": "FREE", "Size": 4}, 
+            {"Offset": 4, "Type": "BUFFER", "Size": 4, "UserData": "Picking buffer", "CreationFrameIndex": 0, "LastUseFrameIndex": 0, "Usage": 34}, 
+            {"Offset": 8, "Type": "BUFFER", "Size": 4, "UserData": "Picking buffer", "CreationFrameIndex": 0, "LastUseFrameIndex": 0, "Usage": 34}, 
+            {"Offset": 12, "Type": "FREE", "Size": 268435444}
+          ]
+        }
+      }
+    }, 
+    "Type 2": {
+      "PreferredBlockSize": 33554432, 
+      "Blocks": {
+        "0": {
+          "TotalBytes": 4194304, 
+          "UnusedBytes": 4046048, 
+          "Allocations": 7, 
+          "UnusedRanges": 1, 
+          "Suballocations": [
+            {"Offset": 0, "Type": "BUFFER", "Size": 576, "UserData": "VP", "CreationFrameIndex": 0, "LastUseFrameIndex": 0, "Usage": 18}, 
+            {"Offset": 576, "Type": "BUFFER", "Size": 6224, "UserData": "Lights", "CreationFrameIndex": 0, "LastUseFrameIndex": 0, "Usage": 18}, 
+            {"Offset": 6800, "Type": "BUFFER", "Size": 65536, "UserData": "Model matrices", "CreationFrameIndex": 0, "LastUseFrameIndex": 0, "Usage": 18}, 
+            {"Offset": 72336, "Type": "BUFFER", "Size": 576, "UserData": "VP", "CreationFrameIndex": 0, "LastUseFrameIndex": 0, "Usage": 18}, 
+            {"Offset": 72912, "Type": "BUFFER", "Size": 6224, "UserData": "Lights", "CreationFrameIndex": 0, "LastUseFrameIndex": 0, "Usage": 18}, 
+            {"Offset": 79136, "Type": "BUFFER", "Size": 65536, "UserData": "Model matrices", "CreationFrameIndex": 0, "LastUseFrameIndex": 0, "Usage": 18}, 
+            {"Offset": 144672, "Type": "BUFFER", "Size": 3584, "UserData": "Line Buffer", "CreationFrameIndex": 0, "LastUseFrameIndex": 0, "Usage": 128}, 
+            {"Offset": 148256, "Type": "FREE", "Size": 4046048}
+          ]
+        }
+      }
+    }
+  }
+}

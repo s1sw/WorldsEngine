@@ -42,9 +42,18 @@ vec4 blur9(vec2 uv, vec2 resolution, vec2 direction) {
 	return color;
 }
 
+vec4 blur5(vec2 uv, vec2 resolution, vec2 direction) {
+	vec4 color = vec4(0.0);
+	vec2 off1 = vec2(1.3333333333333333) * direction;
+	color += samp(uv) * 0.29411764705882354;
+	color += samp(uv + (off1 / resolution)) * 0.35294117647058826;
+	color += samp(uv - (off1 / resolution)) * 0.35294117647058826;
+	return color; 
+}
+
 void main() {
 	vec2 resolution = textureSize(inputTexture, 0).xy;
     vec2 uv = vec2(gl_GlobalInvocationID.xy) / resolution;
 
-    imageStore(outputTexture, ivec3(gl_GlobalInvocationID.xyz), vec4(blur9(uv, resolution, direction).xyz, 1.0f));
+    imageStore(outputTexture, ivec3(gl_GlobalInvocationID.xyz), vec4(blur5(uv, resolution, direction).xyz, 1.0f));
 }
