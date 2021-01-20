@@ -97,7 +97,7 @@ namespace converge {
             }, "connect", "Connects to the specified server.", nullptr);
         }
 
-        new DebugArrows(registry);
+        //new DebugArrows(registry);
 
         if (vrInterface) { 
             worlds::g_console->registerCommand([&](void*, const char*) {
@@ -163,7 +163,7 @@ namespace converge {
             }
         }
 
-        g_dbgArrows->newFrame();
+        //g_dbgArrows->newFrame();
     }
 
     worlds::ConVar sendRate {"cnvrg_sendRate", "5", "Send rate in simulation ticks. 0 = 1 packet per tick"};
@@ -396,7 +396,7 @@ namespace converge {
             }
         }
 
-        g_dbgArrows->createEntities();
+        //g_dbgArrows->createEntities();
     }
 
     void EventHandler::shutdown(entt::registry& registry) {

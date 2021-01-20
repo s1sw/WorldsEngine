@@ -43,11 +43,7 @@ uint32_t findPresentQueue(vk::PhysicalDevice pd, vk::SurfaceKHR surface) {
 }
 
 RenderTexture* VKRenderer::createRTResource(RTResourceCreateInfo resourceCreateInfo, const char* debugName) {
-    RenderTexture* rtr = new RenderTexture;
-    rtr->image = vku::GenericImage{ *device, allocator, resourceCreateInfo.ici, resourceCreateInfo.viewType, resourceCreateInfo.aspectFlags, false, debugName };
-    rtr->aspectFlags = resourceCreateInfo.aspectFlags;
-
-    return rtr;
+    return new RenderTexture{ getVKCtx(), resourceCreateInfo, debugName };
 }
 
 void VKRenderer::createSwapchain(vk::SwapchainKHR oldSwapchain) {
@@ -218,7 +214,7 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     , irp(nullptr)
     , vrPredictAmount(0.033f)
     , clearMaterialIndices(false)
-    , useVsync(true) 
+    , useVsync(true)
     , lowLatencyMode("r_lowLatency", "0", "Waits for GPU completion before starting the next frame. Has a significant impact on latency when VSync is enabled.")
     , enablePicking(initInfo.enablePicking)
     , nextHandle(0u) {
@@ -367,7 +363,7 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
         vrInterface->getRenderResolution(&renderWidth, &renderHeight);
     }
 
-    auto vkCtx = std::make_shared<VulkanCtx>(VulkanCtx{
+    auto vkCtx = std::make_shared<VulkanHandles>(VulkanHandles{
         physicalDevice,
         *device,
         *pipelineCache,
@@ -389,15 +385,15 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     matSlots = std::make_unique<MaterialSlots>(vkCtx, *texSlots);
     cubemapSlots = std::make_unique<CubemapSlots>(vkCtx);
 
-    vk::ImageCreateInfo brdfLutIci { 
-        vk::ImageCreateFlags{}, 
-        vk::ImageType::e2D, 
-        vk::Format::eR16G16Sfloat, 
-        vk::Extent3D{256,256,1}, 1, 1, 
-        vk::SampleCountFlagBits::e1, 
-        vk::ImageTiling::eOptimal, 
+    vk::ImageCreateInfo brdfLutIci{
+        vk::ImageCreateFlags{},
+        vk::ImageType::e2D,
+        vk::Format::eR16G16Sfloat,
+        vk::Extent3D{256,256,1}, 1, 1,
+        vk::SampleCountFlagBits::e1,
+        vk::ImageTiling::eOptimal,
         vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eSampled,
-        vk::SharingMode::eExclusive, graphicsQueueFamilyIdx 
+        vk::SharingMode::eExclusive, graphicsQueueFamilyIdx
     };
 
     brdfLut = vku::GenericImage{ *device, allocator, brdfLutIci, vk::ImageViewType::e2D, vk::ImageAspectFlagBits::eColor, false, "BRDF LUT" };
@@ -406,7 +402,7 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
 
     vku::executeImmediately(*device, *commandPool, device->getQueue(graphicsQueueFamilyIdx, 0), [&](auto cb) {
         brdfLut.setLayout(cb, vk::ImageLayout::eColorAttachmentOptimal);
-    });
+        });
 
     BRDFLUTRenderer brdfLutRenderer{ *vkCtx };
     brdfLutRenderer.render(*vkCtx, brdfLut);
@@ -426,7 +422,7 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
 
     vku::executeImmediately(*device, *commandPool, device->getQueue(graphicsQueueFamilyIdx, 0), [&](auto cb) {
         shadowmapImage->image.setLayout(cb, vk::ImageLayout::eShaderReadOnlyOptimal, vk::ImageAspectFlagBits::eDepth);
-    });
+        });
 
     createSCDependents();
 
@@ -530,12 +526,12 @@ void VKRenderer::createSCDependents() {
     PassSetupCtx psc{
         &materialUB,
         getVKCtx(),
-        &texSlots, 
-        &cubemapSlots, 
+        &texSlots,
+        &cubemapSlots,
         &matSlots,
-        (int)swapchain->images.size(), 
-        enableVR, 
-        &brdfLut 
+        (int)swapchain->images.size(),
+        enableVR,
+        &brdfLut
     };
 
     if (irp == nullptr) {
@@ -553,17 +549,17 @@ void VKRenderer::createSCDependents() {
     ici.initialLayout = vk::ImageLayout::eUndefined;
     ici.format = vk::Format::eR8G8B8A8Unorm;
     ici.samples = vk::SampleCountFlagBits::e1;
-    ici.usage = vk::ImageUsageFlagBits::eColorAttachment | 
-                vk::ImageUsageFlagBits::eSampled | 
-                vk::ImageUsageFlagBits::eStorage;
+    ici.usage = vk::ImageUsageFlagBits::eColorAttachment |
+        vk::ImageUsageFlagBits::eSampled |
+        vk::ImageUsageFlagBits::eStorage;
 
     RTResourceCreateInfo imguiImageCreateInfo{ ici, vk::ImageViewType::e2D, vk::ImageAspectFlagBits::eColor };
     imguiImage = createRTResource(imguiImageCreateInfo, "ImGui Image");
 
-    ici.usage = vk::ImageUsageFlagBits::eColorAttachment | 
-                vk::ImageUsageFlagBits::eSampled | 
-                vk::ImageUsageFlagBits::eStorage | 
-                vk::ImageUsageFlagBits::eTransferSrc;
+    ici.usage = vk::ImageUsageFlagBits::eColorAttachment |
+        vk::ImageUsageFlagBits::eSampled |
+        vk::ImageUsageFlagBits::eStorage |
+        vk::ImageUsageFlagBits::eTransferSrc;
 
     RTResourceCreateInfo finalPrePresentCI{ ici, vk::ImageViewType::e2D, vk::ImageAspectFlagBits::eColor };
 
@@ -589,6 +585,9 @@ void VKRenderer::createSCDependents() {
         }
         destroyRTTPass(screenPass);
     }
+
+    imgFences.clear();
+    imgFences.resize(swapchain->images.size());
 }
 
 void VKRenderer::recreateSwapchain() {
@@ -793,13 +792,13 @@ void VKRenderer::uploadSceneAssets(entt::registry& reg) {
             cubemapConvoluter->convolute(cubemapSlots->getSlots()[wc.loadIdx]);
             reuploadMats = true;
         }
-    });
+        });
 
     if (reuploadMats)
         reuploadMaterials();
 }
 
-worlds::ConVar doGTAO{"r_doGTAO", "1"};
+worlds::ConVar doGTAO{ "r_doGTAO", "1" };
 
 void VKRenderer::writeCmdBuf(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageIndex, Camera& cam, entt::registry& reg) {
     ZoneScoped;
@@ -817,21 +816,19 @@ void VKRenderer::writeCmdBuf(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageInde
 #endif
 
     if (enableVR) {
-        if (vrApi == VrApi::OpenVR) {
-            OpenVRInterface* ovrInterface = static_cast<OpenVRInterface*>(vrInterface);
-            rCtx.vrProjMats[0] = ovrInterface->getProjMat(vr::EVREye::Eye_Left, 0.01f, 100.0f);
-            rCtx.vrProjMats[1] = ovrInterface->getProjMat(vr::EVREye::Eye_Right, 0.01f, 100.0f);
+        OpenVRInterface* ovrInterface = static_cast<OpenVRInterface*>(vrInterface);
+        rCtx.vrProjMats[0] = ovrInterface->getProjMat(vr::EVREye::Eye_Left, 0.01f, 100.0f);
+        rCtx.vrProjMats[1] = ovrInterface->getProjMat(vr::EVREye::Eye_Right, 0.01f, 100.0f);
 
-            vr::TrackedDevicePose_t pose;
-            vr::VRSystem()->GetDeviceToAbsoluteTrackingPose(vr::ETrackingUniverseOrigin::TrackingUniverseStanding, vrPredictAmount, &pose, 1);
+        vr::TrackedDevicePose_t pose;
+        vr::VRSystem()->GetDeviceToAbsoluteTrackingPose(vr::ETrackingUniverseOrigin::TrackingUniverseStanding, vrPredictAmount, &pose, 1);
 
-            glm::mat4 viewMats[2];
-            rCtx.vrViewMats[0] = ovrInterface->getViewMat(vr::EVREye::Eye_Left);
-            rCtx.vrViewMats[1] = ovrInterface->getViewMat(vr::EVREye::Eye_Right);
+        glm::mat4 viewMats[2];
+        rCtx.vrViewMats[0] = ovrInterface->getViewMat(vr::EVREye::Eye_Left);
+        rCtx.vrViewMats[1] = ovrInterface->getViewMat(vr::EVREye::Eye_Right);
 
-            for (int i = 0; i < 2; i++) {
-                rCtx.vrViewMats[i] = glm::inverse(ovrInterface->toMat4(pose.mDeviceToAbsoluteTracking) * viewMats[i]) * cam.getViewMatrix();
-            }
+        for (int i = 0; i < 2; i++) {
+            rCtx.vrViewMats[i] = glm::inverse(ovrInterface->toMat4(pose.mDeviceToAbsoluteTracking) * viewMats[i]) * cam.getViewMatrix();
         }
     }
 
@@ -884,7 +881,7 @@ void VKRenderer::writeCmdBuf(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageInde
             rCtx.cam = &cam;
         rCtx.viewPos = rCtx.cam->position;
         rCtx.enableVR = p.second.isVr;
-        
+
         rpi.prp->prePass(psc, rCtx);
         rpi.prp->execute(rCtx);
 
@@ -1076,8 +1073,8 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
     std::array<std::uint64_t, 2> timeStamps = { {0} };
 
     auto queryRes = device->getQueryPoolResults(
-        *queryPool, 0, (uint32_t)timeStamps.size(), 
-        timeStamps.size() * sizeof(uint64_t), timeStamps.data(), 
+        *queryPool, 0, (uint32_t)timeStamps.size(),
+        timeStamps.size() * sizeof(uint64_t), timeStamps.data(),
         sizeof(uint64_t), vk::QueryResultFlagBits::e64
     );
 
@@ -1258,8 +1255,8 @@ void VKRenderer::reloadMatsAndTextures() {
     loadedMeshes.clear();
 }
 
-VulkanCtx VKRenderer::getVKCtx() {
-    return VulkanCtx{
+VulkanHandles VKRenderer::getVKCtx() {
+    return VulkanHandles{
         physicalDevice,
         *device,
         *pipelineCache,
@@ -1287,7 +1284,7 @@ RTTPassHandle VKRenderer::createRTTPass(RTTPassCreateInfo& ci) {
     ici.extent = vk::Extent3D{ ci.width, ci.height, 1 };
     ici.arrayLayers = ci.isVr ? 2 : 1;
     ici.mipLevels = 1;
-    ici.format = vk::Format::eR16G16B16A16Sfloat;
+    ici.format = vk::Format::eB10G11R11UfloatPack32;
     ici.initialLayout = vk::ImageLayout::eUndefined;
     ici.samples = msaaSamples;
     ici.usage = vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eStorage;
@@ -1310,7 +1307,7 @@ RTTPassHandle VKRenderer::createRTTPass(RTTPassCreateInfo& ci) {
     }
 
     ici.samples = vk::SampleCountFlagBits::e1;
-    ici.format = vk::Format::eR8G8B8A8Unorm;
+    ici.format = vk::Format::eR8Unorm;
     ici.usage = vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled;
     RTResourceCreateInfo gtaoTarget{ ici, vk::ImageViewType::e2DArray, vk::ImageAspectFlagBits::eColor };
     rpi.gtaoOut = createRTResource(gtaoTarget, "GTAO Target");
@@ -1324,7 +1321,7 @@ RTTPassHandle VKRenderer::createRTTPass(RTTPassCreateInfo& ci) {
         rpi.sdrFinalTarget = createRTResource(sdrTarget, "SDR Target");
     }
 
-    
+
     PassSetupCtx psc{ &materialUB, getVKCtx(), &texSlots, &cubemapSlots, &matSlots, (int)swapchain->images.size(), ci.isVr, &brdfLut,
     ci.width, ci.height };
     auto tonemapRP = new TonemapRenderPass(rpi.hdrTarget, ci.outputToScreen ? finalPrePresent : rpi.sdrFinalTarget, rpi.gtaoOut);
@@ -1364,7 +1361,7 @@ RTTPassHandle VKRenderer::createRTTPass(RTTPassCreateInfo& ci) {
 void VKRenderer::destroyRTTPass(RTTPassHandle handle) {
     device->waitIdle();
     auto& rpi = rttPasses.at(handle);
-    
+
     delete rpi.prp;
     delete rpi.trp;
     delete rpi.gtrp;

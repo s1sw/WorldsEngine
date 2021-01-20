@@ -500,6 +500,7 @@ namespace worlds {
 
             if ((compBitfield & 16) == 16) {
                 auto* pActor = g_physics->createRigidDynamic(glm2px(reg.get<Transform>(newEnt)));
+                pActor->setSolverIterationCounts(6, 1);
                 g_scene->addActor(*pActor);
                 DynamicPhysicsActor& pa = reg.emplace<DynamicPhysicsActor>(newEnt, pActor);
 

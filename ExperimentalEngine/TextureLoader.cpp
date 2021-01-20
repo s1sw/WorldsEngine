@@ -173,7 +173,7 @@ namespace worlds {
         }
     }
 
-    void generateMips(VulkanCtx& vkCtx, vku::TextureImage2D& t, vk::CommandBuffer cb) {
+    void generateMips(VulkanHandles& vkCtx, vku::TextureImage2D& t, vk::CommandBuffer cb) {
         auto currLayout = t.layout();
         vk::ImageMemoryBarrier imb;
         imb.subresourceRange = vk::ImageSubresourceRange{ vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1 };
@@ -231,14 +231,14 @@ namespace worlds {
             vk::DependencyFlagBits::eByRegion, nullptr, nullptr, { imb3, imb4 });
     }
 
-    void generateMips(VulkanCtx& vkCtx, vku::TextureImage2D& t) {
+    void generateMips(VulkanHandles& vkCtx, vku::TextureImage2D& t) {
         vku::executeImmediately(vkCtx.device, vkCtx.commandPool, vkCtx.device.getQueue(vkCtx.graphicsQueueFamilyIdx, 0),
             [&](vk::CommandBuffer cb) {
                 generateMips(vkCtx, t, cb);
             });
     }
 
-    vku::TextureImage2D uploadTextureVk(VulkanCtx& ctx, TextureData& td) {
+    vku::TextureImage2D uploadTextureVk(VulkanHandles& ctx, TextureData& td) {
         ZoneScoped;
         auto memProps = ctx.physicalDevice.getMemoryProperties();
         bool createMips = td.numMips == 1 && (td.format == vk::Format::eR8G8B8A8Srgb || td.format == vk::Format::eR8G8B8A8Unorm);
@@ -282,7 +282,7 @@ namespace worlds {
         tempBuffers[frameIdx].clear();
     }
 
-    vku::TextureImage2D uploadTextureVk(VulkanCtx& ctx, TextureData& td, vk::CommandBuffer cb, uint32_t frameIdx) {
+    vku::TextureImage2D uploadTextureVk(VulkanHandles& ctx, TextureData& td, vk::CommandBuffer cb, uint32_t frameIdx) {
         ZoneScoped;
         ensureTempVectorExists(frameIdx);
 

@@ -188,7 +188,7 @@ namespace worlds {
 
         vku::RenderpassMaker rPassMaker;
 
-        rPassMaker.attachmentBegin(vk::Format::eR16G16B16A16Sfloat);
+        rPassMaker.attachmentBegin(vk::Format::eB10G11R11UfloatPack32);
         rPassMaker.attachmentLoadOp(vk::AttachmentLoadOp::eClear);
         rPassMaker.attachmentStoreOp(vk::AttachmentStoreOp::eStore);
         rPassMaker.attachmentSamples(vku::sampleCountFlags(ctx.graphicsSettings.msaaLevel));
@@ -331,7 +331,10 @@ namespace worlds {
             si.mapEntryCount = 1;
             si.pMapEntries = &pickingEntry;
 
-            si.pData = &enablePicking;
+            // Sadly we can't enable picking for alpha test surfaces as we can't use
+            // early fragment tests with them, which leads to strange issues.
+            bool b = false;
+            si.pData = &b;
 
             pm.shader(vk::ShaderStageFlagBits::eFragment, atFragmentShader, "main", &si);
             pm.shader(vk::ShaderStageFlagBits::eVertex, vertexShader);

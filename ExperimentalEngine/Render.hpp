@@ -122,14 +122,6 @@ namespace worlds {
         bool enableVr;
     };
 
-    struct RenderTexture {
-        vku::GenericImage image;
-        vk::ImageAspectFlagBits aspectFlags;
-    private:
-        RenderTexture() {}
-        friend class VKRenderer;
-    };
-
     struct SubmeshInfo {
         uint32_t indexOffset;
         uint32_t indexCount;
@@ -152,6 +144,36 @@ namespace worlds {
         int numCulledObjs;
         uint64_t vramUsage;
         int numRTTPasses;
+    };
+
+    // Holds handles to useful Vulkan objects
+    struct VulkanHandles {
+        vk::PhysicalDevice physicalDevice;
+        vk::Device device;
+        vk::PipelineCache pipelineCache;
+        vk::DescriptorPool descriptorPool;
+        vk::CommandPool commandPool;
+        vk::Instance instance;
+        VmaAllocator allocator;
+        uint32_t graphicsQueueFamilyIdx;
+        GraphicsSettings graphicsSettings;
+        uint32_t width, height;
+        uint32_t renderWidth, renderHeight;
+    };
+
+    struct RTResourceCreateInfo {
+        vk::ImageCreateInfo ici;
+        vk::ImageViewType viewType;
+        vk::ImageAspectFlagBits aspectFlags;
+    };
+
+    class RenderTexture{
+    public:
+        vku::GenericImage image;
+        vk::ImageAspectFlagBits aspectFlags;
+    private:
+        RenderTexture(const VulkanHandles& ctx, RTResourceCreateInfo resourceCreateInfo, const char* debugName);
+        friend class VKRenderer;
     };
 
     struct RenderCtx {
@@ -193,24 +215,9 @@ namespace worlds {
         RenderDebugStats* dbgStats;
     };
 
-    // Holds handles to useful Vulkan objects
-    struct VulkanCtx {
-        vk::PhysicalDevice physicalDevice;
-        vk::Device device;
-        vk::PipelineCache pipelineCache;
-        vk::DescriptorPool descriptorPool;
-        vk::CommandPool commandPool;
-        vk::Instance instance;
-        VmaAllocator allocator;
-        uint32_t graphicsQueueFamilyIdx;
-        GraphicsSettings graphicsSettings;
-        uint32_t width, height;
-        uint32_t renderWidth, renderHeight;
-    };
-
     struct PassSetupCtx {
         vku::UniformBuffer* materialUB;
-        VulkanCtx vkCtx;
+        VulkanHandles vkCtx;
         std::unique_ptr<TextureSlots>* globalTexArray;
         std::unique_ptr<CubemapSlots>* cubemapSlots;
         std::unique_ptr<MaterialSlots>* materialSlots;
@@ -220,8 +227,6 @@ namespace worlds {
         uint32_t passWidth;
         uint32_t passHeight;
     };
-
-    class XRInterface;
 
     struct RendererInitInfo {
         SDL_Window* window;
@@ -236,8 +241,8 @@ namespace worlds {
 
     class BRDFLUTRenderer {
     public:
-        BRDFLUTRenderer(VulkanCtx& ctx);
-        void render(VulkanCtx& ctx, vku::GenericImage& target);
+        BRDFLUTRenderer(VulkanHandles& ctx);
+        void render(VulkanHandles& ctx, vku::GenericImage& target);
     private:
         vk::UniqueRenderPass renderPass;
         vk::UniquePipeline pipeline;
@@ -249,14 +254,14 @@ namespace worlds {
 
     class CubemapConvoluter {
     public:
-        CubemapConvoluter(std::shared_ptr<VulkanCtx> ctx);
+        CubemapConvoluter(std::shared_ptr<VulkanHandles> ctx);
         void convolute(vku::TextureImageCube& cubemap);
     private:
         vku::ShaderModule cs;
         vk::UniquePipeline pipeline;
         vk::UniquePipelineLayout pipelineLayout;
         vk::UniqueDescriptorSetLayout dsl;
-        std::shared_ptr<VulkanCtx> vkCtx;
+        std::shared_ptr<VulkanHandles> vkCtx;
         vk::UniqueSampler sampler;
     };
 
@@ -268,12 +273,6 @@ namespace worlds {
         bool useForPicking;
         bool enableShadows;
         bool outputToScreen;
-    };
-
-    struct RTResourceCreateInfo {
-        vk::ImageCreateInfo ici;
-        vk::ImageViewType viewType;
-        vk::ImageAspectFlagBits aspectFlags;
     };
 
     class PipelineCacheSerializer {
@@ -362,7 +361,6 @@ namespace worlds {
         std::unique_ptr<MaterialSlots> matSlots;
         std::unique_ptr<CubemapSlots> cubemapSlots;
 
-        //GraphSolver graphSolver;
         uint32_t shadowmapRes;
         bool enableVR;
         PolyRenderPass* pickingPRP;
@@ -401,7 +399,7 @@ namespace worlds {
         void setVsync(bool vsync) { if (useVsync != vsync) { useVsync = vsync; recreateSwapchain(); } }
         bool getVsync() const { return useVsync; }
         const RenderDebugStats& getDebugStats() const { return dbgStats; }
-        VulkanCtx getVKCtx();
+        VulkanHandles getVKCtx();
         void uploadSceneAssets(entt::registry& reg);
 
         RTTPassHandle createRTTPass(RTTPassCreateInfo& ci);

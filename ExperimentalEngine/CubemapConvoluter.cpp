@@ -8,7 +8,7 @@ namespace worlds {
         int faceIdx;
     };
 
-    CubemapConvoluter::CubemapConvoluter(std::shared_ptr<VulkanCtx> ctx) : vkCtx(ctx) {
+    CubemapConvoluter::CubemapConvoluter(std::shared_ptr<VulkanHandles> ctx) : vkCtx(ctx) {
         cs = vku::loadShaderAsset(ctx->device, g_assetDB.addOrGetExisting("Shaders/cubemap_prefilter.comp.spv"));
 
         vku::DescriptorSetLayoutMaker dslm;
@@ -124,7 +124,7 @@ namespace worlds {
                     cb.dispatch((width + 15) / 16, (height + 15) / 16, 1);
                     cube.setLayout(cb, vk::ImageLayout::eShaderReadOnlyOptimal);
                 });
-            //vkCtx->device.waitIdle();
+            vkCtx->device.waitIdle();
         }
 
         vkCtx->device.destroyDescriptorPool(tmpDescriptorPool);

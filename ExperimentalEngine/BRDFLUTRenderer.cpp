@@ -4,7 +4,7 @@
 namespace worlds {
     const int BRDF_LUT_RES = 256;
 
-    BRDFLUTRenderer::BRDFLUTRenderer(VulkanCtx& ctx) {
+    BRDFLUTRenderer::BRDFLUTRenderer(VulkanHandles& ctx) {
         vku::RenderpassMaker rpm;
         rpm.attachmentBegin(vk::Format::eR16G16Sfloat);
         rpm.attachmentLoadOp(vk::AttachmentLoadOp::eDontCare);
@@ -38,7 +38,7 @@ namespace worlds {
         pipeline = pm.createUnique(ctx.device, ctx.pipelineCache, *pipelineLayout, *renderPass);
     }
 
-    void BRDFLUTRenderer::render(VulkanCtx& ctx, vku::GenericImage& target) {
+    void BRDFLUTRenderer::render(VulkanHandles& ctx, vku::GenericImage& target) {
         vk::FramebufferCreateInfo fci;
         fci.attachmentCount = 1;
         vk::ImageView targetView = target.imageView();

@@ -25,7 +25,7 @@ namespace worlds {
         ici.extent = vk::Extent3D{ ctx.passWidth, ctx.passHeight, 1 };
         ici.arrayLayers = numLayers;
         ici.mipLevels = 1;
-        ici.format = vk::Format::eR8G8B8A8Unorm;
+        ici.format = src->image.info().format;
         ici.initialLayout = vk::ImageLayout::eUndefined;
         ici.samples = vk::SampleCountFlagBits::e1;
         ici.usage = vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eStorage;

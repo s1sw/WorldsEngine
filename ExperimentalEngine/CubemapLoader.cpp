@@ -79,7 +79,7 @@ namespace worlds {
         return (uint32_t)(1 + floor(log2(glm::max(w, h))));
     }
 
-    vku::TextureImageCube uploadCubemapVk(VulkanCtx& ctx, CubemapData& cd, vk::CommandBuffer cb, uint32_t imageIndex) {
+    vku::TextureImageCube uploadCubemapVk(VulkanHandles& ctx, CubemapData& cd, vk::CommandBuffer cb, uint32_t imageIndex) {
         PerfTimer pt;
         ZoneScoped;
         ensureTempVectorExistsCube(imageIndex);
@@ -163,7 +163,7 @@ namespace worlds {
         return tex;
     }
 
-    vku::TextureImageCube uploadCubemapVk(VulkanCtx& ctx, CubemapData& cd) {
+    vku::TextureImageCube uploadCubemapVk(VulkanHandles& ctx, CubemapData& cd) {
         vku::TextureImageCube tex;
         vku::executeImmediately(ctx.device, ctx.commandPool, ctx.device.getQueue(ctx.graphicsQueueFamilyIdx, 0), [&](vk::CommandBuffer cb) {
             tex = uploadCubemapVk(ctx, cd, cb, 0);

@@ -26,6 +26,8 @@ namespace worlds {
 
         modules.insert({ id, mod });
 
+        logMsg("loading shader %s from disk", g_assetDB.getAssetPath(id).c_str());
+
         return mod;
     }
 }

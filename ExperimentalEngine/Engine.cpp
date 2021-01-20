@@ -39,6 +39,7 @@
 #include "SplashWindow.hpp"
 #include "EarlySDLUtil.hpp"
 #include "vk_mem_alloc.h"
+#include "ShaderCache.hpp"
 
 namespace worlds {
     AssetDB g_assetDB;
@@ -518,6 +519,7 @@ namespace worlds {
     }
 
     void WorldsEngine::createStartupScene() {
+        registry.clear();
         AssetID grassMatId = g_assetDB.addOrGetExisting("Materials/grass.json");
         AssetID devMatId = g_assetDB.addOrGetExisting("Materials/dev.json");
 
@@ -654,6 +656,7 @@ namespace worlds {
             }
 
             if (inputManager->keyPressed(SDL_SCANCODE_F3, true)) {
+                ShaderCache::clear();
                 renderer->recreateSwapchain();
             }
             if (inputManager->keyPressed(SDL_SCANCODE_F11, true)) {

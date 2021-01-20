@@ -7,6 +7,7 @@ namespace worlds {
     class ShaderCache {
     public:
         static vk::ShaderModule getModule(vk::Device& dev, AssetID id);
+        static void clear() { modules.clear(); }
     private:
         static std::unordered_map<AssetID, vk::ShaderModule> modules;
     };

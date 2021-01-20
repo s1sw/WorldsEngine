@@ -10,7 +10,7 @@ namespace worlds {
     const uint32_t NUM_TEX_SLOTS = 256;
     const uint32_t NUM_MAT_SLOTS = 256;
     const uint32_t NUM_CUBEMAP_SLOTS = 64;
-    struct VulkanCtx;
+    struct VulkanHandles;
 
     template <typename slotType, uint32_t slotCount, typename key>
     class ResourceSlots {
@@ -82,12 +82,12 @@ namespace worlds {
             return slot;
         }
     private:
-        std::shared_ptr<VulkanCtx> vkCtx;
+        std::shared_ptr<VulkanHandles> vkCtx;
         vk::CommandBuffer cb;
         uint32_t frameIdx;
     public:
         bool frameStarted = false;
-        TextureSlots(std::shared_ptr<VulkanCtx> vkCtx) : vkCtx(vkCtx), cb(nullptr) {
+        TextureSlots(std::shared_ptr<VulkanHandles> vkCtx) : vkCtx(vkCtx), cb(nullptr) {
 
         }
 
@@ -117,13 +117,13 @@ namespace worlds {
 
         uint32_t load(AssetID asset) override;
     private:
-        std::shared_ptr<VulkanCtx> vkCtx;
+        std::shared_ptr<VulkanHandles> vkCtx;
         std::array<MatExtraData, NUM_MAT_SLOTS> matExtraData;
         TextureSlots& texSlots;
     public:
         MatExtraData& getExtraDat(uint32_t slot) { assert(this->present[slot]); return matExtraData[slot]; }
 
-        MaterialSlots(std::shared_ptr<VulkanCtx> vkCtx, TextureSlots& texSlots) : vkCtx(vkCtx), texSlots(texSlots) {
+        MaterialSlots(std::shared_ptr<VulkanHandles> vkCtx, TextureSlots& texSlots) : vkCtx(vkCtx), texSlots(texSlots) {
 
         }
 
@@ -157,7 +157,7 @@ namespace worlds {
             return slot;
         }
     private:
-        std::shared_ptr<VulkanCtx> vkCtx;
+        std::shared_ptr<VulkanHandles> vkCtx;
         vk::CommandBuffer cb;
         uint32_t imageIndex;
     public:
@@ -166,7 +166,7 @@ namespace worlds {
             this->imageIndex = imageIndex;
         }
 
-        CubemapSlots(std::shared_ptr<VulkanCtx> vkCtx) : vkCtx(vkCtx), imageIndex(0) {
+        CubemapSlots(std::shared_ptr<VulkanHandles> vkCtx) : vkCtx(vkCtx), imageIndex(0) {
 
         }
 
