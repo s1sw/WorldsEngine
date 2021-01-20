@@ -291,28 +291,28 @@ namespace worlds {
         }
     }
 
-    void clonePhysicsActor(entt::entity a, entt::entity b, entt::registry& reg) {
-        auto& t = reg.get<Transform>(b);
+    void clonePhysicsActor(entt::entity from, entt::entity to, entt::registry& reg) {
+        auto& t = reg.get<Transform>(from);
 
         physx::PxTransform pTf(glm2px(t.position), glm2px(t.rotation));
         auto* actor = g_physics->createRigidStatic(pTf);
 
-        auto& newPhysActor = reg.emplace<PhysicsActor>(b, actor);
-        newPhysActor.physicsShapes = reg.get<PhysicsActor>(a).physicsShapes;
+        auto& newPhysActor = reg.emplace<PhysicsActor>(to, actor);
+        newPhysActor.physicsShapes = reg.get<PhysicsActor>(from).physicsShapes;
 
         g_scene->addActor(*actor);
 
         updatePhysicsShapes(newPhysActor);
     }
 
-    void cloneDynamicPhysicsActor(entt::entity a, entt::entity b, entt::registry& reg) {
-        auto& t = reg.get<Transform>(b);
+    void cloneDynamicPhysicsActor(entt::entity from, entt::entity to, entt::registry& reg) {
+        auto& t = reg.get<Transform>(from);
 
         physx::PxTransform pTf(glm2px(t.position), glm2px(t.rotation));
         auto* actor = g_physics->createRigidDynamic(pTf);
 
-        auto& newPhysActor = reg.emplace<DynamicPhysicsActor>(b, actor);
-        newPhysActor.physicsShapes = reg.get<DynamicPhysicsActor>(a).physicsShapes;
+        auto& newPhysActor = reg.emplace<DynamicPhysicsActor>(to, actor);
+        newPhysActor.physicsShapes = reg.get<DynamicPhysicsActor>(from).physicsShapes;
 
         g_scene->addActor(*actor);
 

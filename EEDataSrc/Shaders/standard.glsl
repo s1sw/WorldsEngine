@@ -257,7 +257,7 @@ vec3 fresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness) {
 vec3 calcAmbient(vec3 f0, float roughness, vec3 viewDir, float metallic, vec3 albedoColor, vec3 normal) {
     vec3 kD = (1.0 - fresnelSchlickRoughness(clamp(dot(normal, viewDir), 0.0, 1.0), f0, roughness)) * (1.0 - metallic);
 
-    const float MAX_REFLECTION_LOD = 11.0;
+    const float MAX_REFLECTION_LOD = 7.0;
     vec3 R = reflect(-viewDir, normal);
 
     vec3 specularAmbient = textureLod(cubemapSampler[cubemapIdx], R, roughness * MAX_REFLECTION_LOD).rgb;
@@ -384,13 +384,21 @@ void main() {
 	mat3 tbnT = transpose(tbn);
 	
     vec3 tViewDir = normalize((tbnT * viewPos[gl_ViewIndex].xyz) - (tbnT * inWorldPos.xyz));
-
-    vec2 tCoord = mat.heightmapIdx > -1 ? ParallaxMapping(inUV, tViewDir, tex2dSampler[mat.heightmapIdx], mat.heightScale) : inUV;
-    //vec2 tCoord = pm(inUV, tViewDir, mat);
+	
+	vec2 tCoord = inUV;
+	if (mat.heightmapIdx > -1) 
+		tCoord = ParallaxMapping(inUV, tViewDir, tex2dSampler[mat.heightmapIdx], mat.heightScale);
 	
     vec4 albedoCol = texture(tex2dSampler[mat.albedoTexIdx], tCoord) * vec4(mat.albedoColor, 1.0);
-	float roughness = mat.roughTexIdx > -1 ? pow(texture(tex2dSampler[mat.roughTexIdx], tCoord).x, 1.0 / 2.2) : mat.roughness;
-	float metallic = mat.metalTexIdx > -1 ? pow(texture(tex2dSampler[mat.metalTexIdx], tCoord).x, 1.0 / 2.2) : mat.metallic;
+	
+	float roughness = mat.roughness;
+	if (mat.roughTexIdx > -1)
+		roughness = pow(texture(tex2dSampler[mat.roughTexIdx], tCoord).x, 1.0 / 2.2);
+	
+	
+	float metallic = mat.metallic;
+	if (mat.metalTexIdx > -1)
+		metallic = pow(texture(tex2dSampler[mat.metalTexIdx], tCoord).x, 1.0 / 2.2);
 	
 	vec3 f0 = mix(vec3(0.04), albedoCol.rgb, metallic);
 	vec3 lo = vec3(0.0);

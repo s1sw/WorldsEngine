@@ -99,9 +99,13 @@ namespace worlds {
     }
 
     void ConVar::setValue(std::string value) {
-        this->value = value;
-        parsedInt = std::stoi(value);
-        parsedFloat = (float)std::stof(value);
+        try {
+            parsedInt = std::stoi(value);
+            parsedFloat = (float)std::stof(value);
+            this->value = value;
+        } catch (std::invalid_argument) {
+            logErr("Invalid convar value %s", value.c_str());
+        }
     }
 
     ConVar::~ConVar() {

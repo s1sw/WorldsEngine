@@ -6,6 +6,7 @@
 #include "Render.hpp"
 #include "TimingUtil.hpp"
 #include "JobSystem.hpp"
+#include <algorithm>
 
 namespace worlds {
     CubemapData loadCubemapData(AssetID asset) {
@@ -87,7 +88,7 @@ namespace worlds {
         for (int i = 1; i < 6; i++) {
             if (cd.faceData[i].format != firstFormat) {
                 SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Cubemap has differing face formats!");
-                //return;
+                return vku::TextureImageCube{};
             }
         }
 
@@ -118,7 +119,7 @@ namespace worlds {
             ctx.device,
             ctx.allocator,
             cd.faceData[0].width, cd.faceData[0].height,
-            getNumMips(cd.faceData[0].width, cd.faceData[0].height), 
+            std::min(getNumMips(cd.faceData[0].width, cd.faceData[0].height), 5u), 
             newFormat, false,
             cd.debugName.empty() ? nullptr : cd.debugName.c_str()
         };

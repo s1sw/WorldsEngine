@@ -312,6 +312,29 @@ namespace converge {
                 ImGui::DragFloat("I", &lspherePid.I);
                 ImGui::DragFloat("D", &lspherePid.D);
                 ImGui::DragFloat("Zero Thresh", &zeroThresh, 0.01f);
+
+                auto& rig = reg.get<PlayerRig>(localLocosphereEnt);
+                float invMassScale = rig.fenderJoint->getInvMassScale0();
+                if (ImGui::DragFloat("Inv Mass Scale", &invMassScale)) {
+                    rig.fenderJoint->setInvMassScale0(invMassScale);
+                    rig.fenderJoint->setInvInertiaScale0(invMassScale);
+                }
+
+                auto fenderActor = static_cast<physx::PxRigidDynamic*>(registry.get<worlds::DynamicPhysicsActor>(rig.fender).actor);
+
+                auto& wActor = registry.get<worlds::DynamicPhysicsActor>(localLocosphereEnt);
+                auto* locosphereActor = (physx::PxRigidDynamic*)wActor.actor;
+
+                float fenderMass = fenderActor->getMass();
+                float sphereMass = locosphereActor->getMass();
+
+                if (ImGui::DragFloat("Fender mass", &fenderMass)) {
+                    physx::PxRigidBodyExt::setMassAndUpdateInertia(*fenderActor, fenderMass);
+                }
+
+                if (ImGui::DragFloat("Sphere mass", &sphereMass)) {
+                    physx::PxRigidBodyExt::setMassAndUpdateInertia(*fenderActor, sphereMass);
+                }
             }
             ImGui::End();
 
@@ -426,21 +449,27 @@ namespace converge {
             lDebugInfo.linVels[physDbgIdx] = glm::length(currLinVel);
             lDebugInfo.linVelsXZ[physDbgIdx] = glm::length(glm::vec3{ currLinVel.x, 0.0f, currLinVel.z });
 
+            auto fenderActor = static_cast<physx::PxRigidDynamic*>(registry.get<worlds::DynamicPhysicsActor>(rig.fender).actor);
+
             if (!lpc.grounded) {
                 glm::vec3 airVel { lpc.xzMoveInput.x, 0.0f, lpc.xzMoveInput.y };
-                airVel *= 25.0f;
+                airVel *= 12.5f;
                 glm::vec3 addedVel = (airVel - currLinVel);
                 addedVel.y = 0.0f;
-                locosphereActor->addForce(worlds::glm2px(addedVel) * simStep, physx::PxForceMode::eACCELERATION);
+                locosphereActor->addForce(worlds::glm2px(addedVel), physx::PxForceMode::eACCELERATION);
+                fenderActor->addForce(worlds::glm2px(addedVel), physx::PxForceMode::eACCELERATION);
             }
 
             if (lpc.jump) {
-                static worlds::ConVar jumpForce{ "jumpForce", "15.0" };
+                static worlds::ConVar jumpForce{ "jumpForce", "5.0" };
                 if (lpc.grounded) {
                     locosphereActor->addForce(physx::PxVec3{ 0.0f, jumpForce.getFloat(), 0.0f }, physx::PxForceMode::eVELOCITY_CHANGE);
+                    fenderActor->addForce(physx::PxVec3{ 0.0f, jumpForce.getFloat(), 0.0f }, physx::PxForceMode::eVELOCITY_CHANGE);
+                    
                 } else if (!lpc.doubleJumpUsed) {
                     lpc.doubleJumpUsed = true;
                     locosphereActor->addForce(physx::PxVec3{ 0.0f, jumpForce.getFloat(), 0.0f }, physx::PxForceMode::eVELOCITY_CHANGE);
+                    fenderActor->addForce(physx::PxVec3{ 0.0f, jumpForce.getFloat(), 0.0f }, physx::PxForceMode::eVELOCITY_CHANGE);
                 }
                 lpc.jump = false;
             }
@@ -450,14 +479,13 @@ namespace converge {
             }
 
             if (lpc.isLocal) {
-                auto fenderActor = registry.get<worlds::DynamicPhysicsActor>(rig.fender).actor;
                 auto fenderWorldsTf = registry.get<Transform>(rig.fender);
                 auto lspherePose = locosphereActor->getGlobalPose();
                 auto fenderPose = fenderActor->getGlobalPose();
                 lastCamPos = nextCamPos;
 
                 if (vrInterface) {
-                    static glm::vec3 lastHeadPos{ 0.0f };
+                    static glm::vec3 lastHeadPos = worlds::getMatrixTranslation(vrInterface->getHeadTransform());
                     glm::vec3 headPos = worlds::getMatrixTranslation(vrInterface->getHeadTransform());
                     glm::vec3 locosphereOffset = lastHeadPos - headPos;
                     lastHeadPos = headPos;
@@ -507,7 +535,7 @@ namespace converge {
         wActor.physicsShapes.push_back(worlds::PhysicsShape::sphereShape(LOCOSPHERE_RADIUS, locosphereMat));
 
         worlds::updatePhysicsShapes(wActor);
-        physx::PxRigidBodyExt::setMassAndUpdateInertia(*actor, 50.0f);
+        physx::PxRigidBodyExt::setMassAndUpdateInertia(*actor, 40.0f);
 
         // Set up player fender and joint
         auto playerFender = registry.create();
@@ -525,7 +553,7 @@ namespace converge {
         fenderWActor.physicsShapes.push_back(fenderShape);
 
         worlds::updatePhysicsShapes(fenderWActor);
-        physx::PxRigidBodyExt::setMassAndUpdateInertia(*fenderActor, 1.0f);
+        physx::PxRigidBodyExt::setMassAndUpdateInertia(*fenderActor, 3.0f);
 
         auto* fenderJoint = physx::PxD6JointCreate(*worlds::g_physics, fenderActor, physx::PxTransform{ physx::PxVec3{0.0f, -0.4f, 0.0f}, physx::PxQuat{ physx::PxIdentity } }, actor, physx::PxTransform{ physx::PxIdentity });
 
@@ -543,11 +571,10 @@ namespace converge {
 
         fenderJoint->setConstraintFlag(physx::PxConstraintFlag::eCOLLISION_ENABLED, false);
         fenderActor->setSolverIterationCounts(16, 4);
-        fenderJoint->setInvInertiaScale0(0.02f);
-        fenderJoint->setInvMassScale0(0.02f);
+        fenderJoint->setInvInertiaScale0(0.075f);
+        fenderJoint->setInvMassScale0(0.075f);
 
         logMsg("locosphere entity is %u", (uint32_t)playerLocosphere);
-
 
         PlayerRig rig;
         rig.locosphere = playerLocosphere;
@@ -560,7 +587,7 @@ namespace converge {
 
     void LocospherePlayerSystem::onSceneStart(entt::registry&) {
         // Create physics rig
-        lspherePid.P = 50.0f;
+        lspherePid.P = 150.0f;
         lspherePid.I = 0.0f;
         lspherePid.D = 0.0f;
         zeroThresh = 0.0f;

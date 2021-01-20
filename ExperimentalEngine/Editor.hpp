@@ -84,13 +84,14 @@ namespace worlds {
         void select(entt::entity entity);
         void update(float deltaTime);
         void activateTool(Tool newTool);
-        void setActive(bool active) { this->active = active; }
+        void setActive(bool active);
         entt::entity getSelectedEntity() { return currentSelectedEntity; }
     private:
         void updateCamera(float deltaTime);
         std::string generateWindowTitle();
         void updateWindowTitle();
         Tool currentTool;
+        bool toolLocalSpace = false;
         entt::registry& reg;
         entt::entity currentSelectedEntity;
         Camera& cam;
@@ -99,7 +100,6 @@ namespace worlds {
         float lookY;
         float cameraSpeed;
         bool imguiMetricsOpen;
-        bool enableTransformGadget;
         bool active;
 
         EditorSettings settings;

@@ -1,0 +1,11 @@
+{
+    "albedoColor": [
+        1.0,
+        1.0,
+        1.0
+    ],
+    "albedoPath": "srcTex/white.vtf",
+    "metallic": 0.0,
+    "roughness": 1.0,
+	"emissiveColor" : [1.0, 1.0, 1.0]
+}
