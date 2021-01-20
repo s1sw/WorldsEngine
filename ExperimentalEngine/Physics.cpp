@@ -102,9 +102,10 @@ namespace worlds {
         desc.filterShader = filterShader;
         desc.solverType = physx::PxSolverType::ePGS;
         desc.ccdMaxPasses = 5;
-        desc.bounceThresholdVelocity = 2.0f;
+        desc.bounceThresholdVelocity = 5.0f;
         desc.flags = physx::PxSceneFlag::eENABLE_PCM 
                    | physx::PxSceneFlag::eENABLE_CCD;
+        desc.frictionType = physx::PxFrictionType::ePATCH;
         g_scene = g_physics->createScene(desc);
         reg.on_destroy<PhysicsActor>().connect<&destroyPhysXActor<PhysicsActor>>();
         reg.on_destroy<DynamicPhysicsActor>().connect<&destroyPhysXActor<DynamicPhysicsActor>>();
@@ -113,7 +114,7 @@ namespace worlds {
         g_console->registerCommand(cmdTogglePhysVis, "phys_toggleVis", "Toggles all physics visualisations.", nullptr);
         g_console->registerCommand(cmdToggleShapeVis, "phys_toggleShapeVis", "Toggles physics shape visualisations.", nullptr);
 
-        defaultMaterial = g_physics->createMaterial(0.5f, 0.5f, 0.1f);
+        defaultMaterial = g_physics->createMaterial(0.6f, 0.6f, 0.0f);
     }
 
     void stepSimulation(float deltaTime) {

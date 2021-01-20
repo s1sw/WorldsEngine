@@ -280,7 +280,9 @@
     <ClCompile Include="OpenVRInterface.cpp" />
     <ClCompile Include="physfs.cpp" />
     <ClCompile Include="Physics.cpp" />
+    <ClCompile Include="PipelineCacheSerializer.cpp" />
     <ClCompile Include="PolyRenderPass.cpp" />
+    <ClCompile Include="RenderTexture.cpp" />
     <ClCompile Include="RichPresence.cpp" />
     <ClCompile Include="RobloxMeshLoader.cpp" />
     <ClCompile Include="SceneSerialization.cpp" />
@@ -325,7 +327,6 @@
     <ClInclude Include="IconsFontaudio.h" />
     <ClInclude Include="IconsFontAwesome5.h" />
     <ClInclude Include="IGameEventHandler.hpp" />
-    <ClInclude Include="ImageManager.hpp" />
     <ClInclude Include="imconfig.h" />
     <ClInclude Include="imgui.h" />
     <ClInclude Include="ImGuizmo.h" />
@@ -338,10 +339,12 @@
     <ClInclude Include="ISystem.hpp" />
     <ClInclude Include="IVRInterface.hpp" />
     <ClInclude Include="JobSystem.hpp" />
+    <ClInclude Include="JsonUtil.hpp" />
     <ClInclude Include="Log.hpp" />
     <ClInclude Include="LogCategories.hpp" />
     <ClInclude Include="LuaVM.hpp" />
     <ClInclude Include="MatUtil.hpp" />
+    <ClInclude Include="MeshManager.hpp" />
     <ClInclude Include="mikktspace.h" />
     <ClInclude Include="NameComponent.hpp" />
     <ClInclude Include="ObjModelLoader.hpp" />

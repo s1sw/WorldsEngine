@@ -13,11 +13,11 @@ namespace worlds {
         std::string name;
     };
 
-    struct VulkanCtx;
+    struct VulkanHandles;
 
     TextureData loadTexData(AssetID id);
     TextureData loadVtfTexture(void* fileData, size_t fileLen, AssetID id);
-    vku::TextureImage2D uploadTextureVk(VulkanCtx& ctx, TextureData& td);
-    vku::TextureImage2D uploadTextureVk(VulkanCtx& ctx, TextureData& td, vk::CommandBuffer cb, uint32_t imageIndex);
+    vku::TextureImage2D uploadTextureVk(VulkanHandles& ctx, TextureData& td);
+    vku::TextureImage2D uploadTextureVk(VulkanHandles& ctx, TextureData& td, vk::CommandBuffer cb, uint32_t imageIndex);
     void destroyTempTexBuffers(uint32_t imageIndex);
 }

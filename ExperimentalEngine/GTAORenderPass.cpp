@@ -90,7 +90,7 @@ namespace worlds {
         pc.aspect = (float)ctx.width / (float)ctx.height;
         pc.viewSizeRcp = glm::vec2(1.0f / (float)ctx.width, 1.0f / (float)ctx.height);
         pc.viewSize = glm::vec2(ctx.width, ctx.height);
-        pc.proj = glm::inverse(ctx.cam->getProjectionMatrix((float)ctx.width / (float)ctx.height));
+        pc.proj = glm::inverse(ctx.cam->getProjectionMatrixZO((float)ctx.width / (float)ctx.height));
         
         pc.limit = gtaoLimit.getFloat();
         pc.radius = gtaoRadius.getFloat();

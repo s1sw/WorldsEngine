@@ -27,6 +27,7 @@ namespace converge {
         bool sprint;
         bool grounded;
         bool jump;
+        bool doubleJumpUsed = false;
     };
 
     struct PlayerRig {

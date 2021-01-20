@@ -4,6 +4,7 @@
 #include <sajson.h>
 #include "AssetDB.hpp"
 #include "Log.hpp"
+#include "JsonUtil.hpp"
 
 namespace worlds {
     struct EditableMaterial {
@@ -21,44 +22,6 @@ namespace worlds {
         bool cullOff = false;
         bool wireframe = false;
     };
-
-    void getFloat(const sajson::value& obj, const char* key, float& val) {
-        sajson::string keyStr{ key, strlen(key) };
-
-        auto idx = obj.find_object_key(keyStr);
-
-        if (idx == obj.get_length())
-            return;
-
-        val = obj.get_object_value(idx).get_double_value();
-    }
-
-    void getVec3(const sajson::value& obj, const char* key, glm::vec3& val) {
-        sajson::string keyStr{ key, strlen(key) };
-
-        auto idx = obj.find_object_key(keyStr);
-
-        if (idx == obj.get_length())
-            return;
-
-        const auto& arr = obj.get_object_value(idx);
-
-        glm::vec3 vec{
-            arr.get_array_element(0).get_double_value(),
-            arr.get_array_element(1).get_double_value(),
-            arr.get_array_element(2).get_double_value()
-        };
-
-        val = vec;
-    }
-
-    bool hasKey(const sajson::value& obj, const char* key) {
-        sajson::string keyStr{ key, strlen(key) };
-
-        auto idx = obj.find_object_key(keyStr);
-
-        return idx != obj.get_length();
-    }
 
     void getAssetId(const sajson::value& obj, const char* key, AssetID& aid) {
         sajson::string keyStr{ key, strlen(key) };

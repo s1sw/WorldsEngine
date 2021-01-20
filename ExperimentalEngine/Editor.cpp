@@ -111,7 +111,7 @@ namespace worlds {
 #undef REGISTER_COMPONENT_TYPE
 
     void Editor::select(entt::entity entity) {
-        if (ImGuizmo::IsUsing() || ImGuizmo::IsOver()) return;
+        if (reg.valid(currentSelectedEntity) && ImGuizmo::IsUsing()) return;
         // Remove selection from existing entity
         if (reg.valid(currentSelectedEntity)) {
             reg.remove<UseWireframe>(currentSelectedEntity);
@@ -492,17 +492,16 @@ namespace worlds {
         }
 
         if (inputManager.keyPressed(SDL_SCANCODE_S) && inputManager.ctrlHeld()) {
-            ImGui::OpenPopup("Save Scene");
+            if (!interfaces.engine->getCurrentSceneInfo().name.empty() && !inputManager.shiftHeld()) {
+                saveScene(interfaces.engine->getCurrentSceneInfo().id, reg);
+            } else {
+                ImGui::OpenPopup("Save Scene");
+            }
         }
 
         saveFileModal("Save Scene", [this](const char* path) {
-            AssetID sceneId;
-            std::string scenePath(path);
-            if (g_assetDB.hasId(scenePath))
-                sceneId = g_assetDB.getExistingID(scenePath);
-            else
-                sceneId = g_assetDB.createAsset(scenePath);
-            saveScene(g_assetDB.createAsset(scenePath), reg);
+            AssetID sceneId = g_assetDB.addOrGetExisting(path);
+            saveScene(g_assetDB.createAsset(path), reg);
             });
 
 

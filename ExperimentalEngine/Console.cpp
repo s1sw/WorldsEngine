@@ -382,21 +382,33 @@ namespace worlds {
                 msgs.clear();
             }
 
+
             ImGui::BeginChild("ConsoleScroll", ImVec2(0, -ImGui::GetFrameHeightWithSpacing()));
 
+            float scrollRegionY = ImGui::GetContentRegionAvail().y;
             int currMsgIdx = 0;
+            float scroll = ImGui::GetScrollY();
+            float scrollMax = scroll + scrollRegionY;
+            float cHeight = 0.0f;
+            float lineHeight = ImGui::GetTextLineHeightWithSpacing();
             for (auto& msg : msgs) {
-                ImGui::PushStyleColor(ImGuiCol_Text, (ImVec4)priorityColors.at(msg.priority));
-                if (msg.category != CONSOLE_RESPONSE_CATEGORY)
-                    ImGui::TextUnformatted(("[" + std::string(categories.at(msg.category)) + "] " + "[" + std::string(priorities.at(msg.priority)) + "] " + msg.msg).c_str());
-                else
-                    ImGui::TextUnformatted(msg.msg.c_str());
-                ImGui::PopStyleColor();
+                if ((cHeight + lineHeight) > scroll && (cHeight - lineHeight) < scrollMax) {
+                    ImGui::PushStyleColor(ImGuiCol_Text, (ImVec4)priorityColors.at(msg.priority));
+                    if (msg.category != CONSOLE_RESPONSE_CATEGORY)
+                        ImGui::TextUnformatted(("[" + std::string(categories.at(msg.category)) + "] " + "[" + std::string(priorities.at(msg.priority)) + "] " + msg.msg).c_str());
+                    else
+                        ImGui::TextUnformatted(msg.msg.c_str());
+                    ImGui::PopStyleColor();
 
-                if ((size_t)currMsgIdx == msgs.size() - 1 && msgs.size() != (size_t)lastMsgCount) {
-                    ImGui::SetScrollHereY();
-                    lastMsgCount = (int)msgs.size();
+                    if ((size_t)currMsgIdx == msgs.size() - 1 && msgs.size() != (size_t)lastMsgCount) {
+                        ImGui::SetScrollHereY();
+                        lastMsgCount = (int)msgs.size();
+                    }
+                } else {
+                    ImGui::NewLine();
                 }
+
+                cHeight += lineHeight;
 
                 currMsgIdx++;
             }

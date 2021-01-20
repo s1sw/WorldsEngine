@@ -275,6 +275,12 @@
     <ClCompile Include="ComponentFuncs.cpp">
       <Filter>Source Files\Editor</Filter>
     </ClCompile>
+    <ClCompile Include="PipelineCacheSerializer.cpp">
+      <Filter>Source Files\Systems\Render</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderTexture.cpp">
+      <Filter>Source Files\Systems\Render</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Transform.hpp">
@@ -481,8 +487,11 @@
     <ClInclude Include="ComponentFuncs.hpp">
       <Filter>Header Files\Editor</Filter>
     </ClInclude>
-    <ClInclude Include="ImageManager.hpp">
-      <Filter>Header Files\Systems\Render</Filter>
+    <ClInclude Include="MeshManager.hpp">
+      <Filter>Header Files\Systems</Filter>
+    </ClInclude>
+    <ClInclude Include="JsonUtil.hpp">
+      <Filter>Header Files\Util</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
