@@ -7,8 +7,8 @@ layout (push_constant) uniform PC {
     int faceIdx;
 };
 
-layout (binding = 0, rgba8) uniform readonly image2D inFace;
-layout (binding = 1, rgba8) uniform writeonly image2D outFace;
+layout (binding = 0, rgba32f) uniform restrict readonly image2D inFace;
+layout (binding = 1, rgba32f) uniform restrict writeonly image2D outFace;
 layout (binding = 2) uniform samplerCube fullCubemap;
 
 // ----------------------------------------------------------------------------
@@ -111,7 +111,7 @@ void main() {
     float totalWeight = 0.0f;
     vec3 prefilteredColor = vec3(0.0f, 0.0f, 0.0f);
 
-    const uint SAMPLE_COUNT = 1024;
+    const uint SAMPLE_COUNT = 2048;
     for (uint i = 0u; i < SAMPLE_COUNT; i++) {
         vec2 Xi = Hammersley(i, SAMPLE_COUNT);
         vec3 H = ImportanceSampleGGX(Xi, N, roughness);
@@ -119,7 +119,7 @@ void main() {
         
         float NdotL = max(dot(N, L), 0.0f);
         if (NdotL > 0.0f) {
-            prefilteredColor += textureLod(fullCubemap, L, 0.0).xyz * NdotL;
+            prefilteredColor += clamp(textureLod(fullCubemap, L, 0.0).xyz, vec3(0.0), vec3(5.0)) * NdotL;
             totalWeight += NdotL;
         }
     }

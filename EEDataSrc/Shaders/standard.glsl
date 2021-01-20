@@ -200,9 +200,6 @@ vec3 calculateLighting(int lightIdx, vec3 viewDir, vec3 f0, float metallic, floa
 	int lightType = int(light.pack0.w);
     vec3 radiance = light.pack0.xyz;
     vec3 L = vec3(0.0f, 0.0f, 0.0f);
-
-    //if (dot(normal, viewDir) < 0.0)
-        //normal = -normal;
 	
     if (lightType == LT_POINT) {
     	vec3 lightPos = light.pack2.xyz;
@@ -268,11 +265,11 @@ vec3 calcAmbient(vec3 f0, float roughness, vec3 viewDir, float metallic, vec3 al
     vec2 brdf  = textureLod(brdfLutSampler, vec2(min(max(dot(normal, viewDir), 0.0), 0.95), roughness), 0.0).rg;
     float f90 = clamp(50.0 * f0.g, 0.0, 1.0);
 
-    vec3 specularColor = (f0 * brdf.x) + (brdf.y * f90);
+    vec3 specularColor = (f0 * brdf.x) + (f90 * brdf.y);
 
     float horizon = min(1.0 + dot(R, normal), 1.0);
     specularAmbient *= horizon * horizon;
-    vec3 diffuseAmbient = textureLod(cubemapSampler[cubemapIdx], normal, MAX_REFLECTION_LOD * 0.75).xyz * albedoColor;
+    vec3 diffuseAmbient = textureLod(cubemapSampler[cubemapIdx], normal, 7.0).xyz * albedoColor;
 
     return kD * diffuseAmbient + (specularAmbient * specularColor);
 }
@@ -287,13 +284,6 @@ vec3 decodeNormal (vec2 texVal) {
 vec3 getNormalMapNormal(Material mat, vec2 tCoord, mat3 tbn) {
     vec3 texNorm = decodeNormal(texture(tex2dSampler[mat.normalTexIdx], tCoord).xy);
     return tbn * texNorm;
-}
-
-vec2 pm(vec2 texCoords, vec3 viewDir, Material mat) { 
-    float height = 1.0 - texture(tex2dSampler[mat.heightmapIdx], texCoords).r;
-	//viewDir = -viewDir;
-    vec2 p = viewDir.xy / viewDir.z * (height * mat.heightScale);
-    return texCoords - p;    
 }
 
 vec2 ParallaxMapping(vec2 texCoords, vec3 viewDir, sampler2D depthMap, float heightScale)

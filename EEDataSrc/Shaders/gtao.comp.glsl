@@ -26,7 +26,7 @@ layout (push_constant) uniform PC {
     float SSAO_LIMIT;
     float SSAO_FALLOFF;
     float SSAO_THICKNESSMIX;
-	mat4 proj;
+	mat4 invProj;
 };
 
 #define PI 3.1415926535897932384626433832795
@@ -84,6 +84,15 @@ vec3 GetCameraVec(vec2 uv)
 //	return position_v.xyz / position_v.w;
 //}
 
+vec3 reconstructViewSpacePos(vec2 uv, float z) {
+	vec4 clipSpacePos = vec4(uv * 2.0 - 1.0, 1.0 - z, 1.0);
+	vec4 viewSpacePos = invProj * clipSpacePos;
+	
+	viewSpacePos /= viewSpacePos.w;
+	
+	return viewSpacePos.xyz;
+}
+
 //#define SSAO_LIMIT 5 
 #define SSAO_SAMPLES 4 
 //#define SSAO_RADIUS 0.25
@@ -95,7 +104,13 @@ float sampleDepth(vec2 uv)
 {
 	ivec2 tc = ivec2(clamp(ivec2(uv * viewSize), ivec2(0), viewSize));
 	float dval = (texelFetch(inDepth, ivec3(tc, gl_GlobalInvocationID.z), 0).x);
-	return (dval == 0.0 || dval == 1.0) ? 1000000.0 : 0.01 / dval;
+	return (dval == 0.0 || dval == 1.0) ? 1000000.0 : (0.01 / dval);
+}
+
+float sampleDepthCS(vec2 uv)
+{
+	ivec2 tc = ivec2(clamp(ivec2(uv * viewSize), ivec2(0), viewSize));
+	return texelFetch(inDepth, ivec3(tc, gl_GlobalInvocationID.z), 0).x;
 }
 
 void SliceSample(vec2 tc_base, vec2 aoDir, int i, float targetMip, vec3 ray, vec3 v, inout float closest)
@@ -114,7 +129,9 @@ void SliceSample(vec2 tc_base, vec2 aoDir, int i, float targetMip, vec3 ray, vec
 	closest = mix(closest, current, SSAO_THICKNESSMIX * falloff);
 }
 
-
+vec3 getPosAt(vec2 uv) {
+	return reconstructViewSpacePos(uv, sampleDepthCS(uv));
+}
 
 void main() 
 {
@@ -133,6 +150,17 @@ void main()
 	const float normalSampleDist = 1.0;
 	
 	// Calculate normal from the 4 neighbourhood pixels
+	//vec2 uv = tc_original + vec2(viewsizediv.x * normalSampleDist, 0.0);
+	//vec3 p1 = reconstructViewSpacePos(uv, sampleDepthCS(uv));
+	//
+	//uv = tc_original + vec2(0.0, viewsizediv.y * normalSampleDist);
+	//vec3 p2 = reconstructViewSpacePos(uv, sampleDepthCS(uv));
+	//
+	//uv = tc_original + vec2(-viewsizediv.x * normalSampleDist, 0.0);
+	//vec3 p3 = reconstructViewSpacePos(uv, sampleDepthCS(uv));
+	
+	//vec3 normal = cross(p3 - p1, p2 - p1);
+	
 	vec2 uv = tc_original + vec2(viewsizediv.x * normalSampleDist, 0.0);
 	vec3 p1 = ray - GetCameraVec(uv) * sampleDepth(uv);
 	
@@ -187,6 +215,7 @@ void main()
 	{
 		SliceSample(tc_base, aoDir, i, targetMip, ray, v, c1);
 	}
+	
 	for(int i = 1; i <= SSAO_SAMPLES; i++)
 	{
 		SliceSample(tc_base, aoDir, i, targetMip, ray, v, c2);
