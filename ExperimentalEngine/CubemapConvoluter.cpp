@@ -142,6 +142,11 @@ namespace worlds {
 
             uint64_t duration = qr.value[1] - qr.value[0];
             logMsg("convolution of %i took %.3f ms", i, (duration * period) / 1000.0f / 1000.0f);
+
+            // Delay to try and avoid random lockups that occur on AMD
+            if ((duration * period) / 1000.0f / 1000.0f > 50.0f) {
+                SDL_Delay(50);
+            }
         }
 
         vkCtx->device.destroyDescriptorPool(tmpDescriptorPool);
