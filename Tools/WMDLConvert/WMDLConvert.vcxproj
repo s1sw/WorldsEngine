@@ -143,7 +143,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\ExperimentalEngine\mikktspace.c" />
+    <ClCompile Include="..\..\ExperimentalEngine\weldmesh.cpp" />
     <ClCompile Include="convert.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\ExperimentalEngine\mikktspace.h" />
+    <ClInclude Include="..\..\ExperimentalEngine\weldmesh.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />

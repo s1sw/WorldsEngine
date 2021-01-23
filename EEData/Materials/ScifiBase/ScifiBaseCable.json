@@ -1,8 +1,7 @@
 {
 	"albedoPath" : "Textures/scifibase/Cable_BaseColor.png",
 	"normalMapPath" : "Textures/scifibase/Cable_Normal_forcelin.png",
-	"metalMapPath" : "Textures/scifibase/Cable_Metallic.png",
-	"roughMapPath" : "Textures/scifibase/Cable_Roughness.png",
+	"pbrMapPath" : "Textures/scifibase/Cable_PBRPack.png",
 	"metallic" : 1.0,
 	"roughness" : 0.2,
 	"albedoColor" : [1.0, 1.0, 1.0]

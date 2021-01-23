@@ -25,6 +25,7 @@
 #include "IconsFontAwesome5.h"
 #include "IconsFontaudio.h"
 #include "ComponentFuncs.hpp"
+#include "D6Joint.hpp"
 #undef near
 #undef far
 
@@ -78,6 +79,7 @@ namespace worlds {
         REGISTER_COMPONENT_TYPE(AudioSource, "AudioSource", true, editAudioSource, createAudioSource, cloneAudioSource);
         REGISTER_COMPONENT_TYPE(NameComponent, "NameComponent", true, editNameComponent, createNameComponent, cloneNameComponent);
         REGISTER_COMPONENT_TYPE(WorldCubemap, "WorldCubemap", true, editWorldCubemap, createWorldCubemap, nullptr);
+        REGISTER_COMPONENT_TYPE(D6Joint, "D6Joint", true, editD6Joint, createD6Joint, nullptr);
         interfaces.engine->pauseSim = true;
 
         RTTPassCreateInfo sceneViewPassCI;
@@ -112,7 +114,7 @@ namespace worlds {
     void Editor::select(entt::entity entity) {
         if (reg.valid(currentSelectedEntity) && ImGuizmo::IsUsing()) return;
         // Remove selection from existing entity
-        if (reg.valid(currentSelectedEntity)) {
+        if (reg.valid(currentSelectedEntity) && reg.has<UseWireframe>(currentSelectedEntity)) {
             reg.remove<UseWireframe>(currentSelectedEntity);
         }
 
@@ -451,9 +453,6 @@ namespace worlds {
                     !inputManager.mouseButtonHeld(MouseButton::Right, true)) {
                     auto newEnt = reg.create();
 
-                    copyComponent<Transform>(currentSelectedEntity, newEnt, reg);
-                    copyComponent<WorldObject>(currentSelectedEntity, newEnt, reg);
-
                     for (auto& mdata : ComponentMetadataManager::metadata) {
                         std::array<ENTT_ID_TYPE, 1> t { mdata.second.typeId };
                         auto rtView = reg.runtime_view(t.begin(), t.end());
@@ -471,6 +470,7 @@ namespace worlds {
                 if (inputManager.keyPressed(SDL_SCANCODE_DELETE)) {
                     activateTool(Tool::None);
                     reg.destroy(currentSelectedEntity);
+                    currentSelectedEntity = entt::null;
                 }
             }
 

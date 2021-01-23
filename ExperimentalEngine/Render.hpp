@@ -144,6 +144,7 @@ namespace worlds {
         int numCulledObjs;
         uint64_t vramUsage;
         int numRTTPasses;
+        int numPipelineSwitches;
     };
 
     // Holds handles to useful Vulkan objects

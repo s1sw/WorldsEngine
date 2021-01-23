@@ -11,6 +11,8 @@
 #include "imgui.h"
 #include <SDL2/SDL_cpuinfo.h>
 #include "Fatal.hpp"
+#include "Physics.hpp"
+#include "D6Joint.hpp"
 
 #define ENABLE_PVD 0
 
@@ -43,6 +45,18 @@ namespace worlds {
     void setPhysXActorUserdata(entt::registry& reg, entt::entity ent) {
         auto& pa = reg.get<T>(ent);
         pa.actor->userData = entToPtr(ent);
+    }
+
+    void setupD6Joint(entt::registry& reg, entt::entity ent) {
+        auto& j = reg.get<D6Joint>(ent);
+        if (!reg.has<DynamicPhysicsActor>(ent)) {
+            logErr("D6 joint added to entity without a dynamic physics actor");
+            return;
+        }
+
+        auto& dpa = reg.get<DynamicPhysicsActor>(ent);
+        j.pxJoint = physx::PxD6JointCreate(*g_physics, dpa.actor, physx::PxTransform{ physx::PxIdentity }, nullptr, physx::PxTransform{ physx::PxIdentity });
+        j.thisActor = dpa.actor;
     }
 
     void cmdTogglePhysVis(void*, const char*) {
@@ -107,10 +121,14 @@ namespace worlds {
                    | physx::PxSceneFlag::eENABLE_CCD;
         desc.frictionType = physx::PxFrictionType::ePATCH;
         g_scene = g_physics->createScene(desc);
+
         reg.on_destroy<PhysicsActor>().connect<&destroyPhysXActor<PhysicsActor>>();
         reg.on_destroy<DynamicPhysicsActor>().connect<&destroyPhysXActor<DynamicPhysicsActor>>();
         reg.on_construct<PhysicsActor>().connect<&setPhysXActorUserdata<PhysicsActor>>();
         reg.on_construct<DynamicPhysicsActor>().connect<&setPhysXActorUserdata<DynamicPhysicsActor>>();
+
+        reg.on_construct<D6Joint>().connect<&setupD6Joint>();
+
         g_console->registerCommand(cmdTogglePhysVis, "phys_toggleVis", "Toggles all physics visualisations.", nullptr);
         g_console->registerCommand(cmdToggleShapeVis, "phys_toggleShapeVis", "Toggles physics shape visualisations.", nullptr);
 

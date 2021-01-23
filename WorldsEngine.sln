@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.30128.74
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ExperimentalEngine", "ExperimentalEngine\ExperimentalEngine.vcxproj", "{E0AF9774-6B2D-466F-8C95-BB446E857FA9}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "WorldsEngine", "ExperimentalEngine\ExperimentalEngine.vcxproj", "{E0AF9774-6B2D-466F-8C95-BB446E857FA9}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Converge", "Converge\Converge.vcxproj", "{E1A5326C-4834-4735-9B59-02379AB29931}"
 EndProject
@@ -75,8 +75,8 @@ Global
 		{B241923E-98D1-4235-B454-68880F590990}.Debug|x64.Build.0 = Debug|x64
 		{B241923E-98D1-4235-B454-68880F590990}.Debug|x86.ActiveCfg = Debug|Win32
 		{B241923E-98D1-4235-B454-68880F590990}.Debug|x86.Build.0 = Debug|Win32
-		{B241923E-98D1-4235-B454-68880F590990}.Profile|x64.ActiveCfg = Debug|x64
-		{B241923E-98D1-4235-B454-68880F590990}.Profile|x64.Build.0 = Debug|x64
+		{B241923E-98D1-4235-B454-68880F590990}.Profile|x64.ActiveCfg = Profile|x64
+		{B241923E-98D1-4235-B454-68880F590990}.Profile|x64.Build.0 = Profile|x64
 		{B241923E-98D1-4235-B454-68880F590990}.Profile|x86.ActiveCfg = Debug|Win32
 		{B241923E-98D1-4235-B454-68880F590990}.Profile|x86.Build.0 = Debug|Win32
 		{B241923E-98D1-4235-B454-68880F590990}.Release|x64.ActiveCfg = Release|x64

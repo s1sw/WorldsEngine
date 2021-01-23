@@ -96,13 +96,11 @@ namespace worlds {
         WorldObject(AssetID material, AssetID mesh)
             : mesh(mesh)
             , texScaleOffset(1.0f, 1.0f, 0.0f, 0.0f) {
-            materials[0] = material;
             for (int i = 0; i < NUM_SUBMESH_MATS; i++) {
-                presentMaterials[i] = false;
+                materials[i] = material;
+                presentMaterials[i] = true;
                 materialIdx[i] = ~0u;
             }
-
-            presentMaterials[0] = true;
         }
 
         AssetID materials[NUM_SUBMESH_MATS];

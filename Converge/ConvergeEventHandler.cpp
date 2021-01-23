@@ -295,6 +295,7 @@ namespace converge {
             lpc.xzMoveInput = glm::vec2(0.0f, 0.0f);
 
             if (vrInterface) {
+                auto& fenderTransform = registry.get<Transform>(other.fender);
                 this->camera->rotation = glm::quat{};
                 auto matId = worlds::g_assetDB.addOrGetExisting("Materials/dev.json");
                 auto saberId = worlds::g_assetDB.addOrGetExisting("saber.wmdl");
@@ -305,7 +306,7 @@ namespace converge {
                 lhWO.materials[1] = matId;
                 lhWO.presentMaterials[1] = true;
                 auto& lht = registry.emplace<Transform>(lHandEnt);
-                lht.position = glm::vec3(0.5f, 1.0f, 0.0f);
+                lht.position = glm::vec3(0.5, 0.0f, 0.0f) + fenderTransform.position;
                 registry.emplace<worlds::NameComponent>(lHandEnt).name = "L. Handy";
 
                 rHandEnt = registry.create();
@@ -314,7 +315,7 @@ namespace converge {
                 rhWO.materials[1] = matId;
                 rhWO.presentMaterials[1] = true;
                 auto& rht = registry.emplace<Transform>(rHandEnt);
-                rht.position = glm::vec3(-0.5f, 1.0f, 0.0f);
+                rht.position = glm::vec3(-0.5f, 0.0f, 0.0f) + fenderTransform.position;
                 registry.emplace<worlds::NameComponent>(rHandEnt).name = "R. Handy";
 
                 auto lActor = worlds::g_physics->createRigidDynamic(physx::PxTransform{ physx::PxIdentity });
@@ -357,17 +358,19 @@ namespace converge {
 
                 auto fenderActor = registry.get<worlds::DynamicPhysicsActor>(other.fender).actor;
 
-                lHandJoint = physx::PxD6JointCreate(*worlds::g_physics, fenderActor, physx::PxTransform { physx::PxIdentity }, lActor, physx::PxTransform { physx::PxIdentity });
-                lHandJoint->setLinearLimit(physx::PxJointLinearLimit{physx::PxTolerancesScale{}, 1.25f});
+                lHandJoint = physx::PxD6JointCreate(*worlds::g_physics, fenderActor, physx::PxTransform { physx::PxIdentity }, lActor, 
+                physx::PxTransform { physx::PxIdentity });
+                lHandJoint->setLinearLimit(physx::PxJointLinearLimit{physx::PxTolerancesScale{}, 1.5f});
                 lHandJoint->setMotion(physx::PxD6Axis::eX, physx::PxD6Motion::eLIMITED);
                 lHandJoint->setMotion(physx::PxD6Axis::eY, physx::PxD6Motion::eLIMITED);
                 lHandJoint->setMotion(physx::PxD6Axis::eZ, physx::PxD6Motion::eLIMITED);
                 lHandJoint->setMotion(physx::PxD6Axis::eSWING1, physx::PxD6Motion::eFREE);
                 lHandJoint->setMotion(physx::PxD6Axis::eSWING2, physx::PxD6Motion::eFREE);
                 lHandJoint->setMotion(physx::PxD6Axis::eTWIST, physx::PxD6Motion::eFREE);
-
-                rHandJoint = physx::PxD6JointCreate(*worlds::g_physics, fenderActor, physx::PxTransform { physx::PxIdentity }, rActor, physx::PxTransform { physx::PxIdentity });
-                rHandJoint->setLinearLimit(physx::PxJointLinearLimit{physx::PxTolerancesScale{}, 1.25f});
+                
+                rHandJoint = physx::PxD6JointCreate(*worlds::g_physics, fenderActor, physx::PxTransform { physx::PxIdentity }, rActor, 
+                physx::PxTransform { physx::PxIdentity });
+                rHandJoint->setLinearLimit(physx::PxJointLinearLimit{physx::PxTolerancesScale{}, 1.5f});
                 rHandJoint->setMotion(physx::PxD6Axis::eX, physx::PxD6Motion::eLIMITED);
                 rHandJoint->setMotion(physx::PxD6Axis::eY, physx::PxD6Motion::eLIMITED);
                 rHandJoint->setMotion(physx::PxD6Axis::eZ, physx::PxD6Motion::eLIMITED);

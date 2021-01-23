@@ -81,6 +81,12 @@
     <Filter Include="Source Files\Editor">
       <UniqueIdentifier>{79ce4996-e15c-492f-8f2f-bb293146b968}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Physics">
+      <UniqueIdentifier>{96fb58f7-a547-496f-beb8-1ecf4e43d46a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Physics">
+      <UniqueIdentifier>{8768aef4-86bb-4f92-b32f-4f04964da49a}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="EntityList.cpp">
@@ -106,9 +112,6 @@
     </ClCompile>
     <ClCompile Include="ShadowmapRenderPass.cpp">
       <Filter>Source Files\RenderPasses</Filter>
-    </ClCompile>
-    <ClCompile Include="Physics.cpp">
-      <Filter>Source Files\Systems</Filter>
     </ClCompile>
     <ClCompile Include="CubemapLoader.cpp">
       <Filter>Source Files\Loaders</Filter>
@@ -281,6 +284,12 @@
     <ClCompile Include="RenderTexture.cpp">
       <Filter>Source Files\Systems\Render</Filter>
     </ClCompile>
+    <ClCompile Include="Physics.cpp">
+      <Filter>Source Files\Physics</Filter>
+    </ClCompile>
+    <ClCompile Include="D6Joint.cpp">
+      <Filter>Source Files\Physics</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Transform.hpp">
@@ -330,9 +339,6 @@
     </ClInclude>
     <ClInclude Include="imgui_stdlib.h">
       <Filter>Header Files\Dear ImGUI</Filter>
-    </ClInclude>
-    <ClInclude Include="Physics.hpp">
-      <Filter>Header Files\Systems</Filter>
     </ClInclude>
     <ClInclude Include="RenderPasses.hpp">
       <Filter>Header Files\Systems\Render</Filter>
@@ -492,6 +498,12 @@
     </ClInclude>
     <ClInclude Include="JsonUtil.hpp">
       <Filter>Header Files\Util</Filter>
+    </ClInclude>
+    <ClInclude Include="Physics.hpp">
+      <Filter>Header Files\Physics</Filter>
+    </ClInclude>
+    <ClInclude Include="D6Joint.hpp">
+      <Filter>Header Files\Physics</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

@@ -134,7 +134,7 @@ namespace worlds {
         vr::InputDigitalActionData_t data;
         vr::VRInput()->GetDigitalActionData(jumpAction, &data, sizeof(data), vr::k_ulInvalidInputValueHandle);
 
-        return data.bChanged && data.bActive;
+        return data.bChanged && data.bState;
     }
 
     bool OpenVRInterface::getSprintInput() {
@@ -161,7 +161,6 @@ namespace worlds {
     bool OpenVRInterface::getActionPressed(InputActionHandle handle) {
         vr::InputDigitalActionData_t data;
         vr::VRInput()->GetDigitalActionData(handle, &data, sizeof(data), vr::k_ulInvalidInputValueHandle);
-
         return data.bState && data.bChanged;
     }
 

@@ -346,7 +346,8 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
 
     int qfi = 0;
     for (auto& qprop : qprops) {
-        logMsg(worlds::WELogCategoryRender, "Queue family with properties %s (supports present: %i)", vk::to_string(qprop.queueFlags).c_str(), physicalDevice.getSurfaceSupportKHR(qfi, surface));
+        logMsg(worlds::WELogCategoryRender, "Queue family with properties %s (supports present: %i)", 
+            vk::to_string(qprop.queueFlags).c_str(), physicalDevice.getSurfaceSupportKHR(qfi, surface));
         qfi++;
     }
 
@@ -1003,6 +1004,7 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
 
     dbgStats.numCulledObjs = 0;
     dbgStats.numDrawCalls = 0;
+    dbgStats.numPipelineSwitches = 0;
     destroyTempTexBuffers(frameIdx);
 
     uint32_t imageIndex;
@@ -1209,6 +1211,12 @@ void VKRenderer::unloadUnusedMaterials(entt::registry& reg) {
 
             if (roughTexIdx > -1) {
                 textureReferenced[roughTexIdx] = true;
+            }
+
+            int aoTexIdx = (*matSlots)[wo.materialIdx[i]].aoTexIdx;
+
+            if (aoTexIdx > -1) {
+                textureReferenced[aoTexIdx] = true;
             }
         }
         });

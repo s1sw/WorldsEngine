@@ -3,6 +3,7 @@
 #include "tracy/Tracy.hpp"
 #include <sajson.h>
 #include <optional>
+#include "JsonUtil.hpp"
 
 namespace worlds {
     std::optional<std::string> getString(const sajson::value& obj, const char* key) {
@@ -56,7 +57,10 @@ namespace worlds {
         float alphaCutoff = 0.0f;
         if (alphaCutoffIdx != rootLength)
             alphaCutoff = root.get_object_value(alphaCutoffIdx).get_double_value();
-        mat.alphaCutoff = alphaCutoff;
+
+        mat.setCutoff(alphaCutoff);
+        mat.setFlags(MaterialFlags::None);
+        logMsg("set %.3f, got %.3f", alphaCutoff, mat.getCutoff());
 
         mat.metallic = (float)root.get_object_value(metallicIdx).get_double_value();
         mat.roughness = (float)root.get_object_value(roughnessIdx).get_double_value();
@@ -104,9 +108,12 @@ namespace worlds {
 
         mat.metalTexIdx = ~0u;
         mat.roughTexIdx = ~0u;
+        mat.aoTexIdx = ~0u;
 
         auto metalMap = getString(root, "metalMapPath");
         auto roughMap = getString(root, "roughMapPath");
+        auto aoMap = getString(root, "aoMapPath");
+        auto pbrMap = getString(root, "pbrMapPath");
 
         if (metalMap)
             mat.metalTexIdx = texSlots.loadOrGet(g_assetDB.addOrGetExisting(*metalMap));
@@ -114,17 +121,23 @@ namespace worlds {
         if (roughMap)
             mat.roughTexIdx = texSlots.loadOrGet(g_assetDB.addOrGetExisting(*roughMap));
 
+        if (aoMap)
+            mat.aoTexIdx = texSlots.loadOrGet(g_assetDB.addOrGetExisting(*aoMap));
+
+        if (pbrMap) {
+            mat.roughTexIdx = texSlots.loadOrGet(g_assetDB.addOrGetExisting(*pbrMap));
+            mat.setFlags(mat.getFlags() | MaterialFlags::UsePackedPBR);
+        }
+
         float heightmapScale = 0.0f;
         if (heightmapScaleIdx != rootLength)
             heightmapScale = root.get_object_value(heightmapScaleIdx).get_double_value();
         mat.heightmapScale = heightmapScale;
         
         auto bfCullOffIdx = root.find_object_key(sajson::string("cullOff", 7));
-
         extraDat.noCull = bfCullOffIdx != rootLength;
 
         auto wireframeIdx = root.find_object_key(sajson::string("wireframe", 9));
-
         extraDat.wireframe = wireframeIdx != rootLength;
 
         std::free(buffer);

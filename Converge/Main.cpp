@@ -5,6 +5,8 @@
 int main(int argc, char** argv) {
     worlds::EngineInitOptions initOptions;
 
+    std::vector<char*> startupCommands;
+
     bool ds = false;
     for (int i = 0; i < argc; i++) {
         if (strcmp(argv[i], "--editor") == 0) {
@@ -19,6 +21,10 @@ int main(int argc, char** argv) {
            ds = true; 
            initOptions.dedicatedServer = true;
         }
+
+        if (argv[i][0] == '+') {
+            startupCommands.push_back(argv[i] + 1);
+        }
     }
 
     if (ds && (initOptions.enableVR || initOptions.runAsEditor)) {
@@ -30,6 +36,10 @@ int main(int argc, char** argv) {
     initOptions.eventHandler = &evtHandler;
 
     worlds::WorldsEngine engine(initOptions, argv[0]);
+
+    for (auto& cmd : startupCommands) {
+        worlds::g_console->executeCommandStr(cmd);
+    }
     
     engine.mainLoop();
 
