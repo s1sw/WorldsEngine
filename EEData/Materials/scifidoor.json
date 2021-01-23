@@ -1,9 +1,8 @@
 {
-	"albedoPath" : "Textures/scifiwall/albedo.jpg",
-	"roughMapPath" : "Textures/scifiwall/roughness.jpg",
-	"metalMapPath" : "Textures/scifiwall/metallic.jpg",
-	"normalMapPath" : "Textures/scifiwall/normal_forcelin.jpg",
-	"heightmapPath" : "Textures/scifiwall/height.png",
+	"albedoPath" : "Textures/scifidoor/albedo.jpg",
+	"pbrMapPath" : "Textures/scifidoor/PBRPack.png",
+	"normalMapPath" : "Textures/scifidoor/norm_forcelin.jpg",
+	"heightmapPath" : "Textures/scifidoor/height.png",
 	"heightmapScale" : 0.05,
 	"metallic" : 0.0,
 	"roughness" : 1.0,

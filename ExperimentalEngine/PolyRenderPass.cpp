@@ -257,8 +257,8 @@ namespace worlds {
 
         AssetID vsID = g_assetDB.addOrGetExisting("Shaders/standard.vert.spv");
         AssetID fsID = g_assetDB.addOrGetExisting("Shaders/standard.frag.spv");
-        vertexShader = ShaderCache::getModule(ctx.device, vsID);//vku::loadShaderAsset(ctx.device, vsID);
-        fragmentShader = ShaderCache::getModule(ctx.device, fsID);//vku::loadShaderAsset(ctx.device, fsID);
+        vertexShader = ShaderCache::getModule(ctx.device, vsID);
+        fragmentShader = ShaderCache::getModule(ctx.device, fsID);
 
        {
             AssetID vsID = g_assetDB.addOrGetExisting("Shaders/depth_prepass.vert.spv");
@@ -613,6 +613,7 @@ namespace worlds {
         glm::vec4 texScaleOffset;
         entt::entity ent;
         vk::Pipeline pipeline;
+        glm::vec3 objectCenter;
         bool opaque;
     };
 
@@ -675,7 +676,7 @@ namespace worlds {
 
         int matrixIdx = 0;
         std::vector<SubmeshDrawInfo> drawInfo;
-        drawInfo.reserve(reg.view<Transform, WorldObject>().size());
+        drawInfo.reserve(reg.view<Transform, WorldObject>().size() * 2);
 
         matrixIdx = 0;
         cmdBuf->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 0, *descriptorSet, nullptr);
@@ -691,7 +692,7 @@ namespace worlds {
         }
 
         reg.view<Transform, WorldObject>().each([&, this](entt::entity ent, Transform& transform, WorldObject& obj) {
-            ZoneScoped;
+            ZoneScopedN("SDI generation");
             auto meshPos = ctx.loadedMeshes.find(obj.mesh);
 
             if (meshPos == ctx.loadedMeshes.end()) {
@@ -729,7 +730,9 @@ namespace worlds {
                 sdi.matrixIdx = matrixIdx;
                 sdi.texScaleOffset = obj.texScaleOffset;
                 sdi.ent = ent;
-                sdi.opaque = (*(*ctx.materialSlots))[obj.materialIdx[i]].alphaCutoff == 0.0f;
+                auto& packedMat = (*(*ctx.materialSlots))[obj.materialIdx[i]];
+                sdi.opaque = packedMat.getCutoff() == 0.0f;
+                sdi.objectCenter = transform.position;
 
                 auto& extraDat = ctx.materialSlots->get()->getExtraDat(obj.materialIdx[i]);
                 if (extraDat.noCull) {
@@ -758,7 +761,15 @@ namespace worlds {
             matrixIdx++;
             });
 
+        {
+            ZoneScopedN("SDI sort");
+            std::sort(drawInfo.begin(), drawInfo.end(), [](const SubmeshDrawInfo& a, const SubmeshDrawInfo& b) {
+                return a.pipeline < b.pipeline;
+                });
+        }
+
         if ((int)depthPrepass) {
+            ZoneScopedN("Depth prepass");
             cmdBuf->bindPipeline(vk::PipelineBindPoint::eGraphics, *depthPrePipeline);
 
             for (auto& sdi : drawInfo) {
@@ -777,28 +788,29 @@ namespace worlds {
         
         cmdBuf->nextSubpass(vk::SubpassContents::eInline);
 
-        uint32_t currCubemapIdx = 0;
-
-        reg.view<WorldCubemap, Transform>().each([&](auto, WorldCubemap& wc, Transform& t) {
-            glm::vec3 cPos = ctx.cam->position;
-            glm::vec3 ma = wc.extent + t.position;
-            glm::vec3 mi = t.position - wc.extent;
-
-            if (cPos.x < ma.x && cPos.x > mi.x &&
-                cPos.y < ma.y && cPos.y > mi.y &&
-                cPos.z < ma.z && cPos.z > mi.z) {
-                logMsg("in cubemap %u", wc.loadIdx);
-                currCubemapIdx = wc.loadIdx;
-            }
-        });
-
         cmdBuf->bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline);
         SubmeshDrawInfo last;
         last.pipeline = *pipeline;
         for (auto& sdi : drawInfo) {
+            ZoneScopedN("SDI cmdbuf write");
             if (last.pipeline != sdi.pipeline) {
                 cmdBuf->bindPipeline(vk::PipelineBindPoint::eGraphics, sdi.pipeline);
+                ctx.dbgStats->numPipelineSwitches++;
             }
+
+            uint32_t currCubemapIdx = 0;
+
+            reg.view<WorldCubemap, Transform>().each([&](auto, WorldCubemap& wc, Transform& t) {
+                glm::vec3 cPos = sdi.objectCenter;
+                glm::vec3 ma = wc.extent + t.position;
+                glm::vec3 mi = t.position - wc.extent;
+
+                if (cPos.x < ma.x && cPos.x > mi.x &&
+                    cPos.y < ma.y && cPos.y > mi.y &&
+                    cPos.z < ma.z && cPos.z > mi.z) {
+                    currCubemapIdx = wc.loadIdx;
+                }
+                });
 
             StandardPushConstants pushConst{ sdi.texScaleOffset, glm::ivec4(sdi.matrixIdx, sdi.materialIdx, 0, sdi.ent), glm::ivec4(pickX, pickY, pickThisFrame, 0), currCubemapIdx };
             cmdBuf->pushConstants<StandardPushConstants>(*pipelineLayout, vk::ShaderStageFlagBits::eFragment | vk::ShaderStageFlagBits::eVertex, 0, pushConst);
@@ -816,6 +828,19 @@ namespace worlds {
             matrixIdx++;
             return;
             if (!obj.visible) return;
+            uint32_t currCubemapIdx = 0;
+            reg.view<WorldCubemap, Transform>().each([&](auto, WorldCubemap& wc, Transform& t) {
+                glm::vec3 cPos = transform.position;
+                glm::vec3 ma = wc.extent + t.position;
+                glm::vec3 mi = t.position - wc.extent;
+
+                if (cPos.x < ma.x && cPos.x > mi.x &&
+                    cPos.y < ma.y && cPos.y > mi.y &&
+                    cPos.z < ma.z && cPos.z > mi.z) {
+                    currCubemapIdx = wc.loadIdx;
+                }
+                });
+
             StandardPushConstants pushConst{ glm::vec4(1.0f, 1.0f, 0.0f, 0.0f), glm::ivec4(matrixIdx, obj.materialIdx, 0, ent), glm::ivec4(pickX, pickY, pickThisFrame, 0), currCubemapIdx };
             cmdBuf->pushConstants<StandardPushConstants>(*pipelineLayout, vk::ShaderStageFlagBits::eFragment | vk::ShaderStageFlagBits::eVertex, 0, pushConst);
             cmdBuf->bindVertexBuffers(0, obj.vb.buffer(), vk::DeviceSize(0));

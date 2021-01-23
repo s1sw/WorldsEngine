@@ -14,10 +14,10 @@ namespace worlds {
 
     typedef void(*LoadSceneFunc)(AssetID, PHYSFS_File*, entt::registry&, bool);
 
-    const LoadSceneFunc idFuncs[] = {nullptr, loadScene01, loadScene02, loadScene03};
+    const LoadSceneFunc idFuncs[] = {nullptr, loadScene01, loadScene02, loadScene03, loadScene04};
 
     const unsigned char SCN_FORMAT_MAGIC[5] = { 'E','S','C','N', '\0' };
-    const int MAX_FORMAT_ID = 3;
+    const int MAX_FORMAT_ID = 4;
 
     void deserializeScene(AssetID id, entt::registry& reg, bool additive) {
         char magicCheck[5];

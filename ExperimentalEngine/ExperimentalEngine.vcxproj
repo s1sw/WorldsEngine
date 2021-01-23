@@ -221,7 +221,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>DISCORD_RPC;GLM_DEPTH_ZERO_TO_ONE;_CRT_SECURE_NO_WARNINGS;NOMINMAX;NDEBUG;_CONSOLE;TRACY_ENABLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(VULKAN_SDK)\Include;$(SolutionDir)DiscordSDK;$(SolutionDir)External\Include;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(VULKAN_SDK)\Include;$(SolutionDir)DiscordSDK;$(SolutionDir)External\Include;$(SolutionDir)ModelFormat</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>PCH.hpp</PrecompiledHeaderFile>
@@ -250,6 +250,7 @@
     <ClCompile Include="Console.cpp" />
     <ClCompile Include="CubemapConvoluter.cpp" />
     <ClCompile Include="CubemapLoader.cpp" />
+    <ClCompile Include="D6Joint.cpp" />
     <ClCompile Include="DefaultUITheme.cpp" />
     <ClCompile Include="EarlySDLUtil.cpp" />
     <ClCompile Include="Editor.cpp" />
@@ -316,6 +317,7 @@
     <ClInclude Include="Console.hpp" />
     <ClInclude Include="CreateModelObject.hpp" />
     <ClInclude Include="CubemapLoader.hpp" />
+    <ClInclude Include="D6Joint.hpp" />
     <ClInclude Include="EarlySDLUtil.hpp" />
     <ClInclude Include="Editor.hpp" />
     <ClInclude Include="EditorWindows.hpp" />

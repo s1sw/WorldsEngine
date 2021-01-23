@@ -7,8 +7,8 @@ layout (push_constant) uniform PC {
     int faceIdx;
 };
 
-layout (binding = 0, rgba32f) uniform restrict readonly image2D inFace;
-layout (binding = 1, rgba32f) uniform restrict writeonly image2D outFace;
+layout (binding = 0, rgba32f) uniform readonly image2D inFace;
+layout (binding = 1, rgba32f) uniform writeonly image2D outFace;
 layout (binding = 2) uniform samplerCube fullCubemap;
 
 // ----------------------------------------------------------------------------

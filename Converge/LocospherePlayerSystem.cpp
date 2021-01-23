@@ -208,7 +208,6 @@ namespace converge {
         }
 
         if (!vrInterface) {
-
             lookX += (float)(inputManager->getMouseDelta().x) * 0.005f * mouseSensitivity.getFloat();
             lookY += (float)(inputManager->getMouseDelta().y) * 0.005f * mouseSensitivity.getFloat();
 
@@ -485,15 +484,12 @@ namespace converge {
                 lastCamPos = nextCamPos;
 
                 if (vrInterface) {
-                    static glm::vec3 lastHeadPos = worlds::getMatrixTranslation(vrInterface->getHeadTransform());
+                    static glm::vec3 lastHeadPos = glm::vec3{ 0.0f };//worlds::getMatrixTranslation(vrInterface->getHeadTransform());
                     glm::vec3 headPos = worlds::getMatrixTranslation(vrInterface->getHeadTransform());
                     glm::vec3 locosphereOffset = lastHeadPos - headPos;
                     lastHeadPos = headPos;
                     locosphereOffset.y = 0.0f;
 
-                    nextCamPos += glm::vec3(headPos.x, 0.0f, headPos.z);
-
-                    ImGui::Text("Locosphere Offset: %.3f, %.3f, %.3f", locosphereOffset.x, locosphereOffset.y, locosphereOffset.z);
                     lspherePose.p += worlds::glm2px(locosphereOffset);
                     locosphereTransform.position += locosphereOffset;
                     locosphereActor->setGlobalPose(lspherePose);
@@ -502,12 +498,16 @@ namespace converge {
                     fenderActor->setGlobalPose(fenderPose);
                 }
 
-                nextCamPos = worlds::px2glm(fenderPose.p + physx::PxVec3(0.0f, -LOCOSPHERE_RADIUS - 0.4f, 0.0f));
+                nextCamPos = worlds::px2glm(lspherePose.p + physx::PxVec3(0.0f, -LOCOSPHERE_RADIUS, 0.0f));
 
                 if (!vrInterface) {
                     // Make all non-VR users 1.75m tall
                     // Then subtract 5cm from that to account for eye offset
                     nextCamPos += glm::vec3(0.0f, 1.7f, 0.0f);
+                } else {
+                    // Cancel out the movement of the head
+                    glm::vec3 headPos = worlds::getMatrixTranslation(vrInterface->getHeadTransform());
+                    nextCamPos += glm::vec3{ headPos.x, 0.0f, headPos.z };
                 }
 
                 physDbgIdx++;

@@ -1,10 +1,7 @@
 {
-	"albedoPath" : "Textures/catwalk/catwalk_rails_BaseColor.png",
-	"heightmapPath" : "Textures/catwalk/catwalk_rails_Height.png",
-	"normalMapPath" : "Textures/catwalk/catwalk_rails_Normal_forcelin.png",
-	"metalMapPath" : "Textures/catwalk/catwalk_rails_Metallic.png",
-	"roughMapPath" : "Textures/catwalk/catwalk_rails_Roughness.png",
-	"heightmapScale" : 0.005,
+	"albedoPath" : "Textures/catwalk/rails_BaseColor.png",
+	"normalMapPath" : "Textures/catwalk/rails_Normal_forcelin.png",
+	"pbrMapPath" : "Textures/catwalk/rails_PBRPack.png",
 	"metallic" : 1.0,
 	"roughness" : 0.2,
 	"albedoColor" : [1.0, 1.0, 1.0]

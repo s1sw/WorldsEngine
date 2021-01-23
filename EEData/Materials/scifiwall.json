@@ -5,6 +5,7 @@
 	"normalMapPath" : "Textures/scifiwall/normal_forcelin.jpg",
 	"heightmapPath" : "Textures/scifiwall/height.png",
 	"heightmapScale" : 0.05,
+	"aoMapPath" : "Textures/scifiwall/ao.jpg",
 	"metallic" : 0.0,
 	"roughness" : 1.0,
 	"albedoColor" : [1.0, 1.0, 1.0]

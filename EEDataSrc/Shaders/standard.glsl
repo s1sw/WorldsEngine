@@ -67,7 +67,7 @@ struct Material {
     int normalTexIdx;
 
     vec3 albedoColor;
-    float alphaCutoff;
+    uint cutoffFlags;
 
     int heightmapIdx;
     float heightScale;
@@ -75,7 +75,7 @@ struct Material {
     int roughTexIdx;
 
     vec3 emissiveColor;
-    float pad2;
+    int aoTexIdx;
 };
 
 layout(std140, binding = 2) uniform MaterialSettingsBuffer {
@@ -354,6 +354,9 @@ bool isTextureEnough(ivec2 texSize) {
 void main() {
     //pickBuf.objectID = 0;
     Material mat = materials[matIdx];
+	
+	float alphaCutoff = (mat.cutoffFlags & (0xFF)) / 255.0f;
+	uint flags = (mat.cutoffFlags & (0x7FFFFF80)) >> 8;
 
 #ifdef MIP_MAP_DBG
     float mipLevel = min(3, mip_map_level());
@@ -386,26 +389,40 @@ void main() {
     vec3 tViewDir = normalize((tbnT * viewPos[gl_ViewIndex].xyz) - (tbnT * inWorldPos.xyz));
 	
 	vec2 tCoord = inUV;
-	if (mat.heightmapIdx > -1) 
-		tCoord = ParallaxMapping(inUV, tViewDir, tex2dSampler[mat.heightmapIdx], mat.heightScale);
-	
-    vec4 albedoCol = texture(tex2dSampler[mat.albedoTexIdx], tCoord) * vec4(mat.albedoColor, 1.0);
 	
 	float roughness = mat.roughness;
-	if (mat.roughTexIdx > -1)
-		roughness = pow(texture(tex2dSampler[mat.roughTexIdx], tCoord).x, 1.0 / 2.2);
-	
-	
 	float metallic = mat.metallic;
-	if (mat.metalTexIdx > -1)
-		metallic = pow(texture(tex2dSampler[mat.metalTexIdx], tCoord).x, 1.0 / 2.2);
+	float ao = 1.0;
+	
+	if (mat.heightmapIdx > -1) 
+			tCoord = ParallaxMapping(inUV, tViewDir, tex2dSampler[mat.heightmapIdx], mat.heightScale);
+		
+	if ((flags & 0x1) == 0x1) {
+		// Treat the rough texture as a packed PBR file
+		// R = Metallic, G = Roughness, B = AO, A = Height (optional)
+		vec3 packVals = pow(texture(tex2dSampler[mat.roughTexIdx], tCoord).xyz, vec3(1.0 / 2.2));
+		metallic = packVals.r;
+		roughness = packVals.g;
+		ao = packVals.b;
+	} else {
+		if (mat.roughTexIdx > -1)
+			roughness = pow(texture(tex2dSampler[mat.roughTexIdx], tCoord).x, 1.0 / 2.2);
+		
+		if (mat.metalTexIdx > -1)
+			metallic = pow(texture(tex2dSampler[mat.metalTexIdx], tCoord).x, 1.0 / 2.2);
+		
+		if (mat.aoTexIdx > -1)
+			ao = pow(texture(tex2dSampler[mat.aoTexIdx], tCoord).x, 1.0 / 2.2);
+	}
+	
+	vec4 albedoCol = texture(tex2dSampler[mat.albedoTexIdx], tCoord) * vec4(mat.albedoColor, 1.0);
 	
 	vec3 f0 = mix(vec3(0.04), albedoCol.rgb, metallic);
 	vec3 lo = vec3(0.0);
 
     vec3 normal = mat.normalTexIdx > -1 ? getNormalMapNormal(mat, tCoord, tbn) : inNormal;
 	
-	float finalAlpha = mat.alphaCutoff > 0.0f ? albedoCol.a : 1.0f;
+	float finalAlpha = alphaCutoff > 0.0f ? albedoCol.a : 1.0f;
 	
 	if (finalAlpha == 0.0) discard;
 	
@@ -437,13 +454,14 @@ void main() {
 		lo += shadowIntensity * calculateLighting(i, viewDir, f0, metallic, roughness, albedoCol.rgb, normal);
 	}
 
-    if (mat.alphaCutoff > 0.0f) {
-        albedoCol.a = (albedoCol.a - mat.alphaCutoff) / max(fwidth(albedoCol.a), 0.0001) + 0.5;
+    if (alphaCutoff > 0.0f) {
+        albedoCol.a = (albedoCol.a - alphaCutoff) / max(fwidth(albedoCol.a), 0.0001) + 0.5;
     }
 #if 0//def BLINN_PHONG
     FragColor = vec4(lo, finalAlpha);
 #else
-	FragColor = vec4(lo + calcAmbient(f0, roughness, viewDir, metallic, albedoCol.xyz, normal) + mat.emissiveColor, finalAlpha);
+	vec3 ambient = calcAmbient(f0, roughness, viewDir, metallic, albedoCol.xyz, normal);
+	FragColor = vec4(lo + (ambient * ao) + mat.emissiveColor, finalAlpha);
     //FragColor = vec4(calcAmbient(f0, roughness, viewDir, metallic, albedoCol.xyz, normal) + mat.emissiveColor, finalAlpha);
 #endif
 

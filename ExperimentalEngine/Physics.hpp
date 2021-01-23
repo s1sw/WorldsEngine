@@ -7,6 +7,7 @@
 #include <physx/extensions/PxDefaultAllocator.h>
 #include <physx/pvd/PxPvdTransport.h>
 #include <physx/pvd/PxPvd.h>
+#include <physx/extensions/PxD6Joint.h>
 #include "Transform.hpp"
 #include "PhysicsActor.hpp"
 

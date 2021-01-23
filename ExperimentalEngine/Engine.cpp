@@ -749,6 +749,11 @@ namespace worlds {
                 renderer->setVRPredictAmount(fPredictedSecondsFromNow + fFrameDuration);
             }
 
+            if (glm::any(glm::isnan(cam.position))) {
+                cam.position = glm::vec3{ 0.0f };
+                logWarn("cam.position was NaN!");
+            }
+
             if (!dedicatedServer)
                 audioSystem->update(registry, cam.position, cam.rotation);
 
@@ -875,6 +880,7 @@ namespace worlds {
                     }
 
                     ImGui::Text("Draw calls: %i", dbgStats.numDrawCalls);
+                    ImGui::Text("%i pipeline switches", dbgStats.numPipelineSwitches);
                     ImGui::Text("Frustum culled objects: %i", dbgStats.numCulledObjs);
                     ImGui::Text("GPU memory usage: %.3fMB (%.3fMB allocated, %.3fMB available)", 
                         (double)totalUsage / 1024.0 / 1024.0,
@@ -919,6 +925,7 @@ namespace worlds {
     }
 
     void WorldsEngine::updateSimulation(float& interpAlpha, double deltaTime) {
+        ZoneScoped;
         double scaledDeltaTime = deltaTime * timeScale;
         if (lockSimToRefresh.getInt() || disableSimInterp.getInt()) {
             registry.view<DynamicPhysicsActor, Transform>().each([](auto, DynamicPhysicsActor& dpa, Transform& transform) {
@@ -957,6 +964,7 @@ namespace worlds {
             }
 
             while (simAccumulator >= simStepTime.getFloat()) {
+                ZoneScopedN("Simulation step");
                 previousState = currentState;
                 stepSimulation(simStepTime.getFloat() * timeScale);
                 simAccumulator -= simStepTime.getFloat();
@@ -983,7 +991,7 @@ namespace worlds {
                 transform.rotation = glm::slerp(px2glm(previousState[ent].q), px2glm(currentState[ent].q), (float)alpha);
                 });
             interpAlpha = alpha;
-        } else {
+        } else if (deltaTime < 0.1f) {
             stepSimulation(deltaTime * timeScale);
 
             if (evtHandler != nullptr && !runAsEditor) {
