@@ -19,48 +19,6 @@ namespace worlds {
 #define WRITE_FIELD(file, field) PHYSFS_writeBytes(file, &field, sizeof(field))
 #define READ_FIELD(file, field) PHYSFS_readBytes(file, &field, sizeof(field))
 
-    void saveScene(AssetID id, entt::registry& reg) {
-        PerfTimer timer;
-        PHYSFS_File* file = g_assetDB.openAssetFileWrite(id);
-
-        PHYSFS_writeBytes(file, SCN_FORMAT_MAGIC, 4);
-        PHYSFS_writeBytes(file, &LATEST_SCN_FORMAT_ID, 1);
-
-        uint32_t numEnts = (uint32_t)reg.view<Transform>().size();
-        PHYSFS_writeBytes(file, &numEnts, sizeof(numEnts));
-
-        reg.view<Transform>().each([file, &reg](entt::entity ent, Transform&) {
-            PHYSFS_writeBytes(file, &ent, sizeof(ent));
-
-            uint8_t numComponents = 0;
-
-            for (auto& mdata : ComponentMetadataManager::sorted) {
-                std::array<ENTT_ID_TYPE, 1> arr = { mdata->getComponentID() };
-                auto rView = reg.runtime_view(arr.begin(), arr.end());
-
-                if (!rView.contains(ent)) continue;
-                numComponents++;
-            }
-
-            PHYSFS_writeBytes(file, &numComponents, 1);
-
-            for (auto& mdata : ComponentMetadataManager::sorted) {
-                std::array<ENTT_ID_TYPE, 1> arr = { mdata->getComponentID() };
-                auto rView = reg.runtime_view(arr.begin(), arr.end());
-
-                if (!rView.contains(ent)) continue;
-
-                PHYSFS_writeULE32(file, mdata->getSerializedID());
-                mdata->writeToFile(ent, reg, file);
-            }
-        });
-
-        PHYSFS_close(file);
-
-        logMsg("Saved scene in %.3fms", timer.stopGetMs());
-
-        g_assetDB.save();
-    }
 
     void loadScene01(AssetID id, PHYSFS_File* file, entt::registry& reg, bool additive) {
         PerfTimer timer;

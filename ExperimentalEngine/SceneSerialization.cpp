@@ -37,6 +37,50 @@ namespace worlds {
         logMsg("Loading experimental scene version %i", formatId);
 
         idFuncs[formatId](id, file, reg, additive);
+        return true;
+    }
+
+    void saveScene(AssetID id, entt::registry& reg) {
+        PerfTimer timer;
+        PHYSFS_File* file = g_assetDB.openAssetFileWrite(id);
+
+        PHYSFS_writeBytes(file, WSCN_FORMAT_MAGIC, 4);
+        PHYSFS_writeBytes(file, &MAX_WSCN_FORMAT_ID, 1);
+
+        uint32_t numEnts = (uint32_t)reg.view<Transform>().size();
+        PHYSFS_writeULE32(file, numEnts);
+
+        reg.view<Transform>().each([file, &reg](entt::entity ent, Transform&) {
+            PHYSFS_writeULE32(file, (uint32_t)ent); 
+
+            uint8_t numComponents = 0;
+
+            for (auto& mdata : ComponentMetadataManager::sorted) {
+                std::array<ENTT_ID_TYPE, 1> arr = { mdata->getComponentID() };
+                auto rView = reg.runtime_view(arr.begin(), arr.end());
+
+                if (!rView.contains(ent)) continue;
+                numComponents++;
+            }
+
+            PHYSFS_writeBytes(file, &numComponents, 1);
+
+            for (auto& mdata : ComponentMetadataManager::sorted) {
+                std::array<ENTT_ID_TYPE, 1> arr = { mdata->getComponentID() };
+                auto rView = reg.runtime_view(arr.begin(), arr.end());
+
+                if (!rView.contains(ent)) continue;
+
+                PHYSFS_writeULE32(file, mdata->getSerializedID());
+                mdata->writeToFile(ent, reg, file);
+            }
+        });
+
+        PHYSFS_close(file);
+
+        logMsg("Saved scene in %.3fms", timer.stopGetMs());
+
+        g_assetDB.save();
     }
 
     bool deserializeWScene(AssetID id, PHYSFS_File* file, entt::registry& reg, 
@@ -71,7 +115,7 @@ namespace worlds {
             if (!PHYSFS_readBytes(file, &numComponents, 1))
                 fatalErr("read err");
 
-            for (uint8_t j = 0; j < numComponents; i++) {
+            for (uint8_t j = 0; j < numComponents; j++) {
                 uint32_t compType = ~0u;
                 if (!PHYSFS_readULE32(file, &compType))
                     fatalErr("read err");
@@ -82,6 +126,7 @@ namespace worlds {
         }
 
         logMsg("loaded WSCN in %.3f", timer.stopGetMs());
+        return true;
     }
 
     void deserializeScene(AssetID id, entt::registry& reg, bool additive) {
