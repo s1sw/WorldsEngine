@@ -2,46 +2,29 @@
 #include <unordered_map>
 #include <string>
 #include <entt/entt.hpp>
+#include "ComponentFuncs.hpp"
+#include "Log.hpp"
 
 namespace worlds {
-    typedef void (*EditComponentFuncPtr)(entt::entity, entt::registry&);
-    typedef void (*AddComponentFuncPtr)(entt::entity, entt::registry&);
-    typedef void (*CloneComponentFuncPtr)(entt::entity, entt::entity, entt::registry&);
-
-    struct ComponentMetadata {
-        std::string name;
-        bool showInInspector;
-        ENTT_ID_TYPE typeId;
-        EditComponentFuncPtr editFuncPtr;
-        AddComponentFuncPtr addFuncPtr;
-        CloneComponentFuncPtr cloneFuncPtr;
-    };
-
     class ComponentMetadataManager {
     public:
-        using str_hash_type = entt::hashed_string::hash_type;
-        static std::unordered_map<str_hash_type, ComponentMetadata> strMdata;
-        static std::unordered_map<ENTT_ID_TYPE, ComponentMetadata> metadata;
+        static std::unordered_map<ENTT_ID_TYPE, ComponentEditor*> metadata;
+        static std::vector<ComponentEditor*> sorted;
+        static std::unordered_map<ENTT_ID_TYPE, ComponentEditor*> bySerializedID;
 
-        static void registerMetadata(ENTT_ID_TYPE typeId, ComponentMetadata metadata) {
-            ComponentMetadataManager::metadata.insert({ typeId, metadata });
-        }
+        static void setupLookup() {
+            ComponentEditorLink* curr = ComponentEditor::first;
 
-        template <typename T>
-        static void registerEx(
-                std::string name, 
-                bool showInInspector,
-                EditComponentFuncPtr editFuncPtr,
-                AddComponentFuncPtr addFuncPtr,
-                CloneComponentFuncPtr cloneFuncPtr) {
-            registerMetadata(entt::type_info<T>::id(),
-                ComponentMetadata {
-                    name,
-                    showInInspector,
-                    entt::type_info<T>::id(),
-                    editFuncPtr,
-                    addFuncPtr,
-                    cloneFuncPtr
+            while (curr) {
+                metadata.insert({ curr->editor->getComponentID(), curr->editor });
+                bySerializedID.insert({ curr->editor->getSerializedID(), curr->editor });
+                logMsg("Found component editor for %s", curr->editor->getName());
+                sorted.push_back(curr->editor);
+                curr = curr->next;
+            }
+
+            std::sort(sorted.begin(), sorted.end(), [](ComponentEditor* a, ComponentEditor* b) {
+                return a->getSortID() < b->getSortID();
             });
         }
     };

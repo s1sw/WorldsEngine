@@ -338,22 +338,20 @@ namespace converge {
                 physx::PxRigidBodyExt::setMassAndUpdateInertia(*rActor, 2.0f);
                 physx::PxRigidBodyExt::setMassAndUpdateInertia(*lActor, 2.0f);
 
+                PIDSettings posSettings{ 2500.0f, 0.0f, 75.0f };
+                PIDSettings rotSettings{ 2.5f, 0.0f, 0.2f };
+
                 auto& lHandPhys = registry.emplace<PhysHand>(lHandEnt);
-                auto& rHandPhys = registry.emplace<PhysHand>(rHandEnt);
-
                 lHandPhys.locosphere = other.locosphere;
-                rHandPhys.locosphere = other.locosphere;
-
-                PIDSettings posSettings {2500.0f, 0.0f, 75.0f};
-                PIDSettings rotSettings {2.5f, 0.0f, 0.2f};
-
                 lHandPhys.posController.acceptSettings(posSettings);
                 lHandPhys.rotController.acceptSettings(rotSettings);
+                lHandPhys.follow = FollowHand::LeftHand;
 
+                auto& rHandPhys = registry.emplace<PhysHand>(rHandEnt);
+
+                rHandPhys.locosphere = other.locosphere;
                 rHandPhys.posController.acceptSettings(posSettings);
                 rHandPhys.rotController.acceptSettings(rotSettings);
-
-                lHandPhys.follow = FollowHand::LeftHand;
                 rHandPhys.follow = FollowHand::RightHand;
 
                 auto fenderActor = registry.get<worlds::DynamicPhysicsActor>(other.fender).actor;

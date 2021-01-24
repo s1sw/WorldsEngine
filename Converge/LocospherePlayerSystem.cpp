@@ -520,7 +520,7 @@ namespace converge {
     PlayerRig LocospherePlayerSystem::createPlayerRig(entt::registry& registry) {
         // Locosphere
         auto playerLocosphere = registry.create();
-        registry.emplace<Transform>(playerLocosphere).position = glm::vec3(0.0f, 2.0f, 0.0f);
+        registry.emplace<Transform>(playerLocosphere).position = glm::vec3(0.0f, 5.0f, 0.0f);
         registry.emplace<LocospherePlayerComponent>(playerLocosphere).isLocal = true;
         registry.emplace<worlds::NameComponent>(playerLocosphere, "Locosphere");
 

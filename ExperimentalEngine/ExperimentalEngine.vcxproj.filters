@@ -87,6 +87,9 @@
     <Filter Include="Header Files\Physics">
       <UniqueIdentifier>{8768aef4-86bb-4f92-b32f-4f04964da49a}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Editor\Component Editors">
+      <UniqueIdentifier>{a7e9e4a6-c370-4929-8b78-1f043d8f8b43}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="EntityList.cpp">
@@ -236,9 +239,6 @@
     <ClCompile Include="SceneSerialization.cpp">
       <Filter>Source Files\Scene Serialization</Filter>
     </ClCompile>
-    <ClCompile Include="SceneSerializationFunctions.cpp">
-      <Filter>Source Files\Scene Serialization</Filter>
-    </ClCompile>
     <ClCompile Include="Engine.cpp">
       <Filter>Source Files\Systems</Filter>
     </ClCompile>
@@ -289,6 +289,12 @@
     </ClCompile>
     <ClCompile Include="D6Joint.cpp">
       <Filter>Source Files\Physics</Filter>
+    </ClCompile>
+    <ClCompile Include="D6JointEditor.inl">
+      <Filter>Source Files\Editor\Component Editors</Filter>
+    </ClCompile>
+    <ClCompile Include="ESceneSerializationFunctions.cpp">
+      <Filter>Source Files\Scene Serialization</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -504,6 +510,9 @@
     </ClInclude>
     <ClInclude Include="D6Joint.hpp">
       <Filter>Header Files\Physics</Filter>
+    </ClInclude>
+    <ClInclude Include="ComponentEditorUtil.hpp">
+      <Filter>Header Files\Editor</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

@@ -238,7 +238,7 @@ vec3 calculateLighting(int lightIdx, vec3 viewDir, vec3 f0, float metallic, floa
 
     float NDF = ndfGGX(cosLh, roughness);
     float G = gaSchlickGGX(cosLi, cosLo, roughness);
-    vec3 f = fresnelSchlick(f0, max(dot(halfway, viewDir), 0.0f));
+    vec3 f = fresnelSchlick(f0, max(dot(norm, viewDir), 0.0f));
 
     vec3 kd = mix(vec3(1.0) - f, vec3(0.0), metallic);
 

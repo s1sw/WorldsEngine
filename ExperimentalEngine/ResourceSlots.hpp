@@ -71,7 +71,7 @@ namespace worlds {
                 return loadOrGet(g_assetDB.addOrGetExisting("Textures/missing.png"));
             }
 
-            if (false)//cb && frameStarted)
+            if (cb && frameStarted)
                 slots[slot] = uploadTextureVk(*vkCtx, texData, cb, frameIdx);
             else
                 slots[slot] = uploadTextureVk(*vkCtx, texData);

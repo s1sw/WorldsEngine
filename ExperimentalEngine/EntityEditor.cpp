@@ -13,13 +13,12 @@ namespace worlds {
             if (reg.valid(selectedEnt)) {
                 ImGui::Separator();
 
-                for (auto& mdataPair : ComponentMetadataManager::metadata) {
-                    auto& mdata = mdataPair.second;
-                    ENTT_ID_TYPE t[] = { mdata.typeId };
+                for (auto& mdata : ComponentMetadataManager::sorted) {
+                    ENTT_ID_TYPE t[] = { mdata->getComponentID() };
                     auto rtView = reg.runtime_view(std::cbegin(t), std::cend(t));
 
-                    if (rtView.contains(selectedEnt) && mdata.editFuncPtr != nullptr) {
-                        mdata.editFuncPtr(selectedEnt, reg);
+                    if (rtView.contains(selectedEnt)) {
+                        mdata->edit(selectedEnt, reg);
                     }
                 }
 
@@ -30,9 +29,13 @@ namespace worlds {
                     justOpened = true;
                 }
 
+                ImGuiWindowClass cl;
+                cl.ViewportFlagsOverrideSet = ImGuiViewportFlags_TopMost;
+                cl.ParentViewportId = ImGui::GetWindowViewport()->ParentViewportId;
+                ImGui::SetNextWindowClass(&cl);
                 if (ImGui::BeginPopup("Select Component")) {
                     static std::string searchTxt;
-                    static std::vector<ComponentMetadata> filteredMetadata;
+                    static std::vector<ComponentEditor*> filteredMetadata;
 
                     if (justOpened) {
                         ImGui::SetKeyboardFocusHere();
@@ -59,8 +62,8 @@ namespace worlds {
                             std::transform(lSearchTxt.begin(), lSearchTxt.end(), lSearchTxt.begin(),
                                 [](unsigned char c) { return std::tolower(c); });
 
-                            filteredMetadata.erase(std::remove_if(filteredMetadata.begin(), filteredMetadata.end(), [&lSearchTxt](ComponentMetadata& mdata) {
-                                std::string cName = mdata.name;
+                            filteredMetadata.erase(std::remove_if(filteredMetadata.begin(), filteredMetadata.end(), [&lSearchTxt](ComponentEditor* mdata) {
+                                std::string cName = mdata->getName();
                                 std::transform(cName.begin(), cName.end(), cName.begin(),
                                     [](unsigned char c) { return std::tolower(c); });
                                 size_t position = cName.find(lSearchTxt);
@@ -70,13 +73,13 @@ namespace worlds {
                     }
 
                     for (auto& mdata : filteredMetadata) {
-                        ENTT_ID_TYPE t[] = { mdata.typeId };
+                        ENTT_ID_TYPE t[] = { mdata->getComponentID() };
                         auto rtView = reg.runtime_view(std::cbegin(t), std::cend(t));
                         if (rtView.contains(selectedEnt))
                             continue;
 
-                        if (ImGui::Button(mdata.name.c_str())) {
-                            mdata.addFuncPtr(selectedEnt, reg);
+                        if (ImGui::Button(mdata->getName())) {
+                            mdata->create(selectedEnt, reg);
                         }
                     }
                     ImGui::EndPopup();
