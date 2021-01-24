@@ -1,6 +1,6 @@
 #include "ComponentEditorUtil.hpp"
 #include "D6Joint.hpp"
-#include <physx/foundation/PxTransform.h>
+#include <foundation/PxTransform.h>
 #include "imgui.h"
 #include <physx/PxPhysicsAPI.h>
 #include <physx/extensions/PxJoint.h>

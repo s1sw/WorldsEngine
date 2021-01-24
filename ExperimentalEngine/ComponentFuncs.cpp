@@ -7,7 +7,7 @@
 #include <glm/gtc/type_ptr.hpp>
 #include "Engine.hpp"
 #include "GuiUtil.hpp"
-#include <physx/foundation/PxTransform.h>
+#include <foundation/PxTransform.h>
 #include "Physics.hpp"
 #include "NameComponent.hpp"
 #include "Audio.hpp"
