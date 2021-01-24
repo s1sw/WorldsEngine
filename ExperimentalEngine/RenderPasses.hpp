@@ -7,7 +7,7 @@ namespace worlds {
     struct MultiVP;
     struct LightUB;
     struct ModelMatrices;
-    struct RenderTexture;
+    class RenderTexture;
     class Swapchain;
     class VKRenderer;
     class VRCullMeshRenderer {
