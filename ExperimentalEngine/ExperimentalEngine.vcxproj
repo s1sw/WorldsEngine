@@ -251,6 +251,7 @@
     <ClCompile Include="CubemapConvoluter.cpp" />
     <ClCompile Include="CubemapLoader.cpp" />
     <ClCompile Include="D6Joint.cpp" />
+    <ClCompile Include="D6JointEditor.inl" />
     <ClCompile Include="DefaultUITheme.cpp" />
     <ClCompile Include="EarlySDLUtil.cpp" />
     <ClCompile Include="Editor.cpp" />
@@ -287,7 +288,7 @@
     <ClCompile Include="RichPresence.cpp" />
     <ClCompile Include="RobloxMeshLoader.cpp" />
     <ClCompile Include="SceneSerialization.cpp" />
-    <ClCompile Include="SceneSerializationFunctions.cpp" />
+    <ClCompile Include="ESceneSerializationFunctions.cpp" />
     <ClCompile Include="ShaderCache.cpp" />
     <ClCompile Include="ShaderMetadata.cpp" />
     <ClCompile Include="ShadowmapRenderPass.cpp" />
@@ -312,6 +313,7 @@
     <ClInclude Include="AssetDB.hpp" />
     <ClInclude Include="Audio.hpp" />
     <ClInclude Include="Camera.hpp" />
+    <ClInclude Include="ComponentEditorUtil.hpp" />
     <ClInclude Include="ComponentFuncs.hpp" />
     <ClInclude Include="ComponentMetadata.hpp" />
     <ClInclude Include="Console.hpp" />

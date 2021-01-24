@@ -30,7 +30,9 @@
 #undef far
 
 namespace worlds {
-    std::unordered_map<ENTT_ID_TYPE, ComponentMetadata> ComponentMetadataManager::metadata;
+    std::unordered_map<ENTT_ID_TYPE, ComponentEditor*> ComponentMetadataManager::metadata;
+    std::vector<ComponentEditor*> ComponentMetadataManager::sorted;
+    std::unordered_map<ENTT_ID_TYPE, ComponentEditor*> ComponentMetadataManager::bySerializedID;
 
     const char* toolStr(Tool tool) {
         switch (tool) {
@@ -56,8 +58,6 @@ namespace worlds {
         SDL_SetWindowTitle(interfaces.engine->getMainWindow(), newTitle.c_str());
     }
 
-#define REGISTER_COMPONENT_TYPE(type, name, showInInspector, editFunc, createFunc, cloneFunc) ComponentMetadataManager::registerMetadata(entt::type_info<type>::id(), ComponentMetadata {name, showInInspector, entt::type_info<type>::id(), editFunc, createFunc, cloneFunc})
-
     Editor::Editor(entt::registry& reg, EngineInterfaces interfaces)
         : currentTool(Tool::None)
         , reg(reg)
@@ -71,15 +71,7 @@ namespace worlds {
         , settings()
         , interfaces(interfaces)
         , inputManager(*interfaces.inputManager) {
-        REGISTER_COMPONENT_TYPE(Transform, "Transform", true, editTransform, nullptr, nullptr);
-        REGISTER_COMPONENT_TYPE(WorldObject, "WorldObject", true, editWorldObject, nullptr, nullptr);
-        REGISTER_COMPONENT_TYPE(WorldLight, "WorldLight", true, editLight, createLight, cloneLight);
-        REGISTER_COMPONENT_TYPE(PhysicsActor, "PhysicsActor", true, editPhysicsActor, createPhysicsActor, clonePhysicsActor);
-        REGISTER_COMPONENT_TYPE(DynamicPhysicsActor, "DynamicPhysicsActor", true, editDynamicPhysicsActor, createDynamicPhysicsActor, cloneDynamicPhysicsActor);
-        REGISTER_COMPONENT_TYPE(AudioSource, "AudioSource", true, editAudioSource, createAudioSource, cloneAudioSource);
-        REGISTER_COMPONENT_TYPE(NameComponent, "NameComponent", true, editNameComponent, createNameComponent, cloneNameComponent);
-        REGISTER_COMPONENT_TYPE(WorldCubemap, "WorldCubemap", true, editWorldCubemap, createWorldCubemap, nullptr);
-        REGISTER_COMPONENT_TYPE(D6Joint, "D6Joint", true, editD6Joint, createD6Joint, nullptr);
+        ComponentMetadataManager::setupLookup();
         interfaces.engine->pauseSim = true;
 
         RTTPassCreateInfo sceneViewPassCI;
@@ -154,17 +146,6 @@ namespace worlds {
     // of the specified radius
     int getCircleSegments(float radius) {
         return glm::max((int)glm::pow(radius, 0.8f), 6);
-    }
-
-    // Based on code from the ImGui demo
-    void tooltipHover(const char* desc) {
-        if (ImGui::IsItemHovered()) {
-            ImGui::BeginTooltip();
-            ImGui::PushTextWrapPos(ImGui::GetFontSize() * 25.0f);
-            ImGui::TextUnformatted(desc);
-            ImGui::PopTextWrapPos();
-            ImGui::EndTooltip();
-        }
     }
 
     void Editor::updateCamera(float deltaTime) {
@@ -453,14 +434,13 @@ namespace worlds {
                     !inputManager.mouseButtonHeld(MouseButton::Right, true)) {
                     auto newEnt = reg.create();
 
-                    for (auto& mdata : ComponentMetadataManager::metadata) {
-                        std::array<ENTT_ID_TYPE, 1> t { mdata.second.typeId };
+                    for (auto& ed : ComponentMetadataManager::sorted) {
+                        std::array<ENTT_ID_TYPE, 1> t { ed->getComponentID() };
                         auto rtView = reg.runtime_view(t.begin(), t.end());
                         if (!rtView.contains(currentSelectedEntity))
                             continue;
 
-                        if (mdata.second.cloneFuncPtr)
-                            mdata.second.cloneFuncPtr(currentSelectedEntity, newEnt, reg);
+                        ed->clone(currentSelectedEntity, newEnt, reg);
                     }
 
                     select(newEnt);
@@ -500,7 +480,7 @@ namespace worlds {
         }
 
         if (inputManager.keyPressed(SDL_SCANCODE_S) && inputManager.ctrlHeld()) {
-            if (!interfaces.engine->getCurrentSceneInfo().name.empty() && !inputManager.shiftHeld()) {
+            if (interfaces.engine->getCurrentSceneInfo().id != ~0u && !inputManager.shiftHeld()) {
                 saveScene(interfaces.engine->getCurrentSceneInfo().id, reg);
             } else {
                 ImGui::OpenPopup("Save Scene");

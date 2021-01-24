@@ -298,6 +298,7 @@ namespace worlds {
         g_jobSys = new JobSystem{ workerThreadOverride == -1 ? std::max(SDL_GetCPUCount(), 2) : workerThreadOverride };
 
         currentScene.name = "Untitled";
+        currentScene.id = ~0u;
 
         if (!dedicatedServer)
             redrawSplashWindow(splashWindow, "loading assetdb");

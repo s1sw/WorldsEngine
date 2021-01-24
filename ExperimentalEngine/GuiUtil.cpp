@@ -237,4 +237,15 @@ namespace worlds {
 
         return changed;
     }
+
+    // Based on code from the ImGui demo
+    void tooltipHover(const char* desc) {
+        if (ImGui::IsItemHovered()) {
+            ImGui::BeginTooltip();
+            ImGui::PushTextWrapPos(ImGui::GetFontSize() * 25.0f);
+            ImGui::TextUnformatted(desc);
+            ImGui::PopTextWrapPos();
+            ImGui::EndTooltip();
+        }
+    }
 }

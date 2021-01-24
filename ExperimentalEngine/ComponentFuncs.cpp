@@ -15,13 +15,18 @@
 #include "sajson.h"
 #include "JsonUtil.hpp"
 #include "D6Joint.hpp"
+#include "ComponentEditorUtil.hpp"
 
 namespace worlds {
+#define WRITE_FIELD(file, field) PHYSFS_writeBytes(file, &field, sizeof(field))
+#define READ_FIELD(file, field) PHYSFS_readBytes(file, &field, sizeof(field))
+
     ComponentEditorLink* ComponentEditor::first = nullptr;
 
     ComponentEditor::ComponentEditor() {
         if (!first) {
             first = new ComponentEditorLink;
+            first->next = nullptr;
         } else {
             ComponentEditorLink* next = first;
             first = new ComponentEditorLink;
@@ -31,27 +36,15 @@ namespace worlds {
         first->editor = this;
     }
 
-    template <typename T>
-    class BasicComponentUtil : public ComponentEditor {
-        bool allowInspectorAdd() override {
-            return true;
-        }
-
-        ENTT_ID_TYPE getComponentID() override {
-            return entt::type_info<T>::id();
-        }
-
-        void create(entt::entity ent, entt::registry& reg) override {
-            reg.emplace<T>(ent);
-        }
-
-        void clone(entt::entity from, entt::entity to, entt::registry& reg) override {
-            reg.emplace<T>(to, reg.get<T>(from));
-        }
-    };
-
-    class TransformEditor : public BasicComponentUtil<Transform> {
+    class TransformEditor : public virtual BasicComponentUtil<Transform> {
     public:
+        BASIC_CREATE(Transform);
+        BASIC_CLONE(Transform);
+
+        int getSortID() override {
+            return -1;
+        }
+         
         const char* getName() override {
             return "Transform";
         }
@@ -74,11 +67,27 @@ namespace worlds {
                 ImGui::Separator();
             }
         }
+
+        void writeToFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file) override {
+            auto& t = reg.get<Transform>(ent);
+            WRITE_FIELD(file, t.position);
+            WRITE_FIELD(file, t.rotation);
+            WRITE_FIELD(file, t.scale);
+        }
+
+        void readFromFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file, int version) {
+            auto& t = reg.emplace<Transform>(ent);
+            READ_FIELD(file, t.position);
+            READ_FIELD(file, t.rotation);
+            READ_FIELD(file, t.scale);
+        }
     };
 
 
     class WorldObjectEditor : public BasicComponentUtil<WorldObject> {
     public:
+        BASIC_CLONE(WorldObject);
+
         const char* getName() {
             return "World Object";
         }
@@ -121,6 +130,42 @@ namespace worlds {
                 ImGui::Separator();
             }
         }
+
+        void writeToFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file) override {
+            auto& wObj = reg.get<WorldObject>(ent);
+            for (int i = 0; i < NUM_SUBMESH_MATS; i++) {
+                bool isPresent = wObj.presentMaterials[i];
+                WRITE_FIELD(file, isPresent);
+
+                if (isPresent) {
+                    AssetID matId = wObj.materials[i];
+                    WRITE_FIELD(file, matId);
+                }
+            }
+
+            WRITE_FIELD(file, wObj.mesh);
+            WRITE_FIELD(file, wObj.texScaleOffset);
+        }
+
+        void readFromFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file, int version) override {
+            auto& wo = reg.emplace<WorldObject>(ent, 0, 0);
+
+            for (int i = 0; i < NUM_SUBMESH_MATS; i++) {
+                bool isPresent;
+                READ_FIELD(file, isPresent);
+                wo.presentMaterials[i] = isPresent;
+
+                AssetID mat;
+                if (isPresent) {
+                    READ_FIELD(file, mat);
+                    wo.materials[i] = mat;
+                    wo.materialIdx[i] = ~0u;
+                }
+            }
+
+            READ_FIELD(file, wo.mesh);
+            READ_FIELD(file, wo.texScaleOffset);
+        }
     };
 
     const std::unordered_map<LightType, const char*> lightTypeNames = {
@@ -131,6 +176,8 @@ namespace worlds {
 
     class WorldLightEditor : public BasicComponentUtil<WorldLight> {
     public:
+        BASIC_CLONE(WorldLight);
+        BASIC_CREATE(WorldLight);
         const char* getName() override { return "World Light"; }
         
         void edit(entt::entity ent, entt::registry& reg) {
@@ -159,6 +206,20 @@ namespace worlds {
                     }
                 }
             }
+        }
+
+        void writeToFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file) override {
+            auto& wl = reg.get<WorldLight>(ent);
+            WRITE_FIELD(file, wl.type);
+            WRITE_FIELD(file, wl.color);
+            WRITE_FIELD(file, wl.spotCutoff);
+        }
+
+        void readFromFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file, int version) override {
+            auto& wl = reg.emplace<WorldLight>(ent);
+            READ_FIELD(file, wl.type);
+            READ_FIELD(file, wl.color);
+            READ_FIELD(file, wl.spotCutoff);
         }
     };
 
@@ -336,6 +397,77 @@ namespace worlds {
                 ImGui::Separator();
             }
         }
+
+        void writeToFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file) override {
+            PhysicsActor& pa = reg.get<PhysicsActor>(ent);
+            PHYSFS_writeULE16(file, (uint16_t)pa.physicsShapes.size());
+
+            for (size_t i = 0; i < pa.physicsShapes.size(); i++) {
+                auto shape = pa.physicsShapes[i];
+                WRITE_FIELD(file, shape.type);
+
+                WRITE_FIELD(file, shape.pos);
+                WRITE_FIELD(file, shape.rot);
+
+                switch (shape.type) {
+                case PhysicsShapeType::Sphere:
+                    WRITE_FIELD(file, shape.sphere.radius);
+                    break;
+                case PhysicsShapeType::Box:
+                    WRITE_FIELD(file, shape.box.halfExtents.x);
+                    WRITE_FIELD(file, shape.box.halfExtents.y);
+                    WRITE_FIELD(file, shape.box.halfExtents.z);
+                    break;
+                case PhysicsShapeType::Capsule:
+                    WRITE_FIELD(file, shape.capsule.height);
+                    WRITE_FIELD(file, shape.capsule.radius);
+                    break;
+                default:
+                    logErr("invalid physics shape type??");
+                    break;
+                }
+            }
+        }
+
+        void readFromFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file, int version) override {
+            auto* pActor = g_physics->createRigidStatic(glm2px(reg.get<Transform>(ent)));
+            g_scene->addActor(*pActor);
+
+            PhysicsActor& pa = reg.emplace<PhysicsActor>(ent, pActor);
+
+            uint16_t shapeCount;
+            PHYSFS_readULE16(file, &shapeCount);
+
+            pa.physicsShapes.resize(shapeCount);
+
+            for (uint16_t i = 0; i < shapeCount; i++) {
+                auto& shape = pa.physicsShapes[i];
+                READ_FIELD(file, shape.type);
+
+                READ_FIELD(file, shape.pos);
+                READ_FIELD(file, shape.rot);
+
+                switch (shape.type) {
+                case PhysicsShapeType::Sphere:
+                    READ_FIELD(file, shape.sphere.radius);
+                    break;
+                case PhysicsShapeType::Box:
+                    READ_FIELD(file, shape.box.halfExtents.x);
+                    READ_FIELD(file, shape.box.halfExtents.y);
+                    READ_FIELD(file, shape.box.halfExtents.z);
+                    break;
+                case PhysicsShapeType::Capsule:
+                    READ_FIELD(file, shape.capsule.height);
+                    READ_FIELD(file, shape.capsule.radius);
+                    break;
+                default:
+                    logErr("invalid physics shape type??");
+                    break;
+                }
+            }
+
+            updatePhysicsShapes(pa);
+        }
     };
 
     class DynamicPhysicsActorEditor : public BasicComponentUtil<DynamicPhysicsActor> {
@@ -355,10 +487,10 @@ namespace worlds {
             auto& t = reg.get<Transform>(from);
 
             physx::PxTransform pTf(glm2px(t.position), glm2px(t.rotation));
-            auto* actor = g_physics->createRigidStatic(pTf);
+            auto* actor = g_physics->createRigidDynamic(pTf);
 
-            auto& newPhysActor = reg.emplace<PhysicsActor>(to, actor);
-            newPhysActor.physicsShapes = reg.get<PhysicsActor>(from).physicsShapes;
+            auto& newPhysActor = reg.emplace<DynamicPhysicsActor>(to, actor);
+            newPhysActor.physicsShapes = reg.get<DynamicPhysicsActor>(from).physicsShapes;
 
             g_scene->addActor(*actor);
 
@@ -384,23 +516,91 @@ namespace worlds {
             }
         }
 
-        void clone(entt::entity from, entt::entity to, entt::registry& reg) override {
-            auto& t = reg.get<Transform>(from);
+        void writeToFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file) override {
+            DynamicPhysicsActor& pa = reg.get<DynamicPhysicsActor>(ent);
+            WRITE_FIELD(file, pa.mass);
+            PHYSFS_writeULE16(file, (uint16_t)pa.physicsShapes.size());
 
-            physx::PxTransform pTf(glm2px(t.position), glm2px(t.rotation));
-            auto* actor = g_physics->createRigidDynamic(pTf);
+            for (size_t i = 0; i < pa.physicsShapes.size(); i++) {
+                auto shape = pa.physicsShapes[i];
+                WRITE_FIELD(file, shape.type);
 
-            auto& newPhysActor = reg.emplace<DynamicPhysicsActor>(to, actor);
-            newPhysActor.physicsShapes = reg.get<DynamicPhysicsActor>(from).physicsShapes;
+                WRITE_FIELD(file, shape.pos);
+                WRITE_FIELD(file, shape.rot);
 
-            g_scene->addActor(*actor);
+                switch (shape.type) {
+                case PhysicsShapeType::Sphere:
+                    WRITE_FIELD(file, shape.sphere.radius);
+                    break;
+                case PhysicsShapeType::Box:
+                    WRITE_FIELD(file, shape.box.halfExtents.x);
+                    WRITE_FIELD(file, shape.box.halfExtents.y);
+                    WRITE_FIELD(file, shape.box.halfExtents.z);
+                    break;
+                case PhysicsShapeType::Capsule:
+                    WRITE_FIELD(file, shape.capsule.height);
+                    WRITE_FIELD(file, shape.capsule.radius);
+                    break;
+                default:
+                    logErr("invalid physics shape type??");
+                    break;
+                }
+            }
+        }
 
-            updatePhysicsShapes(newPhysActor);
+        void readFromFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file, int version) override {
+            auto* pActor = g_physics->createRigidDynamic(glm2px(reg.get<Transform>(ent)));
+            pActor->setSolverIterationCounts(12, 4);
+            g_scene->addActor(*pActor);
+            DynamicPhysicsActor& pa = reg.emplace<DynamicPhysicsActor>(ent, pActor);
+
+            READ_FIELD(file, pa.mass);
+
+            uint16_t shapeCount;
+            PHYSFS_readULE16(file, &shapeCount);
+
+            pa.physicsShapes.resize(shapeCount);
+
+            for (uint16_t i = 0; i < shapeCount; i++) {
+                auto& shape = pa.physicsShapes[i];
+                READ_FIELD(file, shape.type);
+
+                READ_FIELD(file, shape.pos);
+                READ_FIELD(file, shape.rot);
+
+                switch (shape.type) {
+                case PhysicsShapeType::Sphere:
+                    READ_FIELD(file, shape.sphere.radius);
+                    break;
+                case PhysicsShapeType::Box:
+                    READ_FIELD(file, shape.box.halfExtents.x);
+                    READ_FIELD(file, shape.box.halfExtents.y);
+                    READ_FIELD(file, shape.box.halfExtents.z);
+                    break;
+                case PhysicsShapeType::Capsule:
+                    READ_FIELD(file, shape.capsule.height);
+                    READ_FIELD(file, shape.capsule.radius);
+                    break;
+                default:
+                    logErr("invalid physics shape type??");
+                    break;
+                }
+            }
+
+            updatePhysicsShapes(pa);
+            updateMass(pa);
         }
     };
 
     class NameComponentEditor : public BasicComponentUtil<NameComponent> {
     public:
+        BASIC_CREATE(NameComponent);
+        BASIC_CLONE(NameComponent);
+
+        int getSortID() override {
+            return -2;
+        }
+
         const char* getName() override { return "Name Component"; }
 
         void edit(entt::entity ent, entt::registry& registry) override {
@@ -413,10 +613,29 @@ namespace worlds {
             }
             ImGui::Separator();
         }
+
+        void writeToFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file) override {
+            NameComponent& nc = reg.get<NameComponent>(ent);
+
+            int nameLen = nc.name.length();
+            WRITE_FIELD(file, nameLen);
+
+            PHYSFS_writeBytes(file, nc.name.data(), nameLen);
+        }
+
+        void readFromFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file, int version) override {
+            NameComponent& nc = reg.emplace<NameComponent>(ent);
+            int nameLen;
+            READ_FIELD(file, nameLen);
+
+            nc.name.resize(nameLen);
+            PHYSFS_readBytes(file, nc.name.data(), nameLen);
+        }
     };
 
     class AudioSourceEditor : public BasicComponentUtil<AudioSource> {
     public:
+        BASIC_CLONE(AudioSource);
         const char* getName() override { return "Audio Source"; }
 
         void create(entt::entity ent, entt::registry& reg) override {
@@ -440,10 +659,34 @@ namespace worlds {
                 ImGui::Separator();
             }
         }
+
+        void writeToFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file) override {
+            auto& as = reg.get<AudioSource>(ent);
+            
+            WRITE_FIELD(file, as.clipId);
+            WRITE_FIELD(file, as.channel);
+            WRITE_FIELD(file, as.loop);
+            WRITE_FIELD(file, as.playOnSceneOpen);
+            WRITE_FIELD(file, as.spatialise);
+            WRITE_FIELD(file, as.volume);
+        }
+
+        void readFromFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file, int version) override {
+            AssetID clipId;
+            READ_FIELD(file, clipId);
+            auto& as = reg.emplace<AudioSource>(ent, clipId);
+            READ_FIELD(file, as.channel);
+            READ_FIELD(file, as.loop);
+            READ_FIELD(file, as.playOnSceneOpen);
+            READ_FIELD(file, as.spatialise);
+            READ_FIELD(file, as.volume);
+        }
     };
 
     class WorldCubemapEditor : public BasicComponentUtil<WorldCubemap> {
     public:
+        BASIC_CLONE(WorldCubemap);
+
         const char* getName() override { return "World Cubemap"; }
 
         void create(entt::entity ent, entt::registry& reg) override {
@@ -468,80 +711,33 @@ namespace worlds {
                 ImGui::Separator();
             }
         }
-    };
 
-    const char* motionNames[3] = {
-        "Locked",
-        "Limited",
-        "Free"
-    };
+        void writeToFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file) {
+            WorldCubemap& wc = reg.get<WorldCubemap>(ent);
 
-    const char* motionAxisLabels[physx::PxD6Axis::eCOUNT] = {
-        "X Motion",
-        "Y Motion",
-        "Z Motion",
-        "Twist Motion",
-        "Swing 1 Motion",
-        "Swing 2 Motion"
-    };
-
-    bool motionDropdown(const char* label, physx::PxD6Motion::Enum& val) {
-        bool ret = false;
-        if (ImGui::BeginCombo(label, motionNames[(int)val])) {
-            for (int iType = 0; iType < 3; iType++) {
-                auto type = (physx::PxD6Motion::Enum)iType;
-                bool isSelected = val == type;
-                if (ImGui::Selectable(motionNames[iType], &isSelected)) {
-                    val = type;
-                    ret = true;
-                }
-
-                if (isSelected)
-                    ImGui::SetItemDefaultFocus();
-            }
-            ImGui::EndCombo();
+            WRITE_FIELD(file, wc.cubemapId);
+            WRITE_FIELD(file, wc.extent);
         }
 
-        return ret;
-    }
+        void readFromFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file, int version) override {
+            auto& wc = reg.emplace<WorldCubemap>(ent);
 
-    class D6JointEditor : public BasicComponentUtil<D6Joint> {
-    public:
-        const char* getName() override { return "D6 Joint"; }
-
-        void create(entt::entity ent, entt::registry& reg) override {
-            if (!reg.has<DynamicPhysicsActor>(ent)) {
-                logWarn("Can't add a D6 joint to an entity without a dynamic physics actor!");
-                return;
-            }
-
-            reg.emplace<D6Joint>(ent);
-        }
-
-        void edit(entt::entity ent, entt::registry& reg) override {
-            auto& j = reg.get<D6Joint>(ent);
-            auto& dpa = reg.get<DynamicPhysicsActor>(ent);
-
-            if (ImGui::CollapsingHeader(ICON_FA_ATOM u8" D6 Joint")) {
-                dpa.actor->is<physx::PxRigidDynamic>()->wakeUp();
-                for (physx::PxD6Axis::Enum axis = physx::PxD6Axis::eX; axis < physx::PxD6Axis::eCOUNT; ((int&)axis)++) {
-                    auto motion = j.pxJoint->getMotion(axis);
-                    if (motionDropdown(motionAxisLabels[axis], motion)) {
-                        j.pxJoint->setMotion(axis, motion);
-                    }
-                }
-
-                auto t0 = j.pxJoint->getLocalPose(physx::PxJointActorIndex::eACTOR0);
-                auto t1 = j.pxJoint->getLocalPose(physx::PxJointActorIndex::eACTOR1);
-
-                if (ImGui::DragFloat3("Local Offset", &t0.p.x)) {
-                    j.pxJoint->setLocalPose(physx::PxJointActorIndex::eACTOR0, t0);
-                }
-
-                if (ImGui::DragFloat3("Target Offset", &t1.p.x)) {
-                    j.pxJoint->setLocalPose(physx::PxJointActorIndex::eACTOR1, t1);
-                }
-            }
+            READ_FIELD(file, wc.cubemapId);
+            READ_FIELD(file, wc.extent);
         }
     };
+
+    TransformEditor transformEd;
+    WorldObjectEditor worldObjEd;
+    WorldLightEditor worldLightEd;
+    PhysicsActorEditor paEd;
+    DynamicPhysicsActorEditor dpaEd;
+    NameComponentEditor ncEd;
+    AudioSourceEditor asEd;
+    WorldCubemapEditor wcEd;
 }
+
+// Janky workaround to fix static constructors not being called
+// (static constructors are only required to be called before the first function in the translation unity)
+// (yay for typical c++ specification bullshittery)
+#include "D6JointEditor.inl"

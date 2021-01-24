@@ -10,11 +10,11 @@
 #include "SceneSerializationFuncs.hpp"
 #include "NameComponent.hpp"
 #include "Render.hpp"
+#include "ComponentMetadata.hpp"
 
 namespace worlds {
-
-    const unsigned char LATEST_SCN_FORMAT_ID = 4;
-    const unsigned char SCN_FORMAT_MAGIC[5] = { 'E','S','C','N', '\0' };
+    const unsigned char LATEST_SCN_FORMAT_ID = 1;
+    const unsigned char SCN_FORMAT_MAGIC[5] = { 'W','S','C','N', '\0' };
 
 #define WRITE_FIELD(file, field) PHYSFS_writeBytes(file, &field, sizeof(field))
 #define READ_FIELD(file, field) PHYSFS_readBytes(file, &field, sizeof(field))
@@ -31,127 +31,30 @@ namespace worlds {
 
         reg.view<Transform>().each([file, &reg](entt::entity ent, Transform&) {
             PHYSFS_writeBytes(file, &ent, sizeof(ent));
-            unsigned char compBitfield = 0;
 
-            // This will always be true
-            compBitfield |= reg.has<Transform>(ent) << 0;
-            compBitfield |= reg.has<WorldObject>(ent) << 1;
-            compBitfield |= reg.has<WorldLight>(ent) << 2;
-            compBitfield |= reg.has<PhysicsActor>(ent) << 3;
-            compBitfield |= reg.has<DynamicPhysicsActor>(ent) << 4;
-            compBitfield |= reg.has<NameComponent>(ent) << 5;
-            compBitfield |= reg.has<WorldCubemap>(ent) << 6;
+            uint8_t numComponents = 0;
 
-            PHYSFS_writeBytes(file, &compBitfield, sizeof(compBitfield));
+            for (auto& mdata : ComponentMetadataManager::sorted) {
+                std::array<ENTT_ID_TYPE, 1> arr = { mdata->getComponentID() };
+                auto rView = reg.runtime_view(arr.begin(), arr.end());
 
-            if (reg.has<Transform>(ent)) {
-                Transform& t = reg.get<Transform>(ent);
-                PHYSFS_writeBytes(file, &t.position, sizeof(t.position));
-                PHYSFS_writeBytes(file, &t.rotation, sizeof(t.rotation));
-                PHYSFS_writeBytes(file, &t.scale, sizeof(t.scale));
+                if (!rView.contains(ent)) continue;
+                numComponents++;
             }
 
-            if (reg.has<WorldObject>(ent)) {
-                WorldObject& wObj = reg.get<WorldObject>(ent);
-                for (int j = 0; j < NUM_SUBMESH_MATS; j++) {
-                    bool isPresent = wObj.presentMaterials[j];
-                    WRITE_FIELD(file, isPresent);
+            PHYSFS_writeBytes(file, &numComponents, 1);
 
-                    if (isPresent) {
-                        AssetID matId = wObj.materials[j];
-                        WRITE_FIELD(file, matId);
-                    }
-                }
-                PHYSFS_writeBytes(file, &wObj.mesh, sizeof(wObj.mesh));
-                PHYSFS_writeBytes(file, &wObj.texScaleOffset, sizeof(wObj.texScaleOffset));
-            }
+            for (auto& mdata : ComponentMetadataManager::sorted) {
+                std::array<ENTT_ID_TYPE, 1> arr = { mdata->getComponentID() };
+                auto rView = reg.runtime_view(arr.begin(), arr.end());
 
-            if (reg.has<WorldLight>(ent)) {
-                WorldLight& wLight = reg.get<WorldLight>(ent);
-                WRITE_FIELD(file, wLight.type);
-                WRITE_FIELD(file, wLight.color);
-                WRITE_FIELD(file, wLight.spotCutoff);
-            }
+                if (!rView.contains(ent)) continue;
 
-            if (reg.has<PhysicsActor>(ent)) {
-                PhysicsActor& pa = reg.get<PhysicsActor>(ent);
-                PHYSFS_writeULE16(file, (uint16_t)pa.physicsShapes.size());
-
-                for (size_t i = 0; i < pa.physicsShapes.size(); i++) {
-                    auto shape = pa.physicsShapes[i];
-                    WRITE_FIELD(file, shape.type);
-
-                    WRITE_FIELD(file, shape.pos);
-                    WRITE_FIELD(file, shape.rot);
-
-                    switch (shape.type) {
-                    case PhysicsShapeType::Sphere:
-                        WRITE_FIELD(file, shape.sphere.radius);
-                        break;
-                    case PhysicsShapeType::Box:
-                        WRITE_FIELD(file, shape.box.halfExtents.x);
-                        WRITE_FIELD(file, shape.box.halfExtents.y);
-                        WRITE_FIELD(file, shape.box.halfExtents.z);
-                        break;
-                    case PhysicsShapeType::Capsule:
-                        WRITE_FIELD(file, shape.capsule.height);
-                        WRITE_FIELD(file, shape.capsule.radius);
-                        break;
-                    default:
-                        logErr("invalid physics shape type??");
-                        break;
-                    }
-                }
-            }
-
-            if (reg.has<DynamicPhysicsActor>(ent)) {
-                DynamicPhysicsActor& pa = reg.get<DynamicPhysicsActor>(ent);
-                WRITE_FIELD(file, pa.mass);
-                PHYSFS_writeULE16(file, (uint16_t)pa.physicsShapes.size());
-
-                for (size_t i = 0; i < pa.physicsShapes.size(); i++) {
-                    auto shape = pa.physicsShapes[i];
-                    WRITE_FIELD(file, shape.type);
-
-                    WRITE_FIELD(file, shape.pos);
-                    WRITE_FIELD(file, shape.rot);
-
-                    switch (shape.type) {
-                    case PhysicsShapeType::Sphere:
-                        WRITE_FIELD(file, shape.sphere.radius);
-                        break;
-                    case PhysicsShapeType::Box:
-                        WRITE_FIELD(file, shape.box.halfExtents.x);
-                        WRITE_FIELD(file, shape.box.halfExtents.y);
-                        WRITE_FIELD(file, shape.box.halfExtents.z);
-                        break;
-                    case PhysicsShapeType::Capsule:
-                        WRITE_FIELD(file, shape.capsule.height);
-                        WRITE_FIELD(file, shape.capsule.radius);
-                        break;
-                    default:
-                        logErr("invalid physics shape type??");
-                        break;
-                    }
-                }
-            }
-
-            if (reg.has<NameComponent>(ent)) {
-                NameComponent& nc = reg.get<NameComponent>(ent);
-
-                int nameLen = nc.name.length();
-                WRITE_FIELD(file, nameLen);
-
-                PHYSFS_writeBytes(file, nc.name.data(), nameLen);
-            }
-
-            if (reg.has<WorldCubemap>(ent)) {
-                WorldCubemap& wc = reg.get<WorldCubemap>(ent);
-
-                WRITE_FIELD(file, wc.cubemapId);
-                WRITE_FIELD(file, wc.extent);
+                PHYSFS_writeULE32(file, mdata->getSerializedID());
+                mdata->writeToFile(ent, reg, file);
             }
         });
+
         PHYSFS_close(file);
 
         logMsg("Saved scene in %.3fms", timer.stopGetMs());

@@ -115,6 +115,9 @@ namespace worlds {
         t.position = getMatrixTranslation(matrix);
         t.rotation = getMatrixRotation(matrix);
 
+        if (glm::any(glm::isnan(t.position)) || glm::any(glm::isnan(t.rotation)))
+            fatalErr("controller stuff was NaN?!?!?!?");
+
         return true;
     }
 
