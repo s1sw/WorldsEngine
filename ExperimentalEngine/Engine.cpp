@@ -522,8 +522,8 @@ namespace worlds {
             destroySplashWindow(splashWindow);
         }
 
-        luaVM = std::make_unique<LuaVM>();
-        luaVM->bindRegistry(registry);
+        scriptEngine = std::make_unique<WrenScriptEngine>();
+        scriptEngine->bindRegistry(registry);
 
         if (dedicatedServer) {
             // do a lil' dance to make dear imgui happy
