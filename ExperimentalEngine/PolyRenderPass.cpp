@@ -684,9 +684,9 @@ namespace worlds {
         Frustum frustum;
         Frustum frustumB;
 
-        if (!ctx.enableVR)
+        if (!ctx.enableVR) {
             frustum.fromVPMatrix(ctx.cam->getProjectionMatrix((float)ctx.width / (float)ctx.height) * ctx.cam->getViewMatrix());
-        else {
+        } else {
             frustum.fromVPMatrix(ctx.vrProjMats[0] * ctx.vrViewMats[0]);
             frustumB.fromVPMatrix(ctx.vrProjMats[1] * ctx.vrViewMats[1]);
         }

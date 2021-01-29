@@ -375,7 +375,7 @@ namespace worlds {
         bool isMinimised;
         bool useVsync;
         vku::GenericImage brdfLut;
-        std::unique_ptr<CubemapConvoluter> cubemapConvoluter;
+        std::shared_ptr<CubemapConvoluter> cubemapConvoluter;
         ConVar lowLatencyMode;
         bool swapchainRecreated;
         bool enablePicking;

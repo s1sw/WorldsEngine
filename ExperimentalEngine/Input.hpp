@@ -14,6 +14,7 @@ namespace worlds {
 	public:
 		InputManager(SDL_Window* window);
 		void update();
+		void processEvent(const SDL_Event& evt);
 		void endFrame();
 		bool mouseButtonHeld(MouseButton button, bool ignoreImGui = false) const;
 		bool mouseButtonPressed(MouseButton button, bool ignoreImGui = false) const;
@@ -32,7 +33,7 @@ namespace worlds {
 		SDL_Window* window;
 		uint32_t mouseButtonFlags;
 		uint32_t lastMouseButtonFlags;
-		const Uint8* keyState;
+		Uint8 keyState[SDL_NUM_SCANCODES];
 		Uint8 lastKeyState[SDL_NUM_SCANCODES];
 		glm::ivec2 mouseDelta;
 		glm::ivec2 mousePos;

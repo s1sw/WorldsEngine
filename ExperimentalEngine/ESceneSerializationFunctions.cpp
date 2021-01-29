@@ -22,7 +22,6 @@ namespace worlds {
 
     void loadScene01(AssetID id, PHYSFS_File* file, entt::registry& reg, bool additive) {
         PerfTimer timer;
-        
 
         uint32_t numEntities;
         PHYSFS_readULE32(file, &numEntities);

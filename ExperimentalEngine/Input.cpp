@@ -7,7 +7,6 @@ namespace worlds {
 		:  window(window) 
         , mouseButtonFlags(0)
 		, lastMouseButtonFlags(0) {
-		keyState = SDL_GetKeyboardState(nullptr);
 	}
 
 	void InputManager::update() {
@@ -17,6 +16,16 @@ namespace worlds {
 		//keyState = SDL_GetKeyboardState(nullptr);
 		SDL_GetRelativeMouseState(&mouseDelta.x, &mouseDelta.y);
 		SDL_GetMouseState(&mousePos.x, &mousePos.y);
+	}
+
+	void InputManager::processEvent(const SDL_Event& evt) {
+		if (evt.type == SDL_KEYDOWN) {
+			auto scancode = evt.key.keysym.scancode;
+			keyState[scancode] = true;
+		} else if (evt.type == SDL_KEYUP) {
+			auto scancode = evt.key.keysym.scancode;
+			keyState[scancode] = false;
+		}
 	}
 
 	bool InputManager::mouseButtonHeld(MouseButton button, bool ignoreImGui) const {

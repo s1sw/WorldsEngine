@@ -200,6 +200,9 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>PCH.hpp</PrecompiledHeaderFile>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <EnableEnhancedInstructionSet>AdvancedVectorExtensions</EnableEnhancedInstructionSet>
+      <FloatingPointModel>Fast</FloatingPointModel>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -250,8 +253,9 @@
     <ClCompile Include="Console.cpp" />
     <ClCompile Include="CubemapConvoluter.cpp" />
     <ClCompile Include="CubemapLoader.cpp" />
+    <ClCompile Include="CubemapSlots.cpp" />
     <ClCompile Include="D6Joint.cpp" />
-    <ClCompile Include="D6JointEditor.inl" />
+    <ClInclude Include="D6JointEditor.hpp" />
     <ClCompile Include="DefaultUITheme.cpp" />
     <ClCompile Include="EarlySDLUtil.cpp" />
     <ClCompile Include="Editor.cpp" />

@@ -221,9 +221,6 @@
     <ClCompile Include="ShaderMetadata.cpp">
       <Filter>Source Files\Misc</Filter>
     </ClCompile>
-    <ClCompile Include="Editor.cpp">
-      <Filter>Source Files\Misc</Filter>
-    </ClCompile>
     <ClCompile Include="RichPresence.cpp">
       <Filter>Source Files\Misc</Filter>
     </ClCompile>
@@ -290,11 +287,14 @@
     <ClCompile Include="D6Joint.cpp">
       <Filter>Source Files\Physics</Filter>
     </ClCompile>
-    <ClCompile Include="D6JointEditor.inl">
-      <Filter>Source Files\Editor\Component Editors</Filter>
-    </ClCompile>
     <ClCompile Include="ESceneSerializationFunctions.cpp">
       <Filter>Source Files\Scene Serialization</Filter>
+    </ClCompile>
+    <ClCompile Include="Editor.cpp">
+      <Filter>Source Files\Editor</Filter>
+    </ClCompile>
+    <ClCompile Include="CubemapSlots.cpp">
+      <Filter>Source Files\Systems\Render</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -513,6 +513,9 @@
     </ClInclude>
     <ClInclude Include="ComponentEditorUtil.hpp">
       <Filter>Header Files\Editor</Filter>
+    </ClInclude>
+    <ClInclude Include="D6JointEditor.hpp">
+      <Filter>Source Files\Editor\Component Editors</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

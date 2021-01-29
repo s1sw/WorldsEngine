@@ -75,9 +75,18 @@ namespace worlds {
             shape->setLocalPose(physx::PxTransform{ glm2px(ps.pos), glm2px(ps.rot) });
 
             pa.actor->attachShape(*shape);
+            shape->release();
         }
     }
 
+    struct RaycastHitInfo {
+        entt::entity entity;
+        glm::vec3 normal;
+        glm::vec3 worldPos;
+    };
+
+    bool raycast(physx::PxVec3 position, physx::PxVec3 direction, float maxDist = FLT_MAX, RaycastHitInfo* hitInfo = nullptr);
+    bool raycast(glm::vec3 position, glm::vec3 direction, float maxDist = FLT_MAX, RaycastHitInfo* hitInfo = nullptr);
     void initPhysx(entt::registry& reg);
     void stepSimulation(float deltaTime);
     void shutdownPhysx();
