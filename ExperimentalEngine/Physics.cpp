@@ -150,4 +150,22 @@ namespace worlds {
         g_physics->release();
         g_physFoundation->release();
     }
+
+    bool raycast(physx::PxVec3 position, physx::PxVec3 direction, float maxDist, RaycastHitInfo* hitInfo) {
+        physx::PxRaycastBuffer hitBuf;
+        bool hit = worlds::g_scene->raycast(position, direction, maxDist, hitBuf);
+        hit &= hitBuf.hasBlock;
+
+        if (hit && hitInfo) {
+            hitInfo->normal = px2glm(hitBuf.block.normal);
+            hitInfo->worldPos = px2glm(hitBuf.block.position);
+            hitInfo->entity = (entt::entity)(uintptr_t)hitBuf.block.actor->userData;
+        }
+
+        return hit;
+    }
+
+    bool raycast(glm::vec3 position, glm::vec3 direction, float maxDist, RaycastHitInfo* hitInfo) {
+        return raycast(glm2px(position), glm2px(direction), maxDist, hitInfo);
+    }
 }

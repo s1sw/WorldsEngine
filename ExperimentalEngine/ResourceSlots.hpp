@@ -11,6 +11,7 @@ namespace worlds {
     const uint32_t NUM_MAT_SLOTS = 256;
     const uint32_t NUM_CUBEMAP_SLOTS = 64;
     struct VulkanHandles;
+    class CubemapConvoluter;
 
     template <typename slotType, uint32_t slotCount, typename key>
     class ResourceSlots {
@@ -136,45 +137,20 @@ namespace worlds {
 
     class CubemapSlots : public ResourceSlots<vku::TextureImageCube, NUM_CUBEMAP_SLOTS, AssetID> {
     protected:
-        uint32_t load(AssetID asset) override {
-            uint32_t slot = getFreeSlot();
-
-            if (slot > NUM_CUBEMAP_SLOTS) {
-                fatalErr("Out of cubemap slots");
-            }
-
-            present[slot] = true;
-
-            auto cubemapData = loadCubemapData(asset);
-            if (!cb)
-                slots[slot] = uploadCubemapVk(*vkCtx, cubemapData);
-            else
-                slots[slot] = uploadCubemapVk(*vkCtx, cubemapData, cb, imageIndex);
-
-            lookup.insert({ asset, slot });
-            reverseLookup.insert({ slot, asset });
-
-            return slot;
-        }
+        uint32_t load(AssetID asset);
     private:
         std::shared_ptr<VulkanHandles> vkCtx;
         vk::CommandBuffer cb;
         uint32_t imageIndex;
+        std::shared_ptr<CubemapConvoluter> cc;
     public:
         void setUploadCommandBuffer(vk::CommandBuffer cb, uint32_t imageIndex) {
             this->cb = cb;
             this->imageIndex = imageIndex;
         }
 
-        CubemapSlots(std::shared_ptr<VulkanHandles> vkCtx) : vkCtx(vkCtx), imageIndex(0) {
+        CubemapSlots(std::shared_ptr<VulkanHandles> vkCtx, std::shared_ptr<CubemapConvoluter> cc);
 
-        }
-
-        void unload(int idx) override {
-            present[idx] = false;
-            slots[idx] = vku::TextureImageCube{};
-            lookup.erase(reverseLookup.at(idx));
-            reverseLookup.erase(idx);
-        }
+        void unload(int idx) override;
     };
 }

@@ -273,10 +273,6 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
         dm.extension(ext.c_str());
     }
 
-    // Stupid workaround: putting this vector inside the if
-    // causes it to go out of scope, making all the const char*
-    // extension strings become invalid and screwing
-    // everything up
     std::vector<std::string> vrDevExts;
     if (initInfo.enableVR && initInfo.activeVrApi == VrApi::OpenVR) {
         OpenVRInterface* vrInterface = static_cast<OpenVRInterface*>(initInfo.vrInterface);
@@ -298,6 +294,7 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     features.wideLines = true;
     features.samplerAnisotropy = true;
     features.shaderStorageImageWriteWithoutFormat = true;
+    features.shaderStorageImageReadWithoutFormat = true;
     dm.setFeatures(features);
 
     vk::PhysicalDeviceVulkan12Features vk12Features;
@@ -382,9 +379,11 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
         renderWidth, renderHeight
         });
 
+    cubemapConvoluter = std::make_shared<CubemapConvoluter>(vkCtx);
+
     texSlots = std::make_unique<TextureSlots>(vkCtx);
     matSlots = std::make_unique<MaterialSlots>(vkCtx, *texSlots);
-    cubemapSlots = std::make_unique<CubemapSlots>(vkCtx);
+    cubemapSlots = std::make_unique<CubemapSlots>(vkCtx, cubemapConvoluter);
 
     vk::ImageCreateInfo brdfLutIci{
         vk::ImageCreateFlags{},
@@ -398,8 +397,6 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     };
 
     brdfLut = vku::GenericImage{ *device, allocator, brdfLutIci, vk::ImageViewType::e2D, vk::ImageAspectFlagBits::eColor, false, "BRDF LUT" };
-
-    cubemapConvoluter = std::make_unique<CubemapConvoluter>(vkCtx);
 
     vku::executeImmediately(*device, *commandPool, device->getQueue(graphicsQueueFamilyIdx, 0), [&](auto cb) {
         brdfLut.setLayout(cb, vk::ImageLayout::eColorAttachmentOptimal);
@@ -472,8 +469,8 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
         vrApi = initInfo.activeVrApi;
     }
 
-    uint32_t s = cubemapSlots->loadOrGet(g_assetDB.addOrGetExisting("Cubemap2.json"));
-    cubemapConvoluter->convolute((*cubemapSlots)[s]);
+    uint32_t s = cubemapSlots->loadOrGet(g_assetDB.addOrGetExisting("envmap_miramar/miramar.json"));
+    //cubemapConvoluter->convolute((*cubemapSlots)[s]);
 
     g_console->registerCommand([&](void*, const char* arg) {
         numMSAASamples = std::atoi(arg);
@@ -589,6 +586,16 @@ void VKRenderer::createSCDependents() {
 
     imgFences.clear();
     imgFences.resize(swapchain->images.size());
+
+    for (auto& s : imgAvailable) {
+        device->destroySemaphore(s);
+    }
+    imgAvailable.clear();
+
+    for (auto& c : cmdBufs) {
+        vk::SemaphoreCreateInfo sci;
+        imgAvailable.push_back(device->createSemaphore(sci));
+    }
 }
 
 void VKRenderer::recreateSwapchain() {
@@ -717,14 +724,7 @@ vku::ShaderModule VKRenderer::loadShaderAsset(AssetID id) {
 
 void VKRenderer::acquireSwapchainImage(uint32_t* imageIdx) {
     ZoneScoped;
-    vk::Result nextImageRes = swapchain->acquireImage(*device, imgAvailable[frameIdx], imageIdx);
-
-    if ((nextImageRes == vk::Result::eSuboptimalKHR || nextImageRes == vk::Result::eErrorOutOfDateKHR) && width != 0 && height != 0) {
-        recreateSwapchain();
-
-        // acquire image from new swapchain
-        swapchain->acquireImage(*device, imgAvailable[frameIdx], imageIdx);
-    }
+    
 }
 
 void VKRenderer::submitToOpenVR() {
@@ -790,7 +790,6 @@ void VKRenderer::uploadSceneAssets(entt::registry& reg) {
     reg.view<WorldCubemap>().each([&](auto, WorldCubemap& wc) {
         if (wc.loadIdx == ~0u) {
             wc.loadIdx = cubemapSlots->loadOrGet(wc.cubemapId);
-            cubemapConvoluter->convolute(cubemapSlots->getSlots()[wc.loadIdx]);
             reuploadMats = true;
         }
         });
@@ -825,8 +824,6 @@ void VKRenderer::writeCmdBuf(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageInde
         vr::VRSystem()->GetDeviceToAbsoluteTrackingPose(vr::ETrackingUniverseOrigin::TrackingUniverseStanding, vrPredictAmount, &pose, 1);
 
         glm::mat4 viewMats[2];
-        rCtx.vrViewMats[0] = ovrInterface->getViewMat(vr::EVREye::Eye_Left);
-        rCtx.vrViewMats[1] = ovrInterface->getViewMat(vr::EVREye::Eye_Right);
 
         for (int i = 0; i < 2; i++) {
             rCtx.vrViewMats[i] = glm::inverse(ovrInterface->toMat4(pose.mDeviceToAbsoluteTracking) * viewMats[i]) * cam.getViewMatrix();
@@ -999,6 +996,7 @@ void VKRenderer::reuploadMaterials() {
 
 void VKRenderer::frame(Camera& cam, entt::registry& reg) {
     ZoneScoped;
+    bool recreate = false;
     device->waitForFences(1, &cmdBufFences[frameIdx], VK_TRUE, UINT64_MAX);
     device->resetFences(1, &cmdBufFences[frameIdx]);
 
@@ -1009,6 +1007,22 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
 
     uint32_t imageIndex;
     acquireSwapchainImage(&imageIndex);
+
+    vk::Result nextImageRes = swapchain->acquireImage(*device, imgAvailable[frameIdx], &imageIndex);
+
+    if ((nextImageRes == vk::Result::eErrorOutOfDateKHR) && width != 0 && height != 0) {
+        if (nextImageRes == vk::Result::eErrorOutOfDateKHR)
+            logMsg("Swapchain out of date");
+        else
+            logMsg("Swapchain suboptimal");
+        recreateSwapchain();
+
+        // acquire image from new swapchain
+        swapchain->acquireImage(*device, imgAvailable[frameIdx], &imageIndex);
+    }
+
+    if (nextImageRes == vk::Result::eSuboptimalKHR)
+        recreate = true;
 
     if (imgFences[imageIndex]) {
         device->waitForFences(imgFences[imageIndex], true, UINT64_MAX);
@@ -1082,6 +1096,9 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
 
     if (queryRes == vk::Result::eSuccess)
         lastRenderTimeTicks = timeStamps[1] - timeStamps[0];
+
+    if (recreate)
+        recreateSwapchain();
 
     frameIdx++;
     frameIdx %= maxFramesInFlight;

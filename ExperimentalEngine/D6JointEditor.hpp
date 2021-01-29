@@ -51,6 +51,12 @@ namespace worlds {
         return ret;
     }
 
+    float readFloat(PHYSFS_File* file) {
+        float f;
+        PHYSFS_readBytes(file, &f, sizeof(f));
+        return f;
+    }
+
     class D6JointEditor : public BasicComponentUtil<D6Joint> {
     public:
         int getSortID() override { return 1; }
@@ -67,9 +73,20 @@ namespace worlds {
 
         void edit(entt::entity ent, entt::registry& reg) override {
             auto& j = reg.get<D6Joint>(ent);
+            if (!reg.has<DynamicPhysicsActor>(ent)) {
+                reg.remove<D6Joint>(ent);
+                return;
+            }
+
             auto& dpa = reg.get<DynamicPhysicsActor>(ent);
+            auto* pxj = j.pxJoint;
 
             if (ImGui::CollapsingHeader(ICON_FA_ATOM u8" D6 Joint")) {
+                if (ImGui::Button("Remove")) {
+                    reg.remove<D6Joint>(ent);
+                    return;
+                }
+
                 dpa.actor->is<physx::PxRigidDynamic>()->wakeUp();
                 for (physx::PxD6Axis::Enum axis = physx::PxD6Axis::eX; axis < physx::PxD6Axis::eCOUNT; ((int&)axis)++) {
                     auto motion = j.pxJoint->getMotion(axis);
@@ -89,6 +106,13 @@ namespace worlds {
                     j.pxJoint->setLocalPose(physx::PxJointActorIndex::eACTOR1, t1);
                 }
 
+                if (!reg.valid(j.getTarget())) {
+                    if (ImGui::Button("Set Connected Offset")) {
+                        auto p = dpa.actor->getGlobalPose();
+                        j.pxJoint->setLocalPose(physx::PxJointActorIndex::eACTOR1, p);
+                    }
+                }
+
                 if (ImGui::TreeNode("Linear Limits")) {
                     for (physx::PxD6Axis::Enum axis = physx::PxD6Axis::eX; axis < physx::PxD6Axis::eTWIST; ((int&)axis)++) {
                         if (ImGui::TreeNode(motionAxisLabels[axis])) {
@@ -98,6 +122,7 @@ namespace worlds {
                             ImGui::DragFloat("Upper", &lim.upper, 1.0f, lim.lower, (PX_MAX_F32 / 3.0f));
                             ImGui::DragFloat("Stiffness", &lim.stiffness);
                             tooltipHover("If greater than zero, the limit is soft, i.e. a spring pulls the joint back to the limit");
+                            ImGui::DragFloat("Damping", &lim.damping);
                             ImGui::DragFloat("Contact Distance", &lim.contactDistance);
                             tooltipHover("The distance inside the limit value at which the limit will be considered to be active by the solver.");
                             ImGui::DragFloat("Bounce Threshold", &lim.bounceThreshold);
@@ -133,6 +158,17 @@ namespace worlds {
                 float connectedInertiaScale = 1.0f / j.pxJoint->getInvInertiaScale1();
                 if (ImGui::DragFloat("Connected Inertia Scale", &connectedInertiaScale)) {
                     j.pxJoint->setInvInertiaScale0(1.0f / connectedInertiaScale);
+                }
+
+                float breakForce, breakTorque;
+                pxj->getBreakForce(breakForce, breakTorque);
+
+                if (ImGui::DragFloat("Break Torque", &breakTorque)) {
+                    pxj->setBreakForce(breakForce, breakTorque);
+                }
+
+                if (ImGui::DragFloat("Break Force", &breakForce)) {
+                    pxj->setBreakForce(breakForce, breakTorque);
                 }
             }
         }
@@ -183,6 +219,22 @@ namespace worlds {
                 auto lim = px->getLinearLimit(axis);
                 WRITE_FIELD(file, lim);
             }
+
+            float invMS0 = px->getInvMassScale0();
+            float invMS1 = px->getInvMassScale1();
+            float invIS0 = px->getInvInertiaScale0();
+            float invIS1 = px->getInvInertiaScale1();
+
+            WRITE_FIELD(file, invMS0);
+            WRITE_FIELD(file, invMS1);
+            WRITE_FIELD(file, invIS0);
+            WRITE_FIELD(file, invIS1);
+
+            float breakTorque, breakForce;
+            px->getBreakForce(breakForce, breakTorque);
+
+            WRITE_FIELD(file, breakTorque);
+            WRITE_FIELD(file, breakForce);
         }
 
         void readFromFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file, int version) override {
@@ -210,6 +262,17 @@ namespace worlds {
                 physx::PxJointLinearLimitPair lim{ 0.0f, 0.0f, physx::PxSpring{0.0f, 0.0f} };
                 READ_FIELD(file, lim);
                 px->setLinearLimit(axis, lim);
+            }
+
+            if (version >= 2) {
+                px->setInvMassScale0(readFloat(file));
+                px->setInvMassScale1(readFloat(file));
+                px->setInvInertiaScale0(readFloat(file));
+                px->setInvInertiaScale1(readFloat(file));
+
+                float breakTorque = readFloat(file);
+                float breakForce = readFloat(file);
+                px->setBreakForce(breakForce, breakTorque);
             }
         }
     };

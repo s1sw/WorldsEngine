@@ -40,36 +40,10 @@
 #include "EarlySDLUtil.hpp"
 #include "vk_mem_alloc.h"
 #include "ShaderCache.hpp"
+#include "readerwriterqueue.h"
 
 namespace worlds {
     AssetDB g_assetDB;
-
-    struct Cond {
-        SDL_cond* cond;
-        SDL_mutex* m;
-
-        void create() {
-            cond = SDL_CreateCond();
-            m = SDL_CreateMutex();
-        }
-
-        void wait() {
-            SDL_LockMutex(m);
-            SDL_CondWait(cond, m);
-            SDL_UnlockMutex(m);
-        }
-
-        void signal() {
-            SDL_LockMutex(m);
-            SDL_CondSignal(cond);
-            SDL_UnlockMutex(m);
-        }
-
-        void destroy() {
-            SDL_DestroyCond(cond);
-            SDL_DestroyMutex(m);
-        }
-    };
 
 #undef min
 #undef max
@@ -88,9 +62,7 @@ namespace worlds {
     glm::ivec2 windowSize;
 
     // event thread sync
-    Cond eventCV;
-    SDL_mutex* sdlEventMutex;
-    std::queue<SDL_Event> evts;
+    moodycamel::ReaderWriterQueue<SDL_Event> evts;
 
     void WorldsEngine::setupSDL() {
         SDL_Init(SDL_INIT_AUDIO | SDL_INIT_EVENTS | SDL_INIT_VIDEO | SDL_INIT_TIMER);
@@ -104,6 +76,8 @@ namespace worlds {
             SDL_WINDOW_HIDDEN 
             );
     }
+
+    bool fullscreen = false;
 
     // SDL_PollEvent blocks when the window is being resized or moved,
     // so I run it on a different thread.
@@ -126,16 +100,25 @@ namespace worlds {
         while (_this->running) {
             SDL_Event evt;
 
-            while (SDL_PollEvent(&evt)) {
+            if (SDL_WaitEvent(&evt)) {
                 if (evt.type == SDL_QUIT) {
                     _this->running = false;
                     break;
                 } else if (evt.type == fullscreenToggleEventId) {
-                    if ((SDL_GetWindowFlags(_this->window) & SDL_WINDOW_FULLSCREEN_DESKTOP) == SDL_WINDOW_FULLSCREEN_DESKTOP) {
-                        SDL_SetWindowFullscreen(_this->window, 0);
+                    if (fullscreen) {
+                        SDL_SetWindowResizable(_this->window, SDL_TRUE);
+                        SDL_SetWindowBordered(_this->window, SDL_TRUE);
+                        SDL_SetWindowPosition(_this->window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
+                        SDL_SetWindowSize(_this->window, 1600, 900);
                     } else {
-                        SDL_SetWindowFullscreen(_this->window, SDL_WINDOW_FULLSCREEN_DESKTOP);
+                        SDL_SetWindowResizable(_this->window, SDL_FALSE);
+                        SDL_SetWindowBordered(_this->window, SDL_FALSE);
+                        SDL_SetWindowPosition(_this->window, 0, 0);
+                        SDL_DisplayMode dm;
+                        SDL_GetDesktopDisplayMode(0, &dm);
+                        SDL_SetWindowSize(_this->window, dm.w, dm.h);
                     }
+                    fullscreen = !fullscreen;
                 } else if (evt.type == showWindowEventId) {
                     uint32_t flags = SDL_GetWindowFlags(_this->window);
 
@@ -144,13 +127,9 @@ namespace worlds {
                     else
                         SDL_HideWindow(_this->window);
                 } else {
-                    SDL_LockMutex(sdlEventMutex);
-                    evts.push(evt);
-                    SDL_UnlockMutex(sdlEventMutex);
+                    evts.emplace(evt);
                 }
             }
-
-            eventCV.wait();
         }
 
         // SDL requires threads to return an int
@@ -307,9 +286,6 @@ namespace worlds {
 
         if (!dedicatedServer) {
             if (useEventThread) {
-                sdlEventMutex = SDL_CreateMutex();
-                eventCV.create();
-
                 SDL_DetachThread(SDL_CreateThread(windowThread, "Window Thread", this));
                 SDL_Delay(1000);
             } else {
@@ -457,7 +433,8 @@ namespace worlds {
 
             console->registerCommand([&](void*, const char*) {
                 runAsEditor = true;
-                loadScene(currentScene.id);
+                if (currentScene.id != ~0u)
+                    loadScene(currentScene.id);
                 pauseSim = true;
                 inputManager->lockMouse(false);
                 }, "reloadAndEdit", "reload and edit.", nullptr);
@@ -539,7 +516,6 @@ namespace worlds {
                 SDL_Event evt;
                 evt.type = showWindowEventId;
                 SDL_PushEvent(&evt);
-                eventCV.signal();
             } else {
                 SDL_ShowWindow(window);
             }
@@ -614,14 +590,18 @@ namespace worlds {
                         ImGui_ImplSDL2_ProcessEvent(&evt);
                 }
             } else {
-                SDL_LockMutex(sdlEventMutex);
-                while (!evts.empty()) {
-                    auto evt = evts.front();
+                SDL_Event evt;
+                while (evts.try_dequeue(evt)) {
                     if (ImGui::GetCurrentContext())
                         ImGui_ImplSDL2_ProcessEvent(&evt);
-                    evts.pop();
+                    inputManager->processEvent(evt);
                 }
-                SDL_UnlockMutex(sdlEventMutex);
+
+                // also get events from this thread because ImGUI uses them
+                while (SDL_PollEvent(&evt)) {
+                    if (ImGui::GetCurrentContext())
+                        ImGui_ImplSDL2_ProcessEvent(&evt);
+                }
             }
 
             uint64_t updateStart = SDL_GetPerformanceCounter();
@@ -786,9 +766,6 @@ namespace worlds {
 
             inputManager->endFrame();
 
-            if (useEventThread)
-                eventCV.signal();
-
             lastUpdateTime = updateTime;
 
             if (recreateScreenRTT) {
@@ -898,7 +875,7 @@ namespace worlds {
                     ImGui::Text("%zu light(s) / %zu world object(s)", numLights, worldObjects);
                 }
 
-                if (ImGui::CollapsingHeader(ICON_FA_MEMORY u8"Memory Stats")) {
+                if (ImGui::CollapsingHeader(ICON_FA_MEMORY u8" Memory Stats")) {
                     auto vkCtx = renderer->getVKCtx();
 
                     VmaBudget budget[16];
@@ -915,6 +892,18 @@ namespace worlds {
                             ImGui::TreePop();
                         }
                     }
+                }
+
+                if (ImGui::CollapsingHeader(ICON_FA_SHAPES u8" Physics Stats")) {
+                    uint32_t nDynamic = g_scene->getNbActors(physx::PxActorTypeFlag::eRIGID_DYNAMIC);
+                    uint32_t nStatic = g_scene->getNbActors(physx::PxActorTypeFlag::eRIGID_STATIC);
+                    uint32_t nTotal = nDynamic + nStatic;
+
+                    ImGui::Text("%u dynamic actors, %u static actors (%u total)", nDynamic, nStatic, nTotal);
+                    uint32_t nConstraints = g_scene->getNbConstraints();
+                    ImGui::Text("%u constraints", nConstraints);
+                    uint32_t nShapes = g_physics->getNbShapes();
+                    ImGui::Text("%u shapes", nShapes);
                 }
             }
             ImGui::End();

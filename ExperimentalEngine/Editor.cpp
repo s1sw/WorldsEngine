@@ -104,7 +104,6 @@ namespace worlds {
 #undef REGISTER_COMPONENT_TYPE
 
     void Editor::select(entt::entity entity) {
-        if (reg.valid(currentSelectedEntity) && ImGuizmo::IsUsing()) return;
         // Remove selection from existing entity
         if (reg.valid(currentSelectedEntity) && reg.has<UseWireframe>(currentSelectedEntity)) {
             reg.remove<UseWireframe>(currentSelectedEntity);
@@ -454,7 +453,7 @@ namespace worlds {
                 }
             }
 
-            if (ImGui::IsWindowHovered() && !(ImGuizmo::IsOver())) {
+            if (ImGui::IsWindowHovered() && !ImGuizmo::IsUsing()) {
                 if (inputManager.mouseButtonPressed(MouseButton::Left, true)) {
                     interfaces.renderer->requestEntityPick((int)localMPos.x, (int)localMPos.y);
                 }

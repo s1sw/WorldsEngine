@@ -17,6 +17,11 @@
 #include "D6Joint.hpp"
 #include "ComponentEditorUtil.hpp"
 
+// Janky workaround to fix static constructors not being called
+// (static constructors are only required to be called before the first function in the translation unity)
+// (yay for typical c++ specification bullshittery)
+#include "D6JointEditor.hpp"
+
 namespace worlds {
 #define WRITE_FIELD(file, field) PHYSFS_writeBytes(file, &field, sizeof(field))
 #define READ_FIELD(file, field) PHYSFS_readBytes(file, &field, sizeof(field))
@@ -736,8 +741,3 @@ namespace worlds {
     AudioSourceEditor asEd;
     WorldCubemapEditor wcEd;
 }
-
-// Janky workaround to fix static constructors not being called
-// (static constructors are only required to be called before the first function in the translation unity)
-// (yay for typical c++ specification bullshittery)
-#include "D6JointEditor.inl"

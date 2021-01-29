@@ -20,7 +20,7 @@ namespace worlds {
     const unsigned char ESCN_FORMAT_MAGIC[5] = { 'E','S','C','N', '\0' };
     const unsigned char WSCN_FORMAT_MAGIC[5] = "WSCN";
     const int MAX_ESCN_FORMAT_ID = 4;
-    const int MAX_WSCN_FORMAT_ID = 1;
+    const int MAX_WSCN_FORMAT_ID = 2;
 
     bool deserializeEScene(AssetID id, PHYSFS_File* file, entt::registry& reg, 
         bool additive, char* magicCheck, unsigned char formatId) {
@@ -100,32 +100,31 @@ namespace worlds {
 
         logMsg("Loading WSCN version %i", formatId);
 
+        if (!additive)
+            reg.clear();
+
         uint32_t numEntities;
-        if (!PHYSFS_readULE32(file, &numEntities))
-            fatalErr("read err");
+        PHYSFS_readULE32(file, &numEntities);
 
         for (uint32_t i = 0; i < numEntities; i++) {
             uint32_t oldEntId;
-            if (!PHYSFS_readULE32(file, &oldEntId))
-                fatalErr("read err");
+            !PHYSFS_readULE32(file, &oldEntId);
 
             auto newEnt = reg.create((entt::entity)oldEntId);
 
             uint8_t numComponents;
-            if (!PHYSFS_readBytes(file, &numComponents, 1))
-                fatalErr("read err");
+            PHYSFS_readBytes(file, &numComponents, 1);
 
             for (uint8_t j = 0; j < numComponents; j++) {
                 uint32_t compType = ~0u;
-                if (!PHYSFS_readULE32(file, &compType))
-                    fatalErr("read err");
+                !PHYSFS_readULE32(file, &compType);
 
                 auto* mdata = ComponentMetadataManager::bySerializedID.at(compType);
                 mdata->readFromFile(newEnt, reg, file, formatId);
             }
         }
 
-        logMsg("loaded WSCN in %.3f", timer.stopGetMs());
+        logMsg("loaded WSCN in %.3fms", timer.stopGetMs());
         return true;
     }
 

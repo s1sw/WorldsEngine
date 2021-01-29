@@ -127,6 +127,10 @@ void main() {
     outUV = (inUV * texScaleOffset.xy) + texScaleOffset.zw;
 	
 	mat3 model3 = mat3(model);
+    // remove scaling
+    model3[0] = normalize(model3[0]);
+    model3[1] = normalize(model3[1]);
+    model3[2] = normalize(model3[2]);
     outNormal = normalize(model3 * inNormal);
     outTangent = normalize(model3 * inTangent);
 	outShadowPos = shadowmapMatrix * outWorldPos;
