@@ -22,11 +22,16 @@ namespace converge {
         registry.view<PhysHand, worlds::DynamicPhysicsActor>().each([&](auto, PhysHand& physHand, worlds::DynamicPhysicsActor& actor) {
             auto body = static_cast<physx::PxRigidBody*>(actor.actor);
             physx::PxTransform t = body->getGlobalPose();
+
+            if (!body->getLinearVelocity().isFinite()) {
+                logErr("physhand velocity was not finite, resetting...");
+                body->setLinearVelocity(physx::PxVec3{ 0.0f });
+            }
             
             glm::vec3 err = physHand.targetWorldPos - worlds::px2glm(t.p);
 
 
-            glm::vec3 vel = worlds::px2glm(((physx::PxRigidDynamic*)actor.actor)->getLinearVelocity());
+            glm::vec3 vel = worlds::px2glm(body->getLinearVelocity());
             glm::vec3 refVel{ 0.0f };
             
             if (registry.valid(physHand.locosphere)) {
@@ -34,9 +39,15 @@ namespace converge {
                 refVel = worlds::px2glm(((physx::PxRigidDynamic*)lDpa.actor)->getLinearVelocity());
             }
 
-            glm::vec3 force = physHand.posController.getOutput(worlds::px2glm(t.p) - refVel * simStep * 2.0f, physHand.targetWorldPos, vel, simStep, refVel);   
+            glm::vec3 force = physHand.posController.getOutput(worlds::px2glm(t.p) - refVel * simStep * 2.0f, physHand.targetWorldPos, vel, simStep, refVel);
 
-            body->addForce(worlds::glm2px(force));
+            if (!glm::any(glm::isnan(force)))
+                body->addForce(worlds::glm2px(force));
+
+            if (registry.valid(physHand.locosphere)) {
+                worlds::DynamicPhysicsActor& lDpa = registry.get<worlds::DynamicPhysicsActor>(physHand.locosphere);
+                lDpa.actor->is<physx::PxRigidBody>()->addForce(-worlds::glm2px(force));
+            }
 
             glm::quat filteredQ = glm::normalize(physHand.targetWorldRot);
             filteredQ = fixupQuat(filteredQ);

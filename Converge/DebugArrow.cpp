@@ -50,4 +50,13 @@ namespace converge {
             arrowEntities.push_back(ent);
         }
     }
+
+    void DebugArrows::destroyEntities() {
+        for (auto& ent : arrowEntities) {
+            if (reg.valid(ent))
+                reg.destroy(ent);
+        }
+
+        arrowEntities.clear();
+    }
 }
