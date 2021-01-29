@@ -11,6 +11,7 @@
 #include "MathsUtil.hpp"
 #include <CreateModelObject.hpp>
 #include "DebugArrow.hpp"
+#include <D6Joint.hpp>
 
 namespace converge {
     class NullPhysXCallback : public physx::PxRaycastCallback {
@@ -433,9 +434,16 @@ namespace converge {
             desiredAngVel += glm::vec3 { 1.0f, 0.0f, 0.0f } * desiredVel.z;
             desiredAngVel += glm::vec3 { 0.0f, 0.0f, -1.0f } * desiredVel.x;
 
+            const int PID_ITERATIONS = 3;
+
+            for (int i = 0; i < PID_ITERATIONS; i++) {
+                auto currVel = worlds::px2glm(locosphereActor->getAngularVelocity());
+                glm::vec3 torque = lspherePid.getOutput(desiredAngVel - currVel, simStep / PID_ITERATIONS) / (float)PID_ITERATIONS;
+                if (!glm::any(glm::isnan(torque)))
+                    locosphereActor->addTorque(worlds::glm2px(torque), physx::PxForceMode::eACCELERATION);
+            }
+
             auto currVel = worlds::px2glm(locosphereActor->getAngularVelocity());
-            glm::vec3 torque = lspherePid.getOutput(desiredAngVel - currVel, simStep);
-            locosphereActor->addTorque(worlds::glm2px(torque), physx::PxForceMode::eACCELERATION);
 
             NullPhysXCallback nullCallback{};
             lpc.grounded = worlds::g_scene->raycast(worlds::glm2px(locosphereTransform.position - glm::vec3(0.0f, LOCOSPHERE_RADIUS - 0.01f, 0.0f)), physx::PxVec3{ 0.0f, -1.0f, 0.0f }, LOCOSPHERE_RADIUS, nullCallback, physx::PxHitFlag::eDEFAULT, physx::PxQueryFilterData{ physx::PxQueryFlag::ePOSTFILTER | physx::PxQueryFlag::eDYNAMIC | physx::PxQueryFlag::eSTATIC }, &filterEnt);
@@ -460,11 +468,35 @@ namespace converge {
             }
 
             if (lpc.jump) {
+                bool wallPresent = false;
+                auto lspherePose = locosphereActor->getGlobalPose();
+                auto fenderPose = fenderActor->getGlobalPose();
+                glm::vec3 wallNormal;
+
+                glm::vec3 left = worlds::px2glm(fenderPose.q) * glm::vec3(-1.0f, 0.0f, 0.0f);
+                glm::vec3 right = worlds::px2glm(fenderPose.q) * glm::vec3(1.0f, 0.0f, 0.0f);
+                glm::vec3 rayCenter = worlds::px2glm(fenderPose.p) + glm::vec3{ 0.0f, 0.4f, 0.0f };
+
+                worlds::RaycastHitInfo rhi;
+                if (worlds::raycast(rayCenter + (left * 0.25f), left, 0.4f, &rhi)) {
+                    wallPresent = true;
+                    wallNormal = rhi.normal;
+                } else if (worlds::raycast(rayCenter + (right * 0.25f), right, 0.4f, &rhi)) {
+                    wallNormal = rhi.normal;
+                    wallPresent = true;
+                }
                 static worlds::ConVar jumpForce{ "jumpForce", "5.0" };
+                static worlds::ConVar wallJumpForce{ "wallJumpForce", "10.0" };
                 if (lpc.grounded) {
                     locosphereActor->addForce(physx::PxVec3{ 0.0f, jumpForce.getFloat(), 0.0f }, physx::PxForceMode::eVELOCITY_CHANGE);
                     fenderActor->addForce(physx::PxVec3{ 0.0f, jumpForce.getFloat(), 0.0f }, physx::PxForceMode::eVELOCITY_CHANGE);
                     
+                } else if (wallPresent) {
+                    wallNormal += glm::vec3{ 0.0f, 1.0f, 0.0f };
+                    wallNormal = glm::normalize(wallNormal);
+                    wallNormal *= wallJumpForce.getFloat();
+                    locosphereActor->addForce(worlds::glm2px(wallNormal), physx::PxForceMode::eVELOCITY_CHANGE);
+                    fenderActor->addForce(worlds::glm2px(wallNormal), physx::PxForceMode::eVELOCITY_CHANGE);
                 } else if (!lpc.doubleJumpUsed) {
                     lpc.doubleJumpUsed = true;
                     locosphereActor->addForce(physx::PxVec3{ 0.0f, jumpForce.getFloat(), 0.0f }, physx::PxForceMode::eVELOCITY_CHANGE);
@@ -478,14 +510,41 @@ namespace converge {
             }
 
             if (lpc.isLocal) {
-                auto fenderWorldsTf = registry.get<Transform>(rig.fender);
+                auto& fenderWorldsTf = registry.get<Transform>(rig.fender);
                 auto lspherePose = locosphereActor->getGlobalPose();
                 auto fenderPose = fenderActor->getGlobalPose();
+                if (!fenderPose.p.isFinite() || !lspherePose.p.isFinite()) {
+                    fenderPose = physx::PxTransform{ physx::PxIdentity };
+
+                    fenderWorldsTf.position = glm::vec3{ 0.0f };
+                    fenderWorldsTf.rotation = glm::quat{};
+
+                    lspherePose = physx::PxTransform{ physx::PxIdentity };
+
+                    locosphereTransform.position = glm::vec3{ 0.0f };
+                    locosphereTransform.rotation = glm::quat{};
+
+                    fenderActor->setGlobalPose(fenderPose);
+                    locosphereActor->setGlobalPose(lspherePose);
+                    fenderActor->setLinearVelocity(physx::PxVec3{ 0.0f });
+                    locosphereActor->setLinearVelocity(physx::PxVec3{ 0.0f });
+                    fenderActor->setAngularVelocity(physx::PxVec3{ 0.0f });
+                    locosphereActor->setAngularVelocity(physx::PxVec3{ 0.0f });
+                }
+
                 lastCamPos = nextCamPos;
+
+                glm::mat4 camMat;
+                if (vrInterface) {
+                    camMat = vrInterface->getHeadTransform();
+                } else {
+                    camMat = glm::rotate(glm::mat4(1.0f), -lookX, glm::vec3(0.0f, 1.0f, 0.0f));
+                }
 
                 if (vrInterface) {
                     static glm::vec3 lastHeadPos = glm::vec3{ 0.0f };//worlds::getMatrixTranslation(vrInterface->getHeadTransform());
                     glm::vec3 headPos = worlds::getMatrixTranslation(vrInterface->getHeadTransform());
+                    float headLookAngle = glm::eulerAngles(worlds::getMatrixRotation(vrInterface->getHeadTransform())).y;
                     glm::vec3 locosphereOffset = lastHeadPos - headPos;
                     lastHeadPos = headPos;
                     locosphereOffset.y = 0.0f;
@@ -495,8 +554,13 @@ namespace converge {
                     locosphereActor->setGlobalPose(lspherePose);
                     
                     fenderPose.p += worlds::glm2px(locosphereOffset);
-                    fenderActor->setGlobalPose(fenderPose);
                 }
+
+                glm::vec3 forward = camMat * glm::vec4(0.0f, 0.0f, 1.0f, 0.0f);
+                forward.y = 0.0f;
+                forward = glm::normalize(forward);
+                fenderPose.q = worlds::glm2px(glm::quatLookAt(forward, glm::vec3(0.0f, 1.0f, 0.0f)));
+                fenderActor->setGlobalPose(fenderPose);
 
                 nextCamPos = worlds::px2glm(lspherePose.p + physx::PxVec3(0.0f, -LOCOSPHERE_RADIUS, 0.0f));
 
@@ -508,6 +572,16 @@ namespace converge {
                     // Cancel out the movement of the head
                     glm::vec3 headPos = worlds::getMatrixTranslation(vrInterface->getHeadTransform());
                     nextCamPos += glm::vec3{ headPos.x, 0.0f, headPos.z };
+                }
+
+                if (!fenderPose.p.isFinite()) {
+                    logErr("fender pose invalid");
+                    fenderPose.p = physx::PxVec3{ 0.0f };
+                }
+
+                if (!lspherePose.p.isFinite()) {
+                    logErr("lsphere pose invalid");
+                    lspherePose.p = physx::PxVec3{ 0.0f };
                 }
 
                 physDbgIdx++;
@@ -524,13 +598,13 @@ namespace converge {
         registry.emplace<LocospherePlayerComponent>(playerLocosphere).isLocal = true;
         registry.emplace<worlds::NameComponent>(playerLocosphere, "Locosphere");
 
-        auto actor = worlds::g_physics->createRigidDynamic(physx::PxTransform{ physx::PxVec3{0.0f, 2.0f, 0.0f}, physx::PxQuat{physx::PxIdentity} });
+        auto actor = worlds::g_physics->createRigidDynamic(physx::PxTransform{ physx::PxVec3{0.0f, 5.0f, 0.0f}, physx::PxQuat{physx::PxIdentity} });
         auto& wActor = registry.emplace<worlds::DynamicPhysicsActor>(playerLocosphere, actor);
 
         actor->setSolverIterationCounts(16, 4);
         worlds::g_scene->addActor(*actor);
 
-        locosphereMat = worlds::g_physics->createMaterial(2.5f, 50.0f, 0.0f);
+        locosphereMat = worlds::g_physics->createMaterial(100.0f, 100.0f, 0.0f);
         locosphereMat->setFrictionCombineMode(physx::PxCombineMode::eMAX);
         wActor.physicsShapes.push_back(worlds::PhysicsShape::sphereShape(LOCOSPHERE_RADIUS, locosphereMat));
 
@@ -539,27 +613,44 @@ namespace converge {
 
         // Set up player fender and joint
         auto playerFender = registry.create();
-        registry.emplace<Transform>(playerFender);
+        registry.emplace<Transform>(playerFender).position = glm::vec3(0.0f, 5.4f, 0.0f);
         registry.emplace<worlds::NameComponent>(playerFender, "Fender");
 
-        auto fenderActor = worlds::g_physics->createRigidDynamic(physx::PxTransform{ physx::PxVec3{0.0f, 2.0f, 0.0f}, physx::PxQuat{physx::PxIdentity} });
+        auto fenderActor = worlds::g_physics->createRigidDynamic(physx::PxTransform{ physx::PxVec3{0.0f, 5.4f, 0.0f}, physx::PxQuat{physx::PxIdentity} });
         auto& fenderWActor = registry.emplace<worlds::DynamicPhysicsActor>(playerFender, fenderActor);
 
         worlds::g_scene->addActor(*fenderActor);
 
         fenderMat = worlds::g_physics->createMaterial(0.0f, 0.0f, 0.0f);
-        auto fenderShape = worlds::PhysicsShape::capsuleShape(0.35f, 0.5f, fenderMat);
-        fenderShape.rot = glm::quat(glm::vec3(0.0f, 0.0f, glm::half_pi<float>()));
+        auto bodyShape = worlds::PhysicsShape::capsuleShape(0.15f, 1.0f, fenderMat);
+        bodyShape.pos = glm::vec3(0.0f, 0.1f, 0.0f);
+        bodyShape.rot = glm::quat(glm::vec3(0.0f, 0.0f, glm::half_pi<float>()));
+        fenderWActor.physicsShapes.push_back(bodyShape);
+
+        auto headShape = worlds::PhysicsShape::sphereShape(0.25f, fenderMat);
+        headShape.pos = glm::vec3(0.0f, 0.75f, 0.0f);
+        fenderWActor.physicsShapes.push_back(headShape);
+
+        auto fenderShape = worlds::PhysicsShape::sphereShape(0.3f);
+        fenderShape.pos = glm::vec3(0.0f, -0.28f, 0.0f);
         fenderWActor.physicsShapes.push_back(fenderShape);
 
         worlds::updatePhysicsShapes(fenderWActor);
         physx::PxRigidBodyExt::setMassAndUpdateInertia(*fenderActor, 3.0f);
 
-        auto* fenderJoint = physx::PxD6JointCreate(*worlds::g_physics, fenderActor, physx::PxTransform{ physx::PxVec3{0.0f, -0.4f, 0.0f}, physx::PxQuat{ physx::PxIdentity } }, actor, physx::PxTransform{ physx::PxIdentity });
+        auto& d6Comp = registry.emplace<worlds::D6Joint>(playerFender);
+
+        d6Comp.setTarget(playerLocosphere, registry);
+
+        physx::PxTransform offset{ physx::PxIdentity };
+        offset.p = physx::PxVec3{ 0.0f, -0.4f, 0.0f };
+        d6Comp.pxJoint->setLocalPose(physx::PxJointActorIndex::eACTOR0, offset);
 
         fenderActor->setRigidDynamicLockFlag(physx::PxRigidDynamicLockFlag::eLOCK_ANGULAR_X, true);
         fenderActor->setRigidDynamicLockFlag(physx::PxRigidDynamicLockFlag::eLOCK_ANGULAR_Y, true);
         fenderActor->setRigidDynamicLockFlag(physx::PxRigidDynamicLockFlag::eLOCK_ANGULAR_Z, true);
+
+        auto fenderJoint = d6Comp.pxJoint;
 
         fenderJoint->setMotion(physx::PxD6Axis::eX, physx::PxD6Motion::eLOCKED);
         fenderJoint->setMotion(physx::PxD6Axis::eY, physx::PxD6Motion::eLOCKED);
@@ -571,8 +662,8 @@ namespace converge {
 
         fenderJoint->setConstraintFlag(physx::PxConstraintFlag::eCOLLISION_ENABLED, false);
         fenderActor->setSolverIterationCounts(16, 4);
-        fenderJoint->setInvInertiaScale0(0.075f);
-        fenderJoint->setInvMassScale0(0.075f);
+        fenderJoint->setInvInertiaScale0(1.0f);
+        fenderJoint->setInvMassScale0(1.0f);
 
         logMsg("locosphere entity is %u", (uint32_t)playerLocosphere);
 
@@ -581,13 +672,16 @@ namespace converge {
         rig.fender = playerFender;
         rig.fenderJoint = fenderJoint;
         registry.emplace<PlayerRig>(playerLocosphere, rig);
+
+        actor->setGlobalPose(physx::PxTransform{ physx::PxVec3{0.0f, 5.0f, 0.0f}, physx::PxQuat { physx::PxIdentity} });
+        fenderActor->setGlobalPose(physx::PxTransform{ physx::PxVec3{0.0f, 5.4f, 0.0f}, physx::PxQuat { physx::PxIdentity} });
         
         return rig;
     }
 
     void LocospherePlayerSystem::onSceneStart(entt::registry&) {
         // Create physics rig
-        lspherePid.P = 150.0f;
+        lspherePid.P = 75.0f;
         lspherePid.I = 0.0f;
         lspherePid.D = 0.0f;
         zeroThresh = 0.0f;

@@ -97,7 +97,7 @@ namespace converge {
             }, "connect", "Connects to the specified server.", nullptr);
         }
 
-        //new DebugArrows(registry);
+        new DebugArrows(registry);
 
         if (vrInterface) { 
             worlds::g_console->registerCommand([&](void*, const char*) {
@@ -133,6 +133,7 @@ namespace converge {
     }
 
     void EventHandler::preSimUpdate(entt::registry&, float) {
+        g_dbgArrows->newFrame();
     }
 
     void EventHandler::update(entt::registry&, float, float) {
@@ -162,8 +163,6 @@ namespace converge {
                 ImGui::End();
             }
         }
-
-        //g_dbgArrows->newFrame();
     }
 
     worlds::ConVar sendRate {"cnvrg_sendRate", "5", "Send rate in simulation ticks. 0 = 1 packet per tick"};
@@ -326,8 +325,8 @@ namespace converge {
                 auto& rwActor = registry.emplace<worlds::DynamicPhysicsActor>(rHandEnt, rActor);
                 auto& lwActor = registry.get<worlds::DynamicPhysicsActor>(lHandEnt);
 
-                rwActor.physicsShapes.emplace_back(worlds::PhysicsShape::sphereShape(0.1f));
-                lwActor.physicsShapes.emplace_back(worlds::PhysicsShape::sphereShape(0.1f));
+                rwActor.physicsShapes.emplace_back(worlds::PhysicsShape::boxShape(glm::vec3{ 0.025f, 0.05f, 0.05f }));
+                lwActor.physicsShapes.emplace_back(worlds::PhysicsShape::boxShape(glm::vec3{ 0.025f, 0.05f, 0.05f }));
 
                 worlds::updatePhysicsShapes(rwActor);
                 worlds::updatePhysicsShapes(lwActor);
@@ -397,7 +396,7 @@ namespace converge {
             }
         }
 
-        //g_dbgArrows->createEntities();
+        g_dbgArrows->createEntities();
     }
 
     void EventHandler::shutdown(entt::registry& registry) {

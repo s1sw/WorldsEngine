@@ -10,6 +10,7 @@ namespace converge {
         void drawArrow(glm::vec3 start, glm::vec3 dir);
         void newFrame();
         void createEntities();
+        void destroyEntities();
     private:
         entt::registry& reg;
         std::vector<entt::entity> arrowEntities;

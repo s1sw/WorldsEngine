@@ -32,6 +32,8 @@ int main(int argc, char** argv) {
         return -1;
     }
 
+    initOptions.useEventThread = true;
+
     converge::EventHandler evtHandler {ds};
     initOptions.eventHandler = &evtHandler;
 
