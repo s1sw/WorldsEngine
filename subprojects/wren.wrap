@@ -1,0 +1,4 @@
+[wrap-git]
+directory = wren.git
+url = https://github.com/someonesomewheredev/wren.git
+revision = 17e2aedd6b9a730486ee548c57db200864a0e268

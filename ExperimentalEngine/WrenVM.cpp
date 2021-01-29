@@ -6,6 +6,9 @@
 #include <entt/entt.hpp>
 #include "Transform.hpp"
 #include "ScriptComponent.hpp"
+#include "entt/entity/fwd.hpp"
+#include "AssetDB.hpp"
+#include "wren.h"
 
 namespace worlds {
     void writeFn(WrenVM* vm, const char* text) {
@@ -140,17 +143,47 @@ namespace worlds {
         return methods;
     }
 
-    char* loadModule(WrenVM* vm, const char* name) {
+    WrenLoadModuleResult loadModule(WrenVM* vm, const char* name) {
+        WrenLoadModuleResult res{};
+
         // TODO: Could theoretically read contents of other data files by abusing ..
         // Not an issue since we're assuming that scripts are trusted but oh well
         auto ioRes = LoadFileToString("ScriptModules/" + std::string(name) + ".wren");
 
         if (ioRes.error != IOError::None) {
             logErr(WELogCategoryScripting, "Failed to load module %s", name);
-            return nullptr;
+            return res;
         }
 
-        return _strdup(ioRes.value.c_str());
+        res.source = strdup(ioRes.value.c_str());
+
+        return res;
+    }
+
+    std::string getModuleString(entt::entity ent, AssetID scriptId) {
+        return std::to_string((uint32_t)ent) + ":" + std::to_string(scriptId);
+    }
+
+    void WrenScriptEngine::onScriptConstruct(entt::registry& reg, entt::entity ent) {
+        auto& sc = reg.get<ScriptComponent>(ent);
+
+        auto ioRes = LoadFileToString(g_assetDB.getAssetPath(sc.script));
+        
+        if (ioRes.error != IOError::None) {
+            logErr(WELogCategoryScripting, "Failed to load script");
+            return;
+        }
+        
+        // generate module string
+        auto modStr = getModuleString(ent, sc.script);
+        wrenInterpret(vm, modStr.c_str(), ioRes.value.c_str());
+    }
+
+    void WrenScriptEngine::onScriptDestroy(entt::registry& reg, entt::entity ent) {
+        // TODO: The current version of Wren we're using doesn't allow
+        // unloading/destroying modules. At some point we should probably
+        // fix this in our fork, but we don't have the ability to leak anything
+        // large right now so it doesn't really matter.
     }
 
     WrenScriptEngine::WrenScriptEngine() {
@@ -186,11 +219,58 @@ namespace worlds {
                 }
             }
             }, "execWrenScript", "Executes a Wren script file.", nullptr);
+
+        for (int i = 0; i < 4; i++) {
+            std::string sigStr = "call(";
+
+            for (int j = 0; j < i; j++) {
+                sigStr += "_";
+
+                if (j < i - 1) {
+                    sigStr += ",";
+                }
+            }
+
+            sigStr += ")";
+
+            callArgCount[i] = wrenMakeCallHandle(vm, sigStr.c_str());
+        }
     }
 
     void WrenScriptEngine::bindRegistry(entt::registry& reg) {
         regPtr = &reg;
-        reg.on_construct<ScriptComponent>().connect
+        reg.on_construct<ScriptComponent>()
+            .connect<&WrenScriptEngine::onScriptConstruct>(*this);
+        reg.on_destroy<ScriptComponent>()
+            .connect<&WrenScriptEngine::onScriptDestroy>(*this);
+    }
+
+    void setEntitySlot(entt::entity ent, WrenVM* vm, int slot) {
+        wrenGetVariable(vm, "worlds_engine/entity", "Entity", slot);
+        uint32_t* idPtr = 
+            (uint32_t*)wrenSetSlotNewForeign(vm, slot, slot, sizeof(uint32_t));
+
+        *idPtr = (uint32_t)ent;
+    }
+    
+    void WrenScriptEngine::onSimulate(entt::registry& reg, float deltaTime) {
+        reg.view<ScriptComponent>().each([&](entt::entity ent, ScriptComponent& sc) {
+            if (!sc.handlesChecked) {
+                auto modStr = getModuleString(ent, sc.script);
+                wrenGetVariable(vm, modStr.c_str(), "onSimulate", 0);
+                if (wrenGetSlotType(vm, 0) != WREN_TYPE_NULL) {
+                    sc.onSimulate = wrenGetSlotHandle(vm, 0);
+                }
+            }
+
+            if (sc.onSimulate) {
+                wrenSetSlotHandle(vm, 0, sc.onSimulate);
+                setEntitySlot(ent, vm, 1);
+                wrenSetSlotDouble(vm, 2, deltaTime);
+
+                wrenCall(vm, callArgCount[2]);
+            }
+        });
     }
 
     WrenScriptEngine::~WrenScriptEngine() {

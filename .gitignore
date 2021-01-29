@@ -346,3 +346,5 @@ healthchecksdb
 
 build
 build_release
+
+/subprojects/wren.git

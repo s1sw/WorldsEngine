@@ -966,6 +966,10 @@ namespace worlds {
                         system->simulate(registry, simStepTime.getFloat() * timeScale);
                 }
 
+                if (!runAsEditor) {
+                    scriptEngine->onSimulate(registry, simStepTime.getFloat() * timeScale);
+                }
+
                 registry.view<DynamicPhysicsActor>().each([&](auto ent, DynamicPhysicsActor& dpa) {
                     currentState[ent] = dpa.actor->getGlobalPose();
                     });

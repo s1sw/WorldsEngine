@@ -16,6 +16,7 @@
 #include "JsonUtil.hpp"
 #include "D6Joint.hpp"
 #include "ComponentEditorUtil.hpp"
+#include "ScriptComponent.hpp"
 
 // Janky workaround to fix static constructors not being called
 // (static constructors are only required to be called before the first function in the translation unity)
@@ -717,7 +718,7 @@ namespace worlds {
             }
         }
 
-        void writeToFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file) {
+        void writeToFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file) override {
             WorldCubemap& wc = reg.get<WorldCubemap>(ent);
 
             WRITE_FIELD(file, wc.cubemapId);
