@@ -255,6 +255,7 @@
     <ClCompile Include="CubemapLoader.cpp" />
     <ClCompile Include="CubemapSlots.cpp" />
     <ClCompile Include="D6Joint.cpp" />
+    <ClCompile Include="WrenVM.cpp" />
     <ClInclude Include="D6JointEditor.hpp" />
     <ClCompile Include="DefaultUITheme.cpp" />
     <ClCompile Include="EarlySDLUtil.cpp" />
@@ -278,7 +279,6 @@
     <ClCompile Include="IOUtil.cpp" />
     <ClCompile Include="JobSystem.cpp" />
     <ClCompile Include="Engine.cpp" />
-    <ClCompile Include="LuaVM.cpp" />
     <ClCompile Include="MaterialEditor.cpp" />
     <ClCompile Include="MaterialSlots.cpp" />
     <ClCompile Include="mikktspace.c" />
@@ -350,7 +350,6 @@
     <ClInclude Include="JsonUtil.hpp" />
     <ClInclude Include="Log.hpp" />
     <ClInclude Include="LogCategories.hpp" />
-    <ClInclude Include="LuaVM.hpp" />
     <ClInclude Include="MatUtil.hpp" />
     <ClInclude Include="MeshManager.hpp" />
     <ClInclude Include="mikktspace.h" />
@@ -372,6 +371,7 @@
     <ClInclude Include="RobloxMeshLoader.hpp" />
     <ClInclude Include="SceneSerialization.hpp" />
     <ClInclude Include="SceneSerializationFuncs.hpp" />
+    <ClInclude Include="ScriptComponent.hpp" />
     <ClInclude Include="ShaderCache.hpp" />
     <ClInclude Include="ShaderMetadata.hpp" />
     <ClInclude Include="SourceModelLoader.hpp" />
@@ -385,6 +385,7 @@
     <ClInclude Include="vku\vku.hpp" />
     <ClInclude Include="weldmesh.h" />
     <ClInclude Include="WMDLLoader.hpp" />
+    <ClInclude Include="WrenVM.hpp" />
     <ClInclude Include="XRInterface.hpp" />
   </ItemGroup>
   <ItemGroup>

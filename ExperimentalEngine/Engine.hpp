@@ -9,7 +9,7 @@
 #include "ISystem.hpp"
 #include "Camera.hpp"
 #include "Console.hpp"
-#include "LuaVM.hpp"
+#include "WrenVM.hpp"
 
 #define NUM_SUBMESH_MATS 32
 namespace worlds {
@@ -83,7 +83,7 @@ namespace worlds {
         Camera cam;
         std::unique_ptr<Console> console;
         std::unique_ptr<Editor> editor;
-        std::unique_ptr<LuaVM> luaVM;
+        std::unique_ptr<WrenScriptEngine> scriptEngine;
         OpenVRInterface openvrInterface;
         double timeScale = 1.0;
         SDL_Window* window;

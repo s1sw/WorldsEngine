@@ -171,7 +171,7 @@ namespace worlds {
     }
 
     void phLog(const char* msg) {
-        SDL_Log("Phonon: %s", msg);
+        logMsg(WELogCategoryAudio, "Phonon: %s", msg);
     }
 
     AudioSystem* AudioSystem::instance;

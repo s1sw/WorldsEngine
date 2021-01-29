@@ -239,9 +239,6 @@
     <ClCompile Include="Engine.cpp">
       <Filter>Source Files\Systems</Filter>
     </ClCompile>
-    <ClCompile Include="LuaVM.cpp">
-      <Filter>Source Files\Scripting</Filter>
-    </ClCompile>
     <ClCompile Include="WMDLLoader.cpp">
       <Filter>Source Files\Loaders</Filter>
     </ClCompile>
@@ -295,6 +292,9 @@
     </ClCompile>
     <ClCompile Include="CubemapSlots.cpp">
       <Filter>Source Files\Systems\Render</Filter>
+    </ClCompile>
+    <ClCompile Include="WrenVM.cpp">
+      <Filter>Source Files\Scripting</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -478,9 +478,6 @@
     <ClInclude Include="ISystem.hpp">
       <Filter>Header Files\Misc</Filter>
     </ClInclude>
-    <ClInclude Include="LuaVM.hpp">
-      <Filter>Header Files\Scripting</Filter>
-    </ClInclude>
     <ClInclude Include="WMDLLoader.hpp">
       <Filter>Header Files\Loaders</Filter>
     </ClInclude>
@@ -516,6 +513,12 @@
     </ClInclude>
     <ClInclude Include="D6JointEditor.hpp">
       <Filter>Source Files\Editor\Component Editors</Filter>
+    </ClInclude>
+    <ClInclude Include="WrenVM.hpp">
+      <Filter>Header Files\Scripting</Filter>
+    </ClInclude>
+    <ClInclude Include="ScriptComponent.hpp">
+      <Filter>Header Files\Scripting</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
