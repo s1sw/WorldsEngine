@@ -1,0 +1,4 @@
+[wrap-git]
+directory = physfs.git
+url = https://github.com/someonesomewheredev/physfs.git
+revision = fdca3cd2944725758cf66bfb24f9bc0296838186

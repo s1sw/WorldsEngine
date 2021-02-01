@@ -1,0 +1,10 @@
+[wrap-file]
+directory = enet-1.3.13
+
+source_url = http://enet.bespin.org/download/enet-1.3.13.tar.gz
+source_filename = enet-1.3.13.tar.gz
+source_hash = e36072021faa28731b08c15b1c3b5b91b911baf5f6abcc7fe4a6d425abada35c
+
+patch_url = https://wrapdb.mesonbuild.com/v1/projects/enet/1.3.13/4/get_zip
+patch_filename = enet-1.3.13-4-wrap.zip
+patch_hash = 893417678fc67b989ac7726b0cde533dc991fb7a68d306b7acf77652f7507dd4
