@@ -2019,8 +2019,10 @@ Features deliberately excluded from the scope of this library:
 
 */
 
+#ifdef __clang__
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wnullability-completeness"
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -19230,4 +19232,6 @@ VMA_CALL_PRE void VMA_CALL_POST vmaDestroyImage(
 }
 
 #endif // #ifdef VMA_IMPLEMENTATION
+#ifdef __clang__
 #pragma clang diagnostic pop
+#endif
