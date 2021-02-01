@@ -125,6 +125,7 @@ namespace converge {
         headbobTime += deltaTime;
 
         static HeadBobSettings settings;
+        static float sprintLerp = 0.0f;
 
         if (headBobDbg && ImGui::Begin("Head bob")) {
             ImGui::InputFloat("Speed Y", &settings.bobSpeed.x);
@@ -132,9 +133,9 @@ namespace converge {
             ImGui::InputFloat("Amount Y", &settings.bobAmount.y);
             ImGui::InputFloat("Amount X", &settings.bobAmount.x);
             ImGui::InputFloat("Overall Speed", &settings.overallSpeed);
+            ImGui::Text("headbobTime: %.3f", headbobTime);
+            ImGui::Text("sprintLerp: %.3f", sprintLerp);
         }
-
-        static float sprintLerp = 0.0f;
 
         if (glm::length2(desiredVel) > 0.0f && grounded) {
             headbobProgress += deltaTime;

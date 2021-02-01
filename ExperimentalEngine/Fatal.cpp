@@ -1,6 +1,6 @@
 #include "Fatal.hpp"
 #include "Log.hpp"
-#include <SDL2/SDL_messagebox.h>
+#include <SDL_messagebox.h>
 #include <string>
 
 template<typename ... Args>

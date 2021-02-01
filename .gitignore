@@ -345,6 +345,10 @@ healthchecksdb
 /log.txt
 
 build
-build_release
+build_*
 
 /subprojects/wren.git
+/subprojects/SDL2-*
+/subprojects/enet-*
+/subprojects/physfs.git
+/subprojects/packagecache

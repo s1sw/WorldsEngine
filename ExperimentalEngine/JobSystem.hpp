@@ -4,7 +4,7 @@
 #include <queue>
 #include <thread>
 #include <atomic>
-#include "SDL2/SDL_mutex.h"
+#include <SDL_mutex.h>
 #include <functional>
 #ifdef TRACY_ENABLE
 #include "tracy/Tracy.hpp"

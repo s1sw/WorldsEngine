@@ -1,7 +1,7 @@
 #include "CubemapLoader.hpp"
 #include "tracy/Tracy.hpp"
 #include <sajson.h>
-#include <SDL2/SDL_log.h>
+#include <SDL_log.h>
 #include "Engine.hpp"
 #include "Render.hpp"
 #include "TimingUtil.hpp"

@@ -1,6 +1,6 @@
 ﻿#include "PCH.hpp"
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_vulkan.h>
+#include <SDL.h>
+#include <SDL_vulkan.h>
 #include "JobSystem.hpp"
 #include <iostream>
 #include <thread>
@@ -23,7 +23,6 @@
 #include "OpenVRInterface.hpp"
 #include "Log.hpp"
 #include "Audio.hpp"
-#include <discord_rpc.h>
 #include <stb_image.h>
 #include "Console.hpp"
 #include "SceneSerialization.hpp"
@@ -310,7 +309,7 @@ namespace worlds {
         io.IniFilename = runAsEditor ? "imgui_editor.ini" : "imgui.ini";
         // Disabling this for now as it seems to cause random freezes
         io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;         // Enable Multi-Viewport / Platform Windows
-        io.Fonts->TexDesiredWidth = 512.f;
+        io.Fonts->TexDesiredWidth = 512;
 
         if (!dedicatedServer) {
             ImGui_ImplSDL2_InitForVulkan(window);
@@ -331,7 +330,9 @@ namespace worlds {
 
             float scaleFac = glm::min(((float)rect.w * 0.9f) / newW, ((float)rect.h * 0.9f) / newH);
 
-            SDL_SetWindowSize(window, newW * scaleFac, newH * scaleFac);
+            SDL_SetWindowSize(window, 
+                    (uint32_t)(newW * scaleFac), 
+                    (uint32_t)(newH * scaleFac));
         }
 
         VrApi activeApi = VrApi::None;
@@ -459,6 +460,9 @@ namespace worlds {
             //disableSimInterp.setValue("1");
         }
 
+        scriptEngine = std::make_unique<WrenScriptEngine>();
+        scriptEngine->bindRegistry(registry);
+
         if (runAsEditor) {
             disableSimInterp.setValue("1");
             createStartupScene();
@@ -522,8 +526,6 @@ namespace worlds {
             destroySplashWindow(splashWindow);
         }
 
-        scriptEngine = std::make_unique<WrenScriptEngine>();
-        scriptEngine->bindRegistry(registry);
 
         if (dedicatedServer) {
             // do a lil' dance to make dear imgui happy
@@ -677,6 +679,8 @@ namespace worlds {
 
                 for (auto* system : systems)
                     system->update(registry, deltaTime * timeScale, interpAlpha);
+
+                scriptEngine->onUpdate(registry, deltaTime * timeScale);
             }
 
             if (!dedicatedServer) {
@@ -792,12 +796,12 @@ namespace worlds {
             }
 
             uint64_t postUpdate = SDL_GetPerformanceCounter();
-            double completeUpdateTime = (postUpdate - now) / SDL_GetPerformanceFrequency();
+            double completeUpdateTime = (postUpdate - now) / (double)SDL_GetPerformanceFrequency();
 
             if (dedicatedServer) {
                 double waitTime = simStepTime.getFloat() - completeUpdateTime;
                 if (waitTime > 0.0)
-                    SDL_Delay(waitTime * 1000.0);
+                    SDL_Delay(waitTime * 1000);
             }
         }
     }
@@ -884,7 +888,7 @@ namespace worlds {
                     vmaGetMemoryProperties(vkCtx.allocator, &memProps);
                     
                     for (uint32_t i = 0; i < memProps->memoryHeapCount; i++) {
-                        if (ImGui::TreeNode((void*)i, "Heap %u", i)) {
+                        if (ImGui::TreeNode((void*)(uintptr_t)i, "Heap %u", i)) {
                             ImGui::Text("Available: %.3fMB", budget[i].budget / 1024.0 / 1024.0);
                             ImGui::Text("Used: %.3fMB", budget[i].allocationBytes / 1024.0 / 1024.0);
                             ImGui::Text("Actually allocated: %.3fMB", budget[i].usage / 1024.0 / 1024.0);

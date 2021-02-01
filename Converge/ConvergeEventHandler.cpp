@@ -25,6 +25,7 @@
 #include "ObjectParentSystem.hpp"
 #include <core.h>
 #include "VKImGUIUtil.hpp"
+#include <ScriptComponent.hpp>
 
 namespace converge {
     const uint16_t CONVERGE_PORT = 3011;
@@ -397,6 +398,13 @@ namespace converge {
         }
 
         g_dbgArrows->createEntities();
+
+        auto testEnt = worlds::createModelObject(*reg, 
+            glm::vec3{ 0.0f }, glm::quat{}, 
+            worlds::g_assetDB.addOrGetExisting("model.obj"), 
+            worlds::g_assetDB.addOrGetExisting("Materials/dev.json"));
+
+        reg->emplace<worlds::ScriptComponent>(testEnt, worlds::g_assetDB.addOrGetExisting("Scripts/TestBehaviour.wren"));
     }
 
     void EventHandler::shutdown(entt::registry& registry) {

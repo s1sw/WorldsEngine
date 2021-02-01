@@ -1,131 +1,135 @@
 sources = [
-    'IOUtil.cpp',
-    'imgui_impl_sdl.cpp',
-    'imgui_impl_vulkan.cpp',
-    'imgui_stdlib.cpp',
-    'DefaultUITheme.cpp',
-    'EarlySDLUtil.cpp',
-    'ShaderMetadata.cpp',
-    'SplashWindow.cpp',
-    'StyleEditor.cpp',
-    'VTFLoader.cpp',
-    'imgui.cpp',
-    'imgui_demo.cpp',
-    'imgui_draw.cpp',
-    'imgui_widgets.cpp',
-    'weldmesh.cpp',
-    'GameControls.cpp',
-    'EntityList.cpp',
-    'ImGuizmo.cpp',
-    'physfs.cpp',
-    'vkswapchain.cpp',
-    'JobSystem.cpp',
-    'WMDLLoader.cpp',
     'AssetDB.cpp',
     'AssetDBExplorer.cpp',
     'Assets.cpp',
-    'Fatal.cpp',
-    'ImGuiRenderPass.cpp',
-    'ObjModelLoader.cpp',
-    'RichPresence.cpp',
-    'RobloxMeshLoader.cpp',
-    'ShadowmapRenderPass.cpp',
-    'TonemapRenderPass.cpp',
-    'VRCullMeshRenderer.cpp',
-    'BRDFLUTRenderer.cpp',
-    'BlurRenderPass.cpp',
-    'GTAORenderPass.cpp',
-    'MaterialEditor.cpp',
-    'PipelineCacheSerializer.cpp',
-    'RenderTexture.cpp',
-    'ShaderCache.cpp',
-    'TextureLoader.cpp',
-    'VKImGUIUtil.cpp',
-    'Console.cpp',
-    'CubemapLoader.cpp',
-    'D6Joint.cpp',
-    'EntityEditor.cpp',
-    'GuiUtil.cpp',
-    'MaterialSlots.cpp',
-    'OpenVRInterface.cpp',
-    'SourceModelLoader.cpp',
     'Audio.cpp',
+    'BlurRenderPass.cpp',
+    'BRDFLUTRenderer.cpp',
     'ComponentFuncs.cpp',
+    'Console.cpp',
     'CubemapConvoluter.cpp',
+    'CubemapLoader.cpp',
     'CubemapSlots.cpp',
-    'ESceneSerializationFunctions.cpp',
+    'D6Joint.cpp',
+    'DefaultUITheme.cpp',
+    'EarlySDLUtil.cpp',
     'Editor.cpp',
     'Engine.cpp',
+    'EntityEditor.cpp',
+    'EntityList.cpp',
+    'ESceneSerializationFunctions.cpp',
+    'Fatal.cpp',
+    'GameControls.cpp',
+    'GTAORenderPass.cpp',
+    'GuiUtil.cpp',
+    'imgui.cpp',
+    'ImGuiRenderPass.cpp',
+    'ImGuizmo.cpp',
+    'imgui_demo.cpp',
+    'imgui_draw.cpp',
+    'imgui_impl_sdl.cpp',
+    'imgui_impl_vulkan.cpp',
+    'imgui_stdlib.cpp',
+    'imgui_widgets.cpp',
     'Input.cpp',
+    'IOUtil.cpp',
+    'JobSystem.cpp',
+    'MaterialEditor.cpp',
+    'MaterialSlots.cpp',
+    'ObjModelLoader.cpp',
+    'OpenVRInterface.cpp',
+    'physfs.cpp',
     'Physics.cpp',
+    'PipelineCacheSerializer.cpp',
     'PolyRenderPass.cpp',
+    'RenderTexture.cpp',
+    'RichPresence.cpp',
+    'RobloxMeshLoader.cpp',
     'SceneSerialization.cpp',
-    'WrenVM.cpp',
+    'ShaderCache.cpp',
+    'ShaderMetadata.cpp',
+    'ShadowmapRenderPass.cpp',
+    'SourceModelLoader.cpp',
+    'SplashWindow.cpp',
+    'StyleEditor.cpp',
+    'TextureLoader.cpp',
+    'TonemapRenderPass.cpp',
+    'VKImGUIUtil.cpp',
     'vkrender.cpp',
-    'imgui_impl_sdl.h',
-    'tiny_obj_loader.h',
-    'ImGuizmo.h',
-    'imgui_impl_vulkan.h',
-    'imgui_stdlib.h',
-    'mikktspace.h',
-    'weldmesh.h',
-    'IconsFontAwesome5.h',
+    'vkswapchain.cpp',
+    'VRCullMeshRenderer.cpp',
+    'VTFLoader.cpp',
+    'weldmesh.cpp',
+    'WMDLLoader.cpp',
+    'WrenVM.cpp',
     'IconsFontaudio.h',
+    'IconsFontAwesome5.h',
     'imconfig.h',
     'imgui.h',
+    'ImGuizmo.h',
+    'imgui_impl_sdl.h',
+    'imgui_impl_vulkan.h',
     'imgui_internal.h',
+    'imgui_stdlib.h',
     'imstb_rectpack.h',
     'imstb_textedit.h',
     'imstb_truetype.h',
+    'mikktspace.h',
     'spirv_reflect.h',
+    'tiny_obj_loader.h',
+    'weldmesh.h',
+    'mikktspace.c',
     'spirv_reflect.c',
     'stb_vorbis.c',
-    'mikktspace.c',
     'tiny_obj_loader.cc',
 ]
 
 
 cc = meson.get_compiler('cpp')
 
-physx_lib_dir = meson.project_source_root() + '/External/Lib/linux64dbg'
+lib_dir = meson.project_source_root() + '/External/Lib/' + host_machine.system() + '64dbg'
 
 if get_option('buildtype').startswith('release')
-  physx_lib_dir = meson.project_source_root() + '/External/Lib/linux64rel'
+  lib_dir = meson.project_source_root() + '/External/Lib/' + host_machine.system() + '64rel'
 endif
 
 physx_deps = [
-    cc.find_library('PhysXCharacterKinematic_static_64', dirs: physx_lib_dir),
-    cc.find_library('PhysXCommon_static_64', dirs: physx_lib_dir),
-    cc.find_library('PhysXCooking_static_64', dirs: physx_lib_dir),
-    cc.find_library('PhysXExtensions_static_64', dirs: physx_lib_dir),
-    cc.find_library('PhysXFoundation_static_64', dirs: physx_lib_dir),
-    cc.find_library('PhysXPvdSDK_static_64', dirs: physx_lib_dir),
-    cc.find_library('PhysX_static_64', dirs: physx_lib_dir),
-    cc.find_library('PhysXVehicle_static_64', dirs: physx_lib_dir),
-    cc.find_library('SampleBase_static_64', dirs: physx_lib_dir),
-    cc.find_library('SampleFramework_static_64', dirs: physx_lib_dir),
-    cc.find_library('SamplePlatform_static_64', dirs: physx_lib_dir),
-    cc.find_library('SampleRenderer_static_64', dirs: physx_lib_dir),
-    cc.find_library('SamplesToolkit_static_64', dirs: physx_lib_dir),
-    cc.find_library('SnippetRender_static_64', dirs: physx_lib_dir),
-    cc.find_library('SnippetUtils_static_64', dirs: physx_lib_dir)
+    cc.find_library('PhysXCommon_static_64', dirs: lib_dir),
+    cc.find_library('PhysXCooking_static_64', dirs: lib_dir),
+    cc.find_library('PhysXExtensions_static_64', dirs: lib_dir),
+    cc.find_library('PhysXFoundation_static_64', dirs: lib_dir),
+    cc.find_library('PhysXPvdSDK_static_64', dirs: lib_dir),
+    cc.find_library('PhysX_static_64', dirs: lib_dir),
+    cc.find_library('PhysXVehicle_static_64', dirs: lib_dir)
 ]
 
 worlds_inc = include_directories('.')
 tracy_inc = include_directories('./tracy/')
-physfs_dep = dependency('physfs')
+physfs_dep = dependency('physfs', fallback: ['physfs', 'physfs_dep'])
 vk_dep = dependency('vulkan')
-lua_dep = dependency('lua')
 tbb_dep = cc.find_library('tbb', required: false)
-enet_dep = cc.find_library('enet')
+
+enet_subproj = subproject('enet')
+
+enetlib = enet_subproj.get_variable('enetlib')
+enet_inc = enet_subproj.get_variable('incdir')
+
+enet_dep = declare_dependency(link_with: enetlib, include_directories: enet_inc)
 
 dl_dep = cc.find_library('dl', required : false)
-openvr_dep = cc.find_library('openvr_api')
+openvr_dep = cc.find_library('openvr_api', dirs: lib_dir)
 discord_csdk_dep = cc.find_library('discord_game_sdk', dirs: meson.project_source_root() + '/External/Lib')
 
 wren_dep = dependency('wren', fallback: ['wren', 'wren_dep'])
 
+platform_deps = []
+
+if host_machine.system() == 'windows'
+	platform_deps += cc.find_library('winmm')
+	platform_deps += cc.find_library('ws2_32')
+endif
+
 worlds = static_library('worlds', sources, 
   include_directories: [extern_include_dir, physx_include_dir, tracy_inc], 
-  dependencies: [vk_dep, physfs_dep, sdl2_dep, physx_deps, dl_dep, openvr_dep, lua_dep, wmdl_dep, enet_dep, discord_csdk_dep, discord_sdk_dep, tbb_dep, wren_dep])
+  dependencies: [vk_dep, physfs_dep, sdl2_dep, physx_deps, dl_dep, openvr_dep, wmdl_dep, discord_csdk_dep, discord_sdk_dep, tbb_dep, wren_dep, enet_dep, platform_deps])
 worlds_dep = declare_dependency(include_directories: worlds_inc, link_with: worlds)

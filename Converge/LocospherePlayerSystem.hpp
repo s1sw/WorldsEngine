@@ -21,6 +21,9 @@ namespace converge {
     };
 
     struct LocospherePlayerComponent {
+        LocospherePlayerComponent()
+            : isLocal{true}
+            , xzMoveInput{0.0f} {}
         bool isLocal;
         float maxSpeed;
         glm::vec2 xzMoveInput;

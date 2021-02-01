@@ -5,7 +5,7 @@
 #include "ResourceSlots.hpp"
 #include "Camera.hpp"
 #include "RenderGraph.hpp"
-#include <SDL2/SDL.h>
+#include <SDL.h>
 #include "Console.hpp"
 #include <entt/entt.hpp>
 #define NUM_SUBMESH_MATS 32

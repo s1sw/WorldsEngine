@@ -1,6 +1,6 @@
 #include "IOUtil.hpp"
 #include "Result.hpp"
-#include <SDL2/SDL_log.h>
+#include <SDL_log.h>
 #include <physfs.h>
 
 namespace worlds {

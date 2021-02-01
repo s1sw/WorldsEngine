@@ -8,6 +8,7 @@ namespace worlds {
         WrenScriptEngine();
         void bindRegistry(entt::registry& reg);
         void onSimulate(entt::registry& reg, float deltaTime);
+        void onUpdate(entt::registry& reg, float deltaTime);
         ~WrenScriptEngine();
     private:
         WrenVM* vm;

@@ -1,5 +1,5 @@
 #include "SplashWindow.hpp"
-#include <SDL2/SDL_events.h>
+#include <SDL_events.h>
 #include "Fatal.hpp"
 #include "EarlySDLUtil.hpp"
 #include "Log.hpp"

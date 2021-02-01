@@ -27,4 +27,4 @@ sources = [
 
 executable('converge', sources, 
   include_directories: [physx_include_dir, extern_include_dir], 
-  dependencies: [worlds_dep, discord_sdk_dep, wren_dep])
+  dependencies: [worlds_dep, discord_sdk_dep, wren_dep, vk_dep, enet_dep, sdl2_dep, physfs_dep])

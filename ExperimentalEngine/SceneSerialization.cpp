@@ -108,7 +108,7 @@ namespace worlds {
 
         for (uint32_t i = 0; i < numEntities; i++) {
             uint32_t oldEntId;
-            !PHYSFS_readULE32(file, &oldEntId);
+            PHYSFS_readULE32(file, &oldEntId);
 
             auto newEnt = reg.create((entt::entity)oldEntId);
 
@@ -117,7 +117,7 @@ namespace worlds {
 
             for (uint8_t j = 0; j < numComponents; j++) {
                 uint32_t compType = ~0u;
-                !PHYSFS_readULE32(file, &compType);
+                PHYSFS_readULE32(file, &compType);
 
                 auto* mdata = ComponentMetadataManager::bySerializedID.at(compType);
                 mdata->readFromFile(newEnt, reg, file, formatId);

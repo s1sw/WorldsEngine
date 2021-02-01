@@ -7,6 +7,7 @@ namespace worlds {
 		:  window(window) 
         , mouseButtonFlags(0)
 		, lastMouseButtonFlags(0) {
+        memset(keyState, 0, sizeof(keyState));
 	}
 
 	void InputManager::update() {
