@@ -177,9 +177,23 @@ namespace worlds {
         // generate module string
         auto modStr = getModuleString(ent, sc.script);
         wrenInterpret(vm, modStr.c_str(), ioRes.value.c_str());
+
+        wrenEnsureSlots(vm, 1);
+        wrenGetVariable(vm, modStr.c_str(), "onSimulate", 0);
+        if (wrenGetSlotType(vm, 0) != WREN_TYPE_NULL) {
+            sc.onSimulate = wrenGetSlotHandle(vm, 0);
+        }
+
+        //wrenGetVariable(vm, modStr.c_str(), "onUpdate", 0);
+        //if (wrenGetSlotType(vm, 0) != WREN_TYPE_NULL) {
+        //    sc.onSimulate = wrenGetSlotHandle(vm, 0);
+        //}
     }
 
     void WrenScriptEngine::onScriptDestroy(entt::registry& reg, entt::entity ent) {
+        auto& sc = reg.get<ScriptComponent>(ent);
+        if (sc.onSimulate)
+            wrenReleaseHandle(vm, sc.onSimulate);
         // TODO: The current version of Wren we're using doesn't allow
         // unloading/destroying modules. At some point we should probably
         // fix this in our fork, but we don't have the ability to leak anything
@@ -255,16 +269,22 @@ namespace worlds {
     
     void WrenScriptEngine::onSimulate(entt::registry& reg, float deltaTime) {
         reg.view<ScriptComponent>().each([&](entt::entity ent, ScriptComponent& sc) {
-            if (!sc.handlesChecked) {
-                auto modStr = getModuleString(ent, sc.script);
-                wrenGetVariable(vm, modStr.c_str(), "onSimulate", 0);
-                if (wrenGetSlotType(vm, 0) != WREN_TYPE_NULL) {
-                    sc.onSimulate = wrenGetSlotHandle(vm, 0);
-                }
-            }
-
             if (sc.onSimulate) {
+                wrenEnsureSlots(vm, 3);
                 wrenSetSlotHandle(vm, 0, sc.onSimulate);
+                setEntitySlot(ent, vm, 1);
+                wrenSetSlotDouble(vm, 2, deltaTime);
+
+                wrenCall(vm, callArgCount[2]);
+            }
+        });
+    }
+
+    void WrenScriptEngine::onUpdate(entt::registry& reg, float deltaTime) {
+        reg.view<ScriptComponent>().each([&](entt::entity ent, ScriptComponent& sc) {
+            if (sc.onUpdate) {
+                wrenEnsureSlots(vm, 3);
+                wrenSetSlotHandle(vm, 0, sc.onUpdate);
                 setEntitySlot(ent, vm, 1);
                 wrenSetSlotDouble(vm, 2, deltaTime);
 

@@ -1,5 +1,5 @@
 #include "EarlySDLUtil.hpp"
-#include <SDL2/SDL_filesystem.h>
+#include <SDL_filesystem.h>
 #include "stb_image.h"
 
 namespace worlds {

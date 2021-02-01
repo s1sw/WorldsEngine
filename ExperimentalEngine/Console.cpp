@@ -1,6 +1,6 @@
 #include "Console.hpp"
 #include "Fatal.hpp"
-#include <SDL2/SDL_log.h>
+#include <SDL_log.h>
 #include <chrono>
 #include <ctime>
 #include "imgui.h"
@@ -509,9 +509,9 @@ namespace worlds {
             + msg;
 
         auto col = priorityColors.at(priority);
-        int r = col.Value.x * 255.0f;
-        int g = col.Value.y * 255.0f;
-        int b = col.Value.z * 255.0f;
+        int r = (int)(col.Value.x * 255);
+        int g = (int)(col.Value.y * 255);
+        int b = (int)(col.Value.z * 255);
 
         std::string colorStr = std::string("\033[38;2;") 
                   + std::to_string(r) 

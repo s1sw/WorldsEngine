@@ -9,7 +9,7 @@
 #include "PhysicsActor.hpp"
 #include "Console.hpp"
 #include "imgui.h"
-#include <SDL2/SDL_cpuinfo.h>
+#include <SDL_cpuinfo.h>
 #include "Fatal.hpp"
 #include "Physics.hpp"
 #include "D6Joint.hpp"

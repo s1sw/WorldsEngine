@@ -1,6 +1,6 @@
 #pragma once
 #include <glm/glm.hpp>
-#include <SDL2/SDL.h>
+#include <SDL.h>
 #include "AssetDB.hpp"
 #include "IGameEventHandler.hpp"
 #include "JobSystem.hpp"

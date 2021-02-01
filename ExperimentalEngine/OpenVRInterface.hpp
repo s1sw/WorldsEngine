@@ -4,10 +4,10 @@
 #include <string>
 #include <sstream>
 #include <vulkan/vulkan.h>
-#include <SDL2/SDL_messagebox.h>
+#include <SDL_messagebox.h>
 #include <glm/gtx/matrix_decompose.hpp>
 #include <filesystem>
-#include <SDL2/SDL_filesystem.h>
+#include <SDL_filesystem.h>
 #include "Fatal.hpp"
 #include "MatUtil.hpp"
 #include "Transform.hpp"

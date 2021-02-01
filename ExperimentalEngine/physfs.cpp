@@ -7,9 +7,11 @@
 
 using std::streambuf;
 using std::ios_base;
+#ifdef __clang__
 #pragma clang diagnostic push
 // Ignore deprecation - this is wrapping deprecated functions
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#endif
 
 namespace PhysFS {
 
@@ -399,4 +401,6 @@ string Util::utf8FromLatin1(const char* src) {
 
 }
 
+#ifdef __clang__
 #pragma clang diagnostic pop
+#endif

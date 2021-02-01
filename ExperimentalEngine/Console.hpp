@@ -2,7 +2,7 @@
 #include <string>
 #include <thread>
 #include <unordered_map>
-#include <SDL2/SDL_log.h>
+#include <SDL_log.h>
 #include "LogCategories.hpp"
 #include <fstream>
 #include <functional>

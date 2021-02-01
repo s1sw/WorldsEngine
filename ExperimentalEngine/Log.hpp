@@ -1,5 +1,5 @@
 #pragma once
-#include <SDL2/SDL_log.h>
+#include <SDL_log.h>
 #include "LogCategories.hpp"
 
 #if defined(__clang__) || defined(__GNUC__)
@@ -54,4 +54,6 @@ void logMsg(int category, const char* fmt, Args... args) {
     SDL_LogMessage(category, SDL_LOG_PRIORITY_INFO, fmt, args...);
 }
 
+#ifdef __clang__
 #pragma clang diagnostic pop
+#endif

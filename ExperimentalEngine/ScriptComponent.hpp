@@ -7,11 +7,14 @@ namespace worlds {
     typedef uint32_t AssetID;
 
     struct ScriptComponent {
-        ScriptComponent() : handlesChecked{false} {}
+        ScriptComponent(AssetID script)
+            : script{ script }
+            , onSimulate{ nullptr }
+            , onUpdate{ nullptr }{}
         AssetID script;
     private:
         friend class WrenScriptEngine;
-        bool handlesChecked;
         WrenHandle* onSimulate;
+        WrenHandle* onUpdate;
     };
 }

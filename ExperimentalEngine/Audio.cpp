@@ -1,4 +1,4 @@
-#include <SDL2/SDL_audio.h>
+#include <SDL_audio.h>
 #include "Log.hpp"
 #include "Audio.hpp"
 #include <glm/glm.hpp>
