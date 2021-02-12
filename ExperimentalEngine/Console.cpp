@@ -56,6 +56,7 @@ namespace worlds {
         { WELogCategoryUI, "UI" },
         { WELogCategoryApp, "Application" },
         { WELogCategoryScripting, "Scripting" },
+        { WELogCategoryPhysics, "Physics" },
         { CONSOLE_RESPONSE_CATEGORY, "Console Response" }
     };
 
@@ -147,6 +148,8 @@ namespace worlds {
         std::cout << "\033[2J\033[?47l\0338";
     }
 
+    bool enableVT100 = true;
+
     Console::Console(bool asyncStdinConsole)
         : show(false)
         , setKeyboardFocus(false) 
@@ -184,43 +187,47 @@ namespace worlds {
             }
         }
 
-        if (asyncStdinConsole) {
-#ifdef _WIN32
-            if (!AttachConsole(ATTACH_PARENT_PROCESS)) {
-                if (!AllocConsole()) {
-                    fatalErr("failed to allocconsole");
-                }
-                auto pid = GetCurrentProcessId();
-                std::string s = "Converge Dedicated Server (PID " + std::to_string(pid) + ")";
-                SetConsoleTitleA(s.c_str());
+#ifndef NDEBUG 
+        if (!AttachConsole(ATTACH_PARENT_PROCESS)) {
+            if (!AllocConsole()) {
+                logErr("failed to allocconsole, assuming one already exists");
             }
+            auto pid = GetCurrentProcessId();
+            std::string s = "Worlds Engine (PID " + std::to_string(pid) + ")";
+            SetConsoleTitleA(s.c_str());
+        }
 
-            FILE *fDummy;
-            freopen_s(&fDummy, "CONIN$", "r", stdin);
-            freopen_s(&fDummy, "CONOUT$", "w", stderr);
-            freopen_s(&fDummy, "CONOUT$", "w", stdout);
+        FILE *fDummy;
+        freopen_s(&fDummy, "CONIN$", "r", stdin);
+        freopen_s(&fDummy, "CONOUT$", "w", stderr);
+        freopen_s(&fDummy, "CONOUT$", "w", stdout);
 
-            HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
-            if (hOut == INVALID_HANDLE_VALUE) {
-                logWarn("Failed to get console output handle");
-                return;
-            }
+        HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+        if (hOut == INVALID_HANDLE_VALUE) {
+            logWarn("Failed to get console output handle");
+            enableVT100 = false;
+            return;
+        }
 
-            DWORD dwMode = 0;
-            if (!GetConsoleMode(hOut, &dwMode)) {
-                logWarn("Failed to get console mode");
-                return;
-            } 
+        DWORD dwMode = 0;
+        if (!GetConsoleMode(hOut, &dwMode)) {
+            logWarn("Failed to get console mode");
+            enableVT100 = false;
+            return;
+        } 
 
-            dwMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
-            if (!SetConsoleMode(hOut, dwMode)) {
-                logWarn("Failed to set console mode");
-                return;
-            }
+        dwMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+        if (!SetConsoleMode(hOut, dwMode)) {
+            logWarn("Failed to set console mode");
+            enableVT100 = false;
+            return;
+        }
 
-            std::cin.clear();
-            std::cout.clear();
+        std::cin.clear();
+        std::cout.clear();
 #endif
+
+        if (asyncStdinConsole) {
             asyncConsoleThread = new std::thread(asyncConsole);
             goToSecondaryScreen();
         }
@@ -513,20 +520,24 @@ namespace worlds {
         int g = (int)(col.Value.y * 255);
         int b = (int)(col.Value.z * 255);
 
-        std::string colorStr = std::string("\033[38;2;") 
-                  + std::to_string(r) 
-            + ";" + std::to_string(g) 
-            + ";" + std::to_string(b)
-            + "m";
+        if (enableVT100) {
+            std::string colorStr = std::string("\033[38;2;") 
+                      + std::to_string(r) 
+                + ";" + std::to_string(g) 
+                + ";" + std::to_string(b)
+                + "m";
 
-        const char* clearLineCode = "\033[2K";
+            const char* clearLineCode = "\033[2K";
 
-        std::cout << "\r" << clearLineCode << colorStr << outStr << "\n";
-        if (g_console->asyncConsoleThread)
-            std::cout << "\033[32mserver> \033[0m";
-        else
-            std::cout << "\033[0m";
-        std::cout.flush();
+            std::cout << "\r" << clearLineCode << colorStr << outStr << "\n";
+            if (g_console->asyncConsoleThread)
+                std::cout << "\033[32mserver> \033[0m";
+            else
+                std::cout << "\033[0m";
+            std::cout.flush();
+        } else {
+            std::cout << outStr << "\n";
+        }
 
         // Use std::endl for the file to force a flush
         if (con->logFileStream.good())

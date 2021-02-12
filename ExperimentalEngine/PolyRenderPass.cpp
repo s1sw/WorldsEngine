@@ -9,6 +9,7 @@
 #include "Frustum.hpp"
 #include "Console.hpp"
 #include "ShaderCache.hpp"
+#include <slib/StaticAllocList.hpp>
 
 namespace worlds {
     ConVar showWireframe("r_wireframeMode", "0", "0 - No wireframe; 1 - Wireframe only; 2 - Wireframe + solid");
@@ -617,7 +618,10 @@ namespace worlds {
         bool opaque;
     };
 
+    slib::StaticAllocList<SubmeshDrawInfo> drawInfo{8192};
+
     void PolyRenderPass::execute(RenderCtx& ctx) {
+        drawInfo.clear();
 #ifdef TRACY_ENABLE
         ZoneScoped;
         TracyVkZone((*ctx.tracyContexts)[ctx.imageIndex], *ctx.cmdBuf, "Polys");
@@ -675,8 +679,6 @@ namespace worlds {
         }
 
         int matrixIdx = 0;
-        std::vector<SubmeshDrawInfo> drawInfo;
-        drawInfo.reserve(reg.view<Transform, WorldObject>().size() * 2);
 
         matrixIdx = 0;
         cmdBuf->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 0, *descriptorSet, nullptr);
@@ -746,7 +748,7 @@ namespace worlds {
                         sdi.pipeline = *alphaTestPipeline;
                     }
 
-                    drawInfo.push_back(sdi);
+                    drawInfo.add(sdi);
                     sdi.pipeline = *wireframePipeline;
                 } else {
                     if (sdi.opaque) {
@@ -756,17 +758,10 @@ namespace worlds {
                     }
                 }
 
-                drawInfo.emplace_back(std::move(sdi));
+                drawInfo.add(std::move(sdi));
             }
             matrixIdx++;
             });
-
-        {
-            ZoneScopedN("SDI sort");
-            std::sort(drawInfo.begin(), drawInfo.end(), [](const SubmeshDrawInfo& a, const SubmeshDrawInfo& b) {
-                return a.pipeline < b.pipeline;
-                });
-        }
 
         if ((int)depthPrepass) {
             ZoneScopedN("Depth prepass");

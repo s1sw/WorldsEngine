@@ -35,9 +35,13 @@ layout (push_constant) uniform PC {
 // [Eberly2014] GPGPU Programming for Games and Science
 float GTAOFastAcos(float x)
 {
+#if 1 
 	float res = -0.156583 * abs(x) + PI_HALF;
 	res *= sqrt(1.0 - abs(x));
 	return x >= 0 ? res : PI - res;
+#else
+    return acos(x);
+#endif
 }
 
 float IntegrateArc(float h1, float h2, float n)
@@ -133,13 +137,17 @@ vec3 getPosAt(vec2 uv) {
 	return reconstructViewSpacePos(uv, sampleDepthCS(uv));
 }
 
-void main() 
-{
+shared float depthVals[16][16];
+
+void main() {
 	vec2 tc_original = gl_GlobalInvocationID.xy * viewsizediv;
 	
 	// Depth of the current pixel
 	float dhere = sampleDepth(tc_original);
 	float actualDhere = texelFetch(inDepth, ivec3(gl_GlobalInvocationID.xyz), 0).x;
+    depthVals[gl_LocalInvocationID.x][gl_LocalInvocationID.y] = actualDhere;
+    memoryBarrierShared();
+    barrier();
 	if (actualDhere == 0.0 || actualDhere == 1.0) {
 		imageStore(resultImage, ivec3(gl_GlobalInvocationID.xyz), vec4(1.0));
 		return;

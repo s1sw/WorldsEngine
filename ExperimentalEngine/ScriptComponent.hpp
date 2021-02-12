@@ -10,10 +10,12 @@ namespace worlds {
         ScriptComponent(AssetID script)
             : script{ script }
             , onSimulate{ nullptr }
-            , onUpdate{ nullptr }{}
+            , onUpdate{ nullptr }
+            , onStart{ nullptr } {}
         AssetID script;
     private:
         friend class WrenScriptEngine;
+        WrenHandle* onStart;
         WrenHandle* onSimulate;
         WrenHandle* onUpdate;
     };

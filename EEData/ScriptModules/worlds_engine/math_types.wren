@@ -13,6 +13,13 @@ foreign class Vec3 {
     foreign setComp(idx, val)
 
     foreign setAll(x, y, z)
+    foreign distanceTo(other)
+    foreign normalize()
+    foreign -(other)
+    foreign +(other)
+    foreign *(scaleVal)
+    foreign /(divisorVal)
+    foreign clampMagnitude(maxMagnitude)
 
     x { getComp(0) }
     y { getComp(1) }

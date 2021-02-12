@@ -17,8 +17,31 @@
 #define ENABLE_PVD 0
 
 namespace worlds {
+    class PhysErrCallback : public physx::PxErrorCallback {
+    public:
+        virtual void reportError(physx::PxErrorCode::Enum code, const char* msg, const char* file, int line) {
+            switch (code) {
+                default:
+                case physx::PxErrorCode::eDEBUG_INFO:
+                    logVrb(WELogCategoryPhysics, "%s (%s:%i)", msg, file, line);
+                    break;
+                case physx::PxErrorCode::eDEBUG_WARNING:
+                case physx::PxErrorCode::ePERF_WARNING:
+                case physx::PxErrorCode::eINVALID_OPERATION:
+                case physx::PxErrorCode::eINVALID_PARAMETER:
+                    logWarn(WELogCategoryPhysics, "%s (%s:%i)", msg, file, line);
+                    break;
+                case physx::PxErrorCode::eINTERNAL_ERROR:
+                case physx::PxErrorCode::eABORT:
+                case physx::PxErrorCode::eOUT_OF_MEMORY:
+                    logErr(WELogCategoryPhysics, "%s (%s:%i)", msg, file, line);
+                    break;
+            }
+        }
+    };
+    
     physx::PxMaterial* defaultMaterial;
-    physx::PxDefaultErrorCallback gDefaultErrorCallback;
+    PhysErrCallback gErrorCallback;
     physx::PxDefaultAllocator gDefaultAllocator;
     physx::PxFoundation* g_physFoundation;
     physx::PxPhysics* g_physics;
@@ -87,7 +110,7 @@ namespace worlds {
 
 
     void initPhysx(entt::registry& reg) {
-        g_physFoundation = PxCreateFoundation(PX_PHYSICS_VERSION, gDefaultAllocator, gDefaultErrorCallback);
+        g_physFoundation = PxCreateFoundation(PX_PHYSICS_VERSION, gDefaultAllocator, gErrorCallback);
 
         physx::PxPvd* pvd = nullptr;
 #if ENABLE_PVD

@@ -1,5 +1,6 @@
 #include "ComponentFuncs.hpp"
 #include <entt/entt.hpp>
+#include "entt/entity/fwd.hpp"
 #include "imgui.h"
 #include "Transform.hpp"
 #include "IconsFontaudio.h"
@@ -524,7 +525,8 @@ namespace worlds {
 
         void writeToFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file) override {
             DynamicPhysicsActor& pa = reg.get<DynamicPhysicsActor>(ent);
-            WRITE_FIELD(file, pa.mass);
+            float mass = ((physx::PxRigidBody*)pa.actor)->getMass();
+            WRITE_FIELD(file, mass);
             PHYSFS_writeULE16(file, (uint16_t)pa.physicsShapes.size());
 
             for (size_t i = 0; i < pa.physicsShapes.size(); i++) {
@@ -733,6 +735,44 @@ namespace worlds {
         }
     };
 
+    class ScriptComponentEditor : public BasicComponentUtil<ScriptComponent> {
+    public:
+        BASIC_CLONE(ScriptComponent);
+
+        const char* getName() override { return "Script"; }
+
+        void create(entt::entity ent, entt::registry& reg) override {
+            reg.emplace<ScriptComponent>(ent, g_assetDB.addOrGetExisting("Scripts/nothing.wren"));
+        }
+
+        void edit(entt::entity ent, entt::registry& reg) override {
+            auto& sc = reg.get<ScriptComponent>(ent);
+
+            if (ImGui::CollapsingHeader(ICON_FA_SCROLL u8" Script")) {
+                ImGui::Text("Current Script Path: %s", g_assetDB.getAssetPath(sc.script).c_str());
+                AssetID id = sc.script;
+                if (selectAssetPopup("Script Path", id, ImGui::Button("Change"))) {
+                    reg.patch<ScriptComponent>(ent, [&](ScriptComponent& sc) {
+                        logMsg("patchingggg");
+                        sc.script = id;
+                    });
+                }
+                ImGui::Separator();
+            }
+        }
+
+        void writeToFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file) override {
+            auto& sc = reg.get<ScriptComponent>(ent);
+            WRITE_FIELD(file, sc.script);
+        }
+
+        void readFromFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file, int version) override {
+            AssetID aid;
+            READ_FIELD(file, aid);
+            auto& sc = reg.emplace<ScriptComponent>(ent, aid);
+        }
+    };
+
     TransformEditor transformEd;
     WorldObjectEditor worldObjEd;
     WorldLightEditor worldLightEd;
@@ -741,4 +781,5 @@ namespace worlds {
     NameComponentEditor ncEd;
     AudioSourceEditor asEd;
     WorldCubemapEditor wcEd;
+    ScriptComponentEditor scEd;
 }

@@ -4,6 +4,7 @@
 #include "Camera.hpp"
 #include "Transform.hpp"
 #include "IGameEventHandler.hpp"
+#include <deque>
 
 struct VkDescriptorSet_T;
 typedef VkDescriptorSet_T* VkDescriptorSet;
@@ -78,6 +79,20 @@ namespace worlds {
         bool active;
     };
 
+    class EditorUndo {
+    public:
+        void pushState();
+        void undo();
+        void redo();
+        void setMaxStackSize(uint32_t max);
+    private:
+        void removeEnd();
+
+        uint32_t maxStackSize = 64;
+        uint32_t currentPos = 0; 
+        std::deque<std::string> undoStack;
+    };
+
     class Editor {
     public:
         Editor(entt::registry& reg, EngineInterfaces interfaces);
@@ -110,3 +125,4 @@ namespace worlds {
         VkDescriptorSet sceneViewDS;
     };
 }
+

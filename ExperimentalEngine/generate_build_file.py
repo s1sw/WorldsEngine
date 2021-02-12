@@ -1,7 +1,7 @@
 #!/usr/bin/python
 import glob
 
-src_file_list = glob.glob("*.cpp") + glob.glob("*.h") + glob.glob('*.c') + glob.glob('*.cc')
+src_file_list = glob.glob("*.cpp") + glob.glob('ScriptBindings/*.hpp') + glob.glob('*.hpp') + glob.glob("*.h") + glob.glob('*.c') + glob.glob('*.cc')
 
 source_str = "sources = [\n"
 
