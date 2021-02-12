@@ -54,6 +54,12 @@ void logMsg(int category, const char* fmt, Args... args) {
     SDL_LogMessage(category, SDL_LOG_PRIORITY_INFO, fmt, args...);
 }
 
+template<typename... Args>
+PRINTF_FMT(2)
+void logVrb(int category, const char* fmt, Args... args) {
+    SDL_LogMessage(category, SDL_LOG_PRIORITY_VERBOSE, fmt, args...);
+}
+
 #ifdef __clang__
 #pragma clang diagnostic pop
 #endif

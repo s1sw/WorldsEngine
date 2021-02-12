@@ -82,7 +82,8 @@ namespace worlds {
             auto* pxj = j.pxJoint;
 
             if (ImGui::CollapsingHeader(ICON_FA_ATOM u8" D6 Joint")) {
-                if (ImGui::Button("Remove")) {
+                if (ImGui::Button("Remove##D6")) {
+                    logMsg("removing d6");
                     reg.remove<D6Joint>(ent);
                     return;
                 }
@@ -133,6 +134,7 @@ namespace worlds {
                             if (!lim.isValid()) {
                                 ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "Invalid limit settings!");
                             }
+
                             j.pxJoint->setLinearLimit(axis, lim);
                             ImGui::TreePop();
                         }
@@ -173,7 +175,7 @@ namespace worlds {
             }
         }
 
-        void clone(entt::entity from, entt::entity to, entt::registry& reg) {
+        void clone(entt::entity from, entt::entity to, entt::registry& reg) override {
             assert(reg.has<DynamicPhysicsActor>(to));
             auto& dpa = reg.get<DynamicPhysicsActor>(to);
             auto& newD6 = reg.emplace<D6Joint>(to);

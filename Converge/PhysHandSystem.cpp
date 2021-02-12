@@ -49,6 +49,8 @@ namespace converge {
                 lDpa.actor->is<physx::PxRigidBody>()->addForce(-worlds::glm2px(force));
             }
 
+            // sometimes the rotations we get are really awful :(
+            // fix that and deal with it
             glm::quat filteredQ = glm::normalize(physHand.targetWorldRot);
             filteredQ = fixupQuat(filteredQ);
 

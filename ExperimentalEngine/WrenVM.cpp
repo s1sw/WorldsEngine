@@ -9,14 +9,22 @@
 #include "entt/entity/fwd.hpp"
 #include "AssetDB.hpp"
 #include "wren.h"
+#include "wren.hpp"
+#include <string.h>
+#include <stdlib.h>
+
+#include "ScriptBindings/Entity.hpp"
+#include "ScriptBindings/Transform.hpp"
+#include "ScriptBindings/Vec3.hpp"
+#include "ScriptBindings/PhysicsActors.hpp"
 
 namespace worlds {
-    void writeFn(WrenVM* vm, const char* text) {
+    void writeFn(WrenVM*, const char* text) {
         if (strcmp(text, "\n") == 0) return;
         logMsg(WELogCategoryScripting, "%s", text);
     }
 
-    void errorFn(WrenVM* vm, WrenErrorType errorType,
+    void errorFn(WrenVM*, WrenErrorType errorType,
         const char* mod, const int line,
         const char* msg) {
         switch (errorType) {
@@ -32,96 +40,21 @@ namespace worlds {
         }
     }
 
-    void makeVec3(WrenVM* vm, float x, float y, float z) {
-        wrenEnsureSlots(vm, 1);
-        wrenGetVariable(vm, "worlds_engine/math_types", "Vec3", 0);
-
-        glm::vec3* vPtr = (glm::vec3*)wrenSetSlotNewForeign(vm, 0, 0, sizeof(glm::vec3));
-        *vPtr = glm::vec3{ x, y, z };
-    }
-
-    void WrenScriptEngine::scriptEntityGetTransform(WrenVM* vm) {
-        uint32_t entId = *(uint32_t*)wrenGetSlotForeign(vm, 0);
-
-        wrenEnsureSlots(vm, 1);
-        wrenGetVariable(vm, "worlds_engine/entity", "Transform", 0);
-        WrenScriptEngine* _this = (WrenScriptEngine*)wrenGetUserData(vm);
-        
-        uint32_t* idPtr = (uint32_t*)wrenSetSlotNewForeign(vm, 0, 0, sizeof(uint32_t));
-        *idPtr = entId;
-    }
-
-    void WrenScriptEngine::scriptTransformGetPosition(WrenVM* vm) {
-        wrenEnsureSlots(vm, 1);
-        WrenScriptEngine* _this = (WrenScriptEngine*)wrenGetUserData(vm);
-
-        uint32_t entId = *(uint32_t*)wrenGetSlotForeign(vm, 0);
-
-        Transform& t = _this->regPtr->get<Transform>((entt::entity)entId);
-
-        makeVec3(vm, t.position.x, t.position.y, t.position.z);
-    }
-
-    void WrenScriptEngine::scriptTransformSetPosition(WrenVM* vm) {
-        wrenEnsureSlots(vm, 1);
-        WrenScriptEngine* _this = (WrenScriptEngine*)wrenGetUserData(vm);
-
-        uint32_t entId = *(uint32_t*)wrenGetSlotForeign(vm, 0);
-        glm::vec3* posPtr = (glm::vec3*)wrenGetSlotForeign(vm, 1);
-
-        Transform& t = _this->regPtr->get<Transform>((entt::entity)entId);
-
-        t.position = *posPtr;
-    }
-
-    void scriptVec3GetComp(WrenVM* vm) {
-        wrenEnsureSlots(vm, 1);
-        glm::vec3* vPtr = (glm::vec3*)wrenGetSlotForeign(vm, 0);
-
-        wrenSetSlotDouble(vm, 0, (*vPtr)[wrenGetSlotDouble(vm, 1)]);
-    }
-
-    void scriptVec3SetComp(WrenVM* vm) {
-        glm::vec3* vPtr = (glm::vec3*)wrenGetSlotForeign(vm, 0);
-
-        (*vPtr)[wrenGetSlotDouble(vm, 1)] = wrenGetSlotDouble(vm, 2);
-    }
-
-    void scriptVec3SetAll(WrenVM* vm) {
-        glm::vec3* vPtr = (glm::vec3*)wrenGetSlotForeign(vm, 0);
-
-        for (int i = 0; i < 3; i++) {
-            (*vPtr)[i] = wrenGetSlotDouble(vm, i + 1);
-        }
-    }
-
     WrenForeignMethodFn WrenScriptEngine::bindForeignMethod(
         WrenVM* vm,
-        const char* mod,
+        const char* /* mod */,
         const char* className,
         bool isStatic,
         const char* signature) {
+        auto* vmDat = (WrenVMData*)wrenGetUserData(vm);
+        auto* _this = vmDat->scriptEngine;
 
-        if (strcmp(className, "Entity") == 0 && !isStatic) {
-            if (strcmp(signature, "getTransform()") == 0) {
-                return WrenScriptEngine::scriptEntityGetTransform;
-            }
-        } else if (strcmp(className, "Transform") == 0 && !isStatic) {
-            if (strcmp(signature, "getPosition()") == 0) {
-                return WrenScriptEngine::scriptTransformGetPosition;
-            } else if (strcmp(signature, "setPosition(_)") == 0) {
-                return WrenScriptEngine::scriptTransformSetPosition;
-            }
-        } else if (strcmp(className, "Vec3") == 0 && !isStatic) {
-            if (strcmp(signature, "getComp(_)") == 0) {
-                return scriptVec3GetComp;
-            } else if (strcmp(signature, "setComp(_,_)") == 0) {
-                return scriptVec3SetComp;
-            } else if (strcmp(signature, "setAll(_,_,_)") == 0) {
-                return scriptVec3SetAll;
-            }
-        }
-        return nullptr;
+        auto it = _this->scriptBindings.find(className);
+
+        if (it == _this->scriptBindings.end())
+            return nullptr;
+
+        return it->second->getFn(isStatic, signature);
     }
 
     void entityAllocate(WrenVM* vm) {
@@ -130,20 +63,27 @@ namespace worlds {
         *idPtr = wrenGetSlotDouble(vm, 1);
     }
 
+    void vec3Allocate(WrenVM* vm) {
+        glm::vec3* v3 = (glm::vec3*)wrenSetSlotNewForeign(vm, 0, 0, sizeof(glm::vec3));
+        (*v3) = glm::vec3 {0.0f};
+    }
+
     WrenForeignClassMethods bindForeignClass(
-        WrenVM* vm, const char* mod, const char* className) {
+        WrenVM* /* vm */, 
+        const char* /* mod */, 
+        const char* className) {
         WrenForeignClassMethods methods{};
 
         if (strcmp(className, "Entity") == 0) {
             methods.allocate = entityAllocate;
-        } else {
-            methods = {};
+        } else if (strcmp(className, "Vec3") == 0) {
+            methods.allocate = vec3Allocate;
         }
 
         return methods;
     }
 
-    WrenLoadModuleResult loadModule(WrenVM* vm, const char* name) {
+    WrenLoadModuleResult loadModule(WrenVM* /* vm */, const char* name) {
         WrenLoadModuleResult res{};
 
         // TODO: Could theoretically read contents of other data files by abusing ..
@@ -157,6 +97,10 @@ namespace worlds {
 
         res.source = strdup(ioRes.value.c_str());
 
+        res.onComplete = [](WrenVM*, const char*, WrenLoadModuleResult result) {
+            free((char*)result.source);
+        };
+
         return res;
     }
 
@@ -166,7 +110,31 @@ namespace worlds {
 
     void WrenScriptEngine::onScriptConstruct(entt::registry& reg, entt::entity ent) {
         auto& sc = reg.get<ScriptComponent>(ent);
+        updateScriptComponent(ent, sc);
+    }
 
+    void WrenScriptEngine::onScriptDestroy(entt::registry& reg, entt::entity ent) {
+        auto& sc = reg.get<ScriptComponent>(ent);
+        if (sc.onStart)
+            wrenReleaseHandle(vm, sc.onStart);
+
+        if (sc.onSimulate)
+            wrenReleaseHandle(vm, sc.onSimulate);
+
+        if (sc.onUpdate)
+            wrenReleaseHandle(vm, sc.onUpdate);
+
+        auto modStr = getModuleString(ent, sc.script);
+
+        wrenUnloadModule(vm, modStr.c_str());
+    }
+
+    void WrenScriptEngine::onScriptUpdate(entt::registry& reg, entt::entity ent) {
+        auto& sc = reg.get<ScriptComponent>(ent);
+        updateScriptComponent(ent, sc);
+    }
+
+    void WrenScriptEngine::updateScriptComponent(entt::entity ent, ScriptComponent& sc) {
         auto ioRes = LoadFileToString(g_assetDB.getAssetPath(sc.script));
         
         if (ioRes.error != IOError::None) {
@@ -174,33 +142,34 @@ namespace worlds {
             return;
         }
         
-        // generate module string
         auto modStr = getModuleString(ent, sc.script);
+
+        if (wrenHasModule(vm, modStr.c_str())) {
+            wrenUnloadModule(vm, modStr.c_str());
+        }
+
         wrenInterpret(vm, modStr.c_str(), ioRes.value.c_str());
 
         wrenEnsureSlots(vm, 1);
+
+        wrenGetVariable(vm, modStr.c_str(), "onStart", 0);
+        if (wrenGetSlotType(vm, 0) != WREN_TYPE_NULL) {
+            sc.onStart = wrenGetSlotHandle(vm, 0);
+        }
+
         wrenGetVariable(vm, modStr.c_str(), "onSimulate", 0);
         if (wrenGetSlotType(vm, 0) != WREN_TYPE_NULL) {
             sc.onSimulate = wrenGetSlotHandle(vm, 0);
         }
 
-        //wrenGetVariable(vm, modStr.c_str(), "onUpdate", 0);
-        //if (wrenGetSlotType(vm, 0) != WREN_TYPE_NULL) {
-        //    sc.onSimulate = wrenGetSlotHandle(vm, 0);
-        //}
+        wrenGetVariable(vm, modStr.c_str(), "onUpdate", 0);
+        if (wrenGetSlotType(vm, 0) != WREN_TYPE_NULL) {
+            sc.onUpdate = wrenGetSlotHandle(vm, 0);
+        }
     }
 
-    void WrenScriptEngine::onScriptDestroy(entt::registry& reg, entt::entity ent) {
-        auto& sc = reg.get<ScriptComponent>(ent);
-        if (sc.onSimulate)
-            wrenReleaseHandle(vm, sc.onSimulate);
-        // TODO: The current version of Wren we're using doesn't allow
-        // unloading/destroying modules. At some point we should probably
-        // fix this in our fork, but we don't have the ability to leak anything
-        // large right now so it doesn't really matter.
-    }
-
-    WrenScriptEngine::WrenScriptEngine() {
+    WrenScriptEngine::WrenScriptEngine(entt::registry& reg)
+        : reg{reg} {
         WrenConfiguration config;
         wrenInitConfiguration(&config);
         config.writeFn = writeFn;
@@ -209,8 +178,10 @@ namespace worlds {
         config.bindForeignClassFn = bindForeignClass;
         config.loadModuleFn = loadModule;
 
+        vmDat = new WrenVMData{reg, this};
+
         vm = wrenNewVM(&config);
-        wrenSetUserData(vm, this);
+        wrenSetUserData(vm, vmDat);
 
         g_console->registerCommand([&](void*, const char* arg) {
             WrenInterpretResult res = wrenInterpret(vm, "console", arg);
@@ -234,6 +205,10 @@ namespace worlds {
             }
             }, "execWrenScript", "Executes a Wren script file.", nullptr);
 
+        g_console->registerCommand([&](void*, const char*) {
+            wrenCollectGarbage(vm);
+        }, "forceWrenGC", "Forces Wren to perform a garbage collection.", nullptr);
+
         for (int i = 0; i < 4; i++) {
             std::string sigStr = "call(";
 
@@ -249,14 +224,23 @@ namespace worlds {
 
             callArgCount[i] = wrenMakeCallHandle(vm, sigStr.c_str());
         }
-    }
 
-    void WrenScriptEngine::bindRegistry(entt::registry& reg) {
-        regPtr = &reg;
         reg.on_construct<ScriptComponent>()
             .connect<&WrenScriptEngine::onScriptConstruct>(*this);
         reg.on_destroy<ScriptComponent>()
             .connect<&WrenScriptEngine::onScriptDestroy>(*this);
+        reg.on_update<ScriptComponent>()
+            .connect<&WrenScriptEngine::onScriptUpdate>(*this);
+
+        vmDat = new WrenVMData {reg, this};
+
+        // put script bindings into hash map
+        auto currNode = ScriptBindClass::bindClasses.first;
+
+        while (currNode != nullptr) {
+            scriptBindings.insert({ currNode->ptr->getName(), currNode->ptr });
+            currNode = currNode->next;
+        }
     }
 
     void setEntitySlot(entt::entity ent, WrenVM* vm, int slot) {
@@ -266,8 +250,19 @@ namespace worlds {
 
         *idPtr = (uint32_t)ent;
     }
+
+    void WrenScriptEngine::onSceneStart() {
+        reg.view<ScriptComponent>().each([&](entt::entity ent, ScriptComponent& sc) {
+            if (sc.onStart) {
+                wrenEnsureSlots(vm, 2);
+                wrenSetSlotHandle(vm, 0, sc.onStart);
+                setEntitySlot(ent, vm, 1);
+                wrenCall(vm, callArgCount[1]);
+            }
+        });
+    }
     
-    void WrenScriptEngine::onSimulate(entt::registry& reg, float deltaTime) {
+    void WrenScriptEngine::onSimulate(float deltaTime) {
         reg.view<ScriptComponent>().each([&](entt::entity ent, ScriptComponent& sc) {
             if (sc.onSimulate) {
                 wrenEnsureSlots(vm, 3);
@@ -280,7 +275,7 @@ namespace worlds {
         });
     }
 
-    void WrenScriptEngine::onUpdate(entt::registry& reg, float deltaTime) {
+    void WrenScriptEngine::onUpdate(float deltaTime) {
         reg.view<ScriptComponent>().each([&](entt::entity ent, ScriptComponent& sc) {
             if (sc.onUpdate) {
                 wrenEnsureSlots(vm, 3);

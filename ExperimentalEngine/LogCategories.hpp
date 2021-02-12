@@ -8,6 +8,7 @@ namespace worlds {
         WELogCategoryRender,
         WELogCategoryUI,
         WELogCategoryApp,
-        WELogCategoryScripting
+        WELogCategoryScripting,
+        WELogCategoryPhysics
     };
 }

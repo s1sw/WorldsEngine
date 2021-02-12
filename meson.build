@@ -1,11 +1,12 @@
 project('worldseng', 'cpp', 'c', default_options: [
   'cpp_std=c++latest', 
   'c_std=c11',
-  'backend_startup_project=Converge'
+  'win_subsystem=windows'
 ])
 
 if get_option('buildtype').startswith('debug')
   add_global_arguments('-D_DEBUG=1', language: 'cpp')
+  add_global_arguments('-DWREN_DEBUG_TRACE_GC=1', language: ['cpp','c'])
 endif
 
 if get_option('buildtype').startswith('release')
@@ -25,8 +26,10 @@ add_global_arguments('-DPX_PHYSX_STATIC_LIB', language: 'cpp')
 cpp_compiler = meson.get_compiler('cpp')
 
 if cpp_compiler.get_argument_syntax() == 'gcc'
-	add_global_arguments('-ffast-math', language: 'cpp')
-	add_global_arguments('-g', language: 'cpp') # generate debug symbols even in release
+  add_global_arguments('-ffast-math', language: 'cpp')
+  add_global_arguments('-g', language: 'cpp') # generate debug symbols even in release
+elif cpp_compiler.get_argument_syntax() == 'msvc'
+  add_global_arguments('/fp:fast', language: 'cpp')
 endif
 
 extern_include_dir = include_directories('External/Include')

@@ -269,8 +269,6 @@ namespace worlds {
         fullscreenToggleEventId = SDL_RegisterEvents(1);
         showWindowEventId = SDL_RegisterEvents(1);
 
-        inputManager = std::make_unique<InputManager>(window);
-
         // Ensure that we have a minimum of two workers, as one worker
         // means that jobs can be missed
         g_jobSys = new JobSystem{ workerThreadOverride == -1 ? std::max(SDL_GetCPUCount(), 2) : workerThreadOverride };
@@ -367,6 +365,7 @@ namespace worlds {
         cam.position = glm::vec3(0.0f, 0.0f, -1.0f);
 
         initPhysx(registry);
+        inputManager = std::make_unique<InputManager>(window);
 
         EngineInterfaces interfaces{
             .vrInterface = enableOpenVR ? &openvrInterface : nullptr,
@@ -418,6 +417,8 @@ namespace worlds {
                 for (auto* system : systems)
                     system->onSceneStart(registry);
 
+                scriptEngine->onSceneStart();
+
                 registry.view<AudioSource>().each([](auto, auto& as) {
                     if (as.playOnSceneOpen) {
                         as.isPlaying = true;
@@ -460,8 +461,7 @@ namespace worlds {
             //disableSimInterp.setValue("1");
         }
 
-        scriptEngine = std::make_unique<WrenScriptEngine>();
-        scriptEngine->bindRegistry(registry);
+        scriptEngine = std::make_unique<WrenScriptEngine>(registry);
 
         if (runAsEditor) {
             disableSimInterp.setValue("1");
@@ -481,6 +481,8 @@ namespace worlds {
                 evtHandler->onSceneStart(registry);
                 for (auto* system : systems)
                     system->onSceneStart(registry);
+
+                scriptEngine->onSceneStart();
             }
         }
 
@@ -490,6 +492,8 @@ namespace worlds {
 
                 for (auto* system : systems)
                     system->onSceneStart(registry);
+
+                scriptEngine->onSceneStart();
             }
         };
 
@@ -680,7 +684,7 @@ namespace worlds {
                 for (auto* system : systems)
                     system->update(registry, deltaTime * timeScale, interpAlpha);
 
-                scriptEngine->onUpdate(registry, deltaTime * timeScale);
+                scriptEngine->onUpdate(deltaTime * timeScale);
             }
 
             if (!dedicatedServer) {
@@ -971,7 +975,7 @@ namespace worlds {
                 }
 
                 if (!runAsEditor) {
-                    scriptEngine->onSimulate(registry, simStepTime.getFloat() * timeScale);
+                    scriptEngine->onSimulate(simStepTime.getFloat() * timeScale);
                 }
 
                 registry.view<DynamicPhysicsActor>().each([&](auto ent, DynamicPhysicsActor& dpa) {

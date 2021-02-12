@@ -158,7 +158,7 @@ namespace converge {
                 ImVec2 cr = ImGui::GetContentRegionAvail();
                 ImGui::PlotLines("err", lsphereErr, 128, lsphereErrIdx, nullptr, FLT_MAX, FLT_MAX, ImVec2(cr.x - 10.0f, 100.0f));
                 uint32_t idxWrapped = lsphereErrIdx - 1;
-                if (idxWrapped == -1)
+                if (idxWrapped == ~0u)
                     idxWrapped = 127;
                 ImGui::Text("curr err: %.3f", lsphereErr[idxWrapped]);
                 ImGui::End();
@@ -398,13 +398,6 @@ namespace converge {
         }
 
         g_dbgArrows->createEntities();
-
-        auto testEnt = worlds::createModelObject(*reg, 
-            glm::vec3{ 0.0f }, glm::quat{}, 
-            worlds::g_assetDB.addOrGetExisting("model.obj"), 
-            worlds::g_assetDB.addOrGetExisting("Materials/dev.json"));
-
-        reg->emplace<worlds::ScriptComponent>(testEnt, worlds::g_assetDB.addOrGetExisting("Scripts/TestBehaviour.wren"));
     }
 
     void EventHandler::shutdown(entt::registry& registry) {
