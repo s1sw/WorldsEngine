@@ -1,0 +1,20 @@
+worlds_sources += [
+  'Core/AssetDB.cpp',
+  'Core/Console.cpp',
+  'Core/Engine.cpp',
+  'Core/Fatal.cpp',
+  'Core/JobSystem.cpp',
+  'Core/SplashWindow.cpp',
+  'Core/AssetDB.hpp',
+  'Core/Console.hpp',
+  'Core/Engine.hpp',
+  'Core/Fatal.hpp',
+  'Core/IGameEventHandler.hpp',
+  'Core/ISystem.hpp',
+  'Core/JobSystem.hpp',
+  'Core/Log.hpp',
+  'Core/LogCategories.hpp',
+  'Core/NameComponent.hpp',
+  'Core/SplashWindow.hpp',
+  'Core/Transform.hpp'
+]
