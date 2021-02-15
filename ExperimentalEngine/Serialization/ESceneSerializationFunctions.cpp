@@ -1,16 +1,16 @@
 #include "SceneSerialization.hpp"
-#include "AssetDB.hpp"
-#include "Engine.hpp"
-#include "Transform.hpp"
-#include "PhysicsActor.hpp"
-#include "Physics.hpp"
+#include "../Core/AssetDB.hpp"
+#include "../Core/Engine.hpp"
+#include "../Core/Transform.hpp"
+#include "../Physics/PhysicsActor.hpp"
+#include "../Physics/Physics.hpp"
 #include <filesystem>
-#include "Log.hpp"
-#include "TimingUtil.hpp"
+#include "../Core/Log.hpp"
+#include "../Util/TimingUtil.hpp"
 #include "SceneSerializationFuncs.hpp"
-#include "NameComponent.hpp"
-#include "Render.hpp"
-#include "ComponentMetadata.hpp"
+#include "../Core/NameComponent.hpp"
+#include "../Render/Render.hpp"
+#include "../ComponentMeta/ComponentMetadata.hpp"
 
 namespace worlds {
     const unsigned char LATEST_SCN_FORMAT_ID = 1;

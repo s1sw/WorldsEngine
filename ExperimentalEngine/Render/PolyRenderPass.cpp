@@ -1,13 +1,12 @@
 #include "RenderPasses.hpp"
-#include "Engine.hpp"
-#include "Transform.hpp"
-#include "spirv_reflect.h"
+#include "../Core/Engine.hpp"
+#include "../Core/Transform.hpp"
 #include <openvr.h>
 #include "tracy/Tracy.hpp"
 #include "Render.hpp"
-#include "Physics.hpp"
+#include "../Physics/Physics.hpp"
 #include "Frustum.hpp"
-#include "Console.hpp"
+#include "../Core/Console.hpp"
 #include "ShaderCache.hpp"
 #include <slib/StaticAllocList.hpp>
 

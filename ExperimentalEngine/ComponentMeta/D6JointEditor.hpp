@@ -1,17 +1,17 @@
 #include "ComponentEditorUtil.hpp"
-#include "D6Joint.hpp"
+#include "../Physics/D6Joint.hpp"
 #include <foundation/PxTransform.h>
-#include "imgui.h"
+#include "../ImGui/imgui.h"
 #include <physx/PxPhysicsAPI.h>
 #include <physx/extensions/PxJoint.h>
 #include <physx/extensions/PxD6Joint.h>
-#include "Physics.hpp"
-#include "PhysicsActor.hpp"
-#include "IconsFontAwesome5.h"
-#include "GuiUtil.hpp"
-#include "Log.hpp"
+#include "../Physics/Physics.hpp"
+#include "../Physics/PhysicsActor.hpp"
+#include "../Libs/IconsFontAwesome5.h"
+#include "../Editor/GuiUtil.hpp"
+#include "../Core/Log.hpp"
 #include <entt/entity/registry.hpp>
-#include "Fatal.hpp"
+#include "../Core/Fatal.hpp"
 
 namespace worlds {
 #define WRITE_FIELD(file, field) PHYSFS_writeBytes(file, &field, sizeof(field))

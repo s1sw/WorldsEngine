@@ -1,10 +1,10 @@
 #pragma once
 #include <entt/entt.hpp> 
-#include <IGameEventHandler.hpp>
+#include <Core/IGameEventHandler.hpp>
 #include "PidController.hpp"
-#include "ISystem.hpp"
-#include <IVRInterface.hpp>
-#include <Camera.hpp>
+#include "Core/ISystem.hpp"
+#include <VR/IVRInterface.hpp>
+#include <Render/Camera.hpp>
 #include "PhysHandSystem.hpp"
 
 namespace converge {

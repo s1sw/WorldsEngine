@@ -1,5 +1,5 @@
 #include "Editor.hpp"
-#include "SceneSerialization.hpp"
+#include "../Serialization/SceneSerialization.hpp"
 
 namespace worlds {
     void EditorUndo::pushState() {

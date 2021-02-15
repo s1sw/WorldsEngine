@@ -7,10 +7,10 @@
 #include <physx/pvd/PxPvdTransport.h>
 #include <physx/pvd/PxPvd.h>
 #include "PhysicsActor.hpp"
-#include "Console.hpp"
-#include "imgui.h"
+#include "../Core/Console.hpp"
+#include "../ImGui/imgui.h"
 #include <SDL_cpuinfo.h>
-#include "Fatal.hpp"
+#include "../Core/Fatal.hpp"
 #include "Physics.hpp"
 #include "D6Joint.hpp"
 

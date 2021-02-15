@@ -1,7 +1,7 @@
 #include <core.h>
-#include "Log.hpp"
+#include "../Core/Log.hpp"
 #include <SDL_timer.h>
-#include "Engine.hpp"
+#include "../Core/Engine.hpp"
 
 namespace worlds {
     discord::Core* discordCore;

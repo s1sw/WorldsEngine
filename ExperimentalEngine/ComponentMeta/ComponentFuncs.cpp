@@ -513,7 +513,7 @@ namespace worlds {
                     ImGui::DragFloat("Mass", &pa.mass);
                     if (ImGui::Button("Update Collisions##DPA")) {
                         updatePhysicsShapes(pa);
-                        physx::PxRigidBodyExt::updateMassAndInertia(*((physx::PxRigidDynamic*)pa.actor), &pa.mass, 1);
+                        physx::PxRigidBodyExt::setMassAndUpdateInertia(*((physx::PxRigidDynamic*)pa.actor), pa.mass);
                     }
 
                     editPhysicsShapes(pa);

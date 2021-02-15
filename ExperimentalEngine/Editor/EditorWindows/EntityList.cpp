@@ -1,10 +1,10 @@
 #include "EditorWindows.hpp"
-#include "imgui.h"
-#include "NameComponent.hpp"
-#include "IconsFontAwesome5.h"
-#include "imgui_stdlib.h"
+#include "../../ImGui/imgui.h"
+#include "../../Core/NameComponent.hpp"
+#include "../../Libs/IconsFontAwesome5.h"
+#include "../../ImGui/imgui_stdlib.h"
 #include <algorithm>
-#include "Log.hpp"
+#include "../../Core/Log.hpp"
 
 namespace worlds {
     void EntityList::draw(entt::registry& reg) {

@@ -1,4 +1,4 @@
-#include "WrenVM.hpp"
+#include "../WrenVM.hpp"
 #include <entt/core/hashed_string.hpp>
 
 namespace worlds {

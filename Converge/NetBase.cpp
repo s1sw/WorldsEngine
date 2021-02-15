@@ -1,5 +1,5 @@
 #include "Server.hpp"
-#include <Log.hpp>
+#include <Core/Log.hpp>
 
 namespace converge {
     NetBase::NetBase() : host(nullptr) {

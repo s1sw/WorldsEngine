@@ -1,5 +1,5 @@
 #include "EditorWindows.hpp"
-#include "imgui.h"
+#include "../../ImGui/imgui.h"
 
 namespace worlds {
     void StyleEditor::draw(entt::registry& reg) {

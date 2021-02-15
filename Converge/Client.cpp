@@ -1,5 +1,5 @@
 #include "Client.hpp"
-#include <Log.hpp>
+#include <Core/Log.hpp>
 #include "NetMessage.hpp"
 
 namespace converge {

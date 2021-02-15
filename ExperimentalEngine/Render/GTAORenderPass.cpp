@@ -1,6 +1,5 @@
 #include "RenderPasses.hpp"
 #include "Render.hpp"
-#include "imgui.h"
 #include "ShaderCache.hpp"
 
 namespace worlds {
@@ -20,8 +19,8 @@ namespace worlds {
     GTAORenderPass::GTAORenderPass(VKRenderer* renderer, RenderTexture* depth, RenderTexture* out) 
         : depth{ depth }
         , out{ out }
-        , frameIdx{ 0 }
-        , renderer{ renderer } {
+        , renderer{ renderer } 
+        , frameIdx{ 0 } {
         
     }
 

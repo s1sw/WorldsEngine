@@ -1,11 +1,11 @@
 #pragma once
 #include <enet/enet.h>
-#include <IGameEventHandler.hpp>
-#include <Console.hpp>
-#include "Engine.hpp"
+#include <Core/IGameEventHandler.hpp>
+#include <Core/Console.hpp>
+#include <Core/Engine.hpp>
 #include "NetMessage.hpp"
 #include "PidController.hpp"
-#include <Camera.hpp>
+#include <Render/Camera.hpp>
 #include "LocospherePlayerSystem.hpp"
 #include "Client.hpp"
 #include "Server.hpp"

@@ -20,7 +20,7 @@ subdirs = [
     'VR'
 ]
 
-source_exts = ['*.cpp', '*.hpp', '*.c', '*.h', '*.cc']
+source_exts = ['**/*.cpp', '**/*.hpp', '**/*.c', '**/*.h', '**/*.cc']
 
 for subdir in subdirs:
     files = []

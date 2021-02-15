@@ -1,9 +1,9 @@
 #include "EditorWindows.hpp"
-#include "imgui.h"
-#include "ComponentMetadata.hpp"
-#include "Engine.hpp"
-#include "imgui_stdlib.h"
-#include "IconsFontAwesome5.h"
+#include "../../ImGui/imgui.h"
+#include "../../ComponentMeta/ComponentMetadata.hpp"
+#include "../../Core/Engine.hpp"
+#include "../../ImGui/imgui_stdlib.h"
+#include "../../Libs/IconsFontAwesome5.h"
 
 namespace worlds {
     void EntityEditor::draw(entt::registry& reg) {

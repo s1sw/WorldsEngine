@@ -1,14 +1,14 @@
 #include "SceneSerialization.hpp"
-#include "AssetDB.hpp"
-#include "Engine.hpp"
-#include "Transform.hpp"
-#include "PhysicsActor.hpp"
-#include "Physics.hpp"
+#include "../Core/AssetDB.hpp"
+#include "../Core/Engine.hpp"
+#include "../Core/Transform.hpp"
+#include "../Physics/PhysicsActor.hpp"
+#include "../Physics/Physics.hpp"
 #include <filesystem>
-#include "Log.hpp"
-#include "TimingUtil.hpp"
+#include "../Core/Log.hpp"
+#include "../Util/TimingUtil.hpp"
 #include "SceneSerializationFuncs.hpp"
-#include "ComponentMetadata.hpp"
+#include "../ComponentMeta/ComponentMetadata.hpp"
 
 namespace worlds {
     std::function<void(entt::registry&)> onSceneLoad;

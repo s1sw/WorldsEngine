@@ -1,7 +1,7 @@
 #include "Server.hpp"
-#include <Fatal.hpp>
-#include <Log.hpp>
-#include "Console.hpp"
+#include <Core/Fatal.hpp>
+#include <Core/Log.hpp>
+#include "Core/Console.hpp"
 
 namespace converge {
     const char* reasonStrs[] = {

@@ -1,6 +1,6 @@
-#include "Engine.hpp"
-#include "TimingUtil.hpp"
-#include "Render.hpp"
+#include "../Core/Engine.hpp"
+#include "../Util/TimingUtil.hpp"
+#include "../Render/Render.hpp"
 
 namespace worlds {
     struct PrefilterPushConstants {

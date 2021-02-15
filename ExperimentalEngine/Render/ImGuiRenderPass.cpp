@@ -1,6 +1,6 @@
 #include "RenderPasses.hpp"
-#include "Engine.hpp"
-#include "imgui_impl_vulkan.h"
+#include "../Core/Engine.hpp"
+#include "../ImGui/imgui_impl_vulkan.h"
 #include "Render.hpp"
 
 namespace worlds {

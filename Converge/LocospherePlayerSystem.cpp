@@ -1,17 +1,17 @@
 #include "LocospherePlayerSystem.hpp"
-#include <Physics.hpp>
-#include <imgui.h>
+#include <Physics/Physics.hpp>
+#include <ImGui/imgui.h>
 #include <openvr.h>
-#include <OpenVRInterface.hpp>
-#include <NameComponent.hpp>
-#include <Engine.hpp>
-#include <Console.hpp>
-#include <Input.hpp>
-#include <Camera.hpp>
+#include <VR/OpenVRInterface.hpp>
+#include <Core/NameComponent.hpp>
+#include <Core/Engine.hpp>
+#include <Core/Console.hpp>
+#include <Input/Input.hpp>
+#include <Render/Camera.hpp>
 #include "MathsUtil.hpp"
-#include <CreateModelObject.hpp>
+#include <Util/CreateModelObject.hpp>
 #include "DebugArrow.hpp"
-#include <D6Joint.hpp>
+#include <Physics/D6Joint.hpp>
 
 namespace converge {
     class NullPhysXCallback : public physx::PxRaycastCallback {
