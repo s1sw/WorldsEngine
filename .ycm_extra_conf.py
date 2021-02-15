@@ -65,7 +65,17 @@ flags = [
 '-I',
 './ExperimentalEngine',
 '-I',
-'./External/Include/physx'
+'./External/Include/physx',
+'-I',
+'./subprojects/SDL2-2.0.12/include',
+'-I',
+'./subprojects/wren.git/src/include',
+'-I',
+'./subprojects/wren.git/src/vm',
+'-I',
+'./subprojects/enet-1.3.13/include',
+'-I',
+'./subprojects/slib.git/include'
 ]
 
 # Clang automatically sets the '-std=' flag to 'c++14' for MSVC 2015 or later,
