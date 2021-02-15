@@ -28,8 +28,10 @@ namespace worlds {
 
         auto idx = obj.find_object_key(keyStr);
 
-        if (idx == obj.get_length())
+        if (idx == obj.get_length()) {
+            aid = ~0u;
             return;
+        }
 
         auto path = obj.get_object_value(idx).as_string();
 
@@ -50,7 +52,12 @@ namespace worlds {
             std::to_string(value.x) + ", " + std::to_string(value.y) + ", " + std::to_string(value.z) + "]";
     }
 
-    void MaterialEditor::draw(entt::registry& reg) {
+    void assetButton(AssetID& id, const char* title) {
+        bool open = ImGui::Button(title);
+        selectAssetPopup(title, id, open);
+    }
+
+    void MaterialEditor::draw(entt::registry&) {
         static AssetID materialId = ~0u;
         static bool needsReload = false;
         static EditableMaterial mat;
@@ -86,6 +93,7 @@ namespace worlds {
                     mat.wireframe = hasKey(root, "wireframe");
 
                     std::free(buffer);
+                    needsReload = false;
                 }
 
                 ImGui::SliderFloat("Metallic", &mat.metallic, 0.0f, 1.0f);
@@ -96,6 +104,8 @@ namespace worlds {
 
                 ImGui::ColorEdit3("Albedo Color", &mat.albedoColor.x);
                 ImGui::ColorEdit3("Emissive Color", &mat.emissiveColor.x);
+
+                assetButton(mat.albedo, "Albedo");
 
                 if (ImGui::Button("Save")) {
                     std::string j = "{\n";
@@ -134,6 +144,10 @@ namespace worlds {
                     j += "\n}\n";
 
                     logMsg("%s", j.c_str());
+                }
+
+                if (ImGui::Button("Close")) {
+                    materialId = ~0u;
                 }
             } else {
                 bool open = ImGui::Button("Open Material");
