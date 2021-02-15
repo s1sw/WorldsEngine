@@ -188,6 +188,7 @@ namespace worlds {
         }
 
 #ifndef NDEBUG 
+#ifdef _WIN32
         if (!AttachConsole(ATTACH_PARENT_PROCESS)) {
             if (!AllocConsole()) {
                 logErr("failed to allocconsole, assuming one already exists");
@@ -225,6 +226,7 @@ namespace worlds {
 
         std::cin.clear();
         std::cout.clear();
+#endif
 #endif
 
         if (asyncStdinConsole) {
