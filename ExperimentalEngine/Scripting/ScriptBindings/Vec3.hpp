@@ -1,5 +1,5 @@
 #pragma once
-#include "WrenVM.hpp"
+#include "../WrenVM.hpp"
 #include <glm/glm.hpp>
 #include <glm/gtx/norm.hpp>
 #include <entt/core/hashed_string.hpp>
