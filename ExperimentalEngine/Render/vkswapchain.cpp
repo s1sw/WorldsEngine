@@ -1,6 +1,6 @@
 #include "PCH.hpp"
-#include "Engine.hpp"
-#include "Log.hpp"
+#include "../Core/Engine.hpp"
+#include "../Core/Log.hpp"
 #include "Render.hpp"
 
 namespace worlds {

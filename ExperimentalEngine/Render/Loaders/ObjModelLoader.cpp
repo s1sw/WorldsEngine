@@ -1,8 +1,8 @@
 #include "ObjModelLoader.hpp"
-#include "mikktspace.h"
-#include "tiny_obj_loader.h"
-#include "weldmesh.h"
-#include "Render.hpp"
+#include "../../Libs/mikktspace.h"
+#include "../../Libs/tiny_obj_loader.h"
+#include "../../Libs/weldmesh.h"
+#include "../Render.hpp"
 #include "tracy/Tracy.hpp"
 
 namespace worlds {

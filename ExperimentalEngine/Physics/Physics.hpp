@@ -3,10 +3,6 @@
 #include <physx/PxPhysics.h>
 #include <physx/PxPhysicsAPI.h>
 #include <physx/PxFoundation.h>
-#include <physx/extensions/PxDefaultErrorCallback.h>
-#include <physx/extensions/PxDefaultAllocator.h>
-#include <physx/pvd/PxPvdTransport.h>
-#include <physx/pvd/PxPvd.h>
 #include <physx/extensions/PxD6Joint.h>
 #include "../Core/Transform.hpp"
 #include "PhysicsActor.hpp"
@@ -46,27 +42,36 @@ namespace worlds {
         physx::PxShape** buf = (physx::PxShape**)std::malloc(nShapes * sizeof(physx::PxShape*));
         pa.actor->getShapes(buf, nShapes);
 
-        for (int i = 0; i < nShapes; i++) {
+        for (uint32_t i = 0; i < nShapes; i++) {
             pa.actor->detachShape(*buf[i]);
-            buf[i]->release();
         }
 
         std::free(buf);
 
         for (PhysicsShape& ps : pa.physicsShapes) {
             physx::PxShape* shape;
+            physx::PxMaterial* mat = ps.material ? ps.material : defaultMaterial;
 
             switch (ps.type) {
             case PhysicsShapeType::Box:
-                shape = g_physics->createShape(physx::PxBoxGeometry(glm2px(ps.box.halfExtents)), *(ps.material == nullptr ? defaultMaterial : ps.material));
+                shape = g_physics->createShape(
+                    physx::PxBoxGeometry(glm2px(ps.box.halfExtents)), 
+                    *mat
+                );
                 break;
             default:
                 ps.sphere.radius = 0.5f;
             case PhysicsShapeType::Sphere:
-                shape = g_physics->createShape(physx::PxSphereGeometry(ps.sphere.radius), *(ps.material == nullptr ? defaultMaterial : ps.material));
+                shape = g_physics->createShape(
+                    physx::PxSphereGeometry(ps.sphere.radius), 
+                    *mat
+                );
                 break;
             case PhysicsShapeType::Capsule:
-                shape = g_physics->createShape(physx::PxCapsuleGeometry(ps.capsule.radius, ps.capsule.height * 0.5f), *(ps.material == nullptr ? defaultMaterial : ps.material));
+                shape = g_physics->createShape(
+                    physx::PxCapsuleGeometry(ps.capsule.radius, ps.capsule.height * 0.5f), 
+                    *mat
+                );
                 break;
             }
 

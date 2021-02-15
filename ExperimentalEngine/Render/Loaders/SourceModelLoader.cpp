@@ -1,8 +1,8 @@
 #include "PCH.hpp"
-#include "Engine.hpp"
-#include "GlmStreamOps.hpp"
+#include "../../Core/Engine.hpp"
+#include "../../Util/GlmStreamOps.hpp"
 #include <iostream>
-#include "Render.hpp"
+#include "../Render.hpp"
 #include <filesystem>
 #include "tracy/Tracy.hpp"
 

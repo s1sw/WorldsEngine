@@ -37,7 +37,7 @@
 #include "SplashWindow.hpp"
 #include "EarlySDLUtil.hpp"
 #include "vk_mem_alloc.h"
-#include "ShaderCache.hpp"
+#include "../Render/ShaderCache.hpp"
 #include "readerwriterqueue.h"
 
 namespace worlds {

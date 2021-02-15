@@ -4,7 +4,7 @@
 #include <physx/extensions/PxD6Joint.h>
 #include <entt/entt.hpp>
 #include "PhysicsActor.hpp"
-#include "Log.hpp"
+#include "../Core/Log.hpp"
 
 namespace worlds {
     D6Joint::D6Joint() : pxJoint{ nullptr }, thisActor{ nullptr }, targetEntity{ entt::null } {}

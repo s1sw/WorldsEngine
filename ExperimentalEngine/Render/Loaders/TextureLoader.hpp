@@ -1,7 +1,7 @@
 #pragma once
 #include <cstdint>
 #include "../vku/vku.hpp"
-#include "../Core/AssetDB.hpp"
+#include "../../Core/AssetDB.hpp"
 
 namespace worlds {
     struct TextureData {

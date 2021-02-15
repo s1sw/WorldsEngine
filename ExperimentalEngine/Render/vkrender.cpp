@@ -1,31 +1,31 @@
 #include <vulkan/vulkan.hpp>
 #define VMA_IMPLEMENTATION
 #include "PCH.hpp"
-#include "Engine.hpp"
+#include "../Core/Engine.hpp"
 #include <SDL.h>
 #include <SDL_vulkan.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
-#include "imgui_impl_vulkan.h"
-#include "physfs.hpp"
-#include "Transform.hpp"
+#include "../ImGui/imgui_impl_vulkan.h"
+#include "../IO/physfs.hpp"
+#include "../Core/Transform.hpp"
 #include "tracy/Tracy.hpp"
 #include "tracy/TracyC.h"
 #include "tracy/TracyVulkan.hpp"
 #include "RenderPasses.hpp"
-#include "Input.hpp"
-#include "OpenVRInterface.hpp"
+#include "../Input/Input.hpp"
+#include "../VR/OpenVRInterface.hpp"
 #include <sajson.h>
-#include "Fatal.hpp"
+#include "../Core/Fatal.hpp"
 #include <unordered_set>
-#include "Log.hpp"
-#include "ObjModelLoader.hpp"
+#include "../Core/Log.hpp"
+#include "Loaders/ObjModelLoader.hpp"
 #include "Render.hpp"
-#include "SourceModelLoader.hpp"
-#include "WMDLLoader.hpp"
-#include "RobloxMeshLoader.hpp"
+#include "Loaders/SourceModelLoader.hpp"
+#include "Loaders/WMDLLoader.hpp"
+#include "Loaders/RobloxMeshLoader.hpp"
 
 using namespace worlds;
 

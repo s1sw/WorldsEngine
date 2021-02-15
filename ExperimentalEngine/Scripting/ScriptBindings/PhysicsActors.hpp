@@ -1,11 +1,10 @@
 #pragma once 
 #include <entt/entity/registry.hpp>
 #include <PxRigidDynamic.h>
-#include "WrenVM.hpp"
-#include "PhysicsActor.hpp"
-#include "ScriptUtil.hpp"
-#include "Physics.hpp"
-#include "ScriptUtil.hpp"
+#include "../WrenVM.hpp"
+#include "../../Physics/PhysicsActor.hpp"
+#include "../ScriptUtil.hpp"
+#include "../../Physics/Physics.hpp"
 
 namespace worlds {
     class DynamicPhyiscsActorBinding : public ScriptBindClass {

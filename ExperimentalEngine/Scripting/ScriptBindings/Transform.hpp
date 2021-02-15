@@ -1,8 +1,8 @@
 #pragma once
-#include "WrenVM.hpp"
-#include "../Transform.hpp"
+#include "../WrenVM.hpp"
+#include "../../Core/Transform.hpp"
 #include <entt/entity/registry.hpp>
-#include "ScriptUtil.hpp"
+#include "../ScriptUtil.hpp"
 
 namespace worlds {
     class TransformBinding : public ScriptBindClass {

@@ -1,7 +1,7 @@
 #include "DebugArrow.hpp"
 #include "MathsUtil.hpp"
-#include "AssetDB.hpp"
-#include "CreateModelObject.hpp"
+#include "Core/AssetDB.hpp"
+#include <Util/CreateModelObject.hpp>
 
 namespace converge {
     DebugArrows* g_dbgArrows;

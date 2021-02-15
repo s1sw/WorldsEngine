@@ -1,10 +1,10 @@
 #include "EditorWindows.hpp"
-#include "imgui.h"
+#include "../../ImGui/imgui.h"
 #include <filesystem>
-#include "SourceModelLoader.hpp"
-#include "CreateModelObject.hpp"
-#include "Console.hpp"
-#include "IconsFontAwesome5.h"
+#include "../../Render/Loaders/SourceModelLoader.hpp"
+#include "../../Util/CreateModelObject.hpp"
+#include "../../Core/Console.hpp"
+#include "../../Libs/IconsFontAwesome5.h"
 
 namespace worlds {
     void Assets::draw(entt::registry& reg) {

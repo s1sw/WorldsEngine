@@ -1,11 +1,11 @@
 #include "TextureLoader.hpp"
-#include "Engine.hpp"
+#include "../../Core/Engine.hpp"
 #include "tracy/Tracy.hpp"
 #include "crn_decomp.h"
 #include "stb_image.h"
-#include "LogCategories.hpp"
-#include "Render.hpp"
-#include "Fatal.hpp"
+#include "../../Core/LogCategories.hpp"
+#include "../Render.hpp"
+#include "../../Core/Fatal.hpp"
 #include <physfs.h>
 #include <algorithm>
 

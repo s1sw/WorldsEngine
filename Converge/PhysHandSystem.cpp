@@ -1,7 +1,7 @@
 #include "PhysHandSystem.hpp"
-#include <Log.hpp>
-#include <Camera.hpp>
-#include "Physics.hpp"
+#include <Core/Log.hpp>
+#include <Render/Camera.hpp>
+#include <Physics/Physics.hpp>
 #include <physx/PxRigidBody.h>
 #include "MathsUtil.hpp"
 #include <openvr.h>

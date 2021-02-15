@@ -1,9 +1,9 @@
 #include "ResourceSlots.hpp"
-#include "Engine.hpp"
+#include "../Core/Engine.hpp"
 #include "tracy/Tracy.hpp"
 #include <sajson.h>
 #include <optional>
-#include "JsonUtil.hpp"
+#include "../Util/JsonUtil.hpp"
 
 namespace worlds {
     std::optional<std::string> getString(const sajson::value& obj, const char* key) {

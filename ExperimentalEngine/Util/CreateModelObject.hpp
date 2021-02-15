@@ -1,7 +1,7 @@
 #pragma once
 #include <entt/entt.hpp>
-#include "Transform.hpp"
-#include "Engine.hpp"
+#include "../Core/Transform.hpp"
+#include "../Core/Engine.hpp"
 
 namespace worlds {
     inline entt::entity createModelObject(

@@ -1,5 +1,5 @@
 #pragma once
-#include "Log.hpp"
+#include <Core/Log.hpp>
 #include <cassert>
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>

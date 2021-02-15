@@ -1,6 +1,6 @@
 #include "PCH.hpp"
 #include "Input.hpp"
-#include "imgui.h"
+#include "../ImGui/imgui.h"
 
 namespace worlds {
 	InputManager::InputManager(SDL_Window* window)
@@ -14,7 +14,6 @@ namespace worlds {
 		lastMouseButtonFlags = mouseButtonFlags;
 		mouseButtonFlags = SDL_GetMouseState(nullptr, nullptr);
 
-		//keyState = SDL_GetKeyboardState(nullptr);
 		SDL_GetRelativeMouseState(&mouseDelta.x, &mouseDelta.y);
 		SDL_GetMouseState(&mousePos.x, &mousePos.y);
 	}

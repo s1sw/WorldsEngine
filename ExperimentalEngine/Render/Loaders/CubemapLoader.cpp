@@ -2,10 +2,10 @@
 #include "tracy/Tracy.hpp"
 #include <sajson.h>
 #include <SDL_log.h>
-#include "Engine.hpp"
-#include "Render.hpp"
-#include "TimingUtil.hpp"
-#include "JobSystem.hpp"
+#include "../../Core/Engine.hpp"
+#include "../Render.hpp"
+#include "../../Util/TimingUtil.hpp"
+#include "../../Core/JobSystem.hpp"
 #include <algorithm>
 
 namespace worlds {

@@ -1,5 +1,5 @@
 #include "IOUtil.hpp"
-#include "Result.hpp"
+#include "../Util/Result.hpp"
 #include <SDL_log.h>
 #include <physfs.h>
 

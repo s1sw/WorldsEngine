@@ -1,15 +1,15 @@
 #include "GuiUtil.hpp"
-#include "Engine.hpp"
-#include "IconsFontAwesome5.h"
-#include "IconsFontaudio.h"
+#include "../Core/Engine.hpp"
+#include "../Libs/IconsFontAwesome5.h"
+#include "../Libs/IconsFontaudio.h"
 #define IMGUI_DEFINE_MATH_OPERATORS
-#include "imgui_internal.h"
+#include "../ImGui/imgui_internal.h"
 #include <filesystem>
 
 namespace worlds {
     void saveFileModal(const char* title, std::function<void(const char*)> saveCallback) {
         ImVec2 popupSize(windowSize.x - 50.0f, windowSize.y - 50.0f);
-        ImGui::SetNextWindowPos(ImGui::GetMainViewport()->Pos + ImVec2((windowSize.x / 2) - (popupSize.x / 2), (windowSize.y / 2) - (popupSize.y / 2)));
+        ImGui::SetNextWindowPos(ImGui::GetMainViewport()->Pos + ImVec2((windowSize.x / 2.0f) - (popupSize.x / 2), (windowSize.y / 2.0f) - (popupSize.y / 2)));
         ImGui::SetNextWindowSize(popupSize);
 
         if (ImGui::BeginPopupModal(title, nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove)) {

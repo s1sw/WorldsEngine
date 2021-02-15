@@ -1,8 +1,8 @@
 #include "EditorWindows.hpp"
-#include "AssetDB.hpp"
-#include "imgui.h"
-#include "imgui_stdlib.h"
-#include "Log.hpp"
+#include "../../Core/AssetDB.hpp"
+#include "../../ImGui/imgui.h"
+#include "../../ImGui/imgui_stdlib.h"
+#include "../../Core/Log.hpp"
 
 namespace worlds {
     void AssetDBExplorer::draw(entt::registry& reg) {

@@ -1,10 +1,10 @@
-#include "imgui.h"
+#include "../../ImGui/imgui.h"
 #include "EditorWindows.hpp"
-#include "GuiUtil.hpp"
+#include "../GuiUtil.hpp"
 #include <sajson.h>
-#include "AssetDB.hpp"
-#include "Log.hpp"
-#include "JsonUtil.hpp"
+#include "../../Core/AssetDB.hpp"
+#include "../../Core/Log.hpp"
+#include "../../Util/JsonUtil.hpp"
 
 namespace worlds {
     struct EditableMaterial {

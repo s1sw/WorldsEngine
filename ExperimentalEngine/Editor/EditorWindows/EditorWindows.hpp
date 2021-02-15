@@ -1,5 +1,5 @@
 #pragma once
-#include "Editor.hpp"
+#include "../Editor.hpp"
 
 namespace worlds {
     class EntityList : public EditorWindow {

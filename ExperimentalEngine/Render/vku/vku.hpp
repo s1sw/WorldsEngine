@@ -14,7 +14,7 @@
 /// It should integrate with game engines nicely.
 //
 ////////////////////////////////////////////////////////////////////////////////
-// Modified for use in ExperimentalEngine by Someone Somewhere 2020
+// Modified for use in WorldsEngine by Someone Somewhere 
 
 #ifndef VKU_HPP
 #define VKU_HPP
@@ -23,7 +23,6 @@
 #include <array>
 #include <fstream>
 #include <iostream>
-#include <unordered_map>
 #include <vector>
 #include <thread>
 #include <chrono>
@@ -37,14 +36,15 @@
 
 #include <vulkan/vulkan.hpp>
 #include <physfs.h>
-#include "../Log.hpp"
-#include "../Fatal.hpp"
+#include "../../Core/Log.hpp"
+#include "../../Core/Fatal.hpp"
+#include "../../Core/AssetDB.hpp"
+// just in case something pulls in windows.h
 #undef min
 #undef max
 
 #define UNUSED(thing) (void)thing
 namespace vku {
-
     /// Printf-style formatting function.
     template <class ... Args>
     std::string format(const char* fmt, Args... args) {
