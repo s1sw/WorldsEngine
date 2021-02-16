@@ -8,6 +8,7 @@ layout(constant_id = 0) const int NUM_MSAA_SAMPLES = 4;
 layout(push_constant) uniform PushConstants {
     float aoIntensity;
 	int idx;
+    float exposureBias;
 };
 
 float A = 0.15;
@@ -39,7 +40,6 @@ vec3 InverseTonemap(vec3 x) {
 vec3 tonemapCol(vec3 col, vec3 whiteScale) {
 	col *= 16.0;
 	
-	float exposureBias = 0.5;
 	vec3 curr = Uncharted2Tonemap(exposureBias * col);
 
 	return curr * whiteScale;
@@ -48,8 +48,9 @@ vec3 tonemapCol(vec3 col, vec3 whiteScale) {
 void main() {
 	vec3 acc = vec3(0.0);
 	vec3 whiteScale = 1.0 / Uncharted2Tonemap(vec3(W));
+    float aoVal = (1.0 - aoIntensity) + (texelFetch(gtaoImage, ivec3(gl_GlobalInvocationID.xy, idx), 0).x * aoIntensity);
 	for (int i = 0; i < NUM_MSAA_SAMPLES; i++) {
-        vec3 raw = texelFetch(hdrImage, ivec3(gl_GlobalInvocationID.xy, idx), i).xyz;
+        vec3 raw = texelFetch(hdrImage, ivec3(gl_GlobalInvocationID.xy, idx), i).xyz * aoVal;
 		acc += tonemapCol(raw, whiteScale);
         //acc += ACESFilm(raw * 4.0);
 	}
@@ -60,8 +61,6 @@ void main() {
 	if (any(isnan(acc))) acc = vec3(1.0, 0.0, 1.0);	
     */
 	
-	acc *= (1.0 - aoIntensity) + (texelFetch(gtaoImage, ivec3(gl_GlobalInvocationID.xy, idx), 0).x * aoIntensity);
-
     vec3 final = pow(acc / float(NUM_MSAA_SAMPLES), vec3(1 / 2.2));
 
 	imageStore(resultImage, ivec2(gl_GlobalInvocationID.xy), vec4(final, 1.0));
