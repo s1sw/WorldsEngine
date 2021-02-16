@@ -110,7 +110,7 @@ layout(push_constant) uniform PushConstants {
 
 #ifdef VERTEX
 void main() {
-	mat4 model = modelMatrices[modelMatrixIdx + gl_InstanceID];
+	mat4 model = modelMatrices[modelMatrixIdx + gl_InstanceIndex];
 
     // On AMD driver 20.10.1 (and possibly earlier) using gl_ViewIndex seems to cause a driver crash
     int vpMatIdx = vpIdx; 
@@ -266,7 +266,7 @@ vec3 calcAmbient(vec3 f0, float roughness, vec3 viewDir, float metallic, vec3 al
 
     vec3 specularAmbient = textureLod(cubemapSampler[cubemapIdx], R, roughness * MAX_REFLECTION_LOD).rgb;
 
-    vec2 brdf  = textureLod(brdfLutSampler, vec2(min(max(dot(normal, viewDir), 0.0), 0.95), roughness), 0.0).rg;
+    vec2 brdf  = textureLod(brdfLutSampler, vec2(max(dot(normal, viewDir), 0.0), roughness), 0.0).rg;
     float f90 = clamp(50.0 * f0.g, 0.0, 1.0);
 
     vec3 specularColor = (f0 * brdf.x) + (f90 * brdf.y);
