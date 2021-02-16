@@ -1183,10 +1183,6 @@ namespace vku {
             if (cBuf) {
                 vmaDestroyBuffer(allocator, cBuf, allocation);
                 buffer_ = vk::Buffer{};
-
-                if (debugName) {
-                    logMsg("Destroying buffer %s", debugName);
-                }
             }
         }
 
@@ -1195,10 +1191,6 @@ namespace vku {
             if (cBuf) {
                 vmaDestroyBuffer(allocator, cBuf, allocation);
                 buffer_ = vk::Buffer{};
-
-                if (debugName) {
-                    logMsg("Destroying buffer %s", debugName);
-                }
             }
         }
 
@@ -1217,7 +1209,8 @@ namespace vku {
         VertexBuffer() {
         }
 
-        VertexBuffer(const vk::Device& device, VmaAllocator allocator, size_t size, const char* debugName = nullptr) : GenericBuffer(device, allocator, vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst, size, VMA_MEMORY_USAGE_GPU_ONLY, debugName) {
+        VertexBuffer(const vk::Device& device, VmaAllocator allocator, size_t size, const char* debugName = nullptr) 
+            : GenericBuffer(device, allocator, vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst, size, VMA_MEMORY_USAGE_GPU_ONLY, debugName) {
         }
     };
 
@@ -1228,7 +1221,8 @@ namespace vku {
         }
 
         template<class Type, class Allocator>
-        HostVertexBuffer(const vk::Device& device, VmaAllocator allocator, const std::vector<Type, Allocator>& value) : GenericBuffer(device, allocator, vk::BufferUsageFlagBits::eVertexBuffer, value.size() * sizeof(Type), VMA_MEMORY_USAGE_CPU_ONLY) {
+        HostVertexBuffer(const vk::Device& device, VmaAllocator allocator, const std::vector<Type, Allocator>& value) 
+            : GenericBuffer(device, allocator, vk::BufferUsageFlagBits::eVertexBuffer, value.size() * sizeof(Type), VMA_MEMORY_USAGE_CPU_ONLY) {
             updateLocal(device, value);
         }
     };
@@ -1240,7 +1234,8 @@ namespace vku {
         IndexBuffer() {
         }
 
-        IndexBuffer(const vk::Device& device, VmaAllocator allocator, size_t size, const char* debugName = nullptr) : GenericBuffer(device, allocator, vk::BufferUsageFlagBits::eIndexBuffer | vk::BufferUsageFlagBits::eTransferDst, size, VMA_MEMORY_USAGE_GPU_ONLY, debugName) {
+        IndexBuffer(const vk::Device& device, VmaAllocator allocator, size_t size, const char* debugName = nullptr) 
+            : GenericBuffer(device, allocator, vk::BufferUsageFlagBits::eIndexBuffer | vk::BufferUsageFlagBits::eTransferDst, size, VMA_MEMORY_USAGE_GPU_ONLY, debugName) {
         }
     };
 
@@ -1251,7 +1246,8 @@ namespace vku {
         }
 
         template<class Type, class Allocator>
-        HostIndexBuffer(const vk::Device& device, VmaAllocator allocator, const std::vector<Type, Allocator>& value) : GenericBuffer(device, allocator, vk::BufferUsageFlagBits::eIndexBuffer, value.size() * sizeof(Type), VMA_MEMORY_USAGE_CPU_ONLY) {
+        HostIndexBuffer(const vk::Device& device, VmaAllocator allocator, const std::vector<Type, Allocator>& value) 
+            : GenericBuffer(device, allocator, vk::BufferUsageFlagBits::eIndexBuffer, value.size() * sizeof(Type), VMA_MEMORY_USAGE_CPU_ONLY) {
             updateLocal(device, value);
         }
     };
@@ -1263,7 +1259,8 @@ namespace vku {
         }
 
         /// Device local uniform buffer.
-        UniformBuffer(const vk::Device& device, VmaAllocator allocator, size_t size, VmaMemoryUsage memUsage = VMA_MEMORY_USAGE_GPU_ONLY, const char* debugName = nullptr) : GenericBuffer(device, allocator, vk::BufferUsageFlagBits::eUniformBuffer | vk::BufferUsageFlagBits::eTransferDst, size, memUsage, debugName) {
+        UniformBuffer(const vk::Device& device, VmaAllocator allocator, size_t size, VmaMemoryUsage memUsage = VMA_MEMORY_USAGE_GPU_ONLY, const char* debugName = nullptr) 
+            : GenericBuffer(device, allocator, vk::BufferUsageFlagBits::eUniformBuffer | vk::BufferUsageFlagBits::eTransferDst, size, memUsage, debugName) {
         }
     };
 
