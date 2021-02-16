@@ -110,7 +110,7 @@ layout(push_constant) uniform PushConstants {
 
 #ifdef VERTEX
 void main() {
-	mat4 model = modelMatrices[modelMatrixIdx];
+	mat4 model = modelMatrices[modelMatrixIdx + gl_InstanceID];
 
     // On AMD driver 20.10.1 (and possibly earlier) using gl_ViewIndex seems to cause a driver crash
     int vpMatIdx = vpIdx; 
@@ -399,11 +399,11 @@ void main() {
 	float ao = 1.0;
 	
 	if (mat.heightmapIdx > -1) 
-			tCoord = ParallaxMapping(inUV, tViewDir, tex2dSampler[mat.heightmapIdx], mat.heightScale);
+        tCoord = ParallaxMapping(inUV, tViewDir, tex2dSampler[mat.heightmapIdx], mat.heightScale);
 		
 	if ((flags & 0x1) == 0x1) {
 		// Treat the rough texture as a packed PBR file
-		// R = Metallic, G = Roughness, B = AO, A = Height (optional)
+		// R = Metallic, G = Roughness, B = AO 
 		vec3 packVals = pow(texture(tex2dSampler[mat.roughTexIdx], tCoord).xyz, vec3(1.0 / 2.2));
 		metallic = packVals.r;
 		roughness = packVals.g;

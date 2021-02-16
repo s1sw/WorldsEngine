@@ -1,7 +1,7 @@
 {
-	"albedoPath" : "Textures/Dev/512SimpleOrange.crn",
-	"metallic" : 0.0,
-	"roughness" : 1.0,
-	"albedoColor" : [1.0, 1.0, 1.0],
-	"fresnelReduction" : 0.25
+    "albedoPath" : "Textures/Dev/512SimpleOrange.crn",
+    "metallic" : 0.000000,
+    "roughness" : 1.000000,
+    "albedoColor" : [1.000000, 1.000000, 1.000000],
+    "emissiveColor" : [0.000001, 0.000001, 0.000001]
 }

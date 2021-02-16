@@ -132,7 +132,6 @@ namespace worlds {
     void PolyRenderPass::setup(PassSetupCtx& psCtx) {
         ZoneScoped;
         auto& ctx = psCtx.vkCtx;
-        auto memoryProps = ctx.physicalDevice.getMemoryProperties();
 
         vku::SamplerMaker sm{};
         sm.magFilter(vk::Filter::eLinear).minFilter(vk::Filter::eLinear).mipmapMode(vk::SamplerMipmapMode::eLinear).anisotropyEnable(true).maxAnisotropy(16.0f).maxLod(VK_LOD_CLAMP_NONE).minLod(0.0f);
@@ -164,14 +163,14 @@ namespace worlds {
         // Picking
         dslm.buffer(8, vk::DescriptorType::eStorageBuffer, vk::ShaderStageFlagBits::eFragment, 1);
 
-        this->dsl = dslm.createUnique(ctx.device);
+        dsl = dslm.createUnique(ctx.device);
 
         vku::PipelineLayoutMaker plm;
         plm.pushConstantRange(vk::ShaderStageFlagBits::eFragment | vk::ShaderStageFlagBits::eVertex, 0, sizeof(StandardPushConstants));
-        plm.descriptorSetLayout(*this->dsl);
-        this->pipelineLayout = plm.createUnique(ctx.device);
+        plm.descriptorSetLayout(*dsl);
+        pipelineLayout = plm.createUnique(ctx.device);
 
-        this->vpUB = vku::UniformBuffer(ctx.device, ctx.allocator, sizeof(MultiVP), VMA_MEMORY_USAGE_CPU_TO_GPU, "VP");
+        vpUB = vku::UniformBuffer(ctx.device, ctx.allocator, sizeof(MultiVP), VMA_MEMORY_USAGE_CPU_TO_GPU, "VP");
         lightsUB = vku::UniformBuffer(ctx.device, ctx.allocator, sizeof(LightUB), VMA_MEMORY_USAGE_CPU_TO_GPU, "Lights");
         modelMatrixUB = vku::UniformBuffer(ctx.device, ctx.allocator, sizeof(ModelMatrices), VMA_MEMORY_USAGE_CPU_TO_GPU, "Model matrices");
         pickingBuffer = vku::GenericBuffer(ctx.device, ctx.allocator, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst, sizeof(PickingBuffer), VMA_MEMORY_USAGE_CPU_ONLY, "Picking buffer");
@@ -183,7 +182,7 @@ namespace worlds {
         pickEvent = ctx.device.createEventUnique(vk::EventCreateInfo{});
 
         vku::DescriptorSetMaker dsm;
-        dsm.layout(*this->dsl);
+        dsm.layout(*dsl);
         descriptorSet = std::move(dsm.createUnique(ctx.device, ctx.descriptorPool)[0]);
 
         vku::RenderpassMaker rPassMaker;
@@ -238,10 +237,9 @@ namespace worlds {
         renderPassMultiviewCI.pViewMasks = viewMasks;
         renderPassMultiviewCI.correlationMaskCount = 1;
         renderPassMultiviewCI.pCorrelationMasks = &correlationMask;
-
         rPassMaker.setPNext(&renderPassMultiviewCI);
 
-        this->renderPass = rPassMaker.createUnique(ctx.device);
+        renderPass = rPassMaker.createUnique(ctx.device);
 
         vk::ImageView attachments[2] = { polyImage->image.imageView(), depthStencilImage->image.imageView() };
 
@@ -516,7 +514,7 @@ namespace worlds {
         int matrixIdx = 0;
         rCtx.reg.view<Transform, WorldObject>().each([&](auto ent, Transform& t, WorldObject& wo) {
             if (matrixIdx == 1023) {
-                fatalErr("Out of model matrices! Either don't spam so many objects or shout at us on the bug tracker.");
+                fatalErr("Out of model matrices!");
                 return;
             }
             glm::mat4 m = t.getMatrix();
@@ -526,7 +524,7 @@ namespace worlds {
 
         rCtx.reg.view<Transform, ProceduralObject>().each([&](auto ent, Transform& t, ProceduralObject& po) {
             if (matrixIdx == 1023) {
-                fatalErr("Out of model matrices! Either don't spam so many objects or shout at us on the bug tracker.");
+                fatalErr("Out of model matrices!");
                 return;
             }
             glm::mat4 m = t.getMatrix();
