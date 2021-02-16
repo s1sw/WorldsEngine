@@ -101,7 +101,7 @@ namespace worlds {
         } else if (extension == ".obj" || extension == ".wmdl" || extension == ".mdl") {
             return (const char*)(ICON_FA_SHAPES u8" ");
         }
-        return "";
+        return "      ";
     }
 
     void openFileModal(const char* title, std::function<void(const char*)> openCallback, const char* fileExtension, const char* startingDir) {
