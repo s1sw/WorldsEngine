@@ -7,9 +7,11 @@ namespace worlds {
     struct TonemapPushConstants {
         float aoIntensity;
         int idx;
+        float exposureBias;
     };
 
     static ConVar aoIntensity("r_gtaoIntensity", "1.0");
+    static ConVar exposureBias("r_exposure", "0.5");
 
     TonemapRenderPass::TonemapRenderPass(RenderTexture* hdrImg, RenderTexture* finalPrePresent, RenderTexture* gtaoImg)
         : finalPrePresent(finalPrePresent) 
@@ -83,7 +85,7 @@ namespace worlds {
 
         cmdBuf->bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pipelineLayout, 0, *descriptorSet, nullptr);
         cmdBuf->bindPipeline(vk::PipelineBindPoint::eCompute, *pipeline);
-        TonemapPushConstants tpc{ aoIntensity.getFloat(), 0 };
+        TonemapPushConstants tpc{ aoIntensity.getFloat(), 0, exposureBias.getFloat() };
         cmdBuf->pushConstants<TonemapPushConstants>(*pipelineLayout, vk::ShaderStageFlagBits::eCompute, 0, tpc);
 
         cmdBuf->dispatch((ctx.width + 15) / 16, (ctx.height + 15) / 16, 1);
@@ -95,7 +97,7 @@ namespace worlds {
                 vk::AccessFlagBits::eTransferRead, vk::AccessFlagBits::eShaderWrite);
 
             cmdBuf->bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pipelineLayout, 0, *rDescriptorSet, nullptr);
-            TonemapPushConstants tpc{ aoIntensity.getFloat(), 1 };
+            TonemapPushConstants tpc{ aoIntensity.getFloat(), 1, exposureBias.getFloat() };
             cmdBuf->pushConstants<TonemapPushConstants>(*pipelineLayout, vk::ShaderStageFlagBits::eCompute, 0, tpc);
             cmdBuf->dispatch((ctx.width + 15) / 16, (ctx.height + 15) / 16, 1);
         }
