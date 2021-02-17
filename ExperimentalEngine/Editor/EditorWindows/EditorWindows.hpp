@@ -57,4 +57,16 @@ namespace worlds {
         const char* getName() override { return "Material Editor"; }
         ~MaterialEditor() {}
     };
+
+    class AboutWindow : public EditorWindow {
+    public:
+        AboutWindow(EngineInterfaces interfaces, Editor* editor) : EditorWindow{interfaces, editor} { active = false; }
+        void draw(entt::registry&) override;
+        bool showInWindowList() override { return false; }
+        void setActive(bool active) override;
+        const char* getName() override { return "About"; }
+        ~AboutWindow() {}
+    private:
+        double timeAtOpen = 0.0;
+    };
 }

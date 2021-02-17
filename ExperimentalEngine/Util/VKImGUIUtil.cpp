@@ -35,5 +35,9 @@ namespace worlds {
 
             return ds;
         }
+
+        void destroyDescriptorSet(vk::DescriptorSet ds, const VulkanHandles& handles) {
+            handles.device.freeDescriptorSets(handles.descriptorPool, ds);
+        }
     }
 }

@@ -4,6 +4,7 @@
 #include "../Render/Camera.hpp"
 #include "../Core/Transform.hpp"
 #include "../Core/IGameEventHandler.hpp"
+#include "UITextureManager.hpp"
 #include <deque>
 
 struct VkDescriptorSet_T;
@@ -69,6 +70,7 @@ namespace worlds {
             , active(true) {}
 
         virtual bool isActive() { return active; }
+        virtual bool showInWindowList() { return true; }
         virtual void setActive(bool active) { this->active = active; }
         virtual void draw(entt::registry& reg) = 0;
         virtual const char* getName() = 0;
@@ -101,6 +103,7 @@ namespace worlds {
         void activateTool(Tool newTool);
         void setActive(bool active);
         entt::entity getSelectedEntity() { return currentSelectedEntity; }
+        UITextureManager* texManager() { return texMan; }
     private:
         void updateCamera(float deltaTime);
         std::string generateWindowTitle();
@@ -116,6 +119,8 @@ namespace worlds {
         float cameraSpeed;
         bool imguiMetricsOpen;
         bool active;
+
+        UITextureManager* texMan;
 
         EditorSettings settings;
         EngineInterfaces interfaces;
