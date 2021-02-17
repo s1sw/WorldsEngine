@@ -206,7 +206,6 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     , shadowmapImage(nullptr)
     , imguiImage(nullptr)
     , window(initInfo.window)
-    , frameIdx(0)
     , shadowmapRes(4096)
     , enableVR(initInfo.enableVR)
     , pickingPRP(nullptr)
@@ -215,9 +214,9 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     , vrPredictAmount(0.033f)
     , clearMaterialIndices(false)
     , useVsync(true)
-    , lowLatencyMode("r_lowLatency", "0", "Waits for GPU completion before starting the next frame. Has a significant impact on latency when VSync is enabled.")
     , enablePicking(initInfo.enablePicking)
-    , nextHandle(0u) {
+    , nextHandle(0u)
+    , frameIdx(0) {
     msaaSamples = vk::SampleCountFlagBits::e2;
     numMSAASamples = 2;
 
@@ -422,7 +421,7 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
 
     vku::executeImmediately(*device, *commandPool, device->getQueue(graphicsQueueFamilyIdx, 0), [&](auto cb) {
         shadowmapImage->image.setLayout(cb, vk::ImageLayout::eShaderReadOnlyOptimal, vk::ImageAspectFlagBits::eDepth);
-        });
+    });
 
     createSCDependents();
 
@@ -471,9 +470,8 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
         vrApi = initInfo.activeVrApi;
     }
 
-
-    uint32_t s = cubemapSlots->loadOrGet(g_assetDB.addOrGetExisting("envmap_miramar/miramar.json"));
-    //cubemapConvoluter->convolute((*cubemapSlots)[s]);
+    // Load cubemap for the sky
+    cubemapSlots->loadOrGet(g_assetDB.addOrGetExisting("envmap_miramar/miramar.json"));
 
     g_console->registerCommand([&](void*, const char* arg) {
         numMSAASamples = std::atoi(arg);
@@ -504,7 +502,9 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
         &matSlots,
         (int)swapchain->images.size(),
         enableVR,
-        &brdfLut
+        &brdfLut,
+        renderWidth,
+        renderHeight
     };
 
     shadowmapPass = new ShadowmapRenderPass(shadowmapImage);
@@ -533,7 +533,9 @@ void VKRenderer::createSCDependents() {
         &matSlots,
         (int)swapchain->images.size(),
         enableVR,
-        &brdfLut
+        &brdfLut,
+        renderWidth,
+        renderHeight
     };
 
     if (irp == nullptr) {
@@ -596,7 +598,7 @@ void VKRenderer::createSCDependents() {
     }
     imgAvailable.clear();
 
-    for (auto& c : cmdBufs) {
+    for (size_t i = 0; i < cmdBufs.size(); i++) {
         vk::SemaphoreCreateInfo sci;
         imgAvailable.push_back(device->createSemaphore(sci));
     }
@@ -726,11 +728,6 @@ vku::ShaderModule VKRenderer::loadShaderAsset(AssetID id) {
     return sm;
 }
 
-void VKRenderer::acquireSwapchainImage(uint32_t* imageIdx) {
-    ZoneScoped;
-    
-}
-
 void VKRenderer::submitToOpenVR() {
     // Submit to SteamVR
     vr::VRTextureBounds_t bounds;
@@ -851,7 +848,9 @@ void VKRenderer::writeCmdBuf(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageInde
         clearMaterialIndices = false;
     }
 
-    PassSetupCtx psc{ &materialUB, getVKCtx(), &texSlots, &cubemapSlots, &matSlots, (int)swapchain->images.size(), enableVR, &brdfLut };
+    PassSetupCtx psc{ 
+        &materialUB, getVKCtx(), &texSlots, &cubemapSlots, &matSlots, 
+            (int)swapchain->images.size(), enableVR, &brdfLut, renderWidth, renderHeight };
 
     uploadSceneAssets(reg);
 
@@ -1001,8 +1000,13 @@ void VKRenderer::reuploadMaterials() {
 void VKRenderer::frame(Camera& cam, entt::registry& reg) {
     ZoneScoped;
     bool recreate = false;
-    device->waitForFences(1, &cmdBufFences[frameIdx], VK_TRUE, UINT64_MAX);
-    device->resetFences(1, &cmdBufFences[frameIdx]);
+    if (device->waitForFences(1, &cmdBufFences[frameIdx], VK_TRUE, UINT64_MAX) != vk::Result::eSuccess) {
+        fatalErr("Failed to wait on fences");
+    }
+
+    if (device->resetFences(1, &cmdBufFences[frameIdx]) != vk::Result::eSuccess) {
+        fatalErr("Failed to reset fences");
+    }
 
     dbgStats.numCulledObjs = 0;
     dbgStats.numDrawCalls = 0;
@@ -1010,7 +1014,6 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
     destroyTempTexBuffers(frameIdx);
 
     uint32_t imageIndex;
-    acquireSwapchainImage(&imageIndex);
 
     vk::Result nextImageRes = swapchain->acquireImage(*device, imgAvailable[frameIdx], &imageIndex);
 
@@ -1029,7 +1032,9 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
         recreate = true;
 
     if (imgFences[imageIndex]) {
-        device->waitForFences(imgFences[imageIndex], true, UINT64_MAX);
+        if (device->waitForFences(imgFences[imageIndex], true, UINT64_MAX) != vk::Result::eSuccess) {
+            fatalErr("Failed to wait on image fence");
+        }
     }
 
     imgFences[imageIndex] = cmdBufFences[frameIdx];
@@ -1141,7 +1146,6 @@ void VKRenderer::preloadMesh(AssetID id) {
         loadRobloxMesh(id, vertices, indices, lmd);
     }
 
-    auto memProps = physicalDevice.getMemoryProperties();
     lmd.indexType = vk::IndexType::eUint32;
     lmd.indexCount = (uint32_t)indices.size();
     lmd.ib = vku::IndexBuffer{ *device, allocator, indices.size() * sizeof(uint32_t), "Mesh Index Buffer" };
@@ -1172,7 +1176,6 @@ void VKRenderer::uploadProcObj(ProceduralObject& procObj) {
     }
 
     device->waitIdle();
-    auto memProps = physicalDevice.getMemoryProperties();
     procObj.indexType = vk::IndexType::eUint32;
     procObj.indexCount = (uint32_t)procObj.indices.size();
     procObj.ib = vku::IndexBuffer{ *device, allocator, procObj.indices.size() * sizeof(uint32_t), procObj.dbgName.c_str() };
