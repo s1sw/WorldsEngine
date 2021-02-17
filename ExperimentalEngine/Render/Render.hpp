@@ -351,7 +351,6 @@ namespace worlds {
         void createSCDependents();
         void presentNothing(uint32_t imageIndex);
         vku::ShaderModule loadShaderAsset(AssetID id);
-        void acquireSwapchainImage(uint32_t* imageIdx);
         void createInstance(const RendererInitInfo& initInfo);
         void submitToOpenVR();
         void writeCmdBuf(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageIndex, Camera& cam, entt::registry& reg);
@@ -377,7 +376,6 @@ namespace worlds {
         bool useVsync;
         vku::GenericImage brdfLut;
         std::shared_ptr<CubemapConvoluter> cubemapConvoluter;
-        ConVar lowLatencyMode;
         bool swapchainRecreated;
         bool enablePicking;
         RenderDebugStats dbgStats;
