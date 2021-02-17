@@ -6,5 +6,6 @@ namespace worlds {
         void createObjects(worlds::VulkanHandles& vkCtx);
         void destroyObjects(worlds::VulkanHandles& vkCtx);
         vk::DescriptorSet createDescriptorSetFor(vku::GenericImage& img, const worlds::VulkanHandles& vkCtx);
+        void destroyDescriptorSet(vk::DescriptorSet ds, const VulkanHandles& handles);
     }
 }

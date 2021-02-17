@@ -361,7 +361,7 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
         vrInterface->getRenderResolution(&renderWidth, &renderHeight);
     }
 
-    auto vkCtx = std::make_shared<VulkanHandles>(VulkanHandles{
+    handles = VulkanHandles{
         physicalDevice,
         *device,
         *pipelineCache,
@@ -377,7 +377,9 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
         },
         width, height,
         renderWidth, renderHeight
-        });
+    };
+
+    auto vkCtx = std::make_shared<VulkanHandles>(handles);
 
     cubemapConvoluter = std::make_shared<CubemapConvoluter>(vkCtx);
 
@@ -469,6 +471,7 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
         vrApi = initInfo.activeVrApi;
     }
 
+
     uint32_t s = cubemapSlots->loadOrGet(g_assetDB.addOrGetExisting("envmap_miramar/miramar.json"));
     //cubemapConvoluter->convolute((*cubemapSlots)[s]);
 
@@ -511,6 +514,7 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
 
     MaterialsUB materials;
     materialUB.upload(*device, *commandPool, device->getQueue(graphicsQueueFamilyIdx, 0), &materials, sizeof(materials));
+
 }
 
 // Quite a lot of resources are dependent on either the number of images
@@ -1280,24 +1284,8 @@ void VKRenderer::reloadMatsAndTextures() {
     loadedMeshes.clear();
 }
 
-VulkanHandles VKRenderer::getVKCtx() {
-    return VulkanHandles{
-        physicalDevice,
-        *device,
-        *pipelineCache,
-        *descriptorPool,
-        *commandPool,
-        *instance,
-        allocator,
-        graphicsQueueFamilyIdx,
-        GraphicsSettings {
-            numMSAASamples,
-            (int)shadowmapRes,
-            enableVR
-        },
-        width, height,
-        renderWidth, renderHeight
-    };
+const VulkanHandles& VKRenderer::getVKCtx() {
+    return handles;
 }
 
 RTTPassHandle VKRenderer::createRTTPass(RTTPassCreateInfo& ci) {

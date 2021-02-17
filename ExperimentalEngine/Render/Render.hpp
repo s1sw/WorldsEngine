@@ -328,6 +328,7 @@ namespace worlds {
         std::vector<vk::Fence> imgFences;
         VmaAllocator allocator;
         vku::UniformBuffer materialUB;
+        VulkanHandles handles;
 
         RenderTexture* finalPrePresent;
         // openvr doesn't support presenting image layers
@@ -400,7 +401,7 @@ namespace worlds {
         void setVsync(bool vsync) { if (useVsync != vsync) { useVsync = vsync; recreateSwapchain(); } }
         bool getVsync() const { return useVsync; }
         const RenderDebugStats& getDebugStats() const { return dbgStats; }
-        VulkanHandles getVKCtx();
+        const VulkanHandles& getVKCtx();
         void uploadSceneAssets(entt::registry& reg);
 
         RTTPassHandle createRTTPass(RTTPassCreateInfo& ci);

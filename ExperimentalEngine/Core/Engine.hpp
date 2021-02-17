@@ -98,9 +98,10 @@ namespace worlds {
             , texScaleOffset(1.0f, 1.0f, 0.0f, 0.0f) {
             for (int i = 0; i < NUM_SUBMESH_MATS; i++) {
                 materials[i] = material;
-                presentMaterials[i] = true;
+                presentMaterials[i] = false;
                 materialIdx[i] = ~0u;
             }
+            presentMaterials[0] = true;
         }
 
         AssetID materials[NUM_SUBMESH_MATS];

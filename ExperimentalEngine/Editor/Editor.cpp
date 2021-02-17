@@ -69,6 +69,7 @@ namespace worlds {
         , settings()
         , interfaces(interfaces)
         , inputManager(*interfaces.inputManager) {
+        texMan = new UITextureManager{interfaces.renderer->getVKCtx()};
         ComponentMetadataManager::setupLookup();
         interfaces.engine->pauseSim = true;
 
@@ -95,6 +96,7 @@ namespace worlds {
         ADD_EDITOR_WINDOW(StyleEditor);
         ADD_EDITOR_WINDOW(AssetDBExplorer);
         ADD_EDITOR_WINDOW(MaterialEditor);
+        ADD_EDITOR_WINDOW(AboutWindow);
 
 #undef ADD_EDITOR_WINDOW
     }
@@ -296,10 +298,15 @@ namespace worlds {
 
             if (ImGui::BeginMenu("Window")) {
                 for (auto& window : editorWindows) {
+                    //if (!window->showInWindowList()) continue;
                     if (ImGui::MenuItem(window->getName())) {
                         window->setActive(!window->isActive());
                     }
                 }
+                ImGui::EndMenu();
+            }
+
+            if (ImGui::BeginMenu("Help")) {
                 ImGui::EndMenu();
             }
 

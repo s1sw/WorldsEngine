@@ -3,6 +3,8 @@ worlds_sources += [
   'Editor/Editor.cpp',
   'Editor/EditorUndo.cpp',
   'Editor/GuiUtil.cpp',
+  'Editor/UITextureManager.cpp',
+  'Editor/EditorWindows/AboutWindow.cpp',
   'Editor/EditorWindows/AssetDBExplorer.cpp',
   'Editor/EditorWindows/Assets.cpp',
   'Editor/EditorWindows/EntityEditor.cpp',
@@ -12,5 +14,6 @@ worlds_sources += [
   'Editor/EditorWindows/StyleEditor.cpp',
   'Editor/Editor.hpp',
   'Editor/GuiUtil.hpp',
+  'Editor/UITextureManager.hpp',
   'Editor/EditorWindows/EditorWindows.hpp'
 ]
