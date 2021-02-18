@@ -90,16 +90,13 @@ namespace worlds {
 
     class EditorUndo {
     public:
-        void pushState();
-        void undo();
-        void redo();
-        void setMaxStackSize(uint32_t max);
+        void pushState(entt::registry& reg);
+        void undo(entt::registry& reg);
+        void redo(entt::registry& reg);
+        void clear() { highestSaved = 0; currentPos = 0; }
     private:
-        void removeEnd();
-
-        uint32_t maxStackSize = 64;
+        uint32_t highestSaved = 0;
         uint32_t currentPos = 0; 
-        std::deque<std::string> undoStack;
     };
 
     class Editor {
@@ -129,6 +126,7 @@ namespace worlds {
 
         UITextureManager* texMan;
 
+        EditorUndo undo;
         EditorSettings settings;
         EngineInterfaces interfaces;
         InputManager& inputManager;

@@ -451,6 +451,13 @@ namespace worlds {
                 glm::vec4 perspective;
                 glm::decompose(tfMtx, scale, rotation, translation, skew, perspective);
 
+                static bool usingLast = false;
+                if (!usingLast && ImGuizmo::IsUsing()) {
+                    undo.pushState(reg);
+                }
+
+                usingLast = ImGuizmo::IsUsing();
+
                 switch (currentTool) {
                 case Tool::Translate:
                     selectedTransform.position = translation;
@@ -462,6 +469,7 @@ namespace worlds {
                     selectedTransform.scale = scale;
                     break;
                 }
+
 
                 if (inputManager.ctrlHeld() &&
                     inputManager.keyPressed(SDL_SCANCODE_D) &&
@@ -479,12 +487,14 @@ namespace worlds {
 
                     select(newEnt);
                     activateTool(Tool::Translate);
+                    undo.pushState(reg);
                 }
 
                 if (inputManager.keyPressed(SDL_SCANCODE_DELETE)) {
                     activateTool(Tool::None);
                     reg.destroy(currentSelectedEntity);
                     currentSelectedEntity = entt::null;
+                    undo.pushState(reg);
                 }
             }
 
@@ -532,10 +542,19 @@ namespace worlds {
             ImGui::OpenPopup("Open Scene");
         }
 
+        if (inputManager.keyPressed(SDL_SCANCODE_Z) && inputManager.ctrlHeld()) {
+            if (inputManager.shiftHeld()) {
+                undo.redo(reg);
+            } else {
+                undo.undo(reg);
+            }
+        }
+
         openFileModal("Open Scene", [this](const char* path) {
             reg.clear();
             interfaces.engine->loadScene(g_assetDB.addOrGetExisting(path));
             updateWindowTitle();
+            undo.clear();
             }, ".escn");
 
         if (inputManager.keyPressed(SDL_SCANCODE_I, true) &&

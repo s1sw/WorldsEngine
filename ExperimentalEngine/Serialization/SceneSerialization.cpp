@@ -13,7 +13,7 @@
 namespace worlds {
     std::function<void(entt::registry&)> onSceneLoad;
 
-    typedef void(*LoadSceneFunc)(AssetID, PHYSFS_File*, entt::registry&, bool);
+    typedef void(*LoadSceneFunc)(PHYSFS_File*, entt::registry&, bool);
 
     const LoadSceneFunc idFuncs[] = {nullptr, loadScene01, loadScene02, loadScene03, loadScene04};
 
@@ -22,7 +22,7 @@ namespace worlds {
     const int MAX_ESCN_FORMAT_ID = 4;
     const int MAX_WSCN_FORMAT_ID = 2;
 
-    bool deserializeEScene(AssetID id, PHYSFS_File* file, entt::registry& reg, 
+    bool deserializeEScene(PHYSFS_File* file, entt::registry& reg, 
         bool additive, char* magicCheck, unsigned char formatId) {
         if (formatId > MAX_ESCN_FORMAT_ID) {
             logErr(WELogCategoryEngine, "scene has incompatible format id: got %i, expected %i or lower", formatId, MAX_ESCN_FORMAT_ID);
@@ -36,13 +36,12 @@ namespace worlds {
 
         logMsg("Loading experimental scene version %i", formatId);
 
-        idFuncs[formatId](id, file, reg, additive);
+        idFuncs[formatId](file, reg, additive);
         return true;
     }
 
-    void saveScene(AssetID id, entt::registry& reg) {
+    void saveSceneToFile(PHYSFS_File* file, entt::registry& reg) {
         PerfTimer timer;
-        PHYSFS_File* file = g_assetDB.openAssetFileWrite(id);
 
         PHYSFS_writeBytes(file, WSCN_FORMAT_MAGIC, 4);
         PHYSFS_writeBytes(file, &MAX_WSCN_FORMAT_ID, 1);
@@ -83,7 +82,12 @@ namespace worlds {
         g_assetDB.save();
     }
 
-    bool deserializeWScene(AssetID id, PHYSFS_File* file, entt::registry& reg, 
+    void saveScene(AssetID id, entt::registry& reg) {
+        PHYSFS_File* file = g_assetDB.openAssetFileWrite(id);
+        saveSceneToFile(file, reg);
+    }
+
+    bool deserializeWScene(PHYSFS_File* file, entt::registry& reg, 
         bool additive, char* magicCheck, unsigned char formatId) {
         PerfTimer timer;
 
@@ -128,22 +132,21 @@ namespace worlds {
         return true;
     }
 
-    void deserializeScene(AssetID id, entt::registry& reg, bool additive) {
+    void deserializeScene(PHYSFS_File* file, entt::registry& reg, bool additive) {
         char magicCheck[5];
         magicCheck[4] = 0; // Null byte so we can interpret it as a C string if we really need to
-        PHYSFS_File* file = g_assetDB.openAssetFileRead(id);
         PHYSFS_readBytes(file, magicCheck, 4);
         unsigned char formatId;
         PHYSFS_readBytes(file, &formatId, sizeof(formatId));
 
         // check first character of magic to determine WSCN or ESCN
         if (magicCheck[0] == 'W') {
-            if (!deserializeWScene(id, file, reg, additive, magicCheck, formatId)) {
+            if (!deserializeWScene(file, reg, additive, magicCheck, formatId)) {
                 PHYSFS_close(file);
                 return;
             }
         } else if (magicCheck[0] == 'E') {
-            if (!deserializeEScene(id, file, reg, additive, magicCheck, formatId)) {
+            if (!deserializeEScene(file, reg, additive, magicCheck, formatId)) {
                 PHYSFS_close(file);
                 return;
             }
@@ -156,5 +159,10 @@ namespace worlds {
         PHYSFS_close(file);
         if (onSceneLoad)
             onSceneLoad(reg);
+    }
+
+    void deserializeScene(AssetID id, entt::registry& reg, bool additive) {
+        PHYSFS_File* file = g_assetDB.openAssetFileRead(id);
+        deserializeScene(file, reg, additive);
     }
 }
