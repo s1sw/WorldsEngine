@@ -5,20 +5,17 @@
 
 namespace worlds {
 	struct FilterEntities : public physx::PxQueryFilterCallback {
-        entt::entity ents[8] = { entt::null, entt::null, entt::null, entt::null, entt::null, entt::null, entt::null, entt::null };
+        uint32_t ents[8] = { 0 };
+        uint32_t numFilterEnts = 0;
 
-        physx::PxQueryHitType::Enum preFilter(const physx::PxFilterData&, const physx::PxShape*, const physx::PxRigidActor* actor, physx::PxHitFlags&) override {
-            for (int i = 0; i < 8; i++) {
-                if ((uint32_t)(uintptr_t)actor->userData == (uint32_t)ents[i])
-                    return physx::PxQueryHitType::eNONE;
-            }
+        physx::PxQueryHitType::Enum preFilter(const physx::PxFilterData&, const physx::PxShape*, const physx::PxRigidActor*, physx::PxHitFlags&) override {
             return physx::PxQueryHitType::eBLOCK;
         }
 
 
         physx::PxQueryHitType::Enum postFilter(const physx::PxFilterData&, const physx::PxQueryHit& hit) override {
-            for (int i = 0; i < 8; i++) {
-                if ((uint32_t)(uintptr_t)hit.actor->userData == (uint32_t)ents[i])
+            for (uint32_t i = 0; i < numFilterEnts; i++) {
+                if ((uint32_t)(uintptr_t)hit.actor->userData == ents[i])
                     return physx::PxQueryHitType::eNONE;
             }
             return physx::PxQueryHitType::eBLOCK;
