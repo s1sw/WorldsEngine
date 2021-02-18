@@ -180,7 +180,7 @@ namespace converge {
         if (vrInterface->getActionPressed(grabAction)) {
             logMsg("grip pressed");
             // search for nearby grabbable objects
-            physx::PxSphereGeometry sphereGeo{0.15f};
+            physx::PxSphereGeometry sphereGeo{0.25f};
             physx::PxOverlapBuffer hit;
             physx::PxQueryFilterData filterData;
             filterData.flags = physx::PxQueryFlag::eDYNAMIC
@@ -189,18 +189,17 @@ namespace converge {
                              | physx::PxQueryFlag::ePOSTFILTER;
             
             worlds::FilterEntities filterEnt;
-            filterEnt.ents[0] = rig.lHand;
-            filterEnt.ents[1] = rig.rHand;
-            filterEnt.ents[2] = rig.locosphere;
-            filterEnt.ents[3] = rig.fender;
+            filterEnt.ents[0] = (uint32_t)rig.lHand;
+            filterEnt.ents[1] = (uint32_t)rig.rHand;
+            filterEnt.ents[2] = (uint32_t)rig.locosphere;
+            filterEnt.ents[3] = (uint32_t)rig.fender;
+            filterEnt.ents[4] = (uint32_t)ent;
+            filterEnt.numFilterEnts = 5;
             auto& dpa = registry.get<worlds::DynamicPhysicsActor>(ent);
             auto t = dpa.actor->getGlobalPose();
             
             if (worlds::g_scene->overlap(sphereGeo, t, hit, filterData, &filterEnt)) {
-                logMsg("overlap %i touches %i hits", hit.nbTouches, hit.getNbAnyHits());
                 const auto& touch = hit.getAnyHit(0);
-                if (touch.actor == nullptr)
-                    logErr("touch actor is nullptr");
                 // take the 0th hit for now
                 auto pickUp = (entt::entity)(uint32_t)(uintptr_t)touch.actor->userData;
 
@@ -336,14 +335,9 @@ namespace converge {
 
         if (vrInterface) {
             auto& localRig = registry.get<PlayerRig>(localLocosphereEnt);
-            auto& lHand = registry.get<PhysHand>(lHandEnt);
-            auto& rHand = registry.get<PhysHand>(rHandEnt);
 
-            lHand.gripPressed = vrInterface->getActionPressed(lGrab);
-            lHand.gripReleased = vrInterface->getActionReleased(lGrab);
-            
-            rHand.gripPressed = vrInterface->getActionPressed(rGrab);
-            rHand.gripReleased = vrInterface->getActionReleased(rGrab);
+            updateHandGrab(registry, localRig, lHandEnt);
+            updateHandGrab(registry, localRig, rHandEnt);
         }
     }
 
