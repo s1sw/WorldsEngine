@@ -4,8 +4,8 @@
 
 namespace worlds {
     typedef unsigned int AssetID;
-    void loadScene01(AssetID id, PHYSFS_File* file, entt::registry& reg, bool additive);
-    void loadScene02(AssetID id, PHYSFS_File* file, entt::registry& reg, bool additive);
-    void loadScene03(AssetID id, PHYSFS_File* file, entt::registry& reg, bool additive);
-    void loadScene04(AssetID id, PHYSFS_File* file, entt::registry& reg, bool additive);
+    void loadScene01(PHYSFS_File* file, entt::registry& reg, bool additive);
+    void loadScene02(PHYSFS_File* file, entt::registry& reg, bool additive);
+    void loadScene03(PHYSFS_File* file, entt::registry& reg, bool additive);
+    void loadScene04(PHYSFS_File* file, entt::registry& reg, bool additive);
 }

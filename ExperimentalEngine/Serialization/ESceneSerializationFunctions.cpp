@@ -20,7 +20,7 @@ namespace worlds {
 #define READ_FIELD(file, field) PHYSFS_readBytes(file, &field, sizeof(field))
 
 
-    void loadScene01(AssetID id, PHYSFS_File* file, entt::registry& reg, bool additive) {
+    void loadScene01(PHYSFS_File* file, entt::registry& reg, bool additive) {
         PerfTimer timer;
 
         uint32_t numEntities;
@@ -139,7 +139,7 @@ namespace worlds {
         logMsg("Loaded scene in %.3fms", timer.stopGetMs());
     }
 
-    void loadScene02(AssetID id, PHYSFS_File* file, entt::registry& reg, bool additive) {
+    void loadScene02(PHYSFS_File* file, entt::registry& reg, bool additive) {
         PerfTimer timer;
 
         uint32_t numEntities;
@@ -273,7 +273,7 @@ namespace worlds {
         logMsg("Loaded scene in %.3fms", timer.stopGetMs());
     }
 
-    void loadScene03(AssetID id, PHYSFS_File* file, entt::registry& reg, bool additive) {
+    void loadScene03(PHYSFS_File* file, entt::registry& reg, bool additive) {
         PerfTimer timer;
 
         uint32_t numEntities;
@@ -423,7 +423,7 @@ namespace worlds {
         logMsg("Loaded scene in %.3fms", timer.stopGetMs());
     }
 
-    void loadScene04(AssetID id, PHYSFS_File* file, entt::registry& reg, bool additive) {
+    void loadScene04(PHYSFS_File* file, entt::registry& reg, bool additive) {
         PerfTimer timer;
 
         uint32_t numEntities;
