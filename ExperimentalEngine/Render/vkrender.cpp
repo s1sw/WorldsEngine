@@ -824,10 +824,8 @@ void VKRenderer::writeCmdBuf(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageInde
         vr::TrackedDevicePose_t pose;
         vr::VRSystem()->GetDeviceToAbsoluteTrackingPose(vr::ETrackingUniverseOrigin::TrackingUniverseStanding, vrPredictAmount, &pose, 1);
 
-        glm::mat4 viewMats[2];
-
         for (int i = 0; i < 2; i++) {
-            rCtx.vrViewMats[i] = glm::inverse(ovrInterface->toMat4(pose.mDeviceToAbsoluteTracking) * viewMats[i]) * cam.getViewMatrix();
+            rCtx.vrViewMats[i] = glm::inverse(ovrInterface->toMat4(pose.mDeviceToAbsoluteTracking)) * cam.getViewMatrix();
         }
     }
 
