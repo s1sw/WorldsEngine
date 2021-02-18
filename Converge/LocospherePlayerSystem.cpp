@@ -246,8 +246,10 @@ namespace converge {
             desiredVel = glm::vec3(-locIn.x, 0.0f, locIn.y);
         }
 
-        if (glm::length2(desiredVel) > 0.0f)
-            desiredVel = glm::normalize(desiredVel);
+        float maxLength = glm::max(glm::abs(desiredVel.x), glm::max(glm::abs(desiredVel.y), glm::abs(desiredVel.z)));
+        if (glm::length2(desiredVel) > 0.0f) {
+            desiredVel = glm::normalize(desiredVel) * maxLength;
+        }
 
         glm::mat4 camMat;
         if (vrInterface) {
@@ -259,8 +261,9 @@ namespace converge {
         desiredVel = camMat * glm::vec4(desiredVel, 0.0f);
         desiredVel.y = 0.0f;
 
-        if (glm::length2(desiredVel) > 0.0f)
-            desiredVel = glm::normalize(desiredVel);
+        if (glm::length2(desiredVel) > 0.0f) {
+            desiredVel = glm::normalize(desiredVel) * maxLength;
+        }
 
         auto& localLpc = registry.get<LocospherePlayerComponent>(localLocosphereEnt);
         localLpc.xzMoveInput = glm::vec2 { desiredVel.x, desiredVel.z };
