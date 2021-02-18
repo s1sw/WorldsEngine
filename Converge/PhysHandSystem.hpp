@@ -22,6 +22,8 @@ namespace converge {
         V3PidController rotController;
         FollowHand follow;
         entt::entity locosphere;
+        bool gripPressed = false;
+        bool gripReleased = false;
     };
 
     class PhysHandSystem : public worlds::ISystem {

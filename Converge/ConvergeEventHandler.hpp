@@ -9,6 +9,7 @@
 #include "LocospherePlayerSystem.hpp"
 #include "Client.hpp"
 #include "Server.hpp"
+#include "VR/IVRInterface.hpp"
 #include <deque>
 
 namespace converge {
@@ -61,5 +62,7 @@ namespace converge {
         std::unordered_map<uint16_t, LocosphereState> pastLocosphereStates;
         float lsphereErr[128];
         uint32_t lsphereErrIdx = 0;
+        worlds::InputActionHandle lGrab;
+        worlds::InputActionHandle rGrab;
     };
 }

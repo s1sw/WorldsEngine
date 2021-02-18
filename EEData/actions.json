@@ -43,6 +43,14 @@
     {
       "name": "/actions/main/in/Grapple",
       "type": "boolean"
+    },
+    {
+      "name": "/actions/main/in/GrabL",
+      "type": "boolean"
+    },
+    {
+      "name": "/actions/main/in/GrabR",
+      "type": "boolean"
     }
   ],
   "action_sets": [

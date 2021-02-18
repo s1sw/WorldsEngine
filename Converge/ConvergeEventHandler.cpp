@@ -23,7 +23,9 @@
 #include <Core/JobSystem.hpp>
 #include "Util/CreateModelObject.hpp"
 #include "ObjectParentSystem.hpp"
+#ifdef DISCORD_RPC
 #include <core.h>
+#endif
 #include "Util/VKImGUIUtil.hpp"
 #include <Scripting/ScriptComponent.hpp>
 
@@ -278,6 +280,18 @@ namespace converge {
             clientInputIdx++;
             lastSent = pi;
         }
+
+        if (vrInterface) {
+            auto& localRig = registry.get<PlayerRig>(localLocosphereEnt);
+            auto& lHand = registry.get<PhysHand>(lHandEnt);
+            auto& rHand = registry.get<PhysHand>(rHandEnt);
+
+            lHand.gripPressed = vrInterface->getActionPressed(lGrab);
+            lHand.gripReleased = vrInterface->getActionReleased(lGrab);
+            
+            rHand.gripPressed = vrInterface->getActionPressed(rGrab);
+            rHand.gripReleased = vrInterface->getActionReleased(rGrab);
+        }
     }
 
     void EventHandler::onSceneStart(entt::registry& registry) {
@@ -295,6 +309,8 @@ namespace converge {
             lpc.xzMoveInput = glm::vec2(0.0f, 0.0f);
 
             if (vrInterface) {
+                lGrab = vrInterface->getActionHandle("/actions/main/in/GrabL");
+                rGrab = vrInterface->getActionHandle("/actions/main/in/GrabR");
                 auto& fenderTransform = registry.get<Transform>(other.fender);
                 this->camera->rotation = glm::quat{};
                 auto matId = worlds::g_assetDB.addOrGetExisting("Materials/dev.json");
