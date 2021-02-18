@@ -11,25 +11,6 @@
 #include <openvr.h>
 
 namespace converge {
-	struct FilterEntity : public physx::PxQueryFilterCallback {
-        uint32_t entA;
-        uint32_t entB;
-
-        physx::PxQueryHitType::Enum preFilter(const physx::PxFilterData& filterData, const physx::PxShape* shape, const physx::PxRigidActor* actor, physx::PxHitFlags& queryFlags) override {
-            if ((uint32_t)(uintptr_t)actor->userData == entA || (uint32_t)(uintptr_t)actor->userData == entB) {
-                return physx::PxQueryHitType::eNONE;
-            }
-            return physx::PxQueryHitType::eBLOCK;
-        }
-
-
-        physx::PxQueryHitType::Enum postFilter(const physx::PxFilterData& filterData, const physx::PxQueryHit& hit) override {
-            if ((uint32_t)(uintptr_t)hit.actor->userData == entA || (uint32_t)(uintptr_t)hit.actor->userData == entB) {
-                return physx::PxQueryHitType::eNONE;
-            }
-            return physx::PxQueryHitType::eBLOCK;
-        }
-	};
 
     PhysHandSystem::PhysHandSystem(worlds::EngineInterfaces interfaces, entt::registry& registry) 
         : interfaces {interfaces} 
@@ -91,48 +72,6 @@ namespace converge {
 
             if (!glm::any(glm::isnan(axis)) && !glm::any(glm::isinf(torque)))
                 body->addTorque(worlds::glm2px(torque));
-
-            if (physHand.gripPressed) {
-                logMsg("grip pressed");
-                // search for nearby grabbable objects
-                physx::PxSphereGeometry sphereGeo{0.15f};
-                physx::PxOverlapBuffer hit;
-                physx::PxQueryFilterData filterData;
-                filterData.flags = physx::PxQueryFlag::eDYNAMIC
-                                 | physx::PxQueryFlag::eSTATIC
-                                 | physx::PxQueryFlag::eANY_HIT 
-                                 | physx::PxQueryFlag::ePOSTFILTER;
-                
-                FilterEntity filterEnt;
-                filterEnt.entA = (uint32_t)ent;
-                filterEnt.entB = (uint32_t)(entt::entity)entt::null;
-                
-                if (worlds::g_scene->overlap(sphereGeo, t, hit, filterData, &filterEnt)) {
-                    logMsg("overlap %i touches %i hits", hit.nbTouches, hit.getNbAnyHits());
-                    const auto& touch = hit.getAnyHit(0);
-                    if (touch.actor == nullptr)
-                        logErr("touch actor is nullptr");
-                    // take the 0th hit for now
-                    auto pickUp = (entt::entity)(uint32_t)(uintptr_t)touch.actor->userData;
-
-                    if (registry.has<worlds::NameComponent>(pickUp)) {
-                        logMsg("trying to grab %s", registry.get<worlds::NameComponent>(pickUp).name.c_str());
-                    }
-
-                    auto& d6 = registry.emplace<worlds::D6Joint>(ent);
-                    physx::PxTransform p = body->getGlobalPose();
-                    physx::PxTransform p2 = touch.actor->getGlobalPose();
-                    d6.pxJoint->setLocalPose(physx::PxJointActorIndex::eACTOR0, p.transformInv(p2));
-                    d6.setTarget(pickUp, registry);
-                }
-            }
-
-            if (physHand.gripReleased) {
-                if (registry.has<worlds::D6Joint>(ent)) {
-                    registry.remove<worlds::D6Joint>(ent);
-                    logMsg("removed d6");
-                }
-            }
         });
     }
 

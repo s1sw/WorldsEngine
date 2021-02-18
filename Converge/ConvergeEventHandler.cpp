@@ -6,6 +6,7 @@
 #include "Core/AssetDB.hpp"
 #include "DebugArrow.hpp"
 #include "NetMessage.hpp"
+#include "Physics/D6Joint.hpp"
 #include "Physics/PhysicsActor.hpp"
 #include <physx/PxRigidDynamic.h>
 #include "Render/Loaders/SourceModelLoader.hpp"
@@ -28,6 +29,7 @@
 #endif
 #include "Util/VKImGUIUtil.hpp"
 #include <Scripting/ScriptComponent.hpp>
+#include <Physics/FilterEntities.hpp>
 
 namespace converge {
     const uint16_t CONVERGE_PORT = 3011;
@@ -170,6 +172,57 @@ namespace converge {
 
     worlds::ConVar sendRate {"cnvrg_sendRate", "5", "Send rate in simulation ticks. 0 = 1 packet per tick"};
     int syncTimer = 0;
+
+    void EventHandler::updateHandGrab(entt::registry& registry, PlayerRig& rig, entt::entity ent) {
+        auto& physHand = registry.get<PhysHand>(ent);
+        auto grabAction = physHand.follow == FollowHand::LeftHand ? lGrab : rGrab;
+
+        if (vrInterface->getActionPressed(grabAction)) {
+            logMsg("grip pressed");
+            // search for nearby grabbable objects
+            physx::PxSphereGeometry sphereGeo{0.15f};
+            physx::PxOverlapBuffer hit;
+            physx::PxQueryFilterData filterData;
+            filterData.flags = physx::PxQueryFlag::eDYNAMIC
+                             | physx::PxQueryFlag::eSTATIC
+                             | physx::PxQueryFlag::eANY_HIT 
+                             | physx::PxQueryFlag::ePOSTFILTER;
+            
+            worlds::FilterEntities filterEnt;
+            filterEnt.ents[0] = rig.lHand;
+            filterEnt.ents[1] = rig.rHand;
+            filterEnt.ents[2] = rig.locosphere;
+            filterEnt.ents[3] = rig.fender;
+            auto& dpa = registry.get<worlds::DynamicPhysicsActor>(ent);
+            auto t = dpa.actor->getGlobalPose();
+            
+            if (worlds::g_scene->overlap(sphereGeo, t, hit, filterData, &filterEnt)) {
+                logMsg("overlap %i touches %i hits", hit.nbTouches, hit.getNbAnyHits());
+                const auto& touch = hit.getAnyHit(0);
+                if (touch.actor == nullptr)
+                    logErr("touch actor is nullptr");
+                // take the 0th hit for now
+                auto pickUp = (entt::entity)(uint32_t)(uintptr_t)touch.actor->userData;
+
+                if (registry.has<worlds::NameComponent>(pickUp)) {
+                    logMsg("trying to grab %s", registry.get<worlds::NameComponent>(pickUp).name.c_str());
+                }
+
+                auto& d6 = registry.emplace<worlds::D6Joint>(ent);
+                physx::PxTransform p = dpa.actor->getGlobalPose();
+                physx::PxTransform p2 = touch.actor->getGlobalPose();
+                d6.pxJoint->setLocalPose(physx::PxJointActorIndex::eACTOR0, p.transformInv(p2));
+                d6.setTarget(pickUp, registry);
+            }
+        }
+
+        if (vrInterface->getActionReleased(grabAction)) {
+            if (registry.has<worlds::D6Joint>(ent)) {
+                registry.remove<worlds::D6Joint>(ent);
+                logMsg("removed d6");
+            }
+        }
+    } 
 
     void EventHandler::simulate(entt::registry& registry, float) {
         if (isDedicated) {

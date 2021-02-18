@@ -28,6 +28,7 @@ namespace converge {
         void onSceneStart(entt::registry& reg) override;
         void shutdown(entt::registry& registry) override;
     private:
+        void updateHandGrab(entt::registry& registry, PlayerRig& rig, entt::entity handEnt);
         static void onServerPacket(const ENetEvent&, void*);
         static void onClientPacket(const ENetEvent&, void*);
         static void onPlayerJoin(NetPlayer&, void*);
