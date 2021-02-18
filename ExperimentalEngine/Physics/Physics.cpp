@@ -82,6 +82,14 @@ namespace worlds {
         j.thisActor = dpa.actor;
     }
 
+    void destroyD6Joint(entt::registry& reg, entt::entity ent) {
+        auto& j = reg.get<D6Joint>(ent);
+        if (j.pxJoint) {
+            j.pxJoint->release();
+            logMsg("destroyed D6 joint");
+        }
+    }
+
     void cmdTogglePhysVis(void*, const char*) {
         float currentScale = g_scene->getVisualizationParameter(physx::PxVisualizationParameter::eSCALE);
         
@@ -151,6 +159,7 @@ namespace worlds {
         reg.on_construct<DynamicPhysicsActor>().connect<&setPhysXActorUserdata<DynamicPhysicsActor>>();
 
         reg.on_construct<D6Joint>().connect<&setupD6Joint>();
+        reg.on_destroy<D6Joint>().connect<&destroyD6Joint>();
 
         g_console->registerCommand(cmdTogglePhysVis, "phys_toggleVis", "Toggles all physics visualisations.", nullptr);
         g_console->registerCommand(cmdToggleShapeVis, "phys_toggleShapeVis", "Toggles physics shape visualisations.", nullptr);
