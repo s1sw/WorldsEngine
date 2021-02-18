@@ -62,6 +62,13 @@ namespace worlds {
 
     class Editor;
 
+    enum class EditorMenu {
+        File,
+        Edit,
+        Window,
+        Help
+    };
+
     class EditorWindow {
     public:
         EditorWindow(EngineInterfaces interfaces, Editor* editor) 
@@ -70,9 +77,9 @@ namespace worlds {
             , active(true) {}
 
         virtual bool isActive() { return active; }
-        virtual bool showInWindowList() { return true; }
         virtual void setActive(bool active) { this->active = active; }
         virtual void draw(entt::registry& reg) = 0;
+        virtual EditorMenu menuSection() { return EditorMenu::Window; }
         virtual const char* getName() = 0;
         virtual ~EditorWindow() {};
     protected:

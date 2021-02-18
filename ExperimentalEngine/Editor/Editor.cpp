@@ -290,23 +290,53 @@ namespace worlds {
 
         if (ImGui::BeginMainMenuBar()) {
             if (ImGui::BeginMenu("File")) {
+                for (auto& window : editorWindows) {
+                    if (window->menuSection() == EditorMenu::File) {
+                        if (ImGui::MenuItem(window->getName())) {
+                            window->setActive(!window->isActive());
+                        }
+                    }
+                }
+
                 if (ImGui::MenuItem("Quit")) {
                     interfaces.engine->quit();
                 }
                 ImGui::EndMenu();
             }
 
-            if (ImGui::BeginMenu("Window")) {
+            if (ImGui::BeginMenu("Edit")) {
                 for (auto& window : editorWindows) {
-                    //if (!window->showInWindowList()) continue;
-                    if (ImGui::MenuItem(window->getName())) {
-                        window->setActive(!window->isActive());
+                    if (window->menuSection() == EditorMenu::Edit) {
+                        if (ImGui::MenuItem(window->getName())) {
+                            window->setActive(!window->isActive());
+                        }
                     }
                 }
+
+                ImGui::EndMenu();
+            }
+
+            if (ImGui::BeginMenu("Window")) {
+                for (auto& window : editorWindows) {
+                    if (window->menuSection() == EditorMenu::Window) {
+                        if (ImGui::MenuItem(window->getName())) {
+                            window->setActive(!window->isActive());
+                        }
+                    }
+                }
+
                 ImGui::EndMenu();
             }
 
             if (ImGui::BeginMenu("Help")) {
+                for (auto& window : editorWindows) {
+                    if (window->menuSection() == EditorMenu::Help) {
+                        if (ImGui::MenuItem(window->getName())) {
+                            window->setActive(!window->isActive());
+                        }
+                    }
+                }
+
                 ImGui::EndMenu();
             }
 
