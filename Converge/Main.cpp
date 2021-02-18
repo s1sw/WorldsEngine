@@ -2,7 +2,44 @@
 #include <iostream>
 #include <Core/Engine.hpp>
 
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+#include <DbgHelp.h>
+LONG unhandledExceptionHandler(LPEXCEPTION_POINTERS exceptionPtrs) {
+    FILE* f = fopen("crash.txt", "w");
+    fprintf(f, "hey, we're still in alpha ok?\n");
+    auto record = exceptionPtrs->ExceptionRecord;
+    fprintf(f, "exception code: %u\n", record->ExceptionCode);
+    fprintf(f, "address: 0x%zX\n", (uint64_t)(uintptr_t)record->ExceptionAddress);
+    if (record->ExceptionCode == EXCEPTION_ACCESS_VIOLATION) {
+        fprintf(f, "(btw, the access violation was a ");
+        if (record->ExceptionInformation[0] == 1)
+            fprintf(f, "write");
+        else if (record->ExceptionInformation[1] == 0)
+            fprintf(f, "read");
+        else
+            fprintf(f, "screwup so bad we can't even tell if it's read or write");
+        fprintf(f, ")\n");
+    }
+    fclose(f);
+
+    MINIDUMP_EXCEPTION_INFORMATION exceptionInfo;
+    exceptionInfo.ThreadId = GetCurrentThreadId();
+    exceptionInfo.ExceptionPointers = exceptionPtrs;
+    exceptionInfo.ClientPointers = false;
+
+    HANDLE dumpFile = CreateFileA("latest_crash.dmp", GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+    MiniDumpWriteDump(GetCurrentProcess(), GetCurrentProcessId(), dumpFile, MiniDumpNormal, &exceptionInfo, 0, 0);
+    CloseHandle(dumpFile);
+    return EXCEPTION_EXECUTE_HANDLER;
+}
+#endif
+
 int main(int argc, char** argv) {
+#ifdef _WIN32
+    SetUnhandledExceptionFilter(unhandledExceptionHandler);
+#endif
     worlds::EngineInitOptions initOptions;
 
     std::vector<char*> startupCommands;
