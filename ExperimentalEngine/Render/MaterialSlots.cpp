@@ -30,7 +30,8 @@ namespace worlds {
         );
 
         if (!document.is_valid()) {
-            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Invalid material document");
+            std::string path = g_assetDB.getAssetPath(asset);
+            logErr(WELogCategoryRender, "Invalid material document %s (parse failed)", path.c_str());
             std::free(buffer);
             return;
         }
@@ -60,7 +61,6 @@ namespace worlds {
 
         mat.setCutoff(alphaCutoff);
         mat.setFlags(MaterialFlags::None);
-        logMsg("set %.3f, got %.3f", alphaCutoff, mat.getCutoff());
 
         mat.metallic = (float)root.get_object_value(metallicIdx).get_double_value();
         mat.roughness = (float)root.get_object_value(roughnessIdx).get_double_value();
