@@ -40,7 +40,5 @@ namespace worlds {
     }
 
     D6Joint::~D6Joint() {
-        if (pxJoint) 
-            pxJoint->release();
     }
 }
