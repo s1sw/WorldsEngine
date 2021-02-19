@@ -30,6 +30,7 @@ if cpp_compiler.get_argument_syntax() == 'gcc'
   add_global_arguments('-g', language: 'cpp') # generate debug symbols even in release
 elif cpp_compiler.get_argument_syntax() == 'msvc'
   add_global_arguments('/fp:fast', language: 'cpp')
+  add_global_arguments('/arch:AVX', language: 'cpp')
 endif
 
 extern_include_dir = include_directories('External/Include')
