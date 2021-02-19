@@ -60,7 +60,15 @@ if host_machine.system() == 'windows'
 	platform_deps += cc.find_library('ws2_32')
 endif
 
+steam_audio_dep = cc.find_library('phonon', dirs: meson.project_source_root() + '/External/Lib')
+
 worlds = static_library('worlds', worlds_sources, 
   include_directories: [extern_include_dir, physx_include_dir, tracy_inc], 
-  dependencies: [vk_dep, physfs_dep, sdl2_dep, physx_deps, dl_dep, openvr_dep, wmdl_dep, discord_csdk_dep, discord_sdk_dep, tbb_dep, wren_dep, enet_dep, slib_dep, platform_deps])
+  dependencies: [
+    vk_dep, physfs_dep, sdl2_dep, physx_deps, 
+    dl_dep, openvr_dep, wmdl_dep, discord_csdk_dep, 
+    discord_sdk_dep, tbb_dep, wren_dep, enet_dep, 
+    slib_dep, platform_deps, steam_audio_dep
+  ]
+)
 worlds_dep = declare_dependency(include_directories: worlds_inc, link_with: worlds)

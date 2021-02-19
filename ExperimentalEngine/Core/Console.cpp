@@ -153,7 +153,7 @@ namespace worlds {
     Console::Console(bool asyncStdinConsole)
         : show(false)
         , setKeyboardFocus(false) 
-        , logFileStream("converge.log")
+        , logFileStream("worldsengine.log")
         , asyncConsoleThread(nullptr)
         , asyncCommandReady(false) {
         g_console = this;

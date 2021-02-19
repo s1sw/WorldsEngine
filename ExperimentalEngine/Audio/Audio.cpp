@@ -9,6 +9,7 @@
 #include "../Core/Transform.hpp"
 #define STB_VORBIS_HEADER_ONLY
 #include "stb_vorbis.c"
+#include "phonon.h"
 
 namespace worlds {
     int playbackSamples;
@@ -68,7 +69,6 @@ namespace worlds {
             }
         }
 
-#ifdef STEAM_AUDIO
         if (sourceInfo.spatialise && clip.channels == 1) {
             IPLAudioFormat clipFormat;
             clipFormat.channelLayoutType = IPL_CHANNELLAYOUTTYPE_SPEAKERS;
@@ -89,7 +89,11 @@ namespace worlds {
 
             IPLAudioBuffer outBuffer{ outFormat, numMonoSamplesNeeded, (float*)outTemp };
 
-            iplApplyBinauralEffect(_this->binauralEffect, _this->binauralRenderer, inBuffer, IPLVector3{ sourceInfo.direction.x, sourceInfo.direction.y, sourceInfo.direction.z }, IPL_HRTFINTERPOLATION_NEAREST, outBuffer);
+            iplApplyBinauralEffect(
+                    _this->binauralEffect, 
+                    _this->binauralRenderer, 
+                    inBuffer, IPLVector3{ sourceInfo.direction.x, sourceInfo.direction.y, sourceInfo.direction.z }, 
+                    IPL_HRTFINTERPOLATION_BILINEAR, 1.0f, outBuffer);
 
             for (int i = 0; i < numSamplesNeeded; i++) {
                 stream[i] += ((float*)outTemp)[i] * vol;
@@ -97,7 +101,6 @@ namespace worlds {
 
             std::free(outTemp);
         }
-#endif
 
         sourceInfo.playbackPosition += numMonoSamplesNeeded;
 
@@ -204,7 +207,6 @@ namespace worlds {
         reg.on_construct<AudioSource>().connect<&AudioSystem::onAudioSourceConstruct>(*this);
         reg.on_destroy<AudioSource>().connect<&AudioSystem::onAudioSourceDestroy>(*this);
 
-#ifdef STEAM_AUDIO
         SDL_Log("Initialising Phonon");
         iplCreateContext((IPLLogFunction)phLog, nullptr, nullptr, &phononContext);
 
@@ -224,7 +226,6 @@ namespace worlds {
         audioOut.channelOrder = IPL_CHANNELORDER_INTERLEAVED;
 
         iplCreateBinauralEffect(binauralRenderer, audioIn, audioOut, &binauralEffect);
-#endif
     }
 
     void AudioSystem::loadAudioScene(std::string sceneName) {
@@ -265,7 +266,7 @@ namespace worlds {
             AudioSourceInternal& asi = internalAs.at(ent);
             asi.volume = audioSource.volume;
             asi.clipId = audioSource.clipId;
-            asi.direction = glm::normalize(transform.position - listenerPos) * listenerRot;
+            asi.direction = glm::normalize(listenerPos - transform.position) * listenerRot;
 
             if (asi.finished) {
                 audioSource.isPlaying = false;

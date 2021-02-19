@@ -3,10 +3,9 @@
 #include <entt/entt.hpp>
 #include "../Core/Console.hpp"
 #include <glm/gtc/quaternion.hpp>
+#include "phonon.h"
 
 namespace worlds {
-    //void setupAudio();
-
     enum class MixerChannel {
         Music,
         SFX,
@@ -107,13 +106,11 @@ namespace worlds {
         glm::vec3 listenerPosition;
         glm::quat listenerRotation;
         ConVar showDebugMenuVar;
-#ifdef STEAM_AUDIO
         IPLhandle sceneHandle;
         bool audioSceneLoaded;
         IPLhandle phononContext;
         IPLhandle binauralRenderer;
         IPLhandle binauralEffect;
-#endif
         float mixerVolumes[static_cast<int>(MixerChannel::Count)];
         template <typename T>
         friend void mixClip(AudioSystem::LoadedClip& clip, T& sourceInfo, int numMonoSamplesNeeded, int numSamplesNeeded, float* stream, AudioSystem* _this);
