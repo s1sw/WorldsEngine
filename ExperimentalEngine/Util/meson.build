@@ -2,6 +2,7 @@ worlds_sources += [
   'Util/RichPresence.cpp',
   'Util/VKImGUIUtil.cpp',
   'Util/CreateModelObject.hpp',
+  'Util/EnumUtil.hpp',
   'Util/GlmStreamOps.hpp',
   'Util/JsonUtil.hpp',
   'Util/MatUtil.hpp',

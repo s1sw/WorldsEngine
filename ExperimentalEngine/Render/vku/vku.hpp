@@ -14,7 +14,7 @@
 /// It should integrate with game engines nicely.
 //
 ////////////////////////////////////////////////////////////////////////////////
-// Modified for use in WorldsEngine by Someone Somewhere 
+// Modified for use in WorldsEngine by Someone Somewhere
 
 #ifndef VKU_HPP
 #define VKU_HPP
@@ -314,7 +314,7 @@ namespace vku {
         case vk::Format::ePvrtc12BppSrgbBlockIMG: return BlockParams{ 0, 0, 0 };
         case vk::Format::ePvrtc14BppSrgbBlockIMG: return BlockParams{ 0, 0, 0 };
         case vk::Format::ePvrtc22BppSrgbBlockIMG: return BlockParams{ 0, 0, 0 };
-        case vk::Format::ePvrtc24BppSrgbBlockIMG: return BlockParams{ 0, 0, 0 };  
+        case vk::Format::ePvrtc24BppSrgbBlockIMG: return BlockParams{ 0, 0, 0 };
         default: return BlockParams{ 0, 0, 0 };
         }
     }
@@ -535,7 +535,7 @@ namespace vku {
     ///     RenderpassMaker rpm;
     ///     rpm.subpassBegin(vk::PipelineBindPoint::eGraphics);
     ///     rpm.subpassColorAttachment(vk::ImageLayout::eColorAttachmentOptimal);
-    ///    
+    ///
     ///     rpm.attachmentDescription(attachmentDesc);
     ///     rpm.subpassDependency(dependency);
     ///     s.renderPass_ = rpm.createUnique(device);
@@ -1137,9 +1137,9 @@ namespace vku {
             return data;
         }
 
-        void unmap(const vk::Device& device) const { 
+        void unmap(const vk::Device& device) const {
             (void)device;
-            vmaUnmapMemory(allocator, allocation); 
+            vmaUnmapMemory(allocator, allocation);
         }
 
         void flush(const vk::Device& device) const {
@@ -1209,7 +1209,7 @@ namespace vku {
         VertexBuffer() {
         }
 
-        VertexBuffer(const vk::Device& device, VmaAllocator allocator, size_t size, const char* debugName = nullptr) 
+        VertexBuffer(const vk::Device& device, VmaAllocator allocator, size_t size, const char* debugName = nullptr)
             : GenericBuffer(device, allocator, vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst, size, VMA_MEMORY_USAGE_GPU_ONLY, debugName) {
         }
     };
@@ -1221,7 +1221,7 @@ namespace vku {
         }
 
         template<class Type, class Allocator>
-        HostVertexBuffer(const vk::Device& device, VmaAllocator allocator, const std::vector<Type, Allocator>& value) 
+        HostVertexBuffer(const vk::Device& device, VmaAllocator allocator, const std::vector<Type, Allocator>& value)
             : GenericBuffer(device, allocator, vk::BufferUsageFlagBits::eVertexBuffer, value.size() * sizeof(Type), VMA_MEMORY_USAGE_CPU_ONLY) {
             updateLocal(device, value);
         }
@@ -1234,7 +1234,7 @@ namespace vku {
         IndexBuffer() {
         }
 
-        IndexBuffer(const vk::Device& device, VmaAllocator allocator, size_t size, const char* debugName = nullptr) 
+        IndexBuffer(const vk::Device& device, VmaAllocator allocator, size_t size, const char* debugName = nullptr)
             : GenericBuffer(device, allocator, vk::BufferUsageFlagBits::eIndexBuffer | vk::BufferUsageFlagBits::eTransferDst, size, VMA_MEMORY_USAGE_GPU_ONLY, debugName) {
         }
     };
@@ -1246,7 +1246,7 @@ namespace vku {
         }
 
         template<class Type, class Allocator>
-        HostIndexBuffer(const vk::Device& device, VmaAllocator allocator, const std::vector<Type, Allocator>& value) 
+        HostIndexBuffer(const vk::Device& device, VmaAllocator allocator, const std::vector<Type, Allocator>& value)
             : GenericBuffer(device, allocator, vk::BufferUsageFlagBits::eIndexBuffer, value.size() * sizeof(Type), VMA_MEMORY_USAGE_CPU_ONLY) {
             updateLocal(device, value);
         }
@@ -1259,7 +1259,7 @@ namespace vku {
         }
 
         /// Device local uniform buffer.
-        UniformBuffer(const vk::Device& device, VmaAllocator allocator, size_t size, VmaMemoryUsage memUsage = VMA_MEMORY_USAGE_GPU_ONLY, const char* debugName = nullptr) 
+        UniformBuffer(const vk::Device& device, VmaAllocator allocator, size_t size, VmaMemoryUsage memUsage = VMA_MEMORY_USAGE_GPU_ONLY, const char* debugName = nullptr)
             : GenericBuffer(device, allocator, vk::BufferUsageFlagBits::eUniformBuffer | vk::BufferUsageFlagBits::eTransferDst, size, memUsage, debugName) {
         }
     };
@@ -1410,7 +1410,7 @@ namespace vku {
             dsci.pBindings = s.bindings.data();
 
             vk::DescriptorSetLayoutBindingFlagsCreateInfo dslbfci;
-            if (s.useBindFlags) {    
+            if (s.useBindFlags) {
                 dslbfci.bindingCount = (uint32_t)s.bindings.size();
                 dslbfci.pBindingFlags = s.bindFlags.data();
                 dsci.pNext = &dslbfci;
@@ -1687,7 +1687,7 @@ namespace vku {
             imb.oldLayout = s.currentLayout;
             imb.subresourceRange = { vk::ImageAspectFlagBits::eColor, 0, s.info.mipLevels, 0, s.info.arrayLayers };
             imb.image = *s.image;
-            
+
             cb.pipelineBarrier(fromPS, toPS, vk::DependencyFlagBits::eByRegion, nullptr, nullptr, imb);
         }
 
@@ -1771,7 +1771,7 @@ namespace vku {
             vaci.flags = VMA_ALLOCATION_CREATE_USER_DATA_COPY_STRING_BIT;
             VmaAllocationInfo vci;
             vmaAllocateMemoryForImage(allocator, *s.image, &vaci, &s.allocation, &vci);
-            
+
             device.bindImageMemory(*s.image, vci.deviceMemory, vci.offset);
 
             if (!hostImage) {

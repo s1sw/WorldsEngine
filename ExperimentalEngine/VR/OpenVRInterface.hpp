@@ -25,11 +25,15 @@ namespace worlds {
         vr::VRActionHandle_t movementAction;
         vr::VRActionHandle_t leftHand;
         vr::VRActionHandle_t rightHand;
+        vr::VRActionHandle_t leftHandSkeletal;
+        vr::VRActionHandle_t rightHandSkeletal;
         vr::VRActionHandle_t sprintAction;
         vr::VRActionHandle_t jumpAction;
         vr::VRActionSetHandle_t actionSet;
 
         void checkErr(vr::EVRInputError err);
+        uint32_t handBoneCount;
+        vr::VRBoneTransform_t* handBoneArray;
     public:
         void init();
 

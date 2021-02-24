@@ -4,6 +4,7 @@
 #include "../Core/Console.hpp"
 #include <glm/gtc/quaternion.hpp>
 #include "phonon.h"
+#include <glm/glm.hpp>
 
 namespace worlds {
     enum class MixerChannel {
@@ -30,6 +31,10 @@ namespace worlds {
         bool loop;
         bool spatialise;
         MixerChannel channel;
+    };
+
+    struct ReverbProbeBox {
+        glm::vec3 bounds;
     };
 
     class AudioSystem {

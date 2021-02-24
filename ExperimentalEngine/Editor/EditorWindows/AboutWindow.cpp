@@ -7,7 +7,6 @@ namespace worlds {
     ImTextureID bgId = nullptr;
     void AboutWindow::setActive(bool active) {
         this->active = active;
-        timeAtOpen = ImGui::GetTime();
         bgId = editor->texManager()->loadOrGet(g_assetDB.addOrGetExisting("UI/Images/worlds_no_logo.png"));
     }
 

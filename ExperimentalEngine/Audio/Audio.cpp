@@ -90,9 +90,9 @@ namespace worlds {
             IPLAudioBuffer outBuffer{ outFormat, numMonoSamplesNeeded, (float*)outTemp };
 
             iplApplyBinauralEffect(
-                    _this->binauralEffect, 
-                    _this->binauralRenderer, 
-                    inBuffer, IPLVector3{ sourceInfo.direction.x, sourceInfo.direction.y, sourceInfo.direction.z }, 
+                    _this->binauralEffect,
+                    _this->binauralRenderer,
+                    inBuffer, IPLVector3{ sourceInfo.direction.x, sourceInfo.direction.y, sourceInfo.direction.z },
                     IPL_HRTFINTERPOLATION_BILINEAR, 1.0f, outBuffer);
 
             for (int i = 0; i < numSamplesNeeded; i++) {

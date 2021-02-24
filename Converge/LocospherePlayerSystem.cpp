@@ -46,7 +46,7 @@ namespace converge {
         }
     };
 
-    const float LOCOSPHERE_RADIUS = 0.25f;
+    const float LOCOSPHERE_RADIUS = 0.15f;
 
     physx::PxMaterial* locosphereMat;
     physx::PxMaterial* fenderMat;
@@ -372,8 +372,16 @@ namespace converge {
             ImVec2 textSize = ImGui::CalcTextSize(buf);
             ImVec2 textSize2 = ImGui::CalcTextSize(buf2);
 
-            ImGui::GetBackgroundDrawList()->AddText(ImVec2(size.x - textSize.x * 0.5f, size.y), ImColor(1.0f, 1.0f, 1.0f, 1.0f), buf);
-            ImGui::GetBackgroundDrawList()->AddText(ImVec2(size.x - textSize2.x * 0.5f, size.y - fontSize), ImColor(1.0f, 1.0f, 1.0f, 1.0f), buf2);
+            ImVec2 pos1 { size.x - textSize.x * 0.5f, size.y };
+            pos1.x += ImGui::GetMainViewport()->Pos.x;
+            pos1.y += ImGui::GetMainViewport()->Pos.y;
+
+            ImVec2 pos2 { size.x - textSize2.x * 0.5f, size.y - fontSize };
+            pos2.x += ImGui::GetMainViewport()->Pos.x;
+            pos2.y += ImGui::GetMainViewport()->Pos.y;
+
+            ImGui::GetBackgroundDrawList()->AddText(pos1, ImColor(1.0f, 1.0f, 1.0f, 1.0f), buf);
+            ImGui::GetBackgroundDrawList()->AddText(pos2, ImColor(1.0f, 1.0f, 1.0f, 1.0f), buf2);
         }
 
         // dot in the centre of the screen
@@ -410,7 +418,7 @@ namespace converge {
         registry.view<LocospherePlayerComponent>().each([&](auto ent, LocospherePlayerComponent& lpc) {
             auto& locosphereTransform = registry.get<Transform>(ent);
 
-            const float maxSpeed = 15.0f;
+            const float maxSpeed = 25.0f;
             auto& wActor = registry.get<worlds::DynamicPhysicsActor>(ent);
             auto* locosphereActor = (physx::PxRigidDynamic*)wActor.actor;
             auto& rig = registry.get<PlayerRig>(ent);
@@ -548,7 +556,6 @@ namespace converge {
                 if (vrInterface) {
                     static glm::vec3 lastHeadPos = glm::vec3{ 0.0f };//worlds::getMatrixTranslation(vrInterface->getHeadTransform());
                     glm::vec3 headPos = worlds::getMatrixTranslation(vrInterface->getHeadTransform());
-                    float headLookAngle = glm::eulerAngles(worlds::getMatrixRotation(vrInterface->getHeadTransform())).y;
                     glm::vec3 locosphereOffset = lastHeadPos - headPos;
                     lastHeadPos = headPos;
                     locosphereOffset.y = 0.0f;
@@ -635,8 +642,8 @@ namespace converge {
         headShape.pos = glm::vec3(0.0f, 0.75f, 0.0f);
         fenderWActor.physicsShapes.push_back(headShape);
 
-        auto fenderShape = worlds::PhysicsShape::sphereShape(0.3f);
-        fenderShape.pos = glm::vec3(0.0f, -0.28f, 0.0f);
+        auto fenderShape = worlds::PhysicsShape::sphereShape(LOCOSPHERE_RADIUS + 0.05f);
+        fenderShape.pos = glm::vec3(0.0f, -LOCOSPHERE_RADIUS - 0.03f, 0.0f);
         fenderWActor.physicsShapes.push_back(fenderShape);
 
         worlds::updatePhysicsShapes(fenderWActor);

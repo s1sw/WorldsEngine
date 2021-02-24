@@ -52,12 +52,9 @@ namespace worlds {
     }
 
     struct EditorSettings {
-        EditorSettings()
-            : objectSnapGlobal(false)
-            , scaleSnapIncrement(0.1f) {
-        }
-        bool objectSnapGlobal;
-        float scaleSnapIncrement;
+        bool objectSnapGlobal = false;
+        float snapIncrement = 0.1f;
+        float angularSnapIncrement = 15.0f;
     };
 
     class Editor;

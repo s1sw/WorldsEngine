@@ -2,7 +2,11 @@
 #include <assimp/scene.h>
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
+#include <assimp/Logger.hpp>
+#include <assimp/LogStream.hpp>
+#include <assimp/DefaultLogger.hpp>
 #include <vector>
+#define _CRT_SECURE_NO_WARNINGS
 
 enum ErrorCodes {
     Err_InvalidArgs = -1,
@@ -16,27 +20,41 @@ glm::vec3 toGlm (aiVector3D v) {
     return glm::vec3 { v.x, v.y, v.z };
 }
 
+class PrintfStream : public LogStream {
+public:
+    void write(const char* msg) override {
+        printf("assimp: %s\n", msg);
+    }
+};
+
 int main(int argc, char** argv) {
-    if (argc != 2)
+    if (argc != 2) {
+        printf("usage:\n");
+        printf("wmdl_convert.exe <model name>\n");
+        printf("(that's it)\n");
         return Err_InvalidArgs;
+    }
+    DefaultLogger::get()->attachStream(new PrintfStream);
 
     Assimp::Importer importer;
 
-    const aiScene* scene = importer.ReadFile(argv[1], 
-            aiProcess_OptimizeMeshes 
-          | aiProcess_Triangulate 
-          | aiProcess_CalcTangentSpace 
+    printf("Loading file...\n");
+
+    const aiScene* scene = importer.ReadFile(argv[1],
+            aiProcess_OptimizeMeshes
+          | aiProcess_Triangulate
+          | aiProcess_CalcTangentSpace
           | aiProcess_PreTransformVertices
           | aiProcess_JoinIdenticalVertices
           | aiProcess_FlipUVs);
 
     if (scene == nullptr) {
-        fprintf(stderr, "Failed to import file.\n");
+        fprintf(stderr, "Failed to import file: %s\n", importer.GetErrorString());
         return Err_ImportFailure;
     }
 
     printf("Importing %s: %i meshes:\n", argv[1], scene->mNumMeshes);
-    
+
     for (unsigned int i = 0; i < scene->mNumMeshes; i++) {
         auto mesh = scene->mMeshes[i];
         printf("\t-%s: %i verts, %i tris, material index is %i\n", mesh->mName.C_Str(), mesh->mNumVertices, mesh->mNumFaces, mesh->mMaterialIndex);
@@ -54,7 +72,7 @@ int main(int argc, char** argv) {
     hdr.useSmallIndices = false;
     hdr.numSubmeshes = scene->mNumMeshes;
     hdr.submeshOffset = sizeof(hdr);
-    hdr.vertexOffset = sizeof(hdr) + sizeof(wmdl::SubmeshInfo) * scene->mNumMeshes; 
+    hdr.vertexOffset = sizeof(hdr) + sizeof(wmdl::SubmeshInfo) * scene->mNumMeshes;
     hdr.indexOffset = hdr.vertexOffset;
     hdr.numVertices = 0;
     hdr.numIndices = 0;
@@ -63,9 +81,9 @@ int main(int argc, char** argv) {
         hdr.indexOffset += scene->mMeshes[i]->mNumVertices * sizeof(wmdl::Vertex);
         hdr.numVertices += scene->mMeshes[i]->mNumVertices;
         hdr.numIndices += scene->mMeshes[i]->mNumFaces * 3;
-    } 
+    }
     fwrite(&hdr, sizeof(hdr), 1, outputFile);
-    
+
     size_t currOffset = 0;
     for (unsigned int i = 0; i < scene->mNumMeshes; i++) {
         auto mesh = scene->mMeshes[i];

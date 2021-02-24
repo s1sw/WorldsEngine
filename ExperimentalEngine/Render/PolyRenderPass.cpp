@@ -12,6 +12,7 @@
 
 namespace worlds {
     ConVar showWireframe("r_wireframeMode", "0", "0 - No wireframe; 1 - Wireframe only; 2 - Wireframe + solid");
+    ConVar dbgDrawMode("r_dbgDrawMode", "0", "0 = Normal, 1 = Normals, 2 = Metallic, 3 = Roughness, 4 = AO");
 
     struct StandardPushConstants {
         glm::vec4 texScaleOffset;
@@ -612,6 +613,7 @@ namespace worlds {
         entt::entity ent;
         vk::Pipeline pipeline;
         glm::vec3 objectCenter;
+        uint32_t drawMiscFlags;
         bool opaque;
     };
 
@@ -733,6 +735,24 @@ namespace worlds {
                 sdi.opaque = packedMat.getCutoff() == 0.0f;
                 sdi.objectCenter = transform.position;
 
+                switch (obj.uvOverride) {
+                default:
+                    sdi.drawMiscFlags = 0;
+                    break;
+                case UVOverride::XY:
+                    sdi.drawMiscFlags = 128;
+                    break;
+                case UVOverride::XZ:
+                    sdi.drawMiscFlags = 256;
+                    break;
+                case UVOverride::ZY:
+                    sdi.drawMiscFlags = 512;
+                    break;
+                case UVOverride::PickBest:
+                    sdi.drawMiscFlags = 1024;
+                    break;
+                }
+
                 auto& extraDat = ctx.materialSlots->get()->getExtraDat(obj.materialIdx[i]);
                 if (extraDat.noCull) {
                     sdi.pipeline = *noBackfaceCullPipeline;
@@ -760,6 +780,15 @@ namespace worlds {
             matrixIdx++;
             });
 
+        uint32_t globalMiscFlags = 0;
+
+        if (pickThisFrame)
+            globalMiscFlags |= 1;
+
+        if (dbgDrawMode.getInt() != 0) {
+            globalMiscFlags |= (1 << dbgDrawMode.getInt());
+        }
+
         if ((int)depthPrepass) {
             ZoneScopedN("Depth prepass");
             cmdBuf->bindPipeline(vk::PipelineBindPoint::eGraphics, *depthPrePipeline);
@@ -769,7 +798,9 @@ namespace worlds {
                     continue;
                 }
 
-                StandardPushConstants pushConst{ sdi.texScaleOffset, glm::ivec4(sdi.matrixIdx, sdi.materialIdx, 0, sdi.ent), glm::ivec3(pickX, pickY, pickThisFrame), 0 };
+                StandardPushConstants pushConst { 
+                    sdi.texScaleOffset, glm::ivec4(sdi.matrixIdx, sdi.materialIdx, 0, sdi.ent), 
+                        glm::ivec3(pickX, pickY, globalMiscFlags | sdi.drawMiscFlags), 0 };
                 cmdBuf->pushConstants<StandardPushConstants>(*pipelineLayout, vk::ShaderStageFlagBits::eFragment | vk::ShaderStageFlagBits::eVertex, 0, pushConst);
                 cmdBuf->bindVertexBuffers(0, sdi.vb, vk::DeviceSize(0));
                 cmdBuf->bindIndexBuffer(sdi.ib, 0, vk::IndexType::eUint32);
@@ -804,7 +835,7 @@ namespace worlds {
                 }
                 });
 
-            StandardPushConstants pushConst{ sdi.texScaleOffset, glm::ivec4(sdi.matrixIdx, sdi.materialIdx, 0, sdi.ent), glm::ivec4(pickX, pickY, pickThisFrame, 0), currCubemapIdx };
+            StandardPushConstants pushConst{ sdi.texScaleOffset, glm::ivec4(sdi.matrixIdx, sdi.materialIdx, 0, sdi.ent), glm::ivec3(pickX, pickY, globalMiscFlags | sdi.drawMiscFlags), currCubemapIdx };
             cmdBuf->pushConstants<StandardPushConstants>(*pipelineLayout, vk::ShaderStageFlagBits::eFragment | vk::ShaderStageFlagBits::eVertex, 0, pushConst);
             cmdBuf->bindVertexBuffers(0, sdi.vb, vk::DeviceSize(0));
             cmdBuf->bindIndexBuffer(sdi.ib, 0, vk::IndexType::eUint32);
@@ -833,7 +864,7 @@ namespace worlds {
                 }
                 });
 
-            StandardPushConstants pushConst{ glm::vec4(1.0f, 1.0f, 0.0f, 0.0f), glm::ivec4(matrixIdx, obj.materialIdx, 0, ent), glm::ivec4(pickX, pickY, pickThisFrame, 0), currCubemapIdx };
+            StandardPushConstants pushConst{ glm::vec4(1.0f, 1.0f, 0.0f, 0.0f), glm::ivec4(matrixIdx, obj.materialIdx, 0, ent), glm::ivec3(pickX, pickY, globalMiscFlags), currCubemapIdx };
             cmdBuf->pushConstants<StandardPushConstants>(*pipelineLayout, vk::ShaderStageFlagBits::eFragment | vk::ShaderStageFlagBits::eVertex, 0, pushConst);
             cmdBuf->bindVertexBuffers(0, obj.vb.buffer(), vk::DeviceSize(0));
             cmdBuf->bindIndexBuffer(obj.ib.buffer(), 0, obj.indexType);

@@ -41,7 +41,7 @@ namespace converge {
         renderer->setVsync(!renderer->getVsync());
     }
 
-    EventHandler::EventHandler(bool dedicatedServer) 
+    EventHandler::EventHandler(bool dedicatedServer)
         : isDedicated {dedicatedServer}
         , client {nullptr}
         , server {nullptr}
@@ -79,7 +79,7 @@ namespace converge {
             client->setCallbackCtx(this);
 
             worlds::g_console->registerCommand([&](void*, const char*) {
-                if (!client->serverPeer || 
+                if (!client->serverPeer ||
                         client->serverPeer->state != ENET_PEER_STATE_CONNECTED) {
                     logErr("not connected!");
                     return;
@@ -104,7 +104,7 @@ namespace converge {
 
         new DebugArrows(registry);
 
-        if (vrInterface) { 
+        if (vrInterface) {
             worlds::g_console->registerCommand([&](void*, const char*) {
                 auto& wActor = registry.get<worlds::DynamicPhysicsActor>(lHandEnt);
                 auto* body = static_cast<physx::PxRigidBody*>(wActor.actor);
@@ -177,17 +177,17 @@ namespace converge {
         auto& physHand = registry.get<PhysHand>(ent);
         auto grabAction = physHand.follow == FollowHand::LeftHand ? lGrab : rGrab;
 
-        if (vrInterface->getActionPressed(grabAction)) {
+        if (vrInterface->getActionPressed(grabAction) && !registry.has<worlds::D6Joint>(ent)) {
             logMsg("grip pressed");
             // search for nearby grabbable objects
-            physx::PxSphereGeometry sphereGeo{0.25f};
+            physx::PxSphereGeometry sphereGeo{0.1f};
             physx::PxOverlapBuffer hit;
             physx::PxQueryFilterData filterData;
             filterData.flags = physx::PxQueryFlag::eDYNAMIC
                              | physx::PxQueryFlag::eSTATIC
-                             | physx::PxQueryFlag::eANY_HIT 
+                             | physx::PxQueryFlag::eANY_HIT
                              | physx::PxQueryFlag::ePOSTFILTER;
-            
+
             worlds::FilterEntities filterEnt;
             filterEnt.ents[0] = (uint32_t)rig.lHand;
             filterEnt.ents[1] = (uint32_t)rig.rHand;
@@ -197,7 +197,7 @@ namespace converge {
             filterEnt.numFilterEnts = 5;
             auto& dpa = registry.get<worlds::DynamicPhysicsActor>(ent);
             auto t = dpa.actor->getGlobalPose();
-            
+
             if (worlds::g_scene->overlap(sphereGeo, t, hit, filterData, &filterEnt)) {
                 const auto& touch = hit.getAnyHit(0);
                 // take the 0th hit for now
@@ -221,7 +221,7 @@ namespace converge {
                 logMsg("removed d6");
             }
         }
-    } 
+    }
 
     void EventHandler::simulate(entt::registry& registry, float) {
         if (isDedicated) {
@@ -253,7 +253,7 @@ namespace converge {
                     pPos.linVel = worlds::px2glm(rd->getLinearVelocity());
                     pPos.angVel = worlds::px2glm(rd->getAngularVelocity());
                     pPos.inputIdx = sp.lastAcknowledgedInput;
-                    
+
                     server->broadcastPacket(pPos.toPacket(0), NetChannel_Player);
                 }
 
@@ -318,13 +318,13 @@ namespace converge {
             static glm::vec3 lastVel{ 0.0f };
 
 
-            pastLocosphereStates.insert({ clientInputIdx, 
-                { 
-                    worlds::px2glm(pose.p), 
+            pastLocosphereStates.insert({ clientInputIdx,
+                {
+                    worlds::px2glm(pose.p),
                     worlds::px2glm(rd->getLinearVelocity()),
                     worlds::px2glm(rd->getAngularVelocity()),
                     lastVel - worlds::px2glm(rd->getLinearVelocity()),
-                    clientInputIdx 
+                    clientInputIdx
                 }
             });
 
@@ -360,23 +360,19 @@ namespace converge {
                 rGrab = vrInterface->getActionHandle("/actions/main/in/GrabR");
                 auto& fenderTransform = registry.get<Transform>(other.fender);
                 this->camera->rotation = glm::quat{};
-                auto matId = worlds::g_assetDB.addOrGetExisting("Materials/dev.json");
-                auto saberId = worlds::g_assetDB.addOrGetExisting("saber.wmdl");
+                auto matId = worlds::g_assetDB.addOrGetExisting("Materials/VRHands/placeholder.json");
+                //auto saberId = worlds::g_assetDB.addOrGetExisting("saber.wmdl");
+                auto lHandModel = worlds::g_assetDB.addOrGetExisting("Models/VRHands/hand_placeholder_l.wmdl");
+                auto rHandModel = worlds::g_assetDB.addOrGetExisting("Models/VRHands/hand_placeholder_r.wmdl");
 
                 lHandEnt = registry.create();
-                auto& lhWO = registry.emplace<worlds::WorldObject>(lHandEnt, matId, saberId);
-                lhWO.materials[0] = worlds::g_assetDB.addOrGetExisting("Materials/saber_blade.json");
-                lhWO.materials[1] = matId;
-                lhWO.presentMaterials[1] = true;
+                auto& lhWO = registry.emplace<worlds::WorldObject>(lHandEnt, matId, lHandModel);
                 auto& lht = registry.emplace<Transform>(lHandEnt);
                 lht.position = glm::vec3(0.5, 0.0f, 0.0f) + fenderTransform.position;
                 registry.emplace<worlds::NameComponent>(lHandEnt).name = "L. Handy";
 
                 rHandEnt = registry.create();
-                auto& rhWO = registry.emplace<worlds::WorldObject>(rHandEnt, matId, saberId);
-                rhWO.materials[0] = worlds::g_assetDB.addOrGetExisting("Materials/saber_blade.json");
-                rhWO.materials[1] = matId;
-                rhWO.presentMaterials[1] = true;
+                auto& rhWO = registry.emplace<worlds::WorldObject>(rHandEnt, matId, rHandModel);
                 auto& rht = registry.emplace<Transform>(rHandEnt);
                 rht.position = glm::vec3(-0.5f, 0.0f, 0.0f) + fenderTransform.position;
                 registry.emplace<worlds::NameComponent>(rHandEnt).name = "R. Handy";
@@ -419,7 +415,7 @@ namespace converge {
 
                 auto fenderActor = registry.get<worlds::DynamicPhysicsActor>(other.fender).actor;
 
-                lHandJoint = physx::PxD6JointCreate(*worlds::g_physics, fenderActor, physx::PxTransform { physx::PxIdentity }, lActor, 
+                lHandJoint = physx::PxD6JointCreate(*worlds::g_physics, fenderActor, physx::PxTransform { physx::PxIdentity }, lActor,
                 physx::PxTransform { physx::PxIdentity });
                 lHandJoint->setLinearLimit(physx::PxJointLinearLimit{physx::PxTolerancesScale{}, 1.5f});
                 lHandJoint->setMotion(physx::PxD6Axis::eX, physx::PxD6Motion::eLIMITED);
@@ -428,8 +424,8 @@ namespace converge {
                 lHandJoint->setMotion(physx::PxD6Axis::eSWING1, physx::PxD6Motion::eFREE);
                 lHandJoint->setMotion(physx::PxD6Axis::eSWING2, physx::PxD6Motion::eFREE);
                 lHandJoint->setMotion(physx::PxD6Axis::eTWIST, physx::PxD6Motion::eFREE);
-                
-                rHandJoint = physx::PxD6JointCreate(*worlds::g_physics, fenderActor, physx::PxTransform { physx::PxIdentity }, rActor, 
+
+                rHandJoint = physx::PxD6JointCreate(*worlds::g_physics, fenderActor, physx::PxTransform { physx::PxIdentity }, rActor,
                 physx::PxTransform { physx::PxIdentity });
                 rHandJoint->setLinearLimit(physx::PxJointLinearLimit{physx::PxTolerancesScale{}, 1.5f});
                 rHandJoint->setMotion(physx::PxD6Axis::eX, physx::PxD6Motion::eLIMITED);
@@ -519,7 +515,7 @@ namespace converge {
 
                             if (_this->lsphereErrIdx == 128)
                                 _this->lsphereErrIdx = 0;
-                        } 
+                        }
 
                         std::erase_if(_this->pastLocosphereStates, [&](auto& k) {
                             return k.first <= pPos.inputIdx;
@@ -564,7 +560,7 @@ namespace converge {
         if (evt.packet->data[0] == MessageType::OtherPlayerJoin) {
             msgs::OtherPlayerJoin opj;
             opj.fromPacket(evt.packet);
-            
+
             PlayerRig newRig = _this->lsphereSys->createPlayerRig(*_this->reg);
             auto& lpc = _this->reg->get<LocospherePlayerComponent>(newRig.locosphere);
             lpc.isLocal = false;
