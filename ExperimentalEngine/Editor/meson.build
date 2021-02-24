@@ -7,6 +7,7 @@ worlds_sources += [
   'Editor/EditorWindows/AboutWindow.cpp',
   'Editor/EditorWindows/AssetDBExplorer.cpp',
   'Editor/EditorWindows/Assets.cpp',
+  'Editor/EditorWindows/BakingWindow.cpp',
   'Editor/EditorWindows/EntityEditor.cpp',
   'Editor/EditorWindows/EntityList.cpp',
   'Editor/EditorWindows/GameControls.cpp',

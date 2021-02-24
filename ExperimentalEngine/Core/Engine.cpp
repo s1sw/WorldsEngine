@@ -71,7 +71,7 @@ namespace worlds {
             SDL_WINDOW_VULKAN |
             SDL_WINDOW_RESIZABLE |
             SDL_WINDOW_ALLOW_HIGHDPI |
-            SDL_WINDOW_HIDDEN 
+            SDL_WINDOW_HIDDEN
             );
     }
 
@@ -304,7 +304,6 @@ namespace worlds {
         ImGuiIO& io = ImGui::GetIO();
         io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;           // Enable Docking
         io.IniFilename = runAsEditor ? "imgui_editor.ini" : "imgui.ini";
-        // Disabling this for now as it seems to cause random freezes
         io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;         // Enable Multi-Viewport / Platform Windows
         io.Fonts->TexDesiredWidth = 512;
 
@@ -319,17 +318,20 @@ namespace worlds {
 
         if (enableOpenVR) {
             openvrInterface.init();
-            uint32_t newW, newH;
 
-            openvrInterface.getRenderResolution(&newW, &newH);
-            SDL_Rect rect;
-            SDL_GetDisplayUsableBounds(0, &rect);
+            if (!runAsEditor) {
+                uint32_t newW, newH;
 
-            float scaleFac = glm::min(((float)rect.w * 0.9f) / newW, ((float)rect.h * 0.9f) / newH);
+                openvrInterface.getRenderResolution(&newW, &newH);
+                SDL_Rect rect;
+                SDL_GetDisplayUsableBounds(0, &rect);
 
-            SDL_SetWindowSize(window, 
-                    (uint32_t)(newW * scaleFac), 
-                    (uint32_t)(newH * scaleFac));
+                float scaleFac = glm::min(((float)rect.w * 0.9f) / newW, ((float)rect.h * 0.9f) / newH);
+
+                SDL_SetWindowSize(window,
+                        (uint32_t)(newW * scaleFac),
+                        (uint32_t)(newH * scaleFac));
+            }
         }
 
         VrApi activeApi = VrApi::None;
@@ -469,7 +471,7 @@ namespace worlds {
 
         if (!runAsEditor && PHYSFS_exists("CommandScripts/startup.txt"))
             console->executeCommandStr("exec CommandScripts/startup");
-        
+
         if (dedicatedServer)
             console->executeCommandStr("exec CommandScripts/server_startup");
 
@@ -504,7 +506,7 @@ namespace worlds {
             w = 1600;
             h = 900;
         }
-        
+
         if (!dedicatedServer) {
             RTTPassCreateInfo screenRTTCI;
             screenRTTCI.enableShadows = true;
@@ -721,6 +723,17 @@ namespace worlds {
             dti.simTime = simTime;
             drawDebugInfoWindow(dti);
 
+            static ConVar drawFPS { "drawFPS", "0", "Draws a simple FPS counter in the corner of the screen." };
+            if (drawFPS.getInt()) {
+                auto drawList = ImGui::GetForegroundDrawList();
+                char buf[128];
+                snprintf(buf, 128, "%.1f fps (%.3fms)", 1.0f / dti.deltaTime, dti.deltaTime * 1000.0f);
+                auto bgSize = ImGui::CalcTextSize(buf);
+                auto pos = ImGui::GetMainViewport()->Pos;
+                drawList->AddText(pos, ImColor(1.0f, 1.0f, 1.0f), buf);
+                drawList->AddRectFilled(pos, pos + bgSize, ImColor(0.0f, 0.0f, 0.0f, 0.5f));
+            }
+
             if (enableOpenVR) {
                 auto pVRSystem = vr::VRSystem();
 
@@ -867,7 +880,7 @@ namespace worlds {
                     ImGui::Text("Draw calls: %i", dbgStats.numDrawCalls);
                     ImGui::Text("%i pipeline switches", dbgStats.numPipelineSwitches);
                     ImGui::Text("Frustum culled objects: %i", dbgStats.numCulledObjs);
-                    ImGui::Text("GPU memory usage: %.3fMB (%.3fMB allocated, %.3fMB available)", 
+                    ImGui::Text("GPU memory usage: %.3fMB (%.3fMB allocated, %.3fMB available)",
                         (double)totalUsage / 1024.0 / 1024.0,
                         (double)totalBlockBytes / 1024.0 / 1024.0,
                         (double)totalBudget / 1024.0 / 1024.0);
@@ -889,7 +902,7 @@ namespace worlds {
                     vmaGetBudget(vkCtx.allocator, budget);
                     const VkPhysicalDeviceMemoryProperties* memProps;
                     vmaGetMemoryProperties(vkCtx.allocator, &memProps);
-                    
+
                     for (uint32_t i = 0; i < memProps->memoryHeapCount; i++) {
                         if (ImGui::TreeNode((void*)(uintptr_t)i, "Heap %u", i)) {
                             ImGui::Text("Available: %.3fMB", budget[i].budget / 1024.0 / 1024.0);
@@ -992,7 +1005,7 @@ namespace worlds {
                 transform.rotation = glm::slerp(px2glm(previousState[ent].q), px2glm(currentState[ent].q), (float)alpha);
                 });
             interpAlpha = alpha;
-        } else if (deltaTime < 0.1f) {
+        } else if (deltaTime < 0.05f) {
             stepSimulation(deltaTime * timeScale);
 
             if (evtHandler != nullptr && !runAsEditor) {

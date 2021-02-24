@@ -42,6 +42,8 @@ namespace worlds {
             return "Scale";
         case Tool::Translate:
             return "Translate";
+        case Tool::Bounds:
+            return "Bounds";
         default:
             return "???";
         }
@@ -57,7 +59,7 @@ namespace worlds {
     }
 
     Editor::Editor(entt::registry& reg, EngineInterfaces interfaces)
-        : currentTool(Tool::None)
+        : currentTool(Tool::Translate)
         , reg(reg)
         , currentSelectedEntity(entt::null)
         , cam(*interfaces.mainCamera)
@@ -97,6 +99,7 @@ namespace worlds {
         ADD_EDITOR_WINDOW(AssetDBExplorer);
         ADD_EDITOR_WINDOW(MaterialEditor);
         ADD_EDITOR_WINDOW(AboutWindow);
+        ADD_EDITOR_WINDOW(BakingWindow);
 
 #undef ADD_EDITOR_WINDOW
     }
@@ -284,6 +287,8 @@ namespace worlds {
                     activateTool(Tool::Rotate);
                 } else if (inputManager.keyPressed(SDL_SCANCODE_S)) {
                     activateTool(Tool::Scale);
+                } else if (inputManager.keyPressed(SDL_SCANCODE_B)) {
+                    activateTool(Tool::Bounds);
                 }
             }
         }
@@ -351,7 +356,8 @@ namespace worlds {
             ImGui::Checkbox("Global object snap", &settings.objectSnapGlobal);
             tooltipHover("If this is checked, moving an object with Ctrl held will snap in increments relative to the world rather than the object's original position.");
             ImGui::Checkbox("Pause physics", &interfaces.engine->pauseSim);
-            ImGui::InputFloat("Scale snap increment", &settings.scaleSnapIncrement, 0.1f, 0.5f);
+            ImGui::InputFloat("Snap increment", &settings.snapIncrement, 0.1f, 0.5f);
+            ImGui::InputFloat("Angular snap increment", &settings.angularSnapIncrement, 0.5f, 1.0f);
         }
         ImGui::End();
 
@@ -427,23 +433,21 @@ namespace worlds {
 
                 if (inputManager.keyHeld(SDL_SCANCODE_LCTRL, true)) {
                     switch (currentTool) {
-                    case Tool::Scale:
-                        snap = glm::vec3{ settings.scaleSnapIncrement };
-                        break;
-                    case Tool::Translate:
-                        snap = glm::vec3{ 1.0f };
-                        break;
                     case Tool::Rotate:
-                        snap = glm::vec3{ 15.0f };
+                        snap = glm::vec3{ settings.angularSnapIncrement };
                         break;
                     default:
-                        snap = glm::vec3{ 1.0f };
+                        snap = glm::vec3{ settings.snapIncrement };
                         break;
                     }
                 }
 
+                static float bounds[6] { -1.0f, -1.0f, -1.0f, 1.0f, 1.0f, 1.0f };
+
                 ImGuizmo::Manipulate(glm::value_ptr(view), glm::value_ptr(proj), 
-                    toolToOp(currentTool), toolLocalSpace ? ImGuizmo::MODE::LOCAL : ImGuizmo::MODE::WORLD, glm::value_ptr(tfMtx), nullptr, glm::value_ptr(snap));
+                    toolToOp(currentTool), toolLocalSpace ? ImGuizmo::MODE::LOCAL : ImGuizmo::MODE::WORLD, 
+                    glm::value_ptr(tfMtx), nullptr, glm::value_ptr(snap), 
+                    currentTool == Tool::Bounds ? bounds : nullptr, glm::value_ptr(snap));
                 glm::vec3 scale;
                 glm::quat rotation;
                 glm::vec3 translation;
@@ -468,8 +472,12 @@ namespace worlds {
                 case Tool::Scale:
                     selectedTransform.scale = scale;
                     break;
+                case Tool::Bounds:
+                    selectedTransform.position = translation;
+                    selectedTransform.rotation = rotation;
+                    selectedTransform.scale = scale;
+                    break;
                 }
-
 
                 if (inputManager.ctrlHeld() &&
                     inputManager.keyPressed(SDL_SCANCODE_D) &&
@@ -550,12 +558,14 @@ namespace worlds {
             }
         }
 
+        const char* sceneFileExts[2] = { ".escn", ".wscn" };
+
         openFileModal("Open Scene", [this](const char* path) {
             reg.clear();
             interfaces.engine->loadScene(g_assetDB.addOrGetExisting(path));
             updateWindowTitle();
             undo.clear();
-            }, ".escn");
+            }, sceneFileExts, 2); 
 
         if (inputManager.keyPressed(SDL_SCANCODE_I, true) &&
             inputManager.ctrlHeld() &&

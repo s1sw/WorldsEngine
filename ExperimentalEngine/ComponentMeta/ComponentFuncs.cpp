@@ -13,14 +13,16 @@
 #include "../Core/NameComponent.hpp"
 #include "../Audio/Audio.hpp"
 #include "../Render/Render.hpp"
+#include "robin_hood.h"
 #include "sajson.h"
 #include "../Util/JsonUtil.hpp"
 #include "../Physics/D6Joint.hpp"
 #include "ComponentEditorUtil.hpp"
 #include "../Scripting/ScriptComponent.hpp"
+#include "../Util/EnumUtil.hpp"
 
 // Janky workaround to fix static constructors not being called
-// (static constructors are only required to be called before the first function in the translation unity)
+// (static constructors are only required to be called before the first function in the translation unit)
 // (yay for typical c++ specification bullshittery)
 #include "D6JointEditor.hpp"
 
@@ -51,7 +53,7 @@ namespace worlds {
         int getSortID() override {
             return -1;
         }
-         
+
         const char* getName() override {
             return "Transform";
         }
@@ -71,6 +73,12 @@ namespace worlds {
                 }
 
                 ImGui::DragFloat3("Scale", &selectedTransform.scale.x);
+                if (ImGui::Button("Snap to world grid")) {
+                    selectedTransform.position = glm::round(selectedTransform.position);
+                    selectedTransform.scale = glm::round(selectedTransform.scale);
+                    eulerRot = glm::round(eulerRot / 15.0f) * 15.0f;
+                    selectedTransform.rotation = glm::radians(eulerRot);
+                }
                 ImGui::Separator();
             }
         }
@@ -82,7 +90,7 @@ namespace worlds {
             WRITE_FIELD(file, t.scale);
         }
 
-        void readFromFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file, int version) {
+        void readFromFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file, int version) override {
             auto& t = reg.emplace<Transform>(ent);
             READ_FIELD(file, t.position);
             READ_FIELD(file, t.rotation);
@@ -90,12 +98,25 @@ namespace worlds {
         }
     };
 
+    const robin_hood::unordered_flat_map<StaticFlags, const char*> flagNames = {
+        { StaticFlags::Audio, "Audio" },
+        { StaticFlags::Rendering, "Rendering" },
+        { StaticFlags::Navigation, "Navigation" }
+    };
+
+    const char* uvOverrideNames[] = {
+        "None",
+        "XY",
+        "XZ",
+        "ZY",
+        "Pick Best"
+    };
 
     class WorldObjectEditor : public BasicComponentUtil<WorldObject> {
     public:
         BASIC_CLONE(WorldObject);
 
-        const char* getName() {
+        const char* getName() override {
             return "World Object";
         }
 
@@ -111,6 +132,33 @@ namespace worlds {
                     reg.remove<WorldObject>(ent);
                 } else {
                     auto& worldObject = reg.get<WorldObject>(ent);
+                    if (ImGui::TreeNode("Static Flags")) {
+                        for (int i = 1; i < 8; i <<= 1) {
+                            bool hasFlag = enumHasFlag(worldObject.staticFlags, (StaticFlags)i);
+                            if (ImGui::Checkbox(flagNames.at((StaticFlags)i), &hasFlag)) {
+                                int withoutI = (int)worldObject.staticFlags & (~i);
+                                withoutI |= i * hasFlag;
+                                worldObject.staticFlags = (StaticFlags)withoutI;
+                            }
+                        }
+                        ImGui::TreePop();
+                    }
+
+                    if (ImGui::BeginCombo("UV Override", uvOverrideNames[(int)worldObject.uvOverride])) {
+                        int i = 0;
+                        for (auto& p : uvOverrideNames) {
+                            bool isSelected = (int)worldObject.uvOverride == i;
+                            if (ImGui::Selectable(p, &isSelected)) {
+                                worldObject.uvOverride = (UVOverride)i;
+                            }
+
+                            if (isSelected)
+                                ImGui::SetItemDefaultFocus();
+                            i++;
+                        }
+                        ImGui::EndCombo();
+                    }
+
                     ImGui::DragFloat2("Texture Scale", &worldObject.texScaleOffset.x);
                     ImGui::DragFloat2("Texture Offset", &worldObject.texScaleOffset.z);
 
@@ -140,6 +188,7 @@ namespace worlds {
 
         void writeToFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file) override {
             auto& wObj = reg.get<WorldObject>(ent);
+            WRITE_FIELD(file, wObj.staticFlags);
             for (int i = 0; i < NUM_SUBMESH_MATS; i++) {
                 bool isPresent = wObj.presentMaterials[i];
                 WRITE_FIELD(file, isPresent);
@@ -152,10 +201,15 @@ namespace worlds {
 
             WRITE_FIELD(file, wObj.mesh);
             WRITE_FIELD(file, wObj.texScaleOffset);
+            WRITE_FIELD(file, wObj.uvOverride);
         }
 
         void readFromFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file, int version) override {
             auto& wo = reg.emplace<WorldObject>(ent, 0, 0);
+
+            if (version >= 3) {
+                READ_FIELD(file, wo.staticFlags);
+            }
 
             for (int i = 0; i < NUM_SUBMESH_MATS; i++) {
                 bool isPresent;
@@ -172,6 +226,10 @@ namespace worlds {
 
             READ_FIELD(file, wo.mesh);
             READ_FIELD(file, wo.texScaleOffset);
+
+            if (version >= 4) {
+                READ_FIELD(file, wo.uvOverride);
+            }
         }
     };
 
@@ -186,8 +244,8 @@ namespace worlds {
         BASIC_CLONE(WorldLight);
         BASIC_CREATE(WorldLight);
         const char* getName() override { return "World Light"; }
-        
-        void edit(entt::entity ent, entt::registry& reg) {
+
+        void edit(entt::entity ent, entt::registry& reg) override {
             if (ImGui::CollapsingHeader(ICON_FA_LIGHTBULB u8" Light")) {
                 if (ImGui::Button("Remove##WL")) {
                     reg.remove<WorldLight>(ent);
@@ -261,8 +319,10 @@ namespace worlds {
         const sajson::document& doc = sajson::parse(sajson::single_allocation(), sajson::mutable_string_view(len, buf));
 
 
-        if (doc.get_root().get_type() != sajson::TYPE_ARRAY)
-            fatalErr("what");
+        if (doc.get_root().get_type() != sajson::TYPE_ARRAY) {
+            logErr("Invalid collider JSON: Root object was not an array");
+            return std::vector<PhysicsShape>{};
+        }
 
         std::vector<PhysicsShape> shapes;
         const auto& root = doc.get_root();
@@ -670,7 +730,7 @@ namespace worlds {
 
         void writeToFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file) override {
             auto& as = reg.get<AudioSource>(ent);
-            
+
             WRITE_FIELD(file, as.clipId);
             WRITE_FIELD(file, as.channel);
             WRITE_FIELD(file, as.loop);
@@ -773,6 +833,34 @@ namespace worlds {
         }
     };
 
+    class ReverbProbeBoxEditor : public BasicComponentUtil<ReverbProbeBox> {
+    public:
+        BASIC_CLONE(ReverbProbeBox);
+
+        const char* getName() override { return "Reverb Probe Box"; }
+
+        BASIC_CREATE(ReverbProbeBox);
+
+        void edit(entt::entity ent, entt::registry& reg) override {
+            auto& rpb = reg.get<ReverbProbeBox>(ent);
+
+            if (ImGui::CollapsingHeader("Reverb Probe Box")) {
+                ImGui::DragFloat3("Extents", glm::value_ptr(rpb.bounds));
+                ImGui::Separator();
+            }
+        }
+
+        void writeToFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file) override {
+            auto& rbp = reg.get<ReverbProbeBox>(ent);
+            WRITE_FIELD(file, rbp.bounds);
+        }
+
+        void readFromFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file, int version) override {
+            auto& rbp = reg.emplace<ReverbProbeBox>(ent);
+            READ_FIELD(file, rbp.bounds);
+        }
+    };
+
     TransformEditor transformEd;
     WorldObjectEditor worldObjEd;
     WorldLightEditor worldLightEd;
@@ -782,4 +870,5 @@ namespace worlds {
     AudioSourceEditor asEd;
     WorldCubemapEditor wcEd;
     ScriptComponentEditor scEd;
+    ReverbProbeBoxEditor rpbEd;
 }

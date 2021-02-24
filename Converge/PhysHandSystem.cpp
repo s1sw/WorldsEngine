@@ -9,13 +9,18 @@
 #include "PxQueryFiltering.h"
 #include "extensions/PxJoint.h"
 #include <openvr.h>
+#include <ImGui/imgui.h>
+#include <glm/gtc/type_ptr.hpp>
 
 namespace converge {
 
-    PhysHandSystem::PhysHandSystem(worlds::EngineInterfaces interfaces, entt::registry& registry) 
-        : interfaces {interfaces} 
+    PhysHandSystem::PhysHandSystem(worlds::EngineInterfaces interfaces, entt::registry& registry)
+        : interfaces {interfaces}
         , registry {registry} {
     }
+
+    static glm::vec3 posOffset { 0.0f, 0.0f, -0.05f };
+    static glm::vec3 rotEulerOffset { -120.0f, 0.0f, -51.0f };
 
     void PhysHandSystem::update(entt::registry& registry, float deltaTime, float) {
         registry.view<PhysHand>().each([&](entt::entity ent, PhysHand& physHand) {
@@ -32,13 +37,13 @@ namespace converge {
                 logErr("physhand velocity was not finite, resetting...");
                 body->setLinearVelocity(physx::PxVec3{ 0.0f });
             }
-            
+
             glm::vec3 err = physHand.targetWorldPos - worlds::px2glm(t.p);
 
 
             glm::vec3 vel = worlds::px2glm(body->getLinearVelocity());
             glm::vec3 refVel{ 0.0f };
-            
+
             if (registry.valid(physHand.locosphere)) {
                 worlds::DynamicPhysicsActor& lDpa = registry.get<worlds::DynamicPhysicsActor>(physHand.locosphere);
                 refVel = worlds::px2glm(((physx::PxRigidDynamic*)lDpa.actor)->getLinearVelocity());
@@ -89,8 +94,6 @@ namespace converge {
             break;
         }
 
-        glm::vec3 posOffset { 0.0f, 0.01f, 0.1f };
-        glm::vec3 rotEulerOffset { -60.0f, 0.0f, 0.0f };
 
 
         Transform t;

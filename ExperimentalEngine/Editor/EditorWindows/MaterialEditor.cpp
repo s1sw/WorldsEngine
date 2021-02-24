@@ -77,6 +77,10 @@ namespace worlds {
                 j += ",\n" + getJson("pbrMapPath", g_assetDB.getAssetPath(mat.pbrMap));
         }
 
+        if (mat.normalMap != ~0u) {
+            j += ",\n" + getJson("normalMapPath", g_assetDB.getAssetPath(mat.normalMap));
+        }
+
         if (mat.heightMap != ~0u) {
             j += ",\n" + getJson("heightmapPath", g_assetDB.getAssetPath(mat.heightMap));
             j += ",\n" + getJson("heightmapScale", mat.heightmapScale);
@@ -165,6 +169,22 @@ namespace worlds {
                 ImGui::Text("Current albedo path: %s", g_assetDB.getAssetPath(mat.albedo).c_str());
                 ImGui::SameLine();
                 assetButton(mat.albedo, "Albedo");
+
+                if (mat.normalMap != ~0u) {
+                    ImGui::Text("Current normal map path: %s", g_assetDB.getAssetPath(mat.normalMap).c_str());
+                } else {
+                    ImGui::Text("No normal map set");
+                }
+                ImGui::SameLine();
+                assetButton(mat.normalMap, "Normal map");
+
+                if (mat.heightMap != ~0u) {
+                    ImGui::Text("Current height map path: %s", g_assetDB.getAssetPath(mat.heightMap).c_str());
+                } else {
+                    ImGui::Text("No height map set");
+                }
+                ImGui::SameLine();
+                assetButton(mat.heightMap, "Height map");
 
                 ImGui::Checkbox("Use packed PBR map", &mat.usePBRMap);
                 if (mat.usePBRMap) {

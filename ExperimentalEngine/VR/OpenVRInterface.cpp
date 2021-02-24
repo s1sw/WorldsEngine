@@ -1,4 +1,7 @@
 #include "OpenVRInterface.hpp"
+#include "glm/gtc/type_ptr.hpp"
+#include "openvr.h"
+#include "../Core/Console.hpp"
 
 namespace worlds {
     void OpenVRInterface::checkErr(vr::EVRInputError err) {
@@ -15,9 +18,9 @@ namespace worlds {
             std::string errMsg = std::string{"Unable to init VR runtime: "} + vr::VR_GetVRInitErrorAsEnglishDescription(eError);
             fatalErr(errMsg.c_str());
         }
-        
+
         const char* basePath = SDL_GetBasePath();
-        
+
 
         std::string actionsPathStr = basePath + std::string("EEData") + PATH_SEP + "actions.json";
         const char* actionsPath = actionsPathStr.c_str();
@@ -29,6 +32,30 @@ namespace worlds {
         checkErr(vrInput->GetActionHandle("/actions/main/in/RightHand", &rightHand));
         checkErr(vrInput->GetActionHandle("/actions/main/in/Sprint", &sprintAction));
         checkErr(vrInput->GetActionHandle("/actions/main/in/Jump", &jumpAction));
+
+        checkErr(vrInput->GetActionHandle("/actions/main/in/LeftHand_Anim", &leftHandSkeletal));
+        checkErr(vrInput->GetActionHandle("/actions/main/in/RightHand_Anim", &rightHandSkeletal));
+
+        logMsg("left hand handle: %u", leftHand);
+        logMsg("left hand skeletal handle: %u", leftHandSkeletal);
+
+        updateInput();
+
+        // assume that the number of bones in the left hand is equal to the number of bones in the right hand
+        // rework in case of spontaneous human evolution that is accounted for in steamvr
+        //checkErr(vrInput->GetBoneCount(leftHandSkeletal, &handBoneCount));
+        handBoneCount = 31;
+
+        handBoneArray = (vr::VRBoneTransform_t*)malloc(sizeof(vr::VRBoneTransform_t) * handBoneCount);
+
+        g_console->registerCommand([&](auto, auto) {
+        for (uint32_t i = 0; i < handBoneCount; i++) {
+            char buf[vr::k_unMaxBoneNameLength];
+            vr::VRInput()->GetBoneName(leftHandSkeletal, i, buf, vr::k_unMaxBoneNameLength);
+            logMsg("bone %u: %s", i, buf);
+        }
+                }, "printbones", "printbones", nullptr);
+
 
         checkErr(vrInput->GetActionSetHandle("/actions/main", &actionSet));
     }
@@ -110,10 +137,26 @@ namespace worlds {
         if (retVal != vr::VRInputError_None)
             return false;
 
+        vr::InputSkeletalActionData_t skeletalActionData;
+
+        auto skeletalAction = hand == Hand::LeftHand ? leftHandSkeletal : rightHandSkeletal;
+
+        retVal = vr::VRInput()->GetSkeletalActionData(
+                skeletalAction,
+                &skeletalActionData,
+                sizeof(skeletalActionData));
+
+        vr::VRInput()->GetSkeletalBoneData(skeletalAction, 
+                vr::VRSkeletalTransformSpace_Model, vr::VRSkeletalMotionRange_WithoutController,
+                handBoneArray,
+                handBoneCount);
+        
+
         glm::mat4 matrix = toMat4(pose.pose.mDeviceToAbsoluteTracking);
 
-        t.position = getMatrixTranslation(matrix);
         t.rotation = getMatrixRotation(matrix);
+        t.position = getMatrixTranslation(matrix) + (t.rotation * glm::make_vec3(handBoneArray[1].position.v));
+        t.rotation *= glm::make_quat((float*)&handBoneArray[1].orientation);
 
         if (glm::any(glm::isnan(t.position)) || glm::any(glm::isnan(t.rotation)))
             fatalErr("controller stuff was NaN?!?!?!?");

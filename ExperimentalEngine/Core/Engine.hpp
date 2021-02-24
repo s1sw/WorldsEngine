@@ -92,10 +92,27 @@ namespace worlds {
         std::vector<ISystem*> systems;
     };
 
+    enum class StaticFlags : uint8_t {
+        None = 0,
+        Audio = 1,
+        Rendering = 2,
+        Navigation = 4
+    };
+
+    enum class UVOverride {
+        None,
+        XY,
+        XZ,
+        ZY,
+        PickBest
+    };
+
     struct WorldObject {
         WorldObject(AssetID material, AssetID mesh)
-            : mesh(mesh)
-            , texScaleOffset(1.0f, 1.0f, 0.0f, 0.0f) {
+            : staticFlags(StaticFlags::None)
+            , mesh(mesh)
+            , texScaleOffset(1.0f, 1.0f, 0.0f, 0.0f)
+            , uvOverride(UVOverride::None) {
             for (int i = 0; i < NUM_SUBMESH_MATS; i++) {
                 materials[i] = material;
                 presentMaterials[i] = false;
@@ -104,10 +121,12 @@ namespace worlds {
             presentMaterials[0] = true;
         }
 
+        StaticFlags staticFlags;
         AssetID materials[NUM_SUBMESH_MATS];
         std::bitset<NUM_SUBMESH_MATS> presentMaterials;
         AssetID mesh;
         glm::vec4 texScaleOffset;
+        UVOverride uvOverride;
         uint32_t materialIdx[NUM_SUBMESH_MATS];
     };
 
