@@ -20,6 +20,7 @@
 #include "ComponentEditorUtil.hpp"
 #include "../Scripting/ScriptComponent.hpp"
 #include "../Util/EnumUtil.hpp"
+#include "../Editor/Editor.hpp"
 
 // Janky workaround to fix static constructors not being called
 // (static constructors are only required to be called before the first function in the translation unit)
@@ -62,23 +63,30 @@ namespace worlds {
             return false;
         }
 
-        void edit(entt::entity ent, entt::registry& reg) override {
+        void edit(entt::entity ent, entt::registry& reg, Editor* ed) override {
             if (ImGui::CollapsingHeader(ICON_FA_ARROWS_ALT u8" Transform")) {
                 auto& selectedTransform = reg.get<Transform>(ent);
-                ImGui::DragFloat3("Position", &selectedTransform.position.x);
+                glm::vec3 pos = selectedTransform.position;
+                if (ImGui::DragFloat3("Position", &pos.x)) {
+                    ed->undo.pushState(reg);
+                    selectedTransform.position = pos;
+                }
 
                 glm::vec3 eulerRot = glm::degrees(glm::eulerAngles(selectedTransform.rotation));
                 if (ImGui::DragFloat3("Rotation", glm::value_ptr(eulerRot))) {
+                    ed->undo.pushState(reg);
                     selectedTransform.rotation = glm::radians(eulerRot);
                 }
 
                 ImGui::DragFloat3("Scale", &selectedTransform.scale.x);
                 if (ImGui::Button("Snap to world grid")) {
+                    ed->undo.pushState(reg);
                     selectedTransform.position = glm::round(selectedTransform.position);
                     selectedTransform.scale = glm::round(selectedTransform.scale);
                     eulerRot = glm::round(eulerRot / 15.0f) * 15.0f;
                     selectedTransform.rotation = glm::radians(eulerRot);
                 }
+
                 ImGui::Separator();
             }
         }
@@ -126,7 +134,7 @@ namespace worlds {
             reg.emplace<WorldObject>(ent, matId, cubeId);
         }
 
-        void edit(entt::entity ent, entt::registry& reg) override {
+        void edit(entt::entity ent, entt::registry& reg, Editor* ed) override {
             if (ImGui::CollapsingHeader(ICON_FA_PENCIL_ALT u8" WorldObject")) {
                 if (ImGui::Button("Remove##WO")) {
                     reg.remove<WorldObject>(ent);
@@ -245,7 +253,7 @@ namespace worlds {
         BASIC_CREATE(WorldLight);
         const char* getName() override { return "World Light"; }
 
-        void edit(entt::entity ent, entt::registry& reg) override {
+        void edit(entt::entity ent, entt::registry& reg, Editor* ed) override {
             if (ImGui::CollapsingHeader(ICON_FA_LIGHTBULB u8" Light")) {
                 if (ImGui::Button("Remove##WL")) {
                     reg.remove<WorldLight>(ent);
@@ -448,7 +456,7 @@ namespace worlds {
             updatePhysicsShapes(newPhysActor);
         }
 
-        void edit(entt::entity ent, entt::registry& reg) override {
+        void edit(entt::entity ent, entt::registry& reg, Editor* ed) override {
             auto& pa = reg.get<PhysicsActor>(ent);
             if (ImGui::CollapsingHeader(ICON_FA_SHAPES u8" Physics Actor")) {
                 if (ImGui::Button("Remove##PA")) {
@@ -564,7 +572,7 @@ namespace worlds {
             updatePhysicsShapes(newPhysActor);
         }
 
-        void edit(entt::entity ent, entt::registry& reg) override {
+        void edit(entt::entity ent, entt::registry& reg, Editor* ed) override {
             auto& pa = reg.get<DynamicPhysicsActor>(ent);
             if (ImGui::CollapsingHeader(ICON_FA_SHAPES u8" Dynamic Physics Actor")) {
                 if (ImGui::Button("Remove##DPA")) {
@@ -671,7 +679,7 @@ namespace worlds {
 
         const char* getName() override { return "Name Component"; }
 
-        void edit(entt::entity ent, entt::registry& registry) override {
+        void edit(entt::entity ent, entt::registry& registry, Editor* ed) override {
             auto& nc = registry.get<NameComponent>(ent);
 
             ImGui::InputText("Name", &nc.name);
@@ -710,7 +718,7 @@ namespace worlds {
             reg.emplace<AudioSource>(ent, g_assetDB.addOrGetExisting("Audio/SFX/dlgsound.ogg"));
         }
 
-        void edit(entt::entity ent, entt::registry& registry) override {
+        void edit(entt::entity ent, entt::registry& registry, Editor* ed) override {
             auto& as = registry.get<AudioSource>(ent);
 
             if (ImGui::CollapsingHeader(ICON_FAD_SPEAKER u8" Audio Source")) {
@@ -764,7 +772,7 @@ namespace worlds {
             wc.extent = glm::vec3{ 1.0f };
         }
 
-        void edit(entt::entity ent, entt::registry& reg) override {
+        void edit(entt::entity ent, entt::registry& reg, Editor* ed) override {
             auto& wc = reg.get<WorldCubemap>(ent);
 
             if (ImGui::CollapsingHeader(ICON_FA_CIRCLE u8" Cubemap")) {
@@ -805,7 +813,7 @@ namespace worlds {
             reg.emplace<ScriptComponent>(ent, g_assetDB.addOrGetExisting("Scripts/nothing.wren"));
         }
 
-        void edit(entt::entity ent, entt::registry& reg) override {
+        void edit(entt::entity ent, entt::registry& reg, Editor* ed) override {
             auto& sc = reg.get<ScriptComponent>(ent);
 
             if (ImGui::CollapsingHeader(ICON_FA_SCROLL u8" Script")) {
@@ -813,7 +821,6 @@ namespace worlds {
                 AssetID id = sc.script;
                 if (selectAssetPopup("Script Path", id, ImGui::Button("Change"))) {
                     reg.patch<ScriptComponent>(ent, [&](ScriptComponent& sc) {
-                        logMsg("patchingggg");
                         sc.script = id;
                     });
                 }
@@ -841,7 +848,7 @@ namespace worlds {
 
         BASIC_CREATE(ReverbProbeBox);
 
-        void edit(entt::entity ent, entt::registry& reg) override {
+        void edit(entt::entity ent, entt::registry& reg, Editor* ed) override {
             auto& rpb = reg.get<ReverbProbeBox>(ent);
 
             if (ImGui::CollapsingHeader("Reverb Probe Box")) {

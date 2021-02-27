@@ -418,7 +418,7 @@ namespace converge {
         registry.view<LocospherePlayerComponent>().each([&](auto ent, LocospherePlayerComponent& lpc) {
             auto& locosphereTransform = registry.get<Transform>(ent);
 
-            const float maxSpeed = 25.0f;
+            static worlds::ConVar maxSpeed { "lg_locosphereSpeed", "25.0" };
             auto& wActor = registry.get<worlds::DynamicPhysicsActor>(ent);
             auto* locosphereActor = (physx::PxRigidDynamic*)wActor.actor;
             auto& rig = registry.get<PlayerRig>(ent);
@@ -472,7 +472,8 @@ namespace converge {
 
             if (!lpc.grounded) {
                 glm::vec3 airVel { lpc.xzMoveInput.x, 0.0f, lpc.xzMoveInput.y };
-                airVel *= 12.5f;
+                // I don't know why, but multiplying the angular speed by 0.16 gives linear speed.
+                airVel *= (float)maxSpeed * 0.16f * (lpc.sprint + 1.0f);
                 glm::vec3 addedVel = (airVel - currLinVel);
                 addedVel.y = 0.0f;
                 locosphereActor->addForce(worlds::glm2px(addedVel), physx::PxForceMode::eACCELERATION);

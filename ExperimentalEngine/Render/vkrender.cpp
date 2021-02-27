@@ -1,5 +1,6 @@
-#include <vulkan/vulkan.hpp>
 #define VMA_IMPLEMENTATION
+#include "Render/vku/vku.hpp"
+#include <vulkan/vulkan.hpp>
 #include "PCH.hpp"
 #include "../Core/Engine.hpp"
 #include <SDL.h>
@@ -26,6 +27,13 @@
 #include "Loaders/SourceModelLoader.hpp"
 #include "Loaders/WMDLLoader.hpp"
 #include "Loaders/RobloxMeshLoader.hpp"
+#define RDOC
+#ifdef RDOC
+#include "renderdoc_app.h"
+#define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
+#include <windows.h>
+#endif
 
 using namespace worlds;
 
@@ -117,6 +125,7 @@ void VKRenderer::createInstance(const RendererInitInfo& initInfo) {
 
 #ifndef NDEBUG
     if (!enableVR || vrValidationLayers) {
+        logMsg(WELogCategoryRender, "Activating validation layers");
         instanceMaker.layer("VK_LAYER_KHRONOS_validation");
         instanceMaker.extension(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
     }
@@ -220,6 +229,16 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     msaaSamples = vk::SampleCountFlagBits::e2;
     numMSAASamples = 2;
 
+#ifdef RDOC
+    if(HMODULE mod = GetModuleHandleA("renderdoc.dll")) {
+        pRENDERDOC_GetAPI RENDERDOC_GetAPI =
+            (pRENDERDOC_GetAPI)GetProcAddress(mod, "RENDERDOC_GetAPI");
+        int ret = RENDERDOC_GetAPI(eRENDERDOC_API_Version_1_1_2, (void **)&rdocApi);
+        assert(ret == 1);
+    } else {
+        rdocApi = nullptr;
+    }
+#endif
     createInstance(initInfo);
 
 #ifndef NDEBUG
@@ -342,7 +361,7 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
 
     int qfi = 0;
     for (auto& qprop : qprops) {
-        logMsg(worlds::WELogCategoryRender, "Queue family with properties %s (supports present: %i)", 
+        logMsg(worlds::WELogCategoryRender, "Queue family with properties %s (supports present: %i)",
             vk::to_string(qprop.queueFlags).c_str(), physicalDevice.getSurfaceSupportKHR(qfi, surface));
         qfi++;
     }
@@ -804,7 +823,7 @@ worlds::ConVar doGTAO{ "r_doGTAO", "1" };
 void VKRenderer::writeCmdBuf(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageIndex, Camera& cam, entt::registry& reg) {
     ZoneScoped;
 
-    RenderCtx rCtx{ cmdBuf, reg, imageIndex, &cam, renderWidth, renderHeight, loadedMeshes };
+    RenderCtx rCtx{ *cmdBuf, reg, imageIndex, &cam, renderWidth, renderHeight, loadedMeshes };
     rCtx.enableVR = enableVR;
     rCtx.materialSlots = &matSlots;
     rCtx.textureSlots = &texSlots;
@@ -846,13 +865,13 @@ void VKRenderer::writeCmdBuf(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageInde
         clearMaterialIndices = false;
     }
 
-    PassSetupCtx psc{ 
-        &materialUB, getVKCtx(), &texSlots, &cubemapSlots, &matSlots, 
+    PassSetupCtx psc{
+        &materialUB, getVKCtx(), &texSlots, &cubemapSlots, &matSlots,
             (int)swapchain->images.size(), enableVR, &brdfLut, renderWidth, renderHeight };
 
     uploadSceneAssets(reg);
 
-    finalPrePresent->image.setLayout(*cmdBuf,
+    finalPrePresent->image.setLayout(rCtx.cmdBuf,
         vk::ImageLayout::eColorAttachmentOptimal,
         vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eColorAttachmentOutput,
         vk::AccessFlagBits::eTransferRead, vk::AccessFlagBits::eColorAttachmentWrite);
@@ -1281,6 +1300,11 @@ void VKRenderer::reloadMatsAndTextures() {
             texSlots->unload(i);
     }
 
+    for (uint32_t i = 0; i < NUM_CUBEMAP_SLOTS; i++) {
+        if (cubemapSlots->isSlotPresent(i))
+            cubemapSlots->unload(i);
+    }
+
     clearMaterialIndices = true;
     loadedMeshes.clear();
 }
@@ -1301,7 +1325,11 @@ RTTPassHandle VKRenderer::createRTTPass(RTTPassCreateInfo& ci) {
     ici.format = vk::Format::eB10G11R11UfloatPack32;
     ici.initialLayout = vk::ImageLayout::eUndefined;
     ici.samples = msaaSamples;
-    ici.usage = vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eStorage;
+    ici.usage =
+          vk::ImageUsageFlagBits::eColorAttachment
+        | vk::ImageUsageFlagBits::eSampled
+        | vk::ImageUsageFlagBits::eStorage
+        | vk::ImageUsageFlagBits::eTransferSrc;
 
     RTResourceCreateInfo polyCreateInfo{ ici, vk::ImageViewType::e2DArray, vk::ImageAspectFlagBits::eColor };
     rpi.hdrTarget = createRTResource(polyCreateInfo, "HDR Target");
@@ -1388,6 +1416,135 @@ void VKRenderer::destroyRTTPass(RTTPassHandle handle) {
         delete rpi.sdrFinalTarget;
 
     rttPasses.erase(handle);
+}
+
+float* VKRenderer::getPassHDRData(RTTPassHandle handle) {
+    auto& rtt = rttPasses.at(handle);
+
+    if (rtt.isVr) {
+        logErr("Getting pass data for VR passes is not supported");
+        return nullptr;
+    }
+
+    vk::ImageCreateInfo ici;
+    ici.imageType = vk::ImageType::e2D;
+    ici.extent = vk::Extent3D{ rtt.width, rtt.height, 1 };
+    ici.arrayLayers = 1;
+    ici.mipLevels = 1;
+    ici.format = vk::Format::eR32G32B32A32Sfloat;
+    ici.initialLayout = vk::ImageLayout::eUndefined;
+    ici.samples = vk::SampleCountFlagBits::e1;
+    ici.tiling = vk::ImageTiling::eLinear;
+    ici.usage = vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc;
+    vku::GenericImage targetImg{
+        *device, allocator, ici, vk::ImageViewType::e2D, vk::ImageAspectFlagBits::eColor, true, "Transfer Destination" };
+
+    vku::executeImmediately(*device, *commandPool, device->getQueue(graphicsQueueFamilyIdx, 0), [&](vk::CommandBuffer cmdBuf) {
+        targetImg.setLayout(cmdBuf,
+                vk::ImageLayout::eTransferDstOptimal,
+                vk::PipelineStageFlagBits::eTransfer,
+                vk::PipelineStageFlagBits::eTransfer,
+                vk::AccessFlagBits::eHostWrite,
+                vk::AccessFlagBits::eTransferWrite);
+
+        auto oldHdrLayout = rtt.hdrTarget->image.layout();
+        rtt.hdrTarget->image.setLayout(cmdBuf,
+                vk::ImageLayout::eTransferSrcOptimal,
+                vk::PipelineStageFlagBits::eAllGraphics,
+                vk::PipelineStageFlagBits::eTransfer,
+                vk::AccessFlagBits::eShaderRead,
+                vk::AccessFlagBits::eTransferRead);
+
+        vk::ImageBlit blit;
+        blit.srcSubresource.layerCount = 1;
+        blit.srcSubresource.aspectMask = vk::ImageAspectFlagBits::eColor;
+        blit.dstSubresource.layerCount = 1;
+        blit.dstSubresource.aspectMask = vk::ImageAspectFlagBits::eColor;
+        blit.srcOffsets[1] = blit.dstOffsets[1] =
+            vk::Offset3D {static_cast<int32_t>(rtt.width), static_cast<int32_t>(rtt.height), 1};
+
+        cmdBuf.blitImage(
+                rtt.hdrTarget->image.image(), vk::ImageLayout::eTransferSrcOptimal,
+                targetImg.image(), vk::ImageLayout::eTransferDstOptimal,
+                1,
+                &blit,
+                vk::Filter::eNearest);
+
+        rtt.hdrTarget->image.setLayout(cmdBuf,
+                oldHdrLayout,
+                vk::PipelineStageFlagBits::eTransfer,
+                vk::PipelineStageFlagBits::eAllGraphics,
+                vk::AccessFlagBits::eTransferRead,
+                vk::AccessFlagBits::eShaderRead);
+
+        targetImg.setLayout(cmdBuf,
+                vk::ImageLayout::eGeneral,
+                vk::PipelineStageFlagBits::eTransfer,
+                vk::PipelineStageFlagBits::eTransfer,
+                vk::AccessFlagBits::eTransferWrite,
+                vk::AccessFlagBits::eHostRead);
+    });
+
+    vk::ImageSubresource subresource;
+
+    auto layout = device->getImageSubresourceLayout(targetImg.image(), subresource);
+
+    float* buffer = (float*)malloc(rtt.width * rtt.height * 4 * sizeof(float));
+    char* mapped = (char*)targetImg.map();
+    memcpy(buffer, mapped + layout.offset, rtt.width * rtt.height * 4 * sizeof(float));
+    targetImg.unmap();
+
+    return buffer;
+}
+
+void VKRenderer::updatePass(RTTPassHandle handle, entt::registry& world) {
+    auto& rtt = rttPasses.at(handle);
+
+    vku::executeImmediately(*device, *commandPool, device->getQueue(graphicsQueueFamilyIdx, 0),
+    [&](vk::CommandBuffer cmdBuf) {
+        PassSetupCtx psc{
+            &materialUB, getVKCtx(), &texSlots, &cubemapSlots, &matSlots,
+            (int)swapchain->images.size(), enableVR, &brdfLut, rtt.width, rtt.height };
+
+        RenderCtx rCtx{ cmdBuf, world, 0, rtt.cam, rtt.width, rtt.height, loadedMeshes };
+        rCtx.enableVR = false;
+        rCtx.materialSlots = &matSlots;
+        rCtx.textureSlots = &texSlots;
+        rCtx.cubemapSlots = &cubemapSlots;
+        rCtx.viewPos = rtt.cam->position;
+        rCtx.dbgStats = &dbgStats;
+        rtt.prp->prePass(psc, rCtx);
+        rtt.prp->execute(rCtx);
+
+        if (doGTAO.getInt())
+            rtt.gtrp->execute(rCtx);
+
+        rtt.hdrTarget->image.barrier(cmdBuf,
+            vk::PipelineStageFlagBits::eColorAttachmentOutput, vk::PipelineStageFlagBits::eComputeShader,
+            vk::AccessFlagBits::eColorAttachmentWrite, vk::AccessFlagBits::eShaderRead);
+
+        rtt.trp->execute(rCtx);
+    });
+}
+
+void VKRenderer::triggerRenderdocCapture() {
+    if (!rdocApi) return;
+#ifdef RDOC
+    RENDERDOC_API_1_1_2* rdocApiActual = (RENDERDOC_API_1_1_2*)rdocApi;
+    rdocApiActual->TriggerCapture();
+#endif
+}
+
+void VKRenderer::startRdocCapture() {
+    if (!rdocApi) return;
+    RENDERDOC_API_1_1_2* rdocApiActual = (RENDERDOC_API_1_1_2*)rdocApi;
+    rdocApiActual->StartFrameCapture(nullptr, nullptr);
+}
+
+void VKRenderer::endRdocCapture() {
+    if (!rdocApi) return;
+    RENDERDOC_API_1_1_2* rdocApiActual = (RENDERDOC_API_1_1_2*)rdocApi;
+    rdocApiActual->EndFrameCapture(nullptr, nullptr);
 }
 
 VKRenderer::~VKRenderer() {

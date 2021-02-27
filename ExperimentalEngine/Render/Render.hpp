@@ -179,7 +179,7 @@ namespace worlds {
 
     struct RenderCtx {
         RenderCtx(
-            vk::UniqueCommandBuffer& cmdBuf,
+            vk::CommandBuffer cmdBuf,
             entt::registry& reg,
             uint32_t imageIndex,
             Camera* cam,
@@ -195,7 +195,7 @@ namespace worlds {
             , enableVR(false) {
         }
 
-        vk::UniqueCommandBuffer& cmdBuf;
+        vk::CommandBuffer cmdBuf;
         vk::PipelineCache pipelineCache;
 
         entt::registry& reg;
@@ -383,6 +383,7 @@ namespace worlds {
         RTTPassHandle nextHandle;
         uint32_t frameIdx;
         ShadowmapRenderPass* shadowmapPass;
+        void* rdocApi;
     public:
         double time;
         VKRenderer(const RendererInitInfo& initInfo, bool* success);
@@ -409,7 +410,13 @@ namespace worlds {
         vku::GenericImage& getSDRTarget(RTTPassHandle handle) { return rttPasses.at(handle).sdrFinalTarget->image; }
         void setRTTPassActive(RTTPassHandle handle, bool active) { rttPasses.at(handle).active = active; }
         bool isPassValid(RTTPassHandle handle) { return rttPasses.find(handle) != rttPasses.end(); }
+        float* getPassHDRData(RTTPassHandle handle);
+        void updatePass(RTTPassHandle handle, entt::registry& world);
         RenderTexture* createRTResource(RTResourceCreateInfo resourceCreateInfo, const char* debugName = nullptr);
+
+        void triggerRenderdocCapture();
+        void startRdocCapture();
+        void endRdocCapture();
 
         ~VKRenderer();
     };

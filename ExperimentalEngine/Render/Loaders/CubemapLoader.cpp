@@ -102,7 +102,7 @@ namespace worlds {
             jl.begin();
             for (int i = 0; i < 6; i++) {
                 Job j{ [&, i] {
-                    for (int j = 0; j < cd.faceData[i].totalDataSize; j++) {
+                    for (uint32_t j = 0; j < cd.faceData[i].totalDataSize; j++) {
                         float asFloat = (float)cd.faceData[i].data[j] / 255.0f;
                         asFloat = powf(asFloat, 2.2f);
                         cd.faceData[i].data[j] = asFloat * 255;
@@ -119,7 +119,7 @@ namespace worlds {
             ctx.device,
             ctx.allocator,
             cd.faceData[0].width, cd.faceData[0].height,
-            std::min(getNumMips(cd.faceData[0].width, cd.faceData[0].height), 5u), 
+            std::min(getNumMips(cd.faceData[0].width, cd.faceData[0].height), 5u),
             newFormat, false,
             cd.debugName.empty() ? nullptr : cd.debugName.c_str()
         };

@@ -74,32 +74,32 @@ namespace worlds {
     }
 
     void BlurRenderPass::execute(RenderCtx& ctx) {
-        tmpTarget->image.setLayout(*ctx.cmdBuf, vk::ImageLayout::eGeneral,
+        tmpTarget->image.setLayout(ctx.cmdBuf, vk::ImageLayout::eGeneral,
             vk::PipelineStageFlagBits::eComputeShader, vk::PipelineStageFlagBits::eComputeShader,
             vk::AccessFlagBits::eShaderRead, vk::AccessFlagBits::eShaderWrite);
 
-        ctx.cmdBuf->bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pipelineLayout, 0, *dses[0], nullptr);
-        ctx.cmdBuf->bindPipeline(vk::PipelineBindPoint::eCompute, *pipeline);
+        ctx.cmdBuf.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pipelineLayout, 0, *dses[0], nullptr);
+        ctx.cmdBuf.bindPipeline(vk::PipelineBindPoint::eCompute, *pipeline);
 
         BlurPushConstants pc;
         pc.direction = glm::vec2(1.0f, 0.0f);
-        ctx.cmdBuf->pushConstants<BlurPushConstants>(*pipelineLayout, vk::ShaderStageFlagBits::eCompute, 0, pc);
-        ctx.cmdBuf->dispatch((ctx.width + 15) / 16, (ctx.height + 15) / 16, numLayers);
+        ctx.cmdBuf.pushConstants<BlurPushConstants>(*pipelineLayout, vk::ShaderStageFlagBits::eCompute, 0, pc);
+        ctx.cmdBuf.dispatch((ctx.width + 15) / 16, (ctx.height + 15) / 16, numLayers);
 
-        tmpTarget->image.setLayout(*ctx.cmdBuf, vk::ImageLayout::eShaderReadOnlyOptimal,
+        tmpTarget->image.setLayout(ctx.cmdBuf, vk::ImageLayout::eShaderReadOnlyOptimal,
             vk::PipelineStageFlagBits::eComputeShader, vk::PipelineStageFlagBits::eComputeShader,
             vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderRead);
 
-        src->image.setLayout(*ctx.cmdBuf, vk::ImageLayout::eGeneral,
+        src->image.setLayout(ctx.cmdBuf, vk::ImageLayout::eGeneral,
             vk::PipelineStageFlagBits::eComputeShader, vk::PipelineStageFlagBits::eComputeShader,
             vk::AccessFlagBits::eShaderRead, vk::AccessFlagBits::eShaderWrite);
 
-        ctx.cmdBuf->bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pipelineLayout, 0, *dses[1], nullptr);
+        ctx.cmdBuf.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pipelineLayout, 0, *dses[1], nullptr);
         pc.direction = glm::vec2(0.0f, 1.0f);
-        ctx.cmdBuf->pushConstants<BlurPushConstants>(*pipelineLayout, vk::ShaderStageFlagBits::eCompute, 0, pc);
-        ctx.cmdBuf->dispatch((ctx.width + 15) / 16, (ctx.height + 15) / 16, numLayers);
+        ctx.cmdBuf.pushConstants<BlurPushConstants>(*pipelineLayout, vk::ShaderStageFlagBits::eCompute, 0, pc);
+        ctx.cmdBuf.dispatch((ctx.width + 15) / 16, (ctx.height + 15) / 16, numLayers);
 
-        src->image.setLayout(*ctx.cmdBuf, vk::ImageLayout::eShaderReadOnlyOptimal,
+        src->image.setLayout(ctx.cmdBuf, vk::ImageLayout::eShaderReadOnlyOptimal,
             vk::PipelineStageFlagBits::eComputeShader, vk::PipelineStageFlagBits::eComputeShader,
             vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderRead);
     }

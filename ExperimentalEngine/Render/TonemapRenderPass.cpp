@@ -78,31 +78,31 @@ namespace worlds {
         TracyVkZone((*ctx.tracyContexts)[ctx.imageIndex], *ctx.cmdBuf, "Tonemap/Postprocessing");
 #endif
         auto& cmdBuf = ctx.cmdBuf;
-        finalPrePresent->image.setLayout(*cmdBuf,
+        finalPrePresent->image.setLayout(cmdBuf,
             vk::ImageLayout::eGeneral,
             vk::PipelineStageFlagBits::eColorAttachmentOutput, vk::PipelineStageFlagBits::eComputeShader,
             vk::AccessFlagBits::eColorAttachmentWrite, vk::AccessFlagBits::eShaderWrite);
 
-        cmdBuf->bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pipelineLayout, 0, *descriptorSet, nullptr);
-        cmdBuf->bindPipeline(vk::PipelineBindPoint::eCompute, *pipeline);
+        cmdBuf.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pipelineLayout, 0, *descriptorSet, nullptr);
+        cmdBuf.bindPipeline(vk::PipelineBindPoint::eCompute, *pipeline);
         TonemapPushConstants tpc{ aoIntensity.getFloat(), 0, exposureBias.getFloat() };
-        cmdBuf->pushConstants<TonemapPushConstants>(*pipelineLayout, vk::ShaderStageFlagBits::eCompute, 0, tpc);
+        cmdBuf.pushConstants<TonemapPushConstants>(*pipelineLayout, vk::ShaderStageFlagBits::eCompute, 0, tpc);
 
-        cmdBuf->dispatch((ctx.width + 15) / 16, (ctx.height + 15) / 16, 1);
+        cmdBuf.dispatch((ctx.width + 15) / 16, (ctx.height + 15) / 16, 1);
 
         if (ctx.enableVR) {
-            finalPrePresentR->image.setLayout(*cmdBuf,
+            finalPrePresentR->image.setLayout(cmdBuf,
                 vk::ImageLayout::eGeneral,
                 vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eComputeShader,
                 vk::AccessFlagBits::eTransferRead, vk::AccessFlagBits::eShaderWrite);
 
-            cmdBuf->bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pipelineLayout, 0, *rDescriptorSet, nullptr);
+            cmdBuf.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pipelineLayout, 0, *rDescriptorSet, nullptr);
             TonemapPushConstants tpc{ aoIntensity.getFloat(), 1, exposureBias.getFloat() };
-            cmdBuf->pushConstants<TonemapPushConstants>(*pipelineLayout, vk::ShaderStageFlagBits::eCompute, 0, tpc);
-            cmdBuf->dispatch((ctx.width + 15) / 16, (ctx.height + 15) / 16, 1);
+            cmdBuf.pushConstants<TonemapPushConstants>(*pipelineLayout, vk::ShaderStageFlagBits::eCompute, 0, tpc);
+            cmdBuf.dispatch((ctx.width + 15) / 16, (ctx.height + 15) / 16, 1);
         }
 
-        finalPrePresent->image.setLayout(*cmdBuf,
+        finalPrePresent->image.setLayout(cmdBuf,
             vk::ImageLayout::eColorAttachmentOptimal,
             vk::PipelineStageFlagBits::eComputeShader, vk::PipelineStageFlagBits::eColorAttachmentOutput,
             vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite);

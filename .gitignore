@@ -345,6 +345,7 @@ healthchecksdb
 /EEData/memory_shutdown.json
 /EEData/memory.json
 /EEData/Temp
+/EEData/LevelCubemaps
 /log.txt
 
 build

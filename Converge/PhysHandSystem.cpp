@@ -51,8 +51,11 @@ namespace converge {
 
             glm::vec3 force = physHand.posController.getOutput(worlds::px2glm(t.p) - refVel * simStep * 2.0f, physHand.targetWorldPos, vel, simStep, refVel);
 
-            if (!glm::any(glm::isnan(force)))
-                body->addForce(worlds::glm2px(force));
+            if (glm::any(glm::isnan(force))) {
+                force = glm::vec3(0.0f);
+            }
+
+            body->addForce(worlds::glm2px(force));
 
             if (registry.valid(physHand.locosphere)) {
                 worlds::DynamicPhysicsActor& lDpa = registry.get<worlds::DynamicPhysicsActor>(physHand.locosphere);

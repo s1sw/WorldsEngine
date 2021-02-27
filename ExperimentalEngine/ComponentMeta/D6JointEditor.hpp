@@ -71,7 +71,7 @@ namespace worlds {
             reg.emplace<D6Joint>(ent);
         }
 
-        void edit(entt::entity ent, entt::registry& reg) override {
+        void edit(entt::entity ent, entt::registry& reg, Editor* ed) override {
             auto& j = reg.get<D6Joint>(ent);
             if (!reg.has<DynamicPhysicsActor>(ent)) {
                 reg.remove<D6Joint>(ent);
