@@ -1724,6 +1724,16 @@ namespace vku {
         const vk::ImageCreateInfo& info() const { return s.info; }
         vk::ImageLayout layout() const { return s.currentLayout; }
 
+        void* map() {
+            void* res;
+            vmaMapMemory(s.allocator, s.allocation, &res);
+            return res;
+        }
+
+        void unmap() {
+            vmaUnmapMemory(s.allocator, s.allocation);
+        }
+
         void destroy() {
             VkImage cImg = *s.image;
             if (cImg) {

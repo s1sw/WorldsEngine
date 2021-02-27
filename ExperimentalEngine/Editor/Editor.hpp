@@ -105,6 +105,7 @@ namespace worlds {
         void setActive(bool active);
         entt::entity getSelectedEntity() { return currentSelectedEntity; }
         UITextureManager* texManager() { return texMan; }
+        EditorUndo undo;
     private:
         void updateCamera(float deltaTime);
         std::string generateWindowTitle();
@@ -123,7 +124,6 @@ namespace worlds {
 
         UITextureManager* texMan;
 
-        EditorUndo undo;
         EditorSettings settings;
         EngineInterfaces interfaces;
         InputManager& inputManager;

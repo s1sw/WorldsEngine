@@ -16,12 +16,12 @@ namespace worlds {
         glm::mat4 proj;
     };
 
-    GTAORenderPass::GTAORenderPass(VKRenderer* renderer, RenderTexture* depth, RenderTexture* out) 
+    GTAORenderPass::GTAORenderPass(VKRenderer* renderer, RenderTexture* depth, RenderTexture* out)
         : depth{ depth }
         , out{ out }
-        , renderer{ renderer } 
+        , renderer{ renderer }
         , frameIdx{ 0 } {
-        
+
     }
 
     void GTAORenderPass::setup(PassSetupCtx& ctx) {
@@ -71,17 +71,17 @@ namespace worlds {
     static ConVar gtaoFalloff{ "r_gtaoFalloff", "3" };
     static ConVar gtaoThicknessMix{ "r_gtaoThicknessMix", "0.2" };
     static ConVar gtaoBlur{ "r_gtaoBlur", "1" };
-    
+
     void GTAORenderPass::execute(RenderCtx& ctx) {
-        depth->image.setLayout(*ctx.cmdBuf, vk::ImageLayout::eShaderReadOnlyOptimal, 
-            vk::PipelineStageFlagBits::eEarlyFragmentTests, vk::PipelineStageFlagBits::eComputeShader, 
-            vk::AccessFlagBits::eDepthStencilAttachmentWrite, vk::AccessFlagBits::eShaderRead, 
+        depth->image.setLayout(ctx.cmdBuf, vk::ImageLayout::eShaderReadOnlyOptimal,
+            vk::PipelineStageFlagBits::eEarlyFragmentTests, vk::PipelineStageFlagBits::eComputeShader,
+            vk::AccessFlagBits::eDepthStencilAttachmentWrite, vk::AccessFlagBits::eShaderRead,
             vk::ImageAspectFlagBits::eDepth);
 
-        ctx.cmdBuf->bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pipelineLayout, 0, *descriptorSet, nullptr);
-        ctx.cmdBuf->bindPipeline(vk::PipelineBindPoint::eCompute, *pipeline);
+        ctx.cmdBuf.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pipelineLayout, 0, *descriptorSet, nullptr);
+        ctx.cmdBuf.bindPipeline(vk::PipelineBindPoint::eCompute, *pipeline);
 
-        out->image.setLayout(*ctx.cmdBuf, vk::ImageLayout::eGeneral,
+        out->image.setLayout(ctx.cmdBuf, vk::ImageLayout::eGeneral,
             vk::PipelineStageFlagBits::eComputeShader, vk::PipelineStageFlagBits::eComputeShader,
             vk::AccessFlagBits::eShaderRead, vk::AccessFlagBits::eShaderWrite);
 
@@ -90,16 +90,16 @@ namespace worlds {
         pc.viewSizeRcp = glm::vec2(1.0f / (float)ctx.width, 1.0f / (float)ctx.height);
         pc.viewSize = glm::vec2(ctx.width, ctx.height);
         pc.proj = glm::inverse(ctx.cam->getProjectionMatrixZO((float)ctx.width / (float)ctx.height));
-        
+
         pc.limit = gtaoLimit.getFloat();
         pc.radius = gtaoRadius.getFloat();
         pc.falloff = gtaoFalloff.getFloat();
         pc.thicknessMix = gtaoThicknessMix.getFloat();
 
-        ctx.cmdBuf->pushConstants<GTAOPushConstants>(*pipelineLayout, vk::ShaderStageFlagBits::eCompute, 0, pc);
-        ctx.cmdBuf->dispatch((ctx.width + 15) / 16, (ctx.height + 15) / 16, ctx.enableVR + 1);
+        ctx.cmdBuf.pushConstants<GTAOPushConstants>(*pipelineLayout, vk::ShaderStageFlagBits::eCompute, 0, pc);
+        ctx.cmdBuf.dispatch((ctx.width + 15) / 16, (ctx.height + 15) / 16, ctx.enableVR + 1);
 
-        out->image.setLayout(*ctx.cmdBuf, vk::ImageLayout::eShaderReadOnlyOptimal,
+        out->image.setLayout(ctx.cmdBuf, vk::ImageLayout::eShaderReadOnlyOptimal,
             vk::PipelineStageFlagBits::eComputeShader, vk::PipelineStageFlagBits::eComputeShader,
             vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderRead);
 

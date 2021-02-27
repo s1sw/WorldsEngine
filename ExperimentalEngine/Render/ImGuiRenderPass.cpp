@@ -59,9 +59,9 @@ namespace worlds {
         rpbi.renderArea = vk::Rect2D{ {0, 0}, {ctx.width, ctx.height} };
         rpbi.clearValueCount = (uint32_t)clearColours.size();
         rpbi.pClearValues = clearColours.data();
-        cmdBuf->beginRenderPass(rpbi, vk::SubpassContents::eInline);
-        ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), *cmdBuf);
-        cmdBuf->endRenderPass();
+        cmdBuf.beginRenderPass(rpbi, vk::SubpassContents::eInline);
+        ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), (VkCommandBuffer)cmdBuf);
+        cmdBuf.endRenderPass();
     }
 
     ImGuiRenderPass::~ImGuiRenderPass() {

@@ -1,7 +1,8 @@
 @echo off
 cd /D "%~dp0"
-glslangValidator standard.glsl -DFRAGMENT -DEFT -V -S frag -o standard.frag.spv 
-glslangValidator standard.glsl -DVERTEX -V -S vert -o standard.vert.spv 
+glslc --target-env=vulkan1.2 -fshader-stage=frag -I Include standard.glsl -DFRAGMENT -DEFT  -o standard.frag.spv
+glslc --target-env=vulkan1.2 -fshader-stage=vert -I Include standard.glsl -DVERTEX -o standard.vert.spv
+glslc --target-env=vulkan1.2 -fshader-stage=frag -I Include standard.glsl -DFRAGMENT -o standard_alpha_test.frag.spv
 glslangValidator tonemap.comp.glsl -V -o tonemap.comp.spv
 glslangValidator tonemap2d.comp.glsl -V -o tonemap2d.comp.spv
 glslangValidator clear_pick_buf.comp.glsl -V -o clear_pick_buf.comp.spv
@@ -18,13 +19,12 @@ glslangValidator line.frag.glsl -V -o line.frag.spv
 glslangValidator line.vert.glsl -V -o line.vert.spv
 glslangValidator depth_prepass.vert.glsl -V -o depth_prepass.vert.spv
 glslangValidator alpha_test_prepass.frag.glsl -V -o alpha_test_prepass.frag.spv
-glslangValidator standard.glsl -DFRAGMENT -V -S frag -o standard_alpha_test.frag.spv
 glslangValidator skin.comp.glsl -V -o skin.comp.spv
 glslangValidator gtao.comp.glsl -V -o gtao.comp.spv
 glslangValidator blur.comp.glsl -V -o blur.comp.spv
 glslangValidator vr_hidden.vert.glsl -V -o vr_hidden.vert.spv
 
-REM glslangValidator standard.glsl -DFRAGMENT -DAMD_VIEWINDEX_WORKAROUND -V -S frag -o standard_vi_workaround.frag.spv 
-REM glslangValidator standard.glsl -DVERTEX -DAMD_VIEWINDEX_WORKAROUND -V -S vert -o standard_vi_workaround.vert.spv 
+REM glslangValidator standard.glsl -DFRAGMENT -DAMD_VIEWINDEX_WORKAROUND -V -S frag -o standard_vi_workaround.frag.spv
+REM glslangValidator standard.glsl -DVERTEX -DAMD_VIEWINDEX_WORKAROUND -V -S vert -o standard_vi_workaround.vert.spv
 REM glslangValidator skybox_vi_workaround.vert.glsl -V -o skybox_vi_workaround.vert.spv
 move *.spv ../../EEData/Shaders

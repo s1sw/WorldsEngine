@@ -18,7 +18,7 @@ namespace worlds {
                     auto rtView = reg.runtime_view(std::cbegin(t), std::cend(t));
 
                     if (rtView.contains(selectedEnt)) {
-                        mdata->edit(selectedEnt, reg);
+                        mdata->edit(selectedEnt, reg, editor);
                     }
                 }
 

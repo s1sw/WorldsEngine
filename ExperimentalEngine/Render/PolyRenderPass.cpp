@@ -215,9 +215,9 @@ namespace worlds {
         rPassMaker.dependencyBegin(0, 1);
         rPassMaker.dependencySrcStageMask(vk::PipelineStageFlagBits::eEarlyFragmentTests);
         rPassMaker.dependencyDstStageMask(vk::PipelineStageFlagBits::eEarlyFragmentTests | vk::PipelineStageFlagBits::eColorAttachmentOutput);
-        rPassMaker.dependencyDstAccessMask(vk::AccessFlagBits::eColorAttachmentRead | 
+        rPassMaker.dependencyDstAccessMask(vk::AccessFlagBits::eColorAttachmentRead |
                                            vk::AccessFlagBits::eColorAttachmentWrite |
-                                           vk::AccessFlagBits::eDepthStencilAttachmentRead | 
+                                           vk::AccessFlagBits::eDepthStencilAttachmentRead |
                                            vk::AccessFlagBits::eDepthStencilAttachmentWrite);
 
 
@@ -282,7 +282,7 @@ namespace worlds {
             pm.subPass(0);
             depthPrePipeline = pm.createUnique(ctx.device, ctx.pipelineCache, *pipelineLayout, *renderPass);
         }
-        
+
         {
             vku::PipelineMaker pm{ extent.width, extent.height };
 
@@ -301,7 +301,7 @@ namespace worlds {
             pm.vertexAttribute(2, 0, vk::Format::eR32G32B32Sfloat, (uint32_t)offsetof(Vertex, tangent));
             pm.vertexAttribute(3, 0, vk::Format::eR32G32Sfloat, (uint32_t)offsetof(Vertex, uv));
             pm.cullMode(vk::CullModeFlagBits::eBack);
-            
+
             if ((int)depthPrepass)
                 pm.depthWriteEnable(false).depthTestEnable(true).depthCompareOp(vk::CompareOp::eEqual);
             else
@@ -637,50 +637,50 @@ namespace worlds {
         rpbi.clearValueCount = (uint32_t)clearColours.size();
         rpbi.pClearValues = clearColours.data();
 
-        vk::UniqueCommandBuffer& cmdBuf = ctx.cmdBuf;
+        vk::CommandBuffer cmdBuf = ctx.cmdBuf;
         entt::registry& reg = ctx.reg;
 
         vpUB.barrier(
-            *cmdBuf, vk::PipelineStageFlagBits::eHost, vk::PipelineStageFlagBits::eVertexShader,
+            cmdBuf, vk::PipelineStageFlagBits::eHost, vk::PipelineStageFlagBits::eVertexShader,
             vk::DependencyFlagBits::eByRegion, vk::AccessFlagBits::eHostWrite, vk::AccessFlagBits::eUniformRead,
             VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED);
 
         lightsUB.barrier(
-            *cmdBuf, vk::PipelineStageFlagBits::eHost, vk::PipelineStageFlagBits::eFragmentShader,
+            cmdBuf, vk::PipelineStageFlagBits::eHost, vk::PipelineStageFlagBits::eFragmentShader,
             vk::DependencyFlagBits::eByRegion, vk::AccessFlagBits::eHostWrite, vk::AccessFlagBits::eUniformRead,
             VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED);
 
         if (pickThisFrame) {
-            pickingBuffer.barrier(*cmdBuf, vk::PipelineStageFlagBits::eHost, vk::PipelineStageFlagBits::eTransfer,
+            pickingBuffer.barrier(cmdBuf, vk::PipelineStageFlagBits::eHost, vk::PipelineStageFlagBits::eTransfer,
                 vk::DependencyFlagBits::eByRegion,
                 vk::AccessFlagBits::eHostRead, vk::AccessFlagBits::eTransferWrite,
                 VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED);
 
             PickingBuffer pb;
             pb.objectID = ~0u;
-            cmdBuf->updateBuffer(pickingBuffer.buffer(), 0, sizeof(pb), &pb);
+            cmdBuf.updateBuffer(pickingBuffer.buffer(), 0, sizeof(pb), &pb);
 
-            pickingBuffer.barrier(*cmdBuf, vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eFragmentShader,
+            pickingBuffer.barrier(cmdBuf, vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eFragmentShader,
                 vk::DependencyFlagBits::eByRegion,
                 vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eShaderWrite | vk::AccessFlagBits::eShaderRead,
                 VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED);
         }
 
         if (setEventNextFrame) {
-            cmdBuf->setEvent(*pickEvent, vk::PipelineStageFlagBits::eAllCommands);
+            cmdBuf.setEvent(*pickEvent, vk::PipelineStageFlagBits::eAllCommands);
             setEventNextFrame = false;
         }
 
-        cmdBuf->beginRenderPass(rpbi, vk::SubpassContents::eInline);
+        cmdBuf.beginRenderPass(rpbi, vk::SubpassContents::eInline);
 
         if (ctx.enableVR) {
-            cullMeshRenderer->draw(*cmdBuf);
+            cullMeshRenderer->draw(cmdBuf);
         }
 
         int matrixIdx = 0;
 
         matrixIdx = 0;
-        cmdBuf->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 0, *descriptorSet, nullptr);
+        cmdBuf.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 0, *descriptorSet, nullptr);
 
         Frustum frustum;
         Frustum frustumB;
@@ -711,7 +711,7 @@ namespace worlds {
                     return;
                 }
             } else {
-                if (!frustum.containsSphere(transform.position, meshPos->second.sphereRadius * maxScale) && 
+                if (!frustum.containsSphere(transform.position, meshPos->second.sphereRadius * maxScale) &&
                     !frustumB.containsSphere(transform.position, meshPos->second.sphereRadius * maxScale)) {
                     ctx.dbgStats->numCulledObjs++;
                     matrixIdx++;
@@ -791,33 +791,33 @@ namespace worlds {
 
         if ((int)depthPrepass) {
             ZoneScopedN("Depth prepass");
-            cmdBuf->bindPipeline(vk::PipelineBindPoint::eGraphics, *depthPrePipeline);
+            cmdBuf.bindPipeline(vk::PipelineBindPoint::eGraphics, *depthPrePipeline);
 
             for (auto& sdi : drawInfo) {
                 if (sdi.pipeline != *pipeline || !sdi.opaque) {
                     continue;
                 }
 
-                StandardPushConstants pushConst { 
-                    sdi.texScaleOffset, glm::ivec4(sdi.matrixIdx, sdi.materialIdx, 0, sdi.ent), 
+                StandardPushConstants pushConst {
+                    sdi.texScaleOffset, glm::ivec4(sdi.matrixIdx, sdi.materialIdx, 0, sdi.ent),
                         glm::ivec3(pickX, pickY, globalMiscFlags | sdi.drawMiscFlags), 0 };
-                cmdBuf->pushConstants<StandardPushConstants>(*pipelineLayout, vk::ShaderStageFlagBits::eFragment | vk::ShaderStageFlagBits::eVertex, 0, pushConst);
-                cmdBuf->bindVertexBuffers(0, sdi.vb, vk::DeviceSize(0));
-                cmdBuf->bindIndexBuffer(sdi.ib, 0, vk::IndexType::eUint32);
-                cmdBuf->drawIndexed(sdi.indexCount, 1, sdi.indexOffset, 0, 0);
+                cmdBuf.pushConstants<StandardPushConstants>(*pipelineLayout, vk::ShaderStageFlagBits::eFragment | vk::ShaderStageFlagBits::eVertex, 0, pushConst);
+                cmdBuf.bindVertexBuffers(0, sdi.vb, vk::DeviceSize(0));
+                cmdBuf.bindIndexBuffer(sdi.ib, 0, vk::IndexType::eUint32);
+                cmdBuf.drawIndexed(sdi.indexCount, 1, sdi.indexOffset, 0, 0);
                 ctx.dbgStats->numDrawCalls++;
             }
         }
-        
-        cmdBuf->nextSubpass(vk::SubpassContents::eInline);
 
-        cmdBuf->bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline);
+        cmdBuf.nextSubpass(vk::SubpassContents::eInline);
+
+        cmdBuf.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline);
         SubmeshDrawInfo last;
         last.pipeline = *pipeline;
         for (auto& sdi : drawInfo) {
             ZoneScopedN("SDI cmdbuf write");
             if (last.pipeline != sdi.pipeline) {
-                cmdBuf->bindPipeline(vk::PipelineBindPoint::eGraphics, sdi.pipeline);
+                cmdBuf.bindPipeline(vk::PipelineBindPoint::eGraphics, sdi.pipeline);
                 ctx.dbgStats->numPipelineSwitches++;
             }
 
@@ -836,16 +836,16 @@ namespace worlds {
                 });
 
             StandardPushConstants pushConst{ sdi.texScaleOffset, glm::ivec4(sdi.matrixIdx, sdi.materialIdx, 0, sdi.ent), glm::ivec3(pickX, pickY, globalMiscFlags | sdi.drawMiscFlags), currCubemapIdx };
-            cmdBuf->pushConstants<StandardPushConstants>(*pipelineLayout, vk::ShaderStageFlagBits::eFragment | vk::ShaderStageFlagBits::eVertex, 0, pushConst);
-            cmdBuf->bindVertexBuffers(0, sdi.vb, vk::DeviceSize(0));
-            cmdBuf->bindIndexBuffer(sdi.ib, 0, vk::IndexType::eUint32);
-            cmdBuf->drawIndexed(sdi.indexCount, 1, sdi.indexOffset, 0, 0);
+            cmdBuf.pushConstants<StandardPushConstants>(*pipelineLayout, vk::ShaderStageFlagBits::eFragment | vk::ShaderStageFlagBits::eVertex, 0, pushConst);
+            cmdBuf.bindVertexBuffers(0, sdi.vb, vk::DeviceSize(0));
+            cmdBuf.bindIndexBuffer(sdi.ib, 0, vk::IndexType::eUint32);
+            cmdBuf.drawIndexed(sdi.indexCount, 1, sdi.indexOffset, 0, 0);
 
             last = sdi;
             ctx.dbgStats->numDrawCalls++;
         }
 
-        cmdBuf->bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline);
+        cmdBuf.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline);
 
         reg.view<Transform, ProceduralObject>().each([&](auto ent, Transform& transform, ProceduralObject& obj) {
             matrixIdx++;
@@ -865,10 +865,10 @@ namespace worlds {
                 });
 
             StandardPushConstants pushConst{ glm::vec4(1.0f, 1.0f, 0.0f, 0.0f), glm::ivec4(matrixIdx, obj.materialIdx, 0, ent), glm::ivec3(pickX, pickY, globalMiscFlags), currCubemapIdx };
-            cmdBuf->pushConstants<StandardPushConstants>(*pipelineLayout, vk::ShaderStageFlagBits::eFragment | vk::ShaderStageFlagBits::eVertex, 0, pushConst);
-            cmdBuf->bindVertexBuffers(0, obj.vb.buffer(), vk::DeviceSize(0));
-            cmdBuf->bindIndexBuffer(obj.ib.buffer(), 0, obj.indexType);
-            cmdBuf->drawIndexed(obj.indexCount, 1, 0, 0, 0);
+            cmdBuf.pushConstants<StandardPushConstants>(*pipelineLayout, vk::ShaderStageFlagBits::eFragment | vk::ShaderStageFlagBits::eVertex, 0, pushConst);
+            cmdBuf.bindVertexBuffers(0, obj.vb.buffer(), vk::DeviceSize(0));
+            cmdBuf.bindIndexBuffer(obj.ib.buffer(), 0, obj.indexType);
+            cmdBuf.drawIndexed(obj.indexCount, 1, 0, 0, 0);
             ctx.dbgStats->numDrawCalls++;
             });
 
@@ -877,26 +877,26 @@ namespace worlds {
         }
 
         if (numLineVerts > 0) {
-            cmdBuf->bindPipeline(vk::PipelineBindPoint::eGraphics, *linePipeline);
-            cmdBuf->bindVertexBuffers(0, lineVB.buffer(), vk::DeviceSize(0));
-            cmdBuf->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *linePipelineLayout, 0, *lineDs, nullptr);
-            cmdBuf->draw(numLineVerts, 1, 0, 0);
+            cmdBuf.bindPipeline(vk::PipelineBindPoint::eGraphics, *linePipeline);
+            cmdBuf.bindVertexBuffers(0, lineVB.buffer(), vk::DeviceSize(0));
+            cmdBuf.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *linePipelineLayout, 0, *lineDs, nullptr);
+            cmdBuf.draw(numLineVerts, 1, 0, 0);
             ctx.dbgStats->numDrawCalls++;
         }
 
-        cmdBuf->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *skyboxPipelineLayout, 0, *skyboxDs, nullptr);
-        cmdBuf->bindPipeline(vk::PipelineBindPoint::eGraphics, *skyboxPipeline);
+        cmdBuf.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *skyboxPipelineLayout, 0, *skyboxDs, nullptr);
+        cmdBuf.bindPipeline(vk::PipelineBindPoint::eGraphics, *skyboxPipeline);
         SkyboxPushConstants spc{ glm::ivec4(0) };
-        cmdBuf->pushConstants<SkyboxPushConstants>(*skyboxPipelineLayout, vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment, 0, spc);
-        cmdBuf->draw(36, 1, 0, 0);
+        cmdBuf.pushConstants<SkyboxPushConstants>(*skyboxPipelineLayout, vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment, 0, spc);
+        cmdBuf.draw(36, 1, 0, 0);
         ctx.dbgStats->numDrawCalls++;
 
-        cmdBuf->endRenderPass();
+        cmdBuf.endRenderPass();
         polyImage->image.setCurrentLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
         depthStencilImage->image.setCurrentLayout(vk::ImageLayout::eDepthStencilAttachmentOptimal);
 
         if (pickThisFrame) {
-            cmdBuf->resetEvent(*pickEvent, vk::PipelineStageFlagBits::eBottomOfPipe);
+            cmdBuf.resetEvent(*pickEvent, vk::PipelineStageFlagBits::eBottomOfPipe);
             pickThisFrame = false;
         }
     }

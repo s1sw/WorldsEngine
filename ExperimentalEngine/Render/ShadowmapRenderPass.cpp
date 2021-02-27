@@ -87,13 +87,13 @@ namespace worlds {
         rpbi.clearValueCount = (uint32_t)clearColours.size();
         rpbi.pClearValues = clearColours.data();
 
-        vk::UniqueCommandBuffer& cmdBuf = ctx.cmdBuf;
+        auto cmdBuf = ctx.cmdBuf;
         Camera& cam = *ctx.cam;
         entt::registry& reg = ctx.reg;
 
 
-        cmdBuf->beginRenderPass(rpbi, vk::SubpassContents::eInline);
-        cmdBuf->bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline);
+        cmdBuf.beginRenderPass(rpbi, vk::SubpassContents::eInline);
+        cmdBuf.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline);
 
         glm::mat4 shadowmapMatrix;
         glm::vec3 viewPos = cam.position;
@@ -138,10 +138,10 @@ namespace worlds {
             spc.model = transform.getMatrix();
             spc.vp = shadowmapMatrix;
 
-            cmdBuf->pushConstants<ShadowmapPushConstants>(*pipelineLayout, vk::ShaderStageFlagBits::eVertex, 0, spc);
-            cmdBuf->bindVertexBuffers(0, meshPos->second.vb.buffer(), vk::DeviceSize(0));
-            cmdBuf->bindIndexBuffer(meshPos->second.ib.buffer(), 0, meshPos->second.indexType);
-            cmdBuf->drawIndexed(meshPos->second.indexCount, 1, 0, 0, 0);
+            cmdBuf.pushConstants<ShadowmapPushConstants>(*pipelineLayout, vk::ShaderStageFlagBits::eVertex, 0, spc);
+            cmdBuf.bindVertexBuffers(0, meshPos->second.vb.buffer(), vk::DeviceSize(0));
+            cmdBuf.bindIndexBuffer(meshPos->second.ib.buffer(), 0, meshPos->second.indexType);
+            cmdBuf.drawIndexed(meshPos->second.indexCount, 1, 0, 0, 0);
             ctx.dbgStats->numDrawCalls++;
             });
 
@@ -149,14 +149,14 @@ namespace worlds {
             if (!obj.visible) return;
             glm::mat4 model = transform.getMatrix();
             glm::mat4 mvp = shadowmapMatrix * model;
-            cmdBuf->pushConstants<glm::mat4>(*pipelineLayout, vk::ShaderStageFlagBits::eVertex, 0, mvp);
-            cmdBuf->bindVertexBuffers(0, obj.vb.buffer(), vk::DeviceSize(0));
-            cmdBuf->bindIndexBuffer(obj.ib.buffer(), 0, obj.indexType);
-            cmdBuf->drawIndexed(obj.indexCount, 1, 0, 0, 0);
+            cmdBuf.pushConstants<glm::mat4>(*pipelineLayout, vk::ShaderStageFlagBits::eVertex, 0, mvp);
+            cmdBuf.bindVertexBuffers(0, obj.vb.buffer(), vk::DeviceSize(0));
+            cmdBuf.bindIndexBuffer(obj.ib.buffer(), 0, obj.indexType);
+            cmdBuf.drawIndexed(obj.indexCount, 1, 0, 0, 0);
             ctx.dbgStats->numDrawCalls++;
             });
 
-        cmdBuf->endRenderPass();
+        cmdBuf.endRenderPass();
         shadowImage->image.setCurrentLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
     }
 }
