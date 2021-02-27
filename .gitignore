@@ -344,6 +344,7 @@ healthchecksdb
 /EEData/srcmat
 /EEData/memory_shutdown.json
 /EEData/memory.json
+/EEData/Temp
 /log.txt
 
 build
