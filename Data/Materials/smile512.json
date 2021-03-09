@@ -1,0 +1,7 @@
+{
+	"albedoPath" : "Textures/smile512.png",
+	"metallic" : 0.0,
+	"roughness" : 1.0,
+	"albedoColor" : [1.0, 1.0, 1.0],
+	"fresnelReduction" : 0.25
+}

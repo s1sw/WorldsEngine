@@ -1,8 +1,0 @@
-{
-	"albedoPath" : "Textures/crate/Material_BaseColor.png",
-	"normalMapPath" : "Textures/crate/Material_Normal_forcelin.png",
-	"pbrMapPath" : "Textures/crate/Material_PBRPack.png",
-	"metallic" : 1.0,
-	"roughness" : 0.2,
-	"albedoColor" : [1.0, 1.0, 1.0]
-}

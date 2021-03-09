@@ -1,7 +1,0 @@
-{
-	"albedoPath" : "Textures/Wattson/hair_albedo.png",
-	"normalMapPath": "Textures/Wattson/hair_normal.crn",
-	"metallic" : 0.0,
-	"roughness" : 1.0,
-	"albedoColor" : [1.0, 1.0, 1.0]
-}
