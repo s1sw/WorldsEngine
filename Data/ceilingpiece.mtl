@@ -1,0 +1,30 @@
+# Blender MTL File: 'None'
+# Material Count: 2
+
+newmtl CeilingBit
+Ns 0.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.800000 0.800000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 2
+map_Bump Textures\\ceilingbit\\ceiling piece_CeilingBit_Normal_forcelin.png
+map_Kd Textures\\ceilingbit\\ceiling piece_CeilingBit_BaseColor.png
+map_Ns Textures\\ceilingbit\\ceiling piece_CeilingBit_Roughness.png
+refl Textures\\ceilingbit\\ceiling piece_CeilingBit_Metallic.png
+
+newmtl Pipe
+Ns 900.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.692857 0.076826 0.039757
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 2
+map_Bump Textures\\ceilingbit\\ceiling piece_Pipe_Normal_forcelin.png
+map_Kd Textures\\ceilingbit\\ceiling piece_Pipe_BaseColor.png
+map_Ns Textures\\ceilingbit\\ceiling piece_Pipe_Roughness.png
+refl Textures\\ceilingbit\\ceiling piece_Pipe_Metallic.png

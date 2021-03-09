@@ -1,0 +1,2 @@
+r_depthPrepass 1
+scene Scenes/test_explore.wscn

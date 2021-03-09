@@ -1,0 +1,9 @@
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENG)
+#include <winres.h>
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_UK
+#pragma code_page(65001) // UTF-8 codepage
+
+101 ICON "..\\WorldsEngine\\icon.ico"
+
+#endif    // English (United Kingdom) resources
+

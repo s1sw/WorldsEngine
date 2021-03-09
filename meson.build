@@ -1,5 +1,5 @@
 project('worldseng', 'cpp', 'c', default_options: [
-  'cpp_std=c++latest', 
+  'cpp_std=c++latest',
   'c_std=c11',
   'win_subsystem=windows'
 ])
@@ -22,6 +22,8 @@ if host_machine.system() == 'windows'
 endif
 
 add_global_arguments('-DPX_PHYSX_STATIC_LIB', language: 'cpp')
+add_global_arguments('-DVULKAN_HPP_DISPATCH_LOADER_DYNAMIC=1', language: 'cpp')
+add_global_arguments('-DVK_NO_PROTOTYPES', language: 'cpp')
 
 cpp_compiler = meson.get_compiler('cpp')
 
@@ -36,11 +38,11 @@ endif
 extern_include_dir = include_directories('External/Include')
 # THIS IS SO INCREDIBLY STUPID
 # WHY MUST YOU BE THIS WAY PHYSX
-physx_include_dir = include_directories('External/Include/physx') 
+physx_include_dir = include_directories('External/Include/physx')
 sdl2_dep = dependency('sdl2', fallback: ['sdl2', 'sdl2_dep'])
 
 subdir('ModelFormat')
 subdir('Tools')
 subdir('DiscordSDK')
-subdir('ExperimentalEngine')
-subdir('Converge')
+subdir('WorldsEngine')
+subdir('LonelyGalaxy')

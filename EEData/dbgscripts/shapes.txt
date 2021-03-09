@@ -1,3 +1,0 @@
-phys_toggleVis
-phys_toggleShapeVis
-echo toggled physics shape visibility

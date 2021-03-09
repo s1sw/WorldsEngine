@@ -1,7 +1,0 @@
-{
-	"albedoPath" : "Textures/VRHands/Placeholder/vr_glove_color_red.jpg",
-	"normalMapPath" : "Textures/VRHands/Placeholder/vr_glove_normal_forcelin.png",
-	"metallic" : 0.0,
-	"roughness" : 0.7,
-	"albedoColor" : [1.0, 1.0, 1.0]
-}

@@ -1,0 +1,9 @@
+{
+	"albedoPath" : "Textures/scifibase/Clip_BaseColor.png",
+	"normalMapPath" : "Textures/scifibase/Clip_Normal_forcelin.png",
+	"pbrMapPath" : "Textures/scifibase/Clip_PBRPack.png",
+	"heightmapScale" : 0.005,
+	"metallic" : 1.0,
+	"roughness" : 0.2,
+	"albedoColor" : [1.0, 1.0, 1.0]
+}

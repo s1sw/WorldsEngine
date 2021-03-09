@@ -1,3 +1,3 @@
-[submodule "ExperimentalEngine/tracy"]
-	path = ExperimentalEngine/tracy
+[submodule "WorldsEngine/tracy"]
+	path = WorldsEngine/tracy
 	url = https://github.com/wolfpld/tracy.git

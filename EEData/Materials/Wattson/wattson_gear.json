@@ -1,7 +1,0 @@
-{
-	"albedoPath" : "Textures/Wattson/gear_albedo.png",
-	"normalMapPath": "Textures/Wattson/gear_normal.crn",
-	"metallic" : 0.0,
-	"roughness" : 0.403,
-	"albedoColor" : [1.0, 1.0, 1.0]
-}
