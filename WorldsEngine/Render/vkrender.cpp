@@ -1149,7 +1149,7 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
         } else if (presentResult != vk::Result::eSuccess) {
             fatalErr("Failed to present");
         }
-    } catch (vk::OutOfDateKHRError) {
+    } catch (const vk::OutOfDateKHRError&) {
         recreateSwapchain();
     }
 
@@ -1577,21 +1577,15 @@ float* VKRenderer::getPassHDRData(RTTPassHandle handle) {
         bic.imageSubresource.aspectMask = vk::ImageAspectFlagBits::eColor;
         bic.imageExtent = vk::Extent3D { rtt.width, rtt.height, 1 };
 
-
         cmdBuf.copyImageToBuffer(
             targetImg.image(),
             vk::ImageLayout::eTransferSrcOptimal,
             outputBuffer.buffer(), bic); 
     });
 
-    vk::ImageSubresource subresource;
-    subresource.aspectMask = vk::ImageAspectFlagBits::eColor;
-
-    auto layout = device->getImageSubresourceLayout(targetImg.image(), subresource);
-
     float* buffer = (float*)malloc(rtt.width * rtt.height * 4 * sizeof(float));
     char* mapped = (char*)outputBuffer.map(*device);
-    memcpy(buffer, mapped + layout.offset, rtt.width * rtt.height * 4 * sizeof(float));
+    memcpy(buffer, mapped, rtt.width * rtt.height * 4 * sizeof(float));
     outputBuffer.unmap(*device);
 
     return buffer;

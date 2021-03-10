@@ -48,6 +48,8 @@ namespace worlds {
 
             return nullptr;
         }
+
+        ~EntityBinding() {}
     };
 
     EntityBinding eb{};

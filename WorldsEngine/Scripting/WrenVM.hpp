@@ -21,6 +21,7 @@ namespace worlds {
         virtual std::string getName() = 0;
         virtual WrenForeignMethodFn getFn(bool isStatic, const char* sig) = 0;
         virtual WrenForeignClassMethods getClassMethods() { return WrenForeignClassMethods{}; }
+        virtual ~ScriptBindClass() {};
     private:
         static StaticLinkedList<ScriptBindClass> bindClasses;
         friend class WrenScriptEngine;

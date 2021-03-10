@@ -85,7 +85,7 @@ namespace worlds {
         }
 
         vku::DescriptorSetUpdater dsu(0, descriptorSets.size() * 3, 0);
-        for (int i = 0; i < descriptorSets.size(); i++) {
+        for (int i = 0; i < (int)descriptorSets.size(); i++) {
             int arrayIdx = (i % 6);
 
             dsu.beginDescriptorSet(descriptorSets[i]);
@@ -110,7 +110,7 @@ namespace worlds {
 
         auto period = vkCtx->physicalDevice.getProperties().limits.timestampPeriod;
 
-        for (int i = 0; i < descriptorSets.size(); i++) {
+        for (int i = 0; i < (int)descriptorSets.size(); i++) {
             vku::executeImmediately(vkCtx->device, vkCtx->commandPool, vkCtx->device.getQueue(vkCtx->graphicsQueueFamilyIdx, 0),
                 [&](vk::CommandBuffer cb) {
                     cb.resetQueryPool(*qp, 0, 2);

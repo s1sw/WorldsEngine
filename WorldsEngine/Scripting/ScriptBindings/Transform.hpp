@@ -45,6 +45,9 @@ namespace worlds {
 
             return nullptr;
         }
+
+        ~TransformBinding() override {}
     };
+
     TransformBinding tfBinding;
 }

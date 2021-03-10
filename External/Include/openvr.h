@@ -4,6 +4,11 @@
 #pragma clang diagnostic ignored "-Wnon-virtual-dtor"
 #endif
 
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wnon-virtual-dtor"
+#endif
+
 // openvr.h
 //========= Copyright Valve Corporation ============//
 // Dynamically generated file. Do not modify this file directly.
@@ -5160,4 +5165,8 @@ namespace vr
 
 #ifdef __clang__
 #pragma clang diagnostic pop
+#endif
+
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
 #endif
