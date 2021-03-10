@@ -1780,11 +1780,23 @@ namespace vku {
             vaci.pUserData = (char*)debugName;
             vaci.flags = VMA_ALLOCATION_CREATE_USER_DATA_COPY_STRING_BIT;
             VmaAllocationInfo vci;
-            vmaAllocateMemoryForImage(allocator, *s.image, &vaci, &s.allocation, &vci);
+            VkResult allocResult = 
+                vmaAllocateMemoryForImage(allocator, *s.image, &vaci, &s.allocation, &vci);
+
+            if (allocResult != VK_SUCCESS) {
+                fatalErr("Vulkan memory allocation failed");
+            }
 
             device.bindImageMemory(*s.image, vci.deviceMemory, vci.offset);
 
-            if (!hostImage) {
+            const vk::ImageUsageFlags viewFlagBits = 
+                vk::ImageUsageFlagBits::eSampled |
+                vk::ImageUsageFlagBits::eStorage |
+                vk::ImageUsageFlagBits::eColorAttachment |
+                vk::ImageUsageFlagBits::eDepthStencilAttachment |
+                vk::ImageUsageFlagBits::eInputAttachment;
+
+            if (!hostImage && (uint32_t)(info.usage & viewFlagBits) != 0) {
                 vk::ImageViewCreateInfo viewInfo{};
                 viewInfo.image = *s.image;
                 viewInfo.viewType = viewType;
