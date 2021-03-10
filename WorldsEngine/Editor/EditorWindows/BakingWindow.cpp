@@ -12,6 +12,111 @@
 #include <stb_image_write.h>
 
 namespace worlds {
+    void stbiWriteFunc(void* ctx, void* data, int bytes) {
+        PHYSFS_writeBytes((PHYSFS_File*)ctx, data, bytes);
+    }
+
+    void bakeCubemap(glm::vec3 pos, worlds::VKRenderer* renderer,
+            std::string name, entt::registry& world) {
+        // create RTT pass
+        RTTPassCreateInfo rtci;
+        Camera cam;
+        rtci.cam = &cam;
+        rtci.enableShadows = true;
+        rtci.width = 512;
+        rtci.height = 512;
+        rtci.isVr = false;
+        rtci.outputToScreen = false;
+        rtci.useForPicking = false;
+        cam.verticalFOV = glm::radians(90.0f);
+        cam.position = pos;
+        renderer->startRdocCapture();
+
+        RTTPassHandle rttHandle = renderer->createRTTPass(rtci);
+
+        const glm::vec3 directions[6] = {
+            glm::vec3(1.0f, 0.0f, 0.0f),
+            glm::vec3(-1.0f, 0.0f, 0.0f),
+            glm::vec3(0.0f, -1.0f, 0.0f),
+            glm::vec3(0.0f, 1.0f, 0.0f),
+            glm::vec3(0.0f, 0.0f, -1.0f),
+            glm::vec3(0.0f, 0.0f, 1.0f)
+        };
+
+        const glm::vec3 upDirs[6] = {
+            glm::vec3(0.0f, 1.0f, 0.0f),
+            glm::vec3(0.0f, 1.0f, 0.0f),
+            glm::vec3(0.0f, 0.0f, -1.0f),
+            glm::vec3(0.0f, 0.0f, 1.0f),
+            glm::vec3(0.0f, 1.0f, 0.0f),
+            glm::vec3(0.0f, 1.0f, 0.0f)
+        };
+
+        const std::string outputNames[6] = {
+            "px",
+            "nx",
+            "py",
+            "ny",
+            "pz",
+            "nz"
+        };
+
+        std::vector<std::string> outputPaths;
+        logMsg("baking cubemap %s", name.c_str());
+
+        // for each cubemap face:
+        // 1. setup camera
+        // 2. run RTT pass
+        // 3. get HDR data
+        // 4. save to file
+        for (int i = 0; i < 6; i++) {
+            logMsg("baking face %i...", i);
+            cam.rotation = glm::quatLookAt(directions[i], upDirs[i]);
+            renderer->updatePass(rttHandle, world);
+
+            float* data = renderer->getPassHDRData(rttHandle);
+            auto outPath = "LevelCubemaps/" + name + outputNames[i] + ".hdr";
+            PHYSFS_File* fHandle = PHYSFS_openWrite(outPath.c_str());
+            if (fHandle == nullptr) {
+                logErr("Failed to open cubemap file as write");
+                free(data);
+                renderer->endRdocCapture();
+                renderer->destroyRTTPass(rttHandle);
+                return;
+            }
+
+            int retVal = stbi_write_hdr_to_func(
+                    stbiWriteFunc, 
+                    (void*)fHandle, 
+                    512, 512, 4, data);
+
+            if (retVal == 0) {
+                logErr(("Failed to write cubemap " + outPath).c_str());
+            }
+            PHYSFS_close(fHandle);
+
+            outputPaths.push_back(outPath);
+            free(data);
+        }
+
+        auto jsonPath = "LevelCubemaps/" + name + ".json";
+        auto file = PHYSFS_openWrite(jsonPath.c_str());
+
+        std::string j = "[\n";
+        for (int i = 0; i < 6; i++) {
+            j += "    \"" + outputPaths[i] + "\"";
+            if (i != 5) j += ",";
+            j += "\n";
+        }
+        j += "]";
+
+        PHYSFS_writeBytes(file, j.c_str(), j.size());
+        PHYSFS_close(file);
+
+        renderer->endRdocCapture();
+        renderer->destroyRTTPass(rttHandle);
+    }
+
     void BakingWindow::draw(entt::registry& reg) {
         if (ImGui::Begin(ICON_FA_COOKIE u8" Baking")) {
             if (ImGui::CollapsingHeader(ICON_FAD_SPEAKER u8" Audio")) {
@@ -25,101 +130,20 @@ namespace worlds {
                 if (staticAudioGeomCount > 0) {
                     ImGui::Text("%u static geometry objects", staticAudioGeomCount);
                 } else {
-                    ImGui::TextColored(ImColor(1.0f, 0.0f, 0.0f), "There aren't any objects marked as audio static in the scene.");
+                    ImGui::TextColored(ImColor(1.0f, 0.0f, 0.0f), 
+                        "There aren't any objects marked as audio static in the scene.");
                 }
             }
 
             if (ImGui::CollapsingHeader(ICON_FA_CUBE u8" Cubemaps")) {
                 reg.view<Transform, WorldCubemap, NameComponent>().each([&](auto,
                             Transform& t, WorldCubemap&, NameComponent& nc) {
-                    ImGui::Text("%s (%.2f, %.2f, %.2f)", nc.name.c_str(), t.position.x, t.position.y, t.position.z);
+                    ImGui::Text("%s (%.2f, %.2f, %.2f)", nc.name.c_str(), 
+                            t.position.x, t.position.y, t.position.z);
                     ImGui::SameLine();
                     ImGui::PushID(nc.name.c_str());
                     if (ImGui::Button("Bake")) {
-                        // create RTT pass
-                        RTTPassCreateInfo rtci;
-                        Camera cam;
-                        rtci.cam = &cam;
-                        rtci.enableShadows = true;
-                        rtci.width = 512;
-                        rtci.height = 512;
-                        rtci.isVr = false;
-                        rtci.outputToScreen = false;
-                        rtci.useForPicking = false;
-                        cam.verticalFOV = glm::radians(90.0f);
-                        cam.position = t.position;
-                        interfaces.renderer->startRdocCapture();
-
-                        RTTPassHandle rttHandle = interfaces.renderer->createRTTPass(rtci);
-
-                        const glm::vec3 directions[6] = {
-                            glm::vec3(1.0f, 0.0f, 0.0f),
-                            glm::vec3(-1.0f, 0.0f, 0.0f),
-                            glm::vec3(0.0f, -1.0f, 0.0f),
-                            glm::vec3(0.0f, 1.0f, 0.0f),
-                            glm::vec3(0.0f, 0.0f, -1.0f),
-                            glm::vec3(0.0f, 0.0f, 1.0f)
-                        };
-
-                        const glm::vec3 upDirs[6] = {
-                            glm::vec3(0.0f, 1.0f, 0.0f),
-                            glm::vec3(0.0f, 1.0f, 0.0f),
-                            glm::vec3(0.0f, 0.0f, -1.0f),
-                            glm::vec3(0.0f, 0.0f, 1.0f),
-                            glm::vec3(0.0f, 1.0f, 0.0f),
-                            glm::vec3(0.0f, 1.0f, 0.0f)
-                        };
-
-                        const std::string outputNames[6] = {
-                            "px",
-                            "nx",
-                            "py",
-                            "ny",
-                            "pz",
-                            "nz"
-                        };
-
-                        std::vector<std::string> outputPaths;
-                        logMsg("baking cubemap %s", nc.name.c_str());
-
-                        // for each cubemap face:
-                        // 1. setup camera
-                        // 2. run RTT pass
-                        // 3. get HDR data
-                        // 4. save to file
-                        for (int i = 0; i < 6; i++) {
-                            logMsg("baking face %i...", i);
-                            cam.rotation = glm::quatLookAt(directions[i], upDirs[i]);
-                            interfaces.renderer->updatePass(rttHandle, reg);
-
-                            float* data = interfaces.renderer->getPassHDRData(rttHandle);
-                            //stbi_flip_vertically_on_write(true);
-                            //for (int j = 0; j < 128; j++) {
-                            //    float temp = data[j];
-                            //    data[j] = data[512 - j];
-                            //    data[512 - j] = temp;
-                            //}
-                            auto outPath = "LevelCubemaps/" + nc.name + outputNames[i] + ".hdr";
-                            if (stbi_write_hdr(("Data/" + outPath).c_str(), 512, 512, 4, data) == 0) {
-                                fatalErr(("Failed to write cubemap " + outPath).c_str());
-                            }
-                            outputPaths.push_back(outPath);
-                            free(data);
-                        }
-
-                        auto jsonPath = "LevelCubemaps/" + nc.name + ".json";
-                        auto file = PHYSFS_openWrite(jsonPath.c_str());
-                        std::string j = "[\n";
-                        for (int i = 0; i < 6; i++) {
-                            j += "    \"" + outputPaths[i] + "\"";
-                            if (i != 5) j += ",";
-                            j += "\n";
-                        }
-                        j += "]";
-                        PHYSFS_writeBytes(file, j.c_str(), j.size());
-                        PHYSFS_close(file);
-                        interfaces.renderer->endRdocCapture();
-                        interfaces.renderer->destroyRTTPass(rttHandle);
+                        bakeCubemap(t.position, interfaces.renderer, nc.name, reg);
                     }
                     ImGui::PopID();
                 });

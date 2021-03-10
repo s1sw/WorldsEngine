@@ -44,6 +44,8 @@ namespace worlds {
 
             return nullptr;
         }
+
+        ~DynamicPhyiscsActorBinding() override {}
     };
 
     DynamicPhyiscsActorBinding dpab;

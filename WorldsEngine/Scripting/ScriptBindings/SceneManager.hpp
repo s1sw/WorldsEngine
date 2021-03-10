@@ -46,6 +46,8 @@ namespace worlds {
 
             return nullptr;
         }
+
+        ~SceneManagerClass() override {}
     };
 
     SceneManagerClass scnManBind;

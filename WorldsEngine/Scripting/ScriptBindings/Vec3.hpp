@@ -124,6 +124,8 @@ namespace worlds {
 
             return nullptr;
         }
+
+        ~Vec3Binding() override {}
     };
     Vec3Binding v3binding;
 }
