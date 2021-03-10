@@ -362,8 +362,8 @@ void main() {
     // debug views
     if ((miscFlag & 2) == 2) {
         // show normals
-        //FragColor = vec4((normal * 0.5) + 0.5, 1.0);
-        FragColor = vec4(vec3(dot(normal, vec3(0.0, 1.0, 0.0))), 1.0);
+        FragColor = vec4((normal * 0.5) + 0.5, 1.0);
+        //FragColor = vec4(vec3(dot(normal, vec3(0.0, 1.0, 0.0))), 1.0);
         return;
     } else if ((miscFlag & 4) == 4) {
         // show metallic
