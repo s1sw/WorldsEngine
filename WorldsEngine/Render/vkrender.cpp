@@ -1,6 +1,6 @@
 #define VMA_IMPLEMENTATION
 #include "../Libs/volk.h"
-#include "Render/vku/vku.hpp"
+#include "vku/vku.hpp"
 #include <vulkan/vulkan.hpp>
 #include "PCH.hpp"
 #include "../Core/Engine.hpp"
@@ -28,7 +28,6 @@
 #include "Loaders/SourceModelLoader.hpp"
 #include "Loaders/WMDLLoader.hpp"
 #include "Loaders/RobloxMeshLoader.hpp"
-#define RDOC
 #ifdef RDOC
 #include "renderdoc_app.h"
 #define WIN32_LEAN_AND_MEAN
@@ -1482,17 +1481,40 @@ float* VKRenderer::getPassHDRData(RTTPassHandle handle) {
     ici.format = vk::Format::eR32G32B32A32Sfloat;
     ici.initialLayout = vk::ImageLayout::eUndefined;
     ici.samples = vk::SampleCountFlagBits::e1;
-    ici.tiling = vk::ImageTiling::eLinear;
-    ici.usage = vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc;
+    ici.tiling = vk::ImageTiling::eOptimal;
+    ici.usage = 
+        vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc;
+
     vku::GenericImage targetImg{
-        *device, allocator, ici, vk::ImageViewType::e2D, vk::ImageAspectFlagBits::eColor, true, "Transfer Destination" };
+        *device, allocator, ici, vk::ImageViewType::e2D, vk::ImageAspectFlagBits::eColor, 
+        false, "Transfer Destination" };
+
+    ici.tiling = vk::ImageTiling::eOptimal;
+    ici.format = vk::Format::eB10G11R11UfloatPack32;
+
+    vku::GenericImage resolveImg{
+        *device, allocator, ici, vk::ImageViewType::e2D, vk::ImageAspectFlagBits::eColor,
+        false, "Resolve Target" };
+
+    size_t imgSize = rtt.width * rtt.height * sizeof(float) * 4;
+    vku::GenericBuffer outputBuffer {
+        *device, allocator, vk::BufferUsageFlagBits::eTransferDst, imgSize,
+        VMA_MEMORY_USAGE_GPU_TO_CPU, "Output Buffer"
+    };
 
     vku::executeImmediately(*device, *commandPool, device->getQueue(graphicsQueueFamilyIdx, 0), [&](vk::CommandBuffer cmdBuf) {
         targetImg.setLayout(cmdBuf,
                 vk::ImageLayout::eTransferDstOptimal,
                 vk::PipelineStageFlagBits::eTransfer,
                 vk::PipelineStageFlagBits::eTransfer,
-                vk::AccessFlagBits::eHostWrite,
+                vk::AccessFlagBits::eTransferWrite,
+                vk::AccessFlagBits::eTransferWrite);
+
+        resolveImg.setLayout(cmdBuf,
+                vk::ImageLayout::eTransferDstOptimal,
+                vk::PipelineStageFlagBits::eTransfer,
+                vk::PipelineStageFlagBits::eTransfer,
+                vk::AccessFlagBits::eTransferWrite,
                 vk::AccessFlagBits::eTransferWrite);
 
         auto oldHdrLayout = rtt.hdrTarget->image.layout();
@@ -1501,6 +1523,24 @@ float* VKRenderer::getPassHDRData(RTTPassHandle handle) {
                 vk::PipelineStageFlagBits::eAllGraphics,
                 vk::PipelineStageFlagBits::eTransfer,
                 vk::AccessFlagBits::eShaderRead,
+                vk::AccessFlagBits::eTransferRead);
+
+        vk::ImageResolve resolve;
+        resolve.srcSubresource.layerCount = 1;
+        resolve.srcSubresource.aspectMask = vk::ImageAspectFlagBits::eColor;
+        resolve.dstSubresource.layerCount = 1;
+        resolve.dstSubresource.aspectMask = vk::ImageAspectFlagBits::eColor;
+        resolve.extent = vk::Extent3D { rtt.width, rtt.height, 1 };
+        cmdBuf.resolveImage(
+                rtt.hdrTarget->image.image(), vk::ImageLayout::eTransferSrcOptimal,
+                resolveImg.image(), vk::ImageLayout::eTransferDstOptimal,
+                resolve);
+
+        resolveImg.setLayout(cmdBuf,
+                vk::ImageLayout::eTransferSrcOptimal,
+                vk::PipelineStageFlagBits::eTransfer,
+                vk::PipelineStageFlagBits::eTransfer,
+                vk::AccessFlagBits::eTransferWrite,
                 vk::AccessFlagBits::eTransferRead);
 
         vk::ImageBlit blit;
@@ -1512,7 +1552,7 @@ float* VKRenderer::getPassHDRData(RTTPassHandle handle) {
             vk::Offset3D {static_cast<int32_t>(rtt.width), static_cast<int32_t>(rtt.height), 1};
 
         cmdBuf.blitImage(
-                rtt.hdrTarget->image.image(), vk::ImageLayout::eTransferSrcOptimal,
+                resolveImg.image(), vk::ImageLayout::eTransferSrcOptimal,
                 targetImg.image(), vk::ImageLayout::eTransferDstOptimal,
                 1,
                 &blit,
@@ -1526,21 +1566,33 @@ float* VKRenderer::getPassHDRData(RTTPassHandle handle) {
                 vk::AccessFlagBits::eShaderRead);
 
         targetImg.setLayout(cmdBuf,
-                vk::ImageLayout::eGeneral,
+                vk::ImageLayout::eTransferSrcOptimal,
                 vk::PipelineStageFlagBits::eTransfer,
                 vk::PipelineStageFlagBits::eTransfer,
                 vk::AccessFlagBits::eTransferWrite,
-                vk::AccessFlagBits::eHostRead);
+                vk::AccessFlagBits::eTransferRead);
+
+        vk::BufferImageCopy bic;
+        bic.imageSubresource.layerCount = 1;
+        bic.imageSubresource.aspectMask = vk::ImageAspectFlagBits::eColor;
+        bic.imageExtent = vk::Extent3D { rtt.width, rtt.height, 1 };
+
+
+        cmdBuf.copyImageToBuffer(
+            targetImg.image(),
+            vk::ImageLayout::eTransferSrcOptimal,
+            outputBuffer.buffer(), bic); 
     });
 
     vk::ImageSubresource subresource;
+    subresource.aspectMask = vk::ImageAspectFlagBits::eColor;
 
     auto layout = device->getImageSubresourceLayout(targetImg.image(), subresource);
 
     float* buffer = (float*)malloc(rtt.width * rtt.height * 4 * sizeof(float));
-    char* mapped = (char*)targetImg.map();
+    char* mapped = (char*)outputBuffer.map(*device);
     memcpy(buffer, mapped + layout.offset, rtt.width * rtt.height * 4 * sizeof(float));
-    targetImg.unmap();
+    outputBuffer.unmap(*device);
 
     return buffer;
 }
@@ -1585,14 +1637,18 @@ void VKRenderer::triggerRenderdocCapture() {
 
 void VKRenderer::startRdocCapture() {
     if (!rdocApi) return;
+#ifdef RDOC
     RENDERDOC_API_1_1_2* rdocApiActual = (RENDERDOC_API_1_1_2*)rdocApi;
     rdocApiActual->StartFrameCapture(nullptr, nullptr);
+#endif
 }
 
 void VKRenderer::endRdocCapture() {
     if (!rdocApi) return;
+#ifdef RDOC
     RENDERDOC_API_1_1_2* rdocApiActual = (RENDERDOC_API_1_1_2*)rdocApi;
     rdocApiActual->EndFrameCapture(nullptr, nullptr);
+#endif
 }
 
 VKRenderer::~VKRenderer() {
