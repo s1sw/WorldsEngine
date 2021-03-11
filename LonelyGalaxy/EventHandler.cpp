@@ -293,7 +293,7 @@ namespace lg {
                         physHand.useOverrideIT = true;
                         physHand.overrideIT = worlds::px2glm(tensor);
                         physHand.overrideITRotation = worlds::px2glm(itRot);
-                        physHand.forceMultiplier = glm::max(1.0f, otherDpa->mass / 2.0f);
+                        physHand.forceMultiplier = glm::max(1.0f, glm::min(15.0f, otherDpa->mass / 2.0f));
                     }
 
                     physx::PxTransform p = dpa.actor->getGlobalPose();
