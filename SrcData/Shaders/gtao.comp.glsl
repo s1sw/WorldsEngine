@@ -103,22 +103,41 @@ vec3 reconstructViewSpacePos(vec2 uv, float z) {
 //#define SSAO_FALLOFF 0.01
 //#define SSAO_THICKNESSMIX 0.3
 #define SSAO_MAX_STRIDE 32 
+#define USE_GRL_STORAGE
 
-float sampleDepth(vec2 uv) 
-{
+shared float depthVals[16][16];
+
+float sampleDepth(vec2 uv) {
 	ivec2 tc = ivec2(clamp(ivec2(uv * viewSize), ivec2(0), viewSize));
-	float dval = (texelFetch(inDepth, ivec3(tc, gl_GlobalInvocationID.z), 0).x);
+    ivec2 tcGL = tc - ivec2((gl_WorkGroupID * gl_WorkGroupSize).xy);
+
+    float dval;
+#ifdef USE_GRL_STORAGE
+    if (all(greaterThan(tcGL, ivec2(-1))) && all(lessThan(tcGL, ivec2(16))))
+        dval = depthVals[tcGL.x][tcGL.y];
+    else
+#endif
+        dval = (texelFetch(inDepth, ivec3(tc, gl_GlobalInvocationID.z), 0).x);
+
 	return (dval == 0.0 || dval == 1.0) ? 1000000.0 : (0.01 / dval);
 }
 
-float sampleDepthCS(vec2 uv)
-{
+float sampleDepthCS(vec2 uv) {
 	ivec2 tc = ivec2(clamp(ivec2(uv * viewSize), ivec2(0), viewSize));
-	return texelFetch(inDepth, ivec3(tc, gl_GlobalInvocationID.z), 0).x;
+    ivec2 tcGL = tc - ivec2((gl_WorkGroupID * gl_WorkGroupSize).xy);
+
+    float dval;
+#ifdef USE_GRL_STORAGE
+    if (all(greaterThan(tcGL, ivec2(-1))) && all(lessThan(tcGL, ivec2(16))))
+        dval = depthVals[tcGL.x][tcGL.y];
+    else
+#endif
+        dval = (texelFetch(inDepth, ivec3(tc, gl_GlobalInvocationID.z), 0).x);
+
+	return dval;
 }
 
-void SliceSample(vec2 tc_base, vec2 aoDir, int i, float targetMip, vec3 ray, vec3 v, inout float closest)
-{
+void SliceSample(vec2 tc_base, vec2 aoDir, int i, float targetMip, vec3 ray, vec3 v, inout float closest) {
 	vec2 uv = tc_base + aoDir * i;
 	float depth = sampleDepth(uv);
 	// Vector from current pixel to current slice sample
@@ -137,17 +156,19 @@ vec3 getPosAt(vec2 uv) {
 	return reconstructViewSpacePos(uv, sampleDepthCS(uv));
 }
 
-shared float depthVals[16][16];
-
 void main() {
 	vec2 tc_original = gl_GlobalInvocationID.xy * viewsizediv;
-	
+
 	// Depth of the current pixel
-	float dhere = sampleDepth(tc_original);
 	float actualDhere = texelFetch(inDepth, ivec3(gl_GlobalInvocationID.xyz), 0).x;
+#ifdef USE_GRL_STORAGE
+    ivec2 tcGL = ivec2(gl_GlobalInvocationID.xy) - ivec2((gl_WorkGroupID * gl_WorkGroupSize).xy);
     depthVals[gl_LocalInvocationID.x][gl_LocalInvocationID.y] = actualDhere;
     memoryBarrierShared();
     barrier();
+#endif
+
+	float dhere = sampleDepth(tc_original);
 	if (actualDhere == 0.0 || actualDhere == 1.0) {
 		imageStore(resultImage, ivec3(gl_GlobalInvocationID.xyz), vec4(1.0));
 		return;
