@@ -1,7 +1,5 @@
 project('worldseng', 'cpp', 'c', default_options: [
-  'c_std=c11',
-  'cpp_std=c++2a',
-  'win_subsystem=windows'
+  'c_std=c11'
 ])
 
 if get_option('buildtype').startswith('debug')
