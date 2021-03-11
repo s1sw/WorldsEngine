@@ -30,6 +30,8 @@ namespace worlds {
         ConvarLink* next;
     };
 
+    ConVar logToStdout { "logToStdOut", "0", "Log to stdout in addition to the file and the console." };
+
     ConvarLink* firstLink = nullptr;
     const int CONSOLE_RESPONSE_CATEGORY = 255;
     Console* g_console;
@@ -104,7 +106,7 @@ namespace worlds {
             parsedInt = std::stoi(value);
             parsedFloat = (float)std::stof(value);
             this->value = value;
-        } catch (std::invalid_argument) {
+        } catch (const std::invalid_argument&) {
             logErr("Invalid convar value %s", value.c_str());
         }
     }
@@ -395,38 +397,36 @@ namespace worlds {
                 msgs.clear();
             }
 
-
-            ImGui::BeginChild("ConsoleScroll", ImVec2(0, -ImGui::GetFrameHeightWithSpacing()));
-
-            float scrollRegionY = ImGui::GetContentRegionAvail().y;
-            int currMsgIdx = 0;
-            float scroll = ImGui::GetScrollY();
-            float scrollMax = scroll + scrollRegionY;
-            float cHeight = 0.0f;
-            float lineHeight = ImGui::GetTextLineHeightWithSpacing();
-            for (auto& msg : msgs) {
-                if ((cHeight + lineHeight) > scroll && (cHeight - lineHeight) < scrollMax) {
-                    ImGui::PushStyleColor(ImGuiCol_Text, (ImVec4)priorityColors.at(msg.priority));
-                    if (msg.category != CONSOLE_RESPONSE_CATEGORY)
-                        ImGui::TextUnformatted(("[" + std::string(categories.at(msg.category)) + "] " + "[" + std::string(priorities.at(msg.priority)) + "] " + msg.msg).c_str());
-                    else
-                        ImGui::TextUnformatted(msg.msg.c_str());
-                    ImGui::PopStyleColor();
-
-                    if ((size_t)currMsgIdx == msgs.size() - 1 && msgs.size() != (size_t)lastMsgCount) {
-                        ImGui::SetScrollHereY();
-                        lastMsgCount = (int)msgs.size();
+            if (ImGui::BeginChild("ConsoleScroll", ImVec2(0, -ImGui::GetFrameHeightWithSpacing()))) {
+                float scrollRegionY = ImGui::GetContentRegionAvail().y;
+                int currMsgIdx = 0;
+                float scroll = ImGui::GetScrollY();
+                float scrollMax = scroll + scrollRegionY;
+                float cHeight = 0.0f;
+                float lineHeight = ImGui::GetTextLineHeightWithSpacing();
+                for (auto& msg : msgs) {
+                    if ((cHeight + lineHeight) > scroll && (cHeight - lineHeight) < scrollMax) {
+                        ImGui::PushStyleColor(ImGuiCol_Text, (ImVec4)priorityColors.at(msg.priority));
+                        if (msg.category != CONSOLE_RESPONSE_CATEGORY)
+                            ImGui::TextUnformatted(("[" + std::string(categories.at(msg.category)) + "] " + "[" + std::string(priorities.at(msg.priority)) + "] " + msg.msg).c_str());
+                        else
+                            ImGui::TextUnformatted(msg.msg.c_str());
+                        ImGui::PopStyleColor();
+                    } else {
+                        ImGui::NewLine();
                     }
-                } else {
-                    ImGui::NewLine();
+
+                    cHeight += lineHeight;
+                    currMsgIdx++;
                 }
 
-                cHeight += lineHeight;
+                if (lastMsgCount != (int)msgs.size()) {
+                    lastMsgCount = msgs.size();
+                    ImGui::SetScrollY(cHeight);
+                }
 
-                currMsgIdx++;
+                ImGui::EndChild();
             }
-
-            ImGui::EndChild();
 
             if (setKeyboardFocus)
                 ImGui::SetKeyboardFocusHere();
@@ -522,23 +522,25 @@ namespace worlds {
         int g = (int)(col.Value.y * 255);
         int b = (int)(col.Value.z * 255);
 
-        if (enableVT100) {
-            std::string colorStr = std::string("\033[38;2;") 
-                      + std::to_string(r) 
-                + ";" + std::to_string(g) 
-                + ";" + std::to_string(b)
-                + "m";
+        if (logToStdout.getInt()) {
+            if (enableVT100) {
+                std::string colorStr = std::string("\033[38;2;") 
+                          + std::to_string(r) 
+                    + ";" + std::to_string(g) 
+                    + ";" + std::to_string(b)
+                    + "m";
 
-            const char* clearLineCode = "\033[2K";
+                const char* clearLineCode = "\033[2K";
 
-            std::cout << "\r" << clearLineCode << colorStr << outStr << "\n";
-            if (g_console->asyncConsoleThread)
-                std::cout << "\033[32mserver> \033[0m";
-            else
-                std::cout << "\033[0m";
-            std::cout.flush();
-        } else {
-            std::cout << outStr << "\n";
+                std::cout << "\r" << clearLineCode << colorStr << outStr << "\n";
+                if (g_console->asyncConsoleThread)
+                    std::cout << "\033[32mserver> \033[0m";
+                else
+                    std::cout << "\033[0m";
+                std::cout.flush();
+            } else {
+                std::cout << outStr << "\n";
+            }
         }
 
         // Use std::endl for the file to force a flush

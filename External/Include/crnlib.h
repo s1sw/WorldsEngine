@@ -13,6 +13,7 @@
 // Important: If compiling with gcc, be sure strict aliasing is disabled: -fno-strict-aliasing
 #ifndef CRNLIB_H
 #define CRNLIB_H
+#include <stddef.h>
 
 #ifdef _MSC_VER
 #pragma warning (disable: 4127) //  conditional expression is constant

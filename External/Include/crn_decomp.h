@@ -13,6 +13,11 @@
 #ifndef CRND_INCLUDE_CRND_H
 #define CRND_INCLUDE_CRND_H
 
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-value"
+#endif
+
 #if defined(_WIN32) && !defined(WIN32)
 #define WIN32
 #endif
@@ -4813,6 +4818,10 @@ namespace crnd
    }
 
 } // namespace crnd
+
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
 
 #endif // CRND_HEADER_FILE_ONLY
 
