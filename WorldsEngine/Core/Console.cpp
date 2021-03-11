@@ -30,7 +30,13 @@ namespace worlds {
         ConvarLink* next;
     };
 
-    ConVar logToStdout { "logToStdOut", "0", "Log to stdout in addition to the file and the console." };
+    ConVar logToStdout { "logToStdOut", 
+#ifdef NDEBUG
+        "0", 
+#else
+        "1",
+#endif
+        "Log to stdout in addition to the file and the console." };
 
     ConvarLink* firstLink = nullptr;
     const int CONSOLE_RESPONSE_CATEGORY = 255;
@@ -160,8 +166,6 @@ namespace worlds {
         , asyncCommandReady(false) {
         g_console = this;
         SDL_LogSetOutputFunction(logCallback, this);
-        SDL_LogSetPriority(CONSOLE_RESPONSE_CATEGORY, SDL_LOG_PRIORITY_INFO);
-        SDL_LogSetPriority(WELogCategoryUI, SDL_LOG_PRIORITY_INFO);
         registerCommand(cmdHelp, "help", "Displays help about all commands.", this);
         registerCommand(cmdExec, "exec", "Executes a command file.", this);
 
@@ -169,9 +173,11 @@ namespace worlds {
 #ifndef NDEBUG
             SDL_LogSetPriority(cPair.first, SDL_LOG_PRIORITY_VERBOSE);
 #else
-            SDL_LogSetPriority(cPair.first, SDL_LOG_PRIORITY_INFO);
+            SDL_LogSetPriority(cPair.first, SDL_LOG_PRIORITY_WARN);
 #endif
         }
+
+        SDL_LogSetPriority(CONSOLE_RESPONSE_CATEGORY, SDL_LOG_PRIORITY_INFO);
 
         if (firstLink != nullptr) {
             ConvarLink* curr = firstLink;
