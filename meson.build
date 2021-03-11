@@ -1,6 +1,6 @@
 project('worldseng', 'cpp', 'c', default_options: [
-  'cpp_std=c++latest',
   'c_std=c11',
+  'cpp_std=c++2a',
   'win_subsystem=windows'
 ])
 
@@ -29,6 +29,8 @@ cpp_compiler = meson.get_compiler('cpp')
 
 if cpp_compiler.get_argument_syntax() == 'gcc'
   add_global_arguments('-ffast-math', language: 'cpp')
+  add_global_arguments('-fno-rtti', language: 'cpp')
+  add_global_arguments('-Wno-volatile', language: 'cpp') # remove if we ever move off of glm (unlikely)
   add_global_arguments('-g', language: 'cpp') # generate debug symbols even in release
 elif cpp_compiler.get_argument_syntax() == 'msvc'
   add_global_arguments('/fp:fast', language: 'cpp')
