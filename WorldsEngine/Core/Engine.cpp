@@ -15,7 +15,6 @@
 #include "../Physics/Physics.hpp"
 #include "../Input/Input.hpp"
 #include "../Physics/PhysicsActor.hpp"
-#include <execution>
 #include <glm/gtx/norm.hpp>
 #include <physx/PxQueryReport.h>
 #include "tracy/Tracy.hpp"

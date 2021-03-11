@@ -19,7 +19,6 @@
 #include "RenderPasses.hpp"
 #include "../Input/Input.hpp"
 #include "../VR/OpenVRInterface.hpp"
-#include <sajson.h>
 #include "../Core/Fatal.hpp"
 #include <unordered_set>
 #include "../Core/Log.hpp"
