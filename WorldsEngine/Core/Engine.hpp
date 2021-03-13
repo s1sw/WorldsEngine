@@ -5,11 +5,9 @@
 #include "IGameEventHandler.hpp"
 #include "JobSystem.hpp"
 #include <bitset>
-#include "../VR/OpenVRInterface.hpp"
 #include "ISystem.hpp"
 #include "../Render/Camera.hpp"
 #include "Console.hpp"
-#include "../Scripting/WrenVM.hpp"
 
 #define NUM_SUBMESH_MATS 32
 namespace worlds {
@@ -20,6 +18,8 @@ namespace worlds {
     class AudioSystem;
     class InputManager;
     class Editor;
+    class WrenScriptEngine;
+    class OpenVRInterface;
     typedef uint32_t RTTPassHandle;
 
     struct SceneInfo {
@@ -91,7 +91,7 @@ namespace worlds {
         std::unique_ptr<Console> console;
         std::unique_ptr<Editor> editor;
         std::unique_ptr<WrenScriptEngine> scriptEngine;
-        OpenVRInterface openvrInterface;
+        std::unique_ptr<OpenVRInterface> openvrInterface;
         double timeScale = 1.0;
         SDL_Window* window;
         SceneInfo currentScene;

@@ -478,6 +478,8 @@ namespace worlds {
                     selectedTransform.rotation = rotation;
                     selectedTransform.scale = scale;
                     break;
+                default:
+                    break;
                 }
 
                 if (inputManager.ctrlHeld() &&
@@ -541,7 +543,6 @@ namespace worlds {
         }
 
         saveFileModal("Save Scene", [this](const char* path) {
-            AssetID sceneId = g_assetDB.addOrGetExisting(path);
             saveScene(g_assetDB.createAsset(path), reg);
             updateWindowTitle();
         });

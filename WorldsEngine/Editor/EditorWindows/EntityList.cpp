@@ -69,7 +69,7 @@ namespace worlds {
 
                 if (currentlyRenaming != ent) {
                     if (nc == nullptr) {
-                        ImGui::Text("Entity %u", ent);
+                        ImGui::Text("Entity %u", static_cast<uint32_t>(ent));
                     } else {
                         ImGui::TextUnformatted(nc->name.c_str());
                     }

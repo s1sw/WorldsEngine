@@ -4,6 +4,7 @@
 #include "../Libs/IconsFontaudio.h"
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include "../ImGui/imgui_internal.h"
+#include "../Core/Log.hpp"
 #include <filesystem>
 
 namespace worlds {
@@ -335,7 +336,6 @@ namespace worlds {
 
     bool selectAssetPopup(const char* title, AssetID& id, bool open) {
         static std::string path;
-        static bool notFoundErr = false;
         bool changed = false;
 
         std::filesystem::path p(path);

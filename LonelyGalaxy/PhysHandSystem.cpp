@@ -13,6 +13,7 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <Core/Console.hpp>
 #include "DebugArrow.hpp"
+#include <VR/OpenVRInterface.hpp>
 
 namespace lg {
     void resetHand(PhysHand& ph, physx::PxRigidBody* rb) {
