@@ -34,6 +34,7 @@
 #include "MathsUtil.hpp"
 #include "PlayerStartPoint.hpp"
 #include "RPGStats.hpp"
+#include <Scripting/WrenVM.hpp>
 
 namespace lg {
     const uint16_t CONVERGE_PORT = 3011;

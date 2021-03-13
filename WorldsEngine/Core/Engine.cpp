@@ -9,8 +9,8 @@
 #include <physfs.h>
 #include "../ImGui/imgui_impl_sdl.h"
 #include "../ImGui/imgui_impl_vulkan.h"
-#include "../Libs/cxxopts.hpp"
 #include <entt/entt.hpp>
+#include "Scripting/WrenVM.hpp"
 #include "Transform.hpp"
 #include "../Physics/Physics.hpp"
 #include "../Input/Input.hpp"
@@ -287,7 +287,8 @@ namespace worlds {
             } else {
                 window = createSDLWindow();
                 if (window == nullptr) {
-                    SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Failed to create window", SDL_GetError(), NULL);
+                    SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, 
+                            "Failed to create window", SDL_GetError(), NULL);
                 }
 
                 if (runAsEditor)
@@ -320,12 +321,13 @@ namespace worlds {
         std::vector<std::string> additionalDeviceExts;
 
         if (enableOpenVR) {
-            openvrInterface.init();
+            openvrInterface = std::make_unique<OpenVRInterface>();
+            openvrInterface->init();
 
             if (!runAsEditor) {
                 uint32_t newW, newH;
 
-                openvrInterface.getRenderResolution(&newW, &newH);
+                openvrInterface->getRenderResolution(&newW, &newH);
                 SDL_Rect rect;
                 SDL_GetDisplayUsableBounds(0, &rect);
 
@@ -343,11 +345,10 @@ namespace worlds {
             activeApi = VrApi::OpenVR;
         }
 
-        IVRInterface* vrInterface = &openvrInterface;
+        IVRInterface* vrInterface = openvrInterface.get();
 
         if (!dedicatedServer && runAsEditor)
             redrawSplashWindow(splashWindow, "initialising renderer");
-
 
         if (!dedicatedServer) {
             RendererInitInfo initInfo{
@@ -372,7 +373,7 @@ namespace worlds {
         inputManager = std::make_unique<InputManager>(window);
 
         EngineInterfaces interfaces{
-            .vrInterface = enableOpenVR ? &openvrInterface : nullptr,
+            .vrInterface = enableOpenVR ? openvrInterface.get() : nullptr,
             .renderer = renderer,
             .mainCamera = &cam,
             .inputManager = inputManager.get(),
@@ -520,7 +521,7 @@ namespace worlds {
         uint32_t w, h;
 
         if (enableOpenVR) {
-            openvrInterface.getRenderResolution(&w, &h);
+            openvrInterface->getRenderResolution(&w, &h);
         } else {
             w = 1600;
             h = 900;
@@ -610,15 +611,18 @@ namespace worlds {
                         }
                     }
 
+                    inputManager->processEvent(evt);
+
                     if (ImGui::GetCurrentContext())
                         ImGui_ImplSDL2_ProcessEvent(&evt);
                 }
             } else {
                 SDL_Event evt;
                 while (evts.try_dequeue(evt)) {
+                    inputManager->processEvent(evt);
+
                     if (ImGui::GetCurrentContext())
                         ImGui_ImplSDL2_ProcessEvent(&evt);
-                    inputManager->processEvent(evt);
                 }
 
                 // also get events from this thread because ImGUI uses them
@@ -813,7 +817,7 @@ namespace worlds {
 
                 if (enableOpenVR) {
                     uint32_t w, h;
-                    openvrInterface.getRenderResolution(&w, &h);
+                    openvrInterface->getRenderResolution(&w, &h);
                     newWidth = w;
                     newHeight = h;
                 }
@@ -887,7 +891,7 @@ namespace worlds {
                     size_t totalBlockBytes = 0;
                     size_t totalBudget = 0;
 
-                    for (int i = 0; i < memProps->memoryHeapCount; i++) {
+                    for (uint32_t i = 0; i < memProps->memoryHeapCount; i++) {
                         if (budget->budget == UINT64_MAX) continue;
                         totalUsage += budget->allocationBytes;
                         totalBlockBytes += budget->blockBytes;
@@ -968,7 +972,6 @@ namespace worlds {
 
     void WorldsEngine::updateSimulation(float& interpAlpha, double deltaTime) {
         ZoneScoped;
-        double scaledDeltaTime = deltaTime * timeScale;
         if (lockSimToRefresh.getInt() || disableSimInterp.getInt()) {
             registry.view<DynamicPhysicsActor, Transform>().each([](auto, DynamicPhysicsActor& dpa, Transform& transform) {
                 auto curr = dpa.actor->getGlobalPose();

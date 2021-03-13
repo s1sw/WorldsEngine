@@ -4,15 +4,17 @@
 #include <Core/IGameEventHandler.hpp>
 #include <Core/Console.hpp>
 #include <Core/Engine.hpp>
-#include <Scripting/WrenVM.hpp>
 #include "NetMessage.hpp"
 #include "PidController.hpp"
 #include <Render/Camera.hpp>
 #include "LocospherePlayerSystem.hpp"
 #include "Client.hpp"
 #include "Server.hpp"
-#include "VR/IVRInterface.hpp"
 #include <deque>
+
+namespace worlds {
+    typedef uint64_t InputActionHandle;
+}
 
 namespace lg {
     struct ServerPlayer {

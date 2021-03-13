@@ -89,7 +89,8 @@ namespace worlds {
                 }
 
                 dpa.actor->is<physx::PxRigidDynamic>()->wakeUp();
-                for (physx::PxD6Axis::Enum axis = physx::PxD6Axis::eX; axis < physx::PxD6Axis::eCOUNT; ((int&)axis)++) {
+                for (int axisInt = physx::PxD6Axis::eX; axisInt < physx::PxD6Axis::eCOUNT; axisInt++) {
+                    auto axis = (physx::PxD6Axis::Enum)axisInt;
                     auto motion = j.pxJoint->getMotion(axis);
                     if (motionDropdown(motionAxisLabels[axis], motion)) {
                         j.pxJoint->setMotion(axis, motion);
@@ -115,7 +116,8 @@ namespace worlds {
                 }
 
                 if (ImGui::TreeNode("Linear Limits")) {
-                    for (physx::PxD6Axis::Enum axis = physx::PxD6Axis::eX; axis < physx::PxD6Axis::eTWIST; ((int&)axis)++) {
+                    for (int axisInt = physx::PxD6Axis::eX; axisInt < physx::PxD6Axis::eTWIST; axisInt++) {
+                        auto axis = (physx::PxD6Axis::Enum)axisInt;
                         if (ImGui::TreeNode(motionAxisLabels[axis])) {
                             auto lim = j.pxJoint->getLinearLimit(axis);
 
@@ -206,7 +208,8 @@ namespace worlds {
             auto& d6 = reg.get<D6Joint>(ent);
             auto* px = d6.pxJoint;
             
-            for (physx::PxD6Axis::Enum axis = physx::PxD6Axis::eX; axis < physx::PxD6Axis::eCOUNT; ((int&)axis)++) {
+            for (int axisInt = physx::PxD6Axis::eX; axisInt < physx::PxD6Axis::eCOUNT; axisInt++) {
+                auto axis = (physx::PxD6Axis::Enum)axisInt;
                 auto motion = (unsigned char)px->getMotion(axis);
                 WRITE_FIELD(file, motion);
             }
@@ -217,7 +220,8 @@ namespace worlds {
             WRITE_FIELD(file, p0);
             WRITE_FIELD(file, p1);
 
-            for (physx::PxD6Axis::Enum axis = physx::PxD6Axis::eX; axis < physx::PxD6Axis::eTWIST; ((int&)axis)++) {
+            for (int axisInt = physx::PxD6Axis::eX; axisInt < physx::PxD6Axis::eCOUNT; axisInt++) {
+                auto axis = (physx::PxD6Axis::Enum)axisInt;
                 auto lim = px->getLinearLimit(axis);
                 WRITE_FIELD(file, lim);
             }
@@ -245,7 +249,8 @@ namespace worlds {
             auto& d6 = reg.emplace<D6Joint>(ent);
             auto* px = d6.pxJoint;
 
-            for (physx::PxD6Axis::Enum axis = physx::PxD6Axis::eX; axis < physx::PxD6Axis::eCOUNT; ((int&)axis)++) {
+            for (int axisInt = physx::PxD6Axis::eX; axisInt < physx::PxD6Axis::eCOUNT; axisInt++) {
+                auto axis = (physx::PxD6Axis::Enum)axisInt;
                 unsigned char motion;
                 READ_FIELD(file, motion);
                 px->setMotion(axis, (physx::PxD6Motion::Enum)motion);
@@ -260,7 +265,8 @@ namespace worlds {
             px->setLocalPose(physx::PxJointActorIndex::eACTOR0, p0);
             px->setLocalPose(physx::PxJointActorIndex::eACTOR1, p1);
 
-            for (physx::PxD6Axis::Enum axis = physx::PxD6Axis::eX; axis < physx::PxD6Axis::eTWIST; ((int&)axis)++) {
+            for (int axisInt = physx::PxD6Axis::eX; axisInt < physx::PxD6Axis::eCOUNT; axisInt++) {
+                auto axis = (physx::PxD6Axis::Enum)axisInt;
                 physx::PxJointLinearLimitPair lim{ 0.0f, 0.0f, physx::PxSpring{0.0f, 0.0f} };
                 READ_FIELD(file, lim);
                 px->setLinearLimit(axis, lim);

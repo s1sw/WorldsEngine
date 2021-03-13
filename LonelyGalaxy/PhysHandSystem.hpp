@@ -2,7 +2,6 @@
 #include <entt/entt.hpp>
 #include <Physics/PhysicsActor.hpp>
 #include "PidController.hpp"
-#include <VR/IVRInterface.hpp>
 #include <Core/Transform.hpp>
 #include <Physics/Physics.hpp>
 #include <Core/ISystem.hpp>

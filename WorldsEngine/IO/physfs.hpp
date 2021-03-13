@@ -94,12 +94,14 @@ void getCdRomDirs(StringCallback callback, void * extra);
 
 string getBaseDir();
 
+[[deprecated]]
 string getUserDir();
 
 string getWriteDir();
 
 void setWriteDir(string const & newDir);
 
+[[deprecated]]
 void removeFromSearchPath(string const & oldDir);
 
 StringList getSearchPath();
@@ -116,14 +118,18 @@ string getRealDir(string const & filename);
 
 StringList enumerateFiles(string const & directory);
 
+[[deprecated]]
 void enumerateFiles(string const & directory, EnumFilesCallback callback, void * extra);
 
 bool exists(string const & filename);
 
+[[deprecated]]
 bool isDirectory(string const & filename);
 
+[[deprecated]]
 bool isSymbolicLink(string const & filename);
 
+[[deprecated]]
 sint64 getLastModTime(string const & filename);
 
 bool isInit();

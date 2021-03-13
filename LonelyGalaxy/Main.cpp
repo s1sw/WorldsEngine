@@ -1,6 +1,5 @@
 #define _CRT_SECURE_NO_WARNINGS
 #include "EventHandler.hpp"
-#include <iostream>
 #include <Core/Engine.hpp>
 
 namespace lg {
@@ -85,7 +84,7 @@ int main(int argc, char** argv) {
     }
 
     if (ds && (initOptions.enableVR || initOptions.runAsEditor)) {
-        std::cerr << argv[0] << ": invalid arguments.\n";
+        fprintf(stderr, "%s: invalid arguments.\n", argv[0]);
         return -1;
     }
 
