@@ -33,11 +33,6 @@ namespace lg {
     }
     
     void DebugArrows::createEntities() {
-        for (auto& ent : arrowEntities) {
-            if (reg.valid(ent))
-                reg.destroy(ent);
-        }
-
         arrowEntities.clear();
         auto meshId = worlds::g_assetDB.addOrGetExisting("arrow.obj");
         auto matId = worlds::g_assetDB.addOrGetExisting("Materials/glowred.json");
