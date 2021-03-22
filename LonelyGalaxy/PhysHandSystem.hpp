@@ -32,8 +32,7 @@ namespace lg {
 
         // Inertia tensor override for compensating for unbalanced objects.
         bool useOverrideIT = false;
-        glm::vec3 overrideIT {0.0f};
-        glm::quat overrideITRotation {};
+        physx::PxMat33 overrideIT;
 
         float forceLimit = 1000.0f; ///< Force limit in Newtons
         float torqueLimit = 15.0f; ///< Torque limit in Newton-metres
@@ -43,7 +42,7 @@ namespace lg {
     class PhysHandSystem : public worlds::ISystem {
     public:
         PhysHandSystem(worlds::EngineInterfaces interfaces, entt::registry& registry);
-        void update(entt::registry& registry, float deltaTime, float) override;
+        void preSimUpdate(entt::registry& registry, float deltaTime) override;
         void simulate(entt::registry& registry, float simStep) override;
     private:
         void setTargets(PhysHand& hand, entt::entity ent, float deltaTime);

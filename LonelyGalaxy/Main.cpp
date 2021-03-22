@@ -88,7 +88,7 @@ int main(int argc, char** argv) {
         return -1;
     }
 
-    initOptions.useEventThread = true;
+    initOptions.useEventThread = false;
 
     lg::EventHandler evtHandler {ds};
     initOptions.eventHandler = &evtHandler;

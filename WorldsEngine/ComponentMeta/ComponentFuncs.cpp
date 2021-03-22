@@ -267,6 +267,7 @@ namespace worlds {
                     reg.remove<WorldLight>(ent);
                 } else {
                     auto& worldLight = reg.get<WorldLight>(ent);
+                    ImGui::Checkbox("Enabled", &worldLight.enabled);
                     ImGui::ColorEdit3("Color", &worldLight.color.x, ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
 
                     if (ImGui::BeginCombo("Light Type", lightTypeNames.at(worldLight.type))) {
@@ -568,12 +569,14 @@ namespace worlds {
 
         void clone(entt::entity from, entt::entity to, entt::registry& reg) override {
             auto& t = reg.get<Transform>(from);
+            auto& oldDpa = reg.get<DynamicPhysicsActor>(from);
 
             physx::PxTransform pTf(glm2px(t.position), glm2px(t.rotation));
             auto* actor = g_physics->createRigidDynamic(pTf);
 
             auto& newPhysActor = reg.emplace<DynamicPhysicsActor>(to, actor);
-            newPhysActor.physicsShapes = reg.get<DynamicPhysicsActor>(from).physicsShapes;
+            newPhysActor.physicsShapes = oldDpa.physicsShapes;
+            newPhysActor.mass = oldDpa.mass;
 
             g_scene->addActor(*actor);
 
@@ -831,14 +834,18 @@ namespace worlds {
             auto& sc = reg.get<ScriptComponent>(ent);
 
             if (ImGui::CollapsingHeader(ICON_FA_SCROLL u8" Script")) {
-                ImGui::Text("Current Script Path: %s", g_assetDB.getAssetPath(sc.script).c_str());
-                AssetID id = sc.script;
-                if (selectAssetPopup("Script Path", id, ImGui::Button("Change"))) {
-                    reg.patch<ScriptComponent>(ent, [&](ScriptComponent& sc) {
-                        sc.script = id;
-                    });
+                if (ImGui::Button("Remove")) {
+                    reg.remove<ScriptComponent>(ent);
+                } else {
+                    ImGui::Text("Current Script Path: %s", g_assetDB.getAssetPath(sc.script).c_str());
+                    AssetID id = sc.script;
+                    if (selectAssetPopup("Script Path", id, ImGui::Button("Change"))) {
+                        reg.patch<ScriptComponent>(ent, [&](ScriptComponent& sc) {
+                            sc.script = id;
+                        });
+                    }
+                    ImGui::Separator();
                 }
-                ImGui::Separator();
             }
         }
 

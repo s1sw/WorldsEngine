@@ -18,6 +18,7 @@
 #include "ScriptBindings/Vec3.hpp"
 #include "ScriptBindings/PhysicsActors.hpp"
 #include "ScriptBindings/SceneManager.hpp"
+#include "ScriptBindings/Light.hpp"
 
 namespace worlds {
     void writeFn(WrenVM*, const char* text) {
@@ -61,7 +62,7 @@ namespace worlds {
     void entityAllocate(WrenVM* vm) {
         uint32_t* idPtr = (uint32_t*)wrenSetSlotNewForeign(vm, 0, 0, sizeof(uint32_t));
 
-        *idPtr = wrenGetSlotDouble(vm, 1);
+        *idPtr = (uint32_t)wrenGetSlotDouble(vm, 1);
     }
 
     void vec3Allocate(WrenVM* vm) {

@@ -275,6 +275,16 @@ namespace worlds {
 
             if (inputManager.keyPressed(SDL_SCANCODE_P, true) && inputManager.ctrlHeld() && inputManager.shiftHeld())
                 g_console->executeCommandStr("pauseAndEdit");
+
+            if (ImGui::BeginMainMenuBar()) {
+                if (ImGui::MenuItem("Stop Playing")) {
+                    g_console->executeCommandStr("reloadAndEdit");
+                }
+
+                if (ImGui::MenuItem("Pause and Edit")) {
+                    g_console->executeCommandStr("pauseAndEdit");
+                }
+            }
             return;
         }
 
@@ -395,10 +405,10 @@ namespace worlds {
 
                 sceneViewDS = VKImGUIUtil::createDescriptorSetFor(interfaces.renderer->getSDRTarget(sceneViewPass), vkCtx);
             }
-            auto wSize = ImGui::GetContentRegionAvail();
 
             ImGui::Image((ImTextureID)sceneViewDS, ImVec2(currentSceneViewSize.x, currentSceneViewSize.y));
 
+            auto wSize = ImGui::GetContentRegionAvail();
             auto wPos = ImGui::GetWindowPos() + ImGui::GetCursorStartPos();
             auto mPos = ImGui::GetIO().MousePos;
             auto localMPos = mPos - wPos;

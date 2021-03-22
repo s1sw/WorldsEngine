@@ -347,7 +347,10 @@ namespace worlds {
         }, nullptr, p.string().c_str());
 
         if (open) {
-            path = g_assetDB.getAssetPath(id);
+            if (id != ~0u)
+                path = g_assetDB.getAssetPath(id);
+            else
+                path = "";
             ImGui::OpenPopup(title);
         }
 

@@ -3,7 +3,7 @@
     "pbrMapPath" : "Textures/LevelTextures/Bricks005/pbr.png",
     "normalMapPath" : "Textures/LevelTextures/Bricks005/normal_forcelin.png",
     "heightmapPath" : "Textures/LevelTextures/Bricks005/height.png",
-    "heightmapScale" : 0.010000,
+    "heightmapScale" : 0.0050000,
     "metallic" : 0.000000,
     "roughness" : 1.000000,
     "albedoColor" : [1.000000, 1.000000, 1.000000],

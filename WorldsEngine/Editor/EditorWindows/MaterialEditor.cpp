@@ -50,7 +50,7 @@ namespace worlds {
     }
 
     std::string getJson(std::string key, glm::vec3 value) {
-        return "    \"" + key + "\"" + " : [" + 
+        return "    \"" + key + "\"" + " : [" +
             std::to_string(value.x) + ", " + std::to_string(value.y) + ", " + std::to_string(value.z) + "]";
     }
 
@@ -103,7 +103,6 @@ namespace worlds {
         if (mat.wireframe)
             j += ",\n" + getJson("wireframe", 1);
 
-
         j += "\n}\n";
 
         logMsg("%s", j.c_str());
@@ -111,6 +110,12 @@ namespace worlds {
         auto* file = g_assetDB.openAssetFileWrite(matId);
         PHYSFS_writeBytes(file, j.data(), j.size());
         PHYSFS_close(file);
+    }
+
+    void setIfExists(std::string path, AssetID& toSet) {
+        if (PHYSFS_exists(path.c_str())) {
+            toSet = g_assetDB.addOrGetExisting(path);
+        }
     }
 
     void MaterialEditor::draw(entt::registry&) {
@@ -215,6 +220,28 @@ namespace worlds {
 
                     ImGui::SameLine();
                     assetButton(mat.roughMap, "Rough Map");
+                }
+
+                if (ImGui::BeginPopup("Open Material from folder + mat name")) {
+                    static std::string folderPath = "Materials/";
+                    static std::string matName = "";
+
+                    ImGui::InputText("Folder", &folderPath);
+                    ImGui::InputText("Material Name", &matName);
+
+                    if (ImGui::Button("Set")) {
+                        std::string matPath = folderPath + matName;
+                        setIfExists(matPath + "_BaseColor.png", mat.albedo);
+                        setIfExists(matPath + "_Normal_forcelin.png", mat.normalMap);
+                        setIfExists(matPath + "_PBRPack.png", mat.pbrMap);
+                        mat.usePBRMap = true;
+                        ImGui::CloseCurrentPopup();
+                    }
+                    ImGui::EndPopup();
+                }
+
+                if (ImGui::Button("Set from folder + mat name")) {
+                    ImGui::OpenPopup("Open Material from folder + mat name");
                 }
 
                 if (ImGui::Button("Save")) {

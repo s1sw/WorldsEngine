@@ -24,6 +24,16 @@ namespace worlds {
             *idPtr = entId;
         }
 
+        static void getLight(WrenVM* vm) {
+            uint32_t entId = *(uint32_t*)wrenGetSlotForeign(vm, 0);
+
+            wrenEnsureSlots(vm, 1);
+            wrenGetVariable(vm, "worlds_engine/entity", "Light", 0);
+
+            uint32_t* idPtr = (uint32_t*)wrenSetSlotNewForeign(vm, 0, 0, sizeof(uint32_t));
+            *idPtr = entId;
+        }
+
         static void getId(WrenVM* vm) {
             uint32_t entId = *(uint32_t*)wrenGetSlotForeign(vm, 0);
 
@@ -41,6 +51,8 @@ namespace worlds {
                     return getTransform;
                 } else if (strcmp(sig, "getDynamicPhysicsActor()") == 0) {
                     return getDynamicPhysicsActor;
+                } else if (strcmp(sig, "getLight()") == 0) {
+                    return getLight;
                 } else if (strcmp(sig, "getId()") == 0) {
                     return getId;
                 }

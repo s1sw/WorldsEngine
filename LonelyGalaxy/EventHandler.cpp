@@ -35,6 +35,7 @@
 #include "PlayerStartPoint.hpp"
 #include "RPGStats.hpp"
 #include <Scripting/WrenVM.hpp>
+#include "GripPoint.hpp"
 
 namespace lg {
     const uint16_t CONVERGE_PORT = 3011;
@@ -147,7 +148,34 @@ namespace lg {
         g_dbgArrows->newFrame();
     }
 
-    void EventHandler::update(entt::registry& reg, float, float) {
+    entt::entity fakeLHand;
+    entt::entity fakeRHand;
+
+    void EventHandler::update(entt::registry& reg, float deltaTime, float) {
+        if (vrInterface) {
+            static float yRot = 0.0f;
+            static float targetYRot = 0.0f;
+            static bool rotated = false;
+            auto rStickInput = vrInterface->getActionV2(rStick);
+            auto rotateInput = rStickInput.x;
+            ImGui::Text("s: %.3f, %.3f", rStickInput.x, rStickInput.y);
+
+            float threshold = 0.5f;
+            bool rotatingNow = glm::abs(rotateInput) > threshold;
+
+            if (rotatingNow && !rotated) {
+                targetYRot += glm::radians(45.0f) * -glm::sign(rotateInput);
+            }
+
+            const float rotateSpeed = 15.0f;
+
+            yRot += glm::clamp((targetYRot - yRot), -deltaTime * rotateSpeed, deltaTime * rotateSpeed);
+
+            camera->rotation = glm::quat{glm::vec3{0.0f, yRot, 0.0f}};
+
+            rotated = rotatingNow;
+        }
+
         if (reg.view<RPGStats>().size() > 0) {
             auto& rpgStat = reg.get<RPGStats>(reg.view<RPGStats>()[0]);
             if (ImGui::Begin("RPG Stats")) {
@@ -163,14 +191,25 @@ namespace lg {
                 auto& phl = reg.get<PhysHand>(lHandEnt);
                 auto& phr = reg.get<PhysHand>(rHandEnt);
 
-                float forceLimit = 100 + (150 * rpgStat.strength);
-                float torqueLimit = 2 + (5 * rpgStat.strength);
+                float forceLimit = 150.0f + (100.0f * rpgStat.strength);
+                float torqueLimit = 2.0f + (5.0f * rpgStat.strength);
 
                 phl.forceLimit = forceLimit;
                 phr.forceLimit = forceLimit;
 
                 phl.torqueLimit = torqueLimit;
                 phr.torqueLimit = torqueLimit;
+
+                if (reg.valid(fakeLHand) && reg.valid(fakeRHand)) {
+                    auto& tfl = reg.get<Transform>(fakeLHand);
+                    auto& trl = reg.get<Transform>(fakeRHand);
+
+                    tfl.position = phl.targetWorldPos;
+                    tfl.rotation = phl.targetWorldRot;
+
+                    trl.position = phr.targetWorldPos;
+                    trl.rotation = phr.targetWorldRot;
+                }
             }
         }
 
@@ -202,26 +241,48 @@ namespace lg {
         }
     }
 
-    worlds::ConVar sendRate {"cnvrg_sendRate", "5", "Send rate in simulation ticks. 0 = 1 packet per tick"};
+    worlds::ConVar sendRate { "cnvrg_sendRate", "5", "Send rate in simulation ticks. 0 = 1 packet per tick" };
     int syncTimer = 0;
+    worlds::ConVar itCompDbg { "lg_itCompDbg", "0", "Shows physics shapes for grabbed objects." };
 
     void addShapeTensor(entt::registry& reg, worlds::PhysicsShape& shape, physx::IT::InertiaTensorComputer& itComp,
-            glm::vec3 shapePos, glm::quat shapeRot) {
+            physx::PxTransform shapeTransform, physx::PxTransform handTransform, physx::PxTransform shapeWSTransform = physx::PxTransform{physx::PxIdentity}, bool showWS = false) {
         physx::IT::InertiaTensorComputer shapeComp(false);
 
-        physx::PxTransform transform;
-        transform.p = worlds::glm2px(shapePos);
-        transform.q = worlds::glm2px(shapeRot);
+        physx::PxTransform wsTransform = handTransform * shapeTransform;
+
+        if (itCompDbg.getInt()) {
+            if (showWS) {
+                worlds::createModelObject(reg, worlds::px2glm(shapeWSTransform.p), worlds::px2glm(shapeWSTransform.q),
+                        worlds::g_assetDB.addOrGetExisting(shape.type == worlds::PhysicsShapeType::Sphere ?
+                            "uvsphere.obj" : "model.obj"),
+                        worlds::g_assetDB.addOrGetExisting("Materials/dev.json"),
+                        shape.type == worlds::PhysicsShapeType::Sphere ?
+                        glm::vec3{shape.sphere.radius * 0.5f} :
+                        shape.box.halfExtents);
+            } else {
+                worlds::createModelObject(reg, worlds::px2glm(wsTransform.p), worlds::px2glm(wsTransform.q),
+                        worlds::g_assetDB.addOrGetExisting(shape.type == worlds::PhysicsShapeType::Sphere ?
+                            "uvsphere.obj" : "model.obj"),
+                        worlds::g_assetDB.addOrGetExisting("Materials/dev.json"),
+                        shape.type == worlds::PhysicsShapeType::Sphere ?
+                        glm::vec3{shape.sphere.radius * 0.5f} :
+                        shape.box.halfExtents);
+            }
+        }
 
         switch (shape.type) {
         case worlds::PhysicsShapeType::Sphere:
-            shapeComp.setSphere(shape.sphere.radius, &transform);
+            shapeComp.setSphere(shape.sphere.radius, &shapeTransform);
             break;
         case worlds::PhysicsShapeType::Box:
-            shapeComp.setBox(worlds::glm2px(shape.box.halfExtents), &transform);
+            shapeComp.setBox(worlds::glm2px(shape.box.halfExtents), &shapeTransform);
             break;
         case worlds::PhysicsShapeType::Capsule:
-            shapeComp.setCapsule(0, shape.capsule.radius, shape.capsule.height, &transform);
+            shapeComp.setCapsule(0, shape.capsule.radius, shape.capsule.height, &shapeTransform);
+            break;
+        default:
+            logErr("unknown shape type used in inertia tensor calculation");
             break;
         }
 
@@ -229,6 +290,7 @@ namespace lg {
     }
 
     worlds::ConVar useTensorCompensation{"lg_compensateTensors", "1", "Enables inertia tensor compensation on grabs."};
+    worlds::ConVar enableGripPoints { "lg_enableGripPoints", "1", "Enables grip points." };
 
     void EventHandler::updateHandGrab(entt::registry& registry, PlayerRig& rig, entt::entity ent) {
         auto& physHand = registry.get<PhysHand>(ent);
@@ -253,8 +315,10 @@ namespace lg {
             filterEnt.numFilterEnts = 5;
             auto& dpa = registry.get<worlds::DynamicPhysicsActor>(ent);
             auto t = dpa.actor->getGlobalPose();
+            auto overlapCenter = t;
+            overlapCenter.p += t.q.rotate(physx::PxVec3(0.0f, 0.0f, 0.05f));
 
-            if (worlds::g_scene->overlap(sphereGeo, t, hit, filterData, &filterEnt)) {
+            if (worlds::g_scene->overlap(sphereGeo, overlapCenter, hit, filterData, &filterEnt)) {
                 const auto& touch = hit.getAnyHit(0);
                 auto pickUp = (entt::entity)(uint32_t)(uintptr_t)touch.actor->userData;
 
@@ -263,7 +327,29 @@ namespace lg {
                 }
 
                 if (registry.valid(pickUp) && registry.valid(ent)) {
+                    auto& otherTf = registry.get<Transform>(pickUp);
+                    auto* gripPoint = registry.try_get<GripPoint>(pickUp);
+                    auto& handTf = registry.get<Transform>(ent);
+
                     auto& d6 = registry.emplace<worlds::D6Joint>(ent);
+
+                    physx::PxTransform p2 = touch.actor->getGlobalPose();
+                    d6.setTarget(pickUp, registry);
+                    d6.pxJoint->setConstraintFlag(physx::PxConstraintFlag::ePROJECTION, true);
+                    d6.pxJoint->setLocalPose(physx::PxJointActorIndex::eACTOR0, t.transformInv(p2));
+
+                    if (enableGripPoints.getInt() && gripPoint && (!gripPoint->exclusive || !gripPoint->currentlyHeld)) {
+                        t.p = worlds::glm2px(otherTf.position + (otherTf.rotation * gripPoint->offset));
+                        t.q = worlds::glm2px(otherTf.rotation * gripPoint->rotOffset);
+                        //dpa.actor->setGlobalPose(t);
+                        //handTf.position = worlds::px2glm(t.p);
+                        //handTf.rotation = worlds::px2glm(t.q);
+                        gripPoint->currentlyHeld = true;
+                        d6.pxJoint->setLocalPose(physx::PxJointActorIndex::eACTOR0, physx::PxTransform{physx::PxIdentity});
+                        d6.pxJoint->setLocalPose(physx::PxJointActorIndex::eACTOR1,
+                                physx::PxTransform{worlds::glm2px(gripPoint->offset), worlds::glm2px(gripPoint->rotOffset)});
+                    }
+
                     // mass of hands is 2kg
                     auto* otherDpa = registry.try_get<worlds::DynamicPhysicsActor>(pickUp);
 
@@ -275,38 +361,37 @@ namespace lg {
                         physx::IT::InertiaTensorComputer itComp(true);
 
                         for (auto& shape : otherDpa->physicsShapes) {
-                            auto worldPos = otherT.transform(worlds::glm2px(shape.pos));
-                            auto worldRot = otherT.q * worlds::glm2px(shape.rot);
+                            auto worldSpace = otherT * physx::PxTransform(worlds::glm2px(shape.pos), worlds::glm2px(shape.rot));
 
-                            glm::vec3 handSpacePos = worlds::px2glm(t.transformInv(worldPos));
-                            glm::quat handSpaceRot = worlds::px2glm(worldRot * t.q.getConjugate());
-                            addShapeTensor(*reg, shape, itComp, handSpacePos, handSpaceRot);
+                            auto handSpace = t.getInverse() * worldSpace;
+
+                            addShapeTensor(*reg, shape, itComp, handSpace, t, worldSpace, false);
                         }
 
                         for (auto& shape : dpa.physicsShapes) {
-                            addShapeTensor(*reg, shape, itComp, shape.pos, shape.rot);
+                            auto shapeT = physx::PxTransform(worlds::glm2px(shape.pos), worlds::glm2px(shape.rot));
+                            addShapeTensor(*reg, shape, itComp, shapeT, t);
                         }
 
                         itComp.scaleDensity((dpa.mass + otherDpa->mass) / itComp.getMass());
 
-                        physx::PxQuat itRot;
-                        auto tensor = physx::PxDiagonalize(itComp.getInertia(), itRot);
-                        physHand.useOverrideIT = true;
-                        physHand.overrideIT = worlds::px2glm(tensor);
-                        physHand.overrideITRotation = worlds::px2glm(itRot);
-                        physHand.forceMultiplier = glm::max(1.0f, glm::min(15.0f, otherDpa->mass / 2.0f));
-                    }
+                        physx::PxMat33 it = itComp.getInertia();
 
-                    physx::PxTransform p = dpa.actor->getGlobalPose();
-                    physx::PxTransform p2 = touch.actor->getGlobalPose();
-                    d6.pxJoint->setLocalPose(physx::PxJointActorIndex::eACTOR0, p.transformInv(p2));
-                    d6.setTarget(pickUp, registry);
+                        physHand.useOverrideIT = true;
+                        physHand.overrideIT = it;
+                        physHand.rotController.reset();
+                    }
                 }
             }
         }
 
         if (vrInterface->getActionReleased(grabAction)) {
             if (registry.has<worlds::D6Joint>(ent)) {
+                auto& d6 = registry.get<worlds::D6Joint>(ent);
+                auto heldEnt = d6.getTarget();
+                GripPoint* gp = registry.try_get<GripPoint>(heldEnt);
+                if (gp)
+                    gp->currentlyHeld = false;
                 registry.remove<worlds::D6Joint>(ent);
                 auto& ph = registry.get<PhysHand>(ent);
                 ph.useOverrideIT = false;
@@ -448,14 +533,17 @@ namespace lg {
             lpc.sprint = false;
             lpc.maxSpeed = 0.0f;
             lpc.xzMoveInput = glm::vec2(0.0f, 0.0f);
-            registry.emplace<RPGStats>(rig.locosphere);
+            auto& stats = registry.emplace<RPGStats>(rig.locosphere);
+            stats.strength = 5;
 
             if (vrInterface) {
                 lGrab = vrInterface->getActionHandle("/actions/main/in/GrabL");
                 rGrab = vrInterface->getActionHandle("/actions/main/in/GrabR");
+                rStick = vrInterface->getActionHandle("/actions/main/in/RStick");
                 auto& fenderTransform = registry.get<Transform>(rig.fender);
-                this->camera->rotation = glm::quat{};
+                camera->rotation = glm::quat{};
                 auto matId = worlds::g_assetDB.addOrGetExisting("Materials/VRHands/placeholder.json");
+                auto devMatId = worlds::g_assetDB.addOrGetExisting("Materials/dev.json");
                 //auto saberId = worlds::g_assetDB.addOrGetExisting("saber.wmdl");
                 auto lHandModel = worlds::g_assetDB.addOrGetExisting("Models/VRHands/hand_placeholder_l.wmdl");
                 auto rHandModel = worlds::g_assetDB.addOrGetExisting("Models/VRHands/hand_placeholder_r.wmdl");
@@ -467,12 +555,22 @@ namespace lg {
                 lht.position = glm::vec3(0.5, 0.0f, 0.0f) + fenderTransform.position;
                 registry.emplace<worlds::NameComponent>(lHandEnt).name = "L. Handy";
 
+                fakeLHand = registry.create();
+                registry.emplace<worlds::WorldObject>(fakeLHand, devMatId, lHandModel);
+                registry.emplace<Transform>(fakeLHand);
+                registry.emplace<worlds::NameComponent>(fakeLHand).name = "Fake L. Handy";
+
                 rHandEnt = registry.create();
                 registry.get<PlayerRig>(rig.locosphere).rHand = rHandEnt;
                 auto& rhWO = registry.emplace<worlds::WorldObject>(rHandEnt, matId, rHandModel);
                 auto& rht = registry.emplace<Transform>(rHandEnt);
                 rht.position = glm::vec3(-0.5f, 0.0f, 0.0f) + fenderTransform.position;
                 registry.emplace<worlds::NameComponent>(rHandEnt).name = "R. Handy";
+
+                fakeRHand = registry.create();
+                registry.emplace<worlds::WorldObject>(fakeRHand, devMatId, rHandModel);
+                registry.emplace<Transform>(fakeRHand);
+                registry.emplace<worlds::NameComponent>(fakeRHand).name = "Fake R. Handy";
 
                 auto lActor = worlds::g_physics->createRigidDynamic(physx::PxTransform{ physx::PxIdentity });
                 // Using the reference returned by this doesn't work unfortunately.
@@ -482,8 +580,10 @@ namespace lg {
                 auto& rwActor = registry.emplace<worlds::DynamicPhysicsActor>(rHandEnt, rActor);
                 auto& lwActor = registry.get<worlds::DynamicPhysicsActor>(lHandEnt);
 
-                rwActor.physicsShapes.emplace_back(worlds::PhysicsShape::boxShape(glm::vec3{ 0.025f, 0.05f, 0.05f }));
-                lwActor.physicsShapes.emplace_back(worlds::PhysicsShape::boxShape(glm::vec3{ 0.025f, 0.05f, 0.05f }));
+                rwActor.physicsShapes.emplace_back(worlds::PhysicsShape::boxShape(glm::vec3{ 0.025f, 0.045f, 0.07f }));
+                rwActor.physicsShapes[0].pos = glm::vec3{0.0f, 0.0f, 0.05f};
+                lwActor.physicsShapes.emplace_back(worlds::PhysicsShape::boxShape(glm::vec3{ 0.025f, 0.045f, 0.07f }));
+                lwActor.physicsShapes[0].pos = glm::vec3{0.0f, 0.0f, 0.05f};
 
                 worlds::updatePhysicsShapes(rwActor);
                 worlds::updatePhysicsShapes(lwActor);
@@ -518,7 +618,11 @@ namespace lg {
 
                 lHandJoint = physx::PxD6JointCreate(*worlds::g_physics, fenderActor, physx::PxTransform { physx::PxIdentity }, lActor,
                 physx::PxTransform { physx::PxIdentity });
-                lHandJoint->setLinearLimit(physx::PxJointLinearLimit{physx::PxTolerancesScale{}, 1.5f});
+
+                lHandJoint->setLocalPose(physx::PxJointActorIndex::eACTOR0,
+                        physx::PxTransform { physx::PxVec3 { 0.0f, 0.6f, 0.0f }, physx::PxQuat { physx::PxIdentity }});
+
+                lHandJoint->setLinearLimit(physx::PxJointLinearLimit{physx::PxTolerancesScale{}, 0.8f});
                 lHandJoint->setMotion(physx::PxD6Axis::eX, physx::PxD6Motion::eLIMITED);
                 lHandJoint->setMotion(physx::PxD6Axis::eY, physx::PxD6Motion::eLIMITED);
                 lHandJoint->setMotion(physx::PxD6Axis::eZ, physx::PxD6Motion::eLIMITED);
@@ -528,7 +632,11 @@ namespace lg {
 
                 rHandJoint = physx::PxD6JointCreate(*worlds::g_physics, fenderActor, physx::PxTransform { physx::PxIdentity }, rActor,
                 physx::PxTransform { physx::PxIdentity });
-                rHandJoint->setLinearLimit(physx::PxJointLinearLimit{physx::PxTolerancesScale{}, 1.5f});
+
+                rHandJoint->setLocalPose(physx::PxJointActorIndex::eACTOR0,
+                        physx::PxTransform { physx::PxVec3 { 0.0f, 0.6f, 0.0f }, physx::PxQuat { physx::PxIdentity }});
+
+                rHandJoint->setLinearLimit(physx::PxJointLinearLimit{physx::PxTolerancesScale{}, 0.8f});
                 rHandJoint->setMotion(physx::PxD6Axis::eX, physx::PxD6Motion::eLIMITED);
                 rHandJoint->setMotion(physx::PxD6Axis::eY, physx::PxD6Motion::eLIMITED);
                 rHandJoint->setMotion(physx::PxD6Axis::eZ, physx::PxD6Motion::eLIMITED);
@@ -622,14 +730,10 @@ namespace lg {
                             return k.first <= pPos.inputIdx;
                         });
 
-                        //if (glm::distance(pastState.pos, pPos.pos) > 0.25f) {
-                            //logMsg("correcting");
                         pose.p = worlds::glm2px(pPos.pos);
                         pose.q = worlds::glm2px(pPos.rot);
                         auto* rd = (physx::PxRigidDynamic*)dpa.actor;
                         glm::vec3 linVel = pPos.linVel;
-                        //rd->setLinearVelocity(worlds::glm2px(pPos.linVel));
-                        //rd->setAngularVelocity(worlds::glm2px(pPos.angVel));
 
                         for (auto& p : _this->pastLocosphereStates) {
                             pose.p += worlds::glm2px(linVel * 0.01f);
@@ -729,7 +833,7 @@ namespace lg {
             rSync.angVel = worlds::px2glm(rd->getAngularVelocity());
 
             enet_peer_send(player.peer, NetChannel_World, rSync.toPacket(ENET_PACKET_FLAG_RELIABLE));
-            });
+        });
     }
 
     void EventHandler::onPlayerLeave(NetPlayer& player, void* vp) {

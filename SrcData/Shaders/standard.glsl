@@ -1,6 +1,8 @@
 #version 450
 #extension GL_EXT_nonuniform_qualifier : enable
 #extension GL_EXT_multiview : enable
+#define MAX_SHADOW_LIGHTS 16
+#define HIGH_QUALITY_SHADOWS
 #include <light.glsl>
 #include <material.glsl>
 #include <pbrutil.glsl>
@@ -17,9 +19,8 @@ layout(location = 0) in vec4 inWorldPos;
 layout(location = 1) in vec3 inNormal;
 layout(location = 2) in vec3 inTangent;
 layout(location = 3) in vec2 inUV;
-layout(location = 4) in vec4 inShadowPos;
-layout(location = 5) in float inDepth;
-layout(location = 6) in flat uint inUvDir;
+layout(location = 4) in float inDepth;
+layout(location = 5) in flat uint inUvDir;
 
 layout(constant_id = 0) const bool ENABLE_PICKING = false;
 layout(constant_id = 1) const bool FACE_PICKING = false;
@@ -35,9 +36,8 @@ layout(location = 0) out vec4 outWorldPos;
 layout(location = 1) out vec3 outNormal;
 layout(location = 2) out vec3 outTangent;
 layout(location = 3) out vec2 outUV;
-layout(location = 4) out vec4 outShadowPos;
-layout(location = 5) out float outDepth;
-layout(location = 6) out flat uint outUvDir;
+layout(location = 4) out float outDepth;
+layout(location = 5) out flat uint outUvDir;
 #endif
 
 layout(binding = 0) uniform MultiVP {
@@ -49,7 +49,7 @@ layout(binding = 0) uniform MultiVP {
 layout(std140, binding = 1) uniform LightBuffer {
     // (light count, yzw unused)
     vec4 pack0;
-    mat4 shadowmapMatrix;
+    mat4 dirShadowMatrix;
     Light lights[128];
 };
 
@@ -65,6 +65,7 @@ layout (binding = 4) uniform sampler2D tex2dSampler[];
 layout (binding = 5) uniform sampler2DShadow shadowSampler;
 layout (binding = 6) uniform samplerCube cubemapSampler[];
 layout (binding = 7) uniform sampler2D brdfLutSampler;
+layout (binding = 8) uniform sampler2D miscShadowSamplers[MAX_SHADOW_LIGHTS];
 
 layout(std430, binding = 8) buffer PickingBuffer {
     uint objectID;
@@ -121,8 +122,6 @@ void main() {
     model3[2] = normalize(model3[2]);
     outNormal = normalize(model3 * inNormal);
     outTangent = normalize(model3 * inTangent);
-    outShadowPos = shadowmapMatrix * outWorldPos;
-    outShadowPos.y = -outShadowPos.y;
     outDepth = gl_Position.z / gl_Position.w;
     gl_Position.y = -gl_Position.y; // Account for Vulkan viewport weirdness
 
@@ -153,18 +152,13 @@ void main() {
         if (dots.x == maxProduct) {
             uv = outWorldPos.zy;
             outUvDir = 1;
-            //outNormal = vec3(-1.0, 0.0, 0.0);
-            outTangent = vec3(0.0, 1.0, 0.0);
         } else if (dots.y == maxProduct) {
             uv = outWorldPos.xz;
             outUvDir = 2;
-            outTangent = vec3(1.0, 0.0, 0.0);
         } else {
             uv = outWorldPos.xy;
             outUvDir = 3;
-            outTangent = vec3(1.0, 0.0, 0.0);
         }
-        //outTangent = model3 * outTangent;
     }
 
     outUV = (uv * texScaleOffset.xy) + texScaleOffset.zw;
@@ -205,7 +199,6 @@ vec3 calcAmbient(vec3 f0, float roughness, vec3 viewDir, float metallic, vec3 al
     vec3 specularColor = (F * (brdf.x + brdf.y));
 
     float horizon = min(1.0 + dot(R, normal), 1.0);
-    specularAmbient *= horizon * horizon;
     vec3 diffuseAmbient = textureLod(cubemapSampler[cubemapIdx], normal, 7.0).xyz * albedoColor;
 
     vec3 kD = (1.0 - F) * (1.0 - metallic);
@@ -216,7 +209,8 @@ vec3 calcAmbient(vec3 f0, float roughness, vec3 viewDir, float metallic, vec3 al
 vec3 decodeNormal (vec2 texVal) {
     vec3 n;
     n.xy = (texVal*2.0)-1.0;
-    n.z = sqrt(1.0 - (n.x * n.x) - (n.y * n.y));
+    vec2 xySq = n.xy * n.xy;
+    n.z = sqrt(1.0 - xySq.x - xySq.y);
     return n;
 }
 
@@ -251,15 +245,20 @@ vec3 shade(ShadeInfo si) {
     for (int i = 0; i < lightCount; i++) {
         float shadowIntensity = 1.0;
         if (int(lights[i].pack0.w) == LT_DIRECTIONAL) {
-            float bias = max(0.00005 * (1.0 - dot(inNormal, lights[i].pack1.xyz)), 0.00001);
-            float depth = (inShadowPos.z / inShadowPos.w) - bias;
-            vec2 coord = (inShadowPos.xy * 0.5 + 0.5);
+            vec4 shadowPos = dirShadowMatrix * inWorldPos;
+            shadowPos.y = -shadowPos.y;
+            float bias = max(0.00005 * (1.0 - dot(inNormal, lights[i].pack1.xyz)), 0.000005);
+            float depth = (shadowPos.z / shadowPos.w) - bias;
+            vec2 coord = (shadowPos.xy * 0.5 + 0.5);
 
+
+                //return vec3(coord, depth);
             if (coord.x > 0.0 && coord.x < 1.0 && coord.y > 0.0 && coord.y < 1.0 && depth < 1.0 && depth > 0.0) {
                 float texelSize = 1.0 / textureSize(shadowSampler, 0).x;
                 shadowIntensity = 0.0;
+#ifdef HIGH_QUALITY_SHADOWS
 
-                const int shadowSamples = 2;
+                const int shadowSamples = 1;
                 const float divVal = ((shadowSamples * 2)) * ((shadowSamples * 2));
 
                 for (int x = -shadowSamples; x < shadowSamples; x++)
@@ -267,6 +266,9 @@ vec3 shade(ShadeInfo si) {
                         shadowIntensity += texture(shadowSampler, vec3(coord + vec2(x, y) * texelSize, depth)).x;
 
                 shadowIntensity /= divVal;
+#else
+                shadowIntensity = texture(shadowSampler, vec3(coord, depth)).x;
+#endif
             }
         }
         lo += shadowIntensity * calculateLighting(lights[i], si, inWorldPos.xyz);
@@ -327,9 +329,12 @@ void main() {
     float roughness = mat.roughness;
     float metallic = mat.metallic;
     float ao = 1.0;
+    float surfaceDepth = 0.0;
 
-    if (mat.heightmapIdx > -1)
+    if (mat.heightmapIdx > -1) {
+        surfaceDepth = 1.0 - texture(tex2dSampler[mat.heightmapIdx], tCoord).x;
         tCoord = parallaxMapping(tCoord, tViewDir, tex2dSampler[mat.heightmapIdx], mat.heightScale);
+    }
 
     if ((flags & 0x1) == 0x1) {
         // Treat the rough texture as a packed PBR file
@@ -411,6 +416,7 @@ void main() {
     si.ao = ao;
 
     FragColor = vec4(shade(si) + mat.emissiveColor, finalAlpha);
+    //FragColor = vec4(viewDir, 1.0);
 
     if (ENABLE_PICKING && doPicking == 1) {
         handleEditorPicking();

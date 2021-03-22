@@ -71,5 +71,6 @@ namespace lg {
         uint32_t lsphereErrIdx = 0;
         worlds::InputActionHandle lGrab;
         worlds::InputActionHandle rGrab;
+        worlds::InputActionHandle rStick;
     };
 }

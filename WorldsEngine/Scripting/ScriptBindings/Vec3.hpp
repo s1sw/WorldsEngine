@@ -11,13 +11,13 @@ namespace worlds {
             wrenEnsureSlots(vm, 1);
             glm::vec3* vPtr = (glm::vec3*)wrenGetSlotForeign(vm, 0);
 
-            wrenSetSlotDouble(vm, 0, (*vPtr)[wrenGetSlotDouble(vm, 1)]);
+            wrenSetSlotDouble(vm, 0, (*vPtr)[(int)wrenGetSlotDouble(vm, 1)]);
         }
 
         static void setComp(WrenVM* vm) {
             glm::vec3* vPtr = (glm::vec3*)wrenGetSlotForeign(vm, 0);
 
-            (*vPtr)[wrenGetSlotDouble(vm, 1)] = wrenGetSlotDouble(vm, 2);
+            (*vPtr)[(int)wrenGetSlotDouble(vm, 1)] = wrenGetSlotDouble(vm, 2);
         }
 
         static void setAll(WrenVM* vm) {

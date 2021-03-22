@@ -542,27 +542,10 @@ namespace worlds {
             vpMapped->viewPos[0] = glm::vec4(rCtx.cam->position, 0.0f);
         }
 
-        glm::vec3 viewPos = rCtx.viewPos;
-
         int lightIdx = 0;
         rCtx.reg.view<WorldLight, Transform>().each([&](auto ent, WorldLight& l, Transform& transform) {
+            if (!l.enabled) return;
             glm::vec3 lightForward = glm::normalize(transform.rotation * glm::vec3(0.0f, 0.0f, -1.0f));
-            if (l.type == LightType::Directional) {
-                const float SHADOW_DISTANCE = 25.0f;
-                glm::vec3 shadowMapPos = glm::round(viewPos - (transform.rotation * glm::vec3(0.0f, 0.f, 250.0f)));
-                glm::mat4 proj = glm::orthoZO(
-                    -SHADOW_DISTANCE, SHADOW_DISTANCE,
-                    -SHADOW_DISTANCE, SHADOW_DISTANCE,
-                    1.0f, 5000.f);
-
-                glm::mat4 view = glm::lookAt(
-                    shadowMapPos,
-                    shadowMapPos - lightForward,
-                    glm::vec3(0.0f, 1.0f, 0.0));
-
-                lightMapped->shadowmapMatrix = proj * view;
-            }
-
             lightMapped->lights[lightIdx] = PackedLight{
                 glm::vec4(l.color, (float)l.type),
                 glm::vec4(lightForward, l.spotCutoff),
@@ -571,36 +554,33 @@ namespace worlds {
             });
 
         lightMapped->pack0.x = (float)lightIdx;
+        lightMapped->shadowmapMatrix = rCtx.shadowMatrix;
 
         if (dsUpdateNeeded) {
             // Update descriptor sets to bring in any new textures
             updateDescriptorSets(psCtx);
         }
 
-        {
-            auto& renderBuffer = g_scene->getRenderBuffer();
-            uint32_t requiredVBSize = renderBuffer.getNbLines() * 2u;
+        auto& renderBuffer = g_scene->getRenderBuffer();
+        uint32_t requiredVBSize = renderBuffer.getNbLines() * 2u;
 
-            if (!lineVB.buffer() || currentLineVBSize < requiredVBSize) {
-                currentLineVBSize = requiredVBSize + 128;
-                lineVB = vku::GenericBuffer{ ctx.device, ctx.allocator, vk::BufferUsageFlagBits::eVertexBuffer, sizeof(LineVert) * currentLineVBSize, VMA_MEMORY_USAGE_CPU_TO_GPU, "Line Buffer" };
+        if (!lineVB.buffer() || currentLineVBSize < requiredVBSize) {
+            currentLineVBSize = requiredVBSize + 128;
+            lineVB = vku::GenericBuffer{ ctx.device, ctx.allocator, vk::BufferUsageFlagBits::eVertexBuffer, sizeof(LineVert) * currentLineVBSize, VMA_MEMORY_USAGE_CPU_TO_GPU, "Line Buffer" };
+        }
+
+        if (currentLineVBSize > 0) {
+            LineVert* lineVBDat = (LineVert*)lineVB.map(ctx.device);
+            for (uint32_t i = 0; i < renderBuffer.getNbLines(); i++) {
+                const auto& physLine = renderBuffer.getLines()[i];
+                lineVBDat[(i * 2) + 0] = LineVert{ px2glm(physLine.pos0), glm::vec4(1.0f, 0.0f, 1.0f, 1.0f) };
+                lineVBDat[(i * 2) + 1] = LineVert{ px2glm(physLine.pos1), glm::vec4(1.0f, 0.0f, 1.0f, 1.0f) };
             }
 
-            if (currentLineVBSize > 0) {
-                LineVert* lineVBDat = (LineVert*)lineVB.map(ctx.device);
-                for (uint32_t i = 0; i < renderBuffer.getNbLines(); i++) {
-                    const auto& physLine = renderBuffer.getLines()[i];
-                    lineVBDat[(i * 2) + 0] = LineVert{ px2glm(physLine.pos0), glm::vec4(1.0f, 0.0f, 1.0f, 1.0f) };
-                    lineVBDat[(i * 2) + 1] = LineVert{ px2glm(physLine.pos1), glm::vec4(1.0f, 0.0f, 1.0f, 1.0f) };
-                }
-
-                uint32_t offset = 0;
-
-                lineVB.unmap(ctx.device);
-                lineVB.invalidate(ctx.device);
-                lineVB.flush(ctx.device);
-                numLineVerts = renderBuffer.getNbLines() * 2;
-            }
+            lineVB.unmap(ctx.device);
+            lineVB.invalidate(ctx.device);
+            lineVB.flush(ctx.device);
+            numLineVerts = renderBuffer.getNbLines() * 2;
         }
     }
 

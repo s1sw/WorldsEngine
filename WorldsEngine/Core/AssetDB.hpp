@@ -1,61 +1,15 @@
 #pragma once
 #include <cstdint>
-#include <unordered_map>
 #include <physfs.h>
-#include <cassert>
 #include <string>
 
 namespace worlds {
     typedef uint32_t AssetID;
 
-    enum class AssetMetaValueType {
-        Int,
-        Int64,
-        String,
-        Float
-    };
-
-    struct AssetMetaValue {
-        AssetMetaValueType type;
-        union {
-            int32_t intVal;
-            int64_t int64Val;
-            std::string stringVal;
-            float floatVal;
-        };
-
-        operator int32_t() {
-            assert(type == AssetMetaValueType::Int);
-            return intVal;
-        }
-
-        operator int64_t() {
-            assert(type == AssetMetaValueType::Int64);
-            return int64Val;
-        }
-
-        operator std::string() {
-            assert(type == AssetMetaValueType::String);
-            return stringVal;
-        }
-
-        operator float() {
-            assert(type == AssetMetaValueType::Float);
-            return floatVal;
-        }
-
-        ~AssetMetaValue() {
-
-        }
-    };
-
-    struct AssetMeta {
-        std::unordered_map<std::string, AssetMetaValue> metaValues;
-    };
-
     class AssetDB {
     public:
         AssetDB();
+        ~AssetDB();
         void load();
         void save();
         PHYSFS_File* openAssetFileRead(AssetID id);
@@ -67,18 +21,17 @@ namespace worlds {
         AssetID addAsset(std::string path);
 
         AssetID createAsset(std::string path);
-        std::string getAssetPath(AssetID id) { return paths[id]; }
-        std::string getAssetExtension(AssetID id) { return extensions[id]; }
-        bool hasId(std::string path) { return ids.find(path) != ids.end(); }
-        bool hasId(AssetID id) { return paths.find(id) != paths.end(); }
-        AssetID getExistingID(std::string path) { return ids.at(path); }
-        AssetID addOrGetExisting(std::string path) { return hasId(path) ? getExistingID(path) : addAsset(path); }
+        std::string getAssetPath(AssetID id);
+        std::string getAssetExtension(AssetID id);
+        bool hasId(std::string path);
+        bool hasId(AssetID id);
+        AssetID getExistingID(std::string path);
+        AssetID addOrGetExisting(std::string path);
         void rename(AssetID id, std::string newPath);
     private:
+        class ADBStorage;
         AssetID currId;
-        std::unordered_map<AssetID, std::string> paths;
-        std::unordered_map<std::string, AssetID> ids;
-        std::unordered_map<AssetID, std::string> extensions;
+        ADBStorage* storage;
         friend class AssetDBExplorer;
     };
 

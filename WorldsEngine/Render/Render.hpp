@@ -11,6 +11,7 @@
 #define NUM_SUBMESH_MATS 32
 
 namespace worlds {
+    const int NUM_SHADOW_LIGHTS = 16;
     struct Vertex {
         glm::vec3 position;
         glm::vec3 normal;
@@ -210,6 +211,8 @@ namespace worlds {
         glm::mat4 vrViewMats[2];
         glm::mat4 vrProjMats[2];
         glm::vec3 viewPos;
+        glm::mat4 shadowMatrix;
+        RenderTexture** shadowImages;
         bool enableVR;
 #ifdef TRACY_ENABLE
         std::vector<TracyVkCtx>* tracyContexts;
@@ -283,6 +286,16 @@ namespace worlds {
         static void savePipelineCache(const vk::PhysicalDeviceProperties&, const vk::PipelineCache&, const vk::Device&);
     };
 
+    enum class ReloadFlags {
+        Textures = 1,
+        Materials = 2,
+        Cubemaps = 4
+    };
+
+    inline ReloadFlags operator|(ReloadFlags l, ReloadFlags r) {
+        return (ReloadFlags)((uint32_t)l | (uint32_t)r);
+    }
+
     class VKRenderer {
         const static uint32_t NUM_TEX_SLOTS = 256;
         const static uint32_t NUM_MAT_SLOTS = 256;
@@ -337,6 +350,7 @@ namespace worlds {
         RenderTexture* finalPrePresentR;
 
         RenderTexture* shadowmapImage;
+        RenderTexture* shadowImages[NUM_SHADOW_LIGHTS];
         RenderTexture* imguiImage;
 
         std::vector<vk::DescriptorSet> descriptorSets;
@@ -394,7 +408,7 @@ namespace worlds {
         void uploadProcObj(ProceduralObject& procObj);
         void requestEntityPick(int x, int y);
         void unloadUnusedMaterials(entt::registry& reg);
-        void reloadMatsAndTextures();
+        void reloadContent(ReloadFlags flags);
         bool getPickedEnt(entt::entity* entOut);
         float getLastRenderTime() const { return lastRenderTimeTicks * timestampPeriod; }
         void setVRPredictAmount(float amt) { vrPredictAmount = amt; }
@@ -406,7 +420,7 @@ namespace worlds {
 
         RTTPassHandle createRTTPass(RTTPassCreateInfo& ci);
         // Pass to be late updated with new VR pose data
-        void setVRPass(RTTPassHandle handle) { vrPass = handle; } 
+        void setVRPass(RTTPassHandle handle) { vrPass = handle; }
         void destroyRTTPass(RTTPassHandle handle);
         vku::GenericImage& getSDRTarget(RTTPassHandle handle) { return rttPasses.at(handle).sdrFinalTarget->image; }
         void setRTTPassActive(RTTPassHandle handle, bool active) { rttPasses.at(handle).active = active; }
