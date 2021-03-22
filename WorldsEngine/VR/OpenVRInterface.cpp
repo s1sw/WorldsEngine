@@ -211,4 +211,11 @@ namespace worlds {
 
         return !data.bState && data.bChanged;
     }
+
+    glm::vec2 OpenVRInterface::getActionV2(InputActionHandle handle) {
+        vr::InputAnalogActionData_t data;
+        vr::VRInput()->GetAnalogActionData(handle, &data, sizeof(data), vr::k_ulInvalidInputValueHandle);
+
+        return glm::vec2 { data.x, data.y };
+    }
 }

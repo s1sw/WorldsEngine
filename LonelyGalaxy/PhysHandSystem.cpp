@@ -39,9 +39,9 @@ namespace lg {
     static glm::vec3 rotEulerOffset { -120.0f, 0.0f, -51.0f };
     worlds::ConVar physHandDbg { "lg_physHandDbg", "0", "Show debug menu for physics hands" };
 
-    void PhysHandSystem::update(entt::registry& registry, float deltaTime, float) {
+    void PhysHandSystem::preSimUpdate(entt::registry& registry, float deltaTime) {
         registry.view<PhysHand>().each([&](entt::entity ent, PhysHand& physHand) {
-            //setTargets(physHand, ent, deltaTime);
+            setTargets(physHand, ent, deltaTime);
         });
     }
 
@@ -60,8 +60,8 @@ namespace lg {
     worlds::ConVar handTuning { "lg_handTuning", "0", "Displays a debug menu for tuning hand PID controllers." };
 
     void PhysHandSystem::simulate(entt::registry& registry, float simStep) {
-        registry.view<PhysHand, worlds::DynamicPhysicsActor>().each([&](entt::entity ent, PhysHand& physHand, worlds::DynamicPhysicsActor& actor) {
-            setTargets(physHand, ent, simStep);
+        registry.view<PhysHand, worlds::DynamicPhysicsActor, Transform>().each([&](entt::entity ent, PhysHand& physHand, worlds::DynamicPhysicsActor& actor, Transform& wtf) {
+            //setTargets(physHand, ent, simStep);
             auto body = static_cast<physx::PxRigidBody*>(actor.actor);
             physx::PxTransform t = body->getGlobalPose();
 
@@ -95,12 +95,7 @@ namespace lg {
                 lDpa.actor->is<physx::PxRigidBody>()->addForce(-worlds::glm2px(force));
             }
 
-            // sometimes the rotations we get are really awful :(
-            // fix that and deal with it
-            glm::quat filteredQ = glm::normalize(physHand.targetWorldRot);
-            filteredQ = fixupQuat(filteredQ);
-
-            glm::quat quatDiff = filteredQ * glm::inverse(fixupQuat(worlds::px2glm(t.q)));
+            glm::quat quatDiff = fixupQuat(physHand.targetWorldRot) * glm::inverse(fixupQuat(worlds::px2glm(t.q)));
             quatDiff = fixupQuat(quatDiff);
 
             float angle = glm::angle(quatDiff);
@@ -109,26 +104,32 @@ namespace lg {
             angle = AngleToErr(angle);
             angle = glm::radians(angle);
 
-            auto itRotation = physHand.useOverrideIT ? physHand.overrideITRotation : worlds::px2glm(body->getCMassLocalPose().q);
-            auto inertiaTensor = physHand.useOverrideIT ? physHand.overrideIT : worlds::px2glm(body->getMassSpaceInertiaTensor());
-
-            auto comRot = worlds::px2glm(t.q) * itRotation;
-
             glm::vec3 torque = physHand.rotController.getOutput(angle * axis, simStep);
 
-            // transform torque to mass space
-            torque = glm::inverse(comRot) * torque;
+            torque = glm::inverse(fixupQuat(wtf.rotation)) * torque;
 
-            torque *= inertiaTensor;
+            if (!physHand.useOverrideIT) {
+                auto itRotation = worlds::px2glm(body->getCMassLocalPose().q);
+                auto inertiaTensor = worlds::px2glm(body->getMassSpaceInertiaTensor());
 
-            // and back to world space
-            torque = comRot * torque;
+                // transform torque to mass space
+                torque = itRotation * torque;
+
+                torque *= inertiaTensor;
+
+                // and back to world space
+                torque = glm::inverse(itRotation) * torque;
+            } else {
+                torque = worlds::px2glm(physHand.overrideIT.transform(worlds::glm2px(torque)));
+            }
+
+            torque = fixupQuat(wtf.rotation) * torque;
 
             auto& nc = registry.get<worlds::NameComponent>(ent);
             if (handTuning.getInt()) {
                 ImGui::PushID(nc.name.c_str());
                 ImGui::Text("%s", nc.name.c_str());
-                ImGui::DragFloat3("Rpid", &physHand.rotController.P);
+                ImGui::DragFloat3("Rpid", &physHand.rotController.P, 0.1f);
                 ImGui::DragFloat3("Ppid", &physHand.posController.P);
                 ImGui::DragFloat("pos I avg amt", &physHand.posController.averageAmount);
                 ImGui::DragFloat("rot I avg amt", &physHand.rotController.averageAmount);
@@ -159,8 +160,12 @@ namespace lg {
         Transform t;
         if (interfaces.vrInterface->getHandTransform(wHand, t)) {
             t.position += t.rotation * posOffset;
-            t.fromMatrix(glm::inverse(interfaces.mainCamera->getViewMatrix()) * t.getMatrix());
+            glm::quat flip180 = glm::angleAxis(glm::pi<float>(), glm::vec3{0.0f, 1.0f, 0.0f});
+            glm::quat correctedRot = interfaces.mainCamera->rotation * flip180;
+            t.position = correctedRot * t.position;
+            t.position += interfaces.mainCamera->position;
             t.rotation *= glm::quat{glm::radians(rotEulerOffset)};
+            t.rotation = flip180 * interfaces.mainCamera->rotation * t.rotation;
 
             hand.targetWorldPos = t.position;
             hand.targetWorldRot = t.rotation;

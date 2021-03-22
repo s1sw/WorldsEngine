@@ -1,10 +1,8 @@
 {
 	"albedoPath" : "Textures/ceilingbit/ceiling piece_CeilingBit_BaseColor.png",
-	"heightmapPath" : "Textures/ceilingbit/ceiling piece_CeilingBit_Height.png",
 	"normalMapPath" : "Textures/ceilingbit/ceiling piece_CeilingBit_Normal_forcelin.png",
 	"metalMapPath" : "Textures/ceilingbit/ceiling piece_CeilingBit_Metallic.png",
 	"roughMapPath" : "Textures/ceilingbit/ceiling piece_CeilingBit_Roughness.png",
-	"heightmapScale" : 0.005,
 	"metallic" : 1.0,
 	"roughness" : 0.2,
 	"albedoColor" : [1.0, 1.0, 1.0]

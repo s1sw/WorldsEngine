@@ -1,0 +1,11 @@
+{
+    "albedoPath" : "Textures/LevelTextures/PavingStones075/albedo.png",
+	"pbrMapPath" : "Textures/LevelTextures/PavingStones075/pbr.png",
+    "heightmapPath" : "Textures/LevelTextures/PavingStones075/height.png",
+	"heightmapScale" : 0.025,
+    "normalMapPath" : "Textures/LevelTextures/PavingStones075/normal_forcelin.png",
+    "metallic" : 0.000000,
+    "roughness" : 1.000000,
+    "albedoColor" : [1.000000, 1.000000, 1.000000],
+    "emissiveColor" : [0.000001, 0.000001, 0.000001]
+}

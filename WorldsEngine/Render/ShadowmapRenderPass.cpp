@@ -91,31 +91,10 @@ namespace worlds {
         Camera& cam = *ctx.cam;
         entt::registry& reg = ctx.reg;
 
-
         cmdBuf.beginRenderPass(rpbi, vk::SubpassContents::eInline);
         cmdBuf.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline);
 
-        glm::mat4 shadowmapMatrix;
-        glm::vec3 viewPos = cam.position;
-
-        reg.view<WorldLight, Transform>().each([&shadowmapMatrix, &viewPos](auto ent, WorldLight& l, Transform& transform) {
-            glm::vec3 lightForward = glm::normalize(transform.rotation * glm::vec3(0.0f, 0.0f, -1.0f));
-            if (l.type == LightType::Directional) {
-                const float SHADOW_DISTANCE = 25.0f;
-                glm::vec3 shadowMapPos = glm::round(viewPos - (transform.rotation * glm::vec3(0.0f, 0.f, 250.0f)));
-                glm::mat4 proj = glm::orthoZO(
-                    -SHADOW_DISTANCE, SHADOW_DISTANCE,
-                    -SHADOW_DISTANCE, SHADOW_DISTANCE,
-                    1.0f, 5000.f);
-
-                glm::mat4 view = glm::lookAt(
-                    shadowMapPos,
-                    shadowMapPos - lightForward,
-                    glm::vec3(0.0f, 1.0f, 0.0));
-
-                shadowmapMatrix = proj * view;
-            }
-            });
+        glm::mat4 shadowmapMatrix = ctx.shadowMatrix;
 
         Frustum frustum;
         frustum.fromVPMatrix(shadowmapMatrix);

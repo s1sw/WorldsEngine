@@ -9,7 +9,7 @@ struct Light {
     vec4 pack0;
     // (direction xyz, spotlight cutoff)
     vec4 pack1;
-    // (position xyz, unused)
+    // (position xyz, shadow index)
     vec4 pack2;
 };
 #endif

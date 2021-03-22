@@ -222,6 +222,13 @@ namespace lg {
 
         camera->position = glm::mix(lastCamPos, nextCamPos, interpAlpha);
 
+#ifndef NDEBUG
+        ImGui::Text("lcp: %.3f, %.3f, %.3f", lastCamPos.x, lastCamPos.y, lastCamPos.z);
+        ImGui::Text("ncp: %.3f, %.3f, %.3f", nextCamPos.x, nextCamPos.y, nextCamPos.z);
+        ImGui::Text("interpalpha: %.3f", interpAlpha);
+        ImGui::Text("cp: %.3f, %.3f, %.3f", camera->position.x, camera->position.y, camera->position.z);
+#endif
+
         glm::vec3 desiredVel{ 0.0f };
 
         if (!vrInterface) {
@@ -261,6 +268,9 @@ namespace lg {
         }
 
         desiredVel = camMat * glm::vec4(desiredVel, 0.0f);
+
+        if (vrInterface)
+            desiredVel = -desiredVel * glm::inverse(camera->rotation);
         desiredVel.y = 0.0f;
 
         if (glm::length2(desiredVel) > 0.0f) {
@@ -273,7 +283,7 @@ namespace lg {
         localLpc.sprint = (vrInterface && vrInterface->getSprintInput()) || (inputManager->keyHeld(SDL_SCANCODE_LSHIFT));
 
         if (drawDbgArrows.getInt()) {
-                auto& llstf = registry.get<Transform>(localLocosphereEnt);
+            auto& llstf = registry.get<Transform>(localLocosphereEnt);
             g_dbgArrows->drawArrow(llstf.position, desiredVel);
         }
 
@@ -438,16 +448,12 @@ namespace lg {
             desiredAngVel += glm::vec3 { 1.0f, 0.0f, 0.0f } * desiredVel.z;
             desiredAngVel += glm::vec3 { 0.0f, 0.0f, -1.0f } * desiredVel.x;
 
-            const int PID_ITERATIONS = 3;
-
-            for (int i = 0; i < PID_ITERATIONS; i++) {
-                auto currVel = worlds::px2glm(locosphereActor->getAngularVelocity());
-                glm::vec3 torque = lspherePid.getOutput(desiredAngVel - currVel, simStep / PID_ITERATIONS) / (float)PID_ITERATIONS;
-                if (!glm::any(glm::isnan(torque)))
-                    locosphereActor->addTorque(worlds::glm2px(torque), physx::PxForceMode::eACCELERATION);
-            }
-
             auto currVel = worlds::px2glm(locosphereActor->getAngularVelocity());
+            glm::vec3 torque = lspherePid.getOutput(desiredAngVel - currVel, simStep);
+            if (!glm::any(glm::isnan(torque)))
+                locosphereActor->addTorque(worlds::glm2px(torque), physx::PxForceMode::eACCELERATION);
+
+            currVel = worlds::px2glm(locosphereActor->getAngularVelocity());
 
             NullPhysXCallback nullCallback{};
             lpc.grounded = worlds::g_scene->raycast(worlds::glm2px(locosphereTransform.position - glm::vec3(0.0f, LOCOSPHERE_RADIUS - 0.01f, 0.0f)), physx::PxVec3{ 0.0f, -1.0f, 0.0f }, LOCOSPHERE_RADIUS, nullCallback, physx::PxHitFlag::eDEFAULT, physx::PxQueryFilterData{ physx::PxQueryFlag::ePOSTFILTER | physx::PxQueryFlag::eDYNAMIC | physx::PxQueryFlag::eSTATIC }, &filterEnt);
@@ -474,7 +480,6 @@ namespace lg {
 
             if (lpc.jump) {
                 bool wallPresent = false;
-                auto lspherePose = locosphereActor->getGlobalPose();
                 auto fenderPose = fenderActor->getGlobalPose();
                 glm::vec3 wallNormal;
 
@@ -548,10 +553,12 @@ namespace lg {
 
                 if (vrInterface) {
                     static glm::vec3 lastHeadPos = glm::vec3{ 0.0f };//worlds::getMatrixTranslation(vrInterface->getHeadTransform());
-                    glm::vec3 headPos = -worlds::getMatrixTranslation(vrInterface->getHeadTransform());
+                    glm::vec3 headPos = worlds::getMatrixTranslation(vrInterface->getHeadTransform());
                     glm::vec3 locosphereOffset = lastHeadPos - headPos;
                     lastHeadPos = headPos;
                     locosphereOffset.y = 0.0f;
+
+                    locosphereOffset = camera->rotation * locosphereOffset;
 
                     lspherePose.p += worlds::glm2px(locosphereOffset);
                     locosphereTransform.position += locosphereOffset;
@@ -561,12 +568,15 @@ namespace lg {
                 }
 
                 glm::vec3 forward = camMat * glm::vec4(0.0f, 0.0f, 1.0f, 0.0f);
+                forward = camera->rotation * forward;
                 forward.y = 0.0f;
                 forward = glm::normalize(forward);
                 fenderPose.q = worlds::glm2px(glm::quatLookAt(forward, glm::vec3(0.0f, 1.0f, 0.0f)));
                 fenderActor->setGlobalPose(fenderPose);
 
                 nextCamPos = worlds::px2glm(lspherePose.p + physx::PxVec3(0.0f, -LOCOSPHERE_RADIUS, 0.0f));
+                if (glm::any(glm::isnan(nextCamPos)))
+                        nextCamPos = glm::vec3{0.0f};
 
                 if (!vrInterface) {
                     // Make all non-VR users 1.75m tall
@@ -574,7 +584,7 @@ namespace lg {
                     nextCamPos += glm::vec3(0.0f, 1.7f, 0.0f);
                 } else {
                     // Cancel out the movement of the head
-                    glm::vec3 headPos = -worlds::getMatrixTranslation(vrInterface->getHeadTransform());
+                    glm::vec3 headPos = camera->rotation * worlds::getMatrixTranslation(vrInterface->getHeadTransform());
                     nextCamPos += glm::vec3{ headPos.x, 0.0f, headPos.z };
                 }
 

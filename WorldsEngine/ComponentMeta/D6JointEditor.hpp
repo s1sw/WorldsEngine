@@ -207,7 +207,7 @@ namespace worlds {
         void writeToFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file) override {
             auto& d6 = reg.get<D6Joint>(ent);
             auto* px = d6.pxJoint;
-            
+
             for (int axisInt = physx::PxD6Axis::eX; axisInt < physx::PxD6Axis::eCOUNT; axisInt++) {
                 auto axis = (physx::PxD6Axis::Enum)axisInt;
                 auto motion = (unsigned char)px->getMotion(axis);

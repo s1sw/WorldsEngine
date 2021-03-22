@@ -287,7 +287,7 @@ namespace worlds {
             } else {
                 window = createSDLWindow();
                 if (window == nullptr) {
-                    SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, 
+                    SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR,
                             "Failed to create window", SDL_GetError(), NULL);
                 }
 
@@ -459,8 +459,11 @@ namespace worlds {
                 }, "unpause", "unpause and go back to play mode.", nullptr);
 
             console->registerCommand([&](void*, const char*) {
-                renderer->reloadMatsAndTextures();
+                renderer->reloadContent(ReloadFlags::Cubemaps | ReloadFlags::Materials | ReloadFlags::Textures);
                 }, "reloadContent", "Reloads materials, textures and meshes.", nullptr);
+            console->registerCommand([&](void*, const char*) {
+                renderer->reloadContent(ReloadFlags::Cubemaps);
+                }, "reloadCubemaps", "Reloads cubemaps.", nullptr);
         }
 
         console->registerCommand([&](void*, const char*) {
@@ -874,7 +877,7 @@ namespace worlds {
                     }
 
                     if (ImGui::Button("Reload Materials and Textures")) {
-                        renderer->reloadMatsAndTextures();
+                        renderer->reloadContent(ReloadFlags::Textures | ReloadFlags::Materials);
                     }
                 }
 

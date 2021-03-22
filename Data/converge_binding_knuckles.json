@@ -1,69 +1,78 @@
 {
-  "action_manifest_version": 0,
-  "alias_info": {},
-  "app_key": "application.generated.converge.exe",
-  "bindings": {
-    "/actions/main": {
-      "chords": [],
-      "haptics": [],
-      "poses": [
-        {
-          "output": "/actions/main/in/LeftHand",
-          "path": "/user/hand/left/pose/raw"
-        },
-        {
-          "output": "/actions/main/in/RightHand",
-          "path": "/user/hand/right/pose/raw"
+    "action_manifest_version": 0,
+    "alias_info": {},
+    "app_key": "application.generated.converge.exe",
+    "bindings": {
+        "/actions/main": {
+            "chords": [],
+            "haptics": [],
+            "poses": [
+                {
+                    "output": "/actions/main/in/LeftHand",
+                    "path": "/user/hand/left/pose/raw"
+                },
+                {
+                    "output": "/actions/main/in/RightHand",
+                    "path": "/user/hand/right/pose/raw"
+                }
+            ],
+            "skeleton": [
+                {
+                    "output": "/actions/main/in/LeftHand_Anim",
+                    "path": "/user/hand/left/input/skeleton/left"
+                },
+                {
+                    "output": "/actions/main/in/RightHand_Anim",
+                    "path": "/user/hand/right/input/skeleton/right"
+                }
+            ],
+            "sources": [
+                {
+                    "inputs": {
+                        "position": {
+                            "output": "/actions/main/in/Movement"
+                        },
+                        "click": {
+                            "output": "/actions/main/in/sprint"
+                        }
+                    },
+                    "mode": "joystick",
+                    "path": "/user/hand/left/input/thumbstick"
+                },
+                {
+                    "inputs": {
+                        "position": {
+                            "output": "/actions/main/in/RStick"
+                        }
+                    },
+                    "mode": "joystick",
+                    "path": "/user/hand/right/input/thumbstick"
+                },
+                {
+                    "inputs": {
+                        "click": {
+                            "output": "/actions/main/in/Jump"
+                        }
+                    },
+                    "mode": "button",
+                    "path": "/user/hand/right/input/a"
+                },
+                {
+                    "inputs": {
+                        "click": {
+                            "output": "/actions/main/in/Grapple"
+                        }
+                    },
+                    "mode": "button",
+                    "path":  "/user/hand/left/input/Trigger"
+                }
+            ]
         }
-      ],
-      "skeleton": [
-        {
-          "output": "/actions/main/in/LeftHand_Anim",
-          "path": "/user/hand/left/input/skeleton/left"
-        },
-        {
-          "output": "/actions/main/in/RightHand_Anim",
-          "path": "/user/hand/right/input/skeleton/right"
-        }
-      ],
-      "sources": [
-        {
-          "inputs": {
-            "position": {
-              "output": "/actions/main/in/Movement"
-            },
-            "click": {
-              "output": "/actions/main/in/sprint"
-            }
-          },
-          "mode": "joystick",
-          "path": "/user/hand/left/input/thumbstick"
-        },
-        {
-          "inputs": {
-            "click": {
-              "output": "/actions/main/in/Jump"
-            }
-          },
-          "mode": "button",
-          "path": "/user/hand/right/input/a"
-        },
-        {
-          "inputs": {
-            "click": {
-              "output": "/actions/main/in/Grapple"
-            }
-          },
-          "mode": "button",
-          "path":  "/user/hand/left/input/Trigger"
-        }
-      ]
-    }
-  },
-  "category": "steamvr_input",
-  "controller_type": "knuckles",
-  "description": "",
-  "name": "Default bindings for Converge with Index controllers",
-  "options": {},
-  "simulated_actions": []
+    },
+    "category": "steamvr_input",
+    "controller_type": "knuckles",
+    "description": "",
+    "name": "Default bindings for Converge with Index controllers",
+    "options": {},
+    "simulated_actions": []
 }

@@ -146,10 +146,13 @@ namespace worlds {
     };
 
     struct WorldLight {
-        WorldLight() : type(LightType::Point), color(1.0f), spotCutoff(1.35f) {}
-        WorldLight(LightType type) : type(type), color(1.0f), spotCutoff(1.35f) {}
-        LightType type;
-        glm::vec3 color;
-        float spotCutoff;
+        WorldLight() {}
+        WorldLight(LightType type) : type(type) {}
+        bool enabled = true;
+        LightType type = LightType::Point;
+        glm::vec3 color = glm::vec3{1.0f};
+        float spotCutoff = 0.7f;
+        bool enableShadows = false;
+        uint32_t shadowmapIdx = ~0u;
     };
 }

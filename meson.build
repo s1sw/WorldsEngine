@@ -33,6 +33,8 @@ if cpp_compiler.get_argument_syntax() == 'gcc'
 elif cpp_compiler.get_argument_syntax() == 'msvc'
   add_global_arguments('/fp:fast', language: 'cpp')
   add_global_arguments('/arch:AVX', language: 'cpp')
+  add_global_arguments('/GL', language: 'cpp')
+  add_global_link_arguments('/LTCG', language: 'cpp')
 endif
 
 extern_include_dir = include_directories('External/Include')

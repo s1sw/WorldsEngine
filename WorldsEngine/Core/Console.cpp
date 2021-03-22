@@ -30,9 +30,9 @@ namespace worlds {
         ConvarLink* next;
     };
 
-    ConVar logToStdout { "logToStdOut", 
+    ConVar logToStdout { "logToStdOut",
 #ifdef NDEBUG
-        "0", 
+        "0",
 #else
         "1",
 #endif
@@ -78,7 +78,7 @@ namespace worlds {
     };
 
     ConVar::ConVar(const char* name, const char* defaultValue, const char* help)
-        : help(help) 
+        : help(help)
         , name(name)
         , value(defaultValue) {
 
@@ -160,7 +160,7 @@ namespace worlds {
 
     Console::Console(bool asyncStdinConsole)
         : show(false)
-        , setKeyboardFocus(false) 
+        , setKeyboardFocus(false)
         , logFileStream("worldsengine.log")
         , asyncConsoleThread(nullptr)
         , asyncCommandReady(false) {
@@ -170,11 +170,11 @@ namespace worlds {
         registerCommand(cmdExec, "exec", "Executes a command file.", this);
 
         for (auto& cPair : categories) {
-#ifndef NDEBUG
+//#ifndef NDEBUG
             SDL_LogSetPriority(cPair.first, SDL_LOG_PRIORITY_VERBOSE);
-#else
-            SDL_LogSetPriority(cPair.first, SDL_LOG_PRIORITY_WARN);
-#endif
+//#else
+//            SDL_LogSetPriority(cPair.first, SDL_LOG_PRIORITY_WARN);
+//#endif
         }
 
         SDL_LogSetPriority(CONSOLE_RESPONSE_CATEGORY, SDL_LOG_PRIORITY_INFO);
@@ -195,7 +195,7 @@ namespace worlds {
             }
         }
 
-#ifndef NDEBUG 
+#ifndef NDEBUG
 #ifdef _WIN32
         if (!AttachConsole(ATTACH_PARENT_PROCESS)) {
             if (!AllocConsole()) {
@@ -223,7 +223,7 @@ namespace worlds {
             logWarn("Failed to get console mode");
             enableVT100 = false;
             return;
-        } 
+        }
 
         dwMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
         if (!SetConsoleMode(hOut, dwMode)) {
@@ -530,9 +530,9 @@ namespace worlds {
 
         if (logToStdout.getInt()) {
             if (enableVT100) {
-                std::string colorStr = std::string("\033[38;2;") 
-                          + std::to_string(r) 
-                    + ";" + std::to_string(g) 
+                std::string colorStr = std::string("\033[38;2;")
+                          + std::to_string(r)
+                    + ";" + std::to_string(g)
                     + ";" + std::to_string(b)
                     + "m";
 

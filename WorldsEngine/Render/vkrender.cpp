@@ -33,6 +33,7 @@
 #define NOMINMAX
 #include <windows.h>
 #endif
+#include "../Util/EnumUtil.hpp"
 
 VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE
 
@@ -327,6 +328,7 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     vk12Features.timelineSemaphore = true;
     vk12Features.descriptorBindingPartiallyBound = true;
     vk12Features.runtimeDescriptorArray = true;
+    vk12Features.imagelessFramebuffer = true;
     dm.setPNext(&vk12Features);
 
     try {
@@ -450,6 +452,12 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
 
     RTResourceCreateInfo shadowmapCreateInfo{ shadowmapIci, vk::ImageViewType::e2D, vk::ImageAspectFlagBits::eDepth };
     shadowmapImage = createRTResource(shadowmapCreateInfo, "Shadowmap Image");
+
+    shadowmapIci.extent = vk::Extent3D { 512, 512, 1 };
+    for (int i = 0; i < NUM_SHADOW_LIGHTS; i++) {
+        RTResourceCreateInfo shadowCreateInfo{ shadowmapIci, vk::ImageViewType::e2D, vk::ImageAspectFlagBits::eDepth };
+        shadowImages[i] = createRTResource(shadowCreateInfo, ("Shadow Image " + std::to_string(i)).c_str());
+    }
 
     vku::executeImmediately(*device, *commandPool, device->getQueue(graphicsQueueFamilyIdx, 0), [&](auto cb) {
         shadowmapImage->image.setLayout(cb, vk::ImageLayout::eShaderReadOnlyOptimal, vk::ImageAspectFlagBits::eDepth);
@@ -843,6 +851,7 @@ void VKRenderer::writeCmdBuf(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageInde
     rCtx.cubemapSlots = &cubemapSlots;
     rCtx.viewPos = cam.position;
     rCtx.dbgStats = &dbgStats;
+    rCtx.shadowImages = shadowImages;
 
 #ifdef TRACY_ENABLE
     rCtx.tracyContexts = &tracyContexts;
@@ -888,6 +897,25 @@ void VKRenderer::writeCmdBuf(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageInde
         vk::ImageLayout::eColorAttachmentOptimal,
         vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eColorAttachmentOutput,
         vk::AccessFlagBits::eTransferRead, vk::AccessFlagBits::eColorAttachmentWrite);
+
+    reg.view<WorldLight, Transform>().each([&](auto ent, WorldLight& l, Transform& transform) {
+        glm::vec3 lightForward = glm::normalize(transform.rotation * glm::vec3(0.0f, 0.0f, -1.0f));
+        if (l.type == LightType::Directional) {
+            const float SHADOW_DISTANCE = 25.0f;
+            glm::vec3 shadowMapPos = glm::round(rCtx.viewPos - (transform.rotation * glm::vec3(0.0f, 0.f, 250.0f)));
+            glm::mat4 proj = glm::orthoZO(
+                -SHADOW_DISTANCE, SHADOW_DISTANCE,
+                -SHADOW_DISTANCE, SHADOW_DISTANCE,
+                1.0f, 5000.f);
+
+            glm::mat4 view = glm::lookAt(
+                shadowMapPos,
+                shadowMapPos - lightForward,
+                glm::vec3(0.0f, 1.0f, 0.0));
+
+            rCtx.shadowMatrix = proj * view;
+        }
+    });
 
     shadowmapPass->execute(rCtx);
 
@@ -1333,22 +1361,28 @@ void VKRenderer::unloadUnusedMaterials(entt::registry& reg) {
     }
 }
 
-void VKRenderer::reloadMatsAndTextures() {
+void VKRenderer::reloadContent(ReloadFlags flags) {
     device->waitIdle();
-    for (uint32_t i = 0; i < NUM_MAT_SLOTS; i++) {
-        if (matSlots->isSlotPresent(i))
-            matSlots->unload(i);
+    if (enumHasFlag(flags, ReloadFlags::Materials)) {
+        for (uint32_t i = 0; i < NUM_MAT_SLOTS; i++) {
+            if (matSlots->isSlotPresent(i))
+                matSlots->unload(i);
+        }
     }
 
-    for (uint32_t i = 0; i < NUM_TEX_SLOTS; i++) {
-        if (texSlots->isSlotPresent(i))
-            texSlots->unload(i);
+    if (enumHasFlag(flags, ReloadFlags::Textures)) {
+        for (uint32_t i = 0; i < NUM_TEX_SLOTS; i++) {
+            if (texSlots->isSlotPresent(i))
+                texSlots->unload(i);
+        }
     }
 
-    // ignore skybox
-    for (uint32_t i = 1; i < NUM_CUBEMAP_SLOTS; i++) {
-        if (cubemapSlots->isSlotPresent(i))
-            cubemapSlots->unload(i);
+    if (enumHasFlag(flags, ReloadFlags::Cubemaps)) {
+        // ignore skybox
+        for (uint32_t i = 1; i < NUM_CUBEMAP_SLOTS; i++) {
+            if (cubemapSlots->isSlotPresent(i))
+                cubemapSlots->unload(i);
+        }
     }
 
     clearMaterialIndices = true;
@@ -1481,11 +1515,11 @@ float* VKRenderer::getPassHDRData(RTTPassHandle handle) {
     ici.initialLayout = vk::ImageLayout::eUndefined;
     ici.samples = vk::SampleCountFlagBits::e1;
     ici.tiling = vk::ImageTiling::eOptimal;
-    ici.usage = 
+    ici.usage =
         vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc;
 
     vku::GenericImage targetImg{
-        *device, allocator, ici, vk::ImageViewType::e2D, vk::ImageAspectFlagBits::eColor, 
+        *device, allocator, ici, vk::ImageViewType::e2D, vk::ImageAspectFlagBits::eColor,
         false, "Transfer Destination" };
 
     ici.tiling = vk::ImageTiling::eOptimal;
@@ -1579,7 +1613,7 @@ float* VKRenderer::getPassHDRData(RTTPassHandle handle) {
         cmdBuf.copyImageToBuffer(
             targetImg.image(),
             vk::ImageLayout::eTransferSrcOptimal,
-            outputBuffer.buffer(), bic); 
+            outputBuffer.buffer(), bic);
     });
 
     float* buffer = (float*)malloc(rtt.width * rtt.height * 4 * sizeof(float));
@@ -1592,6 +1626,7 @@ float* VKRenderer::getPassHDRData(RTTPassHandle handle) {
 
 void VKRenderer::updatePass(RTTPassHandle handle, entt::registry& world) {
     auto& rtt = rttPasses.at(handle);
+
 
     vku::executeImmediately(*device, *commandPool, device->getQueue(graphicsQueueFamilyIdx, 0),
     [&](vk::CommandBuffer cmdBuf) {
@@ -1606,6 +1641,31 @@ void VKRenderer::updatePass(RTTPassHandle handle, entt::registry& world) {
         rCtx.cubemapSlots = &cubemapSlots;
         rCtx.viewPos = rtt.cam->position;
         rCtx.dbgStats = &dbgStats;
+        rCtx.shadowImages = shadowImages;
+
+        if (rtt.enableShadows) {
+            world.view<WorldLight, Transform>().each([&](auto ent, WorldLight& l, Transform& transform) {
+                glm::vec3 lightForward = glm::normalize(transform.rotation * glm::vec3(0.0f, 0.0f, -1.0f));
+                if (l.type == LightType::Directional) {
+                    const float SHADOW_DISTANCE = 25.0f;
+                    glm::vec3 shadowMapPos = glm::round(rCtx.viewPos - (transform.rotation * glm::vec3(0.0f, 0.f, 250.0f)));
+                    glm::mat4 proj = glm::orthoZO(
+                        -SHADOW_DISTANCE, SHADOW_DISTANCE,
+                        -SHADOW_DISTANCE, SHADOW_DISTANCE,
+                        1.0f, 5000.f);
+
+                    glm::mat4 view = glm::lookAt(
+                        shadowMapPos,
+                        shadowMapPos - lightForward,
+                        glm::vec3(0.0f, 1.0f, 0.0));
+
+                    rCtx.shadowMatrix = proj * view;
+                }
+            });
+
+            shadowmapPass->execute(rCtx);
+        }
+
         rtt.prp->prePass(psc, rCtx);
         rtt.prp->execute(rCtx);
 
