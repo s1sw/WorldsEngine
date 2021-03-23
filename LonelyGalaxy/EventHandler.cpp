@@ -335,15 +335,15 @@ namespace lg {
 
                     physx::PxTransform p2 = touch.actor->getGlobalPose();
                     d6.setTarget(pickUp, registry);
-                    d6.pxJoint->setConstraintFlag(physx::PxConstraintFlag::ePROJECTION, true);
                     d6.pxJoint->setLocalPose(physx::PxJointActorIndex::eACTOR0, t.transformInv(p2));
+                    d6.pxJoint->setConstraintFlag(physx::PxConstraintFlag::eDISABLE_PREPROCESSING, true);
 
                     if (enableGripPoints.getInt() && gripPoint && (!gripPoint->exclusive || !gripPoint->currentlyHeld)) {
                         t.p = worlds::glm2px(otherTf.position + (otherTf.rotation * gripPoint->offset));
                         t.q = worlds::glm2px(otherTf.rotation * gripPoint->rotOffset);
-                        //dpa.actor->setGlobalPose(t);
-                        //handTf.position = worlds::px2glm(t.p);
-                        //handTf.rotation = worlds::px2glm(t.q);
+                        dpa.actor->setGlobalPose(t);
+                        handTf.position = worlds::px2glm(t.p);
+                        handTf.rotation = worlds::px2glm(t.q);
                         gripPoint->currentlyHeld = true;
                         d6.pxJoint->setLocalPose(physx::PxJointActorIndex::eACTOR0, physx::PxTransform{physx::PxIdentity});
                         d6.pxJoint->setLocalPose(physx::PxJointActorIndex::eACTOR1,
@@ -643,6 +643,8 @@ namespace lg {
                 rHandJoint->setMotion(physx::PxD6Axis::eSWING1, physx::PxD6Motion::eFREE);
                 rHandJoint->setMotion(physx::PxD6Axis::eSWING2, physx::PxD6Motion::eFREE);
                 rHandJoint->setMotion(physx::PxD6Axis::eTWIST, physx::PxD6Motion::eFREE);
+                lActor->setSolverIterationCounts(32, 16);
+                rActor->setSolverIterationCounts(32, 16);
             }
         }
 

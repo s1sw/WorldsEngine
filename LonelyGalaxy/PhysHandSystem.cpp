@@ -121,6 +121,7 @@ namespace lg {
                 torque = glm::inverse(itRotation) * torque;
             } else {
                 torque = worlds::px2glm(physHand.overrideIT.transform(worlds::glm2px(torque)));
+                torque = glm::vec3{0.0f};
             }
 
             torque = fixupQuat(wtf.rotation) * torque;
@@ -133,12 +134,16 @@ namespace lg {
                 ImGui::DragFloat3("Ppid", &physHand.posController.P);
                 ImGui::DragFloat("pos I avg amt", &physHand.posController.averageAmount);
                 ImGui::DragFloat("rot I avg amt", &physHand.rotController.averageAmount);
+                auto linVel = body->getLinearVelocity();
+                auto angVel = body->getAngularVelocity();
+                ImGui::Text("Lin Vel: %.3f, %.3f, %.3f", linVel.x, linVel.y, linVel.z);
+                ImGui::Text("Ang Vel: %.3f, %.3f, %.3f", angVel.x, angVel.y, angVel.z);
                 ImGui::PopID();
             }
 
             torque = clampMagnitude(torque, physHand.torqueLimit);
 
-            if (!glm::any(glm::isnan(axis)) && !glm::any(glm::isinf(torque)))
+            if (!glm::any(glm::isnan(axis)) && !glm::any(glm::isinf(torque)) && !physHand.useOverrideIT)
                 body->addTorque(worlds::glm2px(torque));
         });
     }

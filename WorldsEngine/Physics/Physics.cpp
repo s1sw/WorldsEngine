@@ -39,7 +39,7 @@ namespace worlds {
             }
         }
     };
-    
+
     physx::PxMaterial* defaultMaterial;
     PhysErrCallback gErrorCallback;
     physx::PxDefaultAllocator gDefaultAllocator;
@@ -91,7 +91,7 @@ namespace worlds {
 
     void cmdTogglePhysVis(void*, const char*) {
         float currentScale = g_scene->getVisualizationParameter(physx::PxVisualizationParameter::eSCALE);
-        
+
         g_scene->setVisualizationParameter(physx::PxVisualizationParameter::eSCALE, 1.0f - currentScale);
     }
 
@@ -145,11 +145,8 @@ namespace worlds {
         desc.cpuDispatcher = physx::PxDefaultCpuDispatcherCreate(std::max(SDL_GetCPUCount() - 2, 1));
         desc.filterShader = filterShader;
         desc.solverType = physx::PxSolverType::ePGS;
-        desc.ccdMaxPasses = 5;
-        desc.bounceThresholdVelocity = 5.0f;
-        desc.flags = physx::PxSceneFlag::eENABLE_PCM 
+        desc.flags = physx::PxSceneFlag::eENABLE_PCM
                    | physx::PxSceneFlag::eENABLE_CCD;
-        desc.frictionType = physx::PxFrictionType::ePATCH;
         g_scene = g_physics->createScene(desc);
 
         reg.on_destroy<PhysicsActor>().connect<&destroyPhysXActor<PhysicsActor>>();
