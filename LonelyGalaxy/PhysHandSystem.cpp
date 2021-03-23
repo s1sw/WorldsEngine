@@ -121,7 +121,6 @@ namespace lg {
                 torque = glm::inverse(itRotation) * torque;
             } else {
                 torque = worlds::px2glm(physHand.overrideIT.transform(worlds::glm2px(torque)));
-                torque = glm::vec3{0.0f};
             }
 
             torque = fixupQuat(wtf.rotation) * torque;
@@ -143,7 +142,7 @@ namespace lg {
 
             torque = clampMagnitude(torque, physHand.torqueLimit);
 
-            if (!glm::any(glm::isnan(axis)) && !glm::any(glm::isinf(torque)) && !physHand.useOverrideIT)
+            if (!glm::any(glm::isnan(axis)) && !glm::any(glm::isinf(torque)))
                 body->addTorque(worlds::glm2px(torque));
         });
     }
@@ -162,18 +161,27 @@ namespace lg {
             break;
         }
 
-        Transform t;
-        if (interfaces.vrInterface->getHandTransform(wHand, t)) {
-            t.position += t.rotation * posOffset;
-            glm::quat flip180 = glm::angleAxis(glm::pi<float>(), glm::vec3{0.0f, 1.0f, 0.0f});
-            glm::quat correctedRot = interfaces.mainCamera->rotation * flip180;
-            t.position = correctedRot * t.position;
-            t.position += interfaces.mainCamera->position;
-            t.rotation *= glm::quat{glm::radians(rotEulerOffset)};
-            t.rotation = flip180 * interfaces.mainCamera->rotation * t.rotation;
+        if (interfaces.vrInterface) {
+            Transform t;
+            if (interfaces.vrInterface->getHandTransform(wHand, t)) {
+                t.position += t.rotation * posOffset;
+                glm::quat flip180 = glm::angleAxis(glm::pi<float>(), glm::vec3{0.0f, 1.0f, 0.0f});
+                glm::quat correctedRot = interfaces.mainCamera->rotation * flip180;
+                t.position = correctedRot * t.position;
+                t.position += interfaces.mainCamera->position;
+                t.rotation *= glm::quat{glm::radians(rotEulerOffset)};
+                t.rotation = flip180 * interfaces.mainCamera->rotation * t.rotation;
 
-            hand.targetWorldPos = t.position;
-            hand.targetWorldRot = t.rotation;
+                hand.targetWorldPos = t.position;
+                hand.targetWorldRot = t.rotation;
+            }
+        } else {
+            glm::vec3 camOffset { 0.1f, -0.1f, 0.25f };
+            if (hand.follow == FollowHand::RightHand)
+                camOffset.x = -camOffset.x;
+            hand.targetWorldPos = interfaces.mainCamera->position;
+            hand.targetWorldPos += interfaces.mainCamera->rotation * camOffset;
+            hand.targetWorldRot = interfaces.mainCamera->rotation;
         }
     }
 }

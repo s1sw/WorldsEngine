@@ -23,7 +23,8 @@ layout(location = 4) in float inDepth;
 layout(location = 5) in flat uint inUvDir;
 
 layout(constant_id = 0) const bool ENABLE_PICKING = false;
-layout(constant_id = 1) const bool FACE_PICKING = false;
+layout(constant_id = 1) const float PARALLAX_MAX_LAYERS = 32.0;
+layout(constant_id = 2) const float PARALLAX_MIN_LAYERS = 4.0;
 #endif
 
 #ifdef VERTEX
@@ -251,13 +252,12 @@ vec3 shade(ShadeInfo si) {
             float depth = (shadowPos.z / shadowPos.w) - bias;
             vec2 coord = (shadowPos.xy * 0.5 + 0.5);
 
-
-                //return vec3(coord, depth);
-            if (coord.x > 0.0 && coord.x < 1.0 && coord.y > 0.0 && coord.y < 1.0 && depth < 1.0 && depth > 0.0) {
+            if (coord.x > 0.0 && coord.x < 1.0 && 
+                    coord.y > 0.0 && coord.y < 1.0 && 
+                    depth < 1.0 && depth > 0.0) {
                 float texelSize = 1.0 / textureSize(shadowSampler, 0).x;
                 shadowIntensity = 0.0;
 #ifdef HIGH_QUALITY_SHADOWS
-
                 const int shadowSamples = 1;
                 const float divVal = ((shadowSamples * 2)) * ((shadowSamples * 2));
 
@@ -333,7 +333,9 @@ void main() {
 
     if (mat.heightmapIdx > -1) {
         surfaceDepth = 1.0 - texture(tex2dSampler[mat.heightmapIdx], tCoord).x;
-        tCoord = parallaxMapping(tCoord, tViewDir, tex2dSampler[mat.heightmapIdx], mat.heightScale);
+#ifdef DO_PARALLAX_MAPPING
+        tCoord = parallaxMapping(tCoord, tViewDir, tex2dSampler[mat.heightmapIdx], mat.heightScale, PARALLAX_MIN_LAYERS, PARALLAX_MAX_LAYERS);
+#endif
     }
 
     if ((flags & 0x1) == 0x1) {
@@ -368,7 +370,6 @@ void main() {
     if ((miscFlag & 2) == 2) {
         // show normals
         FragColor = vec4((normal * 0.5) + 0.5, 1.0);
-        //FragColor = vec4(vec3(dot(normal, vec3(0.0, 1.0, 0.0))), 1.0);
         return;
     } else if ((miscFlag & 4) == 4) {
         // show metallic
@@ -395,7 +396,6 @@ void main() {
         FragColor = vec4(mod(tCoord, vec2(1.0)), 0.0, 1.0);
         return;
     }
-
 
     float finalAlpha = alphaCutoff > 0.0f ? albedoCol.a : 1.0f;
 
