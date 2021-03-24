@@ -32,7 +32,7 @@ namespace lg {
         void onSceneStart(entt::registry& reg) override;
         void shutdown(entt::registry& registry) override;
     private:
-        void updateHandGrab(entt::registry& registry, PlayerRig& rig, entt::entity handEnt);
+        void updateHandGrab(entt::registry& registry, PlayerRig& rig, entt::entity handEnt, float deltaTime);
         static void onServerPacket(const ENetEvent&, void*);
         static void onClientPacket(const ENetEvent&, void*);
         static void onPlayerJoin(NetPlayer&, void*);

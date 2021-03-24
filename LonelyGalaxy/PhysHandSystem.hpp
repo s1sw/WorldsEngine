@@ -37,6 +37,10 @@ namespace lg {
         float forceLimit = 1000.0f; ///< Force limit in Newtons
         float torqueLimit = 15.0f; ///< Torque limit in Newton-metres
         float forceMultiplier = 1.0f;
+
+        bool holdingObjectWithGrabPoint = false;
+        float timeSinceGrabInitiated = 0.0f;
+        entt::entity holding = entt::null;
     };
 
     class PhysHandSystem : public worlds::ISystem {
