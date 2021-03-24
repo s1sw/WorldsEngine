@@ -92,7 +92,7 @@ namespace lg {
 
             if (registry.valid(physHand.locosphere)) {
                 worlds::DynamicPhysicsActor& lDpa = registry.get<worlds::DynamicPhysicsActor>(physHand.locosphere);
-                lDpa.actor->is<physx::PxRigidBody>()->addForce(-worlds::glm2px(force));
+                //lDpa.actor->is<physx::PxRigidBody>()->addForce(-worlds::glm2px(force));
             }
 
             glm::quat quatDiff = fixupQuat(physHand.targetWorldRot) * glm::inverse(fixupQuat(worlds::px2glm(t.q)));
@@ -176,7 +176,7 @@ namespace lg {
                 hand.targetWorldRot = t.rotation;
             }
         } else {
-            glm::vec3 camOffset { 0.1f, -0.1f, 0.25f };
+            glm::vec3 camOffset { 0.1f, -0.1f, 0.4f };
             if (hand.follow == FollowHand::RightHand)
                 camOffset.x = -camOffset.x;
             hand.targetWorldPos = interfaces.mainCamera->position;

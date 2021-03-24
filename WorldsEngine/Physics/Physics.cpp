@@ -145,10 +145,9 @@ namespace worlds {
         physx::PxSceneDesc desc(tolerancesScale);
         desc.gravity = physx::PxVec3(0.0f, -9.81f, 0.0f);
         desc.cpuDispatcher = physx::PxDefaultCpuDispatcherCreate(std::max(SDL_GetCPUCount() - 2, 1));
-        desc.filterShader = filterShader;
-        desc.solverType = physx::PxSolverType::ePGS;
-        desc.flags = physx::PxSceneFlag::eENABLE_PCM
-                   | physx::PxSceneFlag::eENABLE_CCD;
+        //desc.filterShader = filterShader;
+        desc.filterShader = physx::PxDefaultSimulationFilterShader;
+        desc.solverType = physx::PxSolverType::eTGS;
         g_scene = g_physics->createScene(desc);
 
         reg.on_destroy<PhysicsActor>().connect<&destroyPhysXActor<PhysicsActor>>();

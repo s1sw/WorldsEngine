@@ -284,6 +284,7 @@ namespace worlds {
                 if (ImGui::MenuItem("Pause and Edit")) {
                     g_console->executeCommandStr("pauseAndEdit");
                 }
+                ImGui::EndMainMenuBar();
             }
             return;
         }
@@ -406,9 +407,10 @@ namespace worlds {
                 sceneViewDS = VKImGUIUtil::createDescriptorSetFor(interfaces.renderer->getSDRTarget(sceneViewPass), vkCtx);
             }
 
+            auto wSize = ImGui::GetContentRegionAvail();
+
             ImGui::Image((ImTextureID)sceneViewDS, ImVec2(currentSceneViewSize.x, currentSceneViewSize.y));
 
-            auto wSize = ImGui::GetContentRegionAvail();
             auto wPos = ImGui::GetWindowPos() + ImGui::GetCursorStartPos();
             auto mPos = ImGui::GetIO().MousePos;
             auto localMPos = mPos - wPos;
