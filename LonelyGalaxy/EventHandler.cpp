@@ -293,12 +293,44 @@ namespace lg {
     worlds::ConVar useTensorCompensation{"lg_compensateTensors", "1", "Enables inertia tensor compensation on grabs."};
     worlds::ConVar enableGripPoints { "lg_enableGripPoints", "1", "Enables grip points." };
 
-    void EventHandler::updateHandGrab(entt::registry& registry, PlayerRig& rig, entt::entity ent) {
+    void EventHandler::updateHandGrab(entt::registry& registry, PlayerRig& rig, entt::entity ent, float deltaTime) {
+        static float driveP = 1500.0f;
+        static float driveD = 0.0f;
+        ImGui::DragFloat("Drive P", &driveP);
+        ImGui::DragFloat("Drive D", &driveD);
         auto& physHand = registry.get<PhysHand>(ent);
         auto grabAction = physHand.follow == FollowHand::LeftHand ? lGrab : rGrab;
         auto grabButton = physHand.follow == FollowHand::LeftHand ? worlds::MouseButton::Left : worlds::MouseButton::Right;
         bool doGrab = vrInterface ? vrInterface->getActionPressed(grabAction) : inputManager->mouseButtonPressed(grabButton);
         bool doRelease = vrInterface ? vrInterface->getActionReleased(grabAction) : inputManager->mouseButtonReleased(grabButton);
+        auto& handTf = registry.get<Transform>(ent);
+
+        if (physHand.holdingObjectWithGrabPoint) {
+            physHand.timeSinceGrabInitiated += deltaTime;
+            auto& otherActor = registry.get<worlds::DynamicPhysicsActor>(physHand.holding);
+            auto otherTf = worlds::px2glm(otherActor.actor->getGlobalPose());
+            auto& gripPoint = registry.get<GripPoint>(physHand.holding);
+
+            glm::vec3 targetHandPos = otherTf.position + (otherTf.rotation * gripPoint.offset);
+            glm::quat targetHandRot = otherTf.rotation * gripPoint.rotOffset;
+            float distance = glm::distance(handTf.position, targetHandPos);
+
+            if ((distance < 0.1f && glm::dot(targetHandRot, handTf.rotation) > 0.6f) && physHand.timeSinceGrabInitiated > 0.5f) {
+                auto& d6 = registry.get<worlds::D6Joint>(ent);
+                d6.pxJoint->setMotion(physx::PxD6Axis::eX, physx::PxD6Motion::eLOCKED);
+                d6.pxJoint->setMotion(physx::PxD6Axis::eY, physx::PxD6Motion::eLOCKED);
+                d6.pxJoint->setMotion(physx::PxD6Axis::eZ, physx::PxD6Motion::eLOCKED);
+                d6.pxJoint->setMotion(physx::PxD6Axis::eSWING1, physx::PxD6Motion::eLOCKED);
+                d6.pxJoint->setMotion(physx::PxD6Axis::eSWING2, physx::PxD6Motion::eLOCKED);
+                d6.pxJoint->setMotion(physx::PxD6Axis::eTWIST, physx::PxD6Motion::eLOCKED);
+                physx::PxD6JointDrive drive{0.0f, 0.0f, 0.0f, true};
+                d6.pxJoint->setDrive(physx::PxD6Drive::eX, drive);
+                d6.pxJoint->setDrive(physx::PxD6Drive::eY, drive);
+                d6.pxJoint->setDrive(physx::PxD6Drive::eZ, drive);
+                d6.pxJoint->setDrive(physx::PxD6Drive::eSWING, drive);
+                d6.pxJoint->setDrive(physx::PxD6Drive::eTWIST, drive);
+            }
+        }
 
         if (doGrab && !registry.has<worlds::D6Joint>(ent)) {
             // search for nearby grabbable objects
@@ -331,43 +363,38 @@ namespace lg {
                 }
 
                 if (registry.valid(pickUp) && registry.valid(ent)) {
-                    auto& otherTf = registry.get<Transform>(pickUp);
+                    Transform otherTf = worlds::px2glm(touch.actor->getGlobalPose());
                     auto* gripPoint = registry.try_get<GripPoint>(pickUp);
-                    auto& handTf = registry.get<Transform>(ent);
+                    physHand.timeSinceGrabInitiated = 0.0f;
 
                     auto& d6 = registry.emplace<worlds::D6Joint>(ent);
                     physx::PxTransform p2 = touch.actor->getGlobalPose();
 
                     if (enableGripPoints.getInt() && gripPoint && (!gripPoint->exclusive || !gripPoint->currentlyHeld)) {
+                        physHand.holdingObjectWithGrabPoint = true;
+                        physHand.holding = pickUp;
                         t.p = worlds::glm2px(otherTf.position + (otherTf.rotation * gripPoint->offset));
                         t.q = worlds::glm2px(otherTf.rotation * gripPoint->rotOffset);
-                        dpa.actor->setGlobalPose(t);
-                        handTf.position = worlds::px2glm(t.p);
-                        handTf.rotation = worlds::px2glm(t.q);
-                        physx::PxTransform target{worlds::glm2px(gripPoint->offset), worlds::glm2px(gripPoint->rotOffset)};
+                        //dpa.actor->setGlobalPose(t);
+                        //handTf.position = worlds::px2glm(t.p);
+                        //handTf.rotation = worlds::px2glm(t.q);
+                        physx::PxTransform target{worlds::glm2px(-gripPoint->offset), worlds::glm2px(glm::normalize(gripPoint->rotOffset))};
                         gripPoint->currentlyHeld = true;
                         d6.pxJoint->setLocalPose(physx::PxJointActorIndex::eACTOR0, target);
-                        //d6.pxJoint->setMotion(physx::PxD6Axis::eX, physx::PxD6Motion::eFREE);
-                        //d6.pxJoint->setMotion(physx::PxD6Axis::eY, physx::PxD6Motion::eFREE);
-                        //d6.pxJoint->setMotion(physx::PxD6Axis::eZ, physx::PxD6Motion::eFREE);
-                        //d6.pxJoint->setMotion(physx::PxD6Axis::eSWING1, physx::PxD6Motion::eFREE);
-                        //d6.pxJoint->setMotion(physx::PxD6Axis::eSWING2, physx::PxD6Motion::eFREE);
-                        //d6.pxJoint->setMotion(physx::PxD6Axis::eTWIST, physx::PxD6Motion::eFREE);
-                        //physx::PxD6JointDrive drive{25.0f, 0.0f, PX_MAX_F32, true};
-                        //d6.pxJoint->setDrive(physx::PxD6Drive::eX, drive);
-                        //d6.pxJoint->setDrive(physx::PxD6Drive::eY, drive);
-                        //d6.pxJoint->setDrive(physx::PxD6Drive::eZ, drive);
-                        //d6.pxJoint->setDrive(physx::PxD6Drive::eSWING, drive);
-                        //d6.pxJoint->setDrive(physx::PxD6Drive::eTWIST, drive);
-                        ////d6.pxJoint->setDrivePosition(physx::PxTransform{physx::PxIdentity});
-                        //d6.pxJoint->setDrivePosition(target);
-                        //d6.pxJoint->setDriveVelocity(physx::PxVec3{0.0f}, physx::PxVec3{0.0f});
-                        d6.pxJoint->setMotion(physx::PxD6Axis::eX, physx::PxD6Motion::eLOCKED);
-                        d6.pxJoint->setMotion(physx::PxD6Axis::eY, physx::PxD6Motion::eLOCKED);
-                        d6.pxJoint->setMotion(physx::PxD6Axis::eZ, physx::PxD6Motion::eLOCKED);
-                        d6.pxJoint->setMotion(physx::PxD6Axis::eSWING1, physx::PxD6Motion::eLOCKED);
-                        d6.pxJoint->setMotion(physx::PxD6Axis::eSWING2, physx::PxD6Motion::eLOCKED);
-                        d6.pxJoint->setMotion(physx::PxD6Axis::eTWIST, physx::PxD6Motion::eLOCKED);
+                        d6.pxJoint->setMotion(physx::PxD6Axis::eX, physx::PxD6Motion::eFREE);
+                        d6.pxJoint->setMotion(physx::PxD6Axis::eY, physx::PxD6Motion::eFREE);
+                        d6.pxJoint->setMotion(physx::PxD6Axis::eZ, physx::PxD6Motion::eFREE);
+                        d6.pxJoint->setMotion(physx::PxD6Axis::eSWING1, physx::PxD6Motion::eFREE);
+                        d6.pxJoint->setMotion(physx::PxD6Axis::eSWING2, physx::PxD6Motion::eFREE);
+                        d6.pxJoint->setMotion(physx::PxD6Axis::eTWIST, physx::PxD6Motion::eFREE);
+                        physx::PxD6JointDrive drive{driveP, driveD, PX_MAX_F32, true};
+                        d6.pxJoint->setDrive(physx::PxD6Drive::eX, drive);
+                        d6.pxJoint->setDrive(physx::PxD6Drive::eY, drive);
+                        d6.pxJoint->setDrive(physx::PxD6Drive::eZ, drive);
+                        d6.pxJoint->setDrive(physx::PxD6Drive::eSWING, drive);
+                        d6.pxJoint->setDrive(physx::PxD6Drive::eTWIST, drive);
+                        d6.pxJoint->setDrivePosition(physx::PxTransform{physx::PxIdentity});
+                        d6.pxJoint->setDriveVelocity(physx::PxVec3{0.0f}, physx::PxVec3{0.0f});
                     } else {
                         d6.pxJoint->setLocalPose(physx::PxJointActorIndex::eACTOR0, t.transformInv(p2));
                         d6.pxJoint->setMotion(physx::PxD6Axis::eX, physx::PxD6Motion::eLOCKED);
@@ -427,11 +454,12 @@ namespace lg {
                 auto& ph = registry.get<PhysHand>(ent);
                 ph.useOverrideIT = false;
                 ph.forceMultiplier = 1.0f;
+                ph.holdingObjectWithGrabPoint = false;
             }
         }
     }
 
-    void EventHandler::simulate(entt::registry& registry, float) {
+    void EventHandler::simulate(entt::registry& registry, float simStep) {
         if (isDedicated) {
             server->processMessages(onServerPacket);
 
@@ -542,8 +570,8 @@ namespace lg {
 
         auto& localRig = registry.get<PlayerRig>(localLocosphereEnt);
 
-        updateHandGrab(registry, localRig, localRig.lHand);
-        updateHandGrab(registry, localRig, localRig.rHand);
+        updateHandGrab(registry, localRig, localRig.lHand, simStep);
+        updateHandGrab(registry, localRig, localRig.rHand, simStep);
     }
 
     void EventHandler::onSceneStart(entt::registry& registry) {

@@ -28,7 +28,11 @@ namespace worlds {
         return glm::quat{ quat.w, quat.x, quat.y, quat.z };
     }
 
-    inline physx::PxTransform glm2px(Transform& t) {
+    inline Transform px2glm(const physx::PxTransform& t) {
+        return Transform{px2glm(t.p), px2glm(t.q)};
+    }
+
+    inline physx::PxTransform glm2px(const Transform& t) {
         return physx::PxTransform(glm2px(t.position), glm2px(t.rotation));
     }
 
