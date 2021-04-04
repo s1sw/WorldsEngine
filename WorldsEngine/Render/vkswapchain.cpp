@@ -69,16 +69,16 @@ namespace worlds {
         swapinfo.clipped = 1;
         swapinfo.oldSwapchain = oldSwapchain;
 
-
         auto originalImageUsage = swapinfo.imageUsage;
         swapchain = device.createSwapchainKHRUnique(swapinfo);
 
         if (swapinfo.imageUsage != originalImageUsage) {
-            SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_WARNING, "Warning", 
-                    "RTSS detected. If you have issues with crashes or poor performance, " 
-                    "please close it as it does not use the Vulkan API properly and can break things.", 
+            SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_WARNING, "Warning",
+                    "RTSS detected. If you have issues with crashes or poor performance,\n"
+                    "please close it as it does not use the Vulkan API properly and can break things.",
                     nullptr);
         }
+
         format = surfaceFormat.format;
 
         images = device.getSwapchainImagesKHR(*swapchain);
@@ -109,6 +109,6 @@ namespace worlds {
     }
 
     vk::Result Swapchain::acquireImage(vk::Device& device, vk::Semaphore semaphore, uint32_t* imageIndex) {
-        return device.acquireNextImageKHR(*swapchain, UINT64_MAX, semaphore, vk::Fence(), imageIndex);
+        return device.acquireNextImageKHR(*swapchain, UINT64_MAX, semaphore, nullptr, imageIndex);
     }
 }

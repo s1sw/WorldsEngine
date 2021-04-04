@@ -38,10 +38,11 @@ namespace lg {
     static glm::vec3 posOffset { 0.0f, 0.0f, -0.05f };
     static glm::vec3 rotEulerOffset { -120.0f, 0.0f, -51.0f };
     worlds::ConVar physHandDbg { "lg_physHandDbg", "0", "Show debug menu for physics hands" };
+    worlds::ConVar killHands { "lg_killHands", "0", "Bleh" };
 
     void PhysHandSystem::preSimUpdate(entt::registry& registry, float deltaTime) {
         registry.view<PhysHand>().each([&](entt::entity ent, PhysHand& physHand) {
-            setTargets(physHand, ent, deltaTime);
+            //setTargets(physHand, ent, deltaTime);
         });
     }
 
@@ -60,12 +61,12 @@ namespace lg {
     worlds::ConVar handTuning { "lg_handTuning", "0", "Displays a debug menu for tuning hand PID controllers." };
 
     void PhysHandSystem::simulate(entt::registry& registry, float simStep) {
-        registry.view<PhysHand, worlds::DynamicPhysicsActor, Transform>().each([&](entt::entity ent, PhysHand& physHand, worlds::DynamicPhysicsActor& actor, Transform& wtf) {
-            //setTargets(physHand, ent, simStep);
+        registry.view<PhysHand, worlds::DynamicPhysicsActor>().each([&](entt::entity ent, PhysHand& physHand, worlds::DynamicPhysicsActor& actor) {
+            setTargets(physHand, ent, simStep);
             auto body = static_cast<physx::PxRigidBody*>(actor.actor);
             physx::PxTransform t = body->getGlobalPose();
 
-            if (!t.p.isFinite() || !t.q.isSane() || !body->getLinearVelocity().isFinite() || !body->getLinearVelocity().isFinite()) {
+            if (!t.p.isFinite() || !body->getLinearVelocity().isFinite() || !body->getLinearVelocity().isFinite()) {
                 logErr("physhand rb was not finite, resetting...");
                 resetHand(physHand, body);
                 t = body->getGlobalPose();
@@ -78,7 +79,7 @@ namespace lg {
                 refVel = worlds::px2glm(((physx::PxRigidDynamic*)lDpa.actor)->getLinearVelocity());
             }
 
-            glm::vec3 err = (physHand.targetWorldPos + refVel * simStep) - worlds::px2glm(t.p) + ((body->getMass() / physHand.posController.P) * glm::vec3(0.0f, 9.81f, 0.0f));
+            glm::vec3 err = (physHand.targetWorldPos) - worlds::px2glm(t.p) + ((body->getMass() / physHand.posController.P) * glm::vec3(0.0f, 9.81f, 0.0f));
             glm::vec3 vel = worlds::px2glm(body->getLinearVelocity());
 
             glm::vec3 force = physHand.posController.getOutput(err * physHand.forceMultiplier, simStep);
@@ -88,11 +89,12 @@ namespace lg {
                 force = glm::vec3(0.0f);
             }
 
-            body->addForce(worlds::glm2px(force));
+            if (!killHands.getInt())
+                body->addForce(worlds::glm2px(force));
 
-            if (registry.valid(physHand.locosphere)) {
+            if (!killHands.getInt() && registry.valid(physHand.locosphere)) {
                 worlds::DynamicPhysicsActor& lDpa = registry.get<worlds::DynamicPhysicsActor>(physHand.locosphere);
-                //lDpa.actor->is<physx::PxRigidBody>()->addForce(-worlds::glm2px(force));
+                lDpa.actor->is<physx::PxRigidBody>()->addForce(-worlds::glm2px(force));
             }
 
             glm::quat quatDiff = fixupQuat(physHand.targetWorldRot) * glm::inverse(fixupQuat(worlds::px2glm(t.q)));
@@ -106,7 +108,7 @@ namespace lg {
 
             glm::vec3 torque = physHand.rotController.getOutput(angle * axis, simStep);
 
-            torque = glm::inverse(fixupQuat(wtf.rotation)) * torque;
+            torque = glm::inverse(fixupQuat(worlds::px2glm(t.q))) * torque;
 
             if (!physHand.useOverrideIT) {
                 auto itRotation = worlds::px2glm(body->getCMassLocalPose().q);
@@ -123,7 +125,7 @@ namespace lg {
                 torque = worlds::px2glm(physHand.overrideIT.transform(worlds::glm2px(torque)));
             }
 
-            torque = fixupQuat(wtf.rotation) * torque;
+            torque = fixupQuat(worlds::px2glm(t.q)) * torque;
 
             auto& nc = registry.get<worlds::NameComponent>(ent);
             if (handTuning.getInt()) {
@@ -142,7 +144,7 @@ namespace lg {
 
             torque = clampMagnitude(torque, physHand.torqueLimit);
 
-            if (!glm::any(glm::isnan(axis)) && !glm::any(glm::isinf(torque)))
+            if (!killHands.getInt() && !glm::any(glm::isnan(axis)) && !glm::any(glm::isinf(torque)))
                 body->addTorque(worlds::glm2px(torque));
         });
     }
@@ -176,7 +178,7 @@ namespace lg {
                 hand.targetWorldRot = t.rotation;
             }
         } else {
-            glm::vec3 camOffset { 0.1f, -0.1f, 0.4f };
+            glm::vec3 camOffset { 0.1f, -0.1f, 0.55f };
             if (hand.follow == FollowHand::RightHand)
                 camOffset.x = -camOffset.x;
             hand.targetWorldPos = interfaces.mainCamera->position;

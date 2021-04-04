@@ -5,7 +5,7 @@ namespace worlds {
         vk::UniqueDescriptorSetLayout layout;
         vk::Sampler sampler;
 
-        void createObjects(worlds::VulkanHandles& vkCtx) {
+        void createObjects(const worlds::VulkanHandles& vkCtx) {
             vku::DescriptorSetLayoutMaker dslm;
             dslm.image(0, vk::DescriptorType::eCombinedImageSampler, vk::ShaderStageFlagBits::eFragment, 1);
 
@@ -15,7 +15,7 @@ namespace worlds {
             sampler = sm.create(vkCtx.device);
         }
 
-        void destroyObjects(worlds::VulkanHandles& vkCtx) {
+        void destroyObjects(const worlds::VulkanHandles& vkCtx) {
             vkCtx.device.waitIdle();
             layout.reset();
             vkCtx.device.destroySampler(sampler);

@@ -11,7 +11,7 @@
 #define NUM_SUBMESH_MATS 32
 
 namespace worlds {
-    const int NUM_SHADOW_LIGHTS = 16;
+    const int NUM_SHADOW_LIGHTS = 1;
     struct Vertex {
         glm::vec3 position;
         glm::vec3 normal;
@@ -21,11 +21,9 @@ namespace worlds {
     };
 
     struct WorldCubemap {
-        WorldCubemap() : loadIdx(~0u) {}
         AssetID cubemapId;
-        glm::vec3 extent;
-        uint32_t loadIdx;
-        bool cubeParallax;
+        glm::vec3 extent{0.0f};
+        bool cubeParallax = false;
     };
 
     struct ProceduralObject {
@@ -179,18 +177,26 @@ namespace worlds {
         friend class VKRenderer;
     };
 
+    struct SlotArrays {
+        TextureSlots& textures;
+        CubemapSlots& cubemaps;
+        MaterialSlots& materials;
+    };
+
     struct RenderCtx {
         RenderCtx(
             vk::CommandBuffer cmdBuf,
             entt::registry& reg,
             uint32_t imageIndex,
             Camera* cam,
+            SlotArrays slotArrays,
             uint32_t width, uint32_t height,
             std::unordered_map<AssetID, LoadedMeshData>& loadedMeshes)
             : cmdBuf(cmdBuf)
             , reg(reg)
             , imageIndex(imageIndex)
             , cam(cam)
+            , slotArrays(slotArrays)
             , loadedMeshes(loadedMeshes)
             , width(width)
             , height(height)
@@ -203,9 +209,7 @@ namespace worlds {
         entt::registry& reg;
         uint32_t imageIndex;
         Camera* cam;
-        std::unique_ptr<TextureSlots>* textureSlots;
-        std::unique_ptr<MaterialSlots>* materialSlots;
-        std::unique_ptr<CubemapSlots>* cubemapSlots;
+        SlotArrays slotArrays;
         std::unordered_map<AssetID, LoadedMeshData>& loadedMeshes;
         uint32_t width, height;
         glm::mat4 vrViewMats[2];
@@ -223,9 +227,7 @@ namespace worlds {
     struct PassSetupCtx {
         vku::UniformBuffer* materialUB;
         VulkanHandles vkCtx;
-        std::unique_ptr<TextureSlots>* globalTexArray;
-        std::unique_ptr<CubemapSlots>* cubemapSlots;
-        std::unique_ptr<MaterialSlots>* materialSlots;
+        SlotArrays slotArrays;
         int swapchainImageCount;
         bool enableVR;
         vku::GenericImage* brdfLut;
@@ -289,7 +291,9 @@ namespace worlds {
     enum class ReloadFlags {
         Textures = 1,
         Materials = 2,
-        Cubemaps = 4
+        Cubemaps = 4,
+        Meshes = 8,
+        All = 15
     };
 
     inline ReloadFlags operator|(ReloadFlags l, ReloadFlags r) {

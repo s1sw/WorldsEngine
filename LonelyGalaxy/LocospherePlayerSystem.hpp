@@ -60,8 +60,8 @@ namespace lg {
         worlds::InputManager* inputManager;
         entt::registry& registry;
         worlds::Camera* camera;
-        glm::vec3 lastCamPos;
-        glm::vec3 nextCamPos;
+        glm::vec3 lastCamPos{0.0f};
+        glm::vec3 nextCamPos{0.0f};
         V3PidController lspherePid;
         float zeroThresh;
 

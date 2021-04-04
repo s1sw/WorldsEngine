@@ -12,7 +12,7 @@ namespace worlds {
         }
 
         ENTT_ID_TYPE getComponentID() override {
-            return entt::type_info<T>::id();
+            return entt::type_id<T>().hash();
         }
 
         uint32_t getSerializedID() override {

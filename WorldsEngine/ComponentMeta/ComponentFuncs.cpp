@@ -78,7 +78,11 @@ namespace worlds {
                     selectedTransform.rotation = glm::radians(eulerRot);
                 }
 
-                ImGui::DragFloat3("Scale", &selectedTransform.scale.x);
+                glm::vec3 scale = selectedTransform.scale;
+                if (ImGui::DragFloat3("Scale", &scale.x) && !glm::any(glm::equal(scale, glm::vec3{0.0f}))) {
+                    selectedTransform.scale = scale;
+                }
+
                 if (ImGui::Button("Snap to world grid")) {
                     ed->undo.pushState(reg);
                     selectedTransform.position = glm::round(selectedTransform.position);
@@ -793,9 +797,6 @@ namespace worlds {
                 AssetID oldId = wc.cubemapId;
                 selectAssetPopup("Cubemap Path", wc.cubemapId, ImGui::Button("Change"));
 
-                if (wc.cubemapId != oldId) {
-                    wc.loadIdx = ~0u;
-                }
                 ImGui::Separator();
             }
         }

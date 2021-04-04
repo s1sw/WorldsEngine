@@ -201,9 +201,8 @@ namespace lg {
             if (lpc.isLocal) {
                 if (!reg.valid(localLocosphereEnt))
                     localLocosphereEnt = ent;
-                else {
+                else
                     logWarn("more than one local locosphere!");
-                }
             }
         });
 
@@ -217,7 +216,8 @@ namespace lg {
 
             lookY = glm::clamp(lookY, -glm::half_pi<float>() + 0.001f, glm::half_pi<float>() - 0.001f);
 
-            camera->rotation = glm::angleAxis(-lookX, glm::vec3(0.0f, 1.0f, 0.0f)) * glm::angleAxis(lookY, glm::vec3(1.0f, 0.0f, 0.0f));
+            camera->rotation = glm::angleAxis(-lookX, glm::vec3(0.0f, 1.0f, 0.0f)) *
+                               glm::angleAxis(lookY, glm::vec3(1.0f, 0.0f, 0.0f));
         }
 
         camera->position = glm::mix(lastCamPos, nextCamPos, interpAlpha);
@@ -418,12 +418,11 @@ namespace lg {
 
     void LocospherePlayerSystem::simulate(entt::registry& registry, float simStep) {
         registry.view<LocospherePlayerComponent>().each([&](auto ent, LocospherePlayerComponent& lpc) {
-            auto& locosphereTransform = registry.get<Transform>(ent);
-
             static worlds::ConVar maxSpeed { "lg_locosphereSpeed", "25.0" };
             auto& wActor = registry.get<worlds::DynamicPhysicsActor>(ent);
             auto* locosphereActor = (physx::PxRigidDynamic*)wActor.actor;
             auto& rig = registry.get<PlayerRig>(ent);
+            auto locosphereTransform = worlds::px2glm(locosphereActor->getGlobalPose());
 
             FilterEntity filterEnt;
             filterEnt.entA = ent;
@@ -552,7 +551,7 @@ namespace lg {
                 }
 
                 if (vrInterface) {
-                    static glm::vec3 lastHeadPos = glm::vec3{ 0.0f };//worlds::getMatrixTranslation(vrInterface->getHeadTransform());
+                    static glm::vec3 lastHeadPos = glm::vec3{ 0.0f };
                     glm::vec3 headPos = worlds::getMatrixTranslation(vrInterface->getHeadTransform());
                     glm::vec3 locosphereOffset = lastHeadPos - headPos;
                     lastHeadPos = headPos;
@@ -576,7 +575,7 @@ namespace lg {
 
                 nextCamPos = worlds::px2glm(lspherePose.p + physx::PxVec3(0.0f, -LOCOSPHERE_RADIUS, 0.0f));
                 if (glm::any(glm::isnan(nextCamPos)))
-                        nextCamPos = glm::vec3{0.0f};
+                    nextCamPos = glm::vec3{0.0f};
 
                 if (!vrInterface) {
                     // Make all non-VR users 1.75m tall

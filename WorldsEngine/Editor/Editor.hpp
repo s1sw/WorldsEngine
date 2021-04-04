@@ -68,7 +68,7 @@ namespace worlds {
 
     class EditorWindow {
     public:
-        EditorWindow(EngineInterfaces interfaces, Editor* editor) 
+        EditorWindow(EngineInterfaces interfaces, Editor* editor)
             : interfaces(interfaces)
             , editor(editor)
             , active(true) {}
@@ -93,7 +93,7 @@ namespace worlds {
         void clear() { highestSaved = 0; currentPos = 0; }
     private:
         uint32_t highestSaved = 0;
-        uint32_t currentPos = 0; 
+        uint32_t currentPos = 0;
     };
 
     class Editor {
@@ -102,10 +102,10 @@ namespace worlds {
         void select(entt::entity entity);
         void update(float deltaTime);
         void activateTool(Tool newTool);
-        void setActive(bool active);
         entt::entity getSelectedEntity() { return currentSelectedEntity; }
         UITextureManager* texManager() { return texMan; }
         EditorUndo undo;
+        bool active = true;
     private:
         void updateCamera(float deltaTime);
         std::string generateWindowTitle();
@@ -120,7 +120,6 @@ namespace worlds {
         float lookY;
         float cameraSpeed;
         bool imguiMetricsOpen;
-        bool active;
 
         UITextureManager* texMan;
 

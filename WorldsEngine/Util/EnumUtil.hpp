@@ -3,6 +3,6 @@
 namespace worlds {
     template <typename T>
     bool enumHasFlag(T in, T flag) {
-        return (static_cast<int>(in) & static_cast<int>(flag)) == static_cast<int>(flag);
+        return (static_cast<unsigned int>(in) & static_cast<unsigned int>(flag)) == static_cast<unsigned int>(flag);
     }
 }

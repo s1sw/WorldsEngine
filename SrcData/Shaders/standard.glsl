@@ -25,6 +25,7 @@ layout(location = 5) in flat uint inUvDir;
 layout(constant_id = 0) const bool ENABLE_PICKING = false;
 layout(constant_id = 1) const float PARALLAX_MAX_LAYERS = 32.0;
 layout(constant_id = 2) const float PARALLAX_MIN_LAYERS = 4.0;
+layout(constant_id = 3) const bool DO_PARALLAX = false;
 #endif
 
 #ifdef VERTEX
@@ -252,8 +253,8 @@ vec3 shade(ShadeInfo si) {
             float depth = (shadowPos.z / shadowPos.w) - bias;
             vec2 coord = (shadowPos.xy * 0.5 + 0.5);
 
-            if (coord.x > 0.0 && coord.x < 1.0 && 
-                    coord.y > 0.0 && coord.y < 1.0 && 
+            if (coord.x > 0.0 && coord.x < 1.0 &&
+                    coord.y > 0.0 && coord.y < 1.0 &&
                     depth < 1.0 && depth > 0.0) {
                 float texelSize = 1.0 / textureSize(shadowSampler, 0).x;
                 shadowIntensity = 0.0;
@@ -333,9 +334,8 @@ void main() {
 
     if (mat.heightmapIdx > -1) {
         surfaceDepth = 1.0 - texture(tex2dSampler[mat.heightmapIdx], tCoord).x;
-#ifdef DO_PARALLAX_MAPPING
-        tCoord = parallaxMapping(tCoord, tViewDir, tex2dSampler[mat.heightmapIdx], mat.heightScale, PARALLAX_MIN_LAYERS, PARALLAX_MAX_LAYERS);
-#endif
+        if (DO_PARALLAX)
+            tCoord = parallaxMapping(tCoord, tViewDir, tex2dSampler[mat.heightmapIdx], mat.heightScale, PARALLAX_MIN_LAYERS, PARALLAX_MAX_LAYERS);
     }
 
     if ((flags & 0x1) == 0x1) {
