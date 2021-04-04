@@ -1,24 +1,25 @@
-#include "D6Joint.hpp"
+#include "FixedJoint.hpp"
 #include <physx/PxPhysicsAPI.h>
 #include <physx/extensions/PxJoint.h>
-#include <physx/extensions/PxD6Joint.h>
+#include <physx/extensions/PxFixedJoint.h>
 #include <entt/entt.hpp>
 #include "PhysicsActor.hpp"
 #include "../Core/Log.hpp"
 
 namespace worlds {
-    D6Joint::D6Joint() : pxJoint{ nullptr }, thisActor{ nullptr }, targetEntity{ entt::null } {}
+    FixedJoint::FixedJoint() : pxJoint{ nullptr }, thisActor { nullptr }, targetEntity { entt::null } {}
 
-    D6Joint::D6Joint(D6Joint&& other) noexcept {
-        pxJoint = other.pxJoint; other.pxJoint = nullptr;
-    }
-
-    void D6Joint::operator=(D6Joint&& other) {
+    FixedJoint::FixedJoint(FixedJoint&& other) noexcept {
         pxJoint = other.pxJoint;
         other.pxJoint = nullptr;
     }
 
-    void D6Joint::setTarget(entt::entity newTargetEnt, entt::registry& reg) {
+    void FixedJoint::operator=(FixedJoint&& other) {
+        pxJoint = other.pxJoint;
+        other.pxJoint = nullptr;
+    }
+
+    void FixedJoint::setTarget(entt::entity newTargetEnt, entt::registry& reg) {
         targetEntity = newTargetEnt;
         auto* pa = reg.try_get<PhysicsActor>(newTargetEnt);
         auto* dpa = reg.try_get<DynamicPhysicsActor>(newTargetEnt);
@@ -35,10 +36,10 @@ namespace worlds {
         }
     }
 
-    entt::entity D6Joint::getTarget() {
+    entt::entity FixedJoint::getTarget() {
         return targetEntity;
     }
 
-    D6Joint::~D6Joint() {
+    FixedJoint::~FixedJoint() {
     }
 }

@@ -24,9 +24,9 @@ namespace worlds {
         float verticalFOV;
 
         glm::mat4 getViewMatrix() {
-            return glm::inverse(glm::translate(glm::mat4(1.0f), position) 
+            return glm::inverse(glm::translate(glm::mat4(1.0f), position)
                                * glm::mat4_cast(rotation * glm::angleAxis(glm::pi<float>(), glm::vec3(0.0f, 1.0f, 0.0f))));
-        } 
+        }
 
         glm::mat4 getProjectionMatrix(float aspect) {
             return reverseZInfPerspective(verticalFOV, aspect, near);

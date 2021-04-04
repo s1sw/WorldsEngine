@@ -13,6 +13,7 @@
 #include "../Core/Fatal.hpp"
 #include "Physics.hpp"
 #include "D6Joint.hpp"
+#include "FixedJoint.hpp"
 
 #define ENABLE_PVD 0
 
@@ -91,6 +92,28 @@ namespace worlds {
         }
     }
 
+    void setupFixedJoint(entt::registry& reg, entt::entity ent) {
+        auto& j = reg.get<FixedJoint>(ent);
+
+        if (!reg.has<DynamicPhysicsActor>(ent)) {
+            logErr("Fixed joint added to entity without a dynamic physics actor");
+            return;
+        }
+
+        auto& dpa = reg.get<DynamicPhysicsActor>(ent);
+        j.pxJoint = physx::PxFixedJointCreate(*g_physics, dpa.actor, physx::PxTransform{ physx::PxIdentity }, nullptr, physx::PxTransform{ physx::PxIdentity });
+        j.pxJoint->setInvMassScale0(1.0f);
+        j.pxJoint->setInvMassScale1(1.0f);
+        j.thisActor = dpa.actor;
+    }
+
+    void destroyFixedJoint(entt::registry& reg, entt::entity ent) {
+        auto& j = reg.get<FixedJoint>(ent);
+        if (j.pxJoint) {
+            j.pxJoint->release();
+        }
+    }
+
     void cmdTogglePhysVis(void*, const char*) {
         float currentScale = g_scene->getVisualizationParameter(physx::PxVisualizationParameter::eSCALE);
 
@@ -147,7 +170,7 @@ namespace worlds {
         desc.cpuDispatcher = physx::PxDefaultCpuDispatcherCreate(std::max(SDL_GetCPUCount() - 2, 1));
         //desc.filterShader = filterShader;
         desc.filterShader = physx::PxDefaultSimulationFilterShader;
-        desc.solverType = physx::PxSolverType::eTGS;
+        desc.solverType = physx::PxSolverType::ePGS;
         g_scene = g_physics->createScene(desc);
 
         reg.on_destroy<PhysicsActor>().connect<&destroyPhysXActor<PhysicsActor>>();
@@ -157,6 +180,8 @@ namespace worlds {
 
         reg.on_construct<D6Joint>().connect<&setupD6Joint>();
         reg.on_destroy<D6Joint>().connect<&destroyD6Joint>();
+        reg.on_construct<FixedJoint>().connect<&setupFixedJoint>();
+        reg.on_destroy<FixedJoint>().connect<&destroyFixedJoint>();
 
         g_console->registerCommand(cmdTogglePhysVis, "phys_toggleVis", "Toggles all physics visualisations.", nullptr);
         g_console->registerCommand(cmdToggleShapeVis, "phys_toggleShapeVis", "Toggles physics shape visualisations.", nullptr);

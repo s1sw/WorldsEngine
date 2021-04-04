@@ -1780,7 +1780,7 @@ namespace vku {
             vaci.pUserData = (char*)debugName;
             vaci.flags = VMA_ALLOCATION_CREATE_USER_DATA_COPY_STRING_BIT;
             VmaAllocationInfo vci;
-            VkResult allocResult = 
+            VkResult allocResult =
                 vmaAllocateMemoryForImage(allocator, *s.image, &vaci, &s.allocation, &vci);
 
             if (allocResult != VK_SUCCESS) {
@@ -1789,7 +1789,7 @@ namespace vku {
 
             device.bindImageMemory(*s.image, vci.deviceMemory, vci.offset);
 
-            const vk::ImageUsageFlags viewFlagBits = 
+            const vk::ImageUsageFlags viewFlagBits =
                 vk::ImageUsageFlagBits::eSampled |
                 vk::ImageUsageFlagBits::eStorage |
                 vk::ImageUsageFlagBits::eColorAttachment |

@@ -43,12 +43,12 @@ namespace lg {
             D = settings.D;
         }
 
-        glm::vec3 getOutput(glm::vec3 error, float deltaTime) {
+        glm::vec3 getOutput(glm::vec3 error, float deltaTime, glm::vec3 refVel = glm::vec3{0.0f}) {
             if (glm::any(glm::isnan(lastError))) {
                 lastError = glm::vec3{ 0.0f };
             }
 
-            glm::vec3 derivative = (error - lastError) / deltaTime;
+            glm::vec3 derivative = ((error - lastError) / deltaTime) + refVel;
             integral += error * deltaTime;
 
             if (clampIntegral) {

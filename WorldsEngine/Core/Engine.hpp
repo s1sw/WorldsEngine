@@ -70,6 +70,7 @@ namespace worlds {
             int frameCounter;
         };
 
+        void processEvents();
         static int windowThread(void* data);
         void setupSDL();
         static SDL_Window* createSDLWindow();

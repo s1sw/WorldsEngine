@@ -17,7 +17,10 @@ namespace worlds {
     struct StandardPushConstants {
         glm::vec4 texScaleOffset;
         // (x: model matrix index, y: material index, z: specular cubemap index, w: object picking id)
-        glm::ivec4 ubIndices;
+        uint32_t modelMatrixIdx;
+        uint32_t materialIdx;
+        uint32_t vpIdx;
+        uint32_t objectId;
         glm::ivec3 screenSpacePickPos;
         uint32_t cubemapIdx;
         glm::vec4 cubemapExt;
@@ -45,6 +48,9 @@ namespace worlds {
 
     void PolyRenderPass::updateDescriptorSets(PassSetupCtx& ctx) {
         ZoneScoped;
+        auto& texSlots = ctx.slotArrays.textures;
+        auto& matSlots = ctx.slotArrays.materials;
+        auto& cubemapSlots = ctx.slotArrays.cubemaps;
         {
             vku::DescriptorSetUpdater updater(10, 128, 0);
             updater.beginDescriptorSet(*descriptorSet);
@@ -61,23 +67,23 @@ namespace worlds {
             updater.beginBuffers(3, 0, vk::DescriptorType::eUniformBuffer);
             updater.buffer(modelMatrixUB.buffer(), 0, sizeof(ModelMatrices));
 
-            for (uint32_t i = 0; i < ctx.globalTexArray->get()->size(); i++) {
-                if ((*ctx.globalTexArray)->isSlotPresent(i)) {
+            for (uint32_t i = 0; i < texSlots.size(); i++) {
+                if (texSlots.isSlotPresent(i)) {
                     updater.beginImages(4, i, vk::DescriptorType::eCombinedImageSampler);
-                    updater.image(*albedoSampler, (*(*ctx.globalTexArray))[i].imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
+                    updater.image(*albedoSampler, texSlots[i].imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
                 }
             }
 
-            logMsg("updated descriptor set to have %u textures (previously had %u)", ctx.globalTexArray->get()->size(), nTextures);
-            nTextures = ctx.globalTexArray->get()->size();
+            logMsg("updated descriptor set to have %u textures (previously had %u)", texSlots.size(), nTextures);
+            nTextures = texSlots.size();
 
             updater.beginImages(5, 0, vk::DescriptorType::eCombinedImageSampler);
             updater.image(*shadowSampler, shadowImage->image.imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
 
-            for (uint32_t i = 0; i < ctx.cubemapSlots->get()->size(); i++) {
-                if ((*ctx.cubemapSlots)->isSlotPresent(i)) {
+            for (uint32_t i = 0; i < cubemapSlots.size(); i++) {
+                if (cubemapSlots.isSlotPresent(i)) {
                     updater.beginImages(6, i, vk::DescriptorType::eCombinedImageSampler);
-                    updater.image(*albedoSampler, (*(*ctx.cubemapSlots))[i].imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
+                    updater.image(*albedoSampler, cubemapSlots[i].imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
                 }
             }
 
@@ -101,7 +107,7 @@ namespace worlds {
 
             logMsg("updating cubemap %i", lastSky);
             updater.beginImages(1, 0, vk::DescriptorType::eCombinedImageSampler);
-            updater.image(*albedoSampler, (*(*ctx.cubemapSlots))[lastSky].imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
+            updater.image(*albedoSampler, cubemapSlots[lastSky].imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
 
             updater.update(ctx.vkCtx.device);
         }
@@ -128,6 +134,7 @@ namespace worlds {
     }
 
     static ConVar depthPrepass("r_depthPrepass", "0");
+    static ConVar enableParallaxMapping("r_doParallaxMapping", "0");
 
     void PolyRenderPass::setup(PassSetupCtx& psCtx) {
         ZoneScoped;
@@ -258,7 +265,7 @@ namespace worlds {
         vertexShader = ShaderCache::getModule(ctx.device, vsID);
         fragmentShader = ShaderCache::getModule(ctx.device, fsID);
 
-       {
+        {
             AssetID vsID = g_assetDB.addOrGetExisting("Shaders/depth_prepass.vert.spv");
             AssetID fsID = g_assetDB.addOrGetExisting("Shaders/blank.frag.spv");
             auto preVertexShader = vku::loadShaderAsset(ctx.device, vsID);
@@ -282,17 +289,36 @@ namespace worlds {
             depthPrePipeline = pm.createUnique(ctx.device, ctx.pipelineCache, *pipelineLayout, *renderPass);
         }
 
+        struct StandardSpecConsts {
+            bool enablePicking = false;
+            float parallaxMaxLayers = 32.0f;
+            float parallaxMinLayers = 4.0f;
+            bool doParallax = false;
+        };
+
+        // standard shader specialization constants
+        vk::SpecializationMapEntry entries[4] = {
+            { 0, offsetof(StandardSpecConsts, enablePicking), sizeof(bool) },
+            { 1, offsetof(StandardSpecConsts, parallaxMaxLayers), sizeof(float) },
+            { 2, offsetof(StandardSpecConsts, parallaxMinLayers), sizeof(float) },
+            { 3, offsetof(StandardSpecConsts, doParallax), sizeof(bool) }
+        };
+
+        vk::SpecializationInfo standardSpecInfo { 4, entries, sizeof(StandardSpecConsts) };
+
         {
             vku::PipelineMaker pm{ extent.width, extent.height };
 
-            vk::SpecializationMapEntry pickingEntry{ 0, 0, sizeof(bool) };
-            vk::SpecializationInfo si;
-            si.dataSize = sizeof(bool);
-            si.mapEntryCount = 1;
-            si.pMapEntries = &pickingEntry;
-            si.pData = &enablePicking;
+            StandardSpecConsts spc {
+                enablePicking,
+                32.0f,
+                4.0f,
+                (bool)enableParallaxMapping.getInt()
+            };
 
-            pm.shader(vk::ShaderStageFlagBits::eFragment, fragmentShader, "main", &si);
+            standardSpecInfo.pData = &spc;
+
+            pm.shader(vk::ShaderStageFlagBits::eFragment, fragmentShader, "main", &standardSpecInfo);
             pm.shader(vk::ShaderStageFlagBits::eVertex, vertexShader);
             pm.vertexBinding(0, (uint32_t)sizeof(Vertex));
             pm.vertexAttribute(0, 0, vk::Format::eR32G32B32Sfloat, (uint32_t)offsetof(Vertex, position));
@@ -323,18 +349,18 @@ namespace worlds {
 
             vku::PipelineMaker pm{ extent.width, extent.height };
 
-            vk::SpecializationMapEntry pickingEntry{ 0, 0, sizeof(bool) };
-            vk::SpecializationInfo si;
-            si.dataSize = sizeof(bool);
-            si.mapEntryCount = 1;
-            si.pMapEntries = &pickingEntry;
-
             // Sadly we can't enable picking for alpha test surfaces as we can't use
             // early fragment tests with them, which leads to strange issues.
-            bool b = false;
-            si.pData = &b;
+            StandardSpecConsts spc {
+                false,
+                32.0f,
+                4.0f,
+                (bool)enableParallaxMapping.getInt()
+            };
 
-            pm.shader(vk::ShaderStageFlagBits::eFragment, atFragmentShader, "main", &si);
+            standardSpecInfo.pData = &spc;
+
+            pm.shader(vk::ShaderStageFlagBits::eFragment, atFragmentShader, "main", &standardSpecInfo);
             pm.shader(vk::ShaderStageFlagBits::eVertex, vertexShader);
             pm.vertexBinding(0, (uint32_t)sizeof(Vertex));
             pm.vertexAttribute(0, 0, vk::Format::eR32G32B32Sfloat, (uint32_t)offsetof(Vertex, position));
@@ -359,14 +385,16 @@ namespace worlds {
         {
             vku::PipelineMaker pm{ extent.width, extent.height };
 
-            vk::SpecializationMapEntry pickingEntry{ 0, 0, sizeof(bool) };
-            vk::SpecializationInfo si;
-            si.dataSize = sizeof(bool);
-            si.mapEntryCount = 1;
-            si.pMapEntries = &pickingEntry;
-            si.pData = &enablePicking;
+            StandardSpecConsts spc {
+                enablePicking,
+                32.0f,
+                4.0f,
+                (bool)enableParallaxMapping.getInt()
+            };
 
-            pm.shader(vk::ShaderStageFlagBits::eFragment, fragmentShader, "main", &si);
+            standardSpecInfo.pData = &spc;
+
+            pm.shader(vk::ShaderStageFlagBits::eFragment, fragmentShader, "main", &standardSpecInfo);
             pm.shader(vk::ShaderStageFlagBits::eVertex, vertexShader);
             pm.vertexBinding(0, (uint32_t)sizeof(Vertex));
             pm.vertexAttribute(0, 0, vk::Format::eR32G32B32Sfloat, (uint32_t)offsetof(Vertex, position));
@@ -510,26 +538,58 @@ namespace worlds {
         ZoneScoped;
         auto ctx = psCtx.vkCtx;
 
+        Frustum frustum;
+        Frustum frustumB;
+
+        if (!rCtx.enableVR) {
+            frustum.fromVPMatrix(rCtx.cam->getProjectionMatrix((float)rCtx.width / (float)rCtx.height) * rCtx.cam->getViewMatrix());
+        } else {
+            frustum.fromVPMatrix(rCtx.vrProjMats[0] * rCtx.vrViewMats[0]);
+            frustumB.fromVPMatrix(rCtx.vrProjMats[1] * rCtx.vrViewMats[1]);
+        }
+
         int matrixIdx = 0;
-        rCtx.reg.view<Transform, WorldObject>().each([&](auto ent, Transform& t, WorldObject& wo) {
+        rCtx.reg.view<Transform, WorldObject>().each([&](entt::entity, Transform& t, WorldObject& wo) {
             if (matrixIdx == 1023) {
                 fatalErr("Out of model matrices!");
                 return;
             }
-            glm::mat4 m = t.getMatrix();
-            modelMatricesMapped->modelMatrices[matrixIdx] = m;
+
+            auto meshPos = rCtx.loadedMeshes.find(wo.mesh);
+
+            if (meshPos == rCtx.loadedMeshes.end()) {
+                // Haven't loaded the mesh yet
+                matrixIdx++;
+                logWarn(WELogCategoryRender, "Missing mesh");
+                return;
+            }
+
+            float maxScale = glm::max(t.scale.x, glm::max(t.scale.y, t.scale.z));
+            if (!rCtx.enableVR) {
+                if (!frustum.containsSphere(t.position, meshPos->second.sphereRadius * maxScale)) {
+                    return;
+                }
+            } else {
+                if (!frustum.containsSphere(t.position, meshPos->second.sphereRadius * maxScale) &&
+                    !frustumB.containsSphere(t.position, meshPos->second.sphereRadius * maxScale)) {
+                    return;
+                }
+            }
+
+            modelMatricesMapped->modelMatrices[matrixIdx] = t.getMatrix();
             matrixIdx++;
-            });
+        });
 
         rCtx.reg.view<Transform, ProceduralObject>().each([&](auto ent, Transform& t, ProceduralObject& po) {
             if (matrixIdx == 1023) {
                 fatalErr("Out of model matrices!");
                 return;
             }
+
             glm::mat4 m = t.getMatrix();
             modelMatricesMapped->modelMatrices[matrixIdx] = m;
             matrixIdx++;
-            });
+        });
 
         if (rCtx.enableVR) {
             vpMapped->views[0] = rCtx.vrViewMats[0];
@@ -549,9 +609,10 @@ namespace worlds {
             lightMapped->lights[lightIdx] = PackedLight{
                 glm::vec4(l.color, (float)l.type),
                 glm::vec4(lightForward, l.spotCutoff),
-                glm::vec4(transform.position, 0.0f) };
+                glm::vec4(transform.position, 0.0f)
+            };
             lightIdx++;
-            });
+        });
 
         lightMapped->pack0.x = (float)lightIdx;
         lightMapped->shadowmapMatrix = rCtx.shadowMatrix;
@@ -605,10 +666,9 @@ namespace worlds {
 
     void PolyRenderPass::execute(RenderCtx& ctx) {
         drawInfo.clear();
-#ifdef TRACY_ENABLE
         ZoneScoped;
         TracyVkZone((*ctx.tracyContexts)[ctx.imageIndex], *ctx.cmdBuf, "Polys");
-#endif
+
         // Fast path clear values for AMD
         std::array<float, 4> clearColorValue{ 0.0f, 0.0f, 0.0f, 1 };
         vk::ClearDepthStencilValue clearDepthValue{ 0.0f, 0 };
@@ -661,7 +721,7 @@ namespace worlds {
             cullMeshRenderer->draw(cmdBuf);
         }
 
-        uint32_t skyboxId = (*ctx.cubemapSlots)->loadOrGet(reg.ctx<SceneSettings>().skybox);
+        uint32_t skyboxId = ctx.slotArrays.cubemaps.loadOrGet(reg.ctx<SceneSettings>().skybox);
         if (skyboxId != lastSky) {
             dsUpdateNeeded = true;
             lastSky = skyboxId;
@@ -669,7 +729,6 @@ namespace worlds {
 
         int matrixIdx = 0;
 
-        matrixIdx = 0;
         cmdBuf.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 0, *descriptorSet, nullptr);
 
         Frustum frustum;
@@ -682,7 +741,7 @@ namespace worlds {
             frustumB.fromVPMatrix(ctx.vrProjMats[1] * ctx.vrViewMats[1]);
         }
 
-        reg.view<Transform, WorldObject>().each([&, this](entt::entity ent, Transform& transform, WorldObject& obj) {
+        reg.view<Transform, WorldObject>().each([&](entt::entity ent, Transform& transform, WorldObject& obj) {
             ZoneScopedN("SDI generation");
             auto meshPos = ctx.loadedMeshes.find(obj.mesh);
 
@@ -697,14 +756,12 @@ namespace worlds {
             if (!ctx.enableVR) {
                 if (!frustum.containsSphere(transform.position, meshPos->second.sphereRadius * maxScale)) {
                     ctx.dbgStats->numCulledObjs++;
-                    matrixIdx++;
                     return;
                 }
             } else {
                 if (!frustum.containsSphere(transform.position, meshPos->second.sphereRadius * maxScale) &&
                     !frustumB.containsSphere(transform.position, meshPos->second.sphereRadius * maxScale)) {
                     ctx.dbgStats->numCulledObjs++;
-                    matrixIdx++;
                     return;
                 }
             }
@@ -721,7 +778,7 @@ namespace worlds {
                 sdi.matrixIdx = matrixIdx;
                 sdi.texScaleOffset = obj.texScaleOffset;
                 sdi.ent = ent;
-                auto& packedMat = (*(*ctx.materialSlots))[obj.materialIdx[i]];
+                auto& packedMat = ctx.slotArrays.materials[obj.materialIdx[i]];
                 sdi.opaque = packedMat.getCutoff() == 0.0f;
 
                 switch (obj.uvOverride) {
@@ -752,7 +809,7 @@ namespace worlds {
                     if (cPos.x < ma.x && cPos.x > mi.x &&
                         cPos.y < ma.y && cPos.y > mi.y &&
                         cPos.z < ma.z && cPos.z > mi.z) {
-                        currCubemapIdx = wc.loadIdx;
+                        currCubemapIdx = ctx.slotArrays.cubemaps.get(wc.cubemapId);
                         if (wc.cubeParallax) {
                             sdi.drawMiscFlags |= 4096; // flag for cubemap parallax correction
                             sdi.cubemapPos = t.position;
@@ -763,7 +820,8 @@ namespace worlds {
 
                 sdi.cubemapIdx = currCubemapIdx;
 
-                auto& extraDat = ctx.materialSlots->get()->getExtraDat(obj.materialIdx[i]);
+                auto& extraDat = ctx.slotArrays.materials.getExtraDat(obj.materialIdx[i]);
+
                 if (extraDat.noCull) {
                     sdi.pipeline = *noBackfaceCullPipeline;
                 } else if (extraDat.wireframe || showWireframe.getInt() == 1) {
@@ -788,7 +846,7 @@ namespace worlds {
                 drawInfo.add(std::move(sdi));
             }
             matrixIdx++;
-            });
+        });
 
         uint32_t globalMiscFlags = 0;
 
@@ -809,8 +867,10 @@ namespace worlds {
                 }
 
                 StandardPushConstants pushConst {
-                    sdi.texScaleOffset, glm::ivec4(sdi.matrixIdx, sdi.materialIdx, 0, sdi.ent),
-                        glm::ivec3(pickX, pickY, globalMiscFlags | sdi.drawMiscFlags), 0 };
+                    sdi.texScaleOffset,
+                    sdi.matrixIdx, sdi.materialIdx, 0, (uint32_t)sdi.ent,
+                    glm::ivec3(pickX, pickY, globalMiscFlags | sdi.drawMiscFlags), 0
+                };
                 cmdBuf.pushConstants<StandardPushConstants>(*pipelineLayout, vk::ShaderStageFlagBits::eFragment | vk::ShaderStageFlagBits::eVertex, 0, pushConst);
                 cmdBuf.bindVertexBuffers(0, sdi.vb, vk::DeviceSize(0));
                 cmdBuf.bindIndexBuffer(sdi.ib, 0, vk::IndexType::eUint32);
@@ -824,8 +884,9 @@ namespace worlds {
         cmdBuf.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline);
         SubmeshDrawInfo last;
         last.pipeline = *pipeline;
-        for (auto& sdi : drawInfo) {
+        for (const auto& sdi : drawInfo) {
             ZoneScopedN("SDI cmdbuf write");
+
             if (last.pipeline != sdi.pipeline) {
                 cmdBuf.bindPipeline(vk::PipelineBindPoint::eGraphics, sdi.pipeline);
                 ctx.dbgStats->numPipelineSwitches++;
@@ -833,12 +894,13 @@ namespace worlds {
 
             StandardPushConstants pushConst{
                 sdi.texScaleOffset,
-                glm::ivec4(sdi.matrixIdx, sdi.materialIdx, 0, sdi.ent),
+                sdi.matrixIdx, sdi.materialIdx, 0, (uint32_t)sdi.ent,
                 glm::ivec3(pickX, pickY, globalMiscFlags | sdi.drawMiscFlags),
                 sdi.cubemapIdx,
                 glm::vec4(sdi.cubemapExt, 0.0f),
                 glm::vec4(sdi.cubemapPos, 0.0f)
             };
+
             cmdBuf.pushConstants<StandardPushConstants>(*pipelineLayout, vk::ShaderStageFlagBits::eFragment | vk::ShaderStageFlagBits::eVertex, 0, pushConst);
             cmdBuf.bindVertexBuffers(0, sdi.vb, vk::DeviceSize(0));
             cmdBuf.bindIndexBuffer(sdi.ib, 0, vk::IndexType::eUint32);
@@ -852,7 +914,6 @@ namespace worlds {
 
         reg.view<Transform, ProceduralObject>().each([&](auto ent, Transform& transform, ProceduralObject& obj) {
             matrixIdx++;
-            return;
             if (!obj.visible) return;
             uint32_t currCubemapIdx = 0;
             reg.view<WorldCubemap, Transform>().each([&](auto, WorldCubemap& wc, Transform& t) {
@@ -863,17 +924,23 @@ namespace worlds {
                 if (cPos.x < ma.x && cPos.x > mi.x &&
                     cPos.y < ma.y && cPos.y > mi.y &&
                     cPos.z < ma.z && cPos.z > mi.z) {
-                    currCubemapIdx = wc.loadIdx;
+                    currCubemapIdx = ctx.slotArrays.cubemaps.get(wc.cubemapId);
                 }
-                });
+            });
 
-            StandardPushConstants pushConst{ glm::vec4(1.0f, 1.0f, 0.0f, 0.0f), glm::ivec4(matrixIdx, obj.materialIdx, 0, ent), glm::ivec3(pickX, pickY, globalMiscFlags), currCubemapIdx };
+            StandardPushConstants pushConst{
+                glm::vec4(1.0f, 1.0f, 0.0f, 0.0f),
+                (uint32_t)matrixIdx, obj.materialIdx, 0, (uint32_t)ent,
+                glm::ivec3(pickX, pickY, globalMiscFlags),
+                currCubemapIdx
+            };
+
             cmdBuf.pushConstants<StandardPushConstants>(*pipelineLayout, vk::ShaderStageFlagBits::eFragment | vk::ShaderStageFlagBits::eVertex, 0, pushConst);
             cmdBuf.bindVertexBuffers(0, obj.vb.buffer(), vk::DeviceSize(0));
             cmdBuf.bindIndexBuffer(obj.ib.buffer(), 0, obj.indexType);
             cmdBuf.drawIndexed(obj.indexCount, 1, 0, 0, 0);
             ctx.dbgStats->numDrawCalls++;
-            });
+        });
 
         if (matrixIdx >= 1024) {
             fatalErr("Out of model matrices!");

@@ -1,5 +1,5 @@
 #pragma once
-#include <unordered_map>
+#include <robin_hood.h>
 #include "../Core/Fatal.hpp"
 #include "Loaders/TextureLoader.hpp"
 #include "Loaders/CubemapLoader.hpp"
@@ -18,8 +18,8 @@ namespace worlds {
     protected:
         std::array<slotType, slotCount> slots;
         std::array<bool, slotCount> present;
-        std::unordered_map<key, uint32_t> lookup;
-        std::unordered_map<uint32_t, key> reverseLookup;
+        robin_hood::unordered_flat_map<key, uint32_t> lookup;
+        robin_hood::unordered_flat_map<uint32_t, key> reverseLookup;
         virtual uint32_t load(key k) = 0;
 
         uint32_t getFreeSlot() {
@@ -54,6 +54,7 @@ namespace worlds {
 
         uint32_t get(key k) const { return lookup.at(k); }
         key getKeyForSlot(uint32_t idx) const { return reverseLookup.at(idx); }
+        bool isLoaded(key k) const { return lookup.find(k) != lookup.end(); }
         virtual void unload(int idx) = 0;
     };
 

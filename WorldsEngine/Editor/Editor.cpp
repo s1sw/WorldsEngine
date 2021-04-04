@@ -237,14 +237,6 @@ namespace worlds {
         logMsg(SDL_LOG_PRIORITY_DEBUG, "activateTool(%s)", toolStr(newTool));
     }
 
-    void Editor::setActive(bool active) {
-        this->active = active;
-
-        if (active) {
-            updateWindowTitle();
-        }
-    }
-
     template <typename T>
     void copyComponent(entt::entity oldEnt, entt::entity newEnt, entt::registry& reg) {
         if (reg.has<T>(oldEnt))
@@ -288,6 +280,31 @@ namespace worlds {
             }
             return;
         }
+
+        updateWindowTitle();
+
+        // Create global dock space
+        ImGuiViewport* viewport = ImGui::GetMainViewport();
+        ImGui::SetNextWindowPos(viewport->Pos);
+        ImGui::SetNextWindowSize(viewport->Size);
+        ImGui::SetNextWindowViewport(viewport->ID);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+
+        ImGui::Begin("Editor dockspace - you shouldn't be able to see this!", 0,
+            ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse |
+            ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
+            ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus |
+            ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_MenuBar);
+        ImGui::PopStyleVar(3);
+
+        ImGuiID dockspaceId = ImGui::GetID("EditorDockspace");
+        ImGui::DockSpace(dockspaceId);
+        ImGui::End();
+
+        // Draw black background
+        ImGui::GetBackgroundDrawList()->AddRectFilled(viewport->Pos, viewport->Size, ImColor(0.0f, 0.0f, 0.0f, 1.0f));
 
         if (reg.valid(currentSelectedEntity)) {
             // Right mouse button means that the view's being moved, so we'll ignore any tools

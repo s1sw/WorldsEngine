@@ -40,7 +40,7 @@ namespace worlds {
     class Console {
     public:
         Console(bool asyncStdinConsole = false);
-        void registerCommand(CommandFuncPtr funcPtr, const char* name, const char* help, void* obj);
+        void registerCommand(CommandFuncPtr funcPtr, const char* name, const char* help, void* obj = nullptr);
         void drawWindow();
         void setShowState(bool show);
         void executeCommandStr(std::string cmdStr, bool log = true);

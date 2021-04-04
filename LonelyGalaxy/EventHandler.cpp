@@ -37,6 +37,7 @@
 #include <Scripting/WrenVM.hpp>
 #include "GripPoint.hpp"
 #include <Input/Input.hpp>
+#include <Physics/FixedJoint.hpp>
 
 namespace lg {
     const uint16_t CONVERGE_PORT = 3011;
@@ -293,17 +294,18 @@ namespace lg {
     worlds::ConVar useTensorCompensation{"lg_compensateTensors", "1", "Enables inertia tensor compensation on grabs."};
     worlds::ConVar enableGripPoints { "lg_enableGripPoints", "1", "Enables grip points." };
 
+    extern void resetHand(PhysHand& ph, physx::PxRigidBody* rb);
+
     void EventHandler::updateHandGrab(entt::registry& registry, PlayerRig& rig, entt::entity ent, float deltaTime) {
         static float driveP = 1500.0f;
         static float driveD = 0.0f;
-        ImGui::DragFloat("Drive P", &driveP);
-        ImGui::DragFloat("Drive D", &driveD);
         auto& physHand = registry.get<PhysHand>(ent);
         auto grabAction = physHand.follow == FollowHand::LeftHand ? lGrab : rGrab;
         auto grabButton = physHand.follow == FollowHand::LeftHand ? worlds::MouseButton::Left : worlds::MouseButton::Right;
         bool doGrab = vrInterface ? vrInterface->getActionPressed(grabAction) : inputManager->mouseButtonPressed(grabButton);
         bool doRelease = vrInterface ? vrInterface->getActionReleased(grabAction) : inputManager->mouseButtonReleased(grabButton);
         auto& handTf = registry.get<Transform>(ent);
+        auto& dpa = registry.get<worlds::DynamicPhysicsActor>(ent);
 
         if (physHand.holdingObjectWithGrabPoint) {
             physHand.timeSinceGrabInitiated += deltaTime;
@@ -314,8 +316,10 @@ namespace lg {
             glm::vec3 targetHandPos = otherTf.position + (otherTf.rotation * gripPoint.offset);
             glm::quat targetHandRot = otherTf.rotation * gripPoint.rotOffset;
             float distance = glm::distance(handTf.position, targetHandPos);
+            float rotDot = glm::dot(fixupQuat(targetHandRot), fixupQuat(handTf.rotation));
+            ImGui::Text("%.3f distance, %.3f rotDot", distance, rotDot);
 
-            if ((distance < 0.1f && glm::dot(targetHandRot, handTf.rotation) > 0.6f) && physHand.timeSinceGrabInitiated > 0.5f) {
+            if (distance < 0.01f && rotDot > 0.95f && physHand.timeSinceGrabInitiated > 0.25f) {
                 auto& d6 = registry.get<worlds::D6Joint>(ent);
                 d6.pxJoint->setMotion(physx::PxD6Axis::eX, physx::PxD6Motion::eLOCKED);
                 d6.pxJoint->setMotion(physx::PxD6Axis::eY, physx::PxD6Motion::eLOCKED);
@@ -323,12 +327,15 @@ namespace lg {
                 d6.pxJoint->setMotion(physx::PxD6Axis::eSWING1, physx::PxD6Motion::eLOCKED);
                 d6.pxJoint->setMotion(physx::PxD6Axis::eSWING2, physx::PxD6Motion::eLOCKED);
                 d6.pxJoint->setMotion(physx::PxD6Axis::eTWIST, physx::PxD6Motion::eLOCKED);
+                logMsg("locking");
                 physx::PxD6JointDrive drive{0.0f, 0.0f, 0.0f, true};
                 d6.pxJoint->setDrive(physx::PxD6Drive::eX, drive);
                 d6.pxJoint->setDrive(physx::PxD6Drive::eY, drive);
                 d6.pxJoint->setDrive(physx::PxD6Drive::eZ, drive);
                 d6.pxJoint->setDrive(physx::PxD6Drive::eSWING, drive);
                 d6.pxJoint->setDrive(physx::PxD6Drive::eTWIST, drive);
+                physHand.useOverrideIT = true;
+                physHand.holdingObjectWithGrabPoint = false;
             }
         }
 
@@ -349,7 +356,6 @@ namespace lg {
             filterEnt.ents[3] = (uint32_t)rig.fender;
             filterEnt.ents[4] = (uint32_t)ent;
             filterEnt.numFilterEnts = 5;
-            auto& dpa = registry.get<worlds::DynamicPhysicsActor>(ent);
             auto t = dpa.actor->getGlobalPose();
             auto overlapCenter = t;
             overlapCenter.p += t.q.rotate(physx::PxVec3(0.0f, 0.0f, 0.05f));
@@ -368,33 +374,51 @@ namespace lg {
                     physHand.timeSinceGrabInitiated = 0.0f;
 
                     auto& d6 = registry.emplace<worlds::D6Joint>(ent);
+                    //auto& fj = registry.emplace<worlds::FixedJoint>(ent);
                     physx::PxTransform p2 = touch.actor->getGlobalPose();
 
                     if (enableGripPoints.getInt() && gripPoint && (!gripPoint->exclusive || !gripPoint->currentlyHeld)) {
-                        physHand.holdingObjectWithGrabPoint = true;
+                        Transform handTfPx = worlds::px2glm(t);
+                        physHand.holdingObjectWithGrabPoint = false;
                         physHand.holding = pickUp;
                         t.p = worlds::glm2px(otherTf.position + (otherTf.rotation * gripPoint->offset));
                         t.q = worlds::glm2px(otherTf.rotation * gripPoint->rotOffset);
+                        Transform objGrabTf;
+                        objGrabTf.position = handTfPx.position - (handTfPx.rotation * gripPoint->offset);
+                        objGrabTf.rotation = handTfPx.rotation * gripPoint->rotOffset;
                         //dpa.actor->setGlobalPose(t);
                         //handTf.position = worlds::px2glm(t.p);
                         //handTf.rotation = worlds::px2glm(t.q);
+                        //touch.actor->setGlobalPose(worlds::glm2px(objGrabTf));
                         physx::PxTransform target{worlds::glm2px(-gripPoint->offset), worlds::glm2px(glm::normalize(gripPoint->rotOffset))};
                         gripPoint->currentlyHeld = true;
                         d6.pxJoint->setLocalPose(physx::PxJointActorIndex::eACTOR0, target);
-                        d6.pxJoint->setMotion(physx::PxD6Axis::eX, physx::PxD6Motion::eFREE);
-                        d6.pxJoint->setMotion(physx::PxD6Axis::eY, physx::PxD6Motion::eFREE);
-                        d6.pxJoint->setMotion(physx::PxD6Axis::eZ, physx::PxD6Motion::eFREE);
-                        d6.pxJoint->setMotion(physx::PxD6Axis::eSWING1, physx::PxD6Motion::eFREE);
-                        d6.pxJoint->setMotion(physx::PxD6Axis::eSWING2, physx::PxD6Motion::eFREE);
-                        d6.pxJoint->setMotion(physx::PxD6Axis::eTWIST, physx::PxD6Motion::eFREE);
+                        d6.pxJoint->setConstraintFlag(physx::PxConstraintFlag::eCOLLISION_ENABLED, false);
+                        //d6.pxJoint->setMotion(physx::PxD6Axis::eX, physx::PxD6Motion::eFREE);
+                        //d6.pxJoint->setMotion(physx::PxD6Axis::eY, physx::PxD6Motion::eFREE);
+                        //d6.pxJoint->setMotion(physx::PxD6Axis::eZ, physx::PxD6Motion::eFREE);
+                        //d6.pxJoint->setMotion(physx::PxD6Axis::eSWING1, physx::PxD6Motion::eFREE);
+                        //d6.pxJoint->setMotion(physx::PxD6Axis::eSWING2, physx::PxD6Motion::eFREE);
+                        //d6.pxJoint->setMotion(physx::PxD6Axis::eTWIST, physx::PxD6Motion::eFREE);
+                        d6.pxJoint->setMotion(physx::PxD6Axis::eX, physx::PxD6Motion::eLOCKED);
+                        d6.pxJoint->setMotion(physx::PxD6Axis::eY, physx::PxD6Motion::eLOCKED);
+                        d6.pxJoint->setMotion(physx::PxD6Axis::eZ, physx::PxD6Motion::eLOCKED);
+                        d6.pxJoint->setMotion(physx::PxD6Axis::eSWING1, physx::PxD6Motion::eLOCKED);
+                        d6.pxJoint->setMotion(physx::PxD6Axis::eSWING2, physx::PxD6Motion::eLOCKED);
+                        d6.pxJoint->setMotion(physx::PxD6Axis::eTWIST, physx::PxD6Motion::eLOCKED);
                         physx::PxD6JointDrive drive{driveP, driveD, PX_MAX_F32, true};
-                        d6.pxJoint->setDrive(physx::PxD6Drive::eX, drive);
-                        d6.pxJoint->setDrive(physx::PxD6Drive::eY, drive);
-                        d6.pxJoint->setDrive(physx::PxD6Drive::eZ, drive);
-                        d6.pxJoint->setDrive(physx::PxD6Drive::eSWING, drive);
-                        d6.pxJoint->setDrive(physx::PxD6Drive::eTWIST, drive);
-                        d6.pxJoint->setDrivePosition(physx::PxTransform{physx::PxIdentity});
-                        d6.pxJoint->setDriveVelocity(physx::PxVec3{0.0f}, physx::PxVec3{0.0f});
+                        physx::PxD6JointDrive rDrive{driveP*2.0f, driveD*1.5f, PX_MAX_F32, true};
+                        //d6.pxJoint->setDrive(physx::PxD6Drive::eX, drive);
+                        //d6.pxJoint->setDrive(physx::PxD6Drive::eY, drive);
+                        //d6.pxJoint->setDrive(physx::PxD6Drive::eZ, drive);
+                        //d6.pxJoint->setDrive(physx::PxD6Drive::eSWING, rDrive);
+                        //d6.pxJoint->setDrive(physx::PxD6Drive::eTWIST, rDrive);
+                        //d6.pxJoint->setDrivePosition(physx::PxTransform{physx::PxIdentity});
+                        //d6.pxJoint->setDriveVelocity(physx::PxVec3{0.0f}, physx::PxVec3{0.0f});
+                        dpa.actor->setLinearVelocity(physx::PxVec3{0.0f});
+                        dpa.actor->setAngularVelocity(physx::PxVec3{0.0f});
+                        physHand.useOverrideIT = true;
+                        physHand.holdingObjectWithGrabPoint = false;
                     } else {
                         d6.pxJoint->setLocalPose(physx::PxJointActorIndex::eACTOR0, t.transformInv(p2));
                         d6.pxJoint->setMotion(physx::PxD6Axis::eX, physx::PxD6Motion::eLOCKED);
@@ -403,10 +427,10 @@ namespace lg {
                         d6.pxJoint->setMotion(physx::PxD6Axis::eSWING1, physx::PxD6Motion::eLOCKED);
                         d6.pxJoint->setMotion(physx::PxD6Axis::eSWING2, physx::PxD6Motion::eLOCKED);
                         d6.pxJoint->setMotion(physx::PxD6Axis::eTWIST, physx::PxD6Motion::eLOCKED);
+                        physHand.useOverrideIT = true;
                     }
 
                     d6.setTarget(pickUp, registry);
-
 
                     // mass of hands is 2kg
                     auto* otherDpa = registry.try_get<worlds::DynamicPhysicsActor>(pickUp);
@@ -435,7 +459,6 @@ namespace lg {
 
                         physx::PxMat33 it = itComp.getInertia();
 
-                        physHand.useOverrideIT = true;
                         physHand.overrideIT = it;
                         physHand.rotController.reset();
                     }
@@ -614,10 +637,10 @@ namespace lg {
             lht.position = glm::vec3(0.5, 0.0f, 0.0f) + fenderTransform.position;
             registry.emplace<worlds::NameComponent>(lHandEnt).name = "L. Handy";
 
-            //fakeLHand = registry.create();
-            //registry.emplace<worlds::WorldObject>(fakeLHand, devMatId, lHandModel);
-            //registry.emplace<Transform>(fakeLHand);
-            //registry.emplace<worlds::NameComponent>(fakeLHand).name = "Fake L. Handy";
+            fakeLHand = registry.create();
+            registry.emplace<worlds::WorldObject>(fakeLHand, devMatId, lHandModel);
+            registry.emplace<Transform>(fakeLHand);
+            registry.emplace<worlds::NameComponent>(fakeLHand).name = "Fake L. Handy";
 
             rHandEnt = registry.create();
             registry.get<PlayerRig>(rig.locosphere).rHand = rHandEnt;
@@ -626,10 +649,10 @@ namespace lg {
             rht.position = glm::vec3(-0.5f, 0.0f, 0.0f) + fenderTransform.position;
             registry.emplace<worlds::NameComponent>(rHandEnt).name = "R. Handy";
 
-            //fakeRHand = registry.create();
-            //registry.emplace<worlds::WorldObject>(fakeRHand, devMatId, rHandModel);
-            //registry.emplace<Transform>(fakeRHand);
-            //registry.emplace<worlds::NameComponent>(fakeRHand).name = "Fake R. Handy";
+            fakeRHand = registry.create();
+            registry.emplace<worlds::WorldObject>(fakeRHand, devMatId, rHandModel);
+            registry.emplace<Transform>(fakeRHand);
+            registry.emplace<worlds::NameComponent>(fakeRHand).name = "Fake R. Handy";
 
             auto lActor = worlds::g_physics->createRigidDynamic(physx::PxTransform{ physx::PxIdentity });
             // Using the reference returned by this doesn't work unfortunately.
@@ -654,7 +677,7 @@ namespace lg {
             physx::PxRigidBodyExt::setMassAndUpdateInertia(*lActor, 2.0f);
 
             PIDSettings posSettings{ 750.0f, 638.0f, 137.0f };
-            PIDSettings rotSettings{ 21.0f, 100.0f, 18.0f };
+            PIDSettings rotSettings{ 200.0f, 0.0f, 29.0f };
 
             auto& lHandPhys = registry.emplace<PhysHand>(lHandEnt);
             lHandPhys.locosphere = rig.locosphere;
@@ -675,35 +698,37 @@ namespace lg {
 
             auto fenderActor = registry.get<worlds::DynamicPhysicsActor>(rig.fender).actor;
 
-            //lHandJoint = physx::PxD6JointCreate(*worlds::g_physics, fenderActor, physx::PxTransform { physx::PxIdentity }, lActor,
-            //physx::PxTransform { physx::PxIdentity });
+            lHandJoint = physx::PxD6JointCreate(*worlds::g_physics, fenderActor, physx::PxTransform { physx::PxIdentity }, lActor,
+            physx::PxTransform { physx::PxIdentity });
 
-            //lHandJoint->setLocalPose(physx::PxJointActorIndex::eACTOR0,
-            //        physx::PxTransform { physx::PxVec3 { 0.0f, 0.6f, 0.0f }, physx::PxQuat { physx::PxIdentity }});
+            lHandJoint->setLocalPose(physx::PxJointActorIndex::eACTOR0,
+                    physx::PxTransform { physx::PxVec3 { 0.0f, 0.6f, 0.0f }, physx::PxQuat { physx::PxIdentity }});
 
-            //lHandJoint->setLinearLimit(physx::PxJointLinearLimit{physx::PxTolerancesScale{}, 0.8f});
-            //lHandJoint->setMotion(physx::PxD6Axis::eX, physx::PxD6Motion::eLIMITED);
-            //lHandJoint->setMotion(physx::PxD6Axis::eY, physx::PxD6Motion::eLIMITED);
-            //lHandJoint->setMotion(physx::PxD6Axis::eZ, physx::PxD6Motion::eLIMITED);
-            //lHandJoint->setMotion(physx::PxD6Axis::eSWING1, physx::PxD6Motion::eFREE);
-            //lHandJoint->setMotion(physx::PxD6Axis::eSWING2, physx::PxD6Motion::eFREE);
-            //lHandJoint->setMotion(physx::PxD6Axis::eTWIST, physx::PxD6Motion::eFREE);
+            lHandJoint->setLinearLimit(physx::PxJointLinearLimit{physx::PxTolerancesScale{}, 0.8f});
+            lHandJoint->setMotion(physx::PxD6Axis::eX, physx::PxD6Motion::eLIMITED);
+            lHandJoint->setMotion(physx::PxD6Axis::eY, physx::PxD6Motion::eLIMITED);
+            lHandJoint->setMotion(physx::PxD6Axis::eZ, physx::PxD6Motion::eLIMITED);
+            lHandJoint->setMotion(physx::PxD6Axis::eSWING1, physx::PxD6Motion::eFREE);
+            lHandJoint->setMotion(physx::PxD6Axis::eSWING2, physx::PxD6Motion::eFREE);
+            lHandJoint->setMotion(physx::PxD6Axis::eTWIST, physx::PxD6Motion::eFREE);
 
-            //rHandJoint = physx::PxD6JointCreate(*worlds::g_physics, fenderActor, physx::PxTransform { physx::PxIdentity }, rActor,
-            //physx::PxTransform { physx::PxIdentity });
+            rHandJoint = physx::PxD6JointCreate(*worlds::g_physics, fenderActor, physx::PxTransform { physx::PxIdentity }, rActor,
+            physx::PxTransform { physx::PxIdentity });
 
-            //rHandJoint->setLocalPose(physx::PxJointActorIndex::eACTOR0,
-            //        physx::PxTransform { physx::PxVec3 { 0.0f, 0.6f, 0.0f }, physx::PxQuat { physx::PxIdentity }});
+            rHandJoint->setLocalPose(physx::PxJointActorIndex::eACTOR0,
+                    physx::PxTransform { physx::PxVec3 { 0.0f, 0.6f, 0.0f }, physx::PxQuat { physx::PxIdentity }});
 
-            //rHandJoint->setLinearLimit(physx::PxJointLinearLimit{physx::PxTolerancesScale{}, 0.8f});
-            //rHandJoint->setMotion(physx::PxD6Axis::eX, physx::PxD6Motion::eLIMITED);
-            //rHandJoint->setMotion(physx::PxD6Axis::eY, physx::PxD6Motion::eLIMITED);
-            //rHandJoint->setMotion(physx::PxD6Axis::eZ, physx::PxD6Motion::eLIMITED);
-            //rHandJoint->setMotion(physx::PxD6Axis::eSWING1, physx::PxD6Motion::eFREE);
-            //rHandJoint->setMotion(physx::PxD6Axis::eSWING2, physx::PxD6Motion::eFREE);
-            //rHandJoint->setMotion(physx::PxD6Axis::eTWIST, physx::PxD6Motion::eFREE);
+            rHandJoint->setLinearLimit(physx::PxJointLinearLimit{physx::PxTolerancesScale{}, 0.8f});
+            rHandJoint->setMotion(physx::PxD6Axis::eX, physx::PxD6Motion::eLIMITED);
+            rHandJoint->setMotion(physx::PxD6Axis::eY, physx::PxD6Motion::eLIMITED);
+            rHandJoint->setMotion(physx::PxD6Axis::eZ, physx::PxD6Motion::eLIMITED);
+            rHandJoint->setMotion(physx::PxD6Axis::eSWING1, physx::PxD6Motion::eFREE);
+            rHandJoint->setMotion(physx::PxD6Axis::eSWING2, physx::PxD6Motion::eFREE);
+            rHandJoint->setMotion(physx::PxD6Axis::eTWIST, physx::PxD6Motion::eFREE);
             lActor->setSolverIterationCounts(32, 16);
             rActor->setSolverIterationCounts(32, 16);
+            lActor->setLinearVelocity(physx::PxVec3{0.0f});
+            rActor->setLinearVelocity(physx::PxVec3{0.0f});
         }
 
         if (isDedicated) {
@@ -792,7 +817,7 @@ namespace lg {
 
                         pose.p = worlds::glm2px(pPos.pos);
                         pose.q = worlds::glm2px(pPos.rot);
-                        auto* rd = (physx::PxRigidDynamic*)dpa.actor;
+                        //auto* rd = (physx::PxRigidDynamic*)dpa.actor;
                         glm::vec3 linVel = pPos.linVel;
 
                         for (auto& p : _this->pastLocosphereStates) {

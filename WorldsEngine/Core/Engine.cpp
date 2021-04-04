@@ -1,9 +1,8 @@
 ﻿#include <SDL.h>
-#include <SDL_vulkan.h>
-#include "JobSystem.hpp"
 #include <atomic>
 #include <iostream>
 #include <thread>
+#include "JobSystem.hpp"
 #include "Engine.hpp"
 #include "../ImGui/imgui.h"
 #include <physfs.h>
@@ -40,17 +39,12 @@
 #include "../Render/ShaderCache.hpp"
 #include "readerwriterqueue.h"
 #include "../ComponentMeta/ComponentMetadata.hpp"
-
-namespace worlds {
-    AssetDB g_assetDB;
-
+#include "../Util/EnumUtil.hpp"
 #undef min
 #undef max
 
-    struct WindowThreadData {
-        bool* runningPtr;
-        SDL_Window** windowVarPtr;
-    };
+namespace worlds {
+    AssetDB g_assetDB;
 
     uint32_t fullscreenToggleEventId;
     uint32_t showWindowEventId;
@@ -65,6 +59,10 @@ namespace worlds {
 
     void WorldsEngine::setupSDL() {
         SDL_Init(SDL_INIT_AUDIO | SDL_INIT_EVENTS | SDL_INIT_VIDEO | SDL_INIT_TIMER);
+        SDL_EventState(SDL_DROPFILE, SDL_DISABLE);
+        SDL_EventState(SDL_DROPBEGIN, SDL_DISABLE);
+        SDL_EventState(SDL_DROPTEXT, SDL_DISABLE);
+        SDL_EventState(SDL_DROPCOMPLETE, SDL_DISABLE);
     }
 
     SDL_Window* WorldsEngine::createSDLWindow() {
@@ -228,11 +226,15 @@ namespace worlds {
         addImGuiFont("Fonts/" FONT_ICON_FILE_NAME_FAD, 22.0f, &iconConfig2, iconRangesFAD);
     }
 
-    ConVar showDebugInfo("showDebugInfo", "0", "Shows the debug info window");
-    ConVar lockSimToRefresh("sim_lockToRefresh", "0", "Instead of using a simulation timestep, run the simulation in lockstep with the rendering.");
-    ConVar disableSimInterp("sim_disableInterp", "0", "Disables interpolation and uses the results of the last run simulation step.");
-    ConVar simStepTime("sim_stepTime", "0.01");
-    ConVar showImguiConvars{ "showConvarsImGui", "0", "Shows convars in a tweakable window." };
+    ConVar showDebugInfo { "showDebugInfo", "0", "Shows the debug info window" };
+    ConVar lockSimToRefresh {
+        "sim_lockToRefresh", "0",
+        "Instead of using a simulation timestep, run the simulation in lockstep with the rendering." };
+    ConVar disableSimInterp {
+        "sim_disableInterp", "0",
+        "Disables interpolation and uses the results of the last run simulation step."
+    };
+    ConVar simStepTime{ "sim_stepTime", "0.01" };
 
     WorldsEngine::WorldsEngine(EngineInitOptions initOptions, char* argv0)
         : pauseSim{ false }
@@ -306,9 +308,8 @@ namespace worlds {
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();
         ImGuiIO& io = ImGui::GetIO();
-        io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;           // Enable Docking
+        io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
         io.IniFilename = runAsEditor ? "imgui_editor.ini" : "imgui.ini";
-        //io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;         // Enable Multi-Viewport / Platform Windows
         io.Fonts->TexDesiredWidth = 512;
 
         if (!dedicatedServer) {
@@ -377,20 +378,18 @@ namespace worlds {
             .renderer = renderer,
             .mainCamera = &cam,
             .inputManager = inputManager.get(),
-            .engine = this,
+            .engine = this
         };
 
         scriptEngine = std::make_unique<WrenScriptEngine>(registry, interfaces);
         interfaces.scriptEngine = scriptEngine.get();
 
         if (!dedicatedServer) {
-            auto vkCtx = renderer->getVKCtx();
-            VKImGUIUtil::createObjects(vkCtx);
+            VKImGUIUtil::createObjects(renderer->getVKCtx());
         }
 
-        if (!dedicatedServer) {
-            if (runAsEditor)
-                redrawSplashWindow(splashWindow, "initialising editor");
+        if (!dedicatedServer && runAsEditor) {
+            redrawSplashWindow(splashWindow, "initialising editor");
             editor = std::make_unique<Editor>(registry, interfaces);
         } else {
             ComponentMetadataManager::setupLookup();
@@ -408,73 +407,79 @@ namespace worlds {
                 return;
             }
             loadScene(g_assetDB.addOrGetExisting(arg));
-            }, "scene", "Loads a scene.", nullptr);
+        }, "scene", "Loads a scene.", nullptr);
+
         console->registerCommand([&](void*, const char* arg) {
             uint32_t id = (uint32_t)std::atoll(arg);
             logMsg("Asset %u: %s", id, g_assetDB.getAssetPath(id).c_str());
-            }, "adb_lookupID", "Looks up an asset ID.", nullptr);
+        }, "adb_lookupID", "Looks up an asset ID.", nullptr);
+
         console->registerCommand([&](void*, const char* arg) {
             timeScale = atof(arg);
-            }, "setTimeScale", "Sets the current time scale.", nullptr);
+        }, "setTimeScale", "Sets the current time scale.", nullptr);
+
         if (!dedicatedServer) {
             console->registerCommand(cmdToggleFullscreen, "toggleFullscreen", "Toggles fullscreen.", nullptr);
-            console->registerCommand([&](void*, const char*) {
-                runAsEditor = false;
-                pauseSim = false;
 
-                if (evtHandler)
-                    evtHandler->onSceneStart(registry);
+            if (runAsEditor) {
+                console->registerCommand([&](void*, const char*) {
+                    editor->active = false;
+                    pauseSim = false;
 
-                for (auto* system : systems)
-                    system->onSceneStart(registry);
+                    if (evtHandler)
+                        evtHandler->onSceneStart(registry);
 
-                scriptEngine->onSceneStart();
+                    for (auto* system : systems)
+                        system->onSceneStart(registry);
 
-                registry.view<AudioSource>().each([](auto, auto& as) {
-                    if (as.playOnSceneOpen) {
-                        as.isPlaying = true;
-                    }
+                    scriptEngine->onSceneStart();
+
+                    registry.view<AudioSource>().each([](auto, auto& as) {
+                        if (as.playOnSceneOpen) {
+                            as.isPlaying = true;
+                        }
                     });
-                inputManager->lockMouse(true);
-                }, "play", "play.", nullptr);
+                    inputManager->lockMouse(true);
+                }, "play", "play.");
+
+                console->registerCommand([&](void*, const char*) {
+                    editor->active = true;
+                    pauseSim = true;
+                    inputManager->lockMouse(false);
+                }, "pauseAndEdit", "pause and edit.");
+
+                console->registerCommand([&](void*, const char*) {
+                    editor->active = true;
+                    if (currentScene.id != ~0u)
+                        loadScene(currentScene.id);
+                    pauseSim = true;
+                    inputManager->lockMouse(false);
+                }, "reloadAndEdit", "reload and edit.");
+
+                console->registerCommand([&](void*, const char*) {
+                    editor->active = false;
+                    pauseSim = false;
+                    inputManager->lockMouse(true);
+                }, "unpause", "unpause and go back to play mode.");
+            }
 
             console->registerCommand([&](void*, const char*) {
-                runAsEditor = true;
-                pauseSim = true;
-                inputManager->lockMouse(false);
-                }, "pauseAndEdit", "pause and edit.", nullptr);
+                renderer->reloadContent(ReloadFlags::All);
+            }, "reloadContent", "Reloads all content.");
 
-            console->registerCommand([&](void*, const char*) {
-                runAsEditor = true;
-                if (currentScene.id != ~0u)
-                    loadScene(currentScene.id);
-                pauseSim = true;
-                inputManager->lockMouse(false);
-                }, "reloadAndEdit", "reload and edit.", nullptr);
-
-            console->registerCommand([&](void*, const char*) {
-                runAsEditor = false;
-                pauseSim = false;
-                inputManager->lockMouse(true);
-                }, "unpause", "unpause and go back to play mode.", nullptr);
-
-            console->registerCommand([&](void*, const char*) {
-                renderer->reloadContent(ReloadFlags::Cubemaps | ReloadFlags::Materials | ReloadFlags::Textures);
-                }, "reloadContent", "Reloads materials, textures and meshes.", nullptr);
             console->registerCommand([&](void*, const char*) {
                 renderer->reloadContent(ReloadFlags::Cubemaps);
-                }, "reloadCubemaps", "Reloads cubemaps.", nullptr);
+            }, "reloadCubemaps", "Reloads cubemaps.", nullptr);
         }
 
         console->registerCommand([&](void*, const char*) {
             running = false;
-            }, "exit", "Shuts down the engine.", nullptr);
+        }, "exit", "Shuts down the engine.", nullptr);
 
         if (enableOpenVR) {
             lockSimToRefresh.setValue("1");
             //disableSimInterp.setValue("1");
         }
-
 
         if (runAsEditor) {
             disableSimInterp.setValue("1");
@@ -500,6 +505,7 @@ namespace worlds {
 
             if (!runAsEditor) {
                 evtHandler->onSceneStart(registry);
+
                 for (auto* system : systems)
                     system->onSceneStart(registry);
 
@@ -521,25 +527,24 @@ namespace worlds {
             }
         };
 
-        uint32_t w, h;
+        uint32_t w = 1600;
+        uint32_t h = 900;
 
         if (enableOpenVR) {
             openvrInterface->getRenderResolution(&w, &h);
-        } else {
-            w = 1600;
-            h = 900;
         }
 
         if (!dedicatedServer) {
-            RTTPassCreateInfo screenRTTCI;
-            screenRTTCI.enableShadows = true;
-            screenRTTCI.width = w;
-            screenRTTCI.height = h;
-            screenRTTCI.isVr = enableOpenVR;
-            screenRTTCI.outputToScreen = true;
-            screenRTTCI.useForPicking = false;
-            screenRTTPass = renderer->createRTTPass(screenRTTCI);
+            RTTPassCreateInfo screenRTTCI {
+                .width = w,
+                .height = h,
+                .isVr = enableOpenVR,
+                .useForPicking = false,
+                .enableShadows = true,
+                .outputToScreen = true
+            };
 
+            screenRTTPass = renderer->createRTTPass(screenRTTCI);
 
             if (useEventThread) {
                 SDL_Event evt;
@@ -586,6 +591,45 @@ namespace worlds {
         registry.emplace<Transform>(dirLightEnt, glm::vec3(0.0f), glm::angleAxis(glm::radians(90.01f), glm::vec3(1.0f, 0.0f, 0.0f)));
     }
 
+    void WorldsEngine::processEvents() {
+        if (!useEventThread) {
+            SDL_Event evt;
+            while (SDL_PollEvent(&evt)) {
+                if (evt.type == SDL_QUIT) {
+                    running = false;
+                    break;
+                }
+
+                if (evt.type == fullscreenToggleEventId) {
+                    auto currentWindowFlags = SDL_GetWindowFlags(window);
+                    if (enumHasFlag<Uint32>(currentWindowFlags, SDL_WINDOW_FULLSCREEN_DESKTOP))
+                        SDL_SetWindowFullscreen(window, 0);
+                    else
+                        SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP);
+                }
+
+                inputManager->processEvent(evt);
+
+                if (ImGui::GetCurrentContext())
+                    ImGui_ImplSDL2_ProcessEvent(&evt);
+            }
+        } else {
+            SDL_Event evt;
+            while (evts.try_dequeue(evt)) {
+                inputManager->processEvent(evt);
+
+                if (ImGui::GetCurrentContext())
+                    ImGui_ImplSDL2_ProcessEvent(&evt);
+            }
+
+            // also get events from this thread because ImGUI uses them
+            while (SDL_PollEvent(&evt)) {
+                if (ImGui::GetCurrentContext())
+                    ImGui_ImplSDL2_ProcessEvent(&evt);
+            }
+        }
+    }
+
     void WorldsEngine::mainLoop() {
         int frameCounter = 0;
 
@@ -598,44 +642,9 @@ namespace worlds {
         while (running) {
             uint64_t now = SDL_GetPerformanceCounter();
             bool recreateScreenRTT = false;
-            if (!useEventThread) {
-                SDL_Event evt;
-                while (SDL_PollEvent(&evt)) {
-                    if (evt.type == SDL_QUIT) {
-                        running = false;
-                        break;
-                    }
-
-                    if (evt.type == fullscreenToggleEventId) {
-                        if ((SDL_GetWindowFlags(window) & SDL_WINDOW_FULLSCREEN_DESKTOP) == SDL_WINDOW_FULLSCREEN_DESKTOP) {
-                            SDL_SetWindowFullscreen(window, 0);
-                        } else {
-                            SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP);
-                        }
-                    }
-
-                    inputManager->processEvent(evt);
-
-                    if (ImGui::GetCurrentContext())
-                        ImGui_ImplSDL2_ProcessEvent(&evt);
-                }
-            } else {
-                SDL_Event evt;
-                while (evts.try_dequeue(evt)) {
-                    inputManager->processEvent(evt);
-
-                    if (ImGui::GetCurrentContext())
-                        ImGui_ImplSDL2_ProcessEvent(&evt);
-                }
-
-                // also get events from this thread because ImGUI uses them
-                while (SDL_PollEvent(&evt)) {
-                    if (ImGui::GetCurrentContext())
-                        ImGui_ImplSDL2_ProcessEvent(&evt);
-                }
-            }
-
             uint64_t updateStart = SDL_GetPerformanceCounter();
+
+            processEvents();
 
             if (!dedicatedServer) {
                 tickRichPresence();
@@ -647,36 +656,11 @@ namespace worlds {
             ImGui::NewFrame();
             inputManager->update();
 
-            if (!dedicatedServer && runAsEditor) {
-                // Create global dock space
-                ImGuiViewport* viewport = ImGui::GetMainViewport();
-                ImGui::SetNextWindowPos(viewport->Pos);
-                ImGui::SetNextWindowSize(viewport->Size);
-                ImGui::SetNextWindowViewport(viewport->ID);
-                ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
-                ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
-                ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-
-                ImGui::Begin("Editor dockspace - you shouldn't be able to see this!", 0,
-                    ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse |
-                    ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
-                    ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus |
-                    ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_MenuBar);
-                ImGui::PopStyleVar(3);
-
-                ImGuiID dockspaceId = ImGui::GetID("EditorDockspace");
-                ImGui::DockSpace(dockspaceId);
-                ImGui::End();
-
-                // Draw black background
-                ImGui::GetBackgroundDrawList()->AddRectFilled(viewport->Pos, viewport->Size, ImColor(0.0f, 0.0f, 0.0f, 1.0f));
-            }
-
             if (!dedicatedServer) {
                 if (!renderer->isPassValid(screenRTTPass)) {
                     recreateScreenRTT = true;
                 } else {
-                    renderer->setRTTPassActive(screenRTTPass, !runAsEditor);
+                    renderer->setRTTPassActive(screenRTTPass, !runAsEditor || !editor->active);
                 }
             }
 
@@ -689,7 +673,7 @@ namespace worlds {
 
             float interpAlpha = 1.0f;
 
-            if (evtHandler != nullptr && !runAsEditor) {
+            if (evtHandler != nullptr && (!runAsEditor || !editor->active)) {
                 evtHandler->preSimUpdate(registry, deltaTime);
 
                 for (auto* system : systems)
@@ -703,7 +687,7 @@ namespace worlds {
                 simTime = perfTimer.stopGetMs();
             }
 
-            if (evtHandler != nullptr && !runAsEditor) {
+            if (evtHandler != nullptr && !(runAsEditor && editor->active)) {
                 evtHandler->update(registry, deltaTime * timeScale, interpAlpha);
 
                 for (auto* system : systems)
@@ -715,8 +699,9 @@ namespace worlds {
             if (!dedicatedServer) {
                 SDL_GetWindowSize(window, &windowSize.x, &windowSize.y);
 
-                editor->setActive(runAsEditor);
-                editor->update((float)deltaTime);
+                if (runAsEditor) {
+                    editor->update((float)deltaTime);
+                }
             }
 
             if (inputManager->keyPressed(SDL_SCANCODE_RCTRL, true)) {
@@ -727,6 +712,7 @@ namespace worlds {
                 ShaderCache::clear();
                 renderer->recreateSwapchain();
             }
+
             if (inputManager->keyPressed(SDL_SCANCODE_F11, true)) {
                 SDL_Event evt;
                 SDL_zero(evt);
@@ -739,12 +725,14 @@ namespace worlds {
             uint64_t updateLength = updateEnd - updateStart;
             double updateTime = updateLength / (double)SDL_GetPerformanceFrequency();
 
-            DebugTimeInfo dti;
-            dti.deltaTime = deltaTime;
-            dti.frameCounter = frameCounter;
-            dti.lastUpdateTime = lastUpdateTime;
-            dti.updateTime = updateTime;
-            dti.simTime = simTime;
+            DebugTimeInfo dti {
+                .deltaTime = deltaTime,
+                .updateTime = updateTime,
+                .simTime = simTime,
+                .lastUpdateTime = lastUpdateTime,
+                .frameCounter = frameCounter
+            };
+
             drawDebugInfoWindow(dti);
 
             static ConVar drawFPS { "drawFPS", "0", "Draws a simple FPS counter in the corner of the screen." };
@@ -759,19 +747,26 @@ namespace worlds {
             }
 
             if (enableOpenVR) {
-                auto pVRSystem = vr::VRSystem();
+                auto vrSys = vr::VRSystem();
 
-                float fSecondsSinceLastVsync;
-                pVRSystem->GetTimeSinceLastVsync(&fSecondsSinceLastVsync, NULL);
+                float secondsSinceLastVsync;
+                vrSys->GetTimeSinceLastVsync(&secondsSinceLastVsync, NULL);
 
-                float fDisplayFrequency = pVRSystem->GetFloatTrackedDeviceProperty(vr::k_unTrackedDeviceIndex_Hmd, vr::Prop_DisplayFrequency_Float);
-                float fFrameDuration = 1.f / fDisplayFrequency;
-                float fVsyncToPhotons = pVRSystem->GetFloatTrackedDeviceProperty(vr::k_unTrackedDeviceIndex_Hmd, vr::Prop_SecondsFromVsyncToPhotons_Float);
+                float hmdFrequency = vrSys->GetFloatTrackedDeviceProperty(
+                    vr::k_unTrackedDeviceIndex_Hmd,
+                    vr::Prop_DisplayFrequency_Float
+                );
 
-                float fPredictedSecondsFromNow = fFrameDuration - fSecondsSinceLastVsync + fVsyncToPhotons;
+                float frameDuration = 1.f / hmdFrequency;
+                float vsyncToPhotons = vrSys->GetFloatTrackedDeviceProperty(
+                    vr::k_unTrackedDeviceIndex_Hmd,
+                    vr::Prop_SecondsFromVsyncToPhotons_Float
+                );
+
+                float predictAmount = frameDuration - secondsSinceLastVsync + vsyncToPhotons;
 
                 // Not sure why we predict an extra frame here, but it feels like crap without it
-                renderer->setVRPredictAmount(fPredictedSecondsFromNow + fFrameDuration);
+                renderer->setVRPredictAmount(predictAmount + frameDuration);
             }
 
             if (glm::any(glm::isnan(cam.position))) {
@@ -791,13 +786,13 @@ namespace worlds {
                     auto& aTransform = registry.get<Transform>(a);
                     auto& bTransform = registry.get<Transform>(b);
                     return glm::distance2(camPos, aTransform.position) < glm::distance2(camPos, bTransform.position);
-                    }, entt::insertion_sort{});
+                });
 
                 registry.sort<WorldObject>([&](entt::entity a, entt::entity b) {
                     auto& aTransform = registry.get<Transform>(a);
                     auto& bTransform = registry.get<Transform>(b);
-                    return glm::distance2(camPos, aTransform.position) < glm::distance2(camPos, bTransform.position) || registry.has<UseWireframe>(a);
-                    }, entt::insertion_sort{});
+                    return glm::distance2(camPos, aTransform.position) < glm::distance2(camPos, bTransform.position);
+                });
 
                 renderer->frame(cam, registry);
 
@@ -813,8 +808,7 @@ namespace worlds {
             lastUpdateTime = updateTime;
 
             if (recreateScreenRTT) {
-                int newWidth;
-                int newHeight;
+                int newWidth, newHeight;
 
                 SDL_GetWindowSize(window, &newWidth, &newHeight);
 
@@ -825,13 +819,15 @@ namespace worlds {
                     newHeight = h;
                 }
 
-                RTTPassCreateInfo screenRTTCI;
-                screenRTTCI.enableShadows = true;
-                screenRTTCI.width = newWidth;
-                screenRTTCI.height = newHeight;
-                screenRTTCI.isVr = enableOpenVR;
-                screenRTTCI.outputToScreen = true;
-                screenRTTCI.useForPicking = false;
+                RTTPassCreateInfo screenRTTCI {
+                    .width = static_cast<uint32_t>(newWidth),
+                    .height = static_cast<uint32_t>(newHeight),
+                    .isVr = enableOpenVR,
+                    .useForPicking = false,
+                    .enableShadows = true,
+                    .outputToScreen = true,
+                };
+
                 screenRTTPass = renderer->createRTTPass(screenRTTCI);
             }
 
@@ -860,7 +856,8 @@ namespace worlds {
                 }
 
                 if (ImGui::CollapsingHeader(ICON_FA_CLOCK u8" Performance")) {
-                    ImGui::PlotLines("Historical Frametimes", historicalFrametimes, 128, historicalFrametimeIdx, nullptr, 0.0f, 20.0f, ImVec2(0.0f, 125.0f));
+                    ImGui::PlotLines("Historical Frametimes", historicalFrametimes, 128, historicalFrametimeIdx, nullptr,
+                        0.0f, 20.0f, ImVec2(0.0f, 125.0f));
                     ImGui::Text("Frametime: %.3fms", timeInfo.deltaTime * 1000.0);
                     ImGui::Text("Update time: %.3fms", timeInfo.updateTime * 1000.0);
                     ImGui::Text("Physics time: %.3fms", timeInfo.simTime);
@@ -961,7 +958,7 @@ namespace worlds {
     void WorldsEngine::doSimStep(float deltaTime) {
         stepSimulation(deltaTime);
 
-        if (evtHandler != nullptr && !runAsEditor) {
+        if (evtHandler != nullptr && !(runAsEditor && editor->active)) {
             evtHandler->simulate(registry, deltaTime);
 
             for (auto* system : systems)
@@ -983,7 +980,7 @@ namespace worlds {
                     physx::PxTransform pt(glm2px(transform.position), glm2px(transform.rotation));
                     dpa.actor->setGlobalPose(pt);
                 }
-                });
+            });
         }
 
         registry.view<PhysicsActor, Transform>().each([](auto, PhysicsActor& pa, Transform& transform) {
@@ -992,7 +989,7 @@ namespace worlds {
                 physx::PxTransform pt(glm2px(transform.position), glm2px(transform.rotation));
                 pa.actor->setGlobalPose(pt);
             }
-            });
+        });
 
         if (!lockSimToRefresh.getInt()) {
             simAccumulator += deltaTime;
@@ -1008,7 +1005,7 @@ namespace worlds {
                     auto startTf = dpa.actor->getGlobalPose();
                     currentState.insert({ ent, startTf });
                     previousState.insert({ ent, startTf });
-                    });
+                });
             }
 
             while (simAccumulator >= simStepTime.getFloat()) {
@@ -1020,7 +1017,7 @@ namespace worlds {
 
                 registry.view<DynamicPhysicsActor>().each([&](auto ent, DynamicPhysicsActor& dpa) {
                     currentState[ent] = dpa.actor->getGlobalPose();
-                    });
+                });
             }
 
             float alpha = simAccumulator / simStepTime.getFloat();
@@ -1031,10 +1028,9 @@ namespace worlds {
             registry.view<DynamicPhysicsActor, Transform>().each([&](entt::entity ent, DynamicPhysicsActor&, Transform& transform) {
                 transform.position = glm::mix(px2glm(previousState[ent].p), px2glm(currentState[ent].p), (float)alpha);
                 transform.rotation = glm::slerp(px2glm(previousState[ent].q), px2glm(currentState[ent].q), (float)alpha);
-                });
+            });
             interpAlpha = alpha;
         } else if (deltaTime < 0.05f) {
-
             if (enableOpenVR) {
                 float fDisplayFrequency = vr::VRSystem()->GetFloatTrackedDeviceProperty(vr::k_unTrackedDeviceIndex_Hmd, vr::Prop_DisplayFrequency_Float);
                 float fFrameDuration = 1.f / fDisplayFrequency;
@@ -1051,7 +1047,7 @@ namespace worlds {
             registry.view<DynamicPhysicsActor, Transform>().each([&](entt::entity, DynamicPhysicsActor& dpa, Transform& transform) {
                 transform.position = px2glm(dpa.actor->getGlobalPose().p);
                 transform.rotation = px2glm(dpa.actor->getGlobalPose().q);
-                });
+            });
         }
     }
 
@@ -1062,7 +1058,6 @@ namespace worlds {
             renderer->uploadSceneAssets(registry);
             renderer->unloadUnusedMaterials(registry);
         }
-
     }
 
     void WorldsEngine::addSystem(ISystem* system) {
