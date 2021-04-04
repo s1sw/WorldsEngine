@@ -3,18 +3,28 @@
 
 
 #include <algorithm>
+#include <cstddef>
 #include <iterator>
+#include <tuple>
+#include <type_traits>
 #include <utility>
 #include <vector>
-#include <cstddef>
-#include <type_traits>
 #include "../config/config.h"
 #include "../core/algorithm.hpp"
-#include "sparse_set.hpp"
+#include "../core/type_traits.hpp"
+#include "../signal/sigh.hpp"
 #include "entity.hpp"
+#include "fwd.hpp"
+#include "sparse_set.hpp"
 
 
 namespace entt {
+
+
+/*! @brief Empty storage category tag. */
+struct empty_storage_tag {};
+/*! @brief Dense storage category tag. */
+struct dense_storage_tag: empty_storage_tag {};
 
 
 /**
@@ -31,10 +41,9 @@ namespace entt {
  * iterators.
  *
  * @note
- * Internal data structures arrange elements to maximize performance. Because of
- * that, there are no guarantees that elements have the expected order when
- * iterate directly the internal packed array (see `raw` and `size` member
- * functions for that). Use `begin` and `end` instead.
+ * Internal data structures arrange elements to maximize performance. There are
+ * no guarantees that objects are returned in the insertion order when iterate
+ * a storage. Do not make assumption on the order in any case.
  *
  * @warning
  * Empty types aren't explicitly instantiated. Therefore, many of the functions
@@ -45,19 +54,18 @@ namespace entt {
  * @tparam Entity A valid entity type (see entt_traits for more details).
  * @tparam Type Type of objects assigned to the entities.
  */
-template<typename Entity, typename Type, typename = std::void_t<>>
-class storage: public sparse_set<Entity> {
-    static_assert(std::is_move_constructible_v<Type>);
-    static_assert(std::is_move_assignable_v<Type>);
+template<typename Entity, typename Type, typename = void>
+class basic_storage: public basic_sparse_set<Entity> {
+    static_assert(std::is_move_constructible_v<Type> && std::is_move_assignable_v<Type>, "The managed type must be at least move constructible and assignable");
 
-    using underlying_type = sparse_set<Entity>;
-    using traits_type = entt_traits<std::underlying_type_t<Entity>>;
+    using underlying_type = basic_sparse_set<Entity>;
+    using traits_type = entt_traits<Entity>;
 
-    template<bool Const>
+    template<typename Value>
     class storage_iterator final {
-        friend class storage<Entity, Type>;
+        friend class basic_storage<Entity, Type>;
 
-        using instance_type = std::conditional_t<Const, const std::vector<Type>, std::vector<Type>>;
+        using instance_type = constness_as_t<std::vector<Type>, Value>;
         using index_type = typename traits_type::difference_type;
 
         storage_iterator(instance_type &ref, const index_type idx) ENTT_NOEXCEPT
@@ -66,9 +74,9 @@ class storage: public sparse_set<Entity> {
 
     public:
         using difference_type = index_type;
-        using value_type = Type;
-        using pointer = std::conditional_t<Const, const value_type *, value_type *>;
-        using reference = std::conditional_t<Const, const value_type &, value_type &>;
+        using value_type = Value;
+        using pointer = value_type *;
+        using reference = value_type &;
         using iterator_category = std::random_access_iterator_tag;
 
         storage_iterator() ENTT_NOEXCEPT = default;
@@ -79,7 +87,7 @@ class storage: public sparse_set<Entity> {
 
         storage_iterator operator++(int) ENTT_NOEXCEPT {
             storage_iterator orig = *this;
-            return operator++(), orig;
+            return ++(*this), orig;
         }
 
         storage_iterator & operator--() ENTT_NOEXCEPT {
@@ -113,41 +121,41 @@ class storage: public sparse_set<Entity> {
             return other.index - index;
         }
 
-        reference operator[](const difference_type value) const ENTT_NOEXCEPT {
+        [[nodiscard]] reference operator[](const difference_type value) const ENTT_NOEXCEPT {
             const auto pos = size_type(index-value-1);
             return (*instances)[pos];
         }
 
-        bool operator==(const storage_iterator &other) const ENTT_NOEXCEPT {
+        [[nodiscard]] bool operator==(const storage_iterator &other) const ENTT_NOEXCEPT {
             return other.index == index;
         }
 
-        bool operator!=(const storage_iterator &other) const ENTT_NOEXCEPT {
+        [[nodiscard]] bool operator!=(const storage_iterator &other) const ENTT_NOEXCEPT {
             return !(*this == other);
         }
 
-        bool operator<(const storage_iterator &other) const ENTT_NOEXCEPT {
+        [[nodiscard]] bool operator<(const storage_iterator &other) const ENTT_NOEXCEPT {
             return index > other.index;
         }
 
-        bool operator>(const storage_iterator &other) const ENTT_NOEXCEPT {
+        [[nodiscard]] bool operator>(const storage_iterator &other) const ENTT_NOEXCEPT {
             return index < other.index;
         }
 
-        bool operator<=(const storage_iterator &other) const ENTT_NOEXCEPT {
+        [[nodiscard]] bool operator<=(const storage_iterator &other) const ENTT_NOEXCEPT {
             return !(*this > other);
         }
 
-        bool operator>=(const storage_iterator &other) const ENTT_NOEXCEPT {
+        [[nodiscard]] bool operator>=(const storage_iterator &other) const ENTT_NOEXCEPT {
             return !(*this < other);
         }
 
-        pointer operator->() const ENTT_NOEXCEPT {
-            const auto pos = size_type(index-1);
+        [[nodiscard]] pointer operator->() const ENTT_NOEXCEPT {
+            const auto pos = size_type(index-1u);
             return &(*instances)[pos];
         }
 
-        reference operator*() const ENTT_NOEXCEPT {
+        [[nodiscard]] reference operator*() const ENTT_NOEXCEPT {
             return *operator->();
         }
 
@@ -156,17 +164,37 @@ class storage: public sparse_set<Entity> {
         index_type index;
     };
 
+    void swap_at(const std::size_t lhs, const std::size_t rhs) final {
+        std::swap(instances[lhs], instances[rhs]);
+    }
+
+    void swap_and_pop(const std::size_t pos) final {
+        auto other = std::move(instances.back());
+        instances[pos] = std::move(other);
+        instances.pop_back();
+    }
+
+    void clear_all() ENTT_NOEXCEPT final {
+        instances.clear();
+    }
+
 public:
     /*! @brief Type of the objects associated with the entities. */
-    using object_type = Type;
+    using value_type = Type;
     /*! @brief Underlying entity identifier. */
     using entity_type = Entity;
     /*! @brief Unsigned integer type. */
     using size_type = std::size_t;
     /*! @brief Random access iterator type. */
-    using iterator = storage_iterator<false>;
+    using iterator = storage_iterator<Type>;
     /*! @brief Constant random access iterator type. */
-    using const_iterator = storage_iterator<true>;
+    using const_iterator = storage_iterator<const Type>;
+    /*! @brief Reverse iterator type. */
+    using reverse_iterator = Type *;
+    /*! @brief Constant reverse iterator type. */
+    using const_reverse_iterator = const Type *;
+    /*! @brief Storage category. */
+    using storage_category = dense_storage_tag;
 
     /**
      * @brief Increases the capacity of a storage.
@@ -190,51 +218,44 @@ public:
     /**
      * @brief Direct access to the array of objects.
      *
-     * The returned pointer is such that range `[raw(), raw() + size()]` is
+     * The returned pointer is such that range `[raw(), raw() + size())` is
      * always a valid range, even if the container is empty.
      *
      * @note
-     * There are no guarantees on the order, even though either `sort` or
-     * `respect` has been previously invoked. Internal data structures arrange
-     * elements to maximize performance. Accessing them directly gives a
-     * performance boost but less guarantees. Use `begin` and `end` if you want
-     * to iterate the storage in the expected order.
+     * Objects are in the reverse order as returned by the `begin`/`end`
+     * iterators.
      *
      * @return A pointer to the array of objects.
      */
-    const object_type * raw() const ENTT_NOEXCEPT {
+    [[nodiscard]] const value_type * raw() const ENTT_NOEXCEPT {
         return instances.data();
     }
 
     /*! @copydoc raw */
-    object_type * raw() ENTT_NOEXCEPT {
-        return const_cast<object_type *>(std::as_const(*this).raw());
+    [[nodiscard]] value_type * raw() ENTT_NOEXCEPT {
+        return const_cast<value_type *>(std::as_const(*this).raw());
     }
 
     /**
      * @brief Returns an iterator to the beginning.
      *
-     * The returned iterator points to the first instance of the given type. If
-     * the storage is empty, the returned iterator will be equal to `end()`.
+     * The returned iterator points to the first instance of the internal array.
+     * If the storage is empty, the returned iterator will be equal to `end()`.
      *
-     * @note
-     * Random access iterators stay true to the order imposed by a call to
-     * either `sort` or `respect`.
-     *
-     * @return An iterator to the first instance of the given type.
+     * @return An iterator to the first instance of the internal array.
      */
-    const_iterator cbegin() const ENTT_NOEXCEPT {
+    [[nodiscard]] const_iterator cbegin() const ENTT_NOEXCEPT {
         const typename traits_type::difference_type pos = underlying_type::size();
         return const_iterator{instances, pos};
     }
 
     /*! @copydoc cbegin */
-    const_iterator begin() const ENTT_NOEXCEPT {
+    [[nodiscard]] const_iterator begin() const ENTT_NOEXCEPT {
         return cbegin();
     }
 
     /*! @copydoc begin */
-    iterator begin() ENTT_NOEXCEPT {
+    [[nodiscard]] iterator begin() ENTT_NOEXCEPT {
         const typename traits_type::difference_type pos = underlying_type::size();
         return iterator{instances, pos};
     }
@@ -243,28 +264,71 @@ public:
      * @brief Returns an iterator to the end.
      *
      * The returned iterator points to the element following the last instance
-     * of the given type. Attempting to dereference the returned iterator
+     * of the internal array. Attempting to dereference the returned iterator
      * results in undefined behavior.
      *
-     * @note
-     * Random access iterators stay true to the order imposed by a call to
-     * either `sort` or `respect`.
-     *
      * @return An iterator to the element following the last instance of the
-     * given type.
+     * internal array.
      */
-    const_iterator cend() const ENTT_NOEXCEPT {
+    [[nodiscard]] const_iterator cend() const ENTT_NOEXCEPT {
         return const_iterator{instances, {}};
     }
 
     /*! @copydoc cend */
-    const_iterator end() const ENTT_NOEXCEPT {
+    [[nodiscard]] const_iterator end() const ENTT_NOEXCEPT {
         return cend();
     }
 
     /*! @copydoc end */
-    iterator end() ENTT_NOEXCEPT {
+    [[nodiscard]] iterator end() ENTT_NOEXCEPT {
         return iterator{instances, {}};
+    }
+
+    /**
+     * @brief Returns a reverse iterator to the beginning.
+     *
+     * The returned iterator points to the first instance of the reversed
+     * internal array. If the storage is empty, the returned iterator will be
+     * equal to `rend()`.
+     *
+     * @return An iterator to the first instance of the reversed internal array.
+     */
+    [[nodiscard]] const_reverse_iterator crbegin() const ENTT_NOEXCEPT {
+        return instances.data();
+    }
+
+    /*! @copydoc crbegin */
+    [[nodiscard]] const_reverse_iterator rbegin() const ENTT_NOEXCEPT {
+        return crbegin();
+    }
+
+    /*! @copydoc rbegin */
+    [[nodiscard]] reverse_iterator rbegin() ENTT_NOEXCEPT {
+        return instances.data();
+    }
+
+    /**
+     * @brief Returns a reverse iterator to the end.
+     *
+     * The returned iterator points to the element following the last instance
+     * of the reversed internal array. Attempting to dereference the returned
+     * iterator results in undefined behavior.
+     *
+     * @return An iterator to the element following the last instance of the
+     * reversed internal array.
+     */
+    [[nodiscard]] const_reverse_iterator crend() const ENTT_NOEXCEPT {
+        return crbegin() + instances.size();
+    }
+
+    /*! @copydoc crend */
+    [[nodiscard]] const_reverse_iterator rend() const ENTT_NOEXCEPT {
+        return crend();
+    }
+
+    /*! @copydoc rend */
+    [[nodiscard]] reverse_iterator rend() ENTT_NOEXCEPT {
+        return rbegin() + instances.size();
     }
 
     /**
@@ -272,34 +336,18 @@ public:
      *
      * @warning
      * Attempting to use an entity that doesn't belong to the storage results in
-     * undefined behavior.<br/>
-     * An assertion will abort the execution at runtime in debug mode if the
-     * storage doesn't contain the given entity.
+     * undefined behavior.
      *
      * @param entt A valid entity identifier.
      * @return The object associated with the entity.
      */
-    const object_type & get(const entity_type entt) const {
+    [[nodiscard]] const value_type & get(const entity_type entt) const {
         return instances[underlying_type::index(entt)];
     }
 
     /*! @copydoc get */
-    object_type & get(const entity_type entt) {
-        return const_cast<object_type &>(std::as_const(*this).get(entt));
-    }
-
-    /**
-     * @brief Returns a pointer to the object associated with an entity, if any.
-     * @param entt A valid entity identifier.
-     * @return The object associated with the entity, if any.
-     */
-    const object_type * try_get(const entity_type entt) const {
-        return underlying_type::contains(entt) ? (instances.data() + underlying_type::index(entt)) : nullptr;
-    }
-
-    /*! @copydoc try_get */
-    object_type * try_get(const entity_type entt) {
-        return const_cast<object_type *>(std::as_const(*this).try_get(entt));
+    [[nodiscard]] value_type & get(const entity_type entt) {
+        return const_cast<value_type &>(std::as_const(*this).get(entt));
     }
 
     /**
@@ -311,17 +359,16 @@ public:
      *
      * @warning
      * Attempting to use an entity that already belongs to the storage results
-     * in undefined behavior.<br/>
-     * An assertion will abort the execution at runtime in debug mode if the
-     * storage already contains the given entity.
+     * in undefined behavior.
      *
      * @tparam Args Types of arguments to use to construct the object.
      * @param entt A valid entity identifier.
      * @param args Parameters to use to construct an object for the entity.
+     * @return A reference to the newly created object.
      */
     template<typename... Args>
-    void emplace(const entity_type entt, Args &&... args) {
-        if constexpr(std::is_aggregate_v<object_type>) {
+    value_type & emplace(const entity_type entt, Args &&... args) {
+        if constexpr(std::is_aggregate_v<value_type>) {
             instances.push_back(Type{std::forward<Args>(args)...});
         } else {
             instances.emplace_back(std::forward<Args>(args)...);
@@ -329,13 +376,7 @@ public:
 
         // entity goes after component in case constructor throws
         underlying_type::emplace(entt);
-    }
-
-    /*! @copydoc emplace */
-    template<typename... Args>
-    [[deprecated("use ::emplace instead")]]
-    void construct(const entity_type entt, Args &&... args) {
-        emplace(entt, std::forward<Args>(args)...);
+        return instances.back();
     }
 
     /**
@@ -344,9 +385,7 @@ public:
      *
      * @warning
      * Attempting to assign an entity that already belongs to the storage
-     * results in undefined behavior.<br/>
-     * An assertion will abort the execution at runtime in debug mode if the
-     * storage already contains the given entity.
+     * results in undefined behavior.
      *
      * @tparam It Type of input iterator.
      * @param first An iterator to the first element of the range of entities.
@@ -354,18 +393,10 @@ public:
      * @param value An instance of the object to construct.
      */
     template<typename It>
-    void insert(It first, It last, const object_type &value = {}) {
+    void insert(It first, It last, const value_type &value = {}) {
         instances.insert(instances.end(), std::distance(first, last), value);
         // entities go after components in case constructors throw
         underlying_type::insert(first, last);
-    }
-
-    /*! @copydoc insert */
-    template<typename It>
-    [[deprecated("use ::insert instead")]]
-    std::enable_if_t<std::is_same_v<typename std::iterator_traits<It>::value_type, entity_type>, void>
-    construct(It first, It last, const object_type &value = {}) {
-        insert(std::move(first), std::move(last), value);
     }
 
     /**
@@ -388,61 +419,8 @@ public:
         underlying_type::insert(first, last);
     }
 
-    /*! @copydoc insert */
-    template<typename EIt, typename CIt>
-    [[deprecated("use ::insert instead")]]
-    std::enable_if_t<std::is_same_v<typename std::iterator_traits<EIt>::value_type, entity_type>, void>
-    construct(EIt first, EIt last, CIt value) {
-        insert(std::move(first), std::move(last), std::move(value));
-    }
-
-    /**
-     * @brief Removes an entity from a storage and destroys its object.
-     *
-     * @warning
-     * Attempting to use an entity that doesn't belong to the storage results in
-     * undefined behavior.<br/>
-     * An assertion will abort the execution at runtime in debug mode if the
-     * storage doesn't contain the given entity.
-     *
-     * @param entt A valid entity identifier.
-     */
-    void erase(const entity_type entt) {
-        auto other = std::move(instances.back());
-        instances[underlying_type::index(entt)] = std::move(other);
-        instances.pop_back();
-        underlying_type::erase(entt);
-    }
-
-    /*! @copydoc erase */
-    [[deprecated("use ::erase instead")]]
-    void destroy(const entity_type entt) {
-        erase(entt);
-    }
-
-    /**
-     * @brief Swaps entities and objects in the internal packed arrays.
-     *
-     * @warning
-     * Attempting to swap entities that don't belong to the sparse set results
-     * in undefined behavior.<br/>
-     * An assertion will abort the execution at runtime in debug mode if the
-     * sparse set doesn't contain the given entities.
-     *
-     * @param lhs A valid entity identifier.
-     * @param rhs A valid entity identifier.
-     */
-    void swap(const entity_type lhs, const entity_type rhs) override {
-        std::swap(instances[underlying_type::index(lhs)], instances[underlying_type::index(rhs)]);
-        underlying_type::swap(lhs, rhs);
-    }
-
     /**
      * @brief Sort elements according to the given comparison function.
-     *
-     * Sort the elements so that iterating the range with a couple of iterators
-     * returns them in the expected order. See `begin` and `end` for more
-     * details.
      *
      * The comparison function object must return `true` if the first element
      * is _less_ than the second one, `false` otherwise. The signature of the
@@ -463,11 +441,6 @@ public:
      * * An iterator past the last element of the range to sort.
      * * A comparison function to use to compare the elements.
      *
-     * @note
-     * Attempting to iterate elements using a raw pointer returned by a call to
-     * either `data` or `raw` gives no guarantees on the order, even though
-     * `sort` has been invoked.
-     *
      * @warning
      * Empty types are never instantiated. Therefore, only comparison function
      * objects that require to return entities rather than components are
@@ -476,66 +449,65 @@ public:
      * @tparam Compare Type of comparison function object.
      * @tparam Sort Type of sort function object.
      * @tparam Args Types of arguments to forward to the sort function object.
-     * @param first An iterator to the first element of the range to sort.
-     * @param last An iterator past the last element of the range to sort.
+     * @param count Number of elements to sort.
      * @param compare A valid comparison function object.
      * @param algo A valid sort function object.
      * @param args Arguments to forward to the sort function object, if any.
      */
     template<typename Compare, typename Sort = std_sort, typename... Args>
-    void sort(iterator first, iterator last, Compare compare, Sort algo = Sort{}, Args &&... args) {
-        ENTT_ASSERT(!(last < first));
-        ENTT_ASSERT(!(last > end()));
-
-        const auto from = underlying_type::begin() + std::distance(begin(), first);
-        const auto to = from + std::distance(first, last);
-
-        const auto apply = [this](const auto lhs, const auto rhs) {
-            std::swap(instances[underlying_type::index(lhs)], instances[underlying_type::index(rhs)]);
-        };
-
-        if constexpr(std::is_invocable_v<Compare, const object_type &, const object_type &>) {
-            underlying_type::arrange(from, to, std::move(apply), [this, compare = std::move(compare)](const auto lhs, const auto rhs) {
+    void sort_n(const size_type count, Compare compare, Sort algo = Sort{}, Args &&... args) {
+        if constexpr(std::is_invocable_v<Compare, const value_type &, const value_type &>) {
+            underlying_type::sort_n(count, [this, compare = std::move(compare)](const auto lhs, const auto rhs) {
                 return compare(std::as_const(instances[underlying_type::index(lhs)]), std::as_const(instances[underlying_type::index(rhs)]));
             }, std::move(algo), std::forward<Args>(args)...);
         } else {
-            underlying_type::arrange(from, to, std::move(apply), std::move(compare), std::move(algo), std::forward<Args>(args)...);
+            underlying_type::sort_n(count, std::move(compare), std::move(algo), std::forward<Args>(args)...);
         }
     }
 
-    /*! @brief Clears a storage. */
-    void clear() {
-        underlying_type::clear();
-        instances.clear();
+    /**
+     * @brief Sort all elements according to the given comparison function.
+     *
+     * @sa sort_n
+     *
+     * @tparam Compare Type of comparison function object.
+     * @tparam Sort Type of sort function object.
+     * @tparam Args Types of arguments to forward to the sort function object.
+     * @param compare A valid comparison function object.
+     * @param algo A valid sort function object.
+     * @param args Arguments to forward to the sort function object, if any.
+     */
+    template<typename Compare, typename Sort = std_sort, typename... Args>
+    void sort(Compare compare, Sort algo = Sort{}, Args &&... args) {
+        sort_n(this->size(), std::move(compare), std::move(algo), std::forward<Args>(args)...);
     }
 
 private:
-    std::vector<object_type> instances;
+    std::vector<value_type> instances;
 };
 
 
-/*! @copydoc storage */
+/*! @copydoc basic_storage */
 template<typename Entity, typename Type>
-class storage<Entity, Type, std::enable_if_t<ENTT_IS_EMPTY(Type)>>: public sparse_set<Entity> {
-    using traits_type = entt_traits<std::underlying_type_t<Entity>>;
-    using underlying_type = sparse_set<Entity>;
+class basic_storage<Entity, Type, std::enable_if_t<is_empty_v<Type>>>: public basic_sparse_set<Entity> {
+    using underlying_type = basic_sparse_set<Entity>;
 
 public:
     /*! @brief Type of the objects associated with the entities. */
-    using object_type = Type;
+    using value_type = Type;
     /*! @brief Underlying entity identifier. */
     using entity_type = Entity;
     /*! @brief Unsigned integer type. */
     using size_type = std::size_t;
+    /*! @brief Storage category. */
+    using storage_category = empty_storage_tag;
 
     /**
      * @brief Assigns an entity to a storage and constructs its object.
      *
      * @warning
      * Attempting to use an entity that already belongs to the storage results
-     * in undefined behavior.<br/>
-     * An assertion will abort the execution at runtime in debug mode if the
-     * storage already contains the given entity.
+     * in undefined behavior.
      *
      * @tparam Args Types of arguments to use to construct the object.
      * @param entt A valid entity identifier.
@@ -543,15 +515,8 @@ public:
      */
     template<typename... Args>
     void emplace(const entity_type entt, Args &&... args) {
-        [[maybe_unused]] object_type instance{std::forward<Args>(args)...};
+        [[maybe_unused]] value_type instance{std::forward<Args>(args)...};
         underlying_type::emplace(entt);
-    }
-
-    /*! @copydoc emplace */
-    template<typename... Args>
-    [[deprecated("use ::emplace instead")]]
-    void construct(const entity_type entt, Args &&... args) {
-        emplace(entt, std::forward<Args>(args)...);
     }
 
     /**
@@ -559,30 +524,306 @@ public:
      *
      * @warning
      * Attempting to assign an entity that already belongs to the storage
-     * results in undefined behavior.<br/>
-     * An assertion will abort the execution at runtime in debug mode if the
-     * storage already contains the given entity.
+     * results in undefined behavior.
      *
      * @tparam It Type of input iterator.
      * @param first An iterator to the first element of the range of entities.
      * @param last An iterator past the last element of the range of entities.
      */
     template<typename It>
-    void insert(It first, It last, const object_type & = {}) {
+    void insert(It first, It last, const value_type & = {}) {
         underlying_type::insert(first, last);
+    }
+};
+
+
+/**
+ * @brief Mixin type to use to wrap basic storage classes.
+ * @tparam Type The type of the underlying storage.
+ */
+template<typename Type>
+struct storage_adapter_mixin: Type {
+    static_assert(std::is_same_v<typename Type::value_type, std::decay_t<typename Type::value_type>>, "Invalid object type");
+
+    /*! @brief Type of the objects associated with the entities. */
+    using value_type = typename Type::value_type;
+    /*! @brief Underlying entity identifier. */
+    using entity_type = typename Type::entity_type;
+    /*! @brief Storage category. */
+    using storage_category = typename Type::storage_category;
+
+    /**
+     * @brief Assigns entities to a storage.
+     * @tparam Args Types of arguments to use to construct the object.
+     * @param entity A valid entity identifier.
+     * @param args Parameters to use to initialize the object.
+     * @return A reference to the newly created object.
+     */
+    template<typename... Args>
+    decltype(auto) emplace(basic_registry<entity_type> &, const entity_type entity, Args &&... args) {
+        return Type::emplace(entity, std::forward<Args>(args)...);
     }
 
     /**
-     * @copydoc insert
-     * @param value An instance of the object to construct.
+     * @brief Assigns entities to a storage.
+     * @tparam It Type of input iterator.
+     * @tparam Args Types of arguments to use to construct the objects
+     * associated with the entities.
+     * @param first An iterator to the first element of the range of entities.
+     * @param last An iterator past the last element of the range of entities.
+     * @param args Parameters to use to initialize the objects associated with
+     * the entities.
+     */
+    template<typename It, typename... Args>
+    void insert(basic_registry<entity_type> &, It first, It last, Args &&... args) {
+        Type::insert(first, last, std::forward<Args>(args)...);
+    }
+
+    /**
+     * @brief Removes entities from a storage.
+     * @param entity A valid entity identifier.
+     */
+    void remove(basic_registry<entity_type> &, const entity_type entity) {
+        Type::remove(entity);
+    }
+
+    /**
+     * @copybrief remove
+     * @tparam It Type of input iterator.
+     * @param first An iterator to the first element of the range of entities.
+     * @param last An iterator past the last element of the range of entities.
      */
     template<typename It>
-    [[deprecated("use ::insert instead")]]
-    std::enable_if_t<std::is_same_v<typename std::iterator_traits<It>::value_type, entity_type>, void>
-    construct(It first, It last, const object_type &value = {}) {
-        insert(std::move(first), std::move(last), value);
+    void remove(basic_registry<entity_type> &, It first, It last) {
+        Type::remove(first, last);
+    }
+
+    /**
+     * @brief Patches the given instance for an entity.
+     * @tparam Func Types of the function objects to invoke.
+     * @param entity A valid entity identifier.
+     * @param func Valid function objects.
+     * @return A reference to the patched instance.
+     */
+    template<typename... Func>
+    decltype(auto) patch(basic_registry<entity_type> &, const entity_type entity, [[maybe_unused]] Func &&... func) {
+        auto &instance = this->get(entity);
+        (std::forward<Func>(func)(instance), ...);
+        return instance;
     }
 };
+
+
+/**
+ * @brief Mixin type to use to add signal support to storage types.
+ * @tparam Type The type of the underlying storage.
+ */
+template<typename Type>
+struct sigh_storage_mixin: Type {
+    /*! @brief Underlying value type. */
+    using value_type = typename Type::value_type;
+    /*! @brief Underlying entity identifier. */
+    using entity_type = typename Type::entity_type;
+    /*! @brief Storage category. */
+    using storage_category = typename Type::storage_category;
+
+    /**
+     * @brief Returns a sink object.
+     *
+     * The sink returned by this function can be used to receive notifications
+     * whenever a new instance is created and assigned to an entity.<br/>
+     * The function type for a listener is equivalent to:
+     *
+     * @code{.cpp}
+     * void(basic_registry<entity_type> &, entity_type);
+     * @endcode
+     *
+     * Listeners are invoked **after** the object has been assigned to the
+     * entity.
+     *
+     * @sa sink
+     *
+     * @return A temporary sink object.
+     */
+    [[nodiscard]] auto on_construct() ENTT_NOEXCEPT {
+        return sink{construction};
+    }
+
+    /**
+     * @brief Returns a sink object.
+     *
+     * The sink returned by this function can be used to receive notifications
+     * whenever an instance is explicitly updated.<br/>
+     * The function type for a listener is equivalent to:
+     *
+     * @code{.cpp}
+     * void(basic_registry<entity_type> &, entity_type);
+     * @endcode
+     *
+     * Listeners are invoked **after** the object has been updated.
+     *
+     * @sa sink
+     *
+     * @return A temporary sink object.
+     */
+    [[nodiscard]] auto on_update() ENTT_NOEXCEPT {
+        return sink{update};
+    }
+
+    /**
+     * @brief Returns a sink object.
+     *
+     * The sink returned by this function can be used to receive notifications
+     * whenever an instance is removed from an entity and thus destroyed.<br/>
+     * The function type for a listener is equivalent to:
+     *
+     * @code{.cpp}
+     * void(basic_registry<entity_type> &, entity_type);
+     * @endcode
+     *
+     * Listeners are invoked **before** the object has been removed from the
+     * entity.
+     *
+     * @sa sink
+     *
+     * @return A temporary sink object.
+     */
+    [[nodiscard]] auto on_destroy() ENTT_NOEXCEPT {
+        return sink{destruction};
+    }
+
+    /**
+     * @copybrief storage_adapter_mixin::emplace
+     * @tparam Args Types of arguments to use to construct the object.
+     * @param owner The registry that issued the request.
+     * @param entity A valid entity identifier.
+     * @param args Parameters to use to initialize the object.
+     * @return A reference to the newly created object.
+     */
+    template<typename... Args>
+    decltype(auto) emplace(basic_registry<entity_type> &owner, const entity_type entity, Args &&... args) {
+        Type::emplace(owner, entity, std::forward<Args>(args)...);
+        construction.publish(owner, entity);
+
+        if constexpr(!std::is_same_v<storage_category, empty_storage_tag>) {
+            return this->get(entity);
+        }
+    }
+
+    /**
+     * @copybrief storage_adapter_mixin::insert
+     * @tparam It Type of input iterator.
+     * @tparam Args Types of arguments to use to construct the objects
+     * associated with the entities.
+     * @param owner The registry that issued the request.
+     * @param first An iterator to the first element of the range of entities.
+     * @param last An iterator past the last element of the range of entities.
+     * @param args Parameters to use to initialize the objects associated with
+     * the entities.
+     */
+    template<typename It, typename... Args>
+    void insert(basic_registry<entity_type> &owner, It first, It last, Args &&... args) {
+        Type::insert(owner, first, last, std::forward<Args>(args)...);
+
+        if(!construction.empty()) {
+            for(; first != last; ++first) {
+                construction.publish(owner, *first);
+            }
+        }
+    }
+
+    /**
+     * @copybrief storage_adapter_mixin::remove
+     * @param owner The registry that issued the request.
+     * @param entity A valid entity identifier.
+     */
+    void remove(basic_registry<entity_type> &owner, const entity_type entity) {
+        destruction.publish(owner, entity);
+        Type::remove(owner, entity);
+    }
+
+    /**
+     * @copybrief storage_adapter_mixin::remove
+     * @tparam It Type of input iterator.
+     * @param owner The registry that issued the request.
+     * @param first An iterator to the first element of the range of entities.
+     * @param last An iterator past the last element of the range of entities.
+     */
+    template<typename It>
+    void remove(basic_registry<entity_type> &owner, It first, It last) {
+        if(!destruction.empty()) {
+            for(auto it = first; it != last; ++it) {
+                destruction.publish(owner, *it);
+            }
+        }
+
+        Type::remove(owner, first, last);
+    }
+
+    /**
+     * @copybrief storage_adapter_mixin::patch
+     * @tparam Func Types of the function objects to invoke.
+     * @param owner The registry that issued the request.
+     * @param entity A valid entity identifier.
+     * @param func Valid function objects.
+     * @return A reference to the patched instance.
+     */
+    template<typename... Func>
+    decltype(auto) patch(basic_registry<entity_type> &owner, const entity_type entity, [[maybe_unused]] Func &&... func) {
+        if constexpr(std::is_same_v<storage_category, empty_storage_tag>) {
+            update.publish(owner, entity);
+        } else {
+            Type::patch(owner, entity, std::forward<Func>(func)...);
+            update.publish(owner, entity);
+            return this->get(entity);
+        }
+    }
+
+private:
+    sigh<void(basic_registry<entity_type> &, const entity_type)> construction{};
+    sigh<void(basic_registry<entity_type> &, const entity_type)> destruction{};
+    sigh<void(basic_registry<entity_type> &, const entity_type)> update{};
+};
+
+
+/**
+ * @brief Defines the component-to-storage conversion.
+ *
+ * Formally:
+ *
+ * * If the component type is a non-const one, the member typedef type is the
+ *   declared storage type.
+ * * If the component type is a const one, the member typedef type is the
+ *   declared storage type, except it has a const-qualifier added.
+ *
+ * @tparam Entity A valid entity type (see entt_traits for more details).
+ * @tparam Type Type of objects assigned to the entities.
+ */
+template<typename Entity, typename Type, typename = void>
+struct storage_traits {
+    /*! @brief Resulting type after component-to-storage conversion. */
+    using storage_type = sigh_storage_mixin<storage_adapter_mixin<basic_storage<Entity, Type>>>;
+};
+
+
+/**
+ * @brief Gets the element associated with an entity from a storage, if any.
+ * @tparam Type Storage type.
+ * @param container A valid instance of a storage class.
+ * @param entity A valid entity identifier.
+ * @return A possibly empty tuple containing the requested element.
+ */
+template<typename Type>
+[[nodiscard]] auto get_as_tuple([[maybe_unused]] Type &container, [[maybe_unused]] const typename Type::entity_type entity) {
+    static_assert(std::is_same_v<std::remove_const_t<Type>, typename storage_traits<typename Type::entity_type, typename Type::value_type>::storage_type>);
+
+    if constexpr(std::is_base_of_v<dense_storage_tag, typename Type::storage_category>) {
+        return std::forward_as_tuple(container.get(entity));
+    } else {
+        static_assert(std::is_base_of_v<empty_storage_tag, typename Type::storage_category>, "Unknown storage category");
+        return std::make_tuple();
+    }
+}
 
 
 }
