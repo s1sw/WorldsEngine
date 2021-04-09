@@ -444,15 +444,16 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     vk::ImageCreateInfo shadowmapIci;
     shadowmapIci.imageType = vk::ImageType::e2D;
     shadowmapIci.extent = vk::Extent3D{ shadowmapRes, shadowmapRes, 1 };
-    shadowmapIci.arrayLayers = 1;
+    shadowmapIci.arrayLayers = 3;
     shadowmapIci.mipLevels = 1;
     shadowmapIci.format = vk::Format::eD32Sfloat;
     shadowmapIci.initialLayout = vk::ImageLayout::eUndefined;
     shadowmapIci.samples = vk::SampleCountFlagBits::e1;
     shadowmapIci.usage = vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eSampled;
 
-    RTResourceCreateInfo shadowmapCreateInfo{ shadowmapIci, vk::ImageViewType::e2D, vk::ImageAspectFlagBits::eDepth };
+    RTResourceCreateInfo shadowmapCreateInfo{ shadowmapIci, vk::ImageViewType::e2DArray, vk::ImageAspectFlagBits::eDepth };
     shadowmapImage = createRTResource(shadowmapCreateInfo, "Shadowmap Image");
+    shadowmapIci.arrayLayers = 1;
 
     shadowmapIci.extent = vk::Extent3D { 512, 512, 1 };
     for (int i = 0; i < NUM_SHADOW_LIGHTS; i++) {
@@ -841,6 +842,67 @@ void VKRenderer::uploadSceneAssets(entt::registry& reg) {
         reuploadMaterials();
 }
 
+void createFrustumMatrices(Camera cam, float aspect, glm::mat4* out) {
+    // frustum 0: near -> 20m
+    // frustum 1: 20m  -> 100m
+    // frustum 2: 100m -> 400m
+    out[0] = glm::perspective(cam.verticalFOV, aspect, cam.near,   20.0f);
+    out[1] = glm::perspective(cam.verticalFOV, aspect, 20.0f,     100.0f);
+    out[2] = glm::perspective(cam.verticalFOV, aspect, 100.0f,    400.0f);
+}
+
+glm::mat4 getCascadeMatrix(Camera cam, glm::vec3 lightDir, glm::mat4 frustumMatrix) {
+    glm::mat4 vp = cam.getViewMatrix() * frustumMatrix;
+
+    glm::vec3 frustumCorners[8] = {
+        { -1.0f,  1.0f,  0.0f },
+        {  1.0f,  1.0f,  0.0f },
+        {  1.0f, -1.0f,  0.0f },
+        { -1.0f, -1.0f,  0.0f },
+        { -1.0f,  1.0f,  1.0f },
+        {  1.0f,  1.0f,  1.0f },
+        {  1.0f, -1.0f,  1.0f },
+        { -1.0f, -1.0f,  1.0f }
+    };
+
+    for (int i = 0; i < 8; i++) {
+        frustumCorners[i] = glm::inverse(vp) * glm::vec4 { frustumCorners[i], 1.0f };
+    }
+
+    glm::vec3 center{0.0f};
+
+    for (int i = 0; i < 8; i++) {
+        center += frustumCorners[i];
+    }
+
+    center /= 8.0f;
+
+    // Texel snapping calculations
+    float diameter = glm::length(frustumCorners[0] - frustumCorners[6]);
+    float radius = diameter * 0.5f;
+
+    float texelsPerUnit = 4096.0f / diameter;
+
+    glm::mat4 scaleMatrix = glm::scale(glm::mat4{1.0f}, glm::vec3{texelsPerUnit});
+
+    glm::mat4 lookAt = glm::lookAt(glm::vec3{0.0f}, -lightDir, glm::vec3{ 0.0f, 1.0f, 0.0f });
+    lookAt *= scaleMatrix;
+
+    glm::mat4 lookAtInv = glm::inverse(lookAt);
+
+    center = lookAt * glm::vec4{ center, 1.0f };
+    center.x = glm::floor(center.x);
+    center.z = glm::floor(center.z);
+    center = lookAtInv * glm::vec4 { center, 1.0f };
+
+    glm::vec3 eye = center - (lightDir * diameter);
+
+    glm::mat4 viewMat = glm::lookAt(eye, center, glm::vec3{ 0.0f, 1.0f, 0.0f });
+    glm::mat4 projMat = glm::ortho(-radius, radius, -radius, radius);
+
+    return projMat * viewMat;
+}
+
 worlds::ConVar doGTAO{ "r_doGTAO", "1" };
 
 void VKRenderer::writeCmdBuf(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageIndex, Camera& cam, entt::registry& reg) {
@@ -908,19 +970,7 @@ void VKRenderer::writeCmdBuf(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageInde
     reg.view<WorldLight, Transform>().each([&](auto ent, WorldLight& l, Transform& transform) {
         glm::vec3 lightForward = glm::normalize(transform.rotation * glm::vec3(0.0f, 0.0f, -1.0f));
         if (l.type == LightType::Directional) {
-            const float SHADOW_DISTANCE = 25.0f;
-            glm::vec3 shadowMapPos = glm::round(rCtx.viewPos - (transform.rotation * glm::vec3(0.0f, 0.f, 250.0f)));
-            glm::mat4 proj = glm::orthoZO(
-                -SHADOW_DISTANCE, SHADOW_DISTANCE,
-                -SHADOW_DISTANCE, SHADOW_DISTANCE,
-                1.0f, 5000.f);
-
-            glm::mat4 view = glm::lookAt(
-                shadowMapPos,
-                shadowMapPos - lightForward,
-                glm::vec3(0.0f, 1.0f, 0.0));
-
-            rCtx.shadowMatrix = proj * view;
+            glm::mat4 frustumMatrices[3];
         }
     });
 

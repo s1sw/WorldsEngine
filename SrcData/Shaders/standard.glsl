@@ -64,7 +64,7 @@ layout(std140, binding = 3) uniform ModelMatrices {
 };
 
 layout (binding = 4) uniform sampler2D tex2dSampler[];
-layout (binding = 5) uniform sampler2DShadow shadowSampler;
+layout (binding = 5) uniform sampler2DArrayShadow shadowSampler;
 layout (binding = 6) uniform samplerCube cubemapSampler[];
 layout (binding = 7) uniform sampler2D brdfLutSampler;
 layout (binding = 8) uniform sampler2D miscShadowSamplers[MAX_SHADOW_LIGHTS];
@@ -263,8 +263,9 @@ vec3 shade(ShadeInfo si) {
                 const float divVal = ((shadowSamples * 2)) * ((shadowSamples * 2));
 
                 for (int x = -shadowSamples; x < shadowSamples; x++)
-                    for (int y = -shadowSamples; y < shadowSamples; y++)
-                        shadowIntensity += texture(shadowSampler, vec3(coord + vec2(x, y) * texelSize, depth)).x;
+                    for (int y = -shadowSamples; y < shadowSamples; y++) {
+                        shadowIntensity += texture(shadowSampler, vec4(coord + vec2(x, y) * texelSize, 0.0f, depth)).x;
+                    }
 
                 shadowIntensity /= divVal;
 #else

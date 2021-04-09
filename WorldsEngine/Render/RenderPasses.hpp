@@ -108,15 +108,17 @@ namespace worlds {
         vk::UniquePipelineLayout pipelineLayout;
         vk::UniqueDescriptorSetLayout dsl;
         RenderTexture* shadowImage;
-        vk::UniqueFramebuffer shadowFb;
+        vk::UniqueFramebuffer shadowFb[3];
         vk::ShaderModule shadowVertexShader;
         vk::ShaderModule shadowFragmentShader;
         uint32_t shadowmapRes;
+
+        vk::ImageView shadowImageViews[3];
     public:
         ShadowmapRenderPass(RenderTexture* shadowImage);
         void setup(PassSetupCtx& ctx);
         void execute(RenderCtx& ctx);
-        virtual ~ShadowmapRenderPass() {}
+        virtual ~ShadowmapRenderPass();
     };
 
     class TonemapRenderPass {
