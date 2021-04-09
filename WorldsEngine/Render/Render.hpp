@@ -215,7 +215,7 @@ namespace worlds {
         glm::mat4 vrViewMats[2];
         glm::mat4 vrProjMats[2];
         glm::vec3 viewPos;
-        glm::mat4 shadowMatrix;
+        glm::mat4 cascadeShadowMatrices[3];
         RenderTexture** shadowImages;
         bool enableVR;
 #ifdef TRACY_ENABLE

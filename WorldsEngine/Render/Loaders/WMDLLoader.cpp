@@ -10,15 +10,19 @@ namespace worlds {
 
         PHYSFS_readBytes(f, buf, fileSize);
         PHYSFS_close(f);
-        
+
         wmdl::Header* wHdr = (wmdl::Header*)buf;
 
         logMsg("loading wmdl: %i submeshes", wHdr->numSubmeshes);
 
         wmdl::SubmeshInfo* submeshBlock = wHdr->getSubmeshBlock();
         lmd.numSubmeshes = wHdr->numSubmeshes;
+        if (lmd.numSubmeshes > NUM_SUBMESH_MATS) {
+            logWarn("WMDL has more submeshes than possible");
+            lmd.numSubmeshes = NUM_SUBMESH_MATS;
+        }
 
-        for (wmdl::CountType i = 0; i < wHdr->numSubmeshes; i++) {
+        for (wmdl::CountType i = 0; i < lmd.numSubmeshes; i++) {
             lmd.submeshes[i].indexCount = submeshBlock[i].numIndices;
             lmd.submeshes[i].indexOffset = submeshBlock[i].indexOffset;
         }
