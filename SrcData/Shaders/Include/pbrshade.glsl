@@ -5,9 +5,14 @@
 struct LightShadeInfo {
     vec3 radiance;
     vec3 L;
+    float lightDist;
 };
 
-LightShadeInfo calcLightShadeInfo(Light light, vec3 worldPos) {
+float saturate(float x) {
+    return clamp(x, 0.0, 1.0);
+}
+
+LightShadeInfo calcLightShadeInfo(Light light, ShadeInfo shadeInfo, vec3 worldPos) {
     LightShadeInfo lsi;
     lsi.radiance = light.pack0.xyz;
     lsi.L = vec3(0.0f, 0.0f, 0.0f);
@@ -20,13 +25,57 @@ LightShadeInfo calcLightShadeInfo(Light light, vec3 worldPos) {
         lsi.radiance *= 1.0 / dot(lsi.L, lsi.L);
         lsi.L = normalize(lsi.L);
     } else if (lightType == LT_SPOT) {
-        vec3 lightPos = light.pack2.xyz;
-        lsi.L = normalize(lightPos - worldPos);
-        float theta = dot(lsi.L, normalize(light.pack1.xyz));
         float cutoff = light.pack1.w;
         float outerCutoff = cutoff - 0.02f;
+        vec3 lightPos = light.pack2.xyz;
+
+        lsi.L = normalize(lightPos - worldPos);
+
+        float theta = dot(lsi.L, normalize(light.pack1.xyz));
         vec3 lToFrag = lightPos - worldPos;
         lsi.radiance *= clamp((theta - outerCutoff) / (cutoff - outerCutoff), 0.0f, 1.0f) * (1.0 / dot(lToFrag, lToFrag));
+    } else if (lightType == LT_SPHERE) {
+        vec3 lightPos = light.pack2.xyz;
+        float sphereRadius = light.pack1.w;
+        float sphereRadiusSq = sphereRadius * sphereRadius;
+
+        vec3 r = reflect(-shadeInfo.viewDir, shadeInfo.normal);
+        lsi.L = lightPos - worldPos;
+        vec3 centerToRay = (dot(lsi.L, r) * r) - lsi.L;
+        vec3 closestPoint = lsi.L + centerToRay * saturate(sphereRadius / length(centerToRay));
+        lsi.L = normalize(closestPoint);
+        float lightDist = length(closestPoint);
+        float sqrDist = lightDist * lightDist;
+        float falloff = (sphereRadiusSq / ( max(sphereRadiusSq, sqrDist)));
+
+        lsi.radiance *= falloff;
+        lsi.lightDist = lightDist;
+    } else if (lightType == LT_TUBE) {
+        vec3 p0 = light.pack1.xyz;
+        vec3 p1 = light.pack2.xyz;
+        vec3 r = reflect(-shadeInfo.viewDir, shadeInfo.normal);
+        float tubeRadius = light.pack1.w;
+
+        vec3 l0 = p0 - worldPos;
+        vec3 l1 = p1 - worldPos;
+
+        float distL0 = length( l0 );
+        float distL1 = length( l1 );
+        vec3 Ldist = l1 - l0;
+        float RoLd = dot( r, Ldist);
+        float distLd = length(Ldist);
+        float t = ( dot( r, l0 ) * RoLd - dot( l0, Ldist) ) / ( distLd * distLd - RoLd * RoLd );
+
+        vec3 closestPoint = l0 + Ldist * saturate(t);
+        vec3 centerToRay = dot(closestPoint, r) * r - closestPoint;
+        closestPoint = closestPoint + centerToRay * saturate(tubeRadius / length(centerToRay));
+        vec3 L = normalize(closestPoint);
+        float distLight = length(closestPoint);
+
+        lsi.L = L;
+        float falloff = (tubeRadius * tubeRadius / max(tubeRadius * tubeRadius, distLight * distLight));
+        lsi.radiance *= falloff;
+        lsi.lightDist = distLight;
     } else {
         lsi.L = normalize(light.pack1.xyz);
     }
@@ -35,7 +84,7 @@ LightShadeInfo calcLightShadeInfo(Light light, vec3 worldPos) {
 }
 
 vec3 calculateLighting(Light light, ShadeInfo shadeInfo, vec3 worldPos) {
-    LightShadeInfo lsi = calcLightShadeInfo(light, worldPos);
+    LightShadeInfo lsi = calcLightShadeInfo(light, shadeInfo, worldPos);
 
     vec3 halfway = normalize(shadeInfo.viewDir + lsi.L);
     vec3 norm = shadeInfo.normal;
@@ -48,7 +97,13 @@ vec3 calculateLighting(Light light, ShadeInfo shadeInfo, vec3 worldPos) {
 #else
     float cosLo = max(0.0f, dot(norm, shadeInfo.viewDir));
 
-    float NDF = ndfGGX(cosLh, shadeInfo.roughness);
+    float NDF;
+    int lType = int(light.pack0.w);
+    if (lType != LT_SPHERE && lType != LT_TUBE) {
+        NDF = ndfGGX(cosLh, shadeInfo.roughness);
+    } else {
+        NDF = ndfGGXSphereLight(cosLh, shadeInfo.roughness, light.pack2.w, lsi.lightDist);
+    }
     float G = gaSchlickGGX(cosLi, cosLo, shadeInfo.roughness);
     vec3 f = fresnelSchlick(shadeInfo.f0, max(dot(norm, shadeInfo.viewDir), 0.0f));
 

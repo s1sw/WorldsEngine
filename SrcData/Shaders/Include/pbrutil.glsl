@@ -42,6 +42,16 @@ float ndfGGX(float cosLh, float roughness) {
     return alphaSq / (PI * denom * denom);
 }
 
+float ndfGGXSphereLight(float cosLh, float roughness, float sphereRadius, float lightDist) {
+    float alpha = roughness * roughness;
+    float alphaPrime = clamp(sphereRadius / (lightDist * 2.0) + alpha, 0.0, 1.0);
+
+    float alphaNotReallySq = alpha * alphaPrime;
+
+    float denom = max((cosLh * cosLh) * (alphaNotReallySq - 1.0) + 1.0, 0.0001);
+    return alphaNotReallySq / (PI * denom * denom);
+}
+
 // Single term for separable Schlick-GGX below.
 float gaSchlickG1(float cosTheta, float k) {
     return cosTheta / max(cosTheta * (1.0 - k) + k, 0.0001);

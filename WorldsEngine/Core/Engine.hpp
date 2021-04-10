@@ -143,7 +143,9 @@ namespace worlds {
     enum class LightType {
         Point,
         Spot,
-        Directional
+        Directional,
+        Sphere,
+        Tube
     };
 
     struct WorldLight {
@@ -153,6 +155,8 @@ namespace worlds {
         LightType type = LightType::Point;
         glm::vec3 color = glm::vec3{1.0f};
         float spotCutoff = 0.7f;
+        float tubeLength = 0.25f;
+        float tubeRadius = 0.1f;
         bool enableShadows = false;
         uint32_t shadowmapIdx = ~0u;
     };

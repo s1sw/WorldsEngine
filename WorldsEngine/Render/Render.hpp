@@ -68,7 +68,7 @@ namespace worlds {
 
     struct LightUB {
         glm::vec4 pack0;
-        glm::mat4 shadowmapMatrix;
+        glm::mat4 shadowmapMatrices[3];
         PackedLight lights[128];
     };
 
@@ -372,6 +372,7 @@ namespace worlds {
         vku::ShaderModule loadShaderAsset(AssetID id);
         void createInstance(const RendererInitInfo& initInfo);
         void submitToOpenVR();
+        glm::mat4 getCascadeMatrix(Camera cam, glm::vec3 lightdir, glm::mat4 frustumMatrix);
         void writeCmdBuf(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageIndex, Camera& cam, entt::registry& reg);
         void reuploadMaterials();
 

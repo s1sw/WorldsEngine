@@ -42,7 +42,7 @@ namespace worlds {
 
         void getRenderResolution(uint32_t* x, uint32_t* y);
 
-        glm::mat4 toMat4(vr::HmdMatrix34_t mat) {
+        static glm::mat4 toMat4(vr::HmdMatrix34_t mat) {
             return glm::mat4(
                 mat.m[0][0], mat.m[1][0], mat.m[2][0], 0.0f,
                 mat.m[0][1], mat.m[1][1], mat.m[2][1], 0.0f,
@@ -50,7 +50,7 @@ namespace worlds {
                 mat.m[0][3], mat.m[1][3], mat.m[2][3], 1.0f);
         }
 
-        glm::mat4 toMat4(vr::HmdMatrix44_t mat) {
+        static glm::mat4 toMat4(vr::HmdMatrix44_t mat) {
             return glm::mat4(
                 mat.m[0][0], mat.m[1][0], mat.m[2][0], mat.m[3][0],
                 mat.m[0][1], mat.m[1][1], mat.m[2][1], mat.m[3][1],
@@ -63,6 +63,7 @@ namespace worlds {
         }
 
 
+        glm::mat4 getProjMat(vr::EVREye eye, float near);
         glm::mat4 getProjMat(vr::EVREye eye, float near, float far);
         void updateInput() override;
         bool getHandTransform(Hand hand, Transform& t) override;

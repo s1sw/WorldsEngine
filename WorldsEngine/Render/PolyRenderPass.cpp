@@ -606,16 +606,28 @@ namespace worlds {
         rCtx.reg.view<WorldLight, Transform>().each([&](auto ent, WorldLight& l, Transform& transform) {
             if (!l.enabled) return;
             glm::vec3 lightForward = glm::normalize(transform.rotation * glm::vec3(0.0f, 0.0f, -1.0f));
-            lightMapped->lights[lightIdx] = PackedLight{
-                glm::vec4(l.color, (float)l.type),
-                glm::vec4(lightForward, l.spotCutoff),
-                glm::vec4(transform.position, 0.0f)
-            };
+            if (l.type != LightType::Tube) {
+                lightMapped->lights[lightIdx] = PackedLight{
+                    glm::vec4(l.color, (float)l.type),
+                    glm::vec4(lightForward, l.spotCutoff),
+                    glm::vec4(transform.position, 0.0f)
+                };
+            } else {
+                glm::vec3 tubeP0 = transform.position + lightForward * l.tubeLength;
+                glm::vec3 tubeP1 = transform.position - lightForward * l.tubeLength;
+                lightMapped->lights[lightIdx] = PackedLight{
+                    glm::vec4(l.color, (float)l.type),
+                    glm::vec4(tubeP0, l.tubeRadius),
+                    glm::vec4(tubeP1, 0.0f)
+                };
+            }
             lightIdx++;
         });
 
         lightMapped->pack0.x = (float)lightIdx;
-        lightMapped->shadowmapMatrix = rCtx.shadowMatrix;
+        lightMapped->shadowmapMatrices[0] = rCtx.cascadeShadowMatrices[0];
+        lightMapped->shadowmapMatrices[1] = rCtx.cascadeShadowMatrices[1];
+        lightMapped->shadowmapMatrices[2] = rCtx.cascadeShadowMatrices[2];
 
         if (dsUpdateNeeded) {
             // Update descriptor sets to bring in any new textures

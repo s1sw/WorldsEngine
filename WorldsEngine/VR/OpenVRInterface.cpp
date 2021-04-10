@@ -107,7 +107,7 @@ namespace worlds {
         system->GetRecommendedRenderTargetSize(x, y);
     }
 
-    glm::mat4 OpenVRInterface::getProjMat(vr::EVREye eye, float near, float) {
+    glm::mat4 OpenVRInterface::getProjMat(vr::EVREye eye, float near) {
         float left, right, top, bottom;
         system->GetProjectionRaw(eye, &left, &right, &top, &bottom);
 
@@ -115,6 +115,10 @@ namespace worlds {
 
         composeProjection(left, right, top, bottom, near, m);
         return m;
+    }
+
+    glm::mat4 OpenVRInterface::getProjMat(vr::EVREye eye, float near, float far) {
+        return toMat4(system->GetProjectionMatrix(eye, near, far));
     }
 
     void OpenVRInterface::updateInput() {
