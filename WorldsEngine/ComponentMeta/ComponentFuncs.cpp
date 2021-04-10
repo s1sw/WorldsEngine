@@ -256,7 +256,9 @@ namespace worlds {
     const std::unordered_map<LightType, const char*> lightTypeNames = {
             { LightType::Directional, "Directional" },
             { LightType::Point, "Point" },
-            { LightType::Spot, "Spot" }
+            { LightType::Spot, "Spot" },
+            { LightType::Sphere, "Sphere" },
+            { LightType::Tube, "Tube" }
     };
 
     class WorldLightEditor : public BasicComponentUtil<WorldLight> {
@@ -289,6 +291,15 @@ namespace worlds {
 
                     if (worldLight.type == LightType::Spot) {
                         ImGui::DragFloat("Spot Cutoff", &worldLight.spotCutoff);
+                    }
+
+                    if (worldLight.type == LightType::Sphere) {
+                        ImGui::DragFloat("Sphere Radius", &worldLight.spotCutoff);
+                    }
+
+                    if (worldLight.type == LightType::Tube) {
+                        ImGui::DragFloat("Tube Length", &worldLight.tubeLength);
+                        ImGui::DragFloat("Tube Radius", &worldLight.tubeRadius);
                     }
                 }
             }

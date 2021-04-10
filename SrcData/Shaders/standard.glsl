@@ -21,6 +21,7 @@ layout(location = 2) in vec3 inTangent;
 layout(location = 3) in vec2 inUV;
 layout(location = 4) in float inDepth;
 layout(location = 5) in flat uint inUvDir;
+layout(location = 6) in vec3 inViewPos;
 
 layout(constant_id = 0) const bool ENABLE_PICKING = false;
 layout(constant_id = 1) const float PARALLAX_MAX_LAYERS = 32.0;
@@ -40,6 +41,7 @@ layout(location = 2) out vec3 outTangent;
 layout(location = 3) out vec2 outUV;
 layout(location = 4) out float outDepth;
 layout(location = 5) out flat uint outUvDir;
+layout(location = 6) out vec3 outViewPos;
 #endif
 
 layout(binding = 0) uniform MultiVP {
@@ -51,7 +53,7 @@ layout(binding = 0) uniform MultiVP {
 layout(std140, binding = 1) uniform LightBuffer {
     // (light count, yzw unused)
     vec4 pack0;
-    mat4 dirShadowMatrix;
+    mat4 dirShadowMatrices[3];
     Light lights[128];
 };
 
@@ -97,6 +99,7 @@ layout(push_constant) uniform PushConstants {
     // 11 - World space UVs (pick with normal) (1024)
     // 12 - Debug display UVs                  (2048)
     // 13 - Use cubemap parallax               (4096)
+    // 14 - Debug display shadowmap cascades   (8192)
     uint miscFlag;
     uint cubemapIdx;
 
@@ -125,6 +128,7 @@ void main() {
     outNormal = normalize(model3 * inNormal);
     outTangent = normalize(model3 * inTangent);
     outDepth = gl_Position.z / gl_Position.w;
+    outViewPos = -(view[vpMatIdx] * model * vec4(inPosition, 1.0)).xyz;
     gl_Position.y = -gl_Position.y; // Account for Vulkan viewport weirdness
 
     vec2 uv = inUV;
@@ -240,6 +244,20 @@ bool isTextureEnough(ivec2 texSize) {
     return all(greaterThan(d * vec2(texSize), vec2(4.0)));
 }
 
+int calculateCascade(out vec4 oShadowPos) {
+    for (int i = 0; i < 3; i++) {
+        vec4 shadowPos = dirShadowMatrices[i] * inWorldPos;
+        shadowPos.y = -shadowPos.y;
+        vec2 coord = (shadowPos.xy * 0.5 + 0.5);
+
+        if (coord.x > 0.0 && coord.x < 1.0 &&
+                coord.y > 0.0 && coord.y < 1.0) {
+            oShadowPos = shadowPos;
+            return i;
+        }
+    }
+}
+
 vec3 shade(ShadeInfo si) {
     int lightCount = int(pack0.x);
 
@@ -247,9 +265,10 @@ vec3 shade(ShadeInfo si) {
     for (int i = 0; i < lightCount; i++) {
         float shadowIntensity = 1.0;
         if (int(lights[i].pack0.w) == LT_DIRECTIONAL) {
-            vec4 shadowPos = dirShadowMatrix * inWorldPos;
-            shadowPos.y = -shadowPos.y;
-            float bias = max(0.00005 * (1.0 - dot(inNormal, lights[i].pack1.xyz)), 0.000005);
+            vec4 shadowPos;
+            int cascadeSplit = calculateCascade(shadowPos);
+
+            float bias = max(0.0005 * (1.0 - dot(inNormal, lights[i].pack1.xyz)), 0.00005);
             float depth = (shadowPos.z / shadowPos.w) - bias;
             vec2 coord = (shadowPos.xy * 0.5 + 0.5);
 
@@ -259,12 +278,12 @@ vec3 shade(ShadeInfo si) {
                 float texelSize = 1.0 / textureSize(shadowSampler, 0).x;
                 shadowIntensity = 0.0;
 #ifdef HIGH_QUALITY_SHADOWS
-                const int shadowSamples = 1;
+                const int shadowSamples = 2;
                 const float divVal = ((shadowSamples * 2)) * ((shadowSamples * 2));
 
                 for (int x = -shadowSamples; x < shadowSamples; x++)
                     for (int y = -shadowSamples; y < shadowSamples; y++) {
-                        shadowIntensity += texture(shadowSampler, vec4(coord + vec2(x, y) * texelSize, 0.0f, depth)).x;
+                        shadowIntensity += texture(shadowSampler, vec4(coord + vec2(x, y) * texelSize, float(cascadeSplit), depth)).x;
                     }
 
                 shadowIntensity /= divVal;
@@ -396,7 +415,13 @@ void main() {
     } else if ((miscFlag & 2048) == 2048) {
         FragColor = vec4(mod(tCoord, vec2(1.0)), 0.0, 1.0);
         return;
+    } else if ((miscFlag & 8192) == 8192) {
+        vec4 whatevslol;
+        int cascade = calculateCascade(whatevslol);
+        FragColor = vec4((cascade == 0 ? 1.0f : 0.0f), (cascade == 1 ? 1.0f : 0.0f), (cascade == 2 ? 1.0f : 0.0f), 1.0f);
+        return;
     }
+
 
     float finalAlpha = alphaCutoff > 0.0f ? albedoCol.a : 1.0f;
 
@@ -417,6 +442,7 @@ void main() {
     si.ao = ao;
 
     FragColor = vec4(shade(si) + mat.emissiveColor, finalAlpha);
+    //FragColor = vec4(vec3(inViewPos.z), finalAlpha);
     //FragColor = vec4(viewDir, 1.0);
 
     if (ENABLE_PICKING && doPicking == 1) {

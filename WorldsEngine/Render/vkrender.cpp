@@ -217,7 +217,7 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     , shadowmapImage(nullptr)
     , imguiImage(nullptr)
     , window(initInfo.window)
-    , shadowmapRes(4096)
+    , shadowmapRes(2048)
     , enableVR(initInfo.enableVR)
     , pickingPRP(nullptr)
     , vrPRP(nullptr)
@@ -842,31 +842,34 @@ void VKRenderer::uploadSceneAssets(entt::registry& reg) {
         reuploadMaterials();
 }
 
-void createFrustumMatrices(Camera cam, float aspect, glm::mat4* out) {
-    // frustum 0: near -> 20m
-    // frustum 1: 20m  -> 100m
-    // frustum 2: 100m -> 400m
-    out[0] = glm::perspective(cam.verticalFOV, aspect, cam.near,   20.0f);
-    out[1] = glm::perspective(cam.verticalFOV, aspect, 20.0f,     100.0f);
-    out[2] = glm::perspective(cam.verticalFOV, aspect, 100.0f,    400.0f);
-}
+glm::mat4 VKRenderer::getCascadeMatrix(Camera cam, glm::vec3 lightDir, glm::mat4 frustumMatrix) {
+    glm::mat4 view;
 
-glm::mat4 getCascadeMatrix(Camera cam, glm::vec3 lightDir, glm::mat4 frustumMatrix) {
-    glm::mat4 vp = cam.getViewMatrix() * frustumMatrix;
+    if (!enableVR) {
+        view = cam.getViewMatrix();
+    } else {
+        vr::TrackedDevicePose_t pose;
+        vr::VRSystem()->GetDeviceToAbsoluteTrackingPose(vr::ETrackingUniverseOrigin::TrackingUniverseStanding, vrPredictAmount, &pose, 1);
+        view = glm::inverse(OpenVRInterface::toMat4(pose.mDeviceToAbsoluteTracking)) * cam.getViewMatrix();
+    }
+
+    glm::mat4 vpInv = glm::inverse(frustumMatrix * view);
 
     glm::vec3 frustumCorners[8] = {
-        { -1.0f,  1.0f,  0.0f },
-        {  1.0f,  1.0f,  0.0f },
-        {  1.0f, -1.0f,  0.0f },
-        { -1.0f, -1.0f,  0.0f },
-        { -1.0f,  1.0f,  1.0f },
-        {  1.0f,  1.0f,  1.0f },
-        {  1.0f, -1.0f,  1.0f },
-        { -1.0f, -1.0f,  1.0f }
+        glm::vec3(-1.0f,  1.0f, -1.0f),
+        glm::vec3( 1.0f,  1.0f, -1.0f),
+        glm::vec3( 1.0f, -1.0f, -1.0f),
+        glm::vec3(-1.0f, -1.0f, -1.0f),
+        glm::vec3(-1.0f,  1.0f,  1.0f),
+        glm::vec3( 1.0f,  1.0f,  1.0f),
+        glm::vec3( 1.0f, -1.0f,  1.0f),
+        glm::vec3(-1.0f, -1.0f,  1.0f),
     };
 
     for (int i = 0; i < 8; i++) {
-        frustumCorners[i] = glm::inverse(vp) * glm::vec4 { frustumCorners[i], 1.0f };
+        glm::vec4 transformed = vpInv * glm::vec4{ frustumCorners[i], 1.0f };
+        transformed /= transformed.w;
+        frustumCorners[i] = transformed;
     }
 
     glm::vec3 center{0.0f};
@@ -877,28 +880,30 @@ glm::mat4 getCascadeMatrix(Camera cam, glm::vec3 lightDir, glm::mat4 frustumMatr
 
     center /= 8.0f;
 
-    // Texel snapping calculations
-    float diameter = glm::length(frustumCorners[0] - frustumCorners[6]);
+    float diameter = 0.0f;
+    for (int i = 0; i < 8; i++) {
+        float dist = glm::length(frustumCorners[i] - center);
+        diameter = glm::max(diameter, dist);
+    }
     float radius = diameter * 0.5f;
 
-    float texelsPerUnit = 4096.0f / diameter;
+    float texelsPerUnit = 2048.0f / diameter;
 
     glm::mat4 scaleMatrix = glm::scale(glm::mat4{1.0f}, glm::vec3{texelsPerUnit});
 
-    glm::mat4 lookAt = glm::lookAt(glm::vec3{0.0f}, -lightDir, glm::vec3{ 0.0f, 1.0f, 0.0f });
+    glm::mat4 lookAt = glm::lookAt(glm::vec3{0.0f}, lightDir, glm::vec3{ 0.0f, 1.0f, 0.0f });
     lookAt *= scaleMatrix;
 
     glm::mat4 lookAtInv = glm::inverse(lookAt);
 
     center = lookAt * glm::vec4{ center, 1.0f };
-    center.x = glm::floor(center.x);
-    center.z = glm::floor(center.z);
+    center = glm::floor(center);
     center = lookAtInv * glm::vec4 { center, 1.0f };
 
-    glm::vec3 eye = center - (lightDir * diameter);
+    glm::vec3 eye = center + (lightDir * diameter);
 
     glm::mat4 viewMat = glm::lookAt(eye, center, glm::vec3{ 0.0f, 1.0f, 0.0f });
-    glm::mat4 projMat = glm::ortho(-radius, radius, -radius, radius);
+    glm::mat4 projMat = glm::orthoZO(-radius, radius, -radius, radius, -radius * 6.0f, radius * 6.0f);
 
     return projMat * viewMat;
 }
@@ -921,14 +926,14 @@ void VKRenderer::writeCmdBuf(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageInde
 
     if (enableVR) {
         OpenVRInterface* ovrInterface = static_cast<OpenVRInterface*>(vrInterface);
-        rCtx.vrProjMats[0] = ovrInterface->getProjMat(vr::EVREye::Eye_Left, 0.01f, 100.0f);
-        rCtx.vrProjMats[1] = ovrInterface->getProjMat(vr::EVREye::Eye_Right, 0.01f, 100.0f);
+        rCtx.vrProjMats[0] = ovrInterface->getProjMat(vr::EVREye::Eye_Left, cam.near);
+        rCtx.vrProjMats[1] = ovrInterface->getProjMat(vr::EVREye::Eye_Right, cam.near);
 
         vr::TrackedDevicePose_t pose;
         vr::VRSystem()->GetDeviceToAbsoluteTrackingPose(vr::ETrackingUniverseOrigin::TrackingUniverseStanding, vrPredictAmount, &pose, 1);
 
         for (int i = 0; i < 2; i++) {
-            rCtx.vrViewMats[i] = glm::inverse(ovrInterface->toMat4(pose.mDeviceToAbsoluteTracking)) * cam.getViewMatrix();
+            rCtx.vrViewMats[i] = glm::inverse(OpenVRInterface::toMat4(pose.mDeviceToAbsoluteTracking)) * cam.getViewMatrix();
         }
     }
 
@@ -971,6 +976,24 @@ void VKRenderer::writeCmdBuf(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageInde
         glm::vec3 lightForward = glm::normalize(transform.rotation * glm::vec3(0.0f, 0.0f, -1.0f));
         if (l.type == LightType::Directional) {
             glm::mat4 frustumMatrices[3];
+            float aspect = (float)renderWidth / (float)renderHeight;
+            // frustum 0: near -> 40m
+            // frustum 1: 40m  -> 100m
+            // frustum 2: 100m -> 400m
+            if (!enableVR) {
+                frustumMatrices[0] = glm::perspective(cam.verticalFOV, aspect, cam.near,   20.0f);
+                frustumMatrices[1] = glm::perspective(cam.verticalFOV, aspect, 20.0f,     60.0f);
+                frustumMatrices[2] = glm::perspective(cam.verticalFOV, aspect, 60.0f,    400.0f);
+            } else {
+                OpenVRInterface* ovrInterface = static_cast<OpenVRInterface*>(vrInterface);
+                frustumMatrices[0] = ovrInterface->getProjMat(vr::EVREye::Eye_Left, 0.01f, 20.0f);
+                frustumMatrices[1] = ovrInterface->getProjMat(vr::EVREye::Eye_Left, 20.0f, 60.0f);
+                frustumMatrices[2] = ovrInterface->getProjMat(vr::EVREye::Eye_Left, 60.0f, 400.0f);
+            }
+
+            rCtx.cascadeShadowMatrices[0] = getCascadeMatrix(cam, lightForward, frustumMatrices[0]);
+            rCtx.cascadeShadowMatrices[1] = getCascadeMatrix(cam, lightForward, frustumMatrices[1]);
+            rCtx.cascadeShadowMatrices[2] = getCascadeMatrix(cam, lightForward, frustumMatrices[2]);
         }
     });
 
@@ -1705,19 +1728,19 @@ void VKRenderer::updatePass(RTTPassHandle handle, entt::registry& world) {
             world.view<WorldLight, Transform>().each([&](auto ent, WorldLight& l, Transform& transform) {
                 glm::vec3 lightForward = glm::normalize(transform.rotation * glm::vec3(0.0f, 0.0f, -1.0f));
                 if (l.type == LightType::Directional) {
-                    const float SHADOW_DISTANCE = 25.0f;
-                    glm::vec3 shadowMapPos = glm::round(rCtx.viewPos - (transform.rotation * glm::vec3(0.0f, 0.f, 250.0f)));
-                    glm::mat4 proj = glm::orthoZO(
-                        -SHADOW_DISTANCE, SHADOW_DISTANCE,
-                        -SHADOW_DISTANCE, SHADOW_DISTANCE,
-                        1.0f, 5000.f);
+                    glm::mat4 frustumMatrices[3];
+                    float aspect = (float)renderWidth / (float)renderHeight;
+                    float near = rCtx.cam->near;
+                    // frustum 0: near -> 40m
+                    // frustum 1: 40m  -> 100m
+                    // frustum 2: 100m -> 400m
+                    frustumMatrices[0] = glm::perspective(rCtx.cam->verticalFOV, aspect, near,      20.0f);
+                    frustumMatrices[1] = glm::perspective(rCtx.cam->verticalFOV, aspect, 20.0f,     60.0f);
+                    frustumMatrices[2] = glm::perspective(rCtx.cam->verticalFOV, aspect, 60.0f,    400.0f);
 
-                    glm::mat4 view = glm::lookAt(
-                        shadowMapPos,
-                        shadowMapPos - lightForward,
-                        glm::vec3(0.0f, 1.0f, 0.0));
-
-                    rCtx.shadowMatrix = proj * view;
+                    rCtx.cascadeShadowMatrices[0] = getCascadeMatrix(*rCtx.cam, lightForward, frustumMatrices[0]);
+                    rCtx.cascadeShadowMatrices[1] = getCascadeMatrix(*rCtx.cam, lightForward, frustumMatrices[1]);
+                    rCtx.cascadeShadowMatrices[2] = getCascadeMatrix(*rCtx.cam, lightForward, frustumMatrices[2]);
                 }
             });
 
