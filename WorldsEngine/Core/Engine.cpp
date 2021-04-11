@@ -478,11 +478,11 @@ namespace worlds {
 
         if (enableOpenVR) {
             lockSimToRefresh.setValue("1");
-            //disableSimInterp.setValue("1");
         }
 
         if (runAsEditor) {
-            disableSimInterp.setValue("1");
+            //disableSimInterp.setValue("1");
+            lockSimToRefresh.setValue("1");
             createStartupScene();
         }
 
@@ -742,8 +742,14 @@ namespace worlds {
                 snprintf(buf, 128, "%.1f fps (%.3fms)", 1.0f / dti.deltaTime, dti.deltaTime * 1000.0f);
                 auto bgSize = ImGui::CalcTextSize(buf);
                 auto pos = ImGui::GetMainViewport()->Pos;
-                drawList->AddText(pos, ImColor(1.0f, 1.0f, 1.0f), buf);
                 drawList->AddRectFilled(pos, pos + bgSize, ImColor(0.0f, 0.0f, 0.0f, 0.5f));
+                ImColor col{1.0f, 1.0f, 1.0f};
+
+                if (dti.deltaTime > 0.02)
+                    col = ImColor{1.0f, 0.0f, 0.0f};
+                else if (dti.deltaTime > 0.017)
+                    col = ImColor{0.75f, 0.75f, 0.0f};
+                drawList->AddText(pos, ImColor(1.0f, 1.0f, 1.0f), buf);
             }
 
             if (enableOpenVR) {
