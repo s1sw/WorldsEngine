@@ -216,6 +216,7 @@ namespace worlds {
         glm::mat4 vrProjMats[2];
         glm::vec3 viewPos;
         glm::mat4 cascadeShadowMatrices[3];
+        float cascadeTexelsPerUnit[3];
         RenderTexture** shadowImages;
         bool enableVR;
 #ifdef TRACY_ENABLE
@@ -372,7 +373,7 @@ namespace worlds {
         vku::ShaderModule loadShaderAsset(AssetID id);
         void createInstance(const RendererInitInfo& initInfo);
         void submitToOpenVR();
-        glm::mat4 getCascadeMatrix(Camera cam, glm::vec3 lightdir, glm::mat4 frustumMatrix);
+        glm::mat4 getCascadeMatrix(Camera cam, glm::vec3 lightdir, glm::mat4 frustumMatrix, float& texelsPerUnit);
         void writeCmdBuf(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageIndex, Camera& cam, entt::registry& reg);
         void reuploadMaterials();
 

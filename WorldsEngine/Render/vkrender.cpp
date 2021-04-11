@@ -245,6 +245,7 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     if (volkInitialize() != VK_SUCCESS) {
         fatalErr("Couldn't find Vulkan.");
     }
+
     vk::DynamicLoader dl;
     PFN_vkGetInstanceProcAddr vkGetInstanceProcAddr =
         dl.getProcAddress<PFN_vkGetInstanceProcAddr>( "vkGetInstanceProcAddr" );
@@ -842,7 +843,7 @@ void VKRenderer::uploadSceneAssets(entt::registry& reg) {
         reuploadMaterials();
 }
 
-glm::mat4 VKRenderer::getCascadeMatrix(Camera cam, glm::vec3 lightDir, glm::mat4 frustumMatrix) {
+glm::mat4 VKRenderer::getCascadeMatrix(Camera cam, glm::vec3 lightDir, glm::mat4 frustumMatrix, float& texelsPerUnit) {
     glm::mat4 view;
 
     if (!enableVR) {
@@ -887,7 +888,7 @@ glm::mat4 VKRenderer::getCascadeMatrix(Camera cam, glm::vec3 lightDir, glm::mat4
     }
     float radius = diameter * 0.5f;
 
-    float texelsPerUnit = 2048.0f / diameter;
+    texelsPerUnit = 2048.0f / diameter;
 
     glm::mat4 scaleMatrix = glm::scale(glm::mat4{1.0f}, glm::vec3{texelsPerUnit});
 
@@ -980,10 +981,11 @@ void VKRenderer::writeCmdBuf(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageInde
             // frustum 0: near -> 40m
             // frustum 1: 40m  -> 100m
             // frustum 2: 100m -> 400m
+            float splits[4] = { cam.near, 60.0f, 150.0f, 400.0f };
             if (!enableVR) {
-                frustumMatrices[0] = glm::perspective(cam.verticalFOV, aspect, cam.near,   20.0f);
-                frustumMatrices[1] = glm::perspective(cam.verticalFOV, aspect, 20.0f,     60.0f);
-                frustumMatrices[2] = glm::perspective(cam.verticalFOV, aspect, 60.0f,    400.0f);
+                for (int i = 1; i < 4; i++) {
+                    frustumMatrices[i - 1] = glm::perspective(cam.verticalFOV, aspect, splits[i - 1], splits[i]);
+                }
             } else {
                 OpenVRInterface* ovrInterface = static_cast<OpenVRInterface*>(vrInterface);
                 frustumMatrices[0] = ovrInterface->getProjMat(vr::EVREye::Eye_Left, 0.01f, 20.0f);
@@ -991,9 +993,10 @@ void VKRenderer::writeCmdBuf(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageInde
                 frustumMatrices[2] = ovrInterface->getProjMat(vr::EVREye::Eye_Left, 60.0f, 400.0f);
             }
 
-            rCtx.cascadeShadowMatrices[0] = getCascadeMatrix(cam, lightForward, frustumMatrices[0]);
-            rCtx.cascadeShadowMatrices[1] = getCascadeMatrix(cam, lightForward, frustumMatrices[1]);
-            rCtx.cascadeShadowMatrices[2] = getCascadeMatrix(cam, lightForward, frustumMatrices[2]);
+            for (int i = 0; i < 3; i++) {
+                rCtx.cascadeShadowMatrices[i] =
+                    getCascadeMatrix(cam, lightForward, frustumMatrices[i], rCtx.cascadeTexelsPerUnit[i]);
+            }
         }
     });
 
@@ -1738,9 +1741,10 @@ void VKRenderer::updatePass(RTTPassHandle handle, entt::registry& world) {
                     frustumMatrices[1] = glm::perspective(rCtx.cam->verticalFOV, aspect, 20.0f,     60.0f);
                     frustumMatrices[2] = glm::perspective(rCtx.cam->verticalFOV, aspect, 60.0f,    400.0f);
 
-                    rCtx.cascadeShadowMatrices[0] = getCascadeMatrix(*rCtx.cam, lightForward, frustumMatrices[0]);
-                    rCtx.cascadeShadowMatrices[1] = getCascadeMatrix(*rCtx.cam, lightForward, frustumMatrices[1]);
-                    rCtx.cascadeShadowMatrices[2] = getCascadeMatrix(*rCtx.cam, lightForward, frustumMatrices[2]);
+                    for (int i = 0; i < 3; i++) {
+                        rCtx.cascadeShadowMatrices[i] =
+                            getCascadeMatrix(*rCtx.cam, lightForward, frustumMatrices[i], rCtx.cascadeTexelsPerUnit[i]);
+                    }
                 }
             });
 
