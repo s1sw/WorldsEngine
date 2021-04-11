@@ -487,6 +487,7 @@ namespace lg {
                 glm::vec3 rayCenter = worlds::px2glm(fenderPose.p) + glm::vec3{ 0.0f, 0.4f, 0.0f };
 
                 worlds::RaycastHitInfo rhi;
+
                 if (worlds::raycast(rayCenter + (left * 0.25f), left, 0.4f, &rhi)) {
                     wallPresent = true;
                     wallNormal = rhi.normal;
@@ -494,12 +495,12 @@ namespace lg {
                     wallNormal = rhi.normal;
                     wallPresent = true;
                 }
+
                 static worlds::ConVar jumpForce{ "jumpForce", "5.0" };
                 static worlds::ConVar wallJumpForce{ "wallJumpForce", "10.0" };
                 if (lpc.grounded) {
                     locosphereActor->addForce(physx::PxVec3{ 0.0f, jumpForce.getFloat(), 0.0f }, physx::PxForceMode::eVELOCITY_CHANGE);
                     fenderActor->addForce(physx::PxVec3{ 0.0f, jumpForce.getFloat(), 0.0f }, physx::PxForceMode::eVELOCITY_CHANGE);
-
                 } else if (wallPresent) {
                     wallNormal += glm::vec3{ 0.0f, 1.0f, 0.0f };
                     wallNormal = glm::normalize(wallNormal);
@@ -567,7 +568,8 @@ namespace lg {
                 }
 
                 glm::vec3 forward = camMat * glm::vec4(0.0f, 0.0f, 1.0f, 0.0f);
-                forward = camera->rotation * forward;
+                if (vrInterface) // account for snap turn in VR
+                    forward = camera->rotation * forward;
                 forward.y = 0.0f;
                 forward = glm::normalize(forward);
                 fenderPose.q = worlds::glm2px(glm::quatLookAt(forward, glm::vec3(0.0f, 1.0f, 0.0f)));
@@ -578,9 +580,9 @@ namespace lg {
                     nextCamPos = glm::vec3{0.0f};
 
                 if (!vrInterface) {
-                    // Make all non-VR users 1.75m tall
+                    // Make all non-VR users 1.65m tall
                     // Then subtract 5cm from that to account for eye offset
-                    nextCamPos += glm::vec3(0.0f, 1.7f, 0.0f);
+                    nextCamPos += glm::vec3(0.0f, 1.6f, 0.0f);
                 } else {
                     // Cancel out the movement of the head
                     glm::vec3 headPos = camera->rotation * worlds::getMatrixTranslation(vrInterface->getHeadTransform());
