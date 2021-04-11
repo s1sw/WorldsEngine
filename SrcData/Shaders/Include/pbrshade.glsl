@@ -12,6 +12,10 @@ float saturate(float x) {
     return clamp(x, 0.0, 1.0);
 }
 
+float length2(vec3 v) {
+    return dot(v, v);
+}
+
 LightShadeInfo calcLightShadeInfo(Light light, ShadeInfo shadeInfo, vec3 worldPos) {
     LightShadeInfo lsi;
     lsi.radiance = light.pack0.xyz;
@@ -22,7 +26,10 @@ LightShadeInfo calcLightShadeInfo(Light light, ShadeInfo shadeInfo, vec3 worldPo
         vec3 lightPos = light.pack2.xyz;
         lsi.L = lightPos - worldPos;
         // dot(L, L) = length(L) squared
-        lsi.radiance *= 1.0 / dot(lsi.L, lsi.L);
+        lsi.radiance *= 1.0 / length2(lsi.L);
+        if (length(lsi.radiance) < 0.02) {
+            lsi.radiance = vec3(0.0);
+        }
         lsi.L = normalize(lsi.L);
     } else if (lightType == LT_SPOT) {
         float cutoff = light.pack1.w;
@@ -34,6 +41,10 @@ LightShadeInfo calcLightShadeInfo(Light light, ShadeInfo shadeInfo, vec3 worldPo
         float theta = dot(lsi.L, normalize(light.pack1.xyz));
         vec3 lToFrag = lightPos - worldPos;
         lsi.radiance *= clamp((theta - outerCutoff) / (cutoff - outerCutoff), 0.0f, 1.0f) * (1.0 / dot(lToFrag, lToFrag));
+
+        if (length2(lsi.radiance) < 0.02 * 0.02) {
+            lsi.radiance = vec3(0.0);
+        }
     } else if (lightType == LT_SPHERE) {
         vec3 lightPos = light.pack2.xyz;
         float sphereRadius = light.pack1.w;

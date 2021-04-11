@@ -51,7 +51,7 @@ layout(binding = 0) uniform MultiVP {
 };
 
 layout(std140, binding = 1) uniform LightBuffer {
-    // (light count, yzw unused)
+    // (light count, yzw cascade texels per unit)
     vec4 pack0;
     mat4 dirShadowMatrices[3];
     Light lights[128];
@@ -249,13 +249,16 @@ int calculateCascade(out vec4 oShadowPos) {
         vec4 shadowPos = dirShadowMatrices[i] * inWorldPos;
         shadowPos.y = -shadowPos.y;
         vec2 coord = (shadowPos.xy * 0.5 + 0.5);
+        const float lThresh = (1.0 / 2048.0);
+        const float hThresh = 1.0 - lThresh;
 
-        if (coord.x > 0.0 && coord.x < 1.0 &&
-                coord.y > 0.0 && coord.y < 1.0) {
+        if (coord.x > lThresh && coord.x < hThresh &&
+                coord.y > lThresh && coord.y < hThresh) {
             oShadowPos = shadowPos;
             return i;
         }
     }
+    return 2;
 }
 
 vec3 shade(ShadeInfo si) {
@@ -280,15 +283,16 @@ vec3 shade(ShadeInfo si) {
 #ifdef HIGH_QUALITY_SHADOWS
                 const int shadowSamples = 2;
                 const float divVal = ((shadowSamples * 2)) * ((shadowSamples * 2));
+                float sampleRadius = pack0[cascadeSplit + 1] * 0.000025;
 
                 for (int x = -shadowSamples; x < shadowSamples; x++)
                     for (int y = -shadowSamples; y < shadowSamples; y++) {
-                        shadowIntensity += texture(shadowSampler, vec4(coord + vec2(x, y) * texelSize, float(cascadeSplit), depth)).x;
+                        shadowIntensity += texture(shadowSampler, vec4(coord + vec2(x, y) * sampleRadius, float(cascadeSplit), depth)).x;
                     }
 
                 shadowIntensity /= divVal;
 #else
-                shadowIntensity = texture(shadowSampler, vec3(coord, depth)).x;
+                shadowIntensity = texture(shadowSampler, vec4(coord, float(cascadeSplit), depth)).x;
 #endif
             }
         }
@@ -442,8 +446,6 @@ void main() {
     si.ao = ao;
 
     FragColor = vec4(shade(si) + mat.emissiveColor, finalAlpha);
-    //FragColor = vec4(vec3(inViewPos.z), finalAlpha);
-    //FragColor = vec4(viewDir, 1.0);
 
     if (ENABLE_PICKING && doPicking == 1) {
         handleEditorPicking();

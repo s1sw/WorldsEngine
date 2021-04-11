@@ -82,7 +82,6 @@ namespace worlds {
         bool pickThisFrame;
         bool awaitingResults;
         bool setEventNextFrame;
-        uint32_t nTextures;
         bool dsUpdateNeeded = false;
 
         void updateDescriptorSets(PassSetupCtx& ctx);

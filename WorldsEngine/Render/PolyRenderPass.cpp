@@ -74,9 +74,6 @@ namespace worlds {
                 }
             }
 
-            logMsg("updated descriptor set to have %u textures (previously had %u)", texSlots.size(), nTextures);
-            nTextures = texSlots.size();
-
             updater.beginImages(5, 0, vk::DescriptorType::eCombinedImageSampler);
             updater.image(*shadowSampler, shadowImage->image.imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
 
@@ -105,7 +102,6 @@ namespace worlds {
             updater.beginBuffers(0, 0, vk::DescriptorType::eUniformBuffer);
             updater.buffer(vpUB.buffer(), 0, sizeof(MultiVP));
 
-            logMsg("updating cubemap %i", lastSky);
             updater.beginImages(1, 0, vk::DescriptorType::eCombinedImageSampler);
             updater.image(*albedoSampler, cubemapSlots[lastSky].imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
 
@@ -128,13 +124,14 @@ namespace worlds {
         , pickY(0)
         , pickThisFrame(false)
         , awaitingResults(false)
-        , setEventNextFrame(false)
-        , nTextures{ 0 }{
+        , setEventNextFrame(false) {
 
     }
 
     static ConVar depthPrepass("r_depthPrepass", "0");
     static ConVar enableParallaxMapping("r_doParallaxMapping", "0");
+    static ConVar maxParallaxLayers("r_maxParallaxLayers", "32");
+    static ConVar minParallaxLayers("r_minParallaxLayers", "4");
 
     void PolyRenderPass::setup(PassSetupCtx& psCtx) {
         ZoneScoped;
@@ -311,8 +308,8 @@ namespace worlds {
 
             StandardSpecConsts spc {
                 enablePicking,
-                32.0f,
-                4.0f,
+                maxParallaxLayers.getFloat(),
+                minParallaxLayers.getFloat(),
                 (bool)enableParallaxMapping.getInt()
             };
 
@@ -353,8 +350,8 @@ namespace worlds {
             // early fragment tests with them, which leads to strange issues.
             StandardSpecConsts spc {
                 false,
-                32.0f,
-                4.0f,
+                maxParallaxLayers.getFloat(),
+                minParallaxLayers.getFloat(),
                 (bool)enableParallaxMapping.getInt()
             };
 
@@ -387,8 +384,8 @@ namespace worlds {
 
             StandardSpecConsts spc {
                 enablePicking,
-                32.0f,
-                4.0f,
+                maxParallaxLayers.getFloat(),
+                minParallaxLayers.getFloat(),
                 (bool)enableParallaxMapping.getInt()
             };
 
@@ -625,6 +622,9 @@ namespace worlds {
         });
 
         lightMapped->pack0.x = (float)lightIdx;
+        lightMapped->pack0.y = rCtx.cascadeTexelsPerUnit[0];
+        lightMapped->pack0.z = rCtx.cascadeTexelsPerUnit[1];
+        lightMapped->pack0.w = rCtx.cascadeTexelsPerUnit[2];
         lightMapped->shadowmapMatrices[0] = rCtx.cascadeShadowMatrices[0];
         lightMapped->shadowmapMatrices[1] = rCtx.cascadeShadowMatrices[1];
         lightMapped->shadowmapMatrices[2] = rCtx.cascadeShadowMatrices[2];
