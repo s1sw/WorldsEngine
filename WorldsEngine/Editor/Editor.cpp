@@ -59,7 +59,8 @@ namespace worlds {
     }
 
     Editor::Editor(entt::registry& reg, EngineInterfaces interfaces)
-        : currentTool(Tool::Translate)
+        : active(true)
+        , currentTool(Tool::Translate)
         , reg(reg)
         , currentSelectedEntity(entt::null)
         , cam(*interfaces.mainCamera)
@@ -67,7 +68,6 @@ namespace worlds {
         , lookY(0.0f)
         , cameraSpeed(5.0f)
         , imguiMetricsOpen(false)
-        , active(true)
         , settings()
         , interfaces(interfaces)
         , inputManager(*interfaces.inputManager) {
@@ -227,6 +227,15 @@ namespace worlds {
                 warpAmount = glm::ivec2(0, windowSize.y);
                 inputManager.warpMouse(glm::ivec2(mousePos.x, mousePos.y + windowSize.y));
             }
+        }
+
+        if (reg.valid(currentSelectedEntity) && inputManager.keyPressed(SDL_SCANCODE_F)) {
+            auto& t = reg.get<Transform>(currentSelectedEntity);
+
+            glm::vec3 dirVec = glm::normalize(cam.position - t.position);
+            float dist = 5.0f;
+            cam.position = t.position + dirVec * dist;
+            cam.rotation = glm::quatLookAt(dirVec, glm::vec3{0.0f, 1.0f, 0.0f});
         }
     }
 
