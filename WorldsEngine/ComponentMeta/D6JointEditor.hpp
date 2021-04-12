@@ -110,7 +110,8 @@ namespace worlds {
 
                 if (!reg.valid(j.getTarget())) {
                     if (ImGui::Button("Set Connected Offset")) {
-                        auto p = dpa.actor->getGlobalPose();
+                        auto& t = reg.get<Transform>(ent);
+                        auto p = glm2px(t); 
                         j.pxJoint->setLocalPose(physx::PxJointActorIndex::eACTOR1, p);
                     }
                 }
