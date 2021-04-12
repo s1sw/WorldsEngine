@@ -8,23 +8,28 @@
 
 namespace worlds {
     struct ShadowmapPushConstants {
-        glm::mat4 vp;
         glm::mat4 model;
     };
 
+    struct CascadeMatrices {
+        glm::mat4 matrices[3];
+    };
 
     ShadowmapRenderPass::ShadowmapRenderPass(RenderTexture* shadowImage)
         : shadowImage(shadowImage) {
-
     }
 
-    void ShadowmapRenderPass::setup(PassSetupCtx& psCtx) {
-        ZoneScoped;
-        auto& ctx = psCtx.vkCtx;
-        shadowmapRes = ctx.graphicsSettings.shadowmapRes;
+    void ShadowmapRenderPass::createDescriptorSet(VulkanHandles& ctx) {
         vku::DescriptorSetLayoutMaker dslm;
+        dslm.buffer(0, vk::DescriptorType::eUniformBuffer, vk::ShaderStageFlagBits::eVertex, 1);
         dsl = dslm.createUnique(ctx.device);
 
+        vku::DescriptorSetMaker dsm;
+        dsm.layout(*dsl);
+        ds = std::move(dsm.createUnique(ctx.device, ctx.descriptorPool)[0]);
+    }
+
+    void ShadowmapRenderPass::createRenderPass(VulkanHandles& ctx) {
         vku::RenderpassMaker rPassMaker;
 
         rPassMaker.attachmentBegin(vk::Format::eD32Sfloat);
@@ -40,7 +45,26 @@ namespace worlds {
         rPassMaker.dependencyDstStageMask(vk::PipelineStageFlagBits::eLateFragmentTests);
         rPassMaker.dependencyDstAccessMask(vk::AccessFlagBits::eDepthStencilAttachmentRead | vk::AccessFlagBits::eDepthStencilAttachmentWrite);
 
+        vk::RenderPassMultiviewCreateInfo multiviewCI;
+        uint32_t viewMask = 0b00000111;
+
+        multiviewCI.subpassCount = 1;
+        multiviewCI.pViewMasks = &viewMask;
+        multiviewCI.correlationMaskCount = 1;
+        multiviewCI.pCorrelationMasks = &viewMask;
+
+        rPassMaker.setPNext(&multiviewCI);
+
         renderPass = rPassMaker.createUnique(ctx.device);
+    }
+
+    void ShadowmapRenderPass::setup(PassSetupCtx& psCtx) {
+        ZoneScoped;
+        auto& ctx = psCtx.vkCtx;
+        shadowmapRes = ctx.graphicsSettings.shadowmapRes;
+
+        createDescriptorSet(ctx);
+        createRenderPass(ctx);
 
         AssetID vsID = g_assetDB.addOrGetExisting("Shaders/shadowmap.vert.spv");
         AssetID fsID = g_assetDB.addOrGetExisting("Shaders/shadowmap.frag.spv");
@@ -62,25 +86,27 @@ namespace worlds {
 
         pipeline = pm.createUnique(ctx.device, ctx.pipelineCache, *pipelineLayout, *renderPass);
 
-        for (int i = 0; i < 3; i++) {
-            auto info = shadowImage->image.info();
-            vk::ImageViewCreateInfo ivci;
-            ivci.image = shadowImage->image.image();
-            ivci.viewType = vk::ImageViewType::e2D;
-            ivci.format = shadowImage->image.format();
-            ivci.components = { vk::ComponentSwizzle::eR, vk::ComponentSwizzle::eG, vk::ComponentSwizzle::eB, vk::ComponentSwizzle::eA };
-            ivci.subresourceRange = vk::ImageSubresourceRange{ shadowImage->aspectFlags, 0, info.mipLevels, (uint32_t)i, 1 };
-            ctx.device.createImageView(&ivci, nullptr, &shadowImageViews[i]);
+        auto attachment = shadowImage->image.imageView();
 
-            std::array<vk::ImageView, 1> shadowmapAttachments = { shadowImageViews[i] };
-            vk::FramebufferCreateInfo fci;
-            fci.attachmentCount = (uint32_t)shadowmapAttachments.size();
-            fci.pAttachments = shadowmapAttachments.data();
-            fci.width = fci.height = shadowmapRes;
-            fci.renderPass = *renderPass;
-            fci.layers = 1;
-            shadowFb[i] = ctx.device.createFramebufferUnique(fci);
-        }
+        vk::FramebufferCreateInfo fci;
+        fci.attachmentCount = 1;
+        fci.pAttachments = &attachment;
+        fci.width = fci.height = shadowmapRes;
+        fci.renderPass = *renderPass;
+        fci.layers = 1;
+        shadowFb = ctx.device.createFramebufferUnique(fci);
+
+        matrixBuffer = vku::UniformBuffer {
+            ctx.device, ctx.allocator, sizeof(CascadeMatrices), VMA_MEMORY_USAGE_CPU_TO_GPU, "Cascade Matrices"
+        };
+
+        matricesMapped = (CascadeMatrices*)matrixBuffer.map(ctx.device);
+
+        vku::DescriptorSetUpdater dsu;
+        dsu.beginDescriptorSet(*ds);
+        dsu.beginBuffers(0, 0, vk::DescriptorType::eUniformBuffer);
+        dsu.buffer(matrixBuffer.buffer(), 0, sizeof(CascadeMatrices));
+        dsu.update(ctx.device);
     }
 
     void ShadowmapRenderPass::execute(RenderCtx& ctx) {
@@ -88,74 +114,81 @@ namespace worlds {
         ZoneScoped;
         TracyVkZone((*ctx.tracyContexts)[ctx.imageIndex], *ctx.cmdBuf, "Shadowmap");
 #endif
-        for (int cascadeIdx = 0; cascadeIdx < 3; cascadeIdx++) {
-            vk::ClearDepthStencilValue clearDepthValue{ 1.0f, 0 };
-            std::array<vk::ClearValue, 1> clearColours{ clearDepthValue };
+        matrixBuffer.barrier(
+            ctx.cmdBuf, vk::PipelineStageFlagBits::eHost, vk::PipelineStageFlagBits::eVertexShader,
+            vk::DependencyFlagBits::eByRegion, vk::AccessFlagBits::eHostWrite, vk::AccessFlagBits::eUniformRead,
+            VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED);
 
-            vk::RenderPassBeginInfo rpbi;
-
-            rpbi.renderPass = *renderPass;
-            rpbi.framebuffer = *shadowFb[cascadeIdx];
-            rpbi.renderArea = vk::Rect2D{ {0, 0}, {shadowmapRes, shadowmapRes} };
-            rpbi.clearValueCount = (uint32_t)clearColours.size();
-            rpbi.pClearValues = clearColours.data();
-
-            auto cmdBuf = ctx.cmdBuf;
-            Camera& cam = *ctx.cam;
-            entt::registry& reg = ctx.reg;
-
-            cmdBuf.beginRenderPass(rpbi, vk::SubpassContents::eInline);
-            cmdBuf.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline);
-
-            glm::mat4 shadowmapMatrix = ctx.cascadeShadowMatrices[cascadeIdx];
-
-            Frustum frustum;
-            frustum.fromVPMatrix(shadowmapMatrix);
-
-            reg.view<Transform, WorldObject>().each([&](auto ent, Transform& transform, WorldObject& obj) {
-                auto meshPos = ctx.loadedMeshes.find(obj.mesh);
-
-                if (meshPos == ctx.loadedMeshes.end()) {
-                    // Haven't loaded the mesh yet
-                    return;
-                }
-
-                float scaleMax = glm::max(transform.scale.x, glm::max(transform.scale.y, transform.scale.z));
-                if (!frustum.containsSphere(transform.position, meshPos->second.sphereRadius * scaleMax)) {
-                    ctx.dbgStats->numCulledObjs++;
-                    return;
-                }
-
-                ShadowmapPushConstants spc;
-                spc.model = transform.getMatrix();
-                spc.vp = shadowmapMatrix;
-
-                cmdBuf.pushConstants<ShadowmapPushConstants>(*pipelineLayout, vk::ShaderStageFlagBits::eVertex, 0, spc);
-                cmdBuf.bindVertexBuffers(0, meshPos->second.vb.buffer(), vk::DeviceSize(0));
-                cmdBuf.bindIndexBuffer(meshPos->second.ib.buffer(), 0, meshPos->second.indexType);
-                cmdBuf.drawIndexed(meshPos->second.indexCount, 1, 0, 0, 0);
-                ctx.dbgStats->numDrawCalls++;
-            });
-
-            reg.view<Transform, ProceduralObject>().each([&](auto ent, Transform& transform, ProceduralObject& obj) {
-                if (!obj.visible) return;
-                glm::mat4 model = transform.getMatrix();
-                glm::mat4 mvp = shadowmapMatrix * model;
-                cmdBuf.pushConstants<glm::mat4>(*pipelineLayout, vk::ShaderStageFlagBits::eVertex, 0, mvp);
-                cmdBuf.bindVertexBuffers(0, obj.vb.buffer(), vk::DeviceSize(0));
-                cmdBuf.bindIndexBuffer(obj.ib.buffer(), 0, obj.indexType);
-                cmdBuf.drawIndexed(obj.indexCount, 1, 0, 0, 0);
-                ctx.dbgStats->numDrawCalls++;
-            });
-
-            cmdBuf.endRenderPass();
+        for (int i = 0; i < 3; i++) {
+            matricesMapped->matrices[i] = ctx.cascadeShadowMatrices[i];
         }
+
+        vk::ClearDepthStencilValue clearDepthValue{ 1.0f, 0 };
+        std::array<vk::ClearValue, 1> clearColours{ clearDepthValue };
+
+        vk::RenderPassBeginInfo rpbi;
+
+        rpbi.renderPass = *renderPass;
+        rpbi.framebuffer = *shadowFb;
+        rpbi.renderArea = vk::Rect2D{ {0, 0}, {shadowmapRes, shadowmapRes} };
+        rpbi.clearValueCount = (uint32_t)clearColours.size();
+        rpbi.pClearValues = clearColours.data();
+
+        auto cmdBuf = ctx.cmdBuf;
+        Camera& cam = *ctx.cam;
+        entt::registry& reg = ctx.reg;
+
+        cmdBuf.beginRenderPass(rpbi, vk::SubpassContents::eInline);
+        cmdBuf.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline);
+        cmdBuf.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 0, *ds, nullptr);
+
+        // cull using the outermost cascade matrix, as it includes the inner cascades
+        glm::mat4 shadowmapMatrix = ctx.cascadeShadowMatrices[2];
+        Frustum frustum;
+        frustum.fromVPMatrix(shadowmapMatrix);
+
+        reg.view<Transform, WorldObject>().each([&](auto ent, Transform& transform, WorldObject& obj) {
+            auto meshPos = ctx.loadedMeshes.find(obj.mesh);
+
+            if (meshPos == ctx.loadedMeshes.end()) {
+                // Haven't loaded the mesh yet
+                return;
+            }
+
+            float scaleMax = glm::max(transform.scale.x, glm::max(transform.scale.y, transform.scale.z));
+            if (!frustum.containsSphere(transform.position, meshPos->second.sphereRadius * scaleMax)) {
+                ctx.dbgStats->numCulledObjs++;
+                return;
+            }
+
+            ShadowmapPushConstants spc;
+            spc.model = transform.getMatrix();
+
+            cmdBuf.pushConstants<ShadowmapPushConstants>(*pipelineLayout, vk::ShaderStageFlagBits::eVertex, 0, spc);
+            cmdBuf.bindVertexBuffers(0, meshPos->second.vb.buffer(), vk::DeviceSize(0));
+            cmdBuf.bindIndexBuffer(meshPos->second.ib.buffer(), 0, meshPos->second.indexType);
+            cmdBuf.drawIndexed(meshPos->second.indexCount, 1, 0, 0, 0);
+            ctx.dbgStats->numDrawCalls++;
+        });
+
+        reg.view<Transform, ProceduralObject>().each([&](auto ent, Transform& transform, ProceduralObject& obj) {
+            if (!obj.visible) return;
+            glm::mat4 model = transform.getMatrix();
+            glm::mat4 mvp = shadowmapMatrix * model;
+            cmdBuf.pushConstants<glm::mat4>(*pipelineLayout, vk::ShaderStageFlagBits::eVertex, 0, mvp);
+            cmdBuf.bindVertexBuffers(0, obj.vb.buffer(), vk::DeviceSize(0));
+            cmdBuf.bindIndexBuffer(obj.ib.buffer(), 0, obj.indexType);
+            cmdBuf.drawIndexed(obj.indexCount, 1, 0, 0, 0);
+            ctx.dbgStats->numDrawCalls++;
+        });
+
+        cmdBuf.endRenderPass();
 
         shadowImage->image.setCurrentLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
     }
 
     ShadowmapRenderPass::~ShadowmapRenderPass() {
-        for (int i = 0; i < 3; i++)
-            shadowFb[i].getOwner().destroyImageView(shadowImageViews[i]);
+        // EW EW EW EW EW EW EW
+        matrixBuffer.unmap(shadowFb.getOwner());
     }
 }
