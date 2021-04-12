@@ -8,10 +8,6 @@ struct LightShadeInfo {
     float lightDist;
 };
 
-float saturate(float x) {
-    return clamp(x, 0.0, 1.0);
-}
-
 float length2(vec3 v) {
     return dot(v, v);
 }
@@ -103,8 +99,11 @@ vec3 calculateLighting(Light light, ShadeInfo shadeInfo, vec3 worldPos) {
     float cosLi = max(0.0f, dot(norm, lsi.L));
 
 #ifdef BLINN_PHONG
+    float roughness = shadeInfo.roughness;
+    float metallic = shadeInfo.metallic;
+    vec3 albedoCol = shadeInfo.albedoColor;
     float specIntensity = pow(cosLh, (1.0 / max(roughness, 0.001)) * 50.0) * (1.0 - (roughness * roughness));
-    return (vec3(specIntensity) * radiance) + (1.0 - metallic) * (albedoColor * radiance * cosLi);
+    return (vec3(specIntensity) * lsi.radiance) + (1.0 - metallic) * (albedoCol * lsi.radiance * cosLi);
 #else
     float cosLo = max(0.0f, dot(norm, shadeInfo.viewDir));
 
