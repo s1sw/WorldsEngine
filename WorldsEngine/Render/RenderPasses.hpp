@@ -7,6 +7,7 @@ namespace worlds {
     struct MultiVP;
     struct LightUB;
     struct ModelMatrices;
+    struct VulkanHandles;
     class RenderTexture;
     class Swapchain;
     class VKRenderer;
@@ -100,19 +101,24 @@ namespace worlds {
         virtual ~PolyRenderPass();
     };
 
+    struct CascadeMatrices;
     class ShadowmapRenderPass {
     private:
         vk::UniqueRenderPass renderPass;
         vk::UniquePipeline pipeline;
         vk::UniquePipelineLayout pipelineLayout;
         vk::UniqueDescriptorSetLayout dsl;
+        vk::UniqueDescriptorSet ds;
         RenderTexture* shadowImage;
-        vk::UniqueFramebuffer shadowFb[3];
+        vk::UniqueFramebuffer shadowFb;
         vk::ShaderModule shadowVertexShader;
         vk::ShaderModule shadowFragmentShader;
+        vku::UniformBuffer matrixBuffer;
         uint32_t shadowmapRes;
+        CascadeMatrices* matricesMapped;
 
-        vk::ImageView shadowImageViews[3];
+        void createRenderPass(VulkanHandles&);
+        void createDescriptorSet(VulkanHandles&);
     public:
         ShadowmapRenderPass(RenderTexture* shadowImage);
         void setup(PassSetupCtx& ctx);
