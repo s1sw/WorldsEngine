@@ -14,7 +14,7 @@ namespace worlds {
             : position(0.0f)
             , rotation()
             , near(0.01f)
-            , far(2500.0f)
+            , far(10000.0f)
             , verticalFOV(1.25f) {
         }
         glm::vec3 position;
@@ -35,6 +35,10 @@ namespace worlds {
         // returns the non-reverse Z projection matrix
         glm::mat4 getProjectionMatrixZO(float aspect) {
             return glm::infinitePerspective(verticalFOV, aspect, near);
+        }
+
+        glm::mat4 getProjectionMatrixZONonInfinite(float aspect) {
+            return glm::perspective(verticalFOV, aspect, near, far);
         }
 
         private:
