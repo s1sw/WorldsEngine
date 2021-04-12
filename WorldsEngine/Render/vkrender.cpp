@@ -981,7 +981,7 @@ void VKRenderer::writeCmdBuf(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageInde
             // frustum 0: near -> 40m
             // frustum 1: 40m  -> 100m
             // frustum 2: 100m -> 400m
-            float splits[4] = { cam.near, 60.0f, 150.0f, 400.0f };
+            float splits[4] = { cam.near, 40.0f, 125.0f, 375.0f };
             if (!enableVR) {
                 for (int i = 1; i < 4; i++) {
                     frustumMatrices[i - 1] = glm::perspective(cam.verticalFOV, aspect, splits[i - 1], splits[i]);
@@ -1817,6 +1817,8 @@ VKRenderer::~VKRenderer() {
 
         brdfLut.destroy();
         loadedMeshes.clear();
+
+        delete shadowmapPass;
 
         delete imguiImage;
         delete shadowmapImage;
