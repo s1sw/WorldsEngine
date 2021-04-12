@@ -115,9 +115,42 @@ namespace worlds {
 
         currentSelectedEntity = entity;
         // A null entity means we should deselect the current entity
-        if (!reg.valid(entity)) return;
+        if (!reg.valid(entity)) {
+            for (auto ent : selectedEntities) {
+                reg.remove_if_exists<UseWireframe>(ent);
+            }
+            selectedEntities.clear();
+            return;
+        }
 
         reg.emplace<UseWireframe>(currentSelectedEntity);
+    }
+
+    void Editor::multiSelect(entt::entity entity) {
+        if (!reg.valid(entity)) return;
+
+        if (!reg.valid(currentSelectedEntity)) {
+            select(entity);
+            return;
+        }
+
+        if (entity == currentSelectedEntity) {
+            if (selectedEntities.numElements() == 0) {
+                select(entt::null);
+            } else {
+                select(selectedEntities[0]);
+                selectedEntities.removeAt(0);
+            }
+            return;
+        }
+
+        if (selectedEntities.contains(entity)) {
+            selectedEntities.removeValue(entity);
+            reg.remove_if_exists<UseWireframe>(entity);
+        } else {
+            reg.emplace<UseWireframe>(entity);
+            selectedEntities.add(entity);
+        }
     }
 
     ImVec2 convVec(glm::vec2 gVec) {
@@ -464,8 +497,8 @@ namespace worlds {
                 ImGuizmo::SetDrawlist();
 
                 glm::mat4 view = cam.getViewMatrix();
-                // We have to explicitly get the non-reversed Z matrix here otherwise ImGuizmo freaks out.
-                glm::mat4 proj = cam.getProjectionMatrixZO((float)wSize.x / (float)wSize.y);
+                // Get a relatively normal projection matrix so ImGuizmo doesn't break.
+                glm::mat4 proj = cam.getProjectionMatrixZONonInfinite((float)wSize.x / (float)wSize.y);
 
                 glm::mat4 tfMtx = selectedTransform.getMatrix();
                 glm::vec3 snap{ 0.0f };
@@ -483,10 +516,13 @@ namespace worlds {
 
                 static float bounds[6] { -1.0f, -1.0f, -1.0f, 1.0f, 1.0f, 1.0f };
 
+                glm::mat4 deltaMatrix{1.0f};
+
                 ImGuizmo::Manipulate(glm::value_ptr(view), glm::value_ptr(proj),
                     toolToOp(currentTool), toolLocalSpace ? ImGuizmo::MODE::LOCAL : ImGuizmo::MODE::WORLD,
-                    glm::value_ptr(tfMtx), nullptr, glm::value_ptr(snap),
+                    glm::value_ptr(tfMtx), glm::value_ptr(deltaMatrix), glm::value_ptr(snap),
                     currentTool == Tool::Bounds ? bounds : nullptr, glm::value_ptr(snap));
+
                 glm::vec3 scale;
                 glm::quat rotation;
                 glm::vec3 translation;
@@ -518,6 +554,11 @@ namespace worlds {
                     break;
                 default:
                     break;
+                }
+
+                for (auto ent : selectedEntities) {
+                    auto& msTransform = reg.get<Transform>(ent);
+                    msTransform.fromMatrix(deltaMatrix * msTransform.getMatrix());
                 }
 
                 if (inputManager.ctrlHeld() &&
@@ -557,7 +598,11 @@ namespace worlds {
                     if ((uint32_t)picked == UINT32_MAX)
                         picked = entt::null;
 
-                    select(picked);
+                    if (!inputManager.shiftHeld()) {
+                        select(picked);
+                    } else {
+                        multiSelect(picked);
+                    }
                 }
             }
         }

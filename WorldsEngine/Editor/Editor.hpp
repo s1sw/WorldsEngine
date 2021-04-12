@@ -6,6 +6,7 @@
 #include "../Core/IGameEventHandler.hpp"
 #include "UITextureManager.hpp"
 #include <deque>
+#include <slib/List.hpp>
 
 struct VkDescriptorSet_T;
 typedef VkDescriptorSet_T* VkDescriptorSet;
@@ -100,6 +101,7 @@ namespace worlds {
     public:
         Editor(entt::registry& reg, EngineInterfaces interfaces);
         void select(entt::entity entity);
+        void multiSelect(entt::entity entity);
         void update(float deltaTime);
         void activateTool(Tool newTool);
         entt::entity getSelectedEntity() { return currentSelectedEntity; }
@@ -113,6 +115,7 @@ namespace worlds {
         Tool currentTool;
         bool toolLocalSpace = false;
         entt::registry& reg;
+        slib::List<entt::entity> selectedEntities;
         entt::entity currentSelectedEntity;
         Camera& cam;
         Transform originalObjectTransform;
