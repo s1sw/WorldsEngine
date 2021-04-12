@@ -1,14 +1,14 @@
 import "worlds_engine/entity" for Entity
 import "worlds_engine/math_types" for Vec3
-import "random" for Random 
+import "random" for Random
 
 var currentTarget = Vec3.new(0, 0, 0)
 var targetInitialized = false
 var lastErr = Vec3.new(0, 0, 0)
 var timer = 0.0
 var rand = Random.new(1337)
-var transform = null 
-var dpa = null 
+var transform = null
+var dpa = null
 
 var onStart = Fn.new{|entity|
     rand = Random.new(entity.getId() + 1337)
@@ -20,7 +20,7 @@ var onSimulate = Fn.new{|entity, deltaTime|
     if (!targetInitialized) {
         currentTarget = transform.getPosition() + Vec3.new(0, 0, 20)
         targetInitialized = true
-        System.print("set target to %(currentTarget.x), %(currentTarget.y), %(currentTarget.z)") 
+        System.print("set target to %(currentTarget.x), %(currentTarget.y), %(currentTarget.z)")
     }
 
     timer = timer + deltaTime
