@@ -3,6 +3,8 @@
 #extension GL_EXT_multiview : enable
 #define MAX_SHADOW_LIGHTS 16
 #define HIGH_QUALITY_SHADOWS
+//#define BLINN_PHONG
+#include <saturate.glsl>
 #include <light.glsl>
 #include <material.glsl>
 #include <pbrutil.glsl>
@@ -281,9 +283,9 @@ vec3 shade(ShadeInfo si) {
                 float texelSize = 1.0 / textureSize(shadowSampler, 0).x;
                 shadowIntensity = 0.0;
 #ifdef HIGH_QUALITY_SHADOWS
-                const int shadowSamples = 2;
+                const int shadowSamples = 1;
                 const float divVal = ((shadowSamples * 2)) * ((shadowSamples * 2));
-                float sampleRadius = pack0[cascadeSplit + 1] * 0.000025;
+                float sampleRadius = pack0[cascadeSplit + 1] * 0.0000125;
 
                 for (int x = -shadowSamples; x < shadowSamples; x++)
                     for (int y = -shadowSamples; y < shadowSamples; y++) {
@@ -301,6 +303,14 @@ vec3 shade(ShadeInfo si) {
 
     vec3 ambient = calcAmbient(si.f0, si.roughness, si.viewDir, si.metallic, si.albedoColor, si.normal);
     return lo + (ambient * si.ao);
+}
+
+float getAntiAliasedRoughness(float inRoughness, vec3 normal) {
+    vec3 ddxN = dFdx(normal);
+    vec3 ddyN = dFdy(normal);
+
+    float geoRoughness = pow(saturate(max(dot(ddxN.xyz, ddxN.xyz), dot(ddyN.xyz, ddyN.xyz))), 0.333);
+    return max(inRoughness, geoRoughness);
 }
 
 void main() {
@@ -413,7 +423,7 @@ void main() {
             FragColor = vec4(0.0, 0.0, 0.5, 1.0);
             return;
         }
-        vec3 nMap = decodeNormal(texture(tex2dSampler[mat.normalTexIdx], tCoord).xy);
+        vec3 nMap = decodeNormal(textureLod(tex2dSampler[mat.normalTexIdx], tCoord, 0).xy);
         FragColor = vec4(nMap, 1.0);
         return;
     } else if ((miscFlag & 2048) == 2048) {
@@ -433,12 +443,16 @@ void main() {
         finalAlpha = (finalAlpha - alphaCutoff) / max(fwidth(finalAlpha), 0.0001) + 0.5;
     }
 
-    if (finalAlpha == 0.0) discard;
+    //if (finalAlpha == 0.0) discard;
 
     ShadeInfo si;
     si.f0 = f0;
     si.metallic = metallic;
+#if 0
+    si.roughness = getAntiAliasedRoughness(roughness, normal);
+#else
     si.roughness = roughness;
+#endif
     si.albedoColor = albedoCol.rgb;
     si.normal = normal;
     si.alphaCutoff = alphaCutoff;
