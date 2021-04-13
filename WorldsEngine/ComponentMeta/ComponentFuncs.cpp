@@ -388,6 +388,7 @@ namespace worlds {
 
     template <typename T>
     void editPhysicsShapes(T& actor) {
+        ImGui::Checkbox("Scale Shapes", &actor.scaleShapes);
         if (ImGui::Button("Load Collider JSON")) {
             ImGui::OpenPopup("Collider JSON");
         }
@@ -477,7 +478,7 @@ namespace worlds {
 
             g_scene->addActor(*actor);
 
-            updatePhysicsShapes(newPhysActor);
+            updatePhysicsShapes(newPhysActor, t.scale);
         }
 
         void edit(entt::entity ent, entt::registry& reg, Editor* ed) override {
@@ -487,7 +488,7 @@ namespace worlds {
                     reg.remove<PhysicsActor>(ent);
                 } else {
                     if (ImGui::Button("Update Collisions")) {
-                        updatePhysicsShapes(pa);
+                        updatePhysicsShapes(pa, reg.get<Transform>(ent).scale);
                     }
 
                     editPhysicsShapes(pa);
@@ -565,7 +566,9 @@ namespace worlds {
                 }
             }
 
-            updatePhysicsShapes(pa);
+            auto& t = reg.get<Transform>(ent);
+
+            updatePhysicsShapes(pa, t.scale);
         }
     };
 
@@ -595,7 +598,7 @@ namespace worlds {
 
             g_scene->addActor(*actor);
 
-            updatePhysicsShapes(newPhysActor);
+            updatePhysicsShapes(newPhysActor, t.scale);
         }
 
         void edit(entt::entity ent, entt::registry& reg, Editor* ed) override {
@@ -606,7 +609,8 @@ namespace worlds {
                 } else {
                     ImGui::DragFloat("Mass", &pa.mass);
                     if (ImGui::Button("Update Collisions##DPA")) {
-                        updatePhysicsShapes(pa);
+                        auto& t = reg.get<Transform>(ent);
+                        updatePhysicsShapes(pa, t.scale);
                         physx::PxRigidBodyExt::setMassAndUpdateInertia(*((physx::PxRigidDynamic*)pa.actor), pa.mass);
                     }
 
@@ -689,7 +693,8 @@ namespace worlds {
                 }
             }
 
-            updatePhysicsShapes(pa);
+            auto& t = reg.get<Transform>(ent);
+            updatePhysicsShapes(pa, t.scale);
             updateMass(pa);
         }
     };
