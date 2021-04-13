@@ -10,20 +10,21 @@
 #include <pbrutil.glsl>
 #include <pbrshade.glsl>
 #include <parallax.glsl>
+#include <shadercomms.glsl>
+
+layout(location = 0) VARYING(vec4, WorldPos);
+layout(location = 1) VARYING(vec3, Normal);
+layout(location = 2) VARYING(vec3, Tangent);
+layout(location = 3) VARYING(vec2, UV);
+layout(location = 4) VARYING(float, Depth);
+layout(location = 5) VARYING(flat uint, UvDir);
+layout(location = 6) VARYING(vec3, ViewPos);
 
 #ifdef FRAGMENT
 #ifdef EFT
 layout(early_fragment_tests) in;
 #endif
 layout(location = 0) out vec4 FragColor;
-
-layout(location = 0) in vec4 inWorldPos;
-layout(location = 1) in vec3 inNormal;
-layout(location = 2) in vec3 inTangent;
-layout(location = 3) in vec2 inUV;
-layout(location = 4) in float inDepth;
-layout(location = 5) in flat uint inUvDir;
-layout(location = 6) in vec3 inViewPos;
 
 layout(constant_id = 0) const bool ENABLE_PICKING = false;
 layout(constant_id = 1) const float PARALLAX_MAX_LAYERS = 32.0;
@@ -36,14 +37,6 @@ layout(location = 0) in vec3 inPosition;
 layout(location = 1) in vec3 inNormal;
 layout(location = 2) in vec3 inTangent;
 layout(location = 3) in vec2 inUV;
-
-layout(location = 0) out vec4 outWorldPos;
-layout(location = 1) out vec3 outNormal;
-layout(location = 2) out vec3 outTangent;
-layout(location = 3) out vec2 outUV;
-layout(location = 4) out float outDepth;
-layout(location = 5) out flat uint outUvDir;
-layout(location = 6) out vec3 outViewPos;
 #endif
 
 layout(binding = 0) uniform MultiVP {
