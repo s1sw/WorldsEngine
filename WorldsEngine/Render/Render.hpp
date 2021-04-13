@@ -366,17 +366,6 @@ namespace worlds {
 
         std::unordered_map<RTTPassHandle, RTTPassInternal> rttPasses;
 
-        void createSwapchain(vk::SwapchainKHR oldSwapchain);
-        void createFramebuffers();
-        void createSCDependents();
-        void presentNothing(uint32_t imageIndex);
-        vku::ShaderModule loadShaderAsset(AssetID id);
-        void createInstance(const RendererInitInfo& initInfo);
-        void submitToOpenVR();
-        glm::mat4 getCascadeMatrix(Camera cam, glm::vec3 lightdir, glm::mat4 frustumMatrix, float& texelsPerUnit);
-        void writeCmdBuf(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageIndex, Camera& cam, entt::registry& reg);
-        void reuploadMaterials();
-
         std::unordered_map<AssetID, LoadedMeshData> loadedMeshes;
         std::vector<TracyVkCtx> tracyContexts;
         std::unique_ptr<TextureSlots> texSlots;
@@ -405,6 +394,19 @@ namespace worlds {
         uint32_t frameIdx;
         ShadowmapRenderPass* shadowmapPass;
         void* rdocApi;
+
+        void createSwapchain(vk::SwapchainKHR oldSwapchain);
+        void createFramebuffers();
+        void createSCDependents();
+        void presentNothing(uint32_t imageIndex);
+        vku::ShaderModule loadShaderAsset(AssetID id);
+        void createInstance(const RendererInitInfo& initInfo);
+        void submitToOpenVR();
+        glm::mat4 getCascadeMatrix(Camera cam, glm::vec3 lightdir, glm::mat4 frustumMatrix, float& texelsPerUnit);
+        void calculateCascadeMatrices(entt::registry& world, RenderCtx& rCtx);
+        void writeCmdBuf(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageIndex, Camera& cam, entt::registry& reg);
+        void writePassCmds(RTTPassHandle pass, vk::CommandBuffer cmdBuf, entt::registry& world);
+        void reuploadMaterials();
     public:
         double time;
         VKRenderer(const RendererInitInfo& initInfo, bool* success);
