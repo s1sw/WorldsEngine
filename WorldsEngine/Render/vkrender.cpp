@@ -915,6 +915,76 @@ glm::mat4 VKRenderer::getCascadeMatrix(Camera cam, glm::vec3 lightDir, glm::mat4
 
 worlds::ConVar doGTAO{ "r_doGTAO", "1" };
 
+void VKRenderer::calculateCascadeMatrices(entt::registry& world, RenderCtx& rCtx) {
+    world.view<WorldLight, Transform>().each([&](auto, WorldLight& l, Transform& transform) {
+        glm::vec3 lightForward = transform.rotation * glm::vec3(0.0f, 0.0f, -1.0f);
+        if (l.type == LightType::Directional) {
+            glm::mat4 frustumMatrices[3];
+            float aspect = (float)rCtx.width / (float)rCtx.height;
+            // frustum 0: near -> 40m
+            // frustum 1: 40m  -> 100m
+            // frustum 2: 100m -> 400m
+            float splits[4] = { rCtx.cam->near, 40.0f, 125.0f, 375.0f };
+            if (!rCtx.enableVR) {
+                for (int i = 1; i < 4; i++) {
+                    frustumMatrices[i - 1] = glm::perspective(
+                        rCtx.cam->verticalFOV, aspect, 
+                        splits[i - 1], splits[i]
+                    );
+                }
+            } else {
+                OpenVRInterface* ovrInterface = static_cast<OpenVRInterface*>(vrInterface);
+                for (int i = 1; i < 4; i++) {
+                    frustumMatrices[i - 1] = ovrInterface->getProjMat(
+                        vr::EVREye::Eye_Left,
+                        splits[i - 1], splits[i]
+                    );
+                }
+            }
+
+            for (int i = 0; i < 3; i++) {
+                rCtx.cascadeShadowMatrices[i] =
+                    getCascadeMatrix(
+                        *rCtx.cam, lightForward, 
+                        frustumMatrices[i], rCtx.cascadeTexelsPerUnit[i]
+                    );
+            }
+        }
+    });
+}
+
+void VKRenderer::writePassCmds(RTTPassHandle pass, vk::CommandBuffer cmdBuf, entt::registry& world) {
+    auto& rtt = rttPasses.at(pass);
+    SlotArrays slotArrays { *texSlots, *cubemapSlots, *matSlots };
+    PassSetupCtx psc {
+        &materialUB, getVKCtx(), slotArrays,
+        (int)swapchain->images.size(), enableVR, &brdfLut, rtt.width, rtt.height };
+
+    RenderCtx rCtx{ cmdBuf, world, 0, rtt.cam, slotArrays, rtt.width, rtt.height, loadedMeshes };
+    rCtx.enableVR = false;
+    rCtx.viewPos = rtt.cam->position;
+    rCtx.dbgStats = &dbgStats;
+    rCtx.shadowImages = shadowImages;
+
+    if (rtt.enableShadows) {
+        calculateCascadeMatrices(world, rCtx);
+        shadowmapPass->prePass(psc, rCtx);
+        shadowmapPass->execute(rCtx);
+    }
+
+    rtt.prp->prePass(psc, rCtx);
+    rtt.prp->execute(rCtx);
+
+    if (doGTAO.getInt())
+        rtt.gtrp->execute(rCtx);
+
+    rtt.hdrTarget->image.barrier(cmdBuf,
+        vk::PipelineStageFlagBits::eColorAttachmentOutput, vk::PipelineStageFlagBits::eComputeShader,
+        vk::AccessFlagBits::eColorAttachmentWrite, vk::AccessFlagBits::eShaderRead);
+
+    rtt.trp->execute(rCtx);
+}
+
 void VKRenderer::writeCmdBuf(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageIndex, Camera& cam, entt::registry& reg) {
     ZoneScoped;
     SlotArrays slotArrays { *texSlots, *cubemapSlots, *matSlots };
@@ -955,7 +1025,7 @@ void VKRenderer::writeCmdBuf(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageInde
     if (clearMaterialIndices) {
         reg.view<WorldObject>().each([](entt::entity, WorldObject& wo) {
             memset(wo.materialIdx, ~0u, sizeof(wo.materialIdx));
-            });
+        });
         clearMaterialIndices = false;
     }
 
@@ -977,36 +1047,6 @@ void VKRenderer::writeCmdBuf(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageInde
         vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eColorAttachmentOutput,
         vk::AccessFlagBits::eTransferRead, vk::AccessFlagBits::eColorAttachmentWrite);
 
-    reg.view<WorldLight, Transform>().each([&](auto ent, WorldLight& l, Transform& transform) {
-        glm::vec3 lightForward = glm::normalize(transform.rotation * glm::vec3(0.0f, 0.0f, -1.0f));
-        if (l.type == LightType::Directional) {
-            glm::mat4 frustumMatrices[3];
-            float aspect = (float)renderWidth / (float)renderHeight;
-            // frustum 0: near -> 40m
-            // frustum 1: 40m  -> 100m
-            // frustum 2: 100m -> 400m
-            float splits[4] = { cam.near, 40.0f, 125.0f, 375.0f };
-            if (!enableVR) {
-                for (int i = 1; i < 4; i++) {
-                    frustumMatrices[i - 1] = glm::perspective(cam.verticalFOV, aspect, splits[i - 1], splits[i]);
-                }
-            } else {
-                OpenVRInterface* ovrInterface = static_cast<OpenVRInterface*>(vrInterface);
-                frustumMatrices[0] = ovrInterface->getProjMat(vr::EVREye::Eye_Left, 0.01f, 20.0f);
-                frustumMatrices[1] = ovrInterface->getProjMat(vr::EVREye::Eye_Left, 20.0f, 60.0f);
-                frustumMatrices[2] = ovrInterface->getProjMat(vr::EVREye::Eye_Left, 60.0f, 400.0f);
-            }
-
-            for (int i = 0; i < 3; i++) {
-                rCtx.cascadeShadowMatrices[i] =
-                    getCascadeMatrix(cam, lightForward, frustumMatrices[i], rCtx.cascadeTexelsPerUnit[i]);
-            }
-        }
-    });
-
-    shadowmapPass->prePass(psc, rCtx);
-    shadowmapPass->execute(rCtx);
-
     int numActivePasses = 0;
     for (auto& p : rttPasses) {
         if (!p.second.active) continue;
@@ -1019,30 +1059,18 @@ void VKRenderer::writeCmdBuf(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageInde
                 vk::AccessFlagBits::eShaderRead, vk::AccessFlagBits::eColorAttachmentWrite);
         }
 
-        auto& rpi = p.second;
-        rCtx.width = rpi.width;
-        rCtx.height = rpi.height;
-        if (rpi.cam)
-            rCtx.cam = rpi.cam;
-        else
-            rCtx.cam = &cam;
-        rCtx.viewPos = rCtx.cam->position;
-        rCtx.enableVR = p.second.isVr;
+        bool nullCam = p.second.cam == nullptr;
 
-        rpi.prp->prePass(psc, rCtx);
-        rpi.prp->execute(rCtx);
+        if (nullCam)
+            p.second.cam = &cam;
 
-        if (doGTAO.getInt())
-            rpi.gtrp->execute(rCtx);
+        writePassCmds(p.first, *cmdBuf, reg);
 
-        rpi.hdrTarget->image.barrier(*cmdBuf,
-            vk::PipelineStageFlagBits::eColorAttachmentOutput, vk::PipelineStageFlagBits::eComputeShader,
-            vk::AccessFlagBits::eColorAttachmentWrite, vk::AccessFlagBits::eShaderRead);
+        if (nullCam)
+            p.second.cam = nullptr;
 
-        rpi.trp->execute(rCtx);
-
-        if (!rpi.outputToScreen) {
-            rpi.sdrFinalTarget->image.setLayout(*cmdBuf,
+        if (!p.second.outputToScreen) {
+            p.second.sdrFinalTarget->image.setLayout(*cmdBuf,
                 vk::ImageLayout::eShaderReadOnlyOptimal,
                 vk::PipelineStageFlagBits::eColorAttachmentOutput, vk::PipelineStageFlagBits::eFragmentShader,
                 vk::AccessFlagBits::eColorAttachmentWrite, vk::AccessFlagBits::eShaderRead);
@@ -1721,53 +1749,7 @@ void VKRenderer::updatePass(RTTPassHandle handle, entt::registry& world) {
 
     vku::executeImmediately(*device, *commandPool, device->getQueue(graphicsQueueFamilyIdx, 0),
     [&](vk::CommandBuffer cmdBuf) {
-        SlotArrays slotArrays { *texSlots, *cubemapSlots, *matSlots };
-        PassSetupCtx psc {
-            &materialUB, getVKCtx(), slotArrays,
-            (int)swapchain->images.size(), enableVR, &brdfLut, rtt.width, rtt.height };
-
-        RenderCtx rCtx{ cmdBuf, world, 0, rtt.cam, slotArrays, rtt.width, rtt.height, loadedMeshes };
-        rCtx.enableVR = false;
-        rCtx.viewPos = rtt.cam->position;
-        rCtx.dbgStats = &dbgStats;
-        rCtx.shadowImages = shadowImages;
-
-        if (rtt.enableShadows) {
-            world.view<WorldLight, Transform>().each([&](auto ent, WorldLight& l, Transform& transform) {
-                glm::vec3 lightForward = glm::normalize(transform.rotation * glm::vec3(0.0f, 0.0f, -1.0f));
-                if (l.type == LightType::Directional) {
-                    glm::mat4 frustumMatrices[3];
-                    float aspect = (float)renderWidth / (float)renderHeight;
-                    float near = rCtx.cam->near;
-                    // frustum 0: near -> 40m
-                    // frustum 1: 40m  -> 100m
-                    // frustum 2: 100m -> 400m
-                    frustumMatrices[0] = glm::perspective(rCtx.cam->verticalFOV, aspect, near,      20.0f);
-                    frustumMatrices[1] = glm::perspective(rCtx.cam->verticalFOV, aspect, 20.0f,     60.0f);
-                    frustumMatrices[2] = glm::perspective(rCtx.cam->verticalFOV, aspect, 60.0f,    400.0f);
-
-                    for (int i = 0; i < 3; i++) {
-                        rCtx.cascadeShadowMatrices[i] =
-                            getCascadeMatrix(*rCtx.cam, lightForward, frustumMatrices[i], rCtx.cascadeTexelsPerUnit[i]);
-                    }
-                }
-            });
-
-            shadowmapPass->prePass(psc, rCtx);
-            shadowmapPass->execute(rCtx);
-        }
-
-        rtt.prp->prePass(psc, rCtx);
-        rtt.prp->execute(rCtx);
-
-        if (doGTAO.getInt())
-            rtt.gtrp->execute(rCtx);
-
-        rtt.hdrTarget->image.barrier(cmdBuf,
-            vk::PipelineStageFlagBits::eColorAttachmentOutput, vk::PipelineStageFlagBits::eComputeShader,
-            vk::AccessFlagBits::eColorAttachmentWrite, vk::AccessFlagBits::eShaderRead);
-
-        rtt.trp->execute(rCtx);
+        writePassCmds(handle, cmdBuf, world);
     });
 }
 

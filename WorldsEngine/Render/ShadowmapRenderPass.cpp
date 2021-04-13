@@ -148,10 +148,11 @@ namespace worlds {
         cmdBuf.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline);
         cmdBuf.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 0, *ds, nullptr);
 
-        // cull using the outermost cascade matrix, as it includes the inner cascades
-        glm::mat4 shadowmapMatrix = ctx.cascadeShadowMatrices[2];
-        Frustum frustum;
-        frustum.fromVPMatrix(shadowmapMatrix);
+        Frustum shadowFrustums[3];
+
+        for (int i = 0; i < 3; i++) {
+            shadowFrustums[i].fromVPMatrix(ctx.cascadeShadowMatrices[i]);
+        }
 
         reg.view<Transform, WorldObject>().each([&](auto ent, Transform& transform, WorldObject& obj) {
             auto meshPos = ctx.loadedMeshes.find(obj.mesh);
@@ -162,7 +163,14 @@ namespace worlds {
             }
 
             float scaleMax = glm::max(transform.scale.x, glm::max(transform.scale.y, transform.scale.z));
-            if (!frustum.containsSphere(transform.position, meshPos->second.sphereRadius * scaleMax)) {
+
+            bool visible = false;
+
+            for (int i = 0; i < 3; i++) {
+                visible |= shadowFrustums[i].containsSphere(transform.position, meshPos->second.sphereRadius * scaleMax);
+            }
+
+            if (!visible) {
                 ctx.dbgStats->numCulledObjs++;
                 return;
             }
@@ -180,8 +188,7 @@ namespace worlds {
         reg.view<Transform, ProceduralObject>().each([&](auto ent, Transform& transform, ProceduralObject& obj) {
             if (!obj.visible) return;
             glm::mat4 model = transform.getMatrix();
-            glm::mat4 mvp = shadowmapMatrix * model;
-            cmdBuf.pushConstants<glm::mat4>(*pipelineLayout, vk::ShaderStageFlagBits::eVertex, 0, mvp);
+            cmdBuf.pushConstants<glm::mat4>(*pipelineLayout, vk::ShaderStageFlagBits::eVertex, 0, model);
             cmdBuf.bindVertexBuffers(0, obj.vb.buffer(), vk::DeviceSize(0));
             cmdBuf.bindIndexBuffer(obj.ib.buffer(), 0, obj.indexType);
             cmdBuf.drawIndexed(obj.indexCount, 1, 0, 0, 0);
