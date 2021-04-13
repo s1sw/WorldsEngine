@@ -122,6 +122,7 @@ namespace worlds {
     public:
         ShadowmapRenderPass(RenderTexture* shadowImage);
         void setup(PassSetupCtx& ctx);
+        void prePass(PassSetupCtx& ctx, RenderCtx& rCtx);
         void execute(RenderCtx& ctx);
         virtual ~ShadowmapRenderPass();
     };
