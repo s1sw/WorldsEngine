@@ -623,8 +623,10 @@ namespace lg {
         locosphereMat->setFrictionCombineMode(physx::PxCombineMode::eMAX);
         wActor.physicsShapes.push_back(worlds::PhysicsShape::sphereShape(LOCOSPHERE_RADIUS, locosphereMat));
 
+        wActor.mass = 40.0f;
+        wActor.scaleShapes = false;
         worlds::updatePhysicsShapes(wActor);
-        physx::PxRigidBodyExt::setMassAndUpdateInertia(*actor, 40.0f);
+        worlds::updateMass(wActor);
 
         // Set up player fender and joint
         auto playerFender = registry.create();
@@ -634,6 +636,7 @@ namespace lg {
         auto fenderActor = worlds::g_physics->createRigidDynamic(physx::PxTransform{
                 worlds::glm2px(position + glm::vec3{0.0f ,0.4f, 0.0f}), physx::PxQuat{physx::PxIdentity} });
         auto& fenderWActor = registry.emplace<worlds::DynamicPhysicsActor>(playerFender, fenderActor);
+        fenderWActor.scaleShapes = false;
 
         worlds::g_scene->addActor(*fenderActor);
 
@@ -651,8 +654,10 @@ namespace lg {
         fenderShape.pos = glm::vec3(0.0f, -LOCOSPHERE_RADIUS - 0.03f, 0.0f);
         fenderWActor.physicsShapes.push_back(fenderShape);
 
+        fenderWActor.mass = 3.0f;
+
         worlds::updatePhysicsShapes(fenderWActor);
-        physx::PxRigidBodyExt::setMassAndUpdateInertia(*fenderActor, 3.0f);
+        worlds::updateMass(fenderWActor);
 
         auto& d6Comp = registry.emplace<worlds::D6Joint>(playerFender);
 
@@ -677,9 +682,7 @@ namespace lg {
         fenderJoint->setMotion(physx::PxD6Axis::eTWIST, physx::PxD6Motion::eFREE);
 
         fenderJoint->setConstraintFlag(physx::PxConstraintFlag::eCOLLISION_ENABLED, false);
-        fenderActor->setSolverIterationCounts(16, 4);
-        fenderJoint->setInvInertiaScale0(1.0f);
-        fenderJoint->setInvMassScale0(1.0f);
+        //fenderActor->setSolverIterationCounts(32, 8);
 
         logMsg("locosphere entity is %u", (uint32_t)playerLocosphere);
 

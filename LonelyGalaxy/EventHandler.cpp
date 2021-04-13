@@ -248,8 +248,12 @@ namespace lg {
     worlds::ConVar itCompDbg { "lg_itCompDbg", "0", "Shows physics shapes for grabbed objects." };
 
     void addShapeTensor(entt::registry& reg, worlds::PhysicsShape& shape, physx::IT::InertiaTensorComputer& itComp,
-            physx::PxTransform shapeTransform, physx::PxTransform handTransform, physx::PxTransform shapeWSTransform = physx::PxTransform{physx::PxIdentity}, bool showWS = false) {
+            physx::PxTransform shapeTransform, physx::PxTransform handTransform,
+            glm::vec3 scale,
+            physx::PxTransform shapeWSTransform = physx::PxTransform{physx::PxIdentity}, bool showWS = false) {
         physx::IT::InertiaTensorComputer shapeComp(false);
+
+        shapeTransform.p.multiply(worlds::glm2px(scale));
 
         physx::PxTransform wsTransform = handTransform * shapeTransform;
 
@@ -261,7 +265,7 @@ namespace lg {
                         worlds::g_assetDB.addOrGetExisting("Materials/dev.json"),
                         shape.type == worlds::PhysicsShapeType::Sphere ?
                         glm::vec3{shape.sphere.radius * 0.5f} :
-                        shape.box.halfExtents);
+                        shape.box.halfExtents * scale);
             } else {
                 worlds::createModelObject(reg, worlds::px2glm(wsTransform.p), worlds::px2glm(wsTransform.q),
                         worlds::g_assetDB.addOrGetExisting(shape.type == worlds::PhysicsShapeType::Sphere ?
@@ -269,16 +273,16 @@ namespace lg {
                         worlds::g_assetDB.addOrGetExisting("Materials/dev.json"),
                         shape.type == worlds::PhysicsShapeType::Sphere ?
                         glm::vec3{shape.sphere.radius * 0.5f} :
-                        shape.box.halfExtents);
+                        shape.box.halfExtents * scale);
             }
         }
 
         switch (shape.type) {
         case worlds::PhysicsShapeType::Sphere:
-            shapeComp.setSphere(shape.sphere.radius, &shapeTransform);
+            shapeComp.setSphere(shape.sphere.radius * glm::compAdd(scale) / 3.0f, &shapeTransform);
             break;
         case worlds::PhysicsShapeType::Box:
-            shapeComp.setBox(worlds::glm2px(shape.box.halfExtents), &shapeTransform);
+            shapeComp.setBox(worlds::glm2px(shape.box.halfExtents * scale), &shapeTransform);
             break;
         case worlds::PhysicsShapeType::Capsule:
             shapeComp.setCapsule(0, shape.capsule.radius, shape.capsule.height, &shapeTransform);
@@ -370,6 +374,7 @@ namespace lg {
 
                 if (registry.valid(pickUp) && registry.valid(ent)) {
                     Transform otherTf = worlds::px2glm(touch.actor->getGlobalPose());
+                    otherTf.scale = registry.get<Transform>(pickUp).scale;
                     auto* gripPoint = registry.try_get<GripPoint>(pickUp);
                     physHand.timeSinceGrabInitiated = 0.0f;
 
@@ -447,12 +452,14 @@ namespace lg {
 
                             auto handSpace = t.getInverse() * worldSpace;
 
-                            addShapeTensor(*reg, shape, itComp, handSpace, t, worldSpace, false);
+                            auto scale = otherDpa->scaleShapes ? otherTf.scale : glm::vec3{1.0f};
+
+                            addShapeTensor(*reg, shape, itComp, handSpace, t, scale, worldSpace, false);
                         }
 
                         for (auto& shape : dpa.physicsShapes) {
                             auto shapeT = physx::PxTransform(worlds::glm2px(shape.pos), worlds::glm2px(shape.rot));
-                            addShapeTensor(*reg, shape, itComp, shapeT, t);
+                            addShapeTensor(*reg, shape, itComp, shapeT, t, glm::vec3{1.0f});
                         }
 
                         itComp.scaleDensity((dpa.mass + otherDpa->mass) / itComp.getMass());

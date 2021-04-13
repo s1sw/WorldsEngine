@@ -41,7 +41,7 @@ namespace worlds {
     }
 
     template <typename T>
-    void updatePhysicsShapes(T& pa) {
+    void updatePhysicsShapes(T& pa, glm::vec3 scale = glm::vec3{1.0f}) {
         uint32_t nShapes = pa.actor->getNbShapes();
         physx::PxShape** buf = (physx::PxShape**)std::malloc(nShapes * sizeof(physx::PxShape*));
         pa.actor->getShapes(buf, nShapes);
@@ -59,7 +59,7 @@ namespace worlds {
             switch (ps.type) {
             case PhysicsShapeType::Box:
                 shape = g_physics->createShape(
-                    physx::PxBoxGeometry(glm2px(ps.box.halfExtents)), 
+                    physx::PxBoxGeometry(glm2px(ps.box.halfExtents * scale)),
                     *mat
                 );
                 break;
@@ -67,13 +67,13 @@ namespace worlds {
                 ps.sphere.radius = 0.5f;
             case PhysicsShapeType::Sphere:
                 shape = g_physics->createShape(
-                    physx::PxSphereGeometry(ps.sphere.radius), 
+                    physx::PxSphereGeometry(ps.sphere.radius * glm::compAdd(scale) / 3.0f),
                     *mat
                 );
                 break;
             case PhysicsShapeType::Capsule:
                 shape = g_physics->createShape(
-                    physx::PxCapsuleGeometry(ps.capsule.radius, ps.capsule.height * 0.5f), 
+                    physx::PxCapsuleGeometry(ps.capsule.radius, ps.capsule.height * 0.5f),
                     *mat
                 );
                 break;
@@ -81,7 +81,7 @@ namespace worlds {
 
             shape->setContactOffset(0.01f);
             shape->setRestOffset(0.005f);
-            shape->setLocalPose(physx::PxTransform{ glm2px(ps.pos), glm2px(ps.rot) });
+            shape->setLocalPose(physx::PxTransform{ glm2px(ps.pos * scale), glm2px(ps.rot) });
 
             pa.actor->attachShape(*shape);
             shape->release();

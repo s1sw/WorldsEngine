@@ -170,7 +170,7 @@ namespace worlds {
         desc.cpuDispatcher = physx::PxDefaultCpuDispatcherCreate(std::max(SDL_GetCPUCount() - 2, 1));
         //desc.filterShader = filterShader;
         desc.filterShader = physx::PxDefaultSimulationFilterShader;
-        desc.solverType = physx::PxSolverType::ePGS;
+        desc.solverType = physx::PxSolverType::eTGS;
         g_scene = g_physics->createScene(desc);
 
         reg.on_destroy<PhysicsActor>().connect<&destroyPhysXActor<PhysicsActor>>();

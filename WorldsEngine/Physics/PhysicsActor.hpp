@@ -75,6 +75,7 @@ namespace worlds {
         PhysicsActor(physx::PxRigidActor* actor) : actor(actor) {}
         physx::PxRigidActor* actor;
         std::vector<PhysicsShape> physicsShapes;
+        bool scaleShapes = true;
     };
 
     struct DynamicPhysicsActor {
@@ -82,5 +83,6 @@ namespace worlds {
         physx::PxRigidDynamic* actor;
         float mass;
         std::vector<PhysicsShape> physicsShapes;
+        bool scaleShapes = true;
     };
 }
