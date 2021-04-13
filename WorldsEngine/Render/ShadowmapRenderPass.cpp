@@ -109,6 +109,15 @@ namespace worlds {
         dsu.update(ctx.device);
     }
 
+    void ShadowmapRenderPass::prePass(PassSetupCtx& ctx, RenderCtx& rCtx) {
+        for (int i = 0; i < 3; i++) {
+            matricesMapped->matrices[i] = rCtx.cascadeShadowMatrices[i];
+        }
+
+        matrixBuffer.invalidate(ctx.vkCtx.device);
+        matrixBuffer.flush(ctx.vkCtx.device);
+    }
+
     void ShadowmapRenderPass::execute(RenderCtx& ctx) {
 #ifdef TRACY_ENABLE
         ZoneScoped;
@@ -119,9 +128,6 @@ namespace worlds {
             vk::DependencyFlagBits::eByRegion, vk::AccessFlagBits::eHostWrite, vk::AccessFlagBits::eUniformRead,
             VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED);
 
-        for (int i = 0; i < 3; i++) {
-            matricesMapped->matrices[i] = ctx.cascadeShadowMatrices[i];
-        }
 
         vk::ClearDepthStencilValue clearDepthValue{ 1.0f, 0 };
         std::array<vk::ClearValue, 1> clearColours{ clearDepthValue };

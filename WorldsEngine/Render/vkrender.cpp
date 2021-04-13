@@ -326,12 +326,16 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     features.samplerAnisotropy = true;
     dm.setFeatures(features);
 
+    vk::PhysicalDeviceVulkan11Features vk11Features;
+    vk11Features.multiview = true;
+    dm.setPNext(&vk11Features);
+
     vk::PhysicalDeviceVulkan12Features vk12Features;
     vk12Features.timelineSemaphore = true;
     vk12Features.descriptorBindingPartiallyBound = true;
     vk12Features.runtimeDescriptorArray = true;
     vk12Features.imagelessFramebuffer = true;
-    dm.setPNext(&vk12Features);
+    vk11Features.setPNext(&vk12Features);
 
     try {
         device = dm.createUnique(physicalDevice);
@@ -1000,6 +1004,7 @@ void VKRenderer::writeCmdBuf(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageInde
         }
     });
 
+    shadowmapPass->prePass(psc, rCtx);
     shadowmapPass->execute(rCtx);
 
     int numActivePasses = 0;
@@ -1748,6 +1753,7 @@ void VKRenderer::updatePass(RTTPassHandle handle, entt::registry& world) {
                 }
             });
 
+            shadowmapPass->prePass(psc, rCtx);
             shadowmapPass->execute(rCtx);
         }
 
