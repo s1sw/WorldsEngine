@@ -16,11 +16,14 @@ namespace worlds {
             fatalErr("Out of cubemap slots");
         }
 
-        present[slot] = true;
 
         if (!PHYSFS_exists(g_assetDB.getAssetPath(asset).c_str())) {
-            return loadOrGet(g_assetDB.addOrGetExisting("Cubemaps/missing.json"));
+            uint32_t missingSlot = loadOrGet(g_assetDB.addOrGetExisting("Cubemaps/missing.json"));
+            lookup.insert({ asset, missingSlot });
+            return missingSlot;
         }
+
+        present[slot] = true;
 
         auto cubemapData = loadCubemapData(asset);
         //if (!cb)
