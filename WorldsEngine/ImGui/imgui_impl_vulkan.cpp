@@ -345,6 +345,9 @@ void ImGui_ImplVulkan_RenderDrawData(ImDrawData* draw_data, VkCommandBuffer comm
         // Create or resize the vertex/index buffers
         size_t vertex_size = draw_data->TotalVtxCount * sizeof(ImDrawVert);
         size_t index_size = draw_data->TotalIdxCount * sizeof(ImDrawIdx);
+
+        VkDeviceSize vertex_buffer_size_aligned = ((vertex_size - 1) / g_BufferMemoryAlignment + 1) * g_BufferMemoryAlignment;
+        VkDeviceSize index_buffer_size_aligned = ((index_size - 1) / g_BufferMemoryAlignment + 1) * g_BufferMemoryAlignment;
         if (rb->VertexBuffer == VK_NULL_HANDLE || rb->VertexBufferSize < vertex_size)
             CreateOrResizeBuffer(rb->VertexBuffer, rb->VertexBufferMemory, rb->VertexBufferSize, vertex_size, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
         if (rb->IndexBuffer == VK_NULL_HANDLE || rb->IndexBufferSize < index_size)
@@ -353,9 +356,9 @@ void ImGui_ImplVulkan_RenderDrawData(ImDrawData* draw_data, VkCommandBuffer comm
         // Upload vertex/index data into a single contiguous GPU buffer
         ImDrawVert* vtx_dst = NULL;
         ImDrawIdx* idx_dst = NULL;
-        VkResult err = vkMapMemory(v->Device, rb->VertexBufferMemory, 0, vertex_size, 0, (void**)(&vtx_dst));
+        VkResult err = vkMapMemory(v->Device, rb->VertexBufferMemory, 0, vertex_buffer_size_aligned, 0, (void**)(&vtx_dst));
         check_vk_result(err);
-        err = vkMapMemory(v->Device, rb->IndexBufferMemory, 0, index_size, 0, (void**)(&idx_dst));
+        err = vkMapMemory(v->Device, rb->IndexBufferMemory, 0, index_buffer_size_aligned, 0, (void**)(&idx_dst));
         check_vk_result(err);
         for (int n = 0; n < draw_data->CmdListsCount; n++) {
             const ImDrawList* cmd_list = draw_data->CmdLists[n];
