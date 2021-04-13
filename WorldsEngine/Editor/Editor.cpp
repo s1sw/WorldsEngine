@@ -564,20 +564,48 @@ namespace worlds {
                 if (inputManager.ctrlHeld() &&
                     inputManager.keyPressed(SDL_SCANCODE_D) &&
                     !inputManager.mouseButtonHeld(MouseButton::Right, true)) {
-                    auto newEnt = reg.create();
+                    if (reg.valid(currentSelectedEntity)) {
+                        auto newEnt = reg.create();
 
-                    for (auto& ed : ComponentMetadataManager::sorted) {
-                        std::array<ENTT_ID_TYPE, 1> t { ed->getComponentID() };
-                        auto rtView = reg.runtime_view(t.begin(), t.end());
-                        if (!rtView.contains(currentSelectedEntity))
-                            continue;
+                        for (auto& ed : ComponentMetadataManager::sorted) {
+                            std::array<ENTT_ID_TYPE, 1> t { ed->getComponentID() };
+                            auto rtView = reg.runtime_view(t.begin(), t.end());
+                            if (!rtView.contains(currentSelectedEntity))
+                                continue;
 
-                        ed->clone(currentSelectedEntity, newEnt, reg);
+                            ed->clone(currentSelectedEntity, newEnt, reg);
+                        }
+
+                        select(newEnt);
+                        activateTool(Tool::Translate);
+
+                        slib::List<entt::entity> multiSelectEnts;
+                        slib::List<entt::entity> tempEnts = selectedEntities;
+
+                        for (auto ent : selectedEntities) {
+                            auto newMultiEnt = reg.create();
+
+                            for (auto& ed : ComponentMetadataManager::sorted) {
+                                std::array<ENTT_ID_TYPE, 1> t { ed->getComponentID() };
+                                auto rtView = reg.runtime_view(t.begin(), t.end());
+                                if (!rtView.contains(ent))
+                                    continue;
+
+                                ed->clone(ent, newMultiEnt, reg);
+                            }
+
+                            multiSelectEnts.add(newMultiEnt);
+                        }
+
+                        for (auto ent : tempEnts) {
+                            multiSelect(ent);
+                        }
+
+                        for (auto ent : multiSelectEnts) {
+                            multiSelect(ent);
+                        }
+                        undo.pushState(reg);
                     }
-
-                    select(newEnt);
-                    activateTool(Tool::Translate);
-                    undo.pushState(reg);
                 }
 
                 if (inputManager.keyPressed(SDL_SCANCODE_DELETE)) {
@@ -585,6 +613,12 @@ namespace worlds {
                     reg.destroy(currentSelectedEntity);
                     currentSelectedEntity = entt::null;
                     undo.pushState(reg);
+
+                    for (auto ent : selectedEntities) {
+                        reg.destroy(ent);
+                    }
+
+                    selectedEntities.clear();
                 }
             }
 
