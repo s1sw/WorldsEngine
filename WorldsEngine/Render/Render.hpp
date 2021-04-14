@@ -392,7 +392,7 @@ namespace worlds {
         RTTPassHandle vrPass;
         RTTPassHandle nextHandle;
         uint32_t frameIdx;
-        ShadowCascadePass* shadowmapPass;
+        ShadowCascadePass* shadowCascadePass;
         void* rdocApi;
 
         void createSwapchain(vk::SwapchainKHR oldSwapchain);
