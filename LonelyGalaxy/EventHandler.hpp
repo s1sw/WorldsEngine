@@ -11,17 +11,13 @@
 #include "Client.hpp"
 #include "Server.hpp"
 #include <deque>
+#include "MultiplayerManager.hpp"
 
 namespace worlds {
     typedef uint64_t InputActionHandle;
 }
 
 namespace lg {
-    struct ServerPlayer {
-        uint16_t lastAcknowledgedInput;
-        std::deque<msgs::PlayerInput> inputMsgs;
-    };
-
     class EventHandler : public worlds::IGameEventHandler {
     public:
         EventHandler(bool dedicatedServer);
@@ -33,10 +29,6 @@ namespace lg {
         void shutdown(entt::registry& registry) override;
     private:
         void updateHandGrab(entt::registry& registry, PlayerRig& rig, entt::entity handEnt, float deltaTime);
-        static void onServerPacket(const ENetEvent&, void*);
-        static void onClientPacket(const ENetEvent&, void*);
-        static void onPlayerJoin(NetPlayer&, void*);
-        static void onPlayerLeave(NetPlayer&, void*);
         worlds::IVRInterface* vrInterface;
         worlds::VKRenderer* renderer;
         worlds::InputManager* inputManager;
@@ -49,26 +41,12 @@ namespace lg {
         entt::entity otherLocosphere;
         Client* client;
         Server* server;
+        MultiplayerManager* mpManager;
         entt::entity lHandEnt = entt::null;
         entt::entity rHandEnt = entt::null;
         physx::PxD6Joint* lHandJoint, *rHandJoint;
-        entt::entity playerLocospheres[MAX_PLAYERS];
         bool setClientInfo = false;
-        uint16_t clientInputIdx = 0;
 
-        struct LocosphereState {
-            glm::vec3 pos;
-            glm::vec3 linVel;
-            glm::vec3 angVel;
-            glm::vec3 accel;
-            uint16_t inputIndex;
-        };
-
-        msgs::PlayerInput lastSent;
-
-        std::unordered_map<uint16_t, LocosphereState> pastLocosphereStates;
-        float lsphereErr[128];
-        uint32_t lsphereErrIdx = 0;
         worlds::InputActionHandle lGrab;
         worlds::InputActionHandle rGrab;
         worlds::InputActionHandle rStick;

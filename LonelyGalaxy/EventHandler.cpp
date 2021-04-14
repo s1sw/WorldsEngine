@@ -40,7 +40,6 @@
 #include <Physics/FixedJoint.hpp>
 
 namespace lg {
-    const uint16_t CONVERGE_PORT = 3011;
 
     struct SyncedRB {};
 
@@ -77,39 +76,7 @@ namespace lg {
             logErr("Failed to initialize enet.");
         }
 
-        if (isDedicated) {
-            server = new Server{};
-            server->setCallbackCtx(this);
-            server->setConnectionCallback(onPlayerJoin);
-            server->setDisconnectionCallback(onPlayerLeave);
-            server->start();
-        } else {
-            client = new Client{};
-            client->setCallbackCtx(this);
-
-            worlds::g_console->registerCommand([&](void*, const char*) {
-                if (!client->serverPeer ||
-                        client->serverPeer->state != ENET_PEER_STATE_CONNECTED) {
-                    logErr("not connected!");
-                    return;
-                }
-
-                client->disconnect();
-            }, "disconnect", "Disconnect from the server.", nullptr);
-
-            worlds::g_console->registerCommand([&](void*, const char* arg) {
-                if (client->isConnected()) {
-                    logErr("already connected! disconnect first.");
-                }
-
-                // assume the argument is an address
-                ENetAddress addr;
-                enet_address_set_host(&addr, arg);
-                addr.port = CONVERGE_PORT;
-
-                client->connect(addr);
-            }, "connect", "Connects to the specified server.", nullptr);
-        }
+        mpManager = new MultiplayerManager{registry, isDedicated};
 
         new DebugArrows(registry);
 
@@ -214,36 +181,8 @@ namespace lg {
                 }
             }
         }
-
-        if (client) {
-            client->processMessages(onClientPacket);
-
-#ifdef DISCORD_RPC
-            if (!setClientInfo && worlds::discordCore) {
-                discord::User currUser;
-                auto res = worlds::discordCore->UserManager().GetCurrentUser(&currUser);
-
-                if (res == discord::Result::Ok) {
-                    logMsg("got user info, setting client info for %s#%s with id %lu...", currUser.GetUsername(), currUser.GetDiscriminator(), currUser.GetId());
-                    client->setClientInfo(1, currUser.GetId(), 1);
-                    setClientInfo = true;
-                }
-            }
-#endif
-            if (client->isConnected()) {
-                ImGui::Begin("netdbg");
-                ImVec2 cr = ImGui::GetContentRegionAvail();
-                ImGui::PlotLines("err", lsphereErr, 128, lsphereErrIdx, nullptr, FLT_MAX, FLT_MAX, ImVec2(cr.x - 10.0f, 100.0f));
-                uint32_t idxWrapped = lsphereErrIdx - 1;
-                if (idxWrapped == ~0u)
-                    idxWrapped = 127;
-                ImGui::Text("curr err: %.3f", lsphereErr[idxWrapped]);
-                ImGui::End();
-            }
-        }
     }
 
-    worlds::ConVar sendRate { "cnvrg_sendRate", "5", "Send rate in simulation ticks. 0 = 1 packet per tick" };
     int syncTimer = 0;
     worlds::ConVar itCompDbg { "lg_itCompDbg", "0", "Shows physics shapes for grabbed objects." };
 
@@ -295,6 +234,36 @@ namespace lg {
         itComp.add(shapeComp);
     }
 
+    void setPhysHandTensor(PhysHand& hand, worlds::DynamicPhysicsActor& dpa, physx::PxTransform& handT, Transform& objectT, entt::registry& reg) {
+        // find offset of other physics actor
+        auto otherT = dpa.actor->getGlobalPose();
+
+        // calculate combined inertia tensor
+        physx::IT::InertiaTensorComputer itComp(true);
+
+        for (auto& shape : dpa.physicsShapes) {
+            auto worldSpace = otherT * physx::PxTransform(worlds::glm2px(shape.pos), worlds::glm2px(shape.rot));
+
+            auto handSpace = handT.getInverse() * worldSpace;
+
+            auto scale = dpa.scaleShapes ? objectT.scale : glm::vec3{1.0f};
+
+            addShapeTensor(reg, shape, itComp, handSpace, handT, scale, worldSpace, false);
+        }
+
+        for (auto& shape : dpa.physicsShapes) {
+            auto shapeT = physx::PxTransform(worlds::glm2px(shape.pos), worlds::glm2px(shape.rot));
+            addShapeTensor(reg, shape, itComp, shapeT, handT, glm::vec3{1.0f});
+        }
+
+        itComp.scaleDensity((dpa.mass + dpa.mass) / itComp.getMass());
+
+        physx::PxMat33 it = itComp.getInertia();
+
+        hand.overrideIT = it;
+        hand.rotController.reset();
+    }
+
     worlds::ConVar useTensorCompensation{"lg_compensateTensors", "1", "Enables inertia tensor compensation on grabs."};
     worlds::ConVar enableGripPoints { "lg_enableGripPoints", "1", "Enables grip points." };
 
@@ -325,19 +294,7 @@ namespace lg {
 
             if (distance < 0.01f && rotDot > 0.95f && physHand.timeSinceGrabInitiated > 0.25f) {
                 auto& d6 = registry.get<worlds::D6Joint>(ent);
-                d6.pxJoint->setMotion(physx::PxD6Axis::eX, physx::PxD6Motion::eLOCKED);
-                d6.pxJoint->setMotion(physx::PxD6Axis::eY, physx::PxD6Motion::eLOCKED);
-                d6.pxJoint->setMotion(physx::PxD6Axis::eZ, physx::PxD6Motion::eLOCKED);
-                d6.pxJoint->setMotion(physx::PxD6Axis::eSWING1, physx::PxD6Motion::eLOCKED);
-                d6.pxJoint->setMotion(physx::PxD6Axis::eSWING2, physx::PxD6Motion::eLOCKED);
-                d6.pxJoint->setMotion(physx::PxD6Axis::eTWIST, physx::PxD6Motion::eLOCKED);
-                logMsg("locking");
-                physx::PxD6JointDrive drive{0.0f, 0.0f, 0.0f, true};
-                d6.pxJoint->setDrive(physx::PxD6Drive::eX, drive);
-                d6.pxJoint->setDrive(physx::PxD6Drive::eY, drive);
-                d6.pxJoint->setDrive(physx::PxD6Drive::eZ, drive);
-                d6.pxJoint->setDrive(physx::PxD6Drive::eSWING, drive);
-                d6.pxJoint->setDrive(physx::PxD6Drive::eTWIST, drive);
+                logMsg("adding joint");
                 physHand.useOverrideIT = true;
                 physHand.holdingObjectWithGrabPoint = false;
             }
@@ -378,8 +335,8 @@ namespace lg {
                     auto* gripPoint = registry.try_get<GripPoint>(pickUp);
                     physHand.timeSinceGrabInitiated = 0.0f;
 
-                    auto& d6 = registry.emplace<worlds::D6Joint>(ent);
                     //auto& fj = registry.emplace<worlds::FixedJoint>(ent);
+                    auto& d6 = registry.emplace<worlds::D6Joint>(ent);
                     physx::PxTransform p2 = touch.actor->getGlobalPose();
 
                     if (enableGripPoints.getInt() && gripPoint && (!gripPoint->exclusive || !gripPoint->currentlyHeld)) {
@@ -436,38 +393,11 @@ namespace lg {
                     }
 
                     d6.setTarget(pickUp, registry);
-
                     // mass of hands is 2kg
                     auto* otherDpa = registry.try_get<worlds::DynamicPhysicsActor>(pickUp);
 
                     if (otherDpa && useTensorCompensation.getInt()) {
-                        // find offset of other physics actor
-                        auto otherT = otherDpa->actor->getGlobalPose();
-
-                        // calculate combined inertia tensor
-                        physx::IT::InertiaTensorComputer itComp(true);
-
-                        for (auto& shape : otherDpa->physicsShapes) {
-                            auto worldSpace = otherT * physx::PxTransform(worlds::glm2px(shape.pos), worlds::glm2px(shape.rot));
-
-                            auto handSpace = t.getInverse() * worldSpace;
-
-                            auto scale = otherDpa->scaleShapes ? otherTf.scale : glm::vec3{1.0f};
-
-                            addShapeTensor(*reg, shape, itComp, handSpace, t, scale, worldSpace, false);
-                        }
-
-                        for (auto& shape : dpa.physicsShapes) {
-                            auto shapeT = physx::PxTransform(worlds::glm2px(shape.pos), worlds::glm2px(shape.rot));
-                            addShapeTensor(*reg, shape, itComp, shapeT, t, glm::vec3{1.0f});
-                        }
-
-                        itComp.scaleDensity((dpa.mass + otherDpa->mass) / itComp.getMass());
-
-                        physx::PxMat33 it = itComp.getInertia();
-
-                        physHand.overrideIT = it;
-                        physHand.rotController.reset();
+                        setPhysHandTensor(physHand, *otherDpa, t, otherTf, *reg);
                     }
                 }
             }
@@ -490,58 +420,7 @@ namespace lg {
     }
 
     void EventHandler::simulate(entt::registry& registry, float simStep) {
-        if (isDedicated) {
-            server->processMessages(onServerPacket);
-
-            registry.view<ServerPlayer, LocospherePlayerComponent>().each([](auto, ServerPlayer& sp, LocospherePlayerComponent& lpc) {
-                if (sp.inputMsgs.size() == 0) return;
-                auto& pi = sp.inputMsgs.front();
-                lpc.xzMoveInput = pi.xzMoveInput;
-                lpc.sprint = pi.sprint;
-                lpc.jump |= pi.jump;
-                sp.inputMsgs.pop_front();
-            });
-
-            syncTimer++;
-            if (syncTimer >= sendRate.getInt()) {
-                for (int i = 0; i < MAX_PLAYERS; i++) {
-                    if (!server->players[i].present) continue;
-
-                    auto& sp = registry.get<ServerPlayer>(playerLocospheres[i]);
-                    auto& dpa = registry.get<worlds::DynamicPhysicsActor>(playerLocospheres[i]);
-                    auto* rd = (physx::PxRigidDynamic*)dpa.actor;
-                    auto pose = dpa.actor->getGlobalPose();
-
-                    msgs::PlayerPosition pPos;
-                    pPos.id = i;
-                    pPos.pos = worlds::px2glm(pose.p);
-                    pPos.rot = worlds::px2glm(pose.q);
-                    pPos.linVel = worlds::px2glm(rd->getLinearVelocity());
-                    pPos.angVel = worlds::px2glm(rd->getAngularVelocity());
-                    pPos.inputIdx = sp.lastAcknowledgedInput;
-
-                    server->broadcastPacket(pPos.toPacket(0), NetChannel_Player);
-                }
-
-                registry.view<SyncedRB, worlds::DynamicPhysicsActor>().each([&](auto ent, worlds::DynamicPhysicsActor& dpa) {
-                    auto* rd = (physx::PxRigidDynamic*)dpa.actor;
-                    auto pose = dpa.actor->getGlobalPose();
-
-                    if (rd->isSleeping()) return;
-
-                    msgs::RigidbodySync rSync;
-                    rSync.entId = (uint32_t)ent;
-
-                    rSync.pos = worlds::px2glm(pose.p);
-                    rSync.rot = worlds::px2glm(pose.q);
-                    rSync.linVel = worlds::px2glm(rd->getLinearVelocity());
-                    rSync.angVel = worlds::px2glm(rd->getAngularVelocity());
-
-                    server->broadcastPacket(rSync.toPacket(0), NetChannel_World);
-                });
-                syncTimer = 0;
-            }
-        }
+        mpManager->simulate(simStep);
 
         entt::entity localLocosphereEnt = entt::null;
         LocospherePlayerComponent* localLpc = nullptr;
@@ -555,47 +434,11 @@ namespace lg {
                     logWarn("more than one local locosphere!");
                 }
             }
-            });
+        });
 
         if (!registry.valid(localLocosphereEnt)) {
             // probably dedicated server ¯\_(ツ)_/¯
             return;
-        }
-
-        if (client->isConnected()) {
-            auto& dpa = registry.get<worlds::DynamicPhysicsActor>(localLocosphereEnt);
-            if (ImGui::Begin("client dbg")) {
-                ImGui::Text("curr input idx: %u", clientInputIdx);
-                ImGui::Text("past locosphere state count: %zu", pastLocosphereStates.size());
-            }
-            ImGui::End();
-
-            // send input to server
-            msgs::PlayerInput pi;
-            pi.xzMoveInput = localLpc->xzMoveInput;
-            pi.sprint = localLpc->sprint;
-            pi.inputIdx = clientInputIdx;
-            pi.jump = localLpc->jump;
-            client->sendPacketToServer(pi.toPacket(0), NetChannel_Player);
-
-            auto pose = dpa.actor->getGlobalPose();
-            auto* rd = (physx::PxRigidDynamic*)dpa.actor;
-
-            static glm::vec3 lastVel{ 0.0f };
-
-            pastLocosphereStates.insert({ clientInputIdx,
-                {
-                    worlds::px2glm(pose.p),
-                    worlds::px2glm(rd->getLinearVelocity()),
-                    worlds::px2glm(rd->getAngularVelocity()),
-                    lastVel - worlds::px2glm(rd->getLinearVelocity()),
-                    clientInputIdx
-                }
-            });
-
-            lastVel = worlds::px2glm(rd->getLinearVelocity());
-            clientInputIdx++;
-            lastSent = pi;
         }
 
         auto& localRig = registry.get<PlayerRig>(localLocosphereEnt);
@@ -739,22 +582,7 @@ namespace lg {
         }
 
         if (isDedicated) {
-            msgs::SetScene setScene;
-            setScene.sceneName = engine->getCurrentSceneInfo().name;
-            server->broadcastPacket(
-                    setScene.toPacket(ENET_PACKET_FLAG_RELIABLE),
-                    NetChannel_Default);
-
-            // recreate player locospheres
-            for (int i = 0; i < MAX_PLAYERS; i++) {
-                if (!server->players[i].present) return;
-                PlayerRig newRig = lsphereSys->createPlayerRig(*reg);
-                auto& lpc = reg->get<LocospherePlayerComponent>(newRig.locosphere);
-                lpc.isLocal = false;
-                auto& sp = reg->emplace<ServerPlayer>(newRig.locosphere);
-                sp.lastAcknowledgedInput = 0;
-                playerLocospheres[i] = newRig.locosphere;
-            }
+            mpManager->onSceneStart(registry);
         }
 
         g_dbgArrows->createEntities();
@@ -773,174 +601,5 @@ namespace lg {
             delete server;
 
         enet_deinitialize();
-    }
-
-    void EventHandler::onServerPacket(const ENetEvent& evt, void* vp) {
-        auto* packet = evt.packet;
-        EventHandler* _this = (EventHandler*)vp;
-
-        if (packet->data[0] == MessageType::PlayerInput) {
-            msgs::PlayerInput pi;
-            pi.fromPacket(packet);
-
-            // send it to the proper locosphere!
-            uint8_t idx = (uintptr_t)evt.peer->data;
-            entt::entity locosphereEnt = _this->playerLocospheres[idx];
-
-            auto& sp = _this->reg->get<ServerPlayer>(locosphereEnt);
-            sp.inputMsgs.push_back(pi);
-            sp.lastAcknowledgedInput = pi.inputIdx;
-        }
-    }
-
-    void EventHandler::onClientPacket(const ENetEvent& evt, void* vp) {
-        EventHandler* _this = (EventHandler*)vp;
-
-        if (evt.packet->data[0] == MessageType::PlayerPosition) {
-            msgs::PlayerPosition pPos;
-            pPos.fromPacket(evt.packet);
-
-            if (pPos.id == _this->client->serverSideID) {
-                _this->reg->view<LocospherePlayerComponent, worlds::DynamicPhysicsActor, Transform>()
-                    .each([&](auto, LocospherePlayerComponent& lpc, worlds::DynamicPhysicsActor& dpa, Transform& t) {
-                    if (lpc.isLocal) {
-                        auto pose = dpa.actor->getGlobalPose();
-                        auto pastStateIt = _this->pastLocosphereStates.find(pPos.inputIdx);
-
-                        if (pastStateIt != _this->pastLocosphereStates.end()) {
-                            auto pastState = _this->pastLocosphereStates.at(pPos.inputIdx);
-                            float err = glm::length(pastState.pos - pPos.pos);
-
-                            _this->lsphereErr[_this->lsphereErrIdx] = err;
-                            _this->lsphereErrIdx++;
-
-                            if (_this->lsphereErrIdx == 128)
-                                _this->lsphereErrIdx = 0;
-                        }
-
-                        std::erase_if(_this->pastLocosphereStates, [&](auto& k) {
-                            return k.first <= pPos.inputIdx;
-                        });
-
-                        pose.p = worlds::glm2px(pPos.pos);
-                        pose.q = worlds::glm2px(pPos.rot);
-                        //auto* rd = (physx::PxRigidDynamic*)dpa.actor;
-                        glm::vec3 linVel = pPos.linVel;
-
-                        for (auto& p : _this->pastLocosphereStates) {
-                            pose.p += worlds::glm2px(linVel * 0.01f);
-                            linVel += p.second.accel * 0.01f;
-                        }
-
-                        dpa.actor->setGlobalPose(pose);
-                        t.position = worlds::px2glm(pose.p);
-                        t.rotation = worlds::px2glm(pose.q);
-                        //rd->setLinearVelocity(worlds::glm2px(linVel));
-                    //}
-                    }
-                });
-
-            } else {
-                entt::entity lEnt = _this->playerLocospheres[pPos.id];
-                auto& dpa = _this->reg->get<worlds::DynamicPhysicsActor>(lEnt);
-                auto* rd = (physx::PxRigidDynamic*)dpa.actor;
-
-                auto pose = dpa.actor->getGlobalPose();
-                pose.p = worlds::glm2px(pPos.pos);
-                pose.q = worlds::glm2px(pPos.rot);
-                dpa.actor->setGlobalPose(pose);
-                rd->setLinearVelocity(worlds::glm2px(pPos.linVel));
-                rd->setAngularVelocity(worlds::glm2px(pPos.angVel));
-            }
-        }
-
-        if (evt.packet->data[0] == MessageType::OtherPlayerJoin) {
-            msgs::OtherPlayerJoin opj;
-            opj.fromPacket(evt.packet);
-
-            PlayerRig newRig = _this->lsphereSys->createPlayerRig(*_this->reg);
-            auto& lpc = _this->reg->get<LocospherePlayerComponent>(newRig.locosphere);
-            lpc.isLocal = false;
-            _this->playerLocospheres[opj.id] = newRig.locosphere;
-
-            auto meshId = worlds::g_assetDB.addOrGetExisting("sourcemodel/models/konnie/isa/detroit/connor.mdl");
-            auto devMatId = worlds::g_assetDB.addOrGetExisting("Materials/dev.json");
-            auto& connorWO = _this->reg->emplace<worlds::WorldObject>(newRig.locosphere, devMatId, meshId);
-            worlds::setupSourceMaterials(meshId, connorWO);
-        }
-
-        if (evt.packet->data[0] == MessageType::OtherPlayerLeave) {
-            msgs::OtherPlayerLeave opl;
-            opl.fromPacket(evt.packet);
-
-            PlayerRig& rig = _this->reg->get<PlayerRig>(_this->playerLocospheres[opl.id]);
-
-            _this->reg->destroy(rig.fender);
-            _this->reg->destroy(rig.locosphere);
-            rig.fenderJoint->release();
-            _this->playerLocospheres[opl.id] = entt::null;
-        }
-
-        if (evt.packet->data[0] == MessageType::RigidbodySync) {
-            msgs::RigidbodySync rSync;
-            rSync.fromPacket(evt.packet);
-
-            auto& dpa = _this->reg->get<worlds::DynamicPhysicsActor>((entt::entity)rSync.entId);
-            auto* rd = (physx::PxRigidDynamic*)dpa.actor;
-
-            auto pose = dpa.actor->getGlobalPose();
-            pose.p = worlds::glm2px(rSync.pos);
-            pose.q = worlds::glm2px(rSync.rot);
-            dpa.actor->setGlobalPose(pose);
-            rd->setLinearVelocity(worlds::glm2px(rSync.linVel));
-            rd->setAngularVelocity(worlds::glm2px(rSync.angVel));
-        }
-    }
-
-    void EventHandler::onPlayerJoin(NetPlayer& player, void* vp) {
-        EventHandler* _this = (EventHandler*)vp;
-
-        // setup the new player's locosphere!
-        PlayerRig newRig = _this->lsphereSys->createPlayerRig(*_this->reg);
-        auto& lpc = _this->reg->get<LocospherePlayerComponent>(newRig.locosphere);
-        lpc.isLocal = false;
-        auto& sp = _this->reg->emplace<ServerPlayer>(newRig.locosphere);
-        sp.lastAcknowledgedInput = 0;
-        _this->playerLocospheres[player.idx] = newRig.locosphere;
-
-        msgs::OtherPlayerJoin opj;
-        opj.id = player.idx;
-        _this->server->broadcastExcluding(opj.toPacket(ENET_PACKET_FLAG_RELIABLE), player.idx);
-
-        _this->reg->view<SyncedRB, worlds::DynamicPhysicsActor>().each([&](auto ent, worlds::DynamicPhysicsActor& dpa) {
-            auto* rd = (physx::PxRigidDynamic*)dpa.actor;
-            auto pose = dpa.actor->getGlobalPose();
-
-            msgs::RigidbodySync rSync;
-            rSync.entId = (uint32_t)ent;
-
-            rSync.pos = worlds::px2glm(pose.p);
-            rSync.rot = worlds::px2glm(pose.q);
-            rSync.linVel = worlds::px2glm(rd->getLinearVelocity());
-            rSync.angVel = worlds::px2glm(rd->getAngularVelocity());
-
-            enet_peer_send(player.peer, NetChannel_World, rSync.toPacket(ENET_PACKET_FLAG_RELIABLE));
-        });
-    }
-
-    void EventHandler::onPlayerLeave(NetPlayer& player, void* vp) {
-        EventHandler* _this = (EventHandler*)vp;
-
-        // destroy the full rig
-        PlayerRig& rig = _this->reg->get<PlayerRig>(_this->playerLocospheres[player.idx]);
-
-        _this->reg->destroy(rig.fender);
-        _this->reg->destroy(rig.locosphere);
-        rig.fenderJoint->release();
-        _this->playerLocospheres[player.idx] = entt::null;
-
-        msgs::OtherPlayerLeave opl;
-        opl.id = player.idx;
-        _this->server->broadcastExcluding(opl.toPacket(ENET_PACKET_FLAG_RELIABLE), player.idx);
     }
 }
