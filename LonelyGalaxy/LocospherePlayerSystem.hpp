@@ -51,7 +51,7 @@ namespace lg {
         void preSimUpdate(entt::registry& registry, float deltaTime) override;
         void simulate(entt::registry& registry, float simStep) override;
         void shutdown(entt::registry& registry) override;
-        PlayerRig createPlayerRig(entt::registry& registry, glm::vec3 position = {0.0f, 5.0f, 0.0f});
+        static PlayerRig createPlayerRig(entt::registry& registry, glm::vec3 position = {0.0f, 5.0f, 0.0f});
     private:
         void onPlayerConstruct(entt::registry& reg, entt::entity ent);
         void onPlayerDestroy(entt::registry& reg, entt::entity ent);
