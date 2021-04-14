@@ -98,7 +98,7 @@ namespace worlds {
     class PolyRenderPass;
     class ImGuiRenderPass;
     class TonemapRenderPass;
-    class ShadowmapRenderPass;
+    class ShadowCascadePass;
     class GTAORenderPass;
 
     struct ModelMatrices {
@@ -392,7 +392,7 @@ namespace worlds {
         RTTPassHandle vrPass;
         RTTPassHandle nextHandle;
         uint32_t frameIdx;
-        ShadowmapRenderPass* shadowmapPass;
+        ShadowCascadePass* shadowmapPass;
         void* rdocApi;
 
         void createSwapchain(vk::SwapchainKHR oldSwapchain);

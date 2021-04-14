@@ -554,7 +554,7 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
         renderHeight
     };
 
-    shadowmapPass = new ShadowmapRenderPass(shadowmapImage);
+    shadowmapPass = new ShadowCascadePass(shadowmapImage);
     shadowmapPass->setup(psc);
 
     materialUB = vku::UniformBuffer(*device, allocator, sizeof(MaterialsUB), VMA_MEMORY_USAGE_GPU_ONLY, "Materials");

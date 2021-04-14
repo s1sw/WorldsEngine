@@ -10,7 +10,7 @@ worlds_sources += [
   'Render/PolyRenderPass.cpp',
   'Render/RenderTexture.cpp',
   'Render/ShaderCache.cpp',
-  'Render/ShadowmapRenderPass.cpp',
+  'Render/ShadowCascadePass.cpp',
   'Render/TonemapRenderPass.cpp',
   'Render/vkrender.cpp',
   'Render/vkswapchain.cpp',
