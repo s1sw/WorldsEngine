@@ -554,8 +554,8 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
         renderHeight
     };
 
-    shadowmapPass = new ShadowCascadePass(shadowmapImage);
-    shadowmapPass->setup(psc);
+    shadowCascadePass = new ShadowCascadePass(shadowmapImage);
+    shadowCascadePass->setup(psc);
 
     materialUB = vku::UniformBuffer(*device, allocator, sizeof(MaterialsUB), VMA_MEMORY_USAGE_GPU_ONLY, "Materials");
 
@@ -968,8 +968,8 @@ void VKRenderer::writePassCmds(RTTPassHandle pass, vk::CommandBuffer cmdBuf, ent
 
     if (rtt.enableShadows) {
         calculateCascadeMatrices(world, rCtx);
-        shadowmapPass->prePass(psc, rCtx);
-        shadowmapPass->execute(rCtx);
+        shadowCascadePass->prePass(psc, rCtx);
+        shadowCascadePass->execute(rCtx);
     }
 
     rtt.prp->prePass(psc, rCtx);
@@ -1806,7 +1806,7 @@ VKRenderer::~VKRenderer() {
         brdfLut.destroy();
         loadedMeshes.clear();
 
-        delete shadowmapPass;
+        delete shadowCascadePass;
 
         delete imguiImage;
         delete shadowmapImage;
