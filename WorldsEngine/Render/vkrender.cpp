@@ -928,7 +928,7 @@ void VKRenderer::calculateCascadeMatrices(entt::registry& world, RenderCtx& rCtx
             if (!rCtx.enableVR) {
                 for (int i = 1; i < 4; i++) {
                     frustumMatrices[i - 1] = glm::perspective(
-                        rCtx.cam->verticalFOV, aspect, 
+                        rCtx.cam->verticalFOV, aspect,
                         splits[i - 1], splits[i]
                     );
                 }
@@ -945,7 +945,7 @@ void VKRenderer::calculateCascadeMatrices(entt::registry& world, RenderCtx& rCtx
             for (int i = 0; i < 3; i++) {
                 rCtx.cascadeShadowMatrices[i] =
                     getCascadeMatrix(
-                        *rCtx.cam, lightForward, 
+                        *rCtx.cam, lightForward,
                         frustumMatrices[i], rCtx.cascadeTexelsPerUnit[i]
                     );
             }
@@ -961,10 +961,23 @@ void VKRenderer::writePassCmds(RTTPassHandle pass, vk::CommandBuffer cmdBuf, ent
         (int)swapchain->images.size(), enableVR, &brdfLut, rtt.width, rtt.height };
 
     RenderCtx rCtx{ cmdBuf, world, 0, rtt.cam, slotArrays, rtt.width, rtt.height, loadedMeshes };
-    rCtx.enableVR = false;
+    rCtx.enableVR = rtt.isVr;
     rCtx.viewPos = rtt.cam->position;
     rCtx.dbgStats = &dbgStats;
     rCtx.shadowImages = shadowImages;
+
+    if (enableVR) {
+        OpenVRInterface* ovrInterface = static_cast<OpenVRInterface*>(vrInterface);
+        rCtx.vrProjMats[0] = ovrInterface->getProjMat(vr::EVREye::Eye_Left, rtt.cam->near);
+        rCtx.vrProjMats[1] = ovrInterface->getProjMat(vr::EVREye::Eye_Right, rtt.cam->near);
+
+        vr::TrackedDevicePose_t pose;
+        vr::VRSystem()->GetDeviceToAbsoluteTrackingPose(vr::ETrackingUniverseOrigin::TrackingUniverseStanding, vrPredictAmount, &pose, 1);
+
+        for (int i = 0; i < 2; i++) {
+            rCtx.vrViewMats[i] = glm::inverse(OpenVRInterface::toMat4(pose.mDeviceToAbsoluteTracking)) * rtt.cam->getViewMatrix();
+        }
+    }
 
     if (rtt.enableShadows) {
         calculateCascadeMatrices(world, rCtx);
@@ -999,18 +1012,6 @@ void VKRenderer::writeCmdBuf(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageInde
     rCtx.tracyContexts = &tracyContexts;
 #endif
 
-    if (enableVR) {
-        OpenVRInterface* ovrInterface = static_cast<OpenVRInterface*>(vrInterface);
-        rCtx.vrProjMats[0] = ovrInterface->getProjMat(vr::EVREye::Eye_Left, cam.near);
-        rCtx.vrProjMats[1] = ovrInterface->getProjMat(vr::EVREye::Eye_Right, cam.near);
-
-        vr::TrackedDevicePose_t pose;
-        vr::VRSystem()->GetDeviceToAbsoluteTrackingPose(vr::ETrackingUniverseOrigin::TrackingUniverseStanding, vrPredictAmount, &pose, 1);
-
-        for (int i = 0; i < 2; i++) {
-            rCtx.vrViewMats[i] = glm::inverse(OpenVRInterface::toMat4(pose.mDeviceToAbsoluteTracking)) * cam.getViewMatrix();
-        }
-    }
 
     vk::CommandBufferBeginInfo cbbi;
     cbbi.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
