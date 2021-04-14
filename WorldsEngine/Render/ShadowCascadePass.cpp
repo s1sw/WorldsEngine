@@ -15,11 +15,11 @@ namespace worlds {
         glm::mat4 matrices[3];
     };
 
-    ShadowmapRenderPass::ShadowmapRenderPass(RenderTexture* shadowImage)
+    ShadowCascadePass::ShadowCascadePass(RenderTexture* shadowImage)
         : shadowImage(shadowImage) {
     }
 
-    void ShadowmapRenderPass::createDescriptorSet(VulkanHandles& ctx) {
+    void ShadowCascadePass::createDescriptorSet(VulkanHandles& ctx) {
         vku::DescriptorSetLayoutMaker dslm;
         dslm.buffer(0, vk::DescriptorType::eUniformBuffer, vk::ShaderStageFlagBits::eVertex, 1);
         dsl = dslm.createUnique(ctx.device);
@@ -29,7 +29,7 @@ namespace worlds {
         ds = std::move(dsm.createUnique(ctx.device, ctx.descriptorPool)[0]);
     }
 
-    void ShadowmapRenderPass::createRenderPass(VulkanHandles& ctx) {
+    void ShadowCascadePass::createRenderPass(VulkanHandles& ctx) {
         vku::RenderpassMaker rPassMaker;
 
         rPassMaker.attachmentBegin(vk::Format::eD32Sfloat);
@@ -58,7 +58,7 @@ namespace worlds {
         renderPass = rPassMaker.createUnique(ctx.device);
     }
 
-    void ShadowmapRenderPass::setup(PassSetupCtx& psCtx) {
+    void ShadowCascadePass::setup(PassSetupCtx& psCtx) {
         ZoneScoped;
         auto& ctx = psCtx.vkCtx;
         shadowmapRes = ctx.graphicsSettings.shadowmapRes;
@@ -109,7 +109,7 @@ namespace worlds {
         dsu.update(ctx.device);
     }
 
-    void ShadowmapRenderPass::prePass(PassSetupCtx& ctx, RenderCtx& rCtx) {
+    void ShadowCascadePass::prePass(PassSetupCtx& ctx, RenderCtx& rCtx) {
         for (int i = 0; i < 3; i++) {
             matricesMapped->matrices[i] = rCtx.cascadeShadowMatrices[i];
         }
@@ -118,7 +118,7 @@ namespace worlds {
         matrixBuffer.flush(ctx.vkCtx.device);
     }
 
-    void ShadowmapRenderPass::execute(RenderCtx& ctx) {
+    void ShadowCascadePass::execute(RenderCtx& ctx) {
 #ifdef TRACY_ENABLE
         ZoneScoped;
         TracyVkZone((*ctx.tracyContexts)[ctx.imageIndex], *ctx.cmdBuf, "Shadowmap");
@@ -200,7 +200,7 @@ namespace worlds {
         shadowImage->image.setCurrentLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
     }
 
-    ShadowmapRenderPass::~ShadowmapRenderPass() {
+    ShadowCascadePass::~ShadowCascadePass() {
         // EW EW EW EW EW EW EW
         matrixBuffer.unmap(shadowFb.getOwner());
     }

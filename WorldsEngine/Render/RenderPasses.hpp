@@ -102,7 +102,7 @@ namespace worlds {
     };
 
     struct CascadeMatrices;
-    class ShadowmapRenderPass {
+    class ShadowCascadePass {
     private:
         vk::UniqueRenderPass renderPass;
         vk::UniquePipeline pipeline;
@@ -120,11 +120,11 @@ namespace worlds {
         void createRenderPass(VulkanHandles&);
         void createDescriptorSet(VulkanHandles&);
     public:
-        ShadowmapRenderPass(RenderTexture* shadowImage);
+        ShadowCascadePass(RenderTexture* shadowImage);
         void setup(PassSetupCtx& ctx);
         void prePass(PassSetupCtx& ctx, RenderCtx& rCtx);
         void execute(RenderCtx& ctx);
-        virtual ~ShadowmapRenderPass();
+        virtual ~ShadowCascadePass();
     };
 
     class TonemapRenderPass {
