@@ -172,6 +172,11 @@ void logPhysDevInfo(const vk::PhysicalDevice& physicalDevice) {
     logMsg(worlds::WELogCategoryRender, "Approx. %hu MB total accessible graphics memory (NOT VRAM!)", totalVram / 1024 / 1024);
 }
 
+struct ChainPiece {
+    vk::StructureType sType;
+    void* pNext;
+};
+
 bool checkPhysicalDeviceFeatures(const vk::PhysicalDevice& physDev) {
     vk::PhysicalDeviceFeatures supportedFeatures = physDev.getFeatures();
     if (!supportedFeatures.shaderStorageImageMultisample) {
@@ -189,6 +194,29 @@ bool checkPhysicalDeviceFeatures(const vk::PhysicalDevice& physDev) {
 
     if (!supportedFeatures.wideLines) {
         logWarn(worlds::WELogCategoryRender, "Missing wideLines");
+    }
+
+    vk::PhysicalDeviceFeatures2 supportedFeatures2;
+    vk::PhysicalDeviceVulkan11Features supportedVk11Features;
+    vk::PhysicalDeviceVulkan12Features supportedVk12Features;
+
+    supportedFeatures2.setPNext(&supportedVk11Features);
+    supportedVk11Features.setPNext(&supportedVk12Features);
+    physDev.getFeatures2(&supportedFeatures2);
+
+    if (!supportedVk11Features.multiview) {
+        logErr(WELogCategoryRender, "Missing multiview support");
+        return false;
+    }
+
+    if (!supportedVk12Features.descriptorIndexing) {
+        logErr(WELogCategoryRender, "Missing descriptor indexing");
+        return false;
+    }
+
+    if (!supportedVk12Features.descriptorBindingPartiallyBound) {
+        logErr(WELogCategoryRender, "Missing partially bound descriptors");
+        return false;
     }
 
     return true;
@@ -224,7 +252,7 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     , irp(nullptr)
     , vrPredictAmount(0.033f)
     , clearMaterialIndices(false)
-    , useVsync(false)
+    , useVsync(true)
     , enablePicking(initInfo.enablePicking)
     , nextHandle(0u)
     , frameIdx(0) {
