@@ -273,8 +273,6 @@ namespace lg {
     extern void resetHand(PhysHand& ph, physx::PxRigidBody* rb);
 
     void EventHandler::updateHandGrab(entt::registry& registry, PlayerRig& rig, entt::entity ent, float deltaTime) {
-        static float driveP = 1500.0f;
-        static float driveD = 0.0f;
         auto& physHand = registry.get<PhysHand>(ent);
         auto grabAction = physHand.follow == FollowHand::LeftHand ? lGrab : rGrab;
         auto grabButton = physHand.follow == FollowHand::LeftHand ? worlds::MouseButton::Left : worlds::MouseButton::Right;
@@ -303,7 +301,7 @@ namespace lg {
             physHand.targetWorldPos = targetHandPos;
             physHand.targetWorldRot = targetHandRot;
 
-            if (distance < 0.025f && rotDot > 0.98f) {
+            if (distance < 0.012f && rotDot > 0.985f) {
                 auto& d6 = registry.get<worlds::D6Joint>(ent);
                 d6.setTarget(physHand.goingTo, registry);
 
@@ -457,6 +455,8 @@ namespace lg {
         updateHandGrab(registry, localRig, localRig.rHand, simStep);
     }
 
+    worlds::ConVar showTargetHands { "lg_showTargetHands", "0", "Shows devtextured hands that represent the current target transform of the hands." };
+
     void EventHandler::onSceneStart(entt::registry& registry) {
         registry.view<worlds::DynamicPhysicsActor>().each([&](auto ent, auto&) {
             registry.emplace<SyncedRB>(ent);
@@ -492,27 +492,31 @@ namespace lg {
 
             lHandEnt = registry.create();
             registry.get<PlayerRig>(rig.locosphere).lHand = lHandEnt;
-            auto& lhWO = registry.emplace<worlds::WorldObject>(lHandEnt, matId, lHandModel);
+            registry.emplace<worlds::WorldObject>(lHandEnt, matId, lHandModel);
             auto& lht = registry.emplace<Transform>(lHandEnt);
             lht.position = glm::vec3(0.5, 0.0f, 0.0f) + fenderTransform.position;
             registry.emplace<worlds::NameComponent>(lHandEnt).name = "L. Handy";
 
-            fakeLHand = registry.create();
-            registry.emplace<worlds::WorldObject>(fakeLHand, devMatId, lHandModel);
-            registry.emplace<Transform>(fakeLHand);
-            registry.emplace<worlds::NameComponent>(fakeLHand).name = "Fake L. Handy";
+            if (showTargetHands.getInt()) {
+                fakeLHand = registry.create();
+                registry.emplace<worlds::WorldObject>(fakeLHand, devMatId, lHandModel);
+                registry.emplace<Transform>(fakeLHand);
+                registry.emplace<worlds::NameComponent>(fakeLHand).name = "Fake L. Handy";
+            }
 
             rHandEnt = registry.create();
             registry.get<PlayerRig>(rig.locosphere).rHand = rHandEnt;
-            auto& rhWO = registry.emplace<worlds::WorldObject>(rHandEnt, matId, rHandModel);
+            registry.emplace<worlds::WorldObject>(rHandEnt, matId, rHandModel);
             auto& rht = registry.emplace<Transform>(rHandEnt);
             rht.position = glm::vec3(-0.5f, 0.0f, 0.0f) + fenderTransform.position;
             registry.emplace<worlds::NameComponent>(rHandEnt).name = "R. Handy";
 
-            fakeRHand = registry.create();
-            registry.emplace<worlds::WorldObject>(fakeRHand, devMatId, rHandModel);
-            registry.emplace<Transform>(fakeRHand);
-            registry.emplace<worlds::NameComponent>(fakeRHand).name = "Fake R. Handy";
+            if (showTargetHands.getInt()) {
+                fakeRHand = registry.create();
+                registry.emplace<worlds::WorldObject>(fakeRHand, devMatId, rHandModel);
+                registry.emplace<Transform>(fakeRHand);
+                registry.emplace<worlds::NameComponent>(fakeRHand).name = "Fake R. Handy";
+            }
 
             auto lActor = worlds::g_physics->createRigidDynamic(physx::PxTransform{ physx::PxIdentity });
             // Using the reference returned by this doesn't work unfortunately.
