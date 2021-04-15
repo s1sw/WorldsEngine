@@ -869,6 +869,10 @@ namespace worlds {
             globalMiscFlags |= (1 << dbgDrawMode.getInt());
         }
 
+        if (!ctx.enableShadows) {
+            globalMiscFlags |= 16384;
+        }
+
         if ((int)depthPrepass) {
             ZoneScopedN("Depth prepass");
             cmdBuf.bindPipeline(vk::PipelineBindPoint::eGraphics, *depthPrePipeline);
