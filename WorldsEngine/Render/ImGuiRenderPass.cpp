@@ -47,7 +47,7 @@ namespace worlds {
             });
     }
 
-    void ImGuiRenderPass::execute(vk::CommandBuffer cmdBuf,
+    void ImGuiRenderPass::execute(vk::CommandBuffer& cmdBuf,
             uint32_t width, uint32_t height, 
             vk::Framebuffer& currFramebuffer) {
         ImGui::Render();
