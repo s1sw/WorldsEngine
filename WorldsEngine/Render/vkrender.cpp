@@ -224,7 +224,7 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     , irp(nullptr)
     , vrPredictAmount(0.033f)
     , clearMaterialIndices(false)
-    , useVsync(true)
+    , useVsync(false)
     , enablePicking(initInfo.enablePicking)
     , nextHandle(0u)
     , frameIdx(0) {
@@ -620,7 +620,7 @@ void VKRenderer::createSCDependents() {
 
     vku::executeImmediately(*device, *commandPool, device->getQueue(graphicsQueueFamilyIdx, 0), [&](vk::CommandBuffer cmdBuf) {
         finalPrePresent->image.setLayout(cmdBuf, vk::ImageLayout::eTransferSrcOptimal);
-        });
+    });
 
     RTTPassHandle screenPass = ~0u;
     for (auto& p : rttPasses) {
@@ -1000,13 +1000,6 @@ void VKRenderer::writePassCmds(RTTPassHandle pass, vk::CommandBuffer cmdBuf, ent
 
 void VKRenderer::writeCmdBuf(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageIndex, Camera& cam, entt::registry& reg) {
     ZoneScoped;
-    SlotArrays slotArrays { *texSlots, *cubemapSlots, *matSlots };
-
-    RenderCtx rCtx{ *cmdBuf, reg, imageIndex, &cam, slotArrays, renderWidth, renderHeight, loadedMeshes };
-    rCtx.enableVR = enableVR;
-    rCtx.viewPos = cam.position;
-    rCtx.dbgStats = &dbgStats;
-    rCtx.shadowImages = shadowImages;
 
 #ifdef TRACY_ENABLE
     rCtx.tracyContexts = &tracyContexts;
@@ -1030,20 +1023,9 @@ void VKRenderer::writeCmdBuf(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageInde
         clearMaterialIndices = false;
     }
 
-    PassSetupCtx psc{
-        &materialUB,
-        getVKCtx(),
-        slotArrays,
-        (int)swapchain->images.size(),
-        enableVR,
-        &brdfLut,
-        renderWidth,
-        renderHeight
-    };
-
     uploadSceneAssets(reg);
 
-    finalPrePresent->image.setLayout(rCtx.cmdBuf,
+    finalPrePresent->image.setLayout(*cmdBuf,
         vk::ImageLayout::eColorAttachmentOptimal,
         vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eColorAttachmentOutput,
         vk::AccessFlagBits::eTransferRead, vk::AccessFlagBits::eColorAttachmentWrite);
@@ -1078,8 +1060,6 @@ void VKRenderer::writeCmdBuf(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageInde
         }
     }
     dbgStats.numRTTPasses = numActivePasses;
-    rCtx.width = width;
-    rCtx.height = height;
 
     vku::transitionLayout(*cmdBuf, swapchain->images[imageIndex],
         vk::ImageLayout::ePresentSrcKHR, vk::ImageLayout::eTransferDstOptimal,
@@ -1127,7 +1107,8 @@ void VKRenderer::writeCmdBuf(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageInde
         vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eColorAttachmentOptimal,
         vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eColorAttachmentOutput,
         vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eColorAttachmentWrite | vk::AccessFlagBits::eColorAttachmentRead);
-    irp->execute(rCtx, *framebuffers[imageIndex]);
+
+    irp->execute(*cmdBuf, width, height, *framebuffers[imageIndex]);
 
     ::imageBarrier(*cmdBuf, swapchain->images[imageIndex], vk::ImageLayout::ePresentSrcKHR,
         vk::AccessFlagBits::eColorAttachmentWrite | vk::AccessFlagBits::eColorAttachmentRead, vk::AccessFlagBits::eMemoryRead,
@@ -1235,10 +1216,7 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
         swapchain->acquireImage(*device, imgAvailable[frameIdx], &imageIndex);
     }
 
-    //if (nextImageRes == vk::Result::eSuboptimalKHR)
-        //recreate = true;
-
-    if (imgFences[imageIndex]) {
+    if (imgFences[imageIndex] && imgFences[imageIndex] != cmdBufFences[frameIdx]) {
         if (device->waitForFences(imgFences[imageIndex], true, UINT64_MAX) != vk::Result::eSuccess) {
             fatalErr("Failed to wait on image fence");
         }
@@ -1329,10 +1307,17 @@ void VKRenderer::preloadMesh(AssetID id) {
     std::vector<uint32_t> indices;
 
     auto ext = g_assetDB.getAssetExtension(id);
-
+    auto path = g_assetDB.getAssetPath(id);
     LoadedMeshData lmd;
 
-    if (ext == ".obj") { // obj
+    if (!PHYSFS_exists(path.c_str())) {
+        logErr(WELogCategoryRender, "Mesh %s was missing!", path.c_str());
+        PhysFS::ifstream meshFileStream(g_assetDB.openAssetFileRead(g_assetDB.addOrGetExisting("Models/missing.obj")));
+        loadObj(vertices, indices, meshFileStream, lmd);
+        lmd.numSubmeshes = 1;
+        lmd.submeshes[0].indexCount = indices.size();
+        lmd.submeshes[0].indexOffset = 0;
+    } else if (ext == ".obj") { // obj
         // Use C++ physfs ifstream for tinyobjloader
         PhysFS::ifstream meshFileStream(g_assetDB.openAssetFileRead(id));
         loadObj(vertices, indices, meshFileStream, lmd);

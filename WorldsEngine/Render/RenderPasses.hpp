@@ -195,7 +195,8 @@ namespace worlds {
         vk::RenderPass& getRenderPass() { return *renderPass; }
         ImGuiRenderPass(Swapchain& swapchain);
         void setup(PassSetupCtx& ctx);
-        void execute(RenderCtx& ctx, vk::Framebuffer& currFb);
+        void execute(vk::CommandBuffer&, 
+                uint32_t width, uint32_t height, vk::Framebuffer& currFb);
         virtual ~ImGuiRenderPass();
     };
 }
