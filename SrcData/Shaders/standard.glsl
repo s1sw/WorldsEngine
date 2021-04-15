@@ -95,6 +95,7 @@ layout(push_constant) uniform PushConstants {
     // 12 - Debug display UVs                  (2048)
     // 13 - Use cubemap parallax               (4096)
     // 14 - Debug display shadowmap cascades   (8192)
+    // 15 - Disable shadows                    (16384)
     uint miscFlag;
     uint cubemapIdx;
 
@@ -262,7 +263,7 @@ vec3 shade(ShadeInfo si) {
     vec3 lo = vec3(0.0);
     for (int i = 0; i < lightCount; i++) {
         float shadowIntensity = 1.0;
-        if (int(lights[i].pack0.w) == LT_DIRECTIONAL) {
+        if (int(lights[i].pack0.w) == LT_DIRECTIONAL && !((miscFlag & 16384) == 16384)) {
             vec4 shadowPos;
             int cascadeSplit = calculateCascade(shadowPos);
 

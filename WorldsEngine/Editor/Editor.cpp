@@ -75,14 +75,15 @@ namespace worlds {
         ComponentMetadataManager::setupLookup();
         interfaces.engine->pauseSim = true;
 
-        RTTPassCreateInfo sceneViewPassCI;
-        sceneViewPassCI.enableShadows = true;
-        sceneViewPassCI.width = 1600;
-        sceneViewPassCI.height = 900;
-        sceneViewPassCI.isVr = false;
-        sceneViewPassCI.outputToScreen = false;
-        sceneViewPassCI.useForPicking = true;
-        sceneViewPassCI.cam = &cam;
+        RTTPassCreateInfo sceneViewPassCI {
+            .cam = &cam,
+            .width = 1600,
+            .height = 900,
+            .isVr = false,
+            .useForPicking = true,
+            .enableShadows = true,
+            .outputToScreen = false
+        };
         sceneViewPass = interfaces.renderer->createRTTPass(sceneViewPassCI);
 
         auto vkCtx = interfaces.renderer->getVKCtx();
@@ -452,14 +453,15 @@ namespace worlds {
                 currentSceneViewSize = contentRegion;
                 interfaces.renderer->destroyRTTPass(sceneViewPass);
 
-                RTTPassCreateInfo sceneViewPassCI;
-                sceneViewPassCI.enableShadows = true;
-                sceneViewPassCI.width = contentRegion.x;
-                sceneViewPassCI.height = contentRegion.y;
-                sceneViewPassCI.isVr = false;
-                sceneViewPassCI.outputToScreen = false;
-                sceneViewPassCI.useForPicking = true;
-                sceneViewPassCI.cam = &cam;
+                RTTPassCreateInfo sceneViewPassCI {
+                    .cam = &cam,
+                    .width = contentRegion.x,
+                    .height = contentRegion.y,
+                    .isVr = false,
+                    .useForPicking = true,
+                    .enableShadows = true,
+                    .outputToScreen = false
+                };
                 sceneViewPass = interfaces.renderer->createRTTPass(sceneViewPassCI);
                 vkCtx.device.freeDescriptorSets(vkCtx.descriptorPool, { sceneViewDS });
 

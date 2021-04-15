@@ -892,7 +892,7 @@ glm::mat4 VKRenderer::getCascadeMatrix(Camera cam, glm::vec3 lightDir, glm::mat4
     }
     float radius = diameter * 0.5f;
 
-    texelsPerUnit = 2048.0f / diameter;
+    texelsPerUnit = (float)shadowmapRes / diameter;
 
     glm::mat4 scaleMatrix = glm::scale(glm::mat4{1.0f}, glm::vec3{texelsPerUnit});
 
@@ -961,6 +961,7 @@ void VKRenderer::writePassCmds(RTTPassHandle pass, vk::CommandBuffer cmdBuf, ent
         (int)swapchain->images.size(), enableVR, &brdfLut, rtt.width, rtt.height };
 
     RenderCtx rCtx{ cmdBuf, world, 0, rtt.cam, slotArrays, rtt.width, rtt.height, loadedMeshes };
+    rCtx.enableShadows = rtt.enableShadows;
     rCtx.enableVR = rtt.isVr;
     rCtx.viewPos = rtt.cam->position;
     rCtx.dbgStats = &dbgStats;
@@ -1731,8 +1732,6 @@ float* VKRenderer::getPassHDRData(RTTPassHandle handle) {
 }
 
 void VKRenderer::updatePass(RTTPassHandle handle, entt::registry& world) {
-    auto& rtt = rttPasses.at(handle);
-
     vku::executeImmediately(*device, *commandPool, device->getQueue(graphicsQueueFamilyIdx, 0),
     [&](vk::CommandBuffer cmdBuf) {
         writePassCmds(handle, cmdBuf, world);

@@ -219,6 +219,7 @@ namespace worlds {
         float cascadeTexelsPerUnit[3];
         RenderTexture** shadowImages;
         bool enableVR;
+        bool enableShadows = true;
 #ifdef TRACY_ENABLE
         std::vector<TracyVkCtx>* tracyContexts;
 #endif
