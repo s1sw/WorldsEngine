@@ -47,8 +47,9 @@ namespace worlds {
             });
     }
 
-    void ImGuiRenderPass::execute(RenderCtx& ctx, vk::Framebuffer& currFramebuffer) {
-        auto& cmdBuf = ctx.cmdBuf;
+    void ImGuiRenderPass::execute(vk::CommandBuffer cmdBuf,
+            uint32_t width, uint32_t height, 
+            vk::Framebuffer& currFramebuffer) {
         ImGui::Render();
 
         std::array<float, 4> clearColorValue{ 0.0f, 0.0f, 0.0f, 0.0f };
@@ -56,7 +57,7 @@ namespace worlds {
         vk::RenderPassBeginInfo rpbi;
         rpbi.renderPass = *renderPass;
         rpbi.framebuffer = currFramebuffer;
-        rpbi.renderArea = vk::Rect2D{ {0, 0}, {ctx.width, ctx.height} };
+        rpbi.renderArea = vk::Rect2D{ {0, 0}, {width, height} };
         rpbi.clearValueCount = (uint32_t)clearColours.size();
         rpbi.pClearValues = clearColours.data();
         cmdBuf.beginRenderPass(rpbi, vk::SubpassContents::eInline);
