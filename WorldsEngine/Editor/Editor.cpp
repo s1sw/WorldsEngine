@@ -455,8 +455,8 @@ namespace worlds {
 
                 RTTPassCreateInfo sceneViewPassCI {
                     .cam = &cam,
-                    .width = contentRegion.x,
-                    .height = contentRegion.y,
+                    .width = static_cast<uint32_t>(contentRegion.x),
+                    .height = static_cast<uint32_t>(contentRegion.y),
                     .isVr = false,
                     .useForPicking = true,
                     .enableShadows = true,
