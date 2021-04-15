@@ -147,14 +147,20 @@ namespace lg {
 
         if (reg.view<RPGStats>().size() > 0) {
             auto& rpgStat = reg.get<RPGStats>(reg.view<RPGStats>()[0]);
-            if (ImGui::Begin("RPG Stats")) {
-                ImGui::DragScalar("maxHP", ImGuiDataType_U64, &rpgStat.maxHP, 1.0f);
-                ImGui::DragScalar("currentHP", ImGuiDataType_U64, &rpgStat.currentHP, 1.0f);
-                ImGui::DragScalar("level", ImGuiDataType_U64, &rpgStat.level, 1.0f);
-                ImGui::DragScalar("totalExperience", ImGuiDataType_U64, &rpgStat.totalExperience, 1.0f);
-                ImGui::DragScalar("strength", ImGuiDataType_U8, &rpgStat.strength, 1.0f);
-            }
-            ImGui::End();
+            //if (ImGui::Begin("RPG Stats")) {
+            //    ImGui::DragScalar("maxHP", ImGuiDataType_U64, &rpgStat.maxHP, 1.0f);
+            //    ImGui::DragScalar("currentHP", ImGuiDataType_U64, &rpgStat.currentHP, 1.0f);
+            //    ImGui::DragScalar("level", ImGuiDataType_U64, &rpgStat.level, 1.0f);
+            //    ImGui::DragScalar("totalExperience", ImGuiDataType_U64, &rpgStat.totalExperience, 1.0f);
+            //    ImGui::DragScalar("strength", ImGuiDataType_U8, &rpgStat.strength, 1.0f);
+            //}
+            //ImGui::End();
+
+            auto drawList = ImGui::GetBackgroundDrawList();
+
+            std::string healthText = "health: " + std::to_string(rpgStat.currentHP) + "/" + std::to_string(rpgStat.maxHP);
+            auto viewSize = ImGui::GetIO().DisplaySize;
+            drawList->AddText(ImVec2(15, viewSize.y - 30), ImColor(1.0f, 1.0f, 1.0f), healthText.c_str());
 
             if (reg.valid(lHandEnt) && reg.valid(rHandEnt)) {
                 auto& phl = reg.get<PhysHand>(lHandEnt);
@@ -453,6 +459,17 @@ namespace lg {
 
         updateHandGrab(registry, localRig, localRig.lHand, simStep);
         updateHandGrab(registry, localRig, localRig.rHand, simStep);
+
+        if (vrInterface) {
+            float fenderHeight = 0.55f;
+            glm::vec3 headPos = worlds::getMatrixTranslation(vrInterface->getHeadTransform());
+
+            rHandJoint->setLocalPose(physx::PxJointActorIndex::eACTOR0, physx::PxTransform {
+                    physx::PxVec3(0.0f, headPos.y - fenderHeight, 0.0f), physx::PxQuat { physx::PxIdentity }});
+            lHandJoint->setLocalPose(physx::PxJointActorIndex::eACTOR0, physx::PxTransform {
+                    physx::PxVec3(0.0f, headPos.y - fenderHeight, 0.0f), physx::PxQuat { physx::PxIdentity }});
+            ImGui::Text("Headpos: %.3f, %.3f, %.3f", headPos.x, headPos.y, headPos.z);
+        }
     }
 
     worlds::ConVar showTargetHands { "lg_showTargetHands", "0", "Shows devtextured hands that represent the current target transform of the hands." };
@@ -474,7 +491,7 @@ namespace lg {
             lpc.maxSpeed = 0.0f;
             lpc.xzMoveInput = glm::vec2(0.0f, 0.0f);
             auto& stats = registry.emplace<RPGStats>(rig.locosphere);
-            stats.strength = 5;
+            stats.strength = 15;
 
             if (vrInterface) {
                 lGrab = vrInterface->getActionHandle("/actions/main/in/GrabL");
@@ -565,10 +582,7 @@ namespace lg {
             lHandJoint = physx::PxD6JointCreate(*worlds::g_physics, fenderActor, physx::PxTransform { physx::PxIdentity }, lActor,
             physx::PxTransform { physx::PxIdentity });
 
-            lHandJoint->setLocalPose(physx::PxJointActorIndex::eACTOR0,
-                    physx::PxTransform { physx::PxVec3 { 0.0f, 0.6f, 0.0f }, physx::PxQuat { physx::PxIdentity }});
-
-            lHandJoint->setLinearLimit(physx::PxJointLinearLimit{physx::PxTolerancesScale{}, 0.8f});
+            lHandJoint->setLinearLimit(physx::PxJointLinearLimit{physx::PxTolerancesScale{}, 0.65f});
             lHandJoint->setMotion(physx::PxD6Axis::eX, physx::PxD6Motion::eLIMITED);
             lHandJoint->setMotion(physx::PxD6Axis::eY, physx::PxD6Motion::eLIMITED);
             lHandJoint->setMotion(physx::PxD6Axis::eZ, physx::PxD6Motion::eLIMITED);
@@ -579,10 +593,7 @@ namespace lg {
             rHandJoint = physx::PxD6JointCreate(*worlds::g_physics, fenderActor, physx::PxTransform { physx::PxIdentity }, rActor,
             physx::PxTransform { physx::PxIdentity });
 
-            rHandJoint->setLocalPose(physx::PxJointActorIndex::eACTOR0,
-                    physx::PxTransform { physx::PxVec3 { 0.0f, 0.6f, 0.0f }, physx::PxQuat { physx::PxIdentity }});
-
-            rHandJoint->setLinearLimit(physx::PxJointLinearLimit{physx::PxTolerancesScale{}, 0.8f});
+            rHandJoint->setLinearLimit(physx::PxJointLinearLimit{physx::PxTolerancesScale{}, 0.65f});
             rHandJoint->setMotion(physx::PxD6Axis::eX, physx::PxD6Motion::eLIMITED);
             rHandJoint->setMotion(physx::PxD6Axis::eY, physx::PxD6Motion::eLIMITED);
             rHandJoint->setMotion(physx::PxD6Axis::eZ, physx::PxD6Motion::eLIMITED);
