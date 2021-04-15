@@ -1120,17 +1120,24 @@ void VKRenderer::writeCmdBuf(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageInde
             imageBlit, vk::Filter::eNearest);
     } else {
         // Calculate the best crop for the current window size against the VR render target
-        float scaleFac = glm::min((float)windowSize.x / renderWidth, (float)windowSize.y / renderHeight);
+        //float scaleFac = glm::min((float)windowSize.x / renderWidth, (float)windowSize.y / renderHeight);
+        float aspect = (float)windowSize.y / (float)windowSize.x;
+        float croppedHeight = aspect * renderWidth;
+
+        glm::vec2 srcCorner0(0.0f, renderHeight / 2 - croppedHeight / 2.0f);
+        glm::vec2 srcCorner1(renderWidth, renderHeight / 2 + croppedHeight / 2.0f);
+
 
         vk::ImageBlit imageBlit;
-        imageBlit.srcOffsets[1] = vk::Offset3D{ (int32_t)renderWidth, (int32_t)renderHeight, 1 };
-        imageBlit.dstOffsets[1] = vk::Offset3D{ (int32_t)(renderWidth * scaleFac), (int32_t)(renderHeight * scaleFac), 1 };
+        imageBlit.srcOffsets[0] = vk::Offset3D{ (int)srcCorner0.x, (int)srcCorner0.y, 0 };
+        imageBlit.srcOffsets[1] = vk::Offset3D{ (int)srcCorner1.x, (int)srcCorner1.y, 1 };
+        imageBlit.dstOffsets[1] = vk::Offset3D{ (int)windowSize.x, (int)windowSize.y, 1 };
         imageBlit.dstSubresource = imageBlit.srcSubresource = { vk::ImageAspectFlagBits::eColor, 0, 0, 1 };
 
         cmdBuf->blitImage(
             finalPrePresent->image.image(), vk::ImageLayout::eTransferSrcOptimal,
             swapchain->images[imageIndex], vk::ImageLayout::eTransferDstOptimal,
-            imageBlit, vk::Filter::eNearest);
+            imageBlit, vk::Filter::eLinear);
     }
 
     vku::transitionLayout(*cmdBuf, swapchain->images[imageIndex],
