@@ -28,6 +28,7 @@ namespace worlds {
         vk::Device& device,
         vk::SurfaceKHR& surface,
         QueueFamilyIndices qfi,
+        bool fullscreen,
         vk::SwapchainKHR oldSwapchain,
         vk::PresentModeKHR requestedPresentMode)
         : device(device)
@@ -53,7 +54,14 @@ namespace worlds {
         vk::SharingMode sharingMode = !sameQueues ? vk::SharingMode::eConcurrent : vk::SharingMode::eExclusive;
         swapinfo.imageExtent = surfaceCaps.currentExtent;
         swapinfo.surface = surface;
-        swapinfo.minImageCount = surfaceCaps.minImageCount;
+
+        uint32_t minImageCount = surfaceCaps.minImageCount;
+
+        if (fullscreen) {
+            minImageCount = surfaceCaps.minImageCount < 2 ? 2 : surfaceCaps.minImageCount;
+        }
+
+        swapinfo.minImageCount = minImageCount;
         swapinfo.imageFormat = surfaceFormat.format;
         swapinfo.imageColorSpace = surfaceFormat.colorSpace;
         swapinfo.imageExtent = surfaceCaps.currentExtent;
@@ -74,9 +82,9 @@ namespace worlds {
 
         if (swapinfo.imageUsage != originalImageUsage) {
             SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_WARNING, "Warning",
-                    "RTSS detected. If you have issues with crashes or poor performance,\n"
-                    "please close it as it does not use the Vulkan API properly and can break things.",
-                    nullptr);
+                "RTSS detected. If you have issues with crashes or poor performance,\n"
+                "please close it as it does not use the Vulkan API properly and can break things.",
+                nullptr);
         }
 
         format = surfaceFormat.format;

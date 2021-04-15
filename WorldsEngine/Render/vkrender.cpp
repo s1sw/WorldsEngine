@@ -58,9 +58,10 @@ RenderTexture* VKRenderer::createRTResource(RTResourceCreateInfo resourceCreateI
 }
 
 void VKRenderer::createSwapchain(vk::SwapchainKHR oldSwapchain) {
+    bool fullscreen = (SDL_GetWindowFlags(window) & SDL_WINDOW_FULLSCREEN) == SDL_WINDOW_FULLSCREEN;
     vk::PresentModeKHR presentMode = (useVsync && !enableVR) ? vk::PresentModeKHR::eFifo : vk::PresentModeKHR::eImmediate;
     QueueFamilyIndices qfi{ graphicsQueueFamilyIdx, presentQueueFamilyIdx };
-    swapchain = std::make_unique<Swapchain>(physicalDevice, *device, surface, qfi, nullptr, presentMode);
+    swapchain = std::make_unique<Swapchain>(physicalDevice, *device, surface, qfi, fullscreen, oldSwapchain, presentMode);
     swapchain->getSize(&width, &height);
 
     if (!enableVR) {
