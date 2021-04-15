@@ -659,13 +659,13 @@ namespace lg {
         worlds::updatePhysicsShapes(fenderWActor);
         worlds::updateMass(fenderWActor);
 
-        auto& d6Comp = registry.emplace<worlds::D6Joint>(playerFender);
+        auto& d6Comp = registry.emplace<worlds::D6Joint>(playerLocosphere);
 
-        d6Comp.setTarget(playerLocosphere, registry);
+        d6Comp.setTarget(playerFender, registry);
 
         physx::PxTransform offset{ physx::PxIdentity };
         offset.p = physx::PxVec3{ 0.0f, -0.4f, 0.0f };
-        d6Comp.pxJoint->setLocalPose(physx::PxJointActorIndex::eACTOR0, offset);
+        d6Comp.pxJoint->setLocalPose(physx::PxJointActorIndex::eACTOR1, offset);
 
         fenderActor->setRigidDynamicLockFlag(physx::PxRigidDynamicLockFlag::eLOCK_ANGULAR_X, true);
         fenderActor->setRigidDynamicLockFlag(physx::PxRigidDynamicLockFlag::eLOCK_ANGULAR_Y, true);
