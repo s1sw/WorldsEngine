@@ -246,7 +246,7 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     , shadowmapImage(nullptr)
     , imguiImage(nullptr)
     , window(initInfo.window)
-    , shadowmapRes(2048)
+    , shadowmapRes(1024)
     , enableVR(initInfo.enableVR)
     , pickingPRP(nullptr)
     , vrPRP(nullptr)
@@ -256,7 +256,9 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     , useVsync(true)
     , enablePicking(initInfo.enablePicking)
     , nextHandle(0u)
-    , frameIdx(0) {
+    , frameIdx(0) 
+    , lastFrameIdx(0) {
+    maxFramesInFlight = 2;
     msaaSamples = vk::SampleCountFlagBits::e2;
     numMSAASamples = 2;
 
@@ -527,7 +529,7 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
 
     vk::QueryPoolCreateInfo qpci{};
     qpci.queryType = vk::QueryType::eTimestamp;
-    qpci.queryCount = 2;
+    qpci.queryCount = 2 * maxFramesInFlight;
     queryPool = device->createQueryPoolUnique(qpci);
 
     *success = true;
@@ -724,11 +726,9 @@ void VKRenderer::recreateSwapchain() {
     }
 
     swapchain.reset();
-
-    createSwapchain(nullptr);
-
     framebuffers.clear();
 
+    createSwapchain(nullptr);
     createSCDependents();
 
     swapchainRecreated = true;
@@ -950,10 +950,10 @@ void VKRenderer::calculateCascadeMatrices(entt::registry& world, RenderCtx& rCtx
         if (l.type == LightType::Directional) {
             glm::mat4 frustumMatrices[3];
             float aspect = (float)rCtx.width / (float)rCtx.height;
-            // frustum 0: near -> 40m
-            // frustum 1: 40m  -> 100m
-            // frustum 2: 100m -> 400m
-            float splits[4] = { rCtx.cam->near, 40.0f, 125.0f, 375.0f };
+            // frustum 0: near -> 20m
+            // frustum 1: 20m  -> 125m
+            // frustum 2: 125m -> 250m
+            float splits[4] = { rCtx.cam->near, 20.0f, 60.0f, 140.0f };
             if (!rCtx.enableVR) {
                 for (int i = 1; i < 4; i++) {
                     frustumMatrices[i - 1] = glm::perspective(
@@ -1042,7 +1042,7 @@ void VKRenderer::writeCmdBuf(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageInde
     cmdBuf->begin(cbbi);
     texSlots->frameStarted = true;
     cmdBuf->resetQueryPool(*queryPool, 0, 2);
-    cmdBuf->writeTimestamp(vk::PipelineStageFlagBits::eTopOfPipe, *queryPool, 0);
+    cmdBuf->writeTimestamp(vk::PipelineStageFlagBits::eTopOfPipe, *queryPool, 0 + (2 * frameIdx));
 
     texSlots->setUploadCommandBuffer(*cmdBuf, frameIdx);
 
@@ -1151,7 +1151,7 @@ void VKRenderer::writeCmdBuf(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageInde
         vk::AccessFlagBits::eColorAttachmentWrite | vk::AccessFlagBits::eColorAttachmentRead, vk::AccessFlagBits::eMemoryRead,
         vk::PipelineStageFlagBits::eColorAttachmentOutput, vk::PipelineStageFlagBits::eBottomOfPipe);
 
-    cmdBuf->writeTimestamp(vk::PipelineStageFlagBits::eBottomOfPipe, *queryPool, 1);
+    cmdBuf->writeTimestamp(vk::PipelineStageFlagBits::eBottomOfPipe, *queryPool, 1 + (frameIdx * 2));
 #ifdef TRACY_ENABLE
     TracyVkCollect(tracyContexts[imageIndex], *cmdBuf);
 #endif
@@ -1225,13 +1225,6 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
     }
 
     bool recreate = false;
-    if (device->waitForFences(1, &cmdBufFences[frameIdx], VK_TRUE, UINT64_MAX) != vk::Result::eSuccess) {
-        fatalErr("Failed to wait on fences");
-    }
-
-    if (device->resetFences(1, &cmdBufFences[frameIdx]) != vk::Result::eSuccess) {
-        fatalErr("Failed to reset fences");
-    }
 
     dbgStats.numCulledObjs = 0;
     dbgStats.numDrawCalls = 0;
@@ -1260,6 +1253,14 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
     }
 
     imgFences[imageIndex] = cmdBufFences[frameIdx];
+
+    if (device->waitForFences(1, &cmdBufFences[frameIdx], VK_TRUE, UINT64_MAX) != vk::Result::eSuccess) {
+        fatalErr("Failed to wait on fences");
+    }
+
+    if (device->resetFences(1, &cmdBufFences[frameIdx]) != vk::Result::eSuccess) {
+        fatalErr("Failed to reset fences");
+    }
 
     auto& cmdBuf = cmdBufs[frameIdx];
     writeCmdBuf(cmdBuf, imageIndex, cam, reg);
@@ -1321,7 +1322,7 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
     std::array<std::uint64_t, 2> timeStamps = { {0} };
 
     auto queryRes = device->getQueryPoolResults(
-        *queryPool, 0, (uint32_t)timeStamps.size(),
+        *queryPool, 2 * lastFrameIdx, (uint32_t)timeStamps.size(),
         timeStamps.size() * sizeof(uint64_t), timeStamps.data(),
         sizeof(uint64_t), vk::QueryResultFlagBits::e64
     );
@@ -1331,7 +1332,8 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
 
     if (recreate)
         recreateSwapchain();
-    device->waitIdle();
+
+    lastFrameIdx = frameIdx;
 
     frameIdx++;
     frameIdx %= maxFramesInFlight;
