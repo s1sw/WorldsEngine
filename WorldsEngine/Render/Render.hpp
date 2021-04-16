@@ -392,7 +392,7 @@ namespace worlds {
         RenderDebugStats dbgStats;
         RTTPassHandle vrPass;
         RTTPassHandle nextHandle;
-        uint32_t frameIdx;
+        uint32_t frameIdx, lastFrameIdx;
         ShadowCascadePass* shadowCascadePass;
         void* rdocApi;
 

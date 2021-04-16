@@ -873,6 +873,10 @@ namespace worlds {
             globalMiscFlags |= 16384;
         }
 
+        std::sort(drawInfo.begin(), drawInfo.end(), [&](auto& sdiA, auto& sdiB) {
+            return sdiA.pipeline > sdiB.pipeline;
+        });
+
         if ((int)depthPrepass) {
             ZoneScopedN("Depth prepass");
             cmdBuf.bindPipeline(vk::PipelineBindPoint::eGraphics, *depthPrePipeline);
