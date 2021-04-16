@@ -320,7 +320,6 @@ namespace lg {
                     worlds::glm2px(glm::normalize(gripPoint.rotOffset))
                 };
 
-                //d6.pxJoint->setLocalPose(physx::PxJointActorIndex::eACTOR0, target);
                 auto handT = dpa.actor->getGlobalPose();
                 auto objectT = otherActor.actor->getGlobalPose();
                 d6.pxJoint->setLocalPose(physx::PxJointActorIndex::eACTOR0, handT.transformInv(objectT));
@@ -604,6 +603,16 @@ namespace lg {
             rActor->setSolverIterationCounts(16, 8);
             lActor->setLinearVelocity(physx::PxVec3{0.0f});
             rActor->setLinearVelocity(physx::PxVec3{0.0f});
+
+            rHandJoint->setLocalPose(physx::PxJointActorIndex::eACTOR0, physx::PxTransform {
+                physx::PxVec3 { 0.0f, 0.8f, 0.0f },
+                physx::PxQuat { physx::PxIdentity }
+            });
+
+            lHandJoint->setLocalPose(physx::PxJointActorIndex::eACTOR0, physx::PxTransform {
+                physx::PxVec3 { 0.0f, 0.8f, 0.0f },
+                physx::PxQuat { physx::PxIdentity }
+            });
         }
 
         if (isDedicated) {
