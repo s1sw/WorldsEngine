@@ -279,7 +279,7 @@ vec3 shade(ShadeInfo si) {
 #ifdef HIGH_QUALITY_SHADOWS
                 const int shadowSamples = 1;
                 const float divVal = ((shadowSamples * 2)) * ((shadowSamples * 2));
-                float sampleRadius = pack0[cascadeSplit + 1] * 0.0000125;
+                float sampleRadius = pack0[cascadeSplit + 1] * 0.000014;
 
                 for (int x = -shadowSamples; x < shadowSamples; x++)
                     for (int y = -shadowSamples; y < shadowSamples; y++) {
