@@ -45,10 +45,34 @@ layout(binding = 0) uniform MultiVP {
     vec4 viewPos[4];
 };
 
+struct AOBox {
+    vec4 pack0;
+    vec4 pack1;
+    vec4 pack2;
+    vec4 pack3;
+};
+
+mat3 getRotationMat(AOBox box) {
+    return mat3(
+        box.pack0.x, pack0.y, pack0.z,
+        box.pack0.w, pack1.x, pack1.y,
+        box.pack1.z, pack1.w, pack2.x
+    );
+}
+
+vec3 getTranslation(AOBox box) {
+    return vec3(box.pack2.y, box.pack2.z, box.pack2.w);
+}
+
+vec3 getScale(AOBox box) {
+    return vec3(box.pack3.xyz);
+}
+
 layout(std140, binding = 1) uniform LightBuffer {
     // (light count, yzw cascade texels per unit)
     vec4 pack0;
     mat4 dirShadowMatrices[3];
+    AOBox aoBox;
     Light lights[128];
 };
 
@@ -307,6 +331,34 @@ float getAntiAliasedRoughness(float inRoughness, vec3 normal) {
     return max(inRoughness, geoRoughness);
 }
 
+float boxOcclusion( in vec3 pos, in vec3 nor, in mat4 txx, in vec3 rad ) {
+    vec3 p = (txx*vec4(pos,1.0)).xyz;
+    vec3 n = (txx*vec4(nor,0.0)).xyz;
+
+    // Orient the hexagon based on p
+    vec3 f = rad * sign(p);
+
+    // Make sure the hexagon is always convex
+    vec3 s = sign(rad - abs(p));
+
+    // 6 verts
+    vec3 v0 = normalize( vec3( 1.0, 1.0,-1.0)*f - p);
+    vec3 v1 = normalize( vec3( 1.0, s.x, s.x)*f - p);
+    vec3 v2 = normalize( vec3( 1.0,-1.0, 1.0)*f - p);
+    vec3 v3 = normalize( vec3( s.z, s.z, 1.0)*f - p);
+    vec3 v4 = normalize( vec3(-1.0, 1.0, 1.0)*f - p);
+    vec3 v5 = normalize( vec3( s.y, 1.0, s.y)*f - p);
+
+    // 6 edges
+    return abs( dot( n, normalize( cross(v0,v1)) ) * acos( dot(v0,v1) ) +
+            dot( n, normalize( cross(v1,v2)) ) * acos( dot(v1,v2) ) +
+            dot( n, normalize( cross(v2,v3)) ) * acos( dot(v2,v3) ) +
+            dot( n, normalize( cross(v3,v4)) ) * acos( dot(v3,v4) ) +
+            dot( n, normalize( cross(v4,v5)) ) * acos( dot(v4,v5) ) +
+            dot( n, normalize( cross(v5,v0)) ) * acos( dot(v5,v0) ))
+        / 6.283185;
+}
+
 void main() {
     Material mat = materials[matIdx];
 
@@ -338,16 +390,16 @@ void main() {
     mat3 tbn = mat3(inTangent, bitangent, inNormal);
     if (inUvDir == 1) {
         tbn = mat3(vec3(0.0, 0.0, 1.0) * -sign(inNormal.x) * -sign(inUV.x),
-                   vec3(0.0, 1.0, 0.0) * -sign(inNormal.x) * sign(inUV.y),
-                   vec3(1.0, 0.0, 0.0)) * sign(inNormal.x);
+                vec3(0.0, 1.0, 0.0) * -sign(inNormal.x) * sign(inUV.y),
+                vec3(1.0, 0.0, 0.0)) * sign(inNormal.x);
     } else if (inUvDir == 2) {
         tbn = mat3(vec3(1.0, 0.0, 0.0) * sign(inNormal.y) * sign(inUV.x),
-                   vec3(0.0, 0.0, 1.0) * sign(inNormal.y),
-                   vec3(0.0, 1.0, 0.0)) * sign(inNormal.y);
+                vec3(0.0, 0.0, 1.0) * sign(inNormal.y),
+                vec3(0.0, 1.0, 0.0)) * sign(inNormal.y);
     } else if (inUvDir == 3) {
         tbn = mat3(vec3(1.0, 0.0, 0.0) * -sign(inNormal.z) * -sign(inUV.x),
-                   vec3(0.0, 1.0, 0.0) * -sign(inNormal.z) * sign(inUV.y),
-                   vec3(0.0, 0.0, 1.0)) * sign(inNormal.z);
+                vec3(0.0, 1.0, 0.0) * -sign(inNormal.z) * sign(inUV.y),
+                vec3(0.0, 0.0, 1.0)) * sign(inNormal.z);
     }
     mat3 tbnT = transpose(tbn);
 
@@ -430,14 +482,10 @@ void main() {
         return;
     }
 
-
     float finalAlpha = alphaCutoff > 0.0f ? albedoCol.a : 1.0f;
-
     if (alphaCutoff > 0.0f) {
         finalAlpha = (finalAlpha - alphaCutoff) / max(fwidth(finalAlpha), 0.0001) + 0.5;
     }
-
-    //if (finalAlpha == 0.0) discard;
 
     ShadeInfo si;
     si.f0 = f0;

@@ -79,7 +79,7 @@ namespace lg {
                 refVel = worlds::px2glm(((physx::PxRigidDynamic*)lDpa.actor)->getLinearVelocity());
             }
 
-            glm::vec3 err = (physHand.targetWorldPos) - worlds::px2glm(t.p) + ((body->getMass() / physHand.posController.P) * glm::vec3(0.0f, 9.81f, 0.0f));
+            glm::vec3 err = (physHand.targetWorldPos) - worlds::px2glm(t.p);
             glm::vec3 vel = worlds::px2glm(body->getLinearVelocity());
 
             glm::vec3 force = physHand.posController.getOutput(err * physHand.forceMultiplier, simStep);

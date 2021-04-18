@@ -113,6 +113,7 @@ namespace worlds {
         std::unordered_map<AssetID, LoadedClip> loadedClips;
         std::vector<OneShotClipInfo> oneShotClips;
         int channelCount;
+        int numSamples;
         bool isPaused;
         glm::vec3 listenerPosition;
         glm::quat listenerRotation;

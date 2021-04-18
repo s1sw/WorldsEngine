@@ -27,6 +27,8 @@ namespace worlds {
                 this);
     }
 
+    float* lastBuffer = nullptr;
+
     template <typename T>
     inline void mixClip(AudioSystem::LoadedClip& clip, T& sourceInfo, int numMonoSamplesNeeded, int numSamplesNeeded, float* stream, AudioSystem* _this) {
         int samplesRemaining = clip.sampleCount - sourceInfo.playbackPosition;
@@ -136,6 +138,9 @@ namespace worlds {
             stream[i] *= _this->volume;
         }
 
+        if (lastBuffer)
+            memcpy(lastBuffer, stream, len);
+
         dspTime += secondBufferLength;
         auto ms = timer.stopGetMs();
 
@@ -177,19 +182,16 @@ namespace worlds {
         want.freq = 44100;
         want.format = AUDIO_F32;
         want.channels = 2;
-        want.samples = 4096;
+        want.samples = 2048;
         want.callback = &AudioSystem::audioCallback;
         want.userdata = this;
         devId = SDL_OpenAudioDevice(nullptr, false, &want, &have, 0);
 
-        if (devId == 0) {
-            SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION, "Failed to open audio device");
-        } else {
-            SDL_PauseAudioDevice(devId, 0);
-        }
+        lastBuffer = (float*)malloc(have.samples * have.channels * sizeof(float));
 
         logMsg(WELogCategoryAudio, "Opened audio device at %ihz with %i channels and %i samples", have.freq, have.channels, have.samples);
         channelCount = have.channels;
+        numSamples = have.samples;
 
         reg.on_construct<AudioSource>().connect<&AudioSystem::onAudioSourceConstruct>(*this);
         reg.on_destroy<AudioSource>().connect<&AudioSystem::onAudioSourceDestroy>(*this);
@@ -213,6 +215,12 @@ namespace worlds {
         audioOut.channelOrder = IPL_CHANNELORDER_INTERLEAVED;
 
         iplCreateBinauralEffect(binauralRenderer, audioIn, audioOut, &binauralEffect);
+
+        if (devId == 0) {
+            SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION, "Failed to open audio device");
+        } else {
+            SDL_PauseAudioDevice(devId, 0);
+        }
     }
 
     void AudioSystem::loadAudioScene(std::string sceneName) {
@@ -235,6 +243,14 @@ namespace worlds {
                 ImGui::Text("Playing Clip Count: %zu", reg.view<AudioSource>().size());
                 ImGui::Text("Playing one shot count: %zu", oneShotClips.size());
                 ImGui::SliderFloat("Volume", &volume, 0.0f, 1.0f);
+
+                ImGui::PlotLines("L Audio", [](void* data, int idx) {
+                    return ((float*)data)[idx * 2];
+                }, lastBuffer, numSamples /2, 0, nullptr, -1.0f, 1.0f, ImVec2(300, 150));
+
+                ImGui::PlotLines("R Audio", [](void* data, int idx) {
+                    return ((float*)data)[idx * 2 + 1];
+                }, lastBuffer, numSamples /2, 0, nullptr, -1.0f, 1.0f, ImVec2(300, 150));
 
                 for (auto& p : internalAs) {
                     ImGui::Separator();

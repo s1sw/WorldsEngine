@@ -7,9 +7,8 @@ layout (push_constant) uniform PC {
     int faceIdx;
 };
 
-layout (binding = 0, rgba32f) uniform readonly image2D inFace;
+layout (binding = 0) uniform samplerCube fullCubemap;
 layout (binding = 1, rgba32f) uniform writeonly image2D outFace;
-layout (binding = 2) uniform samplerCube fullCubemap;
 
 // ----------------------------------------------------------------------------
 float DistributionGGX(vec3 N, vec3 H, float roughness)
@@ -96,13 +95,11 @@ vec3 getSamplingVector(uvec2 pixCoord) {
 
 void main() {
     uvec2 texSize = imageSize(outFace);
-    uvec2 inSize = imageSize(inFace);
     if (any(greaterThan(gl_GlobalInvocationID.xy, texSize))) {
         return;
     }
 
     vec2 uv = vec2(gl_GlobalInvocationID.xy) / vec2(texSize);
-    ivec2 inCoords = ivec2(vec2(inSize) * uv);
 
     vec3 N = normalize(getSamplingVector(gl_GlobalInvocationID.xy));
     vec3 R = N;
@@ -111,7 +108,7 @@ void main() {
     float totalWeight = 0.0f;
     vec3 prefilteredColor = vec3(0.0f, 0.0f, 0.0f);
 
-    const uint SAMPLE_COUNT = 768;
+    const uint SAMPLE_COUNT = 1024;
     for (uint i = 0u; i < SAMPLE_COUNT; i++) {
         vec2 Xi = Hammersley(i, SAMPLE_COUNT);
         vec3 H = ImportanceSampleGGX(Xi, N, roughness);
@@ -119,7 +116,18 @@ void main() {
 
         float NdotL = max(dot(N, L), 0.0f);
         if (NdotL > 0.0f) {
-            prefilteredColor += clamp(textureLod(fullCubemap, L, 0.0).xyz, vec3(0.0), vec3(5.0)) * NdotL;
+            // sample from the environment's mip level based on roughness/pdf
+            float D   = DistributionGGX(N, H, roughness);
+            float NdotH = max(dot(N, H), 0.0);
+            float HdotV = max(dot(H, V), 0.0);
+            float pdf = D * NdotH / (4.0 * HdotV) + 0.0001;
+
+            float saTexel  = 4.0 * PI / (6.0 * texSize.x * texSize.y * 2.5);
+            float saSample = 1.0 / (float(SAMPLE_COUNT) * pdf + 0.0001);
+
+            float mipLevel = roughness == 0.0 ? 0.0 : 0.5 * log2(saSample / saTexel);
+
+            prefilteredColor += clamp(textureLod(fullCubemap, L, mipLevel).xyz, vec3(0.0), vec3(5.0)) * NdotL;
             totalWeight += NdotL;
         }
     }

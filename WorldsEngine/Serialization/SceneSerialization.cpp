@@ -20,7 +20,7 @@ namespace worlds {
     const unsigned char ESCN_FORMAT_MAGIC[5] = { 'E','S','C','N', '\0' };
     const unsigned char WSCN_FORMAT_MAGIC[5] = "WSCN";
     const int MAX_ESCN_FORMAT_ID = 4;
-    const int MAX_WSCN_FORMAT_ID = 5;
+    const int MAX_WSCN_FORMAT_ID = 6;
 
     bool deserializeEScene(PHYSFS_File* file, entt::registry& reg,
         bool additive, char* magicCheck, unsigned char formatId) {

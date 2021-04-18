@@ -275,6 +275,7 @@ namespace worlds {
                     auto& worldLight = reg.get<WorldLight>(ent);
                     ImGui::Checkbox("Enabled", &worldLight.enabled);
                     ImGui::ColorEdit3("Color", &worldLight.color.x, ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
+                    ImGui::DragFloat("Intensity", &worldLight.intensity);
 
                     if (ImGui::BeginCombo("Light Type", lightTypeNames.at(worldLight.type))) {
                         for (auto& p : lightTypeNames) {
@@ -310,6 +311,9 @@ namespace worlds {
             WRITE_FIELD(file, wl.type);
             WRITE_FIELD(file, wl.color);
             WRITE_FIELD(file, wl.spotCutoff);
+            WRITE_FIELD(file, wl.intensity);
+            WRITE_FIELD(file, wl.tubeLength);
+            WRITE_FIELD(file, wl.tubeRadius);
         }
 
         void readFromFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file, int version) override {
@@ -317,6 +321,12 @@ namespace worlds {
             READ_FIELD(file, wl.type);
             READ_FIELD(file, wl.color);
             READ_FIELD(file, wl.spotCutoff);
+
+            if (version >= 6) {
+                READ_FIELD(file, wl.intensity);
+                READ_FIELD(file, wl.tubeLength);
+                READ_FIELD(file, wl.tubeRadius);
+            }
         }
     };
 
@@ -831,7 +841,7 @@ namespace worlds {
             READ_FIELD(file, wc.cubemapId);
             READ_FIELD(file, wc.extent);
 
-            if (version == 5) {
+            if (version >= 5) {
                 READ_FIELD(file, wc.cubeParallax);
             }
         }

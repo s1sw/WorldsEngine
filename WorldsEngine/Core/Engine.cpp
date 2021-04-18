@@ -517,7 +517,7 @@ namespace worlds {
             currentScene.name = std::filesystem::path(g_assetDB.getAssetPath(id)).stem().string();
             currentScene.id = id;
 
-            if (evtHandler && !runAsEditor) {
+            if (evtHandler && (!runAsEditor || !editor->active)) {
                 evtHandler->onSceneStart(reg);
 
                 for (auto* system : systems)
@@ -811,6 +811,16 @@ namespace worlds {
 
             inputManager->endFrame();
 
+            if (sceneLoadQueued) {
+                sceneLoadQueued = false;
+                deserializeScene(queuedSceneID, registry);
+
+                if (renderer) {
+                    renderer->uploadSceneAssets(registry);
+                    renderer->unloadUnusedMaterials(registry);
+                }
+            }
+
             lastUpdateTime = updateTime;
 
             if (recreateScreenRTT) {
@@ -1058,12 +1068,8 @@ namespace worlds {
     }
 
     void WorldsEngine::loadScene(AssetID scene) {
-        deserializeScene(scene, registry);
-
-        if (renderer) {
-            renderer->uploadSceneAssets(registry);
-            renderer->unloadUnusedMaterials(registry);
-        }
+        sceneLoadQueued = true;
+        queuedSceneID = scene;
     }
 
     void WorldsEngine::addSystem(ISystem* system) {

@@ -551,9 +551,16 @@ namespace lg {
                     camMat = glm::rotate(glm::mat4(1.0f), -lookX, glm::vec3(0.0f, 1.0f, 0.0f));
                 }
 
+                glm::vec3 camOffset{0.0f};
+
                 if (vrInterface) {
                     static glm::vec3 lastHeadPos = glm::vec3{ 0.0f };
+                    glm::mat4 headTransform = vrInterface->getHeadTransform();
                     glm::vec3 headPos = worlds::getMatrixTranslation(vrInterface->getHeadTransform());
+                    camOffset = worlds::getMatrixRotation(headTransform) * glm::vec3(0.0f, 0.0f, 0.2f);
+                    camOffset.y = 0.0f;
+
+                    headPos += camOffset;
                     glm::vec3 locosphereOffset = lastHeadPos - headPos;
                     lastHeadPos = headPos;
                     locosphereOffset.y = 0.0f;
@@ -585,7 +592,7 @@ namespace lg {
                     nextCamPos += glm::vec3(0.0f, 1.6f, 0.0f);
                 } else {
                     // Cancel out the movement of the head
-                    glm::vec3 headPos = camera->rotation * worlds::getMatrixTranslation(vrInterface->getHeadTransform());
+                    glm::vec3 headPos = camera->rotation * (worlds::getMatrixTranslation(vrInterface->getHeadTransform()) + camOffset);
                     nextCamPos += glm::vec3{ headPos.x, 0.0f, headPos.z };
                 }
 

@@ -531,6 +531,25 @@ namespace worlds {
         ctx.device.setEvent(*pickEvent);
     }
 
+    struct SubmeshDrawInfo {
+        uint32_t materialIdx;
+        uint32_t matrixIdx;
+        vk::Buffer vb;
+        vk::Buffer ib;
+        uint32_t indexCount;
+        uint32_t indexOffset;
+        uint32_t cubemapIdx;
+        glm::vec3 cubemapExt;
+        glm::vec3 cubemapPos;
+        glm::vec4 texScaleOffset;
+        entt::entity ent;
+        vk::Pipeline pipeline;
+        uint32_t drawMiscFlags;
+        bool opaque;
+    };
+
+    slib::StaticAllocList<SubmeshDrawInfo> drawInfo{8192};
+
     void PolyRenderPass::prePass(PassSetupCtx& psCtx, RenderCtx& rCtx) {
         ZoneScoped;
         auto ctx = psCtx.vkCtx;
@@ -545,8 +564,16 @@ namespace worlds {
             frustumB.fromVPMatrix(rCtx.vrProjMats[1] * rCtx.vrViewMats[1]);
         }
 
+        uint32_t skyboxId = rCtx.slotArrays.cubemaps.loadOrGet(rCtx.reg.ctx<SceneSettings>().skybox);
+        if (skyboxId != lastSky) {
+            dsUpdateNeeded = true;
+            lastSky = skyboxId;
+        }
+
+        drawInfo.clear();
+
         int matrixIdx = 0;
-        rCtx.reg.view<Transform, WorldObject>().each([&](entt::entity, Transform& t, WorldObject& wo) {
+        rCtx.reg.view<Transform, WorldObject>().each([&](entt::entity ent, Transform& t, WorldObject& wo) {
             if (matrixIdx == 1023) {
                 fatalErr("Out of model matrices!");
                 return;
@@ -564,16 +591,99 @@ namespace worlds {
             float maxScale = glm::max(t.scale.x, glm::max(t.scale.y, t.scale.z));
             if (!rCtx.enableVR) {
                 if (!frustum.containsSphere(t.position, meshPos->second.sphereRadius * maxScale)) {
+                    rCtx.dbgStats->numCulledObjs++;
                     return;
                 }
             } else {
                 if (!frustum.containsSphere(t.position, meshPos->second.sphereRadius * maxScale) &&
                     !frustumB.containsSphere(t.position, meshPos->second.sphereRadius * maxScale)) {
+                    rCtx.dbgStats->numCulledObjs++;
                     return;
                 }
             }
 
             modelMatricesMapped->modelMatrices[matrixIdx] = t.getMatrix();
+
+            for (int i = 0; i < meshPos->second.numSubmeshes; i++) {
+                auto& currSubmesh = meshPos->second.submeshes[i];
+
+                SubmeshDrawInfo sdi;
+                sdi.ib = meshPos->second.ib.buffer();
+                sdi.vb = meshPos->second.vb.buffer();
+                sdi.indexCount = currSubmesh.indexCount;
+                sdi.indexOffset = currSubmesh.indexOffset;
+                sdi.materialIdx = wo.materialIdx[i];
+                sdi.matrixIdx = matrixIdx;
+                sdi.texScaleOffset = wo.texScaleOffset;
+                sdi.ent = ent;
+                auto& packedMat = rCtx.slotArrays.materials[wo.materialIdx[i]];
+                sdi.opaque = packedMat.getCutoff() == 0.0f;
+
+                switch (wo.uvOverride) {
+                default:
+                    sdi.drawMiscFlags = 0;
+                    break;
+                case UVOverride::XY:
+                    sdi.drawMiscFlags = 128;
+                    break;
+                case UVOverride::XZ:
+                    sdi.drawMiscFlags = 256;
+                    break;
+                case UVOverride::ZY:
+                    sdi.drawMiscFlags = 512;
+                    break;
+                case UVOverride::PickBest:
+                    sdi.drawMiscFlags = 1024;
+                    break;
+                }
+
+                uint32_t currCubemapIdx = skyboxId;
+
+                rCtx.reg.view<WorldCubemap, Transform>().each([&](auto, WorldCubemap& wc, Transform& cubeT) {
+                    glm::vec3 cPos = t.position;
+                    glm::vec3 ma = wc.extent + cubeT.position;
+                    glm::vec3 mi = cubeT.position - wc.extent;
+
+                    if (cPos.x < ma.x && cPos.x > mi.x &&
+                        cPos.y < ma.y && cPos.y > mi.y &&
+                        cPos.z < ma.z && cPos.z > mi.z) {
+                        currCubemapIdx = rCtx.slotArrays.cubemaps.get(wc.cubemapId);
+                        if (wc.cubeParallax) {
+                            sdi.drawMiscFlags |= 4096; // flag for cubemap parallax correction
+                            sdi.cubemapPos = cubeT.position;
+                            sdi.cubemapExt = wc.extent;
+                        }
+                    }
+                });
+
+                sdi.cubemapIdx = currCubemapIdx;
+
+                auto& extraDat = rCtx.slotArrays.materials.getExtraDat(wo.materialIdx[i]);
+
+                if (extraDat.noCull) {
+                    sdi.pipeline = *noBackfaceCullPipeline;
+                } else if (extraDat.wireframe || showWireframe.getInt() == 1) {
+                    sdi.pipeline = *wireframePipeline;
+                } else if (rCtx.reg.has<UseWireframe>(ent) || showWireframe.getInt() == 2) {
+                    if (sdi.opaque) {
+                        sdi.pipeline = *pipeline;
+                    } else {
+                        sdi.pipeline = *alphaTestPipeline;
+                    }
+
+                    drawInfo.add(sdi);
+                    sdi.pipeline = *wireframePipeline;
+                } else {
+                    if (sdi.opaque) {
+                        sdi.pipeline = *pipeline;
+                    } else {
+                        sdi.pipeline = *alphaTestPipeline;
+                    }
+                }
+
+                drawInfo.add(std::move(sdi));
+            }
+
             matrixIdx++;
         });
 
@@ -605,7 +715,7 @@ namespace worlds {
             glm::vec3 lightForward = glm::normalize(transform.rotation * glm::vec3(0.0f, 0.0f, -1.0f));
             if (l.type != LightType::Tube) {
                 lightMapped->lights[lightIdx] = PackedLight{
-                    glm::vec4(l.color, (float)l.type),
+                    glm::vec4(l.color * l.intensity, (float)l.type),
                     glm::vec4(lightForward, l.spotCutoff),
                     glm::vec4(transform.position, 0.0f)
                 };
@@ -613,7 +723,7 @@ namespace worlds {
                 glm::vec3 tubeP0 = transform.position + lightForward * l.tubeLength;
                 glm::vec3 tubeP1 = transform.position - lightForward * l.tubeLength;
                 lightMapped->lights[lightIdx] = PackedLight{
-                    glm::vec4(l.color, (float)l.type),
+                    glm::vec4(l.color * l.intensity, (float)l.type),
                     glm::vec4(tubeP0, l.tubeRadius),
                     glm::vec4(tubeP1, 0.0f)
                 };
@@ -657,27 +767,7 @@ namespace worlds {
         }
     }
 
-    struct SubmeshDrawInfo {
-        uint32_t materialIdx;
-        uint32_t matrixIdx;
-        vk::Buffer vb;
-        vk::Buffer ib;
-        uint32_t indexCount;
-        uint32_t indexOffset;
-        uint32_t cubemapIdx;
-        glm::vec3 cubemapExt;
-        glm::vec3 cubemapPos;
-        glm::vec4 texScaleOffset;
-        entt::entity ent;
-        vk::Pipeline pipeline;
-        uint32_t drawMiscFlags;
-        bool opaque;
-    };
-
-    slib::StaticAllocList<SubmeshDrawInfo> drawInfo{8192};
-
     void PolyRenderPass::execute(RenderCtx& ctx) {
-        drawInfo.clear();
         ZoneScoped;
         TracyVkZone((*ctx.tracyContexts)[ctx.imageIndex], *ctx.cmdBuf, "Polys");
 
@@ -733,132 +823,7 @@ namespace worlds {
             cullMeshRenderer->draw(cmdBuf);
         }
 
-        uint32_t skyboxId = ctx.slotArrays.cubemaps.loadOrGet(reg.ctx<SceneSettings>().skybox);
-        if (skyboxId != lastSky) {
-            dsUpdateNeeded = true;
-            lastSky = skyboxId;
-        }
-
-        int matrixIdx = 0;
-
         cmdBuf.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 0, *descriptorSet, nullptr);
-
-        Frustum frustum;
-        Frustum frustumB;
-
-        if (!ctx.enableVR) {
-            frustum.fromVPMatrix(ctx.cam->getProjectionMatrix((float)ctx.width / (float)ctx.height) * ctx.cam->getViewMatrix());
-        } else {
-            frustum.fromVPMatrix(ctx.vrProjMats[0] * ctx.vrViewMats[0]);
-            frustumB.fromVPMatrix(ctx.vrProjMats[1] * ctx.vrViewMats[1]);
-        }
-
-        reg.view<Transform, WorldObject>().each([&](entt::entity ent, Transform& transform, WorldObject& obj) {
-            ZoneScopedN("SDI generation");
-            auto meshPos = ctx.loadedMeshes.find(obj.mesh);
-
-            if (meshPos == ctx.loadedMeshes.end()) {
-                // Haven't loaded the mesh yet
-                matrixIdx++;
-                logWarn(WELogCategoryRender, "Missing mesh");
-                return;
-            }
-
-            float maxScale = glm::max(transform.scale.x, glm::max(transform.scale.y, transform.scale.z));
-            if (!ctx.enableVR) {
-                if (!frustum.containsSphere(transform.position, meshPos->second.sphereRadius * maxScale)) {
-                    ctx.dbgStats->numCulledObjs++;
-                    return;
-                }
-            } else {
-                if (!frustum.containsSphere(transform.position, meshPos->second.sphereRadius * maxScale) &&
-                    !frustumB.containsSphere(transform.position, meshPos->second.sphereRadius * maxScale)) {
-                    ctx.dbgStats->numCulledObjs++;
-                    return;
-                }
-            }
-
-            for (int i = 0; i < meshPos->second.numSubmeshes; i++) {
-                auto& currSubmesh = meshPos->second.submeshes[i];
-
-                SubmeshDrawInfo sdi;
-                sdi.ib = meshPos->second.ib.buffer();
-                sdi.vb = meshPos->second.vb.buffer();
-                sdi.indexCount = currSubmesh.indexCount;
-                sdi.indexOffset = currSubmesh.indexOffset;
-                sdi.materialIdx = obj.materialIdx[i];
-                sdi.matrixIdx = matrixIdx;
-                sdi.texScaleOffset = obj.texScaleOffset;
-                sdi.ent = ent;
-                auto& packedMat = ctx.slotArrays.materials[obj.materialIdx[i]];
-                sdi.opaque = packedMat.getCutoff() == 0.0f;
-
-                switch (obj.uvOverride) {
-                default:
-                    sdi.drawMiscFlags = 0;
-                    break;
-                case UVOverride::XY:
-                    sdi.drawMiscFlags = 128;
-                    break;
-                case UVOverride::XZ:
-                    sdi.drawMiscFlags = 256;
-                    break;
-                case UVOverride::ZY:
-                    sdi.drawMiscFlags = 512;
-                    break;
-                case UVOverride::PickBest:
-                    sdi.drawMiscFlags = 1024;
-                    break;
-                }
-
-                uint32_t currCubemapIdx = skyboxId;
-
-                reg.view<WorldCubemap, Transform>().each([&](auto, WorldCubemap& wc, Transform& t) {
-                    glm::vec3 cPos = transform.position;
-                    glm::vec3 ma = wc.extent + t.position;
-                    glm::vec3 mi = t.position - wc.extent;
-
-                    if (cPos.x < ma.x && cPos.x > mi.x &&
-                        cPos.y < ma.y && cPos.y > mi.y &&
-                        cPos.z < ma.z && cPos.z > mi.z) {
-                        currCubemapIdx = ctx.slotArrays.cubemaps.get(wc.cubemapId);
-                        if (wc.cubeParallax) {
-                            sdi.drawMiscFlags |= 4096; // flag for cubemap parallax correction
-                            sdi.cubemapPos = t.position;
-                            sdi.cubemapExt = wc.extent;
-                        }
-                    }
-                });
-
-                sdi.cubemapIdx = currCubemapIdx;
-
-                auto& extraDat = ctx.slotArrays.materials.getExtraDat(obj.materialIdx[i]);
-
-                if (extraDat.noCull) {
-                    sdi.pipeline = *noBackfaceCullPipeline;
-                } else if (extraDat.wireframe || showWireframe.getInt() == 1) {
-                    sdi.pipeline = *wireframePipeline;
-                } else if (reg.has<UseWireframe>(ent) || showWireframe.getInt() == 2) {
-                    if (sdi.opaque) {
-                        sdi.pipeline = *pipeline;
-                    } else {
-                        sdi.pipeline = *alphaTestPipeline;
-                    }
-
-                    drawInfo.add(sdi);
-                    sdi.pipeline = *wireframePipeline;
-                } else {
-                    if (sdi.opaque) {
-                        sdi.pipeline = *pipeline;
-                    } else {
-                        sdi.pipeline = *alphaTestPipeline;
-                    }
-                }
-
-                drawInfo.add(std::move(sdi));
-            }
-            matrixIdx++;
-        });
 
         uint32_t globalMiscFlags = 0;
 
@@ -873,9 +838,9 @@ namespace worlds {
             globalMiscFlags |= 16384;
         }
 
-        std::sort(drawInfo.begin(), drawInfo.end(), [&](auto& sdiA, auto& sdiB) {
-            return sdiA.pipeline > sdiB.pipeline;
-        });
+        //std::sort(drawInfo.begin(), drawInfo.end(), [&](const auto& sdiA, const auto& sdiB) {
+        //    return sdiA.pipeline > sdiB.pipeline;
+        //});
 
         if ((int)depthPrepass) {
             ZoneScopedN("Depth prepass");
@@ -928,42 +893,6 @@ namespace worlds {
 
             last = sdi;
             ctx.dbgStats->numDrawCalls++;
-        }
-
-        cmdBuf.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline);
-
-        reg.view<Transform, ProceduralObject>().each([&](auto ent, Transform& transform, ProceduralObject& obj) {
-            matrixIdx++;
-            if (!obj.visible) return;
-            uint32_t currCubemapIdx = 0;
-            reg.view<WorldCubemap, Transform>().each([&](auto, WorldCubemap& wc, Transform& t) {
-                glm::vec3 cPos = transform.position;
-                glm::vec3 ma = wc.extent + t.position;
-                glm::vec3 mi = t.position - wc.extent;
-
-                if (cPos.x < ma.x && cPos.x > mi.x &&
-                    cPos.y < ma.y && cPos.y > mi.y &&
-                    cPos.z < ma.z && cPos.z > mi.z) {
-                    currCubemapIdx = ctx.slotArrays.cubemaps.get(wc.cubemapId);
-                }
-            });
-
-            StandardPushConstants pushConst{
-                glm::vec4(1.0f, 1.0f, 0.0f, 0.0f),
-                (uint32_t)matrixIdx, obj.materialIdx, 0, (uint32_t)ent,
-                glm::ivec3(pickX, pickY, globalMiscFlags),
-                currCubemapIdx
-            };
-
-            cmdBuf.pushConstants<StandardPushConstants>(*pipelineLayout, vk::ShaderStageFlagBits::eFragment | vk::ShaderStageFlagBits::eVertex, 0, pushConst);
-            cmdBuf.bindVertexBuffers(0, obj.vb.buffer(), vk::DeviceSize(0));
-            cmdBuf.bindIndexBuffer(obj.ib.buffer(), 0, obj.indexType);
-            cmdBuf.drawIndexed(obj.indexCount, 1, 0, 0, 0);
-            ctx.dbgStats->numDrawCalls++;
-        });
-
-        if (matrixIdx >= 1024) {
-            fatalErr("Out of model matrices!");
         }
 
         if (numLineVerts > 0) {
