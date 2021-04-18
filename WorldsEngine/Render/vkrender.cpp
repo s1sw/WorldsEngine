@@ -256,7 +256,7 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     , useVsync(true)
     , enablePicking(initInfo.enablePicking)
     , nextHandle(0u)
-    , frameIdx(0) 
+    , frameIdx(0)
     , lastFrameIdx(0) {
     maxFramesInFlight = 2;
     msaaSamples = vk::SampleCountFlagBits::e2;
@@ -953,7 +953,7 @@ void VKRenderer::calculateCascadeMatrices(entt::registry& world, RenderCtx& rCtx
             // frustum 0: near -> 20m
             // frustum 1: 20m  -> 125m
             // frustum 2: 125m -> 250m
-            float splits[4] = { rCtx.cam->near, 20.0f, 60.0f, 140.0f };
+            float splits[4] = { rCtx.cam->near, 15.0f, 60.0f, 140.0f };
             if (!rCtx.enableVR) {
                 for (int i = 1; i < 4; i++) {
                     frustumMatrices[i - 1] = glm::perspective(
@@ -1041,7 +1041,7 @@ void VKRenderer::writeCmdBuf(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageInde
 
     cmdBuf->begin(cbbi);
     texSlots->frameStarted = true;
-    cmdBuf->resetQueryPool(*queryPool, 0, 2);
+    cmdBuf->resetQueryPool(*queryPool, 0 + (2 * frameIdx), 2);
     cmdBuf->writeTimestamp(vk::PipelineStageFlagBits::eTopOfPipe, *queryPool, 0 + (2 * frameIdx));
 
     texSlots->setUploadCommandBuffer(*cmdBuf, frameIdx);

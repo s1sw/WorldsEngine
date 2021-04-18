@@ -96,6 +96,8 @@ namespace worlds {
         double timeScale = 1.0;
         SDL_Window* window;
         SceneInfo currentScene;
+        bool sceneLoadQueued = false;
+        AssetID queuedSceneID;
 
         std::vector<ISystem*> systems;
     };
@@ -154,6 +156,7 @@ namespace worlds {
         bool enabled = true;
         LightType type = LightType::Point;
         glm::vec3 color = glm::vec3{1.0f};
+        float intensity = 1.0f;
         float spotCutoff = 0.7f;
         float tubeLength = 0.25f;
         float tubeRadius = 0.1f;

@@ -60,7 +60,7 @@ namespace worlds {
             auto* drawList = ImGui::GetWindowDrawList();
 
             drawList->AddImage(bgId, screenCursorPos, corner);
-            
+
             // draw orbit circles
             auto center = screenCursorPos + ImVec2(174, 60);
             drawList->AddCircleFilled(center, 6.0f, ImColor(1.0f, 1.0f, 1.0f), 24);
@@ -103,21 +103,35 @@ namespace worlds {
 
             ImGui::SetCursorPos(ImGui::GetCursorStartPos() + ImVec2(375, 174 + 5 + ImGui::GetTextLineHeightWithSpacing()));
             ImGui::Text("Thanks to:");
-            ImGui::SetCursorPosX(cursorX);
-            ImGui::Text(" - The VR Physics Developers Discord server");
-            ImGui::SetCursorPosX(cursorX);
-            ImGui::Text(" - lil b (based god)");
-            ImGui::SetCursorPosX(cursorX);
-            ImGui::Text(" - soulja boy");
-            ImGui::SetCursorPosX(cursorX);
-            ImGui::Text(" - boneworks ninja");
-            ImGui::SetCursorPosX(cursorX);
-            ImGui::Text(" - VR_Player");
-            ImGui::SetCursorPosX(cursorX);
-            ImGui::Text(" - bradno (smooch)");
+
+            if (showBradno) {
+                ImGui::SetCursorPosX(cursorX);
+                ImGui::Text(" - lil b (based god)");
+                ImGui::SetCursorPosX(cursorX);
+                ImGui::Text(" - soulja boy");
+                ImGui::SetCursorPosX(cursorX);
+                ImGui::Text(" - boneworks ninja");
+                ImGui::SetCursorPosX(cursorX);
+                ImGui::Text(" - VR_Player");
+                ImGui::SetCursorPosX(cursorX);
+                ImGui::Text(" - bradno (smooch)");
+                ImGui::SetCursorPosX(cursorX);
+                ImGui::Text(" - doctor SEX 😳");
+                ImGui::SetCursorPosX(cursorX);
+                ImGui::Text(" - L4rs the gamer girl for the sanity depriving C++ questions");
+            } else {
+                ImGui::SetCursorPosX(cursorX);
+                ImGui::Text(" - PixHammer for the physics hands help");
+                ImGui::SetCursorPosX(cursorX);
+                ImGui::Text(" - SLZ for making the game that started this mess");
+                ImGui::SetCursorPosX(cursorX);
+                ImGui::Text(" - Maranara for");
+                ImGui::SetCursorPosX(cursorX);
+                ImGui::Text(" - Tabloid for motivation");
+            }
 
             ImGui::SetCursorPosX(cursorX);
-            auto bradnoPos = ImGui::GetCursorPos() + ImGui::GetWindowPos();
+            auto bradnoPos = ImGui::GetCursorPos() + ImGui::GetWindowPos() + ImVec2(0, 100);
             const int BRADNO_HALF_WIDTH = 145;
             const int BRADNO_HALF_HEIGHT = 115;
 
@@ -133,7 +147,7 @@ namespace worlds {
                 drawList->AddImageQuad(bradnoId, p1, p2, p3, p4);
 
         }
-        ImGui::End(); 
+        ImGui::End();
         //ImGui::PopStyleColor();
     }
 }

@@ -66,6 +66,10 @@ namespace worlds {
         glm::vec4 pack2;
     };
 
+    struct AOBox {
+        glm::vec4 pack0, pack1, pack2, pack3;
+    };
+
     struct LightUB {
         glm::vec4 pack0;
         glm::mat4 shadowmapMatrices[3];
