@@ -122,8 +122,9 @@ vec3 calculateLighting(Light light, ShadeInfo shadeInfo, vec3 worldPos) {
     vec3 numerator = NDF * G * f;
     float denominator = 4.0f * cosLo * cosLi;
     vec3 specular = numerator / max(denominator, 0.001f);
+    vec3 diffuse = kd * shadeInfo.albedoColor;
 
-    return (specular + (kd * shadeInfo.albedoColor)) * lsi.radiance * cosLi;
+    return (specular + diffuse) * lsi.radiance * cosLi;
 #endif
 }
 #endif

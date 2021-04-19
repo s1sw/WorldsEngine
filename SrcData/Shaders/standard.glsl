@@ -216,7 +216,7 @@ vec3 decodeNormal (vec2 texVal) {
     vec3 n;
     n.xy = (texVal*2.0)-1.0;
     vec2 xySq = n.xy * n.xy;
-    n.z = sqrt(1.0 - xySq.x - xySq.y);
+    n.z = max(sqrt(1.0 - xySq.x - xySq.y), 0.0);
     return n;
 }
 
@@ -249,7 +249,7 @@ int calculateCascade(out vec4 oShadowPos) {
         vec4 shadowPos = dirShadowMatrices[i] * inWorldPos;
         shadowPos.y = -shadowPos.y;
         vec2 coord = (shadowPos.xy * 0.5 + 0.5);
-        const float lThresh = (1.0 / 2048.0);
+        const float lThresh = (1.0 / pack0[i + 1]);
         const float hThresh = 1.0 - lThresh;
 
         if (coord.x > lThresh && coord.x < hThresh &&
@@ -283,7 +283,8 @@ vec3 shade(ShadeInfo si) {
             vec4 shadowPos;
             int cascadeSplit = calculateCascade(shadowPos);
 
-            float bias = max(0.0005 * (1.0 - dot(inNormal, lights[i].pack1.xyz)), 0.00005);
+            //float bias = max(0.0005 * (1.0 - dot(inNormal, lights[i].pack1.xyz)), 0.00025);
+            float bias = 0.0005;
             float depth = (shadowPos.z / shadowPos.w) - bias;
             vec2 coord = (shadowPos.xy * 0.5 + 0.5);
 
@@ -311,7 +312,7 @@ vec3 shade(ShadeInfo si) {
         lo += shadowIntensity * calculateLighting(lights[i], si, inWorldPos.xyz);
     }
 
-    vec3 ambient = calcAmbient(si.f0, si.roughness, si.viewDir, si.metallic, si.albedoColor, si.normal);
+    vec3 ambient = calcAmbient(si.f0, si.roughness, si.viewDir, si.metallic, si.albedoColor, si.normal) * si.ao;
     return lo + (ambient * si.ao);
 }
 
@@ -435,7 +436,7 @@ void main() {
             FragColor = vec4(0.0, 0.0, 0.5, 1.0);
             return;
         }
-        vec3 nMap = decodeNormal(textureLod(tex2dSampler[mat.normalTexIdx], tCoord, 0).xy);
+        vec3 nMap = decodeNormal(texture(tex2dSampler[mat.normalTexIdx], tCoord).xy);
         FragColor = vec4(nMap, 1.0);
         return;
     } else if ((miscFlag & 2048) == 2048) {
