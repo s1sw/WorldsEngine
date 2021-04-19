@@ -38,18 +38,34 @@ mat4 getBoxTransform(AOBox box) {
     return translationMatrix * rot;
 }
 
+#define PI_HALF 1.5707963267948966192313216916398
+// [Eberly2014] GPGPU Programming for Games and Science
+float fastAcos(float x) {
+#if 1
+    float res = -0.156583 * abs(x) + PI_HALF;
+    res *= sqrt(1.0 - abs(x));
+    return x >= 0 ? res : PI - res;
+#else
+    return acos(x);
+#endif
+}
+
+float safeAcos(float x) {
+    return fastAcos(clamp(x, -1.0, 1.0));
+}
+
 float getBoxOcclusion(AOBox box, vec3 pos, vec3 nor) {
     mat4 txx = getBoxTransform(box);
     vec3 rad = getBoxScale(box);
-	vec3 p = (txx*vec4(pos,1.0)).xyz;
-	vec3 n = (txx*vec4(nor,0.0)).xyz;
-    
+    vec3 p = (txx*vec4(pos,1.0)).xyz;
+    vec3 n = (txx*vec4(nor,0.0)).xyz;
+
     // Orient the hexagon based on p
     vec3 f = rad * sign(p);
-    
+
     // Make sure the hexagon is always convex
     vec3 s = sign(rad - abs(p));
-    
+
     // 6 verts
     vec3 v0 = normalize( vec3( 1.0, 1.0,-1.0)*f - p);
     vec3 v1 = normalize( vec3( 1.0, s.x, s.x)*f - p);
@@ -57,14 +73,14 @@ float getBoxOcclusion(AOBox box, vec3 pos, vec3 nor) {
     vec3 v3 = normalize( vec3( s.z, s.z, 1.0)*f - p);
     vec3 v4 = normalize( vec3(-1.0, 1.0, 1.0)*f - p);
     vec3 v5 = normalize( vec3( s.y, 1.0, s.y)*f - p);
-    
+
     // 6 edges
-    return abs( dot( n, normalize( cross(v0,v1)) ) * acos( dot(v0,v1) ) +
-    	    	dot( n, normalize( cross(v1,v2)) ) * acos( dot(v1,v2) ) +
-    	    	dot( n, normalize( cross(v2,v3)) ) * acos( dot(v2,v3) ) +
-    	    	dot( n, normalize( cross(v3,v4)) ) * acos( dot(v3,v4) ) +
-    	    	dot( n, normalize( cross(v4,v5)) ) * acos( dot(v4,v5) ) +
-    	    	dot( n, normalize( cross(v5,v0)) ) * acos( dot(v5,v0) ))
-            	/ 6.283185;
+    return abs( dot( n, normalize( cross(v0,v1)) ) * safeAcos( dot(v0,v1) ) +
+            dot( n, normalize( cross(v1,v2)) ) * safeAcos( dot(v1,v2) ) +
+            dot( n, normalize( cross(v2,v3)) ) * safeAcos( dot(v2,v3) ) +
+            dot( n, normalize( cross(v3,v4)) ) * safeAcos( dot(v3,v4) ) +
+            dot( n, normalize( cross(v4,v5)) ) * safeAcos( dot(v4,v5) ) +
+            dot( n, normalize( cross(v5,v0)) ) * safeAcos( dot(v5,v0) ))
+        / 6.283185;
 }
 #endif
