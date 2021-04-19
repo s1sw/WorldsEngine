@@ -739,6 +739,16 @@ namespace worlds {
         lightMapped->shadowmapMatrices[1] = rCtx.cascadeShadowMatrices[1];
         lightMapped->shadowmapMatrices[2] = rCtx.cascadeShadowMatrices[2];
 
+        uint32_t aoBoxIdx = 0;
+        rCtx.reg.view<Transform, ProxyAOComponent>().each([&](auto ent, Transform& t, ProxyAOComponent& pac) {
+            lightMapped->box[aoBoxIdx].setScale(pac.bounds);
+            glm::mat4 tMat = glm::translate(glm::mat4(1.0f), t.position);
+            lightMapped->box[aoBoxIdx].setMatrix(glm::mat4_cast(glm::inverse(t.rotation)) * glm::inverse(tMat));
+            lightMapped->box[aoBoxIdx].setEntityId((uint32_t)ent);
+            aoBoxIdx++;
+        });
+        lightMapped->pack1.x = aoBoxIdx;
+
         if (dsUpdateNeeded) {
             // Update descriptor sets to bring in any new textures
             updateDescriptorSets(psCtx);

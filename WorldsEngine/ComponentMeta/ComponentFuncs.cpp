@@ -927,6 +927,10 @@ namespace worlds {
             auto& trigger = reg.get<AudioTrigger>(ent);
 
             if (ImGui::CollapsingHeader("Audio Trigger")) {
+                if (ImGui::Button("Remove")) {
+                    reg.remove<AudioTrigger>(ent);
+                    return;
+                }
                 ImGui::Separator();
             }
         }
@@ -944,6 +948,37 @@ namespace worlds {
         }
     };
 
+    class ProxyAOEditor : public BasicComponentUtil<ProxyAOComponent> {
+    public:
+        BASIC_CLONE(ProxyAOComponent);
+        BASIC_CREATE(ProxyAOComponent);
+
+        const char* getName() override { return "AO Proxy"; }
+
+        void edit(entt::entity ent, entt::registry& reg, Editor* ed) override {
+            auto& pac = reg.get<ProxyAOComponent>(ent);
+
+            if (ImGui::CollapsingHeader("AO Proxy")) {
+                if (ImGui::Button("Remove")) {
+                    reg.remove<ProxyAOComponent>(ent);
+                    return;
+                }
+                ImGui::DragFloat3("bounds", &pac.bounds.x);
+                ImGui::Separator();
+            }
+        }
+
+        void writeToFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file) override {
+            auto& pac = reg.get<ProxyAOComponent>(ent);
+            WRITE_FIELD(file, pac.bounds);
+        }
+
+        void readFromFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file, int version) override {
+            auto& pac = reg.emplace<ProxyAOComponent>(ent);
+            READ_FIELD(file, pac.bounds);
+        }
+    };
+
     TransformEditor transformEd;
     WorldObjectEditor worldObjEd;
     WorldLightEditor worldLightEd;
@@ -955,4 +990,5 @@ namespace worlds {
     ScriptComponentEditor scEd;
     ReverbProbeBoxEditor rpbEd;
     AudioTriggerEditor atEd;
+    ProxyAOEditor aoEd;
 }

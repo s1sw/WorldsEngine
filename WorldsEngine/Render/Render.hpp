@@ -1,6 +1,7 @@
 #pragma once
 #include <glm/glm.hpp>
 #include "../VR/IVRInterface.hpp"
+#include "glm/common.hpp"
 #include "tracy/TracyVulkan.hpp"
 #include "ResourceSlots.hpp"
 #include "Camera.hpp"
@@ -66,13 +67,43 @@ namespace worlds {
         glm::vec4 pack2;
     };
 
+    struct ProxyAOComponent {
+        glm::vec3 bounds;
+    };
+
     struct AOBox {
         glm::vec4 pack0, pack1, pack2, pack3;
+
+        void setRotationMat(glm::mat3 mat) {
+            pack0 = glm::vec4(mat[0][0], mat[0][1], mat[0][2], mat[1][0]);
+            pack1 = glm::vec4(mat[1][1], mat[1][2], mat[2][0], mat[2][1]);
+            pack2 = glm::vec4(mat[2][2], pack2.y, pack2.z, pack2.w);
+        }
+
+        void setTranslation(glm::vec3 t) {
+            pack2 = glm::vec4(pack2.x, t.x, t.y, t.z);
+        }
+
+        void setMatrix(glm::mat4 m4) {
+            pack0 = glm::vec4(m4[0][0], m4[0][1], m4[0][2], m4[1][0]);
+            pack1 = glm::vec4(m4[1][1], m4[1][2], m4[2][0], m4[2][1]);
+            pack2 = glm::vec4(m4[2][2], glm::vec3{m4[3]});
+        }
+
+        void setScale(glm::vec3 s) {
+            pack3 = glm::vec4(s, pack3.w);
+        }
+
+        void setEntityId(uint32_t id) {
+            pack3.w = glm::uintBitsToFloat(id);
+        }
     };
 
     struct LightUB {
         glm::vec4 pack0;
+        glm::vec4 pack1;
         glm::mat4 shadowmapMatrices[3];
+        AOBox box[16];
         PackedLight lights[128];
     };
 

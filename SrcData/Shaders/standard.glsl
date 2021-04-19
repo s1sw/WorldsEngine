@@ -11,6 +11,7 @@
 #include <pbrshade.glsl>
 #include <parallax.glsl>
 #include <shadercomms.glsl>
+#include <aobox.glsl>
 
 layout(location = 0) VARYING(vec4, WorldPos);
 layout(location = 1) VARYING(vec3, Normal);
@@ -45,34 +46,13 @@ layout(binding = 0) uniform MultiVP {
     vec4 viewPos[4];
 };
 
-struct AOBox {
-    vec4 pack0;
-    vec4 pack1;
-    vec4 pack2;
-    vec4 pack3;
-};
-
-mat3 getRotationMat(AOBox box) {
-    return mat3(
-        box.pack0.x, pack0.y, pack0.z,
-        box.pack0.w, pack1.x, pack1.y,
-        box.pack1.z, pack1.w, pack2.x
-    );
-}
-
-vec3 getTranslation(AOBox box) {
-    return vec3(box.pack2.y, box.pack2.z, box.pack2.w);
-}
-
-vec3 getScale(AOBox box) {
-    return vec3(box.pack3.xyz);
-}
-
 layout(std140, binding = 1) uniform LightBuffer {
     // (light count, yzw cascade texels per unit)
     vec4 pack0;
+    // (ao box count, yzw unused)
+    vec4 pack1;
     mat4 dirShadowMatrices[3];
-    AOBox aoBox;
+    AOBox aoBox[16];
     Light lights[128];
 };
 
@@ -281,6 +261,18 @@ int calculateCascade(out vec4 oShadowPos) {
     return 2;
 }
 
+float calcProxyAO(vec3 wPos, vec3 normal) {
+    float proxyAO = 1.0;
+
+    for (int i = 0; i < int(pack1.x); i++) {
+        if (floatBitsToUint(aoBox[i].pack3.w) != objectId) {
+            proxyAO *= (1.0 - getBoxOcclusion(aoBox[i], inWorldPos.xyz, normal));
+        }
+    }
+
+    return proxyAO;
+}
+
 vec3 shade(ShadeInfo si) {
     int lightCount = int(pack0.x);
 
@@ -329,34 +321,6 @@ float getAntiAliasedRoughness(float inRoughness, vec3 normal) {
 
     float geoRoughness = pow(saturate(max(dot(ddxN.xyz, ddxN.xyz), dot(ddyN.xyz, ddyN.xyz))), 0.333);
     return max(inRoughness, geoRoughness);
-}
-
-float boxOcclusion( in vec3 pos, in vec3 nor, in mat4 txx, in vec3 rad ) {
-    vec3 p = (txx*vec4(pos,1.0)).xyz;
-    vec3 n = (txx*vec4(nor,0.0)).xyz;
-
-    // Orient the hexagon based on p
-    vec3 f = rad * sign(p);
-
-    // Make sure the hexagon is always convex
-    vec3 s = sign(rad - abs(p));
-
-    // 6 verts
-    vec3 v0 = normalize( vec3( 1.0, 1.0,-1.0)*f - p);
-    vec3 v1 = normalize( vec3( 1.0, s.x, s.x)*f - p);
-    vec3 v2 = normalize( vec3( 1.0,-1.0, 1.0)*f - p);
-    vec3 v3 = normalize( vec3( s.z, s.z, 1.0)*f - p);
-    vec3 v4 = normalize( vec3(-1.0, 1.0, 1.0)*f - p);
-    vec3 v5 = normalize( vec3( s.y, 1.0, s.y)*f - p);
-
-    // 6 edges
-    return abs( dot( n, normalize( cross(v0,v1)) ) * acos( dot(v0,v1) ) +
-            dot( n, normalize( cross(v1,v2)) ) * acos( dot(v1,v2) ) +
-            dot( n, normalize( cross(v2,v3)) ) * acos( dot(v2,v3) ) +
-            dot( n, normalize( cross(v3,v4)) ) * acos( dot(v3,v4) ) +
-            dot( n, normalize( cross(v4,v5)) ) * acos( dot(v4,v5) ) +
-            dot( n, normalize( cross(v5,v0)) ) * acos( dot(v5,v0) ))
-        / 6.283185;
 }
 
 void main() {
@@ -445,6 +409,8 @@ void main() {
     vec3 f0 = mix(vec3(0.04), albedoCol.rgb, metallic);
 
     vec3 normal = normalize(mat.normalTexIdx > -1 ? getNormalMapNormal(mat, tCoord, tbn) : inNormal);
+
+    ao *= calcProxyAO(inWorldPos.xyz, normal);
 
     // debug views
     if ((miscFlag & 2) == 2) {
