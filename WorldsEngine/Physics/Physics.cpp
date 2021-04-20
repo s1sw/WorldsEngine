@@ -14,6 +14,9 @@
 #include "Physics.hpp"
 #include "D6Joint.hpp"
 #include "FixedJoint.hpp"
+#include "PxSceneDesc.h"
+#include "PxSimulationEventCallback.h"
+using namespace physx;
 
 #define ENABLE_PVD 0
 
@@ -26,15 +29,15 @@ namespace worlds {
                 case physx::PxErrorCode::eDEBUG_INFO:
                     logVrb(WELogCategoryPhysics, "%s (%s:%i)", msg, file, line);
                     break;
-                case physx::PxErrorCode::eDEBUG_WARNING:
-                case physx::PxErrorCode::ePERF_WARNING:
-                case physx::PxErrorCode::eINVALID_OPERATION:
-                case physx::PxErrorCode::eINVALID_PARAMETER:
+                case PxErrorCode::eDEBUG_WARNING:
+                case PxErrorCode::ePERF_WARNING:
+                case PxErrorCode::eINVALID_OPERATION:
+                case PxErrorCode::eINVALID_PARAMETER:
                     logWarn(WELogCategoryPhysics, "%s (%s:%i)", msg, file, line);
                     break;
-                case physx::PxErrorCode::eINTERNAL_ERROR:
-                case physx::PxErrorCode::eABORT:
-                case physx::PxErrorCode::eOUT_OF_MEMORY:
+                case PxErrorCode::eINTERNAL_ERROR:
+                case PxErrorCode::eABORT:
+                case PxErrorCode::eOUT_OF_MEMORY:
                     logErr(WELogCategoryPhysics, "%s (%s:%i)", msg, file, line);
                     break;
             }
@@ -128,18 +131,40 @@ namespace worlds {
 
     static physx::PxFilterFlags filterShader(
         physx::PxFilterObjectAttributes,
-        physx::PxFilterData,
+        physx::PxFilterData data1,
         physx::PxFilterObjectAttributes,
-        physx::PxFilterData,
+        physx::PxFilterData data2,
         physx::PxPairFlags& pairFlags,
         const void*,
         physx::PxU32) {
-        pairFlags = physx::PxPairFlag::eSOLVE_CONTACT;
-        pairFlags |= physx::PxPairFlag::eDETECT_DISCRETE_CONTACT;
-        pairFlags |= physx::PxPairFlag::eDETECT_CCD_CONTACT;
+        if (data1.word0 == PLAYER_PHYSICS_LAYER && data2.word0 == PLAYER_PHYSICS_LAYER)
+            return physx::PxFilterFlag::eKILL;
+        pairFlags = physx::PxPairFlag::eSOLVE_CONTACT
+                  | physx::PxPairFlag::eDETECT_DISCRETE_CONTACT
+                  | physx::PxPairFlag::eDETECT_CCD_CONTACT
+                  | physx::PxPairFlag::eNOTIFY_TOUCH_FOUND;
         return physx::PxFilterFlags();
     }
 
+    class SimulationCallback : public PxSimulationEventCallback {
+    public:
+        void onConstraintBreak(PxConstraintInfo* constraints, uint32_t count) override {
+        }
+
+        void onWake(PxActor** actors, uint32_t count) override {}
+
+        void onSleep(PxActor** actors, uint32_t count) override {}
+
+        void onContact(const PxContactPairHeader& pairHeader, const PxContactPair* pairs, uint32_t nbPairs) override {
+            logMsg("contact!");
+        }
+
+        void onTrigger(PxTriggerPair* pairs, uint32_t count) override {}
+
+        void onAdvance(const PxRigidBody* const* bodyBuffer, const PxTransform* poseBuffer, uint32_t count) override {}
+    };
+
+    SimulationCallback* simCallback;
 
     void initPhysx(entt::registry& reg) {
         g_physFoundation = PxCreateFoundation(PX_PHYSICS_VERSION, gDefaultAllocator, gErrorCallback);
@@ -168,10 +193,12 @@ namespace worlds {
         physx::PxSceneDesc desc(tolerancesScale);
         desc.gravity = physx::PxVec3(0.0f, -9.81f, 0.0f);
         desc.cpuDispatcher = physx::PxDefaultCpuDispatcherCreate(std::max(SDL_GetCPUCount() - 2, 1));
-        //desc.filterShader = filterShader;
-        desc.filterShader = physx::PxDefaultSimulationFilterShader;
+        desc.filterShader = filterShader;
         desc.solverType = physx::PxSolverType::eTGS;
         g_scene = g_physics->createScene(desc);
+
+        simCallback = new SimulationCallback;
+        g_scene->setSimulationEventCallback(simCallback);
 
         reg.on_destroy<PhysicsActor>().connect<&destroyPhysXActor<PhysicsActor>>();
         reg.on_destroy<DynamicPhysicsActor>().connect<&destroyPhysXActor<DynamicPhysicsActor>>();

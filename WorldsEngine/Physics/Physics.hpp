@@ -12,6 +12,9 @@ namespace worlds {
     extern physx::PxScene* g_scene;
     extern physx::PxPhysics* g_physics;
 
+    const uint32_t DEFAULT_PHYSICS_LAYER = 0;
+    const uint32_t PLAYER_PHYSICS_LAYER = 1;
+
     inline physx::PxVec3 glm2px(glm::vec3 vec) {
         return physx::PxVec3(vec.x, vec.y, vec.z);
     }
@@ -79,9 +82,11 @@ namespace worlds {
                 break;
             }
 
-            shape->setContactOffset(0.01f);
-            shape->setRestOffset(0.005f);
             shape->setLocalPose(physx::PxTransform{ glm2px(ps.pos * scale), glm2px(ps.rot) });
+            physx::PxFilterData data;
+            data.word0 = pa.layer;
+            shape->setSimulationFilterData(data);
+            shape->setQueryFilterData(data);
 
             pa.actor->attachShape(*shape);
             shape->release();
