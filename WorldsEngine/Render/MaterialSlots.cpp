@@ -1,6 +1,7 @@
 #include "ResourceSlots.hpp"
 #include "../Core/Engine.hpp"
 #include "tracy/Tracy.hpp"
+#include <physfs.h>
 #include <sajson.h>
 #include <optional>
 #include "../Util/JsonUtil.hpp"
@@ -20,6 +21,15 @@ namespace worlds {
     void MaterialSlots::parseMaterial(AssetID asset, PackedMaterial& mat, MatExtraData& extraDat) {
         ZoneScoped;
         PHYSFS_File* f = g_assetDB.openAssetFileRead(asset);
+
+        if (f == nullptr) {
+            std::string path = g_assetDB.getAssetPath(asset);
+            auto err = PHYSFS_getLastErrorCode();
+            auto errStr = PHYSFS_getErrorByCode(err);
+            logErr(WELogCategoryRender, "Failed to open %s: %s", path.c_str(), errStr);
+            f = PHYSFS_openRead("Materials/missing.json");
+        }
+
         size_t fileSize = PHYSFS_fileLength(f);
         char* buffer = (char*)std::malloc(fileSize);
         PHYSFS_readBytes(f, buffer, fileSize);
