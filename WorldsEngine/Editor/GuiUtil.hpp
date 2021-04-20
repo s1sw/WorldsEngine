@@ -6,6 +6,7 @@
 
 namespace worlds {
     typedef uint32_t AssetID;
+    const char* getIcon(const std::string& ext);
 
     // Open with ImGui::OpenPopup(title)
     void saveFileModal(const char* title, std::function<void(const char*)> saveCallback);

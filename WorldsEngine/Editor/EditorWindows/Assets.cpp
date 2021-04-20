@@ -5,6 +5,8 @@
 #include "../../Util/CreateModelObject.hpp"
 #include "../../Core/Console.hpp"
 #include "../../Libs/IconsFontAwesome5.h"
+#include "../GuiUtil.hpp"
+#include <slib/Path.hpp>
 
 namespace worlds {
     void Assets::draw(entt::registry& reg) {
@@ -34,11 +36,11 @@ namespace worlds {
                 logMsg("Navigated to %s", currentDir.c_str());
             }
 
-            PHYSFS_enumerate(currentDir.c_str(), [](void* regPtr, const char* origDir, const char* fName) {
-                EnumerateCallbackArgs* callbackArgs = (EnumerateCallbackArgs*)regPtr;
-                entt::registry& reg = callbackArgs->reg;
+            char** files = PHYSFS_enumerateFiles(currentDir.c_str());
 
-                std::string origDirStr = origDir;
+            for (char** currFile = files; *currFile != nullptr; currFile++) {
+                slib::Path path{*currFile};
+                std::string origDirStr = currentDir;
                 if (origDirStr[0] == '/') {
                     origDirStr = origDirStr.substr(1);
                 }
@@ -46,31 +48,41 @@ namespace worlds {
                 std::string fullPath;
 
                 if (origDirStr.empty())
-                    fullPath = fName;
+                    fullPath = *currFile;
                 else
-                    fullPath = origDirStr + "/" + std::string(fName);
+                    fullPath = origDirStr + "/" + std::string(*currFile);
 
                 PHYSFS_Stat stat;
                 PHYSFS_stat(fullPath.c_str(), &stat);
 
                 if (stat.filetype == PHYSFS_FILETYPE_DIRECTORY || stat.filetype == PHYSFS_FILETYPE_SYMLINK) {
-                    if (ImGui::Button(fName)) {
-                        if (callbackArgs->currentDir != "/")
-                            callbackArgs->currentDir += "/";
-                        callbackArgs->currentDir += fName;
+                    slib::String buttonLabel {(const char*)ICON_FA_FOLDER};
+                    buttonLabel += " ";
+                    buttonLabel += *currFile;
+                    if (ImGui::Button(buttonLabel.cStr())) {
+                        if (currentDir != "/")
+                            currentDir += "/";
+                        currentDir += *currFile;
 
                         if (currentDir[0] == '/') {
                             currentDir = currentDir.substr(1);
                         }
                         logMsg("Navigated to %s", currentDir.c_str());
-                        return PHYSFS_ENUM_STOP;
                     }
                 } else {
-                    AssetID id = g_assetDB.addOrGetExisting(fullPath);
-                    auto ext = g_assetDB.getAssetExtension(id);
+                    slib::Path p{fullPath.c_str()};
+                    auto ext = p.fileExtension();
+                    const char* icon = getIcon(ext.cStr());
+                    slib::String buttonLabel = icon;
+                    buttonLabel += *currFile;
                     if (ext == ".obj" || ext == ".mdl" || ext == ".wmdl" || ext == ".rblx") {
-                        if (ImGui::Button(fName)) {
-                            entt::entity ent = createModelObject(reg, glm::vec3(), glm::quat(), id, g_assetDB.addOrGetExisting("Materials/dev.json"));
+                        if (ImGui::Button(buttonLabel.cStr())) {
+                            glm::vec3 pos = interfaces.mainCamera->position;
+                            pos += interfaces.mainCamera->rotation * glm::vec3(0.0f, 0.0f, 1.0f);
+                            auto id = g_assetDB.addOrGetExisting(fullPath);
+                            entt::entity ent = createModelObject(reg,
+                                    pos, glm::quat(), id,
+                                    g_assetDB.addOrGetExisting("Materials/dev.json"));
 
                             WorldObject& wo = reg.get<WorldObject>(ent);
                             if (g_assetDB.getAssetExtension(id) == ".mdl") {
@@ -82,15 +94,21 @@ namespace worlds {
                                 }
                             }
                         }
+                    } else if (ext == ".wscn" || ext == ".escn") {
+                        if (ImGui::Button(buttonLabel.cStr())) {
+                            interfaces.engine->loadScene(g_assetDB.addOrGetExisting(fullPath));
+                        }
                     } else {
                         if ((int)showExts)
-                            ImGui::Text("%s (%s)", fName, g_assetDB.getAssetExtension(id).c_str());
-                        else
-                            ImGui::Text("%s", fName);
+                            ImGui::Text("%s (%s)", *currFile, ext.cStr());
+                        else {
+                            ImGui::Text("%s%s", icon, *currFile);
+                        }
                     }
                 }
-                return PHYSFS_ENUM_OK;
-                }, &enumCallbackArgs);
+            }
+
+            PHYSFS_freeList(files);
         }
 
         ImGui::End();
