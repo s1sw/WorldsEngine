@@ -14,6 +14,7 @@
 #include <Core/Console.hpp>
 #include "DebugArrow.hpp"
 #include <VR/OpenVRInterface.hpp>
+#include <Input/Input.hpp>
 
 namespace lg {
     void resetHand(PhysHand& ph, physx::PxRigidBody* rb) {
@@ -178,12 +179,21 @@ namespace lg {
                 hand.targetWorldRot = t.rotation;
             }
         } else {
-            glm::vec3 camOffset { 0.1f, -0.1f, 0.55f };
+            static glm::vec3 camOffset { 0.1f, -0.1f, 0.55f };
+
+            if (interfaces.inputManager->keyPressed(SDL_SCANCODE_KP_8))
+                camOffset.z += 0.05f;
+
+            if (interfaces.inputManager->keyPressed(SDL_SCANCODE_KP_2))
+                camOffset.z -= 0.05f;
+
             if (hand.follow == FollowHand::RightHand)
                 camOffset.x = -camOffset.x;
             hand.targetWorldPos = interfaces.mainCamera->position;
             hand.targetWorldPos += interfaces.mainCamera->rotation * camOffset;
             hand.targetWorldRot = interfaces.mainCamera->rotation;
+            if (hand.follow == FollowHand::RightHand)
+                camOffset.x = -camOffset.x;
         }
     }
 }

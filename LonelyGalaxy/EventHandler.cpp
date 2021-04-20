@@ -285,8 +285,8 @@ namespace lg {
 
     void EventHandler::updateHandGrab(entt::registry& registry, PlayerRig& rig, entt::entity ent, float deltaTime) {
         static V3PidController objPid;
-        objPid.P = 30.0f;
-        objPid.D = 10.0f;
+        objPid.P = 45.0f;
+        objPid.D = 15.0f;
         auto& physHand = registry.get<PhysHand>(ent);
         auto grabAction = physHand.follow == FollowHand::LeftHand ? lGrab : rGrab;
         auto grabButton = physHand.follow == FollowHand::LeftHand ? worlds::MouseButton::Left : worlds::MouseButton::Right;
@@ -296,20 +296,30 @@ namespace lg {
         auto& dpa = registry.get<worlds::DynamicPhysicsActor>(ent);
 
         if (registry.valid(physHand.goingTo)) {
+            auto& otherActor = registry.get<worlds::DynamicPhysicsActor>(physHand.goingTo);
             if (doRelease) {
                 physHand.goingTo = entt::null;
                 physHand.follow = physHand.oldFollowHand;
                 registry.remove_if_exists<worlds::D6Joint>(ent);
+                otherActor.actor->setActorFlag(physx::PxActorFlag::eDISABLE_GRAVITY, false);
                 return;
             }
 
-            auto& otherActor = registry.get<worlds::DynamicPhysicsActor>(physHand.goingTo);
             auto otherTf = worlds::px2glm(otherActor.actor->getGlobalPose());
             auto& gripPoint = registry.get<GripPoint>(physHand.goingTo);
 
             glm::vec3 targetHandPos = otherTf.position + (otherTf.rotation * gripPoint.offset);
             glm::quat targetHandRot = otherTf.rotation * gripPoint.rotOffset;
             float distance = glm::distance(handTf.position, targetHandPos);
+
+            if (distance > 0.5f) {
+                logMsg("too far");
+                physHand.goingTo = entt::null;
+                physHand.follow = physHand.oldFollowHand;
+                registry.remove_if_exists<worlds::D6Joint>(ent);
+                otherActor.actor->setActorFlag(physx::PxActorFlag::eDISABLE_GRAVITY, false);
+                return;
+            }
             float rotDot = glm::dot(fixupQuat(targetHandRot), fixupQuat(handTf.rotation));
             ImGui::Text("%.3f distance, %.3f rotDot", distance, rotDot);
             glm::vec3 displacement = targetHandPos - handTf.position;
@@ -359,6 +369,7 @@ namespace lg {
                 physHand.useOverrideIT = true;
                 physHand.follow = physHand.oldFollowHand;
                 physHand.forceMultiplier = 1.0f;
+                otherActor.actor->setActorFlag(physx::PxActorFlag::eDISABLE_GRAVITY, false);
             }
         }
 
@@ -420,6 +431,8 @@ namespace lg {
                         d6.pxJoint->setMotion(physx::PxD6Axis::eSWING2, physx::PxD6Motion::eFREE);
                         d6.pxJoint->setMotion(physx::PxD6Axis::eTWIST, physx::PxD6Motion::eFREE);
                         logMsg("heading to grip point");
+                        //touch.actor->setActorFlag(physx::PxActorFlag::eDISABLE_GRAVITY, true);
+                        
                     } else {
                         auto& d6 = registry.emplace<worlds::D6Joint>(ent);
                         d6.pxJoint->setLocalPose(physx::PxJointActorIndex::eACTOR0, t.transformInv(p2));
@@ -573,6 +586,9 @@ namespace lg {
             rwActor.physicsShapes[0].pos = glm::vec3{0.0f, 0.0f, 0.03f};
             lwActor.physicsShapes.emplace_back(worlds::PhysicsShape::boxShape(glm::vec3{ 0.025f, 0.045f, 0.05f }));
             lwActor.physicsShapes[0].pos = glm::vec3{0.0f, 0.0f, 0.03f};
+
+            rwActor.layer = worlds::PLAYER_PHYSICS_LAYER;
+            lwActor.layer = worlds::PLAYER_PHYSICS_LAYER;
 
             worlds::updatePhysicsShapes(rwActor);
             worlds::updatePhysicsShapes(lwActor);

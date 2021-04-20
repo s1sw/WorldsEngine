@@ -632,6 +632,7 @@ namespace lg {
 
         wActor.mass = 40.0f;
         wActor.scaleShapes = false;
+        wActor.layer = worlds::PLAYER_PHYSICS_LAYER;
         worlds::updatePhysicsShapes(wActor);
         worlds::updateMass(wActor);
 
@@ -662,6 +663,7 @@ namespace lg {
         fenderWActor.physicsShapes.push_back(fenderShape);
 
         fenderWActor.mass = 3.0f;
+        fenderWActor.layer = worlds::PLAYER_PHYSICS_LAYER;
 
         worlds::updatePhysicsShapes(fenderWActor);
         worlds::updateMass(fenderWActor);
