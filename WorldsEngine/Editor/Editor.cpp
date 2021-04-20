@@ -430,6 +430,7 @@ namespace worlds {
             ImGui::Checkbox("Pause physics", &interfaces.engine->pauseSim);
             ImGui::InputFloat("Snap increment", &settings.snapIncrement, 0.1f, 0.5f);
             ImGui::InputFloat("Angular snap increment", &settings.angularSnapIncrement, 0.5f, 1.0f);
+            ImGui::InputFloat("Camera speed", &cameraSpeed, 0.1f);
         }
         ImGui::End();
 
@@ -682,11 +683,10 @@ namespace worlds {
         const char* sceneFileExts[2] = { ".escn", ".wscn" };
 
         openFileModal("Open Scene", [this](const char* path) {
-            reg.clear();
             interfaces.engine->loadScene(g_assetDB.addOrGetExisting(path));
             updateWindowTitle();
             undo.clear();
-            }, sceneFileExts, 2);
+        }, sceneFileExts, 2);
 
         if (inputManager.keyPressed(SDL_SCANCODE_I, true) &&
             inputManager.ctrlHeld() &&
