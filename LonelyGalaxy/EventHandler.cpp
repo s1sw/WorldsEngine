@@ -24,6 +24,7 @@
 #include <Core/JobSystem.hpp>
 #include "Util/CreateModelObject.hpp"
 #include "ObjectParentSystem.hpp"
+#include "extensions/PxD6Joint.h"
 #ifdef DISCORD_RPC
 #include <core.h>
 #endif
@@ -46,6 +47,15 @@ namespace lg {
     void cmdToggleVsync(void* obj, const char*) {
         auto renderer = (worlds::VKRenderer*)obj;
         renderer->setVsync(!renderer->getVsync());
+    }
+
+    void setAllAxisD6Motion(physx::PxD6Joint* j, physx::PxD6Motion::Enum motion) {
+        j->setMotion(physx::PxD6Axis::eX, motion);
+        j->setMotion(physx::PxD6Axis::eY, motion);
+        j->setMotion(physx::PxD6Axis::eZ, motion);
+        j->setMotion(physx::PxD6Axis::eSWING1, motion);
+        j->setMotion(physx::PxD6Axis::eSWING2, motion);
+        j->setMotion(physx::PxD6Axis::eTWIST, motion);
     }
 
     EventHandler::EventHandler(bool dedicatedServer)
@@ -356,12 +366,7 @@ namespace lg {
                 auto objectT = otherActor.actor->getGlobalPose();
                 d6.pxJoint->setLocalPose(physx::PxJointActorIndex::eACTOR0, handT.transformInv(objectT));
                 d6.pxJoint->setConstraintFlag(physx::PxConstraintFlag::eCOLLISION_ENABLED, false);
-                d6.pxJoint->setMotion(physx::PxD6Axis::eX, physx::PxD6Motion::eLOCKED);
-                d6.pxJoint->setMotion(physx::PxD6Axis::eY, physx::PxD6Motion::eLOCKED);
-                d6.pxJoint->setMotion(physx::PxD6Axis::eZ, physx::PxD6Motion::eLOCKED);
-                d6.pxJoint->setMotion(physx::PxD6Axis::eSWING1, physx::PxD6Motion::eLOCKED);
-                d6.pxJoint->setMotion(physx::PxD6Axis::eSWING2, physx::PxD6Motion::eLOCKED);
-                d6.pxJoint->setMotion(physx::PxD6Axis::eTWIST, physx::PxD6Motion::eLOCKED);
+                setAllAxisD6Motion(d6.pxJoint, physx::PxD6Motion::eLOCKED);
                 if (useTensorCompensation.getInt()) {
                     setPhysHandTensor(physHand, dpa, otherActor, worlds::glm2px(handTf), otherTf, *reg);
                 }
@@ -423,25 +428,14 @@ namespace lg {
                         //physHand.targetWorldRot = handTarget.rotation;
                         auto& d6 = registry.emplace<worlds::D6Joint>(ent);
                         d6.setTarget(pickUp, registry);
-                        d6.pxJoint->setConstraintFlag(physx::PxConstraintFlag::eCOLLISION_ENABLED, false);
-                        d6.pxJoint->setMotion(physx::PxD6Axis::eX, physx::PxD6Motion::eFREE);
-                        d6.pxJoint->setMotion(physx::PxD6Axis::eY, physx::PxD6Motion::eFREE);
-                        d6.pxJoint->setMotion(physx::PxD6Axis::eZ, physx::PxD6Motion::eFREE);
-                        d6.pxJoint->setMotion(physx::PxD6Axis::eSWING1, physx::PxD6Motion::eFREE);
-                        d6.pxJoint->setMotion(physx::PxD6Axis::eSWING2, physx::PxD6Motion::eFREE);
-                        d6.pxJoint->setMotion(physx::PxD6Axis::eTWIST, physx::PxD6Motion::eFREE);
+                        setAllAxisD6Motion(d6.pxJoint, physx::PxD6Motion::eLOCKED);
                         logMsg("heading to grip point");
                         //touch.actor->setActorFlag(physx::PxActorFlag::eDISABLE_GRAVITY, true);
                         
                     } else {
                         auto& d6 = registry.emplace<worlds::D6Joint>(ent);
                         d6.pxJoint->setLocalPose(physx::PxJointActorIndex::eACTOR0, t.transformInv(p2));
-                        d6.pxJoint->setMotion(physx::PxD6Axis::eX, physx::PxD6Motion::eLOCKED);
-                        d6.pxJoint->setMotion(physx::PxD6Axis::eY, physx::PxD6Motion::eLOCKED);
-                        d6.pxJoint->setMotion(physx::PxD6Axis::eZ, physx::PxD6Motion::eLOCKED);
-                        d6.pxJoint->setMotion(physx::PxD6Axis::eSWING1, physx::PxD6Motion::eLOCKED);
-                        d6.pxJoint->setMotion(physx::PxD6Axis::eSWING2, physx::PxD6Motion::eLOCKED);
-                        d6.pxJoint->setMotion(physx::PxD6Axis::eTWIST, physx::PxD6Motion::eLOCKED);
+                        setAllAxisD6Motion(d6.pxJoint, physx::PxD6Motion::eLOCKED);
                         d6.setTarget(pickUp, registry);
                         // mass of hands is 2kg
                         auto* otherDpa = registry.try_get<worlds::DynamicPhysicsActor>(pickUp);
@@ -453,7 +447,6 @@ namespace lg {
 
                         logMsg("grabbed object without grip point");
                     }
-
                 }
             }
         }
