@@ -62,6 +62,10 @@ namespace worlds {
         return (void*)(uintptr_t)(uint32_t)ent;
     }
 
+    entt::entity ptrToEnt(void* ptr) {
+        return (entt::entity)(uint32_t)(uintptr_t)ptr;
+    }
+
     template <typename T>
     void destroyPhysXActor(entt::registry& reg, entt::entity ent) {
         auto& pa = reg.get<T>(ent);
@@ -148,20 +152,35 @@ namespace worlds {
 
     class SimulationCallback : public PxSimulationEventCallback {
     public:
-        void onConstraintBreak(PxConstraintInfo* constraints, uint32_t count) override {
-        }
+        SimulationCallback(entt::registry& reg) : reg{reg} {}
+
+        void onConstraintBreak(PxConstraintInfo* constraints, uint32_t count) override {}
 
         void onWake(PxActor** actors, uint32_t count) override {}
 
         void onSleep(PxActor** actors, uint32_t count) override {}
 
         void onContact(const PxContactPairHeader& pairHeader, const PxContactPair* pairs, uint32_t nbPairs) override {
-            logMsg("contact!");
+            entt::entity a = ptrToEnt(pairHeader.actors[0]->userData);
+            entt::entity b = ptrToEnt(pairHeader.actors[0]->userData);
+
+            auto evtA = reg.try_get<PhysicsEvents>(a);
+            auto evtB = reg.try_get<PhysicsEvents>(b);
+
+            if (evtA && evtA->onContact) {
+                evtA->onContact(a, b);
+            }
+
+            if (evtB && evtB->onContact) {
+                evtB->onContact(a, b);
+            }
         }
 
         void onTrigger(PxTriggerPair* pairs, uint32_t count) override {}
 
         void onAdvance(const PxRigidBody* const* bodyBuffer, const PxTransform* poseBuffer, uint32_t count) override {}
+    private:
+        entt::registry& reg;
     };
 
     SimulationCallback* simCallback;
@@ -197,7 +216,7 @@ namespace worlds {
         desc.solverType = physx::PxSolverType::eTGS;
         g_scene = g_physics->createScene(desc);
 
-        simCallback = new SimulationCallback;
+        simCallback = new SimulationCallback(reg);
         g_scene->setSimulationEventCallback(simCallback);
 
         reg.on_destroy<PhysicsActor>().connect<&destroyPhysXActor<PhysicsActor>>();
