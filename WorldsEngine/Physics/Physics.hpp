@@ -6,6 +6,7 @@
 #include <physx/extensions/PxD6Joint.h>
 #include "../Core/Transform.hpp"
 #include "PhysicsActor.hpp"
+#include <entt/entity/fwd.hpp>
 
 namespace worlds {
     extern physx::PxMaterial* defaultMaterial;
@@ -104,4 +105,9 @@ namespace worlds {
     void initPhysx(entt::registry& reg);
     void stepSimulation(float deltaTime);
     void shutdownPhysx();
+
+    struct PhysicsEvents {
+        PhysicsEvents() : onContact { nullptr } {}
+        void(*onContact)(entt::entity thisEnt, entt::entity other);
+    };
 }
