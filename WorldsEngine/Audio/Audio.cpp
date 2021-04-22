@@ -310,7 +310,7 @@ namespace worlds {
             oneShotClips.erase(std::remove_if(oneShotClips.begin(), oneShotClips.end(), [](OneShotClipInfo& clipInfo) { return clipInfo.finished; }), oneShotClips.end());
 
         for (auto& c : oneShotClips) {
-            c.direction = glm::normalize(c.location - listenerPos) * listenerRot;
+            c.direction = glm::normalize(listenerPos - c.location) * listenerRot;
         }
 
         SDL_UnlockAudioDevice(devId);
@@ -358,11 +358,15 @@ namespace worlds {
     void AudioSystem::onAudioSourceDestroy(entt::registry& reg, entt::entity ent) {
         SDL_LockAudioDevice(devId);
 
-        LoadedClip& lc = loadedClips.at(internalAs.at(ent).clipId);
-        lc.refCount--;
+        auto lcIter = loadedClips.find(internalAs.at(ent).clipId);
 
-        if (lc.refCount <= 0) {
-            loadedClips.erase(lc.id);
+        if (lcIter != loadedClips.end()) {
+            LoadedClip& lc = loadedClips.at(internalAs.at(ent).clipId);
+            lc.refCount--;
+
+            if (lc.refCount <= 0) {
+                loadedClips.erase(lc.id);
+            }
         }
 
         internalAs.erase(ent);
@@ -388,6 +392,23 @@ namespace worlds {
 
         // Decode
         short* stbOut;
+
+        int error;
+        stb_vorbis* vorb = stb_vorbis_open_memory(
+                (const uint8_t*)res.value, fLen, &error, nullptr);
+
+
+        if (vorb == nullptr) {
+            logErr(WELogCategoryAudio, "Couldn't decode audio clip %s: error %i", path.c_str(), error);
+            return missingClip;
+        }
+
+        stb_vorbis_get_info(vorb);
+
+        stb_vorbis_info vorbInfo;
+        int limit = vorb->channels * 4096; // why 4096?
+
+
         clip.sampleCount = stb_vorbis_decode_memory((const unsigned char*)res.value, fLen, &clip.channels, &clip.sampleRate, &stbOut);
         std::free(res.value);
 

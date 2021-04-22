@@ -180,6 +180,7 @@ namespace worlds {
         uint64_t vramUsage;
         int numRTTPasses;
         int numPipelineSwitches;
+        int numTriangles;
     };
 
     // Holds handles to useful Vulkan objects
