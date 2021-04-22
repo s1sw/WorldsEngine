@@ -391,31 +391,68 @@ namespace worlds {
         LoadedClip clip;
 
         // Decode
-        short* stbOut;
-
         int error;
         stb_vorbis* vorb = stb_vorbis_open_memory(
                 (const uint8_t*)res.value, fLen, &error, nullptr);
 
 
         if (vorb == nullptr) {
-            logErr(WELogCategoryAudio, "Couldn't decode audio clip %s: error %i", path.c_str(), error);
+            const std::unordered_map<int, const char*> errorStrings = {
+                { VORBIS__no_error, "No Error" },
+                { VORBIS_need_more_data, "Need more data" },
+                { VORBIS_invalid_api_mixing, "Invalid API mixing" },
+                { VORBIS_feature_not_supported, "Feature not supported (likely floor 0)" },
+                { VORBIS_too_many_channels, "Too many channels" },
+                { VORBIS_file_open_failure, "File open failure" },
+                { VORBIS_seek_without_length, "Tried to seek without length" },
+                { VORBIS_unexpected_eof, "Unexpected EOF" },
+                { VORBIS_seek_invalid, "Invalid seek" },
+                { VORBIS_invalid_setup, "Invalid setup" },
+                { VORBIS_invalid_stream, "Invalid stream" },
+                { VORBIS_missing_capture_pattern, "Missing capture pattern" },
+                { VORBIS_invalid_stream_structure_version, "Invalid stream structure version" },
+                { VORBIS_continued_packet_flag_invalid, "Continued packet flag invalid" },
+                { VORBIS_incorrect_stream_serial_number, "Incorrect stream serial number" },
+                { VORBIS_invalid_first_page, "Invalid first page" },
+                { VORBIS_bad_packet_type, "Bad packet type" },
+                { VORBIS_cant_find_last_page, "Can't find last page" },
+                { VORBIS_seek_failed, "Seek failed" },
+                { VORBIS_ogg_skeleton_not_supported, "Ogg skeleton not supported" }
+            };
+            logErr(WELogCategoryAudio, "Couldn't decode audio clip %s: error %i (%s)", path.c_str(), error, errorStrings.at(error));
             return missingClip;
         }
 
-        stb_vorbis_get_info(vorb);
+        stb_vorbis_info info = stb_vorbis_get_info(vorb);
 
-        stb_vorbis_info vorbInfo;
-        int limit = vorb->channels * 4096; // why 4096?
+        int limit = info.channels * stb_vorbis_stream_length_in_samples(vorb);
+        clip.channels = info.channels;
+        clip.sampleRate = info.sample_rate;
 
+        short* data = (short*)malloc(limit * sizeof(short));
 
-        clip.sampleCount = stb_vorbis_decode_memory((const unsigned char*)res.value, fLen, &clip.channels, &clip.sampleRate, &stbOut);
+        int total = limit;
+        int offset = 0;
+        int totalSamples = 0;
+
+        while (true) {
+            // number of samples
+            int n = stb_vorbis_get_frame_short_interleaved(vorb, info.channels, data + offset, total - offset);
+            if (n == 0) break;
+            totalSamples += n;
+
+            offset += n * info.channels;
+
+            if (offset + limit > total) {
+                total *= 2;
+                data = (short*)realloc(data, total * sizeof(short));
+            }
+        }
+
+        stb_vorbis_close(vorb);
+        clip.sampleCount = totalSamples;
+
         std::free(res.value);
-
-        if (clip.sampleCount == -1) {
-            logErr(WELogCategoryAudio, "Could not decode audio clip %s", path.c_str());
-            return missingClip;
-        }
 
         logMsg(WELogCategoryAudio, "Loaded %i samples across %i channels with a sample rate of %i", clip.sampleCount, clip.channels, clip.sampleRate);
 
@@ -425,10 +462,10 @@ namespace worlds {
         clip.data = (float*)std::malloc(sizeof(float) * clip.sampleCount * clip.channels);
 
         for (int i = 0; i < clip.sampleCount * clip.channels; i++) {
-            clip.data[i] = ((float)stbOut[i]) / 32768.0f;
+            clip.data[i] = ((float)data[i]) / 32768.0f;
         }
 
-        std::free(stbOut);
+        std::free(data);
 
         clip.id = id;
 

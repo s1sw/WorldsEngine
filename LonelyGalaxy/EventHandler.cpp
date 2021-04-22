@@ -74,7 +74,7 @@ namespace lg {
 
     void EventHandler::onPhysicsSoundConstruct(entt::registry& reg, entt::entity ent) {
         auto& physEvents = reg.get_or_emplace<worlds::PhysicsEvents>(ent);
-        physEvents.onContact = std::bind(&EventHandler::onPhysicsSoundContact, 
+        physEvents.onContact = std::bind(&EventHandler::onPhysicsSoundContact,
                 this, std::placeholders::_1, std::placeholders::_2);
     }
 
@@ -469,9 +469,11 @@ namespace lg {
         if (doRelease && registry.has<worlds::D6Joint>(ent)) {
             auto& d6 = registry.get<worlds::D6Joint>(ent);
             auto heldEnt = d6.getTarget();
-            GripPoint* gp = registry.try_get<GripPoint>(heldEnt);
-            if (gp)
-                gp->currentlyHeld = false;
+            if (registry.valid(heldEnt)) {
+                GripPoint* gp = registry.try_get<GripPoint>(heldEnt);
+                if (gp)
+                    gp->currentlyHeld = false;
+            }
             registry.remove<worlds::D6Joint>(ent);
             auto& ph = registry.get<PhysHand>(ent);
             ph.useOverrideIT = false;
