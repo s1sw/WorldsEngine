@@ -3,6 +3,6 @@
 
 namespace lg {
     struct PhysicsSoundComponent {
-        worlds::AssetID soundId;
+        worlds::AssetID soundId = ~0u;
     };
 }

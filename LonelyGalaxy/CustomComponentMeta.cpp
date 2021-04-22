@@ -99,7 +99,11 @@ namespace lg {
         void edit(entt::entity ent, entt::registry& reg, worlds::Editor* ed) override {
             auto& psc = reg.get<PhysicsSoundComponent>(ent);
             if (ImGui::CollapsingHeader(" Phys Sound")) {
-                ImGui::Text("Current Asset Path: %s", worlds::g_assetDB.getAssetPath(psc.soundId).c_str());
+                if (psc.soundId != ~0u) {
+                    ImGui::Text("Current Asset Path: %s", worlds::g_assetDB.getAssetPath(psc.soundId).c_str());
+                } else {
+                    ImGui::Text("Sound not selected");
+                }
 
                 worlds::selectAssetPopup("Physics Audio Source Path", psc.soundId, ImGui::Button("Change"));
 
