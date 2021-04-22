@@ -1,4 +1,5 @@
 #pragma once
+#include "Physics/Physics.hpp"
 #define NOMINMAX
 #include <enet/enet.h>
 #include <Core/IGameEventHandler.hpp>
@@ -29,6 +30,8 @@ namespace lg {
         void shutdown(entt::registry& registry) override;
     private:
         void updateHandGrab(entt::registry& registry, PlayerRig& rig, entt::entity handEnt, float deltaTime);
+        void onPhysicsSoundConstruct(entt::registry& reg, entt::entity ent);
+        void onPhysicsSoundContact(entt::entity thisEnt, const worlds::PhysicsContactInfo& info);
         worlds::IVRInterface* vrInterface;
         worlds::VKRenderer* renderer;
         worlds::InputManager* inputManager;

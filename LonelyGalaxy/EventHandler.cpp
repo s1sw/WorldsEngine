@@ -5,11 +5,9 @@
 #include <Render/Render.hpp>
 #include "Core/AssetDB.hpp"
 #include "DebugArrow.hpp"
-#include "NetMessage.hpp"
 #include "Physics/D6Joint.hpp"
 #include "Physics/PhysicsActor.hpp"
 #include <physx/PxRigidDynamic.h>
-#include "Render/Loaders/SourceModelLoader.hpp"
 #include "Core/Transform.hpp"
 #include <VR/OpenVRInterface.hpp>
 #include <Physics/Physics.hpp>
@@ -39,6 +37,8 @@
 #include "GripPoint.hpp"
 #include <Input/Input.hpp>
 #include <Physics/FixedJoint.hpp>
+#include "PhysicsSoundComponent.hpp"
+#include <Audio/Audio.hpp>
 
 namespace lg {
 
@@ -66,6 +66,18 @@ namespace lg {
         , rHandEnt {entt::null} {
     }
 
+    void EventHandler::onPhysicsSoundContact(entt::entity thisEnt, const worlds::PhysicsContactInfo& info) {
+        auto& t = reg->get<Transform>(thisEnt);
+        auto& physSound = reg->get<PhysicsSoundComponent>(thisEnt);
+        worlds::AudioSystem::getInstance()->playOneShotClip(physSound.soundId, t.position, true, glm::min(info.relativeSpeed * 0.125f, 1.0f));
+    }
+
+    void EventHandler::onPhysicsSoundConstruct(entt::registry& reg, entt::entity ent) {
+        auto& physEvents = reg.get_or_emplace<worlds::PhysicsEvents>(ent);
+        physEvents.onContact = std::bind(&EventHandler::onPhysicsSoundContact, 
+                this, std::placeholders::_1, std::placeholders::_2);
+    }
+
     void EventHandler::init(entt::registry& registry, worlds::EngineInterfaces interfaces) {
         vrInterface = interfaces.vrInterface;
         renderer = interfaces.renderer;
@@ -74,6 +86,8 @@ namespace lg {
         engine = interfaces.engine;
         scriptEngine = interfaces.scriptEngine;
         reg = &registry;
+
+        registry.on_construct<PhysicsSoundComponent>().connect<&EventHandler::onPhysicsSoundConstruct>(this);
 
         worlds::g_console->registerCommand(cmdToggleVsync, "r_toggleVsync", "Toggles Vsync.", renderer);
         interfaces.engine->addSystem(new ObjectParentSystem);
@@ -295,8 +309,10 @@ namespace lg {
 
     void EventHandler::updateHandGrab(entt::registry& registry, PlayerRig& rig, entt::entity ent, float deltaTime) {
         static V3PidController objPid;
-        objPid.P = 45.0f;
-        objPid.D = 15.0f;
+        objPid.P = 35.0f;
+        objPid.D = 7.0f;
+        objPid.I = 1.0f;
+        objPid.averageAmount = 5.0f;
         auto& physHand = registry.get<PhysHand>(ent);
         auto grabAction = physHand.follow == FollowHand::LeftHand ? lGrab : rGrab;
         auto grabButton = physHand.follow == FollowHand::LeftHand ? worlds::MouseButton::Left : worlds::MouseButton::Right;
@@ -347,7 +363,7 @@ namespace lg {
 
             glm::vec3 pidOut = objPid.getOutput(targetObjPos - otherTf.position, deltaTime);
 
-            otherActor.actor->addForce(worlds::glm2px(pidOut), physx::PxForceMode::eACCELERATION);
+            //otherActor.actor->addForce(worlds::glm2px(pidOut), physx::PxForceMode::eACCELERATION);
 
             if (distance < 0.002f && rotDot > 0.99f) {
                 auto& d6 = registry.get<worlds::D6Joint>(ent);
@@ -428,10 +444,9 @@ namespace lg {
                         //physHand.targetWorldRot = handTarget.rotation;
                         auto& d6 = registry.emplace<worlds::D6Joint>(ent);
                         d6.setTarget(pickUp, registry);
-                        setAllAxisD6Motion(d6.pxJoint, physx::PxD6Motion::eLOCKED);
+                        setAllAxisD6Motion(d6.pxJoint, physx::PxD6Motion::eFREE);
                         logMsg("heading to grip point");
                         //touch.actor->setActorFlag(physx::PxActorFlag::eDISABLE_GRAVITY, true);
-                        
                     } else {
                         auto& d6 = registry.emplace<worlds::D6Joint>(ent);
                         d6.pxJoint->setLocalPose(physx::PxJointActorIndex::eACTOR0, t.transformInv(p2));
@@ -620,7 +635,8 @@ namespace lg {
             lHandJoint = physx::PxD6JointCreate(*worlds::g_physics, fenderActor, physx::PxTransform { physx::PxIdentity }, lActor,
             physx::PxTransform { physx::PxIdentity });
 
-            lHandJoint->setLinearLimit(physx::PxJointLinearLimit{physx::PxTolerancesScale{}, 0.65f});
+            lHandJoint->setLinearLimit(physx::PxJointLinearLimit{
+                    physx::PxTolerancesScale{}, 0.8f});
             lHandJoint->setMotion(physx::PxD6Axis::eX, physx::PxD6Motion::eLIMITED);
             lHandJoint->setMotion(physx::PxD6Axis::eY, physx::PxD6Motion::eLIMITED);
             lHandJoint->setMotion(physx::PxD6Axis::eZ, physx::PxD6Motion::eLIMITED);
@@ -631,7 +647,8 @@ namespace lg {
             rHandJoint = physx::PxD6JointCreate(*worlds::g_physics, fenderActor, physx::PxTransform { physx::PxIdentity }, rActor,
             physx::PxTransform { physx::PxIdentity });
 
-            rHandJoint->setLinearLimit(physx::PxJointLinearLimit{physx::PxTolerancesScale{}, 0.65f});
+            rHandJoint->setLinearLimit(physx::PxJointLinearLimit{
+                    physx::PxTolerancesScale{}, 0.8f});
             rHandJoint->setMotion(physx::PxD6Axis::eX, physx::PxD6Motion::eLIMITED);
             rHandJoint->setMotion(physx::PxD6Axis::eY, physx::PxD6Motion::eLIMITED);
             rHandJoint->setMotion(physx::PxD6Axis::eZ, physx::PxD6Motion::eLIMITED);

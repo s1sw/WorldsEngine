@@ -1229,6 +1229,7 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
     dbgStats.numCulledObjs = 0;
     dbgStats.numDrawCalls = 0;
     dbgStats.numPipelineSwitches = 0;
+    dbgStats.numTriangles = 0;
     destroyTempTexBuffers(frameIdx);
 
     uint32_t imageIndex;

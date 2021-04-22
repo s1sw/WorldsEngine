@@ -162,17 +162,37 @@ namespace worlds {
 
         void onContact(const PxContactPairHeader& pairHeader, const PxContactPair* pairs, uint32_t nbPairs) override {
             entt::entity a = ptrToEnt(pairHeader.actors[0]->userData);
-            entt::entity b = ptrToEnt(pairHeader.actors[0]->userData);
+            entt::entity b = ptrToEnt(pairHeader.actors[1]->userData);
 
             auto evtA = reg.try_get<PhysicsEvents>(a);
             auto evtB = reg.try_get<PhysicsEvents>(b);
 
+            glm::vec3 velA{0.0f};
+            glm::vec3 velB{0.0f};
+
+            auto aDynamic = pairHeader.actors[0]->is<PxRigidDynamic>();
+            auto bDynamic = pairHeader.actors[1]->is<PxRigidDynamic>();
+
+            if (aDynamic) {
+                velA = px2glm(aDynamic->getLinearVelocity());
+            }
+
+            if (bDynamic) {
+                velB = px2glm(bDynamic->getLinearVelocity());
+            }
+
+            PhysicsContactInfo info {
+                .relativeSpeed = glm::distance(velA, velB)
+            };
+
             if (evtA && evtA->onContact) {
-                evtA->onContact(a, b);
+                info.otherEntity = b;
+                evtA->onContact(a, info);
             }
 
             if (evtB && evtB->onContact) {
-                evtB->onContact(a, b);
+                info.otherEntity = a;
+                evtB->onContact(b, info);
             }
         }
 

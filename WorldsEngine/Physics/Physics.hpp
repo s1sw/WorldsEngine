@@ -7,6 +7,7 @@
 #include "../Core/Transform.hpp"
 #include "PhysicsActor.hpp"
 #include <entt/entity/fwd.hpp>
+#include <functional>
 
 namespace worlds {
     extern physx::PxMaterial* defaultMaterial;
@@ -106,8 +107,13 @@ namespace worlds {
     void stepSimulation(float deltaTime);
     void shutdownPhysx();
 
+    struct PhysicsContactInfo {
+        float relativeSpeed;
+        entt::entity otherEntity;
+    };
+
     struct PhysicsEvents {
         PhysicsEvents() : onContact { nullptr } {}
-        void(*onContact)(entt::entity thisEnt, entt::entity other);
+        std::function<void(entt::entity, const PhysicsContactInfo&)> onContact;
     };
 }

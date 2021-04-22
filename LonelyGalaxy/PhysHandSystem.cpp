@@ -15,6 +15,7 @@
 #include "DebugArrow.hpp"
 #include <VR/OpenVRInterface.hpp>
 #include <Input/Input.hpp>
+#include "LocospherePlayerSystem.hpp"
 
 namespace lg {
     void resetHand(PhysHand& ph, physx::PxRigidBody* rb) {
@@ -78,6 +79,15 @@ namespace lg {
             if (registry.valid(physHand.locosphere)) {
                 worlds::DynamicPhysicsActor& lDpa = registry.get<worlds::DynamicPhysicsActor>(physHand.locosphere);
                 refVel = worlds::px2glm(((physx::PxRigidDynamic*)lDpa.actor)->getLinearVelocity());
+
+
+                if (physHand.follow != FollowHand::None) {
+                    // Avoid applying force if it's just going to be limited by the arm joint
+                    const float maxDist = 0.65f;
+                    glm::vec3 dir = physHand.targetWorldPos - interfaces.mainCamera->position;
+                    dir = clampMagnitude(dir, maxDist);
+                    physHand.targetWorldPos = interfaces.mainCamera->position + dir;
+                }
             }
 
             glm::vec3 err = (physHand.targetWorldPos) - worlds::px2glm(t.p);

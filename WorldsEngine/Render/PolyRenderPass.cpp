@@ -680,6 +680,7 @@ namespace worlds {
                         sdi.pipeline = *alphaTestPipeline;
                     }
                 }
+                rCtx.dbgStats->numTriangles += currSubmesh.indexCount / 3;
 
                 drawInfo.add(std::move(sdi));
             }
