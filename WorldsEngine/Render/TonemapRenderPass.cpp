@@ -10,7 +10,7 @@ namespace worlds {
         float exposureBias;
     };
 
-    static ConVar aoIntensity("r_gtaoIntensity", "1.0");
+    static ConVar aoIntensity("r_gtaoIntensity", "0.0");
     static ConVar exposureBias("r_exposure", "0.5");
 
     TonemapRenderPass::TonemapRenderPass(RenderTexture* hdrImg, RenderTexture* finalPrePresent, RenderTexture* gtaoImg)
@@ -29,7 +29,8 @@ namespace worlds {
 
         dsl = tonemapDslm.createUnique(ctx.device);
         
-        std::string shaderName = "tonemap.comp.spv";//psCtx.enableVR ? "tonemap.comp.spv" : "tonemap2d.comp.spv";
+        auto msaaSamples = hdrImg->image.info().samples;
+        std::string shaderName = (int)msaaSamples > 1 ? "tonemap.comp.spv" : "tonemap_nomsaa.comp.spv";
         tonemapShader = ShaderCache::getModule(ctx.device, g_assetDB.addOrGetExisting("Shaders/" + shaderName));
 
         vku::PipelineLayoutMaker plm;
@@ -42,10 +43,10 @@ namespace worlds {
         cpm.shader(vk::ShaderStageFlagBits::eCompute, tonemapShader);
         vk::SpecializationMapEntry samplesEntry{ 0, 0, sizeof(int32_t) };
         vk::SpecializationInfo si;
-        si.dataSize = sizeof(int32_t);
+        si.dataSize = sizeof(msaaSamples);
         si.mapEntryCount = 1;
         si.pMapEntries = &samplesEntry;
-        si.pData = &ctx.graphicsSettings.msaaLevel;
+        si.pData = &msaaSamples;
         cpm.specializationInfo(si);
 
         pipeline = cpm.createUnique(ctx.device, ctx.pipelineCache, *pipelineLayout);

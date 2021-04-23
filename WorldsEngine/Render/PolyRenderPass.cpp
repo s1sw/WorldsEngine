@@ -194,13 +194,13 @@ namespace worlds {
         rPassMaker.attachmentBegin(vk::Format::eB10G11R11UfloatPack32);
         rPassMaker.attachmentLoadOp(vk::AttachmentLoadOp::eClear);
         rPassMaker.attachmentStoreOp(vk::AttachmentStoreOp::eStore);
-        rPassMaker.attachmentSamples(vku::sampleCountFlags(ctx.graphicsSettings.msaaLevel));
+        rPassMaker.attachmentSamples(polyImage->image.info().samples);
         rPassMaker.attachmentFinalLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
 
         rPassMaker.attachmentBegin(vk::Format::eD32Sfloat);
         rPassMaker.attachmentLoadOp(vk::AttachmentLoadOp::eClear);
         rPassMaker.attachmentStencilLoadOp(vk::AttachmentLoadOp::eDontCare);
-        rPassMaker.attachmentSamples(vku::sampleCountFlags(ctx.graphicsSettings.msaaLevel));
+        rPassMaker.attachmentSamples(polyImage->image.info().samples);
         rPassMaker.attachmentFinalLayout(vk::ImageLayout::eDepthStencilAttachmentOptimal);
 
         rPassMaker.subpassBegin(vk::PipelineBindPoint::eGraphics);
@@ -262,6 +262,8 @@ namespace worlds {
         vertexShader = ShaderCache::getModule(ctx.device, vsID);
         fragmentShader = ShaderCache::getModule(ctx.device, fsID);
 
+        auto msaaSamples = polyImage->image.info().samples;
+
         {
             AssetID vsID = g_assetDB.addOrGetExisting("Shaders/depth_prepass.vert.spv");
             AssetID fsID = g_assetDB.addOrGetExisting("Shaders/blank.frag.spv");
@@ -280,7 +282,7 @@ namespace worlds {
             pm.frontFace(vk::FrontFace::eCounterClockwise);
 
             vk::PipelineMultisampleStateCreateInfo pmsci;
-            pmsci.rasterizationSamples = (vk::SampleCountFlagBits)ctx.graphicsSettings.msaaLevel;
+            pmsci.rasterizationSamples = msaaSamples;
             pm.multisampleState(pmsci);
             pm.subPass(0);
             depthPrePipeline = pm.createUnique(ctx.device, ctx.pipelineCache, *pipelineLayout, *renderPass);
@@ -302,6 +304,7 @@ namespace worlds {
         };
 
         vk::SpecializationInfo standardSpecInfo { 4, entries, sizeof(StandardSpecConsts) };
+
 
         {
             vku::PipelineMaker pm{ extent.width, extent.height };
@@ -334,7 +337,7 @@ namespace worlds {
             pm.subPass(1);
 
             vk::PipelineMultisampleStateCreateInfo pmsci;
-            pmsci.rasterizationSamples = (vk::SampleCountFlagBits)ctx.graphicsSettings.msaaLevel;
+            pmsci.rasterizationSamples = msaaSamples;
             pm.multisampleState(pmsci);
 
             pipeline = pm.createUnique(ctx.device, ctx.pipelineCache, *pipelineLayout, *renderPass);
@@ -372,7 +375,7 @@ namespace worlds {
             pm.subPass(1);
 
             vk::PipelineMultisampleStateCreateInfo pmsci;
-            pmsci.rasterizationSamples = (vk::SampleCountFlagBits)ctx.graphicsSettings.msaaLevel;
+            pmsci.rasterizationSamples = msaaSamples;
             pmsci.alphaToCoverageEnable = true;
             pm.multisampleState(pmsci);
 
@@ -405,7 +408,7 @@ namespace worlds {
             pm.subPass(1);
 
             vk::PipelineMultisampleStateCreateInfo pmsci;
-            pmsci.rasterizationSamples = (vk::SampleCountFlagBits)ctx.graphicsSettings.msaaLevel;
+            pmsci.rasterizationSamples = msaaSamples;
             pmsci.alphaToCoverageEnable = true;
             pm.multisampleState(pmsci);
             noBackfaceCullPipeline = pm.createUnique(ctx.device, ctx.pipelineCache, *pipelineLayout, *renderPass);
@@ -429,7 +432,7 @@ namespace worlds {
             pm.subPass(1);
 
             vk::PipelineMultisampleStateCreateInfo pmsci;
-            pmsci.rasterizationSamples = (vk::SampleCountFlagBits)ctx.graphicsSettings.msaaLevel;
+            pmsci.rasterizationSamples = msaaSamples;
             pm.multisampleState(pmsci);
 
             vku::PipelineLayoutMaker plm;
@@ -480,7 +483,7 @@ namespace worlds {
             pm.subPass(1);
 
             vk::PipelineMultisampleStateCreateInfo pmsci;
-            pmsci.rasterizationSamples = (vk::SampleCountFlagBits)ctx.graphicsSettings.msaaLevel;
+            pmsci.rasterizationSamples = msaaSamples;
             pm.multisampleState(pmsci);
 
             linePipeline = pm.createUnique(ctx.device, ctx.pipelineCache, *linePipelineLayout, *renderPass);
@@ -514,7 +517,7 @@ namespace worlds {
             pm.depthWriteEnable(true).depthTestEnable(true).depthCompareOp(vk::CompareOp::eGreaterOrEqual);
 
             vk::PipelineMultisampleStateCreateInfo pmsci;
-            pmsci.rasterizationSamples = (vk::SampleCountFlagBits)ctx.graphicsSettings.msaaLevel;
+            pmsci.rasterizationSamples = msaaSamples;
             pm.multisampleState(pmsci);
             pm.subPass(1);
 
