@@ -942,7 +942,7 @@ glm::mat4 VKRenderer::getCascadeMatrix(Camera cam, glm::vec3 lightDir, glm::mat4
     return projMat * viewMat;
 }
 
-worlds::ConVar doGTAO{ "r_doGTAO", "1" };
+worlds::ConVar doGTAO{ "r_doGTAO", "0" };
 
 void VKRenderer::calculateCascadeMatrices(entt::registry& world, RenderCtx& rCtx) {
     world.view<WorldLight, Transform>().each([&](auto, WorldLight& l, Transform& transform) {
@@ -1020,6 +1020,8 @@ void VKRenderer::writePassCmds(RTTPassHandle pass, vk::CommandBuffer cmdBuf, ent
 
     if (doGTAO.getInt())
         rtt.gtrp->execute(rCtx);
+    else
+        rtt.gtaoOut->image.setLayout(cmdBuf, vk::ImageLayout::eShaderReadOnlyOptimal);
 
     rtt.hdrTarget->image.barrier(cmdBuf,
         vk::PipelineStageFlagBits::eColorAttachmentOutput, vk::PipelineStageFlagBits::eComputeShader,

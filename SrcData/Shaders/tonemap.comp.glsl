@@ -1,10 +1,18 @@
 #version 450
 layout (binding = 0, rgba8) uniform writeonly image2D resultImage;
+#ifdef MSAA
 layout (binding = 1) uniform sampler2DMSArray hdrImage;
+#else
+layout (binding = 1) uniform sampler2DArray hdrImage;
+#endif
 layout (binding = 2) uniform sampler2DArray gtaoImage;
 layout (local_size_x = 16, local_size_y = 16) in;
 
+#ifdef MSAA
 layout(constant_id = 0) const int NUM_MSAA_SAMPLES = 4;
+#else
+const int NUM_MSAA_SAMPLES = 1;
+#endif
 layout(push_constant) uniform PushConstants {
     float aoIntensity;
 	int idx;
