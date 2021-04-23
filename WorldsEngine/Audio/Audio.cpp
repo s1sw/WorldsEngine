@@ -28,6 +28,7 @@ namespace worlds {
     }
 
     float* lastBuffer = nullptr;
+    bool copyBuffer = false;
 
     template <typename T>
     inline void mixClip(AudioSystem::LoadedClip& clip, T& sourceInfo, int numMonoSamplesNeeded, int numSamplesNeeded, float* stream, AudioSystem* _this) {
@@ -75,7 +76,7 @@ namespace worlds {
                     _this->binauralEffect,
                     _this->binauralRenderer,
                     inBuffer, IPLVector3{ sourceInfo.direction.x, sourceInfo.direction.y, sourceInfo.direction.z },
-                    IPL_HRTFINTERPOLATION_BILINEAR, 1.0f, outBuffer);
+                    IPL_HRTFINTERPOLATION_NEAREST, 1.0f, outBuffer);
 
             for (int i = 0; i < numSamplesNeeded; i++) {
                 stream[i] += ((float*)outTemp)[i] * vol;
@@ -138,7 +139,7 @@ namespace worlds {
             stream[i] *= _this->volume;
         }
 
-        if (lastBuffer)
+        if (lastBuffer && copyBuffer)
             memcpy(lastBuffer, stream, len);
 
         dspTime += secondBufferLength;
@@ -232,7 +233,10 @@ namespace worlds {
         }
     }
 
+    worlds::ConVar showAudioOscilloscope{ "a_showOscilloscope", "0", "Shows oscilloscope in the audio debug menu." };
+
     void AudioSystem::update(entt::registry& reg, glm::vec3 listenerPos, glm::quat listenerRot) {
+        copyBuffer = showAudioOscilloscope.getInt();
         if (showDebugMenuVar.getInt()) {
             if (ImGui::Begin("Audio Testing")) {
                 ImColor col = ImColor(1.0f, 1.0f, 1.0f, 1.0f);
@@ -244,13 +248,15 @@ namespace worlds {
                 ImGui::Text("Playing one shot count: %zu", oneShotClips.size());
                 ImGui::SliderFloat("Volume", &volume, 0.0f, 1.0f);
 
-                ImGui::PlotLines("L Audio", [](void* data, int idx) {
-                    return ((float*)data)[idx * 2];
-                }, lastBuffer, numSamples /2, 0, nullptr, -1.0f, 1.0f, ImVec2(300, 150));
+                if (copyBuffer) {
+                    ImGui::PlotLines("L Audio", [](void* data, int idx) {
+                        return ((float*)data)[idx * 2];
+                    }, lastBuffer, numSamples /2, 0, nullptr, -1.0f, 1.0f, ImVec2(300, 150));
 
-                ImGui::PlotLines("R Audio", [](void* data, int idx) {
-                    return ((float*)data)[idx * 2 + 1];
-                }, lastBuffer, numSamples /2, 0, nullptr, -1.0f, 1.0f, ImVec2(300, 150));
+                    ImGui::PlotLines("R Audio", [](void* data, int idx) {
+                        return ((float*)data)[idx * 2 + 1];
+                    }, lastBuffer, numSamples /2, 0, nullptr, -1.0f, 1.0f, ImVec2(300, 150));
+                }
 
                 for (auto& p : internalAs) {
                     ImGui::Separator();
