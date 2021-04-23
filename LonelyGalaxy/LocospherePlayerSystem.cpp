@@ -358,7 +358,6 @@ namespace lg {
                 showLocosphereDebug.setValue("0");
         }
 
-
         if (speedometer) {
             auto size = ImGui::GetMainViewport()->Size;
             size.x *= 0.5f;

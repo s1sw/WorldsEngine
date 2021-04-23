@@ -19,6 +19,7 @@ namespace worlds {
 }
 
 namespace lg {
+    class PlayerGrabManager;
     class EventHandler : public worlds::IGameEventHandler {
     public:
         EventHandler(bool dedicatedServer);
@@ -37,7 +38,6 @@ namespace lg {
         worlds::InputManager* inputManager;
         worlds::Camera* camera;
         worlds::WorldsEngine* engine;
-        worlds::WrenScriptEngine* scriptEngine;
         LocospherePlayerSystem* lsphereSys;
         entt::registry* reg;
         bool isDedicated;
@@ -49,9 +49,8 @@ namespace lg {
         entt::entity rHandEnt = entt::null;
         physx::PxD6Joint* lHandJoint, *rHandJoint;
         bool setClientInfo = false;
+        PlayerGrabManager* playerGrabManager = nullptr;
 
-        worlds::InputActionHandle lGrab;
-        worlds::InputActionHandle rGrab;
         worlds::InputActionHandle rStick;
     };
 }
