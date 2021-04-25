@@ -12,6 +12,8 @@
 #include <Util/CreateModelObject.hpp>
 #include "DebugArrow.hpp"
 #include <Physics/D6Joint.hpp>
+#include <Audio/Audio.hpp>
+#include <Libs/pcg_basic.h>
 
 namespace lg {
     class NullPhysXCallback : public physx::PxRaycastCallback {
@@ -72,6 +74,12 @@ namespace lg {
     };
 
     std::unordered_map<entt::entity, LocosphereDebugInfo> locosphereDebug;
+    std::vector<worlds::AssetID> footstepSounds;
+    worlds::AssetID jumpSound;
+    worlds::AssetID landSound;
+    std::vector<worlds::AssetID> doubleJumpSounds;
+    worlds::AssetID wallJumpSound;
+    pcg32_random_t rng;
 
     LocospherePlayerSystem::LocospherePlayerSystem(worlds::EngineInterfaces interfaces, entt::registry& registry)
         : vrInterface{ interfaces.vrInterface }
@@ -85,6 +93,21 @@ namespace lg {
 
         auto onDestroy = registry.on_destroy<LocospherePlayerComponent>();
         onDestroy.connect<&LocospherePlayerSystem::onPlayerDestroy>(*this);
+
+        for (int i = 1; i <= 10; i++) {
+            footstepSounds.push_back(worlds::g_assetDB.addOrGetExisting("Audio/SFX/Footsteps/Concrete/step" + std::string(i < 10 ? "0" : "") + std::to_string(i) + ".ogg"));
+        }
+
+        jumpSound = worlds::g_assetDB.addOrGetExisting("Audio/SFX/Player/jump.ogg");
+        landSound = worlds::g_assetDB.addOrGetExisting("Audio/SFX/Footsteps/Concrete/land.ogg");
+
+        std::string baseDblJumpPath = "Audio/SFX/Player/double_jump";
+        doubleJumpSounds.push_back(worlds::g_assetDB.addOrGetExisting(baseDblJumpPath + ".ogg"));
+        doubleJumpSounds.push_back(worlds::g_assetDB.addOrGetExisting(baseDblJumpPath + "2.ogg"));
+        doubleJumpSounds.push_back(worlds::g_assetDB.addOrGetExisting(baseDblJumpPath + "3.ogg"));
+
+        wallJumpSound = worlds::g_assetDB.addOrGetExisting("Audio/SFX/Player/wall_jump.ogg");
+        pcg32_srandom_r(&rng, 135u, 3151u);
     }
 
     void LocospherePlayerSystem::onPlayerConstruct(entt::registry&, entt::entity ent) {
@@ -113,13 +136,40 @@ namespace lg {
         }
 
         static float timeSinceLastJump = 0.0f;
+        static bool groundedLast = false;
+        static bool dblJumpUsedLast = false;
+
         timeSinceLastJump += deltaTime;
         auto& lpc = reg.get<LocospherePlayerComponent>(localLocosphereEnt);
         bool jump = vrInterface ? vrInterface->getJumpInput() : inputManager->keyPressed(SDL_SCANCODE_SPACE);
+
         if (jump && timeSinceLastJump > 0.2f) {
+            auto& t = reg.get<Transform>(localLocosphereEnt);
             lpc.jump = true;
             timeSinceLastJump = 0.0f;
+            if (lpc.grounded) {
+                worlds::AudioSystem::getInstance()->playOneShotClip(jumpSound, t.position, false, 0.6f);
+            } else if (lpc.canWallJump) {
+                worlds::AudioSystem::getInstance()->playOneShotClip(wallJumpSound, t.position, false, 0.6f);
+            }
         }
+
+        if (!dblJumpUsedLast && lpc.doubleJumpUsed) {
+            auto& t = reg.get<Transform>(localLocosphereEnt);
+            static int lastSoundIdx = 0;
+            int soundIdx = 0;
+            while (lastSoundIdx == soundIdx) soundIdx = pcg32_boundedrand_r(&rng, doubleJumpSounds.size());
+            lastSoundIdx = soundIdx;
+            worlds::AudioSystem::getInstance()->playOneShotClip(doubleJumpSounds[soundIdx], t.position, false, 0.25f);
+        }
+
+        if (!groundedLast && lpc.grounded) {
+            auto& t = reg.get<Transform>(localLocosphereEnt);
+            worlds::AudioSystem::getInstance()->playOneShotClip(landSound, t.position, false, 0.5f);
+        }
+
+        dblJumpUsedLast = lpc.doubleJumpUsed;
+        groundedLast = lpc.grounded;
     }
 
     glm::vec3 LocospherePlayerSystem::calcHeadbobPosition(glm::vec3 desiredVel, glm::vec3 camPos, float deltaTime, bool grounded) {
@@ -281,6 +331,39 @@ namespace lg {
         localLpc.xzMoveInput = glm::vec2 { desiredVel.x, desiredVel.z };
 
         localLpc.sprint = (vrInterface && vrInterface->getSprintInput()) || (inputManager->keyHeld(SDL_SCANCODE_LSHIFT));
+
+        static float stepTimer = 0.0f;
+
+        if (localLpc.grounded) {
+            float inputMagnitude = glm::length(localLpc.xzMoveInput);
+            inputMagnitude *= localLpc.sprint ? 1.5f : 1.0f;
+            stepTimer += inputMagnitude * deltaTime * 2.0f;
+        }
+
+        if (stepTimer >= 1.0f) {
+            auto& locosphereTransform = registry.get<Transform>(localLocosphereEnt);
+
+            // make sure we don't repeat either the last sound or the sound before that
+            static int lastSoundIdx = 0;
+            static int lastLastSoundIdx = 0;
+            int soundIdx = 0;
+
+            // just keep generating numbers until we get an index
+            // meeting that criteria
+            while (lastSoundIdx == soundIdx || soundIdx == lastLastSoundIdx)
+                soundIdx = pcg32_boundedrand_r(&rng, footstepSounds.size());
+
+            lastLastSoundIdx = lastSoundIdx;
+            lastSoundIdx = soundIdx;
+
+            worlds::AudioSystem::getInstance()->playOneShotClip(
+                footstepSounds[soundIdx],
+                locosphereTransform.position,
+                false, 0.5f
+            );
+
+            stepTimer = 0.0f;
+        }
 
         if (drawDbgArrows.getInt()) {
             auto& llstf = registry.get<Transform>(localLocosphereEnt);
@@ -476,25 +559,29 @@ namespace lg {
                 fenderActor->addForce(worlds::glm2px(addedVel), physx::PxForceMode::eACCELERATION);
             }
 
+            bool wallPresent = false;
+            auto fenderPose = fenderActor->getGlobalPose();
+            glm::vec3 wallNormal;
+
+            glm::vec3 left = worlds::px2glm(fenderPose.q) * glm::vec3(-1.0f, 0.0f, 0.0f);
+            glm::vec3 right = worlds::px2glm(fenderPose.q) * glm::vec3(1.0f, 0.0f, 0.0f);
+            glm::vec3 rayCenter = worlds::px2glm(fenderPose.p) + glm::vec3{ 0.0f, 0.4f, 0.0f };
+
+            worlds::RaycastHitInfo rhi;
+
+            if (worlds::raycast(rayCenter + (left * 0.25f), left, 0.4f, &rhi)) {
+                wallPresent = true;
+                wallNormal = rhi.normal;
+                lpc.canWallJump = true;
+            } else if (worlds::raycast(rayCenter + (right * 0.25f), right, 0.4f, &rhi)) {
+                wallNormal = rhi.normal;
+                wallPresent = true;
+                lpc.canWallJump = true;
+            } else {
+                lpc.canWallJump = false;
+            }
+
             if (lpc.jump) {
-                bool wallPresent = false;
-                auto fenderPose = fenderActor->getGlobalPose();
-                glm::vec3 wallNormal;
-
-                glm::vec3 left = worlds::px2glm(fenderPose.q) * glm::vec3(-1.0f, 0.0f, 0.0f);
-                glm::vec3 right = worlds::px2glm(fenderPose.q) * glm::vec3(1.0f, 0.0f, 0.0f);
-                glm::vec3 rayCenter = worlds::px2glm(fenderPose.p) + glm::vec3{ 0.0f, 0.4f, 0.0f };
-
-                worlds::RaycastHitInfo rhi;
-
-                if (worlds::raycast(rayCenter + (left * 0.25f), left, 0.4f, &rhi)) {
-                    wallPresent = true;
-                    wallNormal = rhi.normal;
-                } else if (worlds::raycast(rayCenter + (right * 0.25f), right, 0.4f, &rhi)) {
-                    wallNormal = rhi.normal;
-                    wallPresent = true;
-                }
-
                 static worlds::ConVar jumpForce{ "jumpForce", "5.0" };
                 static worlds::ConVar wallJumpForce{ "wallJumpForce", "10.0" };
                 if (lpc.grounded) {

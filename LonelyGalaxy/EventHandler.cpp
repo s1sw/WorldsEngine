@@ -58,7 +58,12 @@ namespace lg {
     void EventHandler::onPhysicsSoundContact(entt::entity thisEnt, const worlds::PhysicsContactInfo& info) {
         auto& t = reg->get<Transform>(thisEnt);
         auto& physSound = reg->get<PhysicsSoundComponent>(thisEnt);
-        worlds::AudioSystem::getInstance()->playOneShotClip(physSound.soundId, t.position, true, glm::min(info.relativeSpeed * 0.125f, 1.0f));
+        auto time = engine->getGameTime();
+        if (time - physSound.lastPlayTime > 0.1) {
+            worlds::AudioSystem::getInstance()->playOneShotClip(
+                    physSound.soundId, t.position, true, glm::min(info.relativeSpeed * 0.125f, 1.0f));
+            physSound.lastPlayTime = time;
+        }
     }
 
     void EventHandler::onPhysicsSoundConstruct(entt::registry& reg, entt::entity ent) {
@@ -153,10 +158,19 @@ namespace lg {
             const float rotateSpeed = 15.0f;
 
             yRot += glm::clamp((targetYRot - yRot), -deltaTime * rotateSpeed, deltaTime * rotateSpeed);
-
             camera->rotation = glm::quat{glm::vec3{0.0f, yRot, 0.0f}};
 
             rotated = rotatingNow;
+
+            if (reg.valid(audioListenerEntity)) {
+                auto hmdTransform = vrInterface->getHeadTransform();
+                glm::vec3 hmdPos = camera->rotation * worlds::getMatrixTranslation(hmdTransform);
+                hmdPos.x = -hmdPos.x;
+                hmdPos.z = -hmdPos.z;
+                auto& listenerOverrideTransform = reg.get<Transform>(audioListenerEntity);
+                listenerOverrideTransform.position = camera->position + hmdPos;
+                listenerOverrideTransform.rotation = camera->rotation * worlds::getMatrixRotation(hmdTransform);
+            }
         }
 
         if (reg.view<RPGStats>().size() > 0) {
@@ -398,6 +412,12 @@ namespace lg {
                 physx::PxVec3 { 0.0f, 0.8f, 0.0f },
                 physx::PxQuat { physx::PxIdentity }
             });
+
+            if (vrInterface) {
+                audioListenerEntity = registry.create();
+                registry.emplace<Transform>(audioListenerEntity);
+                registry.emplace<worlds::AudioListenerOverride>(audioListenerEntity);
+            }
         }
 
         if (isDedicated) {

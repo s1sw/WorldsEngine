@@ -61,6 +61,7 @@ namespace worlds {
         void quit() { running = false; }
         bool pauseSim;
         bool runAsEditor;
+        [[nodiscard]] double getGameTime() const { return gameTime; }
     private:
         struct DebugTimeInfo {
             double deltaTime;
@@ -98,6 +99,7 @@ namespace worlds {
         SceneInfo currentScene;
         bool sceneLoadQueued = false;
         AssetID queuedSceneID;
+        double gameTime = 0.0;
 
         std::vector<ISystem*> systems;
     };
