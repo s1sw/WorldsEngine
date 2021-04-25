@@ -50,6 +50,7 @@ namespace lg {
         physx::PxD6Joint* lHandJoint, *rHandJoint;
         bool setClientInfo = false;
         PlayerGrabManager* playerGrabManager = nullptr;
+        entt::entity audioListenerEntity = entt::null;
 
         worlds::InputActionHandle rStick;
     };

@@ -27,6 +27,7 @@ namespace lg {
         bool grounded = false;
         bool jump = false;
         bool doubleJumpUsed = false;
+        bool canWallJump = false;
     };
 
     struct PlayerRig {

@@ -636,7 +636,6 @@ namespace worlds {
         uint64_t last = SDL_GetPerformanceCounter();
 
         double deltaTime;
-        double currTime = 0.0;
         double lastUpdateTime = 0.0;
 
         while (running) {
@@ -667,9 +666,9 @@ namespace worlds {
             uint64_t deltaTicks = now - last;
             last = now;
             deltaTime = deltaTicks / (double)SDL_GetPerformanceFrequency();
-            currTime += deltaTime;
+            gameTime += deltaTime;
             if (!dedicatedServer)
-                renderer->time = currTime;
+                renderer->time = gameTime;
 
             float interpAlpha = 1.0f;
 
@@ -780,8 +779,19 @@ namespace worlds {
                 logWarn("cam.position was NaN!");
             }
 
-            if (!dedicatedServer)
+            if (!dedicatedServer) {
+                glm::vec3 alPos = cam.position;
+                glm::quat alRot = cam.rotation;
+
+                auto view = registry.view<AudioListenerOverride, Transform>();
+                if (view.size_hint() > 0) {
+                    auto overrideEnt = view.front();
+                    auto overrideT = registry.get<Transform>(overrideEnt);
+                    alPos = overrideT.position;
+                    alRot = overrideT.rotation;
+                }
                 audioSystem->update(registry, cam.position, cam.rotation);
+            }
 
             console->drawWindow();
 

@@ -43,6 +43,8 @@ namespace worlds {
         glm::vec3 bounds;
     };
 
+    struct AudioListenerOverride {};
+
     class AudioSystem {
     public:
         AudioSystem();
@@ -68,6 +70,7 @@ namespace worlds {
             bool loop;
             bool spatialise;
             glm::vec3 direction;
+            float distance;
             MixerChannel channel;
         };
 
@@ -96,6 +99,7 @@ namespace worlds {
             bool isPlaying;
             bool finished;
             bool loop;
+            float distance;
             MixerChannel channel;
         };
 

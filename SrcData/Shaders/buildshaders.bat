@@ -3,8 +3,8 @@ cd /D "%~dp0"
 glslc --target-env=vulkan1.2 -fshader-stage=frag -I Include standard.glsl -DFRAGMENT -DEFT  -o standard.frag.spv
 glslc --target-env=vulkan1.2 -fshader-stage=vert -I Include standard.glsl -DVERTEX -o standard.vert.spv
 glslc --target-env=vulkan1.2 -fshader-stage=frag -I Include standard.glsl -DFRAGMENT -o standard_alpha_test.frag.spv
-glslangValidator tonemap.comp.glsl -V -o tonemap.comp.spv
-glslangValidator tonemap2d.comp.glsl -V -o tonemap2d.comp.spv
+glslangValidator tonemap.comp.glsl -DMSAA -V -o tonemap.comp.spv
+glslangValidator tonemap.comp.glsl -V -o tonemap_nomsaa.comp.spv
 glslangValidator clear_pick_buf.comp.glsl -V -o clear_pick_buf.comp.spv
 glslangValidator shadowmap.vert.glsl -V -o shadowmap.vert.spv
 glslangValidator blank.frag.glsl -V -o blank.frag.spv

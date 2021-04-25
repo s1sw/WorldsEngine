@@ -76,10 +76,14 @@ namespace worlds {
                     _this->binauralEffect,
                     _this->binauralRenderer,
                     inBuffer, IPLVector3{ sourceInfo.direction.x, sourceInfo.direction.y, sourceInfo.direction.z },
-                    IPL_HRTFINTERPOLATION_NEAREST, 1.0f, outBuffer);
+                    IPL_HRTFINTERPOLATION_BILINEAR, 1.0f, outBuffer);
+
+            float adjDistance = (sourceInfo.distance + 1.0f);
+
+            float distFalloff = 1.0f / (adjDistance * adjDistance);
 
             for (int i = 0; i < numSamplesNeeded; i++) {
-                stream[i] += ((float*)outTemp)[i] * vol;
+                stream[i] += ((float*)outTemp)[i] * vol * distFalloff;
             }
 
             std::free(outTemp);
@@ -299,7 +303,10 @@ namespace worlds {
             AudioSourceInternal& asi = internalAs.at(ent);
             asi.volume = audioSource.volume;
             asi.clipId = audioSource.clipId;
-            asi.direction = glm::normalize(listenerPos - transform.position) * listenerRot;
+
+            glm::vec3 dirVec = listenerPos - transform.position;
+            asi.direction = glm::normalize(dirVec) * listenerRot;
+            asi.distance = glm::length(dirVec);
 
             if (asi.finished) {
                 audioSource.isPlaying = false;
@@ -316,7 +323,9 @@ namespace worlds {
             oneShotClips.erase(std::remove_if(oneShotClips.begin(), oneShotClips.end(), [](OneShotClipInfo& clipInfo) { return clipInfo.finished; }), oneShotClips.end());
 
         for (auto& c : oneShotClips) {
-            c.direction = glm::normalize(listenerPos - c.location) * listenerRot;
+            glm::vec3 dirVec = listenerPos - c.location;
+            c.direction = glm::normalize(dirVec) * listenerRot;
+            c.distance = glm::length(dirVec);
         }
 
         SDL_UnlockAudioDevice(devId);
@@ -342,7 +351,7 @@ namespace worlds {
     void AudioSystem::playOneShotClip(AssetID id, glm::vec3 location, bool spatialise, float volume, MixerChannel channel) {
         if (loadedClips.count(id) == 0)
             loadAudioClip(id);
-        oneShotClips.push_back(OneShotClipInfo{ &loadedClips.at(id), 0, location, glm::vec3(0.0f), spatialise, volume, false, false, false, channel });
+        oneShotClips.push_back(OneShotClipInfo{ &loadedClips.at(id), 0, location, glm::vec3(0.0f), spatialise, volume, false, false, false, 0.01f, channel });
     }
 
     void AudioSystem::onAudioSourceConstruct(entt::registry& reg, entt::entity ent) {
