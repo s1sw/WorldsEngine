@@ -146,7 +146,8 @@ namespace worlds {
         pairFlags = physx::PxPairFlag::eSOLVE_CONTACT
                   | physx::PxPairFlag::eDETECT_DISCRETE_CONTACT
                   | physx::PxPairFlag::eDETECT_CCD_CONTACT
-                  | physx::PxPairFlag::eNOTIFY_TOUCH_FOUND;
+                  | physx::PxPairFlag::eNOTIFY_TOUCH_FOUND
+                  | physx::PxPairFlag::eNOTIFY_CONTACT_POINTS;
         return physx::PxFilterFlags();
     }
 
@@ -166,6 +167,8 @@ namespace worlds {
 
             auto evtA = reg.try_get<PhysicsEvents>(a);
             auto evtB = reg.try_get<PhysicsEvents>(b);
+            
+            if (evtA == nullptr && evtB == nullptr) return;
 
             glm::vec3 velA{0.0f};
             glm::vec3 velB{0.0f};
