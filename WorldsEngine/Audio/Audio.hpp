@@ -6,6 +6,8 @@
 #include "phonon.h"
 #include <glm/glm.hpp>
 
+struct stb_vorbis;
+
 namespace worlds {
     enum class MixerChannel {
         Music,
@@ -106,6 +108,7 @@ namespace worlds {
         static void audioCallback(void* userData, uint8_t* streamU8, int len);
         static void cmdSetMixerVolume(void* obj, const char* params);
 
+        void decodeVorbis(stb_vorbis* vorb, AudioSystem::LoadedClip& clip);
         void onAudioSourceConstruct(entt::registry& reg, entt::entity ent);
         void onAudioSourceDestroy(entt::registry& reg, entt::entity ent);
         LoadedClip& loadAudioClip(AssetID id);
