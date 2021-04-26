@@ -98,37 +98,35 @@ namespace lg {
 
         new DebugArrows(registry);
 
-        if (vrInterface) {
-            worlds::g_console->registerCommand([&](void*, const char*) {
-                auto& wActor = registry.get<worlds::DynamicPhysicsActor>(lHandEnt);
-                auto* body = static_cast<physx::PxRigidBody*>(wActor.actor);
-                body->setLinearVelocity(physx::PxVec3{ 0.0f });
+        worlds::g_console->registerCommand([&](void*, const char*) {
+            auto& wActor = registry.get<worlds::DynamicPhysicsActor>(lHandEnt);
+            auto* body = static_cast<physx::PxRigidBody*>(wActor.actor);
+            body->setLinearVelocity(physx::PxVec3{ 0.0f });
 
-                auto& lTf = registry.get<Transform>(lHandEnt);
-                auto& lPh = registry.get<PhysHand>(lHandEnt);
-                auto lPose = body->getGlobalPose();
-                lPose.p = worlds::glm2px(lPh.targetWorldPos);
-                lTf.position = lPh.targetWorldPos;
-                body->setGlobalPose(lPose);
+            auto& lTf = registry.get<Transform>(lHandEnt);
+            auto& lPh = registry.get<PhysHand>(lHandEnt);
+            auto lPose = body->getGlobalPose();
+            lPose.p = worlds::glm2px(lPh.targetWorldPos);
+            lTf.position = lPh.targetWorldPos;
+            body->setGlobalPose(lPose);
 
-                auto& wActorR = registry.get<worlds::DynamicPhysicsActor>(rHandEnt);
-                auto* rBody = static_cast<physx::PxRigidBody*>(wActorR.actor);
-                rBody->setLinearVelocity(physx::PxVec3{ 0.0f });
+            auto& wActorR = registry.get<worlds::DynamicPhysicsActor>(rHandEnt);
+            auto* rBody = static_cast<physx::PxRigidBody*>(wActorR.actor);
+            rBody->setLinearVelocity(physx::PxVec3{ 0.0f });
 
-                auto& rTf = registry.get<Transform>(rHandEnt);
-                auto& rPh = registry.get<PhysHand>(rHandEnt);
-                auto rPose = rBody->getGlobalPose();
-                rPose.p = worlds::glm2px(rPh.targetWorldPos);
-                rTf.position = rPh.targetWorldPos;
-                rBody->setGlobalPose(rPose);
+            auto& rTf = registry.get<Transform>(rHandEnt);
+            auto& rPh = registry.get<PhysHand>(rHandEnt);
+            auto rPose = rBody->getGlobalPose();
+            rPose.p = worlds::glm2px(rPh.targetWorldPos);
+            rTf.position = rPh.targetWorldPos;
+            rBody->setGlobalPose(rPose);
 
-                lPh.posController.reset();
-                lPh.rotController.reset();
+            lPh.posController.reset();
+            lPh.rotController.reset();
 
-                rPh.posController.reset();
-                rPh.rotController.reset();
-            }, "cnvrg_resetHands", "Resets hand PID controllers.", nullptr);
-        }
+            rPh.posController.reset();
+            rPh.rotController.reset();
+        }, "lg_resetHands", "Resets hand PID controllers.", nullptr);
 
     }
 
