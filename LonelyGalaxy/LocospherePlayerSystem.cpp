@@ -55,17 +55,17 @@ namespace lg {
     physx::PxD6Joint* lHandJoint;
     physx::PxD6Joint* rHandJoint;
 
-    worlds::ConVar showLocosphereDebug{ "cnvrg_showLocosphereDebug", "0", "Shows the locosphere debug menu." };
-    worlds::ConVar drawDbgArrows { "cnvrg_locoDbgArrow", "0", "Draw a debug arrow pointing in the current input direction." };
+    worlds::ConVar showLocosphereDebug{ "lg_showLocosphereDebug", "0", "Shows the locosphere debug menu." };
+    worlds::ConVar drawDbgArrows { "lg_locoDbgArrow", "0", "Draw a debug arrow pointing in the current input direction." };
 
     glm::vec3 lastDesiredVel;
 
     int physDbgIdx = 0;
 
-    worlds::ConVar overallAmount{ "cnvrg_headBobAmount", "0.5" };
-    worlds::ConVar headBobDbg{ "cnvrg_headBobDebug", "0" };
-    worlds::ConVar speedometer{ "cnvrg_speedometer", "0" };
-    worlds::ConVar mouseSensitivity { "cnvrg_mouseSensitivity", "1.0" };
+    worlds::ConVar overallAmount{ "lg_headBobAmount", "0.5" };
+    worlds::ConVar headBobDbg{ "lg_headBobDebug", "0" };
+    worlds::ConVar speedometer{ "lg_speedometer", "0" };
+    worlds::ConVar mouseSensitivity { "lg_mouseSensitivity", "1.0" };
 
     struct LocosphereDebugInfo {
         float angVels[128];
@@ -118,33 +118,19 @@ namespace lg {
         locosphereDebug.erase(ent);
     }
 
-    void LocospherePlayerSystem::preSimUpdate(entt::registry& reg, float deltaTime) {
-        entt::entity localLocosphereEnt = entt::null;
-
-        reg.view<LocospherePlayerComponent>().each([&](auto ent, auto& lpc) {
-            if (lpc.isLocal) {
-                if (!reg.valid(localLocosphereEnt))
-                    localLocosphereEnt = ent;
-                else {
-                    logWarn("more than one local locosphere!");
-                }
-            }
-        });
-
-        if (!reg.valid(localLocosphereEnt)) {
-            return;
-        }
-
+    void LocospherePlayerSystem::updatePlayerSounds(entt::entity locosphereEnt,
+            float deltaTime) {
+        auto& lpc = registry.get<LocospherePlayerComponent>(locosphereEnt);
         static float timeSinceLastJump = 0.0f;
         static bool groundedLast = false;
         static bool dblJumpUsedLast = false;
 
         timeSinceLastJump += deltaTime;
-        auto& lpc = reg.get<LocospherePlayerComponent>(localLocosphereEnt);
+
         bool jump = vrInterface ? vrInterface->getJumpInput() : inputManager->keyPressed(SDL_SCANCODE_SPACE);
 
         if (jump && timeSinceLastJump > 0.2f) {
-            auto& t = reg.get<Transform>(localLocosphereEnt);
+            auto& t = registry.get<Transform>(locosphereEnt);
             lpc.jump = true;
             timeSinceLastJump = 0.0f;
             if (lpc.grounded) {
@@ -155,7 +141,7 @@ namespace lg {
         }
 
         if (!dblJumpUsedLast && lpc.doubleJumpUsed) {
-            auto& t = reg.get<Transform>(localLocosphereEnt);
+            auto& t = registry.get<Transform>(locosphereEnt);
             static int lastSoundIdx = 0;
             int soundIdx = 0;
             while (lastSoundIdx == soundIdx) soundIdx = pcg32_boundedrand_r(&rng, doubleJumpSounds.size());
@@ -164,12 +150,48 @@ namespace lg {
         }
 
         if (!groundedLast && lpc.grounded) {
-            auto& t = reg.get<Transform>(localLocosphereEnt);
+            auto& t = registry.get<Transform>(locosphereEnt);
             worlds::AudioSystem::getInstance()->playOneShotClip(landSound, t.position, false, 0.5f);
         }
 
         dblJumpUsedLast = lpc.doubleJumpUsed;
         groundedLast = lpc.grounded;
+
+        static float stepTimer = 0.0f;
+
+        if (lpc.grounded) {
+            float inputMagnitude = glm::length(lpc.xzMoveInput);
+            inputMagnitude *= lpc.sprint ? 1.5f : 1.0f;
+            stepTimer += inputMagnitude * deltaTime * 2.0f;
+        }
+
+        if (stepTimer >= 1.0f) {
+            auto& locosphereTransform = registry.get<Transform>(locosphereEnt);
+
+            // make sure we don't repeat either the last sound or the sound before that
+            static int lastSoundIdx = 0;
+            static int lastLastSoundIdx = 0;
+            int soundIdx = 0;
+
+            // just keep generating numbers until we get an index
+            // meeting that criteria
+            while (lastSoundIdx == soundIdx || soundIdx == lastLastSoundIdx)
+                soundIdx = pcg32_boundedrand_r(&rng, footstepSounds.size());
+
+            lastLastSoundIdx = lastSoundIdx;
+            lastSoundIdx = soundIdx;
+
+            worlds::AudioSystem::getInstance()->playOneShotClip(
+                footstepSounds[soundIdx],
+                locosphereTransform.position,
+                false, 0.5f
+            );
+
+            stepTimer = 0.0f;
+        }
+    }
+
+    void LocospherePlayerSystem::preSimUpdate(entt::registry& reg, float deltaTime) {
     }
 
     glm::vec3 LocospherePlayerSystem::calcHeadbobPosition(glm::vec3 desiredVel, glm::vec3 camPos, float deltaTime, bool grounded) {
@@ -332,38 +354,7 @@ namespace lg {
 
         localLpc.sprint = (vrInterface && vrInterface->getSprintInput()) || (inputManager->keyHeld(SDL_SCANCODE_LSHIFT));
 
-        static float stepTimer = 0.0f;
-
-        if (localLpc.grounded) {
-            float inputMagnitude = glm::length(localLpc.xzMoveInput);
-            inputMagnitude *= localLpc.sprint ? 1.5f : 1.0f;
-            stepTimer += inputMagnitude * deltaTime * 2.0f;
-        }
-
-        if (stepTimer >= 1.0f) {
-            auto& locosphereTransform = registry.get<Transform>(localLocosphereEnt);
-
-            // make sure we don't repeat either the last sound or the sound before that
-            static int lastSoundIdx = 0;
-            static int lastLastSoundIdx = 0;
-            int soundIdx = 0;
-
-            // just keep generating numbers until we get an index
-            // meeting that criteria
-            while (lastSoundIdx == soundIdx || soundIdx == lastLastSoundIdx)
-                soundIdx = pcg32_boundedrand_r(&rng, footstepSounds.size());
-
-            lastLastSoundIdx = lastSoundIdx;
-            lastSoundIdx = soundIdx;
-
-            worlds::AudioSystem::getInstance()->playOneShotClip(
-                footstepSounds[soundIdx],
-                locosphereTransform.position,
-                false, 0.5f
-            );
-
-            stepTimer = 0.0f;
-        }
+        updatePlayerSounds(localLocosphereEnt, deltaTime);
 
         if (drawDbgArrows.getInt()) {
             auto& llstf = registry.get<Transform>(localLocosphereEnt);
