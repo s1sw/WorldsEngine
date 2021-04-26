@@ -191,9 +191,6 @@ namespace lg {
         }
     }
 
-    void LocospherePlayerSystem::preSimUpdate(entt::registry& reg, float deltaTime) {
-    }
-
     glm::vec3 LocospherePlayerSystem::calcHeadbobPosition(glm::vec3 desiredVel, glm::vec3 camPos, float deltaTime, bool grounded) {
         static float headbobTime = 0.0f;
         headbobTime += deltaTime;

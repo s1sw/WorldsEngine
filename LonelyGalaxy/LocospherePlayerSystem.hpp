@@ -49,7 +49,6 @@ namespace lg {
         LocospherePlayerSystem(worlds::EngineInterfaces interfaces, entt::registry& registry);
         void onSceneStart(entt::registry& registry) override;
         void update(entt::registry& registry, float deltaTime, float interpAlpha) override;
-        void preSimUpdate(entt::registry& registry, float deltaTime) override;
         void simulate(entt::registry& registry, float simStep) override;
         void shutdown(entt::registry& registry) override;
         static PlayerRig createPlayerRig(entt::registry& registry, glm::vec3 position = {0.0f, 5.0f, 0.0f});
