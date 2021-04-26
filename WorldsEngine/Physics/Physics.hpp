@@ -110,6 +110,7 @@ namespace worlds {
     struct PhysicsContactInfo {
         float relativeSpeed;
         entt::entity otherEntity;
+        glm::vec3 averageContactPoint;
     };
 
     struct PhysicsEvents {

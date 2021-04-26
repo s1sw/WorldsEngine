@@ -185,6 +185,22 @@ namespace worlds {
                 .relativeSpeed = glm::distance(velA, velB)
             };
 
+            const uint32_t contactBufSize = 32;
+            PxContactPairPoint contacts[contactBufSize];
+            uint32_t totalContacts = 0;
+
+            for (uint32_t i = 0; i < nbPairs; i++) {
+                auto& pair = pairs[i];
+                PxU32 nbContacts = pair.extractContacts(contacts, contactBufSize);
+
+                for (uint32_t j = 0; j < nbContacts; j++) {
+                    totalContacts++;
+                    info.averageContactPoint += px2glm(contacts[j].position);
+                }
+            }
+
+            info.averageContactPoint /= totalContacts;
+
             if (evtA && evtA->onContact) {
                 info.otherEntity = b;
                 evtA->onContact(a, info);
