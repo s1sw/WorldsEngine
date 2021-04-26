@@ -56,12 +56,14 @@ namespace lg {
     }
 
     void EventHandler::onPhysicsSoundContact(entt::entity thisEnt, const worlds::PhysicsContactInfo& info) {
-        auto& t = reg->get<Transform>(thisEnt);
         auto& physSound = reg->get<PhysicsSoundComponent>(thisEnt);
+
         auto time = engine->getGameTime();
+        logMsg("avg contact point: %.3f, %.3f, %.3f", info.averageContactPoint.x, info.averageContactPoint.y, info.averageContactPoint.z);
+
         if (time - physSound.lastPlayTime > 0.1) {
             worlds::AudioSystem::getInstance()->playOneShotClip(
-                    physSound.soundId, t.position, true, glm::min(info.relativeSpeed * 0.125f, 1.0f));
+                    physSound.soundId, info.averageContactPoint, true, glm::min(info.relativeSpeed * 0.125f, 1.0f));
             physSound.lastPlayTime = time;
         }
     }
