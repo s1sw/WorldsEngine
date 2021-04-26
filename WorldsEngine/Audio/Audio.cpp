@@ -28,6 +28,7 @@ namespace worlds {
     }
 
     float* lastBuffer = nullptr;
+    float* tempBuffer = nullptr;
     bool copyBuffer = false;
 
     template <typename T>
@@ -59,26 +60,26 @@ namespace worlds {
             clipFormat.channelOrder = IPL_CHANNELORDER_INTERLEAVED;
 
             IPLAudioBuffer inBuffer{
-                clipFormat, std::min(numMonoSamplesNeeded, samplesRemaining), &clip.data[sourceInfo.playbackPosition]
+                clipFormat, std::min(numMonoSamplesNeeded, samplesRemaining), &clip.data[sourceInfo.playbackPosition], nullptr
             };
 
             void* outTemp = std::malloc(numMonoSamplesNeeded * 2 * sizeof(float));
-            memset(outTemp, 0, numMonoSamplesNeeded * 2 * sizeof(float));
 
             IPLAudioFormat outFormat;
             outFormat.channelLayoutType = IPL_CHANNELLAYOUTTYPE_SPEAKERS;
             outFormat.channelLayout = IPL_CHANNELLAYOUT_STEREO;
             outFormat.channelOrder = IPL_CHANNELORDER_INTERLEAVED;
 
-            IPLAudioBuffer outBuffer{ outFormat, numMonoSamplesNeeded, (float*)outTemp };
+            IPLAudioBuffer outBuffer{ outFormat, numMonoSamplesNeeded, (float*)outTemp, nullptr };
+            IPLVector3 dir { sourceInfo.direction.x, sourceInfo.direction.y, sourceInfo.direction.z };
 
             iplApplyBinauralEffect(
                     _this->binauralEffect,
                     _this->binauralRenderer,
-                    inBuffer, IPLVector3{ sourceInfo.direction.x, sourceInfo.direction.y, sourceInfo.direction.z },
+                    inBuffer, dir,
                     IPL_HRTFINTERPOLATION_BILINEAR, 1.0f, outBuffer);
 
-            float adjDistance = (sourceInfo.distance + 1.0f);
+            float adjDistance = glm::max(sourceInfo.distance + 1.0f, 1.0f);
 
             float distFalloff = 1.0f / (adjDistance * adjDistance);
 
@@ -317,7 +318,7 @@ namespace worlds {
             asi.loop = audioSource.loop;
             asi.spatialise = audioSource.spatialise;
             asi.channel = audioSource.channel;
-            });
+        });
 
         if (oneShotClips.size())
             oneShotClips.erase(std::remove_if(oneShotClips.begin(), oneShotClips.end(), [](OneShotClipInfo& clipInfo) { return clipInfo.finished; }), oneShotClips.end());
@@ -389,6 +390,48 @@ namespace worlds {
         SDL_UnlockAudioDevice(devId);
     }
 
+    void interleaveFloats(int len, float** data, float* out) {
+        for (int i = 0; i < len; i++) {
+            out[i * 2 + 0] = data[0][i];
+            out[i * 2 + 1] = data[1][i];
+        }
+    }
+
+    void AudioSystem::decodeVorbis(stb_vorbis* vorb, AudioSystem::LoadedClip& clip) {
+        stb_vorbis_info info = stb_vorbis_get_info(vorb);
+
+        int bufferLen = info.channels * stb_vorbis_stream_length_in_samples(vorb);
+        clip.channels = info.channels;
+        clip.sampleRate = info.sample_rate;
+
+        float* data = (float*)malloc(bufferLen * sizeof(float));
+        memset(data, 0, bufferLen * sizeof(float));
+
+        int offset = 0;
+        int totalSamples = 0;
+        float** output;
+
+        while (true) {
+            // number of samples
+            int n = stb_vorbis_get_frame_float(vorb, nullptr, &output);
+            if (n == 0) break;
+            assert(offset < bufferLen);
+            totalSamples += n;
+
+            if (clip.channels == 2)
+                interleaveFloats(n, output, data + offset);
+            else
+                memcpy(data + offset, output[0], n * sizeof(float));
+
+            offset += info.channels * n;
+        }
+
+        stb_vorbis_close(vorb);
+        assert((totalSamples * info.channels) == bufferLen);
+        clip.sampleCount = totalSamples;
+        clip.data = data;
+    }
+
     AudioSystem::LoadedClip& AudioSystem::loadAudioClip(AssetID id) {
         if (loadedClips.count(id) == 1)
             return loadedClips.at(id);
@@ -409,7 +452,6 @@ namespace worlds {
         int error;
         stb_vorbis* vorb = stb_vorbis_open_memory(
                 (const uint8_t*)res.value, fLen, &error, nullptr);
-
 
         if (vorb == nullptr) {
             const std::unordered_map<int, const char*> errorStrings = {
@@ -438,34 +480,7 @@ namespace worlds {
             return missingClip;
         }
 
-        stb_vorbis_info info = stb_vorbis_get_info(vorb);
-
-        int limit = info.channels * stb_vorbis_stream_length_in_samples(vorb);
-        clip.channels = info.channels;
-        clip.sampleRate = info.sample_rate;
-
-        short* data = (short*)malloc(limit * sizeof(short));
-
-        int total = limit;
-        int offset = 0;
-        int totalSamples = 0;
-
-        while (true) {
-            // number of samples
-            int n = stb_vorbis_get_frame_short_interleaved(vorb, info.channels, data + offset, total - offset);
-            if (n == 0) break;
-            totalSamples += n;
-
-            offset += n * info.channels;
-
-            if (offset + limit > total) {
-                total *= 2;
-                data = (short*)realloc(data, total * sizeof(short));
-            }
-        }
-
-        stb_vorbis_close(vorb);
-        clip.sampleCount = totalSamples;
+        decodeVorbis(vorb, clip);
 
         std::free(res.value);
 
@@ -473,14 +488,6 @@ namespace worlds {
 
         if (clip.sampleRate != 44100)
             logWarn(WELogCategoryAudio, "Clip %s does not have a sample rate of 44100hz (%i). It will not play back correctly.", path.c_str(), clip.sampleRate);
-
-        clip.data = (float*)std::malloc(sizeof(float) * clip.sampleCount * clip.channels);
-
-        for (int i = 0; i < clip.sampleCount * clip.channels; i++) {
-            clip.data[i] = ((float)data[i]) / 32768.0f;
-        }
-
-        std::free(data);
 
         clip.id = id;
 
