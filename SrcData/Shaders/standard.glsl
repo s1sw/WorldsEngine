@@ -411,7 +411,7 @@ void main() {
 
     vec3 normal = normalize(mat.normalTexIdx > -1 ? getNormalMapNormal(mat, tCoord, tbn) : inNormal);
 
-    ao *= calcProxyAO(inWorldPos.xyz, normal);
+    ao *= calcProxyAO(inWorldPos.xyz, inNormal);
 
     // debug views
     if ((miscFlag & 2) == 2) {
