@@ -10,6 +10,7 @@
 #define STB_VORBIS_HEADER_ONLY
 #include "stb_vorbis.c"
 #include "phonon.h"
+#include "../Core/Fatal.hpp"
 
 namespace worlds {
     int playbackSamples;
@@ -22,13 +23,22 @@ namespace worlds {
             mixerVolumes[i] = 1.0f;
         setChannelVolume(MixerChannel::Music, 0.0f);
         g_console->registerCommand(cmdSetMixerVolume,
-                "a_setMixerVol",
-                "Sets the volume of the specified mixer track. Run like this: a_setMixerVol <track id> <volume>",
-                this);
+            "a_setMixerVol",
+            "Sets the volume of the specified mixer track. Run like this: a_setMixerVol <track id> <volume>",
+            this
+        );
+
+        g_console->registerCommand(
+            [&](void*, const char* arg) { volume = std::atof(arg); },
+            "a_setVolume",
+            "Sets the volume.",
+            nullptr
+        );
     }
 
     float* lastBuffer = nullptr;
     float* tempBuffer = nullptr;
+    float* tempMonoBuffer = nullptr;
     bool copyBuffer = false;
 
     template <typename T>
@@ -60,34 +70,51 @@ namespace worlds {
             clipFormat.channelOrder = IPL_CHANNELORDER_INTERLEAVED;
 
             IPLAudioBuffer inBuffer{
-                clipFormat, std::min(numMonoSamplesNeeded, samplesRemaining), &clip.data[sourceInfo.playbackPosition], nullptr
+                clipFormat, std::min(numMonoSamplesNeeded, samplesRemaining),
+                &clip.data[sourceInfo.playbackPosition], nullptr
             };
 
-            void* outTemp = std::malloc(numMonoSamplesNeeded * 2 * sizeof(float));
+            IPLAudioFormat audioIn;
+            audioIn.channelLayoutType = IPL_CHANNELLAYOUTTYPE_SPEAKERS;
+            audioIn.channelLayout = IPL_CHANNELLAYOUT_MONO;
+            audioIn.channelOrder = IPL_CHANNELORDER_INTERLEAVED;
+
+            IPLAudioBuffer directOutBuffer{
+                audioIn, std::min(numMonoSamplesNeeded, samplesRemaining),
+                tempMonoBuffer, nullptr
+            };
+
+            IPLDirectSoundEffectOptions directOpts {
+                .applyDistanceAttenuation = IPL_TRUE,
+                .applyAirAbsorption = IPL_TRUE,
+                .applyDirectivity = IPL_TRUE,
+                .directOcclusionMode = IPL_DIRECTOCCLUSION_NONE
+            };
+
+            iplApplyDirectSoundEffect(_this->directSoundEffect, inBuffer, 
+                    sourceInfo.soundPath, directOpts, directOutBuffer);
 
             IPLAudioFormat outFormat;
             outFormat.channelLayoutType = IPL_CHANNELLAYOUTTYPE_SPEAKERS;
             outFormat.channelLayout = IPL_CHANNELLAYOUT_STEREO;
             outFormat.channelOrder = IPL_CHANNELORDER_INTERLEAVED;
 
-            IPLAudioBuffer outBuffer{ outFormat, numMonoSamplesNeeded, (float*)outTemp, nullptr };
+            IPLAudioBuffer outBuffer{ outFormat, numMonoSamplesNeeded, tempBuffer, nullptr };
             IPLVector3 dir { sourceInfo.direction.x, sourceInfo.direction.y, sourceInfo.direction.z };
 
             iplApplyBinauralEffect(
                     _this->binauralEffect,
                     _this->binauralRenderer,
-                    inBuffer, dir,
-                    IPL_HRTFINTERPOLATION_BILINEAR, 1.0f, outBuffer);
+                    directOutBuffer, dir,
+                    IPL_HRTFINTERPOLATION_NEAREST, 1.0f, outBuffer);
 
-            float adjDistance = glm::max(sourceInfo.distance + 1.0f, 1.0f);
+            //float adjDistance = glm::max(sourceInfo.distance + 1.0f, 1.0f);
 
-            float distFalloff = 1.0f / (adjDistance * adjDistance);
+            //float distFalloff = 1.0f / (adjDistance * adjDistance);
 
             for (int i = 0; i < numSamplesNeeded; i++) {
-                stream[i] += ((float*)outTemp)[i] * vol * distFalloff;
+                stream[i] += ((float*)tempBuffer)[i] * vol;
             }
-
-            std::free(outTemp);
         }
 
         sourceInfo.playbackPosition += numMonoSamplesNeeded;
@@ -112,7 +139,7 @@ namespace worlds {
 
         // Calculate the length of the buffer in seconds
         // Buffer Length / number of channels / number of samples / 4 (size of float in bytes)
-        float secondBufferLength = (float)len / (float)_this->channelCount / 44100.f / (float)sizeof(float);
+        float secondBufferLength = (float)len / (float)_this->channelCount / (float)_this->sampleRate / (float)sizeof(float);
 
         memset(stream, 0, len);
 
@@ -164,14 +191,22 @@ namespace worlds {
         int trackID = std::stoi(paramStr.substr(0, spacePos));
         float volume = std::stof(paramStr.substr(spacePos));
 
-        if (trackID >= static_cast<int>(MixerChannel::Count))
+        if (trackID >= static_cast<int>(MixerChannel::Count)) {
+            logErr(WELogCategoryAudio, "a_setMixerVolume: invalid channel");
             return;
+        }
 
         _this->mixerVolumes[trackID] = volume;
     }
 
     void phLog(const char* msg) {
         logMsg(WELogCategoryAudio, "Phonon: %s", msg);
+    }
+
+    void checkIplError(IPLerror err) {
+        if (err != IPL_STATUS_SUCCESS) {
+            fatalErr("IPL fail");
+        }
     }
 
     AudioSystem* AudioSystem::instance;
@@ -188,12 +223,14 @@ namespace worlds {
         want.freq = 44100;
         want.format = AUDIO_F32;
         want.channels = 2;
-        want.samples = 2048;
+        want.samples = 512;
         want.callback = &AudioSystem::audioCallback;
         want.userdata = this;
         devId = SDL_OpenAudioDevice(nullptr, false, &want, &have, 0);
 
         lastBuffer = (float*)malloc(have.samples * have.channels * sizeof(float));
+        tempBuffer = (float*)malloc(have.samples * have.channels * sizeof(float));
+        tempMonoBuffer = (float*)malloc(have.samples * have.channels * 8 * sizeof(float));
 
         logMsg(WELogCategoryAudio, "Opened audio device at %ihz with %i channels and %i samples", have.freq, have.channels, have.samples);
         channelCount = have.channels;
@@ -203,12 +240,12 @@ namespace worlds {
         reg.on_destroy<AudioSource>().connect<&AudioSystem::onAudioSourceDestroy>(*this);
 
         SDL_Log("Initialising Phonon");
-        iplCreateContext((IPLLogFunction)phLog, nullptr, nullptr, &phononContext);
+        checkIplError(iplCreateContext((IPLLogFunction)phLog, nullptr, nullptr, &phononContext));
 
         IPLRenderingSettings settings{ have.freq, have.samples, IPL_CONVOLUTIONTYPE_PHONON };
 
         IPLHrtfParams hrtfParams{ IPL_HRTFDATABASETYPE_DEFAULT, nullptr, nullptr };
-        iplCreateBinauralRenderer(phononContext, settings, hrtfParams, &binauralRenderer);
+        checkIplError(iplCreateBinauralRenderer(phononContext, settings, hrtfParams, &binauralRenderer));
 
         IPLAudioFormat audioIn;
         audioIn.channelLayoutType = IPL_CHANNELLAYOUTTYPE_SPEAKERS;
@@ -220,7 +257,24 @@ namespace worlds {
         audioOut.channelLayout = IPL_CHANNELLAYOUT_STEREO;
         audioOut.channelOrder = IPL_CHANNELORDER_INTERLEAVED;
 
-        iplCreateBinauralEffect(binauralRenderer, audioIn, audioOut, &binauralEffect);
+        checkIplError(iplCreateBinauralEffect(binauralRenderer, audioIn, audioOut, &binauralEffect));
+
+        checkIplError(iplCreateDirectSoundEffect(audioIn, audioIn, settings, &directSoundEffect));
+
+        IPLSimulationSettings simulationSettings{};
+        simulationSettings.sceneType = IPL_SCENETYPE_PHONON;
+        simulationSettings.maxNumOcclusionSamples = 32;
+        simulationSettings.numRays = 1024;
+        simulationSettings.numBounces = 2;
+        simulationSettings.numThreads = 8;
+        simulationSettings.irDuration = 0.5f;
+        simulationSettings.ambisonicsOrder = 0;
+        simulationSettings.maxConvolutionSources = 32;
+        simulationSettings.bakingBatchSize = 1;
+        simulationSettings.irradianceMinDistance = 0.3f;
+
+        checkIplError(iplCreateEnvironment(phononContext, NULL, 
+                simulationSettings, NULL, NULL, &environment));
 
         if (devId == 0) {
             SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION, "Failed to open audio device");
@@ -236,6 +290,10 @@ namespace worlds {
             logErr(WELogCategoryAudio, "Failed to load audio scene %s (%s)", sceneName.c_str(), getIOErrorStr(loadFileRes.error));
             return;
         }
+    }
+
+    IPLVector3 convVec(const glm::vec3& v) {
+        return IPLVector3 { v.x, v.y, v.z };
     }
 
     worlds::ConVar showAudioOscilloscope{ "a_showOscilloscope", "0", "Shows oscilloscope in the audio debug menu." };
@@ -325,8 +383,40 @@ namespace worlds {
 
         for (auto& c : oneShotClips) {
             glm::vec3 dirVec = listenerPos - c.location;
-            c.direction = glm::normalize(dirVec) * listenerRot;
+            c.direction = glm::normalize(glm::normalize(dirVec) * listenerRot);
             c.distance = glm::length(dirVec);
+
+            IPLDistanceAttenuationModel distanceAttenuationModel {
+                .type = IPL_DISTANCEATTENUATION_DEFAULT
+            };
+
+            IPLAirAbsorptionModel airAbsorptionModel {
+                .type = IPL_AIRABSORPTION_DEFAULT
+            };
+
+            IPLSource src {
+                .position = convVec(c.location),
+                .ahead = IPLVector3 { 0.0f, 0.0f, 1.0f },
+                .up = IPLVector3 { 0.0f, 1.0f, 0.0f },
+                .right = IPLVector3 { 1.0f, 0.0f, 0.0f },
+                .directivity = IPLDirectivity {
+                    .dipoleWeight = 0.0f,
+                    .dipolePower = 0.0f,
+                    .callback = nullptr
+                },
+                .distanceAttenuationModel = distanceAttenuationModel,
+                .airAbsorptionModel = airAbsorptionModel
+            };
+
+            c.soundPath = iplGetDirectSoundPath(environment,
+                convVec(listenerPos),
+                convVec(listenerRot * glm::vec3 { 0.0f, 0.0f, 1.0f }),
+                convVec(listenerRot * glm::vec3 { 0.0f, 1.0f, 0.0f }),
+                src,
+                0.0f, // not used yet
+                0, // also not used yet
+                IPL_DIRECTOCCLUSION_NONE,
+                IPL_DIRECTOCCLUSION_RAYCAST);
         }
 
         SDL_UnlockAudioDevice(devId);
@@ -484,7 +574,7 @@ namespace worlds {
 
         std::free(res.value);
 
-        logMsg(WELogCategoryAudio, "Loaded %i samples across %i channels with a sample rate of %i", clip.sampleCount, clip.channels, clip.sampleRate);
+        logMsg(WELogCategoryAudio, "Loaded %s: %i samples across %i channels with a sample rate of %i", path.c_str(), clip.sampleCount, clip.channels, clip.sampleRate);
 
         if (clip.sampleRate != 44100)
             logWarn(WELogCategoryAudio, "Clip %s does not have a sample rate of 44100hz (%i). It will not play back correctly.", path.c_str(), clip.sampleRate);

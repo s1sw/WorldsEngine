@@ -18,7 +18,7 @@ namespace lg {
         bool isServer = false;
         void simulateServer(float simStep);
         void simulateClient(float simStep);
-        GameServer* gameServer;
-        GameClient* gameClient;
+        GameServer* gameServer = nullptr;
+        GameClient* gameClient = nullptr;
     };
 }

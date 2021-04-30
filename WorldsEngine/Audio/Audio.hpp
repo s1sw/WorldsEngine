@@ -74,6 +74,7 @@ namespace worlds {
             glm::vec3 direction;
             float distance;
             MixerChannel channel;
+            IPLDirectSoundPath soundPath;
         };
 
         enum class ClipType {
@@ -103,6 +104,7 @@ namespace worlds {
             bool loop;
             float distance;
             MixerChannel channel;
+            IPLDirectSoundPath soundPath;
         };
 
         static void audioCallback(void* userData, uint8_t* streamU8, int len);
@@ -121,15 +123,21 @@ namespace worlds {
         std::vector<OneShotClipInfo> oneShotClips;
         int channelCount;
         int numSamples;
+        int sampleRate;
         bool isPaused;
         glm::vec3 listenerPosition;
         glm::quat listenerRotation;
         ConVar showDebugMenuVar;
+
         IPLhandle sceneHandle;
         bool audioSceneLoaded;
-        IPLhandle phononContext;
-        IPLhandle binauralRenderer;
-        IPLhandle binauralEffect;
+
+        IPLhandle phononContext = nullptr;
+        IPLhandle binauralRenderer = nullptr;
+        IPLhandle binauralEffect = nullptr;
+        IPLhandle directSoundEffect = nullptr;
+        IPLhandle environment = nullptr;
+
         float mixerVolumes[static_cast<int>(MixerChannel::Count)];
         template <typename T>
         friend void mixClip(AudioSystem::LoadedClip& clip, T& sourceInfo, int numMonoSamplesNeeded, int numSamplesNeeded, float* stream, AudioSystem* _this);
