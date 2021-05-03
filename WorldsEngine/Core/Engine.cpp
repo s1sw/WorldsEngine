@@ -790,7 +790,7 @@ namespace worlds {
                     alPos = overrideT.position;
                     alRot = overrideT.rotation;
                 }
-                audioSystem->update(registry, cam.position, cam.rotation);
+                audioSystem->update(registry, alPos, alRot);
             }
 
             console->drawWindow();
