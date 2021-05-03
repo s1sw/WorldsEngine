@@ -75,6 +75,7 @@ namespace worlds {
             float distance;
             MixerChannel channel;
             IPLDirectSoundPath soundPath;
+            IPLhandle binauralEffect;
         };
 
         enum class ClipType {
@@ -105,6 +106,7 @@ namespace worlds {
             float distance;
             MixerChannel channel;
             IPLDirectSoundPath soundPath;
+            IPLhandle binauralEffect;
         };
 
         static void audioCallback(void* userData, uint8_t* streamU8, int len);

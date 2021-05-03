@@ -11,6 +11,7 @@
 #include "stb_vorbis.c"
 #include "phonon.h"
 #include "../Core/Fatal.hpp"
+#include <slib/StaticAllocList.hpp>
 
 namespace worlds {
     int playbackSamples;
@@ -38,7 +39,6 @@ namespace worlds {
 
     float* lastBuffer = nullptr;
     float* tempBuffer = nullptr;
-    float* tempMonoBuffer = nullptr;
     bool copyBuffer = false;
 
     template <typename T>
@@ -70,50 +70,39 @@ namespace worlds {
             clipFormat.channelOrder = IPL_CHANNELORDER_INTERLEAVED;
 
             IPLAudioBuffer inBuffer{
-                clipFormat, std::min(numMonoSamplesNeeded, samplesRemaining),
+                clipFormat, numMonoSamplesNeeded,
                 &clip.data[sourceInfo.playbackPosition], nullptr
             };
-
-            IPLAudioFormat audioIn;
-            audioIn.channelLayoutType = IPL_CHANNELLAYOUTTYPE_SPEAKERS;
-            audioIn.channelLayout = IPL_CHANNELLAYOUT_MONO;
-            audioIn.channelOrder = IPL_CHANNELORDER_INTERLEAVED;
-
-            IPLAudioBuffer directOutBuffer{
-                audioIn, std::min(numMonoSamplesNeeded, samplesRemaining),
-                tempMonoBuffer, nullptr
-            };
-
-            IPLDirectSoundEffectOptions directOpts {
-                .applyDistanceAttenuation = IPL_TRUE,
-                .applyAirAbsorption = IPL_TRUE,
-                .applyDirectivity = IPL_TRUE,
-                .directOcclusionMode = IPL_DIRECTOCCLUSION_NONE
-            };
-
-            iplApplyDirectSoundEffect(_this->directSoundEffect, inBuffer, 
-                    sourceInfo.soundPath, directOpts, directOutBuffer);
 
             IPLAudioFormat outFormat;
             outFormat.channelLayoutType = IPL_CHANNELLAYOUTTYPE_SPEAKERS;
             outFormat.channelLayout = IPL_CHANNELLAYOUT_STEREO;
             outFormat.channelOrder = IPL_CHANNELORDER_INTERLEAVED;
 
-            IPLAudioBuffer outBuffer{ outFormat, numMonoSamplesNeeded, tempBuffer, nullptr };
-            IPLVector3 dir { sourceInfo.direction.x, sourceInfo.direction.y, sourceInfo.direction.z };
+            IPLAudioBuffer outBuffer{
+                outFormat, std::min(numMonoSamplesNeeded, samplesRemaining), tempBuffer, nullptr };
+
+            glm::vec3 dNorm = glm::normalize(sourceInfo.direction);
+            IPLVector3 dir { dNorm.x, dNorm.y, dNorm.z };
 
             iplApplyBinauralEffect(
-                    _this->binauralEffect,
+                    sourceInfo.binauralEffect,
                     _this->binauralRenderer,
-                    directOutBuffer, dir,
-                    IPL_HRTFINTERPOLATION_NEAREST, 1.0f, outBuffer);
+                    inBuffer, dir,
+                    IPL_HRTFINTERPOLATION_BILINEAR, 1.0f, outBuffer);
 
             //float adjDistance = glm::max(sourceInfo.distance + 1.0f, 1.0f);
 
             //float distFalloff = 1.0f / (adjDistance * adjDistance);
 
-            for (int i = 0; i < numSamplesNeeded; i++) {
-                stream[i] += ((float*)tempBuffer)[i] * vol;
+            //for (int i = 0; i < std::min(numMonoSamplesNeeded, samplesRemaining); i++) {
+            //    stream[i * 2 + 0] += ((float*)inBuffer.interleavedBuffer)[i] * vol * sourceInfo.soundPath.distanceAttenuation;
+            //    stream[i * 2 + 1] += ((float*)inBuffer.interleavedBuffer)[i] * vol * sourceInfo.soundPath.distanceAttenuation;
+            //}
+
+            for (int i = 0; i < std::min(numMonoSamplesNeeded, samplesRemaining); i++) {
+                stream[i * 2 + 0] += ((float*)tempBuffer)[i * 2 + 0] * vol * sourceInfo.soundPath.distanceAttenuation;
+                stream[i * 2 + 1] += ((float*)tempBuffer)[i * 2 + 1] * vol * sourceInfo.soundPath.distanceAttenuation;
             }
         }
 
@@ -223,18 +212,18 @@ namespace worlds {
         want.freq = 44100;
         want.format = AUDIO_F32;
         want.channels = 2;
-        want.samples = 512;
+        want.samples = 1024;
         want.callback = &AudioSystem::audioCallback;
         want.userdata = this;
         devId = SDL_OpenAudioDevice(nullptr, false, &want, &have, 0);
 
         lastBuffer = (float*)malloc(have.samples * have.channels * sizeof(float));
         tempBuffer = (float*)malloc(have.samples * have.channels * sizeof(float));
-        tempMonoBuffer = (float*)malloc(have.samples * have.channels * 8 * sizeof(float));
 
         logMsg(WELogCategoryAudio, "Opened audio device at %ihz with %i channels and %i samples", have.freq, have.channels, have.samples);
         channelCount = have.channels;
         numSamples = have.samples;
+        sampleRate = have.freq;
 
         reg.on_construct<AudioSource>().connect<&AudioSystem::onAudioSourceConstruct>(*this);
         reg.on_destroy<AudioSource>().connect<&AudioSystem::onAudioSourceDestroy>(*this);
@@ -257,8 +246,6 @@ namespace worlds {
         audioOut.channelLayout = IPL_CHANNELLAYOUT_STEREO;
         audioOut.channelOrder = IPL_CHANNELORDER_INTERLEAVED;
 
-        checkIplError(iplCreateBinauralEffect(binauralRenderer, audioIn, audioOut, &binauralEffect));
-
         checkIplError(iplCreateDirectSoundEffect(audioIn, audioIn, settings, &directSoundEffect));
 
         IPLSimulationSettings simulationSettings{};
@@ -273,7 +260,7 @@ namespace worlds {
         simulationSettings.bakingBatchSize = 1;
         simulationSettings.irradianceMinDistance = 0.3f;
 
-        checkIplError(iplCreateEnvironment(phononContext, NULL, 
+        checkIplError(iplCreateEnvironment(phononContext, NULL,
                 simulationSettings, NULL, NULL, &environment));
 
         if (devId == 0) {
@@ -378,8 +365,20 @@ namespace worlds {
             asi.channel = audioSource.channel;
         });
 
-        if (oneShotClips.size())
-            oneShotClips.erase(std::remove_if(oneShotClips.begin(), oneShotClips.end(), [](OneShotClipInfo& clipInfo) { return clipInfo.finished; }), oneShotClips.end());
+        if (oneShotClips.size()) {
+            static slib::StaticAllocList<IPLhandle> fxKillList { 512 };
+            fxKillList.clear();
+            oneShotClips.erase(std::remove_if(oneShotClips.begin(), oneShotClips.end(),
+                [](OneShotClipInfo& clipInfo) {
+                    if (clipInfo.finished) fxKillList.add(clipInfo.binauralEffect);
+                    return clipInfo.finished;
+                }
+            ), oneShotClips.end());
+
+            for (auto& handle : fxKillList) {
+                iplDestroyBinauralEffect(&handle);
+            }
+        }
 
         for (auto& c : oneShotClips) {
             glm::vec3 dirVec = listenerPos - c.location;
@@ -442,7 +441,26 @@ namespace worlds {
     void AudioSystem::playOneShotClip(AssetID id, glm::vec3 location, bool spatialise, float volume, MixerChannel channel) {
         if (loadedClips.count(id) == 0)
             loadAudioClip(id);
-        oneShotClips.push_back(OneShotClipInfo{ &loadedClips.at(id), 0, location, glm::vec3(0.0f), spatialise, volume, false, false, false, 0.01f, channel });
+        SDL_LockAudioDevice(devId);
+
+        IPLhandle effect;
+
+        IPLAudioFormat audioIn;
+        audioIn.channelLayoutType = IPL_CHANNELLAYOUTTYPE_SPEAKERS;
+        audioIn.channelLayout = IPL_CHANNELLAYOUT_MONO;
+        audioIn.channelOrder = IPL_CHANNELORDER_INTERLEAVED;
+
+        IPLAudioFormat audioOut;
+        audioOut.channelLayoutType = IPL_CHANNELLAYOUTTYPE_SPEAKERS;
+        audioOut.channelLayout = IPL_CHANNELLAYOUT_STEREO;
+        audioOut.channelOrder = IPL_CHANNELORDER_INTERLEAVED;
+
+        if (spatialise)
+            checkIplError(iplCreateBinauralEffect(binauralRenderer, audioIn, audioOut, &effect));
+
+        oneShotClips.push_back(OneShotClipInfo{ &loadedClips.at(id), 0, location, glm::vec3(0.0f), spatialise, volume, false, false, false, 0.01f, channel, {}, effect });
+
+        SDL_UnlockAudioDevice(devId);
     }
 
     void AudioSystem::onAudioSourceConstruct(entt::registry& reg, entt::entity ent) {
