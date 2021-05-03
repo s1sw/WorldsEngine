@@ -1404,7 +1404,7 @@ namespace ImGuizmo
          {
             ImVec2 worldBound1 = worldToPos(aabb[i], boundsMVP);
             ImVec2 worldBound2 = worldToPos(aabb[(i + 1) % 4], boundsMVP);
-            if (!IsInContextRect(worldBound1) || !IsInContextRect(worldBound2))
+            if (!IsInContextRect(worldBound1) && !IsInContextRect(worldBound2))
             {
                continue;
             }
@@ -2145,7 +2145,7 @@ namespace ImGuizmo
    {
       matrix_t viewInverse;
       viewInverse.Inverse(*(matrix_t*)view);
-      
+
       struct CubeFace
       {
          float z;
@@ -2229,7 +2229,7 @@ namespace ImGuizmo
                cubeFace.faceCoordsScreen[iCoord] = worldToPos(faceCoords[iCoord] * 0.5f * invert, res);
             }
             cubeFace.color = directionColor[normalIndex] | 0x808080;
-            
+
             cubeFace.z = centerPositionVP.z / centerPositionVP.w;
             cubeFaceCount++;
          }
@@ -2257,7 +2257,7 @@ namespace ImGuizmo
       vec_t frustum[6];
       ComputeFrustumPlanes(frustum, viewProjection.m16);
       matrix_t res = *(matrix_t*)matrix * viewProjection;
-         
+
       for (float f = -gridSize; f <= gridSize; f += 1.f)
       {
          for (int dir = 0; dir < 2; dir++)
