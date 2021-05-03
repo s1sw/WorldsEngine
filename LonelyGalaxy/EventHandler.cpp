@@ -63,7 +63,7 @@ namespace lg {
 
         if (time - physSound.lastPlayTime > 0.1) {
             worlds::AudioSystem::getInstance()->playOneShotClip(
-                    physSound.soundId, info.averageContactPoint, true, glm::min(info.relativeSpeed * 0.125f, 1.0f));
+                    physSound.soundId, info.averageContactPoint, true, glm::min(info.relativeSpeed * 0.125f, 0.9f));
             physSound.lastPlayTime = time;
         }
     }
@@ -71,7 +71,7 @@ namespace lg {
     void EventHandler::onPhysicsSoundConstruct(entt::registry& reg, entt::entity ent) {
         auto& physEvents = reg.get_or_emplace<worlds::PhysicsEvents>(ent);
         physEvents.onContact = std::bind(&EventHandler::onPhysicsSoundContact,
-                this, std::placeholders::_1, std::placeholders::_2);
+            this, std::placeholders::_1, std::placeholders::_2);
     }
 
     void EventHandler::init(entt::registry& registry, worlds::EngineInterfaces interfaces) {
