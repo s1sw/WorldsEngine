@@ -370,7 +370,7 @@ namespace worlds {
             fxKillList.clear();
             oneShotClips.erase(std::remove_if(oneShotClips.begin(), oneShotClips.end(),
                 [](OneShotClipInfo& clipInfo) {
-                    if (clipInfo.finished) fxKillList.add(clipInfo.binauralEffect);
+                    if (clipInfo.finished && clipInfo.spatialise) fxKillList.add(clipInfo.binauralEffect);
                     return clipInfo.finished;
                 }
             ), oneShotClips.end());
