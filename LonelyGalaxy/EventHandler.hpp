@@ -42,7 +42,6 @@ namespace lg {
         LocospherePlayerSystem* lsphereSys;
         entt::registry* reg;
         bool isDedicated;
-        entt::entity otherLocosphere;
         Client* client;
         Server* server;
         MultiplayerManager* mpManager;
