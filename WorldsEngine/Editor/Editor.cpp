@@ -301,141 +301,7 @@ namespace worlds {
         }
     }
 
-    void Editor::update(float deltaTime) {
-        interfaces.renderer->setRTTPassActive(sceneViewPass, active);
-
-        if (!active) {
-            if (inputManager.keyPressed(SDL_SCANCODE_P, true) && inputManager.ctrlHeld() && !inputManager.shiftHeld())
-                g_console->executeCommandStr("reloadAndEdit");
-
-            if (inputManager.keyPressed(SDL_SCANCODE_P, true) && inputManager.ctrlHeld() && inputManager.shiftHeld())
-                g_console->executeCommandStr("pauseAndEdit");
-
-            if (ImGui::BeginMainMenuBar()) {
-                if (ImGui::MenuItem("Stop Playing")) {
-                    g_console->executeCommandStr("reloadAndEdit");
-                }
-
-                if (ImGui::MenuItem("Pause and Edit")) {
-                    g_console->executeCommandStr("pauseAndEdit");
-                }
-                ImGui::EndMainMenuBar();
-            }
-            return;
-        }
-
-        updateWindowTitle();
-
-        // Create global dock space
-        ImGuiViewport* viewport = ImGui::GetMainViewport();
-        ImGui::SetNextWindowPos(viewport->Pos);
-        ImGui::SetNextWindowSize(viewport->Size);
-        ImGui::SetNextWindowViewport(viewport->ID);
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-
-        ImGui::Begin("Editor dockspace - you shouldn't be able to see this!", 0,
-            ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse |
-            ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
-            ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus |
-            ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_MenuBar);
-        ImGui::PopStyleVar(3);
-
-        ImGuiID dockspaceId = ImGui::GetID("EditorDockspace");
-        ImGui::DockSpace(dockspaceId);
-        ImGui::End();
-
-        // Draw black background
-        ImGui::GetBackgroundDrawList()->AddRectFilled(viewport->Pos, viewport->Size, ImColor(0.0f, 0.0f, 0.0f, 1.0f));
-
-        if (reg.valid(currentSelectedEntity)) {
-            // Right mouse button means that the view's being moved, so we'll ignore any tools
-            // and assume the user's trying to move the camera
-            if (!inputManager.mouseButtonHeld(MouseButton::Right, true)) {
-                if (inputManager.keyPressed(SDL_SCANCODE_G)) {
-                    activateTool(Tool::Translate);
-                } else if (inputManager.keyPressed(SDL_SCANCODE_R)) {
-                    activateTool(Tool::Rotate);
-                } else if (inputManager.keyPressed(SDL_SCANCODE_S)) {
-                    activateTool(Tool::Scale);
-                } else if (inputManager.keyPressed(SDL_SCANCODE_B)) {
-                    activateTool(Tool::Bounds);
-                }
-            }
-        }
-
-        if (ImGui::BeginMainMenuBar()) {
-            if (ImGui::BeginMenu("File")) {
-                for (auto& window : editorWindows) {
-                    if (window->menuSection() == EditorMenu::File) {
-                        if (ImGui::MenuItem(window->getName())) {
-                            window->setActive(!window->isActive());
-                        }
-                    }
-                }
-
-                if (ImGui::MenuItem("Quit")) {
-                    interfaces.engine->quit();
-                }
-                ImGui::EndMenu();
-            }
-
-            if (ImGui::BeginMenu("Edit")) {
-                for (auto& window : editorWindows) {
-                    if (window->menuSection() == EditorMenu::Edit) {
-                        if (ImGui::MenuItem(window->getName())) {
-                            window->setActive(!window->isActive());
-                        }
-                    }
-                }
-
-                ImGui::EndMenu();
-            }
-
-            if (ImGui::BeginMenu("Window")) {
-                for (auto& window : editorWindows) {
-                    if (window->menuSection() == EditorMenu::Window) {
-                        if (ImGui::MenuItem(window->getName())) {
-                            window->setActive(!window->isActive());
-                        }
-                    }
-                }
-
-                ImGui::EndMenu();
-            }
-
-            if (ImGui::BeginMenu("Help")) {
-                for (auto& window : editorWindows) {
-                    if (window->menuSection() == EditorMenu::Help) {
-                        if (ImGui::MenuItem(window->getName())) {
-                            window->setActive(!window->isActive());
-                        }
-                    }
-                }
-
-                ImGui::EndMenu();
-            }
-
-            ImGui::EndMainMenuBar();
-        }
-
-        if (ImGui::Begin(ICON_FA_EDIT u8" Editor")) {
-            ImGui::Text("Current tool: %s", toolStr(currentTool));
-
-            ImGui::Checkbox("Manipulate in local space", &toolLocalSpace);
-
-            ImGui::Checkbox("Global object snap", &settings.objectSnapGlobal);
-            tooltipHover("If this is checked, moving an object with Ctrl held will snap in increments relative to the world rather than the object's original position.");
-            ImGui::Checkbox("Pause physics", &interfaces.engine->pauseSim);
-            ImGui::InputFloat("Snap increment", &settings.snapIncrement, 0.1f, 0.5f);
-            ImGui::InputFloat("Angular snap increment", &settings.angularSnapIncrement, 0.5f, 1.0f);
-            ImGui::InputFloat("Camera speed", &cameraSpeed, 0.1f);
-        }
-        ImGui::End();
-
-        updateCamera(deltaTime);
-
+    void Editor::sceneWindow() {
         static ImVec2 currentSceneViewSize = ImVec2(0.0f, 0.0f);
 
         static ConVar noScenePad("editor_disableScenePad", "0");
@@ -647,6 +513,90 @@ namespace worlds {
 
         if (noScenePad)
             ImGui::PopStyleVar();
+    }
+
+    void Editor::update(float deltaTime) {
+        interfaces.renderer->setRTTPassActive(sceneViewPass, active);
+
+        if (!active) {
+            if (inputManager.keyPressed(SDL_SCANCODE_P, true) && inputManager.ctrlHeld() && !inputManager.shiftHeld())
+                g_console->executeCommandStr("reloadAndEdit");
+
+            if (inputManager.keyPressed(SDL_SCANCODE_P, true) && inputManager.ctrlHeld() && inputManager.shiftHeld())
+                g_console->executeCommandStr("pauseAndEdit");
+
+            if (ImGui::BeginMainMenuBar()) {
+                if (ImGui::MenuItem("Stop Playing")) {
+                    g_console->executeCommandStr("reloadAndEdit");
+                }
+
+                if (ImGui::MenuItem("Pause and Edit")) {
+                    g_console->executeCommandStr("pauseAndEdit");
+                }
+                ImGui::EndMainMenuBar();
+            }
+            return;
+        }
+
+        updateWindowTitle();
+
+        // Create global dock space
+        ImGuiViewport* viewport = ImGui::GetMainViewport();
+        ImGui::SetNextWindowPos(viewport->Pos);
+        ImGui::SetNextWindowSize(viewport->Size);
+        ImGui::SetNextWindowViewport(viewport->ID);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+
+        ImGui::Begin("Editor dockspace - you shouldn't be able to see this!", 0,
+            ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse |
+            ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
+            ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus |
+            ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_MenuBar);
+        ImGui::PopStyleVar(3);
+
+        ImGuiID dockspaceId = ImGui::GetID("EditorDockspace");
+        ImGui::DockSpace(dockspaceId);
+        ImGui::End();
+
+        // Draw black background
+        ImGui::GetBackgroundDrawList()->AddRectFilled(viewport->Pos, viewport->Size, ImColor(0.0f, 0.0f, 0.0f, 1.0f));
+
+        if (reg.valid(currentSelectedEntity)) {
+            // Right mouse button means that the view's being moved, so we'll ignore any tools
+            // and assume the user's trying to move the camera
+            if (!inputManager.mouseButtonHeld(MouseButton::Right, true)) {
+                if (inputManager.keyPressed(SDL_SCANCODE_G)) {
+                    activateTool(Tool::Translate);
+                } else if (inputManager.keyPressed(SDL_SCANCODE_R)) {
+                    activateTool(Tool::Rotate);
+                } else if (inputManager.keyPressed(SDL_SCANCODE_S)) {
+                    activateTool(Tool::Scale);
+                } else if (inputManager.keyPressed(SDL_SCANCODE_B)) {
+                    activateTool(Tool::Bounds);
+                }
+            }
+        }
+
+
+        if (ImGui::Begin(ICON_FA_EDIT u8" Editor")) {
+            ImGui::Text("Current tool: %s", toolStr(currentTool));
+
+            ImGui::Checkbox("Manipulate in local space", &toolLocalSpace);
+
+            ImGui::Checkbox("Global object snap", &settings.objectSnapGlobal);
+            tooltipHover("If this is checked, moving an object with Ctrl held will snap in increments relative to the world rather than the object's original position.");
+            ImGui::Checkbox("Pause physics", &interfaces.engine->pauseSim);
+            ImGui::InputFloat("Snap increment", &settings.snapIncrement, 0.1f, 0.5f);
+            ImGui::InputFloat("Angular snap increment", &settings.angularSnapIncrement, 0.5f, 1.0f);
+            ImGui::InputFloat("Camera speed", &cameraSpeed, 0.1f);
+        }
+        ImGui::End();
+
+        updateCamera(deltaTime);
+
+        sceneWindow();
 
         for (auto& edWindow : editorWindows) {
             if (edWindow->isActive()) {
@@ -679,7 +629,6 @@ namespace worlds {
             saveScene(g_assetDB.createAsset(path), reg);
             updateWindowTitle();
         });
-
 
         if (inputManager.keyPressed(SDL_SCANCODE_O) && inputManager.ctrlHeld()) {
             ImGui::OpenPopup("Open Scene");
@@ -718,6 +667,84 @@ namespace worlds {
             inputManager.shiftHeld()) {
             g_console->executeCommandStr("unpause");
         }
+
+        std::string popupToOpen;
+
+        if (ImGui::BeginMainMenuBar()) {
+            if (ImGui::BeginMenu("File")) {
+                for (auto& window : editorWindows) {
+                    if (window->menuSection() == EditorMenu::File) {
+                        if (ImGui::MenuItem(window->getName())) {
+                            window->setActive(!window->isActive());
+                        }
+                    }
+                }
+
+                if (ImGui::MenuItem("New")) {
+                    popupToOpen = "New Scene";
+                }
+
+                if (ImGui::MenuItem("Open")) {
+                    popupToOpen = "Open Scene";
+                }
+
+                if (ImGui::MenuItem("Save")) {
+                    if (interfaces.engine->getCurrentSceneInfo().id != ~0u && !inputManager.shiftHeld()) {
+                        saveScene(interfaces.engine->getCurrentSceneInfo().id, reg);
+                    } else {
+                        popupToOpen = "Save Scene";
+                    }
+                }
+
+                ImGui::Separator();
+
+                if (ImGui::MenuItem("Quit")) {
+                    interfaces.engine->quit();
+                }
+                ImGui::EndMenu();
+            }
+
+            if (ImGui::BeginMenu("Edit")) {
+                for (auto& window : editorWindows) {
+                    if (window->menuSection() == EditorMenu::Edit) {
+                        if (ImGui::MenuItem(window->getName())) {
+                            window->setActive(!window->isActive());
+                        }
+                    }
+                }
+
+                ImGui::EndMenu();
+            }
+
+            if (ImGui::BeginMenu("Window")) {
+                for (auto& window : editorWindows) {
+                    if (window->menuSection() == EditorMenu::Window) {
+                        if (ImGui::MenuItem(window->getName())) {
+                            window->setActive(!window->isActive());
+                        }
+                    }
+                }
+
+                ImGui::EndMenu();
+            }
+
+            if (ImGui::BeginMenu("Help")) {
+                for (auto& window : editorWindows) {
+                    if (window->menuSection() == EditorMenu::Help) {
+                        if (ImGui::MenuItem(window->getName())) {
+                            window->setActive(!window->isActive());
+                        }
+                    }
+                }
+
+                ImGui::EndMenu();
+            }
+
+            ImGui::EndMainMenuBar();
+        }
+
+        if (!popupToOpen.empty())
+            ImGui::OpenPopup(popupToOpen.c_str());
 
         if (imguiMetricsOpen)
             ImGui::ShowMetricsWindow(&imguiMetricsOpen);

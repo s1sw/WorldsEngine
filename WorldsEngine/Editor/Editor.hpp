@@ -109,6 +109,7 @@ namespace worlds {
         EditorUndo undo;
         bool active = true;
     private:
+        void sceneWindow();
         void updateCamera(float deltaTime);
         std::string generateWindowTitle();
         void updateWindowTitle();
