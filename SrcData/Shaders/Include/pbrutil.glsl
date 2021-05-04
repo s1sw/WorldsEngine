@@ -36,7 +36,8 @@ float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness) {
 // GGX/Towbridge-Reitz normal distribution function.
 // Uses Disney's reparametrization of alpha = roughness^2.
 float ndfGGX(float cosLh, float roughness) {
-    float alphaSq = (roughness * roughness) * (roughness * roughness);
+    float roughSq = roughness * roughness;
+    float alphaSq = roughSq * roughSq;
 
     float denom = max((cosLh * cosLh) * (alphaSq - 1.0) + 1.0, 0.0001);
     return alphaSq / (PI * denom * denom);
