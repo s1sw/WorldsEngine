@@ -2,6 +2,7 @@
 
 namespace worlds {
     std::unordered_map<AssetID, vk::ShaderModule> ShaderCache::modules;
+    vk::Device ShaderCache::device;
     vk::ShaderModule ShaderCache::getModule(vk::Device& dev, AssetID id) {
         auto it = modules.find(id);
 
@@ -29,5 +30,13 @@ namespace worlds {
         logMsg("loading shader %s from disk", g_assetDB.getAssetPath(id).c_str());
 
         return mod;
+    }
+
+    void ShaderCache::clear() {
+        for (auto& p : modules) {
+            device.destroyShaderModule(p.second);
+        }
+
+        modules.clear();
     }
 }

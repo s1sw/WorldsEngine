@@ -66,7 +66,8 @@ namespace worlds {
     }
 
     SDL_Window* WorldsEngine::createSDLWindow() {
-        return SDL_CreateWindow("Loading...", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+        return SDL_CreateWindow("Loading...",
+            SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
             1600, 900,
             SDL_WINDOW_VULKAN |
             SDL_WINDOW_RESIZABLE |
