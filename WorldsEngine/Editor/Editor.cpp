@@ -662,6 +662,19 @@ namespace worlds {
             }
         }
 
+        messageBoxModal("New Scene",
+            "Are you sure you want to clear the current scene and create a new one?",
+            [&](bool result) {
+            if (result) {
+                interfaces.engine->createStartupScene();
+                updateWindowTitle();
+            }
+        });
+
+        if (inputManager.keyPressed(SDL_SCANCODE_N) && inputManager.ctrlHeld()) {
+            ImGui::OpenPopup("New Scene");
+        }
+
         saveFileModal("Save Scene", [this](const char* path) {
             saveScene(g_assetDB.createAsset(path), reg);
             updateWindowTitle();
