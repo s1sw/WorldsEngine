@@ -143,6 +143,9 @@ namespace worlds {
         physx::PxU32) {
         if (data1.word0 == PLAYER_PHYSICS_LAYER && data2.word0 == PLAYER_PHYSICS_LAYER)
             return physx::PxFilterFlag::eKILL;
+        if (data1.word0 == NOCOLLISION_PHYSICS_LAYER || data2.word0 == NOCOLLISION_PHYSICS_LAYER)
+            return physx::PxFilterFlag::eKILL;
+
         pairFlags = physx::PxPairFlag::eSOLVE_CONTACT
                   | physx::PxPairFlag::eDETECT_DISCRETE_CONTACT
                   | physx::PxPairFlag::eDETECT_CCD_CONTACT

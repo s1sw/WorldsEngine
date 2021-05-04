@@ -193,7 +193,7 @@ namespace lg {
 
             //otherActor.actor->addForce(worlds::glm2px(pidOut), physx::PxForceMode::eACCELERATION);
 
-            if (distance < 0.002f && rotDot > 0.99f) {
+            if (distance < 0.005f && rotDot > 0.9f) {
                 auto& d6 = registry.get<worlds::D6Joint>(ent);
                 d6.setTarget(physHand.goingTo, registry);
 
@@ -202,13 +202,14 @@ namespace lg {
                 physHand.goingTo = entt::null;
 
                 physx::PxTransform target {
-                    worlds::glm2px(-gripPoint.offset),
+                    worlds::glm2px(gripPoint.offset),
                     worlds::glm2px(glm::normalize(gripPoint.rotOffset))
                 };
 
                 auto handT = dpa.actor->getGlobalPose();
                 auto objectT = otherActor.actor->getGlobalPose();
-                d6.pxJoint->setLocalPose(physx::PxJointActorIndex::eACTOR0, handT.transformInv(objectT));
+                //d6.pxJoint->setLocalPose(physx::PxJointActorIndex::eACTOR0, handT.transformInv(objectT));
+                d6.pxJoint->setLocalPose(physx::PxJointActorIndex::eACTOR1, target);
                 d6.pxJoint->setConstraintFlag(physx::PxConstraintFlag::eCOLLISION_ENABLED, false);
                 setAllAxisD6Motion(d6.pxJoint, physx::PxD6Motion::eLOCKED);
                 if (useTensorCompensation.getInt()) {
@@ -219,6 +220,9 @@ namespace lg {
                 physHand.follow = physHand.oldFollowHand;
                 physHand.forceMultiplier = 1.0f;
                 otherActor.actor->setActorFlag(physx::PxActorFlag::eDISABLE_GRAVITY, false);
+
+                dpa.layer = worlds::PLAYER_PHYSICS_LAYER;
+                worlds::updatePhysicsShapes(dpa);
             }
         }
 
@@ -267,9 +271,12 @@ namespace lg {
                         physHand.follow = FollowHand::None;
 
                         auto& d6 = registry.emplace<worlds::D6Joint>(ent);
+                        d6.pxJoint->setConstraintFlag(physx::PxConstraintFlag::eCOLLISION_ENABLED, false);
                         d6.setTarget(pickUp, registry);
                         setAllAxisD6Motion(d6.pxJoint, physx::PxD6Motion::eFREE);
                         logMsg("heading to grip point");
+                        dpa.layer = worlds::NOCOLLISION_PHYSICS_LAYER;
+                        worlds::updatePhysicsShapes(dpa);
 
                         //touch.actor->setActorFlag(physx::PxActorFlag::eDISABLE_GRAVITY, true);
                     } else {

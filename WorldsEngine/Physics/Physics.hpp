@@ -16,6 +16,7 @@ namespace worlds {
 
     const uint32_t DEFAULT_PHYSICS_LAYER = 0;
     const uint32_t PLAYER_PHYSICS_LAYER = 1;
+    const uint32_t NOCOLLISION_PHYSICS_LAYER = 2;
 
     inline physx::PxVec3 glm2px(glm::vec3 vec) {
         return physx::PxVec3(vec.x, vec.y, vec.z);
