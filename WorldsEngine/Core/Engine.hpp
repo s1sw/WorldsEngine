@@ -55,6 +55,7 @@ namespace worlds {
         void mainLoop();
         ~WorldsEngine();
         void loadScene(AssetID scene);
+        void createStartupScene();
         void addSystem(ISystem* system);
         SDL_Window* getMainWindow() const { return window; }
         const SceneInfo& getCurrentSceneInfo() const { return currentScene; }
@@ -76,7 +77,6 @@ namespace worlds {
         void setupSDL();
         static SDL_Window* createSDLWindow();
         void setupPhysfs(char* argv0);
-        void createStartupScene();
         void drawDebugInfoWindow(DebugTimeInfo timeInfo);
         void updateSimulation(float& interpAlpha, double deltaTime);
         void doSimStep(float deltaTime);

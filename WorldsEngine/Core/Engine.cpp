@@ -590,6 +590,8 @@ namespace worlds {
         entt::entity dirLightEnt = registry.create();
         registry.emplace<WorldLight>(dirLightEnt, LightType::Directional);
         registry.emplace<Transform>(dirLightEnt, glm::vec3(0.0f), glm::angleAxis(glm::radians(90.01f), glm::vec3(1.0f, 0.0f, 0.0f)));
+        currentScene.name = "Untitled";
+        currentScene.id = ~0u;
     }
 
     void WorldsEngine::processEvents() {
@@ -895,6 +897,7 @@ namespace worlds {
                 if (ImGui::CollapsingHeader(ICON_FA_BARS u8" Misc")) {
                     ImGui::Text("Frame: %i", timeInfo.frameCounter);
                     ImGui::Text("Cam pos: %.3f, %.3f, %.3f", cam.position.x, cam.position.y, cam.position.z);
+                    ImGui::Text("Current scene: %s (%u)", currentScene.name.c_str(), currentScene.id);
 
                     if (ImGui::Button("Unload Unused Assets")) {
                         renderer->unloadUnusedMaterials(registry);

@@ -2,6 +2,7 @@
 #include "../Core/Engine.hpp"
 #include "../Libs/IconsFontAwesome5.h"
 #include "../Libs/IconsFontaudio.h"
+#include "ImGui/imgui.h"
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include "../ImGui/imgui_internal.h"
 #include "../Core/Log.hpp"
@@ -249,6 +250,30 @@ namespace worlds {
     void openFileModal(const char* title, std::function<void(const char*)> openCallback, const char* fileExtension, const char* startingDir) {
         int extCount = fileExtension != nullptr;
         openFileModal(title, openCallback, &fileExtension, extCount, startingDir);
+    }
+
+    void messageBoxModal(const char* title, const char* desc, std::function<void(bool)> callback) {
+        ImVec2 popupSize(500.0f, 150.0f);
+        ImGui::SetNextWindowPos(ImGui::GetMainViewport()->Pos + ImVec2((windowSize.x / 2) - (popupSize.x / 2), (windowSize.y / 2) - (popupSize.y / 2)));
+        ImGui::SetNextWindowSize(popupSize);
+
+        if (ImGui::BeginPopupModal(title, nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove)) {
+            ImGui::Text("%s", desc);
+
+            if (ImGui::Button("Yes")) {
+                callback(true);
+                ImGui::CloseCurrentPopup();
+            }
+
+            ImGui::SameLine();
+
+            if (ImGui::Button("No")) {
+                callback(false);
+                ImGui::CloseCurrentPopup();
+            }
+
+            ImGui::EndPopup();
+        }
     }
 
     bool selectAssetPopup(const char* title, AssetID& id, bool open) {
