@@ -66,7 +66,8 @@ namespace worlds {
     }
 
     SDL_Window* WorldsEngine::createSDLWindow() {
-        return SDL_CreateWindow("Loading...", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1600, 900,
+        return SDL_CreateWindow("Loading...", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+            1600, 900,
             SDL_WINDOW_VULKAN |
             SDL_WINDOW_RESIZABLE |
             SDL_WINDOW_ALLOW_HIGHDPI |
@@ -254,17 +255,16 @@ namespace worlds {
 
         console = std::make_unique<Console>(dedicatedServer);
 
-        worlds::SplashWindow splashWindow;
+        worlds::SplashWindow* splashWindow;
 
         if (!dedicatedServer) {
-            splashWindow = createSplashWindow(!runAsEditor);
-            if (runAsEditor)
-                redrawSplashWindow(splashWindow, "");
+            splashWindow = new SplashWindow(!runAsEditor);
         }
 
         setupPhysfs(argv0);
-        if (!dedicatedServer && runAsEditor)
-            redrawSplashWindow(splashWindow, "starting up");
+        if (!dedicatedServer && runAsEditor) {
+            splashWindow->changeOverlay("starting up");
+        }
 
         fullscreenToggleEventId = SDL_RegisterEvents(1);
         showWindowEventId = SDL_RegisterEvents(1);
@@ -277,7 +277,7 @@ namespace worlds {
         currentScene.id = ~0u;
 
         if (!dedicatedServer && runAsEditor)
-            redrawSplashWindow(splashWindow, "loading assetdb");
+            splashWindow->changeOverlay("loading assetdb");
 
         g_assetDB.load();
         registry.set<SceneSettings>(g_assetDB.addOrGetExisting("envmap_miramar/miramar.json"));
@@ -302,7 +302,7 @@ namespace worlds {
             SDL_SetWindowTitle(window, initOptions.gameName);
 
             if (runAsEditor)
-                redrawSplashWindow(splashWindow, "initialising ui");
+                splashWindow->changeOverlay("initialising ui");
         }
 
         IMGUI_CHECKVERSION();
@@ -349,7 +349,7 @@ namespace worlds {
         IVRInterface* vrInterface = openvrInterface.get();
 
         if (!dedicatedServer && runAsEditor)
-            redrawSplashWindow(splashWindow, "initialising renderer");
+            splashWindow->changeOverlay("initialising renderer");
 
         if (!dedicatedServer) {
             RendererInitInfo initInfo{
@@ -389,7 +389,7 @@ namespace worlds {
         }
 
         if (!dedicatedServer && runAsEditor) {
-            redrawSplashWindow(splashWindow, "initialising editor");
+            splashWindow->changeOverlay("initialising editor");
             editor = std::make_unique<Editor>(registry, interfaces);
         } else {
             ComponentMetadataManager::setupLookup();
@@ -488,7 +488,7 @@ namespace worlds {
 
         if (!dedicatedServer) {
             if (runAsEditor)
-                redrawSplashWindow(splashWindow, "initialising audio");
+                splashWindow->changeOverlay("initialising audio");
 
             audioSystem = std::make_unique<AudioSystem>();
             audioSystem->initialise(registry);
@@ -554,7 +554,7 @@ namespace worlds {
                 SDL_ShowWindow(window);
             }
 
-            destroySplashWindow(splashWindow);
+            delete splashWindow;
         }
 
 
