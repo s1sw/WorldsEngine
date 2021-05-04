@@ -59,7 +59,6 @@ namespace lg {
         auto& physSound = reg->get<PhysicsSoundComponent>(thisEnt);
 
         auto time = engine->getGameTime();
-        logMsg("avg contact point: %.3f, %.3f, %.3f", info.averageContactPoint.x, info.averageContactPoint.y, info.averageContactPoint.z);
 
         if (time - physSound.lastPlayTime > 0.1) {
             worlds::AudioSystem::getInstance()->playOneShotClip(
