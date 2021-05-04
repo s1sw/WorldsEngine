@@ -118,7 +118,7 @@ namespace worlds {
     }
 
     void BakingWindow::draw(entt::registry& reg) {
-        if (ImGui::Begin(ICON_FA_COOKIE u8" Baking")) {
+        if (ImGui::Begin(ICON_FA_COOKIE u8" Baking", &active)) {
             if (ImGui::CollapsingHeader(ICON_FAD_SPEAKER u8" Audio")) {
                 uint32_t staticAudioGeomCount = 0;
 
