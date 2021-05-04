@@ -1004,7 +1004,7 @@ namespace worlds {
     void WorldsEngine::updateSimulation(float& interpAlpha, double deltaTime) {
         ZoneScoped;
         if (lockSimToRefresh.getInt() || disableSimInterp.getInt()) {
-            registry.view<DynamicPhysicsActor, Transform>().each([](auto, DynamicPhysicsActor& dpa, Transform& transform) {
+            registry.view<DynamicPhysicsActor, Transform>().each([](DynamicPhysicsActor& dpa, Transform& transform) {
                 auto curr = dpa.actor->getGlobalPose();
 
                 if (curr.p != glm2px(transform.position) || curr.q != glm2px(transform.rotation)) {
@@ -1014,7 +1014,7 @@ namespace worlds {
             });
         }
 
-        registry.view<PhysicsActor, Transform>().each([](auto, PhysicsActor& pa, Transform& transform) {
+        registry.view<PhysicsActor, Transform>().each([](PhysicsActor& pa, Transform& transform) {
             auto curr = pa.actor->getGlobalPose();
             if (curr.p != glm2px(transform.position) || curr.q != glm2px(transform.rotation)) {
                 physx::PxTransform pt(glm2px(transform.position), glm2px(transform.rotation));

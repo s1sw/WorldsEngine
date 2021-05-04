@@ -945,7 +945,7 @@ glm::mat4 VKRenderer::getCascadeMatrix(Camera cam, glm::vec3 lightDir, glm::mat4
     glm::vec3 eye = center + (lightDir * diameter);
 
     glm::mat4 viewMat = glm::lookAt(eye, center, glm::vec3{ 0.0f, 1.0f, 0.0f });
-    glm::mat4 projMat = glm::orthoZO(-radius, radius, -radius, radius, -radius * 6.0f, radius * 6.0f);
+    glm::mat4 projMat = glm::orthoZO(-radius, radius, -radius, radius, -radius * 12.0f, radius * 12.0f);
 
     return projMat * viewMat;
 }
