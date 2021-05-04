@@ -34,11 +34,31 @@ namespace worlds {
             }
 
             char** files = PHYSFS_enumerateFiles(path.c_str());
+
+            std::vector<char*> fileVec;
             for (char** currFile = files; *currFile != nullptr; currFile++) {
-                std::string absPath = path.empty() ? *currFile : (path + "/" + (*currFile));
+                fileVec.push_back(*currFile);
+            }
+
+            std::sort(fileVec.begin(), fileVec.end(), [&](const char* pathA, const char* pathB) {
+                std::string absPathA = path.empty() ? pathA : (path + "/" + pathA);
+                PHYSFS_Stat statA;
+                PHYSFS_stat(absPathA.c_str(), &statA);
+                std::string extensionA = std::filesystem::path(pathA).extension().string();
+
+                std::string absPathB = path.empty() ? pathB : (path + "/" + pathB);
+                PHYSFS_Stat statB;
+                PHYSFS_stat(absPathB.c_str(), &statB);
+                std::string extensionB = std::filesystem::path(pathB).extension().string();
+
+                return extensionA < extensionB;
+            });
+
+            for (auto currFile : fileVec) {
+                std::string absPath = path.empty() ? currFile : (path + "/" + (currFile));
                 PHYSFS_Stat stat;
                 PHYSFS_stat(absPath.c_str(), &stat);
-                std::string extension = std::filesystem::path(*currFile).extension().string();
+                std::string extension = std::filesystem::path(currFile).extension().string();
 
                 const char* icon = "  ";
 
@@ -46,7 +66,7 @@ namespace worlds {
                     icon = (const char*)(ICON_FA_FOLDER u8" ");
                 } else icon = getIcon(extension);
 
-                ImGui::Text("%s%s%s", icon, *currFile, stat.filetype == PHYSFS_FILETYPE_DIRECTORY ? "/" : "");
+                ImGui::Text("%s%s%s", icon, currFile, stat.filetype == PHYSFS_FILETYPE_DIRECTORY ? "/" : "");
 
                 if (ImGui::IsItemClicked()) {
                     if (stat.filetype == PHYSFS_FILETYPE_REGULAR) {
@@ -164,11 +184,33 @@ namespace worlds {
                 }
             }
 
+            std::vector<char*> fileVec;
             for (char** currFile = files; *currFile != nullptr; currFile++) {
-                std::string absPath = currentDirectory->empty() ? *currFile : (*currentDirectory + "/" + (*currFile));
+                fileVec.push_back(*currFile);
+            }
+
+            std::sort(fileVec.begin(), fileVec.end(), [&](const char* pathA, const char* pathB) {
+                std::string absPathA = currentDirectory->empty() ? pathA : (*currentDirectory + "/" + pathA);
+                PHYSFS_Stat statA;
+                PHYSFS_stat(absPathA.c_str(), &statA);
+                std::string extensionA = std::filesystem::path(pathA).extension().string();
+
+                std::string absPathB = currentDirectory->empty() ? pathB : (*currentDirectory + "/" + pathB);
+                PHYSFS_Stat statB;
+                PHYSFS_stat(absPathB.c_str(), &statB);
+                std::string extensionB = std::filesystem::path(pathB).extension().string();
+
+                if (extensionA != extensionB)
+                    return extensionA < extensionB;
+                else
+                    return absPathA < absPathB;
+            });
+
+            for (auto currFile : fileVec) {
+                std::string absPath = currentDirectory->empty() ? currFile : (*currentDirectory + "/" + currFile);
                 PHYSFS_Stat stat;
                 PHYSFS_stat(absPath.c_str(), &stat);
-                std::string extension = std::filesystem::path(*currFile).extension().string();
+                std::string extension = std::filesystem::path(currFile).extension().string();
 
                 bool hasExtension = fileExtensionCount == 0;
 
@@ -186,7 +228,7 @@ namespace worlds {
                     icon = (const char*)(ICON_FA_FOLDER u8" ");
                 } else icon = getIcon(extension);
 
-                ImGui::Text("%s%s%s", icon, *currFile, stat.filetype == PHYSFS_FILETYPE_DIRECTORY ? "/" : "");
+                ImGui::Text("%s%s%s", icon, currFile, stat.filetype == PHYSFS_FILETYPE_DIRECTORY ? "/" : "");
 
                 if (ImGui::IsItemClicked()) {
                     if (stat.filetype == PHYSFS_FILETYPE_REGULAR) {
@@ -195,7 +237,7 @@ namespace worlds {
                     } else {
                         if (*currentDirectory != "/")
                             *currentDirectory += "/";
-                        *currentDirectory += *currFile;
+                        *currentDirectory += currFile;
 
                         if ((*currentDirectory)[0] == '/') {
                             *currentDirectory = currentDirectory->substr(1);
@@ -218,7 +260,7 @@ namespace worlds {
             }
             ImGui::EndChild();
 
-            ImGui::PushItemWidth(ImGui::GetWindowWidth() - 109.0f);
+            ImGui::PushItemWidth(ImGui::GetWindowWidth() - 115.0f);
             ImGui::InputText("", fullFilePath);
 
             ImGui::SameLine();
