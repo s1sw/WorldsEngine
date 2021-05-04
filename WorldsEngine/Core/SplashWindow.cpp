@@ -3,82 +3,97 @@
 #include "Fatal.hpp"
 #include "EarlySDLUtil.hpp"
 #include "Log.hpp"
+#include "SDL_timer.h"
+#include <functional>
+#include <thread>
 
 namespace worlds {
-    void destroySplashWindow(SplashWindow splash) {
-        SDL_DestroyTexture(splash.bgTexture);
-        SDL_DestroyRenderer(splash.renderer);
-        SDL_FreeSurface(splash.bgSurface);
-        SDL_DestroyWindow(splash.win);
+    SplashWindow::SplashWindow(bool small) 
+        : small { small }
+        , overlaySurface { nullptr }
+        , overlayTexture { nullptr }
+        , overlay {}
+        , loadedOverlay {} {
+        winThread = std::thread{std::bind(&SplashWindow::eventThread, this)};
+
+        while (!windowCreated) {}
     }
 
-    void redrawSplashWindow(SplashWindow splash, std::string overlay) {
-        SDL_PumpEvents();
+    void SplashWindow::changeOverlay(std::string overlay) {
+        this->overlay = overlay;
+    }
 
-        SDL_RenderClear(splash.renderer);
-        SDL_RenderCopy(splash.renderer, splash.bgTexture, nullptr, nullptr);
+    SplashWindow::~SplashWindow() {
+        // stop the event thread
+        running = false;
+        winThread.join();
 
-        if (!overlay.empty()) {
-            SDL_Surface* s = loadDataFileToSurface("SplashText/" + overlay + ".png");
-            SDL_Texture* t = SDL_CreateTextureFromSurface(splash.renderer, s);
+        SDL_DestroyTexture(bgTexture);
+        SDL_DestroyRenderer(renderer);
+        SDL_FreeSurface(bgSurface);
+        SDL_DestroyWindow(win);
+    }
 
+    void SplashWindow::redraw() {
+        SDL_RenderClear(renderer);
+        SDL_RenderCopy(renderer, bgTexture, nullptr, nullptr);
+
+        if (overlayTexture) {
             SDL_Rect targetRect;
             targetRect.x = 544;
             targetRect.y = 546;
             targetRect.w = 256;
             targetRect.h = 54;
 
-            SDL_RenderCopy(splash.renderer, t, nullptr, &targetRect);
-
-            SDL_DestroyTexture(t);
-            SDL_FreeSurface(s);
+            SDL_RenderCopy(renderer, overlayTexture, nullptr, &targetRect);
         }
 
-        SDL_RenderPresent(splash.renderer);
+        SDL_RenderPresent(renderer);
     }
 
-    SplashWindow createSplashWindow(bool small) {
-        SplashWindow splash;
-
-        int nRenderDrivers = SDL_GetNumRenderDrivers();
-        int driverIdx = -1;
-
-        for (int i = 0; i < nRenderDrivers; i++) {
-            SDL_RendererInfo inf;
-            SDL_GetRenderDriverInfo(i, &inf);
-
-            logMsg("Render driver: %s", inf.name);
-
-#ifdef _WIN32
-            if (strcmp(inf.name, "direct3d11") == 0)
-                driverIdx = i;
-#endif
-        }
-
-        splash.win = SDL_CreateWindow("Loading...",
+    void SplashWindow::eventThread() {
+        win = SDL_CreateWindow("Loading...",
             SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
             small ? 460 : 800, small ? 215 : 600,
             SDL_WINDOW_BORDERLESS | SDL_WINDOW_SKIP_TASKBAR
         );
 
-        if (splash.win == nullptr) {
+        if (win == nullptr) {
             fatalErr("Failed to create splash screen");
         }
 
-        splash.renderer = SDL_CreateRenderer(splash.win, driverIdx, SDL_RENDERER_ACCELERATED);
+        renderer = SDL_CreateRenderer(win, 0, 0);
 
-        if (splash.renderer == nullptr) {
+        if (renderer == nullptr) {
             fatalErr("Failed to create splash screen renderer");
         }
 
-        SDL_RaiseWindow(splash.win);
+        SDL_RaiseWindow(win);
 
-        splash.bgSurface = loadDataFileToSurface(small ? "splash_game.png" : "splash.png");
-        splash.bgTexture = SDL_CreateTextureFromSurface(splash.renderer, splash.bgSurface);
-        setWindowIcon(splash.win);
+        windowCreated = true;
 
-        redrawSplashWindow(splash, "");
+        bgSurface = loadDataFileToSurface(small ? "splash_game.png" : "splash.png");
+        bgTexture = SDL_CreateTextureFromSurface(renderer, bgSurface);
+        setWindowIcon(win);
 
-        return splash;
+        while (running) {
+            if (loadedOverlay != overlay) {
+                if (!overlay.empty()) {
+                    overlaySurface = loadDataFileToSurface("SplashText/" + overlay + ".png");
+                    overlayTexture = SDL_CreateTextureFromSurface(renderer, overlaySurface);
+                } else {
+                    overlaySurface = nullptr;
+                    overlayTexture = nullptr;
+                }
+
+                loadedOverlay = overlay;
+            }
+
+            redraw();
+
+            SDL_Event evt;
+            while (SDL_PollEvent(&evt)) {}
+            SDL_Delay(10);
+        }
     }
 }
