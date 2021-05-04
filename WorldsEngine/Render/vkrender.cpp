@@ -28,6 +28,7 @@
 #include "Loaders/SourceModelLoader.hpp"
 #include "Loaders/WMDLLoader.hpp"
 #include "Loaders/RobloxMeshLoader.hpp"
+#include "ShaderCache.hpp"
 #ifdef RDOC
 #include "renderdoc_app.h"
 #define WIN32_LEAN_AND_MEAN
@@ -44,12 +45,15 @@ const bool vrValidationLayers = false;
 
 uint32_t findPresentQueue(vk::PhysicalDevice pd, vk::SurfaceKHR surface) {
     auto qprops = pd.getQueueFamilyProperties();
+
     for (uint32_t qi = 0; qi != qprops.size(); ++qi) {
         auto& qprop = qprops[qi];
-        if (pd.getSurfaceSupportKHR(qi, surface) && (qprop.queueFlags & vk::QueueFlagBits::eGraphics) == vk::QueueFlagBits::eGraphics) {
+        
+        if (pd.getSurfaceSupportKHR(qi, surface) && enumHasFlag(qprop.queueFlags, vk::QueueFlagBits::eGraphics)) {
             return qi;
         }
     }
+
     return ~0u;
 }
 
@@ -374,6 +378,8 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     } catch (vk::FeatureNotPresentError& fpe) {
         fatalErr("Missing device features");
     }
+
+    ShaderCache::setDevice(*device);
 
     VmaAllocatorCreateInfo allocatorCreateInfo;
     memset(&allocatorCreateInfo, 0, sizeof(allocatorCreateInfo));
@@ -1809,8 +1815,18 @@ VKRenderer::~VKRenderer() {
         auto physDevProps = physicalDevice.getProperties();
         PipelineCacheSerializer::savePipelineCache(physDevProps, *pipelineCache, *device);
 
+        ShaderCache::clear();
+
         for (auto& semaphore : cmdBufferSemaphores) {
             device->destroySemaphore(semaphore);
+        }
+
+        for (auto& semaphore : imgAvailable) {
+            device->destroySemaphore(semaphore);
+        }
+
+        for (auto& fence : cmdBufFences) {
+            device->destroyFence(fence);
         }
 
         std::vector<RTTPassHandle> toDelete;
@@ -1850,7 +1866,6 @@ VKRenderer::~VKRenderer() {
 #ifndef NDEBUG
         char* statsString;
         vmaBuildStatsString(allocator, &statsString, true);
-        logMsg("%s", statsString);
 
         FILE* file = fopen("memory_shutdown.json", "w");
         fwrite(statsString, strlen(statsString), 1, file);
