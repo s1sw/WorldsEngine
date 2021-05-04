@@ -18,14 +18,16 @@ LightShadeInfo calcLightShadeInfo(Light light, ShadeInfo shadeInfo, vec3 worldPo
     lsi.L = vec3(0.0f, 0.0f, 0.0f);
     int lightType = int(light.pack0.w);
 
-    if (lightType == LT_POINT) {
+    if (lightType == LT_DIRECTIONAL) {
+        lsi.L = normalize(light.pack1.xyz);
+    } else if (lightType == LT_POINT) {
         vec3 lightPos = light.pack2.xyz;
         lsi.L = lightPos - worldPos;
+
         // dot(L, L) = length(L) squared
         lsi.radiance *= 1.0 / length2(lsi.L);
-        if (length(lsi.radiance) < 0.02) {
-            lsi.radiance = vec3(0.0);
-        }
+        lsi.radiance *= length2(lsi.radiance) < 0.02 * 0.02 ? 0.0 : 1.0;
+
         lsi.L = normalize(lsi.L);
     } else if (lightType == LT_SPOT) {
         float cutoff = light.pack1.w;
@@ -38,9 +40,7 @@ LightShadeInfo calcLightShadeInfo(Light light, ShadeInfo shadeInfo, vec3 worldPo
         vec3 lToFrag = lightPos - worldPos;
         lsi.radiance *= clamp((theta - outerCutoff) / (cutoff - outerCutoff), 0.0f, 1.0f) * (1.0 / dot(lToFrag, lToFrag));
 
-        if (length2(lsi.radiance) < 0.02 * 0.02) {
-            lsi.radiance = vec3(0.0);
-        }
+        lsi.radiance *= length2(lsi.radiance) < 0.02 * 0.02 ? 0.0 : 1.0;
     } else if (lightType == LT_SPHERE) {
         vec3 lightPos = light.pack2.xyz;
         float sphereRadius = light.pack1.w;
@@ -83,8 +83,6 @@ LightShadeInfo calcLightShadeInfo(Light light, ShadeInfo shadeInfo, vec3 worldPo
         float falloff = (tubeRadius * tubeRadius / max(tubeRadius * tubeRadius, distLight * distLight));
         lsi.radiance *= falloff;
         lsi.lightDist = distLight;
-    } else {
-        lsi.L = normalize(light.pack1.xyz);
     }
 
     return lsi;
@@ -109,11 +107,13 @@ vec3 calculateLighting(Light light, ShadeInfo shadeInfo, vec3 worldPos) {
 
     float NDF;
     int lType = int(light.pack0.w);
+
     if (lType != LT_SPHERE && lType != LT_TUBE) {
         NDF = ndfGGX(cosLh, shadeInfo.roughness);
     } else {
         NDF = ndfGGXSphereLight(cosLh, shadeInfo.roughness, light.pack2.w, lsi.lightDist);
     }
+
     float G = gaSchlickGGX(cosLi, cosLo, shadeInfo.roughness);
     vec3 f = fresnelSchlick(shadeInfo.f0, max(dot(norm, shadeInfo.viewDir), 0.0f));
 

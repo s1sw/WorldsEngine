@@ -19,7 +19,7 @@ layout(location = 2) VARYING(vec3, Tangent);
 layout(location = 3) VARYING(vec2, UV);
 layout(location = 4) VARYING(float, Depth);
 layout(location = 5) VARYING(flat uint, UvDir);
-layout(location = 6) VARYING(vec3, ViewPos);
+//layout(location = 6) VARYING(vec3, ViewPos);
 
 #ifdef FRAGMENT
 #ifdef EFT
@@ -128,7 +128,7 @@ void main() {
     outNormal = normalize(model3 * inNormal);
     outTangent = normalize(model3 * inTangent);
     outDepth = gl_Position.z / gl_Position.w;
-    outViewPos = -(view[vpMatIdx] * model * vec4(inPosition, 1.0)).xyz;
+    //outViewPos = -(view[vpMatIdx] * model * vec4(inPosition, 1.0)).xyz;
     gl_Position.y = -gl_Position.y; // Account for Vulkan viewport weirdness
 
     vec2 uv = inUV;
@@ -413,6 +413,7 @@ void main() {
 
     ao *= calcProxyAO(inWorldPos.xyz, inNormal);
 
+#ifdef DEBUG
     // debug views
     if ((miscFlag & 2) == 2) {
         // show normals
@@ -448,6 +449,7 @@ void main() {
         FragColor = vec4((cascade == 0 ? 1.0f : 0.0f), (cascade == 1 ? 1.0f : 0.0f), (cascade == 2 ? 1.0f : 0.0f), 1.0f);
         return;
     }
+#endif
 
     float finalAlpha = alphaCutoff > 0.0f ? albedoCol.a : 1.0f;
     if (alphaCutoff > 0.0f) {
