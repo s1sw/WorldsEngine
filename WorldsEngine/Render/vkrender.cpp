@@ -140,7 +140,9 @@ void VKRenderer::createInstance(const RendererInitInfo& initInfo) {
 #endif
     instanceMaker.extension(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 
-    instanceMaker.applicationName(initInfo.applicationName ? "Worlds Engine" : initInfo.applicationName)
+    auto appName = initInfo.applicationName ? "Worlds Engine" : initInfo.applicationName;
+    instanceMaker
+        .applicationName(appName)
         .engineName("Worlds")
         .applicationVersion(1)
         .engineVersion(1);
@@ -231,8 +233,12 @@ bool isDeviceBetter(vk::PhysicalDevice a, vk::PhysicalDevice b) {
     auto aProps = a.getProperties();
     auto bProps = b.getProperties();
 
-    if (bProps.deviceType == vk::PhysicalDeviceType::eDiscreteGpu && aProps.deviceType == vk::PhysicalDeviceType::eIntegratedGpu) {
+    if (bProps.deviceType == vk::PhysicalDeviceType::eDiscreteGpu && 
+            aProps.deviceType == vk::PhysicalDeviceType::eIntegratedGpu) {
         return true;
+    } else if (aProps.deviceType == vk::PhysicalDeviceType::eDiscreteGpu &&
+            bProps.deviceType == vk::PhysicalDeviceType::eIntegratedGpu) {
+        return false;
     }
 
     return aProps.deviceID < bProps.deviceID;
@@ -523,11 +529,6 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
         vk::SemaphoreCreateInfo sci;
         cmdBufferSemaphores.push_back(device->createSemaphore(sci));
         imgAvailable.push_back(device->createSemaphore(sci));
-
-        vk::CommandBuffer cb = *cmdBufs[i];
-        vk::CommandBufferBeginInfo cbbi;
-        cb.begin(cbbi);
-        cb.end();
     }
     imgFences.resize(cmdBufs.size());
 
@@ -813,11 +814,12 @@ vku::ShaderModule VKRenderer::loadShaderAsset(AssetID id) {
 
 void VKRenderer::submitToOpenVR() {
     // Submit to SteamVR
-    vr::VRTextureBounds_t bounds;
-    bounds.uMin = 0.0f;
-    bounds.uMax = 1.0f;
-    bounds.vMin = 0.0f;
-    bounds.vMax = 1.0f;
+    vr::VRTextureBounds_t bounds {
+        .uMin = 0.0f,
+        .vMin = 0.0f,
+        .uMax = 1.0f,
+        .vMax = 1.0f
+    };
 
     vr::VRVulkanTextureData_t vulkanData;
     VkImage vkImg = finalPrePresent->image.image();
