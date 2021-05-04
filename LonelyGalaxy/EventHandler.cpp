@@ -128,15 +128,14 @@ namespace lg {
             rPh.posController.reset();
             rPh.rotController.reset();
         }, "lg_resetHands", "Resets hand PID controllers.", nullptr);
-
     }
 
     void EventHandler::preSimUpdate(entt::registry&, float) {
         g_dbgArrows->newFrame();
     }
 
-    entt::entity fakeLHand;
-    entt::entity fakeRHand;
+    entt::entity fakeLHand = entt::null;
+    entt::entity fakeRHand = entt::null;
 
     void EventHandler::update(entt::registry& reg, float deltaTime, float) {
         if (vrInterface) {
