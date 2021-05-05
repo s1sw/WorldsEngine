@@ -76,7 +76,7 @@ namespace lg {
 
     void setPhysHandTensor(PhysHand& hand,
             worlds::DynamicPhysicsActor& handDpa, worlds::DynamicPhysicsActor& dpa,
-            const physx::PxTransform& handT, Transform& objectT,
+            const physx::PxTransform& handT, const Transform& objectT,
             entt::registry& reg) {
         // find offset of other physics actor
         auto otherT = dpa.actor->getGlobalPose();
@@ -213,7 +213,7 @@ namespace lg {
                 d6.pxJoint->setConstraintFlag(physx::PxConstraintFlag::eCOLLISION_ENABLED, false);
                 setAllAxisD6Motion(d6.pxJoint, physx::PxD6Motion::eLOCKED);
                 if (useTensorCompensation.getInt()) {
-                    setPhysHandTensor(physHand, dpa, otherActor, worlds::glm2px(handTf), otherTf, registry);
+                    setPhysHandTensor(physHand, dpa, otherActor, worlds::glm2px(Transform{targetHandPos, targetHandRot}), worlds::px2glm(objectT), registry);
                 }
 
                 physHand.useOverrideIT = true;
