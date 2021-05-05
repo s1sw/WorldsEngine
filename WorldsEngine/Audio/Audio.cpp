@@ -39,11 +39,14 @@ namespace worlds {
 
     float* lastBuffer = nullptr;
     float* tempBuffer = nullptr;
+    float* tempMonoBuffer = nullptr;
     bool copyBuffer = false;
 
     template <typename T>
     inline void mixClip(AudioSystem::LoadedClip& clip, T& sourceInfo, int numMonoSamplesNeeded, int numSamplesNeeded, float* stream, AudioSystem* _this) {
         int samplesRemaining = clip.sampleCount - sourceInfo.playbackPosition;
+
+        if (samplesRemaining < 0) return;
 
         float vol = _this->mixerVolumes[static_cast<int>(sourceInfo.channel)] * sourceInfo.volume;
 
@@ -74,6 +77,20 @@ namespace worlds {
                 &clip.data[sourceInfo.playbackPosition], nullptr
             };
 
+            IPLAudioBuffer directPathBuffer {
+                clipFormat, std::min(numMonoSamplesNeeded, samplesRemaining),
+                tempMonoBuffer, nullptr
+            };
+
+            iplApplyDirectSoundEffect(_this->directSoundEffect,
+                inBuffer, sourceInfo.soundPath,
+                IPLDirectSoundEffectOptions {
+                    IPL_TRUE,
+                    IPL_TRUE,
+                    IPL_TRUE,
+                    IPL_DIRECTOCCLUSION_NONE
+                }, directPathBuffer);
+
             IPLAudioFormat outFormat;
             outFormat.channelLayoutType = IPL_CHANNELLAYOUTTYPE_SPEAKERS;
             outFormat.channelLayout = IPL_CHANNELLAYOUT_STEREO;
@@ -88,7 +105,7 @@ namespace worlds {
             iplApplyBinauralEffect(
                     sourceInfo.binauralEffect,
                     _this->binauralRenderer,
-                    inBuffer, dir,
+                    directPathBuffer, dir,
                     IPL_HRTFINTERPOLATION_BILINEAR, 1.0f, outBuffer);
 
             //float adjDistance = glm::max(sourceInfo.distance + 1.0f, 1.0f);
@@ -101,8 +118,8 @@ namespace worlds {
             //}
 
             for (int i = 0; i < std::min(numMonoSamplesNeeded, samplesRemaining); i++) {
-                stream[i * 2 + 0] += ((float*)tempBuffer)[i * 2 + 0] * vol * sourceInfo.soundPath.distanceAttenuation;
-                stream[i * 2 + 1] += ((float*)tempBuffer)[i * 2 + 1] * vol * sourceInfo.soundPath.distanceAttenuation;
+                stream[i * 2 + 0] += ((float*)tempBuffer)[i * 2 + 0] * vol;
+                stream[i * 2 + 1] += ((float*)tempBuffer)[i * 2 + 1] * vol;
             }
         }
 
@@ -219,6 +236,7 @@ namespace worlds {
 
         lastBuffer = (float*)malloc(have.samples * have.channels * sizeof(float));
         tempBuffer = (float*)malloc(have.samples * have.channels * sizeof(float));
+        tempMonoBuffer = (float*)malloc(have.samples * sizeof(float));
 
         logMsg(WELogCategoryAudio, "Opened audio device at %ihz with %i channels and %i samples", have.freq, have.channels, have.samples);
         channelCount = have.channels;
@@ -430,6 +448,9 @@ namespace worlds {
         reg.on_construct<AudioSource>().disconnect<&AudioSystem::onAudioSourceConstruct>(*this);
         reg.on_destroy<AudioSource>().disconnect<&AudioSystem::onAudioSourceDestroy>(*this);
         SDL_CloseAudioDevice(devId);
+        free(tempBuffer);
+        free(lastBuffer);
+        free(tempMonoBuffer);
     }
 
     void AudioSystem::resetPlaybackPositions() {
