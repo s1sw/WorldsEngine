@@ -411,6 +411,11 @@ namespace lg {
                 physx::PxQuat { physx::PxIdentity }
             });
 
+            PhysicsSoundComponent& lPsc = reg->emplace<PhysicsSoundComponent>(lHandEnt);
+            lPsc.soundId = worlds::g_assetDB.addOrGetExisting("Audio/SFX/Player/hand_slap1.ogg");
+            PhysicsSoundComponent& rPsc = reg->emplace<PhysicsSoundComponent>(rHandEnt);
+            rPsc.soundId = worlds::g_assetDB.addOrGetExisting("Audio/SFX/Player/hand_slap1.ogg");
+
             if (vrInterface) {
                 audioListenerEntity = registry.create();
                 registry.emplace<Transform>(audioListenerEntity);
