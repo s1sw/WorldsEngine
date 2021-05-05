@@ -526,6 +526,12 @@ namespace worlds {
 
                 scriptEngine->onSceneStart();
             }
+
+            registry.view<AudioSource>().each([](auto, auto& as) {
+                if (as.playOnSceneOpen) {
+                    as.isPlaying = true;
+                }
+            });
         };
 
         uint32_t w = 1600;
