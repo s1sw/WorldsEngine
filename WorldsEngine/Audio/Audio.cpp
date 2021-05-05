@@ -70,7 +70,7 @@ namespace worlds {
             clipFormat.channelOrder = IPL_CHANNELORDER_INTERLEAVED;
 
             IPLAudioBuffer inBuffer{
-                clipFormat, numMonoSamplesNeeded,
+                clipFormat, std::min(numMonoSamplesNeeded, samplesRemaining),
                 &clip.data[sourceInfo.playbackPosition], nullptr
             };
 
@@ -322,7 +322,7 @@ namespace worlds {
         SDL_LockAudioDevice(devId);
 
         reg.view<AudioSource, AudioTrigger, Transform>().each(
-                [&](auto ent, AudioSource& as, AudioTrigger& at, Transform& t) {
+            [&](auto ent, AudioSource& as, AudioTrigger& at, Transform& t) {
                 glm::vec3 ma = t.position + t.scale;
                 glm::vec3 mi = t.position - t.scale;
 
@@ -370,7 +370,7 @@ namespace worlds {
             fxKillList.clear();
             oneShotClips.erase(std::remove_if(oneShotClips.begin(), oneShotClips.end(),
                 [](OneShotClipInfo& clipInfo) {
-                    if (clipInfo.finished && clipInfo.spatialise) fxKillList.add(clipInfo.binauralEffect);
+                    if (clipInfo.finished) fxKillList.add(clipInfo.binauralEffect);
                     return clipInfo.finished;
                 }
             ), oneShotClips.end());
@@ -455,8 +455,7 @@ namespace worlds {
         audioOut.channelLayout = IPL_CHANNELLAYOUT_STEREO;
         audioOut.channelOrder = IPL_CHANNELORDER_INTERLEAVED;
 
-        if (spatialise)
-            checkIplError(iplCreateBinauralEffect(binauralRenderer, audioIn, audioOut, &effect));
+        checkIplError(iplCreateBinauralEffect(binauralRenderer, audioIn, audioOut, &effect));
 
         oneShotClips.push_back(OneShotClipInfo{ &loadedClips.at(id), 0, location, glm::vec3(0.0f), spatialise, volume, false, false, false, 0.01f, channel, {}, effect });
 
@@ -474,6 +473,18 @@ namespace worlds {
         asi.clipId = as.clipId;
         asi.finished = false;
         asi.playbackPosition = 0;
+
+        IPLAudioFormat audioIn;
+        audioIn.channelLayoutType = IPL_CHANNELLAYOUTTYPE_SPEAKERS;
+        audioIn.channelLayout = IPL_CHANNELLAYOUT_MONO;
+        audioIn.channelOrder = IPL_CHANNELORDER_INTERLEAVED;
+
+        IPLAudioFormat audioOut;
+        audioOut.channelLayoutType = IPL_CHANNELLAYOUTTYPE_SPEAKERS;
+        audioOut.channelLayout = IPL_CHANNELLAYOUT_STEREO;
+        audioOut.channelOrder = IPL_CHANNELORDER_INTERLEAVED;
+
+        checkIplError(iplCreateBinauralEffect(binauralRenderer, audioIn, audioOut, &asi.binauralEffect));
 
         internalAs.insert({ ent, asi });
         SDL_UnlockAudioDevice(devId);
