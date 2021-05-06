@@ -5,6 +5,7 @@
 #include "Loaders/CubemapLoader.hpp"
 #include "PackedMaterial.hpp"
 #include <array>
+#include <nlohmann/json_fwd.hpp>
 
 namespace worlds {
     const uint32_t NUM_TEX_SLOTS = 256;
@@ -120,6 +121,7 @@ namespace worlds {
 
         uint32_t load(AssetID asset) override;
     private:
+        uint32_t getTexture(nlohmann::json& j, std::string key);
         std::shared_ptr<VulkanHandles> vkCtx;
         std::array<MatExtraData, NUM_MAT_SLOTS> matExtraData;
         TextureSlots& texSlots;
