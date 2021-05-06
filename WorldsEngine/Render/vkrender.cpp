@@ -1457,33 +1457,33 @@ void VKRenderer::unloadUnusedMaterials(entt::registry& reg) {
             uint32_t albedoIdx = (uint32_t)((*matSlots)[wo.materialIdx[i]].albedoTexIdx);
             textureReferenced[albedoIdx] = true;
 
-            int normalTex = (*matSlots)[wo.materialIdx[i]].normalTexIdx;
+            uint32_t normalTex = (*matSlots)[wo.materialIdx[i]].normalTexIdx;
 
-            if (normalTex > -1) {
+            if (normalTex != ~0u) {
                 textureReferenced[normalTex] = true;
             }
 
-            int heightmapTex = (*matSlots)[wo.materialIdx[i]].heightmapTexIdx;
+            uint32_t heightmapTex = (*matSlots)[wo.materialIdx[i]].heightmapTexIdx;
 
-            if (heightmapTex > -1) {
+            if (heightmapTex != ~0u) {
                 textureReferenced[heightmapTex] = true;
             }
 
-            int metalMapTex = (*matSlots)[wo.materialIdx[i]].metalTexIdx;
+            uint32_t metalMapTex = (*matSlots)[wo.materialIdx[i]].metalTexIdx;
 
-            if (metalMapTex > -1) {
+            if (metalMapTex != ~0u) {
                 textureReferenced[metalMapTex] = true;
             }
 
-            int roughTexIdx = (*matSlots)[wo.materialIdx[i]].roughTexIdx;
+            uint32_t roughTexIdx = (*matSlots)[wo.materialIdx[i]].roughTexIdx;
 
-            if (roughTexIdx > -1) {
+            if (roughTexIdx != ~0u) {
                 textureReferenced[roughTexIdx] = true;
             }
 
-            int aoTexIdx = (*matSlots)[wo.materialIdx[i]].aoTexIdx;
+            uint32_t aoTexIdx = (*matSlots)[wo.materialIdx[i]].aoTexIdx;
 
-            if (aoTexIdx > -1) {
+            if (aoTexIdx != ~0u) {
                 textureReferenced[aoTexIdx] = true;
             }
         }
