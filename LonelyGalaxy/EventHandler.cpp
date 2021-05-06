@@ -69,8 +69,8 @@ namespace lg {
 
     void EventHandler::onPhysicsSoundConstruct(entt::registry& reg, entt::entity ent) {
         auto& physEvents = reg.get_or_emplace<worlds::PhysicsEvents>(ent);
-        physEvents.onContact = std::bind(&EventHandler::onPhysicsSoundContact,
-            this, std::placeholders::_1, std::placeholders::_2);
+        physEvents.addContactCallback(std::bind(&EventHandler::onPhysicsSoundContact,
+            this, std::placeholders::_1, std::placeholders::_2));
     }
 
     void EventHandler::init(entt::registry& registry, worlds::EngineInterfaces interfaces) {

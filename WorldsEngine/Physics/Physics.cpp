@@ -207,14 +207,23 @@ namespace worlds {
 
             info.averageContactPoint /= totalContacts;
 
-            if (evtA && evtA->onContact) {
+            if (evtA) {
                 info.otherEntity = b;
-                evtA->onContact(a, info);
+
+                for (int i = 0; i < 4; i++) {
+                    if (evtA->onContact[i])
+                        evtA->onContact[i](a, info);
+                }
             }
 
-            if (evtB && evtB->onContact) {
+
+            if (evtB) {
                 info.otherEntity = a;
-                evtB->onContact(b, info);
+
+                for (int i = 0; i < 4; i++) {
+                    if (evtB->onContact[i])
+                        evtB->onContact[i](b, info);
+                }
             }
         }
 
