@@ -115,7 +115,20 @@ namespace worlds {
     };
 
     struct PhysicsEvents {
-        PhysicsEvents() : onContact { nullptr } {}
-        std::function<void(entt::entity, const PhysicsContactInfo&)> onContact;
+        using ContactFunc = std::function<void(entt::entity, const PhysicsContactInfo&)>;
+        static const uint32_t MAX_CONTACT_EVENTS = 4;
+
+        PhysicsEvents() : onContact { } {}
+
+        void addContactCallback(ContactFunc func) {
+            for (int i = 0; i < 4; i++) {
+                if (onContact[i] == nullptr) {
+                    onContact[i] = func;
+                    break;
+                }
+            }
+        }
+
+        ContactFunc onContact[MAX_CONTACT_EVENTS] = { nullptr, nullptr, nullptr, nullptr };
     };
 }
