@@ -1,4 +1,5 @@
 worlds_sources += [
+  'Util/JsonUtil.cpp',
   'Util/RichPresence.cpp',
   'Util/VKImGUIUtil.cpp',
   'Util/CreateModelObject.hpp',

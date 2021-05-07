@@ -90,6 +90,16 @@ namespace worlds {
 
         sceneViewDS = VKImGUIUtil::createDescriptorSetFor(interfaces.renderer->getSDRTarget(sceneViewPass), vkCtx);
 
+        g_console->registerCommand([&](void*, const char*) {
+            std::string j = entityToJson(reg, currentSelectedEntity);
+            logMsg("ent: %s", j.c_str());
+            }, "dumpEntity", "Dumps the currently selected entity to the console.");
+
+        g_console->registerCommand([&](void*, const char*) {
+            std::string j = sceneToJson(reg);
+            logMsg("ent: %s", j.c_str());
+            }, "dumpScene", "Dumps the current scene to the console.");
+
 #define ADD_EDITOR_WINDOW(type) editorWindows.push_back(std::make_unique<type>(interfaces, this))
 
         ADD_EDITOR_WINDOW(EntityList);

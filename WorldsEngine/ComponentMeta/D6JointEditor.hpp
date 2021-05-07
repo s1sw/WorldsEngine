@@ -12,6 +12,46 @@
 #include "../Core/Log.hpp"
 #include <entt/entity/registry.hpp>
 #include "../Core/Fatal.hpp"
+#include <nlohmann/json.hpp>
+
+using json = nlohmann::json;
+
+namespace physx {
+    void to_json(json& j, const PxTransform& t) {
+        j = {
+            { "position", { t.p.x, t.p.y, t.p.z } },
+            { "rotation", { t.q.x, t.q.y, t.q.z, t.q.w } }
+        };
+    }
+
+    void from_json(const json& j, PxTransform& t) {
+        const auto& pos = j["position"];
+        const auto& rot = j["rotation"];
+        
+        t.p = PxVec3(pos[0], pos[1], pos[2]);
+        t.q = PxQuat(rot[0], rot[1], rot[2], rot[3]);
+    }
+
+    void to_json(json& j, const PxJointLinearLimit& l) {
+        j = {
+            { "value", l.value },
+            { "restitution", l.restitution },
+            { "bounceThreshold", l.bounceThreshold },
+            { "stiffness", l.stiffness },
+            { "damping", l.damping },
+            { "contactDistance", l.contactDistance }
+        };
+    }
+
+    void from_json(const json& j, PxJointLinearLimit& l) {
+        l.value = j["value"];
+        l.restitution = j["restitution"];
+        l.bounceThreshold = j["bounceThreshold"];
+        l.stiffness = j["stiffness"];
+        l.damping = j["damping"];
+        l.contactDistance = j["contactDistance"];
+    }
+}
 
 namespace worlds {
 #define WRITE_FIELD(file, field) PHYSFS_writeBytes(file, &field, sizeof(field))
@@ -283,6 +323,100 @@ namespace worlds {
                 float breakForce = readFloat(file);
                 px->setBreakForce(breakForce, breakTorque);
             }
+        }
+
+        void toJson(entt::entity ent, entt::registry& reg, json& j) override {
+            auto& d6 = reg.get<D6Joint>(ent);
+            auto* px = d6.pxJoint;
+
+            json axisMotions;
+            for (int axisInt = physx::PxD6Axis::eX; axisInt < physx::PxD6Axis::eCOUNT; axisInt++) {
+                auto axis = (physx::PxD6Axis::Enum)axisInt;
+                auto motion = (unsigned char)px->getMotion(axis);
+                axisMotions[axis] = motion;
+            }
+            j["axisMotions"] = axisMotions;
+
+            auto p0 = px->getLocalPose(physx::PxJointActorIndex::eACTOR0);
+            auto p1 = px->getLocalPose(physx::PxJointActorIndex::eACTOR1);
+
+            j["thisPose"] = p0;
+            j["connectedPose"] = p1;
+
+            json linearLimits;
+            for (int axisInt = physx::PxD6Axis::eX; axisInt < physx::PxD6Axis::eTWIST; axisInt++) {
+                auto axis = (physx::PxD6Axis::Enum)axisInt;
+                auto l = px->getLinearLimit(axis);
+
+                linearLimits[axis] = {
+                   { "lower", l.lower },
+                   { "upper", l.upper },
+                   { "restitution", l.restitution },
+                   { "bounceThreshold", l.bounceThreshold },
+                   { "stiffness", l.stiffness },
+                   { "damping", l.damping },
+                   { "contactDistance", l.contactDistance }
+                };
+            }
+            j["linearLimits"] = linearLimits;
+
+            float invMS0 = px->getInvMassScale0();
+            float invMS1 = px->getInvMassScale1();
+            float invIS0 = px->getInvInertiaScale0();
+            float invIS1 = px->getInvInertiaScale1();
+
+            j["inverseMassScale0"] = invMS0;
+            j["inverseMassScale1"] = invMS1;
+            j["inverseInertiaScale0"] = invIS0;
+            j["inverseInertiaScale1"] = invIS1;
+
+            float breakTorque, breakForce;
+            px->getBreakForce(breakForce, breakTorque);
+
+            j["breakForce"] = breakForce;
+            j["breakTorque"] = breakTorque;
+        }
+
+        void fromJson(entt::entity ent, entt::registry& reg, const json& j) override {
+            auto& d6 = reg.emplace<D6Joint>(ent);
+            auto* px = d6.pxJoint;
+
+            for (int axisInt = physx::PxD6Axis::eX; axisInt < physx::PxD6Axis::eCOUNT; axisInt++) {
+                auto axis = (physx::PxD6Axis::Enum)axisInt;
+                px->setMotion(axis, j["axisMotions"][axis]);
+            }
+
+            px->setLocalPose(
+                physx::PxJointActorIndex::eACTOR0,
+                j["thisPose"]);
+
+            px->setLocalPose(
+                physx::PxJointActorIndex::eACTOR1,
+                j["connectedPose"]);
+
+            for (int axisInt = physx::PxD6Axis::eX; axisInt < physx::PxD6Axis::eTWIST; axisInt++) {
+                auto axis = (physx::PxD6Axis::Enum)axisInt;
+
+                auto lJson = j["linearLimits"][axis];
+                physx::PxJointLinearLimitPair l{physx::PxTolerancesScale{}};
+                l.lower = lJson["lower"];
+                l.upper = lJson["upper"];
+                l.restitution = lJson["restitution"];
+                l.bounceThreshold = lJson["bounceThreshold"];
+                l.stiffness = lJson["stiffness"];
+                l.damping = lJson["damping"];
+                l.contactDistance = lJson["contactDistance"];
+
+                px->setLinearLimit(axis, l);
+            }
+
+            px->setInvMassScale0(j["inverseMassScale0"]);
+            px->setInvMassScale1(j["inverseMassScale1"]);
+
+            px->setInvInertiaScale0(j["inverseInertiaScale0"]);
+            px->setInvInertiaScale1(j["inverseInertiaScale1"]);
+
+            px->setBreakForce(j["breakForce"], j["breakTorque"]);
         }
     };
 

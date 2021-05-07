@@ -6,16 +6,6 @@
 #include "../Util/JsonUtil.hpp"
 #include <nlohmann/json.hpp>
 
-namespace glm {
-    void to_json(nlohmann::json& j, const glm::vec3& vec) {
-        j = nlohmann::json{vec.x, vec.y, vec.z};
-    }
-
-    void from_json(const nlohmann::json& j, glm::vec3& vec) {
-        vec = glm::vec3{j[0], j[1], j[2]};
-    }
-}
-
 namespace worlds {
     std::optional<std::string> getString(const sajson::value& obj, const char* key) {
         sajson::string keyStr{ key, strlen(key) };
