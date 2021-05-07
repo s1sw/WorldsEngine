@@ -12,5 +12,6 @@ namespace worlds {
     void deserializeScene(AssetID id, entt::registry& reg, bool additive = false);
     void deserializeScene(PHYSFS_File* file, entt::registry& reg, bool additive = false);
     std::string entityToJson(entt::registry& reg, entt::entity ent);
+    entt::entity jsonToEntity(entt::registry& reg, std::string json);
     std::string sceneToJson(entt::registry& reg);
 }

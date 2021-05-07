@@ -278,7 +278,7 @@ namespace worlds {
             nlohmann::json matArray;
 
             for (uint32_t i = 0; i < materialCount; i++) {
-                matArray.push_back(wo.materials[i]);
+                matArray.push_back(g_assetDB.getAssetPath(wo.materials[i]));
             }
 
             j = {
@@ -301,7 +301,10 @@ namespace worlds {
 
             for (auto& v : j["materials"]) {
                 wo.presentMaterials[matIdx] = true;
-                wo.materials[matIdx] = v;
+                if (v.is_number())
+                    wo.materials[matIdx] = v;
+                else
+                    wo.materials[matIdx] = g_assetDB.addOrGetExisting(v);
                 matIdx++;
             }
         }
