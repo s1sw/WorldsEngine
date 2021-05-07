@@ -24,6 +24,7 @@
 #include "../Libs/IconsFontaudio.h"
 #include "../ComponentMeta/ComponentFuncs.hpp"
 #include "../Physics/D6Joint.hpp"
+#include <nlohmann/json.hpp>
 #undef near
 #undef far
 
@@ -635,6 +636,20 @@ namespace worlds {
 
         if (inputManager.keyPressed(SDL_SCANCODE_N) && inputManager.ctrlHeld()) {
             ImGui::OpenPopup("New Scene");
+        }
+
+        if (inputManager.keyPressed(SDL_SCANCODE_C) && inputManager.ctrlHeld() && reg.valid(currentSelectedEntity)) {
+            std::string entityJson = entityToJson(reg, currentSelectedEntity);
+            SDL_SetClipboardText(entityJson.c_str());
+        }
+
+        if (inputManager.keyPressed(SDL_SCANCODE_V) && inputManager.ctrlHeld() && SDL_HasClipboardText()) {
+            const char* txt = SDL_GetClipboardText();
+            try {
+                select(jsonToEntity(reg, txt));
+            } catch (nlohmann::detail::exception& e) {
+                logErr("Failed to deserialize clipboard entity: %s", e.what());
+            }
         }
 
         saveFileModal("Save Scene", [this](const char* path) {

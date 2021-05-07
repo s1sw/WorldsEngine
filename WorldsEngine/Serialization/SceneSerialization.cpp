@@ -230,7 +230,29 @@ namespace worlds {
             j[mdata->getName()] = compJ;
         }
 
-        return j.dump(2);
+        return j.dump();
+    }
+
+    entt::entity jsonToEntity(entt::registry& reg, std::string jText) {
+        auto j = nlohmann::json::parse(jText);
+        entt::entity ent = reg.create();
+
+        std::vector<std::string> componentIds;
+
+        for (auto& compPair : j.items()) {
+            componentIds.push_back(compPair.key());
+        }
+
+        std::sort(componentIds.begin(), componentIds.end(), [](std::string a, std::string b) {
+            return ComponentMetadataManager::byName.at(a)->getSortID() < ComponentMetadataManager::byName.at(b)->getSortID();
+        });
+
+        for (auto& id : componentIds) {
+            auto compMeta = ComponentMetadataManager::byName.at(id);
+            compMeta->fromJson(ent, reg, j[id]);
+        }
+
+        return ent;
     }
 
     std::string sceneToJson(entt::registry& reg) {
@@ -252,7 +274,7 @@ namespace worlds {
 
             j[std::to_string((uint32_t)ent)] = entity;
         });
-        
+
         return j.dump(2);
     }
 }

@@ -20,7 +20,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -54,7 +54,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -88,7 +88,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -122,7 +122,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -156,7 +156,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -190,7 +190,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -224,7 +224,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -258,7 +258,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -292,7 +292,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -326,7 +326,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -360,7 +360,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -394,7 +394,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -428,7 +428,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -462,7 +462,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -496,7 +496,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -530,7 +530,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -564,7 +564,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -598,7 +598,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -786,38 +786,38 @@
     },
     "World Object": {
       "materials": [
-        167,
-        97,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12
+        "Materials/redmetal.json",
+        "Materials/silver.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json"
       ],
       "mesh": "Models/crappysword.wmdl",
       "staticFlags": 0,
@@ -851,7 +851,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -885,7 +885,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -919,7 +919,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -953,7 +953,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -987,7 +987,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -1021,7 +1021,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -1055,7 +1055,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -1089,7 +1089,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -1123,7 +1123,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -1157,7 +1157,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -1214,38 +1214,38 @@
     },
     "World Object": {
       "materials": [
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json"
       ],
       "mesh": "cube.wmdl",
       "staticFlags": 0,
@@ -1256,6 +1256,1036 @@
         0.0
       ],
       "uvOverride": 4
+    }
+  },
+  "1048772": {
+    "Dynamic Physics Actor": {
+      "mass": 80.0,
+      "shapes": [
+        {
+          "halfExtents": [
+            0.07286243140697479,
+            0.42629197239875793,
+            0.07211258262395859
+          ],
+          "position": [
+            -0.16074076294898987,
+            0.479385107755661,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            -0.10342025756835938,
+            0.9946377277374268
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.07286243140697479,
+            0.42629197239875793,
+            0.07211258262395859
+          ],
+          "position": [
+            0.1590379923582077,
+            0.479385107755661,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.048901863396167755,
+            0.9988036155700684
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.175113707780838,
+            0.17238639295101166,
+            0.17307408154010773
+          ],
+          "position": [
+            0.0,
+            1.877016305923462,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.09304767102003098,
+            0.06587503105401993,
+            0.07876032590866089
+          ],
+          "position": [
+            0.0,
+            1.6356208324432373,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.2148786038160324,
+            0.35335591435432434,
+            0.13359618186950684
+          ],
+          "position": [
+            0.0,
+            1.2255967855453491,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.054230596870183945,
+            0.22216521203517914,
+            0.05445219948887825
+          ],
+          "position": [
+            0.3000643849372864,
+            1.3044368028640747,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.34129390120506287,
+            0.9399566650390625
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.054230596870183945,
+            0.22216521203517914,
+            0.05445219948887825
+          ],
+          "position": [
+            -0.28268229961395264,
+            1.3044368028640747,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.9387718439102173,
+            0.34453949332237244
+          ],
+          "type": 1
+        }
+      ]
+    },
+    "Physics Sound": {
+      "soundPath": "Audio/SFX/Impacts/Misc/squeaky_toy.ogg"
+    },
+    "Transform": {
+      "position": [
+        2.7894973754882813,
+        -0.046161770820617676,
+        -6.242016315460205
+      ],
+      "rotation": [
+        0.0023470530286431313,
+        0.7072250247001648,
+        -0.0023478749208152294,
+        0.7069807052612305
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json"
+      ],
+      "mesh": "Models/test_guy.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        4.0,
+        4.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "1048773": {
+    "Dynamic Physics Actor": {
+      "mass": 80.0,
+      "shapes": [
+        {
+          "halfExtents": [
+            0.07286243140697479,
+            0.42629197239875793,
+            0.07211258262395859
+          ],
+          "position": [
+            -0.16074076294898987,
+            0.479385107755661,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            -0.10342025756835938,
+            0.9946377277374268
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.07286243140697479,
+            0.42629197239875793,
+            0.07211258262395859
+          ],
+          "position": [
+            0.1590379923582077,
+            0.479385107755661,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.048901863396167755,
+            0.9988036155700684
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.175113707780838,
+            0.17238639295101166,
+            0.17307408154010773
+          ],
+          "position": [
+            0.0,
+            1.877016305923462,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.09304767102003098,
+            0.06587503105401993,
+            0.07876032590866089
+          ],
+          "position": [
+            0.0,
+            1.6356208324432373,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.2148786038160324,
+            0.35335591435432434,
+            0.13359618186950684
+          ],
+          "position": [
+            0.0,
+            1.2255967855453491,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.054230596870183945,
+            0.22216521203517914,
+            0.05445219948887825
+          ],
+          "position": [
+            0.3000643849372864,
+            1.3044368028640747,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.34129390120506287,
+            0.9399566650390625
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.054230596870183945,
+            0.22216521203517914,
+            0.05445219948887825
+          ],
+          "position": [
+            -0.28268229961395264,
+            1.3044368028640747,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.9387718439102173,
+            0.34453949332237244
+          ],
+          "type": 1
+        }
+      ]
+    },
+    "Physics Sound": {
+      "soundPath": "Audio/SFX/Impacts/Misc/squeaky_toy.ogg"
+    },
+    "Transform": {
+      "position": [
+        2.7894973754882813,
+        -0.046161770820617676,
+        -7.116847515106201
+      ],
+      "rotation": [
+        0.0023470530286431313,
+        0.7072250247001648,
+        -0.0023478749208152294,
+        0.7069807052612305
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json"
+      ],
+      "mesh": "Models/test_guy.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        4.0,
+        4.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "1048774": {
+    "Dynamic Physics Actor": {
+      "mass": 80.0,
+      "shapes": [
+        {
+          "halfExtents": [
+            0.07286243140697479,
+            0.42629197239875793,
+            0.07211258262395859
+          ],
+          "position": [
+            -0.16074076294898987,
+            0.479385107755661,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            -0.10342025756835938,
+            0.9946377277374268
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.07286243140697479,
+            0.42629197239875793,
+            0.07211258262395859
+          ],
+          "position": [
+            0.1590379923582077,
+            0.479385107755661,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.048901863396167755,
+            0.9988036155700684
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.175113707780838,
+            0.17238639295101166,
+            0.17307408154010773
+          ],
+          "position": [
+            0.0,
+            1.877016305923462,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.09304767102003098,
+            0.06587503105401993,
+            0.07876032590866089
+          ],
+          "position": [
+            0.0,
+            1.6356208324432373,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.2148786038160324,
+            0.35335591435432434,
+            0.13359618186950684
+          ],
+          "position": [
+            0.0,
+            1.2255967855453491,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.054230596870183945,
+            0.22216521203517914,
+            0.05445219948887825
+          ],
+          "position": [
+            0.3000643849372864,
+            1.3044368028640747,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.34129390120506287,
+            0.9399566650390625
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.054230596870183945,
+            0.22216521203517914,
+            0.05445219948887825
+          ],
+          "position": [
+            -0.28268229961395264,
+            1.3044368028640747,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.9387718439102173,
+            0.34453949332237244
+          ],
+          "type": 1
+        }
+      ]
+    },
+    "Physics Sound": {
+      "soundPath": "Audio/SFX/Impacts/Misc/squeaky_toy.ogg"
+    },
+    "Transform": {
+      "position": [
+        2.7894973754882813,
+        -0.046161770820617676,
+        -7.988380432128906
+      ],
+      "rotation": [
+        0.0023470530286431313,
+        0.7072250247001648,
+        -0.0023478749208152294,
+        0.7069807052612305
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json"
+      ],
+      "mesh": "Models/test_guy.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        4.0,
+        4.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "1048775": {
+    "Dynamic Physics Actor": {
+      "mass": 80.0,
+      "shapes": [
+        {
+          "halfExtents": [
+            0.07286243140697479,
+            0.42629197239875793,
+            0.07211258262395859
+          ],
+          "position": [
+            -0.16074076294898987,
+            0.479385107755661,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            -0.10342025756835938,
+            0.9946377277374268
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.07286243140697479,
+            0.42629197239875793,
+            0.07211258262395859
+          ],
+          "position": [
+            0.1590379923582077,
+            0.479385107755661,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.048901863396167755,
+            0.9988036155700684
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.175113707780838,
+            0.17238639295101166,
+            0.17307408154010773
+          ],
+          "position": [
+            0.0,
+            1.877016305923462,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.09304767102003098,
+            0.06587503105401993,
+            0.07876032590866089
+          ],
+          "position": [
+            0.0,
+            1.6356208324432373,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.2148786038160324,
+            0.35335591435432434,
+            0.13359618186950684
+          ],
+          "position": [
+            0.0,
+            1.2255967855453491,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.054230596870183945,
+            0.22216521203517914,
+            0.05445219948887825
+          ],
+          "position": [
+            0.3000643849372864,
+            1.3044368028640747,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.34129390120506287,
+            0.9399566650390625
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.054230596870183945,
+            0.22216521203517914,
+            0.05445219948887825
+          ],
+          "position": [
+            -0.28268229961395264,
+            1.3044368028640747,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.9387718439102173,
+            0.34453949332237244
+          ],
+          "type": 1
+        }
+      ]
+    },
+    "Physics Sound": {
+      "soundPath": "Audio/SFX/Impacts/Misc/squeaky_toy.ogg"
+    },
+    "Transform": {
+      "position": [
+        2.7894973754882813,
+        2.0652689933776855,
+        -7.585766315460205
+      ],
+      "rotation": [
+        0.0023470530286431313,
+        0.7072250247001648,
+        -0.0023478749208152294,
+        0.7069807052612305
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json"
+      ],
+      "mesh": "Models/test_guy.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        4.0,
+        4.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "1048776": {
+    "Dynamic Physics Actor": {
+      "mass": 80.0,
+      "shapes": [
+        {
+          "halfExtents": [
+            0.07286243140697479,
+            0.42629197239875793,
+            0.07211258262395859
+          ],
+          "position": [
+            -0.16074076294898987,
+            0.479385107755661,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            -0.10342025756835938,
+            0.9946377277374268
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.07286243140697479,
+            0.42629197239875793,
+            0.07211258262395859
+          ],
+          "position": [
+            0.1590379923582077,
+            0.479385107755661,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.048901863396167755,
+            0.9988036155700684
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.175113707780838,
+            0.17238639295101166,
+            0.17307408154010773
+          ],
+          "position": [
+            0.0,
+            1.877016305923462,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.09304767102003098,
+            0.06587503105401993,
+            0.07876032590866089
+          ],
+          "position": [
+            0.0,
+            1.6356208324432373,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.2148786038160324,
+            0.35335591435432434,
+            0.13359618186950684
+          ],
+          "position": [
+            0.0,
+            1.2255967855453491,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.054230596870183945,
+            0.22216521203517914,
+            0.05445219948887825
+          ],
+          "position": [
+            0.3000643849372864,
+            1.3044368028640747,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.34129390120506287,
+            0.9399566650390625
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.054230596870183945,
+            0.22216521203517914,
+            0.05445219948887825
+          ],
+          "position": [
+            -0.28268229961395264,
+            1.3044368028640747,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.9387718439102173,
+            0.34453949332237244
+          ],
+          "type": 1
+        }
+      ]
+    },
+    "Physics Sound": {
+      "soundPath": "Audio/SFX/Impacts/Misc/squeaky_toy.ogg"
+    },
+    "Transform": {
+      "position": [
+        2.7894973754882813,
+        2.0652689933776855,
+        -6.689198970794678
+      ],
+      "rotation": [
+        0.0023470530286431313,
+        0.7072250247001648,
+        -0.0023478749208152294,
+        0.7069807052612305
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json"
+      ],
+      "mesh": "Models/test_guy.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        4.0,
+        4.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
     }
   },
   "1048780": {
@@ -1302,38 +2332,38 @@
     },
     "World Object": {
       "materials": [
-        522,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12
+        "Materials/LevelTextures/PavingStones075.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json"
       ],
       "mesh": "plane.obj",
       "staticFlags": 0,
@@ -1390,38 +2420,38 @@
     },
     "World Object": {
       "materials": [
-        97,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12
+        "Materials/silver.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json"
       ],
       "mesh": "uvsphere.obj",
       "staticFlags": 0,
@@ -1455,7 +2485,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -1489,7 +2519,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -1523,7 +2553,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -1557,7 +2587,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -1591,7 +2621,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -1625,7 +2655,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -1659,7 +2689,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -1693,7 +2723,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -1727,7 +2757,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -1761,7 +2791,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -1795,7 +2825,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -1829,7 +2859,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -1863,7 +2893,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -1897,7 +2927,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -1931,7 +2961,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -1965,7 +2995,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -2153,38 +3183,38 @@
     },
     "World Object": {
       "materials": [
-        167,
-        97,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12
+        "Materials/redmetal.json",
+        "Materials/silver.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json"
       ],
       "mesh": "Models/crappysword.wmdl",
       "staticFlags": 0,
@@ -2218,7 +3248,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -2252,7 +3282,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -2286,7 +3316,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -2320,7 +3350,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -2354,7 +3384,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -2388,7 +3418,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -2422,7 +3452,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -2456,7 +3486,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -2490,7 +3520,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -2524,7 +3554,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -2558,7 +3588,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -2592,7 +3622,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -2626,7 +3656,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -2660,7 +3690,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -2694,7 +3724,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -2728,7 +3758,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -2762,7 +3792,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -2796,7 +3826,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -2830,7 +3860,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -2920,38 +3950,38 @@
     },
     "World Object": {
       "materials": [
-        97,
-        224,
-        97,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12
+        "Materials/silver.json",
+        "Materials/saber_blade.json",
+        "Materials/silver.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json"
       ],
       "mesh": "Models/saber.wmdl",
       "staticFlags": 0,
@@ -3008,38 +4038,38 @@
     },
     "World Object": {
       "materials": [
-        522,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12
+        "Materials/LevelTextures/PavingStones075.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json"
       ],
       "mesh": "plane.obj",
       "staticFlags": 0,
@@ -3108,7 +4138,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -3142,7 +4172,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -3176,7 +4206,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -3210,7 +4240,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -3244,7 +4274,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -3278,7 +4308,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -3343,38 +4373,38 @@
     },
     "World Object": {
       "materials": [
-        372,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12
+        "Materials/crate.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json"
       ],
       "mesh": "crate.wmdl",
       "staticFlags": 0,
@@ -3529,38 +4559,38 @@
     },
     "World Object": {
       "materials": [
-        97,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12
+        "Materials/silver.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json"
       ],
       "mesh": "Models/test_gun.wmdl",
       "staticFlags": 0,
@@ -3617,38 +4647,38 @@
     },
     "World Object": {
       "materials": [
-        522,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12
+        "Materials/LevelTextures/PavingStones075.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json"
       ],
       "mesh": "cube.wmdl",
       "staticFlags": 0,
@@ -3854,38 +4884,38 @@
     },
     "World Object": {
       "materials": [
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json"
       ],
       "mesh": "Models/test_guy.obj",
       "staticFlags": 0,
@@ -3919,7 +4949,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -3976,38 +5006,38 @@
     },
     "World Object": {
       "materials": [
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json"
       ],
       "mesh": "cube.wmdl",
       "staticFlags": 0,
@@ -4041,7 +5071,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -4109,38 +5139,38 @@
     },
     "World Object": {
       "materials": [
-        372,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12
+        "Materials/crate.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json"
       ],
       "mesh": "crate.wmdl",
       "staticFlags": 0,
@@ -4174,7 +5204,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -4208,7 +5238,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -4302,38 +5332,38 @@
     },
     "World Object": {
       "materials": [
-        372,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12
+        "Materials/crate.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json"
       ],
       "mesh": "crate.wmdl",
       "staticFlags": 0,
@@ -4401,38 +5431,38 @@
     },
     "World Object": {
       "materials": [
-        372,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12
+        "Materials/crate.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json"
       ],
       "mesh": "crate.wmdl",
       "staticFlags": 0,
@@ -4500,38 +5530,38 @@
     },
     "World Object": {
       "materials": [
-        372,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12
+        "Materials/crate.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json"
       ],
       "mesh": "crate.wmdl",
       "staticFlags": 0,
@@ -4599,137 +5629,38 @@
     },
     "World Object": {
       "materials": [
-        372,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12
-      ],
-      "mesh": "crate.wmdl",
-      "staticFlags": 0,
-      "texScaleOffset": [
-        1.0,
-        1.0,
-        0.0,
-        0.0
-      ],
-      "uvOverride": 0
-    }
-  },
-  "4194512": {
-    "AO Proxy": {
-      "bounds": [
-        0.23499999940395355,
-        0.23499999940395355,
-        0.23499999940395355
-      ]
-    },
-    "Dynamic Physics Actor": {
-      "mass": 14.999999046325684,
-      "shapes": [
-        {
-          "halfExtents": [
-            1.0,
-            1.0,
-            1.0
-          ],
-          "position": [
-            0.0,
-            0.0,
-            0.0
-          ],
-          "rotation": [
-            0.0,
-            0.0,
-            0.0,
-            1.0
-          ],
-          "type": 1
-        }
-      ]
-    },
-    "Physics Sound": {
-      "soundPath": "Audio/SFX/Impacts/Metal/clang01.ogg"
-    },
-    "Transform": {
-      "position": [
-        -4.3987717628479,
-        1.2922515869140625,
-        2.9521737098693848
-      ],
-      "rotation": [
-        1.101461862162978e-06,
-        -0.00032740578171797097,
-        -1.5630187135684537e-06,
-        0.9999999403953552
-      ],
-      "scale": [
-        0.24999254941940308,
-        0.25,
-        0.24999254941940308
-      ]
-    },
-    "World Object": {
-      "materials": [
-        372,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12
+        "Materials/crate.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json"
       ],
       "mesh": "crate.wmdl",
       "staticFlags": 0,
@@ -4763,7 +5694,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -4820,38 +5751,38 @@
     },
     "World Object": {
       "materials": [
-        522,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12
+        "Materials/LevelTextures/PavingStones075.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json"
       ],
       "mesh": "plane.obj",
       "staticFlags": 0,
@@ -4862,6 +5793,74 @@
         0.0
       ],
       "uvOverride": 4
+    }
+  },
+  "5243088": {
+    "AO Proxy": {
+      "bounds": [
+        0.23499999940395355,
+        0.23499999940395355,
+        0.23499999940395355
+      ]
+    },
+    "Dynamic Physics Actor": {
+      "mass": 14.999999046325684,
+      "shapes": [
+        {
+          "halfExtents": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "type": 1
+        }
+      ]
+    },
+    "Physics Sound": {
+      "soundPath": "Audio/SFX/Impacts/Metal/clang01.ogg"
+    },
+    "Transform": {
+      "position": [
+        -4.3987717628479,
+        1.2922515869140625,
+        2.9521737098693848
+      ],
+      "rotation": [
+        1.101461862162978e-06,
+        -0.00032740578171797097,
+        -1.5630187135684537e-06,
+        0.9999999403953552
+      ],
+      "scale": [
+        0.24999254941940308,
+        0.25,
+        0.24999254941940308
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/crate.json"
+      ],
+      "mesh": "crate.wmdl",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
     }
   },
   "6": {
@@ -4885,7 +5884,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -4919,7 +5918,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -4953,7 +5952,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -4987,7 +5986,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -5021,7 +6020,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -5055,7 +6054,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -5089,7 +6088,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -5123,7 +6122,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -5157,7 +6156,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -5191,7 +6190,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -5225,7 +6224,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -5259,7 +6258,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -5293,7 +6292,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -5327,7 +6326,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -5361,7 +6360,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -5395,7 +6394,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -5429,7 +6428,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -5486,38 +6485,38 @@
     },
     "World Object": {
       "materials": [
-        522,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12
+        "Materials/LevelTextures/PavingStones075.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json"
       ],
       "mesh": "plane.obj",
       "staticFlags": 0,
@@ -5574,38 +6573,38 @@
     },
     "World Object": {
       "materials": [
-        522,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12
+        "Materials/LevelTextures/PavingStones075.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json"
       ],
       "mesh": "plane.obj",
       "staticFlags": 0,
@@ -5662,38 +6661,38 @@
     },
     "World Object": {
       "materials": [
-        522,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12
+        "Materials/LevelTextures/PavingStones075.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json"
       ],
       "mesh": "plane.obj",
       "staticFlags": 0,
@@ -5727,7 +6726,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -5761,7 +6760,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -5818,38 +6817,38 @@
     },
     "World Object": {
       "materials": [
-        522,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12
+        "Materials/LevelTextures/PavingStones075.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json"
       ],
       "mesh": "plane.obj",
       "staticFlags": 0,
@@ -5883,7 +6882,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -5917,7 +6916,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
@@ -5951,7 +6950,7 @@
     },
     "World Object": {
       "materials": [
-        196
+        "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
       "staticFlags": 0,
