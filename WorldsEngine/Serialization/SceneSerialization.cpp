@@ -10,6 +10,7 @@
 #include "SceneSerializationFuncs.hpp"
 #include "../ComponentMeta/ComponentMetadata.hpp"
 #include <nlohmann/json.hpp>
+#include <physfs.h>
 
 namespace worlds {
     std::function<void(AssetID, entt::registry&)> onSceneLoad;
@@ -91,6 +92,45 @@ namespace worlds {
             onSceneLoad(id, reg);
     }
 
+    void saveSceneToFileJson(PHYSFS_File* file, entt::registry& reg) {
+        PerfTimer timer;
+        std::string sceneJson = sceneToJson(reg);
+        PHYSFS_writeBytes(file, sceneJson.data(), sceneJson.size());
+        logMsg("Saved scene in %.3fms", timer.stopGetMs());
+    }
+
+    void saveSceneJson(AssetID id, entt::registry& reg) {
+        saveSceneToFileJson(g_assetDB.openAssetFileWrite(id), reg);
+    }
+
+    void loadSceneJson(PHYSFS_File* file, entt::registry& reg) {
+        std::string str;
+        str.resize(PHYSFS_fileLength(file));
+        PHYSFS_readBytes(file, str.data(), str.size());
+
+        nlohmann::json j = nlohmann::json::parse(str);
+
+        logMsg("scene has %zu entities", j.size());
+        for (auto& p : j.items()) {
+            auto newEnt = reg.create((entt::entity)std::stoul(p.key()));
+
+            std::vector<std::string> componentIds;
+
+            for (auto& compPair : p.value().items()) {
+                componentIds.push_back(compPair.key());
+            }
+
+            std::sort(componentIds.begin(), componentIds.end(), [](std::string a, std::string b) {
+                return ComponentMetadataManager::byName.at(a)->getSortID() < ComponentMetadataManager::byName.at(b)->getSortID();
+            });
+
+            for (auto& id : componentIds) {
+                auto compMeta = ComponentMetadataManager::byName.at(id);
+                compMeta->fromJson(newEnt, reg, p.value()[id]);
+            }
+        }
+    }
+
     bool deserializeWScene(PHYSFS_File* file, entt::registry& reg,
         bool additive, char* magicCheck, unsigned char formatId) {
         PerfTimer timer;
@@ -154,6 +194,12 @@ namespace worlds {
                 PHYSFS_close(file);
                 return;
             }
+        } else if (magicCheck[0] == '{') {
+            // JSON scene
+            PHYSFS_seek(file, 0);
+            if (!additive)
+                reg.clear();
+            loadSceneJson(file, reg);
         } else {
             logMsg(WELogCategoryEngine, "Scene has unrecognized magic %s", magicCheck);
             PHYSFS_close(file);
@@ -189,11 +235,9 @@ namespace worlds {
 
     std::string sceneToJson(entt::registry& reg) {
         nlohmann::json j;
-        uint32_t numEnts = (uint32_t)reg.view<Transform>().size();
 
         reg.view<Transform>().each([&](entt::entity ent, Transform&) {
             nlohmann::json entity;
-            uint8_t numComponents = 0;
 
             for (auto& mdata : ComponentMetadataManager::sorted) {
                 std::array<ENTT_ID_TYPE, 1> arr = { mdata->getComponentID() };
@@ -209,6 +253,6 @@ namespace worlds {
             j[std::to_string((uint32_t)ent)] = entity;
         });
         
-        return j.dump();
+        return j.dump(2);
     }
 }

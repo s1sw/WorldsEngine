@@ -123,9 +123,9 @@ namespace worlds {
         void toJson(entt::entity ent, entt::registry& reg, nlohmann::json& j) override {
             const auto& t = reg.get<Transform>(ent);
             j = {
-                { "position", nlohmann::json{ t.position } },
-                { "rotation", nlohmann::json{ t.rotation } },
-                { "scale", nlohmann::json{ t.scale } }
+                { "position", t.position },
+                { "rotation", t.rotation },
+                { "scale", t.scale }
             };
         }
 
@@ -719,6 +719,9 @@ namespace worlds {
                         break;
                 }
 
+                ps.pos = shape["position"];
+                ps.rot = shape["rotation"];
+
                 pa.physicsShapes.push_back(ps);
             }
 
@@ -889,7 +892,7 @@ namespace worlds {
         }
 
         void fromJson(entt::entity ent, entt::registry& reg, const json& j) override {
-            auto* pActor = g_physics->createRigidStatic(glm2px(reg.get<Transform>(ent)));
+            auto* pActor = g_physics->createRigidDynamic(glm2px(reg.get<Transform>(ent)));
             g_scene->addActor(*pActor);
 
             auto& pa = reg.emplace<DynamicPhysicsActor>(ent, pActor);
@@ -914,6 +917,8 @@ namespace worlds {
                         assert(false && "invalid physics shape type");
                         break;
                 }
+                ps.pos = shape["position"];
+                ps.rot = shape["rotation"];
 
                 pa.physicsShapes.push_back(ps);
             }
