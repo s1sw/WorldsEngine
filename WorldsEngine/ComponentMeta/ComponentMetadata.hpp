@@ -11,6 +11,7 @@ namespace worlds {
         static std::unordered_map<ENTT_ID_TYPE, ComponentEditor*> metadata;
         static std::vector<ComponentEditor*> sorted;
         static std::unordered_map<ENTT_ID_TYPE, ComponentEditor*> bySerializedID;
+        static std::unordered_map<std::string, ComponentEditor*> byName;
 
         static void setupLookup() {
             ComponentEditorLink* curr = ComponentEditor::first;
@@ -18,6 +19,7 @@ namespace worlds {
             while (curr) {
                 metadata.insert({ curr->editor->getComponentID(), curr->editor });
                 bySerializedID.insert({ curr->editor->getSerializedID(), curr->editor });
+                byName.insert({ curr->editor->getName(), curr->editor });
                 logMsg("Found component editor for %s, id is %u", curr->editor->getName(), curr->editor->getComponentID());
                 sorted.push_back(curr->editor);
                 curr = curr->next;

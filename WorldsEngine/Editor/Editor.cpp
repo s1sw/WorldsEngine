@@ -31,6 +31,7 @@ namespace worlds {
     std::unordered_map<ENTT_ID_TYPE, ComponentEditor*> ComponentMetadataManager::metadata;
     std::vector<ComponentEditor*> ComponentMetadataManager::sorted;
     std::unordered_map<ENTT_ID_TYPE, ComponentEditor*> ComponentMetadataManager::bySerializedID;
+    std::unordered_map<std::string, ComponentEditor*> ComponentMetadataManager::byName;
 
     const char* toolStr(Tool tool) {
         switch (tool) {
@@ -616,7 +617,8 @@ namespace worlds {
 
         if (inputManager.keyPressed(SDL_SCANCODE_S) && inputManager.ctrlHeld()) {
             if (interfaces.engine->getCurrentSceneInfo().id != ~0u && !inputManager.shiftHeld()) {
-                saveScene(interfaces.engine->getCurrentSceneInfo().id, reg);
+                //saveScene(interfaces.engine->getCurrentSceneInfo().id, reg);
+                saveSceneJson(interfaces.engine->getCurrentSceneInfo().id, reg);
             } else {
                 ImGui::OpenPopup("Save Scene");
             }
@@ -636,7 +638,8 @@ namespace worlds {
         }
 
         saveFileModal("Save Scene", [this](const char* path) {
-            saveScene(g_assetDB.createAsset(path), reg);
+            //saveScene(g_assetDB.createAsset(path), reg);
+            saveSceneJson(g_assetDB.createAsset(path), reg);
             updateWindowTitle();
         });
 

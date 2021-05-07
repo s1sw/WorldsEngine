@@ -4,9 +4,9 @@
 namespace worlds {
     void EditorUndo::pushState(entt::registry& reg) {
         // Serialize to file
-        std::string savedPath = "Temp/" + std::to_string(currentPos) + ".wscn";
+        std::string savedPath = "Temp/" + std::to_string(currentPos) + ".json";
         PHYSFS_File* file = PHYSFS_openWrite(savedPath.c_str());
-        saveSceneToFile(file, reg);
+        saveSceneToFileJson(file, reg);
         highestSaved = currentPos;
         currentPos++;
     }
@@ -15,13 +15,13 @@ namespace worlds {
         if (currentPos == 0)
             return;
         currentPos--;
-        std::string path = "Temp/" + std::to_string(currentPos) + ".wscn";
+        std::string path = "Temp/" + std::to_string(currentPos) + ".json";
         PHYSFS_File* file = PHYSFS_openRead(path.c_str());
         deserializeScene(file, reg);
     }
 
     void EditorUndo::redo(entt::registry& reg) {
-        std::string path = "Temp/" + std::to_string(currentPos + 1) + ".wscn";
+        std::string path = "Temp/" + std::to_string(currentPos + 1) + ".json";
         if (!PHYSFS_exists(path.c_str()) || currentPos == highestSaved)
             return;
         currentPos++;
