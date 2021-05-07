@@ -9,6 +9,7 @@
 #include "../Util/TimingUtil.hpp"
 #include "SceneSerializationFuncs.hpp"
 #include "../ComponentMeta/ComponentMetadata.hpp"
+#include <nlohmann/json.hpp>
 
 namespace worlds {
     std::function<void(AssetID, entt::registry&)> onSceneLoad;
@@ -168,5 +169,46 @@ namespace worlds {
 
         if (onSceneLoad)
             onSceneLoad(id, reg);
+    }
+
+    std::string entityToJson(entt::registry& reg, entt::entity ent) {
+        nlohmann::json j;
+        for (auto& mdata : ComponentMetadataManager::sorted) {
+            std::array<ENTT_ID_TYPE, 1> arr = { mdata->getComponentID() };
+            auto rView = reg.runtime_view(arr.begin(), arr.end());
+
+            if (!rView.contains(ent)) continue;
+
+            nlohmann::json compJ;
+            mdata->toJson(ent, reg, compJ);
+            j[mdata->getName()] = compJ;
+        }
+
+        return j.dump(2);
+    }
+
+    std::string sceneToJson(entt::registry& reg) {
+        nlohmann::json j;
+        uint32_t numEnts = (uint32_t)reg.view<Transform>().size();
+
+        reg.view<Transform>().each([&](entt::entity ent, Transform&) {
+            nlohmann::json entity;
+            uint8_t numComponents = 0;
+
+            for (auto& mdata : ComponentMetadataManager::sorted) {
+                std::array<ENTT_ID_TYPE, 1> arr = { mdata->getComponentID() };
+                auto rView = reg.runtime_view(arr.begin(), arr.end());
+
+                if (!rView.contains(ent)) continue;
+
+                nlohmann::json compJ;
+                mdata->toJson(ent, reg, compJ);
+                entity[mdata->getName()] = compJ;
+            }
+
+            j[std::to_string((uint32_t)ent)] = entity;
+        });
+        
+        return j.dump();
     }
 }

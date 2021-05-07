@@ -1,6 +1,7 @@
 #pragma once
 #include <entt/entity/fwd.hpp>
 #include <physfs.h>
+#include <nlohmann/json_fwd.hpp>
 
 namespace worlds {
     struct ComponentEditorLink;
@@ -20,6 +21,8 @@ namespace worlds {
         virtual void edit(entt::entity ent, entt::registry& reg, Editor* ed) = 0;
         virtual void writeToFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file) = 0;
         virtual void readFromFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file, int version) = 0;
+        virtual void toJson(entt::entity ent, entt::registry& reg, nlohmann::json& j) = 0;
+        virtual void fromJson(entt::entity ent, entt::registry& reg, const nlohmann::json& j) = 0;
     };
 
     struct ComponentEditorLink {

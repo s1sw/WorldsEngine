@@ -21,11 +21,14 @@
 #include "../Scripting/ScriptComponent.hpp"
 #include "../Util/EnumUtil.hpp"
 #include "../Editor/Editor.hpp"
+#include <nlohmann/json.hpp>
 
 // Janky workaround to fix static constructors not being called
 // (static constructors are only required to be called before the first function in the translation unit)
 // (yay for typical c++ specification bullshittery)
 #include "D6JointEditor.hpp"
+
+using json = nlohmann::json;
 
 namespace worlds {
 #define WRITE_FIELD(file, field) PHYSFS_writeBytes(file, &field, sizeof(field))
@@ -110,11 +113,27 @@ namespace worlds {
             WRITE_FIELD(file, t.scale);
         }
 
-        void readFromFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file, int version) override {
+        void readFromFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file, int) override {
             auto& t = reg.emplace<Transform>(ent);
             READ_FIELD(file, t.position);
             READ_FIELD(file, t.rotation);
             READ_FIELD(file, t.scale);
+        }
+
+        void toJson(entt::entity ent, entt::registry& reg, nlohmann::json& j) override {
+            const auto& t = reg.get<Transform>(ent);
+            j = {
+                { "position", nlohmann::json{ t.position } },
+                { "rotation", nlohmann::json{ t.rotation } },
+                { "scale", nlohmann::json{ t.scale } }
+            };
+        }
+
+        void fromJson(entt::entity ent, entt::registry& reg, const nlohmann::json& j) override {
+            auto& t = reg.emplace<Transform>(ent);
+            t.position = j["position"].get<glm::vec3>();
+            t.rotation = j["rotation"].get<glm::quat>();
+            t.scale = j["scale"].get<glm::vec3>();
         }
     };
 
@@ -251,6 +270,41 @@ namespace worlds {
                 READ_FIELD(file, wo.uvOverride);
             }
         }
+
+        void toJson(entt::entity ent, entt::registry& reg, json& j) override {
+            auto& wo = reg.get<WorldObject>(ent);
+
+            uint32_t materialCount = wo.presentMaterials.count();
+            nlohmann::json matArray;
+
+            for (uint32_t i = 0; i < materialCount; i++) {
+                matArray.push_back(wo.materials[i]);
+            }
+
+            j = {
+                { "mesh", g_assetDB.getAssetPath(wo.mesh) },
+                { "texScaleOffset", wo.texScaleOffset },
+                { "uvOverride", wo.uvOverride },
+                { "materials", matArray },
+                { "staticFlags", wo.staticFlags }
+            };
+        }
+
+        void fromJson(entt::entity ent, entt::registry& reg, const json& j) override {
+            auto& wo = reg.emplace<WorldObject>(ent, 0, 0);
+            wo.mesh = g_assetDB.addOrGetExisting(j["mesh"]);
+            wo.texScaleOffset = j["texScaleOffset"];
+            wo.uvOverride = j["uvOverride"];
+            wo.staticFlags = j["staticFlags"];
+
+            uint32_t matIdx = 0;
+
+            for (auto& v : j["materials"]) {
+                wo.presentMaterials[matIdx] = true;
+                wo.materials[matIdx] = v;
+                matIdx++;
+            }
+        }
     };
 
     const std::unordered_map<LightType, const char*> lightTypeNames = {
@@ -327,6 +381,30 @@ namespace worlds {
                 READ_FIELD(file, wl.tubeLength);
                 READ_FIELD(file, wl.tubeRadius);
             }
+        }
+
+        void toJson(entt::entity ent, entt::registry& reg, json& j) override {
+            auto& wl = reg.get<WorldLight>(ent);
+
+            j = {
+                { "type", wl.type },
+                { "color", wl.color },
+                { "spotCutoff", wl.spotCutoff },
+                { "intensity", wl.intensity },
+                { "tubeLength", wl.tubeLength },
+                { "tubeRadius", wl.tubeRadius }
+            };
+        }
+
+        void fromJson(entt::entity ent, entt::registry& reg, const json& j) override {
+            auto& wl = reg.emplace<WorldLight>(ent);
+
+            wl.type = j["type"];
+            wl.color = j["color"];
+            wl.spotCutoff = j["spotCutoff"];
+            wl.intensity = j["intensity"];
+            wl.tubeLength = j["tubeLength"];
+            wl.tubeRadius = j["tubeRadius"];
         }
     };
 
@@ -580,6 +658,74 @@ namespace worlds {
 
             updatePhysicsShapes(pa, t.scale);
         }
+
+        void toJson(entt::entity ent, entt::registry& reg, json& j) override {
+            auto& pa = reg.get<PhysicsActor>(ent);
+            json shapeArray;
+
+            for (auto& shape : pa.physicsShapes) {
+                json jShape = {
+                    { "type", shape.type },
+                    { "position", shape.pos },
+                    { "rotation", shape.rot }
+                };
+
+                switch (shape.type) {
+                    case PhysicsShapeType::Sphere:
+                        jShape["radius"] = shape.sphere.radius;
+                        break;
+                    case PhysicsShapeType::Box:
+                        jShape["halfExtents"] = shape.box.halfExtents;
+                        break;
+                    case PhysicsShapeType::Capsule:
+                        jShape["height"] = shape.capsule.height;
+                        jShape["radius"] = shape.capsule.radius;
+                        break;
+                    default:
+                        assert(false && "invalid physics shape type");
+                        break;
+                }
+
+                shapeArray.push_back(jShape);
+            }
+
+            j["shapes"] = shapeArray;
+        }
+
+        void fromJson(entt::entity ent, entt::registry& reg, const json& j) override {
+            auto* pActor = g_physics->createRigidStatic(glm2px(reg.get<Transform>(ent)));
+            g_scene->addActor(*pActor);
+
+            PhysicsActor& pa = reg.emplace<PhysicsActor>(ent, pActor);
+
+            for (auto& shape : j["shapes"]) {
+                PhysicsShape ps;
+
+                ps.type = shape["type"];
+
+                switch (ps.type) {
+                    case PhysicsShapeType::Sphere:
+                        ps.sphere.radius = shape["radius"];
+                        break;
+                    case PhysicsShapeType::Box:
+                        ps.box.halfExtents = shape["halfExtents"];
+                        break;
+                    case PhysicsShapeType::Capsule:
+                        ps.capsule.height = shape["height"];
+                        ps.capsule.radius = shape["radius"];
+                        break;
+                    default:
+                        assert(false && "invalid physics shape type");
+                        break;
+                }
+
+                pa.physicsShapes.push_back(ps);
+            }
+
+            auto& t = reg.get<Transform>(ent);
+
+            updatePhysicsShapes(pa, t.scale);
+        }
     };
 
     class DynamicPhysicsActorEditor : public BasicComponentUtil<DynamicPhysicsActor> {
@@ -707,6 +853,77 @@ namespace worlds {
             updatePhysicsShapes(pa, t.scale);
             updateMass(pa);
         }
+
+        void toJson(entt::entity ent, entt::registry& reg, json& j) override {
+            auto& pa = reg.get<DynamicPhysicsActor>(ent);
+            json shapeArray;
+
+            for (auto& shape : pa.physicsShapes) {
+                json jShape = {
+                    { "type", shape.type },
+                    { "position", shape.pos },
+                    { "rotation", shape.rot }
+                };
+
+                switch (shape.type) {
+                    case PhysicsShapeType::Sphere:
+                        jShape["radius"] = shape.sphere.radius;
+                        break;
+                    case PhysicsShapeType::Box:
+                        jShape["halfExtents"] = shape.box.halfExtents;
+                        break;
+                    case PhysicsShapeType::Capsule:
+                        jShape["height"] = shape.capsule.height;
+                        jShape["radius"] = shape.capsule.radius;
+                        break;
+                    default:
+                        assert(false && "invalid physics shape type");
+                        break;
+                }
+
+                shapeArray.push_back(jShape);
+            }
+
+            j["shapes"] = shapeArray;
+            j["mass"] = pa.mass;
+        }
+
+        void fromJson(entt::entity ent, entt::registry& reg, const json& j) override {
+            auto* pActor = g_physics->createRigidStatic(glm2px(reg.get<Transform>(ent)));
+            g_scene->addActor(*pActor);
+
+            auto& pa = reg.emplace<DynamicPhysicsActor>(ent, pActor);
+
+            for (auto& shape : j["shapes"]) {
+                PhysicsShape ps;
+
+                ps.type = shape["type"];
+
+                switch (ps.type) {
+                    case PhysicsShapeType::Sphere:
+                        ps.sphere.radius = shape["radius"];
+                        break;
+                    case PhysicsShapeType::Box:
+                        ps.box.halfExtents = shape["halfExtents"];
+                        break;
+                    case PhysicsShapeType::Capsule:
+                        ps.capsule.height = shape["height"];
+                        ps.capsule.radius = shape["radius"];
+                        break;
+                    default:
+                        assert(false && "invalid physics shape type");
+                        break;
+                }
+
+                pa.physicsShapes.push_back(ps);
+            }
+
+            auto& t = reg.get<Transform>(ent);
+
+            updatePhysicsShapes(pa, t.scale);
+            pa.mass = j["mass"];
+            updateMass(pa);
+        }
     };
 
     class NameComponentEditor : public BasicComponentUtil<NameComponent> {
@@ -747,6 +964,18 @@ namespace worlds {
 
             nc.name.resize(nameLen);
             PHYSFS_readBytes(file, nc.name.data(), nameLen);
+        }
+
+        void toJson(entt::entity ent, entt::registry& reg, json& j) override {
+            auto& nc = reg.get<NameComponent>(ent);
+            j = {
+                { "name", nc.name }
+            };
+        }
+
+        void fromJson(entt::entity ent, entt::registry& reg, const json& j) override {
+            auto& nc = reg.emplace<NameComponent>(ent);
+            nc.name = j["name"];
         }
     };
 
@@ -798,6 +1027,30 @@ namespace worlds {
             READ_FIELD(file, as.spatialise);
             READ_FIELD(file, as.volume);
         }
+
+        void toJson(entt::entity ent, entt::registry& reg, json& j) override {
+            auto& as = reg.get<AudioSource>(ent);
+
+            j = {
+                { "clipPath", g_assetDB.getAssetPath(as.clipId) },
+                { "channel", as.channel },
+                { "loop", as.loop },
+                { "playOnSceneOpen", as.playOnSceneOpen },
+                { "spatialise", as.spatialise },
+                { "volume", as.volume }
+            };
+        }
+
+        void fromJson(entt::entity ent, entt::registry& reg, const json& j) override {
+            AssetID id = g_assetDB.addOrGetExisting(j["clipPath"]);
+            auto& as = reg.emplace<AudioSource>(ent, id);
+
+            as.channel = j["channel"];
+            as.loop = j["loop"];
+            as.playOnSceneOpen = j["playOnSceneOpen"];
+            as.spatialise = j["spatialise"];
+            as.volume = j["volume"];
+        }
     };
 
     class WorldCubemapEditor : public BasicComponentUtil<WorldCubemap> {
@@ -845,6 +1098,25 @@ namespace worlds {
                 READ_FIELD(file, wc.cubeParallax);
             }
         }
+
+        void toJson(entt::entity ent, entt::registry& reg, json& j) override {
+            auto& wc = reg.get<WorldCubemap>(ent);
+
+            j = {
+                { "path", g_assetDB.getAssetPath(wc.cubemapId) },
+                { "useCubeParallax", wc.cubeParallax },
+                { "extent", wc.extent }
+            };
+        }
+
+        void fromJson(entt::entity ent, entt::registry& reg, const json& j) override {
+            AssetID cubemapId = g_assetDB.addOrGetExisting(j["path"]);
+            auto& wc = reg.emplace<WorldCubemap>(ent);
+
+            wc.cubemapId = cubemapId;
+            wc.extent = j["extent"];
+            wc.cubeParallax = j["useCubeParallax"];
+        }
     };
 
     class ScriptComponentEditor : public BasicComponentUtil<ScriptComponent> {
@@ -886,6 +1158,18 @@ namespace worlds {
             READ_FIELD(file, aid);
             auto& sc = reg.emplace<ScriptComponent>(ent, aid);
         }
+
+        void toJson(entt::entity ent, entt::registry& reg, json& j) override {
+            auto& sc = reg.get<ScriptComponent>(ent);
+            j = {
+                { "path", g_assetDB.getAssetPath(sc.script) }
+            };
+        }
+
+        void fromJson(entt::entity ent, entt::registry& reg, const json& j) override {
+            AssetID scriptID = g_assetDB.addOrGetExisting(j["path"]);
+            reg.emplace<ScriptComponent>(ent, scriptID);
+        }
     };
 
     class ReverbProbeBoxEditor : public BasicComponentUtil<ReverbProbeBox> {
@@ -914,6 +1198,19 @@ namespace worlds {
             auto& rbp = reg.emplace<ReverbProbeBox>(ent);
             READ_FIELD(file, rbp.bounds);
         }
+
+        void toJson(entt::entity ent, entt::registry& reg, json& j) override {
+            auto& rbp = reg.get<ReverbProbeBox>(ent);
+
+            j = {
+                { "bounds", rbp.bounds }
+            };
+        }
+
+        void fromJson(entt::entity ent, entt::registry& reg, const json& j) override {
+            auto& rbp = reg.emplace<ReverbProbeBox>(ent);
+            rbp.bounds = j["bounds"];
+        }
     };
 
     class AudioTriggerEditor : public BasicComponentUtil<AudioTrigger> {
@@ -935,16 +1232,37 @@ namespace worlds {
             }
         }
 
+        // hasPlayed was incorrectly serialized here
+        // to avoid breaking binary compatibility we'll just serialize dummy values
+        // for now
         void writeToFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file) override {
             auto& at = reg.get<AudioTrigger>(ent);
             WRITE_FIELD(file, at.playOnce);
-            WRITE_FIELD(file, at.hasPlayed);
+
+            bool hasPlayed = false;
+            WRITE_FIELD(file, hasPlayed);
         }
 
         void readFromFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file, int version) override {
             auto& at = reg.emplace<AudioTrigger>(ent);
             READ_FIELD(file, at.playOnce);
-            READ_FIELD(file, at.hasPlayed);
+
+            bool hasPlayed;
+            READ_FIELD(file, hasPlayed);
+        }
+
+        void toJson(entt::entity ent, entt::registry& reg, json& j) override {
+            auto& at = reg.get<AudioTrigger>(ent);
+
+            j = {
+                { "playOnce", at.playOnce }
+            };
+        }
+
+        void fromJson(entt::entity ent, entt::registry& reg, const json& j) override {
+            auto& at = reg.emplace<AudioTrigger>(ent);
+
+            at.playOnce = j["playOnce"];
         }
     };
 
@@ -976,6 +1294,20 @@ namespace worlds {
         void readFromFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file, int version) override {
             auto& pac = reg.emplace<ProxyAOComponent>(ent);
             READ_FIELD(file, pac.bounds);
+        }
+
+        void toJson(entt::entity ent, entt::registry& reg, json& j) override {
+            auto& pac = reg.get<ProxyAOComponent>(ent);
+
+            j = {
+                { "bounds", pac.bounds }
+            };
+        }
+
+        void fromJson(entt::entity ent, entt::registry& reg, const json& j) override {
+            auto& pac = reg.emplace<ProxyAOComponent>(ent);
+
+            pac.bounds = j["bounds"];
         }
     };
 
