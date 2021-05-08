@@ -48,7 +48,7 @@ uint32_t findPresentQueue(vk::PhysicalDevice pd, vk::SurfaceKHR surface) {
 
     for (uint32_t qi = 0; qi != qprops.size(); ++qi) {
         auto& qprop = qprops[qi];
-        
+
         if (pd.getSurfaceSupportKHR(qi, surface) && enumHasFlag(qprop.queueFlags, vk::QueueFlagBits::eGraphics)) {
             return qi;
         }
@@ -111,8 +111,7 @@ void VKRenderer::createInstance(const RendererInitInfo& initInfo) {
         instanceExtensions.push_back(extName);
 
     if (initInfo.enableVR && initInfo.activeVrApi == VrApi::OpenVR) {
-        OpenVRInterface* vrInterface = static_cast<OpenVRInterface*>(initInfo.vrInterface);
-        auto vrInstExts = vrInterface->getVulkanInstanceExtensions();
+        auto vrInstExts = initInfo.vrInterface->getVulkanInstanceExtensions();
 
         for (auto& extName : vrInstExts) {
             if (std::find_if(instanceExtensions.begin(), instanceExtensions.end(), [&extName](std::string val) { return val == extName; }) != instanceExtensions.end()) {
@@ -179,11 +178,6 @@ void logPhysDevInfo(const vk::PhysicalDevice& physicalDevice) {
     logMsg(worlds::WELogCategoryRender, "Approx. %hu MB total accessible graphics memory (NOT VRAM!)", totalVram / 1024 / 1024);
 }
 
-struct ChainPiece {
-    vk::StructureType sType;
-    void* pNext;
-};
-
 bool checkPhysicalDeviceFeatures(const vk::PhysicalDevice& physDev) {
     vk::PhysicalDeviceFeatures supportedFeatures = physDev.getFeatures();
     if (!supportedFeatures.shaderStorageImageMultisample) {
@@ -233,7 +227,7 @@ bool isDeviceBetter(vk::PhysicalDevice a, vk::PhysicalDevice b) {
     auto aProps = a.getProperties();
     auto bProps = b.getProperties();
 
-    if (bProps.deviceType == vk::PhysicalDeviceType::eDiscreteGpu && 
+    if (bProps.deviceType == vk::PhysicalDeviceType::eDiscreteGpu &&
             aProps.deviceType == vk::PhysicalDeviceType::eIntegratedGpu) {
         return true;
     } else if (aProps.deviceType == vk::PhysicalDeviceType::eDiscreteGpu &&
@@ -347,8 +341,7 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
 
     std::vector<std::string> vrDevExts;
     if (initInfo.enableVR && initInfo.activeVrApi == VrApi::OpenVR) {
-        OpenVRInterface* vrInterface = static_cast<OpenVRInterface*>(initInfo.vrInterface);
-        vrDevExts = vrInterface->getVulkanDeviceExtensions(physicalDevice);
+        vrDevExts = initInfo.vrInterface->getVulkanDeviceExtensions(physicalDevice);
         for (auto& extName : vrDevExts) {
             dm.extension(extName.c_str());
         }
@@ -821,19 +814,21 @@ void VKRenderer::submitToOpenVR() {
         .vMax = 1.0f
     };
 
-    vr::VRVulkanTextureData_t vulkanData;
     VkImage vkImg = finalPrePresent->image.image();
-    vulkanData.m_nImage = (uint64_t)vkImg;
-    vulkanData.m_pDevice = (VkDevice_T*)*device;
-    vulkanData.m_pPhysicalDevice = (VkPhysicalDevice_T*)physicalDevice;
-    vulkanData.m_pInstance = (VkInstance_T*)*instance;
-    vulkanData.m_pQueue = (VkQueue_T*)device->getQueue(graphicsQueueFamilyIdx, 0);
-    vulkanData.m_nQueueFamilyIndex = graphicsQueueFamilyIdx;
 
-    vulkanData.m_nWidth = renderWidth;
-    vulkanData.m_nHeight = renderHeight;
-    vulkanData.m_nFormat = VK_FORMAT_R8G8B8A8_UNORM;
-    vulkanData.m_nSampleCount = 1;
+    vr::VRVulkanTextureData_t vulkanData {
+        .m_nImage = (uint64_t)vkImg,
+        .m_pDevice = (VkDevice_T*)*device,
+        .m_pPhysicalDevice = (VkPhysicalDevice_T*)physicalDevice,
+        .m_pInstance = (VkInstance_T*)*instance,
+        .m_pQueue = (VkQueue_T*)device->getQueue(graphicsQueueFamilyIdx, 0),
+        .m_nQueueFamilyIndex = graphicsQueueFamilyIdx,
+        .m_nWidth = renderWidth,
+        .m_nHeight = renderHeight,
+        .m_nFormat = VK_FORMAT_R8G8B8A8_UNORM,
+        .m_nSampleCount = 1
+    };
+
 
     // Image submission with validation layers turned on causes a crash
     // If we really want the validation layers, don't submit anything
@@ -890,9 +885,7 @@ glm::mat4 VKRenderer::getCascadeMatrix(Camera cam, glm::vec3 lightDir, glm::mat4
     if (!enableVR) {
         view = cam.getViewMatrix();
     } else {
-        vr::TrackedDevicePose_t pose;
-        vr::VRSystem()->GetDeviceToAbsoluteTrackingPose(vr::ETrackingUniverseOrigin::TrackingUniverseStanding, vrPredictAmount, &pose, 1);
-        view = glm::inverse(OpenVRInterface::toMat4(pose.mDeviceToAbsoluteTracking)) * cam.getViewMatrix();
+        view = glm::inverse(vrInterface->getHeadTransform(vrPredictAmount)) * cam.getViewMatrix();
     }
 
     glm::mat4 vpInv = glm::inverse(frustumMatrix * view);
@@ -970,10 +963,9 @@ void VKRenderer::calculateCascadeMatrices(entt::registry& world, RenderCtx& rCtx
                     );
                 }
             } else {
-                OpenVRInterface* ovrInterface = static_cast<OpenVRInterface*>(vrInterface);
                 for (int i = 1; i < 4; i++) {
-                    frustumMatrices[i - 1] = ovrInterface->getProjMat(
-                        vr::EVREye::Eye_Left,
+                    frustumMatrices[i - 1] = vrInterface->getEyeProjectionMatrix(
+                        Eye::LeftEye,
                         splits[i - 1], splits[i]
                     );
                 }
@@ -1005,15 +997,13 @@ void VKRenderer::writePassCmds(RTTPassHandle pass, vk::CommandBuffer cmdBuf, ent
     rCtx.shadowImages = shadowImages;
 
     if (enableVR) {
-        OpenVRInterface* ovrInterface = static_cast<OpenVRInterface*>(vrInterface);
-        rCtx.vrProjMats[0] = ovrInterface->getProjMat(vr::EVREye::Eye_Left, rtt.cam->near);
-        rCtx.vrProjMats[1] = ovrInterface->getProjMat(vr::EVREye::Eye_Right, rtt.cam->near);
+        rCtx.vrProjMats[0] = vrInterface->getEyeProjectionMatrix(Eye::LeftEye, rtt.cam->near);
+        rCtx.vrProjMats[1] = vrInterface->getEyeProjectionMatrix(Eye::RightEye, rtt.cam->near);
 
-        vr::TrackedDevicePose_t pose;
-        vr::VRSystem()->GetDeviceToAbsoluteTrackingPose(vr::ETrackingUniverseOrigin::TrackingUniverseStanding, vrPredictAmount, &pose, 1);
+        glm::mat4 hmdMat = vrInterface->getHeadTransform(vrPredictAmount);
 
         for (int i = 0; i < 2; i++) {
-            rCtx.vrViewMats[i] = glm::inverse(OpenVRInterface::toMat4(pose.mDeviceToAbsoluteTracking)) * rtt.cam->getViewMatrix();
+            rCtx.vrViewMats[i] = glm::inverse(hmdMat) * rtt.cam->getViewMatrix();
         }
     }
 
@@ -1169,19 +1159,17 @@ void VKRenderer::writeCmdBuf(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageInde
     cmdBuf->end();
 
     if (enableVR && vrApi == VrApi::OpenVR) {
-        OpenVRInterface* ovrInterface = static_cast<OpenVRInterface*>(vrInterface);
+        glm::mat4 headViewMatrix = vrInterface->getHeadTransform(vrPredictAmount);
 
-        vr::TrackedDevicePose_t pose;
-        vr::VRSystem()->GetDeviceToAbsoluteTrackingPose(vr::ETrackingUniverseOrigin::TrackingUniverseStanding, vrPredictAmount, &pose, 1);
-
-        glm::mat4 viewMats[2];
-        viewMats[0] = ovrInterface->getViewMat(vr::EVREye::Eye_Left);
-        viewMats[1] = ovrInterface->getViewMat(vr::EVREye::Eye_Right);
+        glm::mat4 viewMats[2] = {
+            vrInterface->getEyeViewMatrix(Eye::LeftEye),
+            vrInterface->getEyeViewMatrix(Eye::RightEye)
+        };
 
         glm::vec3 viewPos[2];
 
         for (int i = 0; i < 2; i++) {
-            viewMats[i] = glm::inverse(ovrInterface->toMat4(pose.mDeviceToAbsoluteTracking) * viewMats[i]) * cam.getViewMatrix();
+            viewMats[i] = glm::inverse(headViewMatrix * viewMats[i]) * cam.getViewMatrix();
             viewPos[i] = glm::inverse(viewMats[i])[3];
         }
 
