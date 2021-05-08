@@ -12,10 +12,9 @@
 #include "phonon.h"
 #include "../Core/Fatal.hpp"
 #include <slib/StaticAllocList.hpp>
+#include "../Physics/Physics.hpp"
 
 namespace worlds {
-    int playbackSamples;
-
     double dspTime = 0.0;
 
     AudioSystem::AudioSystem()
@@ -43,22 +42,25 @@ namespace worlds {
     bool copyBuffer = false;
 
     template <typename T>
-    inline void mixClip(AudioSystem::LoadedClip& clip, T& sourceInfo, int numMonoSamplesNeeded, int numSamplesNeeded, float* stream, AudioSystem* _this) {
+    void mixClip(AudioSystem::LoadedClip& clip, T& sourceInfo, int numMonoSamplesNeeded, float* stream, AudioSystem* _this) {
         int samplesRemaining = clip.sampleCount - sourceInfo.playbackPosition;
 
         if (samplesRemaining < 0) return;
 
+        int samplesNeeded = std::min(numMonoSamplesNeeded, samplesRemaining);
+
         float vol = _this->mixerVolumes[static_cast<int>(sourceInfo.channel)] * sourceInfo.volume;
 
+        // Stereo and non-spatialised mono mixing
         if (clip.channels == 2) {
-            for (int i = 0; i < std::min(numMonoSamplesNeeded, samplesRemaining); i++) {
+            for (int i = 0; i < samplesNeeded; i++) {
                 int outPos = i * 2;
                 int inPos = (i + sourceInfo.playbackPosition) * 2;
                 stream[outPos] += clip.data[inPos] * vol;
                 stream[outPos + 1] += clip.data[inPos + 1] * vol;
             }
         } else if (!sourceInfo.spatialise) {
-            for (int i = 0; i < std::min(numMonoSamplesNeeded, samplesRemaining); i++) {
+            for (int i = 0; i < samplesNeeded; i++) {
                 int outPos = i * 2;
                 int inPos = i + sourceInfo.playbackPosition;
                 stream[outPos] += clip.data[inPos] * vol;
@@ -67,40 +69,45 @@ namespace worlds {
         }
 
         if (sourceInfo.spatialise && clip.channels == 1) {
-            IPLAudioFormat clipFormat;
-            clipFormat.channelLayoutType = IPL_CHANNELLAYOUTTYPE_SPEAKERS;
-            clipFormat.channelLayout = IPL_CHANNELLAYOUT_MONO;
-            clipFormat.channelOrder = IPL_CHANNELORDER_INTERLEAVED;
+            IPLAudioFormat clipFormat {
+                .channelLayoutType = IPL_CHANNELLAYOUTTYPE_SPEAKERS,
+                .channelLayout = IPL_CHANNELLAYOUT_MONO,
+                .channelOrder = IPL_CHANNELORDER_INTERLEAVED
+            };
 
             IPLAudioBuffer inBuffer{
-                clipFormat, std::min(numMonoSamplesNeeded, samplesRemaining),
+                clipFormat, samplesNeeded,
                 &clip.data[sourceInfo.playbackPosition], nullptr
             };
 
             IPLAudioBuffer directPathBuffer {
-                clipFormat, std::min(numMonoSamplesNeeded, samplesRemaining),
+                clipFormat, samplesNeeded,
                 tempMonoBuffer, nullptr
+            };
+
+            IPLDirectSoundEffectOptions directSoundOptions {
+                .applyDistanceAttenuation = IPL_TRUE,
+                .applyAirAbsorption = IPL_TRUE,
+                .applyDirectivity = IPL_TRUE,
+                .directOcclusionMode = IPL_DIRECTOCCLUSION_TRANSMISSIONBYFREQUENCY 
             };
 
             iplApplyDirectSoundEffect(_this->directSoundEffect,
                 inBuffer, sourceInfo.soundPath,
-                IPLDirectSoundEffectOptions {
-                    IPL_TRUE,
-                    IPL_TRUE,
-                    IPL_TRUE,
-                    IPL_DIRECTOCCLUSION_NONE
-                }, directPathBuffer);
+                directSoundOptions, directPathBuffer);
 
-            IPLAudioFormat outFormat;
-            outFormat.channelLayoutType = IPL_CHANNELLAYOUTTYPE_SPEAKERS;
-            outFormat.channelLayout = IPL_CHANNELLAYOUT_STEREO;
-            outFormat.channelOrder = IPL_CHANNELORDER_INTERLEAVED;
+            IPLAudioFormat outFormat {
+                .channelLayoutType = IPL_CHANNELLAYOUTTYPE_SPEAKERS,
+                .channelLayout = IPL_CHANNELLAYOUT_STEREO,
+                .channelOrder = IPL_CHANNELORDER_INTERLEAVED
+            };
 
             IPLAudioBuffer outBuffer{
-                outFormat, std::min(numMonoSamplesNeeded, samplesRemaining), tempBuffer, nullptr };
+                outFormat, samplesNeeded,
+                tempBuffer, nullptr
+            };
 
-            glm::vec3 dNorm = glm::normalize(sourceInfo.direction);
-            IPLVector3 dir { dNorm.x, dNorm.y, dNorm.z };
+            IPLVector3 dir { sourceInfo.direction.x, sourceInfo.direction.y, sourceInfo.direction.z };
 
             iplApplyBinauralEffect(
                     sourceInfo.binauralEffect,
@@ -108,16 +115,7 @@ namespace worlds {
                     directPathBuffer, dir,
                     IPL_HRTFINTERPOLATION_BILINEAR, 1.0f, outBuffer);
 
-            //float adjDistance = glm::max(sourceInfo.distance + 1.0f, 1.0f);
-
-            //float distFalloff = 1.0f / (adjDistance * adjDistance);
-
-            //for (int i = 0; i < std::min(numMonoSamplesNeeded, samplesRemaining); i++) {
-            //    stream[i * 2 + 0] += ((float*)inBuffer.interleavedBuffer)[i] * vol * sourceInfo.soundPath.distanceAttenuation;
-            //    stream[i * 2 + 1] += ((float*)inBuffer.interleavedBuffer)[i] * vol * sourceInfo.soundPath.distanceAttenuation;
-            //}
-
-            for (int i = 0; i < std::min(numMonoSamplesNeeded, samplesRemaining); i++) {
+            for (int i = 0; i < samplesNeeded; i++) {
                 stream[i * 2 + 0] += ((float*)tempBuffer)[i * 2 + 0] * vol;
                 stream[i * 2 + 1] += ((float*)tempBuffer)[i * 2 + 1] * vol;
             }
@@ -144,13 +142,11 @@ namespace worlds {
         PerfTimer timer;
 
         // Calculate the length of the buffer in seconds
-        // Buffer Length / number of channels / number of samples / 4 (size of float in bytes)
-        float secondBufferLength = (float)len / (float)_this->channelCount / (float)_this->sampleRate / (float)sizeof(float);
+        //                        number of samples / number of channels / sample rate
+        float secondBufferLength = (float)streamLen / (float)_this->channelCount / (float)_this->sampleRate;
 
-        memset(stream, 0, len);
-
-        int numSamplesNeeded = streamLen;
         int numMonoSamplesNeeded = streamLen / 2;
+        memset(stream, 0, len);
 
         for (auto& p : _this->internalAs) {
             if (!p.second.isPlaying)
@@ -158,31 +154,32 @@ namespace worlds {
 
             auto clipIt = _this->loadedClips.find(p.second.clipId);
 
+            // clip isn't loaded, ignore it
             if (clipIt == _this->loadedClips.end()) {
                 continue;
             }
 
             LoadedClip& playedClip = clipIt->second;
 
-            mixClip(playedClip, p.second, numMonoSamplesNeeded, numSamplesNeeded, stream, _this);
+            mixClip(playedClip, p.second, numMonoSamplesNeeded, stream, _this);
         }
 
         for (auto& c : _this->oneShotClips) {
-            LoadedClip& playedClip = *c.clip;
-
-            mixClip(playedClip, c, numMonoSamplesNeeded, numSamplesNeeded, stream, _this);
+            mixClip(*c.clip, c, numMonoSamplesNeeded, stream, _this);
         }
 
         for (int i = 0; i < streamLen; i++) {
             stream[i] *= _this->volume;
         }
 
+        // for debugging only! otherwise this will unnecessarily slow down
+        // the audio thread
         if (lastBuffer && copyBuffer)
             memcpy(lastBuffer, stream, len);
 
         dspTime += secondBufferLength;
-        auto ms = timer.stopGetMs();
 
+        auto ms = timer.stopGetMs();
         _this->cpuUsage = (ms / (secondBufferLength * 1000.0));
     }
 
@@ -209,10 +206,44 @@ namespace worlds {
         logMsg(WELogCategoryAudio, "Phonon: %s", msg);
     }
 
+    IPLMaterial mainMaterial{0.10f, 0.20f, 0.30f, 0.05f, 0.750f, 0.10f, 0.050f};
+
     void checkIplError(IPLerror err) {
         if (err != IPL_STATUS_SUCCESS) {
             fatalErr("IPL fail");
         }
+    }
+
+    void closestHit(const IPLfloat32* iplOrigin, const IPLfloat32* iplDirection,
+        const IPLfloat32 minDistance, const IPLfloat32 maxDistance, IPLfloat32* hitDistance, IPLfloat32* hitNormal,
+        IPLMaterial** hitMaterial, IPLvoid* userData) {
+        glm::vec3 origin {iplOrigin[0], iplOrigin[1], iplOrigin[2]};
+        glm::vec3 direction {iplDirection[0], iplDirection[1], iplDirection[2]};
+
+        origin += direction * minDistance;
+        RaycastHitInfo hitInfo;
+
+        if (raycast(origin, direction, maxDistance, &hitInfo)) {
+            *hitDistance = hitInfo.distance;
+
+            for (int i = 0; i < 3; i++)
+                hitNormal[i] = hitInfo.normal[i];
+
+            *hitMaterial = &mainMaterial;
+        } else {
+            *hitDistance = INFINITY;
+        }
+    }
+
+    void anyHit(const IPLfloat32* iplOrigin, const IPLfloat32* iplDirection,
+        const IPLfloat32 minDistance, const IPLfloat32 maxDistance, IPLint32* hitExists, IPLvoid* userData) {
+        glm::vec3 origin {iplOrigin[0], iplOrigin[1], iplOrigin[2]};
+        glm::vec3 direction {iplDirection[0], iplDirection[1], iplDirection[2]};
+
+        origin += direction * minDistance;
+
+        RaycastHitInfo hitInfo;
+        *hitExists = raycast(origin, direction, maxDistance, &hitInfo);
     }
 
     AudioSystem* AudioSystem::instance;
@@ -232,7 +263,7 @@ namespace worlds {
         want.samples = 1024;
         want.callback = &AudioSystem::audioCallback;
         want.userdata = this;
-        devId = SDL_OpenAudioDevice(nullptr, false, &want, &have, 0);
+        devId = SDL_OpenAudioDevice(nullptr, false, &want, &have, SDL_AUDIO_ALLOW_SAMPLES_CHANGE);
 
         lastBuffer = (float*)malloc(have.samples * have.channels * sizeof(float));
         tempBuffer = (float*)malloc(have.samples * have.channels * sizeof(float));
@@ -254,17 +285,23 @@ namespace worlds {
         IPLHrtfParams hrtfParams{ IPL_HRTFDATABASETYPE_DEFAULT, nullptr, nullptr };
         checkIplError(iplCreateBinauralRenderer(phononContext, settings, hrtfParams, &binauralRenderer));
 
-        IPLAudioFormat audioIn;
-        audioIn.channelLayoutType = IPL_CHANNELLAYOUTTYPE_SPEAKERS;
-        audioIn.channelLayout = IPL_CHANNELLAYOUT_MONO;
-        audioIn.channelOrder = IPL_CHANNELORDER_INTERLEAVED;
+        IPLAudioFormat audioIn {
+            .channelLayoutType = IPL_CHANNELLAYOUTTYPE_SPEAKERS,
+            .channelLayout = IPL_CHANNELLAYOUT_MONO,
+            .channelOrder = IPL_CHANNELORDER_INTERLEAVED
+        };
 
-        IPLAudioFormat audioOut;
-        audioOut.channelLayoutType = IPL_CHANNELLAYOUTTYPE_SPEAKERS;
-        audioOut.channelLayout = IPL_CHANNELLAYOUT_STEREO;
-        audioOut.channelOrder = IPL_CHANNELORDER_INTERLEAVED;
+        IPLAudioFormat audioOut {
+            .channelLayoutType = IPL_CHANNELLAYOUTTYPE_SPEAKERS,
+            .channelLayout = IPL_CHANNELLAYOUT_STEREO,
+            .channelOrder = IPL_CHANNELORDER_INTERLEAVED
+        };
 
         checkIplError(iplCreateDirectSoundEffect(audioIn, audioIn, settings, &directSoundEffect));
+
+        checkIplError(iplCreateScene(phononContext, nullptr,
+                IPL_SCENETYPE_CUSTOM, 1,
+                &mainMaterial, closestHit, anyHit, nullptr, nullptr, nullptr, &sceneHandle));
 
         IPLSimulationSettings simulationSettings{};
         simulationSettings.sceneType = IPL_SCENETYPE_PHONON;
@@ -279,7 +316,7 @@ namespace worlds {
         simulationSettings.irradianceMinDistance = 0.3f;
 
         checkIplError(iplCreateEnvironment(phononContext, NULL,
-                simulationSettings, NULL, NULL, &environment));
+                simulationSettings, sceneHandle, NULL, &environment));
 
         if (devId == 0) {
             SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION, "Failed to open audio device");
@@ -381,10 +418,44 @@ namespace worlds {
             asi.loop = audioSource.loop;
             asi.spatialise = audioSource.spatialise;
             asi.channel = audioSource.channel;
+
+            if (asi.spatialise) {
+                IPLDistanceAttenuationModel distanceAttenuationModel {
+                    .type = IPL_DISTANCEATTENUATION_DEFAULT
+                };
+
+                IPLAirAbsorptionModel airAbsorptionModel {
+                    .type = IPL_AIRABSORPTION_DEFAULT
+                };
+
+                IPLSource src {
+                    .position = convVec(transform.position),
+                    .ahead = IPLVector3 { 0.0f, 0.0f, 1.0f },
+                    .up = IPLVector3 { 0.0f, 1.0f, 0.0f },
+                    .right = IPLVector3 { 1.0f, 0.0f, 0.0f },
+                    .directivity = IPLDirectivity {
+                        .dipoleWeight = 0.0f,
+                        .dipolePower = 0.0f,
+                        .callback = nullptr
+                    },
+                    .distanceAttenuationModel = distanceAttenuationModel,
+                    .airAbsorptionModel = airAbsorptionModel
+                };
+
+                asi.soundPath = iplGetDirectSoundPath(environment,
+                    convVec(listenerPos),
+                    convVec(listenerRot * glm::vec3 { 0.0f, 0.0f, 1.0f }),
+                    convVec(listenerRot * glm::vec3 { 0.0f, 1.0f, 0.0f }),
+                    src,
+                    5.0f, 
+                    64,
+                    IPL_DIRECTOCCLUSION_TRANSMISSIONBYFREQUENCY,
+                    IPL_DIRECTOCCLUSION_VOLUMETRIC);
+            }
         });
 
         if (oneShotClips.size()) {
-            static slib::StaticAllocList<IPLhandle> fxKillList { 512 };
+            static slib::StaticAllocList<IPLhandle> fxKillList { 64 };
             fxKillList.clear();
             oneShotClips.erase(std::remove_if(oneShotClips.begin(), oneShotClips.end(),
                 [](OneShotClipInfo& clipInfo) {
@@ -403,37 +474,39 @@ namespace worlds {
             c.direction = glm::normalize(glm::normalize(dirVec) * listenerRot);
             c.distance = glm::length(dirVec);
 
-            IPLDistanceAttenuationModel distanceAttenuationModel {
-                .type = IPL_DISTANCEATTENUATION_DEFAULT
-            };
+            if (c.spatialise) {
+                IPLDistanceAttenuationModel distanceAttenuationModel {
+                    .type = IPL_DISTANCEATTENUATION_DEFAULT
+                };
 
-            IPLAirAbsorptionModel airAbsorptionModel {
-                .type = IPL_AIRABSORPTION_DEFAULT
-            };
+                IPLAirAbsorptionModel airAbsorptionModel {
+                    .type = IPL_AIRABSORPTION_DEFAULT
+                };
 
-            IPLSource src {
-                .position = convVec(c.location),
-                .ahead = IPLVector3 { 0.0f, 0.0f, 1.0f },
-                .up = IPLVector3 { 0.0f, 1.0f, 0.0f },
-                .right = IPLVector3 { 1.0f, 0.0f, 0.0f },
-                .directivity = IPLDirectivity {
-                    .dipoleWeight = 0.0f,
-                    .dipolePower = 0.0f,
-                    .callback = nullptr
-                },
-                .distanceAttenuationModel = distanceAttenuationModel,
-                .airAbsorptionModel = airAbsorptionModel
-            };
+                IPLSource src {
+                    .position = convVec(c.location),
+                    .ahead = IPLVector3 { 0.0f, 0.0f, 1.0f },
+                    .up = IPLVector3 { 0.0f, 1.0f, 0.0f },
+                    .right = IPLVector3 { 1.0f, 0.0f, 0.0f },
+                    .directivity = IPLDirectivity {
+                        .dipoleWeight = 0.0f,
+                        .dipolePower = 0.0f,
+                        .callback = nullptr
+                    },
+                    .distanceAttenuationModel = distanceAttenuationModel,
+                    .airAbsorptionModel = airAbsorptionModel
+                };
 
-            c.soundPath = iplGetDirectSoundPath(environment,
-                convVec(listenerPos),
-                convVec(listenerRot * glm::vec3 { 0.0f, 0.0f, 1.0f }),
-                convVec(listenerRot * glm::vec3 { 0.0f, 1.0f, 0.0f }),
-                src,
-                0.0f, // not used yet
-                0, // also not used yet
-                IPL_DIRECTOCCLUSION_NONE,
-                IPL_DIRECTOCCLUSION_RAYCAST);
+                c.soundPath = iplGetDirectSoundPath(environment,
+                    convVec(listenerPos),
+                    convVec(listenerRot * glm::vec3 { 0.0f, 0.0f, 1.0f }),
+                    convVec(listenerRot * glm::vec3 { 0.0f, 1.0f, 0.0f }),
+                    src,
+                    5.0f, // not used yet
+                    64, // also not used yet
+                    IPL_DIRECTOCCLUSION_TRANSMISSIONBYFREQUENCY,
+                    IPL_DIRECTOCCLUSION_VOLUMETRIC);
+            }
         }
 
         SDL_UnlockAudioDevice(devId);

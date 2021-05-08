@@ -100,6 +100,7 @@ namespace worlds {
         entt::entity entity;
         glm::vec3 normal;
         glm::vec3 worldPos;
+        float distance;
     };
 
     bool raycast(physx::PxVec3 position, physx::PxVec3 direction, float maxDist = FLT_MAX, RaycastHitInfo* hitInfo = nullptr);

@@ -142,7 +142,7 @@ namespace worlds {
 
         float mixerVolumes[static_cast<int>(MixerChannel::Count)];
         template <typename T>
-        friend void mixClip(AudioSystem::LoadedClip& clip, T& sourceInfo, int numMonoSamplesNeeded, int numSamplesNeeded, float* stream, AudioSystem* _this);
+        friend void mixClip(AudioSystem::LoadedClip& clip, T& sourceInfo, int numMonoSamplesNeeded, float* stream, AudioSystem* _this);
         LoadedClip missingClip;
     };
 }
