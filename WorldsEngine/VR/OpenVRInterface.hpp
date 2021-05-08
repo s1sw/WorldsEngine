@@ -37,22 +37,21 @@ namespace worlds {
     public:
         void init();
 
-        std::vector<std::string> getVulkanInstanceExtensions();
-        std::vector<std::string> getVulkanDeviceExtensions(VkPhysicalDevice physDevice);
+        std::vector<std::string> getVulkanInstanceExtensions() override;
+        std::vector<std::string> getVulkanDeviceExtensions(VkPhysicalDevice physDevice) override;
 
         void getRenderResolution(uint32_t* x, uint32_t* y);
 
         static glm::mat4 toMat4(vr::HmdMatrix34_t mat);
-
         static glm::mat4 toMat4(vr::HmdMatrix44_t mat);
 
-        glm::mat4 getViewMat(vr::EVREye eye);
+        glm::mat4 getEyeViewMatrix(Eye eye) override;
+        glm::mat4 getEyeProjectionMatrix(Eye eye, float near) override;
+        glm::mat4 getEyeProjectionMatrix(Eye eye, float near, float far) override;
 
-        glm::mat4 getProjMat(vr::EVREye eye, float near);
-        glm::mat4 getProjMat(vr::EVREye eye, float near, float far);
         void updateInput() override;
         bool getHandTransform(Hand hand, Transform& t) override;
-        glm::mat4 getHeadTransform() override;
+        glm::mat4 getHeadTransform(float predictionTime) override;
         glm::vec2 getLocomotionInput() override;
 
         bool getJumpInput() override;

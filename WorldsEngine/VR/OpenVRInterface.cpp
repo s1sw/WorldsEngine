@@ -4,6 +4,13 @@
 #include "../Core/Console.hpp"
 
 namespace worlds {
+    vr::EVREye convEye(Eye e) {
+        if (e == Eye::LeftEye)
+            return vr::EVREye::Eye_Left;
+        else
+            return vr::EVREye::Eye_Right;
+    }
+
     void OpenVRInterface::checkErr(vr::EVRInputError err) {
         if (err != vr::VRInputError_None) {
             logErr("VR Input Error: %i", err);
@@ -124,13 +131,13 @@ namespace worlds {
             mat.m[0][3], mat.m[1][3], mat.m[2][3], mat.m[3][3]);
     }
 
-    glm::mat4 OpenVRInterface::getViewMat(vr::EVREye eye) {
-        return toMat4(system->GetEyeToHeadTransform(eye));
+    glm::mat4 OpenVRInterface::getEyeViewMatrix(Eye eye) {
+        return toMat4(system->GetEyeToHeadTransform(convEye(eye)));
     }
 
-    glm::mat4 OpenVRInterface::getProjMat(vr::EVREye eye, float near) {
+    glm::mat4 OpenVRInterface::getEyeProjectionMatrix(Eye eye, float near) {
         float left, right, top, bottom;
-        system->GetProjectionRaw(eye, &left, &right, &top, &bottom);
+        system->GetProjectionRaw(convEye(eye), &left, &right, &top, &bottom);
 
         glm::mat4 m;
 
@@ -138,8 +145,8 @@ namespace worlds {
         return m;
     }
 
-    glm::mat4 OpenVRInterface::getProjMat(vr::EVREye eye, float near, float far) {
-        return toMat4(system->GetProjectionMatrix(eye, near, far));
+    glm::mat4 OpenVRInterface::getEyeProjectionMatrix(Eye eye, float near, float far) {
+        return toMat4(system->GetProjectionMatrix(convEye(eye), near, far));
     }
 
     void OpenVRInterface::updateInput() {
@@ -184,9 +191,9 @@ namespace worlds {
         return true;
     }
 
-    glm::mat4 OpenVRInterface::getHeadTransform() {
+    glm::mat4 OpenVRInterface::getHeadTransform(float predictionTime) {
         vr::TrackedDevicePose_t hmdPose;
-        system->GetDeviceToAbsoluteTrackingPose(vr::TrackingUniverseStanding, 0.0f, &hmdPose, 1);
+        system->GetDeviceToAbsoluteTrackingPose(vr::TrackingUniverseStanding, predictionTime, &hmdPose, 1);
         return toMat4(hmdPose.mDeviceToAbsoluteTracking);
     }
 
