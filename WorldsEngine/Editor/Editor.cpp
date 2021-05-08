@@ -27,6 +27,7 @@
 #include <nlohmann/json.hpp>
 #undef near
 #undef far
+#include "../Audio/Audio.hpp"
 
 namespace worlds {
     std::unordered_map<ENTT_ID_TYPE, ComponentEditor*> ComponentMetadataManager::metadata;
@@ -531,6 +532,7 @@ namespace worlds {
         interfaces.renderer->setRTTPassActive(sceneViewPass, active);
 
         if (!active) {
+            AudioSystem::getInstance()->setPauseState(false);
             if (inputManager.keyPressed(SDL_SCANCODE_P, true) && inputManager.ctrlHeld() && !inputManager.shiftHeld())
                 g_console->executeCommandStr("reloadAndEdit");
 
@@ -549,6 +551,7 @@ namespace worlds {
             }
             return;
         }
+        AudioSystem::getInstance()->setPauseState(true);
 
         updateWindowTitle();
 
