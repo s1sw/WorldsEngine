@@ -76,6 +76,7 @@ namespace worlds {
             MixerChannel channel;
             IPLDirectSoundPath soundPath;
             IPLhandle binauralEffect;
+            IPLhandle directSoundEffect;
         };
 
         enum class ClipType {
@@ -107,6 +108,7 @@ namespace worlds {
             MixerChannel channel;
             IPLDirectSoundPath soundPath;
             IPLhandle binauralEffect;
+            IPLhandle directSoundEffect;
         };
 
         static void audioCallback(void* userData, uint8_t* streamU8, int len);
@@ -136,8 +138,6 @@ namespace worlds {
 
         IPLhandle phononContext = nullptr;
         IPLhandle binauralRenderer = nullptr;
-        IPLhandle binauralEffect = nullptr;
-        IPLhandle directSoundEffect = nullptr;
         IPLhandle environment = nullptr;
 
         float mixerVolumes[static_cast<int>(MixerChannel::Count)];

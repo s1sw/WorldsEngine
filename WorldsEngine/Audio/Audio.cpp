@@ -89,10 +89,10 @@ namespace worlds {
                 .applyDistanceAttenuation = IPL_TRUE,
                 .applyAirAbsorption = IPL_TRUE,
                 .applyDirectivity = IPL_TRUE,
-                .directOcclusionMode = IPL_DIRECTOCCLUSION_TRANSMISSIONBYFREQUENCY 
+                .directOcclusionMode = IPL_DIRECTOCCLUSION_TRANSMISSIONBYFREQUENCY
             };
 
-            iplApplyDirectSoundEffect(_this->directSoundEffect,
+            iplApplyDirectSoundEffect(sourceInfo.directSoundEffect,
                 inBuffer, sourceInfo.soundPath,
                 directSoundOptions, directPathBuffer);
 
@@ -297,7 +297,6 @@ namespace worlds {
             .channelOrder = IPL_CHANNELORDER_INTERLEAVED
         };
 
-        checkIplError(iplCreateDirectSoundEffect(audioIn, audioIn, settings, &directSoundEffect));
 
         checkIplError(iplCreateScene(phononContext, nullptr,
                 IPL_SCENETYPE_CUSTOM, 1,
@@ -342,38 +341,8 @@ namespace worlds {
 
     void AudioSystem::update(entt::registry& reg, glm::vec3 listenerPos, glm::quat listenerRot) {
         copyBuffer = showAudioOscilloscope.getInt();
-        if (showDebugMenuVar.getInt()) {
-            if (ImGui::Begin("Audio Testing")) {
-                ImColor col = ImColor(1.0f, 1.0f, 1.0f, 1.0f);
-                if (cpuUsage > 0.5f) {
-                    col = ImColor(1.0f, 0.0f, 0.0f, 1.0f);
-                }
-                ImGui::TextColored(col, "CPU Usage: %.2f%%", cpuUsage * 100.0f);
-                ImGui::Text("Playing Clip Count: %zu", reg.view<AudioSource>().size());
-                ImGui::Text("Playing one shot count: %zu", oneShotClips.size());
-                ImGui::SliderFloat("Volume", &volume, 0.0f, 1.0f);
 
-                if (copyBuffer) {
-                    ImGui::PlotLines("L Audio", [](void* data, int idx) {
-                        return ((float*)data)[idx * 2];
-                    }, lastBuffer, numSamples /2, 0, nullptr, -1.0f, 1.0f, ImVec2(300, 150));
-
-                    ImGui::PlotLines("R Audio", [](void* data, int idx) {
-                        return ((float*)data)[idx * 2 + 1];
-                    }, lastBuffer, numSamples /2, 0, nullptr, -1.0f, 1.0f, ImVec2(300, 150));
-                }
-
-                for (auto& p : internalAs) {
-                    ImGui::Separator();
-                    ImGui::Text("Playback position: %i", p.second.playbackPosition);
-                    ImGui::Text("Is Playing: %i", p.second.isPlaying);
-                    ImGui::Text("Volume: %f", p.second.volume);
-                }
-            }
-
-            ImGui::End();
-        }
-
+        PerfTimer timer;
         SDL_LockAudioDevice(devId);
 
         reg.view<AudioSource, AudioTrigger, Transform>().each(
@@ -447,7 +416,7 @@ namespace worlds {
                     convVec(listenerRot * glm::vec3 { 0.0f, 0.0f, 1.0f }),
                     convVec(listenerRot * glm::vec3 { 0.0f, 1.0f, 0.0f }),
                     src,
-                    5.0f, 
+                    5.0f,
                     64,
                     IPL_DIRECTOCCLUSION_TRANSMISSIONBYFREQUENCY,
                     IPL_DIRECTOCCLUSION_VOLUMETRIC);
@@ -455,17 +424,28 @@ namespace worlds {
         });
 
         if (oneShotClips.size()) {
-            static slib::StaticAllocList<IPLhandle> fxKillList { 64 };
-            fxKillList.clear();
+            static slib::StaticAllocList<IPLhandle> binauralKillList { 64 };
+            static slib::StaticAllocList<IPLhandle> directSoundKillList { 64 };
+
+            binauralKillList.clear();
+            directSoundKillList.clear();
+
             oneShotClips.erase(std::remove_if(oneShotClips.begin(), oneShotClips.end(),
                 [](OneShotClipInfo& clipInfo) {
-                    if (clipInfo.finished) fxKillList.add(clipInfo.binauralEffect);
+                    if (clipInfo.finished && clipInfo.spatialise) {
+                        binauralKillList.add(clipInfo.binauralEffect);
+                        directSoundKillList.add(clipInfo.directSoundEffect);
+                    }
                     return clipInfo.finished;
                 }
             ), oneShotClips.end());
 
-            for (auto& handle : fxKillList) {
+            for (auto& handle : binauralKillList) {
                 iplDestroyBinauralEffect(&handle);
+            }
+
+            for (auto& handle : directSoundKillList) {
+                iplDestroyDirectSoundEffect(&handle);
             }
         }
 
@@ -510,6 +490,41 @@ namespace worlds {
         }
 
         SDL_UnlockAudioDevice(devId);
+
+        double timerMs = timer.stopGetMs();
+        if (showDebugMenuVar.getInt()) {
+            if (ImGui::Begin("Audio Testing")) {
+                ImColor col = ImColor(1.0f, 1.0f, 1.0f, 1.0f);
+                if (cpuUsage > 0.5f) {
+                    col = ImColor(1.0f, 0.0f, 0.0f, 1.0f);
+                }
+                ImGui::TextColored(col, "Audio Thread Usage: %.2f%%", cpuUsage * 100.0f);
+                ImGui::Text("Main thread audio update: %.2fms", timerMs);
+                ImGui::Text("Playing Clip Count: %zu", reg.view<AudioSource>().size());
+                ImGui::Text("Playing one shot count: %zu", oneShotClips.size());
+                ImGui::Text("Buffer length: %u", numSamples);
+                ImGui::SliderFloat("Volume", &volume, 0.0f, 1.0f);
+
+                if (copyBuffer) {
+                    ImGui::PlotLines("L Audio", [](void* data, int idx) {
+                        return ((float*)data)[idx * 2];
+                    }, lastBuffer, numSamples /2, 0, nullptr, -1.0f, 1.0f, ImVec2(300, 150));
+
+                    ImGui::PlotLines("R Audio", [](void* data, int idx) {
+                        return ((float*)data)[idx * 2 + 1];
+                    }, lastBuffer, numSamples /2, 0, nullptr, -1.0f, 1.0f, ImVec2(300, 150));
+                }
+
+                for (auto& p : internalAs) {
+                    ImGui::Separator();
+                    ImGui::Text("Playback position: %i", p.second.playbackPosition);
+                    ImGui::Text("Is Playing: %i", p.second.isPlaying);
+                    ImGui::Text("Volume: %f", p.second.volume);
+                }
+            }
+
+            ImGui::End();
+        }
     }
 
     void AudioSystem::setPauseState(bool paused) {
@@ -537,7 +552,8 @@ namespace worlds {
             loadAudioClip(id);
         SDL_LockAudioDevice(devId);
 
-        IPLhandle effect;
+        IPLhandle binauralEffect;
+        IPLhandle directSoundEffect;
 
         IPLAudioFormat audioIn;
         audioIn.channelLayoutType = IPL_CHANNELLAYOUTTYPE_SPEAKERS;
@@ -549,9 +565,19 @@ namespace worlds {
         audioOut.channelLayout = IPL_CHANNELLAYOUT_STEREO;
         audioOut.channelOrder = IPL_CHANNELORDER_INTERLEAVED;
 
-        checkIplError(iplCreateBinauralEffect(binauralRenderer, audioIn, audioOut, &effect));
+        IPLRenderingSettings settings{ sampleRate, numSamples, IPL_CONVOLUTIONTYPE_PHONON };
 
-        oneShotClips.push_back(OneShotClipInfo{ &loadedClips.at(id), 0, location, glm::vec3(0.0f), spatialise, volume, false, false, false, 0.01f, channel, {}, effect });
+        if (spatialise) {
+            checkIplError(iplCreateDirectSoundEffect(audioIn, audioIn, settings, &directSoundEffect));
+            checkIplError(iplCreateBinauralEffect(binauralRenderer, audioIn, audioOut, &binauralEffect));
+        } else {
+            directSoundEffect = nullptr;
+            binauralEffect = nullptr;
+        }
+
+        oneShotClips.push_back(OneShotClipInfo{
+                &loadedClips.at(id), 0, location, glm::vec3(0.0f), spatialise, volume,
+                false, false, false, 0.01f, channel, {}, binauralEffect, directSoundEffect });
 
         SDL_UnlockAudioDevice(devId);
     }
@@ -578,6 +604,9 @@ namespace worlds {
         audioOut.channelLayout = IPL_CHANNELLAYOUT_STEREO;
         audioOut.channelOrder = IPL_CHANNELORDER_INTERLEAVED;
 
+        IPLRenderingSettings settings{ sampleRate, numSamples, IPL_CONVOLUTIONTYPE_PHONON };
+
+        checkIplError(iplCreateDirectSoundEffect(audioIn, audioIn, settings, &asi.directSoundEffect));
         checkIplError(iplCreateBinauralEffect(binauralRenderer, audioIn, audioOut, &asi.binauralEffect));
 
         internalAs.insert({ ent, asi });
