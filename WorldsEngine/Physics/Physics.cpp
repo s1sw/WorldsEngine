@@ -311,6 +311,7 @@ namespace worlds {
             hitInfo->normal = px2glm(hitBuf.block.normal);
             hitInfo->worldPos = px2glm(hitBuf.block.position);
             hitInfo->entity = (entt::entity)(uintptr_t)hitBuf.block.actor->userData;
+            hitInfo->distance = hitBuf.block.distance;
         }
 
         return hit;

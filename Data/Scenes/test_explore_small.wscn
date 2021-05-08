@@ -4691,6 +4691,51 @@
       "uvOverride": 4
     }
   },
+  "228": {
+    "Audio Source": {
+      "channel": 1,
+      "clipPath": "Audio/Music/headphone loop mono.ogg",
+      "loop": true,
+      "playOnSceneOpen": true,
+      "spatialise": true,
+      "volume": 1.0
+    },
+    "Name Component": {
+      "name": "Empty"
+    },
+    "Transform": {
+      "position": [
+        4.925281587020436e-07,
+        1.5067387819290161,
+        -5.296236038208008
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        0.10000000149011612,
+        0.10000000149011612,
+        0.10000000149011612
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/dev.json"
+      ],
+      "mesh": "model.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
   "229": {
     "Audio Source": {
       "channel": 1,
