@@ -250,7 +250,7 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     , shadowmapImage(nullptr)
     , imguiImage(nullptr)
     , window(initInfo.window)
-    , shadowmapRes(1024)
+    , shadowmapRes(2048)
     , enableVR(initInfo.enableVR)
     , pickingPRP(nullptr)
     , vrPRP(nullptr)
@@ -829,7 +829,6 @@ void VKRenderer::submitToOpenVR() {
         .m_nSampleCount = 1
     };
 
-
     // Image submission with validation layers turned on causes a crash
     // If we really want the validation layers, don't submit anything
     if (!vrValidationLayers) {
@@ -859,14 +858,14 @@ void VKRenderer::uploadSceneAssets(entt::registry& reg) {
         if (loadedMeshes.find(wo.mesh) == loadedMeshes.end()) {
             preloadMesh(wo.mesh);
         }
-        });
+    });
 
     reg.view<ProceduralObject>().each([&](auto, ProceduralObject& po) {
         if (po.materialIdx == ~0u) {
             reuploadMats = true;
             po.materialIdx = matSlots->loadOrGet(po.material);
         }
-        });
+    });
 
     reg.view<WorldCubemap>().each([&](auto, WorldCubemap& wc) {
         if (!cubemapSlots->isLoaded(wc.cubemapId)) {
@@ -1035,7 +1034,6 @@ void VKRenderer::writeCmdBuf(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageInde
     rCtx.tracyContexts = &tracyContexts;
 #endif
 
-
     vk::CommandBufferBeginInfo cbbi;
     cbbi.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
 
@@ -1108,7 +1106,12 @@ void VKRenderer::writeCmdBuf(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageInde
             vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eTransferRead);
     }
 
-    cmdBuf->clearColorImage(swapchain->images[imageIndex], vk::ImageLayout::eTransferDstOptimal, vk::ClearColorValue{ std::array<float, 4>{ 0.0f, 0.0f, 0.0f, 1.0f } }, vk::ImageSubresourceRange{ vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1 });
+    cmdBuf->clearColorImage(
+        swapchain->images[imageIndex],
+        vk::ImageLayout::eTransferDstOptimal,
+        vk::ClearColorValue{ std::array<float, 4>{ 0.0f, 0.0f, 0.0f, 1.0f } },
+        vk::ImageSubresourceRange{ vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1 }
+    );
 
     if (!enableVR) {
         vk::ImageBlit imageBlit;

@@ -180,7 +180,6 @@ namespace worlds {
 
     std::unordered_map<entt::entity, physx::PxTransform> currentState;
     std::unordered_map<entt::entity, physx::PxTransform> previousState;
-    extern std::function<void(AssetID, entt::registry&)> onSceneLoad;
 
     void WorldsEngine::setupPhysfs(char* argv0) {
         const char* dataFolder = "Data";
@@ -514,26 +513,6 @@ namespace worlds {
             }
         }
 
-        onSceneLoad = [&](AssetID id, entt::registry& reg) {
-            currentScene.name = std::filesystem::path(g_assetDB.getAssetPath(id)).stem().string();
-            currentScene.id = id;
-
-            if (evtHandler && (!runAsEditor || !editor->active)) {
-                evtHandler->onSceneStart(reg);
-
-                for (auto* system : systems)
-                    system->onSceneStart(registry);
-
-                scriptEngine->onSceneStart();
-            }
-
-            registry.view<AudioSource>().each([](auto, auto& as) {
-                if (as.playOnSceneOpen) {
-                    as.isPlaying = true;
-                }
-            });
-        };
-
         uint32_t w = 1600;
         uint32_t h = 900;
 
@@ -832,12 +811,31 @@ namespace worlds {
 
             if (sceneLoadQueued) {
                 sceneLoadQueued = false;
-                deserializeScene(queuedSceneID, registry);
+                PHYSFS_File* file = g_assetDB.openAssetFileRead(queuedSceneID);
+                SceneLoader::loadScene(file, registry);
 
                 if (renderer) {
                     renderer->uploadSceneAssets(registry);
                     renderer->unloadUnusedMaterials(registry);
                 }
+
+                currentScene.name = std::filesystem::path(g_assetDB.getAssetPath(queuedSceneID)).stem().string();
+                currentScene.id = queuedSceneID;
+
+                if (evtHandler && (!runAsEditor || !editor->active)) {
+                    evtHandler->onSceneStart(registry);
+
+                    for (auto* system : systems)
+                        system->onSceneStart(registry);
+
+                    scriptEngine->onSceneStart();
+                }
+
+                registry.view<AudioSource>().each([](auto, auto& as) {
+                    if (as.playOnSceneOpen) {
+                        as.isPlaying = true;
+                    }
+                });
             }
 
             lastUpdateTime = updateTime;
