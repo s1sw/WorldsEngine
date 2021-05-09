@@ -55,7 +55,7 @@ namespace worlds {
 
         vku::UniformBuffer vpUB;
         vku::UniformBuffer lightsUB;
-        vku::UniformBuffer modelMatrixUB;
+        vku::GenericBuffer modelMatrixUB;
         vku::GenericBuffer pickingBuffer;
         vku::GenericBuffer lineVB;
         uint32_t currentLineVBSize;

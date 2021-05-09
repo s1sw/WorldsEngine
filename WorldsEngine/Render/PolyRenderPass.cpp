@@ -174,10 +174,22 @@ namespace worlds {
         plm.descriptorSetLayout(*dsl);
         pipelineLayout = plm.createUnique(ctx.device);
 
-        vpUB = vku::UniformBuffer(ctx.device, ctx.allocator, sizeof(MultiVP), VMA_MEMORY_USAGE_CPU_TO_GPU, "VP");
-        lightsUB = vku::UniformBuffer(ctx.device, ctx.allocator, sizeof(LightUB), VMA_MEMORY_USAGE_CPU_TO_GPU, "Lights");
-        modelMatrixUB = vku::UniformBuffer(ctx.device, ctx.allocator, sizeof(ModelMatrices), VMA_MEMORY_USAGE_CPU_TO_GPU, "Model matrices");
-        pickingBuffer = vku::GenericBuffer(ctx.device, ctx.allocator, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst, sizeof(PickingBuffer), VMA_MEMORY_USAGE_CPU_ONLY, "Picking buffer");
+        vpUB = vku::UniformBuffer(
+                ctx.device, ctx.allocator, sizeof(MultiVP),
+                VMA_MEMORY_USAGE_CPU_TO_GPU, "VP");
+
+        lightsUB = vku::UniformBuffer(
+                ctx.device, ctx.allocator, sizeof(LightUB),
+                VMA_MEMORY_USAGE_CPU_TO_GPU, "Lights");
+
+        modelMatrixUB = vku::GenericBuffer(
+                ctx.device, ctx.allocator,
+                vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
+                sizeof(ModelMatrices), VMA_MEMORY_USAGE_CPU_TO_GPU, "Model matrices");
+
+        pickingBuffer = vku::GenericBuffer(
+                ctx.device, ctx.allocator, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
+                sizeof(PickingBuffer), VMA_MEMORY_USAGE_CPU_ONLY, "Picking buffer");
 
         modelMatricesMapped = (ModelMatrices*)modelMatrixUB.map(ctx.device);
         lightMapped = (LightUB*)lightsUB.map(ctx.device);

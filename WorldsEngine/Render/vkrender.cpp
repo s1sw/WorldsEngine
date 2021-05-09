@@ -588,7 +588,10 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     shadowCascadePass = new ShadowCascadePass(shadowmapImage);
     shadowCascadePass->setup(psc);
 
-    materialUB = vku::UniformBuffer(*device, allocator, sizeof(MaterialsUB), VMA_MEMORY_USAGE_GPU_ONLY, "Materials");
+    materialUB = vku::GenericBuffer(
+            *device, allocator,
+            vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
+            sizeof(MaterialsUB), VMA_MEMORY_USAGE_GPU_ONLY, "Materials");
 
     MaterialsUB materials;
     materialUB.upload(*device, *commandPool, device->getQueue(graphicsQueueFamilyIdx, 0), &materials, sizeof(materials));
