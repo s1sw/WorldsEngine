@@ -16,16 +16,11 @@ layout(std140, binding = 3) buffer ModelMatrices {
 	mat4 modelMatrices[1024];
 };
 
-layout(push_constant) uniform PushConstants {
-	vec4 texScaleOffset;
-	// (x: model matrix index, y: material index, z: vp index)
-	ivec4 ubIndices;
-    ivec2 pixelPickCoords;
-};
+#include <standard_push_constants.glsl>
 
 void main() {
-    mat4 model = modelMatrices[ubIndices.x];
-	uint vpIdx = ubIndices.z;
+    mat4 model = modelMatrices[modelMatrixIdx];
+    uint vpIdx = vpIdx;
 	#ifndef AMD_VIEWINDEX_WORKAROUND
 	vpIdx += gl_ViewIndex;
 	#endif

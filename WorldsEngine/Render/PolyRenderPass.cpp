@@ -15,16 +15,18 @@ namespace worlds {
     ConVar dbgDrawMode("r_dbgDrawMode", "0", "0 = Normal, 1 = Normals, 2 = Metallic, 3 = Roughness, 4 = AO");
 
     struct StandardPushConstants {
-        glm::vec4 texScaleOffset;
-        // (x: model matrix index, y: material index, z: specular cubemap index, w: object picking id)
         uint32_t modelMatrixIdx;
         uint32_t materialIdx;
         uint32_t vpIdx;
         uint32_t objectId;
-        glm::ivec3 screenSpacePickPos;
-        uint32_t cubemapIdx;
+
         glm::vec4 cubemapExt;
         glm::vec4 cubemapPos;
+
+        glm::vec4 texScaleOffset;
+
+        glm::ivec3 screenSpacePickPos;
+        uint32_t cubemapIdx;
     };
 
     struct SkyboxPushConstants {
@@ -49,7 +51,6 @@ namespace worlds {
     void PolyRenderPass::updateDescriptorSets(PassSetupCtx& ctx) {
         ZoneScoped;
         auto& texSlots = ctx.slotArrays.textures;
-        auto& matSlots = ctx.slotArrays.materials;
         auto& cubemapSlots = ctx.slotArrays.cubemaps;
         {
             vku::DescriptorSetUpdater updater(10, 128, 0);
@@ -810,7 +811,6 @@ namespace worlds {
         rpbi.pClearValues = clearColours.data();
 
         vk::CommandBuffer cmdBuf = ctx.cmdBuf;
-        entt::registry& reg = ctx.reg;
 
         vpUB.barrier(
             cmdBuf, vk::PipelineStageFlagBits::eHost, vk::PipelineStageFlagBits::eVertexShader,
@@ -878,9 +878,12 @@ namespace worlds {
                 }
 
                 StandardPushConstants pushConst {
-                    sdi.texScaleOffset,
-                    sdi.matrixIdx, sdi.materialIdx, 0, (uint32_t)sdi.ent,
-                    glm::ivec3(pickX, pickY, globalMiscFlags | sdi.drawMiscFlags), 0
+                    .modelMatrixIdx = sdi.matrixIdx,
+                    .materialIdx = sdi.materialIdx,
+                    .vpIdx = 0,
+                    .objectId = (uint32_t)sdi.ent,
+                    .texScaleOffset = sdi.texScaleOffset,
+                    .screenSpacePickPos = glm::ivec3(pickX, pickY, globalMiscFlags | sdi.drawMiscFlags)
                 };
                 cmdBuf.pushConstants<StandardPushConstants>(*pipelineLayout, vk::ShaderStageFlagBits::eFragment | vk::ShaderStageFlagBits::eVertex, 0, pushConst);
                 cmdBuf.bindVertexBuffers(0, sdi.vb, vk::DeviceSize(0));
@@ -903,13 +906,15 @@ namespace worlds {
                 ctx.dbgStats->numPipelineSwitches++;
             }
 
-            StandardPushConstants pushConst{
-                sdi.texScaleOffset,
-                sdi.matrixIdx, sdi.materialIdx, 0, (uint32_t)sdi.ent,
-                glm::ivec3(pickX, pickY, globalMiscFlags | sdi.drawMiscFlags),
-                sdi.cubemapIdx,
-                glm::vec4(sdi.cubemapExt, 0.0f),
-                glm::vec4(sdi.cubemapPos, 0.0f)
+            StandardPushConstants pushConst {
+                .modelMatrixIdx = sdi.matrixIdx,
+                .materialIdx = sdi.materialIdx,
+                .vpIdx = 0,
+                .objectId = (uint32_t)sdi.ent,
+                .cubemapExt = glm::vec4(sdi.cubemapExt, 0.0f),
+                .cubemapPos = glm::vec4(sdi.cubemapPos, 0.0f),
+                .texScaleOffset = sdi.texScaleOffset,
+                .screenSpacePickPos = glm::ivec3(pickX, pickY, globalMiscFlags | sdi.drawMiscFlags)
             };
 
             cmdBuf.pushConstants<StandardPushConstants>(*pipelineLayout, vk::ShaderStageFlagBits::eFragment | vk::ShaderStageFlagBits::eVertex, 0, pushConst);
