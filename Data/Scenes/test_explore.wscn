@@ -10301,6 +10301,212 @@
       "uvOverride": 0
     }
   },
+  "1048806": {
+    "Dynamic Physics Actor": {
+      "mass": 80.0,
+      "shapes": [
+        {
+          "halfExtents": [
+            0.07286243140697479,
+            0.42629197239875793,
+            0.07211258262395859
+          ],
+          "position": [
+            -0.16074076294898987,
+            0.479385107755661,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            -0.10342025756835938,
+            0.9946377277374268
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.07286243140697479,
+            0.42629197239875793,
+            0.07211258262395859
+          ],
+          "position": [
+            0.1590379923582077,
+            0.479385107755661,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.048901863396167755,
+            0.9988036155700684
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.175113707780838,
+            0.17238639295101166,
+            0.17307408154010773
+          ],
+          "position": [
+            0.0,
+            1.877016305923462,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.09304767102003098,
+            0.06587503105401993,
+            0.07876032590866089
+          ],
+          "position": [
+            0.0,
+            1.6356208324432373,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.2148786038160324,
+            0.35335591435432434,
+            0.13359618186950684
+          ],
+          "position": [
+            0.0,
+            1.2255967855453491,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.054230596870183945,
+            0.22216521203517914,
+            0.05445219948887825
+          ],
+          "position": [
+            0.3000643849372864,
+            1.3044368028640747,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.34129390120506287,
+            0.9399566650390625
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.054230596870183945,
+            0.22216521203517914,
+            0.05445219948887825
+          ],
+          "position": [
+            -0.28268229961395264,
+            1.3044368028640747,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.9387718439102173,
+            0.34453949332237244
+          ],
+          "type": 1
+        }
+      ]
+    },
+    "Physics Sound": {
+      "soundPath": "Audio/SFX/Impacts/Misc/squeaky_toy.ogg"
+    },
+    "Transform": {
+      "position": [
+        2.7894973754882813,
+        0.08658671379089355,
+        -4.42650842666626
+      ],
+      "rotation": [
+        0.0015652708243578672,
+        0.38331663608551025,
+        0.00234410772100091,
+        0.9236128926277161
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json"
+      ],
+      "mesh": "Models/test_guy.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        4.0,
+        4.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
   "108": {
     "Physics Actor": {
       "shapes": [
@@ -17862,95 +18068,6 @@
         0.0
       ],
       "uvOverride": 4
-    }
-  },
-  "230": {
-    "Dynamic Physics Actor": {
-      "mass": 80.0,
-      "shapes": [
-        {
-          "halfExtents": [
-            0.20000000298023224,
-            1.100000023841858,
-            0.20000000298023224
-          ],
-          "position": [
-            0.0,
-            1.100000023841858,
-            0.0
-          ],
-          "rotation": [
-            0.0,
-            0.0,
-            0.0,
-            1.0
-          ],
-          "type": 1
-        }
-      ]
-    },
-    "Transform": {
-      "position": [
-        2.789379596710205,
-        5.125999450683594e-06,
-        -4.4262800216674805
-      ],
-      "rotation": [
-        1.7595877579879016e-05,
-        0.38316068053245544,
-        -1.4272721273300704e-05,
-        0.9236817955970764
-      ],
-      "scale": [
-        1.0,
-        1.0,
-        1.0
-      ]
-    },
-    "World Object": {
-      "materials": [
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json"
-      ],
-      "mesh": "Models/test_guy.obj",
-      "staticFlags": 0,
-      "texScaleOffset": [
-        1.0,
-        1.0,
-        0.0,
-        0.0
-      ],
-      "uvOverride": 0
     }
   },
   "24": {
