@@ -223,7 +223,7 @@ namespace worlds {
         origin += direction * minDistance;
         RaycastHitInfo hitInfo;
 
-        if (raycast(origin, direction, maxDistance, &hitInfo)) {
+        if (raycast(origin, glm::normalize(direction), maxDistance, &hitInfo)) {
             *hitDistance = hitInfo.distance;
 
             for (int i = 0; i < 3; i++)
@@ -243,7 +243,7 @@ namespace worlds {
         origin += direction * minDistance;
 
         RaycastHitInfo hitInfo;
-        *hitExists = raycast(origin, direction, maxDistance, &hitInfo);
+        *hitExists = raycast(origin, glm::normalize(direction), maxDistance, &hitInfo);
     }
 
     AudioSystem* AudioSystem::instance;
