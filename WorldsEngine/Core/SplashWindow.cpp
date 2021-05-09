@@ -28,11 +28,12 @@ namespace worlds {
         running = false;
         winThread.join();
 
-        SDL_DestroyTexture(overlayTexture);
-
-        void* overlaySurfData = overlaySurface->pixels;
-        SDL_FreeSurface(overlaySurface);
-        free(overlaySurfData);
+        if (overlaySurface) {
+            SDL_DestroyTexture(overlayTexture);
+            void* overlaySurfData = overlaySurface->pixels;
+            SDL_FreeSurface(overlaySurface);
+            free(overlaySurfData);
+        }
 
         void* dataPtr = bgSurface->pixels;
 
@@ -90,11 +91,13 @@ namespace worlds {
         while (running) {
             if (loadedOverlay != overlay) {
                 if (!overlay.empty()) {
-                    SDL_DestroyTexture(overlayTexture);
+                    if (overlaySurface) {
+                        SDL_DestroyTexture(overlayTexture);
 
-                    void* overlaySurfData = overlaySurface->pixels;
-                    SDL_FreeSurface(overlaySurface);
-                    free(overlaySurfData);
+                        void* overlaySurfData = overlaySurface->pixels;
+                        SDL_FreeSurface(overlaySurface);
+                        free(overlaySurfData);
+                    }
 
                     overlaySurface = loadDataFileToSurface("SplashText/" + overlay + ".png");
                     overlayTexture = SDL_CreateTextureFromSurface(renderer, overlaySurface);
