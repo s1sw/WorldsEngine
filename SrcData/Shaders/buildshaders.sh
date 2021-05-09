@@ -7,7 +7,7 @@ glslangValidator clear_pick_buf.comp.glsl -V -o clear_pick_buf.comp.spv
 glslangValidator shadowmap.vert.glsl -V -o shadowmap.vert.spv
 glslangValidator blank.frag.glsl -V -o blank.frag.spv
 glslangValidator wire_obj.vert.glsl -V -o wire_obj.vert.spv
-glslangValidator wire_obj.frag.glsl -V -o wire_obj.frag.spv
+glslc --target-env=vulkan1.2 -fshader-stage=frag -I Include wire_obj.frag.glsl -o wire_obj.frag.spv
 glslangValidator skybox.vert.glsl -V -o skybox.vert.spv
 glslangValidator skybox.frag.glsl -V -o skybox.frag.spv
 glslangValidator full_tri.vert.glsl -V -o full_tri.vert.spv
