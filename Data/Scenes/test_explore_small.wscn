@@ -1815,14 +1815,14 @@
     "Transform": {
       "position": [
         2.7894973754882813,
-        -0.046161770820617676,
+        0.11705571413040161,
         -7.988380432128906
       ],
       "rotation": [
-        0.0023470530286431313,
-        0.7072250247001648,
-        -0.0023478749208152294,
-        0.7069807052612305
+        -0.7071066498756409,
+        0.0,
+        0.0,
+        0.7071066498756409
       ],
       "scale": [
         1.0,
@@ -4603,6 +4603,51 @@
       "uvOverride": 0
     }
   },
+  "2097344": {
+    "Audio Source": {
+      "channel": 1,
+      "clipPath": "Audio/Music/headphone loop mono.ogg",
+      "loop": true,
+      "playOnSceneOpen": true,
+      "spatialise": true,
+      "volume": 1.0
+    },
+    "Name Component": {
+      "name": "Empty"
+    },
+    "Transform": {
+      "position": [
+        1.0504488945007324,
+        2.1774492263793945,
+        -8.180832862854004
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        0.10000000149011612,
+        0.10000000149011612,
+        0.10000000149011612
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/dev.json"
+      ],
+      "mesh": "model.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
   "2097355": {
     "Physics Actor": {
       "shapes": [
@@ -4689,51 +4734,6 @@
         0.0
       ],
       "uvOverride": 4
-    }
-  },
-  "228": {
-    "Audio Source": {
-      "channel": 1,
-      "clipPath": "Audio/Music/headphone loop mono.ogg",
-      "loop": true,
-      "playOnSceneOpen": true,
-      "spatialise": true,
-      "volume": 1.0
-    },
-    "Name Component": {
-      "name": "Empty"
-    },
-    "Transform": {
-      "position": [
-        4.925281587020436e-07,
-        1.5067387819290161,
-        -5.296236038208008
-      ],
-      "rotation": [
-        0.0,
-        0.0,
-        0.0,
-        1.0
-      ],
-      "scale": [
-        0.10000000149011612,
-        0.10000000149011612,
-        0.10000000149011612
-      ]
-    },
-    "World Object": {
-      "materials": [
-        "Materials/dev.json"
-      ],
-      "mesh": "model.obj",
-      "staticFlags": 0,
-      "texScaleOffset": [
-        1.0,
-        1.0,
-        0.0,
-        0.0
-      ],
-      "uvOverride": 0
     }
   },
   "229": {
