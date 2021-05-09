@@ -161,6 +161,7 @@ namespace worlds {
 
         logMsg("cubemap upload took %fms", pt.stopGetMs());
 
+        free(combinedBuffer);
         return tex;
     }
 
