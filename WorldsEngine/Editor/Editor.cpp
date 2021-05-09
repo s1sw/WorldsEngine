@@ -93,16 +93,6 @@ namespace worlds {
 
         sceneViewDS = VKImGUIUtil::createDescriptorSetFor(interfaces.renderer->getSDRTarget(sceneViewPass), vkCtx);
 
-        g_console->registerCommand([&](void*, const char*) {
-            std::string j = entityToJson(reg, currentSelectedEntity);
-            logMsg("ent: %s", j.c_str());
-            }, "dumpEntity", "Dumps the currently selected entity to the console.");
-
-        g_console->registerCommand([&](void*, const char*) {
-            std::string j = sceneToJson(reg);
-            logMsg("ent: %s", j.c_str());
-            }, "dumpScene", "Dumps the current scene to the console.");
-
 #define ADD_EDITOR_WINDOW(type) editorWindows.push_back(std::make_unique<type>(interfaces, this))
 
         ADD_EDITOR_WINDOW(EntityList);
@@ -621,8 +611,9 @@ namespace worlds {
 
         if (inputManager.keyPressed(SDL_SCANCODE_S) && inputManager.ctrlHeld()) {
             if (interfaces.engine->getCurrentSceneInfo().id != ~0u && !inputManager.shiftHeld()) {
-                //saveScene(interfaces.engine->getCurrentSceneInfo().id, reg);
-                saveSceneJson(interfaces.engine->getCurrentSceneInfo().id, reg);
+                AssetID sceneId = interfaces.engine->getCurrentSceneInfo().id;
+                PHYSFS_File* file = g_assetDB.openAssetFileWrite(sceneId);
+                JsonSceneSerializer::saveScene(file, reg);
             } else {
                 ImGui::OpenPopup("Save Scene");
             }
@@ -642,22 +633,23 @@ namespace worlds {
         }
 
         if (inputManager.keyPressed(SDL_SCANCODE_C) && inputManager.ctrlHeld() && reg.valid(currentSelectedEntity)) {
-            std::string entityJson = entityToJson(reg, currentSelectedEntity);
+            std::string entityJson = JsonSceneSerializer::entityToJson(reg, currentSelectedEntity);
             SDL_SetClipboardText(entityJson.c_str());
         }
 
         if (inputManager.keyPressed(SDL_SCANCODE_V) && inputManager.ctrlHeld() && SDL_HasClipboardText()) {
             const char* txt = SDL_GetClipboardText();
             try {
-                select(jsonToEntity(reg, txt));
+                select(JsonSceneSerializer::jsonToEntity(reg, txt));
             } catch (nlohmann::detail::exception& e) {
                 logErr("Failed to deserialize clipboard entity: %s", e.what());
             }
         }
 
         saveFileModal("Save Scene", [this](const char* path) {
-            //saveScene(g_assetDB.createAsset(path), reg);
-            saveSceneJson(g_assetDB.createAsset(path), reg);
+            AssetID sceneId = g_assetDB.createAsset(path);
+            PHYSFS_File* f = g_assetDB.openAssetFileWrite(sceneId);
+            JsonSceneSerializer::saveScene(f, reg);
             updateWindowTitle();
         });
 
@@ -721,7 +713,9 @@ namespace worlds {
 
                 if (ImGui::MenuItem("Save")) {
                     if (interfaces.engine->getCurrentSceneInfo().id != ~0u && !inputManager.shiftHeld()) {
-                        saveScene(interfaces.engine->getCurrentSceneInfo().id, reg);
+                        AssetID sceneId = interfaces.engine->getCurrentSceneInfo().id;
+                        PHYSFS_File* file = g_assetDB.openAssetFileWrite(sceneId);
+                        JsonSceneSerializer::saveScene(file, reg);
                     } else {
                         popupToOpen = "Save Scene";
                     }

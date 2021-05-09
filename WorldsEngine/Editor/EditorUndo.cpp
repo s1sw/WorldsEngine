@@ -6,7 +6,7 @@ namespace worlds {
         // Serialize to file
         std::string savedPath = "Temp/" + std::to_string(currentPos) + ".json";
         PHYSFS_File* file = PHYSFS_openWrite(savedPath.c_str());
-        saveSceneToFileJson(file, reg);
+        JsonSceneSerializer::saveScene(file, reg);
         highestSaved = currentPos;
         currentPos++;
     }
@@ -17,7 +17,8 @@ namespace worlds {
         currentPos--;
         std::string path = "Temp/" + std::to_string(currentPos) + ".json";
         PHYSFS_File* file = PHYSFS_openRead(path.c_str());
-        deserializeScene(file, reg);
+        JsonSceneSerializer::loadScene(file, reg);
+        PHYSFS_close(file);
     }
 
     void EditorUndo::redo(entt::registry& reg) {
@@ -26,6 +27,6 @@ namespace worlds {
             return;
         currentPos++;
         PHYSFS_File* file = PHYSFS_openRead(path.c_str());
-        deserializeScene(file, reg);
+        JsonSceneSerializer::loadScene(file, reg);
     }
 }
