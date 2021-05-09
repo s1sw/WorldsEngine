@@ -283,8 +283,8 @@ vec3 shade(ShadeInfo si) {
             vec4 shadowPos;
             int cascadeSplit = calculateCascade(shadowPos);
 
-            //float bias = max(0.0005 * (1.0 - dot(inNormal, lights[i].pack1.xyz)), 0.00025);
-            float bias = 0.0005;
+            float bias = max(0.0004 * (1.0 - dot(inNormal, lights[i].pack1.xyz)), 0.00025);
+            //float bias = 0.000325;
             float depth = (shadowPos.z / shadowPos.w) - bias;
             vec2 coord = (shadowPos.xy * 0.5 + 0.5);
 
@@ -296,11 +296,11 @@ vec3 shade(ShadeInfo si) {
 #ifdef HIGH_QUALITY_SHADOWS
                 const int shadowSamples = 1;
                 const float divVal = ((shadowSamples * 2)) * ((shadowSamples * 2));
-                float sampleRadius = pack0[cascadeSplit + 1] * 0.000014;
+                float sampleRadius = 0.0005 * (textureSize(shadowSampler, 0).x / 2048.0);
 
                 for (int x = -shadowSamples; x < shadowSamples; x++)
                     for (int y = -shadowSamples; y < shadowSamples; y++) {
-                        shadowIntensity += texture(shadowSampler, vec4(coord + vec2(x, y) * sampleRadius, float(cascadeSplit), depth)).x;
+                        shadowIntensity += texture(shadowSampler, vec4(coord + (vec2(x, y) * sampleRadius), float(cascadeSplit), depth)).x;
                     }
 
                 shadowIntensity /= divVal;
