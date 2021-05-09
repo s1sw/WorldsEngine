@@ -513,14 +513,15 @@ namespace worlds {
             }
         }
 
-        uint32_t w = 1600;
-        uint32_t h = 900;
-
-        if (enableOpenVR) {
-            openvrInterface->getRenderResolution(&w, &h);
-        }
 
         if (!dedicatedServer) {
+            uint32_t w = 1600;
+            uint32_t h = 900;
+
+            if (enableOpenVR) {
+                openvrInterface->getRenderResolution(&w, &h);
+            }
+
             RTTPassCreateInfo screenRTTCI {
                 .width = w,
                 .height = h,
