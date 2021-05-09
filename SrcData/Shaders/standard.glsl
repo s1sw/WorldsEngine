@@ -3,7 +3,6 @@
 #extension GL_EXT_multiview : enable
 #define MAX_SHADOW_LIGHTS 16
 #define HIGH_QUALITY_SHADOWS
-//#define BLINN_PHONG
 #include <saturate.glsl>
 #include <light.glsl>
 #include <material.glsl>
@@ -74,40 +73,7 @@ layout(std430, binding = 8) writeonly buffer PickingBuffer {
     uint objectID;
 } pickBuf;
 
-layout(push_constant) uniform PushConstants {
-    vec4 texScaleOffset;
-
-    int modelMatrixIdx;
-    int matIdx;
-    int vpIdx;
-    uint objectId;
-
-    ivec2 pixelPickCoords;
-    // Misc flag uint
-    // 32 bits
-    // 1 - Activate object picking             (1)
-    // 2 - Debug display normals               (2)
-    // 3 - Debug display metallic              (4)
-    // 4 - Debug display roughness             (8)
-    // 5 - Debug display AO                    (16)
-    // 6 - Debug display normal map            (32)
-    // 7 - Lighting only                       (64)
-    // 8 - World space UVs (XY)                (128)
-    // 9 - World space UVs (XZ)                (256)
-    // 10 - World space UVs (ZY)               (512)
-    // 11 - World space UVs (pick with normal) (1024)
-    // 12 - Debug display UVs                  (2048)
-    // 13 - Use cubemap parallax               (4096)
-    // 14 - Debug display shadowmap cascades   (8192)
-    // 15 - Disable shadows                    (16384)
-    uint miscFlag;
-    uint cubemapIdx;
-
-    vec3 cubemapExt;
-    uint pad;
-    vec3 cubemapPos;
-    uint pad2;
-};
+#include <standard_push_constants.glsl>
 
 #ifdef VERTEX
 void main() {

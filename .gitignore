@@ -354,3 +354,5 @@ build_*
 /subprojects/enet-*
 /subprojects/*.git
 /subprojects/packagecache
+
+.clangd/
