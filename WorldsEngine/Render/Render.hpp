@@ -263,7 +263,7 @@ namespace worlds {
     };
 
     struct PassSetupCtx {
-        vku::UniformBuffer* materialUB;
+        vku::GenericBuffer* materialUB;
         VulkanHandles vkCtx;
         SlotArrays slotArrays;
         int swapchainImageCount;
@@ -383,7 +383,7 @@ namespace worlds {
         std::vector<vk::Fence> cmdBufFences;
         std::vector<vk::Fence> imgFences;
         VmaAllocator allocator;
-        vku::UniformBuffer materialUB;
+        vku::GenericBuffer materialUB;
         VulkanHandles handles;
 
         RenderTexture* finalPrePresent;

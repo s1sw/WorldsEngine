@@ -56,11 +56,11 @@ layout(std140, binding = 1) uniform LightBuffer {
     Light lights[128];
 };
 
-layout(std140, binding = 2) uniform MaterialSettingsBuffer {
+layout(std140, binding = 2) readonly buffer MaterialSettingsBuffer {
     Material materials[256];
 };
 
-layout(std140, binding = 3) uniform ModelMatrices {
+layout(std140, binding = 3) readonly buffer ModelMatrices {
     mat4 modelMatrices[1024];
 };
 
@@ -70,7 +70,7 @@ layout (binding = 6) uniform samplerCube cubemapSampler[];
 layout (binding = 7) uniform sampler2D brdfLutSampler;
 layout (binding = 8) uniform sampler2D miscShadowSamplers[MAX_SHADOW_LIGHTS];
 
-layout(std430, binding = 8) buffer PickingBuffer {
+layout(std430, binding = 8) writeonly buffer PickingBuffer {
     uint objectID;
 } pickBuf;
 
