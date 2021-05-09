@@ -8,7 +8,7 @@
 #include <thread>
 
 namespace worlds {
-    SplashWindow::SplashWindow(bool small) 
+    SplashWindow::SplashWindow(bool small)
         : small { small }
         , overlaySurface { nullptr }
         , overlayTexture { nullptr }
@@ -28,9 +28,20 @@ namespace worlds {
         running = false;
         winThread.join();
 
+        SDL_DestroyTexture(overlayTexture);
+
+        void* overlaySurfData = overlaySurface->pixels;
+        SDL_FreeSurface(overlaySurface);
+        free(overlaySurfData);
+
+        void* dataPtr = bgSurface->pixels;
+
         SDL_DestroyTexture(bgTexture);
         SDL_DestroyRenderer(renderer);
+
         SDL_FreeSurface(bgSurface);
+        free(dataPtr);
+
         SDL_DestroyWindow(win);
     }
 
@@ -79,6 +90,12 @@ namespace worlds {
         while (running) {
             if (loadedOverlay != overlay) {
                 if (!overlay.empty()) {
+                    SDL_DestroyTexture(overlayTexture);
+
+                    void* overlaySurfData = overlaySurface->pixels;
+                    SDL_FreeSurface(overlaySurface);
+                    free(overlaySurfData);
+
                     overlaySurface = loadDataFileToSurface("SplashText/" + overlay + ".png");
                     overlayTexture = SDL_CreateTextureFromSurface(renderer, overlaySurface);
                 } else {
@@ -95,5 +112,6 @@ namespace worlds {
             while (SDL_PollEvent(&evt)) {}
             SDL_Delay(10);
         }
+
     }
 }
