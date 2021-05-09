@@ -61,10 +61,10 @@ namespace worlds {
             updater.beginBuffers(1, 0, vk::DescriptorType::eUniformBuffer);
             updater.buffer(lightsUB.buffer(), 0, sizeof(LightUB));
 
-            updater.beginBuffers(2, 0, vk::DescriptorType::eUniformBuffer);
+            updater.beginBuffers(2, 0, vk::DescriptorType::eStorageBuffer);
             updater.buffer(ctx.materialUB->buffer(), 0, sizeof(MaterialsUB));
 
-            updater.beginBuffers(3, 0, vk::DescriptorType::eUniformBuffer);
+            updater.beginBuffers(3, 0, vk::DescriptorType::eStorageBuffer);
             updater.buffer(modelMatrixUB.buffer(), 0, sizeof(ModelMatrices));
 
             for (uint32_t i = 0; i < texSlots.size(); i++) {
@@ -151,9 +151,9 @@ namespace worlds {
         // Lights
         dslm.buffer(1, vk::DescriptorType::eUniformBuffer, vk::ShaderStageFlagBits::eFragment | vk::ShaderStageFlagBits::eVertex, 1);
         // Materials
-        dslm.buffer(2, vk::DescriptorType::eUniformBuffer, vk::ShaderStageFlagBits::eFragment, 1);
+        dslm.buffer(2, vk::DescriptorType::eStorageBuffer, vk::ShaderStageFlagBits::eFragment, 1);
         // Model matrices
-        dslm.buffer(3, vk::DescriptorType::eUniformBuffer, vk::ShaderStageFlagBits::eVertex, 1);
+        dslm.buffer(3, vk::DescriptorType::eStorageBuffer, vk::ShaderStageFlagBits::eVertex, 1);
         // Textures
         dslm.image(4, vk::DescriptorType::eCombinedImageSampler, vk::ShaderStageFlagBits::eFragment, NUM_TEX_SLOTS);
         dslm.bindFlag(4, vk::DescriptorBindingFlagBits::ePartiallyBound);

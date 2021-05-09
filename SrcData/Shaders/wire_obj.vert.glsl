@@ -12,8 +12,8 @@ layout(binding = 0) uniform MultiVP {
 	vec4 viewPos[4];
 };
 
-layout(std140, binding = 3) uniform ModelMatrices {
-	mat4 modelMatrices[512];
+layout(std140, binding = 3) buffer ModelMatrices {
+	mat4 modelMatrices[1024];
 };
 
 layout(push_constant) uniform PushConstants {
