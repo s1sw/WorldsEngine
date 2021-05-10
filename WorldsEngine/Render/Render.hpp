@@ -56,9 +56,9 @@ namespace worlds {
     };
 
     struct MultiVP {
-        glm::mat4 views[4];
-        glm::mat4 projections[4];
-        glm::vec4 viewPos[4];
+        glm::mat4 views[2];
+        glm::mat4 projections[2];
+        glm::vec4 viewPos[2];
     };
 
     struct PackedLight {

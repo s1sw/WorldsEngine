@@ -798,8 +798,9 @@ namespace worlds {
         ZoneScoped;
         TracyVkZone((*ctx.tracyContexts)[ctx.imageIndex], *ctx.cmdBuf, "Polys");
 
+        std::array<float, 4> clearColorValue{ 0.0f, 0.0f, 0.0f, 1 };
         vk::ClearDepthStencilValue clearDepthValue{ 0.0f, 0 };
-        std::array<vk::ClearValue, 1> clearColours{ clearDepthValue };
+        std::array<vk::ClearValue, 2> clearColours{ vk::ClearValue(clearColorValue), clearDepthValue };
         vk::RenderPassBeginInfo rpbi;
 
         rpbi.renderPass = *renderPass;
@@ -912,7 +913,8 @@ namespace worlds {
                 .cubemapExt = glm::vec4(sdi.cubemapExt, 0.0f),
                 .cubemapPos = glm::vec4(sdi.cubemapPos, 0.0f),
                 .texScaleOffset = sdi.texScaleOffset,
-                .screenSpacePickPos = glm::ivec3(pickX, pickY, globalMiscFlags | sdi.drawMiscFlags)
+                .screenSpacePickPos = glm::ivec3(pickX, pickY, globalMiscFlags | sdi.drawMiscFlags),
+                .cubemapIdx = sdi.cubemapIdx
             };
 
             cmdBuf.pushConstants<StandardPushConstants>(*pipelineLayout, vk::ShaderStageFlagBits::eFragment | vk::ShaderStageFlagBits::eVertex, 0, pushConst);

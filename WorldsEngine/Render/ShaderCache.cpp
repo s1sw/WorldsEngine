@@ -10,6 +10,11 @@ namespace worlds {
             return it->second;
 
         PHYSFS_File* file = worlds::g_assetDB.openAssetFileRead(id);
+
+        if (!file) {
+            logErr(WELogCategoryRender, "Failed to open shader file %s", g_assetDB.getAssetPath(id).c_str());
+        }
+
         size_t size = PHYSFS_fileLength(file);
         void* buffer = std::malloc(size);
 
