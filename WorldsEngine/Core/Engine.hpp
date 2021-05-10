@@ -9,8 +9,8 @@
 #include "../Render/Camera.hpp"
 #include "Console.hpp"
 
-#define NUM_SUBMESH_MATS 32
 namespace worlds {
+    const uint32_t NUM_SUBMESH_MATS = 32;
     extern glm::ivec2 windowSize;
     extern JobSystem* g_jobSys;
     class VKRenderer;

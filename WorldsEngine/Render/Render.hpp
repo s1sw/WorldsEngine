@@ -181,6 +181,7 @@ namespace worlds {
         int numRTTPasses;
         int numPipelineSwitches;
         int numTriangles;
+        double shadowmapGpuTime;
     };
 
     // Holds handles to useful Vulkan objects
