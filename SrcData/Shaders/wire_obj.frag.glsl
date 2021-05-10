@@ -6,13 +6,8 @@ layout (location = 0) out vec4 FragColor;
 
 layout (location = 0) in vec2 inUV;
 
+#include <standard_descriptors.glsl>
 #include <standard_push_constants.glsl>
-
-layout(std140, binding = 2) buffer MaterialSettingsBuffer {
-    Material materials[256];
-};
-
-layout (binding = 4) uniform sampler2D albedoSampler[];
 
 void main() {
     Material mat = materials[matIdx];
