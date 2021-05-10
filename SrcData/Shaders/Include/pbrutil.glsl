@@ -1,6 +1,6 @@
 #ifndef PBRUTIL_HEADER
 #define PBRUTIL_HEADER
-#define PI 3.1415926535
+#include <math.glsl>
 
 float DistributionGGX(vec3 N, vec3 H, float roughness) {
     float a2 = (roughness * roughness) * (roughness * roughness);

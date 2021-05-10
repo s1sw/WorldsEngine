@@ -1,6 +1,7 @@
 #ifndef PBRSHADE_HEADER
 #define PBRSHADE_HEADER
 #include "pbrutil.glsl"
+#include "math.glsl"
 
 struct LightShadeInfo {
     vec3 radiance;

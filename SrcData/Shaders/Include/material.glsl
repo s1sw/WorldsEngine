@@ -1,3 +1,6 @@
+#ifndef MATERIAL_H
+#define MATERIAL_H
+
 struct Material {
     float metallic;
     float roughness;
@@ -15,3 +18,4 @@ struct Material {
     vec3 emissiveColor;
     int aoTexIdx;
 };
+#endif

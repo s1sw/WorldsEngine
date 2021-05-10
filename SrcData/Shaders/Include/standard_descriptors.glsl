@@ -1,5 +1,9 @@
 #ifndef STANDARD_DESCRIPTORS_H
 #define STANDARD_DESCRIPTORS_H
+#include <aobox.glsl>
+#include <light.glsl>
+#include <material.glsl>
+
 layout(binding = 0) uniform MultiVP {
     mat4 view[4];
     mat4 projection[4];

@@ -7,13 +7,13 @@ layout (location = 0) out vec3 outTexCoords;
 
 layout (binding = 0) uniform MultiVP {
     mat4 view[4];
-	mat4 projection[4];
+    mat4 projection[4];
     vec4 viewPos[4];
 };
 
 layout (push_constant) uniform PushConstants {
     // (x: vp index, y: cubemap index)
-    ivec4 ubIndices; 
+    ivec4 ubIndices;
 };
 
 void main() {
@@ -42,9 +42,9 @@ void main() {
 
     uint vpIdx = ubIndices.y;
 
-    #ifndef AMD_VIEWINDEX_WORKAROUND
+#ifndef AMD_VIEWINDEX_WORKAROUND
     vpIdx += gl_ViewIndex;
-    #endif
+#endif
 
     vec4 transformedPos = projection[vpIdx] * mat4(mat3(view[vpIdx])) * vec4(xyz, 1.0); // Apply MVP transform
     gl_Position = transformedPos.xyww;
