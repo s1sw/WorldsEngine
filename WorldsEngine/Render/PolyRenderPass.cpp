@@ -205,7 +205,7 @@ namespace worlds {
         vku::RenderpassMaker rPassMaker;
 
         rPassMaker.attachmentBegin(vk::Format::eB10G11R11UfloatPack32);
-        rPassMaker.attachmentLoadOp(vk::AttachmentLoadOp::eClear);
+        rPassMaker.attachmentLoadOp(vk::AttachmentLoadOp::eDontCare);
         rPassMaker.attachmentStoreOp(vk::AttachmentStoreOp::eStore);
         rPassMaker.attachmentSamples(polyImage->image.info().samples);
         rPassMaker.attachmentFinalLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
@@ -798,10 +798,8 @@ namespace worlds {
         ZoneScoped;
         TracyVkZone((*ctx.tracyContexts)[ctx.imageIndex], *ctx.cmdBuf, "Polys");
 
-        // Fast path clear values for AMD
-        std::array<float, 4> clearColorValue{ 0.0f, 0.0f, 0.0f, 1 };
         vk::ClearDepthStencilValue clearDepthValue{ 0.0f, 0 };
-        std::array<vk::ClearValue, 2> clearColours{ vk::ClearValue{clearColorValue}, clearDepthValue };
+        std::array<vk::ClearValue, 1> clearColours{ clearDepthValue };
         vk::RenderPassBeginInfo rpbi;
 
         rpbi.renderPass = *renderPass;
