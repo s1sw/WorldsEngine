@@ -7,16 +7,7 @@ layout(location = 0) in vec3 inPosition;
 layout(location = 1) in vec2 inUV;
 layout(location = 0) out vec2 outUV;
 
-layout(binding = 0) uniform MultiVP {
-    mat4 view[4];
-    mat4 projection[4];
-    vec4 viewPos[4];
-};
-
-layout(binding = 3) readonly buffer ModelMatrices {
-    mat4 modelMatrices[1024];
-};
-
+#include <standard_descriptors.glsl>
 #include <standard_push_constants.glsl>
 
 void main() {
