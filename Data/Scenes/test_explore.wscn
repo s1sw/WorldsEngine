@@ -186,15 +186,15 @@
         -45.0
       ],
       "rotation": [
-        -1.6297752836180734e-07,
-        0.7071067094802856,
-        0.7071067094802856,
-        3.9343049706985767e-08
+        -1.6297754257266206e-07,
+        0.70710688829422,
+        0.7071066498756409,
+        3.934307457598152e-08
       ],
       "scale": [
-        15.0,
-        0.9999244809150696,
-        2.999662160873413
+        14.999994277954102,
+        0.9999212026596069,
+        2.9996492862701416
       ]
     },
     "World Object": {
@@ -2398,12 +2398,12 @@
         0.7071066498756409,
         0.0,
         0.0,
-        0.7071066498756409
+        0.70710688829422
       ],
       "scale": [
         1.0,
-        1.0,
-        2.0
+        0.9999989867210388,
+        1.9999979734420776
       ]
     },
     "World Object": {
@@ -4218,6 +4218,225 @@
         "Materials/dev.json"
       ],
       "mesh": "ceilingpiece.wmdl",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "1048726": {
+    "Dynamic Physics Actor": {
+      "mass": 3.0,
+      "shapes": [
+        {
+          "halfExtents": [
+            0.022778138518333435,
+            0.28909504413604736,
+            0.004740604665130377
+          ],
+          "position": [
+            0.0,
+            0.35696056485176086,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0,
+            0.9999998807907104
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.0017202511662617326,
+            0.05243334546685219,
+            0.005325850564986467
+          ],
+          "position": [
+            -0.009175232611596584,
+            0.6974918842315674,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            -0.11695205420255661,
+            0.9931374788284302
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.001789125264622271,
+            0.05243334546685219,
+            0.005325850564986467
+          ],
+          "position": [
+            0.009235994890332222,
+            0.6974918842315674,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.11612359434366226,
+            0.9932346940040588
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.01770467311143875,
+            0.121847003698349,
+            0.008674324490129948
+          ],
+          "position": [
+            0.0,
+            -0.059687137603759766,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0,
+            0.9999998807907104
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.06577076017856598,
+            0.006476076785475016,
+            0.021433621644973755
+          ],
+          "position": [
+            0.0,
+            0.06805236637592316,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0,
+            0.9999998807907104
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.026562156155705452,
+            0.005051236134022474,
+            0.021582836285233498
+          ],
+          "position": [
+            0.08849446475505829,
+            0.07648834586143494,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.1758793592453003,
+            0.9844116568565369
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.026562156155705452,
+            0.005051236134022474,
+            0.021582836285233498
+          ],
+          "position": [
+            -0.08943894505500793,
+            0.07648834586143494,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            -0.1758795976638794,
+            0.9844116568565369
+          ],
+          "type": 1
+        }
+      ]
+    },
+    "Grip Point": {
+      "offset": [
+        -0.07999999821186066,
+        0.0,
+        0.02500000037252903
+      ],
+      "rotOffset": [
+        0.0,
+        0.7071070075035095,
+        0.0,
+        0.7071070075035095
+      ]
+    },
+    "Physics Sound": {
+      "soundPath": "Audio/SFX/Impacts/Metal/light_clang.ogg"
+    },
+    "Transform": {
+      "position": [
+        -4.213146686553955,
+        1.1723113059997559,
+        -2.1909401416778564
+      ],
+      "rotation": [
+        2.3549688194179907e-05,
+        3.6635203287005424e-05,
+        0.0002137826377293095,
+        1.0
+      ],
+      "scale": [
+        1.2500038146972656,
+        1.5000001192092896,
+        1.25
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/redmetal.json",
+        "Materials/silver.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json"
+      ],
+      "mesh": "Models/crappysword.wmdl",
       "staticFlags": 0,
       "texScaleOffset": [
         1.0,
@@ -11716,222 +11935,6 @@
       "uvOverride": 0
     }
   },
-  "150": {
-    "Dynamic Physics Actor": {
-      "mass": 3.0,
-      "shapes": [
-        {
-          "halfExtents": [
-            0.022778138518333435,
-            0.28909504413604736,
-            0.004740604665130377
-          ],
-          "position": [
-            0.0,
-            0.35696056485176086,
-            -0.0
-          ],
-          "rotation": [
-            0.0,
-            0.0,
-            0.0,
-            0.9999998807907104
-          ],
-          "type": 1
-        },
-        {
-          "halfExtents": [
-            0.0017202511662617326,
-            0.05243334546685219,
-            0.005325850564986467
-          ],
-          "position": [
-            -0.009175232611596584,
-            0.6974918842315674,
-            -0.0
-          ],
-          "rotation": [
-            0.0,
-            0.0,
-            -0.11695205420255661,
-            0.9931374788284302
-          ],
-          "type": 1
-        },
-        {
-          "halfExtents": [
-            0.001789125264622271,
-            0.05243334546685219,
-            0.005325850564986467
-          ],
-          "position": [
-            0.009235994890332222,
-            0.6974918842315674,
-            -0.0
-          ],
-          "rotation": [
-            0.0,
-            0.0,
-            0.11612359434366226,
-            0.9932346940040588
-          ],
-          "type": 1
-        },
-        {
-          "halfExtents": [
-            0.01770467311143875,
-            0.121847003698349,
-            0.008674324490129948
-          ],
-          "position": [
-            0.0,
-            -0.059687137603759766,
-            -0.0
-          ],
-          "rotation": [
-            0.0,
-            0.0,
-            0.0,
-            0.9999998807907104
-          ],
-          "type": 1
-        },
-        {
-          "halfExtents": [
-            0.06577076017856598,
-            0.006476076785475016,
-            0.021433621644973755
-          ],
-          "position": [
-            0.0,
-            0.06805236637592316,
-            -0.0
-          ],
-          "rotation": [
-            0.0,
-            0.0,
-            0.0,
-            0.9999998807907104
-          ],
-          "type": 1
-        },
-        {
-          "halfExtents": [
-            0.026562156155705452,
-            0.005051236134022474,
-            0.021582836285233498
-          ],
-          "position": [
-            0.08849446475505829,
-            0.07648834586143494,
-            -0.0
-          ],
-          "rotation": [
-            0.0,
-            0.0,
-            0.1758793592453003,
-            0.9844116568565369
-          ],
-          "type": 1
-        },
-        {
-          "halfExtents": [
-            0.026562156155705452,
-            0.005051236134022474,
-            0.021582836285233498
-          ],
-          "position": [
-            -0.08943894505500793,
-            0.07648834586143494,
-            -0.0
-          ],
-          "rotation": [
-            0.0,
-            0.0,
-            -0.1758795976638794,
-            0.9844116568565369
-          ],
-          "type": 1
-        }
-      ]
-    },
-    "Grip Point": {
-      "offset": [
-        -0.07999999821186066,
-        0.0,
-        0.02500000037252903
-      ],
-      "rotOffset": [
-        0.0,
-        0.7071070075035095,
-        0.0,
-        0.7071070075035095
-      ]
-    },
-    "Transform": {
-      "position": [
-        -4.213085651397705,
-        1.1723074913024902,
-        -2.190962553024292
-      ],
-      "rotation": [
-        -3.077722431044094e-05,
-        3.3752075978554785e-05,
-        0.00012862840958405286,
-        1.0
-      ],
-      "scale": [
-        1.2500038146972656,
-        1.5000001192092896,
-        1.25
-      ]
-    },
-    "World Object": {
-      "materials": [
-        "Materials/redmetal.json",
-        "Materials/silver.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json"
-      ],
-      "mesh": "Models/crappysword.wmdl",
-      "staticFlags": 0,
-      "texScaleOffset": [
-        1.0,
-        1.0,
-        0.0,
-        0.0
-      ],
-      "uvOverride": 0
-    }
-  },
   "151": {
     "AO Proxy": {
       "bounds": [
@@ -13395,27 +13398,27 @@
     },
     "Transform": {
       "position": [
-        1.0,
-        12.0,
-        -31.0
+        0.19449758529663086,
+        12.98792839050293,
+        -30.011165618896484
       ],
       "rotation": [
         0.0,
         0.0,
         0.0,
-        0.9999998807907104
+        1.0
       ],
       "scale": [
-        16.0,
-        6.0,
-        16.0
+        15.241373062133789,
+        5.131103038787842,
+        15.011162757873535
       ]
     },
     "World Cubemap": {
       "extent": [
-        16.100000381469727,
-        6.099999904632568,
-        16.100000381469727
+        15.239999771118164,
+        5.13100004196167,
+        15.0
       ],
       "path": "LevelCubemaps/UpperAreaCubemap.json",
       "useCubeParallax": true

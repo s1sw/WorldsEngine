@@ -5,9 +5,9 @@
 #include <material.glsl>
 
 layout(binding = 0) uniform MultiVP {
-    mat4 view[4];
-    mat4 projection[4];
-    vec4 viewPos[4];
+    mat4 view[2];
+    mat4 projection[2];
+    vec4 viewPos[2];
 };
 
 layout(std140, binding = 1) uniform LightBuffer {
