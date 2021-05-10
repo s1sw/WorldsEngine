@@ -250,7 +250,7 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     , shadowmapImage(nullptr)
     , imguiImage(nullptr)
     , window(initInfo.window)
-    , shadowmapRes(2048)
+    , shadowmapRes(1024)
     , enableVR(initInfo.enableVR)
     , pickingPRP(nullptr)
     , vrPRP(nullptr)
@@ -1130,9 +1130,8 @@ void VKRenderer::writeCmdBuf(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageInde
         float aspect = (float)windowSize.y / (float)windowSize.x;
         float croppedHeight = aspect * renderWidth;
 
-        glm::vec2 srcCorner0(0.0f, renderHeight / 2 - croppedHeight / 2.0f);
-        glm::vec2 srcCorner1(renderWidth, renderHeight / 2 + croppedHeight / 2.0f);
-
+        glm::vec2 srcCorner0(0.0f, renderHeight / 2.0f - croppedHeight / 2.0f);
+        glm::vec2 srcCorner1(renderWidth, renderHeight / 2.0f + croppedHeight / 2.0f);
 
         vk::ImageBlit imageBlit;
         imageBlit.srcOffsets[0] = vk::Offset3D{ (int)srcCorner0.x, (int)srcCorner0.y, 0 };

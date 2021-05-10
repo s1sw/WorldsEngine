@@ -189,7 +189,8 @@ namespace worlds {
                 sizeof(ModelMatrices), VMA_MEMORY_USAGE_CPU_TO_GPU, "Model matrices");
 
         pickingBuffer = vku::GenericBuffer(
-                ctx.device, ctx.allocator, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
+                ctx.device, ctx.allocator,
+                vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
                 sizeof(PickingBuffer), VMA_MEMORY_USAGE_CPU_ONLY, "Picking buffer");
 
         modelMatricesMapped = (ModelMatrices*)modelMatrixUB.map(ctx.device);
@@ -317,7 +318,6 @@ namespace worlds {
         };
 
         vk::SpecializationInfo standardSpecInfo { 4, entries, sizeof(StandardSpecConsts) };
-
 
         {
             vku::PipelineMaker pm{ extent.width, extent.height };
