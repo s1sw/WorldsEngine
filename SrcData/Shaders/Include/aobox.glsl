@@ -1,5 +1,7 @@
 #ifndef AOBOX_H
 #define AOBOX_H
+#include <math.glsl>
+
 struct AOBox {
     vec4 pack0;
     vec4 pack1;
@@ -36,22 +38,6 @@ mat4 getBoxTransform(AOBox box) {
     );
 
     return translationMatrix * rot;
-}
-
-#define PI_HALF 1.5707963267948966192313216916398
-// [Eberly2014] GPGPU Programming for Games and Science
-float fastAcos(float x) {
-#if 1
-    float res = -0.156583 * abs(x) + PI_HALF;
-    res *= sqrt(1.0 - abs(x));
-    return x >= 0 ? res : PI - res;
-#else
-    return acos(x);
-#endif
-}
-
-float safeAcos(float x) {
-    return fastAcos(clamp(x, -1.0, 1.0));
 }
 
 float getBoxOcclusion(AOBox box, vec3 pos, vec3 nor) {

@@ -9,5 +9,4 @@ layout (binding = 0) uniform MultiVP {
     vec4 viewPos[4];
 };
 
-layout (push_constant) {
-};
+void main() {}

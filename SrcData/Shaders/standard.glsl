@@ -3,7 +3,7 @@
 #extension GL_EXT_multiview : enable
 #define MAX_SHADOW_LIGHTS 16
 #define HIGH_QUALITY_SHADOWS
-#include <saturate.glsl>
+#include <math.glsl>
 #include <light.glsl>
 #include <material.glsl>
 #include <pbrutil.glsl>

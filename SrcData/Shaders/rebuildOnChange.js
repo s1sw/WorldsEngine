@@ -1,8 +1,10 @@
 // yes it's javascript
 // whatcha gonna do about it
 
-const fs = require('fs');
-const child_process = require('child_process');
+const fs = require("fs");
+const child_process = require("child_process");
+
+const buildDebugShaders = false;
 
 const customArgs = {
     "standard.glsl": [
@@ -21,33 +23,52 @@ function findSourceFiles() {
     return files.filter(file => file.match(new RegExp(`.*\.(.glsl)`, 'ig')));
 }
 
-function moveCompiledFiles() {
-    let files = fs.readdirSync(".");
-    let spvFiles = files.filter(file => file.match(new RegExp(`.*\.(.spv)`, 'ig')));
-
-    for (let file of spvFiles) {
-        fs.rename(file, `../../Data/Shaders/${file}`, () => {});
-    }
-
-    if (spvFiles.length > 0)
-        console.log(`Moved ${spvFiles.length} files`);
-}
-
 function getDefaultArgs() {
-    return "--target-env=vulkan1.2 -I Include";
+    return ["--target-env=vulkan1.2", "-I", "Include"];
 }
 
 function getDefineArgs(defines) {
-    if (defines.length == 0) return "";
-    return "-D" + defines.join(" -D");
+    let args = defines.map((d) => {
+        return "-D" + d;
+    });
+
+    if (buildDebugShaders) {
+        args.push("-DDEBUG");
+    }
+
+    return args;
 }
 
-function getCmdString(stage, defines, inFile, outFile) {
-    return `glslc ${getDefaultArgs()} -fshader-stage=${stage} ${getDefineArgs(defines)} ${inFile} -o ${outFile}`;
+function getArgList(stage, defines, inFile, outFile) {
+    return getDefaultArgs().concat(
+        getDefineArgs(defines).concat(
+        [
+            `-fshader-stage=${stage}`,
+            `${inFile}`,
+            `-o`,
+            `${outFile}`
+        ])
+    );
 }
 
-function onFileChange(curr, prev, filename) {
-    console.log(`File ${filename} changed`);
+function moveToOutput(filename, callback) {
+    fs.rename(filename, `../../Data/Shaders/${filename}`, callback);
+}
+
+function execCompiler(args, onSuccess) {
+    child_process.execFile("glslc", args, (err, stdout, stderr) => {
+        if (stdout.length > 0)
+            console.log(stdout.trim());
+
+        if (stderr.length > 0)
+            console.log(stderr.trim());
+
+        if (!err)
+            onSuccess();
+    });
+}
+
+function buildFile(filename) {
     if (!customArgs.hasOwnProperty(filename)) {
         let splitFilename = filename.split(".");
 
@@ -55,43 +76,49 @@ function onFileChange(curr, prev, filename) {
         let outputFilename = splitFilename.join(".");
         let shaderStage = splitFilename[splitFilename.length - 2];
 
-        let cmdString = getCmdString(shaderStage, [], filename, outputFilename);
+        let args = getArgList(shaderStage, [], filename, outputFilename);
 
-        child_process.exec(cmdString, (error, stdout, stderr) => {
-            if (stdout.length > 0)
-                console.log(stdout.trim());
-            fs.rename(outputFilename, `../../Data/Shaders/${outputFilename}`, ()=>{});
+        execCompiler(args, () => {
+            moveToOutput(outputFilename, () => {
+                console.log(`Compiled ${filename}`);
+            });
         });
 
-        console.log(`Compiled ${filename}`);
     } else {
         let fileArgs = customArgs[filename];
-        let idx = 1;
+        let counter = 1;
 
         for (let arg of fileArgs) {
-            let cmdString = getCmdString(arg.stage, arg.defines, filename, arg.outFile);
+            let args = getArgList(arg.stage, arg.defines, filename, arg.outFile);
 
-            child_process.exec(cmdString, (error, stdout, stderr) => {
-                if (stdout.length > 0)
-                    console.log(stdout.trim());
-                fs.rename(arg.outFile, `../../Data/Shaders/${arg.outFile}`, ()=>{});
+            execCompiler(args, () => {
+                moveToOutput(arg.outFile, () => {
+                    console.log(`Compiled ${filename} (${counter}/${fileArgs.length})`);
+                    counter++;
+                });
             });
-
-            console.log(`Compiled ${filename} (${idx}/${fileArgs.length})`);
-            idx += 1;
         }
-
-        console.log("Compilation complete");
     }
+}
 
+function rebuildAll() {
+    for (let file of files) {
+        buildFile(file);
+    }
 }
 
 const files = findSourceFiles();
 
 for (let f of files) {
-    fs.watchFile(f, {"persistent": true, "interval":1000}, (curr, prev) => {
-        onFileChange(curr, prev, f);
+    fs.watchFile(f, {"persistent": true, "interval":1000}, (_, __) => {
+        console.log(`File ${f} changed`);
+        buildFile(f);
     });
 }
 
+fs.watchFile("Include", {"interval":1000}, (_, __) => {
+    rebuildAll();
+});
+
+rebuildAll();
 console.log(`Watching ${files.length} files`);

@@ -11,5 +11,7 @@ layout (location = 0) in vec2 inUV;
 
 void main() {
     Material mat = materials[matIdx];
-    FragColor = vec4(1.0 - texture(albedoSampler[mat.albedoTexIdx], (inUV * texScaleOffset.xy) + texScaleOffset.zw).xyz, 1.0);
+    vec2 uv = (inUV * texScaleOffset.xy) + texScaleOffset.zw;
+    vec3 invCol = 1.0 - texture(tex2dSampler[mat.albedoTexIdx], uv).xyz;
+    FragColor = vec4(invCol, 1.0);
 }
