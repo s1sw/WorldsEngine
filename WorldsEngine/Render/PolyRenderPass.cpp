@@ -101,7 +101,7 @@ namespace worlds {
             vku::DescriptorSetUpdater updater;
             updater.beginDescriptorSet(*skyboxDs);
             updater.beginBuffers(0, 0, vk::DescriptorType::eUniformBuffer);
-            updater.buffer(vpUB.buffer(), 0, sizeof(MultiVP));
+            updater.buffer(ctx.resources.vpMatrixBuffer->buffer(), 0, sizeof(MultiVP));
 
             updater.beginImages(1, 0, vk::DescriptorType::eCombinedImageSampler);
             updater.image(*albedoSampler, cubemapSlots[lastSky].imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
@@ -131,7 +131,7 @@ namespace worlds {
 
     }
 
-    static ConVar depthPrepass("r_depthPrepass", "0");
+    static ConVar depthPrepass("r_depthPrepass", "1");
     static ConVar enableParallaxMapping("r_doParallaxMapping", "0");
     static ConVar maxParallaxLayers("r_maxParallaxLayers", "32");
     static ConVar minParallaxLayers("r_minParallaxLayers", "4");
@@ -729,8 +729,8 @@ namespace worlds {
         vk::CommandBuffer cmdBuf = ctx.cmdBuf;
 
         vpUB.barrier(
-            cmdBuf, vk::PipelineStageFlagBits::eHost, vk::PipelineStageFlagBits::eVertexShader,
-            vk::DependencyFlagBits::eByRegion, vk::AccessFlagBits::eHostWrite, vk::AccessFlagBits::eUniformRead,
+            cmdBuf, vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eVertexShader,
+            vk::DependencyFlagBits::eByRegion, vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eUniformRead,
             VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED);
 
         lightsUB.barrier(
@@ -894,10 +894,9 @@ namespace worlds {
     }
 
     PolyRenderPass::~PolyRenderPass() {
-        // BLEUGHHH
-        vk::Device device = pipeline.getOwner();
-        modelMatrixUB.unmap(device);
-        lightsUB.unmap(device);
-        vpUB.unmap(device);
+        modelMatrixUB.unmap(handles->device);
+        lightsUB.unmap(handles->device);
+        vpUB.unmap(handles->device);
+        delete dbgLinesPass;
     }
 }

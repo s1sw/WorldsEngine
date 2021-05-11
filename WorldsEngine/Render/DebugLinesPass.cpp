@@ -29,7 +29,7 @@ namespace worlds {
         vku::DescriptorSetUpdater dsu;
         dsu.beginDescriptorSet(*lineDs);
         dsu.beginBuffers(0, 0, vk::DescriptorType::eUniformBuffer);
-        dsu.buffer(ctx.resources.materialBuffer->buffer(), 0, sizeof(MultiVP));
+        dsu.buffer(ctx.resources.vpMatrixBuffer->buffer(), 0, sizeof(MultiVP));
         dsu.update(handles->device);
 
         vku::PipelineMaker pm{ ctx.passWidth, ctx.passHeight };
@@ -67,6 +67,7 @@ namespace worlds {
 
         if (!lineVB.buffer() || currentLineVBSize < requiredVBSize) {
             currentLineVBSize = requiredVBSize + 128;
+            lineVB.destroy();
             lineVB = vku::GenericBuffer{
                 handles->device, handles->allocator,
                 vk::BufferUsageFlagBits::eVertexBuffer,
