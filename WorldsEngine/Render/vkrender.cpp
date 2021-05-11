@@ -250,7 +250,7 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     , shadowmapImage(nullptr)
     , imguiImage(nullptr)
     , window(initInfo.window)
-    , shadowmapRes(1024)
+    , shadowmapRes(2048)
     , enableVR(initInfo.enableVR)
     , pickingPRP(nullptr)
     , vrPRP(nullptr)
@@ -582,7 +582,7 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
 
     vpBuffer = vku::GenericBuffer(
             *device, allocator,
-            vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
+            vk::BufferUsageFlagBits::eUniformBuffer | vk::BufferUsageFlagBits::eTransferDst,
             sizeof(MultiVP), VMA_MEMORY_USAGE_GPU_ONLY, "VP Buffer");
 
     MaterialsUB materials;
@@ -973,7 +973,8 @@ void VKRenderer::writePassCmds(RTTPassHandle pass, vk::CommandBuffer cmdBuf, ent
             .materials = *matSlots,
             .meshes = loadedMeshes,
             .brdfLut = &brdfLut,
-            .materialBuffer = &materialUB
+            .materialBuffer = &materialUB,
+            .vpMatrixBuffer = &vpBuffer
         },
         .cascadeInfo = {},
         .debugContext = RenderDebugContext {
@@ -1001,9 +1002,16 @@ void VKRenderer::writePassCmds(RTTPassHandle pass, vk::CommandBuffer cmdBuf, ent
         }
     } else {
         rCtx.projMatrices[0] = rtt.cam->getProjectionMatrix((float)rtt.width / (float)rtt.height);
-
         rCtx.viewMatrices[0] = rtt.cam->getViewMatrix();
     }
+
+    MultiVP vp;
+    for (int i = 0; i < 2; i++) {
+        vp.projections[i] = rCtx.projMatrices[i];
+        vp.views[i] = rCtx.viewMatrices[i];
+        vp.viewPos[i] = glm::inverse(vp.views[i])[3];
+    }
+    cmdBuf.updateBuffer(vpBuffer.buffer(), 0, sizeof(vp), &vp);
 
     if (rtt.enableShadows) {
         calculateCascadeMatrices(world, *rtt.cam, rCtx);
@@ -1619,8 +1627,8 @@ RTTPassHandle VKRenderer::createRTTPass(RTTPassCreateInfo& ci) {
             .enableShadows = rpi.enableShadows
         },
         .registry = r,
-        .passWidth = rpi.width,
-        .passHeight = rpi.height,
+        .passWidth = ci.width,
+        .passHeight = ci.height,
         .imageIndex = frameIdx
     };
 
@@ -1870,6 +1878,7 @@ VKRenderer::~VKRenderer() {
             delete finalPrePresentR;
 
         materialUB.destroy();
+        vpBuffer.destroy();
 
 #ifndef NDEBUG
         char* statsString;
