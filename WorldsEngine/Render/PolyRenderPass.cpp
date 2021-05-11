@@ -1,5 +1,5 @@
-#include "RenderPasses.hpp"
 #include "../Core/Engine.hpp"
+#include "RenderPasses.hpp"
 #include "../Core/Transform.hpp"
 #include <openvr.h>
 #include "tracy/Tracy.hpp"
@@ -48,22 +48,22 @@ namespace worlds {
         glm::vec4 col;
     };
 
-    void PolyRenderPass::updateDescriptorSets(PassSetupCtx& ctx) {
+    void PolyRenderPass::updateDescriptorSets(RenderContext& ctx) {
         ZoneScoped;
-        auto& texSlots = ctx.slotArrays.textures;
-        auto& cubemapSlots = ctx.slotArrays.cubemaps;
+        auto& texSlots = ctx.resources.textures;
+        auto& cubemapSlots = ctx.resources.cubemaps;
         {
             vku::DescriptorSetUpdater updater(10, 128, 0);
             updater.beginDescriptorSet(*descriptorSet);
 
             updater.beginBuffers(0, 0, vk::DescriptorType::eUniformBuffer);
-            updater.buffer(this->vpUB.buffer(), 0, sizeof(MultiVP));
+            updater.buffer(ctx.resources.vpMatrixBuffer->buffer(), 0, sizeof(MultiVP));
 
             updater.beginBuffers(1, 0, vk::DescriptorType::eUniformBuffer);
             updater.buffer(lightsUB.buffer(), 0, sizeof(LightUB));
 
             updater.beginBuffers(2, 0, vk::DescriptorType::eStorageBuffer);
-            updater.buffer(ctx.materialUB->buffer(), 0, sizeof(MaterialsUB));
+            updater.buffer(ctx.resources.materialBuffer->buffer(), 0, sizeof(MaterialsUB));
 
             updater.beginBuffers(3, 0, vk::DescriptorType::eStorageBuffer);
             updater.buffer(modelMatrixUB.buffer(), 0, sizeof(ModelMatrices));
@@ -86,7 +86,7 @@ namespace worlds {
             }
 
             updater.beginImages(7, 0, vk::DescriptorType::eCombinedImageSampler);
-            updater.image(*albedoSampler, ctx.brdfLut->imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
+            updater.image(*albedoSampler, ctx.resources.brdfLut->imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
 
             updater.beginBuffers(8, 0, vk::DescriptorType::eStorageBuffer);
             updater.buffer(pickingBuffer.buffer(), 0, sizeof(PickingBuffer));
@@ -94,7 +94,7 @@ namespace worlds {
             if (!updater.ok())
                 fatalErr("updater was not ok");
 
-            updater.update(ctx.vkCtx.device);
+            updater.update(handles->device);
         }
 
         {
@@ -106,13 +106,14 @@ namespace worlds {
             updater.beginImages(1, 0, vk::DescriptorType::eCombinedImageSampler);
             updater.image(*albedoSampler, cubemapSlots[lastSky].imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
 
-            updater.update(ctx.vkCtx.device);
+            updater.update(handles->device);
         }
 
         dsUpdateNeeded = false;
     }
 
     PolyRenderPass::PolyRenderPass(
+        VulkanHandles* handles,
         RenderTexture* depthStencilImage,
         RenderTexture* polyImage,
         RenderTexture* shadowImage,
@@ -125,7 +126,8 @@ namespace worlds {
         , pickY(0)
         , pickThisFrame(false)
         , awaitingResults(false)
-        , setEventNextFrame(false) {
+        , setEventNextFrame(false)
+        , handles(handles) {
 
     }
 
@@ -134,17 +136,16 @@ namespace worlds {
     static ConVar maxParallaxLayers("r_maxParallaxLayers", "32");
     static ConVar minParallaxLayers("r_minParallaxLayers", "4");
 
-    void PolyRenderPass::setup(PassSetupCtx& psCtx) {
+    void PolyRenderPass::setup(RenderContext& ctx) {
         ZoneScoped;
-        auto& ctx = psCtx.vkCtx;
 
         vku::SamplerMaker sm{};
         sm.magFilter(vk::Filter::eLinear).minFilter(vk::Filter::eLinear).mipmapMode(vk::SamplerMipmapMode::eLinear).anisotropyEnable(true).maxAnisotropy(16.0f).maxLod(VK_LOD_CLAMP_NONE).minLod(0.0f);
-        albedoSampler = sm.createUnique(ctx.device);
+        albedoSampler = sm.createUnique(handles->device);
 
         vku::SamplerMaker ssm{};
         ssm.magFilter(vk::Filter::eLinear).minFilter(vk::Filter::eLinear).mipmapMode(vk::SamplerMipmapMode::eLinear).compareEnable(true).compareOp(vk::CompareOp::eLessOrEqual);
-        shadowSampler = ssm.createUnique(ctx.device);
+        shadowSampler = ssm.createUnique(handles->device);
 
         vku::DescriptorSetLayoutMaker dslm;
         // VP
@@ -168,40 +169,40 @@ namespace worlds {
         // Picking
         dslm.buffer(8, vk::DescriptorType::eStorageBuffer, vk::ShaderStageFlagBits::eFragment, 1);
 
-        dsl = dslm.createUnique(ctx.device);
+        dsl = dslm.createUnique(handles->device);
 
         vku::PipelineLayoutMaker plm;
         plm.pushConstantRange(vk::ShaderStageFlagBits::eFragment | vk::ShaderStageFlagBits::eVertex, 0, sizeof(StandardPushConstants));
         plm.descriptorSetLayout(*dsl);
-        pipelineLayout = plm.createUnique(ctx.device);
+        pipelineLayout = plm.createUnique(handles->device);
 
         vpUB = vku::UniformBuffer(
-                ctx.device, ctx.allocator, sizeof(MultiVP),
+                handles->device, handles->allocator, sizeof(MultiVP),
                 VMA_MEMORY_USAGE_CPU_TO_GPU, "VP");
 
         lightsUB = vku::UniformBuffer(
-                ctx.device, ctx.allocator, sizeof(LightUB),
+                handles->device, handles->allocator, sizeof(LightUB),
                 VMA_MEMORY_USAGE_CPU_TO_GPU, "Lights");
 
         modelMatrixUB = vku::GenericBuffer(
-                ctx.device, ctx.allocator,
+                handles->device, handles->allocator,
                 vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
                 sizeof(ModelMatrices), VMA_MEMORY_USAGE_CPU_TO_GPU, "Model matrices");
 
         pickingBuffer = vku::GenericBuffer(
-                ctx.device, ctx.allocator,
+                handles->device, handles->allocator,
                 vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
                 sizeof(PickingBuffer), VMA_MEMORY_USAGE_CPU_ONLY, "Picking buffer");
 
-        modelMatricesMapped = (ModelMatrices*)modelMatrixUB.map(ctx.device);
-        lightMapped = (LightUB*)lightsUB.map(ctx.device);
-        vpMapped = (MultiVP*)vpUB.map(ctx.device);
+        modelMatricesMapped = (ModelMatrices*)modelMatrixUB.map(handles->device);
+        lightMapped = (LightUB*)lightsUB.map(handles->device);
+        vpMapped = (MultiVP*)vpUB.map(handles->device);
 
-        pickEvent = ctx.device.createEventUnique(vk::EventCreateInfo{});
+        pickEvent = handles->device.createEventUnique(vk::EventCreateInfo{});
 
         vku::DescriptorSetMaker dsm;
         dsm.layout(*dsl);
-        descriptorSet = std::move(dsm.createUnique(ctx.device, ctx.descriptorPool)[0]);
+        descriptorSet = std::move(dsm.createUnique(handles->device, handles->descriptorPool)[0]);
 
         vku::RenderpassMaker rPassMaker;
 
@@ -245,7 +246,7 @@ namespace worlds {
         uint32_t viewMasks[2] = { 0b00000001, 0b00000001 };
         uint32_t correlationMask = 0b00000001;
 
-        if (psCtx.enableVR) {
+        if (ctx.passSettings.enableVR) {
             viewMasks[0] = 0b00000011;
             viewMasks[1] = 0b00000011;
             correlationMask = 0b00000011;
@@ -257,7 +258,7 @@ namespace worlds {
         renderPassMultiviewCI.pCorrelationMasks = &correlationMask;
         rPassMaker.setPNext(&renderPassMultiviewCI);
 
-        renderPass = rPassMaker.createUnique(ctx.device);
+        renderPass = rPassMaker.createUnique(handles->device);
 
         vk::ImageView attachments[2] = { polyImage->image.imageView(), depthStencilImage->image.imageView() };
 
@@ -269,20 +270,20 @@ namespace worlds {
         fci.height = extent.height;
         fci.renderPass = *this->renderPass;
         fci.layers = 1;
-        renderFb = ctx.device.createFramebufferUnique(fci);
+        renderFb = handles->device.createFramebufferUnique(fci);
 
         AssetID vsID = g_assetDB.addOrGetExisting("Shaders/standard.vert.spv");
         AssetID fsID = g_assetDB.addOrGetExisting("Shaders/standard.frag.spv");
-        vertexShader = ShaderCache::getModule(ctx.device, vsID);
-        fragmentShader = ShaderCache::getModule(ctx.device, fsID);
+        vertexShader = ShaderCache::getModule(handles->device, vsID);
+        fragmentShader = ShaderCache::getModule(handles->device, fsID);
 
         auto msaaSamples = polyImage->image.info().samples;
 
         {
             AssetID vsID = g_assetDB.addOrGetExisting("Shaders/depth_prepass.vert.spv");
             AssetID fsID = g_assetDB.addOrGetExisting("Shaders/blank.frag.spv");
-            auto preVertexShader = vku::loadShaderAsset(ctx.device, vsID);
-            auto preFragmentShader = vku::loadShaderAsset(ctx.device, fsID);
+            auto preVertexShader = vku::loadShaderAsset(handles->device, vsID);
+            auto preFragmentShader = vku::loadShaderAsset(handles->device, fsID);
             vku::PipelineMaker pm{ extent.width, extent.height };
 
             pm.shader(vk::ShaderStageFlagBits::eFragment, preFragmentShader);
@@ -299,7 +300,7 @@ namespace worlds {
             pmsci.rasterizationSamples = msaaSamples;
             pm.multisampleState(pmsci);
             pm.subPass(0);
-            depthPrePipeline = pm.createUnique(ctx.device, ctx.pipelineCache, *pipelineLayout, *renderPass);
+            depthPrePipeline = pm.createUnique(handles->device, handles->pipelineCache, *pipelineLayout, *renderPass);
         }
 
         struct StandardSpecConsts {
@@ -353,12 +354,12 @@ namespace worlds {
             pmsci.rasterizationSamples = msaaSamples;
             pm.multisampleState(pmsci);
 
-            pipeline = pm.createUnique(ctx.device, ctx.pipelineCache, *pipelineLayout, *renderPass);
+            pipeline = pm.createUnique(handles->device, handles->pipelineCache, *pipelineLayout, *renderPass);
         }
 
         {
             AssetID fsID = g_assetDB.addOrGetExisting("Shaders/standard_alpha_test.frag.spv");
-            auto atFragmentShader = vku::loadShaderAsset(ctx.device, fsID);
+            auto atFragmentShader = vku::loadShaderAsset(handles->device, fsID);
 
             vku::PipelineMaker pm{ extent.width, extent.height };
 
@@ -392,7 +393,7 @@ namespace worlds {
             pmsci.alphaToCoverageEnable = true;
             pm.multisampleState(pmsci);
 
-            alphaTestPipeline = pm.createUnique(ctx.device, ctx.pipelineCache, *pipelineLayout, *renderPass);
+            alphaTestPipeline = pm.createUnique(handles->device, handles->pipelineCache, *pipelineLayout, *renderPass);
         }
 
         {
@@ -424,14 +425,14 @@ namespace worlds {
             pmsci.rasterizationSamples = msaaSamples;
             pmsci.alphaToCoverageEnable = true;
             pm.multisampleState(pmsci);
-            noBackfaceCullPipeline = pm.createUnique(ctx.device, ctx.pipelineCache, *pipelineLayout, *renderPass);
+            noBackfaceCullPipeline = pm.createUnique(handles->device, handles->pipelineCache, *pipelineLayout, *renderPass);
         }
 
         {
             AssetID wvsID = g_assetDB.addOrGetExisting("Shaders/wire_obj.vert.spv");
             AssetID wfsID = g_assetDB.addOrGetExisting("Shaders/wire_obj.frag.spv");
-            wireVertexShader = ShaderCache::getModule(ctx.device, wvsID);
-            wireFragmentShader = ShaderCache::getModule(ctx.device, wfsID);
+            wireVertexShader = ShaderCache::getModule(handles->device, wvsID);
+            wireFragmentShader = ShaderCache::getModule(handles->device, wfsID);
 
             vku::PipelineMaker pm{ extent.width, extent.height };
             pm.shader(vk::ShaderStageFlagBits::eFragment, wireFragmentShader);
@@ -451,78 +452,35 @@ namespace worlds {
             vku::PipelineLayoutMaker plm;
             plm.pushConstantRange(vk::ShaderStageFlagBits::eFragment | vk::ShaderStageFlagBits::eVertex, 0, sizeof(StandardPushConstants));
             plm.descriptorSetLayout(*dsl);
-            wireframePipelineLayout = plm.createUnique(ctx.device);
+            wireframePipelineLayout = plm.createUnique(handles->device);
 
-            wireframePipeline = pm.createUnique(ctx.device, ctx.pipelineCache, *wireframePipelineLayout, *renderPass);
+            wireframePipeline = pm.createUnique(handles->device, handles->pipelineCache, *wireframePipelineLayout, *renderPass);
         }
 
-        {
-            currentLineVBSize = 0;
-
-            vku::DescriptorSetLayoutMaker dslm;
-            dslm.buffer(0, vk::DescriptorType::eUniformBuffer, vk::ShaderStageFlagBits::eVertex, 1);
-            lineDsl = dslm.createUnique(ctx.device);
-
-            vku::DescriptorSetMaker dsm;
-            dsm.layout(*lineDsl);
-            lineDs = std::move(dsm.createUnique(ctx.device, ctx.descriptorPool)[0]);
-
-            vku::PipelineLayoutMaker linePl{};
-            linePl.descriptorSetLayout(*lineDsl);
-            linePipelineLayout = linePl.createUnique(ctx.device);
-
-            vku::DescriptorSetUpdater dsu;
-            dsu.beginDescriptorSet(*lineDs);
-            dsu.beginBuffers(0, 0, vk::DescriptorType::eUniformBuffer);
-            dsu.buffer(vpUB.buffer(), 0, sizeof(MultiVP));
-            dsu.update(ctx.device);
-
-            vku::PipelineMaker pm{ extent.width, extent.height };
-            AssetID vsID = g_assetDB.addOrGetExisting("Shaders/line.vert.spv");
-            AssetID fsID = g_assetDB.addOrGetExisting("Shaders/line.frag.spv");
-
-            auto vert = vku::loadShaderAsset(ctx.device, vsID);
-            auto frag = vku::loadShaderAsset(ctx.device, fsID);
-
-            pm.shader(vk::ShaderStageFlagBits::eFragment, frag);
-            pm.shader(vk::ShaderStageFlagBits::eVertex, vert);
-            pm.vertexBinding(0, (uint32_t)sizeof(LineVert));
-            pm.vertexAttribute(0, 0, vk::Format::eR32G32B32Sfloat, offsetof(LineVert, pos));
-            pm.vertexAttribute(1, 0, vk::Format::eR32G32B32A32Sfloat, offsetof(LineVert, col));
-            pm.polygonMode(vk::PolygonMode::eLine);
-            pm.lineWidth(4.0f);
-            pm.topology(vk::PrimitiveTopology::eLineList);
-            pm.depthWriteEnable(true).depthTestEnable(true).depthCompareOp(vk::CompareOp::eGreater);
-            pm.subPass(1);
-
-            vk::PipelineMultisampleStateCreateInfo pmsci;
-            pmsci.rasterizationSamples = msaaSamples;
-            pm.multisampleState(pmsci);
-
-            linePipeline = pm.createUnique(ctx.device, ctx.pipelineCache, *linePipelineLayout, *renderPass);
-        }
+        dbgLinesPass = new DebugLinesPass(handles);
+        dbgLinesPass->setup(ctx, *renderPass);
 
         {
             vku::DescriptorSetLayoutMaker dslm;
             dslm.buffer(0, vk::DescriptorType::eUniformBuffer, vk::ShaderStageFlagBits::eVertex, 1);
             dslm.image(1, vk::DescriptorType::eCombinedImageSampler, vk::ShaderStageFlagBits::eFragment, 1);
-            skyboxDsl = dslm.createUnique(ctx.device);
+            skyboxDsl = dslm.createUnique(handles->device);
 
             vku::DescriptorSetMaker dsm;
             dsm.layout(*skyboxDsl);
-            skyboxDs = std::move(dsm.createUnique(ctx.device, ctx.descriptorPool)[0]);
+            skyboxDs = std::move(dsm.createUnique(handles->device, handles->descriptorPool)[0]);
 
             vku::PipelineLayoutMaker skyboxPl{};
             skyboxPl.descriptorSetLayout(*skyboxDsl);
             skyboxPl.pushConstantRange(vk::ShaderStageFlagBits::eFragment | vk::ShaderStageFlagBits::eVertex, 0, sizeof(SkyboxPushConstants));
-            skyboxPipelineLayout = skyboxPl.createUnique(ctx.device);
+            skyboxPipelineLayout = skyboxPl.createUnique(handles->device);
 
             vku::PipelineMaker pm{ extent.width, extent.height };
             AssetID vsID = g_assetDB.addOrGetExisting("Shaders/skybox.vert.spv");
             AssetID fsID = g_assetDB.addOrGetExisting("Shaders/skybox.frag.spv");
 
-            auto vert = vku::loadShaderAsset(ctx.device, vsID);
-            auto frag = vku::loadShaderAsset(ctx.device, fsID);
+            auto vert = vku::loadShaderAsset(handles->device, vsID);
+            auto frag = vku::loadShaderAsset(handles->device, fsID);
 
             pm.shader(vk::ShaderStageFlagBits::eFragment, frag);
             pm.shader(vk::ShaderStageFlagBits::eVertex, vert);
@@ -534,53 +492,38 @@ namespace worlds {
             pm.multisampleState(pmsci);
             pm.subPass(1);
 
-            skyboxPipeline = pm.createUnique(ctx.device, ctx.pipelineCache, *skyboxPipelineLayout, *renderPass);
+            skyboxPipeline = pm.createUnique(handles->device, handles->pipelineCache, *skyboxPipelineLayout, *renderPass);
         }
 
-        updateDescriptorSets(psCtx);
+        updateDescriptorSets(ctx);
 
-        if (ctx.graphicsSettings.enableVr) {
-            cullMeshRenderer = new VRCullMeshRenderer{};
-            cullMeshRenderer->setup(psCtx, *renderPass);
+        if (ctx.passSettings.enableVR) {
+            cullMeshRenderer = new VRCullMeshRenderer{handles};
+            cullMeshRenderer->setup(ctx, *renderPass);
         }
 
-        ctx.device.setEvent(*pickEvent);
+        handles->device.setEvent(*pickEvent);
     }
 
-    struct SubmeshDrawInfo {
-        uint32_t materialIdx;
-        uint32_t matrixIdx;
-        vk::Buffer vb;
-        vk::Buffer ib;
-        uint32_t indexCount;
-        uint32_t indexOffset;
-        uint32_t cubemapIdx;
-        glm::vec3 cubemapExt;
-        glm::vec3 cubemapPos;
-        glm::vec4 texScaleOffset;
-        entt::entity ent;
-        vk::Pipeline pipeline;
-        uint32_t drawMiscFlags;
-        bool opaque;
-    };
 
     slib::StaticAllocList<SubmeshDrawInfo> drawInfo{8192};
 
-    void PolyRenderPass::prePass(PassSetupCtx& psCtx, RenderCtx& rCtx) {
+    void PolyRenderPass::prePass(RenderContext& ctx) {
         ZoneScoped;
-        auto ctx = psCtx.vkCtx;
+        auto& resources = ctx.resources;
 
         Frustum frustum;
+        frustum.fromVPMatrix(ctx.projMatrices[0] * ctx.viewMatrices[0]);
+
         Frustum frustumB;
 
-        if (!rCtx.enableVR) {
-            frustum.fromVPMatrix(rCtx.cam->getProjectionMatrix((float)rCtx.width / (float)rCtx.height) * rCtx.cam->getViewMatrix());
-        } else {
-            frustum.fromVPMatrix(rCtx.vrProjMats[0] * rCtx.vrViewMats[0]);
-            frustumB.fromVPMatrix(rCtx.vrProjMats[1] * rCtx.vrViewMats[1]);
+        if (ctx.passSettings.enableVR) {
+            frustumB.fromVPMatrix(ctx.projMatrices[1] * ctx.viewMatrices[1]);
         }
 
-        uint32_t skyboxId = rCtx.slotArrays.cubemaps.loadOrGet(rCtx.reg.ctx<SceneSettings>().skybox);
+        auto& sceneSettings = ctx.registry.ctx<SceneSettings>();
+
+        uint32_t skyboxId = ctx.resources.cubemaps.loadOrGet(sceneSettings.skybox);
         if (skyboxId != lastSky) {
             dsUpdateNeeded = true;
             lastSky = skyboxId;
@@ -589,15 +532,15 @@ namespace worlds {
         drawInfo.clear();
 
         int matrixIdx = 0;
-        rCtx.reg.view<Transform, WorldObject>().each([&](entt::entity ent, Transform& t, WorldObject& wo) {
+        ctx.registry.view<Transform, WorldObject>().each([&](entt::entity ent, Transform& t, WorldObject& wo) {
             if (matrixIdx == 1023) {
                 fatalErr("Out of model matrices!");
                 return;
             }
 
-            auto meshPos = rCtx.loadedMeshes.find(wo.mesh);
+            auto meshPos = resources.meshes.find(wo.mesh);
 
-            if (meshPos == rCtx.loadedMeshes.end()) {
+            if (meshPos == resources.meshes.end()) {
                 // Haven't loaded the mesh yet
                 matrixIdx++;
                 logWarn(WELogCategoryRender, "Missing mesh");
@@ -605,15 +548,15 @@ namespace worlds {
             }
 
             float maxScale = glm::max(t.scale.x, glm::max(t.scale.y, t.scale.z));
-            if (!rCtx.enableVR) {
+            if (!ctx.passSettings.enableVR) {
                 if (!frustum.containsSphere(t.position, meshPos->second.sphereRadius * maxScale)) {
-                    rCtx.dbgStats->numCulledObjs++;
+                    ctx.debugContext.stats->numCulledObjs++;
                     return;
                 }
             } else {
                 if (!frustum.containsSphere(t.position, meshPos->second.sphereRadius * maxScale) &&
                     !frustumB.containsSphere(t.position, meshPos->second.sphereRadius * maxScale)) {
-                    rCtx.dbgStats->numCulledObjs++;
+                    ctx.debugContext.stats->numCulledObjs++;
                     return;
                 }
             }
@@ -632,7 +575,7 @@ namespace worlds {
                 sdi.matrixIdx = matrixIdx;
                 sdi.texScaleOffset = wo.texScaleOffset;
                 sdi.ent = ent;
-                auto& packedMat = rCtx.slotArrays.materials[wo.materialIdx[i]];
+                auto& packedMat = resources.materials[wo.materialIdx[i]];
                 sdi.opaque = packedMat.getCutoff() == 0.0f;
 
                 switch (wo.uvOverride) {
@@ -655,7 +598,7 @@ namespace worlds {
 
                 uint32_t currCubemapIdx = skyboxId;
 
-                rCtx.reg.view<WorldCubemap, Transform>().each([&](auto, WorldCubemap& wc, Transform& cubeT) {
+                ctx.registry.view<WorldCubemap, Transform>().each([&](auto, WorldCubemap& wc, Transform& cubeT) {
                     glm::vec3 cPos = t.position;
                     glm::vec3 ma = wc.extent + cubeT.position;
                     glm::vec3 mi = cubeT.position - wc.extent;
@@ -663,7 +606,7 @@ namespace worlds {
                     if (cPos.x < ma.x && cPos.x > mi.x &&
                         cPos.y < ma.y && cPos.y > mi.y &&
                         cPos.z < ma.z && cPos.z > mi.z) {
-                        currCubemapIdx = rCtx.slotArrays.cubemaps.get(wc.cubemapId);
+                        currCubemapIdx = resources.cubemaps.get(wc.cubemapId);
                         if (wc.cubeParallax) {
                             sdi.drawMiscFlags |= 4096; // flag for cubemap parallax correction
                             sdi.cubemapPos = cubeT.position;
@@ -674,13 +617,13 @@ namespace worlds {
 
                 sdi.cubemapIdx = currCubemapIdx;
 
-                auto& extraDat = rCtx.slotArrays.materials.getExtraDat(wo.materialIdx[i]);
+                auto& extraDat = resources.materials.getExtraDat(wo.materialIdx[i]);
 
                 if (extraDat.noCull) {
                     sdi.pipeline = *noBackfaceCullPipeline;
                 } else if (extraDat.wireframe || showWireframe.getInt() == 1) {
                     sdi.pipeline = *wireframePipeline;
-                } else if (rCtx.reg.has<UseWireframe>(ent) || showWireframe.getInt() == 2) {
+                } else if (ctx.registry.has<UseWireframe>(ent) || showWireframe.getInt() == 2) {
                     if (sdi.opaque) {
                         sdi.pipeline = *pipeline;
                     } else {
@@ -696,7 +639,7 @@ namespace worlds {
                         sdi.pipeline = *alphaTestPipeline;
                     }
                 }
-                rCtx.dbgStats->numTriangles += currSubmesh.indexCount / 3;
+                ctx.debugContext.stats->numTriangles += currSubmesh.indexCount / 3;
 
                 drawInfo.add(std::move(sdi));
             }
@@ -704,7 +647,7 @@ namespace worlds {
             matrixIdx++;
         });
 
-        rCtx.reg.view<Transform, ProceduralObject>().each([&](auto ent, Transform& t, ProceduralObject& po) {
+        ctx.registry.view<Transform, ProceduralObject>().each([&](auto ent, Transform& t, ProceduralObject& po) {
             if (matrixIdx == 1023) {
                 fatalErr("Out of model matrices!");
                 return;
@@ -715,19 +658,13 @@ namespace worlds {
             matrixIdx++;
         });
 
-        if (rCtx.enableVR) {
-            vpMapped->views[0] = rCtx.vrViewMats[0];
-            vpMapped->views[1] = rCtx.vrViewMats[1];
-            vpMapped->projections[0] = rCtx.vrProjMats[0];
-            vpMapped->projections[1] = rCtx.vrProjMats[1];
-        } else {
-            vpMapped->views[0] = rCtx.cam->getViewMatrix();
-            vpMapped->projections[0] = rCtx.cam->getProjectionMatrix((float)rCtx.width / (float)rCtx.height);
-            vpMapped->viewPos[0] = glm::vec4(rCtx.cam->position, 0.0f);
-        }
+        vpMapped->views[0] = ctx.viewMatrices[0];
+        vpMapped->views[1] = ctx.viewMatrices[1];
+        vpMapped->projections[0] = ctx.projMatrices[0];
+        vpMapped->projections[1] = ctx.projMatrices[1];
 
         int lightIdx = 0;
-        rCtx.reg.view<WorldLight, Transform>().each([&](auto ent, WorldLight& l, Transform& transform) {
+        ctx.registry.view<WorldLight, Transform>().each([&](auto ent, WorldLight& l, Transform& transform) {
             if (!l.enabled) return;
             glm::vec3 lightForward = glm::normalize(transform.rotation * glm::vec3(0.0f, 0.0f, -1.0f));
             if (l.type != LightType::Tube) {
@@ -749,15 +686,15 @@ namespace worlds {
         });
 
         lightMapped->pack0.x = (float)lightIdx;
-        lightMapped->pack0.y = rCtx.cascadeTexelsPerUnit[0];
-        lightMapped->pack0.z = rCtx.cascadeTexelsPerUnit[1];
-        lightMapped->pack0.w = rCtx.cascadeTexelsPerUnit[2];
-        lightMapped->shadowmapMatrices[0] = rCtx.cascadeShadowMatrices[0];
-        lightMapped->shadowmapMatrices[1] = rCtx.cascadeShadowMatrices[1];
-        lightMapped->shadowmapMatrices[2] = rCtx.cascadeShadowMatrices[2];
+        lightMapped->pack0.y = ctx.cascadeInfo.texelsPerUnit[0];
+        lightMapped->pack0.z = ctx.cascadeInfo.texelsPerUnit[1];
+        lightMapped->pack0.w = ctx.cascadeInfo.texelsPerUnit[2];
+        lightMapped->shadowmapMatrices[0] = ctx.cascadeInfo.matrices[0];
+        lightMapped->shadowmapMatrices[1] = ctx.cascadeInfo.matrices[1];
+        lightMapped->shadowmapMatrices[2] = ctx.cascadeInfo.matrices[2];
 
         uint32_t aoBoxIdx = 0;
-        rCtx.reg.view<Transform, ProxyAOComponent>().each([&](auto ent, Transform& t, ProxyAOComponent& pac) {
+        ctx.registry.view<Transform, ProxyAOComponent>().each([&](auto ent, Transform& t, ProxyAOComponent& pac) {
             lightMapped->box[aoBoxIdx].setScale(pac.bounds);
             glm::mat4 tMat = glm::translate(glm::mat4(1.0f), t.position);
             lightMapped->box[aoBoxIdx].setMatrix(glm::mat4_cast(glm::inverse(t.rotation)) * glm::inverse(tMat));
@@ -768,33 +705,13 @@ namespace worlds {
 
         if (dsUpdateNeeded) {
             // Update descriptor sets to bring in any new textures
-            updateDescriptorSets(psCtx);
+            updateDescriptorSets(ctx);
         }
 
-        auto& renderBuffer = g_scene->getRenderBuffer();
-        uint32_t requiredVBSize = renderBuffer.getNbLines() * 2u;
-
-        if (!lineVB.buffer() || currentLineVBSize < requiredVBSize) {
-            currentLineVBSize = requiredVBSize + 128;
-            lineVB = vku::GenericBuffer{ ctx.device, ctx.allocator, vk::BufferUsageFlagBits::eVertexBuffer, sizeof(LineVert) * currentLineVBSize, VMA_MEMORY_USAGE_CPU_TO_GPU, "Line Buffer" };
-        }
-
-        if (currentLineVBSize > 0) {
-            LineVert* lineVBDat = (LineVert*)lineVB.map(ctx.device);
-            for (uint32_t i = 0; i < renderBuffer.getNbLines(); i++) {
-                const auto& physLine = renderBuffer.getLines()[i];
-                lineVBDat[(i * 2) + 0] = LineVert{ px2glm(physLine.pos0), glm::vec4(1.0f, 0.0f, 1.0f, 1.0f) };
-                lineVBDat[(i * 2) + 1] = LineVert{ px2glm(physLine.pos1), glm::vec4(1.0f, 0.0f, 1.0f, 1.0f) };
-            }
-
-            lineVB.unmap(ctx.device);
-            lineVB.invalidate(ctx.device);
-            lineVB.flush(ctx.device);
-            numLineVerts = renderBuffer.getNbLines() * 2;
-        }
+        dbgLinesPass->prePass(ctx);
     }
 
-    void PolyRenderPass::execute(RenderCtx& ctx) {
+    void PolyRenderPass::execute(RenderContext& ctx) {
         ZoneScoped;
         TracyVkZone((*ctx.tracyContexts)[ctx.imageIndex], *ctx.cmdBuf, "Polys");
 
@@ -805,7 +722,7 @@ namespace worlds {
 
         rpbi.renderPass = *renderPass;
         rpbi.framebuffer = *renderFb;
-        rpbi.renderArea = vk::Rect2D{ {0, 0}, {ctx.width, ctx.height} };
+        rpbi.renderArea = vk::Rect2D{ {0, 0}, {ctx.passWidth, ctx.passHeight} };
         rpbi.clearValueCount = (uint32_t)clearColours.size();
         rpbi.pClearValues = clearColours.data();
 
@@ -844,7 +761,7 @@ namespace worlds {
 
         cmdBuf.beginRenderPass(rpbi, vk::SubpassContents::eInline);
 
-        if (ctx.enableVR) {
+        if (ctx.passSettings.enableVR) {
             cullMeshRenderer->draw(cmdBuf);
         }
 
@@ -859,13 +776,13 @@ namespace worlds {
             globalMiscFlags |= (1 << dbgDrawMode.getInt());
         }
 
-        if (!ctx.enableShadows) {
+        if (!ctx.passSettings.enableShadows) {
             globalMiscFlags |= 16384;
         }
 
-        //std::sort(drawInfo.begin(), drawInfo.end(), [&](const auto& sdiA, const auto& sdiB) {
-        //    return sdiA.pipeline > sdiB.pipeline;
-        //});
+        std::sort(drawInfo.begin(), drawInfo.end(), [&](const auto& sdiA, const auto& sdiB) {
+            return sdiA.pipeline > sdiB.pipeline;
+        });
 
         if ((int)depthPrepass) {
             ZoneScopedN("Depth prepass");
@@ -888,7 +805,7 @@ namespace worlds {
                 cmdBuf.bindVertexBuffers(0, sdi.vb, vk::DeviceSize(0));
                 cmdBuf.bindIndexBuffer(sdi.ib, 0, vk::IndexType::eUint32);
                 cmdBuf.drawIndexed(sdi.indexCount, 1, sdi.indexOffset, 0, 0);
-                ctx.dbgStats->numDrawCalls++;
+                ctx.debugContext.stats->numDrawCalls++;
             }
         }
 
@@ -902,7 +819,7 @@ namespace worlds {
 
             if (last.pipeline != sdi.pipeline) {
                 cmdBuf.bindPipeline(vk::PipelineBindPoint::eGraphics, sdi.pipeline);
-                ctx.dbgStats->numPipelineSwitches++;
+                ctx.debugContext.stats->numPipelineSwitches++;
             }
 
             StandardPushConstants pushConst {
@@ -923,15 +840,7 @@ namespace worlds {
             cmdBuf.drawIndexed(sdi.indexCount, 1, sdi.indexOffset, 0, 0);
 
             last = sdi;
-            ctx.dbgStats->numDrawCalls++;
-        }
-
-        if (numLineVerts > 0) {
-            cmdBuf.bindPipeline(vk::PipelineBindPoint::eGraphics, *linePipeline);
-            cmdBuf.bindVertexBuffers(0, lineVB.buffer(), vk::DeviceSize(0));
-            cmdBuf.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *linePipelineLayout, 0, *lineDs, nullptr);
-            cmdBuf.draw(numLineVerts, 1, 0, 0);
-            ctx.dbgStats->numDrawCalls++;
+            ctx.debugContext.stats->numDrawCalls++;
         }
 
         cmdBuf.bindPipeline(vk::PipelineBindPoint::eGraphics, *skyboxPipeline);
@@ -939,7 +848,9 @@ namespace worlds {
         SkyboxPushConstants spc{ glm::ivec4(0, 0, 0, 0) };
         cmdBuf.pushConstants<SkyboxPushConstants>(*skyboxPipelineLayout, vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment, 0, spc);
         cmdBuf.draw(36, 1, 0, 0);
-        ctx.dbgStats->numDrawCalls++;
+        ctx.debugContext.stats->numDrawCalls++;
+
+        dbgLinesPass->execute(ctx);
 
         cmdBuf.endRenderPass();
         polyImage->image.setCurrentLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
@@ -988,6 +899,5 @@ namespace worlds {
         modelMatrixUB.unmap(device);
         lightsUB.unmap(device);
         vpUB.unmap(device);
-        lineVB.destroy();
     }
 }

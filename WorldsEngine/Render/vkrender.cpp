@@ -58,7 +58,7 @@ uint32_t findPresentQueue(vk::PhysicalDevice pd, vk::SurfaceKHR surface) {
 }
 
 RenderTexture* VKRenderer::createRTResource(RTResourceCreateInfo resourceCreateInfo, const char* debugName) {
-    return new RenderTexture{ getVKCtx(), resourceCreateInfo, debugName };
+    return new RenderTexture{ &handles, resourceCreateInfo, debugName };
 }
 
 void VKRenderer::createSwapchain(vk::SwapchainKHR oldSwapchain) {
@@ -572,30 +572,21 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
         vmaFreeStatsString(allocator, statsString);
         }, "r_printAllocInfo", "", nullptr);
 
-    SlotArrays slotArrays { *texSlots, *cubemapSlots, *matSlots };
-
-    PassSetupCtx psc{
-        &materialUB,
-        getVKCtx(),
-        slotArrays,
-        (int)swapchain->images.size(),
-        enableVR,
-        &brdfLut,
-        renderWidth,
-        renderHeight
-    };
-
-    shadowCascadePass = new ShadowCascadePass(shadowmapImage);
-    shadowCascadePass->setup(psc);
+    shadowCascadePass = new ShadowCascadePass(&handles, shadowmapImage);
+    shadowCascadePass->setup();
 
     materialUB = vku::GenericBuffer(
             *device, allocator,
             vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
             sizeof(MaterialsUB), VMA_MEMORY_USAGE_GPU_ONLY, "Materials");
 
+    vpBuffer = vku::GenericBuffer(
+            *device, allocator,
+            vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
+            sizeof(MultiVP), VMA_MEMORY_USAGE_GPU_ONLY, "VP Buffer");
+
     MaterialsUB materials;
     materialUB.upload(*device, *commandPool, device->getQueue(graphicsQueueFamilyIdx, 0), &materials, sizeof(materials));
-
 }
 
 // Quite a lot of resources are dependent on either the number of images
@@ -605,22 +596,10 @@ void VKRenderer::createSCDependents() {
     delete imguiImage;
     delete finalPrePresent;
     delete finalPrePresentR;
-    SlotArrays slotArrays { *texSlots, *cubemapSlots, *matSlots };
-
-    PassSetupCtx psc{
-        &materialUB,
-        getVKCtx(),
-        slotArrays,
-        (int)swapchain->images.size(),
-        enableVR,
-        &brdfLut,
-        renderWidth,
-        renderHeight
-    };
 
     if (irp == nullptr) {
-        irp = new ImGuiRenderPass(*swapchain);
-        irp->setup(psc);
+        irp = new ImGuiRenderPass(&handles, *swapchain);
+        irp->setup();
     }
 
     createFramebuffers();
@@ -947,20 +926,20 @@ glm::mat4 VKRenderer::getCascadeMatrix(Camera cam, glm::vec3 lightDir, glm::mat4
 
 worlds::ConVar doGTAO{ "r_doGTAO", "0" };
 
-void VKRenderer::calculateCascadeMatrices(entt::registry& world, RenderCtx& rCtx) {
+void VKRenderer::calculateCascadeMatrices(entt::registry& world, Camera& cam, RenderContext& rCtx) {
     world.view<WorldLight, Transform>().each([&](auto, WorldLight& l, Transform& transform) {
         glm::vec3 lightForward = transform.rotation * glm::vec3(0.0f, 0.0f, -1.0f);
         if (l.type == LightType::Directional) {
             glm::mat4 frustumMatrices[3];
-            float aspect = (float)rCtx.width / (float)rCtx.height;
+            float aspect = (float)rCtx.passWidth / (float)rCtx.passHeight;
             // frustum 0: near -> 20m
             // frustum 1: 20m  -> 125m
             // frustum 2: 125m -> 250m
-            float splits[4] = { rCtx.cam->near, 15.0f, 60.0f, 140.0f };
-            if (!rCtx.enableVR) {
+            float splits[4] = { 0.1f, 15.0f, 60.0f, 140.0f };
+            if (!rCtx.passSettings.enableVR) {
                 for (int i = 1; i < 4; i++) {
                     frustumMatrices[i - 1] = glm::perspective(
-                        rCtx.cam->verticalFOV, aspect,
+                        cam.verticalFOV, aspect,
                         splits[i - 1], splits[i]
                     );
                 }
@@ -974,10 +953,10 @@ void VKRenderer::calculateCascadeMatrices(entt::registry& world, RenderCtx& rCtx
             }
 
             for (int i = 0; i < 3; i++) {
-                rCtx.cascadeShadowMatrices[i] =
+                rCtx.cascadeInfo.matrices[i] =
                     getCascadeMatrix(
-                        *rCtx.cam, lightForward,
-                        frustumMatrices[i], rCtx.cascadeTexelsPerUnit[i]
+                        cam, lightForward,
+                        frustumMatrices[i], rCtx.cascadeInfo.texelsPerUnit[i]
                     );
             }
         }
@@ -986,42 +965,54 @@ void VKRenderer::calculateCascadeMatrices(entt::registry& world, RenderCtx& rCtx
 
 void VKRenderer::writePassCmds(RTTPassHandle pass, vk::CommandBuffer cmdBuf, entt::registry& world) {
     auto& rtt = rttPasses.at(pass);
-    SlotArrays slotArrays { *texSlots, *cubemapSlots, *matSlots };
-    PassSetupCtx psc {
-        &materialUB, getVKCtx(), slotArrays,
-        (int)swapchain->images.size(), enableVR, &brdfLut, rtt.width, rtt.height };
 
-    RenderCtx rCtx{ cmdBuf, world, 0, rtt.cam, slotArrays, rtt.width, rtt.height, loadedMeshes };
-    rCtx.enableShadows = rtt.enableShadows;
-    rCtx.enableVR = rtt.isVr;
-    rCtx.viewPos = rtt.cam->position;
-    rCtx.dbgStats = &dbgStats;
-    rCtx.shadowImages = shadowImages;
+    RenderContext rCtx {
+        .resources = RenderResources {
+            .textures = *texSlots,
+            .cubemaps = *cubemapSlots,
+            .materials = *matSlots,
+            .meshes = loadedMeshes,
+            .brdfLut = &brdfLut,
+            .materialBuffer = &materialUB
+        },
+        .cascadeInfo = {},
+        .debugContext = RenderDebugContext {
+            .stats = &dbgStats
+        },
+        .passSettings = PassSettings {
+            .enableVR = rtt.isVr,
+            .enableShadows = rtt.enableShadows
+        },
+        .registry = world,
+        .cmdBuf = cmdBuf,
+        .passWidth = rtt.width,
+        .passHeight = rtt.height,
+        .imageIndex = frameIdx
+    };
 
     if (enableVR) {
-        rCtx.vrProjMats[0] = vrInterface->getEyeProjectionMatrix(Eye::LeftEye, rtt.cam->near);
-        rCtx.vrProjMats[1] = vrInterface->getEyeProjectionMatrix(Eye::RightEye, rtt.cam->near);
+        rCtx.projMatrices[0] = vrInterface->getEyeProjectionMatrix(Eye::LeftEye, rtt.cam->near);
+        rCtx.projMatrices[1] = vrInterface->getEyeProjectionMatrix(Eye::RightEye, rtt.cam->near);
 
         glm::mat4 hmdMat = vrInterface->getHeadTransform(vrPredictAmount);
 
         for (int i = 0; i < 2; i++) {
-            rCtx.vrViewMats[i] = glm::inverse(hmdMat) * rtt.cam->getViewMatrix();
+            rCtx.viewMatrices[i] = glm::inverse(hmdMat) * rtt.cam->getViewMatrix();
         }
+    } else {
+        rCtx.projMatrices[0] = rtt.cam->getProjectionMatrix((float)rtt.width / (float)rtt.height);
+
+        rCtx.viewMatrices[0] = rtt.cam->getViewMatrix();
     }
 
     if (rtt.enableShadows) {
-        calculateCascadeMatrices(world, rCtx);
-        shadowCascadePass->prePass(psc, rCtx);
+        calculateCascadeMatrices(world, *rtt.cam, rCtx);
+        shadowCascadePass->prePass(rCtx);
         shadowCascadePass->execute(rCtx);
     }
 
-    rtt.prp->prePass(psc, rCtx);
+    rtt.prp->prePass(rCtx);
     rtt.prp->execute(rCtx);
-
-    if (doGTAO.getInt())
-        rtt.gtrp->execute(rCtx);
-    else
-        rtt.gtaoOut->image.setLayout(cmdBuf, vk::ImageLayout::eShaderReadOnlyOptimal);
 
     rtt.hdrTarget->image.barrier(cmdBuf,
         vk::PipelineStageFlagBits::eColorAttachmentOutput, vk::PipelineStageFlagBits::eComputeShader,
@@ -1538,10 +1529,6 @@ void VKRenderer::reloadContent(ReloadFlags flags) {
     }
 }
 
-const VulkanHandles& VKRenderer::getVKCtx() {
-    return handles;
-}
-
 RTTPassHandle VKRenderer::createRTTPass(RTTPassCreateInfo& ci) {
     RTTPassInternal rpi;
     rpi.cam = ci.cam;
@@ -1569,7 +1556,13 @@ RTTPassHandle VKRenderer::createRTTPass(RTTPassCreateInfo& ci) {
     rpi.depthTarget = createRTResource(depthCreateInfo, "Depth Stencil Image");
 
     {
-        auto prp = new PolyRenderPass(rpi.depthTarget, rpi.hdrTarget, shadowmapImage, enablePicking);
+        auto prp = new PolyRenderPass(
+            &handles,
+            rpi.depthTarget,
+            rpi.hdrTarget,
+            shadowmapImage,
+            enablePicking
+        );
         if (ci.useForPicking)
             pickingPRP = prp;
         if (ci.isVr)
@@ -1580,8 +1573,6 @@ RTTPassHandle VKRenderer::createRTTPass(RTTPassCreateInfo& ci) {
     ici.samples = vk::SampleCountFlagBits::e1;
     ici.format = vk::Format::eR8Unorm;
     ici.usage = vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled;
-    RTResourceCreateInfo gtaoTarget{ ici, vk::ImageViewType::e2DArray, vk::ImageAspectFlagBits::eColor };
-    rpi.gtaoOut = createRTResource(gtaoTarget, "GTAO Target");
 
     ici.arrayLayers = 1;
     ici.format = vk::Format::eR8G8B8A8Unorm;
@@ -1592,10 +1583,11 @@ RTTPassHandle VKRenderer::createRTTPass(RTTPassCreateInfo& ci) {
         rpi.sdrFinalTarget = createRTResource(sdrTarget, "SDR Target");
     }
 
-    SlotArrays slotArrays { *texSlots, *cubemapSlots, *matSlots };
-    PassSetupCtx psc{ &materialUB, getVKCtx(), slotArrays, (int)swapchain->images.size(), ci.isVr, &brdfLut,
-    ci.width, ci.height };
-    auto tonemapRP = new TonemapRenderPass(rpi.hdrTarget, ci.outputToScreen ? finalPrePresent : rpi.sdrFinalTarget, rpi.gtaoOut);
+    auto tonemapRP = new TonemapRenderPass(
+        &handles,
+        rpi.hdrTarget,
+        ci.outputToScreen ? finalPrePresent : rpi.sdrFinalTarget
+    );
     rpi.trp = tonemapRP;
 
     vku::executeImmediately(*device, *commandPool, device->getQueue(graphicsQueueFamilyIdx, 0), [&](vk::CommandBuffer cmdBuf) {
@@ -1607,13 +1599,36 @@ RTTPassHandle VKRenderer::createRTTPass(RTTPassCreateInfo& ci) {
         }
         });
 
-    rpi.gtrp = new GTAORenderPass{ this, rpi.depthTarget, rpi.gtaoOut };
-    rpi.trp->setup(psc);
-    rpi.prp->setup(psc);
-    rpi.gtrp->setup(psc);
+    entt::registry r;
+    RenderContext rCtx {
+        .resources = RenderResources {
+            .textures = *texSlots,
+            .cubemaps = *cubemapSlots,
+            .materials = *matSlots,
+            .meshes = loadedMeshes,
+            .brdfLut = &brdfLut,
+            .materialBuffer = &materialUB,
+            .vpMatrixBuffer = &vpBuffer
+        },
+        .cascadeInfo = {},
+        .debugContext = RenderDebugContext {
+            .stats = &dbgStats
+        },
+        .passSettings = PassSettings {
+            .enableVR = ci.isVr,
+            .enableShadows = rpi.enableShadows
+        },
+        .registry = r,
+        .passWidth = rpi.width,
+        .passHeight = rpi.height,
+        .imageIndex = frameIdx
+    };
+
+    rpi.trp->setup(rCtx);
+    rpi.prp->setup(rCtx);
 
     if (ci.isVr) {
-        tonemapRP->setRightFinalImage(psc, finalPrePresentR);
+        tonemapRP->setRightFinalImage(finalPrePresentR);
     }
 
     rpi.isVr = ci.isVr;
@@ -1635,11 +1650,9 @@ void VKRenderer::destroyRTTPass(RTTPassHandle handle) {
 
     delete rpi.prp;
     delete rpi.trp;
-    delete rpi.gtrp;
 
     delete rpi.hdrTarget;
     delete rpi.depthTarget;
-    delete rpi.gtaoOut;
 
     if (!rpi.outputToScreen)
         delete rpi.sdrFinalTarget;
