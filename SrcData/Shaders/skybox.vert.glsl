@@ -6,9 +6,9 @@
 layout (location = 0) out vec3 outTexCoords;
 
 layout (binding = 0) uniform MultiVP {
-    mat4 view[4];
-    mat4 projection[4];
-    vec4 viewPos[4];
+    mat4 view[2];
+    mat4 projection[2];
+    vec4 viewPos[2];
 };
 
 layout (push_constant) uniform PushConstants {
