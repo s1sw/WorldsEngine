@@ -302,9 +302,41 @@ namespace worlds {
         g_physFoundation->release();
     }
 
-    bool raycast(physx::PxVec3 position, physx::PxVec3 direction, float maxDist, RaycastHitInfo* hitInfo) {
+    class RaycastFilterCallback : public PxQueryFilterCallback {
+    public:
+        PxQueryHitType::Enum postFilter(const PxFilterData&, const PxQueryHit&) override {
+            return PxQueryHitType::eBLOCK;
+        }
+
+        PxQueryHitType::Enum preFilter(
+                const PxFilterData& filterData, const PxShape* shape, 
+                const PxRigidActor* actor, PxHitFlags& queryFlags) override {
+            const auto& shapeFilterData = shape->getQueryFilterData();
+
+            if (shapeFilterData.word0 == filterData.word0) {
+                return PxQueryHitType::eNONE;
+            }
+
+            return PxQueryHitType::eBLOCK;
+        }
+    };
+    RaycastFilterCallback raycastFilterCallback;
+
+    bool raycast(physx::PxVec3 position, physx::PxVec3 direction, float maxDist, RaycastHitInfo* hitInfo, uint32_t excludeLayer) {
         physx::PxRaycastBuffer hitBuf;
-        bool hit = worlds::g_scene->raycast(position, direction, maxDist, hitBuf);
+        bool hit;
+
+        if (excludeLayer != ~0u) {
+            hit = worlds::g_scene->raycast(
+                position, direction,
+                maxDist, hitBuf,
+                PxHitFlag::eDEFAULT, 
+                PxQueryFilterData(PxFilterData{excludeLayer, excludeLayer, excludeLayer, excludeLayer}, PxQueryFlag::ePREFILTER | PxQueryFlag::eDYNAMIC | PxQueryFlag::eSTATIC), 
+                &raycastFilterCallback
+            );
+        } else
+            hit = worlds::g_scene->raycast(position, direction, maxDist, hitBuf);
+
         hit &= hitBuf.hasBlock;
 
         if (hit && hitInfo) {
@@ -317,7 +349,7 @@ namespace worlds {
         return hit;
     }
 
-    bool raycast(glm::vec3 position, glm::vec3 direction, float maxDist, RaycastHitInfo* hitInfo) {
-        return raycast(glm2px(position), glm2px(direction), maxDist, hitInfo);
+    bool raycast(glm::vec3 position, glm::vec3 direction, float maxDist, RaycastHitInfo* hitInfo, uint32_t excludeLayer) {
+        return raycast(glm2px(position), glm2px(direction), maxDist, hitInfo, excludeLayer);
     }
 }

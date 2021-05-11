@@ -223,7 +223,7 @@ namespace worlds {
         origin += direction * minDistance;
         RaycastHitInfo hitInfo;
 
-        if (raycast(origin, glm::normalize(direction), maxDistance, &hitInfo)) {
+        if (raycast(origin, glm::normalize(direction), maxDistance, &hitInfo, PLAYER_PHYSICS_LAYER)) {
             *hitDistance = hitInfo.distance;
 
             for (int i = 0; i < 3; i++)
@@ -240,10 +240,15 @@ namespace worlds {
         glm::vec3 origin {iplOrigin[0], iplOrigin[1], iplOrigin[2]};
         glm::vec3 direction {iplDirection[0], iplDirection[1], iplDirection[2]};
 
+        if (glm::length2(direction) <= 0.0001f) {
+            *hitExists = false;
+            return;
+        }
+
         origin += direction * minDistance;
 
         RaycastHitInfo hitInfo;
-        *hitExists = raycast(origin, glm::normalize(direction), maxDistance, &hitInfo);
+        *hitExists = raycast(origin, glm::normalize(direction), maxDistance, &hitInfo, PLAYER_PHYSICS_LAYER);
     }
 
     AudioSystem* AudioSystem::instance;
