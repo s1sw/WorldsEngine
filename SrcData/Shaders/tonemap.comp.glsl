@@ -13,7 +13,6 @@ layout(constant_id = 0) const int NUM_MSAA_SAMPLES = 4;
 const int NUM_MSAA_SAMPLES = 1;
 #endif
 layout(push_constant) uniform PushConstants {
-    float aoIntensity;
     int idx;
     float exposureBias;
 };
@@ -56,7 +55,7 @@ void main() {
     vec3 acc = vec3(0.0);
     vec3 whiteScale = 1.0 / Uncharted2Tonemap(vec3(W));
     for (int i = 0; i < NUM_MSAA_SAMPLES; i++) {
-        vec3 raw = texelFetch(hdrImage, ivec3(gl_GlobalInvocationID.xy, idx), i).xyz * aoVal;
+        vec3 raw = texelFetch(hdrImage, ivec3(gl_GlobalInvocationID.xy, idx), i).xyz;
         acc += tonemapCol(raw, whiteScale);
         //acc += ACESFilm(raw * 4.0);
     }
