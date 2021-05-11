@@ -18,7 +18,7 @@ namespace worlds {
 
         if (it == texInfo.end()) return;
 
-        VKImGUIUtil::destroyDescriptorSet(it->second->ds, handles);
+        VKImGUIUtil::destroyDescriptorSet(it->second->ds, &handles);
         texInfo.erase(id);
     }
 
@@ -42,7 +42,7 @@ namespace worlds {
 
         auto texInfo = new UITexInfo;
         texInfo->image = std::move(t2d);
-        texInfo->ds = VKImGUIUtil::createDescriptorSetFor(texInfo->image, handles);
+        texInfo->ds = VKImGUIUtil::createDescriptorSetFor(texInfo->image, &handles);
 
         return texInfo;
     }

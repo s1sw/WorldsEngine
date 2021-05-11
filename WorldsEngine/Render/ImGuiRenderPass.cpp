@@ -4,12 +4,13 @@
 #include "Render.hpp"
 
 namespace worlds {
-    ImGuiRenderPass::ImGuiRenderPass(Swapchain& currSwapchain) : currSwapchain(currSwapchain) {
+    ImGuiRenderPass::ImGuiRenderPass(VulkanHandles* handles, Swapchain& currSwapchain)
+        : currSwapchain {currSwapchain}
+        , handles {handles} {
 
     }
 
-    void ImGuiRenderPass::setup(PassSetupCtx& psCtx) {
-        auto& ctx = psCtx.vkCtx;
+    void ImGuiRenderPass::setup() {
         vku::RenderpassMaker rPassMaker{};
 
         rPassMaker.attachmentBegin(currSwapchain.imageFormat());
@@ -26,29 +27,32 @@ namespace worlds {
         rPassMaker.dependencyDstStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput);
         rPassMaker.dependencyDstAccessMask(vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite);
 
-        renderPass = rPassMaker.createUnique(ctx.device);
+        renderPass = rPassMaker.createUnique(handles->device);
 
         ImGui_ImplVulkan_InitInfo imguiInit;
         memset(&imguiInit, 0, sizeof(imguiInit));
         imguiInit.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
-        imguiInit.Device = ctx.device;
-        imguiInit.Instance = ctx.instance;
-        imguiInit.DescriptorPool = ctx.descriptorPool;
-        imguiInit.PhysicalDevice = ctx.physicalDevice;
-        imguiInit.PipelineCache = ctx.pipelineCache;
-        imguiInit.Queue = ctx.device.getQueue(ctx.graphicsQueueFamilyIdx, 0);
-        imguiInit.QueueFamily = ctx.graphicsQueueFamilyIdx;
-        imguiInit.MinImageCount = psCtx.swapchainImageCount;
-        imguiInit.ImageCount = psCtx.swapchainImageCount;
+        imguiInit.Device = handles->device;
+        imguiInit.Instance = handles->instance;
+        imguiInit.DescriptorPool = handles->descriptorPool;
+        imguiInit.PhysicalDevice = handles->physicalDevice;
+        imguiInit.PipelineCache = handles->pipelineCache;
+        imguiInit.Queue = handles->device.getQueue(handles->graphicsQueueFamilyIdx, 0);
+        imguiInit.QueueFamily = handles->graphicsQueueFamilyIdx;
+        imguiInit.MinImageCount = currSwapchain.images.size();
+        imguiInit.ImageCount = currSwapchain.images.size();
         ImGui_ImplVulkan_Init(&imguiInit, *renderPass);
 
-        vku::executeImmediately(ctx.device, ctx.commandPool, ctx.device.getQueue(ctx.graphicsQueueFamilyIdx, 0), [](vk::CommandBuffer cb) {
+        auto queue = handles->device.getQueue(handles->graphicsQueueFamilyIdx, 0);
+
+        vku::executeImmediately(handles->device, handles->commandPool, queue,
+            [](vk::CommandBuffer cb) {
             ImGui_ImplVulkan_CreateFontsTexture(cb);
-            });
+        });
     }
 
     void ImGuiRenderPass::execute(vk::CommandBuffer& cmdBuf,
-            uint32_t width, uint32_t height, 
+            uint32_t width, uint32_t height,
             vk::Framebuffer& currFramebuffer) {
         ImGui::Render();
 

@@ -1,6 +1,7 @@
 #pragma once
 #include <glm/glm.hpp>
 #include "../VR/IVRInterface.hpp"
+#include "Core/Engine.hpp"
 #include "glm/common.hpp"
 #include "tracy/TracyVulkan.hpp"
 #include "ResourceSlots.hpp"
@@ -210,68 +211,51 @@ namespace worlds {
         vku::GenericImage image;
         vk::ImageAspectFlagBits aspectFlags;
     private:
-        RenderTexture(const VulkanHandles& ctx, RTResourceCreateInfo resourceCreateInfo, const char* debugName);
+        RenderTexture(VulkanHandles* ctx, RTResourceCreateInfo resourceCreateInfo, const char* debugName);
         friend class VKRenderer;
     };
 
-    struct SlotArrays {
+    struct ShadowCascadeInfo {
+        glm::mat4 matrices[3];
+        float texelsPerUnit[3];
+    };
+
+    struct RenderResources {
         TextureSlots& textures;
         CubemapSlots& cubemaps;
         MaterialSlots& materials;
+        std::unordered_map<AssetID, LoadedMeshData>& meshes;
+        vku::GenericImage* brdfLut;
+        vku::GenericBuffer* materialBuffer;
+        vku::GenericBuffer* vpMatrixBuffer;
     };
 
-    struct RenderCtx {
-        RenderCtx(
-            vk::CommandBuffer cmdBuf,
-            entt::registry& reg,
-            uint32_t imageIndex,
-            Camera* cam,
-            SlotArrays slotArrays,
-            uint32_t width, uint32_t height,
-            std::unordered_map<AssetID, LoadedMeshData>& loadedMeshes)
-            : cmdBuf(cmdBuf)
-            , reg(reg)
-            , imageIndex(imageIndex)
-            , cam(cam)
-            , slotArrays(slotArrays)
-            , loadedMeshes(loadedMeshes)
-            , width(width)
-            , height(height)
-            , enableVR(false) {
-        }
-
-        vk::CommandBuffer cmdBuf;
-        vk::PipelineCache pipelineCache;
-
-        entt::registry& reg;
-        uint32_t imageIndex;
-        Camera* cam;
-        SlotArrays slotArrays;
-        std::unordered_map<AssetID, LoadedMeshData>& loadedMeshes;
-        uint32_t width, height;
-        glm::mat4 vrViewMats[2];
-        glm::mat4 vrProjMats[2];
-        glm::vec3 viewPos;
-        glm::mat4 cascadeShadowMatrices[3];
-        float cascadeTexelsPerUnit[3];
-        RenderTexture** shadowImages;
-        bool enableVR;
-        bool enableShadows = true;
+    struct RenderDebugContext {
+        RenderDebugStats* stats;
 #ifdef TRACY_ENABLE
         std::vector<TracyVkCtx>* tracyContexts;
 #endif
-        RenderDebugStats* dbgStats;
     };
 
-    struct PassSetupCtx {
-        vku::GenericBuffer* materialUB;
-        VulkanHandles vkCtx;
-        SlotArrays slotArrays;
-        int swapchainImageCount;
+    struct PassSettings {
         bool enableVR;
-        vku::GenericImage* brdfLut;
+        bool enableShadows;
+    };
+
+    struct RenderContext {
+        RenderResources resources;
+        ShadowCascadeInfo cascadeInfo;
+        RenderDebugContext debugContext;
+        PassSettings passSettings;
+        entt::registry& registry;
+
+        glm::mat4 projMatrices[2];
+        glm::mat4 viewMatrices[2];
+
+        vk::CommandBuffer cmdBuf;
         uint32_t passWidth;
         uint32_t passHeight;
+        uint32_t imageIndex;
     };
 
     struct RendererInitInfo {
@@ -347,12 +331,10 @@ namespace worlds {
         struct RTTPassInternal {
             PolyRenderPass* prp;
             TonemapRenderPass* trp;
-            GTAORenderPass* gtrp;
             uint32_t width, height;
             RenderTexture* hdrTarget;
             RenderTexture* sdrFinalTarget;
             RenderTexture* depthTarget;
-            RenderTexture* gtaoOut;
             bool isVr;
             bool outputToScreen;
             bool enableShadows;
@@ -385,6 +367,7 @@ namespace worlds {
         std::vector<vk::Fence> imgFences;
         VmaAllocator allocator;
         vku::GenericBuffer materialUB;
+        vku::GenericBuffer vpBuffer;
         VulkanHandles handles;
 
         RenderTexture* finalPrePresent;
@@ -441,7 +424,7 @@ namespace worlds {
         void createInstance(const RendererInitInfo& initInfo);
         void submitToOpenVR();
         glm::mat4 getCascadeMatrix(Camera cam, glm::vec3 lightdir, glm::mat4 frustumMatrix, float& texelsPerUnit);
-        void calculateCascadeMatrices(entt::registry& world, RenderCtx& rCtx);
+        void calculateCascadeMatrices(entt::registry& world, Camera& cam, RenderContext& rCtx);
         void writeCmdBuf(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageIndex, Camera& cam, entt::registry& reg);
         void writePassCmds(RTTPassHandle pass, vk::CommandBuffer cmdBuf, entt::registry& world);
         void reuploadMaterials();
@@ -460,8 +443,8 @@ namespace worlds {
         void setVRPredictAmount(float amt) { vrPredictAmount = amt; }
         void setVsync(bool vsync) { if (useVsync != vsync) { useVsync = vsync; recreateSwapchain(); } }
         bool getVsync() const { return useVsync; }
+        VulkanHandles* getHandles() { return &handles; }
         const RenderDebugStats& getDebugStats() const { return dbgStats; }
-        const VulkanHandles& getVKCtx();
         void uploadSceneAssets(entt::registry& reg);
 
         RTTPassHandle createRTTPass(RTTPassCreateInfo& ci);

@@ -15,21 +15,22 @@ namespace worlds {
         glm::mat4 matrices[3];
     };
 
-    ShadowCascadePass::ShadowCascadePass(RenderTexture* shadowImage)
-        : shadowImage(shadowImage) {
+    ShadowCascadePass::ShadowCascadePass(VulkanHandles* handles, RenderTexture* shadowImage)
+        : shadowImage(shadowImage)
+        , handles(handles) {
     }
 
-    void ShadowCascadePass::createDescriptorSet(VulkanHandles& ctx) {
+    void ShadowCascadePass::createDescriptorSet() {
         vku::DescriptorSetLayoutMaker dslm;
         dslm.buffer(0, vk::DescriptorType::eUniformBuffer, vk::ShaderStageFlagBits::eVertex, 1);
-        dsl = dslm.createUnique(ctx.device);
+        dsl = dslm.createUnique(handles->device);
 
         vku::DescriptorSetMaker dsm;
         dsm.layout(*dsl);
-        ds = std::move(dsm.createUnique(ctx.device, ctx.descriptorPool)[0]);
+        ds = std::move(dsm.createUnique(handles->device, handles->descriptorPool)[0]);
     }
 
-    void ShadowCascadePass::createRenderPass(VulkanHandles& ctx) {
+    void ShadowCascadePass::createRenderPass() {
         vku::RenderpassMaker rPassMaker;
 
         rPassMaker.attachmentBegin(vk::Format::eD32Sfloat);
@@ -55,26 +56,25 @@ namespace worlds {
 
         rPassMaker.setPNext(&multiviewCI);
 
-        renderPass = rPassMaker.createUnique(ctx.device);
+        renderPass = rPassMaker.createUnique(handles->device);
     }
 
-    void ShadowCascadePass::setup(PassSetupCtx& psCtx) {
+    void ShadowCascadePass::setup() {
         ZoneScoped;
-        auto& ctx = psCtx.vkCtx;
-        shadowmapRes = ctx.graphicsSettings.shadowmapRes;
+        shadowmapRes = handles->graphicsSettings.shadowmapRes;
 
-        createDescriptorSet(ctx);
-        createRenderPass(ctx);
+        createDescriptorSet();
+        createRenderPass();
 
         AssetID vsID = g_assetDB.addOrGetExisting("Shaders/shadowmap.vert.spv");
         AssetID fsID = g_assetDB.addOrGetExisting("Shaders/blank.frag.spv");
-        shadowVertexShader = ShaderCache::getModule(ctx.device, vsID);
-        shadowFragmentShader = ShaderCache::getModule(ctx.device, fsID);
+        shadowVertexShader = ShaderCache::getModule(handles->device, vsID);
+        shadowFragmentShader = ShaderCache::getModule(handles->device, fsID);
 
         vku::PipelineLayoutMaker plm{};
         plm.descriptorSetLayout(*dsl);
         plm.pushConstantRange(vk::ShaderStageFlagBits::eVertex, 0, sizeof(ShadowmapPushConstants));
-        pipelineLayout = plm.createUnique(ctx.device);
+        pipelineLayout = plm.createUnique(handles->device);
 
         vku::PipelineMaker pm{ shadowmapRes, shadowmapRes };
         pm.shader(vk::ShaderStageFlagBits::eFragment, shadowFragmentShader);
@@ -84,7 +84,7 @@ namespace worlds {
         pm.cullMode(vk::CullModeFlagBits::eBack);
         pm.depthWriteEnable(true).depthTestEnable(true).depthCompareOp(vk::CompareOp::eLess);
 
-        pipeline = pm.createUnique(ctx.device, ctx.pipelineCache, *pipelineLayout, *renderPass);
+        pipeline = pm.createUnique(handles->device, handles->pipelineCache, *pipelineLayout, *renderPass);
 
         auto attachment = shadowImage->image.imageView();
 
@@ -94,31 +94,31 @@ namespace worlds {
         fci.width = fci.height = shadowmapRes;
         fci.renderPass = *renderPass;
         fci.layers = 1;
-        shadowFb = ctx.device.createFramebufferUnique(fci);
+        shadowFb = handles->device.createFramebufferUnique(fci);
 
         matrixBuffer = vku::UniformBuffer {
-            ctx.device, ctx.allocator, sizeof(CascadeMatrices), VMA_MEMORY_USAGE_CPU_TO_GPU, "Cascade Matrices"
+            handles->device, handles->allocator, sizeof(CascadeMatrices), VMA_MEMORY_USAGE_CPU_TO_GPU, "Cascade Matrices"
         };
 
-        matricesMapped = (CascadeMatrices*)matrixBuffer.map(ctx.device);
+        matricesMapped = (CascadeMatrices*)matrixBuffer.map(handles->device);
 
         vku::DescriptorSetUpdater dsu;
         dsu.beginDescriptorSet(*ds);
         dsu.beginBuffers(0, 0, vk::DescriptorType::eUniformBuffer);
         dsu.buffer(matrixBuffer.buffer(), 0, sizeof(CascadeMatrices));
-        dsu.update(ctx.device);
+        dsu.update(handles->device);
     }
 
-    void ShadowCascadePass::prePass(PassSetupCtx& ctx, RenderCtx& rCtx) {
+    void ShadowCascadePass::prePass(RenderContext& ctx) {
         for (int i = 0; i < 3; i++) {
-            matricesMapped->matrices[i] = rCtx.cascadeShadowMatrices[i];
+            matricesMapped->matrices[i] = ctx.cascadeInfo.matrices[i];
         }
 
-        matrixBuffer.invalidate(ctx.vkCtx.device);
-        matrixBuffer.flush(ctx.vkCtx.device);
+        matrixBuffer.invalidate(handles->device);
+        matrixBuffer.flush(handles->device);
     }
 
-    void ShadowCascadePass::execute(RenderCtx& ctx) {
+    void ShadowCascadePass::execute(RenderContext& ctx) {
 #ifdef TRACY_ENABLE
         ZoneScoped;
         TracyVkZone((*ctx.tracyContexts)[ctx.imageIndex], *ctx.cmdBuf, "Shadowmap");
@@ -141,8 +141,7 @@ namespace worlds {
         rpbi.pClearValues = clearColours.data();
 
         auto cmdBuf = ctx.cmdBuf;
-        Camera& cam = *ctx.cam;
-        entt::registry& reg = ctx.reg;
+        entt::registry& reg = ctx.registry;
 
         cmdBuf.beginRenderPass(rpbi, vk::SubpassContents::eInline);
         cmdBuf.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline);
@@ -151,13 +150,13 @@ namespace worlds {
         Frustum shadowFrustums[3];
 
         for (int i = 0; i < 3; i++) {
-            shadowFrustums[i].fromVPMatrix(ctx.cascadeShadowMatrices[i]);
+            shadowFrustums[i].fromVPMatrix(ctx.cascadeInfo.matrices[i]);
         }
 
         reg.view<Transform, WorldObject>().each([&](auto ent, Transform& transform, WorldObject& obj) {
-            auto meshPos = ctx.loadedMeshes.find(obj.mesh);
+            auto meshPos = ctx.resources.meshes.find(obj.mesh);
 
-            if (meshPos == ctx.loadedMeshes.end()) {
+            if (meshPos == ctx.resources.meshes.end()) {
                 // Haven't loaded the mesh yet
                 return;
             }
@@ -171,7 +170,7 @@ namespace worlds {
             }
 
             if (!visible) {
-                ctx.dbgStats->numCulledObjs++;
+                ctx.debugContext.stats->numCulledObjs++;
                 return;
             }
 
@@ -182,7 +181,7 @@ namespace worlds {
             cmdBuf.bindVertexBuffers(0, meshPos->second.vb.buffer(), vk::DeviceSize(0));
             cmdBuf.bindIndexBuffer(meshPos->second.ib.buffer(), 0, meshPos->second.indexType);
             cmdBuf.drawIndexed(meshPos->second.indexCount, 1, 0, 0, 0);
-            ctx.dbgStats->numDrawCalls++;
+            ctx.debugContext.stats->numDrawCalls++;
         });
 
         reg.view<Transform, ProceduralObject>().each([&](auto ent, Transform& transform, ProceduralObject& obj) {
@@ -192,7 +191,7 @@ namespace worlds {
             cmdBuf.bindVertexBuffers(0, obj.vb.buffer(), vk::DeviceSize(0));
             cmdBuf.bindIndexBuffer(obj.ib.buffer(), 0, obj.indexType);
             cmdBuf.drawIndexed(obj.indexCount, 1, 0, 0, 0);
-            ctx.dbgStats->numDrawCalls++;
+            ctx.debugContext.stats->numDrawCalls++;
         });
 
         cmdBuf.endRenderPass();
@@ -201,7 +200,6 @@ namespace worlds {
     }
 
     ShadowCascadePass::~ShadowCascadePass() {
-        // EW EW EW EW EW EW EW
-        matrixBuffer.unmap(shadowFb.getOwner());
+        matrixBuffer.unmap(handles->device);
     }
 }

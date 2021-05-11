@@ -1,9 +1,9 @@
 #include "Render.hpp"
 
 namespace worlds {
-    RenderTexture::RenderTexture(const VulkanHandles& ctx, RTResourceCreateInfo resourceCreateInfo, const char* debugName) {
+    RenderTexture::RenderTexture(VulkanHandles* ctx, RTResourceCreateInfo resourceCreateInfo, const char* debugName) {
         image = vku::GenericImage{ 
-            ctx.device, ctx.allocator, 
+            ctx->device, ctx->allocator, 
             resourceCreateInfo.ici, resourceCreateInfo.viewType, 
             resourceCreateInfo.aspectFlags, false, 
             debugName 

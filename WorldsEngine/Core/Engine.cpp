@@ -385,7 +385,7 @@ namespace worlds {
         interfaces.scriptEngine = scriptEngine.get();
 
         if (!dedicatedServer) {
-            VKImGUIUtil::createObjects(renderer->getVKCtx());
+            VKImGUIUtil::createObjects(renderer->getHandles());
         }
 
         if (!dedicatedServer && runAsEditor) {
@@ -915,12 +915,12 @@ namespace worlds {
 
                 if (ImGui::CollapsingHeader(ICON_FA_PENCIL_ALT u8" Render Stats")) {
                     const auto& dbgStats = renderer->getDebugStats();
-                    auto vkCtx = renderer->getVKCtx();
+                    auto vkCtx = renderer->getHandles();
 
                     VmaBudget budget[16];
-                    vmaGetBudget(vkCtx.allocator, budget);
+                    vmaGetBudget(vkCtx->allocator, budget);
                     const VkPhysicalDeviceMemoryProperties* memProps;
-                    vmaGetMemoryProperties(vkCtx.allocator, &memProps);
+                    vmaGetMemoryProperties(vkCtx->allocator, &memProps);
 
                     size_t totalUsage = 0;
                     size_t totalBlockBytes = 0;
@@ -953,12 +953,12 @@ namespace worlds {
                 }
 
                 if (ImGui::CollapsingHeader(ICON_FA_MEMORY u8" Memory Stats")) {
-                    auto vkCtx = renderer->getVKCtx();
+                    auto vkCtx = renderer->getHandles();
 
                     VmaBudget budget[16];
-                    vmaGetBudget(vkCtx.allocator, budget);
+                    vmaGetBudget(vkCtx->allocator, budget);
                     const VkPhysicalDeviceMemoryProperties* memProps;
-                    vmaGetMemoryProperties(vkCtx.allocator, &memProps);
+                    vmaGetMemoryProperties(vkCtx->allocator, &memProps);
 
                     for (uint32_t i = 0; i < memProps->memoryHeapCount; i++) {
                         if (ImGui::TreeNode((void*)(uintptr_t)i, "Heap %u", i)) {
@@ -1109,7 +1109,7 @@ namespace worlds {
         if (!dedicatedServer) {
             shutdownRichPresence();
 
-            auto vkCtx = renderer->getVKCtx();
+            auto vkCtx = renderer->getHandles();
             VKImGUIUtil::destroyObjects(vkCtx);
             delete renderer;
         }

@@ -74,7 +74,7 @@ namespace worlds {
         , settings()
         , interfaces(interfaces)
         , inputManager(*interfaces.inputManager) {
-        texMan = new UITextureManager{interfaces.renderer->getVKCtx()};
+        texMan = new UITextureManager{*interfaces.renderer->getHandles()};
         ComponentMetadataManager::setupLookup();
         interfaces.engine->pauseSim = true;
 
@@ -89,7 +89,7 @@ namespace worlds {
         };
         sceneViewPass = interfaces.renderer->createRTTPass(sceneViewPassCI);
 
-        auto vkCtx = interfaces.renderer->getVKCtx();
+        auto vkCtx = interfaces.renderer->getHandles();
 
         sceneViewDS = VKImGUIUtil::createDescriptorSetFor(interfaces.renderer->getSDRTarget(sceneViewPass), vkCtx);
 
@@ -318,7 +318,7 @@ namespace worlds {
 
             if ((contentRegion.x != currentSceneViewSize.x || contentRegion.y != currentSceneViewSize.y)
                 && contentRegion.x > 256 && contentRegion.y > 256) {
-                auto vkCtx = interfaces.renderer->getVKCtx();
+                auto vkCtx = interfaces.renderer->getHandles();
                 // resize!
                 currentSceneViewSize = contentRegion;
                 interfaces.renderer->destroyRTTPass(sceneViewPass);
@@ -333,7 +333,7 @@ namespace worlds {
                     .outputToScreen = false
                 };
                 sceneViewPass = interfaces.renderer->createRTTPass(sceneViewPassCI);
-                vkCtx.device.freeDescriptorSets(vkCtx.descriptorPool, { sceneViewDS });
+                vkCtx->device.freeDescriptorSets(vkCtx->descriptorPool, { sceneViewDS });
 
                 sceneViewDS = VKImGUIUtil::createDescriptorSetFor(interfaces.renderer->getSDRTarget(sceneViewPass), vkCtx);
             }

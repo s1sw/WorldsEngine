@@ -5,39 +5,38 @@
 
 namespace worlds {
     struct TonemapPushConstants {
-        float aoIntensity;
         int idx;
         float exposureBias;
     };
 
-    static ConVar aoIntensity("r_gtaoIntensity", "0.0");
     static ConVar exposureBias("r_exposure", "0.5");
 
-    TonemapRenderPass::TonemapRenderPass(RenderTexture* hdrImg, RenderTexture* finalPrePresent, RenderTexture* gtaoImg)
-        : finalPrePresent(finalPrePresent) 
-        , hdrImg(hdrImg)
-        , gtaoImg{ gtaoImg } {
+    TonemapRenderPass::TonemapRenderPass(
+            VulkanHandles* handles,
+            RenderTexture* hdrImg,
+            RenderTexture* finalPrePresent)
+        : finalPrePresent{finalPrePresent}
+        , hdrImg {hdrImg}
+        , handles {handles} {
 
     }
 
-    void TonemapRenderPass::setup(PassSetupCtx& psCtx) {
-        auto& ctx = psCtx.vkCtx;
+    void TonemapRenderPass::setup(RenderContext& ctx) {
         vku::DescriptorSetLayoutMaker tonemapDslm;
         tonemapDslm.image(0, vk::DescriptorType::eStorageImage, vk::ShaderStageFlagBits::eCompute, 1);
         tonemapDslm.image(1, vk::DescriptorType::eCombinedImageSampler, vk::ShaderStageFlagBits::eCompute, 1);
-        tonemapDslm.image(2, vk::DescriptorType::eCombinedImageSampler, vk::ShaderStageFlagBits::eCompute, 1);
 
-        dsl = tonemapDslm.createUnique(ctx.device);
-        
+        dsl = tonemapDslm.createUnique(handles->device);
+
         auto msaaSamples = hdrImg->image.info().samples;
         std::string shaderName = (int)msaaSamples > 1 ? "tonemap.comp.spv" : "tonemap_nomsaa.comp.spv";
-        tonemapShader = ShaderCache::getModule(ctx.device, g_assetDB.addOrGetExisting("Shaders/" + shaderName));
+        tonemapShader = ShaderCache::getModule(handles->device, g_assetDB.addOrGetExisting("Shaders/" + shaderName));
 
         vku::PipelineLayoutMaker plm;
         plm.descriptorSetLayout(*dsl);
         plm.pushConstantRange(vk::ShaderStageFlagBits::eCompute, 0, sizeof(TonemapPushConstants));
 
-        pipelineLayout = plm.createUnique(ctx.device);
+        pipelineLayout = plm.createUnique(handles->device);
 
         vku::ComputePipelineMaker cpm;
         cpm.shader(vk::ShaderStageFlagBits::eCompute, tonemapShader);
@@ -49,14 +48,14 @@ namespace worlds {
         si.pData = &msaaSamples;
         cpm.specializationInfo(si);
 
-        pipeline = cpm.createUnique(ctx.device, ctx.pipelineCache, *pipelineLayout);
+        pipeline = cpm.createUnique(handles->device, handles->pipelineCache, *pipelineLayout);
 
         vku::DescriptorSetMaker dsm;
         dsm.layout(*dsl);
-        descriptorSet = std::move(dsm.createUnique(ctx.device, ctx.descriptorPool)[0]);
+        descriptorSet = std::move(dsm.createUnique(handles->device, handles->descriptorPool)[0]);
 
         vku::SamplerMaker sm;
-        sampler = sm.createUnique(ctx.device);
+        sampler = sm.createUnique(handles->device);
 
         vku::DescriptorSetUpdater dsu;
         dsu.beginDescriptorSet(*descriptorSet);
@@ -67,13 +66,10 @@ namespace worlds {
         dsu.beginImages(1, 0, vk::DescriptorType::eCombinedImageSampler);
         dsu.image(*sampler, hdrImg->image.imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
 
-        dsu.beginImages(2, 0, vk::DescriptorType::eCombinedImageSampler);
-        dsu.image(*sampler, gtaoImg->image.imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
-
-        dsu.update(ctx.device);
+        dsu.update(handles->device);
     }
 
-    void TonemapRenderPass::execute(RenderCtx& ctx) {
+    void TonemapRenderPass::execute(RenderContext& ctx) {
 #ifdef TRACY_ENABLE
         ZoneScoped;
         TracyVkZone((*ctx.tracyContexts)[ctx.imageIndex], *ctx.cmdBuf, "Tonemap/Postprocessing");
@@ -86,21 +82,21 @@ namespace worlds {
 
         cmdBuf.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pipelineLayout, 0, *descriptorSet, nullptr);
         cmdBuf.bindPipeline(vk::PipelineBindPoint::eCompute, *pipeline);
-        TonemapPushConstants tpc{ aoIntensity.getFloat(), 0, exposureBias.getFloat() };
+        TonemapPushConstants tpc{ 0, exposureBias.getFloat() };
         cmdBuf.pushConstants<TonemapPushConstants>(*pipelineLayout, vk::ShaderStageFlagBits::eCompute, 0, tpc);
 
-        cmdBuf.dispatch((ctx.width + 15) / 16, (ctx.height + 15) / 16, 1);
+        cmdBuf.dispatch((ctx.passWidth + 15) / 16, (ctx.passHeight + 15) / 16, 1);
 
-        if (ctx.enableVR) {
+        if (ctx.passSettings.enableVR) {
             finalPrePresentR->image.setLayout(cmdBuf,
                 vk::ImageLayout::eGeneral,
                 vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eComputeShader,
                 vk::AccessFlagBits::eTransferRead, vk::AccessFlagBits::eShaderWrite);
 
             cmdBuf.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pipelineLayout, 0, *rDescriptorSet, nullptr);
-            TonemapPushConstants tpc{ aoIntensity.getFloat(), 1, exposureBias.getFloat() };
+            TonemapPushConstants tpc{ 1, exposureBias.getFloat() };
             cmdBuf.pushConstants<TonemapPushConstants>(*pipelineLayout, vk::ShaderStageFlagBits::eCompute, 0, tpc);
-            cmdBuf.dispatch((ctx.width + 15) / 16, (ctx.height + 15) / 16, 1);
+            cmdBuf.dispatch((ctx.passWidth + 15) / 16, (ctx.passHeight + 15) / 16, 1);
         }
 
         finalPrePresent->image.setLayout(cmdBuf,
@@ -109,10 +105,10 @@ namespace worlds {
             vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite);
     }
 
-    void TonemapRenderPass::setRightFinalImage(PassSetupCtx& ctx, RenderTexture* right) {
+    void TonemapRenderPass::setRightFinalImage(RenderTexture* right) {
         vku::DescriptorSetMaker dsm;
         dsm.layout(*dsl);
-        rDescriptorSet = std::move(dsm.createUnique(ctx.vkCtx.device, ctx.vkCtx.descriptorPool)[0]);
+        rDescriptorSet = std::move(dsm.createUnique(handles->device, handles->descriptorPool)[0]);
 
         vku::DescriptorSetUpdater dsu;
         dsu.beginDescriptorSet(*rDescriptorSet);
@@ -125,10 +121,7 @@ namespace worlds {
         dsu.beginImages(1, 0, vk::DescriptorType::eCombinedImageSampler);
         dsu.image(*sampler, hdrImg->image.imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
 
-        dsu.beginImages(2, 0, vk::DescriptorType::eCombinedImageSampler);
-        dsu.image(*sampler, gtaoImg->image.imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
-
-        dsu.update(ctx.vkCtx.device);
+        dsu.update(handles->device);
     }
 
     TonemapRenderPass::~TonemapRenderPass() {

@@ -1,9 +1,8 @@
 worlds_sources += [
-  'Render/BlurRenderPass.cpp',
   'Render/BRDFLUTRenderer.cpp',
   'Render/CubemapConvoluter.cpp',
   'Render/CubemapSlots.cpp',
-  'Render/GTAORenderPass.cpp',
+  'Render/DebugLinesPass.cpp',
   'Render/ImGuiRenderPass.cpp',
   'Render/MaterialSlots.cpp',
   'Render/PipelineCacheSerializer.cpp',
