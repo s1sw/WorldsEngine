@@ -1044,7 +1044,7 @@ namespace vku {
     /// Buffers require memory objects which represent GPU and CPU resources.
     class GenericBuffer {
     public:
-        GenericBuffer() : buffer_() {
+        GenericBuffer() : buffer_(nullptr) {
         }
 
         GenericBuffer(vk::Device device, VmaAllocator allocator, vk::BufferUsageFlags usage, vk::DeviceSize size, VmaMemoryUsage memUsage = VMA_MEMORY_USAGE_GPU_ONLY, const char* debugName = nullptr) : debugName(debugName) {
