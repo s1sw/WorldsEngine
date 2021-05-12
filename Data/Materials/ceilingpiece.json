@@ -1,8 +1,7 @@
 {
-	"albedoPath" : "Textures/ceilingbit/ceiling piece_CeilingBit_BaseColor.png",
-	"normalMapPath" : "Textures/ceilingbit/ceiling piece_CeilingBit_Normal_forcelin.png",
-	"metalMapPath" : "Textures/ceilingbit/ceiling piece_CeilingBit_Metallic.png",
-	"roughMapPath" : "Textures/ceilingbit/ceiling piece_CeilingBit_Roughness.png",
+	"albedoPath" : "Textures/ceilingbit/CeilingBit_BaseColor.png",
+	"normalMapPath" : "Textures/ceilingbit/CeilingBit_Normal_forcelin.png",
+	"pbrMapPath" : "Textures/ceilingbit/CeilingBit_PBRPack.png",
 	"metallic" : 1.0,
 	"roughness" : 0.2,
 	"albedoColor" : [1.0, 1.0, 1.0]

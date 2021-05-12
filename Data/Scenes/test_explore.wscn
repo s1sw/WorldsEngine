@@ -3968,266 +3968,6 @@
       "uvOverride": 0
     }
   },
-  "1048710": {
-    "Transform": {
-      "position": [
-        13.0,
-        -0.008389607071876526,
-        3.2733819484710693
-      ],
-      "rotation": [
-        0.682981014251709,
-        0.1831299364566803,
-        0.6829816699028015,
-        0.18312968313694
-      ],
-      "scale": [
-        1.0,
-        1.000008225440979,
-        1.0000332593917847
-      ]
-    },
-    "World Object": {
-      "materials": [
-        "Materials/ceilingpiece.json",
-        "Materials/ceilingpiecepipe.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json"
-      ],
-      "mesh": "ceilingpiece.wmdl",
-      "staticFlags": 0,
-      "texScaleOffset": [
-        1.0,
-        1.0,
-        0.0,
-        0.0
-      ],
-      "uvOverride": 0
-    }
-  },
-  "1048711": {
-    "Transform": {
-      "position": [
-        9.0,
-        -0.008389607071876526,
-        3.2733819484710693
-      ],
-      "rotation": [
-        0.682981014251709,
-        0.1831299364566803,
-        0.6829816699028015,
-        0.18312968313694
-      ],
-      "scale": [
-        1.0,
-        1.000008225440979,
-        1.000109076499939
-      ]
-    },
-    "World Object": {
-      "materials": [
-        "Materials/ceilingpiece.json",
-        "Materials/ceilingpiecepipe.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json"
-      ],
-      "mesh": "ceilingpiece.wmdl",
-      "staticFlags": 0,
-      "texScaleOffset": [
-        1.0,
-        1.0,
-        0.0,
-        0.0
-      ],
-      "uvOverride": 0
-    }
-  },
-  "1048712": {
-    "Transform": {
-      "position": [
-        5.0,
-        -0.008389607071876526,
-        3.2733819484710693
-      ],
-      "rotation": [
-        0.682981014251709,
-        0.1831299364566803,
-        0.6829816699028015,
-        0.18312968313694
-      ],
-      "scale": [
-        1.0,
-        1.000008225440979,
-        1.0001112222671509
-      ]
-    },
-    "World Object": {
-      "materials": [
-        "Materials/ceilingpiece.json",
-        "Materials/ceilingpiecepipe.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json"
-      ],
-      "mesh": "ceilingpiece.wmdl",
-      "staticFlags": 0,
-      "texScaleOffset": [
-        1.0,
-        1.0,
-        0.0,
-        0.0
-      ],
-      "uvOverride": 0
-    }
-  },
-  "1048713": {
-    "Transform": {
-      "position": [
-        1.0,
-        -0.008389607071876526,
-        3.2733819484710693
-      ],
-      "rotation": [
-        0.682981014251709,
-        0.1831299364566803,
-        0.6829816699028015,
-        0.18312968313694
-      ],
-      "scale": [
-        1.0,
-        1.000008225440979,
-        1.0001004934310913
-      ]
-    },
-    "World Object": {
-      "materials": [
-        "Materials/ceilingpiece.json",
-        "Materials/ceilingpiecepipe.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json"
-      ],
-      "mesh": "ceilingpiece.wmdl",
-      "staticFlags": 0,
-      "texScaleOffset": [
-        1.0,
-        1.0,
-        0.0,
-        0.0
-      ],
-      "uvOverride": 0
-    }
-  },
   "1048726": {
     "Dynamic Physics Actor": {
       "mass": 3.0,
@@ -4385,15 +4125,15 @@
     },
     "Transform": {
       "position": [
-        -4.213146686553955,
-        1.1723113059997559,
-        -2.1909401416778564
+        -4.213748455047607,
+        1.1723603010177612,
+        -2.190901756286621
       ],
       "rotation": [
-        2.3549688194179907e-05,
-        3.6635203287005424e-05,
-        0.0002137826377293095,
-        1.0
+        9.79994292720221e-05,
+        3.183132503181696e-05,
+        0.0013122684322297573,
+        0.9999991655349731
       ],
       "scale": [
         1.2500038146972656,
@@ -9018,14 +8758,14 @@
     },
     "Transform": {
       "position": [
-        0.1541139930486679,
+        0.15411406755447388,
         0.2499999850988388,
         -2.9599475860595703
       ],
       "rotation": [
         0.0,
         0.0,
-        -9.332215427093615e-07,
+        -1.0802889391925419e-06,
         1.0
       ],
       "scale": [
@@ -10664,15 +10404,15 @@
     },
     "Transform": {
       "position": [
-        2.7894973754882813,
-        0.08658671379089355,
-        -4.42650842666626
+        2.788623809814453,
+        0.07137644290924072,
+        -4.426964282989502
       ],
       "rotation": [
-        0.0015652708243578672,
-        0.38331663608551025,
-        0.00234410772100091,
-        0.9236128926277161
+        -0.0005082699935883284,
+        0.3841361105442047,
+        -0.0013748898636549711,
+        0.9232754707336426
       ],
       "scale": [
         1.0,
@@ -10720,6 +10460,51 @@
       "texScaleOffset": [
         4.0,
         4.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "1048809": {
+    "Audio Source": {
+      "channel": 1,
+      "clipPath": "Audio/Music/headphone loop mono.ogg",
+      "loop": true,
+      "playOnSceneOpen": true,
+      "spatialise": true,
+      "volume": 1.0
+    },
+    "Name Component": {
+      "name": "Empty"
+    },
+    "Transform": {
+      "position": [
+        -29.519277572631836,
+        3.3817152976989746,
+        -8.180832862854004
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        0.10000000149011612,
+        0.10000000149011612,
+        0.10000000149011612
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/dev.json"
+      ],
+      "mesh": "model.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
         0.0,
         0.0
       ],
@@ -11303,9 +11088,9 @@
         -5.000000476837158
       ],
       "rotation": [
-        7.86929798376934e-26,
+        -2.792515342447411e-25,
         -0.7069972157478333,
-        2.900827978516277e-27,
+        5.013672536309084e-25,
         0.7072163224220276
       ],
       "scale": [
@@ -11429,6 +11214,181 @@
     }
   },
   "133": {
+    "Physics Actor": {
+      "shapes": [
+        {
+          "halfExtents": [
+            0.16725514829158783,
+            1.137605905532837,
+            0.19113460183143616
+          ],
+          "position": [
+            -0.05917661264538765,
+            -0.34253841638565063,
+            -0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            -0.5261529684066772,
+            0.8503898978233337
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.5,
+            0.5,
+            2.0
+          ],
+          "position": [
+            1.5,
+            0.5,
+            -0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            -0.7071067094802856,
+            0.7071067094802856
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.5,
+            0.5,
+            2.0
+          ],
+          "position": [
+            -1.5,
+            -0.5,
+            -0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            -0.7071067094802856,
+            0.7071067094802856
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.16725514829158783,
+            1.137605905532837,
+            0.08823433518409729
+          ],
+          "position": [
+            -0.05917661264538765,
+            -0.34253841638565063,
+            -1.899999976158142
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            -0.5261529684066772,
+            0.8503898978233337
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.16725514829158783,
+            1.137605905532837,
+            0.08823433518409729
+          ],
+          "position": [
+            -0.05917661264538765,
+            -0.34253841638565063,
+            1.899999976158142
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            -0.5261529684066772,
+            0.8503898978233337
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.16725513339042664,
+            1.996403455734253,
+            0.09923353046178818
+          ],
+          "position": [
+            0.832711935043335,
+            0.10230036824941635,
+            -6.380183881216084e-11
+          ],
+          "rotation": [
+            0.6013164520263672,
+            -0.3720462918281555,
+            -0.3720463514328003,
+            0.6013164520263672
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.16725513339042664,
+            1.996403455734253,
+            0.09923353046178818
+          ],
+          "position": [
+            -0.9691413640975952,
+            -0.7963928580284119,
+            3.223608757707552e-08
+          ],
+          "rotation": [
+            0.6013164520263672,
+            -0.3720462918281555,
+            -0.3720463514328003,
+            0.6013164520263672
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.13905958831310272,
+            1.137605905532837,
+            1.8447619676589966
+          ],
+          "position": [
+            -0.13750670850276947,
+            -0.18548887968063354,
+            0.04434394836425781
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            -0.5261529684066772,
+            0.8503898978233337
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.1607554405927658,
+            1.996403455734253,
+            0.3501650393009186
+          ],
+          "position": [
+            -0.1460898071527481,
+            -0.3858872354030609,
+            1.7482129521795287e-08
+          ],
+          "rotation": [
+            0.6013164520263672,
+            -0.3720462918281555,
+            -0.3720463514328003,
+            0.6013164520263672
+          ],
+          "type": 1
+        }
+      ]
+    },
     "Transform": {
       "position": [
         -3.0,
@@ -12064,15 +12024,15 @@
     },
     "Transform": {
       "position": [
-        -2.4890148639678955,
-        0.5573645830154419,
-        -10.151041030883789
+        -2.489004373550415,
+        0.5573444962501526,
+        -10.151154518127441
       ],
       "rotation": [
-        -0.4405871331691742,
-        0.11253473907709122,
-        -0.8877671957015991,
-        0.07133329659700394
+        -0.44059205055236816,
+        0.11251462996006012,
+        -0.8877686858177185,
+        0.07131648808717728
       ],
       "scale": [
         1.000015139579773,
@@ -12831,15 +12791,15 @@
     },
     "Transform": {
       "position": [
-        -4.183688640594482,
-        0.9668813943862915,
-        -0.4260474145412445
+        -4.183578968048096,
+        0.9669402837753296,
+        -0.4261894226074219
       ],
       "rotation": [
-        0.00021732451568823308,
-        1.0,
-        0.00013337192649487406,
-        0.0003917873837053776
+        0.0010602466063573956,
+        0.9999988079071045,
+        -0.0011556409299373627,
+        0.0001514461764600128
       ],
       "scale": [
         1.000002145767212,
@@ -13732,14 +13692,14 @@
     },
     "Transform": {
       "position": [
-        10.009732246398926,
-        1.0000005960464478,
-        -12.970524787902832
+        10.00970458984375,
+        0.9999936819076538,
+        -12.970484733581543
       ],
       "rotation": [
-        -2.5188253403030103e-06,
-        2.9994935175636783e-06,
-        -2.8581534934346564e-06,
+        1.4945610928407405e-05,
+        6.827938250353327e-07,
+        4.231002549204277e-06,
         1.0
       ],
       "scale": [
@@ -13828,14 +13788,14 @@
     },
     "Transform": {
       "position": [
-        12.205904006958008,
-        1.0000017881393433,
-        -13.577839851379395
+        12.20602798461914,
+        0.9999987483024597,
+        -13.577850341796875
       ],
       "rotation": [
-        -2.2437433244704152e-07,
-        -0.0006063353503122926,
-        6.812215502804975e-08,
+        4.933254331263015e-06,
+        -0.0005993990926072001,
+        -3.554951763362624e-05,
         0.9999998807907104
       ],
       "scale": [
@@ -15110,6 +15070,966 @@
       "uvOverride": 0
     }
   },
+  "2097286": {
+    "Physics Actor": {
+      "shapes": [
+        {
+          "halfExtents": [
+            0.16725514829158783,
+            1.137605905532837,
+            0.19113460183143616
+          ],
+          "position": [
+            -0.05917661264538765,
+            -0.34253841638565063,
+            -0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            -0.5261529684066772,
+            0.8503898978233337
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.5,
+            0.5,
+            2.0
+          ],
+          "position": [
+            1.5,
+            0.5,
+            -0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            -0.7071067094802856,
+            0.7071067094802856
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.5,
+            0.5,
+            2.0
+          ],
+          "position": [
+            -1.5,
+            -0.5,
+            -0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            -0.7071067094802856,
+            0.7071067094802856
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.16725514829158783,
+            1.137605905532837,
+            0.08823433518409729
+          ],
+          "position": [
+            -0.05917661264538765,
+            -0.34253841638565063,
+            -1.899999976158142
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            -0.5261529684066772,
+            0.8503898978233337
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.16725514829158783,
+            1.137605905532837,
+            0.08823433518409729
+          ],
+          "position": [
+            -0.05917661264538765,
+            -0.34253841638565063,
+            1.899999976158142
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            -0.5261529684066772,
+            0.8503898978233337
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.16725513339042664,
+            1.996403455734253,
+            0.09923353046178818
+          ],
+          "position": [
+            0.832711935043335,
+            0.10230036824941635,
+            -6.380183881216084e-11
+          ],
+          "rotation": [
+            0.6013164520263672,
+            -0.3720462918281555,
+            -0.3720463514328003,
+            0.6013164520263672
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.16725513339042664,
+            1.996403455734253,
+            0.09923353046178818
+          ],
+          "position": [
+            -0.9691413640975952,
+            -0.7963928580284119,
+            3.223608757707552e-08
+          ],
+          "rotation": [
+            0.6013164520263672,
+            -0.3720462918281555,
+            -0.3720463514328003,
+            0.6013164520263672
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.13905958831310272,
+            1.137605905532837,
+            1.8447619676589966
+          ],
+          "position": [
+            -0.13750670850276947,
+            -0.18548887968063354,
+            0.04434394836425781
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            -0.5261529684066772,
+            0.8503898978233337
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.1607554405927658,
+            1.996403455734253,
+            0.3501650393009186
+          ],
+          "position": [
+            -0.1460898071527481,
+            -0.3858872354030609,
+            1.7482129521795287e-08
+          ],
+          "rotation": [
+            0.6013164520263672,
+            -0.3720462918281555,
+            -0.3720463514328003,
+            0.6013164520263672
+          ],
+          "type": 1
+        }
+      ]
+    },
+    "Transform": {
+      "position": [
+        1.0,
+        -0.008389607071876526,
+        3.2733819484710693
+      ],
+      "rotation": [
+        0.6829808950424194,
+        0.1831299066543579,
+        0.6829817295074463,
+        0.1831296682357788
+      ],
+      "scale": [
+        1.0,
+        0.999995768070221,
+        1.0000001192092896
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/ceilingpiece.json",
+        "Materials/ceilingpiecepipe.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json"
+      ],
+      "mesh": "ceilingpiece.wmdl",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "2097287": {
+    "Physics Actor": {
+      "shapes": [
+        {
+          "halfExtents": [
+            0.16725514829158783,
+            1.137605905532837,
+            0.19113460183143616
+          ],
+          "position": [
+            -0.05917661264538765,
+            -0.34253841638565063,
+            -0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            -0.5261529684066772,
+            0.8503898978233337
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.5,
+            0.5,
+            2.0
+          ],
+          "position": [
+            1.5,
+            0.5,
+            -0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            -0.7071067094802856,
+            0.7071067094802856
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.5,
+            0.5,
+            2.0
+          ],
+          "position": [
+            -1.5,
+            -0.5,
+            -0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            -0.7071067094802856,
+            0.7071067094802856
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.16725514829158783,
+            1.137605905532837,
+            0.08823433518409729
+          ],
+          "position": [
+            -0.05917661264538765,
+            -0.34253841638565063,
+            -1.899999976158142
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            -0.5261529684066772,
+            0.8503898978233337
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.16725514829158783,
+            1.137605905532837,
+            0.08823433518409729
+          ],
+          "position": [
+            -0.05917661264538765,
+            -0.34253841638565063,
+            1.899999976158142
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            -0.5261529684066772,
+            0.8503898978233337
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.16725513339042664,
+            1.996403455734253,
+            0.09923353046178818
+          ],
+          "position": [
+            0.832711935043335,
+            0.10230036824941635,
+            -6.380183881216084e-11
+          ],
+          "rotation": [
+            0.6013164520263672,
+            -0.3720462918281555,
+            -0.3720463514328003,
+            0.6013164520263672
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.16725513339042664,
+            1.996403455734253,
+            0.09923353046178818
+          ],
+          "position": [
+            -0.9691413640975952,
+            -0.7963928580284119,
+            3.223608757707552e-08
+          ],
+          "rotation": [
+            0.6013164520263672,
+            -0.3720462918281555,
+            -0.3720463514328003,
+            0.6013164520263672
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.13905958831310272,
+            1.137605905532837,
+            1.8447619676589966
+          ],
+          "position": [
+            -0.13750670850276947,
+            -0.18548887968063354,
+            0.04434394836425781
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            -0.5261529684066772,
+            0.8503898978233337
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.1607554405927658,
+            1.996403455734253,
+            0.3501650393009186
+          ],
+          "position": [
+            -0.1460898071527481,
+            -0.3858872354030609,
+            1.7482129521795287e-08
+          ],
+          "rotation": [
+            0.6013164520263672,
+            -0.3720462918281555,
+            -0.3720463514328003,
+            0.6013164520263672
+          ],
+          "type": 1
+        }
+      ]
+    },
+    "Transform": {
+      "position": [
+        9.0,
+        -0.008389607071876526,
+        3.2733819484710693
+      ],
+      "rotation": [
+        0.6829808950424194,
+        0.1831299066543579,
+        0.6829817295074463,
+        0.1831296682357788
+      ],
+      "scale": [
+        1.0,
+        0.999995768070221,
+        1.0000001192092896
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/ceilingpiece.json",
+        "Materials/ceilingpiecepipe.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json"
+      ],
+      "mesh": "ceilingpiece.wmdl",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "2097288": {
+    "Physics Actor": {
+      "shapes": [
+        {
+          "halfExtents": [
+            0.16725514829158783,
+            1.137605905532837,
+            0.19113460183143616
+          ],
+          "position": [
+            -0.05917661264538765,
+            -0.34253841638565063,
+            -0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            -0.5261529684066772,
+            0.8503898978233337
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.5,
+            0.5,
+            2.0
+          ],
+          "position": [
+            1.5,
+            0.5,
+            -0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            -0.7071067094802856,
+            0.7071067094802856
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.5,
+            0.5,
+            2.0
+          ],
+          "position": [
+            -1.5,
+            -0.5,
+            -0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            -0.7071067094802856,
+            0.7071067094802856
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.16725514829158783,
+            1.137605905532837,
+            0.08823433518409729
+          ],
+          "position": [
+            -0.05917661264538765,
+            -0.34253841638565063,
+            -1.899999976158142
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            -0.5261529684066772,
+            0.8503898978233337
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.16725514829158783,
+            1.137605905532837,
+            0.08823433518409729
+          ],
+          "position": [
+            -0.05917661264538765,
+            -0.34253841638565063,
+            1.899999976158142
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            -0.5261529684066772,
+            0.8503898978233337
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.16725513339042664,
+            1.996403455734253,
+            0.09923353046178818
+          ],
+          "position": [
+            0.832711935043335,
+            0.10230036824941635,
+            -6.380183881216084e-11
+          ],
+          "rotation": [
+            0.6013164520263672,
+            -0.3720462918281555,
+            -0.3720463514328003,
+            0.6013164520263672
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.16725513339042664,
+            1.996403455734253,
+            0.09923353046178818
+          ],
+          "position": [
+            -0.9691413640975952,
+            -0.7963928580284119,
+            3.223608757707552e-08
+          ],
+          "rotation": [
+            0.6013164520263672,
+            -0.3720462918281555,
+            -0.3720463514328003,
+            0.6013164520263672
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.13905958831310272,
+            1.137605905532837,
+            1.8447619676589966
+          ],
+          "position": [
+            -0.13750670850276947,
+            -0.18548887968063354,
+            0.04434394836425781
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            -0.5261529684066772,
+            0.8503898978233337
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.1607554405927658,
+            1.996403455734253,
+            0.3501650393009186
+          ],
+          "position": [
+            -0.1460898071527481,
+            -0.3858872354030609,
+            1.7482129521795287e-08
+          ],
+          "rotation": [
+            0.6013164520263672,
+            -0.3720462918281555,
+            -0.3720463514328003,
+            0.6013164520263672
+          ],
+          "type": 1
+        }
+      ]
+    },
+    "Transform": {
+      "position": [
+        5.0,
+        -0.008389607071876526,
+        3.2733819484710693
+      ],
+      "rotation": [
+        0.6829808950424194,
+        0.1831299066543579,
+        0.6829817295074463,
+        0.1831296682357788
+      ],
+      "scale": [
+        1.0,
+        0.999995768070221,
+        1.0000001192092896
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/ceilingpiece.json",
+        "Materials/ceilingpiecepipe.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json"
+      ],
+      "mesh": "ceilingpiece.wmdl",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "2097289": {
+    "Physics Actor": {
+      "shapes": [
+        {
+          "halfExtents": [
+            0.16725514829158783,
+            1.137605905532837,
+            0.19113460183143616
+          ],
+          "position": [
+            -0.05917661264538765,
+            -0.34253841638565063,
+            -0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            -0.5261529684066772,
+            0.8503898978233337
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.5,
+            0.5,
+            2.0
+          ],
+          "position": [
+            1.5,
+            0.5,
+            -0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            -0.7071067094802856,
+            0.7071067094802856
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.5,
+            0.5,
+            2.0
+          ],
+          "position": [
+            -1.5,
+            -0.5,
+            -0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            -0.7071067094802856,
+            0.7071067094802856
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.16725514829158783,
+            1.137605905532837,
+            0.08823433518409729
+          ],
+          "position": [
+            -0.05917661264538765,
+            -0.34253841638565063,
+            -1.899999976158142
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            -0.5261529684066772,
+            0.8503898978233337
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.16725514829158783,
+            1.137605905532837,
+            0.08823433518409729
+          ],
+          "position": [
+            -0.05917661264538765,
+            -0.34253841638565063,
+            1.899999976158142
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            -0.5261529684066772,
+            0.8503898978233337
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.16725513339042664,
+            1.996403455734253,
+            0.09923353046178818
+          ],
+          "position": [
+            0.832711935043335,
+            0.10230036824941635,
+            -6.380183881216084e-11
+          ],
+          "rotation": [
+            0.6013164520263672,
+            -0.3720462918281555,
+            -0.3720463514328003,
+            0.6013164520263672
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.16725513339042664,
+            1.996403455734253,
+            0.09923353046178818
+          ],
+          "position": [
+            -0.9691413640975952,
+            -0.7963928580284119,
+            3.223608757707552e-08
+          ],
+          "rotation": [
+            0.6013164520263672,
+            -0.3720462918281555,
+            -0.3720463514328003,
+            0.6013164520263672
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.13905958831310272,
+            1.137605905532837,
+            1.8447619676589966
+          ],
+          "position": [
+            -0.13750670850276947,
+            -0.18548887968063354,
+            0.04434394836425781
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            -0.5261529684066772,
+            0.8503898978233337
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.1607554405927658,
+            1.996403455734253,
+            0.3501650393009186
+          ],
+          "position": [
+            -0.1460898071527481,
+            -0.3858872354030609,
+            1.7482129521795287e-08
+          ],
+          "rotation": [
+            0.6013164520263672,
+            -0.3720462918281555,
+            -0.3720463514328003,
+            0.6013164520263672
+          ],
+          "type": 1
+        }
+      ]
+    },
+    "Transform": {
+      "position": [
+        13.0,
+        -0.008389607071876526,
+        3.2733819484710693
+      ],
+      "rotation": [
+        0.6829808950424194,
+        0.1831299066543579,
+        0.6829817295074463,
+        0.1831296682357788
+      ],
+      "scale": [
+        1.0,
+        0.999995768070221,
+        1.0000001192092896
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/ceilingpiece.json",
+        "Materials/ceilingpiecepipe.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json"
+      ],
+      "mesh": "ceilingpiece.wmdl",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
   "2097301": {
     "Dynamic Physics Actor": {
       "mass": 1.0,
@@ -15137,14 +16057,14 @@
     },
     "Transform": {
       "position": [
-        -4.251929759979248,
-        0.9500000476837158,
-        -1.2591140270233154
+        -4.251904487609863,
+        0.9500053524971008,
+        -1.2591111660003662
       ],
       "rotation": [
-        2.771151486058443e-08,
-        -0.00012910885561723262,
-        -3.395054363863892e-06,
+        2.608697059258702e-06,
+        -0.00012554462591651827,
+        -9.368800965603441e-05,
         1.0
       ],
       "scale": [
@@ -15236,20 +16156,20 @@
     },
     "Transform": {
       "position": [
-        -4.3987717628479,
-        1.2922515869140625,
-        0.6228885650634766
+        -4.3876752853393555,
+        1.150002360343933,
+        0.624153196811676
       ],
       "rotation": [
-        1.101461862162978e-06,
-        -0.00032740578171797097,
-        -1.5630187135684537e-06,
-        0.9999999403953552
+        1.590668580320198e-05,
+        -1.8031912532023853e-06,
+        -2.2870886823511682e-05,
+        1.0
       ],
       "scale": [
-        0.24999254941940308,
-        0.25,
-        0.24999254941940308
+        0.24999234080314636,
+        0.25000083446502686,
+        0.24999301135540009
       ]
     },
     "World Object": {
@@ -15383,15 +16303,15 @@
     },
     "Transform": {
       "position": [
-        -4.5593953132629395,
-        1.0367389917373657,
-        -5.087483882904053
+        -4.559407711029053,
+        1.0367872714996338,
+        -5.087536811828613
       ],
       "rotation": [
-        0.9998446106910706,
-        3.750406904146075e-05,
-        -0.017633866518735886,
-        -5.62518835067749e-06
+        0.9998459815979004,
+        -4.4771761167794466e-05,
+        -0.017553670331835747,
+        0.0002526901662349701
       ],
       "scale": [
         0.9999995231628418,
@@ -21464,15 +22384,15 @@
     },
     "Transform": {
       "position": [
-        -4.509329319000244,
-        1.112426519393921,
-        -6.018579006195068
+        -4.509868144989014,
+        1.1124873161315918,
+        -6.018370151519775
       ],
       "rotation": [
-        5.209069058764726e-05,
-        -0.0007885550730861723,
-        -0.00011822841770481318,
-        0.9999997615814209
+        0.0006354376673698425,
+        -0.0007685603923164308,
+        0.0013564529363065958,
+        0.9999986886978149
       ],
       "scale": [
         0.9999690651893616,
@@ -22756,14 +23676,14 @@
     },
     "Transform": {
       "position": [
-        10.72684097290039,
-        3.000007390975952,
-        -13.168166160583496
+        10.726738929748535,
+        3.000033140182495,
+        -13.16797161102295
       ],
       "rotation": [
-        -3.8888756535016e-06,
-        8.072816126514226e-05,
-        2.3457271254301304e-06,
+        2.0666077034547925e-05,
+        6.637955812038854e-05,
+        2.6928461011266336e-05,
         1.0
       ],
       "scale": [
