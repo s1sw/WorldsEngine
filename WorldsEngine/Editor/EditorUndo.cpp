@@ -17,6 +17,7 @@ namespace worlds {
         currentPos--;
         std::string path = "Temp/" + std::to_string(currentPos) + ".json";
         PHYSFS_File* file = PHYSFS_openRead(path.c_str());
+        reg.clear();
         JsonSceneSerializer::loadScene(file, reg);
         PHYSFS_close(file);
     }
@@ -27,6 +28,7 @@ namespace worlds {
             return;
         currentPos++;
         PHYSFS_File* file = PHYSFS_openRead(path.c_str());
+        reg.clear();
         JsonSceneSerializer::loadScene(file, reg);
     }
 }
