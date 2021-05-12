@@ -128,7 +128,7 @@ namespace worlds {
 
         if (magicCheck[0] == 'W') {
             deserializeWScene(file, reg, magicCheck, formatId);
-        } else if (magicCheck[1] == 'E') {
+        } else if (magicCheck[0] == 'E') {
             deserializeEScene(file, reg, magicCheck, formatId);
         }
     }
