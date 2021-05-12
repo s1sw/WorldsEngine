@@ -182,6 +182,7 @@ namespace worlds {
             cmdBuf.bindIndexBuffer(meshPos->second.ib.buffer(), 0, meshPos->second.indexType);
             cmdBuf.drawIndexed(meshPos->second.indexCount, 1, 0, 0, 0);
             ctx.debugContext.stats->numDrawCalls++;
+            ctx.debugContext.stats->numTriangles += meshPos->second.indexCount / 3;
         });
 
         reg.view<Transform, ProceduralObject>().each([&](auto ent, Transform& transform, ProceduralObject& obj) {
