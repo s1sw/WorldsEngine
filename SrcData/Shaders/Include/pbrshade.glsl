@@ -89,6 +89,32 @@ LightShadeInfo calcLightShadeInfo(Light light, ShadeInfo shadeInfo, vec3 worldPo
     return lsi;
 }
 
+vec3 calculateLightingMetallic(Light light, ShadeInfo shadeInfo, vec3 worldPos) {
+    LightShadeInfo lsi = calcLightShadeInfo(light, shadeInfo, worldPos);
+
+    vec3 halfway = normalize(shadeInfo.viewDir + lsi.L);
+    vec3 norm = shadeInfo.normal;
+    float cosLh = max(0.0f, dot(norm, halfway));
+    float cosLi = max(0.0f, dot(norm, lsi.L));
+    float cosLo = max(0.0f, dot(norm, shadeInfo.viewDir));
+
+    float NDF;
+    int lType = int(light.pack0.w);
+
+    if (lType != LT_SPHERE && lType != LT_TUBE) {
+        NDF = ndfGGX(cosLh, shadeInfo.roughness);
+    } else {
+        NDF = ndfGGXSphereLight(cosLh, shadeInfo.roughness, light.pack2.w, lsi.lightDist);
+    }
+
+    float G = gaSchlickGGX(cosLi, cosLo, shadeInfo.roughness);
+    vec3 numerator = NDF * G * fresnelSchlick(shadeInfo.f0, max(dot(halfway, norm), 0.0f));
+    float denominator = 4.0f * cosLo * cosLi;
+    vec3 specular = numerator / max(denominator, 0.001f);
+
+    return (specular) * lsi.radiance * cosLi;
+}
+
 vec3 calculateLighting(Light light, ShadeInfo shadeInfo, vec3 worldPos) {
     LightShadeInfo lsi = calcLightShadeInfo(light, shadeInfo, worldPos);
 
@@ -117,10 +143,11 @@ vec3 calculateLighting(Light light, ShadeInfo shadeInfo, vec3 worldPos) {
 
     float G = gaSchlickGGX(cosLi, cosLo, shadeInfo.roughness);
     vec3 f = fresnelSchlick(shadeInfo.f0, max(dot(norm, shadeInfo.viewDir), 0.0f));
+    f *= fresnelSchlick(shadeInfo.f0, max(dot(norm, lsi.L), 0.0f));
 
     vec3 kd = mix(vec3(1.0) - f, vec3(0.0), shadeInfo.metallic);
 
-    vec3 numerator = NDF * G * f;
+    vec3 numerator = NDF * G * fresnelSchlick(shadeInfo.f0, max(dot(halfway, norm), 0.0f));
     float denominator = 4.0f * cosLo * cosLi;
     vec3 specular = numerator / max(denominator, 0.001f);
     vec3 diffuse = kd * shadeInfo.albedoColor;
