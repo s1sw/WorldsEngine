@@ -170,7 +170,7 @@ namespace worlds {
 
             auto evtA = reg.try_get<PhysicsEvents>(a);
             auto evtB = reg.try_get<PhysicsEvents>(b);
-            
+
             if (evtA == nullptr && evtB == nullptr) return;
 
             glm::vec3 velA{0.0f};
@@ -304,16 +304,17 @@ namespace worlds {
 
     class RaycastFilterCallback : public PxQueryFilterCallback {
     public:
+        uint32_t excludeLayer;
         PxQueryHitType::Enum postFilter(const PxFilterData&, const PxQueryHit&) override {
             return PxQueryHitType::eBLOCK;
         }
 
         PxQueryHitType::Enum preFilter(
-                const PxFilterData& filterData, const PxShape* shape, 
+                const PxFilterData& filterData, const PxShape* shape,
                 const PxRigidActor* actor, PxHitFlags& queryFlags) override {
             const auto& shapeFilterData = shape->getQueryFilterData();
 
-            if (shapeFilterData.word0 == filterData.word0) {
+            if (shapeFilterData.word0 == excludeLayer) {
                 return PxQueryHitType::eNONE;
             }
 
@@ -327,17 +328,17 @@ namespace worlds {
         bool hit;
 
         if (excludeLayer != ~0u) {
+            raycastFilterCallback.excludeLayer = excludeLayer;
+
             hit = worlds::g_scene->raycast(
                 position, direction,
                 maxDist, hitBuf,
-                PxHitFlag::eDEFAULT, 
-                PxQueryFilterData(PxFilterData{excludeLayer, excludeLayer, excludeLayer, excludeLayer}, PxQueryFlag::ePREFILTER | PxQueryFlag::eDYNAMIC | PxQueryFlag::eSTATIC), 
+                PxHitFlag::eDEFAULT,
+                PxQueryFilterData(PxFilterData{}, PxQueryFlag::ePREFILTER | PxQueryFlag::eDYNAMIC | PxQueryFlag::eSTATIC),
                 &raycastFilterCallback
             );
         } else
             hit = worlds::g_scene->raycast(position, direction, maxDist, hitBuf);
-
-        hit &= hitBuf.hasBlock;
 
         if (hit && hitInfo) {
             hitInfo->normal = px2glm(hitBuf.block.normal);
