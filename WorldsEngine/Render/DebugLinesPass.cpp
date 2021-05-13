@@ -63,7 +63,7 @@ namespace worlds {
 
     void DebugLinesPass::prePass(RenderContext& rCtx) {
         auto& pxRenderBuffer = g_scene->getRenderBuffer();
-        uint32_t requiredVBSize = pxRenderBuffer.getNbLines() * 2u;
+        uint32_t requiredVBSize = pxRenderBuffer.getNbLines() * 2u * sizeof(LineVert);
 
         if (!lineVB.buffer() || currentLineVBSize < requiredVBSize) {
             currentLineVBSize = requiredVBSize + 128;
