@@ -487,7 +487,7 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     shadowmapIci.extent = vk::Extent3D{ shadowmapRes, shadowmapRes, 1 };
     shadowmapIci.arrayLayers = 3;
     shadowmapIci.mipLevels = 1;
-    shadowmapIci.format = vk::Format::eD32Sfloat;
+    shadowmapIci.format = vk::Format::eD16Unorm;
     shadowmapIci.initialLayout = vk::ImageLayout::eUndefined;
     shadowmapIci.samples = vk::SampleCountFlagBits::e1;
     shadowmapIci.usage = vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eSampled;
