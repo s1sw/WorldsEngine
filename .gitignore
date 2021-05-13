@@ -356,3 +356,4 @@ build_*
 /subprojects/packagecache
 
 .clangd/
+/Data/Shaders
