@@ -97,17 +97,6 @@ namespace worlds {
             updater.update(handles->device);
         }
 
-        {
-            vku::DescriptorSetUpdater updater;
-            updater.beginDescriptorSet(*skyboxDs);
-            updater.beginBuffers(0, 0, vk::DescriptorType::eUniformBuffer);
-            updater.buffer(ctx.resources.vpMatrixBuffer->buffer(), 0, sizeof(MultiVP));
-
-            updater.beginImages(1, 0, vk::DescriptorType::eCombinedImageSampler);
-            updater.image(*albedoSampler, cubemapSlots[lastSky].imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
-
-            updater.update(handles->device);
-        }
 
         dsUpdateNeeded = false;
     }
@@ -176,10 +165,6 @@ namespace worlds {
         plm.descriptorSetLayout(*dsl);
         pipelineLayout = plm.createUnique(handles->device);
 
-        vpUB = vku::UniformBuffer(
-                handles->device, handles->allocator, sizeof(MultiVP),
-                VMA_MEMORY_USAGE_CPU_TO_GPU, "VP");
-
         lightsUB = vku::UniformBuffer(
                 handles->device, handles->allocator, sizeof(LightUB),
                 VMA_MEMORY_USAGE_CPU_TO_GPU, "Lights");
@@ -196,7 +181,6 @@ namespace worlds {
 
         modelMatricesMapped = (ModelMatrices*)modelMatrixUB.map(handles->device);
         lightMapped = (LightUB*)lightsUB.map(handles->device);
-        vpMapped = (MultiVP*)vpUB.map(handles->device);
 
         pickEvent = handles->device.createEventUnique(vk::EventCreateInfo{});
 
@@ -460,40 +444,8 @@ namespace worlds {
         dbgLinesPass = new DebugLinesPass(handles);
         dbgLinesPass->setup(ctx, *renderPass);
 
-        {
-            vku::DescriptorSetLayoutMaker dslm;
-            dslm.buffer(0, vk::DescriptorType::eUniformBuffer, vk::ShaderStageFlagBits::eVertex, 1);
-            dslm.image(1, vk::DescriptorType::eCombinedImageSampler, vk::ShaderStageFlagBits::eFragment, 1);
-            skyboxDsl = dslm.createUnique(handles->device);
-
-            vku::DescriptorSetMaker dsm;
-            dsm.layout(*skyboxDsl);
-            skyboxDs = std::move(dsm.createUnique(handles->device, handles->descriptorPool)[0]);
-
-            vku::PipelineLayoutMaker skyboxPl{};
-            skyboxPl.descriptorSetLayout(*skyboxDsl);
-            skyboxPl.pushConstantRange(vk::ShaderStageFlagBits::eFragment | vk::ShaderStageFlagBits::eVertex, 0, sizeof(SkyboxPushConstants));
-            skyboxPipelineLayout = skyboxPl.createUnique(handles->device);
-
-            vku::PipelineMaker pm{ extent.width, extent.height };
-            AssetID vsID = g_assetDB.addOrGetExisting("Shaders/skybox.vert.spv");
-            AssetID fsID = g_assetDB.addOrGetExisting("Shaders/skybox.frag.spv");
-
-            auto vert = vku::loadShaderAsset(handles->device, vsID);
-            auto frag = vku::loadShaderAsset(handles->device, fsID);
-
-            pm.shader(vk::ShaderStageFlagBits::eFragment, frag);
-            pm.shader(vk::ShaderStageFlagBits::eVertex, vert);
-            pm.topology(vk::PrimitiveTopology::eTriangleList);
-            pm.depthWriteEnable(true).depthTestEnable(true).depthCompareOp(vk::CompareOp::eGreaterOrEqual);
-
-            vk::PipelineMultisampleStateCreateInfo pmsci;
-            pmsci.rasterizationSamples = msaaSamples;
-            pm.multisampleState(pmsci);
-            pm.subPass(1);
-
-            skyboxPipeline = pm.createUnique(handles->device, handles->pipelineCache, *skyboxPipelineLayout, *renderPass);
-        }
+        skyboxPass = new SkyboxPass(handles);
+        skyboxPass->setup(ctx, *renderPass);
 
         updateDescriptorSets(ctx);
 
@@ -524,11 +476,6 @@ namespace worlds {
         auto& sceneSettings = ctx.registry.ctx<SceneSettings>();
 
         uint32_t skyboxId = ctx.resources.cubemaps.loadOrGet(sceneSettings.skybox);
-        if (skyboxId != lastSky) {
-            dsUpdateNeeded = true;
-            lastSky = skyboxId;
-        }
-
         drawInfo.clear();
 
         int matrixIdx = 0;
@@ -658,11 +605,6 @@ namespace worlds {
             matrixIdx++;
         });
 
-        vpMapped->views[0] = ctx.viewMatrices[0];
-        vpMapped->views[1] = ctx.viewMatrices[1];
-        vpMapped->projections[0] = ctx.projMatrices[0];
-        vpMapped->projections[1] = ctx.projMatrices[1];
-
         int lightIdx = 0;
         ctx.registry.view<WorldLight, Transform>().each([&](auto ent, WorldLight& l, Transform& transform) {
             if (!l.enabled) return;
@@ -709,6 +651,7 @@ namespace worlds {
         }
 
         dbgLinesPass->prePass(ctx);
+        skyboxPass->prePass(ctx);
     }
 
     void PolyRenderPass::execute(RenderContext& ctx) {
@@ -727,11 +670,6 @@ namespace worlds {
         rpbi.pClearValues = clearColours.data();
 
         vk::CommandBuffer cmdBuf = ctx.cmdBuf;
-
-        vpUB.barrier(
-            cmdBuf, vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eVertexShader,
-            vk::DependencyFlagBits::eByRegion, vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eUniformRead,
-            VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED);
 
         lightsUB.barrier(
             cmdBuf, vk::PipelineStageFlagBits::eHost, vk::PipelineStageFlagBits::eFragmentShader,
@@ -843,14 +781,8 @@ namespace worlds {
             ctx.debugContext.stats->numDrawCalls++;
         }
 
-        cmdBuf.bindPipeline(vk::PipelineBindPoint::eGraphics, *skyboxPipeline);
-        cmdBuf.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *skyboxPipelineLayout, 0, *skyboxDs, nullptr);
-        SkyboxPushConstants spc{ glm::ivec4(0, 0, 0, 0) };
-        cmdBuf.pushConstants<SkyboxPushConstants>(*skyboxPipelineLayout, vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment, 0, spc);
-        cmdBuf.draw(36, 1, 0, 0);
-        ctx.debugContext.stats->numDrawCalls++;
-
         dbgLinesPass->execute(ctx);
+        skyboxPass->execute(ctx);
 
         cmdBuf.endRenderPass();
         polyImage->image.setCurrentLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
@@ -886,17 +818,10 @@ namespace worlds {
         return true;
     }
 
-    void PolyRenderPass::lateUpdateVP(glm::mat4 views[2], glm::vec3 viewPos[2], vk::Device dev) {
-        vpMapped->views[0] = views[0];
-        vpMapped->views[1] = views[1];
-        vpMapped->viewPos[0] = glm::vec4(viewPos[0], 0.0f);
-        vpMapped->viewPos[1] = glm::vec4(viewPos[1], 0.0f);
-    }
-
     PolyRenderPass::~PolyRenderPass() {
         modelMatrixUB.unmap(handles->device);
         lightsUB.unmap(handles->device);
-        vpUB.unmap(handles->device);
         delete dbgLinesPass;
+        delete skyboxPass;
     }
 }
