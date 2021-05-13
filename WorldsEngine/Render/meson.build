@@ -3,6 +3,7 @@ worlds_sources += [
   'Render/CubemapConvoluter.cpp',
   'Render/CubemapSlots.cpp',
   'Render/DebugLinesPass.cpp',
+  'Render/DepthPrepass.cpp',
   'Render/ImGuiRenderPass.cpp',
   'Render/MaterialSlots.cpp',
   'Render/PipelineCacheSerializer.cpp',
