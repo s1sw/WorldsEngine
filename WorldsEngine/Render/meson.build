@@ -10,6 +10,7 @@ worlds_sources += [
   'Render/RenderTexture.cpp',
   'Render/ShaderCache.cpp',
   'Render/ShadowCascadePass.cpp',
+  'Render/SkyboxPass.cpp',
   'Render/TonemapRenderPass.cpp',
   'Render/vkrender.cpp',
   'Render/vkswapchain.cpp',

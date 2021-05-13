@@ -63,6 +63,23 @@ namespace worlds {
         void execute(RenderContext&);
     };
 
+    class SkyboxPass {
+    private:
+        vk::UniquePipeline skyboxPipeline;
+        vk::UniquePipelineLayout skyboxPipelineLayout;
+        vk::UniqueDescriptorSetLayout skyboxDsl;
+        vk::UniqueDescriptorSet skyboxDs;
+        vk::UniqueSampler sampler;
+        VulkanHandles* handles;
+        uint32_t lastSky = 0;
+        void updateDescriptors(RenderContext& ctx, uint32_t loadedSkyId);
+    public:
+        SkyboxPass(VulkanHandles* handles);
+        void setup(RenderContext& ctx, vk::RenderPass renderPass);
+        void prePass(RenderContext&);
+        void execute(RenderContext&);
+    };
+
     class PolyRenderPass {
     private:
         vk::UniqueRenderPass renderPass;
@@ -76,16 +93,9 @@ namespace worlds {
         vk::UniquePipeline wireframePipeline;
         vk::UniquePipelineLayout wireframePipelineLayout;
 
-        vk::UniquePipeline skyboxPipeline;
-        vk::UniquePipelineLayout skyboxPipelineLayout;
-        vk::UniqueDescriptorSetLayout skyboxDsl;
-        vk::UniqueDescriptorSet skyboxDs;
-
-        MultiVP* vpMapped;
         LightUB* lightMapped;
         ModelMatrices* modelMatricesMapped;
 
-        vku::UniformBuffer vpUB;
         vku::UniformBuffer lightsUB;
         vku::GenericBuffer modelMatrixUB;
         vku::GenericBuffer pickingBuffer;
@@ -117,7 +127,7 @@ namespace worlds {
         void updateDescriptorSets(RenderContext& ctx);
         VRCullMeshRenderer* cullMeshRenderer;
         DebugLinesPass* dbgLinesPass;
-        uint32_t lastSky = 0;
+        SkyboxPass* skyboxPass;
         VulkanHandles* handles;
     public:
         PolyRenderPass(VulkanHandles* handles, RenderTexture* depthStencilImage, RenderTexture* polyImage, RenderTexture* shadowImage, bool enablePicking = false);
@@ -128,7 +138,6 @@ namespace worlds {
         void requestEntityPick();
         void reuploadDescriptors() { dsUpdateNeeded = true; }
         bool getPickedEnt(uint32_t* out);
-        void lateUpdateVP(glm::mat4 views[2], glm::vec3 viewPos[2], vk::Device dev);
         virtual ~PolyRenderPass();
     };
 
