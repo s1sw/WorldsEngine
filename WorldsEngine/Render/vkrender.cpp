@@ -992,13 +992,21 @@ void VKRenderer::writePassCmds(RTTPassHandle pass, vk::CommandBuffer cmdBuf, ent
     };
 
     if (enableVR) {
-        rCtx.projMatrices[0] = vrInterface->getEyeProjectionMatrix(Eye::LeftEye, rtt.cam->near);
-        rCtx.projMatrices[1] = vrInterface->getEyeProjectionMatrix(Eye::RightEye, rtt.cam->near);
+        glm::mat4 headViewMatrix = vrInterface->getHeadTransform(vrPredictAmount);
 
-        glm::mat4 hmdMat = vrInterface->getHeadTransform(vrPredictAmount);
+        glm::mat4 viewMats[2] = {
+            vrInterface->getEyeViewMatrix(Eye::LeftEye),
+            vrInterface->getEyeViewMatrix(Eye::RightEye)
+        };
+
+        glm::mat4 projMats[2] = {
+            vrInterface->getEyeProjectionMatrix(Eye::LeftEye, rtt.cam->near),
+            vrInterface->getEyeProjectionMatrix(Eye::RightEye, rtt.cam->near)
+        };
 
         for (int i = 0; i < 2; i++) {
-            rCtx.viewMatrices[i] = glm::inverse(hmdMat) * rtt.cam->getViewMatrix();
+            rCtx.viewMatrices[i] = glm::inverse(headViewMatrix * viewMats[i]) * rtt.cam->getViewMatrix();
+            rCtx.projMatrices[i] = projMats[i];
         }
     } else {
         rCtx.projMatrices[0] = rtt.cam->getProjectionMatrix((float)rtt.width / (float)rtt.height);
@@ -1162,26 +1170,6 @@ void VKRenderer::writeCmdBuf(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageInde
     texSlots->frameStarted = false;
     cmdBuf->end();
 
-    if (enableVR && vrApi == VrApi::OpenVR) {
-        glm::mat4 headViewMatrix = vrInterface->getHeadTransform(vrPredictAmount);
-
-        glm::mat4 viewMats[2] = {
-            vrInterface->getEyeViewMatrix(Eye::LeftEye),
-            vrInterface->getEyeViewMatrix(Eye::RightEye)
-        };
-
-        glm::vec3 viewPos[2];
-
-        for (int i = 0; i < 2; i++) {
-            viewMats[i] = glm::inverse(headViewMatrix * viewMats[i]) * cam.getViewMatrix();
-            viewPos[i] = glm::inverse(viewMats[i])[3];
-        }
-
-        if (vrPRP)
-            vrPRP->lateUpdateVP(viewMats, viewPos, *device);
-
-        vr::VRCompositor()->SubmitExplicitTimingData();
-    }
 }
 
 void VKRenderer::reuploadMaterials() {
@@ -1280,6 +1268,9 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
     submit.pCommandBuffers = &cCmdBuf;
     submit.pSignalSemaphores = &cmdBufferSemaphores[frameIdx];
     submit.signalSemaphoreCount = 1;
+
+    if (enableVR)
+        vr::VRCompositor()->SubmitExplicitTimingData();
 
     auto queue = device->getQueue(graphicsQueueFamilyIdx, 0);
     auto submitResult = queue.submit(1, &submit, cmdBufFences[frameIdx]);
