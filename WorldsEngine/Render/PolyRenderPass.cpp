@@ -120,7 +120,7 @@ namespace worlds {
 
     }
 
-    static ConVar depthPrepass("r_depthPrepass", "1");
+    static ConVar enableDepthPrepass("r_depthPrepass", "1");
     static ConVar enableParallaxMapping("r_doParallaxMapping", "0");
     static ConVar maxParallaxLayers("r_maxParallaxLayers", "32");
     static ConVar minParallaxLayers("r_minParallaxLayers", "4");
@@ -263,30 +263,6 @@ namespace worlds {
 
         auto msaaSamples = polyImage->image.info().samples;
 
-        {
-            AssetID vsID = g_assetDB.addOrGetExisting("Shaders/depth_prepass.vert.spv");
-            AssetID fsID = g_assetDB.addOrGetExisting("Shaders/blank.frag.spv");
-            auto preVertexShader = vku::loadShaderAsset(handles->device, vsID);
-            auto preFragmentShader = vku::loadShaderAsset(handles->device, fsID);
-            vku::PipelineMaker pm{ extent.width, extent.height };
-
-            pm.shader(vk::ShaderStageFlagBits::eFragment, preFragmentShader);
-            pm.shader(vk::ShaderStageFlagBits::eVertex, preVertexShader);
-            pm.vertexBinding(0, (uint32_t)sizeof(Vertex));
-            pm.vertexAttribute(0, 0, vk::Format::eR32G32B32Sfloat, (uint32_t)offsetof(Vertex, position));
-            pm.vertexAttribute(1, 0, vk::Format::eR32G32B32Sfloat, (uint32_t)offsetof(Vertex, uv));
-            pm.cullMode(vk::CullModeFlagBits::eBack);
-            pm.depthWriteEnable(true).depthTestEnable(true).depthCompareOp(vk::CompareOp::eGreater);
-            pm.blendBegin(false);
-            pm.frontFace(vk::FrontFace::eCounterClockwise);
-
-            vk::PipelineMultisampleStateCreateInfo pmsci;
-            pmsci.rasterizationSamples = msaaSamples;
-            pm.multisampleState(pmsci);
-            pm.subPass(0);
-            depthPrePipeline = pm.createUnique(handles->device, handles->pipelineCache, *pipelineLayout, *renderPass);
-        }
-
         struct StandardSpecConsts {
             bool enablePicking = false;
             float parallaxMaxLayers = 32.0f;
@@ -325,7 +301,7 @@ namespace worlds {
             pm.vertexAttribute(3, 0, vk::Format::eR32G32Sfloat, (uint32_t)offsetof(Vertex, uv));
             pm.cullMode(vk::CullModeFlagBits::eBack);
 
-            if ((int)depthPrepass)
+            if ((int)enableDepthPrepass)
                 pm.depthWriteEnable(false).depthTestEnable(true).depthCompareOp(vk::CompareOp::eEqual);
             else
                 pm.depthWriteEnable(true).depthTestEnable(true).depthCompareOp(vk::CompareOp::eGreater);
@@ -447,6 +423,9 @@ namespace worlds {
         skyboxPass = new SkyboxPass(handles);
         skyboxPass->setup(ctx, *renderPass);
 
+        depthPrepass = new DepthPrepass(handles);
+        depthPrepass->setup(ctx, *renderPass, *pipelineLayout);
+
         updateDescriptorSets(ctx);
 
         if (ctx.passSettings.enableVR) {
@@ -456,7 +435,6 @@ namespace worlds {
 
         handles->device.setEvent(*pickEvent);
     }
-
 
     slib::StaticAllocList<SubmeshDrawInfo> drawInfo{8192};
 
@@ -722,29 +700,9 @@ namespace worlds {
             return sdiA.pipeline > sdiB.pipeline;
         });
 
-        if ((int)depthPrepass) {
+        if ((int)enableDepthPrepass) {
             ZoneScopedN("Depth prepass");
-            cmdBuf.bindPipeline(vk::PipelineBindPoint::eGraphics, *depthPrePipeline);
-
-            for (auto& sdi : drawInfo) {
-                if (sdi.pipeline != *pipeline || !sdi.opaque) {
-                    continue;
-                }
-
-                StandardPushConstants pushConst {
-                    .modelMatrixIdx = sdi.matrixIdx,
-                    .materialIdx = sdi.materialIdx,
-                    .vpIdx = 0,
-                    .objectId = (uint32_t)sdi.ent,
-                    .texScaleOffset = sdi.texScaleOffset,
-                    .screenSpacePickPos = glm::ivec3(pickX, pickY, globalMiscFlags | sdi.drawMiscFlags)
-                };
-                cmdBuf.pushConstants<StandardPushConstants>(*pipelineLayout, vk::ShaderStageFlagBits::eFragment | vk::ShaderStageFlagBits::eVertex, 0, pushConst);
-                cmdBuf.bindVertexBuffers(0, sdi.vb, vk::DeviceSize(0));
-                cmdBuf.bindIndexBuffer(sdi.ib, 0, vk::IndexType::eUint32);
-                cmdBuf.drawIndexed(sdi.indexCount, 1, sdi.indexOffset, 0, 0);
-                ctx.debugContext.stats->numDrawCalls++;
-            }
+            depthPrepass->execute(ctx, drawInfo);
         }
 
         cmdBuf.nextSubpass(vk::SubpassContents::eInline);
@@ -823,5 +781,6 @@ namespace worlds {
         lightsUB.unmap(handles->device);
         delete dbgLinesPass;
         delete skyboxPass;
+        delete depthPrepass;
     }
 }

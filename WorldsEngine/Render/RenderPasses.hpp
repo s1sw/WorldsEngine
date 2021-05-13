@@ -80,12 +80,24 @@ namespace worlds {
         void execute(RenderContext&);
     };
 
+    class DepthPrepass {
+    private:
+        vk::UniquePipeline depthPrePipeline;
+        VulkanHandles* handles;
+        vk::PipelineLayout layout;
+    public:
+        DepthPrepass(VulkanHandles* handles);
+        // Takes in the standard pipeline layout as an additional parameter
+        void setup(RenderContext& ctx, vk::RenderPass renderPass, vk::PipelineLayout pipelineLayout);
+        void prePass(RenderContext& ctx);
+        void execute(RenderContext& ctx, slib::StaticAllocList<SubmeshDrawInfo>& drawInfo);
+    };
+
     class PolyRenderPass {
     private:
         vk::UniqueRenderPass renderPass;
         vk::UniquePipeline pipeline;
         vk::UniquePipeline noBackfaceCullPipeline;
-        vk::UniquePipeline depthPrePipeline;
         vk::UniquePipeline alphaTestPipeline;
         vk::UniquePipelineLayout pipelineLayout;
         vk::UniqueDescriptorSetLayout dsl;
@@ -128,6 +140,7 @@ namespace worlds {
         VRCullMeshRenderer* cullMeshRenderer;
         DebugLinesPass* dbgLinesPass;
         SkyboxPass* skyboxPass;
+        DepthPrepass* depthPrepass;
         VulkanHandles* handles;
     public:
         PolyRenderPass(VulkanHandles* handles, RenderTexture* depthStencilImage, RenderTexture* polyImage, RenderTexture* shadowImage, bool enablePicking = false);
