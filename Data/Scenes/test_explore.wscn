@@ -10402,6 +10402,13 @@
     "Physics Sound": {
       "soundPath": "Audio/SFX/Impacts/Misc/squeaky_toy.ogg"
     },
+    "RPG Stats": {
+      "currentHP": 100,
+      "level": 1,
+      "maxHP": 100,
+      "strength": 1,
+      "totalExperience": 0
+    },
     "Transform": {
       "position": [
         2.788623809814453,
@@ -10415,9 +10422,9 @@
         0.9232754707336426
       ],
       "scale": [
+        1.0000032186508179,
         1.0,
-        1.0,
-        1.0
+        1.0000001192092896
       ]
     },
     "World Object": {
@@ -22228,6 +22235,11 @@
     }
   },
   "4194377": {
+    "Contact Damage Dealer": {
+      "damage": 20,
+      "maxVelocity": 10.0,
+      "minVelocity": 2.0
+    },
     "Dynamic Physics Actor": {
       "mass": 1.0,
       "shapes": [
@@ -22395,7 +22407,7 @@
         0.9999986886978149
       ],
       "scale": [
-        0.9999690651893616,
+        0.9999682903289795,
         0.9999879002571106,
         0.9999732971191406
       ]

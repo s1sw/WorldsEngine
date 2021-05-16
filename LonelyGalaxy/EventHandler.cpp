@@ -38,6 +38,7 @@
 #include "PhysicsSoundComponent.hpp"
 #include <Audio/Audio.hpp>
 #include "PlayerGrabManager.hpp"
+#include "ContactDamageDealer.hpp"
 
 namespace lg {
     struct SyncedRB {};
@@ -73,6 +74,28 @@ namespace lg {
             this, std::placeholders::_1, std::placeholders::_2));
     }
 
+    void EventHandler::onContactDamageDealerContact(entt::entity thisEnt, const worlds::PhysicsContactInfo& info) {
+        auto& dealer = reg->get<ContactDamageDealer>(thisEnt);
+
+        RPGStats* stats = reg->try_get<RPGStats>(info.otherEntity);
+
+        if (stats) {
+            double damagePercent = (info.relativeSpeed - dealer.minVelocity) / (dealer.maxVelocity - dealer.minVelocity);
+            uint64_t actualDamage = dealer.damage * damagePercent;
+            stats->currentHP -= actualDamage;
+
+            if (stats->currentHP <= 0) {
+                reg->destroy(info.otherEntity);
+            }
+        }
+    }
+
+    void EventHandler::onContactDamageDealerConstruct(entt::registry& reg, entt::entity ent) {
+        auto& physEvents = reg.get_or_emplace<worlds::PhysicsEvents>(ent);
+        physEvents.addContactCallback(std::bind(&EventHandler::onContactDamageDealerContact,
+            this, std::placeholders::_1, std::placeholders::_2));
+    }
+
     void EventHandler::init(entt::registry& registry, worlds::EngineInterfaces interfaces) {
         vrInterface = interfaces.vrInterface;
         renderer = interfaces.renderer;
@@ -83,6 +106,7 @@ namespace lg {
         playerGrabManager = new PlayerGrabManager{interfaces, registry};
 
         registry.on_construct<PhysicsSoundComponent>().connect<&EventHandler::onPhysicsSoundConstruct>(this);
+        registry.on_construct<ContactDamageDealer>().connect<&EventHandler::onContactDamageDealerConstruct>(this);
 
         worlds::g_console->registerCommand(cmdToggleVsync, "r_toggleVsync", "Toggles Vsync.", renderer);
         interfaces.engine->addSystem(new ObjectParentSystem);
