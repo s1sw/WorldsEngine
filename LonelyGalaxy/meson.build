@@ -19,6 +19,7 @@ sources = [
 
     'Client.hpp',
     'DebugArrow.hpp',
+    'ContactDamageDealer.hpp',
     'EventHandler.hpp',
     'GameClient.hpp',
     'GameServer.hpp',
