@@ -67,6 +67,110 @@
       "uvOverride": 0
     }
   },
+  "10485960": {
+    "AO Proxy": {
+      "bounds": [
+        0.23499999940395355,
+        0.23499999940395355,
+        0.23499999940395355
+      ]
+    },
+    "Contact Damage Dealer": {
+      "damage": 25,
+      "maxVelocity": 15.0,
+      "minVelocity": 5.0
+    },
+    "Dynamic Physics Actor": {
+      "mass": 14.999999046325684,
+      "shapes": [
+        {
+          "halfExtents": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "type": 1
+        }
+      ]
+    },
+    "Physics Sound": {
+      "soundPath": "Audio/SFX/Impacts/Metal/clang01.ogg"
+    },
+    "Transform": {
+      "position": [
+        -4.3987717628479,
+        1.4709101915359497,
+        2.457704544067383
+      ],
+      "rotation": [
+        1.101461862162978e-06,
+        -0.0003274081682320684,
+        -1.5630359939677874e-06,
+        0.9999999403953552
+      ],
+      "scale": [
+        0.2499895691871643,
+        0.25,
+        0.2499895691871643
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/crate.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json"
+      ],
+      "mesh": "crate.wmdl",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
   "1048602": {
     "Transform": {
       "position": [
@@ -614,8 +718,8 @@
   "1048622": {
     "Contact Damage Dealer": {
       "damage": 40,
-      "maxVelocity": 10.0,
-      "minVelocity": 2.0
+      "maxVelocity": 15.0,
+      "minVelocity": 5.0
     },
     "Dynamic Physics Actor": {
       "mass": 1.0,
@@ -1463,6 +1567,214 @@
         "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "11534537": {
+    "AO Proxy": {
+      "bounds": [
+        0.23499999940395355,
+        0.23499999940395355,
+        0.23499999940395355
+      ]
+    },
+    "Contact Damage Dealer": {
+      "damage": 25,
+      "maxVelocity": 15.0,
+      "minVelocity": 5.0
+    },
+    "Dynamic Physics Actor": {
+      "mass": 14.999999046325684,
+      "shapes": [
+        {
+          "halfExtents": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "type": 1
+        }
+      ]
+    },
+    "Physics Sound": {
+      "soundPath": "Audio/SFX/Impacts/Metal/clang01.ogg"
+    },
+    "Transform": {
+      "position": [
+        -4.3987717628479,
+        2.054464340209961,
+        2.457704544067383
+      ],
+      "rotation": [
+        1.101461862162978e-06,
+        -0.0003274081682320684,
+        -1.5630359939677874e-06,
+        0.9999999403953552
+      ],
+      "scale": [
+        0.2499895691871643,
+        0.25,
+        0.2499895691871643
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/crate.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json"
+      ],
+      "mesh": "crate.wmdl",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "11534541": {
+    "AO Proxy": {
+      "bounds": [
+        0.23499999940395355,
+        0.23499999940395355,
+        0.23499999940395355
+      ]
+    },
+    "Contact Damage Dealer": {
+      "damage": 25,
+      "maxVelocity": 15.0,
+      "minVelocity": 5.0
+    },
+    "Dynamic Physics Actor": {
+      "mass": 14.999999046325684,
+      "shapes": [
+        {
+          "halfExtents": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "type": 1
+        }
+      ]
+    },
+    "Physics Sound": {
+      "soundPath": "Audio/SFX/Impacts/Metal/clang01.ogg"
+    },
+    "Transform": {
+      "position": [
+        -4.3987717628479,
+        2.608325719833374,
+        2.457704544067383
+      ],
+      "rotation": [
+        1.101461862162978e-06,
+        -0.0003274081682320684,
+        -1.5630359939677874e-06,
+        0.9999999403953552
+      ],
+      "scale": [
+        0.2499895691871643,
+        0.25,
+        0.2499895691871643
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/crate.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json"
+      ],
+      "mesh": "crate.wmdl",
       "staticFlags": 0,
       "texScaleOffset": [
         1.0,
@@ -2849,6 +3161,11 @@
     }
   },
   "180": {
+    "Contact Damage Dealer": {
+      "damage": 50,
+      "maxVelocity": 15.0,
+      "minVelocity": 5.0
+    },
     "Dynamic Physics Actor": {
       "mass": 1.0,
       "shapes": [
@@ -2905,6 +3222,9 @@
         1.0
       ]
     },
+    "Physics Sound": {
+      "soundPath": "Audio/SFX/Impacts/Misc/sword_hit.ogg"
+    },
     "Transform": {
       "position": [
         -4.183691501617432,
@@ -2918,9 +3238,9 @@
         0.0003775094810407609
       ],
       "scale": [
-        1.000002145767212,
-        0.9999997615814209,
-        1.000002145767212
+        1.0000125169754028,
+        0.9999980330467224,
+        1.0000090599060059
       ]
     },
     "World Object": {
@@ -3699,7 +4019,7 @@
   },
   "230": {
     "Dynamic Physics Actor": {
-      "mass": 80.0,
+      "mass": 500.0,
       "shapes": [
         {
           "halfExtents": [
@@ -3840,9 +4160,9 @@
       "soundPath": "Audio/SFX/Impacts/Misc/squeaky_toy.ogg"
     },
     "RPG Stats": {
-      "currentHP": 100,
+      "currentHP": 500,
       "level": 1,
-      "maxHP": 100,
+      "maxHP": 500,
       "strength": 1,
       "totalExperience": 0
     },
@@ -4074,6 +4394,11 @@
         0.23499999940395355
       ]
     },
+    "Contact Damage Dealer": {
+      "damage": 25,
+      "maxVelocity": 15.0,
+      "minVelocity": 5.0
+    },
     "Dynamic Physics Actor": {
       "mass": 14.999999046325684,
       "shapes": [
@@ -4104,19 +4429,19 @@
     "Transform": {
       "position": [
         -4.3987717628479,
-        0.25000011920928955,
+        0.2573244869709015,
         2.457704544067383
       ],
       "rotation": [
         1.101461862162978e-06,
-        -0.00032740578171797097,
-        -1.5630187135684537e-06,
+        -0.0003274081682320684,
+        -1.5630359939677874e-06,
         0.9999999403953552
       ],
       "scale": [
-        0.24999254941940308,
+        0.2499895691871643,
         0.25,
-        0.24999254941940308
+        0.2499895691871643
       ]
     },
     "World Object": {
@@ -4259,402 +4584,6 @@
       ]
     }
   },
-  "4194505": {
-    "AO Proxy": {
-      "bounds": [
-        0.23499999940395355,
-        0.23499999940395355,
-        0.23499999940395355
-      ]
-    },
-    "Dynamic Physics Actor": {
-      "mass": 14.999999046325684,
-      "shapes": [
-        {
-          "halfExtents": [
-            1.0,
-            1.0,
-            1.0
-          ],
-          "position": [
-            0.0,
-            0.0,
-            0.0
-          ],
-          "rotation": [
-            0.0,
-            0.0,
-            0.0,
-            1.0
-          ],
-          "type": 1
-        }
-      ]
-    },
-    "Physics Sound": {
-      "soundPath": "Audio/SFX/Impacts/Metal/clang01.ogg"
-    },
-    "Transform": {
-      "position": [
-        -4.3987717628479,
-        0.25000011920928955,
-        2.9871623516082764
-      ],
-      "rotation": [
-        1.101461862162978e-06,
-        -0.00032740578171797097,
-        -1.5630187135684537e-06,
-        0.9999999403953552
-      ],
-      "scale": [
-        0.24999254941940308,
-        0.25,
-        0.24999254941940308
-      ]
-    },
-    "World Object": {
-      "materials": [
-        "Materials/crate.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json"
-      ],
-      "mesh": "crate.wmdl",
-      "staticFlags": 0,
-      "texScaleOffset": [
-        1.0,
-        1.0,
-        0.0,
-        0.0
-      ],
-      "uvOverride": 0
-    }
-  },
-  "4194509": {
-    "AO Proxy": {
-      "bounds": [
-        0.23499999940395355,
-        0.23499999940395355,
-        0.23499999940395355
-      ]
-    },
-    "Dynamic Physics Actor": {
-      "mass": 14.999999046325684,
-      "shapes": [
-        {
-          "halfExtents": [
-            1.0,
-            1.0,
-            1.0
-          ],
-          "position": [
-            0.0,
-            0.0,
-            0.0
-          ],
-          "rotation": [
-            0.0,
-            0.0,
-            0.0,
-            1.0
-          ],
-          "type": 1
-        }
-      ]
-    },
-    "Physics Sound": {
-      "soundPath": "Audio/SFX/Impacts/Metal/clang01.ogg"
-    },
-    "Transform": {
-      "position": [
-        -4.3987717628479,
-        0.25000011920928955,
-        3.4998645782470703
-      ],
-      "rotation": [
-        1.101461862162978e-06,
-        -0.00032740578171797097,
-        -1.5630187135684537e-06,
-        0.9999999403953552
-      ],
-      "scale": [
-        0.24999254941940308,
-        0.25,
-        0.24999254941940308
-      ]
-    },
-    "World Object": {
-      "materials": [
-        "Materials/crate.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json"
-      ],
-      "mesh": "crate.wmdl",
-      "staticFlags": 0,
-      "texScaleOffset": [
-        1.0,
-        1.0,
-        0.0,
-        0.0
-      ],
-      "uvOverride": 0
-    }
-  },
-  "4194510": {
-    "AO Proxy": {
-      "bounds": [
-        0.23499999940395355,
-        0.23499999940395355,
-        0.23499999940395355
-      ]
-    },
-    "Dynamic Physics Actor": {
-      "mass": 14.999999046325684,
-      "shapes": [
-        {
-          "halfExtents": [
-            1.0,
-            1.0,
-            1.0
-          ],
-          "position": [
-            0.0,
-            0.0,
-            0.0
-          ],
-          "rotation": [
-            0.0,
-            0.0,
-            0.0,
-            1.0
-          ],
-          "type": 1
-        }
-      ]
-    },
-    "Physics Sound": {
-      "soundPath": "Audio/SFX/Impacts/Metal/clang01.ogg"
-    },
-    "Transform": {
-      "position": [
-        -4.3987717628479,
-        0.7555280327796936,
-        3.253708600997925
-      ],
-      "rotation": [
-        1.101461862162978e-06,
-        -0.00032740578171797097,
-        -1.5630187135684537e-06,
-        0.9999999403953552
-      ],
-      "scale": [
-        0.24999254941940308,
-        0.25,
-        0.24999254941940308
-      ]
-    },
-    "World Object": {
-      "materials": [
-        "Materials/crate.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json"
-      ],
-      "mesh": "crate.wmdl",
-      "staticFlags": 0,
-      "texScaleOffset": [
-        1.0,
-        1.0,
-        0.0,
-        0.0
-      ],
-      "uvOverride": 0
-    }
-  },
-  "4194511": {
-    "AO Proxy": {
-      "bounds": [
-        0.23499999940395355,
-        0.23499999940395355,
-        0.23499999940395355
-      ]
-    },
-    "Dynamic Physics Actor": {
-      "mass": 14.999999046325684,
-      "shapes": [
-        {
-          "halfExtents": [
-            1.0,
-            1.0,
-            1.0
-          ],
-          "position": [
-            0.0,
-            0.0,
-            0.0
-          ],
-          "rotation": [
-            0.0,
-            0.0,
-            0.0,
-            1.0
-          ],
-          "type": 1
-        }
-      ]
-    },
-    "Physics Sound": {
-      "soundPath": "Audio/SFX/Impacts/Metal/clang01.ogg"
-    },
-    "Transform": {
-      "position": [
-        -4.3987717628479,
-        0.7555280327796936,
-        2.731171131134033
-      ],
-      "rotation": [
-        1.101461862162978e-06,
-        -0.00032740578171797097,
-        -1.5630187135684537e-06,
-        0.9999999403953552
-      ],
-      "scale": [
-        0.24999254941940308,
-        0.25,
-        0.24999254941940308
-      ]
-    },
-    "World Object": {
-      "materials": [
-        "Materials/crate.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json"
-      ],
-      "mesh": "crate.wmdl",
-      "staticFlags": 0,
-      "texScaleOffset": [
-        1.0,
-        1.0,
-        0.0,
-        0.0
-      ],
-      "uvOverride": 0
-    }
-  },
   "5": {
     "Transform": {
       "position": [
@@ -4775,74 +4704,6 @@
         0.0
       ],
       "uvOverride": 4
-    }
-  },
-  "5243088": {
-    "AO Proxy": {
-      "bounds": [
-        0.23499999940395355,
-        0.23499999940395355,
-        0.23499999940395355
-      ]
-    },
-    "Dynamic Physics Actor": {
-      "mass": 14.999999046325684,
-      "shapes": [
-        {
-          "halfExtents": [
-            1.0,
-            1.0,
-            1.0
-          ],
-          "position": [
-            0.0,
-            0.0,
-            0.0
-          ],
-          "rotation": [
-            0.0,
-            0.0,
-            0.0,
-            1.0
-          ],
-          "type": 1
-        }
-      ]
-    },
-    "Physics Sound": {
-      "soundPath": "Audio/SFX/Impacts/Metal/clang01.ogg"
-    },
-    "Transform": {
-      "position": [
-        -4.3987717628479,
-        1.2922515869140625,
-        2.9521737098693848
-      ],
-      "rotation": [
-        1.101461862162978e-06,
-        -0.00032740578171797097,
-        -1.5630187135684537e-06,
-        0.9999999403953552
-      ],
-      "scale": [
-        0.24999254941940308,
-        0.25,
-        0.24999254941940308
-      ]
-    },
-    "World Object": {
-      "materials": [
-        "Materials/crate.json"
-      ],
-      "mesh": "crate.wmdl",
-      "staticFlags": 0,
-      "texScaleOffset": [
-        1.0,
-        1.0,
-        0.0,
-        0.0
-      ],
-      "uvOverride": 0
     }
   },
   "6": {
@@ -5413,6 +5274,110 @@
         "Materials/glowred.json"
       ],
       "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "7340231": {
+    "AO Proxy": {
+      "bounds": [
+        0.23499999940395355,
+        0.23499999940395355,
+        0.23499999940395355
+      ]
+    },
+    "Contact Damage Dealer": {
+      "damage": 25,
+      "maxVelocity": 15.0,
+      "minVelocity": 5.0
+    },
+    "Dynamic Physics Actor": {
+      "mass": 14.999999046325684,
+      "shapes": [
+        {
+          "halfExtents": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "type": 1
+        }
+      ]
+    },
+    "Physics Sound": {
+      "soundPath": "Audio/SFX/Impacts/Metal/clang01.ogg"
+    },
+    "Transform": {
+      "position": [
+        -4.3987717628479,
+        0.8976839780807495,
+        2.457704544067383
+      ],
+      "rotation": [
+        1.101461862162978e-06,
+        -0.0003274081682320684,
+        -1.5630359939677874e-06,
+        0.9999999403953552
+      ],
+      "scale": [
+        0.2499895691871643,
+        0.25,
+        0.2499895691871643
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/crate.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json"
+      ],
+      "mesh": "crate.wmdl",
       "staticFlags": 0,
       "texScaleOffset": [
         1.0,

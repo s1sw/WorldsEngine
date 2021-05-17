@@ -74,13 +74,18 @@ namespace lg {
             this, std::placeholders::_1, std::placeholders::_2));
     }
 
+    double clamp(double val, double min, double max) {
+        return val > max ? max : (val > min ? val : min);
+    }
+
     void EventHandler::onContactDamageDealerContact(entt::entity thisEnt, const worlds::PhysicsContactInfo& info) {
         auto& dealer = reg->get<ContactDamageDealer>(thisEnt);
 
         RPGStats* stats = reg->try_get<RPGStats>(info.otherEntity);
 
         if (stats) {
-            double damagePercent = (info.relativeSpeed - dealer.minVelocity) / (dealer.maxVelocity - dealer.minVelocity);
+            double damagePercent = clamp((info.relativeSpeed - dealer.minVelocity) / (dealer.maxVelocity - dealer.minVelocity), 0.0, 1.0);
+            logMsg("damagePercent: %.3f, relSpeed: %.3f", damagePercent, info.relativeSpeed);
             uint64_t actualDamage = dealer.damage * damagePercent;
             if (actualDamage > stats->currentHP)
                 stats->currentHP = 0;
@@ -210,6 +215,8 @@ namespace lg {
             }
         });
 
+        if (!reg.valid(localLocosphereEnt)) return;
+
         auto& rpgStat = reg.get<RPGStats>(localLocosphereEnt);
 
         if (reg.valid(lHandEnt) && reg.valid(rHandEnt)) {
@@ -262,11 +269,11 @@ namespace lg {
 
             if (!hide) {
                 drawList->AddQuadFilled(
-                        screenPos,
-                        ImVec2(corner.x, screenPos.y),
-                        corner,
-                        ImVec2(screenPos.x, corner.y),
-                        ImColor(0.8f, 0.0f, 0.5f)
+                    screenPos,
+                    ImVec2(corner.x, screenPos.y),
+                    corner,
+                    ImVec2(screenPos.x, corner.y),
+                    ImColor(0.8f, 0.0f, 0.5f)
                 );
 
                 ImVec2 textPos = ImVec2(screenPos.x, screenPos.y + 20.0f);
@@ -471,6 +478,16 @@ namespace lg {
             lPsc.soundId = worlds::g_assetDB.addOrGetExisting("Audio/SFX/Player/hand_slap1.ogg");
             PhysicsSoundComponent& rPsc = reg->emplace<PhysicsSoundComponent>(rHandEnt);
             rPsc.soundId = worlds::g_assetDB.addOrGetExisting("Audio/SFX/Player/hand_slap1.ogg");
+
+            ContactDamageDealer& lCdd = reg->emplace<ContactDamageDealer>(lHandEnt);
+            lCdd.damage = 7;
+            lCdd.minVelocity = 7.5f;
+            lCdd.maxVelocity = 12.0f;
+
+            ContactDamageDealer& rCdd = reg->emplace<ContactDamageDealer>(rHandEnt);
+            rCdd.damage = 7;
+            rCdd.minVelocity = 7.5f;
+            rCdd.maxVelocity = 12.0f;
 
             if (vrInterface) {
                 audioListenerEntity = registry.create();
