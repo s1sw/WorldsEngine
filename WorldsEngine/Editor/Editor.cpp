@@ -304,6 +304,100 @@ namespace worlds {
         }
     }
 
+    void Editor::overrideHandle(Transform* t) {
+        handleOverriden = true;
+        overrideTransform = t;
+    }
+
+    void Editor::handleTools(Transform& t, ImVec2 wPos, ImVec2 wSize) {
+        // Convert selected transform position from world space to screen space
+        glm::vec4 ndcObjPosPreDivide = cam.getProjectionMatrix((float)wSize.x / wSize.y) * cam.getViewMatrix() * glm::vec4(t.position, 1.0f);
+
+        // NDC -> screen space
+        glm::vec2 ndcObjectPosition(ndcObjPosPreDivide);
+        ndcObjectPosition /= ndcObjPosPreDivide.w;
+        ndcObjectPosition *= 0.5f;
+        ndcObjectPosition += 0.5f;
+        ndcObjectPosition *= convVec(wSize);
+        // Not sure why flipping Y is necessary?
+        ndcObjectPosition.y = wSize.y - ndcObjectPosition.y;
+
+        if ((ndcObjPosPreDivide.z / ndcObjPosPreDivide.w) > 0.0f)
+            ImGui::GetWindowDrawList()->AddCircleFilled(convVec(ndcObjectPosition) + wPos, 7.0f, ImColor(0.0f, 0.0f, 0.0f));
+
+        ImGuizmo::BeginFrame();
+        ImGuizmo::Enable(true);
+        ImGuizmo::SetRect(wPos.x, wPos.y, (float)wSize.x, (float)wSize.y);
+        ImGuizmo::SetDrawlist();
+
+        glm::mat4 view = cam.getViewMatrix();
+        // Get a relatively normal projection matrix so ImGuizmo doesn't break.
+        glm::mat4 proj = cam.getProjectionMatrixZONonInfinite((float)wSize.x / (float)wSize.y);
+
+        glm::mat4 tfMtx = t.getMatrix();
+        glm::vec3 snap{ 0.0f };
+
+        if (inputManager.keyHeld(SDL_SCANCODE_LCTRL, true)) {
+            switch (currentTool) {
+            case Tool::Rotate:
+                snap = glm::vec3{ settings.angularSnapIncrement };
+                break;
+            default:
+                snap = glm::vec3{ settings.snapIncrement };
+                break;
+            }
+        }
+
+        static float bounds[6] { -1.0f, -1.0f, -1.0f, 1.0f, 1.0f, 1.0f };
+
+        glm::mat4 deltaMatrix{1.0f};
+
+        ImGuizmo::Manipulate(glm::value_ptr(view), glm::value_ptr(proj),
+            toolToOp(currentTool), toolLocalSpace ? ImGuizmo::MODE::LOCAL : ImGuizmo::MODE::WORLD,
+            glm::value_ptr(tfMtx), glm::value_ptr(deltaMatrix), glm::value_ptr(snap),
+            currentTool == Tool::Bounds ? bounds : nullptr, glm::value_ptr(snap));
+
+        glm::vec3 scale;
+        glm::quat rotation;
+        glm::vec3 translation;
+        glm::vec3 skew;
+        glm::vec4 perspective;
+        glm::decompose(tfMtx, scale, rotation, translation, skew, perspective);
+
+        static bool usingLast = false;
+        if (!usingLast && ImGuizmo::IsUsing()) {
+            undo.pushState(reg);
+        }
+
+        usingLast = ImGuizmo::IsUsing();
+
+        switch (currentTool) {
+        case Tool::Translate:
+            t.position = translation;
+            break;
+        case Tool::Rotate:
+            t.rotation = rotation;
+            break;
+        case Tool::Scale:
+            t.scale = scale;
+            break;
+        case Tool::Bounds:
+            t.position = translation;
+            t.rotation = rotation;
+            t.scale = scale;
+            break;
+        default:
+            break;
+        }
+
+        if (!handleOverriden) {
+            for (auto ent : selectedEntities) {
+                auto& msTransform = reg.get<Transform>(ent);
+                msTransform.fromMatrix(deltaMatrix * msTransform.getMatrix());
+            }
+        }
+    }
+
     void Editor::sceneWindow() {
         static ImVec2 currentSceneViewSize = ImVec2(0.0f, 0.0f);
 
@@ -348,90 +442,8 @@ namespace worlds {
 
             if (reg.valid(currentSelectedEntity)) {
                 auto& selectedTransform = reg.get<Transform>(currentSelectedEntity);
-                // Convert selected transform position from world space to screen space
-                glm::vec4 ndcObjPosPreDivide = cam.getProjectionMatrix((float)wSize.x / wSize.y) * cam.getViewMatrix() * glm::vec4(selectedTransform.position, 1.0f);
-
-                // NDC -> screen space
-                glm::vec2 ndcObjectPosition(ndcObjPosPreDivide);
-                ndcObjectPosition /= ndcObjPosPreDivide.w;
-                ndcObjectPosition *= 0.5f;
-                ndcObjectPosition += 0.5f;
-                ndcObjectPosition *= convVec(wSize);
-                // Not sure why flipping Y is necessary?
-                ndcObjectPosition.y = wSize.y - ndcObjectPosition.y;
-
-                if ((ndcObjPosPreDivide.z / ndcObjPosPreDivide.w) > 0.0f)
-                    ImGui::GetWindowDrawList()->AddCircleFilled(convVec(ndcObjectPosition) + wPos, 7.0f, ImColor(0.0f, 0.0f, 0.0f));
-
-                ImGuizmo::BeginFrame();
-                ImGuizmo::Enable(true);
-                ImGuizmo::SetRect(wPos.x, wPos.y, (float)wSize.x, (float)wSize.y);
-                ImGuizmo::SetDrawlist();
-
-                glm::mat4 view = cam.getViewMatrix();
-                // Get a relatively normal projection matrix so ImGuizmo doesn't break.
-                glm::mat4 proj = cam.getProjectionMatrixZONonInfinite((float)wSize.x / (float)wSize.y);
-
-                glm::mat4 tfMtx = selectedTransform.getMatrix();
-                glm::vec3 snap{ 0.0f };
-
-                if (inputManager.keyHeld(SDL_SCANCODE_LCTRL, true)) {
-                    switch (currentTool) {
-                    case Tool::Rotate:
-                        snap = glm::vec3{ settings.angularSnapIncrement };
-                        break;
-                    default:
-                        snap = glm::vec3{ settings.snapIncrement };
-                        break;
-                    }
-                }
-
-                static float bounds[6] { -1.0f, -1.0f, -1.0f, 1.0f, 1.0f, 1.0f };
-
-                glm::mat4 deltaMatrix{1.0f};
-
-                ImGuizmo::Manipulate(glm::value_ptr(view), glm::value_ptr(proj),
-                    toolToOp(currentTool), toolLocalSpace ? ImGuizmo::MODE::LOCAL : ImGuizmo::MODE::WORLD,
-                    glm::value_ptr(tfMtx), glm::value_ptr(deltaMatrix), glm::value_ptr(snap),
-                    currentTool == Tool::Bounds ? bounds : nullptr, glm::value_ptr(snap));
-
-                glm::vec3 scale;
-                glm::quat rotation;
-                glm::vec3 translation;
-                glm::vec3 skew;
-                glm::vec4 perspective;
-                glm::decompose(tfMtx, scale, rotation, translation, skew, perspective);
-
-                static bool usingLast = false;
-                if (!usingLast && ImGuizmo::IsUsing()) {
-                    undo.pushState(reg);
-                }
-
-                usingLast = ImGuizmo::IsUsing();
-
-                switch (currentTool) {
-                case Tool::Translate:
-                    selectedTransform.position = translation;
-                    break;
-                case Tool::Rotate:
-                    selectedTransform.rotation = rotation;
-                    break;
-                case Tool::Scale:
-                    selectedTransform.scale = scale;
-                    break;
-                case Tool::Bounds:
-                    selectedTransform.position = translation;
-                    selectedTransform.rotation = rotation;
-                    selectedTransform.scale = scale;
-                    break;
-                default:
-                    break;
-                }
-
-                for (auto ent : selectedEntities) {
-                    auto& msTransform = reg.get<Transform>(ent);
-                    msTransform.fromMatrix(deltaMatrix * msTransform.getMatrix());
-                }
+                auto& t = handleOverriden ? *overrideTransform : selectedTransform;
+                handleTools(t, wPos, wSize);
 
                 if (inputManager.ctrlHeld() &&
                     inputManager.keyPressed(SDL_SCANCODE_D) &&
@@ -542,6 +554,7 @@ namespace worlds {
             return;
         }
         AudioSystem::getInstance()->setPauseState(true);
+        handleOverriden = false;
 
         updateWindowTitle();
 
@@ -584,7 +597,6 @@ namespace worlds {
             }
         }
 
-
         if (ImGui::Begin(ICON_FA_EDIT u8" Editor")) {
             ImGui::Text("Current tool: %s", toolStr(currentTool));
 
@@ -601,13 +613,13 @@ namespace worlds {
 
         updateCamera(deltaTime);
 
-        sceneWindow();
-
         for (auto& edWindow : editorWindows) {
             if (edWindow->isActive()) {
                 edWindow->draw(reg);
             }
         }
+
+        sceneWindow();
 
         if (inputManager.keyPressed(SDL_SCANCODE_S) && inputManager.ctrlHeld()) {
             if (interfaces.engine->getCurrentSceneInfo().id != ~0u && !inputManager.shiftHeld()) {

@@ -16,11 +16,11 @@ namespace worlds {
     typedef uint32_t RTTPassHandle;
 
     enum class Tool {
-        None,
-        Translate,
-        Rotate,
-        Scale,
-        Bounds
+        None = 0,
+        Translate = 1,
+        Rotate = 2,
+        Scale = 4,
+        Bounds = 8
     };
 
     enum class AxisFlagBits {
@@ -35,21 +35,35 @@ namespace worlds {
         return static_cast<AxisFlagBits> (
             static_cast<unsigned>(lhs) |
             static_cast<unsigned>(rhs)
-            );
+        );
     }
 
     inline AxisFlagBits operator &(AxisFlagBits lhs, AxisFlagBits rhs) {
         return static_cast<AxisFlagBits> (
             static_cast<unsigned>(lhs) &
             static_cast<unsigned>(rhs)
-            );
+        );
     }
 
     inline AxisFlagBits operator ^(AxisFlagBits lhs, AxisFlagBits rhs) {
         return static_cast<AxisFlagBits> (
             static_cast<unsigned>(lhs) ^
             static_cast<unsigned>(rhs)
-            );
+        );
+    }
+
+    inline Tool operator |(Tool lhs, Tool rhs) {
+        return static_cast<Tool>(
+            static_cast<unsigned>(lhs) |
+            static_cast<unsigned>(rhs)
+        );
+    }
+
+    inline Tool operator &(Tool lhs, Tool rhs) {
+        return static_cast<Tool> (
+            static_cast<unsigned>(lhs) &
+            static_cast<unsigned>(rhs)
+        );
     }
 
     struct EditorSettings {
@@ -108,8 +122,10 @@ namespace worlds {
         UITextureManager* texManager() { return texMan; }
         EditorUndo undo;
         bool active = true;
+        void overrideHandle(Transform* t);
     private:
         void sceneWindow();
+        void handleTools(Transform& t, ImVec2 wPos, ImVec2 wSize);
         void updateCamera(float deltaTime);
         std::string generateWindowTitle();
         void updateWindowTitle();
@@ -124,6 +140,8 @@ namespace worlds {
         float lookY;
         float cameraSpeed;
         bool imguiMetricsOpen;
+        bool handleOverriden = false;
+        Transform* overrideTransform;
 
         UITextureManager* texMan;
 

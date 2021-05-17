@@ -62,6 +62,7 @@ namespace worlds {
         void quit() { running = false; }
         bool pauseSim;
         bool runAsEditor;
+        void destroyNextFrame(entt::entity ent) { this->nextFrameKillList.push_back(ent); }
         [[nodiscard]] double getGameTime() const { return gameTime; }
     private:
         struct DebugTimeInfo {
@@ -102,6 +103,7 @@ namespace worlds {
         double gameTime = 0.0;
 
         std::vector<ISystem*> systems;
+        std::vector<entt::entity> nextFrameKillList;
     };
 
     enum class StaticFlags : uint8_t {

@@ -810,6 +810,13 @@ namespace worlds {
 
             inputManager->endFrame();
 
+            for (auto& e : nextFrameKillList) {
+                if (registry.valid(e))
+                    registry.destroy(e);
+            }
+
+            nextFrameKillList.clear();
+
             if (sceneLoadQueued) {
                 sceneLoadQueued = false;
                 PHYSFS_File* file = g_assetDB.openAssetFileRead(queuedSceneID);
