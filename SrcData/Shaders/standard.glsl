@@ -16,8 +16,7 @@ layout(location = 0) VARYING(vec4, WorldPos);
 layout(location = 1) VARYING(vec3, Normal);
 layout(location = 2) VARYING(vec3, Tangent);
 layout(location = 3) VARYING(vec2, UV);
-layout(location = 4) VARYING(float, Depth);
-layout(location = 5) VARYING(flat uint, UvDir);
+layout(location = 4) VARYING(flat uint, UvDir);
 
 #ifdef FRAGMENT
 #ifdef EFT
@@ -48,19 +47,12 @@ void main() {
     int vpMatIdx = vpIdx + gl_ViewIndex;
     outWorldPos = (model * vec4(inPosition, 1.0));
 
-    mat4 projMat = projection[vpMatIdx];
+    mat4 vp = projection[vpMatIdx] * view[vpMatIdx];
 
-    gl_Position = projection[vpMatIdx] * view[vpMatIdx] * model * vec4(inPosition, 1.0); // Apply MVP transform
+    gl_Position = vp * model * vec4(inPosition, 1.0); // Apply MVP transform
 
-    mat3 model3 = mat3(model);
-    // remove scaling
-    model3[0] = normalize(model3[0]);
-    model3[1] = normalize(model3[1]);
-    model3[2] = normalize(model3[2]);
-    outNormal = normalize(model3 * inNormal);
-    outTangent = normalize(model3 * inTangent);
-    outDepth = gl_Position.z / gl_Position.w;
-    //outViewPos = -(view[vpMatIdx] * model * vec4(inPosition, 1.0)).xyz;
+    outNormal = normalize((transpose(inverse(model)) * vec4(inNormal, 0.0f)).xyz);
+    outTangent = normalize((transpose(inverse(model)) * vec4(inTangent, 0.0f)).xyz);
     gl_Position.y = -gl_Position.y; // Account for Vulkan viewport weirdness
 
     vec2 uv = inUV;
@@ -378,16 +370,17 @@ void main() {
         metallic = packVals.r;
         roughness = packVals.g;
         ao = packVals.b;
-    } else {
-        if (mat.roughTexIdx > -1)
-            roughness = pow(texture(tex2dSampler[mat.roughTexIdx], tCoord).x, 1.0 / 2.2);
-
-        if (mat.metalTexIdx > -1)
-            metallic = pow(texture(tex2dSampler[mat.metalTexIdx], tCoord).x, 1.0 / 2.2);
-
-        if (mat.aoTexIdx > -1)
-            ao = pow(texture(tex2dSampler[mat.aoTexIdx], tCoord).x, 1.0 / 2.2);
     }
+    //else {
+    //    if (mat.roughTexIdx > -1)
+    //        roughness = pow(texture(tex2dSampler[mat.roughTexIdx], tCoord).x, 1.0 / 2.2);
+
+    //    if (mat.metalTexIdx > -1)
+    //        metallic = pow(texture(tex2dSampler[mat.metalTexIdx], tCoord).x, 1.0 / 2.2);
+
+    //    if (mat.aoTexIdx > -1)
+    //        ao = pow(texture(tex2dSampler[mat.aoTexIdx], tCoord).x, 1.0 / 2.2);
+    //}
 
     uint doPicking = miscFlag & 0x1;
 
@@ -441,10 +434,14 @@ void main() {
     }
 #endif
 
+#ifndef EFT
     float finalAlpha = alphaCutoff > 0.0f ? albedoCol.a : 1.0f;
     if (alphaCutoff > 0.0f) {
         finalAlpha = (finalAlpha - alphaCutoff) / max(fwidth(finalAlpha), 0.0001) + 0.5;
     }
+#else
+    float finalAlpha = 1.0f;
+#endif
 
     ShadeInfo si;
     si.f0 = f0;
