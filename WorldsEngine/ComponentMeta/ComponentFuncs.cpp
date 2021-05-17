@@ -478,7 +478,9 @@ namespace worlds {
     }
 
     template <typename T>
-    void editPhysicsShapes(T& actor) {
+    void editPhysicsShapes(T& actor, Transform& actorTransform, worlds::Editor* ed) {
+        static size_t currentShapeIdx = 0;
+        static bool transformingShape = false;
         ImGui::Checkbox("Scale Shapes", &actor.scaleShapes);
         if (ImGui::Button("Load Collider JSON")) {
             ImGui::OpenPopup("Collider JSON");
@@ -520,6 +522,24 @@ namespace worlds {
             if (ImGui::Button("Remove")) {
                 eraseIter = it;
                 erase = true;
+            }
+
+            static Transform t;
+
+            if (transformingShape && i == currentShapeIdx) {
+                ed->overrideHandle(&t);
+                if (ImGui::Button("Done")) {
+                    transformingShape = false;
+                    it->pos = glm::inverse(actorTransform.rotation) * (t.position - actorTransform.position);
+                    it->rot = glm::inverse(actorTransform.rotation) * t.rotation;
+                }
+            } else {
+                if (ImGui::Button("Transform")) {
+                    transformingShape = true;
+                    currentShapeIdx = i;
+                    t.position = actorTransform.position + (actorTransform.rotation * it->pos);
+                    t.rotation = actorTransform.rotation * it->rot;
+                }
             }
 
             ImGui::DragFloat3("Position", &it->pos.x);
@@ -582,7 +602,8 @@ namespace worlds {
                         updatePhysicsShapes(pa, reg.get<Transform>(ent).scale);
                     }
 
-                    editPhysicsShapes(pa);
+                    auto& t = reg.get<Transform>(ent);
+                    editPhysicsShapes(pa, t, ed);
                 }
 
                 ImGui::Separator();
@@ -776,7 +797,8 @@ namespace worlds {
                         physx::PxRigidBodyExt::setMassAndUpdateInertia(*((physx::PxRigidDynamic*)pa.actor), pa.mass);
                     }
 
-                    editPhysicsShapes(pa);
+                    auto& t = reg.get<Transform>(ent);
+                    editPhysicsShapes(pa, t, ed);
                 }
 
                 ImGui::Separator();

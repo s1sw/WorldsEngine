@@ -82,10 +82,13 @@ namespace lg {
         if (stats) {
             double damagePercent = (info.relativeSpeed - dealer.minVelocity) / (dealer.maxVelocity - dealer.minVelocity);
             uint64_t actualDamage = dealer.damage * damagePercent;
-            stats->currentHP -= actualDamage;
+            if (actualDamage > stats->currentHP)
+                stats->currentHP = 0;
+            else
+                stats->currentHP -= actualDamage;
 
-            if (stats->currentHP <= 0) {
-                reg->destroy(info.otherEntity);
+            if (stats->currentHP == 0) {
+                engine->destroyNextFrame(info.otherEntity);
             }
         }
     }
@@ -195,53 +198,82 @@ namespace lg {
             }
         }
 
-        if (reg.view<RPGStats>().size() > 0) {
-            auto& rpgStat = reg.get<RPGStats>(reg.view<RPGStats>()[0]);
-            static worlds::ConVar dbgRpgStats { "lg_dbgStats", "0", "Show debug menu for stat components." };
-            if (ImGui::Begin("RPG Stats")) {
-                ImGui::DragScalar("maxHP", ImGuiDataType_U64, &rpgStat.maxHP, 1.0f);
-                ImGui::DragScalar("currentHP", ImGuiDataType_U64, &rpgStat.currentHP, 1.0f);
-                ImGui::DragScalar("level", ImGuiDataType_U64, &rpgStat.level, 1.0f);
-                ImGui::DragScalar("totalExperience", ImGuiDataType_U64, &rpgStat.totalExperience, 1.0f);
-                ImGui::DragScalar("strength", ImGuiDataType_U8, &rpgStat.strength, 1.0f);
+        entt::entity localLocosphereEnt = entt::null;
+
+        reg.view<LocospherePlayerComponent>().each([&](auto ent, auto& lpc) {
+            if (lpc.isLocal) {
+                if (!reg.valid(localLocosphereEnt)) {
+                    localLocosphereEnt = ent;
+                } else {
+                    logWarn("more than one local locosphere!");
+                }
             }
-            ImGui::End();
+        });
 
-            auto drawList = ImGui::GetBackgroundDrawList();
+        auto& rpgStat = reg.get<RPGStats>(localLocosphereEnt);
 
-            std::string healthText = "health: " + std::to_string(rpgStat.currentHP) + "/" + std::to_string(rpgStat.maxHP);
-            auto viewSize = ImGui::GetIO().DisplaySize;
-            drawList->AddText(ImVec2(15, viewSize.y - 30), ImColor(1.0f, 1.0f, 1.0f), healthText.c_str());
+        if (reg.valid(lHandEnt) && reg.valid(rHandEnt)) {
+            auto& phl = reg.get<PhysHand>(lHandEnt);
+            auto& phr = reg.get<PhysHand>(rHandEnt);
 
-            if (reg.valid(lHandEnt) && reg.valid(rHandEnt)) {
-                auto& phl = reg.get<PhysHand>(lHandEnt);
-                auto& phr = reg.get<PhysHand>(rHandEnt);
+            float forceLimit = 150.0f + (100.0f * rpgStat.strength);
+            float torqueLimit = 7.0f + (10.0f * rpgStat.strength);
 
-                float forceLimit = 150.0f + (100.0f * rpgStat.strength);
-                float torqueLimit = 7.0f + (10.0f * rpgStat.strength);
+            if (!reg.valid(phl.goingTo)) {
+                phl.forceLimit = forceLimit;
+                phr.forceLimit = forceLimit;
+            }
 
-                if (!reg.valid(phl.goingTo)) {
-                    phl.forceLimit = forceLimit;
-                    phr.forceLimit = forceLimit;
-                }
+            if (!reg.valid(phr.goingTo)) {
+                phl.torqueLimit = torqueLimit;
+                phr.torqueLimit = torqueLimit;
+            }
 
-                if (!reg.valid(phr.goingTo)) {
-                    phl.torqueLimit = torqueLimit;
-                    phr.torqueLimit = torqueLimit;
-                }
+            if (reg.valid(fakeLHand) && reg.valid(fakeRHand)) {
+                auto& tfl = reg.get<Transform>(fakeLHand);
+                auto& trl = reg.get<Transform>(fakeRHand);
 
-                if (reg.valid(fakeLHand) && reg.valid(fakeRHand)) {
-                    auto& tfl = reg.get<Transform>(fakeLHand);
-                    auto& trl = reg.get<Transform>(fakeRHand);
+                tfl.position = phl.targetWorldPos;
+                tfl.rotation = phl.targetWorldRot;
 
-                    tfl.position = phl.targetWorldPos;
-                    tfl.rotation = phl.targetWorldRot;
-
-                    trl.position = phr.targetWorldPos;
-                    trl.rotation = phr.targetWorldRot;
-                }
+                trl.position = phr.targetWorldPos;
+                trl.rotation = phr.targetWorldRot;
             }
         }
+        auto statView = reg.view<RPGStats, Transform>(entt::exclude_t<LocospherePlayerComponent>());
+        ImGuiViewport* mainViewport = ImGui::GetMainViewport();
+        auto size = mainViewport->Size;
+
+        auto vpMat = camera->getProjectionMatrix(size.x / size.y) * camera->getViewMatrix();
+
+        ImDrawList* drawList = ImGui::GetForegroundDrawList();
+        statView.each([&](entt::entity ent, RPGStats& stats, Transform& transform) {
+            auto pos = transform.position + (transform.rotation * glm::vec3(0.0f, 1.8f, 0.0f));
+            glm::vec4 projectedPos = vpMat * glm::vec4(pos, 1.0f);
+            projectedPos /= projectedPos.w;
+            bool hide = projectedPos.z < 0.0f;
+            projectedPos *= 0.5f;
+            projectedPos += 0.5f;
+            projectedPos *= glm::vec4(size.x, size.y, 0.0f, 0.0f);
+            projectedPos.y = size.y - projectedPos.y;
+
+            ImVec2 screenPos = ImVec2(projectedPos.x, projectedPos.y);
+            ImVec2 corner = ImVec2(screenPos.x + 15.0f, screenPos.y + 15.0f);
+
+            if (!hide) {
+                drawList->AddQuadFilled(
+                        screenPos,
+                        ImVec2(corner.x, screenPos.y),
+                        corner,
+                        ImVec2(screenPos.x, corner.y),
+                        ImColor(0.8f, 0.0f, 0.5f)
+                );
+
+                ImVec2 textPos = ImVec2(screenPos.x, screenPos.y + 20.0f);
+                std::string healthText = "Health: " + std::to_string(stats.currentHP);
+                drawList->AddText(textPos, ImColor(1.0f, 1.0f, 1.0f), healthText.c_str());
+            }
+        });
     }
 
     int syncTimer = 0;
