@@ -15,7 +15,28 @@
 #include "../Physics/Physics.hpp"
 
 namespace worlds {
-    double dspTime = 0.0;
+    const std::unordered_map<int, const char*> errorStrings = {
+        { VORBIS__no_error, "No Error" },
+        { VORBIS_need_more_data, "Need more data" },
+        { VORBIS_invalid_api_mixing, "Invalid API mixing" },
+        { VORBIS_feature_not_supported, "Feature not supported (likely floor 0)" },
+        { VORBIS_too_many_channels, "Too many channels" },
+        { VORBIS_file_open_failure, "File open failure" },
+        { VORBIS_seek_without_length, "Tried to seek without length" },
+        { VORBIS_unexpected_eof, "Unexpected EOF" },
+        { VORBIS_seek_invalid, "Invalid seek" },
+        { VORBIS_invalid_setup, "Invalid setup" },
+        { VORBIS_invalid_stream, "Invalid stream" },
+        { VORBIS_missing_capture_pattern, "Missing capture pattern" },
+        { VORBIS_invalid_stream_structure_version, "Invalid stream structure version" },
+        { VORBIS_continued_packet_flag_invalid, "Continued packet flag invalid" },
+        { VORBIS_incorrect_stream_serial_number, "Incorrect stream serial number" },
+        { VORBIS_invalid_first_page, "Invalid first page" },
+        { VORBIS_bad_packet_type, "Bad packet type" },
+        { VORBIS_cant_find_last_page, "Can't find last page" },
+        { VORBIS_seek_failed, "Seek failed" },
+        { VORBIS_ogg_skeleton_not_supported, "Ogg skeleton not supported" }
+    };
 
     AudioSystem::AudioSystem()
         : showDebugMenuVar("a_showDebugMenu", "0") {
@@ -177,8 +198,6 @@ namespace worlds {
         if (lastBuffer && copyBuffer)
             memcpy(lastBuffer, stream, len);
 
-        dspTime += secondBufferLength;
-
         auto ms = timer.stopGetMs();
         _this->cpuUsage = (ms / (secondBufferLength * 1000.0));
     }
@@ -282,7 +301,7 @@ namespace worlds {
         reg.on_construct<AudioSource>().connect<&AudioSystem::onAudioSourceConstruct>(*this);
         reg.on_destroy<AudioSource>().connect<&AudioSystem::onAudioSourceDestroy>(*this);
 
-        SDL_Log("Initialising Phonon");
+        logMsg(WELogCategoryAudio, "Initialising phonon");
         checkIplError(iplCreateContext((IPLLogFunction)phLog, nullptr, nullptr, &phononContext));
 
         IPLRenderingSettings settings{ have.freq, have.samples, IPL_CONVOLUTIONTYPE_PHONON };
@@ -290,22 +309,16 @@ namespace worlds {
         IPLHrtfParams hrtfParams{ IPL_HRTFDATABASETYPE_DEFAULT, nullptr, nullptr };
         checkIplError(iplCreateBinauralRenderer(phononContext, settings, hrtfParams, &binauralRenderer));
 
-        IPLAudioFormat audioIn {
-            .channelLayoutType = IPL_CHANNELLAYOUTTYPE_SPEAKERS,
-            .channelLayout = IPL_CHANNELLAYOUT_MONO,
-            .channelOrder = IPL_CHANNELORDER_INTERLEAVED
-        };
-
-        IPLAudioFormat audioOut {
-            .channelLayoutType = IPL_CHANNELLAYOUTTYPE_SPEAKERS,
-            .channelLayout = IPL_CHANNELLAYOUT_STEREO,
-            .channelOrder = IPL_CHANNELORDER_INTERLEAVED
-        };
-
-
-        checkIplError(iplCreateScene(phononContext, nullptr,
-                IPL_SCENETYPE_CUSTOM, 1,
-                &mainMaterial, closestHit, anyHit, nullptr, nullptr, nullptr, &sceneHandle));
+        checkIplError(
+            iplCreateScene(
+                phononContext, nullptr,
+                IPL_SCENETYPE_CUSTOM,
+                1, &mainMaterial,
+                closestHit, anyHit,
+                nullptr, nullptr,
+                nullptr, &sceneHandle
+            )
+        );
 
         IPLSimulationSettings simulationSettings{};
         simulationSettings.sceneType = IPL_SCENETYPE_PHONON;
@@ -323,7 +336,7 @@ namespace worlds {
                 simulationSettings, sceneHandle, NULL, &environment));
 
         if (devId == 0) {
-            SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION, "Failed to open audio device");
+            logWarn(WELogCategoryAudio, "Failed to open audio device");
         } else {
             SDL_PauseAudioDevice(devId, 0);
         }
@@ -487,10 +500,11 @@ namespace worlds {
                     convVec(listenerRot * glm::vec3 { 0.0f, 0.0f, 1.0f }),
                     convVec(listenerRot * glm::vec3 { 0.0f, 1.0f, 0.0f }),
                     src,
-                    5.0f, // not used yet
-                    64, // also not used yet
+                    5.0f,
+                    64,
                     IPL_DIRECTOCCLUSION_TRANSMISSIONBYFREQUENCY,
-                    IPL_DIRECTOCCLUSION_VOLUMETRIC);
+                    IPL_DIRECTOCCLUSION_VOLUMETRIC
+                );
             }
         }
 
@@ -513,11 +527,11 @@ namespace worlds {
                 if (copyBuffer) {
                     ImGui::PlotLines("L Audio", [](void* data, int idx) {
                         return ((float*)data)[idx * 2];
-                    }, lastBuffer, numSamples /2, 0, nullptr, -1.0f, 1.0f, ImVec2(300, 150));
+                    }, lastBuffer, numSamples / 2, 0, nullptr, -1.0f, 1.0f, ImVec2(300, 150));
 
                     ImGui::PlotLines("R Audio", [](void* data, int idx) {
                         return ((float*)data)[idx * 2 + 1];
-                    }, lastBuffer, numSamples /2, 0, nullptr, -1.0f, 1.0f, ImVec2(300, 150));
+                    }, lastBuffer, numSamples / 2, 0, nullptr, -1.0f, 1.0f, ImVec2(300, 150));
                 }
 
                 for (auto& p : internalAs) {
@@ -689,7 +703,7 @@ namespace worlds {
         Result<void*, IOError> res = LoadFileToBuffer(path, &fLen);
 
         if (res.error != IOError::None) {
-            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Could not load audio clip %s", path.c_str());
+            logErr(WELogCategoryAudio, "Could not load audio clip %s", path.c_str());
             return missingClip;
         }
 
@@ -701,28 +715,6 @@ namespace worlds {
                 (const uint8_t*)res.value, fLen, &error, nullptr);
 
         if (vorb == nullptr) {
-            const std::unordered_map<int, const char*> errorStrings = {
-                { VORBIS__no_error, "No Error" },
-                { VORBIS_need_more_data, "Need more data" },
-                { VORBIS_invalid_api_mixing, "Invalid API mixing" },
-                { VORBIS_feature_not_supported, "Feature not supported (likely floor 0)" },
-                { VORBIS_too_many_channels, "Too many channels" },
-                { VORBIS_file_open_failure, "File open failure" },
-                { VORBIS_seek_without_length, "Tried to seek without length" },
-                { VORBIS_unexpected_eof, "Unexpected EOF" },
-                { VORBIS_seek_invalid, "Invalid seek" },
-                { VORBIS_invalid_setup, "Invalid setup" },
-                { VORBIS_invalid_stream, "Invalid stream" },
-                { VORBIS_missing_capture_pattern, "Missing capture pattern" },
-                { VORBIS_invalid_stream_structure_version, "Invalid stream structure version" },
-                { VORBIS_continued_packet_flag_invalid, "Continued packet flag invalid" },
-                { VORBIS_incorrect_stream_serial_number, "Incorrect stream serial number" },
-                { VORBIS_invalid_first_page, "Invalid first page" },
-                { VORBIS_bad_packet_type, "Bad packet type" },
-                { VORBIS_cant_find_last_page, "Can't find last page" },
-                { VORBIS_seek_failed, "Seek failed" },
-                { VORBIS_ogg_skeleton_not_supported, "Ogg skeleton not supported" }
-            };
             logErr(WELogCategoryAudio, "Couldn't decode audio clip %s: error %i (%s)", path.c_str(), error, errorStrings.at(error));
             return missingClip;
         }
@@ -733,8 +725,27 @@ namespace worlds {
 
         logMsg(WELogCategoryAudio, "Loaded %s: %i samples across %i channels with a sample rate of %i", path.c_str(), clip.sampleCount, clip.channels, clip.sampleRate);
 
-        if (clip.sampleRate != 44100)
-            logWarn(WELogCategoryAudio, "Clip %s does not have a sample rate of 44100hz (%i). It will not play back correctly.", path.c_str(), clip.sampleRate);
+        if (clip.sampleRate != 44100) {
+            logWarn(WELogCategoryAudio, "Clip %s does not have a sample rate of 44100hz (%i). It may take longer to load.", path.c_str(), clip.sampleRate);
+            SDL_AudioCVT cvt;
+            SDL_BuildAudioCVT(
+                &cvt,
+                AUDIO_F32,
+                clip.channels,
+                clip.sampleRate,
+                AUDIO_F32,
+                clip.channels,
+                44100
+            );
+
+            cvt.buf = (Uint8*)malloc(cvt.len * cvt.len_mult);
+            memcpy(cvt.buf, clip.data, cvt.len);
+
+            SDL_ConvertAudio(&cvt);
+            memcpy(clip.data, cvt.buf, cvt.len);
+            clip.sampleRate = 44100;
+            free(cvt.buf);
+        }
 
         clip.id = id;
 
