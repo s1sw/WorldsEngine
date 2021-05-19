@@ -3,6 +3,7 @@
 #include <entt/entt.hpp>
 #include "../Core/Console.hpp"
 #include <glm/gtc/quaternion.hpp>
+#include "SDL_audio.h"
 #include "phonon.h"
 #include <glm/glm.hpp>
 
@@ -58,11 +59,12 @@ namespace worlds {
         void shutdown(entt::registry& worldState);
         void resetPlaybackPositions();
         void playOneShotClip(AssetID id, glm::vec3 location, bool spatialise = false, float volume = 1.0f, MixerChannel channel = MixerChannel::SFX);
-        inline void setChannelVolume(MixerChannel channel, float volume) { mixerVolumes[static_cast<int>(channel)] = volume; }
-        inline float getChannelVolume(MixerChannel channel) { return mixerVolumes[static_cast<int>(channel)]; }
+        void setChannelVolume(MixerChannel channel, float volume) { mixerVolumes[static_cast<int>(channel)] = volume; }
+        float getChannelVolume(MixerChannel channel) { return mixerVolumes[static_cast<int>(channel)]; }
         static AudioSystem* getInstance() { return instance; }
     private:
         static AudioSystem* instance;
+
         struct AudioSourceInternal {
             AssetID clipId;
             float volume;
@@ -109,6 +111,30 @@ namespace worlds {
             IPLDirectSoundPath soundPath;
             IPLhandle binauralEffect;
             IPLhandle directSoundEffect;
+        };
+
+        struct SpatialVoiceInfo {
+            glm::vec3 location;
+            float distance;
+            glm::vec3 direction;
+            IPLDirectSoundPath soundPath;
+        };
+
+        struct PhononVoiceEffects {
+            IPLhandle binauralEffect;
+            IPLhandle directSoundEffect;
+        };
+
+        struct Voice {
+            LoadedClip* clip;
+            float volume;
+            int playbackPosition;
+            bool isPlaying;
+            bool loop;
+            bool spatialise;
+            SpatialVoiceInfo spatialInfo;
+            PhononVoiceEffects iplFx;
+            MixerChannel channel;
         };
 
         static void audioCallback(void* userData, uint8_t* streamU8, int len);
