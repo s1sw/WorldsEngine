@@ -39,7 +39,8 @@ namespace worlds {
     };
 
     AudioSystem::AudioSystem()
-        : showDebugMenuVar("a_showDebugMenu", "0") {
+        : voices{512}
+        , showDebugMenuVar("a_showDebugMenu", "0") {
         for (int i = 0; i < static_cast<int>(MixerChannel::Count); i++)
             mixerVolumes[i] = 1.0f;
         setChannelVolume(MixerChannel::Music, 0.0f);
@@ -62,8 +63,7 @@ namespace worlds {
     float* tempMonoBuffer = nullptr;
     bool copyBuffer = false;
 
-    template <typename T>
-    void mixClip(AudioSystem::LoadedClip& clip, T& sourceInfo, int numMonoSamplesNeeded, float* stream, AudioSystem* _this) {
+    void mixVoice(AudioSystem::LoadedClip& clip, Voice& sourceInfo, int numMonoSamplesNeeded, float* stream, AudioSystem* _this) {
         int samplesRemaining = clip.sampleCount - sourceInfo.playbackPosition;
 
         if (samplesRemaining < 0) return;
@@ -227,7 +227,7 @@ namespace worlds {
 
     IPLMaterial mainMaterial{0.10f, 0.20f, 0.30f, 0.05f, 0.750f, 0.10f, 0.050f};
 
-    void checkIplError(IPLerror err) {
+    void checkErr(IPLerror err) {
         if (err != IPL_STATUS_SUCCESS) {
             fatalErr("IPL fail");
         }
@@ -302,14 +302,14 @@ namespace worlds {
         reg.on_destroy<AudioSource>().connect<&AudioSystem::onAudioSourceDestroy>(*this);
 
         logMsg(WELogCategoryAudio, "Initialising phonon");
-        checkIplError(iplCreateContext((IPLLogFunction)phLog, nullptr, nullptr, &phononContext));
+        checkErr(iplCreateContext((IPLLogFunction)phLog, nullptr, nullptr, &phononContext));
 
         IPLRenderingSettings settings{ have.freq, have.samples, IPL_CONVOLUTIONTYPE_PHONON };
 
         IPLHrtfParams hrtfParams{ IPL_HRTFDATABASETYPE_DEFAULT, nullptr, nullptr };
-        checkIplError(iplCreateBinauralRenderer(phononContext, settings, hrtfParams, &binauralRenderer));
+        checkErr(iplCreateBinauralRenderer(phononContext, settings, hrtfParams, &binauralRenderer));
 
-        checkIplError(
+        checkErr(
             iplCreateScene(
                 phononContext, nullptr,
                 IPL_SCENETYPE_CUSTOM,
@@ -320,20 +320,42 @@ namespace worlds {
             )
         );
 
-        IPLSimulationSettings simulationSettings{};
-        simulationSettings.sceneType = IPL_SCENETYPE_PHONON;
-        simulationSettings.maxNumOcclusionSamples = 32;
-        simulationSettings.numRays = 1024;
-        simulationSettings.numBounces = 2;
-        simulationSettings.numThreads = 8;
-        simulationSettings.irDuration = 0.5f;
-        simulationSettings.ambisonicsOrder = 0;
-        simulationSettings.maxConvolutionSources = 32;
-        simulationSettings.bakingBatchSize = 1;
-        simulationSettings.irradianceMinDistance = 0.3f;
+        IPLSimulationSettings simulationSettings{
+            .sceneType = IPL_SCENETYPE_PHONON,
+            .maxNumOcclusionSamples = 32,
+            .numRays = 1024,
+            .numBounces = 2,
+            .numThreads = 8,
+            .irDuration = 0.5f,
+            .ambisonicsOrder = 0,
+            .maxConvolutionSources = 32,
+            .bakingBatchSize = 1,
+            .irradianceMinDistance = 0.3f
+        };
 
-        checkIplError(iplCreateEnvironment(phononContext, NULL,
+        checkErr(iplCreateEnvironment(phononContext, NULL,
                 simulationSettings, sceneHandle, NULL, &environment));
+
+        for (auto& v : voices) {
+            IPLAudioFormat audioIn;
+            audioIn.channelLayoutType = IPL_CHANNELLAYOUTTYPE_SPEAKERS;
+            audioIn.channelLayout = IPL_CHANNELLAYOUT_MONO;
+            audioIn.channelOrder = IPL_CHANNELORDER_INTERLEAVED;
+
+            IPLAudioFormat audioOut;
+            audioOut.channelLayoutType = IPL_CHANNELLAYOUTTYPE_SPEAKERS;
+            audioOut.channelLayout = IPL_CHANNELLAYOUT_STEREO;
+            audioOut.channelOrder = IPL_CHANNELORDER_INTERLEAVED;
+
+            IPLRenderingSettings settings{
+                sampleRate,
+                numSamples,
+                IPL_CONVOLUTIONTYPE_PHONON
+            };
+
+            checkErr(iplCreateDirectSoundEffect(audioIn, audioIn, settings, &v.iplFx.directSoundEffect));
+            checkErr(iplCreateBinauralEffect(binauralRenderer, audioIn, audioOut, &v.iplFx.binauralEffect));
+        }
 
         if (devId == 0) {
             logWarn(WELogCategoryAudio, "Failed to open audio device");
@@ -587,8 +609,8 @@ namespace worlds {
         IPLRenderingSettings settings{ sampleRate, numSamples, IPL_CONVOLUTIONTYPE_PHONON };
 
         if (spatialise) {
-            checkIplError(iplCreateDirectSoundEffect(audioIn, audioIn, settings, &directSoundEffect));
-            checkIplError(iplCreateBinauralEffect(binauralRenderer, audioIn, audioOut, &binauralEffect));
+            checkErr(iplCreateDirectSoundEffect(audioIn, audioIn, settings, &directSoundEffect));
+            checkErr(iplCreateBinauralEffect(binauralRenderer, audioIn, audioOut, &binauralEffect));
         } else {
             directSoundEffect = nullptr;
             binauralEffect = nullptr;
@@ -599,6 +621,19 @@ namespace worlds {
                 false, false, false, 0.01f, channel, {}, binauralEffect, directSoundEffect });
 
         SDL_UnlockAudioDevice(devId);
+    }
+
+    size_t AudioSystem::getFreeVoice() {
+        size_t i = 0;
+
+        for (auto& v : voices) {
+            if (!v.loop && !v.isPlaying) {
+                return i;
+            }
+            i++;
+        }
+
+        return ~0u;
     }
 
     void AudioSystem::onAudioSourceConstruct(entt::registry& reg, entt::entity ent) {
@@ -625,8 +660,8 @@ namespace worlds {
 
         IPLRenderingSettings settings{ sampleRate, numSamples, IPL_CONVOLUTIONTYPE_PHONON };
 
-        checkIplError(iplCreateDirectSoundEffect(audioIn, audioIn, settings, &asi.directSoundEffect));
-        checkIplError(iplCreateBinauralEffect(binauralRenderer, audioIn, audioOut, &asi.binauralEffect));
+        checkErr(iplCreateDirectSoundEffect(audioIn, audioIn, settings, &asi.directSoundEffect));
+        checkErr(iplCreateBinauralEffect(binauralRenderer, audioIn, audioOut, &asi.binauralEffect));
 
         internalAs.insert({ ent, asi });
         SDL_UnlockAudioDevice(devId);

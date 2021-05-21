@@ -3,8 +3,9 @@
 #include <entt/entt.hpp>
 #include "../Core/Console.hpp"
 #include <glm/gtc/quaternion.hpp>
-#include "SDL_audio.h"
-#include "phonon.h"
+#include <SDL_audio.h>
+#include <phonon.h>
+#include <slib/HeapArray.hpp>
 #include <glm/glm.hpp>
 
 struct stb_vorbis;
@@ -140,6 +141,7 @@ namespace worlds {
         static void audioCallback(void* userData, uint8_t* streamU8, int len);
         static void cmdSetMixerVolume(void* obj, const char* params);
 
+        size_t getFreeVoice();
         void decodeVorbis(stb_vorbis* vorb, AudioSystem::LoadedClip& clip);
         void onAudioSourceConstruct(entt::registry& reg, entt::entity ent);
         void onAudioSourceDestroy(entt::registry& reg, entt::entity ent);
@@ -148,9 +150,10 @@ namespace worlds {
         SDL_AudioDeviceID devId;
         float cpuUsage;
         float volume;
-        std::unordered_map<entt::entity, AudioSourceInternal> internalAs;
+        std::unordered_map<entt::entity, size_t> internalAs;
         std::unordered_map<AssetID, LoadedClip> loadedClips;
         std::vector<OneShotClipInfo> oneShotClips;
+        slib::HeapArray<Voice> voices;
         int channelCount;
         int numSamples;
         int sampleRate;
@@ -167,8 +170,7 @@ namespace worlds {
         IPLhandle environment = nullptr;
 
         float mixerVolumes[static_cast<int>(MixerChannel::Count)];
-        template <typename T>
-        friend void mixClip(AudioSystem::LoadedClip& clip, T& sourceInfo, int numMonoSamplesNeeded, float* stream, AudioSystem* _this);
+        friend void mixClip(AudioSystem::LoadedClip& clip, Voice& sourceInfo, int numMonoSamplesNeeded, float* stream, AudioSystem* _this);
         LoadedClip missingClip;
     };
 }
