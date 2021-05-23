@@ -86,8 +86,8 @@ namespace worlds {
             }
 
             int retVal = stbi_write_hdr_to_func(
-                    stbiWriteFunc, 
-                    (void*)fHandle, 
+                    stbiWriteFunc,
+                    (void*)fHandle,
                     512, 512, 4, data);
 
             if (retVal == 0) {
@@ -115,6 +115,7 @@ namespace worlds {
 
         renderer->endRdocCapture();
         renderer->destroyRTTPass(rttHandle);
+        g_console->executeCommandStr("reloadCubemaps");
     }
 
     void BakingWindow::draw(entt::registry& reg) {
@@ -130,20 +131,23 @@ namespace worlds {
                 if (staticAudioGeomCount > 0) {
                     ImGui::Text("%u static geometry objects", staticAudioGeomCount);
                 } else {
-                    ImGui::TextColored(ImColor(1.0f, 0.0f, 0.0f), 
+                    ImGui::TextColored(ImColor(1.0f, 0.0f, 0.0f),
                         "There aren't any objects marked as audio static in the scene.");
                 }
             }
 
             if (ImGui::CollapsingHeader(ICON_FA_CUBE u8" Cubemaps")) {
+                static int numIterations = 1;
+                ImGui::DragInt("Iterations", &numIterations);
                 reg.view<Transform, WorldCubemap, NameComponent>().each([&](auto,
                             Transform& t, WorldCubemap&, NameComponent& nc) {
-                    ImGui::Text("%s (%.2f, %.2f, %.2f)", nc.name.c_str(), 
+                    ImGui::Text("%s (%.2f, %.2f, %.2f)", nc.name.c_str(),
                             t.position.x, t.position.y, t.position.z);
                     ImGui::SameLine();
                     ImGui::PushID(nc.name.c_str());
                     if (ImGui::Button("Bake")) {
-                        bakeCubemap(t.position, interfaces.renderer, nc.name, reg);
+                        for (int i = 0; i < numIterations; i++)
+                            bakeCubemap(t.position, interfaces.renderer, nc.name, reg);
                     }
                     ImGui::PopID();
                 });

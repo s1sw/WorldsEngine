@@ -33,7 +33,7 @@ namespace worlds {
     void ShadowCascadePass::createRenderPass() {
         vku::RenderpassMaker rPassMaker;
 
-        rPassMaker.attachmentBegin(vk::Format::eD32Sfloat);
+        rPassMaker.attachmentBegin(vk::Format::eD16Unorm);
         rPassMaker.attachmentLoadOp(vk::AttachmentLoadOp::eClear);
         rPassMaker.attachmentStencilLoadOp(vk::AttachmentLoadOp::eDontCare);
         rPassMaker.attachmentFinalLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
