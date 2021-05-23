@@ -45,7 +45,7 @@ if host_machine.system() == 'windows'
   sources += import('windows').compile_resources('LonelyGalaxy.rc')
 endif
 
-executable('lonelygalaxy', sources, 
-  include_directories: [physx_include_dir, extern_include_dir], 
-  dependencies: [worlds_dep, discord_sdk_dep, wren_dep, enet_dep, sdl2_dep, physfs_dep, crash_handler_deps], win_subsystem: 'windows')
+executable('lonelygalaxy', sources,
+  include_directories: [physx_include_dir, extern_include_dir],
+  dependencies: [slib_dep, worlds_dep, discord_sdk_dep, wren_dep, enet_dep, sdl2_dep, physfs_dep, crash_handler_deps], win_subsystem: 'windows')
 

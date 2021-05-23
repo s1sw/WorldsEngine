@@ -1,7 +1,9 @@
 #pragma once
+#include <unordered_map>
 #include "../Core/AssetDB.hpp"
 #include <entt/entt.hpp>
 #include "../Core/Console.hpp"
+#include <slib/StaticAllocList.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <SDL_audio.h>
 #include <phonon.h>
@@ -66,22 +68,6 @@ namespace worlds {
     private:
         static AudioSystem* instance;
 
-        struct AudioSourceInternal {
-            AssetID clipId;
-            float volume;
-            int playbackPosition;
-            bool isPlaying;
-            bool finished;
-            bool loop;
-            bool spatialise;
-            glm::vec3 direction;
-            float distance;
-            MixerChannel channel;
-            IPLDirectSoundPath soundPath;
-            IPLhandle binauralEffect;
-            IPLhandle directSoundEffect;
-        };
-
         enum class ClipType {
             Vorbis,
             MP3
@@ -97,25 +83,7 @@ namespace worlds {
             uint32_t refCount;
         };
 
-        struct OneShotClipInfo {
-            LoadedClip* clip;
-            int playbackPosition;
-            glm::vec3 location;
-            glm::vec3 direction;
-            bool spatialise;
-            float volume;
-            bool isPlaying;
-            bool finished;
-            bool loop;
-            float distance;
-            MixerChannel channel;
-            IPLDirectSoundPath soundPath;
-            IPLhandle binauralEffect;
-            IPLhandle directSoundEffect;
-        };
-
         struct SpatialVoiceInfo {
-            glm::vec3 location;
             float distance;
             glm::vec3 direction;
             IPLDirectSoundPath soundPath;
@@ -127,21 +95,32 @@ namespace worlds {
         };
 
         struct Voice {
+            bool lock : 1;
+            bool isPlaying : 1;
+            bool loop : 1;
+            bool spatialise : 1;
             LoadedClip* clip;
             float volume;
             int playbackPosition;
-            bool isPlaying;
-            bool loop;
-            bool spatialise;
             SpatialVoiceInfo spatialInfo;
             PhononVoiceEffects iplFx;
             MixerChannel channel;
         };
 
+        struct PlayingOneshot {
+            glm::vec3 location;
+            uint32_t voiceIdx;
+        };
+
+        struct AudioSourceInternal {
+            uint32_t voiceIdx;
+            bool lastPlaying;
+        };
+
         static void audioCallback(void* userData, uint8_t* streamU8, int len);
         static void cmdSetMixerVolume(void* obj, const char* params);
 
-        size_t getFreeVoice();
+        uint32_t allocateVoice();
         void decodeVorbis(stb_vorbis* vorb, AudioSystem::LoadedClip& clip);
         void onAudioSourceConstruct(entt::registry& reg, entt::entity ent);
         void onAudioSourceDestroy(entt::registry& reg, entt::entity ent);
@@ -150,10 +129,10 @@ namespace worlds {
         SDL_AudioDeviceID devId;
         float cpuUsage;
         float volume;
-        std::unordered_map<entt::entity, size_t> internalAs;
+        std::unordered_map<entt::entity, AudioSourceInternal> internalAs;
         std::unordered_map<AssetID, LoadedClip> loadedClips;
-        std::vector<OneShotClipInfo> oneShotClips;
         slib::HeapArray<Voice> voices;
+        slib::StaticAllocList<PlayingOneshot> oneshots;
         int channelCount;
         int numSamples;
         int sampleRate;
@@ -170,7 +149,7 @@ namespace worlds {
         IPLhandle environment = nullptr;
 
         float mixerVolumes[static_cast<int>(MixerChannel::Count)];
-        friend void mixClip(AudioSystem::LoadedClip& clip, Voice& sourceInfo, int numMonoSamplesNeeded, float* stream, AudioSystem* _this);
+        static void mixVoice(Voice& voice, int numMonoSamplesNeeded, float* stream, AudioSystem* _this);
         LoadedClip missingClip;
     };
 }

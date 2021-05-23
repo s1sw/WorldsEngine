@@ -40,6 +40,7 @@ namespace worlds {
 
     AudioSystem::AudioSystem()
         : voices{512}
+        , oneshots{64}
         , showDebugMenuVar("a_showDebugMenu", "0") {
         for (int i = 0; i < static_cast<int>(MixerChannel::Count); i++)
             mixerVolumes[i] = 1.0f;
@@ -63,33 +64,34 @@ namespace worlds {
     float* tempMonoBuffer = nullptr;
     bool copyBuffer = false;
 
-    void mixVoice(AudioSystem::LoadedClip& clip, Voice& sourceInfo, int numMonoSamplesNeeded, float* stream, AudioSystem* _this) {
-        int samplesRemaining = clip.sampleCount - sourceInfo.playbackPosition;
+    void AudioSystem::mixVoice(Voice& voice, int numMonoSamplesNeeded, float* stream, AudioSystem* _this) {
+        auto& clip = *voice.clip;
+        int samplesRemaining = clip.sampleCount - voice.playbackPosition;
 
         if (samplesRemaining < 0) return;
 
         int samplesNeeded = std::min(numMonoSamplesNeeded, samplesRemaining);
 
-        float vol = _this->mixerVolumes[static_cast<int>(sourceInfo.channel)] * sourceInfo.volume;
+        float vol = _this->mixerVolumes[static_cast<int>(voice.channel)] * voice.volume;
 
         // Stereo and non-spatialised mono mixing
         if (clip.channels == 2) {
             for (int i = 0; i < samplesNeeded; i++) {
                 int outPos = i * 2;
-                int inPos = (i + sourceInfo.playbackPosition) * 2;
+                int inPos = (i + voice.playbackPosition) * 2;
                 stream[outPos] += clip.data[inPos] * vol;
                 stream[outPos + 1] += clip.data[inPos + 1] * vol;
             }
-        } else if (!sourceInfo.spatialise) {
+        } else if (!voice.spatialise) {
             for (int i = 0; i < samplesNeeded; i++) {
                 int outPos = i * 2;
-                int inPos = i + sourceInfo.playbackPosition;
+                int inPos = i + voice.playbackPosition;
                 stream[outPos] += clip.data[inPos] * vol;
                 stream[outPos + 1] += clip.data[inPos] * vol;
             }
         }
 
-        if (sourceInfo.spatialise && clip.channels == 1) {
+        if (voice.spatialise && clip.channels == 1) {
             IPLAudioFormat clipFormat {
                 .channelLayoutType = IPL_CHANNELLAYOUTTYPE_SPEAKERS,
                 .channelLayout = IPL_CHANNELLAYOUT_MONO,
@@ -98,7 +100,7 @@ namespace worlds {
 
             IPLAudioBuffer inBuffer{
                 clipFormat, samplesNeeded,
-                &clip.data[sourceInfo.playbackPosition], nullptr
+                &clip.data[voice.playbackPosition], nullptr
             };
 
             IPLAudioBuffer directPathBuffer {
@@ -113,8 +115,8 @@ namespace worlds {
                 .directOcclusionMode = IPL_DIRECTOCCLUSION_TRANSMISSIONBYFREQUENCY
             };
 
-            iplApplyDirectSoundEffect(sourceInfo.directSoundEffect,
-                inBuffer, sourceInfo.soundPath,
+            iplApplyDirectSoundEffect(voice.iplFx.directSoundEffect,
+                inBuffer, voice.spatialInfo.soundPath,
                 directSoundOptions, directPathBuffer);
 
             IPLAudioFormat outFormat {
@@ -128,10 +130,14 @@ namespace worlds {
                 tempBuffer, nullptr
             };
 
-            IPLVector3 dir { sourceInfo.direction.x, sourceInfo.direction.y, sourceInfo.direction.z };
+            IPLVector3 dir {
+                voice.spatialInfo.direction.x,
+                voice.spatialInfo.direction.y,
+                voice.spatialInfo.direction.z
+            };
 
             iplApplyBinauralEffect(
-                    sourceInfo.binauralEffect,
+                    voice.iplFx.binauralEffect,
                     _this->binauralRenderer,
                     directPathBuffer, dir,
                     IPL_HRTFINTERPOLATION_BILINEAR, 1.0f, outBuffer);
@@ -142,14 +148,13 @@ namespace worlds {
             }
         }
 
-        sourceInfo.playbackPosition += numMonoSamplesNeeded;
+        voice.playbackPosition += numMonoSamplesNeeded;
 
-        if (sourceInfo.playbackPosition >= clip.sampleCount) {
-            if (sourceInfo.loop) {
-                sourceInfo.playbackPosition = 0;
+        if (voice.playbackPosition >= clip.sampleCount) {
+            if (voice.loop) {
+                voice.playbackPosition = 0;
             } else {
-                sourceInfo.finished = true;
-                sourceInfo.isPlaying = false;
+                voice.isPlaying = false;
             }
         }
     }
@@ -169,24 +174,9 @@ namespace worlds {
         int numMonoSamplesNeeded = streamLen / 2;
         memset(stream, 0, len);
 
-        for (auto& p : _this->internalAs) {
-            if (!p.second.isPlaying)
-                continue;
-
-            auto clipIt = _this->loadedClips.find(p.second.clipId);
-
-            // clip isn't loaded, ignore it
-            if (clipIt == _this->loadedClips.end()) {
-                continue;
-            }
-
-            LoadedClip& playedClip = clipIt->second;
-
-            mixClip(playedClip, p.second, numMonoSamplesNeeded, stream, _this);
-        }
-
-        for (auto& c : _this->oneShotClips) {
-            mixClip(*c.clip, c, numMonoSamplesNeeded, stream, _this);
+        for (size_t i = 0; i < _this->voices.size(); i++) {
+            if (_this->voices[i].isPlaying)
+                mixVoice(_this->voices[i], numMonoSamplesNeeded, stream, _this);
         }
 
         for (int i = 0; i < streamLen; i++) {
@@ -337,6 +327,12 @@ namespace worlds {
                 simulationSettings, sceneHandle, NULL, &environment));
 
         for (auto& v : voices) {
+            v.isPlaying = false;
+            v.loop = false;
+            v.volume = 0.0f;
+            v.clip = nullptr;
+            v.lock = false;
+
             IPLAudioFormat audioIn;
             audioIn.channelLayoutType = IPL_CHANNELLAYOUTTYPE_SPEAKERS;
             audioIn.channelLayout = IPL_CHANNELLAYOUT_MONO;
@@ -386,7 +382,7 @@ namespace worlds {
         SDL_LockAudioDevice(devId);
 
         reg.view<AudioSource, AudioTrigger, Transform>().each(
-            [&](auto ent, AudioSource& as, AudioTrigger& at, Transform& t) {
+            [&](entt::entity ent, AudioSource& as, AudioTrigger& at, Transform& t) {
                 glm::vec3 ma = t.position + t.scale;
                 glm::vec3 mi = t.position - t.scale;
 
@@ -399,7 +395,7 @@ namespace worlds {
                     bool justEntered = !as.isPlaying;
 
                     if (justEntered && at.resetOnEntry) {
-                        internalAs.at(ent).playbackPosition = 0;
+                        voices[internalAs.at(ent).voiceIdx].playbackPosition = 0;
                     }
 
                     as.isPlaying = true;
@@ -409,92 +405,79 @@ namespace worlds {
                 }
         });
 
-        reg.view<Transform, AudioSource>().each([this, listenerPos, listenerRot](auto ent, auto& transform, auto& audioSource) {
-            AudioSourceInternal& asi = internalAs.at(ent);
-            asi.volume = audioSource.volume;
-            asi.clipId = audioSource.clipId;
+        reg.view<Transform, AudioSource>().each(
+            [&](entt::entity ent, Transform& transform, AudioSource& audioSource) {
+                AudioSourceInternal& asi = internalAs.at(ent);
+                Voice& v = voices[asi.voiceIdx];
+                v.volume = audioSource.volume;
+                v.clip = &loadedClips.at(audioSource.clipId);
 
-            glm::vec3 dirVec = listenerPos - transform.position;
-            asi.direction = glm::normalize(dirVec) * listenerRot;
-            asi.distance = glm::length(dirVec);
+                glm::vec3 dirVec = listenerPos - transform.position;
+                v.spatialInfo.direction = glm::normalize(dirVec) * listenerRot;
+                v.spatialInfo.distance = glm::length(dirVec);
 
-            if (asi.finished) {
-                audioSource.isPlaying = false;
-                asi.finished = false;
-            }
+                v.loop = audioSource.loop;
+                v.spatialise = audioSource.spatialise;
+                v.channel = audioSource.channel;
 
-            asi.isPlaying = audioSource.isPlaying;
-            asi.loop = audioSource.loop;
-            asi.spatialise = audioSource.spatialise;
-            asi.channel = audioSource.channel;
-
-            if (asi.spatialise) {
-                IPLDistanceAttenuationModel distanceAttenuationModel {
-                    .type = IPL_DISTANCEATTENUATION_DEFAULT
-                };
-
-                IPLAirAbsorptionModel airAbsorptionModel {
-                    .type = IPL_AIRABSORPTION_DEFAULT
-                };
-
-                IPLSource src {
-                    .position = convVec(transform.position),
-                    .ahead = IPLVector3 { 0.0f, 0.0f, 1.0f },
-                    .up = IPLVector3 { 0.0f, 1.0f, 0.0f },
-                    .right = IPLVector3 { 1.0f, 0.0f, 0.0f },
-                    .directivity = IPLDirectivity {
-                        .dipoleWeight = 0.0f,
-                        .dipolePower = 0.0f,
-                        .callback = nullptr
-                    },
-                    .distanceAttenuationModel = distanceAttenuationModel,
-                    .airAbsorptionModel = airAbsorptionModel
-                };
-
-                asi.soundPath = iplGetDirectSoundPath(environment,
-                    convVec(listenerPos),
-                    convVec(listenerRot * glm::vec3 { 0.0f, 0.0f, 1.0f }),
-                    convVec(listenerRot * glm::vec3 { 0.0f, 1.0f, 0.0f }),
-                    src,
-                    5.0f,
-                    64,
-                    IPL_DIRECTOCCLUSION_TRANSMISSIONBYFREQUENCY,
-                    IPL_DIRECTOCCLUSION_VOLUMETRIC);
-            }
-        });
-
-        if (oneShotClips.size()) {
-            static slib::StaticAllocList<IPLhandle> binauralKillList { 64 };
-            static slib::StaticAllocList<IPLhandle> directSoundKillList { 64 };
-
-            binauralKillList.clear();
-            directSoundKillList.clear();
-
-            oneShotClips.erase(std::remove_if(oneShotClips.begin(), oneShotClips.end(),
-                [](OneShotClipInfo& clipInfo) {
-                    if (clipInfo.finished && clipInfo.spatialise) {
-                        binauralKillList.add(clipInfo.binauralEffect);
-                        directSoundKillList.add(clipInfo.directSoundEffect);
-                    }
-                    return clipInfo.finished;
+                if (audioSource.isPlaying != asi.lastPlaying) {
+                    v.isPlaying = audioSource.isPlaying;
+                    asi.lastPlaying = audioSource.isPlaying;
+                } else {
+                    audioSource.isPlaying = v.isPlaying;
+                    asi.lastPlaying = v.isPlaying;
                 }
-            ), oneShotClips.end());
 
-            for (auto& handle : binauralKillList) {
-                iplDestroyBinauralEffect(&handle);
+                if (v.spatialise) {
+                    IPLDistanceAttenuationModel distanceAttenuationModel {
+                        .type = IPL_DISTANCEATTENUATION_DEFAULT
+                    };
+
+                    IPLAirAbsorptionModel airAbsorptionModel {
+                        .type = IPL_AIRABSORPTION_DEFAULT
+                    };
+
+                    IPLSource src {
+                        .position = convVec(transform.position),
+                        .ahead = IPLVector3 { 0.0f, 0.0f, 1.0f },
+                        .up = IPLVector3 { 0.0f, 1.0f, 0.0f },
+                        .right = IPLVector3 { 1.0f, 0.0f, 0.0f },
+                        .directivity = IPLDirectivity {
+                            .dipoleWeight = 0.0f,
+                            .dipolePower = 0.0f,
+                            .callback = nullptr
+                        },
+                        .distanceAttenuationModel = distanceAttenuationModel,
+                        .airAbsorptionModel = airAbsorptionModel
+                    };
+
+                    v.spatialInfo.soundPath = iplGetDirectSoundPath(environment,
+                        convVec(listenerPos),
+                        convVec(listenerRot * glm::vec3 { 0.0f, 0.0f, 1.0f }),
+                        convVec(listenerRot * glm::vec3 { 0.0f, 1.0f, 0.0f }),
+                        src,
+                        5.0f,
+                        64,
+                        IPL_DIRECTOCCLUSION_TRANSMISSIONBYFREQUENCY,
+                        IPL_DIRECTOCCLUSION_VOLUMETRIC);
+                }
             }
+        );
 
-            for (auto& handle : directSoundKillList) {
-                iplDestroyDirectSoundEffect(&handle);
+        oneshots.erase(std::remove_if(oneshots.begin(), oneshots.end(),
+            [&](PlayingOneshot& clipInfo) {
+                Voice& v = voices[clipInfo.voiceIdx];
+                return v.playbackPosition > v.clip->sampleCount;
             }
-        }
+        ), oneshots.end());
 
-        for (auto& c : oneShotClips) {
+        for (auto& c : oneshots) {
+            Voice& v = voices[c.voiceIdx];
             glm::vec3 dirVec = listenerPos - c.location;
-            c.direction = glm::normalize(glm::normalize(dirVec) * listenerRot);
-            c.distance = glm::length(dirVec);
+            v.spatialInfo.direction = glm::normalize(glm::normalize(dirVec) * listenerRot);
+            v.spatialInfo.distance = glm::length(dirVec);
 
-            if (c.spatialise) {
+            if (v.spatialise) {
                 IPLDistanceAttenuationModel distanceAttenuationModel {
                     .type = IPL_DISTANCEATTENUATION_DEFAULT
                 };
@@ -517,7 +500,7 @@ namespace worlds {
                     .airAbsorptionModel = airAbsorptionModel
                 };
 
-                c.soundPath = iplGetDirectSoundPath(environment,
+                v.spatialInfo.soundPath = iplGetDirectSoundPath(environment,
                     convVec(listenerPos),
                     convVec(listenerRot * glm::vec3 { 0.0f, 0.0f, 1.0f }),
                     convVec(listenerRot * glm::vec3 { 0.0f, 1.0f, 0.0f }),
@@ -542,7 +525,7 @@ namespace worlds {
                 ImGui::TextColored(col, "Audio Thread Usage: %.2f%%", cpuUsage * 100.0f);
                 ImGui::Text("Main thread audio update: %.2fms", timerMs);
                 ImGui::Text("Playing Clip Count: %zu", reg.view<AudioSource>().size());
-                ImGui::Text("Playing one shot count: %zu", oneShotClips.size());
+                ImGui::Text("Playing one shot count: %zu", oneshots.numElements());
                 ImGui::Text("Buffer length: %u", numSamples);
                 ImGui::SliderFloat("Volume", &volume, 0.0f, 1.0f);
 
@@ -556,11 +539,21 @@ namespace worlds {
                     }, lastBuffer, numSamples / 2, 0, nullptr, -1.0f, 1.0f, ImVec2(300, 150));
                 }
 
-                for (auto& p : internalAs) {
-                    ImGui::Separator();
-                    ImGui::Text("Playback position: %i", p.second.playbackPosition);
-                    ImGui::Text("Is Playing: %i", p.second.isPlaying);
-                    ImGui::Text("Volume: %f", p.second.volume);
+                for (auto& os : oneshots) {
+                    ImGui::Text("Oneshot: %.3f, %.3f, %.3f", os.location.x, os.location.y, os.location.z);
+                }
+
+                for (size_t i = 0; i < voices.size(); i++) {
+                    if (voices[i].isPlaying) {
+                        ImGui::Separator();
+                        ImGui::Text("Playback position: %i/%i", voices[i].playbackPosition, voices[i].clip->sampleCount);
+                        ImGui::Text("Volume: %f", voices[i].volume);
+                        if (voices[i].spatialise) {
+                            ImGui::Text("Spatial Info: ");
+                            ImGui::Text(" - Distance: %.3f", voices[i].spatialInfo.distance);
+                            ImGui::Text(" - Direction: %.3f, %.3f, %.3f", voices[i].spatialInfo.direction.x, voices[i].spatialInfo.direction.y, voices[i].spatialInfo.direction.z);
+                        }
+                    }
                 }
             }
 
@@ -583,8 +576,8 @@ namespace worlds {
     }
 
     void AudioSystem::resetPlaybackPositions() {
-        for (auto& p : internalAs) {
-            p.second.playbackPosition = 0;
+        for (size_t i = 0; i < voices.size(); i++) {
+            voices[i].playbackPosition = 0;
         }
     }
 
@@ -593,41 +586,31 @@ namespace worlds {
             loadAudioClip(id);
         SDL_LockAudioDevice(devId);
 
-        IPLhandle binauralEffect;
-        IPLhandle directSoundEffect;
+        uint32_t voiceIdx = allocateVoice();
+        Voice& v = voices[voiceIdx];
+        v.isPlaying = true;
+        v.spatialise = spatialise;
+        v.volume = volume;
+        v.loop = false;
+        v.channel = channel;
+        v.clip = &loadedClips.at(id);
 
-        IPLAudioFormat audioIn;
-        audioIn.channelLayoutType = IPL_CHANNELLAYOUTTYPE_SPEAKERS;
-        audioIn.channelLayout = IPL_CHANNELLAYOUT_MONO;
-        audioIn.channelOrder = IPL_CHANNELORDER_INTERLEAVED;
+        PlayingOneshot po {
+            .location = location,
+            .voiceIdx = (uint32_t)voiceIdx
+        };
 
-        IPLAudioFormat audioOut;
-        audioOut.channelLayoutType = IPL_CHANNELLAYOUTTYPE_SPEAKERS;
-        audioOut.channelLayout = IPL_CHANNELLAYOUT_STEREO;
-        audioOut.channelOrder = IPL_CHANNELORDER_INTERLEAVED;
-
-        IPLRenderingSettings settings{ sampleRate, numSamples, IPL_CONVOLUTIONTYPE_PHONON };
-
-        if (spatialise) {
-            checkErr(iplCreateDirectSoundEffect(audioIn, audioIn, settings, &directSoundEffect));
-            checkErr(iplCreateBinauralEffect(binauralRenderer, audioIn, audioOut, &binauralEffect));
-        } else {
-            directSoundEffect = nullptr;
-            binauralEffect = nullptr;
-        }
-
-        oneShotClips.push_back(OneShotClipInfo{
-                &loadedClips.at(id), 0, location, glm::vec3(0.0f), spatialise, volume,
-                false, false, false, 0.01f, channel, {}, binauralEffect, directSoundEffect });
+        oneshots.add(po);
 
         SDL_UnlockAudioDevice(devId);
     }
 
-    size_t AudioSystem::getFreeVoice() {
-        size_t i = 0;
+    uint32_t AudioSystem::allocateVoice() {
+        uint32_t i = 0;
 
         for (auto& v : voices) {
-            if (!v.loop && !v.isPlaying) {
+            if (!v.lock && !v.isPlaying) {
+                v.playbackPosition = 0;
                 return i;
             }
             i++;
@@ -640,46 +623,37 @@ namespace worlds {
         SDL_LockAudioDevice(devId);
 
         AudioSource& as = reg.get<AudioSource>(ent);
+        AudioSourceInternal asi {
+            .voiceIdx = allocateVoice(),
+            .lastPlaying = false
+        };
 
-        AudioSourceInternal asi;
-        loadAudioClip(as.clipId).refCount++;
-        asi.isPlaying = as.isPlaying;
-        asi.clipId = as.clipId;
-        asi.finished = false;
-        asi.playbackPosition = 0;
-
-        IPLAudioFormat audioIn;
-        audioIn.channelLayoutType = IPL_CHANNELLAYOUTTYPE_SPEAKERS;
-        audioIn.channelLayout = IPL_CHANNELLAYOUT_MONO;
-        audioIn.channelOrder = IPL_CHANNELORDER_INTERLEAVED;
-
-        IPLAudioFormat audioOut;
-        audioOut.channelLayoutType = IPL_CHANNELLAYOUTTYPE_SPEAKERS;
-        audioOut.channelLayout = IPL_CHANNELLAYOUT_STEREO;
-        audioOut.channelOrder = IPL_CHANNELORDER_INTERLEAVED;
-
-        IPLRenderingSettings settings{ sampleRate, numSamples, IPL_CONVOLUTIONTYPE_PHONON };
-
-        checkErr(iplCreateDirectSoundEffect(audioIn, audioIn, settings, &asi.directSoundEffect));
-        checkErr(iplCreateBinauralEffect(binauralRenderer, audioIn, audioOut, &asi.binauralEffect));
+        voices[asi.voiceIdx].lock = true;
 
         internalAs.insert({ ent, asi });
+
+        loadAudioClip(as.clipId).refCount++;
         SDL_UnlockAudioDevice(devId);
     }
 
     void AudioSystem::onAudioSourceDestroy(entt::registry& reg, entt::entity ent) {
+        auto& as = reg.get<AudioSource>(ent);
         SDL_LockAudioDevice(devId);
 
-        auto lcIter = loadedClips.find(internalAs.at(ent).clipId);
+        auto lcIter = loadedClips.find(as.clipId);
 
         if (lcIter != loadedClips.end()) {
-            LoadedClip& lc = loadedClips.at(internalAs.at(ent).clipId);
+            LoadedClip& lc = loadedClips.at(as.clipId);
             lc.refCount--;
 
             if (lc.refCount <= 0) {
                 loadedClips.erase(lc.id);
             }
         }
+
+        auto& lsi = internalAs.at(ent);
+        voices[lsi.voiceIdx].lock = false;
+        voices[lsi.voiceIdx].isPlaying = false;
 
         internalAs.erase(ent);
 
