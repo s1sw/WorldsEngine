@@ -670,6 +670,10 @@ namespace worlds {
                 VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED);
         }
 
+        shadowImage->image.barrier(cmdBuf, vk::PipelineStageFlagBits::eLateFragmentTests, vk::PipelineStageFlagBits::eFragmentShader,
+            vk::AccessFlagBits::eDepthStencilAttachmentRead | vk::AccessFlagBits::eDepthStencilAttachmentWrite,
+            vk::AccessFlagBits::eShaderRead);
+
         if (setEventNextFrame) {
             cmdBuf.setEvent(*pickEvent, vk::PipelineStageFlagBits::eAllCommands);
             setEventNextFrame = false;

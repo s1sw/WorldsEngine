@@ -1490,6 +1490,7 @@ namespace vku {
             s.imageView = std::move(other.s.imageView);
             s.info = other.s.info;
             s.size = other.s.size;
+            s.aspectFlags = other.s.aspectFlags;
         }
 
         GenericImage& operator=(GenericImage&& other) noexcept {
@@ -1500,6 +1501,7 @@ namespace vku {
             s.imageView = std::move(other.s.imageView);
             s.info = other.s.info;
             s.size = other.s.size;
+            s.aspectFlags = other.s.aspectFlags;
             return *this;
         }
 
@@ -1677,7 +1679,7 @@ namespace vku {
             cb.pipelineBarrier(srcStageMask, dstStageMask, dependencyFlags, memoryBarriers, bufferMemoryBarriers, imageMemoryBarriers);
         }
 
-        void barrier(vk::CommandBuffer& cb, vk::PipelineStageFlags fromPS, vk::PipelineStageFlags toPS, vk::AccessFlagBits fromAF, vk::AccessFlagBits toAF) {
+        void barrier(vk::CommandBuffer& cb, vk::PipelineStageFlags fromPS, vk::PipelineStageFlags toPS, vk::AccessFlags fromAF, vk::AccessFlags toAF) {
             vk::ImageMemoryBarrier imb;
             imb.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
             imb.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
@@ -1685,7 +1687,7 @@ namespace vku {
             imb.dstAccessMask = toAF;
             imb.newLayout = s.currentLayout;
             imb.oldLayout = s.currentLayout;
-            imb.subresourceRange = { vk::ImageAspectFlagBits::eColor, 0, s.info.mipLevels, 0, s.info.arrayLayers };
+            imb.subresourceRange = { s.aspectFlags, 0, s.info.mipLevels, 0, s.info.arrayLayers };
             imb.image = *s.image;
 
             cb.pipelineBarrier(fromPS, toPS, vk::DependencyFlagBits::eByRegion, nullptr, nullptr, imb);
@@ -1757,6 +1759,7 @@ namespace vku {
             s.allocator = allocator;
             s.currentLayout = info.initialLayout;
             s.info = info;
+            s.aspectFlags = aspectMask;
             s.image = device.createImageUnique(info);
 
             if (debugName) {
@@ -1823,6 +1826,7 @@ namespace vku {
             vk::UniqueImageView imageView;
             vk::DeviceSize size;
             vk::ImageLayout currentLayout;
+            vk::ImageAspectFlags aspectFlags;
             vk::ImageCreateInfo info;
             VmaAllocation allocation;
             VmaAllocator allocator;

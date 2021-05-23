@@ -935,7 +935,7 @@ void VKRenderer::calculateCascadeMatrices(entt::registry& world, Camera& cam, Re
             // frustum 0: near -> 20m
             // frustum 1: 20m  -> 125m
             // frustum 2: 125m -> 250m
-            float splits[4] = { 0.1f, 15.0f, 60.0f, 140.0f };
+            float splits[4] = { 0.1f, 10.0f, 30.0f, 70.0f };
             if (!rCtx.passSettings.enableVR) {
                 for (int i = 1; i < 4; i++) {
                     frustumMatrices[i - 1] = glm::perspective(
@@ -1788,6 +1788,7 @@ float* VKRenderer::getPassHDRData(RTTPassHandle handle) {
 void VKRenderer::updatePass(RTTPassHandle handle, entt::registry& world) {
     vku::executeImmediately(*device, *commandPool, device->getQueue(graphicsQueueFamilyIdx, 0),
     [&](vk::CommandBuffer cmdBuf) {
+        uploadSceneAssets(world);
         writePassCmds(handle, cmdBuf, world);
     });
 }
