@@ -82,7 +82,7 @@ namespace lg {
 
                 if (physHand.follow != FollowHand::None) {
                     // Avoid applying force if it's just going to be limited by the arm joint
-                    const float maxDist = 0.65f;
+                    const float maxDist = 0.8f;
                     glm::vec3 headPos = interfaces.mainCamera->position;
 
                     if (interfaces.vrInterface) {
