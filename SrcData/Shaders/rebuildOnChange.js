@@ -4,7 +4,11 @@
 const fs = require("fs");
 const child_process = require("child_process");
 
-const buildDebugShaders = false;
+const buildDebugShaders = process.argv.includes("--debug");
+
+if (buildDebugShaders) {
+    console.log("--- BUILDING DEBUG SHADERS ---");
+}
 
 const customArgs = {
     "standard.glsl": [
