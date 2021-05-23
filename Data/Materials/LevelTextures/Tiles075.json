@@ -1,6 +1,6 @@
 {
     "albedoPath" : "Textures/LevelTextures/Tiles075/albedo.png",
-    "roughMapPath" : "Textures/LevelTextures/Tiles075/roughness.png",
+    "pbrMapPath" : "Textures/LevelTextures/Tiles075/pbr.png",
     "normalMapPath" : "Textures/LevelTextures/Tiles075/normal_forcelin.png",
     "metallic" : 0.000000,
     "roughness" : 1.000000,
