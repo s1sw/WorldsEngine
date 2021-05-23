@@ -1,0 +1,9 @@
+{
+    "albedoPath" : "Textures/LevelTextures/Tiles040/albedo.png",
+    "pbrMapPath" : "Textures/LevelTextures/Tiles040/pbr.png",
+    "normalMapPath" : "Textures/LevelTextures/Tiles040/normal_forcelin.png",
+    "metallic" : 0.000000,
+    "roughness" : 1.000000,
+    "albedoColor" : [1.000000, 1.000000, 1.000000],
+    "emissiveColor" : [0.000001, 0.000001, 0.000001]
+}
