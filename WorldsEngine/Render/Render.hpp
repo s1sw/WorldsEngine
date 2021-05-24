@@ -228,6 +228,7 @@ namespace worlds {
         vku::GenericImage* brdfLut;
         vku::GenericBuffer* materialBuffer;
         vku::GenericBuffer* vpMatrixBuffer;
+        RenderTexture* shadowCascades;
     };
 
     struct RenderDebugContext {
@@ -295,7 +296,6 @@ namespace worlds {
         vk::UniqueSampler sampler;
     };
 
-    typedef uint32_t RTTPassHandle;
     struct RTTPassCreateInfo {
         Camera* cam = nullptr;
         uint32_t width, height;
@@ -303,6 +303,36 @@ namespace worlds {
         bool useForPicking;
         bool enableShadows;
         bool outputToScreen;
+    };
+
+    class RTTPass {
+    public:
+        void drawNow(entt::registry& world);
+        uint32_t width, height;
+        RenderTexture* hdrTarget;
+        RenderTexture* sdrFinalTarget;
+        RenderTexture* depthTarget;
+        void requestPick(int x, int y);
+        bool getPickResult(uint32_t* result);
+        float* getHDRData();
+        bool isValid = true;
+        bool active = false;
+    private:
+        RTTPass(const RTTPassCreateInfo& ci, VKRenderer* renderer, IVRInterface* vrInterface, uint32_t frameIdx, RenderDebugStats* dbgStats, ShadowCascadePass* scp, RenderTexture* finalPrePresent, RenderTexture* finalPrePresentR);
+        ~RTTPass();
+        PolyRenderPass* prp;
+        TonemapRenderPass* trp;
+        bool isVr;
+        bool outputToScreen;
+        bool enableShadows;
+        Camera* cam;
+        VKRenderer* renderer;
+        IVRInterface* vrInterface;
+        RenderDebugStats* dbgStats;
+        ShadowCascadePass* shadowCascadePass;
+        void writeCmds(uint32_t frameIdx, vk::CommandBuffer buf, entt::registry& world);
+
+        friend class VKRenderer;
     };
 
     class PipelineCacheSerializer {
@@ -385,8 +415,7 @@ namespace worlds {
         uint64_t lastRenderTimeTicks;
         float timestampPeriod;
 
-        std::unordered_map<RTTPassHandle, RTTPassInternal> rttPasses;
-
+        std::vector<RTTPass*> rttPasses;
         std::unordered_map<AssetID, LoadedMeshData> loadedMeshes;
         std::vector<TracyVkCtx> tracyContexts;
         std::unique_ptr<TextureSlots> texSlots;
@@ -395,8 +424,6 @@ namespace worlds {
 
         uint32_t shadowmapRes;
         bool enableVR;
-        PolyRenderPass* pickingPRP;
-        PolyRenderPass* vrPRP;
         ImGuiRenderPass* irp;
         uint32_t renderWidth, renderHeight;
         IVRInterface* vrInterface;
@@ -410,8 +437,6 @@ namespace worlds {
         bool swapchainRecreated;
         bool enablePicking;
         RenderDebugStats dbgStats;
-        RTTPassHandle vrPass;
-        RTTPassHandle nextHandle;
         uint32_t frameIdx, lastFrameIdx;
         ShadowCascadePass* shadowCascadePass;
         void* rdocApi;
@@ -426,8 +451,9 @@ namespace worlds {
         glm::mat4 getCascadeMatrix(Camera cam, glm::vec3 lightdir, glm::mat4 frustumMatrix, float& texelsPerUnit);
         void calculateCascadeMatrices(entt::registry& world, Camera& cam, RenderContext& rCtx);
         void writeCmdBuf(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageIndex, Camera& cam, entt::registry& reg);
-        void writePassCmds(RTTPassHandle pass, vk::CommandBuffer cmdBuf, entt::registry& world);
         void reuploadMaterials();
+
+        friend class RTTPass;
     public:
         double time;
         VKRenderer(const RendererInitInfo& initInfo, bool* success);
@@ -435,10 +461,8 @@ namespace worlds {
         void frame(Camera& cam, entt::registry& reg);
         void preloadMesh(AssetID id);
         void uploadProcObj(ProceduralObject& procObj);
-        void requestEntityPick(int x, int y);
         void unloadUnusedMaterials(entt::registry& reg);
         void reloadContent(ReloadFlags flags);
-        bool getPickedEnt(entt::entity* entOut);
         float getLastRenderTime() const { return lastRenderTimeTicks * timestampPeriod; }
         void setVRPredictAmount(float amt) { vrPredictAmount = amt; }
         void setVsync(bool vsync) { if (useVsync != vsync) { useVsync = vsync; recreateSwapchain(); } }
@@ -446,24 +470,11 @@ namespace worlds {
         VulkanHandles* getHandles() { return &handles; }
         const RenderDebugStats& getDebugStats() const { return dbgStats; }
         void uploadSceneAssets(entt::registry& reg);
-        RenderResources getResources() {
-            return RenderResources {
-                *texSlots,
-                *cubemapSlots,
-                *matSlots,
-                loadedMeshes
-            };
-        }
+        RenderResources getResources();
 
-        RTTPassHandle createRTTPass(RTTPassCreateInfo& ci);
+        RTTPass* createRTTPass(RTTPassCreateInfo& ci);
         // Pass to be late updated with new VR pose data
-        void setVRPass(RTTPassHandle handle) { vrPass = handle; }
-        void destroyRTTPass(RTTPassHandle handle);
-        vku::GenericImage& getSDRTarget(RTTPassHandle handle) { return rttPasses.at(handle).sdrFinalTarget->image; }
-        void setRTTPassActive(RTTPassHandle handle, bool active) { rttPasses.at(handle).active = active; }
-        bool isPassValid(RTTPassHandle handle) { return rttPasses.find(handle) != rttPasses.end(); }
-        float* getPassHDRData(RTTPassHandle handle);
-        void updatePass(RTTPassHandle handle, entt::registry& world);
+        void destroyRTTPass(RTTPass* pass);
         RenderTexture* createRTResource(RTResourceCreateInfo resourceCreateInfo, const char* debugName = nullptr);
 
         void triggerRenderdocCapture();

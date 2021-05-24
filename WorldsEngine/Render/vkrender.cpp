@@ -252,14 +252,11 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     , window(initInfo.window)
     , shadowmapRes(2048)
     , enableVR(initInfo.enableVR)
-    , pickingPRP(nullptr)
-    , vrPRP(nullptr)
     , irp(nullptr)
     , vrPredictAmount(0.033f)
     , clearMaterialIndices(false)
     , useVsync(true)
     , enablePicking(initInfo.enablePicking)
-    , nextHandle(0u)
     , frameIdx(0)
     , lastFrameIdx(0) {
     maxFramesInFlight = 2;
@@ -635,18 +632,15 @@ void VKRenderer::createSCDependents() {
         finalPrePresent->image.setLayout(cmdBuf, vk::ImageLayout::eTransferSrcOptimal);
     });
 
-    RTTPassHandle screenPass = ~0u;
+    RTTPass* screenPass = nullptr;
     for (auto& p : rttPasses) {
-        if (p.second.outputToScreen) {
-            screenPass = p.first;
+        if (p->outputToScreen) {
+            screenPass = p;
         }
     }
 
-    if (screenPass != ~0u) {
-        if (rttPasses.at(screenPass).isVr) {
-            vrPRP = nullptr;
-        }
-        destroyRTTPass(screenPass);
+    if (screenPass != nullptr) {
+        screenPass->isValid = false;
     }
 
     imgFences.clear();
@@ -963,80 +957,6 @@ void VKRenderer::calculateCascadeMatrices(entt::registry& world, Camera& cam, Re
     });
 }
 
-void VKRenderer::writePassCmds(RTTPassHandle pass, vk::CommandBuffer cmdBuf, entt::registry& world) {
-    auto& rtt = rttPasses.at(pass);
-
-    RenderContext rCtx {
-        .resources = RenderResources {
-            .textures = *texSlots,
-            .cubemaps = *cubemapSlots,
-            .materials = *matSlots,
-            .meshes = loadedMeshes,
-            .brdfLut = &brdfLut,
-            .materialBuffer = &materialUB,
-            .vpMatrixBuffer = &vpBuffer
-        },
-        .cascadeInfo = {},
-        .debugContext = RenderDebugContext {
-            .stats = &dbgStats
-        },
-        .passSettings = PassSettings {
-            .enableVR = rtt.isVr,
-            .enableShadows = rtt.enableShadows
-        },
-        .registry = world,
-        .cmdBuf = cmdBuf,
-        .passWidth = rtt.width,
-        .passHeight = rtt.height,
-        .imageIndex = frameIdx
-    };
-
-    if (enableVR) {
-        glm::mat4 headViewMatrix = vrInterface->getHeadTransform(vrPredictAmount);
-
-        glm::mat4 viewMats[2] = {
-            vrInterface->getEyeViewMatrix(Eye::LeftEye),
-            vrInterface->getEyeViewMatrix(Eye::RightEye)
-        };
-
-        glm::mat4 projMats[2] = {
-            vrInterface->getEyeProjectionMatrix(Eye::LeftEye, rtt.cam->near),
-            vrInterface->getEyeProjectionMatrix(Eye::RightEye, rtt.cam->near)
-        };
-
-        for (int i = 0; i < 2; i++) {
-            rCtx.viewMatrices[i] = glm::inverse(headViewMatrix * viewMats[i]) * rtt.cam->getViewMatrix();
-            rCtx.projMatrices[i] = projMats[i];
-        }
-    } else {
-        rCtx.projMatrices[0] = rtt.cam->getProjectionMatrix((float)rtt.width / (float)rtt.height);
-        rCtx.viewMatrices[0] = rtt.cam->getViewMatrix();
-    }
-
-    MultiVP vp;
-    for (int i = 0; i < 2; i++) {
-        vp.projections[i] = rCtx.projMatrices[i];
-        vp.views[i] = rCtx.viewMatrices[i];
-        vp.viewPos[i] = glm::inverse(vp.views[i])[3];
-    }
-    cmdBuf.updateBuffer(vpBuffer.buffer(), 0, sizeof(vp), &vp);
-
-    if (rtt.enableShadows) {
-        calculateCascadeMatrices(world, *rtt.cam, rCtx);
-        shadowCascadePass->prePass(rCtx);
-        shadowCascadePass->execute(rCtx);
-    }
-
-    rtt.prp->prePass(rCtx);
-    rtt.prp->execute(rCtx);
-
-    rtt.hdrTarget->image.barrier(cmdBuf,
-        vk::PipelineStageFlagBits::eColorAttachmentOutput, vk::PipelineStageFlagBits::eComputeShader,
-        vk::AccessFlagBits::eColorAttachmentWrite, vk::AccessFlagBits::eShaderRead);
-
-    rtt.trp->execute(rCtx);
-}
-
 void VKRenderer::writeCmdBuf(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageIndex, Camera& cam, entt::registry& reg) {
     ZoneScoped;
 
@@ -1070,28 +990,28 @@ void VKRenderer::writeCmdBuf(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageInde
 
     int numActivePasses = 0;
     for (auto& p : rttPasses) {
-        if (!p.second.active) continue;
+        if (!p->active) continue;
         numActivePasses++;
 
-        if (!p.second.outputToScreen) {
-            p.second.sdrFinalTarget->image.setLayout(*cmdBuf,
+        if (!p->outputToScreen) {
+            p->sdrFinalTarget->image.setLayout(*cmdBuf,
                 vk::ImageLayout::eColorAttachmentOptimal,
                 vk::PipelineStageFlagBits::eFragmentShader, vk::PipelineStageFlagBits::eColorAttachmentOutput,
                 vk::AccessFlagBits::eShaderRead, vk::AccessFlagBits::eColorAttachmentWrite);
         }
 
-        bool nullCam = p.second.cam == nullptr;
+        bool nullCam = p->cam == nullptr;
 
         if (nullCam)
-            p.second.cam = &cam;
+            p->cam = &cam;
 
-        writePassCmds(p.first, *cmdBuf, reg);
+        p->writeCmds(frameIdx, *cmdBuf, reg);
 
         if (nullCam)
-            p.second.cam = nullptr;
+            p->cam = nullptr;
 
-        if (!p.second.outputToScreen) {
-            p.second.sdrFinalTarget->image.setLayout(*cmdBuf,
+        if (!p->outputToScreen) {
+            p->sdrFinalTarget->image.setLayout(*cmdBuf,
                 vk::ImageLayout::eShaderReadOnlyOptimal,
                 vk::PipelineStageFlagBits::eColorAttachmentOutput, vk::PipelineStageFlagBits::eFragmentShader,
                 vk::AccessFlagBits::eColorAttachmentWrite, vk::AccessFlagBits::eShaderRead);
@@ -1175,8 +1095,8 @@ void VKRenderer::writeCmdBuf(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageInde
 void VKRenderer::reuploadMaterials() {
     materialUB.upload(*device, *commandPool, device->getQueue(graphicsQueueFamilyIdx, 0), matSlots->getSlots(), sizeof(PackedMaterial) * 256);
 
-    for (auto& pair : this->rttPasses) {
-        pair.second.prp->reuploadDescriptors();
+    for (auto& pass : rttPasses) {
+        pass->prp->reuploadDescriptors();
     }
 }
 
@@ -1411,20 +1331,6 @@ void VKRenderer::uploadProcObj(ProceduralObject& procObj) {
     procObj.vb.upload(*device, *commandPool, device->getQueue(graphicsQueueFamilyIdx, 0), procObj.vertices);
 }
 
-bool VKRenderer::getPickedEnt(entt::entity* entOut) {
-    if (pickingPRP)
-        return pickingPRP->getPickedEnt((uint32_t*)entOut);
-    else
-        return false;
-}
-
-void VKRenderer::requestEntityPick(int x, int y) {
-    if (pickingPRP) {
-        pickingPRP->setPickCoords(x, y);
-        pickingPRP->requestEntityPick();
-    }
-}
-
 void VKRenderer::unloadUnusedMaterials(entt::registry& reg) {
     bool textureReferenced[NUM_TEX_SLOTS];
     bool materialReferenced[NUM_MAT_SLOTS];
@@ -1528,269 +1434,40 @@ void VKRenderer::reloadContent(ReloadFlags flags) {
     }
 }
 
-RTTPassHandle VKRenderer::createRTTPass(RTTPassCreateInfo& ci) {
-    RTTPassInternal rpi;
-    rpi.cam = ci.cam;
+RenderResources VKRenderer::getResources() {
+    return RenderResources {
+        *texSlots,
+        *cubemapSlots,
+        *matSlots,
+        loadedMeshes,
+        &brdfLut,
+        &materialUB,
+        &vpBuffer,
+        shadowmapImage
+    };
+}
 
-    vk::ImageCreateInfo ici;
-    ici.imageType = vk::ImageType::e2D;
-    ici.extent = vk::Extent3D{ ci.width, ci.height, 1 };
-    ici.arrayLayers = ci.isVr ? 2 : 1;
-    ici.mipLevels = 1;
-    ici.format = vk::Format::eB10G11R11UfloatPack32;
-    ici.initialLayout = vk::ImageLayout::eUndefined;
-    ici.samples = msaaSamples;
-    ici.usage =
-          vk::ImageUsageFlagBits::eColorAttachment
-        | vk::ImageUsageFlagBits::eSampled
-        | vk::ImageUsageFlagBits::eStorage
-        | vk::ImageUsageFlagBits::eTransferSrc;
-
-    RTResourceCreateInfo polyCreateInfo{ ici, vk::ImageViewType::e2DArray, vk::ImageAspectFlagBits::eColor };
-    rpi.hdrTarget = createRTResource(polyCreateInfo, "HDR Target");
-
-    ici.format = vk::Format::eD32Sfloat;
-    ici.usage = vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eSampled;
-    RTResourceCreateInfo depthCreateInfo{ ici, vk::ImageViewType::e2DArray, vk::ImageAspectFlagBits::eDepth };
-    rpi.depthTarget = createRTResource(depthCreateInfo, "Depth Stencil Image");
-
-    {
-        auto prp = new PolyRenderPass(
-            &handles,
-            rpi.depthTarget,
-            rpi.hdrTarget,
-            shadowmapImage,
-            enablePicking
-        );
-        if (ci.useForPicking)
-            pickingPRP = prp;
-        if (ci.isVr)
-            vrPRP = prp;
-        rpi.prp = prp;
-    }
-
-    ici.samples = vk::SampleCountFlagBits::e1;
-    ici.format = vk::Format::eR8Unorm;
-    ici.usage = vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled;
-
-    ici.arrayLayers = 1;
-    ici.format = vk::Format::eR8G8B8A8Unorm;
-    ici.usage = vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eSampled;
-
-    if (!ci.outputToScreen) {
-        RTResourceCreateInfo sdrTarget{ ici, vk::ImageViewType::e2D, vk::ImageAspectFlagBits::eColor };
-        rpi.sdrFinalTarget = createRTResource(sdrTarget, "SDR Target");
-    }
-
-    auto tonemapRP = new TonemapRenderPass(
-        &handles,
-        rpi.hdrTarget,
-        ci.outputToScreen ? finalPrePresent : rpi.sdrFinalTarget
-    );
-    rpi.trp = tonemapRP;
-
-    vku::executeImmediately(*device, *commandPool, device->getQueue(graphicsQueueFamilyIdx, 0), [&](vk::CommandBuffer cmdBuf) {
-        rpi.hdrTarget->image.setLayout(cmdBuf, vk::ImageLayout::eGeneral);
-        if (!ci.outputToScreen)
-            rpi.sdrFinalTarget->image.setLayout(cmdBuf, vk::ImageLayout::eShaderReadOnlyOptimal);
-        if (ci.isVr) {
-            finalPrePresentR->image.setLayout(cmdBuf, vk::ImageLayout::eTransferSrcOptimal);
-        }
-        });
-
-    entt::registry r;
-    RenderContext rCtx {
-        .resources = RenderResources {
-            .textures = *texSlots,
-            .cubemaps = *cubemapSlots,
-            .materials = *matSlots,
-            .meshes = loadedMeshes,
-            .brdfLut = &brdfLut,
-            .materialBuffer = &materialUB,
-            .vpMatrixBuffer = &vpBuffer
-        },
-        .cascadeInfo = {},
-        .debugContext = RenderDebugContext {
-            .stats = &dbgStats
-        },
-        .passSettings = PassSettings {
-            .enableVR = ci.isVr,
-            .enableShadows = rpi.enableShadows
-        },
-        .registry = r,
-        .passWidth = ci.width,
-        .passHeight = ci.height,
-        .imageIndex = frameIdx
+RTTPass* VKRenderer::createRTTPass(RTTPassCreateInfo& ci) {
+    RTTPass* pass = new RTTPass {
+        ci,
+        this,
+        vrInterface,
+        frameIdx,
+        &dbgStats,
+        shadowCascadePass,
+        finalPrePresent,
+        finalPrePresentR
     };
 
-    rpi.trp->setup(rCtx);
-    rpi.prp->setup(rCtx);
-
-    if (ci.isVr) {
-        tonemapRP->setRightFinalImage(finalPrePresentR);
-    }
-
-    rpi.isVr = ci.isVr;
-    rpi.enableShadows = ci.enableShadows;
-    rpi.outputToScreen = ci.outputToScreen;
-    rpi.width = ci.width;
-    rpi.height = ci.height;
-    rpi.active = true;
-
-    RTTPassHandle handle = nextHandle;
-    nextHandle++;
-    rttPasses.insert({ handle, rpi });
-    return handle;
+    rttPasses.push_back(pass);
+    return pass;
 }
 
-void VKRenderer::destroyRTTPass(RTTPassHandle handle) {
-    device->waitIdle();
-    auto& rpi = rttPasses.at(handle);
+void VKRenderer::destroyRTTPass(RTTPass* pass) {
+    delete pass;
 
-    delete rpi.prp;
-    delete rpi.trp;
-
-    delete rpi.hdrTarget;
-    delete rpi.depthTarget;
-
-    if (!rpi.outputToScreen)
-        delete rpi.sdrFinalTarget;
-
-    rttPasses.erase(handle);
-}
-
-float* VKRenderer::getPassHDRData(RTTPassHandle handle) {
-    auto& rtt = rttPasses.at(handle);
-
-    if (rtt.isVr) {
-        logErr("Getting pass data for VR passes is not supported");
-        return nullptr;
-    }
-
-    vk::ImageCreateInfo ici;
-    ici.imageType = vk::ImageType::e2D;
-    ici.extent = vk::Extent3D{ rtt.width, rtt.height, 1 };
-    ici.arrayLayers = 1;
-    ici.mipLevels = 1;
-    ici.format = vk::Format::eR32G32B32A32Sfloat;
-    ici.initialLayout = vk::ImageLayout::eUndefined;
-    ici.samples = vk::SampleCountFlagBits::e1;
-    ici.tiling = vk::ImageTiling::eOptimal;
-    ici.usage =
-        vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc;
-
-    vku::GenericImage targetImg{
-        *device, allocator, ici, vk::ImageViewType::e2D, vk::ImageAspectFlagBits::eColor,
-        false, "Transfer Destination" };
-
-    ici.tiling = vk::ImageTiling::eOptimal;
-    ici.format = vk::Format::eB10G11R11UfloatPack32;
-
-    vku::GenericImage resolveImg{
-        *device, allocator, ici, vk::ImageViewType::e2D, vk::ImageAspectFlagBits::eColor,
-        false, "Resolve Target" };
-
-    size_t imgSize = rtt.width * rtt.height * sizeof(float) * 4;
-    vku::GenericBuffer outputBuffer {
-        *device, allocator, vk::BufferUsageFlagBits::eTransferDst, imgSize,
-        VMA_MEMORY_USAGE_GPU_TO_CPU, "Output Buffer"
-    };
-
-    vku::executeImmediately(*device, *commandPool, device->getQueue(graphicsQueueFamilyIdx, 0), [&](vk::CommandBuffer cmdBuf) {
-        targetImg.setLayout(cmdBuf,
-                vk::ImageLayout::eTransferDstOptimal,
-                vk::PipelineStageFlagBits::eTransfer,
-                vk::PipelineStageFlagBits::eTransfer,
-                vk::AccessFlagBits::eTransferWrite,
-                vk::AccessFlagBits::eTransferWrite);
-
-        resolveImg.setLayout(cmdBuf,
-                vk::ImageLayout::eTransferDstOptimal,
-                vk::PipelineStageFlagBits::eTransfer,
-                vk::PipelineStageFlagBits::eTransfer,
-                vk::AccessFlagBits::eTransferWrite,
-                vk::AccessFlagBits::eTransferWrite);
-
-        auto oldHdrLayout = rtt.hdrTarget->image.layout();
-        rtt.hdrTarget->image.setLayout(cmdBuf,
-                vk::ImageLayout::eTransferSrcOptimal,
-                vk::PipelineStageFlagBits::eAllGraphics,
-                vk::PipelineStageFlagBits::eTransfer,
-                vk::AccessFlagBits::eShaderRead,
-                vk::AccessFlagBits::eTransferRead);
-
-        vk::ImageResolve resolve;
-        resolve.srcSubresource.layerCount = 1;
-        resolve.srcSubresource.aspectMask = vk::ImageAspectFlagBits::eColor;
-        resolve.dstSubresource.layerCount = 1;
-        resolve.dstSubresource.aspectMask = vk::ImageAspectFlagBits::eColor;
-        resolve.extent = vk::Extent3D { rtt.width, rtt.height, 1 };
-        cmdBuf.resolveImage(
-                rtt.hdrTarget->image.image(), vk::ImageLayout::eTransferSrcOptimal,
-                resolveImg.image(), vk::ImageLayout::eTransferDstOptimal,
-                resolve);
-
-        resolveImg.setLayout(cmdBuf,
-                vk::ImageLayout::eTransferSrcOptimal,
-                vk::PipelineStageFlagBits::eTransfer,
-                vk::PipelineStageFlagBits::eTransfer,
-                vk::AccessFlagBits::eTransferWrite,
-                vk::AccessFlagBits::eTransferRead);
-
-        vk::ImageBlit blit;
-        blit.srcSubresource.layerCount = 1;
-        blit.srcSubresource.aspectMask = vk::ImageAspectFlagBits::eColor;
-        blit.dstSubresource.layerCount = 1;
-        blit.dstSubresource.aspectMask = vk::ImageAspectFlagBits::eColor;
-        blit.srcOffsets[1] = blit.dstOffsets[1] =
-            vk::Offset3D {static_cast<int32_t>(rtt.width), static_cast<int32_t>(rtt.height), 1};
-
-        cmdBuf.blitImage(
-                resolveImg.image(), vk::ImageLayout::eTransferSrcOptimal,
-                targetImg.image(), vk::ImageLayout::eTransferDstOptimal,
-                1,
-                &blit,
-                vk::Filter::eNearest);
-
-        rtt.hdrTarget->image.setLayout(cmdBuf,
-                oldHdrLayout,
-                vk::PipelineStageFlagBits::eTransfer,
-                vk::PipelineStageFlagBits::eAllGraphics,
-                vk::AccessFlagBits::eTransferRead,
-                vk::AccessFlagBits::eShaderRead);
-
-        targetImg.setLayout(cmdBuf,
-                vk::ImageLayout::eTransferSrcOptimal,
-                vk::PipelineStageFlagBits::eTransfer,
-                vk::PipelineStageFlagBits::eTransfer,
-                vk::AccessFlagBits::eTransferWrite,
-                vk::AccessFlagBits::eTransferRead);
-
-        vk::BufferImageCopy bic;
-        bic.imageSubresource.layerCount = 1;
-        bic.imageSubresource.aspectMask = vk::ImageAspectFlagBits::eColor;
-        bic.imageExtent = vk::Extent3D { rtt.width, rtt.height, 1 };
-
-        cmdBuf.copyImageToBuffer(
-            targetImg.image(),
-            vk::ImageLayout::eTransferSrcOptimal,
-            outputBuffer.buffer(), bic);
-    });
-
-    float* buffer = (float*)malloc(rtt.width * rtt.height * 4 * sizeof(float));
-    char* mapped = (char*)outputBuffer.map(*device);
-    memcpy(buffer, mapped, rtt.width * rtt.height * 4 * sizeof(float));
-    outputBuffer.unmap(*device);
-
-    return buffer;
-}
-
-void VKRenderer::updatePass(RTTPassHandle handle, entt::registry& world) {
-    vku::executeImmediately(*device, *commandPool, device->getQueue(graphicsQueueFamilyIdx, 0),
-    [&](vk::CommandBuffer cmdBuf) {
-        uploadSceneAssets(world);
-        writePassCmds(handle, cmdBuf, world);
-    });
+    rttPasses.erase(rttPasses.begin(),
+        std::remove(rttPasses.begin(), rttPasses.end(), pass));
 }
 
 void VKRenderer::triggerRenderdocCapture() {
@@ -1837,13 +1514,13 @@ VKRenderer::~VKRenderer() {
             device->destroyFence(fence);
         }
 
-        std::vector<RTTPassHandle> toDelete;
+        std::vector<RTTPass*> toDelete;
         for (auto& p : rttPasses) {
-            toDelete.push_back(p.first);
+            toDelete.push_back(p);
         }
 
-        for (auto& h : toDelete) {
-            destroyRTTPass(h);
+        for (auto& p : toDelete) {
+            destroyRTTPass(p);
         }
 
         rttPasses.clear();

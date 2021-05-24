@@ -16,13 +16,6 @@ namespace worlds {
         PHYSFS_writeBytes((PHYSFS_File*)ctx, data, bytes);
     }
 
-    class CubemapBakeRoutine {
-    public:
-        CubemapBakeRoutine(glm::vec3 pos, worlds::VKRenderer* renderer, std::string name, entt::registry& world) {
-        }
-    private:
-    };
-
     void bakeCubemap(glm::vec3 pos, worlds::VKRenderer* renderer,
             std::string name, entt::registry& world) {
         // create RTT pass
@@ -38,7 +31,7 @@ namespace worlds {
         cam.verticalFOV = glm::radians(90.0f);
         cam.position = pos;
 
-        RTTPassHandle rttHandle = renderer->createRTTPass(rtci);
+        RTTPass* rttPass = renderer->createRTTPass(rtci);
 
         const glm::vec3 directions[6] = {
             glm::vec3(1.0f, 0.0f, 0.0f),
@@ -78,15 +71,15 @@ namespace worlds {
         for (int i = 0; i < 6; i++) {
             logMsg("baking face %i...", i);
             cam.rotation = glm::quatLookAt(directions[i], upDirs[i]);
-            renderer->updatePass(rttHandle, world);
+            rttPass->drawNow(world);
 
-            float* data = renderer->getPassHDRData(rttHandle);
+            float* data = rttPass->getHDRData();
             auto outPath = "LevelCubemaps/" + name + outputNames[i] + ".hdr";
             PHYSFS_File* fHandle = PHYSFS_openWrite(outPath.c_str());
             if (fHandle == nullptr) {
                 logErr("Failed to open cubemap file as write");
                 free(data);
-                renderer->destroyRTTPass(rttHandle);
+                renderer->destroyRTTPass(rttPass);
                 return;
             }
 
@@ -118,7 +111,7 @@ namespace worlds {
         PHYSFS_writeBytes(file, j.c_str(), j.size());
         PHYSFS_close(file);
 
-        renderer->destroyRTTPass(rttHandle);
+        renderer->destroyRTTPass(rttPass);
         auto resources = renderer->getResources();
         auto idx = resources.cubemaps.get(g_assetDB.addOrGetExisting(jsonPath));
         renderer->getResources().cubemaps.unload(idx);

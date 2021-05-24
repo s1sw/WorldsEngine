@@ -9,6 +9,7 @@ worlds_sources += [
   'Render/PipelineCacheSerializer.cpp',
   'Render/PolyRenderPass.cpp',
   'Render/RenderTexture.cpp',
+  'Render/RTTPass.cpp',
   'Render/ShaderCache.cpp',
   'Render/ShadowCascadePass.cpp',
   'Render/SkyboxPass.cpp',
