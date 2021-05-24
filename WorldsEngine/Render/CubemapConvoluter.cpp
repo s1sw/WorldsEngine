@@ -160,19 +160,10 @@ namespace worlds {
 
         dsu.update(vkCtx->device);
 
-        vk::QueryPoolCreateInfo qpci;
-        qpci.queryCount = 2;
-        qpci.queryType = vk::QueryType::eTimestamp;
-        auto qp = vkCtx->device.createQueryPoolUnique(qpci);
-
-        auto period = vkCtx->physicalDevice.getProperties().limits.timestampPeriod;
-
         vku::executeImmediately(vkCtx->device, vkCtx->commandPool, vkCtx->device.getQueue(vkCtx->graphicsQueueFamilyIdx, 0),
             [&](vk::CommandBuffer cb) {
+                cube.setLayout(cb, vk::ImageLayout::eGeneral);
                 for (int i = 0; i < (int)descriptorSets.size(); i++) {
-                    cb.resetQueryPool(*qp, 0, 2);
-                    cb.writeTimestamp(vk::PipelineStageFlagBits::eComputeShader, *qp, 0);
-                    cube.setLayout(cb, vk::ImageLayout::eGeneral);
                     cb.bindPipeline(vk::PipelineBindPoint::eCompute, *pipeline);
 
                     int mipLevel = (i / 6) + 1;
@@ -188,9 +179,13 @@ namespace worlds {
                     cb.pushConstants<PrefilterPushConstants>(*pipelineLayout, vk::ShaderStageFlagBits::eCompute, 0, ppc);
                     cb.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pipelineLayout, 0, descriptorSets[i], nullptr);
                     cb.dispatch((width + 15) / 16, (height + 15) / 16, 1);
-                    cube.setLayout(cb, vk::ImageLayout::eShaderReadOnlyOptimal);
-                    cb.writeTimestamp(vk::PipelineStageFlagBits::eComputeShader, *qp, 1);
+                    cube.barrier(
+                        cb,
+                        vk::PipelineStageFlagBits::eComputeShader, vk::PipelineStageFlagBits::eComputeShader,
+                        vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderWrite
+                    );
                 }
+                cube.setLayout(cb, vk::ImageLayout::eShaderReadOnlyOptimal);
             });
 
         vkCtx->device.destroyDescriptorPool(tmpDescriptorPool);

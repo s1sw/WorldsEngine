@@ -990,7 +990,7 @@ void VKRenderer::writeCmdBuf(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageInde
 
     int numActivePasses = 0;
     for (auto& p : rttPasses) {
-        if (!p->active) continue;
+        if (!p->active || !p->isValid) continue;
         numActivePasses++;
 
         if (!p->outputToScreen) {
@@ -1464,10 +1464,11 @@ RTTPass* VKRenderer::createRTTPass(RTTPassCreateInfo& ci) {
 }
 
 void VKRenderer::destroyRTTPass(RTTPass* pass) {
-    delete pass;
+    rttPasses.erase(
+        std::remove(rttPasses.begin(), rttPasses.end(), pass),
+        rttPasses.end());
 
-    rttPasses.erase(rttPasses.begin(),
-        std::remove(rttPasses.begin(), rttPasses.end(), pass));
+    delete pass;
 }
 
 void VKRenderer::triggerRenderdocCapture() {

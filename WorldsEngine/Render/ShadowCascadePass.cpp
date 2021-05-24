@@ -41,9 +41,9 @@ namespace worlds {
         rPassMaker.subpassBegin(vk::PipelineBindPoint::eGraphics);
         rPassMaker.subpassDepthStencilAttachment(vk::ImageLayout::eDepthStencilAttachmentOptimal, 0);
 
-        rPassMaker.dependencyBegin(VK_SUBPASS_EXTERNAL, 0);
+        rPassMaker.dependencyBegin(0, 0);
         rPassMaker.dependencySrcStageMask(vk::PipelineStageFlagBits::eLateFragmentTests);
-        rPassMaker.dependencyDstStageMask(vk::PipelineStageFlagBits::eLateFragmentTests);
+        rPassMaker.dependencyDstStageMask(vk::PipelineStageFlagBits::eEarlyFragmentTests);
         rPassMaker.dependencyDstAccessMask(vk::AccessFlagBits::eDepthStencilAttachmentRead | vk::AccessFlagBits::eDepthStencilAttachmentWrite);
 
         vk::RenderPassMultiviewCreateInfo multiviewCI;
