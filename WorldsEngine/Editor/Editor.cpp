@@ -91,7 +91,8 @@ namespace worlds {
 
         auto vkCtx = interfaces.renderer->getHandles();
 
-        sceneViewDS = VKImGUIUtil::createDescriptorSetFor(interfaces.renderer->getSDRTarget(sceneViewPass), vkCtx);
+        sceneViewDS = VKImGUIUtil::createDescriptorSetFor(
+            sceneViewPass->sdrFinalTarget->image, vkCtx);
 
 #define ADD_EDITOR_WINDOW(type) editorWindows.push_back(std::make_unique<type>(interfaces, this))
 
@@ -429,7 +430,8 @@ namespace worlds {
                 sceneViewPass = interfaces.renderer->createRTTPass(sceneViewPassCI);
                 vkCtx->device.freeDescriptorSets(vkCtx->descriptorPool, { sceneViewDS });
 
-                sceneViewDS = VKImGUIUtil::createDescriptorSetFor(interfaces.renderer->getSDRTarget(sceneViewPass), vkCtx);
+                sceneViewDS = VKImGUIUtil::createDescriptorSetFor(
+                    sceneViewPass->sdrFinalTarget->image, vkCtx);
             }
 
             auto wSize = ImGui::GetContentRegionAvail();
@@ -508,18 +510,18 @@ namespace worlds {
 
             if (ImGui::IsWindowHovered() && !ImGuizmo::IsUsing()) {
                 if (inputManager.mouseButtonPressed(MouseButton::Left, true)) {
-                    interfaces.renderer->requestEntityPick((int)localMPos.x, (int)localMPos.y);
+                    sceneViewPass->requestPick((int)localMPos.x, (int)localMPos.y);
                 }
 
-                entt::entity picked;
-                if (interfaces.renderer->getPickedEnt(&picked)) {
-                    if ((uint32_t)picked == UINT32_MAX)
+                uint32_t picked;
+                if (sceneViewPass->getPickResult(&picked)) {
+                    if (picked == UINT32_MAX)
                         picked = entt::null;
 
                     if (!inputManager.shiftHeld()) {
-                        select(picked);
+                        select((entt::entity)picked);
                     } else {
-                        multiSelect(picked);
+                        multiSelect((entt::entity)picked);
                     }
                 }
             }
@@ -531,7 +533,7 @@ namespace worlds {
     }
 
     void Editor::update(float deltaTime) {
-        interfaces.renderer->setRTTPassActive(sceneViewPass, active);
+        sceneViewPass->active = true;
 
         if (!active) {
             AudioSystem::getInstance()->setPauseState(false);

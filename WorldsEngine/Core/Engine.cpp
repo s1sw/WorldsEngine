@@ -645,10 +645,10 @@ namespace worlds {
             inputManager->update();
 
             if (!dedicatedServer) {
-                if (!renderer->isPassValid(screenRTTPass)) {
+                if (!screenRTTPass->isValid) {
                     recreateScreenRTT = true;
                 } else {
-                    renderer->setRTTPassActive(screenRTTPass, !runAsEditor || !editor->active);
+                    screenRTTPass->active = !runAsEditor || !editor->active;
                 }
             }
 

@@ -20,7 +20,7 @@ namespace worlds {
     class Editor;
     class WrenScriptEngine;
     class OpenVRInterface;
-    typedef uint32_t RTTPassHandle;
+    class RTTPass;
 
     struct SceneInfo {
         std::string name;
@@ -89,7 +89,7 @@ namespace worlds {
         IGameEventHandler* evtHandler;
         std::unique_ptr<InputManager> inputManager;
         std::unique_ptr<AudioSystem> audioSystem;
-        RTTPassHandle screenRTTPass;
+        RTTPass* screenRTTPass;
         Camera cam;
         std::unique_ptr<Console> console;
         std::unique_ptr<Editor> editor;

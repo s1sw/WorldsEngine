@@ -13,7 +13,7 @@ typedef VkDescriptorSet_T* VkDescriptorSet;
 
 namespace worlds {
     typedef uint32_t AssetID;
-    typedef uint32_t RTTPassHandle;
+    class RTTPass;
 
     enum class Tool {
         None = 0,
@@ -148,7 +148,7 @@ namespace worlds {
         EditorSettings settings;
         EngineInterfaces interfaces;
         InputManager& inputManager;
-        RTTPassHandle sceneViewPass;
+        RTTPass* sceneViewPass;
         std::vector<std::unique_ptr<EditorWindow>> editorWindows;
         VkDescriptorSet sceneViewDS;
     };
