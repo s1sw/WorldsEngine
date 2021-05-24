@@ -49,7 +49,6 @@ namespace lg {
         MultiplayerManager* mpManager;
         entt::entity lHandEnt = entt::null;
         entt::entity rHandEnt = entt::null;
-        physx::PxD6Joint* lHandJoint, *rHandJoint;
         bool setClientInfo = false;
         PlayerGrabManager* playerGrabManager = nullptr;
         entt::entity audioListenerEntity = entt::null;

@@ -297,6 +297,14 @@ namespace worlds {
 
         cmdBuf.updateBuffer(resources.vpMatrixBuffer->buffer(), 0, sizeof(vp), &vp);
 
+        resources.vpMatrixBuffer->barrier(
+            cmdBuf,
+            vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eVertexShader,
+            vk::DependencyFlagBits::eByRegion,
+            vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eUniformRead,
+            VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED
+        );
+
         if (enableShadows) {
             renderer->calculateCascadeMatrices(world, *cam, rCtx);
             shadowCascadePass->prePass(rCtx);
