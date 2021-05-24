@@ -446,6 +446,14 @@ namespace worlds {
         VulkanHandles* getHandles() { return &handles; }
         const RenderDebugStats& getDebugStats() const { return dbgStats; }
         void uploadSceneAssets(entt::registry& reg);
+        RenderResources getResources() {
+            return RenderResources {
+                *texSlots,
+                *cubemapSlots,
+                *matSlots,
+                loadedMeshes
+            };
+        }
 
         RTTPassHandle createRTTPass(RTTPassCreateInfo& ci);
         // Pass to be late updated with new VR pose data
