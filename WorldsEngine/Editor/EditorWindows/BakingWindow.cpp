@@ -16,6 +16,13 @@ namespace worlds {
         PHYSFS_writeBytes((PHYSFS_File*)ctx, data, bytes);
     }
 
+    class CubemapBakeRoutine {
+    public:
+        CubemapBakeRoutine(glm::vec3 pos, worlds::VKRenderer* renderer, std::string name, entt::registry& world) {
+        }
+    private:
+    };
+
     void bakeCubemap(glm::vec3 pos, worlds::VKRenderer* renderer,
             std::string name, entt::registry& world) {
         // create RTT pass
@@ -30,7 +37,6 @@ namespace worlds {
         rtci.useForPicking = false;
         cam.verticalFOV = glm::radians(90.0f);
         cam.position = pos;
-        renderer->startRdocCapture();
 
         RTTPassHandle rttHandle = renderer->createRTTPass(rtci);
 
@@ -80,7 +86,6 @@ namespace worlds {
             if (fHandle == nullptr) {
                 logErr("Failed to open cubemap file as write");
                 free(data);
-                renderer->endRdocCapture();
                 renderer->destroyRTTPass(rttHandle);
                 return;
             }
@@ -113,9 +118,10 @@ namespace worlds {
         PHYSFS_writeBytes(file, j.c_str(), j.size());
         PHYSFS_close(file);
 
-        renderer->endRdocCapture();
         renderer->destroyRTTPass(rttHandle);
-        g_console->executeCommandStr("reloadCubemaps");
+        auto resources = renderer->getResources();
+        auto idx = resources.cubemaps.get(g_assetDB.addOrGetExisting(jsonPath));
+        renderer->getResources().cubemaps.unload(idx);
     }
 
     void BakingWindow::draw(entt::registry& reg) {
