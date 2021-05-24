@@ -1,6 +1,7 @@
 #include "AssetDB.hpp"
 #include <filesystem>
 #include <iostream>
+#include "Core/Log.hpp"
 #include "Fatal.hpp"
 #include <string.h>
 #include <robin_hood.h>
@@ -99,12 +100,7 @@ namespace worlds {
 
     AssetID AssetDB::addAsset(std::string path) {
         if (PHYSFS_exists(path.c_str()) == 0) {
-#ifdef NDEBUG
-            std::cout << "Tried adding nonexistent asset: " << path << "\n";
-#else
-            fatalErr(("Tried adding nonexistent asset: " + path).c_str());
-#endif
-            return ~0u;
+            logWarn("Adding missing asset: %s", path.c_str());
         }
 
         AssetID id = currId++;
