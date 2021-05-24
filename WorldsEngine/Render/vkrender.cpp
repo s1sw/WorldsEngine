@@ -935,7 +935,7 @@ void VKRenderer::calculateCascadeMatrices(entt::registry& world, Camera& cam, Re
             // frustum 0: near -> 20m
             // frustum 1: 20m  -> 125m
             // frustum 2: 125m -> 250m
-            float splits[4] = { 0.1f, 10.0f, 30.0f, 70.0f };
+            float splits[4] = { 0.1f, 15.0f, 45.0f, 105.0f };
             if (!rCtx.passSettings.enableVR) {
                 for (int i = 1; i < 4; i++) {
                     frustumMatrices[i - 1] = glm::perspective(
