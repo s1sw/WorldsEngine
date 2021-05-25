@@ -314,12 +314,9 @@ namespace lg {
             float fenderHeight = 0.55f;
             glm::vec3 headPos = worlds::getMatrixTranslation(vrInterface->getHeadTransform());
 
-            auto& lHandJoint = registry.get<worlds::D6Joint>(lHandEnt);
-            auto& rHandJoint = registry.get<worlds::D6Joint>(rHandEnt);
-
-            rHandJoint.pxJoint->setLocalPose(physx::PxJointActorIndex::eACTOR0, physx::PxTransform {
+            rHandJoint->setLocalPose(physx::PxJointActorIndex::eACTOR0, physx::PxTransform {
                     physx::PxVec3(0.0f, headPos.y - fenderHeight, 0.0f), physx::PxQuat { physx::PxIdentity }});
-            lHandJoint.pxJoint->setLocalPose(physx::PxJointActorIndex::eACTOR0, physx::PxTransform {
+            lHandJoint->setLocalPose(physx::PxJointActorIndex::eACTOR0, physx::PxTransform {
                     physx::PxVec3(0.0f, headPos.y - fenderHeight, 0.0f), physx::PxQuat { physx::PxIdentity }});
             ImGui::Text("Headpos: %.3f, %.3f, %.3f", headPos.x, headPos.y, headPos.z);
         }
@@ -437,38 +434,45 @@ namespace lg {
             rHandPhys.rotController.averageAmount = 2.0f;
             rHandPhys.follow = FollowHand::RightHand;
 
-            auto& lHandJoint = registry.emplace<worlds::D6Joint>(lHandEnt);
-            lHandJoint.reverseJoint = true;
-            lHandJoint.setTarget(rig.fender, registry);
+            auto fenderActor = registry.get<worlds::DynamicPhysicsActor>(rig.fender).actor;
 
-            lHandJoint.pxJoint->setDistanceLimit(physx::PxJointLinearLimit{
+            lHandJoint = physx::PxD6JointCreate(*worlds::g_physics, fenderActor, physx::PxTransform { physx::PxIdentity }, lActor,
+            physx::PxTransform { physx::PxIdentity });
+
+            lHandJoint->setLinearLimit(physx::PxJointLinearLimit{
                     physx::PxTolerancesScale{}, 0.8f});
-            lHandJoint.setAllLinearMotion(worlds::D6Motion::Limited);
-            lHandJoint.setAllAngularMotion(worlds::D6Motion::Free);
+            lHandJoint->setMotion(physx::PxD6Axis::eX, physx::PxD6Motion::eLIMITED);
+            lHandJoint->setMotion(physx::PxD6Axis::eY, physx::PxD6Motion::eLIMITED);
+            lHandJoint->setMotion(physx::PxD6Axis::eZ, physx::PxD6Motion::eLIMITED);
+            lHandJoint->setMotion(physx::PxD6Axis::eSWING1, physx::PxD6Motion::eFREE);
+            lHandJoint->setMotion(physx::PxD6Axis::eSWING2, physx::PxD6Motion::eFREE);
+            lHandJoint->setMotion(physx::PxD6Axis::eTWIST, physx::PxD6Motion::eFREE);
 
-            lHandJoint.pxJoint->setLocalPose(physx::PxJointActorIndex::eACTOR0, physx::PxTransform {
-                physx::PxVec3 { 0.0f, 0.8f, 0.0f },
-                physx::PxQuat { physx::PxIdentity }
-            });
+            rHandJoint = physx::PxD6JointCreate(*worlds::g_physics, fenderActor, physx::PxTransform { physx::PxIdentity }, rActor,
+            physx::PxTransform { physx::PxIdentity });
 
-            auto& rHandJoint = registry.emplace<worlds::D6Joint>(rHandEnt);
-            rHandJoint.reverseJoint = true;
-            rHandJoint.setTarget(rig.fender, registry);
-
-            rHandJoint.pxJoint->setDistanceLimit(physx::PxJointLinearLimit{
+            rHandJoint->setLinearLimit(physx::PxJointLinearLimit{
                     physx::PxTolerancesScale{}, 0.8f});
-            rHandJoint.setAllLinearMotion(worlds::D6Motion::Limited);
-            rHandJoint.setAllAngularMotion(worlds::D6Motion::Free);
-
-            rHandJoint.pxJoint->setLocalPose(physx::PxJointActorIndex::eACTOR0, physx::PxTransform {
-                physx::PxVec3 { 0.0f, 0.8f, 0.0f },
-                physx::PxQuat { physx::PxIdentity }
-            });
-
+            rHandJoint->setMotion(physx::PxD6Axis::eX, physx::PxD6Motion::eLIMITED);
+            rHandJoint->setMotion(physx::PxD6Axis::eY, physx::PxD6Motion::eLIMITED);
+            rHandJoint->setMotion(physx::PxD6Axis::eZ, physx::PxD6Motion::eLIMITED);
+            rHandJoint->setMotion(physx::PxD6Axis::eSWING1, physx::PxD6Motion::eFREE);
+            rHandJoint->setMotion(physx::PxD6Axis::eSWING2, physx::PxD6Motion::eFREE);
+            rHandJoint->setMotion(physx::PxD6Axis::eTWIST, physx::PxD6Motion::eFREE);
             lActor->setSolverIterationCounts(16, 8);
             rActor->setSolverIterationCounts(16, 8);
             lActor->setLinearVelocity(physx::PxVec3{0.0f});
             rActor->setLinearVelocity(physx::PxVec3{0.0f});
+
+            rHandJoint->setLocalPose(physx::PxJointActorIndex::eACTOR0, physx::PxTransform {
+                physx::PxVec3 { 0.0f, 0.8f, 0.0f },
+                physx::PxQuat { physx::PxIdentity }
+            });
+
+            lHandJoint->setLocalPose(physx::PxJointActorIndex::eACTOR0, physx::PxTransform {
+                physx::PxVec3 { 0.0f, 0.8f, 0.0f },
+                physx::PxQuat { physx::PxIdentity }
+            });
 
             PhysicsSoundComponent& lPsc = reg->emplace<PhysicsSoundComponent>(lHandEnt);
             lPsc.soundId = worlds::g_assetDB.addOrGetExisting("Audio/SFX/Player/hand_slap1.ogg");
