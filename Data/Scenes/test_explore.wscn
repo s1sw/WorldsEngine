@@ -5370,9 +5370,9 @@
         0.4999999403953552
       ],
       "scale": [
-        0.9999973177909851,
-        1.0,
-        0.9999973177909851
+        0.9999639391899109,
+        0.9999666213989258,
+        0.9999639391899109
       ]
     },
     "World Object": {
@@ -13359,6 +13359,110 @@
       "uvOverride": 4
     }
   },
+  "2097198": {
+    "AO Proxy": {
+      "bounds": [
+        0.23499999940395355,
+        0.23499999940395355,
+        0.23499999940395355
+      ]
+    },
+    "Contact Damage Dealer": {
+      "damage": 25,
+      "maxVelocity": 15.0,
+      "minVelocity": 5.0
+    },
+    "Dynamic Physics Actor": {
+      "mass": 14.999999046325684,
+      "shapes": [
+        {
+          "halfExtents": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "type": 1
+        }
+      ]
+    },
+    "Physics Sound": {
+      "soundPath": "Audio/SFX/Impacts/Metal/clang01.ogg"
+    },
+    "Transform": {
+      "position": [
+        -4.241713047027588,
+        2.608325719833374,
+        0.19655513763427734
+      ],
+      "rotation": [
+        1.101461862162978e-06,
+        -0.0003274081682320684,
+        -1.5630359939677874e-06,
+        0.9999999403953552
+      ],
+      "scale": [
+        0.2499885857105255,
+        0.25,
+        0.2499885857105255
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/crate.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json"
+      ],
+      "mesh": "crate.wmdl",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
   "2097200": {
     "Name Component": {
       "name": "UpperAreaCubemap"
@@ -16126,74 +16230,6 @@
       "uvOverride": 0
     }
   },
-  "2097305": {
-    "AO Proxy": {
-      "bounds": [
-        0.23499999940395355,
-        0.23499999940395355,
-        0.23499999940395355
-      ]
-    },
-    "Dynamic Physics Actor": {
-      "mass": 14.999999046325684,
-      "shapes": [
-        {
-          "halfExtents": [
-            1.0,
-            1.0,
-            1.0
-          ],
-          "position": [
-            0.0,
-            0.0,
-            0.0
-          ],
-          "rotation": [
-            0.0,
-            0.0,
-            0.0,
-            1.0
-          ],
-          "type": 1
-        }
-      ]
-    },
-    "Physics Sound": {
-      "soundPath": "Audio/SFX/Impacts/Metal/clang01.ogg"
-    },
-    "Transform": {
-      "position": [
-        -4.3876752853393555,
-        1.150002360343933,
-        0.624153196811676
-      ],
-      "rotation": [
-        1.590668580320198e-05,
-        -1.8031912532023853e-06,
-        -2.2870886823511682e-05,
-        1.0
-      ],
-      "scale": [
-        0.24999234080314636,
-        0.25000083446502686,
-        0.24999301135540009
-      ]
-    },
-    "World Object": {
-      "materials": [
-        "Materials/crate.json"
-      ],
-      "mesh": "crate.wmdl",
-      "staticFlags": 0,
-      "texScaleOffset": [
-        1.0,
-        1.0,
-        0.0,
-        0.0
-      ],
-      "uvOverride": 0
-    }
-  },
   "2097311": {
     "Dynamic Physics Actor": {
       "mass": 2.0,
@@ -17835,7 +17871,7 @@
         0.25,
         0.25,
         0.0,
-        0.0
+        -17.0
       ],
       "uvOverride": 4
     }
