@@ -270,7 +270,7 @@
     "Transform": {
       "position": [
         7.0,
-        2.0,
+        1.952558994293213,
         -2.5920844078063965
       ],
       "rotation": [
@@ -282,14 +282,14 @@
       "scale": [
         2.0,
         2.0,
-        4.5920844078063965
+        4.599999904632568
       ]
     },
     "World Cubemap": {
       "extent": [
-        2.0999999046325684,
-        2.0999999046325684,
-        5.099999904632568
+        2.009999990463257,
+        2.009999990463257,
+        4.599999904632568
       ],
       "path": "LevelCubemaps/messingaround2.json",
       "useCubeParallax": true
@@ -394,10 +394,10 @@
         0.0
       ],
       "rotation": [
-        0.7071066498756409,
-        0.0,
-        0.0,
-        0.70710688829422
+        0.7024556398391724,
+        0.2969156801700592,
+        -0.43932002782821655,
+        0.47475793957710266
       ],
       "scale": [
         1.0,
@@ -504,6 +504,113 @@
         0.0
       ],
       "uvOverride": 4
+    }
+  },
+  "1048601": {
+    "Physics Actor": {
+      "shapes": [
+        {
+          "halfExtents": [
+            0.5,
+            0.11191987246274948,
+            1.6908836364746094
+          ],
+          "position": [
+            0.0,
+            0.6452861428260803,
+            -1.240651249885559
+          ],
+          "rotation": [
+            0.22865228354930878,
+            0.0,
+            0.0,
+            0.9735080003738403
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.5,
+            0.10000000149011612,
+            0.15000000596046448
+          ],
+          "position": [
+            0.0,
+            1.399999976158142,
+            -2.8499999046325684
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0,
+            0.9999998807907104
+          ],
+          "type": 1
+        }
+      ]
+    },
+    "Transform": {
+      "position": [
+        7.0,
+        0.007499999832361937,
+        -11.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        4.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/LevelTextures/Concrete017.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json"
+      ],
+      "mesh": "Models/steps.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        2.0,
+        0.5,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
     }
   },
   "11534350": {
@@ -660,28 +767,51 @@
       "uvOverride": 0
     }
   },
-  "2097170": {
+  "12582944": {
+    "Physics Actor": {
+      "shapes": [
+        {
+          "halfExtents": [
+            1.0,
+            0.5,
+            1.0
+          ],
+          "position": [
+            0.0,
+            -0.5,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "type": 1
+        }
+      ]
+    },
     "Transform": {
       "position": [
-        1.3525007963180542,
-        4.000000476837158,
-        -0.8001805543899536
+        9.0,
+        2.0,
+        -13.03749942779541
       ],
       "rotation": [
-        3.054740318475524e-07,
-        0.0,
-        0.0,
-        1.0
+        0.5,
+        -0.5,
+        0.5,
+        0.5
       ],
       "scale": [
-        8.452500343322754,
-        0.9999992847442627,
-        6.30017614364624
+        6.037499904632568,
+        1.999999761581421,
+        1.999999761581421
       ]
     },
     "World Object": {
       "materials": [
-        "Materials/LevelTextures/Concrete017.json",
+        "Materials/LevelTextures/Tiles040.json",
         "Materials/dev.json",
         "Materials/dev.json",
         "Materials/dev.json",
@@ -717,10 +847,98 @@
       "mesh": "plane.obj",
       "staticFlags": 0,
       "texScaleOffset": [
-        1.0,
-        1.0,
+        0.25,
+        0.25,
         0.0,
         0.0
+      ],
+      "uvOverride": 4
+    }
+  },
+  "2097170": {
+    "Physics Actor": {
+      "shapes": [
+        {
+          "halfExtents": [
+            1.0,
+            0.5,
+            1.0
+          ],
+          "position": [
+            0.0,
+            -0.5,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "type": 1
+        }
+      ]
+    },
+    "Transform": {
+      "position": [
+        7.0,
+        4.0,
+        1.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        20.0,
+        1.0,
+        8.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/LevelTextures/PavingStones075.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json"
+      ],
+      "mesh": "plane.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        0.25,
+        0.25,
+        -18.0,
+        -20.0
       ],
       "uvOverride": 4
     }
@@ -733,7 +951,7 @@
       "position": [
         7.0,
         2.0,
-        -10.04434871673584
+        -11.442903518676758
       ],
       "rotation": [
         0.0,
@@ -744,7 +962,7 @@
       "scale": [
         2.0,
         2.0,
-        2.8352901935577393
+        4.233845233917236
       ]
     },
     "World Cubemap": {
@@ -783,9 +1001,9 @@
     },
     "Transform": {
       "position": [
-        5.0,
+        5.000000476837158,
         2.0,
-        -10.0
+        -13.0
       ],
       "rotation": [
         0.5,
@@ -794,7 +1012,7 @@
         0.5000001192092896
       ],
       "scale": [
-        2.999999761581421,
+        5.999999523162842,
         1.9999995231628418,
         1.9999995231628418
       ]
@@ -846,43 +1064,20 @@
     }
   },
   "2097175": {
-    "Physics Actor": {
-      "shapes": [
-        {
-          "halfExtents": [
-            1.0,
-            0.5,
-            1.0
-          ],
-          "position": [
-            0.0,
-            -0.5,
-            0.0
-          ],
-          "rotation": [
-            0.0,
-            0.0,
-            0.0,
-            1.0
-          ],
-          "type": 1
-        }
-      ]
-    },
     "Transform": {
       "position": [
-        9.0,
+        9.100000381469727,
         2.0,
-        -10.0
+        -13.03749942779541
       ],
       "rotation": [
-        0.5,
         -0.5,
-        0.5,
-        0.5
+        -0.4999997019767761,
+        0.5000003576278687,
+        -0.5
       ],
       "scale": [
-        2.999999523162842,
+        6.037499904632568,
         1.999999761581421,
         1.999999761581421
       ]
@@ -1585,11 +1780,314 @@
       "uvOverride": 0
     }
   },
+  "7340058": {
+    "Physics Actor": {
+      "shapes": [
+        {
+          "halfExtents": [
+            0.5,
+            0.11191987246274948,
+            1.6908836364746094
+          ],
+          "position": [
+            0.0,
+            0.6452861428260803,
+            -1.240651249885559
+          ],
+          "rotation": [
+            0.22865228354930878,
+            0.0,
+            0.0,
+            0.9735080003738403
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.5,
+            0.10000000149011612,
+            0.15000000596046448
+          ],
+          "position": [
+            0.0,
+            1.399999976158142,
+            -2.8499999046325684
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0,
+            0.9999998807907104
+          ],
+          "type": 1
+        }
+      ]
+    },
+    "Transform": {
+      "position": [
+        7.0,
+        1.5075000524520874,
+        -14.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        4.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/LevelTextures/Concrete017.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json"
+      ],
+      "mesh": "Models/steps.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        2.0,
+        0.5,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "7340059": {
+    "Physics Actor": {
+      "shapes": [
+        {
+          "halfExtents": [
+            1.0,
+            0.5,
+            1.0
+          ],
+          "position": [
+            0.0,
+            -0.5,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "type": 1
+        }
+      ]
+    },
+    "Transform": {
+      "position": [
+        -4.0,
+        4.000000476837158,
+        -16.000181198120117
+      ],
+      "rotation": [
+        3.054740318475524e-07,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        9.0,
+        0.9999992847442627,
+        9.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/LevelTextures/PavingStones075.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json"
+      ],
+      "mesh": "plane.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        0.25,
+        0.25,
+        -18.0,
+        -20.0
+      ],
+      "uvOverride": 4
+    }
+  },
+  "7340060": {
+    "Physics Actor": {
+      "shapes": [
+        {
+          "halfExtents": [
+            1.0,
+            0.5,
+            1.0
+          ],
+          "position": [
+            0.0,
+            -0.5,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "type": 1
+        }
+      ]
+    },
+    "Transform": {
+      "position": [
+        18.0,
+        4.0,
+        -16.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        9.0,
+        1.0,
+        9.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/LevelTextures/PavingStones075.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json"
+      ],
+      "mesh": "plane.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        0.25,
+        0.25,
+        -18.0,
+        -20.0
+      ],
+      "uvOverride": 4
+    }
+  },
   "8388617": {
+    "Dynamic Physics Actor": {
+      "mass": 5.0,
+      "shapes": [
+        {
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "radius": 0.25,
+          "rotation": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "type": 0
+        }
+      ]
+    },
     "Transform": {
       "position": [
         0.2736942768096924,
-        0.43401002883911133,
+        0.2500000298023224,
         -0.7523702383041382
       ],
       "rotation": [
@@ -1778,6 +2276,331 @@
         2.5,
         1.9999995231628418,
         1.9999995231628418
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/LevelTextures/Tiles040.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json"
+      ],
+      "mesh": "plane.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        0.25,
+        0.25,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 4
+    }
+  },
+  "9437213": {
+    "Physics Actor": {
+      "shapes": [
+        {
+          "halfExtents": [
+            0.5,
+            0.11191987246274948,
+            1.6908836364746094
+          ],
+          "position": [
+            0.0,
+            0.6452861428260803,
+            -1.240651249885559
+          ],
+          "rotation": [
+            0.22865228354930878,
+            0.0,
+            0.0,
+            0.9735080003738403
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.5,
+            0.10000000149011612,
+            0.15000000596046448
+          ],
+          "position": [
+            0.0,
+            1.399999976158142,
+            -2.8499999046325684
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0,
+            0.9999998807907104
+          ],
+          "type": 1
+        }
+      ]
+    },
+    "Transform": {
+      "position": [
+        7.0,
+        2.4075000286102295,
+        -15.800000190734863
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        4.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/LevelTextures/Concrete017.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json"
+      ],
+      "mesh": "Models/steps.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        2.0,
+        0.5,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "9437214": {
+    "Transform": {
+      "position": [
+        7.0,
+        1.0,
+        -18.799999237060547
+      ],
+      "rotation": [
+        0.7071066498756409,
+        0.0,
+        0.0,
+        0.70710688829422
+      ],
+      "scale": [
+        2.0,
+        0.9999083280563354,
+        2.9996337890625
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/LevelTextures/PavingStones075.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json"
+      ],
+      "mesh": "plane.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        0.25,
+        0.25,
+        9.0,
+        0.4000000059604645
+      ],
+      "uvOverride": 4
+    }
+  },
+  "9437215": {
+    "Physics Actor": {
+      "shapes": [
+        {
+          "halfExtents": [
+            1.0,
+            0.5,
+            1.0
+          ],
+          "position": [
+            0.0,
+            -0.5,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "type": 1
+        }
+      ]
+    },
+    "Transform": {
+      "position": [
+        7.0,
+        4.0,
+        -21.894123077392578
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        2.0,
+        1.0,
+        3.1058778762817383
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/LevelTextures/PavingStones075.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json"
+      ],
+      "mesh": "plane.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        0.25,
+        0.25,
+        -18.0,
+        -20.0
+      ],
+      "uvOverride": 4
+    }
+  },
+  "9437217": {
+    "Transform": {
+      "position": [
+        9.100000381469727,
+        2.0,
+        -1.0
+      ],
+      "rotation": [
+        0.5000000596046448,
+        0.4999999403953552,
+        -0.49999988079071045,
+        0.5000001192092896
+      ],
+      "scale": [
+        5.999998092651367,
+        1.9999994039535522,
+        1.9999994039535522
       ]
     },
     "World Object": {
