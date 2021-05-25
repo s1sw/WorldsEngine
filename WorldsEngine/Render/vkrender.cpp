@@ -820,8 +820,8 @@ void VKRenderer::uploadSceneAssets(entt::registry& reg) {
     ZoneScoped;
     bool reuploadMats = false;
 
-    std::vector<AssetID> uploadMats;
-    std::vector<AssetID> uploadMeshes;
+    std::unordered_set<AssetID> uploadMats;
+    std::unordered_set<AssetID> uploadMeshes;
 
     // Upload any necessary materials + meshes
     reg.view<WorldObject>().each([&](auto, WorldObject& wo) {
@@ -830,12 +830,12 @@ void VKRenderer::uploadSceneAssets(entt::registry& reg) {
 
             if (wo.materialIdx[i] == ~0u) {
                 reuploadMats = true;
-                uploadMats.emplace_back(wo.materials[i]);
+                uploadMats.insert(wo.materials[i]);
             }
         }
 
         if (loadedMeshes.find(wo.mesh) == loadedMeshes.end()) {
-            uploadMeshes.emplace_back(wo.mesh);
+            uploadMeshes.insert(wo.mesh);
         }
     });
 
