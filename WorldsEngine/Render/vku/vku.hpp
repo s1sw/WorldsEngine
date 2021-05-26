@@ -1554,7 +1554,7 @@ namespace vku {
 
         /// Copy a subimage in a buffer to this image.
         void copy(vk::CommandBuffer cb, vk::Buffer buffer, uint32_t mipLevel, uint32_t arrayLayer, uint32_t width, uint32_t height, uint32_t depth, uint32_t offset) {
-            setLayout(cb, vk::ImageLayout::eTransferDstOptimal);
+            setLayout(cb, vk::ImageLayout::eTransferDstOptimal, vk::PipelineStageFlagBits::eTransfer, vk::AccessFlagBits::eTransferWrite);
             vk::BufferImageCopy region{};
             region.bufferOffset = offset;
             vk::Extent3D extent;
@@ -1588,7 +1588,7 @@ namespace vku {
                         offset += ((bp.bytesPerBlock + 3) & ~3) * ((width / bp.blockWidth) * (height / bp.blockHeight));
                     }
                 }
-                setLayout(cb, vk::ImageLayout::eShaderReadOnlyOptimal);
+                setLayout(cb, vk::ImageLayout::eShaderReadOnlyOptimal, vk::PipelineStageFlagBits::eFragmentShader, vk::AccessFlagBits::eShaderRead);
                 });
         }
 
@@ -1636,27 +1636,13 @@ namespace vku {
             vk::PipelineStageFlags dstStageMask{ vk::PipelineStageFlagBits::eTopOfPipe };
             vk::DependencyFlags dependencyFlags{};
             vk::AccessFlags srcMask{};
-            vk::AccessFlags dstMask{};
+            vk::AccessFlags dstMask = s.lastUsageAccessFlags;
 
             typedef vk::ImageLayout il;
             typedef vk::AccessFlagBits afb;
             typedef vk::PipelineStageFlagBits psfb;
 
             // Is it me, or are these the same?
-            switch (oldLayout) {
-            case il::eUndefined: break;
-            case il::eGeneral: srcMask = afb::eTransferWrite; srcStageMask = psfb::eTransfer; break;
-            case il::eColorAttachmentOptimal: srcMask = afb::eColorAttachmentWrite; break;
-            case il::eDepthStencilAttachmentOptimal: srcMask = afb::eDepthStencilAttachmentWrite; break;
-            case il::eDepthStencilReadOnlyOptimal: srcMask = afb::eDepthStencilAttachmentRead; break;
-            case il::eShaderReadOnlyOptimal: srcMask = afb::eShaderRead; srcStageMask = psfb::eVertexShader; break; // TODO: Find better stage than vertex shader
-            case il::eTransferSrcOptimal: srcMask = afb::eTransferRead; srcStageMask = psfb::eTransfer; break;
-            case il::eTransferDstOptimal: srcMask = afb::eTransferWrite; srcStageMask = psfb::eTransfer; break;
-            case il::ePreinitialized: srcMask = afb::eTransferWrite | afb::eHostWrite; srcStageMask = psfb::eHost | psfb::eTransfer; break;
-            case il::ePresentSrcKHR: srcMask = afb::eMemoryRead; break;
-            default: break;
-            }
-
             switch (newLayout) {
             case il::eUndefined: break;
             case il::eGeneral: dstMask = afb::eTransferWrite; dstStageMask = psfb::eTransfer; break;
@@ -1676,6 +1662,9 @@ namespace vku {
             imageMemoryBarriers.dstAccessMask = dstMask;
             auto memoryBarriers = nullptr;
             auto bufferMemoryBarriers = nullptr;
+
+            s.lastUsageAccessFlags = dstMask;
+            s.lastUsageStage = dstStageMask;
             cb.pipelineBarrier(srcStageMask, dstStageMask, dependencyFlags, memoryBarriers, bufferMemoryBarriers, imageMemoryBarriers);
         }
 
@@ -1689,6 +1678,8 @@ namespace vku {
             imb.oldLayout = s.currentLayout;
             imb.subresourceRange = { s.aspectFlags, 0, s.info.mipLevels, 0, s.info.arrayLayers };
             imb.image = *s.image;
+            s.lastUsageAccessFlags = toAF;
+            s.lastUsageStage = toPS;
 
             cb.pipelineBarrier(fromPS, toPS, vk::DependencyFlagBits::eByRegion, nullptr, nullptr, imb);
         }
@@ -1697,6 +1688,8 @@ namespace vku {
             if (newLayout == s.currentLayout) return;
             vk::ImageLayout oldLayout = s.currentLayout;
             s.currentLayout = newLayout;
+            s.lastUsageAccessFlags = dstMask;
+            s.lastUsageStage = dstStageMask;
 
             vk::ImageMemoryBarrier imageMemoryBarriers = {};
             imageMemoryBarriers.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
@@ -1716,9 +1709,15 @@ namespace vku {
             cb.pipelineBarrier(srcStageMask, dstStageMask, dependencyFlags, memoryBarriers, bufferMemoryBarriers, imageMemoryBarriers);
         }
 
+        void setLayout(vk::CommandBuffer cmdBuf, vk::ImageLayout newLayout, vk::PipelineStageFlags newStage, vk::AccessFlags newAccess) {
+            setLayout(cmdBuf, newLayout, s.lastUsageStage, newStage, s.lastUsageAccessFlags, newAccess);
+        }
+
         /// Set what the image thinks is its current layout (ie. the old layout in an image barrier).
-        void setCurrentLayout(vk::ImageLayout oldLayout) {
+        void setCurrentLayout(vk::ImageLayout oldLayout, vk::PipelineStageFlags lastPipelineStage, vk::AccessFlags lastAccess) {
             s.currentLayout = oldLayout;
+            s.lastUsageAccessFlags = lastAccess;
+            s.lastUsageStage = lastPipelineStage;
         }
 
         vk::Format format() const { return s.info.format; }
@@ -1826,6 +1825,8 @@ namespace vku {
             vk::UniqueImageView imageView;
             vk::DeviceSize size;
             vk::ImageLayout currentLayout;
+            vk::PipelineStageFlags lastUsageStage;
+            vk::AccessFlags lastUsageAccessFlags;
             vk::ImageAspectFlags aspectFlags;
             vk::ImageCreateInfo info;
             VmaAllocation allocation;

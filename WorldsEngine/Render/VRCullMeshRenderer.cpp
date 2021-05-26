@@ -12,7 +12,7 @@ namespace worlds {
         : handles {handles} {
     }
 
-    void VRCullMeshRenderer::setup(RenderContext& ctx, vk::RenderPass& rp) {
+    void VRCullMeshRenderer::setup(RenderContext& ctx, vk::RenderPass& rp, vk::DescriptorPool descriptorPool) {
         vku::DescriptorSetLayoutMaker dslm;
         dslm.buffer(0, vk::DescriptorType::eStorageBuffer, vk::ShaderStageFlagBits::eVertex, 1);
         dsl = dslm.createUnique(handles->device);
@@ -59,10 +59,10 @@ namespace worlds {
 
         vku::DescriptorSetMaker dsm;
         dsm.layout(*dsl);
-        ds = dsm.create(handles->device, handles->descriptorPool)[0];
+        ds = std::move(dsm.createUnique(handles->device, descriptorPool)[0]);
 
         vku::DescriptorSetUpdater dsu;
-        dsu.beginDescriptorSet(ds);
+        dsu.beginDescriptorSet(*ds);
         dsu.beginBuffers(0, 0, vk::DescriptorType::eStorageBuffer);
         dsu.buffer(vertexBuf.buffer(), 0, totalSize);
         dsu.update(handles->device);
@@ -75,7 +75,7 @@ namespace worlds {
         VertPushConstants vpc;
         vpc.viewOffset = leftVertCount;
         cmdBuf.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline);
-        cmdBuf.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 0, ds, nullptr);
+        cmdBuf.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 0, *ds, nullptr);
         cmdBuf.pushConstants<VertPushConstants>(*pipelineLayout, vk::ShaderStageFlagBits::eVertex, 0, vpc);
         cmdBuf.draw(leftVertCount, 1, 0, 0);
     }

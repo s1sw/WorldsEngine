@@ -11,7 +11,7 @@ namespace worlds {
     DebugLinesPass::DebugLinesPass(VulkanHandles* handles)
         : handles(handles) {}
 
-    void DebugLinesPass::setup(RenderContext& ctx, vk::RenderPass renderPass) {
+    void DebugLinesPass::setup(RenderContext& ctx, vk::RenderPass renderPass, vk::DescriptorPool descriptorPool) {
         currentLineVBSize = 0;
 
         vku::DescriptorSetLayoutMaker dslm;
@@ -20,7 +20,7 @@ namespace worlds {
 
         vku::DescriptorSetMaker dsm;
         dsm.layout(*lineDsl);
-        lineDs = std::move(dsm.createUnique(handles->device, handles->descriptorPool)[0]);
+        lineDs = std::move(dsm.createUnique(handles->device, descriptorPool)[0]);
 
         vku::PipelineLayoutMaker linePl{};
         linePl.descriptorSetLayout(*lineDsl);

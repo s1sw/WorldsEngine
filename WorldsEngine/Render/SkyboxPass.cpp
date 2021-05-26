@@ -24,7 +24,7 @@ namespace worlds {
     SkyboxPass::SkyboxPass(VulkanHandles* handles) : handles(handles) {
     }
 
-    void SkyboxPass::setup(RenderContext& ctx, vk::RenderPass renderPass) {
+    void SkyboxPass::setup(RenderContext& ctx, vk::RenderPass renderPass, vk::DescriptorPool descriptorPool) {
         vku::DescriptorSetLayoutMaker dslm;
         dslm.buffer(0, vk::DescriptorType::eUniformBuffer, vk::ShaderStageFlagBits::eVertex, 1);
         dslm.image(1, vk::DescriptorType::eCombinedImageSampler, vk::ShaderStageFlagBits::eFragment, 1);
@@ -32,7 +32,7 @@ namespace worlds {
 
         vku::DescriptorSetMaker dsm;
         dsm.layout(*skyboxDsl);
-        skyboxDs = std::move(dsm.createUnique(handles->device, handles->descriptorPool)[0]);
+        skyboxDs = std::move(dsm.createUnique(handles->device, descriptorPool)[0]);
 
         vku::PipelineLayoutMaker skyboxPl{};
         skyboxPl.descriptorSetLayout(*skyboxDsl);

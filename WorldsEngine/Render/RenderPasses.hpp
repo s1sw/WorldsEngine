@@ -18,14 +18,14 @@ namespace worlds {
         vk::UniquePipeline pipeline;
         vk::UniquePipelineLayout pipelineLayout;
         vk::UniqueDescriptorSetLayout dsl;
-        vk::DescriptorSet ds;
+        vk::UniqueDescriptorSet ds;
         vku::GenericBuffer vertexBuf;
         uint32_t totalVertCount;
         uint32_t leftVertCount;
         VulkanHandles* handles;
     public:
         VRCullMeshRenderer(VulkanHandles* handles);
-        void setup(RenderContext& ctx, vk::RenderPass& rp);
+        void setup(RenderContext& ctx, vk::RenderPass& rp, vk::DescriptorPool descriptorPool);
         void draw(vk::CommandBuffer& cmdBuf);
     };
 
@@ -58,7 +58,7 @@ namespace worlds {
         VulkanHandles* handles;
     public:
         DebugLinesPass(VulkanHandles* handles);
-        void setup(RenderContext& ctx, vk::RenderPass renderPass);
+        void setup(RenderContext& ctx, vk::RenderPass renderPass, vk::DescriptorPool descriptorPool);
         void prePass(RenderContext&);
         void execute(RenderContext&);
     };
@@ -75,7 +75,7 @@ namespace worlds {
         void updateDescriptors(RenderContext& ctx, uint32_t loadedSkyId);
     public:
         SkyboxPass(VulkanHandles* handles);
-        void setup(RenderContext& ctx, vk::RenderPass renderPass);
+        void setup(RenderContext& ctx, vk::RenderPass renderPass, vk::DescriptorPool descriptorPool);
         void prePass(RenderContext&);
         void execute(RenderContext&);
     };
@@ -145,7 +145,7 @@ namespace worlds {
     public:
         PolyRenderPass(VulkanHandles* handles, RenderTexture* depthStencilImage, RenderTexture* polyImage, RenderTexture* shadowImage, bool enablePicking = false);
         void setPickCoords(int x, int y) { pickX = x; pickY = y; }
-        void setup(RenderContext& ctx);
+        void setup(RenderContext& ctx, vk::DescriptorPool descriptorPool);
         void prePass(RenderContext& ctx);
         void execute(RenderContext& ctx);
         void requestEntityPick();
@@ -168,7 +168,6 @@ namespace worlds {
         vk::ShaderModule shadowFragmentShader;
         vku::UniformBuffer matrixBuffer;
         uint32_t shadowmapRes;
-        CascadeMatrices* matricesMapped;
         VulkanHandles* handles;
 
         void createRenderPass();
@@ -190,13 +189,14 @@ namespace worlds {
         vk::UniqueDescriptorSet descriptorSet;
         vk::UniqueDescriptorSet rDescriptorSet;
         vk::UniqueSampler sampler;
+        vk::DescriptorPool dsPool;
         RenderTexture* finalPrePresent;
         RenderTexture* finalPrePresentR;
         RenderTexture* hdrImg;
         VulkanHandles* handles;
     public:
         TonemapRenderPass(VulkanHandles* handles, RenderTexture* hdrImg, RenderTexture* finalPrePresent);
-        void setup(RenderContext& ctx);
+        void setup(RenderContext& ctx, vk::DescriptorPool descriptorPool);
         void execute(RenderContext& ctx);
         void setRightFinalImage(RenderTexture* right);
         virtual ~TonemapRenderPass();

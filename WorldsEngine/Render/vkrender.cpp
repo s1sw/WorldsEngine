@@ -68,11 +68,6 @@ void VKRenderer::createSwapchain(vk::SwapchainKHR oldSwapchain) {
     swapchain = std::make_unique<Swapchain>(physicalDevice, *device, surface, qfi, fullscreen, oldSwapchain, presentMode);
     swapchain->getSize(&width, &height);
 
-    if (!enableVR) {
-        renderWidth = width;
-        renderHeight = height;
-    }
-
     vku::executeImmediately(*device, *commandPool, device->getQueue(graphicsQueueFamilyIdx, 0), [this](vk::CommandBuffer cb) {
         for (auto& img : swapchain->images)
             vku::transitionLayout(cb, img, vk::ImageLayout::eUndefined, vk::ImageLayout::ePresentSrcKHR, vk::PipelineStageFlagBits::eTopOfPipe, vk::PipelineStageFlagBits::eTopOfPipe, vk::AccessFlags{}, vk::AccessFlagBits::eMemoryRead);
@@ -246,7 +241,8 @@ vk::PhysicalDevice pickPhysicalDevice(std::vector<vk::PhysicalDevice>& physicalD
 
 VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     : finalPrePresent(nullptr)
-    , finalPrePresentR(nullptr)
+    , leftEye(nullptr)
+    , rightEye(nullptr)
     , shadowmapImage(nullptr)
     , imguiImage(nullptr)
     , window(initInfo.window)
@@ -430,7 +426,7 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
 
     if (initInfo.activeVrApi == VrApi::OpenVR) {
         OpenVRInterface* vrInterface = static_cast<OpenVRInterface*>(initInfo.vrInterface);
-        vrInterface->getRenderResolution(&renderWidth, &renderHeight);
+        vrInterface->getRenderResolution(&vrWidth, &vrHeight);
     }
 
     handles = VulkanHandles{
@@ -448,7 +444,7 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
             enableVR
         },
         width, height,
-        renderWidth, renderHeight
+        vrWidth, vrHeight
     };
 
     auto vkCtx = std::make_shared<VulkanHandles>(handles);
@@ -592,7 +588,11 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
 void VKRenderer::createSCDependents() {
     delete imguiImage;
     delete finalPrePresent;
-    delete finalPrePresentR;
+
+    if (leftEye) {
+        delete leftEye;
+        delete rightEye;
+    }
 
     if (irp == nullptr) {
         irp = new ImGuiRenderPass(&handles, *swapchain);
@@ -603,7 +603,7 @@ void VKRenderer::createSCDependents() {
 
     vk::ImageCreateInfo ici;
     ici.imageType = vk::ImageType::e2D;
-    ici.extent = vk::Extent3D{ renderWidth, renderHeight, 1 };
+    ici.extent = vk::Extent3D{ width, height, 1 };
     ici.arrayLayers = 1;
     ici.mipLevels = 1;
     ici.initialLayout = vk::ImageLayout::eUndefined;
@@ -625,22 +625,21 @@ void VKRenderer::createSCDependents() {
 
     finalPrePresent = createRTResource(finalPrePresentCI, "Final Pre-Present");
 
-    if (enableVR)
-        finalPrePresentR = createRTResource(finalPrePresentCI, "Final Pre-Present R");
+    if (enableVR) {
+        ici.extent = vk::Extent3D { vrWidth, vrHeight, 1 };
+        RTResourceCreateInfo eyeCreateInfo { ici, vk::ImageViewType::e2D, vk::ImageAspectFlagBits::eColor };
+        leftEye = createRTResource(eyeCreateInfo, "Left Eye");
+        rightEye = createRTResource(eyeCreateInfo, "Right Eye");
+    }
 
     vku::executeImmediately(*device, *commandPool, device->getQueue(graphicsQueueFamilyIdx, 0), [&](vk::CommandBuffer cmdBuf) {
         finalPrePresent->image.setLayout(cmdBuf, vk::ImageLayout::eTransferSrcOptimal);
     });
 
-    RTTPass* screenPass = nullptr;
     for (auto& p : rttPasses) {
         if (p->outputToScreen) {
-            screenPass = p;
+            p->isValid = false;
         }
-    }
-
-    if (screenPass != nullptr) {
-        screenPass->isValid = false;
     }
 
     imgFences.clear();
@@ -687,11 +686,6 @@ void VKRenderer::recreateSwapchain() {
     if (surfaceCaps.currentExtent.width > 0 && surfaceCaps.currentExtent.height > 0) {
         width = surfaceCaps.currentExtent.width;
         height = surfaceCaps.currentExtent.height;
-    }
-
-    if (!enableVR) {
-        renderWidth = width;
-        renderHeight = height;
     }
 
     if (surfaceCaps.currentExtent.width == 0 || surfaceCaps.currentExtent.height == 0) {
@@ -790,7 +784,7 @@ void VKRenderer::submitToOpenVR() {
         .vMax = 1.0f
     };
 
-    VkImage vkImg = finalPrePresent->image.image();
+    VkImage vkImg = leftEye->image.image();
 
     vr::VRVulkanTextureData_t vulkanData {
         .m_nImage = (uint64_t)vkImg,
@@ -799,8 +793,8 @@ void VKRenderer::submitToOpenVR() {
         .m_pInstance = (VkInstance_T*)*instance,
         .m_pQueue = (VkQueue_T*)device->getQueue(graphicsQueueFamilyIdx, 0),
         .m_nQueueFamilyIndex = graphicsQueueFamilyIdx,
-        .m_nWidth = renderWidth,
-        .m_nHeight = renderHeight,
+        .m_nWidth = vrWidth,
+        .m_nHeight = vrHeight,
         .m_nFormat = VK_FORMAT_R8G8B8A8_UNORM,
         .m_nSampleCount = 1
     };
@@ -811,7 +805,7 @@ void VKRenderer::submitToOpenVR() {
         vr::Texture_t texture = { &vulkanData, vr::TextureType_Vulkan, vr::ColorSpace_Auto };
         vr::VRCompositor()->Submit(vr::Eye_Left, &texture, &bounds);
 
-        vulkanData.m_nImage = (uint64_t)(VkImage)finalPrePresentR->image.image();
+        vulkanData.m_nImage = (uint64_t)(VkImage)rightEye->image.image();
         vr::VRCompositor()->Submit(vr::Eye_Right, &texture, &bounds);
     }
 }
@@ -889,10 +883,10 @@ void VKRenderer::uploadSceneAssets(entt::registry& reg) {
         reuploadMaterials();
 }
 
-glm::mat4 VKRenderer::getCascadeMatrix(Camera cam, glm::vec3 lightDir, glm::mat4 frustumMatrix, float& texelsPerUnit) {
+glm::mat4 VKRenderer::getCascadeMatrix(bool forVr, Camera cam, glm::vec3 lightDir, glm::mat4 frustumMatrix, float& texelsPerUnit) {
     glm::mat4 view;
 
-    if (!enableVR) {
+    if (!forVr) {
         view = cam.getViewMatrix();
     } else {
         view = glm::inverse(vrInterface->getHeadTransform(vrPredictAmount)) * cam.getViewMatrix();
@@ -955,7 +949,7 @@ glm::mat4 VKRenderer::getCascadeMatrix(Camera cam, glm::vec3 lightDir, glm::mat4
 
 worlds::ConVar doGTAO{ "r_doGTAO", "0" };
 
-void VKRenderer::calculateCascadeMatrices(entt::registry& world, Camera& cam, RenderContext& rCtx) {
+void VKRenderer::calculateCascadeMatrices(bool forVr, entt::registry& world, Camera& cam, RenderContext& rCtx) {
     world.view<WorldLight, Transform>().each([&](auto, WorldLight& l, Transform& transform) {
         glm::vec3 lightForward = transform.rotation * glm::vec3(0.0f, 0.0f, -1.0f);
         if (l.type == LightType::Directional) {
@@ -984,6 +978,7 @@ void VKRenderer::calculateCascadeMatrices(entt::registry& world, Camera& cam, Re
             for (int i = 0; i < 3; i++) {
                 rCtx.cascadeInfo.matrices[i] =
                     getCascadeMatrix(
+                        forVr,
                         cam, lightForward,
                         frustumMatrices[i], rCtx.cascadeInfo.texelsPerUnit[i]
                     );
@@ -1023,7 +1018,12 @@ void VKRenderer::writeCmdBuf(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageInde
         vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eColorAttachmentOutput,
         vk::AccessFlagBits::eTransferRead, vk::AccessFlagBits::eColorAttachmentWrite);
 
+    std::sort(rttPasses.begin(), rttPasses.end(), [](RTTPass* a, RTTPass* b) {
+        return a->drawSortKey < b->drawSortKey;
+    });
+
     int numActivePasses = 0;
+    bool lastPassIsVr = false;
     for (auto& p : rttPasses) {
         if (!p->active || !p->isValid) continue;
         numActivePasses++;
@@ -1031,8 +1031,8 @@ void VKRenderer::writeCmdBuf(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageInde
         if (!p->outputToScreen) {
             p->sdrFinalTarget->image.setLayout(*cmdBuf,
                 vk::ImageLayout::eColorAttachmentOptimal,
-                vk::PipelineStageFlagBits::eFragmentShader, vk::PipelineStageFlagBits::eColorAttachmentOutput,
-                vk::AccessFlagBits::eShaderRead, vk::AccessFlagBits::eColorAttachmentWrite);
+                vk::PipelineStageFlagBits::eColorAttachmentOutput,
+                vk::AccessFlagBits::eColorAttachmentWrite);
         }
 
         bool nullCam = p->cam == nullptr;
@@ -1048,9 +1048,10 @@ void VKRenderer::writeCmdBuf(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageInde
         if (!p->outputToScreen) {
             p->sdrFinalTarget->image.setLayout(*cmdBuf,
                 vk::ImageLayout::eShaderReadOnlyOptimal,
-                vk::PipelineStageFlagBits::eColorAttachmentOutput, vk::PipelineStageFlagBits::eFragmentShader,
-                vk::AccessFlagBits::eColorAttachmentWrite, vk::AccessFlagBits::eShaderRead);
+                vk::PipelineStageFlagBits::eFragmentShader,
+                vk::AccessFlagBits::eShaderRead);
         }
+        lastPassIsVr = p->isVr;
     }
     dbgStats.numRTTPasses = numActivePasses;
 
@@ -1059,17 +1060,21 @@ void VKRenderer::writeCmdBuf(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageInde
         vk::PipelineStageFlagBits::eBottomOfPipe, vk::PipelineStageFlagBits::eTransfer,
         vk::AccessFlagBits::eMemoryRead, vk::AccessFlagBits::eTransferWrite);
 
-    finalPrePresent->image.setLayout(*cmdBuf,
-        vk::ImageLayout::eTransferSrcOptimal,
-        vk::PipelineStageFlagBits::eColorAttachmentOutput, vk::PipelineStageFlagBits::eTransfer,
-        vk::AccessFlagBits::eColorAttachmentWrite, vk::AccessFlagBits::eTransferRead);
 
     if (enableVR) {
-        finalPrePresentR->image.setLayout(*cmdBuf,
+        leftEye->image.setLayout(*cmdBuf,
             vk::ImageLayout::eTransferSrcOptimal,
-            vk::PipelineStageFlagBits::eComputeShader, vk::PipelineStageFlagBits::eTransfer,
-            vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eTransferRead);
+            vk::PipelineStageFlagBits::eTransfer, vk::AccessFlagBits::eTransferRead);
+        rightEye->image.setLayout(*cmdBuf,
+            vk::ImageLayout::eTransferSrcOptimal,
+            vk::PipelineStageFlagBits::eTransfer,
+            vk::AccessFlagBits::eTransferRead);
     }
+
+    finalPrePresent->image.setLayout(*cmdBuf,
+        vk::ImageLayout::eTransferSrcOptimal,
+        vk::PipelineStageFlagBits::eTransfer,
+        vk::AccessFlagBits::eTransferRead);
 
     cmdBuf->clearColorImage(
         swapchain->images[imageIndex],
@@ -1078,9 +1083,9 @@ void VKRenderer::writeCmdBuf(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageInde
         vk::ImageSubresourceRange{ vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1 }
     );
 
-    if (!enableVR) {
+    if (!lastPassIsVr) {
         vk::ImageBlit imageBlit;
-        imageBlit.srcOffsets[1] = imageBlit.dstOffsets[1] = vk::Offset3D{ (int)width, (int)height, 1 };
+        imageBlit.srcOffsets[1] = imageBlit.dstOffsets[1] = vk::Offset3D{ windowSize.x, windowSize.y, 1 };
         imageBlit.dstSubresource = imageBlit.srcSubresource = vk::ImageSubresourceLayers{ vk::ImageAspectFlagBits::eColor, 0, 0, 1 };
         cmdBuf->blitImage(
             finalPrePresent->image.image(), vk::ImageLayout::eTransferSrcOptimal,
@@ -1090,10 +1095,10 @@ void VKRenderer::writeCmdBuf(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageInde
         // Calculate the best crop for the current window size against the VR render target
         //float scaleFac = glm::min((float)windowSize.x / renderWidth, (float)windowSize.y / renderHeight);
         float aspect = (float)windowSize.y / (float)windowSize.x;
-        float croppedHeight = aspect * renderWidth;
+        float croppedHeight = aspect * vrWidth;
 
-        glm::vec2 srcCorner0(0.0f, renderHeight / 2.0f - croppedHeight / 2.0f);
-        glm::vec2 srcCorner1(renderWidth, renderHeight / 2.0f + croppedHeight / 2.0f);
+        glm::vec2 srcCorner0(0.0f, vrHeight / 2.0f - croppedHeight / 2.0f);
+        glm::vec2 srcCorner1(vrWidth, vrHeight / 2.0f + croppedHeight / 2.0f);
 
         vk::ImageBlit imageBlit;
         imageBlit.srcOffsets[0] = vk::Offset3D{ (int)srcCorner0.x, (int)srcCorner0.y, 0 };
@@ -1102,7 +1107,7 @@ void VKRenderer::writeCmdBuf(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageInde
         imageBlit.dstSubresource = imageBlit.srcSubresource = { vk::ImageAspectFlagBits::eColor, 0, 0, 1 };
 
         cmdBuf->blitImage(
-            finalPrePresent->image.image(), vk::ImageLayout::eTransferSrcOptimal,
+            leftEye->image.image(), vk::ImageLayout::eTransferSrcOptimal,
             swapchain->images[imageIndex], vk::ImageLayout::eTransferDstOptimal,
             imageBlit, vk::Filter::eLinear);
     }
@@ -1489,9 +1494,7 @@ RTTPass* VKRenderer::createRTTPass(RTTPassCreateInfo& ci) {
         vrInterface,
         frameIdx,
         &dbgStats,
-        shadowCascadePass,
-        finalPrePresent,
-        finalPrePresentR
+        shadowCascadePass
     };
 
     rttPasses.push_back(pass);
@@ -1575,12 +1578,14 @@ VKRenderer::~VKRenderer() {
         delete shadowmapImage;
         delete finalPrePresent;
 
+        if (leftEye) {
+            delete leftEye;
+            delete rightEye;
+        }
+
         for (int i = 0; i < NUM_SHADOW_LIGHTS; i++) {
             delete shadowImages[i];
         }
-
-        if (enableVR)
-            delete finalPrePresentR;
 
         materialUB.destroy();
         vpBuffer.destroy();

@@ -116,6 +116,7 @@ namespace worlds {
         , pickThisFrame(false)
         , awaitingResults(false)
         , setEventNextFrame(false)
+        , cullMeshRenderer(nullptr)
         , handles(handles) {
 
     }
@@ -125,7 +126,7 @@ namespace worlds {
     static ConVar maxParallaxLayers("r_maxParallaxLayers", "32");
     static ConVar minParallaxLayers("r_minParallaxLayers", "4");
 
-    void PolyRenderPass::setup(RenderContext& ctx) {
+    void PolyRenderPass::setup(RenderContext& ctx, vk::DescriptorPool descriptorPool) {
         ZoneScoped;
 
         vku::SamplerMaker sm{};
@@ -186,7 +187,7 @@ namespace worlds {
 
         vku::DescriptorSetMaker dsm;
         dsm.layout(*dsl);
-        descriptorSet = std::move(dsm.createUnique(handles->device, handles->descriptorPool)[0]);
+        descriptorSet = std::move(dsm.createUnique(handles->device, descriptorPool)[0]);
 
         vku::RenderpassMaker rPassMaker;
 
@@ -216,11 +217,12 @@ namespace worlds {
 
         rPassMaker.dependencyBegin(0, 1);
         rPassMaker.dependencySrcStageMask(vk::PipelineStageFlagBits::eEarlyFragmentTests);
-        rPassMaker.dependencyDstStageMask(vk::PipelineStageFlagBits::eEarlyFragmentTests | vk::PipelineStageFlagBits::eColorAttachmentOutput);
+        rPassMaker.dependencyDstStageMask(vk::PipelineStageFlagBits::eEarlyFragmentTests | vk::PipelineStageFlagBits::eColorAttachmentOutput | vk::PipelineStageFlagBits::eComputeShader);
         rPassMaker.dependencyDstAccessMask(vk::AccessFlagBits::eColorAttachmentRead |
                                            vk::AccessFlagBits::eColorAttachmentWrite |
                                            vk::AccessFlagBits::eDepthStencilAttachmentRead |
-                                           vk::AccessFlagBits::eDepthStencilAttachmentWrite);
+                                           vk::AccessFlagBits::eDepthStencilAttachmentWrite |
+                                           vk::AccessFlagBits::eShaderRead);
 
 
         // AMD driver bug workaround: shaders that use ViewIndex without a multiview renderpass
@@ -418,10 +420,10 @@ namespace worlds {
         }
 
         dbgLinesPass = new DebugLinesPass(handles);
-        dbgLinesPass->setup(ctx, *renderPass);
+        dbgLinesPass->setup(ctx, *renderPass, descriptorPool);
 
         skyboxPass = new SkyboxPass(handles);
-        skyboxPass->setup(ctx, *renderPass);
+        skyboxPass->setup(ctx, *renderPass, descriptorPool);
 
         depthPrepass = new DepthPrepass(handles);
         depthPrepass->setup(ctx, *renderPass, *pipelineLayout);
@@ -430,7 +432,7 @@ namespace worlds {
 
         if (ctx.passSettings.enableVR) {
             cullMeshRenderer = new VRCullMeshRenderer{handles};
-            cullMeshRenderer->setup(ctx, *renderPass);
+            cullMeshRenderer->setup(ctx, *renderPass, descriptorPool);
         }
 
         handles->device.setEvent(*pickEvent);
@@ -747,8 +749,8 @@ namespace worlds {
         skyboxPass->execute(ctx);
 
         cmdBuf.endRenderPass();
-        polyImage->image.setCurrentLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
-        depthStencilImage->image.setCurrentLayout(vk::ImageLayout::eDepthStencilAttachmentOptimal);
+        polyImage->image.setCurrentLayout(vk::ImageLayout::eShaderReadOnlyOptimal, vk::PipelineStageFlagBits::eColorAttachmentOutput, vk::AccessFlagBits::eColorAttachmentWrite);
+        depthStencilImage->image.setCurrentLayout(vk::ImageLayout::eDepthStencilAttachmentOptimal, vk::PipelineStageFlagBits::eEarlyFragmentTests, vk::AccessFlagBits::eDepthStencilAttachmentWrite);
 
         if (pickThisFrame) {
             cmdBuf.resetEvent(*pickEvent, vk::PipelineStageFlagBits::eBottomOfPipe);
@@ -786,5 +788,8 @@ namespace worlds {
         delete dbgLinesPass;
         delete skyboxPass;
         delete depthPrepass;
+
+        if (cullMeshRenderer)
+            delete cullMeshRenderer;
     }
 }
