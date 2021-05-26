@@ -3,12 +3,14 @@
 #include <iostream>
 #include "Core/Log.hpp"
 #include "Fatal.hpp"
+#include <mutex>
 #include <string.h>
 #include <robin_hood.h>
 
 namespace worlds {
     class AssetDB::ADBStorage {
     public:
+        std::mutex mutex;
         robin_hood::unordered_map<AssetID, std::string> paths;
         robin_hood::unordered_map<std::string, AssetID> ids;
         robin_hood::unordered_map<AssetID, std::string> extensions;
@@ -27,6 +29,7 @@ namespace worlds {
     }
 
     void AssetDB::load() {
+        std::lock_guard<std::mutex> lg{storage->mutex};
         PHYSFS_File* dbFile = PHYSFS_openRead(ASSET_DB_PATH);
 
         char magicBuf[5];
@@ -76,6 +79,7 @@ namespace worlds {
     }
 
     void AssetDB::save() {
+        std::lock_guard<std::mutex> lg{storage->mutex};
         PHYSFS_File* dbFile = PHYSFS_openWrite(ASSET_DB_PATH);
         PHYSFS_writeBytes(dbFile, ASSET_DB_MAGIC, sizeof(ASSET_DB_MAGIC));
         PHYSFS_writeBytes(dbFile, &ASSET_DB_VER, sizeof(ASSET_DB_VER));
@@ -91,14 +95,17 @@ namespace worlds {
     }
 
     PHYSFS_File* AssetDB::openAssetFileRead(AssetID id) {
+        std::lock_guard<std::mutex> lg{storage->mutex};
         return PHYSFS_openRead(storage->paths.at(id).c_str());
     }
 
     PHYSFS_File* AssetDB::openAssetFileWrite(AssetID id) {
+        std::lock_guard<std::mutex> lg{storage->mutex};
         return PHYSFS_openWrite(storage->paths.at(id).c_str());
     }
 
     AssetID AssetDB::addAsset(std::string path) {
+        std::lock_guard<std::mutex> lg{storage->mutex};
         if (PHYSFS_exists(path.c_str()) == 0) {
             logWarn("Adding missing asset: %s", path.c_str());
         }
@@ -117,27 +124,33 @@ namespace worlds {
     }
 
     AssetID AssetDB::createAsset(std::string path) {
+        std::lock_guard<std::mutex> lg{storage->mutex};
         PHYSFS_close(PHYSFS_openWrite(path.c_str()));
         return addAsset(path);
     }
 
     std::string AssetDB::getAssetPath(AssetID id) {
+        std::lock_guard<std::mutex> lg{storage->mutex};
         return storage->paths.at(id);
     }
 
     std::string AssetDB::getAssetExtension(AssetID id) {
+        std::lock_guard<std::mutex> lg{storage->mutex};
         return storage->extensions.at(id);
     }
 
     bool AssetDB::hasId(AssetID id) {
+        std::lock_guard<std::mutex> lg{storage->mutex};
         return storage->paths.find(id) != storage->paths.end();
     }
 
     bool AssetDB::hasId(std::string path) {
+        std::lock_guard<std::mutex> lg{storage->mutex};
         return storage->ids.find(path) != storage->ids.end();
     }
 
     AssetID AssetDB::getExistingID(std::string path) {
+        std::lock_guard<std::mutex> lg{storage->mutex};
         return storage->ids.at(path);
     }
 
@@ -146,6 +159,7 @@ namespace worlds {
     }
 
     void AssetDB::rename(AssetID id, std::string newPath) {
+        std::lock_guard<std::mutex> lg{storage->mutex};
         std::string currPath = storage->paths.at(id);
         storage->ids.erase(currPath);
         storage->ids.insert({newPath, id});

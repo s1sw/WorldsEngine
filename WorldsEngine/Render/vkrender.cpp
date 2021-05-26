@@ -824,7 +824,7 @@ void VKRenderer::uploadSceneAssets(entt::registry& reg) {
     std::unordered_set<AssetID> uploadMeshes;
 
     // Upload any necessary materials + meshes
-    reg.view<WorldObject>().each([&](auto, WorldObject& wo) {
+    reg.view<WorldObject>().each([&](WorldObject& wo) {
         for (int i = 0; i < NUM_SUBMESH_MATS; i++) {
             if (!wo.presentMaterials[i]) continue;
 
@@ -857,7 +857,7 @@ void VKRenderer::uploadSceneAssets(entt::registry& reg) {
         jl.wait();
     }
 
-    reg.view<WorldObject>().each([&](auto, WorldObject& wo) {
+    reg.view<WorldObject>().each([&](WorldObject& wo) {
         for (int i = 0; i < NUM_SUBMESH_MATS; i++) {
             if (!wo.presentMaterials[i]) continue;
 
@@ -871,14 +871,14 @@ void VKRenderer::uploadSceneAssets(entt::registry& reg) {
         preloadMesh(id);
     }
 
-    reg.view<ProceduralObject>().each([&](auto, ProceduralObject& po) {
+    reg.view<ProceduralObject>().each([&](ProceduralObject& po) {
         if (po.materialIdx == ~0u) {
             reuploadMats = true;
             po.materialIdx = matSlots->loadOrGet(po.material);
         }
     });
 
-    reg.view<WorldCubemap>().each([&](auto, WorldCubemap& wc) {
+    reg.view<WorldCubemap>().each([&](WorldCubemap& wc) {
         if (!cubemapSlots->isLoaded(wc.cubemapId)) {
             cubemapSlots->loadOrGet(wc.cubemapId);
             reuploadMats = true;
