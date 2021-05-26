@@ -2,7 +2,7 @@
 #include "RenderPasses.hpp"
 
 namespace worlds {
-    RTTPass::RTTPass(const RTTPassCreateInfo& ci, VKRenderer* renderer, IVRInterface* vrInterface, uint32_t frameIdx, RenderDebugStats* dbgStats, ShadowCascadePass* scp, RenderTexture* finalPrePresent, RenderTexture* finalPrePresentR)
+    RTTPass::RTTPass(const RTTPassCreateInfo& ci, VKRenderer* renderer, IVRInterface* vrInterface, uint32_t frameIdx, RenderDebugStats* dbgStats, ShadowCascadePass* scp)
         : width {ci.width}
         , height {ci.height}
         , isVr {ci.isVr}
@@ -10,10 +10,23 @@ namespace worlds {
         , enableShadows {ci.enableShadows}
         , cam {ci.cam}
         , renderer {renderer}
+        , vrInterface {vrInterface}
         , dbgStats {dbgStats}
         , shadowCascadePass {scp} {
         auto& handles = *renderer->getHandles();
         RenderResources resources = renderer->getResources();
+
+        std::vector<vk::DescriptorPoolSize> poolSizes;
+        poolSizes.emplace_back(vk::DescriptorType::eUniformBuffer, 512);
+        poolSizes.emplace_back(vk::DescriptorType::eCombinedImageSampler, 512);
+        poolSizes.emplace_back(vk::DescriptorType::eStorageBuffer, 512);
+
+        vk::DescriptorPoolCreateInfo descriptorPoolInfo{};
+        descriptorPoolInfo.flags = vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet;
+        descriptorPoolInfo.maxSets = 256;
+        descriptorPoolInfo.poolSizeCount = (uint32_t)poolSizes.size();
+        descriptorPoolInfo.pPoolSizes = poolSizes.data();
+        descriptorPool = handles.device.createDescriptorPoolUnique(descriptorPoolInfo);
 
         vk::ImageCreateInfo ici;
         ici.imageType = vk::ImageType::e2D;
@@ -61,7 +74,7 @@ namespace worlds {
         trp = new TonemapRenderPass(
             &handles,
             hdrTarget,
-            ci.outputToScreen ? finalPrePresent : sdrFinalTarget
+            ci.isVr ? renderer->leftEye : ci.outputToScreen ? renderer->finalPrePresent : sdrFinalTarget
         );
 
         auto queue = handles.device.getQueue(handles.graphicsQueueFamilyIdx, 0);
@@ -71,7 +84,8 @@ namespace worlds {
             if (!ci.outputToScreen)
                 sdrFinalTarget->image.setLayout(cmdBuf, vk::ImageLayout::eShaderReadOnlyOptimal);
             if (ci.isVr) {
-                finalPrePresentR->image.setLayout(cmdBuf, vk::ImageLayout::eTransferSrcOptimal);
+                renderer->leftEye->image.setLayout(cmdBuf, vk::ImageLayout::eTransferSrcOptimal);
+                renderer->rightEye->image.setLayout(cmdBuf, vk::ImageLayout::eTransferSrcOptimal);
             }
         });
 
@@ -92,11 +106,11 @@ namespace worlds {
             .imageIndex = frameIdx
         };
 
-        trp->setup(rCtx);
-        prp->setup(rCtx);
+        trp->setup(rCtx, *descriptorPool);
+        prp->setup(rCtx, *descriptorPool);
 
         if (ci.isVr) {
-            trp->setRightFinalImage(finalPrePresentR);
+            trp->setRightFinalImage(renderer->rightEye);
         }
     }
 
@@ -306,7 +320,7 @@ namespace worlds {
         );
 
         if (enableShadows) {
-            renderer->calculateCascadeMatrices(world, *cam, rCtx);
+            renderer->calculateCascadeMatrices(isVr, world, *cam, rCtx);
             shadowCascadePass->prePass(rCtx);
             shadowCascadePass->execute(rCtx);
         }

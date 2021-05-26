@@ -231,6 +231,7 @@ namespace worlds {
 
         cb.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eFragmentShader,
             vk::DependencyFlagBits::eByRegion, nullptr, nullptr, { imb3, imb4 });
+        t.setCurrentLayout(vk::ImageLayout::eShaderReadOnlyOptimal, vk::PipelineStageFlagBits::eFragmentShader, vk::AccessFlagBits::eShaderRead);
     }
 
     void generateMips(const VulkanHandles& vkCtx, vku::TextureImage2D& t) {
@@ -323,7 +324,7 @@ namespace worlds {
                     offset += ((bp.bytesPerBlock + 3) & ~3) * ((width / bp.blockWidth) * (height / bp.blockHeight));
                 }
             }
-            tex.setLayout(cb, vk::ImageLayout::eShaderReadOnlyOptimal);
+            tex.setLayout(cb, vk::ImageLayout::eShaderReadOnlyOptimal, vk::PipelineStageFlagBits::eFragmentShader, vk::AccessFlagBits::eShaderRead);
         }
 
         tempBufMutex.lock();

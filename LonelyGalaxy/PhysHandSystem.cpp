@@ -41,11 +41,16 @@ namespace lg {
     static glm::vec3 rotEulerOffset { -120.0f, 0.0f, -51.0f };
     worlds::ConVar physHandDbg { "lg_physHandDbg", "0", "Show debug menu for physics hands" };
     worlds::ConVar killHands { "lg_killHands", "0", "Bleh" };
+    worlds::ConVar handTuning { "lg_handTuning", "0", "Displays a debug menu for tuning hand PID controllers." };
 
     void PhysHandSystem::preSimUpdate(entt::registry& registry, float deltaTime) {
         registry.view<PhysHand>().each([&](entt::entity ent, PhysHand& physHand) {
             //setTargets(physHand, ent, deltaTime);
         });
+
+        if (handTuning.getInt()) {
+            ImGui::DragFloat3("Euler Hand Offset", glm::value_ptr(rotEulerOffset));
+        }
     }
 
     glm::vec3 getAxisOfLargestComponent(glm::vec3 v3) {
@@ -60,7 +65,6 @@ namespace lg {
         return glm::vec3{0.0f, 0.0f, 1.0f};
     }
 
-    worlds::ConVar handTuning { "lg_handTuning", "0", "Displays a debug menu for tuning hand PID controllers." };
 
     void PhysHandSystem::simulate(entt::registry& registry, float simStep) {
         registry.view<PhysHand, worlds::DynamicPhysicsActor>().each([&](entt::entity ent, PhysHand& physHand, worlds::DynamicPhysicsActor& actor) {

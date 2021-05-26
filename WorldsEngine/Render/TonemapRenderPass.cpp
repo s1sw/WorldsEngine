@@ -21,7 +21,8 @@ namespace worlds {
 
     }
 
-    void TonemapRenderPass::setup(RenderContext& ctx) {
+    void TonemapRenderPass::setup(RenderContext& ctx, vk::DescriptorPool descriptorPool) {
+        dsPool = descriptorPool;
         vku::DescriptorSetLayoutMaker tonemapDslm;
         tonemapDslm.image(0, vk::DescriptorType::eStorageImage, vk::ShaderStageFlagBits::eCompute, 1);
         tonemapDslm.image(1, vk::DescriptorType::eCombinedImageSampler, vk::ShaderStageFlagBits::eCompute, 1);
@@ -52,7 +53,7 @@ namespace worlds {
 
         vku::DescriptorSetMaker dsm;
         dsm.layout(*dsl);
-        descriptorSet = std::move(dsm.createUnique(handles->device, handles->descriptorPool)[0]);
+        descriptorSet = std::move(dsm.createUnique(handles->device, descriptorPool)[0]);
 
         vku::SamplerMaker sm;
         sampler = sm.createUnique(handles->device);
@@ -77,8 +78,8 @@ namespace worlds {
         auto& cmdBuf = ctx.cmdBuf;
         finalPrePresent->image.setLayout(cmdBuf,
             vk::ImageLayout::eGeneral,
-            vk::PipelineStageFlagBits::eColorAttachmentOutput, vk::PipelineStageFlagBits::eComputeShader,
-            vk::AccessFlagBits::eColorAttachmentWrite, vk::AccessFlagBits::eShaderWrite);
+            vk::PipelineStageFlagBits::eComputeShader,
+            vk::AccessFlagBits::eShaderWrite);
 
         cmdBuf.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pipelineLayout, 0, *descriptorSet, nullptr);
         cmdBuf.bindPipeline(vk::PipelineBindPoint::eCompute, *pipeline);
@@ -90,8 +91,8 @@ namespace worlds {
         if (ctx.passSettings.enableVR) {
             finalPrePresentR->image.setLayout(cmdBuf,
                 vk::ImageLayout::eGeneral,
-                vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eComputeShader,
-                vk::AccessFlagBits::eTransferRead, vk::AccessFlagBits::eShaderWrite);
+                vk::PipelineStageFlagBits::eComputeShader,
+                vk::AccessFlagBits::eShaderWrite);
 
             cmdBuf.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pipelineLayout, 0, *rDescriptorSet, nullptr);
             TonemapPushConstants tpc{ 1, exposureBias.getFloat() };
@@ -108,7 +109,7 @@ namespace worlds {
     void TonemapRenderPass::setRightFinalImage(RenderTexture* right) {
         vku::DescriptorSetMaker dsm;
         dsm.layout(*dsl);
-        rDescriptorSet = std::move(dsm.createUnique(handles->device, handles->descriptorPool)[0]);
+        rDescriptorSet = std::move(dsm.createUnique(handles->device, dsPool)[0]);
 
         vku::DescriptorSetUpdater dsu;
         dsu.beginDescriptorSet(*rDescriptorSet);

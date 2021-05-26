@@ -197,7 +197,7 @@ namespace worlds {
         uint32_t graphicsQueueFamilyIdx;
         GraphicsSettings graphicsSettings;
         uint32_t width, height;
-        uint32_t renderWidth, renderHeight;
+        uint32_t vrWidth, vrHeight;
     };
 
     struct RTResourceCreateInfo {
@@ -307,6 +307,7 @@ namespace worlds {
 
     class RTTPass {
     public:
+        int drawSortKey = 0;
         void drawNow(entt::registry& world);
         uint32_t width, height;
         RenderTexture* hdrTarget;
@@ -318,7 +319,7 @@ namespace worlds {
         bool isValid = true;
         bool active = false;
     private:
-        RTTPass(const RTTPassCreateInfo& ci, VKRenderer* renderer, IVRInterface* vrInterface, uint32_t frameIdx, RenderDebugStats* dbgStats, ShadowCascadePass* scp, RenderTexture* finalPrePresent, RenderTexture* finalPrePresentR);
+        RTTPass(const RTTPassCreateInfo& ci, VKRenderer* renderer, IVRInterface* vrInterface, uint32_t frameIdx, RenderDebugStats* dbgStats, ShadowCascadePass* scp);
         ~RTTPass();
         PolyRenderPass* prp;
         TonemapRenderPass* trp;
@@ -331,6 +332,7 @@ namespace worlds {
         RenderDebugStats* dbgStats;
         ShadowCascadePass* shadowCascadePass;
         void writeCmds(uint32_t frameIdx, vk::CommandBuffer buf, entt::registry& world);
+        vk::UniqueDescriptorPool descriptorPool;
 
         friend class VKRenderer;
     };
@@ -401,9 +403,9 @@ namespace worlds {
         VulkanHandles handles;
 
         RenderTexture* finalPrePresent;
-        // openvr doesn't support presenting image layers
-        // copy to another image
-        RenderTexture* finalPrePresentR;
+
+        RenderTexture* leftEye;
+        RenderTexture* rightEye;
 
         RenderTexture* shadowmapImage;
         RenderTexture* shadowImages[NUM_SHADOW_LIGHTS];
@@ -425,7 +427,7 @@ namespace worlds {
         uint32_t shadowmapRes;
         bool enableVR;
         ImGuiRenderPass* irp;
-        uint32_t renderWidth, renderHeight;
+        uint32_t vrWidth, vrHeight;
         IVRInterface* vrInterface;
         VrApi vrApi;
         float vrPredictAmount;
@@ -448,8 +450,8 @@ namespace worlds {
         vku::ShaderModule loadShaderAsset(AssetID id);
         void createInstance(const RendererInitInfo& initInfo);
         void submitToOpenVR();
-        glm::mat4 getCascadeMatrix(Camera cam, glm::vec3 lightdir, glm::mat4 frustumMatrix, float& texelsPerUnit);
-        void calculateCascadeMatrices(entt::registry& world, Camera& cam, RenderContext& rCtx);
+        glm::mat4 getCascadeMatrix(bool forVr, Camera cam, glm::vec3 lightdir, glm::mat4 frustumMatrix, float& texelsPerUnit);
+        void calculateCascadeMatrices(bool forVr, entt::registry& world, Camera& cam, RenderContext& rCtx);
         void writeCmdBuf(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageIndex, Camera& cam, entt::registry& reg);
         void reuploadMaterials();
 

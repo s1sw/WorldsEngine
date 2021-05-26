@@ -97,10 +97,8 @@ namespace worlds {
         shadowFb = handles->device.createFramebufferUnique(fci);
 
         matrixBuffer = vku::UniformBuffer {
-            handles->device, handles->allocator, sizeof(CascadeMatrices), VMA_MEMORY_USAGE_CPU_TO_GPU, "Cascade Matrices"
+            handles->device, handles->allocator, sizeof(CascadeMatrices), VMA_MEMORY_USAGE_GPU_ONLY, "Cascade Matrices"
         };
-
-        matricesMapped = (CascadeMatrices*)matrixBuffer.map(handles->device);
 
         vku::DescriptorSetUpdater dsu;
         dsu.beginDescriptorSet(*ds);
@@ -110,12 +108,6 @@ namespace worlds {
     }
 
     void ShadowCascadePass::prePass(RenderContext& ctx) {
-        for (int i = 0; i < 3; i++) {
-            matricesMapped->matrices[i] = ctx.cascadeInfo.matrices[i];
-        }
-
-        matrixBuffer.invalidate(handles->device);
-        matrixBuffer.flush(handles->device);
     }
 
     void ShadowCascadePass::execute(RenderContext& ctx) {
@@ -142,6 +134,14 @@ namespace worlds {
 
         auto cmdBuf = ctx.cmdBuf;
         entt::registry& reg = ctx.registry;
+
+        CascadeMatrices matrices;
+
+        for (int i = 0; i < 3; i++) {
+            matrices.matrices[i] = ctx.cascadeInfo.matrices[i];
+        }
+
+        cmdBuf.updateBuffer<CascadeMatrices>(matrixBuffer.buffer(), 0, matrices);
 
         cmdBuf.beginRenderPass(rpbi, vk::SubpassContents::eInline);
         cmdBuf.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline);
@@ -197,10 +197,9 @@ namespace worlds {
 
         cmdBuf.endRenderPass();
 
-        shadowImage->image.setCurrentLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
+        shadowImage->image.setCurrentLayout(vk::ImageLayout::eShaderReadOnlyOptimal, vk::PipelineStageFlagBits::eLateFragmentTests, vk::AccessFlagBits::eDepthStencilAttachmentWrite);
     }
 
     ShadowCascadePass::~ShadowCascadePass() {
-        matrixBuffer.unmap(handles->device);
     }
 }
