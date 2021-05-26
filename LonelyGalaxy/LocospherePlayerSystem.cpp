@@ -690,9 +690,11 @@ namespace lg {
     PlayerRig LocospherePlayerSystem::createPlayerRig(entt::registry& registry, glm::vec3 position) {
         // Locosphere
         auto playerLocosphere = registry.create();
-        registry.emplace<Transform>(playerLocosphere).position = position;
+        auto& pTransform = registry.emplace<Transform>(playerLocosphere);
+        pTransform.position = position;
         registry.emplace<LocospherePlayerComponent>(playerLocosphere).isLocal = true;
         registry.emplace<worlds::NameComponent>(playerLocosphere, "Locosphere");
+        registry.emplace<worlds::WorldObject>(playerLocosphere, worlds::g_assetDB.addOrGetExisting("Materials/dev.json"), worlds::g_assetDB.addOrGetExisting("uvsphere.obj"));
 
         auto actor = worlds::g_physics->createRigidDynamic(physx::PxTransform{ worlds::glm2px(position), physx::PxQuat{physx::PxIdentity} });
         auto& wActor = registry.emplace<worlds::DynamicPhysicsActor>(playerLocosphere, actor);
