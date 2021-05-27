@@ -10,7 +10,6 @@
 #include <SDL.h>
 #include "../Core/Console.hpp"
 #include <entt/entt.hpp>
-#define NUM_SUBMESH_MATS 32
 
 namespace worlds {
     const int NUM_SHADOW_LIGHTS = 1;

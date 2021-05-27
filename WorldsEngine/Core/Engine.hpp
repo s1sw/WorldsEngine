@@ -10,7 +10,7 @@
 #include "Console.hpp"
 
 namespace worlds {
-    const uint32_t NUM_SUBMESH_MATS = 32;
+    const int NUM_SUBMESH_MATS = 32;
     extern glm::ivec2 windowSize;
     extern JobSystem* g_jobSys;
     class VKRenderer;
