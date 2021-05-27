@@ -109,8 +109,8 @@ namespace lg {
 
     PlayerGrabManager::PlayerGrabManager(
             worlds::EngineInterfaces interfaces,
-            entt::registry& registry) 
-        : playerEnt{entt::null} 
+            entt::registry& registry)
+        : playerEnt{entt::null}
         , registry{registry}
         , interfaces{interfaces} {
         if (interfaces.vrInterface) {
@@ -185,13 +185,6 @@ namespace lg {
             glm::vec3 offset = gripPoint.offset;
             offset = glm::inverse(gripPoint.rotOffset) * offset;
             offset = handTf.rotation * offset;
-
-            glm::vec3 targetObjPos = handTf.position - offset;
-            glm::quat targetObjRot = handTf.rotation * gripPoint.rotOffset;
-
-            glm::vec3 pidOut = objPid.getOutput(targetObjPos - otherTf.position, deltaTime);
-
-            //otherActor.actor->addForce(worlds::glm2px(pidOut), physx::PxForceMode::eACCELERATION);
 
             if (distance < 0.005f && rotDot > 0.9f) {
                 auto& d6 = registry.get<worlds::D6Joint>(ent);
