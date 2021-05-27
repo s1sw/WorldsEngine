@@ -18,7 +18,7 @@ namespace lg {
             logWarn("failed to send packet");
         }
     }
-    
+
     void Client::setClientInfo(uint64_t gameVersion, uint64_t userAuthId, uint16_t userAuthUniverse) {
         this->gameVersion = gameVersion;
         this->userAuthId = userAuthId;
@@ -41,7 +41,7 @@ namespace lg {
 
         sendPacketToServer(pjrPacket);
     }
-    
+
     void Client::handleDisconnection(const ENetEvent& evt) {
         logMsg("disconnected :( reason was %u", evt.data);
     }

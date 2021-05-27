@@ -1,8 +1,8 @@
 #include "GameClient.hpp"
-#include "Core/AssetDB.hpp"
+#include <Core/AssetDB.hpp>
+#include <Core/Console.hpp>
 #include "LocospherePlayerSystem.hpp"
 #include "NetMessage.hpp"
-#include "Render/Loaders/SourceModelLoader.hpp"
 #include <entt/entity/registry.hpp>
 #include <Physics/Physics.hpp>
 #include <ImGui/imgui.h>
@@ -10,7 +10,7 @@
 namespace lg {
     const uint16_t CONVERGE_PORT = 3011;
 
-    GameClient::GameClient(entt::registry& reg) 
+    GameClient::GameClient(entt::registry& reg)
         : reg(reg) {
         netClient = new Client;
         netClient->setCallbackCtx(this);
@@ -187,11 +187,6 @@ namespace lg {
             auto& lpc = _this->reg.get<LocospherePlayerComponent>(newRig.locosphere);
             lpc.isLocal = false;
             _this->playerLocospheres[opj.id] = newRig.locosphere;
-
-            auto meshId = worlds::g_assetDB.addOrGetExisting("sourcemodel/models/konnie/isa/detroit/connor.mdl");
-            auto devMatId = worlds::g_assetDB.addOrGetExisting("Materials/dev.json");
-            auto& connorWO = _this->reg.emplace<worlds::WorldObject>(newRig.locosphere, devMatId, meshId);
-            worlds::setupSourceMaterials(meshId, connorWO);
         }
 
         if (evt.packet->data[0] == MessageType::OtherPlayerLeave) {

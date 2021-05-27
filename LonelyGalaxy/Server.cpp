@@ -1,7 +1,7 @@
 #include "Server.hpp"
 #include <Core/Fatal.hpp>
 #include <Core/Log.hpp>
-#include "Core/Console.hpp"
+#include <Core/Console.hpp>
 
 namespace lg {
     const char* reasonStrs[] = {

@@ -41,10 +41,9 @@
 #include "ContactDamageDealer.hpp"
 
 namespace lg {
-    const bool SPECTATOR_VIEW = true;
     worlds::RTTPass* spectatorPass = nullptr;
     worlds::Camera spectatorCam;
-    worlds::ConVar vrSpectatorCam { "lg_enableVrSpectatorCam", "0", "Enables VR spectator camera." };
+    worlds::ConVar enableSpectatorCam { "lg_enableVrSpectatorCam", "0", "Enables VR spectator camera." };
     struct SyncedRB {};
 
     void cmdToggleVsync(void* obj, const char*) {
@@ -176,9 +175,10 @@ namespace lg {
 
     void EventHandler::update(entt::registry& reg, float deltaTime, float) {
         if (vrInterface) {
-            if (SPECTATOR_VIEW && spectatorPass) {
-                if (!spectatorPass->isValid) {
-                    renderer->destroyRTTPass(spectatorPass);
+            if (enableSpectatorCam.getInt()) {
+                if (!spectatorPass || !spectatorPass->isValid) {
+                    if (spectatorPass)
+                        renderer->destroyRTTPass(spectatorPass);
                     int w, h;
                     SDL_GetWindowSize(engine->getMainWindow(), &w, &h);
                     worlds::RTTPassCreateInfo ci {
@@ -193,7 +193,14 @@ namespace lg {
                     spectatorPass = renderer->createRTTPass(ci);
                     spectatorPass->drawSortKey = 1;
                 }
-                spectatorPass->active = vrSpectatorCam.getInt();
+            }
+
+            if (spectatorPass) {
+                spectatorPass->active = enableSpectatorCam.getInt();
+                if (!enableSpectatorCam.getInt()) {
+                    renderer->destroyRTTPass(spectatorPass);
+                    spectatorPass = nullptr;
+                }
             }
             static float yRot = 0.0f;
             static float targetYRot = 0.0f;
@@ -216,20 +223,18 @@ namespace lg {
 
             rotated = rotatingNow;
 
+            const glm::vec3 flipVec { -1.0f, 1.0f, -1.0f };
+
             auto hmdTransform = vrInterface->getHeadTransform();
             glm::vec3 hmdPos = camera->rotation * worlds::getMatrixTranslation(hmdTransform);
-            hmdPos.x = -hmdPos.x;
-            hmdPos.z = -hmdPos.z;
+            hmdPos *= flipVec;
 
             glm::quat hmdRot = worlds::getMatrixRotation(hmdTransform);
-            
-            glm::vec3 rAxis = glm::axis(hmdRot);
-            rAxis.x *= -1.0f;
-            rAxis.z *= -1.0f;
-            float rAngle = glm::angle(hmdRot);
+            glm::vec3 hmdRotationAxis = glm::axis(hmdRot) * flipVec;
+            float hmdRotationAngle = glm::angle(hmdRot);
 
             glm::vec3 wsHeadPos = camera->position + hmdPos;
-            glm::quat wsHeadRot = camera->rotation * glm::angleAxis(rAngle, rAxis);
+            glm::quat wsHeadRot = camera->rotation * glm::angleAxis(hmdRotationAngle, hmdRotationAxis);
 
             if (reg.valid(audioListenerEntity)) {
                 auto& listenerOverrideTransform = reg.get<Transform>(audioListenerEntity);
@@ -403,9 +408,12 @@ namespace lg {
             auto lHandModel = worlds::g_assetDB.addOrGetExisting("Models/VRHands/hand_placeholder_l.wmdl");
             auto rHandModel = worlds::g_assetDB.addOrGetExisting("Models/VRHands/hand_placeholder_r.wmdl");
 
-            headPlaceholder = registry.create();
-            registry.emplace<Transform>(headPlaceholder);
-            registry.emplace<worlds::WorldObject>(headPlaceholder, devMatId, worlds::g_assetDB.addOrGetExisting("Models/head placeholder.obj"));
+
+            if (vrInterface) {
+                headPlaceholder = registry.create();
+                registry.emplace<Transform>(headPlaceholder);
+                registry.emplace<worlds::WorldObject>(headPlaceholder, devMatId, worlds::g_assetDB.addOrGetExisting("Models/head placeholder.obj"));
+            }
 
             lHandEnt = registry.create();
             registry.get<PlayerRig>(rig.locosphere).lHand = lHandEnt;
@@ -542,22 +550,6 @@ namespace lg {
                 audioListenerEntity = registry.create();
                 registry.emplace<Transform>(audioListenerEntity);
                 registry.emplace<worlds::AudioListenerOverride>(audioListenerEntity);
-
-                if (SPECTATOR_VIEW) {
-                    auto mv = ImGui::GetMainViewport();
-                    worlds::RTTPassCreateInfo ci {
-                        .cam = &spectatorCam,
-                        .width = static_cast<uint32_t>(mv->Size.x),
-                        .height = static_cast<uint32_t>(mv->Size.y),
-                        .isVr = false,
-                        .useForPicking = false,
-                        .enableShadows = true,
-                        .outputToScreen = true
-                    };
-                    spectatorPass = renderer->createRTTPass(ci);
-                    spectatorPass->active = true;
-                    spectatorPass->drawSortKey = 1;
-                }
             }
         }
 

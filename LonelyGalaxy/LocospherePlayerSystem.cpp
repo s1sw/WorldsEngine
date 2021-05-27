@@ -692,6 +692,7 @@ namespace lg {
         auto playerLocosphere = registry.create();
         auto& pTransform = registry.emplace<Transform>(playerLocosphere);
         pTransform.position = position;
+        pTransform.scale = glm::vec3{0.66f};
         registry.emplace<LocospherePlayerComponent>(playerLocosphere).isLocal = true;
         registry.emplace<worlds::NameComponent>(playerLocosphere, "Locosphere");
         registry.emplace<worlds::WorldObject>(playerLocosphere, worlds::g_assetDB.addOrGetExisting("Materials/dev.json"), worlds::g_assetDB.addOrGetExisting("uvsphere.obj"));
@@ -702,7 +703,7 @@ namespace lg {
         actor->setSolverIterationCounts(16, 4);
         worlds::g_scene->addActor(*actor);
 
-        locosphereMat = worlds::g_physics->createMaterial(100.0f, 100.0f, 0.0f);
+        locosphereMat = worlds::g_physics->createMaterial(15.0f, 15.0f, 0.2f);
         locosphereMat->setFrictionCombineMode(physx::PxCombineMode::eMAX);
         wActor.physicsShapes.push_back(worlds::PhysicsShape::sphereShape(LOCOSPHERE_RADIUS, locosphereMat));
 
