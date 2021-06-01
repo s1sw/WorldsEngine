@@ -17,6 +17,7 @@ worlds_sources += [
   'Render/vkrender.cpp',
   'Render/vkswapchain.cpp',
   'Render/VRCullMeshRenderer.cpp',
+  'Render/WorldSpaceUIPass.cpp',
   'Render/Loaders/CubemapLoader.cpp',
   'Render/Loaders/ObjModelLoader.cpp',
   'Render/Loaders/RobloxMeshLoader.cpp',

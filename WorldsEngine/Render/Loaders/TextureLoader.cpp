@@ -241,7 +241,7 @@ namespace worlds {
             });
     }
 
-    vku::TextureImage2D uploadTextureVk(const VulkanHandles& ctx, TextureData& td) {
+    vku::TextureImage2D uploadTextureVk(const VulkanHandles& ctx, TextureData& td, bool genMips) {
         ZoneScoped;
         auto memProps = ctx.physicalDevice.getMemoryProperties();
         bool createMips = td.numMips == 1 && (td.format == vk::Format::eR8G8B8A8Srgb || td.format == vk::Format::eR8G8B8A8Unorm);
@@ -261,7 +261,7 @@ namespace worlds {
 
         tex.upload(ctx.device, ctx.allocator, datVec, ctx.commandPool, memProps, ctx.device.getQueue(ctx.graphicsQueueFamilyIdx, 0), td.numMips);
 
-        if (createMips) {
+        if (createMips && genMips) {
             generateMips(ctx, tex);
         }
         vkMutex.unlock();

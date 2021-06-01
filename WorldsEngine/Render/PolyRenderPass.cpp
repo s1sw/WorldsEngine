@@ -428,6 +428,9 @@ namespace worlds {
         depthPrepass = new DepthPrepass(handles);
         depthPrepass->setup(ctx, *renderPass, *pipelineLayout);
 
+        uiPass = new WorldSpaceUIPass(handles);
+        uiPass->setup(ctx, *renderPass, descriptorPool);
+
         updateDescriptorSets(ctx);
 
         if (ctx.passSettings.enableVR) {
@@ -632,6 +635,7 @@ namespace worlds {
 
         dbgLinesPass->prePass(ctx);
         skyboxPass->prePass(ctx);
+        uiPass->prePass(ctx);
     }
 
     void PolyRenderPass::execute(RenderContext& ctx) {
@@ -747,6 +751,7 @@ namespace worlds {
 
         dbgLinesPass->execute(ctx);
         skyboxPass->execute(ctx);
+        uiPass->execute(ctx);
 
         cmdBuf.endRenderPass();
         polyImage->image.setCurrentLayout(vk::ImageLayout::eShaderReadOnlyOptimal, vk::PipelineStageFlagBits::eColorAttachmentOutput, vk::AccessFlagBits::eColorAttachmentWrite);
