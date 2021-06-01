@@ -27,21 +27,18 @@ LightShadeInfo calcLightShadeInfo(Light light, ShadeInfo shadeInfo, vec3 worldPo
 
         // dot(L, L) = length(L) squared
         lsi.radiance *= 1.0 / length2(lsi.L);
-        lsi.radiance *= length2(lsi.radiance) < 0.002 * 0.002 ? 0.0 : 1.0;
 
         lsi.L = normalize(lsi.L);
     } else if (lightType == LT_SPOT) {
+        const float outerRadius = 0.02f;
         float cutoff = light.pack1.w;
-        float outerCutoff = cutoff - 0.02f;
         vec3 lightPos = light.pack2.xyz;
 
         lsi.L = normalize(lightPos - worldPos);
 
         float theta = dot(lsi.L, normalize(light.pack1.xyz));
         vec3 lToFrag = lightPos - worldPos;
-        lsi.radiance *= clamp((theta - outerCutoff) / (cutoff - outerCutoff), 0.0f, 1.0f) * (1.0 / dot(lToFrag, lToFrag));
-
-        lsi.radiance *= length2(lsi.radiance) < 0.02 * 0.02 ? 0.0 : 1.0;
+        lsi.radiance *= clamp((theta - cutoff - outerRadius) / outerRadius, 0.0f, 1.0f) * (1.0 / dot(lToFrag, lToFrag));
     } else if (lightType == LT_SPHERE) {
         vec3 lightPos = light.pack2.xyz;
         float sphereRadius = light.pack1.w;
@@ -87,32 +84,6 @@ LightShadeInfo calcLightShadeInfo(Light light, ShadeInfo shadeInfo, vec3 worldPo
     }
 
     return lsi;
-}
-
-vec3 calculateLightingMetallic(Light light, ShadeInfo shadeInfo, vec3 worldPos) {
-    LightShadeInfo lsi = calcLightShadeInfo(light, shadeInfo, worldPos);
-
-    vec3 halfway = normalize(shadeInfo.viewDir + lsi.L);
-    vec3 norm = shadeInfo.normal;
-    float cosLh = max(0.0f, dot(norm, halfway));
-    float cosLi = max(0.0f, dot(norm, lsi.L));
-    float cosLo = max(0.0f, dot(norm, shadeInfo.viewDir));
-
-    float NDF;
-    int lType = int(light.pack0.w);
-
-    if (lType != LT_SPHERE && lType != LT_TUBE) {
-        NDF = ndfGGX(cosLh, shadeInfo.roughness);
-    } else {
-        NDF = ndfGGXSphereLight(cosLh, shadeInfo.roughness, light.pack2.w, lsi.lightDist);
-    }
-
-    float G = gaSchlickGGX(cosLi, cosLo, shadeInfo.roughness);
-    vec3 numerator = NDF * G * fresnelSchlick(shadeInfo.f0, max(dot(halfway, norm), 0.0f));
-    float denominator = 4.0f * cosLo * cosLi;
-    vec3 specular = numerator / max(denominator, 0.001f);
-
-    return (specular) * lsi.radiance * cosLi;
 }
 
 vec3 calculateLighting(Light light, ShadeInfo shadeInfo, vec3 worldPos) {
