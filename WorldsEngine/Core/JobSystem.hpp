@@ -28,7 +28,7 @@ namespace worlds {
         PerFrame,
         Background
     };
-    const int NUM_JOB_SLOTS = 1;
+    const int NUM_JOB_SLOTS = 3;
 
     class JobList{
     public:
