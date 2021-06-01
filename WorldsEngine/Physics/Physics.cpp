@@ -87,8 +87,6 @@ namespace worlds {
 
         auto& dpa = reg.get<DynamicPhysicsActor>(ent);
         j.pxJoint = physx::PxD6JointCreate(*g_physics, dpa.actor, physx::PxTransform{ physx::PxIdentity }, nullptr, physx::PxTransform{ physx::PxIdentity });
-        j.pxJoint->setInvMassScale0(1.0f);
-        j.pxJoint->setInvMassScale1(1.0f);
         j.thisActor = dpa.actor;
     }
 

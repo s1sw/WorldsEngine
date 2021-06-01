@@ -28,11 +28,30 @@ namespace worlds {
             return;
         }
 
-        if (pa) {
-            pxJoint->setActors(thisActor, pa->actor);
-        } else {
-            pxJoint->setActors(thisActor, dpa->actor);
-        }
+        auto other = pa ? pa->actor : dpa->actor;
+
+        if (reverseJoint)
+            pxJoint->setActors(other, thisActor);
+        else
+            pxJoint->setActors(thisActor, other);
+    }
+
+    physx::PxD6Motion::Enum conv(D6Motion motion) {
+        return (physx::PxD6Motion::Enum)motion;
+    }
+
+    void D6Joint::setAllLinearMotion(D6Motion wmotion) {
+        auto motion = conv(wmotion);
+        pxJoint->setMotion(physx::PxD6Axis::eX, motion);
+        pxJoint->setMotion(physx::PxD6Axis::eY, motion);
+        pxJoint->setMotion(physx::PxD6Axis::eZ, motion);
+    }
+
+    void D6Joint::setAllAngularMotion(D6Motion wmotion) {
+        auto motion = conv(wmotion);
+        pxJoint->setMotion(physx::PxD6Axis::eSWING1, motion);
+        pxJoint->setMotion(physx::PxD6Axis::eSWING2, motion);
+        pxJoint->setMotion(physx::PxD6Axis::eTWIST, motion);
     }
 
     entt::entity D6Joint::getTarget() {
