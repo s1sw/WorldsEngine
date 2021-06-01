@@ -6,6 +6,7 @@
 #include "PackedMaterial.hpp"
 #include <array>
 #include <nlohmann/json_fwd.hpp>
+#include <mutex>
 
 namespace worlds {
     const uint32_t NUM_TEX_SLOTS = 256;
@@ -62,6 +63,7 @@ namespace worlds {
     class TextureSlots : public ResourceSlots<vku::TextureImage2D, NUM_TEX_SLOTS, AssetID> {
     protected:
         uint32_t load(AssetID asset) override {
+            slotMutex.lock();
             uint32_t slot = getFreeSlot();
 
             if (slot > NUM_TEX_SLOTS) {
@@ -69,6 +71,9 @@ namespace worlds {
             }
 
             present[slot] = true;
+            lookup.insert({ asset, slot });
+            reverseLookup.insert({ slot, asset });
+            slotMutex.unlock();
 
             auto texData = loadTexData(asset);
             if (texData.data == nullptr) {
@@ -81,14 +86,13 @@ namespace worlds {
                 slots[slot] = uploadTextureVk(*vkCtx, texData);
             std::free(texData.data);
 
-            lookup.insert({ asset, slot });
-            reverseLookup.insert({ slot, asset });
             return slot;
         }
     private:
         std::shared_ptr<VulkanHandles> vkCtx;
         vk::CommandBuffer cb;
         uint32_t frameIdx;
+        std::mutex slotMutex;
     public:
         bool frameStarted = false;
         TextureSlots(std::shared_ptr<VulkanHandles> vkCtx) : vkCtx(vkCtx), cb(nullptr) {
@@ -125,6 +129,7 @@ namespace worlds {
         std::shared_ptr<VulkanHandles> vkCtx;
         std::array<MatExtraData, NUM_MAT_SLOTS> matExtraData;
         TextureSlots& texSlots;
+        std::mutex slotMutex;
     public:
         MatExtraData& getExtraDat(uint32_t slot) { assert(this->present[slot]); return matExtraData[slot]; }
 

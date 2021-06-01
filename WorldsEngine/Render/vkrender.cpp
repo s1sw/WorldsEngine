@@ -820,6 +820,9 @@ void VKRenderer::uploadSceneAssets(entt::registry& reg) {
     ZoneScoped;
     bool reuploadMats = false;
 
+    std::vector<AssetID> uploadMats;
+    std::vector<AssetID> uploadMeshes;
+
     // Upload any necessary materials + meshes
     reg.view<WorldObject>().each([&](auto, WorldObject& wo) {
         for (int i = 0; i < NUM_SUBMESH_MATS; i++) {
@@ -827,14 +830,46 @@ void VKRenderer::uploadSceneAssets(entt::registry& reg) {
 
             if (wo.materialIdx[i] == ~0u) {
                 reuploadMats = true;
-                wo.materialIdx[i] = matSlots->loadOrGet(wo.materials[i]);
+                uploadMats.emplace_back(wo.materials[i]);
             }
         }
 
         if (loadedMeshes.find(wo.mesh) == loadedMeshes.end()) {
-            preloadMesh(wo.mesh);
+            uploadMeshes.emplace_back(wo.mesh);
         }
     });
+
+    if (uploadMats.size()) {
+        JobList& jl = g_jobSys->getFreeJobList();
+        jl.begin();
+
+        for (AssetID id : uploadMats) {
+            Job j {
+                [id, this] {
+                    matSlots->loadOrGet(id);
+                }
+            };
+            jl.addJob(std::move(j));
+        }
+
+        jl.end();
+        g_jobSys->signalJobListAvailable();
+        jl.wait();
+    }
+
+    reg.view<WorldObject>().each([&](auto, WorldObject& wo) {
+        for (int i = 0; i < NUM_SUBMESH_MATS; i++) {
+            if (!wo.presentMaterials[i]) continue;
+
+            if (wo.materialIdx[i] == ~0u) {
+                wo.materialIdx[i] = matSlots->get(wo.materials[i]);
+            }
+        }
+    });
+
+    for (AssetID id : uploadMeshes) {
+        preloadMesh(id);
+    }
 
     reg.view<ProceduralObject>().each([&](auto, ProceduralObject& po) {
         if (po.materialIdx == ~0u) {

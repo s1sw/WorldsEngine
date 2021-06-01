@@ -110,17 +110,20 @@ namespace worlds {
     }
 
     uint32_t MaterialSlots::load(AssetID asset) {
+        slotMutex.lock();
         uint32_t slot = getFreeSlot();
 
         if (slot > NUM_MAT_SLOTS) {
             fatalErr("Out of material slots");
         }
 
-        present[slot] = true;
-        parseMaterial(asset, slots[slot], matExtraData[slot]);
-
         lookup.insert({ asset, slot });
         reverseLookup.insert({ slot, asset });
+        present[slot] = true;
+        slotMutex.unlock();
+
+        parseMaterial(asset, slots[slot], matExtraData[slot]);
+
 
         return slot;
     }
