@@ -437,19 +437,14 @@ namespace lg {
             rHandPhys.rotController.averageAmount = 2.0f;
             rHandPhys.follow = FollowHand::RightHand;
 
-            auto fenderActor = registry.get<worlds::DynamicPhysicsActor>(rig.fender).actor;
-
             auto& lHandJoint = registry.emplace<worlds::D6Joint>(lHandEnt);
+            lHandJoint.reverseJoint = true;
             lHandJoint.setTarget(rig.fender, registry);
 
-            lHandJoint.pxJoint->setLinearLimit(physx::PxJointLinearLimit{
+            lHandJoint.pxJoint->setDistanceLimit(physx::PxJointLinearLimit{
                     physx::PxTolerancesScale{}, 0.8f});
-            lHandJoint.pxJoint->setMotion(physx::PxD6Axis::eX, physx::PxD6Motion::eLIMITED);
-            lHandJoint.pxJoint->setMotion(physx::PxD6Axis::eY, physx::PxD6Motion::eLIMITED);
-            lHandJoint.pxJoint->setMotion(physx::PxD6Axis::eZ, physx::PxD6Motion::eLIMITED);
-            lHandJoint.pxJoint->setMotion(physx::PxD6Axis::eSWING1, physx::PxD6Motion::eFREE);
-            lHandJoint.pxJoint->setMotion(physx::PxD6Axis::eSWING2, physx::PxD6Motion::eFREE);
-            lHandJoint.pxJoint->setMotion(physx::PxD6Axis::eTWIST, physx::PxD6Motion::eFREE);
+            lHandJoint.setAllLinearMotion(worlds::D6Motion::Limited);
+            lHandJoint.setAllAngularMotion(worlds::D6Motion::Free);
 
             lHandJoint.pxJoint->setLocalPose(physx::PxJointActorIndex::eACTOR0, physx::PxTransform {
                 physx::PxVec3 { 0.0f, 0.8f, 0.0f },
@@ -457,16 +452,13 @@ namespace lg {
             });
 
             auto& rHandJoint = registry.emplace<worlds::D6Joint>(rHandEnt);
+            rHandJoint.reverseJoint = true;
             rHandJoint.setTarget(rig.fender, registry);
 
-            rHandJoint.pxJoint->setLinearLimit(physx::PxJointLinearLimit{
+            rHandJoint.pxJoint->setDistanceLimit(physx::PxJointLinearLimit{
                     physx::PxTolerancesScale{}, 0.8f});
-            rHandJoint.pxJoint->setMotion(physx::PxD6Axis::eX, physx::PxD6Motion::eLIMITED);
-            rHandJoint.pxJoint->setMotion(physx::PxD6Axis::eY, physx::PxD6Motion::eLIMITED);
-            rHandJoint.pxJoint->setMotion(physx::PxD6Axis::eZ, physx::PxD6Motion::eLIMITED);
-            rHandJoint.pxJoint->setMotion(physx::PxD6Axis::eSWING1, physx::PxD6Motion::eFREE);
-            rHandJoint.pxJoint->setMotion(physx::PxD6Axis::eSWING2, physx::PxD6Motion::eFREE);
-            rHandJoint.pxJoint->setMotion(physx::PxD6Axis::eTWIST, physx::PxD6Motion::eFREE);
+            rHandJoint.setAllLinearMotion(worlds::D6Motion::Limited);
+            rHandJoint.setAllAngularMotion(worlds::D6Motion::Free);
 
             rHandJoint.pxJoint->setLocalPose(physx::PxJointActorIndex::eACTOR0, physx::PxTransform {
                 physx::PxVec3 { 0.0f, 0.8f, 0.0f },
