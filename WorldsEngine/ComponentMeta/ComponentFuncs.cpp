@@ -22,6 +22,7 @@
 #include "../Util/EnumUtil.hpp"
 #include "../Editor/Editor.hpp"
 #include <nlohmann/json.hpp>
+#include "../UI/WorldTextComponent.hpp"
 
 // Janky workaround to fix static constructors not being called
 // (static constructors are only required to be called before the first function in the translation unit)
@@ -1341,6 +1342,50 @@ namespace worlds {
         }
     };
 
+    class WorldTextComponentEditor : public BasicComponentUtil<WorldTextComponent> {
+    public:
+        BASIC_CLONE(WorldTextComponent);
+        BASIC_CREATE(WorldTextComponent);
+
+        const char* getName() override { return "World Text Component"; }
+
+        void edit(entt::entity ent, entt::registry& reg, Editor* ed) override {
+            auto& wtc = reg.get<WorldTextComponent>(ent);
+
+            if (ImGui::CollapsingHeader("World Text Component")) {
+                if (ImGui::Button("Remove")) {
+                    reg.remove<WorldTextComponent>(ent);
+                    return;
+                }
+                ImGui::InputText("Text", &wtc.text);
+                ImGui::DragFloat("Text Scale", &wtc.textScale);
+                ImGui::Separator();
+            }
+        }
+
+        void writeToFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file) override {
+        }
+
+        void readFromFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file, int version) override {
+        }
+
+        void toJson(entt::entity ent, entt::registry& reg, json& j) override {
+            auto& wtc = reg.get<WorldTextComponent>(ent);
+
+            j = {
+                { "text", wtc.text },
+                { "textScale", wtc.textScale }
+            };
+        }
+
+        void fromJson(entt::entity ent, entt::registry& reg, const json& j) override {
+            auto& wtc = reg.emplace<WorldTextComponent>(ent);
+
+            wtc.text = j["text"];
+            wtc.textScale = j["textScale"];
+        }
+    };
+
     TransformEditor transformEd;
     WorldObjectEditor worldObjEd;
     WorldLightEditor worldLightEd;
@@ -1353,4 +1398,5 @@ namespace worlds {
     ReverbProbeBoxEditor rpbEd;
     AudioTriggerEditor atEd;
     ProxyAOEditor aoEd;
+    WorldTextComponentEditor wtcEd;
 }

@@ -93,6 +93,27 @@ namespace worlds {
         void execute(RenderContext& ctx, slib::StaticAllocList<SubmeshDrawInfo>& drawInfo);
     };
 
+    class WorldSpaceUIPass {
+    private:
+        vk::UniquePipeline textPipeline;
+        vk::UniqueDescriptorSet descriptorSet;
+        vk::UniqueDescriptorSetLayout descriptorSetLayout;
+        vk::UniquePipelineLayout pipelineLayout;
+        VulkanHandles* handles;
+        vku::TextureImage2D textSdf;
+        vk::UniqueSampler sampler;
+        vku::GenericBuffer vb;
+        vku::GenericBuffer ib;
+
+        size_t bufferCapacity = 0;
+        void updateBuffers(entt::registry&);
+    public:
+        WorldSpaceUIPass(VulkanHandles* handles);
+        void setup(RenderContext& ctx, vk::RenderPass renderPass, vk::DescriptorPool descriptorPool);
+        void prePass(RenderContext& ctx);
+        void execute(RenderContext& ctx);
+    };
+
     class PolyRenderPass {
     private:
         vk::UniqueRenderPass renderPass;
@@ -141,6 +162,7 @@ namespace worlds {
         DebugLinesPass* dbgLinesPass;
         SkyboxPass* skyboxPass;
         DepthPrepass* depthPrepass;
+        WorldSpaceUIPass* uiPass;
         VulkanHandles* handles;
     public:
         PolyRenderPass(VulkanHandles* handles, RenderTexture* depthStencilImage, RenderTexture* polyImage, RenderTexture* shadowImage, bool enablePicking = false);
