@@ -432,6 +432,7 @@ namespace worlds {
 
                 sceneViewDS = VKImGUIUtil::createDescriptorSetFor(
                     sceneViewPass->sdrFinalTarget->image, vkCtx);
+                sceneViewPass->active = true;
             }
 
             auto wSize = ImGui::GetContentRegionAvail();
@@ -533,7 +534,7 @@ namespace worlds {
     }
 
     void Editor::update(float deltaTime) {
-        sceneViewPass->active = true;
+        sceneViewPass->active = active;
 
         if (!active) {
             AudioSystem::getInstance()->setPauseState(false);
