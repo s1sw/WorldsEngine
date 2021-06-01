@@ -10,6 +10,8 @@
 #include <algorithm>
 
 namespace worlds {
+    std::mutex vkMutex;
+
     uint32_t getCrunchTextureSize(crnd::crn_texture_info texInfo, int mip) {
         const crn_uint32 width = std::max(1U, texInfo.m_width >> mip);
         const crn_uint32 height = std::max(1U, texInfo.m_height >> mip);
@@ -244,6 +246,7 @@ namespace worlds {
         bool createMips = td.numMips == 1 && (td.format == vk::Format::eR8G8B8A8Srgb || td.format == vk::Format::eR8G8B8A8Unorm);
         uint32_t maxMips = static_cast<uint32_t>(std::floor(std::log2(std::max(td.width, td.height)))) + 1;
 
+        vkMutex.lock();
         vku::TextureImage2D tex{
             ctx.device,
             ctx.allocator,
@@ -260,26 +263,31 @@ namespace worlds {
         if (createMips) {
             generateMips(ctx, tex);
         }
+        vkMutex.unlock();
 
         if (!td.name.empty())
             logMsg("Uploaded %s outside of frame", td.name.c_str());
-
 
         return tex;
     }
 
     // store these in a vector so they can be destroyed after the command buffer has completed
     std::vector<std::vector<vku::GenericBuffer>> tempBuffers;
+    std::mutex tempBufMutex;
 
     void ensureTempVectorExists(uint32_t frameIdx) {
+        tempBufMutex.lock();
         if (frameIdx >= tempBuffers.size()) {
             tempBuffers.resize(frameIdx + 1);
         }
+        tempBufMutex.unlock();
     }
 
     void destroyTempTexBuffers(uint32_t frameIdx) {
         ensureTempVectorExists(frameIdx);
+        tempBufMutex.lock();
         tempBuffers[frameIdx].clear();
+        tempBufMutex.unlock();
     }
 
     vku::TextureImage2D uploadTextureVk(const VulkanHandles& ctx, TextureData& td, vk::CommandBuffer cb, uint32_t frameIdx) {
@@ -289,6 +297,7 @@ namespace worlds {
         bool createMips = td.numMips == 1 && (td.format == vk::Format::eR8G8B8A8Srgb || td.format == vk::Format::eR8G8B8A8Unorm);
         uint32_t maxMips = static_cast<uint32_t>(std::floor(std::log2(std::max(td.width, td.height)))) + 1;
 
+        vkMutex.lock();
         vku::TextureImage2D tex{
             ctx.device,
             ctx.allocator,
@@ -317,10 +326,13 @@ namespace worlds {
             tex.setLayout(cb, vk::ImageLayout::eShaderReadOnlyOptimal);
         }
 
+        tempBufMutex.lock();
         tempBuffers[frameIdx].push_back(std::move(stagingBuffer));
+        tempBufMutex.unlock();
 
         if (createMips)
             generateMips(ctx, tex, cb);
+        vkMutex.unlock();
 
         if (!td.name.empty())
             logMsg("Uploaded %s as part of frame", td.name.c_str());
