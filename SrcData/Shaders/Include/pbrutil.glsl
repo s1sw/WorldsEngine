@@ -88,5 +88,7 @@ struct ShadeInfo {
     float alphaCutoff;
     vec3 viewDir;
     float ao;
+    float alpha;
+    vec3 emissive;
 };
 #endif

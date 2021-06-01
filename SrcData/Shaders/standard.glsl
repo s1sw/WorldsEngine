@@ -1,6 +1,9 @@
 #version 450
 #extension GL_EXT_nonuniform_qualifier : enable
+#define MULTIVIEW
+#ifdef MULTIVIEW
 #extension GL_EXT_multiview : enable
+#endif
 #define MAX_SHADOW_LIGHTS 16
 #define HIGH_QUALITY_SHADOWS
 #include <math.glsl>
@@ -40,11 +43,22 @@ layout(location = 3) in vec2 inUV;
 #include <standard_descriptors.glsl>
 #include <standard_push_constants.glsl>
 
+vec3 getViewPos() {
+#ifdef MULTIVIEW
+    return viewPos[gl_ViewIndex].xyz;
+#else
+    return viewPos[0].xyz;
+#endif
+}
+
 #ifdef VERTEX
 void main() {
     mat4 model = modelMatrices[modelMatrixIdx + gl_InstanceIndex];
 
-    int vpMatIdx = vpIdx + gl_ViewIndex;
+    int vpMatIdx = vpIdx;
+#ifdef MULTIVIEW
+    vpMatIdx += gl_ViewIndex;
+#endif
     outWorldPos = (model * vec4(inPosition, 1.0));
 
     mat4 vp = projection[vpMatIdx] * view[vpMatIdx];
@@ -111,7 +125,6 @@ vec3 parallaxCorrect(vec3 v, vec3 center, vec3 ma, vec3 mi, vec3 pos) {
 }
 
 vec3 calcAmbient(vec3 f0, float roughness, vec3 viewDir, float metallic, vec3 albedoColor, vec3 normal) {
-
     const float MAX_REFLECTION_LOD = 6.0;
     vec3 R = reflect(-viewDir, normal);
 
@@ -124,44 +137,18 @@ vec3 calcAmbient(vec3 f0, float roughness, vec3 viewDir, float metallic, vec3 al
     R = normalize(R);
 
     vec3 specularAmbient = textureLod(cubemapSampler[cubemapIdx], R, roughness * MAX_REFLECTION_LOD).rgb;
-
     vec2 coord = vec2(roughness, max(dot(normal, viewDir), 0.0));
-
     vec2 brdf = textureLod(brdfLutSampler, coord, 0.0).rg;
-
     vec3 specularColor = (F * (brdf.x + brdf.y));
 
-    float horizon = min(1.0 + dot(R, normal), 1.0);
-    vec3 diffuseAmbient = textureLod(cubemapSampler[cubemapIdx], normal, 7.0).xyz * albedoColor;
+    vec3 totalAmbient = specularAmbient * specularColor;
 
-    vec3 kD = (1.0 - F) * (1.0 - metallic);
-
-    return kD * diffuseAmbient + (specularAmbient * specularColor);
-}
-
-vec3 calcAmbientMetallic(vec3 f0, float roughness, vec3 viewDir, vec3 albedoColor, vec3 normal) {
-    const float MAX_REFLECTION_LOD = 6.0;
-    vec3 R = reflect(-viewDir, normal);
-
-    vec3 F = fresnelSchlickRoughness(clamp(dot(normal, viewDir), 0.0, 1.0), f0, roughness);
-
-    if ((miscFlag & 4096) == 4096) {
-        R = parallaxCorrect(R, cubemapPos, cubemapPos + cubemapExt, cubemapPos - cubemapExt, inWorldPos.xyz);
+    if (metallic < 1.0) {
+        vec3 kD = (1.0 - F) * (1.0 - metallic);
+        totalAmbient += kD * textureLod(cubemapSampler[cubemapIdx], normal, 7.0).xyz * albedoColor;
     }
-    R.x = -R.x;
-    R = normalize(R);
 
-    vec3 specularAmbient = textureLod(cubemapSampler[cubemapIdx], R, roughness * MAX_REFLECTION_LOD).rgb;
-
-    vec2 coord = vec2(roughness, max(dot(normal, viewDir), 0.0));
-
-    vec2 brdf = textureLod(brdfLutSampler, coord, 0.0).rg;
-
-    vec3 specularColor = (F * (brdf.x + brdf.y));
-
-    float horizon = min(1.0 + dot(R, normal), 1.0);
-
-    return (specularAmbient * specularColor);
+    return totalAmbient;
 }
 
 vec3 decodeNormal (vec2 texVal) {
@@ -174,7 +161,7 @@ vec3 decodeNormal (vec2 texVal) {
 
 vec3 getNormalMapNormal(Material mat, vec2 tCoord, mat3 tbn) {
     vec3 texNorm = decodeNormal(texture(tex2dSampler[mat.normalTexIdx], tCoord).xy);
-    return tbn * texNorm;
+    return normalize(tbn * texNorm);
 }
 
 
@@ -268,31 +255,16 @@ float getDirLightShadowIntensity(int lightIdx) {
 vec3 shade(ShadeInfo si) {
     int lightCount = int(pack0.x);
 
-    vec3 ambient;
-
     vec3 lo = vec3(0.0);
-    if (si.metallic == 1.0) {
-        for (int i = 0; i < lightCount; i++) {
-            vec3 l = calculateLightingMetallic(lights[i], si, inWorldPos.xyz);
-            float shadowIntensity = 1.0;
-            if (int(lights[i].pack0.w) == LT_DIRECTIONAL && !((miscFlag & 16384) == 16384)) {
-                shadowIntensity = getDirLightShadowIntensity(i);
-            }
-            lo += l * shadowIntensity;
+    for (int i = 0; i < lightCount; i++) {
+        vec3 l = calculateLighting(lights[i], si, inWorldPos.xyz);
+        float shadowIntensity = 1.0;
+        if (int(lights[i].pack0.w) == LT_DIRECTIONAL && !((miscFlag & 16384) == 16384)) {
+            shadowIntensity = getDirLightShadowIntensity(i);
         }
-
-        ambient = calcAmbientMetallic(si.f0, si.roughness, si.viewDir, si.albedoColor, si.normal);
-    } else {
-        for (int i = 0; i < lightCount; i++) {
-            vec3 l = calculateLighting(lights[i], si, inWorldPos.xyz);
-            float shadowIntensity = 1.0;
-            if (int(lights[i].pack0.w) == LT_DIRECTIONAL && !((miscFlag & 16384) == 16384)) {
-                shadowIntensity = getDirLightShadowIntensity(i);
-            }
-            lo += l * shadowIntensity;
-        }
-        ambient = calcAmbient(si.f0, si.roughness, si.viewDir, si.metallic, si.albedoColor, si.normal);
+        lo += l * shadowIntensity;
     }
+    vec3 ambient = calcAmbient(si.f0, si.roughness, si.viewDir, si.metallic, si.albedoColor, si.normal);
 
     return lo + ambient * si.ao;
 }
@@ -305,12 +277,67 @@ float getAntiAliasedRoughness(float inRoughness, vec3 normal) {
     return max(inRoughness, geoRoughness);
 }
 
-void main() {
+void unpackMaterial(inout ShadeInfo si, mat3 tbn) {
     Material mat = materials[matIdx];
-
+    si.metallic = mat.metallic;
+#if 0
+    si.roughness = getAntiAliasedRoughness(roughness, normal);
+#else
+    si.roughness = mat.roughness;
+#endif
+#ifndef EFT
     float alphaCutoff = (mat.cutoffFlags & (0xFF)) / 255.0f;
-    uint flags = (mat.cutoffFlags & (0x7FFFFF80)) >> 8;
+    si.alphaCutoff = alphaCutoff;
+#else
+    si.alphaCutoff = 0.0;
+#endif
 
+    vec2 tCoord = inUV;
+    if (mat.heightmapIdx > -1 && DO_PARALLAX) {
+        mat3 tbnT = transpose(tbn);
+        vec3 tViewDir = normalize((tbnT * getViewPos()) - (tbnT * inWorldPos.xyz));
+        tCoord = parallaxMapping(inUV, tViewDir, tex2dSampler[mat.heightmapIdx], mat.heightScale, PARALLAX_MIN_LAYERS, PARALLAX_MAX_LAYERS);
+    }
+    si.ao = 1.0;
+
+    if (mat.roughTexIdx > -1) {
+        // Treat the rough texture as a packed PBR file
+        // R = Metallic, G = Roughness, B = AO
+        vec3 packVals = pow(texture(tex2dSampler[mat.roughTexIdx], tCoord).xyz, vec3(1.0 / 2.2));
+        si.metallic = packVals.r;
+        si.roughness = packVals.g;
+        si.ao = packVals.b;
+    }
+    //else {
+    //    if (mat.roughTexIdx > -1)
+    //        roughness = pow(texture(tex2dSampler[mat.roughTexIdx], tCoord).x, 1.0 / 2.2);
+
+    //    if (mat.metalTexIdx > -1)
+    //        metallic = pow(texture(tex2dSampler[mat.metalTexIdx], tCoord).x, 1.0 / 2.2);
+
+    //    if (mat.aoTexIdx > -1)
+    //        ao = pow(texture(tex2dSampler[mat.aoTexIdx], tCoord).x, 1.0 / 2.2);
+    //}
+    //
+    vec4 albedoColor = texture(tex2dSampler[mat.albedoTexIdx], tCoord) * vec4(mat.albedoColor, 1.0);
+#ifdef DEBUG
+    if ((miscFlag & 64) == 64) {
+        albedoColor.rgb = vec3(1.0);
+    }
+#endif
+    si.albedoColor = albedoColor.rgb;
+    si.f0 = mix(vec3(0.04), albedoColor.rgb, si.metallic);
+    si.normal = mat.normalTexIdx > -1 ? getNormalMapNormal(mat, tCoord, tbn) : inNormal;
+    si.ao *= calcProxyAO(inWorldPos.xyz, si.normal);
+#ifndef EFT
+    si.alpha = albedoColor.a;
+#else
+    si.alpha = 1.0;
+#endif
+    si.emissive = mat.emissiveColor;
+}
+
+void main() {
 #ifdef MIP_MAP_DBG
     float mipLevel = min(3, mipMapLevel());
 
@@ -320,14 +347,12 @@ void main() {
 #endif
 
 #ifdef TEXRES_DBG
-    bool ite = isTextureEnough(textureSize(tex2dSampler[mat.albedoTexIdx], 0));
+    bool ite = isTextureEnough(textureSize(tex2dSampler[materials[matIdx].albedoTexIdx], 0));
     if (!ite) {
         FragColor = vec4(1.0, 0.0, 0.0, 1.0);
         return;
     }
 #endif
-
-    vec3 viewDir = normalize(viewPos[gl_ViewIndex].xyz - inWorldPos.xyz);
 
     // I'm going to be honest: I have no clue what the fuck is happening here.
     // This is the result of ~12 hours of trying to get the UV override to play nicely
@@ -348,71 +373,30 @@ void main() {
                 vec3(0.0, 0.0, 1.0)) * sign(inNormal.z);
     }
 
-    vec2 tCoord = abs(inUV);
-
-
-    float roughness = mat.roughness;
-    float metallic = mat.metallic;
-    float ao = 1.0;
-    float surfaceDepth = 0.0;
-
-    if (mat.heightmapIdx > -1 && DO_PARALLAX) {
-        mat3 tbnT = transpose(tbn);
-        vec3 tViewDir = normalize((tbnT * viewPos[gl_ViewIndex].xyz) - (tbnT * inWorldPos.xyz));
-        surfaceDepth = 1.0 - texture(tex2dSampler[mat.heightmapIdx], tCoord).x;
-        tCoord = parallaxMapping(tCoord, tViewDir, tex2dSampler[mat.heightmapIdx], mat.heightScale, PARALLAX_MIN_LAYERS, PARALLAX_MAX_LAYERS);
-    }
-
-    if ((flags & 0x1) == 0x1) {
-        // Treat the rough texture as a packed PBR file
-        // R = Metallic, G = Roughness, B = AO
-        vec3 packVals = pow(texture(tex2dSampler[mat.roughTexIdx], tCoord).xyz, vec3(1.0 / 2.2));
-        metallic = packVals.r;
-        roughness = packVals.g;
-        ao = packVals.b;
-    }
-    //else {
-    //    if (mat.roughTexIdx > -1)
-    //        roughness = pow(texture(tex2dSampler[mat.roughTexIdx], tCoord).x, 1.0 / 2.2);
-
-    //    if (mat.metalTexIdx > -1)
-    //        metallic = pow(texture(tex2dSampler[mat.metalTexIdx], tCoord).x, 1.0 / 2.2);
-
-    //    if (mat.aoTexIdx > -1)
-    //        ao = pow(texture(tex2dSampler[mat.aoTexIdx], tCoord).x, 1.0 / 2.2);
-    //}
+    ShadeInfo si;
+    unpackMaterial(si, tbn);
+    si.viewDir = normalize(getViewPos() - inWorldPos.xyz);
 
     uint doPicking = miscFlag & 0x1;
 
-    vec4 albedoCol = texture(tex2dSampler[mat.albedoTexIdx], tCoord) * vec4(mat.albedoColor, 1.0);
-#ifdef DEBUG
-    if ((miscFlag & 64) == 64) {
-        albedoCol.rgb = vec3(1.0);
-    }
-#endif
-    vec3 f0 = mix(vec3(0.04), albedoCol.rgb, metallic);
-
-    vec3 normal = normalize(mat.normalTexIdx > -1 ? getNormalMapNormal(mat, tCoord, tbn) : inNormal);
-
-    ao *= calcProxyAO(inWorldPos.xyz, inNormal);
 
 #ifdef DEBUG
     // debug views
     if ((miscFlag & 2) == 2) {
         // show normals
-        FragColor = vec4((normal * 0.5) + 0.5, 1.0);
+        FragColor = vec4((si.normal * 0.5) + 0.5, 1.0);
         return;
     } else if ((miscFlag & 4) == 4) {
         // show metallic
-        FragColor = vec4(vec3(metallic), 1.0);
+        FragColor = vec4(vec3(si.metallic), 1.0);
         return;
     } else if ((miscFlag & 8) == 8) {
         // show roughness
-        FragColor = vec4(vec3(roughness), 1.0);
+        FragColor = vec4(vec3(si.roughness), 1.0);
         return;
     } else if ((miscFlag & 16) == 16) {
         //show ao
-        FragColor = vec4(vec3(ao), 1.0);
+        FragColor = vec4(vec3(si.ao), 1.0);
         return;
     } else if ((miscFlag & 32) == 32) {
         // show normal map value
@@ -424,7 +408,7 @@ void main() {
         FragColor = vec4(nMap, 1.0);
         return;
     } else if ((miscFlag & 2048) == 2048) {
-        FragColor = vec4(mod(tCoord, vec2(1.0)), 0.0, 1.0);
+        //FragColor = vec4(mod(tCoord, vec2(1.0)), 0.0, 1.0);
         return;
     } else if ((miscFlag & 8192) == 8192) {
         vec4 whatevslol;
@@ -435,29 +419,15 @@ void main() {
 #endif
 
 #ifndef EFT
-    float finalAlpha = alphaCutoff > 0.0f ? albedoCol.a : 1.0f;
-    if (alphaCutoff > 0.0f) {
-        finalAlpha = (finalAlpha - alphaCutoff) / max(fwidth(finalAlpha), 0.0001) + 0.5;
+    float finalAlpha = si.alphaCutoff > 0.0f ? si.alpha : 1.0f;
+    if (si.alphaCutoff > 0.0f) {
+        finalAlpha = (finalAlpha - si.alphaCutoff) / max(fwidth(finalAlpha), 0.0001) + 0.5;
     }
 #else
     float finalAlpha = 1.0f;
 #endif
 
-    ShadeInfo si;
-    si.f0 = f0;
-    si.metallic = metallic;
-#if 0
-    si.roughness = getAntiAliasedRoughness(roughness, normal);
-#else
-    si.roughness = roughness;
-#endif
-    si.albedoColor = albedoCol.rgb;
-    si.normal = normal;
-    si.alphaCutoff = alphaCutoff;
-    si.viewDir = viewDir;
-    si.ao = ao;
-
-    FragColor = vec4(shade(si) + mat.emissiveColor, finalAlpha);
+    FragColor = vec4(shade(si) + si.emissive, finalAlpha);
 
     if (ENABLE_PICKING && doPicking == 1) {
         handleEditorPicking();
