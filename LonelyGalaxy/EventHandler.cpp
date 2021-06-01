@@ -39,12 +39,16 @@
 #include <Audio/Audio.hpp>
 #include "PlayerGrabManager.hpp"
 #include "ContactDamageDealer.hpp"
+#include <UI/WorldTextComponent.hpp>
 
 namespace lg {
     worlds::RTTPass* spectatorPass = nullptr;
     worlds::Camera spectatorCam;
     worlds::ConVar enableSpectatorCam { "lg_enableVrSpectatorCam", "0", "Enables VR spectator camera." };
     struct SyncedRB {};
+    struct StatDisplay {
+        entt::entity textEntity;
+    };
 
     void cmdToggleVsync(void* obj, const char*) {
         auto renderer = (worlds::VKRenderer*)obj;
@@ -86,7 +90,16 @@ namespace lg {
 
         RPGStats* stats = reg->try_get<RPGStats>(info.otherEntity);
 
-        if (stats) {
+        if (stats && info.relativeSpeed > dealer.minVelocity) {
+            if (!reg->has<StatDisplay>(info.otherEntity) && !reg->has<LocospherePlayerComponent>(info.otherEntity)) {
+                StatDisplay& sd = reg->emplace<StatDisplay>(info.otherEntity);
+                sd.textEntity = reg->create();
+
+                Transform& t = reg->emplace<Transform>(sd.textEntity);
+                worlds::WorldTextComponent& wtc = reg->emplace<worlds::WorldTextComponent>(sd.textEntity);
+                wtc.textScale = 0.005f;
+            }
+
             double damagePercent = clamp((info.relativeSpeed - dealer.minVelocity) / (dealer.maxVelocity - dealer.minVelocity), 0.0, 1.0);
             logMsg("damagePercent: %.3f, relSpeed: %.3f", damagePercent, info.relativeSpeed);
             uint64_t actualDamage = dealer.damage * damagePercent;
@@ -97,6 +110,10 @@ namespace lg {
 
             if (stats->currentHP == 0) {
                 engine->destroyNextFrame(info.otherEntity);
+
+                if (reg->has<StatDisplay>(info.otherEntity)) {
+                    engine->destroyNextFrame(reg->get<StatDisplay>(info.otherEntity).textEntity);
+                }
             }
         }
     }
@@ -173,6 +190,23 @@ namespace lg {
     entt::entity fakeRHand = entt::null;
     entt::entity headPlaceholder = entt::null;
 
+    Transform getHmdTransform(worlds::Camera* camera, worlds::IVRInterface* vrInterface) {
+        const glm::vec3 flipVec { -1.0f, 1.0f, -1.0f };
+
+        auto hmdTransform = vrInterface->getHeadTransform();
+        glm::vec3 hmdPos = camera->rotation * worlds::getMatrixTranslation(hmdTransform);
+        hmdPos *= flipVec;
+
+        glm::quat hmdRot = worlds::getMatrixRotation(hmdTransform);
+        glm::vec3 hmdRotationAxis = glm::axis(hmdRot) * flipVec;
+        float hmdRotationAngle = glm::angle(hmdRot);
+
+        return Transform {
+            camera->position + hmdPos,
+            camera->rotation * glm::angleAxis(hmdRotationAngle, hmdRotationAxis)
+        };
+    }
+
     void EventHandler::update(entt::registry& reg, float deltaTime, float) {
         if (vrInterface) {
             if (enableSpectatorCam.getInt()) {
@@ -223,33 +257,20 @@ namespace lg {
 
             rotated = rotatingNow;
 
-            const glm::vec3 flipVec { -1.0f, 1.0f, -1.0f };
-
-            auto hmdTransform = vrInterface->getHeadTransform();
-            glm::vec3 hmdPos = camera->rotation * worlds::getMatrixTranslation(hmdTransform);
-            hmdPos *= flipVec;
-
-            glm::quat hmdRot = worlds::getMatrixRotation(hmdTransform);
-            glm::vec3 hmdRotationAxis = glm::axis(hmdRot) * flipVec;
-            float hmdRotationAngle = glm::angle(hmdRot);
-
-            glm::vec3 wsHeadPos = camera->position + hmdPos;
-            glm::quat wsHeadRot = camera->rotation * glm::angleAxis(hmdRotationAngle, hmdRotationAxis);
+            Transform hmdTransform = getHmdTransform(camera, vrInterface);
 
             if (reg.valid(audioListenerEntity)) {
                 auto& listenerOverrideTransform = reg.get<Transform>(audioListenerEntity);
-                listenerOverrideTransform.position = wsHeadPos;
-                listenerOverrideTransform.rotation = wsHeadRot;
+                listenerOverrideTransform = hmdTransform;
             }
 
             if (reg.valid(headPlaceholder)) {
                 auto& t = reg.get<Transform>(headPlaceholder);
-                t.position = wsHeadPos;
-                t.rotation = wsHeadRot;
+                t = hmdTransform;
             }
 
-            spectatorCam.position = wsHeadPos;
-            spectatorCam.rotation = wsHeadRot;
+            spectatorCam.position = hmdTransform.position;
+            spectatorCam.rotation = hmdTransform.rotation;
         }
 
         entt::entity localLocosphereEnt = entt::null;
@@ -296,39 +317,26 @@ namespace lg {
                 trl.rotation = phr.targetWorldRot;
             }
         }
-        auto statView = reg.view<RPGStats, Transform>(entt::exclude_t<LocospherePlayerComponent>());
-        ImGuiViewport* mainViewport = ImGui::GetMainViewport();
-        auto size = mainViewport->Size;
+        auto statDisplayView = reg.view<StatDisplay, RPGStats, Transform>();
+        glm::vec3 headPos = camera->position;
 
-        auto vpMat = camera->getProjectionMatrix(size.x / size.y) * camera->getViewMatrix();
+        if (vrInterface) {
+            Transform hmdTransform = getHmdTransform(camera, vrInterface);
+            headPos = hmdTransform.position;
+        }
 
-        ImDrawList* drawList = ImGui::GetForegroundDrawList();
-        statView.each([&](entt::entity ent, RPGStats& stats, Transform& transform) {
-            auto pos = transform.position + (transform.rotation * glm::vec3(0.0f, 1.8f, 0.0f));
-            glm::vec4 projectedPos = vpMat * glm::vec4(pos, 1.0f);
-            projectedPos /= projectedPos.w;
-            bool hide = projectedPos.z < 0.0f;
-            projectedPos *= 0.5f;
-            projectedPos += 0.5f;
-            projectedPos *= glm::vec4(size.x, size.y, 0.0f, 0.0f);
-            projectedPos.y = size.y - projectedPos.y;
+        statDisplayView.each([&](StatDisplay& sd, RPGStats& stats, Transform& transform) {
+            glm::vec3 displayPos = transform.position + (transform.rotation * glm::vec3(0.0f, 2.0f, 0.0f));
+            entt::entity textEnt = sd.textEntity;
 
-            ImVec2 screenPos = ImVec2(projectedPos.x, projectedPos.y);
-            ImVec2 corner = ImVec2(screenPos.x + 15.0f, screenPos.y + 15.0f);
+            Transform& statTextTransform = reg.get<Transform>(textEnt);
+            statTextTransform.position = displayPos;
+            statTextTransform.rotation = safeQuatLookat(glm::normalize(displayPos - headPos));
 
-            if (!hide) {
-                drawList->AddQuadFilled(
-                    screenPos,
-                    ImVec2(corner.x, screenPos.y),
-                    corner,
-                    ImVec2(screenPos.x, corner.y),
-                    ImColor(0.8f, 0.0f, 0.5f)
-                );
-
-                ImVec2 textPos = ImVec2(screenPos.x, screenPos.y + 20.0f);
-                std::string healthText = "Health: " + std::to_string(stats.currentHP);
-                drawList->AddText(textPos, ImColor(1.0f, 1.0f, 1.0f), healthText.c_str());
-            }
+            worlds::WorldTextComponent& wtc = reg.get<worlds::WorldTextComponent>(textEnt);
+            std::string healthText = "Health: " + std::to_string(stats.currentHP);
+            wtc.text = healthText;
+            wtc.dirty = true;
         });
     }
 
