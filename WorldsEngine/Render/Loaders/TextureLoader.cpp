@@ -245,7 +245,7 @@ namespace worlds {
         ZoneScoped;
         auto memProps = ctx.physicalDevice.getMemoryProperties();
         bool createMips = td.numMips == 1 && (td.format == vk::Format::eR8G8B8A8Srgb || td.format == vk::Format::eR8G8B8A8Unorm);
-        uint32_t maxMips = static_cast<uint32_t>(std::floor(std::log2(std::max(td.width, td.height)))) + 1;
+        uint32_t maxMips = static_cast<uint32_t>(std::floor(std::log2(std::min(td.width, td.height)))) + 1;
 
         vkMutex.lock();
         vku::TextureImage2D tex{

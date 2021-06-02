@@ -147,7 +147,6 @@ namespace worlds {
 
         RenderTexture* depthStencilImage;
         RenderTexture* polyImage;
-        RenderTexture* shadowImage;
 
         bool enablePicking;
         int pickX, pickY;
@@ -165,7 +164,7 @@ namespace worlds {
         WorldSpaceUIPass* uiPass;
         VulkanHandles* handles;
     public:
-        PolyRenderPass(VulkanHandles* handles, RenderTexture* depthStencilImage, RenderTexture* polyImage, RenderTexture* shadowImage, bool enablePicking = false);
+        PolyRenderPass(VulkanHandles* handles, RenderTexture* depthStencilImage, RenderTexture* polyImage, bool enablePicking = false);
         void setPickCoords(int x, int y) { pickX = x; pickY = y; }
         void setup(RenderContext& ctx, vk::DescriptorPool descriptorPool);
         void prePass(RenderContext& ctx);

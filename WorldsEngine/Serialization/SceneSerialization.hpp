@@ -16,6 +16,7 @@ namespace worlds {
         // The file handle will be closed after loading.
         static void loadScene(PHYSFS_File* file, entt::registry& reg, bool additive = false);
         static entt::entity loadEntity(PHYSFS_File* file, entt::registry& reg);
+        static entt::entity createPrefab(AssetID id, entt::registry& reg);
     private:
         SceneLoader() {}
         ~SceneLoader() {}

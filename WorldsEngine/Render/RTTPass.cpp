@@ -2,7 +2,7 @@
 #include "RenderPasses.hpp"
 
 namespace worlds {
-    RTTPass::RTTPass(const RTTPassCreateInfo& ci, VKRenderer* renderer, IVRInterface* vrInterface, uint32_t frameIdx, RenderDebugStats* dbgStats, ShadowCascadePass* scp)
+    RTTPass::RTTPass(const RTTPassCreateInfo& ci, VKRenderer* renderer, IVRInterface* vrInterface, uint32_t frameIdx, RenderDebugStats* dbgStats)
         : width {ci.width}
         , height {ci.height}
         , isVr {ci.isVr}
@@ -11,8 +11,7 @@ namespace worlds {
         , cam {ci.cam}
         , renderer {renderer}
         , vrInterface {vrInterface}
-        , dbgStats {dbgStats}
-        , shadowCascadePass {scp} {
+        , dbgStats {dbgStats} {
         auto& handles = *renderer->getHandles();
         RenderResources resources = renderer->getResources();
 
@@ -54,7 +53,6 @@ namespace worlds {
             &handles,
             depthTarget,
             hdrTarget,
-            resources.shadowCascades,
             ci.useForPicking
         );
 
@@ -321,8 +319,8 @@ namespace worlds {
 
         if (enableShadows) {
             renderer->calculateCascadeMatrices(isVr, world, *cam, rCtx);
-            shadowCascadePass->prePass(rCtx);
-            shadowCascadePass->execute(rCtx);
+            renderer->shadowCascadePass->prePass(rCtx);
+            renderer->shadowCascadePass->execute(rCtx);
         }
 
         prp->prePass(rCtx);

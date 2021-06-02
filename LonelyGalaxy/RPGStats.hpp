@@ -10,5 +10,12 @@ namespace lg {
         uint8_t strength = 1;
         uint8_t speed = 1;
         uint8_t intelligence = 1;
+
+        void damage(uint64_t damageAmt) {
+            if (damageAmt > currentHP)
+                currentHP = 0;
+            else
+                currentHP -= damageAmt;
+        }
     };
 }

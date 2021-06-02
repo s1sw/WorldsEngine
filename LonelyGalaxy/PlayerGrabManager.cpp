@@ -11,6 +11,7 @@
 #include "Scripting/WrenVM.hpp"
 #include "physxit.h"
 #include <Util/CreateModelObject.hpp>
+#include "Grabbable.hpp"
 
 namespace lg {
     worlds::ConVar itCompDbg { "lg_itCompDbg", "0", "Shows physics shapes for grabbed objects." };
@@ -86,9 +87,7 @@ namespace lg {
 
         for (auto& shape : dpa.physicsShapes) {
             auto worldSpace = otherT * physx::PxTransform(worlds::glm2px(shape.pos), worlds::glm2px(shape.rot));
-
             auto handSpace = handT.getInverse() * worldSpace;
-
             auto scale = dpa.scaleShapes ? objectT.scale : glm::vec3{1.0f};
 
             addShapeTensor(reg, shape, itComp, handSpace, handT, scale, worldSpace, false);
@@ -117,6 +116,8 @@ namespace lg {
             auto vrInterface = interfaces.vrInterface;
             lGrab = vrInterface->getActionHandle("/actions/main/in/GrabL");
             rGrab = vrInterface->getActionHandle("/actions/main/in/GrabR");
+            lTrigger = vrInterface->getActionHandle("/actions/main/in/TriggerL");
+            rTrigger = vrInterface->getActionHandle("/actions/main/in/TriggerR");
         }
     }
 
@@ -135,11 +136,6 @@ namespace lg {
     void PlayerGrabManager::updateHandGrab(PlayerRig& rig, entt::entity ent, float deltaTime) {
         auto vrInterface = interfaces.vrInterface;
         auto inputManager = interfaces.inputManager;
-        static V3PidController objPid;
-        objPid.P = 35.0f;
-        objPid.D = 7.0f;
-        objPid.I = 1.0f;
-        objPid.averageAmount = 5.0f;
         auto& physHand = registry.get<PhysHand>(ent);
         auto grabAction = physHand.follow == FollowHand::LeftHand ? lGrab : rGrab;
         auto grabButton = physHand.follow == FollowHand::LeftHand ? worlds::MouseButton::Left : worlds::MouseButton::Right;
@@ -147,6 +143,16 @@ namespace lg {
         bool doRelease = vrInterface ? vrInterface->getActionReleased(grabAction) : inputManager->mouseButtonReleased(grabButton);
         auto& handTf = registry.get<Transform>(ent);
         auto& dpa = registry.get<worlds::DynamicPhysicsActor>(ent);
+
+        if (registry.valid(physHand.currentlyGrabbed)) {
+            Grabbable& grabbable = registry.get<Grabbable>(physHand.currentlyGrabbed);
+            auto triggerAction = physHand.follow == FollowHand::LeftHand ? lTrigger : rTrigger;
+
+            if (vrInterface && vrInterface->getActionPressed(triggerAction)) {
+                if (grabbable.onTriggerPressed)
+                    grabbable.onTriggerPressed(physHand.currentlyGrabbed);
+            }
+        }
 
         if (registry.valid(physHand.goingTo)) {
             auto& otherActor = registry.get<worlds::DynamicPhysicsActor>(physHand.goingTo);
@@ -159,11 +165,11 @@ namespace lg {
             }
 
             auto otherTf = worlds::px2glm(otherActor.actor->getGlobalPose());
-            auto& gripPoint = registry.get<GripPoint>(physHand.goingTo);
+            Grabbable& grabbable = registry.get<Grabbable>(physHand.goingTo);
+            Grip& grip = grabbable.grips[physHand.gripIndex];
 
-            glm::vec3 targetHandPos = otherTf.position + (otherTf.rotation * gripPoint.offset);
-            glm::quat targetHandRot = otherTf.rotation * gripPoint.rotOffset;
-            float distance = glm::distance(handTf.position, targetHandPos);
+            Transform gripTransform = grip.getWorldSpace(otherTf);
+            float distance = glm::distance(handTf.position, gripTransform.position);
 
             if (distance > 0.5f) {
                 logMsg("too far");
@@ -174,48 +180,42 @@ namespace lg {
                 return;
             }
 
-            float rotDot = glm::dot(fixupQuat(targetHandRot), fixupQuat(handTf.rotation));
+            float rotDot = grip.calcRotationAlignment(handTf.rotation, otherTf);
             ImGui::Text("%.3f distance, %.3f rotDot", distance, rotDot);
-            glm::vec3 displacement = targetHandPos - handTf.position;
+            glm::vec3 displacement = gripTransform.position - handTf.position;
             ImGui::Text("displacement: %.3f, %.3f, %.3f", displacement.x, displacement.y, displacement.z);
 
-            physHand.targetWorldPos = targetHandPos;
-            physHand.targetWorldRot = targetHandRot;
+            physHand.targetWorldPos = gripTransform.position;
+            physHand.targetWorldRot = gripTransform.rotation;
 
-            glm::vec3 offset = gripPoint.offset;
-            offset = glm::inverse(gripPoint.rotOffset) * offset;
-            offset = handTf.rotation * offset;
-
-            if (distance < 0.005f && rotDot > 0.9f) {
+            if (distance < 0.03f && rotDot > 0.85f) {
                 auto& d6 = registry.get<worlds::D6Joint>(ent);
                 d6.setTarget(physHand.goingTo, registry);
 
                 logMsg("hit target, locking joint for grab");
                 physHand.useOverrideIT = true;
+                physHand.currentlyGrabbed = physHand.goingTo;
                 physHand.goingTo = entt::null;
 
                 physx::PxTransform target {
-                    worlds::glm2px(gripPoint.offset),
-                    worlds::glm2px(glm::normalize(gripPoint.rotOffset))
+                    worlds::glm2px(grip.position),
+                    worlds::glm2px(grip.rotation)
                 };
 
-                auto handT = dpa.actor->getGlobalPose();
                 auto objectT = otherActor.actor->getGlobalPose();
-                //d6.pxJoint->setLocalPose(physx::PxJointActorIndex::eACTOR0, handT.transformInv(objectT));
                 d6.pxJoint->setLocalPose(physx::PxJointActorIndex::eACTOR1, target);
                 d6.pxJoint->setConstraintFlag(physx::PxConstraintFlag::eCOLLISION_ENABLED, false);
                 setAllAxisD6Motion(d6.pxJoint, physx::PxD6Motion::eLOCKED);
                 if (useTensorCompensation.getInt()) {
-                    setPhysHandTensor(physHand, dpa, otherActor, worlds::glm2px(Transform{targetHandPos, targetHandRot}), worlds::px2glm(objectT), registry);
+                    setPhysHandTensor(physHand, dpa, otherActor, worlds::glm2px(Transform{gripTransform.position, gripTransform.rotation}), worlds::px2glm(objectT), registry);
                 }
 
                 physHand.useOverrideIT = true;
                 physHand.follow = physHand.oldFollowHand;
                 physHand.forceMultiplier = 1.0f;
-                otherActor.actor->setActorFlag(physx::PxActorFlag::eDISABLE_GRAVITY, false);
 
-                dpa.layer = worlds::PLAYER_PHYSICS_LAYER;
-                worlds::updatePhysicsShapes(dpa);
+                otherActor.layer = worlds::PLAYER_PHYSICS_LAYER;
+                worlds::updatePhysicsShapes(otherActor);
             }
         }
 
@@ -229,82 +229,145 @@ namespace lg {
                              | physx::PxQueryFlag::eANY_HIT
                              | physx::PxQueryFlag::ePOSTFILTER;
 
-            worlds::FilterEntities filterEnt;
-            filterEnt.ents[0] = (uint32_t)rig.lHand;
-            filterEnt.ents[1] = (uint32_t)rig.rHand;
-            filterEnt.ents[2] = (uint32_t)rig.locosphere;
-            filterEnt.ents[3] = (uint32_t)rig.fender;
-            filterEnt.ents[4] = (uint32_t)ent;
-            filterEnt.numFilterEnts = 5;
+            worlds::FilterComponent<Grabbable> filter{registry};
             auto t = dpa.actor->getGlobalPose();
             auto overlapCenter = t;
             overlapCenter.p += t.q.rotate(worlds::glm2px(dpa.physicsShapes[0].pos));
 
-            if (worlds::g_scene->overlap(sphereGeo, overlapCenter, hit, filterData, &filterEnt)) {
+            if (worlds::g_scene->overlap(sphereGeo, overlapCenter, hit, filterData, &filter)) {
                 const auto& touch = hit.getAnyHit(0);
                 auto pickUp = (entt::entity)(uint32_t)(uintptr_t)touch.actor->userData;
 
                 if (registry.valid(pickUp) && registry.valid(ent)) {
-                    if (registry.has<worlds::ScriptComponent>(pickUp)) {
-                        interfaces.scriptEngine->fireEvent(pickUp, "onGrab");
-                    }
-
-                    Transform otherTf = worlds::px2glm(touch.actor->getGlobalPose());
-                    otherTf.scale = registry.get<Transform>(pickUp).scale;
-                    auto* gripPoint = registry.try_get<GripPoint>(pickUp);
-
-                    //auto& fj = registry.emplace<worlds::FixedJoint>(ent);
-                    physx::PxTransform p2 = touch.actor->getGlobalPose();
-                    logMsg("grabbing object");
-
-                    if (enableGripPoints.getInt() && gripPoint && (!gripPoint->exclusive || !gripPoint->currentlyHeld)) {
-                        gripPoint->currentlyHeld = true;
-                        physHand.goingTo = pickUp;
-                        physHand.oldFollowHand = physHand.follow;
-                        physHand.follow = FollowHand::None;
-
-                        auto& d6 = registry.emplace<worlds::D6Joint>(ent);
-                        d6.pxJoint->setConstraintFlag(physx::PxConstraintFlag::eCOLLISION_ENABLED, false);
-                        d6.setTarget(pickUp, registry);
-                        setAllAxisD6Motion(d6.pxJoint, physx::PxD6Motion::eFREE);
-                        logMsg("heading to grip point");
-                        dpa.layer = worlds::NOCOLLISION_PHYSICS_LAYER;
-                        worlds::updatePhysicsShapes(dpa);
-
-                        //touch.actor->setActorFlag(physx::PxActorFlag::eDISABLE_GRAVITY, true);
-                    } else {
-                        auto& d6 = registry.emplace<worlds::D6Joint>(ent);
-                        d6.pxJoint->setLocalPose(physx::PxJointActorIndex::eACTOR0, t.transformInv(p2));
-                        setAllAxisD6Motion(d6.pxJoint, physx::PxD6Motion::eLOCKED);
-                        d6.setTarget(pickUp, registry);
-                        // mass of hands is 2kg
-                        auto* otherDpa = registry.try_get<worlds::DynamicPhysicsActor>(pickUp);
-
-                        if (otherDpa && useTensorCompensation.getInt()) {
-                            setPhysHandTensor(physHand, dpa, *otherDpa, t, otherTf, registry);
-                            physHand.useOverrideIT = true;
-                        }
-
-                        logMsg("grabbed object without grip point");
-                    }
+                    handleGrab(pickUp, ent);
                 }
             }
         }
 
         if (doRelease && registry.has<worlds::D6Joint>(ent)) {
-            auto& d6 = registry.get<worlds::D6Joint>(ent);
-            auto heldEnt = d6.getTarget();
+            auto& ph = registry.get<PhysHand>(ent);
+            auto heldEnt = ph.currentlyGrabbed;
+            worlds::DynamicPhysicsActor* heldDpa = registry.try_get<worlds::DynamicPhysicsActor>(ent);
+
+            if (heldDpa) {
+                heldDpa->layer = worlds::DEFAULT_PHYSICS_LAYER;
+                worlds::updatePhysicsShapes(*heldDpa);
+            }
 
             if (registry.valid(heldEnt)) {
-                GripPoint* gp = registry.try_get<GripPoint>(heldEnt);
-                if (gp)
-                    gp->currentlyHeld = false;
+                Grabbable& grabbable = registry.get<Grabbable>(heldEnt);
+                grabbable.grips[ph.gripIndex].inUse = false;
             }
 
             registry.remove<worlds::D6Joint>(ent);
-            auto& ph = registry.get<PhysHand>(ent);
             ph.useOverrideIT = false;
             ph.forceMultiplier = 1.0f;
+            ph.currentlyGrabbed = entt::null;
+        }
+    }
+
+    float PlayerGrabManager::calculateGripScore(Grip& grip, const Transform& handTransform, const Transform& grabbingTransform) {
+        float linearScore = 1.0f / grip.calcDistance(handTransform.position, grabbingTransform);
+        float angularScore =  grip.calcRotationAlignment(handTransform.rotation, grabbingTransform);
+
+        return linearScore;
+    }
+
+    void PlayerGrabManager::handleGrab(entt::entity grabbing, entt::entity hand) {
+        PhysHand& physHand = registry.get<PhysHand>(hand);
+
+
+        const Transform& handTransform = registry.get<Transform>(hand);
+        const Transform& grabbingTransform = registry.get<Transform>(grabbing);
+        auto& grabbable = registry.get<Grabbable>(grabbing);
+
+        logMsg("grabbing object");
+
+        if (grabbable.grips.size() > 0 && enableGripPoints.getInt()) {
+            GripHand gripHand = physHand.follow == FollowHand::LeftHand ? GripHand::Left : GripHand::Right;
+            // Select which grip we're going to use
+            // First, copy to a temporary vector
+            std::vector<int> potentialGripIndices;
+
+            for (size_t i = 0; i < grabbable.grips.size(); i++) {
+                potentialGripIndices.push_back(i);
+            }
+
+            // Now filter out grips which don't apply
+            potentialGripIndices.erase(std::remove_if(potentialGripIndices.begin(), potentialGripIndices.end(),
+                [&](int gripIndex) {
+                    Grip& grip = grabbable.grips[gripIndex];
+                    return (grip.inUse && grip.exclusive) ||
+                           (grip.hand != GripHand::Both && grip.hand != gripHand);
+                }), potentialGripIndices.end()
+            );
+
+            // No available grips, exit now
+            if (potentialGripIndices.size() == 0) return;
+
+            if (registry.has<worlds::ScriptComponent>(grabbing)) {
+                interfaces.scriptEngine->fireEvent(grabbing, "onGrab");
+            }
+
+            int i = 0;
+            for (Grip& g : grabbable.grips) {
+                logMsg("Grip %i: %.3f", i, calculateGripScore(g, handTransform, grabbingTransform));
+                i++;
+            }
+
+            // Sort by "appropriateness score"
+            // (1 / distance) * dot(handRotation, gripRotation)
+            std::sort(potentialGripIndices.begin(), potentialGripIndices.end(),
+                [&](int gripIdxA, int gripIdxB) {
+                    Grip& gripA = grabbable.grips[gripIdxA];
+                    Grip& gripB = grabbable.grips[gripIdxB];
+
+                    float aScore = calculateGripScore(gripA, handTransform, grabbingTransform);
+                    float bScore = calculateGripScore(gripB, handTransform, grabbingTransform);
+
+                    return aScore > bScore;
+                }
+            );
+
+            int bestGripIndex = potentialGripIndices[0];
+            Grip& bestGrip = grabbable.grips[bestGripIndex];
+
+            bestGrip.inUse = true;
+            physHand.goingTo = grabbing;
+            physHand.gripIndex = bestGripIndex;
+            physHand.oldFollowHand = physHand.follow;
+            physHand.follow = FollowHand::None;
+
+            auto& d6 = registry.emplace<worlds::D6Joint>(hand);
+            d6.pxJoint->setConstraintFlag(physx::PxConstraintFlag::eCOLLISION_ENABLED, false);
+            d6.setTarget(grabbing, registry);
+            setAllAxisD6Motion(d6.pxJoint, physx::PxD6Motion::eFREE);
+            logMsg("heading to grip point");
+
+            worlds::DynamicPhysicsActor& dpa = registry.get<worlds::DynamicPhysicsActor>(hand);
+            dpa.layer = worlds::NOCOLLISION_PHYSICS_LAYER;
+            worlds::updatePhysicsShapes(dpa);
+        } else {
+            if (registry.has<worlds::ScriptComponent>(grabbing)) {
+                interfaces.scriptEngine->fireEvent(grabbing, "onGrab");
+            }
+
+            Transform relativeTransform = grabbingTransform.transformByInverse(handTransform);
+
+            auto& d6 = registry.emplace<worlds::D6Joint>(hand);
+            d6.pxJoint->setLocalPose(physx::PxJointActorIndex::eACTOR0, worlds::glm2px(relativeTransform));
+            setAllAxisD6Motion(d6.pxJoint, physx::PxD6Motion::eLOCKED);
+            d6.setTarget(grabbing, registry);
+
+            worlds::DynamicPhysicsActor& dpa = registry.get<worlds::DynamicPhysicsActor>(hand);
+            auto* otherDpa = registry.try_get<worlds::DynamicPhysicsActor>(grabbing);
+
+            if (otherDpa && useTensorCompensation.getInt()) {
+                setPhysHandTensor(physHand, dpa, *otherDpa, worlds::glm2px(handTransform), grabbingTransform, registry);
+                physHand.useOverrideIT = true;
+            }
+
+            logMsg("grabbed object without grip point");
         }
     }
 }

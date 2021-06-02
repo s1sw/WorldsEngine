@@ -19,6 +19,7 @@
 #include "ScriptBindings/PhysicsActors.hpp"
 #include "ScriptBindings/SceneManager.hpp"
 #include "ScriptBindings/Light.hpp"
+#include "ScriptBindings/Console.hpp"
 
 namespace worlds {
     void writeFn(WrenVM*, const char* text) {

@@ -1,4 +1,6 @@
 #pragma once
+#include "Core/Transform.hpp"
+#include "MathsUtil.hpp"
 #include <glm/vec3.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <functional>
@@ -12,27 +14,43 @@ namespace lg {
         Cylinder
     };
 
+    enum class GripHand {
+        Left,
+        Right,
+        Both
+    };
+
     struct Grip {
-        GripType gripType;
+        GripType gripType = GripType::Manual;
+        glm::vec3 position = glm::vec3(0.0f);
+        glm::quat rotation = glm::quat();
+        GripHand hand = GripHand::Both;
+        bool inUse = false;
+        bool exclusive = false;
+
         union {
             struct {
-                glm::vec3 position;
-                glm::quat rotation;
-            } manual;
-
-            struct {
-                glm::vec3 position;
-                glm::quat rotation;
                 glm::vec3 halfExtents;
             } box;
 
             struct {
-                glm::vec3 position;
-                glm::quat rotation;
                 float height;
                 float radius;
             } cylinder;
         };
+
+        Transform getWorldSpace(const Transform& objectTransform) {
+            Transform thisGripTransform{ position, rotation };
+            return thisGripTransform.transformBy(objectTransform);
+        }
+
+        float calcDistance(glm::vec3 handPos, const Transform& objectTransform) {
+            return glm::distance(handPos, getWorldSpace(objectTransform).position);
+        }
+
+        float calcRotationAlignment(glm::quat handRot, const Transform& objectTransform) {
+            return glm::dot(fixupQuat(handRot), fixupQuat(getWorldSpace(objectTransform).rotation));
+        }
     };
 
     struct Grabbable {

@@ -76,7 +76,7 @@ namespace worlds {
             }
 
             updater.beginImages(5, 0, vk::DescriptorType::eCombinedImageSampler);
-            updater.image(*shadowSampler, shadowImage->image.imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
+            updater.image(*shadowSampler, ctx.resources.shadowCascades->image.imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
 
             for (uint32_t i = 0; i < cubemapSlots.size(); i++) {
                 if (cubemapSlots.isSlotPresent(i)) {
@@ -105,11 +105,9 @@ namespace worlds {
         VulkanHandles* handles,
         RenderTexture* depthStencilImage,
         RenderTexture* polyImage,
-        RenderTexture* shadowImage,
         bool enablePicking)
         : depthStencilImage(depthStencilImage)
         , polyImage(polyImage)
-        , shadowImage(shadowImage)
         , enablePicking(enablePicking)
         , pickX(0)
         , pickY(0)
@@ -217,12 +215,11 @@ namespace worlds {
 
         rPassMaker.dependencyBegin(0, 1);
         rPassMaker.dependencySrcStageMask(vk::PipelineStageFlagBits::eEarlyFragmentTests);
-        rPassMaker.dependencyDstStageMask(vk::PipelineStageFlagBits::eEarlyFragmentTests | vk::PipelineStageFlagBits::eColorAttachmentOutput | vk::PipelineStageFlagBits::eComputeShader);
+        rPassMaker.dependencyDstStageMask(vk::PipelineStageFlagBits::eEarlyFragmentTests | vk::PipelineStageFlagBits::eColorAttachmentOutput);
         rPassMaker.dependencyDstAccessMask(vk::AccessFlagBits::eColorAttachmentRead |
                                            vk::AccessFlagBits::eColorAttachmentWrite |
                                            vk::AccessFlagBits::eDepthStencilAttachmentRead |
-                                           vk::AccessFlagBits::eDepthStencilAttachmentWrite |
-                                           vk::AccessFlagBits::eShaderRead);
+                                           vk::AccessFlagBits::eDepthStencilAttachmentWrite);
 
 
         // AMD driver bug workaround: shaders that use ViewIndex without a multiview renderpass
@@ -676,7 +673,7 @@ namespace worlds {
                 VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED);
         }
 
-        shadowImage->image.barrier(cmdBuf, vk::PipelineStageFlagBits::eLateFragmentTests, vk::PipelineStageFlagBits::eFragmentShader,
+        ctx.resources.shadowCascades->image.barrier(cmdBuf, vk::PipelineStageFlagBits::eLateFragmentTests, vk::PipelineStageFlagBits::eFragmentShader,
             vk::AccessFlagBits::eDepthStencilAttachmentRead | vk::AccessFlagBits::eDepthStencilAttachmentWrite,
             vk::AccessFlagBits::eShaderRead);
 
@@ -793,6 +790,7 @@ namespace worlds {
         delete dbgLinesPass;
         delete skyboxPass;
         delete depthPrepass;
+        delete uiPass;
 
         if (cullMeshRenderer)
             delete cullMeshRenderer;

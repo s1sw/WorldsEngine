@@ -246,7 +246,7 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     , shadowmapImage(nullptr)
     , imguiImage(nullptr)
     , window(initInfo.window)
-    , shadowmapRes(2048)
+    , shadowmapRes(4096)
     , enableVR(initInfo.enableVR)
     , irp(nullptr)
     , vrPredictAmount(0.033f)
@@ -564,6 +564,32 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
         PHYSFS_close(file);
         vmaFreeStatsString(allocator, statsString);
         }, "r_printAllocInfo", "", nullptr);
+
+    g_console->registerCommand([&](void*, const char* arg) {
+        device->waitIdle();
+        shadowmapRes = std::atoi(arg);
+        handles.graphicsSettings.shadowmapRes = shadowmapRes;
+        delete shadowmapImage;
+        vk::ImageCreateInfo shadowmapIci;
+        shadowmapIci.imageType = vk::ImageType::e2D;
+        shadowmapIci.extent = vk::Extent3D{ shadowmapRes, shadowmapRes, 1 };
+        shadowmapIci.arrayLayers = 3;
+        shadowmapIci.mipLevels = 1;
+        shadowmapIci.format = vk::Format::eD16Unorm;
+        shadowmapIci.initialLayout = vk::ImageLayout::eUndefined;
+        shadowmapIci.samples = vk::SampleCountFlagBits::e1;
+        shadowmapIci.usage = vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eSampled;
+
+        RTResourceCreateInfo shadowmapCreateInfo{ shadowmapIci, vk::ImageViewType::e2DArray, vk::ImageAspectFlagBits::eDepth };
+        shadowmapImage = createRTResource(shadowmapCreateInfo, "Shadowmap Image");
+        delete shadowCascadePass;
+        shadowCascadePass = new ShadowCascadePass(&handles, shadowmapImage);
+        shadowCascadePass->setup();
+
+        for (RTTPass* rttPass : rttPasses) {
+            rttPass->prp->reuploadDescriptors();
+        }
+    }, "r_setCSMResolution", "Sets the resolution of the cascaded shadow map.");
 
     shadowCascadePass = new ShadowCascadePass(&handles, shadowmapImage);
     shadowCascadePass->setup();
@@ -1493,8 +1519,7 @@ RTTPass* VKRenderer::createRTTPass(RTTPassCreateInfo& ci) {
         this,
         vrInterface,
         frameIdx,
-        &dbgStats,
-        shadowCascadePass
+        &dbgStats
     };
 
     rttPasses.push_back(pass);

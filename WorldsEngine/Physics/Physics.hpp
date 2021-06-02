@@ -44,6 +44,8 @@ namespace worlds {
 
     inline void updateMass(DynamicPhysicsActor& pa) {
         physx::PxRigidBodyExt::setMassAndUpdateInertia(*(physx::PxRigidBody*)pa.actor, pa.mass);
+        pa.actor->setActorFlag(physx::PxActorFlag::eDISABLE_GRAVITY, !pa.enableGravity);
+        pa.actor->setRigidBodyFlag(physx::PxRigidBodyFlag::eENABLE_CCD, pa.enableCCD);
     }
 
     template <typename T>

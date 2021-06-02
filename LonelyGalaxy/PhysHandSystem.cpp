@@ -42,6 +42,7 @@ namespace lg {
     worlds::ConVar physHandDbg { "lg_physHandDbg", "0", "Show debug menu for physics hands" };
     worlds::ConVar killHands { "lg_killHands", "0", "Bleh" };
     worlds::ConVar handTuning { "lg_handTuning", "0", "Displays a debug menu for tuning hand PID controllers." };
+    worlds::ConVar useHandLimits { "lg_useHandLimits", "1", "Use force+torque limits on hands." };
 
     void PhysHandSystem::preSimUpdate(entt::registry& registry, float deltaTime) {
         registry.view<PhysHand>().each([&](entt::entity ent, PhysHand& physHand) {
@@ -106,7 +107,8 @@ namespace lg {
             glm::vec3 vel = worlds::px2glm(body->getLinearVelocity());
 
             glm::vec3 force = physHand.posController.getOutput(err * physHand.forceMultiplier, simStep);
-            force = clampMagnitude(force, physHand.forceLimit);
+            if (useHandLimits.getInt())
+                force = clampMagnitude(force, physHand.forceLimit);
 
             if (glm::any(glm::isnan(force))) {
                 force = glm::vec3(0.0f);
@@ -165,7 +167,8 @@ namespace lg {
                 ImGui::PopID();
             }
 
-            torque = clampMagnitude(torque, physHand.torqueLimit);
+            if (useHandLimits.getInt())
+                torque = clampMagnitude(torque, physHand.torqueLimit);
 
             if (!killHands.getInt() && !glm::any(glm::isnan(axis)) && !glm::any(glm::isinf(torque)))
                 body->addTorque(worlds::glm2px(torque));

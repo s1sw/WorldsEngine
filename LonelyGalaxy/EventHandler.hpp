@@ -35,6 +35,8 @@ namespace lg {
         void onPhysicsSoundContact(entt::entity thisEnt, const worlds::PhysicsContactInfo& info);
         void onContactDamageDealerContact(entt::entity thisEnt, const worlds::PhysicsContactInfo& info);
         void onContactDamageDealerConstruct(entt::registry& reg, entt::entity ent);
+        void onGunConstruct(entt::registry& reg, entt::entity ent);
+        void onProjectileConstruct(entt::registry& reg, entt::entity ent);
 
         worlds::IVRInterface* vrInterface;
         worlds::VKRenderer* renderer;

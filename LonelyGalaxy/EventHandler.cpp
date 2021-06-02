@@ -40,11 +40,16 @@
 #include "PlayerGrabManager.hpp"
 #include "ContactDamageDealer.hpp"
 #include <UI/WorldTextComponent.hpp>
+#include "Grabbable.hpp"
+#include <Serialization/SceneSerialization.hpp>
+#include "DamagingProjectile.hpp"
+#include "Gun.hpp"
 
 namespace lg {
     worlds::RTTPass* spectatorPass = nullptr;
     worlds::Camera spectatorCam;
     worlds::ConVar enableSpectatorCam { "lg_enableVrSpectatorCam", "0", "Enables VR spectator camera." };
+    worlds::ConVar useCamcorder { "lg_useCamcorder", "0", "Uses the camcorder for the screen view." };
     struct SyncedRB {};
     struct StatDisplay {
         entt::entity textEntity;
@@ -103,10 +108,7 @@ namespace lg {
             double damagePercent = clamp((info.relativeSpeed - dealer.minVelocity) / (dealer.maxVelocity - dealer.minVelocity), 0.0, 1.0);
             logMsg("damagePercent: %.3f, relSpeed: %.3f", damagePercent, info.relativeSpeed);
             uint64_t actualDamage = dealer.damage * damagePercent;
-            if (actualDamage > stats->currentHP)
-                stats->currentHP = 0;
-            else
-                stats->currentHP -= actualDamage;
+            stats->damage(actualDamage);
 
             if (stats->currentHP == 0) {
                 engine->destroyNextFrame(info.otherEntity);
@@ -124,6 +126,64 @@ namespace lg {
             this, std::placeholders::_1, std::placeholders::_2));
     }
 
+    void EventHandler::onGunConstruct(entt::registry& r, entt::entity ent) {
+        Grabbable& grabbable = r.get<Grabbable>(ent);
+
+        grabbable.onTriggerPressed = [&](entt::entity ent) {
+            Transform& gunTransform = reg->get<Transform>(ent);
+            Gun& gun = reg->get<Gun>(ent);
+            worlds::DynamicPhysicsActor& gunDpa = reg->get<worlds::DynamicPhysicsActor>(ent);
+
+            worlds::AudioSystem::getInstance()->playOneShotClip(
+                worlds::g_assetDB.addOrGetExisting("Audio/SFX/gunshot.ogg"), gunTransform.position, true
+            );
+
+            worlds::AssetID projectileId = worlds::g_assetDB.addOrGetExisting("Prefabs/gun_projectile.json");
+            entt::entity projectile = worlds::SceneLoader::createPrefab(projectileId, *reg);
+
+            Transform& projectileTransform = reg->get<Transform>(projectile);
+            Transform firePointTransform = gun.firePoint.transformBy(gunTransform);
+
+            glm::vec3 forward = firePointTransform.rotation * glm::vec3(0.0f, 0.0f, 1.0f);
+
+
+            projectileTransform.position = firePointTransform.position;
+            projectileTransform.rotation = firePointTransform.rotation;
+
+            worlds::DynamicPhysicsActor& dpa = reg->get<worlds::DynamicPhysicsActor>(projectile);
+
+            gunDpa.actor->addForce(worlds::glm2px(-forward * 100.0f * dpa.mass), physx::PxForceMode::eIMPULSE);
+
+            dpa.actor->setGlobalPose(worlds::glm2px(projectileTransform));
+            dpa.actor->addForce(worlds::glm2px(forward * 100.0f), physx::PxForceMode::eVELOCITY_CHANGE);
+        };
+    }
+
+    void EventHandler::onProjectileConstruct(entt::registry& reg, entt::entity ent) {
+        auto& physEvents = reg.get_or_emplace<worlds::PhysicsEvents>(ent);
+
+        physEvents.addContactCallback([&](entt::entity thisEnt, const worlds::PhysicsContactInfo& info) {
+            DamagingProjectile& projectile = reg.get<DamagingProjectile>(thisEnt);
+            engine->destroyNextFrame(thisEnt);
+
+            RPGStats* stats = reg.try_get<RPGStats>(info.otherEntity);
+
+            if (stats) {
+                stats->damage(projectile.damage);
+
+                if (stats->currentHP == 0) {
+                    engine->destroyNextFrame(info.otherEntity);
+
+                    if (reg.has<StatDisplay>(info.otherEntity)) {
+                        engine->destroyNextFrame(reg.get<StatDisplay>(info.otherEntity).textEntity);
+                    }
+                }
+            }
+        });
+    }
+
+    entt::entity camcorder = entt::null;
+
     void EventHandler::init(entt::registry& registry, worlds::EngineInterfaces interfaces) {
         vrInterface = interfaces.vrInterface;
         renderer = interfaces.renderer;
@@ -135,6 +195,8 @@ namespace lg {
 
         registry.on_construct<PhysicsSoundComponent>().connect<&EventHandler::onPhysicsSoundConstruct>(this);
         registry.on_construct<ContactDamageDealer>().connect<&EventHandler::onContactDamageDealerConstruct>(this);
+        registry.on_construct<Gun>().connect<&EventHandler::onGunConstruct>(this);
+        registry.on_construct<DamagingProjectile>().connect<&EventHandler::onProjectileConstruct>(this);
 
         worlds::g_console->registerCommand(cmdToggleVsync, "r_toggleVsync", "Toggles Vsync.", renderer);
         interfaces.engine->addSystem(new ObjectParentSystem);
@@ -180,6 +242,10 @@ namespace lg {
             rPh.posController.reset();
             rPh.rotController.reset();
         }, "lg_resetHands", "Resets hand PID controllers.", nullptr);
+
+        worlds::g_console->registerCommand([&](void*, const char*) {
+            camcorder = worlds::SceneLoader::createPrefab(worlds::g_assetDB.addOrGetExisting("Prefabs/spectator_camcorder.json"), registry);
+        }, "lg_spawnCamcorder", "Spawns the camcorder.", nullptr);
     }
 
     void EventHandler::preSimUpdate(entt::registry&, float) {
@@ -269,8 +335,14 @@ namespace lg {
                 t = hmdTransform;
             }
 
-            spectatorCam.position = hmdTransform.position;
-            spectatorCam.rotation = hmdTransform.rotation;
+            if (!useCamcorder.getInt() || !reg.valid(camcorder)) {
+                spectatorCam.position = hmdTransform.position;
+                spectatorCam.rotation = hmdTransform.rotation;
+            } else {
+                Transform& camcorderTransform = reg.get<Transform>(camcorder);
+                spectatorCam.position = camcorderTransform.position;
+                spectatorCam.rotation = camcorderTransform.rotation;
+            }
         }
 
         entt::entity localLocosphereEnt = entt::null;
@@ -382,8 +454,9 @@ namespace lg {
     worlds::ConVar showTargetHands { "lg_showTargetHands", "0", "Shows devtextured hands that represent the current target transform of the hands." };
 
     void EventHandler::onSceneStart(entt::registry& registry) {
+        camcorder = entt::null;
         registry.view<worlds::DynamicPhysicsActor>().each([&](auto ent, auto&) {
-            registry.emplace<SyncedRB>(ent);
+            registry.emplace_or_replace<SyncedRB>(ent);
         });
 
         // create our lil' pal the player
@@ -480,7 +553,7 @@ namespace lg {
             physx::PxRigidBodyExt::setMassAndUpdateInertia(*lActor, 2.0f);
 
             PIDSettings posSettings{ 750.0f, 600.0f, 137.0f };
-            PIDSettings rotSettings{ 200.0f, 0.0f, 29.0f };
+            PIDSettings rotSettings{ 200.0f, 300.0f, 29.0f };
 
             auto& lHandPhys = registry.emplace<PhysHand>(lHandEnt);
             lHandPhys.locosphere = rig.locosphere;

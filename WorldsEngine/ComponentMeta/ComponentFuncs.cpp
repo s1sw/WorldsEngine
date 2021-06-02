@@ -531,15 +531,15 @@ namespace worlds {
                 ed->overrideHandle(&t);
                 if (ImGui::Button("Done")) {
                     transformingShape = false;
-                    it->pos = glm::inverse(actorTransform.rotation) * (t.position - actorTransform.position);
-                    it->rot = glm::inverse(actorTransform.rotation) * t.rotation;
+                    Transform shapeTransform = t.transformByInverse(actorTransform);
+                    it->pos = shapeTransform.position;
+                    it->rot = shapeTransform.rotation;
                 }
             } else {
                 if (ImGui::Button("Transform")) {
                     transformingShape = true;
                     currentShapeIdx = i;
-                    t.position = actorTransform.position + (actorTransform.rotation * it->pos);
-                    t.rotation = actorTransform.rotation * it->rot;
+                    t = Transform {it->pos, it->rot}.transformBy(actorTransform);
                 }
             }
 
@@ -792,10 +792,12 @@ namespace worlds {
                     reg.remove<DynamicPhysicsActor>(ent);
                 } else {
                     ImGui::DragFloat("Mass", &pa.mass);
+                    ImGui::Checkbox("Enable Gravity", &pa.enableGravity);
+                    ImGui::Checkbox("Enable CCD", &pa.enableCCD);
                     if (ImGui::Button("Update Collisions##DPA")) {
                         auto& t = reg.get<Transform>(ent);
                         updatePhysicsShapes(pa, t.scale);
-                        physx::PxRigidBodyExt::setMassAndUpdateInertia(*((physx::PxRigidDynamic*)pa.actor), pa.mass);
+                        updateMass(pa);
                     }
 
                     auto& t = reg.get<Transform>(ent);
@@ -915,6 +917,8 @@ namespace worlds {
 
             j["shapes"] = shapeArray;
             j["mass"] = pa.mass;
+            j["enableCCD"] = pa.enableCCD;
+            j["enableGravity"] = pa.enableGravity;
         }
 
         void fromJson(entt::entity ent, entt::registry& reg, const json& j) override {
@@ -953,6 +957,8 @@ namespace worlds {
 
             updatePhysicsShapes(pa, t.scale);
             pa.mass = j["mass"];
+            pa.enableCCD = j.value("enableCCD", false);
+            pa.enableGravity = j.value("enableGravity", true);
             updateMass(pa);
         }
     };
