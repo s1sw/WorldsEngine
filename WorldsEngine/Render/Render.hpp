@@ -318,7 +318,7 @@ namespace worlds {
         bool isValid = true;
         bool active = false;
     private:
-        RTTPass(const RTTPassCreateInfo& ci, VKRenderer* renderer, IVRInterface* vrInterface, uint32_t frameIdx, RenderDebugStats* dbgStats, ShadowCascadePass* scp);
+        RTTPass(const RTTPassCreateInfo& ci, VKRenderer* renderer, IVRInterface* vrInterface, uint32_t frameIdx, RenderDebugStats* dbgStats);
         ~RTTPass();
         PolyRenderPass* prp;
         TonemapRenderPass* trp;
@@ -329,7 +329,6 @@ namespace worlds {
         VKRenderer* renderer;
         IVRInterface* vrInterface;
         RenderDebugStats* dbgStats;
-        ShadowCascadePass* shadowCascadePass;
         void writeCmds(uint32_t frameIdx, vk::CommandBuffer buf, entt::registry& world);
         vk::UniqueDescriptorPool descriptorPool;
 

@@ -83,6 +83,8 @@ namespace worlds {
         DynamicPhysicsActor(physx::PxRigidActor* actor) : actor((physx::PxRigidDynamic*)actor), mass(1.0f) {}
         physx::PxRigidDynamic* actor;
         float mass;
+        bool enableGravity = true;
+        bool enableCCD = false;
         std::vector<PhysicsShape> physicsShapes;
         bool scaleShapes = true;
         uint32_t layer = 0;

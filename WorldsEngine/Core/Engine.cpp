@@ -356,7 +356,7 @@ namespace worlds {
                 window,
                 additionalInstanceExts, additionalDeviceExts,
                 enableOpenVR, activeApi, vrInterface,
-                runAsEditor, "Converge"
+                runAsEditor, initOptions.gameName
             };
 
             bool renderInitSuccess = false;

@@ -60,11 +60,20 @@
                 {
                     "inputs": {
                         "click": {
-                            "output": "/actions/main/in/Grapple"
+                            "output": "/actions/main/in/TriggerL"
                         }
                     },
                     "mode": "button",
                     "path":  "/user/hand/left/input/Trigger"
+                },
+                {
+                    "inputs": {
+                        "click": {
+                            "output": "/actions/main/in/TriggerR"
+                        }
+                    },
+                    "mode": "button",
+                    "path":  "/user/hand/right/input/Trigger"
                 }
             ]
         }

@@ -1,5 +1,6 @@
 #include "SceneSerialization.hpp"
 #include "../Core/Log.hpp"
+#include "../Core/AssetDB.hpp"
 #include <physfs.h>
 
 namespace worlds {
@@ -28,5 +29,16 @@ namespace worlds {
         }
 
         PHYSFS_close(file);
+    }
+
+    entt::entity SceneLoader::loadEntity(PHYSFS_File* file, entt::registry& reg) {
+        return JsonSceneSerializer::loadEntity(file, reg);
+    }
+
+    entt::entity SceneLoader::createPrefab(AssetID id, entt::registry& reg) {
+        PHYSFS_File* file = g_assetDB.openAssetFileRead(id);
+        entt::entity entity = loadEntity(file, reg);
+        PHYSFS_close(file);
+        return entity;
     }
 }

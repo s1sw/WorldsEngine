@@ -10,11 +10,25 @@ struct Transform {
     glm::quat rotation;
     glm::vec3 scale;
 
-    inline glm::mat4 getMatrix() const {
+    Transform transformBy(const Transform& other) const {
+        return Transform {
+            other.position + (other.rotation * position),
+            other.rotation * rotation
+        };
+    }
+
+    Transform transformByInverse(const Transform& other) const {
+        return Transform {
+            glm::inverse(other.rotation) * (position - other.position),
+            glm::inverse(other.rotation) * rotation
+        };
+    }
+
+    glm::mat4 getMatrix() const {
         return glm::translate(glm::mat4(1.0f), position) * glm::mat4_cast(rotation) * glm::scale(glm::mat4(1.0f), scale);
     }
 
-    inline void fromMatrix(glm::mat4 mat) {
+    void fromMatrix(glm::mat4 mat) {
         glm::vec3 skew;
         glm::vec4 perspective;
         glm::decompose(mat, scale, rotation, position, skew, perspective);

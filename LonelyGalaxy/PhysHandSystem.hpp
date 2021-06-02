@@ -8,9 +8,9 @@
 
 namespace lg {
     enum class FollowHand {
-        None,
         LeftHand,
-        RightHand
+        RightHand,
+        None
     };
 
     /**
@@ -40,7 +40,10 @@ namespace lg {
 
         // Grab heading info
         entt::entity goingTo = entt::null;
+        int gripIndex = 0;
         FollowHand oldFollowHand = FollowHand::None;
+
+        entt::entity currentlyGrabbed = entt::null;
     };
 
     class PhysHandSystem : public worlds::ISystem {

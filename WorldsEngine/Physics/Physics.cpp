@@ -263,6 +263,7 @@ namespace worlds {
         desc.cpuDispatcher = physx::PxDefaultCpuDispatcherCreate(std::max(SDL_GetCPUCount() - 2, 1));
         desc.filterShader = filterShader;
         desc.solverType = physx::PxSolverType::eTGS;
+        desc.flags |= PxSceneFlag::eENABLE_CCD;
         g_scene = g_physics->createScene(desc);
 
         simCallback = new SimulationCallback(reg);

@@ -34,7 +34,7 @@ namespace worlds {
 
     WorldSpaceUIPass::WorldSpaceUIPass(VulkanHandles* handles) : handles {handles} {
         if (fontCharacters.size() == 0) {
-            const char* fontPath = "UI/SDFFonts/potra.json";
+            const char* fontPath = "UI/SDFFonts/mulish.json";
             PHYSFS_File* f = PHYSFS_openRead(fontPath);
 
             if (f == nullptr) {
@@ -183,8 +183,9 @@ namespace worlds {
         dsm.layout(*descriptorSetLayout);
         descriptorSet = std::move(dsm.createUnique(handles->device, handles->descriptorPool)[0]);
 
-        TextureData sdfData = loadTexData(g_assetDB.addOrGetExisting("UI/SDFFonts/potra.png"));
+        TextureData sdfData = loadTexData(g_assetDB.addOrGetExisting("UI/SDFFonts/mulish.png"));
         textSdf = uploadTextureVk(*handles, sdfData);
+        std::free(sdfData.data);
 
         vku::SamplerMaker sm;
         sm.minFilter(vk::Filter::eLinear).magFilter(vk::Filter::eLinear).mipmapMode(vk::SamplerMipmapMode::eLinear).anisotropyEnable(true).maxAnisotropy(16.0f).maxLod(VK_LOD_CLAMP_NONE).minLod(0.0f);
@@ -208,6 +209,11 @@ namespace worlds {
         });
 
         if (bufferCapacity < requiredBufferCapacity) {
+            if (vb.buffer()) {
+                vb.destroy();
+                ib.destroy();
+            }
+
             vb = vku::GenericBuffer{
                 handles->device,
                 handles->allocator,

@@ -753,6 +753,13 @@ namespace worlds {
                     }
                 }
 
+                ImGui::Separator();
+
+                
+                if (ImGui::MenuItem("Create Prefab", nullptr, false, reg.valid(currentSelectedEntity))) {
+                    popupToOpen = "Save Prefab";
+                }
+
                 ImGui::EndMenu();
             }
 
@@ -782,6 +789,11 @@ namespace worlds {
 
             ImGui::EndMainMenuBar();
         }
+
+        saveFileModal("Save Prefab", [&](const char* path) {
+            PHYSFS_File* file = PHYSFS_openWrite(path);
+            JsonSceneSerializer::saveEntity(file, reg, currentSelectedEntity);
+        });
 
         if (!popupToOpen.empty())
             ImGui::OpenPopup(popupToOpen.c_str());

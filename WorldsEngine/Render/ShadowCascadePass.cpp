@@ -42,6 +42,7 @@ namespace worlds {
         rPassMaker.subpassDepthStencilAttachment(vk::ImageLayout::eDepthStencilAttachmentOptimal, 0);
 
         rPassMaker.dependencyBegin(0, 0);
+        rPassMaker.dependencyDependencyFlags(vk::DependencyFlagBits::eViewLocal | vk::DependencyFlagBits::eByRegion);
         rPassMaker.dependencySrcStageMask(vk::PipelineStageFlagBits::eLateFragmentTests);
         rPassMaker.dependencyDstStageMask(vk::PipelineStageFlagBits::eEarlyFragmentTests);
         rPassMaker.dependencyDstAccessMask(vk::AccessFlagBits::eDepthStencilAttachmentRead | vk::AccessFlagBits::eDepthStencilAttachmentWrite);

@@ -1826,7 +1826,7 @@ namespace vku {
             vk::DeviceSize size;
             vk::ImageLayout currentLayout;
             vk::PipelineStageFlags lastUsageStage = vk::PipelineStageFlagBits::eTopOfPipe;
-            vk::AccessFlags lastUsageAccessFlags = vk::AccessFlagBits::eShaderWrite;
+            vk::AccessFlags lastUsageAccessFlags = vk::AccessFlagBits::eMemoryWrite;
             vk::ImageAspectFlags aspectFlags;
             vk::ImageCreateInfo info;
             VmaAllocation allocation;

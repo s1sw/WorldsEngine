@@ -1,10 +1,11 @@
 #pragma once
 #include "PxRigidActor.h"
 #include "PxQueryFiltering.h"
+#include <entt/entity/registry.hpp>
 #include <entt/entity/entity.hpp>
 
 namespace worlds {
-	struct FilterEntities : public physx::PxQueryFilterCallback {
+    struct FilterEntities : public physx::PxQueryFilterCallback {
         uint32_t ents[8] = { 0 };
         uint32_t numFilterEnts = 0;
 
@@ -20,5 +21,24 @@ namespace worlds {
             }
             return physx::PxQueryHitType::eBLOCK;
         }
-	};
+    };
+
+    template <typename T>
+    class FilterComponent : public physx::PxQueryFilterCallback {
+        entt::registry& registry;
+    public:
+        FilterComponent(entt::registry& registry) : registry(registry) {}
+
+        physx::PxQueryHitType::Enum preFilter(const physx::PxFilterData&, const physx::PxShape*, const physx::PxRigidActor*, physx::PxHitFlags&) override {
+            return physx::PxQueryHitType::eBLOCK;
+        }
+
+
+        physx::PxQueryHitType::Enum postFilter(const physx::PxFilterData&, const physx::PxQueryHit& hit) override {
+            entt::entity ent = (entt::entity)(uint32_t)(uintptr_t)hit.actor->userData;
+            if (!registry.has<T>(ent))
+                return physx::PxQueryHitType::eNONE;
+            return physx::PxQueryHitType::eBLOCK;
+        }
+    };
 }
