@@ -202,23 +202,31 @@ namespace worlds {
                     ImGui::DragFloat2("Texture Scale", &worldObject.texScaleOffset.x);
                     ImGui::DragFloat2("Texture Offset", &worldObject.texScaleOffset.z);
 
-                    for (int i = 0; i < NUM_SUBMESH_MATS; i++) {
-                        if (worldObject.presentMaterials[i]) {
-                            ImGui::Text("Material %i: %s", i, g_assetDB.getAssetPath(worldObject.materials[i]).c_str());
+                    ImGui::Text("Mesh: %s", g_assetDB.getAssetPath(worldObject.mesh).c_str());
+                    ImGui::SameLine();
 
-                        } else {
-                            ImGui::Text("Material %i: not set", i);
+                    selectAssetPopup("Mesh", worldObject.mesh, ImGui::Button("Change##Mesh"));
+
+                    if (ImGui::TreeNode("Materials")) {
+                        for (int i = 0; i < NUM_SUBMESH_MATS; i++) {
+                            if (worldObject.presentMaterials[i]) {
+                                ImGui::Text("Material %i: %s", i, g_assetDB.getAssetPath(worldObject.materials[i]).c_str());
+
+                            } else {
+                                ImGui::Text("Material %i: not set", i);
+                            }
+
+                            ImGui::SameLine();
+
+                            std::string idStr = "##" + std::to_string(i);
+
+                            bool open = ImGui::Button(("Change" + idStr).c_str());
+                            if (selectAssetPopup(("Material" + idStr).c_str(), worldObject.materials[i], open)) {
+                                worldObject.materialIdx[i] = ~0u;
+                                worldObject.presentMaterials[i] = true;
+                            }
                         }
-
-                        ImGui::SameLine();
-
-                        std::string idStr = "##" + std::to_string(i);
-
-                        bool open = ImGui::Button(("Change" + idStr).c_str());
-                        if (selectAssetPopup(("Material" + idStr).c_str(), worldObject.materials[i], open)) {
-                            worldObject.materialIdx[i] = ~0u;
-                            worldObject.presentMaterials[i] = true;
-                        }
+                        ImGui::TreePop();
                     }
                 }
 

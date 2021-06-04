@@ -21,6 +21,7 @@ namespace lg {
         glm::quat targetWorldRot;
         V3PidController posController;
         V3PidController rotController;
+        glm::vec3 lastRefVel { 0.0f };
 
         /**
          * VR hand to follow. If set, targetWorldPos and targetWorldRot

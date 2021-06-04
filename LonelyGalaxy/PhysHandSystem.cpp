@@ -83,7 +83,7 @@ namespace lg {
 
             if (registry.valid(physHand.locosphere)) {
                 worlds::DynamicPhysicsActor& lDpa = registry.get<worlds::DynamicPhysicsActor>(physHand.locosphere);
-                refVel = worlds::px2glm(((physx::PxRigidDynamic*)lDpa.actor)->getLinearVelocity());
+                refVel = lDpa.linearVelocity();
 
                 if (physHand.follow != FollowHand::None) {
                     // Avoid applying force if it's just going to be limited by the arm joint
@@ -103,7 +103,10 @@ namespace lg {
                 }
             }
 
+            actor.addForce(refVel - physHand.lastRefVel, worlds::ForceMode::VelocityChange);
+
             glm::vec3 err = (physHand.targetWorldPos) - worlds::px2glm(t.p);
+            physHand.lastRefVel = refVel;
             glm::vec3 vel = worlds::px2glm(body->getLinearVelocity());
 
             glm::vec3 force = physHand.posController.getOutput(err * physHand.forceMultiplier, simStep);
@@ -175,6 +178,8 @@ namespace lg {
         });
     }
 
+    extern glm::vec3 nextCamPos;
+
     void PhysHandSystem::setTargets(PhysHand& hand, entt::entity ent, float deltaTime) {
         if (hand.follow == FollowHand::None) return;
 
@@ -192,19 +197,23 @@ namespace lg {
         if (interfaces.vrInterface) {
             Transform t;
             if (interfaces.vrInterface->getHandTransform(wHand, t)) {
+                LocospherePlayerComponent& lpc = registry.get<LocospherePlayerComponent>(hand.locosphere);
+                glm::quat virtualRotation = interfaces.mainCamera->rotation * glm::quat(glm::vec3(0.0f, glm::pi<float>(), 0.0f));
+
                 t.position += t.rotation * posOffset;
-                glm::quat flip180 = glm::angleAxis(glm::pi<float>(), glm::vec3{0.0f, 1.0f, 0.0f});
-                glm::quat correctedRot = interfaces.mainCamera->rotation * flip180;
-                t.position = correctedRot * t.position;
-                t.position += interfaces.mainCamera->position;
+                t.position = virtualRotation * t.position;
+
+                t.position += lpc.headPos;
+
                 t.rotation *= glm::quat{glm::radians(rotEulerOffset)};
-                t.rotation = flip180 * interfaces.mainCamera->rotation * t.rotation;
 
                 hand.targetWorldPos = t.position;
-                hand.targetWorldRot = t.rotation;
+                hand.targetWorldRot = virtualRotation * t.rotation;
             }
         } else {
             static glm::vec3 camOffset { 0.1f, -0.1f, 0.55f };
+
+            worlds::DynamicPhysicsActor& locosphereDpa = registry.get<worlds::DynamicPhysicsActor>(hand.locosphere);
 
             if (interfaces.inputManager->keyPressed(SDL_SCANCODE_KP_8))
                 camOffset.z += 0.05f;
@@ -214,7 +223,9 @@ namespace lg {
 
             if (hand.follow == FollowHand::RightHand)
                 camOffset.x = -camOffset.x;
-            hand.targetWorldPos = interfaces.mainCamera->position;
+
+            hand.targetWorldPos = worlds::px2glm(locosphereDpa.actor->getGlobalPose().p);
+            hand.targetWorldPos += glm::vec3{0.0f, 1.55f, 0.0f};
             hand.targetWorldPos += interfaces.mainCamera->rotation * camOffset;
             hand.targetWorldRot = interfaces.mainCamera->rotation;
             if (hand.follow == FollowHand::RightHand)

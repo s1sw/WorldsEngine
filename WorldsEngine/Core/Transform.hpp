@@ -24,6 +24,22 @@ struct Transform {
         };
     }
 
+    glm::vec3 transformDirection(glm::vec3 v3) const {
+        return rotation * v3;
+    }
+    
+    glm::vec3 transformPoint(glm::vec3 v3) const {
+        return position + (rotation * v3);
+    }
+
+    glm::vec3 inverseTransformDirection(glm::vec3 v3) const {
+        return glm::inverse(rotation) * v3;
+    }
+
+    glm::vec3 inverseTransformPoint(glm::vec3 v3) const {
+        return glm::inverse(rotation) * (v3 - position);
+    }
+
     glm::mat4 getMatrix() const {
         return glm::translate(glm::mat4(1.0f), position) * glm::mat4_cast(rotation) * glm::scale(glm::mat4(1.0f), scale);
     }

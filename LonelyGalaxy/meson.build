@@ -14,6 +14,7 @@ sources = [
     'PhysHandSystem.cpp',
     'PlayerGrabManager.cpp',
     'Server.cpp',
+    'StabbySystem.cpp',
     'NetBase.cpp',
     'NetMessage.cpp',
 
@@ -34,6 +35,7 @@ sources = [
     'PlayerGrabManager.hpp',
     'PidController.hpp',
     'Server.hpp',
+    'StabbySystem.hpp',
     'SyncedRB.hpp'
 ]
 

@@ -29,6 +29,7 @@ namespace worlds {
                 case physx::PxErrorCode::eDEBUG_INFO:
                     logVrb(WELogCategoryPhysics, "%s (%s:%i)", msg, file, line);
                     break;
+                    glm::vec3 normal;
                 case PxErrorCode::eDEBUG_WARNING:
                 case PxErrorCode::ePERF_WARNING:
                 case PxErrorCode::eINVALID_OPERATION:
@@ -200,10 +201,12 @@ namespace worlds {
                 for (uint32_t j = 0; j < nbContacts; j++) {
                     totalContacts++;
                     info.averageContactPoint += px2glm(contacts[j].position);
+                    info.normal += px2glm(contacts[j].normal);
                 }
             }
 
             info.averageContactPoint /= totalContacts;
+            info.normal /= totalContacts;
 
             if (evtA) {
                 info.otherEntity = b;
@@ -262,8 +265,8 @@ namespace worlds {
         desc.gravity = physx::PxVec3(0.0f, -9.81f, 0.0f);
         desc.cpuDispatcher = physx::PxDefaultCpuDispatcherCreate(std::max(SDL_GetCPUCount() - 2, 1));
         desc.filterShader = filterShader;
-        desc.solverType = physx::PxSolverType::eTGS;
-        desc.flags |= PxSceneFlag::eENABLE_CCD;
+        desc.solverType = physx::PxSolverType::ePGS;
+        desc.flags = PxSceneFlag::eENABLE_CCD | PxSceneFlag::eENABLE_PCM | PxSceneFlag::eENABLE_STABILIZATION;
         g_scene = g_physics->createScene(desc);
 
         simCallback = new SimulationCallback(reg);

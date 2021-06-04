@@ -3,6 +3,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <vector>
+#include "../Core/Transform.hpp"
 
 namespace worlds {
     typedef uint32_t AssetID;
@@ -79,6 +80,13 @@ namespace worlds {
         uint32_t layer = 0;
     };
 
+    enum class ForceMode {
+        Force,
+        Impulse,
+        VelocityChange,
+        Acceleration
+    };
+
     struct DynamicPhysicsActor {
         DynamicPhysicsActor(physx::PxRigidActor* actor) : actor((physx::PxRigidDynamic*)actor), mass(1.0f) {}
         physx::PxRigidDynamic* actor;
@@ -88,5 +96,16 @@ namespace worlds {
         std::vector<PhysicsShape> physicsShapes;
         bool scaleShapes = true;
         uint32_t layer = 0;
+
+        glm::vec3 linearVelocity() const;
+        glm::vec3 angularVelocity() const;
+
+        void setLinearVelocity(glm::vec3 vel);
+        void setAngularVelocity(glm::vec3 vel);
+
+        void addForce(glm::vec3 force, ForceMode forceMode);
+
+        Transform pose() const;
+        void setPose(const Transform& t);
     };
 }
