@@ -17,6 +17,7 @@
 #include "Grabbable.hpp"
 #include "Gun.hpp"
 #include "DamagingProjectile.hpp"
+#include "Stabby.hpp"
 
 using json = nlohmann::json;
 
@@ -502,6 +503,9 @@ namespace lg {
                         firePointTransform = gun.firePoint.transformBy(gunTransform);
                     }
                 }
+
+                ImGui::DragFloat("Shot Period", &gun.shotPeriod);
+                ImGui::Checkbox("Automatic", &gun.automatic);
             }
         }
 
@@ -514,7 +518,9 @@ namespace lg {
                         { "position", gun.firePoint.position },
                         { "rotation", gun.firePoint.rotation }
                     }
-                }
+                },
+                { "automatic", gun.automatic },
+                { "shotPeriod", gun.shotPeriod }
             };
 
         }
@@ -526,6 +532,9 @@ namespace lg {
                 gun.firePoint.position = j["firePoint"].value("position", glm::vec3(0.0f));
                 gun.firePoint.rotation = j["firePoint"].value("rotation", glm::quat());;
             }
+
+            gun.shotPeriod = j.value("shotPeriod", 0.1f);
+            gun.automatic = j.value("automatic", false);
         }
     };
 
@@ -567,6 +576,105 @@ namespace lg {
         }
     };
 
+    class StabbyEditor : public worlds::BasicComponentUtil<Stabby> {
+    public:
+        BASIC_CREATE(Stabby);
+        BASIC_CLONE(Stabby);
+
+        void writeToFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file) override {}
+        void readFromFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file, int version) override {}
+
+        const char* getName() override { return "Stabby"; }
+
+        void edit(entt::entity ent, entt::registry& reg, worlds::Editor* ed) override {
+            auto& stabby = reg.get<Stabby>(ent);
+
+            if (ImGui::CollapsingHeader("Stabby")) {
+                if (ImGui::Button("Remove##Stabby")) {
+                    reg.remove<Stabby>(ent);
+                    return;
+                }
+
+                ImGui::DragFloat("Penetration Velocity", &stabby.penetrationVelocity);
+                ImGui::DragFloat("Drag Multiplier", &stabby.dragMultiplier);
+                ImGui::DragFloat("Drag Floor", &stabby.dragFloor);
+                ImGui::DragFloat("Pullout Distance", &stabby.pulloutDistance);
+                ImGui::DragFloat3("Stab Direction", glm::value_ptr(stabby.stabDirection));
+            }
+        }
+
+        void toJson(entt::entity ent, entt::registry& reg, json& j) override {
+            auto& stabby = reg.get<Stabby>(ent);
+
+            j = {
+                { "penetrationVelocity", stabby.penetrationVelocity },
+                { "dragMultiplier", stabby.dragMultiplier },
+                { "dragFloor", stabby.dragFloor },
+                { "pulloutDistance", stabby.pulloutDistance },
+                { "stabDirection", stabby.stabDirection }
+            };
+
+        }
+
+        void fromJson(entt::entity ent, entt::registry& reg, const json& j) override {
+            auto& stabby = reg.emplace<Stabby>(ent);
+
+            stabby.penetrationVelocity = j["penetrationVelocity"];
+            stabby.dragMultiplier = j["dragMultiplier"];
+            stabby.dragFloor = j["dragFloor"];
+            stabby.pulloutDistance = j["pulloutDistance"];
+            stabby.stabDirection = j["stabDirection"];
+        }
+    };
+
+    class StabbableEditor : public worlds::BasicComponentUtil<Stabbable> {
+    public:
+        BASIC_CREATE(Stabbable);
+        BASIC_CLONE(Stabbable);
+
+        void writeToFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file) override {}
+        void readFromFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file, int version) override {}
+
+        const char* getName() override { return "Stabbable"; }
+
+        void edit(entt::entity ent, entt::registry& reg, worlds::Editor* ed) override {
+            auto& stabbable = reg.get<Stabbable>(ent);
+
+            if (ImGui::CollapsingHeader("Stabbable")) {
+                if (ImGui::Button("Remove##Stabbable")) {
+                    reg.remove<Stabbable>(ent);
+                    return;
+                }
+
+                if (stabbable.stabSound != ~0u) {
+                    ImGui::Text("Stab sound: %s", worlds::g_assetDB.getAssetPath(stabbable.stabSound).c_str());
+                } else {
+                    ImGui::Text("No stab sound set");
+                }
+                ImGui::SameLine();
+                worlds::selectAssetPopup("Change Stab Sound", stabbable.stabSound, ImGui::Button("Change"));
+            }
+        }
+
+        void toJson(entt::entity ent, entt::registry& reg, json& j) override {
+            auto& stabbable = reg.get<Stabbable>(ent);
+
+            j = json::object();
+
+            if (stabbable.stabSound != ~0u) {
+                j["stabSound"] = worlds::g_assetDB.getAssetPath(stabbable.stabSound);
+            }
+        }
+
+        void fromJson(entt::entity ent, entt::registry& reg, const json& j) override {
+            auto& stabbable = reg.emplace<Stabbable>(ent);
+
+            if (j.contains("stabSound")) {
+                stabbable.stabSound = worlds::g_assetDB.addOrGetExisting(j["stabSound"]);
+            }
+        }
+    };
+
     PlayerStartPointEditor pspe;
     PlayerRigEditor pre;
     GripPointEditor gpe;
@@ -576,6 +684,8 @@ namespace lg {
     GrababbleEditor ge;
     GunEditor guned;
     DamagingProjectileEditor dpe;
+    StabbyEditor ste;
+    StabbableEditor stabbableEditor;
 
     // Near-empty function to ensure that statics get initialized
     void registerComponentMeta() {

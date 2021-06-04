@@ -55,6 +55,8 @@ namespace lg {
 
     struct Grabbable {
         std::function<void(entt::entity)> onTriggerPressed;
+        std::function<void(entt::entity)> onTriggerReleased;
+        std::function<void(entt::entity)> onTriggerHeld;
         std::vector<Grip> grips;
     };
 }

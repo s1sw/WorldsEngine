@@ -28,6 +28,7 @@ namespace lg {
         bool jump = false;
         bool doubleJumpUsed = false;
         bool canWallJump = false;
+        glm::vec3 headPos;
     };
 
     struct PlayerRig {

@@ -676,11 +676,10 @@ namespace worlds {
             }
 
             if (evtHandler != nullptr && !(runAsEditor && editor->active)) {
-                evtHandler->update(registry, deltaTime * timeScale, interpAlpha);
-
                 for (auto* system : systems)
                     system->update(registry, deltaTime * timeScale, interpAlpha);
 
+                evtHandler->update(registry, deltaTime * timeScale, interpAlpha);
                 scriptEngine->onUpdate(deltaTime * timeScale);
             }
 

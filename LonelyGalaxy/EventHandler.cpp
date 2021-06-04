@@ -44,6 +44,8 @@
 #include <Serialization/SceneSerialization.hpp>
 #include "DamagingProjectile.hpp"
 #include "Gun.hpp"
+#include <Libs/pcg_basic.h>
+#include "StabbySystem.hpp"
 
 namespace lg {
     worlds::RTTPass* spectatorPass = nullptr;
@@ -53,6 +55,11 @@ namespace lg {
     struct SyncedRB {};
     struct StatDisplay {
         entt::entity textEntity;
+    };
+
+    struct DamageNumber {
+        glm::vec3 velocity;
+        double spawnTime;
     };
 
     void cmdToggleVsync(void* obj, const char*) {
@@ -90,25 +97,50 @@ namespace lg {
         return val > max ? max : (val > min ? val : min);
     }
 
+    void addStatDisplayIfNeeded(entt::registry& reg, entt::entity entity) {
+        if (!reg.has<StatDisplay>(entity) && !reg.has<LocospherePlayerComponent>(entity)) {
+            StatDisplay& sd = reg.emplace<StatDisplay>(entity);
+            sd.textEntity = reg.create();
+
+            reg.emplace<Transform>(sd.textEntity);
+            worlds::WorldTextComponent& wtc = reg.emplace<worlds::WorldTextComponent>(sd.textEntity);
+            wtc.textScale = 0.005f;
+        }
+    }
+
+    float randFloatZeroOne() {
+        return ((float)(pcg32_random() / (double)UINT32_MAX)) * 2.0f - 1.0f;
+    }
+
+    void spawnDamageNumber(double currentTime, entt::registry& reg, uint64_t damage, glm::vec3 location) {
+        glm::vec3 jumpDir { randFloatZeroOne(), randFloatZeroOne(), randFloatZeroOne() };
+
+        entt::entity ent = reg.create();
+        Transform& transform = reg.emplace<Transform>(ent);
+        transform.position = location;
+
+        DamageNumber& dn = reg.emplace<DamageNumber>(ent);
+        dn.velocity = glm::normalize(jumpDir);
+        dn.spawnTime = currentTime;
+
+        worlds::WorldTextComponent& wtc = reg.emplace<worlds::WorldTextComponent>(ent);
+        wtc.textScale = 0.004f;
+        wtc.text = std::to_string(damage);
+    }
+
     void EventHandler::onContactDamageDealerContact(entt::entity thisEnt, const worlds::PhysicsContactInfo& info) {
         auto& dealer = reg->get<ContactDamageDealer>(thisEnt);
 
         RPGStats* stats = reg->try_get<RPGStats>(info.otherEntity);
 
         if (stats && info.relativeSpeed > dealer.minVelocity) {
-            if (!reg->has<StatDisplay>(info.otherEntity) && !reg->has<LocospherePlayerComponent>(info.otherEntity)) {
-                StatDisplay& sd = reg->emplace<StatDisplay>(info.otherEntity);
-                sd.textEntity = reg->create();
-
-                Transform& t = reg->emplace<Transform>(sd.textEntity);
-                worlds::WorldTextComponent& wtc = reg->emplace<worlds::WorldTextComponent>(sd.textEntity);
-                wtc.textScale = 0.005f;
-            }
+            addStatDisplayIfNeeded(*reg, info.otherEntity);
 
             double damagePercent = clamp((info.relativeSpeed - dealer.minVelocity) / (dealer.maxVelocity - dealer.minVelocity), 0.0, 1.0);
             logMsg("damagePercent: %.3f, relSpeed: %.3f", damagePercent, info.relativeSpeed);
             uint64_t actualDamage = dealer.damage * damagePercent;
             stats->damage(actualDamage);
+            spawnDamageNumber(engine->getGameTime(), *reg, actualDamage, info.averageContactPoint - (info.normal * 0.1f));
 
             if (stats->currentHP == 0) {
                 engine->destroyNextFrame(info.otherEntity);
@@ -126,41 +158,65 @@ namespace lg {
             this, std::placeholders::_1, std::placeholders::_2));
     }
 
+    void fireGun(entt::registry& reg, entt::entity ent) {
+        Gun& gun = reg.get<Gun>(ent);
+        Transform& gunTransform = reg.get<Transform>(ent);
+        worlds::DynamicPhysicsActor& gunDpa = reg.get<worlds::DynamicPhysicsActor>(ent);
+
+        worlds::AudioSystem::getInstance()->playOneShotClip(
+            worlds::g_assetDB.addOrGetExisting("Audio/SFX/gunshot.ogg"), gunTransform.position, true
+        );
+
+        worlds::AssetID projectileId = worlds::g_assetDB.addOrGetExisting("Prefabs/gun_projectile.json");
+        entt::entity projectile = worlds::SceneLoader::createPrefab(projectileId, reg);
+
+        Transform& projectileTransform = reg.get<Transform>(projectile);
+        Transform firePointTransform = gun.firePoint.transformBy(gunTransform);
+
+        glm::vec3 forward = firePointTransform.rotation * glm::vec3(0.0f, 0.0f, 1.0f);
+
+
+        projectileTransform.position = firePointTransform.position;
+        projectileTransform.rotation = firePointTransform.rotation;
+
+        worlds::DynamicPhysicsActor& dpa = reg.get<worlds::DynamicPhysicsActor>(projectile);
+
+        gunDpa.actor->addForce(worlds::glm2px(-forward * 100.0f * dpa.mass), physx::PxForceMode::eIMPULSE);
+
+        dpa.actor->setGlobalPose(worlds::glm2px(projectileTransform));
+        dpa.actor->addForce(worlds::glm2px(forward * 100.0f), physx::PxForceMode::eVELOCITY_CHANGE);
+    }
+
     void EventHandler::onGunConstruct(entt::registry& r, entt::entity ent) {
         Grabbable& grabbable = r.get<Grabbable>(ent);
 
         grabbable.onTriggerPressed = [&](entt::entity ent) {
-            Transform& gunTransform = reg->get<Transform>(ent);
             Gun& gun = reg->get<Gun>(ent);
-            worlds::DynamicPhysicsActor& gunDpa = reg->get<worlds::DynamicPhysicsActor>(ent);
+            if (gun.automatic) return;
 
-            worlds::AudioSystem::getInstance()->playOneShotClip(
-                worlds::g_assetDB.addOrGetExisting("Audio/SFX/gunshot.ogg"), gunTransform.position, true
-            );
+            double time = engine->getGameTime();
 
-            worlds::AssetID projectileId = worlds::g_assetDB.addOrGetExisting("Prefabs/gun_projectile.json");
-            entt::entity projectile = worlds::SceneLoader::createPrefab(projectileId, *reg);
+            if (time - gun.lastFireTime < gun.shotPeriod) return;
+            fireGun(*reg, ent);
+            gun.lastFireTime = time;
+        };
 
-            Transform& projectileTransform = reg->get<Transform>(projectile);
-            Transform firePointTransform = gun.firePoint.transformBy(gunTransform);
+        grabbable.onTriggerHeld = [&](entt::entity ent) {
+            Gun& gun = reg->get<Gun>(ent);
+            if (!gun.automatic) return;
 
-            glm::vec3 forward = firePointTransform.rotation * glm::vec3(0.0f, 0.0f, 1.0f);
+            double time = engine->getGameTime();
 
-
-            projectileTransform.position = firePointTransform.position;
-            projectileTransform.rotation = firePointTransform.rotation;
-
-            worlds::DynamicPhysicsActor& dpa = reg->get<worlds::DynamicPhysicsActor>(projectile);
-
-            gunDpa.actor->addForce(worlds::glm2px(-forward * 100.0f * dpa.mass), physx::PxForceMode::eIMPULSE);
-
-            dpa.actor->setGlobalPose(worlds::glm2px(projectileTransform));
-            dpa.actor->addForce(worlds::glm2px(forward * 100.0f), physx::PxForceMode::eVELOCITY_CHANGE);
+            if (time - gun.lastFireTime < gun.shotPeriod) return;
+            fireGun(*reg, ent);
+            gun.lastFireTime = time;
         };
     }
 
     void EventHandler::onProjectileConstruct(entt::registry& reg, entt::entity ent) {
         auto& physEvents = reg.get_or_emplace<worlds::PhysicsEvents>(ent);
+        DamagingProjectile& projectile = reg.get<DamagingProjectile>(ent);
+        projectile.creationTime = engine->getGameTime();
 
         physEvents.addContactCallback([&](entt::entity thisEnt, const worlds::PhysicsContactInfo& info) {
             DamagingProjectile& projectile = reg.get<DamagingProjectile>(thisEnt);
@@ -169,7 +225,10 @@ namespace lg {
             RPGStats* stats = reg.try_get<RPGStats>(info.otherEntity);
 
             if (stats) {
+                addStatDisplayIfNeeded(reg, info.otherEntity);
                 stats->damage(projectile.damage);
+
+                spawnDamageNumber(engine->getGameTime(), reg, 15, info.averageContactPoint + (info.normal * 0.25f));
 
                 if (stats->currentHP == 0) {
                     engine->destroyNextFrame(info.otherEntity);
@@ -204,6 +263,7 @@ namespace lg {
         lsphereSys = new LocospherePlayerSystem { interfaces, registry };
         interfaces.engine->addSystem(lsphereSys);
         interfaces.engine->addSystem(new PhysHandSystem{ interfaces, registry });
+        interfaces.engine->addSystem(new StabbySystem { interfaces, registry });
 
         if (enet_initialize() != 0) {
             logErr("Failed to initialize enet.");
@@ -271,6 +331,23 @@ namespace lg {
             camera->position + hmdPos,
             camera->rotation * glm::angleAxis(hmdRotationAngle, hmdRotationAxis)
         };
+    }
+
+    Transform getHandTargetTransform(worlds::Camera* cam, worlds::IVRInterface* vrInterface, worlds::Hand wHand) {
+        static glm::vec3 posOffset { 0.0f, 0.0f, -0.05f };
+        static glm::vec3 rotEulerOffset { -120.0f, 0.0f, -51.0f };
+        Transform t;
+        if (vrInterface->getHandTransform(wHand, t)) {
+            t.position += t.rotation * posOffset;
+            glm::quat flip180 = glm::angleAxis(glm::pi<float>(), glm::vec3{0.0f, 1.0f, 0.0f});
+            glm::quat correctedRot = cam->rotation * flip180;
+            t.position = correctedRot * t.position;
+            t.position += cam->position;
+            t.rotation *= glm::quat{glm::radians(rotEulerOffset)};
+            t.rotation = flip180 * cam->rotation * t.rotation;
+        }
+
+        return t;
     }
 
     void EventHandler::update(entt::registry& reg, float deltaTime, float) {
@@ -343,7 +420,14 @@ namespace lg {
                 spectatorCam.position = camcorderTransform.position;
                 spectatorCam.rotation = camcorderTransform.rotation;
             }
+        } else {
+            if (reg.valid(headPlaceholder)) {
+                auto& t = reg.get<Transform>(headPlaceholder);
+                t.position = camera->position;
+                t.rotation = camera->rotation;
+            }
         }
+
 
         entt::entity localLocosphereEnt = entt::null;
 
@@ -355,6 +439,11 @@ namespace lg {
                     logWarn("more than one local locosphere!");
                 }
             }
+        });
+
+        reg.view<DamagingProjectile>().each([&](entt::entity ent, DamagingProjectile& dp) {
+            if (engine->getGameTime() - dp.creationTime > 20.0)
+                engine->destroyNextFrame(ent);
         });
 
         if (!reg.valid(localLocosphereEnt)) return;
@@ -381,12 +470,8 @@ namespace lg {
             if (reg.valid(fakeLHand) && reg.valid(fakeRHand)) {
                 auto& tfl = reg.get<Transform>(fakeLHand);
                 auto& trl = reg.get<Transform>(fakeRHand);
-
-                tfl.position = phl.targetWorldPos;
-                tfl.rotation = phl.targetWorldRot;
-
-                trl.position = phr.targetWorldPos;
-                trl.rotation = phr.targetWorldRot;
+                tfl = getHandTargetTransform(camera, vrInterface, worlds::Hand::LeftHand);
+                trl = getHandTargetTransform(camera, vrInterface, worlds::Hand::RightHand);
             }
         }
         auto statDisplayView = reg.view<StatDisplay, RPGStats, Transform>();
@@ -397,8 +482,18 @@ namespace lg {
             headPos = hmdTransform.position;
         }
 
+        reg.view<DamageNumber, Transform>().each([&](entt::entity ent, DamageNumber& dn, Transform& transform) {
+            dn.velocity += glm::vec3(0.0f, -9.81f, 0.0f) * deltaTime;
+            transform.position += dn.velocity * deltaTime;
+            transform.rotation = safeQuatLookat(glm::normalize(transform.position - headPos));
+
+            if (engine->getGameTime() - dn.spawnTime > 5.0) {
+                engine->destroyNextFrame(ent);
+            }
+        });
+
         statDisplayView.each([&](StatDisplay& sd, RPGStats& stats, Transform& transform) {
-            glm::vec3 displayPos = transform.position + (transform.rotation * glm::vec3(0.0f, 2.0f, 0.0f));
+            glm::vec3 displayPos = transform.position + (transform.rotation * glm::vec3(0.0f, 2.15f, 0.0f));
             entt::entity textEnt = sd.textEntity;
 
             Transform& statTextTransform = reg.get<Transform>(textEnt);
@@ -443,10 +538,10 @@ namespace lg {
             float fenderHeight = 0.55f;
             glm::vec3 headPos = worlds::getMatrixTranslation(vrInterface->getHeadTransform());
 
-            rHandJoint->setLocalPose(physx::PxJointActorIndex::eACTOR0, physx::PxTransform {
-                    physx::PxVec3(0.0f, headPos.y - fenderHeight, 0.0f), physx::PxQuat { physx::PxIdentity }});
-            lHandJoint->setLocalPose(physx::PxJointActorIndex::eACTOR0, physx::PxTransform {
-                    physx::PxVec3(0.0f, headPos.y - fenderHeight, 0.0f), physx::PxQuat { physx::PxIdentity }});
+            //rHandJoint->setLocalPose(physx::PxJointActorIndex::eACTOR0, physx::PxTransform {
+            //        physx::PxVec3(0.0f, headPos.y - fenderHeight, 0.0f), physx::PxQuat { physx::PxIdentity }});
+            //lHandJoint->setLocalPose(physx::PxJointActorIndex::eACTOR0, physx::PxTransform {
+            //        physx::PxVec3(0.0f, headPos.y - fenderHeight, 0.0f), physx::PxQuat { physx::PxIdentity }});
             ImGui::Text("Headpos: %.3f, %.3f, %.3f", headPos.x, headPos.y, headPos.z);
         }
     }
@@ -480,7 +575,6 @@ namespace lg {
 
             if (vrInterface) {
                 rStick = vrInterface->getActionHandle("/actions/main/in/RStick");
-                camera->rotation = glm::quat{};
             }
 
             auto& fenderTransform = registry.get<Transform>(rig.fender);
@@ -490,11 +584,9 @@ namespace lg {
             auto rHandModel = worlds::g_assetDB.addOrGetExisting("Models/VRHands/hand_placeholder_r.wmdl");
 
 
-            if (vrInterface) {
-                headPlaceholder = registry.create();
-                registry.emplace<Transform>(headPlaceholder);
-                registry.emplace<worlds::WorldObject>(headPlaceholder, devMatId, worlds::g_assetDB.addOrGetExisting("Models/head placeholder.obj"));
-            }
+            headPlaceholder = registry.create();
+            registry.emplace<Transform>(headPlaceholder);
+            registry.emplace<worlds::WorldObject>(headPlaceholder, devMatId, worlds::g_assetDB.addOrGetExisting("Models/head placeholder.obj"));
 
             lHandEnt = registry.create();
             registry.get<PlayerRig>(rig.locosphere).lHand = lHandEnt;
@@ -574,43 +666,43 @@ namespace lg {
 
             auto fenderActor = registry.get<worlds::DynamicPhysicsActor>(rig.fender).actor;
 
-            lHandJoint = physx::PxD6JointCreate(*worlds::g_physics, fenderActor, physx::PxTransform { physx::PxIdentity }, lActor,
-            physx::PxTransform { physx::PxIdentity });
+            //lHandJoint = physx::PxD6JointCreate(*worlds::g_physics, fenderActor, physx::PxTransform { physx::PxIdentity }, lActor,
+            //physx::PxTransform { physx::PxIdentity });
 
-            lHandJoint->setLinearLimit(physx::PxJointLinearLimit{
-                    physx::PxTolerancesScale{}, 0.8f});
-            lHandJoint->setMotion(physx::PxD6Axis::eX, physx::PxD6Motion::eLIMITED);
-            lHandJoint->setMotion(physx::PxD6Axis::eY, physx::PxD6Motion::eLIMITED);
-            lHandJoint->setMotion(physx::PxD6Axis::eZ, physx::PxD6Motion::eLIMITED);
-            lHandJoint->setMotion(physx::PxD6Axis::eSWING1, physx::PxD6Motion::eFREE);
-            lHandJoint->setMotion(physx::PxD6Axis::eSWING2, physx::PxD6Motion::eFREE);
-            lHandJoint->setMotion(physx::PxD6Axis::eTWIST, physx::PxD6Motion::eFREE);
+            //lHandJoint->setLinearLimit(physx::PxJointLinearLimit{
+            //        physx::PxTolerancesScale{}, 0.8f});
+            //lHandJoint->setMotion(physx::PxD6Axis::eX, physx::PxD6Motion::eLIMITED);
+            //lHandJoint->setMotion(physx::PxD6Axis::eY, physx::PxD6Motion::eLIMITED);
+            //lHandJoint->setMotion(physx::PxD6Axis::eZ, physx::PxD6Motion::eLIMITED);
+            //lHandJoint->setMotion(physx::PxD6Axis::eSWING1, physx::PxD6Motion::eFREE);
+            //lHandJoint->setMotion(physx::PxD6Axis::eSWING2, physx::PxD6Motion::eFREE);
+            //lHandJoint->setMotion(physx::PxD6Axis::eTWIST, physx::PxD6Motion::eFREE);
 
-            rHandJoint = physx::PxD6JointCreate(*worlds::g_physics, fenderActor, physx::PxTransform { physx::PxIdentity }, rActor,
-            physx::PxTransform { physx::PxIdentity });
+            //rHandJoint = physx::PxD6JointCreate(*worlds::g_physics, fenderActor, physx::PxTransform { physx::PxIdentity }, rActor,
+            //physx::PxTransform { physx::PxIdentity });
 
-            rHandJoint->setLinearLimit(physx::PxJointLinearLimit{
-                    physx::PxTolerancesScale{}, 0.8f});
-            rHandJoint->setMotion(physx::PxD6Axis::eX, physx::PxD6Motion::eLIMITED);
-            rHandJoint->setMotion(physx::PxD6Axis::eY, physx::PxD6Motion::eLIMITED);
-            rHandJoint->setMotion(physx::PxD6Axis::eZ, physx::PxD6Motion::eLIMITED);
-            rHandJoint->setMotion(physx::PxD6Axis::eSWING1, physx::PxD6Motion::eFREE);
-            rHandJoint->setMotion(physx::PxD6Axis::eSWING2, physx::PxD6Motion::eFREE);
-            rHandJoint->setMotion(physx::PxD6Axis::eTWIST, physx::PxD6Motion::eFREE);
+            //rHandJoint->setLinearLimit(physx::PxJointLinearLimit{
+            //        physx::PxTolerancesScale{}, 0.8f});
+            //rHandJoint->setMotion(physx::PxD6Axis::eX, physx::PxD6Motion::eLIMITED);
+            //rHandJoint->setMotion(physx::PxD6Axis::eY, physx::PxD6Motion::eLIMITED);
+            //rHandJoint->setMotion(physx::PxD6Axis::eZ, physx::PxD6Motion::eLIMITED);
+            //rHandJoint->setMotion(physx::PxD6Axis::eSWING1, physx::PxD6Motion::eFREE);
+            //rHandJoint->setMotion(physx::PxD6Axis::eSWING2, physx::PxD6Motion::eFREE);
+            //rHandJoint->setMotion(physx::PxD6Axis::eTWIST, physx::PxD6Motion::eFREE);
             lActor->setSolverIterationCounts(16, 8);
             rActor->setSolverIterationCounts(16, 8);
             lActor->setLinearVelocity(physx::PxVec3{0.0f});
             rActor->setLinearVelocity(physx::PxVec3{0.0f});
 
-            rHandJoint->setLocalPose(physx::PxJointActorIndex::eACTOR0, physx::PxTransform {
-                physx::PxVec3 { 0.0f, 0.8f, 0.0f },
-                physx::PxQuat { physx::PxIdentity }
-            });
+            //rHandJoint->setLocalPose(physx::PxJointActorIndex::eACTOR0, physx::PxTransform {
+            //    physx::PxVec3 { 0.0f, 0.8f, 0.0f },
+            //    physx::PxQuat { physx::PxIdentity }
+            //});
 
-            lHandJoint->setLocalPose(physx::PxJointActorIndex::eACTOR0, physx::PxTransform {
-                physx::PxVec3 { 0.0f, 0.8f, 0.0f },
-                physx::PxQuat { physx::PxIdentity }
-            });
+            //lHandJoint->setLocalPose(physx::PxJointActorIndex::eACTOR0, physx::PxTransform {
+            //    physx::PxVec3 { 0.0f, 0.8f, 0.0f },
+            //    physx::PxQuat { physx::PxIdentity }
+            //});
 
             PhysicsSoundComponent& lPsc = reg->emplace<PhysicsSoundComponent>(lHandEnt);
             lPsc.soundId = worlds::g_assetDB.addOrGetExisting("Audio/SFX/Player/hand_slap1.ogg");
@@ -639,6 +731,7 @@ namespace lg {
         }
 
         g_dbgArrows->createEntities();
+        camera->rotation = glm::quat{glm::vec3{0.0f}};
     }
 
     void EventHandler::shutdown(entt::registry& registry) {

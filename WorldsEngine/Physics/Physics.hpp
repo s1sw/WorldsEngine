@@ -115,6 +115,7 @@ namespace worlds {
         float relativeSpeed;
         entt::entity otherEntity;
         glm::vec3 averageContactPoint;
+        glm::vec3 normal;
     };
 
     struct PhysicsEvents {

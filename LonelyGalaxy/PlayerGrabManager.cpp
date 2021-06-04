@@ -148,9 +148,21 @@ namespace lg {
             Grabbable& grabbable = registry.get<Grabbable>(physHand.currentlyGrabbed);
             auto triggerAction = physHand.follow == FollowHand::LeftHand ? lTrigger : rTrigger;
 
-            if (vrInterface && vrInterface->getActionPressed(triggerAction)) {
-                if (grabbable.onTriggerPressed)
-                    grabbable.onTriggerPressed(physHand.currentlyGrabbed);
+            if (vrInterface ) {
+                if (vrInterface->getActionPressed(triggerAction)) {
+                    if (grabbable.onTriggerPressed)
+                        grabbable.onTriggerPressed(physHand.currentlyGrabbed);
+                }
+
+                if (vrInterface->getActionHeld(triggerAction)) {
+                    if (grabbable.onTriggerHeld)
+                        grabbable.onTriggerHeld(physHand.currentlyGrabbed);
+                }
+
+                if (vrInterface->getActionReleased(triggerAction)) {
+                    if (grabbable.onTriggerReleased)
+                        grabbable.onTriggerReleased(physHand.currentlyGrabbed);
+                }
             }
         }
 

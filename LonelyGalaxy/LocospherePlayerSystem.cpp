@@ -683,6 +683,7 @@ namespace lg {
                 physDbgIdx++;
                 if (physDbgIdx == 128)
                     physDbgIdx = 0;
+                lpc.headPos = nextCamPos;
             }
         });
     }
