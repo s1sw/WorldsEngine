@@ -348,6 +348,9 @@ namespace worlds {
                             bool isSelected = worldLight.type == p.first;
                             if (ImGui::Selectable(p.second, &isSelected)) {
                                 worldLight.type = p.first;
+                                if (p.first != LightType::Spot) {
+                                    worldLight.enableShadows = false;
+                                }
                             }
 
                             if (isSelected)
@@ -358,6 +361,7 @@ namespace worlds {
 
                     if (worldLight.type == LightType::Spot) {
                         ImGui::DragFloat("Spot Cutoff", &worldLight.spotCutoff);
+                        ImGui::Checkbox("Enable Shadows", &worldLight.enableShadows);
                     }
 
                     if (worldLight.type == LightType::Sphere) {
@@ -404,7 +408,8 @@ namespace worlds {
                 { "spotCutoff", wl.spotCutoff },
                 { "intensity", wl.intensity },
                 { "tubeLength", wl.tubeLength },
-                { "tubeRadius", wl.tubeRadius }
+                { "tubeRadius", wl.tubeRadius },
+                { "enableShadows", wl.enableShadows }
             };
         }
 
@@ -417,6 +422,7 @@ namespace worlds {
             wl.intensity = j["intensity"];
             wl.tubeLength = j["tubeLength"];
             wl.tubeRadius = j["tubeRadius"];
+            wl.enableShadows = j.value("enableShadows", false);
         }
     };
 

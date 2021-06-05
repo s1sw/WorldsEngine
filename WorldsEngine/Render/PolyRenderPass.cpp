@@ -88,7 +88,12 @@ namespace worlds {
             updater.beginImages(7, 0, vk::DescriptorType::eCombinedImageSampler);
             updater.image(*albedoSampler, ctx.resources.brdfLut->imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
 
-            updater.beginBuffers(8, 0, vk::DescriptorType::eStorageBuffer);
+            for (int i = 0; i < NUM_SHADOW_LIGHTS; i++) {
+                updater.beginImages(8, i, vk::DescriptorType::eCombinedImageSampler);
+                updater.image(*shadowSampler, ctx.resources.additionalShadowImages[i]->image.imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
+            }
+
+            updater.beginBuffers(9, 0, vk::DescriptorType::eStorageBuffer);
             updater.buffer(pickingBuffer.buffer(), 0, sizeof(PickingBuffer));
 
             if (!updater.ok())
@@ -124,6 +129,15 @@ namespace worlds {
     static ConVar maxParallaxLayers("r_maxParallaxLayers", "32");
     static ConVar minParallaxLayers("r_minParallaxLayers", "4");
 
+    void setupVertexFormat(vku::PipelineMaker& pm) {
+        pm.vertexBinding(0, (uint32_t)sizeof(Vertex));
+        pm.vertexAttribute(0, 0, vk::Format::eR32G32B32Sfloat, (uint32_t)offsetof(Vertex, position));
+        pm.vertexAttribute(1, 0, vk::Format::eR32G32B32Sfloat, (uint32_t)offsetof(Vertex, normal));
+        pm.vertexAttribute(2, 0, vk::Format::eR32G32B32Sfloat, (uint32_t)offsetof(Vertex, tangent));
+        pm.vertexAttribute(3, 0, vk::Format::eR32Sfloat, (uint32_t)offsetof(Vertex, bitangentSign));
+        pm.vertexAttribute(4, 0, vk::Format::eR32G32Sfloat, (uint32_t)offsetof(Vertex, uv));
+    }
+
     void PolyRenderPass::setup(RenderContext& ctx, vk::DescriptorPool descriptorPool) {
         ZoneScoped;
 
@@ -154,8 +168,10 @@ namespace worlds {
         dslm.bindFlag(6, vk::DescriptorBindingFlagBits::ePartiallyBound);
         // BRDF LUT
         dslm.image(7, vk::DescriptorType::eCombinedImageSampler, vk::ShaderStageFlagBits::eFragment, 1);
+        // Additional shadow images
+        dslm.image(8, vk::DescriptorType::eCombinedImageSampler, vk::ShaderStageFlagBits::eFragment, NUM_SHADOW_LIGHTS);
         // Picking
-        dslm.buffer(8, vk::DescriptorType::eStorageBuffer, vk::ShaderStageFlagBits::eFragment, 1);
+        dslm.buffer(9, vk::DescriptorType::eStorageBuffer, vk::ShaderStageFlagBits::eFragment, 1);
 
         dsl = dslm.createUnique(handles->device);
 
@@ -293,11 +309,7 @@ namespace worlds {
 
             pm.shader(vk::ShaderStageFlagBits::eFragment, fragmentShader, "main", &standardSpecInfo);
             pm.shader(vk::ShaderStageFlagBits::eVertex, vertexShader);
-            pm.vertexBinding(0, (uint32_t)sizeof(Vertex));
-            pm.vertexAttribute(0, 0, vk::Format::eR32G32B32Sfloat, (uint32_t)offsetof(Vertex, position));
-            pm.vertexAttribute(1, 0, vk::Format::eR32G32B32Sfloat, (uint32_t)offsetof(Vertex, normal));
-            pm.vertexAttribute(2, 0, vk::Format::eR32G32B32Sfloat, (uint32_t)offsetof(Vertex, tangent));
-            pm.vertexAttribute(3, 0, vk::Format::eR32G32Sfloat, (uint32_t)offsetof(Vertex, uv));
+            setupVertexFormat(pm);
             pm.cullMode(vk::CullModeFlagBits::eBack);
 
             if ((int)enableDepthPrepass)
@@ -335,11 +347,7 @@ namespace worlds {
 
             pm.shader(vk::ShaderStageFlagBits::eFragment, atFragmentShader, "main", &standardSpecInfo);
             pm.shader(vk::ShaderStageFlagBits::eVertex, vertexShader);
-            pm.vertexBinding(0, (uint32_t)sizeof(Vertex));
-            pm.vertexAttribute(0, 0, vk::Format::eR32G32B32Sfloat, (uint32_t)offsetof(Vertex, position));
-            pm.vertexAttribute(1, 0, vk::Format::eR32G32B32Sfloat, (uint32_t)offsetof(Vertex, normal));
-            pm.vertexAttribute(2, 0, vk::Format::eR32G32B32Sfloat, (uint32_t)offsetof(Vertex, tangent));
-            pm.vertexAttribute(3, 0, vk::Format::eR32G32Sfloat, (uint32_t)offsetof(Vertex, uv));
+            setupVertexFormat(pm);
             pm.cullMode(vk::CullModeFlagBits::eBack);
             pm.depthWriteEnable(true).depthTestEnable(true).depthCompareOp(vk::CompareOp::eGreater);
 
@@ -369,11 +377,7 @@ namespace worlds {
 
             pm.shader(vk::ShaderStageFlagBits::eFragment, fragmentShader, "main", &standardSpecInfo);
             pm.shader(vk::ShaderStageFlagBits::eVertex, vertexShader);
-            pm.vertexBinding(0, (uint32_t)sizeof(Vertex));
-            pm.vertexAttribute(0, 0, vk::Format::eR32G32B32Sfloat, (uint32_t)offsetof(Vertex, position));
-            pm.vertexAttribute(1, 0, vk::Format::eR32G32B32Sfloat, (uint32_t)offsetof(Vertex, normal));
-            pm.vertexAttribute(2, 0, vk::Format::eR32G32B32Sfloat, (uint32_t)offsetof(Vertex, tangent));
-            pm.vertexAttribute(3, 0, vk::Format::eR32G32Sfloat, (uint32_t)offsetof(Vertex, uv));
+            setupVertexFormat(pm);
             pm.cullMode(vk::CullModeFlagBits::eNone);
             pm.depthWriteEnable(true).depthTestEnable(true).depthCompareOp(vk::CompareOp::eGreater);
             pm.blendBegin(false);
@@ -593,7 +597,7 @@ namespace worlds {
                 lightMapped->lights[lightIdx] = PackedLight{
                     glm::vec4(l.color * l.intensity, (float)l.type),
                     glm::vec4(lightForward, l.spotCutoff),
-                    glm::vec4(transform.position, 0.0f)
+                    transform.position, l.shadowmapIdx
                 };
             } else {
                 glm::vec3 tubeP0 = transform.position + lightForward * l.tubeLength;
@@ -601,8 +605,16 @@ namespace worlds {
                 lightMapped->lights[lightIdx] = PackedLight{
                     glm::vec4(l.color * l.intensity, (float)l.type),
                     glm::vec4(tubeP0, l.tubeRadius),
-                    glm::vec4(tubeP1, 0.0f)
+                    tubeP1, ~0u
                 };
+            }
+
+            if (l.enableShadows) {
+                Camera shadowCam;
+                shadowCam.position = transform.position;
+                shadowCam.rotation = transform.rotation;
+                shadowCam.verticalFOV = glm::radians(90.f);
+                lightMapped->additionalShadowMatrices[l.shadowmapIdx] = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 100.0f) * shadowCam.getViewMatrix();
             }
             lightIdx++;
         });

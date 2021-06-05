@@ -41,7 +41,7 @@ namespace lg {
             glm::vec3 stabDir = t.transformDirection(stabby.stabDirection);
             float dot = glm::abs(glm::dot(info.normal, stabDir));
 
-            if (dot < 0.5f || registry.has<worlds::D6Joint>(ent)) continue;
+            if (dot < 0.707f || registry.has<worlds::D6Joint>(ent)) continue;
 
             worlds::D6Joint& d6 = registry.emplace<worlds::D6Joint>(ent);
             d6.setTarget(info.otherEntity, registry);
@@ -68,7 +68,6 @@ namespace lg {
                 info.averageContactPoint, true
             );
 
-            d6.pxJoint->setConstraintFlag(physx::PxConstraintFlag::eCOLLISION_ENABLED, false);
             stabbyDpa.actor->setRigidBodyFlag(physx::PxRigidBodyFlag::eKINEMATIC, true);
             stabbyDpa.actor->setRigidBodyFlag(physx::PxRigidBodyFlag::eKINEMATIC, false);
         }

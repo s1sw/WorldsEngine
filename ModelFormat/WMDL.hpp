@@ -15,6 +15,15 @@ namespace wmdl {
         glm::vec2 uv2;
     };
 
+    struct Vertex2 {
+        glm::vec3 position;
+        glm::vec3 normal;
+        glm::vec3 tangent;
+        float bitangentSign;
+        glm::vec2 uv;
+        glm::vec2 uv2;
+    };
+
     struct SubmeshInfo {
         CountType numVerts;
         CountType numIndices;
@@ -28,7 +37,7 @@ namespace wmdl {
 
     struct Header {
         char magic[4] = {'W', 'M', 'D', 'L'};
-        int version = 1;
+        int version = 2;
         bool useSmallIndices;
         CountType numSubmeshes;
         CountType numVertices;
@@ -53,7 +62,13 @@ namespace wmdl {
         }
 
         Vertex* getVertexBlock() {
+            assert(version == 1);
             return (Vertex*)getRelPtr(vertexOffset);
+        }
+        
+        Vertex2* getVertex2Block() {
+            assert(version == 2);
+            return (Vertex2*)getRelPtr(vertexOffset);
         }
 
         uint32_t* getIndexBlock() {

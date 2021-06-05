@@ -109,7 +109,7 @@ vec3 calculateLighting(Light light, ShadeInfo shadeInfo, vec3 worldPos) {
     if (lType != LT_SPHERE && lType != LT_TUBE) {
         NDF = ndfGGX(cosLh, shadeInfo.roughness);
     } else {
-        NDF = ndfGGXSphereLight(cosLh, shadeInfo.roughness, light.pack2.w, lsi.lightDist);
+        NDF = ndfGGXSphereLight(cosLh, shadeInfo.roughness, light.pack1.w, lsi.lightDist);
     }
 
     float G = gaSchlickGGX(cosLi, cosLo, shadeInfo.roughness);

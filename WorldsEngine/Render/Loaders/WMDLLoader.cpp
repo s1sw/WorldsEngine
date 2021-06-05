@@ -27,10 +27,28 @@ namespace worlds {
             lmd.submeshes[i].indexOffset = submeshBlock[i].indexOffset;
         }
 
-        vertices.resize(wHdr->numVertices);
         indices.resize(wHdr->numIndices);
 
-        memcpy(vertices.data(), wHdr->getVertexBlock(), wHdr->numVertices * sizeof(wmdl::Vertex));
+        if (wHdr->version == 1) {
+            vertices.reserve(wHdr->numVertices);
+
+            for (wmdl::CountType i = 0; i < wHdr->numVertices; i++) {
+                wmdl::Vertex v = wHdr->getVertexBlock()[i];
+                vertices.emplace_back(Vertex {
+                    .position = v.position,
+                    .normal = v.normal,
+                    .tangent = v.tangent,
+                    .bitangentSign = 1.0f,
+                    .uv = v.uv,
+                    .uv2 = v.uv2
+                });
+            }
+        } else {
+            vertices.resize(wHdr->numVertices);
+
+            memcpy(vertices.data(), wHdr->getVertex2Block(), wHdr->numVertices * sizeof(wmdl::Vertex2));
+        }
+
         memcpy(indices.data(), wHdr->getIndexBlock(), wHdr->numIndices * sizeof(uint32_t));
         free(buf);
     }

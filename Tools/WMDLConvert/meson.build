@@ -1,5 +1,7 @@
 wmdl_convert_sources = [
-  'convert.cpp'
+    'convert.cpp',
+    'mikktspace.c',
+	'weldmesh.cpp'
 ]
 
 assimp_dep = dependency('assimp', required: false)

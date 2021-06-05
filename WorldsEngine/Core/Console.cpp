@@ -20,6 +20,7 @@
 #include "Log.hpp"
 #include <thread>
 #include "Fatal.hpp"
+#include <mutex>
 
 namespace worlds {
     // Because static initialisation is the first thing that occurs when the game is started,
@@ -41,6 +42,7 @@ namespace worlds {
     ConvarLink* firstLink = nullptr;
     const int CONSOLE_RESPONSE_CATEGORY = 255;
     Console* g_console;
+    std::mutex consoleMutex;
 
     const std::unordered_map<SDL_LogPriority, ImColor> priorityColors = {
         { SDL_LOG_PRIORITY_CRITICAL, ImColor(0.8f, 0.0f, 0.0f) },
@@ -410,6 +412,7 @@ namespace worlds {
                 float scrollMax = scroll + scrollRegionY;
                 float cHeight = 0.0f;
                 float lineHeight = ImGui::GetTextLineHeightWithSpacing();
+                consoleMutex.lock();
                 for (auto& msg : msgs) {
                     if ((cHeight + lineHeight) > scroll && (cHeight - lineHeight) < scrollMax) {
                         ImGui::PushStyleColor(ImGuiCol_Text, (ImVec4)priorityColors.at(msg.priority));
@@ -430,6 +433,7 @@ namespace worlds {
                     lastMsgCount = msgs.size();
                     ImGui::SetScrollY(cHeight);
                 }
+                consoleMutex.unlock();
 
                 ImGui::EndChild();
             }
@@ -553,7 +557,9 @@ namespace worlds {
         if (con->logFileStream.good())
             con->logFileStream << outStr << std::endl;
 
+        consoleMutex.lock();
         con->msgs.push_back(ConsoleMsg{ priority, msg, category });
+        consoleMutex.unlock();
 
 #ifdef _WIN32
         OutputDebugStringA(outStr.c_str());

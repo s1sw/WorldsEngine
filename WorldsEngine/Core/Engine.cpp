@@ -476,6 +476,19 @@ namespace worlds {
             running = false;
         }, "exit", "Shuts down the engine.", nullptr);
 
+        console->registerCommand([this](void*, const char* arg) {
+            std::string argS = arg;
+            size_t xPos = argS.find("x");
+
+            if (xPos == std::string::npos) {
+                logErr("Invalid window size (specify like 1280x720)");
+                return;
+            }
+            int width = std::stoi(argS.substr(0, xPos));
+            int height = std::stoi(argS.substr(xPos + 1));
+            SDL_SetWindowSize(window, width, height);
+        }, "setWindowSize", "Sets size of the window.", nullptr);
+
         if (enableOpenVR) {
             lockSimToRefresh.setValue("1");
         }

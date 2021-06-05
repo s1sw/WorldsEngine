@@ -65,6 +65,7 @@ namespace worlds {
 
         Vertex& vert = tcc->verts[tcc->indices[baseIndexIndex + iVert]];
         vert.tangent = glm::vec3(fvTangent[0], fvTangent[1], fvTangent[2]);
+        vert.bitangentSign = fSign;
 
         tcc->outVerts[(iFace * 3) + iVert] = vert;
     }

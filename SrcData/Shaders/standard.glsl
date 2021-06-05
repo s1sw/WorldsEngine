@@ -17,7 +17,7 @@
 
 layout(location = 0) VARYING(vec4, WorldPos);
 layout(location = 1) VARYING(vec3, Normal);
-layout(location = 2) VARYING(vec3, Tangent);
+layout(location = 2) VARYING(vec4, Tangent);
 layout(location = 3) VARYING(vec2, UV);
 layout(location = 4) VARYING(flat uint, UvDir);
 
@@ -37,7 +37,8 @@ layout(constant_id = 3) const bool DO_PARALLAX = false;
 layout(location = 0) in vec3 inPosition;
 layout(location = 1) in vec3 inNormal;
 layout(location = 2) in vec3 inTangent;
-layout(location = 3) in vec2 inUV;
+layout(location = 3) in float inBitangentSign;
+layout(location = 4) in vec2 inUV;
 #endif
 
 #include <standard_descriptors.glsl>
@@ -66,7 +67,7 @@ void main() {
     gl_Position = vp * model * vec4(inPosition, 1.0); // Apply MVP transform
 
     outNormal = normalize((transpose(inverse(model)) * vec4(inNormal, 0.0f)).xyz);
-    outTangent = normalize((transpose(inverse(model)) * vec4(inTangent, 0.0f)).xyz);
+    outTangent = vec4(normalize((transpose(inverse(model)) * vec4(inTangent, 0.0f)).xyz), inBitangentSign);
     gl_Position.y = -gl_Position.y; // Account for Vulkan viewport weirdness
 
     vec2 uv = inUV;
@@ -222,9 +223,10 @@ float getDirLightShadowIntensity(int lightIdx) {
     float depth = (shadowPos.z / shadowPos.w) - bias;
     vec2 coord = (shadowPos.xy * 0.5 + 0.5);
 
-    if (coord.x > 0.0 && coord.x < 1.0 &&
-            coord.y > 0.0 && coord.y < 1.0 &&
-            depth < 1.0 && depth > 0.0) {
+    //if (coord.x > 0.0 && coord.x < 1.0 &&
+    //        coord.y > 0.0 && coord.y < 1.0 &&
+    //        depth < 1.0 && depth > 0.0)
+    {
         float texelSize = 1.0 / textureSize(shadowSampler, 0).x;
         shadowIntensity = 0.0;
 #ifdef HIGH_QUALITY_SHADOWS
@@ -252,6 +254,44 @@ float getDirLightShadowIntensity(int lightIdx) {
     return shadowIntensity;
 }
 
+float pcf(vec3 sampleCoord, sampler2DShadow samp) {
+    float shadowIntensity = 0.0;
+#ifdef HIGH_QUALITY_SHADOWS
+    const float divVal = 4.0f;//((shadowSamples * 2)) * ((shadowSamples * 2));
+
+    shadowIntensity += textureOffset(samp, sampleCoord, ivec2(-1, -1));
+    shadowIntensity += textureOffset(samp, sampleCoord, ivec2(-1, 0));
+
+    shadowIntensity += textureOffset(samp, sampleCoord, ivec2(0, -1));
+    shadowIntensity += textureOffset(samp, sampleCoord, ivec2(0, 0));
+
+    shadowIntensity /= divVal;
+#else
+    shadowIntensity = texture(shadowSampler, vec3(coord, depth)).x;
+#endif
+    return shadowIntensity;
+}
+
+float getNormalLightShadowIntensity(int lightIdx) {
+    uint shadowIdx = lights[lightIdx].shadowIdx;
+    vec4 shadowPos = otherShadowMatrices[shadowIdx] * inWorldPos;
+    shadowPos.y = -shadowPos.y;
+
+    float bias = max(0.0004 * (1.0 - dot(inNormal, lights[lightIdx].pack1.xyz)), 0.00025);
+
+    float depth = (shadowPos.z / shadowPos.w) - (100.0 / 65536.0);
+    vec2 coord = (shadowPos.xy / shadowPos.w) * 0.5 + 0.5;//(shadowPos.xy * 0.5 + 0.5);
+
+    float shadowIntensity = 1.0;
+
+    if (coord.x > 0.0 && coord.x < 1.0 &&
+            coord.y > 0.0 && coord.y < 1.0 &&
+            depth < 1.0 && depth > 0.0) {
+        shadowIntensity = pcf(vec3(coord, depth), additionalShadowSampler[shadowIdx]);
+    }
+    return shadowIntensity;
+}
+
 vec3 shade(ShadeInfo si) {
     int lightCount = int(pack0.x);
 
@@ -261,12 +301,14 @@ vec3 shade(ShadeInfo si) {
         float shadowIntensity = 1.0;
         if (int(lights[i].pack0.w) == LT_DIRECTIONAL && !((miscFlag & 16384) == 16384)) {
             shadowIntensity = getDirLightShadowIntensity(i);
+        } else if (lights[i].shadowIdx != ~0u) {
+            shadowIntensity = getNormalLightShadowIntensity(i);
         }
         lo += l * shadowIntensity;
     }
     vec3 ambient = calcAmbient(si.f0, si.roughness, si.viewDir, si.metallic, si.albedoColor, si.normal);
 
-    return lo + ambient * si.ao;
+    return (ambient * si.ao) + lo;
 }
 
 float getAntiAliasedRoughness(float inRoughness, vec3 normal) {
@@ -357,8 +399,8 @@ void main() {
     // I'm going to be honest: I have no clue what the fuck is happening here.
     // This is the result of ~12 hours of trying to get the UV override to play nicely
     // with both normal mapping and parallax mapping, and this is what worked in the end.
-    vec3 bitangent = cross(inNormal, inTangent);
-    mat3 tbn = mat3(inTangent, bitangent, inNormal);
+    vec3 bitangent = cross(inNormal, inTangent.xyz) * inTangent.w;
+    mat3 tbn = mat3(inTangent.xyz, bitangent, inNormal);
     if (inUvDir == 1) {
         tbn = mat3(vec3(0.0, 0.0, 1.0) * -sign(inNormal.x) * -sign(inUV.x),
                 vec3(0.0, 1.0, 0.0) * -sign(inNormal.x) * sign(inUV.y),
