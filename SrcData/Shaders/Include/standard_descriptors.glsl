@@ -11,6 +11,7 @@ layout(binding = 0) uniform MultiVP {
 };
 
 layout(std140, binding = 1) uniform LightBuffer {
+    mat4 otherShadowMatrices[4];
     // (light count, yzw cascade texels per unit)
     vec4 pack0;
     // (ao box count, yzw unused)
@@ -32,8 +33,9 @@ layout (binding = 4) uniform sampler2D tex2dSampler[];
 layout (binding = 5) uniform sampler2DArrayShadow shadowSampler;
 layout (binding = 6) uniform samplerCube cubemapSampler[];
 layout (binding = 7) uniform sampler2D brdfLutSampler;
+layout (binding = 8) uniform sampler2DShadow additionalShadowSampler[];
 
-layout(std430, binding = 8) writeonly buffer PickingBuffer {
+layout(std430, binding = 9) writeonly buffer PickingBuffer {
     uint objectID;
 } pickBuf;
 #endif

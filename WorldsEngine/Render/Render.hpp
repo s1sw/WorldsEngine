@@ -12,14 +12,17 @@
 #include <entt/entt.hpp>
 
 namespace worlds {
-    const int NUM_SHADOW_LIGHTS = 1;
+    const int NUM_SHADOW_LIGHTS = 4;
+#pragma pack(push, 1)
     struct Vertex {
         glm::vec3 position;
         glm::vec3 normal;
         glm::vec3 tangent;
+        float bitangentSign;
         glm::vec2 uv;
         glm::vec2 uv2;
     };
+#pragma pack(pop)
 
     struct WorldCubemap {
         AssetID cubemapId;
@@ -64,7 +67,8 @@ namespace worlds {
     struct PackedLight {
         glm::vec4 pack0;
         glm::vec4 pack1;
-        glm::vec4 pack2;
+        glm::vec3 pack2;
+        uint32_t shadowIdx;
     };
 
     struct ProxyAOComponent {
@@ -100,6 +104,7 @@ namespace worlds {
     };
 
     struct LightUB {
+        glm::mat4 additionalShadowMatrices[NUM_SHADOW_LIGHTS];
         glm::vec4 pack0;
         glm::vec4 pack1;
         glm::mat4 shadowmapMatrices[3];
@@ -134,6 +139,7 @@ namespace worlds {
     class ImGuiRenderPass;
     class TonemapRenderPass;
     class ShadowCascadePass;
+    class AdditionalShadowsPass;
     class GTAORenderPass;
 
     struct ModelMatrices {
@@ -228,6 +234,7 @@ namespace worlds {
         vku::GenericBuffer* materialBuffer;
         vku::GenericBuffer* vpMatrixBuffer;
         RenderTexture* shadowCascades;
+        RenderTexture** additionalShadowImages;
     };
 
     struct RenderDebugContext {
@@ -439,6 +446,7 @@ namespace worlds {
         RenderDebugStats dbgStats;
         uint32_t frameIdx, lastFrameIdx;
         ShadowCascadePass* shadowCascadePass;
+        AdditionalShadowsPass* additionalShadowsPass;
         void* rdocApi;
 
         void createSwapchain(vk::SwapchainKHR oldSwapchain);

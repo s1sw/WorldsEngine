@@ -497,6 +497,9 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
 
     vku::executeImmediately(*device, *commandPool, device->getQueue(graphicsQueueFamilyIdx, 0), [&](auto cb) {
         shadowmapImage->image.setLayout(cb, vk::ImageLayout::eShaderReadOnlyOptimal, vk::ImageAspectFlagBits::eDepth);
+        for (int i = 0; i < NUM_SHADOW_LIGHTS; i++) {
+            shadowImages[i]->image.setLayout(cb, vk::ImageLayout::eShaderReadOnlyOptimal, vk::ImageAspectFlagBits::eDepth);
+        }
     });
 
     createSCDependents();
@@ -593,6 +596,9 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
 
     shadowCascadePass = new ShadowCascadePass(&handles, shadowmapImage);
     shadowCascadePass->setup();
+
+    additionalShadowsPass = new AdditionalShadowsPass(&handles);
+    additionalShadowsPass->setup();
 
     materialUB = vku::GenericBuffer(
             *device, allocator,
@@ -1047,6 +1053,24 @@ void VKRenderer::writeCmdBuf(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageInde
     std::sort(rttPasses.begin(), rttPasses.end(), [](RTTPass* a, RTTPass* b) {
         return a->drawSortKey < b->drawSortKey;
     });
+
+    RenderContext rCtx {
+        .resources = getResources(),
+        .cascadeInfo = {},
+        .debugContext = RenderDebugContext {
+            .stats = &dbgStats
+        },
+        .passSettings = PassSettings {
+            .enableVR = false,
+            .enableShadows = true
+        },
+        .registry = reg,
+        .cmdBuf = *cmdBuf,
+        .imageIndex = frameIdx
+    };
+
+    additionalShadowsPass->prePass(rCtx);
+    additionalShadowsPass->execute(rCtx);
 
     int numActivePasses = 0;
     bool lastPassIsVr = false;
@@ -1509,7 +1533,8 @@ RenderResources VKRenderer::getResources() {
         &brdfLut,
         &materialUB,
         &vpBuffer,
-        shadowmapImage
+        shadowmapImage,
+        shadowImages
     };
 }
 

@@ -1,4 +1,5 @@
 worlds_sources += [
+  'Render/AdditionalShadowsPass.cpp',
   'Render/BRDFLUTRenderer.cpp',
   'Render/CubemapConvoluter.cpp',
   'Render/CubemapSlots.cpp',

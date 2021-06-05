@@ -384,7 +384,6 @@ namespace lg {
             static bool rotated = false;
             auto rStickInput = vrInterface->getActionV2(rStick);
             auto rotateInput = rStickInput.x;
-            ImGui::Text("s: %.3f, %.3f", rStickInput.x, rStickInput.y);
 
             float threshold = 0.5f;
             bool rotatingNow = glm::abs(rotateInput) > threshold;
@@ -542,7 +541,7 @@ namespace lg {
             //        physx::PxVec3(0.0f, headPos.y - fenderHeight, 0.0f), physx::PxQuat { physx::PxIdentity }});
             //lHandJoint->setLocalPose(physx::PxJointActorIndex::eACTOR0, physx::PxTransform {
             //        physx::PxVec3(0.0f, headPos.y - fenderHeight, 0.0f), physx::PxQuat { physx::PxIdentity }});
-            ImGui::Text("Headpos: %.3f, %.3f, %.3f", headPos.x, headPos.y, headPos.z);
+            //ImGui::Text("Headpos: %.3f, %.3f, %.3f", headPos.x, headPos.y, headPos.z);
         }
     }
 

@@ -67,7 +67,7 @@ namespace worlds {
         createDescriptorSet();
         createRenderPass();
 
-        AssetID vsID = g_assetDB.addOrGetExisting("Shaders/shadowmap.vert.spv");
+        AssetID vsID = g_assetDB.addOrGetExisting("Shaders/shadow_cascade.vert.spv");
         AssetID fsID = g_assetDB.addOrGetExisting("Shaders/blank.frag.spv");
         shadowVertexShader = ShaderCache::getModule(handles->device, vsID);
         shadowFragmentShader = ShaderCache::getModule(handles->device, fsID);

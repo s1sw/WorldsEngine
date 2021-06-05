@@ -201,6 +201,23 @@ namespace worlds {
         virtual ~ShadowCascadePass();
     };
 
+    class AdditionalShadowsPass {
+    private:
+        vk::UniqueRenderPass renderPass;
+        vk::UniqueFramebuffer fb;
+        vk::UniquePipeline pipeline;
+        vk::UniquePipelineLayout pipelineLayout;
+        vk::UniqueDescriptorSetLayout dsl;
+        VulkanHandles* handles;
+        glm::mat4 shadowMatrices[4];
+        bool renderIdx[4];
+    public:
+        AdditionalShadowsPass(VulkanHandles* handles);
+        void setup();
+        void prePass(RenderContext& ctx);
+        void execute(RenderContext& ctx);
+    };
+
     class TonemapRenderPass {
     private:
         vk::ShaderModule tonemapShader;

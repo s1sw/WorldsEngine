@@ -12,6 +12,7 @@ struct Light {
     // (direction xyz or first point for tube, spotlight cutoff, sphere light radius or tube light radius)
     vec4 pack1;
     // (position xyz or second point for tube, shadow index)
-    vec4 pack2;
+    vec3 pack2;
+    uint shadowIdx;
 };
 #endif
