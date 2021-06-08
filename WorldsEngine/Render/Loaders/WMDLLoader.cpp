@@ -3,7 +3,7 @@
 
 namespace worlds {
     void loadWorldsModel(AssetID wmdlId, std::vector<Vertex>& vertices, std::vector<uint32_t>& indices, LoadedMeshData& lmd) {
-        PHYSFS_File* f = g_assetDB.openAssetFileRead(wmdlId);
+        PHYSFS_File* f = AssetDB::openAssetFileRead(wmdlId);
         size_t fileSize = PHYSFS_fileLength(f);
 
         void* buf = malloc(fileSize);

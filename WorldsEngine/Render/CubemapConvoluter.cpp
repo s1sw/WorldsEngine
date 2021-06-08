@@ -9,7 +9,7 @@ namespace worlds {
     };
 
     CubemapConvoluter::CubemapConvoluter(std::shared_ptr<VulkanHandles> ctx) : vkCtx(ctx) {
-        cs = vku::loadShaderAsset(ctx->device, g_assetDB.addOrGetExisting("Shaders/cubemap_prefilter.comp.spv"));
+        cs = vku::loadShaderAsset(ctx->device, AssetDB::pathToId("Shaders/cubemap_prefilter.comp.spv"));
 
         vku::DescriptorSetLayoutMaker dslm;
         dslm.image(0, vk::DescriptorType::eCombinedImageSampler, vk::ShaderStageFlagBits::eCompute, 1);

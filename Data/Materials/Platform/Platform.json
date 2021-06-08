@@ -1,8 +1,0 @@
-{
-    "albedoPath" : "Textures/Platform/Platform_BaseColor.png",
-    "pbrMapPath" : "Textures/Platform/Platform_PBRPack.png",
-    "normalMapPath" : "Textures/Platform/Platform_Normal_forcelin.png",
-    "metallic" : 1.000000,
-    "roughness" : 0.200000,
-    "albedoColor" : [1.000000, 1.000000, 1.000000]
-}

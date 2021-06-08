@@ -79,24 +79,24 @@ namespace worlds {
                         if (ImGui::Button(buttonLabel.cStr())) {
                             glm::vec3 pos = interfaces.mainCamera->position;
                             pos += interfaces.mainCamera->rotation * glm::vec3(0.0f, 0.0f, 1.0f);
-                            auto id = g_assetDB.addOrGetExisting(fullPath);
+                            auto id = AssetDB::pathToId(fullPath);
                             entt::entity ent = createModelObject(reg,
                                     pos, glm::quat(), id,
-                                    g_assetDB.addOrGetExisting("Materials/dev.json"));
+                                    AssetDB::pathToId("Materials/dev.json"));
 
                             WorldObject& wo = reg.get<WorldObject>(ent);
-                            if (g_assetDB.getAssetExtension(id) == ".mdl") {
+                            if (AssetDB::getAssetExtension(id) == ".mdl") {
                                 setupSourceMaterials(id, wo);
                             } else {
                                 for (int i = 0; i < NUM_SUBMESH_MATS; i++) {
-                                    wo.materials[i] = g_assetDB.addOrGetExisting("Materials/dev.json");
+                                    wo.materials[i] = AssetDB::pathToId("Materials/dev.json");
                                     wo.presentMaterials[i] = true;
                                 }
                             }
                         }
                     } else if (ext == ".wscn" || ext == ".escn") {
                         if (ImGui::Button(buttonLabel.cStr())) {
-                            interfaces.engine->loadScene(g_assetDB.addOrGetExisting(fullPath));
+                            interfaces.engine->loadScene(AssetDB::pathToId(fullPath));
                         }
                     } else {
                         if ((int)showExts)

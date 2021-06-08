@@ -95,18 +95,18 @@ namespace lg {
         onDestroy.connect<&LocospherePlayerSystem::onPlayerDestroy>(*this);
 
         for (int i = 1; i <= 10; i++) {
-            footstepSounds.push_back(worlds::g_assetDB.addOrGetExisting("Audio/SFX/Footsteps/Concrete/step" + std::string(i < 10 ? "0" : "") + std::to_string(i) + ".ogg"));
+            footstepSounds.push_back(worlds::AssetDB::pathToId("Audio/SFX/Footsteps/Concrete/step" + std::string(i < 10 ? "0" : "") + std::to_string(i) + ".ogg"));
         }
 
-        jumpSound = worlds::g_assetDB.addOrGetExisting("Audio/SFX/Player/jump.ogg");
-        landSound = worlds::g_assetDB.addOrGetExisting("Audio/SFX/Footsteps/Concrete/land.ogg");
+        jumpSound = worlds::AssetDB::pathToId("Audio/SFX/Player/jump.ogg");
+        landSound = worlds::AssetDB::pathToId("Audio/SFX/Footsteps/Concrete/land.ogg");
 
         std::string baseDblJumpPath = "Audio/SFX/Player/double_jump";
-        doubleJumpSounds.push_back(worlds::g_assetDB.addOrGetExisting(baseDblJumpPath + ".ogg"));
-        doubleJumpSounds.push_back(worlds::g_assetDB.addOrGetExisting(baseDblJumpPath + "2.ogg"));
-        doubleJumpSounds.push_back(worlds::g_assetDB.addOrGetExisting(baseDblJumpPath + "3.ogg"));
+        doubleJumpSounds.push_back(worlds::AssetDB::pathToId(baseDblJumpPath + ".ogg"));
+        doubleJumpSounds.push_back(worlds::AssetDB::pathToId(baseDblJumpPath + "2.ogg"));
+        doubleJumpSounds.push_back(worlds::AssetDB::pathToId(baseDblJumpPath + "3.ogg"));
 
-        wallJumpSound = worlds::g_assetDB.addOrGetExisting("Audio/SFX/Player/wall_jump.ogg");
+        wallJumpSound = worlds::AssetDB::pathToId("Audio/SFX/Player/wall_jump.ogg");
         pcg32_srandom_r(&rng, 135u, 3151u);
     }
 
@@ -696,7 +696,7 @@ namespace lg {
         pTransform.scale = glm::vec3{0.66f};
         registry.emplace<LocospherePlayerComponent>(playerLocosphere).isLocal = true;
         registry.emplace<worlds::NameComponent>(playerLocosphere, "Locosphere");
-        registry.emplace<worlds::WorldObject>(playerLocosphere, worlds::g_assetDB.addOrGetExisting("Materials/dev.json"), worlds::g_assetDB.addOrGetExisting("uvsphere.obj"));
+        registry.emplace<worlds::WorldObject>(playerLocosphere, worlds::AssetDB::pathToId("Materials/dev.json"), worlds::AssetDB::pathToId("uvsphere.obj"));
 
         auto actor = worlds::g_physics->createRigidDynamic(physx::PxTransform{ worlds::glm2px(position), physx::PxQuat{physx::PxIdentity} });
         auto& wActor = registry.emplace<worlds::DynamicPhysicsActor>(playerLocosphere, actor);

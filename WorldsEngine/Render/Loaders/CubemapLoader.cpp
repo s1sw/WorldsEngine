@@ -13,7 +13,7 @@ namespace worlds {
         ZoneScoped;
         PerfTimer timer;
 
-        PHYSFS_File* f = g_assetDB.openAssetFileRead(asset);
+        PHYSFS_File* f = AssetDB::openAssetFileRead(asset);
         size_t fileSize = PHYSFS_fileLength(f);
         char* buffer = (char*)std::malloc(fileSize);
         PHYSFS_readBytes(f, buffer, fileSize);
@@ -47,7 +47,7 @@ namespace worlds {
         for (int i = 0; i < 6; i++) {
             Job j{ [i, &cd, &root] {
                 auto val = root.get_array_element(i);
-                cd.faceData[i] = loadTexData(g_assetDB.addOrGetExisting(val.as_string()));
+                cd.faceData[i] = loadTexData(AssetDB::pathToId(val.as_string()));
             } };
             jl.addJob(std::move(j));
         }
@@ -57,7 +57,7 @@ namespace worlds {
 
         std::free(buffer);
 
-        cd.debugName = g_assetDB.getAssetPath(asset);
+        cd.debugName = AssetDB::idToPath(asset);
 
         logMsg("Spent %.3fms loading cubemap %s", timer.stopGetMs(), cd.debugName.c_str());
         return cd;

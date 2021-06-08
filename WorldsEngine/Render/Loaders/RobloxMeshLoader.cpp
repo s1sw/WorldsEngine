@@ -30,7 +30,7 @@ namespace worlds {
     }
 
     void loadRobloxMesh(AssetID id, std::vector<Vertex>& vertices, std::vector<uint32_t>& indices, LoadedMeshData& lmd) {
-        PHYSFS_File* f = g_assetDB.openAssetFileRead(id);
+        PHYSFS_File* f = AssetDB::openAssetFileRead(id);
 
         // look for version header
         auto versionLine = readUntil(f, '\n');

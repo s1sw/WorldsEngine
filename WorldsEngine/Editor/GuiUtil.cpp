@@ -326,13 +326,13 @@ namespace worlds {
         p = p.parent_path();
 
         openFileModal(title, [&](const char* path) {
-            id = g_assetDB.addOrGetExisting(path);
+            id = AssetDB::pathToId(path);
             changed = true;
         }, nullptr, p.string().c_str());
 
         if (open) {
             if (id != ~0u)
-                path = g_assetDB.getAssetPath(id);
+                path = AssetDB::idToPath(id);
             else
                 path = "";
             ImGui::OpenPopup(title);

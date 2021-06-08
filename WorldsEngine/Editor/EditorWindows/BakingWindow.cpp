@@ -113,7 +113,7 @@ namespace worlds {
 
         renderer->destroyRTTPass(rttPass);
         auto resources = renderer->getResources();
-        auto idx = resources.cubemaps.get(g_assetDB.addOrGetExisting(jsonPath));
+        auto idx = resources.cubemaps.get(AssetDB::pathToId(jsonPath));
         renderer->getResources().cubemaps.unload(idx);
     }
 

@@ -23,15 +23,15 @@ namespace worlds {
 
         if (it == j.end()) return ~0u;
 
-        return texSlots.loadOrGet(g_assetDB.addOrGetExisting(it.value()));
+        return texSlots.loadOrGet(AssetDB::pathToId(it.value()));
     }
 
     void MaterialSlots::parseMaterial(AssetID asset, PackedMaterial& mat, MatExtraData& extraDat) {
         ZoneScoped;
-        PHYSFS_File* f = g_assetDB.openAssetFileRead(asset);
+        PHYSFS_File* f = AssetDB::openAssetFileRead(asset);
 
         if (f == nullptr) {
-            std::string path = g_assetDB.getAssetPath(asset);
+            std::string path = AssetDB::idToPath(asset);
             auto err = PHYSFS_getLastErrorCode();
             auto errStr = PHYSFS_getErrorByCode(err);
             logErr(WELogCategoryRender, "Failed to open %s: %s", path.c_str(), errStr);
@@ -73,7 +73,7 @@ namespace worlds {
                 mat.emissiveColor = glm::vec3 {0.0f};
             }
 
-            auto albedoAssetId = g_assetDB.addOrGetExisting(albedoPath);
+            auto albedoAssetId = AssetDB::pathToId(albedoPath);
 
             uint32_t nMapSlot = getTexture(j, "normalMapPath");
             uint32_t hMapSlot = getTexture(j, "heightmapPath");
@@ -104,7 +104,7 @@ namespace worlds {
             auto wireframeIt = j.find("wireframe");
             extraDat.wireframe = wireframeIt != j.end();
         } catch(nlohmann::detail::exception& ex) {
-            std::string path = g_assetDB.getAssetPath(asset);
+            std::string path = AssetDB::idToPath(asset);
             logErr(WELogCategoryRender, "Invalid material document %s (%s)", path.c_str(), ex.what());
         }
     }

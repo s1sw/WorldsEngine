@@ -56,7 +56,7 @@ namespace worlds {
 
         logMsg("Saved scene in %.3fms", timer.stopGetMs());
 
-        g_assetDB.save();
+        AssetDB::save();
     }
 
     // Old scene format before the renaming of the engine and restructure of serialization

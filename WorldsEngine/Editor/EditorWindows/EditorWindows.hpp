@@ -42,14 +42,6 @@ namespace worlds {
         ~StyleEditor() {}
     };
 
-    class AssetDBExplorer : public EditorWindow {
-    public:
-        AssetDBExplorer(EngineInterfaces interfaces, Editor* editor) : EditorWindow(interfaces, editor) { active = false; }
-        void draw(entt::registry& reg) override;
-        const char* getName() override { return "AssetDB Explorer"; }
-        ~AssetDBExplorer() {}
-    };
-
     class MaterialEditor : public EditorWindow {
     public:
         MaterialEditor(EngineInterfaces interfaces, Editor* editor) : EditorWindow(interfaces, editor) { active = false; }

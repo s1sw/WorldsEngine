@@ -25,10 +25,10 @@ namespace worlds {
         vku::PipelineMaker pm{ ctx.passWidth, ctx.passHeight };
         pm.cullMode(vk::CullModeFlagBits::eNone);
 
-        auto frag = ShaderCache::getModule(handles->device, g_assetDB.addOrGetExisting("Shaders/blank.frag.spv"));
+        auto frag = ShaderCache::getModule(handles->device, AssetDB::pathToId("Shaders/blank.frag.spv"));
         pm.shader(vk::ShaderStageFlagBits::eFragment, frag);
 
-        auto vert = ShaderCache::getModule(handles->device, g_assetDB.addOrGetExisting("Shaders/vr_hidden.vert.spv"));
+        auto vert = ShaderCache::getModule(handles->device, AssetDB::pathToId("Shaders/vr_hidden.vert.spv"));
         pm.shader(vk::ShaderStageFlagBits::eVertex, vert);
 
         pm.depthWriteEnable(true).depthTestEnable(true).depthCompareOp(vk::CompareOp::eAlways).polygonMode(vk::PolygonMode::eFill).topology(vk::PrimitiveTopology::eTriangleList);

@@ -271,8 +271,8 @@ namespace worlds {
         fci.layers = 1;
         renderFb = handles->device.createFramebufferUnique(fci);
 
-        AssetID vsID = g_assetDB.addOrGetExisting("Shaders/standard.vert.spv");
-        AssetID fsID = g_assetDB.addOrGetExisting("Shaders/standard.frag.spv");
+        AssetID vsID = AssetDB::pathToId("Shaders/standard.vert.spv");
+        AssetID fsID = AssetDB::pathToId("Shaders/standard.frag.spv");
         vertexShader = ShaderCache::getModule(handles->device, vsID);
         fragmentShader = ShaderCache::getModule(handles->device, fsID);
 
@@ -329,7 +329,7 @@ namespace worlds {
         }
 
         {
-            AssetID fsID = g_assetDB.addOrGetExisting("Shaders/standard_alpha_test.frag.spv");
+            AssetID fsID = AssetDB::pathToId("Shaders/standard_alpha_test.frag.spv");
             auto atFragmentShader = vku::loadShaderAsset(handles->device, fsID);
 
             vku::PipelineMaker pm{ extent.width, extent.height };
@@ -392,8 +392,8 @@ namespace worlds {
         }
 
         {
-            AssetID wvsID = g_assetDB.addOrGetExisting("Shaders/wire_obj.vert.spv");
-            AssetID wfsID = g_assetDB.addOrGetExisting("Shaders/wire_obj.frag.spv");
+            AssetID wvsID = AssetDB::pathToId("Shaders/wire_obj.vert.spv");
+            AssetID wfsID = AssetDB::pathToId("Shaders/wire_obj.frag.spv");
             wireVertexShader = ShaderCache::getModule(handles->device, wvsID);
             wireFragmentShader = ShaderCache::getModule(handles->device, wfsID);
 

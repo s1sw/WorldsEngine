@@ -545,7 +545,7 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     }
 
     // Load cubemap for the sky
-    cubemapSlots->loadOrGet(g_assetDB.addOrGetExisting("envmap_miramar/miramar.json"));
+    cubemapSlots->loadOrGet(AssetDB::pathToId("envmap_miramar/miramar.json"));
 
     g_console->registerCommand([&](void*, const char* arg) {
         numMSAASamples = std::atoi(arg);
@@ -794,7 +794,7 @@ void imageBarrier(vk::CommandBuffer& cb, vk::Image image, vk::ImageLayout layout
 
 vku::ShaderModule VKRenderer::loadShaderAsset(AssetID id) {
     ZoneScoped;
-    PHYSFS_File* file = g_assetDB.openAssetFileRead(id);
+    PHYSFS_File* file = AssetDB::openAssetFileRead(id);
     size_t size = PHYSFS_fileLength(file);
     void* buffer = std::malloc(size);
 
@@ -1200,7 +1200,7 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
             if (ImGui::CollapsingHeader("Cubemap Slots")) {
                 for (uint32_t i = 0; i < NUM_CUBEMAP_SLOTS; i++) {
                     if (cubemapSlots->isSlotPresent(i)) {
-                        ImGui::Text("Slot %u: %s", i, g_assetDB.getAssetPath(cubemapSlots->getKeyForSlot(i)).c_str());
+                        ImGui::Text("Slot %u: %s", i, AssetDB::idToPath(cubemapSlots->getKeyForSlot(i)).c_str());
                     }
                 }
             }
@@ -1208,7 +1208,7 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
             if (ImGui::CollapsingHeader("Texture Slots")) {
                 for (uint32_t i = 0; i< NUM_TEX_SLOTS; i++) {
                     if (texSlots->isSlotPresent(i)) {
-                        ImGui::Text("Slot %u: %s", i, g_assetDB.getAssetPath(texSlots->getKeyForSlot(i)).c_str());
+                        ImGui::Text("Slot %u: %s", i, AssetDB::idToPath(texSlots->getKeyForSlot(i)).c_str());
                     }
                 }
             }
@@ -1216,7 +1216,7 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
             if (ImGui::CollapsingHeader("Material Slots")) {
                 for (uint32_t i = 0; i< NUM_MAT_SLOTS; i++) {
                     if (matSlots->isSlotPresent(i)) {
-                        ImGui::Text("Slot %u: %s", i, g_assetDB.getAssetPath(matSlots->getKeyForSlot(i)).c_str());
+                        ImGui::Text("Slot %u: %s", i, AssetDB::idToPath(matSlots->getKeyForSlot(i)).c_str());
                     }
                 }
             }
@@ -1349,33 +1349,33 @@ void VKRenderer::preloadMesh(AssetID id) {
     std::vector<Vertex> vertices;
     std::vector<uint32_t> indices;
 
-    auto ext = g_assetDB.getAssetExtension(id);
-    auto path = g_assetDB.getAssetPath(id);
+    auto ext = AssetDB::getAssetExtension(id);
+    auto path = AssetDB::idToPath(id);
     LoadedMeshData lmd;
 
     if (!PHYSFS_exists(path.c_str())) {
         logErr(WELogCategoryRender, "Mesh %s was missing!", path.c_str());
-        PhysFS::ifstream meshFileStream(g_assetDB.openAssetFileRead(g_assetDB.addOrGetExisting("Models/missing.obj")));
+        PhysFS::ifstream meshFileStream(AssetDB::openAssetFileRead(AssetDB::pathToId("Models/missing.obj")));
         loadObj(vertices, indices, meshFileStream, lmd);
         lmd.numSubmeshes = 1;
         lmd.submeshes[0].indexCount = indices.size();
         lmd.submeshes[0].indexOffset = 0;
     } else if (ext == ".obj") { // obj
         // Use C++ physfs ifstream for tinyobjloader
-        PhysFS::ifstream meshFileStream(g_assetDB.openAssetFileRead(id));
+        PhysFS::ifstream meshFileStream(AssetDB::openAssetFileRead(id));
         loadObj(vertices, indices, meshFileStream, lmd);
         lmd.numSubmeshes = 1;
         lmd.submeshes[0].indexCount = indices.size();
         lmd.submeshes[0].indexOffset = 0;
     } else if (ext == ".mdl") { // source model
-        std::filesystem::path mdlPath = g_assetDB.getAssetPath(id);
+        std::filesystem::path mdlPath = AssetDB::idToPath(id);
         std::string vtxPath = mdlPath.parent_path().string() + "/" + mdlPath.stem().string();
         vtxPath += ".dx90.vtx";
         std::string vvdPath = mdlPath.parent_path().string() + "/" + mdlPath.stem().string();
         vvdPath += ".vvd";
 
-        AssetID vtxId = g_assetDB.addOrGetExisting(vtxPath);
-        AssetID vvdId = g_assetDB.addOrGetExisting(vvdPath);
+        AssetID vtxId = AssetDB::pathToId(vtxPath);
+        AssetID vvdId = AssetDB::pathToId(vvdPath);
         loadSourceModel(id, vtxId, vvdId, vertices, indices, lmd);
     } else if (ext == ".wmdl") {
         loadWorldsModel(id, vertices, indices, lmd);

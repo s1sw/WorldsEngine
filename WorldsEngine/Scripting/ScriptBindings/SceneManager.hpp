@@ -18,7 +18,7 @@ namespace worlds {
             const char* path = wrenGetSlotString(vm, 1);
 
             if (PHYSFS_exists(path)) {
-                dat->interfaces.engine->loadScene(g_assetDB.addOrGetExisting(path));
+                dat->interfaces.engine->loadScene(AssetDB::pathToId(path));
             } else {
                 auto err = "Tried to load non-existent scene " + std::string(path);
                 throwScriptErr(vm, err.c_str());
@@ -36,7 +36,7 @@ namespace worlds {
             const char* path = wrenGetSlotString(vm, 1);
 
             if (PHYSFS_exists(path)) {
-                SceneLoader::createPrefab(g_assetDB.addOrGetExisting(path), dat->reg);
+                SceneLoader::createPrefab(AssetDB::pathToId(path), dat->reg);
             } else {
                 auto err = "Tried to create non-existent prefab " + std::string(path);
                 throwScriptErr(vm, err.c_str());
@@ -45,7 +45,7 @@ namespace worlds {
 
         static void getCurrentScenePath(WrenVM* vm) {
             WrenVMData* dat = (WrenVMData*)wrenGetUserData(vm);
-            std::string path = g_assetDB.getAssetPath(dat->interfaces.engine->getCurrentSceneInfo().id);
+            std::string path = AssetDB::idToPath(dat->interfaces.engine->getCurrentSceneInfo().id);
 
             wrenSetSlotString(vm, 0, path.c_str());
         }

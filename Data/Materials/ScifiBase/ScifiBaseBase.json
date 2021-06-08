@@ -1,8 +1,0 @@
-{
-	"albedoPath" : "Textures/scifibase/Base material_BaseColor.png",
-	"normalMapPath" : "Textures/scifibase/Base material_Normal_forcelin.png",
-	"pbrMapPath" : "Textures/scifibase/Base material_PBRPack.png",
-	"metallic" : 1.0,
-	"roughness" : 0.2,
-	"albedoColor" : [1.0, 1.0, 1.0]
-}

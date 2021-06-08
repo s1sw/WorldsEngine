@@ -1,5 +1,6 @@
 worlds_sources = []
 
+subdir('AssetCompilation')
 subdir('Audio')
 subdir('ComponentMeta')
 subdir('Core')
@@ -24,14 +25,14 @@ if get_option('buildtype').startswith('release')
 endif
 
 physx_deps = [
-    cc.find_library('PhysXCommon_static_64', dirs: lib_dir),
-    cc.find_library('PhysXCooking_static_64', dirs: lib_dir),
-    cc.find_library('PhysXExtensions_static_64', dirs: lib_dir),
-    cc.find_library('PhysXFoundation_static_64', dirs: lib_dir),
-    cc.find_library('PhysXPvdSDK_static_64', dirs: lib_dir),
-    cc.find_library('PhysX_static_64', dirs: lib_dir),
-    cc.find_library('PhysXVehicle_static_64', dirs: lib_dir)
-]
+  cc.find_library('PhysXCommon_static_64', dirs: lib_dir),
+  cc.find_library('PhysXCooking_static_64', dirs: lib_dir),
+  cc.find_library('PhysXExtensions_static_64', dirs: lib_dir),
+  cc.find_library('PhysXFoundation_static_64', dirs: lib_dir),
+  cc.find_library('PhysXPvdSDK_static_64', dirs: lib_dir),
+  cc.find_library('PhysX_static_64', dirs: lib_dir),
+  cc.find_library('PhysXVehicle_static_64', dirs: lib_dir)
+  ]
 
 worlds_inc = include_directories('.')
 tracy_inc = include_directories('./tracy/')
@@ -56,19 +57,19 @@ wren_dep = dependency('wren', fallback: ['wren', 'wren_dep'])
 platform_deps = []
 
 if host_machine.system() == 'windows'
-	platform_deps += cc.find_library('winmm')
-	platform_deps += cc.find_library('ws2_32')
+  platform_deps += cc.find_library('winmm')
+    platform_deps += cc.find_library('ws2_32')
 endif
 
 steam_audio_dep = cc.find_library('phonon', dirs: meson.project_source_root() + '/External/Lib')
 
-worlds = static_library('worlds', worlds_sources, 
-  include_directories: [extern_include_dir, physx_include_dir, tracy_inc], 
+worlds = static_library('worlds', worlds_sources,
+  include_directories: [extern_include_dir, physx_include_dir, tracy_inc],
   dependencies: [
-    physfs_dep, sdl2_dep, physx_deps, 
-    dl_dep, openvr_dep, wmdl_dep, discord_csdk_dep, 
-    discord_sdk_dep, tbb_dep, wren_dep, enet_dep, 
+    physfs_dep, sdl2_dep, physx_deps,
+    dl_dep, openvr_dep, wmdl_dep, discord_csdk_dep,
+    discord_sdk_dep, tbb_dep, wren_dep, enet_dep,
     slib_dep, platform_deps, steam_audio_dep
-  ]
-)
+    ]
+  )
 worlds_dep = declare_dependency(include_directories: worlds_inc, link_with: worlds)

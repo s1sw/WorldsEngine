@@ -17,8 +17,8 @@ namespace worlds {
         }
 
 
-        if (!PHYSFS_exists(g_assetDB.getAssetPath(asset).c_str())) {
-            uint32_t missingSlot = loadOrGet(g_assetDB.addOrGetExisting("Cubemaps/missing.json"));
+        if (!PHYSFS_exists(AssetDB::idToPath(asset).c_str())) {
+            uint32_t missingSlot = loadOrGet(AssetDB::pathToId("Cubemaps/missing.json"));
             lookup.insert({ asset, missingSlot });
             return missingSlot;
         }

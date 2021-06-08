@@ -33,8 +33,8 @@ namespace worlds {
         dsu.update(handles->device);
 
         vku::PipelineMaker pm{ ctx.passWidth, ctx.passHeight };
-        AssetID vsID = g_assetDB.addOrGetExisting("Shaders/line.vert.spv");
-        AssetID fsID = g_assetDB.addOrGetExisting("Shaders/line.frag.spv");
+        AssetID vsID = AssetDB::pathToId("Shaders/line.vert.spv");
+        AssetID fsID = AssetDB::pathToId("Shaders/line.frag.spv");
 
         auto vert = vku::loadShaderAsset(handles->device, vsID);
         auto frag = vku::loadShaderAsset(handles->device, fsID);

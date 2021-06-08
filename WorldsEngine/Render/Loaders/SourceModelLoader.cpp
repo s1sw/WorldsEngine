@@ -528,7 +528,7 @@ namespace worlds {
     void loadSourceModel(AssetID mdlId, AssetID vtxId, AssetID vvdId, std::vector<Vertex>& vertices, std::vector<uint32_t>& indices, LoadedMeshData& lmd) {
         ZoneScoped;
         lmd.numSubmeshes = 0;
-        PHYSFS_File* mdlFile = g_assetDB.openAssetFileRead(mdlId);
+        PHYSFS_File* mdlFile = AssetDB::openAssetFileRead(mdlId);
 
         // this is really, really awful
         size_t mdlLen = PHYSFS_fileLength(mdlFile);
@@ -537,7 +537,7 @@ namespace worlds {
         PHYSFS_readBytes(mdlFile, mdl, mdlLen);
         PHYSFS_close(mdlFile);
 
-        PHYSFS_File* vvdFile = g_assetDB.openAssetFileRead(vvdId);
+        PHYSFS_File* vvdFile = AssetDB::openAssetFileRead(vvdId);
 
         size_t vvdLen = PHYSFS_fileLength(vvdFile);
         vertexFileHeader_t* vvd = static_cast<vertexFileHeader_t*>(std::malloc(vvdLen));
@@ -545,7 +545,7 @@ namespace worlds {
         PHYSFS_readBytes(vvdFile, vvd, vvdLen);
         PHYSFS_close(vvdFile);
 
-        PHYSFS_File* vtxFile = g_assetDB.openAssetFileRead(vtxId);
+        PHYSFS_File* vtxFile = AssetDB::openAssetFileRead(vtxId);
 
         size_t vtxLen = PHYSFS_fileLength(vtxFile);
         VtxFileHeader_t* vtx = static_cast<VtxFileHeader_t*>(std::malloc(vtxLen));
@@ -675,16 +675,16 @@ namespace worlds {
     }
 
     void setupSourceMaterials(AssetID mdlId, WorldObject& wObj) {
-        std::filesystem::path mdlPath = g_assetDB.getAssetPath(mdlId);
+        std::filesystem::path mdlPath = AssetDB::idToPath(mdlId);
         std::string vtxPath = mdlPath.parent_path().string() + "/" + mdlPath.stem().string();
         vtxPath += ".dx90.vtx";
         std::string vvdPath = mdlPath.parent_path().string() + "/" + mdlPath.stem().string();
         vvdPath += ".vvd";
 
-        AssetID vtxId = g_assetDB.addOrGetExisting(vtxPath);
-        AssetID vvdId = g_assetDB.addOrGetExisting(vvdPath);
+        AssetID vtxId = AssetDB::pathToId(vtxPath);
+        AssetID vvdId = AssetDB::pathToId(vvdPath);
 
-        PHYSFS_File* mdlFile = g_assetDB.openAssetFileRead(mdlId);
+        PHYSFS_File* mdlFile = AssetDB::openAssetFileRead(mdlId);
 
         // this is really, really awful
         size_t mdlLen = PHYSFS_fileLength(mdlFile);
@@ -693,7 +693,7 @@ namespace worlds {
         PHYSFS_readBytes(mdlFile, mdl, mdlLen);
         PHYSFS_close(mdlFile);
 
-        PHYSFS_File* vvdFile = g_assetDB.openAssetFileRead(vvdId);
+        PHYSFS_File* vvdFile = AssetDB::openAssetFileRead(vvdId);
 
         size_t vvdLen = PHYSFS_fileLength(vvdFile);
         vertexFileHeader_t* vvd = static_cast<vertexFileHeader_t*>(std::malloc(vvdLen));
@@ -701,7 +701,7 @@ namespace worlds {
         PHYSFS_readBytes(vvdFile, vvd, vvdLen);
         PHYSFS_close(vvdFile);
 
-        PHYSFS_File* vtxFile = g_assetDB.openAssetFileRead(vtxId);
+        PHYSFS_File* vtxFile = AssetDB::openAssetFileRead(vtxId);
 
         size_t vtxLen = PHYSFS_fileLength(vtxFile);
         VtxFileHeader_t* vtx = static_cast<VtxFileHeader_t*>(std::malloc(vtxLen));
@@ -728,10 +728,10 @@ namespace worlds {
                         std::string path = "Materials/SourceEngine/" + std::string(tex.name()) + ".json";
 
                         if (PHYSFS_exists(path.c_str())) {
-                            wObj.materials[numSubmeshes] = g_assetDB.addOrGetExisting(path);
+                            wObj.materials[numSubmeshes] = AssetDB::pathToId(path);
                         } else {
                             logWarn("MISSING SOURCE MATERIAL %s", path.c_str());
-                            wObj.materials[numSubmeshes] = g_assetDB.addOrGetExisting("Materials/dev.json");
+                            wObj.materials[numSubmeshes] = AssetDB::pathToId("Materials/dev.json");
                         }
 
                         wObj.presentMaterials[numSubmeshes] = true;

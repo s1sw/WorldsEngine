@@ -34,8 +34,8 @@ namespace lg {
     
     void DebugArrows::createEntities() {
         arrowEntities.clear();
-        auto meshId = worlds::g_assetDB.addOrGetExisting("arrow.obj");
-        auto matId = worlds::g_assetDB.addOrGetExisting("Materials/glowred.json");
+        auto meshId = worlds::AssetDB::pathToId("arrow.obj");
+        auto matId = worlds::AssetDB::pathToId("Materials/glowred.json");
         for (size_t i = 0; i < 16; i++) {
             auto ent = worlds::createModelObject(reg, glm::vec3{0.0f}, glm::quat{}, meshId, matId);
 

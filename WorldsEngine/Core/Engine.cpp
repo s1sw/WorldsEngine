@@ -44,8 +44,6 @@
 #undef max
 
 namespace worlds {
-    AssetDB g_assetDB;
-
     uint32_t fullscreenToggleEventId;
     uint32_t showWindowEventId;
 
@@ -141,7 +139,7 @@ namespace worlds {
     void addImGuiFont(std::string fontPath, float size, ImFontConfig* config = nullptr, const ImWchar* ranges = nullptr) {
         PHYSFS_File* ttfFile = PHYSFS_openRead(fontPath.c_str());
         if (ttfFile == nullptr) {
-            SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION, "Couldn't open font file");
+            logWarn("Couldn't open font file");
             return;
         }
 
@@ -149,7 +147,7 @@ namespace worlds {
 
         if (fileLength == -1) {
             PHYSFS_close(ttfFile);
-            SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION, "Couldn't determine size of editor font file");
+            logWarn("Couldn't determine size of editor font file");
             return;
         }
 
@@ -158,7 +156,7 @@ namespace worlds {
 
         if (readBytes != fileLength) {
             PHYSFS_close(ttfFile);
-            SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION, "Failed to read full TTF file");
+            logWarn("Failed to read full TTF file");
             return;
         }
 
@@ -182,17 +180,23 @@ namespace worlds {
     std::unordered_map<entt::entity, physx::PxTransform> previousState;
 
     void WorldsEngine::setupPhysfs(char* argv0) {
-        const char* dataFolder = "Data";
+        const char* dataFolder = "GameData";
+        const char* engineDataFolder = "EngineData";
         const char* basePath = SDL_GetBasePath();
 
         std::string dataStr(basePath);
         dataStr += dataFolder;
+
+        std::string engineDataStr(basePath);
+        engineDataStr += engineDataFolder;
 
         SDL_free((void*)basePath);
 
         PHYSFS_init(argv0);
         logMsg("Mounting %s", dataStr.c_str());
         PHYSFS_mount(dataStr.c_str(), "/", 0);
+        logMsg("Mounting %s", engineDataStr.c_str());
+        PHYSFS_mount(engineDataStr.c_str(), "/", 0);
         PHYSFS_setWriteDir(dataStr.c_str());
 
         PHYSFS_permitSymbolicLinks(1);
@@ -279,8 +283,8 @@ namespace worlds {
         if (!dedicatedServer && runAsEditor)
             splashWindow->changeOverlay("loading assetdb");
 
-        g_assetDB.load();
-        registry.set<SceneSettings>(g_assetDB.addOrGetExisting("envmap_miramar/miramar.json"));
+        AssetDB::load();
+        registry.set<SceneSettings>(AssetDB::pathToId("envmap_miramar/miramar.json"));
 
         if (!dedicatedServer) {
             if (useEventThread) {
@@ -406,12 +410,12 @@ namespace worlds {
                 logErr(WELogCategoryEngine, "Couldn't find scene %s. Make sure you included the .escn file extension.", arg);
                 return;
             }
-            loadScene(g_assetDB.addOrGetExisting(arg));
+            loadScene(AssetDB::pathToId(arg));
         }, "scene", "Loads a scene.", nullptr);
 
         console->registerCommand([&](void*, const char* arg) {
             uint32_t id = (uint32_t)std::atoll(arg);
-            logMsg("Asset %u: %s", id, g_assetDB.getAssetPath(id).c_str());
+            logMsg("Asset %u: %s", id, AssetDB::idToPath(id).c_str());
         }, "adb_lookupID", "Looks up an asset ID.", nullptr);
 
         console->registerCommand([&](void*, const char* arg) {
@@ -575,11 +579,11 @@ namespace worlds {
 
     void WorldsEngine::createStartupScene() {
         registry.clear();
-        AssetID grassMatId = g_assetDB.addOrGetExisting("Materials/grass.json");
-        AssetID devMatId = g_assetDB.addOrGetExisting("Materials/dev.json");
+        AssetID grassMatId = AssetDB::pathToId("Materials/grass.json");
+        AssetID devMatId = AssetDB::pathToId("Materials/dev.json");
 
-        AssetID modelId = g_assetDB.addOrGetExisting("model.obj");
-        AssetID monkeyId = g_assetDB.addOrGetExisting("monk.obj");
+        AssetID modelId = AssetDB::pathToId("model.obj");
+        AssetID monkeyId = AssetDB::pathToId("monk.obj");
         renderer->preloadMesh(modelId);
         renderer->preloadMesh(monkeyId);
         createModelObject(registry, glm::vec3(0.0f, -2.0f, 0.0f), glm::quat(), modelId, grassMatId, glm::vec3(5.0f, 1.0f, 5.0f));
@@ -831,7 +835,7 @@ namespace worlds {
 
             if (sceneLoadQueued) {
                 sceneLoadQueued = false;
-                PHYSFS_File* file = g_assetDB.openAssetFileRead(queuedSceneID);
+                PHYSFS_File* file = AssetDB::openAssetFileRead(queuedSceneID);
                 SceneLoader::loadScene(file, registry);
 
                 if (renderer) {
@@ -839,7 +843,7 @@ namespace worlds {
                     renderer->unloadUnusedMaterials(registry);
                 }
 
-                currentScene.name = std::filesystem::path(g_assetDB.getAssetPath(queuedSceneID)).stem().string();
+                currentScene.name = std::filesystem::path(AssetDB::idToPath(queuedSceneID)).stem().string();
                 currentScene.id = queuedSceneID;
 
                 if (evtHandler && (!runAsEditor || !editor->active)) {

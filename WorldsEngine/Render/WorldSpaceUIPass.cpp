@@ -164,8 +164,8 @@ namespace worlds {
         pm.depthWriteEnable(false);
         pm.depthCompareOp(vk::CompareOp::eGreater);
 
-        pm.shader(vk::ShaderStageFlagBits::eVertex, ShaderCache::getModule(handles->device, g_assetDB.addOrGetExisting("Shaders/world_ui.vert.spv")));
-        pm.shader(vk::ShaderStageFlagBits::eFragment, ShaderCache::getModule(handles->device, g_assetDB.addOrGetExisting("Shaders/world_ui.frag.spv")));
+        pm.shader(vk::ShaderStageFlagBits::eVertex, ShaderCache::getModule(handles->device, AssetDB::pathToId("Shaders/world_ui.vert.spv")));
+        pm.shader(vk::ShaderStageFlagBits::eFragment, ShaderCache::getModule(handles->device, AssetDB::pathToId("Shaders/world_ui.frag.spv")));
         pm.vertexBinding(0, (uint32_t)sizeof(UIVertex));
         pm.vertexAttribute(0, 0, vk::Format::eR32G32B32Sfloat, (uint32_t)offsetof(UIVertex, pos));
         pm.vertexAttribute(1, 0, vk::Format::eR32G32Sfloat, (uint32_t)offsetof(UIVertex, uv));
@@ -183,7 +183,7 @@ namespace worlds {
         dsm.layout(*descriptorSetLayout);
         descriptorSet = std::move(dsm.createUnique(handles->device, handles->descriptorPool)[0]);
 
-        TextureData sdfData = loadTexData(g_assetDB.addOrGetExisting("UI/SDFFonts/mulish.png"));
+        TextureData sdfData = loadTexData(AssetDB::pathToId("UI/SDFFonts/mulish.png"));
         textSdf = uploadTextureVk(*handles, sdfData);
         std::free(sdfData.data);
 

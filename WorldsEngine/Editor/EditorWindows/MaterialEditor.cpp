@@ -37,7 +37,7 @@ namespace worlds {
 
         auto path = obj.get_object_value(idx).as_string();
 
-        aid = g_assetDB.addOrGetExisting(path);
+        aid = AssetDB::pathToId(path);
     }
 
     template <typename T>
@@ -64,25 +64,25 @@ namespace worlds {
     void saveMaterial(EditableMaterial& mat, AssetID matId) {
         std::string j = "{\n";
 
-        j += getJson("albedoPath", g_assetDB.getAssetPath(mat.albedo));
+        j += getJson("albedoPath", AssetDB::idToPath(mat.albedo));
 
         if (!mat.usePBRMap) {
             if (mat.roughMap != ~0u)
-                j += ",\n" + getJson("roughMapPath", g_assetDB.getAssetPath(mat.roughMap));
+                j += ",\n" + getJson("roughMapPath", AssetDB::idToPath(mat.roughMap));
 
             if (mat.metalMap != ~0u)
-                j += ",\n" + getJson("metalMapPath", g_assetDB.getAssetPath(mat.metalMap));
+                j += ",\n" + getJson("metalMapPath", AssetDB::idToPath(mat.metalMap));
         } else {
             if (mat.pbrMap != ~0u)
-                j += ",\n" + getJson("pbrMapPath", g_assetDB.getAssetPath(mat.pbrMap));
+                j += ",\n" + getJson("pbrMapPath", AssetDB::idToPath(mat.pbrMap));
         }
 
         if (mat.normalMap != ~0u) {
-            j += ",\n" + getJson("normalMapPath", g_assetDB.getAssetPath(mat.normalMap));
+            j += ",\n" + getJson("normalMapPath", AssetDB::idToPath(mat.normalMap));
         }
 
         if (mat.heightMap != ~0u) {
-            j += ",\n" + getJson("heightmapPath", g_assetDB.getAssetPath(mat.heightMap));
+            j += ",\n" + getJson("heightmapPath", AssetDB::idToPath(mat.heightMap));
             j += ",\n" + getJson("heightmapScale", mat.heightmapScale);
         }
 
@@ -107,14 +107,14 @@ namespace worlds {
 
         logMsg("%s", j.c_str());
 
-        auto* file = g_assetDB.openAssetFileWrite(matId);
+        auto* file = AssetDB::openAssetFileWrite(matId);
         PHYSFS_writeBytes(file, j.data(), j.size());
         PHYSFS_close(file);
     }
 
     void setIfExists(std::string path, AssetID& toSet) {
         if (PHYSFS_exists(path.c_str())) {
-            toSet = g_assetDB.addOrGetExisting(path);
+            toSet = AssetDB::pathToId(path);
         }
     }
 
@@ -126,7 +126,7 @@ namespace worlds {
         if (ImGui::Begin("Material Editor", &active)) {
             if (materialId != ~0u) {
                 if (needsReload) {
-                    auto* f = g_assetDB.openAssetFileRead(materialId);
+                    auto* f = AssetDB::openAssetFileRead(materialId);
                     size_t fileSize = PHYSFS_fileLength(f);
                     char* buffer = (char*)std::malloc(fileSize);
                     PHYSFS_readBytes(f, buffer, fileSize);
@@ -171,12 +171,12 @@ namespace worlds {
                 ImGui::ColorEdit3("Albedo Color", &mat.albedoColor.x);
                 ImGui::ColorEdit3("Emissive Color", &mat.emissiveColor.x);
 
-                ImGui::Text("Current albedo path: %s", g_assetDB.getAssetPath(mat.albedo).c_str());
+                ImGui::Text("Current albedo path: %s", AssetDB::idToPath(mat.albedo).c_str());
                 ImGui::SameLine();
                 assetButton(mat.albedo, "Albedo");
 
                 if (mat.normalMap != ~0u) {
-                    ImGui::Text("Current normal map path: %s", g_assetDB.getAssetPath(mat.normalMap).c_str());
+                    ImGui::Text("Current normal map path: %s", AssetDB::idToPath(mat.normalMap).c_str());
                 } else {
                     ImGui::Text("No normal map set");
                 }
@@ -184,7 +184,7 @@ namespace worlds {
                 assetButton(mat.normalMap, "Normal map");
 
                 if (mat.heightMap != ~0u) {
-                    ImGui::Text("Current height map path: %s", g_assetDB.getAssetPath(mat.heightMap).c_str());
+                    ImGui::Text("Current height map path: %s", AssetDB::idToPath(mat.heightMap).c_str());
                 } else {
                     ImGui::Text("No height map set");
                 }
@@ -194,7 +194,7 @@ namespace worlds {
                 ImGui::Checkbox("Use packed PBR map", &mat.usePBRMap);
                 if (mat.usePBRMap) {
                     if (mat.pbrMap != ~0u) {
-                        ImGui::Text("Current PBR map path: %s", g_assetDB.getAssetPath(mat.pbrMap).c_str());
+                        ImGui::Text("Current PBR map path: %s", AssetDB::idToPath(mat.pbrMap).c_str());
                     } else {
                         ImGui::Text("No PBR map set");
                     }
@@ -203,7 +203,7 @@ namespace worlds {
                     assetButton(mat.pbrMap, "PBR Map");
                 } else {
                     if (mat.metalMap != ~0u) {
-                        ImGui::Text("Current metallic map path: %s", g_assetDB.getAssetPath(mat.metalMap).c_str());
+                        ImGui::Text("Current metallic map path: %s", AssetDB::idToPath(mat.metalMap).c_str());
                     } else {
                         ImGui::Text("No metallic map set");
                     }
@@ -213,7 +213,7 @@ namespace worlds {
 
 
                     if (mat.roughMap != ~0u) {
-                        ImGui::Text("Current roughness map path: %s", g_assetDB.getAssetPath(mat.roughMap).c_str());
+                        ImGui::Text("Current roughness map path: %s", AssetDB::idToPath(mat.roughMap).c_str());
                     } else {
                         ImGui::Text("No roughness map set");
                     }

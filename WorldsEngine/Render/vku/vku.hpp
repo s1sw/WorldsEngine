@@ -2203,7 +2203,7 @@ namespace vku {
     }
 
     inline ShaderModule loadShaderAsset(vk::Device& device, worlds::AssetID id) {
-        PHYSFS_File* file = worlds::g_assetDB.openAssetFileRead(id);
+        PHYSFS_File* file = worlds::AssetDB::openAssetFileRead(id);
         size_t size = PHYSFS_fileLength(file);
         void* buffer = std::malloc(size);
 

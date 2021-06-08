@@ -4,6 +4,7 @@ script_dir = pathlib.Path(os.path.dirname(os.path.abspath(__file__)))
 curr_dir = pathlib.Path.cwd()
 
 subdirs = [
+    'AssetCompilation',
     'Audio',
     'ComponentMeta',
     'Core',

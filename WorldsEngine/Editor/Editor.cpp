@@ -101,7 +101,6 @@ namespace worlds {
         ADD_EDITOR_WINDOW(EntityEditor);
         ADD_EDITOR_WINDOW(GameControls);
         ADD_EDITOR_WINDOW(StyleEditor);
-        ADD_EDITOR_WINDOW(AssetDBExplorer);
         ADD_EDITOR_WINDOW(MaterialEditor);
         ADD_EDITOR_WINDOW(AboutWindow);
         ADD_EDITOR_WINDOW(BakingWindow);
@@ -630,7 +629,7 @@ namespace worlds {
         if (inputManager.keyPressed(SDL_SCANCODE_S) && inputManager.ctrlHeld()) {
             if (interfaces.engine->getCurrentSceneInfo().id != ~0u && !inputManager.shiftHeld()) {
                 AssetID sceneId = interfaces.engine->getCurrentSceneInfo().id;
-                PHYSFS_File* file = g_assetDB.openAssetFileWrite(sceneId);
+                PHYSFS_File* file = AssetDB::openAssetFileWrite(sceneId);
                 JsonSceneSerializer::saveScene(file, reg);
             } else {
                 ImGui::OpenPopup("Save Scene");
@@ -665,8 +664,8 @@ namespace worlds {
         }
 
         saveFileModal("Save Scene", [this](const char* path) {
-            AssetID sceneId = g_assetDB.createAsset(path);
-            PHYSFS_File* f = g_assetDB.openAssetFileWrite(sceneId);
+            AssetID sceneId = AssetDB::createAsset(path);
+            PHYSFS_File* f = AssetDB::openAssetFileWrite(sceneId);
             JsonSceneSerializer::saveScene(f, reg);
             updateWindowTitle();
         });
@@ -686,7 +685,7 @@ namespace worlds {
         const char* sceneFileExts[2] = { ".escn", ".wscn" };
 
         openFileModal("Open Scene", [this](const char* path) {
-            interfaces.engine->loadScene(g_assetDB.addOrGetExisting(path));
+            interfaces.engine->loadScene(AssetDB::pathToId(path));
             updateWindowTitle();
             undo.clear();
         }, sceneFileExts, 2);
@@ -732,7 +731,7 @@ namespace worlds {
                 if (ImGui::MenuItem("Save")) {
                     if (interfaces.engine->getCurrentSceneInfo().id != ~0u && !inputManager.shiftHeld()) {
                         AssetID sceneId = interfaces.engine->getCurrentSceneInfo().id;
-                        PHYSFS_File* file = g_assetDB.openAssetFileWrite(sceneId);
+                        PHYSFS_File* file = AssetDB::openAssetFileWrite(sceneId);
                         JsonSceneSerializer::saveScene(file, reg);
                     } else {
                         popupToOpen = "Save Scene";
