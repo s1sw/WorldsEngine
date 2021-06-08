@@ -1,8 +1,0 @@
-{
-	"albedoPath" : "Textures/Ladder/LadderSides_BaseColor.png",
-	"normalMapPath" : "Textures/Ladder/LadderSides_Normal_forcelin.png",
-	"pbrMapPath" : "Textures/Ladder/LadderSides_PBRPack.png",
-	"metallic" : 1.0,
-	"roughness" : 0.2,
-	"albedoColor" : [1.0, 1.0, 1.0]
-}

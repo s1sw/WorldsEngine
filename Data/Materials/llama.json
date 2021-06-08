@@ -1,7 +1,0 @@
-{
-	"albedoPath" : "Textures/llama.png",
-	"metallic" : 0.0,
-	"roughness" : 0.1,
-	"albedoColor" : [1.0, 1.0, 1.0],
-	"fresnelReduction" : 0.25
-}

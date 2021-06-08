@@ -264,7 +264,7 @@ namespace worlds {
 
     void AudioSystem::initialise(entt::registry& reg) {
         instance = this;
-        missingClip = loadAudioClip(g_assetDB.addOrGetExisting("Audio/SFX/dlgsound.ogg"));
+        missingClip = loadAudioClip(AssetDB::pathToId("Audio/SFX/dlgsound.ogg"));
 
         volume = 1.0f;
         logMsg(WELogCategoryAudio, "Initialising audio system");
@@ -706,7 +706,7 @@ namespace worlds {
         if (loadedClips.count(id) == 1)
             return loadedClips.at(id);
         // find the path
-        std::string path = g_assetDB.getAssetPath(id);
+        std::string path = AssetDB::idToPath(id);
 
         int64_t fLen;
         Result<void*, IOError> res = LoadFileToBuffer(path, &fLen);

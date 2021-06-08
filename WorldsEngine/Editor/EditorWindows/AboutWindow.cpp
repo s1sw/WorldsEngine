@@ -10,8 +10,8 @@ namespace worlds {
 
     void AboutWindow::setActive(bool active) {
         this->active = active;
-        bgId = editor->texManager()->loadOrGet(g_assetDB.addOrGetExisting("UI/Images/worlds_no_logo.png"));
-        bradnoId = editor->texManager()->loadOrGet(g_assetDB.addOrGetExisting("UI/Images/bradno.png"));
+        bgId = editor->texManager()->loadOrGet(AssetDB::pathToId("UI/Images/worlds_no_logo.png"));
+        bradnoId = editor->texManager()->loadOrGet(AssetDB::pathToId("UI/Images/bradno.png"));
     }
 
     ImVec2 rotatePoint(ImVec2 p, float angle) {
@@ -50,7 +50,7 @@ namespace worlds {
                 bradnoPosition++;
                 if (bradnoPosition >= (int)sizeof(bradnoCode) / (int)sizeof(bradnoCode[0])) {
                     showBradno = true;
-                    AudioSystem::getInstance()->playOneShotClip(g_assetDB.addOrGetExisting("Audio/SFX/smooch.ogg"), glm::vec3{0.0f}, false, 0.4f);
+                    AudioSystem::getInstance()->playOneShotClip(AssetDB::pathToId("Audio/SFX/smooch.ogg"), glm::vec3{0.0f}, false, 0.4f);
                     bradnoPosition = 0;
                 }
             }

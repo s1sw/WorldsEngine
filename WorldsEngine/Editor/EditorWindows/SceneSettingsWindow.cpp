@@ -7,7 +7,7 @@ namespace worlds {
         if (ImGui::Begin("Scene Settings", &active)) {
             auto& settings = reg.ctx<SceneSettings>();
 
-            ImGui::Text("Current Skybox: %s", g_assetDB.getAssetPath(settings.skybox).c_str());
+            ImGui::Text("Current Skybox: %s", AssetDB::idToPath(settings.skybox).c_str());
             ImGui::SameLine();
 
             bool open = ImGui::Button("Change");

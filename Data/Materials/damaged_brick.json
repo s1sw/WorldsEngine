@@ -1,8 +1,0 @@
-{
-    "albedoPath" : "Textures/damaged_brick/DamagedBrick_BaseColor.jpg",
-    "pbrMapPath" : "Textures/damaged_brick/DamagedBrick_PBRPack.jpg",
-    "normalMapPath" : "Textures/damaged_brick/DamagedBrick_Normal_forcelin.jpg",
-    "metallic" : 0.000000,
-    "roughness" : 0.100000,
-    "albedoColor" : [1.000000, 1.000000, 1.000000]
-}

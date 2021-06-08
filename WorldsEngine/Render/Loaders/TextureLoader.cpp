@@ -42,13 +42,13 @@ namespace worlds {
         bool forceLinear = false;
         stbi_uc* dat;
 
-        std::string path = g_assetDB.getAssetPath(id);
+        std::string path = AssetDB::idToPath(id);
 
         if (path.find("forcelin") != std::string::npos) {
             forceLinear = true;
         }
 
-        if (g_assetDB.getAssetExtension(id) == ".hdr") {
+        if (AssetDB::getAssetExtension(id) == ".hdr") {
             float* fpDat;
             fpDat = stbi_loadf_from_memory((stbi_uc*)fileData, (int)fileLen, &x, &y, &channelsInFile, 4);
             dat = (stbi_uc*)fpDat;
@@ -72,7 +72,7 @@ namespace worlds {
             td.format = vk::Format::eR8G8B8A8Srgb;
         else
             td.format = vk::Format::eR8G8B8A8Unorm;
-        td.name = g_assetDB.getAssetPath(id);
+        td.name = AssetDB::idToPath(id);
         td.totalDataSize = hdr ? x * y * 4 * sizeof(float) : x * y * 4;
 
         return td;
@@ -135,7 +135,7 @@ namespace worlds {
         td.width = x;
         td.height = y;
         td.format = format;
-        td.name = g_assetDB.getAssetPath(id);
+        td.name = AssetDB::idToPath(id);
         td.totalDataSize = (uint32_t)totalDataSize;
 
         return td;
@@ -144,13 +144,13 @@ namespace worlds {
     TextureData loadTexData(AssetID id) {
         ZoneScoped;
 
-        if (!g_assetDB.hasId(id)) {
+        if (!AssetDB::exists(id)) {
             return TextureData{ nullptr };
         }
 
-        PHYSFS_File* file = g_assetDB.openAssetFileRead(id);
+        PHYSFS_File* file = AssetDB::openAssetFileRead(id);
         if (!file) {
-            std::string path = g_assetDB.getAssetPath(id);
+            std::string path = AssetDB::idToPath(id);
             auto errCode = PHYSFS_getLastErrorCode();
             SDL_LogError(worlds::WELogCategoryEngine, "Failed to load texture %s: %s", path.c_str(), PHYSFS_getErrorByCode(errCode));
             return TextureData{nullptr};
@@ -162,9 +162,11 @@ namespace worlds {
         PHYSFS_readBytes(file, fileVec.data(), fileLen);
         PHYSFS_close(file);
 
-        bool crunch = g_assetDB.getAssetExtension(id) == ".crn";
+        std::string ext = AssetDB::getAssetExtension(id);
 
-        if (g_assetDB.getAssetExtension(id) == ".vtf") {
+        bool crunch = ext == ".crn" || ext == ".wtex";
+
+        if (AssetDB::getAssetExtension(id) == ".vtf") {
             return loadVtfTexture(fileVec.data(), fileLen, id);
         }
 

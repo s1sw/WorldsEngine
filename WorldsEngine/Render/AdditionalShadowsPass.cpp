@@ -26,8 +26,8 @@ namespace worlds {
 
         renderPass = rpm.createUnique(handles->device);
 
-        AssetID vsID = g_assetDB.addOrGetExisting("Shaders/shadowmap.vert.spv");
-        AssetID fsID = g_assetDB.addOrGetExisting("Shaders/blank.frag.spv");
+        AssetID vsID = AssetDB::pathToId("Shaders/shadowmap.vert.spv");
+        AssetID fsID = AssetDB::pathToId("Shaders/blank.frag.spv");
         auto shadowVertexShader = ShaderCache::getModule(handles->device, vsID);
         auto shadowFragmentShader = ShaderCache::getModule(handles->device, fsID);
 

@@ -5,7 +5,6 @@ worlds_sources += [
   'Editor/GuiUtil.cpp',
   'Editor/UITextureManager.cpp',
   'Editor/EditorWindows/AboutWindow.cpp',
-  'Editor/EditorWindows/AssetDBExplorer.cpp',
   'Editor/EditorWindows/Assets.cpp',
   'Editor/EditorWindows/BakingWindow.cpp',
   'Editor/EditorWindows/EntityEditor.cpp',

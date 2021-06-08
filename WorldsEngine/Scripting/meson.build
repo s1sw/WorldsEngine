@@ -5,6 +5,7 @@ worlds_sources += [
   'Scripting/ScriptComponent.hpp',
   'Scripting/ScriptUtil.hpp',
   'Scripting/WrenVM.hpp',
+  'Scripting/ScriptBindings/Console.hpp',
   'Scripting/ScriptBindings/Entity.hpp',
   'Scripting/ScriptBindings/Light.hpp',
   'Scripting/ScriptBindings/PhysicsActors.hpp',

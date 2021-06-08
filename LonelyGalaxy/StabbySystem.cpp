@@ -61,7 +61,7 @@ namespace lg {
             stabby.embedded = true;
             stabby.embeddedIn = info.otherEntity;
 
-            worlds::AssetID soundClip = stabbable->stabSound == ~0u ? worlds::g_assetDB.addOrGetExisting("Audio/SFX/stabby.ogg") : stabbable->stabSound;
+            worlds::AssetID soundClip = stabbable->stabSound == ~0u ? worlds::AssetDB::pathToId("Audio/SFX/stabby.ogg") : stabbable->stabSound;
 
             worlds::AudioSystem::getInstance()->playOneShotClip(
                 soundClip,

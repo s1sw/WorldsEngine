@@ -164,10 +164,10 @@ namespace lg {
         worlds::DynamicPhysicsActor& gunDpa = reg.get<worlds::DynamicPhysicsActor>(ent);
 
         worlds::AudioSystem::getInstance()->playOneShotClip(
-            worlds::g_assetDB.addOrGetExisting("Audio/SFX/gunshot.ogg"), gunTransform.position, true
+            worlds::AssetDB::pathToId("Audio/SFX/gunshot.ogg"), gunTransform.position, true
         );
 
-        worlds::AssetID projectileId = worlds::g_assetDB.addOrGetExisting("Prefabs/gun_projectile.json");
+        worlds::AssetID projectileId = worlds::AssetDB::pathToId("Prefabs/gun_projectile.json");
         entt::entity projectile = worlds::SceneLoader::createPrefab(projectileId, reg);
 
         Transform& projectileTransform = reg.get<Transform>(projectile);
@@ -304,7 +304,7 @@ namespace lg {
         }, "lg_resetHands", "Resets hand PID controllers.", nullptr);
 
         worlds::g_console->registerCommand([&](void*, const char*) {
-            camcorder = worlds::SceneLoader::createPrefab(worlds::g_assetDB.addOrGetExisting("Prefabs/spectator_camcorder.json"), registry);
+            camcorder = worlds::SceneLoader::createPrefab(worlds::AssetDB::pathToId("Prefabs/spectator_camcorder.json"), registry);
         }, "lg_spawnCamcorder", "Spawns the camcorder.", nullptr);
     }
 
@@ -527,7 +527,7 @@ namespace lg {
         });
 
         if (!registry.valid(localLocosphereEnt)) {
-            // probably dedicated server ¯\_(ツ)_/¯
+            // probably dedicated server ??\_(???)_/??
             return;
         }
 
@@ -577,15 +577,15 @@ namespace lg {
             }
 
             auto& fenderTransform = registry.get<Transform>(rig.fender);
-            auto matId = worlds::g_assetDB.addOrGetExisting("Materials/VRHands/placeholder.json");
-            auto devMatId = worlds::g_assetDB.addOrGetExisting("Materials/dev.json");
-            auto lHandModel = worlds::g_assetDB.addOrGetExisting("Models/VRHands/hand_placeholder_l.wmdl");
-            auto rHandModel = worlds::g_assetDB.addOrGetExisting("Models/VRHands/hand_placeholder_r.wmdl");
+            auto matId = worlds::AssetDB::pathToId("Materials/VRHands/placeholder.json");
+            auto devMatId = worlds::AssetDB::pathToId("Materials/dev.json");
+            auto lHandModel = worlds::AssetDB::pathToId("Models/VRHands/hand_placeholder_l.wmdl");
+            auto rHandModel = worlds::AssetDB::pathToId("Models/VRHands/hand_placeholder_r.wmdl");
 
 
             headPlaceholder = registry.create();
             registry.emplace<Transform>(headPlaceholder);
-            registry.emplace<worlds::WorldObject>(headPlaceholder, devMatId, worlds::g_assetDB.addOrGetExisting("Models/head placeholder.obj"));
+            registry.emplace<worlds::WorldObject>(headPlaceholder, devMatId, worlds::AssetDB::pathToId("Models/head placeholder.obj"));
 
             lHandEnt = registry.create();
             registry.get<PlayerRig>(rig.locosphere).lHand = lHandEnt;
@@ -704,9 +704,9 @@ namespace lg {
             //});
 
             PhysicsSoundComponent& lPsc = reg->emplace<PhysicsSoundComponent>(lHandEnt);
-            lPsc.soundId = worlds::g_assetDB.addOrGetExisting("Audio/SFX/Player/hand_slap1.ogg");
+            lPsc.soundId = worlds::AssetDB::pathToId("Audio/SFX/Player/hand_slap1.ogg");
             PhysicsSoundComponent& rPsc = reg->emplace<PhysicsSoundComponent>(rHandEnt);
-            rPsc.soundId = worlds::g_assetDB.addOrGetExisting("Audio/SFX/Player/hand_slap1.ogg");
+            rPsc.soundId = worlds::AssetDB::pathToId("Audio/SFX/Player/hand_slap1.ogg");
 
             ContactDamageDealer& lCdd = reg->emplace<ContactDamageDealer>(lHandEnt);
             lCdd.damage = 7;

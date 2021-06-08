@@ -77,7 +77,7 @@ namespace worlds {
 
             auto texData = loadTexData(asset);
             if (texData.data == nullptr) {
-                return loadOrGet(g_assetDB.addOrGetExisting("Textures/missing.png"));
+                return loadOrGet(AssetDB::pathToId("Textures/missing.wtex"));
             }
 
             if (cb && frameStarted)

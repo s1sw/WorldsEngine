@@ -161,8 +161,8 @@ namespace worlds {
         }
 
         void create(entt::entity ent, entt::registry& reg) override {
-            auto cubeId = g_assetDB.addOrGetExisting("model.obj");
-            auto matId = g_assetDB.addOrGetExisting("Materials/dev.json");
+            auto cubeId = AssetDB::pathToId("model.obj");
+            auto matId = AssetDB::pathToId("Materials/dev.json");
             reg.emplace<WorldObject>(ent, matId, cubeId);
         }
 
@@ -202,7 +202,7 @@ namespace worlds {
                     ImGui::DragFloat2("Texture Scale", &worldObject.texScaleOffset.x);
                     ImGui::DragFloat2("Texture Offset", &worldObject.texScaleOffset.z);
 
-                    ImGui::Text("Mesh: %s", g_assetDB.getAssetPath(worldObject.mesh).c_str());
+                    ImGui::Text("Mesh: %s", AssetDB::idToPath(worldObject.mesh).c_str());
                     ImGui::SameLine();
 
                     selectAssetPopup("Mesh", worldObject.mesh, ImGui::Button("Change##Mesh"));
@@ -210,7 +210,7 @@ namespace worlds {
                     if (ImGui::TreeNode("Materials")) {
                         for (int i = 0; i < NUM_SUBMESH_MATS; i++) {
                             if (worldObject.presentMaterials[i]) {
-                                ImGui::Text("Material %i: %s", i, g_assetDB.getAssetPath(worldObject.materials[i]).c_str());
+                                ImGui::Text("Material %i: %s", i, AssetDB::idToPath(worldObject.materials[i]).c_str());
 
                             } else {
                                 ImGui::Text("Material %i: not set", i);
@@ -287,11 +287,11 @@ namespace worlds {
             nlohmann::json matArray;
 
             for (uint32_t i = 0; i < materialCount; i++) {
-                matArray.push_back(g_assetDB.getAssetPath(wo.materials[i]));
+                matArray.push_back(AssetDB::idToPath(wo.materials[i]));
             }
 
             j = {
-                { "mesh", g_assetDB.getAssetPath(wo.mesh) },
+                { "mesh", AssetDB::idToPath(wo.mesh) },
                 { "texScaleOffset", wo.texScaleOffset },
                 { "uvOverride", wo.uvOverride },
                 { "materials", matArray },
@@ -301,7 +301,7 @@ namespace worlds {
 
         void fromJson(entt::entity ent, entt::registry& reg, const json& j) override {
             auto& wo = reg.emplace<WorldObject>(ent, 0, 0);
-            wo.mesh = g_assetDB.addOrGetExisting(j["mesh"]);
+            wo.mesh = AssetDB::pathToId(j["mesh"]);
             wo.texScaleOffset = j["texScaleOffset"];
             wo.uvOverride = j["uvOverride"];
             wo.staticFlags = j["staticFlags"];
@@ -313,7 +313,7 @@ namespace worlds {
                 if (v.is_number())
                     wo.materials[matIdx] = v;
                 else
-                    wo.materials[matIdx] = g_assetDB.addOrGetExisting(v);
+                    wo.materials[matIdx] = AssetDB::pathToId(v);
                 matIdx++;
             }
         }
@@ -1036,7 +1036,7 @@ namespace worlds {
         const char* getName() override { return "Audio Source"; }
 
         void create(entt::entity ent, entt::registry& reg) override {
-            reg.emplace<AudioSource>(ent, g_assetDB.addOrGetExisting("Audio/SFX/dlgsound.ogg"));
+            reg.emplace<AudioSource>(ent, AssetDB::pathToId("Audio/SFX/dlgsound.ogg"));
         }
 
         void edit(entt::entity ent, entt::registry& registry, Editor* ed) override {
@@ -1046,7 +1046,7 @@ namespace worlds {
                 ImGui::Checkbox("Loop", &as.loop);
                 ImGui::Checkbox("Spatialise", &as.spatialise);
                 ImGui::Checkbox("Play on scene open", &as.playOnSceneOpen);
-                ImGui::Text("Current Asset Path: %s", g_assetDB.getAssetPath(as.clipId).c_str());
+                ImGui::Text("Current Asset Path: %s", AssetDB::idToPath(as.clipId).c_str());
 
                 selectAssetPopup("Audio Source Path", as.clipId, ImGui::Button("Change"));
 
@@ -1083,7 +1083,7 @@ namespace worlds {
             auto& as = reg.get<AudioSource>(ent);
 
             j = {
-                { "clipPath", g_assetDB.getAssetPath(as.clipId) },
+                { "clipPath", AssetDB::idToPath(as.clipId) },
                 { "channel", as.channel },
                 { "loop", as.loop },
                 { "playOnSceneOpen", as.playOnSceneOpen },
@@ -1093,7 +1093,7 @@ namespace worlds {
         }
 
         void fromJson(entt::entity ent, entt::registry& reg, const json& j) override {
-            AssetID id = g_assetDB.addOrGetExisting(j["clipPath"]);
+            AssetID id = AssetDB::pathToId(j["clipPath"]);
             auto& as = reg.emplace<AudioSource>(ent, id);
 
             as.channel = j["channel"];
@@ -1113,7 +1113,7 @@ namespace worlds {
         void create(entt::entity ent, entt::registry& reg) override {
             auto& wc = reg.emplace<WorldCubemap>(ent);
 
-            wc.cubemapId = g_assetDB.addOrGetExisting("envmap_miramar/miramar.json");
+            wc.cubemapId = AssetDB::pathToId("envmap_miramar/miramar.json");
             wc.extent = glm::vec3{ 1.0f };
         }
 
@@ -1123,7 +1123,7 @@ namespace worlds {
             if (ImGui::CollapsingHeader(ICON_FA_CIRCLE u8" Cubemap")) {
                 ImGui::DragFloat3("Extent", &wc.extent.x);
                 ImGui::Checkbox("Parallax Correction", &wc.cubeParallax);
-                ImGui::Text("Current Asset Path: %s", g_assetDB.getAssetPath(wc.cubemapId).c_str());
+                ImGui::Text("Current Asset Path: %s", AssetDB::idToPath(wc.cubemapId).c_str());
                 AssetID oldId = wc.cubemapId;
                 selectAssetPopup("Cubemap Path", wc.cubemapId, ImGui::Button("Change"));
 
@@ -1154,14 +1154,14 @@ namespace worlds {
             auto& wc = reg.get<WorldCubemap>(ent);
 
             j = {
-                { "path", g_assetDB.getAssetPath(wc.cubemapId) },
+                { "path", AssetDB::idToPath(wc.cubemapId) },
                 { "useCubeParallax", wc.cubeParallax },
                 { "extent", wc.extent }
             };
         }
 
         void fromJson(entt::entity ent, entt::registry& reg, const json& j) override {
-            AssetID cubemapId = g_assetDB.addOrGetExisting(j["path"]);
+            AssetID cubemapId = AssetDB::pathToId(j["path"]);
             auto& wc = reg.emplace<WorldCubemap>(ent);
 
             wc.cubemapId = cubemapId;
@@ -1177,7 +1177,7 @@ namespace worlds {
         const char* getName() override { return "Script"; }
 
         void create(entt::entity ent, entt::registry& reg) override {
-            reg.emplace<ScriptComponent>(ent, g_assetDB.addOrGetExisting("Scripts/nothing.wren"));
+            reg.emplace<ScriptComponent>(ent, AssetDB::pathToId("Scripts/nothing.wren"));
         }
 
         void edit(entt::entity ent, entt::registry& reg, Editor* ed) override {
@@ -1187,7 +1187,7 @@ namespace worlds {
                 if (ImGui::Button("Remove")) {
                     reg.remove<ScriptComponent>(ent);
                 } else {
-                    ImGui::Text("Current Script Path: %s", g_assetDB.getAssetPath(sc.script).c_str());
+                    ImGui::Text("Current Script Path: %s", AssetDB::idToPath(sc.script).c_str());
                     AssetID id = sc.script;
                     if (selectAssetPopup("Script Path", id, ImGui::Button("Change"))) {
                         reg.patch<ScriptComponent>(ent, [&](ScriptComponent& sc) {
@@ -1213,12 +1213,12 @@ namespace worlds {
         void toJson(entt::entity ent, entt::registry& reg, json& j) override {
             auto& sc = reg.get<ScriptComponent>(ent);
             j = {
-                { "path", g_assetDB.getAssetPath(sc.script) }
+                { "path", AssetDB::idToPath(sc.script) }
             };
         }
 
         void fromJson(entt::entity ent, entt::registry& reg, const json& j) override {
-            AssetID scriptID = g_assetDB.addOrGetExisting(j["path"]);
+            AssetID scriptID = AssetDB::pathToId(j["path"]);
             reg.emplace<ScriptComponent>(ent, scriptID);
         }
     };

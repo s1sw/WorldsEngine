@@ -155,7 +155,7 @@ namespace lg {
             auto& psc = reg.get<PhysicsSoundComponent>(ent);
             if (ImGui::CollapsingHeader(" Phys Sound")) {
                 if (psc.soundId != ~0u) {
-                    ImGui::Text("Current Asset Path: %s", worlds::g_assetDB.getAssetPath(psc.soundId).c_str());
+                    ImGui::Text("Current Asset Path: %s", worlds::AssetDB::idToPath(psc.soundId).c_str());
                 } else {
                     ImGui::Text("Sound not selected");
                 }
@@ -179,14 +179,14 @@ namespace lg {
         void toJson(entt::entity ent, entt::registry& reg, json& j) override {
             auto& psc = reg.get<PhysicsSoundComponent>(ent);
             j = {
-                { "soundPath", worlds::g_assetDB.getAssetPath(psc.soundId) }
+                { "soundPath", worlds::AssetDB::idToPath(psc.soundId) }
             };
         }
 
         void fromJson(entt::entity ent, entt::registry& reg, const json& j) override {
             auto& psc = reg.emplace<PhysicsSoundComponent>(ent);
 
-            psc.soundId = worlds::g_assetDB.addOrGetExisting(j["soundPath"]);
+            psc.soundId = worlds::AssetDB::pathToId(j["soundPath"]);
         }
     };
 
@@ -312,9 +312,9 @@ namespace lg {
     }
 
     entt::entity createHandPreviewEnt(bool leftHand, entt::registry& registry) {
-        auto matId = worlds::g_assetDB.addOrGetExisting("Materials/VRHands/placeholder.json");
-        auto lHandModel = worlds::g_assetDB.addOrGetExisting("Models/VRHands/hand_placeholder_l.wmdl");
-        auto rHandModel = worlds::g_assetDB.addOrGetExisting("Models/VRHands/hand_placeholder_r.wmdl");
+        auto matId = worlds::AssetDB::pathToId("Materials/VRHands/placeholder.json");
+        auto lHandModel = worlds::AssetDB::pathToId("Models/VRHands/hand_placeholder_l.wmdl");
+        auto rHandModel = worlds::AssetDB::pathToId("Models/VRHands/hand_placeholder_r.wmdl");
 
         entt::entity ent = registry.create();
         registry.emplace<worlds::WorldObject>(ent, matId, leftHand ? lHandModel : rHandModel);
@@ -647,7 +647,7 @@ namespace lg {
                 }
 
                 if (stabbable.stabSound != ~0u) {
-                    ImGui::Text("Stab sound: %s", worlds::g_assetDB.getAssetPath(stabbable.stabSound).c_str());
+                    ImGui::Text("Stab sound: %s", worlds::AssetDB::idToPath(stabbable.stabSound).c_str());
                 } else {
                     ImGui::Text("No stab sound set");
                 }
@@ -662,7 +662,7 @@ namespace lg {
             j = json::object();
 
             if (stabbable.stabSound != ~0u) {
-                j["stabSound"] = worlds::g_assetDB.getAssetPath(stabbable.stabSound);
+                j["stabSound"] = worlds::AssetDB::idToPath(stabbable.stabSound);
             }
         }
 
@@ -670,7 +670,7 @@ namespace lg {
             auto& stabbable = reg.emplace<Stabbable>(ent);
 
             if (j.contains("stabSound")) {
-                stabbable.stabSound = worlds::g_assetDB.addOrGetExisting(j["stabSound"]);
+                stabbable.stabSound = worlds::AssetDB::pathToId(j["stabSound"]);
             }
         }
     };

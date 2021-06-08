@@ -24,8 +24,8 @@ namespace worlds {
         vku::PipelineLayoutMaker plm;
         pipelineLayout = plm.createUnique(ctx.device);
 
-        AssetID vsId = g_assetDB.addOrGetExisting("Shaders/full_tri.vert.spv");
-        AssetID fsId = g_assetDB.addOrGetExisting("Shaders/brdf_lut.frag.spv");
+        AssetID vsId = AssetDB::pathToId("Shaders/full_tri.vert.spv");
+        AssetID fsId = AssetDB::pathToId("Shaders/brdf_lut.frag.spv");
 
         fs = vku::loadShaderAsset(ctx.device, fsId);
         vs = vku::loadShaderAsset(ctx.device, vsId);

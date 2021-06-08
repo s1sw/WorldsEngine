@@ -1,3 +1,0 @@
-r_depthPrepass 1
-scene Scenes/menu.wscn
-#scene w.escn

@@ -40,17 +40,17 @@ namespace lg {
         if (itCompDbg.getInt()) {
             if (showWS) {
                 worlds::createModelObject(reg, worlds::px2glm(shapeWSTransform.p), worlds::px2glm(shapeWSTransform.q),
-                        worlds::g_assetDB.addOrGetExisting(shape.type == worlds::PhysicsShapeType::Sphere ?
+                        worlds::AssetDB::pathToId(shape.type == worlds::PhysicsShapeType::Sphere ?
                             "uvsphere.obj" : "model.obj"),
-                        worlds::g_assetDB.addOrGetExisting("Materials/dev.json"),
+                        worlds::AssetDB::pathToId("Materials/dev.json"),
                         shape.type == worlds::PhysicsShapeType::Sphere ?
                         glm::vec3{shape.sphere.radius * 0.5f} :
                         shape.box.halfExtents * scale);
             } else {
                 worlds::createModelObject(reg, worlds::px2glm(wsTransform.p), worlds::px2glm(wsTransform.q),
-                        worlds::g_assetDB.addOrGetExisting(shape.type == worlds::PhysicsShapeType::Sphere ?
+                        worlds::AssetDB::pathToId(shape.type == worlds::PhysicsShapeType::Sphere ?
                             "uvsphere.obj" : "model.obj"),
-                        worlds::g_assetDB.addOrGetExisting("Materials/dev.json"),
+                        worlds::AssetDB::pathToId("Materials/dev.json"),
                         shape.type == worlds::PhysicsShapeType::Sphere ?
                         glm::vec3{shape.sphere.radius * 0.5f} :
                         shape.box.halfExtents * scale);

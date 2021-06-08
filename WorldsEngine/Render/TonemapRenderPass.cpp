@@ -31,7 +31,7 @@ namespace worlds {
 
         auto msaaSamples = hdrImg->image.info().samples;
         std::string shaderName = (int)msaaSamples > 1 ? "tonemap.comp.spv" : "tonemap_nomsaa.comp.spv";
-        tonemapShader = ShaderCache::getModule(handles->device, g_assetDB.addOrGetExisting("Shaders/" + shaderName));
+        tonemapShader = ShaderCache::getModule(handles->device, AssetDB::pathToId("Shaders/" + shaderName));
 
         vku::PipelineLayoutMaker plm;
         plm.descriptorSetLayout(*dsl);

@@ -4,8 +4,8 @@ namespace worlds {
     DepthPrepass::DepthPrepass(VulkanHandles* handles) : handles(handles) {}
 
     void DepthPrepass::setup(RenderContext& ctx, vk::RenderPass renderPass, vk::PipelineLayout layout) {
-        AssetID vsID = g_assetDB.addOrGetExisting("Shaders/depth_prepass.vert.spv");
-        AssetID fsID = g_assetDB.addOrGetExisting("Shaders/blank.frag.spv");
+        AssetID vsID = AssetDB::pathToId("Shaders/depth_prepass.vert.spv");
+        AssetID fsID = AssetDB::pathToId("Shaders/blank.frag.spv");
         auto preVertexShader = vku::loadShaderAsset(handles->device, vsID);
         auto preFragmentShader = vku::loadShaderAsset(handles->device, fsID);
         vku::PipelineMaker pm{ ctx.passWidth, ctx.passHeight };

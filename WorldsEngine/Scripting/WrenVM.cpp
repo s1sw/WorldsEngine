@@ -138,7 +138,7 @@ namespace worlds {
     }
 
     void WrenScriptEngine::updateScriptComponent(entt::entity ent, ScriptComponent& sc) {
-        auto ioRes = LoadFileToString(g_assetDB.getAssetPath(sc.script));
+        auto ioRes = LoadFileToString(AssetDB::idToPath(sc.script));
 
         if (ioRes.error != IOError::None) {
             logErr(WELogCategoryScripting, "Failed to load script");

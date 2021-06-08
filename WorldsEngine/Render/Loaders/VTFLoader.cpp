@@ -120,7 +120,7 @@ namespace worlds {
     TextureData loadVtfTexture(void* fileData, size_t fileLen, AssetID id) {
         VTFHeader* header = (VTFHeader*)fileData;
 
-        logMsg("Source texture loader: texture %s, version %i.%i (%ix%i)", g_assetDB.getAssetPath(id).c_str(), header->version[0], header->version[1], header->width, header->height);
+        logMsg("Source texture loader: texture %s, version %i.%i (%ix%i)", AssetDB::idToPath(id).c_str(), header->version[0], header->version[1], header->width, header->height);
 
         printHeader(header);
 
@@ -156,7 +156,7 @@ namespace worlds {
             td.numMips = header->mipmapCount;
             td.width = header->width;
             td.height = header->height;
-            td.name = g_assetDB.getAssetPath(id);
+            td.name = AssetDB::idToPath(id);
             td.totalDataSize = totalDataSize;
             td.format = toVkFormat((VTFFormat)header->highResImageFormat);
             

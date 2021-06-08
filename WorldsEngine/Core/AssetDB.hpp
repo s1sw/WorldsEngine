@@ -2,38 +2,25 @@
 #include <cstdint>
 #include <physfs.h>
 #include <string>
+#include <string_view>
 
 namespace worlds {
     typedef uint32_t AssetID;
 
     class AssetDB {
     public:
-        AssetDB();
-        ~AssetDB();
-        void load();
-        void save();
-        PHYSFS_File* openAssetFileRead(AssetID id);
-        PHYSFS_File* openAssetFileWrite(AssetID id);
+        static void load();
+        static void save();
+        static PHYSFS_File* openAssetFileRead(AssetID id);
+        static PHYSFS_File* openAssetFileWrite(AssetID id);
 
-        // There's basically no need to use this ever.
-        // In 99% of casees addOrGetExisting will be the better choice
-        // in case of the asset already existing in the database.
-        AssetID addAsset(std::string path);
-
-        AssetID createAsset(std::string path);
-        std::string getAssetPath(AssetID id);
-        std::string getAssetExtension(AssetID id);
-        bool hasId(std::string path);
-        bool hasId(AssetID id);
-        AssetID getExistingID(std::string path);
-        AssetID addOrGetExisting(std::string path);
-        void rename(AssetID id, std::string newPath);
+        static AssetID createAsset(std::string_view path);
+        static std::string getAssetExtension(AssetID id);
+        static std::string idToPath(AssetID id);
+        static AssetID pathToId(std::string_view path);
+        static bool exists(AssetID id);
     private:
-        class ADBStorage;
-        AssetID currId;
-        ADBStorage* storage;
+        static AssetID addAsset(std::string_view path);
         friend class AssetDBExplorer;
     };
-
-    extern AssetDB g_assetDB;
 }
