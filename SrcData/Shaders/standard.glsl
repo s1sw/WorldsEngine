@@ -442,11 +442,11 @@ void main() {
         return;
     } else if ((miscFlag & 32) == 32) {
         // show normal map value
-        if (mat.normalTexIdx == ~0u) {
+        if (materials[matIdx].normalTexIdx == ~0u) {
             FragColor = vec4(0.0, 0.0, 0.5, 1.0);
             return;
         }
-        vec3 nMap = decodeNormal(texture(tex2dSampler[mat.normalTexIdx], tCoord).xy);
+        vec3 nMap = decodeNormal(texture(tex2dSampler[materials[matIdx].normalTexIdx], inUV).xy);
         FragColor = vec4(nMap, 1.0);
         return;
     } else if ((miscFlag & 2048) == 2048) {

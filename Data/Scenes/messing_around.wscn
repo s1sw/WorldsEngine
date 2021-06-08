@@ -411,6 +411,7 @@
         1.0,
         1.0
       ],
+      "enableShadows": false,
       "intensity": 1.0,
       "spotCutoff": 0.699999988079071,
       "tubeLength": 0.25,
@@ -638,6 +639,7 @@
         0.0,
         0.0
       ],
+      "enableShadows": false,
       "intensity": 1.0,
       "spotCutoff": 0.699999988079071,
       "tubeLength": 5.0,
@@ -715,6 +717,7 @@
         0.0,
         0.0
       ],
+      "enableShadows": false,
       "intensity": 1.0,
       "spotCutoff": 0.699999988079071,
       "tubeLength": 5.0,
@@ -1573,6 +1576,71 @@
       ]
     }
   },
+  "3145774": {
+    "Transform": {
+      "position": [
+        9.182914733886719,
+        4.013937950134277,
+        -7.833548069000244
+      ],
+      "rotation": [
+        0.0,
+        0.7072292566299438,
+        0.0,
+        0.706984281539917
+      ],
+      "scale": [
+        0.009999999776482582,
+        0.009999999776482582,
+        0.009999999776482582
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/damaged_brick.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json"
+      ],
+      "mesh": "Models/damaged_brick.wmdl",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
   "4194304": {
     "Physics Actor": {
       "shapes": [
@@ -1686,6 +1754,7 @@
         1.0,
         1.0
       ],
+      "enableShadows": false,
       "intensity": 1.0,
       "spotCutoff": 0.699999988079071,
       "tubeLength": 1.0,
@@ -2147,6 +2216,7 @@
         1.0,
         1.0
       ],
+      "enableShadows": false,
       "intensity": 1.0,
       "spotCutoff": 0.699999988079071,
       "tubeLength": 1.0,
@@ -2484,6 +2554,8 @@
   },
   "8388617": {
     "Dynamic Physics Actor": {
+      "enableCCD": false,
+      "enableGravity": true,
       "mass": 5.0,
       "shapes": [
         {
@@ -2557,6 +2629,71 @@
         "Materials/dev.json"
       ],
       "mesh": "uvsphere.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "8388645": {
+    "Transform": {
+      "position": [
+        4.882915019989014,
+        4.013937950134277,
+        -7.833548069000244
+      ],
+      "rotation": [
+        0.0,
+        0.7072292566299438,
+        0.0,
+        0.706984281539917
+      ],
+      "scale": [
+        0.009999999776482582,
+        0.009999999776482582,
+        0.009999999776482582
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/damaged_brick.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json"
+      ],
+      "mesh": "Models/damaged_brick.wmdl",
       "staticFlags": 0,
       "texScaleOffset": [
         1.0,
