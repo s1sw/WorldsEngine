@@ -86,7 +86,7 @@ namespace worlds {
 
         bgSurface = loadDataFileToSurface(small ? "splash_game.png" : "splash.png");
         bgTexture = SDL_CreateTextureFromSurface(renderer, bgSurface);
-        setWindowIcon(win);
+        setWindowIcon(win, "icon_engine.png");
 
         while (running) {
             if (loadedOverlay != overlay) {

@@ -142,7 +142,7 @@ namespace worlds {
             cd.faceData[0].width, cd.faceData[0].height,
             std::min(getNumMips(cd.faceData[0].width, cd.faceData[0].height), 6u),
             newFormat, false,
-            cd.debugName.empty() ? nullptr : cd.debugName.c_str(), usageFlags
+            cd.debugName.empty() ? nullptr : ("Initial " + cd.debugName).c_str(), usageFlags
         };
 
         size_t totalSize = 0;
@@ -207,6 +207,14 @@ namespace worlds {
             blit.dstOffsets[1] = blit.srcOffsets[1] = vk::Offset3D {
                 (int)cd.faceData[0].width, (int)cd.faceData[0].height, 1
             };
+
+            // AMD driver workaround
+            // DXT1 compressed textures blit incorrectly and multiplying
+            // the source width and height by 4 fixes it.
+            if (needsCopy) {
+                blit.srcOffsets[1].y *= 4;
+                blit.srcOffsets[1].x *= 4;
+            }
 
             cb.blitImage(tex.image(), tex.layout(), destTex.image(), destTex.layout(), blit, vk::Filter::eLinear);
             cubeTempBuffers[imageIndex].push_back(std::move(stagingBuffer));

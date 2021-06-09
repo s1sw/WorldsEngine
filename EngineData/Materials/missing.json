@@ -1,5 +1,5 @@
 {
-    "albedoPath": "Textures/missing.png",
+    "albedoPath": "Textures/missing.wtex",
     "metallic": 0.0,
     "roughness": 0.2,
     "albedoColor" : [1.0, 1.0, 1.0],

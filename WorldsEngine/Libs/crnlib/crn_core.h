@@ -10,17 +10,6 @@
 #endif
 
 #if defined(WIN32) && !defined(CRNLIB_ANSI_CPLUSPLUS)
-   // MSVC or MinGW, x86 or x64, Win32 API's for threading and Win32 Interlocked API's or GCC built-ins for atomic ops.
-   #ifdef NDEBUG
-      // Ensure checked iterators are disabled. Note: Be sure anything else that links against this lib also #define's this stuff, or remove this crap!
-      #define _SECURE_SCL 0
-      #define _HAS_ITERATOR_DEBUGGING 0
-   #endif
-   #ifndef _DLL
-      // If we're using the DLL form of the run-time libs, we're also going to be enabling exceptions because we'll be building CLR apps.
-      // Otherwise, we disable exceptions for a small speed boost.
-      #define _HAS_EXCEPTIONS 0
-   #endif
    #define NOMINMAX
 
    #define CRNLIB_USE_WIN32_API 1
