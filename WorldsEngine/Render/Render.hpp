@@ -190,8 +190,16 @@ namespace worlds {
         double shadowmapGpuTime;
     };
 
+    enum class VKVendor {
+        AMD,
+        Nvidia,
+        Intel,
+        Other
+    };
+
     // Holds handles to useful Vulkan objects
     struct VulkanHandles {
+        VKVendor vendor;
         vk::PhysicalDevice physicalDevice;
         vk::Device device;
         vk::PipelineCache pipelineCache;
@@ -359,6 +367,7 @@ namespace worlds {
     inline ReloadFlags operator|(ReloadFlags l, ReloadFlags r) {
         return (ReloadFlags)((uint32_t)l | (uint32_t)r);
     }
+
 
     class VKRenderer {
         const static uint32_t NUM_TEX_SLOTS = 256;

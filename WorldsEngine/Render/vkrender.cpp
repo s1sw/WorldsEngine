@@ -429,7 +429,24 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
         vrInterface->getRenderResolution(&vrWidth, &vrHeight);
     }
 
+    vk::PhysicalDeviceProperties physDevProps = physicalDevice.getProperties();
+
+    VKVendor vendor = VKVendor::Other;
+
+    switch (physDevProps.vendorID) {
+        case 0x1002:
+            vendor = VKVendor::AMD;
+            break;
+        case 0x10DE:
+            vendor = VKVendor::Nvidia;
+            break;
+        case 0x8086:
+            vendor = VKVendor::Intel;
+            break;
+    }
+
     handles = VulkanHandles{
+        vendor,
         physicalDevice,
         *device,
         *pipelineCache,

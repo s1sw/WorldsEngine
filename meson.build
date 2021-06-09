@@ -17,6 +17,7 @@ endif
 
 if host_machine.system() == 'windows'
   add_global_arguments('-DNOMINMAX', language: 'cpp')
+  add_global_arguments('-DWIN32', language: 'cpp')
 endif
 
 add_global_arguments('-DPX_PHYSX_STATIC_LIB', language: 'cpp')

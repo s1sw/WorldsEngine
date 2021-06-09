@@ -159,9 +159,7 @@ worlds_sources += [
 if host_machine.system() == 'windows'
   worlds_sources += [
     'Libs/crnlib/crn_winhdr.h',
-    'Libs/crnlib/lzham_win32_threading.h',
     'Libs/crnlib/crn_threading_win32.h',
-    'Libs/crnlib/lzham_win32_threading.cpp',
     'Libs/crnlib/crn_threading_win32.cpp'
   ]
 else

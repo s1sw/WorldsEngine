@@ -32,7 +32,7 @@ physx_deps = [
   cc.find_library('PhysXPvdSDK_static_64', dirs: lib_dir),
   cc.find_library('PhysX_static_64', dirs: lib_dir),
   cc.find_library('PhysXVehicle_static_64', dirs: lib_dir)
-  ]
+]
 
 worlds_inc = include_directories('.')
 tracy_inc = include_directories('./tracy/')
@@ -58,7 +58,7 @@ platform_deps = []
 
 if host_machine.system() == 'windows'
   platform_deps += cc.find_library('winmm')
-    platform_deps += cc.find_library('ws2_32')
+  platform_deps += cc.find_library('ws2_32')
 endif
 
 steam_audio_dep = cc.find_library('phonon', dirs: meson.project_source_root() + '/External/Lib')
@@ -70,6 +70,6 @@ worlds = static_library('worlds', worlds_sources,
     dl_dep, openvr_dep, wmdl_dep, discord_csdk_dep,
     discord_sdk_dep, tbb_dep, wren_dep, enet_dep,
     slib_dep, platform_deps, steam_audio_dep
-    ]
-  )
+  ]
+)
 worlds_dep = declare_dependency(include_directories: worlds_inc, link_with: worlds)
