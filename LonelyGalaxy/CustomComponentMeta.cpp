@@ -186,7 +186,8 @@ namespace lg {
         void fromJson(entt::entity ent, entt::registry& reg, const json& j) override {
             auto& psc = reg.emplace<PhysicsSoundComponent>(ent);
 
-            psc.soundId = worlds::AssetDB::pathToId(j["soundPath"]);
+            std::string soundPath = j["soundPath"];
+            psc.soundId = worlds::AssetDB::pathToId(soundPath);
         }
     };
 
@@ -670,7 +671,8 @@ namespace lg {
             auto& stabbable = reg.emplace<Stabbable>(ent);
 
             if (j.contains("stabSound")) {
-                stabbable.stabSound = worlds::AssetDB::pathToId(j["stabSound"]);
+                std::string stabSoundPath = j["stabSound"];
+                stabbable.stabSound = worlds::AssetDB::pathToId(stabSoundPath);
             }
         }
     };

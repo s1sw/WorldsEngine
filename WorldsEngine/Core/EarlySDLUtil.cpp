@@ -7,7 +7,7 @@ namespace worlds {
         int width, height, channels;
 
         std::string basePath = SDL_GetBasePath();
-        basePath += "Data";
+        basePath += "EngineData";
 #ifdef _WIN32
         basePath += '\\';
 #else

@@ -1869,7 +1869,7 @@ namespace vku {
         TextureImageCube() {
         }
 
-        TextureImageCube(vk::Device device, VmaAllocator allocator, uint32_t width, uint32_t height, uint32_t mipLevels = 1, vk::Format format = vk::Format::eR8G8B8A8Unorm, bool hostImage = false, const char* debugName = nullptr) {
+        TextureImageCube(vk::Device device, VmaAllocator allocator, uint32_t width, uint32_t height, uint32_t mipLevels = 1, vk::Format format = vk::Format::eR8G8B8A8Unorm, bool hostImage = false, const char* debugName = nullptr, vk::ImageUsageFlags usageFlags = vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eStorage) {
             vk::ImageCreateInfo info;
             info.flags = { vk::ImageCreateFlagBits::eCubeCompatible };
             info.imageType = vk::ImageType::e2D;
@@ -1879,7 +1879,7 @@ namespace vku {
             info.arrayLayers = 6;
             info.samples = vk::SampleCountFlagBits::e1;
             info.tiling = hostImage ? vk::ImageTiling::eLinear : vk::ImageTiling::eOptimal;
-            info.usage = vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eStorage;
+            info.usage = usageFlags;
             info.sharingMode = vk::SharingMode::eExclusive;
             info.queueFamilyIndexCount = 0;
             info.pQueueFamilyIndices = nullptr;

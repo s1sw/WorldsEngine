@@ -1,0 +1,10 @@
+{
+    "albedoPath" : "Textures/LevelTextures/MetalPlates006/albedo.png",
+    "pbrMapPath" : "Textures/LevelTextures/MetalPlates006/pbr.png",
+    "normalMapPath" : "Textures/LevelTextures/MetalPlates006/normal_forcelin.crn",
+    "heightmapScale" : 0.010000,
+    "metallic" : 0.000000,
+    "roughness" : 1.000000,
+    "albedoColor" : [1.000000, 1.000000, 1.000000],
+    "emissiveColor" : [0.000001, 0.000001, 0.000001]
+}

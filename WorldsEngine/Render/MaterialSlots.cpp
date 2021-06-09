@@ -23,7 +23,9 @@ namespace worlds {
 
         if (it == j.end()) return ~0u;
 
-        return texSlots.loadOrGet(AssetDB::pathToId(it.value()));
+        std::string path = it.value();
+
+        return texSlots.loadOrGet(AssetDB::pathToId(path));
     }
 
     void MaterialSlots::parseMaterial(AssetID asset, PackedMaterial& mat, MatExtraData& extraDat) {
@@ -53,7 +55,7 @@ namespace worlds {
                 return;
             }
 
-            auto albedoPath = j["albedoPath"];
+            std::string albedoPath = j["albedoPath"];
 
             mat.setCutoff(j.value("alphaCutoff", 0.0));
             mat.setFlags(MaterialFlags::None);

@@ -1,0 +1,7 @@
+{
+    "albedoPath" : "Textures/white.png",
+    "metallic" : 0.000000,
+    "roughness" : 1.000000,
+    "albedoColor" : [0.000000, 0.000000, 0.000000],
+    "emissiveColor" : [0.0, 0.0, 0.0]
+}

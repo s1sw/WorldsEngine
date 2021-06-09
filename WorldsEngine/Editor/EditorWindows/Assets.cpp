@@ -10,20 +10,10 @@
 
 namespace worlds {
     void Assets::draw(entt::registry& reg) {
-        struct EnumerateCallbackArgs {
-            entt::registry& reg;
-            std::string& currentDir;
-        };
-
         static std::string currentDir = "";
 
         static ConVar showExts{"editor_assetExtDbg", "0", "Shows parsed file extensions in brackets."};
         if (ImGui::Begin(ICON_FA_FOLDER u8" Assets", &active)) {
-            EnumerateCallbackArgs enumCallbackArgs{
-                reg,
-                currentDir
-            };
-
             if (ImGui::Button("..")) {
                 std::filesystem::path p{ currentDir };
                 currentDir = p.parent_path().string();
@@ -75,36 +65,6 @@ namespace worlds {
                     const char* icon = getIcon(ext.cStr());
                     slib::String buttonLabel = icon;
                     buttonLabel += *currFile;
-                    if (ext == ".obj" || ext == ".mdl" || ext == ".wmdl" || ext == ".rblx") {
-                        if (ImGui::Button(buttonLabel.cStr())) {
-                            glm::vec3 pos = interfaces.mainCamera->position;
-                            pos += interfaces.mainCamera->rotation * glm::vec3(0.0f, 0.0f, 1.0f);
-                            auto id = AssetDB::pathToId(fullPath);
-                            entt::entity ent = createModelObject(reg,
-                                    pos, glm::quat(), id,
-                                    AssetDB::pathToId("Materials/dev.json"));
-
-                            WorldObject& wo = reg.get<WorldObject>(ent);
-                            if (AssetDB::getAssetExtension(id) == ".mdl") {
-                                setupSourceMaterials(id, wo);
-                            } else {
-                                for (int i = 0; i < NUM_SUBMESH_MATS; i++) {
-                                    wo.materials[i] = AssetDB::pathToId("Materials/dev.json");
-                                    wo.presentMaterials[i] = true;
-                                }
-                            }
-                        }
-                    } else if (ext == ".wscn" || ext == ".escn") {
-                        if (ImGui::Button(buttonLabel.cStr())) {
-                            interfaces.engine->loadScene(AssetDB::pathToId(fullPath));
-                        }
-                    } else {
-                        if ((int)showExts)
-                            ImGui::Text("%s (%s)", *currFile, ext.cStr());
-                        else {
-                            ImGui::Text("%s%s", icon, *currFile);
-                        }
-                    }
                 }
             }
 

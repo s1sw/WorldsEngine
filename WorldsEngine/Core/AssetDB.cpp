@@ -1,11 +1,12 @@
 #include "AssetDB.hpp"
 #include <filesystem>
 #include <iostream>
-#include "Core/Log.hpp"
+#include "Log.hpp"
 #include "Fatal.hpp"
 #include <mutex>
 #include <string.h>
 #include <robin_hood.h>
+#include "../Util/Fnv.hpp"
 
 namespace worlds {
     class ADBStorage {
@@ -15,41 +16,6 @@ namespace worlds {
         robin_hood::unordered_map<AssetID, std::string> extensions;
     };
 
-    class FnvHash {
-        static const unsigned int FNV_PRIME = 16777619u;
-        static const unsigned int OFFSET_BASIS = 2166136261u;
-
-        template <unsigned int N>
-        static constexpr unsigned int fnvHashConst(const char (&str)[N], unsigned int I = N) {
-            return I == 1 ? (OFFSET_BASIS ^ str[0]) * FNV_PRIME : (fnvHashConst(str, I - 1) ^ str[I - 1]) * FNV_PRIME;
-        }
-
-        static unsigned int fnvHash(const char* str) {
-            const size_t length = strlen(str) + 1;
-            unsigned int hash = OFFSET_BASIS;
-            for (size_t i = 0; i < length; ++i)
-            {
-                hash ^= *str++;
-                hash *= FNV_PRIME;
-            }
-            return hash;
-        }
-
-        struct Wrapper {
-            Wrapper(const char* str) : str (str) { }
-            const char* str;
-        };
-
-        unsigned int hash_value;
-    public:
-        // calulate in run-time
-        FnvHash(Wrapper wrapper) : hash_value(fnvHash(wrapper.str)) { }
-        // calulate in compile-time
-        template <unsigned int N>
-        constexpr FnvHash(const char (&str)[N]) : hash_value(fnvHashConst(str)) { }
-        // output result
-        constexpr operator unsigned int() const { return this->hash_value; }
-    };
 
     const char* ASSET_DB_PATH = "assetDB.wdb";
     const char ASSET_DB_MAGIC[] = { 'W','A','D','B' };
@@ -144,7 +110,7 @@ namespace worlds {
 
         // Figure out the file extension
         auto ext = std::filesystem::path(path).extension().string();
-        logMsg("Added asset %s with extension %s", path.data(), ext);
+        logMsg("Added asset %s with extension %s", path.data(), ext.c_str());
         storage.extensions.insert({ id, ext });
         storage.paths.insert({ id, path });
 
