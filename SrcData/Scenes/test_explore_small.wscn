@@ -1,0 +1,5913 @@
+{
+  "10": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "1048577": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "10485960": {
+    "AO Proxy": {
+      "bounds": [
+        0.23499999940395355,
+        0.23499999940395355,
+        0.23499999940395355
+      ]
+    },
+    "Contact Damage Dealer": {
+      "damage": 25,
+      "maxVelocity": 15.0,
+      "minVelocity": 5.0
+    },
+    "Dynamic Physics Actor": {
+      "mass": 14.999999046325684,
+      "shapes": [
+        {
+          "halfExtents": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "type": 1
+        }
+      ]
+    },
+    "Physics Sound": {
+      "soundPath": "Audio/SFX/Impacts/Metal/clang01.ogg"
+    },
+    "Transform": {
+      "position": [
+        -4.3987717628479,
+        1.4709101915359497,
+        2.457704544067383
+      ],
+      "rotation": [
+        1.101461862162978e-06,
+        -0.0003274081682320684,
+        -1.5630359939677874e-06,
+        0.9999999403953552
+      ],
+      "scale": [
+        0.2499895691871643,
+        0.25,
+        0.2499895691871643
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/crate.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json"
+      ],
+      "mesh": "crate.wmdl",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "1048602": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "1048603": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "1048606": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "1048607": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "1048608": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "1048609": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "1048610": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "1048611": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "1048612": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "1048614": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "1048615": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "1048616": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "1048617": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "1048618": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "1048619": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "1048620": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "1048622": {
+    "Contact Damage Dealer": {
+      "damage": 40,
+      "maxVelocity": 15.0,
+      "minVelocity": 5.0
+    },
+    "Dynamic Physics Actor": {
+      "mass": 1.0,
+      "shapes": [
+        {
+          "halfExtents": [
+            0.022778138518333435,
+            0.28909504413604736,
+            0.004740604665130377
+          ],
+          "position": [
+            0.0,
+            0.35696056485176086,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0,
+            0.9999998807907104
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.0017202511662617326,
+            0.05243334546685219,
+            0.005325850564986467
+          ],
+          "position": [
+            -0.009175232611596584,
+            0.6974918842315674,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            -0.11695205420255661,
+            0.9931374788284302
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.001789125264622271,
+            0.05243334546685219,
+            0.005325850564986467
+          ],
+          "position": [
+            0.009235994890332222,
+            0.6974918842315674,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.11612359434366226,
+            0.9932346940040588
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.01770467311143875,
+            0.121847003698349,
+            0.008674324490129948
+          ],
+          "position": [
+            0.0,
+            -0.059687137603759766,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0,
+            0.9999998807907104
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.06577076017856598,
+            0.006476076785475016,
+            0.021433621644973755
+          ],
+          "position": [
+            0.0,
+            0.06805236637592316,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0,
+            0.9999998807907104
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.026562156155705452,
+            0.005051236134022474,
+            0.021582836285233498
+          ],
+          "position": [
+            0.08849446475505829,
+            0.07648834586143494,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.1758793592453003,
+            0.9844116568565369
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.026562156155705452,
+            0.005051236134022474,
+            0.021582836285233498
+          ],
+          "position": [
+            -0.08943894505500793,
+            0.07648834586143494,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            -0.1758795976638794,
+            0.9844116568565369
+          ],
+          "type": 1
+        }
+      ]
+    },
+    "Grip Point": {
+      "offset": [
+        -0.07999999821186066,
+        0.0,
+        0.02500000037252903
+      ],
+      "rotOffset": [
+        0.0,
+        0.7071070075035095,
+        0.0,
+        0.7071070075035095
+      ]
+    },
+    "Physics Sound": {
+      "soundPath": "Audio/SFX/Impacts/Metal/light_clang.ogg"
+    },
+    "Transform": {
+      "position": [
+        -4.509329319000244,
+        1.112426519393921,
+        -6.012455463409424
+      ],
+      "rotation": [
+        5.209069058764726e-05,
+        -0.0007885550730861723,
+        -0.00011822841770481318,
+        0.9999997615814209
+      ],
+      "scale": [
+        0.9999690651893616,
+        0.9999879002571106,
+        0.9999732971191406
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/redmetal.json",
+        "Materials/silver.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json"
+      ],
+      "mesh": "Models/crappysword.wmdl",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "1048696": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "1048697": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "1048698": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "1048699": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "1048700": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "1048701": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "1048702": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "1048703": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "1048704": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "1048705": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "1048730": {
+    "Physics Actor": {
+      "shapes": [
+        {
+          "halfExtents": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "type": 1
+        }
+      ]
+    },
+    "Transform": {
+      "position": [
+        -4.900000095367432,
+        0.8308976888656616,
+        -6.38555908203125
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        0.5,
+        0.10000000149011612,
+        2.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json"
+      ],
+      "mesh": "cube.wmdl",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 4
+    }
+  },
+  "1048780": {
+    "Physics Actor": {
+      "shapes": [
+        {
+          "halfExtents": [
+            1.0,
+            0.5,
+            1.0
+          ],
+          "position": [
+            0.0,
+            -0.5,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "type": 1
+        }
+      ]
+    },
+    "Transform": {
+      "position": [
+        17.000001907348633,
+        13.0,
+        -4.999999523162842
+      ],
+      "rotation": [
+        0.5,
+        -0.5,
+        0.5,
+        0.5
+      ],
+      "scale": [
+        1.999997854232788,
+        0.999998927116394,
+        10.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/LevelTextures/PavingStones075.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json"
+      ],
+      "mesh": "plane.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        0.25,
+        0.25,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 4
+    }
+  },
+  "1048798": {
+    "Dynamic Physics Actor": {
+      "mass": 5.0,
+      "shapes": [
+        {
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "radius": 0.25,
+          "rotation": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "type": 0
+        }
+      ]
+    },
+    "Physics Sound": {
+      "soundPath": "Audio/SFX/Impacts/Metal/clang01.ogg"
+    },
+    "Transform": {
+      "position": [
+        -4.377024173736572,
+        1.149999976158142,
+        -2.6238865852355957
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        -9.332215427093615e-07,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/silver.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json"
+      ],
+      "mesh": "uvsphere.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "11": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "11534537": {
+    "AO Proxy": {
+      "bounds": [
+        0.23499999940395355,
+        0.23499999940395355,
+        0.23499999940395355
+      ]
+    },
+    "Contact Damage Dealer": {
+      "damage": 25,
+      "maxVelocity": 15.0,
+      "minVelocity": 5.0
+    },
+    "Dynamic Physics Actor": {
+      "mass": 14.999999046325684,
+      "shapes": [
+        {
+          "halfExtents": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "type": 1
+        }
+      ]
+    },
+    "Physics Sound": {
+      "soundPath": "Audio/SFX/Impacts/Metal/clang01.ogg"
+    },
+    "Transform": {
+      "position": [
+        -4.3987717628479,
+        2.054464340209961,
+        2.457704544067383
+      ],
+      "rotation": [
+        1.101461862162978e-06,
+        -0.0003274081682320684,
+        -1.5630359939677874e-06,
+        0.9999999403953552
+      ],
+      "scale": [
+        0.2499895691871643,
+        0.25,
+        0.2499895691871643
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/crate.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json"
+      ],
+      "mesh": "crate.wmdl",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "11534541": {
+    "AO Proxy": {
+      "bounds": [
+        0.23499999940395355,
+        0.23499999940395355,
+        0.23499999940395355
+      ]
+    },
+    "Contact Damage Dealer": {
+      "damage": 25,
+      "maxVelocity": 15.0,
+      "minVelocity": 5.0
+    },
+    "Dynamic Physics Actor": {
+      "mass": 14.999999046325684,
+      "shapes": [
+        {
+          "halfExtents": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "type": 1
+        }
+      ]
+    },
+    "Physics Sound": {
+      "soundPath": "Audio/SFX/Impacts/Metal/clang01.ogg"
+    },
+    "Transform": {
+      "position": [
+        -4.3987717628479,
+        2.608325719833374,
+        2.457704544067383
+      ],
+      "rotation": [
+        1.101461862162978e-06,
+        -0.0003274081682320684,
+        -1.5630359939677874e-06,
+        0.9999999403953552
+      ],
+      "scale": [
+        0.2499895691871643,
+        0.25,
+        0.2499895691871643
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/crate.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json"
+      ],
+      "mesh": "crate.wmdl",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "12": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "13": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "138": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "139": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "14": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "140": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "141": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "142": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "143": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "144": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "145": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "146": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "147": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "148": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "15": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "150": {
+    "Dynamic Physics Actor": {
+      "mass": 3.0,
+      "shapes": [
+        {
+          "halfExtents": [
+            0.022778138518333435,
+            0.28909504413604736,
+            0.004740604665130377
+          ],
+          "position": [
+            0.0,
+            0.35696056485176086,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0,
+            0.9999998807907104
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.0017202511662617326,
+            0.05243334546685219,
+            0.005325850564986467
+          ],
+          "position": [
+            -0.009175232611596584,
+            0.6974918842315674,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            -0.11695205420255661,
+            0.9931374788284302
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.001789125264622271,
+            0.05243334546685219,
+            0.005325850564986467
+          ],
+          "position": [
+            0.009235994890332222,
+            0.6974918842315674,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.11612359434366226,
+            0.9932346940040588
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.01770467311143875,
+            0.121847003698349,
+            0.008674324490129948
+          ],
+          "position": [
+            0.0,
+            -0.059687137603759766,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0,
+            0.9999998807907104
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.06577076017856598,
+            0.006476076785475016,
+            0.021433621644973755
+          ],
+          "position": [
+            0.0,
+            0.06805236637592316,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0,
+            0.9999998807907104
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.026562156155705452,
+            0.005051236134022474,
+            0.021582836285233498
+          ],
+          "position": [
+            0.08849446475505829,
+            0.07648834586143494,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.1758793592453003,
+            0.9844116568565369
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.026562156155705452,
+            0.005051236134022474,
+            0.021582836285233498
+          ],
+          "position": [
+            -0.08943894505500793,
+            0.07648834586143494,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            -0.1758795976638794,
+            0.9844116568565369
+          ],
+          "type": 1
+        }
+      ]
+    },
+    "Grip Point": {
+      "offset": [
+        -0.07999999821186066,
+        0.0,
+        0.02500000037252903
+      ],
+      "rotOffset": [
+        0.0,
+        0.7071070075035095,
+        0.0,
+        0.7071070075035095
+      ]
+    },
+    "Physics Sound": {
+      "soundPath": "Audio/SFX/Impacts/Metal/light_clang.ogg"
+    },
+    "Transform": {
+      "position": [
+        -4.213146686553955,
+        1.1723113059997559,
+        -2.1909401416778564
+      ],
+      "rotation": [
+        2.3549688194179907e-05,
+        3.6635203287005424e-05,
+        0.0002137826377293095,
+        1.0
+      ],
+      "scale": [
+        1.2500038146972656,
+        1.5000001192092896,
+        1.25
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/redmetal.json",
+        "Materials/silver.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json"
+      ],
+      "mesh": "Models/crappysword.wmdl",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "16": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "160": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "161": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "162": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "163": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "164": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "165": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "166": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "167": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "168": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "169": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "17": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "170": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "171": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "172": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "173": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "174": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "175": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "18": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "180": {
+    "Contact Damage Dealer": {
+      "damage": 50,
+      "maxVelocity": 15.0,
+      "minVelocity": 5.0
+    },
+    "Dynamic Physics Actor": {
+      "mass": 1.0,
+      "shapes": [
+        {
+          "halfExtents": [
+            0.017000000923871994,
+            0.07000000029802322,
+            0.014999999664723873
+          ],
+          "position": [
+            0.0,
+            0.0031300000846385956,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.010999999940395355,
+            0.42800000309944153,
+            0.009999999776482582
+          ],
+          "position": [
+            0.0,
+            0.49827998876571655,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "type": 1
+        }
+      ]
+    },
+    "Grip Point": {
+      "offset": [
+        -0.019999999552965164,
+        0.0,
+        -0.07999999821186066
+      ],
+      "rotOffset": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    },
+    "Physics Sound": {
+      "soundPath": "Audio/SFX/Impacts/Misc/sword_hit.ogg"
+    },
+    "Transform": {
+      "position": [
+        -4.183691501617432,
+        0.9668798446655273,
+        -0.42604753375053406
+      ],
+      "rotation": [
+        0.00018879235722124577,
+        1.0,
+        0.00011849847942357883,
+        0.0003775094810407609
+      ],
+      "scale": [
+        1.0000125169754028,
+        0.9999980330467224,
+        1.0000090599060059
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/silver.json",
+        "Materials/saber_blade.json",
+        "Materials/silver.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json"
+      ],
+      "mesh": "Models/saber.wmdl",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "19": {
+    "Physics Actor": {
+      "shapes": [
+        {
+          "halfExtents": [
+            1.0,
+            0.5,
+            1.0
+          ],
+          "position": [
+            0.0,
+            -0.5,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "type": 1
+        }
+      ]
+    },
+    "Transform": {
+      "position": [
+        6.0,
+        0.0,
+        -5.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        11.0,
+        1.0,
+        10.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/LevelTextures/PavingStones075.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json"
+      ],
+      "mesh": "plane.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        0.25,
+        0.25,
+        0.0,
+        -2.0
+      ],
+      "uvOverride": 4
+    }
+  },
+  "2": {
+    "Name Component": {
+      "name": "Directional Light"
+    },
+    "Transform": {
+      "position": [
+        0.0,
+        14.300000190734863,
+        16.900001525878906
+      ],
+      "rotation": [
+        0.8270086050033569,
+        -0.3030664920806885,
+        0.40742021799087524,
+        0.2412804663181305
+      ],
+      "scale": [
+        1.0,
+        1.000000238418579,
+        1.0
+      ]
+    },
+    "World Light": {
+      "color": [
+        2.0,
+        2.0,
+        2.0
+      ],
+      "intensity": 1.0,
+      "spotCutoff": 1.350000023841858,
+      "tubeLength": 0.25,
+      "tubeRadius": 0.10000000149011612,
+      "type": 2
+    }
+  },
+  "20": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "2097201": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "2097268": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "2097269": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "2097270": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "2097271": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "2097301": {
+    "AO Proxy": {
+      "bounds": [
+        0.03999999910593033,
+        0.03999999910593033,
+        0.4000000059604645
+      ]
+    },
+    "Dynamic Physics Actor": {
+      "mass": 1.0,
+      "shapes": [
+        {
+          "halfExtents": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "type": 1
+        }
+      ]
+    },
+    "Transform": {
+      "position": [
+        -4.25192928314209,
+        0.9500000476837158,
+        -1.2591139078140259
+      ],
+      "rotation": [
+        1.980312980265353e-08,
+        -0.00012889766367152333,
+        -2.694873728614766e-06,
+        1.0
+      ],
+      "scale": [
+        0.05000000074505806,
+        0.05000000074505806,
+        0.5
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/crate.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json"
+      ],
+      "mesh": "crate.wmdl",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "2097311": {
+    "Audio Source": {
+      "channel": 1,
+      "clipPath": "Audio/SFX/gunsoundthing.ogg",
+      "loop": false,
+      "playOnSceneOpen": false,
+      "spatialise": true,
+      "volume": 1.0
+    },
+    "Dynamic Physics Actor": {
+      "mass": 2.0,
+      "shapes": [
+        {
+          "halfExtents": [
+            0.03172706067562103,
+            0.03272834047675133,
+            0.031092030927538872
+          ],
+          "position": [
+            0.00035461969673633575,
+            0.07305007427930832,
+            0.0630389153957367
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0,
+            0.9999998807907104
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.03172706067562103,
+            0.036459289491176605,
+            0.10000000149011612
+          ],
+          "position": [
+            0.00035461969673633575,
+            0.06917629390954971,
+            0.12652990221977234
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0,
+            0.9999998807907104
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.03172706067562103,
+            0.036459289491176605,
+            0.03221883997321129
+          ],
+          "position": [
+            0.00035461969673633575,
+            0.06917629390954971,
+            -0.000400736927986145
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0,
+            0.9999998807907104
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.03172706067562103,
+            0.027831269428133965,
+            0.020350318402051926
+          ],
+          "position": [
+            0.00035461969673633575,
+            0.06123422831296921,
+            -0.05318547040224075
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0,
+            0.9999998807907104
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.019394369795918465,
+            0.04343004524707794,
+            0.01809765212237835
+          ],
+          "position": [
+            0.00035461969673633575,
+            0.0024213800206780434,
+            -0.011851499788463116
+          ],
+          "rotation": [
+            0.13672061264514923,
+            0.0,
+            0.0,
+            0.9906095266342163
+          ],
+          "type": 1
+        }
+      ]
+    },
+    "Grip Point": {
+      "offset": [
+        -0.02500000037252903,
+        0.0,
+        -0.05000000074505806
+      ],
+      "rotOffset": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    },
+    "Transform": {
+      "position": [
+        -4.5593976974487305,
+        1.0367379188537598,
+        -5.0874810218811035
+      ],
+      "rotation": [
+        0.9998444318771362,
+        4.5045046135783195e-05,
+        -0.017638523131608963,
+        -2.09026038646698e-05
+      ],
+      "scale": [
+        0.999999463558197,
+        1.0006067752838135,
+        1.0005890130996704
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/silver.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json"
+      ],
+      "mesh": "Models/test_gun.wmdl",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "2097355": {
+    "Physics Actor": {
+      "shapes": [
+        {
+          "halfExtents": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "type": 1
+        }
+      ]
+    },
+    "Transform": {
+      "position": [
+        13.800000190734863,
+        11.50007438659668,
+        -5.000000476837158
+      ],
+      "rotation": [
+        -0.7071066498756409,
+        0.0,
+        0.0,
+        0.70710688829422
+      ],
+      "scale": [
+        1.0,
+        1.9999357461929321,
+        11.49941349029541
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/LevelTextures/PavingStones075.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json"
+      ],
+      "mesh": "cube.wmdl",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        0.25,
+        0.25,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 4
+    }
+  },
+  "229": {
+    "Audio Source": {
+      "channel": 1,
+      "clipPath": "Audio/SFX/Ambience/wasteland.ogg",
+      "loop": true,
+      "playOnSceneOpen": true,
+      "spatialise": false,
+      "volume": 1.0
+    },
+    "Name Component": {
+      "name": "Empty"
+    },
+    "Transform": {
+      "position": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    }
+  },
+  "230": {
+    "Dynamic Physics Actor": {
+      "mass": 500.0,
+      "shapes": [
+        {
+          "halfExtents": [
+            0.07286243140697479,
+            0.42629197239875793,
+            0.07211258262395859
+          ],
+          "position": [
+            -0.16074076294898987,
+            0.479385107755661,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            -0.10342025756835938,
+            0.9946377277374268
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.07286243140697479,
+            0.42629197239875793,
+            0.07211258262395859
+          ],
+          "position": [
+            0.1590379923582077,
+            0.479385107755661,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.048901863396167755,
+            0.9988036155700684
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.175113707780838,
+            0.17238639295101166,
+            0.17307408154010773
+          ],
+          "position": [
+            0.0,
+            1.877016305923462,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.09304767102003098,
+            0.06587503105401993,
+            0.07876032590866089
+          ],
+          "position": [
+            0.0,
+            1.6356208324432373,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.2148786038160324,
+            0.35335591435432434,
+            0.13359618186950684
+          ],
+          "position": [
+            0.0,
+            1.2255967855453491,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.054230596870183945,
+            0.22216521203517914,
+            0.05445219948887825
+          ],
+          "position": [
+            0.3000643849372864,
+            1.3044368028640747,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.34129390120506287,
+            0.9399566650390625
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.054230596870183945,
+            0.22216521203517914,
+            0.05445219948887825
+          ],
+          "position": [
+            -0.28268229961395264,
+            1.3044368028640747,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.9387718439102173,
+            0.34453949332237244
+          ],
+          "type": 1
+        }
+      ]
+    },
+    "Physics Sound": {
+      "soundPath": "Audio/SFX/Impacts/Misc/squeaky_toy.ogg"
+    },
+    "RPG Stats": {
+      "currentHP": 500,
+      "level": 1,
+      "maxHP": 500,
+      "strength": 1,
+      "totalExperience": 0
+    },
+    "Transform": {
+      "position": [
+        2.7894973754882813,
+        -0.046161770820617676,
+        4.472458362579346
+      ],
+      "rotation": [
+        0.0027646757662296295,
+        0.9999958276748657,
+        -0.0005490759504027665,
+        -0.0006880303262732923
+      ],
+      "scale": [
+        1.000005841255188,
+        0.9999967217445374,
+        1.0000059604644775
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json"
+      ],
+      "mesh": "Models/test_guy.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        4.0,
+        4.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "3": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "3145749": {
+    "Physics Actor": {
+      "shapes": [
+        {
+          "halfExtents": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "type": 1
+        }
+      ]
+    },
+    "Transform": {
+      "position": [
+        -5.0,
+        0.800000011920929,
+        -1.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        0.10000000149011612,
+        2.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json"
+      ],
+      "mesh": "cube.wmdl",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 4
+    }
+  },
+  "3145773": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "3145801": {
+    "AO Proxy": {
+      "bounds": [
+        0.23499999940395355,
+        0.23499999940395355,
+        0.23499999940395355
+      ]
+    },
+    "Contact Damage Dealer": {
+      "damage": 25,
+      "maxVelocity": 15.0,
+      "minVelocity": 5.0
+    },
+    "Dynamic Physics Actor": {
+      "mass": 14.999999046325684,
+      "shapes": [
+        {
+          "halfExtents": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "type": 1
+        }
+      ]
+    },
+    "Physics Sound": {
+      "soundPath": "Audio/SFX/Impacts/Metal/clang01.ogg"
+    },
+    "Transform": {
+      "position": [
+        -4.3987717628479,
+        0.2573244869709015,
+        2.457704544067383
+      ],
+      "rotation": [
+        1.101461862162978e-06,
+        -0.0003274081682320684,
+        -1.5630359939677874e-06,
+        0.9999999403953552
+      ],
+      "scale": [
+        0.2499895691871643,
+        0.25,
+        0.2499895691871643
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/crate.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json"
+      ],
+      "mesh": "crate.wmdl",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "4": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "4194351": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "4194354": {
+    "Name Component": {
+      "name": "Spawn point"
+    },
+    "Player Start Point": {
+      "alwaysUse": false
+    },
+    "Transform": {
+      "position": [
+        0.0,
+        1.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    }
+  },
+  "5": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "5243082": {
+    "Physics Actor": {
+      "shapes": [
+        {
+          "halfExtents": [
+            1.0,
+            0.5,
+            1.0
+          ],
+          "position": [
+            0.0,
+            -0.5,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "type": 1
+        }
+      ]
+    },
+    "Transform": {
+      "position": [
+        27.0,
+        23.0,
+        -5.0
+      ],
+      "rotation": [
+        0.0,
+        -0.7071067690849304,
+        0.0,
+        0.7071067690849304
+      ],
+      "scale": [
+        2.0,
+        1.0,
+        10.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/LevelTextures/PavingStones075.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json"
+      ],
+      "mesh": "plane.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        0.25,
+        0.25,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 4
+    }
+  },
+  "6": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "6291507": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "6291508": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "6291514": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "7": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "7340091": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "7340092": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "7340093": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "7340096": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "7340097": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "7340098": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "7340099": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "7340100": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "7340101": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "7340102": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "7340107": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "7340109": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "7340231": {
+    "AO Proxy": {
+      "bounds": [
+        0.23499999940395355,
+        0.23499999940395355,
+        0.23499999940395355
+      ]
+    },
+    "Contact Damage Dealer": {
+      "damage": 25,
+      "maxVelocity": 15.0,
+      "minVelocity": 5.0
+    },
+    "Dynamic Physics Actor": {
+      "mass": 14.999999046325684,
+      "shapes": [
+        {
+          "halfExtents": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "type": 1
+        }
+      ]
+    },
+    "Physics Sound": {
+      "soundPath": "Audio/SFX/Impacts/Metal/clang01.ogg"
+    },
+    "Transform": {
+      "position": [
+        -4.3987717628479,
+        0.8976839780807495,
+        2.457704544067383
+      ],
+      "rotation": [
+        1.101461862162978e-06,
+        -0.0003274081682320684,
+        -1.5630359939677874e-06,
+        0.9999999403953552
+      ],
+      "scale": [
+        0.2499895691871643,
+        0.25,
+        0.2499895691871643
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/crate.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json"
+      ],
+      "mesh": "crate.wmdl",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "7340241": {
+    "Physics Actor": {
+      "shapes": [
+        {
+          "halfExtents": [
+            1.0,
+            0.5,
+            1.0
+          ],
+          "position": [
+            0.0,
+            -0.5,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "type": 1
+        }
+      ]
+    },
+    "Transform": {
+      "position": [
+        -5.0,
+        1.0,
+        -5.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        -0.7071067690849304,
+        0.7071067690849304
+      ],
+      "scale": [
+        1.999997854232788,
+        0.999998927116394,
+        10.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/LevelTextures/PavingStones075.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json"
+      ],
+      "mesh": "plane.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        0.25,
+        0.25,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 4
+    }
+  },
+  "7340242": {
+    "Physics Actor": {
+      "shapes": [
+        {
+          "halfExtents": [
+            1.0,
+            0.5,
+            1.0
+          ],
+          "position": [
+            0.0,
+            -0.5,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "type": 1
+        }
+      ]
+    },
+    "Transform": {
+      "position": [
+        6.0,
+        1.0,
+        -15.0
+      ],
+      "rotation": [
+        0.5,
+        -0.5,
+        -0.5,
+        0.5
+      ],
+      "scale": [
+        1.999999761581421,
+        0.9999998807907104,
+        10.999999046325684
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/LevelTextures/PavingStones075.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json"
+      ],
+      "mesh": "plane.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        0.25,
+        0.25,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 4
+    }
+  },
+  "7340244": {
+    "Physics Actor": {
+      "shapes": [
+        {
+          "halfExtents": [
+            1.0,
+            0.5,
+            1.0
+          ],
+          "position": [
+            0.0,
+            -0.5,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "type": 1
+        }
+      ]
+    },
+    "Transform": {
+      "position": [
+        6.0,
+        1.0,
+        4.899999618530273
+      ],
+      "rotation": [
+        0.5000001192092896,
+        -0.49999985098838806,
+        0.5000000596046448,
+        -0.5
+      ],
+      "scale": [
+        1.999999761581421,
+        0.9999998807907104,
+        10.999999046325684
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/LevelTextures/PavingStones075.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json"
+      ],
+      "mesh": "plane.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        0.25,
+        0.25,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 4
+    }
+  },
+  "8": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "83": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "8388819": {
+    "Physics Actor": {
+      "shapes": [
+        {
+          "halfExtents": [
+            1.0,
+            0.5,
+            1.0
+          ],
+          "position": [
+            0.0,
+            -0.5,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "type": 1
+        }
+      ]
+    },
+    "Transform": {
+      "position": [
+        17.000001907348633,
+        1.0,
+        -4.999999523162842
+      ],
+      "rotation": [
+        0.7071067690849304,
+        -0.7071067690849304,
+        -3.2255516657642147e-07,
+        1.2771772617270472e-07
+      ],
+      "scale": [
+        1.999997854232788,
+        0.999998927116394,
+        10.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/LevelTextures/PavingStones075.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json"
+      ],
+      "mesh": "plane.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        0.25,
+        0.25,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 4
+    }
+  },
+  "89": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "9": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "96": {
+    "Transform": {
+      "position": [
+        0.0,
+        -10000.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/glowred.json"
+      ],
+      "mesh": "arrow.obj",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  }
+}

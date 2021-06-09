@@ -301,7 +301,8 @@ namespace worlds {
 
         void fromJson(entt::entity ent, entt::registry& reg, const json& j) override {
             auto& wo = reg.emplace<WorldObject>(ent, 0, 0);
-            wo.mesh = AssetDB::pathToId(j["mesh"]);
+            std::string meshPath = j["mesh"];
+            wo.mesh = AssetDB::pathToId(meshPath);
             wo.texScaleOffset = j["texScaleOffset"];
             wo.uvOverride = j["uvOverride"];
             wo.staticFlags = j["staticFlags"];
@@ -312,8 +313,10 @@ namespace worlds {
                 wo.presentMaterials[matIdx] = true;
                 if (v.is_number())
                     wo.materials[matIdx] = v;
-                else
-                    wo.materials[matIdx] = AssetDB::pathToId(v);
+                else {
+                    std::string path = v;
+                    wo.materials[matIdx] = AssetDB::pathToId(path);
+                }
                 matIdx++;
             }
         }
@@ -1093,7 +1096,8 @@ namespace worlds {
         }
 
         void fromJson(entt::entity ent, entt::registry& reg, const json& j) override {
-            AssetID id = AssetDB::pathToId(j["clipPath"]);
+            std::string clipPath = j["clipPath"];
+            AssetID id = AssetDB::pathToId(clipPath);
             auto& as = reg.emplace<AudioSource>(ent, id);
 
             as.channel = j["channel"];
@@ -1161,7 +1165,8 @@ namespace worlds {
         }
 
         void fromJson(entt::entity ent, entt::registry& reg, const json& j) override {
-            AssetID cubemapId = AssetDB::pathToId(j["path"]);
+            std::string path = j["path"];
+            AssetID cubemapId = AssetDB::pathToId(path);
             auto& wc = reg.emplace<WorldCubemap>(ent);
 
             wc.cubemapId = cubemapId;
@@ -1218,7 +1223,8 @@ namespace worlds {
         }
 
         void fromJson(entt::entity ent, entt::registry& reg, const json& j) override {
-            AssetID scriptID = AssetDB::pathToId(j["path"]);
+            std::string path = j["path"];
+            AssetID scriptID = AssetDB::pathToId(path);
             reg.emplace<ScriptComponent>(ent, scriptID);
         }
     };

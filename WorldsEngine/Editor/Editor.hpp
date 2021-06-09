@@ -123,6 +123,7 @@ namespace worlds {
         EditorUndo undo;
         bool active = true;
         void overrideHandle(Transform* t);
+        AssetID currentSelectedAsset;
     private:
         void sceneWindow();
         void handleTools(Transform& t, ImVec2 wPos, ImVec2 wSize);

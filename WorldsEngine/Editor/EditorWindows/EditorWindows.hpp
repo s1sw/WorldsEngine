@@ -77,4 +77,13 @@ namespace worlds {
         const char* getName() override { return "Scene Settings"; }
         ~SceneSettingsWindow() {}
     };
+
+    class AssetEditor : public EditorWindow {
+    public:
+        AssetEditor(EngineInterfaces interfaces, Editor* editor) : EditorWindow{interfaces, editor} { active = false; }
+        void draw(entt::registry&) override;
+        EditorMenu menuSection() override { return EditorMenu::Edit; }
+        const char* getName() override { return "Asset Editor"; }
+        ~AssetEditor();
+    };
 }

@@ -182,6 +182,7 @@ namespace worlds {
     void WorldsEngine::setupPhysfs(char* argv0) {
         const char* dataFolder = "GameData";
         const char* engineDataFolder = "EngineData";
+        const char* dataSrc = "SrcData";
         const char* basePath = SDL_GetBasePath();
 
         std::string dataStr(basePath);
@@ -190,6 +191,9 @@ namespace worlds {
         std::string engineDataStr(basePath);
         engineDataStr += engineDataFolder;
 
+        std::string srcDataStr(basePath);
+        srcDataStr += dataSrc;
+
         SDL_free((void*)basePath);
 
         PHYSFS_init(argv0);
@@ -197,6 +201,8 @@ namespace worlds {
         PHYSFS_mount(dataStr.c_str(), "/", 0);
         logMsg("Mounting %s", engineDataStr.c_str());
         PHYSFS_mount(engineDataStr.c_str(), "/", 0);
+        logMsg("Mounting %s", srcDataStr.c_str());
+        PHYSFS_mount(srcDataStr.c_str(), "/SrcData", 0);
         PHYSFS_setWriteDir(dataStr.c_str());
 
         PHYSFS_permitSymbolicLinks(1);
@@ -284,7 +290,7 @@ namespace worlds {
             splashWindow->changeOverlay("loading assetdb");
 
         AssetDB::load();
-        registry.set<SceneSettings>(AssetDB::pathToId("envmap_miramar/miramar.json"));
+        registry.set<SceneSettings>(AssetDB::pathToId("Cubemaps/Miramar/miramar.json"));
 
         if (!dedicatedServer) {
             if (useEventThread) {

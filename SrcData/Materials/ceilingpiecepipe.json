@@ -1,0 +1,8 @@
+{
+	"albedoPath" : "Textures/ceilingbit/Pipe_BaseColor.png",
+	"normalMapPath" : "Textures/ceilingbit/Pipe_Normal_forcelin.png",
+	"pbrMapPath" : "Textures/ceilingbit/Pipe_PBRPack.png",
+	"metallic" : 1.0,
+	"roughness" : 0.2,
+	"albedoColor" : [1.0, 1.0, 1.0]
+}
