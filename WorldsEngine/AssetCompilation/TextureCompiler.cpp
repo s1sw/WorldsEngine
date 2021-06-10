@@ -35,44 +35,36 @@ namespace worlds {
         nlohmann::json j = nlohmann::json::parse(jsonContents.value);
 
         std::string outputPath = getOutputPath(AssetDB::idToPath(src));
-        std::string exeRelOutPath = "GameData/" + outputPath;
-        logMsg("Compiled %s to %s", AssetDB::idToPath(src).c_str(), exeRelOutPath.c_str());
-
-        mipmapped_texture* inputTexture = new mipmapped_texture;
+        logMsg("Compiled %s to %s", AssetDB::idToPath(src).c_str(), outputPath.c_str());
 
         TextureData inTexData = loadTexData(AssetDB::pathToId(j["srcPath"].get<std::string>()));
 
-        inputTexture->init(inTexData.width, inTexData.height, 1, 1,
-            pixel_format::PIXEL_FMT_A8R8G8B8,
-            inputPath.c_str(), cDefaultOrientationFlags
-        );
+        crn_comp_params compParams;
+        compParams.m_width = inTexData.width;
+        compParams.m_height = inTexData.height;
+        compParams.set_flag(cCRNCompFlagPerceptual, true);
+        compParams.m_file_type = cCRNFileTypeCRN;
+        compParams.m_format = cCRNFmtDXT5;
+        compParams.m_pImages[0][0] = (crn_uint32*)inTexData.data;
+        compParams.m_quality_level = 127;
+        compParams.m_num_helper_threads = 8;
 
-        char* c = new char[inTexData.width * inTexData.height * 4];
+        crn_mipmap_params mipParams;
+        mipParams.m_gamma_filtering = true;
+        mipParams.m_mode = cCRNMipModeGenerateMips;
 
-        // ARGB to RGB
-        for (uint32_t pixelIdx = 0; pixelIdx < inTexData.totalDataSize / 4; pixelIdx++) {
-            uint32_t offset = pixelIdx * 4;
-            c[offset + 0] = inTexData.data[offset + 3];
-            c[offset + 1] = inTexData.data[offset + 0];
-            c[offset + 2] = inTexData.data[offset + 1];
-            c[offset + 3] = inTexData.data[offset + 2];
-        }
+        crn_uint32 outputSize;
+        float actualBitrate;
+        crn_uint32 actualQualityLevel;
 
-        image_u8* img = new image_u8((color_quad_u8*)c, inTexData.width, inTexData.height);
-        inputTexture->assign(img, pixel_format::PIXEL_FMT_A8R8G8B8);
+        void* outData = crn_compress(compParams, mipParams, outputSize, &actualQualityLevel, &actualBitrate);
 
-        texture_conversion::convert_params params;
-        params.m_pInput_texture = inputTexture;
-        params.m_dst_file_type = texture_file_types::cFormatCRN;
-        params.m_texture_type = getTextureType(j.value("type", "regular"));
-        params.m_dst_filename = exeRelOutPath.c_str();
-        params.m_dst_format = pixel_format::PIXEL_FMT_A8R8G8B8;
+        PHYSFS_File* outFile = PHYSFS_openWrite(outputPath.c_str());
+        PHYSFS_writeBytes(outFile, outData, outputSize);
+        PHYSFS_close(outFile);
 
-        texture_conversion::convert_stats stats;
-        if (!texture_conversion::process(params, stats))
-            logErr("Failed to compile texture");
+        crn_free_block(outData);
 
-        delete[] c;
         delete inTexData.data;
 
         return AssetDB::pathToId(outputPath);

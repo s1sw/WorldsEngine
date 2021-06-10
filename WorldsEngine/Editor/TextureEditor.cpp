@@ -60,9 +60,10 @@ namespace worlds {
         };
 
         std::string s = j.dump(4);
-        PHYSFS_File* file = AssetDB::openAssetFileWrite(editingID);
-        PHYSFS_writeBytes(file, s.data(), s.size());
-        PHYSFS_close(file);
+        std::string path = AssetDB::idToPath(editingID);
+        FILE* file = fopen(path.c_str(), "wb");
+        fwrite(s.data(), 1, s.size(), file);
+        fclose(file);
     }
 
     const char* TextureEditor::getHandledExtension() {

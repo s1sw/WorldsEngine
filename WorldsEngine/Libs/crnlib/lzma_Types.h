@@ -8,7 +8,7 @@
 
 #if defined( _WIN32 )
 #include <windows.h>
-#define COMPRESS_MF_MT
+//#define COMPRESS_MF_MT
 #endif
 
 namespace crnlib {

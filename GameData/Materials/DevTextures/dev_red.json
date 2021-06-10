@@ -1,5 +1,5 @@
 {
-    "albedoPath" : "Textures/grass.wtex",
+    "albedoPath" : "Textures/DevTextures/red.wtex",
     "metallic" : 0.000000,
     "roughness" : 1.000000,
     "albedoColor" : [1.000000, 1.000000, 1.000000]

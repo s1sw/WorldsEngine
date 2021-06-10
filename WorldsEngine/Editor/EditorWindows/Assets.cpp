@@ -70,7 +70,11 @@ namespace worlds {
 
                     if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left) &&
                         ImGui::IsItemHovered()) {
-                        editor->currentSelectedAsset = AssetDB::pathToId(fullPath);
+                        if (ext == ".wscn") {
+                            interfaces.engine->loadScene(AssetDB::pathToId(fullPath));
+                        } else {
+                            editor->currentSelectedAsset = AssetDB::pathToId(fullPath);
+                        }
                     }
                 }
             }
