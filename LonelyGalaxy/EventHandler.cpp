@@ -583,9 +583,9 @@ namespace lg {
             auto rHandModel = worlds::AssetDB::pathToId("Models/VRHands/hand_placeholder_r.wmdl");
 
 
-            headPlaceholder = registry.create();
-            registry.emplace<Transform>(headPlaceholder);
-            registry.emplace<worlds::WorldObject>(headPlaceholder, devMatId, worlds::AssetDB::pathToId("Models/head placeholder.obj"));
+            //headPlaceholder = registry.create();
+            //registry.emplace<Transform>(headPlaceholder);
+            //registry.emplace<worlds::WorldObject>(headPlaceholder, devMatId, worlds::AssetDB::pathToId("Models/head placeholder.obj"));
 
             lHandEnt = registry.create();
             registry.get<PlayerRig>(rig.locosphere).lHand = lHandEnt;

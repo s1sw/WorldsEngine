@@ -264,7 +264,7 @@ namespace worlds {
 
     void AudioSystem::initialise(entt::registry& reg) {
         instance = this;
-        missingClip = loadAudioClip(AssetDB::pathToId("Audio/SFX/dlgsound.ogg"));
+        missingClip = loadAudioClip(AssetDB::pathToId("Audio/SFX/missing.ogg"));
 
         volume = 1.0f;
         logMsg(WELogCategoryAudio, "Initialising audio system");
@@ -410,7 +410,11 @@ namespace worlds {
                 AudioSourceInternal& asi = internalAs.at(ent);
                 Voice& v = voices[asi.voiceIdx];
                 v.volume = audioSource.volume;
-                v.clip = &loadedClips.at(audioSource.clipId);
+                auto it = loadedClips.find(audioSource.clipId);
+                if (it != loadedClips.end())
+                    v.clip = &loadedClips.at(audioSource.clipId);
+                else
+                    v.clip = &missingClip;
 
                 glm::vec3 dirVec = listenerPos - transform.position;
                 v.spatialInfo.direction = glm::normalize(dirVec) * listenerRot;
@@ -593,7 +597,11 @@ namespace worlds {
         v.volume = volume;
         v.loop = false;
         v.channel = channel;
-        v.clip = &loadedClips.at(id);
+        auto it = loadedClips.find(id);
+        if (it != loadedClips.end())
+            v.clip = &loadedClips.at(id);
+        else
+            v.clip = &missingClip;
 
         PlayingOneshot po {
             .location = location,

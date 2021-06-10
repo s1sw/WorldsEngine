@@ -905,7 +905,7 @@ void VKRenderer::uploadSceneAssets(entt::registry& reg) {
             if (!wo.presentMaterials[i]) continue;
 
             if (wo.materialIdx[i] == ~0u) {
-                wo.materialIdx[i] = matSlots->get(wo.materials[i]);
+                wo.materialIdx[i] = matSlots->loadOrGet(wo.materials[i]);
             }
         }
     });

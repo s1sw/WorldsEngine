@@ -20,6 +20,14 @@ namespace worlds {
                 std::string path = AssetDB::idToPath(editor->currentSelectedAsset);
                 ImGui::Text("Path: %s", path.c_str());
 
+                ImGui::SameLine();
+
+                if (ImGui::Button("Close")) {
+                    editor->currentSelectedAsset = INVALID_ASSET;
+                }
+
+                assetEditor->drawEditor();
+
                 if (ImGui::Button("Save")) {
                     assetEditor->save();
                 }

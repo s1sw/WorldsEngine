@@ -1,5 +1,5 @@
 {
-	"albedoPath" : "Textures/Dev/512SimpleBlue.crn",
+	"albedoPath" : "Textures/DevTextures/blue.wtex",
 	"metallic" : 0.0,
 	"roughness" : 1.0,
 	"albedoColor" : [1.0, 1.0, 1.0]
