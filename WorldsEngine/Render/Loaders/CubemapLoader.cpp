@@ -173,7 +173,7 @@ namespace worlds {
             offset += cd.faceData[face].totalDataSize;
         }
 
-        if (true) {
+        if (needsCopy) {
             tex.setLayout(cb, vk::ImageLayout::eTransferSrcOptimal,
                 vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eTransfer,
                 vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eTransferRead);
@@ -211,7 +211,7 @@ namespace worlds {
             // AMD driver workaround
             // DXT1 compressed textures blit incorrectly and multiplying
             // the source width and height by 4 fixes it.
-            if (needsCopy) {
+            if (ctx.vendor == VKVendor::AMD && needsCopy) {
                 blit.srcOffsets[1].y *= 4;
                 blit.srcOffsets[1].x *= 4;
             }
