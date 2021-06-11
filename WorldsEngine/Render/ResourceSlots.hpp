@@ -35,7 +35,9 @@ namespace worlds {
         }
     public:
         ResourceSlots() : slots(), present() {
-
+            for (uint32_t i = 0; i < slotCount; i++) {
+                present[i] = false;
+            }
         }
 
         virtual ~ResourceSlots() {}
@@ -85,6 +87,8 @@ namespace worlds {
             else
                 slots[slot] = uploadTextureVk(*vkCtx, texData);
             std::free(texData.data);
+
+            logMsg("slot %i set to imageView %zu", slot, slots[slot].imageView());
 
             return slot;
         }

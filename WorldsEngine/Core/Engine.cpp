@@ -588,8 +588,8 @@ namespace worlds {
         AssetID grassMatId = AssetDB::pathToId("Materials/grass.json");
         AssetID devMatId = AssetDB::pathToId("Materials/dev.json");
 
-        AssetID modelId = AssetDB::pathToId("model.obj");
-        AssetID monkeyId = AssetDB::pathToId("monk.obj");
+        AssetID modelId = AssetDB::pathToId("Models/cube.obj");
+        AssetID monkeyId = AssetDB::pathToId("Models/cube.obj");
         renderer->preloadMesh(modelId);
         renderer->preloadMesh(monkeyId);
         createModelObject(registry, glm::vec3(0.0f, -2.0f, 0.0f), glm::quat(), modelId, grassMatId, glm::vec3(5.0f, 1.0f, 5.0f));

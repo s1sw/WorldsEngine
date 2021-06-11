@@ -1,9 +1,10 @@
 #pragma once
-#include "Core/AssetDB.hpp"
+#include "AssetCompilers.hpp"
 
 namespace worlds {
-    class TextureCompiler {
+    class TextureCompiler : public IAssetCompiler {
     public:
+        TextureCompiler();
         AssetID compile(AssetID src);
         const char* getSourceExtension();
         const char* getCompiledExtension();
