@@ -343,8 +343,8 @@ healthchecksdb
 /Data/srcmat
 /Data/memory_shutdown.json
 /Data/memory.json
-/Data/Temp
-/Data/LevelCubemaps
+/GameData/Temp
+/GameData/LevelCubemaps
 /log.txt
 
 build
@@ -356,4 +356,4 @@ build_*
 /subprojects/packagecache
 
 .clangd/
-/Data/Shaders
+/EngineData/Shaders
