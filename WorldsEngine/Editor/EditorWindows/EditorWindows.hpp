@@ -84,6 +84,8 @@ namespace worlds {
         void draw(entt::registry&) override;
         EditorMenu menuSection() override { return EditorMenu::Edit; }
         const char* getName() override { return "Asset Editor"; }
-        ~AssetEditor();
+        ~AssetEditor() {}
+    private:
+        AssetID lastId = INVALID_ASSET;
     };
 }

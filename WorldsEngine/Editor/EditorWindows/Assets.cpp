@@ -65,6 +65,13 @@ namespace worlds {
                     const char* icon = getIcon(ext.cStr());
                     slib::String buttonLabel = icon;
                     buttonLabel += *currFile;
+
+                    ImGui::Text("%s", buttonLabel.cStr());
+
+                    if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left) &&
+                        ImGui::IsItemHovered()) {
+                        editor->currentSelectedAsset = AssetDB::pathToId(fullPath);
+                    }
                 }
             }
 

@@ -28,6 +28,8 @@
 #undef near
 #undef far
 #include "../Audio/Audio.hpp"
+#include "../AssetCompilation/AssetCompilers.hpp"
+#include "AssetEditors.hpp"
 
 namespace worlds {
     std::unordered_map<ENTT_ID_TYPE, ComponentEditor*> ComponentMetadataManager::metadata;
@@ -63,6 +65,7 @@ namespace worlds {
 
     Editor::Editor(entt::registry& reg, EngineInterfaces interfaces)
         : active(true)
+        , currentSelectedAsset(~0u)
         , currentTool(Tool::Translate)
         , reg(reg)
         , currentSelectedEntity(entt::null)
@@ -105,8 +108,11 @@ namespace worlds {
         ADD_EDITOR_WINDOW(AboutWindow);
         ADD_EDITOR_WINDOW(BakingWindow);
         ADD_EDITOR_WINDOW(SceneSettingsWindow);
+        ADD_EDITOR_WINDOW(AssetEditor);
 
 #undef ADD_EDITOR_WINDOW
+        AssetCompilers::initialise();
+        AssetEditors::initialise();
     }
 
 #undef REGISTER_COMPONENT_TYPE
@@ -757,7 +763,7 @@ namespace worlds {
 
                 ImGui::Separator();
 
-                
+
                 if (ImGui::MenuItem("Create Prefab", nullptr, false, reg.valid(currentSelectedEntity))) {
                     popupToOpen = "Save Prefab";
                 }

@@ -14,6 +14,7 @@ namespace worlds {
     public:
         static void initialise();
         static void registerCompiler(IAssetCompiler* compiler);
+        static AssetID buildAsset(AssetID asset);
         static IAssetCompiler* getCompilerFor(AssetID asset);
         static IAssetCompiler* getCompilerFor(std::string_view extension);
     private:

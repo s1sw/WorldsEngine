@@ -3,9 +3,18 @@
 #include <slib/List.hpp>
 #include "../Util/Fnv.hpp"
 
+#include "TextureCompiler.hpp"
+// Compilers
+namespace worlds {
+    namespace asset_compilers {
+        TextureCompiler tc;
+    }
+}
+
 namespace worlds {
     slib::List<IAssetCompiler*> compilers;
     robin_hood::unordered_flat_map<uint32_t, IAssetCompiler*> extensionCompilers;
+    AssetCompilers::StaticLink* AssetCompilers::staticLink;
 
     void AssetCompilers::initialise() {
         StaticLink* current = staticLink;
@@ -29,6 +38,10 @@ namespace worlds {
             .next = staticLink
         };
         staticLink = sl;
+    }
+
+    AssetID AssetCompilers::buildAsset(AssetID asset) {
+        return getCompilerFor(asset)->compile(asset);
     }
 
     IAssetCompiler* AssetCompilers::getCompilerFor(AssetID asset) {

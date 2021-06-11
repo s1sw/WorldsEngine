@@ -997,11 +997,11 @@ done:
                const uint inverse_table_index = diff + (inten << 1) + (selector << 4);
                for (uint color = 0; color < 256; color++)
                {
-                  uint best_error = cUINT32_MAX, best_packed_c = 0;
+                  int best_error = cUINT32_MAX, best_packed_c = 0;
                   for (uint packed_c = 0; packed_c < limit; packed_c++)
                   {
                      int v = etc1_decode_value(diff, inten, selector, packed_c);
-                     uint err = labs(v - color);
+                     int err = labs(v - color);
                      if (err < best_error)
                      {
                         best_error = err;

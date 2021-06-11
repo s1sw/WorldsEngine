@@ -1,5 +1,5 @@
 {
-    "albedoPath" : "Textures/Dev/512SimpleOrange.crn",
+    "albedoPath" : "Textures/DevTextures/orange.wtex",
     "metallic" : 0.000000,
     "roughness" : 1.000000,
     "albedoColor" : [1.000000, 1.000000, 1.000000],

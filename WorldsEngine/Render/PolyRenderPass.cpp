@@ -71,6 +71,8 @@ namespace worlds {
             for (uint32_t i = 0; i < texSlots.size(); i++) {
                 if (texSlots.isSlotPresent(i)) {
                     updater.beginImages(4, i, vk::DescriptorType::eCombinedImageSampler);
+                    if (!texSlots[i].imageView())
+                        printf("HERE!\n");
                     updater.image(*albedoSampler, texSlots[i].imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
                 }
             }
