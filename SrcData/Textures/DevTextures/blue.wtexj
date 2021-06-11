@@ -1,4 +1,5 @@
 {
+    "isSrgb": true,
     "srcPath": "SrcData/Raw/Textures/512SimpleBlue.png",
     "type": "regular"
 }

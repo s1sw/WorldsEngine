@@ -2,9 +2,15 @@
 #include "../Core/AssetDB.hpp"
 
 namespace worlds {
+    struct AssetCompileOperation {
+        AssetID outputId;
+        bool complete = false;
+        float progress = 0.0f;
+    };
+
     class IAssetCompiler {
     public:
-        virtual AssetID compile(AssetID src) = 0;
+        virtual AssetCompileOperation* compile(AssetID src) = 0;
         virtual const char* getSourceExtension() = 0;
         virtual const char* getCompiledExtension() = 0;
         virtual ~IAssetCompiler() {}
@@ -14,7 +20,7 @@ namespace worlds {
     public:
         static void initialise();
         static void registerCompiler(IAssetCompiler* compiler);
-        static AssetID buildAsset(AssetID asset);
+        static AssetCompileOperation* buildAsset(AssetID asset);
         static IAssetCompiler* getCompilerFor(AssetID asset);
         static IAssetCompiler* getCompilerFor(std::string_view extension);
     private:

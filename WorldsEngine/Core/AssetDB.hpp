@@ -18,6 +18,7 @@ namespace worlds {
         static AssetID createAsset(std::string_view path);
         static std::string getAssetExtension(AssetID id);
         static std::string idToPath(AssetID id);
+        static std::string getMountedAssetPath(AssetID id);
         static AssetID pathToId(std::string_view path);
         static bool exists(AssetID id);
     private:

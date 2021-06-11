@@ -27,9 +27,14 @@ namespace worlds {
         nlohmann::json j = nlohmann::json::parse(contents);
         srcTexture = AssetDB::pathToId(j.value("srcPath", "SrcData/Raw/Textures/512SimpleOrange.png"));
         texType = strToTexType(j.value("type", "regular"));
+        isSrgb = j.value("isSrgb", true);
     }
 
     void TextureEditor::drawEditor() {
+        ImGui::Text("Source texture: %s", AssetDB::idToPath(srcTexture).c_str());
+        ImGui::SameLine();
+        selectAssetPopup("Source Texture", srcTexture, ImGui::Button("Change##SrcTex"));
+
         if (ImGui::BeginCombo("Type", textureTypeNames[(int)texType])) {
             int i = 0;
             for (const char* name : textureTypeNames) {
@@ -48,15 +53,14 @@ namespace worlds {
             ImGui::EndCombo();
         }
 
-        ImGui::Text("Source texture: %s", AssetDB::idToPath(srcTexture).c_str());
-        ImGui::SameLine();
-        selectAssetPopup("Source Texture", srcTexture, ImGui::Button("Change##SrcTex"));
+        ImGui::Checkbox("Is SRGB", &isSrgb);
     }
 
     void TextureEditor::save() {
         nlohmann::json j = {
             { "srcPath", AssetDB::idToPath(srcTexture) },
-            { "type", textureTypeSerializedKeys[(int)texType] }
+            { "type", textureTypeSerializedKeys[(int)texType] },
+            { "isSrgb", isSrgb }
         };
 
         std::string s = j.dump(4);

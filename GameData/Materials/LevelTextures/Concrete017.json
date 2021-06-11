@@ -1,5 +1,5 @@
 {
-    "albedoPath" : "Textures/LevelTextures/Concrete017/albedo.png",
+    "albedoPath" : "Textures/LevelTextures/Concrete017/albedo.wtex",
     "pbrMapPath" : "Textures/LevelTextures/Concrete017/pbrpack.png",
     "normalMapPath" : "Textures/LevelTextures/Concrete017/normal_forcelin.png",
     "heightmapPath" : "Textures/LevelTextures/Concrete017/height.png",

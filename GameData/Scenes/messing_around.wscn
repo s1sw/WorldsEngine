@@ -76,7 +76,7 @@
         "Materials/dev.json",
         "Materials/dev.json"
       ],
-      "mesh": "plane.obj",
+      "mesh": "Models/plane.wmdl",
       "staticFlags": 0,
       "texScaleOffset": [
         0.25,
@@ -164,7 +164,7 @@
         "Materials/dev.json",
         "Materials/dev.json"
       ],
-      "mesh": "plane.obj",
+      "mesh": "Models/plane.wmdl",
       "staticFlags": 0,
       "texScaleOffset": [
         0.25,
@@ -252,7 +252,7 @@
         "Materials/dev.json",
         "Materials/dev.json"
       ],
-      "mesh": "plane.obj",
+      "mesh": "Models/plane.wmdl",
       "staticFlags": 0,
       "texScaleOffset": [
         1.0,
@@ -372,7 +372,7 @@
         "Materials/dev.json",
         "Materials/dev.json"
       ],
-      "mesh": "plane.obj",
+      "mesh": "Models/plane.wmdl",
       "staticFlags": 0,
       "texScaleOffset": [
         1.0,
@@ -411,6 +411,7 @@
         1.0,
         1.0
       ],
+      "enableShadows": false,
       "intensity": 1.0,
       "spotCutoff": 0.699999988079071,
       "tubeLength": 0.25,
@@ -495,7 +496,7 @@
         "Materials/dev.json",
         "Materials/dev.json"
       ],
-      "mesh": "plane.obj",
+      "mesh": "Models/plane.wmdl",
       "staticFlags": 0,
       "texScaleOffset": [
         0.25,
@@ -638,6 +639,7 @@
         0.0,
         0.0
       ],
+      "enableShadows": false,
       "intensity": 1.0,
       "spotCutoff": 0.699999988079071,
       "tubeLength": 5.0,
@@ -715,6 +717,7 @@
         0.0,
         0.0
       ],
+      "enableShadows": false,
       "intensity": 1.0,
       "spotCutoff": 0.699999988079071,
       "tubeLength": 5.0,
@@ -844,7 +847,7 @@
         "Materials/dev.json",
         "Materials/dev.json"
       ],
-      "mesh": "plane.obj",
+      "mesh": "Models/plane.wmdl",
       "staticFlags": 0,
       "texScaleOffset": [
         0.25,
@@ -932,7 +935,7 @@
         "Materials/dev.json",
         "Materials/dev.json"
       ],
-      "mesh": "plane.obj",
+      "mesh": "Models/plane.wmdl",
       "staticFlags": 0,
       "texScaleOffset": [
         0.25,
@@ -1052,7 +1055,7 @@
         "Materials/dev.json",
         "Materials/dev.json"
       ],
-      "mesh": "plane.obj",
+      "mesh": "Models/plane.wmdl",
       "staticFlags": 0,
       "texScaleOffset": [
         0.25,
@@ -1117,7 +1120,7 @@
         "Materials/dev.json",
         "Materials/dev.json"
       ],
-      "mesh": "plane.obj",
+      "mesh": "Models/plane.wmdl",
       "staticFlags": 0,
       "texScaleOffset": [
         0.25,
@@ -1231,7 +1234,7 @@
         "Materials/dev.json",
         "Materials/dev.json"
       ],
-      "mesh": "plane.obj",
+      "mesh": "Models/plane.wmdl",
       "staticFlags": 0,
       "texScaleOffset": [
         0.25,
@@ -1267,6 +1270,7 @@
         1.0,
         1.0
       ],
+      "enableShadows": false,
       "intensity": 1.0,
       "spotCutoff": 0.699999988079071,
       "tubeLength": 1.0,
@@ -1396,7 +1400,7 @@
         "Materials/dev.json",
         "Materials/dev.json"
       ],
-      "mesh": "plane.obj",
+      "mesh": "Models/plane.wmdl",
       "staticFlags": 0,
       "texScaleOffset": [
         1.0,
@@ -1484,7 +1488,7 @@
         "Materials/dev.json",
         "Materials/dev.json"
       ],
-      "mesh": "plane.obj",
+      "mesh": "Models/plane.wmdl",
       "staticFlags": 0,
       "texScaleOffset": [
         0.25,
@@ -1572,7 +1576,7 @@
         "Materials/dev.json",
         "Materials/dev.json"
       ],
-      "mesh": "plane.obj",
+      "mesh": "Models/plane.wmdl",
       "staticFlags": 0,
       "texScaleOffset": [
         0.25,
@@ -1660,7 +1664,7 @@
         "Materials/dev.json",
         "Materials/dev.json"
       ],
-      "mesh": "plane.obj",
+      "mesh": "Models/plane.wmdl",
       "staticFlags": 0,
       "texScaleOffset": [
         0.25,
@@ -1728,6 +1732,7 @@
         1.0,
         1.0
       ],
+      "enableShadows": false,
       "intensity": 1.0,
       "spotCutoff": 0.699999988079071,
       "tubeLength": 1.0,
@@ -1964,7 +1969,7 @@
         "Materials/dev.json",
         "Materials/dev.json"
       ],
-      "mesh": "plane.obj",
+      "mesh": "Models/plane.wmdl",
       "staticFlags": 0,
       "texScaleOffset": [
         0.25,
@@ -2052,7 +2057,7 @@
         "Materials/dev.json",
         "Materials/dev.json"
       ],
-      "mesh": "plane.obj",
+      "mesh": "Models/plane.wmdl",
       "staticFlags": 0,
       "texScaleOffset": [
         0.25,
@@ -2065,6 +2070,8 @@
   },
   "8388617": {
     "Dynamic Physics Actor": {
+      "enableCCD": false,
+      "enableGravity": true,
       "mass": 5.0,
       "shapes": [
         {
@@ -2137,7 +2144,7 @@
         "Materials/dev.json",
         "Materials/dev.json"
       ],
-      "mesh": "uvsphere.obj",
+      "mesh": "Models/sphere.wmdl",
       "staticFlags": 0,
       "texScaleOffset": [
         1.0,
@@ -2225,7 +2232,7 @@
         "Materials/dev.json",
         "Materials/dev.json"
       ],
-      "mesh": "plane.obj",
+      "mesh": "Models/plane.wmdl",
       "staticFlags": 0,
       "texScaleOffset": [
         0.25,
@@ -2313,7 +2320,7 @@
         "Materials/dev.json",
         "Materials/dev.json"
       ],
-      "mesh": "plane.obj",
+      "mesh": "Models/plane.wmdl",
       "staticFlags": 0,
       "texScaleOffset": [
         0.25,
@@ -2485,7 +2492,7 @@
         "Materials/dev.json",
         "Materials/dev.json"
       ],
-      "mesh": "plane.obj",
+      "mesh": "Models/plane.wmdl",
       "staticFlags": 0,
       "texScaleOffset": [
         0.25,
@@ -2573,7 +2580,7 @@
         "Materials/dev.json",
         "Materials/dev.json"
       ],
-      "mesh": "plane.obj",
+      "mesh": "Models/plane.wmdl",
       "staticFlags": 0,
       "texScaleOffset": [
         0.25,
@@ -2638,7 +2645,7 @@
         "Materials/dev.json",
         "Materials/dev.json"
       ],
-      "mesh": "plane.obj",
+      "mesh": "Models/plane.wmdl",
       "staticFlags": 0,
       "texScaleOffset": [
         0.25,

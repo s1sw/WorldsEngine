@@ -12,7 +12,7 @@ subdirs = [
     'ImGui',
     'Input',
     'IO',
-    'Libs',
+    # 'Libs',
     'Physics',
     'Render',
     'Scripting',
@@ -38,4 +38,4 @@ for subdir in subdirs:
         for f in files[:-1]:
             out_file.write("  '" + str(f.relative_to(script_dir)).replace("\\", "/") + "',\n")
         out_file.write("  '" + str(files[-1].relative_to(script_dir)).replace("\\", "/") + "'\n]")
-	
+

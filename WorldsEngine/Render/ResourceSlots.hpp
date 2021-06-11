@@ -64,34 +64,7 @@ namespace worlds {
 
     class TextureSlots : public ResourceSlots<vku::TextureImage2D, NUM_TEX_SLOTS, AssetID> {
     protected:
-        uint32_t load(AssetID asset) override {
-            slotMutex.lock();
-            uint32_t slot = getFreeSlot();
-
-            if (slot > NUM_TEX_SLOTS) {
-                fatalErr("Out of texture slots");
-            }
-
-            present[slot] = true;
-            lookup.insert({ asset, slot });
-            reverseLookup.insert({ slot, asset });
-            slotMutex.unlock();
-
-            auto texData = loadTexData(asset);
-            if (texData.data == nullptr) {
-                return loadOrGet(AssetDB::pathToId("Textures/missing.wtex"));
-            }
-
-            if (cb && frameStarted)
-                slots[slot] = uploadTextureVk(*vkCtx, texData, cb, frameIdx);
-            else
-                slots[slot] = uploadTextureVk(*vkCtx, texData);
-            std::free(texData.data);
-
-            logMsg("slot %i set to imageView %zu", slot, slots[slot].imageView());
-
-            return slot;
-        }
+        uint32_t load(AssetID asset) override;
     private:
         std::shared_ptr<VulkanHandles> vkCtx;
         vk::CommandBuffer cb;
@@ -99,21 +72,11 @@ namespace worlds {
         std::mutex slotMutex;
     public:
         bool frameStarted = false;
-        TextureSlots(std::shared_ptr<VulkanHandles> vkCtx) : vkCtx(vkCtx), cb(nullptr) {
 
-        }
+        TextureSlots(std::shared_ptr<VulkanHandles> vkCtx);
+        void setUploadCommandBuffer(vk::CommandBuffer cb, uint32_t frameIdx);
 
-        void setUploadCommandBuffer(vk::CommandBuffer cb, uint32_t frameIdx) {
-            this->cb = cb;
-            this->frameIdx = frameIdx;
-        }
-
-        void unload(int idx) override {
-            present[idx] = false;
-            slots[idx].destroy();
-            lookup.erase(reverseLookup.at(idx));
-            reverseLookup.erase(idx);
-        }
+        void unload(int idx) override;
     };
 
     struct PackedMaterial;
@@ -135,17 +98,9 @@ namespace worlds {
         TextureSlots& texSlots;
         std::mutex slotMutex;
     public:
-        MatExtraData& getExtraDat(uint32_t slot) { assert(this->present[slot]); return matExtraData[slot]; }
-
-        MaterialSlots(std::shared_ptr<VulkanHandles> vkCtx, TextureSlots& texSlots) : vkCtx(vkCtx), texSlots(texSlots) {
-
-        }
-
-        void unload(int idx) override {
-            present[idx] = false;
-            lookup.erase(reverseLookup.at(idx));
-            reverseLookup.erase(idx);
-        }
+        MatExtraData& getExtraDat(uint32_t slot);
+        MaterialSlots(std::shared_ptr<VulkanHandles> vkCtx, TextureSlots& texSlots);
+        void unload(int idx) override;
     };
 
     class CubemapSlots : public ResourceSlots<vku::TextureImageCube, NUM_CUBEMAP_SLOTS, AssetID> {

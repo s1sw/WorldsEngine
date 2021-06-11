@@ -18,6 +18,7 @@ namespace worlds {
         TextureType strToTexType(std::string_view texType);
 
         TextureType texType = TextureType::Regular;
+        bool isSrgb = true;
         AssetID srcTexture = INVALID_ASSET;
         AssetID editingID = INVALID_ASSET;
     };

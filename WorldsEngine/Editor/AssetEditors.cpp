@@ -1,4 +1,5 @@
 #include "AssetEditors.hpp"
+#include "Core/Log.hpp"
 #include "robin_hood.h"
 #include "../Util/Fnv.hpp"
 #include <slib/List.hpp>

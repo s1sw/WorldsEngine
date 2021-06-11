@@ -11,5 +11,6 @@ worlds_sources += [
   'Util/TimingUtil.hpp',
   'Util/EnumUtil.hpp',
   'Util/JsonUtil.hpp',
-  'Util/VKImGUIUtil.hpp'
+  'Util/VKImGUIUtil.hpp',
+  'Util/Fnv.hpp'
 ]
