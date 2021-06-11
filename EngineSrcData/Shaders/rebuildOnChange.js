@@ -60,7 +60,7 @@ function getArgList(stage, defines, inFile, outFile) {
 }
 
 function moveToOutput(filename, callback) {
-    fs.rename(filename, `../../Data/Shaders/${filename}`, callback);
+    fs.rename(filename, `../../EngineData/Shaders/${filename}`, callback);
 }
 
 function execCompiler(args, onSuccess) {

@@ -4,10 +4,12 @@
 #include "../Util/Fnv.hpp"
 
 #include "TextureCompiler.hpp"
+#include "ModelCompiler.hpp"
 // Compilers
 namespace worlds {
     namespace asset_compilers {
         TextureCompiler tc;
+        ModelCompiler mc;
     }
 }
 
@@ -40,7 +42,7 @@ namespace worlds {
         staticLink = sl;
     }
 
-    AssetID AssetCompilers::buildAsset(AssetID asset) {
+    AssetCompileOperation* AssetCompilers::buildAsset(AssetID asset) {
         return getCompilerFor(asset)->compile(asset);
     }
 

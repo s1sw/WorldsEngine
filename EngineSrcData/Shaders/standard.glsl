@@ -345,7 +345,7 @@ void unpackMaterial(inout ShadeInfo si, mat3 tbn) {
     if (mat.roughTexIdx > -1) {
         // Treat the rough texture as a packed PBR file
         // R = Metallic, G = Roughness, B = AO
-        vec3 packVals = pow(texture(tex2dSampler[mat.roughTexIdx], tCoord).xyz, vec3(1.0 / 2.2));
+        vec3 packVals = texture(tex2dSampler[mat.roughTexIdx], tCoord).xyz;
         si.metallic = packVals.r;
         si.roughness = packVals.g;
         si.ao = packVals.b;

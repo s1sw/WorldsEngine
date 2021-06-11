@@ -1,10 +1,10 @@
 worlds_sources += [
   'Core/Fatal.cpp',
-  'Core/SplashWindow.cpp',
   'Core/JobSystem.cpp',
   'Core/Console.cpp',
-  'Core/AssetDB.cpp',
   'Core/EarlySDLUtil.cpp',
+  'Core/AssetDB.cpp',
+  'Core/SplashWindow.cpp',
   'Core/Engine.cpp',
   'Core/EarlySDLUtil.hpp',
   'Core/Fatal.hpp',
@@ -17,6 +17,6 @@ worlds_sources += [
   'Core/SplashWindow.hpp',
   'Core/JobSystem.hpp',
   'Core/Engine.hpp',
-  'Core/AssetDB.hpp',
-  'Core/Transform.hpp'
+  'Core/Transform.hpp',
+  'Core/AssetDB.hpp'
 ]

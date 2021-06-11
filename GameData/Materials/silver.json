@@ -1,6 +1,6 @@
 {
-	"albedoPath" : "white.png",
-	"metallic" : 1.0,
-	"roughness" : 0.1,
-	"albedoColor" : [1.0, 1.0, 1.0]
+    "albedoPath" : "Textures/white.wtex",
+    "metallic" : 1.000000,
+    "roughness" : 0.100000,
+    "albedoColor" : [1.000000, 1.000000, 1.000000]
 }

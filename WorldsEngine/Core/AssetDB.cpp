@@ -128,6 +128,11 @@ namespace worlds {
         return storage.paths.at(id);
     }
 
+    std::string AssetDB::getMountedAssetPath(AssetID id) {
+        char** searchPath = PHYSFS_getSearchPath();
+        PHYSFS_freeList(searchPath);
+    }
+
     std::string AssetDB::getAssetExtension(AssetID id) {
         std::lock_guard<std::mutex> lg{storage.mutex};
         return storage.extensions.at(id);

@@ -129,4 +129,20 @@ namespace worlds {
 
         return slot;
     }
+
+    MatExtraData& MaterialSlots::getExtraDat(uint32_t slot) {
+        assert(present[slot]);
+        return matExtraData[slot];
+    }
+
+    MaterialSlots::MaterialSlots(std::shared_ptr<VulkanHandles> vkCtx, TextureSlots& texSlots)
+        : vkCtx(vkCtx)
+        , texSlots(texSlots) {
+    }
+
+    void MaterialSlots::unload(int idx) {
+        present[idx] = false;
+        lookup.erase(reverseLookup.at(idx));
+        reverseLookup.erase(idx);
+    }
 }

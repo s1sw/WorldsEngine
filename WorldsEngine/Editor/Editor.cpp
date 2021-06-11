@@ -414,6 +414,7 @@ namespace worlds {
 
         ImGui::SetNextWindowSizeConstraints(ImVec2(256.0f, 256.0f), ImVec2(FLT_MAX, FLT_MAX));
         if (ImGui::Begin(ICON_FA_MAP u8" Scene")) {
+            sceneViewPass->active = active;
             ImVec2 contentRegion = ImGui::GetContentRegionAvail();
 
             if ((contentRegion.x != currentSceneViewSize.x || contentRegion.y != currentSceneViewSize.y)
@@ -531,6 +532,8 @@ namespace worlds {
                     }
                 }
             }
+        } else {
+            sceneViewPass->active = false;
         }
         ImGui::End();
 
@@ -539,9 +542,8 @@ namespace worlds {
     }
 
     void Editor::update(float deltaTime) {
-        sceneViewPass->active = active;
-
         if (!active) {
+            sceneViewPass->active = false;
             AudioSystem::getInstance()->setPauseState(false);
             if (inputManager.keyPressed(SDL_SCANCODE_P, true) && inputManager.ctrlHeld() && !inputManager.shiftHeld())
                 g_console->executeCommandStr("reloadAndEdit");

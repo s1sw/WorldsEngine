@@ -39,7 +39,19 @@ tracy_inc = include_directories('./tracy/')
 physfs_dep = dependency('physfs', fallback: ['physfs', 'physfs_dep'])
 slib_dep = dependency('slib', fallback: ['slib', 'slib_dep'])
 vk_dep = dependency('vulkan')
-tbb_dep = cc.find_library('tbb', required: false)
+
+assimp_dep = dependency('assimp', required: false)
+
+if not assimp_dep.found()
+    cpp_comp = meson.get_compiler('cpp')
+    assimp_dir = meson.current_source_dir() + '/Assimp/' + host_machine.system() + '64dbg'
+    if get_option('buildtype').startswith('release')
+        assimp_dir = meson.current_source_dir() + '/Assimp/' + host_machine.system() + '64rel'
+    endif
+
+    assimp_lib = cpp_comp.find_library('assimp', dirs: assimp_dir)
+    assimp_dep = declare_dependency(dependencies: assimp_lib, include_directories: include_directories('./Assimp/include'))
+endif
 
 enet_subproj = subproject('enet')
 
@@ -61,14 +73,18 @@ if host_machine.system() == 'windows'
   platform_deps += cc.find_library('ws2_32')
 endif
 
+if host_machine.system() == 'linux'
+  platform_deps += cc.find_library('tbb', required: false)
+endif
+
 steam_audio_dep = cc.find_library('phonon', dirs: meson.project_source_root() + '/External/Lib')
 
 worlds = static_library('worlds', worlds_sources,
   include_directories: [extern_include_dir, physx_include_dir, tracy_inc],
   dependencies: [
-    physfs_dep, sdl2_dep, physx_deps,
+    assimp_dep, physfs_dep, sdl2_dep, physx_deps,
     dl_dep, openvr_dep, wmdl_dep, discord_csdk_dep,
-    discord_sdk_dep, tbb_dep, wren_dep, enet_dep,
+    discord_sdk_dep, wren_dep, enet_dep,
     slib_dep, platform_deps, steam_audio_dep
   ]
 )

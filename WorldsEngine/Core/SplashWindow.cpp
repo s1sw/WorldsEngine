@@ -113,7 +113,7 @@ namespace worlds {
 
             SDL_Event evt;
             while (SDL_PollEvent(&evt)) {}
-            SDL_Delay(10);
+            //SDL_Delay(10);
         }
 
     }
