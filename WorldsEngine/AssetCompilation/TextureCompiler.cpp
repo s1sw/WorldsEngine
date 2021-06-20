@@ -1,3 +1,4 @@
+#define CRND_HEADER_FILE_ONLY
 #include "TextureCompiler.hpp"
 #include "AssetCompilerUtil.hpp"
 #include "../Libs/crnlib/crn_texture_conversion.h"
@@ -6,6 +7,7 @@
 #include <nlohmann/json.hpp>
 #include "../IO/IOUtil.hpp"
 #include <filesystem>
+#include <SDL_cpuinfo.h>
 using namespace crnlib;
 
 namespace worlds {
@@ -69,10 +71,10 @@ namespace worlds {
 
     crn_bool progressCallback(crn_uint32 phaseIndex, crn_uint32 totalPhases, crn_uint32 subphaseIndex, crn_uint32 totalSubphases, void* data) {
         AssetCompileOperation* compileOp = (AssetCompileOperation*)data;
-        float phaseProgress = 1.0f / totalPhases;
-        compileOp->progress = (phaseProgress * phaseIndex) + ((phaseProgress / totalSubphases) * subphaseIndex);
+        compileOp->progress = ((float)phaseIndex + ((float)subphaseIndex / totalSubphases)) / totalPhases;
         return true;
     }
+    
 
     void TextureCompiler::compileInternal(nlohmann::json j, std::string inputPath, std::string outputPath, AssetCompileOperation* compileOp) {
         bool isSrgb = j.value("isSrgb", true);
@@ -86,10 +88,11 @@ namespace worlds {
         compParams.m_file_type = cCRNFileTypeCRN;
         compParams.m_format = j["type"] == "regular" ? cCRNFmtDXT5 : cCRNFmtDXN_XY;
         compParams.m_pImages[0][0] = (crn_uint32*)inTexData.data;
-        compParams.m_quality_level = 127;
-        compParams.m_num_helper_threads = 4;
+        compParams.m_quality_level = j.value("qualityLevel", 127);
+        compParams.m_num_helper_threads = SDL_GetCPUCount() - 1;
         compParams.m_pProgress_func = progressCallback;
         compParams.m_pProgress_func_data = compileOp;
+        compParams.m_userdata0 = isSrgb;
         logMsg("perceptual: %i, format: %i", compParams.get_flag(cCRNCompFlagPerceptual), compParams.m_format);
 
         crn_mipmap_params mipParams;

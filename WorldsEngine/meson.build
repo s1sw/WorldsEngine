@@ -44,13 +44,14 @@ assimp_dep = dependency('assimp', required: false)
 
 if not assimp_dep.found()
     cpp_comp = meson.get_compiler('cpp')
-    assimp_dir = meson.current_source_dir() + '/Assimp/' + host_machine.system() + '64dbg'
+    assimp_dir = meson.project_source_root() + '/External/Assimp/' + host_machine.system() + '64dbg'
     if get_option('buildtype').startswith('release')
-        assimp_dir = meson.current_source_dir() + '/Assimp/' + host_machine.system() + '64rel'
+        assimp_dir = meson.project_source_root() + '/External/Assimp/' + host_machine.system() + '64rel'
     endif
+    assimp_inc_dir = '../External/Assimp/include'
 
     assimp_lib = cpp_comp.find_library('assimp', dirs: assimp_dir)
-    assimp_dep = declare_dependency(dependencies: assimp_lib, include_directories: include_directories('./Assimp/include'))
+    assimp_dep = declare_dependency(dependencies: assimp_lib, include_directories: include_directories(assimp_inc_dir))
 endif
 
 enet_subproj = subproject('enet')
@@ -71,6 +72,7 @@ platform_deps = []
 if host_machine.system() == 'windows'
   platform_deps += cc.find_library('winmm')
   platform_deps += cc.find_library('ws2_32')
+  platform_deps += cc.find_library('dwmapi')
 endif
 
 if host_machine.system() == 'linux'

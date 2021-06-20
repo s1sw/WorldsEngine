@@ -1,3 +1,4 @@
+#define CRND_HEADER_FILE_ONLY
 #include "TextureLoader.hpp"
 #include "../../Core/Engine.hpp"
 #include "tracy/Tracy.hpp"
@@ -80,13 +81,13 @@ namespace worlds {
 
     TextureData loadCrunchTexture(void* fileData, size_t fileLen, AssetID id) {
         ZoneScoped;
-        bool isSRGB = true;
 
         crnd::crn_texture_info texInfo;
 
         if (!crnd::crnd_get_texture_info(fileData, (uint32_t)fileLen, &texInfo))
             return TextureData{};
 
+        bool isSRGB = texInfo.m_userdata0;
         crnd::crnd_unpack_context context = crnd::crnd_unpack_begin(fileData, (uint32_t)fileLen);
 
         crn_format fundamentalFormat = crnd::crnd_get_fundamental_dxt_format(texInfo.m_format);

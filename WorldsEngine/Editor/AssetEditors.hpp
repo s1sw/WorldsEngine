@@ -5,6 +5,7 @@ namespace worlds {
     class IAssetEditor {
     public:
         IAssetEditor();
+        virtual void importAsset(std::string filePath, std::string newAssetPath) = 0;
         virtual void create(std::string path) = 0;
         virtual void open(AssetID id) = 0;
         virtual void drawEditor() = 0;

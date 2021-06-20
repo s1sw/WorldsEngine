@@ -177,7 +177,8 @@ namespace worlds {
         compileOp->progress = PROGRESS_PER_STEP;
 
         if (scene == nullptr) {
-            fprintf(stderr, "Failed to import file: %s\n", importer.GetErrorString());
+            logErr("Failed to import file: %s", importer.GetErrorString());
+            compileOp->complete = true;
             return ErrorCodes::ImportFailure;
         }
 
@@ -209,20 +210,19 @@ namespace worlds {
 
         std::vector<wmdl::Vertex2> combinedVerts;
         std::vector<uint32_t> combinedIndices;
-        uint32_t indexOffset = 0;
         for (uint32_t i = 0; i < meshes.size(); i++) {
             compileOp->progress = (PROGRESS_PER_STEP * 2) + (perMeshProgress * i);
             auto& mesh = meshes[i];
+
+            mesh.indexOffsetInFile = combinedIndices.size();
+
+            for (auto& idx : mesh.indices) {
+                combinedIndices.push_back(idx + combinedVerts.size());
+            }
+
             for (auto& vtx : mesh.verts) {
                 combinedVerts.push_back(vtx);
             }
-
-            for (auto& idx : mesh.indices) {
-                combinedIndices.push_back(idx + indexOffset);
-            }
-
-            mesh.indexOffsetInFile = indexOffset;
-            indexOffset += mesh.indices.size();
         }
         compileOp->progress = PROGRESS_PER_STEP * 3;
 
@@ -295,9 +295,10 @@ namespace worlds {
         AssetCompileOperation* compileOp = new AssetCompileOperation;
         compileOp->outputId = AssetDB::pathToId(outputPath);
 
-        std::thread([&]() {
+        std::thread([compileOp, outputPath, path, result, fileLen]() {
             PHYSFS_File* outFile = PHYSFS_openWrite(outputPath.c_str());
-            mc_internal::convertModel(compileOp, outFile, result.value, fileLen, path.fileExtension().cStr());
+            slib::Path p = path;
+            mc_internal::convertModel(compileOp, outFile, result.value, fileLen, p.fileExtension().cStr());
             PHYSFS_close(outFile);
         }).detach();
 

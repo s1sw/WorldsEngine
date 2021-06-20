@@ -118,7 +118,6 @@ namespace worlds {
     }
 
     AssetID AssetDB::createAsset(std::string_view path) {
-        std::lock_guard<std::mutex> lg{storage.mutex};
         PHYSFS_close(PHYSFS_openWrite(path.data()));
         return addAsset(path);
     }
@@ -126,11 +125,6 @@ namespace worlds {
     std::string AssetDB::idToPath(AssetID id) {
         std::lock_guard<std::mutex> lg{storage.mutex};
         return storage.paths.at(id);
-    }
-
-    std::string AssetDB::getMountedAssetPath(AssetID id) {
-        char** searchPath = PHYSFS_getSearchPath();
-        PHYSFS_freeList(searchPath);
     }
 
     std::string AssetDB::getAssetExtension(AssetID id) {

@@ -25,11 +25,16 @@
 #include "../ComponentMeta/ComponentFuncs.hpp"
 #include "../Physics/D6Joint.hpp"
 #include <nlohmann/json.hpp>
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#include <dwmapi.h>
+#include <windowsx.h>
 #undef near
 #undef far
 #include "../Audio/Audio.hpp"
 #include "../AssetCompilation/AssetCompilers.hpp"
 #include "AssetEditors.hpp"
+#include <SDL_syswm.h>
 
 namespace worlds {
     std::unordered_map<ENTT_ID_TYPE, ComponentEditor*> ComponentMetadataManager::metadata;
@@ -61,6 +66,57 @@ namespace worlds {
     void Editor::updateWindowTitle() {
         auto newTitle = generateWindowTitle();
         SDL_SetWindowTitle(interfaces.engine->getMainWindow(), newTitle.c_str());
+
+        SDL_SysWMinfo info;
+        SDL_GetWindowWMInfo(interfaces.engine->getMainWindow(), &info);
+        MARGINS shadow_state{ 1, 1, 1, 1 };
+        //DwmExtendFrameIntoClientArea(info.info.win.window, &shadow_state);
+        //SetWindowPos(info.info.win.window, NULL, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER);
+    }
+
+    SDL_HitTestResult hitTest(SDL_Window* win, const SDL_Point* p, void* v) {
+        if (p->x > 200 && p->y < 20 && p->y > 0) {
+            return SDL_HITTEST_DRAGGABLE;
+        }
+
+        int w, h;
+        SDL_GetWindowSize(win, &w, &h);
+
+        enum BorderFlags {
+            None = 0,
+            Left = 1,
+            Right = 2,
+            Top = 4,
+            Bottom = 8
+        };
+
+        const int RESIZE_BORDER = 5;
+        int flags = None;
+
+        if (p->x < RESIZE_BORDER && p->x > -RESIZE_BORDER) {
+            flags |= Left;
+        } else if (p->x > w - RESIZE_BORDER && p->x < w + RESIZE_BORDER) {
+            flags |= Right;
+        }
+
+        if (p->y < RESIZE_BORDER && p->y > -RESIZE_BORDER) {
+            flags |= Top;
+        } else if (p->y > h - RESIZE_BORDER && p->y < h + RESIZE_BORDER) {
+            flags |= Bottom;
+        }
+
+        switch (flags) {
+            case Left: return SDL_HITTEST_RESIZE_LEFT;
+            case Right: return SDL_HITTEST_RESIZE_RIGHT;
+            case Top: return SDL_HITTEST_RESIZE_TOP;
+            case Bottom: return SDL_HITTEST_RESIZE_BOTTOM;
+            case Top | Left: return SDL_HITTEST_RESIZE_TOPLEFT;
+            case Top | Right: return SDL_HITTEST_RESIZE_TOPRIGHT;
+            case Bottom | Left: return SDL_HITTEST_RESIZE_BOTTOMLEFT;
+            case Bottom | Right: return SDL_HITTEST_RESIZE_BOTTOMRIGHT;
+        }
+
+        return SDL_HITTEST_NORMAL;
     }
 
     Editor::Editor(entt::registry& reg, EngineInterfaces interfaces)
@@ -113,6 +169,12 @@ namespace worlds {
 #undef ADD_EDITOR_WINDOW
         AssetCompilers::initialise();
         AssetEditors::initialise();
+        SDL_Window* window = interfaces.engine->getMainWindow();
+        SDL_SetHint("SDL_BORDERLESS_WINDOWED_STYLE", "1");
+        SDL_SetWindowBordered(window, SDL_FALSE);
+        SDL_SetWindowResizable(window, SDL_TRUE);
+        SDL_SetWindowHitTest(window, hitTest, nullptr);
+        SDL_SetWindowOpacity(window, 1.0f);
     }
 
 #undef REGISTER_COMPONENT_TYPE
@@ -621,6 +683,8 @@ namespace worlds {
             float fov = glm::degrees(cam.verticalFOV);
             ImGui::InputFloat("Camera FOV", &fov);
             cam.verticalFOV = glm::radians(fov);
+            ImGuiViewport* vp = ImGui::GetMainViewport();
+            ImGui::Text("vp->Size: %f, %f", vp->Size.x, vp->Size.y);
         }
         ImGui::End();
 

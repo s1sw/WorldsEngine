@@ -1,8 +1,8 @@
 {
     "albedoPath" : "Textures/LevelTextures/Concrete017/albedo.wtex",
-    "pbrMapPath" : "Textures/LevelTextures/Concrete017/pbrpack.png",
-    "normalMapPath" : "Textures/LevelTextures/Concrete017/normal_forcelin.png",
-    "heightmapPath" : "Textures/LevelTextures/Concrete017/height.png",
+    "pbrMapPath" : "Textures/LevelTextures/Concrete017/pbr.wtex",
+    "normalMapPath" : "Textures/LevelTextures/Concrete017/normal.wtex",
+    "heightmapPath" : "Textures/LevelTextures/Concrete017/height.wtex",
     "heightmapScale" : 0.005000,
     "metallic" : 0.000000,
     "roughness" : 1.000000,

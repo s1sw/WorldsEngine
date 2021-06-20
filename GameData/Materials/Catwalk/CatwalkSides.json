@@ -1,8 +1,9 @@
 {
-	"albedoPath" : "Textures/catwalk/CatwalkSides_BaseColor.png",
-	"normalMapPath" : "Textures/catwalk/CatwalkSides_Normal_forcelin.png",
-	"pbrMapPath" : "Textures/catwalk/CatwalkSides_PBRPack.png",
-	"metallic" : 1.0,
-	"roughness" : 0.2,
-	"albedoColor" : [1.0, 1.0, 1.0]
+    "albedoPath" : "Textures/Catwalk/CatwalkSides_BaseColor.wtex",
+    "pbrMapPath" : "Textures/Catwalk/CatwalkSides_PBRPack.wtex",
+    "normalMapPath" : "Textures/Catwalk/CatwalkSides_Normal_forcelin.wtex",
+    "metallic" : 1.000000,
+    "roughness" : 0.200000,
+    "albedoColor" : [1.000000, 1.000000, 1.000000],
+    "alphaCutoff" : 0.500000
 }

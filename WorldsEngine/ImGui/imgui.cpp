@@ -2550,6 +2550,7 @@ const char* ImGui::GetStyleColorName(ImGuiCol idx)
     case ImGuiCol_TabActive: return "TabActive";
     case ImGuiCol_TabUnfocused: return "TabUnfocused";
     case ImGuiCol_TabUnfocusedActive: return "TabUnfocusedActive";
+    case ImGuiCol_TabUnfocusedBorder: return "TabUnfocusedBorder";
     case ImGuiCol_DockingPreview: return "DockingPreview";
     case ImGuiCol_DockingEmptyBg: return "DockingEmptyBg";
     case ImGuiCol_PlotLines: return "PlotLines";
@@ -13337,7 +13338,7 @@ static void ImGui::DockNodeUpdateTabBar(ImGuiDockNode* node, ImGuiWindow* host_w
     node->IsFocused = is_focused;
 
     const ImGuiDockNodeFlags node_flags = node->GetMergedFlags();
-    const bool has_window_menu_button = (node_flags & ImGuiDockNodeFlags_NoWindowMenuButton) == 0 && (style.WindowMenuButtonPosition != ImGuiDir_None);
+    const bool has_window_menu_button = false;//(node_flags & ImGuiDockNodeFlags_NoWindowMenuButton) == 0 && (style.WindowMenuButtonPosition != ImGuiDir_None);
     const bool has_close_button = (node_flags & ImGuiDockNodeFlags_NoCloseButton) == 0;
 
     // In a dock node, the Collapse Button turns into the Window Menu button.
@@ -13592,7 +13593,7 @@ static void ImGui::DockNodeCalcTabBarLayout(const ImGuiDockNode* node, ImRect* o
     }
     if (node->HasWindowMenuButton && g.Style.WindowMenuButtonPosition == ImGuiDir_Left)
     {
-        r.Min.x += g.FontSize; // + g.Style.ItemInnerSpacing.x; // <-- Adding ItemInnerSpacing makes the title text moves slightly when in a docking tab bar. Instead we adjusted RenderArrowDockMenu()
+        r.Min.x += g.Style.ItemInnerSpacing.x; // <-- Adding ItemInnerSpacing makes the title text moves slightly when in a docking tab bar. Instead we adjusted RenderArrowDockMenu()
     }
     else if (node->HasWindowMenuButton && g.Style.WindowMenuButtonPosition == ImGuiDir_Right)
     {
@@ -13851,7 +13852,8 @@ static void ImGui::DockNodePreviewDockRender(ImGuiWindow* host_window, ImGuiDock
                 ImGuiTabItemFlags tab_flags = ImGuiTabItemFlags_Preview | ((payload_window->Flags & ImGuiWindowFlags_UnsavedDocument) ? ImGuiTabItemFlags_UnsavedDocument : 0);
                 if (!tab_bar_rect.Contains(tab_bb))
                     overlay_draw_lists[overlay_n]->PushClipRect(tab_bar_rect.Min, tab_bar_rect.Max);
-                TabItemBackground(overlay_draw_lists[overlay_n], tab_bb, tab_flags, overlay_col_tabs);
+
+                TabItemBackground(overlay_draw_lists[overlay_n], tab_bb, tab_flags, overlay_col_tabs, true);
                 TabItemLabelAndCloseButton(overlay_draw_lists[overlay_n], tab_bb, tab_flags, g.Style.FramePadding, payload_window->Name, 0, 0, false, NULL, NULL);
                 if (!tab_bar_rect.Contains(tab_bb))
                     overlay_draw_lists[overlay_n]->PopClipRect();

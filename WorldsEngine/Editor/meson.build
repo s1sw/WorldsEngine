@@ -5,6 +5,7 @@ worlds_sources += [
   'Editor/GuiUtil.cpp',
   'Editor/AssetEditors.cpp',
   'Editor/Editor.cpp',
+  'Editor/ModelEditor.cpp',
   'Editor/TextureEditor.cpp',
   'Editor/EditorWindows/EntityEditor.cpp',
   'Editor/EditorWindows/GameControls.cpp',
@@ -19,6 +20,7 @@ worlds_sources += [
   'Editor/UITextureManager.hpp',
   'Editor/GuiUtil.hpp',
   'Editor/Editor.hpp',
+  'Editor/ModelEditor.hpp',
   'Editor/TextureEditor.hpp',
   'Editor/AssetEditors.hpp',
   'Editor/EditorWindows/EditorWindows.hpp'

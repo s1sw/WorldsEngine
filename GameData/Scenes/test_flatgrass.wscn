@@ -838,7 +838,7 @@
         "Materials/dev.json",
         "Materials/dev.json"
       ],
-      "mesh": "cube.wmdl",
+      "mesh": "Models/cube.wmdl",
       "staticFlags": 0,
       "texScaleOffset": [
         15.0,
@@ -1392,7 +1392,7 @@
         "Materials/dev.json",
         "Materials/dev.json"
       ],
-      "mesh": "cube.wmdl",
+      "mesh": "Models/cube.wmdl",
       "staticFlags": 0,
       "texScaleOffset": [
         1.0,

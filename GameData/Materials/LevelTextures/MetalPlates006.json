@@ -1,8 +1,7 @@
 {
-    "albedoPath" : "Textures/LevelTextures/MetalPlates006/albedo.png",
-    "pbrMapPath" : "Textures/LevelTextures/MetalPlates006/pbr.png",
-    "normalMapPath" : "Textures/LevelTextures/MetalPlates006/normal_forcelin.crn",
-    "heightmapScale" : 0.010000,
+    "albedoPath" : "Textures/LevelTextures/MetalPlates006/albedo.wtex",
+    "pbrMapPath" : "Textures/LevelTextures/MetalPlates006/pbr.wtex",
+    "normalMapPath" : "Textures/LevelTextures/MetalPlates006/normal_forcelin.wtex",
     "metallic" : 0.000000,
     "roughness" : 1.000000,
     "albedoColor" : [1.000000, 1.000000, 1.000000],

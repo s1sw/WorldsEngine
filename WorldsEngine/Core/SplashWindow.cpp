@@ -111,8 +111,7 @@ namespace worlds {
 
             redraw();
 
-            SDL_Event evt;
-            while (SDL_PollEvent(&evt)) {}
+            //SDL_Event evt;
             //SDL_Delay(10);
         }
 
