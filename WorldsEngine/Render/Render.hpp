@@ -185,6 +185,7 @@ namespace worlds {
         int numCulledObjs;
         uint64_t vramUsage;
         int numRTTPasses;
+        int numActiveRTTPasses;
         int numPipelineSwitches;
         int numTriangles;
         double shadowmapGpuTime;

@@ -4,10 +4,12 @@
 #include "../Util/Fnv.hpp"
 #include <slib/List.hpp>
 #include "TextureEditor.hpp"
+#include "ModelEditor.hpp"
 
 namespace worlds {
     namespace asset_editors {
-        worlds::TextureEditor te;
+        TextureEditor te;
+        ModelEditor me;
     }
 }
 

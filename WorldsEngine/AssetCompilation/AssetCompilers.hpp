@@ -23,6 +23,8 @@ namespace worlds {
         static AssetCompileOperation* buildAsset(AssetID asset);
         static IAssetCompiler* getCompilerFor(AssetID asset);
         static IAssetCompiler* getCompilerFor(std::string_view extension);
+        static size_t registeredCompilerCount();
+        static IAssetCompiler** registeredCompilers();
     private:
         struct StaticLink {
             IAssetCompiler* compiler;

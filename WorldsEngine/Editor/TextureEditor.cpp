@@ -16,8 +16,27 @@ namespace worlds {
         "normal"
     };
 
+    void TextureEditor::importAsset(std::string filePath, std::string newAssetPath) {
+        AssetID id = AssetDB::createAsset(newAssetPath);
+        FILE* f = fopen(newAssetPath.c_str(), "wb");
+        nlohmann::json j = {
+            { "srcPath", filePath },
+            { "type", "regular" },
+            { "isSrgb", true }
+        };
+        std::string serializedJson = j.dump(4);
+        fwrite(serializedJson.data(), 1, serializedJson.size(), f);
+        fclose(f);
+        open(id);
+    }
+
     void TextureEditor::create(std::string path) {
-        open(AssetDB::createAsset(path));
+        AssetID id = AssetDB::createAsset(path);
+        FILE* f = fopen(path.c_str(), "wb");
+        const char emptyJson[] = "{}";
+        fwrite(emptyJson, 1, sizeof(emptyJson), f);
+        fclose(f);
+        open(id);
     }
 
     void TextureEditor::open(AssetID id) {
@@ -28,6 +47,7 @@ namespace worlds {
         srcTexture = AssetDB::pathToId(j.value("srcPath", "SrcData/Raw/Textures/512SimpleOrange.png"));
         texType = strToTexType(j.value("type", "regular"));
         isSrgb = j.value("isSrgb", true);
+        qualityLevel = j.value("qualityLevel", 127);
     }
 
     void TextureEditor::drawEditor() {
@@ -54,13 +74,15 @@ namespace worlds {
         }
 
         ImGui::Checkbox("Is SRGB", &isSrgb);
+        ImGui::SliderInt("Quality Level", &qualityLevel, 0, 255);
     }
 
     void TextureEditor::save() {
         nlohmann::json j = {
             { "srcPath", AssetDB::idToPath(srcTexture) },
             { "type", textureTypeSerializedKeys[(int)texType] },
-            { "isSrgb", isSrgb }
+            { "isSrgb", isSrgb },
+            { "qualityLevel", qualityLevel }
         };
 
         std::string s = j.dump(4);

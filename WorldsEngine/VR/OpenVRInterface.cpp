@@ -159,7 +159,11 @@ namespace worlds {
     bool OpenVRInterface::getHandTransform(Hand hand, Transform& t) {
         vr::InputPoseActionData_t pose;
 
-        auto retVal = vr::VRInput()->GetPoseActionDataForNextFrame(hand == Hand::LeftHand ? leftHand : rightHand, vr::TrackingUniverseStanding, &pose, sizeof(pose), vr::k_ulInvalidInputValueHandle);
+        auto retVal = vr::VRInput()->GetPoseActionDataForNextFrame(
+            hand == Hand::LeftHand ? leftHand : rightHand,
+            vr::TrackingUniverseStanding, &pose, sizeof(pose),
+            vr::k_ulInvalidInputValueHandle
+        );
 
         if (retVal != vr::VRInputError_None)
             return false;

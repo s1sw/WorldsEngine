@@ -905,7 +905,7 @@ void VKRenderer::uploadSceneAssets(entt::registry& reg) {
             if (!wo.presentMaterials[i]) continue;
 
             if (wo.materialIdx[i] == ~0u) {
-                wo.materialIdx[i] = matSlots->loadOrGet(wo.materials[i]);
+                wo.materialIdx[i] = matSlots->get(wo.materials[i]);
             }
         }
     });
@@ -1120,7 +1120,8 @@ void VKRenderer::writeCmdBuf(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageInde
         }
         lastPassIsVr = p->isVr;
     }
-    dbgStats.numRTTPasses = numActivePasses;
+    dbgStats.numActiveRTTPasses = numActivePasses;
+    dbgStats.numRTTPasses = rttPasses.size();
 
     vku::transitionLayout(*cmdBuf, swapchain->images[imageIndex],
         vk::ImageLayout::ePresentSrcKHR, vk::ImageLayout::eTransferDstOptimal,
@@ -1372,11 +1373,7 @@ void VKRenderer::preloadMesh(AssetID id) {
 
     if (!PHYSFS_exists(path.c_str())) {
         logErr(WELogCategoryRender, "Mesh %s was missing!", path.c_str());
-        PhysFS::ifstream meshFileStream(AssetDB::openAssetFileRead(AssetDB::pathToId("Models/missing.obj")));
-        loadObj(vertices, indices, meshFileStream, lmd);
-        lmd.numSubmeshes = 1;
-        lmd.submeshes[0].indexCount = indices.size();
-        lmd.submeshes[0].indexOffset = 0;
+        loadWorldsModel(AssetDB::pathToId("Models/missing.wmdl"), vertices, indices, lmd);
     } else if (ext == ".obj") { // obj
         // Use C++ physfs ifstream for tinyobjloader
         PhysFS::ifstream meshFileStream(AssetDB::openAssetFileRead(id));
@@ -1569,9 +1566,11 @@ RTTPass* VKRenderer::createRTTPass(RTTPassCreateInfo& ci) {
 }
 
 void VKRenderer::destroyRTTPass(RTTPass* pass) {
+    logMsg("size before: %i", rttPasses.size());
     rttPasses.erase(
         std::remove(rttPasses.begin(), rttPasses.end(), pass),
         rttPasses.end());
+    logMsg("size after: %i", rttPasses.size());
 
     delete pass;
 }

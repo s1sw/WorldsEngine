@@ -15,7 +15,8 @@ namespace worlds {
                 if (editor->currentSelectedAsset != lastId && assetEditor) {
                     if (lastId != INVALID_ASSET) {
                         IAssetEditor* lastEditor = AssetEditors::getEditorFor(lastId);
-                        lastEditor->save();
+                        if (lastEditor)
+                            lastEditor->save();
                     }
                     assetEditor->open(editor->currentSelectedAsset);
                 }

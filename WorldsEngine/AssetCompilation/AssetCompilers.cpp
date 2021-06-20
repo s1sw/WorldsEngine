@@ -62,4 +62,12 @@ namespace worlds {
 
         return it->second;
     }
+
+    size_t AssetCompilers::registeredCompilerCount() {
+        return compilers.numElements();
+    }
+
+    IAssetCompiler** AssetCompilers::registeredCompilers() {
+        return compilers.data();
+    }
 }

@@ -72,7 +72,7 @@ namespace worlds {
         swapinfo.queueFamilyIndexCount = !sameQueues ? 2 : 0;
         swapinfo.pQueueFamilyIndices = queueFamilyIndices.data();
         swapinfo.preTransform = surfaceCaps.currentTransform;;
-        swapinfo.compositeAlpha = vk::CompositeAlphaFlagBitsKHR::eOpaque;
+        swapinfo.compositeAlpha = vk::CompositeAlphaFlagBitsKHR::eInherit;
         swapinfo.presentMode = presentMode;
         swapinfo.clipped = 1;
         swapinfo.oldSwapchain = oldSwapchain;

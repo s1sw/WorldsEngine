@@ -1,0 +1,804 @@
+{
+  "0": {
+    "Name Component": {
+      "name": "Ground"
+    },
+    "Transform": {
+      "position": [
+        0.0,
+        -2.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        25.0,
+        1.0,
+        25.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/LevelTextures/Concrete017.json"
+      ],
+      "mesh": "Models/cube.wmdl",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        0.25,
+        0.25,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 4
+    }
+  },
+  "1048579": {
+    "Name Component": {
+      "name": "Light 2"
+    },
+    "Transform": {
+      "position": [
+        -2.6259474754333496,
+        1.3339793682098389,
+        3.4864766597747803
+      ],
+      "rotation": [
+        0.5113382339477539,
+        0.7167925238609314,
+        -0.2274533361196518,
+        0.41594067215919495
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Light": {
+      "color": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "enableShadows": true,
+      "intensity": 5.0,
+      "spotCutoff": 0.699999988079071,
+      "tubeLength": 0.25,
+      "tubeRadius": 0.10000000149011612,
+      "type": 1
+    }
+  },
+  "1048580": {
+    "Name Component": {
+      "name": "Light 1"
+    },
+    "Transform": {
+      "position": [
+        2.349853038787842,
+        0.5557656288146973,
+        -2.118274211883545
+      ],
+      "rotation": [
+        0.15876451134681702,
+        -0.5059419870376587,
+        0.5366528630256653,
+        0.6563690304756165
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Light": {
+      "color": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "enableShadows": true,
+      "intensity": 5.0,
+      "spotCutoff": 0.699999988079071,
+      "tubeLength": 0.25,
+      "tubeRadius": 0.10000000149011612,
+      "type": 1
+    }
+  },
+  "1048581": {
+    "Name Component": {
+      "name": "propshowcase"
+    },
+    "Transform": {
+      "position": [
+        0.0,
+        -0.208652526140213,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Cubemap": {
+      "extent": [
+        25.0,
+        25.0,
+        25.0
+      ],
+      "path": "LevelCubemaps/propshowcase.json",
+      "useCubeParallax": false
+    }
+  },
+  "1048582": {
+    "Transform": {
+      "position": [
+        -1.0969109535217285,
+        -0.9006816744804382,
+        -0.8272005915641785
+      ],
+      "rotation": [
+        0.49991390109062195,
+        0.5000866055488586,
+        0.5000863075256348,
+        0.4999132454395294
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/Ladder/LadderSides.json",
+        "Materials/Ladder/LadderRungs.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json"
+      ],
+      "mesh": "Models/ladder.wmdl",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "1048583": {
+    "Transform": {
+      "position": [
+        1.1030890941619873,
+        -0.9006816744804382,
+        -0.8272005915641785
+      ],
+      "rotation": [
+        0.49991390109062195,
+        0.5000866055488586,
+        0.5000863075256348,
+        0.4999132454395294
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/Ladder/LadderSides.json",
+        "Materials/Ladder/LadderRungs.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json"
+      ],
+      "mesh": "Models/ladder.wmdl",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "1048584": {
+    "Transform": {
+      "position": [
+        -0.07300347089767456,
+        -0.7683128118515015,
+        1.7306196689605713
+      ],
+      "rotation": [
+        0.0,
+        -0.7071068286895752,
+        0.0,
+        0.7071067094802856
+      ],
+      "scale": [
+        0.25,
+        0.25,
+        0.25
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/crate.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json"
+      ],
+      "mesh": "Models/crate.wmdl",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "1048586": {
+    "Transform": {
+      "position": [
+        -3.278347969055176,
+        -0.6299291849136353,
+        0.041045427322387695
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/Catwalk/CatwalkSides.json",
+        "Materials/Catwalk/CatwalkMain.json",
+        "Materials/Catwalk/CatwalkRails.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json"
+      ],
+      "mesh": "Models/catwalk.wmdl",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "1048587": {
+    "Name Component": {
+      "name": "Top Light"
+    },
+    "Transform": {
+      "position": [
+        -2.8999998569488525,
+        4.052999973297119,
+        0.0
+      ],
+      "rotation": [
+        0.7071685194969177,
+        0.0,
+        0.0,
+        0.7070450186729431
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Light": {
+      "color": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "enableShadows": true,
+      "intensity": 15.0,
+      "spotCutoff": 0.699999988079071,
+      "tubeLength": 0.25,
+      "tubeRadius": 0.10000000149011612,
+      "type": 1
+    }
+  },
+  "1048588": {
+    "Transform": {
+      "position": [
+        12.072199821472168,
+        -0.6888405084609985,
+        3.7847518920898438
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/ScifiBase/ScifiBaseBase.json",
+        "Materials/ScifiBase/ScifiBaseCentral.json",
+        "Materials/ScifiBase/ScifiBaseCable.json",
+        "Materials/ScifiBase/ScifiBaseClip.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json"
+      ],
+      "mesh": "Models/scifibase.wmdl",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "1048595": {
+    "Physics Actor": {
+      "shapes": [
+        {
+          "halfExtents": [
+            0.4000000059604645,
+            1.0,
+            0.4000000059604645
+          ],
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "type": 1
+        }
+      ]
+    },
+    "RPG Stats": {
+      "currentHP": 500,
+      "level": 1,
+      "maxHP": 500,
+      "strength": 1,
+      "totalExperience": 0
+    },
+    "Stabbable": {},
+    "Transform": {
+      "position": [
+        0.0,
+        -0.9959126710891724,
+        -0.5
+      ],
+      "rotation": [
+        1.1475940908667326e-07,
+        0.9999999403953552,
+        -0.00017217894492205232,
+        -0.0002438646915834397
+      ],
+      "scale": [
+        0.9998472929000854,
+        1.0,
+        0.9999236464500427
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/turret/BaseHex.json",
+        "Materials/turret/YawPivot.json",
+        "Materials/turret/Gun.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json"
+      ],
+      "mesh": "Models/turret.wmdl",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "2": {
+    "Name Component": {
+      "name": "Top Light"
+    },
+    "Transform": {
+      "position": [
+        -0.20000004768371582,
+        4.053430557250977,
+        0.0
+      ],
+      "rotation": [
+        0.7071685194969177,
+        0.0,
+        0.0,
+        0.7070450186729431
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Light": {
+      "color": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "enableShadows": true,
+      "intensity": 15.0,
+      "spotCutoff": 0.699999988079071,
+      "tubeLength": 0.25,
+      "tubeRadius": 0.10000000149011612,
+      "type": 1
+    }
+  },
+  "2097153": {
+    "Physics Actor": {
+      "shapes": [
+        {
+          "halfExtents": [
+            0.4000000059604645,
+            1.0,
+            0.4000000059604645
+          ],
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "type": 1
+        }
+      ]
+    },
+    "RPG Stats": {
+      "currentHP": 500,
+      "level": 1,
+      "maxHP": 500,
+      "strength": 1,
+      "totalExperience": 0
+    },
+    "Stabbable": {},
+    "Transform": {
+      "position": [
+        0.0,
+        -0.9959126710891724,
+        0.5
+      ],
+      "rotation": [
+        0.0001721680018818006,
+        0.00024372388725169003,
+        1.1478533679110114e-07,
+        0.9999999403953552
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/turret/BaseHex.json",
+        "Materials/turret/YawPivot.json",
+        "Materials/turret/Gun.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json"
+      ],
+      "mesh": "Models/turret.wmdl",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "2097161": {
+    "AO Proxy": {
+      "bounds": [
+        0.25,
+        0.25,
+        0.25
+      ]
+    },
+    "Transform": {
+      "position": [
+        -0.1878732293844223,
+        -0.75,
+        -1.569380283355713
+      ],
+      "rotation": [
+        0.0,
+        -0.7071068286895752,
+        0.0,
+        0.7071067094802856
+      ],
+      "scale": [
+        0.25,
+        0.25,
+        0.25
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/crate.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json"
+      ],
+      "mesh": "Models/crate.wmdl",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  }
+}

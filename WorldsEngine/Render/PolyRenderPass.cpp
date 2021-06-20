@@ -315,7 +315,9 @@ namespace worlds {
             pm.cullMode(vk::CullModeFlagBits::eBack);
 
             if ((int)enableDepthPrepass)
-                pm.depthWriteEnable(false).depthTestEnable(true).depthCompareOp(vk::CompareOp::eEqual);
+                pm.depthWriteEnable(false)
+                  .depthTestEnable(true)
+                  .depthCompareOp(vk::CompareOp::eEqual);
             else
                 pm.depthWriteEnable(true).depthTestEnable(true).depthCompareOp(vk::CompareOp::eGreater);
 

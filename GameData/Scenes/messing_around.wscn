@@ -603,7 +603,7 @@
         "Materials/dev.json",
         "Materials/dev.json"
       ],
-      "mesh": "Models/steps.obj",
+      "mesh": "Models/steps.wmdl",
       "staticFlags": 0,
       "texScaleOffset": [
         2.0,
@@ -648,7 +648,7 @@
     },
     "World Object": {
       "materials": [
-        "Materials/glowred.json",
+        "Materials/Glowy/glowred.json",
         "Materials/dev.json",
         "Materials/dev.json",
         "Materials/dev.json",
@@ -681,7 +681,7 @@
         "Materials/dev.json",
         "Materials/dev.json"
       ],
-      "mesh": "Models/tube.obj",
+      "mesh": "Models/tube.wmdl",
       "staticFlags": 0,
       "texScaleOffset": [
         1.0,
@@ -726,7 +726,7 @@
     },
     "World Object": {
       "materials": [
-        "Materials/glowred.json",
+        "Materials/Glowy/glowred.json",
         "Materials/dev.json",
         "Materials/dev.json",
         "Materials/dev.json",
@@ -759,7 +759,7 @@
         "Materials/dev.json",
         "Materials/dev.json"
       ],
-      "mesh": "Models/tube.obj",
+      "mesh": "Models/tube.wmdl",
       "staticFlags": 0,
       "texScaleOffset": [
         1.0,
@@ -1131,6 +1131,425 @@
       "uvOverride": 4
     }
   },
+  "2097186": {
+    "Name Component": {
+      "name": "exit text"
+    },
+    "Transform": {
+      "position": [
+        4.0,
+        2.2366700172424316,
+        1.9991278648376465
+      ],
+      "rotation": [
+        -8.74227694680485e-08,
+        0.9999998211860657,
+        -8.742276236262114e-08,
+        7.642741013625873e-15
+      ],
+      "scale": [
+        0.9999885559082031,
+        1.0,
+        0.9999885559082031
+      ]
+    },
+    "World Text Component": {
+      "text": "<- Exit",
+      "textScale": 0.004000000189989805
+    }
+  },
+  "2097187": {
+    "Physics Actor": {
+      "shapes": [
+        {
+          "halfExtents": [
+            0.06660250574350357,
+            2.0059664249420166,
+            0.03548940271139145
+          ],
+          "position": [
+            0.0,
+            0.9924479722976685,
+            -0.3093707859516144
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            -0.0,
+            1.0
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.06660250574350357,
+            2.0059664249420166,
+            0.03548940271139145
+          ],
+          "position": [
+            0.0,
+            0.9924479722976685,
+            0.3093709945678711
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            -0.0,
+            1.0
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.02737736888229847,
+            0.02737736888229847,
+            0.2793455719947815
+          ],
+          "position": [
+            0.0,
+            -0.921290397644043,
+            -0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            -0.0,
+            1.0
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.02737736888229847,
+            0.02737736888229847,
+            0.2793455719947815
+          ],
+          "position": [
+            0.0,
+            -0.6512904167175293,
+            -0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            -0.0,
+            1.0
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.02737736888229847,
+            0.02737736888229847,
+            0.2793455719947815
+          ],
+          "position": [
+            0.0,
+            -0.38129040598869324,
+            -0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            -0.0,
+            1.0
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.02737736888229847,
+            0.02737736888229847,
+            0.2793455719947815
+          ],
+          "position": [
+            0.0,
+            -0.11129039525985718,
+            -0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            -0.0,
+            1.0
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.02737736888229847,
+            0.02737736888229847,
+            0.2793455719947815
+          ],
+          "position": [
+            0.0,
+            0.15870961546897888,
+            -0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            -0.0,
+            1.0
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.02737736888229847,
+            0.02737736888229847,
+            0.2793455719947815
+          ],
+          "position": [
+            0.0,
+            0.42870962619781494,
+            -0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            -0.0,
+            1.0
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.02737736888229847,
+            0.02737736888229847,
+            0.2793455719947815
+          ],
+          "position": [
+            0.0,
+            0.6987096071243286,
+            -0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            -0.0,
+            1.0
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.02737736888229847,
+            0.02737736888229847,
+            0.2793455719947815
+          ],
+          "position": [
+            0.0,
+            0.9687095880508423,
+            -0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            -0.0,
+            1.0
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.02737736888229847,
+            0.02737736888229847,
+            0.2793455719947815
+          ],
+          "position": [
+            0.0,
+            1.238709568977356,
+            -0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            -0.0,
+            1.0
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.02737736888229847,
+            0.02737736888229847,
+            0.2793455719947815
+          ],
+          "position": [
+            0.0,
+            1.5087095499038696,
+            -0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            -0.0,
+            1.0
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.02737736888229847,
+            0.02737736888229847,
+            0.2793455719947815
+          ],
+          "position": [
+            0.0,
+            1.7787095308303833,
+            -0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            -0.0,
+            1.0
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.02737736888229847,
+            0.02737736888229847,
+            0.2793455719947815
+          ],
+          "position": [
+            0.0,
+            2.0487096309661865,
+            -0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            -0.0,
+            1.0
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.02737736888229847,
+            0.02737736888229847,
+            0.2793455719947815
+          ],
+          "position": [
+            0.0,
+            2.3187096118927,
+            -0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            -0.0,
+            1.0
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.02737736888229847,
+            0.02737736888229847,
+            0.2793455719947815
+          ],
+          "position": [
+            0.0,
+            2.588709592819214,
+            -0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            -0.0,
+            1.0
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.02737736888229847,
+            0.02737736888229847,
+            0.2793455719947815
+          ],
+          "position": [
+            0.0,
+            2.8587095737457275,
+            -0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            -0.0,
+            1.0
+          ],
+          "type": 1
+        }
+      ]
+    },
+    "Transform": {
+      "position": [
+        8.399956703186035,
+        4.45026969909668,
+        -6.8211140632629395
+      ],
+      "rotation": [
+        -0.4999137818813324,
+        0.50008624792099,
+        0.5000867247581482,
+        0.4999133050441742
+      ],
+      "scale": [
+        1.5,
+        1.5,
+        1.5
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/Ladder/LadderSides.json",
+        "Materials/Ladder/LadderRungs.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json"
+      ],
+      "mesh": "Models/ladder.wmdl",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
   "3145729": {
     "Name Component": {
       "name": "Spawn Point"
@@ -1155,6 +1574,71 @@
         1.0,
         1.0
       ]
+    }
+  },
+  "3145774": {
+    "Transform": {
+      "position": [
+        9.182914733886719,
+        4.013937950134277,
+        -7.833548069000244
+      ],
+      "rotation": [
+        0.0,
+        0.7072292566299438,
+        0.0,
+        0.706984281539917
+      ],
+      "scale": [
+        0.009999999776482582,
+        0.009999999776482582,
+        0.009999999776482582
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/damaged_brick.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json"
+      ],
+      "mesh": "Models/damaged_brick.wmdl",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
     }
   },
   "4194304": {
@@ -1279,7 +1763,7 @@
     },
     "World Object": {
       "materials": [
-        "Materials/glowwhite.json",
+        "Materials/Glowy/glowwhite.json",
         "Materials/dev.json",
         "Materials/dev.json",
         "Materials/dev.json",
@@ -1312,7 +1796,7 @@
         "Materials/dev.json",
         "Materials/dev.json"
       ],
-      "mesh": "Models/tube.obj",
+      "mesh": "Models/tube.wmdl",
       "staticFlags": 0,
       "texScaleOffset": [
         1.0,
@@ -1442,15 +1926,15 @@
         2.0
       ],
       "rotation": [
-        -6.181727485454758e-08,
-        0.70710688829422,
+        0.0,
+        0.7071066498756409,
         -0.7071066498756409,
-        6.18172535382655e-08
+        0.0
       ],
       "scale": [
-        4.999996185302734,
-        1.9999967813491821,
-        1.9999967813491821
+        5.0,
+        2.0,
+        2.0
       ]
     },
     "World Object": {
@@ -1525,20 +2009,20 @@
     },
     "Transform": {
       "position": [
-        7.000000476837158,
+        7.0,
         2.0,
         2.0
       ],
       "rotation": [
-        0.00012203089136164635,
-        -0.7071065902709961,
-        0.7071069478988647,
-        0.00012202029029140249
+        0.0,
+        0.7071066498756409,
+        -0.7071066498756409,
+        0.0
       ],
       "scale": [
-        2.000000238418579,
         2.0,
-        1.9999430179595947
+        2.0,
+        2.0
       ]
     },
     "World Object": {
@@ -1741,7 +2225,7 @@
     },
     "World Object": {
       "materials": [
-        "Materials/glowwhite.json",
+        "Materials/Glowy/glowwhite.json",
         "Materials/dev.json",
         "Materials/dev.json",
         "Materials/dev.json",
@@ -1774,7 +2258,7 @@
         "Materials/dev.json",
         "Materials/dev.json"
       ],
-      "mesh": "Models/tube.obj",
+      "mesh": "Models/tube.wmdl",
       "staticFlags": 0,
       "texScaleOffset": [
         1.0,
@@ -1881,7 +2365,7 @@
         "Materials/dev.json",
         "Materials/dev.json"
       ],
-      "mesh": "Models/steps.obj",
+      "mesh": "Models/steps.wmdl",
       "staticFlags": 0,
       "texScaleOffset": [
         2.0,
@@ -2093,7 +2577,7 @@
     },
     "Transform": {
       "position": [
-        0.2736942768096924,
+        4.2783966064453125,
         0.2500000298023224,
         -0.7523702383041382
       ],
@@ -2145,6 +2629,71 @@
         "Materials/dev.json"
       ],
       "mesh": "Models/sphere.wmdl",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "8388645": {
+    "Transform": {
+      "position": [
+        4.882915019989014,
+        4.013937950134277,
+        -7.833548069000244
+      ],
+      "rotation": [
+        0.0,
+        0.7072292566299438,
+        0.0,
+        0.706984281539917
+      ],
+      "scale": [
+        0.009999999776482582,
+        0.009999999776482582,
+        0.009999999776482582
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/damaged_brick.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json"
+      ],
+      "mesh": "Models/damaged_brick.wmdl",
       "staticFlags": 0,
       "texScaleOffset": [
         1.0,
@@ -2427,7 +2976,7 @@
         "Materials/dev.json",
         "Materials/dev.json"
       ],
-      "mesh": "Models/steps.obj",
+      "mesh": "Models/steps.wmdl",
       "staticFlags": 0,
       "texScaleOffset": [
         2.0,

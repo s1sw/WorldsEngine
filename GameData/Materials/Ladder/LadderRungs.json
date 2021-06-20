@@ -1,8 +1,8 @@
 {
-	"albedoPath" : "Textures/Ladder/LadderRungs_BaseColor.png",
-	"normalMapPath" : "Textures/Ladder/LadderRungs_Normal_forcelin.png",
-	"pbrMapPath" : "Textures/Ladder/LadderRungs_PBRPack.png",
-	"metallic" : 1.0,
-	"roughness" : 0.2,
-	"albedoColor" : [1.0, 1.0, 1.0]
+    "albedoPath" : "Textures/Ladder/LadderRungs_BaseColor.wtex",
+    "pbrMapPath" : "Textures/Ladder/LadderRungs_PBRPack.wtex",
+    "normalMapPath" : "Textures/Ladder/LadderRungs_Normal_forcelin.wtex",
+    "metallic" : 1.000000,
+    "roughness" : 0.200000,
+    "albedoColor" : [1.000000, 1.000000, 1.000000]
 }

@@ -588,8 +588,8 @@ namespace worlds {
         AssetID grassMatId = AssetDB::pathToId("Materials/grass.json");
         AssetID devMatId = AssetDB::pathToId("Materials/dev.json");
 
-        AssetID modelId = AssetDB::pathToId("Models/cube.obj");
-        AssetID monkeyId = AssetDB::pathToId("Models/cube.obj");
+        AssetID modelId = AssetDB::pathToId("Models/cube.wmdl");
+        AssetID monkeyId = AssetDB::pathToId("Models/monkey.wmdl");
         renderer->preloadMesh(modelId);
         renderer->preloadMesh(monkeyId);
         createModelObject(registry, glm::vec3(0.0f, -2.0f, 0.0f), glm::quat(), modelId, grassMatId, glm::vec3(5.0f, 1.0f, 5.0f));
@@ -630,12 +630,6 @@ namespace worlds {
             while (evts.try_dequeue(evt)) {
                 inputManager->processEvent(evt);
 
-                if (ImGui::GetCurrentContext())
-                    ImGui_ImplSDL2_ProcessEvent(&evt);
-            }
-
-            // also get events from this thread because ImGUI uses them
-            while (SDL_PollEvent(&evt)) {
                 if (ImGui::GetCurrentContext())
                     ImGui_ImplSDL2_ProcessEvent(&evt);
             }
@@ -882,6 +876,8 @@ namespace worlds {
                     newHeight = h;
                 }
 
+                renderer->destroyRTTPass(screenRTTPass);
+
                 RTTPassCreateInfo screenRTTCI {
                     .width = static_cast<uint32_t>(newWidth),
                     .height = static_cast<uint32_t>(newHeight),
@@ -969,7 +965,7 @@ namespace worlds {
                         (double)totalUsage / 1024.0 / 1024.0,
                         (double)totalBlockBytes / 1024.0 / 1024.0,
                         (double)totalBudget / 1024.0 / 1024.0);
-                    ImGui::Text("Active RTT passes: %i", dbgStats.numRTTPasses);
+                    ImGui::Text("Active RTT passes: %i/%i", dbgStats.numActiveRTTPasses, dbgStats.numRTTPasses);
                     ImGui::Text("Time spent in renderer: %.3fms", (timeInfo.deltaTime - timeInfo.lastUpdateTime) * 1000.0);
                     ImGui::Text("GPU render time: %.3fms", renderer->getLastRenderTime() / 1000.0f / 1000.0f);
                     ImGui::Text("V-Sync status: %s", renderer->getVsync() ? "On" : "Off");
