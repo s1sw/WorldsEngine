@@ -686,7 +686,7 @@ namespace lg {
         pTransform.scale = glm::vec3{0.66f};
         registry.emplace<LocospherePlayerComponent>(playerLocosphere).isLocal = true;
         registry.emplace<worlds::NameComponent>(playerLocosphere, "Locosphere");
-        registry.emplace<worlds::WorldObject>(playerLocosphere, worlds::AssetDB::pathToId("Materials/dev.json"), worlds::AssetDB::pathToId("Models/Sphere.wmdl"));
+        registry.emplace<worlds::WorldObject>(playerLocosphere, worlds::AssetDB::pathToId("Materials/dev.json"), worlds::AssetDB::pathToId("Models/sphere.wmdl"));
 
         auto actor = worlds::g_physics->createRigidDynamic(physx::PxTransform{ worlds::glm2px(position), physx::PxQuat{physx::PxIdentity} });
         auto& wActor = registry.emplace<worlds::DynamicPhysicsActor>(playerLocosphere, actor);
