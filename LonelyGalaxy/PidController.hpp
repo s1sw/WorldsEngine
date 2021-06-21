@@ -106,18 +106,20 @@ namespace lg {
         }
     public:
         float P = 0.0f;
+        float I = 0.0f;
         float D = 0.0f;
+        float averageAmount = 0.0f;
 
         void acceptSettings(const PIDSettings& settings) {
             P = settings.P;
             D = settings.D;
         }
 
-        glm::vec3 getOutput(glm::vec3 currPos, glm::vec3 desiredPos, glm::vec3 velocity, float deltaTime, glm::vec3 refVel) {
+        glm::vec3 getOutput(glm::vec3 currPos, glm::vec3 desiredPos, glm::vec3 velocity, glm::vec3 referenceVelocity, float deltaTime) {
             glm::vec3 acceleration = velocity - lastVelocity;
 
-            glm::vec3 result = -P * (currPos + (deltaTime * velocity) - desiredPos) -
-                D * (velocity + (deltaTime * acceleration) - refVel);
+            glm::vec3 result = -P * (currPos + (deltaTime * velocity) - desiredPos) 
+                - D * (velocity - referenceVelocity + (deltaTime * acceleration));
 
             lastVelocity = velocity;
 

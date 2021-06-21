@@ -1,7 +1,7 @@
 {
-    "albedoPath" : "Textures/Platform/EngineShroud_BaseColor.png",
-    "pbrMapPath" : "Textures/Platform/EngineShroud_PBRPack.png",
-    "normalMapPath" : "Textures/Platform/EngineShroud_Normal_forcelin.png",
+    "albedoPath" : "Textures/Platform/EngineShroud_BaseColor.wtex",
+    "pbrMapPath" : "Textures/Platform/EngineShroud_PBRPack.wtex",
+    "normalMapPath" : "Textures/Platform/EngineShroud_Normal_forcelin.wtex",
     "metallic" : 1.000000,
     "roughness" : 0.200000,
     "albedoColor" : [1.000000, 1.000000, 1.000000]

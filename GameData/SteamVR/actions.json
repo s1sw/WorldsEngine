@@ -1,0 +1,94 @@
+{
+    "default_bindings": [
+        {
+            "controller_type": "knuckles",
+            "binding_url": "lg_binding_knuckles.json"
+        },
+        {
+            "controller_type": "vive_controller",
+            "binding_url": "lg_binding_vive.json"
+        }
+    ],
+    "actions": [
+        {
+            "name": "/actions/main/in/RightHand",
+            "type": "pose",
+            "requirement": "mandatory"
+        },
+        {
+            "name": "/actions/main/in/RightHand_Anim",
+            "type": "skeleton",
+            "skeleton": "/skeleton/hand/right",
+            "requirement": "mandatory"
+        },
+        {
+            "name": "/actions/main/in/LeftHand",
+            "type": "pose",
+            "requirement": "mandatory"
+        },
+        {
+            "name": "/actions/main/in/LeftHand_Anim",
+            "type": "skeleton",
+            "skeleton": "/skeleton/hand/left",
+            "requirement": "mandatory"
+        },
+        {
+            "name": "/actions/main/in/Movement",
+            "type": "vector2"
+        },
+        {
+            "name": "/actions/main/in/RStick",
+            "type": "vector2"
+        },
+        {
+            "name": "/actions/main/in/Sprint",
+            "type": "boolean"
+        },
+        {
+            "name": "/actions/main/in/Jump",
+            "type": "boolean"
+        },
+        {
+            "name": "/actions/main/in/GrabL",
+            "type": "boolean"
+        },
+        {
+            "name": "/actions/main/in/GrabR",
+            "type": "boolean"
+        },
+        {
+            "name": "/actions/main/in/TriggerL",
+            "type": "boolean"
+        },
+        {
+            "name": "/actions/main/in/TriggerR",
+            "type": "boolean"
+        }
+    ],
+    "action_sets": [
+        {
+            "name": "/actions/main",
+            "usage": "leftright"
+        }
+    ],
+    "localization": [
+        {
+            "language_tag": "en_us",
+
+            "/actions/main": "Lonely Galaxy Actions",
+
+            "/actions/main/in/Movement": "Movement",
+            "/actions/main/in/RightHand": "Right Hand",
+            "/actions/main/in/RightHand_Anim": "Right Hand Animation",
+            "/actions/main/in/LeftHand": "Left Hand",
+            "/actions/main/in/LeftHand_Anim": "Left Hand Animation",
+            "/actions/main/in/Sprint": "Sprint",
+            "/actions/main/in/Jump": "Jump",
+            "/actions/main/in/GrabL": "Left Grab",
+            "/actions/main/in/GrabR": "Right Grab",
+            "/actions/main/in/RStick": "Right Stick",
+            "/actions/main/in/TriggerL": "Left Trigger",
+            "/actions/main/in/TriggerR": "Right Trigger"
+        }
+    ]
+}

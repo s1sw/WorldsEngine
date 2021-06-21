@@ -42,15 +42,15 @@
     },
     "Transform": {
       "position": [
-        -2.6259474754333496,
-        1.3339793682098389,
-        3.4864766597747803
+        -2.9533143043518066,
+        1.9911763668060303,
+        3.8369996547698975
       ],
       "rotation": [
-        0.5113382339477539,
-        0.7167925238609314,
-        -0.2274533361196518,
-        0.41594067215919495
+        0.4210956394672394,
+        0.7335484623908997,
+        -0.2957022488117218,
+        0.444010466337204
       ],
       "scale": [
         1.0,
@@ -83,10 +83,10 @@
         -2.118274211883545
       ],
       "rotation": [
-        0.15876451134681702,
-        -0.5059419870376587,
-        0.5366528630256653,
-        0.6563690304756165
+        0.13550138473510742,
+        -0.48668721318244934,
+        0.5541750192642212,
+        0.6615625619888306
       ],
       "scale": [
         1.0,
@@ -597,6 +597,199 @@
       "uvOverride": 0
     }
   },
+  "1048598": {
+    "AO Proxy": {
+      "bounds": [
+        0.5,
+        0.10000000149011612,
+        0.5
+      ]
+    },
+    "Dynamic Physics Actor": {
+      "enableCCD": false,
+      "enableGravity": true,
+      "mass": 50.0,
+      "shapes": [
+        {
+          "halfExtents": [
+            1.0,
+            0.10766065865755081,
+            1.0
+          ],
+          "position": [
+            0.0,
+            0.09410034120082855,
+            -0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0,
+            0.9999998807907104
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.30840206146240234,
+            0.23779740929603577,
+            0.30840206146240234
+          ],
+          "position": [
+            9.685754776000977e-08,
+            -0.2539508640766144,
+            1.1920928955078125e-07
+          ],
+          "rotation": [
+            -7.450580596923828e-09,
+            0.0,
+            0.0,
+            0.9999997615814209
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.15539611876010895,
+            0.05985948070883751,
+            0.8030077219009399
+          ],
+          "position": [
+            0.8360826969146729,
+            -0.06296493113040924,
+            -0.0025770068168640137
+          ],
+          "rotation": [
+            -1.4901161193847656e-08,
+            0.0,
+            0.38662222027778625,
+            0.9222379922866821
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.15539611876010895,
+            0.05985948070883751,
+            0.7881923913955688
+          ],
+          "position": [
+            -0.8466018438339233,
+            -0.05393940955400467,
+            -0.002576589584350586
+          ],
+          "rotation": [
+            2.980232238769531e-07,
+            9.238719940185547e-07,
+            -0.9196134209632874,
+            -0.3928242027759552
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.15539611876010895,
+            0.05985948443412781,
+            0.7948834896087646
+          ],
+          "position": [
+            1.2516975402832031e-06,
+            -0.053943246603012085,
+            0.8466060161590576
+          ],
+          "rotation": [
+            0.6779506206512451,
+            -0.200957253575325,
+            -0.6799313426017761,
+            0.19414567947387695
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.15539611876010895,
+            0.05985948443412781,
+            0.7948834896087646
+          ],
+          "position": [
+            0.0,
+            -0.05394214391708374,
+            -0.8466029167175293
+          ],
+          "rotation": [
+            0.6366326212882996,
+            0.3077307641506195,
+            -0.6399420499801636,
+            -0.30078983306884766
+          ],
+          "type": 1
+        }
+      ]
+    },
+    "Transform": {
+      "position": [
+        -0.30075597763061523,
+        -0.5050667524337769,
+        3.3424129486083984
+      ],
+      "rotation": [
+        1.0,
+        -1.1175192909978106e-23,
+        5.5511091674253723e-17,
+        -4.4702460400003474e-08
+      ],
+      "scale": [
+        1.0000200271606445,
+        1.0000228881835938,
+        1.000000238418579
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/Platform/Platform.json",
+        "Materials/Platform/CentralSpikes.json",
+        "Materials/Platform/Engine.json",
+        "Materials/Platform/Engine.json",
+        "Materials/Platform/EngineShroud.json",
+        "Materials/Platform/PlasticEdgeThing.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json"
+      ],
+      "mesh": "Models/platform.wmdl",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
   "2": {
     "Name Component": {
       "name": "Top Light"
@@ -791,6 +984,199 @@
         "Materials/dev.json"
       ],
       "mesh": "Models/crate.wmdl",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "4194325": {
+    "AO Proxy": {
+      "bounds": [
+        0.5,
+        0.10000000149011612,
+        0.5
+      ]
+    },
+    "Dynamic Physics Actor": {
+      "enableCCD": false,
+      "enableGravity": true,
+      "mass": 50.0,
+      "shapes": [
+        {
+          "halfExtents": [
+            1.0,
+            0.10766065865755081,
+            1.0
+          ],
+          "position": [
+            0.0,
+            0.09410034120082855,
+            -0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0,
+            0.9999998807907104
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.30840206146240234,
+            0.23779740929603577,
+            0.30840206146240234
+          ],
+          "position": [
+            9.685754776000977e-08,
+            -0.2539508640766144,
+            1.1920928955078125e-07
+          ],
+          "rotation": [
+            -7.450580596923828e-09,
+            0.0,
+            0.0,
+            0.9999997615814209
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.15539611876010895,
+            0.05985948070883751,
+            0.8030077219009399
+          ],
+          "position": [
+            0.8360826969146729,
+            -0.06296493113040924,
+            -0.0025770068168640137
+          ],
+          "rotation": [
+            -1.4901161193847656e-08,
+            0.0,
+            0.38662222027778625,
+            0.9222379922866821
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.15539611876010895,
+            0.05985948070883751,
+            0.7881923913955688
+          ],
+          "position": [
+            -0.8466018438339233,
+            -0.05393940955400467,
+            -0.002576589584350586
+          ],
+          "rotation": [
+            2.980232238769531e-07,
+            9.238719940185547e-07,
+            -0.9196134209632874,
+            -0.3928242027759552
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.15539611876010895,
+            0.05985948443412781,
+            0.7948834896087646
+          ],
+          "position": [
+            1.2516975402832031e-06,
+            -0.053943246603012085,
+            0.8466060161590576
+          ],
+          "rotation": [
+            0.6779506206512451,
+            -0.200957253575325,
+            -0.6799313426017761,
+            0.19414567947387695
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.15539611876010895,
+            0.05985948443412781,
+            0.7948834896087646
+          ],
+          "position": [
+            0.0,
+            -0.05394214391708374,
+            -0.8466029167175293
+          ],
+          "rotation": [
+            0.6366326212882996,
+            0.3077307641506195,
+            -0.6399420499801636,
+            -0.30078983306884766
+          ],
+          "type": 1
+        }
+      ]
+    },
+    "Transform": {
+      "position": [
+        -0.30075597763061523,
+        -0.5050667524337769,
+        -3.1289408206939697
+      ],
+      "rotation": [
+        0.0,
+        -5.5511101600421074e-17,
+        0.0,
+        0.9999998807907104
+      ],
+      "scale": [
+        1.0000200271606445,
+        1.0000228881835938,
+        1.000000238418579
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/Platform/Platform.json",
+        "Materials/Platform/CentralSpikes.json",
+        "Materials/Platform/Engine.json",
+        "Materials/Platform/Engine.json",
+        "Materials/Platform/EngineShroud.json",
+        "Materials/Platform/PlasticEdgeThing.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json"
+      ],
+      "mesh": "Models/platform.wmdl",
       "staticFlags": 0,
       "texScaleOffset": [
         1.0,

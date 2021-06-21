@@ -643,7 +643,7 @@ namespace lg {
             physx::PxRigidBodyExt::setMassAndUpdateInertia(*rActor, 2.0f);
             physx::PxRigidBodyExt::setMassAndUpdateInertia(*lActor, 2.0f);
 
-            PIDSettings posSettings{ 750.0f, 600.0f, 137.0f };
+            PIDSettings posSettings{ 2250.0f, 600.0f, 70.0f };
             PIDSettings rotSettings{ 200.0f, 300.0f, 29.0f };
 
             auto& lHandPhys = registry.emplace<PhysHand>(lHandEnt);

@@ -109,7 +109,7 @@ namespace lg {
             physHand.lastRefVel = refVel;
             glm::vec3 vel = worlds::px2glm(body->getLinearVelocity());
 
-            glm::vec3 force = physHand.posController.getOutput(err * physHand.forceMultiplier, simStep);
+            glm::vec3 force = physHand.posController.getOutput(worlds::px2glm(t.p), physHand.targetWorldPos, vel, refVel, simStep);
             if (useHandLimits.getInt())
                 force = clampMagnitude(force, physHand.forceLimit);
 

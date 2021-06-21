@@ -1439,8 +1439,8 @@
     "World Object": {
       "materials": [
         "Materials/silver.json",
-        "Materials/saber_blade.json",
         "Materials/silver.json",
+        "Materials/saber_blade.json",
         "Materials/dev.json",
         "Materials/dev.json",
         "Materials/dev.json",
@@ -3159,8 +3159,8 @@
     "World Object": {
       "materials": [
         "Materials/silver.json",
-        "Materials/saber_blade.json",
         "Materials/silver.json",
+        "Materials/saber_blade.json",
         "Materials/dev.json",
         "Materials/dev.json",
         "Materials/dev.json",
