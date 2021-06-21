@@ -204,6 +204,7 @@ string getBaseDir() {
     return PHYSFS_getBaseDir();
 }
 
+[[deprecated]]
 string getUserDir() {
     return PHYSFS_getUserDir();
 }
@@ -216,6 +217,7 @@ void setWriteDir(const string& newDir) {
     PHYSFS_setWriteDir(newDir.c_str());
 }
 
+[[deprecated]]
 void removeFromSearchPath(const string& oldDir) {
     PHYSFS_removeFromSearchPath(oldDir.c_str());
 }
@@ -261,6 +263,7 @@ StringList enumerateFiles(const string& directory) {
     return files;
 }
 
+[[deprecated]]
 void enumerateFiles(const string& directory, EnumFilesCallback callback, void * extra) {
     PHYSFS_enumerateFilesCallback(directory.c_str(), callback, extra);
 }
@@ -269,14 +272,17 @@ bool exists(const string& filename) {
     return PHYSFS_exists(filename.c_str());
 }
 
+[[deprecated]]
 bool isDirectory(const string& filename) {
     return PHYSFS_isDirectory(filename.c_str());
 }
 
+[[deprecated]]
 bool isSymbolicLink(const string& filename) {
     return PHYSFS_isSymbolicLink(filename.c_str());
 }
 
+[[deprecated]]
 sint64 getLastModTime(const string& filename) {
     return PHYSFS_getLastModTime(filename.c_str());
 }

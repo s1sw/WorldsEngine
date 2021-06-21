@@ -25,16 +25,11 @@
 #include "../ComponentMeta/ComponentFuncs.hpp"
 #include "../Physics/D6Joint.hpp"
 #include <nlohmann/json.hpp>
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-#include <dwmapi.h>
-#include <windowsx.h>
 #undef near
 #undef far
 #include "../Audio/Audio.hpp"
 #include "../AssetCompilation/AssetCompilers.hpp"
 #include "AssetEditors.hpp"
-#include <SDL_syswm.h>
 
 namespace worlds {
     std::unordered_map<ENTT_ID_TYPE, ComponentEditor*> ComponentMetadataManager::metadata;
@@ -66,12 +61,6 @@ namespace worlds {
     void Editor::updateWindowTitle() {
         auto newTitle = generateWindowTitle();
         SDL_SetWindowTitle(interfaces.engine->getMainWindow(), newTitle.c_str());
-
-        SDL_SysWMinfo info;
-        SDL_GetWindowWMInfo(interfaces.engine->getMainWindow(), &info);
-        MARGINS shadow_state{ 1, 1, 1, 1 };
-        //DwmExtendFrameIntoClientArea(info.info.win.window, &shadow_state);
-        //SetWindowPos(info.info.win.window, NULL, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER);
     }
 
     SDL_HitTestResult hitTest(SDL_Window* win, const SDL_Point* p, void* v) {
@@ -137,22 +126,6 @@ namespace worlds {
         ComponentMetadataManager::setupLookup();
         interfaces.engine->pauseSim = true;
 
-        RTTPassCreateInfo sceneViewPassCI {
-            .cam = &cam,
-            .width = 1600,
-            .height = 900,
-            .isVr = false,
-            .useForPicking = true,
-            .enableShadows = true,
-            .outputToScreen = false
-        };
-        sceneViewPass = interfaces.renderer->createRTTPass(sceneViewPassCI);
-
-        auto vkCtx = interfaces.renderer->getHandles();
-
-        sceneViewDS = VKImGUIUtil::createDescriptorSetFor(
-            sceneViewPass->sdrFinalTarget->image, vkCtx);
-
 #define ADD_EDITOR_WINDOW(type) editorWindows.push_back(std::make_unique<type>(interfaces, this))
 
         ADD_EDITOR_WINDOW(EntityList);
@@ -175,6 +148,7 @@ namespace worlds {
         SDL_SetWindowResizable(window, SDL_TRUE);
         SDL_SetWindowHitTest(window, hitTest, nullptr);
         SDL_SetWindowOpacity(window, 1.0f);
+        sceneViews.push_back(new EditorSceneView {interfaces, this});
     }
 
 #undef REGISTER_COMPONENT_TYPE
@@ -466,146 +440,12 @@ namespace worlds {
         }
     }
 
-    void Editor::sceneWindow() {
-        static ImVec2 currentSceneViewSize = ImVec2(0.0f, 0.0f);
-
-        static ConVar noScenePad("editor_disableScenePad", "0");
-
-        if (noScenePad)
-            ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
-
-        ImGui::SetNextWindowSizeConstraints(ImVec2(256.0f, 256.0f), ImVec2(FLT_MAX, FLT_MAX));
-        if (ImGui::Begin(ICON_FA_MAP u8" Scene")) {
-            sceneViewPass->active = active;
-            ImVec2 contentRegion = ImGui::GetContentRegionAvail();
-
-            if ((contentRegion.x != currentSceneViewSize.x || contentRegion.y != currentSceneViewSize.y)
-                && contentRegion.x > 256 && contentRegion.y > 256) {
-                auto vkCtx = interfaces.renderer->getHandles();
-                // resize!
-                currentSceneViewSize = contentRegion;
-                interfaces.renderer->destroyRTTPass(sceneViewPass);
-
-                RTTPassCreateInfo sceneViewPassCI {
-                    .cam = &cam,
-                    .width = static_cast<uint32_t>(contentRegion.x),
-                    .height = static_cast<uint32_t>(contentRegion.y),
-                    .isVr = false,
-                    .useForPicking = true,
-                    .enableShadows = true,
-                    .outputToScreen = false
-                };
-                sceneViewPass = interfaces.renderer->createRTTPass(sceneViewPassCI);
-                vkCtx->device.freeDescriptorSets(vkCtx->descriptorPool, { sceneViewDS });
-
-                sceneViewDS = VKImGUIUtil::createDescriptorSetFor(
-                    sceneViewPass->sdrFinalTarget->image, vkCtx);
-                sceneViewPass->active = true;
-            }
-
-            auto wSize = ImGui::GetContentRegionAvail();
-
-            ImGui::Image((ImTextureID)sceneViewDS, ImVec2(currentSceneViewSize.x, currentSceneViewSize.y));
-
-            auto wPos = ImGui::GetWindowPos() + ImGui::GetCursorStartPos();
-            auto mPos = ImGui::GetIO().MousePos;
-            auto localMPos = mPos - wPos;
-
-            if (reg.valid(currentSelectedEntity)) {
-                auto& selectedTransform = reg.get<Transform>(currentSelectedEntity);
-                auto& t = handleOverriden ? *overrideTransform : selectedTransform;
-                handleTools(t, wPos, wSize);
-
-                if (inputManager.ctrlHeld() &&
-                    inputManager.keyPressed(SDL_SCANCODE_D) &&
-                    !inputManager.mouseButtonHeld(MouseButton::Right, true)) {
-                    if (reg.valid(currentSelectedEntity)) {
-                        auto newEnt = reg.create();
-
-                        for (auto& ed : ComponentMetadataManager::sorted) {
-                            std::array<ENTT_ID_TYPE, 1> t { ed->getComponentID() };
-                            auto rtView = reg.runtime_view(t.begin(), t.end());
-                            if (!rtView.contains(currentSelectedEntity))
-                                continue;
-
-                            ed->clone(currentSelectedEntity, newEnt, reg);
-                        }
-
-                        select(newEnt);
-                        activateTool(Tool::Translate);
-
-                        slib::List<entt::entity> multiSelectEnts;
-                        slib::List<entt::entity> tempEnts = selectedEntities;
-
-                        for (auto ent : selectedEntities) {
-                            auto newMultiEnt = reg.create();
-
-                            for (auto& ed : ComponentMetadataManager::sorted) {
-                                std::array<ENTT_ID_TYPE, 1> t { ed->getComponentID() };
-                                auto rtView = reg.runtime_view(t.begin(), t.end());
-                                if (!rtView.contains(ent))
-                                    continue;
-
-                                ed->clone(ent, newMultiEnt, reg);
-                            }
-
-                            multiSelectEnts.add(newMultiEnt);
-                        }
-
-                        for (auto ent : tempEnts) {
-                            multiSelect(ent);
-                        }
-
-                        for (auto ent : multiSelectEnts) {
-                            multiSelect(ent);
-                        }
-                        undo.pushState(reg);
-                    }
-                }
-
-                if (inputManager.keyPressed(SDL_SCANCODE_DELETE)) {
-                    activateTool(Tool::None);
-                    reg.destroy(currentSelectedEntity);
-                    currentSelectedEntity = entt::null;
-                    undo.pushState(reg);
-
-                    for (auto ent : selectedEntities) {
-                        reg.destroy(ent);
-                    }
-
-                    selectedEntities.clear();
-                }
-            }
-
-            if (ImGui::IsWindowHovered() && !ImGuizmo::IsUsing()) {
-                if (inputManager.mouseButtonPressed(MouseButton::Left, true)) {
-                    sceneViewPass->requestPick((int)localMPos.x, (int)localMPos.y);
-                }
-
-                uint32_t picked;
-                if (sceneViewPass->getPickResult(&picked)) {
-                    if (picked == UINT32_MAX)
-                        picked = entt::null;
-
-                    if (!inputManager.shiftHeld()) {
-                        select((entt::entity)picked);
-                    } else {
-                        multiSelect((entt::entity)picked);
-                    }
-                }
-            }
-        } else {
-            sceneViewPass->active = false;
-        }
-        ImGui::End();
-
-        if (noScenePad)
-            ImGui::PopStyleVar();
-    }
-
     void Editor::update(float deltaTime) {
         if (!active) {
-            sceneViewPass->active = false;
+            for (EditorSceneView* esv : sceneViews) {
+                esv->setViewportActive(false);
+            }
+
             AudioSystem::getInstance()->setPauseState(false);
             if (inputManager.keyPressed(SDL_SCANCODE_P, true) && inputManager.ctrlHeld() && !inputManager.shiftHeld())
                 g_console->executeCommandStr("reloadAndEdit");
@@ -624,6 +464,9 @@ namespace worlds {
                 ImGui::EndMainMenuBar();
             }
             return;
+        }
+        for (EditorSceneView* esv : sceneViews) {
+            esv->setViewportActive(true);
         }
         AudioSystem::getInstance()->setPauseState(true);
         handleOverriden = false;
@@ -683,8 +526,11 @@ namespace worlds {
             float fov = glm::degrees(cam.verticalFOV);
             ImGui::InputFloat("Camera FOV", &fov);
             cam.verticalFOV = glm::radians(fov);
-            ImGuiViewport* vp = ImGui::GetMainViewport();
-            ImGui::Text("vp->Size: %f, %f", vp->Size.x, vp->Size.y);
+            if (ImGui::Checkbox("Shadows", &settings.enableShadows)) {
+                for (EditorSceneView* esv : sceneViews) {
+                    esv->setShadowsEnabled(settings.enableShadows);
+                }
+            }
         }
         ImGui::End();
 
@@ -696,7 +542,9 @@ namespace worlds {
             }
         }
 
-        sceneWindow();
+        for (EditorSceneView* sceneView : sceneViews) {
+            sceneView->drawWindow();
+        }
 
         if (inputManager.keyPressed(SDL_SCANCODE_S) && inputManager.ctrlHeld()) {
             if (interfaces.engine->getCurrentSceneInfo().id != ~0u && !inputManager.shiftHeld()) {

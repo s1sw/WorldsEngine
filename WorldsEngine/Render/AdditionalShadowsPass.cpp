@@ -4,6 +4,8 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 namespace worlds {
+    ConVar enableSpotShadows { "r_enableSpotShadows", "1" };
+
     AdditionalShadowsPass::AdditionalShadowsPass(VulkanHandles* handles) : handles(handles) {
     }
 
@@ -76,14 +78,14 @@ namespace worlds {
 
         uint32_t shadowIdx = 0;
         ctx.registry.view<WorldLight, Transform>().each([&](WorldLight& light, Transform& t) {
-            if (light.enableShadows) {
+            if (light.enableShadows && enableSpotShadows.getInt()) {
                 light.shadowmapIdx = shadowIdx;
                 renderIdx[shadowIdx] = true;
                 Camera shadowCam;
                 shadowCam.position = t.position;
                 shadowCam.rotation = t.rotation;
                 shadowCam.verticalFOV = glm::radians(90.f);
-                shadowMatrices[shadowIdx] = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 100.0f) * shadowCam.getViewMatrix(); 
+                shadowMatrices[shadowIdx] = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 100.0f) * shadowCam.getViewMatrix();
                 shadowIdx++;
             } else {
                 light.shadowmapIdx = ~0u;

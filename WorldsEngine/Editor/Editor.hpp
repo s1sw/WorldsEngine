@@ -70,6 +70,7 @@ namespace worlds {
         bool objectSnapGlobal = false;
         float snapIncrement = 0.1f;
         float angularSnapIncrement = 15.0f;
+        bool enableShadows = true;
     };
 
     class Editor;
@@ -111,6 +112,26 @@ namespace worlds {
         uint32_t currentPos = 0;
     };
 
+    class EditorSceneView {
+    public:
+        EditorSceneView(EngineInterfaces interfaces, Editor* ed);
+        void drawWindow();
+        void recreateRTT();
+        void setShadowsEnabled(bool enabled);
+        void setViewportActive(bool active);
+        bool open = true;
+        ~EditorSceneView();
+    private:
+        uint32_t currentWidth, currentHeight;
+        VkDescriptorSet sceneViewDS = nullptr;
+        RTTPass* sceneViewPass = nullptr;
+        Camera* cam;
+        EngineInterfaces interfaces;
+        Editor* ed;
+        bool shadowsEnabled;
+        bool viewportActive = true;
+    };
+
     class Editor {
     public:
         Editor(entt::registry& reg, EngineInterfaces interfaces);
@@ -119,13 +140,13 @@ namespace worlds {
         void update(float deltaTime);
         void activateTool(Tool newTool);
         entt::entity getSelectedEntity() { return currentSelectedEntity; }
+        const slib::List<entt::entity> getSelectedEntities() const { return selectedEntities; }
         UITextureManager* texManager() { return texMan; }
         EditorUndo undo;
         bool active = true;
         void overrideHandle(Transform* t);
         AssetID currentSelectedAsset;
     private:
-        void sceneWindow();
         void handleTools(Transform& t, ImVec2 wPos, ImVec2 wSize);
         void updateCamera(float deltaTime);
         std::string generateWindowTitle();
@@ -149,9 +170,10 @@ namespace worlds {
         EditorSettings settings;
         EngineInterfaces interfaces;
         InputManager& inputManager;
-        RTTPass* sceneViewPass;
         std::vector<std::unique_ptr<EditorWindow>> editorWindows;
-        VkDescriptorSet sceneViewDS;
+        std::vector<EditorSceneView*> sceneViews;
+
+        friend class EditorSceneView;
     };
 }
 

@@ -16,17 +16,6 @@
 #include <Libs/pcg_basic.h>
 
 namespace lg {
-    class NullPhysXCallback : public physx::PxRaycastCallback {
-    public:
-        NullPhysXCallback() : physx::PxRaycastCallback{ nullptr, 0 } {
-
-        }
-
-        physx::PxAgain processTouches(const physx::PxRaycastHit*, physx::PxU32) override {
-            return false;
-        }
-    };
-
     entt::entity getActorEntity(physx::PxRigidActor* actor) {
         return (entt::entity)(uint32_t)(uintptr_t)actor->userData;
     }
@@ -524,8 +513,9 @@ namespace lg {
 
             currVel = worlds::px2glm(locosphereActor->getAngularVelocity());
 
-            NullPhysXCallback nullCallback{};
-            lpc.grounded = worlds::g_scene->raycast(worlds::glm2px(locosphereTransform.position - glm::vec3(0.0f, LOCOSPHERE_RADIUS - 0.01f, 0.0f)), physx::PxVec3{ 0.0f, -1.0f, 0.0f }, LOCOSPHERE_RADIUS, nullCallback, physx::PxHitFlag::eDEFAULT, physx::PxQueryFilterData{ physx::PxQueryFlag::ePOSTFILTER | physx::PxQueryFlag::eDYNAMIC | physx::PxQueryFlag::eSTATIC }, &filterEnt);
+            lpc.grounded = worlds::raycast(
+                locosphereTransform.position - glm::vec3(0.0f, LOCOSPHERE_RADIUS - 0.01f, 0.0f),
+                glm::vec3(0.0f, -1.0f, 0.0f), LOCOSPHERE_RADIUS, nullptr, worlds::PLAYER_PHYSICS_LAYER);
 
             glm::vec3 currLinVel = worlds::px2glm(locosphereActor->getLinearVelocity());
 
