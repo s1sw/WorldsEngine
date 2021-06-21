@@ -1,4 +1,5 @@
 worlds_sources += [
+  'Editor/EditorSceneView.cpp',
   'Editor/DefaultUITheme.cpp',
   'Editor/UITextureManager.cpp',
   'Editor/EditorUndo.cpp',

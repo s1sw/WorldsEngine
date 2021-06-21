@@ -613,7 +613,7 @@ namespace worlds {
                 };
             }
 
-            if (l.enableShadows) {
+            if (l.enableShadows && l.shadowmapIdx != ~0u) {
                 Camera shadowCam;
                 shadowCam.position = transform.position;
                 shadowCam.rotation = transform.rotation;

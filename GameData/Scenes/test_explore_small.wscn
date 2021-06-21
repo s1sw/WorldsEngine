@@ -4863,11 +4863,11 @@
         "Materials/dev.json",
         "Materials/dev.json"
       ],
-      "mesh": "Models/test_guy.obj",
+      "mesh": "Models/testguy.wmdl",
       "staticFlags": 0,
       "texScaleOffset": [
-        4.0,
-        4.0,
+        1.0,
+        1.0,
         0.0,
         0.0
       ],
@@ -5064,7 +5064,7 @@
         4.0
       ],
       "rotation": [
-        -0.0,
+        0.0,
         0.9999998211860657,
         8.742276236262114e-08,
         0.0
@@ -5110,7 +5110,7 @@
         "Materials/dev.json",
         "Materials/dev.json"
       ],
-      "mesh": "Models/test_guy.obj",
+      "mesh": "Models/testguy.wmdl",
       "staticFlags": 0,
       "texScaleOffset": [
         1.0,
