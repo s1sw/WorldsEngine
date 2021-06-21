@@ -158,7 +158,7 @@ namespace worlds {
                     slib::Path p{assetContextMenu.c_str()};
                     auto ext = p.fileExtension();
 
-                    if (ext == ".png") {
+                    if (ext == ".png" || ext == ".jpg") {
                         if (ImGui::Button("Create corresponding wtex")) {
                             std::string path = assetContextMenu;
                             std::string removeStr = "Raw/";

@@ -128,7 +128,7 @@ namespace worlds {
         Camera* cam;
         EngineInterfaces interfaces;
         Editor* ed;
-        bool shadowsEnabled;
+        bool shadowsEnabled = true;
         bool viewportActive = true;
     };
 

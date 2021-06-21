@@ -19,7 +19,8 @@ namespace lg {
     struct PhysHand {
         glm::vec3 targetWorldPos;
         glm::quat targetWorldRot;
-        V3PidController posController;
+        //V3PidController posController;
+        StableHandPD posController;
         V3PidController rotController;
         glm::vec3 lastRefVel { 0.0f };
 

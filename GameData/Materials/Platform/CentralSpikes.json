@@ -1,7 +1,7 @@
 {
-    "albedoPath" : "Textures/Platform/CentralSpikes_BaseColor.png",
-    "pbrMapPath" : "Textures/Platform/CentralSpikes_PBRPack.png",
-    "normalMapPath" : "Textures/Platform/CentralSpikes_Normal_forcelin.png",
+    "albedoPath" : "Textures/Platform/CentralSpikes_BaseColor.wtex",
+    "pbrMapPath" : "Textures/Platform/CentralSpikes_PBRPack.wtex",
+    "normalMapPath" : "Textures/Platform/CentralSpikes_Normal_forcelin.wtex",
     "metallic" : 1.000000,
     "roughness" : 0.200000,
     "albedoColor" : [1.000000, 1.000000, 1.000000]
