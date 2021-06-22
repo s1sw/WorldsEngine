@@ -298,6 +298,7 @@ namespace worlds {
 
         auto& sc = reg.get<ScriptComponent>(scriptEnt);
         auto modStr = getModuleString(scriptEnt, sc.script);
+        if (!wrenHasModule(vm, modStr.c_str())) return;
         wrenGetVariable(vm, modStr.c_str(), name, 0);
 
         if (wrenGetSlotType(vm, 0) == WREN_TYPE_NULL) {
