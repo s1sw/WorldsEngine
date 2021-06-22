@@ -4799,6 +4799,9 @@
         }
       ]
     },
+    "Grabbable": {
+      "grips": []
+    },
     "Physics Sound": {
       "soundPath": "Audio/SFX/Impacts/Misc/squeaky_toy.ogg"
     },
@@ -5045,6 +5048,9 @@
           "type": 1
         }
       ]
+    },
+    "Grabbable": {
+      "grips": []
     },
     "Physics Sound": {
       "soundPath": "Audio/SFX/Impacts/Misc/squeaky_toy.ogg"

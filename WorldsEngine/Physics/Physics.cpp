@@ -265,8 +265,10 @@ namespace worlds {
         desc.gravity = physx::PxVec3(0.0f, -9.81f, 0.0f);
         desc.cpuDispatcher = physx::PxDefaultCpuDispatcherCreate(std::max(SDL_GetCPUCount() - 2, 1));
         desc.filterShader = filterShader;
-        desc.solverType = physx::PxSolverType::ePGS;
-        desc.flags = PxSceneFlag::eENABLE_CCD | PxSceneFlag::eENABLE_PCM | PxSceneFlag::eENABLE_STABILIZATION;
+        desc.solverType = physx::PxSolverType::eTGS;
+        desc.flags = PxSceneFlag::eENABLE_CCD
+                   | PxSceneFlag::eENABLE_PCM
+                   | PxSceneFlag::eENABLE_STABILIZATION;
         g_scene = g_physics->createScene(desc);
 
         simCallback = new SimulationCallback(reg);

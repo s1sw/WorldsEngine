@@ -54,7 +54,6 @@ namespace lg {
         void shutdown(entt::registry& registry) override;
         static PlayerRig createPlayerRig(entt::registry& registry, glm::vec3 position = {0.0f, 5.0f, 0.0f});
     private:
-        void updatePlayerSounds(entt::entity locosphereEnt, float deltaTime);
         void onPlayerConstruct(entt::registry& reg, entt::entity ent);
         void onPlayerDestroy(entt::registry& reg, entt::entity ent);
         glm::vec3 calcHeadbobPosition(glm::vec3 desiredVel, glm::vec3 camPos, float deltaTime, bool grounded);

@@ -478,6 +478,18 @@ namespace worlds {
             }, "reloadContent", "Reloads all content.");
 
             console->registerCommand([&](void*, const char*) {
+                renderer->reloadContent(ReloadFlags::Textures);
+            }, "reloadTextures", "Reloads textures.");
+
+            console->registerCommand([&](void*, const char*) {
+                renderer->reloadContent(ReloadFlags::Materials);
+            }, "reloadMaterials", "Reloads materials.");
+
+            console->registerCommand([&](void*, const char*) {
+                renderer->reloadContent(ReloadFlags::Meshes);
+            }, "reloadMeshes", "Reloads meshes.");
+
+            console->registerCommand([&](void*, const char*) {
                 renderer->reloadContent(ReloadFlags::Cubemaps);
             }, "reloadCubemaps", "Reloads cubemaps.", nullptr);
         }
