@@ -1,7 +1,7 @@
 {
-    "albedoPath" : "Textures/ceilingbit/Pipe_BaseColor.wtex",
-    "pbrMapPath" : "Textures/ceilingbit/Pipe_PBRPack.wtex",
-    "normalMapPath" : "Textures/ceilingbit/Pipe_Normal_forcelin.wtex",
+    "albedoPath" : "Textures/CeilingBit/Pipe_BaseColor.wtex",
+    "pbrMapPath" : "Textures/CeilingBit/Pipe_PBRPack.wtex",
+    "normalMapPath" : "Textures/CeilingBit/Pipe_Normal_forcelin.wtex",
     "metallic" : 1.000000,
     "roughness" : 0.200000,
     "albedoColor" : [1.000000, 1.000000, 1.000000]

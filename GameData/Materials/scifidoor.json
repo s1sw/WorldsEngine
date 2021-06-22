@@ -1,8 +1,8 @@
 {
-    "albedoPath" : "Textures/scifidoor/albedo.wtex",
-    "pbrMapPath" : "Textures/scifidoor/PBRPack.wtex",
-    "normalMapPath" : "Textures/scifidoor/norm_forcelin.wtex",
-    "heightmapPath" : "Textures/scifidoor/height.wtex",
+    "albedoPath" : "Textures/ScifiDoor/albedo.wtex",
+    "pbrMapPath" : "Textures/ScifiDoor/PBRPack.wtex",
+    "normalMapPath" : "Textures/ScifiDoor/norm_forcelin.wtex",
+    "heightmapPath" : "Textures/ScifiDoor/height.wtex",
     "heightmapScale" : 0.050000,
     "metallic" : 0.000000,
     "roughness" : 1.000000,

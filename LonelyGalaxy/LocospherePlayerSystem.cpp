@@ -11,6 +11,7 @@
 #include "MathsUtil.hpp"
 #include <Util/CreateModelObject.hpp>
 #include "DebugArrow.hpp"
+#include "PlayerSoundComponent.hpp"
 #include <Physics/D6Joint.hpp>
 #include <Audio/Audio.hpp>
 #include <Libs/pcg_basic.h>
@@ -63,12 +64,6 @@ namespace lg {
     };
 
     std::unordered_map<entt::entity, LocosphereDebugInfo> locosphereDebug;
-    std::vector<worlds::AssetID> footstepSounds;
-    worlds::AssetID jumpSound;
-    worlds::AssetID landSound;
-    std::vector<worlds::AssetID> doubleJumpSounds;
-    worlds::AssetID wallJumpSound;
-    pcg32_random_t rng;
 
     LocospherePlayerSystem::LocospherePlayerSystem(worlds::EngineInterfaces interfaces, entt::registry& registry)
         : vrInterface{ interfaces.vrInterface }
@@ -82,21 +77,6 @@ namespace lg {
 
         auto onDestroy = registry.on_destroy<LocospherePlayerComponent>();
         onDestroy.connect<&LocospherePlayerSystem::onPlayerDestroy>(*this);
-
-        for (int i = 1; i <= 10; i++) {
-            footstepSounds.push_back(worlds::AssetDB::pathToId("Audio/SFX/Footsteps/Concrete/step" + std::string(i < 10 ? "0" : "") + std::to_string(i) + ".ogg"));
-        }
-
-        jumpSound = worlds::AssetDB::pathToId("Audio/SFX/Player/jump.ogg");
-        landSound = worlds::AssetDB::pathToId("Audio/SFX/Footsteps/Concrete/land.ogg");
-
-        std::string baseDblJumpPath = "Audio/SFX/Player/double_jump";
-        doubleJumpSounds.push_back(worlds::AssetDB::pathToId(baseDblJumpPath + ".ogg"));
-        doubleJumpSounds.push_back(worlds::AssetDB::pathToId(baseDblJumpPath + "2.ogg"));
-        doubleJumpSounds.push_back(worlds::AssetDB::pathToId(baseDblJumpPath + "3.ogg"));
-
-        wallJumpSound = worlds::AssetDB::pathToId("Audio/SFX/Player/wall_jump.ogg");
-        pcg32_srandom_r(&rng, 135u, 3151u);
     }
 
     void LocospherePlayerSystem::onPlayerConstruct(entt::registry&, entt::entity ent) {
@@ -105,79 +85,6 @@ namespace lg {
 
     void LocospherePlayerSystem::onPlayerDestroy(entt::registry&, entt::entity ent) {
         locosphereDebug.erase(ent);
-    }
-
-    void LocospherePlayerSystem::updatePlayerSounds(entt::entity locosphereEnt,
-            float deltaTime) {
-        auto& lpc = registry.get<LocospherePlayerComponent>(locosphereEnt);
-        static float timeSinceLastJump = 0.0f;
-        static bool groundedLast = false;
-        static bool dblJumpUsedLast = false;
-
-        timeSinceLastJump += deltaTime;
-
-        bool jump = vrInterface ? vrInterface->getJumpInput() : inputManager->keyPressed(SDL_SCANCODE_SPACE);
-
-        if (jump && timeSinceLastJump > 0.2f) {
-            auto& t = registry.get<Transform>(locosphereEnt);
-            lpc.jump = true;
-            timeSinceLastJump = 0.0f;
-            if (lpc.grounded) {
-                worlds::AudioSystem::getInstance()->playOneShotClip(jumpSound, t.position, false, 0.6f);
-            } else if (lpc.canWallJump) {
-                worlds::AudioSystem::getInstance()->playOneShotClip(wallJumpSound, t.position, false, 0.6f);
-            }
-        }
-
-        if (!dblJumpUsedLast && lpc.doubleJumpUsed) {
-            auto& t = registry.get<Transform>(locosphereEnt);
-            static int lastSoundIdx = 0;
-            int soundIdx = 0;
-            while (lastSoundIdx == soundIdx) soundIdx = pcg32_boundedrand_r(&rng, doubleJumpSounds.size());
-            lastSoundIdx = soundIdx;
-            worlds::AudioSystem::getInstance()->playOneShotClip(doubleJumpSounds[soundIdx], t.position, false, 0.25f);
-        }
-
-        if (!groundedLast && lpc.grounded) {
-            auto& t = registry.get<Transform>(locosphereEnt);
-            worlds::AudioSystem::getInstance()->playOneShotClip(landSound, t.position, false, 0.5f);
-        }
-
-        dblJumpUsedLast = lpc.doubleJumpUsed;
-        groundedLast = lpc.grounded;
-
-        static float stepTimer = 0.0f;
-
-        if (lpc.grounded) {
-            float inputMagnitude = glm::length(lpc.xzMoveInput);
-            inputMagnitude *= lpc.sprint ? 1.5f : 1.0f;
-            stepTimer += inputMagnitude * deltaTime * 2.0f;
-        }
-
-        if (stepTimer >= 1.0f) {
-            auto& locosphereTransform = registry.get<Transform>(locosphereEnt);
-
-            // make sure we don't repeat either the last sound or the sound before that
-            static int lastSoundIdx = 0;
-            static int lastLastSoundIdx = 0;
-            int soundIdx = 0;
-
-            // just keep generating numbers until we get an index
-            // meeting that criteria
-            while (lastSoundIdx == soundIdx || soundIdx == lastLastSoundIdx)
-                soundIdx = pcg32_boundedrand_r(&rng, footstepSounds.size());
-
-            lastLastSoundIdx = lastSoundIdx;
-            lastSoundIdx = soundIdx;
-
-            worlds::AudioSystem::getInstance()->playOneShotClip(
-                footstepSounds[soundIdx],
-                locosphereTransform.position,
-                false, 0.5f
-            );
-
-            stepTimer = 0.0f;
-        }
     }
 
     glm::vec3 LocospherePlayerSystem::calcHeadbobPosition(glm::vec3 desiredVel, glm::vec3 camPos, float deltaTime, bool grounded) {
@@ -339,8 +246,6 @@ namespace lg {
         localLpc.xzMoveInput = glm::vec2 { desiredVel.x, desiredVel.z };
 
         localLpc.sprint = (vrInterface && vrInterface->getSprintInput()) || (inputManager->keyHeld(SDL_SCANCODE_LSHIFT));
-
-        updatePlayerSounds(localLocosphereEnt, deltaTime);
 
         if (drawDbgArrows.getInt()) {
             auto& llstf = registry.get<Transform>(localLocosphereEnt);
@@ -683,10 +588,14 @@ namespace lg {
         auto playerLocosphere = registry.create();
         auto& pTransform = registry.emplace<Transform>(playerLocosphere);
         pTransform.position = position;
+
+        // This is roughly the correct scaling to make the sphere model accurate to colliders
         pTransform.scale = glm::vec3{0.66f};
+
         registry.emplace<LocospherePlayerComponent>(playerLocosphere).isLocal = true;
         registry.emplace<worlds::NameComponent>(playerLocosphere, "Locosphere");
         registry.emplace<worlds::WorldObject>(playerLocosphere, worlds::AssetDB::pathToId("Materials/dev.json"), worlds::AssetDB::pathToId("Models/sphere.wmdl"));
+        registry.emplace<PlayerSoundComponent>(playerLocosphere);
 
         auto actor = worlds::g_physics->createRigidDynamic(physx::PxTransform{ worlds::glm2px(position), physx::PxQuat{physx::PxIdentity} });
         auto& wActor = registry.emplace<worlds::DynamicPhysicsActor>(playerLocosphere, actor);
