@@ -528,7 +528,7 @@ namespace lg {
         });
 
         if (!registry.valid(localLocosphereEnt)) {
-            // probably dedicated server ??\_(???)_/??
+            // probably dedicated server
             return;
         }
 
@@ -582,7 +582,6 @@ namespace lg {
             auto devMatId = worlds::AssetDB::pathToId("Materials/dev.json");
             auto lHandModel = worlds::AssetDB::pathToId("Models/VRHands/hand_placeholder_l.wmdl");
             auto rHandModel = worlds::AssetDB::pathToId("Models/VRHands/hand_placeholder_r.wmdl");
-
 
             //headPlaceholder = registry.create();
             //registry.emplace<Transform>(headPlaceholder);

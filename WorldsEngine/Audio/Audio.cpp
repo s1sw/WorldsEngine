@@ -746,7 +746,6 @@ namespace worlds {
         logMsg(WELogCategoryAudio, "Loaded %s: %i samples across %i channels with a sample rate of %i", path.c_str(), clip.sampleCount, clip.channels, clip.sampleRate);
 
         if (clip.sampleRate != 44100) {
-            logWarn(WELogCategoryAudio, "Clip %s does not have a sample rate of 44100hz (%i). It may take longer to load.", path.c_str(), clip.sampleRate);
             SDL_AudioCVT cvt;
             SDL_BuildAudioCVT(
                 &cvt,

@@ -184,7 +184,7 @@ bool isTextureEnough(ivec2 texSize) {
     return all(greaterThan(d * vec2(texSize), vec2(4.0)));
 }
 
-int calculateCascade(out vec4 oShadowPos) {
+float calculateCascade(out vec4 oShadowPos) {
     for (int i = 0; i < 3; i++) {
         vec4 shadowPos = dirShadowMatrices[i] * inWorldPos;
         shadowPos.y = -shadowPos.y;
@@ -195,10 +195,10 @@ int calculateCascade(out vec4 oShadowPos) {
         if (coord.x > lThresh && coord.x < hThresh &&
                 coord.y > lThresh && coord.y < hThresh) {
             oShadowPos = shadowPos;
-            return i;
+            return float(i);
         }
     }
-    return 2;
+    return -1.0;
 }
 
 float calcProxyAO(vec3 wPos, vec3 normal) {
@@ -216,12 +216,15 @@ float calcProxyAO(vec3 wPos, vec3 normal) {
 float getDirLightShadowIntensity(int lightIdx) {
     vec4 shadowPos;
     float shadowIntensity = 1.0;
-    int cascadeSplit = calculateCascade(shadowPos);
+    float cascadeSplit = calculateCascade(shadowPos);
 
     float bias = max(0.0004 * (1.0 - dot(inNormal, lights[lightIdx].pack1.xyz)), 0.00025);
     //float bias = 0.000325;
     float depth = (shadowPos.z / shadowPos.w) - bias;
     vec2 coord = (shadowPos.xy * 0.5 + 0.5);
+
+    if (cascadeSplit == -1.0)
+        return 1.0;
 
     //if (coord.x > 0.0 && coord.x < 1.0 &&
     //        coord.y > 0.0 && coord.y < 1.0 &&

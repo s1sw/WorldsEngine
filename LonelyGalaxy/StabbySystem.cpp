@@ -34,8 +34,6 @@ namespace lg {
             Transform& otherTransform = registry.get<Transform>(info.otherEntity);
             worlds::DynamicPhysicsActor& stabbyDpa = registry.get<worlds::DynamicPhysicsActor>(ent);
 
-            //if (info.relativeSpeed < stabby.penetrationVelocity) return;
-
             // Get alignment between stab direction and surface
             // If they're too different, don't stab
             glm::vec3 stabDir = t.transformDirection(stabby.stabDirection);
@@ -71,9 +69,15 @@ namespace lg {
             stabbyDpa.actor->setRigidBodyFlag(physx::PxRigidBodyFlag::eKINEMATIC, true);
             stabbyDpa.actor->setRigidBodyFlag(physx::PxRigidBodyFlag::eKINEMATIC, false);
         }
+
         auto view = registry.view<Stabby, Transform, worlds::DynamicPhysicsActor>();
         view.each([&](entt::entity ent, Stabby& stabby, Transform& t, worlds::DynamicPhysicsActor& dpa) {
             if (!stabby.embedded) return;
+
+            if (!registry.valid(stabby.embeddedIn)) {
+                stabby.embedded = false;
+                return;
+            }
 
             Transform& stabbedTransform = registry.get<Transform>(stabby.embeddedIn);
 

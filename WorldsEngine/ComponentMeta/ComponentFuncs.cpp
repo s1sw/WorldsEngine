@@ -1420,9 +1420,49 @@ namespace worlds {
 
             wtc.text = j["text"];
             wtc.textScale = j["textScale"];
-            
+
             if (j.contains("font"))
                 wtc.font = AssetDB::pathToId(j["font"].get<std::string>());
+        }
+    };
+
+    class PrefabInstanceEditor : public BasicComponentUtil<PrefabInstanceComponent> {
+    public:
+        BASIC_CLONE(PrefabInstanceComponent);
+        BASIC_CREATE(PrefabInstanceComponent);
+
+        const char* getName() override { return "Prefab Instance"; }
+
+        void edit(entt::entity ent, entt::registry& reg, Editor* ed) override {
+            auto& pic = reg.get<PrefabInstanceComponent>(ent);
+
+            if (ImGui::CollapsingHeader("Prefab Instance")) {
+                if (ImGui::Button("Remove")) {
+                    reg.remove<PrefabInstanceComponent>(ent);
+                    return;
+                }
+                ImGui::Text("Instance of %s", AssetDB::idToPath(pic.prefab).c_str());
+                ImGui::Separator();
+            }
+        }
+
+        void writeToFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file) override {
+        }
+
+        void readFromFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file, int version) override {
+        }
+
+        void toJson(entt::entity ent, entt::registry& reg, json& j) override {
+            auto& pic = reg.get<PrefabInstanceComponent>(ent);
+
+            j = {
+                { "prefab", AssetDB::idToPath(pic.prefab) }
+            };
+        }
+
+        void fromJson(entt::entity ent, entt::registry& reg, const json& j) override {
+            auto& pic = reg.emplace<PrefabInstanceComponent>(ent);
+            pic.prefab = AssetDB::pathToId(j["prefab"]);
         }
     };
 
@@ -1439,4 +1479,5 @@ namespace worlds {
     AudioTriggerEditor atEd;
     ProxyAOEditor aoEd;
     WorldTextComponentEditor wtcEd;
+    PrefabInstanceEditor pie;
 }

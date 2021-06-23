@@ -298,7 +298,7 @@
     },
     "World Object": {
       "materials": [
-        "Materials/dev_green.json",
+        "Materials/DevTextures/dev_green.json",
         "Materials/dev.json",
         "Materials/dev.json",
         "Materials/dev.json",
@@ -331,7 +331,7 @@
         "Materials/dev.json",
         "Materials/dev.json"
       ],
-      "mesh": "Models/cube.obj",
+      "mesh": "Models/cube.wmdl",
       "staticFlags": 0,
       "texScaleOffset": [
         1.0,
@@ -1062,7 +1062,7 @@
         "Materials/dev.json",
         "Materials/dev.json"
       ],
-      "mesh": "Models/tube.obj",
+      "mesh": "Models/tube.wmdl",
       "staticFlags": 0,
       "texScaleOffset": [
         1.0,
@@ -1231,7 +1231,7 @@
         "Materials/dev.json",
         "Materials/dev.json"
       ],
-      "mesh": "Models/tube.obj",
+      "mesh": "Models/tube.wmdl",
       "staticFlags": 0,
       "texScaleOffset": [
         1.0,
@@ -1346,7 +1346,7 @@
         "Materials/dev.json",
         "Materials/dev.json"
       ],
-      "mesh": "Models/tube.obj",
+      "mesh": "Models/tube.wmdl",
       "staticFlags": 0,
       "texScaleOffset": [
         1.0,
@@ -1427,7 +1427,7 @@
         "Materials/dev.json",
         "Materials/dev.json"
       ],
-      "mesh": "Models/tube.obj",
+      "mesh": "Models/tube.wmdl",
       "staticFlags": 0,
       "texScaleOffset": [
         1.0,

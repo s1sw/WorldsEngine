@@ -596,7 +596,6 @@ namespace lg {
                     return;
                 }
 
-                ImGui::DragFloat("Penetration Velocity", &stabby.penetrationVelocity);
                 ImGui::DragFloat("Drag Multiplier", &stabby.dragMultiplier);
                 ImGui::DragFloat("Drag Floor", &stabby.dragFloor);
                 ImGui::DragFloat("Pullout Distance", &stabby.pulloutDistance);
@@ -608,7 +607,6 @@ namespace lg {
             auto& stabby = reg.get<Stabby>(ent);
 
             j = {
-                { "penetrationVelocity", stabby.penetrationVelocity },
                 { "dragMultiplier", stabby.dragMultiplier },
                 { "dragFloor", stabby.dragFloor },
                 { "pulloutDistance", stabby.pulloutDistance },
@@ -620,7 +618,6 @@ namespace lg {
         void fromJson(entt::entity ent, entt::registry& reg, const json& j) override {
             auto& stabby = reg.emplace<Stabby>(ent);
 
-            stabby.penetrationVelocity = j["penetrationVelocity"];
             stabby.dragMultiplier = j["dragMultiplier"];
             stabby.dragFloor = j["dragFloor"];
             stabby.pulloutDistance = j["pulloutDistance"];
