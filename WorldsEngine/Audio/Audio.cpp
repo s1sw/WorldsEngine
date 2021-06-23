@@ -13,7 +13,6 @@
 #include "../Core/Fatal.hpp"
 #include <slib/StaticAllocList.hpp>
 #include "../Physics/Physics.hpp"
-#include <signal.h>
 
 namespace worlds {
     const std::unordered_map<int, const char*> errorStrings = {
@@ -185,10 +184,6 @@ namespace worlds {
 
         for (int i = 0; i < streamLen; i++) {
             stream[i] *= _this->volume;
-
-            if (glm::isnan(stream[i])) {
-                raise(SIGTRAP);
-            }
         }
 
         // for debugging only! otherwise this will unnecessarily slow down
