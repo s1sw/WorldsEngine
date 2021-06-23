@@ -9,79 +9,89 @@
 #include "../UI/WorldTextComponent.hpp"
 
 namespace worlds {
-    struct FontChar {
-        uint32_t codepoint;
-
-        uint16_t x;
-        uint16_t y;
-
-        uint16_t width;
-        uint16_t height;
-
-        int16_t originX;
-        int16_t originY;
-
-        uint16_t advance;
-    };
-    robin_hood::unordered_flat_map<uint32_t, FontChar> fontCharacters;
-    float fontWidth;
-    float fontHeight;
-
     struct UIVertex {
         glm::vec3 pos;
         glm::vec2 uv;
     };
 
-    WorldSpaceUIPass::WorldSpaceUIPass(VulkanHandles* handles) : handles {handles} {
-        if (fontCharacters.size() == 0) {
-            const char* fontPath = "UI/SDFFonts/mulish.json";
-            PHYSFS_File* f = PHYSFS_openRead(fontPath);
+    struct FontShaderPushConstants {
+        glm::mat4 model;
+        uint32_t textureIdx;
+        glm::vec3 pad;
+    };
 
-            if (f == nullptr) {
-                auto err = PHYSFS_getLastErrorCode();
-                auto errStr = PHYSFS_getErrorByCode(err);
-                logErr(WELogCategoryUI, "Failed to open %s: %s", fontPath, errStr);
-            }
-
-            size_t fileSize = PHYSFS_fileLength(f);
-            std::string str;
-            str.resize(fileSize);
-            // Add a null byte to the end to make a C string
-            PHYSFS_readBytes(f, str.data(), fileSize);
-            PHYSFS_close(f);
-
-            try {
-                auto j = nlohmann::json::parse(str);
-                fontWidth = j["width"];
-                fontHeight = j["height"];
-
-                auto& chars = j["characters"];
-                for (auto& charPair : chars.items()) {
-                    auto& charVal = charPair.value();
-
-                    // TODO: Handle Unicode correctly!
-                    // THIS WILL BREAK FOR NON-ASCII CHARACTERS!!!!!
-                    uint32_t codepoint = charPair.key()[0];
-                    FontChar thisChar {
-                        .codepoint = codepoint,
-                        .x = charVal["x"],
-                        .y = charVal["y"],
-                        .width = charVal["width"],
-                        .height = charVal["height"],
-                        .originX = charVal["originX"],
-                        .originY = charVal["originY"],
-                        .advance = charVal["advance"]
-                    };
-
-                    fontCharacters.insert({ codepoint, thisChar });
-                }
-            } catch(nlohmann::detail::exception& ex) {
-                logErr("Failed to parse font");
-            }
-        }
+    SDFFont& WorldSpaceUIPass::getFont(AssetID id) {
+        if (id == INVALID_ASSET) return fonts.at(AssetDB::pathToId("UI/SDFFonts/mulish.json"));
+        return fonts.at(id);
     }
 
-    void buildCharQuad(glm::vec3 center, float scale, const FontChar& character, UIVertex* verts) {
+    void WorldSpaceUIPass::loadFont(AssetID id) {
+        if (fonts.contains(id)) return;
+        SDFFont font;
+        PHYSFS_File* f = AssetDB::openAssetFileRead(id);
+
+        if (f == nullptr) {
+            auto err = PHYSFS_getLastErrorCode();
+            auto errStr = PHYSFS_getErrorByCode(err);
+            std::string path = AssetDB::idToPath(id);
+            logErr(WELogCategoryUI, "Failed to open %s: %s", path.c_str(), errStr);
+            return;
+        }
+
+        size_t fileSize = PHYSFS_fileLength(f);
+        std::string str;
+        str.resize(fileSize);
+        // Add a null byte to the end to make a C string
+        PHYSFS_readBytes(f, str.data(), fileSize);
+        PHYSFS_close(f);
+
+        try {
+            auto j = nlohmann::json::parse(str);
+            font.width = j["width"];
+            font.height = j["height"];
+
+            std::string atlasPath = "UI/SDFFonts/" + j["atlas"].get<std::string>();
+            TextureData sdfData = loadTexData(AssetDB::pathToId(atlasPath));
+            font.atlas = uploadTextureVk(*handles, sdfData);
+            std::free(sdfData.data);
+
+            auto& chars = j["characters"];
+            for (auto& charPair : chars.items()) {
+                auto& charVal = charPair.value();
+
+                // TODO: Handle Unicode correctly!
+                // THIS WILL BREAK FOR NON-ASCII CHARACTERS!!!!!
+                uint32_t codepoint = charPair.key()[0];
+                FontChar thisChar {
+                    .codepoint = codepoint,
+                    .x = charVal["x"],
+                    .y = charVal["y"],
+                    .width = charVal["width"],
+                    .height = charVal["height"],
+                    .originX = charVal["originX"],
+                    .originY = charVal["originY"],
+                    .advance = charVal["advance"]
+                };
+
+                font.characters.insert({ codepoint, thisChar });
+            }
+        } catch(nlohmann::detail::exception& ex) {
+            logErr("Failed to parse font");
+            return;
+        }
+
+        font.index = nextFontIdx;
+        nextFontIdx++;
+
+        fonts.insert({ id, std::move(font) });
+    }
+
+    WorldSpaceUIPass::WorldSpaceUIPass(VulkanHandles* handles) : handles {handles} {
+        loadFont(AssetDB::pathToId("UI/SDFFonts/mulish.json"));
+        loadFont(AssetDB::pathToId("UI/SDFFonts/potra.json"));
+    }
+
+    void buildCharQuad(glm::vec3 center, float scale, const FontChar& character, const SDFFont& font, UIVertex* verts) {
         center /= scale;
         // 0 ------- 1
         // |\        |
@@ -105,27 +115,25 @@ namespace worlds {
         // |       \ |
         // 3 ------- 2
 
-        // magic number is -240
-
         float x0 = center.x - character.originX;
         float y0 = center.y - character.originY;
-        float s0 = character.x / fontWidth;
-        float t0 = character.y / fontHeight;
+        float s0 = character.x / font.width;
+        float t0 = character.y / font.height;
 
         float x1 = center.x - character.originX + character.width;
         float y1 = center.y - character.originY;
-        float s1 = (character.x + character.width) / fontWidth;
-        float t1 = character.y / fontHeight;
+        float s1 = (character.x + character.width) / font.width;
+        float t1 = character.y / font.height;
 
         float x2 = center.x - character.originX;
         float y2 = center.y - character.originY + character.height;
-        float s2 = character.x / fontWidth;
-        float t2 = (character.y + character.height) / fontHeight;
+        float s2 = character.x / font.width;
+        float t2 = (character.y + character.height) / font.height;
 
         float x3 = center.x - character.originX + character.width;
         float y3 = center.y - character.originY + character.height;
-        float s3 = (character.x + character.width) / fontWidth;
-        float t3 = (character.y + character.height) / fontHeight;
+        float s3 = (character.x + character.width) / font.width;
+        float t3 = (character.y + character.height) / font.height;
 
         verts[0] = UIVertex {
             .pos = { x0 * scale, y0 * -scale, center.z },
@@ -151,11 +159,12 @@ namespace worlds {
     void WorldSpaceUIPass::setup(RenderContext& ctx, vk::RenderPass renderPass, vk::DescriptorPool descriptorPool) {
         vku::DescriptorSetLayoutMaker dslm;
         dslm.buffer(0, vk::DescriptorType::eUniformBuffer, vk::ShaderStageFlagBits::eVertex, 1);
-        dslm.image(1, vk::DescriptorType::eCombinedImageSampler, vk::ShaderStageFlagBits::eFragment, 1);
+        dslm.image(1, vk::DescriptorType::eCombinedImageSampler, vk::ShaderStageFlagBits::eFragment, 8);
+        dslm.bindFlag(1, vk::DescriptorBindingFlagBits::ePartiallyBound);
         descriptorSetLayout = dslm.createUnique(handles->device);
 
         vku::PipelineLayoutMaker plm;
-        plm.pushConstantRange(vk::ShaderStageFlagBits::eVertex, 0, sizeof(glm::mat4));
+        plm.pushConstantRange(vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment, 0, sizeof(FontShaderPushConstants));
         plm.descriptorSetLayout(*descriptorSetLayout);
         pipelineLayout = plm.createUnique(handles->device);
 
@@ -183,9 +192,6 @@ namespace worlds {
         dsm.layout(*descriptorSetLayout);
         descriptorSet = std::move(dsm.createUnique(handles->device, handles->descriptorPool)[0]);
 
-        TextureData sdfData = loadTexData(AssetDB::pathToId("UI/SDFFonts/mulish.png"));
-        textSdf = uploadTextureVk(*handles, sdfData);
-        std::free(sdfData.data);
 
         vku::SamplerMaker sm;
         sm.minFilter(vk::Filter::eLinear).magFilter(vk::Filter::eLinear).mipmapMode(vk::SamplerMipmapMode::eLinear).anisotropyEnable(true).maxAnisotropy(16.0f).maxLod(VK_LOD_CLAMP_NONE).minLod(0.0f);
@@ -195,8 +201,13 @@ namespace worlds {
         dsu.beginDescriptorSet(*descriptorSet);
         dsu.beginBuffers(0, 0, vk::DescriptorType::eUniformBuffer);
         dsu.buffer(ctx.resources.vpMatrixBuffer->buffer(), 0, sizeof(MultiVP));
-        dsu.beginImages(1, 0, vk::DescriptorType::eCombinedImageSampler);
-        dsu.image(*sampler, textSdf.imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
+
+        for (const auto& fontPair : fonts) {
+            const SDFFont& font = fontPair.second;
+            dsu.beginImages(1, font.index, vk::DescriptorType::eCombinedImageSampler);
+            dsu.image(*sampler, font.atlas.imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
+        }
+
         dsu.update(handles->device);
     }
 
@@ -238,10 +249,11 @@ namespace worlds {
         uint32_t idxOffset = 0;
         reg.view<WorldTextComponent>().each([&](WorldTextComponent& wtc) {
             if (wtc.text.size() == 0) return;
+            const auto& font = getFont(wtc.font);
 
             float totalWidth = 0.0f;
             for (auto c : wtc.text) {
-                totalWidth += fontCharacters.at(c).advance;
+                totalWidth += font.characters.at(c).advance;
             }
 
             wtc.idxOffset = idxOffset;
@@ -255,9 +267,9 @@ namespace worlds {
             xPos *= wtc.textScale;
 
             for (auto c : wtc.text) {
-                buildCharQuad(glm::vec3{xPos, 0.0f, 0.0f}, wtc.textScale, fontCharacters.at(c), vbMap);
+                buildCharQuad(glm::vec3{xPos, 0.0f, 0.0f}, wtc.textScale, font.characters.at(c), font, vbMap);
                 vbMap += 4;
-                xPos += fontCharacters.at(c).advance * wtc.textScale;
+                xPos += font.characters.at(c).advance * wtc.textScale;
 
                 const uint32_t indexPattern[] = {
                     0, 1, 2,
@@ -277,6 +289,28 @@ namespace worlds {
     }
 
     void WorldSpaceUIPass::prePass(RenderContext& ctx) {
+        bool newFontLoaded = false;
+        ctx.registry.view<WorldTextComponent>().each([&](WorldTextComponent& wtc) {
+            if (!fonts.contains(wtc.font) && wtc.font != INVALID_ASSET) {
+                loadFont(wtc.font);
+                newFontLoaded = true;
+            }
+        });
+
+        if (newFontLoaded) {
+            vku::DescriptorSetUpdater dsu;
+            dsu.beginDescriptorSet(*descriptorSet);
+            dsu.beginBuffers(0, 0, vk::DescriptorType::eUniformBuffer);
+            dsu.buffer(ctx.resources.vpMatrixBuffer->buffer(), 0, sizeof(MultiVP));
+
+            for (const auto& fontPair : fonts) {
+                const SDFFont& font = fontPair.second;
+                dsu.beginImages(1, font.index, vk::DescriptorType::eCombinedImageSampler);
+                dsu.image(*sampler, font.atlas.imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
+            }
+            dsu.update(handles->device);
+        }
+
         updateBuffers(ctx.registry);
     }
 
@@ -288,8 +322,10 @@ namespace worlds {
             cmdBuf.bindIndexBuffer(ib.buffer(), 0, vk::IndexType::eUint32);
             cmdBuf.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 0, *descriptorSet, nullptr);
             ctx.registry.view<WorldTextComponent, Transform>().each([&](WorldTextComponent& wtc, Transform& tf) {
-                glm::mat4 model = tf.getMatrix();
-                cmdBuf.pushConstants<glm::mat4>(*pipelineLayout, vk::ShaderStageFlagBits::eVertex, 0, model);
+                FontShaderPushConstants pc;
+                pc.model = tf.getMatrix();
+                pc.textureIdx = getFont(wtc.font).index;
+                cmdBuf.pushConstants<FontShaderPushConstants>(*pipelineLayout, vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment, 0, pc);
                 cmdBuf.drawIndexed(wtc.text.size() * 6, 1, wtc.idxOffset, 0, 0);
             });
         }

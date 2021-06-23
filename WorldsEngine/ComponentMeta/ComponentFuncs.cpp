@@ -1383,6 +1383,14 @@ namespace worlds {
                     reg.remove<WorldTextComponent>(ent);
                     return;
                 }
+
+                if (wtc.font == INVALID_ASSET)
+                    ImGui::Text("Using default font");
+                else
+                    ImGui::Text("Using font %s", AssetDB::idToPath(wtc.font).c_str());
+
+                ImGui::SameLine();
+                selectAssetPopup("Select SDF Font", wtc.font, ImGui::Button("Change##WTC"));
                 ImGui::InputText("Text", &wtc.text);
                 ImGui::DragFloat("Text Scale", &wtc.textScale);
                 ImGui::Separator();
@@ -1402,6 +1410,9 @@ namespace worlds {
                 { "text", wtc.text },
                 { "textScale", wtc.textScale }
             };
+
+            if (wtc.font != INVALID_ASSET)
+                j["font"] = AssetDB::idToPath(wtc.font);
         }
 
         void fromJson(entt::entity ent, entt::registry& reg, const json& j) override {
@@ -1409,6 +1420,9 @@ namespace worlds {
 
             wtc.text = j["text"];
             wtc.textScale = j["textScale"];
+            
+            if (j.contains("font"))
+                wtc.font = AssetDB::pathToId(j["font"].get<std::string>());
         }
     };
 

@@ -168,7 +168,7 @@ namespace lg {
             worlds::AssetDB::pathToId("Audio/SFX/gunshot.ogg"), gunTransform.position, true
         );
 
-        worlds::AssetID projectileId = worlds::AssetDB::pathToId("Prefabs/gun_projectile.json");
+        worlds::AssetID projectileId = worlds::AssetDB::pathToId("Prefabs/gun_projectile.wprefab");
         entt::entity projectile = worlds::SceneLoader::createPrefab(projectileId, reg);
 
         Transform& projectileTransform = reg.get<Transform>(projectile);
@@ -306,7 +306,7 @@ namespace lg {
         }, "lg_resetHands", "Resets hand PID controllers.", nullptr);
 
         worlds::g_console->registerCommand([&](void*, const char*) {
-            camcorder = worlds::SceneLoader::createPrefab(worlds::AssetDB::pathToId("Prefabs/spectator_camcorder.json"), registry);
+            camcorder = worlds::SceneLoader::createPrefab(worlds::AssetDB::pathToId("Prefabs/spectator_camcorder.wprefab"), registry);
         }, "lg_spawnCamcorder", "Spawns the camcorder.", nullptr);
     }
 
@@ -429,7 +429,6 @@ namespace lg {
             }
         }
 
-
         entt::entity localLocosphereEnt = entt::null;
 
         reg.view<LocospherePlayerComponent>().each([&](auto ent, auto& lpc) {
@@ -443,7 +442,7 @@ namespace lg {
         });
 
         reg.view<DamagingProjectile>().each([&](entt::entity ent, DamagingProjectile& dp) {
-            if (engine->getGameTime() - dp.creationTime > 20.0)
+            if (engine->getGameTime() - dp.creationTime > 10.0)
                 engine->destroyNextFrame(ent);
         });
 

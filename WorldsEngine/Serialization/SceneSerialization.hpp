@@ -16,6 +16,7 @@ namespace worlds {
         // The file handle will be closed after loading.
         static void loadScene(PHYSFS_File* file, entt::registry& reg, bool additive = false);
         static entt::entity loadEntity(PHYSFS_File* file, entt::registry& reg);
+        static entt::entity loadEntity(AssetID id, entt::registry& reg);
         static entt::entity createPrefab(AssetID id, entt::registry& reg);
     private:
         SceneLoader() {}
@@ -42,6 +43,7 @@ namespace worlds {
         static void saveEntity(PHYSFS_File* file, entt::registry& reg, entt::entity ent);
         // Returns entt::null if the entity JSON is invalid.
         static entt::entity loadEntity(PHYSFS_File* file, entt::registry& reg);
+        static entt::entity loadEntity(AssetID id, entt::registry& reg);
 
         // Converts the specified entity to JSON.
         static std::string entityToJson(entt::registry& reg, entt::entity ent);

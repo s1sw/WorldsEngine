@@ -5,6 +5,7 @@
   "italic": false,
   "width": 2048,
   "height": 256,
+  "atlas": "comic sans.png",
   "characters": {
     "0":{"x":376,"y":88,"width":55,"height":70,"originX":6,"originY":61,"advance":42},
     "1":{"x":959,"y":88,"width":38,"height":69,"originX":3,"originY":61,"advance":31},

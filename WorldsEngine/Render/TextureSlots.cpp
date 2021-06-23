@@ -25,8 +25,6 @@ namespace worlds {
             slots[slot] = uploadTextureVk(*vkCtx, texData);
         std::free(texData.data);
 
-        logMsg("slot %i set to imageView %zu", slot, slots[slot].imageView());
-
         return slot;
     }
 

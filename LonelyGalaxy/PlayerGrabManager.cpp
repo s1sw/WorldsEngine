@@ -137,8 +137,9 @@ namespace lg {
         auto vrInterface = interfaces.vrInterface;
         auto inputManager = interfaces.inputManager;
         auto& physHand = registry.get<PhysHand>(ent);
-        auto grabAction = physHand.follow == FollowHand::LeftHand ? lGrab : rGrab;
-        auto grabButton = physHand.follow == FollowHand::LeftHand ? worlds::MouseButton::Left : worlds::MouseButton::Right;
+        bool isLeftHand = physHand.follow == FollowHand::LeftHand;
+        auto grabAction = isLeftHand ? lGrab : rGrab;
+        auto grabButton = isLeftHand ? worlds::MouseButton::Left : worlds::MouseButton::Right;
         bool doGrab = vrInterface ? vrInterface->getActionPressed(grabAction) : inputManager->mouseButtonPressed(grabButton);
         bool doRelease = vrInterface ? vrInterface->getActionReleased(grabAction) : inputManager->mouseButtonReleased(grabButton);
         auto& handTf = registry.get<Transform>(ent);
@@ -148,7 +149,7 @@ namespace lg {
             Grabbable& grabbable = registry.get<Grabbable>(physHand.currentlyGrabbed);
             auto triggerAction = physHand.follow == FollowHand::LeftHand ? lTrigger : rTrigger;
 
-            if (vrInterface ) {
+            if (vrInterface) {
                 if (vrInterface->getActionPressed(triggerAction)) {
                     if (grabbable.onTriggerPressed)
                         grabbable.onTriggerPressed(physHand.currentlyGrabbed);
@@ -160,6 +161,23 @@ namespace lg {
                 }
 
                 if (vrInterface->getActionReleased(triggerAction)) {
+                    if (grabbable.onTriggerReleased)
+                        grabbable.onTriggerReleased(physHand.currentlyGrabbed);
+                }
+            } else {
+                auto triggerKey = isLeftHand ? SDL_SCANCODE_Q : SDL_SCANCODE_E;
+
+                if (inputManager->keyPressed(triggerKey)) {
+                    if (grabbable.onTriggerPressed)
+                        grabbable.onTriggerPressed(physHand.currentlyGrabbed);
+                }
+
+                if (inputManager->keyHeld(triggerKey)) {
+                    if (grabbable.onTriggerHeld)
+                        grabbable.onTriggerHeld(physHand.currentlyGrabbed);
+                }
+
+                if (inputManager->keyReleased(triggerKey)) {
                     if (grabbable.onTriggerReleased)
                         grabbable.onTriggerReleased(physHand.currentlyGrabbed);
                 }

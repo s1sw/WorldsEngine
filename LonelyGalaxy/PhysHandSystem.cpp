@@ -211,9 +211,15 @@ namespace lg {
                 hand.targetWorldRot = virtualRotation * t.rotation;
             }
         } else {
-            static glm::vec3 camOffset { 0.1f, -0.1f, 0.55f };
+            static glm::vec3 camOffset { 0.1f, -0.2f, 0.55f };
 
             worlds::DynamicPhysicsActor& locosphereDpa = registry.get<worlds::DynamicPhysicsActor>(hand.locosphere);
+
+            if (interfaces.inputManager->keyPressed(SDL_SCANCODE_KP_9))
+                camOffset.y += 0.05f;
+
+            if (interfaces.inputManager->keyPressed(SDL_SCANCODE_KP_3))
+                camOffset.y -= 0.05f;
 
             if (interfaces.inputManager->keyPressed(SDL_SCANCODE_KP_8))
                 camOffset.z += 0.05f;

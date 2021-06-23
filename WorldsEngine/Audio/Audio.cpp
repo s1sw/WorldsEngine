@@ -13,6 +13,7 @@
 #include "../Core/Fatal.hpp"
 #include <slib/StaticAllocList.hpp>
 #include "../Physics/Physics.hpp"
+#include <signal.h>
 
 namespace worlds {
     const std::unordered_map<int, const char*> errorStrings = {
@@ -172,7 +173,10 @@ namespace worlds {
         float secondBufferLength = (float)streamLen / (float)_this->channelCount / (float)_this->sampleRate;
 
         int numMonoSamplesNeeded = streamLen / 2;
-        memset(stream, 0, len);
+
+        for (int i = 0; i < streamLen; i++) {
+            stream[i] = 0.0f;
+        }
 
         for (size_t i = 0; i < _this->voices.size(); i++) {
             if (_this->voices[i].isPlaying)
@@ -181,6 +185,10 @@ namespace worlds {
 
         for (int i = 0; i < streamLen; i++) {
             stream[i] *= _this->volume;
+
+            if (glm::isnan(stream[i])) {
+                raise(SIGTRAP);
+            }
         }
 
         // for debugging only! otherwise this will unnecessarily slow down

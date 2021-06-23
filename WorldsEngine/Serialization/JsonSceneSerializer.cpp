@@ -4,6 +4,9 @@
 #include "../ComponentMeta/ComponentMetadata.hpp"
 #include "../Core/Transform.hpp"
 #include "../Util/TimingUtil.hpp"
+#include "Core/AssetDB.hpp"
+#include "robin_hood.h"
+#include "slib/StaticAllocList.hpp"
 
 namespace worlds {
     std::string sceneToJson(entt::registry& reg) {
@@ -78,31 +81,16 @@ namespace worlds {
         return jsonToEntity(reg, str);
     }
 
-    std::string JsonSceneSerializer::entityToJson(entt::registry& reg, entt::entity ent) {
-        nlohmann::json j;
-        for (auto& mdata : ComponentMetadataManager::sorted) {
-            std::array<ENTT_ID_TYPE, 1> arr = { mdata->getComponentID() };
-            auto rView = reg.runtime_view(arr.begin(), arr.end());
+    robin_hood::unordered_flat_map<AssetID, nlohmann::json> prefabCache;
 
-            if (!rView.contains(ent)) continue;
-
-            nlohmann::json compJ;
-            mdata->toJson(ent, reg, compJ);
-            j[mdata->getName()] = compJ;
-        }
-
-        return j.dump();
-    }
-
-    entt::entity JsonSceneSerializer::jsonToEntity(entt::registry& reg, std::string jText) {
-        auto j = nlohmann::json::parse(jText);
+    entt::entity createJsonEntity(const nlohmann::json& j, entt::registry& reg) {
         entt::entity ent = reg.create();
 
-        std::vector<std::string> componentIds;
+        slib::StaticAllocList<std::string> componentIds(j.size());
 
         for (auto& compPair : j.items()) {
             if (ComponentMetadataManager::byName.find(compPair.key()) != ComponentMetadataManager::byName.end())
-                componentIds.push_back(compPair.key());
+                componentIds.add(compPair.key());
             else
                 logMsg("Unknown component ID \"%s\"", compPair.key());
         }
@@ -123,5 +111,46 @@ namespace worlds {
         }
 
         return ent;
+    }
+
+    entt::entity JsonSceneSerializer::loadEntity(AssetID id, entt::registry& reg) {
+        auto cacheIt = prefabCache.find(id);
+
+        if (cacheIt != prefabCache.end()) {
+            return createJsonEntity(cacheIt->second, reg);
+        }
+
+        // not in cache, load from disk
+        PHYSFS_File* file = AssetDB::openAssetFileRead(id);
+        std::string str;
+        str.resize(PHYSFS_fileLength(file));
+        PHYSFS_readBytes(file, str.data(), str.size());
+        PHYSFS_close(file);
+
+        nlohmann::json j = nlohmann::json::parse(str);
+        prefabCache.insert({ id, j });
+
+        return createJsonEntity(j, reg);
+    }
+
+    std::string JsonSceneSerializer::entityToJson(entt::registry& reg, entt::entity ent) {
+        nlohmann::json j;
+        for (auto& mdata : ComponentMetadataManager::sorted) {
+            std::array<ENTT_ID_TYPE, 1> arr = { mdata->getComponentID() };
+            auto rView = reg.runtime_view(arr.begin(), arr.end());
+
+            if (!rView.contains(ent)) continue;
+
+            nlohmann::json compJ;
+            mdata->toJson(ent, reg, compJ);
+            j[mdata->getName()] = compJ;
+        }
+
+        return j.dump();
+    }
+
+    entt::entity JsonSceneSerializer::jsonToEntity(entt::registry& reg, std::string jText) {
+        auto j = nlohmann::json::parse(jText);
+        return createJsonEntity(j, reg);
     }
 }

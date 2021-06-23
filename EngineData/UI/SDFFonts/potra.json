@@ -5,6 +5,7 @@
   "italic": false,
   "width": 2048,
   "height": 512,
+  "atlas": "potra.png",
   "characters": {
     "0":{"x":1908,"y":0,"width":77,"height":86,"originX":4,"originY":77,"advance":68},
     "1":{"x":1986,"y":124,"width":47,"height":86,"originX":-2,"originY":78,"advance":50},

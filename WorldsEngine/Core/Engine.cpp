@@ -228,7 +228,7 @@ namespace worlds {
         ImFontConfig iconConfig2{};
         iconConfig2.MergeMode = true;
         iconConfig2.PixelSnapH = true;
-        iconConfig2.OversampleH = 1;
+        iconConfig2.OversampleH = 2;
         iconConfig2.GlyphOffset = ImVec2(-3.0f, 5.0f);
         iconConfig2.GlyphExtraSpacing = ImVec2(-5.0f, 0.0f);
 
@@ -265,7 +265,7 @@ namespace worlds {
 
         console = std::make_unique<Console>(dedicatedServer);
 
-        worlds::SplashWindow* splashWindow;
+        worlds::SplashWindow* splashWindow = nullptr;
 
         if (!dedicatedServer) {
             splashWindow = new SplashWindow(!runAsEditor);

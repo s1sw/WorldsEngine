@@ -36,9 +36,6 @@ namespace worlds {
     }
 
     entt::entity SceneLoader::createPrefab(AssetID id, entt::registry& reg) {
-        PHYSFS_File* file = AssetDB::openAssetFileRead(id);
-        entt::entity entity = loadEntity(file, reg);
-        PHYSFS_close(file);
-        return entity;
+        return JsonSceneSerializer::loadEntity(id, reg);
     }
 }
