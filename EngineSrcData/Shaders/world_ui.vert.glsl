@@ -14,6 +14,7 @@ layout(binding = 0) uniform MultiVP {
 
 layout (push_constant) uniform PC {
     mat4 model;
+    uint textureIndex;
 };
 
 void main() {

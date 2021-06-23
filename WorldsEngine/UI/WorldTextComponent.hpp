@@ -1,4 +1,5 @@
 #pragma once
+#include "Core/AssetDB.hpp"
 #include <string>
 
 namespace worlds {
@@ -21,6 +22,7 @@ namespace worlds {
             dirty = true;
         }
 
+        AssetID font = INVALID_ASSET;
         std::string text;
         float textScale = 0.025f;
         uint32_t idxOffset = 0;

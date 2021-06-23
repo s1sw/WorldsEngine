@@ -153,7 +153,7 @@ namespace lg {
 
         void edit(entt::entity ent, entt::registry& reg, worlds::Editor* ed) override {
             auto& psc = reg.get<PhysicsSoundComponent>(ent);
-            if (ImGui::CollapsingHeader(" Phys Sound")) {
+            if (ImGui::CollapsingHeader("Phys Sound")) {
                 if (psc.soundId != ~0u) {
                     ImGui::Text("Current Asset Path: %s", worlds::AssetDB::idToPath(psc.soundId).c_str());
                 } else {

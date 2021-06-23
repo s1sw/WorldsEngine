@@ -4,6 +4,7 @@
 #include "Render.hpp"
 #include <glm/glm.hpp>
 #include <slib/StaticAllocList.hpp>
+#include "robin_hood.h"
 
 namespace worlds {
     struct MultiVP;
@@ -93,6 +94,29 @@ namespace worlds {
         void execute(RenderContext& ctx, slib::StaticAllocList<SubmeshDrawInfo>& drawInfo);
     };
 
+    struct FontChar {
+        uint32_t codepoint;
+
+        uint16_t x;
+        uint16_t y;
+
+        uint16_t width;
+        uint16_t height;
+
+        int16_t originX;
+        int16_t originY;
+
+        uint16_t advance;
+    };
+
+    struct SDFFont {
+        robin_hood::unordered_flat_map<uint32_t, FontChar> characters;
+        float width;
+        float height;
+        vku::TextureImage2D atlas;
+        uint32_t index;
+    };
+
     class WorldSpaceUIPass {
     private:
         vk::UniquePipeline textPipeline;
@@ -100,13 +124,17 @@ namespace worlds {
         vk::UniqueDescriptorSetLayout descriptorSetLayout;
         vk::UniquePipelineLayout pipelineLayout;
         VulkanHandles* handles;
-        vku::TextureImage2D textSdf;
         vk::UniqueSampler sampler;
         vku::GenericBuffer vb;
         vku::GenericBuffer ib;
 
+        robin_hood::unordered_flat_map<AssetID, SDFFont> fonts;
+
+        uint32_t nextFontIdx = 0u;
         size_t bufferCapacity = 0;
+        SDFFont& getFont(AssetID id);
         void updateBuffers(entt::registry&);
+        void loadFont(AssetID font);
     public:
         WorldSpaceUIPass(VulkanHandles* handles);
         void setup(RenderContext& ctx, vk::RenderPass renderPass, vk::DescriptorPool descriptorPool);

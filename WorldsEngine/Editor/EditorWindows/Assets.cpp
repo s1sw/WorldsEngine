@@ -9,6 +9,7 @@
 #include <slib/Path.hpp>
 #include "../../AssetCompilation/AssetCompilers.hpp"
 #include "../AssetEditors.hpp"
+#include "Serialization/SceneSerialization.hpp"
 
 namespace worlds {
     void Assets::draw(entt::registry& reg) {
@@ -77,6 +78,8 @@ namespace worlds {
                         if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
                             if (ext == ".wscn") {
                                 interfaces.engine->loadScene(AssetDB::pathToId(fullPath));
+                            } else if (ext == ".wprefab") {
+                                SceneLoader::createPrefab(AssetDB::pathToId(fullPath), reg);
                             } else {
                                 editor->currentSelectedAsset = AssetDB::pathToId(fullPath);
                             }

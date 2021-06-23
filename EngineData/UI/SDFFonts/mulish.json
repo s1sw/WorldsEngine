@@ -5,6 +5,7 @@
   "italic": false,
   "width": 1024,
   "height": 256,
+  "atlas": "mulish.png",
   "characters": {
     "0":{"x":43,"y":64,"width":42,"height":53,"originX":7,"originY":44,"advance":29},
     "1":{"x":558,"y":117,"width":37,"height":52,"originX":3,"originY":43,"advance":29},
