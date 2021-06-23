@@ -49,6 +49,10 @@ namespace worlds {
         AssetID skybox;
     };
 
+    struct PrefabInstanceComponent {
+        AssetID prefab;
+    };
+
     class WorldsEngine {
     public:
         WorldsEngine(EngineInitOptions initOptions, char* argv0);

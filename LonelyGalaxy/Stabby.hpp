@@ -5,7 +5,6 @@
 
 namespace lg {
     struct Stabby {
-        float penetrationVelocity = 5.0f;
         float dragMultiplier = 0.95f;
         float dragFloor = 0.25f;
         float pulloutDistance = 0.2f;

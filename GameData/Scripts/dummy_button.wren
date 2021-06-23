@@ -3,5 +3,5 @@ import "worlds_engine/entity" for Entity
 
 var onGrab = Fn.new{|entity|
     System.print("grabbed!")
-    SceneManager.createPrefab("Prefabs/dummy.json")
+    SceneManager.createPrefab("Prefabs/dummy.wprefab")
 }

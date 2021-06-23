@@ -2,6 +2,7 @@
 #include "../Core/Log.hpp"
 #include "../Core/AssetDB.hpp"
 #include <physfs.h>
+#include "Core/Engine.hpp"
 
 namespace worlds {
     // Do basic checks on the first byte to determine
@@ -36,6 +37,11 @@ namespace worlds {
     }
 
     entt::entity SceneLoader::createPrefab(AssetID id, entt::registry& reg) {
-        return JsonSceneSerializer::loadEntity(id, reg);
+        entt::entity ent = JsonSceneSerializer::loadEntity(id, reg);
+        if (reg.valid(ent)) {
+            PrefabInstanceComponent& pic = reg.emplace<PrefabInstanceComponent>(ent);
+            pic.prefab = id;
+        }
+        return ent;
     }
 }
