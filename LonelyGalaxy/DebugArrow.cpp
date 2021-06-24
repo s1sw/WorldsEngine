@@ -7,8 +7,6 @@ namespace lg {
     DebugArrows* g_dbgArrows;
     DebugArrows::DebugArrows(entt::registry& reg) : reg(reg), arrowsInUse(0) {
         g_dbgArrows = this;
-
-        createEntities();
     }
 
     void DebugArrows::drawArrow(glm::vec3 start, glm::vec3 dir) {

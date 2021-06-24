@@ -56,8 +56,9 @@ namespace worlds {
     class WorldsEngine {
     public:
         WorldsEngine(EngineInitOptions initOptions, char* argv0);
-        void mainLoop();
         ~WorldsEngine();
+
+        void mainLoop();
         void loadScene(AssetID scene);
         void createStartupScene();
         void addSystem(ISystem* system);
@@ -85,26 +86,32 @@ namespace worlds {
         void drawDebugInfoWindow(DebugTimeInfo timeInfo);
         void updateSimulation(float& interpAlpha, double deltaTime);
         void doSimStep(float deltaTime);
+
+        SDL_Window* window;
+
         bool running;
-        double simAccumulator;
         bool dedicatedServer;
-        VKRenderer* renderer;
         entt::registry registry;
+
         IGameEventHandler* evtHandler;
-        std::unique_ptr<InputManager> inputManager;
-        std::unique_ptr<AudioSystem> audioSystem;
         RTTPass* screenRTTPass;
         Camera cam;
+
+        SceneInfo currentScene;
+        bool sceneLoadQueued = false;
+        AssetID queuedSceneID;
+
+        double timeScale = 1.0;
+        double gameTime = 0.0;
+        double simAccumulator;
+
+        std::unique_ptr<VKRenderer> renderer;
+        std::unique_ptr<InputManager> inputManager;
+        std::unique_ptr<AudioSystem> audioSystem;
         std::unique_ptr<Console> console;
         std::unique_ptr<Editor> editor;
         std::unique_ptr<WrenScriptEngine> scriptEngine;
         std::unique_ptr<OpenVRInterface> openvrInterface;
-        double timeScale = 1.0;
-        SDL_Window* window;
-        SceneInfo currentScene;
-        bool sceneLoadQueued = false;
-        AssetID queuedSceneID;
-        double gameTime = 0.0;
 
         std::vector<ISystem*> systems;
         std::vector<entt::entity> nextFrameKillList;

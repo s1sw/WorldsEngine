@@ -370,7 +370,7 @@ namespace worlds {
             };
 
             bool renderInitSuccess = false;
-            renderer = new VKRenderer(initInfo, &renderInitSuccess);
+            renderer = std::make_unique<VKRenderer>(initInfo, &renderInitSuccess);
 
             if (!renderInitSuccess) {
                 fatalErr("Failed to initialise renderer");
@@ -385,7 +385,7 @@ namespace worlds {
 
         EngineInterfaces interfaces{
             .vrInterface = enableOpenVR ? openvrInterface.get() : nullptr,
-            .renderer = renderer,
+            .renderer = renderer.get(),
             .mainCamera = &cam,
             .inputManager = inputManager.get(),
             .engine = this
@@ -1148,7 +1148,6 @@ namespace worlds {
 
             auto vkCtx = renderer->getHandles();
             VKImGUIUtil::destroyObjects(vkCtx);
-            delete renderer;
         }
 
         shutdownPhysx();
