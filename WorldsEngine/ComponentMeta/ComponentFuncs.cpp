@@ -1,5 +1,6 @@
 #include "ComponentFuncs.hpp"
 #include <entt/entt.hpp>
+#include "Serialization/SceneSerialization.hpp"
 #include "entt/entity/fwd.hpp"
 #include "../ImGui/imgui.h"
 #include "../Core/Transform.hpp"
@@ -519,7 +520,7 @@ namespace worlds {
         std::vector<PhysicsShape>::iterator eraseIter;
         bool erase = false;
 
-        int i = 0;
+        size_t i = 0;
         for (auto it = actor.physicsShapes.begin(); it != actor.physicsShapes.end(); it++) {
             ImGui::PushID(i);
             if (ImGui::BeginCombo("Collider Type", shapeTypeNames[(int)it->type])) {
@@ -794,8 +795,8 @@ namespace worlds {
             auto* actor = g_physics->createRigidDynamic(pTf);
 
             auto& newPhysActor = reg.emplace<DynamicPhysicsActor>(to, actor);
-            newPhysActor.physicsShapes = oldDpa.physicsShapes;
-            newPhysActor.mass = oldDpa.mass;
+            newPhysActor = oldDpa;
+            newPhysActor.actor = actor;
 
             g_scene->addActor(*actor);
 
@@ -1128,7 +1129,6 @@ namespace worlds {
                 ImGui::DragFloat3("Extent", &wc.extent.x);
                 ImGui::Checkbox("Parallax Correction", &wc.cubeParallax);
                 ImGui::Text("Current Asset Path: %s", AssetDB::idToPath(wc.cubemapId).c_str());
-                AssetID oldId = wc.cubemapId;
                 selectAssetPopup("Cubemap Path", wc.cubemapId, ImGui::Button("Change"));
 
                 ImGui::Separator();
@@ -1212,7 +1212,7 @@ namespace worlds {
         void readFromFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file, int version) override {
             AssetID aid;
             READ_FIELD(file, aid);
-            auto& sc = reg.emplace<ScriptComponent>(ent, aid);
+            reg.emplace<ScriptComponent>(ent, aid);
         }
 
         void toJson(entt::entity ent, entt::registry& reg, json& j) override {
@@ -1285,6 +1285,8 @@ namespace worlds {
                     reg.remove<AudioTrigger>(ent);
                     return;
                 }
+
+                ImGui::Checkbox("Play Once", &trigger.playOnce);
                 ImGui::Separator();
             }
         }
@@ -1441,7 +1443,15 @@ namespace worlds {
                     reg.remove<PrefabInstanceComponent>(ent);
                     return;
                 }
+
                 ImGui::Text("Instance of %s", AssetDB::idToPath(pic.prefab).c_str());
+
+                if (ImGui::Button("Apply Prefab")) {
+                    PHYSFS_File* file = AssetDB::openAssetFileWrite(pic.prefab);
+                    JsonSceneSerializer::saveEntity(file, reg, ent);
+                    PHYSFS_close(file);
+                }
+
                 ImGui::Separator();
             }
         }
@@ -1453,16 +1463,10 @@ namespace worlds {
         }
 
         void toJson(entt::entity ent, entt::registry& reg, json& j) override {
-            auto& pic = reg.get<PrefabInstanceComponent>(ent);
-
-            j = {
-                { "prefab", AssetDB::idToPath(pic.prefab) }
-            };
+            j = nullptr;
         }
 
         void fromJson(entt::entity ent, entt::registry& reg, const json& j) override {
-            auto& pic = reg.emplace<PrefabInstanceComponent>(ent);
-            pic.prefab = AssetDB::pathToId(j["prefab"]);
         }
     };
 

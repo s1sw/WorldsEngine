@@ -1823,13 +1823,13 @@ namespace vku {
         struct State {
             vk::UniqueImage image;
             vk::UniqueImageView imageView;
-            vk::DeviceSize size;
-            vk::ImageLayout currentLayout;
+            vk::DeviceSize size = 0;
+            vk::ImageLayout currentLayout = vk::ImageLayout::eUndefined;
             vk::PipelineStageFlags lastUsageStage = vk::PipelineStageFlagBits::eTopOfPipe;
             vk::AccessFlags lastUsageAccessFlags = vk::AccessFlagBits::eMemoryWrite;
             vk::ImageAspectFlags aspectFlags;
             vk::ImageCreateInfo info;
-            VmaAllocation allocation;
+            VmaAllocation allocation = nullptr;
             VmaAllocator allocator;
         };
 

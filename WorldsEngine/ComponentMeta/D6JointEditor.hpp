@@ -17,22 +17,22 @@
 using json = nlohmann::json;
 
 namespace physx {
-    void to_json(json& j, const PxTransform& t) {
+    inline void to_json(json& j, const PxTransform& t) {
         j = {
             { "position", { t.p.x, t.p.y, t.p.z } },
             { "rotation", { t.q.x, t.q.y, t.q.z, t.q.w } }
         };
     }
 
-    void from_json(const json& j, PxTransform& t) {
+    inline void from_json(const json& j, PxTransform& t) {
         const auto& pos = j["position"];
         const auto& rot = j["rotation"];
-        
+
         t.p = PxVec3(pos[0], pos[1], pos[2]);
         t.q = PxQuat(rot[0], rot[1], rot[2], rot[3]);
     }
 
-    void to_json(json& j, const PxJointLinearLimit& l) {
+    inline void to_json(json& j, const PxJointLinearLimit& l) {
         j = {
             { "value", l.value },
             { "restitution", l.restitution },
@@ -43,7 +43,7 @@ namespace physx {
         };
     }
 
-    void from_json(const json& j, PxJointLinearLimit& l) {
+    inline void from_json(const json& j, PxJointLinearLimit& l) {
         l.value = j["value"];
         l.restitution = j["restitution"];
         l.bounceThreshold = j["bounceThreshold"];
@@ -151,7 +151,7 @@ namespace worlds {
                 if (!reg.valid(j.getTarget())) {
                     if (ImGui::Button("Set Connected Offset")) {
                         auto& t = reg.get<Transform>(ent);
-                        auto p = glm2px(t); 
+                        auto p = glm2px(t);
                         j.pxJoint->setLocalPose(physx::PxJointActorIndex::eACTOR1, p);
                     }
                 }
@@ -220,7 +220,6 @@ namespace worlds {
 
         void clone(entt::entity from, entt::entity to, entt::registry& reg) override {
             assert(reg.has<DynamicPhysicsActor>(to));
-            auto& dpa = reg.get<DynamicPhysicsActor>(to);
             auto& newD6 = reg.emplace<D6Joint>(to);
             auto& oldD6 = reg.get<D6Joint>(from);
 
@@ -230,8 +229,9 @@ namespace worlds {
             if (reg.valid(oldD6.getTarget()))
                 newD6.setTarget(oldD6.getTarget(), reg);
 
-            for (physx::PxD6Axis::Enum axis = physx::PxD6Axis::eX; axis < physx::PxD6Axis::eCOUNT; ((int&)axis)++) {
-                newD6.pxJoint->setMotion(axis, oldD6.pxJoint->getMotion(axis));
+            for (int axis = physx::PxD6Axis::eX; axis < physx::PxD6Axis::eCOUNT; axis++) {
+                auto actualAxis = (physx::PxD6Axis::Enum)axis;
+                newD6.pxJoint->setMotion(actualAxis, oldD6.pxJoint->getMotion(actualAxis));
             }
 
             newD6.pxJoint->setLocalPose(physx::PxJointActorIndex::eACTOR0,
@@ -240,8 +240,9 @@ namespace worlds {
             newD6.pxJoint->setLocalPose(physx::PxJointActorIndex::eACTOR1,
                 oldD6.pxJoint->getLocalPose(physx::PxJointActorIndex::eACTOR1));
 
-            for (physx::PxD6Axis::Enum axis = physx::PxD6Axis::eX; axis < physx::PxD6Axis::eTWIST; ((int&)axis)++) {
-                newJ->setLinearLimit(axis, oldJ->getLinearLimit(axis));
+            for (int axis = physx::PxD6Axis::eX; axis < physx::PxD6Axis::eTWIST; axis++) {
+                auto actualAxis = (physx::PxD6Axis::Enum)axis;
+                newJ->setLinearLimit(actualAxis, oldJ->getLinearLimit(actualAxis));
             }
         }
 

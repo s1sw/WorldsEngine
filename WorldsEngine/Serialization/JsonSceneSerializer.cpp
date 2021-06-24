@@ -1,3 +1,4 @@
+#include "Core/Engine.hpp"
 #include "SceneSerialization.hpp"
 #include <string>
 #include <nlohmann/json.hpp>
@@ -9,22 +10,63 @@
 #include "slib/StaticAllocList.hpp"
 
 namespace worlds {
+    robin_hood::unordered_flat_map<AssetID, nlohmann::json> prefabCache;
+
+    nlohmann::json getEntityJson(entt::entity ent, entt::registry& reg)  {
+        nlohmann::json j;
+
+        for (auto& mdata : ComponentMetadataManager::sorted) {
+            std::array<ENTT_ID_TYPE, 1> arr = { mdata->getComponentID() };
+            auto rView = reg.runtime_view(arr.begin(), arr.end());
+
+            if (!rView.contains(ent)) continue;
+
+            nlohmann::json compJ;
+            mdata->toJson(ent, reg, compJ);
+            if (compJ.is_null()) continue;
+            j[mdata->getName()] = compJ;
+        }
+
+        return j;
+    }
+
+    nlohmann::json getPrefabJson(AssetID id) {
+        auto cacheIt = prefabCache.find(id);
+
+        if (cacheIt != prefabCache.end()) {
+            return cacheIt->second;
+        } else {
+            // not in cache, load from disk
+            PHYSFS_File* file = AssetDB::openAssetFileRead(id);
+            std::string str;
+            str.resize(PHYSFS_fileLength(file));
+            PHYSFS_readBytes(file, str.data(), str.size());
+            PHYSFS_close(file);
+            nlohmann::json prefab = nlohmann::json::parse(str);
+            prefabCache.insert({ id, prefab });
+            return prefab;
+        }
+    }
+
     std::string sceneToJson(entt::registry& reg) {
         nlohmann::json j;
 
         reg.view<Transform>().each([&](entt::entity ent, Transform&) {
             nlohmann::json entity;
 
-            for (auto& mdata : ComponentMetadataManager::sorted) {
-                std::array<ENTT_ID_TYPE, 1> arr = { mdata->getComponentID() };
-                auto rView = reg.runtime_view(arr.begin(), arr.end());
+            if (reg.has<PrefabInstanceComponent>(ent)) {
+                PrefabInstanceComponent& pic = reg.get<PrefabInstanceComponent>(ent);
+                nlohmann::json instanceJson = getEntityJson(ent, reg);
+                nlohmann::json prefab = getPrefabJson(pic.prefab);
 
-                if (!rView.contains(ent)) continue;
-
-                nlohmann::json compJ;
-                mdata->toJson(ent, reg, compJ);
-                entity[mdata->getName()] = compJ;
+                entity = {
+                    { "diff", nlohmann::json::diff(prefab, instanceJson) },
+                    { "prefabPath", AssetDB::idToPath(pic.prefab) }
+                };
+            } else {
+                entity = getEntityJson(ent, reg);
             }
+
 
             j[std::to_string((uint32_t)ent)] = entity;
         });
@@ -38,8 +80,55 @@ namespace worlds {
         PHYSFS_close(file);
     }
 
+    void deserializeEntityComponents(const nlohmann::json& j, entt::registry& reg, entt::entity ent) {
+        slib::StaticAllocList<std::string> componentIds(j.size());
+
+        for (auto& compPair : j.items()) {
+            if (ComponentMetadataManager::byName.find(compPair.key()) != ComponentMetadataManager::byName.end())
+                componentIds.add(compPair.key());
+            else
+                logMsg("Unknown component ID \"%s\"", compPair.key());
+        }
+
+        std::sort(componentIds.begin(), componentIds.end(), [](std::string a, std::string b) {
+            return ComponentMetadataManager::byName.at(a)->getSortID() < ComponentMetadataManager::byName.at(b)->getSortID();
+        });
+
+        for (auto& id : componentIds) {
+            auto compMeta = ComponentMetadataManager::byName.at(id);
+            compMeta->fromJson(ent, reg, j[id]);
+        }
+    }
+
+    entt::entity createJsonEntity(const nlohmann::json& j, entt::registry& reg, entt::entity id) {
+        entt::entity ent = reg.create(id);
+        deserializeEntityComponents(j, reg, ent);
+
+        if (!reg.has<Transform>(ent)) {
+            logErr("Not deserializing entity because it lacks a transform");
+            reg.destroy(ent);
+            return entt::null;
+        }
+
+        return ent;
+    }
+
+    entt::entity createJsonEntity(const nlohmann::json& j, entt::registry& reg) {
+        entt::entity ent = reg.create();
+        deserializeEntityComponents(j, reg, ent);
+
+        if (!reg.has<Transform>(ent)) {
+            logErr("Not deserializing entity because it lacks a transform");
+            reg.destroy(ent);
+            return entt::null;
+        }
+
+        return ent;
+    }
+
     void JsonSceneSerializer::loadScene(PHYSFS_File* file, entt::registry& reg) {
         PerfTimer timer;
+        prefabCache.clear();
         std::string str;
         str.resize(PHYSFS_fileLength(file));
         PHYSFS_readBytes(file, str.data(), str.size());
@@ -48,21 +137,22 @@ namespace worlds {
 
         logMsg("scene has %lu entities", j.size());
         for (auto& p : j.items()) {
-            auto newEnt = reg.create((entt::entity)std::stoul(p.key()));
+            logMsg("key: %s", p.key().c_str());
+            entt::entity newEnt = reg.create((entt::entity)std::stoul(p.key()));
 
-            std::vector<std::string> componentIds;
+            if (p.value().contains("prefabPath")) {
+                std::string prefabPath = p.value()["prefabPath"].get<std::string>();
+                AssetID prefabId = AssetDB::pathToId(prefabPath);
 
-            for (auto& compPair : p.value().items()) {
-                componentIds.push_back(compPair.key());
-            }
+                nlohmann::json components = getPrefabJson(prefabId);
+                components = components.patch(p.value()["diff"]);
+                logMsg("%s", components.dump().c_str());
 
-            std::sort(componentIds.begin(), componentIds.end(), [](std::string a, std::string b) {
-                return ComponentMetadataManager::byName.at(a)->getSortID() < ComponentMetadataManager::byName.at(b)->getSortID();
-            });
+                deserializeEntityComponents(components, reg, newEnt);
 
-            for (auto& id : componentIds) {
-                auto compMeta = ComponentMetadataManager::byName.at(id);
-                compMeta->fromJson(newEnt, reg, p.value()[id]);
+                reg.emplace<PrefabInstanceComponent>(newEnt).prefab = prefabId;
+            } else {
+                deserializeEntityComponents(p.value(), reg, newEnt);
             }
         }
 
@@ -81,37 +171,6 @@ namespace worlds {
         return jsonToEntity(reg, str);
     }
 
-    robin_hood::unordered_flat_map<AssetID, nlohmann::json> prefabCache;
-
-    entt::entity createJsonEntity(const nlohmann::json& j, entt::registry& reg) {
-        entt::entity ent = reg.create();
-
-        slib::StaticAllocList<std::string> componentIds(j.size());
-
-        for (auto& compPair : j.items()) {
-            if (ComponentMetadataManager::byName.find(compPair.key()) != ComponentMetadataManager::byName.end())
-                componentIds.add(compPair.key());
-            else
-                logMsg("Unknown component ID \"%s\"", compPair.key());
-        }
-
-        std::sort(componentIds.begin(), componentIds.end(), [](std::string a, std::string b) {
-            return ComponentMetadataManager::byName.at(a)->getSortID() < ComponentMetadataManager::byName.at(b)->getSortID();
-        });
-
-        for (auto& id : componentIds) {
-            auto compMeta = ComponentMetadataManager::byName.at(id);
-            compMeta->fromJson(ent, reg, j[id]);
-        }
-
-        if (!reg.has<Transform>(ent)) {
-            logErr("Not deserializing clipboard entity because it lacks a transform");
-            reg.destroy(ent);
-            return entt::null;
-        }
-
-        return ent;
-    }
 
     entt::entity JsonSceneSerializer::loadEntity(AssetID id, entt::registry& reg) {
         auto cacheIt = prefabCache.find(id);
@@ -134,18 +193,7 @@ namespace worlds {
     }
 
     std::string JsonSceneSerializer::entityToJson(entt::registry& reg, entt::entity ent) {
-        nlohmann::json j;
-        for (auto& mdata : ComponentMetadataManager::sorted) {
-            std::array<ENTT_ID_TYPE, 1> arr = { mdata->getComponentID() };
-            auto rView = reg.runtime_view(arr.begin(), arr.end());
-
-            if (!rView.contains(ent)) continue;
-
-            nlohmann::json compJ;
-            mdata->toJson(ent, reg, compJ);
-            j[mdata->getName()] = compJ;
-        }
-
+        nlohmann::json j = getEntityJson(ent, reg);
         return j.dump();
     }
 
