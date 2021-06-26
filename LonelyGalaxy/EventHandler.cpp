@@ -47,6 +47,7 @@
 #include "Gun.hpp"
 #include <Libs/pcg_basic.h>
 #include "StabbySystem.hpp"
+#include "StatDisplayInfo.hpp"
 
 namespace lg {
     worlds::RTTPass* spectatorPass = nullptr;
@@ -474,7 +475,7 @@ namespace lg {
                 trl = getHandTargetTransform(camera, vrInterface, worlds::Hand::RightHand);
             }
         }
-        auto statDisplayView = reg.view<StatDisplay, RPGStats, Transform>();
+        auto statDisplayView = reg.view<StatDisplay, StatDisplayInfo, RPGStats, Transform>();
         glm::vec3 headPos = camera->position;
 
         if (vrInterface) {
@@ -492,8 +493,8 @@ namespace lg {
             }
         });
 
-        statDisplayView.each([&](StatDisplay& sd, RPGStats& stats, Transform& transform) {
-            glm::vec3 displayPos = transform.position + (transform.rotation * glm::vec3(0.0f, 2.15f, 0.0f));
+        statDisplayView.each([&](StatDisplay& sd, StatDisplayInfo& sdi, RPGStats& stats, Transform& transform) {
+            glm::vec3 displayPos = transform.position + (transform.rotation * sdi.offset);
             entt::entity textEnt = sd.textEntity;
 
             Transform& statTextTransform = reg.get<Transform>(textEnt);

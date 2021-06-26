@@ -18,6 +18,7 @@
 #include "Gun.hpp"
 #include "DamagingProjectile.hpp"
 #include "Stabby.hpp"
+#include "StatDisplayInfo.hpp"
 
 using json = nlohmann::json;
 
@@ -674,6 +675,44 @@ namespace lg {
         }
     };
 
+    class StatDisplayInfoEditor : public worlds::BasicComponentUtil<StatDisplayInfo> {
+    public:
+        BASIC_CREATE(StatDisplayInfo);
+        BASIC_CLONE(StatDisplayInfo);
+
+        void writeToFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file) override {}
+        void readFromFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file, int version) override {}
+
+        const char* getName() override { return "Stat Display Info"; }
+
+        void edit(entt::entity ent, entt::registry& reg, worlds::Editor* ed) override {
+            auto& statDisplayInfo = reg.get<StatDisplayInfo>(ent);
+
+            if (ImGui::CollapsingHeader("Stat Display Info")) {
+                if (ImGui::Button("Remove##StatDisplayInfo")) {
+                    reg.remove<StatDisplayInfo>(ent);
+                    return;
+                }
+
+                ImGui::DragFloat3("Offset", glm::value_ptr(statDisplayInfo.offset));
+            }
+        }
+
+        void toJson(entt::entity ent, entt::registry& reg, json& j) override {
+            auto& statDisplayInfo = reg.get<StatDisplayInfo>(ent);
+
+            j = {
+                { "offset", statDisplayInfo.offset }
+            };
+        }
+
+        void fromJson(entt::entity ent, entt::registry& reg, const json& j) override {
+            auto& statDisplayInfo = reg.emplace<StatDisplayInfo>(ent);
+
+            statDisplayInfo.offset = j["offset"];
+        }
+    };
+
     PlayerStartPointEditor pspe;
     PlayerRigEditor pre;
     GripPointEditor gpe;
@@ -685,6 +724,7 @@ namespace lg {
     DamagingProjectileEditor dpe;
     StabbyEditor ste;
     StabbableEditor stabbableEditor;
+    StatDisplayInfoEditor sdiEditor;
 
     // Near-empty function to ensure that statics get initialized
     void registerComponentMeta() {
