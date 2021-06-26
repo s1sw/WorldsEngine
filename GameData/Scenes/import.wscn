@@ -1,0 +1,213 @@
+{
+  "0": {
+    "Physics Actor": {
+      "shapes": [
+        {
+          "halfExtents": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "type": 1
+        }
+      ]
+    },
+    "Transform": {
+      "position": [
+        0.0,
+        -2.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        5.0,
+        1.0,
+        5.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/grass.json"
+      ],
+      "mesh": "Models/cube.wmdl",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
+  "2": {
+    "Transform": {
+      "position": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "rotation": [
+        0.7071685194969177,
+        0.0,
+        0.0,
+        0.7070450782775879
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Light": {
+      "color": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "enableShadows": false,
+      "intensity": 1.0,
+      "spotCutoff": 0.699999988079071,
+      "tubeLength": 0.25,
+      "tubeRadius": 0.10000000149011612,
+      "type": 2
+    }
+  },
+  "3": {
+    "Dynamic Physics Actor": {
+      "enableCCD": false,
+      "enableGravity": true,
+      "mass": 5.0,
+      "shapes": [
+        {
+          "halfExtents": [
+            0.3753913640975952,
+            0.25002244114875793,
+            0.3221323490142822
+          ],
+          "position": [
+            0.0,
+            0.07291709631681442,
+            -0.27183085680007935
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0,
+            0.9999998807907104
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.31473103165626526,
+            0.14063894748687744,
+            0.18120114505290985
+          ],
+          "position": [
+            0.0,
+            0.07291709631681442,
+            -0.6457453966140747
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0,
+            0.9999998807907104
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.31473103165626526,
+            0.14063894748687744,
+            0.18120114505290985
+          ],
+          "position": [
+            0.0,
+            0.07291709631681442,
+            0.13781332969665527
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0,
+            0.9999998807907104
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.13373902440071106,
+            0.14063894748687744,
+            0.4453328251838684
+          ],
+          "position": [
+            0.0,
+            -0.016333892941474915,
+            0.7596043348312378
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0,
+            0.9999998807907104
+          ],
+          "type": 1
+        }
+      ]
+    },
+    "Name Component": {
+      "name": "Empty"
+    },
+    "Transform": {
+      "position": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/dev.json",
+        "Materials/dev.json"
+      ],
+      "mesh": "Models/drone.wmdl",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  }
+}
