@@ -103,7 +103,8 @@ namespace worlds {
         void setLinearVelocity(glm::vec3 vel);
         void setAngularVelocity(glm::vec3 vel);
 
-        void addForce(glm::vec3 force, ForceMode forceMode);
+        void addForce(glm::vec3 force, ForceMode forceMode = ForceMode::Force);
+        void addTorque(glm::vec3 torque, ForceMode forceMode = ForceMode::Force);
 
         Transform pose() const;
         void setPose(const Transform& t);
