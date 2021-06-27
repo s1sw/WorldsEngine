@@ -485,7 +485,7 @@ namespace worlds {
 
             if (shape.type == PhysicsShapeType::Box) {
                 getVec3(el, "scale", shape.box.halfExtents);
-                shape.box.halfExtents = glm::vec3{ shape.box.halfExtents.x, shape.box.halfExtents.z, shape.box.halfExtents.y };
+                shape.box.halfExtents = glm::abs(glm::vec3{ shape.box.halfExtents.x, shape.box.halfExtents.z, shape.box.halfExtents.y });
             }
 
             shapes[i] = shape;
