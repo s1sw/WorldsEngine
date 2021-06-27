@@ -64,12 +64,12 @@ namespace worlds {
     }
 
     SDL_HitTestResult hitTest(SDL_Window* win, const SDL_Point* p, void* v) {
-        if (p->x > 200 && p->y < 20 && p->y > 0) {
+        int w, h;
+        SDL_GetWindowSize(win, &w, &h);
+        if (p->x > 200 && p->x < w - 120 && p->y < 20 && p->y > 0) {
             return SDL_HITTEST_DRAGGABLE;
         }
 
-        int w, h;
-        SDL_GetWindowSize(win, &w, &h);
 
         enum BorderFlags {
             None = 0,
@@ -149,6 +149,8 @@ namespace worlds {
         SDL_SetWindowHitTest(window, hitTest, nullptr);
         SDL_SetWindowOpacity(window, 1.0f);
         sceneViews.push_back(new EditorSceneView {interfaces, this});
+
+        titleBarIcon = texMan->loadOrGet(AssetDB::pathToId("UI/Images/logo_no_background.png"));
     }
 
 #undef REGISTER_COMPONENT_TYPE
@@ -230,94 +232,6 @@ namespace worlds {
         return glm::max((int)glm::pow(radius, 0.8f), 6);
     }
 
-    void Editor::updateCamera(float deltaTime) {
-        if (ImGuizmo::IsUsing()) return;
-        float moveSpeed = cameraSpeed;
-
-        static int origMouseX, origMouseY = 0;
-
-        if (inputManager.mouseButtonPressed(MouseButton::Right, true)) {
-            SDL_GetMouseState(&origMouseX, &origMouseY);
-            inputManager.captureMouse(true);
-        } else if (inputManager.mouseButtonReleased(MouseButton::Right, true)) {
-            inputManager.captureMouse(false);
-        }
-
-        if (inputManager.mouseButtonHeld(MouseButton::Right, true)) {
-            // Camera movement
-            if (inputManager.keyHeld(SDL_SCANCODE_LSHIFT))
-                moveSpeed *= 2.0f;
-
-            cameraSpeed += ImGui::GetIO().MouseWheel * 0.5f;
-
-            if (inputManager.keyHeld(SDL_SCANCODE_W)) {
-                cam.position += cam.rotation * glm::vec3(0.0f, 0.0f, deltaTime * moveSpeed);
-            }
-
-            if (inputManager.keyHeld(SDL_SCANCODE_S)) {
-                cam.position -= cam.rotation * glm::vec3(0.0f, 0.0f, deltaTime * moveSpeed);
-            }
-
-            if (inputManager.keyHeld(SDL_SCANCODE_A)) {
-                cam.position += cam.rotation * glm::vec3(deltaTime * moveSpeed, 0.0f, 0.0f);
-            }
-
-            if (inputManager.keyHeld(SDL_SCANCODE_D)) {
-                cam.position -= cam.rotation * glm::vec3(deltaTime * moveSpeed, 0.0f, 0.0f);
-            }
-
-            if (inputManager.keyHeld(SDL_SCANCODE_SPACE)) {
-                cam.position += cam.rotation * glm::vec3(0.0f, deltaTime * moveSpeed, 0.0f);
-            }
-
-            if (inputManager.keyHeld(SDL_SCANCODE_LCTRL)) {
-                cam.position -= cam.rotation * glm::vec3(0.0f, deltaTime * moveSpeed, 0.0f);
-            }
-
-            // Mouse wrap around
-            // If it leaves the screen, teleport it back on the screen but on the opposite side
-            auto mousePos = inputManager.getMousePosition();
-            static glm::ivec2 warpAmount(0, 0);
-
-            if (!inputManager.mouseButtonPressed(MouseButton::Right)) {
-                lookX += (float)(inputManager.getMouseDelta().x - warpAmount.x) * 0.005f;
-                lookY += (float)(inputManager.getMouseDelta().y - warpAmount.y) * 0.005f;
-
-                lookY = glm::clamp(lookY, -glm::half_pi<float>() + 0.001f, glm::half_pi<float>() - 0.001f);
-
-                cam.rotation = glm::angleAxis(-lookX, glm::vec3(0.0f, 1.0f, 0.0f)) * glm::angleAxis(lookY, glm::vec3(1.0f, 0.0f, 0.0f));
-            }
-
-            warpAmount = glm::ivec2{ 0 };
-
-
-            if (mousePos.x > windowSize.x) {
-                warpAmount = glm::ivec2(-windowSize.x, 0);
-                inputManager.warpMouse(glm::ivec2(mousePos.x - windowSize.x, mousePos.y));
-            } else if (mousePos.x < 0) {
-                warpAmount = glm::ivec2(windowSize.x, 0);
-                inputManager.warpMouse(glm::ivec2(mousePos.x + windowSize.x, mousePos.y));
-            }
-
-            if (mousePos.y > windowSize.y) {
-                warpAmount = glm::ivec2(0, -windowSize.y);
-                inputManager.warpMouse(glm::ivec2(mousePos.x, mousePos.y - windowSize.y));
-            } else if (mousePos.y < 0) {
-                warpAmount = glm::ivec2(0, windowSize.y);
-                inputManager.warpMouse(glm::ivec2(mousePos.x, mousePos.y + windowSize.y));
-            }
-        }
-
-        if (reg.valid(currentSelectedEntity) && inputManager.keyPressed(SDL_SCANCODE_F)) {
-            auto& t = reg.get<Transform>(currentSelectedEntity);
-
-            glm::vec3 dirVec = glm::normalize(cam.position - t.position);
-            float dist = 5.0f;
-            cam.position = t.position + dirVec * dist;
-            cam.rotation = glm::quatLookAt(dirVec, glm::vec3{0.0f, 1.0f, 0.0f});
-        }
-    }
-
     void Editor::activateTool(Tool newTool) {
         assert(reg.valid(currentSelectedEntity));
         currentTool = newTool;
@@ -351,9 +265,9 @@ namespace worlds {
         overrideTransform = t;
     }
 
-    void Editor::handleTools(Transform& t, ImVec2 wPos, ImVec2 wSize) {
+    void Editor::handleTools(Transform& t, ImVec2 wPos, ImVec2 wSize, Camera& camera) {
         // Convert selected transform position from world space to screen space
-        glm::vec4 ndcObjPosPreDivide = cam.getProjectionMatrix((float)wSize.x / wSize.y) * cam.getViewMatrix() * glm::vec4(t.position, 1.0f);
+        glm::vec4 ndcObjPosPreDivide = camera.getProjectionMatrix((float)wSize.x / wSize.y) * camera.getViewMatrix() * glm::vec4(t.position, 1.0f);
 
         // NDC -> screen space
         glm::vec2 ndcObjectPosition(ndcObjPosPreDivide);
@@ -372,9 +286,9 @@ namespace worlds {
         ImGuizmo::SetRect(wPos.x, wPos.y, (float)wSize.x, (float)wSize.y);
         ImGuizmo::SetDrawlist();
 
-        glm::mat4 view = cam.getViewMatrix();
+        glm::mat4 view = camera.getViewMatrix();
         // Get a relatively normal projection matrix so ImGuizmo doesn't break.
-        glm::mat4 proj = cam.getProjectionMatrixZONonInfinite((float)wSize.x / (float)wSize.y);
+        glm::mat4 proj = camera.getProjectionMatrixZONonInfinite((float)wSize.x / (float)wSize.y);
 
         glm::mat4 tfMtx = t.getMatrix();
         glm::vec3 snap{ 0.0f };
@@ -440,6 +354,65 @@ namespace worlds {
         }
     }
 
+    void Editor::drawMenuBarTitle() {
+        const char* windowTitle = SDL_GetWindowTitle(interfaces.engine->getMainWindow());
+        ImVec2 textSize = ImGui::CalcTextSize(windowTitle);
+        ImVec2 menuBarCenter = ImGui::GetWindowSize() * 0.5f;
+
+        ImDrawList* drawList = ImGui::GetWindowDrawList();
+        drawList->AddText(ImVec2(menuBarCenter.x - (textSize.x * 0.5f), ImGui::GetWindowHeight() * 0.15f), ImColor(255, 255, 255), windowTitle);
+
+        float barWidth = ImGui::GetWindowWidth();
+        float barHeight = ImGui::GetWindowHeight();
+        const float crossSize = 6.0f;
+        ImVec2 crossCenter(ImGui::GetWindowWidth() - 17.0f - crossSize, menuBarCenter.y);
+        crossCenter -= ImVec2(0.5f, 0.5f);
+        auto crossColor = ImColor(255, 255, 255);
+
+        ImVec2 mousePos = ImGui::GetMousePos();
+
+        if (mousePos.x > barWidth - 45.0f && mousePos.y < barHeight) {
+            if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+                interfaces.engine->quit();
+            }
+            drawList->AddRectFilled(ImVec2(barWidth - 45.0f, 0.0f), ImVec2(barWidth, barHeight), ImColor(255, 0, 0, 255));
+        }
+
+        drawList->AddLine(crossCenter + ImVec2(+crossSize, +crossSize), crossCenter + ImVec2(-crossSize, -crossSize), crossColor, 1.0f);
+        drawList->AddLine(crossCenter + ImVec2(+crossSize, -crossSize), crossCenter + ImVec2(-crossSize, +crossSize), crossColor, 1.0f);
+
+        ImVec2 maximiseCenter(barWidth - 45.0f - 22.0f, menuBarCenter.y);
+        if (mousePos.x > barWidth - 90.0f && mousePos.x < barWidth - 45.0f && mousePos.y < barHeight) {
+            if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+                SDL_Window* window = interfaces.engine->getMainWindow();
+                bool isMaximised = (SDL_GetWindowFlags(window) & SDL_WINDOW_MAXIMIZED) == SDL_WINDOW_MAXIMIZED;
+
+                if (isMaximised)
+                    SDL_RestoreWindow(window);
+                else
+                    SDL_MaximizeWindow(window);
+            }
+            drawList->AddRectFilled(ImVec2(barWidth - 45.0f - 45.0f, 0.0f), ImVec2(barWidth - 45.0f, barHeight), ImColor(255, 255, 255, 50));
+        }
+        drawList->AddRect(maximiseCenter - ImVec2(crossSize, crossSize), maximiseCenter + ImVec2(crossSize, crossSize), ImColor(255, 255, 255));
+
+
+        ImVec2 minimiseCenter(barWidth - 90.0f - 22.0f, menuBarCenter.y);
+        if (mousePos.x > barWidth - 135.0f && mousePos.x < barWidth - 90.0f && mousePos.y < barHeight) {
+            if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+                SDL_Window* window = interfaces.engine->getMainWindow();
+                bool isMaximised = (SDL_GetWindowFlags(window) & SDL_WINDOW_MINIMIZED) == SDL_WINDOW_MINIMIZED;
+
+                if (isMaximised)
+                    SDL_RestoreWindow(window);
+                else
+                    SDL_MinimizeWindow(window);
+            }
+            drawList->AddRectFilled(ImVec2(barWidth - 135.0f, 0.0f), ImVec2(barWidth - 90.0f, barHeight), ImColor(255, 255, 255, 50));
+        }
+        drawList->AddRectFilled(minimiseCenter - ImVec2(5, 0), minimiseCenter + ImVec2(5, 1), ImColor(255, 255, 255));
+    }
+
     void Editor::update(float deltaTime) {
         if (!active) {
             for (EditorSceneView* esv : sceneViews) {
@@ -454,6 +427,7 @@ namespace worlds {
                 g_console->executeCommandStr("pauseAndEdit");
 
             if (ImGui::BeginMainMenuBar()) {
+                ImGui::Image(titleBarIcon, ImVec2(24, 24));
                 if (ImGui::MenuItem("Stop Playing")) {
                     g_console->executeCommandStr("reloadAndEdit");
                 }
@@ -461,6 +435,8 @@ namespace worlds {
                 if (ImGui::MenuItem("Pause and Edit")) {
                     g_console->executeCommandStr("pauseAndEdit");
                 }
+
+                drawMenuBarTitle();
                 ImGui::EndMainMenuBar();
             }
             return;
@@ -534,16 +510,15 @@ namespace worlds {
         }
         ImGui::End();
 
-        updateCamera(deltaTime);
-
         for (auto& edWindow : editorWindows) {
             if (edWindow->isActive()) {
                 edWindow->draw(reg);
             }
         }
 
+        int sceneViewIndex = 0;
         for (EditorSceneView* sceneView : sceneViews) {
-            sceneView->drawWindow();
+            sceneView->drawWindow(sceneViewIndex++);
         }
 
         if (inputManager.keyPressed(SDL_SCANCODE_S) && inputManager.ctrlHeld()) {
@@ -631,6 +606,7 @@ namespace worlds {
         std::string popupToOpen;
 
         if (ImGui::BeginMainMenuBar()) {
+            ImGui::Image(titleBarIcon, ImVec2(24, 24));
             if (ImGui::BeginMenu("File")) {
                 for (auto& window : editorWindows) {
                     if (window->menuSection() == EditorMenu::File) {
@@ -682,6 +658,10 @@ namespace worlds {
                     popupToOpen = "Save Prefab";
                 }
 
+                if (ImGui::MenuItem("New Scene View")) {
+                    sceneViews.push_back(new EditorSceneView{ interfaces, this });
+                }
+
                 ImGui::EndMenu();
             }
 
@@ -709,6 +689,8 @@ namespace worlds {
                 ImGui::EndMenu();
             }
 
+            drawMenuBarTitle();
+
             ImGui::EndMainMenuBar();
         }
 
@@ -716,6 +698,14 @@ namespace worlds {
             PHYSFS_File* file = PHYSFS_openWrite(path);
             JsonSceneSerializer::saveEntity(file, reg, currentSelectedEntity);
         });
+
+        sceneViews.erase(std::remove_if(sceneViews.begin(), sceneViews.end(), [](EditorSceneView* esv) {
+            if (!esv->open) {
+                delete esv;
+                return true;
+            }
+            return false;
+        }), sceneViews.end());
 
         if (!popupToOpen.empty())
             ImGui::OpenPopup(popupToOpen.c_str());

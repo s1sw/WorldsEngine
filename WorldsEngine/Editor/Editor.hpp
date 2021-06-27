@@ -115,19 +115,22 @@ namespace worlds {
     class EditorSceneView {
     public:
         EditorSceneView(EngineInterfaces interfaces, Editor* ed);
-        void drawWindow();
+        void drawWindow(int unqiueId);
         void recreateRTT();
         void setShadowsEnabled(bool enabled);
         void setViewportActive(bool active);
         bool open = true;
         ~EditorSceneView();
     private:
+        void updateCamera(float deltaTime);
         uint32_t currentWidth, currentHeight;
         VkDescriptorSet sceneViewDS = nullptr;
         RTTPass* sceneViewPass = nullptr;
-        Camera* cam;
+        Camera cam;
         EngineInterfaces interfaces;
         Editor* ed;
+        float lookX = 0.0f;
+        float lookY = 0.0f;
         bool shadowsEnabled = true;
         bool viewportActive = true;
     };
@@ -147,7 +150,9 @@ namespace worlds {
         void overrideHandle(Transform* t);
         AssetID currentSelectedAsset;
     private:
-        void handleTools(Transform& t, ImVec2 wPos, ImVec2 wSize);
+        ImTextureID titleBarIcon;
+        void drawMenuBarTitle();
+        void handleTools(Transform& t, ImVec2 wPos, ImVec2 wSize, Camera& camera);
         void updateCamera(float deltaTime);
         std::string generateWindowTitle();
         void updateWindowTitle();
