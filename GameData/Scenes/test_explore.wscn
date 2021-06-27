@@ -121,6 +121,26 @@
       "uvOverride": 0
     }
   },
+  "1048579": {
+    "diff": [
+      {
+        "op": "replace",
+        "path": "/Transform/position/0",
+        "value": 25.532197952270508
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/position/1",
+        "value": 4.313049793243408
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/position/2",
+        "value": -9.731813430786133
+      }
+    ],
+    "prefabPath": "Prefabs/drone.wprefab"
+  },
   "1048599": {
     "Physics Actor": {
       "shapes": [
@@ -9571,7 +9591,6 @@
     "Stabby": {
       "dragFloor": 0.25,
       "dragMultiplier": 0.949999988079071,
-      "penetrationVelocity": 1.0,
       "pulloutDistance": 0.5,
       "stabDirection": [
         0.0,
@@ -10922,7 +10941,7 @@
         0.0,
         0.0
       ],
-      "enableShadows": true,
+      "enableShadows": false,
       "intensity": 50.0,
       "spotCutoff": 0.699999988079071,
       "tubeLength": 0.25,
@@ -11091,7 +11110,7 @@
         0.0,
         0.0
       ],
-      "enableShadows": true,
+      "enableShadows": false,
       "intensity": 50.0,
       "spotCutoff": 0.699999988079071,
       "tubeLength": 0.25,
@@ -22494,7 +22513,6 @@
     "Stabby": {
       "dragFloor": 0.25,
       "dragMultiplier": 0.949999988079071,
-      "penetrationVelocity": 1.0,
       "pulloutDistance": 0.5,
       "stabDirection": [
         0.0,

@@ -20,7 +20,7 @@ namespace lg {
         glm::vec3 targetWorldPos;
         glm::quat targetWorldRot;
         //V3PidController posController;
-        StableHandPD posController;
+        StablePD posController;
         V3PidController rotController;
         glm::vec3 lastRefVel { 0.0f };
 

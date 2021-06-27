@@ -839,15 +839,15 @@
     },
     "Transform": {
       "position": [
-        -4.509823799133301,
-        1.112492322921753,
-        -6.01205587387085
+        -4.510309219360352,
+        1.112436294555664,
+        -6.011703014373779
       ],
       "rotation": [
-        0.0012417907128110528,
-        0.9999982714653015,
-        -0.0011562495492398739,
-        0.0007692330982536077
+        -9.665297693572938e-05,
+        0.9999997019767761,
+        -0.00018677132902666926,
+        0.0007834153948351741
       ],
       "scale": [
         0.9999647736549377,
@@ -899,6 +899,182 @@
         0.0
       ],
       "uvOverride": 0
+    }
+  },
+  "1048690": {
+    "Physics Actor": {
+      "shapes": [
+        {
+          "halfExtents": [
+            1.0,
+            0.5,
+            1.0
+          ],
+          "position": [
+            0.0,
+            -0.5,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "type": 1
+        }
+      ]
+    },
+    "Transform": {
+      "position": [
+        6.0,
+        -1.0,
+        -18.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        11.0,
+        1.0,
+        3.0
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/LevelTextures/PavingStones075.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json"
+      ],
+      "mesh": "Models/plane.wmdl",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        0.25,
+        0.25,
+        0.0,
+        -2.0
+      ],
+      "uvOverride": 4
+    }
+  },
+  "1048691": {
+    "Physics Actor": {
+      "shapes": [
+        {
+          "halfExtents": [
+            1.0,
+            0.5,
+            1.0
+          ],
+          "position": [
+            0.0,
+            -0.5,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "type": 1
+        }
+      ]
+    },
+    "Transform": {
+      "position": [
+        6.0,
+        -2.0,
+        -15.000001907348633
+      ],
+      "rotation": [
+        0.5000001192092896,
+        -0.49999985098838806,
+        0.5000000596046448,
+        -0.5
+      ],
+      "scale": [
+        1.999999761581421,
+        0.9999998807907104,
+        10.999999046325684
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/LevelTextures/PavingStones075.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json"
+      ],
+      "mesh": "Models/plane.wmdl",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        0.25,
+        0.25,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 4
     }
   },
   "1048696": {
@@ -1419,15 +1595,15 @@
     },
     "Transform": {
       "position": [
-        -4.183173656463623,
-        0.96711266040802,
-        -0.14247113466262817
+        -4.183724880218506,
+        0.9669085741043091,
+        -0.14206621050834656
       ],
       "rotation": [
-        0.003822934115305543,
-        0.999984860420227,
-        -0.0039353519678115845,
-        0.0005621587042696774
+        -0.00029449412249960005,
+        0.9999994039535522,
+        -0.0009524539927951992,
+        0.0005342750810086727
       ],
       "scale": [
         1.0000156164169312,
@@ -1657,6 +1833,21 @@
       "uvOverride": 4
     }
   },
+  "1048796": {
+    "diff": [
+      {
+        "op": "replace",
+        "path": "/Drone AI/rotationD",
+        "value": 25.0
+      },
+      {
+        "op": "replace",
+        "path": "/Drone AI/rotationP",
+        "value": 50.0
+      }
+    ],
+    "prefabPath": "Prefabs/drone.wprefab"
+  },
   "1048798": {
     "Dynamic Physics Actor": {
       "enableCCD": false,
@@ -1689,13 +1880,13 @@
     "Transform": {
       "position": [
         -4.377024173736572,
-        1.149999976158142,
+        1.1499998569488525,
         -2.6238865852355957
       ],
       "rotation": [
         0.0,
         0.0,
-        -9.332215427093615e-07,
+        -9.332214858659427e-07,
         1.0
       ],
       "scale": [
@@ -1751,7 +1942,43 @@
     }
   },
   "1048804": {
-    "diff": [],
+    "diff": [
+      {
+        "op": "replace",
+        "path": "/Transform/position/0",
+        "value": 3.0001182556152344
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/position/1",
+        "value": -0.047577135264873505
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/position/2",
+        "value": 3.9996962547302246
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/0",
+        "value": -0.0012105517089366913
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/1",
+        "value": 0.9999992251396179
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/2",
+        "value": 0.0005396129563450813
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/3",
+        "value": -5.1333314331714064e-05
+      }
+    ],
     "prefabPath": "Prefabs/dummy.wprefab"
   },
   "1048806": {
@@ -1759,32 +1986,37 @@
       {
         "op": "replace",
         "path": "/Transform/position/0",
-        "value": 10.451176643371582
+        "value": 10.451312065124512
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/position/1",
+        "value": -0.047668538987636566
       },
       {
         "op": "replace",
         "path": "/Transform/position/2",
-        "value": -4.847323417663574
+        "value": -4.84743595123291
       },
       {
         "op": "replace",
         "path": "/Transform/rotation/0",
-        "value": 1.2363548762550636e-07
+        "value": 0.0008706433000043035
       },
       {
         "op": "replace",
         "path": "/Transform/rotation/1",
-        "value": -0.7071068286895752
+        "value": -0.7072463631629944
       },
       {
         "op": "replace",
         "path": "/Transform/rotation/2",
-        "value": -7.034014755206985e-13
+        "value": -0.0009342438424937427
       },
       {
         "op": "replace",
         "path": "/Transform/rotation/3",
-        "value": 0.7071067094802856
+        "value": 0.7069661617279053
       }
     ],
     "prefabPath": "Prefabs/dummy.wprefab"
@@ -1904,14 +2136,14 @@
     },
     "Transform": {
       "position": [
-        -0.02445562556385994,
-        0.9606887698173523,
-        0.7109587788581848
+        -0.024453438818454742,
+        0.25000065565109253,
+        0.710968017578125
       ],
       "rotation": [
-        4.027374870929634e-06,
-        -0.00030169449746608734,
-        -9.298978511651512e-06,
+        5.685642463504337e-06,
+        -0.0003042373573407531,
+        -7.851736882003024e-06,
         1.0
       ],
       "scale": [
@@ -3178,15 +3410,15 @@
     },
     "Transform": {
       "position": [
-        -4.183173656463623,
-        0.96711266040802,
-        -0.42657607793807983
+        -4.183725357055664,
+        0.9669086933135986,
+        -0.42617130279541016
       ],
       "rotation": [
-        0.003822934115305543,
-        0.999984860420227,
-        -0.0039353519678115845,
-        0.0005621587042696774
+        -0.00029610912315547466,
+        0.9999993443489075,
+        -0.000954081944655627,
+        0.0005303099751472473
       ],
       "scale": [
         1.0000156164169312,
@@ -3600,14 +3832,14 @@
     },
     "Transform": {
       "position": [
-        -4.251901149749756,
-        0.950009286403656,
-        -1.259112000465393
+        -4.251906871795654,
+        0.9500021934509277,
+        -1.259110689163208
       ],
       "rotation": [
-        4.515477030508919e-06,
-        -0.00012647600669879466,
-        -0.00018397733219899237,
+        1.0531559837545501e-06,
+        -0.00012423761654645205,
+        -4.0851966332411394e-05,
         1.0
       ],
       "scale": [
@@ -3890,15 +4122,15 @@
     },
     "Transform": {
       "position": [
-        -4.509823799133301,
-        1.112492322921753,
-        -2.0120558738708496
+        -4.510288238525391,
+        1.1269278526306152,
+        -2.0115673542022705
       ],
       "rotation": [
-        0.0012417907128110528,
-        0.9999982714653015,
-        -0.0011562495492398739,
-        0.0007692330982536077
+        0.0001981339300982654,
+        0.9999997019767761,
+        6.942095933482051e-05,
+        0.000786499644163996
       ],
       "scale": [
         1.25,
@@ -4131,15 +4363,15 @@
     },
     "Transform": {
       "position": [
-        -4.616695880889893,
-        1.0,
-        -5.0
+        -4.616140842437744,
+        0.9710079431533813,
+        -5.014519691467285
       ],
       "rotation": [
-        -8.742281920604e-08,
-        1.0,
-        -8.742274815176643e-08,
-        7.642741013625873e-15
+        0.0013320192229002714,
+        0.9872488379478455,
+        -0.1590757966041565,
+        0.005738015286624432
       ],
       "scale": [
         1.0,
@@ -4279,141 +4511,6 @@
         0.0
       ],
       "uvOverride": 4
-    }
-  },
-  "220": {
-    "Dynamic Physics Actor": {
-      "enableCCD": false,
-      "enableGravity": true,
-      "mass": 25.0,
-      "shapes": [
-        {
-          "halfExtents": [
-            0.3753913640975952,
-            0.25002244114875793,
-            0.3221323490142822
-          ],
-          "position": [
-            0.0,
-            0.07291709631681442,
-            -0.27183085680007935
-          ],
-          "rotation": [
-            0.0,
-            0.0,
-            0.0,
-            0.9999998807907104
-          ],
-          "type": 1
-        },
-        {
-          "halfExtents": [
-            0.31473103165626526,
-            0.14063894748687744,
-            0.18120114505290985
-          ],
-          "position": [
-            0.0,
-            0.07291709631681442,
-            -0.6457453966140747
-          ],
-          "rotation": [
-            0.0,
-            0.0,
-            0.0,
-            0.9999998807907104
-          ],
-          "type": 1
-        },
-        {
-          "halfExtents": [
-            0.31473103165626526,
-            0.14063894748687744,
-            0.18120114505290985
-          ],
-          "position": [
-            0.0,
-            0.07291709631681442,
-            0.13781332969665527
-          ],
-          "rotation": [
-            0.0,
-            0.0,
-            0.0,
-            0.9999998807907104
-          ],
-          "type": 1
-        },
-        {
-          "halfExtents": [
-            0.13373902440071106,
-            0.14063894748687744,
-            0.4453328251838684
-          ],
-          "position": [
-            0.0,
-            -0.016333892941474915,
-            0.7596043348312378
-          ],
-          "rotation": [
-            0.0,
-            0.0,
-            0.0,
-            0.9999998807907104
-          ],
-          "type": 1
-        }
-      ]
-    },
-    "Name Component": {
-      "name": "Drone"
-    },
-    "RPG Stats": {
-      "currentHP": 750,
-      "level": 1,
-      "maxHP": 750,
-      "strength": 1,
-      "totalExperience": 0
-    },
-    "Stat Display Info": {
-      "offset": [
-        0.0,
-        0.4000000059604645,
-        0.0
-      ]
-    },
-    "Transform": {
-      "position": [
-        0.0,
-        2.0999999046325684,
-        -5.732077598571777
-      ],
-      "rotation": [
-        0.0,
-        0.0,
-        0.0,
-        1.0
-      ],
-      "scale": [
-        1.0,
-        1.0,
-        1.0
-      ]
-    },
-    "World Object": {
-      "materials": [
-        "Materials/dev.json",
-        "Materials/dev.json"
-      ],
-      "mesh": "Models/drone.wmdl",
-      "staticFlags": 0,
-      "texScaleOffset": [
-        1.0,
-        1.0,
-        0.0,
-        0.0
-      ],
-      "uvOverride": 0
     }
   },
   "221": {
@@ -4683,14 +4780,14 @@
     "Transform": {
       "position": [
         13.701229095458984,
-        -8506.7822265625,
+        -11211.2109375,
         -3.442295551300049
       ],
       "rotation": [
         1.101461862162978e-06,
         -0.0003274081682320684,
         -1.5630359939677874e-06,
-        0.9999999403953552
+        0.9999998807907104
       ],
       "scale": [
         0.2499879151582718,
@@ -4769,14 +4866,14 @@
     "Transform": {
       "position": [
         13.701229095458984,
-        -8507.3828125,
+        -11211.8125,
         -3.442295551300049
       ],
       "rotation": [
         1.101461862162978e-06,
         -0.0003274081682320684,
         -1.5630359939677874e-06,
-        0.9999999403953552
+        0.9999998807907104
       ],
       "scale": [
         0.2499879151582718,
@@ -5058,14 +5155,14 @@
     "Stabbable": {},
     "Transform": {
       "position": [
-        8.741061210632324,
-        1.1500029563903809,
-        0.7572407126426697
+        8.741111755371094,
+        1.0000008344650269,
+        0.7572522163391113
       ],
       "rotation": [
-        -2.607577152957674e-05,
-        -0.00019587867427617311,
-        3.0687133403262123e-05,
+        1.432904582543415e-06,
+        -0.00019290225463919342,
+        -1.9784704363701167e-06,
         1.0
       ],
       "scale": [
@@ -5198,8 +5295,8 @@
     "Transform": {
       "position": [
         0.0,
-        1.0,
-        0.0
+        2.967959403991699,
+        -0.5888160467147827
       ],
       "rotation": [
         0.0,
@@ -5914,6 +6011,100 @@
       "uvOverride": 0
     }
   },
+  "7340217": {
+    "Grabbable": {
+      "grips": []
+    },
+    "Physics Actor": {
+      "shapes": [
+        {
+          "halfExtents": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "type": 1
+        }
+      ]
+    },
+    "Script": {
+      "path": "Scripts/drone_button.wren"
+    },
+    "Transform": {
+      "position": [
+        -4.785355567932129,
+        1.4832876920700073,
+        -4.041083812713623
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        0.10000000149011612,
+        0.10000000149011612,
+        0.10000000149011612
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/DevTextures/dev_red.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json"
+      ],
+      "mesh": "Models/cube.wmdl",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
+  },
   "7340241": {
     "Physics Actor": {
       "shapes": [
@@ -5942,7 +6133,7 @@
       "position": [
         -5.0,
         1.0,
-        -5.0
+        -8.0
       ],
       "rotation": [
         0.0,
@@ -5951,9 +6142,9 @@
         0.7071067690849304
       ],
       "scale": [
-        1.9999946355819702,
-        0.9999973177909851,
-        10.0
+        1.9999979734420776,
+        0.9999989867210388,
+        13.0
       ]
     },
     "World Object": {
@@ -6030,7 +6221,7 @@
       "position": [
         6.0,
         1.0,
-        -15.0
+        -21.0
       ],
       "rotation": [
         0.5,
@@ -6272,20 +6463,20 @@
     },
     "Transform": {
       "position": [
-        17.000001907348633,
+        17.0,
         1.0,
-        -4.999999523162842
+        -8.0
       ],
       "rotation": [
         0.7071067690849304,
         -0.7071067690849304,
-        -3.2255516657642147e-07,
-        1.2771772617270472e-07
+        3.0908619663705394e-08,
+        -3.0908793746675656e-08
       ],
       "scale": [
-        1.999997854232788,
-        0.999998927116394,
-        10.0
+        1.9999886751174927,
+        0.9999943375587463,
+        12.999818801879883
       ]
     },
     "World Object": {
