@@ -137,7 +137,6 @@ namespace worlds {
 
         logMsg("scene has %lu entities", j.size());
         for (auto& p : j.items()) {
-            logMsg("key: %s", p.key().c_str());
             entt::entity newEnt = reg.create((entt::entity)std::stoul(p.key()));
 
             if (p.value().contains("prefabPath")) {
