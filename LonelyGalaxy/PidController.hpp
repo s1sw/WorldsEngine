@@ -96,9 +96,9 @@ namespace lg {
         }
     };
 
-    class StableHandPD {
+    class StablePD {
     private:
-        glm::vec3 lastVelocity;
+        glm::vec3 lastVelocity = glm::vec3{ 0.0f };
 
         glm::vec3 clampMagnitude(glm::vec3 in, float maxMagnitude) {
             float inLen = glm::length(in);
@@ -115,10 +115,15 @@ namespace lg {
             D = settings.D;
         }
 
-        glm::vec3 getOutput(glm::vec3 currPos, glm::vec3 desiredPos, glm::vec3 velocity, glm::vec3 referenceVelocity, float deltaTime) {
+        glm::vec3 getOutput(
+                glm::vec3 currPos,
+                glm::vec3 desiredPos,
+                glm::vec3 velocity,
+                float deltaTime,
+                glm::vec3 referenceVelocity = glm::vec3{0.f}) {
             glm::vec3 acceleration = velocity - lastVelocity;
 
-            glm::vec3 result = -P * (currPos + (deltaTime * velocity) - desiredPos) 
+            glm::vec3 result = -P * (currPos + (deltaTime * velocity) - desiredPos)
                 - D * (velocity - referenceVelocity + (deltaTime * acceleration));
 
             lastVelocity = velocity;

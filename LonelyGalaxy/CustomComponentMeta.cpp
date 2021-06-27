@@ -19,6 +19,7 @@
 #include "DamagingProjectile.hpp"
 #include "Stabby.hpp"
 #include "StatDisplayInfo.hpp"
+#include "Enemies/DroneAI.hpp"
 
 using json = nlohmann::json;
 
@@ -155,6 +156,11 @@ namespace lg {
         void edit(entt::entity ent, entt::registry& reg, worlds::Editor* ed) override {
             auto& psc = reg.get<PhysicsSoundComponent>(ent);
             if (ImGui::CollapsingHeader("Phys Sound")) {
+                if (ImGui::Button("Remove##PSC")) {
+                    reg.remove<PhysicsSoundComponent>(ent);
+                    return;
+                }
+
                 if (psc.soundId != ~0u) {
                     ImGui::Text("Current Asset Path: %s", worlds::AssetDB::idToPath(psc.soundId).c_str());
                 } else {
@@ -713,6 +719,97 @@ namespace lg {
         }
     };
 
+    class DroneAIEditor : public worlds::BasicComponentUtil<DroneAI> {
+    public:
+        BASIC_CREATE(DroneAI);
+        BASIC_CLONE(DroneAI);
+
+        void writeToFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file) override {}
+        void readFromFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file, int version) override {}
+
+        const char* getName() override { return "Drone AI"; }
+
+        void edit(entt::entity ent, entt::registry& reg, worlds::Editor* ed) override {
+            auto& ai = reg.get<DroneAI>(ent);
+
+            if (ImGui::CollapsingHeader("Drone AI")) {
+                if (ImGui::Button("Remove##DroneAI")) {
+                    reg.remove<DroneAI>(ent);
+                    return;
+                }
+
+                if (ImGui::TreeNode("PID Settings")) {
+                    ImGui::DragFloat("P", &ai.pd.P);
+                    ImGui::DragFloat("D", &ai.pd.D);
+                    ImGui::TreePop();
+                }
+
+                if (ImGui::TreeNode("Rotational PID Settings")) {
+                    ImGui::DragFloat("P", &ai.rotationPID.P);
+                    ImGui::DragFloat("D", &ai.rotationPID.D);
+                    ImGui::TreePop();
+                }
+
+                static bool editingFirePoint = false;
+                static Transform worldFirePoint;
+
+                const Transform& droneTransform = reg.get<Transform>(ent);
+                if (!editingFirePoint) {
+                    if (ImGui::Button("Edit Fire Point")) {
+                        worldFirePoint = ai.firePoint.transformBy(droneTransform);
+                        editingFirePoint = true;
+                    }
+                } else {
+                    if (ImGui::Button("Done")) {
+                        editingFirePoint = false;
+                    }
+
+                    ai.firePoint = worldFirePoint.transformByInverse(droneTransform);
+                    worldFirePoint = ai.firePoint.transformBy(droneTransform);
+                    ed->overrideHandle(&worldFirePoint);
+                }
+
+                ImGui::DragFloat3("Fire Point Position", glm::value_ptr(ai.firePoint.position));
+
+                ImGui::DragFloat3("Maximum Positional Forces", glm::value_ptr(ai.maxPositionalForces));
+                ImGui::DragFloat3("Minimum Positional Forces", glm::value_ptr(ai.minPositionalForces));
+            }
+        }
+
+        void toJson(entt::entity ent, entt::registry& reg, json& j) override {
+            auto& ai = reg.get<DroneAI>(ent);
+
+            j = {
+                { "P", ai.pd.P },
+                { "D", ai.pd.D },
+                { "rotationP", ai.rotationPID.P },
+                { "rotationD", ai.rotationPID.D },
+                { "maxPositionalForces", ai.maxPositionalForces },
+                { "minPositionalForces", ai.minPositionalForces },
+                { "firePoint", {
+                    { "position", ai.firePoint.position },
+                    { "rotation", ai.firePoint.rotation }
+                }}
+            };
+        }
+
+        void fromJson(entt::entity ent, entt::registry& reg, const json& j) override {
+            auto& ai = reg.emplace<DroneAI>(ent);
+
+            ai.pd.P = j["P"];
+            ai.pd.D = j["D"];
+
+            ai.rotationPID.P = j.value("rotationP", 0.0f);
+            ai.rotationPID.D = j.value("rotationD", 0.0f);
+            ai.maxPositionalForces = j.value("maxPositionalForces", ai.maxPositionalForces);
+            ai.minPositionalForces = j.value("minPositionalForces", ai.minPositionalForces);
+
+            if (j.contains("firePoint")) {
+                ai.firePoint.position = j["firePoint"]["position"];
+            }
+        }
+    };
+
     PlayerStartPointEditor pspe;
     PlayerRigEditor pre;
     GripPointEditor gpe;
@@ -725,6 +822,7 @@ namespace lg {
     StabbyEditor ste;
     StabbableEditor stabbableEditor;
     StatDisplayInfoEditor sdiEditor;
+    DroneAIEditor daiEditor;
 
     // Near-empty function to ensure that statics get initialized
     void registerComponentMeta() {

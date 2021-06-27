@@ -41,6 +41,8 @@ sources = [
     'SyncedRB.hpp'
 ]
 
+subdir('Enemies')
+
 crash_handler_deps = []
 
 if host_machine.system() == 'windows'

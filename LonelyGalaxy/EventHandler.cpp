@@ -1,13 +1,11 @@
 #include "EventHandler.hpp"
 #include <Util/RichPresence.hpp>
-#include <openvr.h>
 #include <Core/Log.hpp>
 #include <Render/Render.hpp>
 #include "Core/AssetDB.hpp"
 #include "DebugArrow.hpp"
 #include "Physics/D6Joint.hpp"
 #include "Physics/PhysicsActor.hpp"
-#include <physx/PxRigidDynamic.h>
 #include "Core/Transform.hpp"
 #include <VR/OpenVRInterface.hpp>
 #include <Physics/Physics.hpp>
@@ -21,21 +19,14 @@
 #include <enet/enet.h>
 #include <Core/JobSystem.hpp>
 #include "PlayerSoundSystem.hpp"
-#include "Util/CreateModelObject.hpp"
 #include "ObjectParentSystem.hpp"
 #include "extensions/PxD6Joint.h"
-#ifdef DISCORD_RPC
-#include <core.h>
-#endif
 #include "Util/VKImGUIUtil.hpp"
-#include <Scripting/ScriptComponent.hpp>
-#include <Physics/FilterEntities.hpp>
 #include "MathsUtil.hpp"
 #include "PlayerStartPoint.hpp"
 #include "RPGStats.hpp"
 #include "GripPoint.hpp"
 #include <Input/Input.hpp>
-#include <Physics/FixedJoint.hpp>
 #include "PhysicsSoundComponent.hpp"
 #include <Audio/Audio.hpp>
 #include "PlayerGrabManager.hpp"
@@ -48,6 +39,7 @@
 #include <Libs/pcg_basic.h>
 #include "StabbySystem.hpp"
 #include "StatDisplayInfo.hpp"
+#include "Enemies/DroneAI.hpp"
 
 namespace lg {
     worlds::RTTPass* spectatorPass = nullptr;
@@ -267,6 +259,7 @@ namespace lg {
         interfaces.engine->addSystem(new PhysHandSystem{ interfaces, registry });
         interfaces.engine->addSystem(new StabbySystem { interfaces, registry });
         interfaces.engine->addSystem(new PlayerSoundSystem { interfaces, registry });
+        interfaces.engine->addSystem(new DroneAISystem { interfaces, registry });
 
         if (enet_initialize() != 0) {
             logErr("Failed to initialize enet.");
