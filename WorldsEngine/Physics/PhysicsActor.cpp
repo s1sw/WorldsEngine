@@ -24,6 +24,11 @@ namespace worlds {
         actor->addForce(glm2px(force), pxForceMode);
     }
 
+    void DynamicPhysicsActor::addTorque(glm::vec3 torque, ForceMode forceMode) {
+        physx::PxForceMode::Enum pxForceMode = (physx::PxForceMode::Enum)forceMode;
+        actor->addTorque(glm2px(torque), pxForceMode);
+    }
+
     Transform DynamicPhysicsActor::pose() const {
         return px2glm(actor->getGlobalPose());
     }
