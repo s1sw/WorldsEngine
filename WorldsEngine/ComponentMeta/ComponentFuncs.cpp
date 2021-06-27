@@ -212,9 +212,9 @@ namespace worlds {
                         for (int i = 0; i < NUM_SUBMESH_MATS; i++) {
                             if (worldObject.presentMaterials[i]) {
                                 ImGui::Text("Material %i: %s", i, AssetDB::idToPath(worldObject.materials[i]).c_str());
-
                             } else {
                                 ImGui::Text("Material %i: not set", i);
+                                worldObject.materials[i] = INVALID_ASSET;
                             }
 
                             ImGui::SameLine();
@@ -223,7 +223,7 @@ namespace worlds {
 
                             bool open = ImGui::Button(("Change" + idStr).c_str());
                             if (selectAssetPopup(("Material" + idStr).c_str(), worldObject.materials[i], open)) {
-                                worldObject.materialIdx[i] = ~0u;
+                                worldObject.materialIdx[i] = INVALID_ASSET;
                                 worldObject.presentMaterials[i] = true;
                             }
                         }
