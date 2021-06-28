@@ -1,0 +1,8 @@
+{
+    "albedoPath" : "Textures/Drone/Drone_BaseColor.wtex",
+    "pbrMapPath" : "Textures/Drone/Drone_PBRPack.wtex",
+    "normalMapPath" : "Textures/Drone/Drone_Normal_forcelin.wtex",
+    "metallic" : 1.000000,
+    "roughness" : 0.200000,
+    "albedoColor" : [1.000000, 1.000000, 1.000000]
+}

@@ -6095,9 +6095,9 @@
       "soundPath": "Audio/SFX/Impacts/Misc/squeaky_toy.ogg"
     },
     "RPG Stats": {
-      "currentHP": 500,
+      "currentHP": 500.0,
       "level": 1,
-      "maxHP": 500,
+      "maxHP": 500.0,
       "strength": 1,
       "totalExperience": 0
     },
@@ -10842,9 +10842,9 @@
       "soundPath": "Audio/SFX/Impacts/Misc/squeaky_toy.ogg"
     },
     "RPG Stats": {
-      "currentHP": 1000,
+      "currentHP": 1000.0,
       "level": 1,
-      "maxHP": 1000,
+      "maxHP": 1000.0,
       "strength": 1,
       "totalExperience": 0
     },
@@ -10942,6 +10942,7 @@
         0.0
       ],
       "enableShadows": false,
+      "enabled": false,
       "intensity": 50.0,
       "spotCutoff": 0.699999988079071,
       "tubeLength": 0.25,
@@ -11111,6 +11112,7 @@
         0.0
       ],
       "enableShadows": false,
+      "enabled": false,
       "intensity": 50.0,
       "spotCutoff": 0.699999988079071,
       "tubeLength": 0.25,
@@ -11235,6 +11237,7 @@
         2.0
       ],
       "enableShadows": false,
+      "enabled": true,
       "intensity": 1.0,
       "spotCutoff": 1.350000023841858,
       "tubeLength": 0.25,
@@ -11387,9 +11390,9 @@
       "soundPath": "Audio/SFX/Impacts/Misc/squeaky_toy.ogg"
     },
     "RPG Stats": {
-      "currentHP": 1000,
+      "currentHP": 1000.0,
       "level": 1,
-      "maxHP": 1000,
+      "maxHP": 1000.0,
       "strength": 1,
       "totalExperience": 0
     },
@@ -16836,9 +16839,9 @@
       "soundPath": "Audio/SFX/Impacts/Misc/squeaky_toy.ogg"
     },
     "RPG Stats": {
-      "currentHP": 1000,
+      "currentHP": 1000.0,
       "level": 1,
-      "maxHP": 1000,
+      "maxHP": 1000.0,
       "strength": 1,
       "totalExperience": 0
     },
@@ -16932,9 +16935,9 @@
       ]
     },
     "RPG Stats": {
-      "currentHP": 500,
+      "currentHP": 500.0,
       "level": 1,
-      "maxHP": 500,
+      "maxHP": 500.0,
       "strength": 1,
       "totalExperience": 0
     },
@@ -17028,9 +17031,9 @@
       ]
     },
     "RPG Stats": {
-      "currentHP": 500,
+      "currentHP": 500.0,
       "level": 1,
-      "maxHP": 500,
+      "maxHP": 500.0,
       "strength": 1,
       "totalExperience": 0
     },
@@ -17124,9 +17127,9 @@
       ]
     },
     "RPG Stats": {
-      "currentHP": 500,
+      "currentHP": 500.0,
       "level": 1,
-      "maxHP": 500,
+      "maxHP": 500.0,
       "strength": 1,
       "totalExperience": 0
     },
@@ -17220,9 +17223,9 @@
       ]
     },
     "RPG Stats": {
-      "currentHP": 500,
+      "currentHP": 500.0,
       "level": 1,
-      "maxHP": 500,
+      "maxHP": 500.0,
       "strength": 1,
       "totalExperience": 0
     },
@@ -17436,9 +17439,9 @@
       "soundPath": "Audio/SFX/Impacts/Misc/squeaky_toy.ogg"
     },
     "RPG Stats": {
-      "currentHP": 1000,
+      "currentHP": 1000.0,
       "level": 1,
-      "maxHP": 1000,
+      "maxHP": 1000.0,
       "strength": 1,
       "totalExperience": 0
     },
@@ -17652,9 +17655,9 @@
       "soundPath": "Audio/SFX/Impacts/Misc/squeaky_toy.ogg"
     },
     "RPG Stats": {
-      "currentHP": 1000,
+      "currentHP": 1000.0,
       "level": 1,
-      "maxHP": 1000,
+      "maxHP": 1000.0,
       "strength": 1,
       "totalExperience": 0
     },
@@ -17868,9 +17871,9 @@
       "soundPath": "Audio/SFX/Impacts/Misc/squeaky_toy.ogg"
     },
     "RPG Stats": {
-      "currentHP": 1000,
+      "currentHP": 1000.0,
       "level": 1,
-      "maxHP": 1000,
+      "maxHP": 1000.0,
       "strength": 1,
       "totalExperience": 0
     },
@@ -18380,9 +18383,9 @@
       ]
     },
     "RPG Stats": {
-      "currentHP": 500,
+      "currentHP": 500.0,
       "level": 1,
-      "maxHP": 500,
+      "maxHP": 500.0,
       "strength": 1,
       "totalExperience": 0
     },
@@ -18476,9 +18479,9 @@
       ]
     },
     "RPG Stats": {
-      "currentHP": 500,
+      "currentHP": 500.0,
       "level": 1,
-      "maxHP": 500,
+      "maxHP": 500.0,
       "strength": 1,
       "totalExperience": 0
     },
@@ -18692,9 +18695,9 @@
       "soundPath": "Audio/SFX/Impacts/Misc/squeaky_toy.ogg"
     },
     "RPG Stats": {
-      "currentHP": 1000,
+      "currentHP": 1000.0,
       "level": 1,
-      "maxHP": 1000,
+      "maxHP": 1000.0,
       "strength": 1,
       "totalExperience": 0
     },
@@ -18908,9 +18911,9 @@
       "soundPath": "Audio/SFX/Impacts/Misc/squeaky_toy.ogg"
     },
     "RPG Stats": {
-      "currentHP": 1000,
+      "currentHP": 1000.0,
       "level": 1,
-      "maxHP": 1000,
+      "maxHP": 1000.0,
       "strength": 1,
       "totalExperience": 0
     },
@@ -22833,6 +22836,7 @@
         1.0
       ],
       "enableShadows": true,
+      "enabled": true,
       "intensity": 3.0,
       "spotCutoff": 0.699999988079071,
       "tubeLength": 0.25,
