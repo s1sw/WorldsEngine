@@ -52,9 +52,10 @@ namespace worlds {
         ZoneScoped;
         auto& texSlots = ctx.resources.textures;
         auto& cubemapSlots = ctx.resources.cubemaps;
-        {
-            vku::DescriptorSetUpdater updater(10, 128, 0);
-            updater.beginDescriptorSet(*descriptorSet);
+        vku::DescriptorSetUpdater updater(20, 256, 0);
+        size_t i = 0;
+        for (vk::DescriptorSet& ds : descriptorSets) {
+            updater.beginDescriptorSet(ds);
 
             updater.beginBuffers(0, 0, vk::DescriptorType::eUniformBuffer);
             updater.buffer(ctx.resources.vpMatrixBuffer->buffer(), 0, sizeof(MultiVP));
@@ -66,7 +67,7 @@ namespace worlds {
             updater.buffer(ctx.resources.materialBuffer->buffer(), 0, sizeof(MaterialsUB));
 
             updater.beginBuffers(3, 0, vk::DescriptorType::eStorageBuffer);
-            updater.buffer(modelMatrixUB.buffer(), 0, sizeof(ModelMatrices));
+            updater.buffer(modelMatrixUB[i].buffer(), 0, sizeof(ModelMatrices));
 
             for (uint32_t i = 0; i < texSlots.size(); i++) {
                 if (texSlots.isSlotPresent(i)) {
@@ -96,11 +97,12 @@ namespace worlds {
             updater.beginBuffers(9, 0, vk::DescriptorType::eStorageBuffer);
             updater.buffer(pickingBuffer.buffer(), 0, sizeof(PickingBuffer));
 
-            if (!updater.ok())
-                fatalErr("updater was not ok");
-
-            updater.update(handles->device);
+            i++;
         }
+        if (!updater.ok())
+            fatalErr("updater was not ok");
+
+        updater.update(handles->device);
 
 
         dsUpdateNeeded = false;
@@ -184,24 +186,29 @@ namespace worlds {
                 handles->device, handles->allocator, sizeof(LightUB),
                 VMA_MEMORY_USAGE_CPU_TO_GPU, "Lights");
 
-        modelMatrixUB = vku::GenericBuffer(
-                handles->device, handles->allocator,
-                vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
-                sizeof(ModelMatrices), VMA_MEMORY_USAGE_CPU_TO_GPU, "Model matrices");
+        for (uint32_t i = 0; i < ctx.maxSimultaneousFrames; i++) {
+            modelMatrixUB.push_back(vku::GenericBuffer(
+                    handles->device, handles->allocator,
+                    vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
+                    sizeof(ModelMatrices), VMA_MEMORY_USAGE_CPU_TO_GPU, "Model matrices"));
+        }
 
         pickingBuffer = vku::GenericBuffer(
                 handles->device, handles->allocator,
                 vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
                 sizeof(PickingBuffer), VMA_MEMORY_USAGE_CPU_ONLY, "Picking buffer");
 
-        modelMatricesMapped = (ModelMatrices*)modelMatrixUB.map(handles->device);
+        for (vku::GenericBuffer& matrixUB : modelMatrixUB) {
+            modelMatricesMapped.push_back((ModelMatrices*)matrixUB.map(handles->device));
+        }
         lightMapped = (LightUB*)lightsUB.map(handles->device);
 
         pickEvent = handles->device.createEventUnique(vk::EventCreateInfo{});
 
         vku::DescriptorSetMaker dsm;
         dsm.layout(*dsl);
-        descriptorSet = std::move(dsm.createUnique(handles->device, descriptorPool)[0]);
+        dsm.layout(*dsl);
+        descriptorSets = dsm.create(handles->device, descriptorPool);
 
         vku::RenderpassMaker rPassMaker;
 
@@ -494,7 +501,7 @@ namespace worlds {
                 }
             }
 
-            modelMatricesMapped->modelMatrices[matrixIdx] = t.getMatrix();
+            modelMatricesMapped[ctx.imageIndex]->modelMatrices[matrixIdx] = t.getMatrix();
 
             for (int i = 0; i < meshPos->second.numSubmeshes; i++) {
                 auto& currSubmesh = meshPos->second.submeshes[i];
@@ -587,7 +594,7 @@ namespace worlds {
             }
 
             glm::mat4 m = t.getMatrix();
-            modelMatricesMapped->modelMatrices[matrixIdx] = m;
+            modelMatricesMapped[ctx.imageIndex]->modelMatrices[matrixIdx] = m;
             matrixIdx++;
         });
 
@@ -702,7 +709,7 @@ namespace worlds {
             cullMeshRenderer->draw(cmdBuf);
         }
 
-        cmdBuf.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 0, *descriptorSet, nullptr);
+        cmdBuf.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 0, descriptorSets[ctx.imageIndex], nullptr);
 
         uint32_t globalMiscFlags = 0;
 
@@ -799,7 +806,9 @@ namespace worlds {
     }
 
     PolyRenderPass::~PolyRenderPass() {
-        modelMatrixUB.unmap(handles->device);
+        for (vku::GenericBuffer& matrixUB : modelMatrixUB) {
+            matrixUB.unmap(handles->device);
+        }
         lightsUB.unmap(handles->device);
         delete dbgLinesPass;
         delete skyboxPass;

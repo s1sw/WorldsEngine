@@ -101,7 +101,8 @@ namespace worlds {
             .registry = r,
             .passWidth = ci.width,
             .passHeight = ci.height,
-            .imageIndex = frameIdx
+            .imageIndex = frameIdx,
+            .maxSimultaneousFrames = renderer->maxFramesInFlight
         };
 
         trp->setup(rCtx, *descriptorPool);

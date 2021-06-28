@@ -71,10 +71,10 @@ namespace worlds {
         swapinfo.imageSharingMode = sharingMode;
         swapinfo.queueFamilyIndexCount = !sameQueues ? 2 : 0;
         swapinfo.pQueueFamilyIndices = queueFamilyIndices.data();
-        swapinfo.preTransform = surfaceCaps.currentTransform;;
-        swapinfo.compositeAlpha = vk::CompositeAlphaFlagBitsKHR::eInherit;
+        swapinfo.preTransform = surfaceCaps.currentTransform;
+        swapinfo.compositeAlpha = vk::CompositeAlphaFlagBitsKHR::eOpaque;
         swapinfo.presentMode = presentMode;
-        swapinfo.clipped = 1;
+        swapinfo.clipped = 0;
         swapinfo.oldSwapchain = oldSwapchain;
 
         auto originalImageUsage = swapinfo.imageUsage;
