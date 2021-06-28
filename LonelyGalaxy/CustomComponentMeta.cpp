@@ -209,8 +209,8 @@ namespace lg {
             auto& rpgStats = reg.get<RPGStats>(ent);
 
             if (ImGui::CollapsingHeader(" RPG Stats")) {
-                ImGui::DragScalar("maxHP", ImGuiDataType_U64, &rpgStats.maxHP, 1.0f);
-                ImGui::DragScalar("currentHP", ImGuiDataType_U64, &rpgStats.currentHP, 1.0f);
+                ImGui::DragScalar("maxHP", ImGuiDataType_Double, &rpgStats.maxHP, 1.0f);
+                ImGui::DragScalar("currentHP", ImGuiDataType_Double, &rpgStats.currentHP, 1.0f);
                 ImGui::DragScalar("level", ImGuiDataType_U64, &rpgStats.level, 1.0f);
                 ImGui::DragScalar("totalExperience", ImGuiDataType_U64, &rpgStats.totalExperience, 1.0f);
                 ImGui::DragScalar("strength", ImGuiDataType_U8, &rpgStats.strength, 1.0f);

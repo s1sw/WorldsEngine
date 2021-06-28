@@ -142,7 +142,7 @@ namespace lg {
             addStatDisplayIfNeeded(*reg, entity);
             stats->damage(multiplier * damageAmt);
 
-            spawnDamageNumber(engine->getGameTime(), *reg, 15, damagePoint);
+            spawnDamageNumber(engine->getGameTime(), *reg, multiplier * damageAmt, damagePoint);
 
             if (stats->currentHP == 0.0) {
                 if (reg->has<StatDisplay>(entity)) {
@@ -501,7 +501,7 @@ namespace lg {
             statTextTransform.rotation = safeQuatLookat(glm::normalize(displayPos - headPos));
 
             worlds::WorldTextComponent& wtc = reg.get<worlds::WorldTextComponent>(textEnt);
-            std::string healthText = "Health: " + std::to_string(stats.currentHP);
+            std::string healthText = "Health: " + std::to_string((int)glm::round(stats.currentHP));
             wtc.text = healthText;
             wtc.dirty = true;
         });
