@@ -14,7 +14,7 @@
 #include "PlayerSoundComponent.hpp"
 #include <Physics/D6Joint.hpp>
 #include <Audio/Audio.hpp>
-#include <Libs/pcg_basic.h>
+#include "DamageForwarder.hpp"
 
 namespace lg {
     entt::entity getActorEntity(physx::PxRigidActor* actor) {
@@ -617,6 +617,7 @@ namespace lg {
         auto playerFender = registry.create();
         registry.emplace<Transform>(playerFender).position = position + glm::vec3{0.0f, 0.4f, 0.0f};
         registry.emplace<worlds::NameComponent>(playerFender, "Fender");
+        registry.emplace<DamageForwarder>(playerFender).target = playerLocosphere;
 
         auto fenderActor = worlds::g_physics->createRigidDynamic(physx::PxTransform{
                 worlds::glm2px(position + glm::vec3{0.0f ,0.4f, 0.0f}), physx::PxQuat{physx::PxIdentity} });

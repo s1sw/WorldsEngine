@@ -413,7 +413,8 @@ namespace worlds {
                 { "intensity", wl.intensity },
                 { "tubeLength", wl.tubeLength },
                 { "tubeRadius", wl.tubeRadius },
-                { "enableShadows", wl.enableShadows }
+                { "enableShadows", wl.enableShadows },
+                { "enabled", wl.enabled }
             };
         }
 
@@ -427,6 +428,7 @@ namespace worlds {
             wl.tubeLength = j["tubeLength"];
             wl.tubeRadius = j["tubeRadius"];
             wl.enableShadows = j.value("enableShadows", false);
+            wl.enabled = j.value("enabled", true);
         }
     };
 

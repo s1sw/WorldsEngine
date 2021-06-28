@@ -2,18 +2,25 @@
 #include <stdint.h>
 
 namespace lg {
+    enum class DeathBehaviour {
+        Destroy,
+        Notify,
+        Nothing
+    };
+
     struct RPGStats {
-        uint64_t maxHP = 100;
-        uint64_t currentHP = 100;
+        double maxHP = 100;
+        double currentHP = 100;
         uint64_t level = 1;
         uint64_t totalExperience = 0;
         uint8_t strength = 1;
         uint8_t speed = 1;
         uint8_t intelligence = 1;
+        DeathBehaviour deathBehaviour = DeathBehaviour::Destroy;
 
-        void damage(uint64_t damageAmt) {
+        void damage(double damageAmt) {
             if (damageAmt > currentHP)
-                currentHP = 0;
+                currentHP = 0.0;
             else
                 currentHP -= damageAmt;
         }

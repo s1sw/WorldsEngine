@@ -30,6 +30,7 @@ namespace lg {
         void onSceneStart(entt::registry& reg) override;
         void shutdown(entt::registry& registry) override;
     private:
+        void damageEntity(entt::entity entity, double damageAmt, glm::vec3 damagePoint);
         void updateHandGrab(entt::registry& registry, PlayerRig& rig, entt::entity handEnt, float deltaTime);
         void onPhysicsSoundConstruct(entt::registry& reg, entt::entity ent);
         void onPhysicsSoundContact(entt::entity thisEnt, const worlds::PhysicsContactInfo& info);

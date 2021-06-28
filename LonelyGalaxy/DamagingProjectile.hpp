@@ -3,7 +3,7 @@
 #include <stdint.h>
 namespace lg {
     struct DamagingProjectile {
-        uint64_t damage = 5;
+        double damage = 5.0;
         double creationTime = 0.0;
     };
 }
