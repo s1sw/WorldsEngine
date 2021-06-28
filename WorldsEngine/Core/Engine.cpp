@@ -450,14 +450,16 @@ namespace worlds {
                         }
                     });
                     inputManager->lockMouse(true);
-                    console->executeCommandStr("sim_lockToRefresh 0");
+                    if (!enableOpenVR)
+                        console->executeCommandStr("sim_lockToRefresh 0");
                 }, "play", "play.");
 
                 console->registerCommand([&](void*, const char*) {
                     editor->active = true;
                     pauseSim = true;
                     inputManager->lockMouse(false);
-                    console->executeCommandStr("sim_lockToRefresh 1");
+                    if (!enableOpenVR)
+                        console->executeCommandStr("sim_lockToRefresh 1");
                 }, "pauseAndEdit", "pause and edit.");
 
                 console->registerCommand([&](void*, const char*) {
@@ -466,14 +468,16 @@ namespace worlds {
                         loadScene(currentScene.id);
                     pauseSim = true;
                     inputManager->lockMouse(false);
-                    console->executeCommandStr("sim_lockToRefresh 1");
+                    if (!enableOpenVR)
+                        console->executeCommandStr("sim_lockToRefresh 1");
                 }, "reloadAndEdit", "reload and edit.");
 
                 console->registerCommand([&](void*, const char*) {
                     editor->active = false;
                     pauseSim = false;
                     inputManager->lockMouse(true);
-                    console->executeCommandStr("sim_lockToRefresh 0");
+                    if (!enableOpenVR)
+                        console->executeCommandStr("sim_lockToRefresh 0");
                 }, "unpause", "unpause and go back to play mode.");
             }
 
