@@ -40,6 +40,7 @@
 #include "StabbySystem.hpp"
 #include "StatDisplayInfo.hpp"
 #include "Enemies/DroneAI.hpp"
+#include "DamageForwarder.hpp"
 
 namespace lg {
     worlds::RTTPass* spectatorPass = nullptr;
@@ -93,6 +94,9 @@ namespace lg {
 
     void addStatDisplayIfNeeded(entt::registry& reg, entt::entity entity) {
         if (!reg.has<StatDisplay>(entity) && !reg.has<LocospherePlayerComponent>(entity)) {
+            if (!reg.has<RPGStats>(entity)) return;
+            RPGStats& rpgStats = reg.get<RPGStats>(entity);
+            if (rpgStats.currentHP == 0.0) return;
             StatDisplay& sd = reg.emplace<StatDisplay>(entity);
             sd.textEntity = reg.create();
 
@@ -106,7 +110,7 @@ namespace lg {
         return ((float)(pcg32_random() / (double)UINT32_MAX)) * 2.0f - 1.0f;
     }
 
-    void spawnDamageNumber(double currentTime, entt::registry& reg, uint64_t damage, glm::vec3 location) {
+    void spawnDamageNumber(double currentTime, entt::registry& reg, double damage, glm::vec3 location) {
         glm::vec3 jumpDir { randFloatZeroOne(), randFloatZeroOne(), randFloatZeroOne() };
 
         entt::entity ent = reg.create();
@@ -119,30 +123,47 @@ namespace lg {
 
         worlds::WorldTextComponent& wtc = reg.emplace<worlds::WorldTextComponent>(ent);
         wtc.textScale = 0.004f;
-        wtc.text = std::to_string(damage);
+        wtc.text = std::to_string((uint64_t)glm::round(damage));
+    }
+
+    void EventHandler::damageEntity(entt::entity entity, double damageAmt, glm::vec3 damagePoint) {
+        RPGStats* stats = reg->try_get<RPGStats>(entity);
+        double multiplier = 1.0;
+
+        if (!stats) {
+            DamageForwarder* damageForwarder = reg->try_get<DamageForwarder>(entity);
+
+            if (!damageForwarder) return;
+            stats = reg->try_get<RPGStats>(damageForwarder->target);
+            multiplier = damageForwarder->multiplier;
+        }
+
+        if (stats) {
+            addStatDisplayIfNeeded(*reg, entity);
+            stats->damage(multiplier * damageAmt);
+
+            spawnDamageNumber(engine->getGameTime(), *reg, 15, damagePoint);
+
+            if (stats->currentHP == 0.0) {
+                if (reg->has<StatDisplay>(entity)) {
+                    engine->destroyNextFrame(reg->get<StatDisplay>(entity).textEntity);
+                    reg->remove<StatDisplay>(entity);
+                }
+
+                if (stats->deathBehaviour == DeathBehaviour::Destroy)
+                    engine->destroyNextFrame(entity);
+            }
+        }
     }
 
     void EventHandler::onContactDamageDealerContact(entt::entity thisEnt, const worlds::PhysicsContactInfo& info) {
         auto& dealer = reg->get<ContactDamageDealer>(thisEnt);
 
-        RPGStats* stats = reg->try_get<RPGStats>(info.otherEntity);
-
-        if (stats && info.relativeSpeed > dealer.minVelocity) {
-            addStatDisplayIfNeeded(*reg, info.otherEntity);
-
+        if (info.relativeSpeed > dealer.minVelocity) {
             double damagePercent = clamp((info.relativeSpeed - dealer.minVelocity) / (dealer.maxVelocity - dealer.minVelocity), 0.0, 1.0);
-            logMsg("damagePercent: %.3f, relSpeed: %.3f", damagePercent, info.relativeSpeed);
-            uint64_t actualDamage = dealer.damage * damagePercent;
-            stats->damage(actualDamage);
-            spawnDamageNumber(engine->getGameTime(), *reg, actualDamage, info.averageContactPoint - (info.normal * 0.1f));
-
-            if (stats->currentHP == 0) {
-                engine->destroyNextFrame(info.otherEntity);
-
-                if (reg->has<StatDisplay>(info.otherEntity)) {
-                    engine->destroyNextFrame(reg->get<StatDisplay>(info.otherEntity).textEntity);
-                }
-            }
+            glm::vec3 damagePoint = info.averageContactPoint - (info.normal * 0.1f);
+            double actualDamage = dealer.damage * damagePercent;
+            damageEntity(info.otherEntity, actualDamage, damagePoint);
         }
     }
 
@@ -216,22 +237,7 @@ namespace lg {
             DamagingProjectile& projectile = reg.get<DamagingProjectile>(thisEnt);
             engine->destroyNextFrame(thisEnt);
 
-            RPGStats* stats = reg.try_get<RPGStats>(info.otherEntity);
-
-            if (stats) {
-                addStatDisplayIfNeeded(reg, info.otherEntity);
-                stats->damage(projectile.damage);
-
-                spawnDamageNumber(engine->getGameTime(), reg, 15, info.averageContactPoint + (info.normal * 0.25f));
-
-                if (stats->currentHP == 0) {
-                    engine->destroyNextFrame(info.otherEntity);
-
-                    if (reg.has<StatDisplay>(info.otherEntity)) {
-                        engine->destroyNextFrame(reg.get<StatDisplay>(info.otherEntity).textEntity);
-                    }
-                }
-            }
+            damageEntity(info.otherEntity, projectile.damage, info.averageContactPoint + (info.normal * 0.25f));
         });
     }
 
@@ -526,6 +532,13 @@ namespace lg {
             return;
         }
 
+        RPGStats& stats = registry.get<RPGStats>(localLocosphereEnt);
+
+        if (stats.currentHP == 0.0) {
+            logMsg("YOU DIED >:O");
+            engine->loadScene(engine->getCurrentSceneInfo().id);
+        }
+
         playerGrabManager->simulate(simStep);
 
         if (vrInterface) {
@@ -562,6 +575,7 @@ namespace lg {
             lpc.xzMoveInput = glm::vec2(0.0f, 0.0f);
             auto& stats = registry.emplace<RPGStats>(rig.locosphere);
             stats.strength = 15;
+            stats.deathBehaviour = DeathBehaviour::Nothing;
 
             playerGrabManager->setPlayerEntity(rig.locosphere);
 
@@ -585,7 +599,7 @@ namespace lg {
             registry.get<PlayerRig>(rig.locosphere).lHand = lHandEnt;
             registry.emplace<worlds::WorldObject>(lHandEnt, matId, lHandModel);
             auto& lht = registry.emplace<Transform>(lHandEnt);
-            lht.position = glm::vec3(0.5, 0.0f, 0.0f) + fenderTransform.position;
+            lht.position = glm::vec3(0.5f, 0.0f, 0.0f) + fenderTransform.position;
             registry.emplace<worlds::NameComponent>(lHandEnt).name = "L. Handy";
 
             if (showTargetHands.getInt()) {
@@ -616,6 +630,9 @@ namespace lg {
             auto rActor = worlds::g_physics->createRigidDynamic(physx::PxTransform{ physx::PxIdentity });
             auto& rwActor = registry.emplace<worlds::DynamicPhysicsActor>(rHandEnt, rActor);
             auto& lwActor = registry.get<worlds::DynamicPhysicsActor>(lHandEnt);
+
+            rwActor.setPose(rht);
+            lwActor.setPose(lht);
 
             rwActor.physicsShapes.emplace_back(worlds::PhysicsShape::boxShape(glm::vec3{ 0.025f, 0.045f, 0.05f }));
             rwActor.physicsShapes[0].pos = glm::vec3{0.0f, 0.0f, 0.03f};
