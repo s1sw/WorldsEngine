@@ -42,7 +42,9 @@ namespace lg {
             playerDirection = glm::normalize(playerDirection);
 
             target -= playerDirection * 3.5f;
-            target.y = glm::max(target.y + 0.5f, rhi.worldPos.y + 2.5f);
+            //target.y += 2.0f;
+            target.y = rhi.worldPos.y + 3.0f;
+            //target.y = glm::min(target.y + 1.0f, rhi.worldPos.y + 5.0f);
 
             glm::quat targetRotation = safeQuatLookat(-playerDirection);
             glm::vec3 actualDirection = pose.transformDirection(glm::vec3(0.0f, 0.0f, 1.0f));
@@ -52,7 +54,6 @@ namespace lg {
             force = glm::clamp(force, ai.minPositionalForces, ai.maxPositionalForces);
             dpa.addForce(force, worlds::ForceMode::Force);
 
-            // Assume a target identity rotation for now
             glm::quat quatDiff = targetRotation * glm::inverse(fixupQuat(pose.rotation));
             quatDiff = fixupQuat(quatDiff);
 
