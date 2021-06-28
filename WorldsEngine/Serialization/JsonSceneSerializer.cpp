@@ -145,7 +145,6 @@ namespace worlds {
 
                 nlohmann::json components = getPrefabJson(prefabId);
                 components = components.patch(p.value()["diff"]);
-                logMsg("%s", components.dump().c_str());
 
                 deserializeEntityComponents(components, reg, newEnt);
 
