@@ -155,10 +155,10 @@ namespace worlds {
         vk::UniquePipelineLayout wireframePipelineLayout;
 
         LightUB* lightMapped;
-        ModelMatrices* modelMatricesMapped;
+        std::vector<ModelMatrices*> modelMatricesMapped;
 
         vku::UniformBuffer lightsUB;
-        vku::GenericBuffer modelMatrixUB;
+        std::vector<vku::GenericBuffer> modelMatrixUB;
         vku::GenericBuffer pickingBuffer;
 
         vk::ShaderModule fragmentShader;
@@ -171,7 +171,7 @@ namespace worlds {
         vk::UniqueSampler shadowSampler;
 
         vk::UniqueFramebuffer renderFb;
-        vk::UniqueDescriptorSet descriptorSet;
+        std::vector<vk::DescriptorSet> descriptorSets;
 
         RenderTexture* depthStencilImage;
         RenderTexture* polyImage;

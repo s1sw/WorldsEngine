@@ -1083,7 +1083,8 @@ void VKRenderer::writeCmdBuf(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageInde
         },
         .registry = reg,
         .cmdBuf = *cmdBuf,
-        .imageIndex = frameIdx
+        .imageIndex = frameIdx,
+        .maxSimultaneousFrames = maxFramesInFlight
     };
 
     additionalShadowsPass->prePass(rCtx);

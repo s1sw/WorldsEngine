@@ -272,6 +272,7 @@ namespace worlds {
         uint32_t passWidth;
         uint32_t passHeight;
         uint32_t imageIndex;
+        int maxSimultaneousFrames;
     };
 
     struct RendererInitInfo {
