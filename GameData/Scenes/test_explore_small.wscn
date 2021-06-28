@@ -1837,8 +1837,13 @@
     "diff": [
       {
         "op": "replace",
-        "path": "/Transform/position/2",
-        "value": -7.988523960113525
+        "path": "/RPG Stats/currentHP",
+        "value": 350.0
+      },
+      {
+        "op": "replace",
+        "path": "/RPG Stats/maxHP",
+        "value": 350.0
       }
     ],
     "prefabPath": "Prefabs/drone.wprefab"
