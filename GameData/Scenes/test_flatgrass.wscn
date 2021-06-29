@@ -558,6 +558,7 @@
         1.0
       ],
       "enableShadows": false,
+      "enabled": true,
       "intensity": 1.0,
       "spotCutoff": 0.699999988079071,
       "tubeLength": 0.25,
@@ -632,8 +633,8 @@
     "Transform": {
       "position": [
         0.0,
-        97.97747039794922,
-        -98.99958801269531
+        1.0,
+        0.0
       ],
       "rotation": [
         0.0,
@@ -918,6 +919,431 @@
       "uvOverride": 0
     }
   },
+  "4194335": {
+    "diff": [
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/0",
+        "value": -0.0003787734603974968
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/1",
+        "value": -0.0006070900126360357
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/2",
+        "value": -8.042177796596661e-06
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/3",
+        "value": 0.9999997615814209
+      }
+    ],
+    "prefabPath": "Prefabs/drone.wprefab"
+  },
+  "4194336": {
+    "diff": [
+      {
+        "op": "replace",
+        "path": "/Transform/position/0",
+        "value": 2.3445403575897217
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/0",
+        "value": -0.0003787734603974968
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/1",
+        "value": -0.0006070579402148724
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/2",
+        "value": -8.042177796596661e-06
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/3",
+        "value": 0.9999997615814209
+      }
+    ],
+    "prefabPath": "Prefabs/drone.wprefab"
+  },
+  "4194337": {
+    "diff": [
+      {
+        "op": "replace",
+        "path": "/Transform/position/0",
+        "value": 4.658619403839111
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/0",
+        "value": -0.0003787734603974968
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/1",
+        "value": -0.000607083085924387
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/2",
+        "value": -8.042177796596661e-06
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/3",
+        "value": 0.9999997615814209
+      }
+    ],
+    "prefabPath": "Prefabs/drone.wprefab"
+  },
+  "4194338": {
+    "diff": [
+      {
+        "op": "replace",
+        "path": "/Transform/position/0",
+        "value": 7.003488063812256
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/0",
+        "value": -0.0003787734603974968
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/1",
+        "value": -0.0006070377421565354
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/2",
+        "value": -8.042177796596661e-06
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/3",
+        "value": 0.9999997615814209
+      }
+    ],
+    "prefabPath": "Prefabs/drone.wprefab"
+  },
+  "4194339": {
+    "diff": [
+      {
+        "op": "replace",
+        "path": "/Transform/position/0",
+        "value": 13.81243896484375
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/0",
+        "value": -0.0003787734603974968
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/1",
+        "value": -0.0006070791860111058
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/2",
+        "value": -8.042177796596661e-06
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/3",
+        "value": 0.9999997615814209
+      }
+    ],
+    "prefabPath": "Prefabs/drone.wprefab"
+  },
+  "4194340": {
+    "diff": [
+      {
+        "op": "replace",
+        "path": "/Transform/position/0",
+        "value": 16.157306671142578
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/0",
+        "value": -0.0003787734603974968
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/1",
+        "value": -0.0006070132367312908
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/2",
+        "value": -8.042177796596661e-06
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/3",
+        "value": 0.9999997615814209
+      }
+    ],
+    "prefabPath": "Prefabs/drone.wprefab"
+  },
+  "4194342": {
+    "diff": [
+      {
+        "op": "replace",
+        "path": "/Transform/position/0",
+        "value": 11.498360633850098
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/0",
+        "value": -0.0003787734603974968
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/1",
+        "value": -0.0006070289527997375
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/2",
+        "value": -8.042177796596661e-06
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/3",
+        "value": 0.9999997615814209
+      }
+    ],
+    "prefabPath": "Prefabs/drone.wprefab"
+  },
+  "4194343": {
+    "diff": [
+      {
+        "op": "replace",
+        "path": "/Transform/position/0",
+        "value": 9.153491020202637
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/0",
+        "value": -0.0003787734603974968
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/1",
+        "value": -0.000607054797001183
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/2",
+        "value": -8.042177796596661e-06
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/3",
+        "value": 0.9999997615814209
+      }
+    ],
+    "prefabPath": "Prefabs/drone.wprefab"
+  },
+  "4194344": {
+    "diff": [
+      {
+        "op": "replace",
+        "path": "/Transform/position/0",
+        "value": 13.81243896484375
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/position/2",
+        "value": -10.18852424621582
+      }
+    ],
+    "prefabPath": "Prefabs/drone.wprefab"
+  },
+  "4194345": {
+    "diff": [
+      {
+        "op": "replace",
+        "path": "/Transform/position/0",
+        "value": 16.157306671142578
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/position/2",
+        "value": -10.18852424621582
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/0",
+        "value": -0.0003787734603974968
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/1",
+        "value": -0.0006070014787837863
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/2",
+        "value": -8.042177796596661e-06
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/3",
+        "value": 0.9999997615814209
+      }
+    ],
+    "prefabPath": "Prefabs/drone.wprefab"
+  },
+  "4194346": {
+    "diff": [
+      {
+        "op": "replace",
+        "path": "/Transform/position/0",
+        "value": 11.498360633850098
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/position/2",
+        "value": -10.18852424621582
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/0",
+        "value": -0.0003787734603974968
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/1",
+        "value": -0.0006070108502171934
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/2",
+        "value": -8.042177796596661e-06
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/3",
+        "value": 0.9999997615814209
+      }
+    ],
+    "prefabPath": "Prefabs/drone.wprefab"
+  },
+  "4194347": {
+    "diff": [
+      {
+        "op": "replace",
+        "path": "/Transform/position/0",
+        "value": 9.153491020202637
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/position/2",
+        "value": -10.18852424621582
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/0",
+        "value": -0.0003787734603974968
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/1",
+        "value": -0.0006070336094126105
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/2",
+        "value": -8.042177796596661e-06
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/3",
+        "value": 0.9999997615814209
+      }
+    ],
+    "prefabPath": "Prefabs/drone.wprefab"
+  },
+  "4194348": {
+    "diff": [
+      {
+        "op": "replace",
+        "path": "/Transform/position/0",
+        "value": 7.003488063812256
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/position/2",
+        "value": -10.18852424621582
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/0",
+        "value": -0.0003787734603974968
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/1",
+        "value": -0.0006070143426768482
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/2",
+        "value": -8.042177796596661e-06
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/3",
+        "value": 0.9999997615814209
+      }
+    ],
+    "prefabPath": "Prefabs/drone.wprefab"
+  },
+  "4194350": {
+    "diff": [
+      {
+        "op": "replace",
+        "path": "/Transform/position/0",
+        "value": 2.3445403575897217
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/position/2",
+        "value": -10.18852424621582
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/0",
+        "value": -0.0003787734603974968
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/1",
+        "value": -0.0006070291274227202
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/2",
+        "value": -8.042177796596661e-06
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/3",
+        "value": 0.9999997615814209
+      }
+    ],
+    "prefabPath": "Prefabs/drone.wprefab"
+  },
   "5": {
     "Transform": {
       "position": [
@@ -951,6 +1377,21 @@
       ],
       "uvOverride": 0
     }
+  },
+  "5242929": {
+    "diff": [
+      {
+        "op": "replace",
+        "path": "/Transform/position/0",
+        "value": 13.81243896484375
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/position/2",
+        "value": -14.560816764831543
+      }
+    ],
+    "prefabPath": "Prefabs/drone.wprefab"
   },
   "6": {
     "Transform": {
@@ -1042,6 +1483,41 @@
       ],
       "uvOverride": 4
     }
+  },
+  "6291501": {
+    "diff": [
+      {
+        "op": "replace",
+        "path": "/Transform/position/0",
+        "value": 4.658619403839111
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/position/2",
+        "value": -10.18852424621582
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/0",
+        "value": -0.0003787734603974968
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/1",
+        "value": -0.0006070567760616541
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/2",
+        "value": -8.042177796596661e-06
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/3",
+        "value": 0.9999997615814209
+      }
+    ],
+    "prefabPath": "Prefabs/drone.wprefab"
   },
   "7": {
     "Transform": {
@@ -1191,6 +1667,106 @@
       "uvOverride": 4
     }
   },
+  "7340079": {
+    "diff": [
+      {
+        "op": "replace",
+        "path": "/Transform/position/2",
+        "value": -10.18852424621582
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/0",
+        "value": -0.0003787734603974968
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/1",
+        "value": -0.0006070546223782003
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/2",
+        "value": -8.042177796596661e-06
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/3",
+        "value": 0.9999997615814209
+      }
+    ],
+    "prefabPath": "Prefabs/drone.wprefab"
+  },
+  "7340082": {
+    "diff": [
+      {
+        "op": "replace",
+        "path": "/Transform/position/0",
+        "value": 16.157306671142578
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/position/2",
+        "value": -14.560816764831543
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/0",
+        "value": -0.0003787734603974968
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/1",
+        "value": -0.0006069908267818391
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/2",
+        "value": -8.042177796596661e-06
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/3",
+        "value": 0.9999997615814209
+      }
+    ],
+    "prefabPath": "Prefabs/drone.wprefab"
+  },
+  "7340090": {
+    "diff": [
+      {
+        "op": "replace",
+        "path": "/Transform/position/0",
+        "value": 7.003488063812256
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/position/2",
+        "value": -14.560816764831543
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/0",
+        "value": -0.0003787734603974968
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/1",
+        "value": -0.000607003690674901
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/2",
+        "value": -8.042177796596661e-06
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/3",
+        "value": 0.9999997615814209
+      }
+    ],
+    "prefabPath": "Prefabs/drone.wprefab"
+  },
   "8": {
     "Transform": {
       "position": [
@@ -1224,6 +1800,381 @@
       ],
       "uvOverride": 0
     }
+  },
+  "8388667": {
+    "diff": [
+      {
+        "op": "replace",
+        "path": "/Transform/position/0",
+        "value": 4.658619403839111
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/position/2",
+        "value": -14.560816764831543
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/0",
+        "value": -0.0003787734603974968
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/1",
+        "value": -0.0006070461240597069
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/2",
+        "value": -8.042177796596661e-06
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/3",
+        "value": 0.9999997615814209
+      }
+    ],
+    "prefabPath": "Prefabs/drone.wprefab"
+  },
+  "8388668": {
+    "diff": [
+      {
+        "op": "replace",
+        "path": "/Transform/position/0",
+        "value": 2.3445403575897217
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/position/2",
+        "value": -14.560816764831543
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/0",
+        "value": -0.0003787734603974968
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/1",
+        "value": -0.000607018475420773
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/2",
+        "value": -8.042177796596661e-06
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/3",
+        "value": 0.9999997615814209
+      }
+    ],
+    "prefabPath": "Prefabs/drone.wprefab"
+  },
+  "8388669": {
+    "diff": [
+      {
+        "op": "replace",
+        "path": "/Transform/position/2",
+        "value": -14.560816764831543
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/0",
+        "value": -0.0003787734603974968
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/1",
+        "value": -0.0006070439703762531
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/2",
+        "value": -8.042177796596661e-06
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/3",
+        "value": 0.9999997615814209
+      }
+    ],
+    "prefabPath": "Prefabs/drone.wprefab"
+  },
+  "8388672": {
+    "diff": [
+      {
+        "op": "replace",
+        "path": "/Transform/position/0",
+        "value": 16.157306671142578
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/position/2",
+        "value": -12.36081600189209
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/0",
+        "value": -0.0003787734603974968
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/1",
+        "value": -0.0006070025847293437
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/2",
+        "value": -8.042177796596661e-06
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/3",
+        "value": 0.9999997615814209
+      }
+    ],
+    "prefabPath": "Prefabs/drone.wprefab"
+  },
+  "8388673": {
+    "diff": [
+      {
+        "op": "replace",
+        "path": "/Transform/position/0",
+        "value": 13.81243896484375
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/position/2",
+        "value": -12.36081600189209
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/0",
+        "value": -0.0003787734603974968
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/1",
+        "value": -0.0006070685340091586
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/2",
+        "value": -8.042177796596661e-06
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/3",
+        "value": 0.9999997615814209
+      }
+    ],
+    "prefabPath": "Prefabs/drone.wprefab"
+  },
+  "8388674": {
+    "diff": [
+      {
+        "op": "replace",
+        "path": "/Transform/position/0",
+        "value": 11.498360633850098
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/position/2",
+        "value": -12.36081600189209
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/0",
+        "value": -0.0003787734603974968
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/1",
+        "value": -0.0006070183007977903
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/2",
+        "value": -8.042177796596661e-06
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/3",
+        "value": 0.9999997615814209
+      }
+    ],
+    "prefabPath": "Prefabs/drone.wprefab"
+  },
+  "8388675": {
+    "diff": [
+      {
+        "op": "replace",
+        "path": "/Transform/position/0",
+        "value": 9.153491020202637
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/position/2",
+        "value": -12.36081600189209
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/0",
+        "value": -0.0003787734603974968
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/1",
+        "value": -0.0006070441449992359
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/2",
+        "value": -8.042177796596661e-06
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/3",
+        "value": 0.9999997615814209
+      }
+    ],
+    "prefabPath": "Prefabs/drone.wprefab"
+  },
+  "8388676": {
+    "diff": [
+      {
+        "op": "replace",
+        "path": "/Transform/position/0",
+        "value": 7.003488063812256
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/position/2",
+        "value": -12.36081600189209
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/0",
+        "value": -0.0003787734603974968
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/1",
+        "value": -0.0006070270901545882
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/2",
+        "value": -8.042177796596661e-06
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/3",
+        "value": 0.9999997615814209
+      }
+    ],
+    "prefabPath": "Prefabs/drone.wprefab"
+  },
+  "8388677": {
+    "diff": [
+      {
+        "op": "replace",
+        "path": "/Transform/position/0",
+        "value": 4.658619403839111
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/position/2",
+        "value": -12.36081600189209
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/0",
+        "value": -0.0003787734603974968
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/1",
+        "value": -0.0006070724339224398
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/2",
+        "value": -8.042177796596661e-06
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/3",
+        "value": 0.9999997615814209
+      }
+    ],
+    "prefabPath": "Prefabs/drone.wprefab"
+  },
+  "8388678": {
+    "diff": [
+      {
+        "op": "replace",
+        "path": "/Transform/position/0",
+        "value": 2.3445403575897217
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/position/2",
+        "value": -12.36081600189209
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/0",
+        "value": -0.0003787734603974968
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/1",
+        "value": -0.0006070472882129252
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/2",
+        "value": -8.042177796596661e-06
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/3",
+        "value": 0.9999997615814209
+      }
+    ],
+    "prefabPath": "Prefabs/drone.wprefab"
+  },
+  "8388683": {
+    "diff": [
+      {
+        "op": "replace",
+        "path": "/Transform/position/2",
+        "value": -12.36081600189209
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/0",
+        "value": -0.0003787734603974968
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/1",
+        "value": -0.0006070793606340885
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/2",
+        "value": -8.042177796596661e-06
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/3",
+        "value": 0.9999997615814209
+      }
+    ],
+    "prefabPath": "Prefabs/drone.wprefab"
   },
   "9": {
     "Transform": {
@@ -1403,5 +2354,75 @@
       ],
       "uvOverride": 0
     }
+  },
+  "9437235": {
+    "diff": [
+      {
+        "op": "replace",
+        "path": "/Transform/position/0",
+        "value": 11.498360633850098
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/position/2",
+        "value": -14.560816764831543
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/0",
+        "value": -0.0003787734603974968
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/1",
+        "value": -0.0006070001982152462
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/2",
+        "value": -8.042177796596661e-06
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/3",
+        "value": 0.9999997615814209
+      }
+    ],
+    "prefabPath": "Prefabs/drone.wprefab"
+  },
+  "9437236": {
+    "diff": [
+      {
+        "op": "replace",
+        "path": "/Transform/position/0",
+        "value": 9.153491020202637
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/position/2",
+        "value": -14.560816764831543
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/0",
+        "value": -0.0003787734603974968
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/1",
+        "value": -0.0006070229574106634
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/2",
+        "value": -8.042177796596661e-06
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/rotation/3",
+        "value": 0.9999997615814209
+      }
+    ],
+    "prefabPath": "Prefabs/drone.wprefab"
   }
 }

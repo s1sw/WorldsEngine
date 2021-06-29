@@ -481,7 +481,7 @@ namespace worlds {
         for (auto& c : oneshots) {
             Voice& v = voices[c.voiceIdx];
             glm::vec3 dirVec = listenerPos - c.location;
-            v.spatialInfo.direction = glm::normalize(glm::normalize(dirVec) * listenerRot);
+            v.spatialInfo.direction = glm::normalize(dirVec) * listenerRot;
             v.spatialInfo.distance = glm::length(dirVec);
 
             if (v.spatialise) {
@@ -591,6 +591,9 @@ namespace worlds {
     void AudioSystem::playOneShotClip(AssetID id, glm::vec3 location, bool spatialise, float volume, MixerChannel channel) {
         if (loadedClips.count(id) == 0)
             loadAudioClip(id);
+
+        if (volume < 0.001)
+            return;
         SDL_LockAudioDevice(devId);
 
         uint32_t voiceIdx = allocateVoice();

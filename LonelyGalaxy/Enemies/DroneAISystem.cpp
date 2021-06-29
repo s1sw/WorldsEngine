@@ -1,6 +1,7 @@
 #include "DroneAI.hpp"
 #include "LocospherePlayerSystem.hpp"
 #include "MathsUtil.hpp"
+#include "RPGStats.hpp"
 #include <Physics/PhysicsActor.hpp>
 #include <Audio/Audio.hpp>
 #include <Core/AssetDB.hpp>
@@ -11,8 +12,9 @@ namespace lg {
     }
 
     void DroneAISystem::onSceneStart(entt::registry& registry) {
-        registry.view<DroneAI, Transform>().each([](DroneAI& ai, Transform& t) {
+        registry.view<DroneAI, Transform, RPGStats>().each([](DroneAI& ai, Transform& t, RPGStats& stats) {
             ai.currentTarget = t.position;
+            stats.deathBehaviour = DeathBehaviour::Nothing;
         });
     }
 
@@ -24,7 +26,11 @@ namespace lg {
         Transform& playerTransform = registry.get<Transform>(player);
 
         const float burstPeriod = 3.0f;
-        view.each([&](DroneAI& ai, worlds::DynamicPhysicsActor& dpa) {
+        const float repulsionDistance = 3.0f;
+        view.each([&](entt::entity entity, DroneAI& ai, worlds::DynamicPhysicsActor& dpa) {
+            const RPGStats& stats = registry.get<RPGStats>(entity);
+            if (stats.currentHP <= 0.0) return;
+
             const Transform& pose = dpa.pose();
             ai.timeSinceLastShot += simStep;
             ai.timeSinceLastBurst += simStep;
@@ -48,6 +54,21 @@ namespace lg {
 
             glm::quat targetRotation = safeQuatLookat(-playerDirection);
             glm::vec3 actualDirection = pose.transformDirection(glm::vec3(0.0f, 0.0f, 1.0f));
+
+            view.each([&](entt::entity entityB, DroneAI& ai, worlds::DynamicPhysicsActor& dpa) {
+                if (entity == entityB) return;
+
+                const Transform& poseB = dpa.pose();
+
+                float distance = glm::distance(pose.position, poseB.position);
+                if (distance > repulsionDistance) return;
+
+                glm::vec3 direction = (poseB.position - pose.position);
+                direction.y = 0.0f;
+
+                direction = glm::normalize(direction);
+                target -= direction * (distance + 1.0f);
+            });
 
             // Apply positional PD
             glm::vec3 force = ai.pd.getOutput(pose.position, target, dpa.linearVelocity(), simStep);

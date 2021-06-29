@@ -513,6 +513,7 @@ namespace lg {
                 }
 
                 ImGui::DragFloat("Shot Period", &gun.shotPeriod);
+                ImGui::DragScalar("Damage", ImGuiDataType_Double, &gun.damage, 1.0);
                 ImGui::Checkbox("Automatic", &gun.automatic);
             }
         }
@@ -528,7 +529,8 @@ namespace lg {
                     }
                 },
                 { "automatic", gun.automatic },
-                { "shotPeriod", gun.shotPeriod }
+                { "shotPeriod", gun.shotPeriod },
+                { "damage", gun.damage }
             };
 
         }
@@ -543,6 +545,7 @@ namespace lg {
 
             gun.shotPeriod = j.value("shotPeriod", 0.1f);
             gun.automatic = j.value("automatic", false);
+            gun.damage = j.value("damage", gun.damage);
         }
     };
 
@@ -564,7 +567,7 @@ namespace lg {
                     reg.remove<DamagingProjectile>(ent);
                     return;
                 }
-                ImGui::DragScalar("Damage", ImGuiDataType_U64, &projectile.damage, 1.0f);
+                ImGui::DragScalar("Damage", ImGuiDataType_Double, &projectile.damage, 1.0f);
             }
         }
 

@@ -1505,6 +1505,26 @@
       "uvOverride": 4
     }
   },
+  "1048758": {
+    "diff": [
+      {
+        "op": "replace",
+        "path": "/Transform/position/0",
+        "value": 2.343113422393799
+      }
+    ],
+    "prefabPath": "Prefabs/drone.wprefab"
+  },
+  "1048759": {
+    "diff": [
+      {
+        "op": "replace",
+        "path": "/Transform/position/0",
+        "value": 4.548631191253662
+      }
+    ],
+    "prefabPath": "Prefabs/drone.wprefab"
+  },
   "1048767": {
     "Contact Damage Dealer": {
       "damage": 100,
@@ -1833,21 +1853,6 @@
       "uvOverride": 4
     }
   },
-  "1048796": {
-    "diff": [
-      {
-        "op": "replace",
-        "path": "/RPG Stats/currentHP",
-        "value": 350.0
-      },
-      {
-        "op": "replace",
-        "path": "/RPG Stats/maxHP",
-        "value": 350.0
-      }
-    ],
-    "prefabPath": "Prefabs/drone.wprefab"
-  },
   "1048798": {
     "Dynamic Physics Actor": {
       "enableCCD": false,
@@ -2099,8 +2104,8 @@
     },
     "Contact Damage Dealer": {
       "damage": 25,
-      "maxVelocity": 5.0,
-      "minVelocity": 3.0
+      "maxVelocity": 10.0,
+      "minVelocity": 5.0
     },
     "Dynamic Physics Actor": {
       "enableCCD": false,
@@ -4347,6 +4352,7 @@
     },
     "Gun": {
       "automatic": true,
+      "damage": 100.0,
       "firePoint": {
         "position": [
           0.018285619094967842,
@@ -4375,9 +4381,9 @@
         0.005729384254664183
       ],
       "scale": [
+        1.0000760555267334,
         1.0,
-        1.0,
-        1.0
+        1.0001068115234375
       ]
     },
     "World Object": {
@@ -5345,6 +5351,10 @@
       ],
       "uvOverride": 0
     }
+  },
+  "5243070": {
+    "diff": [],
+    "prefabPath": "Prefabs/drone.wprefab"
   },
   "5243082": {
     "Physics Actor": {
