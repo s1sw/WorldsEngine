@@ -186,10 +186,11 @@ namespace lg {
         entt::entity projectile = worlds::SceneLoader::createPrefab(projectileId, reg);
 
         Transform& projectileTransform = reg.get<Transform>(projectile);
+        DamagingProjectile dp = reg.get<DamagingProjectile>(projectile);
+        dp.damage = 200.0;
         Transform firePointTransform = gun.firePoint.transformBy(gunTransform);
 
         glm::vec3 forward = firePointTransform.rotation * glm::vec3(0.0f, 0.0f, 1.0f);
-
 
         projectileTransform.position = firePointTransform.position;
         projectileTransform.rotation = firePointTransform.rotation;
@@ -234,10 +235,10 @@ namespace lg {
         projectile.creationTime = engine->getGameTime();
 
         physEvents.addContactCallback([&](entt::entity thisEnt, const worlds::PhysicsContactInfo& info) {
-            DamagingProjectile& projectile = reg.get<DamagingProjectile>(thisEnt);
+            DamagingProjectile& projectile2 = reg.get<DamagingProjectile>(thisEnt);
             engine->destroyNextFrame(thisEnt);
 
-            damageEntity(info.otherEntity, projectile.damage, info.averageContactPoint + (info.normal * 0.25f));
+            damageEntity(info.otherEntity, projectile2.damage, info.averageContactPoint + (info.normal * 0.25f));
         });
     }
 
@@ -450,6 +451,13 @@ namespace lg {
 
         auto& rpgStat = reg.get<RPGStats>(localLocosphereEnt);
 
+        ImDrawList* drawList = ImGui::GetForegroundDrawList();
+        std::string healthText = "Health: " + std::to_string((int)glm::round(rpgStat.currentHP)) + "/" + std::to_string((int)glm::round(rpgStat.maxHP));
+        ImVec2 textPos = ImGui::GetMainViewport()->Size;
+        textPos.x = 0.0f;
+        textPos.y -= 150.0f;
+        drawList->AddText(textPos, ImColor(255, 255, 255), healthText.c_str());
+
         if (reg.valid(lHandEnt) && reg.valid(rHandEnt)) {
             auto& phl = reg.get<PhysHand>(lHandEnt);
             auto& phr = reg.get<PhysHand>(rHandEnt);
@@ -574,6 +582,8 @@ namespace lg {
             lpc.maxSpeed = 0.0f;
             lpc.xzMoveInput = glm::vec2(0.0f, 0.0f);
             auto& stats = registry.emplace<RPGStats>(rig.locosphere);
+            stats.currentHP = 250;
+            stats.maxHP = 250;
             stats.strength = 15;
             stats.deathBehaviour = DeathBehaviour::Nothing;
 

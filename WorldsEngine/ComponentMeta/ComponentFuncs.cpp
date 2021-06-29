@@ -1052,6 +1052,7 @@ namespace worlds {
                 ImGui::Checkbox("Loop", &as.loop);
                 ImGui::Checkbox("Spatialise", &as.spatialise);
                 ImGui::Checkbox("Play on scene open", &as.playOnSceneOpen);
+                ImGui::DragFloat("Volume", &as.volume);
                 ImGui::Text("Current Asset Path: %s", AssetDB::idToPath(as.clipId).c_str());
 
                 selectAssetPopup("Audio Source Path", as.clipId, ImGui::Button("Change"));
