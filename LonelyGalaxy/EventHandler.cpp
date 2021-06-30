@@ -443,13 +443,16 @@ namespace lg {
         });
 
         reg.view<DamagingProjectile>().each([&](entt::entity ent, DamagingProjectile& dp) {
-            if (engine->getGameTime() - dp.creationTime > 10.0)
+            if (engine->getGameTime() - dp.creationTime > 5.0)
                 engine->destroyNextFrame(ent);
         });
 
         if (!reg.valid(localLocosphereEnt)) return;
 
+        static worlds::ConVar invincible { "lg_invincible", "0", "Makes the player invincible." };
         auto& rpgStat = reg.get<RPGStats>(localLocosphereEnt);
+        if (invincible.getInt())
+            rpgStat.currentHP = 9999;
 
         ImDrawList* drawList = ImGui::GetForegroundDrawList();
         std::string healthText = "Health: " + std::to_string((int)glm::round(rpgStat.currentHP)) + "/" + std::to_string((int)glm::round(rpgStat.maxHP));
