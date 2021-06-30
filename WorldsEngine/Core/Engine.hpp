@@ -177,5 +177,6 @@ namespace worlds {
         float tubeRadius = 0.1f;
         bool enableShadows = false;
         uint32_t shadowmapIdx = ~0u;
+        float distanceCutoff = 1.0f;
     };
 }

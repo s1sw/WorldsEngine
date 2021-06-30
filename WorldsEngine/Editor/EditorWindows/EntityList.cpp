@@ -16,14 +16,14 @@ namespace worlds {
 
         if (ImGui::Begin(ICON_FA_LIST u8" Entity List", &active)) {
             size_t currNamedEntCount = reg.view<NameComponent>().size();
-            bool searchNeedsUpdate = !searchText.empty() && 
+            bool searchNeedsUpdate = !searchText.empty() &&
                 numNamedEntities != currNamedEntCount;
 
             if (ImGui::InputText("Search", &searchText) || searchNeedsUpdate) {
                 std::string lSearchTxt = searchText;
                 std::transform(
-                    lSearchTxt.begin(), lSearchTxt.end(), 
-                    lSearchTxt.begin(), 
+                    lSearchTxt.begin(), lSearchTxt.end(),
+                    lSearchTxt.begin(),
                     [](unsigned char c) { return std::tolower(c); }
                 );
 
@@ -32,11 +32,11 @@ namespace worlds {
                     std::string name = nc.name;
 
                     std::transform(
-                        name.begin(), name.end(), 
-                        name.begin(), 
+                        name.begin(), name.end(),
+                        name.begin(),
                         [](unsigned char c) { return std::tolower(c); }
                     );
-                    
+
                     size_t pos = name.find(lSearchTxt);
 
                     if (pos != std::string::npos) {
@@ -66,6 +66,20 @@ namespace worlds {
             auto forEachEnt = [&](entt::entity ent) {
                 ImGui::PushID((int)ent);
                 auto nc = reg.try_get<NameComponent>(ent);
+                float lineHeight = ImGui::CalcTextSize("w").y;
+
+                ImVec2 cursorPos = ImGui::GetCursorPos();
+                ImDrawList* drawList = ImGui::GetWindowDrawList();
+                float windowWidth = ImGui::GetWindowWidth();
+                ImVec2 windowPos = ImGui::GetWindowPos();
+
+                if (editor->isEntitySelected(ent)) {
+                    drawList->AddRectFilled(
+                        ImVec2(0.0f + windowPos.x, cursorPos.y + windowPos.y),
+                        ImVec2(windowWidth + windowPos.x, cursorPos.y + lineHeight + windowPos.y),
+                        ImColor(0, 75, 150)
+                    );
+                }
 
                 if (currentlyRenaming != ent) {
                     if (nc == nullptr) {
@@ -90,23 +104,31 @@ namespace worlds {
                     }
                 }
 
-                if (ImGui::IsItemClicked())
-                    editor->select(ent);
+                if (ImGui::IsItemClicked()) {
+                    if (!interfaces.inputManager->keyHeld(SDL_SCANCODE_LSHIFT)) {
+                        editor->select(ent);
+                    } else {
+                        editor->multiSelect(ent);
+                    }
+                }
                 ImGui::PopID();
                 };
 
-            if (searchText.empty()) {
-                if (showUnnamed) {
-                    reg.each(forEachEnt);
+            if (ImGui::BeginChild("Entities")) {
+                if (searchText.empty()) {
+                    if (showUnnamed) {
+                        reg.each(forEachEnt);
+                    } else {
+                        reg.view<NameComponent>().each([&](auto ent, NameComponent) {
+                            forEachEnt(ent);
+                        });
+                    }
                 } else {
-                    reg.view<NameComponent>().each([&](auto ent, NameComponent) {
+                    for (auto& ent : filteredEntities)
                         forEachEnt(ent);
-                    });
                 }
-            } else {
-                for (auto& ent : filteredEntities) 
-                    forEachEnt(ent);
             }
+            ImGui::EndChild();
         }
         ImGui::End();
     }
