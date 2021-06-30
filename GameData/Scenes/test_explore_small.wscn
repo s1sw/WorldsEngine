@@ -1505,22 +1505,11 @@
       "uvOverride": 4
     }
   },
-  "1048758": {
-    "diff": [
-      {
-        "op": "replace",
-        "path": "/Transform/position/0",
-        "value": 2.343113422393799
-      }
-    ],
-    "prefabPath": "Prefabs/drone.wprefab"
-  },
   "1048759": {
     "diff": [
       {
-        "op": "replace",
-        "path": "/Transform/position/0",
-        "value": 4.548631191253662
+        "op": "remove",
+        "path": "/Drone AI"
       }
     ],
     "prefabPath": "Prefabs/drone.wprefab"
@@ -5351,10 +5340,6 @@
       ],
       "uvOverride": 0
     }
-  },
-  "5243070": {
-    "diff": [],
-    "prefabPath": "Prefabs/drone.wprefab"
   },
   "5243082": {
     "Physics Actor": {
