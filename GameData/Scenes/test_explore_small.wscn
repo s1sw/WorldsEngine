@@ -1505,6 +1505,15 @@
       "uvOverride": 4
     }
   },
+  "1048759": {
+    "diff": [
+      {
+        "op": "remove",
+        "path": "/Drone AI"
+      }
+    ],
+    "prefabPath": "Prefabs/drone.wprefab"
+  },
   "1048767": {
     "Contact Damage Dealer": {
       "damage": 100,
