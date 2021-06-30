@@ -14400,6 +14400,7 @@
     },
     "Gun": {
       "automatic": true,
+      "damage": 15.0,
       "firePoint": {
         "position": [
           0.018285619094967842,
@@ -19144,6 +19145,7 @@
     },
     "Gun": {
       "automatic": true,
+      "damage": 15.0,
       "firePoint": {
         "position": [
           0.018285619094967842,
