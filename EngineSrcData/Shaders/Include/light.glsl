@@ -14,5 +14,9 @@ struct Light {
     // (position xyz or second point for tube, shadow index)
     vec3 pack2;
     uint shadowIdx;
+    float distanceCutoff;
+    float pad0;
+    float pad1;
+    float pad2;
 };
 #endif

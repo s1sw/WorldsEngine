@@ -363,6 +363,8 @@ namespace worlds {
                         ImGui::EndCombo();
                     }
 
+                    ImGui::DragFloat("Distance Cutoff", &worldLight.distanceCutoff);
+
                     if (worldLight.type == LightType::Spot) {
                         ImGui::DragFloat("Spot Cutoff", &worldLight.spotCutoff);
                         ImGui::Checkbox("Enable Shadows", &worldLight.enableShadows);
@@ -414,7 +416,8 @@ namespace worlds {
                 { "tubeLength", wl.tubeLength },
                 { "tubeRadius", wl.tubeRadius },
                 { "enableShadows", wl.enableShadows },
-                { "enabled", wl.enabled }
+                { "enabled", wl.enabled },
+                { "distanceCutoff", wl.distanceCutoff }
             };
         }
 
@@ -429,6 +432,7 @@ namespace worlds {
             wl.tubeRadius = j["tubeRadius"];
             wl.enableShadows = j.value("enableShadows", false);
             wl.enabled = j.value("enabled", true);
+            wl.distanceCutoff = j.value("distanceCutoff", wl.distanceCutoff);
         }
     };
 

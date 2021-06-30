@@ -26,7 +26,7 @@ LightShadeInfo calcLightShadeInfo(Light light, ShadeInfo shadeInfo, vec3 worldPo
         lsi.L = lightPos - worldPos;
 
         // dot(L, L) = length(L) squared
-        lsi.radiance *= 1.0 / length2(lsi.L);
+        lsi.radiance *= max(0, 1.0 / length2(lsi.L) - light.distanceCutoff);
 
         lsi.L = normalize(lsi.L);
     } else if (lightType == LT_SPOT) {
@@ -38,7 +38,11 @@ LightShadeInfo calcLightShadeInfo(Light light, ShadeInfo shadeInfo, vec3 worldPo
 
         float theta = dot(lsi.L, normalize(light.pack1.xyz));
         vec3 lToFrag = lightPos - worldPos;
-        lsi.radiance *= clamp((theta - cutoff - outerRadius) / outerRadius, 0.0f, 1.0f) * (1.0 / dot(lToFrag, lToFrag));
+        lsi.radiance *= clamp((theta - cutoff - outerRadius) / outerRadius, 0.0f, 1.0f);
+        float distSq = dot(lToFrag, lToFrag);
+        float falloff = 1.0 / distSq;
+        falloff = min((1.0 - distSq) / (light.distanceCutoff * light.distanceCutoff), falloff);
+        lsi.radiance *= falloff;
     } else if (lightType == LT_SPHERE) {
         vec3 lightPos = light.pack2.xyz;
         float sphereRadius = light.pack1.w;
@@ -51,7 +55,7 @@ LightShadeInfo calcLightShadeInfo(Light light, ShadeInfo shadeInfo, vec3 worldPo
         lsi.L = normalize(closestPoint);
         float lightDist = length(closestPoint);
         float sqrDist = lightDist * lightDist;
-        float falloff = (sphereRadiusSq / ( max(sphereRadiusSq, sqrDist)));
+        float falloff = (sphereRadiusSq / (max(sphereRadiusSq, sqrDist)));
 
         lsi.radiance *= falloff;
         lsi.lightDist = lightDist;
@@ -78,7 +82,7 @@ LightShadeInfo calcLightShadeInfo(Light light, ShadeInfo shadeInfo, vec3 worldPo
         float distLight = length(closestPoint);
 
         lsi.L = L;
-        float falloff = (tubeRadius * tubeRadius / max(tubeRadius * tubeRadius, distLight * distLight));
+        float falloff = max(0.0, (tubeRadius * tubeRadius / max(tubeRadius * tubeRadius, distLight * distLight)) - light.distanceCutoff);
         lsi.radiance *= falloff;
         lsi.lightDist = distLight;
     }

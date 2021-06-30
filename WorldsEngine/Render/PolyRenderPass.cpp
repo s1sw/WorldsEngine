@@ -606,7 +606,8 @@ namespace worlds {
                 lightMapped->lights[lightIdx] = PackedLight{
                     glm::vec4(l.color * l.intensity, (float)l.type),
                     glm::vec4(lightForward, l.spotCutoff),
-                    transform.position, l.shadowmapIdx
+                    transform.position, l.shadowmapIdx,
+                    l.distanceCutoff * l.intensity
                 };
             } else {
                 glm::vec3 tubeP0 = transform.position + lightForward * l.tubeLength;
@@ -614,7 +615,8 @@ namespace worlds {
                 lightMapped->lights[lightIdx] = PackedLight{
                     glm::vec4(l.color * l.intensity, (float)l.type),
                     glm::vec4(tubeP0, l.tubeRadius),
-                    tubeP1, ~0u
+                    tubeP1, ~0u,
+                    l.distanceCutoff * l.intensity
                 };
             }
 
