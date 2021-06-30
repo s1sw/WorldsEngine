@@ -237,7 +237,7 @@ float getDirLightShadowIntensity(int lightIdx) {
         shadowIntensity = 0.0;
 #ifdef HIGH_QUALITY_SHADOWS
         const int shadowSamples = 1;
-        const float divVal = 4.0f;//((shadowSamples * 2)) * ((shadowSamples * 2));
+        const float divVal = 7.0f;//((shadowSamples * 2)) * ((shadowSamples * 2));
         float sampleRadius = 0.0005 * (textureSize(shadowSampler, 0).x / 1024.0);
 
         //for (int x = -shadowSamples; x < shadowSamples; x++)
@@ -248,9 +248,13 @@ float getDirLightShadowIntensity(int lightIdx) {
         vec4 sampleCoord = vec4(coord, cascadeSplit, depth);
         shadowIntensity += textureOffset(shadowSampler, sampleCoord, ivec2(-1, -1));
         shadowIntensity += textureOffset(shadowSampler, sampleCoord, ivec2(-1, 0));
-
         shadowIntensity += textureOffset(shadowSampler, sampleCoord, ivec2(0, -1));
+
         shadowIntensity += textureOffset(shadowSampler, sampleCoord, ivec2(0, 0));
+
+        shadowIntensity += textureOffset(shadowSampler, sampleCoord, ivec2(1, 1));
+        shadowIntensity += textureOffset(shadowSampler, sampleCoord, ivec2(1, 0));
+        shadowIntensity += textureOffset(shadowSampler, sampleCoord, ivec2(0, 1));
 
         shadowIntensity /= divVal;
 #else
