@@ -55,7 +55,13 @@ namespace worlds {
     }
 
     std::string Editor::generateWindowTitle() {
-        return "Worlds Engine Editor | " + interfaces.engine->getCurrentSceneInfo().name;
+        std::string base = "Worlds Engine Editor | " + interfaces.engine->getCurrentSceneInfo().name;
+
+        if (lastSaveModificationCount != undo.modificationCount()) {
+            base += "*";
+        }
+
+        return base;
     }
 
     void Editor::updateWindowTitle() {
@@ -237,6 +243,16 @@ namespace worlds {
         currentTool = newTool;
         originalObjectTransform = reg.get<Transform>(currentSelectedEntity);
         logMsg(SDL_LOG_PRIORITY_DEBUG, "activateTool(%s)", toolStr(newTool));
+    }
+
+    bool Editor::isEntitySelected(entt::entity ent) const {
+        if (currentSelectedEntity == ent) return true;
+
+        for (entt::entity selectedEnt : selectedEntities) {
+            if (selectedEnt == ent) return true;
+        }
+
+        return false;
     }
 
     template <typename T>
@@ -526,6 +542,7 @@ namespace worlds {
                 AssetID sceneId = interfaces.engine->getCurrentSceneInfo().id;
                 PHYSFS_File* file = AssetDB::openAssetFileWrite(sceneId);
                 JsonSceneSerializer::saveScene(file, reg);
+                lastSaveModificationCount = undo.modificationCount();
             } else {
                 ImGui::OpenPopup("Save Scene");
             }
@@ -562,7 +579,8 @@ namespace worlds {
             AssetID sceneId = AssetDB::createAsset(path);
             PHYSFS_File* f = AssetDB::openAssetFileWrite(sceneId);
             JsonSceneSerializer::saveScene(f, reg);
-            updateWindowTitle();
+            lastSaveModificationCount = undo.modificationCount();
+            interfaces.engine->loadScene(sceneId);
         });
 
         if (inputManager.keyPressed(SDL_SCANCODE_O) && inputManager.ctrlHeld()) {
@@ -629,6 +647,7 @@ namespace worlds {
                         AssetID sceneId = interfaces.engine->getCurrentSceneInfo().id;
                         PHYSFS_File* file = AssetDB::openAssetFileWrite(sceneId);
                         JsonSceneSerializer::saveScene(file, reg);
+                        lastSaveModificationCount = undo.modificationCount();
                     } else {
                         popupToOpen = "Save Scene";
                     }
@@ -712,5 +731,7 @@ namespace worlds {
 
         if (imguiMetricsOpen)
             ImGui::ShowMetricsWindow(&imguiMetricsOpen);
+
+        updateWindowTitle();
     }
 }

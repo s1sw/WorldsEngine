@@ -107,6 +107,7 @@ namespace worlds {
         void undo(entt::registry& reg);
         void redo(entt::registry& reg);
         void clear() { highestSaved = 0; currentPos = 0; }
+        uint32_t modificationCount() { return currentPos; }
     private:
         uint32_t highestSaved = 0;
         uint32_t currentPos = 0;
@@ -143,7 +144,8 @@ namespace worlds {
         void update(float deltaTime);
         void activateTool(Tool newTool);
         entt::entity getSelectedEntity() { return currentSelectedEntity; }
-        const slib::List<entt::entity> getSelectedEntities() const { return selectedEntities; }
+        const slib::List<entt::entity>& getSelectedEntities() const { return selectedEntities; }
+        bool isEntitySelected(entt::entity ent) const;
         UITextureManager* texManager() { return texMan; }
         EditorUndo undo;
         bool active = true;
@@ -168,6 +170,7 @@ namespace worlds {
         float cameraSpeed;
         bool imguiMetricsOpen;
         bool handleOverriden = false;
+        int lastSaveModificationCount = 0;
         Transform* overrideTransform;
 
         UITextureManager* texMan;

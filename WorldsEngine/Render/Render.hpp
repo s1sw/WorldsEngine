@@ -69,6 +69,10 @@ namespace worlds {
         glm::vec4 pack1;
         glm::vec3 pack2;
         uint32_t shadowIdx;
+        float distanceCutoff;
+        uint32_t pad0;
+        uint32_t pad1;
+        uint32_t pad2;
     };
 
     struct ProxyAOComponent {
