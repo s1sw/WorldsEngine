@@ -72,26 +72,31 @@ namespace worlds {
 
         int samplesNeeded = std::min(numMonoSamplesNeeded, samplesRemaining);
 
+        if (voice.loop)
+            samplesNeeded = numMonoSamplesNeeded;
+
         float vol = _this->mixerVolumes[static_cast<int>(voice.channel)] * voice.volume;
 
         // Stereo and non-spatialised mono mixing
         if (clip.channels == 2) {
             for (int i = 0; i < samplesNeeded; i++) {
                 int outPos = i * 2;
-                int inPos = (i + voice.playbackPosition) * 2;
+                int inPos = ((i + voice.playbackPosition) % clip.sampleCount) * 2;
                 stream[outPos] += clip.data[inPos] * vol;
                 stream[outPos + 1] += clip.data[inPos + 1] * vol;
             }
         } else if (!voice.spatialise) {
             for (int i = 0; i < samplesNeeded; i++) {
                 int outPos = i * 2;
-                int inPos = i + voice.playbackPosition;
+                int inPos = (i + voice.playbackPosition) % clip.sampleCount;
                 stream[outPos] += clip.data[inPos] * vol;
                 stream[outPos + 1] += clip.data[inPos] * vol;
             }
         }
 
         if (voice.spatialise && clip.channels == 1) {
+            int samplesNeeded = std::min(numMonoSamplesNeeded, samplesRemaining);
+
             IPLAudioFormat clipFormat {
                 .channelLayoutType = IPL_CHANNELLAYOUTTYPE_SPEAKERS,
                 .channelLayout = IPL_CHANNELLAYOUT_MONO,
@@ -108,17 +113,6 @@ namespace worlds {
                 tempMonoBuffer, nullptr
             };
 
-            IPLDirectSoundEffectOptions directSoundOptions {
-                .applyDistanceAttenuation = IPL_TRUE,
-                .applyAirAbsorption = IPL_TRUE,
-                .applyDirectivity = IPL_TRUE,
-                .directOcclusionMode = IPL_DIRECTOCCLUSION_TRANSMISSIONBYFREQUENCY
-            };
-
-            iplApplyDirectSoundEffect(voice.iplFx.directSoundEffect,
-                inBuffer, voice.spatialInfo.soundPath,
-                directSoundOptions, directPathBuffer);
-
             IPLAudioFormat outFormat {
                 .channelLayoutType = IPL_CHANNELLAYOUTTYPE_SPEAKERS,
                 .channelLayout = IPL_CHANNELLAYOUT_STEREO,
@@ -130,11 +124,22 @@ namespace worlds {
                 tempBuffer, nullptr
             };
 
+            IPLDirectSoundEffectOptions directSoundOptions {
+                .applyDistanceAttenuation = IPL_TRUE,
+                .applyAirAbsorption = IPL_TRUE,
+                .applyDirectivity = IPL_TRUE,
+                .directOcclusionMode = IPL_DIRECTOCCLUSION_TRANSMISSIONBYFREQUENCY
+            };
+
             IPLVector3 dir {
                 voice.spatialInfo.direction.x,
                 voice.spatialInfo.direction.y,
                 voice.spatialInfo.direction.z
             };
+
+            iplApplyDirectSoundEffect(voice.iplFx.directSoundEffect,
+                inBuffer, voice.spatialInfo.soundPath,
+                directSoundOptions, directPathBuffer);
 
             iplApplyBinauralEffect(
                     voice.iplFx.binauralEffect,
@@ -146,13 +151,37 @@ namespace worlds {
                 stream[i * 2 + 0] += ((float*)tempBuffer)[i * 2 + 0] * vol;
                 stream[i * 2 + 1] += ((float*)tempBuffer)[i * 2 + 1] * vol;
             }
+
+            if (voice.loop && samplesRemaining < numMonoSamplesNeeded) {
+                int loopedSampleCount = numMonoSamplesNeeded - samplesRemaining;
+
+                inBuffer.interleavedBuffer = clip.data;
+                inBuffer.numSamples = loopedSampleCount;
+                directPathBuffer.numSamples = loopedSampleCount;
+                outBuffer.numSamples = loopedSampleCount;
+
+                iplApplyDirectSoundEffect(voice.iplFx.directSoundEffect,
+                    inBuffer, voice.spatialInfo.soundPath,
+                    directSoundOptions, directPathBuffer);
+
+                iplApplyBinauralEffect(
+                    voice.iplFx.binauralEffect,
+                    _this->binauralRenderer,
+                    directPathBuffer, dir,
+                    IPL_HRTFINTERPOLATION_BILINEAR, 1.0f, outBuffer);
+
+                for (int i = 0; i < loopedSampleCount; i++) {
+                    stream[(i + samplesNeeded) * 2 + 0] += ((float*)tempBuffer)[i * 2 + 0] * vol;
+                    stream[(i + samplesNeeded) * 2 + 1] += ((float*)tempBuffer)[i * 2 + 1] * vol;
+                }
+            }
         }
 
         voice.playbackPosition += numMonoSamplesNeeded;
 
         if (voice.playbackPosition >= clip.sampleCount) {
             if (voice.loop) {
-                voice.playbackPosition = 0;
+                voice.playbackPosition = numMonoSamplesNeeded - samplesRemaining;
             } else {
                 voice.isPlaying = false;
             }
