@@ -29,7 +29,12 @@ namespace lg {
         const float repulsionDistance = 3.0f;
         view.each([&](entt::entity entity, DroneAI& ai, worlds::DynamicPhysicsActor& dpa) {
             const RPGStats& stats = registry.get<RPGStats>(entity);
-            if (stats.currentHP <= 0.0) return;
+            if (stats.currentHP <= 0.0) {
+                registry.remove<DroneAI>(entity);
+                worlds::AudioSource& as = registry.get<worlds::AudioSource>(entity);
+                as.isPlaying = false;
+                return;
+            }
 
             const Transform& pose = dpa.pose();
             ai.timeSinceLastShot += simStep;
@@ -60,13 +65,12 @@ namespace lg {
 
                 const Transform& poseB = dpa.pose();
 
-                float distance = glm::distance(pose.position, poseB.position);
-                if (distance > repulsionDistance) return;
-
                 glm::vec3 direction = (poseB.position - pose.position);
+                float distance = glm::length(direction);
+
                 direction.y = 0.0f;
 
-                direction = glm::normalize(direction);
+                direction = direction / distance;
                 target -= direction * (distance + 1.0f);
             });
 
