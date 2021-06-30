@@ -186,7 +186,7 @@ namespace lg {
         entt::entity projectile = worlds::SceneLoader::createPrefab(projectileId, reg);
 
         Transform& projectileTransform = reg.get<Transform>(projectile);
-        DamagingProjectile dp = reg.get<DamagingProjectile>(projectile);
+        DamagingProjectile& dp = reg.get<DamagingProjectile>(projectile);
         dp.damage = 200.0;
         Transform firePointTransform = gun.firePoint.transformBy(gunTransform);
 
