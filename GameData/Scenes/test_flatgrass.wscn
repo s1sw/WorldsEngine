@@ -168,6 +168,68 @@
       "uvOverride": 0
     }
   },
+  "1048659": {
+    "diff": [
+      {
+        "op": "replace",
+        "path": "/Transform/position/0",
+        "value": -4.5
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/position/1",
+        "value": -0.5
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/position/2",
+        "value": -5.099999904632568
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/scale/0",
+        "value": 0.5
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/scale/1",
+        "value": 0.5
+      },
+      {
+        "op": "replace",
+        "path": "/Transform/scale/2",
+        "value": 0.5
+      },
+      {
+        "op": "add",
+        "path": "/Physics Actor",
+        "value": {
+          "shapes": [
+            {
+              "halfExtents": [
+                1.0,
+                1.0,
+                1.0
+              ],
+              "position": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "rotation": [
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ],
+              "type": 1
+            }
+          ]
+        }
+      }
+    ],
+    "prefabPath": "Prefabs/box.wprefab"
+  },
   "11": {
     "Transform": {
       "position": [
@@ -557,6 +619,7 @@
         1.0,
         1.0
       ],
+      "distanceCutoff": 1.0,
       "enableShadows": false,
       "enabled": true,
       "intensity": 1.0,
@@ -2175,6 +2238,248 @@
       }
     ],
     "prefabPath": "Prefabs/drone.wprefab"
+  },
+  "8388685": {
+    "Audio Source": {
+      "channel": 1,
+      "clipPath": "Audio/SFX/gunsoundthing.ogg",
+      "loop": false,
+      "playOnSceneOpen": false,
+      "spatialise": true,
+      "volume": 1.0
+    },
+    "Dynamic Physics Actor": {
+      "enableCCD": false,
+      "enableGravity": true,
+      "mass": 1.0,
+      "shapes": [
+        {
+          "halfExtents": [
+            0.03172706067562103,
+            0.03272834047675133,
+            0.031092030927538872
+          ],
+          "position": [
+            0.00035461969673633575,
+            0.07305007427930832,
+            0.0630389153957367
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0,
+            0.9999998807907104
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.03172706067562103,
+            0.036459289491176605,
+            0.10000000149011612
+          ],
+          "position": [
+            0.00035461969673633575,
+            0.06917629390954971,
+            0.12652990221977234
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0,
+            0.9999998807907104
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.03172706067562103,
+            0.036459289491176605,
+            0.03221883997321129
+          ],
+          "position": [
+            0.00035461969673633575,
+            0.06917629390954971,
+            -0.000400736927986145
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0,
+            0.9999998807907104
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.03172706067562103,
+            0.027831269428133965,
+            0.020350318402051926
+          ],
+          "position": [
+            0.00035461969673633575,
+            0.06123422831296921,
+            -0.05318547040224075
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0,
+            0.9999998807907104
+          ],
+          "type": 1
+        },
+        {
+          "halfExtents": [
+            0.019394369795918465,
+            0.04343004524707794,
+            0.01809765212237835
+          ],
+          "position": [
+            0.00035461969673633575,
+            0.0024213800206780434,
+            -0.011851499788463116
+          ],
+          "rotation": [
+            0.13672061264514923,
+            0.0,
+            0.0,
+            0.9906095266342163
+          ],
+          "type": 1
+        }
+      ]
+    },
+    "Grabbable": {
+      "grips": [
+        {
+          "gripType": 0,
+          "hand": 1,
+          "position": [
+            -0.029137667268514633,
+            -0.024024195969104767,
+            -0.09799988567829132
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "gripType": 0,
+          "hand": 0,
+          "position": [
+            0.02961394190788269,
+            -0.024002976715564728,
+            -0.09760330617427826
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "gripType": 0,
+          "hand": 0,
+          "position": [
+            0.029057513922452927,
+            -0.07077432423830032,
+            -0.0532059520483017
+          ],
+          "rotation": [
+            4.192202140984591e-13,
+            -7.137268198675883e-08,
+            -0.4082043766975403,
+            0.912890613079071
+          ]
+        }
+      ]
+    },
+    "Gun": {
+      "automatic": true,
+      "damage": 100.0,
+      "firePoint": {
+        "position": [
+          0.018285619094967842,
+          0.06895159184932709,
+          0.5182759761810303
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      "shotPeriod": 0.10000000149011612
+    },
+    "Transform": {
+      "position": [
+        -4.616000175476074,
+        0.971031665802002,
+        -5.014514446258545
+      ],
+      "rotation": [
+        0.0017739587929099798,
+        0.9872468709945679,
+        -0.1590842604637146,
+        0.005729384254664183
+      ],
+      "scale": [
+        1.0000760555267334,
+        1.0,
+        1.0001068115234375
+      ]
+    },
+    "World Object": {
+      "materials": [
+        "Materials/silver.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json",
+        "Materials/dev.json"
+      ],
+      "mesh": "Models/test_gun.wmdl",
+      "staticFlags": 0,
+      "texScaleOffset": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "uvOverride": 0
+    }
   },
   "9": {
     "Transform": {
