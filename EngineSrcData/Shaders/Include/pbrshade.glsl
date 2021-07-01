@@ -41,7 +41,7 @@ LightShadeInfo calcLightShadeInfo(Light light, ShadeInfo shadeInfo, vec3 worldPo
         lsi.radiance *= clamp((theta - cutoff - outerRadius) / outerRadius, 0.0f, 1.0f);
         float distSq = dot(lToFrag, lToFrag);
         float falloff = 1.0 / distSq;
-        falloff = min((1.0 - distSq) / (light.distanceCutoff * light.distanceCutoff), falloff);
+        falloff = max(0.0, falloff - light.distanceCutoff);
         lsi.radiance *= falloff;
     } else if (lightType == LT_SPHERE) {
         vec3 lightPos = light.pack2.xyz;
@@ -56,6 +56,7 @@ LightShadeInfo calcLightShadeInfo(Light light, ShadeInfo shadeInfo, vec3 worldPo
         float lightDist = length(closestPoint);
         float sqrDist = lightDist * lightDist;
         float falloff = (sphereRadiusSq / (max(sphereRadiusSq, sqrDist)));
+        falloff = max(0.0, falloff - light.distanceCutoff);
 
         lsi.radiance *= falloff;
         lsi.lightDist = lightDist;

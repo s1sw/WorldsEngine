@@ -12,7 +12,6 @@ layout(location = 0) out vec2 outUV;
 
 void main() {
     mat4 model = modelMatrices[modelMatrixIdx];
-    // On AMD driver 20.10.1 (and possibly earlier) using gl_ViewIndex seems to cause a driver crash
     int vpMatIdx = vpIdx + gl_ViewIndex;
 
     mat4 projMat = projection[vpMatIdx];

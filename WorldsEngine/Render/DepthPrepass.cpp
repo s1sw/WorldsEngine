@@ -5,26 +5,50 @@ namespace worlds {
 
     void DepthPrepass::setup(RenderContext& ctx, vk::RenderPass renderPass, vk::PipelineLayout layout) {
         AssetID vsID = AssetDB::pathToId("Shaders/depth_prepass.vert.spv");
-        AssetID fsID = AssetDB::pathToId("Shaders/blank.frag.spv");
         auto preVertexShader = vku::loadShaderAsset(handles->device, vsID);
-        auto preFragmentShader = vku::loadShaderAsset(handles->device, fsID);
-        vku::PipelineMaker pm{ ctx.passWidth, ctx.passHeight };
+        {
+            AssetID fsID = AssetDB::pathToId("Shaders/blank.frag.spv");
+            auto preFragmentShader = vku::loadShaderAsset(handles->device, fsID);
+            vku::PipelineMaker pm{ ctx.passWidth, ctx.passHeight };
 
-        pm.shader(vk::ShaderStageFlagBits::eFragment, preFragmentShader);
-        pm.shader(vk::ShaderStageFlagBits::eVertex, preVertexShader);
-        pm.vertexBinding(0, (uint32_t)sizeof(Vertex));
-        pm.vertexAttribute(0, 0, vk::Format::eR32G32B32Sfloat, (uint32_t)offsetof(Vertex, position));
-        pm.vertexAttribute(1, 0, vk::Format::eR32G32B32Sfloat, (uint32_t)offsetof(Vertex, uv));
-        pm.cullMode(vk::CullModeFlagBits::eBack);
-        pm.depthWriteEnable(true).depthTestEnable(true).depthCompareOp(vk::CompareOp::eGreater);
-        pm.blendBegin(false);
-        pm.frontFace(vk::FrontFace::eCounterClockwise);
+            pm.shader(vk::ShaderStageFlagBits::eFragment, preFragmentShader);
+            pm.shader(vk::ShaderStageFlagBits::eVertex, preVertexShader);
+            pm.vertexBinding(0, (uint32_t)sizeof(Vertex));
+            pm.vertexAttribute(0, 0, vk::Format::eR32G32B32Sfloat, (uint32_t)offsetof(Vertex, position));
+            pm.vertexAttribute(1, 0, vk::Format::eR32G32B32Sfloat, (uint32_t)offsetof(Vertex, uv));
+            pm.cullMode(vk::CullModeFlagBits::eBack);
+            pm.depthWriteEnable(true).depthTestEnable(true).depthCompareOp(vk::CompareOp::eGreater);
+            pm.blendBegin(false);
+            pm.frontFace(vk::FrontFace::eCounterClockwise);
 
-        vk::PipelineMultisampleStateCreateInfo pmsci;
-        pmsci.rasterizationSamples = vku::sampleCountFlags(handles->graphicsSettings.msaaLevel);
-        pm.multisampleState(pmsci);
-        pm.subPass(0);
-        depthPrePipeline = pm.createUnique(handles->device, handles->pipelineCache, layout, renderPass);
+            vk::PipelineMultisampleStateCreateInfo pmsci;
+            pmsci.rasterizationSamples = vku::sampleCountFlags(handles->graphicsSettings.msaaLevel);
+            pm.multisampleState(pmsci);
+            pm.subPass(0);
+            depthPrePipeline = pm.createUnique(handles->device, handles->pipelineCache, layout, renderPass);
+        }
+
+        {
+            AssetID alphaTestID = AssetDB::pathToId("Shaders/alpha_test_prepass.frag.spv");
+            auto alphaTestFragment = vku::loadShaderAsset(handles->device, alphaTestID);
+            vku::PipelineMaker pm{ ctx.passWidth, ctx.passHeight };
+
+            pm.shader(vk::ShaderStageFlagBits::eFragment, alphaTestFragment);
+            pm.shader(vk::ShaderStageFlagBits::eVertex, preVertexShader);
+            pm.vertexBinding(0, (uint32_t)sizeof(Vertex));
+            pm.vertexAttribute(0, 0, vk::Format::eR32G32B32Sfloat, (uint32_t)offsetof(Vertex, position));
+            pm.vertexAttribute(1, 0, vk::Format::eR32G32B32Sfloat, (uint32_t)offsetof(Vertex, uv));
+            pm.cullMode(vk::CullModeFlagBits::eBack);
+            pm.depthWriteEnable(true).depthTestEnable(true).depthCompareOp(vk::CompareOp::eGreater);
+            pm.blendBegin(false);
+            pm.frontFace(vk::FrontFace::eCounterClockwise);
+
+            vk::PipelineMultisampleStateCreateInfo pmsci;
+            pmsci.rasterizationSamples = vku::sampleCountFlags(handles->graphicsSettings.msaaLevel);
+            pm.multisampleState(pmsci);
+            pm.subPass(0);
+            alphaTestPipeline = pm.createUnique(handles->device, handles->pipelineCache, layout, renderPass);
+        }
         this->layout = layout;
     }
 
@@ -50,9 +74,13 @@ namespace worlds {
         auto& cmdBuf = ctx.cmdBuf;
         cmdBuf.bindPipeline(vk::PipelineBindPoint::eGraphics, *depthPrePipeline);
 
+        bool switchedToAlphaTest = false;
+
         for (auto& sdi : drawInfo) {
             if (!sdi.opaque) {
-                continue;
+                assert(!switchedToAlphaTest);
+                switchedToAlphaTest = true;
+                cmdBuf.bindPipeline(vk::PipelineBindPoint::eGraphics, *alphaTestPipeline);
             }
 
             StandardPushConstants pushConst {

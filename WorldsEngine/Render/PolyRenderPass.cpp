@@ -358,7 +358,7 @@ namespace worlds {
             pm.shader(vk::ShaderStageFlagBits::eVertex, vertexShader);
             setupVertexFormat(pm);
             pm.cullMode(vk::CullModeFlagBits::eBack);
-            pm.depthWriteEnable(true).depthTestEnable(true).depthCompareOp(vk::CompareOp::eGreater);
+            pm.depthWriteEnable(false).depthTestEnable(true).depthCompareOp(vk::CompareOp::eEqual);
 
             pm.blendBegin(false);
             pm.frontFace(vk::FrontFace::eCounterClockwise);
@@ -605,9 +605,9 @@ namespace worlds {
             if (l.type != LightType::Tube) {
                 lightMapped->lights[lightIdx] = PackedLight{
                     glm::vec4(l.color * l.intensity, (float)l.type),
-                    glm::vec4(lightForward, l.spotCutoff),
+                    glm::vec4(lightForward, glm::cos(l.spotCutoff)),
                     transform.position, l.shadowmapIdx,
-                    l.distanceCutoff * l.intensity
+                    l.distanceCutoff
                 };
             } else {
                 glm::vec3 tubeP0 = transform.position + lightForward * l.tubeLength;
@@ -616,7 +616,7 @@ namespace worlds {
                     glm::vec4(l.color * l.intensity, (float)l.type),
                     glm::vec4(tubeP0, l.tubeRadius),
                     tubeP1, ~0u,
-                    l.distanceCutoff * l.intensity
+                    l.distanceCutoff
                 };
             }
 
@@ -624,8 +624,11 @@ namespace worlds {
                 Camera shadowCam;
                 shadowCam.position = transform.position;
                 shadowCam.rotation = transform.rotation;
-                shadowCam.verticalFOV = glm::radians(90.f);
-                lightMapped->additionalShadowMatrices[l.shadowmapIdx] = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 100.0f) * shadowCam.getViewMatrix();
+                shadowCam.near = l.shadowNear;
+                shadowCam.far = l.shadowFar;
+                float fov = l.spotCutoff;
+                shadowCam.verticalFOV = fov;
+                lightMapped->additionalShadowMatrices[l.shadowmapIdx] = shadowCam.getProjectionMatrixZONonInfinite(1.0f)  * shadowCam.getViewMatrix();
             }
             lightIdx++;
         });
