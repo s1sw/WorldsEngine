@@ -1509,7 +1509,7 @@
     "diff": [
       {
         "op": "remove",
-        "path": "/Drone AI"
+        "path": "/World Light"
       }
     ],
     "prefabPath": "Prefabs/drone.wprefab"
@@ -4422,44 +4422,6 @@
       "uvOverride": 0
     }
   },
-  "2097335": {
-    "Name Component": {
-      "name": "Light"
-    },
-    "Transform": {
-      "position": [
-        0.0,
-        1.6060099601745605,
-        0.0
-      ],
-      "rotation": [
-        0.0,
-        0.0,
-        0.0,
-        1.0
-      ],
-      "scale": [
-        1.0,
-        1.0,
-        1.0
-      ]
-    },
-    "World Light": {
-      "color": [
-        1.0,
-        1.0,
-        1.0
-      ],
-      "distanceCutoff": 3.0,
-      "enableShadows": false,
-      "enabled": true,
-      "intensity": 11.0,
-      "spotCutoff": 0.699999988079071,
-      "tubeLength": 0.25,
-      "tubeRadius": 0.10000000149011612,
-      "type": 1
-    }
-  },
   "2097355": {
     "Physics Actor": {
       "shapes": [
@@ -4546,6 +4508,37 @@
         0.0
       ],
       "uvOverride": 4
+    }
+  },
+  "220": {
+    "Audio Source": {
+      "channel": 1,
+      "clipPath": "Audio/SFX/Ambience/wasteland.ogg",
+      "loop": true,
+      "playOnSceneOpen": true,
+      "spatialise": false,
+      "volume": 1.0
+    },
+    "Name Component": {
+      "name": "Ambience"
+    },
+    "Transform": {
+      "position": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
     }
   },
   "221": {
@@ -4963,22 +4956,14 @@
     }
   },
   "229": {
-    "Audio Source": {
-      "channel": 1,
-      "clipPath": "Audio/SFX/Ambience/wasteland.ogg",
-      "loop": true,
-      "playOnSceneOpen": true,
-      "spatialise": false,
-      "volume": 1.0
-    },
     "Name Component": {
-      "name": "Ambience"
+      "name": "Empty"
     },
     "Transform": {
       "position": [
         0.0,
-        0.0,
-        0.0
+        1.1533684730529785,
+        0.14521309733390808
       ],
       "rotation": [
         0.0,
@@ -4991,6 +4976,21 @@
         1.0,
         1.0
       ]
+    },
+    "World Light": {
+      "color": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "distanceCutoff": 0.0069444444961845875,
+      "enableShadows": true,
+      "enabled": true,
+      "intensity": 15.0,
+      "spotCutoff": 0.5,
+      "tubeLength": 0.25,
+      "tubeRadius": 0.10000000149011612,
+      "type": 1
     }
   },
   "3": {

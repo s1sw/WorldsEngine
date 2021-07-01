@@ -363,11 +363,21 @@ namespace worlds {
                         ImGui::EndCombo();
                     }
 
-                    ImGui::DragFloat("Distance Cutoff", &worldLight.distanceCutoff);
+                    ImGui::Text("Recommended Value: %.3f", glm::sqrt(worldLight.intensity / 0.1f));
+                    float distance = glm::sqrt(1.0f / worldLight.distanceCutoff);
+                    if (ImGui::DragFloat("Distance Cutoff", &distance)) {
+                        worldLight.distanceCutoff = 1.0f / (distance * distance);
+                    }
 
                     if (worldLight.type == LightType::Spot) {
-                        ImGui::DragFloat("Spot Cutoff", &worldLight.spotCutoff);
+                        float cutoff = glm::degrees(worldLight.spotCutoff);
+                        ImGui::DragFloat("Spot Cutoff", &cutoff);
+                        worldLight.spotCutoff = glm::radians(cutoff);
                         ImGui::Checkbox("Enable Shadows", &worldLight.enableShadows);
+                        if (worldLight.enableShadows) {
+                            ImGui::DragFloat("Near Plane", &worldLight.shadowNear);
+                            ImGui::DragFloat("Far Plane", &worldLight.shadowFar);
+                        }
                     }
 
                     if (worldLight.type == LightType::Sphere) {

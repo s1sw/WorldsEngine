@@ -84,6 +84,7 @@ namespace worlds {
     class DepthPrepass {
     private:
         vk::UniquePipeline depthPrePipeline;
+        vk::UniquePipeline alphaTestPipeline;
         VulkanHandles* handles;
         vk::PipelineLayout layout;
     public:

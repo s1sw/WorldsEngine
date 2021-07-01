@@ -178,5 +178,7 @@ namespace worlds {
         bool enableShadows = false;
         uint32_t shadowmapIdx = ~0u;
         float distanceCutoff = 1.0f;
+        float shadowNear = 0.05f;
+        float shadowFar = 100.0f;
     };
 }

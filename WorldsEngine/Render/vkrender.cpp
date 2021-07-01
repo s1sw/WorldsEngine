@@ -568,6 +568,7 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
         numMSAASamples = std::atoi(arg);
         // The sample count flags are actually identical to the number of samples
         msaaSamples = (vk::SampleCountFlagBits)numMSAASamples;
+        handles.graphicsSettings.msaaLevel = numMSAASamples;
         recreateSwapchain();
         }, "r_setMSAASamples", "Sets the number of MSAA samples.", nullptr);
 

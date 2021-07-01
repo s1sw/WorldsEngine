@@ -84,8 +84,10 @@ namespace worlds {
                 Camera shadowCam;
                 shadowCam.position = t.position;
                 shadowCam.rotation = t.rotation;
-                shadowCam.verticalFOV = glm::radians(90.f);
-                shadowMatrices[shadowIdx] = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 100.0f) * shadowCam.getViewMatrix();
+                shadowCam.verticalFOV = light.spotCutoff;
+                shadowCam.near = light.shadowNear;
+                shadowCam.far = light.shadowFar;
+                shadowMatrices[shadowIdx] = shadowCam.getProjectionMatrixZONonInfinite(1.0f) * shadowCam.getViewMatrix();
                 shadowIdx++;
             } else {
                 light.shadowmapIdx = ~0u;
