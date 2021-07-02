@@ -1506,12 +1506,7 @@
     }
   },
   "1048759": {
-    "diff": [
-      {
-        "op": "remove",
-        "path": "/World Light"
-      }
-    ],
+    "diff": [],
     "prefabPath": "Prefabs/drone.wprefab"
   },
   "1048767": {
@@ -4953,44 +4948,6 @@
         0.0
       ],
       "uvOverride": 0
-    }
-  },
-  "229": {
-    "Name Component": {
-      "name": "Empty"
-    },
-    "Transform": {
-      "position": [
-        0.0,
-        1.1533684730529785,
-        0.14521309733390808
-      ],
-      "rotation": [
-        0.0,
-        0.0,
-        0.0,
-        1.0
-      ],
-      "scale": [
-        1.0,
-        1.0,
-        1.0
-      ]
-    },
-    "World Light": {
-      "color": [
-        1.0,
-        1.0,
-        1.0
-      ],
-      "distanceCutoff": 0.0069444444961845875,
-      "enableShadows": true,
-      "enabled": true,
-      "intensity": 15.0,
-      "spotCutoff": 0.5,
-      "tubeLength": 0.25,
-      "tubeRadius": 0.10000000149011612,
-      "type": 1
     }
   },
   "3": {

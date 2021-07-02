@@ -1,12 +1,10 @@
 {
-	"albedoPath" : "Textures/scifiwall/albedo.jpg",
-	"roughMapPath" : "Textures/scifiwall/roughness.jpg",
-	"metalMapPath" : "Textures/scifiwall/metallic.jpg",
-	"normalMapPath" : "Textures/scifiwall/normal_forcelin.jpg",
-	"heightmapPath" : "Textures/scifiwall/height.png",
-	"heightmapScale" : 0.05,
-	"aoMapPath" : "Textures/scifiwall/ao.jpg",
-	"metallic" : 0.0,
-	"roughness" : 1.0,
-	"albedoColor" : [1.0, 1.0, 1.0]
+    "albedoPath" : "Textures/scifiwall/albedo.wtex",
+    "pbrMapPath" : "Textures/ScifiWall/PBRPack.wtex",
+    "normalMapPath" : "Textures/scifiwall/normal_forcelin.wtex",
+    "heightmapPath" : "Textures/scifiwall/height.wtex",
+    "heightmapScale" : 0.050000,
+    "metallic" : 0.000000,
+    "roughness" : 1.000000,
+    "albedoColor" : [1.000000, 1.000000, 1.000000]
 }

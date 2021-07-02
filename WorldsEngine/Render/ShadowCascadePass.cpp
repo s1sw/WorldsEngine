@@ -83,7 +83,7 @@ namespace worlds {
         pm.vertexBinding(0, (uint32_t)sizeof(Vertex));
         pm.vertexAttribute(0, 0, vk::Format::eR32G32B32Sfloat, (uint32_t)offsetof(Vertex, position));
         pm.cullMode(vk::CullModeFlagBits::eBack);
-        pm.depthWriteEnable(true).depthTestEnable(true).depthCompareOp(vk::CompareOp::eLess);
+        pm.depthWriteEnable(true).depthTestEnable(true).depthCompareOp(vk::CompareOp::eGreater);
 
         pipeline = pm.createUnique(handles->device, handles->pipelineCache, *pipelineLayout, *renderPass);
 
@@ -122,7 +122,7 @@ namespace worlds {
             VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED);
 
 
-        vk::ClearDepthStencilValue clearDepthValue{ 1.0f, 0 };
+        vk::ClearDepthStencilValue clearDepthValue{ 0.0f, 0 };
         std::array<vk::ClearValue, 1> clearColours{ clearDepthValue };
 
         vk::RenderPassBeginInfo rpbi;

@@ -148,11 +148,13 @@ namespace worlds {
                     IPL_HRTFINTERPOLATION_BILINEAR, 1.0f, outBuffer);
 
             for (int i = 0; i < samplesNeeded; i++) {
-                stream[i * 2 + 0] += ((float*)tempBuffer)[i * 2 + 0] * vol;
-                stream[i * 2 + 1] += ((float*)tempBuffer)[i * 2 + 1] * vol;
+                float l = ((float*)tempBuffer)[i * 2 + 0] * vol;
+                float r = ((float*)tempBuffer)[i * 2 + 1] * vol;
+                stream[i * 2 + 0] += glm::isnan(l) ? 0.0f : l;
+                stream[i * 2 + 1] += glm::isnan(r) ? 0.0f : r;
             }
 
-            if (voice.loop && samplesRemaining < numMonoSamplesNeeded) {
+            if (false && voice.loop && samplesRemaining < numMonoSamplesNeeded) {
                 int loopedSampleCount = numMonoSamplesNeeded - samplesRemaining;
 
                 inBuffer.interleavedBuffer = clip.data;
@@ -620,6 +622,9 @@ namespace worlds {
     void AudioSystem::playOneShotClip(AssetID id, glm::vec3 location, bool spatialise, float volume, MixerChannel channel) {
         if (loadedClips.count(id) == 0)
             loadAudioClip(id);
+
+        if ((oneshots.numElements() + internalAs.size()) >= voices.size())
+            return;
 
         if (volume < 0.001)
             return;

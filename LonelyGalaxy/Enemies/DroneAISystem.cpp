@@ -12,7 +12,7 @@ namespace lg {
     }
 
     void DroneAISystem::onSceneStart(entt::registry& registry) {
-        registry.view<DroneAI, Transform, RPGStats>().each([](DroneAI& ai, Transform& t, RPGStats& stats) {
+        registry.view<DroneAI, Transform, RPGStats>().each([&](entt::entity ent, DroneAI& ai, Transform& t, RPGStats& stats) {
             ai.currentTarget = t.position;
             stats.deathBehaviour = DeathBehaviour::Nothing;
         });
@@ -67,6 +67,8 @@ namespace lg {
 
                 glm::vec3 direction = (poseB.position - pose.position);
                 float distance = glm::length(direction);
+
+                if (distance > repulsionDistance) return;
 
                 direction.y = 0.0f;
 
