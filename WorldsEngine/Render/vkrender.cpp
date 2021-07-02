@@ -497,7 +497,7 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     shadowmapIci.extent = vk::Extent3D{ shadowmapRes, shadowmapRes, 1 };
     shadowmapIci.arrayLayers = 3;
     shadowmapIci.mipLevels = 1;
-    shadowmapIci.format = vk::Format::eD16Unorm;
+    shadowmapIci.format = vk::Format::eD32Sfloat;
     shadowmapIci.initialLayout = vk::ImageLayout::eUndefined;
     shadowmapIci.samples = vk::SampleCountFlagBits::e1;
     shadowmapIci.usage = vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eSampled;
@@ -992,7 +992,7 @@ glm::mat4 VKRenderer::getCascadeMatrix(bool forVr, Camera cam, glm::vec3 lightDi
     glm::vec3 eye = center + (lightDir * diameter);
 
     glm::mat4 viewMat = glm::lookAt(eye, center, glm::vec3{ 0.0f, 1.0f, 0.0f });
-    glm::mat4 projMat = glm::orthoZO(-radius, radius, -radius, radius, -radius * 12.0f, radius * 12.0f);
+    glm::mat4 projMat = glm::orthoZO(-radius, radius, -radius, radius, radius * 12.0f, -radius * 12.0f);
 
     return projMat * viewMat;
 }

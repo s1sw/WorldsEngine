@@ -148,7 +148,7 @@ namespace worlds {
         albedoSampler = sm.createUnique(handles->device);
 
         vku::SamplerMaker ssm{};
-        ssm.magFilter(vk::Filter::eLinear).minFilter(vk::Filter::eLinear).mipmapMode(vk::SamplerMipmapMode::eLinear).compareEnable(true).compareOp(vk::CompareOp::eLessOrEqual);
+        ssm.magFilter(vk::Filter::eLinear).minFilter(vk::Filter::eLinear).mipmapMode(vk::SamplerMipmapMode::eLinear).compareEnable(true).compareOp(vk::CompareOp::eGreater);
         shadowSampler = ssm.createUnique(handles->device);
 
         vku::DescriptorSetLayoutMaker dslm;
@@ -564,20 +564,20 @@ namespace worlds {
                 } else if (extraDat.wireframe || showWireframe.getInt() == 1) {
                     sdi.pipeline = *wireframePipeline;
                 } else if (ctx.registry.has<UseWireframe>(ent) || showWireframe.getInt() == 2) {
-                    if (sdi.opaque) {
+                    //if (sdi.opaque) {
                         sdi.pipeline = *pipeline;
-                    } else {
-                        sdi.pipeline = *alphaTestPipeline;
-                    }
+                    //} else {
+                    //    sdi.pipeline = *alphaTestPipeline;
+                    //}
 
                     drawInfo.add(sdi);
                     sdi.pipeline = *wireframePipeline;
                 } else {
-                    if (sdi.opaque) {
+                    //if (sdi.opaque) {
                         sdi.pipeline = *pipeline;
-                    } else {
-                        sdi.pipeline = *alphaTestPipeline;
-                    }
+                    //} else {
+                    //    sdi.pipeline = *alphaTestPipeline;
+                    //}
                 }
                 ctx.debugContext.stats->numTriangles += currSubmesh.indexCount / 3;
 
@@ -626,9 +626,9 @@ namespace worlds {
                 shadowCam.rotation = transform.rotation;
                 shadowCam.near = l.shadowNear;
                 shadowCam.far = l.shadowFar;
-                float fov = l.spotCutoff;
+                float fov = l.spotCutoff * 2.0f;
                 shadowCam.verticalFOV = fov;
-                lightMapped->additionalShadowMatrices[l.shadowmapIdx] = shadowCam.getProjectionMatrixZONonInfinite(1.0f)  * shadowCam.getViewMatrix();
+                lightMapped->additionalShadowMatrices[l.shadowmapIdx] = shadowCam.getProjectMatrixNonInfinite(1.0f)  * shadowCam.getViewMatrix();
             }
             lightIdx++;
         });

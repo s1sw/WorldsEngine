@@ -41,6 +41,15 @@ namespace worlds {
             return glm::perspective(verticalFOV, aspect, near, far);
         }
 
+        glm::mat4 getProjectMatrixNonInfinite(float aspect) {
+            float f = 1.0f / tan(verticalFOV / 2.0f);
+            return glm::mat4(
+                    f / aspect, 0.0f, 0.0f, 0.0f,
+                    0.0f, f, 0.0f, 0.0f,
+                    0.0f, 0.0f, near / (far - near), -1.0f,
+                    0.0f, 0.0f, far * near / (far - near), 0.0f);
+        }
+
         private:
         glm::mat4 reverseZInfPerspective(float verticalFOV, float aspect, float zNear) {
             float f = 1.0f / tan(verticalFOV / 2.0f);

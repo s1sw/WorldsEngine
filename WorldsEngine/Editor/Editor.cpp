@@ -65,8 +65,11 @@ namespace worlds {
     }
 
     void Editor::updateWindowTitle() {
-        auto newTitle = generateWindowTitle();
-        SDL_SetWindowTitle(interfaces.engine->getMainWindow(), newTitle.c_str());
+        static std::string lastTitle;
+        std::string newTitle = generateWindowTitle();
+
+        if (lastTitle != newTitle)
+            SDL_SetWindowTitle(interfaces.engine->getMainWindow(), newTitle.c_str());
     }
 
     SDL_HitTestResult hitTest(SDL_Window* win, const SDL_Point* p, void* v) {

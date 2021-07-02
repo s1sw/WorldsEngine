@@ -75,8 +75,8 @@ namespace worlds {
 
                 if (editor->isEntitySelected(ent)) {
                     drawList->AddRectFilled(
-                        ImVec2(0.0f + windowPos.x, cursorPos.y + windowPos.y),
-                        ImVec2(windowWidth + windowPos.x, cursorPos.y + lineHeight + windowPos.y),
+                        ImVec2(0.0f + windowPos.x, cursorPos.y + windowPos.y - ImGui::GetScrollY()),
+                        ImVec2(windowWidth + windowPos.x, cursorPos.y + lineHeight + windowPos.y - ImGui::GetScrollY()),
                         ImColor(0, 75, 150)
                     );
                 }

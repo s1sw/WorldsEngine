@@ -45,6 +45,7 @@ namespace worlds {
 
             vk::PipelineMultisampleStateCreateInfo pmsci;
             pmsci.rasterizationSamples = vku::sampleCountFlags(handles->graphicsSettings.msaaLevel);
+            pmsci.alphaToCoverageEnable = true;
             pm.multisampleState(pmsci);
             pm.subPass(0);
             alphaTestPipeline = pm.createUnique(handles->device, handles->pipelineCache, layout, renderPass);

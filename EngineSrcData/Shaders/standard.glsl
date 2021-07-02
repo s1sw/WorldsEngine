@@ -173,7 +173,15 @@ void handleEditorPicking() {
 }
 
 float mipMapLevel() {
+#if 0
     return textureQueryLod(tex2dSampler[materials[matIdx].albedoTexIdx], inUV).x;
+#else
+    vec2 dx = dFdx(inUV);
+    vec2 dy = dFdy(inUV);
+    float delta_max_sqr = max(dot(dx, dx), dot(dy, dy));
+    
+    return max(0.0, 0.5 * log2(delta_max_sqr));
+#endif
 }
 
 bool isTextureEnough(ivec2 texSize) {
@@ -223,7 +231,7 @@ float getDirLightShadowIntensity(int lightIdx) {
 
     float bias = max(0.0004 * (1.0 - dot(inNormal, lights[lightIdx].pack1.xyz)), 0.00025);
     //float bias = 0.000325;
-    float depth = (shadowPos.z / shadowPos.w) - bias;
+    float depth = (shadowPos.z / shadowPos.w) + bias;
     vec2 coord = (shadowPos.xy * 0.5 + 0.5);
 
     if (!inCascade)
@@ -233,7 +241,6 @@ float getDirLightShadowIntensity(int lightIdx) {
     //        coord.y > 0.0 && coord.y < 1.0 &&
     //        depth < 1.0 && depth > 0.0)
     {
-        float texelSize = 1.0 / textureSize(shadowSampler, 0).x;
         shadowIntensity = 0.0;
 #ifdef HIGH_QUALITY_SHADOWS
         const int shadowSamples = 1;
@@ -289,7 +296,7 @@ float getNormalLightShadowIntensity(int lightIdx) {
 
     float bias = max(0.0004 * (1.0 - dot(inNormal, lights[lightIdx].pack1.xyz)), 0.00025);
 
-    float depth = (shadowPos.z / shadowPos.w) - (100.0 / 65536.0);
+    float depth = (shadowPos.z / shadowPos.w);
     vec2 coord = (shadowPos.xy / shadowPos.w) * 0.5 + 0.5;//(shadowPos.xy * 0.5 + 0.5);
 
     float shadowIntensity = 1.0;
@@ -332,11 +339,7 @@ float getAntiAliasedRoughness(float inRoughness, vec3 normal) {
 void unpackMaterial(inout ShadeInfo si, mat3 tbn) {
     Material mat = materials[matIdx];
     si.metallic = mat.metallic;
-#if 0
-    si.roughness = getAntiAliasedRoughness(roughness, normal);
-#else
     si.roughness = mat.roughness;
-#endif
 #ifndef EFT
     float alphaCutoff = (mat.cutoffFlags & (0xFF)) / 255.0f;
     si.alphaCutoff = alphaCutoff;
@@ -381,6 +384,7 @@ void unpackMaterial(inout ShadeInfo si, mat3 tbn) {
     si.f0 = mix(vec3(0.04), albedoColor.rgb, si.metallic);
     si.normal = mat.normalTexIdx > -1 ? getNormalMapNormal(mat, tCoord, tbn) : inNormal;
     si.ao *= calcProxyAO(inWorldPos.xyz, si.normal);
+    si.roughness = getAntiAliasedRoughness(si.roughness, si.normal);
 #ifndef EFT
     si.alpha = albedoColor.a;
 #else
@@ -473,6 +477,7 @@ void main() {
 #ifndef EFT
     float finalAlpha = si.alphaCutoff > 0.0f ? si.alpha : 1.0f;
     if (si.alphaCutoff > 0.0f) {
+        finalAlpha *= 1 + mipMapLevel() * 0.75;
         finalAlpha = (finalAlpha - si.alphaCutoff) / max(fwidth(finalAlpha), 0.0001) + 0.5;
     }
 #else

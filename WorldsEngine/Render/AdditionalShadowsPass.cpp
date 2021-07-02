@@ -43,7 +43,10 @@ namespace worlds {
         pm.vertexBinding(0, (uint32_t)sizeof(Vertex));
         pm.vertexAttribute(0, 0, vk::Format::eR32G32B32Sfloat, (uint32_t)offsetof(Vertex, position));
         pm.cullMode(vk::CullModeFlagBits::eBack);
-        pm.depthWriteEnable(true).depthTestEnable(true).depthCompareOp(vk::CompareOp::eLess);
+        pm.depthWriteEnable(true).depthTestEnable(true).depthCompareOp(vk::CompareOp::eGreater);
+        pm.depthBiasEnable(true);
+        pm.depthBiasConstantFactor(-1.4f);
+        pm.depthBiasSlopeFactor(-1.75f);
 
         pipeline = pm.createUnique(handles->device, handles->pipelineCache, *pipelineLayout, *renderPass);
 
@@ -84,10 +87,10 @@ namespace worlds {
                 Camera shadowCam;
                 shadowCam.position = t.position;
                 shadowCam.rotation = t.rotation;
-                shadowCam.verticalFOV = light.spotCutoff;
+                shadowCam.verticalFOV = light.spotCutoff * 2.0f;
                 shadowCam.near = light.shadowNear;
                 shadowCam.far = light.shadowFar;
-                shadowMatrices[shadowIdx] = shadowCam.getProjectionMatrixZONonInfinite(1.0f) * shadowCam.getViewMatrix();
+                shadowMatrices[shadowIdx] = shadowCam.getProjectMatrixNonInfinite(1.0f) * shadowCam.getViewMatrix();
                 shadowIdx++;
             } else {
                 light.shadowmapIdx = ~0u;
@@ -105,7 +108,7 @@ namespace worlds {
             Frustum shadowFrustum;
             shadowFrustum.fromVPMatrix(shadowMatrices[i]);
 
-            vk::ClearDepthStencilValue clearDepthValue{ 1.0f, 0 };
+            vk::ClearDepthStencilValue clearDepthValue{ 0.0f, 0 };
             std::array<vk::ClearValue, 1> clearColours{ clearDepthValue };
 
             vk::RenderPassAttachmentBeginInfo attachmentBeginInfo;
