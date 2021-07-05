@@ -8,10 +8,10 @@
 #include "MathsUtil.hpp"
 #include "Physics/FilterEntities.hpp"
 #include "Scripting/ScriptComponent.hpp"
-#include "Scripting/WrenVM.hpp"
 #include "physxit.h"
 #include <Util/CreateModelObject.hpp>
 #include "Grabbable.hpp"
+#include <Scripting/NetVM.hpp>
 
 namespace lg {
     worlds::ConVar itCompDbg { "lg_itCompDbg", "0", "Shows physics shapes for grabbed objects." };

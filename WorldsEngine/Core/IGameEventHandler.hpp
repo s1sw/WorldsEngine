@@ -8,7 +8,7 @@ namespace worlds {
     class InputManager;
     class IVRInterface;
     class JobSystem;
-    class WrenScriptEngine;
+    class DotNetScriptEngine;
 
     struct EngineInterfaces {
         IVRInterface* vrInterface;
@@ -16,7 +16,7 @@ namespace worlds {
         Camera* mainCamera;
         InputManager* inputManager;
         WorldsEngine* engine;
-        WrenScriptEngine* scriptEngine;
+        DotNetScriptEngine* scriptEngine;
     };
 
     class IGameEventHandler {
