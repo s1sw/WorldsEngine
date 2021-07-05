@@ -1,1510 +1,1879 @@
 {
-  "0": {
-    "Transform": {
-      "position": [
-        0.0,
-        -2.0,
-        0.0
-      ],
-      "rotation": [
-        0.0,
-        0.0,
-        0.0,
-        1.0
-      ],
-      "scale": [
-        5.0,
-        1.0,
-        5.0
-      ]
-    },
-    "World Object": {
-      "materials": [
-        "Materials/LevelTextures/Concrete017.json"
-      ],
-      "mesh": "Models/cube.wmdl",
-      "staticFlags": 0,
-      "texScaleOffset": [
-        0.25,
-        0.25,
-        0.0,
-        0.0
-      ],
-      "uvOverride": 4
-    }
-  },
-  "10": {
-    "Name Component": {
-      "name": "Light"
-    },
-    "Transform": {
-      "position": [
-        -14.44975757598877,
-        0.6824217438697815,
-        -20.93001365661621
-      ],
-      "rotation": [
-        0.0,
-        0.0,
-        0.0,
-        1.0
-      ],
-      "scale": [
-        1.0,
-        1.0,
-        1.0
-      ]
-    },
-    "World Light": {
-      "color": [
-        1.0,
-        1.0,
-        1.0
-      ],
-      "distanceCutoff": 0.009999999776482582,
-      "enableShadows": false,
-      "enabled": true,
-      "intensity": 10.0,
-      "spotCutoff": 0.699999988079071,
-      "tubeLength": 0.25,
-      "tubeRadius": 0.10000000149011612,
-      "type": 0
-    }
-  },
-  "1048577": {
-    "Transform": {
-      "position": [
-        -10.0,
-        -2.0,
-        0.0
-      ],
-      "rotation": [
-        0.0,
-        0.0,
-        0.0,
-        1.0
-      ],
-      "scale": [
-        5.0,
-        1.0,
-        5.0
-      ]
-    },
-    "World Object": {
-      "materials": [
-        "Materials/LevelTextures/PavingStones075.json"
-      ],
-      "mesh": "Models/cube.wmdl",
-      "staticFlags": 0,
-      "texScaleOffset": [
-        0.25,
-        0.25,
-        0.0,
-        0.0
-      ],
-      "uvOverride": 4
-    }
-  },
-  "1048578": {
-    "Transform": {
-      "position": [
-        10.000000953674316,
-        -2.0,
-        -20.0
-      ],
-      "rotation": [
-        0.0,
-        0.0,
-        0.0,
-        1.0
-      ],
-      "scale": [
-        5.0,
-        1.0,
-        5.0
-      ]
-    },
-    "World Object": {
-      "materials": [
-        "Materials/LevelTextures/Tiles040.json"
-      ],
-      "mesh": "Models/cube.wmdl",
-      "staticFlags": 0,
-      "texScaleOffset": [
-        0.25,
-        0.25,
-        0.0,
-        0.0
-      ],
-      "uvOverride": 4
-    }
-  },
-  "11": {
-    "Name Component": {
-      "name": "Light"
-    },
-    "Transform": {
-      "position": [
-        -9.76676082611084,
-        0.6824229955673218,
-        -11.458085060119629
-      ],
-      "rotation": [
-        0.0,
-        0.0,
-        0.0,
-        1.0
-      ],
-      "scale": [
-        1.0,
-        1.0,
-        1.0
-      ]
-    },
-    "World Light": {
-      "color": [
-        1.0,
-        1.0,
-        1.0
-      ],
-      "distanceCutoff": 0.009999999776482582,
-      "enableShadows": false,
-      "enabled": true,
-      "intensity": 10.0,
-      "spotCutoff": 0.699999988079071,
-      "tubeLength": 0.25,
-      "tubeRadius": 0.10000000149011612,
-      "type": 0
-    }
-  },
-  "12": {
-    "Name Component": {
-      "name": "Light"
-    },
-    "Transform": {
-      "position": [
-        0.22553014755249023,
-        0.682421863079071,
-        -21.105499267578125
-      ],
-      "rotation": [
-        0.0,
-        0.0,
-        0.0,
-        1.0
-      ],
-      "scale": [
-        1.0,
-        1.0,
-        1.0
-      ]
-    },
-    "World Light": {
-      "color": [
-        1.0,
-        1.0,
-        1.0
-      ],
-      "distanceCutoff": 0.009999999776482582,
-      "enableShadows": false,
-      "enabled": true,
-      "intensity": 10.0,
-      "spotCutoff": 0.699999988079071,
-      "tubeLength": 0.25,
-      "tubeRadius": 0.10000000149011612,
-      "type": 0
-    }
-  },
-  "13": {
-    "Name Component": {
-      "name": "Light"
-    },
-    "Transform": {
-      "position": [
-        -10.463008880615234,
-        0.6824219226837158,
-        0.3210868835449219
-      ],
-      "rotation": [
-        0.0,
-        0.0,
-        0.0,
-        1.0
-      ],
-      "scale": [
-        1.0,
-        1.0,
-        1.0
-      ]
-    },
-    "World Light": {
-      "color": [
-        1.0,
-        0.0,
-        0.0
-      ],
-      "distanceCutoff": 0.005102040711790323,
-      "enableShadows": false,
-      "enabled": true,
-      "intensity": 22.0,
-      "spotCutoff": 0.699999988079071,
-      "tubeLength": 0.25,
-      "tubeRadius": 0.10000000149011612,
-      "type": 0
-    }
-  },
-  "14": {
-    "Name Component": {
-      "name": "Light"
-    },
-    "Transform": {
-      "position": [
-        -4.642927169799805,
-        0.6824219226837158,
-        -15.103492736816406
-      ],
-      "rotation": [
-        0.0,
-        0.0,
-        0.0,
-        1.0
-      ],
-      "scale": [
-        1.0,
-        1.0,
-        1.0
-      ]
-    },
-    "World Light": {
-      "color": [
-        0.23006516695022583,
-        0.6913895606994629,
-        0.9768339991569519
-      ],
-      "distanceCutoff": 0.005102040711790323,
-      "enableShadows": false,
-      "enabled": true,
-      "intensity": 22.0,
-      "spotCutoff": 0.699999988079071,
-      "tubeLength": 0.25,
-      "tubeRadius": 0.10000000149011612,
-      "type": 0
-    }
-  },
-  "20": {
-    "diff": [
-      {
-        "op": "remove",
-        "path": "/Drone AI"
+  "entities": {
+    "0": {
+      "Physics Actor": {
+        "shapes": [
+          {
+            "halfExtents": [
+              1.0,
+              1.0,
+              1.0
+            ],
+            "position": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "rotation": [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ],
+            "type": 1
+          }
+        ]
       },
-      {
-        "op": "remove",
-        "path": "/Dynamic Physics Actor"
+      "Transform": {
+        "position": [
+          0.0,
+          -2.0,
+          0.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "scale": [
+          5.0,
+          1.0,
+          5.0
+        ]
       },
-      {
-        "op": "remove",
-        "path": "/Grabbable"
-      },
-      {
-        "op": "remove",
-        "path": "/Stabbable"
-      },
-      {
-        "op": "remove",
-        "path": "/Stat Display Info"
-      },
-      {
-        "op": "add",
-        "path": "/World Light/distanceCutoff",
-        "value": 1.0
+      "World Object": {
+        "materials": [
+          "Materials/LevelTextures/Concrete017.json"
+        ],
+        "mesh": "Models/cube.wmdl",
+        "staticFlags": 0,
+        "texScaleOffset": [
+          0.25,
+          0.25,
+          0.0,
+          0.0
+        ],
+        "uvOverride": 4
       }
-    ],
-    "prefabPath": "Prefabs/drone.wprefab"
-  },
-  "2097171": {
-    "Physics Actor": {
-      "shapes": [
-        {
-          "halfExtents": [
-            0.4000000059604645,
-            1.0,
-            0.4000000059604645
-          ],
-          "position": [
-            0.0,
-            0.0,
-            0.0
-          ],
-          "rotation": [
-            0.0,
-            0.0,
-            0.0,
-            1.0
-          ],
-          "type": 1
-        }
-      ]
     },
-    "RPG Stats": {
-      "currentHP": 500.0,
-      "level": 1,
-      "maxHP": 500.0,
-      "strength": 1,
-      "totalExperience": 0
+    "10": {
+      "Name Component": {
+        "name": "Light"
+      },
+      "Transform": {
+        "position": [
+          -14.44975757598877,
+          0.6824217438697815,
+          -20.93001365661621
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "World Light": {
+        "color": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "distanceCutoff": 0.009999999776482582,
+        "enableShadows": false,
+        "enabled": true,
+        "intensity": 10.0,
+        "spotCutoff": 0.699999988079071,
+        "tubeLength": 0.25,
+        "tubeRadius": 0.10000000149011612,
+        "type": 0
+      }
     },
-    "Stabbable": {},
-    "Transform": {
-      "position": [
-        0.0,
-        -0.9959126710891724,
-        -0.5
-      ],
-      "rotation": [
-        1.1476213757077858e-07,
-        0.9999999403953552,
-        -0.00017217894492205232,
-        -0.0002438714582240209
-      ],
-      "scale": [
-        0.9998472929000854,
-        1.0,
-        0.9999236464500427
-      ]
+    "1048577": {
+      "Physics Actor": {
+        "shapes": [
+          {
+            "halfExtents": [
+              1.0,
+              1.0,
+              1.0
+            ],
+            "position": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "rotation": [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ],
+            "type": 1
+          }
+        ]
+      },
+      "Transform": {
+        "position": [
+          -10.0,
+          -2.0,
+          0.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "scale": [
+          5.0,
+          1.0,
+          5.0
+        ]
+      },
+      "World Object": {
+        "materials": [
+          "Materials/LevelTextures/PavingStones075.json"
+        ],
+        "mesh": "Models/cube.wmdl",
+        "staticFlags": 0,
+        "texScaleOffset": [
+          0.25,
+          0.25,
+          0.0,
+          0.0
+        ],
+        "uvOverride": 4
+      }
     },
-    "World Object": {
-      "materials": [
-        "Materials/turret/BaseHex.json",
-        "Materials/turret/YawPivot.json",
-        "Materials/turret/Gun.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json"
-      ],
-      "mesh": "Models/turret.wmdl",
-      "staticFlags": 0,
-      "texScaleOffset": [
-        1.0,
-        1.0,
-        0.0,
-        0.0
-      ],
-      "uvOverride": 0
+    "1048578": {
+      "Physics Actor": {
+        "shapes": [
+          {
+            "halfExtents": [
+              1.0,
+              1.0,
+              1.0
+            ],
+            "position": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "rotation": [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ],
+            "type": 1
+          }
+        ]
+      },
+      "Transform": {
+        "position": [
+          10.000000953674316,
+          -2.0,
+          -20.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "scale": [
+          5.0,
+          1.0,
+          5.0
+        ]
+      },
+      "World Object": {
+        "materials": [
+          "Materials/LevelTextures/Tiles040.json"
+        ],
+        "mesh": "Models/cube.wmdl",
+        "staticFlags": 0,
+        "texScaleOffset": [
+          0.25,
+          0.25,
+          0.0,
+          0.0
+        ],
+        "uvOverride": 4
+      }
+    },
+    "11": {
+      "Name Component": {
+        "name": "Light"
+      },
+      "Transform": {
+        "position": [
+          -9.76676082611084,
+          0.6824229955673218,
+          -11.458085060119629
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "World Light": {
+        "color": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "distanceCutoff": 0.009999999776482582,
+        "enableShadows": false,
+        "enabled": true,
+        "intensity": 10.0,
+        "spotCutoff": 0.699999988079071,
+        "tubeLength": 0.25,
+        "tubeRadius": 0.10000000149011612,
+        "type": 0
+      }
+    },
+    "12": {
+      "Name Component": {
+        "name": "Light"
+      },
+      "Transform": {
+        "position": [
+          0.22553014755249023,
+          0.682421863079071,
+          -21.105499267578125
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "World Light": {
+        "color": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "distanceCutoff": 0.009999999776482582,
+        "enableShadows": false,
+        "enabled": true,
+        "intensity": 10.0,
+        "spotCutoff": 0.699999988079071,
+        "tubeLength": 0.25,
+        "tubeRadius": 0.10000000149011612,
+        "type": 0
+      }
+    },
+    "13": {
+      "Name Component": {
+        "name": "Light"
+      },
+      "Transform": {
+        "position": [
+          -10.463008880615234,
+          0.6824219226837158,
+          0.3210868835449219
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "World Light": {
+        "color": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "distanceCutoff": 0.005102040711790323,
+        "enableShadows": false,
+        "enabled": true,
+        "intensity": 22.0,
+        "spotCutoff": 0.699999988079071,
+        "tubeLength": 0.25,
+        "tubeRadius": 0.10000000149011612,
+        "type": 0
+      }
+    },
+    "14": {
+      "Name Component": {
+        "name": "Light"
+      },
+      "Transform": {
+        "position": [
+          -4.642927169799805,
+          0.6824219226837158,
+          -15.103492736816406
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "World Light": {
+        "color": [
+          0.23006516695022583,
+          0.6913895606994629,
+          0.9768339991569519
+        ],
+        "distanceCutoff": 0.005102040711790323,
+        "enableShadows": false,
+        "enabled": true,
+        "intensity": 22.0,
+        "spotCutoff": 0.699999988079071,
+        "tubeLength": 0.25,
+        "tubeRadius": 0.10000000149011612,
+        "type": 0
+      }
+    },
+    "2097171": {
+      "Physics Actor": {
+        "shapes": [
+          {
+            "halfExtents": [
+              0.4000000059604645,
+              1.0,
+              0.4000000059604645
+            ],
+            "position": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "rotation": [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ],
+            "type": 1
+          }
+        ]
+      },
+      "RPG Stats": {
+        "currentHP": 500.0,
+        "level": 1,
+        "maxHP": 500.0,
+        "strength": 1,
+        "totalExperience": 0
+      },
+      "Stabbable": {},
+      "Transform": {
+        "position": [
+          0.0,
+          -0.9959126710891724,
+          -0.5
+        ],
+        "rotation": [
+          1.1476213757077858e-07,
+          0.9999999403953552,
+          -0.00017217894492205232,
+          -0.0002438714582240209
+        ],
+        "scale": [
+          0.9998472929000854,
+          1.0,
+          0.9999236464500427
+        ]
+      },
+      "World Object": {
+        "materials": [
+          "Materials/turret/BaseHex.json",
+          "Materials/turret/YawPivot.json",
+          "Materials/turret/Gun.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json"
+        ],
+        "mesh": "Models/turret.wmdl",
+        "staticFlags": 0,
+        "texScaleOffset": [
+          1.0,
+          1.0,
+          0.0,
+          0.0
+        ],
+        "uvOverride": 0
+      }
+    },
+    "2097174": {
+      "Physics Actor": {
+        "shapes": [
+          {
+            "halfExtents": [
+              0.4000000059604645,
+              1.0,
+              0.4000000059604645
+            ],
+            "position": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "rotation": [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ],
+            "type": 1
+          }
+        ]
+      },
+      "RPG Stats": {
+        "currentHP": 500.0,
+        "level": 1,
+        "maxHP": 500.0,
+        "strength": 1,
+        "totalExperience": 0
+      },
+      "Stabbable": {},
+      "Transform": {
+        "position": [
+          -0.521356999874115,
+          -0.9959121942520142,
+          -9.510324478149414
+        ],
+        "rotation": [
+          1.1476066674731555e-07,
+          0.9999999403953552,
+          -0.00017217894492205232,
+          -0.00024386779114138335
+        ],
+        "scale": [
+          0.9998472929000854,
+          1.0,
+          0.9999236464500427
+        ]
+      },
+      "World Object": {
+        "materials": [
+          "Materials/turret/BaseHex.json",
+          "Materials/turret/YawPivot.json",
+          "Materials/turret/Gun.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json"
+        ],
+        "mesh": "Models/turret.wmdl",
+        "staticFlags": 0,
+        "texScaleOffset": [
+          1.0,
+          1.0,
+          0.0,
+          0.0
+        ],
+        "uvOverride": 0
+      }
+    },
+    "3": {
+      "Physics Actor": {
+        "shapes": [
+          {
+            "halfExtents": [
+              1.0,
+              1.0,
+              1.0
+            ],
+            "position": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "rotation": [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ],
+            "type": 1
+          }
+        ]
+      },
+      "Transform": {
+        "position": [
+          -10.0,
+          -2.0,
+          -10.000000953674316
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "scale": [
+          5.0,
+          1.0,
+          5.0
+        ]
+      },
+      "World Object": {
+        "materials": [
+          "Materials/LevelTextures/Bricks005.json"
+        ],
+        "mesh": "Models/cube.wmdl",
+        "staticFlags": 0,
+        "texScaleOffset": [
+          0.25,
+          0.25,
+          0.0,
+          0.0
+        ],
+        "uvOverride": 4
+      }
+    },
+    "35": {
+      "Name Component": {
+        "name": "Light"
+      },
+      "Transform": {
+        "position": [
+          -1.4199275970458984,
+          5.7970452308654785,
+          -31.843399047851563
+        ],
+        "rotation": [
+          0.0,
+          -0.05228837579488754,
+          0.0,
+          0.99863201379776
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "World Light": {
+        "color": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "distanceCutoff": 0.0006925207562744617,
+        "enableShadows": false,
+        "enabled": true,
+        "intensity": 150.0,
+        "spotCutoff": 0.699999988079071,
+        "tubeLength": 0.25,
+        "tubeRadius": 0.10000000149011612,
+        "type": 1
+      }
+    },
+    "36": {
+      "Name Component": {
+        "name": "Light"
+      },
+      "Transform": {
+        "position": [
+          7.697187423706055,
+          5.7970428466796875,
+          -31.70418930053711
+        ],
+        "rotation": [
+          0.0,
+          -0.48333364725112915,
+          0.0,
+          0.8754362463951111
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "World Light": {
+        "color": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "distanceCutoff": 0.0011111111380159855,
+        "enableShadows": false,
+        "enabled": true,
+        "intensity": 150.0,
+        "spotCutoff": 0.699999988079071,
+        "tubeLength": 0.25,
+        "tubeRadius": 0.10000000149011612,
+        "type": 1
+      }
+    },
+    "4": {
+      "Physics Actor": {
+        "shapes": [
+          {
+            "halfExtents": [
+              1.0,
+              1.0,
+              1.0
+            ],
+            "position": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "rotation": [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ],
+            "type": 1
+          }
+        ]
+      },
+      "Transform": {
+        "position": [
+          0.0,
+          -2.0,
+          -10.000000953674316
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "scale": [
+          5.0,
+          1.0,
+          5.0
+        ]
+      },
+      "World Object": {
+        "materials": [
+          "Materials/LevelTextures/Tiles040.json"
+        ],
+        "mesh": "Models/cube.wmdl",
+        "staticFlags": 0,
+        "texScaleOffset": [
+          0.25,
+          0.25,
+          0.0,
+          0.0
+        ],
+        "uvOverride": 4
+      }
+    },
+    "5": {
+      "Physics Actor": {
+        "shapes": [
+          {
+            "halfExtents": [
+              1.0,
+              1.0,
+              1.0
+            ],
+            "position": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "rotation": [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ],
+            "type": 1
+          }
+        ]
+      },
+      "Transform": {
+        "position": [
+          0.0,
+          -2.0,
+          -20.000001907348633
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "scale": [
+          5.0,
+          1.0,
+          5.0
+        ]
+      },
+      "World Object": {
+        "materials": [
+          "Materials/LevelTextures/Tiles075.json"
+        ],
+        "mesh": "Models/cube.wmdl",
+        "staticFlags": 0,
+        "texScaleOffset": [
+          0.25,
+          0.25,
+          0.0,
+          0.0
+        ],
+        "uvOverride": 4
+      }
+    },
+    "5242901": {
+      "Physics Actor": {
+        "shapes": [
+          {
+            "halfExtents": [
+              0.4000000059604645,
+              1.0,
+              0.4000000059604645
+            ],
+            "position": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "rotation": [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ],
+            "type": 1
+          }
+        ]
+      },
+      "RPG Stats": {
+        "currentHP": 500.0,
+        "level": 1,
+        "maxHP": 500.0,
+        "strength": 1,
+        "totalExperience": 0
+      },
+      "Stabbable": {},
+      "Transform": {
+        "position": [
+          -9.07851505279541,
+          -0.9959126710891724,
+          -0.5
+        ],
+        "rotation": [
+          1.1476053884962312e-07,
+          0.9999999403953552,
+          -0.00017217894492205232,
+          -0.00024386752920690924
+        ],
+        "scale": [
+          0.9998472929000854,
+          1.0,
+          0.9999236464500427
+        ]
+      },
+      "World Object": {
+        "materials": [
+          "Materials/turret/BaseHex.json",
+          "Materials/turret/YawPivot.json",
+          "Materials/turret/Gun.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json"
+        ],
+        "mesh": "Models/turret.wmdl",
+        "staticFlags": 0,
+        "texScaleOffset": [
+          1.0,
+          1.0,
+          0.0,
+          0.0
+        ],
+        "uvOverride": 0
+      }
+    },
+    "6": {
+      "Physics Actor": {
+        "shapes": [
+          {
+            "halfExtents": [
+              1.0,
+              1.0,
+              1.0
+            ],
+            "position": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "rotation": [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ],
+            "type": 1
+          }
+        ]
+      },
+      "Transform": {
+        "position": [
+          -10.0,
+          -2.0,
+          -20.000001907348633
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "scale": [
+          5.0,
+          1.0,
+          5.0
+        ]
+      },
+      "World Object": {
+        "materials": [
+          "Materials/LevelTextures/MetalPlates006.json"
+        ],
+        "mesh": "Models/cube.wmdl",
+        "staticFlags": 0,
+        "texScaleOffset": [
+          0.25,
+          0.25,
+          0.0,
+          0.0
+        ],
+        "uvOverride": 4
+      }
+    },
+    "6291471": {
+      "Name Component": {
+        "name": "Light"
+      },
+      "Transform": {
+        "position": [
+          -6.580625057220459,
+          -0.3772890567779541,
+          -17.584148406982422
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "World Light": {
+        "color": [
+          0.029761791229248047,
+          1.0,
+          0.0
+        ],
+        "distanceCutoff": 0.0013717421097680926,
+        "enableShadows": false,
+        "enabled": true,
+        "intensity": 75.0,
+        "spotCutoff": 0.699999988079071,
+        "tubeLength": 3.0,
+        "tubeRadius": 0.10000000149011612,
+        "type": 4
+      }
+    },
+    "6291472": {
+      "Name Component": {
+        "name": "Light"
+      },
+      "Transform": {
+        "position": [
+          -0.9405360221862793,
+          -0.3772890567779541,
+          -17.584148406982422
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "World Light": {
+        "color": [
+          0.029761791229248047,
+          1.0,
+          0.0
+        ],
+        "distanceCutoff": 0.0013717421097680926,
+        "enableShadows": false,
+        "enabled": true,
+        "intensity": 75.0,
+        "spotCutoff": 0.699999988079071,
+        "tubeLength": 3.0,
+        "tubeRadius": 0.10000000149011612,
+        "type": 4
+      }
+    },
+    "6291473": {
+      "Name Component": {
+        "name": "Light"
+      },
+      "Transform": {
+        "position": [
+          -3.8581833839416504,
+          -0.22695910930633545,
+          -7.378413200378418
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "World Light": {
+        "color": [
+          0.029761791229248047,
+          1.0,
+          0.0
+        ],
+        "distanceCutoff": 0.00390625,
+        "enableShadows": false,
+        "enabled": true,
+        "intensity": 75.0,
+        "spotCutoff": 0.699999988079071,
+        "tubeLength": 3.0,
+        "tubeRadius": 0.10000000149011612,
+        "type": 4
+      }
+    },
+    "6291474": {
+      "Name Component": {
+        "name": "Light"
+      },
+      "Transform": {
+        "position": [
+          -7.1472673416137695,
+          -0.22695910930633545,
+          -12.453262329101563
+        ],
+        "rotation": [
+          0.0,
+          0.8661119341850281,
+          0.0,
+          -0.4998500645160675
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "World Light": {
+        "color": [
+          0.029761791229248047,
+          1.0,
+          0.0
+        ],
+        "distanceCutoff": 0.00390625,
+        "enableShadows": false,
+        "enabled": true,
+        "intensity": 75.0,
+        "spotCutoff": 0.699999988079071,
+        "tubeLength": 3.0,
+        "tubeRadius": 0.10000000149011612,
+        "type": 4
+      }
+    },
+    "6291479": {
+      "Physics Actor": {
+        "shapes": [
+          {
+            "halfExtents": [
+              1.0,
+              1.0,
+              1.0
+            ],
+            "position": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "rotation": [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ],
+            "type": 1
+          }
+        ]
+      },
+      "Transform": {
+        "position": [
+          10.0,
+          -2.0,
+          -9.5367431640625e-07
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "scale": [
+          5.0,
+          1.0,
+          5.0
+        ]
+      },
+      "World Object": {
+        "materials": [
+          "Materials/LevelTextures/Tiles040.json"
+        ],
+        "mesh": "Models/cube.wmdl",
+        "staticFlags": 0,
+        "texScaleOffset": [
+          0.25,
+          0.25,
+          0.0,
+          0.0
+        ],
+        "uvOverride": 4
+      }
+    },
+    "6291480": {
+      "Physics Actor": {
+        "shapes": [
+          {
+            "halfExtents": [
+              1.0,
+              1.0,
+              1.0
+            ],
+            "position": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "rotation": [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ],
+            "type": 1
+          }
+        ]
+      },
+      "Transform": {
+        "position": [
+          10.0,
+          -2.0,
+          -10.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "scale": [
+          5.0,
+          1.0,
+          5.0
+        ]
+      },
+      "World Object": {
+        "materials": [
+          "Materials/LevelTextures/Concrete017.json"
+        ],
+        "mesh": "Models/cube.wmdl",
+        "staticFlags": 0,
+        "texScaleOffset": [
+          0.25,
+          0.25,
+          0.0,
+          0.0
+        ],
+        "uvOverride": 4
+      }
+    },
+    "6291481": {
+      "Physics Actor": {
+        "shapes": [
+          {
+            "halfExtents": [
+              1.0,
+              1.0,
+              1.0
+            ],
+            "position": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "rotation": [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ],
+            "type": 1
+          }
+        ]
+      },
+      "Transform": {
+        "position": [
+          -20.0,
+          -2.0,
+          -9.5367431640625e-07
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "scale": [
+          5.0,
+          1.0,
+          5.0
+        ]
+      },
+      "World Object": {
+        "materials": [
+          "Materials/LevelTextures/Bricks005.json"
+        ],
+        "mesh": "Models/cube.wmdl",
+        "staticFlags": 0,
+        "texScaleOffset": [
+          0.25,
+          0.25,
+          0.0,
+          0.0
+        ],
+        "uvOverride": 4
+      }
+    },
+    "6291482": {
+      "Physics Actor": {
+        "shapes": [
+          {
+            "halfExtents": [
+              1.0,
+              1.0,
+              1.0
+            ],
+            "position": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "rotation": [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ],
+            "type": 1
+          }
+        ]
+      },
+      "Transform": {
+        "position": [
+          -20.0,
+          -2.0,
+          -10.000001907348633
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "scale": [
+          5.0,
+          1.0,
+          5.0
+        ]
+      },
+      "World Object": {
+        "materials": [
+          "Materials/LevelTextures/MetalPlates006.json"
+        ],
+        "mesh": "Models/cube.wmdl",
+        "staticFlags": 0,
+        "texScaleOffset": [
+          0.25,
+          0.25,
+          0.0,
+          0.0
+        ],
+        "uvOverride": 4
+      }
+    },
+    "6291483": {
+      "Physics Actor": {
+        "shapes": [
+          {
+            "halfExtents": [
+              1.0,
+              1.0,
+              1.0
+            ],
+            "position": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "rotation": [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ],
+            "type": 1
+          }
+        ]
+      },
+      "Transform": {
+        "position": [
+          -20.0,
+          -2.0,
+          -20.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "scale": [
+          5.0,
+          1.0,
+          5.0
+        ]
+      },
+      "World Object": {
+        "materials": [
+          "Materials/LevelTextures/Bricks005.json"
+        ],
+        "mesh": "Models/cube.wmdl",
+        "staticFlags": 0,
+        "texScaleOffset": [
+          0.25,
+          0.25,
+          0.0,
+          0.0
+        ],
+        "uvOverride": 4
+      }
+    },
+    "6291484": {
+      "Physics Actor": {
+        "shapes": [
+          {
+            "halfExtents": [
+              1.0,
+              1.0,
+              1.0
+            ],
+            "position": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "rotation": [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ],
+            "type": 1
+          }
+        ]
+      },
+      "Transform": {
+        "position": [
+          -10.0,
+          -2.0,
+          -30.000001907348633
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "scale": [
+          5.0,
+          1.0,
+          5.0
+        ]
+      },
+      "World Object": {
+        "materials": [
+          "Materials/LevelTextures/Tiles075.json"
+        ],
+        "mesh": "Models/cube.wmdl",
+        "staticFlags": 0,
+        "texScaleOffset": [
+          0.25,
+          0.25,
+          0.0,
+          0.0
+        ],
+        "uvOverride": 4
+      }
+    },
+    "6291485": {
+      "Physics Actor": {
+        "shapes": [
+          {
+            "halfExtents": [
+              1.0,
+              1.0,
+              1.0
+            ],
+            "position": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "rotation": [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ],
+            "type": 1
+          }
+        ]
+      },
+      "Transform": {
+        "position": [
+          0.0,
+          -2.0,
+          -30.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "scale": [
+          5.0,
+          1.0,
+          5.0
+        ]
+      },
+      "World Object": {
+        "materials": [
+          "Materials/LevelTextures/Concrete017.json"
+        ],
+        "mesh": "Models/cube.wmdl",
+        "staticFlags": 0,
+        "texScaleOffset": [
+          0.25,
+          0.25,
+          0.0,
+          0.0
+        ],
+        "uvOverride": 4
+      }
+    },
+    "6291486": {
+      "Physics Actor": {
+        "shapes": [
+          {
+            "halfExtents": [
+              1.0,
+              1.0,
+              1.0
+            ],
+            "position": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "rotation": [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ],
+            "type": 1
+          }
+        ]
+      },
+      "Transform": {
+        "position": [
+          10.0,
+          -2.0,
+          -30.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "scale": [
+          5.0,
+          1.0,
+          5.0
+        ]
+      },
+      "World Object": {
+        "materials": [
+          "Materials/LevelTextures/Bricks005.json"
+        ],
+        "mesh": "Models/cube.wmdl",
+        "staticFlags": 0,
+        "texScaleOffset": [
+          0.25,
+          0.25,
+          0.0,
+          0.0
+        ],
+        "uvOverride": 4
+      }
+    },
+    "6291487": {
+      "Physics Actor": {
+        "shapes": [
+          {
+            "halfExtents": [
+              1.0,
+              1.0,
+              1.0
+            ],
+            "position": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "rotation": [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ],
+            "type": 1
+          }
+        ]
+      },
+      "Transform": {
+        "position": [
+          -20.0,
+          -2.0,
+          -30.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "scale": [
+          5.0,
+          1.0,
+          5.0
+        ]
+      },
+      "World Object": {
+        "materials": [
+          "Materials/LevelTextures/PavingStones075.json"
+        ],
+        "mesh": "Models/cube.wmdl",
+        "staticFlags": 0,
+        "texScaleOffset": [
+          0.25,
+          0.25,
+          0.0,
+          0.0
+        ],
+        "uvOverride": 4
+      }
+    },
+    "6291488": {
+      "Name Component": {
+        "name": "Light"
+      },
+      "Transform": {
+        "position": [
+          -3.6593332290649414,
+          4.367366313934326,
+          -30.880826950073242
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "World Light": {
+        "color": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "distanceCutoff": 0.009999999776482582,
+        "enableShadows": false,
+        "enabled": true,
+        "intensity": 10.0,
+        "spotCutoff": 1.5,
+        "tubeLength": 0.25,
+        "tubeRadius": 0.10000000149011612,
+        "type": 3
+      }
+    },
+    "6291489": {
+      "Name Component": {
+        "name": "Light"
+      },
+      "Transform": {
+        "position": [
+          -20.225921630859375,
+          4.367366790771484,
+          0.7343196868896484
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "World Light": {
+        "color": [
+          0.0,
+          0.30000001192092896,
+          1.0
+        ],
+        "distanceCutoff": 0.009999999776482582,
+        "enableShadows": false,
+        "enabled": true,
+        "intensity": 10.0,
+        "spotCutoff": 1.5,
+        "tubeLength": 0.25,
+        "tubeRadius": 0.10000000149011612,
+        "type": 3
+      }
+    },
+    "6291490": {
+      "Name Component": {
+        "name": "Light"
+      },
+      "Transform": {
+        "position": [
+          -21.353288650512695,
+          5.7970452308654785,
+          -27.153568267822266
+        ],
+        "rotation": [
+          0.0,
+          0.41291120648384094,
+          0.0,
+          0.9107713103294373
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "World Light": {
+        "color": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "distanceCutoff": 0.0018903592135757208,
+        "enableShadows": false,
+        "enabled": true,
+        "intensity": 150.0,
+        "spotCutoff": 0.699999988079071,
+        "tubeLength": 0.25,
+        "tubeRadius": 0.10000000149011612,
+        "type": 1
+      }
+    },
+    "7": {
+      "Name Component": {
+        "name": "Light"
+      },
+      "Transform": {
+        "position": [
+          4.514597415924072,
+          0.6824248433113098,
+          -0.6719098091125488
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "World Light": {
+        "color": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "distanceCutoff": 0.020408162847161293,
+        "enableShadows": false,
+        "enabled": true,
+        "intensity": 10.0,
+        "spotCutoff": 0.699999988079071,
+        "tubeLength": 0.25,
+        "tubeRadius": 0.10000000149011612,
+        "type": 0
+      }
+    },
+    "7340052": {
+      "Name Component": {
+        "name": "Start Point"
+      },
+      "Player Start Point": {
+        "alwaysUse": false
+      },
+      "Transform": {
+        "position": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      }
+    },
+    "8": {
+      "Name Component": {
+        "name": "Light"
+      },
+      "Transform": {
+        "position": [
+          -8.241276741027832,
+          0.6824229955673218,
+          -4.519260883331299
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "World Light": {
+        "color": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "distanceCutoff": 0.020408162847161293,
+        "enableShadows": false,
+        "enabled": true,
+        "intensity": 10.0,
+        "spotCutoff": 0.699999988079071,
+        "tubeLength": 0.25,
+        "tubeRadius": 0.10000000149011612,
+        "type": 0
+      }
+    },
+    "9": {
+      "Name Component": {
+        "name": "Light"
+      },
+      "Transform": {
+        "position": [
+          -1.812464714050293,
+          0.682422935962677,
+          -9.68818187713623
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "World Light": {
+        "color": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "distanceCutoff": 0.02777777798473835,
+        "enableShadows": false,
+        "enabled": true,
+        "intensity": 10.0,
+        "spotCutoff": 0.699999988079071,
+        "tubeLength": 0.25,
+        "tubeRadius": 0.10000000149011612,
+        "type": 0
+      }
     }
   },
-  "2097174": {
-    "Physics Actor": {
-      "shapes": [
-        {
-          "halfExtents": [
-            0.4000000059604645,
-            1.0,
-            0.4000000059604645
-          ],
-          "position": [
-            0.0,
-            0.0,
-            0.0
-          ],
-          "rotation": [
-            0.0,
-            0.0,
-            0.0,
-            1.0
-          ],
-          "type": 1
-        }
-      ]
-    },
-    "RPG Stats": {
-      "currentHP": 500.0,
-      "level": 1,
-      "maxHP": 500.0,
-      "strength": 1,
-      "totalExperience": 0
-    },
-    "Stabbable": {},
-    "Transform": {
-      "position": [
-        -0.521356999874115,
-        -0.9959121942520142,
-        -9.510324478149414
-      ],
-      "rotation": [
-        1.1476066674731555e-07,
-        0.9999999403953552,
-        -0.00017217894492205232,
-        -0.00024386779114138335
-      ],
-      "scale": [
-        0.9998472929000854,
-        1.0,
-        0.9999236464500427
-      ]
-    },
-    "World Object": {
-      "materials": [
-        "Materials/turret/BaseHex.json",
-        "Materials/turret/YawPivot.json",
-        "Materials/turret/Gun.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json"
-      ],
-      "mesh": "Models/turret.wmdl",
-      "staticFlags": 0,
-      "texScaleOffset": [
-        1.0,
-        1.0,
-        0.0,
-        0.0
-      ],
-      "uvOverride": 0
-    }
-  },
-  "3": {
-    "Transform": {
-      "position": [
-        -10.0,
-        -2.0,
-        -10.000000953674316
-      ],
-      "rotation": [
-        0.0,
-        0.0,
-        0.0,
-        1.0
-      ],
-      "scale": [
-        5.0,
-        1.0,
-        5.0
-      ]
-    },
-    "World Object": {
-      "materials": [
-        "Materials/LevelTextures/Bricks005.json"
-      ],
-      "mesh": "Models/cube.wmdl",
-      "staticFlags": 0,
-      "texScaleOffset": [
-        0.25,
-        0.25,
-        0.0,
-        0.0
-      ],
-      "uvOverride": 4
-    }
-  },
-  "35": {
-    "Name Component": {
-      "name": "Light"
-    },
-    "Transform": {
-      "position": [
-        -1.4199275970458984,
-        5.7970452308654785,
-        -31.843399047851563
-      ],
-      "rotation": [
-        0.0,
-        -0.05228837579488754,
-        0.0,
-        0.99863201379776
-      ],
-      "scale": [
-        1.0,
-        1.0,
-        1.0
-      ]
-    },
-    "World Light": {
-      "color": [
-        1.0,
-        1.0,
-        1.0
-      ],
-      "distanceCutoff": 0.0006925207562744617,
-      "enableShadows": false,
-      "enabled": true,
-      "intensity": 150.0,
-      "spotCutoff": 0.699999988079071,
-      "tubeLength": 0.25,
-      "tubeRadius": 0.10000000149011612,
-      "type": 1
-    }
-  },
-  "36": {
-    "Name Component": {
-      "name": "Light"
-    },
-    "Transform": {
-      "position": [
-        7.697187423706055,
-        5.7970428466796875,
-        -31.70418930053711
-      ],
-      "rotation": [
-        0.0,
-        -0.48333364725112915,
-        0.0,
-        0.8754362463951111
-      ],
-      "scale": [
-        1.0,
-        1.0,
-        1.0
-      ]
-    },
-    "World Light": {
-      "color": [
-        1.0,
-        1.0,
-        1.0
-      ],
-      "distanceCutoff": 0.0011111111380159855,
-      "enableShadows": false,
-      "enabled": true,
-      "intensity": 150.0,
-      "spotCutoff": 0.699999988079071,
-      "tubeLength": 0.25,
-      "tubeRadius": 0.10000000149011612,
-      "type": 1
-    }
-  },
-  "4": {
-    "Transform": {
-      "position": [
-        0.0,
-        -2.0,
-        -10.000000953674316
-      ],
-      "rotation": [
-        0.0,
-        0.0,
-        0.0,
-        1.0
-      ],
-      "scale": [
-        5.0,
-        1.0,
-        5.0
-      ]
-    },
-    "World Object": {
-      "materials": [
-        "Materials/LevelTextures/Tiles040.json"
-      ],
-      "mesh": "Models/cube.wmdl",
-      "staticFlags": 0,
-      "texScaleOffset": [
-        0.25,
-        0.25,
-        0.0,
-        0.0
-      ],
-      "uvOverride": 4
-    }
-  },
-  "5": {
-    "Transform": {
-      "position": [
-        0.0,
-        -2.0,
-        -20.000001907348633
-      ],
-      "rotation": [
-        0.0,
-        0.0,
-        0.0,
-        1.0
-      ],
-      "scale": [
-        5.0,
-        1.0,
-        5.0
-      ]
-    },
-    "World Object": {
-      "materials": [
-        "Materials/LevelTextures/Tiles075.json"
-      ],
-      "mesh": "Models/cube.wmdl",
-      "staticFlags": 0,
-      "texScaleOffset": [
-        0.25,
-        0.25,
-        0.0,
-        0.0
-      ],
-      "uvOverride": 4
-    }
-  },
-  "5242901": {
-    "Physics Actor": {
-      "shapes": [
-        {
-          "halfExtents": [
-            0.4000000059604645,
-            1.0,
-            0.4000000059604645
-          ],
-          "position": [
-            0.0,
-            0.0,
-            0.0
-          ],
-          "rotation": [
-            0.0,
-            0.0,
-            0.0,
-            1.0
-          ],
-          "type": 1
-        }
-      ]
-    },
-    "RPG Stats": {
-      "currentHP": 500.0,
-      "level": 1,
-      "maxHP": 500.0,
-      "strength": 1,
-      "totalExperience": 0
-    },
-    "Stabbable": {},
-    "Transform": {
-      "position": [
-        -9.07851505279541,
-        -0.9959126710891724,
-        -0.5
-      ],
-      "rotation": [
-        1.1476053884962312e-07,
-        0.9999999403953552,
-        -0.00017217894492205232,
-        -0.00024386752920690924
-      ],
-      "scale": [
-        0.9998472929000854,
-        1.0,
-        0.9999236464500427
-      ]
-    },
-    "World Object": {
-      "materials": [
-        "Materials/turret/BaseHex.json",
-        "Materials/turret/YawPivot.json",
-        "Materials/turret/Gun.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json"
-      ],
-      "mesh": "Models/turret.wmdl",
-      "staticFlags": 0,
-      "texScaleOffset": [
-        1.0,
-        1.0,
-        0.0,
-        0.0
-      ],
-      "uvOverride": 0
-    }
-  },
-  "6": {
-    "Transform": {
-      "position": [
-        -10.0,
-        -2.0,
-        -20.000001907348633
-      ],
-      "rotation": [
-        0.0,
-        0.0,
-        0.0,
-        1.0
-      ],
-      "scale": [
-        5.0,
-        1.0,
-        5.0
-      ]
-    },
-    "World Object": {
-      "materials": [
-        "Materials/LevelTextures/MetalPlates006.json"
-      ],
-      "mesh": "Models/cube.wmdl",
-      "staticFlags": 0,
-      "texScaleOffset": [
-        0.25,
-        0.25,
-        0.0,
-        0.0
-      ],
-      "uvOverride": 4
-    }
-  },
-  "6291471": {
-    "Name Component": {
-      "name": "Light"
-    },
-    "Transform": {
-      "position": [
-        -6.580625057220459,
-        -0.3772890567779541,
-        -17.584148406982422
-      ],
-      "rotation": [
-        0.0,
-        0.0,
-        0.0,
-        1.0
-      ],
-      "scale": [
-        1.0,
-        1.0,
-        1.0
-      ]
-    },
-    "World Light": {
-      "color": [
-        0.029761791229248047,
-        1.0,
-        0.0
-      ],
-      "distanceCutoff": 0.0013717421097680926,
-      "enableShadows": false,
-      "enabled": true,
-      "intensity": 75.0,
-      "spotCutoff": 0.699999988079071,
-      "tubeLength": 3.0,
-      "tubeRadius": 0.10000000149011612,
-      "type": 4
-    }
-  },
-  "6291472": {
-    "Name Component": {
-      "name": "Light"
-    },
-    "Transform": {
-      "position": [
-        -0.9405360221862793,
-        -0.3772890567779541,
-        -17.584148406982422
-      ],
-      "rotation": [
-        0.0,
-        0.0,
-        0.0,
-        1.0
-      ],
-      "scale": [
-        1.0,
-        1.0,
-        1.0
-      ]
-    },
-    "World Light": {
-      "color": [
-        0.029761791229248047,
-        1.0,
-        0.0
-      ],
-      "distanceCutoff": 0.0013717421097680926,
-      "enableShadows": false,
-      "enabled": true,
-      "intensity": 75.0,
-      "spotCutoff": 0.699999988079071,
-      "tubeLength": 3.0,
-      "tubeRadius": 0.10000000149011612,
-      "type": 4
-    }
-  },
-  "6291473": {
-    "Name Component": {
-      "name": "Light"
-    },
-    "Transform": {
-      "position": [
-        -3.8581833839416504,
-        -0.22695910930633545,
-        -7.378413200378418
-      ],
-      "rotation": [
-        0.0,
-        0.0,
-        0.0,
-        1.0
-      ],
-      "scale": [
-        1.0,
-        1.0,
-        1.0
-      ]
-    },
-    "World Light": {
-      "color": [
-        0.029761791229248047,
-        1.0,
-        0.0
-      ],
-      "distanceCutoff": 0.00390625,
-      "enableShadows": false,
-      "enabled": true,
-      "intensity": 75.0,
-      "spotCutoff": 0.699999988079071,
-      "tubeLength": 3.0,
-      "tubeRadius": 0.10000000149011612,
-      "type": 4
-    }
-  },
-  "6291474": {
-    "Name Component": {
-      "name": "Light"
-    },
-    "Transform": {
-      "position": [
-        -7.1472673416137695,
-        -0.22695910930633545,
-        -12.453262329101563
-      ],
-      "rotation": [
-        0.0,
-        0.8661119341850281,
-        0.0,
-        -0.4998500645160675
-      ],
-      "scale": [
-        1.0,
-        1.0,
-        1.0
-      ]
-    },
-    "World Light": {
-      "color": [
-        0.029761791229248047,
-        1.0,
-        0.0
-      ],
-      "distanceCutoff": 0.00390625,
-      "enableShadows": false,
-      "enabled": true,
-      "intensity": 75.0,
-      "spotCutoff": 0.699999988079071,
-      "tubeLength": 3.0,
-      "tubeRadius": 0.10000000149011612,
-      "type": 4
-    }
-  },
-  "6291479": {
-    "Transform": {
-      "position": [
-        10.0,
-        -2.0,
-        -9.5367431640625e-07
-      ],
-      "rotation": [
-        0.0,
-        0.0,
-        0.0,
-        1.0
-      ],
-      "scale": [
-        5.0,
-        1.0,
-        5.0
-      ]
-    },
-    "World Object": {
-      "materials": [
-        "Materials/LevelTextures/Tiles040.json"
-      ],
-      "mesh": "Models/cube.wmdl",
-      "staticFlags": 0,
-      "texScaleOffset": [
-        0.25,
-        0.25,
-        0.0,
-        0.0
-      ],
-      "uvOverride": 4
-    }
-  },
-  "6291480": {
-    "Transform": {
-      "position": [
-        10.0,
-        -2.0,
-        -10.0
-      ],
-      "rotation": [
-        0.0,
-        0.0,
-        0.0,
-        1.0
-      ],
-      "scale": [
-        5.0,
-        1.0,
-        5.0
-      ]
-    },
-    "World Object": {
-      "materials": [
-        "Materials/LevelTextures/Concrete017.json"
-      ],
-      "mesh": "Models/cube.wmdl",
-      "staticFlags": 0,
-      "texScaleOffset": [
-        0.25,
-        0.25,
-        0.0,
-        0.0
-      ],
-      "uvOverride": 4
-    }
-  },
-  "6291481": {
-    "Transform": {
-      "position": [
-        -20.0,
-        -2.0,
-        -9.5367431640625e-07
-      ],
-      "rotation": [
-        0.0,
-        0.0,
-        0.0,
-        1.0
-      ],
-      "scale": [
-        5.0,
-        1.0,
-        5.0
-      ]
-    },
-    "World Object": {
-      "materials": [
-        "Materials/LevelTextures/Bricks005.json"
-      ],
-      "mesh": "Models/cube.wmdl",
-      "staticFlags": 0,
-      "texScaleOffset": [
-        0.25,
-        0.25,
-        0.0,
-        0.0
-      ],
-      "uvOverride": 4
-    }
-  },
-  "6291482": {
-    "Transform": {
-      "position": [
-        -20.0,
-        -2.0,
-        -10.000001907348633
-      ],
-      "rotation": [
-        0.0,
-        0.0,
-        0.0,
-        1.0
-      ],
-      "scale": [
-        5.0,
-        1.0,
-        5.0
-      ]
-    },
-    "World Object": {
-      "materials": [
-        "Materials/LevelTextures/MetalPlates006.json"
-      ],
-      "mesh": "Models/cube.wmdl",
-      "staticFlags": 0,
-      "texScaleOffset": [
-        0.25,
-        0.25,
-        0.0,
-        0.0
-      ],
-      "uvOverride": 4
-    }
-  },
-  "6291483": {
-    "Transform": {
-      "position": [
-        -20.0,
-        -2.0,
-        -20.0
-      ],
-      "rotation": [
-        0.0,
-        0.0,
-        0.0,
-        1.0
-      ],
-      "scale": [
-        5.0,
-        1.0,
-        5.0
-      ]
-    },
-    "World Object": {
-      "materials": [
-        "Materials/LevelTextures/Bricks005.json"
-      ],
-      "mesh": "Models/cube.wmdl",
-      "staticFlags": 0,
-      "texScaleOffset": [
-        0.25,
-        0.25,
-        0.0,
-        0.0
-      ],
-      "uvOverride": 4
-    }
-  },
-  "6291484": {
-    "Transform": {
-      "position": [
-        -10.0,
-        -2.0,
-        -30.000001907348633
-      ],
-      "rotation": [
-        0.0,
-        0.0,
-        0.0,
-        1.0
-      ],
-      "scale": [
-        5.0,
-        1.0,
-        5.0
-      ]
-    },
-    "World Object": {
-      "materials": [
-        "Materials/LevelTextures/Tiles075.json"
-      ],
-      "mesh": "Models/cube.wmdl",
-      "staticFlags": 0,
-      "texScaleOffset": [
-        0.25,
-        0.25,
-        0.0,
-        0.0
-      ],
-      "uvOverride": 4
-    }
-  },
-  "6291485": {
-    "Transform": {
-      "position": [
-        0.0,
-        -2.0,
-        -30.0
-      ],
-      "rotation": [
-        0.0,
-        0.0,
-        0.0,
-        1.0
-      ],
-      "scale": [
-        5.0,
-        1.0,
-        5.0
-      ]
-    },
-    "World Object": {
-      "materials": [
-        "Materials/LevelTextures/Concrete017.json"
-      ],
-      "mesh": "Models/cube.wmdl",
-      "staticFlags": 0,
-      "texScaleOffset": [
-        0.25,
-        0.25,
-        0.0,
-        0.0
-      ],
-      "uvOverride": 4
-    }
-  },
-  "6291486": {
-    "Transform": {
-      "position": [
-        10.0,
-        -2.0,
-        -30.0
-      ],
-      "rotation": [
-        0.0,
-        0.0,
-        0.0,
-        1.0
-      ],
-      "scale": [
-        5.0,
-        1.0,
-        5.0
-      ]
-    },
-    "World Object": {
-      "materials": [
-        "Materials/LevelTextures/Bricks005.json"
-      ],
-      "mesh": "Models/cube.wmdl",
-      "staticFlags": 0,
-      "texScaleOffset": [
-        0.25,
-        0.25,
-        0.0,
-        0.0
-      ],
-      "uvOverride": 4
-    }
-  },
-  "6291487": {
-    "Transform": {
-      "position": [
-        -20.0,
-        -2.0,
-        -30.0
-      ],
-      "rotation": [
-        0.0,
-        0.0,
-        0.0,
-        1.0
-      ],
-      "scale": [
-        5.0,
-        1.0,
-        5.0
-      ]
-    },
-    "World Object": {
-      "materials": [
-        "Materials/LevelTextures/PavingStones075.json"
-      ],
-      "mesh": "Models/cube.wmdl",
-      "staticFlags": 0,
-      "texScaleOffset": [
-        0.25,
-        0.25,
-        0.0,
-        0.0
-      ],
-      "uvOverride": 4
-    }
-  },
-  "6291488": {
-    "Name Component": {
-      "name": "Light"
-    },
-    "Transform": {
-      "position": [
-        -3.6593332290649414,
-        4.367366313934326,
-        -30.880826950073242
-      ],
-      "rotation": [
-        0.0,
-        0.0,
-        0.0,
-        1.0
-      ],
-      "scale": [
-        1.0,
-        1.0,
-        1.0
-      ]
-    },
-    "World Light": {
-      "color": [
-        1.0,
-        1.0,
-        1.0
-      ],
-      "distanceCutoff": 0.009999999776482582,
-      "enableShadows": false,
-      "enabled": true,
-      "intensity": 10.0,
-      "spotCutoff": 1.5,
-      "tubeLength": 0.25,
-      "tubeRadius": 0.10000000149011612,
-      "type": 3
-    }
-  },
-  "6291489": {
-    "Name Component": {
-      "name": "Light"
-    },
-    "Transform": {
-      "position": [
-        -20.225921630859375,
-        4.367366790771484,
-        0.7343196868896484
-      ],
-      "rotation": [
-        0.0,
-        0.0,
-        0.0,
-        1.0
-      ],
-      "scale": [
-        1.0,
-        1.0,
-        1.0
-      ]
-    },
-    "World Light": {
-      "color": [
-        0.0,
-        0.30000001192092896,
-        1.0
-      ],
-      "distanceCutoff": 0.009999999776482582,
-      "enableShadows": false,
-      "enabled": true,
-      "intensity": 10.0,
-      "spotCutoff": 1.5,
-      "tubeLength": 0.25,
-      "tubeRadius": 0.10000000149011612,
-      "type": 3
-    }
-  },
-  "6291490": {
-    "Name Component": {
-      "name": "Light"
-    },
-    "Transform": {
-      "position": [
-        -21.353288650512695,
-        5.7970452308654785,
-        -27.153568267822266
-      ],
-      "rotation": [
-        0.0,
-        0.41291120648384094,
-        0.0,
-        0.9107713103294373
-      ],
-      "scale": [
-        1.0,
-        1.0,
-        1.0
-      ]
-    },
-    "World Light": {
-      "color": [
-        1.0,
-        1.0,
-        1.0
-      ],
-      "distanceCutoff": 0.0018903592135757208,
-      "enableShadows": false,
-      "enabled": true,
-      "intensity": 150.0,
-      "spotCutoff": 0.699999988079071,
-      "tubeLength": 0.25,
-      "tubeRadius": 0.10000000149011612,
-      "type": 1
-    }
-  },
-  "7": {
-    "Name Component": {
-      "name": "Light"
-    },
-    "Transform": {
-      "position": [
-        4.514597415924072,
-        0.6824248433113098,
-        -0.6719098091125488
-      ],
-      "rotation": [
-        0.0,
-        0.0,
-        0.0,
-        1.0
-      ],
-      "scale": [
-        1.0,
-        1.0,
-        1.0
-      ]
-    },
-    "World Light": {
-      "color": [
-        1.0,
-        1.0,
-        1.0
-      ],
-      "distanceCutoff": 0.020408162847161293,
-      "enableShadows": false,
-      "enabled": true,
-      "intensity": 10.0,
-      "spotCutoff": 0.699999988079071,
-      "tubeLength": 0.25,
-      "tubeRadius": 0.10000000149011612,
-      "type": 0
-    }
-  },
-  "8": {
-    "Name Component": {
-      "name": "Light"
-    },
-    "Transform": {
-      "position": [
-        -8.241276741027832,
-        0.6824229955673218,
-        -4.519260883331299
-      ],
-      "rotation": [
-        0.0,
-        0.0,
-        0.0,
-        1.0
-      ],
-      "scale": [
-        1.0,
-        1.0,
-        1.0
-      ]
-    },
-    "World Light": {
-      "color": [
-        1.0,
-        1.0,
-        1.0
-      ],
-      "distanceCutoff": 0.020408162847161293,
-      "enableShadows": false,
-      "enabled": true,
-      "intensity": 10.0,
-      "spotCutoff": 0.699999988079071,
-      "tubeLength": 0.25,
-      "tubeRadius": 0.10000000149011612,
-      "type": 0
-    }
-  },
-  "9": {
-    "Name Component": {
-      "name": "Light"
-    },
-    "Transform": {
-      "position": [
-        -1.812464714050293,
-        0.682422935962677,
-        -9.68818187713623
-      ],
-      "rotation": [
-        0.0,
-        0.0,
-        0.0,
-        1.0
-      ],
-      "scale": [
-        1.0,
-        1.0,
-        1.0
-      ]
-    },
-    "World Light": {
-      "color": [
-        1.0,
-        1.0,
-        1.0
-      ],
-      "distanceCutoff": 0.02777777798473835,
-      "enableShadows": false,
-      "enabled": true,
-      "intensity": 10.0,
-      "spotCutoff": 0.699999988079071,
-      "tubeLength": 0.25,
-      "tubeRadius": 0.10000000149011612,
-      "type": 0
-    }
+  "settings": {
+    "skyboxPath": "Cubemaps/Black/black.json"
   }
 }

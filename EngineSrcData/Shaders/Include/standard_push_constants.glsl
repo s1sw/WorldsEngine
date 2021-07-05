@@ -31,6 +31,7 @@ layout(push_constant) uniform PushConstants {
     // 13 - Use cubemap parallax               (4096)
     // 14 - Debug display shadowmap cascades   (8192)
     // 15 - Disable shadows                    (16384)
+    // 16 - Debug display albedo               (32768)
     uint miscFlag;
     uint cubemapIdx;
     //total: 80 bytes

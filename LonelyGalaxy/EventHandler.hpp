@@ -39,6 +39,7 @@ namespace lg {
         void onGunConstruct(entt::registry& reg, entt::entity ent);
         void onProjectileConstruct(entt::registry& reg, entt::entity ent);
 
+        worlds::EngineInterfaces interfaces;
         worlds::IVRInterface* vrInterface;
         worlds::VKRenderer* renderer;
         worlds::InputManager* inputManager;

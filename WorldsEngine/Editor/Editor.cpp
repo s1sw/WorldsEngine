@@ -551,17 +551,16 @@ namespace worlds {
             }
         }
 
-        messageBoxModal("New Scene",
-            "Are you sure you want to clear the current scene and create a new one?",
-            [&](bool result) {
-            if (result) {
-                interfaces.engine->createStartupScene();
-                updateWindowTitle();
-            }
-        });
 
         if (inputManager.keyPressed(SDL_SCANCODE_N) && inputManager.ctrlHeld()) {
-            ImGui::OpenPopup("New Scene");
+            messageBoxModal("New Scene",
+                "Are you sure you want to clear the current scene and create a new one?",
+                [&](bool result) {
+                if (result) {
+                    interfaces.engine->createStartupScene();
+                    updateWindowTitle();
+                }
+            });
         }
 
         if (inputManager.keyPressed(SDL_SCANCODE_C) && inputManager.ctrlHeld() && reg.valid(currentSelectedEntity)) {
@@ -573,8 +572,10 @@ namespace worlds {
             const char* txt = SDL_GetClipboardText();
             try {
                 select(JsonSceneSerializer::jsonToEntity(reg, txt));
+                addNotification("Entity pasted! :)");
             } catch (nlohmann::detail::exception& e) {
                 logErr("Failed to deserialize clipboard entity: %s", e.what());
+                addNotification("Sorry, we couldn't paste that into the scene.", NotificationType::Error);
             }
         }
 
@@ -735,6 +736,8 @@ namespace worlds {
         if (imguiMetricsOpen)
             ImGui::ShowMetricsWindow(&imguiMetricsOpen);
 
+        drawModals();
+        drawPopupNotifications();
         updateWindowTitle();
     }
 }
