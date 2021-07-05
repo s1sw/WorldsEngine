@@ -49,7 +49,7 @@ namespace worlds {
     }
 
     std::string sceneToJson(entt::registry& reg) {
-        nlohmann::json j;
+        nlohmann::json entities;
 
         reg.view<Transform>().each([&](entt::entity ent, Transform&) {
             nlohmann::json entity;
@@ -68,10 +68,15 @@ namespace worlds {
             }
 
 
-            j[std::to_string((uint32_t)ent)] = entity;
+            entities[std::to_string((uint32_t)ent)] = entity;
         });
 
-        return j.dump(2);
+        nlohmann::json scene {
+            { "entities", entities },
+            { "settings", { { "skyboxPath", AssetDB::idToPath(reg.ctx<SceneSettings>().skybox) }}}
+        };
+
+        return scene.dump(2);
     }
 
     void JsonSceneSerializer::saveScene(PHYSFS_File* file, entt::registry& reg) {
@@ -126,15 +131,9 @@ namespace worlds {
         return ent;
     }
 
-    void JsonSceneSerializer::loadScene(PHYSFS_File* file, entt::registry& reg) {
-        PerfTimer timer;
-        prefabCache.clear();
-        std::string str;
-        str.resize(PHYSFS_fileLength(file));
-        PHYSFS_readBytes(file, str.data(), str.size());
-
-        nlohmann::json j = nlohmann::json::parse(str);
-
+    // Loads entities into the specified registry.
+    // j is the array of entities to load.
+    void loadSceneEntities(entt::registry& reg, nlohmann::json& j) {
         logMsg("scene has %lu entities", j.size());
         for (auto& p : j.items()) {
             entt::entity newEnt = reg.create((entt::entity)std::stoul(p.key()));
@@ -144,7 +143,15 @@ namespace worlds {
                 AssetID prefabId = AssetDB::pathToId(prefabPath);
 
                 nlohmann::json components = getPrefabJson(prefabId);
-                components = components.patch(p.value()["diff"]);
+                try {
+                    components = components.patch(p.value()["diff"]);
+                } catch (nlohmann::detail::out_of_range& ex) {
+                    if (ex.id == 403) {
+                        logErr("Malformed prefab instance!");
+                    } else {
+                        throw ex;
+                    }
+                }
 
                 deserializeEntityComponents(components, reg, newEnt);
 
@@ -153,8 +160,31 @@ namespace worlds {
                 deserializeEntityComponents(p.value(), reg, newEnt);
             }
         }
+    }
 
-        logMsg("loaded json scene in %.3fms", timer.stopGetMs());
+    void JsonSceneSerializer::loadScene(PHYSFS_File* file, entt::registry& reg) {
+        PerfTimer timer;
+        try {
+            prefabCache.clear();
+            std::string str;
+            str.resize(PHYSFS_fileLength(file));
+            PHYSFS_readBytes(file, str.data(), str.size());
+
+            nlohmann::json j = nlohmann::json::parse(str);
+
+            if (!j.contains("entities")) {
+                loadSceneEntities(reg, j);
+            } else {
+                loadSceneEntities(reg, j["entities"]);
+                SceneSettings settings;
+                settings.skybox = AssetDB::pathToId(j["settings"]["skyboxPath"].get<std::string>());
+                reg.set<SceneSettings>(settings);
+            }
+
+            logMsg("loaded json scene in %.3fms", timer.stopGetMs());
+        } catch (nlohmann::detail::exception& ex) {
+            logErr("Failed to load scene: %s", ex.what());
+        }
     }
 
     void JsonSceneSerializer::saveEntity(PHYSFS_File* file, entt::registry& reg, entt::entity ent) {

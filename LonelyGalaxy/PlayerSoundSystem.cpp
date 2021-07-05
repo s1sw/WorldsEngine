@@ -39,10 +39,7 @@ namespace lg {
         view.each([&](PlayerSoundComponent& psc, LocospherePlayerComponent& lpc, Transform& transform) {
             psc.timeSinceLastJump += deltaTime;
 
-            bool jump = interfaces.vrInterface ? interfaces.vrInterface->getJumpInput() : interfaces.inputManager->keyPressed(SDL_SCANCODE_SPACE);
-
-            if (jump && psc.timeSinceLastJump > 0.2f) {
-                lpc.jump = true;
+            if (lpc.jump && psc.timeSinceLastJump > 0.2f) {
                 psc.timeSinceLastJump = 0.0f;
                 if (lpc.grounded) {
                     audioSystem->playOneShotClip(

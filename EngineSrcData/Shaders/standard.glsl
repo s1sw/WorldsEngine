@@ -179,7 +179,7 @@ float mipMapLevel() {
     vec2 dx = dFdx(inUV);
     vec2 dy = dFdy(inUV);
     float delta_max_sqr = max(dot(dx, dx), dot(dy, dy));
-    
+
     return max(0.0, 0.5 * log2(delta_max_sqr));
 #endif
 }
@@ -468,8 +468,12 @@ void main() {
         return;
     } else if ((miscFlag & 8192) == 8192) {
         vec4 whatevslol;
-        int cascade = calculateCascade(whatevslol);
+        bool whatevs2;
+        float cascade = calculateCascade(whatevslol, whatevs2);
         FragColor = vec4((cascade == 0 ? 1.0f : 0.0f), (cascade == 1 ? 1.0f : 0.0f), (cascade == 2 ? 1.0f : 0.0f), 1.0f);
+        return;
+    } else if ((miscFlag & 32768) == 32768) {
+        FragColor = vec4(si.albedoColor, 1.0);
         return;
     }
 #endif

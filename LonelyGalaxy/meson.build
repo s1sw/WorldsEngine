@@ -12,6 +12,7 @@ sources = [
     'DebugArrow.cpp',
     'ObjectParentSystem.cpp',
     'PhysHandSystem.cpp',
+    'PlayerInput.cpp',
     'PlayerGrabManager.cpp',
     'PlayerSoundSystem.cpp',
     'Server.cpp',

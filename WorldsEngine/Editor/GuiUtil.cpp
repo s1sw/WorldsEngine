@@ -294,28 +294,158 @@ namespace worlds {
         openFileModal(title, openCallback, &fileExtension, extCount, startingDir);
     }
 
-    void messageBoxModal(const char* title, const char* desc, std::function<void(bool)> callback) {
+    struct MessageBox {
+        const char* title;
+        const char* desc;
+        std::function<void(bool)> callback;
+        MessageBoxType type;
+        bool opened = false;
+
+        void destroy() {
+            free((void*)title);
+            free((void*)desc);
+        }
+    };
+
+    std::vector<MessageBox> messageBoxes;
+
+    void messageBoxModal(const char* title, const char* desc, std::function<void(bool)> callback, MessageBoxType type) {
+        MessageBox mbox {
+            .title = strdup(title),
+            .desc = strdup(desc),
+            .callback = callback,
+            .type = type
+        };
+
+        messageBoxes.push_back(std::move(mbox));
+    }
+
+    void drawModals() {
+        if (messageBoxes.size() == 0) return;
+        MessageBox& mbox = messageBoxes.back();
+
         ImVec2 popupSize(500.0f, 150.0f);
-        ImGui::SetNextWindowPos(ImGui::GetMainViewport()->Pos + ImVec2((windowSize.x / 2) - (popupSize.x / 2), (windowSize.y / 2) - (popupSize.y / 2)));
+        ImVec2 popupCorner = (ImVec2(windowSize) * 0.5f) - (popupSize * 0.5f);
+        ImGui::SetNextWindowPos(ImGui::GetMainViewport()->Pos + popupCorner);
         ImGui::SetNextWindowSize(popupSize);
 
-        if (ImGui::BeginPopupModal(title, nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove)) {
-            ImGui::Text("%s", desc);
+        if (ImGui::BeginPopupModal(mbox.title, nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove)) {
+            ImGui::TextWrapped("%s", mbox.desc);
 
-            if (ImGui::Button("Yes")) {
-                callback(true);
-                ImGui::CloseCurrentPopup();
+            switch (mbox.type) {
+            case MessageBoxType::YesNo: {
+                if (ImGui::Button("Yes")) {
+                    if (mbox.callback) mbox.callback(true);
+                    ImGui::CloseCurrentPopup();
+                    mbox.destroy();
+                    messageBoxes.pop_back();
+                }
+
+                ImGui::SameLine();
+
+                if (ImGui::Button("No")) {
+                    if (mbox.callback) mbox.callback(false);
+                    ImGui::CloseCurrentPopup();
+                    mbox.destroy();
+                    messageBoxes.pop_back();
+                }
+                break;
             }
-
-            ImGui::SameLine();
-
-            if (ImGui::Button("No")) {
-                callback(false);
-                ImGui::CloseCurrentPopup();
+            case MessageBoxType::Ok: {
+                if (ImGui::Button("Ok")) {
+                    if (mbox.callback) mbox.callback(true);
+                    ImGui::CloseCurrentPopup();
+                    mbox.destroy();
+                    messageBoxes.pop_back();
+                }
+                break;
             }
-
+            }
             ImGui::EndPopup();
         }
+
+        if (!mbox.opened) {
+            ImGui::OpenPopup(mbox.title);
+        }
+    }
+
+    struct PopupNotification {
+        const char* text;
+        float shownFor = 0.0f;
+        NotificationType type;
+    };
+
+    std::vector<PopupNotification> popupNotifications;
+
+    ImColor getNotificationTextColor(NotificationType type) {
+        switch (type) {
+            case NotificationType::Info:
+                return ImColor(255, 255, 255);
+            case NotificationType::Warning:
+                return ImColor(255, 255, 0);
+            case NotificationType::Error:
+                return ImColor(255, 0, 0);
+        }
+    }
+
+    ImColor getNotificationBorderColor(NotificationType type) {
+        ImGuiStyle& style = ImGui::GetStyle();
+        ImVec4* colors = style.Colors;
+        switch(type) {
+            case NotificationType::Info:
+                return colors[ImGuiCol_Border];
+            case NotificationType::Warning:
+                return ImColor(255, 255, 0);
+            case NotificationType::Error:
+                return ImColor(255, 0, 0);
+        }
+    }
+
+    void addNotification(const char* text, NotificationType type) {
+        popupNotifications.push_back(PopupNotification { .text = text, .type = type });
+    }
+
+    void drawPopupNotifications() {
+        ImDrawList* drawList = ImGui::GetForegroundDrawList();
+
+        ImVec2 popupSize(300, 45);
+
+        ImVec2 popupCorner = ImVec2(windowSize) - popupSize - ImVec2(15, 15);
+        ImGuiStyle& style = ImGui::GetStyle();
+        const ImColor popupBg = style.Colors[ImGuiCol_WindowBg];
+        const float popupDuration = 5.0f;
+
+        for (PopupNotification& notification : popupNotifications) {
+            ImVec2 thisPopupSize = popupSize;
+            ImVec2 textSize = ImGui::CalcTextSize(notification.text);
+            thisPopupSize.x = glm::max(textSize.x, thisPopupSize.x);
+
+            float alpha = glm::min(glm::min(1.0f, notification.shownFor * 5.0f), ((popupDuration - 0.5f) - notification.shownFor) * 2.0f);
+
+            ImColor animatedBg = popupBg;
+            ImColor animatedBorder = getNotificationBorderColor(notification.type);
+            ImColor animatedTextColor = getNotificationTextColor(notification.type);
+
+            animatedTextColor.Value.w = alpha;
+            animatedBg.Value.w = alpha * 0.8f;
+            animatedBorder.Value.w = alpha;
+
+            ImVec2 animatedOffset(glm::max(glm::pow((0.5f - notification.shownFor) * 2.0f, 3.0f), 0.0f) * 150.0f, 0.0f);
+
+            ImVec2 min = popupCorner + animatedOffset;
+            ImVec2 max = popupCorner + animatedOffset + popupSize;
+
+            drawList->AddRectFilled(min, max, animatedBg, 7.0f);
+            drawList->AddRect(min, max, animatedBorder, 7.0f, ~0, 2.0f);
+            ImVec2 textPos = ImVec2(min.x + 4.0f, min.y + popupSize.y * 0.25f);
+            drawList->AddText(textPos, animatedTextColor, notification.text);
+
+            notification.shownFor += ImGui::GetIO().DeltaTime;
+            popupCorner.y -= 55.0f;
+        }
+
+        popupNotifications.erase(std::remove_if(popupNotifications.begin(), popupNotifications.end(),
+                    [popupDuration](PopupNotification& notification) { return notification.shownFor > popupDuration; }), popupNotifications.end());
     }
 
     bool selectAssetPopup(const char* title, AssetID& id, bool open) {

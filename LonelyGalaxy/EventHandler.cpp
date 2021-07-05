@@ -41,6 +41,7 @@
 #include "StatDisplayInfo.hpp"
 #include "Enemies/DroneAI.hpp"
 #include "DamageForwarder.hpp"
+#include "PlayerInput.hpp"
 
 namespace lg {
     worlds::RTTPass* spectatorPass = nullptr;
@@ -245,6 +246,7 @@ namespace lg {
     entt::entity camcorder = entt::null;
 
     void EventHandler::init(entt::registry& registry, worlds::EngineInterfaces interfaces) {
+        this->interfaces = interfaces;
         vrInterface = interfaces.vrInterface;
         renderer = interfaces.renderer;
         camera = interfaces.mainCamera;
@@ -584,6 +586,7 @@ namespace lg {
             lpc.sprint = false;
             lpc.maxSpeed = 0.0f;
             lpc.xzMoveInput = glm::vec2(0.0f, 0.0f);
+            lpc.input = new KeyboardPlayerInput{interfaces};
             auto& stats = registry.emplace<RPGStats>(rig.locosphere);
             stats.currentHP = 250;
             stats.maxHP = 250;

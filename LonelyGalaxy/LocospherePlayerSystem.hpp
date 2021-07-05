@@ -1,6 +1,7 @@
 #pragma once
-#include <entt/entt.hpp> 
+#include <entt/entt.hpp>
 #include <Core/IGameEventHandler.hpp>
+#include "IPlayerInput.hpp"
 #include "PidController.hpp"
 #include "Core/ISystem.hpp"
 #include <Render/Camera.hpp>
@@ -29,6 +30,7 @@ namespace lg {
         bool doubleJumpUsed = false;
         bool canWallJump = false;
         glm::vec3 headPos;
+        IPlayerInput* input;
     };
 
     struct PlayerRig {

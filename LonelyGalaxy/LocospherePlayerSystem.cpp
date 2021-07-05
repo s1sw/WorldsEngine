@@ -194,58 +194,13 @@ namespace lg {
         ImGui::Text("cp: %.3f, %.3f, %.3f", camera->position.x, camera->position.y, camera->position.z);
 #endif
 
-        glm::vec3 desiredVel{ 0.0f };
-
-        if (!vrInterface) {
-            if (inputManager->keyHeld(SDL_SCANCODE_W)) {
-                desiredVel.z += 1.0f;
-            }
-
-            if (inputManager->keyHeld(SDL_SCANCODE_S)) {
-                desiredVel.z -= 1.0f;
-            }
-
-            if (inputManager->keyHeld(SDL_SCANCODE_A)) {
-                desiredVel.x += 1.0f;
-            }
-
-            if (inputManager->keyHeld(SDL_SCANCODE_D)) {
-                desiredVel.x -= 1.0f;
-            }
-        } else {
-            vrInterface->updateInput();
-
-            auto locIn = vrInterface->getLocomotionInput();
-            // invert X to match coordinate system
-            desiredVel = glm::vec3(locIn.x, 0.0f, -locIn.y);
-        }
-
-        float maxLength = glm::max(glm::abs(desiredVel.x), glm::max(glm::abs(desiredVel.y), glm::abs(desiredVel.z)));
-        if (glm::length2(desiredVel) > 0.0f) {
-            desiredVel = glm::normalize(desiredVel) * maxLength;
-        }
-
-        glm::mat4 camMat;
-        if (vrInterface) {
-            camMat = vrInterface->getHeadTransform();
-        } else {
-            camMat = glm::rotate(glm::mat4(1.0f), -lookX, glm::vec3(0.0f, 1.0f, 0.0f));
-        }
-
-        desiredVel = camMat * glm::vec4(desiredVel, 0.0f);
-
-        if (vrInterface)
-            desiredVel = -desiredVel * glm::inverse(camera->rotation);
-        desiredVel.y = 0.0f;
-
-        if (glm::length2(desiredVel) > 0.0f) {
-            desiredVel = glm::normalize(desiredVel) * maxLength;
-        }
-
         auto& localLpc = registry.get<LocospherePlayerComponent>(localLocosphereEnt);
-        localLpc.xzMoveInput = glm::vec2 { desiredVel.x, desiredVel.z };
+        localLpc.input->update();
+        localLpc.xzMoveInput = localLpc.input->movementInput();
+        localLpc.sprint = localLpc.input->sprint();
+        localLpc.jump |= localLpc.input->consumeJump();
 
-        localLpc.sprint = (vrInterface && vrInterface->getSprintInput()) || (inputManager->keyHeld(SDL_SCANCODE_LSHIFT));
+        glm::vec3 desiredVel = glm::vec3 { localLpc.xzMoveInput.x, 0.0f, localLpc.xzMoveInput.y };
 
         if (drawDbgArrows.getInt()) {
             auto& llstf = registry.get<Transform>(localLocosphereEnt);
