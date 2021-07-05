@@ -7,6 +7,7 @@
 #include "UITextureManager.hpp"
 #include <deque>
 #include <slib/List.hpp>
+#include <string>
 
 struct VkDescriptorSet_T;
 typedef VkDescriptorSet_T* VkDescriptorSet;
@@ -134,6 +135,16 @@ namespace worlds {
         float lookY = 0.0f;
         bool shadowsEnabled = true;
         bool viewportActive = true;
+    };
+
+    struct EntityFolder {
+        std::string name;
+        std::vector<EntityFolder> children;
+        std::vector<entt::entity> entities;
+    };
+
+    struct EntityFolders {
+        EntityFolder rootFolder;
     };
 
     class Editor {
