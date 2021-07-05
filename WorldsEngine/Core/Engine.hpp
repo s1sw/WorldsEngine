@@ -18,7 +18,7 @@ namespace worlds {
     class AudioSystem;
     class InputManager;
     class Editor;
-    class WrenScriptEngine;
+    class DotNetScriptEngine;
     class OpenVRInterface;
     class RTTPass;
 
@@ -110,7 +110,7 @@ namespace worlds {
         std::unique_ptr<AudioSystem> audioSystem;
         std::unique_ptr<Console> console;
         std::unique_ptr<Editor> editor;
-        std::unique_ptr<WrenScriptEngine> scriptEngine;
+        std::unique_ptr<DotNetScriptEngine> scriptEngine;
         std::unique_ptr<OpenVRInterface> openvrInterface;
 
         std::vector<ISystem*> systems;

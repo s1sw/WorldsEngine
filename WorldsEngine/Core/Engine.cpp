@@ -9,7 +9,7 @@
 #include "../ImGui/imgui_impl_sdl.h"
 #include "../ImGui/imgui_impl_vulkan.h"
 #include <entt/entt.hpp>
-#include "Scripting/WrenVM.hpp"
+#include "Scripting/NetVM.hpp"
 #include "Transform.hpp"
 #include "../Physics/Physics.hpp"
 #include "../Input/Input.hpp"
@@ -391,7 +391,8 @@ namespace worlds {
             .engine = this
         };
 
-        scriptEngine = std::make_unique<WrenScriptEngine>(registry, interfaces);
+        scriptEngine = std::make_unique<DotNetScriptEngine>(registry, interfaces);
+        scriptEngine->initialise();
         interfaces.scriptEngine = scriptEngine.get();
 
         if (!dedicatedServer) {

@@ -65,8 +65,6 @@ dl_dep = cc.find_library('dl', required : false)
 openvr_dep = cc.find_library('openvr_api', dirs: lib_dir)
 discord_csdk_dep = cc.find_library('discord_game_sdk', dirs: meson.project_source_root() + '/External/Lib')
 
-wren_dep = dependency('wren', fallback: ['wren', 'wren_dep'])
-
 platform_deps = []
 
 if host_machine.system() == 'windows'
@@ -86,7 +84,7 @@ worlds = static_library('worlds', worlds_sources,
   dependencies: [
     assimp_dep, physfs_dep, sdl2_dep, physx_deps,
     dl_dep, openvr_dep, wmdl_dep, discord_csdk_dep,
-    discord_sdk_dep, wren_dep, enet_dep,
+    discord_sdk_dep, enet_dep,
     slib_dep, platform_deps, steam_audio_dep
   ]
 )
