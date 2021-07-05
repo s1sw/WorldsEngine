@@ -160,6 +160,11 @@ namespace worlds {
         sceneViews.push_back(new EditorSceneView {interfaces, this});
 
         titleBarIcon = texMan->loadOrGet(AssetDB::pathToId("UI/Images/logo_no_background.png"));
+
+        EntityFolders folders;
+        folders.rootFolder.name = "Root";
+
+        reg.set<EntityFolders>(std::move(folders));
     }
 
 #undef REGISTER_COMPONENT_TYPE

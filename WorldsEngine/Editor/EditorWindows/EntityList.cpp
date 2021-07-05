@@ -12,6 +12,7 @@ namespace worlds {
         static std::vector<entt::entity> filteredEntities;
         static size_t numNamedEntities;
         static bool showUnnamed = false;
+        static bool folderView = true;
         static entt::entity currentlyRenaming = entt::null;
 
         if (ImGui::Begin(ICON_FA_LIST u8" Entity List", &active)) {
@@ -47,6 +48,7 @@ namespace worlds {
 
             numNamedEntities = currNamedEntCount;
             ImGui::Checkbox("Show Unnamed Entities", &showUnnamed);
+            ImGui::Checkbox("Folder View", &folderView);
 
             if (ImGui::IsWindowHovered() && ImGui::GetIO().MouseClicked[1]) {
                 ImGui::OpenPopup("AddEntity");
@@ -112,16 +114,34 @@ namespace worlds {
                     }
                 }
                 ImGui::PopID();
-                };
+            };
+
+            std::function<void(EntityFolder&)> doFolderEntry = [&](EntityFolder& folder) {
+                if (ImGui::TreeNode(folder.name.c_str())) {
+                    for (entt::entity ent : folder.entities) {
+                        forEachEnt(ent);
+                    }
+                    ImGui::TreePop();
+                }
+
+                for (EntityFolder& child : folder.children) {
+                    doFolderEntry(child);
+                }
+            };
 
             if (ImGui::BeginChild("Entities")) {
                 if (searchText.empty()) {
-                    if (showUnnamed) {
-                        reg.each(forEachEnt);
+                    if (folderView) {
+                        EntityFolders& folders = reg.ctx<EntityFolders>();
+                        doFolderEntry(folders.rootFolder);
                     } else {
-                        reg.view<NameComponent>().each([&](auto ent, NameComponent) {
-                            forEachEnt(ent);
-                        });
+                        if (showUnnamed) {
+                            reg.each(forEachEnt);
+                        } else {
+                            reg.view<NameComponent>().each([&](auto ent, NameComponent) {
+                                forEachEnt(ent);
+                            });
+                        }
                     }
                 } else {
                     for (auto& ent : filteredEntities)
