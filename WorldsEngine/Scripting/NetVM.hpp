@@ -23,13 +23,15 @@ namespace worlds {
             void onSceneStart();
             void onUpdate(float deltaTime);
             void onSimulate(float deltaTime);
-            void fireEvent(entt::entity scriptEnt, const char* name);
+            void fireEvent(entt::entity scriptEnt, const char* event);
         private:
             EngineInterfaces interfaces;
+            void createManagedDelegate(const char* typeName, const char* methodName, void** func);
             void setupBindings();
             void* hostHandle;
             unsigned int domainId;
             DotNetFunctionPtrs netFuncs;
             void(*updateFunc)(float deltaTime);
+            void(*sceneStartFunc)();
     };
 }
