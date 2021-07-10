@@ -1,8 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+
 namespace WorldsEngine
 {
     internal class WorldsEngine
@@ -13,11 +10,21 @@ namespace WorldsEngine
             return true;
         }
 
+        static void OnSceneStart()
+        {
+            Logger.Log("Scene started!");
+        }
+
         static void Update(float deltaTime)
         {
             using (ImGui.Window("Hello from .NET!"))
             {
                 ImGui.Text("Hey, how's it goin'? :)");
+
+                if (ImGui.Button("Click me!"))
+                {
+                    Logger.Log("Tee-hee");
+                }
             }
         }
     }

@@ -32,11 +32,7 @@ namespace worlds {
     };
 
     ConVar logToStdout { "logToStdOut",
-#ifdef NDEBUG
-        "0",
-#else
         "1",
-#endif
         "Log to stdout in addition to the file and the console." };
 
     ConvarLink* firstLink = nullptr;

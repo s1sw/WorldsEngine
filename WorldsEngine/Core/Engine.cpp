@@ -392,7 +392,8 @@ namespace worlds {
         };
 
         scriptEngine = std::make_unique<DotNetScriptEngine>(registry, interfaces);
-        scriptEngine->initialise();
+        if (!scriptEngine->initialise())
+            fatalErr("Failed to initialise .net");
         interfaces.scriptEngine = scriptEngine.get();
 
         if (!dedicatedServer) {
