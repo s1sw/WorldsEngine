@@ -9,7 +9,6 @@
 #if defined(_WIN32)
 #define WIN32_LEAN_AND_MEAN
 #define WIN32_LEANER
-#define NOMINMAX
 #include <Windows.h>
 typedef HMODULE LibraryHandle_t;
 #define NET_LIBRARY_PATH "./NetAssemblies/coreclr.dll"
@@ -20,6 +19,58 @@ typedef void* LibraryHandle_t;
 #include <dlfcn.h>
 #define NET_LIBRARY_PATH "NetAssemblies/libcoreclr.so"
 #endif
+
+#ifdef _WIN32
+#define EXPORT __declspec(dllexport)
+#else
+#define EXPORT
+#endif
+
+enum CSMessageSeverity {
+    CS_Verbose,
+    CS_Info,
+    CS_Warning,
+    CS_Error
+};
+
+extern "C" {
+    EXPORT bool imgui_begin(const char* name) {
+        return ImGui::Begin(name);
+    }
+
+    EXPORT void imgui_text(const char* text) {
+        ImGui::TextUnformatted(text);
+    }
+
+    EXPORT bool imgui_button(const char* text, float sizeX, float sizeY) {
+        return ImGui::Button(text, ImVec2(sizeX, sizeY));
+    }
+
+    EXPORT void imgui_sameLine(float offsetFromStartX, float spacing) {
+        ImGui::SameLine(offsetFromStartX, spacing);
+    }
+
+    EXPORT void imgui_end() {
+        ImGui::End();
+    }
+
+    EXPORT void logging_log(CSMessageSeverity severity, const char* text) {
+        switch (severity) {
+            case CS_Verbose:
+                logVrb(worlds::WELogCategoryScripting, "%s", text);
+                break;
+            case CS_Info:
+                logMsg(worlds::WELogCategoryScripting, "%s", text);
+                break;
+            case CS_Warning:
+                logWarn(worlds::WELogCategoryScripting, "%s", text);
+                break;
+            case CS_Error:
+                logErr(worlds::WELogCategoryScripting, "%s", text);
+                break;
+        }
+    }
+}
 
 namespace worlds {
     LibraryHandle_t loadLibrary(const char* path) {
@@ -32,7 +83,7 @@ namespace worlds {
 
     void* getLibraryFunction(LibraryHandle_t libHandle, const char* functionName) {
 #if defined(_WIN32)
-        return GetProcAddress(libHandle, functionName);
+        return (void*)GetProcAddress(libHandle, functionName);
 #elif defined(__linux__)
         return dlsym(libHandle, functionName);
 #endif
@@ -100,8 +151,6 @@ namespace worlds {
             return false;
         }
 
-        setupBindings();
-
         // C# bools are always 1 byte
         char(*initFunc)();
         createManagedDelegate("WorldsEngine.WorldsEngine", "Init", (void**)&initFunc);
@@ -129,85 +178,14 @@ namespace worlds {
     void DotNetScriptEngine::fireEvent(entt::entity scriptEnt, const char* evt) {
     }
 
-    struct ImGuiFunctionPointers {
-        bool (*begin)(const char* name);
-        void (*text)(const char* text);
-        bool (*button)(const char* text, float sizeX, float sizeY);
-        void (*sameLine)(float offsetFromStartX, float spacing);
-        void (*end)();
-    };
-
-    enum CSMessageSeverity {
-        CS_Verbose,
-        CS_Info,
-        CS_Warning,
-        CS_Error
-    };
-
-    struct LoggingFuncPtrs {
-        void (*log)(CSMessageSeverity severity, const char* text);
-    };
-
-    bool imgui_begin(const char* name) {
-        return ImGui::Begin(name);
-    }
-
-    void imgui_text(const char* text) {
-        ImGui::TextUnformatted(text);
-    }
-
-    bool imgui_button(const char* text, float sizeX, float sizeY) {
-        return ImGui::Button(text, ImVec2(sizeX, sizeY));
-    }
-
-    void imgui_sameLine(float offsetFromStartX, float spacing) {
-        ImGui::SameLine(offsetFromStartX, spacing);
-    }
-
-    void imgui_end() {
-        ImGui::End();
-    }
-
-    void logging_log(CSMessageSeverity severity, const char* text) {
-        switch (severity) {
-            case CS_Verbose:
-                logVrb(WELogCategoryScripting, "%s", text);
-                break;
-            case CS_Info:
-                logMsg(WELogCategoryScripting, "%s", text);
-                break;
-            case CS_Warning:
-                logWarn(WELogCategoryScripting, "%s", text);
-                break;
-            case CS_Error:
-                logErr(WELogCategoryScripting, "%s", text);
-                break;
-        }
-    }
-
     void DotNetScriptEngine::createManagedDelegate(const char* typeName, const char* methodName, void** func) {
         int ret = netFuncs.createDelegate(hostHandle, domainId, "WorldsEngineManaged", typeName, methodName, func);
-        if (ret < 0)
-            fatalErr("Failed to create delegate");
-    }
-
-    void DotNetScriptEngine::setupBindings() {
-        ImGuiFunctionPointers imfp;
-        imfp.begin = imgui_begin;
-        imfp.text = imgui_text;
-        imfp.button = imgui_button;
-        imfp.sameLine = imgui_sameLine;
-        imfp.end = imgui_end;
-
-        void (*setImguiBindings)(ImGuiFunctionPointers);
-
-        createManagedDelegate("WorldsEngine.ImGui", "SetFunctionPointers", (void**)&setImguiBindings);
-        setImguiBindings(imfp);
-
-        LoggingFuncPtrs lfp;
-        lfp.log = logging_log;
-        void (*setLogBindings)(LoggingFuncPtrs);
-        createManagedDelegate("WorldsEngine.Logger", "SetFunctionPointers", (void**)&setLogBindings);
-        setLogBindings(lfp);
+        if (ret < 0) {
+            std::string str = "Failed to create delegate ";
+            str += typeName;
+            str += ".";
+            str += methodName;
+            fatalErr(str.c_str());
+        }
     }
 }

@@ -13,25 +13,13 @@ namespace WorldsEngine
 
     public class Logger
     {
-        private delegate void LogDelegate(int severity, string name);
-
-        private static LogDelegate nativeLog;
-
-        [StructLayout(LayoutKind.Sequential)]
-        internal struct LoggingFuncPtrs
-        {
-            public IntPtr Log;
-        }
-
-        internal static void SetFunctionPointers(LoggingFuncPtrs funcPtrs)
-        {
-            nativeLog = Marshal.GetDelegateForFunctionPointer<LogDelegate>(funcPtrs.Log);
-        }
+        [DllImport(WorldsEngine.NATIVE_MODULE)]
+        private static extern void logging_log(int severity, string message);
 
         public static void LogMessage(MessageSeverity severity, string str)
         {
             int severityInt = (int)severity;
-            nativeLog(severityInt, str);
+            logging_log(severityInt, str);
         }
 
         public static void Log(string str)
