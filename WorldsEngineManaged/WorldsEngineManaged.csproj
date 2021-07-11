@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
-    <OutDir>../build_release/LonelyGalaxy/NetAssemblies</OutDir>
+    <OutDir>../build_ninja_release/LonelyGalaxy/NetAssemblies</OutDir>
   </PropertyGroup>
 
 </Project>

@@ -27,7 +27,6 @@ namespace worlds {
         private:
             EngineInterfaces interfaces;
             void createManagedDelegate(const char* typeName, const char* methodName, void** func);
-            void setupBindings();
             void* hostHandle;
             unsigned int domainId;
             DotNetFunctionPtrs netFuncs;
