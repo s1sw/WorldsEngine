@@ -33,6 +33,8 @@ namespace WorldsEngine
         }
 #endif
 
+        static Registry registry;
+
         static bool Init()
         {
 #if Linux
@@ -41,14 +43,16 @@ namespace WorldsEngine
             return true;
         }
 
-        static void OnSceneStart()
+        static void OnSceneStart(IntPtr registryPtr)
         {
             Logger.Log("Scene started!");
+            registry = new Registry(registryPtr);
         }
 
         static void Update(float deltaTime)
         {
-            try {
+            try
+            {
                 using (ImGui.Window("Hello from .NET!"))
                 {
                     ImGui.Text("Hey, how's it goin'? :)");
@@ -62,8 +66,25 @@ namespace WorldsEngine
                     {
                         throw new ApplicationException("I mean, what did you expect?");
                     }
+
+                    if (ImGui.Button("Move a thing"))
+                    {
+                        Entity entity = new Entity(0);
+                        Transform t = registry.GetTransform(entity);
+                        t.position = new Vector3(0.0f, 10.0f, 0.0f);
+                        registry.SetTransform(entity, t);
+                    }
+
+                    ImGui.Text("Entities:");
+
+                    registry.Each((Entity entity) => {
+                        Transform t = registry.GetTransform(entity);
+                        ImGui.Text($"{entity.ID}: {t.position.x}, {t.position.y}, {t.position.z}");
+                    });
                 }
-            } catch (Exception e) {
+            }
+            catch (Exception e)
+            {
                 Logger.LogError($"Caught exception: {e}");
             }
         }
