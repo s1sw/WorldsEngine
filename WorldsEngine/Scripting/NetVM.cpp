@@ -5,6 +5,8 @@
 #include <filesystem>
 #include "ImGui/imgui.h"
 #include "Core/Log.hpp"
+#include "Core/Transform.hpp"
+#include <entt/entity/registry.hpp>
 
 #if defined(_WIN32)
 #define WIN32_LEAN_AND_MEAN
@@ -70,6 +72,22 @@ extern "C" {
                 break;
         }
     }
+
+    EXPORT void registry_getTransform(entt::registry* registry, uint32_t entity, Transform* output) {
+        entt::entity enttEntity = (entt::entity)entity;
+        *output = registry->get<Transform>(enttEntity);
+    }
+
+    EXPORT void registry_setTransform(entt::registry* registry, uint32_t entity, Transform* output) {
+        entt::entity enttEntity = (entt::entity)entity;
+        registry->get<Transform>(enttEntity) = *output;
+    }
+
+    EXPORT void registry_eachTransform(entt::registry* registry, void (*callback)(uint32_t)) {
+        registry->each([&](entt::entity ent) {
+            callback((uint32_t)ent);
+        });
+    }
 }
 
 namespace worlds {
@@ -90,7 +108,8 @@ namespace worlds {
     }
 
     DotNetScriptEngine::DotNetScriptEngine(entt::registry& reg, EngineInterfaces interfaces)
-        : interfaces(interfaces) {
+        : interfaces(interfaces)
+        , reg(reg) {
     }
 
     bool DotNetScriptEngine::initialise() {
@@ -165,7 +184,7 @@ namespace worlds {
     }
 
     void DotNetScriptEngine::onSceneStart() {
-        sceneStartFunc();
+        sceneStartFunc(&reg);
     }
 
     void DotNetScriptEngine::onUpdate(float deltaTime) {
