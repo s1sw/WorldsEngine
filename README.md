@@ -1,3 +1,4 @@
+![logo](EngineData/UI/Images/logo_no_background.png)
 # WorldsEngine
 
 [![forthebadge](https://forthebadge.com/images/badges/powered-by-black-magic.svg)](https://forthebadge.com)
