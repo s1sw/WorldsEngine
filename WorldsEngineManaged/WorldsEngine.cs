@@ -9,12 +9,14 @@ namespace WorldsEngine
 #if Windows
         internal const string NATIVE_MODULE = "lonelygalaxy.exe";
 #elif Linux
-        internal const string NATIVE_MODULE = "internal";
+        internal const string NATIVE_MODULE = "lonelygalaxy";
 #else
 #error Unknown platform
 #endif
 
 #if Linux
+        const int RTLD_NOW = 0x00002;
+        const int RTLD_NOLOAD = 0x00004;
         [DllImport("dl")]
         internal static extern IntPtr dlopen(string file, int mode);
 
@@ -22,12 +24,13 @@ namespace WorldsEngine
         {
             IntPtr handle = IntPtr.Zero;
 
-            // On Linux, you can't just load an executable as a library like Windows.
-            // However, if you pass a null pointer as the filename to dlopen it
+            // On Linux, you can't just load an executable as a library and have it all
+            // just work. However, if you pass a null pointer as the filename to dlopen it
             // returns the address of the executable, which you can pass to dlsym.
             // So we just dlopen null and return that.
+            // This requires linking with "-rdynamic" to export symbols.
             if (libraryName == NATIVE_MODULE)
-                handle = dlopen(null, 2);
+                handle = dlopen(null, RTLD_NOW | RTLD_NOLOAD);
 
             return handle;
         }
@@ -53,7 +56,7 @@ namespace WorldsEngine
         {
             try
             {
-                using (ImGui.Window("Hello from .NET!"))
+                if (ImGui.Begin("Hello from .NET!"))
                 {
                     ImGui.Text("Hey, how's it goin'? :)");
 
@@ -75,12 +78,31 @@ namespace WorldsEngine
                         registry.SetTransform(entity, t);
                     }
 
+                    if (ImGui.Button("Set a thing"))
+                    {
+                        Entity entity = new Entity(0);
+                        CustomComponent c = new CustomComponent();
+                        c.whatever = 1.0f;
+                        c.lol = 1337;
+                        registry.SetComponent<CustomComponent>(entity, c);
+                    }
+
+                    if (ImGui.Button("Get a thing"))
+                    {
+                        Entity entity = new Entity(0);
+                        var comp = registry.GetComponent<CustomComponent>(entity);
+                        Logger.Log($"lol: {comp.lol}");
+                    }
+
                     ImGui.Text("Entities:");
 
                     registry.Each((Entity entity) => {
                         Transform t = registry.GetTransform(entity);
-                        ImGui.Text($"{entity.ID}: {t.position.x}, {t.position.y}, {t.position.z}");
+                        string name = registry.HasName(entity) ? registry.GetName(entity) : entity.ID.ToString();
+                        ImGui.Text($"{name}: {t.position.x:0.###}, {t.position.y:0.###}, {t.position.z:0.###}");
                     });
+
+                    ImGui.End();
                 }
             }
             catch (Exception e)

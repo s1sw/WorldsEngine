@@ -250,7 +250,6 @@ namespace worlds {
         assert(reg.valid(currentSelectedEntity));
         currentTool = newTool;
         originalObjectTransform = reg.get<Transform>(currentSelectedEntity);
-        logMsg(SDL_LOG_PRIORITY_DEBUG, "activateTool(%s)", toolStr(newTool));
     }
 
     bool Editor::isEntitySelected(entt::entity ent) const {
