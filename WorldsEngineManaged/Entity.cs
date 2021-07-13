@@ -1,6 +1,6 @@
 namespace WorldsEngine
 {
-    struct Entity
+    public struct Entity
     {
         public uint ID { get; private set; }
         
