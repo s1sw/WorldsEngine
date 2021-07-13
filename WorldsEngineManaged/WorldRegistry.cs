@@ -1,15 +1,20 @@
 using System;
 using System.Text;
 using System.Runtime.InteropServices;
+using System.Collections.Generic;
 
 namespace WorldsEngine
 {
-    class ComponentStorage<T>
+    interface IComponentStorage
     {
-        public Dictionary<uint, T> component;
     }
 
-    class Registry
+    class ComponentStorage<T> : IComponentStorage
+    {
+        public Dictionary<uint, T> component = new Dictionary<uint, T>();
+    }
+
+    public class Registry
     {
         [DllImport(WorldsEngine.NATIVE_MODULE)]
         static extern void registry_getTransform(IntPtr regPtr, uint entityId, IntPtr transformPtr);
@@ -30,6 +35,7 @@ namespace WorldsEngine
         static extern void registry_getEntityName(IntPtr regPtr, uint entityId, StringBuilder str);
 
         private IntPtr nativeRegistryPtr;
+        private Dictionary<Type, IComponentStorage> componentStorages = new Dictionary<Type, IComponentStorage>();
 
         internal Registry(IntPtr nativePtr)
         {
@@ -39,12 +45,25 @@ namespace WorldsEngine
         public T GetComponent<T>(Entity entity) where T : struct
         {
             var type = typeof(T);
-            throw new NotImplementedException();
+
+            if (!componentStorages.ContainsKey(type))
+            {
+                componentStorages.Add(type, new ComponentStorage<T>());
+            }
+
+            return ((ComponentStorage<T>)(componentStorages[type])).component[entity.ID];
         }
 
         public void SetComponent<T>(Entity entity, T component) where T : struct
         {
-            throw new NotImplementedException();
+            var type = typeof(T);
+
+            if (!componentStorages.ContainsKey(type))
+            {
+                componentStorages.Add(type, new ComponentStorage<T>());
+            }
+
+            ((ComponentStorage<T>)(componentStorages[type])).component[entity.ID] = component;
         }
 
         public Transform GetTransform(Entity entity)
@@ -85,6 +104,7 @@ namespace WorldsEngine
             return sb.ToString();
         }
 
+#region Entity Iteration
         private static Action<Entity> currentEntityFunction;
 
         private static void EntityCallback(uint entityId)
@@ -98,5 +118,6 @@ namespace WorldsEngine
             registry_eachTransform(nativeRegistryPtr, EntityCallback);
             currentEntityFunction = null;
         }
+#endregion
     }
 }

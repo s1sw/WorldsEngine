@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 namespace WorldsEngine
 {
     [StructLayout(LayoutKind.Sequential)]
-    struct Vector3
+    public struct Vector3
     {
         public float x, y, z;
 

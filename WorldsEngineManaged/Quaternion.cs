@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 namespace WorldsEngine
 {
     [StructLayout(LayoutKind.Sequential)]
-    struct Quaternion
+    public struct Quaternion
     {
         public float w, x, y, z;
 

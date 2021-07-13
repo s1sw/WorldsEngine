@@ -104,6 +104,7 @@ extern "C" {
             return;
         }
         NameComponent& nc = registry->get<NameComponent>(enttEntity);
+        buffer[nc.name.size()] = 0;
         strncpy(buffer, nc.name.c_str(), nc.name.size());
     }
 }
