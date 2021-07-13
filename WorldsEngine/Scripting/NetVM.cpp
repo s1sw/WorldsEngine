@@ -6,6 +6,7 @@
 #include "ImGui/imgui.h"
 #include "Core/Log.hpp"
 #include "Core/Transform.hpp"
+#include "Core/NameComponent.hpp"
 #include <entt/entity/registry.hpp>
 
 #if defined(_WIN32)
@@ -25,7 +26,7 @@ typedef void* LibraryHandle_t;
 #ifdef _WIN32
 #define EXPORT __declspec(dllexport)
 #else
-#define EXPORT
+#define EXPORT __attribute__((visibility ("default")))
 #endif
 
 enum CSMessageSeverity {
@@ -35,6 +36,7 @@ enum CSMessageSeverity {
     CS_Error
 };
 
+using namespace worlds;
 extern "C" {
     EXPORT bool imgui_begin(const char* name) {
         return ImGui::Begin(name);
@@ -87,6 +89,22 @@ extern "C" {
         registry->each([&](entt::entity ent) {
             callback((uint32_t)ent);
         });
+    }
+
+    EXPORT uint32_t registry_getEntityNameLength(entt::registry* registry, uint32_t entityId) {
+        entt::entity enttEntity = (entt::entity)entityId;
+        if (!registry->has<NameComponent>(enttEntity)) { return ~0u; }
+        NameComponent& nc = registry->get<NameComponent>((entt::entity)entityId);
+        return nc.name.size();
+    }
+
+    EXPORT void registry_getEntityName(entt::registry* registry, uint32_t entityId, char* buffer) {
+        entt::entity enttEntity = (entt::entity)entityId;
+        if (!registry->has<NameComponent>(enttEntity)) {
+            return;
+        }
+        NameComponent& nc = registry->get<NameComponent>(enttEntity);
+        strncpy(buffer, nc.name.c_str(), nc.name.size());
     }
 }
 

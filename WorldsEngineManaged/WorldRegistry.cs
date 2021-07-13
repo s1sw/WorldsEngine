@@ -1,8 +1,14 @@
 using System;
+using System.Text;
 using System.Runtime.InteropServices;
 
 namespace WorldsEngine
 {
+    class ComponentStorage<T>
+    {
+        public Dictionary<uint, T> component;
+    }
+
     class Registry
     {
         [DllImport(WorldsEngine.NATIVE_MODULE)]
@@ -17,6 +23,12 @@ namespace WorldsEngine
         [DllImport(WorldsEngine.NATIVE_MODULE)]
         static extern void registry_eachTransform(IntPtr regPtr, EntityCallbackDelegate del);
 
+        [DllImport(WorldsEngine.NATIVE_MODULE)]
+        static extern uint registry_getEntityNameLength(IntPtr regPtr, uint entityId);
+
+        [DllImport(WorldsEngine.NATIVE_MODULE)]
+        static extern void registry_getEntityName(IntPtr regPtr, uint entityId, StringBuilder str);
+
         private IntPtr nativeRegistryPtr;
 
         internal Registry(IntPtr nativePtr)
@@ -27,6 +39,11 @@ namespace WorldsEngine
         public T GetComponent<T>(Entity entity) where T : struct
         {
             var type = typeof(T);
+            throw new NotImplementedException();
+        }
+
+        public void SetComponent<T>(Entity entity, T component) where T : struct
+        {
             throw new NotImplementedException();
         }
 
@@ -41,11 +58,6 @@ namespace WorldsEngine
             return t;
         }
 
-        public void SetComponent<T>(Entity entity, T component) where T : struct
-        {
-            throw new NotImplementedException();
-        }
-
         public void SetTransform(Entity entity, Transform t)
         {
             unsafe
@@ -53,6 +65,24 @@ namespace WorldsEngine
                 Transform* tPtr = &t;
                 registry_setTransform(nativeRegistryPtr, entity.ID, (IntPtr)tPtr);
             }
+        }
+
+        public bool HasName(Entity entity)
+        {
+            uint length = registry_getEntityNameLength(nativeRegistryPtr, entity.ID);
+            return length != uint.MaxValue;
+        }
+
+        public string GetName(Entity entity)
+        {
+            uint length = registry_getEntityNameLength(nativeRegistryPtr, entity.ID);
+
+            if (length == uint.MaxValue)
+                return null;
+
+            StringBuilder sb = new StringBuilder((int)length);
+            registry_getEntityName(nativeRegistryPtr, entity.ID, sb);
+            return sb.ToString();
         }
 
         private static Action<Entity> currentEntityFunction;

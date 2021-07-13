@@ -5,18 +5,6 @@ using System.Text;
 
 namespace WorldsEngine
 {
-    public class ImGuiWindow : IDisposable
-    {
-        internal ImGuiWindow()
-        {
-        }
-
-        public void Dispose()
-        {
-            ImGui.End();
-        }
-    }
-
     public class ImGui
     {
         [DllImport(WorldsEngine.NATIVE_MODULE)]
@@ -34,15 +22,7 @@ namespace WorldsEngine
         [DllImport(WorldsEngine.NATIVE_MODULE)]
         private static extern void imgui_sameLine(float offsetFromStartX, float spacing);
 
-        private static readonly ImGuiWindow window = new ImGuiWindow();
-
-        public static ImGuiWindow Window(string title)
-        {
-            Begin(title);
-            return window;
-        }
-
-        internal static bool Begin(string name)
+        public static bool Begin(string name)
         {
             return imgui_begin(name);
         }
@@ -62,7 +42,7 @@ namespace WorldsEngine
             imgui_sameLine(offsetFromStartX, spacing);
         }
 
-        internal static void End()
+        public static void End()
         {
             imgui_end();
         }

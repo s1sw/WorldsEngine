@@ -1,15 +1,16 @@
 <Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
         <TargetFramework>net5.0</TargetFramework>
-        <OutDir>../build_ninja_release/LonelyGalaxy/NetAssemblies</OutDir>
         <IsWindows Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' == 'true'">true</IsWindows>
         <IsLinux Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Linux)))' == 'true'">true</IsLinux>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>
     <PropertyGroup Condition="'$(IsWindows)' == 'true'">
         <DefineConstants>Windows</DefineConstants>
+        <OutDir>../build_ninja_release/LonelyGalaxy/NetAssemblies</OutDir>
     </PropertyGroup>
     <PropertyGroup Condition="'$(IsLinux)' == 'true'">
         <DefineConstants>Linux</DefineConstants>
+        <OutDir>../build_release/LonelyGalaxy/NetAssemblies</OutDir>
     </PropertyGroup>
 </Project>

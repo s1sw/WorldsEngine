@@ -86,6 +86,7 @@ worlds = static_library('worlds', worlds_sources,
     dl_dep, openvr_dep, wmdl_dep, discord_csdk_dep,
     discord_sdk_dep, enet_dep,
     slib_dep, platform_deps, steam_audio_dep
-  ]
+  ],
+  link_args: ['-rdynamic']
 )
 worlds_dep = declare_dependency(include_directories: worlds_inc, link_with: worlds)

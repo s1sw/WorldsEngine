@@ -1,3 +1,5 @@
+#include <cstdint>
+#include <limits>
 #include "AssetCompilers.hpp"
 #include <robin_hood.h>
 #include <slib/List.hpp>
