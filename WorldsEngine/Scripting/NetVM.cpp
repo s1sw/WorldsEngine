@@ -4,10 +4,12 @@
 #include <string>
 #include <filesystem>
 #include "ImGui/imgui.h"
+#include "Core/Engine.hpp"
 #include "Core/Log.hpp"
 #include "Core/Transform.hpp"
 #include "Core/NameComponent.hpp"
 #include <entt/entity/registry.hpp>
+#include "Export.hpp"
 
 #if defined(_WIN32)
 #define WIN32_LEAN_AND_MEAN
@@ -21,12 +23,6 @@ typedef void* LibraryHandle_t;
 #include <unistd.h>
 #include <dlfcn.h>
 #define NET_LIBRARY_PATH "NetAssemblies/libcoreclr.so"
-#endif
-
-#ifdef _WIN32
-#define EXPORT __declspec(dllexport)
-#else
-#define EXPORT __attribute__((visibility ("default")))
 #endif
 
 enum CSMessageSeverity {
@@ -106,6 +102,44 @@ extern "C" {
         NameComponent& nc = registry->get<NameComponent>(enttEntity);
         buffer[nc.name.size()] = 0;
         strncpy(buffer, nc.name.c_str(), nc.name.size());
+    }
+
+    EXPORT uint32_t worldObject_getMesh(entt::registry* registry, entt::entity entity) {
+        WorldObject& wo = registry->get<WorldObject>(entity);
+
+        return wo.mesh;
+    }
+
+    EXPORT void worldObject_setMesh(entt::registry* registry, entt::entity entity, AssetID id) {
+        WorldObject& wo = registry->get<WorldObject>(entity);
+
+        wo.mesh = id;
+    }
+
+    EXPORT char worldObject_exists(entt::registry* registry, entt::entity entity) {
+        if (registry->has<WorldObject>(entity))
+            return 1;
+        else
+            return 0;
+    }
+
+    EXPORT void assetDB_idToPath(uint32_t id, uint32_t* length, char* outBuffer) {
+        std::string path = AssetDB::idToPath(id);
+
+        *length = path.size();
+
+        if (outBuffer) {
+            outBuffer[path.size()] = 0;
+            strncpy(outBuffer, path.c_str(), path.size());
+        }
+    }
+
+    EXPORT uint32_t assetDB_pathToId(char* path) {
+        return AssetDB::pathToId(path);
+    }
+
+    EXPORT char assetDB_exists(uint32_t id) {
+        return AssetDB::exists(id);
     }
 }
 

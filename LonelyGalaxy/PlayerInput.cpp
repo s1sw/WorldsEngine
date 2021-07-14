@@ -2,6 +2,7 @@
 #include "Render/Camera.hpp"
 #include <glm/gtx/norm.hpp>
 #include <Input/Input.hpp>
+#include <VR/IVRInterface.hpp>
 
 namespace lg {
     KeyboardPlayerInput::KeyboardPlayerInput(worlds::EngineInterfaces interfaces)
@@ -66,17 +67,39 @@ namespace lg {
     }
 
     void VRPlayerInput::update() {
+        jumpQueued = interfaces.vrInterface->getJumpInput();
     }
 
     bool VRPlayerInput::sprint() {
-        return false;
+        return interfaces.vrInterface->getSprintInput();
     }
 
     glm::vec2 VRPlayerInput::movementInput() {
-        return glm::vec2 { 0.0f };
+        glm::vec2 locIn = interfaces.vrInterface->getLocomotionInput();
+        locIn = glm::vec2 { locIn.x, -locIn.y };
+
+        float maxLength = glm::max(glm::abs(locIn.x), glm::abs(locIn.y));
+
+        glm::vec3 desiredVel{ locIn.x, 0.0f, locIn.y };
+
+        glm::mat4 camMat = interfaces.vrInterface->getHeadTransform();
+
+        desiredVel = camMat * glm::vec4 { desiredVel, 0.0f };
+        desiredVel = -desiredVel * glm::inverse(interfaces.mainCamera->rotation);
+
+        if (glm::length2(desiredVel) > 0.0f) {
+            desiredVel = glm::normalize(desiredVel) * maxLength;
+        }
+
+        return glm::vec2 { desiredVel.x, desiredVel.z };
     }
 
     bool VRPlayerInput::consumeJump() {
+        if (jumpQueued) {
+            jumpQueued = false;
+            return true;
+        }
+
         return false;
     }
 }

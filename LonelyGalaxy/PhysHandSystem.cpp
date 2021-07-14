@@ -209,6 +209,8 @@ namespace lg {
 
                 hand.targetWorldPos = t.position;
                 hand.targetWorldRot = virtualRotation * t.rotation;
+            } else {
+                logWarn("Failed to get hand transform");
             }
         } else {
             static glm::vec3 camOffset { 0.1f, -0.2f, 0.55f };

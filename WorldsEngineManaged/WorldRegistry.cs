@@ -14,6 +14,10 @@ namespace WorldsEngine
         public Dictionary<uint, T> component = new Dictionary<uint, T>();
     }
 
+    public class BuiltinComponent
+    {
+    }
+
     public class Registry
     {
         [DllImport(WorldsEngine.NATIVE_MODULE)]
@@ -42,6 +46,34 @@ namespace WorldsEngine
             nativeRegistryPtr = nativePtr;
         }
 
+        public T GetBuiltinComponent<T>(Entity entity)
+        {
+            var type = typeof(T);
+
+            if (type == typeof(WorldObject))
+            {
+                return (T)(object)new WorldObject(nativeRegistryPtr, entity.ID);
+            }
+            else
+            {
+                throw new ArgumentException($"Type {type.FullName} is not a builtin component.");
+            }
+        }
+
+        public bool HasBuiltinComponent<T>(Entity entity)
+        {
+            var type = typeof(T);
+
+            if (type == typeof(WorldObject))
+            {
+                return WorldObject.ExistsOn(nativeRegistryPtr, entity);
+            }
+            else
+            {
+                throw new ArgumentException($"Type {type.FullName} is not a builtin component.");
+            }
+        }
+
         public T GetComponent<T>(Entity entity) where T : struct
         {
             var type = typeof(T);
@@ -51,7 +83,9 @@ namespace WorldsEngine
                 componentStorages.Add(type, new ComponentStorage<T>());
             }
 
-            return ((ComponentStorage<T>)(componentStorages[type])).component[entity.ID];
+            var storage = (ComponentStorage<T>)componentStorages[type];
+
+            return storage.component[entity.ID];
         }
 
         public void SetComponent<T>(Entity entity, T component) where T : struct
@@ -63,7 +97,9 @@ namespace WorldsEngine
                 componentStorages.Add(type, new ComponentStorage<T>());
             }
 
-            ((ComponentStorage<T>)(componentStorages[type])).component[entity.ID] = component;
+            var storage = (ComponentStorage<T>)componentStorages[type];
+
+            storage.component[entity.ID] = component;
         }
 
         public Transform GetTransform(Entity entity)
