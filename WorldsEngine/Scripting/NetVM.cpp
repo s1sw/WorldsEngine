@@ -198,6 +198,7 @@ namespace worlds {
 
         createManagedDelegate("WorldsEngine.WorldsEngine", "Update", (void**)&updateFunc);
         createManagedDelegate("WorldsEngine.WorldsEngine", "OnSceneStart", (void**)&sceneStartFunc);
+        createManagedDelegate("WorldsEngine.WorldsEngine", "EditorUpdate", (void**)&editorUpdateFunc);
 
         return true;
     }
@@ -208,6 +209,10 @@ namespace worlds {
 
     void DotNetScriptEngine::onUpdate(float deltaTime) {
         updateFunc(deltaTime);
+    }
+
+    void DotNetScriptEngine::onEditorUpdate(float deltaTime) {
+        editorUpdateFunc(deltaTime);
     }
 
     void DotNetScriptEngine::onSimulate(float deltaTime) {
