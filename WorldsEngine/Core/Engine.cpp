@@ -423,7 +423,10 @@ namespace worlds {
 
         console->registerCommand([&](void*, const char* arg) {
             uint32_t id = (uint32_t)std::atoll(arg);
-            logMsg("Asset %u: %s", id, AssetDB::idToPath(id).c_str());
+            if (AssetDB::exists(id))
+                logMsg("Asset %u: %s", id, AssetDB::idToPath(id).c_str());
+            else
+                logErr("Nonexistent asset");
         }, "adb_lookupID", "Looks up an asset ID.", nullptr);
 
         console->registerCommand([&](void*, const char* arg) {
@@ -683,6 +686,9 @@ namespace worlds {
             ImGui::NewFrame();
             inputManager->update();
 
+            if (openvrInterface)
+                openvrInterface->updateInput();
+
             if (!dedicatedServer) {
                 if (!screenRTTPass->isValid) {
                     recreateScreenRTT = true;
@@ -727,7 +733,8 @@ namespace worlds {
 
                 if (runAsEditor) {
                     editor->update((float)deltaTime);
-                    scriptEngine->onEditorUpdate((float)deltaTime);
+                    if (editor->active)
+                        scriptEngine->onEditorUpdate((float)deltaTime);
                 }
             }
 

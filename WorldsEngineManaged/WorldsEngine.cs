@@ -65,11 +65,6 @@ namespace WorldsEngine
                         Logger.Log("Tee-hee");
                     }
 
-                    if (ImGui.Button("Throw exception"))
-                    {
-                        throw new ApplicationException("I mean, what did you expect?");
-                    }
-
                     if (ImGui.Button("Move a thing"))
                     {
                         Entity entity = new Entity(0);
@@ -100,6 +95,13 @@ namespace WorldsEngine
                         Transform t = registry.GetTransform(entity);
                         string name = registry.HasName(entity) ? registry.GetName(entity) : entity.ID.ToString();
                         ImGui.Text($"{name}: {t.position.x:0.###}, {t.position.y:0.###}, {t.position.z:0.###}");
+
+                        if (registry.HasBuiltinComponent<WorldObject>(entity))
+                        {
+                            var worldObject = registry.GetBuiltinComponent<WorldObject>(entity);
+                            ImGui.SameLine();
+                            ImGui.Text($"Mesh: {(worldObject.mesh.ID)}");
+                        }
                     });
 
                     ImGui.End();

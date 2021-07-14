@@ -26,5 +26,6 @@ namespace lg {
         bool consumeJump() override;
     private:
         worlds::EngineInterfaces interfaces;
+        bool jumpQueued = false;
     };
 }

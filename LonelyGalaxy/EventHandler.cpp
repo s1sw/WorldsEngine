@@ -586,7 +586,10 @@ namespace lg {
             lpc.sprint = false;
             lpc.maxSpeed = 0.0f;
             lpc.xzMoveInput = glm::vec2(0.0f, 0.0f);
-            lpc.input = new KeyboardPlayerInput{interfaces};
+            if (interfaces.vrInterface)
+                lpc.input = new VRPlayerInput{interfaces};
+            else
+                lpc.input = new KeyboardPlayerInput{interfaces};
             auto& stats = registry.emplace<RPGStats>(rig.locosphere);
             stats.currentHP = 250;
             stats.maxHP = 250;
