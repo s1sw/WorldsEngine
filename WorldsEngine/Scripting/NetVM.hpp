@@ -22,6 +22,7 @@ namespace worlds {
             void shutdown();
             void onSceneStart();
             void onUpdate(float deltaTime);
+            void onEditorUpdate(float deltaTime);
             void onSimulate(float deltaTime);
             void fireEvent(entt::entity scriptEnt, const char* event);
         private:
@@ -32,6 +33,7 @@ namespace worlds {
             unsigned int domainId;
             DotNetFunctionPtrs netFuncs;
             void(*updateFunc)(float deltaTime);
+            void(*editorUpdateFunc)(float deltaTime);
             void(*sceneStartFunc)(entt::registry* registry);
     };
 }

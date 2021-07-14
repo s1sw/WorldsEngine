@@ -110,5 +110,13 @@ namespace WorldsEngine
                 Logger.LogError($"Caught exception: {e}");
             }
         }
+
+        static void EditorUpdate()
+        {
+            if (ImGui.Begin("Hello :)")) {
+                ImGui.Text("hi");
+                ImGui.End();
+            }
+        }
     }
 }

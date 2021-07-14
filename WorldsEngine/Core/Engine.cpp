@@ -727,6 +727,7 @@ namespace worlds {
 
                 if (runAsEditor) {
                     editor->update((float)deltaTime);
+                    scriptEngine->onEditorUpdate((float)deltaTime);
                 }
             }
 
