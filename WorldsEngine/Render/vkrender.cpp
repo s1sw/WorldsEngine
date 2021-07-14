@@ -1134,7 +1134,9 @@ void VKRenderer::writeCmdBuf(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageInde
     if (enableVR) {
         leftEye->image.setLayout(*cmdBuf,
             vk::ImageLayout::eTransferSrcOptimal,
-            vk::PipelineStageFlagBits::eTransfer, vk::AccessFlagBits::eTransferRead);
+            vk::PipelineStageFlagBits::eTransfer,
+            vk::AccessFlagBits::eTransferRead);
+
         rightEye->image.setLayout(*cmdBuf,
             vk::ImageLayout::eTransferSrcOptimal,
             vk::PipelineStageFlagBits::eTransfer,
@@ -1146,12 +1148,12 @@ void VKRenderer::writeCmdBuf(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageInde
         vk::PipelineStageFlagBits::eTransfer,
         vk::AccessFlagBits::eTransferRead);
 
-    cmdBuf->clearColorImage(
-        swapchain->images[imageIndex],
-        vk::ImageLayout::eTransferDstOptimal,
-        vk::ClearColorValue{ std::array<float, 4>{ 0.0f, 0.0f, 0.0f, 1.0f } },
-        vk::ImageSubresourceRange{ vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1 }
-    );
+    //cmdBuf->clearColorImage(
+    //    swapchain->images[imageIndex],
+    //    vk::ImageLayout::eTransferDstOptimal,
+    //    vk::ClearColorValue{ std::array<float, 4>{ 0.0f, 0.0f, 0.0f, 1.0f } },
+    //    vk::ImageSubresourceRange{ vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1 }
+    //);
 
     if (!lastPassIsVr) {
         vk::ImageBlit imageBlit;
@@ -1268,8 +1270,10 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
     }
 
     if (imgFences[imageIndex] && imgFences[imageIndex] != cmdBufFences[frameIdx]) {
-        if (device->waitForFences(imgFences[imageIndex], true, UINT64_MAX) != vk::Result::eSuccess) {
-            fatalErr("Failed to wait on image fence");
+        vk::Result result = device->waitForFences(imgFences[imageIndex], true, UINT64_MAX);
+        if (result != vk::Result::eSuccess) {
+            std::string errStr = "Failed to wait on image fence: " + vk::to_string(result);
+            fatalErr(errStr.c_str());
         }
     }
 
@@ -1283,7 +1287,7 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
         fatalErr("Failed to reset fences");
     }
 
-    auto& cmdBuf = cmdBufs[frameIdx];
+    vk::UniqueCommandBuffer& cmdBuf = cmdBufs[frameIdx];
     writeCmdBuf(cmdBuf, imageIndex, cam, reg);
 
     vk::SubmitInfo submit;
@@ -1302,8 +1306,8 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
     if (enableVR)
         vr::VRCompositor()->SubmitExplicitTimingData();
 
-    auto queue = device->getQueue(graphicsQueueFamilyIdx, 0);
-    auto submitResult = queue.submit(1, &submit, cmdBufFences[frameIdx]);
+    vk::Queue queue = device->getQueue(graphicsQueueFamilyIdx, 0);
+    vk::Result submitResult = queue.submit(1, &submit, cmdBufFences[frameIdx]);
 
     if (submitResult != vk::Result::eSuccess) {
         std::string errStr = vk::to_string(submitResult);
@@ -1338,14 +1342,12 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
         recreateSwapchain();
     }
 
-    TracyMessageL("Presented");
-
     if (vrApi == VrApi::OpenVR)
         vr::VRCompositor()->WaitGetPoses(nullptr, 0, nullptr, 0);
 
     std::array<std::uint64_t, 2> timeStamps = { {0} };
 
-    auto queryRes = device->getQueryPoolResults(
+    vk::Result queryRes = device->getQueryPoolResults(
         *queryPool, 2 * lastFrameIdx, (uint32_t)timeStamps.size(),
         timeStamps.size() * sizeof(uint64_t), timeStamps.data(),
         sizeof(uint64_t), vk::QueryResultFlagBits::e64
