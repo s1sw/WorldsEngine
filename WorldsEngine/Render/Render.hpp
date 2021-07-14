@@ -374,7 +374,6 @@ namespace worlds {
         return (ReloadFlags)((uint32_t)l | (uint32_t)r);
     }
 
-
     class VKRenderer {
         const static uint32_t NUM_TEX_SLOTS = 256;
         const static uint32_t NUM_MAT_SLOTS = 256;
