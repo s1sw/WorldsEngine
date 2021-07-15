@@ -3,6 +3,7 @@ using System.Text;
 using System.Runtime.InteropServices;
 using System.Collections.Generic;
 using System.Collections;
+using System.Threading;
 
 namespace WorldsEngine
 {
@@ -13,7 +14,15 @@ namespace WorldsEngine
     class ComponentStorage<T> : IComponentStorage
     {
         public T[] components = new T[1000];
-        public BitArray slotFree = new BitArray(1000);
+        public BitArray slotFree = new BitArray(1000, true);
+        public static readonly int typeIndex;
+        public static readonly Type type;
+
+        static ComponentStorage()
+        {
+            typeIndex = Interlocked.Increment(ref Registry.typeCounter);
+            type = typeof(T);
+        }
 
         public int GetFreeIndex()
         {
@@ -34,7 +43,7 @@ namespace WorldsEngine
     struct EntityComponentInfo
     {
         public int index;
-        public Type type;
+        public int typeIndex;
     }
 
     class EntityInfo
@@ -66,8 +75,10 @@ namespace WorldsEngine
         static extern void registry_destroy(IntPtr regPtr, uint entityId);
 
         private IntPtr nativeRegistryPtr;
-        private Dictionary<Type, IComponentStorage> componentStorages = new Dictionary<Type, IComponentStorage>();
+        private IComponentStorage[] componentStorages = new IComponentStorage[32];
         private Dictionary<uint, EntityInfo> entityInfo = new Dictionary<uint, EntityInfo>();
+
+        internal static int typeCounter = 0;
 
         internal Registry(IntPtr nativePtr)
         {
@@ -105,18 +116,17 @@ namespace WorldsEngine
         public ref T GetComponent<T>(Entity entity) where T : struct
         {
             var type = typeof(T);
+            var typeIndex = ComponentStorage<T>.typeIndex;
 
-            if (!componentStorages.ContainsKey(type))
-            {
-                componentStorages.Add(type, new ComponentStorage<T>());
-            }
+            if (componentStorages[typeIndex] == null)
+                componentStorages[typeIndex] = new ComponentStorage<T>();
 
-            var storage = (ComponentStorage<T>)componentStorages[type];
+            var storage = (ComponentStorage<T>)componentStorages[ComponentStorage<T>.typeIndex];
             var entInfo = entityInfo[entity.ID];
 
             foreach (var componentInfo in entInfo.components)
             {
-                if (componentInfo.type == type)
+                if (componentInfo.typeIndex == typeIndex)
                     return ref storage.components[componentInfo.index];
             }
 
@@ -126,13 +136,12 @@ namespace WorldsEngine
         public void SetComponent<T>(Entity entity, T component) where T : struct
         {
             var type = typeof(T);
+            var typeIndex = ComponentStorage<T>.typeIndex;
 
-            if (!componentStorages.ContainsKey(type))
-            {
-                componentStorages.Add(type, new ComponentStorage<T>());
-            }
+            if (componentStorages[typeIndex] == null)
+                componentStorages[typeIndex] = new ComponentStorage<T>();
 
-            var storage = (ComponentStorage<T>)componentStorages[type];
+            var storage = (ComponentStorage<T>)componentStorages[typeIndex];
 
             if (!entityInfo.ContainsKey(entity.ID))
                 entityInfo.Add(entity.ID, new EntityInfo());
@@ -141,18 +150,40 @@ namespace WorldsEngine
 
             foreach (var componentInfo in entInfo.components)
             {
-                if (componentInfo.type == type)
+                if (componentInfo.typeIndex == typeIndex)
                     storage.components[componentInfo.index] = component;
             }
 
             int freeIndex = storage.GetFreeIndex();
             storage.components[freeIndex] = component;
+            storage.slotFree[freeIndex] = false;
 
             var eci = new EntityComponentInfo();
             eci.index = freeIndex;
-            eci.type = type;
+            eci.typeIndex = typeIndex;
 
             entInfo.components.Add(eci);
+        }
+
+        public void RemoveComponent<T>(Entity entity) where T : struct
+        {
+            var type = typeof(T);
+            var typeIndex = ComponentStorage<T>.typeIndex;
+
+            if (componentStorages[typeIndex] == null)
+                componentStorages[typeIndex] = new ComponentStorage<T>();
+
+            var storage = (ComponentStorage<T>)componentStorages[typeIndex];
+
+            if (!entityInfo.ContainsKey(entity.ID))
+                throw new ArgumentException("Non-existent entity");
+
+            var entInfo = entityInfo[entity.ID];
+            int componentIndex = entInfo.components.FindIndex(c => c.typeIndex == typeIndex);
+            var componentInfo = entInfo.components[componentIndex];
+
+            storage.slotFree[componentInfo.index] = true;
+            entInfo.components.RemoveAt(componentIndex);
         }
 
         public Transform GetTransform(Entity entity)

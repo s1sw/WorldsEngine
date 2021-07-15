@@ -89,6 +89,12 @@ namespace WorldsEngine
                         Logger.Log($"lol: {comp.lol}");
                     }
 
+                    if (ImGui.Button("Remove a thing"))
+                    {
+                        Entity entity = new Entity(0);
+                        registry.RemoveComponent<CustomComponent>(entity);
+                    }
+
                     ImGui.Text("Entities:");
 
                     registry.Each((Entity entity) => {
