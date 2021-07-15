@@ -132,6 +132,7 @@ namespace worlds {
             }
         }
 
+        logMsg("window thread exiting");
         // SDL requires threads to return an int
         return 0;
     }
@@ -589,7 +590,9 @@ namespace worlds {
                 SDL_ShowWindow(window);
             }
 
+            logMsg("deleting splashWindow");
             delete splashWindow;
+            logMsg("splashWIndow deleted");
         }
 
 

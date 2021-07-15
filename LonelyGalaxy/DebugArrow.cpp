@@ -29,15 +29,15 @@ namespace lg {
 
         arrowsInUse = 0;
     }
-    
+
     void DebugArrows::createEntities() {
         arrowEntities.clear();
         auto meshId = worlds::AssetDB::pathToId("arrow.obj");
         auto matId = worlds::AssetDB::pathToId("Materials/glowred.json");
-        for (size_t i = 0; i < 16; i++) {
+        for (size_t i = 0; i < 8; i++) {
             auto ent = worlds::createModelObject(reg, glm::vec3{0.0f}, glm::quat{}, meshId, matId);
 
-            auto& t = reg.get<Transform>(ent); 
+            auto& t = reg.get<Transform>(ent);
             t.position = glm::vec3(0.0f, -10000.0f, 0.0f);
 
             arrowEntities.push_back(ent);

@@ -38,18 +38,18 @@ namespace WorldsEngine
 
         static Registry registry;
 
-        static bool Init()
+        static bool Init(IntPtr registryPtr)
         {
 #if Linux
             NativeLibrary.SetDllImportResolver(typeof(WorldsEngine).Assembly, ImportResolver);
 #endif
+            registry = new Registry(registryPtr);
             return true;
         }
 
-        static void OnSceneStart(IntPtr registryPtr)
+        static void OnSceneStart()
         {
             Logger.Log("Scene started!");
-            registry = new Registry(registryPtr);
         }
 
         static void Update(float deltaTime)
@@ -100,9 +100,17 @@ namespace WorldsEngine
                         {
                             var worldObject = registry.GetBuiltinComponent<WorldObject>(entity);
                             ImGui.SameLine();
-                            ImGui.Text($"Mesh: {(worldObject.mesh.ID)}");
+                            if (AssetDB.Exists(worldObject.mesh))
+                            {
+                                ImGui.Text($"Mesh: {AssetDB.IdToPath(worldObject.mesh)}");
+                            }
+                            else
+                            {
+                                ImGui.Text("Missing mesh!");
+                            }
                         }
                     });
+
 
                     ImGui.End();
                 }
@@ -117,6 +125,17 @@ namespace WorldsEngine
         {
             if (ImGui.Begin("Hello :)")) {
                 ImGui.Text("hi");
+                if (ImGui.Button("Destroy Those Dang Arrows"))
+                {
+                    registry.Each((Entity entity) => {
+                        Transform t = registry.GetTransform(entity);
+
+                        if (t.position.y < -9000.0f)
+                        {
+                            registry.Destroy(entity);
+                        }
+                    });
+                }
                 ImGui.End();
             }
         }
