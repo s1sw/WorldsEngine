@@ -115,5 +115,6 @@ namespace worlds {
             //SDL_Delay(10);
         }
 
+        logMsg("splash window thread exiting");
     }
 }

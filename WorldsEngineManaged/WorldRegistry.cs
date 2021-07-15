@@ -2,6 +2,7 @@ using System;
 using System.Text;
 using System.Runtime.InteropServices;
 using System.Collections.Generic;
+using System.Collections;
 
 namespace WorldsEngine
 {
@@ -11,11 +12,34 @@ namespace WorldsEngine
 
     class ComponentStorage<T> : IComponentStorage
     {
-        public Dictionary<uint, T> component = new Dictionary<uint, T>();
+        public T[] components = new T[1000];
+        public BitArray slotFree = new BitArray(1000);
+
+        public int GetFreeIndex()
+        {
+            for (int i = 0; i < slotFree.Length; i++)
+            {
+                if (slotFree[i])
+                    return i;
+            }
+
+            throw new ApplicationException("Out of component slots");
+        }
     }
 
     public class BuiltinComponent
     {
+    }
+
+    struct EntityComponentInfo
+    {
+        public int index;
+        public Type type;
+    }
+
+    class EntityInfo
+    {
+        public List<EntityComponentInfo> components = new List<EntityComponentInfo>();
     }
 
     public class Registry
@@ -38,8 +62,12 @@ namespace WorldsEngine
         [DllImport(WorldsEngine.NATIVE_MODULE)]
         static extern void registry_getEntityName(IntPtr regPtr, uint entityId, StringBuilder str);
 
+        [DllImport(WorldsEngine.NATIVE_MODULE)]
+        static extern void registry_destroy(IntPtr regPtr, uint entityId);
+
         private IntPtr nativeRegistryPtr;
         private Dictionary<Type, IComponentStorage> componentStorages = new Dictionary<Type, IComponentStorage>();
+        private Dictionary<uint, EntityInfo> entityInfo = new Dictionary<uint, EntityInfo>();
 
         internal Registry(IntPtr nativePtr)
         {
@@ -74,7 +102,7 @@ namespace WorldsEngine
             }
         }
 
-        public T GetComponent<T>(Entity entity) where T : struct
+        public ref T GetComponent<T>(Entity entity) where T : struct
         {
             var type = typeof(T);
 
@@ -84,8 +112,15 @@ namespace WorldsEngine
             }
 
             var storage = (ComponentStorage<T>)componentStorages[type];
+            var entInfo = entityInfo[entity.ID];
 
-            return storage.component[entity.ID];
+            foreach (var componentInfo in entInfo.components)
+            {
+                if (componentInfo.type == type)
+                    return ref storage.components[componentInfo.index];
+            }
+
+            throw new ArgumentException("Tried to get component that isn't there");
         }
 
         public void SetComponent<T>(Entity entity, T component) where T : struct
@@ -99,7 +134,25 @@ namespace WorldsEngine
 
             var storage = (ComponentStorage<T>)componentStorages[type];
 
-            storage.component[entity.ID] = component;
+            if (!entityInfo.ContainsKey(entity.ID))
+                entityInfo.Add(entity.ID, new EntityInfo());
+
+            var entInfo = entityInfo[entity.ID];
+
+            foreach (var componentInfo in entInfo.components)
+            {
+                if (componentInfo.type == type)
+                    storage.components[componentInfo.index] = component;
+            }
+
+            int freeIndex = storage.GetFreeIndex();
+            storage.components[freeIndex] = component;
+
+            var eci = new EntityComponentInfo();
+            eci.index = freeIndex;
+            eci.type = type;
+
+            entInfo.components.Add(eci);
         }
 
         public Transform GetTransform(Entity entity)
@@ -155,5 +208,10 @@ namespace WorldsEngine
             currentEntityFunction = null;
         }
 #endregion
+
+        public void Destroy(Entity entity)
+        {
+            registry_destroy(nativeRegistryPtr, entity.ID);
+        }
     }
 }

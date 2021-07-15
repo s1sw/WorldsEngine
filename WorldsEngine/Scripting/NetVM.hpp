@@ -34,6 +34,6 @@ namespace worlds {
             DotNetFunctionPtrs netFuncs;
             void(*updateFunc)(float deltaTime);
             void(*editorUpdateFunc)(float deltaTime);
-            void(*sceneStartFunc)(entt::registry* registry);
+            void(*sceneStartFunc)();
     };
 }

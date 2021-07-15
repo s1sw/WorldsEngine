@@ -1,20 +1,20 @@
 worlds_sources += [
-  'ImGui/imgui.cpp',
-  'ImGui/ImGuizmo.cpp',
-  'ImGui/imgui_demo.cpp',
   'ImGui/imgui_draw.cpp',
   'ImGui/imgui_impl_sdl.cpp',
-  'ImGui/imgui_impl_vulkan.cpp',
   'ImGui/imgui_stdlib.cpp',
+  'ImGui/imgui_impl_vulkan.cpp',
+  'ImGui/ImGuizmo.cpp',
+  'ImGui/imgui.cpp',
+  'ImGui/imgui_demo.cpp',
   'ImGui/imgui_widgets.cpp',
-  'ImGui/imconfig.h',
-  'ImGui/imgui.h',
   'ImGui/ImGuizmo.h',
   'ImGui/imgui_impl_sdl.h',
   'ImGui/imgui_impl_vulkan.h',
-  'ImGui/imgui_internal.h',
   'ImGui/imgui_stdlib.h',
   'ImGui/imstb_rectpack.h',
   'ImGui/imstb_textedit.h',
-  'ImGui/imstb_truetype.h'
+  'ImGui/imstb_truetype.h',
+  'ImGui/imgui.h',
+  'ImGui/imgui_internal.h',
+  'ImGui/imconfig.h'
 ]

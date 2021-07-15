@@ -1,8 +1,9 @@
 worlds_sources += [
-  'Scripting/AssetDBBindings.cpp',
   'Scripting/NetVM.cpp',
-  'Scripting/WorldObjectBindings.cpp',
+  'Scripting/ScriptComponent.hpp',
   'Scripting/Export.hpp',
   'Scripting/NetVM.hpp',
-  'Scripting/ScriptComponent.hpp'
+  'Scripting/AssetDBBindings.hpp',
+  'Scripting/WorldObjectBindings.hpp',
+  'Scripting/RegistryBindings.hpp'
 ]
