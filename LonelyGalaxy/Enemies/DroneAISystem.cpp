@@ -45,7 +45,7 @@ namespace lg {
                 ai.currentTarget = playerTransform.position + glm::vec3(0.0f, 1.0f, 0.0f);
 
             worlds::RaycastHitInfo rhi;
-            if (!worlds::raycast(pose.position - glm::vec3(0.0f, 0.5f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f), 5.0f, &rhi)) return;
+            if (!worlds::raycast(pose.position - glm::vec3(0.0f, 0.5f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f), 50.0f, &rhi)) return;
 
             glm::vec3 target = ai.currentTarget;
             glm::vec3 playerDirection = target - pose.position;
@@ -54,8 +54,8 @@ namespace lg {
 
             target -= playerDirection * 3.5f;
             //target.y += 2.0f;
-            target.y = rhi.worldPos.y + 3.0f;
-            //target.y = glm::min(target.y + 1.0f, rhi.worldPos.y + 5.0f);
+            //target.y = rhi.worldPos.y + 3.0f;
+            target.y = glm::max(target.y, rhi.worldPos.y + 3.0f);
 
             glm::quat targetRotation = safeQuatLookat(-playerDirection);
             glm::vec3 actualDirection = pose.transformDirection(glm::vec3(0.0f, 0.0f, 1.0f));
