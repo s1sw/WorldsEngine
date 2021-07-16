@@ -43,4 +43,10 @@ extern "C" {
     EXPORT void registry_destroy(entt::registry* registry, entt::entity entity) {
         registry->destroy(entity);
     }
+
+    EXPORT uint32_t registry_create(entt::registry* registry) {
+        entt::entity ent = registry->create();
+        registry->emplace<Transform>(ent);
+        return entt::to_integral(ent);
+    }
 }

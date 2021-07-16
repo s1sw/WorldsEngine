@@ -13,8 +13,9 @@ namespace WorldsEngine
 
     class ComponentStorage<T> : IComponentStorage
     {
-        public T[] components = new T[1000];
-        public BitArray slotFree = new BitArray(1000, true);
+        public const int Size = 1000;
+        public T[] components = new T[Size];
+        public BitArray slotFree = new BitArray(Size, true);
         public static readonly int typeIndex;
         public static readonly Type type;
 
@@ -51,29 +52,35 @@ namespace WorldsEngine
         public List<EntityComponentInfo> components = new List<EntityComponentInfo>();
     }
 
-    public class Registry
+    internal class NativeRegistry
     {
         [DllImport(WorldsEngine.NATIVE_MODULE)]
-        static extern void registry_getTransform(IntPtr regPtr, uint entityId, IntPtr transformPtr);
+        public static extern void registry_getTransform(IntPtr regPtr, uint entityId, IntPtr transformPtr);
 
         [DllImport(WorldsEngine.NATIVE_MODULE)]
-        static extern void registry_setTransform(IntPtr regPtr, uint entityId, IntPtr transformPtr);
+        public static extern void registry_setTransform(IntPtr regPtr, uint entityId, IntPtr transformPtr);
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         public delegate void EntityCallbackDelegate(uint entityId);
 
         [DllImport(WorldsEngine.NATIVE_MODULE)]
-        static extern void registry_eachTransform(IntPtr regPtr, EntityCallbackDelegate del);
+        public static extern void registry_eachTransform(IntPtr regPtr, EntityCallbackDelegate del);
 
         [DllImport(WorldsEngine.NATIVE_MODULE)]
-        static extern uint registry_getEntityNameLength(IntPtr regPtr, uint entityId);
+        public static extern uint registry_getEntityNameLength(IntPtr regPtr, uint entityId);
 
         [DllImport(WorldsEngine.NATIVE_MODULE)]
-        static extern void registry_getEntityName(IntPtr regPtr, uint entityId, StringBuilder str);
+        public static extern void registry_getEntityName(IntPtr regPtr, uint entityId, StringBuilder str);
 
         [DllImport(WorldsEngine.NATIVE_MODULE)]
-        static extern void registry_destroy(IntPtr regPtr, uint entityId);
+        public static extern void registry_destroy(IntPtr regPtr, uint entityId);
 
+        [DllImport(WorldsEngine.NATIVE_MODULE)]
+        public static extern uint registry_create(IntPtr regPtr);
+    }
+
+    public class Registry
+    {
         private IntPtr nativeRegistryPtr;
         private IComponentStorage[] componentStorages = new IComponentStorage[32];
         private Dictionary<uint, EntityInfo> entityInfo = new Dictionary<uint, EntityInfo>();
@@ -83,6 +90,14 @@ namespace WorldsEngine
         internal Registry(IntPtr nativePtr)
         {
             nativeRegistryPtr = nativePtr;
+        }
+
+        private ComponentStorage<T> AssureStorage<T>(int typeIndex)
+        {
+            if (componentStorages[typeIndex] == null)
+                componentStorages[typeIndex] = new ComponentStorage<T>();
+
+            return (ComponentStorage<T>)componentStorages[ComponentStorage<T>.typeIndex];
         }
 
         public T GetBuiltinComponent<T>(Entity entity)
@@ -118,10 +133,7 @@ namespace WorldsEngine
             var type = typeof(T);
             var typeIndex = ComponentStorage<T>.typeIndex;
 
-            if (componentStorages[typeIndex] == null)
-                componentStorages[typeIndex] = new ComponentStorage<T>();
-
-            var storage = (ComponentStorage<T>)componentStorages[ComponentStorage<T>.typeIndex];
+            var storage = AssureStorage<T>(typeIndex);
             var entInfo = entityInfo[entity.ID];
 
             foreach (var componentInfo in entInfo.components)
@@ -137,11 +149,7 @@ namespace WorldsEngine
         {
             var type = typeof(T);
             var typeIndex = ComponentStorage<T>.typeIndex;
-
-            if (componentStorages[typeIndex] == null)
-                componentStorages[typeIndex] = new ComponentStorage<T>();
-
-            var storage = (ComponentStorage<T>)componentStorages[typeIndex];
+            var storage = AssureStorage<T>(typeIndex);
 
             if (!entityInfo.ContainsKey(entity.ID))
                 entityInfo.Add(entity.ID, new EntityInfo());
@@ -192,7 +200,7 @@ namespace WorldsEngine
             unsafe
             {
                 Transform* tPtr = &t;
-                registry_getTransform(nativeRegistryPtr, entity.ID, (IntPtr)tPtr);
+                NativeRegistry.registry_getTransform(nativeRegistryPtr, entity.ID, (IntPtr)tPtr);
             }
             return t;
         }
@@ -202,25 +210,25 @@ namespace WorldsEngine
             unsafe
             {
                 Transform* tPtr = &t;
-                registry_setTransform(nativeRegistryPtr, entity.ID, (IntPtr)tPtr);
+                NativeRegistry.registry_setTransform(nativeRegistryPtr, entity.ID, (IntPtr)tPtr);
             }
         }
 
         public bool HasName(Entity entity)
         {
-            uint length = registry_getEntityNameLength(nativeRegistryPtr, entity.ID);
+            uint length = NativeRegistry.registry_getEntityNameLength(nativeRegistryPtr, entity.ID);
             return length != uint.MaxValue;
         }
 
         public string GetName(Entity entity)
         {
-            uint length = registry_getEntityNameLength(nativeRegistryPtr, entity.ID);
+            uint length = NativeRegistry.registry_getEntityNameLength(nativeRegistryPtr, entity.ID);
 
             if (length == uint.MaxValue)
                 return null;
 
             StringBuilder sb = new StringBuilder((int)length);
-            registry_getEntityName(nativeRegistryPtr, entity.ID, sb);
+            NativeRegistry.registry_getEntityName(nativeRegistryPtr, entity.ID, sb);
             return sb.ToString();
         }
 
@@ -235,14 +243,19 @@ namespace WorldsEngine
         public void Each(Action<Entity> function)
         {
             currentEntityFunction = function;
-            registry_eachTransform(nativeRegistryPtr, EntityCallback);
+            NativeRegistry.registry_eachTransform(nativeRegistryPtr, EntityCallback);
             currentEntityFunction = null;
         }
 #endregion
 
         public void Destroy(Entity entity)
         {
-            registry_destroy(nativeRegistryPtr, entity.ID);
+            NativeRegistry.registry_destroy(nativeRegistryPtr, entity.ID);
+        }
+
+        public Entity Create()
+        {
+            return new Entity(NativeRegistry.registry_create(nativeRegistryPtr));
         }
     }
 }
