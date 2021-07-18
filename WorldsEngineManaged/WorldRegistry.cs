@@ -81,8 +81,13 @@ namespace WorldsEngine
 
     public class Registry
     {
+        const int COMPONENT_STORAGE_COUNT = 32;
+
         private IntPtr nativeRegistryPtr;
-        private IComponentStorage[] componentStorages = new IComponentStorage[32];
+        private IComponentStorage[] componentStorages = new IComponentStorage[COMPONENT_STORAGE_COUNT];
+
+        // I don't like this dictionary.
+        // TODO: Properly track entities.
         private Dictionary<uint, EntityInfo> entityInfo = new Dictionary<uint, EntityInfo>();
 
         internal static int typeCounter = 0;
@@ -94,13 +99,16 @@ namespace WorldsEngine
 
         private ComponentStorage<T> AssureStorage<T>(int typeIndex)
         {
+            if (typeIndex >= COMPONENT_STORAGE_COUNT)
+                throw new ArgumentOutOfRangeException("Out of component pools. Oops.");
+
             if (componentStorages[typeIndex] == null)
                 componentStorages[typeIndex] = new ComponentStorage<T>();
 
             return (ComponentStorage<T>)componentStorages[ComponentStorage<T>.typeIndex];
         }
 
-        public T GetBuiltinComponent<T>(Entity entity)
+        public T GetBuiltinComponent<T>(Entity entity) where T : BuiltinComponent
         {
             var type = typeof(T);
 
@@ -108,13 +116,11 @@ namespace WorldsEngine
             {
                 return (T)(object)new WorldObject(nativeRegistryPtr, entity.ID);
             }
-            else
-            {
-                throw new ArgumentException($"Type {type.FullName} is not a builtin component.");
-            }
+
+            throw new ArgumentException($"Type {type.FullName} is not a builtin component.");
         }
 
-        public bool HasBuiltinComponent<T>(Entity entity)
+        public bool HasBuiltinComponent<T>(Entity entity) where T : BuiltinComponent
         {
             var type = typeof(T);
 
@@ -122,10 +128,8 @@ namespace WorldsEngine
             {
                 return WorldObject.ExistsOn(nativeRegistryPtr, entity);
             }
-            else
-            {
-                throw new ArgumentException($"Type {type.FullName} is not a builtin component.");
-            }
+
+            throw new ArgumentException($"Type {type.FullName} is not a builtin component.");
         }
 
         public ref T GetComponent<T>(Entity entity) where T : struct

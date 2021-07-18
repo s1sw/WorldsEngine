@@ -1,6 +1,7 @@
 ﻿using System;
+using System.Runtime.Loader;
 using System.Reflection;
-using System.Runtime.InteropServices;
+using System.Collections.Generic;
 
 namespace WorldsEngine
 {
@@ -37,6 +38,9 @@ namespace WorldsEngine
 #endif
 
         static Registry registry;
+        static AssemblyLoadContext loadContext;
+        static Assembly gameAssembly = null;
+        static List<ISystem> gameSystems = new List<ISystem>();
 
         static bool Init(IntPtr registryPtr)
         {
@@ -44,81 +48,51 @@ namespace WorldsEngine
             NativeLibrary.SetDllImportResolver(typeof(WorldsEngine).Assembly, ImportResolver);
 #endif
             registry = new Registry(registryPtr);
+            loadContext = new AssemblyLoadContext("Game Context", true);
+            LoadGameDLL();
             return true;
+        }
+
+        static void LoadGameDLL()
+        {
+            gameAssembly = loadContext.LoadFromAssemblyPath(System.IO.Path.GetFullPath("GameAssemblies/Game.dll"));
+
+            if (gameAssembly == null)
+            {
+                Logger.LogError("Failed to load game assembly!");
+                return;
+            }
+
+            foreach (Type systemType in gameAssembly.GetTypes())
+            {
+                if (!typeof(ISystem).IsAssignableFrom(systemType))
+                {
+                    continue;
+                }
+
+                gameSystems.Add((ISystem)Activator.CreateInstance(systemType, registry));
+            }
+
+            Logger.Log($"Loaded {gameSystems.Count} sytems");
         }
 
         static void OnSceneStart()
         {
             Logger.Log("Scene started!");
+
+            foreach (var system in gameSystems)
+            {
+                system.OnSceneStart();
+            }
         }
 
         static void Update(float deltaTime)
         {
             try
             {
-                if (ImGui.Begin("Hello from .NET!"))
+                foreach (var system in gameSystems)
                 {
-                    ImGui.Text("Hey, how's it goin'? :)");
-
-                    if (ImGui.Button("Click me!"))
-                    {
-                        Logger.Log("Tee-hee");
-                    }
-
-                    if (ImGui.Button("Move a thing"))
-                    {
-                        Entity entity = new Entity(0);
-                        Transform t = registry.GetTransform(entity);
-                        t.position = new Vector3(0.0f, 10.0f, 0.0f);
-                        registry.SetTransform(entity, t);
-                    }
-
-                    if (ImGui.Button("Set a thing"))
-                    {
-                        Entity entity = new Entity(0);
-                        CustomComponent c = new CustomComponent();
-                        c.whatever = 1.0f;
-                        c.lol = 1337;
-                        registry.SetComponent<CustomComponent>(entity, c);
-                    }
-
-                    if (ImGui.Button("Get a thing"))
-                    {
-                        Entity entity = new Entity(0);
-                        var comp = registry.GetComponent<CustomComponent>(entity);
-                        Logger.Log($"lol: {comp.lol}");
-                    }
-
-                    if (ImGui.Button("Remove a thing"))
-                    {
-                        Entity entity = new Entity(0);
-                        registry.RemoveComponent<CustomComponent>(entity);
-                    }
-
-                    ImGui.Text("Entities:");
-
-                    registry.Each((Entity entity) => {
-                        Transform t = registry.GetTransform(entity);
-                        string name = registry.HasName(entity) ? registry.GetName(entity) : entity.ID.ToString();
-                        ImGui.Text($"{name}: {t.position.x:0.###}, {t.position.y:0.###}, {t.position.z:0.###}");
-
-                        if (registry.HasBuiltinComponent<WorldObject>(entity))
-                        {
-                            var worldObject = registry.GetBuiltinComponent<WorldObject>(entity);
-                            ImGui.SameLine();
-                            if (AssetDB.Exists(worldObject.mesh))
-                            {
-                                ImGui.Text($"Mesh: {AssetDB.IdToPath(worldObject.mesh)}");
-                            }
-                            else
-                            {
-                                ImGui.Text("Missing mesh!");
-                            }
-                        }
-                    });
-
-
-                    ImGui.End();
+                    system.OnUpdate(deltaTime);
                 }
             }
             catch (Exception e)
