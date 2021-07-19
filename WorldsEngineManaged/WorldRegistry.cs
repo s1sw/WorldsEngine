@@ -3,92 +3,46 @@ using System.Text;
 using System.Runtime.InteropServices;
 using System.Collections.Generic;
 using System.Collections;
-using System.Threading;
 
 namespace WorldsEngine
 {
-    interface IComponentStorage
-    {
-    }
-
-    class ComponentStorage<T> : IComponentStorage
-    {
-        public const int Size = 1000;
-        public T[] components = new T[Size];
-        public BitArray slotFree = new BitArray(Size, true);
-        public static readonly int typeIndex;
-        public static readonly Type type;
-
-        static ComponentStorage()
-        {
-            typeIndex = Interlocked.Increment(ref Registry.typeCounter);
-            type = typeof(T);
-        }
-
-        public int GetFreeIndex()
-        {
-            for (int i = 0; i < slotFree.Length; i++)
-            {
-                if (slotFree[i])
-                    return i;
-            }
-
-            throw new ApplicationException("Out of component slots");
-        }
-    }
-
     public class BuiltinComponent
     {
     }
 
-    struct EntityComponentInfo
-    {
-        public int index;
-        public int typeIndex;
-    }
-
-    class EntityInfo
-    {
-        public List<EntityComponentInfo> components = new List<EntityComponentInfo>();
-    }
-
     internal class NativeRegistry
     {
-        [DllImport(WorldsEngine.NATIVE_MODULE)]
+        [DllImport(WorldsEngine.NativeModule)]
         public static extern void registry_getTransform(IntPtr regPtr, uint entityId, IntPtr transformPtr);
 
-        [DllImport(WorldsEngine.NATIVE_MODULE)]
+        [DllImport(WorldsEngine.NativeModule)]
         public static extern void registry_setTransform(IntPtr regPtr, uint entityId, IntPtr transformPtr);
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         public delegate void EntityCallbackDelegate(uint entityId);
 
-        [DllImport(WorldsEngine.NATIVE_MODULE)]
+        [DllImport(WorldsEngine.NativeModule)]
         public static extern void registry_eachTransform(IntPtr regPtr, EntityCallbackDelegate del);
 
-        [DllImport(WorldsEngine.NATIVE_MODULE)]
+        [DllImport(WorldsEngine.NativeModule)]
         public static extern uint registry_getEntityNameLength(IntPtr regPtr, uint entityId);
 
-        [DllImport(WorldsEngine.NATIVE_MODULE)]
+        [DllImport(WorldsEngine.NativeModule)]
         public static extern void registry_getEntityName(IntPtr regPtr, uint entityId, StringBuilder str);
 
-        [DllImport(WorldsEngine.NATIVE_MODULE)]
+        [DllImport(WorldsEngine.NativeModule)]
         public static extern void registry_destroy(IntPtr regPtr, uint entityId);
 
-        [DllImport(WorldsEngine.NATIVE_MODULE)]
+        [DllImport(WorldsEngine.NativeModule)]
         public static extern uint registry_create(IntPtr regPtr);
     }
 
     public class Registry
     {
-        const int COMPONENT_STORAGE_COUNT = 32;
+        const int ComponentPoolCount = 32;
 
         private IntPtr nativeRegistryPtr;
-        private IComponentStorage[] componentStorages = new IComponentStorage[COMPONENT_STORAGE_COUNT];
-
-        // I don't like this dictionary.
-        // TODO: Properly track entities.
-        private Dictionary<uint, EntityInfo> entityInfo = new Dictionary<uint, EntityInfo>();
+        private IComponentStorage[] componentStorages = new IComponentStorage[ComponentPoolCount];
 
         internal static int typeCounter = 0;
 
@@ -97,15 +51,17 @@ namespace WorldsEngine
             nativeRegistryPtr = nativePtr;
         }
 
-        private ComponentStorage<T> AssureStorage<T>(int typeIndex)
+        private ComponentStorage<T> AssureStorage<T>()
         {
-            if (typeIndex >= COMPONENT_STORAGE_COUNT)
+            int typeIndex = ComponentStorage<T>.typeIndex;
+
+            if (typeIndex >= ComponentPoolCount)
                 throw new ArgumentOutOfRangeException("Out of component pools. Oops.");
 
             if (componentStorages[typeIndex] == null)
                 componentStorages[typeIndex] = new ComponentStorage<T>();
 
-            return (ComponentStorage<T>)componentStorages[ComponentStorage<T>.typeIndex];
+            return (ComponentStorage<T>)componentStorages[typeIndex];
         }
 
         public T GetBuiltinComponent<T>(Entity entity) where T : BuiltinComponent
@@ -134,68 +90,30 @@ namespace WorldsEngine
 
         public ref T GetComponent<T>(Entity entity) where T : struct
         {
-            var type = typeof(T);
-            var typeIndex = ComponentStorage<T>.typeIndex;
+            var storage = AssureStorage<T>();
 
-            var storage = AssureStorage<T>(typeIndex);
-            var entInfo = entityInfo[entity.ID];
-
-            foreach (var componentInfo in entInfo.components)
-            {
-                if (componentInfo.typeIndex == typeIndex)
-                    return ref storage.components[componentInfo.index];
-            }
-
-            throw new ArgumentException("Tried to get component that isn't there");
+            return ref storage.Get(entity);
         }
 
         public void SetComponent<T>(Entity entity, T component) where T : struct
         {
             var type = typeof(T);
-            var typeIndex = ComponentStorage<T>.typeIndex;
-            var storage = AssureStorage<T>(typeIndex);
+            var storage = AssureStorage<T>();
 
-            if (!entityInfo.ContainsKey(entity.ID))
-                entityInfo.Add(entity.ID, new EntityInfo());
-
-            var entInfo = entityInfo[entity.ID];
-
-            foreach (var componentInfo in entInfo.components)
+            if (storage.Contains(entity))
             {
-                if (componentInfo.typeIndex == typeIndex)
-                    storage.components[componentInfo.index] = component;
+                storage.Get(entity) = component;
+                return;
             }
 
-            int freeIndex = storage.GetFreeIndex();
-            storage.components[freeIndex] = component;
-            storage.slotFree[freeIndex] = false;
-
-            var eci = new EntityComponentInfo();
-            eci.index = freeIndex;
-            eci.typeIndex = typeIndex;
-
-            entInfo.components.Add(eci);
+            storage.Set(entity, component);
         }
 
         public void RemoveComponent<T>(Entity entity) where T : struct
         {
-            var type = typeof(T);
-            var typeIndex = ComponentStorage<T>.typeIndex;
+            var storage = AssureStorage<T>();
 
-            if (componentStorages[typeIndex] == null)
-                componentStorages[typeIndex] = new ComponentStorage<T>();
-
-            var storage = (ComponentStorage<T>)componentStorages[typeIndex];
-
-            if (!entityInfo.ContainsKey(entity.ID))
-                throw new ArgumentException("Non-existent entity");
-
-            var entInfo = entityInfo[entity.ID];
-            int componentIndex = entInfo.components.FindIndex(c => c.typeIndex == typeIndex);
-            var componentInfo = entInfo.components[componentIndex];
-
-            storage.slotFree[componentInfo.index] = true;
-            entInfo.components.RemoveAt(componentIndex);
+            storage.Remove(entity);
         }
 
         public Transform GetTransform(Entity entity)
@@ -260,6 +178,11 @@ namespace WorldsEngine
         public Entity Create()
         {
             return new Entity(NativeRegistry.registry_create(nativeRegistryPtr));
+        }
+
+        public ComponentStorage<T> View<T>()
+        {
+            return AssureStorage<T>();
         }
     }
 }

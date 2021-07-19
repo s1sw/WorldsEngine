@@ -7,19 +7,19 @@ namespace WorldsEngine
 {
     public class ImGui
     {
-        [DllImport(WorldsEngine.NATIVE_MODULE)]
+        [DllImport(WorldsEngine.NativeModule)]
         private static extern bool imgui_begin(string name);
 
-        [DllImport(WorldsEngine.NATIVE_MODULE)]
+        [DllImport(WorldsEngine.NativeModule)]
         private static extern void imgui_end();
 
-        [DllImport(WorldsEngine.NATIVE_MODULE)]
+        [DllImport(WorldsEngine.NativeModule)]
         private static extern void imgui_text(string text);
 
-        [DllImport(WorldsEngine.NATIVE_MODULE)]
+        [DllImport(WorldsEngine.NativeModule)]
         private static extern bool imgui_button(string text, float sizeX, float sizeY);
 
-        [DllImport(WorldsEngine.NATIVE_MODULE)]
+        [DllImport(WorldsEngine.NativeModule)]
         private static extern void imgui_sameLine(float offsetFromStartX, float spacing);
 
         public static bool Begin(string name)

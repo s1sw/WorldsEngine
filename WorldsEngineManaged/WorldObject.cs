@@ -23,19 +23,19 @@ namespace WorldsEngine
 
     public class WorldObject : BuiltinComponent
     {
-        [DllImport(WorldsEngine.NATIVE_MODULE)]
+        [DllImport(WorldsEngine.NativeModule)]
         private static extern uint worldObject_getMesh(IntPtr registryPtr, uint entityId);
 
-        [DllImport(WorldsEngine.NATIVE_MODULE)]
+        [DllImport(WorldsEngine.NativeModule)]
         private static extern void worldObject_setMesh(IntPtr registryPtr, uint entityId, uint meshId);
 
-        [DllImport(WorldsEngine.NATIVE_MODULE)]
+        [DllImport(WorldsEngine.NativeModule)]
         private static extern uint worldObject_getMaterial(IntPtr registryPtr, uint entityId, uint materialIndex);
 
-        [DllImport(WorldsEngine.NATIVE_MODULE)]
+        [DllImport(WorldsEngine.NativeModule)]
         private static extern void worldObject_setMaterial(IntPtr registryPtr, uint entityId, uint materialIndex, uint material);
 
-        [DllImport(WorldsEngine.NATIVE_MODULE)]
+        [DllImport(WorldsEngine.NativeModule)]
         private static extern char worldObject_exists(IntPtr registryPtr, uint entityId);
 
         internal static bool ExistsOn(IntPtr regPtr, Entity entity)
