@@ -5,13 +5,13 @@ namespace WorldsEngine
 {
     public static class AssetDB
     {
-        [DllImport(WorldsEngine.NATIVE_MODULE)]
+        [DllImport(WorldsEngine.NativeModule)]
         private static extern void assetDB_idToPath(uint id, out uint length, StringBuilder str);
 
-        [DllImport(WorldsEngine.NATIVE_MODULE)]
+        [DllImport(WorldsEngine.NativeModule)]
         private static extern uint assetDB_pathToId(string path);
 
-        [DllImport(WorldsEngine.NATIVE_MODULE)]
+        [DllImport(WorldsEngine.NativeModule)]
         private static extern byte assetDB_exists(uint id);
 
 

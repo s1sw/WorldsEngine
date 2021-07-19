@@ -2,15 +2,16 @@
 using System.Runtime.Loader;
 using System.Reflection;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 
 namespace WorldsEngine
 {
     internal class WorldsEngine
     {
 #if Windows
-        internal const string NATIVE_MODULE = "lonelygalaxy.exe";
+        internal const string NativeModule = "lonelygalaxy.exe";
 #elif Linux
-        internal const string NATIVE_MODULE = "lonelygalaxy";
+        internal const string NativeModule = "lonelygalaxy";
 #else
 #error Unknown platform
 #endif
@@ -30,7 +31,7 @@ namespace WorldsEngine
             // returns the address of the executable, which you can pass to dlsym.
             // So we just dlopen null and return that.
             // This requires linking with "-rdynamic" to export symbols.
-            if (libraryName == NATIVE_MODULE)
+            if (libraryName == NativeModule)
                 handle = dlopen(null, RTLD_NOW | RTLD_NOLOAD);
 
             return handle;
@@ -48,13 +49,13 @@ namespace WorldsEngine
             NativeLibrary.SetDllImportResolver(typeof(WorldsEngine).Assembly, ImportResolver);
 #endif
             registry = new Registry(registryPtr);
-            loadContext = new AssemblyLoadContext("Game Context", true);
             LoadGameDLL();
             return true;
         }
 
         static void LoadGameDLL()
         {
+            loadContext = new AssemblyLoadContext("Game Context", true);
             gameAssembly = loadContext.LoadFromAssemblyPath(System.IO.Path.GetFullPath("GameAssemblies/Game.dll"));
 
             if (gameAssembly == null)
@@ -74,6 +75,12 @@ namespace WorldsEngine
             }
 
             Logger.Log($"Loaded {gameSystems.Count} sytems");
+        }
+
+        static void UnloadDLL()
+        {
+            loadContext.Unload();
+            gameSystems.Clear();
         }
 
         static void OnSceneStart()
@@ -115,6 +122,12 @@ namespace WorldsEngine
                             registry.Destroy(entity);
                         }
                     });
+                }
+
+                if (ImGui.Button("Reload DLL"))
+                {
+                    UnloadDLL();
+                    LoadGameDLL();
                 }
                 ImGui.End();
             }

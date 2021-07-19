@@ -13,7 +13,7 @@ namespace WorldsEngine
 
     public class Logger
     {
-        [DllImport(WorldsEngine.NATIVE_MODULE)]
+        [DllImport(WorldsEngine.NativeModule)]
         private static extern void logging_log(int severity, string message);
 
         public static void LogMessage(MessageSeverity severity, string str)

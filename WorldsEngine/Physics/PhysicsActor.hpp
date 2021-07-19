@@ -8,7 +8,7 @@
 namespace worlds {
     typedef uint32_t AssetID;
 
-    enum class PhysicsShapeType {
+    enum class PhysicsShapeType : uint32_t {
         Sphere,
         Box,
         Capsule,
