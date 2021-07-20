@@ -7,10 +7,12 @@ namespace WorldsEngine
 {
     interface IComponentStorage
     {
+        Type Type { get; }
     }
 
     public class ComponentStorage<T> : IComponentStorage, IEnumerable
     {
+        public Type Type { get { return type; } }
         public const int Size = 1000;
         public T[] components = new T[Size];
         public BitArray slotFree = new BitArray(Size, true);

@@ -1,8 +1,7 @@
 ﻿using System;
-using System.Runtime.Loader;
 using System.Reflection;
-using System.Collections.Generic;
 using System.Runtime.InteropServices;
+using System.IO;
 
 namespace WorldsEngine
 {
@@ -39,55 +38,63 @@ namespace WorldsEngine
 #endif
 
         static Registry registry;
-        static AssemblyLoadContext loadContext;
-        static Assembly gameAssembly = null;
-        static List<ISystem> gameSystems = new List<ISystem>();
+        static FileSystemWatcher gameDllWatcher;
+        static DateTime lastReloadTime;
+        static GameAssemblyManager assemblyManager;
 
-        static bool Init(IntPtr registryPtr)
+        static void ActualInit(IntPtr registryPtr)
         {
 #if Linux
             NativeLibrary.SetDllImportResolver(typeof(WorldsEngine).Assembly, ImportResolver);
 #endif
             registry = new Registry(registryPtr);
-            LoadGameDLL();
-            return true;
+            assemblyManager = new GameAssemblyManager();
+            assemblyManager.LoadGameAssembly(registry);
+
+            gameDllWatcher = new FileSystemWatcher(System.IO.Path.GetFullPath("GameAssemblies"));
+
+            gameDllWatcher.Filter = "";
+            gameDllWatcher.NotifyFilter = NotifyFilters.Attributes
+                                 | NotifyFilters.CreationTime
+                                 | NotifyFilters.LastAccess
+                                 | NotifyFilters.LastWrite
+                                 | NotifyFilters.Size;
+
+            gameDllWatcher.IncludeSubdirectories = true;
+            gameDllWatcher.Changed += OnDLLChanged;
+            gameDllWatcher.Renamed += OnDLLChanged;
+            gameDllWatcher.EnableRaisingEvents = true;
         }
 
-        static void LoadGameDLL()
+        static void OnDLLChanged(object sender, FileSystemEventArgs e)
         {
-            loadContext = new AssemblyLoadContext("Game Context", true);
-            gameAssembly = loadContext.LoadFromAssemblyPath(System.IO.Path.GetFullPath("GameAssemblies/Game.dll"));
-
-            if (gameAssembly == null)
-            {
-                Logger.LogError("Failed to load game assembly!");
+            if ((DateTime.Now - lastReloadTime).Milliseconds < 500)
                 return;
-            }
-
-            foreach (Type systemType in gameAssembly.GetTypes())
-            {
-                if (!typeof(ISystem).IsAssignableFrom(systemType))
-                {
-                    continue;
-                }
-
-                gameSystems.Add((ISystem)Activator.CreateInstance(systemType, registry));
-            }
-
-            Logger.Log($"Loaded {gameSystems.Count} sytems");
+            lastReloadTime = DateTime.Now;
+            Logger.Log("DLL changed, reloading...");
+            assemblyManager.ReloadGameAssembly(registry);
         }
 
-        static void UnloadDLL()
+        static bool Init(IntPtr registryPtr)
         {
-            loadContext.Unload();
-            gameSystems.Clear();
+            try
+            {
+                ActualInit(registryPtr);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex.ToString());
+                return false;
+            }
+
+            return true;
         }
 
         static void OnSceneStart()
         {
             Logger.Log("Scene started!");
 
-            foreach (var system in gameSystems)
+            foreach (var system in assemblyManager.Systems)
             {
                 system.OnSceneStart();
             }
@@ -97,7 +104,7 @@ namespace WorldsEngine
         {
             try
             {
-                foreach (var system in gameSystems)
+                foreach (var system in assemblyManager.Systems)
                 {
                     system.OnUpdate(deltaTime);
                 }
@@ -110,7 +117,9 @@ namespace WorldsEngine
 
         static void EditorUpdate()
         {
-            if (ImGui.Begin("Hello :)")) {
+            registry.ShowDebugWindow();
+            if (ImGui.Begin("Hello :)"))
+            {
                 ImGui.Text("hi");
                 if (ImGui.Button("Destroy Those Dang Arrows"))
                 {
@@ -126,8 +135,7 @@ namespace WorldsEngine
 
                 if (ImGui.Button("Reload DLL"))
                 {
-                    UnloadDLL();
-                    LoadGameDLL();
+                    assemblyManager.ReloadGameAssembly(registry);
                 }
                 ImGui.End();
             }

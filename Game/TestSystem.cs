@@ -12,6 +12,7 @@ namespace Game
     public class TestSystem : ISystem
     {
         private Registry registry;
+        private int testInt = 0;
 
         public TestSystem(Registry registry)
         {
@@ -35,12 +36,15 @@ namespace Game
         {
             if (ImGui.Begin("WOOOOOO"))
             {
+                ImGui.Text($"system testInt: {testInt}");
                 foreach (Entity ent in registry.View<TestComponent>())
                 {
                     ref TestComponent tc = ref registry.GetComponent<TestComponent>(ent);
                     ImGui.Text($"tv: {tc.testValue}, tv2: {tc.testValue2}");
-                    tc.testValue++;
+                    tc.testValue += 2;
                 }
+
+                testInt++;
 
                 ImGui.End();
             }
