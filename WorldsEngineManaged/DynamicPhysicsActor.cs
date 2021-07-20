@@ -95,6 +95,8 @@ namespace WorldsEngine
             psi.type = PhysicsShapeType.Capsule;
             psi.capsuleRadius = radius;
             psi.capsuleHeight = height;
+
+            return psi;
         }
     }
 }

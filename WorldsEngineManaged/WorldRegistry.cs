@@ -1,8 +1,6 @@
 using System;
 using System.Text;
 using System.Runtime.InteropServices;
-using System.Collections.Generic;
-using System.Collections;
 
 namespace WorldsEngine
 {
@@ -183,6 +181,21 @@ namespace WorldsEngine
         public ComponentStorage<T> View<T>()
         {
             return AssureStorage<T>();
+        }
+
+        public void ShowDebugWindow()
+        {
+            if (ImGui.Begin("Registry Debugging"))
+            {
+                ImGui.Text($"Type counter: {typeCounter}");
+
+                for (int i = 0; i < ComponentPoolCount; i++)
+                {
+                    if (componentStorages[i] == null) continue;
+                    ImGui.Text($"Pool {i}: {componentStorages[i].Type.FullName}");
+                }
+                ImGui.End();
+            }
         }
     }
 }
