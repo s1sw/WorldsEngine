@@ -49,6 +49,16 @@ namespace WorldsEngine
             nativeRegistryPtr = nativePtr;
         }
 
+        internal void SerializeStorages()
+        {
+            for (int i = 0; i < ComponentPoolCount; i++)
+            {
+                if (componentStorages[i] == null) continue;
+                componentStorages[i].Serialize();
+                componentStorages[i] = null;
+            }
+        }
+
         private ComponentStorage<T> AssureStorage<T>()
         {
             int typeIndex = ComponentStorage<T>.typeIndex;
