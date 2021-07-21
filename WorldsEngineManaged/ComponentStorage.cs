@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Reflection;
 using System.Threading;
 
 namespace WorldsEngine
@@ -8,6 +9,20 @@ namespace WorldsEngine
     interface IComponentStorage
     {
         Type Type { get; }
+        void Serialize();
+    }
+
+    struct SerializedComponentStorage
+    {
+        public Entity[] packed;
+        public int[] sparse;
+        public SerializedType[] components;
+    }
+
+    internal class ComponentTypeLookup
+    {
+        public static Dictionary<string, int> typeIndices = new Dictionary<string, int>();
+        public static Dictionary<string, SerializedComponentStorage> serializedComponents = new Dictionary<string, SerializedComponentStorage>();
     }
 
     public class ComponentStorage<T> : IComponentStorage, IEnumerable
@@ -23,8 +38,16 @@ namespace WorldsEngine
 
         static ComponentStorage()
         {
-            typeIndex = Interlocked.Increment(ref Registry.typeCounter);
             type = typeof(T);
+            if (ComponentTypeLookup.typeIndices.ContainsKey(type.FullName))
+            {
+                typeIndex = ComponentTypeLookup.typeIndices[type.FullName];
+            }
+            else
+            {
+                typeIndex = Interlocked.Increment(ref Registry.typeCounter);
+                ComponentTypeLookup.typeIndices.Add(type.FullName, typeIndex);
+            }
         }
 
         internal ComponentStorage()
@@ -34,6 +57,33 @@ namespace WorldsEngine
                 sparseEntities[i] = -1;
                 packedEntities[i] = Entity.Null;
             }
+        }
+
+        internal ComponentStorage(Assembly gameAssembly)
+        {
+            // Assume that this is a hotload
+
+            if (!ComponentTypeLookup.serializedComponents.ContainsKey(type.FullName))
+            {
+                for (int i = 0; i < Size; i++)
+                {
+                    sparseEntities[i] = -1;
+                    packedEntities[i] = Entity.Null;
+                }
+
+                return;
+            }
+
+            var serializedStorage = ComponentTypeLookup.serializedComponents[type.FullName];
+
+            for (int i = 0; i < Size; i++)
+            {
+                sparseEntities[i] = serializedStorage.sparse[i];
+                packedEntities[i] = serializedStorage.packed[i];
+                components[i] = (T)HotloadSerialization.Deserialize(gameAssembly, serializedStorage.components[i], null);
+            }
+
+            ComponentTypeLookup.serializedComponents.Remove(type.FullName);
         }
 
         internal int GetFreeIndex()
@@ -86,6 +136,20 @@ namespace WorldsEngine
 
             slotFree[index] = true;
             sparseEntities[entity.Identifier] = -1;
+        }
+
+        public void Serialize()
+        {
+            var serializedStorage = new SerializedComponentStorage();
+
+            for (int i = 0; i < Size; i++)
+            {
+                serializedStorage.packed[i] = packedEntities[i];
+                serializedStorage.sparse[i] = sparseEntities[i];
+                serializedStorage.components[i] = HotloadSerialization.Serialize(components[i]);
+            }
+
+            ComponentTypeLookup.serializedComponents.Add(type.FullName, serializedStorage);
         }
 
         private int GetSlotFor(Entity entity)

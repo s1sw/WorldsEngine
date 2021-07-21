@@ -5,32 +5,12 @@ using System.Reflection;
 
 namespace WorldsEngine
 {
-    struct SerializedField
-    {
-        public string FieldName;
-        public object Value;
-        public string FullTypeName;
-        public Type Type;
-    }
-
-    struct SerializedType
-    {
-        public string FullName;
-        public Dictionary<string, SerializedField> Fields;
-    };
-
     internal class GameAssemblyManager
     {
-        const BindingFlags SerializedFieldBindingFlags =
-              BindingFlags.NonPublic
-            | BindingFlags.Public
-            | BindingFlags.FlattenHierarchy
-            | BindingFlags.Instance;
-
         public IReadOnlyList<ISystem> Systems => gameSystems;
 
         AssemblyLoadContext loadContext;
-        Assembly assembly;
+        public Assembly assembly { get; private set; }
         readonly List<ISystem> gameSystems = new List<ISystem>();
         readonly List<SerializedType> serializedSystems = new List<SerializedType>();
 
@@ -53,17 +33,7 @@ namespace WorldsEngine
         {
             foreach (var serializedSystem in serializedSystems)
             {
-                var systemType = assembly.GetType(serializedSystem.FullName, true);
-                var system = Activator.CreateInstance(systemType, registry);
-
-                var fields = systemType.GetFields(SerializedFieldBindingFlags);
-                foreach (var field in fields)
-                {
-                    if (serializedSystem.Fields.ContainsKey(field.Name))
-                        field.SetValue(system, serializedSystem.Fields[field.Name].Value);
-                }
-
-                gameSystems.Add((ISystem)system);
+                gameSystems.Add((ISystem)HotloadSerialization.Deserialize(assembly, serializedSystem, new object[] { registry }));
             }
 
             serializedSystems.Clear();
@@ -75,23 +45,7 @@ namespace WorldsEngine
         {
             foreach (var system in gameSystems)
             {
-                var systemType = system.GetType();
-                var serializedSystem = new SerializedType();
-                serializedSystem.FullName = systemType.FullName;
-                serializedSystem.Fields = new Dictionary<string, SerializedField>();
-
-                var fields = systemType.GetFields(SerializedFieldBindingFlags);
-                foreach (var field in fields)
-                {
-                    var serializedField = new SerializedField();
-                    serializedField.FieldName = field.Name;
-                    serializedField.Type = field.FieldType;
-                    serializedField.Value = field.GetValue(system);
-
-                    serializedSystem.Fields.Add(field.Name, serializedField);
-                }
-
-                serializedSystems.Add(serializedSystem);
+                serializedSystems.Add(HotloadSerialization.Serialize(system));
             }
         }
 

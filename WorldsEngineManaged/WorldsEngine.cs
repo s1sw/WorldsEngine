@@ -72,6 +72,7 @@ namespace WorldsEngine
                 return;
             lastReloadTime = DateTime.Now;
             Logger.Log("DLL changed, reloading...");
+
             assemblyManager.ReloadGameAssembly(registry);
         }
 
