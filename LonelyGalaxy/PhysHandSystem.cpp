@@ -178,8 +178,6 @@ namespace lg {
         });
     }
 
-    extern glm::vec3 nextCamPos;
-
     void PhysHandSystem::setTargets(PhysHand& hand, entt::entity ent, float deltaTime) {
         if (hand.follow == FollowHand::None) return;
 
@@ -203,7 +201,7 @@ namespace lg {
                 t.position += t.rotation * posOffset;
                 t.position = virtualRotation * t.position;
 
-                t.position += lpc.headPos;
+                t.position += interfaces.mainCamera->position;
 
                 t.rotation *= glm::quat{glm::radians(rotEulerOffset)};
 

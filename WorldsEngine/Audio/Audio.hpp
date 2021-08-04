@@ -13,7 +13,7 @@
 struct stb_vorbis;
 
 namespace worlds {
-    enum class MixerChannel {
+    enum class MixerChannel : uint32_t {
         Music,
         SFX,
         Count

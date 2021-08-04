@@ -30,6 +30,7 @@
 #include "../Audio/Audio.hpp"
 #include "../AssetCompilation/AssetCompilers.hpp"
 #include "AssetEditors.hpp"
+#include "../Scripting/NetVM.hpp"
 
 namespace worlds {
     std::unordered_map<ENTT_ID_TYPE, ComponentEditor*> ComponentMetadataManager::metadata;
@@ -139,7 +140,7 @@ namespace worlds {
 
         ADD_EDITOR_WINDOW(EntityList);
         ADD_EDITOR_WINDOW(Assets);
-        ADD_EDITOR_WINDOW(EntityEditor);
+        //ADD_EDITOR_WINDOW(EntityEditor);
         ADD_EDITOR_WINDOW(GameControls);
         ADD_EDITOR_WINDOW(StyleEditor);
         ADD_EDITOR_WINDOW(MaterialEditor);
@@ -543,6 +544,8 @@ namespace worlds {
         for (EditorSceneView* sceneView : sceneViews) {
             sceneView->drawWindow(sceneViewIndex++);
         }
+
+        interfaces.scriptEngine->onEditorUpdate(deltaTime);
 
         if (inputManager.keyPressed(SDL_SCANCODE_S) && inputManager.ctrlHeld()) {
             if (interfaces.engine->getCurrentSceneInfo().id != ~0u && !inputManager.shiftHeld()) {

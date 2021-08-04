@@ -1,4 +1,0 @@
-namespace WorldsEngine
-{
-    struct Component {}
-}

@@ -80,7 +80,7 @@ namespace worlds {
         uint32_t layer = 0;
     };
 
-    enum class ForceMode {
+    enum class ForceMode : int32_t {
         Force,
         Impulse,
         VelocityChange,

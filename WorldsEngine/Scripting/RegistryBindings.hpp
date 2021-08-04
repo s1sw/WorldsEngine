@@ -3,6 +3,7 @@
 #include <entt/entity/registry.hpp>
 #include <entt/entity/entity.hpp>
 #include "Core/NameComponent.hpp"
+#include <nlohmann/json.hpp>
 
 using namespace worlds;
 
@@ -48,5 +49,15 @@ extern "C" {
         entt::entity ent = registry->create();
         registry->emplace<Transform>(ent);
         return entt::to_integral(ent);
+    }
+
+    EXPORT void registry_setSerializedEntityInfo(void* serializationContext, const char* key, const char* value) {
+        nlohmann::json& entityJson = *(nlohmann::json*)serializationContext;
+        nlohmann::json componentJson = nlohmann::json::parse(value);
+        entityJson[key] = componentJson;
+    }
+
+    EXPORT uint32_t registry_createPrefab(entt::registry* regPtr, AssetID id) {
+        return (uint32_t)SceneLoader::createPrefab(id, *regPtr);
     }
 }

@@ -23,4 +23,16 @@ extern "C" {
     EXPORT char assetDB_exists(uint32_t id) {
         return AssetDB::exists(id);
     }
+
+    EXPORT PHYSFS_File* assetDB_openAssetRead(uint32_t id) {
+        return AssetDB::openAssetFileRead(id);
+    }
+
+    EXPORT PHYSFS_File* assetDB_openAssetWrite(uint32_t id) {
+        return AssetDB::openAssetFileWrite(id);
+    }
+
+    EXPORT uint32_t assetDB_createAsset(const char* path) {
+        return AssetDB::createAsset(path);
+    }
 }

@@ -161,8 +161,17 @@ namespace worlds {
             return;
         }
 
-        if (config)
+        ImFontConfig defaultConfig{};
+
+        if (config) {
             memcpy(config->Name, fontPath.c_str(), fontPath.size());
+        } else { 
+            for (int i = 0; i < fontPath.size(); i++) {
+                defaultConfig.Name[i] = fontPath[i];
+            }
+            config = &defaultConfig;
+        }
+
         ImGui::GetIO().Fonts->AddFontFromMemoryTTF(buf, (int)readBytes, size, config, ranges);
 
         PHYSFS_close(ttfFile);
@@ -215,7 +224,7 @@ namespace worlds {
         if (PHYSFS_exists("Fonts/EditorFont.ttf"))
             ImGui::GetIO().Fonts->Clear();
 
-        addImGuiFont("Fonts/EditorFont.ttf", 18.0f);
+        addImGuiFont("Fonts/EditorFont.ttf", 20.0f);
 
         static const ImWchar iconRanges[] = { ICON_MIN_FA, ICON_MAX_FA, 0 };
         ImFontConfig iconConfig{};
@@ -392,21 +401,21 @@ namespace worlds {
             .engine = this
         };
 
-        scriptEngine = std::make_unique<DotNetScriptEngine>(registry, interfaces);
-        if (!scriptEngine->initialise())
-            fatalErr("Failed to initialise .net");
-        interfaces.scriptEngine = scriptEngine.get();
-
         if (!dedicatedServer) {
             VKImGUIUtil::createObjects(renderer->getHandles());
         }
 
+        scriptEngine = std::make_unique<DotNetScriptEngine>(registry, interfaces);
+        interfaces.scriptEngine = scriptEngine.get();
         if (!dedicatedServer && runAsEditor) {
             splashWindow->changeOverlay("initialising editor");
             editor = std::make_unique<Editor>(registry, interfaces);
         } else {
             ComponentMetadataManager::setupLookup();
         }
+
+        if (!scriptEngine->initialise(editor.get()))
+            fatalErr("Failed to initialise .net");
 
         if (!runAsEditor)
             pauseSim = false;
@@ -582,6 +591,10 @@ namespace worlds {
 
             screenRTTPass = renderer->createRTTPass(screenRTTCI);
 
+            logMsg("deleting splashWindow");
+            delete splashWindow;
+            logMsg("splashWIndow deleted");
+
             if (useEventThread) {
                 SDL_Event evt;
                 evt.type = showWindowEventId;
@@ -589,10 +602,6 @@ namespace worlds {
             } else {
                 SDL_ShowWindow(window);
             }
-
-            logMsg("deleting splashWindow");
-            delete splashWindow;
-            logMsg("splashWIndow deleted");
         }
 
 
@@ -736,8 +745,6 @@ namespace worlds {
 
                 if (runAsEditor) {
                     editor->update((float)deltaTime);
-                    if (editor->active)
-                        scriptEngine->onEditorUpdate((float)deltaTime);
                 }
             }
 
@@ -1059,7 +1066,7 @@ namespace worlds {
                 system->simulate(registry, deltaTime);
         }
 
-        if (!runAsEditor) {
+        if (!runAsEditor || !editor->active) {
             scriptEngine->onSimulate(deltaTime);
         }
     }
@@ -1107,7 +1114,15 @@ namespace worlds {
                 previousState = currentState;
                 simAccumulator -= simStepTime.getFloat();
 
+                PerfTimer timer;
+
                 doSimStep(simStepTime.getFloat() * timeScale);
+
+                double realTime = timer.stopGetMs() / 1000.0;
+
+                // avoid spiral of death if simulation is taking too long
+                if (realTime > simStepTime.getFloat())
+                    simAccumulator = 0.0;
 
                 registry.view<DynamicPhysicsActor>().each([&](auto ent, DynamicPhysicsActor& dpa) {
                     currentState[ent] = dpa.actor->getGlobalPose();

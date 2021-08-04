@@ -2,6 +2,9 @@
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.IO;
+using WorldsEngine.ComponentMeta;
+using System.Collections.Generic;
+using System.Threading;
 
 namespace WorldsEngine
 {
@@ -37,50 +40,79 @@ namespace WorldsEngine
         }
 #endif
 
-        static Registry registry;
         static FileSystemWatcher gameDllWatcher;
         static DateTime lastReloadTime;
         static GameAssemblyManager assemblyManager;
+        static bool reloadAssemblyNextFrame = false;
+        static EngineSynchronizationContext updateSyncContext;
+        static EngineSynchronizationContext simulateSyncContext;
+        static EngineSynchronizationContext editorUpdateSyncContext;
 
-        static void ActualInit(IntPtr registryPtr)
+        static void ActualInit(IntPtr registryPtr, IntPtr mainCameraPtr)
         {
 #if Linux
             NativeLibrary.SetDllImportResolver(typeof(WorldsEngine).Assembly, ImportResolver);
 #endif
-            registry = new Registry(registryPtr);
+            Registry.nativeRegistryPtr = registryPtr; 
+
+            // These depend on game assembly metadata so
+            // initialise them explicitly before loading the assembly.
+            MetadataManager.Initialise();
+            Console.Initialise();
+
             assemblyManager = new GameAssemblyManager();
-            assemblyManager.LoadGameAssembly(registry);
+            assemblyManager.LoadGameAssembly();
 
-            gameDllWatcher = new FileSystemWatcher(System.IO.Path.GetFullPath("GameAssemblies"));
+            gameDllWatcher = new FileSystemWatcher(Path.GetFullPath("GameAssemblies"))
+            {
+                Filter = "",
+                NotifyFilter = NotifyFilters.Attributes
+                             | NotifyFilters.CreationTime
+                             | NotifyFilters.LastAccess
+                             | NotifyFilters.LastWrite
+                             | NotifyFilters.Size,
 
-            gameDllWatcher.Filter = "";
-            gameDllWatcher.NotifyFilter = NotifyFilters.Attributes
-                                 | NotifyFilters.CreationTime
-                                 | NotifyFilters.LastAccess
-                                 | NotifyFilters.LastWrite
-                                 | NotifyFilters.Size;
+                IncludeSubdirectories = true
+            };
 
-            gameDllWatcher.IncludeSubdirectories = true;
             gameDllWatcher.Changed += OnDLLChanged;
             gameDllWatcher.Renamed += OnDLLChanged;
             gameDllWatcher.EnableRaisingEvents = true;
+
+            // Clear out all the temp game assembly directories
+            foreach (string d in Directory.GetDirectories("."))
+            {
+                if (d.StartsWith("GameAssembliesTemp"))
+                {
+                    Directory.Delete(d, true);
+                }
+            }
+
+            new Camera(mainCameraPtr, true);
+
+            updateSyncContext = new EngineSynchronizationContext();
+            simulateSyncContext = new EngineSynchronizationContext();
+            editorUpdateSyncContext = new EngineSynchronizationContext();
         }
 
         static void OnDLLChanged(object sender, FileSystemEventArgs e)
         {
-            if ((DateTime.Now - lastReloadTime).Milliseconds < 500)
+            if ((DateTime.Now - lastReloadTime).TotalMilliseconds < 500)
+            {
+                Logger.LogWarning("Ignoring assembly reload as too soon");
                 return;
-            lastReloadTime = DateTime.Now;
-            Logger.Log("DLL changed, reloading...");
+            }
 
-            assemblyManager.ReloadGameAssembly(registry);
+            lastReloadTime = DateTime.Now;
+            reloadAssemblyNextFrame = true;
+            Logger.Log("DLL changed, reloading...");
         }
 
-        static bool Init(IntPtr registryPtr)
+        static bool Init(IntPtr registryPtr, IntPtr mainCameraPtr)
         {
             try
             {
-                ActualInit(registryPtr);
+                ActualInit(registryPtr, mainCameraPtr);
             }
             catch (Exception ex)
             {
@@ -101,14 +133,52 @@ namespace WorldsEngine
             }
         }
 
+        static void ReloadAssemblyIfNecessary()
+        {
+            if (reloadAssemblyNextFrame)
+            {
+                Registry.SerializeStorages();
+                assemblyManager.ReloadGameAssembly();
+                reloadAssemblyNextFrame = false;
+            }
+        }
+
         static void Update(float deltaTime)
         {
+            ReloadAssemblyIfNecessary();
+            SynchronizationContext.SetSynchronizationContext(updateSyncContext);
+            Time.DeltaTime = deltaTime;
+
             try
             {
+                updateSyncContext.RunCallbacks();
+
                 foreach (var system in assemblyManager.Systems)
                 {
-                    system.OnUpdate(deltaTime);
+                    system.OnUpdate();
                 }
+            }
+            catch (Exception e)
+            {
+                Logger.LogError($"Caught exception: {e}");
+            }
+        }
+
+        static void Simulate(float deltaTime)
+        {
+            SynchronizationContext.SetSynchronizationContext(simulateSyncContext);
+            Time.DeltaTime = deltaTime;
+
+            try
+            {
+                simulateSyncContext.RunCallbacks();
+
+                foreach (var system in assemblyManager.Systems)
+                {
+                    system.OnSimulate();
+                }
+
+                Registry.UpdateThinkingComponents();
             }
             catch (Exception e)
             {
@@ -118,28 +188,47 @@ namespace WorldsEngine
 
         static void EditorUpdate()
         {
-            registry.ShowDebugWindow();
-            if (ImGui.Begin("Hello :)"))
+            ReloadAssemblyIfNecessary();
+            SynchronizationContext.SetSynchronizationContext(editorUpdateSyncContext);
+
+            if (ImGui.Begin($"{FontAwesome.FontAwesomeIcons.Cube} Selected Entity"))
             {
-                ImGui.Text("hi");
-                if (ImGui.Button("Destroy Those Dang Arrows"))
+                if (Editor.CurrentlySelected.IsNull)
                 {
-                    registry.Each((Entity entity) => {
-                        Transform t = registry.GetTransform(entity);
+                    ImGui.Text("No entity selected");
+                }
+                else
+                {
+                    MetadataManager.EditEntity(Editor.CurrentlySelected);
 
-                        if (t.position.y < -9000.0f)
-                        {
-                            registry.Destroy(entity);
-                        }
-                    });
+                    if (ImGui.Button("Add Component"))
+                    {
+                        ImGui.OpenPopup("Select Component");
+                    }
                 }
 
-                if (ImGui.Button("Reload DLL"))
-                {
-                    assemblyManager.ReloadGameAssembly(registry);
-                }
-                ImGui.End();
+                
             }
+
+            ImGui.End();
+
+            if (ImGui.Begin("Misc"))
+            {
+                ImGui.Text($"Memory usage: {GC.GetGCMemoryInfo().HeapSizeBytes/1000:N0}K");
+
+                if (ImGui.Button("Force Collection"))
+                {
+                    GC.Collect(99, GCCollectionMode.Forced, true, true);
+                }
+
+                if (ImGui.Button("Force Reload Assembly"))
+                {
+                    reloadAssemblyNextFrame = true;
+                }
+            }
+            ImGui.End();
+
+            editorUpdateSyncContext.RunCallbacks();
         }
     }
 }

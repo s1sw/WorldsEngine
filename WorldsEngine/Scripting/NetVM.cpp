@@ -10,6 +10,7 @@
 #include "Core/NameComponent.hpp"
 #include <entt/entity/registry.hpp>
 #include "Export.hpp"
+#include <Serialization/SceneSerialization.hpp>
 
 #if defined(_WIN32)
 #define WIN32_LEAN_AND_MEAN
@@ -34,7 +35,7 @@ enum CSMessageSeverity {
 
 using namespace worlds;
 extern "C" {
-    EXPORT bool imgui_begin(const char* name) {
+    EXPORT int imgui_begin(const char* name) {
         return ImGui::Begin(name);
     }
 
@@ -42,7 +43,19 @@ extern "C" {
         ImGui::TextUnformatted(text);
     }
 
-    EXPORT bool imgui_button(const char* text, float sizeX, float sizeY) {
+    EXPORT int imgui_dragInt(const char* text, int* intPtr) {
+        return ImGui::DragInt(text, intPtr);
+    }
+
+    EXPORT int imgui_dragFloat(const char* text, float* floatPtr) {
+        return ImGui::DragFloat(text, floatPtr);
+    }
+
+    EXPORT int imgui_dragFloat3(const char* text, float* float3Ptr) {
+        return ImGui::DragFloat3(text, float3Ptr);
+    }
+
+    EXPORT int imgui_button(const char* text, float sizeX, float sizeY) {
         return ImGui::Button(text, ImVec2(sizeX, sizeY));
     }
 
@@ -52,6 +65,26 @@ extern "C" {
 
     EXPORT void imgui_end() {
         ImGui::End();
+    }
+
+    EXPORT void imgui_openPopup(const char* name) {
+        ImGui::OpenPopup(name);
+    }
+
+    EXPORT int imgui_beginPopup(const char* name) {
+        return ImGui::BeginPopup(name);
+    }
+
+    EXPORT void imgui_endPopup() {
+        ImGui::EndPopup();
+    }
+
+    EXPORT void imgui_closeCurrentPopup() {
+        ImGui::CloseCurrentPopup();
+    }
+
+    EXPORT int imgui_collapsingHeader(const char* text) {
+        return ImGui::CollapsingHeader(text);
     }
 
     EXPORT void logging_log(CSMessageSeverity severity, const char* text) {
@@ -75,6 +108,15 @@ extern "C" {
 #include "RegistryBindings.hpp"
 #include "WorldObjectBindings.hpp"
 #include "AssetDBBindings.hpp"
+#include "CameraBindings.hpp"
+#include "InputBindings.hpp"
+#include "ConsoleBindings.hpp"
+#include "ComponentMetadataBindings.hpp"
+#include "EditorBindings.hpp"
+#include "DynamicPhysicsActorBindings.hpp"
+#include "PhysicsBindings.hpp"
+#include "AudioBindings.hpp"
+#include "VRBindings.hpp"
 
 namespace worlds {
     LibraryHandle_t loadLibrary(const char* path) {
@@ -96,9 +138,11 @@ namespace worlds {
     DotNetScriptEngine::DotNetScriptEngine(entt::registry& reg, EngineInterfaces interfaces)
         : interfaces(interfaces)
         , reg(reg) {
+        csharpInputManager = interfaces.inputManager;
+        csharpVrInterface = interfaces.vrInterface;
     }
 
-    bool DotNetScriptEngine::initialise() {
+    bool DotNetScriptEngine::initialise(Editor* editor) {
         LibraryHandle_t netLibrary = loadLibrary(NET_LIBRARY_PATH);
 
         if (netLibrary == 0) {
@@ -157,17 +201,31 @@ namespace worlds {
         }
 
         // C# bools are always 1 byte
-        char(*initFunc)(entt::registry* reg);
+        char(*initFunc)(entt::registry* reg, Camera* mainCamera);
         createManagedDelegate("WorldsEngine.WorldsEngine", "Init", (void**)&initFunc);
 
-        if (!initFunc(&reg))
+        if (!initFunc(&reg, interfaces.mainCamera))
             return false;
 
         createManagedDelegate("WorldsEngine.WorldsEngine", "Update", (void**)&updateFunc);
+        createManagedDelegate("WorldsEngine.WorldsEngine", "Simulate", (void**)&simulateFunc);
         createManagedDelegate("WorldsEngine.WorldsEngine", "OnSceneStart", (void**)&sceneStartFunc);
         createManagedDelegate("WorldsEngine.WorldsEngine", "EditorUpdate", (void**)&editorUpdateFunc);
+        createManagedDelegate("WorldsEngine.Registry", "OnNativeEntityDestroy", (void**)&nativeEntityDestroyFunc);
+        createManagedDelegate("WorldsEngine.Registry", "SerializeManagedComponents", (void**)&serializeComponentsFunc);
+        createManagedDelegate("WorldsEngine.Registry", "DeserializeManagedComponent", (void**)&deserializeComponentFunc);
+
+        csharpEditor = editor;
+
+        reg.on_destroy<Transform>().connect<&DotNetScriptEngine::onTransformDestroy>(*this);
+
+        JsonSceneSerializer::setScriptEngine(this);
 
         return true;
+    }
+
+    void DotNetScriptEngine::onTransformDestroy(entt::registry& reg, entt::entity ent) {
+        nativeEntityDestroyFunc((uint32_t)ent);
     }
 
     void DotNetScriptEngine::onSceneStart() {
@@ -183,9 +241,19 @@ namespace worlds {
     }
 
     void DotNetScriptEngine::onSimulate(float deltaTime) {
+        simulateFunc(deltaTime);
     }
 
     void DotNetScriptEngine::fireEvent(entt::entity scriptEnt, const char* evt) {
+    }
+
+    void DotNetScriptEngine::serializeManagedComponents(nlohmann::json& entityJson, entt::entity entity) {
+        serializeComponentsFunc((void*)&entityJson, (uint32_t)entity);
+    }
+
+    void DotNetScriptEngine::deserializeManagedComponent(const char* id, nlohmann::json& componentJson, entt::entity entity) {
+        std::string cJsonStr = componentJson.dump();
+        deserializeComponentFunc(id, cJsonStr.c_str(), (uint32_t)entity);
     }
 
     void DotNetScriptEngine::createManagedDelegate(const char* typeName, const char* methodName, void** func) {
