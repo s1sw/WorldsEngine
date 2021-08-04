@@ -1646,11 +1646,11 @@
           1.0,
           1.0
         ],
-        "distanceCutoff": 0.009999999776482582,
+        "distanceCutoff": 2.829334516718518e-05,
         "enableShadows": false,
         "enabled": true,
         "intensity": 10.0,
-        "spotCutoff": 1.5,
+        "spotCutoff": 0.5,
         "tubeLength": 0.25,
         "tubeRadius": 0.10000000149011612,
         "type": 3
@@ -1663,8 +1663,8 @@
       "Transform": {
         "position": [
           -20.225921630859375,
-          4.367366790771484,
-          0.7343196868896484
+          0.6132912635803223,
+          0.3369130492210388
         ],
         "rotation": [
           0.0,
@@ -1684,11 +1684,11 @@
           0.30000001192092896,
           1.0
         ],
-        "distanceCutoff": 0.009999999776482582,
+        "distanceCutoff": 3.0189590688678436e-05,
         "enableShadows": false,
         "enabled": true,
         "intensity": 10.0,
-        "spotCutoff": 1.5,
+        "spotCutoff": 1.0,
         "tubeLength": 0.25,
         "tubeRadius": 0.10000000149011612,
         "type": 3
@@ -1768,32 +1768,6 @@
         "tubeLength": 0.25,
         "tubeRadius": 0.10000000149011612,
         "type": 0
-      }
-    },
-    "7340052": {
-      "Name Component": {
-        "name": "Start Point"
-      },
-      "Player Start Point": {
-        "alwaysUse": false
-      },
-      "Transform": {
-        "position": [
-          0.0,
-          0.0,
-          0.0
-        ],
-        "rotation": [
-          0.0,
-          0.0,
-          0.0,
-          1.0
-        ],
-        "scale": [
-          1.0,
-          1.0,
-          1.0
-        ]
       }
     },
     "8": {

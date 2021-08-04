@@ -1,23 +1,28 @@
 <Project Sdk="Microsoft.NET.Sdk">
-    <PropertyGroup>
-        <TargetFramework>net5.0</TargetFramework>
-        <IsWindows Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' == 'true'">true</IsWindows>
-        <IsLinux Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Linux)))' == 'true'">true</IsLinux>
-    </PropertyGroup>
-    <ItemGroup Condition="'$(IsWindows)' == 'true'">
-        <Reference Include="WorldsEngineManaged">
-            <HintPath>../build_ninja_release/LonelyGalaxy/NetAssemblies/WorldsEngineManaged.dll</HintPath>
-        </Reference>
-    </ItemGroup>
-    <ItemGroup Condition="'$(IsLinux)' == 'true'">
-        <Reference Include="WorldsEngineManaged">
-            <HintPath>../build_release/LonelyGalaxy/NetAssemblies/WorldsEngineManaged.dll</HintPath>
-        </Reference>
-    </ItemGroup>
-    <PropertyGroup Condition="'$(IsWindows)' == 'true'">
-        <OutDir>../build_ninja_release/LonelyGalaxy/GameAssemblies</OutDir>
-    </PropertyGroup>
-    <PropertyGroup Condition="'$(IsLinux)' == 'true'">
-        <OutDir>../build_release/LonelyGalaxy/GameAssemblies</OutDir>
-    </PropertyGroup>
+  <PropertyGroup>
+    <TargetFramework>net5.0</TargetFramework>
+    <IsWindows Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' == 'true'">true</IsWindows>
+    <IsLinux Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Linux)))' == 'true'">true</IsLinux>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(IsWindows)' == 'true'">
+    <Reference Include="WorldsEngineManaged">
+      <HintPath>../build_ninja_release/LonelyGalaxy/NetAssemblies/WorldsEngineManaged.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup Condition="'$(IsLinux)' == 'true'">
+    <Reference Include="WorldsEngineManaged">
+      <HintPath>../build_release/LonelyGalaxy/NetAssemblies/WorldsEngineManaged.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+  <PropertyGroup Condition="'$(IsWindows)' == 'true'">
+    <OutDir>../build_ninja_release/LonelyGalaxy/GameAssemblies</OutDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(IsLinux)' == 'true'">
+    <OutDir>../build_release/LonelyGalaxy/GameAssemblies</OutDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <GenerateSerializationAssemblies>Off</GenerateSerializationAssemblies>
+  </PropertyGroup>
 </Project>

@@ -5,6 +5,7 @@
         <IsLinux Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Linux)))' == 'true'">true</IsLinux>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
+        <RootNamespace>WorldsEngine</RootNamespace>
     </PropertyGroup>
     <PropertyGroup Condition="'$(IsWindows)' == 'true'">
         <DefineConstants>Windows</DefineConstants>

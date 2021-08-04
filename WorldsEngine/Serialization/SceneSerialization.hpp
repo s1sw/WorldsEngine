@@ -4,6 +4,7 @@
 #include <physfs.h>
 
 namespace worlds {
+    class DotNetScriptEngine;
     typedef uint32_t AssetID;
 
     // This class acts as a dispatcher for the two supported scene serialization formats.
@@ -49,6 +50,8 @@ namespace worlds {
         static std::string entityToJson(entt::registry& reg, entt::entity ent);
         // Returns entt::null if the entity JSON is invalid.
         static entt::entity jsonToEntity(entt::registry& reg, std::string json);
+
+        static void setScriptEngine(DotNetScriptEngine* scriptEngine);
     private:
         JsonSceneSerializer() {}
         ~JsonSceneSerializer() {}

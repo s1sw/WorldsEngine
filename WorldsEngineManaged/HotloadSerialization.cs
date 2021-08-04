@@ -1,6 +1,7 @@
 using System;
 using System.Reflection;
 using System.Collections.Generic;
+using System.Runtime.Serialization;
 
 namespace WorldsEngine
 {
@@ -8,12 +9,12 @@ namespace WorldsEngine
     {
         public string FieldName;
         public object Value;
-        public string FullTypeName;
-        public Type Type;
+        public bool IsValueSerialized;
     }
 
     struct SerializedType
     {
+        public bool IsNull;
         public string FullName;
         public Dictionary<string, SerializedField> Fields;
     }
@@ -26,18 +27,33 @@ namespace WorldsEngine
             | BindingFlags.FlattenHierarchy
             | BindingFlags.Instance;
 
-        public static object Deserialize(Assembly assembly, SerializedType serializedType, object[] constructorArgs)
+        public static Assembly CurrentGameAssembly;
+
+        public static object Deserialize(SerializedType serializedType)
         {
+            if (serializedType.IsNull) return null;
+
             // Find the type
-            var type = assembly.GetType(serializedType.FullName, true);
-            var instance = Activator.CreateInstance(type, constructorArgs);
+            Type type = CurrentGameAssembly.GetType(serializedType.FullName, true);
+            object instance = FormatterServices.GetUninitializedObject(type);
 
             // Restore field values
-            var fields = type.GetFields(SerializedFieldBindingFlags);
+            FieldInfo[] fields = type.GetFields(SerializedFieldBindingFlags);
             foreach (var field in fields)
             {
                 if (serializedType.Fields.ContainsKey(field.Name))
-                    field.SetValue(instance, serializedType.Fields[field.Name].Value);
+                {
+                    var serializedField = serializedType.Fields[field.Name];
+
+                    if (serializedField.IsValueSerialized)
+                    {
+                        field.SetValue(instance, Deserialize((SerializedType)serializedField.Value));
+                    }
+                    else
+                    {
+                        field.SetValue(instance, serializedField.Value);
+                    }
+                }
             }
 
             return instance;
@@ -45,19 +61,33 @@ namespace WorldsEngine
 
         public static SerializedType Serialize(object obj)
         {
-            var type = obj.GetType();
-            var serialized = new SerializedType();
+            if (obj == null)
+                return new SerializedType { IsNull = true };
 
-            serialized.FullName = type.FullName;
-            serialized.Fields = new Dictionary<string, SerializedField>();
+            Type type = obj.GetType();
+            var serialized = new SerializedType
+            {
+                FullName = type.FullName,
+                Fields = new Dictionary<string, SerializedField>()
+            };
 
-            var fields = type.GetFields(SerializedFieldBindingFlags);
+            FieldInfo[] fields = type.GetFields(SerializedFieldBindingFlags);
             foreach (var field in fields)
             {
-                var serializedField = new SerializedField();
-                serializedField.FieldName = field.Name;
-                serializedField.Type = field.FieldType;
-                serializedField.Value = field.GetValue(obj);
+                var serializedField = new SerializedField
+                {
+                    FieldName = field.Name
+                };
+
+                if (field.FieldType.Assembly == CurrentGameAssembly)
+                {
+                    serializedField.IsValueSerialized = true;
+                    serializedField.Value = Serialize(field.GetValue(obj));
+                }
+                else
+                {
+                    serializedField.Value = field.GetValue(obj);
+                }
 
                 serialized.Fields.Add(field.Name, serializedField);
             }

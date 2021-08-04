@@ -193,7 +193,7 @@ namespace worlds {
             }
         }
 
-#ifndef NDEBUG
+//#ifndef NDEBUG
 #ifdef _WIN32
         if (!AttachConsole(ATTACH_PARENT_PROCESS)) {
             if (!AllocConsole()) {
@@ -232,8 +232,8 @@ namespace worlds {
 
         std::cin.clear();
         std::cout.clear();
-#endif
-#endif
+#endif // _WIN32
+//#endif // NDEBUG
 
         if (asyncStdinConsole) {
             asyncConsoleThread = new std::thread(asyncConsole);
@@ -409,7 +409,10 @@ namespace worlds {
                 float cHeight = 0.0f;
                 float lineHeight = ImGui::GetTextLineHeightWithSpacing();
                 consoleMutex.lock();
+                float padding = ImGui::GetStyle().ItemSpacing.y;
                 for (auto& msg : msgs) {
+                    ImVec2 textSize = ImGui::CalcTextSize(msg.msg.c_str(), nullptr, false, 0.0f);
+
                     if ((cHeight + lineHeight) > scroll && (cHeight - lineHeight) < scrollMax) {
                         ImGui::PushStyleColor(ImGuiCol_Text, (ImVec4)priorityColors.at(msg.priority));
                         if (msg.category != CONSOLE_RESPONSE_CATEGORY)
@@ -418,10 +421,10 @@ namespace worlds {
                             ImGui::TextUnformatted(msg.msg.c_str());
                         ImGui::PopStyleColor();
                     } else {
-                        ImGui::NewLine();
+                        ImGui::Dummy(ImVec2(0.0f, textSize.y));
                     }
 
-                    cHeight += lineHeight;
+                    cHeight += textSize.y + padding;
                     currMsgIdx++;
                 }
 

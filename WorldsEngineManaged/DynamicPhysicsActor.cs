@@ -1,102 +1,130 @@
 using System;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
+using WorldsEngine.Math;
 
 namespace WorldsEngine
 {
-    public enum PhysicsShapeType : uint
+    public enum ForceMode
     {
-        Sphere,
-        Box,
-        Capsule,
-        Mesh
+        Force,
+        Impulse,
+        VelocityChange,
+        Acceleration
     }
 
-    [StructLayout(LayoutKind.Explicit)]
-    internal struct PhysicsShapeInternal
+    public class DynamicPhysicsActor : BuiltinComponent
     {
-        [FieldOffset(0)]
-        public PhysicsShapeType type;
+        [DllImport(WorldsEngine.NativeModule)]
+        private static extern int dynamicpa_getShapeCount(IntPtr registryPtr, uint entityId);
 
-        [FieldOffset(4)]
-        public Vector3 boxHalfExtents;
+        [DllImport(WorldsEngine.NativeModule)]
+        private static extern void dynamicpa_getShape(IntPtr registryPtr, uint entityId, int shapeIndex, ref PhysicsShapeInternal psi);
 
-        [FieldOffset(4)]
-        public float sphereRadius;
+        [DllImport(WorldsEngine.NativeModule)]
+        private static extern void dynamicpa_setShapeCount(IntPtr registryPtr, uint entityId, int shapeCount);
 
-        [FieldOffset(4)]
-        public float capsuleHeight;
-        [FieldOffset(8)]
-        public float capsuleRadius;
+        [DllImport(WorldsEngine.NativeModule)]
+        private static extern void dynamicpa_setShape(IntPtr registryPtr, uint entityId, int shapeIndex, ref PhysicsShapeInternal psi);
 
-        [FieldOffset(4)]
-        public AssetID meshId;
+        [DllImport(WorldsEngine.NativeModule)]
+        private static extern void dynamicpa_addForce(IntPtr registryPtr, uint entityId, Vector3 force, int forceMode);
 
-        [FieldOffset(16)]
-        public Vector3 position;
+        [DllImport(WorldsEngine.NativeModule)]
+        private static extern void dynamicpa_addTorque(IntPtr registryPtr, uint entityId, Vector3 force, int forceMode);
 
-        [FieldOffset(28)]
-        public Quaternion rotation;
+        [DllImport(WorldsEngine.NativeModule)]
+        private static extern void dynamicpa_getPose(IntPtr registryPtr, uint entityId, ref Transform pose);
 
-        [FieldOffset(48)]
-        public IntPtr material;
-    }
+        [DllImport(WorldsEngine.NativeModule)]
+        private static extern void dynamicpa_setPose(IntPtr registryPtr, uint entityId, ref Transform pose);
 
-    public abstract class PhysicsShape
-    {
-        public Vector3 position;
-        public Quaternion rotation;
+        [DllImport(WorldsEngine.NativeModule)]
+        private static extern void dynamicpa_getLinearVelocity(IntPtr registryPtr, uint entityId, ref Vector3 velocity);
 
-        internal abstract PhysicsShapeInternal ToInternal();
-    }
+        [DllImport(WorldsEngine.NativeModule)]
+        private static extern float dynamicpa_getMass(IntPtr registryPtr, uint entityId);
 
-    public class BoxPhysicsShape : PhysicsShape
-    {
-        public Vector3 halfExtents;
+        [DllImport(WorldsEngine.NativeModule)]
+        private static extern void dynamicpa_setMass(IntPtr registryPtr, uint entityId, float mass);
 
-        internal override PhysicsShapeInternal ToInternal()
+        private readonly IntPtr regPtr;
+        private readonly uint entityId;
+
+        public Transform Pose
         {
-            PhysicsShapeInternal psi = new PhysicsShapeInternal();
+            get
+            {
+                Transform pose = new Transform();
+                dynamicpa_getPose(regPtr, entityId, ref pose);
 
-            psi.type = PhysicsShapeType.Box;
-            psi.boxHalfExtents = halfExtents;
-            psi.position = position;
-            psi.rotation = rotation;
+                return pose;
+            }
 
-            return psi;
+            set
+            {
+                dynamicpa_setPose(regPtr, entityId, ref value);
+            }
         }
-    }
 
-    public class SpherePhysicsShape : PhysicsShape
-    {
-        public float radius;
-
-        internal override PhysicsShapeInternal ToInternal()
+        public Vector3 Velocity
         {
-            PhysicsShapeInternal psi = new PhysicsShapeInternal();
+            get
+            {
+                Vector3 velocity = new Vector3();
+                dynamicpa_getLinearVelocity(regPtr, entityId, ref velocity);
 
-            psi.type = PhysicsShapeType.Sphere;
-            psi.sphereRadius = radius;
-            psi.position = position;
-            psi.rotation = rotation;
-
-            return psi;
+                return velocity;
+            }
         }
-    }
 
-    public class CapsulePhysicsShape : PhysicsShape
-    {
-        public float radius;
-        public float height;
-
-        internal override PhysicsShapeInternal ToInternal()
+        public float Mass
         {
-            PhysicsShapeInternal psi = new PhysicsShapeInternal();
+            get => dynamicpa_getMass(regPtr, entityId);
+            set => dynamicpa_setMass(regPtr, entityId, value);
+        }
 
-            psi.type = PhysicsShapeType.Capsule;
-            psi.capsuleRadius = radius;
-            psi.capsuleHeight = height;
+        internal DynamicPhysicsActor(IntPtr regPtr, uint entityId)
+        {
+            this.regPtr = regPtr;
+            this.entityId = entityId;
+        }
 
-            return psi;
+        public List<PhysicsShape> GetPhysicsShapes()
+        {
+            List<PhysicsShape> shapes = new List<PhysicsShape>();
+
+            int shapeCount = dynamicpa_getShapeCount(regPtr, entityId);
+
+            for (int i = 0; i < shapeCount; i++)
+            {
+                PhysicsShapeInternal internalShape = new PhysicsShapeInternal();
+                dynamicpa_getShape(regPtr, entityId, i, ref internalShape);
+                shapes.Add(PhysicsShape.FromInternal(internalShape));
+            }
+
+            return shapes;
+        }
+
+        public void SetPhysicsShapes(List<PhysicsShape> physicsShapes)
+        {
+            dynamicpa_setShapeCount(regPtr, entityId, physicsShapes.Count);
+
+            for (int i = 0; i < physicsShapes.Count; i++)
+            {
+                PhysicsShapeInternal internalShape = physicsShapes[i].ToInternal();
+                dynamicpa_setShape(regPtr, entityId, i, ref internalShape);
+            }
+        }
+
+        public void AddForce(Vector3 force, ForceMode forceMode = ForceMode.Force)
+        {
+            dynamicpa_addForce(regPtr, entityId, force, (int)forceMode);
+        }
+
+        public void AddTorque(Vector3 torque, ForceMode forceMode = ForceMode.Force)
+        {
+            dynamicpa_addTorque(regPtr, entityId, torque, (int)forceMode);
         }
     }
 }

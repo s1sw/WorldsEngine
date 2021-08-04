@@ -887,13 +887,15 @@ void VKRenderer::uploadSceneAssets(entt::registry& reg) {
         JobList& jl = g_jobSys->getFreeJobList();
         jl.begin();
 
+        int i = 0;
         for (AssetID id : uploadMats) {
             Job j {
-                [id, this] {
+                [id, this, i] {
                     matSlots->loadOrGet(id);
                 }
             };
             jl.addJob(std::move(j));
+            i++;
         }
 
         jl.end();
@@ -906,7 +908,7 @@ void VKRenderer::uploadSceneAssets(entt::registry& reg) {
             if (!wo.presentMaterials[i]) continue;
 
             if (wo.materialIdx[i] == ~0u) {
-                wo.materialIdx[i] = matSlots->get(wo.materials[i]);
+                wo.materialIdx[i] = matSlots->loadOrGet(wo.materials[i]);
             }
         }
     });

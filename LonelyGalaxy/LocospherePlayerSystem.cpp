@@ -185,7 +185,7 @@ namespace lg {
                                glm::angleAxis(lookY, glm::vec3(1.0f, 0.0f, 0.0f));
         }
 
-        camera->position = glm::mix(lastCamPos, nextCamPos, interpAlpha);
+        //camera->position = glm::mix(lastCamPos, nextCamPos, interpAlpha);
 
 #ifndef NDEBUG
         ImGui::Text("lcp: %.3f, %.3f, %.3f", lastCamPos.x, lastCamPos.y, lastCamPos.z);
@@ -481,8 +481,8 @@ namespace lg {
                     static glm::vec3 lastHeadPos = glm::vec3{ 0.0f };
                     glm::mat4 headTransform = vrInterface->getHeadTransform();
                     glm::vec3 headPos = worlds::getMatrixTranslation(vrInterface->getHeadTransform());
-                    camOffset = worlds::getMatrixRotation(headTransform) * glm::vec3(0.0f, 0.0f, 0.2f);
-                    camOffset.y = 0.0f;
+                    //camOffset = worlds::getMatrixRotation(headTransform) * glm::vec3(0.0f, 0.0f, 0.2f);
+                    //camOffset.y = 0.0f;
 
                     headPos += camOffset;
                     glm::vec3 locosphereOffset = lastHeadPos - headPos;
@@ -548,7 +548,7 @@ namespace lg {
         pTransform.scale = glm::vec3{0.66f};
 
         registry.emplace<LocospherePlayerComponent>(playerLocosphere).isLocal = true;
-        registry.emplace<worlds::NameComponent>(playerLocosphere, "Locosphere");
+        registry.emplace<worlds::NameComponent>(playerLocosphere, "Player Locosphere");
         registry.emplace<worlds::WorldObject>(playerLocosphere, worlds::AssetDB::pathToId("Materials/dev.json"), worlds::AssetDB::pathToId("Models/sphere.wmdl"));
         registry.emplace<PlayerSoundComponent>(playerLocosphere);
 

@@ -605,7 +605,7 @@ namespace worlds {
             if (l.type != LightType::Tube) {
                 lightMapped->lights[lightIdx] = PackedLight{
                     glm::vec4(l.color * l.intensity, (float)l.type),
-                    glm::vec4(lightForward, glm::cos(l.spotCutoff)),
+                    glm::vec4(lightForward, l.type == LightType::Sphere ? l.spotCutoff : glm::cos(l.spotCutoff)),
                     transform.position, l.shadowmapIdx,
                     l.distanceCutoff
                 };

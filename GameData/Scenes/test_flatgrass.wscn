@@ -1,2233 +1,2352 @@
 {
-  "1": {
-    "Name Component": {
-      "name": "juan"
-    },
-    "Physics Actor": {
-      "shapes": [
-        {
-          "position": [
-            0.0,
-            0.20000000298023224,
-            0.0
-          ],
-          "radius": 0.75,
-          "rotation": [
-            0.0,
-            0.0,
-            0.0,
-            1.0
-          ],
-          "type": 0
-        },
-        {
-          "halfExtents": [
-            0.25,
-            0.5,
-            0.25
-          ],
-          "position": [
-            0.0,
-            -0.30000001192092896,
-            0.44999998807907104
-          ],
-          "rotation": [
-            0.0,
-            0.0,
-            0.0,
-            1.0
-          ],
-          "type": 1
-        }
-      ]
-    },
-    "Script": {
-      "path": "Scripts/TestBehaviour.wren"
-    },
-    "Transform": {
-      "position": [
-        -7.0,
-        0.0,
-        0.9000000357627869
-      ],
-      "rotation": [
-        0.0,
-        0.0,
-        0.0,
-        1.0
-      ],
-      "scale": [
-        1.0,
-        1.0,
-        1.0
-      ]
-    },
-    "World Object": {
-      "materials": [
-        "Materials/dev.json"
-      ],
-      "mesh": "monk.obj",
-      "staticFlags": 0,
-      "texScaleOffset": [
-        1.0,
-        1.0,
-        0.0,
-        0.0
-      ],
-      "uvOverride": 0
-    }
-  },
-  "10": {
-    "Transform": {
-      "position": [
-        0.0,
-        -10000.0,
-        0.0
-      ],
-      "rotation": [
-        0.0,
-        0.0,
-        0.0,
-        1.0
-      ],
-      "scale": [
-        1.0,
-        1.0,
-        1.0
-      ]
-    },
-    "World Object": {
-      "materials": [
-        "Materials/glowred.json"
-      ],
-      "mesh": "arrow.obj",
-      "staticFlags": 0,
-      "texScaleOffset": [
-        1.0,
-        1.0,
-        0.0,
-        0.0
-      ],
-      "uvOverride": 0
-    }
-  },
-  "1048576": {
-    "Physics Actor": {
-      "shapes": [
-        {
-          "halfExtents": [
-            1.0,
-            1.0,
-            1.0
-          ],
-          "position": [
-            0.0,
-            0.0,
-            0.0
-          ],
-          "rotation": [
-            0.0,
-            0.0,
-            0.0,
-            1.0
-          ],
-          "type": 1
-        }
-      ]
-    },
-    "Transform": {
-      "position": [
-        0.0,
-        -2.0,
-        0.0
-      ],
-      "rotation": [
-        0.0,
-        0.0,
-        0.0,
-        1.0
-      ],
-      "scale": [
-        50.0,
-        1.0,
-        50.0
-      ]
-    },
-    "World Object": {
-      "materials": [
-        "Materials/grass.json"
-      ],
-      "mesh": "Models/cube.wmdl",
-      "staticFlags": 0,
-      "texScaleOffset": [
-        0.25,
-        0.25,
-        0.0,
-        0.0
-      ],
-      "uvOverride": 4
-    }
-  },
-  "1048659": {
-    "diff": [
-      {
-        "op": "replace",
-        "path": "/Transform/position/0",
-        "value": -4.5
-      },
-      {
-        "op": "replace",
-        "path": "/Transform/position/1",
-        "value": -0.5
-      },
-      {
-        "op": "replace",
-        "path": "/Transform/position/2",
-        "value": -5.099999904632568
-      },
-      {
-        "op": "replace",
-        "path": "/Transform/scale/0",
-        "value": 0.5
-      },
-      {
-        "op": "replace",
-        "path": "/Transform/scale/1",
-        "value": 0.5
-      },
-      {
-        "op": "replace",
-        "path": "/Transform/scale/2",
-        "value": 0.5
-      },
-      {
-        "op": "add",
-        "path": "/Physics Actor",
-        "value": {
-          "shapes": [
-            {
-              "halfExtents": [
-                1.0,
-                1.0,
-                1.0
-              ],
-              "position": [
-                0.0,
-                0.0,
-                0.0
-              ],
-              "rotation": [
-                0.0,
-                0.0,
-                0.0,
-                1.0
-              ],
-              "type": 1
-            }
-          ]
-        }
-      }
-    ],
-    "prefabPath": "Prefabs/box.wprefab"
-  },
-  "11": {
-    "Transform": {
-      "position": [
-        0.0,
-        -10000.0,
-        0.0
-      ],
-      "rotation": [
-        0.0,
-        0.0,
-        0.0,
-        1.0
-      ],
-      "scale": [
-        1.0,
-        1.0,
-        1.0
-      ]
-    },
-    "World Object": {
-      "materials": [
-        "Materials/glowred.json"
-      ],
-      "mesh": "arrow.obj",
-      "staticFlags": 0,
-      "texScaleOffset": [
-        1.0,
-        1.0,
-        0.0,
-        0.0
-      ],
-      "uvOverride": 0
-    }
-  },
-  "11534366": {
-    "Name Component": {
-      "name": "Flatgrass"
-    },
-    "Transform": {
-      "position": [
-        0.0,
-        11.68659782409668,
-        0.0
-      ],
-      "rotation": [
-        0.0,
-        0.0,
-        0.0,
-        1.0
-      ],
-      "scale": [
-        1.0,
-        1.0,
-        1.0
-      ]
-    },
-    "World Cubemap": {
-      "extent": [
-        250.0,
-        250.0,
-        250.0
-      ],
-      "path": "LevelCubemaps/Flatgrass.json",
-      "useCubeParallax": false
-    }
-  },
-  "12": {
-    "Transform": {
-      "position": [
-        0.0,
-        -10000.0,
-        0.0
-      ],
-      "rotation": [
-        0.0,
-        0.0,
-        0.0,
-        1.0
-      ],
-      "scale": [
-        1.0,
-        1.0,
-        1.0
-      ]
-    },
-    "World Object": {
-      "materials": [
-        "Materials/glowred.json"
-      ],
-      "mesh": "arrow.obj",
-      "staticFlags": 0,
-      "texScaleOffset": [
-        1.0,
-        1.0,
-        0.0,
-        0.0
-      ],
-      "uvOverride": 0
-    }
-  },
-  "13": {
-    "Transform": {
-      "position": [
-        0.0,
-        -10000.0,
-        0.0
-      ],
-      "rotation": [
-        0.0,
-        0.0,
-        0.0,
-        1.0
-      ],
-      "scale": [
-        1.0,
-        1.0,
-        1.0
-      ]
-    },
-    "World Object": {
-      "materials": [
-        "Materials/glowred.json"
-      ],
-      "mesh": "arrow.obj",
-      "staticFlags": 0,
-      "texScaleOffset": [
-        1.0,
-        1.0,
-        0.0,
-        0.0
-      ],
-      "uvOverride": 0
-    }
-  },
-  "14": {
-    "Transform": {
-      "position": [
-        0.0,
-        -10000.0,
-        0.0
-      ],
-      "rotation": [
-        0.0,
-        0.0,
-        0.0,
-        1.0
-      ],
-      "scale": [
-        1.0,
-        1.0,
-        1.0
-      ]
-    },
-    "World Object": {
-      "materials": [
-        "Materials/glowred.json"
-      ],
-      "mesh": "arrow.obj",
-      "staticFlags": 0,
-      "texScaleOffset": [
-        1.0,
-        1.0,
-        0.0,
-        0.0
-      ],
-      "uvOverride": 0
-    }
-  },
-  "15": {
-    "Transform": {
-      "position": [
-        0.0,
-        -10000.0,
-        0.0
-      ],
-      "rotation": [
-        0.0,
-        0.0,
-        0.0,
-        1.0
-      ],
-      "scale": [
-        1.0,
-        1.0,
-        1.0
-      ]
-    },
-    "World Object": {
-      "materials": [
-        "Materials/glowred.json"
-      ],
-      "mesh": "arrow.obj",
-      "staticFlags": 0,
-      "texScaleOffset": [
-        1.0,
-        1.0,
-        0.0,
-        0.0
-      ],
-      "uvOverride": 0
-    }
-  },
-  "16": {
-    "Transform": {
-      "position": [
-        0.0,
-        -10000.0,
-        0.0
-      ],
-      "rotation": [
-        0.0,
-        0.0,
-        0.0,
-        1.0
-      ],
-      "scale": [
-        1.0,
-        1.0,
-        1.0
-      ]
-    },
-    "World Object": {
-      "materials": [
-        "Materials/glowred.json"
-      ],
-      "mesh": "arrow.obj",
-      "staticFlags": 0,
-      "texScaleOffset": [
-        1.0,
-        1.0,
-        0.0,
-        0.0
-      ],
-      "uvOverride": 0
-    }
-  },
-  "17": {
-    "Transform": {
-      "position": [
-        0.0,
-        -10000.0,
-        0.0
-      ],
-      "rotation": [
-        0.0,
-        0.0,
-        0.0,
-        1.0
-      ],
-      "scale": [
-        1.0,
-        1.0,
-        1.0
-      ]
-    },
-    "World Object": {
-      "materials": [
-        "Materials/glowred.json"
-      ],
-      "mesh": "arrow.obj",
-      "staticFlags": 0,
-      "texScaleOffset": [
-        1.0,
-        1.0,
-        0.0,
-        0.0
-      ],
-      "uvOverride": 0
-    }
-  },
-  "18": {
-    "Transform": {
-      "position": [
-        0.0,
-        -10000.0,
-        0.0
-      ],
-      "rotation": [
-        0.0,
-        0.0,
-        0.0,
-        1.0
-      ],
-      "scale": [
-        1.0,
-        1.0,
-        1.0
-      ]
-    },
-    "World Object": {
-      "materials": [
-        "Materials/glowred.json"
-      ],
-      "mesh": "arrow.obj",
-      "staticFlags": 0,
-      "texScaleOffset": [
-        1.0,
-        1.0,
-        0.0,
-        0.0
-      ],
-      "uvOverride": 0
-    }
-  },
-  "19": {
-    "Physics Actor": {
-      "shapes": [
-        {
-          "halfExtents": [
-            1.0,
-            1.0,
-            1.0
-          ],
-          "position": [
-            0.0,
-            0.0,
-            0.0
-          ],
-          "rotation": [
-            0.0,
-            0.0,
-            0.0,
-            1.0
-          ],
-          "type": 1
-        }
-      ]
-    },
-    "Transform": {
-      "position": [
-        -99.80000305175781,
-        -2.0,
-        0.0
-      ],
-      "rotation": [
-        0.0,
-        0.0,
-        0.0,
-        1.0
-      ],
-      "scale": [
-        50.0,
-        1.0,
-        50.0
-      ]
-    },
-    "World Object": {
-      "materials": [
-        "Materials/grass.json"
-      ],
-      "mesh": "Models/cube.wmdl",
-      "staticFlags": 0,
-      "texScaleOffset": [
-        0.25,
-        0.25,
-        0.0,
-        0.0
-      ],
-      "uvOverride": 4
-    }
-  },
-  "2": {
-    "Name Component": {
-      "name": "Directional Light"
-    },
-    "Transform": {
-      "position": [
-        0.0,
-        29.0,
-        0.0
-      ],
-      "rotation": [
-        0.5979426503181458,
-        0.4784483313560486,
-        -0.3647648096084595,
-        0.5296210646629333
-      ],
-      "scale": [
-        1.0,
-        1.0,
-        1.0
-      ]
-    },
-    "World Light": {
-      "color": [
-        1.0,
-        1.0,
-        1.0
-      ],
-      "distanceCutoff": 1.0,
-      "enableShadows": false,
-      "enabled": true,
-      "intensity": 1.0,
-      "spotCutoff": 0.699999988079071,
-      "tubeLength": 0.25,
-      "tubeRadius": 0.10000000149011612,
-      "type": 2
-    }
-  },
-  "20": {
-    "Physics Actor": {
-      "shapes": [
-        {
-          "halfExtents": [
-            1.0,
-            1.0,
-            1.0
-          ],
-          "position": [
-            0.0,
-            0.0,
-            0.0
-          ],
-          "rotation": [
-            0.0,
-            0.0,
-            0.0,
-            1.0
-          ],
-          "type": 1
-        }
-      ]
-    },
-    "Transform": {
-      "position": [
-        100.0,
-        -2.0,
-        0.0
-      ],
-      "rotation": [
-        0.0,
-        0.0,
-        0.0,
-        1.0
-      ],
-      "scale": [
-        50.0,
-        1.0,
-        50.0
-      ]
-    },
-    "World Object": {
-      "materials": [
-        "Materials/grass.json"
-      ],
-      "mesh": "Models/cube.wmdl",
-      "staticFlags": 0,
-      "texScaleOffset": [
-        0.25,
-        0.25,
-        0.0,
-        0.0
-      ],
-      "uvOverride": 4
-    }
-  },
-  "2097176": {
-    "Name Component": {
-      "name": "Player Spawn"
-    },
-    "Player Start Point": {
-      "alwaysUse": false
-    },
-    "Transform": {
-      "position": [
-        0.0,
-        1.0,
-        0.0
-      ],
-      "rotation": [
-        0.0,
-        0.0,
-        0.0,
-        1.0
-      ],
-      "scale": [
-        1.0,
-        1.0,
-        1.0
-      ]
-    }
-  },
-  "21": {
-    "Physics Actor": {
-      "shapes": [
-        {
-          "halfExtents": [
-            1.0,
-            1.0,
-            1.0
-          ],
-          "position": [
-            0.0,
-            0.0,
-            0.0
-          ],
-          "rotation": [
-            0.0,
-            0.0,
-            0.0,
-            1.0
-          ],
-          "type": 1
-        }
-      ]
-    },
-    "Transform": {
-      "position": [
-        0.0,
-        -2.0,
-        100.0
-      ],
-      "rotation": [
-        0.0,
-        0.0,
-        0.0,
-        1.0
-      ],
-      "scale": [
-        50.0,
-        1.0,
-        50.0
-      ]
-    },
-    "World Object": {
-      "materials": [
-        "Materials/grass.json"
-      ],
-      "mesh": "Models/cube.wmdl",
-      "staticFlags": 0,
-      "texScaleOffset": [
-        0.25,
-        0.25,
-        0.0,
-        0.0
-      ],
-      "uvOverride": 4
-    }
-  },
-  "22": {
-    "Physics Actor": {
-      "shapes": [
-        {
-          "halfExtents": [
-            1.0,
-            1.0,
-            1.0
-          ],
-          "position": [
-            0.0,
-            0.0,
-            0.0
-          ],
-          "rotation": [
-            0.0,
-            0.0,
-            0.0,
-            1.0
-          ],
-          "type": 1
-        }
-      ]
-    },
-    "Transform": {
-      "position": [
-        0.0,
-        -2.0,
-        -100.0
-      ],
-      "rotation": [
-        0.0,
-        0.0,
-        0.0,
-        1.0
-      ],
-      "scale": [
-        50.0,
-        1.0,
-        50.0
-      ]
-    },
-    "World Object": {
-      "materials": [
-        "Materials/grass.json"
-      ],
-      "mesh": "Models/cube.wmdl",
-      "staticFlags": 0,
-      "texScaleOffset": [
-        0.25,
-        0.25,
-        0.0,
-        0.0
-      ],
-      "uvOverride": 4
-    }
-  },
-  "23": {
-    "Physics Actor": {
-      "shapes": [
-        {
-          "halfExtents": [
-            1.0,
-            1.0,
-            1.0
-          ],
-          "position": [
-            0.0,
-            0.0,
-            0.0
-          ],
-          "rotation": [
-            0.0,
-            0.0,
-            0.0,
-            1.0
-          ],
-          "type": 1
-        }
-      ]
-    },
-    "Transform": {
-      "position": [
-        -13.863836288452148,
-        40.78957748413086,
-        -89.73627471923828
-      ],
-      "rotation": [
-        0.0,
-        0.0,
-        -0.09763605892658234,
-        0.9952222108840942
-      ],
-      "scale": [
-        25.0,
-        50.0,
-        25.0
-      ]
-    },
-    "World Object": {
-      "materials": [
-        "Materials/LevelTextures/MetalPlates006.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json"
-      ],
-      "mesh": "Models/cube.wmdl",
-      "staticFlags": 0,
-      "texScaleOffset": [
-        15.0,
-        15.0,
-        0.0,
-        0.0
-      ],
-      "uvOverride": 0
-    }
-  },
-  "3": {
-    "Transform": {
-      "position": [
-        0.0,
-        -10000.0,
-        0.0
-      ],
-      "rotation": [
-        0.0,
-        0.0,
-        0.0,
-        1.0
-      ],
-      "scale": [
-        1.0,
-        1.0,
-        1.0
-      ]
-    },
-    "World Object": {
-      "materials": [
-        "Materials/glowred.json"
-      ],
-      "mesh": "arrow.obj",
-      "staticFlags": 0,
-      "texScaleOffset": [
-        1.0,
-        1.0,
-        0.0,
-        0.0
-      ],
-      "uvOverride": 0
-    }
-  },
-  "4": {
-    "Transform": {
-      "position": [
-        0.0,
-        -10000.0,
-        0.0
-      ],
-      "rotation": [
-        0.0,
-        0.0,
-        0.0,
-        1.0
-      ],
-      "scale": [
-        1.0,
-        1.0,
-        1.0
-      ]
-    },
-    "World Object": {
-      "materials": [
-        "Materials/glowred.json"
-      ],
-      "mesh": "arrow.obj",
-      "staticFlags": 0,
-      "texScaleOffset": [
-        1.0,
-        1.0,
-        0.0,
-        0.0
-      ],
-      "uvOverride": 0
-    }
-  },
-  "4194335": {
-    "diff": [
-      {
-        "op": "replace",
-        "path": "/Transform/rotation/0",
-        "value": -0.0003787734603974968
-      },
-      {
-        "op": "replace",
-        "path": "/Transform/rotation/1",
-        "value": -0.0006070876843295991
-      },
-      {
-        "op": "replace",
-        "path": "/Transform/rotation/2",
-        "value": -8.042177796596661e-06
-      },
-      {
-        "op": "replace",
-        "path": "/Transform/rotation/3",
-        "value": 0.9999997615814209
-      }
-    ],
-    "prefabPath": "Prefabs/drone.wprefab"
-  },
-  "4194336": {
-    "diff": [
-      {
-        "op": "replace",
-        "path": "/Transform/position/0",
-        "value": 2.3445403575897217
-      },
-      {
-        "op": "replace",
-        "path": "/Transform/rotation/0",
-        "value": -0.0003787734603974968
-      },
-      {
-        "op": "replace",
-        "path": "/Transform/rotation/1",
-        "value": -0.0006069900118745863
-      },
-      {
-        "op": "replace",
-        "path": "/Transform/rotation/2",
-        "value": -8.042177796596661e-06
-      },
-      {
-        "op": "replace",
-        "path": "/Transform/rotation/3",
-        "value": 0.9999997615814209
-      }
-    ],
-    "prefabPath": "Prefabs/drone.wprefab"
-  },
-  "4194337": {
-    "diff": [
-      {
-        "op": "replace",
-        "path": "/Transform/position/0",
-        "value": 4.658619403839111
-      },
-      {
-        "op": "replace",
-        "path": "/Transform/rotation/0",
-        "value": -0.0003787734603974968
-      },
-      {
-        "op": "replace",
-        "path": "/Transform/rotation/1",
-        "value": -0.0006070173694752157
-      },
-      {
-        "op": "replace",
-        "path": "/Transform/rotation/2",
-        "value": -8.042177796596661e-06
-      },
-      {
-        "op": "replace",
-        "path": "/Transform/rotation/3",
-        "value": 0.9999997615814209
-      }
-    ],
-    "prefabPath": "Prefabs/drone.wprefab"
-  },
-  "4194338": {
-    "diff": [
-      {
-        "op": "replace",
-        "path": "/Transform/position/0",
-        "value": 7.003488063812256
-      },
-      {
-        "op": "replace",
-        "path": "/Transform/rotation/0",
-        "value": -0.0003787734603974968
-      },
-      {
-        "op": "replace",
-        "path": "/Transform/rotation/1",
-        "value": -0.0006069735391065478
-      },
-      {
-        "op": "replace",
-        "path": "/Transform/rotation/2",
-        "value": -8.042177796596661e-06
-      },
-      {
-        "op": "replace",
-        "path": "/Transform/rotation/3",
-        "value": 0.9999997615814209
-      }
-    ],
-    "prefabPath": "Prefabs/drone.wprefab"
-  },
-  "4194348": {
-    "diff": [
-      {
-        "op": "replace",
-        "path": "/Transform/position/0",
-        "value": 7.003488063812256
-      },
-      {
-        "op": "replace",
-        "path": "/Transform/position/2",
-        "value": -10.18852424621582
-      },
-      {
-        "op": "replace",
-        "path": "/Transform/rotation/0",
-        "value": -0.0003787734603974968
-      },
-      {
-        "op": "replace",
-        "path": "/Transform/rotation/1",
-        "value": -0.0006069713272154331
-      },
-      {
-        "op": "replace",
-        "path": "/Transform/rotation/2",
-        "value": -8.042177796596661e-06
-      },
-      {
-        "op": "replace",
-        "path": "/Transform/rotation/3",
-        "value": 0.9999997615814209
-      }
-    ],
-    "prefabPath": "Prefabs/drone.wprefab"
-  },
-  "4194350": {
-    "diff": [
-      {
-        "op": "replace",
-        "path": "/Transform/position/0",
-        "value": 2.3445403575897217
-      },
-      {
-        "op": "replace",
-        "path": "/Transform/position/2",
-        "value": -10.18852424621582
-      },
-      {
-        "op": "replace",
-        "path": "/Transform/rotation/0",
-        "value": -0.0003787734603974968
-      },
-      {
-        "op": "replace",
-        "path": "/Transform/rotation/1",
-        "value": -0.0006069832597859204
-      },
-      {
-        "op": "replace",
-        "path": "/Transform/rotation/2",
-        "value": -8.042177796596661e-06
-      },
-      {
-        "op": "replace",
-        "path": "/Transform/rotation/3",
-        "value": 0.9999997615814209
-      }
-    ],
-    "prefabPath": "Prefabs/drone.wprefab"
-  },
-  "5": {
-    "Transform": {
-      "position": [
-        0.0,
-        -10000.0,
-        0.0
-      ],
-      "rotation": [
-        0.0,
-        0.0,
-        0.0,
-        1.0
-      ],
-      "scale": [
-        1.0,
-        1.0,
-        1.0
-      ]
-    },
-    "World Object": {
-      "materials": [
-        "Materials/glowred.json"
-      ],
-      "mesh": "arrow.obj",
-      "staticFlags": 0,
-      "texScaleOffset": [
-        1.0,
-        1.0,
-        0.0,
-        0.0
-      ],
-      "uvOverride": 0
-    }
-  },
-  "6": {
-    "Transform": {
-      "position": [
-        0.0,
-        -10000.0,
-        0.0
-      ],
-      "rotation": [
-        0.0,
-        0.0,
-        0.0,
-        1.0
-      ],
-      "scale": [
-        1.0,
-        1.0,
-        1.0
-      ]
-    },
-    "World Object": {
-      "materials": [
-        "Materials/glowred.json"
-      ],
-      "mesh": "arrow.obj",
-      "staticFlags": 0,
-      "texScaleOffset": [
-        1.0,
-        1.0,
-        0.0,
-        0.0
-      ],
-      "uvOverride": 0
-    }
-  },
-  "6291481": {
-    "Physics Actor": {
-      "shapes": [
-        {
-          "halfExtents": [
-            1.0,
-            1.0,
-            1.0
-          ],
-          "position": [
-            0.0,
-            0.0,
-            0.0
-          ],
-          "rotation": [
-            0.0,
-            0.0,
-            0.0,
-            1.0
-          ],
-          "type": 1
-        }
-      ]
-    },
-    "Transform": {
-      "position": [
-        -100.0,
-        -2.0,
-        -100.0
-      ],
-      "rotation": [
-        0.0,
-        0.0,
-        0.0,
-        0.9999998807907104
-      ],
-      "scale": [
-        50.0,
-        1.0,
-        50.0
-      ]
-    },
-    "World Object": {
-      "materials": [
-        "Materials/grass.json"
-      ],
-      "mesh": "Models/cube.wmdl",
-      "staticFlags": 0,
-      "texScaleOffset": [
-        0.25,
-        0.25,
-        0.0,
-        0.0
-      ],
-      "uvOverride": 4
-    }
-  },
-  "6291501": {
-    "diff": [
-      {
-        "op": "replace",
-        "path": "/Transform/position/0",
-        "value": 4.658619403839111
-      },
-      {
-        "op": "replace",
-        "path": "/Transform/position/2",
-        "value": -10.18852424621582
-      },
-      {
-        "op": "replace",
-        "path": "/Transform/rotation/0",
-        "value": -0.0003787734603974968
-      },
-      {
-        "op": "replace",
-        "path": "/Transform/rotation/1",
-        "value": -0.000607012421824038
-      },
-      {
-        "op": "replace",
-        "path": "/Transform/rotation/2",
-        "value": -8.042177796596661e-06
-      },
-      {
-        "op": "replace",
-        "path": "/Transform/rotation/3",
-        "value": 0.9999997615814209
-      }
-    ],
-    "prefabPath": "Prefabs/drone.wprefab"
-  },
-  "7": {
-    "Transform": {
-      "position": [
-        0.0,
-        -10000.0,
-        0.0
-      ],
-      "rotation": [
-        0.0,
-        0.0,
-        0.0,
-        1.0
-      ],
-      "scale": [
-        1.0,
-        1.0,
-        1.0
-      ]
-    },
-    "World Object": {
-      "materials": [
-        "Materials/glowred.json"
-      ],
-      "mesh": "arrow.obj",
-      "staticFlags": 0,
-      "texScaleOffset": [
-        1.0,
-        1.0,
-        0.0,
-        0.0
-      ],
-      "uvOverride": 0
-    }
-  },
-  "7340058": {
-    "Physics Actor": {
-      "shapes": [
-        {
-          "halfExtents": [
-            1.0,
-            1.0,
-            1.0
-          ],
-          "position": [
-            0.0,
-            0.0,
-            0.0
-          ],
-          "rotation": [
-            0.0,
-            0.0,
-            0.0,
-            1.0
-          ],
-          "type": 1
-        }
-      ]
-    },
-    "Transform": {
-      "position": [
-        -100.0,
-        -2.0,
-        100.0
-      ],
-      "rotation": [
-        0.0,
-        0.0,
-        0.0,
-        0.9999998807907104
-      ],
-      "scale": [
-        50.0,
-        1.0,
-        50.0
-      ]
-    },
-    "World Object": {
-      "materials": [
-        "Materials/grass.json"
-      ],
-      "mesh": "Models/cube.wmdl",
-      "staticFlags": 0,
-      "texScaleOffset": [
-        0.25,
-        0.25,
-        0.0,
-        0.0
-      ],
-      "uvOverride": 4
-    }
-  },
-  "7340059": {
-    "Physics Actor": {
-      "shapes": [
-        {
-          "halfExtents": [
-            1.0,
-            1.0,
-            1.0
-          ],
-          "position": [
-            0.0,
-            0.0,
-            0.0
-          ],
-          "rotation": [
-            0.0,
-            0.0,
-            0.0,
-            1.0
-          ],
-          "type": 1
-        }
-      ]
-    },
-    "Transform": {
-      "position": [
-        100.0,
-        -2.0,
-        100.0
-      ],
-      "rotation": [
-        0.0,
-        0.0,
-        0.0,
-        0.9999998807907104
-      ],
-      "scale": [
-        50.0,
-        1.0,
-        50.0
-      ]
-    },
-    "World Object": {
-      "materials": [
-        "Materials/grass.json"
-      ],
-      "mesh": "Models/cube.wmdl",
-      "staticFlags": 0,
-      "texScaleOffset": [
-        0.25,
-        0.25,
-        0.0,
-        0.0
-      ],
-      "uvOverride": 4
-    }
-  },
-  "7340079": {
-    "diff": [
-      {
-        "op": "replace",
-        "path": "/Transform/position/2",
-        "value": -10.18852424621582
-      },
-      {
-        "op": "replace",
-        "path": "/Transform/rotation/0",
-        "value": -0.0003787734603974968
-      },
-      {
-        "op": "replace",
-        "path": "/Transform/rotation/1",
-        "value": -0.0006070070085115731
-      },
-      {
-        "op": "replace",
-        "path": "/Transform/rotation/2",
-        "value": -8.042177796596661e-06
-      },
-      {
-        "op": "replace",
-        "path": "/Transform/rotation/3",
-        "value": 0.9999997615814209
-      }
-    ],
-    "prefabPath": "Prefabs/drone.wprefab"
-  },
-  "7340090": {
-    "diff": [
-      {
-        "op": "replace",
-        "path": "/Transform/position/0",
-        "value": 7.003488063812256
-      },
-      {
-        "op": "replace",
-        "path": "/Transform/position/2",
-        "value": -14.560816764831543
-      },
-      {
-        "op": "replace",
-        "path": "/Transform/rotation/0",
-        "value": -0.0003787734603974968
-      },
-      {
-        "op": "replace",
-        "path": "/Transform/rotation/1",
-        "value": -0.0006069911760278046
-      },
-      {
-        "op": "replace",
-        "path": "/Transform/rotation/2",
-        "value": -8.042177796596661e-06
-      },
-      {
-        "op": "replace",
-        "path": "/Transform/rotation/3",
-        "value": 0.9999997615814209
-      }
-    ],
-    "prefabPath": "Prefabs/drone.wprefab"
-  },
-  "8": {
-    "Transform": {
-      "position": [
-        0.0,
-        -10000.0,
-        0.0
-      ],
-      "rotation": [
-        0.0,
-        0.0,
-        0.0,
-        1.0
-      ],
-      "scale": [
-        1.0,
-        1.0,
-        1.0
-      ]
-    },
-    "World Object": {
-      "materials": [
-        "Materials/glowred.json"
-      ],
-      "mesh": "arrow.obj",
-      "staticFlags": 0,
-      "texScaleOffset": [
-        1.0,
-        1.0,
-        0.0,
-        0.0
-      ],
-      "uvOverride": 0
-    }
-  },
-  "8388667": {
-    "diff": [
-      {
-        "op": "replace",
-        "path": "/Transform/position/0",
-        "value": 4.658619403839111
-      },
-      {
-        "op": "replace",
-        "path": "/Transform/position/2",
-        "value": -14.560816764831543
-      },
-      {
-        "op": "replace",
-        "path": "/Transform/rotation/0",
-        "value": -0.0003787734603974968
-      },
-      {
-        "op": "replace",
-        "path": "/Transform/rotation/1",
-        "value": -0.0006070316303521395
-      },
-      {
-        "op": "replace",
-        "path": "/Transform/rotation/2",
-        "value": -8.042177796596661e-06
-      },
-      {
-        "op": "replace",
-        "path": "/Transform/rotation/3",
-        "value": 0.9999997615814209
-      }
-    ],
-    "prefabPath": "Prefabs/drone.wprefab"
-  },
-  "8388668": {
-    "diff": [
-      {
-        "op": "replace",
-        "path": "/Transform/position/0",
-        "value": 2.3445403575897217
-      },
-      {
-        "op": "replace",
-        "path": "/Transform/position/2",
-        "value": -14.560816764831543
-      },
-      {
-        "op": "replace",
-        "path": "/Transform/rotation/0",
-        "value": -0.0003787734603974968
-      },
-      {
-        "op": "replace",
-        "path": "/Transform/rotation/1",
-        "value": -0.000607001653406769
-      },
-      {
-        "op": "replace",
-        "path": "/Transform/rotation/2",
-        "value": -8.042177796596661e-06
-      },
-      {
-        "op": "replace",
-        "path": "/Transform/rotation/3",
-        "value": 0.9999997615814209
-      }
-    ],
-    "prefabPath": "Prefabs/drone.wprefab"
-  },
-  "8388669": {
-    "diff": [
-      {
-        "op": "replace",
-        "path": "/Transform/position/2",
-        "value": -14.560816764831543
-      },
-      {
-        "op": "replace",
-        "path": "/Transform/rotation/0",
-        "value": -0.0003787734603974968
-      },
-      {
-        "op": "replace",
-        "path": "/Transform/rotation/1",
-        "value": -0.0006070248782634735
-      },
-      {
-        "op": "replace",
-        "path": "/Transform/rotation/2",
-        "value": -8.042177796596661e-06
-      },
-      {
-        "op": "replace",
-        "path": "/Transform/rotation/3",
-        "value": 0.9999997615814209
-      }
-    ],
-    "prefabPath": "Prefabs/drone.wprefab"
-  },
-  "8388676": {
-    "diff": [
-      {
-        "op": "replace",
-        "path": "/Transform/position/0",
-        "value": 7.003488063812256
-      },
-      {
-        "op": "replace",
-        "path": "/Transform/position/2",
-        "value": -12.36081600189209
-      },
-      {
-        "op": "replace",
-        "path": "/Transform/rotation/0",
-        "value": -0.0003787734603974968
-      },
-      {
-        "op": "replace",
-        "path": "/Transform/rotation/1",
-        "value": -0.000607000314630568
-      },
-      {
-        "op": "replace",
-        "path": "/Transform/rotation/2",
-        "value": -8.042177796596661e-06
-      },
-      {
-        "op": "replace",
-        "path": "/Transform/rotation/3",
-        "value": 0.9999997615814209
-      }
-    ],
-    "prefabPath": "Prefabs/drone.wprefab"
-  },
-  "8388677": {
-    "diff": [
-      {
-        "op": "replace",
-        "path": "/Transform/position/0",
-        "value": 4.658619403839111
-      },
-      {
-        "op": "replace",
-        "path": "/Transform/position/2",
-        "value": -12.36081600189209
-      },
-      {
-        "op": "replace",
-        "path": "/Transform/rotation/0",
-        "value": -0.0003787734603974968
-      },
-      {
-        "op": "replace",
-        "path": "/Transform/rotation/1",
-        "value": -0.0006070475210435688
-      },
-      {
-        "op": "replace",
-        "path": "/Transform/rotation/2",
-        "value": -8.042177796596661e-06
-      },
-      {
-        "op": "replace",
-        "path": "/Transform/rotation/3",
-        "value": 0.9999997615814209
-      }
-    ],
-    "prefabPath": "Prefabs/drone.wprefab"
-  },
-  "8388678": {
-    "diff": [
-      {
-        "op": "replace",
-        "path": "/Transform/position/0",
-        "value": 2.3445403575897217
-      },
-      {
-        "op": "replace",
-        "path": "/Transform/position/2",
-        "value": -12.36081600189209
-      },
-      {
-        "op": "replace",
-        "path": "/Transform/rotation/0",
-        "value": -0.0003787734603974968
-      },
-      {
-        "op": "replace",
-        "path": "/Transform/rotation/1",
-        "value": -0.0006070245872251689
-      },
-      {
-        "op": "replace",
-        "path": "/Transform/rotation/2",
-        "value": -8.042177796596661e-06
-      },
-      {
-        "op": "replace",
-        "path": "/Transform/rotation/3",
-        "value": 0.9999997615814209
-      }
-    ],
-    "prefabPath": "Prefabs/drone.wprefab"
-  },
-  "8388683": {
-    "diff": [
-      {
-        "op": "replace",
-        "path": "/Transform/position/2",
-        "value": -12.36081600189209
-      },
-      {
-        "op": "replace",
-        "path": "/Transform/rotation/0",
-        "value": -0.0003787734603974968
-      },
-      {
-        "op": "replace",
-        "path": "/Transform/rotation/1",
-        "value": -0.0006070586387068033
-      },
-      {
-        "op": "replace",
-        "path": "/Transform/rotation/2",
-        "value": -8.042177796596661e-06
-      },
-      {
-        "op": "replace",
-        "path": "/Transform/rotation/3",
-        "value": 0.9999997615814209
-      }
-    ],
-    "prefabPath": "Prefabs/drone.wprefab"
-  },
-  "8388685": {
-    "Audio Source": {
-      "channel": 1,
-      "clipPath": "Audio/SFX/gunsoundthing.ogg",
-      "loop": false,
-      "playOnSceneOpen": false,
-      "spatialise": true,
-      "volume": 1.0
-    },
-    "Dynamic Physics Actor": {
-      "enableCCD": false,
-      "enableGravity": true,
-      "mass": 1.0,
-      "shapes": [
-        {
-          "halfExtents": [
-            0.03172706067562103,
-            0.03272834047675133,
-            0.031092030927538872
-          ],
-          "position": [
-            0.00035461969673633575,
-            0.07305007427930832,
-            0.0630389153957367
-          ],
-          "rotation": [
-            0.0,
-            0.0,
-            0.0,
-            0.9999998807907104
-          ],
-          "type": 1
-        },
-        {
-          "halfExtents": [
-            0.03172706067562103,
-            0.036459289491176605,
-            0.10000000149011612
-          ],
-          "position": [
-            0.00035461969673633575,
-            0.06917629390954971,
-            0.12652990221977234
-          ],
-          "rotation": [
-            0.0,
-            0.0,
-            0.0,
-            0.9999998807907104
-          ],
-          "type": 1
-        },
-        {
-          "halfExtents": [
-            0.03172706067562103,
-            0.036459289491176605,
-            0.03221883997321129
-          ],
-          "position": [
-            0.00035461969673633575,
-            0.06917629390954971,
-            -0.000400736927986145
-          ],
-          "rotation": [
-            0.0,
-            0.0,
-            0.0,
-            0.9999998807907104
-          ],
-          "type": 1
-        },
-        {
-          "halfExtents": [
-            0.03172706067562103,
-            0.027831269428133965,
-            0.020350318402051926
-          ],
-          "position": [
-            0.00035461969673633575,
-            0.06123422831296921,
-            -0.05318547040224075
-          ],
-          "rotation": [
-            0.0,
-            0.0,
-            0.0,
-            0.9999998807907104
-          ],
-          "type": 1
-        },
-        {
-          "halfExtents": [
-            0.019394369795918465,
-            0.04343004524707794,
-            0.01809765212237835
-          ],
-          "position": [
-            0.00035461969673633575,
-            0.0024213800206780434,
-            -0.011851499788463116
-          ],
-          "rotation": [
-            0.13672061264514923,
-            0.0,
-            0.0,
-            0.9906095266342163
-          ],
-          "type": 1
-        }
-      ]
-    },
-    "Grabbable": {
-      "grips": [
-        {
-          "gripType": 0,
-          "hand": 1,
-          "position": [
-            -0.029137667268514633,
-            -0.024024195969104767,
-            -0.09799988567829132
-          ],
-          "rotation": [
-            0.0,
-            0.0,
-            0.0,
-            1.0
-          ]
-        },
-        {
-          "gripType": 0,
-          "hand": 0,
-          "position": [
-            0.02961394190788269,
-            -0.024002976715564728,
-            -0.09760330617427826
-          ],
-          "rotation": [
-            0.0,
-            0.0,
-            0.0,
-            1.0
-          ]
-        },
-        {
-          "gripType": 0,
-          "hand": 0,
-          "position": [
-            0.029057513922452927,
-            -0.07077432423830032,
-            -0.0532059520483017
-          ],
-          "rotation": [
-            4.192202140984591e-13,
-            -7.137268198675883e-08,
-            -0.4082043766975403,
-            0.912890613079071
-          ]
-        }
-      ]
-    },
-    "Gun": {
-      "automatic": true,
-      "damage": 100.0,
-      "firePoint": {
+  "entities": {
+    "1": {
+      "Name Component": {
+        "name": "juan"
+      },
+      "Physics Actor": {
+        "shapes": [
+          {
+            "position": [
+              0.0,
+              0.20000000298023224,
+              0.0
+            ],
+            "radius": 0.75,
+            "rotation": [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ],
+            "type": 0
+          },
+          {
+            "halfExtents": [
+              0.25,
+              0.5,
+              0.25
+            ],
+            "position": [
+              0.0,
+              -0.30000001192092896,
+              0.44999998807907104
+            ],
+            "rotation": [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ],
+            "type": 1
+          }
+        ]
+      },
+      "Script": {
+        "path": "Scripts/TestBehaviour.wren"
+      },
+      "Transform": {
         "position": [
-          0.018285619094967842,
-          0.06895159184932709,
-          0.5182759761810303
+          -7.0,
+          0.0,
+          0.9000000357627869
         ],
         "rotation": [
           0.0,
           0.0,
           0.0,
           1.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
         ]
       },
-      "shotPeriod": 0.10000000149011612
+      "World Object": {
+        "materials": [
+          "Materials/dev.json"
+        ],
+        "mesh": "monk.obj",
+        "staticFlags": 0,
+        "texScaleOffset": [
+          1.0,
+          1.0,
+          0.0,
+          0.0
+        ],
+        "uvOverride": 0
+      }
     },
-    "Transform": {
-      "position": [
-        -4.616000175476074,
-        0.971031665802002,
-        -5.014514446258545
-      ],
-      "rotation": [
-        0.0017739587929099798,
-        0.9872468709945679,
-        -0.1590842604637146,
-        0.005729384254664183
-      ],
-      "scale": [
-        1.0000760555267334,
-        1.0,
-        1.0001068115234375
-      ]
+    "10": {
+      "Transform": {
+        "position": [
+          0.0,
+          -10000.0,
+          0.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "World Object": {
+        "materials": [
+          "Materials/glowred.json"
+        ],
+        "mesh": "arrow.obj",
+        "staticFlags": 0,
+        "texScaleOffset": [
+          1.0,
+          1.0,
+          0.0,
+          0.0
+        ],
+        "uvOverride": 0
+      }
     },
-    "World Object": {
-      "materials": [
-        "Materials/silver.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json"
-      ],
-      "mesh": "Models/test_gun.wmdl",
-      "staticFlags": 0,
-      "texScaleOffset": [
-        1.0,
-        1.0,
-        0.0,
-        0.0
-      ],
-      "uvOverride": 0
-    }
-  },
-  "9": {
-    "Transform": {
-      "position": [
-        0.0,
-        -10000.0,
-        0.0
-      ],
-      "rotation": [
-        0.0,
-        0.0,
-        0.0,
-        1.0
-      ],
-      "scale": [
-        1.0,
-        1.0,
-        1.0
-      ]
+    "1048576": {
+      "Physics Actor": {
+        "shapes": [
+          {
+            "halfExtents": [
+              1.0,
+              1.0,
+              1.0
+            ],
+            "position": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "rotation": [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ],
+            "type": 1
+          }
+        ]
+      },
+      "Transform": {
+        "position": [
+          0.0,
+          -2.0,
+          0.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "scale": [
+          50.0,
+          1.0,
+          50.0
+        ]
+      },
+      "World Object": {
+        "materials": [
+          "Materials/grass.json"
+        ],
+        "mesh": "Models/cube.wmdl",
+        "staticFlags": 0,
+        "texScaleOffset": [
+          0.25,
+          0.25,
+          0.0,
+          0.0
+        ],
+        "uvOverride": 4
+      }
     },
-    "World Object": {
-      "materials": [
-        "Materials/glowred.json"
-      ],
-      "mesh": "arrow.obj",
-      "staticFlags": 0,
-      "texScaleOffset": [
-        1.0,
-        1.0,
-        0.0,
-        0.0
-      ],
-      "uvOverride": 0
-    }
-  },
-  "9437212": {
-    "Physics Actor": {
-      "shapes": [
+    "1048659": {
+      "diff": [
         {
-          "halfExtents": [
-            1.0,
-            1.0,
-            1.0
-          ],
+          "op": "replace",
+          "path": "/Transform/position/0",
+          "value": -4.5
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/position/1",
+          "value": -0.5
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/position/2",
+          "value": -5.099999904632568
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/scale/0",
+          "value": 0.5
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/scale/1",
+          "value": 0.5
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/scale/2",
+          "value": 0.5
+        },
+        {
+          "op": "add",
+          "path": "/Physics Actor",
+          "value": {
+            "shapes": [
+              {
+                "halfExtents": [
+                  1.0,
+                  1.0,
+                  1.0
+                ],
+                "position": [
+                  0.0,
+                  0.0,
+                  0.0
+                ],
+                "rotation": [
+                  0.0,
+                  0.0,
+                  0.0,
+                  1.0
+                ],
+                "type": 1
+              }
+            ]
+          }
+        }
+      ],
+      "prefabPath": "Prefabs/box.wprefab"
+    },
+    "11": {
+      "Transform": {
+        "position": [
+          0.0,
+          -10000.0,
+          0.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "World Object": {
+        "materials": [
+          "Materials/glowred.json"
+        ],
+        "mesh": "arrow.obj",
+        "staticFlags": 0,
+        "texScaleOffset": [
+          1.0,
+          1.0,
+          0.0,
+          0.0
+        ],
+        "uvOverride": 0
+      }
+    },
+    "11534366": {
+      "Name Component": {
+        "name": "Flatgrass"
+      },
+      "Transform": {
+        "position": [
+          0.0,
+          11.68659782409668,
+          0.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "World Cubemap": {
+        "extent": [
+          250.0,
+          250.0,
+          250.0
+        ],
+        "path": "LevelCubemaps/Flatgrass.json",
+        "useCubeParallax": false
+      }
+    },
+    "12": {
+      "Transform": {
+        "position": [
+          0.0,
+          -10000.0,
+          0.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "World Object": {
+        "materials": [
+          "Materials/glowred.json"
+        ],
+        "mesh": "arrow.obj",
+        "staticFlags": 0,
+        "texScaleOffset": [
+          1.0,
+          1.0,
+          0.0,
+          0.0
+        ],
+        "uvOverride": 0
+      }
+    },
+    "13": {
+      "Transform": {
+        "position": [
+          0.0,
+          -10000.0,
+          0.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "World Object": {
+        "materials": [
+          "Materials/glowred.json"
+        ],
+        "mesh": "arrow.obj",
+        "staticFlags": 0,
+        "texScaleOffset": [
+          1.0,
+          1.0,
+          0.0,
+          0.0
+        ],
+        "uvOverride": 0
+      }
+    },
+    "14": {
+      "Transform": {
+        "position": [
+          0.0,
+          -10000.0,
+          0.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "World Object": {
+        "materials": [
+          "Materials/glowred.json"
+        ],
+        "mesh": "arrow.obj",
+        "staticFlags": 0,
+        "texScaleOffset": [
+          1.0,
+          1.0,
+          0.0,
+          0.0
+        ],
+        "uvOverride": 0
+      }
+    },
+    "15": {
+      "Transform": {
+        "position": [
+          0.0,
+          -10000.0,
+          0.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "World Object": {
+        "materials": [
+          "Materials/glowred.json"
+        ],
+        "mesh": "arrow.obj",
+        "staticFlags": 0,
+        "texScaleOffset": [
+          1.0,
+          1.0,
+          0.0,
+          0.0
+        ],
+        "uvOverride": 0
+      }
+    },
+    "16": {
+      "Transform": {
+        "position": [
+          0.0,
+          -10000.0,
+          0.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "World Object": {
+        "materials": [
+          "Materials/glowred.json"
+        ],
+        "mesh": "arrow.obj",
+        "staticFlags": 0,
+        "texScaleOffset": [
+          1.0,
+          1.0,
+          0.0,
+          0.0
+        ],
+        "uvOverride": 0
+      }
+    },
+    "17": {
+      "Transform": {
+        "position": [
+          0.0,
+          -10000.0,
+          0.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "World Object": {
+        "materials": [
+          "Materials/glowred.json"
+        ],
+        "mesh": "arrow.obj",
+        "staticFlags": 0,
+        "texScaleOffset": [
+          1.0,
+          1.0,
+          0.0,
+          0.0
+        ],
+        "uvOverride": 0
+      }
+    },
+    "18": {
+      "Transform": {
+        "position": [
+          0.0,
+          -10000.0,
+          0.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "World Object": {
+        "materials": [
+          "Materials/glowred.json"
+        ],
+        "mesh": "arrow.obj",
+        "staticFlags": 0,
+        "texScaleOffset": [
+          1.0,
+          1.0,
+          0.0,
+          0.0
+        ],
+        "uvOverride": 0
+      }
+    },
+    "19": {
+      "Physics Actor": {
+        "shapes": [
+          {
+            "halfExtents": [
+              1.0,
+              1.0,
+              1.0
+            ],
+            "position": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "rotation": [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ],
+            "type": 1
+          }
+        ]
+      },
+      "Transform": {
+        "position": [
+          -99.80000305175781,
+          -2.0,
+          0.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "scale": [
+          50.0,
+          1.0,
+          50.0
+        ]
+      },
+      "World Object": {
+        "materials": [
+          "Materials/grass.json"
+        ],
+        "mesh": "Models/cube.wmdl",
+        "staticFlags": 0,
+        "texScaleOffset": [
+          0.25,
+          0.25,
+          0.0,
+          0.0
+        ],
+        "uvOverride": 4
+      }
+    },
+    "2": {
+      "Name Component": {
+        "name": "Directional Light"
+      },
+      "Transform": {
+        "position": [
+          0.0,
+          29.0,
+          0.0
+        ],
+        "rotation": [
+          0.5979426503181458,
+          0.4784483313560486,
+          -0.3647648096084595,
+          0.5296210646629333
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "World Light": {
+        "color": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "distanceCutoff": 1.0,
+        "enableShadows": false,
+        "enabled": true,
+        "intensity": 1.0,
+        "spotCutoff": 0.699999988079071,
+        "tubeLength": 0.25,
+        "tubeRadius": 0.10000000149011612,
+        "type": 2
+      }
+    },
+    "20": {
+      "Physics Actor": {
+        "shapes": [
+          {
+            "halfExtents": [
+              1.0,
+              1.0,
+              1.0
+            ],
+            "position": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "rotation": [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ],
+            "type": 1
+          }
+        ]
+      },
+      "Transform": {
+        "position": [
+          100.0,
+          -2.0,
+          0.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "scale": [
+          50.0,
+          1.0,
+          50.0
+        ]
+      },
+      "World Object": {
+        "materials": [
+          "Materials/grass.json"
+        ],
+        "mesh": "Models/cube.wmdl",
+        "staticFlags": 0,
+        "texScaleOffset": [
+          0.25,
+          0.25,
+          0.0,
+          0.0
+        ],
+        "uvOverride": 4
+      }
+    },
+    "2097176": {
+      "Name Component": {
+        "name": "Player Spawn"
+      },
+      "Player Start Point": {
+        "alwaysUse": false
+      },
+      "Transform": {
+        "position": [
+          0.0,
+          1.0,
+          0.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      }
+    },
+    "2097187": {
+      "diff": [
+        {
+          "op": "remove",
+          "path": "/Game.DroneAI"
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/position/0",
+          "value": 5.926435470581055
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/position/2",
+          "value": -13.688523292541504
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/rotation/0",
+          "value": -0.0003787734603974968
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/rotation/1",
+          "value": -0.0006070781382732093
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/rotation/2",
+          "value": -8.042177796596661e-06
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/rotation/3",
+          "value": 0.9999997615814209
+        }
+      ],
+      "prefabPath": "Prefabs/drone_newai.wprefab"
+    },
+    "21": {
+      "Physics Actor": {
+        "shapes": [
+          {
+            "halfExtents": [
+              1.0,
+              1.0,
+              1.0
+            ],
+            "position": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "rotation": [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ],
+            "type": 1
+          }
+        ]
+      },
+      "Transform": {
+        "position": [
+          0.0,
+          -2.0,
+          100.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "scale": [
+          50.0,
+          1.0,
+          50.0
+        ]
+      },
+      "World Object": {
+        "materials": [
+          "Materials/grass.json"
+        ],
+        "mesh": "Models/cube.wmdl",
+        "staticFlags": 0,
+        "texScaleOffset": [
+          0.25,
+          0.25,
+          0.0,
+          0.0
+        ],
+        "uvOverride": 4
+      }
+    },
+    "22": {
+      "Physics Actor": {
+        "shapes": [
+          {
+            "halfExtents": [
+              1.0,
+              1.0,
+              1.0
+            ],
+            "position": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "rotation": [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ],
+            "type": 1
+          }
+        ]
+      },
+      "Transform": {
+        "position": [
+          0.0,
+          -2.0,
+          -100.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "scale": [
+          50.0,
+          1.0,
+          50.0
+        ]
+      },
+      "World Object": {
+        "materials": [
+          "Materials/grass.json"
+        ],
+        "mesh": "Models/cube.wmdl",
+        "staticFlags": 0,
+        "texScaleOffset": [
+          0.25,
+          0.25,
+          0.0,
+          0.0
+        ],
+        "uvOverride": 4
+      }
+    },
+    "23": {
+      "Physics Actor": {
+        "shapes": [
+          {
+            "halfExtents": [
+              1.0,
+              1.0,
+              1.0
+            ],
+            "position": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "rotation": [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ],
+            "type": 1
+          }
+        ]
+      },
+      "Transform": {
+        "position": [
+          -13.863836288452148,
+          40.78957748413086,
+          -89.73627471923828
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          -0.09763605892658234,
+          0.9952222108840942
+        ],
+        "scale": [
+          25.0,
+          50.0,
+          25.0
+        ]
+      },
+      "World Object": {
+        "materials": [
+          "Materials/LevelTextures/MetalPlates006.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json"
+        ],
+        "mesh": "Models/cube.wmdl",
+        "staticFlags": 0,
+        "texScaleOffset": [
+          15.0,
+          15.0,
+          0.0,
+          0.0
+        ],
+        "uvOverride": 0
+      }
+    },
+    "3": {
+      "Transform": {
+        "position": [
+          0.0,
+          -10000.0,
+          0.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "World Object": {
+        "materials": [
+          "Materials/glowred.json"
+        ],
+        "mesh": "arrow.obj",
+        "staticFlags": 0,
+        "texScaleOffset": [
+          1.0,
+          1.0,
+          0.0,
+          0.0
+        ],
+        "uvOverride": 0
+      }
+    },
+    "4": {
+      "Transform": {
+        "position": [
+          0.0,
+          -10000.0,
+          0.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "World Object": {
+        "materials": [
+          "Materials/glowred.json"
+        ],
+        "mesh": "arrow.obj",
+        "staticFlags": 0,
+        "texScaleOffset": [
+          1.0,
+          1.0,
+          0.0,
+          0.0
+        ],
+        "uvOverride": 0
+      }
+    },
+    "5": {
+      "Transform": {
+        "position": [
+          0.0,
+          -10000.0,
+          0.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "World Object": {
+        "materials": [
+          "Materials/glowred.json"
+        ],
+        "mesh": "arrow.obj",
+        "staticFlags": 0,
+        "texScaleOffset": [
+          1.0,
+          1.0,
+          0.0,
+          0.0
+        ],
+        "uvOverride": 0
+      }
+    },
+    "5242911": {
+      "diff": [
+        {
+          "op": "remove",
+          "path": "/Game.DroneAI"
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/position/2",
+          "value": -13.688523292541504
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/rotation/0",
+          "value": -0.0003787734603974968
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/rotation/1",
+          "value": -0.0006070510717108846
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/rotation/2",
+          "value": -8.042177796596661e-06
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/rotation/3",
+          "value": 0.9999997615814209
+        }
+      ],
+      "prefabPath": "Prefabs/drone_newai.wprefab"
+    },
+    "5242912": {
+      "diff": [
+        {
+          "op": "remove",
+          "path": "/Game.DroneAI"
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/position/2",
+          "value": -11.78852367401123
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/rotation/0",
+          "value": -0.0003787734603974968
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/rotation/1",
+          "value": -0.0006070559029467404
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/rotation/2",
+          "value": -8.042177796596661e-06
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/rotation/3",
+          "value": 0.9999997615814209
+        }
+      ],
+      "prefabPath": "Prefabs/drone_newai.wprefab"
+    },
+    "5242913": {
+      "diff": [
+        {
+          "op": "remove",
+          "path": "/Game.DroneAI"
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/position/0",
+          "value": 9.926435470581055
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/rotation/0",
+          "value": -0.0003787734603974968
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/rotation/1",
+          "value": -0.0006070892559364438
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/rotation/2",
+          "value": -8.042177796596661e-06
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/rotation/3",
+          "value": 0.9999997615814209
+        }
+      ],
+      "prefabPath": "Prefabs/drone_newai.wprefab"
+    },
+    "5242914": {
+      "diff": [
+        {
+          "op": "remove",
+          "path": "/Game.DroneAI"
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/position/2",
+          "value": -9.888524055480957
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/rotation/0",
+          "value": -0.0003787734603974968
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/rotation/1",
+          "value": -0.0006070681847631931
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/rotation/2",
+          "value": -8.042177796596661e-06
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/rotation/3",
+          "value": 0.9999997615814209
+        }
+      ],
+      "prefabPath": "Prefabs/drone_newai.wprefab"
+    },
+    "5242924": {
+      "diff": [
+        {
+          "op": "remove",
+          "path": "/Game.DroneAI"
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/position/0",
+          "value": 5.926435470581055
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/position/2",
+          "value": -9.888524055480957
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/rotation/0",
+          "value": -0.0003787734603974968
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/rotation/1",
+          "value": -0.0006070952513255179
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/rotation/2",
+          "value": -8.042177796596661e-06
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/rotation/3",
+          "value": 0.9999997615814209
+        }
+      ],
+      "prefabPath": "Prefabs/drone_newai.wprefab"
+    },
+    "5242926": {
+      "diff": [
+        {
+          "op": "remove",
+          "path": "/Game.DroneAI"
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/position/0",
+          "value": 5.926435470581055
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/position/2",
+          "value": -11.78852367401123
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/rotation/0",
+          "value": -0.0003787734603974968
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/rotation/1",
+          "value": -0.0006070751696825027
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/rotation/2",
+          "value": -8.042177796596661e-06
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/rotation/3",
+          "value": 0.9999997615814209
+        }
+      ],
+      "prefabPath": "Prefabs/drone_newai.wprefab"
+    },
+    "6": {
+      "Transform": {
+        "position": [
+          0.0,
+          -10000.0,
+          0.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "World Object": {
+        "materials": [
+          "Materials/glowred.json"
+        ],
+        "mesh": "arrow.obj",
+        "staticFlags": 0,
+        "texScaleOffset": [
+          1.0,
+          1.0,
+          0.0,
+          0.0
+        ],
+        "uvOverride": 0
+      }
+    },
+    "6291481": {
+      "Physics Actor": {
+        "shapes": [
+          {
+            "halfExtents": [
+              1.0,
+              1.0,
+              1.0
+            ],
+            "position": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "rotation": [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ],
+            "type": 1
+          }
+        ]
+      },
+      "Transform": {
+        "position": [
+          -100.0,
+          -2.0,
+          -100.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          0.9999998807907104
+        ],
+        "scale": [
+          50.0,
+          1.0,
+          50.0
+        ]
+      },
+      "World Object": {
+        "materials": [
+          "Materials/grass.json"
+        ],
+        "mesh": "Models/cube.wmdl",
+        "staticFlags": 0,
+        "texScaleOffset": [
+          0.25,
+          0.25,
+          0.0,
+          0.0
+        ],
+        "uvOverride": 4
+      }
+    },
+    "7": {
+      "Transform": {
+        "position": [
+          0.0,
+          -10000.0,
+          0.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "World Object": {
+        "materials": [
+          "Materials/glowred.json"
+        ],
+        "mesh": "arrow.obj",
+        "staticFlags": 0,
+        "texScaleOffset": [
+          1.0,
+          1.0,
+          0.0,
+          0.0
+        ],
+        "uvOverride": 0
+      }
+    },
+    "7340058": {
+      "Physics Actor": {
+        "shapes": [
+          {
+            "halfExtents": [
+              1.0,
+              1.0,
+              1.0
+            ],
+            "position": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "rotation": [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ],
+            "type": 1
+          }
+        ]
+      },
+      "Transform": {
+        "position": [
+          -100.0,
+          -2.0,
+          100.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          0.9999998807907104
+        ],
+        "scale": [
+          50.0,
+          1.0,
+          50.0
+        ]
+      },
+      "World Object": {
+        "materials": [
+          "Materials/grass.json"
+        ],
+        "mesh": "Models/cube.wmdl",
+        "staticFlags": 0,
+        "texScaleOffset": [
+          0.25,
+          0.25,
+          0.0,
+          0.0
+        ],
+        "uvOverride": 4
+      }
+    },
+    "7340059": {
+      "Physics Actor": {
+        "shapes": [
+          {
+            "halfExtents": [
+              1.0,
+              1.0,
+              1.0
+            ],
+            "position": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "rotation": [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ],
+            "type": 1
+          }
+        ]
+      },
+      "Transform": {
+        "position": [
+          100.0,
+          -2.0,
+          100.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          0.9999998807907104
+        ],
+        "scale": [
+          50.0,
+          1.0,
+          50.0
+        ]
+      },
+      "World Object": {
+        "materials": [
+          "Materials/grass.json"
+        ],
+        "mesh": "Models/cube.wmdl",
+        "staticFlags": 0,
+        "texScaleOffset": [
+          0.25,
+          0.25,
+          0.0,
+          0.0
+        ],
+        "uvOverride": 4
+      }
+    },
+    "7340077": {
+      "diff": [
+        {
+          "op": "remove",
+          "path": "/Game.DroneAI"
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/position/0",
+          "value": 7.926435470581055
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/rotation/0",
+          "value": -0.0003787734603974968
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/rotation/1",
+          "value": -0.0006070587551221251
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/rotation/2",
+          "value": -8.042177796596661e-06
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/rotation/3",
+          "value": 0.9999997615814209
+        }
+      ],
+      "prefabPath": "Prefabs/drone_newai.wprefab"
+    },
+    "8": {
+      "Transform": {
+        "position": [
+          0.0,
+          -10000.0,
+          0.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "World Object": {
+        "materials": [
+          "Materials/glowred.json"
+        ],
+        "mesh": "arrow.obj",
+        "staticFlags": 0,
+        "texScaleOffset": [
+          1.0,
+          1.0,
+          0.0,
+          0.0
+        ],
+        "uvOverride": 0
+      }
+    },
+    "8388655": {
+      "diff": [
+        {
+          "op": "remove",
+          "path": "/Game.DroneAI"
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/position/0",
+          "value": 9.926435470581055
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/position/2",
+          "value": -11.78852367401123
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/rotation/0",
+          "value": -0.0003787734603974968
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/rotation/1",
+          "value": -0.0006070721428841352
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/rotation/2",
+          "value": -8.042177796596661e-06
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/rotation/3",
+          "value": 0.9999997615814209
+        }
+      ],
+      "prefabPath": "Prefabs/drone_newai.wprefab"
+    },
+    "8388666": {
+      "diff": [
+        {
+          "op": "replace",
+          "path": "/Transform/position/0",
+          "value": 3.9264721870422363
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/position/1",
+          "value": 0.8354017734527588
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/position/2",
+          "value": -7.999578475952148
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/rotation/0",
+          "value": -0.0003787734603974968
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/rotation/1",
+          "value": -0.000607073015999049
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/rotation/2",
+          "value": -8.042177796596661e-06
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/rotation/3",
+          "value": 0.9999997615814209
+        }
+      ],
+      "prefabPath": "Prefabs/drone_newai.wprefab"
+    },
+    "8388685": {
+      "Audio Source": {
+        "channel": 1,
+        "clipPath": "Audio/SFX/gunsoundthing.ogg",
+        "loop": false,
+        "playOnSceneOpen": false,
+        "spatialise": true,
+        "volume": 1.0
+      },
+      "Dynamic Physics Actor": {
+        "enableCCD": false,
+        "enableGravity": true,
+        "mass": 1.0,
+        "shapes": [
+          {
+            "halfExtents": [
+              0.03172706067562103,
+              0.03272834047675133,
+              0.031092030927538872
+            ],
+            "position": [
+              0.00035461969673633575,
+              0.07305007427930832,
+              0.0630389153957367
+            ],
+            "rotation": [
+              0.0,
+              0.0,
+              0.0,
+              0.9999998807907104
+            ],
+            "type": 1
+          },
+          {
+            "halfExtents": [
+              0.03172706067562103,
+              0.036459289491176605,
+              0.10000000149011612
+            ],
+            "position": [
+              0.00035461969673633575,
+              0.06917629390954971,
+              0.12652990221977234
+            ],
+            "rotation": [
+              0.0,
+              0.0,
+              0.0,
+              0.9999998807907104
+            ],
+            "type": 1
+          },
+          {
+            "halfExtents": [
+              0.03172706067562103,
+              0.036459289491176605,
+              0.03221883997321129
+            ],
+            "position": [
+              0.00035461969673633575,
+              0.06917629390954971,
+              -0.000400736927986145
+            ],
+            "rotation": [
+              0.0,
+              0.0,
+              0.0,
+              0.9999998807907104
+            ],
+            "type": 1
+          },
+          {
+            "halfExtents": [
+              0.03172706067562103,
+              0.027831269428133965,
+              0.020350318402051926
+            ],
+            "position": [
+              0.00035461969673633575,
+              0.06123422831296921,
+              -0.05318547040224075
+            ],
+            "rotation": [
+              0.0,
+              0.0,
+              0.0,
+              0.9999998807907104
+            ],
+            "type": 1
+          },
+          {
+            "halfExtents": [
+              0.019394369795918465,
+              0.04343004524707794,
+              0.01809765212237835
+            ],
+            "position": [
+              0.00035461969673633575,
+              0.0024213800206780434,
+              -0.011851499788463116
+            ],
+            "rotation": [
+              0.13672061264514923,
+              0.0,
+              0.0,
+              0.9906095266342163
+            ],
+            "type": 1
+          }
+        ]
+      },
+      "Grabbable": {
+        "grips": [
+          {
+            "gripType": 0,
+            "hand": 1,
+            "position": [
+              -0.029137667268514633,
+              -0.024024195969104767,
+              -0.09799988567829132
+            ],
+            "rotation": [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          },
+          {
+            "gripType": 0,
+            "hand": 0,
+            "position": [
+              0.02961394190788269,
+              -0.024002976715564728,
+              -0.09760330617427826
+            ],
+            "rotation": [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          },
+          {
+            "gripType": 0,
+            "hand": 0,
+            "position": [
+              0.029057513922452927,
+              -0.07077432423830032,
+              -0.0532059520483017
+            ],
+            "rotation": [
+              4.192202140984591e-13,
+              -7.137268198675883e-08,
+              -0.4082043766975403,
+              0.912890613079071
+            ]
+          }
+        ]
+      },
+      "Gun": {
+        "automatic": true,
+        "damage": 100.0,
+        "firePoint": {
           "position": [
-            0.0,
-            0.0,
-            0.0
+            0.018285619094967842,
+            0.06895159184932709,
+            0.5182759761810303
           ],
           "rotation": [
             0.0,
             0.0,
             0.0,
             1.0
-          ],
-          "type": 1
+          ]
+        },
+        "shotPeriod": 0.10000000149011612
+      },
+      "Transform": {
+        "position": [
+          -4.616000175476074,
+          0.971031665802002,
+          -5.014514446258545
+        ],
+        "rotation": [
+          0.0017739587929099798,
+          0.9872468709945679,
+          -0.1590842604637146,
+          0.005729384254664183
+        ],
+        "scale": [
+          1.0000760555267334,
+          1.0,
+          1.0001068115234375
+        ]
+      },
+      "World Object": {
+        "materials": [
+          "Materials/silver.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json"
+        ],
+        "mesh": "Models/test_gun.wmdl",
+        "staticFlags": 0,
+        "texScaleOffset": [
+          1.0,
+          1.0,
+          0.0,
+          0.0
+        ],
+        "uvOverride": 0
+      }
+    },
+    "9": {
+      "Transform": {
+        "position": [
+          0.0,
+          -10000.0,
+          0.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "World Object": {
+        "materials": [
+          "Materials/glowred.json"
+        ],
+        "mesh": "arrow.obj",
+        "staticFlags": 0,
+        "texScaleOffset": [
+          1.0,
+          1.0,
+          0.0,
+          0.0
+        ],
+        "uvOverride": 0
+      }
+    },
+    "9437212": {
+      "Physics Actor": {
+        "shapes": [
+          {
+            "halfExtents": [
+              1.0,
+              1.0,
+              1.0
+            ],
+            "position": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "rotation": [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ],
+            "type": 1
+          }
+        ]
+      },
+      "Transform": {
+        "position": [
+          100.0,
+          -2.0,
+          -100.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0,
+          0.9999998807907104
+        ],
+        "scale": [
+          50.0,
+          1.0,
+          50.0
+        ]
+      },
+      "World Object": {
+        "materials": [
+          "Materials/grass.json"
+        ],
+        "mesh": "Models/cube.wmdl",
+        "staticFlags": 0,
+        "texScaleOffset": [
+          0.25,
+          0.25,
+          0.0,
+          0.0
+        ],
+        "uvOverride": 4
+      }
+    },
+    "9437213": {
+      "Physics Actor": {
+        "shapes": [
+          {
+            "halfExtents": [
+              1.0,
+              1.0,
+              1.0
+            ],
+            "position": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "rotation": [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ],
+            "type": 1
+          }
+        ]
+      },
+      "Transform": {
+        "position": [
+          88.88032531738281,
+          -9.918542861938477,
+          -89.73625946044922
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          -0.8035334944725037,
+          0.595259428024292
+        ],
+        "scale": [
+          25.0,
+          50.0,
+          25.0
+        ]
+      },
+      "World Object": {
+        "materials": [
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json",
+          "Materials/dev.json"
+        ],
+        "mesh": "Models/cube.wmdl",
+        "staticFlags": 0,
+        "texScaleOffset": [
+          1.0,
+          1.0,
+          0.0,
+          0.0
+        ],
+        "uvOverride": 0
+      }
+    },
+    "9437243": {
+      "diff": [
+        {
+          "op": "remove",
+          "path": "/Game.DroneAI"
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/position/0",
+          "value": 7.926435470581055
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/position/2",
+          "value": -9.888524055480957
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/rotation/0",
+          "value": -0.0003787734603974968
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/rotation/1",
+          "value": -0.0006070524686947465
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/rotation/2",
+          "value": -8.042177796596661e-06
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/rotation/3",
+          "value": 0.9999997615814209
         }
-      ]
+      ],
+      "prefabPath": "Prefabs/drone_newai.wprefab"
     },
-    "Transform": {
-      "position": [
-        100.0,
-        -2.0,
-        -100.0
+    "9437244": {
+      "diff": [
+        {
+          "op": "remove",
+          "path": "/Game.DroneAI"
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/position/0",
+          "value": 7.926435470581055
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/position/2",
+          "value": -11.78852367401123
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/rotation/0",
+          "value": -0.0003787734603974968
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/rotation/1",
+          "value": -0.0006070416420698166
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/rotation/2",
+          "value": -8.042177796596661e-06
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/rotation/3",
+          "value": 0.9999997615814209
+        }
       ],
-      "rotation": [
-        0.0,
-        0.0,
-        0.0,
-        0.9999998807907104
-      ],
-      "scale": [
-        50.0,
-        1.0,
-        50.0
-      ]
+      "prefabPath": "Prefabs/drone_newai.wprefab"
     },
-    "World Object": {
-      "materials": [
-        "Materials/grass.json"
+    "9437245": {
+      "diff": [
+        {
+          "op": "remove",
+          "path": "/Game.DroneAI"
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/position/0",
+          "value": 7.926435470581055
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/position/2",
+          "value": -13.688523292541504
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/rotation/0",
+          "value": -0.0003787734603974968
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/rotation/1",
+          "value": -0.0006070353556424379
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/rotation/2",
+          "value": -8.042177796596661e-06
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/rotation/3",
+          "value": 0.9999997615814209
+        }
       ],
-      "mesh": "Models/cube.wmdl",
-      "staticFlags": 0,
-      "texScaleOffset": [
-        0.25,
-        0.25,
-        0.0,
-        0.0
+      "prefabPath": "Prefabs/drone_newai.wprefab"
+    },
+    "9437252": {
+      "diff": [
+        {
+          "op": "remove",
+          "path": "/Game.DroneAI"
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/position/0",
+          "value": 5.926435470581055
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/rotation/0",
+          "value": -0.0003787734603974968
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/rotation/1",
+          "value": -0.0006070922827348113
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/rotation/2",
+          "value": -8.042177796596661e-06
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/rotation/3",
+          "value": 0.9999997615814209
+        }
       ],
-      "uvOverride": 4
+      "prefabPath": "Prefabs/drone_newai.wprefab"
+    },
+    "9437253": {
+      "diff": [
+        {
+          "op": "remove",
+          "path": "/Game.DroneAI"
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/position/0",
+          "value": 9.926435470581055
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/position/2",
+          "value": -9.888524055480957
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/rotation/0",
+          "value": -0.0003787734603974968
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/rotation/1",
+          "value": -0.0006070779054425657
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/rotation/2",
+          "value": -8.042177796596661e-06
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/rotation/3",
+          "value": 0.9999997615814209
+        }
+      ],
+      "prefabPath": "Prefabs/drone_newai.wprefab"
+    },
+    "9437254": {
+      "diff": [
+        {
+          "op": "remove",
+          "path": "/Game.DroneAI"
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/position/0",
+          "value": 7.926435470581055
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/position/2",
+          "value": -11.78852367401123
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/rotation/0",
+          "value": -0.0003787734603974968
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/rotation/1",
+          "value": -0.0006070587551221251
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/rotation/2",
+          "value": -8.042177796596661e-06
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/rotation/3",
+          "value": 0.9999997615814209
+        }
+      ],
+      "prefabPath": "Prefabs/drone_newai.wprefab"
+    },
+    "9437259": {
+      "diff": [
+        {
+          "op": "remove",
+          "path": "/Game.DroneAI"
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/position/0",
+          "value": 9.926435470581055
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/position/2",
+          "value": -13.688523292541504
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/rotation/0",
+          "value": -0.0003787734603974968
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/rotation/1",
+          "value": -0.0006070607923902571
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/rotation/2",
+          "value": -8.042177796596661e-06
+        },
+        {
+          "op": "replace",
+          "path": "/Transform/rotation/3",
+          "value": 0.9999997615814209
+        }
+      ],
+      "prefabPath": "Prefabs/drone_newai.wprefab"
     }
   },
-  "9437213": {
-    "Physics Actor": {
-      "shapes": [
-        {
-          "halfExtents": [
-            1.0,
-            1.0,
-            1.0
-          ],
-          "position": [
-            0.0,
-            0.0,
-            0.0
-          ],
-          "rotation": [
-            0.0,
-            0.0,
-            0.0,
-            1.0
-          ],
-          "type": 1
-        }
-      ]
-    },
-    "Transform": {
-      "position": [
-        88.88032531738281,
-        -9.918542861938477,
-        -89.73625946044922
-      ],
-      "rotation": [
-        0.0,
-        0.0,
-        -0.8035334944725037,
-        0.595259428024292
-      ],
-      "scale": [
-        25.0,
-        50.0,
-        25.0
-      ]
-    },
-    "World Object": {
-      "materials": [
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json",
-        "Materials/dev.json"
-      ],
-      "mesh": "Models/cube.wmdl",
-      "staticFlags": 0,
-      "texScaleOffset": [
-        1.0,
-        1.0,
-        0.0,
-        0.0
-      ],
-      "uvOverride": 0
-    }
+  "settings": {
+    "skyboxPath": "Cubemaps/Miramar/miramar.json"
   }
 }

@@ -1,18 +1,44 @@
 using System;
 using System.Runtime.InteropServices;
 
-namespace WorldsEngine
+namespace WorldsEngine.Math
 {
     [StructLayout(LayoutKind.Sequential)]
     public struct Vector3
     {
+        public static readonly Vector3 Zero = new Vector3(0.0f, 0.0f, 0.0f);
+
+        public static readonly Vector3 Forward = new Vector3(0.0f, 0.0f, 1.0f);
+        public static readonly Vector3 Backward = new Vector3(0.0f, 0.0f, -1.0f);
+
+        public static readonly Vector3 Left = new Vector3(1.0f, 0.0f, 0.0f);
+        public static readonly Vector3 Right = new Vector3(-1.0f, 0.0f, 0.0f);
+
+        public static readonly Vector3 Up = new Vector3(0.0f, 1.0f, 0.0f);
+        public static readonly Vector3 Down = new Vector3(0.0f, -1.0f, 0.0f);
+
         public float x, y, z;
+
+        public bool HasNaNComponent => float.IsNaN(x) || float.IsNaN(y) || float.IsNaN(z);
+        public Vector3 Normalized => this / Length;
 
         public Vector3(float x, float y, float z)
         {
             this.x = x;
             this.y = y;
             this.z = z;
+        }
+
+        public Vector3(float value)
+        {
+            x = value;
+            y = value;
+            z = value;
+        }
+
+        public static Vector3 operator-(Vector3 v)
+        {
+            return new Vector3(-v.x, -v.y, -v.z);
         }
 
         public static Vector3 operator+(Vector3 a, Vector3 b)
@@ -40,14 +66,9 @@ namespace WorldsEngine
             return new Vector3(v.x * scalar, v.y * scalar, v.z * scalar);
         }
 
-        public static Vector3 operator*(Vector3 v, Quaternion q)
+        public static Vector3 operator/(Vector3 v, float scalar)
         {
-            Vector3 u = new Vector3(q.x, q.y, q.z);
-            float s = q.w;
-
-            return 2.0f * u.Dot(v) * u
-                + (s*s - u.LengthSquared) * v
-                + 2.0f * s * u.Cross(v);
+            return new Vector3(v.x / scalar, v.y / scalar, v.z / scalar);
         }
 
         public static float Dot(Vector3 a, Vector3 b)
@@ -75,6 +96,24 @@ namespace WorldsEngine
         public Vector3 Cross(Vector3 other)
         {
             return Cross(this, other);
+        }
+
+        public Vector3 ClampMagnitude(float maxMagnitude)
+        {
+            return (this / Length) * MathF.Min(MathF.Max(-maxMagnitude, Length), maxMagnitude);
+        }
+
+        public void Normalize()
+        {
+            float len = Length;
+            x /= len;
+            y /= len;
+            z /= len;
+        }
+
+        public override string ToString()
+        {
+            return $"({x:0.###}, {y:0.###}, {z:0.###})";
         }
     }
 }

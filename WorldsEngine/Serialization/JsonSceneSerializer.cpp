@@ -8,9 +8,11 @@
 #include "Core/AssetDB.hpp"
 #include "robin_hood.h"
 #include "slib/StaticAllocList.hpp"
+#include "Scripting/NetVM.hpp"
 
 namespace worlds {
     robin_hood::unordered_flat_map<AssetID, nlohmann::json> prefabCache;
+    DotNetScriptEngine* scriptEngine;
 
     nlohmann::json getEntityJson(entt::entity ent, entt::registry& reg)  {
         nlohmann::json j;
@@ -26,6 +28,8 @@ namespace worlds {
             if (compJ.is_null()) continue;
             j[mdata->getName()] = compJ;
         }
+
+        scriptEngine->serializeManagedComponents(j, ent);
 
         return j;
     }
@@ -85,23 +89,40 @@ namespace worlds {
         PHYSFS_close(file);
     }
 
+    struct ComponentDeserializationInfo {
+        std::string id;
+        bool isNative;
+    };
+
     void deserializeEntityComponents(const nlohmann::json& j, entt::registry& reg, entt::entity ent) {
-        slib::StaticAllocList<std::string> componentIds(j.size());
+        slib::StaticAllocList<ComponentDeserializationInfo> componentIds(j.size());
 
         for (auto& compPair : j.items()) {
-            if (ComponentMetadataManager::byName.find(compPair.key()) != ComponentMetadataManager::byName.end())
-                componentIds.add(compPair.key());
-            else
-                logMsg("Unknown component ID \"%s\"", compPair.key());
+            ComponentDeserializationInfo cdsi;
+            cdsi.id = compPair.key();
+            cdsi.isNative = ComponentMetadataManager::byName.find(compPair.key()) != ComponentMetadataManager::byName.end();
+            componentIds.add(std::move(cdsi));
         }
 
-        std::sort(componentIds.begin(), componentIds.end(), [](std::string a, std::string b) {
-            return ComponentMetadataManager::byName.at(a)->getSortID() < ComponentMetadataManager::byName.at(b)->getSortID();
+        std::sort(componentIds.begin(), componentIds.end(), [](const auto& a, const auto& b) {
+            if (a.isNative && b.isNative)
+                return ComponentMetadataManager::byName.at(a.id)->getSortID() < ComponentMetadataManager::byName.at(b.id)->getSortID();
+            else if (a.isNative && !b.isNative)
+                return true;
+            else if (!a.isNative && b.isNative)
+                return false;
+            else
+                return false;
         });
 
-        for (auto& id : componentIds) {
-            auto compMeta = ComponentMetadataManager::byName.at(id);
-            compMeta->fromJson(ent, reg, j[id]);
+        for (auto& cdsi : componentIds) {
+            if (cdsi.isNative) {
+                auto compMeta = ComponentMetadataManager::byName.at(cdsi.id);
+                compMeta->fromJson(ent, reg, j[cdsi.id]);
+            } else {
+                auto componentJson = j[cdsi.id];
+                scriptEngine->deserializeManagedComponent(cdsi.id.c_str(), componentJson, ent);
+            }
         }
     }
 
@@ -228,5 +249,9 @@ namespace worlds {
     entt::entity JsonSceneSerializer::jsonToEntity(entt::registry& reg, std::string jText) {
         auto j = nlohmann::json::parse(jText);
         return createJsonEntity(j, reg);
+    }
+
+    void JsonSceneSerializer::setScriptEngine(DotNetScriptEngine* scriptEngine) {
+        worlds::scriptEngine = scriptEngine;
     }
 }

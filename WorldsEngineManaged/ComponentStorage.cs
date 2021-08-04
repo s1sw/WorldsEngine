@@ -9,14 +9,21 @@ namespace WorldsEngine
     interface IComponentStorage
     {
         Type Type { get; }
-        void Serialize();
+        bool IsThinking { get; }
+        void SerializeForHotload();
+        object GetBoxed(Entity entity);
+        void SetBoxed(Entity entity, object val);
+        bool Contains(Entity entity);
+        void Remove(Entity entity);
+        void UpdateIfThinking();
     }
 
     struct SerializedComponentStorage
     {
-        public Entity[] packed;
-        public int[] sparse;
-        public SerializedType[] components;
+        public string FullTypeName;
+        public Entity[] Packed;
+        public int[] Sparse;
+        public SerializedType[] Components;
     }
 
     internal class ComponentTypeLookup
@@ -28,13 +35,14 @@ namespace WorldsEngine
     public class ComponentStorage<T> : IComponentStorage, IEnumerable
     {
         public Type Type { get { return type; } }
-        public const int Size = 1000;
+        public const int Size = 500;
         public T[] components = new T[Size];
         public BitArray slotFree = new BitArray(Size, true);
         public static readonly int typeIndex;
         public static readonly Type type;
         public Entity[] packedEntities = new Entity[Size];
         public int[] sparseEntities = new int[Size];
+        public bool IsThinking { get; private set; }
 
         static ComponentStorage()
         {
@@ -50,18 +58,20 @@ namespace WorldsEngine
             }
         }
 
-        internal ComponentStorage()
+        internal ComponentStorage(bool hotload = false)
         {
-            for (int i = 0; i < Size; i++)
-            {
-                sparseEntities[i] = -1;
-                packedEntities[i] = Entity.Null;
-            }
-        }
+            IsThinking = Type.IsAssignableTo(typeof(IThinkingComponent));
 
-        internal ComponentStorage(Assembly gameAssembly)
-        {
-            // Assume that this is a hotload
+            if (!hotload)
+            {
+                for (int i = 0; i < Size; i++)
+                {
+                    sparseEntities[i] = -1;
+                    packedEntities[i] = Entity.Null;
+                }
+
+                return;
+            }
 
             if (!ComponentTypeLookup.serializedComponents.ContainsKey(type.FullName))
             {
@@ -78,9 +88,9 @@ namespace WorldsEngine
 
             for (int i = 0; i < Size; i++)
             {
-                sparseEntities[i] = serializedStorage.sparse[i];
-                packedEntities[i] = serializedStorage.packed[i];
-                components[i] = (T)HotloadSerialization.Deserialize(gameAssembly, serializedStorage.components[i], null);
+                sparseEntities[i] = serializedStorage.Sparse[i];
+                packedEntities[i] = serializedStorage.Packed[i];
+                components[i] = (T)HotloadSerialization.Deserialize(serializedStorage.Components[i]);
             }
 
             ComponentTypeLookup.serializedComponents.Remove(type.FullName);
@@ -102,14 +112,24 @@ namespace WorldsEngine
             return GetSlotFor(entity) != -1;
         }
 
-        public ref T Get(Entity entity)
+        public T Get(Entity entity)
         {
             if (!Contains(entity))
             {
                 throw new ArgumentException("Entity doesn't have that component");
             }
 
-            return ref components[GetSlotFor(entity)];
+            return components[GetSlotFor(entity)];
+        }
+
+        public object GetBoxed(Entity entity)
+        {
+            if (!Contains(entity))
+            {
+                throw new ArgumentException("Entity doesn't have that component");
+            }
+
+            return components[GetSlotFor(entity)];
         }
 
         internal void Set(Entity entity, T component)
@@ -127,7 +147,21 @@ namespace WorldsEngine
             sparseEntities[entity.Identifier] = freeIndex;
         }
 
-        internal void Remove(Entity entity)
+        public void SetBoxed(Entity entity, object component)
+        {
+            // First find a free index to put the new component in.
+            int freeIndex = GetFreeIndex();
+
+            // Put the component in and mark the slot as used.
+            components[freeIndex] = (T)component;
+            slotFree[freeIndex] = false;
+
+            // Update the sparse set.
+            packedEntities[freeIndex] = entity;
+            sparseEntities[entity.Identifier] = freeIndex;
+        }
+
+        public void Remove(Entity entity)
         {
             if (!Contains(entity))
                 throw new ArgumentException("Trying to remove a component that isn't there");
@@ -136,17 +170,22 @@ namespace WorldsEngine
 
             slotFree[index] = true;
             sparseEntities[entity.Identifier] = -1;
+            packedEntities[index] = Entity.Null;
         }
 
-        public void Serialize()
+        public void SerializeForHotload()
         {
-            var serializedStorage = new SerializedComponentStorage();
+            var serializedStorage = new SerializedComponentStorage()
+            {
+                Packed = packedEntities,
+                Sparse = sparseEntities,
+                Components = new SerializedType[Size],
+                FullTypeName = Type.FullName
+            };
 
             for (int i = 0; i < Size; i++)
             {
-                serializedStorage.packed[i] = packedEntities[i];
-                serializedStorage.sparse[i] = sparseEntities[i];
-                serializedStorage.components[i] = HotloadSerialization.Serialize(components[i]);
+                serializedStorage.Components[i] = HotloadSerialization.Serialize(components[i]);
             }
 
             ComponentTypeLookup.serializedComponents.Add(type.FullName, serializedStorage);
@@ -165,6 +204,14 @@ namespace WorldsEngine
         public ComponentStorageEnum GetEnumerator()
         {
             return new ComponentStorageEnum(sparseEntities, packedEntities);
+        }
+
+        public void UpdateIfThinking()
+        {
+            foreach (Entity entity in this)
+            {
+                ((IThinkingComponent)components[GetSlotFor(entity)]).Think(entity);
+            }
         }
     }
 

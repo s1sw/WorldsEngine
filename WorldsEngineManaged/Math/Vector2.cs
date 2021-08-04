@@ -1,7 +1,7 @@
 using System;
 using System.Runtime.InteropServices;
 
-namespace WorldsEngine
+namespace WorldsEngine.Math
 {
     [StructLayout(LayoutKind.Sequential)]
     public struct Vector2

@@ -45,7 +45,7 @@ namespace WorldsEngine
 
         const int MAX_MATERIALS = 32;
 
-        public AssetID mesh
+        public AssetID Mesh
         {
             get
             {

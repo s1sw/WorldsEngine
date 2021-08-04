@@ -47,7 +47,8 @@ LONG unhandledExceptionHandler(LPEXCEPTION_POINTERS exceptionPtrs) {
 
 int main(int argc, char** argv) {
 #ifdef _WIN32
-    SetUnhandledExceptionFilter(unhandledExceptionHandler);
+    if (!IsDebuggerPresent())
+        SetUnhandledExceptionFilter(unhandledExceptionHandler);
 #endif
     worlds::EngineInitOptions initOptions;
     initOptions.gameName = "Lonely Galaxy";
@@ -88,7 +89,7 @@ int main(int argc, char** argv) {
         return -1;
     }
 
-    initOptions.useEventThread = true;
+    initOptions.useEventThread = false;
 
     lg::EventHandler evtHandler {ds};
     initOptions.eventHandler = &evtHandler;

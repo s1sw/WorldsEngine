@@ -1,6 +1,9 @@
 using System;
 using System.Text;
 using System.Runtime.InteropServices;
+using System.Reflection;
+using System.Text.Json;
+using System.Collections.Generic;
 
 namespace WorldsEngine
 {
@@ -33,58 +36,147 @@ namespace WorldsEngine
 
         [DllImport(WorldsEngine.NativeModule)]
         public static extern uint registry_create(IntPtr regPtr);
+
+        [DllImport(WorldsEngine.NativeModule)]
+        public static extern void registry_setSerializedEntityInfo(IntPtr serializationContext, IntPtr key, IntPtr value);
+
+        [DllImport(WorldsEngine.NativeModule)]
+        public static extern uint registry_createPrefab(IntPtr regPtr, uint assetId);
     }
 
-    public class Registry
+    public static class Registry
     {
         const int ComponentPoolCount = 32;
 
-        private IntPtr nativeRegistryPtr;
-        private IComponentStorage[] componentStorages = new IComponentStorage[ComponentPoolCount];
+        internal static IntPtr NativePtr => nativeRegistryPtr;
+
+        internal static IntPtr nativeRegistryPtr;
+        private static readonly IComponentStorage[] componentStorages = new IComponentStorage[ComponentPoolCount];
 
         internal static int typeCounter = 0;
 
-        internal Registry(IntPtr nativePtr)
+        static Registry()
         {
-            nativeRegistryPtr = nativePtr;
+            GameAssemblyManager.OnAssemblyLoad += DeserializeStorages;
         }
 
-        internal void SerializeStorages()
+        private static void OnNativeEntityDestroy(uint id)
+        {
+            for (int i = 0; i < ComponentPoolCount; i++)
+            {
+                var storage = componentStorages[i];
+                if (storage != null && storage.Contains(new Entity(id)))
+                    storage.Remove(new Entity(id));
+            }
+        }
+
+        private static void SerializeManagedComponents(IntPtr serializationContext, uint entityId)
+        {
+            var entity = new Entity(entityId);
+            var serializerOptions = new JsonSerializerOptions()
+            {
+                IncludeFields = true,
+                IgnoreReadOnlyProperties = true
+            };
+
+            for (int i = 0; i < ComponentPoolCount; i++)
+            {
+                var storage = componentStorages[i];
+                if (storage != null && storage.Contains(entity))
+                {
+                    object component = storage.GetBoxed(entity);
+                    var type = storage.Type;
+
+                    byte[] serialized = JsonSerializer.SerializeToUtf8Bytes(component, type, serializerOptions);
+                    string key = type.FullName;
+
+                    IntPtr keyUTF8 = Marshal.StringToCoTaskMemUTF8(key);
+                    GCHandle serializedHandle = GCHandle.Alloc(serialized, GCHandleType.Pinned);
+
+                    NativeRegistry.registry_setSerializedEntityInfo(serializationContext, keyUTF8, serializedHandle.AddrOfPinnedObject());
+
+                    serializedHandle.Free();
+                    Marshal.FreeCoTaskMem(keyUTF8);
+                }
+            }
+        }
+
+        private static void DeserializeManagedComponent(IntPtr idPtr, IntPtr jsonPtr, uint entityId)
+        {
+            var entity = new Entity(entityId);
+            var serializerOptions = new JsonSerializerOptions()
+            {
+                IncludeFields = true,
+                IgnoreReadOnlyProperties = true
+            };
+
+            string idStr = Marshal.PtrToStringAnsi(idPtr);
+            string jsonStr = Marshal.PtrToStringAnsi(jsonPtr);
+
+            Type type = HotloadSerialization.CurrentGameAssembly.GetType(idStr);
+
+            IComponentStorage storage = AssureStorage(type);
+            var deserialized = JsonSerializer.Deserialize(jsonStr, type, serializerOptions);
+            storage.SetBoxed(entity, deserialized);
+        }
+
+        internal static void SerializeStorages()
         {
             for (int i = 0; i < ComponentPoolCount; i++)
             {
                 if (componentStorages[i] == null) continue;
-                componentStorages[i].Serialize();
+                componentStorages[i].SerializeForHotload();
                 componentStorages[i] = null;
             }
         }
 
-        private ComponentStorage<T> AssureStorage<T>()
+        private static void DeserializeStorages(Assembly gameAssembly)
+        {
+            List<string> componentTypes = new List<string>();
+            foreach (KeyValuePair<string, SerializedComponentStorage> kvp in ComponentTypeLookup.serializedComponents)
+            {
+                componentTypes.Add(kvp.Value.FullTypeName);
+            }
+            
+            foreach (string typename in componentTypes)
+            {
+                Type componentType = gameAssembly.GetType(typename);
+                AssureStorage(componentType);
+            }
+        }
+
+        private static IComponentStorage AssureStorage(Type type)
+        {
+            if (!ComponentTypeLookup.typeIndices.ContainsKey(type.FullName) || componentStorages[ComponentTypeLookup.typeIndices[type.FullName]] == null)
+            {
+                Type storageType = typeof(ComponentStorage<>).MakeGenericType(type);
+
+                int index = (int)storageType.GetField("typeIndex", BindingFlags.Static | BindingFlags.Public).GetValue(null);
+
+                bool hotload = ComponentTypeLookup.serializedComponents.ContainsKey(type.FullName);
+
+                componentStorages[index] = (IComponentStorage)Activator.CreateInstance(storageType, BindingFlags.NonPublic | BindingFlags.Instance, null, new object[] { hotload }, null);
+            }
+
+            return componentStorages[ComponentTypeLookup.typeIndices[type.FullName]];
+        }
+
+        private static ComponentStorage<T> AssureStorage<T>()
         {
             int typeIndex = ComponentStorage<T>.typeIndex;
 
             if (typeIndex >= ComponentPoolCount)
                 throw new ArgumentOutOfRangeException("Out of component pools. Oops.");
 
+            bool hotload = ComponentTypeLookup.serializedComponents.ContainsKey(typeof(T).FullName);
+
             if (componentStorages[typeIndex] == null)
-                componentStorages[typeIndex] = new ComponentStorage<T>();
+                componentStorages[typeIndex] = new ComponentStorage<T>(hotload);
 
             return (ComponentStorage<T>)componentStorages[typeIndex];
         }
 
-        public T GetBuiltinComponent<T>(Entity entity) where T : BuiltinComponent
-        {
-            var type = typeof(T);
-
-            if (type == typeof(WorldObject))
-            {
-                return (T)(object)new WorldObject(nativeRegistryPtr, entity.ID);
-            }
-
-            throw new ArgumentException($"Type {type.FullName} is not a builtin component.");
-        }
-
-        public bool HasBuiltinComponent<T>(Entity entity) where T : BuiltinComponent
+        public static bool HasBuiltinComponent<T>(Entity entity) where T : BuiltinComponent
         {
             var type = typeof(T);
 
@@ -96,35 +188,83 @@ namespace WorldsEngine
             throw new ArgumentException($"Type {type.FullName} is not a builtin component.");
         }
 
-        public ref T GetComponent<T>(Entity entity) where T : struct
+        public static bool HasComponent<T>(Entity entity)
         {
             var storage = AssureStorage<T>();
 
-            return ref storage.Get(entity);
+            return storage.Contains(entity);
         }
 
-        public void SetComponent<T>(Entity entity, T component) where T : struct
+        public static bool HasComponent(Entity entity, Type t)
+        {
+            var storage = AssureStorage(t);
+
+            return storage.Contains(entity);
+        }
+
+        public static void AddComponent<T>(Entity entity, T instance)
+        {
+            var storage = AssureStorage<T>();
+            storage.Set(entity, instance);
+        }
+
+        public static void AddComponent(Entity entity, Type t, object val)
+        {
+            var storage = AssureStorage(t);
+
+            storage.SetBoxed(entity, val);
+        }
+
+        public static T GetComponent<T>(Entity entity)
         {
             var type = typeof(T);
+
+            if (type.IsAssignableTo(typeof(BuiltinComponent)))
+            {
+                if (type == typeof(WorldObject))
+                {
+                    return (T)(object)new WorldObject(nativeRegistryPtr, entity.ID);
+                }
+                else if (type == typeof(DynamicPhysicsActor))
+                {
+                    return (T)(object)new DynamicPhysicsActor(nativeRegistryPtr, entity.ID);
+                }
+            }
+            
             var storage = AssureStorage<T>();
 
-            if (storage.Contains(entity))
-            {
-                storage.Get(entity) = component;
-                return;
-            }
-
-            storage.Set(entity, component);
+            return storage.Get(entity);
         }
 
-        public void RemoveComponent<T>(Entity entity) where T : struct
+        public static object GetComponent(Type type, Entity entity)
+        {
+            if (type.IsAssignableTo(typeof(BuiltinComponent)))
+            {
+                if (type == typeof(WorldObject))
+                {
+                    return new WorldObject(nativeRegistryPtr, entity.ID);
+                }
+            }
+
+            var storage = AssureStorage(type);
+
+            return storage.GetBoxed(entity);
+        }
+
+        public static void RemoveComponent<T>(Entity entity)
         {
             var storage = AssureStorage<T>();
 
             storage.Remove(entity);
         }
 
-        public Transform GetTransform(Entity entity)
+        public static void RemoveComponent(Type type, Entity entity)
+        {
+            var storage = AssureStorage(type);
+            storage.Remove(entity);
+        }
+
+        public static Transform GetTransform(Entity entity)
         {
             Transform t = new Transform();
             unsafe
@@ -135,7 +275,7 @@ namespace WorldsEngine
             return t;
         }
 
-        public void SetTransform(Entity entity, Transform t)
+        public static void SetTransform(Entity entity, Transform t)
         {
             unsafe
             {
@@ -144,13 +284,13 @@ namespace WorldsEngine
             }
         }
 
-        public bool HasName(Entity entity)
+        public static bool HasName(Entity entity)
         {
             uint length = NativeRegistry.registry_getEntityNameLength(nativeRegistryPtr, entity.ID);
             return length != uint.MaxValue;
         }
 
-        public string GetName(Entity entity)
+        public static string GetName(Entity entity)
         {
             uint length = NativeRegistry.registry_getEntityNameLength(nativeRegistryPtr, entity.ID);
 
@@ -162,7 +302,21 @@ namespace WorldsEngine
             return sb.ToString();
         }
 
-#region Entity Iteration
+        public static Entity Find(string name)
+        {
+            Entity result = Entity.Null;
+
+            Each((Entity ent) =>
+            {
+                if (GetName(ent) == name)
+                {
+                    result = ent;
+                }
+            });
+
+            return result;
+        }
+
         private static Action<Entity> currentEntityFunction;
 
         private static void EntityCallback(uint entityId)
@@ -170,30 +324,34 @@ namespace WorldsEngine
             currentEntityFunction(new Entity(entityId));
         }
 
-        public void Each(Action<Entity> function)
+        public static void Each(Action<Entity> function)
         {
             currentEntityFunction = function;
             NativeRegistry.registry_eachTransform(nativeRegistryPtr, EntityCallback);
             currentEntityFunction = null;
         }
-#endregion
 
-        public void Destroy(Entity entity)
+        public static void Destroy(Entity entity)
         {
             NativeRegistry.registry_destroy(nativeRegistryPtr, entity.ID);
         }
 
-        public Entity Create()
+        public static Entity Create()
         {
             return new Entity(NativeRegistry.registry_create(nativeRegistryPtr));
         }
 
-        public ComponentStorage<T> View<T>()
+        public static Entity CreatePrefab(AssetID prefabId)
+        {
+            return new Entity(NativeRegistry.registry_createPrefab(nativeRegistryPtr, prefabId.ID));
+        }
+
+        public static ComponentStorage<T> View<T>()
         {
             return AssureStorage<T>();
         }
 
-        public void ShowDebugWindow()
+        public static void ShowDebugWindow()
         {
             if (ImGui.Begin("Registry Debugging"))
             {
@@ -205,6 +363,15 @@ namespace WorldsEngine
                     ImGui.Text($"Pool {i}: {componentStorages[i].Type.FullName}");
                 }
                 ImGui.End();
+            }
+        }
+
+        internal static void UpdateThinkingComponents()
+        {
+            for (int i = 0; i < ComponentPoolCount; i++)
+            {
+                if (componentStorages[i] == null || !componentStorages[i].IsThinking) continue;
+                componentStorages[i].UpdateIfThinking();
             }
         }
     }

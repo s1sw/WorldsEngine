@@ -1,4 +1,5 @@
 worlds_sources += [
+  'ImGui/cimgui.cpp',
   'ImGui/imgui_draw.cpp',
   'ImGui/imgui_impl_sdl.cpp',
   'ImGui/imgui_stdlib.cpp',
@@ -6,6 +7,7 @@ worlds_sources += [
   'ImGui/ImGuizmo.cpp',
   'ImGui/imgui.cpp',
   'ImGui/imgui_demo.cpp',
+  'ImGui/imgui_tables.cpp',
   'ImGui/imgui_widgets.cpp',
   'ImGui/ImGuizmo.h',
   'ImGui/imgui_impl_sdl.h',
