@@ -1,5 +1,5 @@
 using System;
-using System.Numerics;
+using WorldsEngine.Math;
 using System.Runtime.InteropServices;
 
 namespace ImGuiNET
@@ -79,9 +79,9 @@ namespace ImGuiNET
         [DllImport(WorldsEngine.WorldsEngine.NativeModule, CallingConvention = CallingConvention.Cdecl)]
         public static extern void igCloseCurrentPopup();
         [DllImport(WorldsEngine.WorldsEngine.NativeModule, CallingConvention = CallingConvention.Cdecl)]
-        public static extern byte igCollapsingHeaderTreeNodeFlags(byte* label, ImGuiTreeNodeFlags flags);
+        public static extern byte igCollapsingHeader_TreeNodeFlags(byte* label, ImGuiTreeNodeFlags flags);
         [DllImport(WorldsEngine.WorldsEngine.NativeModule, CallingConvention = CallingConvention.Cdecl)]
-        public static extern byte igCollapsingHeaderBoolPtr(byte* label, byte* p_visible, ImGuiTreeNodeFlags flags);
+        public static extern byte igCollapsingHeader_BoolPtr(byte* label, byte* p_visible, ImGuiTreeNodeFlags flags);
         [DllImport(WorldsEngine.WorldsEngine.NativeModule, CallingConvention = CallingConvention.Cdecl)]
         public static extern byte igColorButton(byte* desc_id, Vector4 col, ImGuiColorEditFlags flags, Vector2 size);
         [DllImport(WorldsEngine.WorldsEngine.NativeModule, CallingConvention = CallingConvention.Cdecl)]
@@ -185,9 +185,9 @@ namespace ImGuiNET
         [DllImport(WorldsEngine.WorldsEngine.NativeModule, CallingConvention = CallingConvention.Cdecl)]
         public static extern void igGetAllocatorFunctions(IntPtr* p_alloc_func, IntPtr* p_free_func, void** p_user_data);
         [DllImport(WorldsEngine.WorldsEngine.NativeModule, CallingConvention = CallingConvention.Cdecl)]
-        public static extern ImDrawList* igGetBackgroundDrawListNil();
+        public static extern ImDrawList* igGetBackgroundDrawList_Nil();
         [DllImport(WorldsEngine.WorldsEngine.NativeModule, CallingConvention = CallingConvention.Cdecl)]
-        public static extern ImDrawList* igGetBackgroundDrawListViewportPtr(ImGuiViewport* viewport);
+        public static extern ImDrawList* igGetBackgroundDrawList_ViewportPtr(ImGuiViewport* viewport);
         [DllImport(WorldsEngine.WorldsEngine.NativeModule, CallingConvention = CallingConvention.Cdecl)]
         public static extern byte* igGetClipboardText();
         [DllImport(WorldsEngine.WorldsEngine.NativeModule, CallingConvention = CallingConvention.Cdecl)]
@@ -407,9 +407,9 @@ namespace ImGuiNET
         [DllImport(WorldsEngine.WorldsEngine.NativeModule, CallingConvention = CallingConvention.Cdecl)]
         public static extern byte igIsPopupOpenStr(byte* str_id, ImGuiPopupFlags flags);
         [DllImport(WorldsEngine.WorldsEngine.NativeModule, CallingConvention = CallingConvention.Cdecl)]
-        public static extern byte igIsRectVisibleNil(Vector2 size);
+        public static extern byte igIsRectVisible_Nil(Vector2 size);
         [DllImport(WorldsEngine.WorldsEngine.NativeModule, CallingConvention = CallingConvention.Cdecl)]
-        public static extern byte igIsRectVisibleVec2(Vector2 rect_min, Vector2 rect_max);
+        public static extern byte igIsRectVisible_Vec2(Vector2 rect_min, Vector2 rect_max);
         [DllImport(WorldsEngine.WorldsEngine.NativeModule, CallingConvention = CallingConvention.Cdecl)]
         public static extern byte igIsWindowAppearing();
         [DllImport(WorldsEngine.WorldsEngine.NativeModule, CallingConvention = CallingConvention.Cdecl)]
@@ -455,7 +455,7 @@ namespace ImGuiNET
         [DllImport(WorldsEngine.WorldsEngine.NativeModule, CallingConvention = CallingConvention.Cdecl)]
         public static extern void igNextColumn();
         [DllImport(WorldsEngine.WorldsEngine.NativeModule, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void igOpenPopup(byte* str_id, ImGuiPopupFlags popup_flags);
+        public static extern void igOpenPopup_Str(byte* str_id, ImGuiPopupFlags popup_flags);
         [DllImport(WorldsEngine.WorldsEngine.NativeModule, CallingConvention = CallingConvention.Cdecl)]
         public static extern void igOpenPopupOnItemClick(byte* str_id, ImGuiPopupFlags popup_flags);
         [DllImport(WorldsEngine.WorldsEngine.NativeModule, CallingConvention = CallingConvention.Cdecl)]
@@ -709,9 +709,9 @@ namespace ImGuiNET
         [DllImport(WorldsEngine.WorldsEngine.NativeModule, CallingConvention = CallingConvention.Cdecl)]
         public static extern void igTextWrapped(byte* fmt);
         [DllImport(WorldsEngine.WorldsEngine.NativeModule, CallingConvention = CallingConvention.Cdecl)]
-        public static extern byte igTreeNodeStr(byte* label);
+        public static extern byte igTreeNode_Str(byte* label);
         [DllImport(WorldsEngine.WorldsEngine.NativeModule, CallingConvention = CallingConvention.Cdecl)]
-        public static extern byte igTreeNodeStrStr(byte* str_id, byte* fmt);
+        public static extern byte igTreeNode_StrStr(byte* str_id, byte* fmt);
         [DllImport(WorldsEngine.WorldsEngine.NativeModule, CallingConvention = CallingConvention.Cdecl)]
         public static extern byte igTreeNodePtr(void* ptr_id, byte* fmt);
         [DllImport(WorldsEngine.WorldsEngine.NativeModule, CallingConvention = CallingConvention.Cdecl)]
@@ -831,9 +831,9 @@ namespace ImGuiNET
         [DllImport(WorldsEngine.WorldsEngine.NativeModule, CallingConvention = CallingConvention.Cdecl)]
         public static extern void ImDrawList_AddRectFilledMultiColor(ImDrawList* self, Vector2 p_min, Vector2 p_max, uint col_upr_left, uint col_upr_right, uint col_bot_right, uint col_bot_left);
         [DllImport(WorldsEngine.WorldsEngine.NativeModule, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void ImDrawList_AddTextVec2(ImDrawList* self, Vector2 pos, uint col, byte* text_begin, byte* text_end);
+        public static extern void ImDrawList_AddText_Vec2(ImDrawList* self, Vector2 pos, uint col, byte* text_begin, byte* text_end);
         [DllImport(WorldsEngine.WorldsEngine.NativeModule, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void ImDrawList_AddTextFontPtr(ImDrawList* self, ImFont* font, float font_size, Vector2 pos, uint col, byte* text_begin, byte* text_end, float wrap_width, Vector4* cpu_fine_clip_rect);
+        public static extern void ImDrawList_AddText_FontPtr(ImDrawList* self, ImFont* font, float font_size, Vector2 pos, uint col, byte* text_begin, byte* text_end, float wrap_width, Vector4* cpu_fine_clip_rect);
         [DllImport(WorldsEngine.WorldsEngine.NativeModule, CallingConvention = CallingConvention.Cdecl)]
         public static extern void ImDrawList_AddTriangle(ImDrawList* self, Vector2 p1, Vector2 p2, Vector2 p3, uint col, float thickness);
         [DllImport(WorldsEngine.WorldsEngine.NativeModule, CallingConvention = CallingConvention.Cdecl)]

@@ -1,4 +1,4 @@
-#include "Render.hpp"
+#include "RenderInternal.hpp"
 
 namespace worlds {
     RenderTexture::RenderTexture(VulkanHandles* ctx, RTResourceCreateInfo resourceCreateInfo, const char* debugName) {

@@ -263,7 +263,7 @@ namespace worlds {
         g_cooking = PxCreateCooking(PX_PHYSICS_VERSION, *g_physFoundation, physx::PxCookingParams(tolerancesScale));
         physx::PxSceneDesc desc(tolerancesScale);
         desc.gravity = physx::PxVec3(0.0f, -9.81f, 0.0f);
-        desc.cpuDispatcher = physx::PxDefaultCpuDispatcherCreate(std::max(SDL_GetCPUCount() - 2, 1));
+        desc.cpuDispatcher = physx::PxDefaultCpuDispatcherCreate(std::max(SDL_GetCPUCount(), 1));
         desc.filterShader = filterShader;
         desc.solverType = physx::PxSolverType::eTGS;
         desc.flags = PxSceneFlag::eENABLE_CCD

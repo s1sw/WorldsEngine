@@ -1,9 +1,0 @@
-{
-    "albedoPath" : "Textures/LevelTextures/Tiles040/albedo.wtex",
-    "pbrMapPath" : "Textures/LevelTextures/Tiles040/pbr.wtex",
-    "normalMapPath" : "Textures/LevelTextures/Tiles040/normal.wtex",
-    "metallic" : 0.000000,
-    "roughness" : 1.000000,
-    "albedoColor" : [1.000000, 1.000000, 1.000000],
-    "emissiveColor" : [0.000001, 0.000001, 0.000001]
-}

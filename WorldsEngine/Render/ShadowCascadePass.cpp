@@ -33,7 +33,7 @@ namespace worlds {
     void ShadowCascadePass::createRenderPass() {
         vku::RenderpassMaker rPassMaker;
 
-        rPassMaker.attachmentBegin(vk::Format::eD16Unorm);
+        rPassMaker.attachmentBegin(vk::Format::eD32Sfloat);
         rPassMaker.attachmentLoadOp(vk::AttachmentLoadOp::eClear);
         rPassMaker.attachmentStencilLoadOp(vk::AttachmentLoadOp::eDontCare);
         rPassMaker.attachmentFinalLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
@@ -116,6 +116,15 @@ namespace worlds {
         ZoneScoped;
         TracyVkZone((*ctx.tracyContexts)[ctx.imageIndex], *ctx.cmdBuf, "Shadowmap");
 #endif
+        auto cmdBuf = ctx.cmdBuf;
+        vk::DebugUtilsLabelEXT label;
+        label.pLabelName = "Cascade Shadows Pass";
+        label.color[0] = 0.909f;
+        label.color[1] = 0.764f;
+        label.color[2] = 0.447f;
+        label.color[3] = 1.0f;
+        cmdBuf.beginDebugUtilsLabelEXT(&label);
+
         matrixBuffer.barrier(
             ctx.cmdBuf, vk::PipelineStageFlagBits::eHost, vk::PipelineStageFlagBits::eVertexShader,
             vk::DependencyFlagBits::eByRegion, vk::AccessFlagBits::eHostWrite, vk::AccessFlagBits::eUniformRead,
@@ -133,7 +142,6 @@ namespace worlds {
         rpbi.clearValueCount = (uint32_t)clearColours.size();
         rpbi.pClearValues = clearColours.data();
 
-        auto cmdBuf = ctx.cmdBuf;
         entt::registry& reg = ctx.registry;
 
         CascadeMatrices matrices;
@@ -186,19 +194,10 @@ namespace worlds {
             ctx.debugContext.stats->numTriangles += meshPos->second.indexCount / 3;
         });
 
-        reg.view<Transform, ProceduralObject>().each([&](auto ent, Transform& transform, ProceduralObject& obj) {
-            if (!obj.visible) return;
-            glm::mat4 model = transform.getMatrix();
-            cmdBuf.pushConstants<glm::mat4>(*pipelineLayout, vk::ShaderStageFlagBits::eVertex, 0, model);
-            cmdBuf.bindVertexBuffers(0, obj.vb.buffer(), vk::DeviceSize(0));
-            cmdBuf.bindIndexBuffer(obj.ib.buffer(), 0, obj.indexType);
-            cmdBuf.drawIndexed(obj.indexCount, 1, 0, 0, 0);
-            ctx.debugContext.stats->numDrawCalls++;
-        });
-
         cmdBuf.endRenderPass();
 
         shadowImage->image.setCurrentLayout(vk::ImageLayout::eShaderReadOnlyOptimal, vk::PipelineStageFlagBits::eLateFragmentTests, vk::AccessFlagBits::eDepthStencilAttachmentWrite);
+        cmdBuf.endDebugUtilsLabelEXT();
     }
 
     ShadowCascadePass::~ShadowCascadePass() {

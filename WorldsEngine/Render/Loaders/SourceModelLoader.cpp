@@ -2,7 +2,7 @@
 #include "../../Core/Engine.hpp"
 #include "../../Util/GlmStreamOps.hpp"
 #include <iostream>
-#include "../Render.hpp"
+#include "../RenderInternal.hpp"
 #include <filesystem>
 #include "tracy/Tracy.hpp"
 

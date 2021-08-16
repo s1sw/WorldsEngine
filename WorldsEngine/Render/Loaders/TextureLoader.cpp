@@ -5,7 +5,7 @@
 #include "crn_decomp.h"
 #include "stb_image.h"
 #include "../../Core/LogCategories.hpp"
-#include "../Render.hpp"
+#include "../RenderInternal.hpp"
 #include "../../Core/Fatal.hpp"
 #include <physfs.h>
 #include <algorithm>

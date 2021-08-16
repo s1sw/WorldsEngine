@@ -1,7 +1,7 @@
 #include "PCH.hpp"
 #include "../Core/Engine.hpp"
 #include "../Core/Log.hpp"
-#include "Render.hpp"
+#include "RenderInternal.hpp"
 #include <SDL_messagebox.h>
 
 namespace worlds {

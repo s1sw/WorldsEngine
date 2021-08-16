@@ -27,6 +27,14 @@ extern "C" {
         dpa.physicsShapes[shapeIndex] = *shape;
     }
 
+    EXPORT void dynamicpa_updateShapes(entt::registry* reg, entt::entity entity) {
+        DynamicPhysicsActor& dpa = reg->get<DynamicPhysicsActor>(entity);
+        Transform& t = reg->get<Transform>(entity);
+
+        updatePhysicsShapes(dpa, t.scale);
+        updateMass(dpa);
+    }
+
     EXPORT void dynamicpa_addForce(entt::registry* reg, entt::entity entity, glm::vec3 force, ForceMode forceMode) {
         DynamicPhysicsActor& dpa = reg->get<DynamicPhysicsActor>(entity);
 
@@ -67,5 +75,17 @@ extern "C" {
         DynamicPhysicsActor& dpa = reg->get<DynamicPhysicsActor>(entity);
 
         dpa.mass = mass;
+    }
+
+    EXPORT void dynamicpa_getCenterOfMassLocalPose(entt::registry* reg, entt::entity entity, Transform* pose) {
+        DynamicPhysicsActor& dpa = reg->get<DynamicPhysicsActor>(entity);
+
+        *pose = px2glm(dpa.actor->getCMassLocalPose());
+    }
+
+    EXPORT void dynamicpa_getMassSpaceInertiaTensor(entt::registry* reg, entt::entity entity, glm::vec3* tensor) {
+        DynamicPhysicsActor& dpa = reg->get<DynamicPhysicsActor>(entity);
+
+        *tensor = px2glm(dpa.actor->getMassSpaceInertiaTensor());
     }
 }

@@ -16,6 +16,14 @@ extern "C" {
         wo.mesh = id;
     }
 
+    EXPORT uint32_t worldObject_getMaterial(entt::registry* registry, entt::entity entity, uint32_t materialIndex) {
+        return registry->get<WorldObject>(entity).materials[materialIndex];
+    }
+
+    EXPORT void worldObject_setMaterial(entt::registry* registry, entt::entity entity, uint32_t materialIndex, AssetID material) {
+        registry->get<WorldObject>(entity).materials[materialIndex] = material;
+    }
+
     EXPORT char worldObject_exists(entt::registry* registry, entt::entity entity) {
         return registry->has<WorldObject>(entity);
     }

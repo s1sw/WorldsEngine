@@ -1,12 +1,20 @@
 #include "ResourceSlots.hpp"
-#include "Render.hpp"
+#include "RenderInternal.hpp"
 
 namespace worlds {
     CubemapSlots::CubemapSlots(std::shared_ptr<VulkanHandles> vkCtx, std::shared_ptr<CubemapConvoluter> cc)
         : vkCtx(vkCtx)
         , imageIndex(0)
         , cc{ cc }{
+        missingSlot = loadOrGet(AssetDB::pathToId("Cubemaps/missing.json"));
+    }
 
+    uint32_t CubemapSlots::loadOrGet(AssetID id) {
+        auto iter = lookup.find(id);
+
+        if (iter != lookup.end() && iter->second != missingSlot) return iter->second;
+
+        return load(id);
     }
 
     uint32_t CubemapSlots::load(AssetID asset) {
@@ -16,9 +24,7 @@ namespace worlds {
             fatalErr("Out of cubemap slots");
         }
 
-
         if (!PHYSFS_exists(AssetDB::idToPath(asset).c_str())) {
-            uint32_t missingSlot = loadOrGet(AssetDB::pathToId("Cubemaps/missing.json"));
             lookup.insert({ asset, missingSlot });
             return missingSlot;
         }
@@ -40,8 +46,10 @@ namespace worlds {
     }
 
     void CubemapSlots::unload(int idx) {
+        if (idx == missingSlot) return;
+
         present[idx] = false;
-        slots[idx] = vku::TextureImageCube{};
+        slots[idx].destroy();
         lookup.erase(reverseLookup.at(idx));
         reverseLookup.erase(idx);
     }

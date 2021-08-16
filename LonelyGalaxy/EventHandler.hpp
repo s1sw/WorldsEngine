@@ -41,7 +41,7 @@ namespace lg {
 
         worlds::EngineInterfaces interfaces;
         worlds::IVRInterface* vrInterface;
-        worlds::VKRenderer* renderer;
+        worlds::Renderer* renderer;
         worlds::InputManager* inputManager;
         worlds::Camera* camera;
         worlds::WorldsEngine* engine;

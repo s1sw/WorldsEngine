@@ -60,6 +60,7 @@ namespace worlds {
         bool getActionHeld(InputActionHandle handle) override;
         bool getActionPressed(InputActionHandle handle) override;
         bool getActionReleased(InputActionHandle handle) override;
+        void triggerHaptics(InputActionHandle handle, float timeFromNow, float duration, float frequency, float amplitude) override;
         glm::vec2 getActionV2(InputActionHandle handle) override;
     };
 }

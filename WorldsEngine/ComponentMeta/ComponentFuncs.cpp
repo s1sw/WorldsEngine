@@ -53,9 +53,6 @@ namespace worlds {
 
     class TransformEditor : public virtual BasicComponentUtil<Transform> {
     public:
-        BASIC_CREATE(Transform);
-        BASIC_CLONE(Transform);
-
         int getSortID() override {
             return -1;
         }
@@ -155,8 +152,6 @@ namespace worlds {
 
     class WorldObjectEditor : public BasicComponentUtil<WorldObject> {
     public:
-        BASIC_CLONE(WorldObject);
-
         const char* getName() override {
             return "World Object";
         }
@@ -333,8 +328,6 @@ namespace worlds {
 
     class WorldLightEditor : public BasicComponentUtil<WorldLight> {
     public:
-        BASIC_CLONE(WorldLight);
-        BASIC_CREATE(WorldLight);
         const char* getName() override { return "World Light"; }
 
         void edit(entt::entity ent, entt::registry& reg, Editor* ed) override {
@@ -554,7 +547,7 @@ namespace worlds {
             }
 
             ImGui::SameLine();
-            if (ImGui::Button("Remove")) {
+            if (ImGui::Button("Remove##PhysicsShape")) {
                 eraseIter = it;
                 erase = true;
             }
@@ -650,7 +643,7 @@ namespace worlds {
             PHYSFS_writeULE16(file, (uint16_t)pa.physicsShapes.size());
 
             for (size_t i = 0; i < pa.physicsShapes.size(); i++) {
-                auto shape = pa.physicsShapes[i];
+                const auto& shape = pa.physicsShapes[i];
                 WRITE_FIELD(file, shape.type);
 
                 WRITE_FIELD(file, shape.pos);
@@ -849,7 +842,7 @@ namespace worlds {
             PHYSFS_writeULE16(file, (uint16_t)pa.physicsShapes.size());
 
             for (size_t i = 0; i < pa.physicsShapes.size(); i++) {
-                auto shape = pa.physicsShapes[i];
+                const auto& shape = pa.physicsShapes[i];
                 WRITE_FIELD(file, shape.type);
 
                 WRITE_FIELD(file, shape.pos);
@@ -999,9 +992,6 @@ namespace worlds {
 
     class NameComponentEditor : public BasicComponentUtil<NameComponent> {
     public:
-        BASIC_CREATE(NameComponent);
-        BASIC_CLONE(NameComponent);
-
         int getSortID() override {
             return -2;
         }
@@ -1013,7 +1003,7 @@ namespace worlds {
 
             ImGui::InputText("Name", &nc.name);
             ImGui::SameLine();
-            if (ImGui::Button("Remove")) {
+            if (ImGui::Button("Remove##Name")) {
                 registry.remove<NameComponent>(ent);
             }
             ImGui::Separator();
@@ -1052,7 +1042,6 @@ namespace worlds {
 
     class AudioSourceEditor : public BasicComponentUtil<AudioSource> {
     public:
-        BASIC_CLONE(AudioSource);
         const char* getName() override { return "Audio Source"; }
 
         void create(entt::entity ent, entt::registry& reg) override {
@@ -1128,8 +1117,6 @@ namespace worlds {
 
     class WorldCubemapEditor : public BasicComponentUtil<WorldCubemap> {
     public:
-        BASIC_CLONE(WorldCubemap);
-
         const char* getName() override { return "World Cubemap"; }
 
         void create(entt::entity ent, entt::registry& reg) override {
@@ -1194,8 +1181,6 @@ namespace worlds {
 
     class ScriptComponentEditor : public BasicComponentUtil<ScriptComponent> {
     public:
-        BASIC_CLONE(ScriptComponent);
-
         const char* getName() override { return "Script"; }
 
         void create(entt::entity ent, entt::registry& reg) override {
@@ -1206,7 +1191,7 @@ namespace worlds {
             auto& sc = reg.get<ScriptComponent>(ent);
 
             if (ImGui::CollapsingHeader(ICON_FA_SCROLL u8" Script")) {
-                if (ImGui::Button("Remove")) {
+                if (ImGui::Button("Remove##Script")) {
                     reg.remove<ScriptComponent>(ent);
                 } else {
                     ImGui::Text("Current Script Path: %s", AssetDB::idToPath(sc.script).c_str());
@@ -1248,11 +1233,7 @@ namespace worlds {
 
     class ReverbProbeBoxEditor : public BasicComponentUtil<ReverbProbeBox> {
     public:
-        BASIC_CLONE(ReverbProbeBox);
-
         const char* getName() override { return "Reverb Probe Box"; }
-
-        BASIC_CREATE(ReverbProbeBox);
 
         void edit(entt::entity ent, entt::registry& reg, Editor* ed) override {
             auto& rpb = reg.get<ReverbProbeBox>(ent);
@@ -1289,16 +1270,13 @@ namespace worlds {
 
     class AudioTriggerEditor : public BasicComponentUtil<AudioTrigger> {
     public:
-        BASIC_CLONE(AudioTrigger);
-        BASIC_CREATE(AudioTrigger);
-
         const char* getName() override { return "Audio Trigger"; }
 
         void edit(entt::entity ent, entt::registry& reg, Editor* ed) override {
             auto& trigger = reg.get<AudioTrigger>(ent);
 
             if (ImGui::CollapsingHeader("Audio Trigger")) {
-                if (ImGui::Button("Remove")) {
+                if (ImGui::Button("Remove##AudioTrigger")) {
                     reg.remove<AudioTrigger>(ent);
                     return;
                 }
@@ -1344,16 +1322,13 @@ namespace worlds {
 
     class ProxyAOEditor : public BasicComponentUtil<ProxyAOComponent> {
     public:
-        BASIC_CLONE(ProxyAOComponent);
-        BASIC_CREATE(ProxyAOComponent);
-
         const char* getName() override { return "AO Proxy"; }
 
         void edit(entt::entity ent, entt::registry& reg, Editor* ed) override {
             auto& pac = reg.get<ProxyAOComponent>(ent);
 
             if (ImGui::CollapsingHeader("AO Proxy")) {
-                if (ImGui::Button("Remove")) {
+                if (ImGui::Button("Remove##AOProxy")) {
                     reg.remove<ProxyAOComponent>(ent);
                     return;
                 }
@@ -1389,16 +1364,13 @@ namespace worlds {
 
     class WorldTextComponentEditor : public BasicComponentUtil<WorldTextComponent> {
     public:
-        BASIC_CLONE(WorldTextComponent);
-        BASIC_CREATE(WorldTextComponent);
-
         const char* getName() override { return "World Text Component"; }
 
         void edit(entt::entity ent, entt::registry& reg, Editor* ed) override {
             auto& wtc = reg.get<WorldTextComponent>(ent);
 
             if (ImGui::CollapsingHeader("World Text Component")) {
-                if (ImGui::Button("Remove")) {
+                if (ImGui::Button("Remove##WorldText")) {
                     reg.remove<WorldTextComponent>(ent);
                     return;
                 }
@@ -1447,16 +1419,13 @@ namespace worlds {
 
     class PrefabInstanceEditor : public BasicComponentUtil<PrefabInstanceComponent> {
     public:
-        BASIC_CLONE(PrefabInstanceComponent);
-        BASIC_CREATE(PrefabInstanceComponent);
-
         const char* getName() override { return "Prefab Instance"; }
 
         void edit(entt::entity ent, entt::registry& reg, Editor* ed) override {
             auto& pic = reg.get<PrefabInstanceComponent>(ent);
 
             if (ImGui::CollapsingHeader("Prefab Instance")) {
-                if (ImGui::Button("Remove")) {
+                if (ImGui::Button("Remove##PrefabInstance")) {
                     reg.remove<PrefabInstanceComponent>(ent);
                     return;
                 }
@@ -1487,6 +1456,44 @@ namespace worlds {
         }
     };
 
+    class SphereAOProxyEditor : public BasicComponentUtil<SphereAOProxy> {
+    public:
+        const char* getName() override { return "Sphere AO Proxy"; }
+
+        void edit(entt::entity entity, entt::registry& reg, Editor* ed) override {
+            auto& proxy = reg.get<SphereAOProxy>(entity);
+
+            if (ImGui::CollapsingHeader("Sphere AO Proxy")) {
+                if (ImGui::Button("Remove##SphereAO")) {
+                    reg.remove<SphereAOProxy>(entity);
+                    return;
+                }
+
+                ImGui::DragFloat("Radius", &proxy.radius);
+            }
+        }
+
+        void writeToFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file) override {
+        }
+
+        void readFromFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file, int version) override {
+        }
+
+        void toJson(entt::entity ent, entt::registry& reg, json& j) override {
+            auto& proxy = reg.get<SphereAOProxy>(ent);
+
+            j = {
+                { "radius", proxy.radius }
+            };
+        }
+
+        void fromJson(entt::entity ent, entt::registry& reg, const json& j) override {
+            auto& proxy = reg.emplace<SphereAOProxy>(ent);
+
+            proxy.radius = j["radius"];
+        }
+    };
+
     TransformEditor transformEd;
     WorldObjectEditor worldObjEd;
     WorldLightEditor worldLightEd;
@@ -1501,4 +1508,5 @@ namespace worlds {
     ProxyAOEditor aoEd;
     WorldTextComponentEditor wtcEd;
     PrefabInstanceEditor pie;
+    SphereAOProxyEditor saope;
 }

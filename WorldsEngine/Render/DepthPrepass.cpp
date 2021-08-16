@@ -73,6 +73,13 @@ namespace worlds {
 
     void DepthPrepass::execute(RenderContext& ctx, slib::StaticAllocList<SubmeshDrawInfo>& drawInfo) {
         auto& cmdBuf = ctx.cmdBuf;
+        vk::DebugUtilsLabelEXT label;
+        label.pLabelName = "Depth Pre-Pass";
+        label.color[0] = 0.368f;
+        label.color[1] = 0.415f;
+        label.color[2] = 0.819f;
+        label.color[3] = 1.0f;
+        cmdBuf.beginDebugUtilsLabelEXT(&label);
         cmdBuf.bindPipeline(vk::PipelineBindPoint::eGraphics, *depthPrePipeline);
 
         bool switchedToAlphaTest = false;
@@ -99,5 +106,6 @@ namespace worlds {
             cmdBuf.drawIndexed(sdi.indexCount, 1, sdi.indexOffset, 0, 0);
             ctx.debugContext.stats->numDrawCalls++;
         }
+        cmdBuf.endDebugUtilsLabelEXT();
     }
 }

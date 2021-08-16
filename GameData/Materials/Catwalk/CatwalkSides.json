@@ -1,8 +1,0 @@
-{
-    "albedoPath" : "Textures/Catwalk/CatwalkSides_BaseColor.wtex",
-    "pbrMapPath" : "Textures/Catwalk/CatwalkSides_PBRPack.wtex",
-    "normalMapPath" : "Textures/Catwalk/CatwalkSides_Normal_forcelin.wtex",
-    "metallic" : 1.000000,
-    "roughness" : 0.200000,
-    "albedoColor" : [1.000000, 1.000000, 1.000000]
-}

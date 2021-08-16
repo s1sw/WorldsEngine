@@ -31,4 +31,19 @@ namespace worlds {
         reg.clear();
         JsonSceneSerializer::loadScene(file, reg);
     }
+
+    void EditorUndo::clear() {
+        highestSaved = 0;
+        currentPos = 0;
+
+        PHYSFS_enumerate("Temp", [](void* data, const char*, const char* name) {
+            char* buf = new char[strlen("Temp/") + strlen(name) + 1];
+            buf[0] = 0;
+            strcat(buf, "Temp/");
+            strcat(buf, name);
+            PHYSFS_delete(buf);
+           
+            return PHYSFS_ENUM_OK;
+            }, nullptr);
+    }
 }

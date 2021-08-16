@@ -248,6 +248,10 @@ namespace worlds {
         return !data.bState && data.bChanged;
     }
 
+    void OpenVRInterface::triggerHaptics(InputActionHandle handle, float timeFromNow, float duration, float frequency, float amplitude) {
+        vr::VRInput()->TriggerHapticVibrationAction(handle, timeFromNow, duration, frequency, amplitude, vr::k_ulInvalidActionHandle);
+    }
+
     glm::vec2 OpenVRInterface::getActionV2(InputActionHandle handle) {
         vr::InputAnalogActionData_t data;
         vr::VRInput()->GetAnalogActionData(handle, &data, sizeof(data), vr::k_ulInvalidInputValueHandle);

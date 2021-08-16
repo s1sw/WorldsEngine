@@ -1,5 +1,5 @@
 #pragma once
-#include "../Render/Render.hpp"
+#include "../Render/RenderInternal.hpp"
 
 namespace worlds {
     namespace VKImGUIUtil {

@@ -2,7 +2,7 @@
 #include "../../Libs/mikktspace.h"
 #include "../../Libs/tiny_obj_loader.h"
 #include "../../Libs/weldmesh.h"
-#include "../Render.hpp"
+#include "../RenderInternal.hpp"
 #include "tracy/Tracy.hpp"
 
 namespace worlds {

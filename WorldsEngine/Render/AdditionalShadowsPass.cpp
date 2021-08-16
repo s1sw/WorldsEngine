@@ -100,6 +100,15 @@ namespace worlds {
 
     void AdditionalShadowsPass::execute(RenderContext& ctx) {
         auto cmdBuf = ctx.cmdBuf;
+
+        vk::DebugUtilsLabelEXT label;
+        label.pLabelName = "Spotlight Shadow Pass";
+        label.color[0] = 0.239f;
+        label.color[1] = 0.239f;
+        label.color[2] = 0.239f;
+        label.color[3] = 1.0f;
+        cmdBuf.beginDebugUtilsLabelEXT(&label);
+
         cmdBuf.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline);
         for (int i = 0; i < NUM_SHADOW_LIGHTS; i++) {
             if (!renderIdx[i]) {
@@ -152,5 +161,7 @@ namespace worlds {
             cmdBuf.endRenderPass();
             ctx.resources.additionalShadowImages[i]->image.setCurrentLayout(vk::ImageLayout::eShaderReadOnlyOptimal, vk::PipelineStageFlagBits::eLateFragmentTests, vk::AccessFlagBits::eDepthStencilAttachmentWrite);
         }
+
+        cmdBuf.endDebugUtilsLabelEXT();
     }
 }

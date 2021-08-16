@@ -13,6 +13,8 @@ namespace worlds {
     void openFileModal(const char* title, std::function<void(const char*)> openCallback, const char* fileExtension = nullptr, const char* startingDir = nullptr);
     void openFileModal(const char* title, std::function<void(const char*)> openCallback, const char** fileExtensions = nullptr, int fileExtensionCount = 0, const char* startingDir = nullptr);
 
+    void openFileFullFSModal(const char* title, std::function<void(const char*)> openCallback);
+
     enum class MessageBoxType {
         YesNo,
         Ok

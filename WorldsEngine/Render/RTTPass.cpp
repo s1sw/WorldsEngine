@@ -1,17 +1,17 @@
-#include "Render.hpp"
+#include "RenderInternal.hpp"
 #include "RenderPasses.hpp"
 
 namespace worlds {
-    RTTPass::RTTPass(const RTTPassCreateInfo& ci, VKRenderer* renderer, IVRInterface* vrInterface, uint32_t frameIdx, RenderDebugStats* dbgStats)
-        : width {ci.width}
-        , height {ci.height}
-        , isVr {ci.isVr}
+    VKRTTPass::VKRTTPass(const RTTPassCreateInfo& ci, VKRenderer* renderer, IVRInterface* vrInterface, uint32_t frameIdx, RenderDebugStats* dbgStats)
+        : isVr {ci.isVr}
         , outputToScreen {ci.outputToScreen}
         , enableShadows {ci.enableShadows}
         , cam {ci.cam}
         , renderer {renderer}
         , vrInterface {vrInterface}
         , dbgStats {dbgStats} {
+        width = ci.width;
+        height = ci.height;
         auto& handles = *renderer->getHandles();
         RenderResources resources = renderer->getResources();
 
@@ -113,7 +113,7 @@ namespace worlds {
         }
     }
 
-    void RTTPass::drawNow(entt::registry& world) {
+    void VKRTTPass::drawNow(entt::registry& world) {
         auto handles = renderer->getHandles();
         auto queue = handles->device.getQueue(handles->graphicsQueueFamilyIdx, 0);
         vku::executeImmediately(handles->device, handles->commandPool, queue, [&](auto cmdbuf) {
@@ -122,16 +122,16 @@ namespace worlds {
         });
     }
 
-    void RTTPass::requestPick(int x, int y) {
+    void VKRTTPass::requestPick(int x, int y) {
         prp->setPickCoords(x, y);
         prp->requestEntityPick();
     }
 
-    bool RTTPass::getPickResult(uint32_t* result) {
+    bool VKRTTPass::getPickResult(uint32_t* result) {
         return prp->getPickedEnt(result);
     }
 
-    float* RTTPass::getHDRData() {
+    float* VKRTTPass::getHDRData() {
         auto handles = renderer->getHandles();
         if (isVr) {
             logErr("Getting pass data for VR passes is not supported");
@@ -260,7 +260,7 @@ namespace worlds {
         return buffer;
     }
 
-    void RTTPass::writeCmds(uint32_t frameIdx, vk::CommandBuffer cmdBuf, entt::registry& world) {
+    void VKRTTPass::writeCmds(uint32_t frameIdx, vk::CommandBuffer cmdBuf, entt::registry& world) {
         RenderResources resources = renderer->getResources();
         RenderContext rCtx {
             .resources = renderer->getResources(),
@@ -334,7 +334,7 @@ namespace worlds {
         trp->execute(rCtx);
     }
 
-    RTTPass::~RTTPass() {
+    VKRTTPass::~VKRTTPass() {
         renderer->device->waitIdle();
 
         delete prp;

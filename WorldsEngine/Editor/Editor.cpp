@@ -31,6 +31,7 @@
 #include "../AssetCompilation/AssetCompilers.hpp"
 #include "AssetEditors.hpp"
 #include "../Scripting/NetVM.hpp"
+#include "ImGui/imgui_internal.h"
 
 namespace worlds {
     std::unordered_map<ENTT_ID_TYPE, ComponentEditor*> ComponentMetadataManager::metadata;
@@ -56,6 +57,9 @@ namespace worlds {
     }
 
     std::string Editor::generateWindowTitle() {
+        if (!project)
+            return "Worlds Engine";
+
         std::string base = "Worlds Engine Editor | " + interfaces.engine->getCurrentSceneInfo().name;
 
         if (lastSaveModificationCount != undo.modificationCount()) {
@@ -73,10 +77,12 @@ namespace worlds {
             SDL_SetWindowTitle(interfaces.engine->getMainWindow(), newTitle.c_str());
     }
 
+    static int menuButtonsExtent = 0;
+
     SDL_HitTestResult hitTest(SDL_Window* win, const SDL_Point* p, void* v) {
         int w, h;
         SDL_GetWindowSize(win, &w, &h);
-        if (p->x > 200 && p->x < w - 120 && p->y < 20 && p->y > 0) {
+        if (p->x > menuButtonsExtent && p->x < w - 120 && p->y < 20 && p->y > 0) {
             return SDL_HITTEST_DRAGGABLE;
         }
 
@@ -105,14 +111,14 @@ namespace worlds {
         }
 
         switch (flags) {
-            case Left: return SDL_HITTEST_RESIZE_LEFT;
-            case Right: return SDL_HITTEST_RESIZE_RIGHT;
-            case Top: return SDL_HITTEST_RESIZE_TOP;
-            case Bottom: return SDL_HITTEST_RESIZE_BOTTOM;
-            case Top | Left: return SDL_HITTEST_RESIZE_TOPLEFT;
-            case Top | Right: return SDL_HITTEST_RESIZE_TOPRIGHT;
-            case Bottom | Left: return SDL_HITTEST_RESIZE_BOTTOMLEFT;
-            case Bottom | Right: return SDL_HITTEST_RESIZE_BOTTOMRIGHT;
+        case Left: return SDL_HITTEST_RESIZE_LEFT;
+        case Right: return SDL_HITTEST_RESIZE_RIGHT;
+        case Top: return SDL_HITTEST_RESIZE_TOP;
+        case Bottom: return SDL_HITTEST_RESIZE_BOTTOM;
+        case Top | Left: return SDL_HITTEST_RESIZE_TOPLEFT;
+        case Top | Right: return SDL_HITTEST_RESIZE_TOPRIGHT;
+        case Bottom | Left: return SDL_HITTEST_RESIZE_BOTTOMLEFT;
+        case Bottom | Right: return SDL_HITTEST_RESIZE_BOTTOMRIGHT;
         }
 
         return SDL_HITTEST_NORMAL;
@@ -132,11 +138,11 @@ namespace worlds {
         , settings()
         , interfaces(interfaces)
         , inputManager(*interfaces.inputManager) {
-        texMan = new UITextureManager{*interfaces.renderer->getHandles()};
+        texMan = new UITextureManager{ *static_cast<VKRenderer*>(interfaces.renderer)->getHandles() };
         ComponentMetadataManager::setupLookup();
         interfaces.engine->pauseSim = true;
 
-#define ADD_EDITOR_WINDOW(type) editorWindows.push_back(std::make_unique<type>(interfaces, this))
+#define ADD_EDITOR_WINDOW(type) editorWindows.add(std::make_unique<type>(interfaces, this))
 
         ADD_EDITOR_WINDOW(EntityList);
         ADD_EDITOR_WINDOW(Assets);
@@ -158,7 +164,7 @@ namespace worlds {
         SDL_SetWindowResizable(window, SDL_TRUE);
         SDL_SetWindowHitTest(window, hitTest, nullptr);
         SDL_SetWindowOpacity(window, 1.0f);
-        sceneViews.push_back(new EditorSceneView {interfaces, this});
+        sceneViews.add(new EditorSceneView{ interfaces, this });
 
         titleBarIcon = texMan->loadOrGet(AssetDB::pathToId("UI/Images/logo_no_background.png"));
 
@@ -328,9 +334,9 @@ namespace worlds {
             }
         }
 
-        static float bounds[6] { -1.0f, -1.0f, -1.0f, 1.0f, 1.0f, 1.0f };
+        static float bounds[6]{ -1.0f, -1.0f, -1.0f, 1.0f, 1.0f, 1.0f };
 
-        glm::mat4 deltaMatrix{1.0f};
+        glm::mat4 deltaMatrix{ 1.0f };
 
         ImGuizmo::Manipulate(glm::value_ptr(view), glm::value_ptr(proj),
             toolToOp(currentTool), toolLocalSpace ? ImGuizmo::MODE::LOCAL : ImGuizmo::MODE::WORLD,
@@ -437,6 +443,39 @@ namespace worlds {
         drawList->AddRectFilled(minimiseCenter - ImVec2(5, 0), minimiseCenter + ImVec2(5, 1), ImColor(255, 255, 255));
     }
 
+    void Editor::openProject(std::string path) {
+        project = std::make_unique<GameProject>(path);
+        project->mountPaths();
+        interfaces.renderer->reloadContent(worlds::ReloadFlags::All);
+
+        // Update recent projects list
+        std::vector<std::string> recentProjects;
+
+        char* prefPath = SDL_GetPrefPath("Someone Somewhere", "Worlds Engine");
+        std::ifstream recentProjectsStream(prefPath + std::string{ "recentProjects.txt" });
+
+        if (recentProjectsStream.good()) {
+            std::string currLine;
+
+            while (std::getline(recentProjectsStream, currLine)) {
+                recentProjects.push_back(currLine);
+            }
+        }
+
+        recentProjects.erase(std::remove(recentProjects.begin(), recentProjects.end(), path), recentProjects.end());
+        recentProjects.insert(recentProjects.begin(), path);
+
+        std::ofstream recentProjectsOutStream(prefPath + std::string{ "recentProjects.txt" });
+
+        if (recentProjectsOutStream.good()) {
+            for (std::string& path : recentProjects) {
+                recentProjectsOutStream << path << "\n";
+            }
+        }
+
+        SDL_free(prefPath);
+    }
+
     void Editor::update(float deltaTime) {
         if (!active) {
             for (EditorSceneView* esv : sceneViews) {
@@ -460,11 +499,79 @@ namespace worlds {
                     g_console->executeCommandStr("pauseAndEdit");
                 }
 
+                menuButtonsExtent = ImGui::GetCursorPosX();
+
                 drawMenuBarTitle();
                 ImGui::EndMainMenuBar();
             }
             return;
         }
+
+        if (!project) {
+            static std::vector<std::string> recentProjects;
+            static bool loadedRecentProjects = false;
+
+            if (!loadedRecentProjects) {
+                loadedRecentProjects = true;
+                char* prefPath = SDL_GetPrefPath("Someone Somewhere", "Worlds Engine");
+                std::ifstream recentProjectsStream(prefPath + std::string{ "recentProjects.txt" });
+
+                if (recentProjectsStream.good()) {
+                    std::string currLine;
+
+                    while (std::getline(recentProjectsStream, currLine)) {
+                        recentProjects.push_back(currLine);
+                    }
+                }
+
+                SDL_free(prefPath);
+            }
+
+            updateWindowTitle();
+
+            ImVec2 menuBarSize;
+            if (ImGui::BeginMainMenuBar()) {
+                ImGui::Image(titleBarIcon, ImVec2(24, 24));
+                menuButtonsExtent = 24;
+
+                menuBarSize = ImGui::GetWindowSize();
+                drawMenuBarTitle();
+                ImGui::EndMainMenuBar();
+            }
+
+            ImGuiViewport* viewport = ImGui::GetMainViewport();
+            ImGui::SetNextWindowPos(viewport->Pos + ImVec2(0.0f, menuBarSize.y));
+            ImGui::SetNextWindowSize(viewport->Size - ImVec2(0.0f, menuBarSize.y));
+            ImGui::SetNextWindowViewport(viewport->ID);
+            ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+            ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+            ImGui::Begin("ProjectWindow", 0,
+                ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse |
+                ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
+                ImGuiWindowFlags_NoDocking);
+            ImGui::PopStyleVar(2);
+
+            ImGui::Text("Select a project.");
+
+            openFileFullFSModal("Open Project", [&](const char* path) {
+                openProject(path);
+                });
+
+            if (ImGui::Button("Open")) {
+                ImGui::OpenPopup("Open Project");
+            }
+
+            for (std::string& path : recentProjects) {
+                if (ImGui::Button(path.c_str())) {
+                    openProject(path);
+                }
+            }
+
+            ImGui::End();
+
+            return;
+        }
+
         for (EditorSceneView* esv : sceneViews) {
             esv->setViewportActive(true);
         }
@@ -481,16 +588,14 @@ namespace worlds {
         ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
         ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-
-        ImGui::Begin("Editor dockspace - you shouldn't be able to see this!", 0,
+        ImGui::Begin("EditorDockspaceWindow", 0,
             ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse |
             ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
             ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus |
             ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_MenuBar);
         ImGui::PopStyleVar(3);
-
         ImGuiID dockspaceId = ImGui::GetID("EditorDockspace");
-        ImGui::DockSpace(dockspaceId);
+        ImGui::DockSpace(dockspaceId, ImVec2(0, 0));
         ImGui::End();
 
         // Draw black background
@@ -563,11 +668,11 @@ namespace worlds {
             messageBoxModal("New Scene",
                 "Are you sure you want to clear the current scene and create a new one?",
                 [&](bool result) {
-                if (result) {
-                    interfaces.engine->createStartupScene();
-                    updateWindowTitle();
-                }
-            });
+                    if (result) {
+                        interfaces.engine->createStartupScene();
+                        updateWindowTitle();
+                    }
+                });
         }
 
         if (inputManager.keyPressed(SDL_SCANCODE_C) && inputManager.ctrlHeld() && reg.valid(currentSelectedEntity)) {
@@ -580,7 +685,7 @@ namespace worlds {
             try {
                 select(JsonSceneSerializer::jsonToEntity(reg, txt));
                 addNotification("Entity pasted! :)");
-            } catch (nlohmann::detail::exception& e) {
+            }             catch (nlohmann::detail::exception& e) {
                 logErr("Failed to deserialize clipboard entity: %s", e.what());
                 addNotification("Sorry, we couldn't paste that into the scene.", NotificationType::Error);
             }
@@ -592,7 +697,7 @@ namespace worlds {
             JsonSceneSerializer::saveScene(f, reg);
             lastSaveModificationCount = undo.modificationCount();
             interfaces.engine->loadScene(sceneId);
-        });
+            });
 
         if (inputManager.keyPressed(SDL_SCANCODE_O) && inputManager.ctrlHeld()) {
             ImGui::OpenPopup("Open Scene");
@@ -612,7 +717,7 @@ namespace worlds {
             interfaces.engine->loadScene(AssetDB::pathToId(path));
             updateWindowTitle();
             undo.clear();
-        }, sceneFileExts, 2);
+            }, sceneFileExts, 2);
 
         if (inputManager.keyPressed(SDL_SCANCODE_I, true) &&
             inputManager.ctrlHeld() &&
@@ -666,6 +771,12 @@ namespace worlds {
 
                 ImGui::Separator();
 
+                if (ImGui::MenuItem("Close Project")) {
+                    project->unmountPaths();
+                    project.reset();
+                    interfaces.renderer->reloadContent(worlds::ReloadFlags::All);
+                }
+
                 if (ImGui::MenuItem("Quit")) {
                     interfaces.engine->quit();
                 }
@@ -689,7 +800,7 @@ namespace worlds {
                 }
 
                 if (ImGui::MenuItem("New Scene View")) {
-                    sceneViews.push_back(new EditorSceneView{ interfaces, this });
+                    sceneViews.add(new EditorSceneView{ interfaces, this });
                 }
 
                 ImGui::EndMenu();
@@ -719,6 +830,8 @@ namespace worlds {
                 ImGui::EndMenu();
             }
 
+            menuButtonsExtent = ImGui::GetCursorPosX();
+
             drawMenuBarTitle();
 
             ImGui::EndMainMenuBar();
@@ -727,7 +840,7 @@ namespace worlds {
         saveFileModal("Save Prefab", [&](const char* path) {
             PHYSFS_File* file = PHYSFS_openWrite(path);
             JsonSceneSerializer::saveEntity(file, reg, currentSelectedEntity);
-        });
+            });
 
         sceneViews.erase(std::remove_if(sceneViews.begin(), sceneViews.end(), [](EditorSceneView* esv) {
             if (!esv->open) {
@@ -735,7 +848,7 @@ namespace worlds {
                 return true;
             }
             return false;
-        }), sceneViews.end());
+            }), sceneViews.end());
 
         if (!popupToOpen.empty())
             ImGui::OpenPopup(popupToOpen.c_str());

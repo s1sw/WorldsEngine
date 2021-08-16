@@ -3,7 +3,7 @@
 #include <sajson.h>
 #include <SDL_log.h>
 #include "../../Core/Engine.hpp"
-#include "../Render.hpp"
+#include "../RenderInternal.hpp"
 #include "../../Util/TimingUtil.hpp"
 #include "../../Core/JobSystem.hpp"
 #include <algorithm>
@@ -211,10 +211,10 @@ namespace worlds {
             // AMD driver workaround
             // DXT1 compressed textures blit incorrectly and multiplying
             // the source width and height by 4 fixes it.
-            if (ctx.vendor == VKVendor::AMD && needsCopy) {
-                blit.srcOffsets[1].y *= 4;
-                blit.srcOffsets[1].x *= 4;
-            }
+            //if (ctx.vendor == VKVendor::AMD && needsCopy) {
+            //    blit.srcOffsets[1].y *= 4;
+            //    blit.srcOffsets[1].x *= 4;
+            //}
 
             cb.blitImage(tex.image(), tex.layout(), destTex.image(), destTex.layout(), blit, vk::Filter::eLinear);
             cubeTempBuffers[imageIndex].push_back(std::move(stagingBuffer));

@@ -13,7 +13,7 @@ namespace worlds {
     const int NUM_SUBMESH_MATS = 32;
     extern glm::ivec2 windowSize;
     extern JobSystem* g_jobSys;
-    class VKRenderer;
+    class Renderer;
     class PolyRenderPass;
     class AudioSystem;
     class InputManager;
@@ -105,7 +105,7 @@ namespace worlds {
         double gameTime = 0.0;
         double simAccumulator;
 
-        std::unique_ptr<VKRenderer> renderer;
+        std::unique_ptr<Renderer> renderer;
         std::unique_ptr<InputManager> inputManager;
         std::unique_ptr<AudioSystem> audioSystem;
         std::unique_ptr<Console> console;

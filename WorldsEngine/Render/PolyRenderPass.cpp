@@ -60,7 +60,7 @@ namespace worlds {
             updater.beginBuffers(0, 0, vk::DescriptorType::eUniformBuffer);
             updater.buffer(ctx.resources.vpMatrixBuffer->buffer(), 0, sizeof(MultiVP));
 
-            updater.beginBuffers(1, 0, vk::DescriptorType::eUniformBuffer);
+            updater.beginBuffers(1, 0, vk::DescriptorType::eStorageBuffer);
             updater.buffer(lightsUB.buffer(), 0, sizeof(LightUB));
 
             updater.beginBuffers(2, 0, vk::DescriptorType::eStorageBuffer);
@@ -155,7 +155,7 @@ namespace worlds {
         // VP
         dslm.buffer(0, vk::DescriptorType::eUniformBuffer, vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment, 1);
         // Lights
-        dslm.buffer(1, vk::DescriptorType::eUniformBuffer, vk::ShaderStageFlagBits::eFragment | vk::ShaderStageFlagBits::eVertex, 1);
+        dslm.buffer(1, vk::DescriptorType::eStorageBuffer, vk::ShaderStageFlagBits::eFragment | vk::ShaderStageFlagBits::eVertex, 1);
         // Materials
         dslm.buffer(2, vk::DescriptorType::eStorageBuffer, vk::ShaderStageFlagBits::eFragment, 1);
         // Model matrices
@@ -182,21 +182,22 @@ namespace worlds {
         plm.descriptorSetLayout(*dsl);
         pipelineLayout = plm.createUnique(handles->device);
 
-        lightsUB = vku::UniformBuffer(
-                handles->device, handles->allocator, sizeof(LightUB),
-                VMA_MEMORY_USAGE_CPU_TO_GPU, "Lights");
+        lightsUB = vku::GenericBuffer(
+            handles->device, handles->allocator,
+            vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
+            sizeof(LightUB), VMA_MEMORY_USAGE_CPU_TO_GPU, "Lights");
 
         for (uint32_t i = 0; i < ctx.maxSimultaneousFrames; i++) {
             modelMatrixUB.push_back(vku::GenericBuffer(
-                    handles->device, handles->allocator,
-                    vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
-                    sizeof(ModelMatrices), VMA_MEMORY_USAGE_CPU_TO_GPU, "Model matrices"));
+                handles->device, handles->allocator,
+                vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
+                sizeof(ModelMatrices), VMA_MEMORY_USAGE_CPU_TO_GPU, "Model matrices"));
         }
 
         pickingBuffer = vku::GenericBuffer(
-                handles->device, handles->allocator,
-                vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
-                sizeof(PickingBuffer), VMA_MEMORY_USAGE_CPU_ONLY, "Picking buffer");
+            handles->device, handles->allocator,
+            vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
+            sizeof(PickingBuffer), VMA_MEMORY_USAGE_CPU_ONLY, "Picking buffer");
 
         for (vku::GenericBuffer& matrixUB : modelMatrixUB) {
             modelMatricesMapped.push_back((ModelMatrices*)matrixUB.map(handles->device));
@@ -240,9 +241,9 @@ namespace worlds {
         rPassMaker.dependencySrcStageMask(vk::PipelineStageFlagBits::eEarlyFragmentTests);
         rPassMaker.dependencyDstStageMask(vk::PipelineStageFlagBits::eEarlyFragmentTests | vk::PipelineStageFlagBits::eColorAttachmentOutput);
         rPassMaker.dependencyDstAccessMask(vk::AccessFlagBits::eColorAttachmentRead |
-                                           vk::AccessFlagBits::eColorAttachmentWrite |
-                                           vk::AccessFlagBits::eDepthStencilAttachmentRead |
-                                           vk::AccessFlagBits::eDepthStencilAttachmentWrite);
+            vk::AccessFlagBits::eColorAttachmentWrite |
+            vk::AccessFlagBits::eDepthStencilAttachmentRead |
+            vk::AccessFlagBits::eDepthStencilAttachmentWrite);
 
 
         // AMD driver bug workaround: shaders that use ViewIndex without a multiview renderpass
@@ -300,12 +301,12 @@ namespace worlds {
             { 3, offsetof(StandardSpecConsts, doParallax), sizeof(bool) }
         };
 
-        vk::SpecializationInfo standardSpecInfo { 4, entries, sizeof(StandardSpecConsts) };
+        vk::SpecializationInfo standardSpecInfo{ 4, entries, sizeof(StandardSpecConsts) };
 
         {
             vku::PipelineMaker pm{ extent.width, extent.height };
 
-            StandardSpecConsts spc {
+            StandardSpecConsts spc{
                 enablePicking,
                 maxParallaxLayers.getFloat(),
                 minParallaxLayers.getFloat(),
@@ -321,8 +322,8 @@ namespace worlds {
 
             if ((int)enableDepthPrepass)
                 pm.depthWriteEnable(false)
-                  .depthTestEnable(true)
-                  .depthCompareOp(vk::CompareOp::eEqual);
+                .depthTestEnable(true)
+                .depthCompareOp(vk::CompareOp::eEqual);
             else
                 pm.depthWriteEnable(true).depthTestEnable(true).depthCompareOp(vk::CompareOp::eGreater);
 
@@ -345,7 +346,7 @@ namespace worlds {
 
             // Sadly we can't enable picking for alpha test surfaces as we can't use
             // early fragment tests with them, which leads to strange issues.
-            StandardSpecConsts spc {
+            StandardSpecConsts spc{
                 false,
                 maxParallaxLayers.getFloat(),
                 minParallaxLayers.getFloat(),
@@ -375,7 +376,7 @@ namespace worlds {
         {
             vku::PipelineMaker pm{ extent.width, extent.height };
 
-            StandardSpecConsts spc {
+            StandardSpecConsts spc{
                 enablePicking,
                 maxParallaxLayers.getFloat(),
                 minParallaxLayers.getFloat(),
@@ -444,14 +445,14 @@ namespace worlds {
         updateDescriptorSets(ctx);
 
         if (ctx.passSettings.enableVR) {
-            cullMeshRenderer = new VRCullMeshRenderer{handles};
+            cullMeshRenderer = new VRCullMeshRenderer{ handles };
             cullMeshRenderer->setup(ctx, *renderPass, descriptorPool);
         }
 
         handles->device.setEvent(*pickEvent);
     }
 
-    slib::StaticAllocList<SubmeshDrawInfo> drawInfo{8192};
+    slib::StaticAllocList<SubmeshDrawInfo> drawInfo{ 8192 };
 
     void PolyRenderPass::prePass(RenderContext& ctx) {
         ZoneScoped;
@@ -472,9 +473,13 @@ namespace worlds {
         drawInfo.clear();
 
         int matrixIdx = 0;
+        bool warned = false;
         ctx.registry.view<Transform, WorldObject>().each([&](entt::entity ent, Transform& t, WorldObject& wo) {
-            if (matrixIdx == 1023) {
-                fatalErr("Out of model matrices!");
+            if (matrixIdx == ModelMatrices::SIZE - 1) {
+                if (!warned) {
+                    logWarn("Out of model matrices!");
+                    warned = true;
+                }
                 return;
             }
 
@@ -553,7 +558,7 @@ namespace worlds {
                             sdi.cubemapExt = wc.extent;
                         }
                     }
-                });
+                    });
 
                 sdi.cubemapIdx = currCubemapIdx;
 
@@ -564,20 +569,11 @@ namespace worlds {
                 } else if (extraDat.wireframe || showWireframe.getInt() == 1) {
                     sdi.pipeline = *wireframePipeline;
                 } else if (ctx.registry.has<UseWireframe>(ent) || showWireframe.getInt() == 2) {
-                    //if (sdi.opaque) {
-                        sdi.pipeline = *pipeline;
-                    //} else {
-                    //    sdi.pipeline = *alphaTestPipeline;
-                    //}
-
+                    sdi.pipeline = *pipeline;
                     drawInfo.add(sdi);
                     sdi.pipeline = *wireframePipeline;
                 } else {
-                    //if (sdi.opaque) {
-                        sdi.pipeline = *pipeline;
-                    //} else {
-                    //    sdi.pipeline = *alphaTestPipeline;
-                    //}
+                    sdi.pipeline = *pipeline;
                 }
                 ctx.debugContext.stats->numTriangles += currSubmesh.indexCount / 3;
 
@@ -585,18 +581,7 @@ namespace worlds {
             }
 
             matrixIdx++;
-        });
-
-        ctx.registry.view<Transform, ProceduralObject>().each([&](auto ent, Transform& t, ProceduralObject& po) {
-            if (matrixIdx == 1023) {
-                fatalErr("Out of model matrices!");
-                return;
-            }
-
-            glm::mat4 m = t.getMatrix();
-            modelMatricesMapped[ctx.imageIndex]->modelMatrices[matrixIdx] = m;
-            matrixIdx++;
-        });
+            });
 
         int lightIdx = 0;
         ctx.registry.view<WorldLight, Transform>().each([&](auto ent, WorldLight& l, Transform& transform) {
@@ -628,10 +613,10 @@ namespace worlds {
                 shadowCam.far = l.shadowFar;
                 float fov = l.spotCutoff * 2.0f;
                 shadowCam.verticalFOV = fov;
-                lightMapped->additionalShadowMatrices[l.shadowmapIdx] = shadowCam.getProjectMatrixNonInfinite(1.0f)  * shadowCam.getViewMatrix();
+                lightMapped->additionalShadowMatrices[l.shadowmapIdx] = shadowCam.getProjectMatrixNonInfinite(1.0f) * shadowCam.getViewMatrix();
             }
             lightIdx++;
-        });
+            });
 
         lightMapped->pack0.x = (float)lightIdx;
         lightMapped->pack0.y = ctx.cascadeInfo.texelsPerUnit[0];
@@ -648,8 +633,17 @@ namespace worlds {
             lightMapped->box[aoBoxIdx].setMatrix(glm::mat4_cast(glm::inverse(t.rotation)) * glm::inverse(tMat));
             lightMapped->box[aoBoxIdx].setEntityId((uint32_t)ent);
             aoBoxIdx++;
-        });
+            });
         lightMapped->pack1.x = aoBoxIdx;
+
+        uint32_t aoSphereIdx = 0;
+        ctx.registry.view<Transform, SphereAOProxy>().each([&](entt::entity entity, Transform& t, SphereAOProxy& sao) {
+            lightMapped->sphere[aoSphereIdx].position = t.position;
+            lightMapped->sphere[aoSphereIdx].radius = sao.radius;
+            lightMapped->sphereIds[aoSphereIdx] = (uint32_t)entity;
+            aoSphereIdx++;
+            });
+        lightMapped->pack1.y = aoSphereIdx;
 
         if (dsUpdateNeeded) {
             // Update descriptor sets to bring in any new textures
@@ -731,7 +725,7 @@ namespace worlds {
 
         std::sort(drawInfo.begin(), drawInfo.end(), [&](const auto& sdiA, const auto& sdiB) {
             return sdiA.pipeline > sdiB.pipeline;
-        });
+            });
 
         if ((int)enableDepthPrepass) {
             ZoneScopedN("Depth prepass");
@@ -739,6 +733,14 @@ namespace worlds {
         }
 
         cmdBuf.nextSubpass(vk::SubpassContents::eInline);
+
+        vk::DebugUtilsLabelEXT label;
+        label.pLabelName = "Main Pass";
+        label.color[0] = 0.466f;
+        label.color[1] = 0.211f;
+        label.color[2] = 0.639f;
+        label.color[3] = 1.0f;
+        cmdBuf.beginDebugUtilsLabelEXT(&label);
 
         cmdBuf.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline);
         SubmeshDrawInfo last;
@@ -751,7 +753,7 @@ namespace worlds {
                 ctx.debugContext.stats->numPipelineSwitches++;
             }
 
-            StandardPushConstants pushConst {
+            StandardPushConstants pushConst{
                 .modelMatrixIdx = sdi.matrixIdx,
                 .materialIdx = sdi.materialIdx,
                 .vpIdx = 0,
@@ -771,6 +773,7 @@ namespace worlds {
             last = sdi;
             ctx.debugContext.stats->numDrawCalls++;
         }
+        cmdBuf.endDebugUtilsLabelEXT();
 
         dbgLinesPass->execute(ctx);
         skyboxPass->execute(ctx);

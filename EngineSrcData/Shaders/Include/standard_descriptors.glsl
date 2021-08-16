@@ -1,6 +1,7 @@
 #ifndef STANDARD_DESCRIPTORS_H
 #define STANDARD_DESCRIPTORS_H
 #include <aobox.glsl>
+#include <aosphere.glsl>
 #include <light.glsl>
 #include <material.glsl>
 
@@ -10,15 +11,17 @@ layout(binding = 0) uniform MultiVP {
     vec4 viewPos[2];
 };
 
-layout(std140, binding = 1) uniform LightBuffer {
+layout(std430, binding = 1) readonly buffer LightBuffer {
     mat4 otherShadowMatrices[4];
     // (light count, yzw cascade texels per unit)
     vec4 pack0;
-    // (ao box count, yzw unused)
+    // (ao box count, ao sphere count, zw unused)
     vec4 pack1;
     mat4 dirShadowMatrices[3];
+	Light lights[128];
     AOBox aoBox[16];
-    Light lights[128];
+	AOSphere aoSphere[16];
+	uint sphereIds[16];
 };
 
 layout(std140, binding = 2) readonly buffer MaterialSettingsBuffer {
@@ -26,7 +29,7 @@ layout(std140, binding = 2) readonly buffer MaterialSettingsBuffer {
 };
 
 layout(std140, binding = 3) readonly buffer ModelMatrices {
-    mat4 modelMatrices[1024];
+    mat4 modelMatrices[2048];
 };
 
 layout (binding = 4) uniform sampler2D tex2dSampler[];

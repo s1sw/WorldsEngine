@@ -1491,6 +1491,10 @@ namespace vku {
             s.info = other.s.info;
             s.size = other.s.size;
             s.aspectFlags = other.s.aspectFlags;
+#ifndef NDEBUG
+            assert(!other.s.destroyed);
+            s.destroyed = false;
+#endif
         }
 
         GenericImage& operator=(GenericImage&& other) noexcept {
@@ -1502,14 +1506,19 @@ namespace vku {
             s.info = other.s.info;
             s.size = other.s.size;
             s.aspectFlags = other.s.aspectFlags;
+#ifndef NDEBUG
+            assert(!other.s.destroyed);
+            s.destroyed = false;
+#endif
             return *this;
         }
 
-        vk::Image image() const { return *s.image; }
-        vk::ImageView imageView() const { return *s.imageView; }
+        vk::Image image() const { assert(!s.destroyed);  return *s.image; }
+        vk::ImageView imageView() const { assert(!s.destroyed);  return *s.imageView; }
 
         /// Clear the colour of an image.
         void clear(vk::CommandBuffer cb, const std::array<float, 4> colour = { 1, 1, 1, 1 }) {
+            assert(!s.destroyed);
             setLayout(cb, vk::ImageLayout::eTransferDstOptimal);
             vk::ClearColorValue ccv(colour);
             vk::ImageSubresourceRange range{ vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1 };
@@ -1726,12 +1735,14 @@ namespace vku {
         vk::ImageLayout layout() const { return s.currentLayout; }
 
         void* map() {
+            assert(!s.destroyed);
             void* res;
             vmaMapMemory(s.allocator, s.allocation, &res);
             return res;
         }
 
         void unmap() {
+            assert(!s.destroyed);
             vmaUnmapMemory(s.allocator, s.allocation);
         }
 
@@ -1748,6 +1759,9 @@ namespace vku {
                 vmaGetAllocationInfo(s.allocator, s.allocation, &inf);
                 vmaFreeMemory(s.allocator, s.allocation);
             }
+#ifndef NDEBUG
+            s.destroyed = true;
+#endif
         }
 
         ~GenericImage() {
@@ -1831,6 +1845,9 @@ namespace vku {
             vk::ImageCreateInfo info;
             VmaAllocation allocation = nullptr;
             VmaAllocator allocator;
+#ifndef NDEBUG
+            bool destroyed = false;
+#endif
         };
 
         State s;

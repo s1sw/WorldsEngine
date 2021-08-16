@@ -7,6 +7,7 @@ worlds_sources += [
   'Editor/TextureEditor.cpp',
   'Editor/EditorSceneView.cpp',
   'Editor/GuiUtil.cpp',
+  'Editor/GameProject.cpp',
   'Editor/Editor.cpp',
   'Editor/EditorWindows/EntityEditor.cpp',
   'Editor/EditorWindows/GameControls.cpp',

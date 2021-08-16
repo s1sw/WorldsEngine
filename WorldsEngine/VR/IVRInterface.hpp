@@ -1,5 +1,5 @@
 #pragma once
-#include "../Core/Transform.hpp"
+#include "Core/Transform.hpp"
 #include <glm/glm.hpp>
 #include <string>
 #include <vector>
@@ -52,6 +52,7 @@ namespace worlds {
         virtual bool getActionHeld(InputActionHandle handle) = 0;
         virtual bool getActionPressed(InputActionHandle handle) = 0;
         virtual bool getActionReleased(InputActionHandle handle) = 0;
+        virtual void triggerHaptics(InputActionHandle handle, float timeFromNow, float duration, float frequency, float amplitude) = 0;
         virtual glm::vec2 getActionV2(InputActionHandle handle) = 0;
 
         virtual std::vector<std::string> getVulkanInstanceExtensions() = 0;

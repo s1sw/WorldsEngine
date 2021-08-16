@@ -20,22 +20,41 @@ namespace WorldsEngine.Math
         {
             get
             {
-                float a = MathF.Sqrt(1 - (w * w));
+                float a = 1 - (w * w);
 
                 // Angle of 0 degrees so the axis doesn't matter
                 // Return an arbitrary unit vector
-                if (a < 0.001f)
+                if (a <= 0.0f)
                 {
                     return Vector3.Left;
                 }
+
+                a = MathF.Sqrt(a);
 
                 return new Vector3(x / a, y / a, z / a);
             }
         }
 
-        public float Angle => 2f * MathF.Acos(MathF.Min(MathF.Max(w, -1.0f), 1.0f));
+        public Quaternion SingleCover => this * MathF.Sign(Dot(this, Identity));
+
+        public float Angle
+        {
+            get
+            {
+                if (w > MathF.Cos(1.0f / 2.0f))
+                {
+                    return MathF.Asin(MathF.Sqrt(x * x + y * y + z * z)) * 2.0f;
+                }
+
+                return MathF.Acos(w) * 2.0f;
+            }
+        }
 
         public bool HasNaNComponent => float.IsNaN(x) || float.IsNaN(y) || float.IsNaN(z) || float.IsNaN(w);
+
+        public Vector3 Forward => this * Vector3.Forward;
+        public Vector3 Left => this * Vector3.Left;
+        public Vector3 Up => this * Vector3.Up;
 
         public Quaternion(float w, float x, float y, float z)
         {
@@ -45,9 +64,20 @@ namespace WorldsEngine.Math
             this.z = z;
         }
 
+        public Quaternion(Vector3 eulerAngles)
+        {
+            Vector3 c = new(MathF.Cos(eulerAngles.x), MathF.Cos(eulerAngles.y), MathF.Cos(eulerAngles.z));
+            Vector3 s = new(MathF.Sin(eulerAngles.x), MathF.Sin(eulerAngles.y), MathF.Sin(eulerAngles.z));
+
+            w = c.x * c.y * c.z + s.x * s.y * s.z;
+            x = s.x * c.y * c.z - c.x * s.y * s.z;
+            y = c.x * s.y * c.z + s.x * c.y * s.z;
+            z = c.x * c.y * s.z - s.x * s.y * c.z;
+        }
+
         public static float Dot(Quaternion left, Quaternion right)
         {
-            return (left.x * right.x) + (left.y * right.y) + (left.z * right.z) * (left.w * right.w);
+            return (left.x * right.x) + (left.y * right.y) + (left.z * right.z) + (left.w * right.w);
         }
 
         public static Quaternion AngleAxis(float angle, Vector3 axis)
@@ -103,6 +133,16 @@ namespace WorldsEngine.Math
         public static Quaternion operator/(Quaternion q, float scalar)
         {
             return new Quaternion(q.w / scalar, q.x / scalar, q.y / scalar, q.z / scalar);
+        }
+
+        public static Quaternion operator*(Quaternion q, float scalar)
+        {
+            return new Quaternion(q.w * scalar, q.x * scalar, q.y * scalar, q.z * scalar);
+        }
+
+        public override string ToString()
+        {
+            return $"({w:0.###}, {x:0.###}, {y:0.###}, {z:0.###})";
         }
     }
 }

@@ -188,7 +188,7 @@ namespace Game
             if (!Physics.Raycast(pose.Position + (Vector3.Down * 0.5f), Vector3.Down, out RaycastHit rHit, 50.0f)) return;
 
             if (!burstInProgress)
-                target = Camera.MainCamera.Position;
+                target = Camera.Main.Position;
 
             Transform targetPose = CalculateTargetPose(entity, target, rHit.WorldHitPos.y);
 
