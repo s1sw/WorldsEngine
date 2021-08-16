@@ -1,8 +1,0 @@
-{
-    "albedoPath" : "Textures/crate/albedo.wtex",
-    "pbrMapPath" : "Textures/crate/pbr.wtex",
-    "normalMapPath" : "Textures/crate/normal.wtex",
-    "metallic" : 1.000000,
-    "roughness" : 0.200000,
-    "albedoColor" : [1.000000, 1.000000, 1.000000]
-}

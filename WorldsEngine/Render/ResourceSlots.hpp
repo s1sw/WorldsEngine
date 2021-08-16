@@ -48,7 +48,7 @@ namespace worlds {
         slotType& operator[](int idx) { return slots[idx]; }
         slotType& operator[](uint32_t idx) { return slots[idx]; }
 
-        uint32_t loadOrGet(key k) {
+        virtual uint32_t loadOrGet(key k) {
             auto iter = lookup.find(k);
 
             if (iter != lookup.end()) return iter->second;
@@ -110,11 +110,18 @@ namespace worlds {
         std::shared_ptr<VulkanHandles> vkCtx;
         vk::CommandBuffer cb;
         uint32_t imageIndex;
+        uint32_t missingSlot;
         std::shared_ptr<CubemapConvoluter> cc;
     public:
+        uint32_t loadOrGet(AssetID asset) override;
+
         void setUploadCommandBuffer(vk::CommandBuffer cb, uint32_t imageIndex) {
             this->cb = cb;
             this->imageIndex = imageIndex;
+        }
+
+        CubemapConvoluter* convoluter() {
+            return cc.get();
         }
 
         CubemapSlots(std::shared_ptr<VulkanHandles> vkCtx, std::shared_ptr<CubemapConvoluter> cc);

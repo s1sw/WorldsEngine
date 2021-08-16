@@ -9,6 +9,7 @@ using System.Reflection;
 using WorldsEngine.Math;
 using System.Reflection.PortableExecutable;
 using ImGuiNET;
+using System.ComponentModel;
 
 namespace WorldsEngine.ComponentMeta
 {
@@ -95,12 +96,64 @@ namespace WorldsEngine.ComponentMeta
 
         public override void Create(Entity entity)
         {
-            Registry.AddComponent(entity, type, Activator.CreateInstance(type));
+            Registry.AddComponent(entity, type);
         }
 
         public override void Copy(Entity from, Entity to)
         {
-            Registry.AddComponent(to, type, Registry.GetComponent(type, from));
+            Registry.SetComponent(to, type, Registry.GetComponent(type, from));
+        }
+
+        private void EditField(FieldInfo fieldInfo, object instance)
+        {
+            string fieldName = fieldInfo.Name;
+
+            if (fieldInfo.GetCustomAttribute<EditorFriendlyNameAttribute>() != null)
+                fieldName = fieldInfo.GetCustomAttribute<EditorFriendlyNameAttribute>().FriendlyName;
+
+            if (fieldInfo.FieldType == typeof(int))
+            {
+                int val = (int)fieldInfo.GetValue(instance);
+                ImGui.DragInt(fieldName, ref val);
+                fieldInfo.SetValue(instance, val);
+            }
+            else if (fieldInfo.FieldType == typeof(float))
+            {
+                float val = (float)fieldInfo.GetValue(instance);
+                ImGui.DragFloat(fieldName, ref val);
+                fieldInfo.SetValue(instance, val);
+            }
+            else if (fieldInfo.FieldType == typeof(Vector3))
+            {
+                Vector3 val = (Vector3)fieldInfo.GetValue(instance);
+                ImGui.DragFloat3(fieldName, ref val);
+                fieldInfo.SetValue(instance, val);
+            }
+            else if (fieldInfo.FieldType == typeof(bool))
+            {
+                bool val = (bool)fieldInfo.GetValue(instance);
+                ImGui.Checkbox(fieldName, ref val);
+                fieldInfo.SetValue(instance, val);
+            }
+
+            if (fieldInfo.GetCustomAttribute<EditableClassAttribute>() != null)
+            {
+                Type type = fieldInfo.FieldType;
+                object classInstance = fieldInfo.GetValue(instance);
+
+                if (ImGui.TreeNode(fieldName))
+                {
+                    FieldInfo[] classFieldInfo = type.GetFields(BindingFlags.Public | BindingFlags.Instance)
+                    .Where(m => !m.IsNotSerialized).ToArray();
+
+                    foreach (FieldInfo fieldInfo1 in classFieldInfo)
+                    {
+                        EditField(fieldInfo1, classInstance);
+                    }
+
+                    ImGui.TreePop();
+                }
+            }
         }
 
         public override void EditIfExists(Entity entity)
@@ -125,29 +178,7 @@ namespace WorldsEngine.ComponentMeta
 
                 foreach (FieldInfo fieldInfo in fieldInfos)
                 {
-                    string fieldName = fieldInfo.Name;
-
-                    if (fieldInfo.GetCustomAttribute<EditorFriendlyNameAttribute>() != null)
-                        fieldName = fieldInfo.GetCustomAttribute<EditorFriendlyNameAttribute>().FriendlyName;
-
-                    if (fieldInfo.FieldType == typeof(int))
-                    {
-                        int val = (int)fieldInfo.GetValue(component);
-                        ImGui.DragInt(fieldName, ref val);
-                        fieldInfo.SetValue(component, val);
-                    }
-                    else if (fieldInfo.FieldType == typeof(float))
-                    {
-                        float val = (float)fieldInfo.GetValue(component);
-                        ImGui.DragFloat(fieldName, ref val);
-                        fieldInfo.SetValue(component, val);
-                    }
-                    else if (fieldInfo.FieldType == typeof(Vector3))
-                    {
-                        Vector3 val = (Vector3)fieldInfo.GetValue(component);
-                        ImGui.DragFloat3(fieldName, ref val);
-                        fieldInfo.SetValue(component, val);
-                    }
+                    EditField(fieldInfo, component);
                 }
             }
         }
@@ -165,6 +196,11 @@ namespace WorldsEngine.ComponentMeta
         private static readonly List<ComponentMetadata> metadata = new();
         private static readonly List<NativeComponentMetadata> nativeMetadata = new();
         private static readonly List<ManagedComponentMetadata> managedMetadata = new();
+
+        internal static ComponentMetadata FindNativeMetadata(string name)
+        {
+            return metadata.Where(metadata => metadata.Name == name).FirstOrDefault();
+        }
 
         internal static void Initialise()
         {

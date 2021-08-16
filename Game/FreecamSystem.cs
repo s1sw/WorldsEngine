@@ -50,8 +50,8 @@ namespace Game
 
             Quaternion cameraRotation = leftRight * upDown;
 
-            Camera.MainCamera.Rotation = cameraRotation;
-            Camera.MainCamera.Position += (cameraRotation * direction * Time.DeltaTime * speed);
+            Camera.Main.Rotation = cameraRotation;
+            Camera.Main.Position += (cameraRotation * direction * Time.DeltaTime * speed);
         }
     }
 }

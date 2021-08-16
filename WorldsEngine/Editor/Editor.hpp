@@ -82,6 +82,22 @@ namespace worlds {
         Window,
         Help
     };
+    
+    class GameProject {
+    public:
+        GameProject(std::string path);
+        std::string_view name() const;
+        std::string_view root() const;
+        void mountPaths();
+        void unmountPaths();
+    private:
+        std::string _name;
+        std::string _root;
+        std::string _srcDataPath;
+        std::string _compiledDataPath;
+        std::string _rawPath;
+        std::vector<std::string> _copyDirs;
+    };
 
     class EditorWindow {
     public:
@@ -107,7 +123,7 @@ namespace worlds {
         void pushState(entt::registry& reg);
         void undo(entt::registry& reg);
         void redo(entt::registry& reg);
-        void clear() { highestSaved = 0; currentPos = 0; }
+        void clear();
         uint32_t modificationCount() { return currentPos; }
     private:
         uint32_t highestSaved = 0;
@@ -163,12 +179,13 @@ namespace worlds {
         void overrideHandle(Transform* t);
         AssetID currentSelectedAsset;
     private:
+        std::unique_ptr<GameProject> project;
         ImTextureID titleBarIcon;
         void drawMenuBarTitle();
         void handleTools(Transform& t, ImVec2 wPos, ImVec2 wSize, Camera& camera);
-        void updateCamera(float deltaTime);
         std::string generateWindowTitle();
         void updateWindowTitle();
+        void openProject(std::string projectPath);
         Tool currentTool;
         bool toolLocalSpace = false;
         entt::registry& reg;
@@ -189,8 +206,8 @@ namespace worlds {
         EditorSettings settings;
         EngineInterfaces interfaces;
         InputManager& inputManager;
-        std::vector<std::unique_ptr<EditorWindow>> editorWindows;
-        std::vector<EditorSceneView*> sceneViews;
+        slib::List<std::unique_ptr<EditorWindow>> editorWindows;
+        slib::List<EditorSceneView*> sceneViews;
 
         friend class EditorSceneView;
     };

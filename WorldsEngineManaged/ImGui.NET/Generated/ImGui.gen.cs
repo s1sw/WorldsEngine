@@ -1,5 +1,5 @@
 using System;
-using System.Numerics;
+using WorldsEngine.Math;
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -153,6 +153,7 @@ namespace ImGuiNET
             p_open = native_p_open_val != 0;
             return ret != 0;
         }
+
         public static bool Begin(string name, ref bool p_open, ImGuiWindowFlags flags)
         {
             byte* native_name;
@@ -1397,7 +1398,7 @@ namespace ImGuiNET
             }
             else { native_label = null; }
             ImGuiTreeNodeFlags flags = (ImGuiTreeNodeFlags)0;
-            byte ret = ImGuiNative.igCollapsingHeaderTreeNodeFlags(native_label, flags);
+            byte ret = ImGuiNative.igCollapsingHeader_TreeNodeFlags(native_label, flags);
             if (label_byteCount > Util.StackAllocationSizeLimit)
             {
                 Util.Free(native_label);
@@ -1424,7 +1425,7 @@ namespace ImGuiNET
                 native_label[native_label_offset] = 0;
             }
             else { native_label = null; }
-            byte ret = ImGuiNative.igCollapsingHeaderTreeNodeFlags(native_label, flags);
+            byte ret = ImGuiNative.igCollapsingHeader_TreeNodeFlags(native_label, flags);
             if (label_byteCount > Util.StackAllocationSizeLimit)
             {
                 Util.Free(native_label);
@@ -1454,7 +1455,7 @@ namespace ImGuiNET
             byte native_p_visible_val = p_visible ? (byte)1 : (byte)0;
             byte* native_p_visible = &native_p_visible_val;
             ImGuiTreeNodeFlags flags = (ImGuiTreeNodeFlags)0;
-            byte ret = ImGuiNative.igCollapsingHeaderBoolPtr(native_label, native_p_visible, flags);
+            byte ret = ImGuiNative.igCollapsingHeader_BoolPtr(native_label, native_p_visible, flags);
             if (label_byteCount > Util.StackAllocationSizeLimit)
             {
                 Util.Free(native_label);
@@ -1484,7 +1485,7 @@ namespace ImGuiNET
             else { native_label = null; }
             byte native_p_visible_val = p_visible ? (byte)1 : (byte)0;
             byte* native_p_visible = &native_p_visible_val;
-            byte ret = ImGuiNative.igCollapsingHeaderBoolPtr(native_label, native_p_visible, flags);
+            byte ret = ImGuiNative.igCollapsingHeader_BoolPtr(native_label, native_p_visible, flags);
             if (label_byteCount > Util.StackAllocationSizeLimit)
             {
                 Util.Free(native_label);
@@ -6100,13 +6101,13 @@ namespace ImGuiNET
         }
         public static ImDrawListPtr GetBackgroundDrawList()
         {
-            ImDrawList* ret = ImGuiNative.igGetBackgroundDrawListNil();
+            ImDrawList* ret = ImGuiNative.igGetBackgroundDrawList_Nil();
             return new ImDrawListPtr(ret);
         }
         public static ImDrawListPtr GetBackgroundDrawList(ImGuiViewportPtr viewport)
         {
             ImGuiViewport* native_viewport = viewport.NativePtr;
-            ImDrawList* ret = ImGuiNative.igGetBackgroundDrawListViewportPtr(native_viewport);
+            ImDrawList* ret = ImGuiNative.igGetBackgroundDrawList_ViewportPtr(native_viewport);
             return new ImDrawListPtr(ret);
         }
         public static string GetClipboardText()
@@ -8554,12 +8555,12 @@ namespace ImGuiNET
         }
         public static bool IsRectVisible(Vector2 size)
         {
-            byte ret = ImGuiNative.igIsRectVisibleNil(size);
+            byte ret = ImGuiNative.igIsRectVisible_Nil(size);
             return ret != 0;
         }
         public static bool IsRectVisible(Vector2 rect_min, Vector2 rect_max)
         {
-            byte ret = ImGuiNative.igIsRectVisibleVec2(rect_min, rect_max);
+            byte ret = ImGuiNative.igIsRectVisible_Vec2(rect_min, rect_max);
             return ret != 0;
         }
         public static bool IsWindowAppearing()
@@ -9262,7 +9263,7 @@ namespace ImGuiNET
             }
             else { native_str_id = null; }
             ImGuiPopupFlags popup_flags = (ImGuiPopupFlags)0;
-            ImGuiNative.igOpenPopup(native_str_id, popup_flags);
+            ImGuiNative.igOpenPopup_Str(native_str_id, popup_flags);
             if (str_id_byteCount > Util.StackAllocationSizeLimit)
             {
                 Util.Free(native_str_id);
@@ -9288,7 +9289,7 @@ namespace ImGuiNET
                 native_str_id[native_str_id_offset] = 0;
             }
             else { native_str_id = null; }
-            ImGuiNative.igOpenPopup(native_str_id, popup_flags);
+            ImGuiNative.igOpenPopup_Str(native_str_id, popup_flags);
             if (str_id_byteCount > Util.StackAllocationSizeLimit)
             {
                 Util.Free(native_str_id);
@@ -13464,7 +13465,7 @@ namespace ImGuiNET
                 native_label[native_label_offset] = 0;
             }
             else { native_label = null; }
-            byte ret = ImGuiNative.igTreeNodeStr(native_label);
+            byte ret = ImGuiNative.igTreeNode_Str(native_label);
             if (label_byteCount > Util.StackAllocationSizeLimit)
             {
                 Util.Free(native_label);
@@ -13509,7 +13510,7 @@ namespace ImGuiNET
                 native_fmt[native_fmt_offset] = 0;
             }
             else { native_fmt = null; }
-            byte ret = ImGuiNative.igTreeNodeStrStr(native_str_id, native_fmt);
+            byte ret = ImGuiNative.igTreeNode_StrStr(native_str_id, native_fmt);
             if (str_id_byteCount > Util.StackAllocationSizeLimit)
             {
                 Util.Free(native_str_id);

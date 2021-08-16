@@ -5,6 +5,8 @@ using System.IO;
 using WorldsEngine.ComponentMeta;
 using System.Collections.Generic;
 using System.Threading;
+using ImGuiNET;
+using WorldsEngine.Math;
 
 namespace WorldsEngine
 {
@@ -186,6 +188,11 @@ namespace WorldsEngine
             }
         }
 
+        static uint PackRGBA(byte r, byte g, byte b, byte a)
+        {
+            return (uint)(r << 24 | g << 16 | b << 8 | a);
+        }
+
         static void EditorUpdate()
         {
             ReloadAssemblyIfNecessary();
@@ -203,11 +210,11 @@ namespace WorldsEngine
 
                     if (ImGui.Button("Add Component"))
                     {
-                        ImGui.OpenPopup("Select Component");
+                        AddComponentPopup.Show();
                     }
                 }
 
-                
+                AddComponentPopup.Update();
             }
 
             ImGui.End();

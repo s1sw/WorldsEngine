@@ -23,14 +23,14 @@ namespace Game
 
             if (!VR.Enabled)
             {
-                Camera.MainCamera.Position = locosphereTransform.Position + new Vector3(0.0f, 1.6f - 0.15f, 0.0f);
+                Camera.Main.Position = locosphereTransform.Position + new Vector3(0.0f, 1.6f - 0.15f, 0.0f);
             }
             else
             {
                 Vector3 hmdOffset = VR.HMDTransform.Position;
                 hmdOffset.y = -0.15f;
 
-                Camera.MainCamera.Position = locosphereTransform.Position + (Camera.MainCamera.Rotation * hmdOffset);
+                Camera.Main.Position = locosphereTransform.Position + (Camera.Main.Rotation * hmdOffset);
             }
 
             if (Keyboard.KeyPressed(KeyCode.L))

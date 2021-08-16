@@ -1,8 +1,0 @@
-{
-    "albedoPath" : "Textures/ScifiBase/Base material_BaseColor.wtex",
-    "pbrMapPath" : "Textures/ScifiBase/Base material_PBRPack.wtex",
-    "normalMapPath" : "Textures/ScifiBase/Base material_Normal_forcelin.wtex",
-    "metallic" : 1.000000,
-    "roughness" : 0.200000,
-    "albedoColor" : [1.000000, 1.000000, 1.000000]
-}

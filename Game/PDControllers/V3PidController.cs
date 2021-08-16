@@ -9,7 +9,9 @@ namespace Game
 {
     public class V3PidController
     {
+        [NonSerialized]
         private Vector3 lastError;
+        [NonSerialized]
         private Vector3 integral;
 
         public float P = 0.0f;
@@ -19,7 +21,7 @@ namespace Game
         public bool ClampIntegral = false;
         public float MaxIntegralMagnitude = float.MaxValue;
 
-        const float AverageAmount = 20.0f;
+        public float AverageAmount = 20.0f;
 
         private void CheckNaNs()
         {

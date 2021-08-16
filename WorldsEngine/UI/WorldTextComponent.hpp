@@ -17,8 +17,13 @@ namespace worlds {
             dirty = true;
         }
 
-        void setTextScale(float textScale) {
-            textScale = 0.025f;
+        void setTextScale(float newTextScale) {
+            textScale = newTextScale;
+            dirty = true;
+        }
+
+        void setFont(AssetID newFont) {
+            font = newFont;
             dirty = true;
         }
 

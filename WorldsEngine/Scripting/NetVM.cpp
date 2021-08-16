@@ -117,6 +117,7 @@ extern "C" {
 #include "PhysicsBindings.hpp"
 #include "AudioBindings.hpp"
 #include "VRBindings.hpp"
+#include "ImGui/cimgui.h"
 
 namespace worlds {
     LibraryHandle_t loadLibrary(const char* path) {
@@ -143,6 +144,7 @@ namespace worlds {
     }
 
     bool DotNetScriptEngine::initialise(Editor* editor) {
+        igGET_FLT_MAX();
         LibraryHandle_t netLibrary = loadLibrary(NET_LIBRARY_PATH);
 
         if (netLibrary == 0) {

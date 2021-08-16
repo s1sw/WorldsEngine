@@ -8,6 +8,9 @@ namespace WorldsEngine.Math
 {
     public static class MathFX
     {
+        public const float DegreesToRadians = MathF.PI / 180.0f;
+        public const float RadiansToDegrees = 180.0f / MathF.PI;
+
         public static float Clamp(float value, float minimum, float maximum)
         {
             return MathF.Max(MathF.Min(value, maximum), minimum);

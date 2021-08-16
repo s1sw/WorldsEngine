@@ -9,6 +9,7 @@ namespace Game
 {
     public class StablePD
     {
+        [NonSerialized]
         private Vector3 lastVelocity = Vector3.Zero;
 
         public float P = 0.0f;

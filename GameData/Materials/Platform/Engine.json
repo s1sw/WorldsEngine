@@ -1,8 +1,0 @@
-{
-    "albedoPath" : "Textures/Platform/Engine_BaseColor.wtex",
-    "pbrMapPath" : "Textures/Platform/Engine_PBRPack.wtex",
-    "normalMapPath" : "Textures/Platform/Engine_Normal_forcelin.wtex",
-    "metallic" : 1.000000,
-    "roughness" : 0.200000,
-    "albedoColor" : [1.000000, 1.000000, 1.000000]
-}

@@ -186,8 +186,8 @@ namespace worlds {
 
     JobSystem* g_jobSys;
 
-    std::unordered_map<entt::entity, physx::PxTransform> currentState;
-    std::unordered_map<entt::entity, physx::PxTransform> previousState;
+    robin_hood::unordered_map<entt::entity, physx::PxTransform> currentState;
+    robin_hood::unordered_map<entt::entity, physx::PxTransform> previousState;
 
     void WorldsEngine::setupPhysfs(char* argv0) {
         const char* dataFolder = "GameData";
@@ -402,7 +402,7 @@ namespace worlds {
         };
 
         if (!dedicatedServer) {
-            VKImGUIUtil::createObjects(renderer->getHandles());
+            VKImGUIUtil::createObjects(static_cast<VKRenderer*>(renderer.get())->getHandles());
         }
 
         scriptEngine = std::make_unique<DotNetScriptEngine>(registry, interfaces);
@@ -714,7 +714,7 @@ namespace worlds {
             deltaTime = deltaTicks / (double)SDL_GetPerformanceFrequency();
             gameTime += deltaTime;
             if (!dedicatedServer)
-                renderer->time = gameTime;
+                static_cast<VKRenderer*>(renderer.get())->time = gameTime;
 
             float interpAlpha = 1.0f;
 
@@ -843,12 +843,6 @@ namespace worlds {
             glm::vec3 camPos = cam.position;
 
             if (!dedicatedServer) {
-                registry.sort<ProceduralObject>([&](entt::entity a, entt::entity b) {
-                    auto& aTransform = registry.get<Transform>(a);
-                    auto& bTransform = registry.get<Transform>(b);
-                    return glm::distance2(camPos, aTransform.position) < glm::distance2(camPos, bTransform.position);
-                });
-
                 registry.sort<WorldObject>([&](entt::entity a, entt::entity b) {
                     auto& aTransform = registry.get<Transform>(a);
                     auto& bTransform = registry.get<Transform>(b);
@@ -980,7 +974,7 @@ namespace worlds {
 
                 if (ImGui::CollapsingHeader(ICON_FA_PENCIL_ALT u8" Render Stats")) {
                     const auto& dbgStats = renderer->getDebugStats();
-                    auto vkCtx = renderer->getHandles();
+                    auto vkCtx = static_cast<VKRenderer*>(renderer.get())->getHandles();
 
                     VmaBudget budget[16];
                     vmaGetBudget(vkCtx->allocator, budget);
@@ -997,6 +991,11 @@ namespace worlds {
                         totalBlockBytes += budget->blockBytes;
                         totalBudget += budget->budget;
                     }
+
+                    if (!enableOpenVR)
+                        ImGui::Text("Internal render resolution: %ix%i", screenRTTPass->width, screenRTTPass->height);
+                    else
+                        ImGui::Text("Internal per-eye render resolution: %ix%i", screenRTTPass->width, screenRTTPass->height);
 
                     ImGui::Text("Draw calls: %i", dbgStats.numDrawCalls);
                     ImGui::Text("%i pipeline switches", dbgStats.numPipelineSwitches);
@@ -1018,7 +1017,7 @@ namespace worlds {
                 }
 
                 if (ImGui::CollapsingHeader(ICON_FA_MEMORY u8" Memory Stats")) {
-                    auto vkCtx = renderer->getHandles();
+                    auto vkCtx = static_cast<VKRenderer*>(renderer.get())->getHandles();
 
                     VmaBudget budget[16];
                     vmaGetBudget(vkCtx->allocator, budget);
@@ -1182,7 +1181,7 @@ namespace worlds {
         if (!dedicatedServer) {
             shutdownRichPresence();
 
-            auto vkCtx = renderer->getHandles();
+            auto vkCtx = static_cast<VKRenderer*>(renderer.get())->getHandles();
             VKImGUIUtil::destroyObjects(vkCtx);
         }
 

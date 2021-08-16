@@ -1,6 +1,6 @@
 #include "../Core/Engine.hpp"
 #include "../Util/TimingUtil.hpp"
-#include "../Render/Render.hpp"
+#include "../Render/RenderInternal.hpp"
 
 namespace worlds {
     struct PrefilterPushConstants {
@@ -90,6 +90,7 @@ namespace worlds {
 
     void CubemapConvoluter::convolute(vku::TextureImageCube& cube) {
         PerfTimer pt;
+
         if (cube.info().mipLevels == 1) {
             throw std::runtime_error("Can't convolute cubemap with 1 miplevel");
         }
@@ -97,6 +98,7 @@ namespace worlds {
         uint32_t cubemapWidth = cube.extent().width;
         uint32_t cubemapHeight = cube.extent().height;
 
+        // Create another cubemap with full mips for prefiltering
         vku::TextureImageCube mipCube {
             vkCtx->device, vkCtx->allocator,
             cubemapWidth, cubemapHeight,

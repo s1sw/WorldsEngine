@@ -1,7 +1,6 @@
 #include "EditorWindows.hpp"
 #include "../../ImGui/imgui.h"
 #include <filesystem>
-#include "../../Render/Loaders/SourceModelLoader.hpp"
 #include "../../Util/CreateModelObject.hpp"
 #include "../../Core/Console.hpp"
 #include "../../Libs/IconsFontAwesome5.h"
@@ -10,6 +9,7 @@
 #include "../../AssetCompilation/AssetCompilers.hpp"
 #include "../AssetEditors.hpp"
 #include "Serialization/SceneSerialization.hpp"
+#include <Core/Log.hpp>
 
 namespace worlds {
     void Assets::draw(entt::registry& reg) {
@@ -17,26 +17,42 @@ namespace worlds {
 
         static ConVar showExts{"editor_assetExtDbg", "0", "Shows parsed file extensions in brackets."};
         if (ImGui::Begin(ICON_FA_FOLDER u8" Assets", &active)) {
-            ImGui::Text("%s", currentDir.c_str());
-            ImGui::SameLine();
-            if (ImGui::Button("..")) {
-                std::filesystem::path p{ currentDir };
-                currentDir = p.parent_path().string();
-                if (currentDir == "/")
-                    currentDir = "";
+            ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1);
+            ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0.0f);
+            ImGui::InputText("###lol", &currentDir);
+            ImGui::PopStyleVar(2);
 
-                if (currentDir[0] == '/') {
-                    currentDir = currentDir.substr(1);
+            if (!currentDir.empty()) {
+                ImGui::SameLine();
+                if (ImGui::Button(ICON_FA_ARROW_UP)) {
+                    std::filesystem::path p{ currentDir };
+                    currentDir = p.parent_path().string();
+                    if (currentDir == "/")
+                        currentDir = "";
+
+                    if (currentDir[0] == '/') {
+                        currentDir = currentDir.substr(1);
+                    }
+                    logMsg("Navigated to %s", currentDir.c_str());
                 }
-                logMsg("Navigated to %s", currentDir.c_str());
             }
 
-            char** files = PHYSFS_enumerateFiles(currentDir.c_str());
+            ImGui::Separator();
+
+            char** files = PHYSFS_enumerateFiles(("SourceData/" + currentDir).c_str());
+
+            if (*files == nullptr) {
+                ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "Invalid path");
+
+                if (currentDir.find('\\') != std::string::npos) {
+                    ImGui::Text("(Paths should use forward slashes rather than backslashes)");
+                }
+            }
             std::string assetContextMenuPath;
 
             for (char** currFile = files; *currFile != nullptr; currFile++) {
                 slib::Path path{*currFile};
-                std::string origDirStr = currentDir;
+                std::string origDirStr = "SourceData/" + currentDir;
                 if (origDirStr[0] == '/') {
                     origDirStr = origDirStr.substr(1);
                 }
@@ -124,7 +140,7 @@ namespace worlds {
                 isTextureFolder = true;
                 for (char** currFile = files; *currFile != nullptr; currFile++) {
                     slib::Path path{*currFile};
-                    std::string origDirStr = currentDir;
+                    std::string origDirStr = "SourceData/" + currentDir;
                     if (origDirStr[0] == '/') {
                         origDirStr = origDirStr.substr(1);
                     }

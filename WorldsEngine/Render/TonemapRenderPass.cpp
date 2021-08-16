@@ -76,6 +76,15 @@ namespace worlds {
         TracyVkZone((*ctx.tracyContexts)[ctx.imageIndex], *ctx.cmdBuf, "Tonemap/Postprocessing");
 #endif
         auto& cmdBuf = ctx.cmdBuf;
+
+        vk::DebugUtilsLabelEXT label;
+        label.pLabelName = "Tonemap Render Pass";
+        label.color[0] = 0.760f;
+        label.color[1] = 0.298f;
+        label.color[2] = 0.411f;
+        label.color[3] = 1.0f;
+        cmdBuf.beginDebugUtilsLabelEXT(&label);
+
         finalPrePresent->image.setLayout(cmdBuf,
             vk::ImageLayout::eGeneral,
             vk::PipelineStageFlagBits::eComputeShader,
@@ -104,6 +113,8 @@ namespace worlds {
             vk::ImageLayout::eColorAttachmentOptimal,
             vk::PipelineStageFlagBits::eComputeShader, vk::PipelineStageFlagBits::eColorAttachmentOutput,
             vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite);
+
+        cmdBuf.endDebugUtilsLabelEXT();
     }
 
     void TonemapRenderPass::setRightFinalImage(RenderTexture* right) {

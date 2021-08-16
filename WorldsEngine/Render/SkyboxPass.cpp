@@ -67,19 +67,31 @@ namespace worlds {
         auto& sceneSettings = ctx.registry.ctx<SceneSettings>();
 
         uint32_t skyboxId = ctx.resources.cubemaps.loadOrGet(sceneSettings.skybox);
-        if (skyboxId != lastSky) {
+        vk::ImageView imgView = ctx.resources.cubemaps[skyboxId].imageView();
+        if (skyboxId != lastSky || lastSkyImageView != imgView) {
             updateDescriptors(ctx, skyboxId);
             lastSky = skyboxId;
+            lastSkyImageView = imgView;
         }
     }
 
     void SkyboxPass::execute(RenderContext& ctx) {
         auto& cmdBuf = ctx.cmdBuf;
+
+        vk::DebugUtilsLabelEXT label;
+        label.pLabelName = "Skybox Pass";
+        label.color[0] = 0.321f;
+        label.color[1] = 0.705f;
+        label.color[2] = 0.871f;
+        label.color[3] = 1.0f;
+        cmdBuf.beginDebugUtilsLabelEXT(&label);
+
         cmdBuf.bindPipeline(vk::PipelineBindPoint::eGraphics, *skyboxPipeline);
         cmdBuf.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *skyboxPipelineLayout, 0, *skyboxDs, nullptr);
         SkyboxPushConstants spc{ 0, 0, 0, 0 };
         cmdBuf.pushConstants<SkyboxPushConstants>(*skyboxPipelineLayout, vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment, 0, spc);
         cmdBuf.draw(36, 1, 0, 0);
+        cmdBuf.endDebugUtilsLabelEXT();
         ctx.debugContext.stats->numDrawCalls++;
     }
 }

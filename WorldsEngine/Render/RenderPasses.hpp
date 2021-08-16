@@ -1,7 +1,7 @@
 #pragma once
 #include "RenderGraph.hpp"
 #include "vku/vku.hpp"
-#include "Render.hpp"
+#include "RenderInternal.hpp"
 #include <glm/glm.hpp>
 #include <slib/StaticAllocList.hpp>
 #include "robin_hood.h"
@@ -71,6 +71,7 @@ namespace worlds {
         vk::UniqueDescriptorSetLayout skyboxDsl;
         vk::UniqueDescriptorSet skyboxDs;
         vk::UniqueSampler sampler;
+        vk::ImageView lastSkyImageView = nullptr;
         VulkanHandles* handles;
         uint32_t lastSky = 0;
         void updateDescriptors(RenderContext& ctx, uint32_t loadedSkyId);
@@ -158,7 +159,7 @@ namespace worlds {
         LightUB* lightMapped;
         std::vector<ModelMatrices*> modelMatricesMapped;
 
-        vku::UniformBuffer lightsUB;
+        vku::GenericBuffer lightsUB;
         std::vector<vku::GenericBuffer> modelMatrixUB;
         vku::GenericBuffer pickingBuffer;
 

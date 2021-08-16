@@ -56,6 +56,14 @@ namespace worlds {
             vk::Framebuffer& currFramebuffer) {
         ImGui::Render();
 
+        vk::DebugUtilsLabelEXT label;
+        label.pLabelName = "Dear ImGui Pass";
+        label.color[0] = 0.082f;
+        label.color[1] = 0.086f;
+        label.color[2] = 0.090f;
+        label.color[3] = 1.0f;
+        cmdBuf.beginDebugUtilsLabelEXT(&label);
+
         std::array<float, 4> clearColorValue{ 0.0f, 0.0f, 0.0f, 0.0f };
         std::array<vk::ClearValue, 1> clearColours{ vk::ClearValue{clearColorValue} };
         vk::RenderPassBeginInfo rpbi;
@@ -67,6 +75,7 @@ namespace worlds {
         cmdBuf.beginRenderPass(rpbi, vk::SubpassContents::eInline);
         ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), (VkCommandBuffer)cmdBuf);
         cmdBuf.endRenderPass();
+        cmdBuf.endDebugUtilsLabelEXT();
     }
 
     ImGuiRenderPass::~ImGuiRenderPass() {

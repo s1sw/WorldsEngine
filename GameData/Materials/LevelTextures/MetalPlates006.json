@@ -1,9 +1,0 @@
-{
-    "albedoPath" : "Textures/LevelTextures/MetalPlates006/albedo.wtex",
-    "pbrMapPath" : "Textures/LevelTextures/MetalPlates006/pbr.wtex",
-    "normalMapPath" : "Textures/LevelTextures/MetalPlates006/normal_forcelin.wtex",
-    "metallic" : 0.000000,
-    "roughness" : 1.000000,
-    "albedoColor" : [1.000000, 1.000000, 1.000000],
-    "emissiveColor" : [0.000001, 0.000001, 0.000001]
-}

@@ -1,5 +1,5 @@
 #include "../Core/Engine.hpp"
-#include "Render.hpp"
+#include "RenderInternal.hpp"
 
 namespace worlds {
     const int BRDF_LUT_RES = 256;

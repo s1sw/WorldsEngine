@@ -59,6 +59,7 @@ namespace worlds {
         ImGui::GetStyle().PopupBorderSize = 0.0f;
         ImGui::GetStyle().FrameRounding = 2.0f;
         ImGui::GetStyle().PopupRounding = 1.0f;
+        ImGui::GetStyle().WindowRounding = 3.0f;
         ImGui::GetStyle().ScrollbarRounding = 3.0f;
         ImGui::GetStyle().GrabRounding = 2.0f;
         ImGui::GetStyle().ChildBorderSize = 0.0f;

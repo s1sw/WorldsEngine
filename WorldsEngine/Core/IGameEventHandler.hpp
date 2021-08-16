@@ -3,7 +3,7 @@
 
 namespace worlds {
     class WorldsEngine;
-    class VKRenderer;
+    class Renderer;
     struct Camera;
     class InputManager;
     class IVRInterface;
@@ -12,7 +12,7 @@ namespace worlds {
 
     struct EngineInterfaces {
         IVRInterface* vrInterface;
-        VKRenderer* renderer;
+        Renderer* renderer;
         Camera* mainCamera;
         InputManager* inputManager;
         WorldsEngine* engine;

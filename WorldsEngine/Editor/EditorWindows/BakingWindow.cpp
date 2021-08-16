@@ -1,13 +1,13 @@
-#include "../../Core/Engine.hpp"
+#include <Core/Engine.hpp>
 #include "EditorWindows.hpp"
-#include "../../ImGui/imgui.h"
-#include "../../Libs/IconsFontAwesome5.h"
-#include "../../Libs/IconsFontaudio.h"
-#include "../../Util/EnumUtil.hpp"
-#include "../../Render/Render.hpp"
-#include "../../Core/NameComponent.hpp"
-#include "../../Core/Log.hpp"
-#include "glm/gtc/quaternion.hpp"
+#include <ImGui/imgui.h>
+#include <Libs/IconsFontAwesome5.h>
+#include <Libs/IconsFontaudio.h>
+#include <Util/EnumUtil.hpp>
+#include <Render/RenderInternal.hpp>
+#include <Core/NameComponent.hpp>
+#include <Core/Log.hpp>
+#include <glm/gtc/quaternion.hpp>
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include <stb_image_write.h>
 
@@ -17,7 +17,7 @@ namespace worlds {
     }
 
     void bakeCubemap(glm::vec3 pos, worlds::VKRenderer* renderer,
-            std::string name, entt::registry& world) {
+        std::string name, entt::registry& world, int iterations = 1) {
         // create RTT pass
         RTTPassCreateInfo rtci;
         Camera cam;
@@ -31,7 +31,7 @@ namespace worlds {
         cam.verticalFOV = glm::radians(90.0f);
         cam.position = pos;
 
-        RTTPass* rttPass = renderer->createRTTPass(rtci);
+        VKRTTPass* rttPass = renderer->createRTTPass(rtci);
 
         const glm::vec3 directions[6] = {
             glm::vec3(1.0f, 0.0f, 0.0f),
@@ -63,41 +63,102 @@ namespace worlds {
         std::vector<std::string> outputPaths;
         logMsg("baking cubemap %s", name.c_str());
 
-        // for each cubemap face:
-        // 1. setup camera
-        // 2. run RTT pass
-        // 3. get HDR data
-        // 4. save to file
-        for (int i = 0; i < 6; i++) {
-            logMsg("baking face %i...", i);
-            cam.rotation = glm::quatLookAt(directions[i], upDirs[i]);
-            rttPass->drawNow(world);
+        auto jsonPath = "LevelCubemaps/" + name + ".json";
+        AssetID cubemapId = AssetDB::pathToId(jsonPath);
+        auto resources = renderer->getResources();
 
-            float* data = rttPass->getHDRData();
-            auto outPath = "LevelCubemaps/" + name + outputNames[i] + ".hdr";
-            PHYSFS_File* fHandle = PHYSFS_openWrite(outPath.c_str());
-            if (fHandle == nullptr) {
-                logErr("Failed to open cubemap file as write");
-                free(data);
-                renderer->destroyRTTPass(rttPass);
-                return;
-            }
+        bool isCubemapLoaded = resources.cubemaps.isLoaded(cubemapId);
 
-            int retVal = stbi_write_hdr_to_func(
-                    stbiWriteFunc,
-                    (void*)fHandle,
-                    512, 512, 4, data);
+        VulkanHandles* vkHandles = renderer->getHandles();
+        vk::Queue queue = vkHandles->device.getQueue(vkHandles->graphicsQueueFamilyIdx, 0);
 
-            if (retVal == 0) {
-                logErr(("Failed to write cubemap " + outPath).c_str());
-            }
-            PHYSFS_close(fHandle);
+        if (isCubemapLoaded) {
+            auto idx = resources.cubemaps.get(cubemapId);
+            vku::TextureImageCube& loadedCube = resources.cubemaps[idx];
 
-            outputPaths.push_back(outPath);
-            free(data);
+            vku::executeImmediately(vkHandles->device, vkHandles->commandPool, queue, [&](vk::CommandBuffer cmdBuf) {
+                loadedCube.setLayout(cmdBuf, vk::ImageLayout::eTransferDstOptimal, vk::PipelineStageFlagBits::eTransfer,
+                    vk::AccessFlagBits::eTransferWrite);
+                });
         }
 
-        auto jsonPath = "LevelCubemaps/" + name + ".json";
+        for (int iteration = 0; iteration < iterations; iteration++) {
+            // for every face:
+            // 1. setup camera
+            // 2. run RTT pass
+            // 3. get HDR data
+            // 4. save to file
+            for (int i = 0; i < 6; i++) {
+                logMsg("baking face %i...", i);
+                cam.rotation = glm::quatLookAt(directions[i], upDirs[i]);
+                rttPass->drawNow(world);
+
+                if (isCubemapLoaded) {
+                    // If the cubemap's loaded, we want to blit the image directly to the in-memory cubemap
+                    // so we don't have to load it off the disk again.
+                    auto idx = resources.cubemaps.get(cubemapId);
+                    vku::TextureImageCube& loadedCube = resources.cubemaps[idx];
+
+                    vk::ImageBlit ib;
+                    ib.dstSubresource = vk::ImageSubresourceLayers{ vk::ImageAspectFlagBits::eColor, 0, (uint32_t)i, 1 };
+                    ib.dstOffsets[0] = vk::Offset3D{ 0, 0, 0 };
+                    ib.dstOffsets[1] = vk::Offset3D{ (int)loadedCube.extent().width, (int)loadedCube.extent().height, 1 };
+                    ib.srcSubresource = vk::ImageSubresourceLayers{ vk::ImageAspectFlagBits::eColor, 0, 0, 6 };
+                    ib.srcOffsets[0] = vk::Offset3D{ 0, 0, 0 };
+                    ib.srcOffsets[1] = vk::Offset3D{ (int)rttPass->width, (int)rttPass->height, 1 };
+
+                    vku::executeImmediately(vkHandles->device, vkHandles->commandPool, queue, [&](vk::CommandBuffer cb) {
+                        vku::GenericImage& srcImg = rttPass->hdrTarget->image;
+
+                        srcImg.setLayout(cb, vk::ImageLayout::eTransferSrcOptimal,
+                            vk::PipelineStageFlagBits::eTransfer,
+                            vk::AccessFlagBits::eTransferRead);
+
+                        cb.blitImage(srcImg.image(), vk::ImageLayout::eTransferSrcOptimal, loadedCube.image(),
+                            vk::ImageLayout::eTransferDstOptimal, ib, vk::Filter::eLinear);
+
+                        srcImg.setLayout(cb,
+                            vk::ImageLayout::eColorAttachmentOptimal, vk::PipelineStageFlagBits::eColorAttachmentOutput,
+                            vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite);
+                        });
+                }
+
+                // Don't save unless this is the final iteration
+                if (iteration == iterations - 1) {
+                    float* data = rttPass->getHDRData();
+                    auto outPath = "LevelCubemaps/" + name + outputNames[i] + ".hdr";
+                    PHYSFS_File* fHandle = PHYSFS_openWrite(outPath.c_str());
+                    if (fHandle == nullptr) {
+                        logErr("Failed to open cubemap file as write");
+                        free(data);
+                        renderer->destroyRTTPass(rttPass);
+                        return;
+                    }
+
+                    int retVal = stbi_write_hdr_to_func(
+                        stbiWriteFunc,
+                        (void*)fHandle,
+                        512, 512, 4, data);
+
+                    if (retVal == 0) {
+                        logErr(("Failed to write cubemap " + outPath).c_str());
+                    }
+
+                    PHYSFS_close(fHandle);
+
+                    outputPaths.push_back(outPath);
+                    free(data);
+                }
+            }
+
+            if (isCubemapLoaded) {
+                // Reconvolute - we only replaced the lowest mip
+                auto idx = resources.cubemaps.get(cubemapId);
+                vku::TextureImageCube& loadedCube = resources.cubemaps[idx];
+                resources.cubemaps.convoluter()->convolute(loadedCube);
+            }
+        }
+
         auto file = PHYSFS_openWrite(jsonPath.c_str());
 
         std::string j = "[\n";
@@ -112,9 +173,6 @@ namespace worlds {
         PHYSFS_close(file);
 
         renderer->destroyRTTPass(rttPass);
-        auto resources = renderer->getResources();
-        auto idx = resources.cubemaps.get(AssetDB::pathToId(jsonPath));
-        renderer->getResources().cubemaps.unload(idx);
     }
 
     void BakingWindow::draw(entt::registry& reg) {
@@ -125,11 +183,12 @@ namespace worlds {
                 reg.view<WorldObject>().each([&](auto, WorldObject& wo) {
                     if (enumHasFlag(wo.staticFlags, StaticFlags::Audio))
                         staticAudioGeomCount++;
-                });
+                    });
 
                 if (staticAudioGeomCount > 0) {
                     ImGui::Text("%u static geometry objects", staticAudioGeomCount);
-                } else {
+                }
+                else {
                     ImGui::TextColored(ImColor(1.0f, 0.0f, 0.0f),
                         "There aren't any objects marked as audio static in the scene.");
                 }
@@ -139,17 +198,16 @@ namespace worlds {
                 static int numIterations = 1;
                 ImGui::DragInt("Iterations", &numIterations);
                 reg.view<Transform, WorldCubemap, NameComponent>().each([&](auto,
-                            Transform& t, WorldCubemap&, NameComponent& nc) {
-                    ImGui::Text("%s (%.2f, %.2f, %.2f)", nc.name.c_str(),
+                    Transform& t, WorldCubemap&, NameComponent& nc) {
+                        ImGui::Text("%s (%.2f, %.2f, %.2f)", nc.name.c_str(),
                             t.position.x, t.position.y, t.position.z);
-                    ImGui::SameLine();
-                    ImGui::PushID(nc.name.c_str());
-                    if (ImGui::Button("Bake")) {
-                        for (int i = 0; i < numIterations; i++)
-                            bakeCubemap(t.position, interfaces.renderer, nc.name, reg);
-                    }
-                    ImGui::PopID();
-                });
+                        ImGui::SameLine();
+                        ImGui::PushID(nc.name.c_str());
+                        if (ImGui::Button("Bake")) {
+                            bakeCubemap(t.position, static_cast<worlds::VKRenderer*>(interfaces.renderer), nc.name, reg, numIterations);
+                        }
+                        ImGui::PopID();
+                    });
             }
         }
         ImGui::End();

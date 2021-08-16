@@ -1,6 +1,0 @@
-{
-	"albedoPath" : "white.png",
-	"metallic" : %MET%,
-	"roughness" : %RGH%,
-	"albedoColor" : [1.0, 1.0, 1.0]
-}

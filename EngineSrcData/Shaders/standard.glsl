@@ -216,9 +216,15 @@ float calcProxyAO(vec3 wPos, vec3 normal) {
 
     for (int i = 0; i < int(pack1.x); i++) {
         if (floatBitsToUint(aoBox[i].pack3.w) != objectId) {
-            proxyAO *= (1.0 - getBoxOcclusion(aoBox[i], inWorldPos.xyz, normal));
+            proxyAO *= (1.0 - getBoxOcclusionNonClipped(aoBox[i], inWorldPos.xyz, normal));
         }
     }
+	
+	for (int i = 0; i < int(pack1.y); i++) {
+		if (sphereIds[i] != objectId) {
+			proxyAO *= (1.0 - getSphereOcclusion(inWorldPos.xyz, normal, aoSphere[i]));
+		}
+	}
 
     return proxyAO;
 }

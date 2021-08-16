@@ -195,7 +195,6 @@ namespace lg {
         if (interfaces.vrInterface) {
             Transform t;
             if (interfaces.vrInterface->getHandTransform(wHand, t)) {
-                LocospherePlayerComponent& lpc = registry.get<LocospherePlayerComponent>(hand.locosphere);
                 glm::quat virtualRotation = interfaces.mainCamera->rotation * glm::quat(glm::vec3(0.0f, glm::pi<float>(), 0.0f));
 
                 t.position += t.rotation * posOffset;

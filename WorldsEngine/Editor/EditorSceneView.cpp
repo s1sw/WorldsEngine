@@ -1,6 +1,6 @@
 #include "Editor.hpp"
 #include "ImGui/ImGuizmo.h"
-#include "Render/Render.hpp"
+#include "Render/RenderInternal.hpp"
 #include "Util/VKImGUIUtil.hpp"
 #include "Libs/IconsFontAwesome5.h"
 #include "ImGui/imgui_internal.h"
@@ -142,7 +142,7 @@ namespace worlds {
     }
 
     void EditorSceneView::recreateRTT() {
-        auto vkCtx = interfaces.renderer->getHandles();
+        auto vkCtx = static_cast<VKRenderer*>(interfaces.renderer)->getHandles();
 
         if (sceneViewPass)
             interfaces.renderer->destroyRTTPass(sceneViewPass);
@@ -163,7 +163,7 @@ namespace worlds {
             vkCtx->device.freeDescriptorSets(vkCtx->descriptorPool, { sceneViewDS });
 
         sceneViewDS = VKImGUIUtil::createDescriptorSetFor(
-            sceneViewPass->sdrFinalTarget->image, vkCtx);
+            static_cast<VKRTTPass*>(sceneViewPass)->sdrFinalTarget->image, vkCtx);
         sceneViewPass->active = true;
     }
 
@@ -269,7 +269,7 @@ namespace worlds {
     }
 
     EditorSceneView::~EditorSceneView() {
-        auto vkCtx = interfaces.renderer->getHandles();
+        auto vkCtx = static_cast<VKRenderer*>(interfaces.renderer)->getHandles();
         vkCtx->device.freeDescriptorSets(vkCtx->descriptorPool, { sceneViewDS });
         interfaces.renderer->destroyRTTPass(sceneViewPass);
     }

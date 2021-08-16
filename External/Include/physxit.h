@@ -137,7 +137,7 @@ namespace IT
 } // namespace IT
 } // namespace physx
 
-void physx::IT::computeBoxInertiaTensor(PxVec3& inertia, PxReal mass, PxReal xlength, PxReal ylength, PxReal zlength)
+PX_INLINE void physx::IT::computeBoxInertiaTensor(PxVec3& inertia, PxReal mass, PxReal xlength, PxReal ylength, PxReal zlength)
 {
 	//to model a hollow block, one would have to multiply coeff by up to two.
 	const PxReal coeff = mass/12;
@@ -152,7 +152,7 @@ void physx::IT::computeBoxInertiaTensor(PxVec3& inertia, PxReal mass, PxReal xle
 }
 
 
-void physx::IT::computeSphereInertiaTensor(PxVec3& inertia, PxReal mass, PxReal radius, bool hollow)
+PX_INLINE void physx::IT::computeSphereInertiaTensor(PxVec3& inertia, PxReal mass, PxReal radius, bool hollow)
 {
 	inertia.x = mass * radius * radius;
 	if (hollow) 
@@ -170,14 +170,14 @@ void physx::IT::computeSphereInertiaTensor(PxVec3& inertia, PxReal mass, PxReal 
 //
 //--------------------------------------------------------------
 
-physx::IT::InertiaTensorComputer::InertiaTensorComputer(bool initTozero)
+PX_INLINE physx::IT::InertiaTensorComputer::InertiaTensorComputer(bool initTozero)
 {
 	if (initTozero)
 		zero();
 }
 
 
-physx::IT::InertiaTensorComputer::InertiaTensorComputer(const PxMat33& inertia, const PxVec3& com, PxReal mass) :
+PX_INLINE physx::IT::InertiaTensorComputer::InertiaTensorComputer(const PxMat33& inertia, const PxVec3& com, PxReal mass) :
 	mI(inertia),
 	mG(com),
 	mMass(mass)
@@ -185,7 +185,7 @@ physx::IT::InertiaTensorComputer::InertiaTensorComputer(const PxMat33& inertia, 
 }
 
 
-physx::IT::InertiaTensorComputer::~InertiaTensorComputer()
+PX_INLINE physx::IT::InertiaTensorComputer::~InertiaTensorComputer()
 {
 	//nothing
 }
@@ -209,7 +209,7 @@ PX_INLINE void physx::IT::InertiaTensorComputer::setDiagonal(PxReal mass, const 
 }
 
 
-void physx::IT::InertiaTensorComputer::setBox(const PxVec3& halfWidths)
+PX_INLINE void physx::IT::InertiaTensorComputer::setBox(const PxVec3& halfWidths)
 {
 	// Setup inertia tensor for a cube with unit density
 	const PxReal mass = 8.0f * computeBoxRatio(halfWidths);
@@ -234,7 +234,7 @@ PX_INLINE void physx::IT::InertiaTensorComputer::rotate(const PxMat33& rot)
 }
 
 
-void physx::IT::InertiaTensorComputer::translate(const PxVec3& t)
+PX_INLINE void physx::IT::InertiaTensorComputer::translate(const PxVec3& t)
 {
 	if (!t.isZero())	//its common for this to be zero
 	{
@@ -311,7 +311,7 @@ PX_INLINE void physx::IT::InertiaTensorComputer::center()
 }
 
 
-void physx::IT::InertiaTensorComputer::setSphere(PxReal radius)
+PX_INLINE void physx::IT::InertiaTensorComputer::setSphere(PxReal radius)
 {
 	// Compute mass of the sphere
 	const PxReal m = computeSphereRatio(radius);
@@ -329,7 +329,7 @@ PX_INLINE void physx::IT::InertiaTensorComputer::setSphere(PxReal radius, const 
 }
 
 
-void physx::IT::InertiaTensorComputer::setCylinder(int dir, PxReal r, PxReal l)
+PX_INLINE void physx::IT::InertiaTensorComputer::setCylinder(int dir, PxReal r, PxReal l)
 {
 	// Compute mass of cylinder
 	const PxReal m = computeCylinderRatio(r, l);
@@ -354,7 +354,7 @@ PX_INLINE void physx::IT::InertiaTensorComputer::setCylinder(int dir, PxReal r, 
 }
 
 
-void physx::IT::InertiaTensorComputer::setCapsule(int dir, PxReal r, PxReal l)
+PX_INLINE void physx::IT::InertiaTensorComputer::setCapsule(int dir, PxReal r, PxReal l)
 {
 	// Compute mass of capsule
 	const PxReal m = computeCapsuleRatio(r, l);
@@ -380,7 +380,7 @@ PX_INLINE void physx::IT::InertiaTensorComputer::setCapsule(int dir, PxReal r, P
 }
 
 
-void physx::IT::InertiaTensorComputer::setEllipsoid(PxReal rx, PxReal ry, PxReal rz)
+PX_INLINE void physx::IT::InertiaTensorComputer::setEllipsoid(PxReal rx, PxReal ry, PxReal rz)
 {
 	// Compute mass of ellipsoid
 	const PxReal m = computeEllipsoidRatio(PxVec3(rx, ry, rz));

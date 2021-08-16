@@ -29,6 +29,7 @@
 #include "Loaders/WMDLLoader.hpp"
 #include "Loaders/RobloxMeshLoader.hpp"
 #include "ShaderCache.hpp"
+#include "RenderInternal.hpp"
 #ifdef RDOC
 #include "renderdoc_app.h"
 #define WIN32_LEAN_AND_MEAN
@@ -607,7 +608,7 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
         shadowCascadePass = new ShadowCascadePass(&handles, shadowmapImage);
         shadowCascadePass->setup();
 
-        for (RTTPass* rttPass : rttPasses) {
+        for (VKRTTPass* rttPass : rttPasses) {
             rttPass->prp->reuploadDescriptors();
         }
     }, "r_setCSMResolution", "Sets the resolution of the cascaded shadow map.");
@@ -917,13 +918,6 @@ void VKRenderer::uploadSceneAssets(entt::registry& reg) {
         preloadMesh(id);
     }
 
-    reg.view<ProceduralObject>().each([&](ProceduralObject& po) {
-        if (po.materialIdx == ~0u) {
-            reuploadMats = true;
-            po.materialIdx = matSlots->loadOrGet(po.material);
-        }
-    });
-
     reg.view<WorldCubemap>().each([&](WorldCubemap& wc) {
         if (!cubemapSlots->isLoaded(wc.cubemapId)) {
             cubemapSlots->loadOrGet(wc.cubemapId);
@@ -1070,7 +1064,7 @@ void VKRenderer::writeCmdBuf(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageInde
         vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eColorAttachmentOutput,
         vk::AccessFlagBits::eTransferRead, vk::AccessFlagBits::eColorAttachmentWrite);
 
-    std::sort(rttPasses.begin(), rttPasses.end(), [](RTTPass* a, RTTPass* b) {
+    std::sort(rttPasses.begin(), rttPasses.end(), [](VKRTTPass* a, VKRTTPass* b) {
         return a->drawSortKey < b->drawSortKey;
     });
 
@@ -1424,23 +1418,6 @@ void VKRenderer::preloadMesh(AssetID id) {
     loadedMeshes.insert({ id, std::move(lmd) });
 }
 
-void VKRenderer::uploadProcObj(ProceduralObject& procObj) {
-    if (procObj.vertices.size() == 0 || procObj.indices.size() == 0) {
-        procObj.visible = false;
-        return;
-    } else {
-        procObj.visible = true;
-    }
-
-    device->waitIdle();
-    procObj.indexType = vk::IndexType::eUint32;
-    procObj.indexCount = (uint32_t)procObj.indices.size();
-    procObj.ib = vku::IndexBuffer{ *device, allocator, procObj.indices.size() * sizeof(uint32_t), procObj.dbgName.c_str() };
-    procObj.ib.upload(*device, *commandPool, device->getQueue(graphicsQueueFamilyIdx, 0), procObj.indices);
-    procObj.vb = vku::VertexBuffer{ *device, allocator, procObj.vertices.size() * sizeof(Vertex), procObj.dbgName.c_str() };
-    procObj.vb.upload(*device, *commandPool, device->getQueue(graphicsQueueFamilyIdx, 0), procObj.vertices);
-}
-
 void VKRenderer::unloadUnusedMaterials(entt::registry& reg) {
     bool textureReferenced[NUM_TEX_SLOTS];
     bool materialReferenced[NUM_MAT_SLOTS];
@@ -1531,8 +1508,7 @@ void VKRenderer::reloadContent(ReloadFlags flags) {
     }
 
     if (enumHasFlag(flags, ReloadFlags::Cubemaps)) {
-        // ignore skybox
-        for (uint32_t i = 1; i < NUM_CUBEMAP_SLOTS; i++) {
+        for (uint32_t i = 0; i < NUM_CUBEMAP_SLOTS; i++) {
             if (cubemapSlots->isSlotPresent(i))
                 cubemapSlots->unload(i);
         }
@@ -1558,8 +1534,8 @@ RenderResources VKRenderer::getResources() {
     };
 }
 
-RTTPass* VKRenderer::createRTTPass(RTTPassCreateInfo& ci) {
-    RTTPass* pass = new RTTPass {
+VKRTTPass* VKRenderer::createRTTPass(RTTPassCreateInfo& ci) {
+    VKRTTPass* pass = new VKRTTPass {
         ci,
         this,
         vrInterface,
@@ -1625,7 +1601,7 @@ VKRenderer::~VKRenderer() {
             device->destroyFence(fence);
         }
 
-        std::vector<RTTPass*> toDelete;
+        std::vector<VKRTTPass*> toDelete;
         for (auto& p : rttPasses) {
             toDelete.push_back(p);
         }
