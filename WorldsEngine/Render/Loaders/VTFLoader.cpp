@@ -94,18 +94,18 @@ namespace worlds {
         }
     }*/
 
-    vk::Format toVkFormat(VTFFormat format) {
+    VkFormat toVkFormat(VTFFormat format) {
         switch (format) {
         case IMAGE_FORMAT_DXT1:
-            return vk::Format::eBc1RgbaSrgbBlock;
+            return VK_FORMAT_BC1_RGBA_SRGB_BLOCK;
         case IMAGE_FORMAT_DXT5:
-            return vk::Format::eBc3SrgbBlock;
+            return VK_FORMAT_BC3_SRGB_BLOCK;
         case IMAGE_FORMAT_DXT3:
-            return vk::Format::eBc2SrgbBlock;
+            return VK_FORMAT_BC2_SRGB_BLOCK;
         case IMAGE_FORMAT_RGBA8888:
-            return vk::Format::eR8G8B8A8Srgb;
+            return VK_FORMAT_R8G8B8A8_SRGB;
         default:
-            return vk::Format::eUndefined;
+            return VK_FORMAT_UNDEFINED;
         }
     }
 

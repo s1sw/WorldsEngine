@@ -96,11 +96,11 @@ namespace worlds {
         return total_face_size;
     }
 
-    vku::TextureImageCube uploadCubemapVk(VulkanHandles& ctx, CubemapData& cd, vk::CommandBuffer cb, uint32_t imageIndex) {
+    vku::TextureImageCube uploadCubemapVk(VulkanHandles& ctx, CubemapData& cd, VkCommandBuffer cb, uint32_t imageIndex) {
         PerfTimer pt;
         ZoneScoped;
         ensureTempVectorExistsCube(imageIndex);
-        vk::Format firstFormat = cd.faceData->format;
+        VkFormat firstFormat = cd.faceData->format;
         for (int i = 1; i < 6; i++) {
             if (cd.faceData[i].format != firstFormat) {
                 SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Cubemap has differing face formats!");
@@ -108,9 +108,9 @@ namespace worlds {
             }
         }
 
-        vk::Format newFormat = firstFormat;
-        if (newFormat == vk::Format::eR8G8B8A8Srgb) {
-            newFormat = vk::Format::eR8G8B8A8Unorm;
+        VkFormat newFormat = firstFormat;
+        if (newFormat == VK_FORMAT_R8G8B8A8_SRGB) {
+            newFormat = VK_FORMAT_R8G8B8A8_UNORM;
 
             JobList& jl = g_jobSys->getFreeJobList();
             jl.begin();
@@ -129,11 +129,11 @@ namespace worlds {
             jl.wait();
         }
 
-        bool needsCopy = newFormat == vk::Format::eBc1RgbaSrgbBlock;
-        vk::ImageUsageFlags usageFlags = vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eTransferDst;
+        bool needsCopy = newFormat == VK_FORMAT_BC1_RGBA_SRGB_BLOCK;
+        VkImageUsageFlags usageFlags = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
         if (!needsCopy) {
-            usageFlags |= vk::ImageUsageFlagBits::eStorage;
+            usageFlags |= VK_IMAGE_USAGE_STORAGE_BIT;
         }
 
         vku::TextureImageCube tex{
@@ -160,11 +160,11 @@ namespace worlds {
             std::free(cd.faceData[i].data);
         }
 
-        vku::GenericBuffer stagingBuffer(ctx.device, ctx.allocator, (vk::BufferUsageFlags)vk::BufferUsageFlagBits::eTransferSrc, (vk::DeviceSize)totalSize, VMA_MEMORY_USAGE_CPU_ONLY, "Cubemap staging buffer");
+        vku::GenericBuffer stagingBuffer(ctx.device, ctx.allocator, (VkBufferUsageFlags)VK_BUFFER_USAGE_TRANSFER_SRC_BIT, (VkDeviceSize)totalSize, VMA_MEMORY_USAGE_CPU_ONLY, "Cubemap staging buffer");
         stagingBuffer.updateLocal(ctx.device, combinedBuffer, totalSize);
 
         // Copy the staging buffer to the GPU texture and set the layout.
-        vk::Buffer buf = stagingBuffer.buffer();
+        VkBuffer buf = stagingBuffer.buffer();
         uint32_t offset = 0;
         uint32_t width = tex.extent().width;
         uint32_t height = tex.extent().height;
@@ -174,9 +174,9 @@ namespace worlds {
         }
 
         if (needsCopy) {
-            tex.setLayout(cb, vk::ImageLayout::eTransferSrcOptimal,
-                vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eTransfer,
-                vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eTransferRead);
+            tex.setLayout(cb, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
+                VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_READ_BIT);
 
             // If the cubemap is compressed, we need to blit it to an uncompressed
             // cubemap so we can convolute it.
@@ -185,26 +185,26 @@ namespace worlds {
                 ctx.allocator,
                 cd.faceData[0].width, cd.faceData[0].height,
                 std::min(getNumMips(cd.faceData[0].width, cd.faceData[0].height), 6u),
-                vk::Format::eR8G8B8A8Unorm, false,
+                VK_FORMAT_R8G8B8A8_UNORM, false,
                 cd.debugName.empty() ? nullptr : cd.debugName.c_str(),
-                usageFlags | vk::ImageUsageFlagBits::eStorage
+                usageFlags | VK_IMAGE_USAGE_STORAGE_BIT
             };
 
-            destTex.setLayout(cb, vk::ImageLayout::eTransferDstOptimal,
-                vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eTransfer,
-                vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eTransferWrite);
+            destTex.setLayout(cb, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
+                VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
 
-            vk::ImageBlit blit;
-            blit.dstSubresource = blit.srcSubresource = vk::ImageSubresourceLayers {
-                vk::ImageAspectFlagBits::eColor,
+            VkImageBlit blit;
+            blit.dstSubresource = blit.srcSubresource = VkImageSubresourceLayers {
+                VK_IMAGE_ASPECT_COLOR_BIT,
                 0, 0, 6
             };
 
-            blit.dstOffsets[0] = blit.srcOffsets[0] = vk::Offset3D {
+            blit.dstOffsets[0] = blit.srcOffsets[0] = VkOffset3D {
                 0, 0, 0
             };
 
-            blit.dstOffsets[1] = blit.srcOffsets[1] = vk::Offset3D {
+            blit.dstOffsets[1] = blit.srcOffsets[1] = VkOffset3D {
                 (int)cd.faceData[0].width, (int)cd.faceData[0].height, 1
             };
 
@@ -216,14 +216,14 @@ namespace worlds {
             //    blit.srcOffsets[1].x *= 4;
             //}
 
-            cb.blitImage(tex.image(), tex.layout(), destTex.image(), destTex.layout(), blit, vk::Filter::eLinear);
+            vkCmdBlitImage(cb, tex.image(), tex.layout(), destTex.image(), destTex.layout(), 1, &blit, VK_FILTER_LINEAR);
             cubeTempBuffers[imageIndex].push_back(std::move(stagingBuffer));
             cubeImages[imageIndex].push_back(std::move(tex));
             return destTex;
         } else {
-            tex.setLayout(cb, vk::ImageLayout::eShaderReadOnlyOptimal,
-                vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eFragmentShader,
-                vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eShaderRead);
+            tex.setLayout(cb, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+                VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_SHADER_READ_BIT);
 
             cubeTempBuffers[imageIndex].push_back(std::move(stagingBuffer));
 
@@ -236,7 +236,9 @@ namespace worlds {
 
     vku::TextureImageCube uploadCubemapVk(VulkanHandles& ctx, CubemapData& cd) {
         vku::TextureImageCube tex;
-        vku::executeImmediately(ctx.device, ctx.commandPool, ctx.device.getQueue(ctx.graphicsQueueFamilyIdx, 0), [&](vk::CommandBuffer cb) {
+        VkQueue queue;
+        vkGetDeviceQueue(ctx.device, ctx.graphicsQueueFamilyIdx, 0, &queue);
+        vku::executeImmediately(ctx.device, ctx.commandPool, queue, [&](VkCommandBuffer cb) {
             tex = uploadCubemapVk(ctx, cd, cb, 0);
         });
 

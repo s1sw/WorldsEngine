@@ -22,32 +22,32 @@ namespace worlds {
 
     void ShadowCascadePass::createDescriptorSet() {
         vku::DescriptorSetLayoutMaker dslm;
-        dslm.buffer(0, vk::DescriptorType::eUniformBuffer, vk::ShaderStageFlagBits::eVertex, 1);
-        dsl = dslm.createUnique(handles->device);
+        dslm.buffer(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, 1);
+        dsl = dslm.create(handles->device);
 
         vku::DescriptorSetMaker dsm;
-        dsm.layout(*dsl);
-        ds = std::move(dsm.createUnique(handles->device, handles->descriptorPool)[0]);
+        dsm.layout(dsl);
+        ds = dsm.create(handles->device, handles->descriptorPool)[0];
     }
 
     void ShadowCascadePass::createRenderPass() {
         vku::RenderpassMaker rPassMaker;
 
-        rPassMaker.attachmentBegin(vk::Format::eD32Sfloat);
-        rPassMaker.attachmentLoadOp(vk::AttachmentLoadOp::eClear);
-        rPassMaker.attachmentStencilLoadOp(vk::AttachmentLoadOp::eDontCare);
-        rPassMaker.attachmentFinalLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
+        rPassMaker.attachmentBegin(VK_FORMAT_D32_SFLOAT);
+        rPassMaker.attachmentLoadOp(VK_ATTACHMENT_LOAD_OP_CLEAR);
+        rPassMaker.attachmentStencilLoadOp(VK_ATTACHMENT_LOAD_OP_DONT_CARE);
+        rPassMaker.attachmentFinalLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
-        rPassMaker.subpassBegin(vk::PipelineBindPoint::eGraphics);
-        rPassMaker.subpassDepthStencilAttachment(vk::ImageLayout::eDepthStencilAttachmentOptimal, 0);
+        rPassMaker.subpassBegin(VK_PIPELINE_BIND_POINT_GRAPHICS);
+        rPassMaker.subpassDepthStencilAttachment(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, 0);
 
         rPassMaker.dependencyBegin(0, 0);
-        rPassMaker.dependencyDependencyFlags(vk::DependencyFlagBits::eViewLocal | vk::DependencyFlagBits::eByRegion);
-        rPassMaker.dependencySrcStageMask(vk::PipelineStageFlagBits::eLateFragmentTests);
-        rPassMaker.dependencyDstStageMask(vk::PipelineStageFlagBits::eEarlyFragmentTests);
-        rPassMaker.dependencyDstAccessMask(vk::AccessFlagBits::eDepthStencilAttachmentRead | vk::AccessFlagBits::eDepthStencilAttachmentWrite);
+        rPassMaker.dependencyDependencyFlags(VK_DEPENDENCY_VIEW_LOCAL_BIT | VK_DEPENDENCY_BY_REGION_BIT);
+        rPassMaker.dependencySrcStageMask(VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT);
+        rPassMaker.dependencyDstStageMask(VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT);
+        rPassMaker.dependencyDstAccessMask(VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
 
-        vk::RenderPassMultiviewCreateInfo multiviewCI;
+        VkRenderPassMultiviewCreateInfo multiviewCI{ VK_STRUCTURE_TYPE_RENDER_PASS_MULTIVIEW_CREATE_INFO };
         uint32_t viewMask = 0b00000111;
 
         multiviewCI.subpassCount = 1;
@@ -57,7 +57,7 @@ namespace worlds {
 
         rPassMaker.setPNext(&multiviewCI);
 
-        renderPass = rPassMaker.createUnique(handles->device);
+        renderPass = rPassMaker.create(handles->device);
     }
 
     void ShadowCascadePass::setup() {
@@ -73,37 +73,38 @@ namespace worlds {
         shadowFragmentShader = ShaderCache::getModule(handles->device, fsID);
 
         vku::PipelineLayoutMaker plm{};
-        plm.descriptorSetLayout(*dsl);
-        plm.pushConstantRange(vk::ShaderStageFlagBits::eVertex, 0, sizeof(ShadowmapPushConstants));
-        pipelineLayout = plm.createUnique(handles->device);
+        plm.descriptorSetLayout(dsl);
+        plm.pushConstantRange(VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(ShadowmapPushConstants));
+        pipelineLayout = plm.create(handles->device);
 
         vku::PipelineMaker pm{ shadowmapRes, shadowmapRes };
-        pm.shader(vk::ShaderStageFlagBits::eFragment, shadowFragmentShader);
-        pm.shader(vk::ShaderStageFlagBits::eVertex, shadowVertexShader);
+        pm.shader(VK_SHADER_STAGE_FRAGMENT_BIT, shadowFragmentShader);
+        pm.shader(VK_SHADER_STAGE_VERTEX_BIT, shadowVertexShader);
         pm.vertexBinding(0, (uint32_t)sizeof(Vertex));
-        pm.vertexAttribute(0, 0, vk::Format::eR32G32B32Sfloat, (uint32_t)offsetof(Vertex, position));
-        pm.cullMode(vk::CullModeFlagBits::eBack);
-        pm.depthWriteEnable(true).depthTestEnable(true).depthCompareOp(vk::CompareOp::eGreater);
+        pm.vertexAttribute(0, 0, VK_FORMAT_R32G32B32_SFLOAT, (uint32_t)offsetof(Vertex, position));
+        pm.cullMode(VK_CULL_MODE_BACK_BIT);
+        pm.depthWriteEnable(true).depthTestEnable(true).depthCompareOp(VK_COMPARE_OP_GREATER);
 
-        pipeline = pm.createUnique(handles->device, handles->pipelineCache, *pipelineLayout, *renderPass);
+        pipeline = pm.create(handles->device, handles->pipelineCache, pipelineLayout, renderPass);
 
         auto attachment = shadowImage->image.imageView();
 
-        vk::FramebufferCreateInfo fci;
+        VkFramebufferCreateInfo fci{ VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
         fci.attachmentCount = 1;
         fci.pAttachments = &attachment;
         fci.width = fci.height = shadowmapRes;
-        fci.renderPass = *renderPass;
+        fci.renderPass = renderPass;
         fci.layers = 1;
-        shadowFb = handles->device.createFramebufferUnique(fci);
+
+        VKCHECK(vkCreateFramebuffer(handles->device, &fci, nullptr, &shadowFb));
 
         matrixBuffer = vku::UniformBuffer {
             handles->device, handles->allocator, sizeof(CascadeMatrices), VMA_MEMORY_USAGE_GPU_ONLY, "Cascade Matrices"
         };
 
         vku::DescriptorSetUpdater dsu;
-        dsu.beginDescriptorSet(*ds);
-        dsu.beginBuffers(0, 0, vk::DescriptorType::eUniformBuffer);
+        dsu.beginDescriptorSet(ds);
+        dsu.beginBuffers(0, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
         dsu.buffer(matrixBuffer.buffer(), 0, sizeof(CascadeMatrices));
         dsu.update(handles->device);
     }
@@ -117,30 +118,29 @@ namespace worlds {
         TracyVkZone((*ctx.tracyContexts)[ctx.imageIndex], *ctx.cmdBuf, "Shadowmap");
 #endif
         auto cmdBuf = ctx.cmdBuf;
-        vk::DebugUtilsLabelEXT label;
+        VkDebugUtilsLabelEXT label{ VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT };
         label.pLabelName = "Cascade Shadows Pass";
         label.color[0] = 0.909f;
         label.color[1] = 0.764f;
         label.color[2] = 0.447f;
         label.color[3] = 1.0f;
-        cmdBuf.beginDebugUtilsLabelEXT(&label);
+        vkCmdBeginDebugUtilsLabelEXT(cmdBuf, &label);
 
         matrixBuffer.barrier(
-            ctx.cmdBuf, vk::PipelineStageFlagBits::eHost, vk::PipelineStageFlagBits::eVertexShader,
-            vk::DependencyFlagBits::eByRegion, vk::AccessFlagBits::eHostWrite, vk::AccessFlagBits::eUniformRead,
+            ctx.cmdBuf, VK_PIPELINE_STAGE_HOST_BIT, VK_PIPELINE_STAGE_VERTEX_SHADER_BIT,
+            VK_DEPENDENCY_BY_REGION_BIT, VK_ACCESS_HOST_WRITE_BIT, VK_ACCESS_UNIFORM_READ_BIT,
             VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED);
 
 
-        vk::ClearDepthStencilValue clearDepthValue{ 0.0f, 0 };
-        std::array<vk::ClearValue, 1> clearColours{ clearDepthValue };
+        VkClearDepthStencilValue clearDepthValue{ 0.0f, 0 };
 
-        vk::RenderPassBeginInfo rpbi;
+        VkRenderPassBeginInfo rpbi { VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
 
-        rpbi.renderPass = *renderPass;
-        rpbi.framebuffer = *shadowFb;
-        rpbi.renderArea = vk::Rect2D{ {0, 0}, {shadowmapRes, shadowmapRes} };
-        rpbi.clearValueCount = (uint32_t)clearColours.size();
-        rpbi.pClearValues = clearColours.data();
+        rpbi.renderPass = renderPass;
+        rpbi.framebuffer = shadowFb;
+        rpbi.renderArea = VkRect2D{ {0, 0}, {shadowmapRes, shadowmapRes} };
+        rpbi.clearValueCount = 1;
+        rpbi.pClearValues = reinterpret_cast<VkClearValue*>(&clearDepthValue);
 
         entt::registry& reg = ctx.registry;
 
@@ -150,11 +150,11 @@ namespace worlds {
             matrices.matrices[i] = ctx.cascadeInfo.matrices[i];
         }
 
-        cmdBuf.updateBuffer<CascadeMatrices>(matrixBuffer.buffer(), 0, matrices);
+        vkCmdUpdateBuffer(cmdBuf, matrixBuffer.buffer(), 0, sizeof(matrices), &matrices);
 
-        cmdBuf.beginRenderPass(rpbi, vk::SubpassContents::eInline);
-        cmdBuf.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline);
-        cmdBuf.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 0, *ds, nullptr);
+        vkCmdBeginRenderPass(cmdBuf, &rpbi, VK_SUBPASS_CONTENTS_INLINE);
+        vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+        vkCmdBindDescriptorSets(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &ds, 0, nullptr);
 
         Frustum shadowFrustums[3];
 
@@ -186,20 +186,25 @@ namespace worlds {
             ShadowmapPushConstants spc;
             spc.model = transform.getMatrix();
 
-            cmdBuf.pushConstants<ShadowmapPushConstants>(*pipelineLayout, vk::ShaderStageFlagBits::eVertex, 0, spc);
-            cmdBuf.bindVertexBuffers(0, meshPos->second.vb.buffer(), vk::DeviceSize(0));
-            cmdBuf.bindIndexBuffer(meshPos->second.ib.buffer(), 0, meshPos->second.indexType);
-            cmdBuf.drawIndexed(meshPos->second.indexCount, 1, 0, 0, 0);
+            vkCmdPushConstants(cmdBuf, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(spc), &spc);
+
+            VkBuffer vb = meshPos->second.vb.buffer();
+            VkDeviceSize offset = 0;
+            vkCmdBindVertexBuffers(cmdBuf, 0, 1, &vb, &offset);
+            vkCmdBindIndexBuffer(cmdBuf, meshPos->second.ib.buffer(), 0, meshPos->second.indexType);
+            vkCmdDrawIndexed(cmdBuf, meshPos->second.indexCount, 1, 0, 0, 0);
             ctx.debugContext.stats->numDrawCalls++;
             ctx.debugContext.stats->numTriangles += meshPos->second.indexCount / 3;
         });
 
-        cmdBuf.endRenderPass();
+        vkCmdEndRenderPass(cmdBuf);
 
-        shadowImage->image.setCurrentLayout(vk::ImageLayout::eShaderReadOnlyOptimal, vk::PipelineStageFlagBits::eLateFragmentTests, vk::AccessFlagBits::eDepthStencilAttachmentWrite);
-        cmdBuf.endDebugUtilsLabelEXT();
+        shadowImage->image.setCurrentLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
+        vkCmdEndDebugUtilsLabelEXT(cmdBuf);
     }
 
     ShadowCascadePass::~ShadowCascadePass() {
+        vkFreeDescriptorSets(handles->device, handles->descriptorPool, 1, &ds);
+        vkDestroyDescriptorSetLayout(handles->device, dsl, nullptr);
     }
 }

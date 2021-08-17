@@ -54,47 +54,47 @@ namespace worlds {
         auto& cubemapSlots = ctx.resources.cubemaps;
         vku::DescriptorSetUpdater updater(20, 256, 0);
         size_t i = 0;
-        for (vk::DescriptorSet& ds : descriptorSets) {
+        for (VkDescriptorSet& ds : descriptorSets) {
             updater.beginDescriptorSet(ds);
 
-            updater.beginBuffers(0, 0, vk::DescriptorType::eUniformBuffer);
+            updater.beginBuffers(0, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
             updater.buffer(ctx.resources.vpMatrixBuffer->buffer(), 0, sizeof(MultiVP));
 
-            updater.beginBuffers(1, 0, vk::DescriptorType::eStorageBuffer);
+            updater.beginBuffers(1, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
             updater.buffer(lightsUB.buffer(), 0, sizeof(LightUB));
 
-            updater.beginBuffers(2, 0, vk::DescriptorType::eStorageBuffer);
+            updater.beginBuffers(2, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
             updater.buffer(ctx.resources.materialBuffer->buffer(), 0, sizeof(MaterialsUB));
 
-            updater.beginBuffers(3, 0, vk::DescriptorType::eStorageBuffer);
+            updater.beginBuffers(3, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
             updater.buffer(modelMatrixUB[i].buffer(), 0, sizeof(ModelMatrices));
 
             for (uint32_t i = 0; i < texSlots.size(); i++) {
                 if (texSlots.isSlotPresent(i)) {
-                    updater.beginImages(4, i, vk::DescriptorType::eCombinedImageSampler);
-                    updater.image(*albedoSampler, texSlots[i].imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
+                    updater.beginImages(4, i, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+                    updater.image(albedoSampler, texSlots[i].imageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
                 }
             }
 
-            updater.beginImages(5, 0, vk::DescriptorType::eCombinedImageSampler);
-            updater.image(*shadowSampler, ctx.resources.shadowCascades->image.imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
+            updater.beginImages(5, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+            updater.image(shadowSampler, ctx.resources.shadowCascades->image.imageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
             for (uint32_t i = 0; i < cubemapSlots.size(); i++) {
                 if (cubemapSlots.isSlotPresent(i)) {
-                    updater.beginImages(6, i, vk::DescriptorType::eCombinedImageSampler);
-                    updater.image(*albedoSampler, cubemapSlots[i].imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
+                    updater.beginImages(6, i, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+                    updater.image(albedoSampler, cubemapSlots[i].imageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
                 }
             }
 
-            updater.beginImages(7, 0, vk::DescriptorType::eCombinedImageSampler);
-            updater.image(*albedoSampler, ctx.resources.brdfLut->imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
+            updater.beginImages(7, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+            updater.image(albedoSampler, ctx.resources.brdfLut->imageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
             for (int i = 0; i < NUM_SHADOW_LIGHTS; i++) {
-                updater.beginImages(8, i, vk::DescriptorType::eCombinedImageSampler);
-                updater.image(*shadowSampler, ctx.resources.additionalShadowImages[i]->image.imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
+                updater.beginImages(8, i, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+                updater.image(shadowSampler, ctx.resources.additionalShadowImages[i]->image.imageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
             }
 
-            updater.beginBuffers(9, 0, vk::DescriptorType::eStorageBuffer);
+            updater.beginBuffers(9, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
             updater.buffer(pickingBuffer.buffer(), 0, sizeof(PickingBuffer));
 
             i++;
@@ -133,70 +133,70 @@ namespace worlds {
 
     void setupVertexFormat(vku::PipelineMaker& pm) {
         pm.vertexBinding(0, (uint32_t)sizeof(Vertex));
-        pm.vertexAttribute(0, 0, vk::Format::eR32G32B32Sfloat, (uint32_t)offsetof(Vertex, position));
-        pm.vertexAttribute(1, 0, vk::Format::eR32G32B32Sfloat, (uint32_t)offsetof(Vertex, normal));
-        pm.vertexAttribute(2, 0, vk::Format::eR32G32B32Sfloat, (uint32_t)offsetof(Vertex, tangent));
-        pm.vertexAttribute(3, 0, vk::Format::eR32Sfloat, (uint32_t)offsetof(Vertex, bitangentSign));
-        pm.vertexAttribute(4, 0, vk::Format::eR32G32Sfloat, (uint32_t)offsetof(Vertex, uv));
+        pm.vertexAttribute(0, 0, VK_FORMAT_R32G32B32_SFLOAT, (uint32_t)offsetof(Vertex, position));
+        pm.vertexAttribute(1, 0, VK_FORMAT_R32G32B32_SFLOAT, (uint32_t)offsetof(Vertex, normal));
+        pm.vertexAttribute(2, 0, VK_FORMAT_R32G32B32_SFLOAT, (uint32_t)offsetof(Vertex, tangent));
+        pm.vertexAttribute(3, 0, VK_FORMAT_R32_SFLOAT, (uint32_t)offsetof(Vertex, bitangentSign));
+        pm.vertexAttribute(4, 0, VK_FORMAT_R32G32_SFLOAT, (uint32_t)offsetof(Vertex, uv));
     }
 
-    void PolyRenderPass::setup(RenderContext& ctx, vk::DescriptorPool descriptorPool) {
+    void PolyRenderPass::setup(RenderContext& ctx, VkDescriptorPool descriptorPool) {
         ZoneScoped;
 
         vku::SamplerMaker sm{};
-        sm.magFilter(vk::Filter::eLinear).minFilter(vk::Filter::eLinear).mipmapMode(vk::SamplerMipmapMode::eLinear).anisotropyEnable(true).maxAnisotropy(16.0f).maxLod(VK_LOD_CLAMP_NONE).minLod(0.0f);
-        albedoSampler = sm.createUnique(handles->device);
+        sm.magFilter(VK_FILTER_LINEAR).minFilter(VK_FILTER_LINEAR).mipmapMode(VK_SAMPLER_MIPMAP_MODE_LINEAR).anisotropyEnable(true).maxAnisotropy(16.0f).maxLod(VK_LOD_CLAMP_NONE).minLod(0.0f);
+        albedoSampler = sm.create(handles->device);
 
         vku::SamplerMaker ssm{};
-        ssm.magFilter(vk::Filter::eLinear).minFilter(vk::Filter::eLinear).mipmapMode(vk::SamplerMipmapMode::eLinear).compareEnable(true).compareOp(vk::CompareOp::eGreater);
-        shadowSampler = ssm.createUnique(handles->device);
+        ssm.magFilter(VK_FILTER_LINEAR).minFilter(VK_FILTER_LINEAR).mipmapMode(VK_SAMPLER_MIPMAP_MODE_LINEAR).compareEnable(true).compareOp(VK_COMPARE_OP_GREATER);
+        shadowSampler = ssm.create(handles->device);
 
         vku::DescriptorSetLayoutMaker dslm;
         // VP
-        dslm.buffer(0, vk::DescriptorType::eUniformBuffer, vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment, 1);
+        dslm.buffer(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 1);
         // Lights
-        dslm.buffer(1, vk::DescriptorType::eStorageBuffer, vk::ShaderStageFlagBits::eFragment | vk::ShaderStageFlagBits::eVertex, 1);
+        dslm.buffer(1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_VERTEX_BIT, 1);
         // Materials
-        dslm.buffer(2, vk::DescriptorType::eStorageBuffer, vk::ShaderStageFlagBits::eFragment, 1);
+        dslm.buffer(2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, 1);
         // Model matrices
-        dslm.buffer(3, vk::DescriptorType::eStorageBuffer, vk::ShaderStageFlagBits::eVertex, 1);
+        dslm.buffer(3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, 1);
         // Textures
-        dslm.image(4, vk::DescriptorType::eCombinedImageSampler, vk::ShaderStageFlagBits::eFragment, NUM_TEX_SLOTS);
-        dslm.bindFlag(4, vk::DescriptorBindingFlagBits::ePartiallyBound);
+        dslm.image(4, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, NUM_TEX_SLOTS);
+        dslm.bindFlag(4, VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT);
         // Shadowmap
-        dslm.image(5, vk::DescriptorType::eCombinedImageSampler, vk::ShaderStageFlagBits::eFragment, 1);
+        dslm.image(5, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 1);
         // Cubemaps
-        dslm.image(6, vk::DescriptorType::eCombinedImageSampler, vk::ShaderStageFlagBits::eFragment, NUM_CUBEMAP_SLOTS);
-        dslm.bindFlag(6, vk::DescriptorBindingFlagBits::ePartiallyBound);
+        dslm.image(6, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, NUM_CUBEMAP_SLOTS);
+        dslm.bindFlag(6, VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT);
         // BRDF LUT
-        dslm.image(7, vk::DescriptorType::eCombinedImageSampler, vk::ShaderStageFlagBits::eFragment, 1);
+        dslm.image(7, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 1);
         // Additional shadow images
-        dslm.image(8, vk::DescriptorType::eCombinedImageSampler, vk::ShaderStageFlagBits::eFragment, NUM_SHADOW_LIGHTS);
+        dslm.image(8, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, NUM_SHADOW_LIGHTS);
         // Picking
-        dslm.buffer(9, vk::DescriptorType::eStorageBuffer, vk::ShaderStageFlagBits::eFragment, 1);
+        dslm.buffer(9, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, 1);
 
-        dsl = dslm.createUnique(handles->device);
+        dsl = dslm.create(handles->device);
 
         vku::PipelineLayoutMaker plm;
-        plm.pushConstantRange(vk::ShaderStageFlagBits::eFragment | vk::ShaderStageFlagBits::eVertex, 0, sizeof(StandardPushConstants));
-        plm.descriptorSetLayout(*dsl);
-        pipelineLayout = plm.createUnique(handles->device);
+        plm.pushConstantRange(VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(StandardPushConstants));
+        plm.descriptorSetLayout(dsl);
+        pipelineLayout = plm.create(handles->device);
 
         lightsUB = vku::GenericBuffer(
             handles->device, handles->allocator,
-            vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
+            VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
             sizeof(LightUB), VMA_MEMORY_USAGE_CPU_TO_GPU, "Lights");
 
         for (uint32_t i = 0; i < ctx.maxSimultaneousFrames; i++) {
             modelMatrixUB.push_back(vku::GenericBuffer(
                 handles->device, handles->allocator,
-                vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
+                VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
                 sizeof(ModelMatrices), VMA_MEMORY_USAGE_CPU_TO_GPU, "Model matrices"));
         }
 
         pickingBuffer = vku::GenericBuffer(
             handles->device, handles->allocator,
-            vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
+            VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
             sizeof(PickingBuffer), VMA_MEMORY_USAGE_CPU_ONLY, "Picking buffer");
 
         for (vku::GenericBuffer& matrixUB : modelMatrixUB) {
@@ -204,52 +204,53 @@ namespace worlds {
         }
         lightMapped = (LightUB*)lightsUB.map(handles->device);
 
-        pickEvent = handles->device.createEventUnique(vk::EventCreateInfo{});
+        VkEventCreateInfo eci{ VK_STRUCTURE_TYPE_EVENT_CREATE_INFO };
+        vkCreateEvent(handles->device, &eci, nullptr, &pickEvent);
 
         vku::DescriptorSetMaker dsm;
-        dsm.layout(*dsl);
-        dsm.layout(*dsl);
+        dsm.layout(dsl);
+        dsm.layout(dsl);
         descriptorSets = dsm.create(handles->device, descriptorPool);
 
         vku::RenderpassMaker rPassMaker;
 
-        rPassMaker.attachmentBegin(vk::Format::eB10G11R11UfloatPack32);
-        rPassMaker.attachmentLoadOp(vk::AttachmentLoadOp::eDontCare);
-        rPassMaker.attachmentStoreOp(vk::AttachmentStoreOp::eStore);
+        rPassMaker.attachmentBegin(VK_FORMAT_B10G11R11_UFLOAT_PACK32);
+        rPassMaker.attachmentLoadOp(VK_ATTACHMENT_LOAD_OP_DONT_CARE);
+        rPassMaker.attachmentStoreOp(VK_ATTACHMENT_STORE_OP_STORE);
         rPassMaker.attachmentSamples(polyImage->image.info().samples);
-        rPassMaker.attachmentFinalLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
+        rPassMaker.attachmentFinalLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
-        rPassMaker.attachmentBegin(vk::Format::eD32Sfloat);
-        rPassMaker.attachmentLoadOp(vk::AttachmentLoadOp::eClear);
-        rPassMaker.attachmentStencilLoadOp(vk::AttachmentLoadOp::eDontCare);
+        rPassMaker.attachmentBegin(VK_FORMAT_D32_SFLOAT);
+        rPassMaker.attachmentLoadOp(VK_ATTACHMENT_LOAD_OP_CLEAR);
+        rPassMaker.attachmentStencilLoadOp(VK_ATTACHMENT_LOAD_OP_DONT_CARE);
         rPassMaker.attachmentSamples(polyImage->image.info().samples);
-        rPassMaker.attachmentFinalLayout(vk::ImageLayout::eDepthStencilAttachmentOptimal);
+        rPassMaker.attachmentFinalLayout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
 
-        rPassMaker.subpassBegin(vk::PipelineBindPoint::eGraphics);
-        rPassMaker.subpassDepthStencilAttachment(vk::ImageLayout::eDepthStencilAttachmentOptimal, 1);
+        rPassMaker.subpassBegin(VK_PIPELINE_BIND_POINT_GRAPHICS);
+        rPassMaker.subpassDepthStencilAttachment(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, 1);
 
         rPassMaker.dependencyBegin(VK_SUBPASS_EXTERNAL, 0);
-        rPassMaker.dependencySrcStageMask(vk::PipelineStageFlagBits::eEarlyFragmentTests);
-        rPassMaker.dependencyDstStageMask(vk::PipelineStageFlagBits::eEarlyFragmentTests);
-        rPassMaker.dependencyDstAccessMask(vk::AccessFlagBits::eDepthStencilAttachmentRead | vk::AccessFlagBits::eDepthStencilAttachmentWrite);
+        rPassMaker.dependencySrcStageMask(VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT);
+        rPassMaker.dependencyDstStageMask(VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT);
+        rPassMaker.dependencyDstAccessMask(VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
 
-        rPassMaker.subpassBegin(vk::PipelineBindPoint::eGraphics);
-        rPassMaker.subpassColorAttachment(vk::ImageLayout::eColorAttachmentOptimal, 0);
-        rPassMaker.subpassDepthStencilAttachment(vk::ImageLayout::eDepthStencilAttachmentOptimal, 1);
+        rPassMaker.subpassBegin(VK_PIPELINE_BIND_POINT_GRAPHICS);
+        rPassMaker.subpassColorAttachment(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, 0);
+        rPassMaker.subpassDepthStencilAttachment(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, 1);
 
         rPassMaker.dependencyBegin(0, 1);
-        rPassMaker.dependencySrcStageMask(vk::PipelineStageFlagBits::eEarlyFragmentTests);
-        rPassMaker.dependencyDstStageMask(vk::PipelineStageFlagBits::eEarlyFragmentTests | vk::PipelineStageFlagBits::eColorAttachmentOutput);
-        rPassMaker.dependencyDstAccessMask(vk::AccessFlagBits::eColorAttachmentRead |
-            vk::AccessFlagBits::eColorAttachmentWrite |
-            vk::AccessFlagBits::eDepthStencilAttachmentRead |
-            vk::AccessFlagBits::eDepthStencilAttachmentWrite);
+        rPassMaker.dependencySrcStageMask(VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT);
+        rPassMaker.dependencyDstStageMask(VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
+        rPassMaker.dependencyDstAccessMask(VK_ACCESS_COLOR_ATTACHMENT_READ_BIT |
+            VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT |
+            VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT |
+            VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
 
 
         // AMD driver bug workaround: shaders that use ViewIndex without a multiview renderpass
         // will crash the driver, so we always set up a renderpass with multiview even if it's only
         // one view.
-        vk::RenderPassMultiviewCreateInfo renderPassMultiviewCI{};
+        VkRenderPassMultiviewCreateInfo renderPassMultiviewCI{VK_STRUCTURE_TYPE_RENDER_PASS_MULTIVIEW_CREATE_INFO};
         uint32_t viewMasks[2] = { 0b00000001, 0b00000001 };
         uint32_t correlationMask = 0b00000001;
 
@@ -265,19 +266,20 @@ namespace worlds {
         renderPassMultiviewCI.pCorrelationMasks = &correlationMask;
         rPassMaker.setPNext(&renderPassMultiviewCI);
 
-        renderPass = rPassMaker.createUnique(handles->device);
+        renderPass = rPassMaker.create(handles->device);
 
-        vk::ImageView attachments[2] = { polyImage->image.imageView(), depthStencilImage->image.imageView() };
+        VkImageView attachments[2] = { polyImage->image.imageView(), depthStencilImage->image.imageView() };
 
         auto extent = polyImage->image.info().extent;
-        vk::FramebufferCreateInfo fci;
+        VkFramebufferCreateInfo fci{ VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
         fci.attachmentCount = 2;
         fci.pAttachments = attachments;
         fci.width = extent.width;
         fci.height = extent.height;
-        fci.renderPass = *this->renderPass;
+        fci.renderPass = this->renderPass;
         fci.layers = 1;
-        renderFb = handles->device.createFramebufferUnique(fci);
+
+        VKCHECK(vkCreateFramebuffer(handles->device, &fci, nullptr, &renderFb));
 
         AssetID vsID = AssetDB::pathToId("Shaders/standard.vert.spv");
         AssetID fsID = AssetDB::pathToId("Shaders/standard.frag.spv");
@@ -294,14 +296,14 @@ namespace worlds {
         };
 
         // standard shader specialization constants
-        vk::SpecializationMapEntry entries[4] = {
+        VkSpecializationMapEntry entries[4] = {
             { 0, offsetof(StandardSpecConsts, enablePicking), sizeof(bool) },
             { 1, offsetof(StandardSpecConsts, parallaxMaxLayers), sizeof(float) },
             { 2, offsetof(StandardSpecConsts, parallaxMinLayers), sizeof(float) },
             { 3, offsetof(StandardSpecConsts, doParallax), sizeof(bool) }
         };
 
-        vk::SpecializationInfo standardSpecInfo{ 4, entries, sizeof(StandardSpecConsts) };
+        VkSpecializationInfo standardSpecInfo{ 4, entries, sizeof(StandardSpecConsts) };
 
         {
             vku::PipelineMaker pm{ extent.width, extent.height };
@@ -315,27 +317,27 @@ namespace worlds {
 
             standardSpecInfo.pData = &spc;
 
-            pm.shader(vk::ShaderStageFlagBits::eFragment, fragmentShader, "main", &standardSpecInfo);
-            pm.shader(vk::ShaderStageFlagBits::eVertex, vertexShader);
+            pm.shader(VK_SHADER_STAGE_FRAGMENT_BIT, fragmentShader, "main", &standardSpecInfo);
+            pm.shader(VK_SHADER_STAGE_VERTEX_BIT, vertexShader);
             setupVertexFormat(pm);
-            pm.cullMode(vk::CullModeFlagBits::eBack);
+            pm.cullMode(VK_CULL_MODE_BACK_BIT);
 
             if ((int)enableDepthPrepass)
                 pm.depthWriteEnable(false)
                 .depthTestEnable(true)
-                .depthCompareOp(vk::CompareOp::eEqual);
+                .depthCompareOp(VK_COMPARE_OP_EQUAL);
             else
-                pm.depthWriteEnable(true).depthTestEnable(true).depthCompareOp(vk::CompareOp::eGreater);
+                pm.depthWriteEnable(true).depthTestEnable(true).depthCompareOp(VK_COMPARE_OP_GREATER);
 
             pm.blendBegin(false);
-            pm.frontFace(vk::FrontFace::eCounterClockwise);
+            pm.frontFace(VK_FRONT_FACE_COUNTER_CLOCKWISE);
             pm.subPass(1);
 
-            vk::PipelineMultisampleStateCreateInfo pmsci;
+            VkPipelineMultisampleStateCreateInfo pmsci{ VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO };
             pmsci.rasterizationSamples = msaaSamples;
             pm.multisampleState(pmsci);
 
-            pipeline = pm.createUnique(handles->device, handles->pipelineCache, *pipelineLayout, *renderPass);
+            pipeline = pm.create(handles->device, handles->pipelineCache, pipelineLayout, renderPass);
         }
 
         {
@@ -355,22 +357,22 @@ namespace worlds {
 
             standardSpecInfo.pData = &spc;
 
-            pm.shader(vk::ShaderStageFlagBits::eFragment, atFragmentShader, "main", &standardSpecInfo);
-            pm.shader(vk::ShaderStageFlagBits::eVertex, vertexShader);
+            pm.shader(VK_SHADER_STAGE_FRAGMENT_BIT, atFragmentShader, "main", &standardSpecInfo);
+            pm.shader(VK_SHADER_STAGE_VERTEX_BIT, vertexShader);
             setupVertexFormat(pm);
-            pm.cullMode(vk::CullModeFlagBits::eBack);
-            pm.depthWriteEnable(false).depthTestEnable(true).depthCompareOp(vk::CompareOp::eEqual);
+            pm.cullMode(VK_CULL_MODE_BACK_BIT);
+            pm.depthWriteEnable(false).depthTestEnable(true).depthCompareOp(VK_COMPARE_OP_EQUAL);
 
             pm.blendBegin(false);
-            pm.frontFace(vk::FrontFace::eCounterClockwise);
+            pm.frontFace(VK_FRONT_FACE_COUNTER_CLOCKWISE);
             pm.subPass(1);
 
-            vk::PipelineMultisampleStateCreateInfo pmsci;
+            VkPipelineMultisampleStateCreateInfo pmsci{ VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO };
             pmsci.rasterizationSamples = msaaSamples;
             pmsci.alphaToCoverageEnable = true;
             pm.multisampleState(pmsci);
 
-            alphaTestPipeline = pm.createUnique(handles->device, handles->pipelineCache, *pipelineLayout, *renderPass);
+            alphaTestPipeline = pm.create(handles->device, handles->pipelineCache, pipelineLayout, renderPass);
         }
 
         {
@@ -385,20 +387,20 @@ namespace worlds {
 
             standardSpecInfo.pData = &spc;
 
-            pm.shader(vk::ShaderStageFlagBits::eFragment, fragmentShader, "main", &standardSpecInfo);
-            pm.shader(vk::ShaderStageFlagBits::eVertex, vertexShader);
+            pm.shader(VK_SHADER_STAGE_FRAGMENT_BIT, fragmentShader, "main", &standardSpecInfo);
+            pm.shader(VK_SHADER_STAGE_VERTEX_BIT, vertexShader);
             setupVertexFormat(pm);
-            pm.cullMode(vk::CullModeFlagBits::eNone);
-            pm.depthWriteEnable(true).depthTestEnable(true).depthCompareOp(vk::CompareOp::eGreater);
+            pm.cullMode(VK_CULL_MODE_NONE);
+            pm.depthWriteEnable(true).depthTestEnable(true).depthCompareOp(VK_COMPARE_OP_GREATER);
             pm.blendBegin(false);
-            pm.frontFace(vk::FrontFace::eCounterClockwise);
+            pm.frontFace(VK_FRONT_FACE_COUNTER_CLOCKWISE);
             pm.subPass(1);
 
-            vk::PipelineMultisampleStateCreateInfo pmsci;
+            VkPipelineMultisampleStateCreateInfo pmsci{ VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO };
             pmsci.rasterizationSamples = msaaSamples;
             pmsci.alphaToCoverageEnable = true;
             pm.multisampleState(pmsci);
-            noBackfaceCullPipeline = pm.createUnique(handles->device, handles->pipelineCache, *pipelineLayout, *renderPass);
+            noBackfaceCullPipeline = pm.create(handles->device, handles->pipelineCache, pipelineLayout, renderPass);
         }
 
         {
@@ -408,48 +410,48 @@ namespace worlds {
             wireFragmentShader = ShaderCache::getModule(handles->device, wfsID);
 
             vku::PipelineMaker pm{ extent.width, extent.height };
-            pm.shader(vk::ShaderStageFlagBits::eFragment, wireFragmentShader);
-            pm.shader(vk::ShaderStageFlagBits::eVertex, wireVertexShader);
-            pm.depthWriteEnable(true).depthTestEnable(true).depthCompareOp(vk::CompareOp::eGreater);
+            pm.shader(VK_SHADER_STAGE_FRAGMENT_BIT, wireFragmentShader);
+            pm.shader(VK_SHADER_STAGE_VERTEX_BIT, wireVertexShader);
+            pm.depthWriteEnable(true).depthTestEnable(true).depthCompareOp(VK_COMPARE_OP_GREATER);
             pm.vertexBinding(0, (uint32_t)sizeof(Vertex));
-            pm.vertexAttribute(0, 0, vk::Format::eR32G32B32Sfloat, (uint32_t)offsetof(Vertex, position));
-            pm.vertexAttribute(1, 0, vk::Format::eR32G32Sfloat, (uint32_t)offsetof(Vertex, uv));
-            pm.polygonMode(vk::PolygonMode::eLine);
+            pm.vertexAttribute(0, 0, VK_FORMAT_R32G32B32_SFLOAT, (uint32_t)offsetof(Vertex, position));
+            pm.vertexAttribute(1, 0, VK_FORMAT_R32G32_SFLOAT, (uint32_t)offsetof(Vertex, uv));
+            pm.polygonMode(VK_POLYGON_MODE_LINE);
             pm.lineWidth(2.0f);
             pm.subPass(1);
 
-            vk::PipelineMultisampleStateCreateInfo pmsci;
+            VkPipelineMultisampleStateCreateInfo pmsci{ VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO };
             pmsci.rasterizationSamples = msaaSamples;
             pm.multisampleState(pmsci);
 
             vku::PipelineLayoutMaker plm;
-            plm.pushConstantRange(vk::ShaderStageFlagBits::eFragment | vk::ShaderStageFlagBits::eVertex, 0, sizeof(StandardPushConstants));
-            plm.descriptorSetLayout(*dsl);
-            wireframePipelineLayout = plm.createUnique(handles->device);
+            plm.pushConstantRange(VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(StandardPushConstants));
+            plm.descriptorSetLayout(dsl);
+            wireframePipelineLayout = plm.create(handles->device);
 
-            wireframePipeline = pm.createUnique(handles->device, handles->pipelineCache, *wireframePipelineLayout, *renderPass);
+            wireframePipeline = pm.create(handles->device, handles->pipelineCache, wireframePipelineLayout, renderPass);
         }
 
         dbgLinesPass = new DebugLinesPass(handles);
-        dbgLinesPass->setup(ctx, *renderPass, descriptorPool);
+        dbgLinesPass->setup(ctx, renderPass, descriptorPool);
 
         skyboxPass = new SkyboxPass(handles);
-        skyboxPass->setup(ctx, *renderPass, descriptorPool);
+        skyboxPass->setup(ctx, renderPass, descriptorPool);
 
         depthPrepass = new DepthPrepass(handles);
-        depthPrepass->setup(ctx, *renderPass, *pipelineLayout);
+        depthPrepass->setup(ctx, renderPass, pipelineLayout);
 
         uiPass = new WorldSpaceUIPass(handles);
-        uiPass->setup(ctx, *renderPass, descriptorPool);
+        uiPass->setup(ctx, renderPass, descriptorPool);
 
         updateDescriptorSets(ctx);
 
         if (ctx.passSettings.enableVR) {
             cullMeshRenderer = new VRCullMeshRenderer{ handles };
-            cullMeshRenderer->setup(ctx, *renderPass, descriptorPool);
+            cullMeshRenderer->setup(ctx, renderPass, descriptorPool);
         }
 
-        handles->device.setEvent(*pickEvent);
+        VKCHECK(vkSetEvent(handles->device, pickEvent));
     }
 
     slib::StaticAllocList<SubmeshDrawInfo> drawInfo{ 8192 };
@@ -565,15 +567,15 @@ namespace worlds {
                 auto& extraDat = resources.materials.getExtraDat(wo.materialIdx[i]);
 
                 if (extraDat.noCull) {
-                    sdi.pipeline = *noBackfaceCullPipeline;
+                    sdi.pipeline = noBackfaceCullPipeline;
                 } else if (extraDat.wireframe || showWireframe.getInt() == 1) {
-                    sdi.pipeline = *wireframePipeline;
+                    sdi.pipeline = wireframePipeline;
                 } else if (ctx.registry.has<UseWireframe>(ent) || showWireframe.getInt() == 2) {
-                    sdi.pipeline = *pipeline;
+                    sdi.pipeline = pipeline;
                     drawInfo.add(sdi);
-                    sdi.pipeline = *wireframePipeline;
+                    sdi.pipeline = wireframePipeline;
                 } else {
-                    sdi.pipeline = *pipeline;
+                    sdi.pipeline = pipeline;
                 }
                 ctx.debugContext.stats->numTriangles += currSubmesh.indexCount / 3;
 
@@ -659,56 +661,62 @@ namespace worlds {
         ZoneScoped;
         TracyVkZone((*ctx.tracyContexts)[ctx.imageIndex], *ctx.cmdBuf, "Polys");
 
-        std::array<float, 4> clearColorValue{ 0.0f, 0.0f, 0.0f, 1 };
-        vk::ClearDepthStencilValue clearDepthValue{ 0.0f, 0 };
-        std::array<vk::ClearValue, 2> clearColours{ vk::ClearValue(clearColorValue), clearDepthValue };
-        vk::RenderPassBeginInfo rpbi;
+        std::array<VkClearValue, 2> clearColours;
+        clearColours[0].color.float32[0] = 0.0f;
+        clearColours[0].color.float32[1] = 0.0f;
+        clearColours[0].color.float32[2] = 0.0f;
+        clearColours[0].color.float32[3] = 1.0f;
 
-        rpbi.renderPass = *renderPass;
-        rpbi.framebuffer = *renderFb;
-        rpbi.renderArea = vk::Rect2D{ {0, 0}, {ctx.passWidth, ctx.passHeight} };
+        clearColours[1].depthStencil.depth = 0.0f;
+        clearColours[1].depthStencil.stencil = 0.0f;
+
+        VkRenderPassBeginInfo rpbi{ VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
+
+        rpbi.renderPass = renderPass;
+        rpbi.framebuffer = renderFb;
+        rpbi.renderArea = VkRect2D{ {0, 0}, {ctx.passWidth, ctx.passHeight} };
         rpbi.clearValueCount = (uint32_t)clearColours.size();
         rpbi.pClearValues = clearColours.data();
 
-        vk::CommandBuffer cmdBuf = ctx.cmdBuf;
+        VkCommandBuffer cmdBuf = ctx.cmdBuf;
 
         lightsUB.barrier(
-            cmdBuf, vk::PipelineStageFlagBits::eHost, vk::PipelineStageFlagBits::eFragmentShader,
-            vk::DependencyFlagBits::eByRegion, vk::AccessFlagBits::eHostWrite, vk::AccessFlagBits::eUniformRead,
+            cmdBuf, VK_PIPELINE_STAGE_HOST_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+            VK_DEPENDENCY_BY_REGION_BIT, VK_ACCESS_HOST_WRITE_BIT, VK_ACCESS_UNIFORM_READ_BIT,
             VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED);
 
         if (pickThisFrame) {
-            pickingBuffer.barrier(cmdBuf, vk::PipelineStageFlagBits::eHost, vk::PipelineStageFlagBits::eTransfer,
-                vk::DependencyFlagBits::eByRegion,
-                vk::AccessFlagBits::eHostRead, vk::AccessFlagBits::eTransferWrite,
+            pickingBuffer.barrier(cmdBuf, VK_PIPELINE_STAGE_HOST_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
+                VK_DEPENDENCY_BY_REGION_BIT,
+                VK_ACCESS_HOST_READ_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
                 VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED);
 
             PickingBuffer pb;
             pb.objectID = ~0u;
-            cmdBuf.updateBuffer(pickingBuffer.buffer(), 0, sizeof(pb), &pb);
+            vkCmdUpdateBuffer(cmdBuf, pickingBuffer.buffer(), 0, sizeof(pb), &pb);
 
-            pickingBuffer.barrier(cmdBuf, vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eFragmentShader,
-                vk::DependencyFlagBits::eByRegion,
-                vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eShaderWrite | vk::AccessFlagBits::eShaderRead,
+            pickingBuffer.barrier(cmdBuf, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+                VK_DEPENDENCY_BY_REGION_BIT,
+                VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT,
                 VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED);
         }
 
-        ctx.resources.shadowCascades->image.barrier(cmdBuf, vk::PipelineStageFlagBits::eLateFragmentTests, vk::PipelineStageFlagBits::eFragmentShader,
-            vk::AccessFlagBits::eDepthStencilAttachmentRead | vk::AccessFlagBits::eDepthStencilAttachmentWrite,
-            vk::AccessFlagBits::eShaderRead);
+        ctx.resources.shadowCascades->image.barrier(cmdBuf, VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+            VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+            VK_ACCESS_SHADER_READ_BIT);
 
         if (setEventNextFrame) {
-            cmdBuf.setEvent(*pickEvent, vk::PipelineStageFlagBits::eAllCommands);
+            vkCmdSetEvent(cmdBuf, pickEvent, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
             setEventNextFrame = false;
         }
 
-        cmdBuf.beginRenderPass(rpbi, vk::SubpassContents::eInline);
+        vkCmdBeginRenderPass(cmdBuf, &rpbi, VK_SUBPASS_CONTENTS_INLINE);
 
         if (ctx.passSettings.enableVR) {
             cullMeshRenderer->draw(cmdBuf);
         }
 
-        cmdBuf.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 0, descriptorSets[ctx.imageIndex], nullptr);
+        vkCmdBindDescriptorSets(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[ctx.imageIndex], 0, nullptr);
 
         uint32_t globalMiscFlags = 0;
 
@@ -732,24 +740,24 @@ namespace worlds {
             depthPrepass->execute(ctx, drawInfo);
         }
 
-        cmdBuf.nextSubpass(vk::SubpassContents::eInline);
+        vkCmdNextSubpass(cmdBuf, VK_SUBPASS_CONTENTS_INLINE);
 
-        vk::DebugUtilsLabelEXT label;
+        VkDebugUtilsLabelEXT label{ VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT };
         label.pLabelName = "Main Pass";
         label.color[0] = 0.466f;
         label.color[1] = 0.211f;
         label.color[2] = 0.639f;
         label.color[3] = 1.0f;
-        cmdBuf.beginDebugUtilsLabelEXT(&label);
+        vkCmdBeginDebugUtilsLabelEXT(cmdBuf, &label);
 
-        cmdBuf.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline);
+        vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
         SubmeshDrawInfo last;
-        last.pipeline = *pipeline;
+        last.pipeline = pipeline;
         for (const auto& sdi : drawInfo) {
             ZoneScopedN("SDI cmdbuf write");
 
             if (last.pipeline != sdi.pipeline) {
-                cmdBuf.bindPipeline(vk::PipelineBindPoint::eGraphics, sdi.pipeline);
+                vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, sdi.pipeline);
                 ctx.debugContext.stats->numPipelineSwitches++;
             }
 
@@ -765,26 +773,27 @@ namespace worlds {
                 .cubemapIdx = sdi.cubemapIdx
             };
 
-            cmdBuf.pushConstants<StandardPushConstants>(*pipelineLayout, vk::ShaderStageFlagBits::eFragment | vk::ShaderStageFlagBits::eVertex, 0, pushConst);
-            cmdBuf.bindVertexBuffers(0, sdi.vb, vk::DeviceSize(0));
-            cmdBuf.bindIndexBuffer(sdi.ib, 0, vk::IndexType::eUint32);
-            cmdBuf.drawIndexed(sdi.indexCount, 1, sdi.indexOffset, 0, 0);
+            vkCmdPushConstants(cmdBuf, pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(pushConst), &pushConst);
+            VkDeviceSize offset = 0;
+            vkCmdBindVertexBuffers(cmdBuf, 0, 1, &sdi.vb, &offset);
+            vkCmdBindIndexBuffer(cmdBuf, sdi.ib, 0, VK_INDEX_TYPE_UINT32);
+            vkCmdDrawIndexed(cmdBuf, sdi.indexCount, 1, sdi.indexOffset, 0, 0);
 
             last = sdi;
             ctx.debugContext.stats->numDrawCalls++;
         }
-        cmdBuf.endDebugUtilsLabelEXT();
+        vkCmdEndDebugUtilsLabelEXT(cmdBuf);
 
         dbgLinesPass->execute(ctx);
         skyboxPass->execute(ctx);
         uiPass->execute(ctx);
 
-        cmdBuf.endRenderPass();
-        polyImage->image.setCurrentLayout(vk::ImageLayout::eShaderReadOnlyOptimal, vk::PipelineStageFlagBits::eColorAttachmentOutput, vk::AccessFlagBits::eColorAttachmentWrite);
-        depthStencilImage->image.setCurrentLayout(vk::ImageLayout::eDepthStencilAttachmentOptimal, vk::PipelineStageFlagBits::eEarlyFragmentTests, vk::AccessFlagBits::eDepthStencilAttachmentWrite);
+        vkCmdEndRenderPass(cmdBuf);
+        polyImage->image.setCurrentLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT);
+        depthStencilImage->image.setCurrentLayout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
 
         if (pickThisFrame) {
-            cmdBuf.resetEvent(*pickEvent, vk::PipelineStageFlagBits::eBottomOfPipe);
+            vkCmdResetEvent(cmdBuf, pickEvent, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
             pickThisFrame = false;
         }
     }
@@ -796,16 +805,15 @@ namespace worlds {
     }
 
     bool PolyRenderPass::getPickedEnt(uint32_t* entOut) {
-        auto device = pickEvent.getOwner(); // bleh
-        vk::Result pickEvtRes = pickEvent.getOwner().getEventStatus(*pickEvent);
+        VkResult pickEvtRes = vkGetEventStatus(handles->device, pickEvent);
 
-        if (pickEvtRes != vk::Result::eEventReset)
+        if (pickEvtRes != VK_EVENT_RESET)
             return false;
 
-        PickingBuffer* pickBuf = (PickingBuffer*)pickingBuffer.map(device);
+        PickingBuffer* pickBuf = (PickingBuffer*)pickingBuffer.map(handles->device);
         *entOut = pickBuf->objectID;
 
-        pickingBuffer.unmap(device);
+        pickingBuffer.unmap(handles->device);
 
         setEventNextFrame = true;
         awaitingResults = false;

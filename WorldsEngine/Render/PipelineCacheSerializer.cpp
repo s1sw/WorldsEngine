@@ -20,9 +20,9 @@ namespace worlds {
         uint8_t uuid[VK_UUID_SIZE]; // equal to VkPhysicalDeviceProperties::pipelineCacheUUID
     };
 
-    std::string getPipelineCachePath(const vk::PhysicalDeviceProperties& physDevProps) {
+    std::string getPipelineCachePath(const VkPhysicalDeviceProperties& physDevProps) {
         char* base_path = SDL_GetPrefPath("Someone Somewhere", "Worlds Engine");
-        std::string ret = base_path + std::string((char*)physDevProps.deviceName.data()) + "-pipelinecache.wplc";
+        std::string ret = base_path + std::string(physDevProps.deviceName) + "-pipelinecache.wplc";
 
         SDL_free(base_path);
 
@@ -30,9 +30,11 @@ namespace worlds {
     }
 
     void PipelineCacheSerializer::loadPipelineCache(
-        const vk::PhysicalDeviceProperties& physDevProps,
-        vk::PipelineCacheCreateInfo& pcci) {
+        const VkPhysicalDeviceProperties& physDevProps,
+        VkPipelineCacheCreateInfo& pcci) {
         std::string pipelineCachePath = getPipelineCachePath(physDevProps);
+
+        pcci.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
 
         FILE* f = fopen(pipelineCachePath.c_str(), "rb");
 
@@ -76,24 +78,30 @@ namespace worlds {
     }
 
     void PipelineCacheSerializer::savePipelineCache(
-        const vk::PhysicalDeviceProperties& physDevProps,
-        const vk::PipelineCache& cache,
-        const vk::Device& dev) {
-        auto dat = dev.getPipelineCacheData(cache);
+        const VkPhysicalDeviceProperties& physDevProps,
+        const VkPipelineCache& cache,
+        const VkDevice& dev) {
+        size_t pipelineCacheSize;
+        VKCHECK(vkGetPipelineCacheData(dev, cache, &pipelineCacheSize, nullptr));
+
+        void* dat = malloc(pipelineCacheSize);
+        VKCHECK(vkGetPipelineCacheData(dev, cache, &pipelineCacheSize, dat));
 
         PipelineCacheDataHeader pipelineCacheHeader{};
-        pipelineCacheHeader.dataSize = dat.size();
+        pipelineCacheHeader.dataSize = pipelineCacheSize;
         pipelineCacheHeader.vendorID = physDevProps.vendorID;
         pipelineCacheHeader.deviceID = physDevProps.deviceID;
         pipelineCacheHeader.driverVersion = physDevProps.driverVersion;
-        memcpy(pipelineCacheHeader.uuid, physDevProps.pipelineCacheUUID.data(), VK_UUID_SIZE);
+        memcpy(pipelineCacheHeader.uuid, physDevProps.pipelineCacheUUID, VK_UUID_SIZE);
 
         std::string pipelineCachePath = getPipelineCachePath(physDevProps);
         FILE* f = fopen(pipelineCachePath.c_str(), "wb");
         fwrite(&pipelineCacheHeader, sizeof(pipelineCacheHeader), 1, f);
 
-        fwrite(dat.data(), dat.size(), 1, f);
+        fwrite(dat, pipelineCacheSize, 1, f);
         fclose(f);
+
+        free(dat);
 
         logMsg(WELogCategoryRender, "Saved pipeline cache to %s", pipelineCachePath.c_str());
     }

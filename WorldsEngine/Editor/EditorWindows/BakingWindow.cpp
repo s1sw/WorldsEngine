@@ -70,15 +70,16 @@ namespace worlds {
         bool isCubemapLoaded = resources.cubemaps.isLoaded(cubemapId);
 
         VulkanHandles* vkHandles = renderer->getHandles();
-        vk::Queue queue = vkHandles->device.getQueue(vkHandles->graphicsQueueFamilyIdx, 0);
+        VkQueue queue;
+        vkGetDeviceQueue(vkHandles->device, vkHandles->graphicsQueueFamilyIdx, 0, &queue);
 
         if (isCubemapLoaded) {
             auto idx = resources.cubemaps.get(cubemapId);
             vku::TextureImageCube& loadedCube = resources.cubemaps[idx];
 
-            vku::executeImmediately(vkHandles->device, vkHandles->commandPool, queue, [&](vk::CommandBuffer cmdBuf) {
-                loadedCube.setLayout(cmdBuf, vk::ImageLayout::eTransferDstOptimal, vk::PipelineStageFlagBits::eTransfer,
-                    vk::AccessFlagBits::eTransferWrite);
+            vku::executeImmediately(vkHandles->device, vkHandles->commandPool, queue, [&](VkCommandBuffer cmdBuf) {
+                loadedCube.setLayout(cmdBuf, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_PIPELINE_STAGE_TRANSFER_BIT,
+                    VK_PIPELINE_STAGE_TRANSFER_BIT);
                 });
         }
 
@@ -99,27 +100,27 @@ namespace worlds {
                     auto idx = resources.cubemaps.get(cubemapId);
                     vku::TextureImageCube& loadedCube = resources.cubemaps[idx];
 
-                    vk::ImageBlit ib;
-                    ib.dstSubresource = vk::ImageSubresourceLayers{ vk::ImageAspectFlagBits::eColor, 0, (uint32_t)i, 1 };
-                    ib.dstOffsets[0] = vk::Offset3D{ 0, 0, 0 };
-                    ib.dstOffsets[1] = vk::Offset3D{ (int)loadedCube.extent().width, (int)loadedCube.extent().height, 1 };
-                    ib.srcSubresource = vk::ImageSubresourceLayers{ vk::ImageAspectFlagBits::eColor, 0, 0, 6 };
-                    ib.srcOffsets[0] = vk::Offset3D{ 0, 0, 0 };
-                    ib.srcOffsets[1] = vk::Offset3D{ (int)rttPass->width, (int)rttPass->height, 1 };
+                    VkImageBlit ib;
+                    ib.dstSubresource = VkImageSubresourceLayers{ VK_IMAGE_ASPECT_COLOR_BIT, 0, (uint32_t)i, 1 };
+                    ib.dstOffsets[0] = VkOffset3D{ 0, 0, 0 };
+                    ib.dstOffsets[1] = VkOffset3D{ (int)loadedCube.extent().width, (int)loadedCube.extent().height, 1 };
+                    ib.srcSubresource = VkImageSubresourceLayers{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 6 };
+                    ib.srcOffsets[0] = VkOffset3D{ 0, 0, 0 };
+                    ib.srcOffsets[1] = VkOffset3D{ (int)rttPass->width, (int)rttPass->height, 1 };
 
-                    vku::executeImmediately(vkHandles->device, vkHandles->commandPool, queue, [&](vk::CommandBuffer cb) {
+                    vku::executeImmediately(vkHandles->device, vkHandles->commandPool, queue, [&](VkCommandBuffer cb) {
                         vku::GenericImage& srcImg = rttPass->hdrTarget->image;
 
-                        srcImg.setLayout(cb, vk::ImageLayout::eTransferSrcOptimal,
-                            vk::PipelineStageFlagBits::eTransfer,
-                            vk::AccessFlagBits::eTransferRead);
+                        srcImg.setLayout(cb, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                            VK_PIPELINE_STAGE_TRANSFER_BIT,
+                            VK_ACCESS_TRANSFER_READ_BIT);
 
-                        cb.blitImage(srcImg.image(), vk::ImageLayout::eTransferSrcOptimal, loadedCube.image(),
-                            vk::ImageLayout::eTransferDstOptimal, ib, vk::Filter::eLinear);
+                        vkCmdBlitImage(cb, srcImg.image(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, loadedCube.image(),
+                            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &ib, VK_FILTER_LINEAR);
 
                         srcImg.setLayout(cb,
-                            vk::ImageLayout::eColorAttachmentOptimal, vk::PipelineStageFlagBits::eColorAttachmentOutput,
-                            vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite);
+                            VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                            VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT);
                         });
                 }
 

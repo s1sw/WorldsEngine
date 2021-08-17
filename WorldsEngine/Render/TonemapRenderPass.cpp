@@ -21,51 +21,51 @@ namespace worlds {
 
     }
 
-    void TonemapRenderPass::setup(RenderContext& ctx, vk::DescriptorPool descriptorPool) {
+    void TonemapRenderPass::setup(RenderContext& ctx, VkDescriptorPool descriptorPool) {
         dsPool = descriptorPool;
         vku::DescriptorSetLayoutMaker tonemapDslm;
-        tonemapDslm.image(0, vk::DescriptorType::eStorageImage, vk::ShaderStageFlagBits::eCompute, 1);
-        tonemapDslm.image(1, vk::DescriptorType::eCombinedImageSampler, vk::ShaderStageFlagBits::eCompute, 1);
+        tonemapDslm.image(0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_SHADER_STAGE_COMPUTE_BIT, 1);
+        tonemapDslm.image(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_COMPUTE_BIT, 1);
 
-        dsl = tonemapDslm.createUnique(handles->device);
+        dsl = tonemapDslm.create(handles->device);
 
         auto msaaSamples = hdrImg->image.info().samples;
         std::string shaderName = (int)msaaSamples > 1 ? "tonemap.comp.spv" : "tonemap_nomsaa.comp.spv";
         tonemapShader = ShaderCache::getModule(handles->device, AssetDB::pathToId("Shaders/" + shaderName));
 
         vku::PipelineLayoutMaker plm;
-        plm.descriptorSetLayout(*dsl);
-        plm.pushConstantRange(vk::ShaderStageFlagBits::eCompute, 0, sizeof(TonemapPushConstants));
+        plm.descriptorSetLayout(dsl);
+        plm.pushConstantRange(VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(TonemapPushConstants));
 
-        pipelineLayout = plm.createUnique(handles->device);
+        pipelineLayout = plm.create(handles->device);
 
         vku::ComputePipelineMaker cpm;
-        cpm.shader(vk::ShaderStageFlagBits::eCompute, tonemapShader);
-        vk::SpecializationMapEntry samplesEntry{ 0, 0, sizeof(int32_t) };
-        vk::SpecializationInfo si;
+        cpm.shader(VK_SHADER_STAGE_COMPUTE_BIT, tonemapShader);
+        VkSpecializationMapEntry samplesEntry{ 0, 0, sizeof(int32_t) };
+        VkSpecializationInfo si;
         si.dataSize = sizeof(msaaSamples);
         si.mapEntryCount = 1;
         si.pMapEntries = &samplesEntry;
         si.pData = &msaaSamples;
         cpm.specializationInfo(si);
 
-        pipeline = cpm.createUnique(handles->device, handles->pipelineCache, *pipelineLayout);
+        pipeline = cpm.create(handles->device, handles->pipelineCache, pipelineLayout);
 
         vku::DescriptorSetMaker dsm;
-        dsm.layout(*dsl);
-        descriptorSet = std::move(dsm.createUnique(handles->device, descriptorPool)[0]);
+        dsm.layout(dsl);
+        descriptorSet = std::move(dsm.create(handles->device, descriptorPool)[0]);
 
         vku::SamplerMaker sm;
-        sampler = sm.createUnique(handles->device);
+        sampler = sm.create(handles->device);
 
         vku::DescriptorSetUpdater dsu;
-        dsu.beginDescriptorSet(*descriptorSet);
+        dsu.beginDescriptorSet(descriptorSet);
 
-        dsu.beginImages(0, 0, vk::DescriptorType::eStorageImage);
-        dsu.image(*sampler, finalPrePresent->image.imageView(), vk::ImageLayout::eGeneral);
+        dsu.beginImages(0, 0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
+        dsu.image(sampler, finalPrePresent->image.imageView(), VK_IMAGE_LAYOUT_GENERAL);
 
-        dsu.beginImages(1, 0, vk::DescriptorType::eCombinedImageSampler);
-        dsu.image(*sampler, hdrImg->image.imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
+        dsu.beginImages(1, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+        dsu.image(sampler, hdrImg->image.imageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
         dsu.update(handles->device);
     }
@@ -77,61 +77,61 @@ namespace worlds {
 #endif
         auto& cmdBuf = ctx.cmdBuf;
 
-        vk::DebugUtilsLabelEXT label;
+        VkDebugUtilsLabelEXT label{ VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT };
         label.pLabelName = "Tonemap Render Pass";
         label.color[0] = 0.760f;
         label.color[1] = 0.298f;
         label.color[2] = 0.411f;
         label.color[3] = 1.0f;
-        cmdBuf.beginDebugUtilsLabelEXT(&label);
+        vkCmdBeginDebugUtilsLabelEXT(cmdBuf, &label);
 
         finalPrePresent->image.setLayout(cmdBuf,
-            vk::ImageLayout::eGeneral,
-            vk::PipelineStageFlagBits::eComputeShader,
-            vk::AccessFlagBits::eShaderWrite);
+            VK_IMAGE_LAYOUT_GENERAL,
+            VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+            VK_ACCESS_SHADER_WRITE_BIT);
 
-        cmdBuf.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pipelineLayout, 0, *descriptorSet, nullptr);
-        cmdBuf.bindPipeline(vk::PipelineBindPoint::eCompute, *pipeline);
+        vkCmdBindDescriptorSets(cmdBuf, VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
+        vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline);
         TonemapPushConstants tpc{ 0, exposureBias.getFloat() };
-        cmdBuf.pushConstants<TonemapPushConstants>(*pipelineLayout, vk::ShaderStageFlagBits::eCompute, 0, tpc);
+        vkCmdPushConstants(cmdBuf, pipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(tpc), &tpc);
 
-        cmdBuf.dispatch((ctx.passWidth + 15) / 16, (ctx.passHeight + 15) / 16, 1);
+        vkCmdDispatch(cmdBuf, (ctx.passWidth + 15) / 16, (ctx.passHeight + 15) / 16, 1);
 
         if (ctx.passSettings.enableVR) {
             finalPrePresentR->image.setLayout(cmdBuf,
-                vk::ImageLayout::eGeneral,
-                vk::PipelineStageFlagBits::eComputeShader,
-                vk::AccessFlagBits::eShaderWrite);
+                VK_IMAGE_LAYOUT_GENERAL,
+                VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                VK_ACCESS_SHADER_WRITE_BIT);
 
-            cmdBuf.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pipelineLayout, 0, *rDescriptorSet, nullptr);
+            vkCmdBindDescriptorSets(cmdBuf, VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, 0, 1, &rDescriptorSet, 0, nullptr);
             TonemapPushConstants tpc{ 1, exposureBias.getFloat() };
-            cmdBuf.pushConstants<TonemapPushConstants>(*pipelineLayout, vk::ShaderStageFlagBits::eCompute, 0, tpc);
-            cmdBuf.dispatch((ctx.passWidth + 15) / 16, (ctx.passHeight + 15) / 16, 1);
+            vkCmdPushConstants(cmdBuf, pipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(tpc), &tpc);
+            vkCmdDispatch(cmdBuf, (ctx.passWidth + 15) / 16, (ctx.passHeight + 15) / 16, 1);
         }
 
         finalPrePresent->image.setLayout(cmdBuf,
-            vk::ImageLayout::eColorAttachmentOptimal,
-            vk::PipelineStageFlagBits::eComputeShader, vk::PipelineStageFlagBits::eColorAttachmentOutput,
-            vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite);
+            VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+            VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+            VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT);
 
-        cmdBuf.endDebugUtilsLabelEXT();
+        vkCmdEndDebugUtilsLabelEXT(cmdBuf);
     }
 
     void TonemapRenderPass::setRightFinalImage(RenderTexture* right) {
         vku::DescriptorSetMaker dsm;
-        dsm.layout(*dsl);
-        rDescriptorSet = std::move(dsm.createUnique(handles->device, dsPool)[0]);
+        dsm.layout(dsl);
+        rDescriptorSet = std::move(dsm.create(handles->device, dsPool)[0]);
 
         vku::DescriptorSetUpdater dsu;
-        dsu.beginDescriptorSet(*rDescriptorSet);
+        dsu.beginDescriptorSet(rDescriptorSet);
 
         finalPrePresentR = right;
 
-        dsu.beginImages(0, 0, vk::DescriptorType::eStorageImage);
-        dsu.image(*sampler, finalPrePresentR->image.imageView(), vk::ImageLayout::eGeneral);
+        dsu.beginImages(0, 0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
+        dsu.image(sampler, finalPrePresentR->image.imageView(), VK_IMAGE_LAYOUT_GENERAL);
 
-        dsu.beginImages(1, 0, vk::DescriptorType::eCombinedImageSampler);
-        dsu.image(*sampler, hdrImg->image.imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
+        dsu.beginImages(1, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+        dsu.image(sampler, hdrImg->image.imageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
         dsu.update(handles->device);
     }

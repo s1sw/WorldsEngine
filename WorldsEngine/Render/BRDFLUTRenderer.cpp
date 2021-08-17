@@ -6,23 +6,23 @@ namespace worlds {
 
     BRDFLUTRenderer::BRDFLUTRenderer(VulkanHandles& ctx) {
         vku::RenderpassMaker rpm;
-        rpm.attachmentBegin(vk::Format::eR16G16Sfloat);
-        rpm.attachmentLoadOp(vk::AttachmentLoadOp::eDontCare);
-        rpm.attachmentStoreOp(vk::AttachmentStoreOp::eStore);
-        rpm.attachmentFinalLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
+        rpm.attachmentBegin(VK_FORMAT_R16G16_SFLOAT);
+        rpm.attachmentLoadOp(VK_ATTACHMENT_LOAD_OP_DONT_CARE);
+        rpm.attachmentStoreOp(VK_ATTACHMENT_STORE_OP_STORE);
+        rpm.attachmentFinalLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
-        rpm.subpassBegin(vk::PipelineBindPoint::eGraphics);
-        rpm.subpassColorAttachment(vk::ImageLayout::eColorAttachmentOptimal, 0);
+        rpm.subpassBegin(VK_PIPELINE_BIND_POINT_GRAPHICS);
+        rpm.subpassColorAttachment(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, 0);
 
         rpm.dependencyBegin(VK_SUBPASS_EXTERNAL, 0);
-        rpm.dependencySrcStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput);
-        rpm.dependencyDstStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput);
-        rpm.dependencyDstAccessMask(vk::AccessFlagBits::eColorAttachmentWrite);
+        rpm.dependencySrcStageMask(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
+        rpm.dependencyDstStageMask(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
+        rpm.dependencyDstAccessMask(VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT);
 
-        renderPass = rpm.createUnique(ctx.device);
+        renderPass = rpm.create(ctx.device);
 
         vku::PipelineLayoutMaker plm;
-        pipelineLayout = plm.createUnique(ctx.device);
+        pipelineLayout = plm.create(ctx.device);
 
         AssetID vsId = AssetDB::pathToId("Shaders/full_tri.vert.spv");
         AssetID fsId = AssetDB::pathToId("Shaders/brdf_lut.frag.spv");
@@ -31,39 +31,43 @@ namespace worlds {
         vs = vku::loadShaderAsset(ctx.device, vsId);
 
         vku::PipelineMaker pm{ BRDF_LUT_RES, BRDF_LUT_RES };
-        pm.shader(vk::ShaderStageFlagBits::eFragment, fs);
-        pm.shader(vk::ShaderStageFlagBits::eVertex, vs);
+        pm.shader(VK_SHADER_STAGE_FRAGMENT_BIT, fs);
+        pm.shader(VK_SHADER_STAGE_VERTEX_BIT, vs);
 
-        pm.cullMode(vk::CullModeFlagBits::eNone);
-        pipeline = pm.createUnique(ctx.device, ctx.pipelineCache, *pipelineLayout, *renderPass);
+        pm.cullMode(VK_CULL_MODE_NONE);
+        pipeline = pm.create(ctx.device, ctx.pipelineCache, pipelineLayout, renderPass);
     }
 
     void BRDFLUTRenderer::render(VulkanHandles& ctx, vku::GenericImage& target) {
-        vk::FramebufferCreateInfo fci;
+        VkFramebufferCreateInfo fci{ VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
         fci.attachmentCount = 1;
-        vk::ImageView targetView = target.imageView();
+        VkImageView targetView = target.imageView();
         fci.pAttachments = &targetView;
         fci.width = target.extent().width;
         fci.height = target.extent().height;
-        fci.renderPass = *renderPass;
+        fci.renderPass = renderPass;
         fci.layers = 1;
 
-        auto fb = ctx.device.createFramebufferUnique(fci);
+        VkFramebuffer fb;
+        VKCHECK(vkCreateFramebuffer(ctx.device, &fci, nullptr, &fb));
 
-        vku::executeImmediately(ctx.device, ctx.commandPool, ctx.device.getQueue(ctx.graphicsQueueFamilyIdx, 0), [&](vk::CommandBuffer cb) {
-            vk::RenderPassBeginInfo rpbi;
-            rpbi.renderPass = *renderPass;
-            rpbi.framebuffer = *fb;
-            rpbi.renderArea = vk::Rect2D{ {0, 0}, {BRDF_LUT_RES, BRDF_LUT_RES} };
+        VkQueue queue;
+        vkGetDeviceQueue(ctx.device, ctx.graphicsQueueFamilyIdx, 0, &queue);
+
+        vku::executeImmediately(ctx.device, ctx.commandPool, queue, [&](VkCommandBuffer cb) {
+            VkRenderPassBeginInfo rpbi{ VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
+            rpbi.renderPass = renderPass;
+            rpbi.framebuffer = fb;
+            rpbi.renderArea = VkRect2D{ {0, 0}, {BRDF_LUT_RES, BRDF_LUT_RES} };
             rpbi.clearValueCount = 0;
             rpbi.pClearValues = nullptr;
 
-            cb.beginRenderPass(rpbi, vk::SubpassContents::eInline);
-            cb.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline);
-            cb.draw(3, 1, 0, 0);
-            cb.endRenderPass();
+            vkCmdBeginRenderPass(cb, &rpbi, VK_SUBPASS_CONTENTS_INLINE);
+            vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+            vkCmdDraw(cb, 3, 1, 0, 0);
+            vkCmdEndRenderPass(cb);
             });
 
-        fb.reset();
+        vkDestroyFramebuffer(ctx.device, fb, nullptr);
     }
 }

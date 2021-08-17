@@ -1,9 +1,9 @@
 #include "ShaderCache.hpp"
 
 namespace worlds {
-    std::unordered_map<AssetID, vk::ShaderModule> ShaderCache::modules;
-    vk::Device ShaderCache::device;
-    vk::ShaderModule ShaderCache::getModule(vk::Device& dev, AssetID id) {
+    std::unordered_map<AssetID, VkShaderModule> ShaderCache::modules;
+    VkDevice ShaderCache::device;
+    VkShaderModule ShaderCache::getModule(VkDevice& dev, AssetID id) {
         auto it = modules.find(id);
 
         if (it != modules.end())
@@ -22,11 +22,12 @@ namespace worlds {
         assert(readBytes == size);
         PHYSFS_close(file);
 
-        vk::ShaderModuleCreateInfo smci;
+        VkShaderModuleCreateInfo smci{ VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO };
         smci.codeSize = size;
         smci.pCode = (const uint32_t*)buffer;
 
-        auto mod = dev.createShaderModule(smci);
+        VkShaderModule mod;
+        VKCHECK(vkCreateShaderModule(dev, &smci, nullptr, &mod));
 
         std::free(buffer);
 
@@ -39,7 +40,7 @@ namespace worlds {
 
     void ShaderCache::clear() {
         for (auto& p : modules) {
-            device.destroyShaderModule(p.second);
+            vkDestroyShaderModule(device, p.second, nullptr);
         }
 
         modules.clear();

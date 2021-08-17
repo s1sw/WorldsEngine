@@ -86,7 +86,7 @@ namespace worlds {
         vku::VertexBuffer vb;
         vku::IndexBuffer ib;
         uint32_t indexCount;
-        vk::IndexType indexType;
+        VkIndexType indexType;
         SubmeshInfo submeshes[NUM_SUBMESH_MATS];
         uint8_t numSubmeshes;
         float sphereRadius;
@@ -96,18 +96,18 @@ namespace worlds {
 
     class Swapchain {
     public:
-        Swapchain(vk::PhysicalDevice&, vk::Device&, vk::SurfaceKHR&, QueueFamilyIndices qfi, bool fullscreen, vk::SwapchainKHR oldSwapchain = vk::SwapchainKHR(), vk::PresentModeKHR presentMode = vk::PresentModeKHR::eFifo);
+        Swapchain(VkPhysicalDevice&, VkDevice, VkSurfaceKHR&, QueueFamilyIndices qfi, bool fullscreen, VkSwapchainKHR oldSwapchain = VkSwapchainKHR(), VkPresentModeKHR presentMode = VK_PRESENT_MODE_FIFO_KHR);
         ~Swapchain();
         void getSize(uint32_t* x, uint32_t* y) { *x = width; *y = height; }
-        vk::Result acquireImage(vk::Device& device, vk::Semaphore semaphore, uint32_t* imageIndex);
-        vk::UniqueSwapchainKHR& getSwapchain() { return swapchain; }
-        vk::Format imageFormat() { return format; }
-        std::vector<vk::Image> images;
-        std::vector<vk::ImageView> imageViews;
+        VkResult acquireImage(VkDevice device, VkSemaphore semaphore, uint32_t* imageIndex);
+        VkSwapchainKHR& getSwapchain() { return swapchain; }
+        VkFormat imageFormat() { return format; }
+        std::vector<VkImage> images;
+        std::vector<VkImageView> imageViews;
     private:
-        vk::Device& device;
-        vk::UniqueSwapchainKHR swapchain;
-        vk::Format format;
+        VkDevice& device;
+        VkSwapchainKHR swapchain;
+        VkFormat format;
         uint32_t width;
         uint32_t height;
     };
@@ -115,12 +115,12 @@ namespace worlds {
     // Holds handles to useful Vulkan objects
     struct VulkanHandles {
         VKVendor vendor;
-        vk::PhysicalDevice physicalDevice;
-        vk::Device device;
-        vk::PipelineCache pipelineCache;
-        vk::DescriptorPool descriptorPool;
-        vk::CommandPool commandPool;
-        vk::Instance instance;
+        VkPhysicalDevice physicalDevice;
+        VkDevice device;
+        VkPipelineCache pipelineCache;
+        VkDescriptorPool descriptorPool;
+        VkCommandPool commandPool;
+        VkInstance instance;
         VmaAllocator allocator;
         uint32_t graphicsQueueFamilyIdx;
         GraphicsSettings graphicsSettings;
@@ -129,15 +129,15 @@ namespace worlds {
     };
 
     struct RTResourceCreateInfo {
-        vk::ImageCreateInfo ici;
-        vk::ImageViewType viewType;
-        vk::ImageAspectFlagBits aspectFlags;
+        VkImageCreateInfo ici;
+        VkImageViewType viewType;
+        VkImageAspectFlagBits aspectFlags;
     };
 
     class RenderTexture {
     public:
         vku::GenericImage image;
-        vk::ImageAspectFlagBits aspectFlags;
+        VkImageAspectFlagBits aspectFlags;
     private:
         RenderTexture(VulkanHandles* ctx, RTResourceCreateInfo resourceCreateInfo, const char* debugName);
         friend class VKRenderer;
@@ -165,7 +165,7 @@ namespace worlds {
         glm::mat4 projMatrices[2];
         glm::mat4 viewMatrices[2];
 
-        vk::CommandBuffer cmdBuf;
+        VkCommandBuffer cmdBuf;
         uint32_t passWidth;
         uint32_t passHeight;
         uint32_t imageIndex;
@@ -177,9 +177,9 @@ namespace worlds {
         BRDFLUTRenderer(VulkanHandles& ctx);
         void render(VulkanHandles& ctx, vku::GenericImage& target);
     private:
-        vk::UniqueRenderPass renderPass;
-        vk::UniquePipeline pipeline;
-        vk::UniquePipelineLayout pipelineLayout;
+        VkRenderPass renderPass;
+        VkPipeline pipeline;
+        VkPipelineLayout pipelineLayout;
 
         vku::ShaderModule vs;
         vku::ShaderModule fs;
@@ -191,17 +191,17 @@ namespace worlds {
         void convolute(vku::TextureImageCube& cubemap);
     private:
         vku::ShaderModule cs;
-        vk::UniquePipeline pipeline;
-        vk::UniquePipelineLayout pipelineLayout;
-        vk::UniqueDescriptorSetLayout dsl;
+        VkPipeline pipeline;
+        VkPipelineLayout pipelineLayout;
+        VkDescriptorSetLayout dsl;
         std::shared_ptr<VulkanHandles> vkCtx;
-        vk::UniqueSampler sampler;
+        VkSampler sampler;
     };
 
     class PipelineCacheSerializer {
     public:
-        static void loadPipelineCache(const vk::PhysicalDeviceProperties&, vk::PipelineCacheCreateInfo&);
-        static void savePipelineCache(const vk::PhysicalDeviceProperties&, const vk::PipelineCache&, const vk::Device&);
+        static void loadPipelineCache(const VkPhysicalDeviceProperties&, VkPipelineCacheCreateInfo&);
+        static void savePipelineCache(const VkPhysicalDeviceProperties&, const VkPipelineCache&, const VkDevice&);
     };
 
     class VKRenderer;
@@ -227,8 +227,8 @@ namespace worlds {
         VKRenderer* renderer;
         IVRInterface* vrInterface;
         RenderDebugStats* dbgStats;
-        void writeCmds(uint32_t frameIdx, vk::CommandBuffer buf, entt::registry& world);
-        vk::UniqueDescriptorPool descriptorPool;
+        void writeCmds(uint32_t frameIdx, VkCommandBuffer buf, entt::registry& world);
+        VkDescriptorPool descriptorPool;
 
         friend class VKRenderer;
     };
@@ -252,29 +252,29 @@ namespace worlds {
             Camera* cam;
         };
 
-        vk::UniqueInstance instance;
-        vk::PhysicalDevice physicalDevice;
-        vk::UniqueDevice device;
-        vk::UniquePipelineCache pipelineCache;
-        vk::UniqueDescriptorPool descriptorPool;
-        vk::SurfaceKHR surface;
-        std::unique_ptr<Swapchain> swapchain;
+        VkInstance instance;
+        VkPhysicalDevice physicalDevice;
+        VkDevice device;
+        VkPipelineCache pipelineCache;
+        VkDescriptorPool descriptorPool;
+        VkSurfaceKHR surface;
+        Swapchain* swapchain;
         vku::DebugCallback dbgCallback;
         uint32_t graphicsQueueFamilyIdx;
         uint32_t presentQueueFamilyIdx;
         uint32_t asyncComputeQueueFamilyIdx;
         uint32_t width, height;
-        vk::SampleCountFlagBits msaaSamples;
+        VkSampleCountFlagBits msaaSamples;
         int32_t numMSAASamples;
-        vk::UniqueRenderPass imguiRenderPass;
-        std::vector<vk::UniqueFramebuffer> framebuffers;
-        vk::UniqueCommandPool commandPool;
-        std::vector<vk::UniqueCommandBuffer> cmdBufs;
+        VkRenderPass imguiRenderPass;
+        std::vector<VkFramebuffer> framebuffers;
+        VkCommandPool commandPool;
+        std::vector<VkCommandBuffer> cmdBufs;
         int maxFramesInFlight = 2;
-        std::vector<vk::Semaphore> cmdBufferSemaphores;
-        std::vector<vk::Semaphore> imgAvailable;
-        std::vector<vk::Fence> cmdBufFences;
-        std::vector<vk::Fence> imgFences;
+        std::vector<VkSemaphore> cmdBufferSemaphores;
+        std::vector<VkSemaphore> imgAvailable;
+        std::vector<VkFence> cmdBufFences;
+        std::vector<VkFence> imgFences;
         VmaAllocator allocator;
         vku::GenericBuffer materialUB;
         vku::GenericBuffer vpBuffer;
@@ -289,9 +289,9 @@ namespace worlds {
         RenderTexture* shadowImages[NUM_SHADOW_LIGHTS];
         RenderTexture* imguiImage;
 
-        std::vector<vk::DescriptorSet> descriptorSets;
+        std::vector<VkDescriptorSet> descriptorSets;
         SDL_Window* window;
-        vk::UniqueQueryPool queryPool;
+        VkQueryPool queryPool;
         uint64_t lastRenderTimeTicks;
         float timestampPeriod;
 
@@ -322,7 +322,7 @@ namespace worlds {
         AdditionalShadowsPass* additionalShadowsPass;
         void* rdocApi;
 
-        void createSwapchain(vk::SwapchainKHR oldSwapchain);
+        void createSwapchain(VkSwapchainKHR oldSwapchain);
         void createFramebuffers();
         void createSCDependents();
         void presentNothing(uint32_t imageIndex);
@@ -331,7 +331,7 @@ namespace worlds {
         void submitToOpenVR();
         glm::mat4 getCascadeMatrix(bool forVr, Camera cam, glm::vec3 lightdir, glm::mat4 frustumMatrix, float& texelsPerUnit);
         void calculateCascadeMatrices(bool forVr, entt::registry& world, Camera& cam, RenderContext& rCtx);
-        void writeCmdBuf(vk::UniqueCommandBuffer& cmdBuf, uint32_t imageIndex, Camera& cam, entt::registry& reg);
+        void writeCmdBuf(VkCommandBuffer cmdBuf, uint32_t imageIndex, Camera& cam, entt::registry& reg);
         void reuploadMaterials();
 
         friend class VKRTTPass;

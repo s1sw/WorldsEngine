@@ -16,25 +16,25 @@ namespace worlds {
     class VKRenderer;
     class VRCullMeshRenderer {
     private:
-        vk::UniquePipeline pipeline;
-        vk::UniquePipelineLayout pipelineLayout;
-        vk::UniqueDescriptorSetLayout dsl;
-        vk::UniqueDescriptorSet ds;
+        VkPipeline pipeline;
+        VkPipelineLayout pipelineLayout;
+        VkDescriptorSetLayout dsl;
+        VkDescriptorSet ds;
         vku::GenericBuffer vertexBuf;
         uint32_t totalVertCount;
         uint32_t leftVertCount;
         VulkanHandles* handles;
     public:
         VRCullMeshRenderer(VulkanHandles* handles);
-        void setup(RenderContext& ctx, vk::RenderPass& rp, vk::DescriptorPool descriptorPool);
-        void draw(vk::CommandBuffer& cmdBuf);
+        void setup(RenderContext& ctx, VkRenderPass& rp, VkDescriptorPool descriptorPool);
+        void draw(VkCommandBuffer& cmdBuf);
     };
 
     struct SubmeshDrawInfo {
         uint32_t materialIdx;
         uint32_t matrixIdx;
-        vk::Buffer vb;
-        vk::Buffer ib;
+        VkBuffer vb;
+        VkBuffer ib;
         uint32_t indexCount;
         uint32_t indexOffset;
         uint32_t cubemapIdx;
@@ -42,56 +42,56 @@ namespace worlds {
         glm::vec3 cubemapPos;
         glm::vec4 texScaleOffset;
         entt::entity ent;
-        vk::Pipeline pipeline;
+        VkPipeline pipeline;
         uint32_t drawMiscFlags;
         bool opaque;
     };
 
     class DebugLinesPass {
     private:
-        vk::UniquePipeline linePipeline;
-        vk::UniquePipelineLayout linePipelineLayout;
-        vk::UniqueDescriptorSetLayout lineDsl;
-        vk::UniqueDescriptorSet lineDs;
+        VkPipeline linePipeline;
+        VkPipelineLayout linePipelineLayout;
+        VkDescriptorSetLayout lineDsl;
+        VkDescriptorSet lineDs;
         vku::GenericBuffer lineVB;
         uint32_t currentLineVBSize;
         int numLineVerts;
         VulkanHandles* handles;
     public:
         DebugLinesPass(VulkanHandles* handles);
-        void setup(RenderContext& ctx, vk::RenderPass renderPass, vk::DescriptorPool descriptorPool);
+        void setup(RenderContext& ctx, VkRenderPass renderPass, VkDescriptorPool descriptorPool);
         void prePass(RenderContext&);
         void execute(RenderContext&);
     };
 
     class SkyboxPass {
     private:
-        vk::UniquePipeline skyboxPipeline;
-        vk::UniquePipelineLayout skyboxPipelineLayout;
-        vk::UniqueDescriptorSetLayout skyboxDsl;
-        vk::UniqueDescriptorSet skyboxDs;
-        vk::UniqueSampler sampler;
-        vk::ImageView lastSkyImageView = nullptr;
+        VkPipeline skyboxPipeline;
+        VkPipelineLayout skyboxPipelineLayout;
+        VkDescriptorSetLayout skyboxDsl;
+        VkDescriptorSet skyboxDs;
+        VkSampler sampler;
+        VkImageView lastSkyImageView = nullptr;
         VulkanHandles* handles;
         uint32_t lastSky = 0;
         void updateDescriptors(RenderContext& ctx, uint32_t loadedSkyId);
     public:
         SkyboxPass(VulkanHandles* handles);
-        void setup(RenderContext& ctx, vk::RenderPass renderPass, vk::DescriptorPool descriptorPool);
+        void setup(RenderContext& ctx, VkRenderPass renderPass, VkDescriptorPool descriptorPool);
         void prePass(RenderContext&);
         void execute(RenderContext&);
     };
 
     class DepthPrepass {
     private:
-        vk::UniquePipeline depthPrePipeline;
-        vk::UniquePipeline alphaTestPipeline;
+        VkPipeline depthPrePipeline;
+        VkPipeline alphaTestPipeline;
         VulkanHandles* handles;
-        vk::PipelineLayout layout;
+        VkPipelineLayout layout;
     public:
         DepthPrepass(VulkanHandles* handles);
         // Takes in the standard pipeline layout as an additional parameter
-        void setup(RenderContext& ctx, vk::RenderPass renderPass, vk::PipelineLayout pipelineLayout);
+        void setup(RenderContext& ctx, VkRenderPass renderPass, VkPipelineLayout pipelineLayout);
         void prePass(RenderContext& ctx);
         void execute(RenderContext& ctx, slib::StaticAllocList<SubmeshDrawInfo>& drawInfo);
     };
@@ -121,12 +121,12 @@ namespace worlds {
 
     class WorldSpaceUIPass {
     private:
-        vk::UniquePipeline textPipeline;
-        vk::UniqueDescriptorSet descriptorSet;
-        vk::UniqueDescriptorSetLayout descriptorSetLayout;
-        vk::UniquePipelineLayout pipelineLayout;
+        VkPipeline textPipeline;
+        VkDescriptorSet descriptorSet;
+        VkDescriptorSetLayout descriptorSetLayout;
+        VkPipelineLayout pipelineLayout;
         VulkanHandles* handles;
-        vk::UniqueSampler sampler;
+        VkSampler sampler;
         vku::GenericBuffer vb;
         vku::GenericBuffer ib;
 
@@ -139,22 +139,22 @@ namespace worlds {
         void loadFont(AssetID font);
     public:
         WorldSpaceUIPass(VulkanHandles* handles);
-        void setup(RenderContext& ctx, vk::RenderPass renderPass, vk::DescriptorPool descriptorPool);
+        void setup(RenderContext& ctx, VkRenderPass renderPass, VkDescriptorPool descriptorPool);
         void prePass(RenderContext& ctx);
         void execute(RenderContext& ctx);
     };
 
     class PolyRenderPass {
     private:
-        vk::UniqueRenderPass renderPass;
-        vk::UniquePipeline pipeline;
-        vk::UniquePipeline noBackfaceCullPipeline;
-        vk::UniquePipeline alphaTestPipeline;
-        vk::UniquePipelineLayout pipelineLayout;
-        vk::UniqueDescriptorSetLayout dsl;
+        VkRenderPass renderPass;
+        VkPipeline pipeline;
+        VkPipeline noBackfaceCullPipeline;
+        VkPipeline alphaTestPipeline;
+        VkPipelineLayout pipelineLayout;
+        VkDescriptorSetLayout dsl;
 
-        vk::UniquePipeline wireframePipeline;
-        vk::UniquePipelineLayout wireframePipelineLayout;
+        VkPipeline wireframePipeline;
+        VkPipelineLayout wireframePipelineLayout;
 
         LightUB* lightMapped;
         std::vector<ModelMatrices*> modelMatricesMapped;
@@ -163,24 +163,24 @@ namespace worlds {
         std::vector<vku::GenericBuffer> modelMatrixUB;
         vku::GenericBuffer pickingBuffer;
 
-        vk::ShaderModule fragmentShader;
-        vk::ShaderModule vertexShader;
+        VkShaderModule fragmentShader;
+        VkShaderModule vertexShader;
 
-        vk::ShaderModule wireFragmentShader;
-        vk::ShaderModule wireVertexShader;
+        VkShaderModule wireFragmentShader;
+        VkShaderModule wireVertexShader;
 
-        vk::UniqueSampler albedoSampler;
-        vk::UniqueSampler shadowSampler;
+        VkSampler albedoSampler;
+        VkSampler shadowSampler;
 
-        vk::UniqueFramebuffer renderFb;
-        std::vector<vk::DescriptorSet> descriptorSets;
+        VkFramebuffer renderFb;
+        std::vector<VkDescriptorSet> descriptorSets;
 
         RenderTexture* depthStencilImage;
         RenderTexture* polyImage;
 
         bool enablePicking;
         int pickX, pickY;
-        vk::UniqueEvent pickEvent;
+        VkEvent pickEvent;
         bool pickThisFrame;
         bool awaitingResults;
         bool setEventNextFrame;
@@ -196,7 +196,7 @@ namespace worlds {
     public:
         PolyRenderPass(VulkanHandles* handles, RenderTexture* depthStencilImage, RenderTexture* polyImage, bool enablePicking = false);
         void setPickCoords(int x, int y) { pickX = x; pickY = y; }
-        void setup(RenderContext& ctx, vk::DescriptorPool descriptorPool);
+        void setup(RenderContext& ctx, VkDescriptorPool descriptorPool);
         void prePass(RenderContext& ctx);
         void execute(RenderContext& ctx);
         void requestEntityPick();
@@ -208,15 +208,15 @@ namespace worlds {
     struct CascadeMatrices;
     class ShadowCascadePass {
     private:
-        vk::UniqueRenderPass renderPass;
-        vk::UniquePipeline pipeline;
-        vk::UniquePipelineLayout pipelineLayout;
-        vk::UniqueDescriptorSetLayout dsl;
-        vk::UniqueDescriptorSet ds;
+        VkRenderPass renderPass;
+        VkPipeline pipeline;
+        VkPipelineLayout pipelineLayout;
+        VkDescriptorSetLayout dsl;
+        VkDescriptorSet ds;
         RenderTexture* shadowImage;
-        vk::UniqueFramebuffer shadowFb;
-        vk::ShaderModule shadowVertexShader;
-        vk::ShaderModule shadowFragmentShader;
+        VkFramebuffer shadowFb;
+        VkShaderModule shadowVertexShader;
+        VkShaderModule shadowFragmentShader;
         vku::UniformBuffer matrixBuffer;
         uint32_t shadowmapRes;
         VulkanHandles* handles;
@@ -233,11 +233,11 @@ namespace worlds {
 
     class AdditionalShadowsPass {
     private:
-        vk::UniqueRenderPass renderPass;
-        vk::UniqueFramebuffer fb;
-        vk::UniquePipeline pipeline;
-        vk::UniquePipelineLayout pipelineLayout;
-        vk::UniqueDescriptorSetLayout dsl;
+        VkRenderPass renderPass;
+        VkFramebuffer fb;
+        VkPipeline pipeline;
+        VkPipelineLayout pipelineLayout;
+        VkDescriptorSetLayout dsl;
         VulkanHandles* handles;
         glm::mat4 shadowMatrices[4];
         bool renderIdx[4];
@@ -250,21 +250,21 @@ namespace worlds {
 
     class TonemapRenderPass {
     private:
-        vk::ShaderModule tonemapShader;
-        vk::UniqueDescriptorSetLayout dsl;
-        vk::UniquePipeline pipeline;
-        vk::UniquePipelineLayout pipelineLayout;
-        vk::UniqueDescriptorSet descriptorSet;
-        vk::UniqueDescriptorSet rDescriptorSet;
-        vk::UniqueSampler sampler;
-        vk::DescriptorPool dsPool;
+        VkShaderModule tonemapShader;
+        VkDescriptorSetLayout dsl;
+        VkPipeline pipeline;
+        VkPipelineLayout pipelineLayout;
+        VkDescriptorSet descriptorSet;
+        VkDescriptorSet rDescriptorSet;
+        VkSampler sampler;
+        VkDescriptorPool dsPool;
         RenderTexture* finalPrePresent;
         RenderTexture* finalPrePresentR;
         RenderTexture* hdrImg;
         VulkanHandles* handles;
     public:
         TonemapRenderPass(VulkanHandles* handles, RenderTexture* hdrImg, RenderTexture* finalPrePresent);
-        void setup(RenderContext& ctx, vk::DescriptorPool descriptorPool);
+        void setup(RenderContext& ctx, VkDescriptorPool descriptorPool);
         void execute(RenderContext& ctx);
         void setRightFinalImage(RenderTexture* right);
         virtual ~TonemapRenderPass();
@@ -272,17 +272,17 @@ namespace worlds {
 
     class ImGuiRenderPass {
     private:
-        vk::UniqueRenderPass renderPass;
-        vk::UniqueFramebuffer fb;
+        VkRenderPass renderPass;
+        VkFramebuffer fb;
         RenderTexture* target;
         Swapchain& currSwapchain;
         VulkanHandles* handles;
     public:
-        vk::RenderPass& getRenderPass() { return *renderPass; }
+        VkRenderPass& getRenderPass() { return renderPass; }
         ImGuiRenderPass(VulkanHandles* handles, Swapchain& swapchain);
         void setup();
-        void execute(vk::CommandBuffer&,
-                uint32_t width, uint32_t height, vk::Framebuffer& currFb);
+        void execute(VkCommandBuffer&,
+                uint32_t width, uint32_t height, VkFramebuffer& currFb);
         virtual ~ImGuiRenderPass();
     };
 }

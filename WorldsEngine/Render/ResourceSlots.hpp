@@ -67,14 +67,14 @@ namespace worlds {
         uint32_t load(AssetID asset) override;
     private:
         std::shared_ptr<VulkanHandles> vkCtx;
-        vk::CommandBuffer cb;
+        VkCommandBuffer cb;
         uint32_t frameIdx;
         std::mutex slotMutex;
     public:
         bool frameStarted = false;
 
         TextureSlots(std::shared_ptr<VulkanHandles> vkCtx);
-        void setUploadCommandBuffer(vk::CommandBuffer cb, uint32_t frameIdx);
+        void setUploadCommandBuffer(VkCommandBuffer cb, uint32_t frameIdx);
 
         void unload(int idx) override;
     };
@@ -108,14 +108,14 @@ namespace worlds {
         uint32_t load(AssetID asset) override;
     private:
         std::shared_ptr<VulkanHandles> vkCtx;
-        vk::CommandBuffer cb;
+        VkCommandBuffer cb;
         uint32_t imageIndex;
         uint32_t missingSlot;
         std::shared_ptr<CubemapConvoluter> cc;
     public:
         uint32_t loadOrGet(AssetID asset) override;
 
-        void setUploadCommandBuffer(vk::CommandBuffer cb, uint32_t imageIndex) {
+        void setUploadCommandBuffer(VkCommandBuffer cb, uint32_t imageIndex) {
             this->cb = cb;
             this->imageIndex = imageIndex;
         }

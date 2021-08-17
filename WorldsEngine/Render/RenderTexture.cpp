@@ -5,7 +5,7 @@ namespace worlds {
         image = vku::GenericImage{ 
             ctx->device, ctx->allocator, 
             resourceCreateInfo.ici, resourceCreateInfo.viewType, 
-            resourceCreateInfo.aspectFlags, false, 
+            (VkImageAspectFlags)resourceCreateInfo.aspectFlags, false, 
             debugName 
         };
 

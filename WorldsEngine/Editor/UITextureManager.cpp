@@ -5,7 +5,7 @@
 
 namespace worlds {
     struct UITextureManager::UITexInfo {
-        vk::DescriptorSet ds;
+        VkDescriptorSet ds;
         vku::TextureImage2D image;
     };
 

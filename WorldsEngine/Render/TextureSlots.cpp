@@ -33,7 +33,7 @@ namespace worlds {
         , cb(nullptr) {
     }
 
-    void TextureSlots::setUploadCommandBuffer(vk::CommandBuffer cb, uint32_t frameIdx) {
+    void TextureSlots::setUploadCommandBuffer(VkCommandBuffer cb, uint32_t frameIdx) {
         this->cb = cb;
         this->frameIdx = frameIdx;
     }

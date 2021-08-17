@@ -12,80 +12,91 @@ namespace worlds {
         cs = vku::loadShaderAsset(ctx->device, AssetDB::pathToId("Shaders/cubemap_prefilter.comp.spv"));
 
         vku::DescriptorSetLayoutMaker dslm;
-        dslm.image(0, vk::DescriptorType::eCombinedImageSampler, vk::ShaderStageFlagBits::eCompute, 1);
-        dslm.image(1, vk::DescriptorType::eStorageImage, vk::ShaderStageFlagBits::eCompute, 1);
-        dsl = dslm.createUnique(ctx->device);
+        dslm.image(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_COMPUTE_BIT, 1);
+        dslm.image(1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_SHADER_STAGE_COMPUTE_BIT, 1);
+        dsl = dslm.create(ctx->device);
 
         vku::PipelineLayoutMaker plm;
-        plm.pushConstantRange(vk::ShaderStageFlagBits::eCompute, 0, sizeof(PrefilterPushConstants));
-        plm.descriptorSetLayout(*dsl);
-        pipelineLayout = plm.createUnique(ctx->device);
+        plm.pushConstantRange(VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(PrefilterPushConstants));
+        plm.descriptorSetLayout(dsl);
+        pipelineLayout = plm.create(ctx->device);
 
         vku::ComputePipelineMaker cpm;
-        cpm.shader(vk::ShaderStageFlagBits::eCompute, cs);
-        pipeline = cpm.createUnique(ctx->device, ctx->pipelineCache, *pipelineLayout);
+        cpm.shader(VK_SHADER_STAGE_COMPUTE_BIT, cs);
+        pipeline = cpm.create(ctx->device, ctx->pipelineCache, pipelineLayout);
 
         vku::SamplerMaker sm;
-        sm.magFilter(vk::Filter::eLinear).minFilter(vk::Filter::eLinear).mipmapMode(vk::SamplerMipmapMode::eLinear).maxLod(VK_LOD_CLAMP_NONE).minLod(0.0f);
-        sampler = sm.createUnique(ctx->device);
+        sm.magFilter(VK_FILTER_LINEAR).minFilter(VK_FILTER_LINEAR).mipmapMode(VK_SAMPLER_MIPMAP_MODE_LINEAR).maxLod(VK_LOD_CLAMP_NONE).minLod(0.0f);
+        sampler = sm.create(ctx->device);
     }
 
-    void generateMipCube(const VulkanHandles& vkCtx, vku::TextureImageCube& src, vku::TextureImageCube& t, vk::CommandBuffer cb) {
+    void generateMipCube(const VulkanHandles& vkCtx, vku::TextureImageCube& src, vku::TextureImageCube& t, VkCommandBuffer cb) {
         auto currLayout = src.layout();
-        vk::ImageMemoryBarrier imb;
-        imb.subresourceRange = vk::ImageSubresourceRange{ vk::ImageAspectFlagBits::eColor, 0, src.info().mipLevels, 0, 6 };
+        VkImageMemoryBarrier imb{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
+        imb.subresourceRange = VkImageSubresourceRange{ VK_IMAGE_ASPECT_COLOR_BIT, 0, src.info().mipLevels, 0, 6 };
 
         imb.image = src.image();
         imb.oldLayout = currLayout;
-        imb.newLayout = vk::ImageLayout::eTransferSrcOptimal;
-        imb.srcAccessMask = vk::AccessFlagBits::eHostWrite;
-        imb.dstAccessMask = vk::AccessFlagBits::eTransferRead;
+        imb.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+        imb.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT;
+        imb.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
 
-        vk::ImageMemoryBarrier imb2;
-        imb2.subresourceRange = vk::ImageSubresourceRange{ vk::ImageAspectFlagBits::eColor, 0, t.info().mipLevels, 0, 6 };
+        VkImageMemoryBarrier imb2{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
+        imb2.subresourceRange = VkImageSubresourceRange{ VK_IMAGE_ASPECT_COLOR_BIT, 0, t.info().mipLevels, 0, 6 };
 
         imb2.image = t.image();
         imb2.oldLayout = t.layout();
-        imb2.newLayout = vk::ImageLayout::eTransferDstOptimal;
-        imb2.srcAccessMask = vk::AccessFlagBits::eHostWrite;
-        imb2.dstAccessMask = vk::AccessFlagBits::eTransferWrite;
-        cb.pipelineBarrier(vk::PipelineStageFlagBits::eHost, vk::PipelineStageFlagBits::eTransfer, vk::DependencyFlagBits::eByRegion, nullptr, nullptr, { imb, imb2 });
+        imb2.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+        imb2.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT;
+        imb2.dstAccessMask = VK_PIPELINE_STAGE_TRANSFER_BIT;
+
+        VkImageMemoryBarrier barriers[2] = { imb, imb2 };
+        vkCmdPipelineBarrier(cb, VK_PIPELINE_STAGE_HOST_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_DEPENDENCY_BY_REGION_BIT, 
+            0, nullptr, 
+            0, nullptr, 
+            2, barriers);
 
         int32_t mipWidth = t.info().extent.width;
         int32_t mipHeight = t.info().extent.height;
         for (uint32_t i = 0; i < t.info().mipLevels; i++) {
-            vk::ImageBlit ib;
-            ib.dstSubresource = vk::ImageSubresourceLayers{ vk::ImageAspectFlagBits::eColor, i, 0, 6 };
-            ib.dstOffsets[0] = vk::Offset3D{ 0, 0, 0 };
-            ib.dstOffsets[1] = vk::Offset3D{ mipWidth, mipHeight, 1 };
-            ib.srcSubresource = vk::ImageSubresourceLayers{ vk::ImageAspectFlagBits::eColor, 0, 0, 6 };
-            ib.srcOffsets[0] = vk::Offset3D{ 0, 0, 0 };
-            ib.srcOffsets[1] = vk::Offset3D{ (int32_t)t.info().extent.width, (int32_t)t.info().extent.height, 1 };
+            VkImageBlit ib;
+            ib.dstSubresource = VkImageSubresourceLayers{ VK_IMAGE_ASPECT_COLOR_BIT, i, 0, 6 };
+            ib.dstOffsets[0] = VkOffset3D{ 0, 0, 0 };
+            ib.dstOffsets[1] = VkOffset3D{ mipWidth, mipHeight, 1 };
+            ib.srcSubresource = VkImageSubresourceLayers{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 6 };
+            ib.srcOffsets[0] = VkOffset3D{ 0, 0, 0 };
+            ib.srcOffsets[1] = VkOffset3D{ (int32_t)t.info().extent.width, (int32_t)t.info().extent.height, 1 };
 
-            cb.blitImage(src.image(), vk::ImageLayout::eTransferSrcOptimal, t.image(), vk::ImageLayout::eTransferDstOptimal, ib, vk::Filter::eLinear);
+            vkCmdBlitImage(cb, 
+                src.image(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                t.image(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &ib, VK_FILTER_LINEAR);
 
             mipWidth /= 2;
             mipHeight /= 2;
         }
 
-        vk::ImageMemoryBarrier imb4;
-        imb4.subresourceRange = vk::ImageSubresourceRange{ vk::ImageAspectFlagBits::eColor, 0, src.info().mipLevels, 0, 6 };
-        imb4.oldLayout = vk::ImageLayout::eTransferSrcOptimal;
+        VkImageMemoryBarrier imb4{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
+        imb4.subresourceRange = VkImageSubresourceRange{ VK_IMAGE_ASPECT_COLOR_BIT, 0, src.info().mipLevels, 0, 6 };
+        imb4.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
         imb4.newLayout = currLayout;
-        imb4.srcAccessMask = vk::AccessFlagBits::eTransferRead;
-        imb4.dstAccessMask = vk::AccessFlagBits::eShaderWrite;
+        imb4.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+        imb4.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
         imb4.image = src.image();
 
-        vk::ImageMemoryBarrier imb3;
-        imb3.subresourceRange = vk::ImageSubresourceRange{ vk::ImageAspectFlagBits::eColor, 0, t.info().mipLevels, 0, 6 };
-        imb3.oldLayout = vk::ImageLayout::eTransferDstOptimal;
-        imb3.newLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
-        imb3.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
-        imb3.dstAccessMask = vk::AccessFlagBits::eShaderRead;
+        VkImageMemoryBarrier imb3{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
+        imb3.subresourceRange = VkImageSubresourceRange{ VK_IMAGE_ASPECT_COLOR_BIT, 0, t.info().mipLevels, 0, 6 };
+        imb3.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+        imb3.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        imb3.srcAccessMask = VK_PIPELINE_STAGE_TRANSFER_BIT;
+        imb3.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
         imb3.image = t.image();
 
-        cb.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eFragmentShader,
-            vk::DependencyFlagBits::eByRegion, nullptr, nullptr, { imb3, imb4 });
+        VkImageMemoryBarrier barriers2[2] = { imb3, imb4 };
+        vkCmdPipelineBarrier(cb, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+            VK_DEPENDENCY_BY_REGION_BIT, 
+            0, nullptr, 
+            0, nullptr, 
+            2, barriers2);
     }
 
     void CubemapConvoluter::convolute(vku::TextureImageCube& cube) {
@@ -106,43 +117,49 @@ namespace worlds {
             cube.info().format
         };
 
-        vku::executeImmediately(vkCtx->device, vkCtx->commandPool, vkCtx->device.getQueue(vkCtx->graphicsQueueFamilyIdx, 0),
-            [&](vk::CommandBuffer cb) {
+        VkQueue queue;
+        vkGetDeviceQueue(vkCtx->device, vkCtx->graphicsQueueFamilyIdx, 0, &queue);
+        vku::executeImmediately(vkCtx->device, vkCtx->commandPool, queue,
+            [&](VkCommandBuffer cb) {
                 generateMipCube(*vkCtx, cube, mipCube, cb);
             }
         );
 
-        std::vector<vk::DescriptorPoolSize> poolSizes;
-        poolSizes.emplace_back(vk::DescriptorType::eCombinedImageSampler, 1024);
-        poolSizes.emplace_back(vk::DescriptorType::eStorageBuffer, 1024);
+        std::vector<VkDescriptorPoolSize> poolSizes;
+        poolSizes.emplace_back(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1024);
+        poolSizes.emplace_back(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1024);
 
-        vk::DescriptorPoolCreateInfo descriptorPoolInfo{};
-        descriptorPoolInfo.flags = vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet;
+        VkDescriptorPoolCreateInfo descriptorPoolInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
+        descriptorPoolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
         descriptorPoolInfo.maxSets = cube.info().mipLevels * 6;
         descriptorPoolInfo.poolSizeCount = (uint32_t)poolSizes.size();
         descriptorPoolInfo.pPoolSizes = poolSizes.data();
 
-        vk::DescriptorPool tmpDescriptorPool = vkCtx->device.createDescriptorPool(descriptorPoolInfo);
+        VkDescriptorPool tmpDescriptorPool;
+        vkCreateDescriptorPool(vkCtx->device, &descriptorPoolInfo, nullptr, &tmpDescriptorPool);
 
         vku::DescriptorSetMaker dsm;
         for (uint32_t i = 1; i < cube.info().mipLevels; i++) {
             for (int j = 0; j < 6; j++) {
-                dsm.layout(*dsl);
+                dsm.layout(dsl);
             }
         }
 
         auto descriptorSets = dsm.create(vkCtx->device, tmpDescriptorPool);
-        std::vector<vk::UniqueImageView> outputViews;
+        std::vector<VkImageView> outputViews;
 
         for (uint32_t i = 1; i < cube.info().mipLevels; i++) {
             for (int j = 0; j < 6; j++) {
-                vk::ImageViewCreateInfo viewInfo{};
+                VkImageViewCreateInfo viewInfo{VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO};
                 viewInfo.image = cube.image();
-                viewInfo.viewType = vk::ImageViewType::e2D;
+                viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
                 viewInfo.format = cube.format();
-                viewInfo.components = { vk::ComponentSwizzle::eR, vk::ComponentSwizzle::eG, vk::ComponentSwizzle::eB, vk::ComponentSwizzle::eA };
-                viewInfo.subresourceRange = vk::ImageSubresourceRange{ vk::ImageAspectFlagBits::eColor, (uint32_t)i, 1, (uint32_t)j, 1 };
-                outputViews.push_back(vkCtx->device.createImageViewUnique(viewInfo));
+                viewInfo.components = { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A };
+                viewInfo.subresourceRange = VkImageSubresourceRange{ VK_IMAGE_ASPECT_COLOR_BIT, (uint32_t)i, 1, (uint32_t)j, 1 };
+
+                VkImageView imageView;
+                VKCHECK(vkCreateImageView(vkCtx->device, &viewInfo, nullptr, &imageView));
+                outputViews.push_back(imageView);
             }
         }
 
@@ -151,22 +168,22 @@ namespace worlds {
             int arrayIdx = (i % 6);
 
             dsu.beginDescriptorSet(descriptorSets[i]);
-            dsu.beginImages(0, 0, vk::DescriptorType::eCombinedImageSampler);
-            dsu.image(*sampler, mipCube.imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
+            dsu.beginImages(0, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+            dsu.image(sampler, mipCube.imageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
-            dsu.beginImages(1, 0, vk::DescriptorType::eStorageImage);
-            dsu.image(*sampler, *outputViews[i], vk::ImageLayout::eGeneral);
+            dsu.beginImages(1, 0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
+            dsu.image(sampler, outputViews[i], VK_IMAGE_LAYOUT_GENERAL);
         }
 
         assert(dsu.ok());
 
         dsu.update(vkCtx->device);
 
-        vku::executeImmediately(vkCtx->device, vkCtx->commandPool, vkCtx->device.getQueue(vkCtx->graphicsQueueFamilyIdx, 0),
-            [&](vk::CommandBuffer cb) {
-                cube.setLayout(cb, vk::ImageLayout::eGeneral);
+        vku::executeImmediately(vkCtx->device, vkCtx->commandPool, queue,
+            [&](VkCommandBuffer cb) {
+                cube.setLayout(cb, VK_IMAGE_LAYOUT_GENERAL);
                 for (int i = 0; i < (int)descriptorSets.size(); i++) {
-                    cb.bindPipeline(vk::PipelineBindPoint::eCompute, *pipeline);
+                    vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline);
 
                     int mipLevel = (i / 6) + 1;
                     int arrayIdx = (i % 6);
@@ -178,19 +195,22 @@ namespace worlds {
                     ppc.faceIdx = arrayIdx;
                     ppc.roughness = (float)mipLevel / (float)cube.info().mipLevels;
 
-                    cb.pushConstants<PrefilterPushConstants>(*pipelineLayout, vk::ShaderStageFlagBits::eCompute, 0, ppc);
-                    cb.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pipelineLayout, 0, descriptorSets[i], nullptr);
-                    cb.dispatch((width + 15) / 16, (height + 15) / 16, 1);
+                    vkCmdPushConstants(cb, pipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(ppc), &ppc);
+                    vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, 0, 1, &descriptorSets[i], 0, nullptr);
+                    vkCmdDispatch(cb, (width + 15) / 16, (height + 15) / 16, 1);
                     cube.barrier(
                         cb,
-                        vk::PipelineStageFlagBits::eComputeShader, vk::PipelineStageFlagBits::eComputeShader,
-                        vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderWrite
+                        VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                        VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_WRITE_BIT
                     );
                 }
-                cube.setLayout(cb, vk::ImageLayout::eShaderReadOnlyOptimal);
+                cube.setLayout(cb, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
             });
 
-        vkCtx->device.destroyDescriptorPool(tmpDescriptorPool);
+        for (VkImageView iv : outputViews) {
+            vkDestroyImageView(vkCtx->device, iv, nullptr);
+        }
+        vkDestroyDescriptorPool(vkCtx->device, tmpDescriptorPool, nullptr);
         logMsg("cubemap convolution took %fms", pt.stopGetMs());
     }
 }

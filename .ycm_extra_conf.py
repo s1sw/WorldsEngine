@@ -41,6 +41,8 @@ SOURCE_EXTENSIONS = [ '.cpp', '.cxx', '.cc', '.c', '.m', '.mm' ]
 
 database = None
 
+vulkan_sdk_dir = os.environ['VULKAN_SDK']
+
 # These are the compilation flags that will be used in case there's no
 # compilation database set (by default, one is not set).
 # CHANGE THIS LIST OF FLAGS. YES, THIS IS THE DROID YOU HAVE BEEN LOOKING FOR.
@@ -50,6 +52,8 @@ flags = [
 '-Werror',
 '-Wno-long-long',
 '-Wno-variadic-macros',
+'-Wno-unused-parameter',
+'-Wno-unused-variable',
 '-fexceptions',
 '-DNDEBUG',
 # THIS IS IMPORTANT! Without the '-x' flag, Clang won't know which language to
@@ -63,7 +67,7 @@ flags = [
 '-I',
 './ModelFormat',
 '-I',
-'./ExperimentalEngine',
+'./WorldsEngine',
 '-I',
 './External/Include/physx',
 '-I',
@@ -75,14 +79,21 @@ flags = [
 '-I',
 './subprojects/enet-1.3.13/include',
 '-I',
-'./subprojects/slib.git/include'
+'./subprojects/slib.git/include',
+'-I',
+'./subprojects/physfs.git/src',
+'-I',
+vulkan_sdk_dir + '\\Include',
+'-D__x86_64__',
+'-DPX_WIN64',
+'-I',
+'./Tools/WMDLConvert/Assimp/include'
 ]
 
 # Clang automatically sets the '-std=' flag to 'c++14' for MSVC 2015 or later,
 # which is required for compiling the standard library, and to 'c++11' for older
 # versions.
-if platform.system() != 'Windows':
-  flags.append( '-std=c++2a' )
+flags.append( '-std=c++2a' )
 
 
 # Set this to the absolute path to the folder (NOT the file!) containing the
