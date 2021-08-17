@@ -12,34 +12,37 @@ namespace worlds {
         : handles {handles} {
     }
 
-    void VRCullMeshRenderer::setup(RenderContext& ctx, vk::RenderPass& rp, vk::DescriptorPool descriptorPool) {
+    void VRCullMeshRenderer::setup(RenderContext& ctx, VkRenderPass& rp, VkDescriptorPool descriptorPool) {
         vku::DescriptorSetLayoutMaker dslm;
-        dslm.buffer(0, vk::DescriptorType::eStorageBuffer, vk::ShaderStageFlagBits::eVertex, 1);
-        dsl = dslm.createUnique(handles->device);
+        dslm.buffer(0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, 1);
+        dsl = dslm.create(handles->device);
 
         vku::PipelineLayoutMaker plm;
-        plm.pushConstantRange(vk::ShaderStageFlagBits::eVertex, 0, sizeof(VertPushConstants));
-        plm.descriptorSetLayout(*dsl);
-        pipelineLayout = plm.createUnique(handles->device);
+        plm.pushConstantRange(VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(VertPushConstants));
+        plm.descriptorSetLayout(dsl);
+        pipelineLayout = plm.create(handles->device);
 
         vku::PipelineMaker pm{ ctx.passWidth, ctx.passHeight };
-        pm.cullMode(vk::CullModeFlagBits::eNone);
+        pm.cullMode(VK_CULL_MODE_NONE);
 
         auto frag = ShaderCache::getModule(handles->device, AssetDB::pathToId("Shaders/blank.frag.spv"));
-        pm.shader(vk::ShaderStageFlagBits::eFragment, frag);
+        pm.shader(VK_SHADER_STAGE_FRAGMENT_BIT, frag);
 
         auto vert = ShaderCache::getModule(handles->device, AssetDB::pathToId("Shaders/vr_hidden.vert.spv"));
-        pm.shader(vk::ShaderStageFlagBits::eVertex, vert);
+        pm.shader(VK_SHADER_STAGE_VERTEX_BIT, vert);
 
-        pm.depthWriteEnable(true).depthTestEnable(true).depthCompareOp(vk::CompareOp::eAlways).polygonMode(vk::PolygonMode::eFill).topology(vk::PrimitiveTopology::eTriangleList);
+        pm
+            .depthWriteEnable(true)
+            .depthTestEnable(true)
+            .depthCompareOp(VK_COMPARE_OP_ALWAYS)
+            .polygonMode(VK_POLYGON_MODE_FILL)
+            .topology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
 
-        vk::PipelineMultisampleStateCreateInfo pmsci;
-        pmsci.rasterizationSamples = (vk::SampleCountFlagBits)handles->graphicsSettings.msaaLevel;
-        pm.multisampleState(pmsci);
+        pm.rasterizationSamples((VkSampleCountFlagBits)handles->graphicsSettings.msaaLevel);
         pm.subPass(0);
         pm.blendBegin(false);
 
-        pipeline = pm.createUnique(handles->device, handles->pipelineCache, *pipelineLayout, rp);
+        pipeline = pm.create(handles->device, handles->pipelineCache, pipelineLayout, rp);
 
         auto hiddenL = vr::VRSystem()->GetHiddenAreaMesh(vr::EVREye::Eye_Left);
         auto hiddenR = vr::VRSystem()->GetHiddenAreaMesh(vr::EVREye::Eye_Right);
@@ -51,19 +54,20 @@ namespace worlds {
         memcpy(combinedBuf + hiddenL.unTriangleCount * 2 * 3, hiddenR.pVertexData, hiddenR.unTriangleCount * 2 * 3 * sizeof(float));
 
         vertexBuf = vku::GenericBuffer{handles->device, handles->allocator,
-            vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
+            VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
             totalSize, VMA_MEMORY_USAGE_GPU_ONLY, "VR Hidden Area Mesh VB"};
 
-        auto q = handles->device.getQueue(handles->graphicsQueueFamilyIdx, 0);
-        vertexBuf.upload(handles->device, handles->commandPool, q, combinedBuf, totalSize);
+        VkQueue queue;
+        vkGetDeviceQueue(handles->device, handles->graphicsQueueFamilyIdx, 0, &queue);
+        vertexBuf.upload(handles->device, handles->commandPool, queue, combinedBuf, totalSize);
 
         vku::DescriptorSetMaker dsm;
-        dsm.layout(*dsl);
-        ds = std::move(dsm.createUnique(handles->device, descriptorPool)[0]);
+        dsm.layout(dsl);
+        ds = dsm.create(handles->device, descriptorPool)[0];
 
         vku::DescriptorSetUpdater dsu;
-        dsu.beginDescriptorSet(*ds);
-        dsu.beginBuffers(0, 0, vk::DescriptorType::eStorageBuffer);
+        dsu.beginDescriptorSet(ds);
+        dsu.beginBuffers(0, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
         dsu.buffer(vertexBuf.buffer(), 0, totalSize);
         dsu.update(handles->device);
 
@@ -71,12 +75,12 @@ namespace worlds {
         leftVertCount = hiddenL.unTriangleCount * 3;
     }
 
-    void VRCullMeshRenderer::draw(vk::CommandBuffer& cmdBuf) {
+    void VRCullMeshRenderer::draw(VkCommandBuffer& cmdBuf) {
         VertPushConstants vpc;
         vpc.viewOffset = leftVertCount;
-        cmdBuf.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline);
-        cmdBuf.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 0, *ds, nullptr);
-        cmdBuf.pushConstants<VertPushConstants>(*pipelineLayout, vk::ShaderStageFlagBits::eVertex, 0, vpc);
-        cmdBuf.draw(leftVertCount, 1, 0, 0);
+        vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+        vkCmdBindDescriptorSets(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &ds, 0, nullptr);
+        vkCmdPushConstants(cmdBuf, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(vpc), &vpc);
+        vkCmdDraw(cmdBuf, leftVertCount, 1, 0, 0);
     }
 }

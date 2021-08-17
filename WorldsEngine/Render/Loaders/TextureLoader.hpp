@@ -9,7 +9,7 @@ namespace worlds {
         uint32_t width, height;
         uint32_t numMips;
         uint32_t totalDataSize;
-        vk::Format format;
+        VkFormat format;
         std::string name;
     };
 
@@ -18,6 +18,6 @@ namespace worlds {
     TextureData loadTexData(AssetID id);
     TextureData loadVtfTexture(void* fileData, size_t fileLen, AssetID id);
     vku::TextureImage2D uploadTextureVk(const VulkanHandles& ctx, TextureData& td, bool generateMips = true);
-    vku::TextureImage2D uploadTextureVk(const VulkanHandles& ctx, TextureData& td, vk::CommandBuffer cb, uint32_t imageIndex);
+    vku::TextureImage2D uploadTextureVk(const VulkanHandles& ctx, TextureData& td, VkCommandBuffer cb, uint32_t imageIndex);
     void destroyTempTexBuffers(uint32_t imageIndex);
 }

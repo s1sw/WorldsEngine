@@ -12,21 +12,21 @@ namespace worlds {
     void AdditionalShadowsPass::setup() {
         vku::RenderpassMaker rpm;
 
-        rpm.attachmentBegin(vk::Format::eD16Unorm);
-        rpm.attachmentLoadOp(vk::AttachmentLoadOp::eClear);
-        rpm.attachmentStencilLoadOp(vk::AttachmentLoadOp::eDontCare);
-        rpm.attachmentFinalLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
+        rpm.attachmentBegin(VK_FORMAT_D16_UNORM);
+        rpm.attachmentLoadOp(VK_ATTACHMENT_LOAD_OP_CLEAR);
+        rpm.attachmentStencilLoadOp(VK_ATTACHMENT_LOAD_OP_DONT_CARE);
+        rpm.attachmentFinalLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
-        rpm.subpassBegin(vk::PipelineBindPoint::eGraphics);
-        rpm.subpassDepthStencilAttachment(vk::ImageLayout::eDepthStencilAttachmentOptimal, 0);
+        rpm.subpassBegin(VK_PIPELINE_BIND_POINT_GRAPHICS);
+        rpm.subpassDepthStencilAttachment(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, 0);
 
         rpm.dependencyBegin(0, 0);
-        rpm.dependencyDependencyFlags(vk::DependencyFlagBits::eViewLocal | vk::DependencyFlagBits::eByRegion);
-        rpm.dependencySrcStageMask(vk::PipelineStageFlagBits::eLateFragmentTests);
-        rpm.dependencyDstStageMask(vk::PipelineStageFlagBits::eEarlyFragmentTests);
-        rpm.dependencyDstAccessMask(vk::AccessFlagBits::eDepthStencilAttachmentRead | vk::AccessFlagBits::eDepthStencilAttachmentWrite);
+        rpm.dependencyDependencyFlags(VK_DEPENDENCY_VIEW_LOCAL_BIT | VK_DEPENDENCY_BY_REGION_BIT);
+        rpm.dependencySrcStageMask(VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT);
+        rpm.dependencyDstStageMask(VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT);
+        rpm.dependencyDstAccessMask(VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
 
-        renderPass = rpm.createUnique(handles->device);
+        renderPass = rpm.create(handles->device);
 
         AssetID vsID = AssetDB::pathToId("Shaders/shadowmap.vert.spv");
         AssetID fsID = AssetDB::pathToId("Shaders/blank.frag.spv");
@@ -34,44 +34,45 @@ namespace worlds {
         auto shadowFragmentShader = ShaderCache::getModule(handles->device, fsID);
 
         vku::PipelineLayoutMaker plm{};
-        plm.pushConstantRange(vk::ShaderStageFlagBits::eVertex, 0, sizeof(glm::mat4));
-        pipelineLayout = plm.createUnique(handles->device);
+        plm.pushConstantRange(VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4));
+        pipelineLayout = plm.create(handles->device);
 
         vku::PipelineMaker pm{ 512, 512 };
-        pm.shader(vk::ShaderStageFlagBits::eFragment, shadowFragmentShader);
-        pm.shader(vk::ShaderStageFlagBits::eVertex, shadowVertexShader);
+        pm.shader(VK_SHADER_STAGE_FRAGMENT_BIT, shadowFragmentShader);
+        pm.shader(VK_SHADER_STAGE_VERTEX_BIT, shadowVertexShader);
         pm.vertexBinding(0, (uint32_t)sizeof(Vertex));
-        pm.vertexAttribute(0, 0, vk::Format::eR32G32B32Sfloat, (uint32_t)offsetof(Vertex, position));
-        pm.cullMode(vk::CullModeFlagBits::eBack);
-        pm.depthWriteEnable(true).depthTestEnable(true).depthCompareOp(vk::CompareOp::eGreater);
+        pm.vertexAttribute(0, 0, VK_FORMAT_R32G32B32_SFLOAT, (uint32_t)offsetof(Vertex, position));
+        pm.cullMode(VK_CULL_MODE_BACK_BIT);
+        pm.depthWriteEnable(true).depthTestEnable(true).depthCompareOp(VK_COMPARE_OP_GREATER);
         pm.depthBiasEnable(true);
         pm.depthBiasConstantFactor(-1.4f);
         pm.depthBiasSlopeFactor(-1.75f);
 
-        pipeline = pm.createUnique(handles->device, handles->pipelineCache, *pipelineLayout, *renderPass);
+        pipeline = pm.create(handles->device, handles->pipelineCache, pipelineLayout, renderPass);
 
-        vk::FramebufferAttachmentsCreateInfo faci;
+        VkFramebufferAttachmentsCreateInfo faci{ VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENTS_CREATE_INFO };
         faci.attachmentImageInfoCount = 1;
 
-        vk::FramebufferAttachmentImageInfo faii;
+        VkFramebufferAttachmentImageInfo faii{ VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENT_IMAGE_INFO };
         faii.width = faii.height = 512;
         faii.layerCount = 1;
-        faii.usage = vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eSampled;
+        faii.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
         faii.viewFormatCount = 1;
-        vk::Format shadowFormat = vk::Format::eD16Unorm;
+        VkFormat shadowFormat = VK_FORMAT_D16_UNORM;
         faii.pViewFormats = &shadowFormat;
 
         faci.pAttachmentImageInfos = &faii;
 
-        vk::FramebufferCreateInfo fci;
+        VkFramebufferCreateInfo fci{ VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
         fci.attachmentCount = 1;
         fci.pAttachments = nullptr;
         fci.width = fci.height = 512;
-        fci.renderPass = *renderPass;
+        fci.renderPass = renderPass;
         fci.layers = 1;
-        fci.flags = vk::FramebufferCreateFlagBits::eImageless;
+        fci.flags = VK_FRAMEBUFFER_CREATE_IMAGELESS_BIT;
         fci.pNext = &faci;
-        fb = handles->device.createFramebufferUnique(fci);
+
+        VKCHECK(vkCreateFramebuffer(handles->device, &fci, nullptr, &fb));
     }
 
     void AdditionalShadowsPass::prePass(RenderContext& ctx) {
@@ -101,15 +102,15 @@ namespace worlds {
     void AdditionalShadowsPass::execute(RenderContext& ctx) {
         auto cmdBuf = ctx.cmdBuf;
 
-        vk::DebugUtilsLabelEXT label;
+        VkDebugUtilsLabelEXT label{ VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT };
         label.pLabelName = "Spotlight Shadow Pass";
         label.color[0] = 0.239f;
         label.color[1] = 0.239f;
         label.color[2] = 0.239f;
         label.color[3] = 1.0f;
-        cmdBuf.beginDebugUtilsLabelEXT(&label);
+        vkCmdBeginDebugUtilsLabelEXT(cmdBuf, &label);
 
-        cmdBuf.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline);
+        vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
         for (int i = 0; i < NUM_SHADOW_LIGHTS; i++) {
             if (!renderIdx[i]) {
                 continue;
@@ -117,23 +118,22 @@ namespace worlds {
             Frustum shadowFrustum;
             shadowFrustum.fromVPMatrix(shadowMatrices[i]);
 
-            vk::ClearDepthStencilValue clearDepthValue{ 0.0f, 0 };
-            std::array<vk::ClearValue, 1> clearColours{ clearDepthValue };
+            VkClearValue clearVal;
+            clearVal.depthStencil = { 0.0f, 0 };
 
-            vk::RenderPassAttachmentBeginInfo attachmentBeginInfo;
+            VkRenderPassAttachmentBeginInfo attachmentBeginInfo;
             attachmentBeginInfo.attachmentCount = 1;
             auto imgView = ctx.resources.additionalShadowImages[i]->image.imageView();
             attachmentBeginInfo.pAttachments = &imgView;
 
-            vk::RenderPassBeginInfo rpbi;
-
-            rpbi.renderPass = *renderPass;
-            rpbi.framebuffer = *fb;
-            rpbi.renderArea = vk::Rect2D{ {0, 0}, {512, 512} };
-            rpbi.clearValueCount = (uint32_t)clearColours.size();
-            rpbi.pClearValues = clearColours.data();
+            VkRenderPassBeginInfo rpbi{ VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
+            rpbi.renderPass = renderPass;
+            rpbi.framebuffer = fb;
+            rpbi.renderArea = VkRect2D{ {0, 0}, {512, 512} };
+            rpbi.clearValueCount = 1;
+            rpbi.pClearValues = &clearVal;
             rpbi.pNext = &attachmentBeginInfo;
-            cmdBuf.beginRenderPass(rpbi, vk::SubpassContents::eInline);
+            vkCmdBeginRenderPass(cmdBuf, &rpbi, VK_SUBPASS_CONTENTS_INLINE);
 
             ctx.registry.view<Transform, WorldObject>().each([&](auto ent, Transform& transform, WorldObject& obj) {
                 auto meshPos = ctx.resources.meshes.find(obj.mesh);
@@ -150,18 +150,21 @@ namespace worlds {
                 }
 
                 glm::mat4 mvp = shadowMatrices[i] * transform.getMatrix();
-                cmdBuf.pushConstants<glm::mat4>(*pipelineLayout, vk::ShaderStageFlagBits::eVertex, 0, mvp);
-                cmdBuf.bindVertexBuffers(0, meshPos->second.vb.buffer(), vk::DeviceSize(0));
-                cmdBuf.bindIndexBuffer(meshPos->second.ib.buffer(), 0, meshPos->second.indexType);
-                cmdBuf.drawIndexed(meshPos->second.indexCount, 1, 0, 0, 0);
+                vkCmdPushConstants(cmdBuf, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(mvp), &mvp);
+
+                VkBuffer vb = meshPos->second.vb.buffer();
+                VkDeviceSize offset = 0;
+                vkCmdBindVertexBuffers(cmdBuf, 0, 1, &vb, &offset);
+                vkCmdBindIndexBuffer(cmdBuf, meshPos->second.ib.buffer(), 0, meshPos->second.indexType);
+                vkCmdDrawIndexed(cmdBuf, meshPos->second.indexCount, 1, 0, 0, 0);
                 ctx.debugContext.stats->numDrawCalls++;
                 ctx.debugContext.stats->numTriangles += meshPos->second.indexCount / 3;
             });
 
-            cmdBuf.endRenderPass();
-            ctx.resources.additionalShadowImages[i]->image.setCurrentLayout(vk::ImageLayout::eShaderReadOnlyOptimal, vk::PipelineStageFlagBits::eLateFragmentTests, vk::AccessFlagBits::eDepthStencilAttachmentWrite);
+            vkCmdEndRenderPass(cmdBuf);
+            ctx.resources.additionalShadowImages[i]->image.setCurrentLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
         }
 
-        cmdBuf.endDebugUtilsLabelEXT();
+        vkCmdEndDebugUtilsLabelEXT(cmdBuf);
     }
 }

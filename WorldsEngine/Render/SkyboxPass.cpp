@@ -11,12 +11,12 @@ namespace worlds {
     void SkyboxPass::updateDescriptors(RenderContext& ctx, uint32_t loadedSkyId) {
         auto& cubemapSlots = ctx.resources.cubemaps;
         vku::DescriptorSetUpdater updater;
-        updater.beginDescriptorSet(*skyboxDs);
-        updater.beginBuffers(0, 0, vk::DescriptorType::eUniformBuffer);
+        updater.beginDescriptorSet(skyboxDs);
+        updater.beginBuffers(0, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
         updater.buffer(ctx.resources.vpMatrixBuffer->buffer(), 0, sizeof(MultiVP));
 
-        updater.beginImages(1, 0, vk::DescriptorType::eCombinedImageSampler);
-        updater.image(*sampler, cubemapSlots[loadedSkyId].imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
+        updater.beginImages(1, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+        updater.image(sampler, cubemapSlots[loadedSkyId].imageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
         updater.update(handles->device);
     }
@@ -24,20 +24,20 @@ namespace worlds {
     SkyboxPass::SkyboxPass(VulkanHandles* handles) : handles(handles) {
     }
 
-    void SkyboxPass::setup(RenderContext& ctx, vk::RenderPass renderPass, vk::DescriptorPool descriptorPool) {
+    void SkyboxPass::setup(RenderContext& ctx, VkRenderPass renderPass, VkDescriptorPool descriptorPool) {
         vku::DescriptorSetLayoutMaker dslm;
-        dslm.buffer(0, vk::DescriptorType::eUniformBuffer, vk::ShaderStageFlagBits::eVertex, 1);
-        dslm.image(1, vk::DescriptorType::eCombinedImageSampler, vk::ShaderStageFlagBits::eFragment, 1);
-        skyboxDsl = dslm.createUnique(handles->device);
+        dslm.buffer(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, 1);
+        dslm.image(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 1);
+        skyboxDsl = dslm.create(handles->device);
 
         vku::DescriptorSetMaker dsm;
-        dsm.layout(*skyboxDsl);
-        skyboxDs = std::move(dsm.createUnique(handles->device, descriptorPool)[0]);
+        dsm.layout(skyboxDsl);
+        skyboxDs = dsm.create(handles->device, descriptorPool)[0];
 
         vku::PipelineLayoutMaker skyboxPl{};
-        skyboxPl.descriptorSetLayout(*skyboxDsl);
-        skyboxPl.pushConstantRange(vk::ShaderStageFlagBits::eFragment | vk::ShaderStageFlagBits::eVertex, 0, sizeof(SkyboxPushConstants));
-        skyboxPipelineLayout = skyboxPl.createUnique(handles->device);
+        skyboxPl.descriptorSetLayout(skyboxDsl);
+        skyboxPl.pushConstantRange(VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(SkyboxPushConstants));
+        skyboxPipelineLayout = skyboxPl.create(handles->device);
 
         vku::PipelineMaker pm{ ctx.passWidth, ctx.passHeight };
         AssetID vsID = AssetDB::pathToId("Shaders/skybox.vert.spv");
@@ -46,20 +46,18 @@ namespace worlds {
         auto vert = vku::loadShaderAsset(handles->device, vsID);
         auto frag = vku::loadShaderAsset(handles->device, fsID);
 
-        pm.shader(vk::ShaderStageFlagBits::eFragment, frag);
-        pm.shader(vk::ShaderStageFlagBits::eVertex, vert);
-        pm.topology(vk::PrimitiveTopology::eTriangleList);
-        pm.depthWriteEnable(true).depthTestEnable(true).depthCompareOp(vk::CompareOp::eGreaterOrEqual);
+        pm.shader(VK_SHADER_STAGE_FRAGMENT_BIT, frag);
+        pm.shader(VK_SHADER_STAGE_VERTEX_BIT, vert);
+        pm.topology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
+        pm.depthWriteEnable(true).depthTestEnable(true).depthCompareOp(VK_COMPARE_OP_GREATER_OR_EQUAL);
 
-        vk::PipelineMultisampleStateCreateInfo pmsci;
-        pmsci.rasterizationSamples = vku::sampleCountFlags(handles->graphicsSettings.msaaLevel);
-        pm.multisampleState(pmsci);
+        pm.rasterizationSamples(vku::sampleCountFlags(handles->graphicsSettings.msaaLevel));
         pm.subPass(1);
 
-        skyboxPipeline = pm.createUnique(handles->device, handles->pipelineCache, *skyboxPipelineLayout, renderPass);
+        skyboxPipeline = pm.create(handles->device, handles->pipelineCache, skyboxPipelineLayout, renderPass);
 
         vku::SamplerMaker sm;
-        sampler = sm.createUnique(handles->device);
+        sampler = sm.create(handles->device);
         updateDescriptors(ctx, 0);
     }
 
@@ -67,7 +65,7 @@ namespace worlds {
         auto& sceneSettings = ctx.registry.ctx<SceneSettings>();
 
         uint32_t skyboxId = ctx.resources.cubemaps.loadOrGet(sceneSettings.skybox);
-        vk::ImageView imgView = ctx.resources.cubemaps[skyboxId].imageView();
+        VkImageView imgView = ctx.resources.cubemaps[skyboxId].imageView();
         if (skyboxId != lastSky || lastSkyImageView != imgView) {
             updateDescriptors(ctx, skyboxId);
             lastSky = skyboxId;
@@ -78,20 +76,20 @@ namespace worlds {
     void SkyboxPass::execute(RenderContext& ctx) {
         auto& cmdBuf = ctx.cmdBuf;
 
-        vk::DebugUtilsLabelEXT label;
+        VkDebugUtilsLabelEXT label{ VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT };
         label.pLabelName = "Skybox Pass";
         label.color[0] = 0.321f;
         label.color[1] = 0.705f;
         label.color[2] = 0.871f;
         label.color[3] = 1.0f;
-        cmdBuf.beginDebugUtilsLabelEXT(&label);
+        vkCmdBeginDebugUtilsLabelEXT(cmdBuf, &label);
 
-        cmdBuf.bindPipeline(vk::PipelineBindPoint::eGraphics, *skyboxPipeline);
-        cmdBuf.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *skyboxPipelineLayout, 0, *skyboxDs, nullptr);
+        vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, skyboxPipeline);
+        vkCmdBindDescriptorSets(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, skyboxPipelineLayout, 0, 1, &skyboxDs, 0, nullptr);
         SkyboxPushConstants spc{ 0, 0, 0, 0 };
-        cmdBuf.pushConstants<SkyboxPushConstants>(*skyboxPipelineLayout, vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment, 0, spc);
-        cmdBuf.draw(36, 1, 0, 0);
-        cmdBuf.endDebugUtilsLabelEXT();
+        vkCmdPushConstants(cmdBuf, skyboxPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(spc), &spc);
+        vkCmdDraw(cmdBuf, 36, 1, 0, 0);
+        vkCmdEndDebugUtilsLabelEXT(cmdBuf);
         ctx.debugContext.stats->numDrawCalls++;
     }
 }

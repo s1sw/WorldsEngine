@@ -3,7 +3,7 @@
 namespace worlds {
     DepthPrepass::DepthPrepass(VulkanHandles* handles) : handles(handles) {}
 
-    void DepthPrepass::setup(RenderContext& ctx, vk::RenderPass renderPass, vk::PipelineLayout layout) {
+    void DepthPrepass::setup(RenderContext& ctx, VkRenderPass renderPass, VkPipelineLayout layout) {
         AssetID vsID = AssetDB::pathToId("Shaders/depth_prepass.vert.spv");
         auto preVertexShader = vku::loadShaderAsset(handles->device, vsID);
         {
@@ -11,21 +11,19 @@ namespace worlds {
             auto preFragmentShader = vku::loadShaderAsset(handles->device, fsID);
             vku::PipelineMaker pm{ ctx.passWidth, ctx.passHeight };
 
-            pm.shader(vk::ShaderStageFlagBits::eFragment, preFragmentShader);
-            pm.shader(vk::ShaderStageFlagBits::eVertex, preVertexShader);
+            pm.shader(VK_SHADER_STAGE_FRAGMENT_BIT, preFragmentShader);
+            pm.shader(VK_SHADER_STAGE_VERTEX_BIT, preVertexShader);
             pm.vertexBinding(0, (uint32_t)sizeof(Vertex));
-            pm.vertexAttribute(0, 0, vk::Format::eR32G32B32Sfloat, (uint32_t)offsetof(Vertex, position));
-            pm.vertexAttribute(1, 0, vk::Format::eR32G32B32Sfloat, (uint32_t)offsetof(Vertex, uv));
-            pm.cullMode(vk::CullModeFlagBits::eBack);
-            pm.depthWriteEnable(true).depthTestEnable(true).depthCompareOp(vk::CompareOp::eGreater);
+            pm.vertexAttribute(0, 0, VK_FORMAT_R32G32B32_SFLOAT, (uint32_t)offsetof(Vertex, position));
+            pm.vertexAttribute(1, 0, VK_FORMAT_R32G32B32_SFLOAT, (uint32_t)offsetof(Vertex, uv));
+            pm.cullMode(VK_CULL_MODE_BACK_BIT);
+            pm.depthWriteEnable(true).depthTestEnable(true).depthCompareOp(VK_COMPARE_OP_GREATER);
             pm.blendBegin(false);
-            pm.frontFace(vk::FrontFace::eCounterClockwise);
+            pm.frontFace(VK_FRONT_FACE_COUNTER_CLOCKWISE);
 
-            vk::PipelineMultisampleStateCreateInfo pmsci;
-            pmsci.rasterizationSamples = vku::sampleCountFlags(handles->graphicsSettings.msaaLevel);
-            pm.multisampleState(pmsci);
+            pm.rasterizationSamples(vku::sampleCountFlags(handles->graphicsSettings.msaaLevel));
             pm.subPass(0);
-            depthPrePipeline = pm.createUnique(handles->device, handles->pipelineCache, layout, renderPass);
+            depthPrePipeline = pm.create(handles->device, handles->pipelineCache, layout, renderPass);
         }
 
         {
@@ -33,22 +31,20 @@ namespace worlds {
             auto alphaTestFragment = vku::loadShaderAsset(handles->device, alphaTestID);
             vku::PipelineMaker pm{ ctx.passWidth, ctx.passHeight };
 
-            pm.shader(vk::ShaderStageFlagBits::eFragment, alphaTestFragment);
-            pm.shader(vk::ShaderStageFlagBits::eVertex, preVertexShader);
+            pm.shader(VK_SHADER_STAGE_FRAGMENT_BIT, alphaTestFragment);
+            pm.shader(VK_SHADER_STAGE_VERTEX_BIT, preVertexShader);
             pm.vertexBinding(0, (uint32_t)sizeof(Vertex));
-            pm.vertexAttribute(0, 0, vk::Format::eR32G32B32Sfloat, (uint32_t)offsetof(Vertex, position));
-            pm.vertexAttribute(1, 0, vk::Format::eR32G32B32Sfloat, (uint32_t)offsetof(Vertex, uv));
-            pm.cullMode(vk::CullModeFlagBits::eBack);
-            pm.depthWriteEnable(true).depthTestEnable(true).depthCompareOp(vk::CompareOp::eGreater);
+            pm.vertexAttribute(0, 0, VK_FORMAT_R32G32B32_SFLOAT, (uint32_t)offsetof(Vertex, position));
+            pm.vertexAttribute(1, 0, VK_FORMAT_R32G32B32_SFLOAT, (uint32_t)offsetof(Vertex, uv));
+            pm.cullMode(VK_CULL_MODE_BACK_BIT);
+            pm.depthWriteEnable(true).depthTestEnable(true).depthCompareOp(VK_COMPARE_OP_GREATER);
             pm.blendBegin(false);
-            pm.frontFace(vk::FrontFace::eCounterClockwise);
+            pm.frontFace(VK_FRONT_FACE_COUNTER_CLOCKWISE);
 
-            vk::PipelineMultisampleStateCreateInfo pmsci;
-            pmsci.rasterizationSamples = vku::sampleCountFlags(handles->graphicsSettings.msaaLevel);
-            pmsci.alphaToCoverageEnable = true;
-            pm.multisampleState(pmsci);
+            pm.rasterizationSamples(vku::sampleCountFlags(handles->graphicsSettings.msaaLevel));
+            pm.alphaToCoverageEnable(true);
             pm.subPass(0);
-            alphaTestPipeline = pm.createUnique(handles->device, handles->pipelineCache, layout, renderPass);
+            alphaTestPipeline = pm.create(handles->device, handles->pipelineCache, layout, renderPass);
         }
         this->layout = layout;
     }
@@ -73,14 +69,14 @@ namespace worlds {
 
     void DepthPrepass::execute(RenderContext& ctx, slib::StaticAllocList<SubmeshDrawInfo>& drawInfo) {
         auto& cmdBuf = ctx.cmdBuf;
-        vk::DebugUtilsLabelEXT label;
+        VkDebugUtilsLabelEXT label{ VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT };
         label.pLabelName = "Depth Pre-Pass";
         label.color[0] = 0.368f;
         label.color[1] = 0.415f;
         label.color[2] = 0.819f;
         label.color[3] = 1.0f;
-        cmdBuf.beginDebugUtilsLabelEXT(&label);
-        cmdBuf.bindPipeline(vk::PipelineBindPoint::eGraphics, *depthPrePipeline);
+        vkCmdBeginDebugUtilsLabelEXT(cmdBuf, &label);
+        vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, depthPrePipeline);
 
         bool switchedToAlphaTest = false;
 
@@ -88,7 +84,7 @@ namespace worlds {
             if (!sdi.opaque) {
                 assert(!switchedToAlphaTest);
                 switchedToAlphaTest = true;
-                cmdBuf.bindPipeline(vk::PipelineBindPoint::eGraphics, *alphaTestPipeline);
+                vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, alphaTestPipeline);
             }
 
             StandardPushConstants pushConst {
@@ -100,12 +96,13 @@ namespace worlds {
                 .screenSpacePickPos = glm::ivec3(0, 0, 0)
             };
 
-            cmdBuf.pushConstants<StandardPushConstants>(layout, vk::ShaderStageFlagBits::eFragment | vk::ShaderStageFlagBits::eVertex, 0, pushConst);
-            cmdBuf.bindVertexBuffers(0, sdi.vb, vk::DeviceSize(0));
-            cmdBuf.bindIndexBuffer(sdi.ib, 0, vk::IndexType::eUint32);
-            cmdBuf.drawIndexed(sdi.indexCount, 1, sdi.indexOffset, 0, 0);
+            vkCmdPushConstants(cmdBuf, layout, VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(pushConst), &pushConst);
+            VkDeviceSize offset = 0;
+            vkCmdBindVertexBuffers(cmdBuf, 0, 1, &sdi.vb, &offset);
+            vkCmdBindIndexBuffer(cmdBuf, sdi.ib, 0, VK_INDEX_TYPE_UINT32);
+            vkCmdDrawIndexed(cmdBuf, sdi.indexCount, 1, sdi.indexOffset, 0, 0);
             ctx.debugContext.stats->numDrawCalls++;
         }
-        cmdBuf.endDebugUtilsLabelEXT();
+        vkCmdEndDebugUtilsLabelEXT(cmdBuf);
     }
 }

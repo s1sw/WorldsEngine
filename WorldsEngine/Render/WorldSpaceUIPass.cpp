@@ -156,56 +156,54 @@ namespace worlds {
         };
     }
 
-    void WorldSpaceUIPass::setup(RenderContext& ctx, vk::RenderPass renderPass, vk::DescriptorPool descriptorPool) {
+    void WorldSpaceUIPass::setup(RenderContext& ctx, VkRenderPass renderPass, VkDescriptorPool descriptorPool) {
         vku::DescriptorSetLayoutMaker dslm;
-        dslm.buffer(0, vk::DescriptorType::eUniformBuffer, vk::ShaderStageFlagBits::eVertex, 1);
-        dslm.image(1, vk::DescriptorType::eCombinedImageSampler, vk::ShaderStageFlagBits::eFragment, 8);
-        dslm.bindFlag(1, vk::DescriptorBindingFlagBits::ePartiallyBound);
-        descriptorSetLayout = dslm.createUnique(handles->device);
+        dslm.buffer(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, 1);
+        dslm.image(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 8);
+        dslm.bindFlag(1, VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT);
+        descriptorSetLayout = dslm.create(handles->device);
 
         vku::PipelineLayoutMaker plm;
-        plm.pushConstantRange(vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment, 0, sizeof(FontShaderPushConstants));
-        plm.descriptorSetLayout(*descriptorSetLayout);
-        pipelineLayout = plm.createUnique(handles->device);
+        plm.pushConstantRange(VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(FontShaderPushConstants));
+        plm.descriptorSetLayout(descriptorSetLayout);
+        pipelineLayout = plm.create(handles->device);
 
         vku::PipelineMaker pm{ctx.passWidth, ctx.passHeight};
         pm.depthTestEnable(true);
         pm.depthWriteEnable(false);
-        pm.depthCompareOp(vk::CompareOp::eGreater);
+        pm.depthCompareOp(VK_COMPARE_OP_GREATER);
 
-        pm.shader(vk::ShaderStageFlagBits::eVertex, ShaderCache::getModule(handles->device, AssetDB::pathToId("Shaders/world_ui.vert.spv")));
-        pm.shader(vk::ShaderStageFlagBits::eFragment, ShaderCache::getModule(handles->device, AssetDB::pathToId("Shaders/world_ui.frag.spv")));
+        pm.shader(VK_SHADER_STAGE_VERTEX_BIT, ShaderCache::getModule(handles->device, AssetDB::pathToId("Shaders/world_ui.vert.spv")));
+        pm.shader(VK_SHADER_STAGE_FRAGMENT_BIT, ShaderCache::getModule(handles->device, AssetDB::pathToId("Shaders/world_ui.frag.spv")));
         pm.vertexBinding(0, (uint32_t)sizeof(UIVertex));
-        pm.vertexAttribute(0, 0, vk::Format::eR32G32B32Sfloat, (uint32_t)offsetof(UIVertex, pos));
-        pm.vertexAttribute(1, 0, vk::Format::eR32G32Sfloat, (uint32_t)offsetof(UIVertex, uv));
-        pm.cullMode(vk::CullModeFlagBits::eNone);
+        pm.vertexAttribute(0, 0, VK_FORMAT_R32G32B32_SFLOAT, (uint32_t)offsetof(UIVertex, pos));
+        pm.vertexAttribute(1, 0, VK_FORMAT_R32G32_SFLOAT, (uint32_t)offsetof(UIVertex, uv));
+        pm.cullMode(VK_CULL_MODE_NONE);
         pm.blendBegin(true);
         pm.subPass(1);
 
-        vk::PipelineMultisampleStateCreateInfo pmsci;
-        pmsci.rasterizationSamples = vku::sampleCountFlags(handles->graphicsSettings.msaaLevel);
-        pm.multisampleState(pmsci);
+        pm.rasterizationSamples(vku::sampleCountFlags(handles->graphicsSettings.msaaLevel));
 
-        textPipeline = pm.createUnique(handles->device, handles->pipelineCache, *pipelineLayout, renderPass);
+        textPipeline = pm.create(handles->device, handles->pipelineCache, pipelineLayout, renderPass);
 
         vku::DescriptorSetMaker dsm;
-        dsm.layout(*descriptorSetLayout);
-        descriptorSet = std::move(dsm.createUnique(handles->device, handles->descriptorPool)[0]);
+        dsm.layout(descriptorSetLayout);
+        descriptorSet = std::move(dsm.create(handles->device, handles->descriptorPool)[0]);
 
 
         vku::SamplerMaker sm;
-        sm.minFilter(vk::Filter::eLinear).magFilter(vk::Filter::eLinear).mipmapMode(vk::SamplerMipmapMode::eLinear).anisotropyEnable(true).maxAnisotropy(16.0f).maxLod(VK_LOD_CLAMP_NONE).minLod(0.0f);
-        sampler = sm.createUnique(handles->device);
+        sm.minFilter(VK_FILTER_LINEAR).magFilter(VK_FILTER_LINEAR).mipmapMode(VK_SAMPLER_MIPMAP_MODE_LINEAR).anisotropyEnable(true).maxAnisotropy(16.0f).maxLod(VK_LOD_CLAMP_NONE).minLod(0.0f);
+        sampler = sm.create(handles->device);
 
         vku::DescriptorSetUpdater dsu;
-        dsu.beginDescriptorSet(*descriptorSet);
-        dsu.beginBuffers(0, 0, vk::DescriptorType::eUniformBuffer);
+        dsu.beginDescriptorSet(descriptorSet);
+        dsu.beginBuffers(0, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
         dsu.buffer(ctx.resources.vpMatrixBuffer->buffer(), 0, sizeof(MultiVP));
 
         for (const auto& fontPair : fonts) {
             const SDFFont& font = fontPair.second;
-            dsu.beginImages(1, font.index, vk::DescriptorType::eCombinedImageSampler);
-            dsu.image(*sampler, font.atlas.imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
+            dsu.beginImages(1, font.index, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+            dsu.image(sampler, font.atlas.imageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
         }
 
         dsu.update(handles->device);
@@ -228,14 +226,14 @@ namespace worlds {
             vb = vku::GenericBuffer{
                 handles->device,
                 handles->allocator,
-                vk::BufferUsageFlagBits::eVertexBuffer,
+                VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
                 sizeof(UIVertex) * 4 * requiredBufferCapacity,
                 VMA_MEMORY_USAGE_CPU_TO_GPU, "UI Vertex Buffer"
             };
             ib = vku::GenericBuffer{
                 handles->device,
                 handles->allocator,
-                vk::BufferUsageFlagBits::eIndexBuffer,
+                VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
                 sizeof(uint32_t) * 6 * requiredBufferCapacity,
                 VMA_MEMORY_USAGE_CPU_TO_GPU, "UI Index Buffer"
             };
@@ -299,14 +297,14 @@ namespace worlds {
 
         if (newFontLoaded) {
             vku::DescriptorSetUpdater dsu;
-            dsu.beginDescriptorSet(*descriptorSet);
-            dsu.beginBuffers(0, 0, vk::DescriptorType::eUniformBuffer);
+            dsu.beginDescriptorSet(descriptorSet);
+            dsu.beginBuffers(0, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
             dsu.buffer(ctx.resources.vpMatrixBuffer->buffer(), 0, sizeof(MultiVP));
 
             for (const auto& fontPair : fonts) {
                 const SDFFont& font = fontPair.second;
-                dsu.beginImages(1, font.index, vk::DescriptorType::eCombinedImageSampler);
-                dsu.image(*sampler, font.atlas.imageView(), vk::ImageLayout::eShaderReadOnlyOptimal);
+                dsu.beginImages(1, font.index, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+                dsu.image(sampler, font.atlas.imageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
             }
             dsu.update(handles->device);
         }
@@ -317,16 +315,20 @@ namespace worlds {
     void WorldSpaceUIPass::execute(RenderContext& ctx) {
         auto cmdBuf = ctx.cmdBuf;
         if (vb.buffer()) {
-            cmdBuf.bindPipeline(vk::PipelineBindPoint::eGraphics, *textPipeline);
-            cmdBuf.bindVertexBuffers(0, vb.buffer(), vk::DeviceSize(0));
-            cmdBuf.bindIndexBuffer(ib.buffer(), 0, vk::IndexType::eUint32);
-            cmdBuf.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineLayout, 0, *descriptorSet, nullptr);
+            vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, textPipeline);
+
+            VkBuffer vertexBuf = vb.buffer();
+            VkDeviceSize offset = 0;
+            vkCmdBindVertexBuffers(cmdBuf, 0, 1, &vertexBuf, &offset);
+
+            vkCmdBindIndexBuffer(cmdBuf, ib.buffer(), 0, VK_INDEX_TYPE_UINT32);
+            vkCmdBindDescriptorSets(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
             ctx.registry.view<WorldTextComponent, Transform>().each([&](WorldTextComponent& wtc, Transform& tf) {
                 FontShaderPushConstants pc;
                 pc.model = tf.getMatrix();
                 pc.textureIdx = getFont(wtc.font).index;
-                cmdBuf.pushConstants<FontShaderPushConstants>(*pipelineLayout, vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment, 0, pc);
-                cmdBuf.drawIndexed(wtc.text.size() * 6, 1, wtc.idxOffset, 0, 0);
+                vkCmdPushConstants(cmdBuf, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(pc), &pc);
+                vkCmdDrawIndexed(cmdBuf, wtc.text.size() * 6, 1, wtc.idxOffset, 0, 0);
             });
         }
     }

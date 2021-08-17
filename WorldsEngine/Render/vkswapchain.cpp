@@ -5,16 +5,22 @@
 #include <SDL_messagebox.h>
 
 namespace worlds {
-    vk::SurfaceFormatKHR findSurfaceFormat(vk::PhysicalDevice pd, vk::SurfaceKHR surface) {
-        auto fmts = pd.getSurfaceFormatsKHR(surface);
-        vk::SurfaceFormatKHR fmt;
+    VkSurfaceFormatKHR findSurfaceFormat(VkPhysicalDevice pd, VkSurfaceKHR surface) {
+        uint32_t fmtCount;
+        VKCHECK(vkGetPhysicalDeviceSurfaceFormatsKHR(pd, surface, &fmtCount, nullptr));
+
+        std::vector<VkSurfaceFormatKHR> fmts;
+        fmts.resize(fmtCount);
+
+        VKCHECK(vkGetPhysicalDeviceSurfaceFormatsKHR(pd, surface, &fmtCount, fmts.data()));
+        VkSurfaceFormatKHR fmt;
         fmt = fmts[0];
 
-        if (fmts.size() == 1 && fmt.format == vk::Format::eUndefined) {
-            return vk::SurfaceFormatKHR(vk::Format::eB8G8R8A8Unorm);
+        if (fmts.size() == 1 && fmt.format == VK_FORMAT_UNDEFINED) {
+            return VkSurfaceFormatKHR(VK_FORMAT_B8G8R8A8_UNORM);
         } else {
             for (auto& fmt : fmts) {
-                if (fmt.format == vk::Format::eB8G8R8A8Unorm) {
+                if (fmt.format == VK_FORMAT_B8G8R8A8_UNORM) {
                     return fmt;
                 }
             }
@@ -24,99 +30,116 @@ namespace worlds {
     }
 
     Swapchain::Swapchain(
-        vk::PhysicalDevice& physicalDevice,
-        vk::Device& device,
-        vk::SurfaceKHR& surface,
+        VkPhysicalDevice& physicalDevice,
+        VkDevice device,
+        VkSurfaceKHR& surface,
         QueueFamilyIndices qfi,
         bool fullscreen,
-        vk::SwapchainKHR oldSwapchain,
-        vk::PresentModeKHR requestedPresentMode)
+        VkSwapchainKHR oldSwapchain,
+        VkPresentModeKHR requestedPresentMode)
         : device(device)
-        , format(vk::Format::eUndefined) {
+        , format(VK_FORMAT_UNDEFINED) {
 
         auto surfaceFormat = findSurfaceFormat(physicalDevice, surface);
 
-        auto surfaceCaps = physicalDevice.getSurfaceCapabilitiesKHR(surface);
-        this->width = surfaceCaps.currentExtent.width;
-        this->height = surfaceCaps.currentExtent.height;
+        VkSurfaceCapabilitiesKHR surfCaps;
+        VKCHECK(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, surface, &surfCaps));
 
-        auto pms = physicalDevice.getSurfacePresentModesKHR(surface);
-        vk::PresentModeKHR presentMode = pms[0];
+        this->width = surfCaps.currentExtent.width;
+        this->height = surfCaps.currentExtent.height;
+
+        uint32_t presentModeCount;
+        VKCHECK(vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &presentModeCount, nullptr));
+
+        std::vector<VkPresentModeKHR> pms(presentModeCount);
+        VKCHECK(vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &presentModeCount, pms.data()));
+
+        VkPresentModeKHR presentMode = pms[0];
         if (std::find(pms.begin(), pms.end(), requestedPresentMode) != pms.end()) {
             presentMode = requestedPresentMode;
         } else {
             logErr(worlds::WELogCategoryRender, "Failed to find requested present mode");
         }
 
-        vk::SwapchainCreateInfoKHR swapinfo;
+        VkSwapchainCreateInfoKHR swapinfo{ VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR };
         std::array<uint32_t, 2> queueFamilyIndices = { qfi.graphics, qfi.present };
         bool sameQueues = queueFamilyIndices[0] == queueFamilyIndices[1];
-        vk::SharingMode sharingMode = !sameQueues ? vk::SharingMode::eConcurrent : vk::SharingMode::eExclusive;
-        swapinfo.imageExtent = surfaceCaps.currentExtent;
+        VkSharingMode sharingMode = !sameQueues ? VK_SHARING_MODE_CONCURRENT : VK_SHARING_MODE_EXCLUSIVE;
+        swapinfo.imageExtent = surfCaps.currentExtent;
         swapinfo.surface = surface;
 
-        uint32_t minImageCount = surfaceCaps.minImageCount;
+        uint32_t minImageCount = surfCaps.minImageCount;
 
         if (fullscreen) {
-            minImageCount = surfaceCaps.minImageCount < 2 ? 2 : surfaceCaps.minImageCount;
+            minImageCount = surfCaps.minImageCount < 2 ? 2 : surfCaps.minImageCount;
         }
 
         swapinfo.minImageCount = minImageCount;
         swapinfo.imageFormat = surfaceFormat.format;
         swapinfo.imageColorSpace = surfaceFormat.colorSpace;
-        swapinfo.imageExtent = surfaceCaps.currentExtent;
+        swapinfo.imageExtent = surfCaps.currentExtent;
         swapinfo.imageArrayLayers = 1;
-        swapinfo.imageUsage = vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferDst;
+        swapinfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
         swapinfo.imageSharingMode = sharingMode;
         swapinfo.queueFamilyIndexCount = !sameQueues ? 2 : 0;
         swapinfo.pQueueFamilyIndices = queueFamilyIndices.data();
-        swapinfo.preTransform = surfaceCaps.currentTransform;
-        swapinfo.compositeAlpha = vk::CompositeAlphaFlagBitsKHR::eOpaque;
+        swapinfo.preTransform = surfCaps.currentTransform;
+        swapinfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
         swapinfo.presentMode = presentMode;
         swapinfo.clipped = 0;
         swapinfo.oldSwapchain = oldSwapchain;
 
         auto originalImageUsage = swapinfo.imageUsage;
-        swapchain = device.createSwapchainKHRUnique(swapinfo);
+
+        VKCHECK(vkCreateSwapchainKHR(device, &swapinfo, nullptr, &swapchain));
 
         if (swapinfo.imageUsage != originalImageUsage) {
             SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_WARNING, "Warning",
                 "RTSS detected. If you have issues with crashes or poor performance,\n"
-                "please close it as it does not use the Vulkan API properly and can break things.",
+                "please close it as it does not use the Vulkan API properly and could break things.",
                 nullptr);
         }
 
         format = surfaceFormat.format;
 
-        images = device.getSwapchainImagesKHR(*swapchain);
-        for (auto& image : images) {
-            VkDebugUtilsObjectNameInfoEXT nameInfo;
+        uint32_t swapchainImageCount;
+        VKCHECK(vkGetSwapchainImagesKHR(device, swapchain, &swapchainImageCount, nullptr));
+
+        images.resize(swapchainImageCount);
+        VKCHECK(vkGetSwapchainImagesKHR(device, swapchain, &swapchainImageCount, images.data()));
+
+        imageViews.resize(swapchainImageCount);
+
+        int i = 0;
+        for (VkImage image : images) {
+            VkDebugUtilsObjectNameInfoEXT nameInfo{};
             nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
             nameInfo.pObjectName = "Swapchain Image";
-            nameInfo.objectHandle = (uint64_t)(VkImage)image;
+            nameInfo.objectHandle = (uint64_t)image;
             nameInfo.objectType = VK_OBJECT_TYPE_IMAGE;
             nameInfo.pNext = nullptr;
 
-            auto setObjName = (PFN_vkSetDebugUtilsObjectNameEXT)device.getProcAddr("vkSetDebugUtilsObjectNameEXT");
-            setObjName(device, &nameInfo);
+            vkSetDebugUtilsObjectNameEXT(device, &nameInfo);
 
-            vk::ImageViewCreateInfo ivci;
+            VkImageViewCreateInfo ivci{ VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
             ivci.image = image;
-            ivci.viewType = vk::ImageViewType::e2D;
+            ivci.viewType = VK_IMAGE_VIEW_TYPE_2D;
             ivci.format = format;
-            ivci.subresourceRange = vk::ImageSubresourceRange{ vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1 };
-            imageViews.push_back(device.createImageView(ivci));
+            ivci.subresourceRange = VkImageSubresourceRange{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
+
+            vkCreateImageView(device, &ivci, nullptr, &imageViews[i]);
+            i++;
         }
     }
 
     Swapchain::~Swapchain() {
-        for (auto& iv : imageViews) {
-            device.destroyImageView(iv);
+        for (VkImageView iv : imageViews) {
+            vkDestroyImageView(device, iv, nullptr);
         }
     }
 
-    vk::Result Swapchain::acquireImage(vk::Device& device, vk::Semaphore semaphore, uint32_t* imageIndex) {
-        return device.acquireNextImageKHR(*swapchain, UINT64_MAX, semaphore, nullptr, imageIndex);
+    VkResult Swapchain::acquireImage(VkDevice device, VkSemaphore semaphore, uint32_t* imageIndex) {
+        return vkAcquireNextImageKHR(device, swapchain, UINT64_MAX, semaphore, VK_NULL_HANDLE, imageIndex);
     }
 }

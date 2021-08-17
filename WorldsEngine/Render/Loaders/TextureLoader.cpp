@@ -68,11 +68,11 @@ namespace worlds {
         td.width = (uint32_t)x;
         td.height = (uint32_t)y;
         if (hdr)
-            td.format = vk::Format::eR32G32B32A32Sfloat;
+            td.format = VK_FORMAT_R32G32B32A32_SFLOAT;
         else if (!forceLinear)
-            td.format = vk::Format::eR8G8B8A8Srgb;
+            td.format = VK_FORMAT_R8G8B8A8_SRGB;
         else
-            td.format = vk::Format::eR8G8B8A8Unorm;
+            td.format = VK_FORMAT_R8G8B8A8_UNORM;
         td.name = AssetDB::idToPath(id);
         td.totalDataSize = hdr ? x * y * 4 * sizeof(float) : x * y * 4;
 
@@ -92,20 +92,20 @@ namespace worlds {
 
         crn_format fundamentalFormat = crnd::crnd_get_fundamental_dxt_format(texInfo.m_format);
 
-        vk::Format format{};
+        VkFormat format{};
 
         switch (fundamentalFormat) {
         case crn_format::cCRNFmtDXT1:
-            format = isSRGB ? vk::Format::eBc1RgbaSrgbBlock : vk::Format::eBc1RgbaUnormBlock;
+            format = isSRGB ? VK_FORMAT_BC1_RGBA_SRGB_BLOCK : VK_FORMAT_BC1_RGBA_UNORM_BLOCK;
             break;
         case crn_format::cCRNFmtDXT5:
-            format = isSRGB ? vk::Format::eBc3SrgbBlock : vk::Format::eBc3UnormBlock;
+            format = isSRGB ? VK_FORMAT_BC3_SRGB_BLOCK : VK_FORMAT_BC3_UNORM_BLOCK;
             break;
         case crn_format::cCRNFmtDXN_XY:
-            format = vk::Format::eBc5UnormBlock;
+            format = VK_FORMAT_BC5_UNORM_BLOCK;
             break;
         default:
-            format = vk::Format::eUndefined;
+            format = VK_FORMAT_UNDEFINED;
             break;
         }
 
@@ -178,76 +178,90 @@ namespace worlds {
         }
     }
 
-    void generateMips(const VulkanHandles& vkCtx, vku::TextureImage2D& t, vk::CommandBuffer cb) {
+    void generateMips(const VulkanHandles& vkCtx, vku::TextureImage2D& t, VkCommandBuffer cb) {
         auto currLayout = t.layout();
-        vk::ImageMemoryBarrier imb;
-        imb.subresourceRange = vk::ImageSubresourceRange{ vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1 };
+        VkImageMemoryBarrier imb{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
+        imb.subresourceRange = VkImageSubresourceRange{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
 
         imb.image = t.image();
         imb.oldLayout = currLayout;
-        imb.newLayout = vk::ImageLayout::eTransferSrcOptimal;
-        imb.srcAccessMask = vk::AccessFlagBits::eHostWrite;
-        imb.dstAccessMask = vk::AccessFlagBits::eTransferRead;
+        imb.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+        imb.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT;
+        imb.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
 
-        vk::ImageMemoryBarrier imb2;
-        imb2.subresourceRange = vk::ImageSubresourceRange{ vk::ImageAspectFlagBits::eColor, 1, t.info().mipLevels - 1, 0, 1 };
+        VkImageMemoryBarrier imb2{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
+        imb2.subresourceRange = VkImageSubresourceRange{ VK_IMAGE_ASPECT_COLOR_BIT, 1, t.info().mipLevels - 1, 0, 1 };
 
         imb2.image = t.image();
         imb2.oldLayout = currLayout;
-        imb2.newLayout = vk::ImageLayout::eTransferDstOptimal;
-        imb2.srcAccessMask = vk::AccessFlagBits::eHostWrite;
-        imb2.dstAccessMask = vk::AccessFlagBits::eTransferWrite;
-        cb.pipelineBarrier(vk::PipelineStageFlagBits::eHost, vk::PipelineStageFlagBits::eTransfer, vk::DependencyFlagBits::eByRegion, nullptr, nullptr, { imb, imb2 });
+        imb2.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+        imb2.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT;
+        imb2.dstAccessMask = VK_PIPELINE_STAGE_TRANSFER_BIT;
+
+        VkImageMemoryBarrier barriers[2] = { imb, imb2 };
+        vkCmdPipelineBarrier(cb, VK_PIPELINE_STAGE_HOST_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_DEPENDENCY_BY_REGION_BIT, 
+            0, nullptr, 
+            0, nullptr, 
+            2, barriers);
 
         int32_t mipWidth = t.info().extent.width / 2;
         int32_t mipHeight = t.info().extent.height / 2;
         for (uint32_t i = 1; i < t.info().mipLevels; i++) {
-            vk::ImageBlit ib;
-            ib.dstSubresource = vk::ImageSubresourceLayers{ vk::ImageAspectFlagBits::eColor, i, 0, 1 };
-            ib.dstOffsets[0] = vk::Offset3D{ 0, 0, 0 };
-            ib.dstOffsets[1] = vk::Offset3D{ mipWidth, mipHeight, 1 };
-            ib.srcSubresource = vk::ImageSubresourceLayers{ vk::ImageAspectFlagBits::eColor, 0, 0, 1 };
-            ib.srcOffsets[0] = vk::Offset3D{ 0, 0, 0 };
-            ib.srcOffsets[1] = vk::Offset3D{ (int32_t)t.info().extent.width, (int32_t)t.info().extent.height, 1 };
+            VkImageBlit ib;
+            ib.dstSubresource = VkImageSubresourceLayers{ VK_IMAGE_ASPECT_COLOR_BIT, i, 0, 1 };
+            ib.dstOffsets[0] = VkOffset3D{ 0, 0, 0 };
+            ib.dstOffsets[1] = VkOffset3D{ mipWidth, mipHeight, 1 };
+            ib.srcSubresource = VkImageSubresourceLayers{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 };
+            ib.srcOffsets[0] = VkOffset3D{ 0, 0, 0 };
+            ib.srcOffsets[1] = VkOffset3D{ (int32_t)t.info().extent.width, (int32_t)t.info().extent.height, 1 };
 
-            cb.blitImage(t.image(), vk::ImageLayout::eTransferSrcOptimal, t.image(), vk::ImageLayout::eTransferDstOptimal, ib, vk::Filter::eLinear);
+            vkCmdBlitImage(cb, t.image(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, t.image(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &ib, VK_FILTER_LINEAR);
 
             mipWidth /= 2;
             mipHeight /= 2;
         }
 
-        vk::ImageMemoryBarrier imb3;
-        imb3.subresourceRange = vk::ImageSubresourceRange{ vk::ImageAspectFlagBits::eColor, 1, t.info().mipLevels - 1, 0, 1 };
-        imb3.oldLayout = vk::ImageLayout::eTransferDstOptimal;
-        imb3.newLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
-        imb3.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
-        imb3.dstAccessMask = vk::AccessFlagBits::eShaderRead;
+        VkImageMemoryBarrier imb3{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
+        imb3.subresourceRange = VkImageSubresourceRange{ VK_IMAGE_ASPECT_COLOR_BIT, 1, t.info().mipLevels - 1, 0, 1 };
+        imb3.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+        imb3.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        imb3.srcAccessMask = VK_PIPELINE_STAGE_TRANSFER_BIT;
+        imb3.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
         imb3.image = t.image();
 
-        vk::ImageMemoryBarrier imb4;
-        imb4.subresourceRange = vk::ImageSubresourceRange{ vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1 };
-        imb4.oldLayout = vk::ImageLayout::eTransferSrcOptimal;
-        imb4.newLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
-        imb4.srcAccessMask = vk::AccessFlagBits::eTransferRead;
-        imb4.dstAccessMask = vk::AccessFlagBits::eShaderRead;
+        VkImageMemoryBarrier imb4{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
+        imb4.subresourceRange = VkImageSubresourceRange{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
+        imb4.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+        imb4.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        imb4.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+        imb4.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
         imb4.image = t.image();
 
-        cb.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eFragmentShader,
-            vk::DependencyFlagBits::eByRegion, nullptr, nullptr, { imb3, imb4 });
-        t.setCurrentLayout(vk::ImageLayout::eShaderReadOnlyOptimal, vk::PipelineStageFlagBits::eFragmentShader, vk::AccessFlagBits::eShaderRead);
+        VkImageMemoryBarrier barriers34[2] = { imb3, imb4 };
+
+
+        vkCmdPipelineBarrier(cb, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+            VK_DEPENDENCY_BY_REGION_BIT, 
+            0, nullptr, 
+            0, nullptr, 
+            2, barriers34);
+        t.setCurrentLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_ACCESS_SHADER_READ_BIT);
     }
 
     void generateMips(const VulkanHandles& vkCtx, vku::TextureImage2D& t) {
-        vku::executeImmediately(vkCtx.device, vkCtx.commandPool, vkCtx.device.getQueue(vkCtx.graphicsQueueFamilyIdx, 0),
-            [&](vk::CommandBuffer cb) {
+        VkQueue queue;
+        vkGetDeviceQueue(vkCtx.device, vkCtx.graphicsQueueFamilyIdx, 0, &queue);
+        vku::executeImmediately(vkCtx.device, vkCtx.commandPool, queue,
+            [&](VkCommandBuffer cb) {
                 generateMips(vkCtx, t, cb);
             });
     }
 
     vku::TextureImage2D uploadTextureVk(const VulkanHandles& ctx, TextureData& td, bool genMips) {
         ZoneScoped;
-        auto memProps = ctx.physicalDevice.getMemoryProperties();
-        bool createMips = td.numMips == 1 && (td.format == vk::Format::eR8G8B8A8Srgb || td.format == vk::Format::eR8G8B8A8Unorm);
+        VkPhysicalDeviceMemoryProperties memProps;
+        vkGetPhysicalDeviceMemoryProperties(ctx.physicalDevice, &memProps);
+        bool createMips = td.numMips == 1 && (td.format == VK_FORMAT_R8G8B8A8_SRGB || td.format == VK_FORMAT_R8G8B8A8_UNORM);
         uint32_t maxMips = static_cast<uint32_t>(std::floor(std::log2(std::min(td.width, td.height)))) + 1;
 
         vkMutex.lock();
@@ -262,11 +276,15 @@ namespace worlds {
 
         std::vector<uint8_t> datVec(td.data, td.data + td.totalDataSize);
 
-        tex.upload(ctx.device, ctx.allocator, datVec, ctx.commandPool, memProps, ctx.device.getQueue(ctx.graphicsQueueFamilyIdx, 0), td.numMips);
+        VkQueue queue;
+        vkGetDeviceQueue(ctx.device, ctx.graphicsQueueFamilyIdx, 0, &queue);
+
+        tex.upload(ctx.device, ctx.allocator, datVec, ctx.commandPool, memProps, queue, td.numMips);
 
         if (createMips && genMips) {
             generateMips(ctx, tex);
         }
+
         vkMutex.unlock();
 
         if (!td.name.empty())
@@ -294,11 +312,11 @@ namespace worlds {
         tempBufMutex.unlock();
     }
 
-    vku::TextureImage2D uploadTextureVk(const VulkanHandles& ctx, TextureData& td, vk::CommandBuffer cb, uint32_t frameIdx) {
+    vku::TextureImage2D uploadTextureVk(const VulkanHandles& ctx, TextureData& td, VkCommandBuffer cb, uint32_t frameIdx) {
         ZoneScoped;
         ensureTempVectorExists(frameIdx);
 
-        bool createMips = td.numMips == 1 && (td.format == vk::Format::eR8G8B8A8Srgb || td.format == vk::Format::eR8G8B8A8Unorm);
+        bool createMips = td.numMips == 1 && (td.format == VK_FORMAT_R8G8B8A8_SRGB || td.format == VK_FORMAT_R8G8B8A8_UNORM);
         uint32_t maxMips = static_cast<uint32_t>(std::floor(std::log2(std::max(td.width, td.height)))) + 1;
 
         vkMutex.lock();
@@ -311,13 +329,13 @@ namespace worlds {
             td.name.empty() ? nullptr : td.name.c_str()
         };
 
-        vku::GenericBuffer stagingBuffer(ctx.device, ctx.allocator, (vk::BufferUsageFlags)vk::BufferUsageFlagBits::eTransferSrc, (vk::DeviceSize)td.totalDataSize, VMA_MEMORY_USAGE_CPU_ONLY, "Texture upload staging buffer");
+        vku::GenericBuffer stagingBuffer(ctx.device, ctx.allocator, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, (VkDeviceSize)td.totalDataSize, VMA_MEMORY_USAGE_CPU_ONLY, "Texture upload staging buffer");
         stagingBuffer.updateLocal(ctx.device, td.data, td.totalDataSize);
 
         // Copy the staging buffer to the GPU texture and set the layout.
         {
             auto bp = vku::getBlockParams(td.format);
-            vk::Buffer buf = stagingBuffer.buffer();
+            VkBuffer buf = stagingBuffer.buffer();
             uint32_t offset = 0;
             for (uint32_t mipLevel = 0; mipLevel != td.numMips; ++mipLevel) {
                 auto width = vku::mipScale(td.width, mipLevel);
@@ -327,7 +345,7 @@ namespace worlds {
                     offset += ((bp.bytesPerBlock + 3) & ~3) * ((width / bp.blockWidth) * (height / bp.blockHeight));
                 }
             }
-            tex.setLayout(cb, vk::ImageLayout::eShaderReadOnlyOptimal, vk::PipelineStageFlagBits::eFragmentShader, vk::AccessFlagBits::eShaderRead);
+            tex.setLayout(cb, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_ACCESS_SHADER_READ_BIT);
         }
 
         tempBufMutex.lock();
