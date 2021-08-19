@@ -132,6 +132,12 @@ namespace worlds {
         g_scene->setVisualizationParameter(physx::PxVisualizationParameter::eCOLLISION_SHAPES, 1.0f - currentVal);
     }
 
+    void cmdToggleMassAxesVis(void*, const char*) {
+        float currentVal = g_scene->getVisualizationParameter(physx::PxVisualizationParameter::eBODY_MASS_AXES);
+
+        g_scene->setVisualizationParameter(physx::PxVisualizationParameter::eBODY_MASS_AXES, 1.0f - currentVal);
+    }
+
     static physx::PxFilterFlags filterShader(
         physx::PxFilterObjectAttributes,
         physx::PxFilterData data1,
@@ -286,6 +292,7 @@ namespace worlds {
 
         g_console->registerCommand(cmdTogglePhysVis, "phys_toggleVis", "Toggles all physics visualisations.", nullptr);
         g_console->registerCommand(cmdToggleShapeVis, "phys_toggleShapeVis", "Toggles physics shape visualisations.", nullptr);
+        g_console->registerCommand(cmdToggleMassAxesVis, "phys_toggleMassAxesVis", "Toggles mass axes visualisations.", nullptr);
 
         defaultMaterial = g_physics->createMaterial(0.6f, 0.6f, 0.0f);
     }

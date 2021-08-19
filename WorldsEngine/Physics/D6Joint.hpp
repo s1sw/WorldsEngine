@@ -32,6 +32,7 @@ namespace worlds {
         ~D6Joint();
     private:
         friend void setupD6Joint(entt::registry&, entt::entity);
+        friend class D6JointEditor;
         physx::PxRigidActor* thisActor;
         entt::entity targetEntity;
     };

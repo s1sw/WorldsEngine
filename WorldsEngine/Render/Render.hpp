@@ -133,6 +133,7 @@ namespace worlds {
         virtual void requestPick(int x, int y) = 0;
         virtual bool getPickResult(uint32_t* result) = 0;
         virtual float* getHDRData() = 0;
+        virtual ~RTTPass() {}
     };
 
     enum class ReloadFlags {

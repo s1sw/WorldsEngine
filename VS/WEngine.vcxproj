@@ -79,6 +79,7 @@
     <ClCompile Include="..\WorldsEngine\ImGui\ImGuizmo.cpp" />
     <ClCompile Include="..\WorldsEngine\ImGui\imgui_demo.cpp" />
     <ClCompile Include="..\WorldsEngine\ImGui\imgui_draw.cpp" />
+    <ClCompile Include="..\WorldsEngine\ImGui\imgui_freetype.cpp" />
     <ClCompile Include="..\WorldsEngine\ImGui\imgui_impl_sdl.cpp" />
     <ClCompile Include="..\WorldsEngine\ImGui\imgui_impl_vulkan.cpp" />
     <ClCompile Include="..\WorldsEngine\ImGui\imgui_stdlib.cpp" />
@@ -280,6 +281,7 @@
     <ClInclude Include="..\WorldsEngine\ImGui\imconfig.h" />
     <ClInclude Include="..\WorldsEngine\ImGui\imgui.h" />
     <ClInclude Include="..\WorldsEngine\ImGui\ImGuizmo.h" />
+    <ClInclude Include="..\WorldsEngine\ImGui\imgui_freetype.h" />
     <ClInclude Include="..\WorldsEngine\ImGui\imgui_impl_sdl.h" />
     <ClInclude Include="..\WorldsEngine\ImGui\imgui_impl_vulkan.h" />
     <ClInclude Include="..\WorldsEngine\ImGui\imgui_internal.h" />
@@ -555,7 +557,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)..\External\Include;$(SolutionDir)..\subprojects\physfs.git\src;$(SolutionDir)..\subprojects\slib.git\include;$(SolutionDir)..\subprojects\SDL2-2.0.12\include;$(SolutionDir)..\WorldsEngine;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\External\Include;$(SolutionDir)..\subprojects\physfs.git\src;$(SolutionDir)..\subprojects\slib.git\include;$(SolutionDir)..\subprojects\SDL2-2.0.12\include;$(SolutionDir)..\WorldsEngine;$(SolutionDir)..\ModelFormat;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
@@ -571,7 +573,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)..\External\Include;$(SolutionDir)..\subprojects\physfs.git\src;$(SolutionDir)..\subprojects\slib.git\include;$(SolutionDir)..\subprojects\SDL2-2.0.12\include;$(SolutionDir)..\WorldsEngine;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\External\Include;$(SolutionDir)..\subprojects\physfs.git\src;$(SolutionDir)..\subprojects\slib.git\include;$(SolutionDir)..\subprojects\SDL2-2.0.12\include;$(SolutionDir)..\WorldsEngine;$(SolutionDir)..\ModelFormat;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>

@@ -286,7 +286,7 @@ namespace worlds {
         vertexShader = ShaderCache::getModule(handles->device, vsID);
         fragmentShader = ShaderCache::getModule(handles->device, fsID);
 
-        auto msaaSamples = polyImage->image.info().samples;
+        auto msaaSamples = vku::sampleCountFlags(handles->graphicsSettings.msaaLevel);
 
         struct StandardSpecConsts {
             bool enablePicking = false;
@@ -333,9 +333,8 @@ namespace worlds {
             pm.frontFace(VK_FRONT_FACE_COUNTER_CLOCKWISE);
             pm.subPass(1);
 
-            VkPipelineMultisampleStateCreateInfo pmsci{ VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO };
-            pmsci.rasterizationSamples = msaaSamples;
-            pm.multisampleState(pmsci);
+            pm.rasterizationSamples(msaaSamples);
+            pm.alphaToCoverageEnable(true);
 
             pipeline = pm.create(handles->device, handles->pipelineCache, pipelineLayout, renderPass);
         }
@@ -349,7 +348,7 @@ namespace worlds {
             // Sadly we can't enable picking for alpha test surfaces as we can't use
             // early fragment tests with them, which leads to strange issues.
             StandardSpecConsts spc{
-                false,
+                (bool)enableDepthPrepass.getInt(),
                 maxParallaxLayers.getFloat(),
                 minParallaxLayers.getFloat(),
                 (bool)enableParallaxMapping.getInt()
@@ -361,16 +360,19 @@ namespace worlds {
             pm.shader(VK_SHADER_STAGE_VERTEX_BIT, vertexShader);
             setupVertexFormat(pm);
             pm.cullMode(VK_CULL_MODE_BACK_BIT);
-            pm.depthWriteEnable(false).depthTestEnable(true).depthCompareOp(VK_COMPARE_OP_EQUAL);
+            if ((int)enableDepthPrepass)
+                pm.depthWriteEnable(false)
+                .depthTestEnable(true)
+                .depthCompareOp(VK_COMPARE_OP_EQUAL);
+            else
+                pm.depthWriteEnable(true).depthTestEnable(true).depthCompareOp(VK_COMPARE_OP_GREATER);
 
             pm.blendBegin(false);
             pm.frontFace(VK_FRONT_FACE_COUNTER_CLOCKWISE);
             pm.subPass(1);
 
-            VkPipelineMultisampleStateCreateInfo pmsci{ VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO };
-            pmsci.rasterizationSamples = msaaSamples;
-            pmsci.alphaToCoverageEnable = true;
-            pm.multisampleState(pmsci);
+            pm.rasterizationSamples(msaaSamples);
+            pm.alphaToCoverageEnable(true);
 
             alphaTestPipeline = pm.create(handles->device, handles->pipelineCache, pipelineLayout, renderPass);
         }
@@ -396,10 +398,8 @@ namespace worlds {
             pm.frontFace(VK_FRONT_FACE_COUNTER_CLOCKWISE);
             pm.subPass(1);
 
-            VkPipelineMultisampleStateCreateInfo pmsci{ VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO };
-            pmsci.rasterizationSamples = msaaSamples;
-            pmsci.alphaToCoverageEnable = true;
-            pm.multisampleState(pmsci);
+            pm.rasterizationSamples(msaaSamples);
+            pm.alphaToCoverageEnable(true);
             noBackfaceCullPipeline = pm.create(handles->device, handles->pipelineCache, pipelineLayout, renderPass);
         }
 
@@ -566,16 +566,16 @@ namespace worlds {
 
                 auto& extraDat = resources.materials.getExtraDat(wo.materialIdx[i]);
 
+                sdi.pipeline = sdi.opaque ? pipeline : alphaTestPipeline;
+
                 if (extraDat.noCull) {
                     sdi.pipeline = noBackfaceCullPipeline;
                 } else if (extraDat.wireframe || showWireframe.getInt() == 1) {
                     sdi.pipeline = wireframePipeline;
                 } else if (ctx.registry.has<UseWireframe>(ent) || showWireframe.getInt() == 2) {
-                    sdi.pipeline = pipeline;
                     drawInfo.add(sdi);
+                    ctx.debugContext.stats->numTriangles += currSubmesh.indexCount / 3;
                     sdi.pipeline = wireframePipeline;
-                } else {
-                    sdi.pipeline = pipeline;
                 }
                 ctx.debugContext.stats->numTriangles += currSubmesh.indexCount / 3;
 
@@ -731,7 +731,12 @@ namespace worlds {
             globalMiscFlags |= 16384;
         }
 
-        std::sort(drawInfo.begin(), drawInfo.end(), [&](const auto& sdiA, const auto& sdiB) {
+        std::sort(drawInfo.begin(), drawInfo.end(), [&](const SubmeshDrawInfo& sdiA, const SubmeshDrawInfo& sdiB) {
+            if (sdiA.opaque && !sdiB.opaque)
+                return true;
+            else if (sdiB.opaque && !sdiA.opaque)
+                return false;
+
             return sdiA.pipeline > sdiB.pipeline;
             });
 

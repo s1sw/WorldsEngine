@@ -154,10 +154,22 @@ namespace worlds {
 
     // Loads entities into the specified registry.
     // j is the array of entities to load.
-    void loadSceneEntities(entt::registry& reg, nlohmann::json& j) {
+    void loadSceneEntities(entt::registry& reg, const nlohmann::json& j) {
         logMsg("scene has %lu entities", j.size());
-        for (auto& p : j.items()) {
-            entt::entity newEnt = reg.create((entt::entity)std::stoul(p.key()));
+        // 1. Create all the scene's entities
+        for (const auto& p : j.items()) {
+            entt::entity id = (entt::entity)std::stoul(p.key());
+            entt::entity newEnt = reg.create(id);
+
+            if (id != newEnt) {
+                logErr("failed to deserialize");
+                return;
+            }
+        }
+
+        // 2. Load prefabs
+        for (const auto& p : j.items()) {
+            entt::entity newEnt = (entt::entity)std::stoul(p.key());
 
             if (p.value().contains("prefabPath")) {
                 std::string prefabPath = p.value()["prefabPath"].get<std::string>();
@@ -177,8 +189,60 @@ namespace worlds {
                 deserializeEntityComponents(components, reg, newEnt);
 
                 reg.emplace<PrefabInstanceComponent>(newEnt).prefab = prefabId;
-            } else {
-                deserializeEntityComponents(p.value(), reg, newEnt);
+            }
+        }
+
+        struct PrioritisedEntity {
+            entt::entity ent;
+            int maxComponentSort;
+        };
+
+        slib::StaticAllocList<PrioritisedEntity> prioritisedEntities(j.size());
+
+        // 3. Determine max sort ID of each component
+        for (const auto& p : j.items()) {
+            entt::entity newEnt = (entt::entity)std::stoul(p.key());
+            if (p.value().contains("prefabPath")) continue;
+
+            int maxSort = 0;
+            for (const auto& c : p.value().items()) {
+                if (ComponentMetadataManager::byName.count(c.key()) == 0) continue;
+                ComponentEditor* meta = ComponentMetadataManager::byName[c.key()];
+
+                maxSort = std::max(maxSort, meta->getSortID());
+            }
+
+            prioritisedEntities.add({ newEnt, maxSort });
+        }
+
+        // 4. Sort by max sort ID
+        // This way entities with a component with a high sort ID will be deserialized
+        // after those with a low sort ID
+        std::sort(prioritisedEntities.begin(), prioritisedEntities.end(), [](PrioritisedEntity& a, PrioritisedEntity& b) {
+            return a.maxComponentSort < b.maxComponentSort;
+            });
+
+        for (worlds::ComponentEditor* meta : ComponentMetadataManager::sorted) {
+            for (PrioritisedEntity& pe : prioritisedEntities) {
+                entt::entity newEnt = pe.ent;
+                const auto& entityJson = j[std::to_string((uint32_t)newEnt)];
+
+                if (entityJson.contains(meta->getName())) {
+                    meta->fromJson(newEnt, reg, entityJson[meta->getName()]);
+                }
+            }
+        }
+
+        // 6. Deserialize each managed component
+        // This is super inefficient, but it preserves initialisation order
+        for (PrioritisedEntity& pe : prioritisedEntities) {
+            entt::entity newEnt = pe.ent;
+            const auto& entityJson = j[std::to_string((uint32_t)newEnt)];
+
+            for (const auto& v : entityJson.items()) {
+                if (ComponentMetadataManager::byName.count(v.key()) == 0) {
+                    scriptEngine->deserializeManagedComponent(v.key().c_str(), v.value(), newEnt);
+                }
             }
         }
     }

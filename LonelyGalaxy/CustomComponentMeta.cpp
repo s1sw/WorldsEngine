@@ -36,9 +36,6 @@ namespace lg {
 
     class PlayerStartPointEditor : public worlds::BasicComponentUtil<PlayerStartPoint> {
     public:
-        BASIC_CREATE(PlayerStartPoint);
-        BASIC_CLONE(PlayerStartPoint);
-
         const char* getName() override { return "Player Start Point"; }
 
         void edit(entt::entity ent, entt::registry& reg, worlds::Editor* ed) override {
@@ -79,9 +76,6 @@ namespace lg {
 
     class PlayerRigEditor : public worlds::BasicComponentUtil<PlayerRig> {
     public:
-        BASIC_CREATE(PlayerRig);
-        BASIC_CLONE(PlayerRig);
-
         const char* getName() override { return "Player Rig"; }
 
         void edit(entt::entity ent, entt::registry& reg, worlds::Editor* ed) override {
@@ -98,9 +92,6 @@ namespace lg {
 
     class GripPointEditor : public worlds::BasicComponentUtil<GripPoint> {
     public:
-        BASIC_CREATE(GripPoint);
-        BASIC_CLONE(GripPoint);
-
         const char* getName() override { return "Grip Point"; }
 
         void edit(entt::entity ent, entt::registry& reg, worlds::Editor* ed) override {
@@ -148,9 +139,6 @@ namespace lg {
 
     class PhysicsSoundComponentEditor : public worlds::BasicComponentUtil<PhysicsSoundComponent> {
     public:
-        BASIC_CREATE(PhysicsSoundComponent);
-        BASIC_CLONE(PhysicsSoundComponent);
-
         const char* getName() override { return "Physics Sound"; }
 
         void edit(entt::entity ent, entt::registry& reg, worlds::Editor* ed) override {
@@ -200,9 +188,6 @@ namespace lg {
 
     class RPGStatsComponentEditor : public worlds::BasicComponentUtil<RPGStats> {
     public:
-        BASIC_CREATE(RPGStats);
-        BASIC_CLONE(RPGStats);
-
         const char* getName() override { return "RPG Stats"; }
 
         void edit(entt::entity ent, entt::registry& reg, worlds::Editor* ed) override {
@@ -252,8 +237,6 @@ namespace lg {
 
     class ContactDamageDealerComponentEditor : public worlds::BasicComponentUtil<ContactDamageDealer> {
     public:
-        BASIC_CREATE(ContactDamageDealer);
-        BASIC_CLONE(ContactDamageDealer);
         BASIC_WRITE_TO_FILE(ContactDamageDealer);
         BASIC_READ_FROM_FILE(ContactDamageDealer);
 
@@ -332,9 +315,6 @@ namespace lg {
 
     class GrababbleEditor : public worlds::BasicComponentUtil<Grabbable> {
     public:
-        BASIC_CREATE(Grabbable);
-        BASIC_CLONE(Grabbable);
-
         void writeToFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file) override {}
         void readFromFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file, int version) override {}
 
@@ -479,11 +459,10 @@ namespace lg {
 
     class GunEditor : public worlds::BasicComponentUtil<Gun> {
     public:
-        BASIC_CREATE(Gun);
-        BASIC_CLONE(Gun);
-
         void writeToFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file) override {}
         void readFromFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file, int version) override {}
+
+        int getSortID() override { return 1; }
 
         const char* getName() override { return "Gun"; }
 
@@ -551,9 +530,6 @@ namespace lg {
 
     class DamagingProjectileEditor : public worlds::BasicComponentUtil<DamagingProjectile> {
     public:
-        BASIC_CREATE(DamagingProjectile);
-        BASIC_CLONE(DamagingProjectile);
-
         void writeToFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file) override {}
         void readFromFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file, int version) override {}
 
@@ -589,9 +565,6 @@ namespace lg {
 
     class StabbyEditor : public worlds::BasicComponentUtil<Stabby> {
     public:
-        BASIC_CREATE(Stabby);
-        BASIC_CLONE(Stabby);
-
         void writeToFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file) override {}
         void readFromFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file, int version) override {}
 
@@ -637,9 +610,6 @@ namespace lg {
 
     class StabbableEditor : public worlds::BasicComponentUtil<Stabbable> {
     public:
-        BASIC_CREATE(Stabbable);
-        BASIC_CLONE(Stabbable);
-
         void writeToFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file) override {}
         void readFromFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file, int version) override {}
 
@@ -686,9 +656,6 @@ namespace lg {
 
     class StatDisplayInfoEditor : public worlds::BasicComponentUtil<StatDisplayInfo> {
     public:
-        BASIC_CREATE(StatDisplayInfo);
-        BASIC_CLONE(StatDisplayInfo);
-
         void writeToFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file) override {}
         void readFromFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file, int version) override {}
 
@@ -724,9 +691,6 @@ namespace lg {
 
     class DroneAIEditor : public worlds::BasicComponentUtil<DroneAI> {
     public:
-        BASIC_CREATE(DroneAI);
-        BASIC_CLONE(DroneAI);
-
         void writeToFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file) override {}
         void readFromFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file, int version) override {}
 

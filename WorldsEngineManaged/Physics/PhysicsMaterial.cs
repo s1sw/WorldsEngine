@@ -7,6 +7,14 @@ using System.Runtime.InteropServices;
 
 namespace WorldsEngine
 {
+    public enum CombineMode : uint
+    {
+        Average = 0,
+        Min = 1,
+        Multiply = 2,
+        Max = 3
+    }
+
     public class PhysicsMaterial : IDisposable
     {
         [DllImport(WorldsEngine.NativeModule)]
@@ -36,6 +44,12 @@ namespace WorldsEngine
         [DllImport(WorldsEngine.NativeModule)]
         private static extern void physicsmaterial_setRestitution(IntPtr material, float val);
 
+        [DllImport(WorldsEngine.NativeModule)]
+        private static extern void physicsmaterial_setFrictionCombineMode(IntPtr material, CombineMode mode);
+
+        [DllImport(WorldsEngine.NativeModule)]
+        private static extern CombineMode physicsmaterial_getFrictionCombineMode(IntPtr material);
+
         public float StaticFriction
         {
             get => physicsmaterial_getStaticFriction(_nativeHandle);
@@ -52,6 +66,12 @@ namespace WorldsEngine
         {
             get => physicsmaterial_getRestitution(_nativeHandle);
             set => physicsmaterial_setRestitution(_nativeHandle, value);
+        }
+
+        public CombineMode FrictionCombineMode
+        {
+            get => physicsmaterial_getFrictionCombineMode(NativeHandle);
+            set => physicsmaterial_setFrictionCombineMode(NativeHandle, value);
         }
 
         internal IntPtr NativeHandle => _nativeHandle;

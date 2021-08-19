@@ -15,7 +15,7 @@ namespace worlds {
             pm.shader(VK_SHADER_STAGE_VERTEX_BIT, preVertexShader);
             pm.vertexBinding(0, (uint32_t)sizeof(Vertex));
             pm.vertexAttribute(0, 0, VK_FORMAT_R32G32B32_SFLOAT, (uint32_t)offsetof(Vertex, position));
-            pm.vertexAttribute(1, 0, VK_FORMAT_R32G32B32_SFLOAT, (uint32_t)offsetof(Vertex, uv));
+            pm.vertexAttribute(1, 0, VK_FORMAT_R32G32_SFLOAT, (uint32_t)offsetof(Vertex, uv));
             pm.cullMode(VK_CULL_MODE_BACK_BIT);
             pm.depthWriteEnable(true).depthTestEnable(true).depthCompareOp(VK_COMPARE_OP_GREATER);
             pm.blendBegin(false);
@@ -35,7 +35,7 @@ namespace worlds {
             pm.shader(VK_SHADER_STAGE_VERTEX_BIT, preVertexShader);
             pm.vertexBinding(0, (uint32_t)sizeof(Vertex));
             pm.vertexAttribute(0, 0, VK_FORMAT_R32G32B32_SFLOAT, (uint32_t)offsetof(Vertex, position));
-            pm.vertexAttribute(1, 0, VK_FORMAT_R32G32B32_SFLOAT, (uint32_t)offsetof(Vertex, uv));
+            pm.vertexAttribute(1, 0, VK_FORMAT_R32G32_SFLOAT, (uint32_t)offsetof(Vertex, uv));
             pm.cullMode(VK_CULL_MODE_BACK_BIT);
             pm.depthWriteEnable(true).depthTestEnable(true).depthCompareOp(VK_COMPARE_OP_GREATER);
             pm.blendBegin(false);
@@ -81,11 +81,12 @@ namespace worlds {
         bool switchedToAlphaTest = false;
 
         for (auto& sdi : drawInfo) {
-            if (!sdi.opaque) {
-                assert(!switchedToAlphaTest);
+            if (!sdi.opaque && !switchedToAlphaTest) {
                 switchedToAlphaTest = true;
                 vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, alphaTestPipeline);
             }
+            
+            assert(!(sdi.opaque && switchedToAlphaTest));
 
             StandardPushConstants pushConst {
                 .modelMatrixIdx = sdi.matrixIdx,

@@ -87,6 +87,19 @@ namespace worlds {
         Acceleration
     };
 
+    enum class DPALockFlags : uint32_t {
+        LinearX = (1 << 0),
+        LinearY = (1 << 1),
+        LinearZ = (1 << 2),
+        AngularX = (1 << 3),
+        AngularY = (1 << 4),
+        AngularZ = (1 << 5)
+    };
+
+    inline DPALockFlags operator&(DPALockFlags a, DPALockFlags b) {
+        return (DPALockFlags)((uint32_t)a & (uint32_t)b);
+    }
+
     struct DynamicPhysicsActor {
         DynamicPhysicsActor(physx::PxRigidActor* actor) : actor((physx::PxRigidDynamic*)actor), mass(1.0f) {}
         physx::PxRigidDynamic* actor;
@@ -105,6 +118,9 @@ namespace worlds {
 
         void addForce(glm::vec3 force, ForceMode forceMode = ForceMode::Force);
         void addTorque(glm::vec3 torque, ForceMode forceMode = ForceMode::Force);
+
+        DPALockFlags lockFlags() const;
+        void setLockFlags(DPALockFlags flags);
 
         Transform pose() const;
         void setPose(const Transform& t);

@@ -36,4 +36,12 @@ namespace worlds {
     void DynamicPhysicsActor::setPose(const Transform& t) {
         actor->setGlobalPose(glm2px(t));
     }
+
+    DPALockFlags DynamicPhysicsActor::lockFlags() const {
+        return (DPALockFlags)(uint32_t)actor->getRigidDynamicLockFlags();
+    }
+
+    void DynamicPhysicsActor::setLockFlags(DPALockFlags flags) {
+        actor->setRigidDynamicLockFlags((physx::PxRigidDynamicLockFlag::Enum)flags);
+    }
 }

@@ -99,7 +99,7 @@ namespace worlds {
 
     class D6JointEditor : public BasicComponentUtil<D6Joint> {
     public:
-        int getSortID() override { return 1; }
+        int getSortID() override { return 2; }
         const char* getName() override { return "D6 Joint"; }
 
         void create(entt::entity ent, entt::registry& reg) override {
@@ -126,6 +126,39 @@ namespace worlds {
                     logMsg("removing d6");
                     reg.remove<D6Joint>(ent);
                     return;
+                }
+
+                entt::entity target = j.getTarget();
+
+                if (reg.valid(target)) {
+                    NameComponent* nc = reg.try_get<NameComponent>(target);
+
+                    if (nc) {
+                        ImGui::Text("Connected to %s", nc->name.c_str());
+                    } else {
+                        ImGui::Text("Connected to %u", target);
+                    }
+                } else {
+                    ImGui::Text("Not connected");
+                }
+
+                ImGui::Text("target: %u", (uint32_t)j.getTarget());
+
+                ImGui::SameLine();
+                
+                static bool changingTarget = false;
+
+                if (!changingTarget) {
+                    if (ImGui::Button("Change")) {
+                        changingTarget = true;
+                    }
+                }
+
+                if (changingTarget) {
+                    if (ed->entityEyedropper(target)) {
+                        changingTarget = false;
+                        j.setTarget(target, reg);
+                    }
                 }
 
                 dpa.actor->is<physx::PxRigidDynamic>()->wakeUp();
@@ -343,6 +376,10 @@ namespace worlds {
 
             j["thisPose"] = p0;
             j["connectedPose"] = p1;
+            if (reg.valid(d6.getTarget()))
+                j["target"] = d6.getTarget();
+            else
+                logErr("invalid d6 target");
 
             json linearLimits;
             for (int axisInt = physx::PxD6Axis::eX; axisInt < physx::PxD6Axis::eTWIST; axisInt++) {
@@ -418,6 +455,10 @@ namespace worlds {
             px->setInvInertiaScale1(j["inverseInertiaScale1"]);
 
             px->setBreakForce(j["breakForce"], j["breakTorque"]);
+
+            if (j.contains("target")) {
+                d6.setTarget(j["target"], reg);
+            }
         }
     };
 

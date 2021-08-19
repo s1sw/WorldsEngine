@@ -295,6 +295,23 @@ namespace worlds {
         overrideTransform = t;
     }
 
+    bool Editor::entityEyedropper(entt::entity& picked) {
+        entityEyedropperActive = true;
+
+        if (reg.valid(eyedroppedEntity)) {
+            picked = eyedroppedEntity;
+            eyedroppedEntity = entt::null;
+            entityEyedropperActive = false;
+            return true;
+        }
+
+        return false;
+    }
+
+    void Editor::eyedropperSelect(entt::entity picked) {
+        eyedroppedEntity = picked;
+    }
+
     void Editor::handleTools(Transform& t, ImVec2 wPos, ImVec2 wSize, Camera& camera) {
         // Convert selected transform position from world space to screen space
         glm::vec4 ndcObjPosPreDivide = camera.getProjectionMatrix((float)wSize.x / wSize.y) * camera.getViewMatrix() * glm::vec4(t.position, 1.0f);
@@ -645,12 +662,12 @@ namespace worlds {
             }
         }
 
+        interfaces.scriptEngine->onEditorUpdate(deltaTime);
+
         int sceneViewIndex = 0;
         for (EditorSceneView* sceneView : sceneViews) {
             sceneView->drawWindow(sceneViewIndex++);
         }
-
-        interfaces.scriptEngine->onEditorUpdate(deltaTime);
 
         if (inputManager.keyPressed(SDL_SCANCODE_S) && inputManager.ctrlHeld()) {
             if (interfaces.engine->getCurrentSceneInfo().id != ~0u && !inputManager.shiftHeld()) {
@@ -859,5 +876,7 @@ namespace worlds {
         drawModals();
         drawPopupNotifications();
         updateWindowTitle();
+
+        entityEyedropperActive = false;
     }
 }

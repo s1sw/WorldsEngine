@@ -6,13 +6,31 @@
 namespace worlds {
     template <typename T>
     class BasicComponentUtil : public ComponentEditor {
-    public:
-        void create(entt::entity ent, entt::registry& reg) override {
+    private:
+        template < typename = typename std::enable_if<std::is_default_constructible<T>::value>::type>
+        void createInternal(entt::entity ent, entt::registry& reg) {
             reg.emplace<T>(ent);
         }
 
+        template < typename = typename std::enable_if<std::is_copy_constructible<T>::value>::type>
+        void cloneInternal(entt::entity from, entt::entity to, entt::registry& reg) {
+            reg.emplace<T>(to, reg.get<T>(from));
+        }
+    public:
+        void create(entt::entity ent, entt::registry& reg) override {
+            if constexpr (std::is_default_constructible<T>::value)
+                createInternal(ent, reg);
+            else {
+                assert(false);
+            }
+        }
+
         void clone(entt::entity from, entt::entity to, entt::registry& r) override {
-            r.emplace<T>(to, r.get<T>(from));
+            if constexpr (std::is_copy_constructible<T>::value)
+                cloneInternal(from, to, r);
+            else {
+                assert(false);
+            }
         }
 
         bool allowInspectorAdd() override {

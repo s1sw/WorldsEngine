@@ -26,8 +26,8 @@ const customArgs = {
     ]
 };
 
-function findSourceFiles() {
-    let files = fs.readdirSync(".");
+function findSourceFiles(dir) {
+    let files = fs.readdirSync(dir);
     return files.filter(file => file.match(new RegExp(`.*\.(.glsl)`, 'ig')));
 }
 
@@ -115,7 +115,7 @@ function rebuildAll() {
     }
 }
 
-const files = findSourceFiles();
+const files = findSourceFiles(".");
 
 for (let f of files) {
     fs.watchFile(f, {"persistent": true, "interval":1000}, (_, __) => {
@@ -124,9 +124,11 @@ for (let f of files) {
     });
 }
 
-fs.watchFile("Include", {"interval":1000}, (_, __) => {
-    rebuildAll();
-});
+for (let f of findSourceFiles("Include")) {
+	fs.watchFile(`Include/${f}`, {"interval":1000}, (_, __) => {
+		rebuildAll();
+	});
+}
 
 rebuildAll();
 console.log(`Watching ${files.length} files`);

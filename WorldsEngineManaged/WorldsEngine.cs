@@ -221,7 +221,7 @@ namespace WorldsEngine
 
             if (ImGui.Begin("Misc"))
             {
-                ImGui.Text($"Memory usage: {GC.GetGCMemoryInfo().HeapSizeBytes/1000:N0}K");
+                ImGui.Text($"Managed memory usage at last GC: {GC.GetGCMemoryInfo().HeapSizeBytes/1000:N0}K");
 
                 if (ImGui.Button("Force Collection"))
                 {
@@ -231,6 +231,16 @@ namespace WorldsEngine
                 if (ImGui.Button("Force Reload Assembly"))
                 {
                     reloadAssemblyNextFrame = true;
+                }
+
+                if (ImGui.Button("Destroy Far-Away Objects"))
+                {
+                    Registry.Each((Entity e) =>
+                    {
+                        Transform t = Registry.GetTransform(e);
+                        if (t.Position.y < -9000.0f)
+                            Registry.Destroy(e);
+                    });
                 }
             }
             ImGui.End();

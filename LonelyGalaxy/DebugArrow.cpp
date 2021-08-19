@@ -31,6 +31,7 @@ namespace lg {
     }
 
     void DebugArrows::createEntities() {
+        return;
         arrowEntities.clear();
         auto meshId = worlds::AssetDB::pathToId("arrow.obj");
         auto matId = worlds::AssetDB::pathToId("Materials/glowred.json");

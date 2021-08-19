@@ -43,4 +43,12 @@ extern "C" {
     EXPORT void physicsmaterial_setRestitution(physx::PxMaterial* material, float val) {
         material->setRestitution(val);
     }
+
+    EXPORT void physicsmaterial_setFrictionCombineMode(physx::PxMaterial* material, physx::PxCombineMode::Enum mode) {
+        material->setFrictionCombineMode(mode);
+    }
+
+    EXPORT physx::PxCombineMode::Enum physicsmaterial_getFrictionCombineMode(physx::PxMaterial* material) {
+        return material->getFrictionCombineMode();
+    }
 }

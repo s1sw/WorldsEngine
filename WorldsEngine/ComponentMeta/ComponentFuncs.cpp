@@ -785,6 +785,8 @@ namespace worlds {
 
     class DynamicPhysicsActorEditor : public BasicComponentUtil<DynamicPhysicsActor> {
     public:
+        int getSortID() override { return 1; }
+
         const char* getName() override { return "Dynamic Physics Actor"; }
 
         void create(entt::entity ent, entt::registry& reg) override {
@@ -818,6 +820,21 @@ namespace worlds {
                 if (ImGui::Button("Remove##DPA")) {
                     reg.remove<DynamicPhysicsActor>(ent);
                 } else {
+                    if (ImGui::TreeNode("Lock Flags")) {
+                        uint32_t flags = (uint32_t)pa.lockFlags();
+
+                        ImGui::CheckboxFlags("Lock X", &flags, (uint32_t)DPALockFlags::LinearX);
+                        ImGui::CheckboxFlags("Lock Y", &flags, (uint32_t)DPALockFlags::LinearY);
+                        ImGui::CheckboxFlags("Lock Z", &flags, (uint32_t)DPALockFlags::LinearZ);
+
+                        ImGui::CheckboxFlags("Lock Angular X", &flags, (uint32_t)DPALockFlags::AngularX);
+                        ImGui::CheckboxFlags("Lock Angular Y", &flags, (uint32_t)DPALockFlags::AngularY);
+                        ImGui::CheckboxFlags("Lock Angular Z", &flags, (uint32_t)DPALockFlags::AngularZ);
+
+                        pa.setLockFlags((DPALockFlags)flags);
+                        ImGui::TreePop();
+                    }
+
                     ImGui::DragFloat("Mass", &pa.mass);
                     ImGui::Checkbox("Enable Gravity", &pa.enableGravity);
                     ImGui::Checkbox("Enable CCD", &pa.enableCCD);
@@ -946,6 +963,7 @@ namespace worlds {
             j["mass"] = pa.mass;
             j["enableCCD"] = pa.enableCCD;
             j["enableGravity"] = pa.enableGravity;
+            j["lockFlags"] = (uint32_t)pa.lockFlags();
         }
 
         void fromJson(entt::entity ent, entt::registry& reg, const json& j) override {
@@ -987,6 +1005,9 @@ namespace worlds {
             pa.enableCCD = j.value("enableCCD", false);
             pa.enableGravity = j.value("enableGravity", true);
             updateMass(pa);
+
+            if (j.contains("lockFlags"))
+                pa.setLockFlags((DPALockFlags)j["lockFlags"].get<uint32_t>());
         }
     };
 
@@ -1494,6 +1515,44 @@ namespace worlds {
         }
     };
 
+    class EditorLabelEditor : public BasicComponentUtil<EditorLabel> {
+    public:
+        const char* getName() override { return "Editor Label"; }
+
+        void edit(entt::entity entity, entt::registry& reg, Editor* ed) override {
+            auto& label = reg.get<EditorLabel>(entity);
+
+            if (ImGui::CollapsingHeader("Editor Label")) {
+                if (ImGui::Button("Remove##EditorLabel")) {
+                    reg.remove<EditorLabel>(entity);
+                    return;
+                }
+
+                ImGui::InputText("Label", &label.label);
+            }
+        }
+
+        void writeToFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file) override {
+        }
+
+        void readFromFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file, int version) override {
+        }
+
+        void toJson(entt::entity ent, entt::registry& reg, json& j) override {
+            auto& label = reg.get<EditorLabel>(ent);
+
+            j = {
+                { "label", label.label }
+            };
+        }
+
+        void fromJson(entt::entity ent, entt::registry& reg, const json& j) override {
+            auto& label = reg.emplace<EditorLabel>(ent);
+
+            label.label = j["label"];
+        }
+    };
+
     TransformEditor transformEd;
     WorldObjectEditor worldObjEd;
     WorldLightEditor worldLightEd;
@@ -1509,4 +1568,5 @@ namespace worlds {
     WorldTextComponentEditor wtcEd;
     PrefabInstanceEditor pie;
     SphereAOProxyEditor saope;
+    EditorLabelEditor ele;
 }

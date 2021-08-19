@@ -28,7 +28,7 @@ namespace worlds {
             void onSimulate(float deltaTime);
             void fireEvent(entt::entity scriptEnt, const char* event);
             void serializeManagedComponents(nlohmann::json& entityJson, entt::entity entity);
-            void deserializeManagedComponent(const char* id, nlohmann::json& componentJson, entt::entity entity);
+            void deserializeManagedComponent(const char* id, const nlohmann::json& componentJson, entt::entity entity);
         private:
             EngineInterfaces interfaces;
             entt::registry& reg;
