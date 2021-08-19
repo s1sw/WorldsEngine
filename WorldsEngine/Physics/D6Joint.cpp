@@ -11,11 +11,14 @@ namespace worlds {
 
     D6Joint::D6Joint(D6Joint&& other) noexcept {
         pxJoint = other.pxJoint; other.pxJoint = nullptr;
+        thisActor = other.thisActor; other.thisActor = nullptr;
+        targetEntity = other.targetEntity; other.targetEntity = entt::null;
     }
 
     void D6Joint::operator=(D6Joint&& other) {
-        pxJoint = other.pxJoint;
-        other.pxJoint = nullptr;
+        pxJoint = other.pxJoint; other.pxJoint = nullptr;
+        thisActor = other.thisActor; other.thisActor = nullptr;
+        targetEntity = other.targetEntity; other.targetEntity = entt::null;
     }
 
     void D6Joint::setTarget(entt::entity newTargetEnt, entt::registry& reg) {

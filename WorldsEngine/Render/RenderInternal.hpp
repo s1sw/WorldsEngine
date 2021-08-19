@@ -105,7 +105,7 @@ namespace worlds {
         std::vector<VkImage> images;
         std::vector<VkImageView> imageViews;
     private:
-        VkDevice& device;
+        VkDevice device;
         VkSwapchainKHR swapchain;
         VkFormat format;
         uint32_t width;

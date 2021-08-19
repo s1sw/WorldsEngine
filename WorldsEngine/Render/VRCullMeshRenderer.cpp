@@ -83,4 +83,10 @@ namespace worlds {
         vkCmdPushConstants(cmdBuf, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(vpc), &vpc);
         vkCmdDraw(cmdBuf, leftVertCount, 1, 0, 0);
     }
+
+    VRCullMeshRenderer::~VRCullMeshRenderer() {
+        vkDestroyPipeline(handles->device, pipeline, nullptr);
+        vkDestroyPipelineLayout(handles->device, pipelineLayout, nullptr);
+        vkDestroyDescriptorSetLayout(handles->device, dsl, nullptr);
+    }
 }

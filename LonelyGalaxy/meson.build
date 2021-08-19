@@ -54,5 +54,5 @@ endif
 
 executable('lonelygalaxy', sources,
   include_directories: [physx_include_dir, extern_include_dir],
-  dependencies: [slib_dep, worlds_dep, discord_sdk_dep, enet_dep, sdl2_dep, physfs_dep, crash_handler_deps], win_subsystem: 'windows', link_args: ['-rdynamic'])
+  dependencies: [slib_dep, worlds_dep, discord_sdk_dep, enet_dep, sdl2_dep, physfs_dep, crash_handler_deps, freetype_dep], win_subsystem: 'windows', link_args: ['-rdynamic'])
 

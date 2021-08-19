@@ -253,7 +253,7 @@ namespace worlds {
         serializeComponentsFunc((void*)&entityJson, (uint32_t)entity);
     }
 
-    void DotNetScriptEngine::deserializeManagedComponent(const char* id, nlohmann::json& componentJson, entt::entity entity) {
+    void DotNetScriptEngine::deserializeManagedComponent(const char* id, const nlohmann::json& componentJson, entt::entity entity) {
         std::string cJsonStr = componentJson.dump();
         deserializeComponentFunc(id, cJsonStr.c_str(), (uint32_t)entity);
     }

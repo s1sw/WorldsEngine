@@ -12,7 +12,7 @@ namespace worlds {
     void AdditionalShadowsPass::setup() {
         vku::RenderpassMaker rpm;
 
-        rpm.attachmentBegin(VK_FORMAT_D16_UNORM);
+        rpm.attachmentBegin(VK_FORMAT_D32_SFLOAT);
         rpm.attachmentLoadOp(VK_ATTACHMENT_LOAD_OP_CLEAR);
         rpm.attachmentStencilLoadOp(VK_ATTACHMENT_LOAD_OP_DONT_CARE);
         rpm.attachmentFinalLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
@@ -58,7 +58,7 @@ namespace worlds {
         faii.layerCount = 1;
         faii.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
         faii.viewFormatCount = 1;
-        VkFormat shadowFormat = VK_FORMAT_D16_UNORM;
+        VkFormat shadowFormat = VK_FORMAT_D32_SFLOAT;
         faii.pViewFormats = &shadowFormat;
 
         faci.pAttachmentImageInfos = &faii;
@@ -121,7 +121,7 @@ namespace worlds {
             VkClearValue clearVal;
             clearVal.depthStencil = { 0.0f, 0 };
 
-            VkRenderPassAttachmentBeginInfo attachmentBeginInfo;
+            VkRenderPassAttachmentBeginInfo attachmentBeginInfo{ VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO };
             attachmentBeginInfo.attachmentCount = 1;
             auto imgView = ctx.resources.additionalShadowImages[i]->image.imageView();
             attachmentBeginInfo.pAttachments = &imgView;

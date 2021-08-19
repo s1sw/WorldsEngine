@@ -1785,20 +1785,16 @@ namespace vku {
 
         GenericImage(GenericImage&& other) noexcept {
             s = other.s;
-#ifndef NDEBUG
             assert(!other.s.destroyed);
             other.s.destroyed = true;
             s.destroyed = false;
-#endif
         }
 
         GenericImage& operator=(GenericImage&& other) noexcept {
             s = other.s;
-#ifndef NDEBUG
             assert(!other.s.destroyed);
             other.s.destroyed = true;
             s.destroyed = false;
-#endif
             return *this;
         }
 

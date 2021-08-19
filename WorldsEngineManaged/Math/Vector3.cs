@@ -106,6 +106,7 @@ namespace WorldsEngine.Math
         public void Normalize()
         {
             float len = Length;
+            if (len == 0.0f) return;
             x /= len;
             y /= len;
             z /= len;

@@ -645,6 +645,9 @@
     <ClCompile Include="..\WorldsEngine\Editor\GameProject.cpp">
       <Filter>Editor</Filter>
     </ClCompile>
+    <ClCompile Include="..\WorldsEngine\ImGui\imgui_freetype.cpp">
+      <Filter>ImGui</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\WorldsEngine\AssetCompilation\AssetCompilerUtil.hpp">
@@ -1372,6 +1375,9 @@
     </ClInclude>
     <ClInclude Include="..\WorldsEngine\Render\RenderInternal.hpp">
       <Filter>Render</Filter>
+    </ClInclude>
+    <ClInclude Include="..\WorldsEngine\ImGui\imgui_freetype.h">
+      <Filter>ImGui</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

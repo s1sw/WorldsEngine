@@ -42,11 +42,17 @@ vk_dep = dependency('vulkan')
 
 assimp_dep = dependency('assimp', required: false)
 
+system_lib_dir = host_machine.system() + '64dbg'
+
+if get_option('buildtype').startswith('release')
+	system_lib_dir = host_machine.system() + '64rel'
+endif
+
 if not assimp_dep.found()
     cpp_comp = meson.get_compiler('cpp')
-    assimp_dir = meson.project_source_root() + '/External/Assimp/' + host_machine.system() + '64dbg'
+    assimp_dir = meson.project_source_root() + '/External/Assimp/' + system_lib_dir
     if get_option('buildtype').startswith('release')
-        assimp_dir = meson.project_source_root() + '/External/Assimp/' + host_machine.system() + '64rel'
+        assimp_dir = meson.project_source_root() + '/External/Assimp/' + system_lib_dir
     endif
     assimp_inc_dir = '../External/Assimp/include'
 
@@ -79,13 +85,24 @@ endif
 
 steam_audio_dep = cc.find_library('phonon', dirs: meson.project_source_root() + '/External/Lib')
 
+freetype_dep = dependency('freetype', required: false)
+
+if not freetype_dep.found()
+    cpp_comp = meson.get_compiler('cpp')
+    freetype_dir = meson.project_source_root() + '/External/Lib/' + system_lib_dir
+
+    freetype_lib = cpp_comp.find_library('freetype', dirs: freetype_dir)
+    freetype_dep = declare_dependency(dependencies: freetype_lib)
+endif
+
 worlds = static_library('worlds', worlds_sources,
   include_directories: [extern_include_dir, physx_include_dir, tracy_inc],
   dependencies: [
     assimp_dep, physfs_dep, sdl2_dep, physx_deps,
     dl_dep, openvr_dep, wmdl_dep, discord_csdk_dep,
     discord_sdk_dep, enet_dep,
-    slib_dep, platform_deps, steam_audio_dep
+    slib_dep, platform_deps, steam_audio_dep,
+	freetype_dep
   ],
   link_args: ['-rdynamic']
 )

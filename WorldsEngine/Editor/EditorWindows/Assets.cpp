@@ -113,7 +113,7 @@ namespace worlds {
 
             if (ImGui::BeginPopup("New Asset Name")) {
                 if (ImGui::InputText("Name", &newAssetName, ImGuiInputTextFlags_EnterReturnsTrue)) {
-                    std::string newAssetPath = currentDir + "/" + newAssetName;
+                    std::string newAssetPath = "SourceData/" + currentDir + "/" + newAssetName;
                     logMsg("Creating new asset in %s", newAssetPath.c_str());
                     newAssetEditor->create(newAssetPath);
                     ImGui::CloseCurrentPopup();
@@ -124,7 +124,7 @@ namespace worlds {
             if (ImGui::BeginPopup("New Folder")) {
                 static std::string newFolderName;
                 if (ImGui::InputText("Folder Name", &newFolderName, ImGuiInputTextFlags_EnterReturnsTrue)) {
-                    std::string newFolderPath = currentDir + "/" + newFolderName;
+                    std::string newFolderPath = "SourceData/" + currentDir + "/" + newFolderName;
                     std::filesystem::create_directories(newFolderPath);
                     ImGui::CloseCurrentPopup();
                 }

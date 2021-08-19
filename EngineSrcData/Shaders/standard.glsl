@@ -391,11 +391,7 @@ void unpackMaterial(inout ShadeInfo si, mat3 tbn) {
     si.normal = mat.normalTexIdx > -1 ? getNormalMapNormal(mat, tCoord, tbn) : inNormal;
     si.ao *= calcProxyAO(inWorldPos.xyz, si.normal);
     si.roughness = getAntiAliasedRoughness(si.roughness, si.normal);
-#ifndef EFT
     si.alpha = albedoColor.a;
-#else
-    si.alpha = 1.0;
-#endif
     si.emissive = mat.emissiveColor;
 }
 
@@ -487,11 +483,11 @@ void main() {
 #ifndef EFT
     float finalAlpha = si.alphaCutoff > 0.0f ? si.alpha : 1.0f;
     if (si.alphaCutoff > 0.0f) {
-        finalAlpha *= 1 + mipMapLevel() * 0.75;
+        //finalAlpha *= 1 + mipMapLevel() * 0.75;
         finalAlpha = (finalAlpha - si.alphaCutoff) / max(fwidth(finalAlpha), 0.0001) + 0.5;
     }
 #else
-    float finalAlpha = 1.0f;
+	float finalAlpha = 1.0f;
 #endif
 
     FragColor = vec4(shade(si) + si.emissive, finalAlpha);

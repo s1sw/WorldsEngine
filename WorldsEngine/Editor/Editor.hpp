@@ -177,6 +177,7 @@ namespace worlds {
         EditorUndo undo;
         bool active = true;
         void overrideHandle(Transform* t);
+        bool entityEyedropper(entt::entity& picked);
         AssetID currentSelectedAsset;
     private:
         std::unique_ptr<GameProject> project;
@@ -186,6 +187,7 @@ namespace worlds {
         std::string generateWindowTitle();
         void updateWindowTitle();
         void openProject(std::string projectPath);
+        void eyedropperSelect(entt::entity ent);
         Tool currentTool;
         bool toolLocalSpace = false;
         entt::registry& reg;
@@ -198,6 +200,8 @@ namespace worlds {
         float cameraSpeed;
         bool imguiMetricsOpen;
         bool handleOverriden = false;
+        bool entityEyedropperActive = false;
+        entt::entity eyedroppedEntity = entt::null;
         int lastSaveModificationCount = 0;
         Transform* overrideTransform;
 

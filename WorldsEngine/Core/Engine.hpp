@@ -181,4 +181,8 @@ namespace worlds {
         float shadowNear = 0.05f;
         float shadowFar = 100.0f;
     };
+
+    struct EditorLabel {
+        std::string label;
+    };
 }

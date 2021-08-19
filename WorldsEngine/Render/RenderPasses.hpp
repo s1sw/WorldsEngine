@@ -28,6 +28,7 @@ namespace worlds {
         VRCullMeshRenderer(VulkanHandles* handles);
         void setup(RenderContext& ctx, VkRenderPass& rp, VkDescriptorPool descriptorPool);
         void draw(VkCommandBuffer& cmdBuf);
+        ~VRCullMeshRenderer();
     };
 
     struct SubmeshDrawInfo {
@@ -62,6 +63,7 @@ namespace worlds {
         void setup(RenderContext& ctx, VkRenderPass renderPass, VkDescriptorPool descriptorPool);
         void prePass(RenderContext&);
         void execute(RenderContext&);
+        ~DebugLinesPass();
     };
 
     class SkyboxPass {

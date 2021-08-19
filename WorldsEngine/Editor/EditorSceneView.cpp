@@ -123,7 +123,9 @@ namespace worlds {
                     if (picked == UINT32_MAX)
                         picked = entt::null;
 
-                    if (!interfaces.inputManager->shiftHeld()) {
+                    if (ed->entityEyedropperActive) {
+                        ed->eyedropperSelect((entt::entity)picked);
+                    } else if (!interfaces.inputManager->shiftHeld()) {
                         ed->select((entt::entity)picked);
                     } else {
                         ed->multiSelect((entt::entity)picked);
@@ -131,10 +133,41 @@ namespace worlds {
                     pickRequested = false;
                 }
             }
+
+            updateCamera(ImGui::GetIO().DeltaTime);
+
+            ImGuiStyle& style = ImGui::GetStyle();
+            const ImColor popupBg = style.Colors[ImGuiCol_WindowBg];
+
+            reg.view<EditorLabel, Transform>().each([&](EditorLabel& label, Transform& t) {
+                glm::mat4 proj = cam.getProjectionMatrix(contentRegion.x / contentRegion.y);
+                glm::mat4 view = cam.getViewMatrix();
+
+                glm::vec4 ndcObjPosPreDivide = proj * view * glm::vec4(t.position, 1.0f);
+
+                glm::vec2 ndcObjectPosition(ndcObjPosPreDivide);
+                ndcObjectPosition /= ndcObjPosPreDivide.w;
+                ndcObjectPosition *= 0.5f;
+                ndcObjectPosition += 0.5f;
+                ndcObjectPosition *= (glm::vec2)contentRegion;
+                // Not sure why flipping Y is necessary?
+                ndcObjectPosition.y = wSize.y - ndcObjectPosition.y;
+
+                if ((ndcObjPosPreDivide.z / ndcObjPosPreDivide.w) > 0.0f && glm::distance(t.position, cam.position) < 10.0f) {
+                    glm::vec2 textSize = ImGui::CalcTextSize(label.label.c_str());
+                    glm::vec2 drawPos = ndcObjectPosition + wPos - (textSize * 0.5f);
+
+                    ImDrawList* drawList = ImGui::GetWindowDrawList();
+
+                    drawList->AddRectFilled(drawPos - glm::vec2(5.0f, 2.0f), drawPos + textSize + glm::vec2(5.0f, 2.0f), popupBg, 7.0f);
+
+                    ImGui::GetWindowDrawList()->AddText(drawPos, ImColor(1.0f, 1.0f, 1.0f), label.label.c_str());
+                }
+
+                });
         } else {
             sceneViewPass->active = false;
         }
-        updateCamera(ImGui::GetIO().DeltaTime);
         ImGui::End();
 
         if (noScenePad)
@@ -159,8 +192,9 @@ namespace worlds {
 
         sceneViewPass = interfaces.renderer->createRTTPass(sceneViewPassCI);
 
-        if (sceneViewDS)
-            vkCtx->device.freeDescriptorSets(vkCtx->descriptorPool, { sceneViewDS });
+        if (sceneViewDS) {
+            vkFreeDescriptorSets(vkCtx->device, vkCtx->descriptorPool, 1, &sceneViewDS);
+        }
 
         sceneViewDS = VKImGUIUtil::createDescriptorSetFor(
             static_cast<VKRTTPass*>(sceneViewPass)->sdrFinalTarget->image, vkCtx);
@@ -189,6 +223,7 @@ namespace worlds {
         if (inputManager.mouseButtonPressed(MouseButton::Right, true)) {
             SDL_GetMouseState(&origMouseX, &origMouseY);
             inputManager.captureMouse(true);
+            ImGui::SetWindowFocus();
         } else if (inputManager.mouseButtonReleased(MouseButton::Right, true)) {
             inputManager.captureMouse(false);
         }
@@ -230,8 +265,8 @@ namespace worlds {
             static glm::ivec2 warpAmount(0, 0);
 
             if (!inputManager.mouseButtonPressed(MouseButton::Right)) {
-                lookX += (float)(inputManager.getMouseDelta().x - warpAmount.x) * 0.005f;
-                lookY += (float)(inputManager.getMouseDelta().y - warpAmount.y) * 0.005f;
+                lookX += (float)(ImGui::GetIO().MouseDelta.x - warpAmount.x) * 0.005f;
+                lookY += (float)(ImGui::GetIO().MouseDelta.y - warpAmount.y) * 0.005f;
 
                 lookY = glm::clamp(lookY, -glm::half_pi<float>() + 0.001f, glm::half_pi<float>() - 0.001f);
 
@@ -239,8 +274,8 @@ namespace worlds {
             }
 
             warpAmount = glm::ivec2{ 0 };
-
-
+            
+            
             if (mousePos.x > windowSize.x) {
                 warpAmount = glm::ivec2(-windowSize.x, 0);
                 inputManager.warpMouse(glm::ivec2(mousePos.x - windowSize.x, mousePos.y));
@@ -248,7 +283,7 @@ namespace worlds {
                 warpAmount = glm::ivec2(windowSize.x, 0);
                 inputManager.warpMouse(glm::ivec2(mousePos.x + windowSize.x, mousePos.y));
             }
-
+            
             if (mousePos.y > windowSize.y) {
                 warpAmount = glm::ivec2(0, -windowSize.y);
                 inputManager.warpMouse(glm::ivec2(mousePos.x, mousePos.y - windowSize.y));
@@ -270,7 +305,7 @@ namespace worlds {
 
     EditorSceneView::~EditorSceneView() {
         auto vkCtx = static_cast<VKRenderer*>(interfaces.renderer)->getHandles();
-        vkCtx->device.freeDescriptorSets(vkCtx->descriptorPool, { sceneViewDS });
+        vkFreeDescriptorSets(vkCtx->device, vkCtx->descriptorPool, 1, &sceneViewDS);
         interfaces.renderer->destroyRTTPass(sceneViewPass);
     }
 }

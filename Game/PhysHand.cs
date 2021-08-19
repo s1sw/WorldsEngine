@@ -40,6 +40,7 @@ namespace Game
                 _targetTransform.Position = Camera.Main.TransformPoint(offset);
                 return;
             }
+
             _targetTransform = FollowRightHand ? VR.RightHandTransform : VR.LeftHandTransform;
 
             if (_targetTransform.Rotation.HasNaNComponent)
