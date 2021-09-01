@@ -21,19 +21,54 @@ namespace WorldsEngine
         public float Distance;
     }
 
+    [Flags]
+    public enum PhysicsLayers
+    {
+        None = 0,
+        Default = 1,
+        Player = 2,
+        NoCollision = 4
+    }
+
     public static class Physics
     {
         [DllImport(WorldsEngine.NativeModule)]
-        private static extern bool physics_raycast(Vector3 origin, Vector3 direction, float maxDist, out RaycastHit hit);
+        private static extern bool physics_raycast(Vector3 origin, Vector3 direction, float maxDist, uint excludeLayerMask, out RaycastHit hit);
 
-        public static bool Raycast(Vector3 origin, Vector3 direction, float maxDist = float.MaxValue)
+        [DllImport(WorldsEngine.NativeModule)]
+        private static extern bool physics_overlapSphere(Vector3 origin, float radius, out uint overlappedEntity);
+
+        [DllImport(WorldsEngine.NativeModule)]
+        private static extern uint physics_overlapSphereMultiple(Vector3 origin, float radius, uint maxTouchCount, IntPtr entityBuffer);
+
+        public static bool Raycast(Vector3 origin, Vector3 direction, float maxDist = float.MaxValue, PhysicsLayers excludeLayerMask = PhysicsLayers.None)
         {
-            return physics_raycast(origin, direction, maxDist, out RaycastHit _);
+            return physics_raycast(origin, direction, maxDist, (uint)excludeLayerMask, out RaycastHit _);
         }
 
-        public static bool Raycast(Vector3 origin, Vector3 direction, out RaycastHit hit, float maxDist = float.MaxValue)
+        public static bool Raycast(Vector3 origin, Vector3 direction, out RaycastHit hit, float maxDist = float.MaxValue, PhysicsLayers excludeLayerMask = PhysicsLayers.None)
         {
-            return physics_raycast(origin, direction, maxDist, out hit);
+            return physics_raycast(origin, direction, maxDist, (uint)excludeLayerMask, out hit);
+        }
+
+        public static bool OverlapSphere(Vector3 origin, float radius, out Entity entity)
+        {
+            bool overlapped = physics_overlapSphere(origin, radius, out uint id);
+
+            entity = new Entity(id);
+
+            return overlapped;
+        }
+
+        public static uint OverlapSphereMultiple(Vector3 origin, float radius, uint maxTouchCount, Entity[] entityBuffer)
+        {
+            var handle = GCHandle.Alloc(entityBuffer, GCHandleType.Pinned);
+
+            uint count = physics_overlapSphereMultiple(origin, radius, maxTouchCount, handle.AddrOfPinnedObject());
+
+            handle.Free();
+
+            return count;
         }
     }
 }

@@ -4,6 +4,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
+using WorldsEngine.Math;
 
 namespace WorldsEngine
 {
@@ -25,6 +26,9 @@ namespace WorldsEngine
         private static extern bool vr_getActionReleased(ulong handle);
 
         [DllImport(WorldsEngine.NativeModule)]
+        private static extern void vr_getActionVector2(ulong handle, out Vector2 vec);
+
+        [DllImport(WorldsEngine.NativeModule)]
         private static extern void vr_triggerHaptics(ulong handle, float timeFromNow, float duration, float frequency, float amplitude);
 
         private readonly ulong _actionHandle;
@@ -39,6 +43,17 @@ namespace WorldsEngine
         public bool Held => vr_getActionHeld(_actionHandle);
         public bool Pressed => vr_getActionPressed(_actionHandle);
         public bool Released => vr_getActionReleased(_actionHandle);
+        public Vector2 Vector2Value
+        {
+            get
+            {
+                Vector2 v = new Vector2();
+
+                vr_getActionVector2(_actionHandle, out v);
+
+                return v;
+            }
+        }
 
         public void TriggerHaptics(float timeFromNow, float duration, float frequency, float amplitude)
         {

@@ -100,6 +100,7 @@ namespace worlds {
     struct PassSettings {
         bool enableVR;
         bool enableShadows;
+        int msaaSamples;
     };
 
     struct RendererInitInfo {
@@ -120,6 +121,7 @@ namespace worlds {
         bool useForPicking;
         bool enableShadows;
         bool outputToScreen;
+        int msaaLevel = 0;
     };
 
     class RTTPass {

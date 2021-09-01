@@ -20,7 +20,7 @@ namespace WorldsEngine
         [DllImport(WorldsEngine.NativeModule)]
         private unsafe static extern void camera_setRotation(IntPtr camPtr, Quaternion* rotation);
 
-        public static Camera Main { get; private set; }
+        public static Camera Main { get; internal set; }
 
         public Vector3 Position
         {
@@ -58,11 +58,8 @@ namespace WorldsEngine
 
         private readonly IntPtr ptr;
 
-        internal Camera(IntPtr cameraPtr, bool isMain)
+        internal Camera(IntPtr cameraPtr)
         {
-            if (isMain)
-                Main = this;
-
             ptr = cameraPtr;
         }
 

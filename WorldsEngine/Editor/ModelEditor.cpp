@@ -19,10 +19,10 @@ namespace worlds {
 
     void ModelEditor::create(std::string path) {
         AssetID id = AssetDB::createAsset(path);
-        FILE* f = fopen(path.c_str(), "wb");
+        PHYSFS_File* f = PHYSFS_openWrite(path.c_str());
         const char emptyJson[] = "{}";
-        fwrite(emptyJson, 1, sizeof(emptyJson), f);
-        fclose(f);
+        PHYSFS_writeBytes(f, emptyJson, sizeof(emptyJson));
+        PHYSFS_close(f);
         open(id);
     }
 
@@ -47,9 +47,9 @@ namespace worlds {
 
         std::string s = j.dump(4);
         std::string path = AssetDB::idToPath(editingID);
-        FILE* file = fopen(path.c_str(), "wb");
-        fwrite(s.data(), 1, s.size(), file);
-        fclose(file);
+        PHYSFS_File* file = PHYSFS_openWrite(path.c_str());
+        PHYSFS_writeBytes(file, s.data(), s.size());
+        PHYSFS_close(file);
     }
 
     const char* ModelEditor::getHandledExtension() {

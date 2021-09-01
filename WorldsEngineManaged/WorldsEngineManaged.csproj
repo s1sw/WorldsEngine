@@ -6,6 +6,7 @@
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
         <RootNamespace>WorldsEngine</RootNamespace>
+        <Nullable>enable</Nullable>
     </PropertyGroup>
     <PropertyGroup Condition="'$(IsWindows)' == 'true'">
         <DefineConstants>Windows</DefineConstants>
@@ -15,4 +16,7 @@
         <DefineConstants>Linux</DefineConstants>
         <OutDir>../build_release/LonelyGalaxy/NetAssemblies</OutDir>
     </PropertyGroup>
+    <ItemGroup>
+      <PackageReference Include="JetBrains.Annotations" Version="2021.2.0" />
+    </ItemGroup>
 </Project>

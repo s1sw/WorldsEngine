@@ -51,7 +51,7 @@ namespace worlds {
         pm.topology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
         pm.depthWriteEnable(true).depthTestEnable(true).depthCompareOp(VK_COMPARE_OP_GREATER_OR_EQUAL);
 
-        pm.rasterizationSamples(vku::sampleCountFlags(handles->graphicsSettings.msaaLevel));
+        pm.rasterizationSamples(vku::sampleCountFlags(ctx.passSettings.msaaSamples));
         pm.subPass(1);
 
         skyboxPipeline = pm.create(handles->device, handles->pipelineCache, skyboxPipelineLayout, renderPass);
@@ -74,15 +74,11 @@ namespace worlds {
     }
 
     void SkyboxPass::execute(RenderContext& ctx) {
-        auto& cmdBuf = ctx.cmdBuf;
+        ZoneScoped;
+        TracyVkZone((*ctx.debugContext.tracyContexts)[ctx.imageIndex], ctx.cmdBuf, "Skybox");
 
-        VkDebugUtilsLabelEXT label{ VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT };
-        label.pLabelName = "Skybox Pass";
-        label.color[0] = 0.321f;
-        label.color[1] = 0.705f;
-        label.color[2] = 0.871f;
-        label.color[3] = 1.0f;
-        vkCmdBeginDebugUtilsLabelEXT(cmdBuf, &label);
+        auto& cmdBuf = ctx.cmdBuf;
+        addDebugLabel(cmdBuf, "Skybox Pass", 0.321f, 0.705f, 0.871f, 1.0f);
 
         vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, skyboxPipeline);
         vkCmdBindDescriptorSets(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, skyboxPipelineLayout, 0, 1, &skyboxDs, 0, nullptr);

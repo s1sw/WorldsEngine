@@ -49,17 +49,18 @@ namespace Game
             if (_targetTransform.Position.HasNaNComponent)
                 _targetTransform.Position = Vector3.Zero;
 
-            //Quaternion virtualRotation = Camera.Main.Rotation;//* Quaternion.AngleAxis(MathF.PI, Vector3.Up);
+            Quaternion virtualRotation = Camera.Main.Rotation;//* Quaternion.AngleAxis(MathF.PI, Vector3.Up);
             //
             //_targetTransform.Position += _targetTransform.Rotation * PositionOffset;
             //_targetTransform.Position = virtualRotation * _targetTransform.Position;
             //
-            //_targetTransform.Position += Camera.Main.Position;
+            
+            _targetTransform.Position += Camera.Main.Position;
             //
             _targetTransform.Rotation *= rotationOffset;
             //_targetTransform.Rotation *= new Quaternion(EulerRotationOffset);
             //
-            //_targetTransform.Rotation = virtualRotation * _targetTransform.Rotation;
+            _targetTransform.Rotation = virtualRotation * _targetTransform.Rotation;
         }
 
         public void Think(Entity entity)
@@ -82,7 +83,6 @@ namespace Game
             
             Vector3 torque = RotationPID.CalculateForce(angle * axis, Time.DeltaTime);
 
-            // TODO: Inertia tensor
             Quaternion itRotation = dpa.CenterOfMassLocalPose.Rotation;
             Vector3 tensor = dpa.InertiaTensor;
 

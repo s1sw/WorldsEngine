@@ -11,23 +11,23 @@ namespace WorldsEngine
     {
         public IReadOnlyList<ISystem> Systems => gameSystems;
 
-        public Assembly Assembly { get; private set; }
+        public Assembly? Assembly { get; private set; }
 
-        public static event Action<Assembly> OnAssemblyLoad;
-        public static event Action OnAssemblyUnload;
+        public static event Action<Assembly>? OnAssemblyLoad;
+        public static event Action? OnAssemblyUnload;
 
-        AssemblyLoadContext loadContext;
+        AssemblyLoadContext? loadContext;
         readonly List<ISystem> gameSystems = new List<ISystem>();
-        readonly List<SerializedType> serializedSystems = new List<SerializedType>();
+        readonly List<SerializedObject> serializedSystems = new List<SerializedObject>();
 
         private void CreateAndAddSystem(Type systemType)
         {
-            gameSystems.Add((ISystem)Activator.CreateInstance(systemType));
+            gameSystems.Add((ISystem)Activator.CreateInstance(systemType)!);
         }
 
         private void LoadAssemblySystems()
         {
-            foreach (Type systemType in Assembly.GetTypes())
+            foreach (Type systemType in Assembly!.GetTypes())
             {
                 if (!typeof(ISystem).IsAssignableFrom(systemType))
                 {
@@ -45,7 +45,7 @@ namespace WorldsEngine
             HashSet<Type> initialisedTypes = new HashSet<Type>();
             foreach (var serializedSystem in serializedSystems)
             {
-                ISystem deserializedSystem = (ISystem)HotloadSerialization.Deserialize(serializedSystem);
+                ISystem deserializedSystem = (ISystem)HotloadSerialization.Deserialize(serializedSystem)!;
                 gameSystems.Add(deserializedSystem);
                 initialisedTypes.Add(deserializedSystem.GetType());
             }
@@ -54,7 +54,7 @@ namespace WorldsEngine
 
             Logger.Log($"Deserialized {gameSystems.Count} systems");
 
-            foreach (Type systemType in Assembly.GetTypes())
+            foreach (Type systemType in Assembly!.GetTypes())
             {
                 if (!typeof(ISystem).IsAssignableFrom(systemType) || initialisedTypes.Contains(systemType))
                 {
@@ -147,13 +147,9 @@ namespace WorldsEngine
             Logger.Log("Loaded assembly");
 
             if (serializedSystems.Count == 0)
-            {
                 LoadAssemblySystems();
-            }
             else
-            {
                 LoadSerializedSystems();
-            }
 
             OnAssemblyLoad?.Invoke(Assembly);
         }
@@ -165,11 +161,16 @@ namespace WorldsEngine
 
             Logger.Log("Unloading DLL...");
 
+            // Clear out all references to anything in the assembly we're hotloading
+            // If any stay behind, the assembly won't be unloaded and the hotload
+            // will fail!
             OnAssemblyUnload?.Invoke();
             Assembly = null;
             HotloadSerialization.CurrentGameAssembly = null;
-            loadContext.Unload();
+            loadContext!.Unload();
 
+            // It may take multiple GC collections to collect everything from the
+            // hotloading assembly, so collect many times.
             WeakReference weakRef = new WeakReference(loadContext, trackResurrection: true);
             loadContext = null;
             for (int i = 0; weakRef.IsAlive && (i < 20); i++)

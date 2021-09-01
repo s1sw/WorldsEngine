@@ -179,6 +179,7 @@ namespace worlds {
         void overrideHandle(Transform* t);
         bool entityEyedropper(entt::entity& picked);
         AssetID currentSelectedAsset;
+        const GameProject& currentProject() { return *project; }
     private:
         std::unique_ptr<GameProject> project;
         ImTextureID titleBarIcon;

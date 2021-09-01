@@ -115,7 +115,7 @@ namespace worlds {
     void ShadowCascadePass::execute(RenderContext& ctx) {
 #ifdef TRACY_ENABLE
         ZoneScoped;
-        TracyVkZone((*ctx.tracyContexts)[ctx.imageIndex], *ctx.cmdBuf, "Shadowmap");
+        TracyVkZone((*ctx.debugContext.tracyContexts)[ctx.imageIndex], ctx.cmdBuf, "Shadowmap");
 #endif
         auto cmdBuf = ctx.cmdBuf;
         VkDebugUtilsLabelEXT label{ VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT };

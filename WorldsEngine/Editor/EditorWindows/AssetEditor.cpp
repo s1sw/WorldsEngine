@@ -47,8 +47,9 @@ namespace worlds {
                         currCompileOp = nullptr;
                     }
                 } else {
+                    ImGui::SameLine();
                     if (ImGui::Button("Compile")) {
-                        currCompileOp = AssetCompilers::buildAsset(editor->currentSelectedAsset);
+                        currCompileOp = AssetCompilers::buildAsset(editor->currentProject().root(), editor->currentSelectedAsset);
                     }
                 }
             }

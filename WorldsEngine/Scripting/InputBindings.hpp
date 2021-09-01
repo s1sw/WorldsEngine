@@ -29,4 +29,16 @@ extern "C" {
     EXPORT void input_getMouseDelta(glm::vec2* deltaOut) {
         *deltaOut = csharpInputManager->getMouseDelta();
     }
+
+    EXPORT int input_getMouseButtonPressed(MouseButton button) {
+        return csharpInputManager->mouseButtonPressed(button);
+    }
+
+    EXPORT int input_getMouseButtonReleased(MouseButton button) {
+        return csharpInputManager->mouseButtonReleased(button);
+    }
+    
+    EXPORT int input_getMouseButtonHeld(MouseButton button) {
+        return csharpInputManager->mouseButtonHeld(button);
+    }
 }

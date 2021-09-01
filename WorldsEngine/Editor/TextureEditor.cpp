@@ -18,15 +18,16 @@ namespace worlds {
 
     void TextureEditor::importAsset(std::string filePath, std::string newAssetPath) {
         AssetID id = AssetDB::createAsset(newAssetPath);
-        FILE* f = fopen(newAssetPath.c_str(), "wb");
+
+        PHYSFS_File* f = PHYSFS_openWrite(newAssetPath.c_str());
         nlohmann::json j = {
             { "srcPath", filePath },
             { "type", "regular" },
             { "isSrgb", true }
         };
         std::string serializedJson = j.dump(4);
-        fwrite(serializedJson.data(), 1, serializedJson.size(), f);
-        fclose(f);
+        PHYSFS_writeBytes(f, serializedJson.data(), serializedJson.size());
+        PHYSFS_close(f);
         open(id);
     }
 

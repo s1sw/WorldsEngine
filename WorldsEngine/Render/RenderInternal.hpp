@@ -363,4 +363,15 @@ namespace worlds {
 
         ~VKRenderer();
     };
+
+    inline void addDebugLabel(VkCommandBuffer cmdBuf, const char* name, float r, float g, float b, float a) {
+        VkDebugUtilsLabelEXT label{ VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT };
+        label.pLabelName = "Depth Pre-Pass";
+        label.color[0] = r;
+        label.color[1] = g;
+        label.color[2] = b;
+        label.color[3] = a;
+
+        vkCmdBeginDebugUtilsLabelEXT(cmdBuf, &label);
+    }
 }

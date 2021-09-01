@@ -13,9 +13,9 @@ namespace WorldsEngine
         struct CallbackInvocation
         {
             public SendOrPostCallback Callback;
-            public object State;
+            public object? State;
 
-            public CallbackInvocation(SendOrPostCallback callback, object state)
+            public CallbackInvocation(SendOrPostCallback callback, object? state)
             {
                 Callback = callback;
                 State = state;
@@ -24,7 +24,7 @@ namespace WorldsEngine
 
         readonly ConcurrentQueue<CallbackInvocation> callbacks = new ConcurrentQueue<CallbackInvocation>();
 
-        public override void Post(SendOrPostCallback d, object state)
+        public override void Post(SendOrPostCallback d, object? state)
         {
             callbacks.Enqueue(new CallbackInvocation(d, state));
         }

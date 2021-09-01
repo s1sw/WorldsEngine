@@ -100,6 +100,9 @@ namespace worlds {
     }
 
     void AdditionalShadowsPass::execute(RenderContext& ctx) {
+        ZoneScoped;
+        TracyVkZone((*ctx.debugContext.tracyContexts)[ctx.imageIndex], ctx.cmdBuf, "Additional Shadows");
+
         auto cmdBuf = ctx.cmdBuf;
 
         VkDebugUtilsLabelEXT label{ VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT };

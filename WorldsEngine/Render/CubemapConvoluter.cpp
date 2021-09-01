@@ -31,6 +31,8 @@ namespace worlds {
     }
 
     void generateMipCube(const VulkanHandles& vkCtx, vku::TextureImageCube& src, vku::TextureImageCube& t, VkCommandBuffer cb) {
+        ZoneScoped;
+
         auto currLayout = src.layout();
         VkImageMemoryBarrier imb{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
         imb.subresourceRange = VkImageSubresourceRange{ VK_IMAGE_ASPECT_COLOR_BIT, 0, src.info().mipLevels, 0, 6 };
@@ -100,6 +102,7 @@ namespace worlds {
     }
 
     void CubemapConvoluter::convolute(vku::TextureImageCube& cube) {
+        ZoneScoped;
         PerfTimer pt;
 
         if (cube.info().mipLevels == 1) {

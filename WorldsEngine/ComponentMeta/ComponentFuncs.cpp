@@ -742,6 +742,7 @@ namespace worlds {
             }
 
             j["shapes"] = shapeArray;
+            j["layer"] = pa.layer;
         }
 
         void fromJson(entt::entity ent, entt::registry& reg, const json& j) override {
@@ -776,6 +777,11 @@ namespace worlds {
 
                 pa.physicsShapes.push_back(ps);
             }
+
+            pa.layer = j.value("layer", 1);
+
+            if (pa.layer == 0)
+                pa.layer = 1;
 
             auto& t = reg.get<Transform>(ent);
 
@@ -835,6 +841,7 @@ namespace worlds {
                         ImGui::TreePop();
                     }
 
+                    ImGui::DragScalar("Layer", ImGuiDataType_U32, &pa.layer);
                     ImGui::DragFloat("Mass", &pa.mass);
                     ImGui::Checkbox("Enable Gravity", &pa.enableGravity);
                     ImGui::Checkbox("Enable CCD", &pa.enableCCD);
@@ -964,6 +971,7 @@ namespace worlds {
             j["enableCCD"] = pa.enableCCD;
             j["enableGravity"] = pa.enableGravity;
             j["lockFlags"] = (uint32_t)pa.lockFlags();
+            j["layer"] = pa.layer;
         }
 
         void fromJson(entt::entity ent, entt::registry& reg, const json& j) override {
@@ -997,6 +1005,11 @@ namespace worlds {
 
                 pa.physicsShapes.push_back(ps);
             }
+
+            pa.layer = j.value("layer", 1);
+
+            if (pa.layer == 0)
+                pa.layer = 1;
 
             auto& t = reg.get<Transform>(ent);
 

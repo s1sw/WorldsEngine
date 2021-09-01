@@ -4,6 +4,8 @@ namespace worlds {
     DepthPrepass::DepthPrepass(VulkanHandles* handles) : handles(handles) {}
 
     void DepthPrepass::setup(RenderContext& ctx, VkRenderPass renderPass, VkPipelineLayout layout) {
+        ZoneScoped;
+
         AssetID vsID = AssetDB::pathToId("Shaders/depth_prepass.vert.spv");
         auto preVertexShader = vku::loadShaderAsset(handles->device, vsID);
         {
@@ -21,7 +23,7 @@ namespace worlds {
             pm.blendBegin(false);
             pm.frontFace(VK_FRONT_FACE_COUNTER_CLOCKWISE);
 
-            pm.rasterizationSamples(vku::sampleCountFlags(handles->graphicsSettings.msaaLevel));
+            pm.rasterizationSamples(vku::sampleCountFlags(ctx.passSettings.msaaSamples));
             pm.subPass(0);
             depthPrePipeline = pm.create(handles->device, handles->pipelineCache, layout, renderPass);
         }
@@ -41,7 +43,7 @@ namespace worlds {
             pm.blendBegin(false);
             pm.frontFace(VK_FRONT_FACE_COUNTER_CLOCKWISE);
 
-            pm.rasterizationSamples(vku::sampleCountFlags(handles->graphicsSettings.msaaLevel));
+            pm.rasterizationSamples(vku::sampleCountFlags(ctx.passSettings.msaaSamples));
             pm.alphaToCoverageEnable(true);
             pm.subPass(0);
             alphaTestPipeline = pm.create(handles->device, handles->pipelineCache, layout, renderPass);
@@ -68,14 +70,11 @@ namespace worlds {
     };
 
     void DepthPrepass::execute(RenderContext& ctx, slib::StaticAllocList<SubmeshDrawInfo>& drawInfo) {
+        ZoneScoped;
+        TracyVkZone((*ctx.debugContext.tracyContexts)[ctx.imageIndex], ctx.cmdBuf, "Depth Pre-Pass");
+
         auto& cmdBuf = ctx.cmdBuf;
-        VkDebugUtilsLabelEXT label{ VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT };
-        label.pLabelName = "Depth Pre-Pass";
-        label.color[0] = 0.368f;
-        label.color[1] = 0.415f;
-        label.color[2] = 0.819f;
-        label.color[3] = 1.0f;
-        vkCmdBeginDebugUtilsLabelEXT(cmdBuf, &label);
+        addDebugLabel(cmdBuf, "Depth Pre-Pass", 0.368f, 0.415f, 0.819f, 1.0f);
         vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, depthPrePipeline);
 
         bool switchedToAlphaTest = false;

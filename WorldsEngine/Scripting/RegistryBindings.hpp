@@ -60,4 +60,8 @@ extern "C" {
     EXPORT uint32_t registry_createPrefab(entt::registry* regPtr, AssetID id) {
         return (uint32_t)SceneLoader::createPrefab(id, *regPtr);
     }
+
+    EXPORT uint32_t registry_valid(entt::registry* regPtr, entt::entity entity) {
+        return regPtr->valid(entity);
+    }
 }

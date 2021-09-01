@@ -107,7 +107,7 @@ namespace worlds {
 
         logMsg("%s", j.c_str());
 
-        auto* file = AssetDB::openAssetFileWrite(matId);
+        PHYSFS_File* file = AssetDB::openAssetFileWrite(matId);
         PHYSFS_writeBytes(file, j.data(), j.size());
         PHYSFS_close(file);
     }

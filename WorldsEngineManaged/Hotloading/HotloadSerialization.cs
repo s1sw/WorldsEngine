@@ -1,21 +1,82 @@
 using System;
-using System.Reflection;
 using System.Collections.Generic;
+using System.Reflection;
 using System.Runtime.Serialization;
 
 namespace WorldsEngine
 {
+    class SerializedType
+    {
+        public bool IsGeneric;
+        public Type? NonGameType;
+        public SerializedType? GenericDefinitionType;
+        public string? FullName;
+        public SerializedType[]? GenericParameters;
+
+        public SerializedType(Type type)
+        {
+            if (type.Assembly != HotloadSerialization.CurrentGameAssembly)
+            {
+                NonGameType = type;
+            }
+
+            if (type.IsGenericType && !type.IsGenericTypeDefinition)
+            {
+                NonGameType = type.GetGenericTypeDefinition();
+                GenericParameters = new SerializedType[type.GenericTypeArguments.Length];
+
+                for (int i = 0; i < GenericParameters.Length; i++)
+                {
+                    GenericParameters[i] = new SerializedType(type.GenericTypeArguments[i]);
+                }
+
+                IsGeneric = true;
+                GenericDefinitionType = new SerializedType(type.GetGenericTypeDefinition());
+            }
+            else
+            {
+                FullName = type.FullName;
+                GenericParameters = null;
+                IsGeneric = false;
+            }
+        }
+
+        public Type Deserialize(Assembly gameAssembly)
+        {
+            if (IsGeneric)
+            {
+                Type[] genericTypes = new Type[GenericParameters!.Length];
+
+                for (int i = 0; i < GenericParameters!.Length; i++)
+                {
+                    genericTypes[i] = GenericParameters[i].Deserialize(gameAssembly);
+                }
+
+                return GenericDefinitionType!.Deserialize(gameAssembly).MakeGenericType(genericTypes);
+            }
+
+            return NonGameType ?? gameAssembly.GetType(FullName!)!;
+        }
+    }
+
     struct SerializedField
     {
         public string FieldName;
-        public object Value;
+        public object? Value;
         public bool IsValueSerialized;
     }
 
-    struct SerializedType
+    struct ArrayInfo
+    {
+        public int Length;
+        public SerializedObject[] Items;
+    }
+
+    struct SerializedObject
     {
         public bool IsNull;
-        public string FullName;
+        public ArrayInfo? ArrayInfo;
+        public SerializedType SerializedType;
         public Dictionary<string, SerializedField> Fields;
     }
 
@@ -33,7 +94,7 @@ namespace WorldsEngine
             | BindingFlags.FlattenHierarchy
             | BindingFlags.Instance;
 
-        public static Assembly CurrentGameAssembly;
+        public static Assembly? CurrentGameAssembly;
 
         static HotloadSerialization()
         {
@@ -41,25 +102,52 @@ namespace WorldsEngine
             GameAssemblyManager.OnAssemblyUnload += SerializeStatics;
         }
 
-        public static object Deserialize(SerializedType serializedType)
+        private static bool HasGenericParameterFromGameAssembly(Type genericType)
         {
-            if (serializedType.IsNull) return null;
+            for (int i = 0; i < genericType.GenericTypeArguments.Length; i++)
+            {
+                Type argument = genericType.GenericTypeArguments[i];
+
+                if (argument.Assembly == CurrentGameAssembly)
+                    return true;
+            }
+
+            return false;
+        }
+
+        public static object? Deserialize(SerializedObject serializedObject)
+        {
+            if (CurrentGameAssembly == null) throw new InvalidOperationException();
+            if (serializedObject.IsNull) return null;
 
             // Find the type
-            Type type = CurrentGameAssembly.GetType(serializedType.FullName, true);
+            Type type = serializedObject.SerializedType.Deserialize(CurrentGameAssembly);
+
+            if (type.IsArray)
+            {
+                Array arr = Array.CreateInstance(type.GetElementType()!, serializedObject.ArrayInfo!.Value.Length);
+
+                for (int i = 0; i < arr.Length; i++)
+                {
+                    arr.SetValue(Deserialize(serializedObject.ArrayInfo.Value.Items[i]), i);
+                }
+
+                return arr;
+            }
+
             object instance = FormatterServices.GetUninitializedObject(type);
 
             // Restore field values
             FieldInfo[] fields = type.GetFields(SerializedFieldBindingFlags);
             foreach (var field in fields)
             {
-                if (serializedType.Fields.ContainsKey(field.Name))
+                if (serializedObject.Fields.ContainsKey(field.Name))
                 {
-                    var serializedField = serializedType.Fields[field.Name];
+                    var serializedField = serializedObject.Fields[field.Name];
 
                     if (serializedField.IsValueSerialized)
                     {
-                        field.SetValue(instance, Deserialize((SerializedType)serializedField.Value));
+                        field.SetValue(instance, Deserialize((SerializedObject)serializedField.Value!));
                     }
                     else
                     {
@@ -71,17 +159,34 @@ namespace WorldsEngine
             return instance;
         }
 
-        public static SerializedType Serialize(object obj)
+        public static SerializedObject Serialize(object? obj)
         {
             if (obj == null)
-                return new SerializedType { IsNull = true };
+                return new SerializedObject { IsNull = true };
 
             Type type = obj.GetType();
-            var serialized = new SerializedType
+            var serialized = new SerializedObject
             {
-                FullName = type.FullName,
+                SerializedType = new SerializedType(type),
                 Fields = new Dictionary<string, SerializedField>()
             };
+
+            if (type.IsArray)
+            {
+                Array arr = (Array)obj;
+                serialized.ArrayInfo = new ArrayInfo()
+                {
+                    Length = arr.Length,
+                    Items = new SerializedObject[arr.Length]
+                };
+
+                for (int i = 0; i < arr.Length; i++)
+                {
+                    serialized.ArrayInfo.Value.Items[i] = Serialize(arr.GetValue(i));
+                }
+
+                return serialized;
+            }
 
             FieldInfo[] fields = type.GetFields(SerializedFieldBindingFlags);
             foreach (var field in fields)
@@ -91,7 +196,7 @@ namespace WorldsEngine
                     FieldName = field.Name
                 };
 
-                if (field.FieldType.Assembly == CurrentGameAssembly)
+                if (field.FieldType.Assembly == CurrentGameAssembly || HasGenericParameterFromGameAssembly(field.FieldType))
                 {
                     serializedField.IsValueSerialized = true;
                     serializedField.Value = Serialize(field.GetValue(obj));
@@ -111,6 +216,8 @@ namespace WorldsEngine
 
         public static void SerializeStatics()
         {
+            if (CurrentGameAssembly == null) throw new InvalidOperationException();
+
             serializedStaticTypes.Clear();
 
             foreach (var type in CurrentGameAssembly.GetTypes())
@@ -121,7 +228,7 @@ namespace WorldsEngine
 
                 SerializedStaticType serializedStaticType = new()
                 {
-                    FullName = type.FullName,
+                    FullName = type.FullName!,
                     Fields = new List<SerializedField>()
                 };
 
@@ -151,6 +258,8 @@ namespace WorldsEngine
 
         public static void DeserializeStatics()
         {
+            if (CurrentGameAssembly == null) throw new InvalidOperationException();
+
             foreach (var serializedType in serializedStaticTypes)
             {
                 var type = CurrentGameAssembly.GetType(serializedType.FullName);
@@ -168,7 +277,7 @@ namespace WorldsEngine
 
                     if (serializedField.IsValueSerialized)
                     {
-                        field.SetValue(null, Deserialize((SerializedType)serializedField.Value));
+                        field.SetValue(null, Deserialize((SerializedObject)serializedField.Value!));
                     }
                     else
                     {

@@ -14,8 +14,13 @@ namespace Game
     [EditorFriendlyName("C# Player Rig")]
     public class PlayerRig : IThinkingComponent
     {
+        const float LocosphereRadius = 0.15f;
+
         [EditableClass]
         public V3PidController pidController = new V3PidController();
+
+        private bool _grounded = false;
+        private VRAction _movementAction;
 
         private Vector2 GetInputVelocity()
         {
@@ -42,6 +47,15 @@ namespace Game
                 inputVel.x -= 1.0f;
             }
 
+            if (VR.Enabled)
+            {
+                if (_movementAction == null)
+                    _movementAction = new VRAction("/actions/main/in/Movement");
+
+                inputVel = _movementAction.Vector2Value;
+                inputVel.x = -inputVel.x;
+            }
+
             return inputVel;
         }
 
@@ -55,6 +69,12 @@ namespace Game
             Vector3 inputDir = new Vector3(inputVel.x, 0.0f, inputVel.y);
 
             Vector3 inputDirCS = Camera.Main.Rotation * inputDir;
+
+            if (VR.Enabled)
+            {
+                inputDirCS = VR.HMDTransform.Rotation * Camera.Main.Rotation * inputDir;
+            }
+
             inputDirCS.y = 0.0f;
             inputDirCS.Normalize();
 
@@ -66,15 +86,44 @@ namespace Game
             Vector3 torque = pidController.CalculateForce(desiredAngVel - currentAngVel, Time.DeltaTime);
 
             dpa.AddTorque(torque);
+
+            _grounded = Physics.Raycast(
+                dpa.Pose.Position - new Vector3(0.0f, LocosphereRadius - 0.01f, 0.0f), 
+                Vector3.Down, 
+                LocosphereRadius,
+                PhysicsLayers.Player
+            );
+
+            Transform bodyTransform = Registry.GetTransform(PlayerRigSystem.PlayerBody);
+            D6Joint bodyJoint = Registry.GetComponent<D6Joint>(PlayerRigSystem.PlayerBody);
+            var bodyDpa = Registry.GetComponent<DynamicPhysicsActor>(PlayerRigSystem.PlayerBody);
+
+            if (_grounded && PlayerRigSystem.Jump)
+            {
+                var fenderDpa = Registry.GetComponent<DynamicPhysicsActor>(PlayerRigSystem.PlayerFender);
+
+                Vector3 forceVector = Vector3.Up * 5.0f;
+                bodyDpa.AddForce(forceVector, ForceMode.VelocityChange);
+                dpa.AddForce(forceVector, ForceMode.VelocityChange);
+                fenderDpa.AddForce(forceVector, ForceMode.VelocityChange);
+                PlayerRigSystem.Jump = false;
+            }
         }
     }
 
     public class PlayerRigSystem : ISystem
     {
-        private PhysicsMaterial physMat = new PhysicsMaterial(15.0f, 15.0f, 0.2f);
+        public static Entity PlayerBody { get; private set; }
+        public static Entity PlayerFender { get; private set; }
+        private readonly PhysicsMaterial physMat = new(15.0f, 15.0f, 0.0f);
+
+        public static bool Jump = false;
 
         public void OnSceneStart()
         {
+            PlayerBody = Registry.Find("Player Body");
+            PlayerFender = Registry.Find("Fender");
+
             physMat.FrictionCombineMode = CombineMode.Max;
 
             foreach(Entity ent in Registry.View<PlayerRig>())
@@ -90,6 +139,12 @@ namespace Game
 
                 dpa.SetPhysicsShapes(shapes);
             }
+        }
+
+        public void OnUpdate()
+        {
+            if (Keyboard.KeyPressed(KeyCode.Space))
+                Jump = true;
         }
     }
 }

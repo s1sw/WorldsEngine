@@ -25,6 +25,10 @@ namespace worlds {
             }
         }
 
+        void destroy(entt::entity ent, entt::registry& reg) override {
+            reg.remove_if_exists<T>(ent);
+        }
+
         void clone(entt::entity from, entt::entity to, entt::registry& r) override {
             if constexpr (std::is_copy_constructible<T>::value)
                 cloneInternal(from, to, r);

@@ -95,7 +95,7 @@ if not freetype_dep.found()
     freetype_dep = declare_dependency(dependencies: freetype_lib)
 endif
 
-worlds = static_library('worlds', worlds_sources,
+worlds = static_library('worlds', worlds_sources + ['tracy/TracyClient.cpp'],
   include_directories: [extern_include_dir, physx_include_dir, tracy_inc],
   dependencies: [
     assimp_dep, physfs_dep, sdl2_dep, physx_deps,

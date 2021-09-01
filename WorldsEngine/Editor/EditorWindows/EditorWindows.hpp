@@ -18,6 +18,14 @@ namespace worlds {
         ~Assets() {}
     };
 
+    class RawAssets : public EditorWindow {
+    public:
+        RawAssets(EngineInterfaces interfaces, Editor* editor) : EditorWindow(interfaces, editor) {}
+        void draw(entt::registry& reg) override;
+        const char* getName() override { return "Raw Assets"; }
+        ~RawAssets() {}
+    };
+
     class EntityEditor : public EditorWindow {
     public:
         EntityEditor(EngineInterfaces interfaces, Editor* editor) : EditorWindow(interfaces, editor) {}

@@ -593,7 +593,9 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     *success = true;
 #ifdef TRACY_ENABLE
     for (auto& cmdBuf : cmdBufs) {
-        tracyContexts.push_back(tracy::CreateVkContext(physicalDevice, *device, device->getQueue(graphicsQueueFamilyIdx, 0), *cmdBufs[0]));
+        VkQueue queue;
+        vkGetDeviceQueue(device, graphicsQueueFamilyIdx, 0, &queue);
+        tracyContexts.push_back(tracy::CreateVkContext(physicalDevice, device, queue, cmdBuf));
     }
 #endif
 
@@ -1094,10 +1096,6 @@ void VKRenderer::calculateCascadeMatrices(bool forVr, entt::registry& world, Cam
 void VKRenderer::writeCmdBuf(VkCommandBuffer cmdBuf, uint32_t imageIndex, Camera& cam, entt::registry& reg) {
     ZoneScoped;
 
-#ifdef TRACY_ENABLE
-    rCtx.tracyContexts = &tracyContexts;
-#endif
-
     vku::beginCommandBuffer(cmdBuf, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
     texSlots->frameStarted = true;
 
@@ -1129,6 +1127,9 @@ void VKRenderer::writeCmdBuf(VkCommandBuffer cmdBuf, uint32_t imageIndex, Camera
         .cascadeInfo = {},
         .debugContext = RenderDebugContext {
             .stats = &dbgStats
+#ifdef TRACY_ENABLE
+            , .tracyContexts = &tracyContexts
+#endif
         },
         .passSettings = PassSettings {
             .enableVR = false,
@@ -1222,7 +1223,7 @@ void VKRenderer::writeCmdBuf(VkCommandBuffer cmdBuf, uint32_t imageIndex, Camera
         glm::vec2 srcCorner0(0.0f, vrHeight / 2.0f - croppedHeight / 2.0f);
         glm::vec2 srcCorner1(vrWidth, vrHeight / 2.0f + croppedHeight / 2.0f);
 
-        VkImageBlit imageBlit;
+        VkImageBlit imageBlit = { 0 };
         imageBlit.srcOffsets[0] = VkOffset3D{ (int)srcCorner0.x, (int)srcCorner0.y, 0 };
         imageBlit.srcOffsets[1] = VkOffset3D{ (int)srcCorner1.x, (int)srcCorner1.y, 1 };
         imageBlit.dstOffsets[1] = VkOffset3D{ (int)windowSize.x, (int)windowSize.y, 1 };
@@ -1245,13 +1246,14 @@ void VKRenderer::writeCmdBuf(VkCommandBuffer cmdBuf, uint32_t imageIndex, Camera
 
     vkCmdWriteTimestamp(cmdBuf, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, queryPool, 1 + (frameIdx * 2));
 #ifdef TRACY_ENABLE
-    TracyVkCollect(tracyContexts[imageIndex], *cmdBuf);
+    TracyVkCollect(tracyContexts[imageIndex], cmdBuf);
 #endif
     texSlots->frameStarted = false;
     VKCHECK(vkEndCommandBuffer(cmdBuf));
 }
 
 void VKRenderer::reuploadMaterials() {
+    ZoneScoped;
     materialUB.upload(device, commandPool, getQueue(device, graphicsQueueFamilyIdx), matSlots->getSlots(), sizeof(PackedMaterial) * 256);
 
     for (auto& pass : rttPasses) {
@@ -1469,6 +1471,8 @@ void VKRenderer::preloadMesh(AssetID id) {
 }
 
 void VKRenderer::unloadUnusedMaterials(entt::registry& reg) {
+    ZoneScoped;
+
     bool textureReferenced[NUM_TEX_SLOTS];
     bool materialReferenced[NUM_MAT_SLOTS];
 

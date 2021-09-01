@@ -286,7 +286,7 @@ namespace worlds {
         vertexShader = ShaderCache::getModule(handles->device, vsID);
         fragmentShader = ShaderCache::getModule(handles->device, fsID);
 
-        auto msaaSamples = vku::sampleCountFlags(handles->graphicsSettings.msaaLevel);
+        auto msaaSamples = vku::sampleCountFlags(ctx.passSettings.msaaSamples);
 
         struct StandardSpecConsts {
             bool enablePicking = false;
@@ -476,114 +476,117 @@ namespace worlds {
 
         int matrixIdx = 0;
         bool warned = false;
-        ctx.registry.view<Transform, WorldObject>().each([&](entt::entity ent, Transform& t, WorldObject& wo) {
-            if (matrixIdx == ModelMatrices::SIZE - 1) {
-                if (!warned) {
-                    logWarn("Out of model matrices!");
-                    warned = true;
-                }
-                return;
-            }
-
-            auto meshPos = resources.meshes.find(wo.mesh);
-
-            if (meshPos == resources.meshes.end()) {
-                // Haven't loaded the mesh yet
-                matrixIdx++;
-                logWarn(WELogCategoryRender, "Missing mesh");
-                return;
-            }
-
-            float maxScale = glm::max(t.scale.x, glm::max(t.scale.y, t.scale.z));
-            if (!ctx.passSettings.enableVR) {
-                if (!frustum.containsSphere(t.position, meshPos->second.sphereRadius * maxScale)) {
-                    ctx.debugContext.stats->numCulledObjs++;
-                    return;
-                }
-            } else {
-                if (!frustum.containsSphere(t.position, meshPos->second.sphereRadius * maxScale) &&
-                    !frustumB.containsSphere(t.position, meshPos->second.sphereRadius * maxScale)) {
-                    ctx.debugContext.stats->numCulledObjs++;
-                    return;
-                }
-            }
-
-            modelMatricesMapped[ctx.imageIndex]->modelMatrices[matrixIdx] = t.getMatrix();
-
-            for (int i = 0; i < meshPos->second.numSubmeshes; i++) {
-                auto& currSubmesh = meshPos->second.submeshes[i];
-
-                SubmeshDrawInfo sdi;
-                sdi.ib = meshPos->second.ib.buffer();
-                sdi.vb = meshPos->second.vb.buffer();
-                sdi.indexCount = currSubmesh.indexCount;
-                sdi.indexOffset = currSubmesh.indexOffset;
-                sdi.materialIdx = wo.materialIdx[i];
-                sdi.matrixIdx = matrixIdx;
-                sdi.texScaleOffset = wo.texScaleOffset;
-                sdi.ent = ent;
-                auto& packedMat = resources.materials[wo.materialIdx[i]];
-                sdi.opaque = packedMat.getCutoff() == 0.0f;
-
-                switch (wo.uvOverride) {
-                default:
-                    sdi.drawMiscFlags = 0;
-                    break;
-                case UVOverride::XY:
-                    sdi.drawMiscFlags = 128;
-                    break;
-                case UVOverride::XZ:
-                    sdi.drawMiscFlags = 256;
-                    break;
-                case UVOverride::ZY:
-                    sdi.drawMiscFlags = 512;
-                    break;
-                case UVOverride::PickBest:
-                    sdi.drawMiscFlags = 1024;
-                    break;
-                }
-
-                uint32_t currCubemapIdx = skyboxId;
-
-                ctx.registry.view<WorldCubemap, Transform>().each([&](auto, WorldCubemap& wc, Transform& cubeT) {
-                    glm::vec3 cPos = t.position;
-                    glm::vec3 ma = wc.extent + cubeT.position;
-                    glm::vec3 mi = cubeT.position - wc.extent;
-
-                    if (cPos.x < ma.x && cPos.x > mi.x &&
-                        cPos.y < ma.y && cPos.y > mi.y &&
-                        cPos.z < ma.z && cPos.z > mi.z) {
-                        currCubemapIdx = resources.cubemaps.get(wc.cubemapId);
-                        if (wc.cubeParallax) {
-                            sdi.drawMiscFlags |= 4096; // flag for cubemap parallax correction
-                            sdi.cubemapPos = cubeT.position;
-                            sdi.cubemapExt = wc.extent;
-                        }
+        {
+            ZoneScopedN("PolyRenderPass SDI generation");
+            ctx.registry.view<Transform, WorldObject>().each([&](entt::entity ent, Transform& t, WorldObject& wo) {
+                if (matrixIdx == ModelMatrices::SIZE - 1) {
+                    if (!warned) {
+                        logWarn("Out of model matrices!");
+                        warned = true;
                     }
-                    });
-
-                sdi.cubemapIdx = currCubemapIdx;
-
-                auto& extraDat = resources.materials.getExtraDat(wo.materialIdx[i]);
-
-                sdi.pipeline = sdi.opaque ? pipeline : alphaTestPipeline;
-
-                if (extraDat.noCull) {
-                    sdi.pipeline = noBackfaceCullPipeline;
-                } else if (extraDat.wireframe || showWireframe.getInt() == 1) {
-                    sdi.pipeline = wireframePipeline;
-                } else if (ctx.registry.has<UseWireframe>(ent) || showWireframe.getInt() == 2) {
-                    drawInfo.add(sdi);
-                    ctx.debugContext.stats->numTriangles += currSubmesh.indexCount / 3;
-                    sdi.pipeline = wireframePipeline;
+                    return;
                 }
-                ctx.debugContext.stats->numTriangles += currSubmesh.indexCount / 3;
 
-                drawInfo.add(std::move(sdi));
-            }
+                auto meshPos = resources.meshes.find(wo.mesh);
 
-            matrixIdx++;
-            });
+                if (meshPos == resources.meshes.end()) {
+                    // Haven't loaded the mesh yet
+                    matrixIdx++;
+                    logWarn(WELogCategoryRender, "Missing mesh");
+                    return;
+                }
+
+                float maxScale = glm::max(t.scale.x, glm::max(t.scale.y, t.scale.z));
+                if (!ctx.passSettings.enableVR) {
+                    if (!frustum.containsSphere(t.position, meshPos->second.sphereRadius * maxScale)) {
+                        ctx.debugContext.stats->numCulledObjs++;
+                        return;
+                    }
+                } else {
+                    if (!frustum.containsSphere(t.position, meshPos->second.sphereRadius * maxScale) &&
+                        !frustumB.containsSphere(t.position, meshPos->second.sphereRadius * maxScale)) {
+                        ctx.debugContext.stats->numCulledObjs++;
+                        return;
+                    }
+                }
+
+                modelMatricesMapped[ctx.imageIndex]->modelMatrices[matrixIdx] = t.getMatrix();
+
+                for (int i = 0; i < meshPos->second.numSubmeshes; i++) {
+                    auto& currSubmesh = meshPos->second.submeshes[i];
+
+                    SubmeshDrawInfo sdi;
+                    sdi.ib = meshPos->second.ib.buffer();
+                    sdi.vb = meshPos->second.vb.buffer();
+                    sdi.indexCount = currSubmesh.indexCount;
+                    sdi.indexOffset = currSubmesh.indexOffset;
+                    sdi.materialIdx = wo.materialIdx[i];
+                    sdi.matrixIdx = matrixIdx;
+                    sdi.texScaleOffset = wo.texScaleOffset;
+                    sdi.ent = ent;
+                    auto& packedMat = resources.materials[wo.materialIdx[i]];
+                    sdi.opaque = packedMat.getCutoff() == 0.0f;
+
+                    switch (wo.uvOverride) {
+                    default:
+                        sdi.drawMiscFlags = 0;
+                        break;
+                    case UVOverride::XY:
+                        sdi.drawMiscFlags = 128;
+                        break;
+                    case UVOverride::XZ:
+                        sdi.drawMiscFlags = 256;
+                        break;
+                    case UVOverride::ZY:
+                        sdi.drawMiscFlags = 512;
+                        break;
+                    case UVOverride::PickBest:
+                        sdi.drawMiscFlags = 1024;
+                        break;
+                    }
+
+                    uint32_t currCubemapIdx = skyboxId;
+
+                    ctx.registry.view<WorldCubemap, Transform>().each([&](auto, WorldCubemap& wc, Transform& cubeT) {
+                        glm::vec3 cPos = t.position;
+                        glm::vec3 ma = wc.extent + cubeT.position;
+                        glm::vec3 mi = cubeT.position - wc.extent;
+
+                        if (cPos.x < ma.x && cPos.x > mi.x &&
+                            cPos.y < ma.y && cPos.y > mi.y &&
+                            cPos.z < ma.z && cPos.z > mi.z) {
+                            currCubemapIdx = resources.cubemaps.get(wc.cubemapId);
+                            if (wc.cubeParallax) {
+                                sdi.drawMiscFlags |= 4096; // flag for cubemap parallax correction
+                                sdi.cubemapPos = cubeT.position;
+                                sdi.cubemapExt = wc.extent;
+                            }
+                        }
+                        });
+
+                    sdi.cubemapIdx = currCubemapIdx;
+
+                    auto& extraDat = resources.materials.getExtraDat(wo.materialIdx[i]);
+
+                    sdi.pipeline = sdi.opaque ? pipeline : alphaTestPipeline;
+
+                    if (extraDat.noCull) {
+                        sdi.pipeline = noBackfaceCullPipeline;
+                    } else if (extraDat.wireframe || showWireframe.getInt() == 1) {
+                        sdi.pipeline = wireframePipeline;
+                    } else if (ctx.registry.has<UseWireframe>(ent) || showWireframe.getInt() == 2) {
+                        drawInfo.add(sdi);
+                        ctx.debugContext.stats->numTriangles += currSubmesh.indexCount / 3;
+                        sdi.pipeline = wireframePipeline;
+                    }
+                    ctx.debugContext.stats->numTriangles += currSubmesh.indexCount / 3;
+
+                    drawInfo.add(std::move(sdi));
+                }
+
+                matrixIdx++;
+                });
+        }
 
         int lightIdx = 0;
         ctx.registry.view<WorldLight, Transform>().each([&](auto ent, WorldLight& l, Transform& transform) {
@@ -659,7 +662,7 @@ namespace worlds {
 
     void PolyRenderPass::execute(RenderContext& ctx) {
         ZoneScoped;
-        TracyVkZone((*ctx.tracyContexts)[ctx.imageIndex], *ctx.cmdBuf, "Polys");
+        TracyVkZone((*ctx.debugContext.tracyContexts)[ctx.imageIndex], ctx.cmdBuf, "Polys");
 
         std::array<VkClearValue, 2> clearColours;
         clearColours[0].color.float32[0] = 0.0f;
@@ -747,13 +750,7 @@ namespace worlds {
 
         vkCmdNextSubpass(cmdBuf, VK_SUBPASS_CONTENTS_INLINE);
 
-        VkDebugUtilsLabelEXT label{ VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT };
-        label.pLabelName = "Main Pass";
-        label.color[0] = 0.466f;
-        label.color[1] = 0.211f;
-        label.color[2] = 0.639f;
-        label.color[3] = 1.0f;
-        vkCmdBeginDebugUtilsLabelEXT(cmdBuf, &label);
+        addDebugLabel(cmdBuf, "Main Pass", 0.466f, 0.211f, 0.639f, 1.0f);
 
         vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
         SubmeshDrawInfo last;

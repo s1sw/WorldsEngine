@@ -11,6 +11,7 @@
 #include <entt/entity/registry.hpp>
 #include "Export.hpp"
 #include <Serialization/SceneSerialization.hpp>
+#include "tracy/Tracy.hpp"
 
 #if defined(_WIN32)
 #define WIN32_LEAN_AND_MEAN
@@ -144,6 +145,7 @@ namespace worlds {
     }
 
     bool DotNetScriptEngine::initialise(Editor* editor) {
+        ZoneScoped;
         igGET_FLT_MAX();
         LibraryHandle_t netLibrary = loadLibrary(NET_LIBRARY_PATH);
 
@@ -163,7 +165,7 @@ namespace worlds {
 
 #if defined(_WIN32)
         char exePath[MAX_PATH];
-        GetModuleFileName(0, exePath, MAX_PATH);
+        GetModuleFileNameA(0, exePath, MAX_PATH);
 #elif defined(__linux__)
         char exePath[PATH_MAX];
         ssize_t readChars = readlink("/proc/self/exe", exePath, PATH_MAX);
@@ -231,18 +233,26 @@ namespace worlds {
     }
 
     void DotNetScriptEngine::onSceneStart() {
+        ZoneScoped;
+
         sceneStartFunc();
     }
 
     void DotNetScriptEngine::onUpdate(float deltaTime) {
+        ZoneScoped;
+
         updateFunc(deltaTime);
     }
 
     void DotNetScriptEngine::onEditorUpdate(float deltaTime) {
+        ZoneScoped;
+
         editorUpdateFunc(deltaTime);
     }
 
     void DotNetScriptEngine::onSimulate(float deltaTime) {
+        ZoneScoped;
+
         simulateFunc(deltaTime);
     }
 

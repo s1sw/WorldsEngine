@@ -648,6 +648,9 @@
     <ClCompile Include="..\WorldsEngine\ImGui\imgui_freetype.cpp">
       <Filter>ImGui</Filter>
     </ClCompile>
+    <ClCompile Include="..\WorldsEngine\Editor\EditorWindows\RawAssets.cpp">
+      <Filter>Editor\EditorWindows</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\WorldsEngine\AssetCompilation\AssetCompilerUtil.hpp">

@@ -15,6 +15,7 @@
 #include "../Libs/mikktspace.h"
 #include "../Libs/weldmesh.h"
 #include <slib/Path.hpp>
+#include <filesystem>
 #define _CRT_SECURE_NO_WARNINGS
 
 namespace worlds {
@@ -267,7 +268,7 @@ namespace worlds {
         AssetCompilers::registerCompiler(this);
     }
 
-    AssetCompileOperation* ModelCompiler::compile(AssetID src) {
+    AssetCompileOperation* ModelCompiler::compile(std::string_view projectRoot, AssetID src) {
         std::string inputPath = AssetDB::idToPath(src);
         auto jsonContents = LoadFileToString(inputPath);
 
@@ -294,6 +295,13 @@ namespace worlds {
 
         AssetCompileOperation* compileOp = new AssetCompileOperation;
         compileOp->outputId = AssetDB::pathToId(outputPath);
+
+        std::filesystem::path fullPath = projectRoot;
+        fullPath /= outputPath;
+        fullPath = fullPath.parent_path();
+        fullPath = fullPath.lexically_normal();
+
+        std::filesystem::create_directories(fullPath);
 
         std::thread([compileOp, outputPath, path, result, fileLen]() {
             PHYSFS_File* outFile = PHYSFS_openWrite(outputPath.c_str());

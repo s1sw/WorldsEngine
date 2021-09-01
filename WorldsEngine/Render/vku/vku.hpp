@@ -739,8 +739,7 @@ namespace vku {
             VkInstance instance,
             VkDebugReportFlagsEXT flags =
             VK_DEBUG_REPORT_WARNING_BIT_EXT |
-            VK_DEBUG_REPORT_ERROR_BIT_EXT |
-            VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT
+            VK_DEBUG_REPORT_ERROR_BIT_EXT
         ) : instance_(instance) {
             auto ci = VkDebugReportCallbackCreateInfoEXT{
                 VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT,

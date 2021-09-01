@@ -23,7 +23,7 @@ namespace WorldsEngine
         public string FullTypeName;
         public Entity[] Packed;
         public int[] Sparse;
-        public SerializedType[] Components;
+        public SerializedObject[] Components;
     }
 
     internal class ComponentTypeLookup
@@ -47,14 +47,14 @@ namespace WorldsEngine
         static ComponentStorage()
         {
             type = typeof(T);
-            if (ComponentTypeLookup.typeIndices.ContainsKey(type.FullName))
+            if (ComponentTypeLookup.typeIndices.ContainsKey(type.FullName!))
             {
-                typeIndex = ComponentTypeLookup.typeIndices[type.FullName];
+                typeIndex = ComponentTypeLookup.typeIndices[type.FullName!];
             }
             else
             {
                 typeIndex = Interlocked.Increment(ref Registry.typeCounter);
-                ComponentTypeLookup.typeIndices.Add(type.FullName, typeIndex);
+                ComponentTypeLookup.typeIndices.Add(type.FullName!, typeIndex);
             }
         }
 
@@ -73,7 +73,7 @@ namespace WorldsEngine
                 return;
             }
 
-            if (!ComponentTypeLookup.serializedComponents.ContainsKey(type.FullName))
+            if (!ComponentTypeLookup.serializedComponents.ContainsKey(type.FullName!))
             {
                 for (int i = 0; i < Size; i++)
                 {
@@ -84,7 +84,7 @@ namespace WorldsEngine
                 return;
             }
 
-            var serializedStorage = ComponentTypeLookup.serializedComponents[type.FullName];
+            var serializedStorage = ComponentTypeLookup.serializedComponents[type.FullName!];
 
             for (int i = 0; i < Size; i++)
             {
@@ -93,7 +93,7 @@ namespace WorldsEngine
                 components[i] = (T)HotloadSerialization.Deserialize(serializedStorage.Components[i]);
             }
 
-            ComponentTypeLookup.serializedComponents.Remove(type.FullName);
+            ComponentTypeLookup.serializedComponents.Remove(type.FullName!);
         }
 
         internal int GetFreeIndex()
@@ -129,7 +129,7 @@ namespace WorldsEngine
                 throw new ArgumentException("Entity doesn't have that component");
             }
 
-            return components[GetSlotFor(entity)];
+            return components[GetSlotFor(entity)]!;
         }
 
         internal void Set(Entity entity, T component)
@@ -179,16 +179,16 @@ namespace WorldsEngine
             {
                 Packed = packedEntities,
                 Sparse = sparseEntities,
-                Components = new SerializedType[Size],
-                FullTypeName = Type.FullName
+                Components = new SerializedObject[Size],
+                FullTypeName = Type.FullName!
             };
 
             for (int i = 0; i < Size; i++)
             {
-                serializedStorage.Components[i] = HotloadSerialization.Serialize(components[i]);
+                serializedStorage.Components[i] = HotloadSerialization.Serialize(components[i]!);
             }
 
-            ComponentTypeLookup.serializedComponents.Add(type.FullName, serializedStorage);
+            ComponentTypeLookup.serializedComponents.Add(type.FullName!, serializedStorage);
         }
 
         private int GetSlotFor(Entity entity)
@@ -198,39 +198,37 @@ namespace WorldsEngine
 
         IEnumerator IEnumerable.GetEnumerator()
         {
-            return (IEnumerator)GetEnumerator();
+            return GetEnumerator();
         }
 
         public ComponentStorageEnum GetEnumerator()
         {
-            return new ComponentStorageEnum(sparseEntities, packedEntities);
+            return new ComponentStorageEnum(packedEntities);
         }
 
         public void UpdateIfThinking()
         {
             foreach (Entity entity in this)
             {
-                ((IThinkingComponent)components[GetSlotFor(entity)]).Think(entity);
+                ((IThinkingComponent)components[GetSlotFor(entity)]!).Think(entity);
             }
         }
     }
 
     public class ComponentStorageEnum : IEnumerator
     {
-        int[] sparse;
-        Entity[] packed;
+        readonly Entity[] packed;
         int index = -1;
 
-        public ComponentStorageEnum(int[] sparse, Entity[] packed)
+        public ComponentStorageEnum(Entity[] packed)
         {
-            this.sparse = sparse;
             this.packed = packed;
         }
 
         public bool MoveNext()
         {
             index++;
-            return (!packed[index].IsNull);
+            return !packed[index].IsNull;
         }
 
         public void Reset()

@@ -16,6 +16,7 @@
 #include "FixedJoint.hpp"
 #include "PxSceneDesc.h"
 #include "PxSimulationEventCallback.h"
+#include <slib/Intrinsic.hpp>
 using namespace physx;
 
 #define ENABLE_PVD 0
@@ -138,6 +139,14 @@ namespace worlds {
         g_scene->setVisualizationParameter(physx::PxVisualizationParameter::eBODY_MASS_AXES, 1.0f - currentVal);
     }
 
+    uint32_t physicsLayerMask[32] =
+    {
+        0xFFFFFFFF,
+        0xFFFFFFFD,
+        0x00000000,
+        0xFFFFFFFF
+    };
+
     static physx::PxFilterFlags filterShader(
         physx::PxFilterObjectAttributes,
         physx::PxFilterData data1,
@@ -146,9 +155,12 @@ namespace worlds {
         physx::PxPairFlags& pairFlags,
         const void*,
         physx::PxU32) {
-        if (data1.word0 == PLAYER_PHYSICS_LAYER && data2.word0 == PLAYER_PHYSICS_LAYER)
-            return physx::PxFilterFlag::eKILL;
-        if (data1.word0 == NOCOLLISION_PHYSICS_LAYER || data2.word0 == NOCOLLISION_PHYSICS_LAYER)
+        
+        int layer1 = slib::Intrinsics::bitScanForward(data1.word0);
+        int layer2 = slib::Intrinsics::bitScanForward(data2.word0);
+
+        if ((physicsLayerMask[layer1] & data2.word0) == 0 ||
+            (physicsLayerMask[layer2] & data1.word0) == 0)
             return physx::PxFilterFlag::eKILL;
 
         pairFlags = physx::PxPairFlag::eSOLVE_CONTACT
@@ -315,7 +327,7 @@ namespace worlds {
 
     class RaycastFilterCallback : public PxQueryFilterCallback {
     public:
-        uint32_t excludeLayer;
+        uint32_t excludeLayerMask;
         PxQueryHitType::Enum postFilter(const PxFilterData&, const PxQueryHit&) override {
             return PxQueryHitType::eBLOCK;
         }
@@ -325,7 +337,7 @@ namespace worlds {
                 const PxRigidActor* actor, PxHitFlags& queryFlags) override {
             const auto& shapeFilterData = shape->getQueryFilterData();
 
-            if (shapeFilterData.word0 == excludeLayer) {
+            if ((shapeFilterData.word0 & excludeLayerMask) != 0) {
                 return PxQueryHitType::eNONE;
             }
 
@@ -334,12 +346,12 @@ namespace worlds {
     };
     RaycastFilterCallback raycastFilterCallback;
 
-    bool raycast(physx::PxVec3 position, physx::PxVec3 direction, float maxDist, RaycastHitInfo* hitInfo, uint32_t excludeLayer) {
+    bool raycast(physx::PxVec3 position, physx::PxVec3 direction, float maxDist, RaycastHitInfo* hitInfo, uint32_t excludeLayerMask) {
         physx::PxRaycastBuffer hitBuf;
         bool hit;
 
-        if (excludeLayer != ~0u) {
-            raycastFilterCallback.excludeLayer = excludeLayer;
+        if (excludeLayerMask != 0u) {
+            raycastFilterCallback.excludeLayerMask = excludeLayerMask;
 
             hit = worlds::g_scene->raycast(
                 position, direction,

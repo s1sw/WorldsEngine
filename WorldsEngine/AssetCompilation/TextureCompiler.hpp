@@ -6,10 +6,11 @@ namespace worlds {
     class TextureCompiler : public IAssetCompiler {
     public:
         TextureCompiler();
-        AssetCompileOperation* compile(AssetID src) override;
+        AssetCompileOperation* compile(std::string_view projectRoot, AssetID src) override;
         const char* getSourceExtension() override;
         const char* getCompiledExtension() override;
     private:
-        void compileInternal(nlohmann::json j, std::string inputPath, std::string outputPath, AssetCompileOperation* compileOp);
+        struct TexCompileThreadInfo;
+        void compileInternal(TexCompileThreadInfo*);
     };
 }
