@@ -44,8 +44,8 @@ namespace worlds {
         staticLink = sl;
     }
 
-    AssetCompileOperation* AssetCompilers::buildAsset(AssetID asset) {
-        return getCompilerFor(asset)->compile(asset);
+    AssetCompileOperation* AssetCompilers::buildAsset(std::string_view projectRoot, AssetID asset) {
+        return getCompilerFor(asset)->compile(projectRoot, asset);
     }
 
     IAssetCompiler* AssetCompilers::getCompilerFor(AssetID asset) {

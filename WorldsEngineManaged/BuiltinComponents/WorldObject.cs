@@ -72,13 +72,8 @@ namespace WorldsEngine
             }
         }
 
-        private readonly IntPtr regPtr;
-        private readonly uint entityId;
-
-        internal WorldObject(IntPtr regPtr, uint entityId)
+        internal WorldObject(IntPtr regPtr, uint entityId) : base(regPtr, entityId)
         {
-            this.regPtr = regPtr;
-            this.entityId = entityId;
         }
 
         public void SetMaterial(uint idx, AssetID id)

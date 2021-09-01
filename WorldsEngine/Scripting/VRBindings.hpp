@@ -33,6 +33,10 @@ extern "C" {
         return csharpVrInterface->getActionReleased(handle);
     }
 
+    EXPORT void vr_getActionVector2(InputActionHandle handle, glm::vec2* v2) {
+        *v2 = csharpVrInterface->getActionV2(handle);
+    }
+
     EXPORT void vr_triggerHaptics(InputActionHandle handle, float timeFromNow, float duration, float frequency, float amplitude) {
         csharpVrInterface->triggerHaptics(handle, timeFromNow, duration, frequency, amplitude);
     }

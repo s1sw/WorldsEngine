@@ -32,6 +32,7 @@
 #include "AssetEditors.hpp"
 #include "../Scripting/NetVM.hpp"
 #include "ImGui/imgui_internal.h"
+#include "tracy/Tracy.hpp"
 
 namespace worlds {
     std::unordered_map<ENTT_ID_TYPE, ComponentEditor*> ComponentMetadataManager::metadata;
@@ -58,9 +59,19 @@ namespace worlds {
 
     std::string Editor::generateWindowTitle() {
         if (!project)
+#ifndef NDEBUG
+            return "Worlds Engine (debug)";
+#else
             return "Worlds Engine";
+#endif
 
-        std::string base = "Worlds Engine Editor | " + interfaces.engine->getCurrentSceneInfo().name;
+        std::string base =
+#ifndef NDEBUG
+            "Worlds Engine Editor (debug) | "
+#else
+            "Worlds Engine Editor | "
+#endif
+            + interfaces.engine->getCurrentSceneInfo().name;
 
         if (lastSaveModificationCount != undo.modificationCount()) {
             base += "*";
@@ -154,6 +165,7 @@ namespace worlds {
         ADD_EDITOR_WINDOW(BakingWindow);
         ADD_EDITOR_WINDOW(SceneSettingsWindow);
         ADD_EDITOR_WINDOW(AssetEditor);
+        ADD_EDITOR_WINDOW(RawAssets);
 
 #undef ADD_EDITOR_WINDOW
         AssetCompilers::initialise();
@@ -461,6 +473,8 @@ namespace worlds {
     }
 
     void Editor::openProject(std::string path) {
+        ZoneScoped;
+
         project = std::make_unique<GameProject>(path);
         project->mountPaths();
         interfaces.renderer->reloadContent(worlds::ReloadFlags::All);
@@ -494,6 +508,8 @@ namespace worlds {
     }
 
     void Editor::update(float deltaTime) {
+        ZoneScoped;
+
         if (!active) {
             for (EditorSceneView* esv : sceneViews) {
                 esv->setViewportActive(false);
@@ -523,6 +539,8 @@ namespace worlds {
             }
             return;
         }
+
+        AudioSystem::getInstance()->cancelOneShots();
 
         if (!project) {
             static std::vector<std::string> recentProjects;

@@ -7,18 +7,14 @@ using System.Collections.Generic;
 using System.Threading;
 using ImGuiNET;
 using WorldsEngine.Math;
+using JetBrains.Annotations;
+using System.Diagnostics.CodeAnalysis;
 
 namespace WorldsEngine
 {
     internal class WorldsEngine
     {
-#if Windows
-        internal const string NativeModule = "lonelygalaxy.exe";
-#elif Linux
-        internal const string NativeModule = "lonelygalaxy";
-#else
-#error Unknown platform
-#endif
+        internal const string NativeModule = "WorldsEngineNative";
 
 #if Linux
         const int RTLD_NOW = 0x00002;
@@ -28,8 +24,6 @@ namespace WorldsEngine
 
         private static IntPtr ImportResolver(string libraryName, Assembly assembly, DllImportSearchPath? searchPath)
         {
-            IntPtr handle = IntPtr.Zero;
-
             // On Linux, you can't just load an executable as a library and have it all
             // just work. However, if you pass a null pointer as the filename to dlopen it
             // returns the address of the executable, which you can pass to dlsym.
@@ -38,78 +32,48 @@ namespace WorldsEngine
             if (libraryName == NativeModule)
                 handle = dlopen(null, RTLD_NOW | RTLD_NOLOAD);
 
-            return handle;
+            return IntPtr.Zero;
+        }
+#elif Windows
+        [DllImport("Kernel32")]
+        private static extern IntPtr GetModuleHandleA(string? moduleName);
+
+        private static IntPtr ImportResolver(string libraryName, Assembly assembly, DllImportSearchPath? searchPath)
+        {
+            if (libraryName == NativeModule)
+                return GetModuleHandleA(null);
+
+            return IntPtr.Zero;
         }
 #endif
 
-        static FileSystemWatcher gameDllWatcher;
-        static DateTime lastReloadTime;
-        static GameAssemblyManager assemblyManager;
-        static bool reloadAssemblyNextFrame = false;
-        static EngineSynchronizationContext updateSyncContext;
-        static EngineSynchronizationContext simulateSyncContext;
-        static EngineSynchronizationContext editorUpdateSyncContext;
+        static HotloadManager hotloadManager = new HotloadManager();
+        static EngineSynchronizationContext updateSyncContext = new EngineSynchronizationContext();
+        static EngineSynchronizationContext simulateSyncContext = new EngineSynchronizationContext();
+        static EngineSynchronizationContext editorUpdateSyncContext = new EngineSynchronizationContext();
 
         static void ActualInit(IntPtr registryPtr, IntPtr mainCameraPtr)
         {
-#if Linux
             NativeLibrary.SetDllImportResolver(typeof(WorldsEngine).Assembly, ImportResolver);
-#endif
-            Registry.nativeRegistryPtr = registryPtr; 
+            Registry.nativeRegistryPtr = registryPtr;
 
             // These depend on game assembly metadata so
             // initialise them explicitly before loading the assembly.
             MetadataManager.Initialise();
             Console.Initialise();
 
-            assemblyManager = new GameAssemblyManager();
-            assemblyManager.LoadGameAssembly();
+            hotloadManager.Active = true;
 
-            gameDllWatcher = new FileSystemWatcher(Path.GetFullPath("GameAssemblies"))
-            {
-                Filter = "",
-                NotifyFilter = NotifyFilters.Attributes
-                             | NotifyFilters.CreationTime
-                             | NotifyFilters.LastAccess
-                             | NotifyFilters.LastWrite
-                             | NotifyFilters.Size,
-
-                IncludeSubdirectories = true
-            };
-
-            gameDllWatcher.Changed += OnDLLChanged;
-            gameDllWatcher.Renamed += OnDLLChanged;
-            gameDllWatcher.EnableRaisingEvents = true;
-
-            // Clear out all the temp game assembly directories
-            foreach (string d in Directory.GetDirectories("."))
-            {
-                if (d.StartsWith("GameAssembliesTemp"))
-                {
-                    Directory.Delete(d, true);
-                }
-            }
-
-            new Camera(mainCameraPtr, true);
+            Camera.Main = new Camera(mainCameraPtr);
 
             updateSyncContext = new EngineSynchronizationContext();
             simulateSyncContext = new EngineSynchronizationContext();
             editorUpdateSyncContext = new EngineSynchronizationContext();
         }
 
-        static void OnDLLChanged(object sender, FileSystemEventArgs e)
-        {
-            if ((DateTime.Now - lastReloadTime).TotalMilliseconds < 500)
-            {
-                Logger.LogWarning("Ignoring assembly reload as too soon");
-                return;
-            }
-
-            lastReloadTime = DateTime.Now;
-            reloadAssemblyNextFrame = true;
-            Logger.Log("DLL changed, reloading...");
-        }
-
+        [UsedImplicitly]
+        [SuppressMessage("CodeQuality", "IDE0051:Remove unused private members",
+            Justification = "Called from native C++")]
         static bool Init(IntPtr registryPtr, IntPtr mainCameraPtr)
         {
             try
@@ -125,29 +89,25 @@ namespace WorldsEngine
             return true;
         }
 
+        [UsedImplicitly]
+        [SuppressMessage("CodeQuality", "IDE0051:Remove unused private members",
+            Justification = "Called from native C++")]
         static void OnSceneStart()
         {
             Logger.Log("Scene started!");
 
-            foreach (var system in assemblyManager.Systems)
+            foreach (var system in hotloadManager.Systems)
             {
                 system.OnSceneStart();
             }
         }
 
-        static void ReloadAssemblyIfNecessary()
-        {
-            if (reloadAssemblyNextFrame)
-            {
-                Registry.SerializeStorages();
-                assemblyManager.ReloadGameAssembly();
-                reloadAssemblyNextFrame = false;
-            }
-        }
-
+        [UsedImplicitly]
+        [SuppressMessage("CodeQuality", "IDE0051:Remove unused private members",
+            Justification = "Called from native C++")]
         static void Update(float deltaTime)
         {
-            ReloadAssemblyIfNecessary();
+            hotloadManager.ReloadIfNecessary();
             SynchronizationContext.SetSynchronizationContext(updateSyncContext);
             Time.DeltaTime = deltaTime;
 
@@ -155,7 +115,7 @@ namespace WorldsEngine
             {
                 updateSyncContext.RunCallbacks();
 
-                foreach (var system in assemblyManager.Systems)
+                foreach (var system in hotloadManager.Systems)
                 {
                     system.OnUpdate();
                 }
@@ -166,6 +126,9 @@ namespace WorldsEngine
             }
         }
 
+        [UsedImplicitly]
+        [SuppressMessage("CodeQuality", "IDE0051:Remove unused private members",
+            Justification = "Called from native C++")]
         static void Simulate(float deltaTime)
         {
             SynchronizationContext.SetSynchronizationContext(simulateSyncContext);
@@ -175,7 +138,7 @@ namespace WorldsEngine
             {
                 simulateSyncContext.RunCallbacks();
 
-                foreach (var system in assemblyManager.Systems)
+                foreach (var system in hotloadManager.Systems)
                 {
                     system.OnSimulate();
                 }
@@ -188,14 +151,12 @@ namespace WorldsEngine
             }
         }
 
-        static uint PackRGBA(byte r, byte g, byte b, byte a)
-        {
-            return (uint)(r << 24 | g << 16 | b << 8 | a);
-        }
-
+        [UsedImplicitly]
+        [SuppressMessage("CodeQuality", "IDE0051:Remove unused private members",
+            Justification = "Called from native C++")]
         static void EditorUpdate()
         {
-            ReloadAssemblyIfNecessary();
+            hotloadManager.ReloadIfNecessary();
             SynchronizationContext.SetSynchronizationContext(editorUpdateSyncContext);
 
             if (ImGui.Begin($"{FontAwesome.FontAwesomeIcons.Cube} Selected Entity"))
@@ -221,7 +182,7 @@ namespace WorldsEngine
 
             if (ImGui.Begin("Misc"))
             {
-                ImGui.Text($"Managed memory usage at last GC: {GC.GetGCMemoryInfo().HeapSizeBytes/1000:N0}K");
+                ImGui.Text($"Managed memory usage at last GC: {GC.GetGCMemoryInfo().HeapSizeBytes / 1000:N0}K");
 
                 if (ImGui.Button("Force Collection"))
                 {
@@ -230,7 +191,7 @@ namespace WorldsEngine
 
                 if (ImGui.Button("Force Reload Assembly"))
                 {
-                    reloadAssemblyNextFrame = true;
+                    hotloadManager.ForceReload();
                 }
 
                 if (ImGui.Button("Destroy Far-Away Objects"))

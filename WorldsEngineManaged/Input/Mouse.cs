@@ -8,6 +8,13 @@ using WorldsEngine.Math;
 
 namespace WorldsEngine.Input
 {
+    public enum MouseButton
+    {
+        Left = 1,
+        Middle = 2,
+        Right = 3
+    }
+
     public static class Mouse
     {
         [DllImport(WorldsEngine.NativeModule)]
@@ -16,6 +23,12 @@ namespace WorldsEngine.Input
         private static extern void input_setMousePosition(ref Vector2 pos);
         [DllImport(WorldsEngine.NativeModule)]
         private static extern void input_getMouseDelta(out Vector2 pos);
+        [DllImport(WorldsEngine.NativeModule)]
+        private static extern bool input_getMouseButtonPressed(MouseButton button);
+        [DllImport(WorldsEngine.NativeModule)]
+        private static extern bool input_getMouseButtonReleased(MouseButton button);
+        [DllImport(WorldsEngine.NativeModule)]
+        private static extern bool input_getMouseButtonHeld(MouseButton button);
 
         public static Vector2 Position
         {
@@ -39,5 +52,11 @@ namespace WorldsEngine.Input
                 return pos;
             }
         }
+
+        public static bool ButtonPressed(MouseButton button) => input_getMouseButtonPressed(button);
+
+        public static bool ButtonHeld(MouseButton button) => input_getMouseButtonHeld(button);
+
+        public static bool ButtonReleased(MouseButton button) => input_getMouseButtonReleased(button);
     }
 }

@@ -17,6 +17,7 @@ worlds_sources += [
   'Editor/EditorWindows/EntityList.cpp',
   'Editor/EditorWindows/GameControls.cpp',
   'Editor/EditorWindows/MaterialEditor.cpp',
+  'Editor/EditorWindows/RawAssets.cpp',
   'Editor/EditorWindows/SceneSettingsWindow.cpp',
   'Editor/EditorWindows/StyleEditor.cpp',
   'Editor/AssetEditors.hpp',

@@ -30,6 +30,12 @@ extern "C" {
         meta->create(entity, *reg);
     }
 
+    EXPORT void componentmeta_destroy(entt::registry* reg, entt::entity entity, int index) {
+        ComponentEditor* meta = ComponentMetadataManager::sorted[index];
+
+        meta->destroy(entity, *reg);
+    }
+
     EXPORT void componentmeta_clone(entt::registry* reg, entt::entity from, entt::entity to, int index) {
         ComponentEditor* meta = ComponentMetadataManager::sorted[index];
 

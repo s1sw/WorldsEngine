@@ -77,7 +77,7 @@ namespace worlds {
         physx::PxRigidActor* actor;
         std::vector<PhysicsShape> physicsShapes;
         bool scaleShapes = true;
-        uint32_t layer = 0;
+        uint32_t layer = 1;
     };
 
     enum class ForceMode : int32_t {
@@ -108,7 +108,7 @@ namespace worlds {
         bool enableCCD = false;
         std::vector<PhysicsShape> physicsShapes;
         bool scaleShapes = true;
-        uint32_t layer = 0;
+        uint32_t layer = 1;
 
         glm::vec3 linearVelocity() const;
         glm::vec3 angularVelocity() const;

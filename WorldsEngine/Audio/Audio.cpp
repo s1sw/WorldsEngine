@@ -604,6 +604,14 @@ namespace worlds {
         SDL_PauseAudioDevice(devId, paused);
     }
 
+    void AudioSystem::cancelOneShots() {
+        for (PlayingOneshot& os : oneshots) {
+            voices[os.voiceIdx].isPlaying = false;
+        }
+
+        oneshots.clear();
+    }
+
     void AudioSystem::shutdown(entt::registry& reg) {
         reg.on_construct<AudioSource>().disconnect<&AudioSystem::onAudioSourceConstruct>(*this);
         reg.on_destroy<AudioSource>().disconnect<&AudioSystem::onAudioSourceDestroy>(*this);

@@ -58,6 +58,7 @@ namespace worlds {
         void loadAudioScene(std::string sceneName);
         void update(entt::registry& worldState, glm::vec3 listenerPos, glm::quat listenerRot);
         void setPauseState(bool paused);
+        void cancelOneShots();
         inline bool getPauseState() { return isPaused; }
         void shutdown(entt::registry& worldState);
         void resetPlaybackPositions();

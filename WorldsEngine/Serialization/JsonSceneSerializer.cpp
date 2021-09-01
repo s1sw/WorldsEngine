@@ -233,7 +233,7 @@ namespace worlds {
             }
         }
 
-        // 6. Deserialize each managed component
+        // 5. Deserialize each managed component
         // This is super inefficient, but it preserves initialisation order
         for (PrioritisedEntity& pe : prioritisedEntities) {
             entt::entity newEnt = pe.ent;

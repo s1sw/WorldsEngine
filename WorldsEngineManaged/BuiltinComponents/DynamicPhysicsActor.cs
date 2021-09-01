@@ -74,9 +74,6 @@ namespace WorldsEngine
 
         private static ComponentMetadata cachedMetadata;
 
-        private readonly IntPtr regPtr;
-        private readonly uint entityId;
-
         public Transform Pose
         {
             get
@@ -131,6 +128,9 @@ namespace WorldsEngine
             }
         }
 
+        /// <summary>
+        /// The diagonal inertia tensor in mass space.
+        /// </summary>
         public Vector3 InertiaTensor
         {
             get
@@ -141,10 +141,8 @@ namespace WorldsEngine
             }
         }
 
-        internal DynamicPhysicsActor(IntPtr regPtr, uint entityId)
+        internal DynamicPhysicsActor(IntPtr regPtr, uint entityId) : base(regPtr, entityId)
         {
-            this.regPtr = regPtr;
-            this.entityId = entityId;
         }
 
         public List<PhysicsShape> GetPhysicsShapes()
@@ -173,6 +171,11 @@ namespace WorldsEngine
                 dynamicpa_setShape(regPtr, entityId, i, ref internalShape);
             }
 
+            dynamicpa_updateShapes(regPtr, entityId);
+        }
+
+        public void ForceShapeUpdate()
+        {
             dynamicpa_updateShapes(regPtr, entityId);
         }
 

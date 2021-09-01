@@ -26,14 +26,15 @@ namespace worlds {
         }
     }
 
-    struct TexCompileThreadInfo {
+    struct TextureCompiler::TexCompileThreadInfo {
         nlohmann::json j;
         std::string inputPath;
         std::string outputPath;
+        std::string_view projectRoot;
         AssetCompileOperation* compileOp;
     };
 
-    AssetCompileOperation* TextureCompiler::compile(AssetID src) {
+    AssetCompileOperation* TextureCompiler::compile(std::string_view projectRoot, AssetID src) {
         std::string inputPath = AssetDB::idToPath(src);
         std::string outputPath = getOutputPath(inputPath);
 
@@ -51,9 +52,10 @@ namespace worlds {
         tcti->inputPath = inputPath;
         tcti->outputPath = outputPath;
         tcti->compileOp = compileOp;
+        tcti->projectRoot = projectRoot;
 
         std::thread([tcti, this]() {
-            compileInternal(tcti->j, tcti->inputPath, tcti->outputPath, tcti->compileOp);
+            compileInternal(tcti);
             delete tcti;
         }).detach();
 
@@ -76,7 +78,8 @@ namespace worlds {
     }
     
 
-    void TextureCompiler::compileInternal(nlohmann::json j, std::string inputPath, std::string outputPath, AssetCompileOperation* compileOp) {
+    void TextureCompiler::compileInternal(TexCompileThreadInfo* tcti) {
+        auto& j = tcti->j;
         bool isSrgb = j.value("isSrgb", true);
         TextureData inTexData = loadTexData(AssetDB::pathToId(j["srcPath"].get<std::string>()));
         logMsg("Texture is %ix%i", inTexData.width, inTexData.height);
@@ -91,7 +94,7 @@ namespace worlds {
         compParams.m_quality_level = j.value("qualityLevel", 127);
         compParams.m_num_helper_threads = SDL_GetCPUCount() - 1;
         compParams.m_pProgress_func = progressCallback;
-        compParams.m_pProgress_func_data = compileOp;
+        compParams.m_pProgress_func_data = tcti->compileOp;
         compParams.m_userdata0 = isSrgb;
         logMsg("perceptual: %i, format: %i", compParams.get_flag(cCRNCompFlagPerceptual), compParams.m_format);
 
@@ -104,22 +107,24 @@ namespace worlds {
         crn_uint32 actualQualityLevel;
 
         void* outData = crn_compress(compParams, mipParams, outputSize, &actualQualityLevel, &actualBitrate);
-        logMsg("Compressed %s with actual quality of %u and bitrate of %f", inputPath.c_str(), actualQualityLevel, actualBitrate);
+        logMsg("Compressed %s with actual quality of %u and bitrate of %f", tcti->inputPath.c_str(), actualQualityLevel, actualBitrate);
+
+        std::filesystem::path fullPath = tcti->projectRoot;
+        fullPath /= tcti->outputPath;
+        fullPath = fullPath.parent_path();
+        fullPath = fullPath.lexically_normal();
+
+        std::filesystem::create_directories(fullPath);
 
         // TODO: Assumes that we are writing to the GameData directory! BADDD!!!!
-        std::filesystem::path fullOutPath = "GameData";
-        fullOutPath = fullOutPath / outputPath;
-        fullOutPath = fullOutPath.parent_path();
-        std::filesystem::create_directories(fullOutPath);
-
-        PHYSFS_File* outFile = PHYSFS_openWrite(outputPath.c_str());
+        PHYSFS_File* outFile = PHYSFS_openWrite(tcti->outputPath.c_str());
         PHYSFS_writeBytes(outFile, outData, outputSize);
         PHYSFS_close(outFile);
 
         crn_free_block(outData);
 
         delete inTexData.data;
-        compileOp->progress = 1.0f;
-        compileOp->complete = true;
+        tcti->compileOp->progress = 1.0f;
+        tcti->compileOp->complete = true;
     }
 }

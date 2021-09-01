@@ -34,7 +34,7 @@ namespace worlds {
         ici.mipLevels = 1;
         ici.format = VK_FORMAT_B10G11R11_UFLOAT_PACK32;
         ici.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        ici.samples = vku::sampleCountFlags(handles.graphicsSettings.msaaLevel);
+        ici.samples = vku::sampleCountFlags(ci.msaaLevel == 0 ? handles.graphicsSettings.msaaLevel : ci.msaaLevel);
         ici.usage =
             VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT
             | VK_IMAGE_USAGE_SAMPLED_BIT
@@ -97,7 +97,8 @@ namespace worlds {
             },
             .passSettings = PassSettings {
                 .enableVR = ci.isVr,
-                .enableShadows = enableShadows
+                .enableShadows = enableShadows,
+                .msaaSamples = ci.msaaLevel == 0 ? handles.graphicsSettings.msaaLevel : ci.msaaLevel
             },
             .registry = r,
             .passWidth = ci.width,
@@ -197,17 +198,21 @@ namespace worlds {
                 VK_ACCESS_SHADER_READ_BIT,
                 VK_ACCESS_TRANSFER_READ_BIT);
 
-            VkImageResolve resolve;
-            resolve.srcSubresource.layerCount = 1;
-            resolve.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-            resolve.dstSubresource.layerCount = 1;
-            resolve.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-            resolve.extent = VkExtent3D{ width, height, 1 };
-            vkCmdResolveImage(
-                cmdBuf,
-                hdrTarget->image.image(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                resolveImg.image(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                1, &resolve);
+            bool needsResolve = hdrTarget->image.info().samples != VK_SAMPLE_COUNT_1_BIT;
+            if (needsResolve) {
+                VkImageResolve resolve = { 0 };
+                resolve.srcSubresource.layerCount = 1;
+                resolve.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+
+                resolve.dstSubresource.layerCount = 1;
+                resolve.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+                resolve.extent = VkExtent3D{ width, height, 1 };
+                vkCmdResolveImage(
+                    cmdBuf,
+                    hdrTarget->image.image(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                    resolveImg.image(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                    1, &resolve);
+            }
 
             resolveImg.setLayout(cmdBuf,
                 VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
@@ -216,7 +221,7 @@ namespace worlds {
                 VK_ACCESS_TRANSFER_WRITE_BIT,
                 VK_ACCESS_TRANSFER_READ_BIT);
 
-            VkImageBlit blit;
+            VkImageBlit blit = { 0 };
             blit.srcSubresource.layerCount = 1;
             blit.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
             blit.dstSubresource.layerCount = 1;
@@ -226,7 +231,7 @@ namespace worlds {
 
             vkCmdBlitImage(
                 cmdBuf,
-                resolveImg.image(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                needsResolve ? resolveImg.image() : hdrTarget->image.image(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
                 targetImg.image(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                 1,
                 &blit,
@@ -246,7 +251,7 @@ namespace worlds {
                 VK_ACCESS_TRANSFER_WRITE_BIT,
                 VK_ACCESS_TRANSFER_READ_BIT);
 
-            VkBufferImageCopy bic;
+            VkBufferImageCopy bic = { 0 };
             bic.imageSubresource.layerCount = 1;
             bic.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
             bic.imageExtent = VkExtent3D{ width, height, 1 };
@@ -267,12 +272,16 @@ namespace worlds {
     }
 
     void VKRTTPass::writeCmds(uint32_t frameIdx, VkCommandBuffer cmdBuf, entt::registry& world) {
+        ZoneScoped;
         RenderResources resources = renderer->getResources();
         RenderContext rCtx{
             .resources = renderer->getResources(),
             .cascadeInfo = {},
             .debugContext = RenderDebugContext {
                 .stats = dbgStats
+#ifdef TRACY_ENABLE
+            , .tracyContexts = &renderer->tracyContexts
+#endif
             },
             .passSettings = PassSettings {
                 .enableVR = isVr,

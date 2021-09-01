@@ -28,7 +28,9 @@ namespace worlds {
 
         const char* basePath = SDL_GetBasePath();
 
-        std::string actionsPathStr = basePath + std::string("GameData") + PATH_SEP + "SteamVR" + PATH_SEP + "actions.json";
+        std::string actionsPathStr = basePath;
+        actionsPathStr += "actions.json";
+
         const char* actionsPath = actionsPathStr.c_str();
         logMsg("Using %s as actionsPath", actionsPath);
         auto vrInput = vr::VRInput();

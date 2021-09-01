@@ -6,9 +6,7 @@
 #include <atomic>
 #include <SDL_mutex.h>
 #include <functional>
-#ifdef TRACY_ENABLE
 #include "tracy/Tracy.hpp"
-#endif
 
 namespace worlds {
     typedef std::function<void()> JobFunc;

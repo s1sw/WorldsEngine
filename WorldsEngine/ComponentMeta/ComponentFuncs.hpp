@@ -17,6 +17,7 @@ namespace worlds {
         virtual bool allowInspectorAdd() = 0;
         virtual ENTT_ID_TYPE getComponentID() = 0;
         virtual void create(entt::entity ent, entt::registry& reg) = 0;
+        virtual void destroy(entt::entity ent, entt::registry& reg) = 0;
         virtual void clone(entt::entity from, entt::entity to, entt::registry& reg) = 0;
         virtual void edit(entt::entity ent, entt::registry& reg, Editor* ed) = 0;
         virtual void writeToFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file) = 0;

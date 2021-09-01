@@ -28,6 +28,9 @@ namespace WorldsEngine.ComponentMeta
         internal static extern void componentmeta_create(IntPtr registry, uint entity, int index);
 
         [DllImport(WorldsEngine.NativeModule)]
+        internal static extern void componentmeta_destroy(IntPtr registry, uint entity, int index);
+
+        [DllImport(WorldsEngine.NativeModule)]
         internal static extern void componentmeta_clone(IntPtr registry, uint from, uint to, int index);
 
         [DllImport(WorldsEngine.NativeModule)]
@@ -41,6 +44,7 @@ namespace WorldsEngine.ComponentMeta
         public abstract string EditorName { get; }
 
         public abstract void Create(Entity entity);
+        public abstract void Destroy(Entity entity);
         public abstract void Copy(Entity from, Entity to);
         public abstract void EditIfExists(Entity entity);
         public abstract bool ExistsOn(Entity entity);
@@ -55,6 +59,11 @@ namespace WorldsEngine.ComponentMeta
         public override void Create(Entity entity)
         {
             NativeMetadataAPI.componentmeta_create(Registry.NativePtr, entity.ID, Index);
+        }
+
+        public override void Destroy(Entity entity)
+        {
+            NativeMetadataAPI.componentmeta_destroy(Registry.NativePtr, entity.ID, Index);
         }
 
         public override void Copy(Entity from, Entity to)
@@ -99,6 +108,11 @@ namespace WorldsEngine.ComponentMeta
             Registry.AddComponent(entity, type);
         }
 
+        public override void Destroy(Entity entity)
+        {
+            Registry.RemoveComponent(type, entity);
+        }
+
         public override void Copy(Entity from, Entity to)
         {
             Registry.SetComponent(to, type, Registry.GetComponent(type, from));
@@ -135,23 +149,70 @@ namespace WorldsEngine.ComponentMeta
                 ImGui.Checkbox(fieldName, ref val);
                 fieldInfo.SetValue(instance, val);
             }
+            else if (fieldInfo.FieldType.IsEnum)
+            {
+                string[] names = fieldInfo.FieldType.GetEnumNames();
+                int val = (int)fieldInfo.GetValue(instance);
+                
+                if (ImGui.Combo(fieldName, ref val, names, names.Length))
+                {
+                    fieldInfo.SetValue(instance, val);
+                }
+            }
 
             if (fieldInfo.GetCustomAttribute<EditableClassAttribute>() != null)
             {
                 Type type = fieldInfo.FieldType;
-                object classInstance = fieldInfo.GetValue(instance);
 
-                if (ImGui.TreeNode(fieldName))
+                if (type.IsConstructedGenericType && type.GetGenericTypeDefinition() == typeof(List<>))
                 {
-                    FieldInfo[] classFieldInfo = type.GetFields(BindingFlags.Public | BindingFlags.Instance)
-                    .Where(m => !m.IsNotSerialized).ToArray();
+                    IList l = (IList)fieldInfo.GetValue(instance);
 
-                    foreach (FieldInfo fieldInfo1 in classFieldInfo)
+                    if (l == null) return;
+
+                    Type objType = type.GetGenericArguments()[0];
+                    ImGui.Text($"List of {objType.Name}");
+                    ImGui.Text($"{l.Count} elements");
+
+                    if (ImGui.Button("+"))
                     {
-                        EditField(fieldInfo1, classInstance);
+                        l.Add(Activator.CreateInstance(objType));
                     }
 
-                    ImGui.TreePop();
+                    for (int i = 0; i < l.Count; i++)
+                    {
+                        object classInstance = l[i];
+
+                        if (ImGui.TreeNode($"Element {i}"))
+                        {
+                            FieldInfo[] classFieldInfo = objType.GetFields(BindingFlags.Public | BindingFlags.Instance)
+                            .Where(m => !m.IsNotSerialized).ToArray();
+
+                            foreach (FieldInfo fieldInfo1 in classFieldInfo)
+                            {
+                                EditField(fieldInfo1, classInstance);
+                            }
+
+                            ImGui.TreePop();
+                        }
+                    }
+                }
+                else
+                {
+                    object classInstance = fieldInfo.GetValue(instance);
+
+                    if (ImGui.TreeNode(fieldName))
+                    {
+                        FieldInfo[] classFieldInfo = type.GetFields(BindingFlags.Public | BindingFlags.Instance)
+                        .Where(m => !m.IsNotSerialized).ToArray();
+
+                        foreach (FieldInfo fieldInfo1 in classFieldInfo)
+                        {
+                            EditField(fieldInfo1, classInstance);
+                        }
+
+                        ImGui.TreePop();
+                    }
                 }
             }
         }

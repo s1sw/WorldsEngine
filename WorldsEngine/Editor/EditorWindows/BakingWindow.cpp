@@ -10,6 +10,7 @@
 #include <glm/gtc/quaternion.hpp>
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include <stb_image_write.h>
+#include <Editor/GuiUtil.hpp>
 
 namespace worlds {
     void stbiWriteFunc(void* ctx, void* data, int bytes) {
@@ -28,6 +29,7 @@ namespace worlds {
         rtci.isVr = false;
         rtci.outputToScreen = false;
         rtci.useForPicking = false;
+        rtci.msaaLevel = 1;
         cam.verticalFOV = glm::radians(90.0f);
         cam.position = pos;
 
@@ -104,12 +106,16 @@ namespace worlds {
                     ib.dstSubresource = VkImageSubresourceLayers{ VK_IMAGE_ASPECT_COLOR_BIT, 0, (uint32_t)i, 1 };
                     ib.dstOffsets[0] = VkOffset3D{ 0, 0, 0 };
                     ib.dstOffsets[1] = VkOffset3D{ (int)loadedCube.extent().width, (int)loadedCube.extent().height, 1 };
-                    ib.srcSubresource = VkImageSubresourceLayers{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 6 };
+                    ib.srcSubresource = VkImageSubresourceLayers{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 };
                     ib.srcOffsets[0] = VkOffset3D{ 0, 0, 0 };
                     ib.srcOffsets[1] = VkOffset3D{ (int)rttPass->width, (int)rttPass->height, 1 };
 
                     vku::executeImmediately(vkHandles->device, vkHandles->commandPool, queue, [&](VkCommandBuffer cb) {
                         vku::GenericImage& srcImg = rttPass->hdrTarget->image;
+
+                        loadedCube.setLayout(cb, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                            VK_PIPELINE_STAGE_TRANSFER_BIT,
+                            VK_ACCESS_TRANSFER_WRITE_BIT);
 
                         srcImg.setLayout(cb, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
                             VK_PIPELINE_STAGE_TRANSFER_BIT,
@@ -121,6 +127,9 @@ namespace worlds {
                         srcImg.setLayout(cb,
                             VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
                             VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT);
+                        loadedCube.setLayout(cb, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                            VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+                            VK_ACCESS_SHADER_READ_BIT);
                         });
                 }
 
@@ -128,9 +137,10 @@ namespace worlds {
                 if (iteration == iterations - 1) {
                     float* data = rttPass->getHDRData();
                     auto outPath = "LevelCubemaps/" + name + outputNames[i] + ".hdr";
-                    PHYSFS_File* fHandle = PHYSFS_openWrite(outPath.c_str());
+                    PHYSFS_File* fHandle = PHYSFS_openWrite(("Data/" + outPath).c_str());
                     if (fHandle == nullptr) {
                         logErr("Failed to open cubemap file as write");
+                        addNotification("Failed to bake cubemap (couldn't open file)", NotificationType::Error);
                         free(data);
                         renderer->destroyRTTPass(rttPass);
                         return;
@@ -143,6 +153,7 @@ namespace worlds {
 
                     if (retVal == 0) {
                         logErr(("Failed to write cubemap " + outPath).c_str());
+                        addNotification("Failed to bake cubemap (couldn't encode)", NotificationType::Error);
                     }
 
                     PHYSFS_close(fHandle);
@@ -160,7 +171,7 @@ namespace worlds {
             }
         }
 
-        auto file = PHYSFS_openWrite(jsonPath.c_str());
+        auto file = PHYSFS_openWrite(("Data/" + jsonPath).c_str());
 
         std::string j = "[\n";
         for (int i = 0; i < 6; i++) {

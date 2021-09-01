@@ -5,7 +5,7 @@ namespace worlds {
     class ModelCompiler : public IAssetCompiler {
     public:
         ModelCompiler();
-        AssetCompileOperation* compile(AssetID src) override;
+        AssetCompileOperation* compile(std::string_view projectRoot, AssetID src) override;
         const char* getSourceExtension() override;
         const char* getCompiledExtension() override;
     };
