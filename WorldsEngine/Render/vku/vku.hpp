@@ -28,7 +28,7 @@
 #include <chrono>
 #include <functional>
 #include <cstddef>
-#include "../Libs/volk.h"
+#include "Libs/volk.h"
 #include "vk_mem_alloc.h"
 #include <assert.h>
 
@@ -98,8 +98,8 @@ namespace vku {
             int testFlag = 1 << i;
             if ((flags & testFlag) == 0) continue;
 
-            if (!first)
-                first = true;
+            if (first)
+                first = false;
             else
                 strcat(buf, " | ");
             strcat(buf, props[i]);
@@ -133,6 +133,7 @@ namespace vku {
         case VK_ERROR_DEVICE_LOST:
             fatalErrInternal(toString(result), file, line);
             break;
+        default: return result;
         }
 
         return result;
@@ -726,7 +727,6 @@ namespace vku {
         std::vector<std::vector<float> > queue_priorities_;
         std::vector<VkDeviceQueueCreateInfo> qci_;
         VkPhysicalDeviceFeatures createFeatures;
-        VkApplicationInfo app_info_;
         void* pNext;
     };
 
@@ -1390,7 +1390,6 @@ namespace vku {
         /// Note that this will stall the pipeline!
         void upload(VkDevice device, VkCommandPool commandPool, VkQueue queue, const void* value, VkDeviceSize size) const {
             if (size == 0) return;
-            using buf = VkBufferUsageFlagBits;
             auto tmp = vku::GenericBuffer(device, allocator, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, size, VMA_MEMORY_USAGE_CPU_ONLY);
             tmp.updateLocal(device, value, size);
 
@@ -1961,8 +1960,6 @@ namespace vku {
 
             imageMemoryBarriers.srcAccessMask = srcMask;
             imageMemoryBarriers.dstAccessMask = dstMask;
-            auto memoryBarriers = nullptr;
-            auto bufferMemoryBarriers = nullptr;
 
             s.lastUsageAccessFlags = dstMask;
             s.lastUsageStage = dstStageMask;
@@ -2009,8 +2006,6 @@ namespace vku {
             imageMemoryBarriers.subresourceRange = { aspectMask, 0, s.info.mipLevels, 0, s.info.arrayLayers };
 
             // Put barrier on top
-            VkDependencyFlags dependencyFlags{};
-
             imageMemoryBarriers.srcAccessMask = srcMask;
             imageMemoryBarriers.dstAccessMask = dstMask;
 

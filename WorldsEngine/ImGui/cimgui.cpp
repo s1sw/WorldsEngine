@@ -2,13 +2,12 @@
 //based on imgui.h file version "1.84 WIP" from Dear ImGui https://github.com/ocornut/imgui
 //docking branch
 
-#include "./imgui/imgui.h"
+#include "imgui.h"
 #ifdef CIMGUI_FREETYPE
 #include "./imgui/misc/freetype/imgui_freetype.h"
 #endif
-#include "./imgui/imgui_internal.h"
+#include "imgui_internal.h"
 #include "cimgui.h"
-
 
 
 CIMGUI_API ImVec2* ImVec2_ImVec2_Nil(void)

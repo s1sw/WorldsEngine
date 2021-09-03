@@ -752,7 +752,7 @@ void VKRenderer::createSCDependents() {
     for (size_t i = 0; i < cmdBufs.size(); i++) {
         VkSemaphoreCreateInfo sci{};
         sci.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-        
+
         VKCHECK(vkCreateSemaphore(device, &sci, nullptr, &imgAvailable[i]));
     }
 }
@@ -1602,11 +1602,9 @@ VKRTTPass* VKRenderer::createRTTPass(RTTPassCreateInfo& ci) {
 }
 
 void VKRenderer::destroyRTTPass(RTTPass* pass) {
-    logMsg("size before: %i", rttPasses.size());
     rttPasses.erase(
         std::remove(rttPasses.begin(), rttPasses.end(), pass),
         rttPasses.end());
-    logMsg("size after: %i", rttPasses.size());
 
     delete pass;
 }

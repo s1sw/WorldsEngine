@@ -1,5 +1,5 @@
 #pragma once
-#include <entt/fwd.hpp>
+#include <entt/entt.hpp>
 #include <entt/core/type_info.hpp>
 #include "ComponentFuncs.hpp"
 
@@ -7,12 +7,12 @@ namespace worlds {
     template <typename T>
     class BasicComponentUtil : public ComponentEditor {
     private:
-        template < typename = typename std::enable_if<std::is_default_constructible<T>::value>::type>
+        template < typename = typename std::is_default_constructible<T>::type>
         void createInternal(entt::entity ent, entt::registry& reg) {
             reg.emplace<T>(ent);
         }
 
-        template < typename = typename std::enable_if<std::is_copy_constructible<T>::value>::type>
+        template < typename = typename std::is_copy_constructible<T>::type>
         void cloneInternal(entt::entity from, entt::entity to, entt::registry& reg) {
             reg.emplace<T>(to, reg.get<T>(from));
         }

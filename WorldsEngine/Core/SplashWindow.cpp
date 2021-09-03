@@ -82,11 +82,11 @@ namespace worlds {
 
         SDL_RaiseWindow(win);
 
-        windowCreated = true;
-
         bgSurface = loadDataFileToSurface(small ? "splash_game.png" : "splash.png");
         bgTexture = SDL_CreateTextureFromSurface(renderer, bgSurface);
         setWindowIcon(win, "icon_engine.png");
+
+        windowCreated = true;
 
         while (running) {
             if (loadedOverlay != overlay) {
@@ -110,9 +110,6 @@ namespace worlds {
             }
 
             redraw();
-
-            //SDL_Event evt;
-            //SDL_Delay(10);
         }
 
         logMsg("splash window thread exiting");

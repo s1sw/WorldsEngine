@@ -81,6 +81,9 @@ endif
 
 if host_machine.system() == 'linux'
   platform_deps += cc.find_library('tbb', required: false)
+  platform_deps += cc.find_library('xcb')
+  platform_deps += cc.find_library('xcb-ewmh')
+  platform_deps += cc.find_library('xcb-image')
 endif
 
 steam_audio_dep = cc.find_library('phonon', dirs: meson.project_source_root() + '/External/Lib')
