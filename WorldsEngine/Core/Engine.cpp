@@ -33,13 +33,18 @@
 #include "../Libs/IconsFontAwesome5.h"
 #include "../Libs/IconsFontaudio.h"
 #include "../Util/RichPresence.hpp"
-#include "SplashWindow.hpp"
 #include "EarlySDLUtil.hpp"
 #include "vk_mem_alloc.h"
 #include "../Render/ShaderCache.hpp"
 #include "readerwriterqueue.h"
 #include "../ComponentMeta/ComponentMetadata.hpp"
 #include "../Util/EnumUtil.hpp"
+#include "SplashScreenImpls/ISplashScreen.hpp"
+#ifdef __linux__
+#include "SplashScreenImpls/SplashScreenX11.hpp"
+#else
+#include "SplashScreenImpls/SplashScreenWin32.hpp"
+#endif
 #undef min
 #undef max
 
@@ -165,7 +170,7 @@ namespace worlds {
 
         if (config) {
             memcpy(config->Name, fontPath.c_str(), fontPath.size());
-        } else { 
+        } else {
             for (int i = 0; i < fontPath.size(); i++) {
                 defaultConfig.Name[i] = fontPath[i];
             }
@@ -275,10 +280,14 @@ namespace worlds {
 
         console = std::make_unique<Console>(dedicatedServer);
 
-        worlds::SplashWindow* splashWindow = nullptr;
+        ISplashScreen* splashWindow;
 
         if (!dedicatedServer) {
-            splashWindow = new SplashWindow(!runAsEditor);
+#ifdef __linux__
+            splashWindow = new SplashScreenImplX11(!runAsEditor);
+#else
+            splashWindow = new SplashScreenImplWin32(!runAsEditor);
+#endif
         }
 
         setupPhysfs(argv0);

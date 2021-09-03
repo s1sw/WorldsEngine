@@ -30,7 +30,7 @@ namespace WorldsEngine
             // So we just dlopen null and return that.
             // This requires linking with "-rdynamic" to export symbols.
             if (libraryName == NativeModule)
-                handle = dlopen(null, RTLD_NOW | RTLD_NOLOAD);
+                return dlopen(null, RTLD_NOW | RTLD_NOLOAD);
 
             return IntPtr.Zero;
         }

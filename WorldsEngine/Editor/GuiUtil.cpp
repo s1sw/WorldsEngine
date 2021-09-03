@@ -7,7 +7,9 @@
 #include "../ImGui/imgui_internal.h"
 #include "../Core/Log.hpp"
 #include <filesystem>
+#ifdef _WIN32
 #include <slib/Win32Util.hpp>
+#endif
 
 namespace worlds {
     const char* getIcon(const std::string& extension) {
@@ -306,7 +308,11 @@ namespace worlds {
 
             if (currentDirectory == nullptr) {
                 currentDirectory = new std::string;
+#ifdef _WIN32
                 *currentDirectory = "C:\\";
+#else
+                *currentDirectory = "/";
+#endif
                 ImGui::GetStateStorage()->SetVoidPtr(ImGui::GetID("savedir"), currentDirectory);
             }
 
@@ -356,8 +362,10 @@ namespace worlds {
                         std::string extension = currFile.path().extension().string();
                         std::string filename = currFile.path().filename().string();
 
+#ifdef _WIN32
                         if (slib::Win32Util::isFileHidden(absPath.c_str()))
                             continue;
+#endif
 
                         const char* icon = "  ";
 
@@ -373,10 +381,6 @@ namespace worlds {
                                 logMsg("selected %s", fullFilePath->c_str());
                             } else {
                                 *currentDirectory = currFile.path().string();
-
-                                if ((*currentDirectory)[0] == '/') {
-                                    *currentDirectory = currentDirectory->substr(1);
-                                }
 
                                 logMsg("navigated to %s", currentDirectory->c_str());
                             }
@@ -395,6 +399,7 @@ namespace worlds {
                     }
                 }
             } else {
+#ifdef _WIN32
                 slib::Win32Util::enumerateDriveLetters([](char letter, void* dirPtr) {
                     std::string* currentDirectory = (std::string*)dirPtr;
 
@@ -405,6 +410,9 @@ namespace worlds {
                         *currentDirectory += ":\\";
                     }
                     }, currentDirectory);
+#else
+                *currentDirectory = "/";
+#endif
             }
 
             ImGui::EndChild();
