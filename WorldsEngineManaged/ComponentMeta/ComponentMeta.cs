@@ -100,9 +100,15 @@ namespace WorldsEngine.ComponentMeta
             this.type = type;
             friendlyName = Name;
 
-            friendlyName = type.GetCustomAttribute<EditorFriendlyNameAttribute>()?.FriendlyName!;
+            var nameAttribute = type.GetCustomAttribute<EditorFriendlyNameAttribute>();
 
-            friendlyName = type.GetCustomAttribute<EditorIconAttribute>()?.Icon + " " + friendlyName;
+            if (nameAttribute != null)
+                friendlyName = nameAttribute.FriendlyName;
+
+            var iconAttribute = type.GetCustomAttribute<EditorIconAttribute>();
+
+            if (iconAttribute != null)
+                friendlyName = iconAttribute.Icon + " " + friendlyName;
 
             fieldInfos = type.GetFields(BindingFlags.Public | BindingFlags.Instance)
                 .Where(m => !m.IsNotSerialized).ToArray();
@@ -127,7 +133,10 @@ namespace WorldsEngine.ComponentMeta
         {
             string fieldName = fieldInfo.Name;
 
-            fieldName = fieldInfo.GetCustomAttribute<EditorFriendlyNameAttribute>()?.FriendlyName!;
+            var nameAttribute = fieldInfo.GetCustomAttribute<EditorFriendlyNameAttribute>();
+
+            if (nameAttribute != null)
+                fieldName = nameAttribute.FriendlyName!;
 
             if (fieldInfo.FieldType == typeof(int))
             {
