@@ -187,7 +187,7 @@ namespace worlds {
             VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
             sizeof(LightUB), VMA_MEMORY_USAGE_CPU_TO_GPU, "Lights");
 
-        for (uint32_t i = 0; i < ctx.maxSimultaneousFrames; i++) {
+        for (int i = 0; i < ctx.maxSimultaneousFrames; i++) {
             modelMatrixUB.push_back(vku::GenericBuffer(
                 handles->device, handles->allocator,
                 VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
@@ -289,18 +289,18 @@ namespace worlds {
         auto msaaSamples = vku::sampleCountFlags(ctx.passSettings.msaaSamples);
 
         struct StandardSpecConsts {
-            bool enablePicking = false;
+            VkBool32 enablePicking = false;
             float parallaxMaxLayers = 32.0f;
             float parallaxMinLayers = 4.0f;
-            bool doParallax = false;
+            VkBool32 doParallax = false;
         };
 
         // standard shader specialization constants
         VkSpecializationMapEntry entries[4] = {
-            { 0, offsetof(StandardSpecConsts, enablePicking), sizeof(bool) },
+            { 0, offsetof(StandardSpecConsts, enablePicking), sizeof(VkBool32) },
             { 1, offsetof(StandardSpecConsts, parallaxMaxLayers), sizeof(float) },
             { 2, offsetof(StandardSpecConsts, parallaxMinLayers), sizeof(float) },
-            { 3, offsetof(StandardSpecConsts, doParallax), sizeof(bool) }
+            { 3, offsetof(StandardSpecConsts, doParallax), sizeof(VkBool32) }
         };
 
         VkSpecializationInfo standardSpecInfo{ 4, entries, sizeof(StandardSpecConsts) };

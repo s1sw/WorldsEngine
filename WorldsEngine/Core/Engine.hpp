@@ -43,6 +43,7 @@ namespace worlds {
         bool dedicatedServer;
         IGameEventHandler* eventHandler;
         const char* gameName;
+        std::vector<const char*> cmdLineOptions;
     };
 
     struct SceneSettings {
@@ -69,6 +70,7 @@ namespace worlds {
         bool runAsEditor;
         void destroyNextFrame(entt::entity ent) { this->nextFrameKillList.push_back(ent); }
         [[nodiscard]] double getGameTime() const { return gameTime; }
+        bool hasCommandLineArg(const char* arg);
     private:
         struct DebugTimeInfo {
             double deltaTime;
@@ -115,6 +117,8 @@ namespace worlds {
 
         std::vector<ISystem*> systems;
         std::vector<entt::entity> nextFrameKillList;
+
+        std::vector<const char*> cmdLineOptions;
     };
 
     enum class StaticFlags : uint8_t {
