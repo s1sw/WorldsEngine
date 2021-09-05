@@ -532,16 +532,16 @@ namespace worlds {
                         sdi.drawMiscFlags = 0;
                         break;
                     case UVOverride::XY:
-                        sdi.drawMiscFlags = 128;
+                        sdi.drawMiscFlags = 1024;
                         break;
                     case UVOverride::XZ:
-                        sdi.drawMiscFlags = 256;
+                        sdi.drawMiscFlags = 2048;
                         break;
                     case UVOverride::ZY:
-                        sdi.drawMiscFlags = 512;
+                        sdi.drawMiscFlags = 4096;
                         break;
                     case UVOverride::PickBest:
-                        sdi.drawMiscFlags = 1024;
+                        sdi.drawMiscFlags = 8192;
                         break;
                     }
 
@@ -557,7 +557,7 @@ namespace worlds {
                             cPos.z < ma.z && cPos.z > mi.z) {
                             currCubemapIdx = resources.cubemaps.get(wc.cubemapId);
                             if (wc.cubeParallax) {
-                                sdi.drawMiscFlags |= 4096; // flag for cubemap parallax correction
+                                sdi.drawMiscFlags |= 16384; // flag for cubemap parallax correction
                                 sdi.cubemapPos = cubeT.position;
                                 sdi.cubemapExt = wc.extent;
                             }

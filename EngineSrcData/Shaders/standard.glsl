@@ -73,16 +73,16 @@ void main() {
     vec2 uv = inUV;
     outUvDir = 0;
 
-    if ((miscFlag & 128) == 128) {
+    if ((miscFlag & 1024) == 1024) {
         uv = outWorldPos.xy;
         outUvDir = 1;
-    } else if ((miscFlag & 256) == 256) {
+    } else if ((miscFlag & 2048) == 2048) {
         uv = outWorldPos.xz;
         outUvDir = 2;
-    } else if ((miscFlag & 512) == 512) {
+    } else if ((miscFlag & 4096) == 4096) {
         uv = outWorldPos.zy;
         outUvDir = 3;
-    } else if ((miscFlag & 1024) == 1024) {
+    } else if ((miscFlag & 8192) == 8192) {
         // Find maximum axis
         uint maxAxis = 0;
 
@@ -131,7 +131,7 @@ vec3 calcAmbient(vec3 f0, float roughness, vec3 viewDir, float metallic, vec3 al
 
     vec3 F = fresnelSchlickRoughness(clamp(dot(normal, viewDir), 0.0, 1.0), f0, roughness);
 
-    if ((miscFlag & 4096) == 4096) {
+    if ((miscFlag & MISC_FLAG_CUBEMAP_PARALLAX) == MISC_FLAG_CUBEMAP_PARALLAX) {
         R = parallaxCorrect(R, cubemapPos, cubemapPos + cubemapExt, cubemapPos - cubemapExt, inWorldPos.xyz);
     }
     R.x = -R.x;
@@ -322,7 +322,7 @@ vec3 shade(ShadeInfo si) {
     for (int i = 0; i < lightCount; i++) {
         vec3 l = calculateLighting(lights[i], si, inWorldPos.xyz);
         float shadowIntensity = 1.0;
-        if (int(lights[i].pack0.w) == LT_DIRECTIONAL && !((miscFlag & 16384) == 16384)) {
+        if (int(lights[i].pack0.w) == LT_DIRECTIONAL && !((miscFlag & MISC_FLAG_DISABLE_SHADOWS) == MISC_FLAG_DISABLE_SHADOWS)) {
             shadowIntensity = getDirLightShadowIntensity(i);
         } else if (lights[i].shadowIdx != ~0u) {
             shadowIntensity = getNormalLightShadowIntensity(i);
@@ -382,7 +382,7 @@ void unpackMaterial(inout ShadeInfo si, mat3 tbn) {
     //
     vec4 albedoColor = texture(tex2dSampler[mat.albedoTexIdx], tCoord) * vec4(mat.albedoColor, 1.0);
 #ifdef DEBUG
-    if ((miscFlag & 64) == 64) {
+    if ((miscFlag & DBG_FLAG_LIGHTING_ONLY) == DBG_FLAG_LIGHTING_ONLY) {
         albedoColor.rgb = vec3(1.0);
     }
 #endif
@@ -440,23 +440,23 @@ void main() {
 
 #ifdef DEBUG
     // debug views
-    if ((miscFlag & 2) == 2) {
+    if ((miscFlag & DBG_FLAG_NORMALS) == DBG_FLAG_NORMALS) {
         // show normals
         FragColor = vec4((si.normal * 0.5) + 0.5, 1.0);
         return;
-    } else if ((miscFlag & 4) == 4) {
+    } else if ((miscFlag & DBG_FLAG_METALLIC) == DBG_FLAG_METALLIC) {
         // show metallic
         FragColor = vec4(vec3(si.metallic), 1.0);
         return;
-    } else if ((miscFlag & 8) == 8) {
+    } else if ((miscFlag & DBG_FLAG_ROUGHNESS) == DBG_FLAG_ROUGHNESS) {
         // show roughness
         FragColor = vec4(vec3(si.roughness), 1.0);
         return;
-    } else if ((miscFlag & 16) == 16) {
+    } else if ((miscFlag & DBG_FLAG_AO) == DBG_FLAG_AO) {
         //show ao
         FragColor = vec4(vec3(si.ao), 1.0);
         return;
-    } else if ((miscFlag & 32) == 32) {
+    } else if ((miscFlag & DBG_FLAG_NORMAL_MAP) == DBG_FLAG_NORMAL_MAP) {
         // show normal map value
         if (materials[matIdx].normalTexIdx == ~0u) {
             FragColor = vec4(0.0, 0.0, 0.5, 1.0);
@@ -465,16 +465,16 @@ void main() {
         vec3 nMap = decodeNormal(texture(tex2dSampler[materials[matIdx].normalTexIdx], inUV).xy);
         FragColor = vec4(nMap, 1.0);
         return;
-    } else if ((miscFlag & 2048) == 2048) {
-        //FragColor = vec4(mod(tCoord, vec2(1.0)), 0.0, 1.0);
+    } else if ((miscFlag & DBG_FLAG_UVS) == DBG_FLAG_UVS) {
+        FragColor = vec4(mod(inUV, vec2(1.0)), 0.0, 1.0);
         return;
-    } else if ((miscFlag & 8192) == 8192) {
+    } else if ((miscFlag & DBG_FLAG_SHADOW_CASCADES) == DBG_FLAG_SHADOW_CASCADES) {
         vec4 whatevslol;
         bool whatevs2;
         float cascade = calculateCascade(whatevslol, whatevs2);
         FragColor = vec4((cascade == 0 ? 1.0f : 0.0f), (cascade == 1 ? 1.0f : 0.0f), (cascade == 2 ? 1.0f : 0.0f), 1.0f);
         return;
-    } else if ((miscFlag & 32768) == 32768) {
+    } else if ((miscFlag & DBG_FLAG_ALBEDO) == DBG_FLAG_ALBEDO) {
         FragColor = vec4(si.albedoColor, 1.0);
         return;
     }
