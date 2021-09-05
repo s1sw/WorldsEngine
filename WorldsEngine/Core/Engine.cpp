@@ -611,6 +611,7 @@ namespace worlds {
                 SDL_PushEvent(&evt);
             } else {
                 SDL_ShowWindow(window);
+                SDL_RaiseWindow(window);
             }
         }
 

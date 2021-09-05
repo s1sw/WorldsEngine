@@ -1,6 +1,7 @@
 #ifdef _WIN32
 #include "SplashScreenWin32.hpp"
 
+#define WIN32_LEAN_AND_MIN
 #include <Windows.h>
 #include <windowsx.h>
 #include <dwmapi.h>
@@ -9,8 +10,15 @@
 #include <SDL_filesystem.h>
 #include <stb_image.h>
 #include <Core/Log.hpp>
-#undef small
+#include <mutex>
 
+// ew ew ew ew ew
+#define min(a, b) a < b ? a : b
+#define max(a, b) a > b ? a : b
+#include <gdiplus.h>
+#undef small
+#undef min
+#undef max
 
 namespace {
     // we cannot just use WS_POPUP style
@@ -39,9 +47,12 @@ namespace worlds {
     struct SplashScreenImplWin32::State {
         HWND hwnd;
         std::thread* t;
-        HBITMAP backgroundBitmap;
-        HDC dc;
+        Gdiplus::Image* background;
+        Gdiplus::Image* foreground;
+        std::mutex mutex;
     };
+
+    SplashScreenImplWin32::State* SplashScreenImplWin32::s;
 
     void checkWinErr() {
         auto err = GetLastError();
@@ -60,34 +71,24 @@ namespace worlds {
         }
     }
 
-    HBITMAP createBitmapFromFile(const char* fname, HDC dc) {
+    Gdiplus::Image* createImageFromFile(const char* fname) {
         char* basePath = SDL_GetBasePath();
 
-        char* buf = (char*)alloca(strlen(fname) + strlen(basePath) + 2);
+        char* buf = (char*)alloca(strlen(fname) + strlen(basePath) + 12 + 1);
         buf[0] = 0;
         strcat(buf, basePath);
         strcat(buf, "EngineData/");
         strcat(buf, fname);
 
-        int imgWidth, imgHeight, channels;
-        unsigned char* imgData = stbi_load(buf, &imgWidth, &imgHeight, &channels, 4);
         SDL_free(basePath);
 
-        BITMAPINFO bminfo = { 0 };
-        bminfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-        bminfo.bmiHeader.biWidth = imgWidth;
-        bminfo.bmiHeader.biHeight = -((LONG)imgHeight);
-        bminfo.bmiHeader.biPlanes = 1;
-        bminfo.bmiHeader.biBitCount = 32;
-        bminfo.bmiHeader.biCompression = BI_RGB;
+        wchar_t* wbuf = (wchar_t*)alloca((strlen(fname) + strlen(basePath) + 12 + 1) * sizeof(wchar_t));
 
-        void* imageBits = nullptr;
-        HBITMAP bitmap = CreateDIBSection(dc, &bminfo, DIB_RGB_COLORS, &imageBits, NULL, 0);
+        mbstowcs(wbuf, buf, (strlen(fname) + strlen(basePath) + 12 + 1) * sizeof(wchar_t));
 
-        memcpy(imageBits, imgData, imgWidth * imgHeight * 4);
-        stbi_image_free(imgData);
+        Gdiplus::Image* img = new Gdiplus::Image(wbuf);
 
-        return bitmap;
+        return img;
     }
 
     SplashScreenImplWin32::SplashScreenImplWin32(bool small) {
@@ -95,6 +96,10 @@ namespace worlds {
         
         s->t = new std::thread([this, small] {
             const char* CLASS_NAME = "WorldsSplashScreen";
+
+            Gdiplus::GdiplusStartupInput gdiplusStartupInput;
+            ULONG_PTR gdiplusToken;
+            Gdiplus::GdiplusStartup(&gdiplusToken, &gdiplusStartupInput, NULL);
 
             WNDCLASSEX wcx{};
             wcx.cbSize = sizeof(wcx);
@@ -129,18 +134,40 @@ namespace worlds {
             }
 
             HDC winDc = GetDC(s->hwnd);
-            s->dc = CreateCompatibleDC(winDc);
-            s->backgroundBitmap = createBitmapFromFile("splash.png", s->dc);
-            SelectBitmap(s->dc, s->backgroundBitmap);
+            s->background = createImageFromFile("splash.png");
 
             ShowWindow(s->hwnd, SW_SHOW);
             checkWinErr();
             eventLoop();
+
+            Gdiplus::GdiplusShutdown(gdiplusToken);
             });
     }
 
     void SplashScreenImplWin32::changeOverlay(const char* overlay) {
+        s->mutex.lock();
 
+        char* basePath = SDL_GetBasePath();
+
+        const char* splashTextDir = "EngineData/SplashText/";
+        const char* ext = ".png";
+
+        char* buf = (char*)alloca(strlen(overlay) + strlen(basePath) + strlen(splashTextDir) + strlen(ext) + 1);
+        buf[0] = 0;
+        strcat(buf, basePath);
+        strcat(buf, splashTextDir);
+        strcat(buf, overlay);
+        strcat(buf, ext);
+
+        SDL_free(basePath);
+
+        wchar_t* wbuf = (wchar_t*)alloca((strlen(overlay) + strlen(basePath) + strlen(splashTextDir) + strlen(ext) + 1) * sizeof(wchar_t));
+
+        mbstowcs(wbuf, buf, (strlen(overlay) + strlen(basePath) + strlen(splashTextDir) + strlen(ext) + 1) * sizeof(wchar_t));
+
+        s->foreground = new Gdiplus::Image(wbuf);
+        RedrawWindow(s->hwnd, nullptr, nullptr, RDW_INVALIDATE | RDW_INTERNALPAINT);
+        s->mutex.unlock();
     }
 
     void SplashScreenImplWin32::eventLoop() {
@@ -176,12 +203,7 @@ namespace worlds {
     }
 
     LRESULT SplashScreenImplWin32::WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
-        static State* state = nullptr;
         switch (msg) {
-        case WM_NCCREATE: {
-            state = (State*)(((CREATESTRUCT*)lParam)->lpCreateParams);
-            break;
-        }
         case WM_NCCALCSIZE: {
             return 0;
             break;
@@ -218,16 +240,24 @@ namespace worlds {
             return 0;
         }
         case WM_PAINT: {
+            s->mutex.lock();
             PAINTSTRUCT ps;
             HDC hdc = BeginPaint(hwnd, &ps);
             HDC hdcMem = CreateCompatibleDC(hdc);
-            SelectObject(hdcMem, state->backgroundBitmap);
 
-            BitBlt(hdc, 0, 0, 800, 600, hdcMem, 0, 0, SRCCOPY);
+            Gdiplus::Rect rect{ 0, 0, 800, 600 };
+            Gdiplus::Rect overlayRect{ 544, 546, 256, 54 };
 
-            DeleteDC(hdcMem);
+            Gdiplus::Graphics g(hdc);
+            g.DrawImage(s->background, rect);
+
+            if (s->foreground) {
+                g.DrawImage(s->foreground, overlayRect);
+            }
+
             EndPaint(hwnd, &ps);
             checkWinErr();
+            s->mutex.unlock();
             return 0;
         }
         }
