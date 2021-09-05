@@ -64,6 +64,9 @@
     <Filter Include="LonelyGalaxy">
       <UniqueIdentifier>{e84d1021-f701-48c9-8c3e-7c6b7dae3a33}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Core\SplashScreenImpls">
+      <UniqueIdentifier>{038b84be-e0e1-498b-b47e-62f42f8839be}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\WorldsEngine\AssetCompilation\AssetCompilerUtil.cpp">
@@ -650,6 +653,12 @@
     </ClCompile>
     <ClCompile Include="..\WorldsEngine\Editor\EditorWindows\RawAssets.cpp">
       <Filter>Editor\EditorWindows</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WorldsEngine\Core\SplashScreenImpls\SplashScreenX11.cpp">
+      <Filter>Core\SplashScreenImpls</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WorldsEngine\Core\SplashScreenImpls\SplashScreenWin32.cpp">
+      <Filter>Core\SplashScreenImpls</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -1381,6 +1390,15 @@
     </ClInclude>
     <ClInclude Include="..\WorldsEngine\ImGui\imgui_freetype.h">
       <Filter>ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\WorldsEngine\Core\SplashScreenImpls\SplashScreenWin32.hpp">
+      <Filter>Core\SplashScreenImpls</Filter>
+    </ClInclude>
+    <ClInclude Include="..\WorldsEngine\Core\SplashScreenImpls\SplashScreenX11.hpp">
+      <Filter>Core\SplashScreenImpls</Filter>
+    </ClInclude>
+    <ClInclude Include="..\WorldsEngine\Core\SplashScreenImpls\ISplashScreen.hpp">
+      <Filter>Core\SplashScreenImpls</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

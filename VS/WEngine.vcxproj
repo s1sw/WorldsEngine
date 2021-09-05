@@ -53,6 +53,8 @@
     <ClCompile Include="..\WorldsEngine\Core\Engine.cpp" />
     <ClCompile Include="..\WorldsEngine\Core\Fatal.cpp" />
     <ClCompile Include="..\WorldsEngine\Core\JobSystem.cpp" />
+    <ClCompile Include="..\WorldsEngine\Core\SplashScreenImpls\SplashScreenWin32.cpp" />
+    <ClCompile Include="..\WorldsEngine\Core\SplashScreenImpls\SplashScreenX11.cpp" />
     <ClCompile Include="..\WorldsEngine\Core\SplashWindow.cpp" />
     <ClCompile Include="..\WorldsEngine\Editor\AssetEditors.cpp" />
     <ClCompile Include="..\WorldsEngine\Editor\DefaultUITheme.cpp" />
@@ -269,6 +271,9 @@
     <ClInclude Include="..\WorldsEngine\Core\Log.hpp" />
     <ClInclude Include="..\WorldsEngine\Core\LogCategories.hpp" />
     <ClInclude Include="..\WorldsEngine\Core\NameComponent.hpp" />
+    <ClInclude Include="..\WorldsEngine\Core\SplashScreenImpls\ISplashScreen.hpp" />
+    <ClInclude Include="..\WorldsEngine\Core\SplashScreenImpls\SplashScreenWin32.hpp" />
+    <ClInclude Include="..\WorldsEngine\Core\SplashScreenImpls\SplashScreenX11.hpp" />
     <ClInclude Include="..\WorldsEngine\Core\SplashWindow.hpp" />
     <ClInclude Include="..\WorldsEngine\Core\Transform.hpp" />
     <ClInclude Include="..\WorldsEngine\Editor\AssetEditors.hpp" />
@@ -485,14 +490,14 @@
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
-    <CharacterSet>Unicode</CharacterSet>
+    <CharacterSet>NotSet</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
-    <CharacterSet>Unicode</CharacterSet>
+    <CharacterSet>NotSet</CharacterSet>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">

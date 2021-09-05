@@ -61,11 +61,7 @@ namespace worlds {
     moodycamel::ReaderWriterQueue<SDL_Event> evts;
 
     void WorldsEngine::setupSDL() {
-        SDL_Init(SDL_INIT_AUDIO | SDL_INIT_EVENTS | SDL_INIT_VIDEO | SDL_INIT_TIMER);
-        SDL_EventState(SDL_DROPFILE, SDL_DISABLE);
-        SDL_EventState(SDL_DROPBEGIN, SDL_DISABLE);
-        SDL_EventState(SDL_DROPTEXT, SDL_DISABLE);
-        SDL_EventState(SDL_DROPCOMPLETE, SDL_DISABLE);
+        SDL_Init(0);
     }
 
     SDL_Window* WorldsEngine::createSDLWindow() {
@@ -276,9 +272,6 @@ namespace worlds {
 
         // Initialisation Stuffs
         // =====================
-        setupSDL();
-
-        console = std::make_unique<Console>(dedicatedServer);
 
         ISplashScreen* splashWindow;
 
@@ -289,6 +282,12 @@ namespace worlds {
             splashWindow = new SplashScreenImplWin32(!runAsEditor);
 #endif
         }
+
+        setupSDL();
+
+        console = std::make_unique<Console>(dedicatedServer);
+
+        SDL_Init(SDL_INIT_AUDIO | SDL_INIT_EVENTS | SDL_INIT_VIDEO | SDL_INIT_TIMER);
 
         setupPhysfs(argv0);
         if (!dedicatedServer && runAsEditor) {
