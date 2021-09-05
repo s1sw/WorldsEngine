@@ -48,7 +48,7 @@ namespace worlds {
         HWND hwnd;
         std::thread* t;
         Gdiplus::Image* background;
-        Gdiplus::Image* foreground;
+        Gdiplus::Image* foreground = nullptr;
         std::mutex mutex;
     };
 
