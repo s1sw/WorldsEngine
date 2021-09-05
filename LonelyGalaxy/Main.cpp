@@ -55,32 +55,27 @@ int main(int argc, char** argv) {
     initOptions.enableVR = true;
 
     std::vector<std::string> startupCommands;
+    std::vector<const char*> engineOptions;
 
     bool ds = false;
     for (int i = 0; i < argc; i++) {
         if (strcmp(argv[i], "--editor") == 0) {
             initOptions.runAsEditor = true;
-        }
-
-        if (strcmp(argv[i], "--novr") == 0) {
+        } else if (strcmp(argv[i], "--novr") == 0) {
             initOptions.enableVR = false;
-        }
-
-        if (strcmp(argv[i], "--dedicated-server") == 0) {
+        } else if (strcmp(argv[i], "--dedicated-server") == 0) {
            ds = true;
            initOptions.dedicatedServer = true;
-        }
-
-        if (argv[i][0] == '+') {
+        } else if (argv[i][0] == '+') {
             std::string strArg = argv[i];
             size_t colonPos = strArg.find(":");
             if (colonPos != std::string::npos) {
                 std::string cmd = strArg.substr(1, colonPos - 1);
                 std::string cmdArg = strArg.substr(colonPos + 1);
                 startupCommands.push_back(cmd + " " + cmdArg);
-            } else {
-                startupCommands.push_back(argv[i + 1]);
             }
+        } else {
+            engineOptions.push_back(argv[i]);
         }
     }
 
@@ -90,6 +85,7 @@ int main(int argc, char** argv) {
     }
 
     initOptions.useEventThread = false;
+    initOptions.cmdLineOptions = engineOptions;
 
     lg::EventHandler evtHandler {ds};
     initOptions.eventHandler = &evtHandler;

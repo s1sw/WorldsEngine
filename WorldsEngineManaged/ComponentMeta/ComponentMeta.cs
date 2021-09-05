@@ -1,15 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Runtime.InteropServices;
 using System.Collections;
 using System.Reflection;
 using WorldsEngine.Math;
-using System.Reflection.PortableExecutable;
 using ImGuiNET;
-using System.ComponentModel;
 
 namespace WorldsEngine.ComponentMeta
 {
@@ -36,12 +32,17 @@ namespace WorldsEngine.ComponentMeta
         [DllImport(WorldsEngine.NativeModule)]
         [return: MarshalAs(UnmanagedType.I1)]
         internal static extern bool componentmeta_hasComponent(IntPtr registry, uint entity, int index);
+
+        [DllImport(WorldsEngine.NativeModule)]
+        [return: MarshalAs(UnmanagedType.I1)]
+        internal static extern bool componentmeta_allowInspectorAdd(int index);
     }
 
     public abstract class ComponentMetadata
     {
-        public string Name;
+        public abstract string Name { get; }
         public abstract string EditorName { get; }
+        public abstract bool AllowInspectorAdd { get; }
 
         public abstract void Create(Entity entity);
         public abstract void Destroy(Entity entity);
@@ -54,7 +55,9 @@ namespace WorldsEngine.ComponentMeta
     {
         internal int Index;
 
+        public override string Name => Marshal.PtrToStringUTF8(NativeMetadataAPI.componentmeta_getName(Index))!;
         public override string EditorName => Name;
+        public override bool AllowInspectorAdd => NativeMetadataAPI.componentmeta_allowInspectorAdd(Index);
 
         public override void Create(Entity entity)
         {
@@ -85,22 +88,24 @@ namespace WorldsEngine.ComponentMeta
     internal class ManagedComponentMetadata : ComponentMetadata
     {
         private readonly Type type;
-        private FieldInfo[] fieldInfos;
+        private readonly FieldInfo[] fieldInfos;
         private string friendlyName = string.Empty;
 
+        public override string Name => type.Name;
         public override string EditorName => friendlyName;
+        public override bool AllowInspectorAdd => true;
 
         public ManagedComponentMetadata(Type type)
         {
             this.type = type;
-            Name = type.Name;
             friendlyName = Name;
 
-            if (type.GetCustomAttribute<EditorFriendlyNameAttribute>() != null)
-                friendlyName = type.GetCustomAttribute<EditorFriendlyNameAttribute>().FriendlyName;
+            friendlyName = type.GetCustomAttribute<EditorFriendlyNameAttribute>()?.FriendlyName!;
 
-            if (type.GetCustomAttribute<EditorIconAttribute>() != null)
-                friendlyName = type.GetCustomAttribute<EditorIconAttribute>().Icon + " " + friendlyName;
+            friendlyName = type.GetCustomAttribute<EditorIconAttribute>()?.Icon + " " + friendlyName;
+
+            fieldInfos = type.GetFields(BindingFlags.Public | BindingFlags.Instance)
+                .Where(m => !m.IsNotSerialized).ToArray();
         }
 
         public override void Create(Entity entity)
@@ -122,38 +127,37 @@ namespace WorldsEngine.ComponentMeta
         {
             string fieldName = fieldInfo.Name;
 
-            if (fieldInfo.GetCustomAttribute<EditorFriendlyNameAttribute>() != null)
-                fieldName = fieldInfo.GetCustomAttribute<EditorFriendlyNameAttribute>().FriendlyName;
+            fieldName = fieldInfo.GetCustomAttribute<EditorFriendlyNameAttribute>()?.FriendlyName!;
 
             if (fieldInfo.FieldType == typeof(int))
             {
-                int val = (int)fieldInfo.GetValue(instance);
+                int val = (int)fieldInfo.GetValue(instance)!;
                 ImGui.DragInt(fieldName, ref val);
                 fieldInfo.SetValue(instance, val);
             }
             else if (fieldInfo.FieldType == typeof(float))
             {
-                float val = (float)fieldInfo.GetValue(instance);
+                float val = (float)fieldInfo.GetValue(instance)!;
                 ImGui.DragFloat(fieldName, ref val);
                 fieldInfo.SetValue(instance, val);
             }
             else if (fieldInfo.FieldType == typeof(Vector3))
             {
-                Vector3 val = (Vector3)fieldInfo.GetValue(instance);
+                Vector3 val = (Vector3)fieldInfo.GetValue(instance)!;
                 ImGui.DragFloat3(fieldName, ref val);
                 fieldInfo.SetValue(instance, val);
             }
             else if (fieldInfo.FieldType == typeof(bool))
             {
-                bool val = (bool)fieldInfo.GetValue(instance);
+                bool val = (bool)fieldInfo.GetValue(instance)!;
                 ImGui.Checkbox(fieldName, ref val);
                 fieldInfo.SetValue(instance, val);
             }
             else if (fieldInfo.FieldType.IsEnum)
             {
                 string[] names = fieldInfo.FieldType.GetEnumNames();
-                int val = (int)fieldInfo.GetValue(instance);
-                
+                int val = (int)fieldInfo.GetValue(instance)!;
+
                 if (ImGui.Combo(fieldName, ref val, names, names.Length))
                 {
                     fieldInfo.SetValue(instance, val);
@@ -166,7 +170,7 @@ namespace WorldsEngine.ComponentMeta
 
                 if (type.IsConstructedGenericType && type.GetGenericTypeDefinition() == typeof(List<>))
                 {
-                    IList l = (IList)fieldInfo.GetValue(instance);
+                    IList? l = (IList?)fieldInfo.GetValue(instance);
 
                     if (l == null) return;
 
@@ -181,16 +185,24 @@ namespace WorldsEngine.ComponentMeta
 
                     for (int i = 0; i < l.Count; i++)
                     {
-                        object classInstance = l[i];
+                        object? classInstance = l[i];
 
                         if (ImGui.TreeNode($"Element {i}"))
                         {
-                            FieldInfo[] classFieldInfo = objType.GetFields(BindingFlags.Public | BindingFlags.Instance)
-                            .Where(m => !m.IsNotSerialized).ToArray();
-
-                            foreach (FieldInfo fieldInfo1 in classFieldInfo)
+                            if (classInstance == null)
                             {
-                                EditField(fieldInfo1, classInstance);
+                                ImGui.Text("Null");
+                                continue;
+                            }
+                            else
+                            {
+                                FieldInfo[] classFieldInfo = objType.GetFields(BindingFlags.Public | BindingFlags.Instance)
+                                    .Where(m => !m.IsNotSerialized).ToArray();
+
+                                foreach (FieldInfo fieldInfo1 in classFieldInfo)
+                                {
+                                    EditField(fieldInfo1, classInstance);
+                                }
                             }
 
                             ImGui.TreePop();
@@ -199,16 +211,23 @@ namespace WorldsEngine.ComponentMeta
                 }
                 else
                 {
-                    object classInstance = fieldInfo.GetValue(instance);
+                    object? classInstance = fieldInfo.GetValue(instance);
 
                     if (ImGui.TreeNode(fieldName))
                     {
-                        FieldInfo[] classFieldInfo = type.GetFields(BindingFlags.Public | BindingFlags.Instance)
-                        .Where(m => !m.IsNotSerialized).ToArray();
-
-                        foreach (FieldInfo fieldInfo1 in classFieldInfo)
+                        if (classInstance == null)
                         {
-                            EditField(fieldInfo1, classInstance);
+                            ImGui.Text("Null");
+                        }
+                        else
+                        {
+                            FieldInfo[] classFieldInfo = type.GetFields(BindingFlags.Public | BindingFlags.Instance)
+                            .Where(m => !m.IsNotSerialized).ToArray();
+
+                            foreach (FieldInfo fieldInfo1 in classFieldInfo)
+                            {
+                                EditField(fieldInfo1, classInstance);
+                            }
                         }
 
                         ImGui.TreePop();
@@ -229,15 +248,9 @@ namespace WorldsEngine.ComponentMeta
                     return;
                 }
 
-                if (fieldInfos == null)
-                {
-                    fieldInfos = type.GetFields(BindingFlags.Public | BindingFlags.Instance)
-                        .Where(m => !m.IsNotSerialized).ToArray();
-                }
-
                 object component = Registry.GetComponent(type, entity);
 
-                foreach (FieldInfo fieldInfo in fieldInfos)
+                foreach (FieldInfo fieldInfo in fieldInfos!)
                 {
                     EditField(fieldInfo, component);
                 }
@@ -258,7 +271,7 @@ namespace WorldsEngine.ComponentMeta
         private static readonly List<NativeComponentMetadata> nativeMetadata = new();
         private static readonly List<ManagedComponentMetadata> managedMetadata = new();
 
-        internal static ComponentMetadata FindNativeMetadata(string name)
+        internal static ComponentMetadata? FindNativeMetadata(string name)
         {
             return metadata.Where(metadata => metadata.Name == name).FirstOrDefault();
         }
@@ -269,7 +282,6 @@ namespace WorldsEngine.ComponentMeta
             {
                 NativeComponentMetadata componentMetadata = new NativeComponentMetadata()
                 {
-                    Name = Marshal.PtrToStringUTF8(NativeMetadataAPI.componentmeta_getName(i)),
                     Index = i
                 };
 

@@ -130,14 +130,14 @@ namespace worlds {
                         SDL_ShowWindow(_this->window);
                     else
                         SDL_HideWindow(_this->window);
-                    logMsg("window state toggled");
+                    logVrb(WELogCategoryEngine, "window state toggled");
                 } else {
                     evts.emplace(evt);
                 }
             }
         }
 
-        logMsg("window thread exiting");
+        logVrb(WELogCategoryEngine, "window thread exiting");
         // SDL requires threads to return an int
         return 0;
     }
@@ -212,11 +212,11 @@ namespace worlds {
         SDL_free((void*)basePath);
 
         PHYSFS_init(argv0);
-        logMsg("Mounting %s", dataStr.c_str());
+        logVrb("Mounting %s", dataStr.c_str());
         PHYSFS_mount(dataStr.c_str(), "/", 0);
-        logMsg("Mounting %s", engineDataStr.c_str());
+        logVrb("Mounting %s", engineDataStr.c_str());
         PHYSFS_mount(engineDataStr.c_str(), "/", 0);
-        logMsg("Mounting %s", srcDataStr.c_str());
+        logVrb("Mounting %s", srcDataStr.c_str());
         PHYSFS_mount(srcDataStr.c_str(), "/SrcData", 0);
         PHYSFS_setWriteDir(dataStr.c_str());
 
@@ -273,12 +273,15 @@ namespace worlds {
         runAsEditor = initOptions.runAsEditor;
         enableOpenVR = initOptions.enableVR;
         dedicatedServer = initOptions.dedicatedServer;
+        cmdLineOptions = initOptions.cmdLineOptions;
 
         // Initialisation Stuffs
         // =====================
         setupSDL();
 
-        console = std::make_unique<Console>(dedicatedServer);
+        console = std::make_unique<Console>(
+                hasCommandLineArg("create-console-window") || dedicatedServer,
+                hasCommandLineArg("enable-console-window-input") || dedicatedServer);
 
         ISplashScreen* splashWindow;
 
@@ -443,7 +446,7 @@ namespace worlds {
         console->registerCommand([&](void*, const char* arg) {
             uint32_t id = (uint32_t)std::atoll(arg);
             if (AssetDB::exists(id))
-                logMsg("Asset %u: %s", id, AssetDB::idToPath(id).c_str());
+                logVrb("Asset %u: %s", id, AssetDB::idToPath(id).c_str());
             else
                 logErr("Nonexistent asset");
         }, "adb_lookupID", "Looks up an asset ID.", nullptr);
@@ -600,9 +603,9 @@ namespace worlds {
 
             screenRTTPass = renderer->createRTTPass(screenRTTCI);
 
-            logMsg("deleting splashWindow");
+            logVrb("deleting splashWindow");
             delete splashWindow;
-            logMsg("splashWIndow deleted");
+            logVrb("splashWIndow deleted");
 
             if (useEventThread) {
                 SDL_Event evt;
@@ -1177,6 +1180,16 @@ namespace worlds {
         systems.push_back(system);
     }
 
+    bool WorldsEngine::hasCommandLineArg(const char* arg) {
+        for (const char* opt : cmdLineOptions) {
+            if (strlen(opt) < 3) continue;
+            if (strcmp(&opt[2], arg) == 0)
+                return true;
+        }
+
+        return false;
+    }
+
     WorldsEngine::~WorldsEngine() {
         for (auto* system : systems) {
             delete system;
@@ -1196,7 +1209,7 @@ namespace worlds {
 
         shutdownPhysx();
         PHYSFS_deinit();
-        logMsg("Quitting SDL.");
+        logVrb("Quitting SDL.");
         SDL_Quit();
     }
 }
