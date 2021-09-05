@@ -3,6 +3,7 @@
 #include "Render/RenderInternal.hpp"
 #include "Util/VKImGUIUtil.hpp"
 #include "Libs/IconsFontAwesome5.h"
+#define IMGUI_DEFINE_MATH_OPERATORS
 #include "ImGui/imgui_internal.h"
 #include "ComponentMeta/ComponentMetadata.hpp"
 
@@ -37,6 +38,72 @@ namespace worlds {
 
             auto wSize = ImGui::GetContentRegionAvail();
             ImGui::Image((ImTextureID)sceneViewDS, ImVec2(currentWidth, currentHeight));
+
+            ImGui::SetCursorPos(ImGui::GetCursorStartPos());
+
+            static float animationProgress = 0.0f;
+            const float ANIM_DURATION = 0.1f;
+            const float ANIM_SPEED = 1.0f / ANIM_DURATION;
+
+            bool mouseOverToggleArea = false;
+            ImVec2 mousePos = ImGui::GetMousePos();
+
+            mouseOverToggleArea =
+                mousePos.x > ImGui::GetCursorScreenPos().x &&
+                mousePos.y > ImGui::GetCursorScreenPos().y &&
+                mousePos.y < ImGui::GetCursorScreenPos().y + 50.0f &&
+                mousePos.x < ImGui::GetCursorScreenPos().x + wSize.x;
+
+            if (mouseOverToggleArea && (ImGui::GetMousePos() - ImGui::GetCursorScreenPos()).y < 60.0f) {
+                animationProgress += ImGui::GetIO().DeltaTime * ANIM_SPEED;
+            } else if (GImGui->HoveredWindow && (GImGui->HoveredWindow->Flags & ImGuiWindowFlags_Popup) == 0) {
+                animationProgress -= ImGui::GetIO().DeltaTime * ANIM_SPEED;
+            }
+
+            animationProgress = glm::clamp(animationProgress, 0.0f, 1.0f);
+
+            if (animationProgress > 0.0f) {
+                ImDrawList* drawList = ImGui::GetWindowDrawList();
+                drawList->PushClipRect(ImGui::GetCursorScreenPos(), ImGui::GetCursorScreenPos() + wSize);
+
+                ImVec2 animatedOffset{ 0.0f, -50.0f };
+                animatedOffset *= powf(1.0f - animationProgress, 5.0f);
+
+                ImVec2 minPos = ImGui::GetCursorScreenPos() + animatedOffset;
+
+                ImGui::SetCursorPos(ImGui::GetCursorStartPos() + animatedOffset + ImGui::GetStyle().WindowPadding);
+
+                ImVec2 maxPos = minPos;
+                maxPos.x += wSize.x;
+                maxPos.y += 50.0f;
+
+                drawList->AddRectFilled(minPos, maxPos, ImGui::GetColorU32(ImGuiCol_WindowBg, 0.8f), 0.0f, ImDrawFlags_RoundCornersBottom);
+                drawList->AddRect(minPos - ImVec2(2.0f, 5.0f), maxPos + ImVec2(2.0f, 0.0f), ImGui::GetColorU32(ImGuiCol_Border), 0.0f, 0, 2.0f);
+                
+                const char* dbgDrawModes[] = {
+                    "None",
+                    "Normals",
+                    "Metallic",
+                    "Roughness",
+                    "Ambient Occlusion",
+                    "Normal Map",
+                    "Lighting Only",
+                    "UVs",
+                    "Shadowmap Cascades",
+                    "Albedo"
+                };
+
+                static int currentDbgDrawMode = 0;
+
+                ImGui::PushItemWidth(100.0f);
+                if (ImGui::Combo("Debug Draw", &currentDbgDrawMode, dbgDrawModes, IM_ARRAYSIZE(dbgDrawModes))) {
+                    g_console->executeCommandStr("r_dbgDrawMode " + std::to_string(currentDbgDrawMode), false);
+                }
+                ImGui::PopItemWidth();
+
+                ImGui::SetCursorPos(ImGui::GetCursorStartPos());
+                drawList->PopClipRect();
+            }
 
             glm::vec2 wPos = glm::vec2(ImGui::GetWindowPos()) + glm::vec2(ImGui::GetCursorStartPos());
             glm::vec2 mPos = ImGui::GetIO().MousePos;
