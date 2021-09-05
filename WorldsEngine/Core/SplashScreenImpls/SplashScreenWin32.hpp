@@ -20,7 +20,7 @@ namespace worlds {
         // Yes this file is only included in one place but that
         // file already has so many includes it's ridiculous
         struct State;
-        State* s;
+        static State* s;
 
         static LRESULT WndProc(HWND, unsigned int, WPARAM, LPARAM);
     };

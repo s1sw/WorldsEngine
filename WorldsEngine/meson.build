@@ -77,6 +77,7 @@ if host_machine.system() == 'windows'
   platform_deps += cc.find_library('winmm')
   platform_deps += cc.find_library('ws2_32')
   platform_deps += cc.find_library('dwmapi')
+  platform_deps += cc.find_library('gdiplus')
 endif
 
 if host_machine.system() == 'linux'
