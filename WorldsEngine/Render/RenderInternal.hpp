@@ -357,9 +357,9 @@ namespace worlds {
 
         RenderTexture* createRTResource(RTResourceCreateInfo resourceCreateInfo, const char* debugName = nullptr);
 
-        void triggerRenderdocCapture();
-        void startRdocCapture();
-        void endRdocCapture();
+        void triggerRenderdocCapture() override;
+        void startRdocCapture() override;
+        void endRdocCapture() override;
 
         ~VKRenderer();
     };

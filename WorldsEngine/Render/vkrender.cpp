@@ -144,14 +144,14 @@ void VKRenderer::createInstance(const RendererInitInfo& initInfo) {
     }
 
     for (auto& e : instanceExtensions) {
-        logMsg(WELogCategoryRender, "activating extension: %s", e.c_str());
+        logVrb(WELogCategoryRender, "activating extension: %s", e.c_str());
         instanceMaker.extension(e.c_str());
     }
 
 #ifndef NDEBUG
     if (!enableVR || vrValidationLayers) {
-        logMsg(WELogCategoryRender, "Activating validation layers");
-        instanceMaker.layer("VK_LAYER_KHRONOS_validation");
+        logVrb(WELogCategoryRender, "Activating validation layers");
+        //instanceMaker.layer("VK_LAYER_KHRONOS_validation");
         instanceMaker.extension(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
     }
 #endif
@@ -174,30 +174,30 @@ void logPhysDevInfo(const VkPhysicalDevice& physicalDevice) {
     VkPhysicalDeviceProperties physDevProps;
 
     vkGetPhysicalDeviceProperties(physicalDevice, &physDevProps);
-    logMsg(worlds::WELogCategoryRender, "Physical device:\n");
-    logMsg(worlds::WELogCategoryRender, "\t-Name: %s", physDevProps.deviceName);
-    logMsg(worlds::WELogCategoryRender, "\t-ID: %u", physDevProps.deviceID);
-    logMsg(worlds::WELogCategoryRender, "\t-Vendor ID: %u", physDevProps.vendorID);
-    logMsg(worlds::WELogCategoryRender, "\t-Device Type: %s", vku::toString(physDevProps.deviceType));
-    logMsg(worlds::WELogCategoryRender, "\t-Driver Version: %u", physDevProps.driverVersion);
-    logMsg(worlds::WELogCategoryRender, "\t-Memory heap count: %u", memProps.memoryHeapCount);
-    logMsg(worlds::WELogCategoryRender, "\t-Memory type count: %u", memProps.memoryTypeCount);
+    logVrb(worlds::WELogCategoryRender, "Physical device:\n");
+    logVrb(worlds::WELogCategoryRender, "\t-Name: %s", physDevProps.deviceName);
+    logVrb(worlds::WELogCategoryRender, "\t-ID: %u", physDevProps.deviceID);
+    logVrb(worlds::WELogCategoryRender, "\t-Vendor ID: %u", physDevProps.vendorID);
+    logVrb(worlds::WELogCategoryRender, "\t-Device Type: %s", vku::toString(physDevProps.deviceType));
+    logVrb(worlds::WELogCategoryRender, "\t-Driver Version: %u", physDevProps.driverVersion);
+    logVrb(worlds::WELogCategoryRender, "\t-Memory heap count: %u", memProps.memoryHeapCount);
+    logVrb(worlds::WELogCategoryRender, "\t-Memory type count: %u", memProps.memoryTypeCount);
 
     VkDeviceSize totalVram = 0;
     for (uint32_t i = 0; i < memProps.memoryHeapCount; i++) {
         auto& heap = memProps.memoryHeaps[i];
         totalVram += heap.size;
-        logMsg(worlds::WELogCategoryRender, "Heap %i: %hu MB", i, heap.size / 1024 / 1024);
+        logVrb(worlds::WELogCategoryRender, "Heap %i: %hu MB", i, heap.size / 1024 / 1024);
     }
 
     for (uint32_t i = 0; i < memProps.memoryTypeCount; i++) {
         auto& memType = memProps.memoryTypes[i];
         const char* str = vku::toString(memType.propertyFlags);
-        logMsg(worlds::WELogCategoryRender, "Memory type for heap %i: %s", memType.heapIndex, str);
+        logVrb(worlds::WELogCategoryRender, "Memory type for heap %i: %s", memType.heapIndex, str);
         free((char*)str);
     }
 
-    logMsg(worlds::WELogCategoryRender, "Approx. %hu MB total accessible graphics memory (NOT VRAM!)", totalVram / 1024 / 1024);
+    logVrb(worlds::WELogCategoryRender, "Approx. %hu MB total accessible graphics memory (NOT VRAM!)", totalVram / 1024 / 1024);
 }
 
 bool checkPhysicalDeviceFeatures(const VkPhysicalDevice& physDev) {
@@ -626,7 +626,7 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     g_console->registerCommand([&](void*, const char*) {
         char* statsString;
         vmaBuildStatsString(allocator, &statsString, true);
-        logMsg("%s", statsString);
+        logVrb(WELogCategoryRender, "%s", statsString);
         auto file = PHYSFS_openWrite("memory.json");
         PHYSFS_writeBytes(file, statsString, strlen(statsString));
         PHYSFS_close(file);
@@ -771,7 +771,7 @@ void VKRenderer::recreateSwapchain() {
     auto surfaceCaps = getSurfaceCaps(physicalDevice, surface);
 
     if (surfaceCaps.currentExtent.width == 0 || surfaceCaps.currentExtent.height == 0) {
-        logMsg(WELogCategoryRender, "Ignoring resize with 0 width or height");
+        logVrb(WELogCategoryRender, "Ignoring resize with 0 width or height");
         isMinimised = true;
 
         while (isMinimised) {
@@ -787,7 +787,7 @@ void VKRenderer::recreateSwapchain() {
 
     isMinimised = false;
 
-    logMsg(WELogCategoryRender, "Recreating swapchain: New surface size is %ix%i",
+    logVrb(WELogCategoryRender, "Recreating swapchain: New surface size is %ix%i",
         surfaceCaps.currentExtent.width, surfaceCaps.currentExtent.height);
 
     if (surfaceCaps.currentExtent.width > 0 && surfaceCaps.currentExtent.height > 0) {
@@ -858,12 +858,9 @@ void imageBarrier(VkCommandBuffer& cb, VkImage image, VkImageLayout layout,
     imageMemoryBarriers.subresourceRange = { aspectMask, 0, 1, 0, numLayers };
 
     // Put barrier on top
-    VkDependencyFlags dependencyFlags{};
 
     imageMemoryBarriers.srcAccessMask = srcMask;
     imageMemoryBarriers.dstAccessMask = dstMask;
-    auto memoryBarriers = nullptr;
-    auto bufferMemoryBarriers = nullptr;
 
     vkCmdPipelineBarrier(cb, srcStageMask, dstStageMask, VK_DEPENDENCY_BY_REGION_BIT,
         0, nullptr,
@@ -951,7 +948,7 @@ void VKRenderer::uploadSceneAssets(entt::registry& reg) {
         int i = 0;
         for (AssetID id : uploadMats) {
             Job j{
-                [id, this, i] {
+                [id, this] {
                     matSlots->loadOrGet(id);
                 }
             };
@@ -1309,9 +1306,9 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
 
     if ((nextImageRes == VK_ERROR_OUT_OF_DATE_KHR || nextImageRes == VK_SUBOPTIMAL_KHR) && width != 0 && height != 0) {
         if (nextImageRes == VK_ERROR_OUT_OF_DATE_KHR)
-            logMsg("Swapchain out of date");
+            logVrb(WELogCategoryRender, "Swapchain out of date");
         else
-            logMsg("Swapchain suboptimal");
+            logVrb(WELogCategoryRender, "Swapchain suboptimal");
         recreateSwapchain();
 
         // acquire image from new swapchain
@@ -1383,7 +1380,7 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
     if (presentResult == VK_ERROR_OUT_OF_DATE_KHR) {
         recreateSwapchain();
     } else if (presentResult == VK_SUBOPTIMAL_KHR) {
-        logMsg("swapchain after present suboptimal");
+        logVrb(WELogCategoryRender, "swapchain after present suboptimal");
         //recreateSwapchain();
     } else if (presentResult != VK_SUCCESS) {
         fatalErr("Failed to present");
@@ -1465,7 +1462,7 @@ void VKRenderer::preloadMesh(AssetID id) {
         lmd.aabbMin = glm::min(lmd.aabbMin, vtx.position);
     }
 
-    logMsg(WELogCategoryRender, "Loaded mesh %u, %u verts. Sphere radius %f", id, (uint32_t)vertices.size(), lmd.sphereRadius);
+    logVrb(WELogCategoryRender, "Loaded mesh %u, %u verts. Sphere radius %f", id, (uint32_t)vertices.size(), lmd.sphereRadius);
 
     loadedMeshes.insert({ id, std::move(lmd) });
 }
@@ -1707,7 +1704,7 @@ VKRenderer::~VKRenderer() {
         delete swapchain;
 
         vkDestroySurfaceKHR(instance, surface, nullptr);
-        logMsg(WELogCategoryRender, "Renderer destroyed.");
+        logVrb(WELogCategoryRender, "Renderer destroyed.");
 
         vkDestroyPipelineCache(device, pipelineCache, nullptr);
         vkDestroyDescriptorPool(device, descriptorPool, nullptr);

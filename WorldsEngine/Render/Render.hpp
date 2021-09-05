@@ -170,5 +170,7 @@ namespace worlds {
         virtual void triggerRenderdocCapture() = 0;
         virtual void startRdocCapture() = 0;
         virtual void endRdocCapture() = 0;
+
+        virtual ~Renderer() {}
     };
 }

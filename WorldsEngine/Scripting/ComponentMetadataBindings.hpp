@@ -50,4 +50,8 @@ extern "C" {
 
         return rtView.contains(entity);
     }
+
+    EXPORT bool componentmeta_allowInspectorAdd(int index) {
+        return ComponentMetadataManager::sorted[index]->allowInspectorAdd();
+    }
 }
