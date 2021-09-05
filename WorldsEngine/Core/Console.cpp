@@ -75,6 +75,16 @@ namespace worlds {
         { SDL_LOG_PRIORITY_ERROR, "Error" }
     };
 
+    const char* priorityLabels[] = {
+        "Verbose",
+        "Debug",
+        "Info",
+        "Warn",
+        "Error",
+        "Critical"
+    };
+
+
     ConVar::ConVar(const char* name, const char* defaultValue, const char* help)
         : help(help)
         , name(name)
@@ -156,7 +166,7 @@ namespace worlds {
 
     bool enableVT100 = true;
 
-    Console::Console(bool asyncStdinConsole)
+    Console::Console(bool openConsoleWindow, bool asyncStdinConsole)
         : show(false)
         , setKeyboardFocus(false)
         , logFileStream("worldsengine.log")
@@ -168,11 +178,7 @@ namespace worlds {
         registerCommand(cmdExec, "exec", "Executes a command file.", this);
 
         for (auto& cPair : categories) {
-//#ifndef NDEBUG
             SDL_LogSetPriority(cPair.first, SDL_LOG_PRIORITY_VERBOSE);
-//#else
-//            SDL_LogSetPriority(cPair.first, SDL_LOG_PRIORITY_WARN);
-//#endif
         }
 
         SDL_LogSetPriority(CONSOLE_RESPONSE_CATEGORY, SDL_LOG_PRIORITY_INFO);
@@ -193,47 +199,47 @@ namespace worlds {
             }
         }
 
-//#ifndef NDEBUG
 #ifdef _WIN32
-        if (!AttachConsole(ATTACH_PARENT_PROCESS)) {
-            if (!AllocConsole()) {
-                logErr("failed to allocconsole, assuming one already exists");
+        if (openConsoleWindow) {
+            if (!AttachConsole(ATTACH_PARENT_PROCESS)) {
+                if (!AllocConsole()) {
+                    logErr("failed to allocconsole, assuming one already exists");
+                }
+                auto pid = GetCurrentProcessId();
+                std::string s = "Worlds Engine (PID " + std::to_string(pid) + ")";
+                SetConsoleTitleA(s.c_str());
             }
-            auto pid = GetCurrentProcessId();
-            std::string s = "Worlds Engine (PID " + std::to_string(pid) + ")";
-            SetConsoleTitleA(s.c_str());
+
+            FILE *fDummy;
+            freopen_s(&fDummy, "CONIN$", "r", stdin);
+            freopen_s(&fDummy, "CONOUT$", "w", stderr);
+            freopen_s(&fDummy, "CONOUT$", "w", stdout);
+
+            HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+            if (hOut == INVALID_HANDLE_VALUE) {
+                logWarn("Failed to get console output handle");
+                enableVT100 = false;
+                return;
+            }
+
+            DWORD dwMode = 0;
+            if (!GetConsoleMode(hOut, &dwMode)) {
+                logWarn("Failed to get console mode");
+                enableVT100 = false;
+                return;
+            }
+
+            dwMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+            if (!SetConsoleMode(hOut, dwMode)) {
+                logWarn("Failed to set console mode");
+                enableVT100 = false;
+                return;
+            }
+
+            std::cin.clear();
+            std::cout.clear();
         }
-
-        FILE *fDummy;
-        freopen_s(&fDummy, "CONIN$", "r", stdin);
-        freopen_s(&fDummy, "CONOUT$", "w", stderr);
-        freopen_s(&fDummy, "CONOUT$", "w", stdout);
-
-        HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
-        if (hOut == INVALID_HANDLE_VALUE) {
-            logWarn("Failed to get console output handle");
-            enableVT100 = false;
-            return;
-        }
-
-        DWORD dwMode = 0;
-        if (!GetConsoleMode(hOut, &dwMode)) {
-            logWarn("Failed to get console mode");
-            enableVT100 = false;
-            return;
-        }
-
-        dwMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
-        if (!SetConsoleMode(hOut, dwMode)) {
-            logWarn("Failed to set console mode");
-            enableVT100 = false;
-            return;
-        }
-
-        std::cin.clear();
-        std::cout.clear();
 #endif // _WIN32
-//#endif // NDEBUG
 
         if (asyncStdinConsole) {
             asyncConsoleThread = new std::thread(asyncConsole);
@@ -397,6 +403,13 @@ namespace worlds {
 
         static int lastMsgCount = 0;
         if (ImGui::Begin("Console", &show)) {
+
+            static int currentPriorityLevel = SDL_LOG_PRIORITY_INFO;
+            currentPriorityLevel -= 1;
+            ImGui::Combo("Priority Level", &currentPriorityLevel, priorityLabels, sizeof(priorityLabels) / sizeof(priorityLabels[0]));
+            currentPriorityLevel += 1;
+
+            ImGui::SameLine();
             if (ImGui::Button("Clear")) {
                 msgs.clear();
             }
@@ -411,6 +424,7 @@ namespace worlds {
                 consoleMutex.lock();
                 float padding = ImGui::GetStyle().ItemSpacing.y;
                 for (auto& msg : msgs) {
+                    if (msg.priority < currentPriorityLevel) continue;
                     ImVec2 textSize = ImGui::CalcTextSize(msg.msg.c_str(), nullptr, false, 0.0f);
 
                     if ((cHeight + lineHeight) > scroll && (cHeight - lineHeight) < scrollMax) {
@@ -543,7 +557,7 @@ namespace worlds {
 
                 std::cout << "\r" << clearLineCode << colorStr << outStr << "\n";
                 if (g_console->asyncConsoleThread)
-                    std::cout << "\033[32mserver> \033[0m";
+                    std::cout << "\033[32mworlds> \033[0m";
                 else
                     std::cout << "\033[0m";
                 std::cout.flush();

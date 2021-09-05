@@ -246,7 +246,7 @@ namespace worlds {
     }
 
     void phLog(const char* msg) {
-        logMsg(WELogCategoryAudio, "Phonon: %s", msg);
+        logVrb(WELogCategoryAudio, "Phonon: %s", msg);
     }
 
     IPLMaterial mainMaterial{0.10f, 0.20f, 0.30f, 0.05f, 0.750f, 0.10f, 0.050f};
@@ -301,7 +301,7 @@ namespace worlds {
         missingClip = loadAudioClip(AssetDB::pathToId("Audio/SFX/missing.ogg"));
 
         volume = 1.0f;
-        logMsg(WELogCategoryAudio, "Initialising audio system");
+        logVrb(WELogCategoryAudio, "Initialising audio system");
 
         SDL_AudioSpec want, have;
         memset(&want, 0, sizeof(want));
@@ -317,7 +317,7 @@ namespace worlds {
         tempBuffer = (float*)malloc(have.samples * have.channels * sizeof(float));
         tempMonoBuffer = (float*)malloc(have.samples * sizeof(float));
 
-        logMsg(WELogCategoryAudio, "Opened audio device at %ihz with %i channels and %i samples", have.freq, have.channels, have.samples);
+        logVrb(WELogCategoryAudio, "Opened audio device at %ihz with %i channels and %i samples", have.freq, have.channels, have.samples);
         channelCount = have.channels;
         numSamples = have.samples;
         sampleRate = have.freq;
@@ -325,7 +325,7 @@ namespace worlds {
         reg.on_construct<AudioSource>().connect<&AudioSystem::onAudioSourceConstruct>(*this);
         reg.on_destroy<AudioSource>().connect<&AudioSystem::onAudioSourceDestroy>(*this);
 
-        logMsg(WELogCategoryAudio, "Initialising phonon");
+        logVrb(WELogCategoryAudio, "Initialising phonon");
         checkErr(iplCreateContext((IPLLogFunction)phLog, nullptr, nullptr, &phononContext));
 
         IPLRenderingSettings settings{ have.freq, have.samples, IPL_CONVOLUTIONTYPE_PHONON };
@@ -788,7 +788,7 @@ namespace worlds {
 
         std::free(res.value);
 
-        logMsg(WELogCategoryAudio, "Loaded %s: %i samples across %i channels with a sample rate of %i", path.c_str(), clip.sampleCount, clip.channels, clip.sampleRate);
+        logVrb(WELogCategoryAudio, "Loaded %s: %i samples across %i channels with a sample rate of %i", path.c_str(), clip.sampleCount, clip.channels, clip.sampleRate);
 
         if (clip.sampleRate != 44100) {
             SDL_AudioCVT cvt;
