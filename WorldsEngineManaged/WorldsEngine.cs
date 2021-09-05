@@ -161,7 +161,7 @@ namespace WorldsEngine
 
             if (ImGui.Begin($"{FontAwesome.FontAwesomeIcons.Cube} Selected Entity"))
             {
-                if (Registry.Valid(Editor.CurrentlySelected))
+                if (!Registry.Valid(Editor.CurrentlySelected))
                 {
                     ImGui.Text("No entity selected");
                 }
