@@ -75,6 +75,16 @@ namespace worlds {
         { SDL_LOG_PRIORITY_ERROR, "Error" }
     };
 
+    const char* priorityLabels[] = {
+        "Verbose",
+        "Debug",
+        "Info",
+        "Warn",
+        "Error",
+        "Critical"
+    };
+
+
     ConVar::ConVar(const char* name, const char* defaultValue, const char* help)
         : help(help)
         , name(name)
@@ -393,6 +403,13 @@ namespace worlds {
 
         static int lastMsgCount = 0;
         if (ImGui::Begin("Console", &show)) {
+
+            static int currentPriorityLevel = SDL_LOG_PRIORITY_INFO;
+            currentPriorityLevel -= 1;
+            ImGui::Combo("Priority Level", &currentPriorityLevel, priorityLabels, sizeof(priorityLabels) / sizeof(priorityLabels[0]));
+            currentPriorityLevel += 1;
+
+            ImGui::SameLine();
             if (ImGui::Button("Clear")) {
                 msgs.clear();
             }
@@ -407,6 +424,7 @@ namespace worlds {
                 consoleMutex.lock();
                 float padding = ImGui::GetStyle().ItemSpacing.y;
                 for (auto& msg : msgs) {
+                    if (msg.priority < currentPriorityLevel) continue;
                     ImVec2 textSize = ImGui::CalcTextSize(msg.msg.c_str(), nullptr, false, 0.0f);
 
                     if ((cHeight + lineHeight) > scroll && (cHeight - lineHeight) < scrollMax) {
