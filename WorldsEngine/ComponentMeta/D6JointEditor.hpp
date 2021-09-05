@@ -457,7 +457,10 @@ namespace worlds {
             px->setBreakForce(j["breakForce"], j["breakTorque"]);
 
             if (j.contains("target")) {
-                d6.setTarget(j["target"], reg);
+                if (!reg.valid(j["target"]))
+                    logErr("Invalid target while deserializing D6!");
+                else
+                    d6.setTarget(j["target"], reg);
             }
         }
     };
