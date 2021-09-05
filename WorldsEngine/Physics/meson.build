@@ -1,11 +1,11 @@
 worlds_sources += [
-  'Physics/FixedJoint.cpp',
   'Physics/D6Joint.cpp',
+  'Physics/FixedJoint.cpp',
   'Physics/Physics.cpp',
   'Physics/PhysicsActor.cpp',
-  'Physics/FixedJoint.hpp',
-  'Physics/FilterEntities.hpp',
   'Physics/D6Joint.hpp',
+  'Physics/FilterEntities.hpp',
+  'Physics/FixedJoint.hpp',
   'Physics/Physics.hpp',
   'Physics/PhysicsActor.hpp'
 ]

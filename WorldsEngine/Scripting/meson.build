@@ -1,7 +1,5 @@
 worlds_sources += [
   'Scripting/NetVM.cpp',
-  'Scripting/ScriptComponent.hpp',
-  'Scripting/Export.hpp',
   'Scripting/AssetDBBindings.hpp',
   'Scripting/AudioBindings.hpp',
   'Scripting/CameraBindings.hpp',
@@ -9,10 +7,12 @@ worlds_sources += [
   'Scripting/ConsoleBindings.hpp',
   'Scripting/DynamicPhysicsActorBindings.hpp',
   'Scripting/EditorBindings.hpp',
+  'Scripting/Export.hpp',
   'Scripting/InputBindings.hpp',
   'Scripting/NetVM.hpp',
   'Scripting/PhysicsBindings.hpp',
   'Scripting/RegistryBindings.hpp',
+  'Scripting/ScriptComponent.hpp',
   'Scripting/VRBindings.hpp',
   'Scripting/WorldObjectBindings.hpp',
   'Scripting/WorldTextBindings.hpp'

@@ -1,7 +1,7 @@
 worlds_sources += [
   'ComponentMeta/ComponentFuncs.cpp',
-  'ComponentMeta/ComponentMetadata.hpp',
+  'ComponentMeta/ComponentEditorUtil.hpp',
   'ComponentMeta/ComponentFuncs.hpp',
-  'ComponentMeta/D6JointEditor.hpp',
-  'ComponentMeta/ComponentEditorUtil.hpp'
+  'ComponentMeta/ComponentMetadata.hpp',
+  'ComponentMeta/D6JointEditor.hpp'
 ]
