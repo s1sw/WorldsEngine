@@ -144,5 +144,15 @@ namespace WorldsEngine.Math
         {
             return $"({w:0.###}, {x:0.###}, {y:0.###}, {z:0.###})";
         }
+
+        public static explicit operator Vector4(Quaternion q)
+        {
+            return new Vector4(q.x, q.y, q.z, q.w);
+        }
+
+        public static explicit operator Quaternion(Vector4 v4)
+        {
+            return new Quaternion(v4.w, v4.x, v4.y, v4.z);
+        }
     }
 }
