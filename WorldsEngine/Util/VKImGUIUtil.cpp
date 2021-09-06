@@ -37,6 +37,7 @@ namespace worlds {
         }
 
         void destroyDescriptorSet(VkDescriptorSet ds, const VulkanHandles* handles) {
+            vkDeviceWaitIdle(handles->device);
             vkFreeDescriptorSets(handles->device, handles->descriptorPool, 1, &ds);
         }
     }

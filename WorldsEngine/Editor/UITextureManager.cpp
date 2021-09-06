@@ -13,6 +13,15 @@ namespace worlds {
         : handles { handles } {
     }
 
+    UITextureManager::~UITextureManager() {
+        for (auto& p : texInfo) {
+            VKImGUIUtil::destroyDescriptorSet(p.second->ds, &handles);
+            delete p.second;
+        }
+
+        texInfo.clear();
+    }
+
     void UITextureManager::unload(AssetID id) {
         auto it = texInfo.find(id);
 

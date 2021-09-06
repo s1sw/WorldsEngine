@@ -1199,11 +1199,15 @@ namespace worlds {
 
         registry.clear();
 
+        if (runAsEditor)
+            editor.reset();
+
         if (!dedicatedServer) {
             shutdownRichPresence();
 
             auto vkCtx = static_cast<VKRenderer*>(renderer.get())->getHandles();
             VKImGUIUtil::destroyObjects(vkCtx);
+            renderer.reset();
         }
 
         shutdownPhysx();

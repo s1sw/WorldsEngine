@@ -188,6 +188,10 @@ namespace worlds {
 
 #undef REGISTER_COMPONENT_TYPE
 
+    Editor::~Editor() {
+        delete texMan;
+    }
+
     void Editor::select(entt::entity entity) {
         // Remove selection from existing entity
         if (reg.valid(currentSelectedEntity) && reg.has<UseWireframe>(currentSelectedEntity)) {
