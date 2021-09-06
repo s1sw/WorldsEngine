@@ -156,6 +156,14 @@ namespace WorldsEngine.ComponentMeta
                 ImGui.DragFloat3(fieldName, ref val);
                 fieldInfo.SetValue(instance, val);
             }
+            else if (fieldInfo.FieldType == typeof(Quaternion))
+            {
+                Quaternion val = (Quaternion)fieldInfo.GetValue(instance)!;
+                Vector4 v4 = (Vector4)val;
+
+                if (ImGui.DragFloat4(fieldName, ref v4))
+                    fieldInfo.SetValue(instance, (Quaternion)v4);
+            }
             else if (fieldInfo.FieldType == typeof(bool))
             {
                 bool val = (bool)fieldInfo.GetValue(instance)!;
