@@ -79,7 +79,6 @@ namespace Game.Interaction
 
             D6Joint d6 = Registry.AddComponent<D6Joint>(Entity);
             d6.SetAllAxisMotion(D6Motion.Locked);
-            d6.LocalPose = relativeTransform;
             d6.Target = grab;
 
             GrippedEntity = grab;
@@ -87,11 +86,25 @@ namespace Game.Interaction
             // If it doesn't have grips, just use the current position
             if (grabbable.grips.Count == 0)
             {
+                d6.LocalPose = relativeTransform;
                 return;
             }
 
-            // Select an appropriate grip and use it
+            GripHand thisHand = IsRightHand ? GripHand.Right : GripHand.Left;
 
+            // Select an appropriate grip and use it
+            Grip g = grabbable.grips
+                .Where((Grip g) => g.CanAttach && (g.Hand == GripHand.Both || g.Hand == thisHand))
+                .OrderByDescending((Grip g) => g.CalculateGripScore(grabbingTransform, handTransform))
+                .First();
+
+            if (g == null)
+                return;
+
+            if (g.rotation.LengthSquared < 0.9f)
+                g.rotation = Quaternion.Identity;
+
+            d6.TargetLocalPose = new Transform(g.position, g.rotation);
         }
 
         private void Release()

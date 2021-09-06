@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using WorldsEngine;
 using WorldsEngine.Math;
 
 namespace Game.Interaction
@@ -32,6 +33,7 @@ namespace Game.Interaction
         public bool Exclusive;
 
         public bool InUse { get; private set; }
+        public bool CanAttach => !Exclusive || !InUse;
         public int CurrentlyAttached = 0;
 
         internal void Attach()
@@ -48,6 +50,14 @@ namespace Game.Interaction
 
             if (CurrentlyAttached == 0)
                 InUse = false;
+        }
+
+        public float CalculateGripScore(Transform obj, Transform hand)
+        {
+            float linearScore = 1.0f / hand.Position.DistanceTo(obj.TransformPoint(position));
+            float angularScore = Quaternion.Dot(hand.Rotation.SingleCover, (rotation * obj.Rotation).SingleCover);
+
+            return linearScore;
         }
     }
 }
