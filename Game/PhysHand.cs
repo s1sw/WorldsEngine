@@ -26,6 +26,7 @@ namespace Game
         public bool FollowRightHand = false;
 
         private Transform _targetTransform = new Transform();
+        private Vector3 lastRefVel = Vector3.Zero;
 
         private void SetTargets()
         {
@@ -66,12 +67,17 @@ namespace Game
         public void Think(Entity entity)
         {
             SetTargets();
+            var bodyDpa = Registry.GetComponent<DynamicPhysicsActor>(PlayerRigSystem.PlayerBody);
 
             var dpa = Registry.GetComponent<DynamicPhysicsActor>(entity);
             Transform pose = dpa.Pose;
 
-            Vector3 force = PD.CalculateForce(pose.Position, _targetTransform.Position, dpa.Velocity, Time.DeltaTime)
+            Vector3 force = PD.CalculateForce(pose.Position, _targetTransform.Position, dpa.Velocity, Time.DeltaTime, bodyDpa.Velocity)
                 .ClampMagnitude(ForceLimit);
+
+            dpa.AddForce(bodyDpa.Velocity - lastRefVel, ForceMode.VelocityChange);
+
+            lastRefVel = bodyDpa.Velocity;
 
             dpa.AddForce(force);
 
