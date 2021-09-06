@@ -266,7 +266,6 @@ namespace worlds {
         uint32_t width, height;
         VkSampleCountFlagBits msaaSamples;
         int32_t numMSAASamples;
-        VkRenderPass imguiRenderPass;
         std::vector<VkFramebuffer> framebuffers;
         VkCommandPool commandPool;
         std::vector<VkCommandBuffer> cmdBufs;

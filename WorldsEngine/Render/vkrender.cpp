@@ -1708,7 +1708,6 @@ VKRenderer::~VKRenderer() {
 
         vkDestroyPipelineCache(device, pipelineCache, nullptr);
         vkDestroyDescriptorPool(device, descriptorPool, nullptr);
-        vkDestroyRenderPass(device, imguiRenderPass, nullptr);
 
         vkDestroyDevice(device, nullptr);
         dbgCallback.reset();
