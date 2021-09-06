@@ -20,6 +20,12 @@ namespace WorldsEngine.Math
             _ => throw new IndexOutOfRangeException()
         };
 
+        public Mat3x3 Transpose => new(
+            new Vector3(m00, m10, m20),
+            new Vector3(m01, m11, m21),
+            new Vector3(m02, m12, m22)
+        );
+
         public Mat3x3(Vector3 column0, Vector3 column1, Vector3 column2)
         {
             m00 = column0.x;
@@ -79,6 +85,47 @@ namespace WorldsEngine.Math
             }
 
             return new Quaternion(qw, qx, qy, qz);
+        }
+
+        public Vector3 Transform(Vector3 v3)
+        {
+            return this[0] * v3.x + this[1] * v3.y + this[2] * v3.z;
+        }
+
+        public static Mat3x3 operator +(Mat3x3 a, Mat3x3 b)
+        {
+            return new Mat3x3(
+                a[0] + b[0],
+                a[1] + b[1],
+                a[2] + b[2]
+            );
+        }
+
+        public static Mat3x3 operator-(Mat3x3 a, Mat3x3 b)
+        {
+            return new Mat3x3(
+                a[0] - b[0],
+                a[1] - b[1],
+                a[2] - b[2]
+            );
+        }
+
+        public static Mat3x3 operator*(Mat3x3 a, Mat3x3 b)
+        {
+            return new Mat3x3(
+                a.Transform(b[0]),
+                a.Transform(b[1]),
+                a.Transform(b[2])
+            );
+        }
+
+        public static Mat3x3 operator*(Mat3x3 mat, float scalar)
+        {
+            return new Mat3x3(
+                mat[0] * scalar,
+                mat[1] * scalar,
+                mat[2] * scalar
+            );
         }
 
         public static explicit operator Quaternion(Mat3x3 mat)

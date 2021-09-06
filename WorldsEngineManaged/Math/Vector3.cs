@@ -20,6 +20,7 @@ namespace WorldsEngine.Math
         public float x, y, z;
 
         public bool HasNaNComponent => float.IsNaN(x) || float.IsNaN(y) || float.IsNaN(z);
+        public bool IsZero => x == 0.0f && y == 0.0f && z == 0.0f;
         public Vector3 Normalized => this / Length;
 
         public Vector3(float x, float y, float z)
@@ -110,6 +111,11 @@ namespace WorldsEngine.Math
             x /= len;
             y /= len;
             z /= len;
+        }
+
+        public float DistanceTo(Vector3 other)
+        {
+            return (this - other).Length;
         }
 
         public override string ToString()
