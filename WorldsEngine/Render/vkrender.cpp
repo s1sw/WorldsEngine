@@ -151,7 +151,7 @@ void VKRenderer::createInstance(const RendererInitInfo& initInfo) {
 #ifndef NDEBUG
     if (!enableVR || vrValidationLayers) {
         logVrb(WELogCategoryRender, "Activating validation layers");
-        //instanceMaker.layer("VK_LAYER_KHRONOS_validation");
+        instanceMaker.layer("VK_LAYER_KHRONOS_validation");
         instanceMaker.extension(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
     }
 #endif
@@ -1207,7 +1207,7 @@ void VKRenderer::writeCmdBuf(VkCommandBuffer cmdBuf, uint32_t imageIndex, Camera
 
     if (!lastPassIsVr) {
         VkImageBlit imageBlit{};
-        imageBlit.srcOffsets[1] = imageBlit.dstOffsets[1] = VkOffset3D{ windowSize.x, windowSize.y, 1 };
+        imageBlit.srcOffsets[1] = imageBlit.dstOffsets[1] = VkOffset3D{ (int)width, (int)height, 1 };
         imageBlit.dstSubresource = imageBlit.srcSubresource = VkImageSubresourceLayers{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 };
         vkCmdBlitImage(cmdBuf, finalPrePresent->image.image(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
             swapchain->images[imageIndex], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imageBlit, VK_FILTER_NEAREST);
