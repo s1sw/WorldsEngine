@@ -2,7 +2,7 @@
 // right now, it doesn't display overlays so you don't get the text saying
 // what's currently loading but honestly i value my mental health more than
 // some little "loading renderer!!" text
-// 
+//
 // for the sake of my sanity, i'm staying far away from the legacy infested
 // spiderweb that is XCB for the forseeable future.
 #ifdef __linux__
@@ -14,6 +14,7 @@
 #include <xcb/xcb_icccm.h>
 #include <xcb/xcb_ewmh.h>
 #include <xcb/xcb_image.h>
+#include <xcb/render.h>
 #include "stb_image.h"
 
 namespace worlds {
@@ -22,6 +23,13 @@ namespace worlds {
         xcb_intern_atom_reply_t* reply = xcb_intern_atom_reply(connection, cookie, nullptr);
 
         return reply;
+    }
+
+    void testCookie (xcb_void_cookie_t cookie, xcb_connection_t *connection, char *errMessage) {
+        xcb_generic_error_t *error = xcb_request_check (connection, cookie);
+        if (error) {
+            logErr("ERROR: %s : %" PRIu8 "\n", errMessage , error->error_code);
+        }
     }
 
     // taken from http://vincentsanders.blogspot.com/2010/04/xcb-programming-is-hard.html
@@ -77,20 +85,23 @@ namespace worlds {
         }
 
         xcb_pixmap_t pixmap = xcb_generate_id(connection);
+        xcb_create_pixmap(connection, depth, pixmap, window, width, height);
 
         xcb_gcontext_t pixmapGc = xcb_generate_id(connection);
+        xcb_create_gc(connection, pixmapGc, pixmap, 0, nullptr);
         xcb_flush(connection);
 
+        xcb_image_put(connection, pixmap, pixmapGc, nativeImg, 0, 0, 0);
         xcb_flush(connection);
 
         xcb_free_gc(connection, pixmapGc);
-
         xcb_image_destroy(nativeImg);
 
         return pixmap;
     }
 
-    SplashScreenImplX11::SplashScreenImplX11(bool small) {
+    SplashScreenImplX11::SplashScreenImplX11(bool small)
+        : small { small } {
         // Connect to the X server
         connection = xcb_connect(nullptr, nullptr);
 
@@ -120,7 +131,7 @@ namespace worlds {
             windowMask, windowValues
         );
 
-        background = loadDataFileToPixmap(connection, screen->root_depth, window, "splash.png");
+        background = loadDataFileToPixmap(connection, screen->root_depth, window, small ? "splash_game.png" : "splash.png");
 
         // Motif hint to remove decoration
         struct MotifWMHints {
@@ -137,7 +148,7 @@ namespace worlds {
         xcb_intern_atom_reply_t* motifAtomReply = getAtom(connection, "_MOTIF_WM_HINTS");
         if (motifAtomReply) {
             xcb_change_property(connection, XCB_PROP_MODE_REPLACE, window, motifAtomReply->atom, motifAtomReply->atom, 32, 5, &hints);
-            free(atomReply);
+            free(motifAtomReply);
         }
 
         // EWMH hint to set the window type to a splash screen
@@ -161,14 +172,12 @@ namespace worlds {
     }
 
     void SplashScreenImplX11::handleEvent(xcb_generic_event_t* event) {
-        xcb_rectangle_t rect = { 0, 0, 800, 600 };
         switch (event->response_type & ~0x80) {
         case XCB_EXPOSE: {
-            xcb_expose_event_t* expose = (xcb_expose_event_t*)event;
             xcb_copy_area(connection, background, window, graphicsContext,
                 0, 0,
                 0, 0,
-                800, 600);
+                small ? 460 : 800, small ? 215 : 600);
             xcb_flush(connection);
             break;
         }

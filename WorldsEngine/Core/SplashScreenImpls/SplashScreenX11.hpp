@@ -13,6 +13,7 @@ namespace worlds {
         ~SplashScreenImplX11();
     private:
         volatile bool running = true;
+        bool small;
         void handleEvent(xcb_generic_event_t* event);
         void eventLoop();
         xcb_window_t window;
