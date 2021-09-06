@@ -166,6 +166,7 @@ namespace worlds {
     class Editor {
     public:
         Editor(entt::registry& reg, EngineInterfaces interfaces);
+        ~Editor();
         void select(entt::entity entity);
         void multiSelect(entt::entity entity);
         void update(float deltaTime);

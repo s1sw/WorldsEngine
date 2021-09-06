@@ -11,6 +11,7 @@ namespace worlds {
         UITextureManager(const VulkanHandles& handles);
         ImTextureID loadOrGet(AssetID id);
         void unload(AssetID id);
+        ~UITextureManager();
     private:
         struct UITexInfo;
         UITexInfo* load(AssetID id);
