@@ -77,9 +77,9 @@ namespace worlds {
                 maxPos.x += wSize.x;
                 maxPos.y += 50.0f;
 
-                drawList->AddRectFilled(minPos, maxPos, ImGui::GetColorU32(ImGuiCol_WindowBg, 0.8f), 0.0f, ImDrawFlags_RoundCornersBottom);
+                drawList->AddRectFilled(minPos, maxPos, ImGui::GetColorU32(ImGuiCol_WindowBg), 0.0f, ImDrawFlags_RoundCornersBottom);
                 drawList->AddRect(minPos - ImVec2(2.0f, 5.0f), maxPos + ImVec2(2.0f, 0.0f), ImGui::GetColorU32(ImGuiCol_Border), 0.0f, 0, 2.0f);
-                
+
                 const char* dbgDrawModes[] = {
                     "None",
                     "Normals",
@@ -341,8 +341,8 @@ namespace worlds {
             }
 
             warpAmount = glm::ivec2{ 0 };
-            
-            
+
+
             if (mousePos.x > windowSize.x) {
                 warpAmount = glm::ivec2(-windowSize.x, 0);
                 inputManager.warpMouse(glm::ivec2(mousePos.x - windowSize.x, mousePos.y));
@@ -350,7 +350,7 @@ namespace worlds {
                 warpAmount = glm::ivec2(windowSize.x, 0);
                 inputManager.warpMouse(glm::ivec2(mousePos.x + windowSize.x, mousePos.y));
             }
-            
+
             if (mousePos.y > windowSize.y) {
                 warpAmount = glm::ivec2(0, -windowSize.y);
                 inputManager.warpMouse(glm::ivec2(mousePos.x, mousePos.y - windowSize.y));
