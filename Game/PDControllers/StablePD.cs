@@ -17,7 +17,10 @@ namespace Game
 
         public StablePD() { }
 
-        public Vector3 CalculateForce(Vector3 currentPosition, Vector3 desiredPosition, Vector3 velocity, float deltaTime)
+        public Vector3 CalculateForce(
+            Vector3 currentPosition, Vector3 desiredPosition, 
+            Vector3 velocity, float deltaTime,
+            Vector3? refVel = null)
         {
             if (lastVelocity.HasNaNComponent)
                 lastVelocity = Vector3.Zero;
@@ -25,7 +28,7 @@ namespace Game
             Vector3 acceleration = velocity - lastVelocity;
 
             Vector3 result = -P * (currentPosition + (deltaTime * velocity) - desiredPosition)
-                - D * (velocity + (deltaTime * acceleration));
+                - D * (velocity - refVel.GetValueOrDefault() + (deltaTime * acceleration));
 
             lastVelocity = velocity;
 
