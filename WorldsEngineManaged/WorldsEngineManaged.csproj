@@ -19,4 +19,7 @@
     <ItemGroup>
       <PackageReference Include="JetBrains.Annotations" Version="2021.2.0" />
     </ItemGroup>
+    <ItemGroup Condition="'$(IsLinux)' == 'true'">
+      <PackageReference Include="Mono.Posix.NETStandard" Version="1.0.0" />
+    </ItemGroup>
 </Project>
