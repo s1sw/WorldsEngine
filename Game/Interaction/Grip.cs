@@ -34,7 +34,7 @@ namespace Game.Interaction
 
         public bool InUse { get; private set; }
         public bool CanAttach => !Exclusive || !InUse;
-        public int CurrentlyAttached = 0;
+        public int CurrentlyAttached { get; private set; }
 
         internal void Attach()
         {

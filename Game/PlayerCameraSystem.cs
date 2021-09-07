@@ -40,7 +40,7 @@ namespace Game
                 {
                     Camera.Main.Rotation = cameraRotation;
                     Transform bodyTransform = Registry.GetTransform(PlayerRigSystem.PlayerBody);
-                    Camera.Main.Position = bodyTransform.Position + new Vector3(0f, 0.5f * (bodyTransform.Scale.y / 0.75f), 0f);
+                    Camera.Main.Position = bodyTransform.Position + new Vector3(0f, 0.5f * (bodyTransform.Scale.y / 0.75f) - 0.15f, 0f);
                 }
                 else
                 {
@@ -52,7 +52,9 @@ namespace Game
                 Vector3 hmdOffset = VR.HMDTransform.Position;
                 hmdOffset.y = -0.15f;
 
-                Camera.Main.Position = locosphereTransform.Position - (Camera.Main.Rotation * hmdOffset);
+
+                Transform bodyTransform = Registry.GetTransform(PlayerRigSystem.PlayerBody);
+                Camera.Main.Position = bodyTransform.Position + (Camera.Main.Rotation * -hmdOffset) - new Vector3(0f, (bodyTransform.Scale.y / 0.75f) + 0.45f, 0f);
             }
 
             if (Keyboard.KeyPressed(KeyCode.L))

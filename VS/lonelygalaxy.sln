@@ -9,7 +9,7 @@ Project("{911E67C6-3D85-4FCE-B560-20A9C3E3FF48}") = "lonelygalaxy", "lonelygalax
 		Executable = E:\Projects\WorldsEngine\build_ninja\meson-out\lonelygalaxy.exe
 		RemoteMachine = DESKTOP-QP8QVQB
 		StartingDirectory = E:\Projects\WorldsEngine\build_ninja\meson-out
-		Arguments = --editor --novr --create-console-window --enable-console-window-input
+		Arguments = --editor --create-console-window --enable-console-window-input
 		Environment = Default
 		LaunchingEngine = e55ccc87-77c9-4222-8310-09f38e24c40f
 		UseLegacyDebugEngines = No
@@ -25,6 +25,8 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WorldsEngineManaged", "..\WorldsEngineManaged\WorldsEngineManaged.csproj", "{667C72AF-017D-4243-BA52-10D58A1D0A12}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "slib", "..\subprojects\slib.git\VSProject\slib.vcxproj", "{73D67E42-E8C1-47B8-A182-97C63D8E2C85}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WorldsEngineManaged.Tests", "..\WorldsEngineManaged.Tests\WorldsEngineManaged.Tests.csproj", "{173647E1-4A7C-4EA9-8E80-550783982BF7}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -83,6 +85,18 @@ Global
 		{73D67E42-E8C1-47B8-A182-97C63D8E2C85}.Release|x64.Build.0 = Release|x64
 		{73D67E42-E8C1-47B8-A182-97C63D8E2C85}.Release|x86.ActiveCfg = Release|Win32
 		{73D67E42-E8C1-47B8-A182-97C63D8E2C85}.Release|x86.Build.0 = Release|Win32
+		{173647E1-4A7C-4EA9-8E80-550783982BF7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{173647E1-4A7C-4EA9-8E80-550783982BF7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{173647E1-4A7C-4EA9-8E80-550783982BF7}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{173647E1-4A7C-4EA9-8E80-550783982BF7}.Debug|x64.Build.0 = Debug|Any CPU
+		{173647E1-4A7C-4EA9-8E80-550783982BF7}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{173647E1-4A7C-4EA9-8E80-550783982BF7}.Debug|x86.Build.0 = Debug|Any CPU
+		{173647E1-4A7C-4EA9-8E80-550783982BF7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{173647E1-4A7C-4EA9-8E80-550783982BF7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{173647E1-4A7C-4EA9-8E80-550783982BF7}.Release|x64.ActiveCfg = Release|Any CPU
+		{173647E1-4A7C-4EA9-8E80-550783982BF7}.Release|x64.Build.0 = Release|Any CPU
+		{173647E1-4A7C-4EA9-8E80-550783982BF7}.Release|x86.ActiveCfg = Release|Any CPU
+		{173647E1-4A7C-4EA9-8E80-550783982BF7}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
