@@ -89,7 +89,7 @@ namespace WorldsEngine
 
             DirectoryInfo[] dirs = dir.GetDirectories();
 
-            // If the destination directory doesn't exist, create it.       
+            // If the destination directory doesn't exist, create it.
             Directory.CreateDirectory(destDirName);
 
             // Get the files in the directory and copy them to the new location.

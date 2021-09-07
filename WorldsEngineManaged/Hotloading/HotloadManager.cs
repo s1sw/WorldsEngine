@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.Runtime.InteropServices;
 
 namespace WorldsEngine
 {
@@ -34,7 +32,13 @@ namespace WorldsEngine
             _assemblyManager = new GameAssemblyManager();
             _assemblyManager.LoadGameAssembly();
 
-            _dllWatcher = new FileSystemWatcher(Path.GetFullPath("GameAssemblies"))
+            string watchPath = Path.GetFullPath("GameAssemblies");
+
+#if Linux
+            watchPath = Mono.Unix.UnixPath.GetCompleteRealPath(watchPath);
+#endif
+
+            _dllWatcher = new FileSystemWatcher(watchPath)
             {
                 Filter = "",
                 NotifyFilter = NotifyFilters.Attributes
