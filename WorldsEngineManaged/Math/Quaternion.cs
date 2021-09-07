@@ -117,17 +117,17 @@ namespace WorldsEngine.Math
             
             float tmp1 = x*y;
             float tmp2 = z*w;
-            mat.m10 = 2f * (tmp1 + tmp2)*invs ;
-            mat.m01 = 2f * (tmp1 - tmp2)*invs ;
+            mat.m01 = 2f * (tmp1 + tmp2)*invs ;
+            mat.m10 = 2f * (tmp1 - tmp2)*invs ;
             
             tmp1 = x*z;
             tmp2 = y*w;
-            mat.m20 = 2f * (tmp1 - tmp2)*invs ;
-            mat.m02 = 2f * (tmp1 + tmp2)*invs ;
+            mat.m02 = 2f * (tmp1 - tmp2)*invs ;
+            mat.m20 = 2f * (tmp1 + tmp2)*invs ;
             tmp1 = y*z;
             tmp2 = x*w;
-            mat.m21 = 2f * (tmp1 + tmp2)*invs ;
-            mat.m12 = 2f * (tmp1 - tmp2)*invs ;     
+            mat.m12 = 2f * (tmp1 + tmp2)*invs ;
+            mat.m21 = 2f * (tmp1 - tmp2)*invs ;     
 
             return mat;
         }

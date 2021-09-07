@@ -10,6 +10,7 @@ namespace WorldsEngine.Util
     public class InertiaTensorComputer
     {
         public Mat3x3 Inertia => _inertiaMatrix;
+        public float Mass => _mass;
         private Mat3x3 _inertiaMatrix = new();
         private Vector3 _centerOfMass = new();
         private float _mass = 0.0f;
@@ -92,6 +93,12 @@ namespace WorldsEngine.Util
         {
             _inertiaMatrix = rotation * _inertiaMatrix * rotation.Transpose;
             _centerOfMass = rotation.Transform(_centerOfMass);
+        }
+
+        public void ScaleDensity(float densityScale)
+        {
+            _inertiaMatrix *= densityScale;
+            _mass *= densityScale;
         }
 
         private void SetDiagonal(float mass, Vector3 diag)

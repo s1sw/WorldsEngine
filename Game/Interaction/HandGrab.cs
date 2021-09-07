@@ -54,7 +54,7 @@ namespace Game.Interaction
             const int MaxOverlaps = 10;
             Entity[] overlapped = new Entity[MaxOverlaps];
 
-            uint overlappedCount = Physics.OverlapSphereMultiple(dpa.Pose.TransformPoint(new Vector3(0.0f, 0.0f, 0.03f)), 0.1f, MaxOverlaps, overlapped);
+            uint overlappedCount = Physics.OverlapSphereMultiple(dpa.Pose.TransformPoint(new Vector3(0.0f, 0.0f, 0.03f)), 0.5f, MaxOverlaps, overlapped);
 
             for (int i = 0; i < overlappedCount; i++)
             {
@@ -77,47 +77,46 @@ namespace Game.Interaction
                 case PhysicsShapeType.Box:
                     BoxPhysicsShape boxShape = (BoxPhysicsShape)shape;
                     shapeComp.SetBox(boxShape.halfExtents * offset.Scale);
-                    float m = 8.0f * (boxShape.halfExtents.x * boxShape.halfExtents.y * boxShape.halfExtents.z);
-                    Logger.Log($"s: {(1.0f / 3.0f) * m}");
-                    Logger.Log($"he: {boxShape.halfExtents}");
 
                     break;
             }
-            Logger.Log($"shape type {shape.type}");
 
-            Mat3x3 phs = itComp.Inertia;
-
-            Logger.Log($"Shape tensor before transform: {phs[0]}, {phs[1]}, {phs[2]}");
             shapeComp.Rotate(offset.Rotation.ToMat3x3());
             shapeComp.Translate(offset.Position);
-            phs = itComp.Inertia;
-            Logger.Log($"Shape tensor after transform: {phs[0]}, {phs[1]}, {phs[2]}");
 
             itComp.Add(shapeComp);
         }
 
-        private Mat3x3 CalculateCombinedTensor(Entity grabbed)
+        private Mat3x3 CalculateCombinedTensor(Entity grabbed, Transform gripTransform)
         {
             var dpa = Registry.GetComponent<DynamicPhysicsActor>(Entity);
             var grabbedDpa = Registry.GetComponent<DynamicPhysicsActor>(grabbed);
 
-            InertiaTensorComputer itComp = new InertiaTensorComputer();
+            var transform = Registry.GetTransform(Entity);
+            var grabbedTransform = Registry.GetTransform(grabbed);
+
+            InertiaTensorComputer itComp = new();
 
             var handShapes = dpa.GetPhysicsShapes();
             var grabbedShapes = grabbedDpa.GetPhysicsShapes();
 
+            Transform gripToWorldSpace = grabbedDpa.Pose;
             foreach (var physShape in handShapes)
             {
-                AddShapeTensor(physShape, new Transform() { Rotation = Quaternion.Identity, Scale = Vector3.One }, itComp);
+                AddShapeTensor(physShape, new Transform(physShape.position, physShape.rotation), itComp);
             }
-            Mat3x3 phs = itComp.Inertia;
 
-            Logger.Log($"Tensor after adding hand shapes: {phs[0]}, {phs[1]}, {phs[2]}");
+            //InertiaTensorComputer grabbedComp = new();
 
             foreach (var physShape in grabbedShapes)
             {
-                AddShapeTensor(physShape, grabbedDpa.Pose.TransformByInverse(dpa.Pose), itComp);
+                Transform shapeTransform = new Transform(physShape.position, physShape.rotation);
+                shapeTransform = gripTransform.TransformBy(shapeTransform);
+                shapeTransform.Scale = grabbedTransform.Scale;
+                AddShapeTensor(physShape, shapeTransform, itComp);
             }
+
+            itComp.ScaleDensity((grabbedDpa.Mass + dpa.Mass) / itComp.Mass);
 
             return itComp.Inertia;
         }
@@ -125,6 +124,7 @@ namespace Game.Interaction
         private void Grab(Entity grab)
         {
             Grabbable grabbable = Registry.GetComponent<Grabbable>(grab);
+            var physHand = Registry.GetComponent<PhysHand>(Entity);
 
             Transform handTransform = Registry.GetTransform(Entity);
             Transform grabbingTransform = Registry.GetTransform(grab);
@@ -133,14 +133,18 @@ namespace Game.Interaction
 
             D6Joint d6 = Registry.AddComponent<D6Joint>(Entity);
             d6.SetAllAxisMotion(D6Motion.Locked);
-            d6.Target = grab;
 
             GrippedEntity = grab;
 
             // If it doesn't have grips, just use the current position
             if (grabbable.grips.Count == 0)
             {
+                Transform gripTransform = Registry.GetComponent<DynamicPhysicsActor>(grab).Pose.TransformByInverse(handTransform);
                 d6.LocalPose = relativeTransform;
+                d6.Target = grab;
+
+                physHand.UseOverrideTensor = true;
+                physHand.OverrideTensor = CalculateCombinedTensor(grab, gripTransform);
                 return;
             }
 
@@ -159,13 +163,12 @@ namespace Game.Interaction
                 g.rotation = Quaternion.Identity;
 
             d6.TargetLocalPose = new Transform(g.position, g.rotation);
-            var physHand = Registry.GetComponent<PhysHand>(Entity);
 
-            Mat3x3 combinedTensor = CalculateCombinedTensor(grab);
-            Logger.Log($"Inertia tensor: {combinedTensor[0]}, {combinedTensor[1]}, {combinedTensor[2]}");
+            Mat3x3 combinedTensor = CalculateCombinedTensor(grab, new Transform(-g.position, g.rotation.Inverse));
 
             physHand.UseOverrideTensor = true;
             physHand.OverrideTensor = combinedTensor;
+            d6.Target = grab;
         }
 
         private void Release()

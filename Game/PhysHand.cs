@@ -94,6 +94,7 @@ namespace Game
 
             Vector3 torque = RotationPID.CalculateForce(angle * axis, Time.DeltaTime);
 
+            torque = pose.Rotation.SingleCover.Inverse * torque;
             if (!UseOverrideTensor)
             {
                 Quaternion itRotation = dpa.CenterOfMassLocalPose.Rotation;
@@ -109,7 +110,9 @@ namespace Game
                 torque = OverrideTensor.Transform(torque);
             }
 
-            torque = torque.ClampMagnitude(TorqueLimit);
+            torque = pose.Rotation.SingleCover * torque;
+
+            //torque = torque.ClampMagnitude(TorqueLimit);
             dpa.AddTorque(torque);
 
             if (Keyboard.KeyPressed(KeyCode.L) && !FollowRightHand)

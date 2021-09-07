@@ -21,6 +21,7 @@ namespace Game
 
         private bool _grounded = false;
         private VRAction _movementAction;
+        private Vector3 _lastHMDPos = Vector3.Zero;
 
         private Vector2 GetInputVelocity()
         {
@@ -107,6 +108,16 @@ namespace Game
                 dpa.AddForce(forceVector, ForceMode.VelocityChange);
                 fenderDpa.AddForce(forceVector, ForceMode.VelocityChange);
                 PlayerRigSystem.Jump = false;
+            }
+
+            if (VR.Enabled)
+            {
+                Vector3 movement = VR.HMDTransform.Position - _lastHMDPos;
+                movement.y = 0f;
+                var pose = dpa.Pose;
+                pose.Position += movement;
+                dpa.Pose = pose;
+                _lastHMDPos = VR.HMDTransform.Position;
             }
         }
     }

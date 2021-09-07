@@ -200,12 +200,18 @@ namespace WorldsEngine.ComponentMeta
                         l.Add(Activator.CreateInstance(objType));
                     }
 
+                    int removeIndex = -1;
                     for (int i = 0; i < l.Count; i++)
                     {
                         object? classInstance = l[i];
 
                         if (ImGui.TreeNode($"Element {i}"))
                         {
+                            if (ImGui.Button("-"))
+                            {
+                                removeIndex = i;
+                            }
+
                             if (classInstance == null)
                             {
                                 ImGui.Text("Null");
@@ -225,6 +231,9 @@ namespace WorldsEngine.ComponentMeta
                             ImGui.TreePop();
                         }
                     }
+
+                    if (removeIndex >= 0)
+                        l.RemoveAt(removeIndex);
                 }
                 else
                 {

@@ -132,5 +132,12 @@ namespace WorldsEngine.Math
         {
             return mat.ToQuaternion();
         }
+
+        public override string ToString()
+        {
+            return $"[{m00}, {m10}, {m20}\n" +
+                   $" {m01}, {m11}, {m21}\n" +
+                   $" {m02}, {m12}, {m22}]";
+        }
     }
 }
