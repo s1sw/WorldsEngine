@@ -63,6 +63,7 @@ namespace lg {
             break;
         case worlds::PhysicsShapeType::Box:
             shapeComp.setBox(worlds::glm2px(shape.box.halfExtents * scale), &shapeTransform);
+            logMsg("half extents: %.3f, %.3f, %.3f", shape.box.halfExtents.x, shape.box.halfExtents.y, shape.box.halfExtents.z);
             break;
         case worlds::PhysicsShapeType::Capsule:
             shapeComp.setCapsule(0, shape.capsule.radius, shape.capsule.height, &shapeTransform);

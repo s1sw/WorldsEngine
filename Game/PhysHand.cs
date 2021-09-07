@@ -25,6 +25,11 @@ namespace Game
         public V3PidController RotationPID = new V3PidController();
         public bool FollowRightHand = false;
 
+        [NonSerialized]
+        public bool UseOverrideTensor = false;
+        [NonSerialized]
+        public Mat3x3 OverrideTensor = new();
+
         private Transform _targetTransform = new Transform();
         private Vector3 lastRefVel = Vector3.Zero;
 
@@ -46,7 +51,7 @@ namespace Game
 
             if (_targetTransform.Rotation.HasNaNComponent)
                 _targetTransform.Rotation = Quaternion.Identity;
-            
+
             if (_targetTransform.Position.HasNaNComponent)
                 _targetTransform.Position = Vector3.Zero;
 
@@ -55,7 +60,7 @@ namespace Game
             //_targetTransform.Position += _targetTransform.Rotation * PositionOffset;
             //_targetTransform.Position = virtualRotation * _targetTransform.Position;
             //
-            
+
             _targetTransform.Position += Camera.Main.Position;
             //
             _targetTransform.Rotation *= rotationOffset;
@@ -83,23 +88,30 @@ namespace Game
 
             Quaternion quatDiff = _targetTransform.Rotation.SingleCover * pose.Rotation.SingleCover.Inverse;
             quatDiff = quatDiff.SingleCover;
-            
+
             float angle = PDUtil.AngleToErr(quatDiff.Angle);
             Vector3 axis = quatDiff.Axis;
-            
+
             Vector3 torque = RotationPID.CalculateForce(angle * axis, Time.DeltaTime);
 
-            Quaternion itRotation = dpa.CenterOfMassLocalPose.Rotation;
-            Vector3 tensor = dpa.InertiaTensor;
+            if (!UseOverrideTensor)
+            {
+                Quaternion itRotation = dpa.CenterOfMassLocalPose.Rotation;
+                Vector3 tensor = dpa.InertiaTensor;
 
-            torque = itRotation * torque;
-            torque *= tensor;
+                torque = itRotation * torque;
+                torque *= tensor;
 
-            torque = itRotation.Inverse * torque;
+                torque = itRotation.Inverse * torque;
+            }
+            else
+            {
+                torque = OverrideTensor.Transform(torque);
+            }
 
             torque = torque.ClampMagnitude(TorqueLimit);
             dpa.AddTorque(torque);
-            
+
             if (Keyboard.KeyPressed(KeyCode.L) && !FollowRightHand)
             {
                 rotationOffset = VR.LeftHandTransform.Rotation.Inverse;

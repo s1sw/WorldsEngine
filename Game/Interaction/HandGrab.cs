@@ -1,11 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Linq;
 using WorldsEngine;
 using WorldsEngine.Input;
 using WorldsEngine.Math;
+using WorldsEngine.Util;
 
 namespace Game.Interaction
 {
@@ -68,6 +65,63 @@ namespace Game.Interaction
             }
         }
 
+        private void AddShapeTensor(PhysicsShape shape, Transform offset, InertiaTensorComputer itComp)
+        {
+            InertiaTensorComputer shapeComp = new InertiaTensorComputer();
+            switch (shape.type)
+            {
+                case PhysicsShapeType.Sphere:
+                    SpherePhysicsShape sphereShape = (SpherePhysicsShape)shape;
+                    shapeComp.SetSphere(sphereShape.radius * offset.Scale.ComponentMean);
+                    break;
+                case PhysicsShapeType.Box:
+                    BoxPhysicsShape boxShape = (BoxPhysicsShape)shape;
+                    shapeComp.SetBox(boxShape.halfExtents * offset.Scale);
+                    float m = 8.0f * (boxShape.halfExtents.x * boxShape.halfExtents.y * boxShape.halfExtents.z);
+                    Logger.Log($"s: {(1.0f / 3.0f) * m}");
+                    Logger.Log($"he: {boxShape.halfExtents}");
+
+                    break;
+            }
+            Logger.Log($"shape type {shape.type}");
+
+            Mat3x3 phs = itComp.Inertia;
+
+            Logger.Log($"Shape tensor before transform: {phs[0]}, {phs[1]}, {phs[2]}");
+            shapeComp.Rotate(offset.Rotation.ToMat3x3());
+            shapeComp.Translate(offset.Position);
+            phs = itComp.Inertia;
+            Logger.Log($"Shape tensor after transform: {phs[0]}, {phs[1]}, {phs[2]}");
+
+            itComp.Add(shapeComp);
+        }
+
+        private Mat3x3 CalculateCombinedTensor(Entity grabbed)
+        {
+            var dpa = Registry.GetComponent<DynamicPhysicsActor>(Entity);
+            var grabbedDpa = Registry.GetComponent<DynamicPhysicsActor>(grabbed);
+
+            InertiaTensorComputer itComp = new InertiaTensorComputer();
+
+            var handShapes = dpa.GetPhysicsShapes();
+            var grabbedShapes = grabbedDpa.GetPhysicsShapes();
+
+            foreach (var physShape in handShapes)
+            {
+                AddShapeTensor(physShape, new Transform() { Rotation = Quaternion.Identity, Scale = Vector3.One }, itComp);
+            }
+            Mat3x3 phs = itComp.Inertia;
+
+            Logger.Log($"Tensor after adding hand shapes: {phs[0]}, {phs[1]}, {phs[2]}");
+
+            foreach (var physShape in grabbedShapes)
+            {
+                AddShapeTensor(physShape, grabbedDpa.Pose.TransformByInverse(dpa.Pose), itComp);
+            }
+
+            return itComp.Inertia;
+        }
+
         private void Grab(Entity grab)
         {
             Grabbable grabbable = Registry.GetComponent<Grabbable>(grab);
@@ -105,6 +159,13 @@ namespace Game.Interaction
                 g.rotation = Quaternion.Identity;
 
             d6.TargetLocalPose = new Transform(g.position, g.rotation);
+            var physHand = Registry.GetComponent<PhysHand>(Entity);
+
+            Mat3x3 combinedTensor = CalculateCombinedTensor(grab);
+            Logger.Log($"Inertia tensor: {combinedTensor[0]}, {combinedTensor[1]}, {combinedTensor[2]}");
+
+            physHand.UseOverrideTensor = true;
+            physHand.OverrideTensor = combinedTensor;
         }
 
         private void Release()
@@ -112,6 +173,8 @@ namespace Game.Interaction
             Logger.Log("Release");
             Registry.RemoveComponent<D6Joint>(Entity);
             GrippedEntity = Entity.Null;
+            var physHand = Registry.GetComponent<PhysHand>(Entity);
+            physHand.UseOverrideTensor = false;
         }
     }
 }
