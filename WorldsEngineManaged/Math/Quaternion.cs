@@ -101,6 +101,37 @@ namespace WorldsEngine.Math
             return (Quaternion)new Mat3x3(column0, column1, column2);
         }
 
+        public Mat3x3 ToMat3x3()
+        {
+            float sqw = w * w;
+            float sqx = x * x;
+            float sqy = y * y;
+            float sqz = z * z;
+
+            Mat3x3 mat = new();
+            float invs = 1 / (sqx + sqy + sqz + sqw);
+
+            mat.m00 = ( sqx - sqy - sqz + sqw)*invs ; // since sqw + sqx + sqy + sqz =1/invs*invs
+            mat.m11 = (-sqx + sqy - sqz + sqw)*invs ;
+            mat.m22 = (-sqx - sqy + sqz + sqw)*invs ;
+            
+            float tmp1 = x*y;
+            float tmp2 = z*w;
+            mat.m10 = 2f * (tmp1 + tmp2)*invs ;
+            mat.m01 = 2f * (tmp1 - tmp2)*invs ;
+            
+            tmp1 = x*z;
+            tmp2 = y*w;
+            mat.m20 = 2f * (tmp1 - tmp2)*invs ;
+            mat.m02 = 2f * (tmp1 + tmp2)*invs ;
+            tmp1 = y*z;
+            tmp2 = x*w;
+            mat.m21 = 2f * (tmp1 + tmp2)*invs ;
+            mat.m12 = 2f * (tmp1 - tmp2)*invs ;     
+
+            return mat;
+        }
+
         public static Quaternion SafeLookAt(Vector3 dir)
         {
             return SafeLookAt(dir, Vector3.Up, Vector3.Forward);

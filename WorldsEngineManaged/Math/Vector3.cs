@@ -7,6 +7,7 @@ namespace WorldsEngine.Math
     public struct Vector3
     {
         public static readonly Vector3 Zero = new Vector3(0.0f, 0.0f, 0.0f);
+        public static readonly Vector3 One = new Vector3(1.0f);
 
         public static readonly Vector3 Forward = new Vector3(0.0f, 0.0f, 1.0f);
         public static readonly Vector3 Backward = new Vector3(0.0f, 0.0f, -1.0f);
@@ -18,6 +19,9 @@ namespace WorldsEngine.Math
         public static readonly Vector3 Down = new Vector3(0.0f, -1.0f, 0.0f);
 
         public float x, y, z;
+
+        public float ComponentSum => x + y + z;
+        public float ComponentMean => (x + y + z) / 3.0f;
 
         public bool HasNaNComponent => float.IsNaN(x) || float.IsNaN(y) || float.IsNaN(z);
         public bool IsZero => x == 0.0f && y == 0.0f && z == 0.0f;

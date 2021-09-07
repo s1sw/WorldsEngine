@@ -105,7 +105,6 @@ namespace lg {
 
             actor.addForce(refVel - physHand.lastRefVel, worlds::ForceMode::VelocityChange);
 
-            glm::vec3 err = (physHand.targetWorldPos) - worlds::px2glm(t.p);
             physHand.lastRefVel = refVel;
             glm::vec3 vel = worlds::px2glm(body->getLinearVelocity());
 

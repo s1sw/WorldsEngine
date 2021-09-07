@@ -82,7 +82,7 @@ namespace Game
 
             Vector3 currentAngVel = dpa.AngularVelocity;
 
-            ImGui.Text($"Ang vel: {currentAngVel}");
+            //ImGui.Text($"Ang vel: {currentAngVel}");
             Vector3 torque = pidController.CalculateForce(desiredAngVel - currentAngVel, Time.DeltaTime);
 
             dpa.AddTorque(torque);

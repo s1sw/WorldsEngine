@@ -9,8 +9,9 @@ namespace WorldsEngine.Util
 {
     public class InertiaTensorComputer
     {
-        private Mat3x3 _inertiaMatrix = new Mat3x3();
-        private Vector3 _centerOfMass = new Vector3();
+        public Mat3x3 Inertia => _inertiaMatrix;
+        private Mat3x3 _inertiaMatrix = new();
+        private Vector3 _centerOfMass = new();
         private float _mass = 0.0f;
 
         public InertiaTensorComputer() { }
@@ -32,14 +33,29 @@ namespace WorldsEngine.Util
             SetDiagonal(mass, new Vector3(s));
         }
 
+        private float Volume(Vector3 extents)
+        {
+            float v = 1f;
+            v *= extents.x != 0f ? extents.x : 1f;
+            v *= extents.y != 0f ? extents.y : 1f;
+            v *= extents.z != 0f ? extents.z : 1f;
+
+            return v;
+        }
+
         public void SetBox(Vector3 halfExtents)
         {
-            float mass = 8.0f * (halfExtents.x * halfExtents.y * halfExtents.z);
+            float mass = 8.0f * Volume(halfExtents);
             float s = (1.0f / 3.0f) * mass;
 
-            float x = halfExtents.x;
-            float y = halfExtents.y;
-            float z = halfExtents.z;
+            float x = halfExtents.x * halfExtents.x;
+            float y = halfExtents.y * halfExtents.y;
+            float z = halfExtents.z * halfExtents.z;
+
+            Vector3 diagVector = new(y + z, z + x, x + y);
+            diagVector *= s;
+
+            Logger.Log($"diagVector: {diagVector}");
 
             SetDiagonal(mass, new Vector3(y + z, z + x, x + y) * s);
         }
