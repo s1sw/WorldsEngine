@@ -205,6 +205,7 @@ namespace lg {
     }
 
     void EventHandler::onGunConstruct(entt::registry& r, entt::entity ent) {
+        return;
         Grabbable& grabbable = r.get<Grabbable>(ent);
 
         grabbable.onTriggerPressed = [&](entt::entity ent) {
