@@ -15,7 +15,7 @@ namespace Game.Interaction
 
         public Entity GrippedEntity { get; private set; } = Entity.Null;
 
-        public int GripIndex { get; private set; }
+        public Grip CurrentGrip { get; private set; } = null;
 
         private VRAction _grabAction;
 
@@ -45,6 +45,19 @@ namespace Game.Interaction
                 if (Mouse.ButtonReleased(mouseButton) && !GrippedEntity.IsNull)
                     Release();
             }
+
+            if (!GrippedEntity.IsNull)
+            {
+                var grabbable = Registry.GetComponent<Grabbable>(GrippedEntity);
+                KeyCode keycode = IsRightHand ? KeyCode.E : KeyCode.Q;
+
+                grabbable.RunEvents(
+                    Keyboard.KeyPressed(keycode),
+                    Keyboard.KeyReleased(keycode),
+                    Keyboard.KeyHeld(keycode),
+                    GrippedEntity
+                );
+            }
         }
 
         private void GrabNearby()
@@ -54,7 +67,7 @@ namespace Game.Interaction
             const int MaxOverlaps = 10;
             Entity[] overlapped = new Entity[MaxOverlaps];
 
-            uint overlappedCount = Physics.OverlapSphereMultiple(dpa.Pose.TransformPoint(new Vector3(0.0f, 0.0f, 0.03f)), 0.5f, MaxOverlaps, overlapped);
+            uint overlappedCount = Physics.OverlapSphereMultiple(dpa.Pose.TransformPoint(new Vector3(0.0f, 0.0f, 0.03f)), 0.25f, MaxOverlaps, overlapped);
 
             for (int i = 0; i < overlappedCount; i++)
             {
@@ -101,22 +114,28 @@ namespace Game.Interaction
             var grabbedShapes = grabbedDpa.GetPhysicsShapes();
 
             Transform gripToWorldSpace = grabbedDpa.Pose;
+            InertiaTensorComputer handComp = new();
             foreach (var physShape in handShapes)
             {
-                AddShapeTensor(physShape, new Transform(physShape.position, physShape.rotation), itComp);
+                AddShapeTensor(physShape, new Transform(physShape.position, physShape.rotation), handComp);
             }
 
-            //InertiaTensorComputer grabbedComp = new();
-
+            InertiaTensorComputer grabbedComp = new();
             foreach (var physShape in grabbedShapes)
             {
                 Transform shapeTransform = new Transform(physShape.position, physShape.rotation);
                 shapeTransform = gripTransform.TransformBy(shapeTransform);
                 shapeTransform.Scale = grabbedTransform.Scale;
-                AddShapeTensor(physShape, shapeTransform, itComp);
+                AddShapeTensor(physShape, shapeTransform, grabbedComp);
             }
 
-            itComp.ScaleDensity((grabbedDpa.Mass + dpa.Mass) / itComp.Mass);
+            handComp.ScaleDensity(dpa.Mass / handComp.Mass);
+            grabbedComp.ScaleDensity(grabbedDpa.Mass / grabbedComp.Mass);
+
+            itComp.Add(handComp);
+            itComp.Add(grabbedComp);
+
+            //itComp.ScaleDensity((grabbedDpa.Mass + dpa.Mass) / itComp.Mass);
 
             return itComp.Inertia;
         }
@@ -169,6 +188,9 @@ namespace Game.Interaction
             physHand.UseOverrideTensor = true;
             physHand.OverrideTensor = combinedTensor;
             d6.Target = grab;
+
+            g.Attach();
+            CurrentGrip = g;
         }
 
         private void Release()
@@ -176,6 +198,10 @@ namespace Game.Interaction
             Logger.Log("Release");
             Registry.RemoveComponent<D6Joint>(Entity);
             GrippedEntity = Entity.Null;
+
+            if (CurrentGrip != null)
+                CurrentGrip.Detach();
+
             var physHand = Registry.GetComponent<PhysHand>(Entity);
             physHand.UseOverrideTensor = false;
         }

@@ -16,6 +16,7 @@ namespace WorldsEngine
         bool Contains(Entity entity);
         void Remove(Entity entity);
         void UpdateIfThinking();
+        ComponentStorageEnum GetEnumerator();
     }
 
     struct SerializedComponentStorage

@@ -544,6 +544,17 @@ namespace worlds {
             return;
         }
 
+        if ((SDL_GetWindowFlags(interfaces.engine->getMainWindow()) & SDL_WINDOW_INPUT_FOCUS) == 0) {
+            SDL_Delay(500);
+            for (EditorSceneView* esv : sceneViews) {
+                esv->setViewportActive(false);
+            }
+        } else {
+            for (EditorSceneView* esv : sceneViews) {
+                esv->setViewportActive(true);
+            }
+        }
+
         AudioSystem::getInstance()->cancelOneShots();
 
         if (!project) {
@@ -611,9 +622,6 @@ namespace worlds {
             return;
         }
 
-        for (EditorSceneView* esv : sceneViews) {
-            esv->setViewportActive(true);
-        }
         AudioSystem::getInstance()->setPauseState(true);
         handleOverriden = false;
 

@@ -10,6 +10,8 @@ namespace WorldsEngine
         public Quaternion Rotation;
         public Vector3 Scale;
 
+        public Vector3 Forward => Rotation * Vector3.Forward;
+
         public Transform(Vector3 position, Quaternion rotation)
         {
             Position = position;

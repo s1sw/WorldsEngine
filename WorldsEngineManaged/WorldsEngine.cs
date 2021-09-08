@@ -100,6 +100,8 @@ namespace WorldsEngine
             {
                 system.OnSceneStart();
             }
+
+            Registry.OnSceneStart();
         }
 
         [UsedImplicitly]

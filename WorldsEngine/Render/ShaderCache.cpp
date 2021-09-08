@@ -29,6 +29,10 @@ namespace worlds {
         VkShaderModule mod;
         VKCHECK(vkCreateShaderModule(dev, &smci, nullptr, &mod));
 
+        std::string path = AssetDB::idToPath(id);
+
+        vku::setObjectName(device, (uint64_t)mod, VK_OBJECT_TYPE_SHADER_MODULE, path.c_str());
+
         std::free(buffer);
 
         modules.insert({ id, mod });

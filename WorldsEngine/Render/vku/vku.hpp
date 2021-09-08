@@ -311,6 +311,16 @@ namespace vku {
         return -1;
     }
 
+    inline void setObjectName(VkDevice device, uint64_t objectHandle, VkObjectType objectType, const char* name) {
+        VkDebugUtilsObjectNameInfoEXT nameInfo;
+        nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+        nameInfo.pObjectName = name;
+        nameInfo.objectHandle = objectHandle;
+        nameInfo.objectType = objectType;
+        nameInfo.pNext = nullptr;
+        VKCHECK(vkSetDebugUtilsObjectNameEXT(device, &nameInfo));
+    }
+
     /// Execute commands immediately and wait for the device to finish.
     inline void executeImmediately(VkDevice device, VkCommandPool commandPool, VkQueue queue, const std::function<void(VkCommandBuffer cb)>& func) {
         VkCommandBufferAllocateInfo cbai{}; // { commandPool, VkCommandBufferLevel::ePrimary, 1 };
