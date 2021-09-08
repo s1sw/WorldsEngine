@@ -18,10 +18,7 @@ namespace Game.Interaction
         public void RunEvents(bool triggerPressed, bool triggerReleased, bool triggerHeld, Entity entity)
         {
             if (triggerPressed)
-            {
                 TriggerPressed?.Invoke(entity);
-                Logger.Log("Calling TriggerPressed");
-            }
 
             if (triggerReleased)
                 TriggerReleased?.Invoke(entity);
