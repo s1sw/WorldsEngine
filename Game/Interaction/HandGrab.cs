@@ -94,7 +94,7 @@ namespace Game.Interaction
                     break;
             }
 
-            shapeComp.Rotate(offset.Rotation.ToMat3x3());
+            shapeComp.Rotate(offset.Rotation);
             shapeComp.Translate(offset.Position);
 
             itComp.Add(shapeComp);
@@ -195,7 +195,6 @@ namespace Game.Interaction
 
         private void Release()
         {
-            Logger.Log("Release");
             Registry.RemoveComponent<D6Joint>(Entity);
             GrippedEntity = Entity.Null;
 
