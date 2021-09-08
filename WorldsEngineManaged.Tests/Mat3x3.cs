@@ -49,7 +49,7 @@ namespace WorldsEngine.Tests
         [ClassData(typeof(QuaternionTestData))]
         public void QuaternionRoundTrip(Quaternion quat)
         {
-            Mat3x3 matrix = quat.SingleCover.ToMat3x3();
+            Mat3x3 matrix = (Mat3x3)quat.SingleCover;
 
             Assert.Equal(((Quaternion)matrix).SingleCover, quat.SingleCover, new ApproximateQuaternionComparer());
         }
@@ -57,13 +57,13 @@ namespace WorldsEngine.Tests
         [Fact]
         public void QuaternionToMatrix()
         {
-            Assert.Equal(new Quaternion(0.0f, 1.0f, 0.0f, 0.0f).ToMat3x3(), new Mat3x3(
+            Assert.Equal((Mat3x3)new Quaternion(0.0f, 1.0f, 0.0f, 0.0f), new Mat3x3(
                 new Vector3(1.0f, 0.0f, 0.0f),
                 new Vector3(0.0f, -1.0f, 0.0f),
                 new Vector3(0.0f, 0.0f, - 1.0f)
             ));
 
-            Assert.Equal(Quaternion.AngleAxis(5.0f, Vector3.Forward).ToMat3x3(), new Mat3x3(
+            Assert.Equal((Mat3x3)Quaternion.AngleAxis(5.0f, Vector3.Forward), new Mat3x3(
                 new Vector3(0.2836622f, -0.9589243f, 0.0f),
                 new Vector3(0.9589243f, 0.2836622f, 0.0f),
                 new Vector3(0.0f, 0.0f, 1.0f)
