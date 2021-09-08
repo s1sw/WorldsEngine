@@ -288,7 +288,6 @@ namespace worlds {
         RenderTexture* shadowImages[NUM_SHADOW_LIGHTS];
         RenderTexture* imguiImage;
 
-        std::vector<VkDescriptorSet> descriptorSets;
         SDL_Window* window;
         VkQueryPool queryPool;
         uint64_t lastRenderTimeTicks;

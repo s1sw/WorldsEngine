@@ -451,6 +451,7 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     cpci.queueFamilyIndex = graphicsQueueFamilyIdx;
 
     VKCHECK(vkCreateCommandPool(device, &cpci, nullptr, &commandPool));
+    vku::setObjectName(device, (uint64_t)commandPool, VK_OBJECT_TYPE_COMMAND_POOL, "Main Command Pool");
 
     createSwapchain(nullptr);
 
@@ -568,6 +569,10 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     imgAvailable.resize(maxFramesInFlight);
 
     for (size_t i = 0; i < maxFramesInFlight; i++) {
+        std::string cmdBufName = "Command Buffer ";
+        cmdBufName += std::to_string(i);
+
+        vku::setObjectName(device, (uint64_t)cmdBufs[i], VK_OBJECT_TYPE_COMMAND_BUFFER, cmdBufName.c_str());
         VkFenceCreateInfo fci{};
         fci.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
         fci.flags = VK_FENCE_CREATE_SIGNALED_BIT;
@@ -803,6 +808,9 @@ void VKRenderer::recreateSwapchain() {
     }
 
     delete swapchain;
+    for (VkFramebuffer fb : framebuffers)
+        vkDestroyFramebuffer(device, fb, nullptr);
+
     framebuffers.clear();
 
     createSwapchain(nullptr);
@@ -1665,11 +1673,13 @@ VKRenderer::~VKRenderer() {
         texSlots.reset();
         matSlots.reset();
         cubemapSlots.reset();
+        cubemapConvoluter.reset();
 
         brdfLut.destroy();
         loadedMeshes.clear();
 
         delete shadowCascadePass;
+        delete additionalShadowsPass;
 
         delete imguiImage;
         delete shadowmapImage;
@@ -1686,6 +1696,7 @@ VKRenderer::~VKRenderer() {
 
         materialUB.destroy();
         vpBuffer.destroy();
+
 
 #ifndef NDEBUG
         char* statsString;
@@ -1706,6 +1717,8 @@ VKRenderer::~VKRenderer() {
         vkDestroySurfaceKHR(instance, surface, nullptr);
         logVrb(WELogCategoryRender, "Renderer destroyed.");
 
+        vkDestroyQueryPool(device, queryPool, nullptr);
+        vkDestroyCommandPool(device, commandPool, nullptr);
         vkDestroyPipelineCache(device, pipelineCache, nullptr);
         vkDestroyDescriptorPool(device, descriptorPool, nullptr);
 

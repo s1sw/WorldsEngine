@@ -1,8 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using WorldsEngine;
 
 namespace Game.Interaction
@@ -17,5 +14,20 @@ namespace Game.Interaction
 
         [EditableClass]
         public List<Grip> grips = new List<Grip>();
+
+        public void RunEvents(bool triggerPressed, bool triggerReleased, bool triggerHeld, Entity entity)
+        {
+            if (triggerPressed)
+            {
+                TriggerPressed?.Invoke(entity);
+                Logger.Log("Calling TriggerPressed");
+            }
+
+            if (triggerReleased)
+                TriggerReleased?.Invoke(entity);
+
+            if (triggerHeld)
+                TriggerHeld?.Invoke(entity);
+        }
     }
 }

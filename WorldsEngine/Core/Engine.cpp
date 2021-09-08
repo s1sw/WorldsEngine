@@ -61,7 +61,7 @@ namespace worlds {
     moodycamel::ReaderWriterQueue<SDL_Event> evts;
 
     void WorldsEngine::setupSDL() {
-        SDL_Init(0);
+        SDL_Init(SDL_INIT_AUDIO | SDL_INIT_EVENTS | SDL_INIT_VIDEO | SDL_INIT_TIMER);
     }
 
     SDL_Window* WorldsEngine::createSDLWindow() {
@@ -283,13 +283,11 @@ namespace worlds {
 #endif
         }
 
-        setupSDL();
-
         console = std::make_unique<Console>(
             hasCommandLineArg("create-console-window") || dedicatedServer,
             hasCommandLineArg("enable-console-window-input") || dedicatedServer);
 
-        SDL_Init(SDL_INIT_AUDIO | SDL_INIT_EVENTS | SDL_INIT_VIDEO | SDL_INIT_TIMER);
+        setupSDL();
 
         setupPhysfs(argv0);
         if (!dedicatedServer && runAsEditor) {

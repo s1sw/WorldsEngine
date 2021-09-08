@@ -112,7 +112,7 @@ namespace WorldsEngine
         }
 
         [UsedImplicitly]
-        [SuppressMessage("CodeQuality", "IDE0051:Remove unused private members", 
+        [SuppressMessage("CodeQuality", "IDE0051:Remove unused private members",
             Justification = "Called from native C++ during deserialization")]
         private static void DeserializeManagedComponent(IntPtr idPtr, IntPtr jsonPtr, uint entityId)
         {
@@ -131,8 +131,8 @@ namespace WorldsEngine
             IComponentStorage storage = AssureStorage(type);
 
             // Deserialization should never fail - this isn't untrusted JSON, it's serialized in C++
-            var deserialized = JsonSerializer.Deserialize(jsonStr, type, serializerOptions);
-            storage.SetBoxed(entity, deserialized!);
+            var deserialized = JsonSerializer.Deserialize(jsonStr, type, serializerOptions)!;
+            storage.SetBoxed(entity, deserialized);
         }
 
         internal static void SerializeStorages()
@@ -200,7 +200,7 @@ namespace WorldsEngine
         private static ComponentMetadata GetBuiltinComponentMetadata(Type componentType)
         {
             PropertyInfo propertyInfo = componentType.GetProperty(
-                "Metadata", 
+                "Metadata",
                 BindingFlags.Static | BindingFlags.NonPublic
             )!;
 
@@ -246,9 +246,17 @@ namespace WorldsEngine
                 return (T)GetComponent(type, entity);
             }
 
+
             var storage = AssureStorage<T>();
+
+            T instance = Activator.CreateInstance<T>();
+
             storage.Set(entity, Activator.CreateInstance<T>());
-            return storage.Get(entity);
+
+            if (type.IsAssignableTo(typeof(IStartListener)))
+                ((IStartListener)instance!).Start(entity);
+
+            return instance;
         }
 
         public static object AddComponent(Entity entity, Type type)
@@ -263,11 +271,16 @@ namespace WorldsEngine
 
             var storage = AssureStorage(type);
 
-            storage.SetBoxed(entity, Activator.CreateInstance(type)!);
-            return storage.GetBoxed(entity);
+            object instance = Activator.CreateInstance(type)!;
+
+            if (type.IsAssignableTo(typeof(IStartListener)))
+                ((IStartListener)instance!).Start(entity);
+
+            storage.SetBoxed(entity, instance);
+            return instance;
         }
 
-        public static void SetComponent(Entity entity, Type type, object value)
+        internal static void SetComponent(Entity entity, Type type, object value)
         {
             if (type.IsAssignableTo(typeof(BuiltinComponent)))
             {
@@ -286,8 +299,8 @@ namespace WorldsEngine
             if (type.IsAssignableTo(typeof(BuiltinComponent)))
             {
                 ConstructorInfo ci = type.GetConstructor(
-                    BindingFlags.NonPublic | BindingFlags.Instance, 
-                    null, 
+                    BindingFlags.NonPublic | BindingFlags.Instance,
+                    null,
                     new Type[] { typeof(IntPtr), typeof(uint) }, null)!;
 
                 return (T)ci.Invoke(new object[] { nativeRegistryPtr, entity.ID });
@@ -454,6 +467,25 @@ namespace WorldsEngine
             {
                 if (componentStorages[i] == null || !componentStorages[i]!.IsThinking) continue;
                 componentStorages[i]!.UpdateIfThinking();
+            }
+        }
+
+        internal static void OnSceneStart()
+        {
+            for (int i = 0; i < ComponentPoolCount; i++)
+            {
+                if (componentStorages[i] == null) continue;
+
+                var componentStorage = componentStorages[i]!;
+                if (!typeof(IStartListener).IsAssignableFrom(componentStorage.Type)) continue;
+
+
+                foreach (Entity e in componentStorages[i]!)
+                {
+                    object comp = componentStorage.GetBoxed(e);
+
+                    ((IStartListener)comp).Start(e);
+                }
             }
         }
     }

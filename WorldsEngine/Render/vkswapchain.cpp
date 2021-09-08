@@ -137,6 +137,7 @@ namespace worlds {
         for (VkImageView iv : imageViews) {
             vkDestroyImageView(device, iv, nullptr);
         }
+        vkDestroySwapchainKHR(device, swapchain, nullptr);
     }
 
     VkResult Swapchain::acquireImage(VkDevice device, VkSemaphore semaphore, uint32_t* imageIndex) {

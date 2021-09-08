@@ -55,8 +55,9 @@ namespace worlds {
                 }
             }
 
-            auto screenCursorPos = ImGui::GetCursorPos() + ImGui::GetWindowPos() - ImVec2(0.0f, ImGui::GetScrollY());
-            auto corner = screenCursorPos + ImVec2(494, 174);
+            ImVec2 logoSize{494, 174};
+            auto screenCursorPos = ImGui::GetCursorScreenPos() + ImVec2(ImGui::GetWindowWidth() / 2.0f - logoSize.x / 2.0f, 0.0f);
+            auto corner = screenCursorPos + logoSize;
             auto* drawList = ImGui::GetWindowDrawList();
 
             drawList->AddImage(bgId, screenCursorPos, corner);
