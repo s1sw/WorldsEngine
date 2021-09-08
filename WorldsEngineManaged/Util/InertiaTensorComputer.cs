@@ -53,11 +53,6 @@ namespace WorldsEngine.Util
             float y = halfExtents.y * halfExtents.y;
             float z = halfExtents.z * halfExtents.z;
 
-            Vector3 diagVector = new(y + z, z + x, x + y);
-            diagVector *= s;
-
-            Logger.Log($"diagVector: {diagVector}");
-
             SetDiagonal(mass, new Vector3(y + z, z + x, x + y) * s);
         }
 
@@ -93,6 +88,11 @@ namespace WorldsEngine.Util
         {
             _inertiaMatrix = rotation * _inertiaMatrix * rotation.Transpose;
             _centerOfMass = rotation.Transform(_centerOfMass);
+        }
+
+        public void Rotate(Quaternion rotation)
+        {
+            Rotate((Mat3x3)rotation);
         }
 
         public void ScaleDensity(float densityScale)

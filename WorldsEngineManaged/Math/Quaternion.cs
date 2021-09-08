@@ -101,7 +101,7 @@ namespace WorldsEngine.Math
             return (Quaternion)new Mat3x3(column0, column1, column2);
         }
 
-        public Mat3x3 ToMat3x3()
+        private Mat3x3 ToMat3x3()
         {
             float sqw = w * w;
             float sqx = x * x;
@@ -184,6 +184,11 @@ namespace WorldsEngine.Math
         public static explicit operator Quaternion(Vector4 v4)
         {
             return new Quaternion(v4.w, v4.x, v4.y, v4.z);
+        }
+
+        public static explicit operator Mat3x3(Quaternion q)
+        {
+            return q.ToMat3x3();
         }
     }
 }
