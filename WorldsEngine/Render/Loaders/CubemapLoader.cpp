@@ -61,7 +61,7 @@ namespace worlds {
 
         cd.debugName = AssetDB::idToPath(asset);
 
-        logMsg("Spent %.3fms loading cubemap %s", timer.stopGetMs(), cd.debugName.c_str());
+        logVrb("Spent %.3fms loading cubemap %s", timer.stopGetMs(), cd.debugName.c_str());
         return cd;
     }
 
@@ -224,7 +224,7 @@ namespace worlds {
             VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_SHADER_READ_BIT);
 
         free(combinedBuffer);
-        logMsg("cubemap upload took %fms", pt.stopGetMs());
+        logVrb("cubemap upload took %fms", pt.stopGetMs());
         return destTex;
     }
 

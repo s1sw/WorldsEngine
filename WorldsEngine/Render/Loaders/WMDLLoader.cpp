@@ -13,7 +13,7 @@ namespace worlds {
 
         wmdl::Header* wHdr = (wmdl::Header*)buf;
 
-        logMsg("loading wmdl: %i submeshes", wHdr->numSubmeshes);
+        logVrb("loading wmdl: %i submeshes", wHdr->numSubmeshes);
 
         wmdl::SubmeshInfo* submeshBlock = wHdr->getSubmeshBlock();
         lmd.numSubmeshes = wHdr->numSubmeshes;
