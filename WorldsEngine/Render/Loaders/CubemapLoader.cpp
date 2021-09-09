@@ -130,6 +130,7 @@ namespace worlds {
         }
 
         bool needsCopy = newFormat == VK_FORMAT_BC1_RGBA_SRGB_BLOCK;
+        bool hdr = newFormat == VK_FORMAT_R32G32B32A32_SFLOAT;
         VkImageUsageFlags usageFlags = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
         if (!needsCopy) {
@@ -173,65 +174,58 @@ namespace worlds {
             offset += cd.faceData[face].totalDataSize;
         }
 
-        if (needsCopy) {
-            tex.setLayout(cb, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
-                VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_READ_BIT);
+        tex.setLayout(cb, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+            VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
+            VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_READ_BIT);
 
-            // If the cubemap is compressed, we need to blit it to an uncompressed
-            // cubemap so we can convolute it.
-            vku::TextureImageCube destTex {
-                ctx.device,
-                ctx.allocator,
-                cd.faceData[0].width, cd.faceData[0].height,
-                std::min(getNumMips(cd.faceData[0].width, cd.faceData[0].height), 6u),
-                VK_FORMAT_R8G8B8A8_UNORM, false,
-                cd.debugName.empty() ? nullptr : cd.debugName.c_str(),
-                usageFlags | VK_IMAGE_USAGE_STORAGE_BIT
-            };
+        // If the cubemap is compressed, we need to blit it to an uncompressed
+        // cubemap so we can convolute it.
+        vku::TextureImageCube destTex {
+            ctx.device,
+            ctx.allocator,
+            cd.faceData[0].width, cd.faceData[0].height,
+            std::min(getNumMips(cd.faceData[0].width, cd.faceData[0].height), 6u),
+            hdr ? VK_FORMAT_B10G11R11_UFLOAT_PACK32: VK_FORMAT_R8G8B8A8_UNORM, false,
+            cd.debugName.empty() ? nullptr : cd.debugName.c_str(),
+            usageFlags | VK_IMAGE_USAGE_STORAGE_BIT
+        };
 
-            destTex.setLayout(cb, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
-                VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
+        destTex.setLayout(cb, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
+            VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
 
-            VkImageBlit blit;
-            blit.dstSubresource = blit.srcSubresource = VkImageSubresourceLayers {
-                VK_IMAGE_ASPECT_COLOR_BIT,
-                0, 0, 6
-            };
+        VkImageBlit blit;
+        blit.dstSubresource = blit.srcSubresource = VkImageSubresourceLayers {
+            VK_IMAGE_ASPECT_COLOR_BIT,
+            0, 0, 6
+        };
 
-            blit.dstOffsets[0] = blit.srcOffsets[0] = VkOffset3D {
-                0, 0, 0
-            };
+        blit.dstOffsets[0] = blit.srcOffsets[0] = VkOffset3D {
+            0, 0, 0
+        };
 
-            blit.dstOffsets[1] = blit.srcOffsets[1] = VkOffset3D {
-                (int)cd.faceData[0].width, (int)cd.faceData[0].height, 1
-            };
+        blit.dstOffsets[1] = blit.srcOffsets[1] = VkOffset3D {
+            (int)cd.faceData[0].width, (int)cd.faceData[0].height, 1
+        };
 
-            // AMD driver workaround
-            // DXT1 compressed textures blit incorrectly and multiplying
-            // the source width and height by 4 fixes it.
-            //if (ctx.vendor == VKVendor::AMD && needsCopy) {
-            //    blit.srcOffsets[1].y *= 4;
-            //    blit.srcOffsets[1].x *= 4;
-            //}
+        // AMD driver workaround
+        // DXT1 compressed textures blit incorrectly and multiplying
+        // the source width and height by 4 fixes it.
+        //if (ctx.vendor == VKVendor::AMD && needsCopy) {
+        //    blit.srcOffsets[1].y *= 4;
+        //    blit.srcOffsets[1].x *= 4;
+        //}
 
-            vkCmdBlitImage(cb, tex.image(), tex.layout(), destTex.image(), destTex.layout(), 1, &blit, VK_FILTER_LINEAR);
-            cubeTempBuffers[imageIndex].push_back(std::move(stagingBuffer));
-            cubeImages[imageIndex].push_back(std::move(tex));
-            return destTex;
-        } else {
-            tex.setLayout(cb, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-                VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_SHADER_READ_BIT);
+        vkCmdBlitImage(cb, tex.image(), tex.layout(), destTex.image(), destTex.layout(), 1, &blit, VK_FILTER_LINEAR);
+        cubeTempBuffers[imageIndex].push_back(std::move(stagingBuffer));
+        cubeImages[imageIndex].push_back(std::move(tex));
+        destTex.setLayout(cb, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+            VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_SHADER_READ_BIT);
 
-            cubeTempBuffers[imageIndex].push_back(std::move(stagingBuffer));
-
-            logMsg("cubemap upload took %fms", pt.stopGetMs());
-
-            free(combinedBuffer);
-            return tex;
-        }
+        free(combinedBuffer);
+        logMsg("cubemap upload took %fms", pt.stopGetMs());
+        return destTex;
     }
 
     vku::TextureImageCube uploadCubemapVk(VulkanHandles& ctx, CubemapData& cd) {
