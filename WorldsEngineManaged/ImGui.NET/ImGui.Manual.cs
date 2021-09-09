@@ -1,7 +1,6 @@
 ﻿using System;
 using WorldsEngine.Math;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using System.Text;
 
 namespace ImGuiNET
@@ -40,7 +39,7 @@ namespace ImGuiNET
             byte[] buf,
             uint buf_size,
             ImGuiInputTextFlags flags,
-            ImGuiInputTextCallback callback,
+            ImGuiInputTextCallback? callback,
             IntPtr user_data)
         {
             int utf8LabelByteCount = Encoding.UTF8.GetByteCount(label);
@@ -86,14 +85,14 @@ namespace ImGuiNET
             ref string input,
             uint maxLength,
             ImGuiInputTextFlags flags,
-            ImGuiInputTextCallback callback) => InputText(label, ref input, maxLength, flags, callback, IntPtr.Zero);
+            ImGuiInputTextCallback? callback) => InputText(label, ref input, maxLength, flags, callback, IntPtr.Zero);
 
         public static bool InputText(
             string label,
             ref string input,
             uint maxLength,
             ImGuiInputTextFlags flags,
-            ImGuiInputTextCallback callback,
+            ImGuiInputTextCallback? callback,
             IntPtr user_data)
         {
             int utf8LabelByteCount = Encoding.UTF8.GetByteCount(label);
@@ -175,7 +174,7 @@ namespace ImGuiNET
             uint maxLength,
             Vector2 size,
             ImGuiInputTextFlags flags,
-            ImGuiInputTextCallback callback) => InputTextMultiline(label, ref input, maxLength, size, flags, callback, IntPtr.Zero);
+            ImGuiInputTextCallback? callback) => InputTextMultiline(label, ref input, maxLength, size, flags, callback, IntPtr.Zero);
 
         public static bool InputTextMultiline(
             string label,
@@ -183,7 +182,7 @@ namespace ImGuiNET
             uint maxLength,
             Vector2 size,
             ImGuiInputTextFlags flags,
-            ImGuiInputTextCallback callback,
+            ImGuiInputTextCallback? callback,
             IntPtr user_data)
         {
             int utf8LabelByteCount = Encoding.UTF8.GetByteCount(label);
@@ -274,7 +273,7 @@ namespace ImGuiNET
             ref string input,
             uint maxLength,
             ImGuiInputTextFlags flags,
-            ImGuiInputTextCallback callback,
+            ImGuiInputTextCallback? callback,
             IntPtr user_data)
         {
             int utf8LabelByteCount = Encoding.UTF8.GetByteCount(label);
@@ -460,7 +459,7 @@ namespace ImGuiNET
             IntPtr buf,
             uint buf_size,
             ImGuiInputTextFlags flags,
-            ImGuiInputTextCallback callback,
+            ImGuiInputTextCallback? callback,
             IntPtr user_data)
         {
             int utf8LabelByteCount = Encoding.UTF8.GetByteCount(label);

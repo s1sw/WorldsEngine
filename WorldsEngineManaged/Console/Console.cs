@@ -12,13 +12,18 @@ namespace WorldsEngine
             public Action<string> Method;
             public bool CurrentlyLoaded = true;
             public bool InGameAssembly = false;
+
+            public Command(Action<string> method)
+            {
+                Method = method;
+            }
         }
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         private delegate void CommandCallbackDelegate(IntPtr obj, string args);
 
         [DllImport(WorldsEngine.NativeModule, CharSet = CharSet.Ansi)]
-        private static extern void console_registerCommand(CommandCallbackDelegate cmdDelegate, string name, string help, IntPtr obj);
+        private static extern void console_registerCommand(CommandCallbackDelegate cmdDelegate, string name, string? help, IntPtr obj);
 
         private static readonly CommandCallbackDelegate callbackDelegate;
 
@@ -61,9 +66,8 @@ namespace WorldsEngine
                         else
                         {
                             var cmdDelegate = method.CreateDelegate<Action<string>>();
-                            Command command = new Command()
+                            Command command = new Command(cmdDelegate)
                             {
-                                Method = cmdDelegate,
                                 InGameAssembly = true
                             };
 

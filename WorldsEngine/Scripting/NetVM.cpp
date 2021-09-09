@@ -197,6 +197,9 @@ namespace worlds {
             tpaList.c_str()
         };
 
+        csharpEditor = editor;
+        csharpMainCamera = interfaces.mainCamera;
+
         int ret = netFuncs.init(exePath, "WorldsEngine", 1, propertyKeys, propertyValues, &hostHandle, &domainId);
 
         if (ret < 0) {
@@ -204,11 +207,11 @@ namespace worlds {
             return false;
         }
 
-        // C# bools are always 1 byte
-        char(*initFunc)(entt::registry* reg, Camera* mainCamera);
+        // C# bools are always 4 bytes
+        uint32_t(*initFunc)(entt::registry* reg);
         createManagedDelegate("WorldsEngine.WorldsEngine", "Init", (void**)&initFunc);
 
-        if (!initFunc(&reg, interfaces.mainCamera))
+        if (!initFunc(&reg))
             return false;
 
         createManagedDelegate("WorldsEngine.WorldsEngine", "Update", (void**)&updateFunc);
@@ -219,7 +222,6 @@ namespace worlds {
         createManagedDelegate("WorldsEngine.Registry", "SerializeManagedComponents", (void**)&serializeComponentsFunc);
         createManagedDelegate("WorldsEngine.Registry", "DeserializeManagedComponent", (void**)&deserializeComponentFunc);
 
-        csharpEditor = editor;
 
         reg.on_destroy<Transform>().connect<&DotNetScriptEngine::onTransformDestroy>(*this);
 

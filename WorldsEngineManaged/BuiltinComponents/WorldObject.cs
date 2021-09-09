@@ -44,13 +44,13 @@ namespace WorldsEngine
             get
             {
                 if (cachedMetadata == null)
-                    cachedMetadata = MetadataManager.FindNativeMetadata("World Object");
+                    cachedMetadata = MetadataManager.FindNativeMetadata("World Object")!;
 
                 return cachedMetadata;
             }
         }
 
-        private static ComponentMetadata cachedMetadata;
+        private static ComponentMetadata? cachedMetadata;
 
         internal static bool ExistsOn(IntPtr regPtr, Entity entity)
         {

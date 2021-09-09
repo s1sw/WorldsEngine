@@ -10771,7 +10771,7 @@ namespace ImGuiNET
         }
         public static void SetNextWindowSizeConstraints(Vector2 size_min, Vector2 size_max)
         {
-            ImGuiSizeCallback custom_callback = null;
+            ImGuiSizeCallback? custom_callback = null;
             void* custom_callback_data = null;
             ImGuiNative.igSetNextWindowSizeConstraints(size_min, size_max, custom_callback, custom_callback_data);
         }

@@ -49,11 +49,11 @@ namespace WorldsEngine
                 if (cachedMetadata == null)
                     cachedMetadata = MetadataManager.FindNativeMetadata("D6 Joint");
 
-                return cachedMetadata;
+                return cachedMetadata!;
             }
         }
 
-        private static ComponentMetadata cachedMetadata;
+        private static ComponentMetadata? cachedMetadata;
 
         public Entity Target
         {
