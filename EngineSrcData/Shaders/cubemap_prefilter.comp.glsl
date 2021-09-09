@@ -8,7 +8,7 @@ layout (push_constant) uniform PC {
 };
 
 layout (binding = 0) uniform samplerCube fullCubemap;
-layout (binding = 1, rgba32f) uniform writeonly image2D outFace;
+layout (binding = 1, rgba16f) uniform writeonly image2D outFace;
 
 // ----------------------------------------------------------------------------
 float DistributionGGX(vec3 N, vec3 H, float roughness)
@@ -108,7 +108,7 @@ void main() {
     float totalWeight = 0.0f;
     vec3 prefilteredColor = vec3(0.0f, 0.0f, 0.0f);
 
-    const uint SAMPLE_COUNT = 4096;
+    const uint SAMPLE_COUNT = 2048;
     for (uint i = 0u; i < SAMPLE_COUNT; i++) {
         vec2 Xi = Hammersley(i, SAMPLE_COUNT);
         vec3 H = ImportanceSampleGGX(Xi, N, roughness);
