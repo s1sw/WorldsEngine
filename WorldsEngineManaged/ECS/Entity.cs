@@ -35,9 +35,10 @@ namespace WorldsEngine
         public static bool operator ==(Entity a, Entity b) => a.ID == b.ID;
         public static bool operator !=(Entity a, Entity b) => a.ID != b.ID;
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
-            return obj is Entity entity &&
+            return obj != null &&
+                   obj is Entity entity &&
                    ID == entity.ID;
         }
 

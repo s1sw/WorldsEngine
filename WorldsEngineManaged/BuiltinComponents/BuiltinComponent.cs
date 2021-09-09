@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace WorldsEngine
 {
@@ -27,13 +23,18 @@ namespace WorldsEngine
             return a.GetType() != b.GetType() || a.entityId != b.entityId;
         }
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             if (obj == null || GetType().Equals(obj.GetType())) return false;
 
             var comp = (BuiltinComponent)obj;
 
             return comp == this;
+        }
+
+        public override int GetHashCode()
+        {
+            return (int)entityId;
         }
     }
 }

@@ -4,6 +4,7 @@
 
 using namespace worlds;
 
+Camera* csharpMainCamera;
 extern "C" {
     EXPORT void camera_getPosition(Camera* cam, glm::vec3* pos) {
         *pos = cam->position;
@@ -19,5 +20,9 @@ extern "C" {
 
     EXPORT void camera_setRotation(Camera* cam, glm::quat* rotation) {
         cam->rotation = *rotation;
+    }
+
+    EXPORT Camera* camera_getMain() {
+        return csharpMainCamera;
     }
 }

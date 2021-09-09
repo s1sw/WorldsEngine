@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.InteropServices;
 using WorldsEngine.Math;
 
@@ -49,7 +47,7 @@ namespace WorldsEngine
         public Vector3 position = Vector3.Zero;
         public Quaternion rotation = Quaternion.Identity;
         public PhysicsShapeType type;
-        public PhysicsMaterial physicsMaterial;
+        public PhysicsMaterial? physicsMaterial;
 
         internal abstract PhysicsShapeInternal ToInternal();
 
@@ -78,7 +76,7 @@ namespace WorldsEngine
     {
         public Vector3 halfExtents;
 
-        public BoxPhysicsShape(Vector3 halfExtents, PhysicsMaterial material = null)
+        public BoxPhysicsShape(Vector3 halfExtents, PhysicsMaterial? material = null)
         {
             this.halfExtents = halfExtents;
             type = PhysicsShapeType.Box;
@@ -104,7 +102,7 @@ namespace WorldsEngine
     {
         public float radius;
 
-        public SpherePhysicsShape(float radius, PhysicsMaterial material = null)
+        public SpherePhysicsShape(float radius, PhysicsMaterial? material = null)
         {
             this.radius = radius;
             type = PhysicsShapeType.Sphere;
@@ -131,7 +129,7 @@ namespace WorldsEngine
         public float radius;
         public float height;
 
-        public CapsulePhysicsShape(float radius, float height, PhysicsMaterial material = null)
+        public CapsulePhysicsShape(float radius, float height, PhysicsMaterial? material = null)
         {
             this.radius = radius;
             this.height = height;

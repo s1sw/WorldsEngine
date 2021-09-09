@@ -349,11 +349,11 @@ namespace ImGuiNET
         [DllImport(WorldsEngine.WorldsEngine.NativeModule, CallingConvention = CallingConvention.Cdecl)]
         public static extern byte igInputScalarN(byte* label, ImGuiDataType data_type, void* p_data, int components, void* p_step, void* p_step_fast, byte* format, ImGuiInputTextFlags flags);
         [DllImport(WorldsEngine.WorldsEngine.NativeModule, CallingConvention = CallingConvention.Cdecl)]
-        public static extern byte igInputText(byte* label, byte* buf, uint buf_size, ImGuiInputTextFlags flags, ImGuiInputTextCallback callback, void* user_data);
+        public static extern byte igInputText(byte* label, byte* buf, uint buf_size, ImGuiInputTextFlags flags, ImGuiInputTextCallback? callback, void* user_data);
         [DllImport(WorldsEngine.WorldsEngine.NativeModule, CallingConvention = CallingConvention.Cdecl)]
-        public static extern byte igInputTextMultiline(byte* label, byte* buf, uint buf_size, Vector2 size, ImGuiInputTextFlags flags, ImGuiInputTextCallback callback, void* user_data);
+        public static extern byte igInputTextMultiline(byte* label, byte* buf, uint buf_size, Vector2 size, ImGuiInputTextFlags flags, ImGuiInputTextCallback? callback, void* user_data);
         [DllImport(WorldsEngine.WorldsEngine.NativeModule, CallingConvention = CallingConvention.Cdecl)]
-        public static extern byte igInputTextWithHint(byte* label, byte* hint, byte* buf, uint buf_size, ImGuiInputTextFlags flags, ImGuiInputTextCallback callback, void* user_data);
+        public static extern byte igInputTextWithHint(byte* label, byte* hint, byte* buf, uint buf_size, ImGuiInputTextFlags flags, ImGuiInputTextCallback? callback, void* user_data);
         [DllImport(WorldsEngine.WorldsEngine.NativeModule, CallingConvention = CallingConvention.Cdecl)]
         public static extern byte igInvisibleButton(byte* str_id, Vector2 size, ImGuiButtonFlags flags);
         [DllImport(WorldsEngine.WorldsEngine.NativeModule, CallingConvention = CallingConvention.Cdecl)]
@@ -583,7 +583,7 @@ namespace ImGuiNET
         [DllImport(WorldsEngine.WorldsEngine.NativeModule, CallingConvention = CallingConvention.Cdecl)]
         public static extern void igSetNextWindowSize(Vector2 size, ImGuiCond cond);
         [DllImport(WorldsEngine.WorldsEngine.NativeModule, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void igSetNextWindowSizeConstraints(Vector2 size_min, Vector2 size_max, ImGuiSizeCallback custom_callback, void* custom_callback_data);
+        public static extern void igSetNextWindowSizeConstraints(Vector2 size_min, Vector2 size_max, ImGuiSizeCallback? custom_callback, void* custom_callback_data);
         [DllImport(WorldsEngine.WorldsEngine.NativeModule, CallingConvention = CallingConvention.Cdecl)]
         public static extern void igSetNextWindowViewport(uint viewport_id);
         [DllImport(WorldsEngine.WorldsEngine.NativeModule, CallingConvention = CallingConvention.Cdecl)]

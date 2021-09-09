@@ -126,7 +126,7 @@ namespace WorldsEngine
             string idStr = Marshal.PtrToStringAnsi(idPtr)!;
             string jsonStr = Marshal.PtrToStringAnsi(jsonPtr)!;
 
-            Type type = HotloadSerialization.CurrentGameAssembly.GetType(idStr)!;
+            Type type = HotloadSerialization.CurrentGameAssembly!.GetType(idStr)!;
 
             IComponentStorage storage = AssureStorage(type);
 

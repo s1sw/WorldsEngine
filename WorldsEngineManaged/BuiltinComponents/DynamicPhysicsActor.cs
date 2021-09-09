@@ -66,13 +66,13 @@ namespace WorldsEngine
             get
             {
                 if (cachedMetadata == null)
-                    cachedMetadata = MetadataManager.FindNativeMetadata("Dynamic Physics Actor");
+                    cachedMetadata = MetadataManager.FindNativeMetadata("Dynamic Physics Actor")!;
 
                 return cachedMetadata;
             }
         }
 
-        private static ComponentMetadata cachedMetadata;
+        private static ComponentMetadata? cachedMetadata;
 
         public Transform Pose
         {

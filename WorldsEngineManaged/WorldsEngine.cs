@@ -20,7 +20,7 @@ namespace WorldsEngine
         const int RTLD_NOW = 0x00002;
         const int RTLD_NOLOAD = 0x00004;
         [DllImport("dl")]
-        internal static extern IntPtr dlopen(string file, int mode);
+        internal static extern IntPtr dlopen(string? file, int mode);
 
         private static IntPtr ImportResolver(string libraryName, Assembly assembly, DllImportSearchPath? searchPath)
         {
@@ -52,7 +52,7 @@ namespace WorldsEngine
         static EngineSynchronizationContext simulateSyncContext = new EngineSynchronizationContext();
         static EngineSynchronizationContext editorUpdateSyncContext = new EngineSynchronizationContext();
 
-        static void ActualInit(IntPtr registryPtr, IntPtr mainCameraPtr)
+        static void ActualInit(IntPtr registryPtr)
         {
             NativeLibrary.SetDllImportResolver(typeof(WorldsEngine).Assembly, ImportResolver);
             Registry.nativeRegistryPtr = registryPtr;
@@ -64,8 +64,6 @@ namespace WorldsEngine
 
             hotloadManager.Active = true;
 
-            Camera.Main = new Camera(mainCameraPtr);
-
             updateSyncContext = new EngineSynchronizationContext();
             simulateSyncContext = new EngineSynchronizationContext();
             editorUpdateSyncContext = new EngineSynchronizationContext();
@@ -74,11 +72,11 @@ namespace WorldsEngine
         [UsedImplicitly]
         [SuppressMessage("CodeQuality", "IDE0051:Remove unused private members",
             Justification = "Called from native C++")]
-        static bool Init(IntPtr registryPtr, IntPtr mainCameraPtr)
+        static bool Init(IntPtr registryPtr)
         {
             try
             {
-                ActualInit(registryPtr, mainCameraPtr);
+                ActualInit(registryPtr );
             }
             catch (Exception ex)
             {

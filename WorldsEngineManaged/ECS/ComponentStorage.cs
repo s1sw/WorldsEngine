@@ -91,7 +91,7 @@ namespace WorldsEngine
             {
                 sparseEntities[i] = serializedStorage.Sparse[i];
                 packedEntities[i] = serializedStorage.Packed[i];
-                components[i] = (T)HotloadSerialization.Deserialize(serializedStorage.Components[i]);
+                components[i] = (T)HotloadSerialization.Deserialize(serializedStorage.Components[i])!;
             }
 
             ComponentTypeLookup.serializedComponents.Remove(type.FullName!);
