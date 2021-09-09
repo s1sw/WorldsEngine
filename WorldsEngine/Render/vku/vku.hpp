@@ -2143,7 +2143,7 @@ namespace vku {
 
         struct State {
             VkImage image;
-            VkImageView imageView;
+            VkImageView imageView = VK_NULL_HANDLE;
             VkDevice device = VK_NULL_HANDLE;
             VkDeviceSize size = 0;
             ImageLayout currentLayout = ImageLayout::Undefined;
