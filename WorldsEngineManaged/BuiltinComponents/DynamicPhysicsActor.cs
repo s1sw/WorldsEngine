@@ -61,6 +61,9 @@ namespace WorldsEngine
         [DllImport(WorldsEngine.NativeModule)]
         private static extern void dynamicpa_getMassSpaceInertiaTensor(IntPtr reg, uint entity, ref Vector3 tensor);
 
+        [DllImport(WorldsEngine.NativeModule)]
+        private static extern void dynamicpa_setMaxAngularVelocity(IntPtr reg, uint entity, float vel);
+
         internal static ComponentMetadata Metadata
         {
             get
@@ -138,6 +141,14 @@ namespace WorldsEngine
                 Vector3 it = new Vector3();
                 dynamicpa_getMassSpaceInertiaTensor(regPtr, entityId, ref it);
                 return it;
+            }
+        }
+
+        public float MaxAngularVelocity
+        {
+            set
+            {
+                dynamicpa_setMaxAngularVelocity(regPtr, entityId, value);
             }
         }
 

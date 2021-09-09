@@ -1,4 +1,6 @@
-﻿using System;
+﻿// NOTE: This was not written by me! This is a more or less direct port of PhysX's InertiaTensorComputer class
+// to C#.
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -7,10 +9,34 @@ using WorldsEngine.Math;
 
 namespace WorldsEngine.Util
 {
+    /// <summary>
+    /// Inertia tensor computer ported from PhysX.
+    /// </summary>
+    /// <example>
+    /// To compute the inertia tensor of a 5kg box with half extents (0.5, 0.5, 0.5):
+    /// <code>
+    /// InertiaTensorComputer itc = new InertiaTensorComputer();
+    /// itc.SetBox(new Vector3(0.5f));
+    /// itc.ScaleDensity(5.0f / itc.Mass);
+    /// </code>
+    /// 
+    /// The resulting inertia tensor and center of mass can either be used directly,
+    /// or combined with another InertiaTensorComputer.
+    /// 
+    /// The <see cref="Translate(Vector3)"/> and <see cref="Rotate(Quaternion)"/> methods
+    /// can be used to offset the computed inertia tensor.
+    /// </example>
+    /// <remarks>
+    /// This code uses my math library for Worlds Engine. To port to Unity, you'll need to find a suitable
+    /// *column-major* 3x3 matrix type. The Unity.Mathematics float3x3 type should work. Note that you
+    /// may also need to change Vector3 constructors that take a single float value (x) to (x, x, x).
+    /// </remarks>
     public class InertiaTensorComputer
     {
-        public Mat3x3 Inertia => _inertiaMatrix;
+        public Mat3x3 InertiaTensor => _inertiaMatrix;
         public float Mass => _mass;
+        public Vector3 CenterOfMass => _centerOfMass;
+
         private Mat3x3 _inertiaMatrix = new();
         private Vector3 _centerOfMass = new();
         private float _mass = 0.0f;
@@ -34,19 +60,41 @@ namespace WorldsEngine.Util
             SetDiagonal(mass, new Vector3(s));
         }
 
-        private float Volume(Vector3 extents)
+        public enum CapsuleAxis
         {
-            float v = 1f;
-            v *= extents.x != 0f ? extents.x : 1f;
-            v *= extents.y != 0f ? extents.y : 1f;
-            v *= extents.z != 0f ? extents.z : 1f;
+            X,
+            Y,
+            Z
+        }
 
-            return v;
+        public void SetCapsule(CapsuleAxis axis, float radius, float length)
+        {
+            float mass = SphereVolume(radius) + CylinderVolume(radius, length);
+
+            float t = MathF.PI * radius * radius;
+            float i1 = t * ((radius * radius * radius * 8.0f / 15.0f) + (length * radius * radius));
+            float i2 = t * ((radius * radius * radius * 8.0f / 15.0f) +
+                (length * radius * radius * 3.0f / 2.0f) + 
+                (length * radius * radius * 4.0f / 3.0f) + 
+                (length * length * length * 2.0f / 3.0f));
+
+            switch (axis)
+            {
+                case CapsuleAxis.X:
+                    SetDiagonal(mass, new Vector3(i1, i2, i2));
+                    break;
+                case CapsuleAxis.Y:
+                    SetDiagonal(mass, new Vector3(i2, i1, i2));
+                    break;
+                case CapsuleAxis.Z:
+                    SetDiagonal(mass, new Vector3(i2, i2, i1));
+                    break;
+            }
         }
 
         public void SetBox(Vector3 halfExtents)
         {
-            float mass = 8.0f * Volume(halfExtents);
+            float mass = 8.0f * BoxVolume(halfExtents);
             float s = (1.0f / 3.0f) * mass;
 
             float x = halfExtents.x * halfExtents.x;
@@ -109,6 +157,26 @@ namespace WorldsEngine.Util
                 new Vector3(0.0f, diag.y, 0.0f),
                 new Vector3(0.0f, 0.0f, diag.z)
             );
+        }
+
+        private float BoxVolume(Vector3 extents)
+        {
+            float v = 1f;
+            v *= extents.x != 0f ? extents.x : 1f;
+            v *= extents.y != 0f ? extents.y : 1f;
+            v *= extents.z != 0f ? extents.z : 1f;
+
+            return v;
+        }
+
+        private float SphereVolume(float radius)
+        {
+            return (4.0f / 3.0f) * MathF.PI * (radius * radius * radius);
+        }
+
+        private float CylinderVolume(float radius, float length)
+        {
+            return MathF.PI * (radius * radius) * length * 2.0f;
         }
     }
 }

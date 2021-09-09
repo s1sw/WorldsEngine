@@ -94,4 +94,8 @@ extern "C" {
 
         *tensor = px2glm(dpa.actor->getMassSpaceInertiaTensor());
     }
+
+    EXPORT void dynamicpa_setMaxAngularVelocity(entt::registry* reg, entt::entity entity, float vel) {
+        reg->get<DynamicPhysicsActor>(entity).setMaxAngularVelocity(vel);
+    }
 }

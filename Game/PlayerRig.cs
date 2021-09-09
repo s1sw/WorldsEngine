@@ -126,6 +126,7 @@ namespace Game
     {
         public static Entity PlayerBody { get; private set; }
         public static Entity PlayerFender { get; private set; }
+        public static Entity PlayerLocosphere { get; private set; }
         private readonly PhysicsMaterial physMat = new(15.0f, 15.0f, 0.0f);
 
         public static bool Jump = false;
@@ -134,6 +135,9 @@ namespace Game
         {
             PlayerBody = Registry.Find("Player Body");
             PlayerFender = Registry.Find("Fender");
+            PlayerLocosphere = Registry.Find("Player Locosphere");
+
+            //Registry.GetComponent<DynamicPhysicsActor>(PlayerLocosphere).MaxAngularVelocity = MathF.Tau - 0.001f;
 
             physMat.FrictionCombineMode = CombineMode.Max;
 
