@@ -214,6 +214,6 @@ namespace worlds {
             vkDestroyImageView(vkCtx->device, iv, nullptr);
         }
         vkDestroyDescriptorPool(vkCtx->device, tmpDescriptorPool, nullptr);
-        logMsg("cubemap convolution took %fms", pt.stopGetMs());
+        logVrb("cubemap convolution took %fms", pt.stopGetMs());
     }
 }

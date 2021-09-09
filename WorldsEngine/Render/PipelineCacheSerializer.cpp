@@ -71,7 +71,7 @@ namespace worlds {
                 return;
             }
 
-            logMsg(WELogCategoryRender, "Loaded pipeline cache: %i bytes", cacheDataHeader.dataSize);
+            logVrb(WELogCategoryRender, "Loaded pipeline cache: %i bytes", cacheDataHeader.dataSize);
 
             fclose(f);
         }
@@ -103,6 +103,6 @@ namespace worlds {
 
         free(dat);
 
-        logMsg(WELogCategoryRender, "Saved pipeline cache to %s", pipelineCachePath.c_str());
+        logVrb(WELogCategoryRender, "Saved pipeline cache to %s", pipelineCachePath.c_str());
     }
 }

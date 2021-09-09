@@ -37,7 +37,7 @@ namespace worlds {
 
         modules.insert({ id, mod });
 
-        logMsg("loading shader %s from disk", AssetDB::idToPath(id).c_str());
+        logVrb(WELogCategoryRender, "loading shader %s from disk", AssetDB::idToPath(id).c_str());
 
         return mod;
     }

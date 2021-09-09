@@ -288,7 +288,7 @@ namespace worlds {
         vkMutex.unlock();
 
         if (!td.name.empty())
-            logMsg("Uploaded %s (%ix%i) outside of frame", td.name.c_str(), td.width, td.height);
+            logVrb("Uploaded %s (%ix%i) outside of frame", td.name.c_str(), td.width, td.height);
 
         return tex;
     }
@@ -357,7 +357,7 @@ namespace worlds {
         vkMutex.unlock();
 
         if (!td.name.empty())
-            logMsg("Uploaded %s (%ix%i) as part of frame (handle is %zu)", td.name.c_str(), td.width, td.height, tex.imageView());
+            logVrb("Uploaded %s (%ix%i) as part of frame", td.name.c_str(), td.width, td.height);
 
         return tex;
     }
