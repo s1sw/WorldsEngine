@@ -122,11 +122,13 @@ namespace worlds {
 
         VkQueue queue;
         vkGetDeviceQueue(vkCtx->device, vkCtx->graphicsQueueFamilyIdx, 0, &queue);
+        PerfTimer pt2;
         vku::executeImmediately(vkCtx->device, vkCtx->commandPool, queue,
             [&](VkCommandBuffer cb) {
                 generateMipCube(*vkCtx, cube, mipCube, cb);
             }
         );
+        logVrb("%.3fms to generate mipmaps", pt2.stopGetMs());
 
         std::vector<VkDescriptorPoolSize> poolSizes;
         poolSizes.emplace_back(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1024);
@@ -168,8 +170,6 @@ namespace worlds {
 
         vku::DescriptorSetUpdater dsu(0, descriptorSets.size() * 3, 0);
         for (int i = 0; i < (int)descriptorSets.size(); i++) {
-            int arrayIdx = (i % 6);
-
             dsu.beginDescriptorSet(descriptorSets[i]);
             dsu.beginImages(0, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
             dsu.image(sampler, mipCube.imageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
