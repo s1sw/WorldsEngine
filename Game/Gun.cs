@@ -1,5 +1,6 @@
 using Game.Interaction;
 using WorldsEngine;
+using WorldsEngine.Audio;
 using WorldsEngine.Math;
 
 namespace Game
@@ -16,7 +17,7 @@ namespace Game
         public void Start(Entity entity)
         {
             var grabbable = Registry.GetComponent<Grabbable>(entity);
-            grabbable.TriggerPressed += Grabbable_TriggerPressed; ;
+            grabbable.TriggerPressed += Grabbable_TriggerPressed;
             grabbable.TriggerHeld += Grabbable_TriggerHeld;
         }
 
@@ -36,16 +37,24 @@ namespace Game
         {
             _shotTimer = 0f;
             var transform = Registry.GetTransform(entity);
+
+            Transform projectileTransform = transform;
+            projectileTransform.Position += transform.Forward * 0.5f;
+
+            Audio.PlayOneShot(AssetDB.PathToId("Audio/SFX/gunshot.ogg"), projectileTransform.Position, 1.0f);
+
             AssetID projectileId = AssetDB.PathToId("Prefabs/gun_projectile.wprefab");
             Entity projectile = Registry.CreatePrefab(projectileId);
 
             var projectileDpa = Registry.GetComponent<DynamicPhysicsActor>(projectile);
             projectileDpa.AddForce(transform.TransformDirection(Vector3.Forward) * 100f, ForceMode.VelocityChange);
 
-            Transform projectileTransform = transform;
-            projectileTransform.Position += transform.Forward * 2.0f;
+            
             Registry.SetTransform(entity, projectileTransform);
             projectileDpa.Pose = projectileTransform;
+
+            var dpa = Registry.GetComponent<DynamicPhysicsActor>(entity);
+            dpa.AddForce(-transform.TransformDirection(Vector3.Forward) * 100f * projectileDpa.Mass);
         }
 
         public void Think(Entity entity)

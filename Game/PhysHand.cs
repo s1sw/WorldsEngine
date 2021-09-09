@@ -11,7 +11,7 @@ namespace Game
 {
     [Component]
     [EditorFriendlyName("Physics Hand")]
-    class PhysHand : IThinkingComponent
+    class PhysHand : IThinkingComponent, IStartListener
     {
         static Vector3 _nonVROffset = new Vector3(0.1f, -0.2f, 0.55f);
         const float ForceLimit = 1000f;
@@ -73,18 +73,20 @@ namespace Game
         {
             SetTargets();
             var bodyDpa = Registry.GetComponent<DynamicPhysicsActor>(PlayerRigSystem.PlayerBody);
+            var locosphereDpa = Registry.GetComponent<DynamicPhysicsActor>(PlayerRigSystem.PlayerLocosphere);
 
             var dpa = Registry.GetComponent<DynamicPhysicsActor>(entity);
             Transform pose = dpa.Pose;
 
-            Vector3 force = PD.CalculateForce(pose.Position, _targetTransform.Position, dpa.Velocity, Time.DeltaTime, bodyDpa.Velocity)
+            Vector3 force = PD.CalculateForce(pose.Position, _targetTransform.Position, dpa.Velocity, Time.DeltaTime, locosphereDpa.Velocity)
                 .ClampMagnitude(ForceLimit);
 
-            dpa.AddForce(bodyDpa.Velocity - lastRefVel, ForceMode.VelocityChange);
+            dpa.AddForce(locosphereDpa.Velocity - lastRefVel, ForceMode.VelocityChange);
 
-            lastRefVel = bodyDpa.Velocity;
+            lastRefVel = locosphereDpa.Velocity;
 
             dpa.AddForce(force);
+            locosphereDpa.AddForce(-force);
 
             Quaternion quatDiff = _targetTransform.Rotation.SingleCover * pose.Rotation.SingleCover.Inverse;
             quatDiff = quatDiff.SingleCover;
@@ -97,7 +99,7 @@ namespace Game
             torque = pose.Rotation.SingleCover.Inverse * torque;
             if (!UseOverrideTensor)
             {
-                Quaternion itRotation = dpa.CenterOfMassLocalPose.Rotation;
+                Quaternion itRotation = dpa.CenterOfMassLocalPose.Rotation.SingleCover;
                 Vector3 tensor = dpa.InertiaTensor;
 
                 torque = itRotation * torque;
@@ -126,6 +128,14 @@ namespace Game
                 rotationOffset = VR.RightHandTransform.Rotation.Inverse;
                 Logger.Log($"New rotation offset for right hand: {rotationOffset}");
             }
+        }
+
+        public void Start(Entity entity)
+        {
+            if (FollowRightHand)
+                rotationOffset = new Quaternion(0.348f, 0.254f, -0.456f, -0.779f);
+            else
+                rotationOffset = new Quaternion(-0.409f, -0.154f, 0.419f, 0.796f);
         }
     }
 }
