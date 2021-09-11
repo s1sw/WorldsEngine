@@ -119,7 +119,11 @@ namespace worlds {
         void addForce(glm::vec3 force, ForceMode forceMode = ForceMode::Force);
         void addTorque(glm::vec3 torque, ForceMode forceMode = ForceMode::Force);
 
+        float maxAngularVelocity() const;
         void setMaxAngularVelocity(float vel);
+
+        float maxLinearVelocity() const;
+        void setMaxLinearVelocity(float vel);
 
         DPALockFlags lockFlags() const;
         void setLockFlags(DPALockFlags flags);

@@ -49,7 +49,7 @@ namespace Game
             var projectileDpa = Registry.GetComponent<DynamicPhysicsActor>(projectile);
             projectileDpa.AddForce(transform.TransformDirection(Vector3.Forward) * 100f, ForceMode.VelocityChange);
 
-            
+
             Registry.SetTransform(entity, projectileTransform);
             projectileDpa.Pose = projectileTransform;
 

@@ -89,8 +89,8 @@ namespace Game
             dpa.AddTorque(torque);
 
             _grounded = Physics.Raycast(
-                dpa.Pose.Position - new Vector3(0.0f, LocosphereRadius - 0.01f, 0.0f), 
-                Vector3.Down, 
+                dpa.Pose.Position - new Vector3(0.0f, LocosphereRadius - 0.01f, 0.0f),
+                Vector3.Down,
                 LocosphereRadius,
                 PhysicsLayers.Player
             );
@@ -131,8 +131,13 @@ namespace Game
 
         public static bool Jump = false;
 
+        private VRAction _jumpAction;
+
         public void OnSceneStart()
         {
+            if (VR.Enabled)
+                _jumpAction = new VRAction("/action/main/in/Jump");
+
             PlayerBody = Registry.Find("Player Body");
             PlayerFender = Registry.Find("Fender");
             PlayerLocosphere = Registry.Find("Player Locosphere");

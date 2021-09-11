@@ -1,3 +1,4 @@
+#include <entt/entity/registry.hpp>
 #include "Physics/Physics.hpp"
 #include "Export.hpp"
 
@@ -97,5 +98,17 @@ extern "C" {
 
     EXPORT void dynamicpa_setMaxAngularVelocity(entt::registry* reg, entt::entity entity, float vel) {
         reg->get<DynamicPhysicsActor>(entity).setMaxAngularVelocity(vel);
+    }
+
+    EXPORT float dynamicpa_getMaxAngularVelocity(entt::registry* reg, entt::entity entity) {
+        return reg->get<DynamicPhysicsActor>(entity).maxAngularVelocity();
+    }
+
+    EXPORT void dynamicpa_setMaxLinearVelocity(entt::registry* reg, entt::entity entity, float vel) {
+        reg->get<DynamicPhysicsActor>(entity).setMaxLinearVelocity(vel);
+    }
+
+    EXPORT float dynamicpa_getMaxLinearVelocity(entt::registry* reg, entt::entity entity) {
+        reg->get<DynamicPhysicsActor>(entity).maxLinearVelocity();
     }
 }

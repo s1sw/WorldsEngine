@@ -45,7 +45,19 @@ namespace worlds {
         actor->setRigidDynamicLockFlags((physx::PxRigidDynamicLockFlag::Enum)flags);
     }
 
+    float DynamicPhysicsActor::maxAngularVelocity() const {
+        return actor->getMaxAngularVelocity();
+    }
+
     void DynamicPhysicsActor::setMaxAngularVelocity(float vel) {
         actor->setMaxAngularVelocity(vel);
+    }
+
+    float DynamicPhysicsActor::maxLinearVelocity() const {
+        return actor->getMaxLinearVelocity();
+    }
+
+    void DynamicPhysicsActor::setMaxLinearVelocity(float vel) {
+        actor->setMaxLinearVelocity(vel);
     }
 }
