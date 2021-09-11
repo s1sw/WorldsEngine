@@ -3,15 +3,17 @@ using WorldsEngine;
 using WorldsEngine.Input;
 using WorldsEngine.Math;
 using WorldsEngine.Util;
+using System.Threading.Tasks;
+using ImGuiNET;
 
 namespace Game.Interaction
 {
     [Component]
-    public class HandGrab : IThinkingComponent
+    public class HandGrab : IStartListener, IThinkingComponent
     {
         public bool IsRightHand = false;
 
-        private static Entity Entity;
+        private Entity Entity;
 
         public Entity GrippedEntity { get; private set; } = Entity.Null;
 
@@ -19,6 +21,12 @@ namespace Game.Interaction
 
         private VRAction _grabAction;
         private VRAction _triggerAction;
+        private bool _bringingTowards = false;
+
+        public void Start(Entity entity)
+        {
+            Entity = entity;
+        }
 
         public void Think(Entity entity)
         {
@@ -169,7 +177,10 @@ namespace Game.Interaction
             Transform relativeTransform = grabbingTransform.TransformByInverse(handTransform);
 
             D6Joint d6 = Registry.AddComponent<D6Joint>(Entity);
-            d6.SetAllAxisMotion(D6Motion.Locked);
+            d6.SetAllAxisMotion(D6Motion.Free);
+            D6JointDrive drive = new(1000f, 10f, float.MaxValue, false);
+            d6.SetAllLinearDrives(drive);
+            d6.SetDrive(D6Drive.Slerp, drive);
 
             GrippedEntity = grab;
 
@@ -201,14 +212,44 @@ namespace Game.Interaction
 
             d6.TargetLocalPose = new Transform(g.position, g.rotation);
 
-            Mat3x3 combinedTensor = CalculateCombinedTensor(grab, new Transform(g.position, g.rotation));
-
-            physHand.UseOverrideTensor = true;
-            physHand.OverrideTensor = combinedTensor;
             d6.Target = grab;
 
             g.Attach();
             CurrentGrip = g;
+
+            _bringingTowards = true;
+            BringTowards(grab);
+        }
+
+        private async void BringTowards(Entity grabbed)
+        {
+            var gripTransform = new Transform(CurrentGrip.position, CurrentGrip.rotation);
+            while (_bringingTowards)
+            {
+                await Task.Delay(10);
+                var thisTransform = Registry.GetTransform(Entity);
+                var grabbedTransform = Registry.GetTransform(grabbed);
+
+                var grabTarget = gripTransform.TransformBy(grabbedTransform);
+                float distance = thisTransform.Position.DistanceTo(grabTarget.Position);
+
+                ImGui.Text($"distance: {distance}");
+
+                if (distance < 0.01f)
+                    break;
+            }
+
+            Mat3x3 combinedTensor = CalculateCombinedTensor(grabbed, gripTransform);
+
+            var physHand = Registry.GetComponent<PhysHand>(Entity);
+            physHand.UseOverrideTensor = true;
+            physHand.OverrideTensor = combinedTensor;
+
+            D6Joint d6 = Registry.GetComponent<D6Joint>(Entity);
+            d6.SetAllAxisMotion(D6Motion.Locked);
+            D6JointDrive drive = new(0f, 0f, 0f);
+            d6.SetAllLinearDrives(drive);
+            d6.SetDrive(D6Drive.Slerp, drive);
         }
 
         private void Release()
@@ -218,6 +259,7 @@ namespace Game.Interaction
 
             Registry.RemoveComponent<D6Joint>(Entity);
             GrippedEntity = Entity.Null;
+            _bringingTowards = false;
 
             var physHand = Registry.GetComponent<PhysHand>(Entity);
             physHand.UseOverrideTensor = false;

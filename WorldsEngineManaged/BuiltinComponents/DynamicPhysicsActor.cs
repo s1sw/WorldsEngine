@@ -64,6 +64,15 @@ namespace WorldsEngine
         [DllImport(WorldsEngine.NativeModule)]
         private static extern void dynamicpa_setMaxAngularVelocity(IntPtr reg, uint entity, float vel);
 
+        [DllImport(WorldsEngine.NativeModule)]
+        private static extern float dynamicpa_getMaxAngularVelocity(IntPtr reg, uint entity);
+
+        [DllImport(WorldsEngine.NativeModule)]
+        private static extern void dynamicpa_setMaxLinearVelocity(IntPtr reg, uint entity, float vel);
+
+        [DllImport(WorldsEngine.NativeModule)]
+        private static extern float dynamicpa_getMaxLinearVelocity(IntPtr reg, uint entity);
+
         internal static ComponentMetadata Metadata
         {
             get
@@ -146,10 +155,14 @@ namespace WorldsEngine
 
         public float MaxAngularVelocity
         {
-            set
-            {
-                dynamicpa_setMaxAngularVelocity(regPtr, entityId, value);
-            }
+            get => dynamicpa_getMaxAngularVelocity(regPtr, entityId);
+            set => dynamicpa_setMaxAngularVelocity(regPtr, entityId, value);
+        }
+
+        public float MaxLinearVelocity
+        {
+            get => dynamicpa_getMaxLinearVelocity(regPtr, entityId);
+            set => dynamicpa_setMaxLinearVelocity(regPtr, entityId, value);
         }
 
         internal DynamicPhysicsActor(IntPtr regPtr, uint entityId) : base(regPtr, entityId)

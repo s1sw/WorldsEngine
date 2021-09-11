@@ -1,4 +1,5 @@
 #include "Export.hpp"
+#include <entt/entity/registry.hpp>
 #include "Physics/Physics.hpp"
 #include <Physics/D6Joint.hpp>
 
@@ -116,5 +117,13 @@ extern "C" {
 
     EXPORT void d6joint_setLocalPose(entt::registry* reg, entt::entity entity, physx::PxJointActorIndex::Enum actorIndex, Transform* t) {
         reg->get<D6Joint>(entity).pxJoint->setLocalPose(actorIndex, glm2px(*t));
+    }
+
+    EXPORT void d6joint_setLinearLimit(entt::registry* reg, entt::entity entity, physx::PxD6Axis::Enum axis, physx::PxJointLinearLimitPair* limit) {
+        reg->get<D6Joint>(entity).pxJoint->setLinearLimit(axis, *limit);
+    }
+    
+    EXPORT void d6joint_setDrive(entt::registry* reg, entt::entity entity, physx::PxD6Drive::Enum axis, physx::PxD6JointDrive* drive) {
+        reg->get<D6Joint>(entity).pxJoint->setDrive(axis, *drive);
     }
 }

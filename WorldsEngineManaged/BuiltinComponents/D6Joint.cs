@@ -25,6 +25,80 @@ namespace WorldsEngine
         AngularZ
     }
 
+    public enum D6Drive
+    {
+        X,
+        Y,
+        Z,
+        Swing,
+        Twist,
+        Slerp
+    }
+
+    public struct JointLinearLimit
+    {
+        public float Restitution;
+        public float BounceThreshold;
+        public float Stiffness;
+        public float Damping;
+        public float ContactDistance;
+        public float Value;
+
+        public JointLinearLimit(float extent)
+        {
+            Restitution = 0.0f;
+            BounceThreshold = 0.0f;
+            Stiffness = 0.0f;
+            Damping = 0.0f;
+            ContactDistance = 0.01f;
+            Value = extent;
+        }
+    }
+
+    public struct JointLinearLimitPair
+    {
+        public float Restitution;
+        public float BounceThreshold;
+        public float Stiffness;
+        public float Damping;
+        public float ContactDistance;
+        public float UpperLimit;
+        public float LowerLimit;
+
+        public JointLinearLimitPair(float lowerLimit, float upperLimit)
+        {
+            Restitution = 0.0f;
+            BounceThreshold = 0.0f;
+            Stiffness = 0.0f;
+            Damping = 0.0f;
+            ContactDistance = 0.01f;
+            LowerLimit = lowerLimit;
+            UpperLimit = upperLimit;
+        }
+    }
+
+    [Flags]
+    public enum D6JointDriveFlag : uint
+    {
+        None = 0,
+        Acceleration = 1
+    }
+
+    public struct D6JointDrive
+    {
+        public float Stiffness;
+        public float Damping;
+        public float ForceLimit;
+        public D6JointDriveFlag Flags;
+
+        public D6JointDrive(float stiffness, float damping, float forceLimit = float.MaxValue, bool isAcceleration = false) {
+            Stiffness = stiffness;
+            Damping = damping;
+            ForceLimit = forceLimit;
+            Flags = isAcceleration ? D6JointDriveFlag.Acceleration : D6JointDriveFlag.None;
+        }
+    }
+
     public class D6Joint : BuiltinComponent
     {
         [DllImport(WorldsEngine.NativeModule)]
@@ -41,6 +115,12 @@ namespace WorldsEngine
 
         [DllImport(WorldsEngine.NativeModule)]
         private static extern void d6joint_setLocalPose(IntPtr regPtr, uint d6ent, uint actorIndex, ref Transform pose);
+
+        [DllImport(WorldsEngine.NativeModule)]
+        private static extern void d6joint_setLinearLimit(IntPtr regPtr, uint d6ent, D6Axis axis, ref JointLinearLimitPair limit);
+
+        [DllImport(WorldsEngine.NativeModule)]
+        private static extern void d6joint_setDrive(IntPtr regPtr, uint d6ent, D6Drive drive, ref D6JointDrive jointDrive);
 
         internal static ComponentMetadata Metadata
         {
@@ -123,6 +203,23 @@ namespace WorldsEngine
         {
             SetAllLinearAxisMotion(motion);
             SetAllAngularAxisMotion(motion);
+        }
+
+        public void SetLinearLimit(D6Axis axis, JointLinearLimitPair limit)
+        {
+            d6joint_setLinearLimit(regPtr, entityId, axis, ref limit);
+        }
+
+        public void SetDrive(D6Drive axis, D6JointDrive drive)
+        {
+            d6joint_setDrive(regPtr, entityId, axis, ref drive);
+        }
+
+        public void SetAllLinearDrives(D6JointDrive drive)
+        {
+            d6joint_setDrive(regPtr, entityId, D6Drive.X, ref drive);
+            d6joint_setDrive(regPtr, entityId, D6Drive.Y, ref drive);
+            d6joint_setDrive(regPtr, entityId, D6Drive.Z, ref drive);
         }
     }
 }
