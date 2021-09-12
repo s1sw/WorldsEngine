@@ -10,7 +10,7 @@ using WorldsEngine.Math;
 namespace Game
 {
     [Component]
-    class DummyHand : IThinkingComponent
+    class DummyHand : IStartListener, IThinkingComponent
     {
         static Vector3 _nonVROffset = new Vector3(0.1f, -0.2f, 0.55f);
 
@@ -18,40 +18,61 @@ namespace Game
 
         private Quaternion rotationOffset = Quaternion.Identity;
 
-        public void Think(Entity entity)
+        private Transform _targetTransform = new Transform();
+        private void SetTargets()
         {
             if (!VR.Enabled)
             {
-                Transform target = new Transform();
-                target.Rotation = Camera.Main.Rotation;
+                _targetTransform.Rotation = Camera.Main.Rotation;
                 Vector3 offset = _nonVROffset;
 
                 if (FollowRightHand)
                     offset.x *= -1.0f;
 
-                target.Position = Camera.Main.TransformPoint(offset);
-                target.Scale = new Vector3(1.0f);
-                Registry.SetTransform(entity, target);
+                Transform camT = new Transform(Camera.Main.Position, Camera.Main.Rotation);
+
+                camT.Position = PlayerCameraSystem.GetCamPosForSimulation();
+
+                _targetTransform.Position = camT.TransformPoint(offset);
                 return;
             }
 
-            Transform t = FollowRightHand ? VR.RightHandTransform : VR.LeftHandTransform;
+            _targetTransform = FollowRightHand ? VR.RightHandTransform : VR.LeftHandTransform;
 
-            if (Keyboard.KeyPressed(KeyCode.L) && !FollowRightHand)
-            {
-                rotationOffset = VR.LeftHandTransform.Rotation.Inverse;
-                Logger.Log($"New rotation offset for left hand: {rotationOffset}");
-            }
+            if (_targetTransform.Rotation.HasNaNComponent)
+                _targetTransform.Rotation = Quaternion.Identity;
 
-            if (Keyboard.KeyPressed(KeyCode.R) && FollowRightHand)
-            {
-                rotationOffset = VR.RightHandTransform.Rotation.Inverse;
-                Logger.Log($"New rotation offset for right hand: {rotationOffset}");
-            }
+            if (_targetTransform.Position.HasNaNComponent)
+                _targetTransform.Position = Vector3.Zero;
 
-            t.Scale = new Vector3(1.0f);
-            t.Rotation *= rotationOffset;
-            Registry.SetTransform(entity, t);
+            Quaternion virtualRotation = Camera.Main.Rotation;//* Quaternion.AngleAxis(MathF.PI, Vector3.Up);
+            //
+            //_targetTransform.Position += _targetTransform.Rotation * PositionOffset;
+            //_targetTransform.Position = virtualRotation * _targetTransform.Position;
+            //
+
+            _targetTransform.Position += PlayerCameraSystem.GetCamPosForSimulation();//Camera.Main.Position;
+            //
+            _targetTransform.Rotation *= rotationOffset;
+            //_targetTransform.Rotation *= new Quaternion(EulerRotationOffset);
+            //
+            _targetTransform.Rotation = virtualRotation * _targetTransform.Rotation;
+        }
+
+        public void Think(Entity entity)
+        {
+            SetTargets();
+            Transform goTo = new Transform(_targetTransform.Position, _targetTransform.Rotation);
+
+            Registry.SetTransform(entity, goTo);
+        }
+
+        public void Start(Entity entity)
+        {
+            if (FollowRightHand)
+                rotationOffset = new Quaternion(0.348f, 0.254f, -0.456f, -0.779f);
+            else
+                rotationOffset = new Quaternion(-0.409f, -0.154f, 0.419f, 0.796f);
         }
     }
 }

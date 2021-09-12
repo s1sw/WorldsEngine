@@ -79,7 +79,7 @@ namespace Game
             inputDirCS.y = 0.0f;
             inputDirCS.Normalize();
 
-            Vector3 desiredAngVel = new Vector3(inputDirCS.z, 0.0f, -inputDirCS.x) * 25.0f;
+            Vector3 desiredAngVel = new Vector3(inputDirCS.z, 0.0f, -inputDirCS.x) * (Keyboard.KeyHeld(KeyCode.LeftShift) ? 50f : 25.0f);
 
             Vector3 currentAngVel = dpa.AngularVelocity;
 
@@ -122,6 +122,7 @@ namespace Game
         }
     }
 
+    [SystemUpdateOrder(-2)]
     public class PlayerRigSystem : ISystem
     {
         public static Entity PlayerBody { get; private set; }
@@ -136,13 +137,11 @@ namespace Game
         public void OnSceneStart()
         {
             if (VR.Enabled)
-                _jumpAction = new VRAction("/action/main/in/Jump");
+                _jumpAction = new VRAction("/actions/main/in/Jump");
 
             PlayerBody = Registry.Find("Player Body");
             PlayerFender = Registry.Find("Fender");
             PlayerLocosphere = Registry.Find("Player Locosphere");
-
-            //Registry.GetComponent<DynamicPhysicsActor>(PlayerLocosphere).MaxAngularVelocity = MathF.Tau - 0.001f;
 
             physMat.FrictionCombineMode = CombineMode.Max;
 
@@ -165,6 +164,12 @@ namespace Game
         {
             if (Keyboard.KeyPressed(KeyCode.Space))
                 Jump = true;
+
+            if (VR.Enabled && _jumpAction.Held)
+            {
+                Logger.Log("jump!!");
+                Jump = true;
+            }
         }
     }
 }

@@ -109,6 +109,6 @@ extern "C" {
     }
 
     EXPORT float dynamicpa_getMaxLinearVelocity(entt::registry* reg, entt::entity entity) {
-        reg->get<DynamicPhysicsActor>(entity).maxLinearVelocity();
+        return reg->get<DynamicPhysicsActor>(entity).maxLinearVelocity();
     }
 }

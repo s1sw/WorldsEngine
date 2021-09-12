@@ -6,10 +6,8 @@ using System.Threading.Tasks;
 
 namespace WorldsEngine
 {
-    public class Time
+    public interface ICollisionHandler
     {
-        public static float DeltaTime { get; internal set; }
-
-        public static double CurrentTime { get; internal set; }
+        void OnCollision(Entity entity, ref PhysicsContactInfo contactInfo);
     }
 }

@@ -33,6 +33,7 @@ namespace lg {
         void damageEntity(entt::entity entity, double damageAmt, glm::vec3 damagePoint);
         void updateHandGrab(entt::registry& registry, PlayerRig& rig, entt::entity handEnt, float deltaTime);
         void onPhysicsSoundConstruct(entt::registry& reg, entt::entity ent);
+        void onPhysicsSoundDestroy(entt::registry& reg, entt::entity ent);
         void onPhysicsSoundContact(entt::entity thisEnt, const worlds::PhysicsContactInfo& info);
         void onContactDamageDealerContact(entt::entity thisEnt, const worlds::PhysicsContactInfo& info);
         void onContactDamageDealerConstruct(entt::registry& reg, entt::entity ent);

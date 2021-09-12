@@ -5,6 +5,7 @@ using WorldsEngine.Input;
 
 namespace Game
 {
+    [SystemUpdateOrder(-1)]
     public class PlayerCameraSystem : ISystem
     {
         private float lookX = 0.0f;
@@ -17,6 +18,24 @@ namespace Game
             locosphereEntity = Registry.Find("Player Locosphere");
             lookX = 0.0f;
             lookY = 0.0f;
+        }
+
+        public static Vector3 GetCamPosForSimulation()
+        {
+            Transform bodyTransform = Registry.GetTransform(PlayerRigSystem.PlayerBody);
+            var bodyDpa = Registry.GetComponent<DynamicPhysicsActor>(PlayerRigSystem.PlayerBody);
+
+            if (!VR.Enabled)
+            {
+                return bodyDpa.Pose.Position + new Vector3(0f, 0.5f * (bodyTransform.Scale.y / 0.75f) - 0.15f, 0f);
+            }
+            else
+            {
+                Vector3 hmdOffset = VR.HMDTransform.Position;
+                hmdOffset.y = -0.15f;
+
+                return bodyDpa.Pose.Position + (Camera.Main.Rotation * -hmdOffset) - new Vector3(0f, (bodyTransform.Scale.y / 0.75f) + 0.45f, 0f);
+            }
         }
 
         public void OnUpdate()

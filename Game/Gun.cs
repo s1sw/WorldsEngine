@@ -36,7 +36,9 @@ namespace Game
         public void Fire(Entity entity)
         {
             _shotTimer = 0f;
-            var transform = Registry.GetTransform(entity);
+
+            var dpa = Registry.GetComponent<DynamicPhysicsActor>(entity);
+            var transform = dpa.Pose;
 
             Transform projectileTransform = transform;
             projectileTransform.Position += transform.Forward * 0.5f;
@@ -49,12 +51,10 @@ namespace Game
             var projectileDpa = Registry.GetComponent<DynamicPhysicsActor>(projectile);
             projectileDpa.AddForce(transform.TransformDirection(Vector3.Forward) * 100f, ForceMode.VelocityChange);
 
-
             Registry.SetTransform(entity, projectileTransform);
             projectileDpa.Pose = projectileTransform;
 
-            var dpa = Registry.GetComponent<DynamicPhysicsActor>(entity);
-            dpa.AddForce(-transform.TransformDirection(Vector3.Forward) * 100f * projectileDpa.Mass);
+            dpa.AddForce(-transform.TransformDirection(Vector3.Forward) * 100f * projectileDpa.Mass, ForceMode.Impulse);
         }
 
         public void Think(Entity entity)

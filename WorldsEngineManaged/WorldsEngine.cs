@@ -52,6 +52,9 @@ namespace WorldsEngine
         static EngineSynchronizationContext simulateSyncContext = new EngineSynchronizationContext();
         static EngineSynchronizationContext editorUpdateSyncContext = new EngineSynchronizationContext();
 
+        static double _simulationTime = 0.0;
+        static double _updateTime = 0.0;
+
         static void ActualInit(IntPtr registryPtr)
         {
             NativeLibrary.SetDllImportResolver(typeof(WorldsEngine).Assembly, ImportResolver);
@@ -110,6 +113,7 @@ namespace WorldsEngine
             hotloadManager.ReloadIfNecessary();
             SynchronizationContext.SetSynchronizationContext(updateSyncContext);
             Time.DeltaTime = deltaTime;
+            Time.CurrentTime = _updateTime;
 
             try
             {
@@ -124,6 +128,10 @@ namespace WorldsEngine
             {
                 Logger.LogError($"Caught exception: {e}");
             }
+
+            Registry.ClearDestroyQueue();
+
+            _updateTime += Time.DeltaTime;
         }
 
         [UsedImplicitly]
@@ -133,6 +141,7 @@ namespace WorldsEngine
         {
             SynchronizationContext.SetSynchronizationContext(simulateSyncContext);
             Time.DeltaTime = deltaTime;
+            Time.CurrentTime = _simulationTime;
 
             try
             {
@@ -149,6 +158,10 @@ namespace WorldsEngine
             {
                 Logger.LogError($"Caught exception: {e}");
             }
+
+            Registry.ClearDestroyQueue();
+
+            _simulationTime += Time.DeltaTime;
         }
 
         [UsedImplicitly]

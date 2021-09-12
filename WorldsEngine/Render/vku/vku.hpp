@@ -795,8 +795,8 @@ namespace vku {
             }
             return VK_FALSE;
         }
-        VkDebugReportCallbackEXT callback_;
-        VkInstance instance_;
+        VkDebugReportCallbackEXT callback_ = VK_NULL_HANDLE;
+        VkInstance instance_ = VK_NULL_HANDLE;
     };
 
     /// Factory for renderpasses.

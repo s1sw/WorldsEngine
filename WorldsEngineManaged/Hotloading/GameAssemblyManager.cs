@@ -151,6 +151,18 @@ namespace WorldsEngine
             else
                 LoadSerializedSystems();
 
+            // Sort systems by priority
+            gameSystems.Sort((ISystem a, ISystem b) =>
+            {
+                Type typeA = a.GetType();
+                Type typeB = b.GetType();
+
+                int priorityA = typeA.GetCustomAttribute<SystemUpdateOrderAttribute>()?.Priority ?? 0;
+                int priorityB = typeB.GetCustomAttribute<SystemUpdateOrderAttribute>()?.Priority ?? 0;
+
+                return priorityA - priorityB;
+            });
+
             OnAssemblyLoad?.Invoke(Assembly);
         }
 

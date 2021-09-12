@@ -32,27 +32,8 @@ extern "C" {
         return (uint32_t)overlapped;
     }
 
-    EXPORT uint32_t physics_overlapSphereMultiple(glm::vec3 origin, float radius, uint32_t maxTouchCount, uint32_t* hitEntityBuffer) {
-        physx::PxOverlapHit* hitMem = (physx::PxOverlapHit*)alloca(maxTouchCount * sizeof(physx::PxOverlapHit));
-        physx::PxSphereGeometry sphereGeo{ radius };
-        physx::PxOverlapBuffer hit{ hitMem, maxTouchCount };
-        physx::PxQueryFilterData filterData;
-
-        filterData.flags = physx::PxQueryFlag::eDYNAMIC
-            | physx::PxQueryFlag::eSTATIC
-            | physx::PxQueryFlag::eNO_BLOCK;
-
-        physx::PxTransform t{ physx::PxIdentity };
-        t.p = glm2px(origin);
-
-        if (!g_scene->overlap(sphereGeo, t, hit, filterData)) return 0;
-
-        for (uint32_t i = 0; i < hit.getNbTouches(); i++) {
-            const physx::PxOverlapHit& overlap = hit.getTouch(i);
-            hitEntityBuffer[i] = (uint32_t)(uintptr_t)overlap.actor->userData;
-        }
-
-        return hit.getNbTouches();
+    EXPORT uint32_t physics_overlapSphereMultiple(glm::vec3 origin, float radius, uint32_t maxTouchCount, uint32_t* hitEntityBuffer, uint32_t excludeLayerMask) {
+        return overlapSphereMultiple(origin, radius, maxTouchCount, hitEntityBuffer, excludeLayerMask);
     }
 
     EXPORT physx::PxMaterial* physicsmaterial_new(float staticFriction, float dynamicFriction, float restitution) {

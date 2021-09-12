@@ -223,9 +223,34 @@ namespace worlds {
         return data.bState;
     }
 
+    const char* inputErrorStrings[] = {
+        "None",
+        "NameNotFound",
+        "WrongType",
+        "InvalidHandle",
+        "InvalidParam",
+        "NoSteam",
+        "MaxCapacityReached",
+        "IPCError",
+        "NoActiveActionSet",
+        "InvalidDevice",
+        "InvalidSkeleton",
+        "InvalidBoneCount",
+        "InvalidCompressedData",
+        "NoData",
+        "BufferTooSmall",
+        "MismatchedActionManifest",
+        "MissingSkeletonData",
+        "InvalidBoneIndex"
+    };
+
     InputActionHandle OpenVRInterface::getActionHandle(std::string actionPath) {
-        vr::VRActionHandle_t handle;
-        vr::VRInput()->GetActionHandle(actionPath.c_str(), &handle);
+        vr::VRActionHandle_t handle = UINT64_MAX;
+        vr::EVRInputError err = vr::VRInput()->GetActionHandle(actionPath.c_str(), &handle);
+
+        if (err != vr::VRInputError_None) {
+            logErr("Failed to get action %s: %s", actionPath.c_str(), inputErrorStrings);
+        }
 
         return handle;
     }

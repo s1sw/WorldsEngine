@@ -15,6 +15,21 @@ namespace Game.Interaction
         [EditableClass]
         public List<Grip> grips = new List<Grip>();
 
+        public AttachedHandFlags AttachedHandFlags
+        {
+            get
+            {
+                AttachedHandFlags flags = AttachedHandFlags.None;
+
+                foreach (Grip g in grips)
+                {
+                    flags |= g.CurrentlyAttachedHand;
+                }
+
+                return flags;
+            }
+        }
+
         public void RunEvents(bool triggerPressed, bool triggerReleased, bool triggerHeld, Entity entity)
         {
             if (triggerPressed)
