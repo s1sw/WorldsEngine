@@ -30,11 +30,20 @@ namespace Game
         [NonSerialized]
         public Mat3x3 OverrideTensor = new();
 
+        [NonSerialized]
+        public Transform? OverrideTarget = null;
+
         private Transform _targetTransform = new Transform();
         private Vector3 lastRefVel = Vector3.Zero;
 
         private void SetTargets()
         {
+            if (OverrideTarget != null)
+            {
+                _targetTransform = OverrideTarget.Value;
+                return;
+            }
+
             if (!VR.Enabled)
             {
                 _targetTransform.Rotation = Camera.Main.Rotation;
@@ -43,7 +52,11 @@ namespace Game
                 if (FollowRightHand)
                     offset.x *= -1.0f;
 
-                _targetTransform.Position = Camera.Main.TransformPoint(offset);
+                Transform camT = new Transform(Camera.Main.Position, Camera.Main.Rotation);
+
+                camT.Position = PlayerCameraSystem.GetCamPosForSimulation();
+
+                _targetTransform.Position = camT.TransformPoint(offset);
                 return;
             }
 
@@ -61,7 +74,7 @@ namespace Game
             //_targetTransform.Position = virtualRotation * _targetTransform.Position;
             //
 
-            _targetTransform.Position += Camera.Main.Position;
+            _targetTransform.Position += PlayerCameraSystem.GetCamPosForSimulation();//Camera.Main.Position;
             //
             _targetTransform.Rotation *= rotationOffset;
             //_targetTransform.Rotation *= new Quaternion(EulerRotationOffset);
@@ -78,10 +91,10 @@ namespace Game
             var dpa = Registry.GetComponent<DynamicPhysicsActor>(entity);
             Transform pose = dpa.Pose;
 
-            Vector3 force = PD.CalculateForce(pose.Position, _targetTransform.Position, dpa.Velocity, Time.DeltaTime, locosphereDpa.Velocity)
+            Vector3 force = PD.CalculateForce(pose.Position, _targetTransform.Position + (locosphereDpa.Velocity * Time.DeltaTime), dpa.Velocity, Time.DeltaTime, locosphereDpa.Velocity)
                 .ClampMagnitude(ForceLimit);
-
-            dpa.AddForce(locosphereDpa.Velocity - lastRefVel, ForceMode.VelocityChange);
+            
+            dpa.AddForce((locosphereDpa.Velocity - lastRefVel), ForceMode.VelocityChange);
 
             lastRefVel = locosphereDpa.Velocity;
 

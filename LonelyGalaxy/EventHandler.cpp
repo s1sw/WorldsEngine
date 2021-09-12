@@ -46,8 +46,8 @@
 namespace lg {
     worlds::RTTPass* spectatorPass = nullptr;
     worlds::Camera spectatorCam;
-    worlds::ConVar enableSpectatorCam { "lg_enableVrSpectatorCam", "0", "Enables VR spectator camera." };
-    worlds::ConVar useCamcorder { "lg_useCamcorder", "0", "Uses the camcorder for the screen view." };
+    worlds::ConVar enableSpectatorCam{ "lg_enableVrSpectatorCam", "0", "Enables VR spectator camera." };
+    worlds::ConVar useCamcorder{ "lg_useCamcorder", "0", "Uses the camcorder for the screen view." };
     struct SyncedRB {};
     struct StatDisplay {
         entt::entity textEntity;
@@ -64,11 +64,11 @@ namespace lg {
     }
 
     EventHandler::EventHandler(bool dedicatedServer)
-        : isDedicated {dedicatedServer}
-        , client {nullptr}
-        , server {nullptr}
-        , lHandEnt {entt::null}
-        , rHandEnt {entt::null} {
+        : isDedicated{ dedicatedServer }
+        , client{ nullptr }
+        , server{ nullptr }
+        , lHandEnt{ entt::null }
+        , rHandEnt{ entt::null } {
     }
 
     void EventHandler::onPhysicsSoundContact(entt::entity thisEnt, const worlds::PhysicsContactInfo& info) {
@@ -78,15 +78,27 @@ namespace lg {
 
         if (time - physSound.lastPlayTime > 0.1) {
             worlds::AudioSystem::getInstance()->playOneShotClip(
-                    physSound.soundId, info.averageContactPoint, true, glm::min(info.relativeSpeed * 0.125f, 0.9f));
+                physSound.soundId, info.averageContactPoint, true, glm::min(info.relativeSpeed * 0.125f, 0.9f));
             physSound.lastPlayTime = time;
         }
     }
 
     void EventHandler::onPhysicsSoundConstruct(entt::registry& reg, entt::entity ent) {
         auto& physEvents = reg.get_or_emplace<worlds::PhysicsEvents>(ent);
-        physEvents.addContactCallback(std::bind(&EventHandler::onPhysicsSoundContact,
-            this, std::placeholders::_1, std::placeholders::_2));
+        auto& physSound = reg.get<PhysicsSoundComponent>(ent);
+        physSound.eventHandlerIndex =
+            physEvents.addContactCallback(std::bind(&EventHandler::onPhysicsSoundContact,
+                this, std::placeholders::_1, std::placeholders::_2));
+    }
+
+    void EventHandler::onPhysicsSoundDestroy(entt::registry& reg, entt::entity ent) {
+        auto& physSound = reg.get<PhysicsSoundComponent>(ent);
+        auto* physEvents = reg.try_get<worlds::PhysicsEvents>(ent);
+
+        if (physEvents == nullptr)
+            return;
+
+        physEvents->removeContactCallback(physSound.eventHandlerIndex);
     }
 
     double clamp(double val, double min, double max) {
@@ -112,7 +124,7 @@ namespace lg {
     }
 
     void spawnDamageNumber(double currentTime, entt::registry& reg, double damage, glm::vec3 location) {
-        glm::vec3 jumpDir { randFloatZeroOne(), randFloatZeroOne(), randFloatZeroOne() };
+        glm::vec3 jumpDir{ randFloatZeroOne(), randFloatZeroOne(), randFloatZeroOne() };
 
         entt::entity ent = reg.create();
         Transform& transform = reg.emplace<Transform>(ent);
@@ -241,7 +253,7 @@ namespace lg {
             engine->destroyNextFrame(thisEnt);
 
             damageEntity(info.otherEntity, projectile2.damage, info.averageContactPoint + (info.normal * 0.25f));
-        });
+            });
     }
 
     entt::entity camcorder = entt::null;
@@ -254,9 +266,10 @@ namespace lg {
         inputManager = interfaces.inputManager;
         engine = interfaces.engine;
         reg = &registry;
-        playerGrabManager = new PlayerGrabManager{interfaces, registry};
+        playerGrabManager = new PlayerGrabManager{ interfaces, registry };
 
         registry.on_construct<PhysicsSoundComponent>().connect<&EventHandler::onPhysicsSoundConstruct>(this);
+        registry.on_destroy<PhysicsSoundComponent>().connect<&EventHandler::onPhysicsSoundDestroy>(this);
         registry.on_construct<ContactDamageDealer>().connect<&EventHandler::onContactDamageDealerConstruct>(this);
         registry.on_construct<Gun>().connect<&EventHandler::onGunConstruct>(this);
         registry.on_construct<DamagingProjectile>().connect<&EventHandler::onProjectileConstruct>(this);
@@ -264,18 +277,18 @@ namespace lg {
         worlds::g_console->registerCommand(cmdToggleVsync, "r_toggleVsync", "Toggles Vsync.", renderer);
         interfaces.engine->addSystem(new ObjectParentSystem);
 
-        lsphereSys = new LocospherePlayerSystem { interfaces, registry };
+        lsphereSys = new LocospherePlayerSystem{ interfaces, registry };
         interfaces.engine->addSystem(lsphereSys);
         interfaces.engine->addSystem(new PhysHandSystem{ interfaces, registry });
-        interfaces.engine->addSystem(new StabbySystem { interfaces, registry });
-        interfaces.engine->addSystem(new PlayerSoundSystem { interfaces, registry });
-        interfaces.engine->addSystem(new DroneAISystem { interfaces, registry });
+        interfaces.engine->addSystem(new StabbySystem{ interfaces, registry });
+        interfaces.engine->addSystem(new PlayerSoundSystem{ interfaces, registry });
+        interfaces.engine->addSystem(new DroneAISystem{ interfaces, registry });
 
         if (enet_initialize() != 0) {
             logErr("Failed to initialize enet.");
         }
 
-        mpManager = new MultiplayerManager{registry, isDedicated};
+        mpManager = new MultiplayerManager{ registry, isDedicated };
 
         new DebugArrows(registry);
 
@@ -307,11 +320,11 @@ namespace lg {
 
             rPh.posController.reset();
             rPh.rotController.reset();
-        }, "lg_resetHands", "Resets hand PID controllers.", nullptr);
+            }, "lg_resetHands", "Resets hand PID controllers.", nullptr);
 
         worlds::g_console->registerCommand([&](void*, const char*) {
             camcorder = worlds::SceneLoader::createPrefab(worlds::AssetDB::pathToId("Prefabs/spectator_camcorder.wprefab"), registry);
-        }, "lg_spawnCamcorder", "Spawns the camcorder.", nullptr);
+            }, "lg_spawnCamcorder", "Spawns the camcorder.", nullptr);
     }
 
     void EventHandler::preSimUpdate(entt::registry&, float) {
@@ -323,7 +336,7 @@ namespace lg {
     entt::entity headPlaceholder = entt::null;
 
     Transform getHmdTransform(worlds::Camera* camera, worlds::IVRInterface* vrInterface) {
-        const glm::vec3 flipVec { -1.0f, 1.0f, -1.0f };
+        const glm::vec3 flipVec{ -1.0f, 1.0f, -1.0f };
 
         auto hmdTransform = vrInterface->getHeadTransform();
         glm::vec3 hmdPos = camera->rotation * worlds::getMatrixTranslation(hmdTransform);
@@ -333,23 +346,23 @@ namespace lg {
         glm::vec3 hmdRotationAxis = glm::axis(hmdRot) * flipVec;
         float hmdRotationAngle = glm::angle(hmdRot);
 
-        return Transform {
+        return Transform{
             camera->position + hmdPos,
             camera->rotation * glm::angleAxis(hmdRotationAngle, hmdRotationAxis)
         };
     }
 
     Transform getHandTargetTransform(worlds::Camera* cam, worlds::IVRInterface* vrInterface, worlds::Hand wHand) {
-        static glm::vec3 posOffset { 0.0f, 0.0f, -0.05f };
-        static glm::vec3 rotEulerOffset { -120.0f, 0.0f, -51.0f };
+        static glm::vec3 posOffset{ 0.0f, 0.0f, -0.05f };
+        static glm::vec3 rotEulerOffset{ -120.0f, 0.0f, -51.0f };
         Transform t;
         if (vrInterface->getHandTransform(wHand, t)) {
             t.position += t.rotation * posOffset;
-            glm::quat flip180 = glm::angleAxis(glm::pi<float>(), glm::vec3{0.0f, 1.0f, 0.0f});
+            glm::quat flip180 = glm::angleAxis(glm::pi<float>(), glm::vec3{ 0.0f, 1.0f, 0.0f });
             glm::quat correctedRot = cam->rotation * flip180;
             t.position = correctedRot * t.position;
             t.position += cam->position;
-            t.rotation *= glm::quat{glm::radians(rotEulerOffset)};
+            t.rotation *= glm::quat{ glm::radians(rotEulerOffset) };
             t.rotation = flip180 * cam->rotation * t.rotation;
         }
 
@@ -364,7 +377,7 @@ namespace lg {
                         renderer->destroyRTTPass(spectatorPass);
                     int w, h;
                     SDL_GetWindowSize(engine->getMainWindow(), &w, &h);
-                    worlds::RTTPassCreateInfo ci {
+                    worlds::RTTPassCreateInfo ci{
                         .cam = &spectatorCam,
                         .width = static_cast<uint32_t>(w),
                         .height = static_cast<uint32_t>(h),
@@ -401,7 +414,7 @@ namespace lg {
             const float rotateSpeed = 15.0f;
 
             yRot += glm::clamp((targetYRot - yRot), -deltaTime * rotateSpeed, deltaTime * rotateSpeed);
-            camera->rotation = glm::quat{glm::vec3{0.0f, yRot, 0.0f}};
+            camera->rotation = glm::quat{ glm::vec3{0.0f, yRot, 0.0f} };
 
             rotated = rotatingNow;
 
@@ -460,16 +473,16 @@ namespace lg {
                     logWarn("more than one local locosphere!");
                 }
             }
-        });
+            });
 
         reg.view<DamagingProjectile>().each([&](entt::entity ent, DamagingProjectile& dp) {
             if (engine->getGameTime() - dp.creationTime > 5.0)
                 engine->destroyNextFrame(ent);
-        });
+            });
 
         if (!reg.valid(localLocosphereEnt)) return;
 
-        static worlds::ConVar invincible { "lg_invincible", "0", "Makes the player invincible." };
+        static worlds::ConVar invincible{ "lg_invincible", "0", "Makes the player invincible." };
         auto& rpgStat = reg.get<RPGStats>(localLocosphereEnt);
         if (invincible.getInt())
             rpgStat.currentHP = 9999;
@@ -521,7 +534,7 @@ namespace lg {
             if (engine->getGameTime() - dn.spawnTime > 5.0) {
                 engine->destroyNextFrame(ent);
             }
-        });
+            });
 
         statDisplayView.each([&](StatDisplay& sd, StatDisplayInfo& sdi, RPGStats& stats, Transform& transform) {
             glm::vec3 displayPos = transform.position + (transform.rotation * sdi.offset);
@@ -535,7 +548,7 @@ namespace lg {
             std::string healthText = "Health: " + std::to_string((int)glm::round(stats.currentHP));
             wtc.text = healthText;
             wtc.dirty = true;
-        });
+            });
     }
 
     int syncTimer = 0;
@@ -556,7 +569,7 @@ namespace lg {
                     logWarn("more than one local locosphere!");
                 }
             }
-        });
+            });
 
         if (!registry.valid(localLocosphereEnt)) {
             // probably dedicated server
@@ -576,21 +589,21 @@ namespace lg {
             float fenderHeight = 0.55f;
             glm::vec3 headPos = worlds::getMatrixTranslation(vrInterface->getHeadTransform());
 
-            rHandJoint->setLocalPose(physx::PxJointActorIndex::eACTOR0, physx::PxTransform {
-                    physx::PxVec3(0.0f, headPos.y - fenderHeight, 0.0f), physx::PxQuat { physx::PxIdentity }});
-            lHandJoint->setLocalPose(physx::PxJointActorIndex::eACTOR0, physx::PxTransform {
-                    physx::PxVec3(0.0f, headPos.y - fenderHeight, 0.0f), physx::PxQuat { physx::PxIdentity }});
+            rHandJoint->setLocalPose(physx::PxJointActorIndex::eACTOR0, physx::PxTransform{
+                    physx::PxVec3(0.0f, headPos.y - fenderHeight, 0.0f), physx::PxQuat { physx::PxIdentity } });
+            lHandJoint->setLocalPose(physx::PxJointActorIndex::eACTOR0, physx::PxTransform{
+                    physx::PxVec3(0.0f, headPos.y - fenderHeight, 0.0f), physx::PxQuat { physx::PxIdentity } });
             //ImGui::Text("Headpos: %.3f, %.3f, %.3f", headPos.x, headPos.y, headPos.z);
         }
     }
 
-    worlds::ConVar showTargetHands { "lg_showTargetHands", "0", "Shows devtextured hands that represent the current target transform of the hands." };
+    worlds::ConVar showTargetHands{ "lg_showTargetHands", "0", "Shows devtextured hands that represent the current target transform of the hands." };
 
     void EventHandler::onSceneStart(entt::registry& registry) {
         camcorder = entt::null;
         registry.view<worlds::DynamicPhysicsActor>().each([&](auto ent, auto&) {
             registry.emplace_or_replace<SyncedRB>(ent);
-        });
+            });
 
         // create our lil' pal the player
         if (!isDedicated && registry.view<PlayerStartPoint>().size() > 0) {
@@ -605,9 +618,9 @@ namespace lg {
             lpc.maxSpeed = 0.0f;
             lpc.xzMoveInput = glm::vec2(0.0f, 0.0f);
             if (interfaces.vrInterface)
-                lpc.input = new VRPlayerInput{interfaces};
+                lpc.input = new VRPlayerInput{ interfaces };
             else
-                lpc.input = new KeyboardPlayerInput{interfaces};
+                lpc.input = new KeyboardPlayerInput{ interfaces };
             auto& stats = registry.emplace<RPGStats>(rig.locosphere);
             stats.currentHP = 250;
             stats.maxHP = 250;
@@ -672,9 +685,9 @@ namespace lg {
             lwActor.setPose(lht);
 
             rwActor.physicsShapes.emplace_back(worlds::PhysicsShape::boxShape(glm::vec3{ 0.025f, 0.045f, 0.05f }));
-            rwActor.physicsShapes[0].pos = glm::vec3{0.0f, 0.0f, 0.03f};
+            rwActor.physicsShapes[0].pos = glm::vec3{ 0.0f, 0.0f, 0.03f };
             lwActor.physicsShapes.emplace_back(worlds::PhysicsShape::boxShape(glm::vec3{ 0.025f, 0.045f, 0.05f }));
-            lwActor.physicsShapes[0].pos = glm::vec3{0.0f, 0.0f, 0.03f};
+            lwActor.physicsShapes[0].pos = glm::vec3{ 0.0f, 0.0f, 0.03f };
 
             rwActor.layer = worlds::PLAYER_PHYSICS_LAYER;
             lwActor.layer = worlds::PLAYER_PHYSICS_LAYER;
@@ -713,11 +726,11 @@ namespace lg {
 
             auto fenderActor = registry.get<worlds::DynamicPhysicsActor>(rig.fender).actor;
 
-            lHandJoint = physx::PxD6JointCreate(*worlds::g_physics, fenderActor, physx::PxTransform { physx::PxIdentity }, lActor,
-            physx::PxTransform { physx::PxIdentity });
+            lHandJoint = physx::PxD6JointCreate(*worlds::g_physics, fenderActor, physx::PxTransform{ physx::PxIdentity }, lActor,
+                physx::PxTransform{ physx::PxIdentity });
 
             lHandJoint->setLinearLimit(physx::PxJointLinearLimit{
-                    physx::PxTolerancesScale{}, 0.8f});
+                    physx::PxTolerancesScale{}, 0.8f });
             lHandJoint->setMotion(physx::PxD6Axis::eX, physx::PxD6Motion::eLIMITED);
             lHandJoint->setMotion(physx::PxD6Axis::eY, physx::PxD6Motion::eLIMITED);
             lHandJoint->setMotion(physx::PxD6Axis::eZ, physx::PxD6Motion::eLIMITED);
@@ -725,11 +738,11 @@ namespace lg {
             lHandJoint->setMotion(physx::PxD6Axis::eSWING2, physx::PxD6Motion::eFREE);
             lHandJoint->setMotion(physx::PxD6Axis::eTWIST, physx::PxD6Motion::eFREE);
 
-            rHandJoint = physx::PxD6JointCreate(*worlds::g_physics, fenderActor, physx::PxTransform { physx::PxIdentity }, rActor,
-            physx::PxTransform { physx::PxIdentity });
+            rHandJoint = physx::PxD6JointCreate(*worlds::g_physics, fenderActor, physx::PxTransform{ physx::PxIdentity }, rActor,
+                physx::PxTransform{ physx::PxIdentity });
 
             rHandJoint->setLinearLimit(physx::PxJointLinearLimit{
-                    physx::PxTolerancesScale{}, 0.8f});
+                    physx::PxTolerancesScale{}, 0.8f });
             rHandJoint->setMotion(physx::PxD6Axis::eX, physx::PxD6Motion::eLIMITED);
             rHandJoint->setMotion(physx::PxD6Axis::eY, physx::PxD6Motion::eLIMITED);
             rHandJoint->setMotion(physx::PxD6Axis::eZ, physx::PxD6Motion::eLIMITED);
@@ -738,18 +751,18 @@ namespace lg {
             rHandJoint->setMotion(physx::PxD6Axis::eTWIST, physx::PxD6Motion::eFREE);
             lActor->setSolverIterationCounts(16, 8);
             rActor->setSolverIterationCounts(16, 8);
-            lActor->setLinearVelocity(physx::PxVec3{0.0f});
-            rActor->setLinearVelocity(physx::PxVec3{0.0f});
+            lActor->setLinearVelocity(physx::PxVec3{ 0.0f });
+            rActor->setLinearVelocity(physx::PxVec3{ 0.0f });
 
-            rHandJoint->setLocalPose(physx::PxJointActorIndex::eACTOR0, physx::PxTransform {
+            rHandJoint->setLocalPose(physx::PxJointActorIndex::eACTOR0, physx::PxTransform{
                 physx::PxVec3 { 0.0f, 0.8f, 0.0f },
                 physx::PxQuat { physx::PxIdentity }
-            });
+                });
 
-            lHandJoint->setLocalPose(physx::PxJointActorIndex::eACTOR0, physx::PxTransform {
+            lHandJoint->setLocalPose(physx::PxJointActorIndex::eACTOR0, physx::PxTransform{
                 physx::PxVec3 { 0.0f, 0.8f, 0.0f },
                 physx::PxQuat { physx::PxIdentity }
-            });
+                });
 
             PhysicsSoundComponent& lPsc = reg->emplace<PhysicsSoundComponent>(lHandEnt);
             lPsc.soundId = worlds::AssetDB::pathToId("Audio/SFX/Player/hand_slap1.ogg");
@@ -778,7 +791,7 @@ namespace lg {
         }
 
         g_dbgArrows->createEntities();
-        camera->rotation = glm::quat{glm::vec3{0.0f}};
+        camera->rotation = glm::quat{ glm::vec3{0.0f} };
     }
 
     void EventHandler::shutdown(entt::registry& registry) {

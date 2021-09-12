@@ -90,6 +90,12 @@ namespace WorldsEngine
         {
             get
             {
+                if (!Registry.Valid(new Entity(entityId)))
+                    throw new InvalidEntityException();
+
+                if (!Metadata.ExistsOn(new Entity(entityId)))
+                    throw new ComponentDestroyedException();
+
                 Transform pose = new Transform();
                 dynamicpa_getPose(regPtr, entityId, ref pose);
 

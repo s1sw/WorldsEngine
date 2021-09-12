@@ -30,6 +30,19 @@ namespace WorldsEngine
         NoCollision = 4
     }
 
+    public struct PhysicsContactInfo
+    {
+        public float RelativeSpeed;
+        public Entity OtherEntity;
+        public Vector3 AverageContactPoint;
+        public Vector3 Normal;
+    };
+
+    public struct CollisionHandlerHandle
+    {
+        internal uint ID;
+    }
+
     public static class Physics
     {
         [DllImport(WorldsEngine.NativeModule)]
@@ -39,7 +52,16 @@ namespace WorldsEngine
         private static extern bool physics_overlapSphere(Vector3 origin, float radius, out uint overlappedEntity);
 
         [DllImport(WorldsEngine.NativeModule)]
-        private static extern uint physics_overlapSphereMultiple(Vector3 origin, float radius, uint maxTouchCount, IntPtr entityBuffer);
+        private static extern uint physics_overlapSphereMultiple(Vector3 origin, float radius, uint maxTouchCount, IntPtr entityBuffer, uint excludeLayerMask);
+
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        private delegate void NativeCollisionDelegate(uint entityId, uint id, ref PhysicsContactInfo contactInfo);
+
+        [DllImport(WorldsEngine.NativeModule)]
+        private static extern void physics_addEventHandler(NativeCollisionDelegate collisionDelegate);
+
+        private static Dictionary<uint, ICollisionHandler> _collisionHandlers = new();
+        private static uint _id = 0;
 
         public static bool Raycast(Vector3 origin, Vector3 direction, float maxDist = float.MaxValue, PhysicsLayers excludeLayerMask = PhysicsLayers.None)
         {
@@ -60,15 +82,31 @@ namespace WorldsEngine
             return overlapped;
         }
 
-        public static uint OverlapSphereMultiple(Vector3 origin, float radius, uint maxTouchCount, Entity[] entityBuffer)
+        public static uint OverlapSphereMultiple(Vector3 origin, float radius, uint maxTouchCount, Entity[] entityBuffer, PhysicsLayers excludeLayerMask = PhysicsLayers.None)
         {
             var handle = GCHandle.Alloc(entityBuffer, GCHandleType.Pinned);
 
-            uint count = physics_overlapSphereMultiple(origin, radius, maxTouchCount, handle.AddrOfPinnedObject());
+            uint count = physics_overlapSphereMultiple(origin, radius, maxTouchCount, handle.AddrOfPinnedObject(), (uint)excludeLayerMask);
 
             handle.Free();
 
             return count;
+        }
+
+        public static CollisionHandlerHandle RegisterCollisionHandler(ICollisionHandler handler, Entity entity)
+        {
+            uint handle = _id;
+            _collisionHandlers.Add(handle, handler);
+            // native call
+
+            _id++;
+
+            return new CollisionHandlerHandle() { ID = handle };
+        }
+
+        private static void HandleCollision(uint entityId, uint collisionHandlerId, ref PhysicsContactInfo contactInfo)
+        {
+            _collisionHandlers[collisionHandlerId].OnCollision(new Entity(entityId), ref contactInfo);
         }
     }
 }

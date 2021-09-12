@@ -628,14 +628,18 @@ namespace worlds {
     }
 
     void AudioSystem::playOneShotClip(AssetID id, glm::vec3 location, bool spatialise, float volume, MixerChannel channel) {
-        if (loadedClips.count(id) == 0)
-            loadAudioClip(id);
-
         if ((oneshots.numElements() + internalAs.size()) >= voices.size())
+            return;
+
+        if (oneshots.numElements() == oneshots.max())
             return;
 
         if (volume < 0.001)
             return;
+
+        if (loadedClips.count(id) == 0)
+            loadAudioClip(id);
+
         SDL_LockAudioDevice(devId);
 
         uint32_t voiceIdx = allocateVoice();

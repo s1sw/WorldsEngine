@@ -1,23 +1,19 @@
 <Project Sdk="Microsoft.NET.Sdk">
-    <PropertyGroup>
-        <TargetFramework>net5.0</TargetFramework>
-        <IsWindows Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' == 'true'">true</IsWindows>
-        <IsLinux Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Linux)))' == 'true'">true</IsLinux>
-    </PropertyGroup>
-    <ItemGroup>
-        <Reference Include="WorldsEngineManaged">
-            <HintPath>../build_release/LonelyGalaxy/NetAssemblies/WorldsEngineManaged.dll</HintPath>
-            <Private>false</Private>
-        </Reference>
-        <!-- <ProjectReference Include="../WorldsEngineManaged/WorldsEngineManaged.csproj" /> -->
-    </ItemGroup>
-    <PropertyGroup Condition="'$(IsWindows)' == 'true'">
-        <OutDir>../build_ninja_release/LonelyGalaxy/GameAssemblies</OutDir>
-    </PropertyGroup>
-    <PropertyGroup Condition="'$(IsLinux)' == 'true'">
-        <OutDir>../build_release/LonelyGalaxy/GameAssemblies</OutDir>
-    </PropertyGroup>
-    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-        <GenerateSerializationAssemblies>Off</GenerateSerializationAssemblies>
-    </PropertyGroup>
+  <PropertyGroup>
+    <TargetFramework>net5.0</TargetFramework>
+    <IsWindows Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' == 'true'">true</IsWindows>
+    <IsLinux Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Linux)))' == 'true'">true</IsLinux>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../WorldsEngineManaged/WorldsEngineManaged.csproj" />
+  </ItemGroup>
+  <PropertyGroup Condition="'$(IsWindows)' == 'true'">
+    <OutDir>../build_ninja_release/LonelyGalaxy/GameAssemblies</OutDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(IsLinux)' == 'true'">
+    <OutDir>../build_release/LonelyGalaxy/GameAssemblies</OutDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <GenerateSerializationAssemblies>Off</GenerateSerializationAssemblies>
+  </PropertyGroup>
 </Project>

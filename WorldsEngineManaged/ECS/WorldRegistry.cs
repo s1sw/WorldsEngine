@@ -59,6 +59,8 @@ namespace WorldsEngine
 
         internal static int typeCounter = 0;
 
+        private static Queue<Entity> _destroyQueue = new();
+
         static Registry()
         {
             GameAssemblyManager.OnAssemblyLoad += DeserializeStorages;
@@ -426,6 +428,11 @@ namespace WorldsEngine
             NativeRegistry.registry_destroy(nativeRegistryPtr, entity.ID);
         }
 
+        public static void DestroyNext(Entity entity)
+        {
+            _destroyQueue.Enqueue(entity);
+        }
+
         public static Entity Create()
         {
             return new Entity(NativeRegistry.registry_create(nativeRegistryPtr));
@@ -486,6 +493,14 @@ namespace WorldsEngine
 
                     ((IStartListener)comp).Start(e);
                 }
+            }
+        }
+
+        internal static void ClearDestroyQueue()
+        {
+            while (_destroyQueue.TryDequeue(out Entity ent))
+            {
+                Destroy(ent);
             }
         }
     }

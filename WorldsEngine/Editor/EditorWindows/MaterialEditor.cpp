@@ -108,8 +108,12 @@ namespace worlds {
         logMsg("%s", j.c_str());
 
         PHYSFS_File* file = AssetDB::openAssetFileWrite(matId);
-        PHYSFS_writeBytes(file, j.data(), j.size());
-        PHYSFS_close(file);
+        if (file != nullptr) {
+            PHYSFS_writeBytes(file, j.data(), j.size());
+            PHYSFS_close(file);
+        } else {
+            addNotification("Failed to save material", NotificationType::Error);
+        }
     }
 
     void setIfExists(std::string path, AssetID& toSet) {
@@ -234,6 +238,10 @@ namespace worlds {
                         setIfExists(matPath + "_BaseColor.png", mat.albedo);
                         setIfExists(matPath + "_Normal_forcelin.png", mat.normalMap);
                         setIfExists(matPath + "_PBRPack.png", mat.pbrMap);
+
+                        setIfExists(matPath + "_BaseColor.wtex", mat.albedo);
+                        setIfExists(matPath + "_Normal_forcelin.wtex", mat.normalMap);
+                        setIfExists(matPath + "_PBRPack.wtex", mat.pbrMap);
                         mat.usePBRMap = true;
                         ImGui::CloseCurrentPopup();
                     }

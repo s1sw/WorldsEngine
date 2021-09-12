@@ -32,6 +32,9 @@ namespace Game
         private StablePD PD = new StablePD();
         private V3PidController RotationPID = new V3PidController();
 
+        [NonSerialized]
+        private bool _awake = false;
+
         private void UpdateInspectorVals()
         {
             PD.P = P;
@@ -131,11 +134,11 @@ namespace Game
 
             if (dotProduct > 0.95f && timeSinceLastBurst > burstPeriod - 1.0f && !burstInProgress)
             {
-                FireBurst(soundOrigin, physicsActor);
+                FireBurst(soundOrigin, entity, physicsActor);
             }
         }
 
-        private async void FireBurst(Vector3 soundOrigin, DynamicPhysicsActor physicsActor)
+        private async void FireBurst(Vector3 soundOrigin, Entity entity, DynamicPhysicsActor physicsActor)
         {
             burstInProgress = true;
 
@@ -146,6 +149,8 @@ namespace Game
 
             for (int i = 0; i < 4; i++)
             {
+                if (!Registry.Valid(entity)) return;
+
                 Transform pose = physicsActor.Pose;
                 AssetID projectileId = AssetDB.PathToId("Prefabs/gun_projectile.wprefab");
                 Entity projectile = Registry.CreatePrefab(projectileId);
@@ -185,12 +190,24 @@ namespace Game
             var physicsActor = Registry.GetComponent<DynamicPhysicsActor>(entity);
             Transform pose = physicsActor.Pose;
 
-            if (!Physics.Raycast(pose.Position + (Vector3.Down * 0.5f), Vector3.Down, out RaycastHit rHit, 50.0f)) return;
+            if (!_awake)
+            {
+                // Look for a player nearby
+                Entity[] buf = new Entity[8];
+                uint overlapCount = Physics.OverlapSphereMultiple(pose.Position, 5.0f, 8, buf, ~PhysicsLayers.Player);
+
+                if (overlapCount > 0)
+                    _awake = true;
+
+                return;
+            }
+
+            bool foundFloor = Physics.Raycast(pose.Position + (Vector3.Down * 0.05f), Vector3.Down, out RaycastHit rHit, 50.0f);
 
             if (!burstInProgress)
                 target = Camera.Main.Position;
 
-            Transform targetPose = CalculateTargetPose(entity, target, rHit.WorldHitPos.y);
+            Transform targetPose = CalculateTargetPose(entity, target, foundFloor ? rHit.WorldHitPos.y : pose.Position.y + 0.01f);
 
             AvoidOtherDrones(entity, ref targetPose.Position);
             ApplyTargetPose(entity, targetPose);

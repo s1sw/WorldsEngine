@@ -35,17 +35,21 @@ namespace Game.Interaction
         public bool InUse => CurrentlyAttached > 0;
         public bool CanAttach => !Exclusive || !InUse;
         public int CurrentlyAttached { get; private set; }
+        public AttachedHandFlags CurrentlyAttachedHand { get; private set; }
 
-        internal void Attach()
+        internal void Attach(AttachedHandFlags hand)
         {
             if (Exclusive && InUse) throw new InvalidOperationException("Can't attach to a grip that's in use");
 
             CurrentlyAttached++;
+            CurrentlyAttachedHand |= hand;
         }
 
-        internal void Detach()
+        internal void Detach(AttachedHandFlags hand)
         {
             CurrentlyAttached--;
+
+            CurrentlyAttachedHand &= ~hand;
         }
 
         public float CalculateGripScore(Transform obj, Transform hand)

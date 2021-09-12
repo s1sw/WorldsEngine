@@ -1710,8 +1710,6 @@ VKRenderer::~VKRenderer() {
 #endif
         vmaDestroyAllocator(allocator);
 
-        dbgCallback.reset();
-
         delete swapchain;
 
         vkDestroySurfaceKHR(instance, surface, nullptr);

@@ -344,13 +344,13 @@ namespace worlds {
             return PxQueryHitType::eBLOCK;
         }
     };
-    RaycastFilterCallback raycastFilterCallback;
 
     bool raycast(physx::PxVec3 position, physx::PxVec3 direction, float maxDist, RaycastHitInfo* hitInfo, uint32_t excludeLayerMask) {
         physx::PxRaycastBuffer hitBuf;
         bool hit;
 
         if (excludeLayerMask != 0u) {
+            RaycastFilterCallback raycastFilterCallback;
             raycastFilterCallback.excludeLayerMask = excludeLayerMask;
 
             hit = worlds::g_scene->raycast(
@@ -375,5 +375,32 @@ namespace worlds {
 
     bool raycast(glm::vec3 position, glm::vec3 direction, float maxDist, RaycastHitInfo* hitInfo, uint32_t excludeLayer) {
         return raycast(glm2px(position), glm2px(direction), maxDist, hitInfo, excludeLayer);
+    }
+
+    uint32_t overlapSphereMultiple(glm::vec3 origin, float radius, uint32_t maxTouchCount, uint32_t* hitEntityBuffer, uint32_t excludeLayerMask) {
+        physx::PxOverlapHit* hitMem = (physx::PxOverlapHit*)alloca(maxTouchCount * sizeof(physx::PxOverlapHit));
+        physx::PxSphereGeometry sphereGeo{ radius };
+        physx::PxOverlapBuffer hit{ hitMem, maxTouchCount };
+        physx::PxQueryFilterData filterData;
+
+        RaycastFilterCallback raycastFilterCallback;
+        raycastFilterCallback.excludeLayerMask = excludeLayerMask;
+
+        filterData.flags = physx::PxQueryFlag::eDYNAMIC
+            | physx::PxQueryFlag::eSTATIC
+            | physx::PxQueryFlag::eNO_BLOCK
+            | physx::PxQueryFlag::ePREFILTER;
+
+        physx::PxTransform t{ physx::PxIdentity };
+        t.p = glm2px(origin);
+
+        if (!g_scene->overlap(sphereGeo, t, hit, filterData, &raycastFilterCallback)) return 0;
+
+        for (uint32_t i = 0; i < hit.getNbTouches(); i++) {
+            const physx::PxOverlapHit& overlap = hit.getTouch(i);
+            hitEntityBuffer[i] = (uint32_t)(uintptr_t)overlap.actor->userData;
+        }
+
+        return hit.getNbTouches();
     }
 }
