@@ -52,24 +52,12 @@ namespace WorldsEngine
 
         private static ComponentMetadata? cachedMetadata;
 
-        internal static bool ExistsOn(IntPtr regPtr, Entity entity)
-        {
-            return worldObject_exists(regPtr, entity.ID) == 1;
-        }
-
         const int MAX_MATERIALS = 32;
 
         public AssetID Mesh
         {
-            get
-            {
-                return new AssetID(worldObject_getMesh(regPtr, entityId));
-            }
-
-            set
-            {
-                worldObject_setMesh(regPtr, entityId, value.ID);
-            }
+            get => new AssetID(worldObject_getMesh(regPtr, entityId));
+            set => worldObject_setMesh(regPtr, entityId, value.ID);
         }
 
         internal WorldObject(IntPtr regPtr, uint entityId) : base(regPtr, entityId)

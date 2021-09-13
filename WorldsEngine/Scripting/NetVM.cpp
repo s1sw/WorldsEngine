@@ -36,58 +36,6 @@ enum CSMessageSeverity {
 
 using namespace worlds;
 extern "C" {
-    EXPORT int imgui_begin(const char* name) {
-        return ImGui::Begin(name);
-    }
-
-    EXPORT void imgui_text(const char* text) {
-        ImGui::TextUnformatted(text);
-    }
-
-    EXPORT int imgui_dragInt(const char* text, int* intPtr) {
-        return ImGui::DragInt(text, intPtr);
-    }
-
-    EXPORT int imgui_dragFloat(const char* text, float* floatPtr) {
-        return ImGui::DragFloat(text, floatPtr);
-    }
-
-    EXPORT int imgui_dragFloat3(const char* text, float* float3Ptr) {
-        return ImGui::DragFloat3(text, float3Ptr);
-    }
-
-    EXPORT int imgui_button(const char* text, float sizeX, float sizeY) {
-        return ImGui::Button(text, ImVec2(sizeX, sizeY));
-    }
-
-    EXPORT void imgui_sameLine(float offsetFromStartX, float spacing) {
-        ImGui::SameLine(offsetFromStartX, spacing);
-    }
-
-    EXPORT void imgui_end() {
-        ImGui::End();
-    }
-
-    EXPORT void imgui_openPopup(const char* name) {
-        ImGui::OpenPopup(name);
-    }
-
-    EXPORT int imgui_beginPopup(const char* name) {
-        return ImGui::BeginPopup(name);
-    }
-
-    EXPORT void imgui_endPopup() {
-        ImGui::EndPopup();
-    }
-
-    EXPORT void imgui_closeCurrentPopup() {
-        ImGui::CloseCurrentPopup();
-    }
-
-    EXPORT int imgui_collapsingHeader(const char* text) {
-        return ImGui::CollapsingHeader(text);
-    }
-
     EXPORT void logging_log(CSMessageSeverity severity, const char* text) {
         switch (severity) {
             case CS_Verbose:
@@ -117,6 +65,7 @@ extern "C" {
 #include "DynamicPhysicsActorBindings.hpp"
 #include "PhysicsBindings.hpp"
 #include "AudioBindings.hpp"
+#include "AudioSourceBindings.hpp"
 #include "VRBindings.hpp"
 #include "ImGui/cimgui.h"
 
@@ -221,6 +170,7 @@ namespace worlds {
         createManagedDelegate("WorldsEngine.Registry", "OnNativeEntityDestroy", (void**)&nativeEntityDestroyFunc);
         createManagedDelegate("WorldsEngine.Registry", "SerializeManagedComponents", (void**)&serializeComponentsFunc);
         createManagedDelegate("WorldsEngine.Registry", "DeserializeManagedComponent", (void**)&deserializeComponentFunc);
+        createManagedDelegate("WorldsEngine.Registry", "HandleCollision", (void**)&physicsContactFunc);
 
 
         reg.on_destroy<Transform>().connect<&DotNetScriptEngine::onTransformDestroy>(*this);
@@ -258,7 +208,8 @@ namespace worlds {
         simulateFunc(deltaTime);
     }
 
-    void DotNetScriptEngine::fireEvent(entt::entity scriptEnt, const char* evt) {
+    void DotNetScriptEngine::handleCollision(entt::entity entity, PhysicsContactInfo* contactInfo) {
+        physicsContactFunc((uint32_t)entity, contactInfo);
     }
 
     void DotNetScriptEngine::serializeManagedComponents(nlohmann::json& entityJson, entt::entity entity) {

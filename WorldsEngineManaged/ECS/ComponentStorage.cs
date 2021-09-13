@@ -29,8 +29,8 @@ namespace WorldsEngine
 
     internal class ComponentTypeLookup
     {
-        public static Dictionary<string, int> typeIndices = new Dictionary<string, int>();
-        public static Dictionary<string, SerializedComponentStorage> serializedComponents = new Dictionary<string, SerializedComponentStorage>();
+        public static Dictionary<string, int> typeIndices = new();
+        public static Dictionary<string, SerializedComponentStorage> serializedComponents = new();
     }
 
     public class ComponentStorage<T> : IComponentStorage, IEnumerable

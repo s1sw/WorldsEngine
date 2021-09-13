@@ -5,6 +5,8 @@
 #include <physx/PxFoundation.h>
 #include <physx/extensions/PxD6Joint.h>
 #include "../Core/Transform.hpp"
+#include "Core/IGameEventHandler.hpp"
+#include "Core/Log.hpp"
 #include "PhysicsActor.hpp"
 #include <entt/entity/fwd.hpp>
 #include <functional>
@@ -108,7 +110,7 @@ namespace worlds {
     bool raycast(physx::PxVec3 position, physx::PxVec3 direction, float maxDist = FLT_MAX, RaycastHitInfo* hitInfo = nullptr, uint32_t excludeLayer = 0u);
     bool raycast(glm::vec3 position, glm::vec3 direction, float maxDist = FLT_MAX, RaycastHitInfo* hitInfo = nullptr, uint32_t excludeLayer = 0u);
     uint32_t overlapSphereMultiple(glm::vec3 origin, float radius, uint32_t maxTouchCount, uint32_t* hitEntityBuffer, uint32_t excludeLayerMask = 0u);
-    void initPhysx(entt::registry& reg);
+    void initPhysx(const EngineInterfaces& interfaces, entt::registry& reg);
     void stepSimulation(float deltaTime);
     void shutdownPhysx();
 
@@ -126,16 +128,19 @@ namespace worlds {
         PhysicsEvents() : onContact { } {}
 
         uint32_t addContactCallback(ContactFunc func) {
-            for (int i = 0; i < MAX_CONTACT_EVENTS; i++) {
+            for (uint32_t i = 0; i < MAX_CONTACT_EVENTS; i++) {
                 if (onContact[i] == nullptr) {
                     onContact[i] = func;
                     return i;
                 }
             }
+
+            logErr("Exhausted contact callbacks");
+            return ~0u;
         }
 
         void removeContactCallback(uint32_t index) {
-            for (int i = 0; i < MAX_CONTACT_EVENTS; i++) {
+            for (uint32_t i = 0; i < MAX_CONTACT_EVENTS; i++) {
                 if (i == index) {
                     onContact[i] = nullptr;
                     break;

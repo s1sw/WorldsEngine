@@ -4,13 +4,14 @@ using WorldsEngine.Math;
 using WorldsEngine.Audio;
 using WorldsEngine.ComponentMeta;
 using System.Threading.Tasks;
+using Game.Combat;
 
 namespace Game
 {
     [Component]
     [EditorFriendlyName("Drone A.I.")]
     [EditorIcon(FontAwesome.FontAwesomeIcons.Brain)]
-    public class DroneAI : IThinkingComponent
+    public class DroneAI : IStartListener, IThinkingComponent
     {
         public float P = 0.0f;
         public float D = 0.0f;
@@ -32,8 +33,17 @@ namespace Game
         private StablePD PD = new StablePD();
         private V3PidController RotationPID = new V3PidController();
 
-        [NonSerialized]
         private bool _awake = false;
+        private bool _dead = false;
+
+        public void Start(Entity entity)
+        {
+            var health = Registry.GetComponent<HealthComponent>(entity);
+            health.OnDeath += (Entity ent) => { 
+                _dead = true;
+                Registry.GetComponent<AudioSource>(ent).IsPlaying = false;
+            };
+        }
 
         private void UpdateInspectorVals()
         {
@@ -149,7 +159,7 @@ namespace Game
 
             for (int i = 0; i < 4; i++)
             {
-                if (!Registry.Valid(entity)) return;
+                if (!Registry.Valid(entity) || _dead) return;
 
                 Transform pose = physicsActor.Pose;
                 AssetID projectileId = AssetDB.PathToId("Prefabs/gun_projectile.wprefab");
@@ -186,6 +196,8 @@ namespace Game
         public void Think(Entity entity)
         {
             UpdateInspectorVals();
+
+            if (_dead) return;
 
             var physicsActor = Registry.GetComponent<DynamicPhysicsActor>(entity);
             Transform pose = physicsActor.Pose;

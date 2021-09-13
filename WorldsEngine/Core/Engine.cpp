@@ -398,7 +398,6 @@ namespace worlds {
 
         cam.position = glm::vec3(0.0f, 0.0f, -1.0f);
 
-        initPhysx(registry);
         inputManager = std::make_unique<InputManager>(window);
 
         EngineInterfaces interfaces{
@@ -415,6 +414,9 @@ namespace worlds {
 
         scriptEngine = std::make_unique<DotNetScriptEngine>(registry, interfaces);
         interfaces.scriptEngine = scriptEngine.get();
+
+        initPhysx(interfaces, registry);
+
         if (!dedicatedServer && runAsEditor) {
             splashWindow->changeOverlay("initialising editor");
             editor = std::make_unique<Editor>(registry, interfaces);
@@ -851,12 +853,14 @@ namespace worlds {
 
             glm::vec3 camPos = cam.position;
 
+
             if (!dedicatedServer) {
-                registry.sort<WorldObject>([&](entt::entity a, entt::entity b) {
+                auto sortLambda = [&](entt::entity a, entt::entity b) {
                     auto& aTransform = registry.get<Transform>(a);
                     auto& bTransform = registry.get<Transform>(b);
                     return glm::distance2(camPos, aTransform.position) < glm::distance2(camPos, bTransform.position);
-                });
+                };
+                registry.sort<WorldObject, decltype(sortLambda), entt::insertion_sort>(sortLambda);
 
                 renderer->frame(cam, registry);
 
