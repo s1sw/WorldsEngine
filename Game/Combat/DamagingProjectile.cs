@@ -7,20 +7,26 @@ using WorldsEngine;
 
 namespace Game.Combat
 {
-    public class DamagingProjectile : ICollisionHandler
+    [Component]
+    [EditorFriendlyName("C# Damaging Projectile")]
+    public class DamagingProjectile : IStartListener, ICollisionHandler
     {
         public double Damage = 5.0;
         public double CreationTime = 0.0;
 
+        public void Start(Entity e)
+        {
+            CreationTime = Time.CurrentTime;
+        }
+
         public void OnCollision(Entity entity, ref PhysicsContactInfo contactInfo)
         {
+            Registry.DestroyNext(entity);
             if (!Registry.HasComponent<HealthComponent>(contactInfo.OtherEntity)) return;
 
             var health = Registry.GetComponent<HealthComponent>(contactInfo.OtherEntity);
 
-            health.Health -= Damage;
-
-            Registry.DestroyNext(entity);
+            health.Damage(Damage);
         }
     }
 

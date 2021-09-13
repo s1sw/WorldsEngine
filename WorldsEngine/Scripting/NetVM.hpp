@@ -17,6 +17,8 @@ namespace worlds {
 #endif
     };
 
+    struct PhysicsContactInfo;
+
     class DotNetScriptEngine {
         public:
             DotNetScriptEngine(entt::registry& reg, EngineInterfaces interfaces);
@@ -26,7 +28,7 @@ namespace worlds {
             void onUpdate(float deltaTime);
             void onEditorUpdate(float deltaTime);
             void onSimulate(float deltaTime);
-            void fireEvent(entt::entity scriptEnt, const char* event);
+            void handleCollision(entt::entity entity, PhysicsContactInfo* contactInfo);
             void serializeManagedComponents(nlohmann::json& entityJson, entt::entity entity);
             void deserializeManagedComponent(const char* id, const nlohmann::json& componentJson, entt::entity entity);
         private:
@@ -43,6 +45,7 @@ namespace worlds {
             void(*nativeEntityDestroyFunc)(uint32_t id);
             void(*serializeComponentsFunc)(void* serializationContext, uint32_t entity);
             void(*deserializeComponentFunc)(const char* id, const char* componentJson, uint32_t entity);
+            void(*physicsContactFunc)(uint32_t id, PhysicsContactInfo* contactInfo);
             void(*sceneStartFunc)();
     };
 }

@@ -1,3 +1,5 @@
+#include "Core/IGameEventHandler.hpp"
+#include "Scripting/NetVM.hpp"
 #include "PCH.hpp"
 #include <physx/PxPhysics.h>
 #include <physx/PxPhysicsAPI.h>
@@ -30,7 +32,6 @@ namespace worlds {
                 case physx::PxErrorCode::eDEBUG_INFO:
                     logVrb(WELogCategoryPhysics, "%s (%s:%i)", msg, file, line);
                     break;
-                    glm::vec3 normal;
                 case PxErrorCode::eDEBUG_WARNING:
                 case PxErrorCode::ePERF_WARNING:
                 case PxErrorCode::eINVALID_OPERATION:
@@ -155,7 +156,7 @@ namespace worlds {
         physx::PxPairFlags& pairFlags,
         const void*,
         physx::PxU32) {
-        
+
         int layer1 = slib::Intrinsics::bitScanForward(data1.word0);
         int layer2 = slib::Intrinsics::bitScanForward(data2.word0);
 
@@ -171,6 +172,8 @@ namespace worlds {
         return physx::PxFilterFlags();
     }
 
+    DotNetScriptEngine* physScriptEngine;
+
     class SimulationCallback : public PxSimulationEventCallback {
     public:
         SimulationCallback(entt::registry& reg) : reg{reg} {}
@@ -185,10 +188,10 @@ namespace worlds {
             entt::entity a = ptrToEnt(pairHeader.actors[0]->userData);
             entt::entity b = ptrToEnt(pairHeader.actors[1]->userData);
 
+
             auto evtA = reg.try_get<PhysicsEvents>(a);
             auto evtB = reg.try_get<PhysicsEvents>(b);
 
-            if (evtA == nullptr && evtB == nullptr) return;
 
             glm::vec3 velA{0.0f};
             glm::vec3 velB{0.0f};
@@ -226,6 +229,15 @@ namespace worlds {
             info.averageContactPoint /= totalContacts;
             info.normal /= totalContacts;
 
+
+            info.otherEntity = b;
+            physScriptEngine->handleCollision(a, &info);
+
+            info.otherEntity = a;
+            physScriptEngine->handleCollision(b, &info);
+
+            if (evtA == nullptr && evtB == nullptr) return;
+
             if (evtA) {
                 info.otherEntity = b;
 
@@ -255,8 +267,9 @@ namespace worlds {
 
     SimulationCallback* simCallback;
 
-    void initPhysx(entt::registry& reg) {
+    void initPhysx(const EngineInterfaces& interfaces, entt::registry& reg) {
         g_physFoundation = PxCreateFoundation(PX_PHYSICS_VERSION, gDefaultAllocator, gErrorCallback);
+        physScriptEngine = interfaces.scriptEngine;
 
         physx::PxPvd* pvd = nullptr;
 #if ENABLE_PVD

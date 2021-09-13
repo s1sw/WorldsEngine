@@ -129,7 +129,7 @@ namespace WorldsEngine.ComponentMeta
             Registry.SetComponent(to, type, Registry.GetComponent(type, from));
         }
 
-        private void EditField(FieldInfo fieldInfo, object instance)
+        private unsafe void EditField(FieldInfo fieldInfo, object instance)
         {
             string fieldName = fieldInfo.Name;
 
@@ -148,6 +148,12 @@ namespace WorldsEngine.ComponentMeta
             {
                 float val = (float)fieldInfo.GetValue(instance)!;
                 ImGui.DragFloat(fieldName, ref val);
+                fieldInfo.SetValue(instance, val);
+            }
+            else if (fieldInfo.FieldType == typeof(double))
+            {
+                double val = (double)fieldInfo.GetValue(instance)!;
+                ImGui.DragScalar(fieldName, ImGuiDataType.Double, (IntPtr)(&val), 1.0f);
                 fieldInfo.SetValue(instance, val);
             }
             else if (fieldInfo.FieldType == typeof(Vector3))

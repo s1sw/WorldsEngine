@@ -55,6 +55,8 @@ namespace WorldsEngine
         static double _simulationTime = 0.0;
         static double _updateTime = 0.0;
 
+        public static bool SceneRunning { get; private set; }
+
         static void ActualInit(IntPtr registryPtr)
         {
             NativeLibrary.SetDllImportResolver(typeof(WorldsEngine).Assembly, ImportResolver);
@@ -103,6 +105,7 @@ namespace WorldsEngine
             }
 
             Registry.OnSceneStart();
+            SceneRunning = true;
         }
 
         [UsedImplicitly]
@@ -220,6 +223,7 @@ namespace WorldsEngine
             ImGui.End();
 
             editorUpdateSyncContext.RunCallbacks();
+            SceneRunning = false;
         }
     }
 }

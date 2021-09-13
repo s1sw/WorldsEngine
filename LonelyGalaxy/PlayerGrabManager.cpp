@@ -336,10 +336,6 @@ namespace lg {
             // No available grips, exit now
             if (potentialGripIndices.size() == 0) return;
 
-            if (registry.has<worlds::ScriptComponent>(grabbing)) {
-                interfaces.scriptEngine->fireEvent(grabbing, "onGrab");
-            }
-
             int i = 0;
             for (Grip& g : grabbable.grips) {
                 logMsg("Grip %i: %.3f", i, calculateGripScore(g, handTransform, grabbingTransform));
@@ -379,10 +375,6 @@ namespace lg {
             dpa.layer = worlds::NOCOLLISION_PHYSICS_LAYER;
             worlds::updatePhysicsShapes(dpa);
         } else {
-            if (registry.has<worlds::ScriptComponent>(grabbing)) {
-                interfaces.scriptEngine->fireEvent(grabbing, "onGrab");
-            }
-
             Transform relativeTransform = grabbingTransform.transformByInverse(handTransform);
 
             auto& d6 = registry.emplace<worlds::D6Joint>(hand);

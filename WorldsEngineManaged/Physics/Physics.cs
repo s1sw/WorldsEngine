@@ -60,9 +60,6 @@ namespace WorldsEngine
         [DllImport(WorldsEngine.NativeModule)]
         private static extern void physics_addEventHandler(NativeCollisionDelegate collisionDelegate);
 
-        private static Dictionary<uint, ICollisionHandler> _collisionHandlers = new();
-        private static uint _id = 0;
-
         public static bool Raycast(Vector3 origin, Vector3 direction, float maxDist = float.MaxValue, PhysicsLayers excludeLayerMask = PhysicsLayers.None)
         {
             return physics_raycast(origin, direction, maxDist, (uint)excludeLayerMask, out RaycastHit _);
@@ -91,22 +88,6 @@ namespace WorldsEngine
             handle.Free();
 
             return count;
-        }
-
-        public static CollisionHandlerHandle RegisterCollisionHandler(ICollisionHandler handler, Entity entity)
-        {
-            uint handle = _id;
-            _collisionHandlers.Add(handle, handler);
-            // native call
-
-            _id++;
-
-            return new CollisionHandlerHandle() { ID = handle };
-        }
-
-        private static void HandleCollision(uint entityId, uint collisionHandlerId, ref PhysicsContactInfo contactInfo)
-        {
-            _collisionHandlers[collisionHandlerId].OnCollision(new Entity(entityId), ref contactInfo);
         }
     }
 }

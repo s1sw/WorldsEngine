@@ -8,7 +8,6 @@ using ImGuiNET;
 using WorldsEngine.ComponentMeta;
 using JetBrains.Annotations;
 using System.Diagnostics.CodeAnalysis;
-using System.Diagnostics;
 
 namespace WorldsEngine
 {
@@ -60,6 +59,8 @@ namespace WorldsEngine
         internal static int typeCounter = 0;
 
         private static Queue<Entity> _destroyQueue = new();
+        private static List<IComponentStorage> _collisionHandlers = new();
+        private static List<IComponentStorage> _startListeners = new();
 
         static Registry()
         {
@@ -134,7 +135,7 @@ namespace WorldsEngine
 
             // Deserialization should never fail - this isn't untrusted JSON, it's serialized in C++
             var deserialized = JsonSerializer.Deserialize(jsonStr, type, serializerOptions)!;
-            storage.SetBoxed(entity, deserialized);
+            SetComponent(entity, type, deserialized);
         }
 
         internal static void SerializeStorages()
@@ -145,6 +146,8 @@ namespace WorldsEngine
                 componentStorages[i]!.SerializeForHotload();
                 componentStorages[i] = null;
             }
+            _collisionHandlers.Clear();
+            _startListeners.Clear();
         }
 
         private static void DeserializeStorages(Assembly gameAssembly)
@@ -177,6 +180,11 @@ namespace WorldsEngine
                 bool hotload = ComponentTypeLookup.serializedComponents.ContainsKey(type.FullName!);
 
                 componentStorages[index] = (IComponentStorage)Activator.CreateInstance(storageType, BindingFlags.NonPublic | BindingFlags.Instance, null, new object[] { hotload }, null)!;
+                if (typeof(ICollisionHandler).IsAssignableFrom(type))
+                    _collisionHandlers.Add(componentStorages[index]!);
+
+                if (typeof(IStartListener).IsAssignableFrom(type))
+                    _startListeners.Add(componentStorages[index]!);
             }
 
             return componentStorages[ComponentTypeLookup.typeIndices[type.FullName!]]!;
@@ -194,7 +202,14 @@ namespace WorldsEngine
             bool hotload = ComponentTypeLookup.serializedComponents.ContainsKey(typeof(T).FullName!);
 
             if (componentStorages[typeIndex] == null)
+            {
                 componentStorages[typeIndex] = new ComponentStorage<T>(hotload);
+                if (typeof(ICollisionHandler).IsAssignableFrom(typeof(T)))
+                    _collisionHandlers.Add(componentStorages[typeIndex]!);
+
+                if (typeof(IStartListener).IsAssignableFrom(typeof(T)))
+                    _startListeners.Add(componentStorages[typeIndex]!);
+            }
 
             return (ComponentStorage<T>)componentStorages[typeIndex]!;
         }
@@ -440,7 +455,15 @@ namespace WorldsEngine
 
         public static Entity CreatePrefab(AssetID prefabId)
         {
-            return new Entity(NativeRegistry.registry_createPrefab(nativeRegistryPtr, prefabId.ID));
+            Entity e = new(NativeRegistry.registry_createPrefab(nativeRegistryPtr, prefabId.ID));
+
+            foreach (IComponentStorage storage in _startListeners)
+            {
+                if (!storage.Contains(e)) continue;
+                ((IStartListener)storage.GetBoxed(e)).Start(e);
+            }
+
+            return e;
         }
 
         public static ComponentStorage<T> View<T>()
@@ -501,6 +524,18 @@ namespace WorldsEngine
             while (_destroyQueue.TryDequeue(out Entity ent))
             {
                 Destroy(ent);
+            }
+        }
+
+        private static void HandleCollision(uint entityId, ref PhysicsContactInfo contactInfo)
+        {
+            Entity entity = new(entityId);
+
+            foreach (IComponentStorage storage in _collisionHandlers)
+            {
+                if (!storage.Contains(entity)) continue;
+                var handler = (ICollisionHandler)storage.GetBoxed(entity);
+                handler.OnCollision(entity, ref contactInfo);
             }
         }
     }
