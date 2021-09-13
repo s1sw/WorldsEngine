@@ -9,6 +9,21 @@ Project("{911E67C6-3D85-4FCE-B560-20A9C3E3FF48}") = "lonelygalaxy", "lonelygalax
 		Executable = E:\Projects\WorldsEngine\build_ninja_release\LonelyGalaxy\lonelygalaxy.exe
 		RemoteMachine = DESKTOP-QP8QVQB
 		StartingDirectory = E:\Projects\WorldsEngine\build_ninja_release\LonelyGalaxy\
+		Arguments = --editor --create-console-window --enable-console-window-input
+		Environment = Default
+		LaunchingEngine = e55ccc87-77c9-4222-8310-09f38e24c40f
+		UseLegacyDebugEngines = No
+		LaunchSQLEngine = No
+		AttachLaunchAction = No
+		IORedirection = Disable
+	EndProjectSection
+EndProject
+Project("{911E67C6-3D85-4FCE-B560-20A9C3E3FF48}") = "lonelygalaxydbg", "lonelygalaxydbg.exe", "{ACA31DC2-9DEF-461F-B308-1FFC5769094E}"
+	ProjectSection(DebuggerProjectSystem) = preProject
+		PortSupplier = 00000000-0000-0000-0000-000000000000
+		Executable = E:\Projects\WorldsEngine\build_ninja\meson-out\lonelygalaxy.exe
+		RemoteMachine = DESKTOP-QP8QVQB
+		StartingDirectory = E:\Projects\WorldsEngine\build_ninja\meson-out\
 		Arguments = --editor --novr --create-console-window --enable-console-window-input
 		Environment = Default
 		LaunchingEngine = e55ccc87-77c9-4222-8310-09f38e24c40f
@@ -44,6 +59,12 @@ Global
 		{DCD31DC2-9DEC-461F-B308-1FFC5769094E}.Release|Any CPU.ActiveCfg = Release|x64
 		{DCD31DC2-9DEC-461F-B308-1FFC5769094E}.Release|x64.ActiveCfg = Release|x64
 		{DCD31DC2-9DEC-461F-B308-1FFC5769094E}.Release|x86.ActiveCfg = Release|x64
+		{ACA31DC2-9DEF-461F-B308-1FFC5769094E}.Debug|Any CPU.ActiveCfg = Release|x64
+		{ACA31DC2-9DEF-461F-B308-1FFC5769094E}.Debug|x64.ActiveCfg = Release|x64
+		{ACA31DC2-9DEF-461F-B308-1FFC5769094E}.Debug|x86.ActiveCfg = Release|x64
+		{ACA31DC2-9DEF-461F-B308-1FFC5769094E}.Release|Any CPU.ActiveCfg = Release|x64
+		{ACA31DC2-9DEF-461F-B308-1FFC5769094E}.Release|x64.ActiveCfg = Release|x64
+		{ACA31DC2-9DEF-461F-B308-1FFC5769094E}.Release|x86.ActiveCfg = Release|x64
 		{9D11FD7C-4529-4734-99B3-0E6424F0954F}.Debug|Any CPU.ActiveCfg = Debug|Win32
 		{9D11FD7C-4529-4734-99B3-0E6424F0954F}.Debug|x64.ActiveCfg = Debug|x64
 		{9D11FD7C-4529-4734-99B3-0E6424F0954F}.Debug|x86.ActiveCfg = Debug|Win32

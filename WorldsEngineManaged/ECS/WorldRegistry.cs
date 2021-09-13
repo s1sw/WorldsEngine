@@ -523,7 +523,8 @@ namespace WorldsEngine
         {
             while (_destroyQueue.TryDequeue(out Entity ent))
             {
-                Destroy(ent);
+                if (Valid(ent))
+                    Destroy(ent);
             }
         }
 

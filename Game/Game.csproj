@@ -4,7 +4,7 @@
     <IsWindows Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' == 'true'">true</IsWindows>
     <IsLinux Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Linux)))' == 'true'">true</IsLinux>
   </PropertyGroup>
-  <ItemGroup Condition="'$(IsLinux)' == 'false'">
+  <ItemGroup Condition="'$(IsWindows)' == 'true'">
     <ProjectReference Include="../WorldsEngineManaged/WorldsEngineManaged.csproj" />
   </ItemGroup>
   <PropertyGroup Condition="'$(IsWindows)' == 'true'">

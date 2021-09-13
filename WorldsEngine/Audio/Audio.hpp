@@ -63,6 +63,7 @@ namespace worlds {
         void shutdown(entt::registry& worldState);
         void resetPlaybackPositions();
         void playOneShotClip(AssetID id, glm::vec3 location, bool spatialise = false, float volume = 1.0f, MixerChannel channel = MixerChannel::SFX);
+        void precacheAudioClip(AssetID clipId);
         void setChannelVolume(MixerChannel channel, float volume) { mixerVolumes[static_cast<int>(channel)] = volume; }
         float getChannelVolume(MixerChannel channel) { return mixerVolumes[static_cast<int>(channel)]; }
         static AudioSystem* getInstance() { return instance; }

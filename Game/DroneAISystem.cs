@@ -207,9 +207,13 @@ namespace Game
                 // Look for a player nearby
                 Entity[] buf = new Entity[8];
                 uint overlapCount = Physics.OverlapSphereMultiple(pose.Position, 5.0f, 8, buf, ~PhysicsLayers.Player);
+                Registry.GetComponent<AudioSource>(entity).IsPlaying = false;
 
                 if (overlapCount > 0)
+                {
                     _awake = true;
+                    PlayStartupSound(entity);
+                }
 
                 return;
             }
@@ -224,6 +228,20 @@ namespace Game
             AvoidOtherDrones(entity, ref targetPose.Position);
             ApplyTargetPose(entity, targetPose);
             UpdateFiring(entity);
+        }
+
+        private async void PlayStartupSound(Entity entity)
+        {
+            var audioSource = Registry.GetComponent<AudioSource>(entity);
+
+            audioSource.Loop = true;
+            audioSource.ClipId = AssetDB.PathToId("Audio/SFX/drone startup.ogg");
+            audioSource.IsPlaying = true;
+
+            await Task.Delay(500);
+
+            audioSource.ClipId = AssetDB.PathToId("Audio/SFX/drone idle.ogg");
+            audioSource.IsPlaying = true;
         }
     }
 }

@@ -25,6 +25,13 @@ namespace WorldsEngine
         [DllImport(WorldsEngine.NativeModule)]
         private static extern void audiosource_setVolume(IntPtr registryPtr, uint entityId, float volume);
 
+        [DllImport(WorldsEngine.NativeModule)]
+        [return: MarshalAs(UnmanagedType.I1)]
+        private static extern bool audiosource_getLooping(IntPtr registryPtr, uint entityId);
+
+        [DllImport(WorldsEngine.NativeModule)]
+        private static extern void audiosource_setLooping(IntPtr registryPtr, uint entityId, [MarshalAs(UnmanagedType.I1)] bool val);
+
         internal static ComponentMetadata Metadata
         {
             get
@@ -48,6 +55,12 @@ namespace WorldsEngine
         {
             get => audiosource_getIsPlaying(regPtr, entityId);
             set => audiosource_setIsPlaying(regPtr, entityId, value);
+        }
+
+        public bool Loop
+        {
+            get => audiosource_getLooping(regPtr, entityId);
+            set => audiosource_setLooping(regPtr, entityId, value);
         }
 
         public float Volume

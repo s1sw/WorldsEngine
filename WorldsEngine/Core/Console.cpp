@@ -84,7 +84,6 @@ namespace worlds {
         "Critical"
     };
 
-
     ConVar::ConVar(const char* name, const char* defaultValue, const char* help)
         : help(help)
         , name(name)
@@ -112,7 +111,6 @@ namespace worlds {
 
             g_console->conVars.insert({ nameLower, this });
         }
-
     }
 
     void ConVar::setValue(std::string value) {
@@ -129,7 +127,6 @@ namespace worlds {
         if (g_console)
             g_console->conVars.erase(name);
     }
-
 
     static std::string asyncCmdStr;
 
@@ -401,13 +398,26 @@ namespace worlds {
             return;
         }
 
+        static std::string searchString;
+        static std::vector<ConsoleMsg> filteredMsgs;
+
         static int lastMsgCount = 0;
         if (ImGui::Begin("Console", &show)) {
-
+            const float priorityLevelWidth = 150.0f;
             static int currentPriorityLevel = SDL_LOG_PRIORITY_INFO;
             currentPriorityLevel -= 1;
+            ImGui::PushItemWidth(priorityLevelWidth);
             ImGui::Combo("Priority Level", &currentPriorityLevel, priorityLabels, sizeof(priorityLabels) / sizeof(priorityLabels[0]));
+            ImGui::PopItemWidth();
             currentPriorityLevel += 1;
+
+            ImGui::SameLine();
+            ImGui::PushItemWidth(200.0f);
+            if (ImGui::InputText("Search", &searchString)) {
+                filteredMsgs.clear();
+                std::copy_if(msgs.begin(), msgs.end(), std::back_inserter(filteredMsgs), [&](ConsoleMsg msg) { return msg.priority >= currentPriorityLevel && msg.msg.find(searchString) != std::string::npos; });
+            }
+            ImGui::PopItemWidth();
 
             ImGui::SameLine();
             if (ImGui::Button("Clear")) {
@@ -423,7 +433,7 @@ namespace worlds {
                 float lineHeight = ImGui::GetTextLineHeightWithSpacing();
                 consoleMutex.lock();
                 float padding = ImGui::GetStyle().ItemSpacing.y;
-                for (auto& msg : msgs) {
+                for (auto& msg : (searchString.empty() ? msgs : filteredMsgs)) {
                     if (msg.priority < currentPriorityLevel) continue;
                     ImVec2 textSize = ImGui::CalcTextSize(msg.msg.c_str(), nullptr, false, 0.0f);
 

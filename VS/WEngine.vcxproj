@@ -434,6 +434,7 @@
     <ClInclude Include="..\WorldsEngine\Render\vku\vku.hpp" />
     <ClInclude Include="..\WorldsEngine\Scripting\AssetDBBindings.hpp" />
     <ClInclude Include="..\WorldsEngine\Scripting\AudioBindings.hpp" />
+    <ClInclude Include="..\WorldsEngine\Scripting\AudioSourceBindings.hpp" />
     <ClInclude Include="..\WorldsEngine\Scripting\CameraBindings.hpp" />
     <ClInclude Include="..\WorldsEngine\Scripting\ComponentMetadataBindings.hpp" />
     <ClInclude Include="..\WorldsEngine\Scripting\ConsoleBindings.hpp" />

@@ -47,6 +47,9 @@ namespace WorldsEngine
         private static extern void dynamicpa_getLinearVelocity(IntPtr registryPtr, uint entityId, ref Vector3 velocity);
 
         [DllImport(WorldsEngine.NativeModule)]
+        private static extern void dynamicpa_setLinearVelocity(IntPtr registryPtr, uint entityId, Vector3 vel);
+
+        [DllImport(WorldsEngine.NativeModule)]
         private static extern void dynamicpa_getAngularVelocity(IntPtr registryPtr, uint entityId, ref Vector3 velocity);
 
         [DllImport(WorldsEngine.NativeModule)]
@@ -117,6 +120,8 @@ namespace WorldsEngine
 
                 return velocity;
             }
+            
+            set => dynamicpa_setLinearVelocity(regPtr, entityId, value);
         }
 
         public Vector3 AngularVelocity
