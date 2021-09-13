@@ -89,6 +89,11 @@ namespace WorldsEngine.Math
                 a.x * b.y - a.y * b.x);
         }
 
+        public static Vector3 Reflect(Vector3 v, Vector3 normal)
+        {
+            return v - 2 * (v.Dot(normal)) * normal;
+        }
+
         public float Length => MathF.Sqrt(LengthSquared);
 
         public float LengthSquared => (x * x) + (y * y) + (z * z);

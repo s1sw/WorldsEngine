@@ -41,20 +41,20 @@ namespace Game
             var transform = dpa.Pose;
 
             Transform projectileTransform = transform;
-            projectileTransform.Position += transform.Forward * 0.5f;
+            projectileTransform.Position += transform.Forward * 2.0f;
 
-            Audio.PlayOneShot(AssetDB.PathToId("Audio/SFX/gunshot.ogg"), projectileTransform.Position, 1.0f);
+            Audio.PlayOneShot(AssetDB.PathToId("Audio/SFX/gunshot.ogg"), projectileTransform.Position, 0.5f);
 
-            AssetID projectileId = AssetDB.PathToId("Prefabs/gun_projectile.wprefab");
+            AssetID projectileId = AssetDB.PathToId("Prefabs/big_ass_projectile.wprefab");
             Entity projectile = Registry.CreatePrefab(projectileId);
 
             var projectileDpa = Registry.GetComponent<DynamicPhysicsActor>(projectile);
-            projectileDpa.AddForce(transform.TransformDirection(Vector3.Forward) * 100f, ForceMode.VelocityChange);
+            projectileDpa.AddForce(transform.TransformDirection(Vector3.Forward) * 1f, ForceMode.VelocityChange);
 
             Registry.SetTransform(entity, projectileTransform);
             projectileDpa.Pose = projectileTransform;
 
-            dpa.AddForce(-transform.TransformDirection(Vector3.Forward) * 100f * projectileDpa.Mass, ForceMode.Impulse);
+            dpa.AddForce(-transform.TransformDirection(Vector3.Forward) * 1f * projectileDpa.Mass, ForceMode.Impulse);
         }
 
         public void Think(Entity entity)

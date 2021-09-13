@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using WorldsEngine;
+using WorldsEngine.Math;
 
 namespace Game.Combat
 {
@@ -13,6 +14,7 @@ namespace Game.Combat
     {
         public double Damage = 5.0;
         public double CreationTime = 0.0;
+        public int BounceCount = 0;
 
         public void Start(Entity e)
         {
@@ -21,7 +23,22 @@ namespace Game.Combat
 
         public void OnCollision(Entity entity, ref PhysicsContactInfo contactInfo)
         {
-            Registry.DestroyNext(entity);
+            if (BounceCount == 0)
+            {
+                Registry.DestroyNext(entity);
+            }
+            else
+            {
+                BounceCount--;
+                var dpa = Registry.GetComponent<DynamicPhysicsActor>(entity);
+
+                dpa.Velocity = Vector3.Reflect(dpa.Velocity, contactInfo.Normal);
+
+                var pose = dpa.Pose;
+                pose.Rotation = Quaternion.SafeLookAt(dpa.Velocity.Normalized);
+                dpa.Pose = pose;
+            }
+
             if (!Registry.HasComponent<HealthComponent>(contactInfo.OtherEntity)) return;
 
             var health = Registry.GetComponent<HealthComponent>(contactInfo.OtherEntity);

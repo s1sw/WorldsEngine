@@ -66,6 +66,10 @@ extern "C" {
         *vel = dpa.linearVelocity();
     }
 
+    EXPORT void dynamicpa_setLinearVelocity(entt::registry* reg, entt::entity entity, glm::vec3 vel) {
+        reg->get<DynamicPhysicsActor>(entity).setLinearVelocity(vel);
+    }
+
     EXPORT void dynamicpa_getAngularVelocity(entt::registry* reg, entt::entity entity, glm::vec3* vel) {
         DynamicPhysicsActor& dpa = reg->get<DynamicPhysicsActor>(entity);
 

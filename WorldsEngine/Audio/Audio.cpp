@@ -762,6 +762,10 @@ namespace worlds {
         clip.data = data;
     }
 
+    void AudioSystem::precacheAudioClip(AssetID id) {
+        loadAudioClip(id);
+    }
+
     AudioSystem::LoadedClip& AudioSystem::loadAudioClip(AssetID id) {
         if (loadedClips.count(id) == 1)
             return loadedClips.at(id);

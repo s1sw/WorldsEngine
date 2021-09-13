@@ -1400,5 +1400,8 @@
     <ClInclude Include="..\WorldsEngine\Core\SplashScreenImpls\ISplashScreen.hpp">
       <Filter>Core\SplashScreenImpls</Filter>
     </ClInclude>
+    <ClInclude Include="..\WorldsEngine\Scripting\AudioSourceBindings.hpp">
+      <Filter>Scripting</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
