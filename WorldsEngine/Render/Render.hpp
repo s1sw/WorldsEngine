@@ -87,6 +87,7 @@ namespace worlds {
         int numActiveRTTPasses;
         int numPipelineSwitches;
         int numTriangles;
+        int numLightsInView;
         double shadowmapGpuTime;
     };
 

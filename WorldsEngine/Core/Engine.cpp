@@ -1022,6 +1022,7 @@ namespace worlds {
                     ImGui::Text("GPU render time: %.3fms", renderer->getLastRenderTime() / 1000.0f / 1000.0f);
                     ImGui::Text("V-Sync status: %s", renderer->getVsync() ? "On" : "Off");
                     ImGui::Text("Triangles: %u", dbgStats.numTriangles);
+                    ImGui::Text("Lights in view: %i", dbgStats.numLightsInView);
 
                     size_t numLights = registry.view<WorldLight>().size();
                     size_t worldObjects = registry.view<WorldObject>().size();

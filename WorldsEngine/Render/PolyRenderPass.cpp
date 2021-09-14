@@ -590,7 +590,9 @@ namespace worlds {
 
         int lightIdx = 0;
         ctx.registry.view<WorldLight, Transform>().each([&](auto ent, WorldLight& l, Transform& transform) {
+            float distance = glm::sqrt(1.0f / l.distanceCutoff);
             if (!l.enabled) return;
+            if (!frustum.containsSphere(transform.position, distance)) return;
             glm::vec3 lightForward = glm::normalize(transform.rotation * glm::vec3(0.0f, 0.0f, -1.0f));
             if (l.type != LightType::Tube) {
                 lightMapped->lights[lightIdx] = PackedLight{
@@ -630,6 +632,7 @@ namespace worlds {
         lightMapped->shadowmapMatrices[0] = ctx.cascadeInfo.matrices[0];
         lightMapped->shadowmapMatrices[1] = ctx.cascadeInfo.matrices[1];
         lightMapped->shadowmapMatrices[2] = ctx.cascadeInfo.matrices[2];
+        ctx.debugContext.stats->numLightsInView = lightIdx;
 
         uint32_t aoBoxIdx = 0;
         ctx.registry.view<Transform, ProxyAOComponent>().each([&](auto ent, Transform& t, ProxyAOComponent& pac) {
