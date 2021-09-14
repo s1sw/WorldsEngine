@@ -17,6 +17,7 @@ namespace Game.Combat
     public class HealthComponent : IStartListener
     {
         public Action<Entity> OnDeath;
+        public Action<Entity, double> OnDamage;
 
         public double Health = 1.0;
         public double MaxHealth = 1.0;
@@ -32,6 +33,7 @@ namespace Game.Combat
         public void Damage(double dmg)
         {
             Health -= dmg;
+            OnDamage?.Invoke(_entity, dmg);
 
             if (Health <= 0.0)
             {

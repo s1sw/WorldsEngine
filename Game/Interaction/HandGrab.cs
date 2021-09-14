@@ -92,11 +92,14 @@ namespace Game.Interaction
 
             uint overlappedCount = Physics.OverlapSphereMultiple(dpa.Pose.TransformPoint(new Vector3(0.0f, 0.0f, 0.03f)), 0.5f, MaxOverlaps, overlapped);
 
-            for (int i = 0; i < overlappedCount; i++)
-            {
-                if (!Registry.HasComponent<Grabbable>(overlapped[i])) continue;
+            var sorted = overlapped.Take((int)overlappedCount)
+                .OrderByDescending((Entity e) => Registry.GetTransform(e).Position.DistanceTo(dpa.Pose.Position));
 
-                Grab(overlapped[i]);
+            foreach (Entity e in sorted)
+            {
+                if (!Registry.HasComponent<Grabbable>(e)) continue;
+
+                Grab(e);
                 return;
             }
         }

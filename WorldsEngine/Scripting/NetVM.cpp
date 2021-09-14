@@ -171,6 +171,7 @@ namespace worlds {
         createManagedDelegate("WorldsEngine.Registry", "SerializeManagedComponents", (void**)&serializeComponentsFunc);
         createManagedDelegate("WorldsEngine.Registry", "DeserializeManagedComponent", (void**)&deserializeComponentFunc);
         createManagedDelegate("WorldsEngine.Registry", "HandleCollision", (void**)&physicsContactFunc);
+        createManagedDelegate("WorldsEngine.Registry", "CopyManagedComponents", (void**)&copyManagedComponentsFunc);
 
 
         reg.on_destroy<Transform>().connect<&DotNetScriptEngine::onTransformDestroy>(*this);
@@ -219,6 +220,10 @@ namespace worlds {
     void DotNetScriptEngine::deserializeManagedComponent(const char* id, const nlohmann::json& componentJson, entt::entity entity) {
         std::string cJsonStr = componentJson.dump();
         deserializeComponentFunc(id, cJsonStr.c_str(), (uint32_t)entity);
+    }
+
+    void DotNetScriptEngine::copyManagedComponents(entt::entity from, entt::entity to) {
+        copyManagedComponentsFunc(from, to);
     }
 
     void DotNetScriptEngine::createManagedDelegate(const char* typeName, const char* methodName, void** func) {

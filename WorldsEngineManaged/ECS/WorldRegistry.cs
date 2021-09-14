@@ -138,6 +138,18 @@ namespace WorldsEngine
             SetComponent(entity, type, deserialized);
         }
 
+        [UsedImplicitly]
+        [SuppressMessage("CodeQuality", "IDE0051:Remove unused private members",
+            Justification = "Called from native C++")]
+        private static void CopyManagedComponents(Entity from, Entity to)
+        {
+            foreach (var metadata in MetadataManager.ManagedMetadata)
+            {
+                if (metadata.ExistsOn(from))
+                    metadata.Copy(from, to);
+            }
+        }
+
         internal static void SerializeStorages()
         {
             for (int i = 0; i < ComponentPoolCount; i++)

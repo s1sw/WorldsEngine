@@ -5,20 +5,34 @@ using WorldsEngine.Math;
 
 namespace Game
 {
+    public enum ProjectileType
+    {
+        Laser,
+        Humongous
+    }
+
     [Component]
     [EditorFriendlyName("C# Gun")]
     class Gun : IThinkingComponent, IStartListener
     {
         public bool Automatic = false;
         public float ShotSpacing = 0.1f;
+        public ProjectileType ProjectileType;
 
         private float _shotTimer = 0f;
+        private AssetID _projectilePrefab;
 
         public void Start(Entity entity)
         {
             var grabbable = Registry.GetComponent<Grabbable>(entity);
+
             grabbable.TriggerPressed += Grabbable_TriggerPressed;
             grabbable.TriggerHeld += Grabbable_TriggerHeld;
+
+            _projectilePrefab = ProjectileType switch {
+                ProjectileType.Humongous => AssetDB.PathToId("Prefabs/big_ass_projectile.wprefab"),
+                _ => AssetDB.PathToId("Prefabs/gun_projectile.wprefab"),
+            };
         }
 
         private void Grabbable_TriggerPressed(Entity entity)
@@ -45,16 +59,20 @@ namespace Game
 
             Audio.PlayOneShot(AssetDB.PathToId("Audio/SFX/gunshot.ogg"), projectileTransform.Position, 0.5f);
 
-            AssetID projectileId = AssetDB.PathToId("Prefabs/big_ass_projectile.wprefab");
-            Entity projectile = Registry.CreatePrefab(projectileId);
+            Entity projectile = Registry.CreatePrefab(_projectilePrefab);
+
+            float speed = ProjectileType switch {
+                ProjectileType.Humongous => 1f,
+                _ => 100f
+            };
 
             var projectileDpa = Registry.GetComponent<DynamicPhysicsActor>(projectile);
-            projectileDpa.AddForce(transform.TransformDirection(Vector3.Forward) * 1f, ForceMode.VelocityChange);
+            projectileDpa.AddForce(transform.TransformDirection(Vector3.Forward) * speed, ForceMode.VelocityChange);
 
             Registry.SetTransform(entity, projectileTransform);
             projectileDpa.Pose = projectileTransform;
 
-            dpa.AddForce(-transform.TransformDirection(Vector3.Forward) * 1f * projectileDpa.Mass, ForceMode.Impulse);
+            dpa.AddForce(-transform.TransformDirection(Vector3.Forward) * speed * projectileDpa.Mass, ForceMode.Impulse);
         }
 
         public void Think(Entity entity)
