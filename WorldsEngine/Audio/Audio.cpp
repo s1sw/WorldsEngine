@@ -144,14 +144,14 @@ namespace worlds {
             iplApplyBinauralEffect(
                     voice.iplFx.binauralEffect,
                     _this->binauralRenderer,
-                    directPathBuffer, dir,
+                    inBuffer, dir,
                     IPL_HRTFINTERPOLATION_BILINEAR, 1.0f, outBuffer);
 
             for (int i = 0; i < samplesNeeded; i++) {
-                float l = ((float*)tempBuffer)[i * 2 + 0] * vol;
-                float r = ((float*)tempBuffer)[i * 2 + 1] * vol;
-                stream[i * 2 + 0] += glm::isnan(l) ? 0.0f : l;
-                stream[i * 2 + 1] += glm::isnan(r) ? 0.0f : r;
+                float l = outBuffer.interleavedBuffer[i * 2 + 0] * vol;
+                float r = outBuffer.interleavedBuffer[i * 2 + 1] * vol;
+                stream[i * 2 + 0] += l;
+                stream[i * 2 + 1] += r;
             }
 
             if (false && voice.loop && samplesRemaining < numMonoSamplesNeeded) {
@@ -169,7 +169,7 @@ namespace worlds {
                 iplApplyBinauralEffect(
                     voice.iplFx.binauralEffect,
                     _this->binauralRenderer,
-                    directPathBuffer, dir,
+                    inBuffer, dir,
                     IPL_HRTFINTERPOLATION_BILINEAR, 1.0f, outBuffer);
 
                 for (int i = 0; i < loopedSampleCount; i++) {

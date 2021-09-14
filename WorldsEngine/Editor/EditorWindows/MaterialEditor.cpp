@@ -23,6 +23,7 @@ namespace worlds {
         bool cullOff = false;
         bool wireframe = false;
         bool usePBRMap = false;
+        bool useAlphaTest = false;
     };
 
     void getAssetId(const sajson::value& obj, const char* key, AssetID& aid) {
@@ -95,7 +96,7 @@ namespace worlds {
         }
 
         if (mat.alphaCutoff != 0.0f)
-            j += ",\n" + getJson("alphaCutoff", mat.alphaCutoff);
+            j += ",\n" + getJson("alphaCutoff", mat.useAlphaTest ? mat.alphaCutoff : 0.0f);
 
         if (mat.cullOff)
             j += ",\n" + getJson("cullOff", 1);
@@ -157,6 +158,7 @@ namespace worlds {
                     mat.cullOff = hasKey(root, "cullOff");
                     mat.wireframe = hasKey(root, "wireframe");
                     mat.usePBRMap = hasKey(root, "pbrMapPath");
+                    mat.useAlphaTest = mat.alphaCutoff > 0.0f;
 
                     if (mat.usePBRMap) {
                         getAssetId(root, "pbrMapPath", mat.pbrMap);
@@ -224,6 +226,12 @@ namespace worlds {
 
                     ImGui::SameLine();
                     assetButton(mat.roughMap, "Rough Map");
+                }
+
+                ImGui::Checkbox("Alpha Test", &mat.useAlphaTest);
+
+                if (mat.useAlphaTest) {
+                    ImGui::DragFloat("Alpha Cutoff", &mat.alphaCutoff);
                 }
 
                 if (ImGui::BeginPopup("Open Material from folder + mat name")) {

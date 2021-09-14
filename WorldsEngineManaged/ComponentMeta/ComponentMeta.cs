@@ -298,6 +298,7 @@ namespace WorldsEngine.ComponentMeta
     public static class MetadataManager
     {
         public static IReadOnlyCollection<ComponentMetadata> Metadata => metadata;
+        public static IReadOnlyCollection<ComponentMetadata> ManagedMetadata => managedMetadata;
 
         private static readonly List<ComponentMetadata> metadata = new();
         private static readonly List<NativeComponentMetadata> nativeMetadata = new();

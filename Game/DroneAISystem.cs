@@ -39,9 +39,15 @@ namespace Game
         public void Start(Entity entity)
         {
             var health = Registry.GetComponent<HealthComponent>(entity);
-            health.OnDeath += (Entity ent) => { 
+
+            health.OnDeath += (Entity ent) => {
                 _dead = true;
                 Registry.GetComponent<AudioSource>(ent).IsPlaying = false;
+                Audio.PlayOneShot(AssetDB.PathToId("Audio/SFX/drone death.ogg"), Registry.GetTransform(ent).Position, 1.0f);
+            };
+
+            health.OnDamage += (Entity e, double dmg) => {
+                if (!_awake && !_dead) _awake = true;
             };
         }
 

@@ -31,6 +31,7 @@ namespace worlds {
             void handleCollision(entt::entity entity, PhysicsContactInfo* contactInfo);
             void serializeManagedComponents(nlohmann::json& entityJson, entt::entity entity);
             void deserializeManagedComponent(const char* id, const nlohmann::json& componentJson, entt::entity entity);
+            void copyManagedComponents(entt::entity from, entt::entity to);
         private:
             EngineInterfaces interfaces;
             entt::registry& reg;
@@ -46,6 +47,7 @@ namespace worlds {
             void(*serializeComponentsFunc)(void* serializationContext, uint32_t entity);
             void(*deserializeComponentFunc)(const char* id, const char* componentJson, uint32_t entity);
             void(*physicsContactFunc)(uint32_t id, PhysicsContactInfo* contactInfo);
+            void(*copyManagedComponentsFunc)(entt::entity from, entt::entity to);
             void(*sceneStartFunc)();
     };
 }

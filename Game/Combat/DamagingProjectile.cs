@@ -23,7 +23,7 @@ namespace Game.Combat
 
         public void OnCollision(Entity entity, ref PhysicsContactInfo contactInfo)
         {
-            if (BounceCount == 0)
+            if (BounceCount <= 0 && !Registry.HasComponent<DamagingProjectile>(contactInfo.OtherEntity))
             {
                 Registry.DestroyNext(entity);
             }

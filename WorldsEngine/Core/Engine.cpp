@@ -860,7 +860,7 @@ namespace worlds {
                     auto& bTransform = registry.get<Transform>(b);
                     return glm::distance2(camPos, aTransform.position) < glm::distance2(camPos, bTransform.position);
                 };
-                registry.sort<WorldObject, decltype(sortLambda), entt::insertion_sort>(sortLambda);
+                registry.sort<WorldObject, decltype(sortLambda)>(sortLambda);
 
                 renderer->frame(cam, registry);
 

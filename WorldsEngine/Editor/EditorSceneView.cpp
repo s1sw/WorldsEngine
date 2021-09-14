@@ -6,6 +6,7 @@
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include "ImGui/imgui_internal.h"
 #include "ComponentMeta/ComponentMetadata.hpp"
+#include "Scripting/NetVM.hpp"
 
 namespace worlds {
     EditorSceneView::EditorSceneView(EngineInterfaces interfaces, Editor* ed)
@@ -132,6 +133,8 @@ namespace worlds {
                             ed->clone(selectedEntity, newEnt, reg);
                         }
 
+                        interfaces.scriptEngine->copyManagedComponents(selectedEntity, newEnt);
+
                         ed->select(newEnt);
                         ed->activateTool(Tool::Translate);
 
@@ -149,6 +152,8 @@ namespace worlds {
 
                                 ed->clone(ent, newMultiEnt, reg);
                             }
+
+                            interfaces.scriptEngine->copyManagedComponents(ent, newMultiEnt);
 
                             multiSelectEnts.add(newMultiEnt);
                         }
