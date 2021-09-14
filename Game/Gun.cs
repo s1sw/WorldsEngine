@@ -29,7 +29,8 @@ namespace Game
             grabbable.TriggerPressed += Grabbable_TriggerPressed;
             grabbable.TriggerHeld += Grabbable_TriggerHeld;
 
-            _projectilePrefab = ProjectileType switch {
+            _projectilePrefab = ProjectileType switch
+            {
                 ProjectileType.Humongous => AssetDB.PathToId("Prefabs/big_ass_projectile.wprefab"),
                 _ => AssetDB.PathToId("Prefabs/gun_projectile.wprefab"),
             };
@@ -57,11 +58,18 @@ namespace Game
             Transform projectileTransform = transform;
             projectileTransform.Position += transform.Forward * 2.0f;
 
-            Audio.PlayOneShot(AssetDB.PathToId("Audio/SFX/gunshot.ogg"), projectileTransform.Position, 0.5f);
+            AssetID sfx = ProjectileType switch
+            {
+                ProjectileType.Humongous => AssetDB.PathToId("Audio/SFX/meme gun.ogg"),
+                _ => AssetDB.PathToId("Audio/SFX/gunshot.ogg")
+            };
+
+            Audio.PlayOneShot(sfx, projectileTransform.Position + (projectileTransform.Forward * 0.4f), ProjectileType == ProjectileType.Humongous ? 2.0f : 0.5f);
 
             Entity projectile = Registry.CreatePrefab(_projectilePrefab);
 
-            float speed = ProjectileType switch {
+            float speed = ProjectileType switch
+            {
                 ProjectileType.Humongous => 1f,
                 _ => 100f
             };

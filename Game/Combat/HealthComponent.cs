@@ -22,6 +22,7 @@ namespace Game.Combat
         public double Health = 1.0;
         public double MaxHealth = 1.0;
         public DeathBehaviour DeathBehaviour = DeathBehaviour.Destroy;
+        public bool Dead { get; private set; }
 
         private Entity _entity;
 
@@ -35,8 +36,9 @@ namespace Game.Combat
             Health -= dmg;
             OnDamage?.Invoke(_entity, dmg);
 
-            if (Health <= 0.0)
+            if (Health <= 0.0 && !Dead)
             {
+                Dead = true;
                 OnDeath?.Invoke(_entity);
 
                 if (DeathBehaviour == DeathBehaviour.Destroy)
