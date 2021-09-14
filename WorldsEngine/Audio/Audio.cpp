@@ -144,7 +144,7 @@ namespace worlds {
             iplApplyBinauralEffect(
                     voice.iplFx.binauralEffect,
                     _this->binauralRenderer,
-                    inBuffer, dir,
+                    directPathBuffer, dir,
                     IPL_HRTFINTERPOLATION_BILINEAR, 1.0f, outBuffer);
 
             for (int i = 0; i < samplesNeeded; i++) {

@@ -35,6 +35,13 @@ namespace Game
 
         private bool _awake = false;
         private bool _dead = false;
+        private Entity _ent;
+
+        public void Alert()
+        {
+            _awake = true;
+            PlayStartupSound(_ent, Registry.GetComponent<DynamicPhysicsActor>(_ent).Pose.Position);
+        }
 
         public void Start(Entity entity)
         {
@@ -47,8 +54,11 @@ namespace Game
             };
 
             health.OnDamage += (Entity e, double dmg) => {
-                if (!_awake && !_dead) _awake = true;
+                if (!_awake && !_dead)
+                    Alert();
             };
+
+            _ent = entity;
         }
 
         private void UpdateInspectorVals()
@@ -71,7 +81,7 @@ namespace Game
             {
                 if (entity == entityB) continue;
 
-                var physicsActorB = Registry.GetComponent<DynamicPhysicsActor>(entity);
+                var physicsActorB = Registry.GetComponent<DynamicPhysicsActor>(entityB);
                 Transform poseB = physicsActorB.Pose;
 
                 Vector3 direction = poseB.Position - pose.Position;
@@ -217,8 +227,7 @@ namespace Game
 
                 if (overlapCount > 0)
                 {
-                    _awake = true;
-                    PlayStartupSound(entity);
+                    Alert();
                 }
 
                 return;
@@ -236,15 +245,24 @@ namespace Game
             UpdateFiring(entity);
         }
 
-        private async void PlayStartupSound(Entity entity)
+        private async void PlayStartupSound(Entity entity, Vector3 pos)
         {
             var audioSource = Registry.GetComponent<AudioSource>(entity);
+
+            Audio.PlayOneShot(AssetDB.PathToId("Audio/SFX/drone alert.ogg"), pos, 1.0f);
 
             audioSource.Loop = true;
             audioSource.ClipId = AssetDB.PathToId("Audio/SFX/drone startup.ogg");
             audioSource.IsPlaying = true;
 
             await Task.Delay(500);
+
+            if (_dead)
+            {
+                audioSource.Loop = false;
+                audioSource.IsPlaying = false;
+                return;
+            }
 
             audioSource.ClipId = AssetDB.PathToId("Audio/SFX/drone idle.ogg");
             audioSource.IsPlaying = true;

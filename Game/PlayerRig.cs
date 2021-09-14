@@ -22,6 +22,7 @@ namespace Game
         private bool _grounded = false;
         private VRAction _movementAction;
         private Vector3 _lastHMDPos = Vector3.Zero;
+        private float _footstepTimer = 0.0f;
 
         private Vector2 GetInputVelocity()
         {
@@ -79,6 +80,17 @@ namespace Game
             inputDirCS.y = 0.0f;
             inputDirCS.Normalize();
 
+            if (inputDirCS.LengthSquared > 0.0f)
+            {
+                _footstepTimer += Time.DeltaTime * 2f;
+            }
+
+            if (_footstepTimer >= 1.0f)
+            {
+                WorldsEngine.Audio.Audio.PlayOneShot(PlayerRigSystem.GetRandomFootstepSound(), 0.6f);
+                _footstepTimer = 0f;
+            }
+
             Vector3 desiredAngVel = new Vector3(inputDirCS.z, 0.0f, -inputDirCS.x) * (Keyboard.KeyHeld(KeyCode.LeftShift) ? 50f : 25.0f);
 
             Vector3 currentAngVel = dpa.AngularVelocity;
@@ -134,6 +146,14 @@ namespace Game
 
         private VRAction _jumpAction;
 
+        private static AssetID[] _footstepNoises;
+        private static Random _footstepRng = new();
+
+        public static AssetID GetRandomFootstepSound()
+        {
+            return _footstepNoises[_footstepRng.Next(0, 10)];
+        }
+
         public void OnSceneStart()
         {
             if (VR.Enabled)
@@ -157,6 +177,14 @@ namespace Game
                 }
 
                 dpa.SetPhysicsShapes(shapes);
+            }
+
+            _footstepNoises = new AssetID[10];
+            for (int i = 1; i <= 10; i++)
+            {
+                string path = "Audio/SFX/Footsteps/Concrete/step" +
+                    (i < 10 ? "0" : "") + i + ".ogg";
+                _footstepNoises[i - 1] = AssetDB.PathToId(path);
             }
         }
 
