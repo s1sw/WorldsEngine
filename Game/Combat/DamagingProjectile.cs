@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using WorldsEngine;
 using WorldsEngine.Math;
+using WorldsEngine.Audio;
 
 namespace Game.Combat
 {
@@ -23,6 +24,7 @@ namespace Game.Combat
 
         public void OnCollision(Entity entity, ref PhysicsContactInfo contactInfo)
         {
+            Audio.PlayOneShot(AssetDB.PathToId("Audio/SFX/laser hiss.ogg"), contactInfo.AverageContactPoint, 0.6f);
             if (BounceCount <= 0 && !Registry.HasComponent<DamagingProjectile>(contactInfo.OtherEntity))
             {
                 Registry.DestroyNext(entity);
