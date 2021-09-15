@@ -50,7 +50,7 @@ namespace Game
             health.OnDeath += (Entity ent) => {
                 _dead = true;
                 Registry.GetComponent<AudioSource>(ent).IsPlaying = false;
-                Audio.PlayOneShot(AssetDB.PathToId("Audio/SFX/drone death.ogg"), Registry.GetTransform(ent).Position, 1.0f);
+                Audio.PlayOneShot(AssetDB.PathToId("Audio/SFX/drone death.ogg"), Registry.GetTransform(ent).Position, 1.5f);
             };
 
             health.OnDamage += (Entity e, double dmg) => {
@@ -249,7 +249,7 @@ namespace Game
         {
             var audioSource = Registry.GetComponent<AudioSource>(entity);
 
-            Audio.PlayOneShot(AssetDB.PathToId("Audio/SFX/drone alert.ogg"), pos, 1.0f);
+            Audio.PlayOneShot(AssetDB.PathToId("Audio/SFX/drone alert.ogg"), pos, 1.5f);
 
             audioSource.Loop = true;
             audioSource.ClipId = AssetDB.PathToId("Audio/SFX/drone startup.ogg");
