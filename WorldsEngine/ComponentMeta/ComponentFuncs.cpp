@@ -1,6 +1,7 @@
 #include "ComponentFuncs.hpp"
 #include <entt/entt.hpp>
 #include "Serialization/SceneSerialization.hpp"
+#include "Util/CreateModelObject.hpp"
 #include "entt/entity/fwd.hpp"
 #include "../ImGui/imgui.h"
 #include "../Core/Transform.hpp"
@@ -331,14 +332,33 @@ namespace worlds {
         const char* getName() override { return "World Light"; }
 
         void edit(entt::entity ent, entt::registry& reg, Editor* ed) override {
+            static entt::entity rangeSphere = entt::null;
+
             if (ImGui::CollapsingHeader(ICON_FA_LIGHTBULB u8" Light")) {
+                if (!reg.valid(rangeSphere)) {
+                    rangeSphere = createModelObject(reg,
+                        glm::vec3{1000.0f},
+                        glm::quat{},
+                        AssetDB::pathToId("Models/sphere.wmdl"),
+                        AssetDB::pathToId("Materials/wireframe.json")
+                    );
+
+                    reg.emplace<DontSerialize>(rangeSphere);
+                    reg.emplace<HideFromEditor>(rangeSphere);
+                }
+
                 if (ImGui::Button("Remove##WL")) {
                     reg.remove<WorldLight>(ent);
                 } else {
                     auto& worldLight = reg.get<WorldLight>(ent);
+                    Transform& transform = reg.get<Transform>(ent);
+
                     ImGui::Checkbox("Enabled", &worldLight.enabled);
                     ImGui::ColorEdit3("Color", &worldLight.color.x, ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
                     ImGui::DragFloat("Intensity", &worldLight.intensity);
+
+                    Transform& sphereTransform = reg.get<Transform>(rangeSphere);
+                    sphereTransform.position = transform.position;
 
                     if (ImGui::BeginCombo("Light Type", lightTypeNames.at(worldLight.type))) {
                         for (auto& p : lightTypeNames) {
@@ -358,6 +378,8 @@ namespace worlds {
 
                     ImGui::Text("Recommended Value: %.3f", glm::sqrt(worldLight.intensity / 0.1f));
                     float distance = glm::sqrt(1.0f / worldLight.distanceCutoff);
+                    sphereTransform.scale = glm::vec3 { distance };
+
                     if (ImGui::DragFloat("Distance Cutoff", &distance)) {
                         worldLight.distanceCutoff = 1.0f / (distance * distance);
                     }
@@ -382,6 +404,8 @@ namespace worlds {
                         ImGui::DragFloat("Tube Radius", &worldLight.tubeRadius);
                     }
                 }
+            } else if (reg.valid(rangeSphere)) {
+                reg.destroy(rangeSphere);
             }
         }
 

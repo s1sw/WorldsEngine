@@ -189,4 +189,7 @@ namespace worlds {
     struct EditorLabel {
         std::string label;
     };
+
+    struct DontSerialize {};
+    struct HideFromEditor {};
 }

@@ -63,17 +63,18 @@ namespace worlds {
     float* tempBuffer = nullptr;
     float* tempMonoBuffer = nullptr;
     bool copyBuffer = false;
+    int mixedVoices = 0;
 
     void AudioSystem::mixVoice(Voice& voice, int numMonoSamplesNeeded, float* stream, AudioSystem* _this) {
         auto& clip = *voice.clip;
         int samplesRemaining = clip.sampleCount - voice.playbackPosition;
 
-        if (samplesRemaining < 0) return;
+        if (samplesRemaining <= 0) return;
 
         int samplesNeeded = std::min(numMonoSamplesNeeded, samplesRemaining);
 
-        if (voice.loop)
-            samplesNeeded = numMonoSamplesNeeded;
+        //if (voice.loop)
+            //samplesNeeded = numMonoSamplesNeeded;
 
         float vol = _this->mixerVolumes[static_cast<int>(voice.channel)] * voice.volume;
 
@@ -126,8 +127,8 @@ namespace worlds {
 
             IPLDirectSoundEffectOptions directSoundOptions {
                 .applyDistanceAttenuation = IPL_TRUE,
-                .applyAirAbsorption = IPL_TRUE,
-                .applyDirectivity = IPL_TRUE,
+                .applyAirAbsorption = IPL_FALSE,
+                .applyDirectivity = IPL_FALSE,
                 .directOcclusionMode = IPL_DIRECTOCCLUSION_TRANSMISSIONBYFREQUENCY
             };
 
@@ -145,38 +146,41 @@ namespace worlds {
                     voice.iplFx.binauralEffect,
                     _this->binauralRenderer,
                     directPathBuffer, dir,
-                    IPL_HRTFINTERPOLATION_BILINEAR, 1.0f, outBuffer);
+                    IPL_HRTFINTERPOLATION_NEAREST, 1.0f, outBuffer);
 
-            for (int i = 0; i < samplesNeeded; i++) {
-                float l = outBuffer.interleavedBuffer[i * 2 + 0] * vol;
-                float r = outBuffer.interleavedBuffer[i * 2 + 1] * vol;
-                stream[i * 2 + 0] += l;
-                stream[i * 2 + 1] += r;
+            for (int i = 0; i < samplesNeeded * 2; i++) {
+                //float l = outBuffer.interleavedBuffer[i * 2 + 0] * vol;
+                //float r = outBuffer.interleavedBuffer[i * 2 + 1] * vol;
+                //stream[i * 2 + 0] += l;
+                //stream[i * 2 + 1] += r;
+                stream[i] += outBuffer.interleavedBuffer[i] * vol;
             }
 
-            if (false && voice.loop && samplesRemaining < numMonoSamplesNeeded) {
-                int loopedSampleCount = numMonoSamplesNeeded - samplesRemaining;
+            //if (false && voice.loop && samplesRemaining < numMonoSamplesNeeded) {
+            //    int loopedSampleCount = numMonoSamplesNeeded - samplesRemaining;
 
-                inBuffer.interleavedBuffer = clip.data;
-                inBuffer.numSamples = loopedSampleCount;
-                directPathBuffer.numSamples = loopedSampleCount;
-                outBuffer.numSamples = loopedSampleCount;
+            //    inBuffer.interleavedBuffer = clip.data;
+            //    inBuffer.numSamples = loopedSampleCount;
+            //    directPathBuffer.numSamples = loopedSampleCount;
+            //    outBuffer.numSamples = loopedSampleCount;
 
-                iplApplyDirectSoundEffect(voice.iplFx.directSoundEffect,
-                    inBuffer, voice.spatialInfo.soundPath,
-                    directSoundOptions, directPathBuffer);
+            //    iplApplyDirectSoundEffect(voice.iplFx.directSoundEffect,
+            //        inBuffer, voice.spatialInfo.soundPath,
+            //        directSoundOptions, directPathBuffer);
 
-                iplApplyBinauralEffect(
-                    voice.iplFx.binauralEffect,
-                    _this->binauralRenderer,
-                    inBuffer, dir,
-                    IPL_HRTFINTERPOLATION_BILINEAR, 1.0f, outBuffer);
+            //    iplApplyBinauralEffect(
+            //        voice.iplFx.binauralEffect,
+            //        _this->binauralRenderer,
+            //        inBuffer, dir,
+            //        IPL_HRTFINTERPOLATION_BILINEAR, 1.0f, outBuffer);
 
-                for (int i = 0; i < loopedSampleCount; i++) {
-                    stream[(i + samplesNeeded) * 2 + 0] += ((float*)tempBuffer)[i * 2 + 0] * vol;
-                    stream[(i + samplesNeeded) * 2 + 1] += ((float*)tempBuffer)[i * 2 + 1] * vol;
-                }
-            }
+            //    for (int i = 0; i < loopedSampleCount; i++) {
+            //        stream[(i + samplesNeeded) * 2 + 0] += ((float*)tempBuffer)[i * 2 + 0] * vol;
+            //        stream[(i + samplesNeeded) * 2 + 1] += ((float*)tempBuffer)[i * 2 + 1] * vol;
+            //    }
+            //}
+
+            mixedVoices++;
         }
 
         voice.playbackPosition += numMonoSamplesNeeded;
@@ -208,9 +212,11 @@ namespace worlds {
             stream[i] = 0.0f;
         }
 
+        mixedVoices = 0;
         for (size_t i = 0; i < _this->voices.size(); i++) {
-            if (_this->voices[i].isPlaying)
+            if (_this->voices[i].isPlaying) {
                 mixVoice(_this->voices[i], numMonoSamplesNeeded, stream, _this);
+            }
         }
 
         for (int i = 0; i < streamLen; i++) {
@@ -352,7 +358,7 @@ namespace worlds {
             .numThreads = 8,
             .irDuration = 0.5f,
             .ambisonicsOrder = 0,
-            .maxConvolutionSources = 32,
+            .maxConvolutionSources = 512,
             .bakingBatchSize = 1,
             .irradianceMinDistance = 0.3f
         };
@@ -494,7 +500,7 @@ namespace worlds {
                         convVec(listenerRot * glm::vec3 { 0.0f, 0.0f, 1.0f }),
                         convVec(listenerRot * glm::vec3 { 0.0f, 1.0f, 0.0f }),
                         src,
-                        5.0f,
+                        1.0f,
                         64,
                         IPL_DIRECTOCCLUSION_TRANSMISSIONBYFREQUENCY,
                         IPL_DIRECTOCCLUSION_VOLUMETRIC);
@@ -505,7 +511,7 @@ namespace worlds {
         oneshots.erase(std::remove_if(oneshots.begin(), oneshots.end(),
             [&](PlayingOneshot& clipInfo) {
                 Voice& v = voices[clipInfo.voiceIdx];
-                return v.playbackPosition > v.clip->sampleCount;
+                return v.playbackPosition >= v.clip->sampleCount;
             }
         ), oneshots.end());
 
@@ -543,8 +549,8 @@ namespace worlds {
                     convVec(listenerRot * glm::vec3 { 0.0f, 0.0f, 1.0f }),
                     convVec(listenerRot * glm::vec3 { 0.0f, 1.0f, 0.0f }),
                     src,
-                    5.0f,
-                    64,
+                    0.5f,
+                    32,
                     IPL_DIRECTOCCLUSION_TRANSMISSIONBYFREQUENCY,
                     IPL_DIRECTOCCLUSION_VOLUMETRIC
                 );
@@ -563,9 +569,18 @@ namespace worlds {
                 ImGui::TextColored(col, "Audio Thread Usage: %.2f%%", cpuUsage * 100.0f);
                 ImGui::Text("Main thread audio update: %.2fms", timerMs);
                 ImGui::Text("Playing Clip Count: %zu", reg.view<AudioSource>().size());
+
                 ImGui::Text("Playing one shot count: %zu", oneshots.numElements());
                 ImGui::Text("Buffer length: %u", numSamples);
                 ImGui::SliderFloat("Volume", &volume, 0.0f, 1.0f);
+
+                int activeVoices = 0;
+                for (size_t i = 0; i < voices.size(); i++) {
+                    if (voices[i].isPlaying)
+                        activeVoices++;
+                }
+
+                ImGui::Text("Active voices: %i/%u (%i mixed)", activeVoices, (uint32_t)voices.size(), mixedVoices);
 
                 if (copyBuffer) {
                     ImGui::PlotLines("L Audio", [](void* data, int idx) {

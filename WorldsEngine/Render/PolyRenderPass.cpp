@@ -515,7 +515,7 @@ namespace worlds {
                 for (int i = 0; i < meshPos->second.numSubmeshes; i++) {
                     auto& currSubmesh = meshPos->second.submeshes[i];
 
-                    SubmeshDrawInfo sdi;
+                    SubmeshDrawInfo sdi = { 0 };
                     sdi.ib = meshPos->second.ib.buffer();
                     sdi.vb = meshPos->second.vb.buffer();
                     sdi.indexCount = currSubmesh.indexCount;
@@ -574,10 +574,12 @@ namespace worlds {
                         sdi.pipeline = noBackfaceCullPipeline;
                     } else if (extraDat.wireframe || showWireframe.getInt() == 1) {
                         sdi.pipeline = wireframePipeline;
+                        sdi.dontPrepass = true;
                     } else if (ctx.registry.has<UseWireframe>(ent) || showWireframe.getInt() == 2) {
                         drawInfo.add(sdi);
                         ctx.debugContext.stats->numTriangles += currSubmesh.indexCount / 3;
                         sdi.pipeline = wireframePipeline;
+                        sdi.dontPrepass = true;
                     }
                     ctx.debugContext.stats->numTriangles += currSubmesh.indexCount / 3;
 
@@ -592,14 +594,15 @@ namespace worlds {
         ctx.registry.view<WorldLight, Transform>().each([&](auto ent, WorldLight& l, Transform& transform) {
             float distance = glm::sqrt(1.0f / l.distanceCutoff);
             if (!l.enabled) return;
-            if (!frustum.containsSphere(transform.position, distance)) return;
+            if (l.type != LightType::Directional && !frustum.containsSphere(transform.position, distance)) return;
+
             glm::vec3 lightForward = glm::normalize(transform.rotation * glm::vec3(0.0f, 0.0f, -1.0f));
             if (l.type != LightType::Tube) {
                 lightMapped->lights[lightIdx] = PackedLight{
                     glm::vec4(l.color * l.intensity, (float)l.type),
                     glm::vec4(lightForward, l.type == LightType::Sphere ? l.spotCutoff : glm::cos(l.spotCutoff)),
                     transform.position, l.shadowmapIdx,
-                    l.distanceCutoff
+                    distance
                 };
             } else {
                 glm::vec3 tubeP0 = transform.position + lightForward * l.tubeLength;
@@ -608,7 +611,7 @@ namespace worlds {
                     glm::vec4(l.color * l.intensity, (float)l.type),
                     glm::vec4(tubeP0, l.tubeRadius),
                     tubeP1, ~0u,
-                    l.distanceCutoff
+                    distance
                 };
             }
 

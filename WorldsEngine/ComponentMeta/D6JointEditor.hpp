@@ -136,7 +136,7 @@ namespace worlds {
                     if (nc) {
                         ImGui::Text("Connected to %s", nc->name.c_str());
                     } else {
-                        ImGui::Text("Connected to %u", target);
+                        ImGui::Text("Connected to %u", (uint32_t)target);
                     }
                 } else {
                     ImGui::Text("Not connected");

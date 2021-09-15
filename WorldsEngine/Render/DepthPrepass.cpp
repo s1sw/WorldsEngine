@@ -80,11 +80,12 @@ namespace worlds {
         bool switchedToAlphaTest = false;
 
         for (auto& sdi : drawInfo) {
+            if (sdi.dontPrepass) continue;
             if (!sdi.opaque && !switchedToAlphaTest) {
                 switchedToAlphaTest = true;
                 vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, alphaTestPipeline);
             }
-            
+
             assert(!(sdi.opaque && switchedToAlphaTest));
 
             StandardPushConstants pushConst {
