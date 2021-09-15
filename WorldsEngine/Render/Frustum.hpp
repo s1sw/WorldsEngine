@@ -1,4 +1,5 @@
 #pragma once
+#include <Core/Log>
 #include <glm/glm.hpp>
 
 namespace worlds {
@@ -44,21 +45,22 @@ namespace worlds {
             glm::mat4 tVP = glm::transpose(vp);
             Plane& left = planes[FrustumPlane::Left];
             left = Plane{ tVP[3] + tVP[0] };
-
+            
             Plane& right = planes[FrustumPlane::Right];
             right = Plane{ tVP[3] - tVP[0] };
-
+            
             Plane& bottom = planes[FrustumPlane::Bottom];
             bottom = Plane{ tVP[3] + tVP[1] };
-
+            
             Plane& top = planes[FrustumPlane::Top];
             top = Plane{ tVP[3] - tVP[1] };
-
+            
             Plane& near = planes[FrustumPlane::Near];
             near = Plane{ tVP[3] + tVP[2] };
-
+            
             Plane& far = planes[FrustumPlane::Far];
             far = Plane{ tVP[3] - tVP[2] };
+
 
             for (int i = 0; i < 6; i++) {
                 planes[i].normalize();
@@ -79,8 +81,35 @@ namespace worlds {
             points[7] = glm::vec3(invVP * glm::vec4(-1.0f, 1.0f, 1.0f, 1.0f));
         }
 
+        void fromViewAndProj(glm::mat4 view, glm::mat4 proj) {
+            glm::mat4 vp = proj * view;
+
+            planes[FrustumPlane::Left] = glm::vec4(1.0f, 0.0f, 0.0f, -1.0f);
+            planes[FrustumPlane::Right] = glm::vec4(-1.0f, 0.0f, 0.0f, -1.0f);
+
+            planes[FrustumPlane::Bottom] = glm::vec4(0.0f, -1.0f, 0.0f, -1.0f);
+            planes[FrustumPlane::Top] = glm::vec4(0.0f, 1.0f, 0.0f, -1.0f);
+
+            planes[FrustumPlane::Near] = glm::vec4(0.0f, 0.0f, 1.0f, 0.0f);
+            planes[FrustumPlane::Far] = glm::vec4(0.0f, 0.0f, -1.0f, 1.0f);
+
+
+            for (int i = 0; i < 4; i++) {
+                planes[i] = planes[i] * vp;
+                planes[i].normalize();
+            }
+
+            logMsg("post-transform left normal: %.3f, %.3f, %.3f", planes[0].a, planes[0].b, planes[0].c);
+
+            planes[FrustumPlane::Near] = view * planes[FrustumPlane::Near];
+            planes[FrustumPlane::Near].normalize();
+
+            planes[FrustumPlane::Far] = view * planes[FrustumPlane::Far];
+            planes[FrustumPlane::Far].normalize();
+        }
+
         bool containsSphere(glm::vec3 center, float radius) {
-            for (int i = 0; i < 6; i++) {
+            for (int i = 0; i < 2; i++) {
                 Plane plane = planes[i];
                 float distance = glm::dot(center, plane.normal()) + plane.d;
                 if (distance < -radius)

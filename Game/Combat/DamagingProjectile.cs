@@ -24,7 +24,7 @@ namespace Game.Combat
 
         public void OnCollision(Entity entity, ref PhysicsContactInfo contactInfo)
         {
-            Audio.PlayOneShot(AssetDB.PathToId("Audio/SFX/laser hiss.ogg"), contactInfo.AverageContactPoint, 0.6f);
+            Audio.PlayOneShot(AssetDB.PathToId("Audio/SFX/laser hiss.ogg"), contactInfo.AverageContactPoint, 0.9f);
             if (BounceCount <= 0 && !Registry.HasComponent<DamagingProjectile>(contactInfo.OtherEntity))
             {
                 Registry.DestroyNext(entity);

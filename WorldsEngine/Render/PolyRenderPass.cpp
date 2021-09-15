@@ -546,21 +546,23 @@ namespace worlds {
                     }
 
                     uint32_t currCubemapIdx = skyboxId;
+                    int lastPriority = INT32_MIN;
 
-                    ctx.registry.view<WorldCubemap, Transform>().each([&](auto, WorldCubemap& wc, Transform& cubeT) {
+                    ctx.registry.view<WorldCubemap, Transform>().each([&](WorldCubemap& wc, Transform& cubeT) {
                         glm::vec3 cPos = t.position;
                         glm::vec3 ma = wc.extent + cubeT.position;
                         glm::vec3 mi = cubeT.position - wc.extent;
 
                         if (cPos.x < ma.x && cPos.x > mi.x &&
                             cPos.y < ma.y && cPos.y > mi.y &&
-                            cPos.z < ma.z && cPos.z > mi.z) {
+                            cPos.z < ma.z && cPos.z > mi.z && wc.priority > lastPriority) {
                             currCubemapIdx = resources.cubemaps.get(wc.cubemapId);
                             if (wc.cubeParallax) {
                                 sdi.drawMiscFlags |= 16384; // flag for cubemap parallax correction
                                 sdi.cubemapPos = cubeT.position;
                                 sdi.cubemapExt = wc.extent;
                             }
+                            lastPriority = wc.priority;
                         }
                         });
 
