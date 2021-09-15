@@ -55,7 +55,7 @@ namespace worlds {
     std::string sceneToJson(entt::registry& reg) {
         nlohmann::json entities;
 
-        reg.view<Transform>().each([&](entt::entity ent, Transform&) {
+        reg.view<Transform>(entt::exclude_t<DontSerialize>{}).each([&](entt::entity ent, Transform&) {
             nlohmann::json entity;
 
             if (reg.has<PrefabInstanceComponent>(ent)) {

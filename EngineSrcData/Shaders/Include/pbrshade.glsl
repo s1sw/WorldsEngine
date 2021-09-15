@@ -26,7 +26,8 @@ LightShadeInfo calcLightShadeInfo(Light light, ShadeInfo shadeInfo, vec3 worldPo
         lsi.L = lightPos - worldPos;
 
         // dot(L, L) = length(L) squared
-        lsi.radiance *= max(0, 1.0 / length2(lsi.L) - light.distanceCutoff);
+        float cutoffDist = light.distanceCutoff * 0.25;
+        lsi.radiance *= (1.0 / length2(lsi.L)) * (1.0 - (length(lsi.L) / cutoffDist));
 
         lsi.L = normalize(lsi.L);
     } else if (lightType == LT_SPOT) {
@@ -41,7 +42,10 @@ LightShadeInfo calcLightShadeInfo(Light light, ShadeInfo shadeInfo, vec3 worldPo
         lsi.radiance *= clamp((theta - cutoff - outerRadius) / outerRadius, 0.0f, 1.0f);
         float distSq = dot(lToFrag, lToFrag);
         float falloff = 1.0 / distSq;
-        falloff = max(0.0, falloff - light.distanceCutoff);
+
+        float cutoffDist = light.distanceCutoff * 0.25;
+        falloff *= (1.0 / length2(lsi.L)) * (1.0 - (length(lsi.L) / cutoffDist));
+
         lsi.radiance *= falloff;
     } else if (lightType == LT_SPHERE) {
         vec3 lightPos = light.pack2.xyz;
@@ -56,13 +60,14 @@ LightShadeInfo calcLightShadeInfo(Light light, ShadeInfo shadeInfo, vec3 worldPo
         float lightDist = length(closestPoint);
         float sqrDist = lightDist * lightDist;
         float falloff = (sphereRadiusSq / (max(sphereRadiusSq, sqrDist)));
-        falloff = max(0.0, falloff - light.distanceCutoff);
+        falloff *= (1.0 - (distance(lightPos, worldPos) / (light.distanceCutoff * 0.25)));
 
         lsi.radiance *= falloff;
         lsi.lightDist = lightDist;
     } else if (lightType == LT_TUBE) {
         vec3 p0 = light.pack1.xyz;
         vec3 p1 = light.pack2.xyz;
+        vec3 center = (p0 + p1) * 0.5;
         vec3 r = reflect(-shadeInfo.viewDir, shadeInfo.normal);
         float tubeRadius = light.pack1.w;
 
@@ -83,7 +88,9 @@ LightShadeInfo calcLightShadeInfo(Light light, ShadeInfo shadeInfo, vec3 worldPo
         float distLight = length(closestPoint);
 
         lsi.L = L;
-        float falloff = max(0.0, (tubeRadius * tubeRadius / max(tubeRadius * tubeRadius, distLight * distLight)) - light.distanceCutoff);
+        float falloff = tubeRadius * tubeRadius / max(tubeRadius * tubeRadius, distLight * distLight);
+        float cutoffDist = light.distanceCutoff * 0.27;
+        falloff *= max((1.0f - (distance(center, worldPos) / cutoffDist)), 0.0);
         lsi.radiance *= falloff;
         lsi.lightDist = distLight;
     }

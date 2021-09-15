@@ -46,6 +46,7 @@ namespace worlds {
         VkPipeline pipeline;
         uint32_t drawMiscFlags;
         bool opaque;
+        bool dontPrepass;
     };
 
     class DebugLinesPass {
