@@ -1191,6 +1191,7 @@ namespace worlds {
                 ImGui::DragFloat3("Extent", &wc.extent.x);
                 ImGui::Checkbox("Parallax Correction", &wc.cubeParallax);
                 ImGui::Text("Current Asset Path: %s", AssetDB::idToPath(wc.cubemapId).c_str());
+                ImGui::InputInt("Priority", &wc.priority);
                 selectAssetPopup("Cubemap Path", wc.cubemapId, ImGui::Button("Change"));
 
                 ImGui::Separator();
@@ -1222,7 +1223,8 @@ namespace worlds {
             j = {
                 { "path", AssetDB::idToPath(wc.cubemapId) },
                 { "useCubeParallax", wc.cubeParallax },
-                { "extent", wc.extent }
+                { "extent", wc.extent },
+                { "priority", wc.priority }
             };
         }
 
@@ -1234,6 +1236,7 @@ namespace worlds {
             wc.cubemapId = cubemapId;
             wc.extent = j["extent"];
             wc.cubeParallax = j["useCubeParallax"];
+            wc.priority = j.value("priority", 0);
         }
     };
 

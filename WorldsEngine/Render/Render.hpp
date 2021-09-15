@@ -23,6 +23,7 @@ namespace worlds {
         AssetID cubemapId;
         glm::vec3 extent{0.0f};
         bool cubeParallax = false;
+        int priority = 0;
     };
 
     struct MVP {

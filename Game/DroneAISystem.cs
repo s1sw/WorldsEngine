@@ -36,6 +36,7 @@ namespace Game
         private bool _awake = false;
         private bool _dead = false;
         private Entity _ent;
+        private Transform _idleHoverPose;
 
         public void Alert()
         {
@@ -59,6 +60,7 @@ namespace Game
             };
 
             _ent = entity;
+            _idleHoverPose = Registry.GetTransform(entity);
         }
 
         private void UpdateInspectorVals()
@@ -221,9 +223,12 @@ namespace Game
             if (!_awake)
             {
                 // Look for a player nearby
-                Entity[] buf = new Entity[8];
-                uint overlapCount = Physics.OverlapSphereMultiple(pose.Position, 5.0f, 8, buf, ~PhysicsLayers.Player);
+                const int MaxOverlap = 32;
+                Entity[] buf = new Entity[MaxOverlap];
+                uint overlapCount = Physics.OverlapSphereMultiple(pose.Position, 7.5f, MaxOverlap, buf, ~PhysicsLayers.Player);
                 Registry.GetComponent<AudioSource>(entity).IsPlaying = false;
+
+                ApplyTargetPose(entity, _idleHoverPose);
 
                 if (overlapCount > 0)
                 {

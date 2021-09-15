@@ -27,7 +27,7 @@ LightShadeInfo calcLightShadeInfo(Light light, ShadeInfo shadeInfo, vec3 worldPo
 
         // dot(L, L) = length(L) squared
         float cutoffDist = light.distanceCutoff * 0.25;
-        lsi.radiance *= (1.0 / length2(lsi.L)) * (1.0 - (length(lsi.L) / cutoffDist));
+        lsi.radiance *= max((1.0 / length2(lsi.L)) * (1.0 - (length(lsi.L) / cutoffDist)), 0.0);
 
         lsi.L = normalize(lsi.L);
     } else if (lightType == LT_SPOT) {

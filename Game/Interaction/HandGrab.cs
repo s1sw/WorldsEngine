@@ -87,13 +87,17 @@ namespace Game.Interaction
         {
             var dpa = Registry.GetComponent<DynamicPhysicsActor>(Entity);
 
-            const int MaxOverlaps = 10;
+            const int MaxOverlaps = 32;
             Entity[] overlapped = new Entity[MaxOverlaps];
 
             uint overlappedCount = Physics.OverlapSphereMultiple(dpa.Pose.TransformPoint(new Vector3(0.0f, 0.0f, 0.03f)), 0.5f, MaxOverlaps, overlapped);
 
+            Logger.Log($"overlapped {overlappedCount}");
+
             var sorted = overlapped.Take((int)overlappedCount)
                 .OrderByDescending((Entity e) => Registry.GetTransform(e).Position.DistanceTo(dpa.Pose.Position));
+
+            Logger.Log($"shrunk to {sorted.Count()}");
 
             foreach (Entity e in sorted)
             {
