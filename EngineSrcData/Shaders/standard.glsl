@@ -219,12 +219,12 @@ float calcProxyAO(vec3 wPos, vec3 normal) {
             proxyAO *= (1.0 - getBoxOcclusionNonClipped(aoBox[i], inWorldPos.xyz, normal));
         }
     }
-	
-	for (int i = 0; i < int(pack1.y); i++) {
-		if (sphereIds[i] != objectId) {
-			proxyAO *= (1.0 - getSphereOcclusion(inWorldPos.xyz, normal, aoSphere[i]));
-		}
-	}
+
+    for (int i = 0; i < int(pack1.y); i++) {
+        if (sphereIds[i] != objectId) {
+            proxyAO *= (1.0 - getSphereOcclusion(inWorldPos.xyz, normal, aoSphere[i]));
+        }
+    }
 
     return proxyAO;
 }
@@ -437,6 +437,14 @@ void main() {
 
     uint doPicking = miscFlag & 0x1;
 
+    int tileIdxX = int(gl_FragCoord.x / 64);
+    int tileIdxY = int(gl_FragCoord.y / 64);
+
+    int tileIdx = (tileIdxY * int(buf_LightTiles.tilesOnX)) + tileIdxX;
+    int tileLightCount = int(buf_LightTiles.tileLightCounts[tileIdx]);
+
+    FragColor = vec4(vec3(float(tileLightCount) / 16.0), 1.0);
+    return;
 
 #ifdef DEBUG
     // debug views
@@ -487,7 +495,7 @@ void main() {
         finalAlpha = (finalAlpha - si.alphaCutoff) / max(fwidth(finalAlpha), 0.0001) + 0.5;
     }
 #else
-	float finalAlpha = 1.0f;
+    float finalAlpha = 1.0f;
 #endif
 
     FragColor = vec4(shade(si) + si.emissive, finalAlpha);
