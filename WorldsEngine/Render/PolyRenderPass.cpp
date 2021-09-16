@@ -1,4 +1,5 @@
 #include "../Core/Engine.hpp"
+#include "ImGui/imgui.h"
 #include "RenderPasses.hpp"
 #include "../Core/Transform.hpp"
 #include <openvr.h>
@@ -95,6 +96,9 @@ namespace worlds {
             }
 
             updater.beginBuffers(9, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+            updater.buffer(lightTileBuffer.buffer(), 0, sizeof(LightTileBuffer));
+
+            updater.beginBuffers(10, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
             updater.buffer(pickingBuffer.buffer(), 0, sizeof(PickingBuffer));
 
             i++;
@@ -172,8 +176,10 @@ namespace worlds {
         dslm.image(7, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 1);
         // Additional shadow images
         dslm.image(8, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, NUM_SHADOW_LIGHTS);
-        // Picking
+        // Light tiles
         dslm.buffer(9, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, 1);
+        // Picking
+        dslm.buffer(10, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, 1);
 
         dsl = dslm.create(handles->device);
 
@@ -186,6 +192,11 @@ namespace worlds {
             handles->device, handles->allocator,
             VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
             sizeof(LightUB), VMA_MEMORY_USAGE_CPU_TO_GPU, "Lights");
+
+        lightTileBuffer = vku::GenericBuffer(
+            handles->device, handles->allocator,
+            VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+            sizeof(LightTileBuffer), VMA_MEMORY_USAGE_CPU_TO_GPU, "Light Tiles");
 
         for (int i = 0; i < ctx.maxSimultaneousFrames; i++) {
             modelMatrixUB.push_back(vku::GenericBuffer(
@@ -203,6 +214,7 @@ namespace worlds {
             modelMatricesMapped.push_back((ModelMatrices*)matrixUB.map(handles->device));
         }
         lightMapped = (LightUB*)lightsUB.map(handles->device);
+        lightTilesMapped = (LightTileBuffer*)lightTileBuffer.map(handles->device);
 
         VkEventCreateInfo eci{ VK_STRUCTURE_TYPE_EVENT_CREATE_INFO };
         vkCreateEvent(handles->device, &eci, nullptr, &pickEvent);
@@ -460,8 +472,9 @@ namespace worlds {
         ZoneScoped;
         auto& resources = ctx.resources;
 
+        glm::mat4 proj = ctx.projMatrices[0];
         Frustum frustum;
-        frustum.fromVPMatrix(ctx.projMatrices[0] * ctx.viewMatrices[0]);
+        frustum.fromVPMatrix(proj * ctx.viewMatrices[0]);
 
         Frustum frustumB;
 
@@ -472,6 +485,180 @@ namespace worlds {
         auto& sceneSettings = ctx.registry.ctx<SceneSettings>();
 
         uint32_t skyboxId = ctx.resources.cubemaps.loadOrGet(sceneSettings.skybox);
+
+        int lightIdx = 0;
+        ctx.registry.view<WorldLight, Transform>().each([&](auto ent, WorldLight& l, Transform& transform) {
+            float distance = glm::sqrt(1.0f / l.distanceCutoff);
+            if (!l.enabled) return;
+            if (l.type != LightType::Directional && !frustum.containsSphere(transform.position, distance)) return;
+
+            glm::vec3 lightForward = glm::normalize(transform.rotation * glm::vec3(0.0f, 0.0f, -1.0f));
+            if (l.type != LightType::Tube) {
+                lightMapped->lights[lightIdx] = PackedLight{
+                    glm::vec4(l.color * l.intensity, (float)l.type),
+                    glm::vec4(lightForward, l.type == LightType::Sphere ? l.spotCutoff : glm::cos(l.spotCutoff)),
+                    transform.position, l.shadowmapIdx,
+                    distance
+                };
+            } else {
+                glm::vec3 tubeP0 = transform.position + lightForward * l.tubeLength;
+                glm::vec3 tubeP1 = transform.position - lightForward * l.tubeLength;
+                lightMapped->lights[lightIdx] = PackedLight{
+                    glm::vec4(l.color * l.intensity, (float)l.type),
+                    glm::vec4(tubeP0, l.tubeRadius),
+                    tubeP1, ~0u,
+                    distance
+                };
+            }
+
+            if (l.enableShadows && l.shadowmapIdx != ~0u) {
+                Camera shadowCam;
+                shadowCam.position = transform.position;
+                shadowCam.rotation = transform.rotation;
+                shadowCam.near = l.shadowNear;
+                shadowCam.far = l.shadowFar;
+                float fov = l.spotCutoff * 2.0f;
+                shadowCam.verticalFOV = fov;
+                lightMapped->additionalShadowMatrices[l.shadowmapIdx] = shadowCam.getProjectMatrixNonInfinite(1.0f) * shadowCam.getViewMatrix();
+            }
+            l.lightIdx = lightIdx;
+            lightIdx++;
+            });
+
+        const int TILE_WIDTH = 64;
+        const int TILE_HEIGHT = 64;
+
+        int numTilesX = (ctx.passWidth + TILE_WIDTH - 1) / TILE_WIDTH;
+        int numTilesY = (ctx.passHeight + TILE_HEIGHT - 1) / TILE_HEIGHT;
+
+        float xTileScaleFactor = 1.0f / (((float)TILE_WIDTH / ctx.passWidth));
+        float yTileScaleFactor = 1.0f / (((float)TILE_HEIGHT / ctx.passHeight));
+
+        for (int x = 0; x < numTilesX; x++) {
+            for (int y = 0; y < numTilesY; y++) {
+                int tileIdx = (y * numTilesX) + x;
+
+                // Create frustum for tile
+                float xTileBias = (((float)(x) / numTilesX) - 0.5f) * xTileScaleFactor;
+                float yTileBias = -(((float)(y) / numTilesY) - 0.5f) * yTileScaleFactor;
+
+                Frustum tileFrustum;
+                glm::mat4 tileProj = proj;
+                tileProj[0][0] *= xTileScaleFactor;
+                tileProj[1][1] *= yTileScaleFactor;
+                tileProj[2][0] = xTileBias;
+                tileProj[2][1] = yTileBias;
+
+                tileFrustum.fromVPMatrix(tileProj * ctx.viewMatrices[0]);
+
+                LightTile& currentTile = lightTilesMapped->tiles[tileIdx];
+                lightTilesMapped->tileLightCount[tileIdx] = 0;
+
+                ctx.registry.view<WorldLight, Transform>().each([&](auto ent, WorldLight& l, Transform& transform) {
+                    float distance = glm::sqrt(1.0f / l.distanceCutoff);
+                    if (!tileFrustum.containsSphere(transform.position, distance) && l.type != LightType::Directional) return;
+
+                    currentTile.setPackedId(lightTilesMapped->tileLightCount[tileIdx], l.lightIdx);
+                    //currentTile.lightCount++;
+                    lightTilesMapped->tileLightCount[tileIdx]++;
+                });
+            }
+        }
+
+        static bool enableTileDbg = false;
+        ImGui::Checkbox("enabletiledbg", &enableTileDbg);
+        static int debugTileX = 0;
+        static int debugTileY = 0;
+
+        ImGui::InputInt("x", &debugTileX);
+        ImGui::InputInt("y", &debugTileY);
+        ImGui::Text("tile scale: %.3f, %.3f", xTileScaleFactor, yTileScaleFactor);
+
+        if (enableTileDbg) {
+            static bool overrideBias = false;
+            ImGui::Checkbox("override bias", &overrideBias);
+            // Create frustum for tile
+            float xTileBias = (((float)(debugTileX - 0.25f) / numTilesX) - 0.5f) * xTileScaleFactor * 2;
+            float yTileBias = -(((float)(debugTileY - 0.25f) / numTilesY) - 0.5f) * yTileScaleFactor * 2;
+
+            if (overrideBias) {
+                static float overX = 0.0f;
+                static float overY = 0.0f;
+
+                ImGui::DragFloat("overx", &overX);
+                ImGui::DragFloat("overy", &overY);
+
+                xTileBias = overX;
+                yTileBias = overY;
+            }
+
+            Frustum tileFrustum;
+            glm::mat4 tileProj = proj;
+            tileProj[0][0] *= xTileScaleFactor;
+            tileProj[1][1] *= yTileScaleFactor;
+            tileProj[2][0] = xTileBias;
+            tileProj[2][1] = yTileBias;
+
+            glm::vec4 exampleVerts[4] = {
+                { -1.0f,  1.0f, 0.0f, 1.0f },
+                { -1.0f, -1.0f, 0.0f, 1.0f },
+                {  1.0f,  1.0f, 0.0f, 1.0f },
+                {  1.0f, -1.0f, 0.0f, 1.0f }
+            };
+
+            for (int i = 0; i < 4; i++) {
+                glm::vec4 ndc = glm::inverse(tileProj) * exampleVerts[i];
+                ndc.y = -ndc.y;
+
+                ndc *= 0.5f;
+                ndc += 0.5f;
+                ndc *= glm::vec4(ctx.passWidth, ctx.passHeight, 0.0f, 0.0f);
+
+                ImGui::GetForegroundDrawList()->AddCircleFilled(ImVec2(ndc.x, ndc.y), 2.0f, ImColor(1.0f, 1.0f, 1.0f, 1.0f));
+
+                ImGui::Text("%.3f, %.3f", ndc.x, ndc.y);
+            }
+
+            // transform some vertices
+            frustum.fromVPMatrix(tileProj * ctx.viewMatrices[0]);
+        }
+
+        lightTilesMapped->tilesOnX = numTilesX;
+        lightTilesMapped->tilesOnY = numTilesY;
+
+        lightMapped->pack0.x = (float)lightIdx;
+        lightMapped->pack0.y = ctx.cascadeInfo.texelsPerUnit[0];
+        lightMapped->pack0.z = ctx.cascadeInfo.texelsPerUnit[1];
+        lightMapped->pack0.w = ctx.cascadeInfo.texelsPerUnit[2];
+        lightMapped->shadowmapMatrices[0] = ctx.cascadeInfo.matrices[0];
+        lightMapped->shadowmapMatrices[1] = ctx.cascadeInfo.matrices[1];
+        lightMapped->shadowmapMatrices[2] = ctx.cascadeInfo.matrices[2];
+        ctx.debugContext.stats->numLightsInView = lightIdx;
+
+        uint32_t aoBoxIdx = 0;
+        ctx.registry.view<Transform, ProxyAOComponent>().each([&](auto ent, Transform& t, ProxyAOComponent& pac) {
+            lightMapped->box[aoBoxIdx].setScale(pac.bounds);
+            glm::mat4 tMat = glm::translate(glm::mat4(1.0f), t.position);
+            lightMapped->box[aoBoxIdx].setMatrix(glm::mat4_cast(glm::inverse(t.rotation)) * glm::inverse(tMat));
+            lightMapped->box[aoBoxIdx].setEntityId((uint32_t)ent);
+            aoBoxIdx++;
+            });
+        lightMapped->pack1.x = aoBoxIdx;
+
+        uint32_t aoSphereIdx = 0;
+        ctx.registry.view<Transform, SphereAOProxy>().each([&](entt::entity entity, Transform& t, SphereAOProxy& sao) {
+            lightMapped->sphere[aoSphereIdx].position = t.position;
+            lightMapped->sphere[aoSphereIdx].radius = sao.radius;
+            lightMapped->sphereIds[aoSphereIdx] = (uint32_t)entity;
+            aoSphereIdx++;
+            });
+        lightMapped->pack1.y = aoSphereIdx;
+
+        if (dsUpdateNeeded) {
+            // Update descriptor sets to bring in any new textures
+            updateDescriptorSets(ctx);
+        }
+
         drawInfo.clear();
 
         int matrixIdx = 0;
@@ -592,77 +779,6 @@ namespace worlds {
                 });
         }
 
-        int lightIdx = 0;
-        ctx.registry.view<WorldLight, Transform>().each([&](auto ent, WorldLight& l, Transform& transform) {
-            float distance = glm::sqrt(1.0f / l.distanceCutoff);
-            if (!l.enabled) return;
-            if (l.type != LightType::Directional && !frustum.containsSphere(transform.position, distance)) return;
-
-            glm::vec3 lightForward = glm::normalize(transform.rotation * glm::vec3(0.0f, 0.0f, -1.0f));
-            if (l.type != LightType::Tube) {
-                lightMapped->lights[lightIdx] = PackedLight{
-                    glm::vec4(l.color * l.intensity, (float)l.type),
-                    glm::vec4(lightForward, l.type == LightType::Sphere ? l.spotCutoff : glm::cos(l.spotCutoff)),
-                    transform.position, l.shadowmapIdx,
-                    distance
-                };
-            } else {
-                glm::vec3 tubeP0 = transform.position + lightForward * l.tubeLength;
-                glm::vec3 tubeP1 = transform.position - lightForward * l.tubeLength;
-                lightMapped->lights[lightIdx] = PackedLight{
-                    glm::vec4(l.color * l.intensity, (float)l.type),
-                    glm::vec4(tubeP0, l.tubeRadius),
-                    tubeP1, ~0u,
-                    distance
-                };
-            }
-
-            if (l.enableShadows && l.shadowmapIdx != ~0u) {
-                Camera shadowCam;
-                shadowCam.position = transform.position;
-                shadowCam.rotation = transform.rotation;
-                shadowCam.near = l.shadowNear;
-                shadowCam.far = l.shadowFar;
-                float fov = l.spotCutoff * 2.0f;
-                shadowCam.verticalFOV = fov;
-                lightMapped->additionalShadowMatrices[l.shadowmapIdx] = shadowCam.getProjectMatrixNonInfinite(1.0f) * shadowCam.getViewMatrix();
-            }
-            lightIdx++;
-            });
-
-        lightMapped->pack0.x = (float)lightIdx;
-        lightMapped->pack0.y = ctx.cascadeInfo.texelsPerUnit[0];
-        lightMapped->pack0.z = ctx.cascadeInfo.texelsPerUnit[1];
-        lightMapped->pack0.w = ctx.cascadeInfo.texelsPerUnit[2];
-        lightMapped->shadowmapMatrices[0] = ctx.cascadeInfo.matrices[0];
-        lightMapped->shadowmapMatrices[1] = ctx.cascadeInfo.matrices[1];
-        lightMapped->shadowmapMatrices[2] = ctx.cascadeInfo.matrices[2];
-        ctx.debugContext.stats->numLightsInView = lightIdx;
-
-        uint32_t aoBoxIdx = 0;
-        ctx.registry.view<Transform, ProxyAOComponent>().each([&](auto ent, Transform& t, ProxyAOComponent& pac) {
-            lightMapped->box[aoBoxIdx].setScale(pac.bounds);
-            glm::mat4 tMat = glm::translate(glm::mat4(1.0f), t.position);
-            lightMapped->box[aoBoxIdx].setMatrix(glm::mat4_cast(glm::inverse(t.rotation)) * glm::inverse(tMat));
-            lightMapped->box[aoBoxIdx].setEntityId((uint32_t)ent);
-            aoBoxIdx++;
-            });
-        lightMapped->pack1.x = aoBoxIdx;
-
-        uint32_t aoSphereIdx = 0;
-        ctx.registry.view<Transform, SphereAOProxy>().each([&](entt::entity entity, Transform& t, SphereAOProxy& sao) {
-            lightMapped->sphere[aoSphereIdx].position = t.position;
-            lightMapped->sphere[aoSphereIdx].radius = sao.radius;
-            lightMapped->sphereIds[aoSphereIdx] = (uint32_t)entity;
-            aoSphereIdx++;
-            });
-        lightMapped->pack1.y = aoSphereIdx;
-
-        if (dsUpdateNeeded) {
-            // Update descriptor sets to bring in any new textures
-            updateDescriptorSets(ctx);
-        }
-
         dbgLinesPass->prePass(ctx);
         skyboxPass->prePass(ctx);
         uiPass->prePass(ctx);
@@ -695,6 +811,12 @@ namespace worlds {
             cmdBuf, VK_PIPELINE_STAGE_HOST_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
             VK_DEPENDENCY_BY_REGION_BIT, VK_ACCESS_HOST_WRITE_BIT, VK_ACCESS_UNIFORM_READ_BIT,
             VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED);
+
+        lightTileBuffer.barrier(
+            cmdBuf, VK_PIPELINE_STAGE_HOST_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+            VK_DEPENDENCY_BY_REGION_BIT, VK_ACCESS_HOST_WRITE_BIT, VK_ACCESS_UNIFORM_READ_BIT,
+            VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED);
+
 
         if (pickThisFrame) {
             pickingBuffer.barrier(cmdBuf, VK_PIPELINE_STAGE_HOST_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
@@ -836,6 +958,7 @@ namespace worlds {
             matrixUB.unmap(handles->device);
         }
         lightsUB.unmap(handles->device);
+        lightTileBuffer.unmap(handles->device);
         delete dbgLinesPass;
         delete skyboxPass;
         delete depthPrepass;

@@ -129,7 +129,7 @@ namespace worlds {
                 .applyDistanceAttenuation = IPL_TRUE,
                 .applyAirAbsorption = IPL_FALSE,
                 .applyDirectivity = IPL_FALSE,
-                .directOcclusionMode = IPL_DIRECTOCCLUSION_TRANSMISSIONBYFREQUENCY
+                .directOcclusionMode = IPL_DIRECTOCCLUSION_TRANSMISSIONBYVOLUME 
             };
 
             IPLVector3 dir {
@@ -501,9 +501,9 @@ namespace worlds {
                         convVec(listenerRot * glm::vec3 { 0.0f, 1.0f, 0.0f }),
                         src,
                         1.0f,
-                        64,
-                        IPL_DIRECTOCCLUSION_TRANSMISSIONBYFREQUENCY,
-                        IPL_DIRECTOCCLUSION_VOLUMETRIC);
+                        32,
+                        IPL_DIRECTOCCLUSION_TRANSMISSIONBYVOLUME,
+                        IPL_DIRECTOCCLUSION_RAYCAST);
                 }
             }
         );
@@ -549,10 +549,10 @@ namespace worlds {
                     convVec(listenerRot * glm::vec3 { 0.0f, 0.0f, 1.0f }),
                     convVec(listenerRot * glm::vec3 { 0.0f, 1.0f, 0.0f }),
                     src,
-                    0.5f,
+                    1.0f,
                     32,
-                    IPL_DIRECTOCCLUSION_TRANSMISSIONBYFREQUENCY,
-                    IPL_DIRECTOCCLUSION_VOLUMETRIC
+                    IPL_DIRECTOCCLUSION_TRANSMISSIONBYVOLUME,
+                    IPL_DIRECTOCCLUSION_RAYCAST 
                 );
             }
         }

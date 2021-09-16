@@ -1,5 +1,5 @@
 #pragma once
-#include <Core/Log>
+#include <Core/Log.hpp>
 #include <glm/glm.hpp>
 
 namespace worlds {
@@ -109,7 +109,7 @@ namespace worlds {
         }
 
         bool containsSphere(glm::vec3 center, float radius) {
-            for (int i = 0; i < 2; i++) {
+            for (int i = 0; i < 6; i++) {
                 Plane plane = planes[i];
                 float distance = glm::dot(center, plane.normal()) + plane.d;
                 if (distance < -radius)

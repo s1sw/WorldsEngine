@@ -160,9 +160,11 @@ namespace worlds {
         VkPipelineLayout wireframePipelineLayout;
 
         LightUB* lightMapped;
+        LightTileBuffer* lightTilesMapped;
         std::vector<ModelMatrices*> modelMatricesMapped;
 
         vku::GenericBuffer lightsUB;
+        vku::GenericBuffer lightTileBuffer;
         std::vector<vku::GenericBuffer> modelMatrixUB;
         vku::GenericBuffer pickingBuffer;
 
