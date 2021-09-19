@@ -54,7 +54,7 @@ namespace Game.Interaction
 
         public float CalculateGripScore(Transform obj, Transform hand)
         {
-            float linearScore = 1.0f / hand.Position.DistanceTo(obj.TransformPoint(position));
+            float linearScore = hand.Position.DistanceTo(obj.TransformPoint(position));
             float angularScore = Quaternion.Dot(hand.Rotation.SingleCover, (rotation * obj.Rotation).SingleCover);
 
             return linearScore;
