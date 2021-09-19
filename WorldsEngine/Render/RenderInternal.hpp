@@ -57,24 +57,16 @@ namespace worlds {
     };
 
     struct LightTile {
-        uint32_t lightIdsPacked[32];
-
-        void setPackedId(int unpackedIndex, uint8_t id) {
-            return;
-            int packedIndex = unpackedIndex / 4;
-            int shift = (unpackedIndex % 4) * 8;
-
-            lightIdsPacked[packedIndex] = id << shift;
-        }
+        uint32_t lightIds[128];
     };
 
     struct LightTileBuffer {
-        uint32_t tilesOnX;
-        uint32_t tilesOnY;
-        uint32_t totalTiles;
-        uint32_t pad;
-        uint32_t tileLightCount[4096];
-        LightTile tiles[4096];
+        uint32_t tileSize;
+        uint32_t tilesPerEye;
+        uint32_t numTilesX;
+        uint32_t numTilesY;
+        uint32_t tileLightCount[16384];
+        LightTile tiles[16384];
     };
 
     struct QueueFamilyIndices {

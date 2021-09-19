@@ -315,17 +315,33 @@ float getNormalLightShadowIntensity(int lightIdx) {
     return shadowIntensity;
 }
 
+#define TILED
+
 vec3 shade(ShadeInfo si) {
-    int lightCount = int(pack0.x);
+#ifdef TILED
+	int tileIdxX = int(gl_FragCoord.x / buf_LightTiles.tileSize);
+	int tileIdxY = int(gl_FragCoord.y / buf_LightTiles.tileSize);
+
+	uint eyeOffset = buf_LightTiles.tilesPerEye * gl_ViewIndex;
+    uint tileIdx = ((tileIdxY * buf_LightTiles.numTilesX) + tileIdxX) + eyeOffset;
+    int lightCount = int(buf_LightTiles.tileLightCounts[tileIdx]);
+#else
+	int lightCount = int(pack0.x);
+#endif
 
     vec3 lo = vec3(0.0);
     for (int i = 0; i < lightCount; i++) {
-        vec3 l = calculateLighting(lights[i], si, inWorldPos.xyz);
+#ifdef TILED
+		uint realIdx = buf_LightTiles.tiles[tileIdx].lightIds[i];
+#else
+		uint realIdx = i;
+#endif
+        vec3 l = calculateLighting(lights[realIdx], si, inWorldPos.xyz);
         float shadowIntensity = 1.0;
-        if (int(lights[i].pack0.w) == LT_DIRECTIONAL && !((miscFlag & MISC_FLAG_DISABLE_SHADOWS) == MISC_FLAG_DISABLE_SHADOWS)) {
-            shadowIntensity = getDirLightShadowIntensity(i);
-        } else if (lights[i].shadowIdx != ~0u) {
-            shadowIntensity = getNormalLightShadowIntensity(i);
+        if (int(lights[realIdx].pack0.w) == LT_DIRECTIONAL && !((miscFlag & MISC_FLAG_DISABLE_SHADOWS) == MISC_FLAG_DISABLE_SHADOWS)) {
+            shadowIntensity = getDirLightShadowIntensity(int(realIdx));
+        } else if (lights[realIdx].shadowIdx != ~0u) {
+            shadowIntensity = getNormalLightShadowIntensity(int(realIdx));
         }
         lo += l * shadowIntensity;
     }
@@ -430,21 +446,33 @@ void main() {
                 vec3(0.0, 1.0, 0.0) * -sign(inNormal.z) * sign(inUV.y),
                 vec3(0.0, 0.0, 1.0)) * sign(inNormal.z);
     }
+	
+	uint doPicking = miscFlag & 0x1;
 
+	if (ENABLE_PICKING && doPicking == 1) {
+        handleEditorPicking();
+    }
+	
     ShadeInfo si;
     unpackMaterial(si, tbn);
     si.viewDir = normalize(getViewPos() - inWorldPos.xyz);
+	
+//#define TILE_DBG
+#ifdef TILE_DBG
+	int tileIdxX = int(gl_FragCoord.x / buf_LightTiles.tileSize);
+	int tileIdxY = int(gl_FragCoord.y / buf_LightTiles.tileSize);
 
-    uint doPicking = miscFlag & 0x1;
-
-    int tileIdxX = int(gl_FragCoord.x / 64);
-    int tileIdxY = int(gl_FragCoord.y / 64);
-
-    int tileIdx = (tileIdxY * int(buf_LightTiles.tilesOnX)) + tileIdxX;
-    int tileLightCount = int(buf_LightTiles.tileLightCounts[tileIdx]);
-
-    FragColor = vec4(vec3(float(tileLightCount) / 16.0), 1.0);
-    return;
+    uint tileIdx = ((tileIdxY * buf_LightTiles.numTilesX) + tileIdxX) + (buf_LightTiles.tilesPerEye * gl_ViewIndex);
+    int lightCount = int(buf_LightTiles.tileLightCounts[tileIdx]);
+	
+	vec3 heatmapCol = mix(vec3(0.0, 0.0, 0.0), vec3(1.0, 1.0, 1.0), lightCount / 16.0);
+	
+	if (int(gl_FragCoord.x) % int(buf_LightTiles.tileSize) == 0 || int(gl_FragCoord.y) % int(buf_LightTiles.tileSize) == 0)
+		heatmapCol.z = 1.0;
+	
+	FragColor = vec4(heatmapCol, 1.0);
+	return;
+#endif
 
 #ifdef DEBUG
     // debug views
@@ -499,9 +527,5 @@ void main() {
 #endif
 
     FragColor = vec4(shade(si) + si.emissive, finalAlpha);
-
-    if (ENABLE_PICKING && doPicking == 1) {
-        handleEditorPicking();
-    }
 }
 #endif

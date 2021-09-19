@@ -188,7 +188,7 @@ namespace worlds {
 
         vku::DescriptorSetMaker dsm;
         dsm.layout(descriptorSetLayout);
-        descriptorSet = std::move(dsm.create(handles->device, handles->descriptorPool)[0]);
+        descriptorSet = std::move(dsm.create(handles->device, descriptorPool)[0]);
 
 
         vku::SamplerMaker sm;

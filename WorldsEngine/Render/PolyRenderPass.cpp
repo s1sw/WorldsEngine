@@ -1,4 +1,5 @@
 #include "../Core/Engine.hpp"
+#include "ImGui/imgui_internal.h"
 #include "ImGui/imgui.h"
 #include "RenderPasses.hpp"
 #include "../Core/Transform.hpp"
@@ -10,6 +11,8 @@
 #include "../Core/Console.hpp"
 #include "ShaderCache.hpp"
 #include <slib/StaticAllocList.hpp>
+#include <Libs/IconsFontAwesome5.h>
+#include <Util/MatUtil.hpp>
 
 namespace worlds {
     ConVar showWireframe("r_wireframeMode", "0", "0 - No wireframe; 1 - Wireframe only; 2 - Wireframe + solid");
@@ -262,7 +265,7 @@ namespace worlds {
         // AMD driver bug workaround: shaders that use ViewIndex without a multiview renderpass
         // will crash the driver, so we always set up a renderpass with multiview even if it's only
         // one view.
-        VkRenderPassMultiviewCreateInfo renderPassMultiviewCI{VK_STRUCTURE_TYPE_RENDER_PASS_MULTIVIEW_CREATE_INFO};
+        VkRenderPassMultiviewCreateInfo renderPassMultiviewCI{ VK_STRUCTURE_TYPE_RENDER_PASS_MULTIVIEW_CREATE_INFO };
         uint32_t viewMasks[2] = { 0b00000001, 0b00000001 };
         uint32_t correlationMask = 0b00000001;
 
@@ -468,6 +471,93 @@ namespace worlds {
 
     slib::StaticAllocList<SubmeshDrawInfo> drawInfo{ 8192 };
 
+    void doTileCulling(LightTileBuffer* tileBuf, glm::mat4 proj, glm::mat4 viewMat, int TILE_SIZE, int tileOffset, int screenWidth, int screenHeight, entt::registry& reg) {
+        const int xTiles = (screenWidth + (TILE_SIZE - 1)) / TILE_SIZE;
+        const int yTiles = (screenHeight + (TILE_SIZE - 1)) / TILE_SIZE;
+
+        const int totalTiles = xTiles * yTiles;
+        glm::mat4 invProjView = glm::inverse(proj * viewMat);
+
+        glm::vec2 ndcTileSize = 2.0f * glm::vec2(TILE_SIZE, -TILE_SIZE) / glm::vec2(screenWidth, screenHeight);
+        glm::vec3 camPos = getMatrixTranslation(glm::inverse(viewMat));
+
+        JobList& jl = g_jobSys->getFreeJobList();
+        jl.begin();
+
+        for (int x = 0; x < xTiles; x++) {
+            Job j{ [&, x] {
+            for (int y = 0; y < yTiles; y++) {
+                int tileIdx = ((y * xTiles) + x);
+                tileIdx += tileOffset;
+
+                Frustum tileFrustum;
+
+                glm::vec2 ndcTopLeftCorner{ -1.0f, 1.0f };
+                glm::vec2 tileCoords{ x, y };
+
+                glm::vec2 tileCornersNDC[4] =
+                {
+                    ndcTopLeftCorner + ndcTileSize * tileCoords, // Top left
+                    ndcTopLeftCorner + ndcTileSize * (tileCoords + glm::vec2{1, 0}), // Top right
+                    ndcTopLeftCorner + ndcTileSize * (tileCoords + glm::vec2{1, 1}), // Bottom right
+                    ndcTopLeftCorner + ndcTileSize * (tileCoords + glm::vec2{0, 1}), // Bottom left
+                };
+
+                glm::vec4 temp;
+                for (int i = 0; i < 4; i++) {
+                    // Find the point on the near plane
+                    temp = invProjView * glm::vec4(tileCornersNDC[i], 1.0f, 1.0f);
+                    tileFrustum.points[i] = glm::vec3(temp) / temp.w;
+                    // And also the far plane
+                    temp = invProjView * glm::vec4(tileCornersNDC[i], 0.000000001f, 1.0f);
+                    tileFrustum.points[i + 4] = glm::vec3(temp) / temp.w;
+                }
+
+                glm::vec3 temp_normal;
+                for (int i = 0; i < 4; i++) {
+                    //Cax+Cby+Ccz+Cd = 0, planes[i] = (Ca, Cb, Cc, Cd)
+                    // temp_normal: normal without normalization
+                    temp_normal = glm::cross(tileFrustum.points[i] - camPos, tileFrustum.points[i + 1] - camPos);
+                    temp_normal = normalize(temp_normal);
+                    tileFrustum.planes[i] = glm::vec4(temp_normal, -dot(temp_normal, tileFrustum.points[i]));
+                }
+
+                // near plane
+                {
+                    temp_normal = cross(tileFrustum.points[1] - tileFrustum.points[0], tileFrustum.points[3] - tileFrustum.points[0]);
+                    temp_normal = normalize(temp_normal);
+                    tileFrustum.planes[4] = glm::vec4(temp_normal, -dot(temp_normal, tileFrustum.points[0]));
+                }
+
+                // far plane
+                {
+                    temp_normal = cross(tileFrustum.points[7] - tileFrustum.points[4], tileFrustum.points[5] - tileFrustum.points[4]);
+                    temp_normal = normalize(temp_normal);
+                    tileFrustum.planes[5] = glm::vec4(temp_normal, -dot(temp_normal, tileFrustum.points[4]));
+                }
+
+                LightTile& currentTile = tileBuf->tiles[tileIdx];
+                uint32_t tileLightCount = 0;
+
+                reg.view<WorldLight, Transform>().each([&](auto ent, WorldLight& l, Transform& transform) {
+                    float distance = glm::sqrt(1.0f / l.distanceCutoff);
+                    if (l.lightIdx == ~0u) return;
+                    if ((tileFrustum.containsSphere(transform.position, distance) || l.type == LightType::Directional)) {
+                        currentTile.lightIds[tileLightCount] = l.lightIdx;
+                        tileLightCount++;
+                    }
+                    });
+                tileBuf->tileLightCount[tileIdx] = tileLightCount;
+            }
+        } };
+            jl.addJob(std::move(j));
+        }
+
+        jl.end();
+        g_jobSys->signalJobListAvailable();
+        jl.wait();
+    }
+
     void PolyRenderPass::prePass(RenderContext& ctx) {
         ZoneScoped;
         auto& resources = ctx.resources;
@@ -489,8 +579,19 @@ namespace worlds {
         int lightIdx = 0;
         ctx.registry.view<WorldLight, Transform>().each([&](auto ent, WorldLight& l, Transform& transform) {
             float distance = glm::sqrt(1.0f / l.distanceCutoff);
+            l.lightIdx = ~0u;
             if (!l.enabled) return;
-            if (l.type != LightType::Directional && !frustum.containsSphere(transform.position, distance)) return;
+            if (l.type != LightType::Directional) {
+                if (!ctx.passSettings.enableVR) {
+                    if (!frustum.containsSphere(transform.position, distance) && !frustumB.containsSphere(transform.position, distance)) {
+                        return;
+                    }
+                } else {
+                    if (!frustum.containsSphere(transform.position, distance)) {
+                        return;
+                    }
+                }
+            }
 
             glm::vec3 lightForward = glm::normalize(transform.rotation * glm::vec3(0.0f, 0.0f, -1.0f));
             if (l.type != LightType::Tube) {
@@ -525,106 +626,22 @@ namespace worlds {
             lightIdx++;
             });
 
-        const int TILE_WIDTH = 64;
-        const int TILE_HEIGHT = 64;
+        const int TILE_SIZE = 32;
+        const int xTiles = (ctx.passWidth + (TILE_SIZE - 1)) / TILE_SIZE;
+        const int yTiles = (ctx.passHeight + (TILE_SIZE - 1)) / TILE_SIZE;
+        const int totalTiles = xTiles * yTiles;
 
-        int numTilesX = (ctx.passWidth + TILE_WIDTH - 1) / TILE_WIDTH;
-        int numTilesY = (ctx.passHeight + TILE_HEIGHT - 1) / TILE_HEIGHT;
+        int numViews = ctx.passSettings.enableVR ? 2 : 1;
 
-        float xTileScaleFactor = 1.0f / (((float)TILE_WIDTH / ctx.passWidth));
-        float yTileScaleFactor = 1.0f / (((float)TILE_HEIGHT / ctx.passHeight));
+        doTileCulling(lightTilesMapped, ctx.projMatrices[0], ctx.viewMatrices[0], TILE_SIZE, 0, ctx.passWidth, ctx.passHeight, ctx.registry);
 
-        for (int x = 0; x < numTilesX; x++) {
-            for (int y = 0; y < numTilesY; y++) {
-                int tileIdx = (y * numTilesX) + x;
+        if (ctx.passSettings.enableVR)
+            doTileCulling(lightTilesMapped, ctx.projMatrices[1], ctx.viewMatrices[1], TILE_SIZE, totalTiles, ctx.passWidth, ctx.passHeight, ctx.registry);
 
-                // Create frustum for tile
-                float xTileBias = (((float)(x) / numTilesX) - 0.5f) * xTileScaleFactor;
-                float yTileBias = -(((float)(y) / numTilesY) - 0.5f) * yTileScaleFactor;
-
-                Frustum tileFrustum;
-                glm::mat4 tileProj = proj;
-                tileProj[0][0] *= xTileScaleFactor;
-                tileProj[1][1] *= yTileScaleFactor;
-                tileProj[2][0] = xTileBias;
-                tileProj[2][1] = yTileBias;
-
-                tileFrustum.fromVPMatrix(tileProj * ctx.viewMatrices[0]);
-
-                LightTile& currentTile = lightTilesMapped->tiles[tileIdx];
-                lightTilesMapped->tileLightCount[tileIdx] = 0;
-
-                ctx.registry.view<WorldLight, Transform>().each([&](auto ent, WorldLight& l, Transform& transform) {
-                    float distance = glm::sqrt(1.0f / l.distanceCutoff);
-                    if (!tileFrustum.containsSphere(transform.position, distance) && l.type != LightType::Directional) return;
-
-                    currentTile.setPackedId(lightTilesMapped->tileLightCount[tileIdx], l.lightIdx);
-                    //currentTile.lightCount++;
-                    lightTilesMapped->tileLightCount[tileIdx]++;
-                });
-            }
-        }
-
-        static bool enableTileDbg = false;
-        ImGui::Checkbox("enabletiledbg", &enableTileDbg);
-        static int debugTileX = 0;
-        static int debugTileY = 0;
-
-        ImGui::InputInt("x", &debugTileX);
-        ImGui::InputInt("y", &debugTileY);
-        ImGui::Text("tile scale: %.3f, %.3f", xTileScaleFactor, yTileScaleFactor);
-
-        if (enableTileDbg) {
-            static bool overrideBias = false;
-            ImGui::Checkbox("override bias", &overrideBias);
-            // Create frustum for tile
-            float xTileBias = (((float)(debugTileX - 0.25f) / numTilesX) - 0.5f) * xTileScaleFactor * 2;
-            float yTileBias = -(((float)(debugTileY - 0.25f) / numTilesY) - 0.5f) * yTileScaleFactor * 2;
-
-            if (overrideBias) {
-                static float overX = 0.0f;
-                static float overY = 0.0f;
-
-                ImGui::DragFloat("overx", &overX);
-                ImGui::DragFloat("overy", &overY);
-
-                xTileBias = overX;
-                yTileBias = overY;
-            }
-
-            Frustum tileFrustum;
-            glm::mat4 tileProj = proj;
-            tileProj[0][0] *= xTileScaleFactor;
-            tileProj[1][1] *= yTileScaleFactor;
-            tileProj[2][0] = xTileBias;
-            tileProj[2][1] = yTileBias;
-
-            glm::vec4 exampleVerts[4] = {
-                { -1.0f,  1.0f, 0.0f, 1.0f },
-                { -1.0f, -1.0f, 0.0f, 1.0f },
-                {  1.0f,  1.0f, 0.0f, 1.0f },
-                {  1.0f, -1.0f, 0.0f, 1.0f }
-            };
-
-            for (int i = 0; i < 4; i++) {
-                glm::vec4 ndc = glm::inverse(tileProj) * exampleVerts[i];
-                ndc.y = -ndc.y;
-
-                ndc *= 0.5f;
-                ndc += 0.5f;
-                ndc *= glm::vec4(ctx.passWidth, ctx.passHeight, 0.0f, 0.0f);
-
-                ImGui::GetForegroundDrawList()->AddCircleFilled(ImVec2(ndc.x, ndc.y), 2.0f, ImColor(1.0f, 1.0f, 1.0f, 1.0f));
-
-                ImGui::Text("%.3f, %.3f", ndc.x, ndc.y);
-            }
-
-            // transform some vertices
-            frustum.fromVPMatrix(tileProj * ctx.viewMatrices[0]);
-        }
-
-        lightTilesMapped->tilesOnX = numTilesX;
-        lightTilesMapped->tilesOnY = numTilesY;
+        lightTilesMapped->tileSize = TILE_SIZE;
+        lightTilesMapped->tilesPerEye = xTiles * yTiles;
+        lightTilesMapped->numTilesX = xTiles;
+        lightTilesMapped->numTilesY = yTiles;
 
         lightMapped->pack0.x = (float)lightIdx;
         lightMapped->pack0.y = ctx.cascadeInfo.texelsPerUnit[0];

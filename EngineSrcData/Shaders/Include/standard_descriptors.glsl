@@ -39,16 +39,16 @@ layout (binding = 7) uniform sampler2D brdfLutSampler;
 layout (binding = 8) uniform sampler2DShadow additionalShadowSampler[];
 
 struct LightingTile {
-    uint lightIdsPacked[32];
+    uint lightIds[128];
 };
 
 layout (binding = 9) readonly buffer LightTileBuffer {
-    uint tilesOnX;
-    uint tilesOnY;
-    uint totalTiles;
-    uint pad0;
-    uint tileLightCounts[4096];
-    LightingTile tiles[4096];
+    uint tileSize;
+    uint tilesPerEye;
+    uint numTilesX;
+    uint numTilesY;
+    uint tileLightCounts[16384];
+    LightingTile tiles[16384];
 } buf_LightTiles;
 
 layout(std430, binding = 10) writeonly buffer PickingBuffer {
