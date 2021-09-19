@@ -378,7 +378,9 @@ namespace worlds {
 
                     ImGui::Text("Recommended Value: %.3f", glm::sqrt(worldLight.intensity / 0.1f));
                     float distance = glm::sqrt(1.0f / worldLight.distanceCutoff);
-                    sphereTransform.scale = glm::vec3 { distance };
+
+                    // The sphere mesh has a radius of 0.25, so scale it up 4x
+                    sphereTransform.scale = glm::vec3 { distance * 4.0f };
 
                     if (ImGui::DragFloat("Distance Cutoff", &distance)) {
                         worldLight.distanceCutoff = 1.0f / (distance * distance);

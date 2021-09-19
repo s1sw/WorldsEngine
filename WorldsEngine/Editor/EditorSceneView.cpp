@@ -25,7 +25,7 @@ namespace worlds {
             ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
 
         ImGui::SetNextWindowSizeConstraints(ImVec2(256.0f, 256.0f), ImVec2(FLT_MAX, FLT_MAX));
-        std::string windowTitle = std::string((char*)ICON_FA_MAP) + " Scene##" + std::to_string(uniqueId);
+        std::string windowTitle = std::string((char*)ICON_FA_MAP) + " Scene";//##" + std::to_string(uniqueId);
         if (ImGui::Begin(windowTitle.c_str(), &open)) {
             sceneViewPass->active = viewportActive;
             ImVec2 contentRegion = ImGui::GetContentRegionAvail();
