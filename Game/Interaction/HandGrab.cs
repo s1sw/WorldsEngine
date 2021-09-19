@@ -92,12 +92,8 @@ namespace Game.Interaction
 
             uint overlappedCount = Physics.OverlapSphereMultiple(dpa.Pose.TransformPoint(new Vector3(0.0f, 0.0f, 0.03f)), 0.5f, MaxOverlaps, overlapped);
 
-            Logger.Log($"overlapped {overlappedCount}");
-
             var sorted = overlapped.Take((int)overlappedCount)
                 .OrderByDescending((Entity e) => Registry.GetTransform(e).Position.DistanceTo(dpa.Pose.Position));
-
-            Logger.Log($"shrunk to {sorted.Count()}");
 
             foreach (Entity e in sorted)
             {
@@ -211,6 +207,7 @@ namespace Game.Interaction
 
             if (g == null)
             {
+                Registry.RemoveComponent<D6Joint>(Entity);
                 return;
             }
 
@@ -247,7 +244,7 @@ namespace Game.Interaction
                     break;
 
                 // Too far, let's give up
-                if (distance > 0.5f)
+                if (distance > 1.0f)
                 {
                     Release();
                     break;
