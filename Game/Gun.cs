@@ -17,6 +17,7 @@ namespace Game
     {
         public bool Automatic = false;
         public float ShotSpacing = 0.1f;
+        public float ProjectileSpawnDistance = 0.5f;
         public ProjectileType ProjectileType;
 
         private float _shotTimer = 0f;
@@ -56,7 +57,7 @@ namespace Game
             var transform = dpa.Pose;
 
             Transform projectileTransform = transform;
-            projectileTransform.Position += transform.Forward * 2.0f;
+            projectileTransform.Position += transform.Forward * ProjectileSpawnDistance;
 
             AssetID sfx = ProjectileType switch
             {
@@ -64,13 +65,13 @@ namespace Game
                 _ => AssetDB.PathToId("Audio/SFX/gunshot.ogg")
             };
 
-            Audio.PlayOneShot(sfx, projectileTransform.Position + (projectileTransform.Forward * 0.4f), ProjectileType == ProjectileType.Humongous ? 2.0f : 0.5f);
+            Audio.PlayOneShot(sfx, projectileTransform.Position + (projectileTransform.Forward * ProjectileSpawnDistance), ProjectileType == ProjectileType.Humongous ? 2.0f : 0.5f);
 
             Entity projectile = Registry.CreatePrefab(_projectilePrefab);
 
             float speed = ProjectileType switch
             {
-                ProjectileType.Humongous => 1f,
+                ProjectileType.Humongous => 10f,
                 _ => 100f
             };
 
