@@ -509,6 +509,8 @@ namespace worlds {
         }
 
         SDL_free(prefPath);
+
+        AudioSystem::getInstance()->loadMasterBanks();
     }
 
     void Editor::update(float deltaTime) {
@@ -519,7 +521,6 @@ namespace worlds {
                 esv->setViewportActive(false);
             }
 
-            AudioSystem::getInstance()->setPauseState(false);
             if (inputManager.keyPressed(SDL_SCANCODE_P, true) && inputManager.ctrlHeld() && !inputManager.shiftHeld())
                 g_console->executeCommandStr("reloadAndEdit");
 
@@ -555,7 +556,7 @@ namespace worlds {
             }
         }
 
-        AudioSystem::getInstance()->cancelOneShots();
+        AudioSystem::getInstance()->stopEverything(reg);
 
         if (!project) {
             static std::vector<std::string> recentProjects;
@@ -622,7 +623,6 @@ namespace worlds {
             return;
         }
 
-        AudioSystem::getInstance()->setPauseState(true);
         handleOverriden = false;
 
         updateWindowTitle();

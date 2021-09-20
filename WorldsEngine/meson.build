@@ -72,12 +72,23 @@ openvr_dep = cc.find_library('openvr_api', dirs: lib_dir)
 discord_csdk_dep = cc.find_library('discord_game_sdk', dirs: meson.project_source_root() + '/External/Lib')
 
 platform_deps = []
+platform_incdirs = []
 
 if host_machine.system() == 'windows'
   platform_deps += cc.find_library('winmm')
   platform_deps += cc.find_library('ws2_32')
   platform_deps += cc.find_library('dwmapi')
   platform_deps += cc.find_library('gdiplus')
+  
+  # FMOD
+  platform_incdirs += include_directories('C:\\Program Files (x86)\\FMOD SoundSystem\\FMOD Studio API Windows\\api\\studio\\inc')
+  platform_incdirs += include_directories('C:\\Program Files (x86)\\FMOD SoundSystem\\FMOD Studio API Windows\\api\\core\\inc')
+  
+  fmod_lib_dir = 'C:\\Program Files (x86)\\FMOD SoundSystem\\FMOD Studio API Windows\\api\\core\\lib\\x64'
+  fmod_studio_lib_dir = 'C:\\Program Files (x86)\\FMOD SoundSystem\\FMOD Studio API Windows\\api\\studio\\lib\\x64'
+  
+  platform_deps += cc.find_library('fmod_vc', dirs: fmod_lib_dir)
+  platform_deps += cc.find_library('fmodstudio_vc', dirs: fmod_studio_lib_dir)
 endif
 
 if host_machine.system() == 'linux'
@@ -100,7 +111,7 @@ if not freetype_dep.found()
 endif
 
 worlds = static_library('worlds', worlds_sources + ['tracy/TracyClient.cpp'],
-  include_directories: [extern_include_dir, physx_include_dir, tracy_inc],
+  include_directories: [extern_include_dir, physx_include_dir, tracy_inc] + platform_incdirs,
   dependencies: [
     assimp_dep, physfs_dep, sdl2_dep, physx_deps,
     dl_dep, openvr_dep, wmdl_dep, discord_csdk_dep,

@@ -51,7 +51,7 @@ int main(int argc, char** argv) {
         SetUnhandledExceptionFilter(unhandledExceptionHandler);
 #endif
     worlds::EngineInitOptions initOptions;
-    initOptions.gameName = "Lonely Galaxy";
+    initOptions.gameName = "Lightline";
     initOptions.enableVR = true;
 
     std::vector<std::string> startupCommands;

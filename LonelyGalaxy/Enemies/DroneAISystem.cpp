@@ -31,7 +31,7 @@ namespace lg {
             const RPGStats& stats = registry.get<RPGStats>(entity);
             if (stats.currentHP <= 0.0) {
                 registry.remove<DroneAI>(entity);
-                worlds::AudioSource& as = registry.get<worlds::AudioSource>(entity);
+                worlds::OldAudioSource& as = registry.get<worlds::OldAudioSource>(entity);
                 as.isPlaying = false;
                 return;
             }

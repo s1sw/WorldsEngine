@@ -30,7 +30,7 @@ namespace worlds {
         }
 
         void clone(entt::entity from, entt::entity to, entt::registry& r) override {
-            if constexpr (std::is_copy_constructible<T>::value)
+            if constexpr (std::is_copy_constructible<T>::value && !std::is_empty<T>::value)
                 cloneInternal(from, to, r);
             else {
                 assert(false);

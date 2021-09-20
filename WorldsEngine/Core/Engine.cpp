@@ -469,7 +469,7 @@ namespace worlds {
 
                     scriptEngine->onSceneStart();
 
-                    registry.view<AudioSource>().each([](auto, auto& as) {
+                    registry.view<OldAudioSource>().each([](auto, auto& as) {
                         if (as.playOnSceneOpen) {
                             as.isPlaying = true;
                         }
@@ -560,6 +560,9 @@ namespace worlds {
 
             audioSystem = std::make_unique<AudioSystem>();
             audioSystem->initialise(registry);
+
+            if (!runAsEditor)
+                audioSystem->loadMasterBanks();
         }
 
         if (!runAsEditor && PHYSFS_exists("CommandScripts/startup.txt"))
@@ -839,14 +842,14 @@ namespace worlds {
                 glm::vec3 alPos = cam.position;
                 glm::quat alRot = cam.rotation;
 
-                auto view = registry.view<AudioListenerOverride, Transform>();
-                if (view.size_hint() > 0) {
+                auto view = registry.view<AudioListenerOverride>();
+                if (view.size() > 0) {
                     auto overrideEnt = view.front();
                     auto overrideT = registry.get<Transform>(overrideEnt);
                     alPos = overrideT.position;
                     alRot = overrideT.rotation;
                 }
-                audioSystem->update(registry, alPos, alRot);
+                audioSystem->update(registry, alPos, alRot, deltaTime);
             }
 
             console->drawWindow();
@@ -902,10 +905,15 @@ namespace worlds {
                     scriptEngine->onSceneStart();
                 }
 
-                registry.view<AudioSource>().each([](auto, auto& as) {
+                registry.view<OldAudioSource>().each([](OldAudioSource& as) {
                     if (as.playOnSceneOpen) {
                         as.isPlaying = true;
                     }
+                });
+
+                registry.view<AudioSource>().each([](AudioSource& as) {
+                    if (as.playOnSceneStart)
+                        as.eventInstance->start();
                 });
             }
 

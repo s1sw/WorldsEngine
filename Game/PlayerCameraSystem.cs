@@ -12,12 +12,17 @@ namespace Game
         private float lookY = 0.0f;
 
         private Entity locosphereEntity;
+        private Entity _listenerEntity;
 
         public void OnSceneStart()
         {
             locosphereEntity = Registry.Find("Player Locosphere");
             lookX = 0.0f;
             lookY = 0.0f;
+
+            _listenerEntity = Registry.Create();
+
+            Registry.AddComponent<AudioListenerOverride>(_listenerEntity);
         }
 
         public static Vector3 GetCamPosForSimulation()
@@ -74,6 +79,13 @@ namespace Game
 
                 Transform bodyTransform = Registry.GetTransform(PlayerRigSystem.PlayerBody);
                 Camera.Main.Position = bodyTransform.Position + (Camera.Main.Rotation * -hmdOffset) - new Vector3(0f, (bodyTransform.Scale.y / 0.75f) + 0.45f, 0f);
+
+                Transform listenerTransform = new();
+
+                listenerTransform.Position = Camera.Main.Position + VR.HMDTransform.Position;
+                listenerTransform.Rotation = VR.HMDTransform.Rotation;
+
+                Registry.SetTransform(_listenerEntity, listenerTransform);
             }
 
             if (Keyboard.KeyPressed(KeyCode.L))

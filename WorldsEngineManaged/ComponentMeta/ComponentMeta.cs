@@ -176,6 +176,21 @@ namespace WorldsEngine.ComponentMeta
                 ImGui.Checkbox(fieldName, ref val);
                 fieldInfo.SetValue(instance, val);
             }
+            else if (fieldInfo.FieldType == typeof(string))
+            {
+                string str = (string)fieldInfo.GetValue(instance)!;
+
+                if (str == null)
+                {
+                    str = string.Empty;
+                    fieldInfo.SetValue(instance, str);
+                }
+
+                if (ImGui.InputText(fieldName, ref str, 256))
+                {
+                    fieldInfo.SetValue(instance, str);
+                }
+            }
             else if (fieldInfo.FieldType.IsEnum)
             {
                 string[] names = fieldInfo.FieldType.GetEnumNames();
