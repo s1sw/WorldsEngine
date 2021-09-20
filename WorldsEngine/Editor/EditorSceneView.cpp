@@ -91,7 +91,8 @@ namespace worlds {
                     "Lighting Only",
                     "UVs",
                     "Shadowmap Cascades",
-                    "Albedo"
+                    "Albedo",
+                    "Lights Per Tile"
                 };
 
                 static int currentDbgDrawMode = 0;
