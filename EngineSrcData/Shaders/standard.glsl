@@ -73,16 +73,16 @@ void main() {
     vec2 uv = inUV;
     outUvDir = 0;
 
-    if ((miscFlag & 1024) == 1024) {
+    if ((miscFlag & MISC_FLAG_UV_XY) == MISC_FLAG_UV_XY) {
         uv = outWorldPos.xy;
         outUvDir = 1;
-    } else if ((miscFlag & 2048) == 2048) {
+    } else if ((miscFlag & MISC_FLAG_UV_XZ) == MISC_FLAG_UV_XZ) {
         uv = outWorldPos.xz;
         outUvDir = 2;
-    } else if ((miscFlag & 4096) == 4096) {
+    } else if ((miscFlag & MISC_FLAG_UV_ZY) == MISC_FLAG_UV_ZY) {
         uv = outWorldPos.zy;
         outUvDir = 3;
-    } else if ((miscFlag & 8192) == 8192) {
+    } else if ((miscFlag & MISC_FLAG_UV_PICK) == MISC_FLAG_UV_PICK) {
         // Find maximum axis
         uint maxAxis = 0;
 
@@ -456,23 +456,6 @@ void main() {
     ShadeInfo si;
     unpackMaterial(si, tbn);
     si.viewDir = normalize(getViewPos() - inWorldPos.xyz);
-	
-//#define TILE_DBG
-#ifdef TILE_DBG
-	int tileIdxX = int(gl_FragCoord.x / buf_LightTiles.tileSize);
-	int tileIdxY = int(gl_FragCoord.y / buf_LightTiles.tileSize);
-
-    uint tileIdx = ((tileIdxY * buf_LightTiles.numTilesX) + tileIdxX) + (buf_LightTiles.tilesPerEye * gl_ViewIndex);
-    int lightCount = int(buf_LightTiles.tileLightCounts[tileIdx]);
-	
-	vec3 heatmapCol = mix(vec3(0.0, 0.0, 0.0), vec3(1.0, 1.0, 1.0), lightCount / 16.0);
-	
-	if (int(gl_FragCoord.x) % int(buf_LightTiles.tileSize) == 0 || int(gl_FragCoord.y) % int(buf_LightTiles.tileSize) == 0)
-		heatmapCol.z = 1.0;
-	
-	FragColor = vec4(heatmapCol, 1.0);
-	return;
-#endif
 
 #ifdef DEBUG
     // debug views
@@ -513,7 +496,21 @@ void main() {
     } else if ((miscFlag & DBG_FLAG_ALBEDO) == DBG_FLAG_ALBEDO) {
         FragColor = vec4(si.albedoColor, 1.0);
         return;
-    }
+    } else if ((miscFlag & DBG_FLAG_LIGHT_TILES) == DBG_FLAG_LIGHT_TILES) {
+		int tileIdxX = int(gl_FragCoord.x / buf_LightTiles.tileSize);
+		int tileIdxY = int(gl_FragCoord.y / buf_LightTiles.tileSize);
+	
+		uint tileIdx = ((tileIdxY * buf_LightTiles.numTilesX) + tileIdxX) + (buf_LightTiles.tilesPerEye * gl_ViewIndex);
+		int lightCount = int(buf_LightTiles.tileLightCounts[tileIdx]);
+		
+		vec3 heatmapCol = mix(vec3(0.0, 0.0, 0.0), vec3(1.0, 1.0, 1.0), lightCount / 64.0);
+		
+		if (int(gl_FragCoord.x) % int(buf_LightTiles.tileSize) == 0 || int(gl_FragCoord.y) % int(buf_LightTiles.tileSize) == 0)
+			heatmapCol.z = 1.0;
+		
+		FragColor = vec4(heatmapCol, 1.0);
+		return;
+	}
 #endif
 
 #ifndef EFT

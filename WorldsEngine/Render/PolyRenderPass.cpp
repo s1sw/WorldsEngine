@@ -14,6 +14,26 @@
 #include <Libs/IconsFontAwesome5.h>
 #include <Util/MatUtil.hpp>
 
+namespace ShaderFlags {
+    const int DBG_FLAG_NORMALS = 2;
+    const int DBG_FLAG_METALLIC = 4;
+    const int DBG_FLAG_ROUGHNESS = 8;
+    const int DBG_FLAG_AO = 16;
+    const int DBG_FLAG_NORMAL_MAP = 32;
+    const int DBG_FLAG_LIGHTING_ONLY = 64;
+    const int DBG_FLAG_UVS = 128;
+    const int DBG_FLAG_SHADOW_CASCADES = 256;
+    const int DBG_FLAG_ALBEDO = 512;
+    const int DBG_FLAG_LIGHT_TILES = 1024;
+
+    const int MISC_FLAG_UV_XY = 2048;
+    const int MISC_FLAG_UV_XZ = 4096;
+    const int MISC_FLAG_UV_ZY = 8192;
+    const int MISC_FLAG_UV_PICK = 16384;
+    const int MISC_FLAG_CUBEMAP_PARALLAX = 32768;
+    const int MISC_FLAG_DISABLE_SHADOWS = 65536;
+}
+
 namespace worlds {
     ConVar showWireframe("r_wireframeMode", "0", "0 - No wireframe; 1 - Wireframe only; 2 - Wireframe + solid");
     ConVar dbgDrawMode("r_dbgDrawMode", "0", "0 = Normal, 1 = Normals, 2 = Metallic, 3 = Roughness, 4 = AO");
@@ -549,7 +569,7 @@ namespace worlds {
                     });
                 tileBuf->tileLightCount[tileIdx] = tileLightCount;
             }
-        } };
+            } };
             jl.addJob(std::move(j));
         }
 
@@ -736,16 +756,16 @@ namespace worlds {
                         sdi.drawMiscFlags = 0;
                         break;
                     case UVOverride::XY:
-                        sdi.drawMiscFlags = 1024;
+                        sdi.drawMiscFlags = ShaderFlags::MISC_FLAG_UV_XY;
                         break;
                     case UVOverride::XZ:
-                        sdi.drawMiscFlags = 2048;
+                        sdi.drawMiscFlags = ShaderFlags::MISC_FLAG_UV_XZ;
                         break;
                     case UVOverride::ZY:
-                        sdi.drawMiscFlags = 4096;
+                        sdi.drawMiscFlags = ShaderFlags::MISC_FLAG_UV_ZY;
                         break;
                     case UVOverride::PickBest:
-                        sdi.drawMiscFlags = 8192;
+                        sdi.drawMiscFlags = ShaderFlags::MISC_FLAG_UV_PICK;
                         break;
                     }
 
@@ -762,7 +782,7 @@ namespace worlds {
                             cPos.z < ma.z && cPos.z > mi.z && wc.priority > lastPriority) {
                             currCubemapIdx = resources.cubemaps.get(wc.cubemapId);
                             if (wc.cubeParallax) {
-                                sdi.drawMiscFlags |= 16384; // flag for cubemap parallax correction
+                                sdi.drawMiscFlags |= ShaderFlags::MISC_FLAG_CUBEMAP_PARALLAX; // flag for cubemap parallax correction
                                 sdi.cubemapPos = cubeT.position;
                                 sdi.cubemapExt = wc.extent;
                             }
@@ -878,7 +898,7 @@ namespace worlds {
         }
 
         if (!ctx.passSettings.enableShadows) {
-            globalMiscFlags |= 16384;
+            globalMiscFlags |= ShaderFlags::MISC_FLAG_DISABLE_SHADOWS;
         }
 
         std::sort(drawInfo.begin(), drawInfo.end(), [&](const SubmeshDrawInfo& sdiA, const SubmeshDrawInfo& sdiB) {
