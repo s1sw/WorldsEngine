@@ -50,6 +50,7 @@ namespace worlds {
         Gdiplus::Image* background;
         Gdiplus::Image* foreground = nullptr;
         std::mutex mutex;
+        int width, height;
     };
 
     SplashScreenImplWin32::State* SplashScreenImplWin32::s;
@@ -60,8 +61,6 @@ namespace worlds {
         if (err != 0) {
             LPSTR messageBuffer = nullptr;
 
-            //Ask Win32 to give us the string version of that message ID.
-            //The parameters we pass in, tell Win32 to create the buffer that holds the message for us (because we don't yet know how long the message string will be).
             size_t size = FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
                 NULL, err, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&messageBuffer, 0, NULL);
 
@@ -114,6 +113,9 @@ namespace worlds {
             int width = small ? 460 : 800;
             int height = small ? 215 : 600;
 
+            s->width = width;
+            s->height = height;
+
             RECT clientRect;
             GetClientRect(GetDesktopWindow(), &clientRect);
             clientRect.left = (clientRect.right / 2) - (width / 2);
@@ -134,7 +136,7 @@ namespace worlds {
             }
 
             HDC winDc = GetDC(s->hwnd);
-            s->background = createImageFromFile("splash.png");
+            s->background = createImageFromFile(small ? "splash_game.png" : "splash.png");
 
             ShowWindow(s->hwnd, SW_SHOW);
             checkWinErr();
@@ -245,7 +247,7 @@ namespace worlds {
             HDC hdc = BeginPaint(hwnd, &ps);
             HDC hdcMem = CreateCompatibleDC(hdc);
 
-            Gdiplus::Rect rect{ 0, 0, 800, 600 };
+            Gdiplus::Rect rect{ 0, 0, s->width, s->height };
             Gdiplus::Rect overlayRect{ 544, 546, 256, 54 };
 
             Gdiplus::Graphics g(hdc);
