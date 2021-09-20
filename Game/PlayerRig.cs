@@ -87,7 +87,8 @@ namespace Game
 
             if (_footstepTimer >= 1.0f)
             {
-                WorldsEngine.Audio.Audio.PlayOneShot(PlayerRigSystem.GetRandomFootstepSound(), 0.6f);
+                //WorldsEngine.Audio.Audio.PlayOneShot(PlayerRigSystem.GetRandomFootstepSound(), 0.6f);
+                WorldsEngine.Audio.Audio.PlayOneShotEvent("event:/Player/Walking", Vector3.Zero);
                 _footstepTimer = 0f;
             }
 

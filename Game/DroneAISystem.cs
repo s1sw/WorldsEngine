@@ -50,8 +50,8 @@ namespace Game
 
             health.OnDeath += (Entity ent) => {
                 _dead = true;
-                Registry.GetComponent<AudioSource>(ent).IsPlaying = false;
-                Audio.PlayOneShot(AssetDB.PathToId("Audio/SFX/drone death.ogg"), Registry.GetTransform(ent).Position, 2.0f);
+                Registry.GetComponent<AudioSource>(ent).SetParameter("Alive", 0.0f);
+                //Audio.PlayOneShot(AssetDB.PathToId("Audio/SFX/drone death.ogg"), Registry.GetTransform(ent).Position, 2.0f);
             };
 
             health.OnDamage += (Entity e, double dmg) => {
@@ -171,7 +171,8 @@ namespace Game
             burstInProgress = true;
 
             Logger.Log("Begin burst...");
-            Audio.PlayOneShot(AssetDB.PathToId("Audio/SFX/drone pre burst.ogg"), physicsActor.Pose.Position + Vector3.Up, 1.0f);
+            Audio.PlayOneShotEvent("event:/Drone/Charging", physicsActor.Pose.Position + Vector3.Up);
+
             await Task.Delay(1000);
             Logger.Log("Firing!");
 
@@ -183,7 +184,7 @@ namespace Game
                 AssetID projectileId = AssetDB.PathToId("Prefabs/gun_projectile.wprefab");
                 Entity projectile = Registry.CreatePrefab(projectileId);
 
-                Transform firePoint = new Transform(FirePointPosition, Quaternion.Identity);
+                Transform firePoint = new(FirePointPosition, Quaternion.Identity);
 
                 Transform projectileTransform = Registry.GetTransform(projectile);
                 Transform firePointTransform = firePoint.TransformBy(pose);
@@ -202,7 +203,8 @@ namespace Game
 
                 physicsActor.AddForce(-forward * 100.0f * projectileDpa.Mass, ForceMode.Impulse);
 
-                Audio.PlayOneShot(AssetDB.PathToId("Audio/SFX/gunshot.ogg"), soundOrigin, 1.0f);
+                //Audio.PlayOneShot(AssetDB.PathToId("Audio/SFX/gunshot.ogg"), soundOrigin, 1.0f);
+                Audio.PlayOneShotEvent("event:/Weapons/Gun Shot", soundOrigin);
 
                 await Task.Delay(100);
             }
@@ -226,7 +228,6 @@ namespace Game
                 const int MaxOverlap = 32;
                 Entity[] buf = new Entity[MaxOverlap];
                 uint overlapCount = Physics.OverlapSphereMultiple(pose.Position, 7.5f, MaxOverlap, buf, ~PhysicsLayers.Player);
-                Registry.GetComponent<AudioSource>(entity).IsPlaying = false;
 
                 ApplyTargetPose(entity, _idleHoverPose);
 
@@ -250,27 +251,13 @@ namespace Game
             UpdateFiring(entity);
         }
 
-        private async void PlayStartupSound(Entity entity, Vector3 pos)
+        private void PlayStartupSound(Entity entity, Vector3 pos)
         {
             var audioSource = Registry.GetComponent<AudioSource>(entity);
 
-            Audio.PlayOneShot(AssetDB.PathToId("Audio/SFX/drone alert.ogg"), pos, 1.5f);
+            Audio.PlayOneShotEvent("event:/Drone/Alert", pos);
 
-            audioSource.Loop = true;
-            audioSource.ClipId = AssetDB.PathToId("Audio/SFX/drone startup.ogg");
-            audioSource.IsPlaying = true;
-
-            await Task.Delay(500);
-
-            if (_dead)
-            {
-                audioSource.Loop = false;
-                audioSource.IsPlaying = false;
-                return;
-            }
-
-            audioSource.ClipId = AssetDB.PathToId("Audio/SFX/drone idle.ogg");
-            audioSource.IsPlaying = true;
+            audioSource.Start();
         }
     }
 }

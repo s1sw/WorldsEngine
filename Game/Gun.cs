@@ -59,13 +59,14 @@ namespace Game
             Transform projectileTransform = transform;
             projectileTransform.Position += transform.Forward * ProjectileSpawnDistance;
 
-            AssetID sfx = ProjectileType switch
+            string evt = ProjectileType switch
             {
-                ProjectileType.Humongous => AssetDB.PathToId("Audio/SFX/meme gun.ogg"),
-                _ => AssetDB.PathToId("Audio/SFX/gunshot.ogg")
+                ProjectileType.Humongous => "event:/Weapons/Big Gun",
+                _ => "event:/Weapons/Gun Shot"
             };
 
-            Audio.PlayOneShot(sfx, projectileTransform.Position + (projectileTransform.Forward * ProjectileSpawnDistance), ProjectileType == ProjectileType.Humongous ? 2.0f : 0.5f);
+            //Audio.PlayOneShot(sfx, projectileTransform.Position + (projectileTransform.Forward * ProjectileSpawnDistance), ProjectileType == ProjectileType.Humongous ? 2.0f : 0.5f);
+            Audio.PlayOneShotEvent(evt, projectileTransform.Position);
 
             Entity projectile = Registry.CreatePrefab(_projectilePrefab);
 

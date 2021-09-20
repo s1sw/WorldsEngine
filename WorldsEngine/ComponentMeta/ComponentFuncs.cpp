@@ -1100,18 +1100,23 @@ namespace worlds {
         }
     };
 
-    class AudioSourceEditor : public BasicComponentUtil<AudioSource> {
+    class AudioSourceEditor : public BasicComponentUtil<OldAudioSource> {
     public:
         const char* getName() override { return "Audio Source"; }
 
         void create(entt::entity ent, entt::registry& reg) override {
-            reg.emplace<AudioSource>(ent, AssetDB::pathToId("Audio/SFX/dlgsound.ogg"));
+            reg.emplace<OldAudioSource>(ent, AssetDB::pathToId("Audio/SFX/dlgsound.ogg"));
         }
 
         void edit(entt::entity ent, entt::registry& registry, Editor* ed) override {
-            auto& as = registry.get<AudioSource>(ent);
+            auto& as = registry.get<OldAudioSource>(ent);
 
             if (ImGui::CollapsingHeader(ICON_FAD_SPEAKER u8" Audio Source")) {
+
+                if (ImGui::Button("Remove")) {
+                    registry.remove<OldAudioSource>(ent);
+                    return;
+                }
                 ImGui::Checkbox("Loop", &as.loop);
                 ImGui::Checkbox("Spatialise", &as.spatialise);
                 ImGui::Checkbox("Play on scene open", &as.playOnSceneOpen);
@@ -1128,7 +1133,7 @@ namespace worlds {
         }
 
         void writeToFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file) override {
-            auto& as = reg.get<AudioSource>(ent);
+            auto& as = reg.get<OldAudioSource>(ent);
 
             WRITE_FIELD(file, as.clipId);
             WRITE_FIELD(file, as.channel);
@@ -1141,7 +1146,7 @@ namespace worlds {
         void readFromFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file, int version) override {
             AssetID clipId;
             READ_FIELD(file, clipId);
-            auto& as = reg.emplace<AudioSource>(ent, clipId);
+            auto& as = reg.emplace<OldAudioSource>(ent, clipId);
             READ_FIELD(file, as.channel);
             READ_FIELD(file, as.loop);
             READ_FIELD(file, as.playOnSceneOpen);
@@ -1150,7 +1155,7 @@ namespace worlds {
         }
 
         void toJson(entt::entity ent, entt::registry& reg, json& j) override {
-            auto& as = reg.get<AudioSource>(ent);
+            auto& as = reg.get<OldAudioSource>(ent);
 
             j = {
                 { "clipPath", AssetDB::idToPath(as.clipId) },
@@ -1165,13 +1170,80 @@ namespace worlds {
         void fromJson(entt::entity ent, entt::registry& reg, const json& j) override {
             std::string clipPath = j["clipPath"];
             AssetID id = AssetDB::pathToId(clipPath);
-            auto& as = reg.emplace<AudioSource>(ent, id);
+            auto& as = reg.emplace<OldAudioSource>(ent, id);
 
             as.channel = j["channel"];
             as.loop = j["loop"];
             as.playOnSceneOpen = j["playOnSceneOpen"];
             as.spatialise = j["spatialise"];
             as.volume = j["volume"];
+        }
+    };
+
+    class FMODAudioSourceEditor : public BasicComponentUtil<AudioSource> {
+    public:
+        const char* getName() override { return "FMOD Audio Source"; }
+
+        void create(entt::entity ent, entt::registry& reg) override {
+            reg.emplace<AudioSource>(ent);
+        }
+
+        void edit(entt::entity ent, entt::registry& registry, Editor* ed) override {
+            auto& as = registry.get<AudioSource>(ent);
+
+            if (ImGui::CollapsingHeader(ICON_FAD_SPEAKER u8" Audio Source")) {
+                static bool editingEventPath = false;
+                static std::string currentEventPath;
+
+                if (!editingEventPath) {
+                    ImGui::Text("Current event path: %s", as.eventPath().data());
+
+                    if (ImGui::Button("Change")) {
+                        editingEventPath = true;
+                        currentEventPath.assign(as.eventPath());
+                    }
+                } else {
+                    if (ImGui::InputText("Event Path", &currentEventPath, ImGuiInputTextFlags_EnterReturnsTrue)) {
+                        editingEventPath = false;
+                        as.changeEventPath(currentEventPath);
+                    }
+                }
+
+                ImGui::Checkbox("Play On Scene Start", &as.playOnSceneStart);
+                
+                if (as.eventInstance != nullptr) {
+                    if (as.playbackState() != FMOD_STUDIO_PLAYBACK_PLAYING) {
+                        if (ImGui::Button(ICON_FA_PLAY u8" Preview"))
+                            as.eventInstance->start();
+                    } else {
+                        if (ImGui::Button(ICON_FA_STOP u8" Stop"))
+                            as.eventInstance->stop(FMOD_STUDIO_STOP_ALLOWFADEOUT);
+                    }
+                }
+
+                ImGui::Separator();
+            }
+        }
+
+        void writeToFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file) override {
+        }
+
+        void readFromFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file, int version) override {
+        }
+
+        void toJson(entt::entity ent, entt::registry& reg, json& j) override {
+            auto& as = reg.get<AudioSource>(ent);
+
+            j = {
+                { "eventPath", as.eventPath() },
+                { "playOnSceneStart", as.playOnSceneStart }
+            };
+        }
+
+        void fromJson(entt::entity ent, entt::registry& reg, const json& j) override {
+            auto& as = reg.emplace<AudioSource>(ent);
+            as.changeEventPath(j["eventPath"]);
+            as.playOnSceneStart = j["playOnSceneStart"];
         }
     };
 
@@ -1595,6 +1667,35 @@ namespace worlds {
         }
     };
 
+    class AudioListenerOverrideEditor : public BasicComponentUtil<AudioListenerOverride> {
+    public:
+        const char* getName() override { return "AudioListenerOverride"; }
+
+        void edit(entt::entity entity, entt::registry& reg, Editor* ed) override {
+            if (ImGui::CollapsingHeader("AudioListenerOverride")) {
+                if (ImGui::Button("Remove##AudioListenerOverride")) {
+                    reg.remove<AudioListenerOverride>(entity);
+                    return;
+                }
+            }
+        }
+
+        void writeToFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file) override {
+        }
+
+        void readFromFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file, int version) override {
+        }
+
+        void toJson(entt::entity ent, entt::registry& reg, json& j) override {
+            j = {
+            };
+        }
+
+        void fromJson(entt::entity ent, entt::registry& reg, const json& j) override {
+            reg.emplace<AudioListenerOverride>(ent);
+        }
+    };
+
     TransformEditor transformEd;
     WorldObjectEditor worldObjEd;
     WorldLightEditor worldLightEd;
@@ -1611,4 +1712,6 @@ namespace worlds {
     PrefabInstanceEditor pie;
     SphereAOProxyEditor saope;
     EditorLabelEditor ele;
+    FMODAudioSourceEditor fase;
+    AudioListenerOverride alo;
 }

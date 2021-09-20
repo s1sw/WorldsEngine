@@ -4,36 +4,23 @@
 using namespace worlds;
 
 extern "C" {
-    EXPORT AssetID audiosource_getClipId(entt::registry* reg, entt::entity ent) {
-        return reg->get<AudioSource>(ent).clipId;
+    EXPORT void audiosource_start(entt::registry* reg, entt::entity entity) {
+        reg->get<AudioSource>(entity).eventInstance->start();
     }
 
-    EXPORT void audiosource_setClipId(entt::registry* reg, entt::entity ent, AssetID id) {
-        AudioSystem::getInstance()->precacheAudioClip(id);
-        reg->get<AudioSource>(ent).clipId = id;
+    EXPORT void audiosource_stop(entt::registry* reg, entt::entity entity, FMOD_STUDIO_STOP_MODE stopMode) {
+        reg->get<AudioSource>(entity).eventInstance->stop(stopMode);
     }
 
-    EXPORT bool audiosource_getIsPlaying(entt::registry* reg, entt::entity ent) {
-        return reg->get<AudioSource>(ent).isPlaying;
+    EXPORT FMOD_STUDIO_PLAYBACK_STATE audiosource_getPlayState(entt::registry* reg, entt::entity entity) {
+        FMOD_STUDIO_PLAYBACK_STATE state;
+
+        reg->get<AudioSource>(entity).eventInstance->getPlaybackState(&state);
+
+        return state;
     }
 
-    EXPORT void audiosource_setIsPlaying(entt::registry* reg, entt::entity ent, bool val) {
-        reg->get<AudioSource>(ent).isPlaying = val;
-    }
-
-    EXPORT float audiosource_getVolume(entt::registry* reg, entt::entity ent) {
-        return reg->get<AudioSource>(ent).volume;
-    }
-
-    EXPORT void audiosource_setVolume(entt::registry* reg, entt::entity ent, float vol) {
-        reg->get<AudioSource>(ent).volume = vol;
-    }
-
-    EXPORT bool audiosource_getLooping(entt::registry* reg, entt::entity ent) {
-        return reg->get<AudioSource>(ent).loop;
-    }
-
-    EXPORT void audiosource_setLooping(entt::registry* reg, entt::entity ent, bool val) {
-        reg->get<AudioSource>(ent).loop = val;
+    EXPORT void audiosource_setParameter(entt::registry* reg, entt::entity entity, const char* parameterName, float value) {
+        reg->get<AudioSource>(entity).eventInstance->setParameterByName(parameterName, value);
     }
 }

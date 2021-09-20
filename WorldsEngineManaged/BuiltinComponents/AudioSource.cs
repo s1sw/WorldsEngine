@@ -4,40 +4,41 @@ using WorldsEngine.ComponentMeta;
 
 namespace WorldsEngine
 {
+    public enum PlaybackState : int
+    {
+        Playing,
+        Sustaining,
+        Stopped,
+        Starting,
+        Stopping
+    }
+
+    public enum StopMode : int
+    {
+        AllowFadeout,
+        Immediate
+    }
+
     public class AudioSource : BuiltinComponent
     {
         [DllImport(WorldsEngine.NativeModule)]
-        private static extern uint audiosource_getClipId(IntPtr registryPtr, uint entityId);
+        private static extern void audiosource_start(IntPtr regPtr, uint entity);
+
+        [DllImport(WorldsEngine.NativeModule)] 
+        private static extern void audiosource_stop(IntPtr regPtr, uint entity, StopMode stopMode);
 
         [DllImport(WorldsEngine.NativeModule)]
-        private static extern void audiosource_setClipId(IntPtr registryPtr, uint entityId, uint clipId);
+        private static extern PlaybackState audiosource_getPlayState(IntPtr regPtr, uint entity);
 
         [DllImport(WorldsEngine.NativeModule)]
-        [return: MarshalAs(UnmanagedType.I1)]
-        private static extern bool audiosource_getIsPlaying(IntPtr registryPtr, uint entityId);
-
-        [DllImport(WorldsEngine.NativeModule)]
-        private static extern void audiosource_setIsPlaying(IntPtr registryPtr, uint entityId, [MarshalAs(UnmanagedType.I1)] bool val);
-
-        [DllImport(WorldsEngine.NativeModule)]
-        private static extern float audiosource_getVolume(IntPtr registryPtr, uint entityId);
-
-        [DllImport(WorldsEngine.NativeModule)]
-        private static extern void audiosource_setVolume(IntPtr registryPtr, uint entityId, float volume);
-
-        [DllImport(WorldsEngine.NativeModule)]
-        [return: MarshalAs(UnmanagedType.I1)]
-        private static extern bool audiosource_getLooping(IntPtr registryPtr, uint entityId);
-
-        [DllImport(WorldsEngine.NativeModule)]
-        private static extern void audiosource_setLooping(IntPtr registryPtr, uint entityId, [MarshalAs(UnmanagedType.I1)] bool val);
+        private static extern void audiosource_setParameter(IntPtr regPtr, uint entity, string parameterName, float value);
 
         internal static ComponentMetadata Metadata
         {
             get
             {
                 if (cachedMetadata == null)
-                    cachedMetadata = MetadataManager.FindNativeMetadata("Audio Source")!;
+                    cachedMetadata = MetadataManager.FindNativeMetadata("FMOD Audio Source")!;
 
                 return cachedMetadata;
             }
@@ -45,32 +46,25 @@ namespace WorldsEngine
 
         private static ComponentMetadata? cachedMetadata;
 
-        public AssetID ClipId
-        {
-            get => new AssetID(audiosource_getClipId(regPtr, entityId));
-            set => audiosource_setClipId(regPtr, entityId, value.ID);
-        }
-
-        public bool IsPlaying
-        {
-            get => audiosource_getIsPlaying(regPtr, entityId);
-            set => audiosource_setIsPlaying(regPtr, entityId, value);
-        }
-
-        public bool Loop
-        {
-            get => audiosource_getLooping(regPtr, entityId);
-            set => audiosource_setLooping(regPtr, entityId, value);
-        }
-
-        public float Volume
-        {
-            get => audiosource_getVolume(regPtr, entityId);
-            set => audiosource_setVolume(regPtr, entityId, value);
-        }
+        public PlaybackState PlaybackState => audiosource_getPlayState(regPtr, entityId);
 
         internal AudioSource(IntPtr regPtr, uint entityId) : base(regPtr, entityId)
         {
+        }
+
+        public void Start()
+        {
+            audiosource_start(regPtr, entityId);
+        }
+
+        public void Stop(StopMode stopMode)
+        {
+            audiosource_stop(regPtr, entityId, stopMode);
+        }
+
+        public void SetParameter(string parameterName, float value)
+        {
+            audiosource_setParameter(regPtr, entityId, parameterName, value);
         }
     }
 }

@@ -7,837 +7,377 @@
 #include "../IO/IOUtil.hpp"
 #include "../ImGui/imgui.h"
 #include "../Core/Transform.hpp"
-#define STB_VORBIS_HEADER_ONLY
-#include "stb_vorbis.c"
 #include "phonon.h"
 #include "../Core/Fatal.hpp"
-#include <slib/StaticAllocList.hpp>
+#include <slib/DynamicLibrary.hpp>
 #include "../Physics/Physics.hpp"
+#include <fmod_errors.h>
+#include <stdlib.h>
+
+#define FMCHECK(_result) checkFmodErr(_result, __FILE__, __LINE__)
+#define SACHECK(_result) checkSteamAudioErr(_result, __FILE__, __LINE__)
 
 namespace worlds {
-    const std::unordered_map<int, const char*> errorStrings = {
-        { VORBIS__no_error, "No Error" },
-        { VORBIS_need_more_data, "Need more data" },
-        { VORBIS_invalid_api_mixing, "Invalid API mixing" },
-        { VORBIS_feature_not_supported, "Feature not supported (likely floor 0)" },
-        { VORBIS_too_many_channels, "Too many channels" },
-        { VORBIS_file_open_failure, "File open failure" },
-        { VORBIS_seek_without_length, "Tried to seek without length" },
-        { VORBIS_unexpected_eof, "Unexpected EOF" },
-        { VORBIS_seek_invalid, "Invalid seek" },
-        { VORBIS_invalid_setup, "Invalid setup" },
-        { VORBIS_invalid_stream, "Invalid stream" },
-        { VORBIS_missing_capture_pattern, "Missing capture pattern" },
-        { VORBIS_invalid_stream_structure_version, "Invalid stream structure version" },
-        { VORBIS_continued_packet_flag_invalid, "Continued packet flag invalid" },
-        { VORBIS_incorrect_stream_serial_number, "Incorrect stream serial number" },
-        { VORBIS_invalid_first_page, "Invalid first page" },
-        { VORBIS_bad_packet_type, "Bad packet type" },
-        { VORBIS_cant_find_last_page, "Can't find last page" },
-        { VORBIS_seek_failed, "Seek failed" },
-        { VORBIS_ogg_skeleton_not_supported, "Ogg skeleton not supported" }
-    };
-
-    AudioSystem::AudioSystem()
-        : voices{512}
-        , oneshots{64}
-        , showDebugMenuVar("a_showDebugMenu", "0") {
-        for (int i = 0; i < static_cast<int>(MixerChannel::Count); i++)
-            mixerVolumes[i] = 1.0f;
-        setChannelVolume(MixerChannel::Music, 0.0f);
-        g_console->registerCommand(cmdSetMixerVolume,
-            "a_setMixerVol",
-            "Sets the volume of the specified mixer track. Run like this: a_setMixerVol <track id> <volume>",
-            this
-        );
-
-        g_console->registerCommand(
-            [&](void*, const char* arg) { volume = std::atof(arg); },
-            "a_setVolume",
-            "Sets the volume.",
-            nullptr
-        );
-    }
-
-    float* lastBuffer = nullptr;
-    float* tempBuffer = nullptr;
-    float* tempMonoBuffer = nullptr;
-    bool copyBuffer = false;
-    int mixedVoices = 0;
-
-    void AudioSystem::mixVoice(Voice& voice, int numMonoSamplesNeeded, float* stream, AudioSystem* _this) {
-        auto& clip = *voice.clip;
-        int samplesRemaining = clip.sampleCount - voice.playbackPosition;
-
-        if (samplesRemaining <= 0) return;
-
-        int samplesNeeded = std::min(numMonoSamplesNeeded, samplesRemaining);
-
-        //if (voice.loop)
-            //samplesNeeded = numMonoSamplesNeeded;
-
-        float vol = _this->mixerVolumes[static_cast<int>(voice.channel)] * voice.volume;
-
-        // Stereo and non-spatialised mono mixing
-        if (clip.channels == 2) {
-            for (int i = 0; i < samplesNeeded; i++) {
-                int outPos = i * 2;
-                int inPos = ((i + voice.playbackPosition) % clip.sampleCount) * 2;
-                stream[outPos] += clip.data[inPos] * vol;
-                stream[outPos + 1] += clip.data[inPos + 1] * vol;
-            }
-        } else if (!voice.spatialise) {
-            for (int i = 0; i < samplesNeeded; i++) {
-                int outPos = i * 2;
-                int inPos = (i + voice.playbackPosition) % clip.sampleCount;
-                stream[outPos] += clip.data[inPos] * vol;
-                stream[outPos + 1] += clip.data[inPos] * vol;
-            }
-        }
-
-        if (voice.spatialise && clip.channels == 1) {
-            int samplesNeeded = std::min(numMonoSamplesNeeded, samplesRemaining);
-
-            IPLAudioFormat clipFormat {
-                .channelLayoutType = IPL_CHANNELLAYOUTTYPE_SPEAKERS,
-                .channelLayout = IPL_CHANNELLAYOUT_MONO,
-                .channelOrder = IPL_CHANNELORDER_INTERLEAVED
-            };
-
-            IPLAudioBuffer inBuffer{
-                clipFormat, samplesNeeded,
-                &clip.data[voice.playbackPosition], nullptr
-            };
-
-            IPLAudioBuffer directPathBuffer {
-                clipFormat, samplesNeeded,
-                tempMonoBuffer, nullptr
-            };
-
-            IPLAudioFormat outFormat {
-                .channelLayoutType = IPL_CHANNELLAYOUTTYPE_SPEAKERS,
-                .channelLayout = IPL_CHANNELLAYOUT_STEREO,
-                .channelOrder = IPL_CHANNELORDER_INTERLEAVED
-            };
-
-            IPLAudioBuffer outBuffer{
-                outFormat, samplesNeeded,
-                tempBuffer, nullptr
-            };
-
-            IPLDirectSoundEffectOptions directSoundOptions {
-                .applyDistanceAttenuation = IPL_TRUE,
-                .applyAirAbsorption = IPL_FALSE,
-                .applyDirectivity = IPL_FALSE,
-                .directOcclusionMode = IPL_DIRECTOCCLUSION_TRANSMISSIONBYVOLUME 
-            };
-
-            IPLVector3 dir {
-                voice.spatialInfo.direction.x,
-                voice.spatialInfo.direction.y,
-                voice.spatialInfo.direction.z
-            };
-
-            iplApplyDirectSoundEffect(voice.iplFx.directSoundEffect,
-                inBuffer, voice.spatialInfo.soundPath,
-                directSoundOptions, directPathBuffer);
-
-            iplApplyBinauralEffect(
-                    voice.iplFx.binauralEffect,
-                    _this->binauralRenderer,
-                    directPathBuffer, dir,
-                    IPL_HRTFINTERPOLATION_NEAREST, 1.0f, outBuffer);
-
-            for (int i = 0; i < samplesNeeded * 2; i++) {
-                //float l = outBuffer.interleavedBuffer[i * 2 + 0] * vol;
-                //float r = outBuffer.interleavedBuffer[i * 2 + 1] * vol;
-                //stream[i * 2 + 0] += l;
-                //stream[i * 2 + 1] += r;
-                stream[i] += outBuffer.interleavedBuffer[i] * vol;
-            }
-
-            //if (false && voice.loop && samplesRemaining < numMonoSamplesNeeded) {
-            //    int loopedSampleCount = numMonoSamplesNeeded - samplesRemaining;
-
-            //    inBuffer.interleavedBuffer = clip.data;
-            //    inBuffer.numSamples = loopedSampleCount;
-            //    directPathBuffer.numSamples = loopedSampleCount;
-            //    outBuffer.numSamples = loopedSampleCount;
-
-            //    iplApplyDirectSoundEffect(voice.iplFx.directSoundEffect,
-            //        inBuffer, voice.spatialInfo.soundPath,
-            //        directSoundOptions, directPathBuffer);
-
-            //    iplApplyBinauralEffect(
-            //        voice.iplFx.binauralEffect,
-            //        _this->binauralRenderer,
-            //        inBuffer, dir,
-            //        IPL_HRTFINTERPOLATION_BILINEAR, 1.0f, outBuffer);
-
-            //    for (int i = 0; i < loopedSampleCount; i++) {
-            //        stream[(i + samplesNeeded) * 2 + 0] += ((float*)tempBuffer)[i * 2 + 0] * vol;
-            //        stream[(i + samplesNeeded) * 2 + 1] += ((float*)tempBuffer)[i * 2 + 1] * vol;
-            //    }
-            //}
-
-            mixedVoices++;
-        }
-
-        voice.playbackPosition += numMonoSamplesNeeded;
-
-        if (voice.playbackPosition >= clip.sampleCount) {
-            if (voice.loop) {
-                voice.playbackPosition = numMonoSamplesNeeded - samplesRemaining;
-            } else {
-                voice.isPlaying = false;
-            }
+    void checkFmodErr(FMOD_RESULT result, const char* file, int line) {
+        if (result != FMOD_OK) {
+            char buffer[256];
+            snprintf(buffer, sizeof(buffer), "FMOD error: %s", FMOD_ErrorString(result));
+            fatalErrInternal(buffer, file, line);
         }
     }
 
-    void AudioSystem::audioCallback(void* userData, uint8_t* streamU8, int len) {
-        float* stream = reinterpret_cast<float*>(streamU8);
-        int streamLen = len / sizeof(float);
-        // The audio callback has to be static, so store "this" in the userData
-        AudioSystem* _this = reinterpret_cast<AudioSystem*>(userData);
+    void checkSteamAudioErr(IPLerror result, const char* file, int line) {
+        if (result != IPLerror::IPL_STATUS_SUCCESS) {
+            const char* iplErrs[] = {
+                "The operation completed successfully.",
+                "An unspecified error occurred.",
+                "The system ran out of memory."
+                "An error occurred while initializing an external dependency."
+            };
 
-        PerfTimer timer;
-
-        // Calculate the length of the buffer in seconds
-        //                        number of samples / number of channels / sample rate
-        float secondBufferLength = (float)streamLen / (float)_this->channelCount / (float)_this->sampleRate;
-
-        int numMonoSamplesNeeded = streamLen / 2;
-
-        for (int i = 0; i < streamLen; i++) {
-            stream[i] = 0.0f;
-        }
-
-        mixedVoices = 0;
-        for (size_t i = 0; i < _this->voices.size(); i++) {
-            if (_this->voices[i].isPlaying) {
-                mixVoice(_this->voices[i], numMonoSamplesNeeded, stream, _this);
-            }
-        }
-
-        for (int i = 0; i < streamLen; i++) {
-            stream[i] *= _this->volume;
-        }
-
-        // for debugging only! otherwise this will unnecessarily slow down
-        // the audio thread
-        if (lastBuffer && copyBuffer)
-            memcpy(lastBuffer, stream, len);
-
-        auto ms = timer.stopGetMs();
-        _this->cpuUsage = (ms / (secondBufferLength * 1000.0));
-    }
-
-    void AudioSystem::cmdSetMixerVolume(void* obj, const char* params) {
-        AudioSystem* _this = reinterpret_cast<AudioSystem*>(obj);
-        std::string paramStr(params);
-
-        size_t spacePos = paramStr.find(' ');
-        if (spacePos == std::string::npos)
-            return;
-
-        int trackID = std::stoi(paramStr.substr(0, spacePos));
-        float volume = std::stof(paramStr.substr(spacePos));
-
-        if (trackID >= static_cast<int>(MixerChannel::Count)) {
-            logErr(WELogCategoryAudio, "a_setMixerVolume: invalid channel");
-            return;
-        }
-
-        _this->mixerVolumes[trackID] = volume;
-    }
-
-    void phLog(const char* msg) {
-        logVrb(WELogCategoryAudio, "Phonon: %s", msg);
-    }
-
-    IPLMaterial mainMaterial{0.10f, 0.20f, 0.30f, 0.05f, 0.750f, 0.10f, 0.050f};
-
-    void checkErr(IPLerror err) {
-        if (err != IPL_STATUS_SUCCESS) {
-            fatalErr("IPL fail");
+            char buffer[256];
+            snprintf(buffer, sizeof(buffer), "Steam Audio error: %s", iplErrs[(int)result]);
+            fatalErrInternal(buffer, file, line);
         }
     }
 
-    void closestHit(const IPLfloat32* iplOrigin, const IPLfloat32* iplDirection,
-        const IPLfloat32 minDistance, const IPLfloat32 maxDistance, IPLfloat32* hitDistance, IPLfloat32* hitNormal,
-        IPLMaterial** hitMaterial, IPLvoid* userData) {
-        glm::vec3 origin {iplOrigin[0], iplOrigin[1], iplOrigin[2]};
-        glm::vec3 direction {iplDirection[0], iplDirection[1], iplDirection[2]};
+    FMOD_RESULT convertPhysFSError(PHYSFS_ErrorCode errCode) {
+        switch (errCode) {
+        case PHYSFS_ERR_NOT_FOUND:
+            return FMOD_ERR_FILE_NOTFOUND;
+        case PHYSFS_ERR_OUT_OF_MEMORY:
+            return FMOD_ERR_MEMORY;
+        case PHYSFS_ERR_OK:
+            return FMOD_OK;
+        default:
+            return FMOD_ERR_FILE_BAD;
+        }
+    }
 
-        origin += direction * minDistance;
-        RaycastHitInfo hitInfo;
+    FMOD_RESULT F_CALL fileOpenCallback(const char* name, unsigned int* filesize, void** handle, void* userdata) {
+        PHYSFS_File* file = PHYSFS_openRead(name);
 
-        if (raycast(origin, glm::normalize(direction), maxDistance, &hitInfo, PLAYER_PHYSICS_LAYER)) {
-            *hitDistance = hitInfo.distance;
+        if (file == nullptr) {
+            PHYSFS_ErrorCode err = PHYSFS_getLastErrorCode();
 
-            for (int i = 0; i < 3; i++)
-                hitNormal[i] = hitInfo.normal[i];
+            return convertPhysFSError(err);
+        }
 
-            *hitMaterial = &mainMaterial;
+        *handle = file;
+        *filesize = (uint32_t)PHYSFS_fileLength(file);
+
+        return FMOD_OK;
+    }
+
+    FMOD_RESULT F_CALL fileCloseCallback(void* handle, void* userdata) {
+        if (PHYSFS_close((PHYSFS_File*)handle) == 0)
+            return convertPhysFSError(PHYSFS_getLastErrorCode());
+        else
+            return FMOD_OK;
+    }
+
+    FMOD_RESULT F_CALL fileReadCallback(void* handle, void* buffer, uint32_t sizeBytes, uint32_t* bytesRead, void* userdata) {
+        int64_t result = PHYSFS_readBytes((PHYSFS_File*)handle, buffer, sizeBytes);
+        if (result == -1) {
+            PHYSFS_ErrorCode err = PHYSFS_getLastErrorCode();
+            *bytesRead = 0;
+
+            return convertPhysFSError(err);
         } else {
-            *hitDistance = INFINITY;
+            *bytesRead = result;
+            return FMOD_OK;
         }
     }
 
-    void anyHit(const IPLfloat32* iplOrigin, const IPLfloat32* iplDirection,
-        const IPLfloat32 minDistance, const IPLfloat32 maxDistance, IPLint32* hitExists, IPLvoid* userData) {
-        glm::vec3 origin {iplOrigin[0], iplOrigin[1], iplOrigin[2]};
-        glm::vec3 direction {iplDirection[0], iplDirection[1], iplDirection[2]};
-
-        if (glm::length2(direction) <= 0.0001f) {
-            *hitExists = false;
-            return;
-        }
-
-        origin += direction * minDistance;
-
-        RaycastHitInfo hitInfo;
-        *hitExists = raycast(origin, glm::normalize(direction), maxDistance, &hitInfo, PLAYER_PHYSICS_LAYER);
+    FMOD_RESULT F_CALL fileSeekCallback(void* handle, uint32_t pos, void* userdata) {
+        if (PHYSFS_seek((PHYSFS_File*)handle, pos) == 0)
+            return convertPhysFSError(PHYSFS_getLastErrorCode());
+        else
+            return FMOD_OK;
     }
 
     AudioSystem* AudioSystem::instance;
 
-    void AudioSystem::initialise(entt::registry& reg) {
-        instance = this;
-        missingClip = loadAudioClip(AssetDB::pathToId("Audio/SFX/missing.ogg"));
+    typedef void(*PFN_iplFMODInitialize)(IPLContext context);
+    typedef void(*PFN_iplFMODSetHRTF)(IPLHRTF hrtf);
+    typedef void(*PFN_iplFMODSetSimulationSettings)(IPLSimulationSettings simulationSettings);
 
-        volume = 1.0f;
-        logVrb(WELogCategoryAudio, "Initialising audio system");
-
-        SDL_AudioSpec want, have;
-        memset(&want, 0, sizeof(want));
-        want.freq = 44100;
-        want.format = AUDIO_F32;
-        want.channels = 2;
-        want.samples = 1024;
-        want.callback = &AudioSystem::audioCallback;
-        want.userdata = this;
-        devId = SDL_OpenAudioDevice(nullptr, false, &want, &have, SDL_AUDIO_ALLOW_SAMPLES_CHANGE);
-
-        lastBuffer = (float*)malloc(have.samples * have.channels * sizeof(float));
-        tempBuffer = (float*)malloc(have.samples * have.channels * sizeof(float));
-        tempMonoBuffer = (float*)malloc(have.samples * sizeof(float));
-
-        logVrb(WELogCategoryAudio, "Opened audio device at %ihz with %i channels and %i samples", have.freq, have.channels, have.samples);
-        channelCount = have.channels;
-        numSamples = have.samples;
-        sampleRate = have.freq;
-
-        reg.on_construct<AudioSource>().connect<&AudioSystem::onAudioSourceConstruct>(*this);
-        reg.on_destroy<AudioSource>().connect<&AudioSystem::onAudioSourceDestroy>(*this);
-
-        logVrb(WELogCategoryAudio, "Initialising phonon");
-        checkErr(iplCreateContext((IPLLogFunction)phLog, nullptr, nullptr, &phononContext));
-
-        IPLRenderingSettings settings{ have.freq, have.samples, IPL_CONVOLUTIONTYPE_PHONON };
-
-        IPLHrtfParams hrtfParams{ IPL_HRTFDATABASETYPE_DEFAULT, nullptr, nullptr };
-        checkErr(iplCreateBinauralRenderer(phononContext, settings, hrtfParams, &binauralRenderer));
-
-        checkErr(
-            iplCreateScene(
-                phononContext, nullptr,
-                IPL_SCENETYPE_CUSTOM,
-                1, &mainMaterial,
-                closestHit, anyHit,
-                nullptr, nullptr,
-                nullptr, &sceneHandle
-            )
-        );
-
-        IPLSimulationSettings simulationSettings{
-            .sceneType = IPL_SCENETYPE_PHONON,
-            .maxNumOcclusionSamples = 32,
-            .numRays = 1024,
-            .numBounces = 2,
-            .numThreads = 8,
-            .irDuration = 0.5f,
-            .ambisonicsOrder = 0,
-            .maxConvolutionSources = 512,
-            .bakingBatchSize = 1,
-            .irradianceMinDistance = 0.3f
-        };
-
-        checkErr(iplCreateEnvironment(phononContext, NULL,
-                simulationSettings, sceneHandle, NULL, &environment));
-
-        for (auto& v : voices) {
-            v.isPlaying = false;
-            v.loop = false;
-            v.volume = 0.0f;
-            v.clip = nullptr;
-            v.lock = false;
-
-            IPLAudioFormat audioIn;
-            audioIn.channelLayoutType = IPL_CHANNELLAYOUTTYPE_SPEAKERS;
-            audioIn.channelLayout = IPL_CHANNELLAYOUT_MONO;
-            audioIn.channelOrder = IPL_CHANNELORDER_INTERLEAVED;
-
-            IPLAudioFormat audioOut;
-            audioOut.channelLayoutType = IPL_CHANNELLAYOUTTYPE_SPEAKERS;
-            audioOut.channelLayout = IPL_CHANNELLAYOUT_STEREO;
-            audioOut.channelOrder = IPL_CHANNELORDER_INTERLEAVED;
-
-            IPLRenderingSettings settings{
-                sampleRate,
-                numSamples,
-                IPL_CONVOLUTIONTYPE_PHONON
-            };
-
-            checkErr(iplCreateDirectSoundEffect(audioIn, audioIn, settings, &v.iplFx.directSoundEffect));
-            checkErr(iplCreateBinauralEffect(binauralRenderer, audioIn, audioOut, &v.iplFx.binauralEffect));
+    FMOD_RESULT F_CALL fmodDebugCallback(FMOD_DEBUG_FLAGS flags, const char* file, int line, const char* func, const char* message) {
+        if (flags & FMOD_DEBUG_LEVEL_ERROR) {
+            logErr(WELogCategoryAudio, "FMOD: %s (%s:%s, %i)", message, file, func, line);
         }
 
-        if (devId == 0) {
-            logWarn(WELogCategoryAudio, "Failed to open audio device");
-        } else {
-            SDL_PauseAudioDevice(devId, 0);
+        if (flags & FMOD_DEBUG_LEVEL_WARNING) {
+            logWarn(WELogCategoryAudio, "FMOD: %s (%s:%s, %i)", message, file, func, line);
         }
+
+        if (flags & FMOD_DEBUG_LEVEL_LOG) {
+            logVrb(WELogCategoryAudio, "FMOD: %s (%s:%s, %i)", message, file, func, line);
+        }
+
+        return FMOD_OK;
     }
 
-    void AudioSystem::loadAudioScene(std::string sceneName) {
-        auto loadFileRes = LoadFileToString("audioScenes/" + sceneName + ".dat");
+    void steamAudioDebugCallback(IPLLogLevel logLevel, const char* message) {
+        logMsg(WELogCategoryAudio, "%s", message);
+    }
 
-        if (loadFileRes.error != IOError::None) {
-            logErr(WELogCategoryAudio, "Failed to load audio scene %s (%s)", sceneName.c_str(), getIOErrorStr(loadFileRes.error));
+    void AudioSource::changeEventPath(const std::string_view& eventPath) {
+        FMOD::Studio::EventDescription* desc;
+
+        AudioSystem* _this = AudioSystem::getInstance();
+
+        FMOD_RESULT result;
+        result = _this->studioSystem->getEvent(eventPath.data(), &desc);
+        if (result != FMOD_OK) {
+            logErr("Failed to get event %s: %s", eventPath.data(), FMOD_ErrorString(result));
             return;
         }
+
+        if (eventInstance != nullptr) {
+            eventInstance->stop(FMOD_STUDIO_STOP_IMMEDIATE);
+            eventInstance->release();
+        }
+
+        result = desc->createInstance(&eventInstance);
+        if (result != FMOD_OK) {
+            logErr("Failed to create event %s: %s", eventPath.data(), FMOD_ErrorString(result));
+            return;
+        }
+
+        _eventPath.assign(eventPath);
     }
 
-    IPLVector3 convVec(const glm::vec3& v) {
-        return IPLVector3 { v.x, v.y, v.z };
+    FMOD_STUDIO_PLAYBACK_STATE AudioSource::playbackState() {
+        FMOD_STUDIO_PLAYBACK_STATE ret;
+        FMCHECK(eventInstance->getPlaybackState(&ret));
+        return ret;
     }
 
-    worlds::ConVar showAudioOscilloscope{ "a_showOscilloscope", "0", "Shows oscilloscope in the audio debug menu." };
+    AudioSystem::AudioSystem() {
+        const char* phononPluginName;
 
-    void AudioSystem::update(entt::registry& reg, glm::vec3 listenerPos, glm::quat listenerRot) {
-        copyBuffer = showAudioOscilloscope.getInt();
+#ifdef _WIN32
+        phononPluginName = "phonon_fmod.dll";
+#elif defined(__linux__)
+        phononPluginName = "libphonon_fmod.so";
+#endif
+        //FMCHECK(FMOD::Debug_Initialize(FMOD_DEBUG_LEVEL_WARNING, FMOD_DEBUG_MODE_CALLBACK, fmodDebugCallback));
+        void* fmodHeap = malloc(20000 * 2 * 512); // 20MB
+        FMOD::Memory_Initialize(fmodHeap, 20000 * 2 * 512, nullptr, nullptr, nullptr);
 
-        PerfTimer timer;
-        SDL_LockAudioDevice(devId);
+        FMCHECK(FMOD::Studio::System::create(&studioSystem));
+        FMCHECK(studioSystem->getCoreSystem(&system));
+        FMCHECK(system->setSoftwareFormat(0, FMOD_SPEAKERMODE_STEREO, 0));
 
-        reg.view<AudioSource, AudioTrigger, Transform>().each(
-            [&](entt::entity ent, AudioSource& as, AudioTrigger& at, Transform& t) {
-                glm::vec3 ma = t.position + t.scale;
-                glm::vec3 mi = t.position - t.scale;
+        FMCHECK(studioSystem->initialize(1024, FMOD_STUDIO_INIT_NORMAL, FMOD_INIT_NORMAL, nullptr));
+        FMCHECK(studioSystem->setNumListeners(1));
 
-                bool insideTrigger = glm::all(glm::lessThan(listenerPos, ma)) &&
-                    glm::all(glm::greaterThan(listenerPos, mi));
+        FMCHECK(system->setFileSystem(fileOpenCallback, fileCloseCallback, fileReadCallback, fileSeekCallback, nullptr, nullptr, -1));
 
-                if (insideTrigger) {
-                    if (at.playOnce && at.hasPlayed) return;
+        FMCHECK(system->loadPlugin(phononPluginName, &phononPluginHandle));
 
-                    bool justEntered = !as.isPlaying;
+        // Get Steam Audio's setting equivalents from FMOD
+        IPLAudioSettings audioSettings{};
 
-                    if (justEntered && at.resetOnEntry) {
-                        voices[internalAs.at(ent).voiceIdx].playbackPosition = 0;
-                    }
+        {
+            FMOD_SPEAKERMODE speakerMode;
+            int numRawSpeakers;
+            system->getSoftwareFormat(&audioSettings.samplingRate, &speakerMode, &numRawSpeakers);
 
-                    as.isPlaying = true;
-                    at.hasPlayed = true;
-                } else if (!at.playOnce) {
-                    as.isPlaying = false;
-                }
+            int numBuffers;
+            uint32_t bufferLen;
+            system->getDSPBufferSize(&bufferLen, &numBuffers);
+            audioSettings.frameSize = bufferLen;
+        }
+
+        // Load function pointers for the Steam Audio FMOD plugin
+        slib::DynamicLibrary fmodPlugin(phononPluginName);
+
+        PFN_iplFMODInitialize iplFMODInitialize;
+        PFN_iplFMODSetHRTF iplFMODSetHRTF;
+        PFN_iplFMODSetSimulationSettings iplFMODSetSimulationSettings;
+
+        iplFMODInitialize = (PFN_iplFMODInitialize)fmodPlugin.getFunctionPointer("iplFMODInitialize");
+        iplFMODSetHRTF = (PFN_iplFMODSetHRTF)fmodPlugin.getFunctionPointer("iplFMODSetHRTF");
+        iplFMODSetSimulationSettings = (PFN_iplFMODSetSimulationSettings)fmodPlugin.getFunctionPointer("iplFMODSetSimulationSettings");
+
+        // Create the Steam Audio context
+        IPLContextSettings contextSettings{};
+        contextSettings.version = STEAMAUDIO_VERSION;
+        contextSettings.simdLevel = IPL_SIMDLEVEL_SSE4;
+        contextSettings.logCallback = steamAudioDebugCallback;
+
+        SACHECK(iplContextCreate(&contextSettings, &phononContext));
+
+        // Create HRTF
+        IPLHRTFSettings hrtfSettings{};
+        hrtfSettings.type = IPL_HRTFTYPE_DEFAULT;
+
+        iplFMODInitialize(phononContext);
+        SACHECK(iplHRTFCreate(phononContext, &audioSettings, &hrtfSettings, &phononHrtf));
+        iplFMODSetHRTF(phononHrtf);
+
+        IPLSimulationSettings simulationSettings{};
+        simulationSettings.flags = IPL_SIMULATIONFLAGS_DIRECT;
+        simulationSettings.sceneType = IPL_SCENETYPE_DEFAULT;
+        simulationSettings.maxNumOcclusionSamples = 1024;
+        simulationSettings.maxNumRays = 64;
+        simulationSettings.numDiffuseSamples = 1024;
+        simulationSettings.maxDuration = 0.5f;
+        simulationSettings.maxOrder = 8;
+        simulationSettings.maxNumSources = 512;
+        simulationSettings.numThreads = 5;
+        simulationSettings.rayBatchSize = 16;
+        simulationSettings.numVisSamples = 512;
+        simulationSettings.samplingRate = audioSettings.samplingRate;
+        simulationSettings.frameSize = audioSettings.frameSize;
+
+        iplFMODSetSimulationSettings(simulationSettings);
+
+        instance = this;
+    }
+
+    void AudioSystem::initialise(entt::registry& worldState) {
+        worldState.on_destroy<AudioSource>().connect<&AudioSystem::onAudioSourceDestroy>(*this);
+    }
+
+    void AudioSystem::onAudioSourceDestroy(entt::registry& reg, entt::entity entity) {
+        AudioSource& as = reg.get<AudioSource>(entity);
+
+        if (as.eventInstance) {
+            FMCHECK(as.eventInstance->stop(FMOD_STUDIO_STOP_IMMEDIATE));
+            FMCHECK(as.eventInstance->release());
+        }
+    }
+
+    void AudioSystem::loadMasterBanks() {
+        masterBank = loadBank("FMOD/Master.bank");
+        stringsBank = loadBank("FMOD/Master.strings.bank");
+    }
+
+    FMOD_VECTOR convVec(glm::vec3 v3) {
+        FMOD_VECTOR v{};
+        v.x = -v3.x;
+        v.y = v3.y;
+        v.z = v3.z;
+        return v;
+    }
+
+    void AudioSystem::update(entt::registry& worldState, glm::vec3 listenerPos, glm::quat listenerRot, float deltaTime) {
+        glm::vec3 movement = listenerPos - lastListenerPos;
+        movement /= deltaTime;
+
+        FMOD_3D_ATTRIBUTES listenerAttributes{};
+        listenerAttributes.forward = convVec(listenerRot * glm::vec3(0.0f, 0.0f, 1.0f));
+        listenerAttributes.up = convVec(listenerRot * glm::vec3(0.0f, 1.0f, 0.0f));
+
+        listenerAttributes.position = convVec(listenerPos);
+        listenerAttributes.velocity = convVec(movement);
+
+        worldState.view<AudioSource, Transform>().each([](AudioSource& as, Transform& t) {
+            if (as.eventInstance == nullptr) return;
+
+            FMOD_3D_ATTRIBUTES sourceAttributes{};
+            sourceAttributes.position = convVec(t.position);
+            sourceAttributes.forward = convVec(t.rotation * glm::vec3(0.0f, 0.0f, 1.0f));
+            sourceAttributes.up = convVec(t.rotation * glm::vec3(0.0f, 1.0f, 0.0f));
+
+            FMCHECK(as.eventInstance->set3DAttributes(&sourceAttributes));
         });
 
-        reg.view<Transform, AudioSource>().each(
-            [&](entt::entity ent, Transform& transform, AudioSource& audioSource) {
-                AudioSourceInternal& asi = internalAs.at(ent);
-                Voice& v = voices[asi.voiceIdx];
-                v.volume = audioSource.volume;
-                auto it = loadedClips.find(audioSource.clipId);
-                if (it != loadedClips.end())
-                    v.clip = &loadedClips.at(audioSource.clipId);
-                else
-                    v.clip = &missingClip;
+        FMCHECK(studioSystem->setListenerAttributes(0, &listenerAttributes, &listenerAttributes.position));
+        FMCHECK(studioSystem->update());
+    }
 
-                glm::vec3 dirVec = listenerPos - transform.position;
-                v.spatialInfo.direction = glm::normalize(dirVec) * listenerRot;
-                v.spatialInfo.distance = glm::length(dirVec);
-
-                v.loop = audioSource.loop;
-                v.spatialise = audioSource.spatialise;
-                v.channel = audioSource.channel;
-
-                if (audioSource.isPlaying != asi.lastPlaying) {
-                    v.isPlaying = audioSource.isPlaying;
-                    asi.lastPlaying = audioSource.isPlaying;
-                } else {
-                    audioSource.isPlaying = v.isPlaying;
-                    asi.lastPlaying = v.isPlaying;
-                }
-
-                if (v.spatialise) {
-                    IPLDistanceAttenuationModel distanceAttenuationModel {
-                        .type = IPL_DISTANCEATTENUATION_DEFAULT
-                    };
-
-                    IPLAirAbsorptionModel airAbsorptionModel {
-                        .type = IPL_AIRABSORPTION_DEFAULT
-                    };
-
-                    IPLSource src {
-                        .position = convVec(transform.position),
-                        .ahead = IPLVector3 { 0.0f, 0.0f, 1.0f },
-                        .up = IPLVector3 { 0.0f, 1.0f, 0.0f },
-                        .right = IPLVector3 { 1.0f, 0.0f, 0.0f },
-                        .directivity = IPLDirectivity {
-                            .dipoleWeight = 0.0f,
-                            .dipolePower = 0.0f,
-                            .callback = nullptr
-                        },
-                        .distanceAttenuationModel = distanceAttenuationModel,
-                        .airAbsorptionModel = airAbsorptionModel
-                    };
-
-                    v.spatialInfo.soundPath = iplGetDirectSoundPath(environment,
-                        convVec(listenerPos),
-                        convVec(listenerRot * glm::vec3 { 0.0f, 0.0f, 1.0f }),
-                        convVec(listenerRot * glm::vec3 { 0.0f, 1.0f, 0.0f }),
-                        src,
-                        1.0f,
-                        32,
-                        IPL_DIRECTOCCLUSION_TRANSMISSIONBYVOLUME,
-                        IPL_DIRECTOCCLUSION_RAYCAST);
-                }
-            }
-        );
-
-        oneshots.erase(std::remove_if(oneshots.begin(), oneshots.end(),
-            [&](PlayingOneshot& clipInfo) {
-                Voice& v = voices[clipInfo.voiceIdx];
-                return v.playbackPosition >= v.clip->sampleCount;
-            }
-        ), oneshots.end());
-
-        for (auto& c : oneshots) {
-            Voice& v = voices[c.voiceIdx];
-            glm::vec3 dirVec = listenerPos - c.location;
-            v.spatialInfo.direction = glm::normalize(dirVec) * listenerRot;
-            v.spatialInfo.distance = glm::length(dirVec);
-
-            if (v.spatialise) {
-                IPLDistanceAttenuationModel distanceAttenuationModel {
-                    .type = IPL_DISTANCEATTENUATION_DEFAULT
-                };
-
-                IPLAirAbsorptionModel airAbsorptionModel {
-                    .type = IPL_AIRABSORPTION_DEFAULT
-                };
-
-                IPLSource src {
-                    .position = convVec(c.location),
-                    .ahead = IPLVector3 { 0.0f, 0.0f, 1.0f },
-                    .up = IPLVector3 { 0.0f, 1.0f, 0.0f },
-                    .right = IPLVector3 { 1.0f, 0.0f, 0.0f },
-                    .directivity = IPLDirectivity {
-                        .dipoleWeight = 0.0f,
-                        .dipolePower = 0.0f,
-                        .callback = nullptr
-                    },
-                    .distanceAttenuationModel = distanceAttenuationModel,
-                    .airAbsorptionModel = airAbsorptionModel
-                };
-
-                v.spatialInfo.soundPath = iplGetDirectSoundPath(environment,
-                    convVec(listenerPos),
-                    convVec(listenerRot * glm::vec3 { 0.0f, 0.0f, 1.0f }),
-                    convVec(listenerRot * glm::vec3 { 0.0f, 1.0f, 0.0f }),
-                    src,
-                    1.0f,
-                    32,
-                    IPL_DIRECTOCCLUSION_TRANSMISSIONBYVOLUME,
-                    IPL_DIRECTOCCLUSION_RAYCAST 
-                );
-            }
+    void AudioSystem::stopEverything(entt::registry& reg) {
+        for (auto& pair : eventDescs) {
+            FMCHECK(pair.second->releaseAllInstances());
         }
 
-        SDL_UnlockAudioDevice(devId);
+        reg.view<AudioSource>().each([](AudioSource& as) {
+            as.eventInstance->stop(FMOD_STUDIO_STOP_IMMEDIATE);
+        });
+    }
 
-        double timerMs = timer.stopGetMs();
-        if (showDebugMenuVar.getInt()) {
-            if (ImGui::Begin("Audio Testing")) {
-                ImColor col = ImColor(1.0f, 1.0f, 1.0f, 1.0f);
-                if (cpuUsage > 0.5f) {
-                    col = ImColor(1.0f, 0.0f, 0.0f, 1.0f);
-                }
-                ImGui::TextColored(col, "Audio Thread Usage: %.2f%%", cpuUsage * 100.0f);
-                ImGui::Text("Main thread audio update: %.2fms", timerMs);
-                ImGui::Text("Playing Clip Count: %zu", reg.view<AudioSource>().size());
+    void AudioSystem::playOneShotClip(AssetID id, glm::vec3 location, bool spatialise, float volume, MixerChannel) {
+        FMOD::Sound* sound;
 
-                ImGui::Text("Playing one shot count: %zu", oneshots.numElements());
-                ImGui::Text("Buffer length: %u", numSamples);
-                ImGui::SliderFloat("Volume", &volume, 0.0f, 1.0f);
+        if (sounds.contains(id)) {
+            sound = sounds.at(id);
+        } else {
+            FMCHECK(system->createSound(AssetDB::idToPath(id).c_str(), FMOD_CREATESAMPLE, nullptr, &sound));
 
-                int activeVoices = 0;
-                for (size_t i = 0; i < voices.size(); i++) {
-                    if (voices[i].isPlaying)
-                        activeVoices++;
-                }
+            sounds.insert({ id, sound });
+        }
 
-                ImGui::Text("Active voices: %i/%u (%i mixed)", activeVoices, (uint32_t)voices.size(), mixedVoices);
+        FMOD::Channel* channel;
+        FMCHECK(system->playSound(sound, nullptr, false, &channel));
 
-                if (copyBuffer) {
-                    ImGui::PlotLines("L Audio", [](void* data, int idx) {
-                        return ((float*)data)[idx * 2];
-                    }, lastBuffer, numSamples / 2, 0, nullptr, -1.0f, 1.0f, ImVec2(300, 150));
-
-                    ImGui::PlotLines("R Audio", [](void* data, int idx) {
-                        return ((float*)data)[idx * 2 + 1];
-                    }, lastBuffer, numSamples / 2, 0, nullptr, -1.0f, 1.0f, ImVec2(300, 150));
-                }
-
-                for (auto& os : oneshots) {
-                    ImGui::Text("Oneshot: %.3f, %.3f, %.3f", os.location.x, os.location.y, os.location.z);
-                }
-
-                for (size_t i = 0; i < voices.size(); i++) {
-                    if (voices[i].isPlaying) {
-                        ImGui::Separator();
-                        ImGui::Text("Playback position: %i/%i", voices[i].playbackPosition, voices[i].clip->sampleCount);
-                        ImGui::Text("Volume: %f", voices[i].volume);
-                        if (voices[i].spatialise) {
-                            ImGui::Text("Spatial Info: ");
-                            ImGui::Text(" - Distance: %.3f", voices[i].spatialInfo.distance);
-                            ImGui::Text(" - Direction: %.3f, %.3f, %.3f", voices[i].spatialInfo.direction.x, voices[i].spatialInfo.direction.y, voices[i].spatialInfo.direction.z);
-                        }
-                    }
-                }
-            }
-
-            ImGui::End();
+        if (spatialise) {
+            FMOD_VECTOR fmLocation = convVec(location);
+            FMOD_VECTOR vel{0.0f, 0.0f, 0.0f};
+            channel->set3DAttributes(&fmLocation, &vel);
         }
     }
 
-    void AudioSystem::setPauseState(bool paused) {
-        isPaused = paused;
-        SDL_PauseAudioDevice(devId, paused);
-    }
+    void AudioSystem::playOneShotEvent(const char* eventPath, glm::vec3 location, float volume) {
+        FMOD_RESULT result;
 
-    void AudioSystem::cancelOneShots() {
-        for (PlayingOneshot& os : oneshots) {
-            voices[os.voiceIdx].isPlaying = false;
+        FMOD::Studio::EventDescription* desc;
+
+        if (!eventDescs.contains(eventPath)) {
+            result = studioSystem->getEvent(eventPath, &desc);
+
+            int instCount;
+            FMCHECK(desc->getInstanceCount(&instCount));
+            //logMsg("desc had %i instances", instCount);
+
+            if (result != FMOD_OK) {
+                logErr("Failed to get event %s: %s", eventPath, FMOD_ErrorString(result));
+                return;
+            }
+
+            eventDescs.insert({ eventPath, desc });
+        } else {
+            desc = eventDescs.at(eventPath);
         }
 
-        oneshots.clear();
-    }
+        FMOD::Studio::EventInstance* instance;
 
-    void AudioSystem::shutdown(entt::registry& reg) {
-        reg.on_construct<AudioSource>().disconnect<&AudioSystem::onAudioSourceConstruct>(*this);
-        reg.on_destroy<AudioSource>().disconnect<&AudioSystem::onAudioSourceDestroy>(*this);
-        SDL_CloseAudioDevice(devId);
-        free(tempBuffer);
-        free(lastBuffer);
-        free(tempMonoBuffer);
-    }
-
-    void AudioSystem::resetPlaybackPositions() {
-        for (size_t i = 0; i < voices.size(); i++) {
-            voices[i].playbackPosition = 0;
-        }
-    }
-
-    void AudioSystem::playOneShotClip(AssetID id, glm::vec3 location, bool spatialise, float volume, MixerChannel channel) {
-        if ((oneshots.numElements() + internalAs.size()) >= voices.size())
+        result = desc->createInstance(&instance);
+        if (result != FMOD_OK) {
+            logErr("Failed to create instance of event %s: %s", eventPath, FMOD_ErrorString(result));
             return;
-
-        if (oneshots.numElements() == oneshots.max())
-            return;
-
-        if (volume < 0.001)
-            return;
-
-        if (loadedClips.count(id) == 0)
-            loadAudioClip(id);
-
-        SDL_LockAudioDevice(devId);
-
-        uint32_t voiceIdx = allocateVoice();
-        Voice& v = voices[voiceIdx];
-        v.isPlaying = true;
-        v.spatialise = spatialise;
-        v.volume = volume;
-        v.loop = false;
-        v.channel = channel;
-        auto it = loadedClips.find(id);
-        if (it != loadedClips.end())
-            v.clip = &loadedClips.at(id);
-        else
-            v.clip = &missingClip;
-
-        PlayingOneshot po {
-            .location = location,
-            .voiceIdx = (uint32_t)voiceIdx
-        };
-
-        oneshots.add(po);
-
-        SDL_UnlockAudioDevice(devId);
-    }
-
-    uint32_t AudioSystem::allocateVoice() {
-        uint32_t i = 0;
-
-        for (auto& v : voices) {
-            if (!v.lock && !v.isPlaying) {
-                v.playbackPosition = 0;
-                return i;
-            }
-            i++;
         }
 
-        return ~0u;
+        FMOD_3D_ATTRIBUTES attr{};
+        attr.position = convVec(location);
+        attr.forward = convVec(glm::vec3(0.0f, 0.0f, 1.0f));
+        attr.up = convVec(glm::vec3(0.0f, 1.0f, 0.0f));
+        attr.velocity = convVec(glm::vec3(0.0f));
+
+        FMCHECK(instance->set3DAttributes(&attr));
+        FMCHECK(instance->setVolume(volume));
+
+        FMCHECK(instance->start());
+        FMCHECK(instance->release());
     }
 
-    void AudioSystem::onAudioSourceConstruct(entt::registry& reg, entt::entity ent) {
-        SDL_LockAudioDevice(devId);
-
-        AudioSource& as = reg.get<AudioSource>(ent);
-        AudioSourceInternal asi {
-            .voiceIdx = allocateVoice(),
-            .lastPlaying = false
-        };
-
-        voices[asi.voiceIdx].lock = true;
-
-        internalAs.insert({ ent, asi });
-
-        loadAudioClip(as.clipId).refCount++;
-        SDL_UnlockAudioDevice(devId);
+    void AudioSystem::shutdown(entt::registry& worldState) {
+        FMCHECK(studioSystem->release());
     }
 
-    void AudioSystem::onAudioSourceDestroy(entt::registry& reg, entt::entity ent) {
-        auto& as = reg.get<AudioSource>(ent);
-        SDL_LockAudioDevice(devId);
+    FMOD::Studio::Bank* AudioSystem::loadBank(const char* path) {
+        PHYSFS_getLastErrorCode();
+        FMOD::Studio::Bank* bank;
 
-        auto lcIter = loadedClips.find(as.clipId);
+        if (loadedBanks.contains(path))
+            return loadedBanks.at(path);
 
-        if (lcIter != loadedClips.end()) {
-            LoadedClip& lc = loadedClips.at(as.clipId);
-            lc.refCount--;
+        FMCHECK(studioSystem->loadBankFile(path, FMOD_STUDIO_LOAD_BANK_NORMAL, &bank));
+        loadedBanks.insert({ path, bank });
 
-            if (lc.refCount <= 0) {
-                loadedClips.erase(lc.id);
-            }
-        }
-
-        auto& lsi = internalAs.at(ent);
-        voices[lsi.voiceIdx].lock = false;
-        voices[lsi.voiceIdx].isPlaying = false;
-
-        internalAs.erase(ent);
-
-        SDL_UnlockAudioDevice(devId);
-    }
-
-    void interleaveFloats(int len, float** data, float* out) {
-        for (int i = 0; i < len; i++) {
-            out[i * 2 + 0] = data[0][i];
-            out[i * 2 + 1] = data[1][i];
-        }
-    }
-
-    void AudioSystem::decodeVorbis(stb_vorbis* vorb, AudioSystem::LoadedClip& clip) {
-        stb_vorbis_info info = stb_vorbis_get_info(vorb);
-
-        int bufferLen = info.channels * stb_vorbis_stream_length_in_samples(vorb);
-        clip.channels = info.channels;
-        clip.sampleRate = info.sample_rate;
-
-        float* data = (float*)malloc(bufferLen * sizeof(float));
-        memset(data, 0, bufferLen * sizeof(float));
-
-        int offset = 0;
-        int totalSamples = 0;
-        float** output;
-
-        while (true) {
-            // number of samples
-            int n = stb_vorbis_get_frame_float(vorb, nullptr, &output);
-            if (n == 0) break;
-            assert(offset < bufferLen);
-            totalSamples += n;
-
-            if (clip.channels == 2)
-                interleaveFloats(n, output, data + offset);
-            else
-                memcpy(data + offset, output[0], n * sizeof(float));
-
-            offset += info.channels * n;
-        }
-
-        stb_vorbis_close(vorb);
-        assert((totalSamples * info.channels) == bufferLen);
-        clip.sampleCount = totalSamples;
-        clip.data = data;
-    }
-
-    void AudioSystem::precacheAudioClip(AssetID id) {
-        loadAudioClip(id);
-    }
-
-    AudioSystem::LoadedClip& AudioSystem::loadAudioClip(AssetID id) {
-        if (loadedClips.count(id) == 1)
-            return loadedClips.at(id);
-        // find the path
-        std::string path = AssetDB::idToPath(id);
-
-        int64_t fLen;
-        Result<void*, IOError> res = LoadFileToBuffer(path, &fLen);
-
-        if (res.error != IOError::None) {
-            logErr(WELogCategoryAudio, "Could not load audio clip %s", path.c_str());
-            return missingClip;
-        }
-
-        LoadedClip clip;
-
-        // Decode
-        int error;
-        stb_vorbis* vorb = stb_vorbis_open_memory(
-                (const uint8_t*)res.value, fLen, &error, nullptr);
-
-        if (vorb == nullptr) {
-            logErr(WELogCategoryAudio, "Couldn't decode audio clip %s: error %i (%s)", path.c_str(), error, errorStrings.at(error));
-            return missingClip;
-        }
-
-        decodeVorbis(vorb, clip);
-
-        std::free(res.value);
-
-        logVrb(WELogCategoryAudio, "Loaded %s: %i samples across %i channels with a sample rate of %i", path.c_str(), clip.sampleCount, clip.channels, clip.sampleRate);
-
-        if (clip.sampleRate != 44100) {
-            SDL_AudioCVT cvt;
-            SDL_BuildAudioCVT(
-                &cvt,
-                AUDIO_F32,
-                clip.channels,
-                clip.sampleRate,
-                AUDIO_F32,
-                clip.channels,
-                44100
-            );
-
-            cvt.buf = (Uint8*)malloc(cvt.len * cvt.len_mult);
-            memcpy(cvt.buf, clip.data, cvt.len);
-
-            SDL_ConvertAudio(&cvt);
-            memcpy(clip.data, cvt.buf, cvt.len);
-            clip.sampleRate = 44100;
-            free(cvt.buf);
-        }
-
-        clip.id = id;
-
-        loadedClips.insert({ id, clip });
-
-        return loadedClips.at(id);
+        return bank;
     }
 }
