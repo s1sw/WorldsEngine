@@ -660,6 +660,9 @@
     <ClCompile Include="..\WorldsEngine\Core\SplashScreenImpls\SplashScreenWin32.cpp">
       <Filter>Core\SplashScreenImpls</Filter>
     </ClCompile>
+    <ClCompile Include="..\WorldsEngine\Render\LightCullPass.cpp">
+      <Filter>Render</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\WorldsEngine\AssetCompilation\AssetCompilerUtil.hpp">

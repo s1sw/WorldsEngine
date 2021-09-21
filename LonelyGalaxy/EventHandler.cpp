@@ -418,23 +418,6 @@ namespace lg {
 
             rotated = rotatingNow;
 
-            {
-                if (ImGui::Begin("Native VR Positions")) {
-                    auto hmdPos = worlds::getMatrixTranslation(vrInterface->getHeadTransform(0.0f));
-                    ImGui::Text("HMD: (%.3f, %.3f, %.3f)", hmdPos.x, hmdPos.y, hmdPos.z);
-                    Transform lHandTransform;
-                    vrInterface->getHandTransform(worlds::Hand::LeftHand, lHandTransform);
-                    Transform rHandTransform;
-                    vrInterface->getHandTransform(worlds::Hand::RightHand, rHandTransform);
-
-                    ImGui::Text("Left Controller: (%.3f, %.3f, %.3f)", lHandTransform.position.x, lHandTransform.position.y, lHandTransform.position.z);
-                    ImGui::Text("Right Controller: (%.3f, %.3f, %.3f)", rHandTransform.position.x, rHandTransform.position.y, rHandTransform.position.z);
-
-                    ImGui::Text("Left Rotation: (%.3f, %.3f, %.3f, %.3f)", lHandTransform.rotation.w, lHandTransform.rotation.x, lHandTransform.rotation.y, lHandTransform.rotation.z);
-                }
-                ImGui::End();
-            }
-
             Transform hmdTransform = getHmdTransform(camera, vrInterface);
 
             if (reg.valid(audioListenerEntity)) {
