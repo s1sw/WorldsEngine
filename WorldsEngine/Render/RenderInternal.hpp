@@ -51,23 +51,10 @@ namespace worlds {
         glm::vec4 pack0;
         glm::vec4 pack1;
         glm::mat4 shadowmapMatrices[3];
-        PackedLight lights[128];
+        PackedLight lights[256];
         AOBox box[16];
         AOSphere sphere[16];
         uint32_t sphereIds[16];
-    };
-
-    struct LightTile {
-        uint32_t lightIds[128];
-    };
-
-    struct LightTileBuffer {
-        uint32_t tileSize;
-        uint32_t tilesPerEye;
-        uint32_t numTilesX;
-        uint32_t numTilesY;
-        uint32_t tileLightCount[16384];
-        LightTile tiles[16384];
     };
 
     struct QueueFamilyIndices {

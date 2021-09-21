@@ -18,7 +18,7 @@ layout(std430, binding = 1) readonly buffer LightBuffer {
     // (ao box count, ao sphere count, zw unused)
     vec4 pack1;
     mat4 dirShadowMatrices[3];
-	Light lights[128];
+	Light lights[256];
     AOBox aoBox[16];
 	AOSphere aoSphere[16];
 	uint sphereIds[16];
@@ -39,7 +39,7 @@ layout (binding = 7) uniform sampler2D brdfLutSampler;
 layout (binding = 8) uniform sampler2DShadow additionalShadowSampler[];
 
 struct LightingTile {
-    uint lightIds[128];
+    uint lightIds[256];
 };
 
 layout (binding = 9) readonly buffer LightTileBuffer {

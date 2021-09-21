@@ -10,7 +10,22 @@ namespace worlds {
     };
 #pragma pack(pop)
 
-    LightCullPass::LightCullPass(VulkanHandles* handles) : handles {handles} {
+    struct LightingTile {
+        uint32_t lightId[256];
+    };
+
+    struct LightTileBuffer {
+        uint32_t tileSize;
+        uint32_t tilesPerEye;
+        uint32_t numTilesX;
+        uint32_t numTilesY;
+        uint32_t tileLightCount[16384];
+        LightingTile tiles[16384];
+    };
+
+    LightCullPass::LightCullPass(VulkanHandles* handles, RenderTexture* depthStencilImage)
+        : handles{ handles }
+        , depthStencilImage{ depthStencilImage } {
     }
 
     void LightCullPass::setup(RenderContext& ctx, VkBuffer lightBuffer, VkBuffer lightTileBuffer, VkDescriptorPool descriptorPool) {
@@ -18,6 +33,7 @@ namespace worlds {
         dslm.buffer(0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 1);
         dslm.buffer(1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 1);
         dslm.buffer(2, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 1);
+        dslm.buffer(3, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_COMPUTE_BIT, 1);
         dsl = dslm.create(handles->device);
 
         vku::DescriptorSetMaker dsm;
@@ -30,6 +46,9 @@ namespace worlds {
         pipelineLayout = plm.create(handles->device);
 
         shader = ShaderCache::getModule(handles->device, AssetDB::pathToId("Shaders/light_cull.comp.spv"));
+
+        vku::SamplerMaker sm;
+        sampler = sm.create(handles->device);
 
         vku::ComputePipelineMaker pm;
         pm.shader(VK_SHADER_STAGE_COMPUTE_BIT, shader);
@@ -47,6 +66,9 @@ namespace worlds {
         dsu.beginBuffers(2, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
         dsu.buffer(ctx.resources.vpMatrixBuffer->buffer(), 0, sizeof(MultiVP));
 
+        dsu.beginImages(3, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+        dsu.image(sampler, depthStencilImage->image.imageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
         dsu.update(handles->device);
     }
 
@@ -58,10 +80,13 @@ namespace worlds {
         auto& cmdBuf = ctx.cmdBuf;
         addDebugLabel(cmdBuf, "Light Culling", 1.0f, 0.0f, 0.0f, 1.0f);
 
+        VkImageLayout oldLayout = depthStencilImage->image.layout();
+        depthStencilImage->image.setLayout(cmdBuf, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_READ_BIT, VK_IMAGE_ASPECT_DEPTH_BIT);
+
         vkCmdBindDescriptorSets(cmdBuf, VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
         vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline);
 
-        LightCullPushConstants lcpc {
+        LightCullPushConstants lcpc{
             .screenWidth = ctx.passWidth,
             .screenHeight = ctx.passHeight,
             .eyeIdx = 0
@@ -80,6 +105,15 @@ namespace worlds {
             vkCmdDispatch(cmdBuf, xTiles, yTiles, 1);
         }
 
+        depthStencilImage->image.setLayout(cmdBuf, oldLayout, VK_IMAGE_ASPECT_DEPTH_BIT);
+
         vkCmdEndDebugUtilsLabelEXT(cmdBuf);
+    }
+
+    LightCullPass::~LightCullPass() {
+        vkDestroyPipeline(handles->device, pipeline, nullptr);
+        vkDestroyPipelineLayout(handles->device, pipelineLayout, nullptr);
+        vkDestroySampler(handles->device, sampler, nullptr);
+        vkDestroyDescriptorSetLayout(handles->device, dsl, nullptr);
     }
 }

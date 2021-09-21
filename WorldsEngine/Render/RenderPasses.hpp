@@ -154,14 +154,19 @@ namespace worlds {
 
         VkDescriptorSetLayout dsl;
         VkDescriptorSet descriptorSet;
+        VkSampler sampler;
 
         VkShaderModule shader;
         VulkanHandles* handles;
+        RenderTexture* depthStencilImage;
     public:
-        LightCullPass(VulkanHandles* handles);
+        LightCullPass(VulkanHandles* handles, RenderTexture* depthStencilImage);
         void setup(RenderContext& ctx, VkBuffer lightBuffer, VkBuffer lightTileBuffer, VkDescriptorPool descriptorPool);
         void execute(RenderContext& ctx, int tileSize);
+        ~LightCullPass();
     };
+
+    struct LightTileBuffer;
 
     class PolyRenderPass {
     private:

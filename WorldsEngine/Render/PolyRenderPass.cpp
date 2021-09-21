@@ -37,8 +37,8 @@ namespace ShaderFlags {
 namespace worlds {
     ConVar showWireframe("r_wireframeMode", "0", "0 - No wireframe; 1 - Wireframe only; 2 - Wireframe + solid");
     ConVar dbgDrawMode("r_dbgDrawMode", "0", "0 = Normal, 1 = Normals, 2 = Metallic, 3 = Roughness, 4 = AO");
-    ConVar lightTileSize("r_lightTileSize", "32");
-    ConVar useGpuLightCulling("r_useGpuLightCulling", "0");
+    ConVar lightTileSize("r_lightTileSize", "16");
+    ConVar useGpuLightCulling("r_useGpuLightCulling", "1");
 
     struct StandardPushConstants {
         uint32_t modelMatrixIdx;
@@ -67,6 +67,19 @@ namespace worlds {
     struct LineVert {
         glm::vec3 pos;
         glm::vec4 col;
+    };
+
+    struct LightingTile {
+        uint32_t lightId[256];
+    };
+
+    struct LightTileBuffer {
+        uint32_t tileSize;
+        uint32_t tilesPerEye;
+        uint32_t numTilesX;
+        uint32_t numTilesY;
+        uint32_t tileLightCount[16384];
+        LightingTile tiles[16384];
     };
 
     void PolyRenderPass::updateDescriptorSets(RenderContext& ctx) {
@@ -475,7 +488,7 @@ namespace worlds {
         uiPass = new WorldSpaceUIPass(handles);
         uiPass->setup(ctx, renderPass, descriptorPool);
 
-        lightCullPass = new LightCullPass(handles);
+        lightCullPass = new LightCullPass(handles, depthStencilImage);
         lightCullPass->setup(ctx, lightsUB.buffer(), lightTileBuffer.buffer(), descriptorPool);
 
         updateDescriptorSets(ctx);
@@ -554,14 +567,14 @@ namespace worlds {
                     tileFrustum.planes[5] = glm::vec4(temp_normal, -dot(temp_normal, tileFrustum.points[4]));
                 }
 
-                LightTile& currentTile = tileBuf->tiles[tileIdx];
+                //LightTile& currentTile = tileBuf->tiles[tileIdx];
                 uint32_t tileLightCount = 0;
 
                 reg.view<WorldLight, Transform>().each([&](auto ent, WorldLight& l, Transform& transform) {
                     float distance = glm::sqrt(1.0f / l.distanceCutoff);
                     if (l.lightIdx == ~0u) return;
                     if ((tileFrustum.containsSphere(transform.position, distance) || l.type == LightType::Directional)) {
-                        currentTile.lightIds[tileLightCount] = l.lightIdx;
+                        tileBuf->tiles[tileIdx].lightId[tileLightCount] = l.lightIdx;
                         tileLightCount++;
                     }
                     });
@@ -787,6 +800,14 @@ namespace worlds {
         lightTilesMapped->numTilesX = xTiles;
         lightTilesMapped->numTilesY = yTiles;
 
+        int realTotalTiles = totalTiles;
+
+        if (ctx.passSettings.enableVR)
+            realTotalTiles *= 2;
+
+        if (realTotalTiles > 16384)
+            fatalErr("Too many lighting tiles");
+
         lightMapped->pack0.x = (float)lightIdx;
         lightMapped->pack0.y = ctx.cascadeInfo.texelsPerUnit[0];
         lightMapped->pack0.z = ctx.cascadeInfo.texelsPerUnit[1];
@@ -850,10 +871,12 @@ namespace worlds {
             VK_DEPENDENCY_BY_REGION_BIT, VK_ACCESS_HOST_WRITE_BIT, VK_ACCESS_UNIFORM_READ_BIT,
             VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED);
 
-        lightTileBuffer.barrier(
-            cmdBuf, VK_PIPELINE_STAGE_HOST_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-            VK_DEPENDENCY_BY_REGION_BIT, VK_ACCESS_HOST_WRITE_BIT, VK_ACCESS_UNIFORM_READ_BIT,
-            VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED);
+        if (!useGpuLightCulling.getInt()) {
+            lightTileBuffer.barrier(
+                cmdBuf, VK_PIPELINE_STAGE_HOST_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+                VK_DEPENDENCY_BY_REGION_BIT, VK_ACCESS_HOST_WRITE_BIT, VK_ACCESS_UNIFORM_READ_BIT,
+                VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED);
+        }
 
 
         if (pickThisFrame) {
@@ -877,6 +900,12 @@ namespace worlds {
             VK_ACCESS_SHADER_READ_BIT);
 
         if (useGpuLightCulling.getInt()) {
+            lightTileBuffer.barrier(cmdBuf,
+                VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                VK_DEPENDENCY_BY_REGION_BIT,
+                VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT,
+                VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED);
+
             lightCullPass->execute(ctx, lightTileSize.getInt());
 
             lightTileBuffer.barrier(cmdBuf, 
