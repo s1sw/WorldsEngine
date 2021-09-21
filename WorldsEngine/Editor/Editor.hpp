@@ -82,7 +82,7 @@ namespace worlds {
         Window,
         Help
     };
-    
+
     class GameProject {
     public:
         GameProject(std::string path);
@@ -204,7 +204,7 @@ namespace worlds {
         bool handleOverriden = false;
         bool entityEyedropperActive = false;
         entt::entity eyedroppedEntity = entt::null;
-        int lastSaveModificationCount = 0;
+        uint32_t lastSaveModificationCount = 0;
         Transform* overrideTransform;
 
         UITextureManager* texMan;

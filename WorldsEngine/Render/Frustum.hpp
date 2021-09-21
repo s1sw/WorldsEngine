@@ -21,7 +21,7 @@ namespace worlds {
             return glm::vec4{ a, b, c, d };
         }
 
-        glm::vec3 normal() {
+        glm::vec3 normal() const {
             return glm::vec3{ a, b, c };
         }
     };
@@ -110,11 +110,12 @@ namespace worlds {
 
         bool containsSphere(glm::vec3 center, float radius) {
             for (int i = 0; i < 6; i++) {
-                Plane plane = planes[i];
+                const Plane& plane = planes[i];
                 float distance = glm::dot(center, plane.normal()) + plane.d;
                 if (distance < -radius)
                     return false;
             }
+
             return true;
         }
 

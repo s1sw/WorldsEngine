@@ -147,6 +147,22 @@ namespace worlds {
         void execute(RenderContext& ctx);
     };
 
+    class LightCullPass {
+    private:
+        VkPipeline pipeline;
+        VkPipelineLayout pipelineLayout;
+
+        VkDescriptorSetLayout dsl;
+        VkDescriptorSet descriptorSet;
+
+        VkShaderModule shader;
+        VulkanHandles* handles;
+    public:
+        LightCullPass(VulkanHandles* handles);
+        void setup(RenderContext& ctx, VkBuffer lightBuffer, VkBuffer lightTileBuffer, VkDescriptorPool descriptorPool);
+        void execute(RenderContext& ctx, int tileSize);
+    };
+
     class PolyRenderPass {
     private:
         VkRenderPass renderPass;
@@ -197,7 +213,10 @@ namespace worlds {
         SkyboxPass* skyboxPass;
         DepthPrepass* depthPrepass;
         WorldSpaceUIPass* uiPass;
+        LightCullPass* lightCullPass;
         VulkanHandles* handles;
+
+        void generateDrawInfo(RenderContext& ctx);
     public:
         PolyRenderPass(VulkanHandles* handles, RenderTexture* depthStencilImage, RenderTexture* polyImage, bool enablePicking = false);
         void setPickCoords(int x, int y) { pickX = x; pickY = y; }

@@ -3,6 +3,7 @@
 #include <Render/vku/vku.hpp>
 #include <Render/ResourceSlots.hpp>
 #include <tracy/TracyVulkan.hpp>
+#include <robin_hood.h>
 
 namespace worlds {
     class PolyRenderPass;
@@ -160,7 +161,7 @@ namespace worlds {
         TextureSlots& textures;
         CubemapSlots& cubemaps;
         MaterialSlots& materials;
-        std::unordered_map<AssetID, LoadedMeshData>& meshes;
+        robin_hood::unordered_map<AssetID, LoadedMeshData>& meshes;
         vku::GenericImage* brdfLut;
         vku::GenericBuffer* materialBuffer;
         vku::GenericBuffer* vpMatrixBuffer;
@@ -307,7 +308,7 @@ namespace worlds {
         float timestampPeriod;
 
         std::vector<VKRTTPass*> rttPasses;
-        std::unordered_map<AssetID, LoadedMeshData> loadedMeshes;
+        robin_hood::unordered_map<AssetID, LoadedMeshData> loadedMeshes;
         std::vector<TracyVkCtx> tracyContexts;
         std::unique_ptr<TextureSlots> texSlots;
         std::unique_ptr<MaterialSlots> matSlots;
@@ -377,7 +378,7 @@ namespace worlds {
 
     inline void addDebugLabel(VkCommandBuffer cmdBuf, const char* name, float r, float g, float b, float a) {
         VkDebugUtilsLabelEXT label{ VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT };
-        label.pLabelName = "Depth Pre-Pass";
+        label.pLabelName = name;
         label.color[0] = r;
         label.color[1] = g;
         label.color[2] = b;

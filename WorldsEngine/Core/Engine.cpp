@@ -273,7 +273,7 @@ namespace worlds {
 
         // Initialisation Stuffs
         // =====================
-        ISplashScreen* splashWindow;
+        ISplashScreen* splashWindow = nullptr;
 
         if (!dedicatedServer) {
 #ifdef __linux__
@@ -604,9 +604,7 @@ namespace worlds {
 
             screenRTTPass = renderer->createRTTPass(screenRTTCI);
 
-            logVrb("deleting splashWindow");
             delete splashWindow;
-            logVrb("splashWIndow deleted");
 
             if (useEventThread) {
                 SDL_Event evt;

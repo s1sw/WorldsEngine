@@ -1233,16 +1233,18 @@ namespace worlds {
 
         void toJson(entt::entity ent, entt::registry& reg, json& j) override {
             auto& as = reg.get<AudioSource>(ent);
+            std::string evtPath;
+            evtPath.assign(as.eventPath());
 
             j = {
-                { "eventPath", as.eventPath() },
+                { "eventPath", evtPath },
                 { "playOnSceneStart", as.playOnSceneStart }
             };
         }
 
         void fromJson(entt::entity ent, entt::registry& reg, const json& j) override {
             auto& as = reg.emplace<AudioSource>(ent);
-            as.changeEventPath(j["eventPath"]);
+            as.changeEventPath(j["eventPath"].get<std::string>());
             as.playOnSceneStart = j["playOnSceneStart"];
         }
     };

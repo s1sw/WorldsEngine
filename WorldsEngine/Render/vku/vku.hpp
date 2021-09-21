@@ -2364,6 +2364,22 @@ namespace vku {
         return (VkSampleCountFlagBits)sampleCount;
     }
 
+    inline VkClearValue makeColorClearValue(float r, float g, float b, float a) {
+        VkClearValue clearVal;
+        clearVal.color.float32[0] = r;
+        clearVal.color.float32[1] = g;
+        clearVal.color.float32[2] = b;
+        clearVal.color.float32[3] = a;
+        return clearVal;
+    }
+
+    inline VkClearValue makeDepthStencilClearValue(float depth, uint32_t stencil) {
+        VkClearValue clearVal;
+        clearVal.depthStencil.depth = depth;
+        clearVal.depthStencil.stencil = stencil;
+        return clearVal;
+    }
+
     inline ShaderModule loadShaderAsset(VkDevice device, worlds::AssetID id) {
         PHYSFS_File* file = worlds::AssetDB::openAssetFileRead(id);
         size_t size = PHYSFS_fileLength(file);

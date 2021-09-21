@@ -32,7 +32,7 @@ physx_deps = [
   cc.find_library('PhysXPvdSDK_static_64', dirs: lib_dir),
   cc.find_library('PhysX_static_64', dirs: lib_dir),
   cc.find_library('PhysXVehicle_static_64', dirs: lib_dir)
-]
+  ]
 
 worlds_inc = include_directories('.')
 tracy_inc = include_directories('./tracy/')
@@ -45,14 +45,14 @@ assimp_dep = dependency('assimp', required: false)
 system_lib_dir = host_machine.system() + '64dbg'
 
 if get_option('buildtype').startswith('release')
-	system_lib_dir = host_machine.system() + '64rel'
+  system_lib_dir = host_machine.system() + '64rel'
 endif
 
 if not assimp_dep.found()
-    cpp_comp = meson.get_compiler('cpp')
+  cpp_comp = meson.get_compiler('cpp')
     assimp_dir = meson.project_source_root() + '/External/Assimp/' + system_lib_dir
     if get_option('buildtype').startswith('release')
-        assimp_dir = meson.project_source_root() + '/External/Assimp/' + system_lib_dir
+      assimp_dir = meson.project_source_root() + '/External/Assimp/' + system_lib_dir
     endif
     assimp_inc_dir = '../External/Assimp/include'
 
@@ -79,14 +79,14 @@ if host_machine.system() == 'windows'
   platform_deps += cc.find_library('ws2_32')
   platform_deps += cc.find_library('dwmapi')
   platform_deps += cc.find_library('gdiplus')
-  
+
   # FMOD
   platform_incdirs += include_directories('C:\\Program Files (x86)\\FMOD SoundSystem\\FMOD Studio API Windows\\api\\studio\\inc')
   platform_incdirs += include_directories('C:\\Program Files (x86)\\FMOD SoundSystem\\FMOD Studio API Windows\\api\\core\\inc')
-  
+
   fmod_lib_dir = 'C:\\Program Files (x86)\\FMOD SoundSystem\\FMOD Studio API Windows\\api\\core\\lib\\x64'
   fmod_studio_lib_dir = 'C:\\Program Files (x86)\\FMOD SoundSystem\\FMOD Studio API Windows\\api\\studio\\lib\\x64'
-  
+
   platform_deps += cc.find_library('fmod_vc', dirs: fmod_lib_dir)
   platform_deps += cc.find_library('fmodstudio_vc', dirs: fmod_studio_lib_dir)
 endif
@@ -96,6 +96,16 @@ if host_machine.system() == 'linux'
   platform_deps += cc.find_library('xcb')
   platform_deps += cc.find_library('xcb-ewmh')
   platform_deps += cc.find_library('xcb-image')
+
+  # FMOD
+  platform_incdirs += get_option('fmod_api_path') + '/api/studio/inc'
+  platform_incdirs += get_option('fmod_api_path') + '/api/core/inc'
+
+  fmod_lib_dir = get_option('fmod_api_path') + '/api/core/lib/x86_64'
+  fmod_studio_lib_dir = get_option('fmod_api_path') + '/api/studio/lib/x86_64'
+
+  platform_deps += cc.find_library('fmod', dirs: fmod_lib_dir)
+  platform_deps += cc.find_library('fmodstudio', dirs: fmod_studio_lib_dir)
 endif
 
 steam_audio_dep = cc.find_library('phonon', dirs: meson.project_source_root() + '/External/Lib')
@@ -103,7 +113,7 @@ steam_audio_dep = cc.find_library('phonon', dirs: meson.project_source_root() + 
 freetype_dep = dependency('freetype', required: false)
 
 if not freetype_dep.found()
-    cpp_comp = meson.get_compiler('cpp')
+  cpp_comp = meson.get_compiler('cpp')
     freetype_dir = meson.project_source_root() + '/External/Lib/' + system_lib_dir
 
     freetype_lib = cpp_comp.find_library('freetype', dirs: freetype_dir)
@@ -117,8 +127,8 @@ worlds = static_library('worlds', worlds_sources + ['tracy/TracyClient.cpp'],
     dl_dep, openvr_dep, wmdl_dep, discord_csdk_dep,
     discord_sdk_dep, enet_dep,
     slib_dep, platform_deps, steam_audio_dep,
-	freetype_dep
-  ],
+    freetype_dep
+    ],
   link_args: ['-rdynamic']
-)
+  )
 worlds_dep = declare_dependency(include_directories: worlds_inc, link_with: worlds)
