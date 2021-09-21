@@ -186,6 +186,7 @@
     <ClCompile Include="..\WorldsEngine\Render\DebugLinesPass.cpp" />
     <ClCompile Include="..\WorldsEngine\Render\DepthPrepass.cpp" />
     <ClCompile Include="..\WorldsEngine\Render\ImGuiRenderPass.cpp" />
+    <ClCompile Include="..\WorldsEngine\Render\LightCullPass.cpp" />
     <ClCompile Include="..\WorldsEngine\Render\Loaders\CubemapLoader.cpp" />
     <ClCompile Include="..\WorldsEngine\Render\Loaders\ObjModelLoader.cpp" />
     <ClCompile Include="..\WorldsEngine\Render\Loaders\RobloxMeshLoader.cpp" />

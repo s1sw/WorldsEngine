@@ -59,16 +59,6 @@ namespace Game
                 left.TriggerHaptics(0.0f, 0.1f, 60.0f, 1.0f);
                 right.TriggerHaptics(0.0f, 0.1f, 60.0f, 1.0f);
             }
-
-            if (ImGui.Begin("VR Positions"))
-            {
-                ImGui.Text($"HMD: {VR.HMDTransform.Position}");
-                ImGui.Text($"Left Controller: {VR.LeftHandTransform.Position}");
-                ImGui.Text($"Right Controller: {VR.RightHandTransform.Position}");
-
-                ImGui.Text($"Left Rotation: {VR.LeftHandTransform.Rotation}");
-            }
-            ImGui.End();
         }
     }
 }

@@ -1,4 +1,5 @@
 using Game.Interaction;
+using System;
 using WorldsEngine;
 using WorldsEngine.Audio;
 using WorldsEngine.Math;
@@ -65,7 +66,6 @@ namespace Game
                 _ => "event:/Weapons/Gun Shot"
             };
 
-            //Audio.PlayOneShot(sfx, projectileTransform.Position + (projectileTransform.Forward * ProjectileSpawnDistance), ProjectileType == ProjectileType.Humongous ? 2.0f : 0.5f);
             Audio.PlayOneShotEvent(evt, projectileTransform.Position);
 
             Entity projectile = Registry.CreatePrefab(_projectilePrefab);
@@ -83,6 +83,13 @@ namespace Game
             projectileDpa.Pose = projectileTransform;
 
             dpa.AddForce(-transform.TransformDirection(Vector3.Forward) * speed * projectileDpa.Mass, ForceMode.Impulse);
+
+            if (Registry.HasComponent<Grabbable>(entity))
+            {
+                var grabbable = Registry.GetComponent<Grabbable>(entity);
+
+                HapticManager.Trigger(grabbable.AttachedHandFlags, 0.0f, MathF.Min(ShotSpacing, 0.2f), 50f, 1.0f);
+            }
         }
 
         public void Think(Entity entity)

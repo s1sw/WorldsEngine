@@ -57,7 +57,7 @@ namespace Game.Interaction
             float linearScore = hand.Position.DistanceTo(obj.TransformPoint(position));
             float angularScore = Quaternion.Dot(hand.Rotation.SingleCover, (rotation * obj.Rotation).SingleCover);
 
-            return linearScore;
+            return linearScore * angularScore;
         }
     }
 }
