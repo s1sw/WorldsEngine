@@ -118,8 +118,16 @@ namespace worlds {
         return FMOD_OK;
     }
 
-    void steamAudioDebugCallback(IPLLogLevel logLevel, const char* message) {
+    void IPLCALL steamAudioDebugCallback(IPLLogLevel logLevel, const char* message) {
         logMsg(WELogCategoryAudio, "%s", message);
+    }
+
+    void* IPLCALL steamAudioAllocAligned(IPLsize size, IPLsize alignment) {
+        return _aligned_malloc(size, alignment);
+    }
+
+    void IPLCALL steamAudioFreeAligned(void* memBlock) {
+        _aligned_free(memBlock);
     }
 
     void AudioSource::changeEventPath(const std::string_view& eventPath) {
@@ -170,7 +178,7 @@ namespace worlds {
         FMCHECK(studioSystem->getCoreSystem(&system));
         FMCHECK(system->setSoftwareFormat(0, FMOD_SPEAKERMODE_STEREO, 0));
 
-        FMCHECK(studioSystem->initialize(1024, FMOD_STUDIO_INIT_NORMAL, FMOD_INIT_NORMAL, nullptr));
+        FMCHECK(studioSystem->initialize(1024, FMOD_STUDIO_INIT_NORMAL | FMOD_STUDIO_INIT_LIVEUPDATE, FMOD_INIT_NORMAL, nullptr));
         FMCHECK(studioSystem->setNumListeners(1));
 
         FMCHECK(system->setFileSystem(fileOpenCallback, fileCloseCallback, fileReadCallback, fileSeekCallback, nullptr, nullptr, -1));
@@ -207,6 +215,8 @@ namespace worlds {
         contextSettings.version = STEAMAUDIO_VERSION;
         contextSettings.simdLevel = IPL_SIMDLEVEL_SSE4;
         contextSettings.logCallback = steamAudioDebugCallback;
+        contextSettings.allocateCallback = steamAudioAllocAligned;
+        contextSettings.freeCallback = steamAudioFreeAligned;
 
         SACHECK(iplContextCreate(&contextSettings, &phononContext));
 
@@ -219,7 +229,7 @@ namespace worlds {
         iplFMODSetHRTF(phononHrtf);
 
         IPLSimulationSettings simulationSettings{};
-        simulationSettings.flags = IPL_SIMULATIONFLAGS_DIRECT;
+        simulationSettings.flags = (IPLSimulationFlags)(IPL_SIMULATIONFLAGS_DIRECT | IPL_SIMULATIONFLAGS_REFLECTIONS);
         simulationSettings.sceneType = IPL_SCENETYPE_DEFAULT;
         simulationSettings.maxNumOcclusionSamples = 1024;
         simulationSettings.maxNumRays = 64;
@@ -233,9 +243,12 @@ namespace worlds {
         simulationSettings.samplingRate = audioSettings.samplingRate;
         simulationSettings.frameSize = audioSettings.frameSize;
 
+        SACHECK(iplSimulatorCreate(phononContext, &simulationSettings, &simulator));
+
         iplFMODSetSimulationSettings(simulationSettings);
 
         instance = this;
+        lastListenerPos = glm::vec3(0.0f, 0.0f, 0.0f);
     }
 
     void AudioSystem::initialise(entt::registry& worldState) {
@@ -252,8 +265,8 @@ namespace worlds {
     }
 
     void AudioSystem::loadMasterBanks() {
-        masterBank = loadBank("FMOD/Master.bank");
-        stringsBank = loadBank("FMOD/Master.strings.bank");
+        masterBank = loadBank("FMOD/Desktop/Master.bank");
+        stringsBank = loadBank("FMOD/Desktop/Master.strings.bank");
     }
 
     FMOD_VECTOR convVec(glm::vec3 v3) {
@@ -267,6 +280,9 @@ namespace worlds {
     void AudioSystem::update(entt::registry& worldState, glm::vec3 listenerPos, glm::quat listenerRot, float deltaTime) {
         glm::vec3 movement = listenerPos - lastListenerPos;
         movement /= deltaTime;
+
+        if (glm::any(glm::isinf(movement)) || glm::any(glm::isnan(movement)))
+            movement = glm::vec3{ 0.0f };
 
         FMOD_3D_ATTRIBUTES listenerAttributes{};
         listenerAttributes.forward = convVec(listenerRot * glm::vec3(0.0f, 0.0f, 1.0f));
@@ -291,10 +307,6 @@ namespace worlds {
     }
 
     void AudioSystem::stopEverything(entt::registry& reg) {
-        for (auto& pair : eventDescs) {
-            FMCHECK(pair.second->releaseAllInstances());
-        }
-
         reg.view<AudioSource>().each([](AudioSource& as) {
             as.eventInstance->stop(FMOD_STUDIO_STOP_IMMEDIATE);
         });
@@ -325,22 +337,11 @@ namespace worlds {
         FMOD_RESULT result;
 
         FMOD::Studio::EventDescription* desc;
+        result = studioSystem->getEvent(eventPath, &desc);
 
-        if (!eventDescs.contains(eventPath)) {
-            result = studioSystem->getEvent(eventPath, &desc);
-
-            int instCount;
-            FMCHECK(desc->getInstanceCount(&instCount));
-            //logMsg("desc had %i instances", instCount);
-
-            if (result != FMOD_OK) {
-                logErr("Failed to get event %s: %s", eventPath, FMOD_ErrorString(result));
-                return;
-            }
-
-            eventDescs.insert({ eventPath, desc });
-        } else {
-            desc = eventDescs.at(eventPath);
+        if (result != FMOD_OK) {
+            logErr("Failed to get event %s: %s", eventPath, FMOD_ErrorString(result));
+            return;
         }
 
         FMOD::Studio::EventInstance* instance;

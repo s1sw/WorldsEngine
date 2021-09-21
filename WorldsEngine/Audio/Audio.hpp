@@ -84,7 +84,7 @@ namespace worlds {
 
         friend struct AudioSource;
 
-        glm::vec3 lastListenerPos{0.0f};
+        glm::vec3 lastListenerPos;
         static AudioSystem* instance;
         FMOD::Studio::System* studioSystem;
         FMOD::System* system;
@@ -94,9 +94,9 @@ namespace worlds {
         uint32_t phononPluginHandle;
         IPLContext phononContext;
         IPLHRTF phononHrtf;
+        IPLSimulator simulator;
 
         robin_hood::unordered_map<const char*, FMOD::Studio::Bank*> loadedBanks;
         robin_hood::unordered_map<AssetID, FMOD::Sound*> sounds;
-        robin_hood::unordered_map<const char*, FMOD::Studio::EventDescription*> eventDescs;
     };
 }
