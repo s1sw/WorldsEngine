@@ -3,10 +3,10 @@
 #include <aobox.glsl>
 #include <aosphere.glsl>
 
-layout (local_size_x = 128, local_size_y = 1) in;
+layout (local_size_x = 16, local_size_y = 16) in;
 
 struct LightingTile {
-    uint lightIds[128];
+    uint lightIds[256];
 };
 
 layout (binding = 0) buffer LightTileBuffer {
@@ -25,7 +25,7 @@ layout (std430, binding = 1) readonly buffer LightBuffer {
     // (ao box count, ao sphere count, zw unused)
     vec4 pack1;
     mat4 dirShadowMatrices[3];
-    Light lights[128];
+    Light lights[256];
     AOBox aoBox[16];
     AOSphere aoSphere[16];
     uint sphereIds[16];
@@ -50,6 +50,8 @@ struct Frustum {
 };
 
 shared Frustum tileFrustum;
+shared uint minDepthU;
+shared uint maxDepthU;
 
 bool containsSphere(vec3 spherePos, float sphereRadius) {
     for (int i = 0; i < 6; i++) {
@@ -63,18 +65,39 @@ bool containsSphere(vec3 spherePos, float sphereRadius) {
 }
 
 void main() {
+	if (gl_LocalInvocationIndex.x == 0) {
+		minDepthU = 4294967295u;
+		maxDepthU = 0u;
+	}
+	
     uint x = gl_WorkGroupID.x;
     uint y = gl_WorkGroupID.y;
-    uint tileIndex = (y * buf_LightTiles.numTilesX) + x;
+    uint tileIndex = ((y * buf_LightTiles.numTilesX) + x) + (eyeIdx * buf_LightTiles.tilesPerEye);
 
     buf_LightTiles.tiles[tileIndex].lightIds[gl_LocalInvocationIndex] = ~0u;
-
-    if (gl_LocalInvocationIndex >= buf_Lights.pack0.x) {
+	
+	// THIS ONLY WORKS FOR 16x16 TILES.
+	// Changing the tile size means that there's no longer a 1:1 correlation between threads
+	// and tile pixels, so this atomic depth read won't work.
+	float depthAtCurrent = texelFetch(depthBuffer, ivec3(gl_GlobalInvocationID.xy, eyeIdx), 0).x;
+	uint depthAsUint = floatBitsToUint(depthAtCurrent);
+	
+	atomicMin(minDepthU, depthAsUint);
+	atomicMax(maxDepthU, depthAsUint);
+	
+	barrier();
+	
+	if (gl_LocalInvocationIndex >= buf_Lights.pack0.x) {
         return;
     }
 
     // Stage 1: Calculate the frustum for this workgroup
     if (gl_LocalInvocationIndex == 0) {
+		float minDepth = uintBitsToFloat(minDepthU);
+		float maxDepth = uintBitsToFloat(maxDepthU);
+		
+		//debugPrintfEXT("maxDepth %f, minDepth %f", maxDepth, minDepth);
+		
         buf_LightTiles.tileLightCounts[tileIndex] = 0;
         float tileSize = buf_LightTiles.tileSize;
         vec2 ndcTileSize = 2.0f * vec2(tileSize, -tileSize) / vec2(screenWidth, screenHeight);
@@ -98,12 +121,12 @@ void main() {
         for (int i = 0; i < 4; i++) {
             // Find the point on the near plane
             // Projection matrices are reverse-Z so use 1.0 for Z
-            vec4 projected = invProjView * vec4(ndcTileCorners[i], 1.0f, 1.0f);
+            vec4 projected = invProjView * vec4(ndcTileCorners[i], 1.0, 1.0f);
             frustumPoints[i] = vec3(projected) / projected.w;
 
             // And also on the far plane
             // Use a really small value for Z, otherwise we'll get infinity
-            projected = invProjView * vec4(ndcTileCorners[i], 0.0000001f, 1.0f);
+            projected = invProjView * vec4(ndcTileCorners[i], 0.00000001, 1.0f);
             frustumPoints[i + 4] = vec3(projected / projected.w);
         }
 
@@ -129,25 +152,26 @@ void main() {
     }
     barrier();
 
+
     // Stage 2: Cull lights against the frustum
-    uint lightIndex = gl_LocalInvocationIndex;
-    Light light = buf_Lights.lights[lightIndex];
-    vec3 lightPosition = light.pack2.xyz;
-
-    int lightType = int(light.pack0.w);
-
-    if (lightType == LT_TUBE) {
-        // Take the average position of the two end points
-        lightPosition = (light.pack1.xyz + light.pack2.xyz) * 0.5;
-    }
-
-    float lightRadius = buf_Lights.lights[lightIndex].distanceCutoff;
-
-    if (containsSphere(lightPosition, lightRadius)) {
-        buf_LightTiles.tiles[tileIndex].lightIds[gl_LocalInvocationIndex] = lightIndex;
-    }
-
-    memoryBarrier();
+	uint lightIndex = gl_LocalInvocationIndex;
+	Light light = buf_Lights.lights[lightIndex];
+	vec3 lightPosition = light.pack2.xyz;
+	
+	int lightType = int(light.pack0.w);
+	
+	if (lightType == LT_TUBE) {
+		// Take the average position of the two end points
+		lightPosition = (light.pack1.xyz + light.pack2.xyz) * 0.5;
+	}
+	
+	float lightRadius = buf_Lights.lights[lightIndex].distanceCutoff;
+	
+	if (containsSphere(lightPosition, lightRadius)) {
+		buf_LightTiles.tiles[tileIndex].lightIds[gl_LocalInvocationIndex] = lightIndex;
+	}
+	
+	memoryBarrier();
     // Stage 3: Compact
     if (gl_LocalInvocationIndex == 0) {
         int currentInsertionPoint = 0;

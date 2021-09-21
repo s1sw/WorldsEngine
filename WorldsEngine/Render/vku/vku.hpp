@@ -2027,8 +2027,8 @@ namespace vku {
                 1, &imageMemoryBarriers);
         }
 
-        void setLayout(VkCommandBuffer cmdBuf, ImageLayout newLayout, PipelineStageFlags newStage, AccessFlags newAccess) {
-            setLayout(cmdBuf, newLayout, s.lastUsageStage, newStage, s.lastUsageAccessFlags, newAccess);
+        void setLayout(VkCommandBuffer cmdBuf, ImageLayout newLayout, PipelineStageFlags newStage, AccessFlags newAccess, VkImageAspectFlags aspectMask = VK_IMAGE_ASPECT_COLOR_BIT) {
+            setLayout(cmdBuf, newLayout, s.lastUsageStage, newStage, s.lastUsageAccessFlags, newAccess, aspectMask);
         }
 
         /// Set what the image thinks is its current layout (ie. the old layout in an image barrier).
