@@ -1,1 +1,2 @@
 option('enable_discord_rpc', type: 'boolean', value: false)
+option('fmod_api_path', type: 'string')

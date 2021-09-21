@@ -37,6 +37,8 @@ namespace ShaderFlags {
 namespace worlds {
     ConVar showWireframe("r_wireframeMode", "0", "0 - No wireframe; 1 - Wireframe only; 2 - Wireframe + solid");
     ConVar dbgDrawMode("r_dbgDrawMode", "0", "0 = Normal, 1 = Normals, 2 = Metallic, 3 = Roughness, 4 = AO");
+    ConVar lightTileSize("r_lightTileSize", "32");
+    ConVar useGpuLightCulling("r_useGpuLightCulling", "0");
 
     struct StandardPushConstants {
         uint32_t modelMatrixIdx;
@@ -60,11 +62,6 @@ namespace worlds {
 
     struct PickingBuffer {
         uint32_t objectID;
-    };
-
-    struct PickBufCSPushConstants {
-        uint32_t clearObjId;
-        uint32_t doPicking;
     };
 
     struct LineVert {
@@ -130,7 +127,6 @@ namespace worlds {
             fatalErr("updater was not ok");
 
         updater.update(handles->device);
-
 
         dsUpdateNeeded = false;
     }
@@ -479,6 +475,9 @@ namespace worlds {
         uiPass = new WorldSpaceUIPass(handles);
         uiPass->setup(ctx, renderPass, descriptorPool);
 
+        lightCullPass = new LightCullPass(handles);
+        lightCullPass->setup(ctx, lightsUB.buffer(), lightTileBuffer.buffer(), descriptorPool);
+
         updateDescriptorSets(ctx);
 
         if (ctx.passSettings.enableVR) {
@@ -491,14 +490,13 @@ namespace worlds {
 
     slib::StaticAllocList<SubmeshDrawInfo> drawInfo{ 8192 };
 
-    void doTileCulling(LightTileBuffer* tileBuf, glm::mat4 proj, glm::mat4 viewMat, int TILE_SIZE, int tileOffset, int screenWidth, int screenHeight, entt::registry& reg) {
-        const int xTiles = (screenWidth + (TILE_SIZE - 1)) / TILE_SIZE;
-        const int yTiles = (screenHeight + (TILE_SIZE - 1)) / TILE_SIZE;
+    void doTileCulling(LightTileBuffer* tileBuf, glm::mat4 proj, glm::mat4 viewMat, int tileSize, int tileOffset, int screenWidth, int screenHeight, entt::registry& reg) {
+        const int xTiles = (screenWidth + (tileSize - 1)) / tileSize;
+        const int yTiles = (screenHeight + (tileSize - 1)) / tileSize;
 
-        const int totalTiles = xTiles * yTiles;
         glm::mat4 invProjView = glm::inverse(proj * viewMat);
 
-        glm::vec2 ndcTileSize = 2.0f * glm::vec2(TILE_SIZE, -TILE_SIZE) / glm::vec2(screenWidth, screenHeight);
+        glm::vec2 ndcTileSize = 2.0f * glm::vec2(tileSize, -tileSize) / glm::vec2(screenWidth, screenHeight);
         glm::vec3 camPos = getMatrixTranslation(glm::inverse(viewMat));
 
         JobList& jl = g_jobSys->getFreeJobList();
@@ -578,23 +576,149 @@ namespace worlds {
         jl.wait();
     }
 
-    void PolyRenderPass::prePass(RenderContext& ctx) {
+    void PolyRenderPass::generateDrawInfo(RenderContext& ctx) {
         ZoneScoped;
-        auto& resources = ctx.resources;
 
-        glm::mat4 proj = ctx.projMatrices[0];
         Frustum frustum;
-        frustum.fromVPMatrix(proj * ctx.viewMatrices[0]);
+        frustum.fromVPMatrix(ctx.projMatrices[0] * ctx.viewMatrices[0]);
 
         Frustum frustumB;
-
         if (ctx.passSettings.enableVR) {
             frustumB.fromVPMatrix(ctx.projMatrices[1] * ctx.viewMatrices[1]);
         }
 
+        auto& resources = ctx.resources;
         auto& sceneSettings = ctx.registry.ctx<SceneSettings>();
-
         uint32_t skyboxId = ctx.resources.cubemaps.loadOrGet(sceneSettings.skybox);
+
+        drawInfo.clear();
+
+        int matrixIdx = 0;
+        bool warned = false;
+        ctx.registry.view<Transform, WorldObject>().each([&](entt::entity ent, Transform& t, WorldObject& wo) {
+            if (matrixIdx == ModelMatrices::SIZE - 1) {
+                if (!warned) {
+                    logWarn("Out of model matrices!");
+                    warned = true;
+                }
+                return;
+            }
+
+            auto meshPos = resources.meshes.find(wo.mesh);
+
+            if (meshPos == resources.meshes.end()) {
+                // Haven't loaded the mesh yet
+                matrixIdx++;
+                logWarn(WELogCategoryRender, "Missing mesh");
+                return;
+            }
+
+            float maxScale = glm::max(t.scale.x, glm::max(t.scale.y, t.scale.z));
+            if (!ctx.passSettings.enableVR) {
+                if (!frustum.containsSphere(t.position, meshPos->second.sphereRadius * maxScale)) {
+                    ctx.debugContext.stats->numCulledObjs++;
+                    return;
+                }
+            } else {
+                if (!frustum.containsSphere(t.position, meshPos->second.sphereRadius * maxScale) &&
+                    !frustumB.containsSphere(t.position, meshPos->second.sphereRadius * maxScale)) {
+                    ctx.debugContext.stats->numCulledObjs++;
+                    return;
+                }
+            }
+
+            modelMatricesMapped[ctx.imageIndex]->modelMatrices[matrixIdx] = t.getMatrix();
+
+            for (int i = 0; i < meshPos->second.numSubmeshes; i++) {
+                auto& currSubmesh = meshPos->second.submeshes[i];
+
+                SubmeshDrawInfo sdi{};
+                sdi.ib = meshPos->second.ib.buffer();
+                sdi.vb = meshPos->second.vb.buffer();
+                sdi.indexCount = currSubmesh.indexCount;
+                sdi.indexOffset = currSubmesh.indexOffset;
+                sdi.materialIdx = wo.materialIdx[i];
+                sdi.matrixIdx = matrixIdx;
+                sdi.texScaleOffset = wo.texScaleOffset;
+                sdi.ent = ent;
+                auto& packedMat = resources.materials[wo.materialIdx[i]];
+                sdi.opaque = packedMat.getCutoff() == 0.0f;
+
+                switch (wo.uvOverride) {
+                default:
+                    sdi.drawMiscFlags = 0;
+                    break;
+                case UVOverride::XY:
+                    sdi.drawMiscFlags = ShaderFlags::MISC_FLAG_UV_XY;
+                    break;
+                case UVOverride::XZ:
+                    sdi.drawMiscFlags = ShaderFlags::MISC_FLAG_UV_XZ;
+                    break;
+                case UVOverride::ZY:
+                    sdi.drawMiscFlags = ShaderFlags::MISC_FLAG_UV_ZY;
+                    break;
+                case UVOverride::PickBest:
+                    sdi.drawMiscFlags = ShaderFlags::MISC_FLAG_UV_PICK;
+                    break;
+                }
+
+                uint32_t currCubemapIdx = skyboxId;
+                int lastPriority = INT32_MIN;
+
+                ctx.registry.view<WorldCubemap, Transform>().each([&](WorldCubemap& wc, Transform& cubeT) {
+                    glm::vec3 cPos = t.position;
+                    glm::vec3 ma = wc.extent + cubeT.position;
+                    glm::vec3 mi = cubeT.position - wc.extent;
+
+                    if (cPos.x < ma.x && cPos.x > mi.x &&
+                        cPos.y < ma.y && cPos.y > mi.y &&
+                        cPos.z < ma.z && cPos.z > mi.z && wc.priority > lastPriority) {
+                        currCubemapIdx = resources.cubemaps.get(wc.cubemapId);
+                        if (wc.cubeParallax) {
+                            sdi.drawMiscFlags |= ShaderFlags::MISC_FLAG_CUBEMAP_PARALLAX; // flag for cubemap parallax correction
+                            sdi.cubemapPos = cubeT.position;
+                            sdi.cubemapExt = wc.extent;
+                        }
+                        lastPriority = wc.priority;
+                    }
+                    });
+
+                sdi.cubemapIdx = currCubemapIdx;
+
+                auto& extraDat = resources.materials.getExtraDat(wo.materialIdx[i]);
+
+                sdi.pipeline = sdi.opaque ? pipeline : alphaTestPipeline;
+
+                if (extraDat.noCull) {
+                    sdi.pipeline = noBackfaceCullPipeline;
+                } else if (extraDat.wireframe || showWireframe.getInt() == 1) {
+                    sdi.pipeline = wireframePipeline;
+                    sdi.dontPrepass = true;
+                } else if (ctx.registry.has<UseWireframe>(ent) || showWireframe.getInt() == 2) {
+                    drawInfo.add(sdi);
+                    ctx.debugContext.stats->numTriangles += currSubmesh.indexCount / 3;
+                    sdi.pipeline = wireframePipeline;
+                    sdi.dontPrepass = true;
+                }
+                ctx.debugContext.stats->numTriangles += currSubmesh.indexCount / 3;
+
+                drawInfo.add(std::move(sdi));
+            }
+
+            matrixIdx++;
+            });
+    }
+
+    void PolyRenderPass::prePass(RenderContext& ctx) {
+        ZoneScoped;
+
+        Frustum frustum;
+        frustum.fromVPMatrix(ctx.projMatrices[0] * ctx.viewMatrices[0]);
+
+        Frustum frustumB;
+        if (ctx.passSettings.enableVR) {
+            frustumB.fromVPMatrix(ctx.projMatrices[1] * ctx.viewMatrices[1]);
+        }
 
         int lightIdx = 0;
         ctx.registry.view<WorldLight, Transform>().each([&](auto ent, WorldLight& l, Transform& transform) {
@@ -646,19 +770,19 @@ namespace worlds {
             lightIdx++;
             });
 
-        const int TILE_SIZE = 32;
-        const int xTiles = (ctx.passWidth + (TILE_SIZE - 1)) / TILE_SIZE;
-        const int yTiles = (ctx.passHeight + (TILE_SIZE - 1)) / TILE_SIZE;
+        int tileSize = lightTileSize.getInt();
+        const int xTiles = (ctx.passWidth + (tileSize - 1)) / tileSize;
+        const int yTiles = (ctx.passHeight + (tileSize - 1)) / tileSize;
         const int totalTiles = xTiles * yTiles;
 
-        int numViews = ctx.passSettings.enableVR ? 2 : 1;
+        if (!useGpuLightCulling.getInt()) {
+            doTileCulling(lightTilesMapped, ctx.projMatrices[0], ctx.viewMatrices[0], tileSize, 0, ctx.passWidth, ctx.passHeight, ctx.registry);
 
-        doTileCulling(lightTilesMapped, ctx.projMatrices[0], ctx.viewMatrices[0], TILE_SIZE, 0, ctx.passWidth, ctx.passHeight, ctx.registry);
+            if (ctx.passSettings.enableVR)
+                doTileCulling(lightTilesMapped, ctx.projMatrices[1], ctx.viewMatrices[1], tileSize, totalTiles, ctx.passWidth, ctx.passHeight, ctx.registry);
+        }
 
-        if (ctx.passSettings.enableVR)
-            doTileCulling(lightTilesMapped, ctx.projMatrices[1], ctx.viewMatrices[1], TILE_SIZE, totalTiles, ctx.passWidth, ctx.passHeight, ctx.registry);
-
-        lightTilesMapped->tileSize = TILE_SIZE;
+        lightTilesMapped->tileSize = tileSize;
         lightTilesMapped->tilesPerEye = xTiles * yTiles;
         lightTilesMapped->numTilesX = xTiles;
         lightTilesMapped->numTilesY = yTiles;
@@ -696,125 +820,7 @@ namespace worlds {
             updateDescriptorSets(ctx);
         }
 
-        drawInfo.clear();
-
-        int matrixIdx = 0;
-        bool warned = false;
-        {
-            ZoneScopedN("PolyRenderPass SDI generation");
-            ctx.registry.view<Transform, WorldObject>().each([&](entt::entity ent, Transform& t, WorldObject& wo) {
-                if (matrixIdx == ModelMatrices::SIZE - 1) {
-                    if (!warned) {
-                        logWarn("Out of model matrices!");
-                        warned = true;
-                    }
-                    return;
-                }
-
-                auto meshPos = resources.meshes.find(wo.mesh);
-
-                if (meshPos == resources.meshes.end()) {
-                    // Haven't loaded the mesh yet
-                    matrixIdx++;
-                    logWarn(WELogCategoryRender, "Missing mesh");
-                    return;
-                }
-
-                float maxScale = glm::max(t.scale.x, glm::max(t.scale.y, t.scale.z));
-                if (!ctx.passSettings.enableVR) {
-                    if (!frustum.containsSphere(t.position, meshPos->second.sphereRadius * maxScale)) {
-                        ctx.debugContext.stats->numCulledObjs++;
-                        return;
-                    }
-                } else {
-                    if (!frustum.containsSphere(t.position, meshPos->second.sphereRadius * maxScale) &&
-                        !frustumB.containsSphere(t.position, meshPos->second.sphereRadius * maxScale)) {
-                        ctx.debugContext.stats->numCulledObjs++;
-                        return;
-                    }
-                }
-
-                modelMatricesMapped[ctx.imageIndex]->modelMatrices[matrixIdx] = t.getMatrix();
-
-                for (int i = 0; i < meshPos->second.numSubmeshes; i++) {
-                    auto& currSubmesh = meshPos->second.submeshes[i];
-
-                    SubmeshDrawInfo sdi = { 0 };
-                    sdi.ib = meshPos->second.ib.buffer();
-                    sdi.vb = meshPos->second.vb.buffer();
-                    sdi.indexCount = currSubmesh.indexCount;
-                    sdi.indexOffset = currSubmesh.indexOffset;
-                    sdi.materialIdx = wo.materialIdx[i];
-                    sdi.matrixIdx = matrixIdx;
-                    sdi.texScaleOffset = wo.texScaleOffset;
-                    sdi.ent = ent;
-                    auto& packedMat = resources.materials[wo.materialIdx[i]];
-                    sdi.opaque = packedMat.getCutoff() == 0.0f;
-
-                    switch (wo.uvOverride) {
-                    default:
-                        sdi.drawMiscFlags = 0;
-                        break;
-                    case UVOverride::XY:
-                        sdi.drawMiscFlags = ShaderFlags::MISC_FLAG_UV_XY;
-                        break;
-                    case UVOverride::XZ:
-                        sdi.drawMiscFlags = ShaderFlags::MISC_FLAG_UV_XZ;
-                        break;
-                    case UVOverride::ZY:
-                        sdi.drawMiscFlags = ShaderFlags::MISC_FLAG_UV_ZY;
-                        break;
-                    case UVOverride::PickBest:
-                        sdi.drawMiscFlags = ShaderFlags::MISC_FLAG_UV_PICK;
-                        break;
-                    }
-
-                    uint32_t currCubemapIdx = skyboxId;
-                    int lastPriority = INT32_MIN;
-
-                    ctx.registry.view<WorldCubemap, Transform>().each([&](WorldCubemap& wc, Transform& cubeT) {
-                        glm::vec3 cPos = t.position;
-                        glm::vec3 ma = wc.extent + cubeT.position;
-                        glm::vec3 mi = cubeT.position - wc.extent;
-
-                        if (cPos.x < ma.x && cPos.x > mi.x &&
-                            cPos.y < ma.y && cPos.y > mi.y &&
-                            cPos.z < ma.z && cPos.z > mi.z && wc.priority > lastPriority) {
-                            currCubemapIdx = resources.cubemaps.get(wc.cubemapId);
-                            if (wc.cubeParallax) {
-                                sdi.drawMiscFlags |= ShaderFlags::MISC_FLAG_CUBEMAP_PARALLAX; // flag for cubemap parallax correction
-                                sdi.cubemapPos = cubeT.position;
-                                sdi.cubemapExt = wc.extent;
-                            }
-                            lastPriority = wc.priority;
-                        }
-                        });
-
-                    sdi.cubemapIdx = currCubemapIdx;
-
-                    auto& extraDat = resources.materials.getExtraDat(wo.materialIdx[i]);
-
-                    sdi.pipeline = sdi.opaque ? pipeline : alphaTestPipeline;
-
-                    if (extraDat.noCull) {
-                        sdi.pipeline = noBackfaceCullPipeline;
-                    } else if (extraDat.wireframe || showWireframe.getInt() == 1) {
-                        sdi.pipeline = wireframePipeline;
-                        sdi.dontPrepass = true;
-                    } else if (ctx.registry.has<UseWireframe>(ent) || showWireframe.getInt() == 2) {
-                        drawInfo.add(sdi);
-                        ctx.debugContext.stats->numTriangles += currSubmesh.indexCount / 3;
-                        sdi.pipeline = wireframePipeline;
-                        sdi.dontPrepass = true;
-                    }
-                    ctx.debugContext.stats->numTriangles += currSubmesh.indexCount / 3;
-
-                    drawInfo.add(std::move(sdi));
-                }
-
-                matrixIdx++;
-                });
-        }
+        generateDrawInfo(ctx);
 
         dbgLinesPass->prePass(ctx);
         skyboxPass->prePass(ctx);
@@ -825,22 +831,17 @@ namespace worlds {
         ZoneScoped;
         TracyVkZone((*ctx.debugContext.tracyContexts)[ctx.imageIndex], ctx.cmdBuf, "Polys");
 
-        std::array<VkClearValue, 2> clearColours;
-        clearColours[0].color.float32[0] = 0.0f;
-        clearColours[0].color.float32[1] = 0.0f;
-        clearColours[0].color.float32[2] = 0.0f;
-        clearColours[0].color.float32[3] = 1.0f;
-
-        clearColours[1].depthStencil.depth = 0.0f;
-        clearColours[1].depthStencil.stencil = 0.0f;
+        std::array<VkClearValue, 2> clearValues;
+        clearValues[0] = vku::makeColorClearValue(0.0f, 0.0f, 0.0f, 1.0f);
+        clearValues[1] = vku::makeDepthStencilClearValue(0.0f, 0);
 
         VkRenderPassBeginInfo rpbi{ VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
 
         rpbi.renderPass = renderPass;
         rpbi.framebuffer = renderFb;
         rpbi.renderArea = VkRect2D{ {0, 0}, {ctx.passWidth, ctx.passHeight} };
-        rpbi.clearValueCount = (uint32_t)clearColours.size();
-        rpbi.pClearValues = clearColours.data();
+        rpbi.clearValueCount = (uint32_t)clearValues.size();
+        rpbi.pClearValues = clearValues.data();
 
         VkCommandBuffer cmdBuf = ctx.cmdBuf;
 
@@ -867,13 +868,23 @@ namespace worlds {
 
             pickingBuffer.barrier(cmdBuf, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
                 VK_DEPENDENCY_BY_REGION_BIT,
-                VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT,
+                VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT,
                 VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED);
         }
 
         ctx.resources.shadowCascades->image.barrier(cmdBuf, VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
             VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
             VK_ACCESS_SHADER_READ_BIT);
+
+        if (useGpuLightCulling.getInt()) {
+            lightCullPass->execute(ctx, lightTileSize.getInt());
+
+            lightTileBuffer.barrier(cmdBuf, 
+                VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+                VK_DEPENDENCY_BY_REGION_BIT,
+                VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,
+                VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED);
+        }
 
         if (setEventNextFrame) {
             vkCmdSetEvent(cmdBuf, pickEvent, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);

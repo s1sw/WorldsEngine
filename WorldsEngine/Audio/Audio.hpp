@@ -46,7 +46,7 @@ namespace worlds {
         FMOD::Studio::EventInstance* eventInstance = nullptr;
         bool playOnSceneStart = true;
 
-        const std::string_view& eventPath() { return _eventPath; }
+        const std::string_view eventPath() { return _eventPath; }
         void changeEventPath(const std::string_view& eventPath);
         FMOD_STUDIO_PLAYBACK_STATE playbackState();
     private:

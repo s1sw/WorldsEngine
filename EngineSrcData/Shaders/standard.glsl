@@ -319,22 +319,22 @@ float getNormalLightShadowIntensity(int lightIdx) {
 
 vec3 shade(ShadeInfo si) {
 #ifdef TILED
-	int tileIdxX = int(gl_FragCoord.x / buf_LightTiles.tileSize);
-	int tileIdxY = int(gl_FragCoord.y / buf_LightTiles.tileSize);
+    int tileIdxX = int(gl_FragCoord.x / buf_LightTiles.tileSize);
+    int tileIdxY = int(gl_FragCoord.y / buf_LightTiles.tileSize);
 
-	uint eyeOffset = buf_LightTiles.tilesPerEye * gl_ViewIndex;
+    uint eyeOffset = buf_LightTiles.tilesPerEye * gl_ViewIndex;
     uint tileIdx = ((tileIdxY * buf_LightTiles.numTilesX) + tileIdxX) + eyeOffset;
     int lightCount = int(buf_LightTiles.tileLightCounts[tileIdx]);
 #else
-	int lightCount = int(pack0.x);
+    int lightCount = int(pack0.x);
 #endif
 
     vec3 lo = vec3(0.0);
     for (int i = 0; i < lightCount; i++) {
 #ifdef TILED
-		uint realIdx = buf_LightTiles.tiles[tileIdx].lightIds[i];
+        uint realIdx = buf_LightTiles.tiles[tileIdx].lightIds[i];
 #else
-		uint realIdx = i;
+        uint realIdx = i;
 #endif
         vec3 l = calculateLighting(lights[realIdx], si, inWorldPos.xyz);
         float shadowIntensity = 1.0;
@@ -446,13 +446,13 @@ void main() {
                 vec3(0.0, 1.0, 0.0) * -sign(inNormal.z) * sign(inUV.y),
                 vec3(0.0, 0.0, 1.0)) * sign(inNormal.z);
     }
-	
-	uint doPicking = miscFlag & 0x1;
 
-	if (ENABLE_PICKING && doPicking == 1) {
+    uint doPicking = miscFlag & 0x1;
+
+    if (ENABLE_PICKING && doPicking == 1) {
         handleEditorPicking();
     }
-	
+
     ShadeInfo si;
     unpackMaterial(si, tbn);
     si.viewDir = normalize(getViewPos() - inWorldPos.xyz);
@@ -497,20 +497,20 @@ void main() {
         FragColor = vec4(si.albedoColor, 1.0);
         return;
     } else if ((miscFlag & DBG_FLAG_LIGHT_TILES) == DBG_FLAG_LIGHT_TILES) {
-		int tileIdxX = int(gl_FragCoord.x / buf_LightTiles.tileSize);
-		int tileIdxY = int(gl_FragCoord.y / buf_LightTiles.tileSize);
-	
-		uint tileIdx = ((tileIdxY * buf_LightTiles.numTilesX) + tileIdxX) + (buf_LightTiles.tilesPerEye * gl_ViewIndex);
-		int lightCount = int(buf_LightTiles.tileLightCounts[tileIdx]);
-		
-		vec3 heatmapCol = mix(vec3(0.0, 0.0, 0.0), vec3(1.0, 1.0, 1.0), lightCount / 64.0);
-		
-		if (int(gl_FragCoord.x) % int(buf_LightTiles.tileSize) == 0 || int(gl_FragCoord.y) % int(buf_LightTiles.tileSize) == 0)
-			heatmapCol.z = 1.0;
-		
-		FragColor = vec4(heatmapCol, 1.0);
-		return;
-	}
+        int tileIdxX = int(gl_FragCoord.x / buf_LightTiles.tileSize);
+        int tileIdxY = int(gl_FragCoord.y / buf_LightTiles.tileSize);
+
+        uint tileIdx = ((tileIdxY * buf_LightTiles.numTilesX) + tileIdxX) + (buf_LightTiles.tilesPerEye * gl_ViewIndex);
+        int lightCount = int(buf_LightTiles.tileLightCounts[tileIdx]);
+
+        vec3 heatmapCol = mix(vec3(0.0, 0.0, 0.0), vec3(1.0, 1.0, 1.0), lightCount / 64.0);
+
+        if (int(gl_FragCoord.x) % int(buf_LightTiles.tileSize) == 0 || int(gl_FragCoord.y) % int(buf_LightTiles.tileSize) == 0)
+            heatmapCol.z = 1.0;
+
+        FragColor = vec4(heatmapCol, 1.0);
+        return;
+    }
 #endif
 
 #ifndef EFT
