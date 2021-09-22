@@ -1228,7 +1228,7 @@ void VKRenderer::writeCmdBuf(VkCommandBuffer cmdBuf, uint32_t imageIndex, Camera
         glm::vec2 srcCorner0(0.0f, vrHeight / 2.0f - croppedHeight / 2.0f);
         glm::vec2 srcCorner1(vrWidth, vrHeight / 2.0f + croppedHeight / 2.0f);
 
-        VkImageBlit imageBlit = { 0 };
+        VkImageBlit imageBlit{};
         imageBlit.srcOffsets[0] = VkOffset3D{ (int)srcCorner0.x, (int)srcCorner0.y, 0 };
         imageBlit.srcOffsets[1] = VkOffset3D{ (int)srcCorner1.x, (int)srcCorner1.y, 1 };
         imageBlit.dstOffsets[1] = VkOffset3D{ (int)windowSize.x, (int)windowSize.y, 1 };

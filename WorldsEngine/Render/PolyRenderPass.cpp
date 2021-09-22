@@ -571,7 +571,7 @@ namespace worlds {
                 uint32_t tileLightCount = 0;
 
                 reg.view<WorldLight, Transform>().each([&](auto ent, WorldLight& l, Transform& transform) {
-                    float distance = glm::sqrt(1.0f / l.distanceCutoff);
+                    float distance = l.maxDistance;
                     if (l.lightIdx == ~0u) return;
                     if ((tileFrustum.containsSphere(transform.position, distance) || l.type == LightType::Directional)) {
                         tileBuf->tiles[tileIdx].lightId[tileLightCount] = l.lightIdx;
@@ -735,7 +735,7 @@ namespace worlds {
 
         int lightIdx = 0;
         ctx.registry.view<WorldLight, Transform>().each([&](auto ent, WorldLight& l, Transform& transform) {
-            float distance = glm::sqrt(1.0f / l.distanceCutoff);
+            float distance = l.maxDistance;
             l.lightIdx = ~0u;
             if (!l.enabled) return;
             if (l.type != LightType::Directional) {

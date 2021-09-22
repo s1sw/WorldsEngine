@@ -377,14 +377,10 @@ namespace worlds {
                     }
 
                     ImGui::Text("Recommended Value: %.3f", glm::sqrt(worldLight.intensity / 0.1f));
-                    float distance = glm::sqrt(1.0f / worldLight.distanceCutoff);
-
                     // The sphere mesh has a radius of 0.25, so scale it up 4x
-                    sphereTransform.scale = glm::vec3 { distance * 4.0f };
+                    sphereTransform.scale = glm::vec3 { worldLight.maxDistance * 4.0f };
 
-                    if (ImGui::DragFloat("Distance Cutoff", &distance)) {
-                        worldLight.distanceCutoff = 1.0f / (distance * distance);
-                    }
+                    ImGui::DragFloat("Distance Cutoff", &worldLight.maxDistance);
 
                     if (worldLight.type == LightType::Spot) {
                         float cutoff = glm::degrees(worldLight.spotCutoff);
@@ -446,7 +442,7 @@ namespace worlds {
                 { "tubeRadius", wl.tubeRadius },
                 { "enableShadows", wl.enableShadows },
                 { "enabled", wl.enabled },
-                { "distanceCutoff", wl.distanceCutoff }
+                { "maxDistance", wl.maxDistance}
             };
         }
 
@@ -461,7 +457,12 @@ namespace worlds {
             wl.tubeRadius = j["tubeRadius"];
             wl.enableShadows = j.value("enableShadows", false);
             wl.enabled = j.value("enabled", true);
-            wl.distanceCutoff = j.value("distanceCutoff", wl.distanceCutoff);
+
+            if (!j.contains("maxDistance") && j.contains("distanceCutoff")) {
+                wl.maxDistance = 1.0f / (sqrtf(j["distanceCutoff"]));
+            } else {
+                wl.maxDistance = j.value("maxDistance", wl.maxDistance);
+            }
         }
     };
 
@@ -1210,7 +1211,7 @@ namespace worlds {
                 }
 
                 ImGui::Checkbox("Play On Scene Start", &as.playOnSceneStart);
-                
+
                 if (as.eventInstance != nullptr) {
                     if (as.playbackState() != FMOD_STUDIO_PLAYBACK_PLAYING) {
                         if (ImGui::Button(ICON_FA_PLAY u8" Preview"))
