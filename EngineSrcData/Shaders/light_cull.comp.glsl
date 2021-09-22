@@ -61,6 +61,7 @@ shared Frustum tileFrustum;
 shared AABB tileAABB;
 shared uint minDepthU;
 shared uint maxDepthU;
+shared uint outputIndex;
 
 bool frustumContainsSphere(vec3 spherePos, float sphereRadius) {
     for (int i = 0; i < 6; i++) {
@@ -85,6 +86,7 @@ void main() {
     if (gl_LocalInvocationIndex.x == 0) {
         minDepthU = floatBitsToUint(1.0);
         maxDepthU = 0u;
+        outputIndex = 0u;
     }
     barrier();
 
@@ -209,22 +211,14 @@ void main() {
 #endif
 
         if (inFrustum || lightType == LT_DIRECTIONAL) {
-            buf_LightTiles.tiles[tileIndex].lightIds[gl_LocalInvocationIndex] = lightIndex;
+            uint outIdx = atomicAdd(outputIndex, 1);
+            buf_LightTiles.tiles[tileIndex].lightIds[outIdx] = lightIndex;
         }
     }
 
-    memoryBarrier();
-    // Stage 3: Compact
+    barrier();
+
     if (gl_LocalInvocationIndex == 0) {
-        int currentInsertionPoint = 0;
-        for (int i = 0; i < buf_Lights.pack0.x; i++) {
-            uint thisLightId = buf_LightTiles.tiles[tileIndex].lightIds[i];
-            if (thisLightId == ~0u) continue;
-
-            buf_LightTiles.tiles[tileIndex].lightIds[currentInsertionPoint] = thisLightId;
-            currentInsertionPoint++;
-        }
-
-        buf_LightTiles.tileLightCounts[tileIndex] = currentInsertionPoint;
+        buf_LightTiles.tileLightCounts[tileIndex] = outputIndex;
     }
 }
