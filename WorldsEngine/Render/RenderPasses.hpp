@@ -161,12 +161,23 @@ namespace worlds {
         RenderTexture* depthStencilImage;
     public:
         LightCullPass(VulkanHandles* handles, RenderTexture* depthStencilImage);
-        void setup(RenderContext& ctx, VkBuffer lightBuffer, VkBuffer lightTileBuffer, VkDescriptorPool descriptorPool);
+        void setup(RenderContext& ctx, VkBuffer lightBuffer, VkBuffer lightTileInfoBuffer, VkBuffer lightTileBuffer, VkBuffer lightTileLightCountBuffer, VkDescriptorPool descriptorPool);
         void execute(RenderContext& ctx, int tileSize);
         ~LightCullPass();
     };
 
-    struct LightTileBuffer;
+    struct LightingTile {
+        uint32_t lightId[256];
+    };
+
+    const int MAX_LIGHT_TILES = 40000;
+
+    struct LightTileInfoBuffer {
+        uint32_t tileSize;
+        uint32_t tilesPerEye;
+        uint32_t numTilesX;
+        uint32_t numTilesY;
+    };
 
     class PolyRenderPass {
     private:
@@ -181,11 +192,14 @@ namespace worlds {
         VkPipelineLayout wireframePipelineLayout;
 
         LightUB* lightMapped;
-        LightTileBuffer* lightTilesMapped;
+        LightTileInfoBuffer* lightTileInfoMapped;
         std::vector<ModelMatrices*> modelMatricesMapped;
 
         vku::GenericBuffer lightsUB;
-        vku::GenericBuffer lightTileBuffer;
+        vku::GenericBuffer lightTileInfoBuffer;
+        vku::GenericBuffer lightTilesBuffer;
+        vku::GenericBuffer lightTileLightCountBuffer;
+
         std::vector<vku::GenericBuffer> modelMatrixUB;
         vku::GenericBuffer pickingBuffer;
 
