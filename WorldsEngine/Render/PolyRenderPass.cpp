@@ -37,8 +37,6 @@ namespace ShaderFlags {
 namespace worlds {
     ConVar showWireframe("r_wireframeMode", "0", "0 - No wireframe; 1 - Wireframe only; 2 - Wireframe + solid");
     ConVar dbgDrawMode("r_dbgDrawMode", "0", "0 = Normal, 1 = Normals, 2 = Metallic, 3 = Roughness, 4 = AO");
-    ConVar lightTileSize("r_lightTileSize", "16");
-    ConVar useGpuLightCulling("r_useGpuLightCulling", "1");
 
     struct StandardPushConstants {
         uint32_t modelMatrixIdx;
@@ -67,19 +65,6 @@ namespace worlds {
     struct LineVert {
         glm::vec3 pos;
         glm::vec4 col;
-    };
-
-    struct LightingTile {
-        uint32_t lightId[256];
-    };
-
-    struct LightTileBuffer {
-        uint32_t tileSize;
-        uint32_t tilesPerEye;
-        uint32_t numTilesX;
-        uint32_t numTilesY;
-        uint32_t tileLightCount[16384];
-        LightingTile tiles[16384];
     };
 
     void PolyRenderPass::updateDescriptorSets(RenderContext& ctx) {
@@ -128,10 +113,16 @@ namespace worlds {
                 updater.image(shadowSampler, ctx.resources.additionalShadowImages[i]->image.imageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
             }
 
-            updater.beginBuffers(9, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-            updater.buffer(lightTileBuffer.buffer(), 0, sizeof(LightTileBuffer));
+            updater.beginBuffers(9, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+            updater.buffer(lightTileInfoBuffer.buffer(), 0, sizeof(LightTileInfoBuffer));
 
             updater.beginBuffers(10, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+            updater.buffer(lightTileLightCountBuffer.buffer(), 0, sizeof(uint32_t) * MAX_LIGHT_TILES);
+
+            updater.beginBuffers(11, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+            updater.buffer(lightTilesBuffer.buffer(), 0, sizeof(LightingTile) * MAX_LIGHT_TILES);
+
+            updater.beginBuffers(12, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
             updater.buffer(pickingBuffer.buffer(), 0, sizeof(PickingBuffer));
 
             i++;
@@ -208,10 +199,14 @@ namespace worlds {
         dslm.image(7, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 1);
         // Additional shadow images
         dslm.image(8, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, NUM_SHADOW_LIGHTS);
-        // Light tiles
-        dslm.buffer(9, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, 1);
-        // Picking
+        // Light tile info
+        dslm.buffer(9, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, 1);
+        // Light tile light counts
         dslm.buffer(10, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, 1);
+        // Light tiles
+        dslm.buffer(11, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, 1);
+        // Picking
+        dslm.buffer(12, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, 1);
 
         dsl = dslm.create(handles->device);
 
@@ -225,10 +220,23 @@ namespace worlds {
             VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
             sizeof(LightUB), VMA_MEMORY_USAGE_CPU_TO_GPU, "Lights");
 
-        lightTileBuffer = vku::GenericBuffer(
+        lightTileInfoBuffer = vku::GenericBuffer(
             handles->device, handles->allocator,
-            VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-            sizeof(LightTileBuffer), VMA_MEMORY_USAGE_CPU_TO_GPU, "Light Tiles");
+            VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+            sizeof(LightTileInfoBuffer), VMA_MEMORY_USAGE_CPU_TO_GPU, "Light Tile Info");
+
+        lightTilesBuffer = vku::GenericBuffer(
+            handles->device, handles->allocator,
+            VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+            sizeof(LightingTile) * MAX_LIGHT_TILES, VMA_MEMORY_USAGE_GPU_ONLY, "Light Tiles"
+        );
+
+        lightTileLightCountBuffer = vku::GenericBuffer(
+            handles->device, handles->allocator,
+            VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+            sizeof(uint32_t) * MAX_LIGHT_TILES, VMA_MEMORY_USAGE_GPU_ONLY, "Light Tile Light Counts"
+        );
+
 
         for (int i = 0; i < ctx.maxSimultaneousFrames; i++) {
             modelMatrixUB.push_back(vku::GenericBuffer(
@@ -246,7 +254,7 @@ namespace worlds {
             modelMatricesMapped.push_back((ModelMatrices*)matrixUB.map(handles->device));
         }
         lightMapped = (LightUB*)lightsUB.map(handles->device);
-        lightTilesMapped = (LightTileBuffer*)lightTileBuffer.map(handles->device);
+        lightTileInfoMapped = (LightTileInfoBuffer*)lightTileInfoBuffer.map(handles->device);
 
         VkEventCreateInfo eci{ VK_STRUCTURE_TYPE_EVENT_CREATE_INFO };
         vkCreateEvent(handles->device, &eci, nullptr, &pickEvent);
@@ -489,7 +497,7 @@ namespace worlds {
         uiPass->setup(ctx, renderPass, descriptorPool);
 
         lightCullPass = new LightCullPass(handles, depthStencilImage);
-        lightCullPass->setup(ctx, lightsUB.buffer(), lightTileBuffer.buffer(), descriptorPool);
+        lightCullPass->setup(ctx, lightsUB.buffer(), lightTileInfoBuffer.buffer(), lightTilesBuffer.buffer(), lightTileLightCountBuffer.buffer(), descriptorPool);
 
         updateDescriptorSets(ctx);
 
@@ -502,92 +510,6 @@ namespace worlds {
     }
 
     slib::StaticAllocList<SubmeshDrawInfo> drawInfo{ 8192 };
-
-    void doTileCulling(LightTileBuffer* tileBuf, glm::mat4 proj, glm::mat4 viewMat, int tileSize, int tileOffset, int screenWidth, int screenHeight, entt::registry& reg) {
-        const int xTiles = (screenWidth + (tileSize - 1)) / tileSize;
-        const int yTiles = (screenHeight + (tileSize - 1)) / tileSize;
-
-        glm::mat4 invProjView = glm::inverse(proj * viewMat);
-
-        glm::vec2 ndcTileSize = 2.0f * glm::vec2(tileSize, -tileSize) / glm::vec2(screenWidth, screenHeight);
-        glm::vec3 camPos = getMatrixTranslation(glm::inverse(viewMat));
-
-        JobList& jl = g_jobSys->getFreeJobList();
-        jl.begin();
-
-        for (int x = 0; x < xTiles; x++) {
-            Job j{ [&, x] {
-            for (int y = 0; y < yTiles; y++) {
-                int tileIdx = ((y * xTiles) + x);
-                tileIdx += tileOffset;
-
-                Frustum tileFrustum;
-
-                glm::vec2 ndcTopLeftCorner{ -1.0f, 1.0f };
-                glm::vec2 tileCoords{ x, y };
-
-                glm::vec2 tileCornersNDC[4] =
-                {
-                    ndcTopLeftCorner + ndcTileSize * tileCoords, // Top left
-                    ndcTopLeftCorner + ndcTileSize * (tileCoords + glm::vec2{1, 0}), // Top right
-                    ndcTopLeftCorner + ndcTileSize * (tileCoords + glm::vec2{1, 1}), // Bottom right
-                    ndcTopLeftCorner + ndcTileSize * (tileCoords + glm::vec2{0, 1}), // Bottom left
-                };
-
-                glm::vec4 temp;
-                for (int i = 0; i < 4; i++) {
-                    // Find the point on the near plane
-                    temp = invProjView * glm::vec4(tileCornersNDC[i], 1.0f, 1.0f);
-                    tileFrustum.points[i] = glm::vec3(temp) / temp.w;
-                    // And also the far plane
-                    temp = invProjView * glm::vec4(tileCornersNDC[i], 0.000000001f, 1.0f);
-                    tileFrustum.points[i + 4] = glm::vec3(temp) / temp.w;
-                }
-
-                glm::vec3 temp_normal;
-                for (int i = 0; i < 4; i++) {
-                    //Cax+Cby+Ccz+Cd = 0, planes[i] = (Ca, Cb, Cc, Cd)
-                    // temp_normal: normal without normalization
-                    temp_normal = glm::cross(tileFrustum.points[i] - camPos, tileFrustum.points[i + 1] - camPos);
-                    temp_normal = normalize(temp_normal);
-                    tileFrustum.planes[i] = glm::vec4(temp_normal, -dot(temp_normal, tileFrustum.points[i]));
-                }
-
-                // near plane
-                {
-                    temp_normal = cross(tileFrustum.points[1] - tileFrustum.points[0], tileFrustum.points[3] - tileFrustum.points[0]);
-                    temp_normal = normalize(temp_normal);
-                    tileFrustum.planes[4] = glm::vec4(temp_normal, -dot(temp_normal, tileFrustum.points[0]));
-                }
-
-                // far plane
-                {
-                    temp_normal = cross(tileFrustum.points[7] - tileFrustum.points[4], tileFrustum.points[5] - tileFrustum.points[4]);
-                    temp_normal = normalize(temp_normal);
-                    tileFrustum.planes[5] = glm::vec4(temp_normal, -dot(temp_normal, tileFrustum.points[4]));
-                }
-
-                //LightTile& currentTile = tileBuf->tiles[tileIdx];
-                uint32_t tileLightCount = 0;
-
-                reg.view<WorldLight, Transform>().each([&](auto ent, WorldLight& l, Transform& transform) {
-                    float distance = l.maxDistance;
-                    if (l.lightIdx == ~0u) return;
-                    if ((tileFrustum.containsSphere(transform.position, distance) || l.type == LightType::Directional)) {
-                        tileBuf->tiles[tileIdx].lightId[tileLightCount] = l.lightIdx;
-                        tileLightCount++;
-                    }
-                    });
-                tileBuf->tileLightCount[tileIdx] = tileLightCount;
-            }
-            } };
-            jl.addJob(std::move(j));
-        }
-
-        jl.end();
-        g_jobSys->signalJobListAvailable();
-        jl.wait();
-    }
 
     void PolyRenderPass::generateDrawInfo(RenderContext& ctx) {
         ZoneScoped;
@@ -783,29 +705,22 @@ namespace worlds {
             lightIdx++;
             });
 
-        int tileSize = lightTileSize.getInt();
+        int tileSize = 16;
         const int xTiles = (ctx.passWidth + (tileSize - 1)) / tileSize;
         const int yTiles = (ctx.passHeight + (tileSize - 1)) / tileSize;
         const int totalTiles = xTiles * yTiles;
 
-        if (!useGpuLightCulling.getInt()) {
-            doTileCulling(lightTilesMapped, ctx.projMatrices[0], ctx.viewMatrices[0], tileSize, 0, ctx.passWidth, ctx.passHeight, ctx.registry);
-
-            if (ctx.passSettings.enableVR)
-                doTileCulling(lightTilesMapped, ctx.projMatrices[1], ctx.viewMatrices[1], tileSize, totalTiles, ctx.passWidth, ctx.passHeight, ctx.registry);
-        }
-
-        lightTilesMapped->tileSize = tileSize;
-        lightTilesMapped->tilesPerEye = xTiles * yTiles;
-        lightTilesMapped->numTilesX = xTiles;
-        lightTilesMapped->numTilesY = yTiles;
+        lightTileInfoMapped->tileSize = tileSize;
+        lightTileInfoMapped->tilesPerEye = xTiles * yTiles;
+        lightTileInfoMapped->numTilesX = xTiles;
+        lightTileInfoMapped->numTilesY = yTiles;
 
         int realTotalTiles = totalTiles;
 
         if (ctx.passSettings.enableVR)
             realTotalTiles *= 2;
 
-        if (realTotalTiles > 16384)
+        if (realTotalTiles > MAX_LIGHT_TILES)
             fatalErr("Too many lighting tiles");
 
         lightMapped->pack0.x = (float)lightIdx;
@@ -871,13 +786,6 @@ namespace worlds {
             VK_DEPENDENCY_BY_REGION_BIT, VK_ACCESS_HOST_WRITE_BIT, VK_ACCESS_UNIFORM_READ_BIT,
             VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED);
 
-        if (!useGpuLightCulling.getInt()) {
-            lightTileBuffer.barrier(
-                cmdBuf, VK_PIPELINE_STAGE_HOST_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-                VK_DEPENDENCY_BY_REGION_BIT, VK_ACCESS_HOST_WRITE_BIT, VK_ACCESS_UNIFORM_READ_BIT,
-                VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED);
-        }
-
 
         if (pickThisFrame) {
             pickingBuffer.barrier(cmdBuf, VK_PIPELINE_STAGE_HOST_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
@@ -899,16 +807,28 @@ namespace worlds {
             VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
             VK_ACCESS_SHADER_READ_BIT);
 
-        if (useGpuLightCulling.getInt()) {
-            lightTileBuffer.barrier(cmdBuf,
+        {
+            lightTilesBuffer.barrier(cmdBuf,
                 VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                 VK_DEPENDENCY_BY_REGION_BIT,
                 VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT,
                 VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED);
 
-            lightCullPass->execute(ctx, lightTileSize.getInt());
+            lightTileLightCountBuffer.barrier(cmdBuf,
+                VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                VK_DEPENDENCY_BY_REGION_BIT,
+                VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT,
+                VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED);
 
-            lightTileBuffer.barrier(cmdBuf, 
+            lightCullPass->execute(ctx, 16);
+
+            lightTilesBuffer.barrier(cmdBuf,
+                VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+                VK_DEPENDENCY_BY_REGION_BIT,
+                VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,
+                VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED);
+
+            lightTileLightCountBuffer.barrier(cmdBuf,
                 VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
                 VK_DEPENDENCY_BY_REGION_BIT,
                 VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,
@@ -1035,7 +955,7 @@ namespace worlds {
             matrixUB.unmap(handles->device);
         }
         lightsUB.unmap(handles->device);
-        lightTileBuffer.unmap(handles->device);
+        lightTileInfoBuffer.unmap(handles->device);
         delete dbgLinesPass;
         delete skyboxPass;
         delete depthPrepass;

@@ -9,14 +9,12 @@ struct LightingTile {
     uint lightIds[256];
 };
 
-layout (binding = 0) buffer LightTileBuffer {
+layout (binding = 0) uniform LightTileInfo {
     uint tileSize;
     uint tilesPerEye;
     uint numTilesX;
     uint numTilesY;
-    uint tileLightCounts[16384];
-    LightingTile tiles[16384];
-} buf_LightTiles;
+} buf_LightTileInfo;
 
 layout (std430, binding = 1) readonly buffer LightBuffer {
     mat4 otherShadowMatrices[4];
@@ -31,6 +29,7 @@ layout (std430, binding = 1) readonly buffer LightBuffer {
     uint sphereIds[16];
 } buf_Lights;
 
+
 layout (binding = 2) uniform MultiVP {
     mat4 view[2];
     mat4 projection[2];
@@ -38,6 +37,14 @@ layout (binding = 2) uniform MultiVP {
 };
 
 layout (binding = 3) uniform sampler2DMSArray depthBuffer;
+
+layout (binding = 4) buffer TileLightCounts {
+    uint tileLightCounts[];
+} buf_LightTileLightCounts;
+
+layout (binding = 5) buffer TileLightTiles {
+    LightingTile tiles[];
+} buf_LightTiles;
 
 layout(push_constant) uniform PC {
     uint screenWidth;
@@ -92,7 +99,7 @@ void main() {
 
     uint x = gl_WorkGroupID.x;
     uint y = gl_WorkGroupID.y;
-    uint tileIndex = ((y * buf_LightTiles.numTilesX) + x) + (eyeIdx * buf_LightTiles.tilesPerEye);
+    uint tileIndex = ((y * buf_LightTileInfo.numTilesX) + x) + (eyeIdx * buf_LightTileInfo.tilesPerEye);
 
     buf_LightTiles.tiles[tileIndex].lightIds[gl_LocalInvocationIndex] = ~0u;
 
@@ -116,8 +123,8 @@ void main() {
 
         //debugPrintfEXT("maxDepth %f, minDepth %f", maxDepth, minDepth);
 
-        buf_LightTiles.tileLightCounts[tileIndex] = 0;
-        float tileSize = buf_LightTiles.tileSize;
+        buf_LightTileLightCounts.tileLightCounts[tileIndex] = 0;
+        float tileSize = buf_LightTileInfo.tileSize;
         vec2 ndcTileSize = 2.0f * vec2(tileSize, -tileSize) / vec2(screenWidth, screenHeight);
         vec3 camPos = viewPos[eyeIdx].xyz;
 
@@ -219,6 +226,6 @@ void main() {
     barrier();
 
     if (gl_LocalInvocationIndex == 0) {
-        buf_LightTiles.tileLightCounts[tileIndex] = outputIndex;
+        buf_LightTileLightCounts.tileLightCounts[tileIndex] = outputIndex;
     }
 }

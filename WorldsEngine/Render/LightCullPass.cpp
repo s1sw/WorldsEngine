@@ -10,30 +10,19 @@ namespace worlds {
     };
 #pragma pack(pop)
 
-    struct LightingTile {
-        uint32_t lightId[256];
-    };
-
-    struct LightTileBuffer {
-        uint32_t tileSize;
-        uint32_t tilesPerEye;
-        uint32_t numTilesX;
-        uint32_t numTilesY;
-        uint32_t tileLightCount[16384];
-        LightingTile tiles[16384];
-    };
-
     LightCullPass::LightCullPass(VulkanHandles* handles, RenderTexture* depthStencilImage)
         : handles{ handles }
         , depthStencilImage{ depthStencilImage } {
     }
 
-    void LightCullPass::setup(RenderContext& ctx, VkBuffer lightBuffer, VkBuffer lightTileBuffer, VkDescriptorPool descriptorPool) {
+    void LightCullPass::setup(RenderContext& ctx, VkBuffer lightBuffer, VkBuffer lightTileInfoBuffer, VkBuffer lightTilesBuffer, VkBuffer lightTileLightCountBuffer, VkDescriptorPool descriptorPool) {
         vku::DescriptorSetLayoutMaker dslm;
-        dslm.buffer(0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 1);
+        dslm.buffer(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 1);
         dslm.buffer(1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 1);
         dslm.buffer(2, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 1);
         dslm.buffer(3, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_COMPUTE_BIT, 1);
+        dslm.buffer(4, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 1);
+        dslm.buffer(5, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 1);
         dsl = dslm.create(handles->device);
 
         vku::DescriptorSetMaker dsm;
@@ -57,8 +46,8 @@ namespace worlds {
         vku::DescriptorSetUpdater dsu;
         dsu.beginDescriptorSet(descriptorSet);
 
-        dsu.beginBuffers(0, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-        dsu.buffer(lightTileBuffer, 0, sizeof(LightTileBuffer));
+        dsu.beginBuffers(0, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+        dsu.buffer(lightTileInfoBuffer, 0, sizeof(LightTileInfoBuffer));
 
         dsu.beginBuffers(1, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
         dsu.buffer(lightBuffer, 0, sizeof(LightUB));
@@ -68,6 +57,12 @@ namespace worlds {
 
         dsu.beginImages(3, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
         dsu.image(sampler, depthStencilImage->image.imageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+        dsu.beginBuffers(4, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+        dsu.buffer(lightTileLightCountBuffer, 0, sizeof(uint32_t) * MAX_LIGHT_TILES);
+
+        dsu.beginBuffers(5, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+        dsu.buffer(lightTilesBuffer, 0, sizeof(LightingTile) * MAX_LIGHT_TILES);
 
         dsu.update(handles->device);
     }

@@ -42,16 +42,22 @@ struct LightingTile {
     uint lightIds[256];
 };
 
-layout (binding = 9) readonly buffer LightTileBuffer {
+layout (binding = 9) readonly buffer LightTileInfo {
     uint tileSize;
     uint tilesPerEye;
     uint numTilesX;
     uint numTilesY;
-    uint tileLightCounts[16384];
-    LightingTile tiles[16384];
+} buf_LightTileInfo;
+
+layout (binding = 10) readonly buffer TileLightCounts {
+    uint tileLightCounts[];
+} buf_LightTileLightCounts;
+
+layout (binding = 11) readonly buffer TileLightTiles {
+    LightingTile tiles[];
 } buf_LightTiles;
 
-layout(std430, binding = 10) writeonly buffer PickingBuffer {
+layout(std430, binding = 12) writeonly buffer PickingBuffer {
     uint objectID;
 } pickBuf;
 #endif
