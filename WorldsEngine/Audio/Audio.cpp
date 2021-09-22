@@ -123,11 +123,19 @@ namespace worlds {
     }
 
     void* IPLCALL steamAudioAllocAligned(IPLsize size, IPLsize alignment) {
+#ifdef _WIN32
         return _aligned_malloc(size, alignment);
+#else
+        return std::aligned_alloc(alignment, size);
+#endif
     }
 
     void IPLCALL steamAudioFreeAligned(void* memBlock) {
+#ifdef _WIN32
         _aligned_free(memBlock);
+#else
+        std::free(memBlock);
+#endif
     }
 
     void AudioSource::changeEventPath(const std::string_view& eventPath) {
@@ -318,7 +326,15 @@ namespace worlds {
         if (sounds.contains(id)) {
             sound = sounds.at(id);
         } else {
-            FMCHECK(system->createSound(AssetDB::idToPath(id).c_str(), FMOD_CREATESAMPLE, nullptr, &sound));
+            std::string path = AssetDB::idToPath(id);
+
+            FMOD_RESULT result;
+            result = system->createSound(path.c_str(), FMOD_CREATESAMPLE, nullptr, &sound);
+
+            if (result != FMOD_OK) {
+                logErr(WELogCategoryAudio, "Failed to create oneshot clip %s", path.c_str());
+                return;
+            }
 
             sounds.insert({ id, sound });
         }
