@@ -103,12 +103,16 @@ void main() {
 
     buf_LightTiles.tiles[tileIndex].lightIds[gl_LocalInvocationIndex] = ~0u;
 
+    // Stage 1: Determine the depth bounds of the tile using atomcs.
     // THIS ONLY WORKS FOR 16x16 TILES.
     // Changing the tile size means that there's no longer a 1:1 correlation between threads
     // and tile pixels, so this atomic depth read won't work.
     float depthAtCurrent = texelFetch(depthBuffer, ivec3(gl_GlobalInvocationID.xy, eyeIdx), 0).x;
     uint depthAsUint = floatBitsToUint(depthAtCurrent);
 
+    // A depth of 0 only occurs when the skybox is visible.
+    // Since the skybox can't receive lighting, there's no point in increasing
+    // the depth bounds of the tile to receive the lighting.
     if (depthAsUint != 0) {
         atomicMin(minDepthU, depthAsUint);
         atomicMax(maxDepthU, depthAsUint);
@@ -116,12 +120,10 @@ void main() {
 
     barrier();
 
-    // Stage 1: Calculate the frustum for this workgroup
+    // Stage 2: Calculate the frustum for this workgroup
     if (gl_LocalInvocationIndex == 0) {
         float minDepth = uintBitsToFloat(minDepthU);
         float maxDepth = uintBitsToFloat(maxDepthU);
-
-        //debugPrintfEXT("maxDepth %f, minDepth %f", maxDepth, minDepth);
 
         buf_LightTileLightCounts.tileLightCounts[tileIndex] = 0;
         float tileSize = buf_LightTileInfo.tileSize;
@@ -193,8 +195,8 @@ void main() {
         tileAABB.center = (aabbMax + aabbMin) * 0.5;
         tileAABB.extents = (aabbMax - aabbMin) * 0.5;
     }
-    barrier();
 
+    barrier();
 
     // Stage 2: Cull lights against the frustum
     if (gl_LocalInvocationIndex < buf_Lights.pack0.x) {
