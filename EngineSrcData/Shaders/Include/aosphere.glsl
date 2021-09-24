@@ -33,10 +33,8 @@ float getSphereOcclusion(vec3 pos, vec3 normal, AOSphere sphere) {
             res = (nl*h+1.0)/h2;
             res = 0.31*res*res;
         #endif
-		//return 0.0;
     }
 
-	//return 1.0;
     return min(res, 1.0);
 }
 #endif
