@@ -42,7 +42,7 @@ struct LightingTile {
     uint lightIds[256];
 };
 
-layout (binding = 9) readonly buffer LightTileInfo {
+layout (binding = 9) readonly uniform LightTileInfo {
     uint tileSize;
     uint tilesPerEye;
     uint numTilesX;
