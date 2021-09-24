@@ -2,6 +2,7 @@
 #include "../Core/Engine.hpp"
 #include "../ImGui/imgui_impl_vulkan.h"
 #include "Render.hpp"
+#include "vku/RenderpassMaker.hpp"
 
 namespace worlds {
     ImGuiRenderPass::ImGuiRenderPass(VulkanHandles* handles, Swapchain& currSwapchain)

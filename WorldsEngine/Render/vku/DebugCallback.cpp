@@ -1,4 +1,5 @@
 #include "vku.hpp"
+#include "DebugCallback.hpp"
 
 #define UNUSED(x) (void)x
 namespace vku {

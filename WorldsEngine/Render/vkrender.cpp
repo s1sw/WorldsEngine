@@ -35,6 +35,8 @@
 #include <windows.h>
 #endif
 #include "../Util/EnumUtil.hpp"
+#include "vku/DeviceMaker.hpp"
+#include "vku/InstanceMaker.hpp"
 
 using namespace worlds;
 

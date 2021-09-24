@@ -1,4 +1,5 @@
 #include "vku.hpp"
+#include "DeviceMaker.hpp"
 
 namespace vku {
     /// Make queues and a logical device for a certain physical device.

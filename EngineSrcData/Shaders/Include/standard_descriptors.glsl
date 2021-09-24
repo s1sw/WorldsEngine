@@ -29,7 +29,7 @@ layout(std140, binding = 2) readonly buffer MaterialSettingsBuffer {
 };
 
 layout(std140, binding = 3) readonly buffer ModelMatrices {
-    mat4 modelMatrices[2048];
+    mat4 modelMatrices[];
 };
 
 layout (binding = 4) uniform sampler2D tex2dSampler[];

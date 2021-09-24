@@ -1,4 +1,5 @@
 #include "RenderPasses.hpp"
+#include "vku/PipelineMakers.hpp"
 
 namespace worlds {
     DepthPrepass::DepthPrepass(VulkanHandles* handles) : handles(handles) {}

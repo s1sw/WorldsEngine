@@ -1,5 +1,7 @@
 #include "RenderPasses.hpp"
 #include "vku/SamplerMaker.hpp"
+#include "vku/PipelineMakers.hpp"
+#include "vku/DescriptorSetUtil.hpp"
 
 namespace worlds {
     struct SkyboxPushConstants {

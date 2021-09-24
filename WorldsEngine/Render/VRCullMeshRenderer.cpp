@@ -2,6 +2,8 @@
 #include "Render.hpp"
 #include <openvr.h>
 #include "ShaderCache.hpp"
+#include "vku/DescriptorSetUtil.hpp"
+#include "vku/PipelineMakers.hpp"
 
 namespace worlds {
     struct VertPushConstants {

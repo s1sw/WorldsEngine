@@ -5,6 +5,9 @@
 #include "Frustum.hpp"
 #include "tracy/Tracy.hpp"
 #include "ShaderCache.hpp"
+#include "vku/RenderpassMaker.hpp"
+#include "vku/PipelineMakers.hpp"
+#include "vku/DescriptorSetUtil.hpp"
 
 namespace worlds {
     struct ShadowmapPushConstants {

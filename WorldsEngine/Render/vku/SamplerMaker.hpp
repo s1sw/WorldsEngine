@@ -1,3 +1,4 @@
+#pragma once
 #include "Libs/volk.h"
 #include "vkcheck.hpp"
 
