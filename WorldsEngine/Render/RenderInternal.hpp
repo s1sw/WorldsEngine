@@ -1,6 +1,7 @@
 #pragma once
 #include "Render.hpp"
 #include <Render/vku/vku.hpp>
+#include <Render/vku/Buffer.hpp>
 #include <Render/ResourceSlots.hpp>
 #include <tracy/TracyVulkan.hpp>
 #include <robin_hood.h>

@@ -1,5 +1,6 @@
 #include "RenderPasses.hpp"
 #include "ShaderCache.hpp"
+#include "vku/SamplerMaker.hpp"
 
 namespace worlds {
 #pragma pack(push, 16)

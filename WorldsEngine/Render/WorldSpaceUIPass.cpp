@@ -7,6 +7,7 @@
 #include "../ImGui/imgui_stdlib.h"
 #include "glm/gtc/type_ptr.hpp"
 #include "../UI/WorldTextComponent.hpp"
+#include "vku/SamplerMaker.hpp"
 
 namespace worlds {
     struct UIVertex {
