@@ -1,4 +1,5 @@
 #include "vku.hpp"
+#include "InstanceMaker.hpp"
 
 namespace vku {
     InstanceMaker::InstanceMaker() {}

@@ -1,6 +1,8 @@
 #include "Render/Frustum.hpp"
 #include "ShaderCache.hpp"
 #include "RenderPasses.hpp"
+#include "vku/PipelineMakers.hpp"
+#include "vku/RenderpassMaker.hpp"
 #include <glm/gtc/matrix_transform.hpp>
 
 namespace worlds {

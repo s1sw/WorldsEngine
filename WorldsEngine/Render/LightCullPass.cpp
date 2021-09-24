@@ -1,6 +1,8 @@
 #include "RenderPasses.hpp"
 #include "ShaderCache.hpp"
 #include "vku/SamplerMaker.hpp"
+#include "vku/DescriptorSetUtil.hpp"
+#include "vku/PipelineMakers.hpp"
 
 namespace worlds {
 #pragma pack(push, 16)

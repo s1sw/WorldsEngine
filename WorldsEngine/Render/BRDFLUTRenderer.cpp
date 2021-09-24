@@ -1,5 +1,7 @@
 #include "../Core/Engine.hpp"
 #include "RenderInternal.hpp"
+#include "vku/RenderpassMaker.hpp"
+#include "vku/PipelineMakers.hpp"
 
 namespace worlds {
     const int BRDF_LUT_RES = 256;

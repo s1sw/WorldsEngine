@@ -13,6 +13,9 @@
 #include <slib/StaticAllocList.hpp>
 #include <Util/MatUtil.hpp>
 #include "vku/SamplerMaker.hpp"
+#include "vku/RenderpassMaker.hpp"
+#include "vku/PipelineMakers.hpp"
+#include "vku/DescriptorSetUtil.hpp"
 
 namespace ShaderFlags {
     const int DBG_FLAG_NORMALS = 2;

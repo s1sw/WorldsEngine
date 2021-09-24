@@ -2,6 +2,9 @@
 #include "../Util/TimingUtil.hpp"
 #include "../Render/RenderInternal.hpp"
 #include "vku/SamplerMaker.hpp"
+#include "vku/PipelineMakers.hpp"
+#include "vku/RenderpassMaker.hpp"
+#include "vku/DescriptorSetUtil.hpp"
 
 namespace worlds {
     struct PrefilterPushConstants {
