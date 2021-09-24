@@ -93,7 +93,7 @@ void VKRenderer::createSwapchain(VkSwapchainKHR oldSwapchain) {
 
     vku::executeImmediately(device, commandPool, getQueue(device, graphicsQueueFamilyIdx), [this](VkCommandBuffer cb) {
         for (VkImage img : swapchain->images)
-            vku::transitionLayout(cb, img, vku::ImageLayout::Undefined, vku::ImageLayout::PresentSrcKHR, vku::PipelineStageFlags::TopOfPipe, vku::PipelineStageFlags::TopOfPipe, VkAccessFlags{}, vku::AccessFlags::MemoryRead);
+            vku::transitionLayout(cb, img, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VkAccessFlags{}, VK_ACCESS_MEMORY_READ_BIT);
         });
 }
 
@@ -519,7 +519,7 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     brdfLut = vku::GenericImage{ device, allocator, brdfLutIci, VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_COLOR_BIT, false, "BRDF LUT" };
 
     vku::executeImmediately(device, commandPool, getQueue(device, graphicsQueueFamilyIdx), [&](auto cb) {
-        brdfLut.setLayout(cb, vku::ImageLayout::ColorAttachmentOptimal);
+        brdfLut.setLayout(cb, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
         });
 
     BRDFLUTRenderer brdfLutRenderer{ *vkCtx };
@@ -546,9 +546,9 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     }
 
     vku::executeImmediately(device, commandPool, getQueue(device, graphicsQueueFamilyIdx), [&](auto cb) {
-        shadowmapImage->image.setLayout(cb, vku::ImageLayout::ShaderReadOnlyOptimal, VK_IMAGE_ASPECT_DEPTH_BIT);
+        shadowmapImage->image.setLayout(cb, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_ASPECT_DEPTH_BIT);
         for (int i = 0; i < NUM_SHADOW_LIGHTS; i++) {
-            shadowImages[i]->image.setLayout(cb, vku::ImageLayout::ShaderReadOnlyOptimal, VK_IMAGE_ASPECT_DEPTH_BIT);
+            shadowImages[i]->image.setLayout(cb, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_ASPECT_DEPTH_BIT);
         }
         });
 
@@ -711,9 +711,9 @@ void VKRenderer::createSCDependents() {
     ici.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     ici.format = VK_FORMAT_R8G8B8A8_UNORM;
     ici.samples = VK_SAMPLE_COUNT_1_BIT;
-    ici.usage = vku::ImageUsageFlags::ColorAttachment |
-        vku::ImageUsageFlags::Sampled |
-        vku::ImageUsageFlags::Storage;
+    ici.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
+        VK_IMAGE_USAGE_SAMPLED_BIT |
+        VK_IMAGE_USAGE_STORAGE_BIT;
 
     RTResourceCreateInfo imguiImageCreateInfo{ ici, VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_COLOR_BIT };
     imguiImage = createRTResource(imguiImageCreateInfo, "ImGui Image");
@@ -1119,9 +1119,9 @@ void VKRenderer::writeCmdBuf(VkCommandBuffer cmdBuf, uint32_t imageIndex, Camera
     uploadSceneAssets(reg);
 
     finalPrePresent->image.setLayout(cmdBuf,
-        vku::ImageLayout::ColorAttachmentOptimal,
-        vku::PipelineStageFlags::Transfer, vku::PipelineStageFlags::ColorAttachmentOutput,
-        vku::AccessFlags::TransferRead, vku::AccessFlags::ColorAttachmentWrite);
+        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+        VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+        VK_ACCESS_TRANSFER_READ_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT);
 
     std::sort(rttPasses.begin(), rttPasses.end(), [](VKRTTPass* a, VKRTTPass* b) {
         return a->drawSortKey < b->drawSortKey;
@@ -1157,9 +1157,9 @@ void VKRenderer::writeCmdBuf(VkCommandBuffer cmdBuf, uint32_t imageIndex, Camera
 
         if (!p->outputToScreen) {
             p->sdrFinalTarget->image.setLayout(cmdBuf,
-                vku::ImageLayout::ColorAttachmentOptimal,
-                vku::PipelineStageFlags::ColorAttachmentOutput,
-                vku::AccessFlags::ColorAttachmentWrite);
+                VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT);
         }
 
         bool nullCam = p->cam == nullptr;
@@ -1174,9 +1174,9 @@ void VKRenderer::writeCmdBuf(VkCommandBuffer cmdBuf, uint32_t imageIndex, Camera
 
         if (!p->outputToScreen) {
             p->sdrFinalTarget->image.setLayout(cmdBuf,
-                vku::ImageLayout::ShaderReadOnlyOptimal,
-                vku::PipelineStageFlags::FragmentShader,
-                vku::AccessFlags::ShaderRead);
+                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+                VK_ACCESS_SHADER_READ_BIT);
         }
         lastPassIsVr = p->isVr;
     }
@@ -1184,9 +1184,9 @@ void VKRenderer::writeCmdBuf(VkCommandBuffer cmdBuf, uint32_t imageIndex, Camera
     dbgStats.numRTTPasses = rttPasses.size();
 
     vku::transitionLayout(cmdBuf, swapchain->images[imageIndex],
-        vku::ImageLayout::PresentSrcKHR, vku::ImageLayout::TransferDstOptimal,
-        vku::PipelineStageFlags::BottomOfPipe, vku::PipelineStageFlags::Transfer,
-        vku::AccessFlags::MemoryRead, vku::AccessFlags::TransferWrite);
+        VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
+        VK_ACCESS_MEMORY_READ_BIT, VK_ACCESS_TRANSFER_WRITE_BIT);
 
 
     if (enableVR) {

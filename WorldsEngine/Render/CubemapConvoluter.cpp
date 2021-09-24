@@ -1,6 +1,7 @@
 #include "../Core/Engine.hpp"
 #include "../Util/TimingUtil.hpp"
 #include "../Render/RenderInternal.hpp"
+#include "vku/SamplerMaker.hpp"
 
 namespace worlds {
     struct PrefilterPushConstants {
@@ -53,9 +54,9 @@ namespace worlds {
         imb2.dstAccessMask = VK_PIPELINE_STAGE_TRANSFER_BIT;
 
         VkImageMemoryBarrier barriers[2] = { imb, imb2 };
-        vkCmdPipelineBarrier(cb, VK_PIPELINE_STAGE_HOST_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_DEPENDENCY_BY_REGION_BIT, 
-            0, nullptr, 
-            0, nullptr, 
+        vkCmdPipelineBarrier(cb, VK_PIPELINE_STAGE_HOST_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_DEPENDENCY_BY_REGION_BIT,
+            0, nullptr,
+            0, nullptr,
             2, barriers);
 
         int32_t mipWidth = t.info().extent.width;
@@ -69,7 +70,7 @@ namespace worlds {
             ib.srcOffsets[0] = VkOffset3D{ 0, 0, 0 };
             ib.srcOffsets[1] = VkOffset3D{ (int32_t)t.info().extent.width, (int32_t)t.info().extent.height, 1 };
 
-            vkCmdBlitImage(cb, 
+            vkCmdBlitImage(cb,
                 src.image(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
                 t.image(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &ib, VK_FILTER_LINEAR);
 
@@ -95,9 +96,9 @@ namespace worlds {
 
         VkImageMemoryBarrier barriers2[2] = { imb3, imb4 };
         vkCmdPipelineBarrier(cb, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-            VK_DEPENDENCY_BY_REGION_BIT, 
-            0, nullptr, 
-            0, nullptr, 
+            VK_DEPENDENCY_BY_REGION_BIT,
+            0, nullptr,
+            0, nullptr,
             2, barriers2);
     }
 

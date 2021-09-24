@@ -1,4 +1,5 @@
 #include "../Render/RenderInternal.hpp"
+#include "Render/vku/SamplerMaker.hpp"
 
 namespace worlds {
     namespace VKImGUIUtil {

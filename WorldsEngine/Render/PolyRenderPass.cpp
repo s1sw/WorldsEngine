@@ -11,8 +11,8 @@
 #include "../Core/Console.hpp"
 #include "ShaderCache.hpp"
 #include <slib/StaticAllocList.hpp>
-#include <Libs/IconsFontAwesome5.h>
 #include <Util/MatUtil.hpp>
+#include "vku/SamplerMaker.hpp"
 
 namespace ShaderFlags {
     const int DBG_FLAG_NORMALS = 2;

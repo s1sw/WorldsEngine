@@ -1,6 +1,7 @@
 #pragma once
 #include <cstdint>
 #include "../vku/vku.hpp"
+#include "Render/vku/Image.hpp"
 #include "../../Core/AssetDB.hpp"
 
 namespace worlds {

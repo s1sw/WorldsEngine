@@ -170,7 +170,7 @@ namespace worlds {
         uint32_t lightId[256];
     };
 
-    const int MAX_LIGHT_TILES = 40000;
+    const int MAX_LIGHT_TILES = 20000;
 
     struct LightTileInfoBuffer {
         uint32_t tileSize;
