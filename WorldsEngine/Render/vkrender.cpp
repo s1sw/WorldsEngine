@@ -671,12 +671,6 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
         }
         }, "r_setCSMResolution", "Sets the resolution of the cascaded shadow map.");
 
-    shadowCascadePass = new ShadowCascadePass(&handles, shadowmapImage);
-    shadowCascadePass->setup();
-
-    additionalShadowsPass = new AdditionalShadowsPass(&handles);
-    additionalShadowsPass->setup();
-
     materialUB = vku::GenericBuffer(
         device, allocator,
         VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
@@ -689,6 +683,12 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
 
     MaterialsUB materials;
     materialUB.upload(device, commandPool, getQueue(device, graphicsQueueFamilyIdx), &materials, sizeof(materials));
+
+    shadowCascadePass = new ShadowCascadePass(&handles, shadowmapImage);
+    shadowCascadePass->setup();
+
+    additionalShadowsPass = new AdditionalShadowsPass(&handles);
+    additionalShadowsPass->setup(getResources());
 }
 
 // Quite a lot of resources are dependent on either the number of images
