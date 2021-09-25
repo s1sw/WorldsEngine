@@ -3,15 +3,39 @@
 #include "RenderPasses.hpp"
 #include "vku/PipelineMakers.hpp"
 #include "vku/RenderpassMaker.hpp"
+#include "vku/DescriptorSetUtil.hpp"
 #include <glm/gtc/matrix_transform.hpp>
+#include <Render/vku/SamplerMaker.hpp>
 
 namespace worlds {
     ConVar enableSpotShadows { "r_enableSpotShadows", "1" };
 
+    struct ShadowPushConstants {
+        glm::mat4 mvp;
+        uint32_t materialIdx;
+    };
+
     AdditionalShadowsPass::AdditionalShadowsPass(VulkanHandles* handles) : handles(handles) {
     }
 
-    void AdditionalShadowsPass::setup() {
+    void AdditionalShadowsPass::updateDescriptorSet(RenderResources resources) {
+        vku::DescriptorSetUpdater dsu{1, 256};
+        dsu.beginDescriptorSet(descriptorSet);
+
+        for (uint32_t i = 0; i < resources.textures.size(); i++) {
+            if (resources.textures.isSlotPresent(i)) {
+                dsu.beginImages(0, i, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+                dsu.image(sampler, resources.textures[i].imageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+            }
+        }
+
+        dsu.beginBuffers(1, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+        dsu.buffer(resources.materialBuffer->buffer(), 0, resources.materialBuffer->size());
+
+        dsu.update(handles->device);
+    }
+
+    void AdditionalShadowsPass::setup(RenderResources ctx) {
         vku::RenderpassMaker rpm;
 
         rpm.attachmentBegin(VK_FORMAT_D32_SFLOAT);
@@ -35,22 +59,58 @@ namespace worlds {
         auto shadowVertexShader = ShaderCache::getModule(handles->device, vsID);
         auto shadowFragmentShader = ShaderCache::getModule(handles->device, fsID);
 
+        vku::DescriptorSetLayoutMaker dslm;
+        dslm.image(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, NUM_TEX_SLOTS);
+        dslm.bindFlag(0, VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT);
+        dslm.buffer(1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, 1);
+        dsl = dslm.create(handles->device);
+
+        vku::DescriptorSetMaker dsm;
+        dsm.layout(dsl);
+        descriptorSet = dsm.create(handles->device, handles->descriptorPool)[0];
+
         vku::PipelineLayoutMaker plm{};
-        plm.pushConstantRange(VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4));
+        plm.pushConstantRange(VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(ShadowPushConstants));
+        plm.descriptorSetLayout(dsl);
         pipelineLayout = plm.create(handles->device);
 
-        vku::PipelineMaker pm{ 512, 512 };
-        pm.shader(VK_SHADER_STAGE_FRAGMENT_BIT, shadowFragmentShader);
-        pm.shader(VK_SHADER_STAGE_VERTEX_BIT, shadowVertexShader);
-        pm.vertexBinding(0, (uint32_t)sizeof(Vertex));
-        pm.vertexAttribute(0, 0, VK_FORMAT_R32G32B32_SFLOAT, (uint32_t)offsetof(Vertex, position));
-        pm.cullMode(VK_CULL_MODE_BACK_BIT);
-        pm.depthWriteEnable(true).depthTestEnable(true).depthCompareOp(VK_COMPARE_OP_GREATER);
-        pm.depthBiasEnable(true);
-        pm.depthBiasConstantFactor(-1.4f);
-        pm.depthBiasSlopeFactor(-1.75f);
+        vku::SamplerMaker sm{};
+        sm.magFilter(VK_FILTER_LINEAR).minFilter(VK_FILTER_LINEAR).mipmapMode(VK_SAMPLER_MIPMAP_MODE_LINEAR).anisotropyEnable(true).maxAnisotropy(16.0f).maxLod(VK_LOD_CLAMP_NONE).minLod(0.0f);
+        sampler = sm.create(handles->device);
 
-        pipeline = pm.create(handles->device, handles->pipelineCache, pipelineLayout, renderPass);
+        {
+            vku::PipelineMaker pm{ 512, 512 };
+            pm.shader(VK_SHADER_STAGE_FRAGMENT_BIT, shadowFragmentShader);
+            pm.shader(VK_SHADER_STAGE_VERTEX_BIT, shadowVertexShader);
+            pm.vertexBinding(0, (uint32_t)sizeof(Vertex));
+            pm.vertexAttribute(0, 0, VK_FORMAT_R32G32B32_SFLOAT, (uint32_t)offsetof(Vertex, position));
+            pm.vertexAttribute(1, 0, VK_FORMAT_R32G32_SFLOAT, (uint32_t)offsetof(Vertex, uv));
+            pm.cullMode(VK_CULL_MODE_BACK_BIT);
+            pm.depthWriteEnable(true).depthTestEnable(true).depthCompareOp(VK_COMPARE_OP_GREATER);
+            pm.depthBiasEnable(true);
+            pm.depthBiasConstantFactor(-1.4f);
+            pm.depthBiasSlopeFactor(-1.75f);
+
+            pipeline = pm.create(handles->device, handles->pipelineCache, pipelineLayout, renderPass);
+        }
+
+        {
+            auto shadowAlphaFragmentShader = ShaderCache::getModule(handles->device, AssetDB::pathToId("Shaders/alpha_test_shadowmap.frag.spv"));
+
+            vku::PipelineMaker pm{ 512, 512 };
+            pm.shader(VK_SHADER_STAGE_FRAGMENT_BIT, shadowAlphaFragmentShader);
+            pm.shader(VK_SHADER_STAGE_VERTEX_BIT, shadowVertexShader);
+            pm.vertexBinding(0, (uint32_t)sizeof(Vertex));
+            pm.vertexAttribute(0, 0, VK_FORMAT_R32G32B32_SFLOAT, (uint32_t)offsetof(Vertex, position));
+            pm.vertexAttribute(1, 0, VK_FORMAT_R32G32_SFLOAT, (uint32_t)offsetof(Vertex, uv));
+            pm.cullMode(VK_CULL_MODE_BACK_BIT);
+            pm.depthWriteEnable(true).depthTestEnable(true).depthCompareOp(VK_COMPARE_OP_GREATER);
+            pm.depthBiasEnable(true);
+            pm.depthBiasConstantFactor(-1.4f);
+            pm.depthBiasSlopeFactor(-1.75f);
+
+            alphaTestPipeline = pm.create(handles->device, handles->pipelineCache, pipelineLayout, renderPass);
+        }
 
         VkFramebufferAttachmentsCreateInfo faci{ VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENTS_CREATE_INFO };
         faci.attachmentImageInfoCount = 1;
@@ -75,6 +135,8 @@ namespace worlds {
         fci.pNext = &faci;
 
         VKCHECK(vkCreateFramebuffer(handles->device, &fci, nullptr, &fb));
+
+        updateDescriptorSet(ctx);
     }
 
     void AdditionalShadowsPass::prePass(RenderContext& ctx) {
@@ -99,6 +161,10 @@ namespace worlds {
                 light.shadowmapIdx = ~0u;
             }
         });
+
+        if (dsUpdateNeeded) {
+            updateDescriptorSet(ctx.resources);
+        }
     }
 
     void AdditionalShadowsPass::execute(RenderContext& ctx) {
@@ -116,6 +182,7 @@ namespace worlds {
         vkCmdBeginDebugUtilsLabelEXT(cmdBuf, &label);
 
         vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+        vkCmdBindDescriptorSets(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
         for (int i = 0; i < NUM_SHADOW_LIGHTS; i++) {
             if (!renderIdx[i]) {
                 continue;
@@ -123,8 +190,7 @@ namespace worlds {
             Frustum shadowFrustum;
             shadowFrustum.fromVPMatrix(shadowMatrices[i]);
 
-            VkClearValue clearVal;
-            clearVal.depthStencil = { 0.0f, 0 };
+            VkClearValue clearVal = vku::makeDepthStencilClearValue(0.0f, 0);
 
             VkRenderPassAttachmentBeginInfo attachmentBeginInfo{ VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO };
             attachmentBeginInfo.attachmentCount = 1;
@@ -155,15 +221,32 @@ namespace worlds {
                 }
 
                 glm::mat4 mvp = shadowMatrices[i] * transform.getMatrix();
-                vkCmdPushConstants(cmdBuf, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(mvp), &mvp);
+                
 
-                VkBuffer vb = meshPos->second.vb.buffer();
-                VkDeviceSize offset = 0;
-                vkCmdBindVertexBuffers(cmdBuf, 0, 1, &vb, &offset);
-                vkCmdBindIndexBuffer(cmdBuf, meshPos->second.ib.buffer(), 0, meshPos->second.indexType);
-                vkCmdDrawIndexed(cmdBuf, meshPos->second.indexCount, 1, 0, 0, 0);
-                ctx.debugContext.stats->numDrawCalls++;
-                ctx.debugContext.stats->numTriangles += meshPos->second.indexCount / 3;
+                for (int i = 0; i < meshPos->second.numSubmeshes; i++) {
+                    auto& currSubmesh = meshPos->second.submeshes[i];
+
+                    ShadowPushConstants spc{
+                        .mvp = mvp,
+                        .materialIdx = obj.materialIdx[i]
+                    };
+                    vkCmdPushConstants(cmdBuf, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(spc), &spc);
+
+                    bool opaque = ctx.resources.materials[obj.materialIdx[i]].getCutoff() == 0.0f;
+
+                    if (!opaque)
+                        vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, alphaTestPipeline);
+                    else
+                        vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+
+                    VkBuffer vb = meshPos->second.vb.buffer();
+                    VkDeviceSize offset = 0;
+                    vkCmdBindVertexBuffers(cmdBuf, 0, 1, &vb, &offset);
+                    vkCmdBindIndexBuffer(cmdBuf, meshPos->second.ib.buffer(), 0, meshPos->second.indexType);
+                    vkCmdDrawIndexed(cmdBuf, currSubmesh.indexCount, 1, currSubmesh.indexOffset, 0, 0);
+                    ctx.debugContext.stats->numDrawCalls++;
+                    ctx.debugContext.stats->numTriangles += currSubmesh.indexCount / 3;
+                }
             });
 
             vkCmdEndRenderPass(cmdBuf);
@@ -171,5 +254,12 @@ namespace worlds {
         }
 
         vkCmdEndDebugUtilsLabelEXT(cmdBuf);
+    }
+
+    AdditionalShadowsPass::~AdditionalShadowsPass() {
+        vkDestroyRenderPass(handles->device, renderPass, nullptr);
+        vkDestroyFramebuffer(handles->device, fb, nullptr);
+        vkDestroyPipeline(handles->device, pipeline, nullptr);
+        vkDestroyPipeline(handles->device, alphaTestPipeline, nullptr);
     }
 }

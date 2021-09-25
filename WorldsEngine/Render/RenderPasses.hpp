@@ -279,16 +279,23 @@ namespace worlds {
         VkRenderPass renderPass;
         VkFramebuffer fb;
         VkPipeline pipeline;
+        VkPipeline alphaTestPipeline;
         VkPipelineLayout pipelineLayout;
         VkDescriptorSetLayout dsl;
+        VkDescriptorSet descriptorSet;
+        VkSampler sampler;
         VulkanHandles* handles;
         glm::mat4 shadowMatrices[4];
         bool renderIdx[4];
+        bool dsUpdateNeeded = false;
+        void updateDescriptorSet(RenderResources);
     public:
         AdditionalShadowsPass(VulkanHandles* handles);
-        void setup();
+        void reuploadDescriptors() { dsUpdateNeeded = true; }
+        void setup(RenderResources resources);
         void prePass(RenderContext& ctx);
         void execute(RenderContext& ctx);
+        ~AdditionalShadowsPass();
     };
 
     class TonemapRenderPass {
