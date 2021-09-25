@@ -383,6 +383,10 @@ namespace worlds {
 
     void AudioSystem::shutdown(entt::registry& worldState) {
         FMCHECK(studioSystem->release());
+        worldState.view<AudioSource>().each([](AudioSource& as) {
+            FMCHECK(as.eventInstance->stop(FMOD_STUDIO_STOP_IMMEDIATE));
+            FMCHECK(as.eventInstance->release());
+        });
     }
 
     FMOD::Studio::Bank* AudioSystem::loadBank(const char* path) {

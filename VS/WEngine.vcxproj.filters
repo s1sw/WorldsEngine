@@ -663,6 +663,21 @@
     <ClCompile Include="..\WorldsEngine\Render\LightCullPass.cpp">
       <Filter>Render</Filter>
     </ClCompile>
+    <ClCompile Include="..\WorldsEngine\Render\vku\DebugCallback.cpp">
+      <Filter>Render\vku</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WorldsEngine\Render\vku\DeviceMaker.cpp">
+      <Filter>Render\vku</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WorldsEngine\Render\vku\Image.cpp">
+      <Filter>Render\vku</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WorldsEngine\Render\vku\InstanceMaker.cpp">
+      <Filter>Render\vku</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WorldsEngine\Render\vku\vku.cpp">
+      <Filter>Render\vku</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\WorldsEngine\AssetCompilation\AssetCompilerUtil.hpp">
@@ -1405,6 +1420,42 @@
     </ClInclude>
     <ClInclude Include="..\WorldsEngine\Scripting\AudioSourceBindings.hpp">
       <Filter>Scripting</Filter>
+    </ClInclude>
+    <ClInclude Include="..\WorldsEngine\Render\vku\Buffer.hpp">
+      <Filter>Render\vku</Filter>
+    </ClInclude>
+    <ClInclude Include="..\WorldsEngine\Render\vku\DebugCallback.hpp">
+      <Filter>Render\vku</Filter>
+    </ClInclude>
+    <ClInclude Include="..\WorldsEngine\Render\vku\DescriptorSetUtil.hpp">
+      <Filter>Render\vku</Filter>
+    </ClInclude>
+    <ClInclude Include="..\WorldsEngine\Render\vku\DeviceMaker.hpp">
+      <Filter>Render\vku</Filter>
+    </ClInclude>
+    <ClInclude Include="..\WorldsEngine\Render\vku\Image.hpp">
+      <Filter>Render\vku</Filter>
+    </ClInclude>
+    <ClInclude Include="..\WorldsEngine\Render\vku\InstanceMaker.hpp">
+      <Filter>Render\vku</Filter>
+    </ClInclude>
+    <ClInclude Include="..\WorldsEngine\Render\vku\PipelineMakers.hpp">
+      <Filter>Render\vku</Filter>
+    </ClInclude>
+    <ClInclude Include="..\WorldsEngine\Render\vku\RenderpassMaker.hpp">
+      <Filter>Render\vku</Filter>
+    </ClInclude>
+    <ClInclude Include="..\WorldsEngine\Render\vku\SamplerMaker.hpp">
+      <Filter>Render\vku</Filter>
+    </ClInclude>
+    <ClInclude Include="..\WorldsEngine\Render\vku\StringConversions.hpp">
+      <Filter>Render\vku</Filter>
+    </ClInclude>
+    <ClInclude Include="..\WorldsEngine\Render\vku\vkcheck.hpp">
+      <Filter>Render\vku</Filter>
+    </ClInclude>
+    <ClInclude Include="..\WorldsEngine\Render\vku\vku_framework.hpp">
+      <Filter>Render\vku</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

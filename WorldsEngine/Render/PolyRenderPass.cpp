@@ -880,41 +880,43 @@ namespace worlds {
 
         vkCmdNextSubpass(cmdBuf, VK_SUBPASS_CONTENTS_INLINE);
 
-        addDebugLabel(cmdBuf, "Main Pass", 0.466f, 0.211f, 0.639f, 1.0f);
+        {
+            TracyVkZone((*ctx.debugContext.tracyContexts)[ctx.imageIndex], ctx.cmdBuf, "Main Pass");
+            addDebugLabel(cmdBuf, "Main Pass", 0.466f, 0.211f, 0.639f, 1.0f);
+            vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+            SubmeshDrawInfo last;
+            last.pipeline = pipeline;
+            for (const auto& sdi : drawInfo) {
+                ZoneScopedN("SDI cmdbuf write");
 
-        vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-        SubmeshDrawInfo last;
-        last.pipeline = pipeline;
-        for (const auto& sdi : drawInfo) {
-            ZoneScopedN("SDI cmdbuf write");
+                if (last.pipeline != sdi.pipeline) {
+                    vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, sdi.pipeline);
+                    ctx.debugContext.stats->numPipelineSwitches++;
+                }
 
-            if (last.pipeline != sdi.pipeline) {
-                vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, sdi.pipeline);
-                ctx.debugContext.stats->numPipelineSwitches++;
+                StandardPushConstants pushConst{
+                    .modelMatrixIdx = sdi.matrixIdx,
+                    .materialIdx = sdi.materialIdx,
+                    .vpIdx = 0,
+                    .objectId = (uint32_t)sdi.ent,
+                    .cubemapExt = glm::vec4(sdi.cubemapExt, 0.0f),
+                    .cubemapPos = glm::vec4(sdi.cubemapPos, 0.0f),
+                    .texScaleOffset = sdi.texScaleOffset,
+                    .screenSpacePickPos = glm::ivec3(pickX, pickY, globalMiscFlags | sdi.drawMiscFlags),
+                    .cubemapIdx = sdi.cubemapIdx
+                };
+
+                vkCmdPushConstants(cmdBuf, pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(pushConst), &pushConst);
+                VkDeviceSize offset = 0;
+                vkCmdBindVertexBuffers(cmdBuf, 0, 1, &sdi.vb, &offset);
+                vkCmdBindIndexBuffer(cmdBuf, sdi.ib, 0, VK_INDEX_TYPE_UINT32);
+                vkCmdDrawIndexed(cmdBuf, sdi.indexCount, 1, sdi.indexOffset, 0, 0);
+
+                last = sdi;
+                ctx.debugContext.stats->numDrawCalls++;
             }
-
-            StandardPushConstants pushConst{
-                .modelMatrixIdx = sdi.matrixIdx,
-                .materialIdx = sdi.materialIdx,
-                .vpIdx = 0,
-                .objectId = (uint32_t)sdi.ent,
-                .cubemapExt = glm::vec4(sdi.cubemapExt, 0.0f),
-                .cubemapPos = glm::vec4(sdi.cubemapPos, 0.0f),
-                .texScaleOffset = sdi.texScaleOffset,
-                .screenSpacePickPos = glm::ivec3(pickX, pickY, globalMiscFlags | sdi.drawMiscFlags),
-                .cubemapIdx = sdi.cubemapIdx
-            };
-
-            vkCmdPushConstants(cmdBuf, pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(pushConst), &pushConst);
-            VkDeviceSize offset = 0;
-            vkCmdBindVertexBuffers(cmdBuf, 0, 1, &sdi.vb, &offset);
-            vkCmdBindIndexBuffer(cmdBuf, sdi.ib, 0, VK_INDEX_TYPE_UINT32);
-            vkCmdDrawIndexed(cmdBuf, sdi.indexCount, 1, sdi.indexOffset, 0, 0);
-
-            last = sdi;
-            ctx.debugContext.stats->numDrawCalls++;
+            vkCmdEndDebugUtilsLabelEXT(cmdBuf);
         }
-        vkCmdEndDebugUtilsLabelEXT(cmdBuf);
 
         dbgLinesPass->execute(ctx);
         skyboxPass->execute(ctx);

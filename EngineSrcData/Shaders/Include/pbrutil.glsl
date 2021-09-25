@@ -80,7 +80,6 @@ vec3 fresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness) {
 }
 
 struct ShadeInfo {
-    vec3 f0;
     float metallic;
     float roughness;
     vec3 albedoColor;
