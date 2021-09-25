@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using WorldsEngine;
 using WorldsEngine.Input;
 using WorldsEngine.Math;
+using WorldsEngine.Audio;
 using ImGuiNET;
 
 namespace Game
@@ -20,6 +21,7 @@ namespace Game
         public V3PidController pidController = new V3PidController();
 
         private bool _grounded = false;
+        private bool _groundedLast = false;
         private VRAction _movementAction;
         private Vector3 _lastHMDPos = Vector3.Zero;
         private float _footstepTimer = 0.0f;
@@ -80,23 +82,9 @@ namespace Game
             inputDirCS.y = 0.0f;
             inputDirCS.Normalize();
 
-            if (inputDirCS.LengthSquared > 0.0f)
-            {
-                _footstepTimer += Time.DeltaTime * 2f;
-            }
-
-            if (_footstepTimer >= 1.0f)
-            {
-                //WorldsEngine.Audio.Audio.PlayOneShot(PlayerRigSystem.GetRandomFootstepSound(), 0.6f);
-                WorldsEngine.Audio.Audio.PlayOneShotEvent("event:/Player/Walking", Vector3.Zero);
-                _footstepTimer = 0f;
-            }
-
             Vector3 desiredAngVel = new Vector3(inputDirCS.z, 0.0f, -inputDirCS.x) * (Keyboard.KeyHeld(KeyCode.LeftShift) ? 50f : 25.0f);
-
             Vector3 currentAngVel = dpa.AngularVelocity;
 
-            //ImGui.Text($"Ang vel: {currentAngVel}");
             Vector3 torque = pidController.CalculateForce(desiredAngVel - currentAngVel, Time.DeltaTime);
 
             dpa.AddTorque(torque);
@@ -121,6 +109,12 @@ namespace Game
                 dpa.AddForce(forceVector, ForceMode.VelocityChange);
                 fenderDpa.AddForce(forceVector, ForceMode.VelocityChange);
                 PlayerRigSystem.Jump = false;
+                Audio.PlayOneShotEvent("event:/Player/Jump", Vector3.Zero);
+            }
+
+            if (_grounded && !_groundedLast)
+            {
+                Audio.PlayOneShotEvent("event:/Player/Land", Vector3.Zero);
             }
 
             if (VR.Enabled)
@@ -132,6 +126,19 @@ namespace Game
                 dpa.Pose = pose;
                 _lastHMDPos = VR.HMDTransform.Position;
             }
+
+            if (inputDirCS.LengthSquared > 0.0f && _grounded)
+            {
+                _footstepTimer += Time.DeltaTime * 2f;
+            }
+
+            if (_footstepTimer >= 1.0f)
+            {
+                Audio.PlayOneShotEvent("event:/Player/Walking", Vector3.Zero);
+                _footstepTimer = 0f;
+            }
+
+            _groundedLast = _grounded;
         }
     }
 
