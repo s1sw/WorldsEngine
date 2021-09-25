@@ -1396,7 +1396,9 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
     presentInfo.waitSemaphoreCount = 1;
 
     VkResult presentResult = vkQueuePresentKHR(queue, &presentInfo);
-    vr::VRCompositor()->PostPresentHandoff();
+
+    if (enableVR)
+        vr::VRCompositor()->PostPresentHandoff();
 
     if (presentResult == VK_ERROR_OUT_OF_DATE_KHR) {
         recreateSwapchain();
