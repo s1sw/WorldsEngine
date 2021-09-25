@@ -378,6 +378,11 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
         }
     }
 
+    dm.extension(VK_EXT_SHADER_SUBGROUP_BALLOT_EXTENSION_NAME);
+#if TRACY_ENABLE
+    dm.extension(VK_EXT_CALIBRATED_TIMESTAMPS_EXTENSION_NAME);
+#endif
+
     if (!checkPhysicalDeviceFeatures(physicalDevice)) {
         *success = false;
         return;
@@ -602,13 +607,13 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     for (auto& cmdBuf : cmdBufs) {
         VkQueue queue;
         vkGetDeviceQueue(device, graphicsQueueFamilyIdx, 0, &queue);
-        tracyContexts.push_back(tracy::CreateVkContext(physicalDevice, device, queue, cmdBuf));
+        tracyContexts.push_back(tracy::CreateVkContext(physicalDevice, device, queue, cmdBuf, vkGetPhysicalDeviceCalibrateableTimeDomainsEXT, vkGetCalibratedTimestampsEXT));
     }
 #endif
 
     if (enableVR) {
         if (initInfo.activeVrApi == VrApi::OpenVR) {
-            vr::VRCompositor()->SetExplicitTimingMode(vr::EVRCompositorTimingMode::VRCompositorTimingMode_Explicit_RuntimePerformsPostPresentHandoff);
+            vr::VRCompositor()->SetExplicitTimingMode(vr::EVRCompositorTimingMode::VRCompositorTimingMode_Explicit_ApplicationPerformsPostPresentHandoff);
         }
 
         vrInterface = initInfo.vrInterface;
@@ -1273,6 +1278,11 @@ ConVar showSlotDebug{ "r_debugSlots", "0", "Shows a window for debugging resourc
 void VKRenderer::frame(Camera& cam, entt::registry& reg) {
     ZoneScoped;
 
+    if (vrApi == VrApi::OpenVR) {
+        ZoneScopedN("WaitGetPoses");
+        vr::VRCompositor()->WaitGetPoses(nullptr, 0, nullptr, 0);
+    }
+
     if (showSlotDebug.getInt()) {
         if (ImGui::Begin("Render Slot Debug")) {
             if (ImGui::CollapsingHeader("Cubemap Slots")) {
@@ -1386,6 +1396,7 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
     presentInfo.waitSemaphoreCount = 1;
 
     VkResult presentResult = vkQueuePresentKHR(queue, &presentInfo);
+    vr::VRCompositor()->PostPresentHandoff();
 
     if (presentResult == VK_ERROR_OUT_OF_DATE_KHR) {
         recreateSwapchain();
@@ -1395,9 +1406,6 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
     } else if (presentResult != VK_SUCCESS) {
         fatalErr("Failed to present");
     }
-
-    if (vrApi == VrApi::OpenVR)
-        vr::VRCompositor()->WaitGetPoses(nullptr, 0, nullptr, 0);
 
     std::array<std::uint64_t, 2> timeStamps = { {0} };
 

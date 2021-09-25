@@ -3,10 +3,11 @@
 #include <aobox.glsl>
 #include <aosphere.glsl>
 
+#extension GL_KHR_shader_subgroup_arithmetic : require
 layout (local_size_x = 16, local_size_y = 16) in;
 
 struct LightingTile {
-    uint lightIds[256];
+    uint lightIdMasks[8];
 };
 
 layout (binding = 0) uniform LightTileInfo {
@@ -68,7 +69,6 @@ shared Frustum tileFrustum;
 shared AABB tileAABB;
 shared uint minDepthU;
 shared uint maxDepthU;
-shared uint outputIndex;
 
 bool frustumContainsSphere(vec3 spherePos, float sphereRadius) {
     for (int i = 0; i < 6; i++) {
@@ -93,15 +93,13 @@ void main() {
     if (gl_LocalInvocationIndex.x == 0) {
         minDepthU = floatBitsToUint(1.0);
         maxDepthU = 0u;
-        outputIndex = 0u;
     }
-    barrier();
 
     uint x = gl_WorkGroupID.x;
     uint y = gl_WorkGroupID.y;
     uint tileIndex = ((y * buf_LightTileInfo.numTilesX) + x) + (eyeIdx * buf_LightTileInfo.tilesPerEye);
 
-    buf_LightTiles.tiles[tileIndex].lightIds[gl_LocalInvocationIndex] = ~0u;
+    buf_LightTiles.tiles[tileIndex].lightIdMasks[gl_LocalInvocationIndex % 8] = 0u;
 
     // Stage 1: Determine the depth bounds of the tile using atomcs.
     // THIS ONLY WORKS FOR 16x16 TILES.
@@ -220,14 +218,12 @@ void main() {
 #endif
 
         if (inFrustum || lightType == LT_DIRECTIONAL) {
-            uint outIdx = atomicAdd(outputIndex, 1);
-            buf_LightTiles.tiles[tileIndex].lightIds[outIdx] = lightIndex;
+			uint bucketIdx = lightIndex / 32;
+			uint bucketBit = lightIndex % 32;
+			atomicOr(buf_LightTiles.tiles[tileIndex].lightIdMasks[bucketIdx], 1 << bucketBit);
+#ifdef DEBUG
+			atomicAdd(buf_LightTileLightCounts.tileLightCounts[tileIndex], 1);
+#endif
         }
-    }
-
-    barrier();
-
-    if (gl_LocalInvocationIndex == 0) {
-        buf_LightTileLightCounts.tileLightCounts[tileIndex] = outputIndex;
     }
 }

@@ -188,7 +188,7 @@ namespace worlds {
 
         vku::executeImmediately(vkCtx->device, vkCtx->commandPool, queue,
             [&](VkCommandBuffer cb) {
-                cube.setLayout(cb, VK_IMAGE_LAYOUT_GENERAL);
+                cube.setLayout(cb, VK_IMAGE_LAYOUT_GENERAL, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_READ_BIT);
                 for (int i = 0; i < (int)descriptorSets.size(); i++) {
                     vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline);
 
@@ -211,7 +211,7 @@ namespace worlds {
                         VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_WRITE_BIT
                     );
                 }
-                cube.setLayout(cb, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+                cube.setLayout(cb, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_ACCESS_SHADER_READ_BIT);
             });
 
         for (VkImageView iv : outputViews) {

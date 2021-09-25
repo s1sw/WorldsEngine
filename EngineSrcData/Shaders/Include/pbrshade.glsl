@@ -74,13 +74,11 @@ LightShadeInfo calcLightShadeInfo(Light light, ShadeInfo shadeInfo, vec3 worldPo
 
         vec3 l0 = p0 - worldPos;
         vec3 l1 = p1 - worldPos;
-
-        float distL0 = length( l0 );
-        float distL1 = length( l1 );
+		
         vec3 Ldist = l1 - l0;
         float RoLd = dot( r, Ldist);
-        float distLd = length(Ldist);
-        float t = ( dot( r, l0 ) * RoLd - dot( l0, Ldist) ) / ( distLd * distLd - RoLd * RoLd );
+        float distLd2 = dot(Ldist, Ldist);
+        float t = ( dot( r, l0 ) * RoLd - dot( l0, Ldist) ) / ( distLd2 - RoLd * RoLd );
 
         vec3 closestPoint = l0 + Ldist * saturate(t);
         vec3 centerToRay = dot(closestPoint, r) * r - closestPoint;
@@ -91,6 +89,7 @@ LightShadeInfo calcLightShadeInfo(Light light, ShadeInfo shadeInfo, vec3 worldPo
         lsi.L = L;
         float falloff = tubeRadius * tubeRadius / max(tubeRadius * tubeRadius, distLight * distLight);
         float cutoffDist = light.distanceCutoff;
+		
         falloff *= max((1.0f - (distance(center, worldPos) / cutoffDist)), 0.0);
         lsi.radiance *= falloff;
         lsi.lightDist = distLight;
@@ -124,14 +123,16 @@ vec3 calculateLighting(Light light, ShadeInfo shadeInfo, vec3 worldPos) {
     } else {
         NDF = ndfGGXSphereLight(cosLh, shadeInfo.roughness, light.pack1.w, lsi.lightDist);
     }
+	
+	vec3 f0 = mix(vec3(0.04), shadeInfo.albedoColor, shadeInfo.metallic);
 
     float G = gaSchlickGGX(cosLi, cosLo, shadeInfo.roughness);
-    vec3 f = fresnelSchlick(shadeInfo.f0, max(dot(norm, shadeInfo.viewDir), 0.0f));
-    f *= fresnelSchlick(shadeInfo.f0, max(dot(norm, lsi.L), 0.0f));
+    vec3 f = fresnelSchlick(f0, max(dot(norm, shadeInfo.viewDir), 0.0f));
+    f *= fresnelSchlick(f0, max(dot(norm, lsi.L), 0.0f));
 
     vec3 kd = mix(vec3(1.0) - f, vec3(0.0), shadeInfo.metallic);
 
-    vec3 numerator = NDF * G * fresnelSchlick(shadeInfo.f0, max(dot(halfway, norm), 0.0f));
+    vec3 numerator = NDF * G * fresnelSchlick(f0, max(dot(halfway, norm), 0.0f));
     float denominator = 4.0f * cosLo * cosLi;
     vec3 specular = numerator / max(denominator, 0.001f);
     vec3 diffuse = kd * shadeInfo.albedoColor;

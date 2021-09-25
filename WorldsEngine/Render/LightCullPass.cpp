@@ -103,7 +103,7 @@ namespace worlds {
             vkCmdDispatch(cmdBuf, xTiles, yTiles, 1);
         }
 
-        depthStencilImage->image.setLayout(cmdBuf, oldLayout, VK_IMAGE_ASPECT_DEPTH_BIT);
+        depthStencilImage->image.setLayout(cmdBuf, oldLayout, VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, VK_IMAGE_ASPECT_DEPTH_BIT);
 
         vkCmdEndDebugUtilsLabelEXT(cmdBuf);
     }

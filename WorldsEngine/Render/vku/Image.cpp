@@ -140,7 +140,7 @@ namespace vku {
     }
 
     void GenericImage::setLayout(VkCommandBuffer cb, VkImageLayout newLayout, VkImageAspectFlags aspectMask) {
-        if (newLayout == s.currentLayout) return;
+        if (newLayout == s.currentLayout || newLayout == VK_IMAGE_LAYOUT_UNDEFINED) return;
         VkImageLayout oldLayout = s.currentLayout;
         s.currentLayout = newLayout;
 
@@ -156,8 +156,8 @@ namespace vku {
         VkPipelineStageFlags srcStageMask{ VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT };
         VkPipelineStageFlags dstStageMask{ VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT };
         VkDependencyFlags dependencyFlags{};
-        VkAccessFlags srcMask{};
-        VkAccessFlags dstMask = s.lastUsageAccessFlags;
+        VkAccessFlags srcMask = s.lastUsageAccessFlags;
+        VkAccessFlags dstMask{};
 
         switch (newLayout) {
         case VK_IMAGE_LAYOUT_UNDEFINED: break;
@@ -207,7 +207,7 @@ namespace vku {
     }
 
     void GenericImage::setLayout(VkCommandBuffer cb, VkImageLayout newLayout, VkPipelineStageFlags srcStageMask, VkPipelineStageFlags dstStageMask, VkAccessFlags srcMask, VkAccessFlags dstMask, VkImageAspectFlags aspectMask) {
-        if (newLayout == s.currentLayout) return;
+        if (newLayout == s.currentLayout || newLayout == VK_IMAGE_LAYOUT_UNDEFINED) return;
         VkImageLayout oldLayout = s.currentLayout;
         s.currentLayout = newLayout;
         s.lastUsageAccessFlags = dstMask;

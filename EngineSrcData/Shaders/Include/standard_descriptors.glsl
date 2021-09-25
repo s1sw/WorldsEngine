@@ -39,7 +39,7 @@ layout (binding = 7) uniform sampler2D brdfLutSampler;
 layout (binding = 8) uniform sampler2DShadow additionalShadowSampler[];
 
 struct LightingTile {
-    uint lightIds[256];
+    uint lightIdMasks[8];
 };
 
 layout (binding = 9) readonly uniform LightTileInfo {

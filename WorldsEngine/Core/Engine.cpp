@@ -474,6 +474,11 @@ namespace worlds {
                             as.isPlaying = true;
                         }
                     });
+
+                    registry.view<AudioSource>().each([](AudioSource& as) {
+                        if (as.playOnSceneStart)
+                            as.eventInstance->start();
+                        });
                     inputManager->lockMouse(true);
                     if (!enableOpenVR)
                         console->executeCommandStr("sim_lockToRefresh 0");

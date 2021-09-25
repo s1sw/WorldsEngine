@@ -1,5 +1,7 @@
 #version 450
 #extension GL_EXT_nonuniform_qualifier : enable
+#extension GL_KHR_shader_subgroup_arithmetic : require
+#extension GL_ARB_shader_ballot : require
 #define MULTIVIEW
 #ifdef MULTIVIEW
 #extension GL_EXT_multiview : enable
@@ -213,6 +215,7 @@ float calculateCascade(out vec4 oShadowPos, out bool inCascade) {
 
 float calcProxyAO(vec3 wPos, vec3 normal) {
     float proxyAO = 1.0;
+	return proxyAO;
 
     for (int i = 0; i < int(pack1.x); i++) {
         if (floatBitsToUint(aoBox[i].pack3.w) != objectId) {
@@ -315,37 +318,45 @@ float getNormalLightShadowIntensity(int lightIdx) {
     return shadowIntensity;
 }
 
-#define TILED
+vec3 shadeLight(int globalLightIndex, ShadeInfo si) {
+	vec3 l = calculateLighting(lights[globalLightIndex], si, inWorldPos.xyz);
+	
+    float shadowIntensity = 1.0;
+	
+    if (int(lights[globalLightIndex].pack0.w) == LT_DIRECTIONAL && !((miscFlag & MISC_FLAG_DISABLE_SHADOWS) == MISC_FLAG_DISABLE_SHADOWS)) {
+        shadowIntensity = getDirLightShadowIntensity(int(globalLightIndex));
+    } else if (lights[globalLightIndex].shadowIdx != ~0u) {
+        shadowIntensity = getNormalLightShadowIntensity(int(globalLightIndex));
+    }
+	   
+    return l * shadowIntensity;
+}
 
 vec3 shade(ShadeInfo si) {
-#ifdef TILED
     int tileIdxX = int(gl_FragCoord.x / buf_LightTileInfo.tileSize);
     int tileIdxY = int(gl_FragCoord.y / buf_LightTileInfo.tileSize);
 
     uint eyeOffset = buf_LightTileInfo.tilesPerEye * gl_ViewIndex;
     uint tileIdx = ((tileIdxY * buf_LightTileInfo.numTilesX) + tileIdxX) + eyeOffset;
-    int lightCount = int(buf_LightTileLightCounts.tileLightCounts[tileIdx]);
-#else
-    int lightCount = int(pack0.x);
-#endif
 
     vec3 lo = vec3(0.0);
-    for (int i = 0; i < lightCount; i++) {
-#ifdef TILED
-        uint realIdx = buf_LightTiles.tiles[tileIdx].lightIds[i];
-#else
-        uint realIdx = i;
-#endif
-        vec3 l = calculateLighting(lights[realIdx], si, inWorldPos.xyz);
-        float shadowIntensity = 1.0;
-        if (int(lights[realIdx].pack0.w) == LT_DIRECTIONAL && !((miscFlag & MISC_FLAG_DISABLE_SHADOWS) == MISC_FLAG_DISABLE_SHADOWS)) {
-            shadowIntensity = getDirLightShadowIntensity(int(realIdx));
-        } else if (lights[realIdx].shadowIdx != ~0u) {
-            shadowIntensity = getNormalLightShadowIntensity(int(realIdx));
-        }
-        lo += l * shadowIntensity;
-    }
-    vec3 ambient = calcAmbient(si.f0, si.roughness, si.viewDir, si.metallic, si.albedoColor, si.normal);
+    for (int i = 0; i < 8; i++) {
+		uint lightBits = readFirstInvocationARB(subgroupOr(buf_LightTiles.tiles[tileIdx].lightIdMasks[i]));
+		
+		while (lightBits != 0) {
+			// find the next set light bit
+			uint lightBitIndex = findLSB(lightBits);
+			
+			// remove it from the mask with an XOR
+			lightBits ^= 1 << lightBitIndex;
+			
+			uint realIndex = lightBitIndex + (32 * i);
+			lo += shadeLight(int(realIndex), si);
+		}
+	}
+	
+	vec3 f0 = mix(vec3(0.04), si.albedoColor, si.metallic);
+    vec3 ambient = calcAmbient(f0, si.roughness, si.viewDir, si.metallic, si.albedoColor, si.normal);
 
     return (ambient * si.ao) + lo;
 }
@@ -403,10 +414,9 @@ void unpackMaterial(inout ShadeInfo si, mat3 tbn) {
     }
 #endif
     si.albedoColor = albedoColor.rgb;
-    si.f0 = mix(vec3(0.04), albedoColor.rgb, si.metallic);
     si.normal = mat.normalTexIdx > -1 ? getNormalMapNormal(mat, tCoord, tbn) : inNormal;
     si.ao *= calcProxyAO(inWorldPos.xyz, si.normal);
-    si.roughness = getAntiAliasedRoughness(si.roughness, si.normal);
+    //si.roughness = getAntiAliasedRoughness(si.roughness, si.normal);
     si.alpha = albedoColor.a;
     si.emissive = mat.emissiveColor;
 }
@@ -482,7 +492,7 @@ void main() {
             return;
         }
         vec3 nMap = decodeNormal(texture(tex2dSampler[materials[matIdx].normalTexIdx], inUV).xy);
-        FragColor = vec4(nMap, 1.0);
+        FragColor = vec4(pow((nMap * 0.5) + 0.5, vec3(2.2)), 1.0);
         return;
     } else if ((miscFlag & DBG_FLAG_UVS) == DBG_FLAG_UVS) {
         FragColor = vec4(mod(inUV, vec2(1.0)), 0.0, 1.0);
