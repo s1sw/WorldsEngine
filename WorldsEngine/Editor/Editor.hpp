@@ -151,6 +151,8 @@ namespace worlds {
         float lookY = 0.0f;
         bool shadowsEnabled = true;
         bool viewportActive = true;
+        ImTextureID audioSourceIcon;
+        ImTextureID worldLightIcon;
     };
 
     struct EntityFolder {
