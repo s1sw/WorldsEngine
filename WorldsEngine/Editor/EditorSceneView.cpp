@@ -7,6 +7,7 @@
 #include "ImGui/imgui_internal.h"
 #include "ComponentMeta/ComponentMetadata.hpp"
 #include "Scripting/NetVM.hpp"
+#include <Audio/Audio.hpp>
 
 namespace worlds {
     EditorSceneView::EditorSceneView(EngineInterfaces interfaces, Editor* ed)
@@ -16,6 +17,8 @@ namespace worlds {
         currentHeight = 256;
         cam = *interfaces.mainCamera;
         recreateRTT();
+        audioSourceIcon = ed->texManager()->loadOrGet(AssetDB::pathToId("UI/Images/Audio Source.png"));
+        worldLightIcon = ed->texManager()->loadOrGet(AssetDB::pathToId("UI/Images/WorldLight.png"));
     }
 
     void EditorSceneView::drawWindow(int uniqueId) {
@@ -184,29 +187,6 @@ namespace worlds {
                 }
             }
 
-            if (ImGui::IsWindowHovered() && !ImGuizmo::IsUsing()) {
-                static bool pickRequested = false;
-                if (interfaces.inputManager->mouseButtonPressed(MouseButton::Left, true)) {
-                    sceneViewPass->requestPick((int)localMPos.x, (int)localMPos.y);
-                    pickRequested = true;
-                }
-
-                uint32_t picked;
-                if (pickRequested && sceneViewPass->getPickResult(&picked)) {
-                    if (picked == UINT32_MAX)
-                        picked = entt::null;
-
-                    if (ed->entityEyedropperActive) {
-                        ed->eyedropperSelect((entt::entity)picked);
-                    } else if (!interfaces.inputManager->shiftHeld()) {
-                        ed->select((entt::entity)picked);
-                    } else {
-                        ed->multiSelect((entt::entity)picked);
-                    }
-                    pickRequested = false;
-                }
-            }
-
             updateCamera(ImGui::GetIO().DeltaTime);
 
             ImGuiStyle& style = ImGui::GetStyle();
@@ -233,11 +213,94 @@ namespace worlds {
                     ImDrawList* drawList = ImGui::GetWindowDrawList();
 
                     drawList->AddRectFilled(drawPos - glm::vec2(5.0f, 2.0f), drawPos + textSize + glm::vec2(5.0f, 2.0f), popupBg, 7.0f);
-
-                    ImGui::GetWindowDrawList()->AddText(drawPos, ImColor(1.0f, 1.0f, 1.0f), label.label.c_str());
+                    drawList->AddText(drawPos, ImColor(1.0f, 1.0f, 1.0f), label.label.c_str());
                 }
 
                 });
+
+            bool mouseOverIcon = false;
+
+            reg.view<AudioSource, Transform>().each([&](entt::entity ent, AudioSource&, Transform& t) {
+                glm::mat4 proj = cam.getProjectionMatrix(contentRegion.x / contentRegion.y);
+                glm::mat4 view = cam.getViewMatrix();
+
+                glm::vec4 ndcObjPosPreDivide = proj * view * glm::vec4(t.position, 1.0f);
+
+                glm::vec2 ndcObjectPosition(ndcObjPosPreDivide);
+                ndcObjectPosition /= ndcObjPosPreDivide.w;
+                ndcObjectPosition *= 0.5f;
+                ndcObjectPosition += 0.5f;
+                ndcObjectPosition *= (glm::vec2)contentRegion;
+                // Not sure why flipping Y is necessary?
+                ndcObjectPosition.y = wSize.y - ndcObjectPosition.y;
+
+                if ((ndcObjPosPreDivide.z / ndcObjPosPreDivide.w) > 0.0f && glm::distance(t.position, cam.position) < 10.0f) {
+                    glm::vec2 imgSize{ 64.0f, 64.0f };
+                    glm::vec2 drawPos = ndcObjectPosition + wPos - (imgSize * 0.5f);
+
+                    ImDrawList* drawList = ImGui::GetWindowDrawList();
+                    drawList->AddImage(audioSourceIcon, drawPos, drawPos + imgSize);
+                    if (ImGui::IsMouseHoveringRect(drawPos, drawPos + imgSize)) {
+                        mouseOverIcon = true;
+
+                        if (ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+                            ed->select(ent);
+                    }
+                }
+                });
+
+            reg.view<WorldLight, Transform>().each([&](entt::entity ent, WorldLight&, Transform& t) {
+                glm::mat4 proj = cam.getProjectionMatrix(contentRegion.x / contentRegion.y);
+                glm::mat4 view = cam.getViewMatrix();
+
+                glm::vec4 ndcObjPosPreDivide = proj * view * glm::vec4(t.position, 1.0f);
+
+                glm::vec2 ndcObjectPosition(ndcObjPosPreDivide);
+                ndcObjectPosition /= ndcObjPosPreDivide.w;
+                ndcObjectPosition *= 0.5f;
+                ndcObjectPosition += 0.5f;
+                ndcObjectPosition *= (glm::vec2)contentRegion;
+                // Not sure why flipping Y is necessary?
+                ndcObjectPosition.y = wSize.y - ndcObjectPosition.y;
+
+                if ((ndcObjPosPreDivide.z / ndcObjPosPreDivide.w) > 0.0f && glm::distance(t.position, cam.position) < 10.0f) {
+                    glm::vec2 imgSize{ 64.0f, 64.0f };
+                    glm::vec2 drawPos = ndcObjectPosition + wPos - (imgSize * 0.5f);
+
+                    ImDrawList* drawList = ImGui::GetWindowDrawList();
+                    drawList->AddImage(worldLightIcon, drawPos, drawPos + (imgSize));
+
+                    if (ImGui::IsMouseHoveringRect(drawPos, drawPos + imgSize)) {
+                        mouseOverIcon = true;
+
+                        if (ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+                            ed->select(ent);
+                    }
+                }
+                });
+
+            if (ImGui::IsWindowHovered() && !ImGuizmo::IsUsing() && !mouseOverIcon) {
+                static bool pickRequested = false;
+                if (interfaces.inputManager->mouseButtonPressed(MouseButton::Left, true)) {
+                    sceneViewPass->requestPick((int)localMPos.x, (int)localMPos.y);
+                    pickRequested = true;
+                }
+
+                uint32_t picked;
+                if (pickRequested && sceneViewPass->getPickResult(&picked)) {
+                    if (picked == UINT32_MAX)
+                        picked = entt::null;
+
+                    if (ed->entityEyedropperActive) {
+                        ed->eyedropperSelect((entt::entity)picked);
+                    } else if (!interfaces.inputManager->shiftHeld()) {
+                        ed->select((entt::entity)picked);
+                    } else {
+                        ed->multiSelect((entt::entity)picked);
+                    }
+                    pickRequested = false;
+                }
+            }
         } else {
             sceneViewPass->active = false;
         }
