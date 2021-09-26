@@ -174,8 +174,8 @@ namespace Game.Interaction
             Grabbable grabbable = Registry.GetComponent<Grabbable>(grab);
             var physHand = Registry.GetComponent<PhysHand>(Entity);
 
-            Transform handTransform = Registry.GetTransform(Entity);
-            Transform grabbingTransform = Registry.GetTransform(grab);
+            Transform handTransform = Registry.GetComponent<DynamicPhysicsActor>(Entity).Pose;
+            Transform grabbingTransform = Registry.GetComponent<DynamicPhysicsActor>(grab).Pose;
 
             Transform relativeTransform = grabbingTransform.TransformByInverse(handTransform);
 
@@ -214,7 +214,8 @@ namespace Game.Interaction
             if (g.rotation.LengthSquared < 0.9f)
                 g.rotation = Quaternion.Identity;
 
-            d6.TargetLocalPose = new Transform(g.position, g.rotation);
+            Transform attachTransform = g.GetAttachTransform(handTransform.Position, grabbingTransform);
+            d6.TargetLocalPose = attachTransform;
 
             d6.Target = grab;
 
@@ -227,8 +228,10 @@ namespace Game.Interaction
 
         private async void BringTowards(Entity grabbed)
         {
-            var gripTransform = new Transform(CurrentGrip.position, CurrentGrip.rotation);
             var physHand = Registry.GetComponent<PhysHand>(Entity);
+            Transform handTransform = Registry.GetComponent<DynamicPhysicsActor>(Entity).Pose;
+            Transform grabTransform = Registry.GetComponent<DynamicPhysicsActor>(grabbed).Pose;
+            var gripTransform = CurrentGrip.GetAttachTransform(handTransform.Position, grabTransform);
 
             while (_bringingTowards)
             {

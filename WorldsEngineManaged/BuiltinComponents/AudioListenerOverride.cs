@@ -14,7 +14,7 @@ namespace WorldsEngine
             get
             {
                 if (cachedMetadata == null)
-                    cachedMetadata = MetadataManager.FindNativeMetadata("FMOD Audio Source")!;
+                    cachedMetadata = MetadataManager.FindNativeMetadata("AudioListenerOverride")!;
 
                 return cachedMetadata;
             }

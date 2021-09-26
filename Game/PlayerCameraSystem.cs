@@ -11,18 +11,20 @@ namespace Game
         private float lookX = 0.0f;
         private float lookY = 0.0f;
 
-        private Entity locosphereEntity;
         private Entity _listenerEntity;
 
         public void OnSceneStart()
         {
-            locosphereEntity = Registry.Find("Player Locosphere");
             lookX = 0.0f;
             lookY = 0.0f;
 
-            _listenerEntity = Registry.Create();
+            if (VR.Enabled)
+            {
+                _listenerEntity = Registry.Create();
+                Registry.SetName(_listenerEntity, "VR Audio Listener Override");
 
-            Registry.AddComponent<AudioListenerOverride>(_listenerEntity);
+                Registry.AddComponent<AudioListenerOverride>(_listenerEntity);
+            }
         }
 
         public static Vector3 GetCamPosForSimulation()
@@ -32,22 +34,20 @@ namespace Game
 
             if (!VR.Enabled)
             {
-                return bodyDpa.Pose.Position + new Vector3(0f, 0.5f * (bodyTransform.Scale.y / 0.75f) - 0.15f, 0f);
+                return bodyDpa.Pose.Position + new Vector3(0.0f, bodyTransform.Scale.y - 0.05f, 0.0f);
             }
             else
             {
                 Vector3 hmdOffset = VR.HMDTransform.Position;
-                hmdOffset.y = -0.15f;
+                hmdOffset.y = 0.0f;
 
-                return bodyDpa.Pose.Position + (Camera.Main.Rotation * -hmdOffset) - new Vector3(0f, (bodyTransform.Scale.y / 0.75f) + 0.45f, 0f);
+                return bodyDpa.Pose.Position + (Camera.Main.Rotation * -hmdOffset) - new Vector3(0f, bodyTransform.Scale.y - 0.05f, 0f);
             }
         }
 
         public void OnUpdate()
         {
-            if (locosphereEntity.IsNull || FreecamSystem.Enabled) return;
-
-            Transform locosphereTransform = Registry.GetTransform(locosphereEntity);
+            if (PlayerRigSystem.PlayerBody.IsNull || FreecamSystem.Enabled) return;
 
             if (!VR.Enabled)
             {
@@ -64,34 +64,24 @@ namespace Game
                 {
                     Camera.Main.Rotation = cameraRotation;
                     Transform bodyTransform = Registry.GetTransform(PlayerRigSystem.PlayerBody);
-                    Camera.Main.Position = bodyTransform.Position + new Vector3(0f, 0.5f * (bodyTransform.Scale.y / 0.75f) - 0.15f, 0f);
-                }
-                else
-                {
-                    Camera.Main.Position = locosphereTransform.Position + new Vector3(0f, 1.6f, 0f);
+                    Camera.Main.Position = bodyTransform.Position + new Vector3(0.0f, bodyTransform.Scale.y - 0.05f, 0.0f);
                 }
             }
             else
             {
                 Vector3 hmdOffset = VR.HMDTransform.Position;
-                hmdOffset.y = -0.15f;
-
+                hmdOffset.y = 0.0f;
 
                 Transform bodyTransform = Registry.GetTransform(PlayerRigSystem.PlayerBody);
-                Camera.Main.Position = bodyTransform.Position + (Camera.Main.Rotation * -hmdOffset) - new Vector3(0f, (bodyTransform.Scale.y / 0.75f) + 0.45f, 0f);
+                Camera.Main.Position = bodyTransform.Position + (Camera.Main.Rotation * -hmdOffset) - new Vector3(0f, bodyTransform.Scale.y - 0.05f, 0f);
 
                 Transform listenerTransform = new();
 
                 listenerTransform.Position = Camera.Main.Position + VR.HMDTransform.Position;
                 listenerTransform.Rotation = VR.HMDTransform.Rotation;
+                listenerTransform.Scale = Vector3.One;
 
                 Registry.SetTransform(_listenerEntity, listenerTransform);
-            }
-
-            if (Keyboard.KeyPressed(KeyCode.L))
-            {
-                DynamicPhysicsActor dpa = Registry.GetComponent<DynamicPhysicsActor>(locosphereEntity);
-                dpa.AddForce(new Vector3(1.0f, 0.0f, 0.0f), ForceMode.VelocityChange);
             }
         }
     }

@@ -127,7 +127,7 @@ namespace WorldsEngine
                     system.OnUpdate();
                 }
             }
-            catch (Exception e)
+            catch (Exception e) when (!System.Diagnostics.Debugger.IsAttached)
             {
                 Logger.LogError($"Caught exception: {e}");
             }
@@ -157,7 +157,7 @@ namespace WorldsEngine
 
                 Registry.UpdateThinkingComponents();
             }
-            catch (Exception e)
+            catch (Exception e) when (!System.Diagnostics.Debugger.IsAttached)
             {
                 Logger.LogError($"Caught exception: {e}");
             }

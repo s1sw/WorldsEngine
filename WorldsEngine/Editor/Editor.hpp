@@ -153,6 +153,7 @@ namespace worlds {
         bool viewportActive = true;
         ImTextureID audioSourceIcon;
         ImTextureID worldLightIcon;
+        ImTextureID worldCubemapIcon;
     };
 
     struct EntityFolder {

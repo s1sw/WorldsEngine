@@ -86,20 +86,19 @@ namespace Game
         {
             SetTargets();
             var bodyDpa = Registry.GetComponent<DynamicPhysicsActor>(PlayerRigSystem.PlayerBody);
-            var locosphereDpa = Registry.GetComponent<DynamicPhysicsActor>(PlayerRigSystem.PlayerLocosphere);
 
             var dpa = Registry.GetComponent<DynamicPhysicsActor>(entity);
             Transform pose = dpa.Pose;
 
-            Vector3 force = PD.CalculateForce(pose.Position, _targetTransform.Position + (locosphereDpa.Velocity * Time.DeltaTime), dpa.Velocity, Time.DeltaTime, locosphereDpa.Velocity)
+            Vector3 force = PD.CalculateForce(pose.Position, _targetTransform.Position + (bodyDpa.Velocity * Time.DeltaTime), dpa.Velocity, Time.DeltaTime, bodyDpa.Velocity)
                 .ClampMagnitude(ForceLimit);
             
-            dpa.AddForce((locosphereDpa.Velocity - lastRefVel), ForceMode.VelocityChange);
+            dpa.AddForce((bodyDpa.Velocity - lastRefVel), ForceMode.VelocityChange);
 
-            lastRefVel = locosphereDpa.Velocity;
+            lastRefVel = bodyDpa.Velocity;
 
             dpa.AddForce(force);
-            locosphereDpa.AddForce(-force);
+            bodyDpa.AddForce(-force);
 
             Quaternion quatDiff = _targetTransform.Rotation.SingleCover * pose.Rotation.SingleCover.Inverse;
             quatDiff = quatDiff.SingleCover;

@@ -131,5 +131,13 @@ namespace WorldsEngine.Math
         {
             return $"({x:0.###}, {y:0.###}, {z:0.###})";
         }
+
+        public float this[int index] => index switch
+        {
+            0 => x,
+            1 => y,
+            2 => z,
+            _ => throw new IndexOutOfRangeException()
+        };
     }
 }

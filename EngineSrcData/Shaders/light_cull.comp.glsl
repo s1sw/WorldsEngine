@@ -8,6 +8,8 @@ layout (local_size_x = 16, local_size_y = 16) in;
 
 struct LightingTile {
     uint lightIdMasks[8];
+	uint aoBoxIdMasks[2];
+	uint aoSphereIdMasks[2];
 };
 
 layout (binding = 0) uniform LightTileInfo {
@@ -89,6 +91,37 @@ bool aabbContainsSphere(vec3 spherePos, float sphereRadius) {
     return fDistSq <= sphereRadius * sphereRadius;
 }
 
+bool frustumContainsOBB(vec3 boxSize, mat3 rotMat, vec3 pos) {
+	// We can determine if the frustum contains an AABB by checking if it contains
+	// any vertices of the AABB.
+	
+	vec3 v0 = ((vec3(-1.0,-1.0,-1.0) * boxSize)) + pos;
+    vec3 v1 = ((vec3( 1.0,-1.0,-1.0) * boxSize)) + pos;
+    vec3 v2 = ((vec3(-1.0, 1.0,-1.0) * boxSize)) + pos;
+    vec3 v3 = ((vec3( 1.0, 1.0,-1.0) * boxSize)) + pos;
+    vec3 v4 = ((vec3(-1.0,-1.0, 1.0) * boxSize)) + pos;
+    vec3 v5 = ((vec3( 1.0,-1.0, 1.0) * boxSize)) + pos;
+    vec3 v6 = ((vec3(-1.0, 1.0, 1.0) * boxSize)) + pos;
+    vec3 v7 = ((vec3( 1.0, 1.0, 1.0) * boxSize)) + pos;
+	
+    for (int i = 0; i < 6; i++) {
+		int outside = 0;
+		
+        outside += (dot(tileFrustum.planes[i], vec4(v0, 1.0)) < 0.0) ? 1 : 0;
+        outside += (dot(tileFrustum.planes[i], vec4(v1, 1.0)) < 0.0) ? 1 : 0;
+        outside += (dot(tileFrustum.planes[i], vec4(v2, 1.0)) < 0.0) ? 1 : 0;
+        outside += (dot(tileFrustum.planes[i], vec4(v3, 1.0)) < 0.0) ? 1 : 0;
+        outside += (dot(tileFrustum.planes[i], vec4(v4, 1.0)) < 0.0) ? 1 : 0;
+        outside += (dot(tileFrustum.planes[i], vec4(v5, 1.0)) < 0.0) ? 1 : 0;
+        outside += (dot(tileFrustum.planes[i], vec4(v6, 1.0)) < 0.0) ? 1 : 0;
+        outside += (dot(tileFrustum.planes[i], vec4(v7, 1.0)) < 0.0) ? 1 : 0;
+		
+		if (outside == 8) return false;
+    }
+
+    return true;
+}
+
 void main() {
     if (gl_LocalInvocationIndex.x == 0) {
         minDepthU = floatBitsToUint(1.0);
@@ -100,6 +133,10 @@ void main() {
     uint tileIndex = ((y * buf_LightTileInfo.numTilesX) + x) + (eyeIdx * buf_LightTileInfo.tilesPerEye);
 
     buf_LightTiles.tiles[tileIndex].lightIdMasks[gl_LocalInvocationIndex % 8] = 0u;
+	buf_LightTiles.tiles[tileIndex].aoSphereIdMasks[gl_LocalInvocationIndex % 2] = 0u;
+	buf_LightTiles.tiles[tileIndex].aoBoxIdMasks[gl_LocalInvocationIndex % 2] = 0u;
+	
+	barrier();
 
     // Stage 1: Determine the depth bounds of the tile using atomcs.
     // THIS ONLY WORKS FOR 16x16 TILES.
@@ -226,4 +263,38 @@ void main() {
 #endif
         }
     }
+	
+	// Stage 3: Cull AO spheres against the frustum
+	if (gl_LocalInvocationIndex < buf_Lights.pack1.y) {
+        uint sphereIndex = gl_LocalInvocationIndex;
+        AOSphere sph = buf_Lights.aoSphere[sphereIndex];
+        vec3 spherePos = sph.position;
+		float cullRadius = sph.radius + 1.0f;
+
+#ifdef CULL_AABB
+        bool inFrustum = frustumContainsSphere(spherePos, cullRadius) && aabbContainsSphere(spherePos, cullRadius);
+#else
+        bool inFrustum = frustumContainsSphere(spherePos, cullRadius);
+#endif
+
+        if (inFrustum) {
+			uint bucketIdx = sphereIndex / 32;
+			uint bucketBit = sphereIndex % 32;
+			atomicOr(buf_LightTiles.tiles[tileIndex].aoSphereIdMasks[bucketIdx], 1 << bucketBit);
+        }
+    }
+	
+	// Stage 3: Cull AO boxes against the frustum
+	//if (gl_LocalInvocationIndex < buf_Lights.pack1.x) {
+    //    uint boxIdx = gl_LocalInvocationIndex;
+    //    AOBox box = buf_Lights.aoBox[boxIdx];
+	//	
+    //    bool inFrustum = frustumContainsOBB(getBoxScale(box), getBoxRotationMat(box), getBoxTranslation(box).zyx);
+	//
+    //    if (inFrustum) {
+	//		uint bucketIdx = boxIdx / 32;
+	//		uint bucketBit = boxIdx % 32;
+	//		atomicOr(buf_LightTiles.tiles[tileIndex].aoBoxIdMasks[bucketIdx], 1 << bucketBit);
+    //    }
+    //}
 }

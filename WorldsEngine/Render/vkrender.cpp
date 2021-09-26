@@ -1271,6 +1271,7 @@ void VKRenderer::reuploadMaterials() {
     for (auto& pass : rttPasses) {
         pass->prp->reuploadDescriptors();
     }
+    additionalShadowsPass->reuploadDescriptors();
 }
 
 ConVar showSlotDebug{ "r_debugSlots", "0", "Shows a window for debugging resource slots." };

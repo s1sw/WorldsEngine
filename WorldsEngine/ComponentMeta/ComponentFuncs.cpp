@@ -1716,5 +1716,5 @@ namespace worlds {
     SphereAOProxyEditor saope;
     EditorLabelEditor ele;
     FMODAudioSourceEditor fase;
-    AudioListenerOverride alo;
+    AudioListenerOverrideEditor alo;
 }

@@ -15,6 +15,7 @@ namespace WorldsEngine.Math
 
         public Quaternion Conjugate => new Quaternion(w, -x, -y, -z);
         public Quaternion Inverse => Conjugate / LengthSquared;
+        public Quaternion Normalized => this / Length;
 
         public Vector3 Axis
         {
@@ -100,6 +101,28 @@ namespace WorldsEngine.Math
 
             return (Quaternion)new Mat3x3(column0, column1, column2);
         }
+
+        public static Quaternion FromTo(Vector3 from, Vector3 to)
+        {
+            Quaternion q = new();
+
+            float dp = Vector3.Dot(from, to);
+
+            if (dp > 0.9999f)
+                return Identity;
+            else if (dp < -0.9999f)
+                return AngleAxis(MathF.PI, Vector3.Up);
+
+            Vector3 a = Vector3.Cross(from, to);
+
+            q.x = a.x;
+            q.y = a.y;
+            q.z = a.z;
+
+            q.w = MathF.Sqrt((from.LengthSquared) * (to.LengthSquared)) + Vector3.Dot(from, to);
+            return q.Normalized;
+        }
+
 
         private Mat3x3 ToMat3x3()
         {
