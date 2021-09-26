@@ -34,6 +34,11 @@ namespace WorldsEngine
             return Position + (Rotation * point);
         }
 
+        public Vector3 InverseTransformPoint(Vector3 point)
+        {
+            return Rotation.Inverse * (point - Position);
+        }
+
         public Vector3 TransformDirection(Vector3 direction)
         {
             return Rotation * direction;

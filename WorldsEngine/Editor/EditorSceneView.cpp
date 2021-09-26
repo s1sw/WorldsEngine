@@ -19,6 +19,7 @@ namespace worlds {
         recreateRTT();
         audioSourceIcon = ed->texManager()->loadOrGet(AssetDB::pathToId("UI/Images/Audio Source.png"));
         worldLightIcon = ed->texManager()->loadOrGet(AssetDB::pathToId("UI/Images/WorldLight.png"));
+        worldCubemapIcon = ed->texManager()->loadOrGet(AssetDB::pathToId("UI/Images/Cubemap.png"));
     }
 
     void EditorSceneView::drawWindow(int uniqueId) {
@@ -39,6 +40,7 @@ namespace worlds {
                 currentHeight = contentRegion.y;
                 recreateRTT();
             }
+            cam.verticalFOV = interfaces.mainCamera->verticalFOV;
 
             auto wSize = ImGui::GetContentRegionAvail();
             ImGui::Image((ImTextureID)sceneViewDS, ImVec2(currentWidth, currentHeight));
@@ -269,6 +271,36 @@ namespace worlds {
 
                     ImDrawList* drawList = ImGui::GetWindowDrawList();
                     drawList->AddImage(worldLightIcon, drawPos, drawPos + (imgSize));
+
+                    if (ImGui::IsMouseHoveringRect(drawPos, drawPos + imgSize)) {
+                        mouseOverIcon = true;
+
+                        if (ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+                            ed->select(ent);
+                    }
+                }
+                });
+
+            reg.view<WorldCubemap, Transform>().each([&](entt::entity ent, WorldCubemap&, Transform& t) {
+                glm::mat4 proj = cam.getProjectionMatrix(contentRegion.x / contentRegion.y);
+                glm::mat4 view = cam.getViewMatrix();
+
+                glm::vec4 ndcObjPosPreDivide = proj * view * glm::vec4(t.position, 1.0f);
+
+                glm::vec2 ndcObjectPosition(ndcObjPosPreDivide);
+                ndcObjectPosition /= ndcObjPosPreDivide.w;
+                ndcObjectPosition *= 0.5f;
+                ndcObjectPosition += 0.5f;
+                ndcObjectPosition *= (glm::vec2)contentRegion;
+                // Not sure why flipping Y is necessary?
+                ndcObjectPosition.y = wSize.y - ndcObjectPosition.y;
+
+                if ((ndcObjPosPreDivide.z / ndcObjPosPreDivide.w) > 0.0f && glm::distance(t.position, cam.position) < 10.0f) {
+                    glm::vec2 imgSize{ 64.0f, 64.0f };
+                    glm::vec2 drawPos = ndcObjectPosition + wPos - (imgSize * 0.5f);
+
+                    ImDrawList* drawList = ImGui::GetWindowDrawList();
+                    drawList->AddImage(worldCubemapIcon, drawPos, drawPos + (imgSize));
 
                     if (ImGui::IsMouseHoveringRect(drawPos, drawPos + imgSize)) {
                         mouseOverIcon = true;

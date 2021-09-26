@@ -41,6 +41,10 @@ extern "C" {
         strncpy(buffer, nc.name.c_str(), nc.name.size());
     }
 
+    EXPORT void registry_setEntityName(entt::registry* registry, entt::entity entityId, char* name) {
+        registry->emplace_or_replace<NameComponent>(entityId, name);
+    }
+
     EXPORT void registry_destroy(entt::registry* registry, entt::entity entity) {
         registry->destroy(entity);
     }

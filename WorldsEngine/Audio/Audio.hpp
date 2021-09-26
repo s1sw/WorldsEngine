@@ -63,7 +63,7 @@ namespace worlds {
         glm::vec3 bounds;
     };
 
-    struct AudioListenerOverride {};
+    struct AudioListenerOverride { int meh; };
 
     class AudioSystem {
     public:

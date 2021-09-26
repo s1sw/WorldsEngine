@@ -40,6 +40,8 @@ layout (binding = 8) uniform sampler2DShadow additionalShadowSampler[];
 
 struct LightingTile {
     uint lightIdMasks[8];
+	uint aoBoxIdMasks[2];
+	uint aoSphereIdMasks[2];
 };
 
 layout (binding = 9) readonly uniform LightTileInfo {

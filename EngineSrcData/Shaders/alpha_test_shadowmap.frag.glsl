@@ -30,13 +30,8 @@ void main() {
     float alpha = 1.0f;
     Material mat = materials[matIdx];
     float alphaCutoff = (mat.cutoffFlags & (0xFF)) / 255.0f;
-
-    if (alphaCutoff > 0.0f) {
-        alpha = texture(tex2dSampler[mat.albedoTexIdx], inUV).a;
-        //alpha *= 1 + mipMapLevel() * 0.75;
-        alpha = (alpha - alphaCutoff) / max(fwidth(alpha), 0.0001) + 0.5;
-    }
+    alpha = texture(tex2dSampler[mat.albedoTexIdx], inUV).a;
 	
-    if (alpha < 0.5)
+    if (alpha < alphaCutoff)
 		discard;
 }

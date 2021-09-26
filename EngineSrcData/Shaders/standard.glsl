@@ -24,9 +24,9 @@ layout(location = 3) VARYING(vec2, UV);
 layout(location = 4) VARYING(flat uint, UvDir);
 
 #ifdef FRAGMENT
-#ifdef EFT
+//#ifdef EFT
 layout(early_fragment_tests) in;
-#endif
+//#endif
 layout(location = 0) out vec4 FragColor;
 
 layout(constant_id = 0) const bool ENABLE_PICKING = false;
@@ -215,19 +215,62 @@ float calculateCascade(out vec4 oShadowPos, out bool inCascade) {
 
 float calcProxyAO(vec3 wPos, vec3 normal) {
     float proxyAO = 1.0;
-	return proxyAO;
 
-    for (int i = 0; i < int(pack1.x); i++) {
-        if (floatBitsToUint(aoBox[i].pack3.w) != objectId) {
-            proxyAO *= (1.0 - getBoxOcclusionNonClipped(aoBox[i], inWorldPos.xyz, normal));
-        }
-    }
+    //for (int i = 0; i < int(pack1.x); i++) {
+    //    if (floatBitsToUint(aoBox[i].pack3.w) != objectId) {
+    //        proxyAO *= (1.0 - getBoxOcclusionNonClipped(aoBox[i], inWorldPos.xyz, normal));
+    //    }
+    //}
+	//
+    //for (int i = 0; i < int(pack1.y); i++) {
+    //    if (sphereIds[i] != objectId) {
+    //        proxyAO *= (1.0 - getSphereOcclusion(inWorldPos.xyz, normal, aoSphere[i]));
+    //    }
+    //}
+	
+	int tileIdxX = int(gl_FragCoord.x / buf_LightTileInfo.tileSize);
+    int tileIdxY = int(gl_FragCoord.y / buf_LightTileInfo.tileSize);
 
-    for (int i = 0; i < int(pack1.y); i++) {
-        if (sphereIds[i] != objectId) {
-            proxyAO *= (1.0 - getSphereOcclusion(inWorldPos.xyz, normal, aoSphere[i]));
-        }
-    }
+    uint eyeOffset = buf_LightTileInfo.tilesPerEye * gl_ViewIndex;
+    uint tileIdx = ((tileIdxY * buf_LightTileInfo.numTilesX) + tileIdxX) + eyeOffset;
+	
+    for (int i = 0; i < 2; i++) {
+		//uint sphereBits = readFirstInvocationARB(subgroupOr(buf_LightTiles.tiles[tileIdx].aoSphereIdMasks[i]));
+		uint sphereBits = buf_LightTiles.tiles[tileIdx].aoSphereIdMasks[i];
+		
+		while (sphereBits != 0) {
+			// find the next set sphere bit
+			uint sphereBitIndex = findLSB(sphereBits);
+			
+			// remove it from the mask with an XOR
+			sphereBits ^= 1 << sphereBitIndex;
+			
+			uint realIndex = sphereBitIndex + (32 * i);
+			
+			if (sphereIds[realIndex] != objectId) {
+				proxyAO *= (1.0 - getSphereOcclusion(inWorldPos.xyz, normal, aoSphere[realIndex]));
+			}
+		}
+	}
+	
+	for (int i = 0; i < 2; i++) {
+		//uint sphereBits = readFirstInvocationARB(subgroupOr(buf_LightTiles.tiles[tileIdx].aoSphereIdMasks[i]));
+		uint boxBits = buf_LightTiles.tiles[tileIdx].aoBoxIdMasks[i];
+		
+		while (boxBits != 0) {
+			// find the next set sphere bit
+			uint boxBitIndex = findLSB(boxBits);
+			
+			// remove it from the mask with an XOR
+			boxBits ^= 1 << boxBitIndex;
+			
+			uint realIndex = boxBitIndex + (32 * i);
+			
+			if (floatBitsToUint(aoBox[realIndex].pack3.w) != objectId) {
+				proxyAO *= (1.0 - getBoxOcclusionNonClipped(aoBox[realIndex], inWorldPos.xyz, normal));
+			}
+		}
+	}
 
     return proxyAO;
 }

@@ -30,6 +30,9 @@ namespace WorldsEngine
 
         [DllImport(WorldsEngine.NativeModule)]
         public static extern void registry_getEntityName(IntPtr regPtr, uint entityId, StringBuilder str);
+        
+        [DllImport(WorldsEngine.NativeModule)]
+        public static extern void registry_setEntityName(IntPtr regPtr, uint entityId, string str);
 
         [DllImport(WorldsEngine.NativeModule)]
         public static extern void registry_destroy(IntPtr regPtr, uint entityId);
@@ -324,6 +327,7 @@ namespace WorldsEngine
         public static T GetComponent<T>(Entity entity)
         {
             var type = typeof(T);
+            if (entity.IsNull) throw new NullEntityException();
 
             if (type.IsAssignableTo(typeof(BuiltinComponent)))
             {
@@ -342,6 +346,8 @@ namespace WorldsEngine
 
         public static object GetComponent(Type type, Entity entity)
         {
+            if (entity.IsNull) throw new NullEntityException();
+
             if (type.IsAssignableTo(typeof(BuiltinComponent)))
             {
                 ConstructorInfo ci = type.GetConstructor(
@@ -423,6 +429,11 @@ namespace WorldsEngine
             StringBuilder sb = new StringBuilder((int)length);
             NativeRegistry.registry_getEntityName(nativeRegistryPtr, entity.ID, sb);
             return sb.ToString();
+        }
+
+        public static void SetName(Entity entity, string name)
+        {
+            NativeRegistry.registry_setEntityName(nativeRegistryPtr, entity.ID, name);
         }
 
         public static Entity Find(string name)

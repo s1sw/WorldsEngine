@@ -13,7 +13,7 @@ namespace Game
 {
     [Component]
     [EditorFriendlyName("C# Player Rig")]
-    public class PlayerRig : IThinkingComponent
+    public class PlayerRig : IThinkingComponent, IStartListener
     {
         const float LocosphereRadius = 0.15f;
 
@@ -82,35 +82,33 @@ namespace Game
             inputDirCS.y = 0.0f;
             inputDirCS.Normalize();
 
-            Vector3 desiredAngVel = new Vector3(inputDirCS.z, 0.0f, -inputDirCS.x) * (Keyboard.KeyHeld(KeyCode.LeftShift) ? 50f : 25.0f);
-            Vector3 currentAngVel = dpa.AngularVelocity;
-
-            Vector3 torque = pidController.CalculateForce(desiredAngVel - currentAngVel, Time.DeltaTime);
-
-            dpa.AddTorque(torque);
-
             _grounded = Physics.Raycast(
-                dpa.Pose.Position - new Vector3(0.0f, LocosphereRadius - 0.01f, 0.0f),
+                dpa.Pose.Position,
                 Vector3.Down,
-                LocosphereRadius,
+                out RaycastHit hit,
+                1.1f,
                 PhysicsLayers.Player
             );
 
-            Transform bodyTransform = Registry.GetTransform(PlayerRigSystem.PlayerBody);
-            D6Joint bodyJoint = Registry.GetComponent<D6Joint>(PlayerRigSystem.PlayerBody);
-            var bodyDpa = Registry.GetComponent<DynamicPhysicsActor>(PlayerRigSystem.PlayerBody);
+            Vector3 targetPosition = hit.WorldHitPos + (Vector3.Up * 1.1f);
 
             if (_grounded && PlayerRigSystem.Jump)
             {
-                var fenderDpa = Registry.GetComponent<DynamicPhysicsActor>(PlayerRigSystem.PlayerFender);
-
-                Vector3 forceVector = Vector3.Up * 5.0f;
-                bodyDpa.AddForce(forceVector, ForceMode.VelocityChange);
+                Vector3 forceVector = Vector3.Up * 6.0f;
                 dpa.AddForce(forceVector, ForceMode.VelocityChange);
-                fenderDpa.AddForce(forceVector, ForceMode.VelocityChange);
                 PlayerRigSystem.Jump = false;
                 Audio.PlayOneShotEvent("event:/Player/Jump", Vector3.Zero);
             }
+
+            if (_grounded && !PlayerRigSystem.Jump)
+                dpa.AddForce(pidController.CalculateForce(targetPosition - dpa.Pose.Position, Time.DeltaTime));
+
+            Vector3 targetVelocity = inputDirCS * 7.5f;
+            Vector3 appliedVelocity = (targetVelocity - dpa.Velocity) * (_grounded ? 10f : 2.5f);
+            appliedVelocity.y = 0.0f;
+
+            if (_grounded || targetVelocity.LengthSquared > 0.01f)
+                dpa.AddForce(appliedVelocity, ForceMode.Acceleration);
 
             if (_grounded && !_groundedLast)
             {
@@ -140,6 +138,12 @@ namespace Game
 
             _groundedLast = _grounded;
         }
+
+        public void Start(Entity entity)
+        {
+            if (VR.Enabled)
+                _lastHMDPos = VR.HMDTransform.Position;
+        }
     }
 
     [SystemUpdateOrder(-2)]
@@ -147,8 +151,6 @@ namespace Game
     {
         public static Entity PlayerBody { get; private set; }
         public static Entity PlayerFender { get; private set; }
-        public static Entity PlayerLocosphere { get; private set; }
-        private readonly PhysicsMaterial physMat = new(15.0f, 15.0f, 0.0f);
 
         public static bool Jump = false;
 
@@ -169,23 +171,6 @@ namespace Game
 
             PlayerBody = Registry.Find("Player Body");
             PlayerFender = Registry.Find("Fender");
-            PlayerLocosphere = Registry.Find("Player Locosphere");
-
-            physMat.FrictionCombineMode = CombineMode.Max;
-
-            foreach(Entity ent in Registry.View<PlayerRig>())
-            {
-                var dpa = Registry.GetComponent<DynamicPhysicsActor>(ent);
-
-                List<PhysicsShape> shapes = dpa.GetPhysicsShapes();
-
-                foreach (PhysicsShape shape in shapes)
-                {
-                    shape.physicsMaterial = physMat;
-                }
-
-                dpa.SetPhysicsShapes(shapes);
-            }
 
             _footstepNoises = new AssetID[10];
             for (int i = 1; i <= 10; i++)
@@ -203,7 +188,6 @@ namespace Game
 
             if (VR.Enabled && _jumpAction.Held)
             {
-                Logger.Log("jump!!");
                 Jump = true;
             }
         }

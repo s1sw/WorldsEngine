@@ -810,34 +810,6 @@ namespace worlds {
             VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
             VK_ACCESS_SHADER_READ_BIT);
 
-        {
-            lightTilesBuffer.barrier(cmdBuf,
-                VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                VK_DEPENDENCY_BY_REGION_BIT,
-                VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT,
-                VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED);
-
-            lightTileLightCountBuffer.barrier(cmdBuf,
-                VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                VK_DEPENDENCY_BY_REGION_BIT,
-                VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT,
-                VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED);
-
-            lightCullPass->execute(ctx, 16);
-
-            lightTilesBuffer.barrier(cmdBuf,
-                VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-                VK_DEPENDENCY_BY_REGION_BIT,
-                VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,
-                VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED);
-
-            lightTileLightCountBuffer.barrier(cmdBuf,
-                VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-                VK_DEPENDENCY_BY_REGION_BIT,
-                VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,
-                VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED);
-        }
-
         if (setEventNextFrame) {
             vkCmdSetEvent(cmdBuf, pickEvent, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
             setEventNextFrame = false;
@@ -878,6 +850,39 @@ namespace worlds {
             depthPrepass->execute(ctx, drawInfo);
         }
 
+        vkCmdNextSubpass(cmdBuf, VK_SUBPASS_CONTENTS_INLINE);
+        vkCmdEndRenderPass(cmdBuf);
+
+        {
+            lightTilesBuffer.barrier(cmdBuf,
+                VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                VK_DEPENDENCY_BY_REGION_BIT,
+                VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT,
+                VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED);
+
+            lightTileLightCountBuffer.barrier(cmdBuf,
+                VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                VK_DEPENDENCY_BY_REGION_BIT,
+                VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT,
+                VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED);
+
+            lightCullPass->execute(ctx, 16);
+
+            lightTilesBuffer.barrier(cmdBuf,
+                VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+                VK_DEPENDENCY_BY_REGION_BIT,
+                VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,
+                VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED);
+
+            lightTileLightCountBuffer.barrier(cmdBuf,
+                VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+                VK_DEPENDENCY_BY_REGION_BIT,
+                VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,
+                VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED);
+        }
+
+        // JANK JANK JANK JANK JANK JANK
+        vkCmdBeginRenderPass(cmdBuf, &rpbi, VK_SUBPASS_CONTENTS_INLINE);
         vkCmdNextSubpass(cmdBuf, VK_SUBPASS_CONTENTS_INLINE);
 
         {
