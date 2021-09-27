@@ -150,6 +150,8 @@ namespace WorldsEngine
             {
                 simulateSyncContext.RunCallbacks();
 
+                Physics.FlushCollisionQueue();
+
                 foreach (var system in hotloadManager.Systems)
                 {
                     system.OnSimulate();

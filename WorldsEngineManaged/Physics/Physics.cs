@@ -1,5 +1,7 @@
-﻿using System;
+﻿using JetBrains.Annotations;
+using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -88,6 +90,31 @@ namespace WorldsEngine
             handle.Free();
 
             return count;
+        }
+
+        struct Collision
+        {
+            public uint EntityID;
+            public PhysicsContactInfo ContactInfo;
+        }
+
+        private static readonly Queue<Collision> _collisionQueue = new();
+
+        [UsedImplicitly]
+        [SuppressMessage("CodeQuality", "IDE0051:Remove unused private members",
+            Justification = "Called from native C++ during deserialization")]
+        private static void HandleCollisionFromNative(uint entityId, ref PhysicsContactInfo contactInfo)
+        {
+            _collisionQueue.Enqueue(new Collision() { EntityID = entityId, ContactInfo = contactInfo });
+        }
+
+        internal static void FlushCollisionQueue()
+        {
+            while (_collisionQueue.Count > 0)
+            {
+                var collision = _collisionQueue.Dequeue();
+                Registry.HandleCollision(collision.EntityID, ref collision.ContactInfo);
+            }
         }
     }
 }

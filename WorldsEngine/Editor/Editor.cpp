@@ -678,6 +678,8 @@ namespace worlds {
             float fov = glm::degrees(cam.verticalFOV);
             ImGui::InputFloat("Camera FOV", &fov);
             cam.verticalFOV = glm::radians(fov);
+
+            ImGui::InputFloat("Scene icon distance", &settings.sceneIconDrawDistance);
             if (ImGui::Checkbox("Shadows", &settings.enableShadows)) {
                 for (EditorSceneView* esv : sceneViews) {
                     esv->setShadowsEnabled(settings.enableShadows);

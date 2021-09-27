@@ -170,7 +170,7 @@ namespace worlds {
         createManagedDelegate("WorldsEngine.Registry", "OnNativeEntityDestroy", (void**)&nativeEntityDestroyFunc);
         createManagedDelegate("WorldsEngine.Registry", "SerializeManagedComponents", (void**)&serializeComponentsFunc);
         createManagedDelegate("WorldsEngine.Registry", "DeserializeManagedComponent", (void**)&deserializeComponentFunc);
-        createManagedDelegate("WorldsEngine.Registry", "HandleCollision", (void**)&physicsContactFunc);
+        createManagedDelegate("WorldsEngine.Physics", "HandleCollisionFromNative", (void**)&physicsContactFunc);
         createManagedDelegate("WorldsEngine.Registry", "CopyManagedComponents", (void**)&copyManagedComponentsFunc);
 
 
