@@ -183,7 +183,6 @@ namespace worlds {
         pm.vertexAttribute(1, 0, VK_FORMAT_R32G32_SFLOAT, (uint32_t)offsetof(UIVertex, uv));
         pm.cullMode(VK_CULL_MODE_NONE);
         pm.blendBegin(true);
-        pm.subPass(1);
 
         pm.rasterizationSamples(vku::sampleCountFlags(ctx.passSettings.msaaSamples));
 

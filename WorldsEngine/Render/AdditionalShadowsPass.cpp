@@ -78,8 +78,10 @@ namespace worlds {
         sm.magFilter(VK_FILTER_LINEAR).minFilter(VK_FILTER_LINEAR).mipmapMode(VK_SAMPLER_MIPMAP_MODE_LINEAR).anisotropyEnable(true).maxAnisotropy(16.0f).maxLod(VK_LOD_CLAMP_NONE).minLod(0.0f);
         sampler = sm.create(handles->device);
 
+        uint32_t spotRes = handles->graphicsSettings.spotShadowmapRes;
+
         {
-            vku::PipelineMaker pm{ 512, 512 };
+            vku::PipelineMaker pm{ spotRes, spotRes };
             pm.shader(VK_SHADER_STAGE_FRAGMENT_BIT, shadowFragmentShader);
             pm.shader(VK_SHADER_STAGE_VERTEX_BIT, shadowVertexShader);
             pm.vertexBinding(0, (uint32_t)sizeof(Vertex));
@@ -97,7 +99,7 @@ namespace worlds {
         {
             auto shadowAlphaFragmentShader = ShaderCache::getModule(handles->device, AssetDB::pathToId("Shaders/alpha_test_shadowmap.frag.spv"));
 
-            vku::PipelineMaker pm{ 512, 512 };
+            vku::PipelineMaker pm{ spotRes, spotRes };
             pm.shader(VK_SHADER_STAGE_FRAGMENT_BIT, shadowAlphaFragmentShader);
             pm.shader(VK_SHADER_STAGE_VERTEX_BIT, shadowVertexShader);
             pm.vertexBinding(0, (uint32_t)sizeof(Vertex));
@@ -116,7 +118,7 @@ namespace worlds {
         faci.attachmentImageInfoCount = 1;
 
         VkFramebufferAttachmentImageInfo faii{ VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENT_IMAGE_INFO };
-        faii.width = faii.height = 512;
+        faii.width = faii.height = spotRes;
         faii.layerCount = 1;
         faii.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
         faii.viewFormatCount = 1;
@@ -128,7 +130,7 @@ namespace worlds {
         VkFramebufferCreateInfo fci{ VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
         fci.attachmentCount = 1;
         fci.pAttachments = nullptr;
-        fci.width = fci.height = 512;
+        fci.width = fci.height = spotRes;
         fci.renderPass = renderPass;
         fci.layers = 1;
         fci.flags = VK_FRAMEBUFFER_CREATE_IMAGELESS_BIT;
@@ -173,6 +175,7 @@ namespace worlds {
 
         auto cmdBuf = ctx.cmdBuf;
 
+        uint32_t spotRes = handles->graphicsSettings.spotShadowmapRes;
         VkDebugUtilsLabelEXT label{ VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT };
         label.pLabelName = "Spotlight Shadow Pass";
         label.color[0] = 0.239f;
@@ -200,7 +203,7 @@ namespace worlds {
             VkRenderPassBeginInfo rpbi{ VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
             rpbi.renderPass = renderPass;
             rpbi.framebuffer = fb;
-            rpbi.renderArea = VkRect2D{ {0, 0}, {512, 512} };
+            rpbi.renderArea = VkRect2D{ {0, 0}, {spotRes, spotRes} };
             rpbi.clearValueCount = 1;
             rpbi.pClearValues = &clearVal;
             rpbi.pNext = &attachmentBeginInfo;
@@ -221,7 +224,7 @@ namespace worlds {
                 }
 
                 glm::mat4 mvp = shadowMatrices[i] * transform.getMatrix();
-                
+
 
                 for (int i = 0; i < meshPos->second.numSubmeshes; i++) {
                     auto& currSubmesh = meshPos->second.submeshes[i];
@@ -250,7 +253,10 @@ namespace worlds {
             });
 
             vkCmdEndRenderPass(cmdBuf);
-            ctx.resources.additionalShadowImages[i]->image.setCurrentLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
+            ctx.resources.additionalShadowImages[i]->image.setCurrentLayout(
+                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
+                VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
         }
 
         vkCmdEndDebugUtilsLabelEXT(cmdBuf);

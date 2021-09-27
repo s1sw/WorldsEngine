@@ -270,18 +270,20 @@ namespace worlds {
         vku::RenderpassMaker rPassMaker;
 
         rPassMaker.attachmentBegin(VK_FORMAT_B10G11R11_UFLOAT_PACK32);
-        rPassMaker.attachmentLoadOp(VK_ATTACHMENT_LOAD_OP_DONT_CARE);
-        rPassMaker.attachmentStoreOp(VK_ATTACHMENT_STORE_OP_STORE);
+        rPassMaker.attachmentLoadOp(VK_ATTACHMENT_LOAD_OP_CLEAR);
+        rPassMaker.attachmentStoreOp(VK_ATTACHMENT_STORE_OP_DONT_CARE);
         rPassMaker.attachmentSamples(polyImage->image.info().samples);
         rPassMaker.attachmentFinalLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
         rPassMaker.attachmentBegin(VK_FORMAT_D32_SFLOAT);
-        rPassMaker.attachmentLoadOp(VK_ATTACHMENT_LOAD_OP_CLEAR);
+        rPassMaker.attachmentLoadOp(VK_ATTACHMENT_LOAD_OP_LOAD);
         rPassMaker.attachmentStencilLoadOp(VK_ATTACHMENT_LOAD_OP_DONT_CARE);
         rPassMaker.attachmentSamples(polyImage->image.info().samples);
+        rPassMaker.attachmentInitialLayout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
         rPassMaker.attachmentFinalLayout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
 
         rPassMaker.subpassBegin(VK_PIPELINE_BIND_POINT_GRAPHICS);
+        rPassMaker.subpassColorAttachment(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, 0);
         rPassMaker.subpassDepthStencilAttachment(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, 1);
 
         rPassMaker.dependencyBegin(VK_SUBPASS_EXTERNAL, 0);
@@ -289,18 +291,21 @@ namespace worlds {
         rPassMaker.dependencyDstStageMask(VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT);
         rPassMaker.dependencyDstAccessMask(VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
 
-        rPassMaker.subpassBegin(VK_PIPELINE_BIND_POINT_GRAPHICS);
-        rPassMaker.subpassColorAttachment(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, 0);
-        rPassMaker.subpassDepthStencilAttachment(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, 1);
+        vku::RenderpassMaker depthPassMaker;
 
-        rPassMaker.dependencyBegin(0, 1);
-        rPassMaker.dependencySrcStageMask(VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT);
-        rPassMaker.dependencyDstStageMask(VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
-        rPassMaker.dependencyDstAccessMask(VK_ACCESS_COLOR_ATTACHMENT_READ_BIT |
-            VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT |
-            VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT |
-            VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
+        depthPassMaker.attachmentBegin(VK_FORMAT_D32_SFLOAT);
+        depthPassMaker.attachmentLoadOp(VK_ATTACHMENT_LOAD_OP_CLEAR);
+        depthPassMaker.attachmentStencilLoadOp(VK_ATTACHMENT_LOAD_OP_DONT_CARE);
+        depthPassMaker.attachmentSamples(polyImage->image.info().samples);
+        depthPassMaker.attachmentFinalLayout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
 
+        depthPassMaker.subpassBegin(VK_PIPELINE_BIND_POINT_GRAPHICS);
+        depthPassMaker.subpassDepthStencilAttachment(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, 0);
+
+        depthPassMaker.dependencyBegin(VK_SUBPASS_EXTERNAL, 0);
+        depthPassMaker.dependencySrcStageMask(VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT);
+        depthPassMaker.dependencyDstStageMask(VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT);
+        depthPassMaker.dependencyDstAccessMask(VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
 
         // AMD driver bug workaround: shaders that use ViewIndex without a multiview renderpass
         // will crash the driver, so we always set up a renderpass with multiview even if it's only
@@ -315,13 +320,15 @@ namespace worlds {
             correlationMask = 0b00000011;
         }
 
-        renderPassMultiviewCI.subpassCount = 2;
+        renderPassMultiviewCI.subpassCount = 1;
         renderPassMultiviewCI.pViewMasks = viewMasks;
         renderPassMultiviewCI.correlationMaskCount = 1;
         renderPassMultiviewCI.pCorrelationMasks = &correlationMask;
         rPassMaker.setPNext(&renderPassMultiviewCI);
+        depthPassMaker.setPNext(&renderPassMultiviewCI);
 
         renderPass = rPassMaker.create(handles->device);
+        depthPass = depthPassMaker.create(handles->device);
 
         VkImageView attachments[2] = { polyImage->image.imageView(), depthStencilImage->image.imageView() };
 
@@ -331,10 +338,17 @@ namespace worlds {
         fci.pAttachments = attachments;
         fci.width = extent.width;
         fci.height = extent.height;
-        fci.renderPass = this->renderPass;
+        fci.renderPass = renderPass;
         fci.layers = 1;
 
         VKCHECK(vkCreateFramebuffer(handles->device, &fci, nullptr, &renderFb));
+
+        VkImageView depthAttachment = depthStencilImage->image.imageView();
+        fci.attachmentCount = 1;
+        fci.pAttachments = &depthAttachment;
+        fci.renderPass = depthPass;
+
+        VKCHECK(vkCreateFramebuffer(handles->device, &fci, nullptr, &depthFb));
 
         AssetID vsID = AssetDB::pathToId("Shaders/standard.vert.spv");
         AssetID fsID = AssetDB::pathToId("Shaders/standard.frag.spv");
@@ -386,7 +400,6 @@ namespace worlds {
 
             pm.blendBegin(false);
             pm.frontFace(VK_FRONT_FACE_COUNTER_CLOCKWISE);
-            pm.subPass(1);
 
             pm.rasterizationSamples(msaaSamples);
             pm.alphaToCoverageEnable(true);
@@ -424,7 +437,6 @@ namespace worlds {
 
             pm.blendBegin(false);
             pm.frontFace(VK_FRONT_FACE_COUNTER_CLOCKWISE);
-            pm.subPass(1);
 
             pm.rasterizationSamples(msaaSamples);
             pm.alphaToCoverageEnable(true);
@@ -451,7 +463,6 @@ namespace worlds {
             pm.depthWriteEnable(true).depthTestEnable(true).depthCompareOp(VK_COMPARE_OP_GREATER);
             pm.blendBegin(false);
             pm.frontFace(VK_FRONT_FACE_COUNTER_CLOCKWISE);
-            pm.subPass(1);
 
             pm.rasterizationSamples(msaaSamples);
             pm.alphaToCoverageEnable(true);
@@ -473,7 +484,6 @@ namespace worlds {
             pm.vertexAttribute(1, 0, VK_FORMAT_R32G32_SFLOAT, (uint32_t)offsetof(Vertex, uv));
             pm.polygonMode(VK_POLYGON_MODE_LINE);
             pm.lineWidth(2.0f);
-            pm.subPass(1);
 
             VkPipelineMultisampleStateCreateInfo pmsci{ VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO };
             pmsci.rasterizationSamples = msaaSamples;
@@ -494,7 +504,7 @@ namespace worlds {
         skyboxPass->setup(ctx, renderPass, descriptorPool);
 
         depthPrepass = new DepthPrepass(handles);
-        depthPrepass->setup(ctx, renderPass, pipelineLayout);
+        depthPrepass->setup(ctx, depthPass, pipelineLayout);
 
         uiPass = new WorldSpaceUIPass(handles);
         uiPass->setup(ctx, renderPass, descriptorPool);
@@ -774,13 +784,15 @@ namespace worlds {
         clearValues[0] = vku::makeColorClearValue(0.0f, 0.0f, 0.0f, 1.0f);
         clearValues[1] = vku::makeDepthStencilClearValue(0.0f, 0);
 
+        VkClearValue depthClearValue = vku::makeDepthStencilClearValue(0.0f, 0);
+
         VkRenderPassBeginInfo rpbi{ VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
 
-        rpbi.renderPass = renderPass;
-        rpbi.framebuffer = renderFb;
+        rpbi.renderPass = depthPass;
+        rpbi.framebuffer = depthFb;
         rpbi.renderArea = VkRect2D{ {0, 0}, {ctx.passWidth, ctx.passHeight} };
-        rpbi.clearValueCount = (uint32_t)clearValues.size();
-        rpbi.pClearValues = clearValues.data();
+        rpbi.clearValueCount = 1;
+        rpbi.pClearValues = &depthClearValue;
 
         VkCommandBuffer cmdBuf = ctx.cmdBuf;
 
@@ -850,7 +862,6 @@ namespace worlds {
             depthPrepass->execute(ctx, drawInfo);
         }
 
-        vkCmdNextSubpass(cmdBuf, VK_SUBPASS_CONTENTS_INLINE);
         vkCmdEndRenderPass(cmdBuf);
 
         {
@@ -881,9 +892,11 @@ namespace worlds {
                 VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED);
         }
 
-        // JANK JANK JANK JANK JANK JANK
+        rpbi.clearValueCount = (uint32_t)clearValues.size();
+        rpbi.pClearValues = clearValues.data();
+        rpbi.renderPass = renderPass;
+        rpbi.framebuffer = renderFb;
         vkCmdBeginRenderPass(cmdBuf, &rpbi, VK_SUBPASS_CONTENTS_INLINE);
-        vkCmdNextSubpass(cmdBuf, VK_SUBPASS_CONTENTS_INLINE);
 
         {
             TracyVkZone((*ctx.debugContext.tracyContexts)[ctx.imageIndex], ctx.cmdBuf, "Main Pass");

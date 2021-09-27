@@ -184,6 +184,7 @@ namespace worlds {
     class PolyRenderPass {
     private:
         VkRenderPass renderPass;
+        VkRenderPass depthPass;
         VkPipeline pipeline;
         VkPipeline noBackfaceCullPipeline;
         VkPipeline alphaTestPipeline;
@@ -215,6 +216,7 @@ namespace worlds {
         VkSampler shadowSampler;
 
         VkFramebuffer renderFb;
+        VkFramebuffer depthFb;
         std::vector<VkDescriptorSet> descriptorSets;
 
         RenderTexture* depthStencilImage;

@@ -50,7 +50,6 @@ namespace worlds {
         pm.lineWidth(4.0f);
         pm.topology(VK_PRIMITIVE_TOPOLOGY_LINE_LIST);
         pm.depthWriteEnable(true).depthTestEnable(true).depthCompareOp(VK_COMPARE_OP_GREATER);
-        pm.subPass(1);
 
         auto sampleFlags = vku::sampleCountFlags(ctx.passSettings.msaaSamples);
         pm.rasterizationSamples(sampleFlags);
