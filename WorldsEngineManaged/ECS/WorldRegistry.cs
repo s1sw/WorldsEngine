@@ -551,7 +551,7 @@ namespace WorldsEngine
             }
         }
 
-        private static void HandleCollision(uint entityId, ref PhysicsContactInfo contactInfo)
+        internal static void HandleCollision(uint entityId, ref PhysicsContactInfo contactInfo)
         {
             Entity entity = new(entityId);
 

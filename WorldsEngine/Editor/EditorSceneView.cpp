@@ -208,7 +208,7 @@ namespace worlds {
                 // Not sure why flipping Y is necessary?
                 ndcObjectPosition.y = wSize.y - ndcObjectPosition.y;
 
-                if ((ndcObjPosPreDivide.z / ndcObjPosPreDivide.w) > 0.0f && glm::distance(t.position, cam.position) < 10.0f) {
+                if ((ndcObjPosPreDivide.z / ndcObjPosPreDivide.w) > 0.0f && glm::distance(t.position, cam.position) < ed->settings.sceneIconDrawDistance) {
                     glm::vec2 textSize = ImGui::CalcTextSize(label.label.c_str());
                     glm::vec2 drawPos = ndcObjectPosition + wPos - (textSize * 0.5f);
 
@@ -236,7 +236,7 @@ namespace worlds {
                 // Not sure why flipping Y is necessary?
                 ndcObjectPosition.y = wSize.y - ndcObjectPosition.y;
 
-                if ((ndcObjPosPreDivide.z / ndcObjPosPreDivide.w) > 0.0f && glm::distance(t.position, cam.position) < 10.0f) {
+                if ((ndcObjPosPreDivide.z / ndcObjPosPreDivide.w) > 0.0f && glm::distance(t.position, cam.position) < ed->settings.sceneIconDrawDistance) {
                     glm::vec2 imgSize{ 64.0f, 64.0f };
                     glm::vec2 drawPos = ndcObjectPosition + wPos - (imgSize * 0.5f);
 
@@ -265,7 +265,7 @@ namespace worlds {
                 // Not sure why flipping Y is necessary?
                 ndcObjectPosition.y = wSize.y - ndcObjectPosition.y;
 
-                if ((ndcObjPosPreDivide.z / ndcObjPosPreDivide.w) > 0.0f && glm::distance(t.position, cam.position) < 10.0f) {
+                if ((ndcObjPosPreDivide.z / ndcObjPosPreDivide.w) > 0.0f && glm::distance(t.position, cam.position) < ed->settings.sceneIconDrawDistance) {
                     glm::vec2 imgSize{ 64.0f, 64.0f };
                     glm::vec2 drawPos = ndcObjectPosition + wPos - (imgSize * 0.5f);
 
@@ -295,7 +295,7 @@ namespace worlds {
                 // Not sure why flipping Y is necessary?
                 ndcObjectPosition.y = wSize.y - ndcObjectPosition.y;
 
-                if ((ndcObjPosPreDivide.z / ndcObjPosPreDivide.w) > 0.0f && glm::distance(t.position, cam.position) < 10.0f) {
+                if ((ndcObjPosPreDivide.z / ndcObjPosPreDivide.w) > 0.0f && glm::distance(t.position, cam.position) < ed->settings.sceneIconDrawDistance) {
                     glm::vec2 imgSize{ 64.0f, 64.0f };
                     glm::vec2 drawPos = ndcObjectPosition + wPos - (imgSize * 0.5f);
 

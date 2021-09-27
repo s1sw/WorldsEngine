@@ -71,6 +71,7 @@ namespace worlds {
         bool objectSnapGlobal = false;
         float snapIncrement = 0.1f;
         float angularSnapIncrement = 15.0f;
+        float sceneIconDrawDistance = 10.0f;
         bool enableShadows = true;
     };
 
