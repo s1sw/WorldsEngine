@@ -556,7 +556,7 @@ void main() {
         uint tileIdx = ((tileIdxY * buf_LightTileInfo.numTilesX) + tileIdxX) + (buf_LightTileInfo.tilesPerEye * gl_ViewIndex);
         int lightCount = int(buf_LightTileLightCounts.tileLightCounts[tileIdx]);
 
-        vec3 heatmapCol = mix(vec3(0.0, 1.0, 0.0), vec3(1.0, 0.0, 0.0), lightCount / 64.0);
+        vec3 heatmapCol = mix(vec3(0.0), vec3(1.0), lightCount / 64.0);
 
         if (int(gl_FragCoord.x) % int(buf_LightTileInfo.tileSize) == 0 || int(gl_FragCoord.y) % int(buf_LightTileInfo.tileSize) == 0)
             heatmapCol.z = 1.0;
