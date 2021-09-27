@@ -257,9 +257,9 @@ void main() {
 
         uint bucketIdx = lightIndex / 32;
         uint bucketBit = lightIndex % 32;
-        uint setBits = readFirstInvocationARB(subgroupOr((uint(inFrustum || lightType == LT_DIRECTIONAL) << bucketBit)));
-        if (subgroupElect())
-            buf_LightTiles.tiles[tileIndex].lightIdMasks[bucketIdx] = setBits;
+
+        atomicOr(buf_LightTiles.tiles[tileIndex].lightIdMasks[bucketIdx], uint(inFrustum || lightType == LT_DIRECTIONAL) << bucketBit);
+
 #ifdef DEBUG
         if (inFrustum)
             atomicAdd(buf_LightTileLightCounts.tileLightCounts[tileIndex], 1);
@@ -281,9 +281,7 @@ void main() {
 
         uint bucketIdx = sphereIndex / 32;
         uint bucketBit = sphereIndex % 32;
-        uint setBits = readFirstInvocationARB(subgroupOr((uint(inFrustum) << bucketBit)));
-        if (subgroupElect())
-            atomicOr(buf_LightTiles.tiles[tileIndex].aoSphereIdMasks[bucketIdx], setBits);
+        atomicOr(buf_LightTiles.tiles[tileIndex].aoSphereIdMasks[bucketIdx], uint(inFrustum) << bucketBit);
     }
 
     // Stage 3: Cull AO boxes against the frustum
