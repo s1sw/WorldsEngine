@@ -63,15 +63,21 @@ namespace worlds {
     };
 
     struct GraphicsSettings {
-        GraphicsSettings() : msaaLevel(2), shadowmapRes(1024), enableVr(false) {}
+        GraphicsSettings()
+            : msaaLevel(2)
+            , shadowmapRes(1024)
+            , spotShadowmapRes(512)
+            , enableVr(false) {}
         GraphicsSettings(int msaaLevel, int shadowmapRes, bool enableVr)
             : msaaLevel(msaaLevel)
             , shadowmapRes(shadowmapRes)
+            , spotShadowmapRes(512)
             , enableVr(enableVr) {
         }
 
         int msaaLevel;
         int shadowmapRes;
+        int spotShadowmapRes;
         bool enableVr;
     };
 
@@ -89,7 +95,10 @@ namespace worlds {
         int numPipelineSwitches;
         int numTriangles;
         int numLightsInView;
-        double shadowmapGpuTime;
+        double imgAcquisitionTime;
+        double cmdBufWriteTime;
+        double cmdBufFenceWaitTime;
+        double imgFenceWaitTime;
     };
 
     enum class VKVendor {

@@ -221,56 +221,56 @@ float calcProxyAO(vec3 wPos, vec3 normal) {
     //        proxyAO *= (1.0 - getBoxOcclusionNonClipped(aoBox[i], inWorldPos.xyz, normal));
     //    }
     //}
-	//
+    //
     //for (int i = 0; i < int(pack1.y); i++) {
     //    if (sphereIds[i] != objectId) {
     //        proxyAO *= (1.0 - getSphereOcclusion(inWorldPos.xyz, normal, aoSphere[i]));
     //    }
     //}
-	
-	int tileIdxX = int(gl_FragCoord.x / buf_LightTileInfo.tileSize);
+
+    int tileIdxX = int(gl_FragCoord.x / buf_LightTileInfo.tileSize);
     int tileIdxY = int(gl_FragCoord.y / buf_LightTileInfo.tileSize);
 
     uint eyeOffset = buf_LightTileInfo.tilesPerEye * gl_ViewIndex;
     uint tileIdx = ((tileIdxY * buf_LightTileInfo.numTilesX) + tileIdxX) + eyeOffset;
-	
+
     for (int i = 0; i < 2; i++) {
-		//uint sphereBits = readFirstInvocationARB(subgroupOr(buf_LightTiles.tiles[tileIdx].aoSphereIdMasks[i]));
-		uint sphereBits = buf_LightTiles.tiles[tileIdx].aoSphereIdMasks[i];
-		
-		while (sphereBits != 0) {
-			// find the next set sphere bit
-			uint sphereBitIndex = findLSB(sphereBits);
-			
-			// remove it from the mask with an XOR
-			sphereBits ^= 1 << sphereBitIndex;
-			
-			uint realIndex = sphereBitIndex + (32 * i);
-			
-			if (sphereIds[realIndex] != objectId) {
-				proxyAO *= (1.0 - getSphereOcclusion(inWorldPos.xyz, normal, aoSphere[realIndex]));
-			}
-		}
-	}
-	
-	for (int i = 0; i < 2; i++) {
-		//uint sphereBits = readFirstInvocationARB(subgroupOr(buf_LightTiles.tiles[tileIdx].aoSphereIdMasks[i]));
-		uint boxBits = buf_LightTiles.tiles[tileIdx].aoBoxIdMasks[i];
-		
-		while (boxBits != 0) {
-			// find the next set sphere bit
-			uint boxBitIndex = findLSB(boxBits);
-			
-			// remove it from the mask with an XOR
-			boxBits ^= 1 << boxBitIndex;
-			
-			uint realIndex = boxBitIndex + (32 * i);
-			
-			if (floatBitsToUint(aoBox[realIndex].pack3.w) != objectId) {
-				proxyAO *= (1.0 - getBoxOcclusionNonClipped(aoBox[realIndex], inWorldPos.xyz, normal));
-			}
-		}
-	}
+        //uint sphereBits = readFirstInvocationARB(subgroupOr(buf_LightTiles.tiles[tileIdx].aoSphereIdMasks[i]));
+        uint sphereBits = buf_LightTiles.tiles[tileIdx].aoSphereIdMasks[i];
+
+        while (sphereBits != 0) {
+            // find the next set sphere bit
+            uint sphereBitIndex = findLSB(sphereBits);
+
+            // remove it from the mask with an XOR
+            sphereBits ^= 1 << sphereBitIndex;
+
+            uint realIndex = sphereBitIndex + (32 * i);
+
+            if (sphereIds[realIndex] != objectId) {
+                proxyAO *= (1.0 - getSphereOcclusion(inWorldPos.xyz, normal, aoSphere[realIndex]));
+            }
+        }
+    }
+
+    for (int i = 0; i < 2; i++) {
+        //uint sphereBits = readFirstInvocationARB(subgroupOr(buf_LightTiles.tiles[tileIdx].aoSphereIdMasks[i]));
+        uint boxBits = buf_LightTiles.tiles[tileIdx].aoBoxIdMasks[i];
+
+        while (boxBits != 0) {
+            // find the next set sphere bit
+            uint boxBitIndex = findLSB(boxBits);
+
+            // remove it from the mask with an XOR
+            boxBits ^= 1 << boxBitIndex;
+
+            uint realIndex = boxBitIndex + (32 * i);
+
+            if (floatBitsToUint(aoBox[realIndex].pack3.w) != objectId) {
+                proxyAO *= (1.0 - getBoxOcclusionNonClipped(aoBox[realIndex], inWorldPos.xyz, normal));
+            }
+        }
+    }
 
     return proxyAO;
 }
@@ -362,16 +362,16 @@ float getNormalLightShadowIntensity(int lightIdx) {
 }
 
 vec3 shadeLight(int globalLightIndex, ShadeInfo si) {
-	vec3 l = calculateLighting(lights[globalLightIndex], si, inWorldPos.xyz);
-	
+    vec3 l = calculateLighting(lights[globalLightIndex], si, inWorldPos.xyz);
+
     float shadowIntensity = 1.0;
-	
+
     if (int(lights[globalLightIndex].pack0.w) == LT_DIRECTIONAL && !((miscFlag & MISC_FLAG_DISABLE_SHADOWS) == MISC_FLAG_DISABLE_SHADOWS)) {
         shadowIntensity = getDirLightShadowIntensity(int(globalLightIndex));
     } else if (lights[globalLightIndex].shadowIdx != ~0u) {
         shadowIntensity = getNormalLightShadowIntensity(int(globalLightIndex));
     }
-	   
+
     return l * shadowIntensity;
 }
 
@@ -384,21 +384,21 @@ vec3 shade(ShadeInfo si) {
 
     vec3 lo = vec3(0.0);
     for (int i = 0; i < 8; i++) {
-		uint lightBits = readFirstInvocationARB(subgroupOr(buf_LightTiles.tiles[tileIdx].lightIdMasks[i]));
-		
-		while (lightBits != 0) {
-			// find the next set light bit
-			uint lightBitIndex = findLSB(lightBits);
-			
-			// remove it from the mask with an XOR
-			lightBits ^= 1 << lightBitIndex;
-			
-			uint realIndex = lightBitIndex + (32 * i);
-			lo += shadeLight(int(realIndex), si);
-		}
-	}
-	
-	vec3 f0 = mix(vec3(0.04), si.albedoColor, si.metallic);
+        uint lightBits = readFirstInvocationARB(subgroupOr(buf_LightTiles.tiles[tileIdx].lightIdMasks[i]));
+
+        while (lightBits != 0) {
+            // find the next set light bit
+            uint lightBitIndex = findLSB(lightBits);
+
+            // remove it from the mask with an XOR
+            lightBits ^= 1 << lightBitIndex;
+
+            uint realIndex = lightBitIndex + (32 * i);
+            lo += shadeLight(int(realIndex), si);
+        }
+    }
+
+    vec3 f0 = mix(vec3(0.04), si.albedoColor, si.metallic);
     vec3 ambient = calcAmbient(f0, si.roughness, si.viewDir, si.metallic, si.albedoColor, si.normal);
 
     return (ambient * si.ao) + lo;
@@ -556,7 +556,7 @@ void main() {
         uint tileIdx = ((tileIdxY * buf_LightTileInfo.numTilesX) + tileIdxX) + (buf_LightTileInfo.tilesPerEye * gl_ViewIndex);
         int lightCount = int(buf_LightTileLightCounts.tileLightCounts[tileIdx]);
 
-        vec3 heatmapCol = mix(vec3(0.0, 0.0, 0.0), vec3(1.0, 1.0, 1.0), lightCount / 64.0);
+        vec3 heatmapCol = mix(vec3(0.0, 1.0, 0.0), vec3(1.0, 0.0, 0.0), lightCount / 64.0);
 
         if (int(gl_FragCoord.x) % int(buf_LightTileInfo.tileSize) == 0 || int(gl_FragCoord.y) % int(buf_LightTileInfo.tileSize) == 0)
             heatmapCol.z = 1.0;
@@ -566,16 +566,16 @@ void main() {
     }
 #endif
 
-#ifndef EFT
-    float finalAlpha = si.alphaCutoff > 0.0f ? si.alpha : 1.0f;
-    if (si.alphaCutoff > 0.0f) {
-        //finalAlpha *= 1 + mipMapLevel() * 0.75;
-        finalAlpha = (finalAlpha - si.alphaCutoff) / max(fwidth(finalAlpha), 0.0001) + 0.5;
-    }
-#else
-    float finalAlpha = 1.0f;
-#endif
+//#ifndef EFT
+//    float finalAlpha = si.alphaCutoff > 0.0f ? si.alpha : 1.0f;
+//    if (si.alphaCutoff > 0.0f) {
+//        //finalAlpha *= 1 + mipMapLevel() * 0.75;
+//        finalAlpha = (finalAlpha - si.alphaCutoff) / max(fwidth(finalAlpha), 0.0001) + 0.5;
+//    }
+//#else
+//    float finalAlpha = 1.0f;
+//#endif
 
-    FragColor = vec4(shade(si) + si.emissive, finalAlpha);
+    FragColor = vec4(shade(si) + si.emissive, 1.0);
 }
 #endif

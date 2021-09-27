@@ -1,3 +1,4 @@
+#include "Util/TimingUtil.hpp"
 #define _CRT_SECURE_NO_WARNINGS
 #define VMA_IMPLEMENTATION
 #include "../Libs/volk.h"
@@ -208,7 +209,7 @@ bool checkPhysicalDeviceFeatures(const VkPhysicalDevice& physDev) {
 
     if (!supportedFeatures.shaderStorageImageMultisample) {
         logWarn(worlds::WELogCategoryRender, "Missing shaderStorageImageMultisample");
-        return false;
+        //return false;
     }
 
     if (!supportedFeatures.fragmentStoresAndAtomics) {
@@ -236,17 +237,17 @@ bool checkPhysicalDeviceFeatures(const VkPhysicalDevice& physDev) {
 
     if (!supportedVk11Features.multiview) {
         logErr(WELogCategoryRender, "Missing multiview support");
-        return false;
+        //return false;
     }
 
     if (!supportedVk12Features.descriptorIndexing) {
         logErr(WELogCategoryRender, "Missing descriptor indexing");
-        return false;
+        //return false;
     }
 
     if (!supportedVk12Features.descriptorBindingPartiallyBound) {
         logErr(WELogCategoryRender, "Missing partially bound descriptors");
-        return false;
+        //return false;
     }
 
     return true;
@@ -422,7 +423,7 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     allocatorCreateInfo.flags = 0;
     vmaCreateAllocator(&allocatorCreateInfo, &allocator);
 
-    VkPipelineCacheCreateInfo pipelineCacheInfo{};
+    VkPipelineCacheCreateInfo pipelineCacheInfo{VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO};
     PipelineCacheSerializer::loadPipelineCache(getPhysicalDeviceProperties(physicalDevice), pipelineCacheInfo);
 
     VKCHECK(vkCreatePipelineCache(device, &pipelineCacheInfo, nullptr, &pipelineCache));
@@ -546,7 +547,9 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     shadowmapImage = createRTResource(shadowmapCreateInfo, "Shadowmap Image");
     shadowmapIci.arrayLayers = 1;
 
-    shadowmapIci.extent = VkExtent3D{ 512, 512, 1 };
+    shadowmapIci.extent = VkExtent3D{
+        (uint32_t)handles.graphicsSettings.spotShadowmapRes,
+        (uint32_t)handles.graphicsSettings.spotShadowmapRes, 1 };
     for (int i = 0; i < NUM_SHADOW_LIGHTS; i++) {
         RTResourceCreateInfo shadowCreateInfo{ shadowmapIci, VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_DEPTH_BIT };
         shadowImages[i] = createRTResource(shadowCreateInfo, ("Shadow Image " + std::to_string(i)).c_str());
@@ -670,6 +673,42 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
             rttPass->prp->reuploadDescriptors();
         }
         }, "r_setCSMResolution", "Sets the resolution of the cascaded shadow map.");
+
+    g_console->registerCommand([&](void*, const char* arg) {
+        vkDeviceWaitIdle(device);
+        handles.graphicsSettings.spotShadowmapRes = std::atoi(arg);
+
+        VkImageCreateInfo shadowmapIci{ VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
+        shadowmapIci.imageType = VK_IMAGE_TYPE_2D;
+        shadowmapIci.extent = VkExtent3D{
+            (uint32_t)handles.graphicsSettings.spotShadowmapRes,
+            (uint32_t)handles.graphicsSettings.spotShadowmapRes, 1 };
+        shadowmapIci.arrayLayers = 1;
+        shadowmapIci.mipLevels = 1;
+        shadowmapIci.format = VK_FORMAT_D32_SFLOAT;
+        shadowmapIci.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        shadowmapIci.samples = VK_SAMPLE_COUNT_1_BIT;
+        shadowmapIci.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+
+        for (int i = 0; i < NUM_SHADOW_LIGHTS; i++) {
+            RTResourceCreateInfo shadowCreateInfo{ shadowmapIci, VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_DEPTH_BIT };
+            shadowImages[i] = createRTResource(shadowCreateInfo, ("Shadow Image " + std::to_string(i)).c_str());
+        }
+
+        vku::executeImmediately(device, commandPool, getQueue(device, graphicsQueueFamilyIdx), [&](auto cb) {
+            for (int i = 0; i < NUM_SHADOW_LIGHTS; i++) {
+                shadowImages[i]->image.setLayout(cb, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_ASPECT_DEPTH_BIT);
+            }
+            });
+
+        delete additionalShadowsPass;
+        additionalShadowsPass = new AdditionalShadowsPass(&handles);
+        additionalShadowsPass->setup(getResources());
+        for (VKRTTPass* rttPass : rttPasses) {
+            rttPass->prp->reuploadDescriptors();
+        }
+
+        }, "r_setSpotShadowResolution", "Sets the resolution of spotlight shadows.");
 
     materialUB = vku::GenericBuffer(
         device, allocator,
@@ -1107,6 +1146,7 @@ void VKRenderer::calculateCascadeMatrices(bool forVr, entt::registry& world, Cam
 
 void VKRenderer::writeCmdBuf(VkCommandBuffer cmdBuf, uint32_t imageIndex, Camera& cam, entt::registry& reg) {
     ZoneScoped;
+    PerfTimer pt;
 
     vku::beginCommandBuffer(cmdBuf, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
     texSlots->frameStarted = true;
@@ -1262,6 +1302,7 @@ void VKRenderer::writeCmdBuf(VkCommandBuffer cmdBuf, uint32_t imageIndex, Camera
 #endif
     texSlots->frameStarted = false;
     VKCHECK(vkEndCommandBuffer(cmdBuf));
+    dbgStats.cmdBufWriteTime = pt.stopGetMs();
 }
 
 void VKRenderer::reuploadMaterials() {
@@ -1323,32 +1364,44 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
 
     uint32_t imageIndex;
 
-    VkResult nextImageRes = swapchain->acquireImage(device, imgAvailable[frameIdx], &imageIndex);
+    {
+        PerfTimer pt;
+        VkResult nextImageRes = swapchain->acquireImage(device, imgAvailable[frameIdx], &imageIndex);
 
-    if ((nextImageRes == VK_ERROR_OUT_OF_DATE_KHR || nextImageRes == VK_SUBOPTIMAL_KHR) && width != 0 && height != 0) {
-        if (nextImageRes == VK_ERROR_OUT_OF_DATE_KHR)
-            logVrb(WELogCategoryRender, "Swapchain out of date");
-        else
-            logVrb(WELogCategoryRender, "Swapchain suboptimal");
-        recreateSwapchain();
+        if ((nextImageRes == VK_ERROR_OUT_OF_DATE_KHR || nextImageRes == VK_SUBOPTIMAL_KHR) && width != 0 && height != 0) {
+            if (nextImageRes == VK_ERROR_OUT_OF_DATE_KHR)
+                logVrb(WELogCategoryRender, "Swapchain out of date");
+            else
+                logVrb(WELogCategoryRender, "Swapchain suboptimal");
+            recreateSwapchain();
 
-        // acquire image from new swapchain
-        swapchain->acquireImage(device, imgAvailable[frameIdx], &imageIndex);
+            // acquire image from new swapchain
+            swapchain->acquireImage(device, imgAvailable[frameIdx], &imageIndex);
+        }
+        dbgStats.imgAcquisitionTime = pt.stopGetMs();
     }
 
     if (imgFences[imageIndex] && imgFences[imageIndex] != cmdBufFences[frameIdx]) {
+        PerfTimer pt;
         VkResult result = vkWaitForFences(device, 1, &imgFences[imageIndex], true, UINT64_MAX);
         if (result != VK_SUCCESS) {
             std::string errStr = "Failed to wait on image fence: ";
             errStr += vku::toString(result);
             fatalErr(errStr.c_str());
         }
+        dbgStats.imgFenceWaitTime = pt.stopGetMs();
+    } else {
+        dbgStats.imgFenceWaitTime = 0.0;
     }
 
     imgFences[imageIndex] = cmdBufFences[frameIdx];
 
-    if (vkWaitForFences(device, 1, &cmdBufFences[frameIdx], VK_TRUE, UINT64_MAX) != VK_SUCCESS) {
-        fatalErr("Failed to wait on fences");
+    {
+        PerfTimer pt;
+        if (vkWaitForFences(device, 1, &cmdBufFences[frameIdx], VK_TRUE, UINT64_MAX) != VK_SUCCESS) {
+            fatalErr("Failed to wait on fences");
+        }
+        dbgStats.cmdBufFenceWaitTime = pt.stopGetMs();
     }
 
     if (vkResetFences(device, 1, &cmdBufFences[frameIdx]) != VK_SUCCESS) {
