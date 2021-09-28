@@ -7,7 +7,6 @@
 #include "../ImGui/imgui_stdlib.h"
 #include "glm/gtc/type_ptr.hpp"
 #include "../UI/WorldTextComponent.hpp"
-#include "vku/PipelineMakers.hpp"
 #include "vku/DescriptorSetUtil.hpp"
 
 namespace worlds {

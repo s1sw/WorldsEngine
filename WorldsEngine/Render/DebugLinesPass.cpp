@@ -1,7 +1,6 @@
 #include "RenderPasses.hpp"
 #include "../Physics/Physics.hpp"
 #include "Render.hpp"
-#include "vku/PipelineMakers.hpp"
 #include "vku/DescriptorSetUtil.hpp"
 
 namespace worlds {

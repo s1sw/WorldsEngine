@@ -6,7 +6,10 @@
 #include "PackedMaterial.hpp"
 #include <array>
 #include <nlohmann/json_fwd.hpp>
-#include <mutex>
+
+namespace std {
+    class mutex;
+}
 
 namespace worlds {
     const uint32_t NUM_TEX_SLOTS = 256;
@@ -69,7 +72,7 @@ namespace worlds {
         std::shared_ptr<VulkanHandles> vkCtx;
         VkCommandBuffer cb;
         uint32_t frameIdx;
-        std::mutex slotMutex;
+        std::mutex* slotMutex;
     public:
         bool frameStarted = false;
 
@@ -77,6 +80,7 @@ namespace worlds {
         void setUploadCommandBuffer(VkCommandBuffer cb, uint32_t frameIdx);
 
         void unload(int idx) override;
+        ~TextureSlots();
     };
 
     struct PackedMaterial;
@@ -96,11 +100,12 @@ namespace worlds {
         std::shared_ptr<VulkanHandles> vkCtx;
         std::array<MatExtraData, NUM_MAT_SLOTS> matExtraData;
         TextureSlots& texSlots;
-        std::mutex slotMutex;
+        std::mutex* slotMutex;
     public:
         MatExtraData& getExtraDat(uint32_t slot);
         MaterialSlots(std::shared_ptr<VulkanHandles> vkCtx, TextureSlots& texSlots);
         void unload(int idx) override;
+        ~MaterialSlots();
     };
 
     class CubemapSlots : public ResourceSlots<vku::TextureImageCube, NUM_CUBEMAP_SLOTS, AssetID> {

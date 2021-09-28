@@ -1,13 +1,15 @@
 #pragma once
 #include <string>
-#include <thread>
 #include <unordered_map>
 #include <SDL_log.h>
 #include "../Core/LogCategories.hpp"
-#include <fstream>
 #include <functional>
 
 struct ImGuiInputTextCallbackData;
+
+namespace std {
+    class thread;
+}
 
 namespace worlds {
     class Console;
@@ -67,7 +69,7 @@ namespace worlds {
         std::vector<std::string> previousCommands;
         std::unordered_map<std::string, ConVar*> conVars;
         std::unordered_map<std::string, Command> commands;
-        std::ofstream logFileStream;
+        FILE* logFile;
         std::thread* asyncConsoleThread;
         bool asyncCommandReady;
         std::string asyncCommand;

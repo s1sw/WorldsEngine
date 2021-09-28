@@ -1,5 +1,4 @@
 #include "vku.hpp"
-#include "Buffer.hpp"
 
 namespace vku {
     GenericBuffer::GenericBuffer() : buffer_(VK_NULL_HANDLE) {}

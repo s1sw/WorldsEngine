@@ -3,7 +3,6 @@
 #include <SDL.h>
 #include "AssetDB.hpp"
 #include "IGameEventHandler.hpp"
-#include "JobSystem.hpp"
 #include <bitset>
 #include "ISystem.hpp"
 #include "../Render/Camera.hpp"
@@ -12,7 +11,6 @@
 namespace worlds {
     const int NUM_SUBMESH_MATS = 32;
     extern glm::ivec2 windowSize;
-    extern JobSystem* g_jobSys;
     class Renderer;
     class PolyRenderPass;
     class AudioSystem;

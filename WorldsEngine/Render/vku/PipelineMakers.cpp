@@ -1,5 +1,4 @@
 #include "vku.hpp"
-#include "PipelineMakers.hpp"
 
 namespace vku {
     PipelineLayoutMaker::PipelineLayoutMaker() {}
@@ -126,6 +125,19 @@ namespace vku {
         modules_.emplace_back(info);
     }
 
+    void PipelineMaker::blendBegin(VkBool32 enable) {
+        colorBlendAttachments_.emplace_back();
+        auto& blend = colorBlendAttachments_.back();
+        blend.blendEnable = enable;
+        blend.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+        blend.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+        blend.colorBlendOp = VK_BLEND_OP_ADD;
+        blend.srcAlphaBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+        blend.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+        blend.alphaBlendOp = VK_BLEND_OP_ADD;
+        blend.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+    }
+
     ComputePipelineMaker::ComputePipelineMaker() {}
 
     VkPipeline ComputePipelineMaker::create(VkDevice device, const VkPipelineCache& pipelineCache, const VkPipelineLayout& pipelineLayout) {
@@ -139,5 +151,17 @@ namespace vku {
         VKCHECK(vkCreateComputePipelines(device, pipelineCache, 1, &pipelineInfo, nullptr, &pipeline));
 
         return pipeline;
+    }
+
+    void ComputePipelineMaker::shader(VkShaderStageFlagBits stage, vku::ShaderModule& shader, const char* entryPoint) {
+        stage_.module = shader.module();
+        stage_.pName = entryPoint;
+        stage_.stage = stage;
+    }
+
+    void ComputePipelineMaker::shader(VkShaderStageFlagBits stage, VkShaderModule shader, const char* entryPoint) {
+        stage_.module = shader;
+        stage_.pName = entryPoint;
+        stage_.stage = stage;
     }
 }

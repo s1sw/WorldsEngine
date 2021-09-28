@@ -110,11 +110,11 @@ namespace worlds {
     }
 
     void printHeader(VTFHeader* header) {
-        std::cout << "vtf header:" << "\n"
-            << "LRIF: " << header->lowResImageFormat << "\n"
-            << "LRW: " << header->lowResImageWidth << "\n"
-            << "LRH: " << header->lowResImageHeight << "\n"
-            << "Flags: " << header->flags << "\n";
+        logMsg("vtf header: \n");
+        logMsg("LRIF: %u\n", header->lowResImageFormat);
+        logMsg("LRW: %u\n", header->lowResImageWidth);
+        logMsg("LRH: %u\n", header->lowResImageHeight);
+        logMsg("Flags: %u\n", header->flags);
     }
 
     TextureData loadVtfTexture(void* fileData, size_t fileLen, AssetID id) {
@@ -159,7 +159,7 @@ namespace worlds {
             td.name = AssetDB::idToPath(id);
             td.totalDataSize = totalDataSize;
             td.format = toVkFormat((VTFFormat)header->highResImageFormat);
-            
+
             return td;
         }
         return TextureData{};

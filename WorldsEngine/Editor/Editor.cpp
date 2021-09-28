@@ -25,14 +25,13 @@
 #include "../ComponentMeta/ComponentFuncs.hpp"
 #include "../Physics/D6Joint.hpp"
 #include <nlohmann/json.hpp>
-#undef near
-#undef far
 #include "../Audio/Audio.hpp"
 #include "../AssetCompilation/AssetCompilers.hpp"
 #include "AssetEditors.hpp"
 #include "../Scripting/NetVM.hpp"
 #include "ImGui/imgui_internal.h"
 #include "tracy/Tracy.hpp"
+#include <fstream>
 
 namespace worlds {
     std::unordered_map<ENTT_ID_TYPE, ComponentEditor*> ComponentMetadataManager::metadata;

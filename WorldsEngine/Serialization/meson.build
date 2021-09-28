@@ -1,8 +1,8 @@
 worlds_sources += [
-  'Serialization/ESceneSerializationFunctions.cpp',
   'Serialization/BinarySceneSerializer.cpp',
-  'Serialization/SceneSerialization.cpp',
+  'Serialization/ESceneSerializationFunctions.cpp',
   'Serialization/JsonSceneSerializer.cpp',
-  'Serialization/SceneSerializationFuncs.hpp',
-  'Serialization/SceneSerialization.hpp'
+  'Serialization/SceneSerialization.cpp',
+  'Serialization/SceneSerialization.hpp',
+  'Serialization/SceneSerializationFuncs.hpp'
 ]
