@@ -5,6 +5,7 @@
 #include <optional>
 #include "../Util/JsonUtil.hpp"
 #include <nlohmann/json.hpp>
+#include <mutex>
 
 namespace worlds {
     std::optional<std::string> getString(const sajson::value& obj, const char* key) {
@@ -112,7 +113,7 @@ namespace worlds {
     }
 
     uint32_t MaterialSlots::load(AssetID asset) {
-        slotMutex.lock();
+        slotMutex->lock();
         uint32_t slot = getFreeSlot();
 
         if (slot > NUM_MAT_SLOTS) {
@@ -122,7 +123,7 @@ namespace worlds {
         lookup.insert({ asset, slot });
         reverseLookup.insert({ slot, asset });
         present[slot] = true;
-        slotMutex.unlock();
+        slotMutex->unlock();
 
         parseMaterial(asset, slots[slot], matExtraData[slot]);
 
@@ -138,11 +139,16 @@ namespace worlds {
     MaterialSlots::MaterialSlots(std::shared_ptr<VulkanHandles> vkCtx, TextureSlots& texSlots)
         : vkCtx(vkCtx)
         , texSlots(texSlots) {
+        slotMutex = new std::mutex;
     }
 
     void MaterialSlots::unload(int idx) {
         present[idx] = false;
         lookup.erase(reverseLookup.at(idx));
         reverseLookup.erase(idx);
+    }
+
+    MaterialSlots::~MaterialSlots() {
+        delete slotMutex;
     }
 }

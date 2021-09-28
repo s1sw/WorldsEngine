@@ -1,8 +1,9 @@
 #include "ResourceSlots.hpp"
+#include <mutex>
 
 namespace worlds {
     uint32_t TextureSlots::load(AssetID asset) {
-        slotMutex.lock();
+        slotMutex->lock();
         uint32_t slot = getFreeSlot();
 
         if (slot > NUM_TEX_SLOTS) {
@@ -12,7 +13,7 @@ namespace worlds {
         present[slot] = true;
         lookup.insert({ asset, slot });
         reverseLookup.insert({ slot, asset });
-        slotMutex.unlock();
+        slotMutex->unlock();
 
         auto texData = loadTexData(asset);
         if (texData.data == nullptr) {
@@ -31,6 +32,7 @@ namespace worlds {
     TextureSlots::TextureSlots(std::shared_ptr<VulkanHandles> vkCtx)
         : vkCtx(vkCtx)
         , cb(nullptr) {
+        slotMutex = new std::mutex;
     }
 
     void TextureSlots::setUploadCommandBuffer(VkCommandBuffer cb, uint32_t frameIdx) {
@@ -43,5 +45,9 @@ namespace worlds {
         slots[idx].destroy();
         lookup.erase(reverseLookup.at(idx));
         reverseLookup.erase(idx);
+    }
+
+    TextureSlots::~TextureSlots() {
+        delete slotMutex;
     }
 }

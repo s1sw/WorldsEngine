@@ -38,6 +38,7 @@
 #include "../Util/EnumUtil.hpp"
 #include "vku/DeviceMaker.hpp"
 #include "vku/InstanceMaker.hpp"
+#include <Core/JobSystem.hpp>
 
 using namespace worlds;
 

@@ -1,4 +1,6 @@
 #include "vku.hpp"
+#include <physfs.h>
+#include <Core/AssetDB.hpp>
 
 namespace vku {
     const char* toString(VkPhysicalDeviceType type) {

@@ -1,3 +1,4 @@
+#include <tracy/Tracy.hpp>
 #include "RenderInternal.hpp"
 #include "RenderPasses.hpp"
 

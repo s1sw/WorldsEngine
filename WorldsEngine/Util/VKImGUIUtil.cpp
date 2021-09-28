@@ -1,5 +1,4 @@
 #include "../Render/RenderInternal.hpp"
-#include "Render/vku/SamplerMaker.hpp"
 #include "Render/vku/DescriptorSetUtil.hpp"
 
 namespace worlds {

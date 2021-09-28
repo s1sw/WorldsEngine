@@ -9,6 +9,7 @@
 #include "../../Core/Fatal.hpp"
 #include <physfs.h>
 #include <algorithm>
+#include <mutex>
 
 namespace worlds {
     std::mutex vkMutex;

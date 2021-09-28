@@ -1,6 +1,4 @@
 #include "vku.hpp"
-#include "Buffer.hpp"
-#include "Image.hpp"
 
 #define UNUSED(x) (void)x
 namespace vku {

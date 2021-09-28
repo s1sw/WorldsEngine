@@ -1,13 +1,14 @@
 #define CRND_HEADER_FILE_ONLY
 #include "TextureCompiler.hpp"
 #include "AssetCompilerUtil.hpp"
-#include "../Libs/crnlib/crn_texture_conversion.h"
-#include "Core/Log.hpp"
-#include "../Render/Loaders/TextureLoader.hpp"
+#include <Libs/crnlib/crn_texture_conversion.h>
+#include <Core/Log.hpp>
+#include <Render/Loaders/TextureLoader.hpp>
 #include <nlohmann/json.hpp>
-#include "../IO/IOUtil.hpp"
+#include <IO/IOUtil.hpp>
 #include <filesystem>
 #include <SDL_cpuinfo.h>
+#include <thread>
 using namespace crnlib;
 
 namespace worlds {

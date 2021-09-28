@@ -166,10 +166,10 @@ namespace worlds {
     Console::Console(bool openConsoleWindow, bool asyncStdinConsole)
         : show(false)
         , setKeyboardFocus(false)
-        , logFileStream("worldsengine.log")
         , asyncConsoleThread(nullptr)
         , asyncCommandReady(false) {
         g_console = this;
+        logFile = fopen("worldsengine.log", "w");
         SDL_LogSetOutputFunction(logCallback, this);
         registerCommand(cmdHelp, "help", "Displays help about all commands.", this);
         registerCommand(cmdExec, "exec", "Executes a command file.", this);
@@ -577,8 +577,10 @@ namespace worlds {
         }
 
         // Use std::endl for the file to force a flush
-        if (con->logFileStream.good())
-            con->logFileStream << outStr << std::endl;
+        if (con->logFile) {
+            fprintf(con->logFile, "%s\n", outStr.c_str());
+            fflush(con->logFile);
+        }
 
         consoleMutex.lock();
         con->msgs.push_back(ConsoleMsg{ priority, msg, category });
@@ -591,8 +593,10 @@ namespace worlds {
     }
 
     Console::~Console() {
-        logFileStream << "[" << getDateTimeString() << "]" << "Closing log file." << std::endl;
-        logFileStream.close();
+        if (logFile) {
+            fprintf(logFile, "[%s] Closing log file. \n", getDateTimeString().c_str());
+            fclose(logFile);
+        }
         g_console = nullptr;
         returnToPrimary();
 

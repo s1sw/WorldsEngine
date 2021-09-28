@@ -13,7 +13,6 @@
 #include <slib/StaticAllocList.hpp>
 #include <Util/MatUtil.hpp>
 #include "vku/RenderpassMaker.hpp"
-#include "vku/PipelineMakers.hpp"
 #include "vku/DescriptorSetUtil.hpp"
 
 namespace ShaderFlags {

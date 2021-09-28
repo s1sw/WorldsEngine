@@ -1,4 +1,5 @@
 #include "ShaderCache.hpp"
+#include <Core/AssetDB.hpp>
 
 namespace worlds {
     std::unordered_map<AssetID, VkShaderModule> ShaderCache::modules;

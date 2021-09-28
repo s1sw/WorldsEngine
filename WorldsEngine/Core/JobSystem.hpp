@@ -9,6 +9,8 @@
 #include "tracy/Tracy.hpp"
 
 namespace worlds {
+    class JobSystem;
+    extern JobSystem* g_jobSys;
     typedef std::function<void()> JobFunc;
     typedef void (*JobCompleteFuncPtr)();
 
