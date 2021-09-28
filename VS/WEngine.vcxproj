@@ -206,10 +206,12 @@
     <ClCompile Include="..\WorldsEngine\Render\TonemapRenderPass.cpp" />
     <ClCompile Include="..\WorldsEngine\Render\vkrender.cpp" />
     <ClCompile Include="..\WorldsEngine\Render\vkswapchain.cpp" />
+    <ClCompile Include="..\WorldsEngine\Render\vku\Buffer.cpp" />
     <ClCompile Include="..\WorldsEngine\Render\vku\DebugCallback.cpp" />
     <ClCompile Include="..\WorldsEngine\Render\vku\DeviceMaker.cpp" />
     <ClCompile Include="..\WorldsEngine\Render\vku\Image.cpp" />
     <ClCompile Include="..\WorldsEngine\Render\vku\InstanceMaker.cpp" />
+    <ClCompile Include="..\WorldsEngine\Render\vku\PipelineMakers.cpp" />
     <ClCompile Include="..\WorldsEngine\Render\vku\vku.cpp" />
     <ClCompile Include="..\WorldsEngine\Render\VRCullMeshRenderer.cpp" />
     <ClCompile Include="..\WorldsEngine\Render\WorldSpaceUIPass.cpp" />
@@ -443,10 +445,7 @@
     <ClInclude Include="..\WorldsEngine\Render\vku\DeviceMaker.hpp" />
     <ClInclude Include="..\WorldsEngine\Render\vku\Image.hpp" />
     <ClInclude Include="..\WorldsEngine\Render\vku\InstanceMaker.hpp" />
-    <ClInclude Include="..\WorldsEngine\Render\vku\PipelineMakers.hpp" />
     <ClInclude Include="..\WorldsEngine\Render\vku\RenderpassMaker.hpp" />
-    <ClInclude Include="..\WorldsEngine\Render\vku\SamplerMaker.hpp" />
-    <ClInclude Include="..\WorldsEngine\Render\vku\StringConversions.hpp" />
     <ClInclude Include="..\WorldsEngine\Render\vku\vkcheck.hpp" />
     <ClInclude Include="..\WorldsEngine\Render\vku\vku.hpp" />
     <ClInclude Include="..\WorldsEngine\Render\vku\vku_framework.hpp" />
