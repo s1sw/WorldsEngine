@@ -671,8 +671,14 @@ namespace worlds {
             float distance = l.maxDistance;
             l.lightIdx = ~0u;
             if (!l.enabled) return;
-            if (!frustum.containsSphere(transform.position, distance)) {
-                return;
+            if (l.type != LightType::Directional) {
+                bool inFrustum = frustum.containsSphere(transform.position, distance);
+
+                if (ctx.passSettings.enableVR)
+                    inFrustum |= frustumB.containsSphere(transform.position, distance);
+                if (!inFrustum) {
+                    return;
+                }
             }
 
             glm::vec3 lightForward = glm::normalize(transform.rotation * glm::vec3(0.0f, 0.0f, -1.0f));
