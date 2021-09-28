@@ -325,4 +325,57 @@ namespace vku {
         default: return BlockParams{ 0, 0, 0 };
         }
     }
+
+    void transitionLayout(VkCommandBuffer& cb, VkImage img, VkImageLayout oldLayout, VkImageLayout newLayout, VkPipelineStageFlags srcStageMask, VkPipelineStageFlags dstStageMask, VkAccessFlags srcMask, VkAccessFlags dstMask, VkImageAspectFlags aspectMask) {
+        VkImageMemoryBarrier imageMemoryBarriers = { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
+        imageMemoryBarriers.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        imageMemoryBarriers.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        imageMemoryBarriers.oldLayout = oldLayout;
+        imageMemoryBarriers.newLayout = newLayout;
+        imageMemoryBarriers.image = img;
+        imageMemoryBarriers.subresourceRange = { aspectMask, 0, 1, 0, 1 };
+
+        // Put barrier on top
+        imageMemoryBarriers.srcAccessMask = srcMask;
+        imageMemoryBarriers.dstAccessMask = dstMask;
+
+        vkCmdPipelineBarrier(cb, srcStageMask, dstStageMask, VK_DEPENDENCY_BY_REGION_BIT,
+            0, nullptr,
+            0, nullptr,
+            1, &imageMemoryBarriers);
+    }
+
+    VkSampleCountFlagBits sampleCountFlags(int sampleCount) {
+        return (VkSampleCountFlagBits)sampleCount;
+    }
+
+    VkClearValue makeColorClearValue(float r, float g, float b, float a) {
+        VkClearValue clearVal;
+        clearVal.color.float32[0] = r;
+        clearVal.color.float32[1] = g;
+        clearVal.color.float32[2] = b;
+        clearVal.color.float32[3] = a;
+        return clearVal;
+    }
+
+    VkClearValue makeDepthStencilClearValue(float depth, uint32_t stencil) {
+        VkClearValue clearVal;
+        clearVal.depthStencil.depth = depth;
+        clearVal.depthStencil.stencil = stencil;
+        return clearVal;
+    }
+
+    ShaderModule loadShaderAsset(VkDevice device, worlds::AssetID id) {
+        PHYSFS_File* file = worlds::AssetDB::openAssetFileRead(id);
+        size_t size = PHYSFS_fileLength(file);
+        void* buffer = std::malloc(size);
+
+        size_t readBytes = PHYSFS_readBytes(file, buffer, size);
+        assert(readBytes == size);
+        PHYSFS_close(file);
+
+        vku::ShaderModule sm{ device, static_cast<uint32_t*>(buffer), readBytes };
+        std::free(buffer);
+        return sm;
+    }
 }

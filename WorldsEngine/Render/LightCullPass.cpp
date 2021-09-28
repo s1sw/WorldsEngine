@@ -1,12 +1,12 @@
 #include "RenderPasses.hpp"
 #include "ShaderCache.hpp"
-#include "vku/SamplerMaker.hpp"
 #include "vku/DescriptorSetUtil.hpp"
 #include "vku/PipelineMakers.hpp"
 
 namespace worlds {
 #pragma pack(push, 16)
     struct LightCullPushConstants {
+        glm::mat4 invViewProj;
         uint32_t screenWidth;
         uint32_t screenHeight;
         uint32_t eyeIdx;
@@ -85,6 +85,7 @@ namespace worlds {
         vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline);
 
         LightCullPushConstants lcpc{
+            .invViewProj = (ctx.projMatrices[0] * ctx.viewMatrices[0]),
             .screenWidth = ctx.passWidth,
             .screenHeight = ctx.passHeight,
             .eyeIdx = 0
@@ -99,11 +100,12 @@ namespace worlds {
 
         if (ctx.passSettings.enableVR) {
             lcpc.eyeIdx = 1;
+            lcpc.invViewProj = glm::inverse(ctx.projMatrices[1] * ctx.viewMatrices[1]);
             vkCmdPushConstants(cmdBuf, pipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(lcpc), &lcpc);
             vkCmdDispatch(cmdBuf, xTiles, yTiles, 1);
         }
 
-        depthStencilImage->image.setLayout(cmdBuf, oldLayout, VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, VK_IMAGE_ASPECT_DEPTH_BIT);
+        depthStencilImage->image.setLayout(cmdBuf, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, VK_IMAGE_ASPECT_DEPTH_BIT);
 
         vkCmdEndDebugUtilsLabelEXT(cmdBuf);
     }

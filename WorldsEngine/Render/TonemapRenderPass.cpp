@@ -2,7 +2,6 @@
 #include "../Core/Engine.hpp"
 #include "Render.hpp"
 #include "ShaderCache.hpp"
-#include "vku/SamplerMaker.hpp"
 #include "vku/PipelineMakers.hpp"
 #include "vku/DescriptorSetUtil.hpp"
 

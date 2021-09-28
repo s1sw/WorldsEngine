@@ -5,7 +5,6 @@
 #include "vku/RenderpassMaker.hpp"
 #include "vku/DescriptorSetUtil.hpp"
 #include <glm/gtc/matrix_transform.hpp>
-#include <Render/vku/SamplerMaker.hpp>
 
 namespace worlds {
     ConVar enableSpotShadows { "r_enableSpotShadows", "1" };
