@@ -678,6 +678,12 @@
     <ClCompile Include="..\WorldsEngine\Render\vku\vku.cpp">
       <Filter>Render\vku</Filter>
     </ClCompile>
+    <ClCompile Include="..\WorldsEngine\Render\vku\PipelineMakers.cpp">
+      <Filter>Render\vku</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WorldsEngine\Render\vku\Buffer.cpp">
+      <Filter>Render\vku</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\WorldsEngine\AssetCompilation\AssetCompilerUtil.hpp">
@@ -1439,16 +1445,7 @@
     <ClInclude Include="..\WorldsEngine\Render\vku\InstanceMaker.hpp">
       <Filter>Render\vku</Filter>
     </ClInclude>
-    <ClInclude Include="..\WorldsEngine\Render\vku\PipelineMakers.hpp">
-      <Filter>Render\vku</Filter>
-    </ClInclude>
     <ClInclude Include="..\WorldsEngine\Render\vku\RenderpassMaker.hpp">
-      <Filter>Render\vku</Filter>
-    </ClInclude>
-    <ClInclude Include="..\WorldsEngine\Render\vku\SamplerMaker.hpp">
-      <Filter>Render\vku</Filter>
-    </ClInclude>
-    <ClInclude Include="..\WorldsEngine\Render\vku\StringConversions.hpp">
       <Filter>Render\vku</Filter>
     </ClInclude>
     <ClInclude Include="..\WorldsEngine\Render\vku\vkcheck.hpp">
