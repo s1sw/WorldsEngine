@@ -14,7 +14,7 @@ float length2(vec3 v) {
 }
 
 float calculateFalloff(float pixelDist, float cutoffDist) {
-	return max((1.0 / (pixelDist * pixelDist)) * (1.0 - (pixelDist / cutoffDist)), 0.0);
+    return max((1.0 / (pixelDist * pixelDist)) * (1.0 - (pixelDist / cutoffDist)), 0.0);
 }
 
 LightShadeInfo calcLightShadeInfo(Light light, ShadeInfo shadeInfo, vec3 worldPos) {
@@ -74,7 +74,7 @@ LightShadeInfo calcLightShadeInfo(Light light, ShadeInfo shadeInfo, vec3 worldPo
 
         vec3 l0 = p0 - worldPos;
         vec3 l1 = p1 - worldPos;
-		
+
         vec3 Ldist = l1 - l0;
         float RoLd = dot( r, Ldist);
         float distLd2 = dot(Ldist, Ldist);
@@ -89,7 +89,7 @@ LightShadeInfo calcLightShadeInfo(Light light, ShadeInfo shadeInfo, vec3 worldPo
         lsi.L = L;
         float falloff = tubeRadius * tubeRadius / max(tubeRadius * tubeRadius, distLight * distLight);
         float cutoffDist = light.distanceCutoff;
-		
+
         falloff *= max((1.0f - (distance(center, worldPos) / cutoffDist)), 0.0);
         lsi.radiance *= falloff;
         lsi.lightDist = distLight;
@@ -98,6 +98,7 @@ LightShadeInfo calcLightShadeInfo(Light light, ShadeInfo shadeInfo, vec3 worldPo
     return lsi;
 }
 
+//#define BLINN_PHONG
 vec3 calculateLighting(Light light, ShadeInfo shadeInfo, vec3 worldPos) {
     LightShadeInfo lsi = calcLightShadeInfo(light, shadeInfo, worldPos);
 
@@ -123,8 +124,8 @@ vec3 calculateLighting(Light light, ShadeInfo shadeInfo, vec3 worldPos) {
     } else {
         NDF = ndfGGXSphereLight(cosLh, shadeInfo.roughness, light.pack1.w, lsi.lightDist);
     }
-	
-	vec3 f0 = mix(vec3(0.04), shadeInfo.albedoColor, shadeInfo.metallic);
+
+    vec3 f0 = mix(vec3(0.04), shadeInfo.albedoColor, shadeInfo.metallic);
 
     float G = gaSchlickGGX(cosLi, cosLo, shadeInfo.roughness);
     vec3 f = fresnelSchlick(f0, max(dot(norm, shadeInfo.viewDir), 0.0f));

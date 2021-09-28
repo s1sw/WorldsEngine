@@ -126,6 +126,16 @@ vec3 parallaxCorrect(vec3 v, vec3 center, vec3 ma, vec3 mi, vec3 pos) {
 
     return intersection - center;
 }
+vec3 EnvBRDFApprox(vec3 F, float roughness, float NoV) {
+    const vec4 c0 = { -1, -0.0275, -0.572, 0.022 };
+    const vec4 c1 = { 1, 0.0425, 1.04, -0.04 };
+
+    vec4 r = roughness * c0 + c1;
+    float a004 = min( r.x * r.x, exp2( -9.28 * NoV ) ) * r.x + r.y;
+    vec2 AB = vec2(-1.04, 1.04) * a004 + r.zw;
+
+    return F * AB.x + AB.y;
+}
 
 vec3 calcAmbient(vec3 f0, float roughness, vec3 viewDir, float metallic, vec3 albedoColor, vec3 normal) {
     const float MAX_REFLECTION_LOD = 6.0;
@@ -140,9 +150,15 @@ vec3 calcAmbient(vec3 f0, float roughness, vec3 viewDir, float metallic, vec3 al
     R = normalize(R);
 
     vec3 specularAmbient = textureLod(cubemapSampler[cubemapIdx], R, roughness * MAX_REFLECTION_LOD).rgb;
+
+#define BRDF_APPROX
+#ifdef BRDF_APPROX
+    vec3 specularColor = EnvBRDFApprox(F, roughness, max(dot(normal, viewDir), 0.0));
+#else
     vec2 coord = vec2(roughness, max(dot(normal, viewDir), 0.0));
     vec2 brdf = textureLod(brdfLutSampler, coord, 0.0).rg;
-    vec3 specularColor = (F * (brdf.x + brdf.y));
+    vec3 specularColor = F * (brdf.x + brdf.y);
+#endif
 
     vec3 totalAmbient = specularAmbient * specularColor;
 
@@ -566,15 +582,15 @@ void main() {
     }
 #endif
 
-//#ifndef EFT
-//    float finalAlpha = si.alphaCutoff > 0.0f ? si.alpha : 1.0f;
-//    if (si.alphaCutoff > 0.0f) {
-//        //finalAlpha *= 1 + mipMapLevel() * 0.75;
-//        finalAlpha = (finalAlpha - si.alphaCutoff) / max(fwidth(finalAlpha), 0.0001) + 0.5;
-//    }
-//#else
-//    float finalAlpha = 1.0f;
-//#endif
+    //#ifndef EFT
+    //    float finalAlpha = si.alphaCutoff > 0.0f ? si.alpha : 1.0f;
+    //    if (si.alphaCutoff > 0.0f) {
+    //        //finalAlpha *= 1 + mipMapLevel() * 0.75;
+    //        finalAlpha = (finalAlpha - si.alphaCutoff) / max(fwidth(finalAlpha), 0.0001) + 0.5;
+    //    }
+    //#else
+    //    float finalAlpha = 1.0f;
+    //#endif
 
     FragColor = vec4(shade(si) + si.emissive, 1.0);
 }

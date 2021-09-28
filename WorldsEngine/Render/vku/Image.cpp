@@ -326,4 +326,94 @@ namespace vku {
             }
         }
     }
+
+    TextureImage2D::TextureImage2D() {}
+
+    TextureImage2D::TextureImage2D(VkDevice device, VmaAllocator allocator, uint32_t width, uint32_t height, uint32_t mipLevels, VkFormat format, bool hostImage, const char* debugName) {
+        VkImageCreateInfo info{};
+        info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+        info.flags = {};
+        info.imageType = VK_IMAGE_TYPE_2D;
+        info.format = format;
+        info.extent = VkExtent3D{ width, height, 1U };
+        info.mipLevels = mipLevels;
+        info.arrayLayers = 1;
+        info.samples = VK_SAMPLE_COUNT_1_BIT;
+        info.tiling = hostImage ? VK_IMAGE_TILING_LINEAR : VK_IMAGE_TILING_OPTIMAL;
+        info.usage =
+              VK_IMAGE_USAGE_SAMPLED_BIT
+            | VK_IMAGE_USAGE_TRANSFER_SRC_BIT
+            | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+
+        info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        info.queueFamilyIndexCount = 0;
+        info.pQueueFamilyIndices = nullptr;
+
+        info.initialLayout = hostImage ? VK_IMAGE_LAYOUT_PREINITIALIZED : VK_IMAGE_LAYOUT_UNDEFINED;
+        create(device, allocator, info, VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_COLOR_BIT, hostImage, debugName);
+    }
+
+    TextureImageCube::TextureImageCube() {}
+
+    TextureImageCube::TextureImageCube(VkDevice device, VmaAllocator allocator, uint32_t width, uint32_t height, uint32_t mipLevels, VkFormat format, bool hostImage, const char* debugName, VkImageUsageFlags usageFlags) {
+        VkImageCreateInfo info{};
+        info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+        info.flags = { VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT };
+        info.imageType = VK_IMAGE_TYPE_2D;
+        info.format = format;
+        info.extent = VkExtent3D{ width, height, 1U };
+        info.mipLevels = mipLevels;
+        info.arrayLayers = 6;
+        info.samples = VK_SAMPLE_COUNT_1_BIT;
+        info.tiling = hostImage ? VK_IMAGE_TILING_LINEAR : VK_IMAGE_TILING_OPTIMAL;
+        info.usage = usageFlags;
+        info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        info.queueFamilyIndexCount = 0;
+        info.pQueueFamilyIndices = nullptr;
+        info.initialLayout = hostImage ? VK_IMAGE_LAYOUT_PREINITIALIZED : VK_IMAGE_LAYOUT_UNDEFINED;
+        create(device, allocator, info, VK_IMAGE_VIEW_TYPE_CUBE, VK_IMAGE_ASPECT_COLOR_BIT, hostImage, debugName);
+    }
+
+    DepthStencilImage::DepthStencilImage() {}
+
+    DepthStencilImage::DepthStencilImage(VkDevice device, VmaAllocator allocator, uint32_t width, uint32_t height, VkSampleCountFlagBits samples, VkFormat format, const char* debugName) {
+        VkImageCreateInfo info{};
+        info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+        info.flags = {};
+
+        info.imageType = VK_IMAGE_TYPE_2D;
+        info.format = format;
+        info.extent = VkExtent3D{ width, height, 1U };
+        info.mipLevels = 1;
+        info.arrayLayers = 1;
+        info.samples = samples;
+        info.tiling = VK_IMAGE_TILING_OPTIMAL;
+        info.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+        info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        info.queueFamilyIndexCount = 0;
+        info.pQueueFamilyIndices = nullptr;
+        info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+
+        create(device, allocator, info, VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_DEPTH_BIT, false, debugName);
+    }
+
+    ColorAttachmentImage::ColorAttachmentImage() {}
+
+    ColorAttachmentImage::ColorAttachmentImage(VkDevice device, VmaAllocator allocator, uint32_t width, uint32_t height, VkFormat format, const char* debugName) {
+        VkImageCreateInfo info{ VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
+
+        info.imageType = VK_IMAGE_TYPE_2D;
+        info.format = format;
+        info.extent = VkExtent3D{ width, height, 1U };
+        info.mipLevels = 1;
+        info.arrayLayers = 1;
+        info.samples = VK_SAMPLE_COUNT_1_BIT;
+        info.tiling = VK_IMAGE_TILING_OPTIMAL;
+        info.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+        info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        info.queueFamilyIndexCount = 0;
+        info.pQueueFamilyIndices = nullptr;
+        info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        create(device, allocator, info, VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_COLOR_BIT, false, debugName);
+    }
 }

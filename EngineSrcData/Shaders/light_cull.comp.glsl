@@ -4,8 +4,8 @@
 #include <aosphere.glsl>
 
 #extension GL_KHR_shader_subgroup_arithmetic : require
+#extension GL_KHR_shader_subgroup_ballot : require
 #extension GL_KHR_shader_subgroup_basic : require
-#extension GL_ARB_shader_ballot : require
 layout (local_size_x = 16, local_size_y = 16) in;
 
 struct LightingTile {
@@ -52,6 +52,7 @@ layout (binding = 5) buffer TileLightTiles {
 } buf_LightTiles;
 
 layout(push_constant) uniform PC {
+    mat4 invViewProj;
     uint screenWidth;
     uint screenHeight;
     uint eyeIdx;
@@ -59,6 +60,7 @@ layout(push_constant) uniform PC {
 
 struct Frustum {
     vec4 planes[6];
+    vec3 points[8];
 };
 
 struct AABB {
@@ -125,6 +127,7 @@ bool frustumContainsOBB(vec3 boxSize, mat3 rotMat, vec3 pos) {
 }
 
 void main() {
+    // Quick initialisation of group shared data
     if (gl_LocalInvocationIndex.x == 0) {
         minDepthU = floatBitsToUint(1.0);
         maxDepthU = 0u;
@@ -134,11 +137,14 @@ void main() {
     uint y = gl_WorkGroupID.y;
     uint tileIndex = ((y * buf_LightTileInfo.numTilesX) + x) + (eyeIdx * buf_LightTileInfo.tilesPerEye);
 
+    // Clear light values. This is doing a bunch of unnecessary writes, but I'm unsure if
+    // that really matters in terms of performance.
     buf_LightTiles.tiles[tileIndex].lightIdMasks[gl_LocalInvocationIndex % 8] = 0u;
     buf_LightTiles.tiles[tileIndex].aoSphereIdMasks[gl_LocalInvocationIndex % 2] = 0u;
     buf_LightTiles.tiles[tileIndex].aoBoxIdMasks[gl_LocalInvocationIndex % 2] = 0u;
+    if (buf_Lights.pack0.x == 0) return;
 
-    // Stage 1: Determine the depth bounds of the tile using atomcs.
+    // Stage 1: Determine the depth bounds of the tile using atomics.
     // THIS ONLY WORKS FOR 16x16 TILES.
     // Changing the tile size means that there's no longer a 1:1 correlation between threads
     // and tile pixels, so this atomic depth read won't work.
@@ -148,7 +154,6 @@ void main() {
     // A depth of 0 only occurs when the skybox is visible.
     // Since the skybox can't receive lighting, there's no point in increasing
     // the depth bounds of the tile to receive the lighting.
-
     if (depthAsUint != 0) {
         atomicMin(minDepthU, depthAsUint);
         atomicMax(maxDepthU, depthAsUint);
@@ -156,7 +161,8 @@ void main() {
 
     memoryBarrierShared();
 
-    // Stage 2: Calculate the frustum for this workgroup
+    vec3 camPos = viewPos[eyeIdx].xyz;
+    // Stage 2: Calculate frustum points.
     if (gl_LocalInvocationIndex == 0) {
         float minDepth = uintBitsToFloat(minDepthU);
         float maxDepth = uintBitsToFloat(maxDepthU);
@@ -164,9 +170,6 @@ void main() {
         buf_LightTileLightCounts.tileLightCounts[tileIndex] = 0;
         float tileSize = buf_LightTileInfo.tileSize;
         vec2 ndcTileSize = 2.0f * vec2(tileSize, -tileSize) / vec2(screenWidth, screenHeight);
-        vec3 camPos = viewPos[eyeIdx].xyz;
-
-        mat4 invProjView = inverse(projection[eyeIdx] * view[eyeIdx]);
 
         // Calculate frustum
         vec2 ndcTopLeftCorner = vec2(-1.0f, 1.0f);
@@ -179,10 +182,10 @@ void main() {
             ndcTopLeftCorner + ndcTileSize * (tileCoords + vec2(0, 1)), // Bottom left
         };
 
-        vec3 frustumPoints[8];
+        mat4 invVP = inverse(projection[eyeIdx] * view[eyeIdx]);
 
-        for (int i = 0; i < 4; i++) {
-            // Find the point on the near plane
+        // Find the points on the near and far planes
+        for (int i = 0; i < 8; i++) {
 #ifdef CULL_DEPTH
             float nearZ = maxDepth;
             float farZ = minDepth;
@@ -191,41 +194,39 @@ void main() {
             float farZ = 0.000001f;
 #endif
 
-            vec4 projected = invProjView * vec4(ndcTileCorners[i], nearZ, 1.0f);
-            frustumPoints[i] = vec3(projected) / projected.w;
+            float zVal = i >= 4 ? farZ : nearZ;
 
-            // And also on the far plane
-            projected = invProjView * vec4(ndcTileCorners[i], farZ, 1.0f);
-            frustumPoints[i + 4] = vec3(projected / projected.w);
+            vec4 projected = invVP * vec4(ndcTileCorners[i % 4], zVal, 1.0f);
+            tileFrustum.points[i] = vec3(projected) / projected.w;
         }
 
         for (int i = 0; i < 4; i++) {
-            vec3 planeNormal = cross(frustumPoints[i] - camPos, frustumPoints[i + 1] - camPos);
+            vec3 planeNormal = cross(tileFrustum.points[i] - camPos, tileFrustum.points[i + 1] - camPos);
             planeNormal = normalize(planeNormal);
-            tileFrustum.planes[i] = vec4(planeNormal, -dot(planeNormal, frustumPoints[i]));
+            tileFrustum.planes[i] = vec4(planeNormal, -dot(planeNormal, tileFrustum.points[i]));
         }
 
         // Near plane
         {
-            vec3 planeNormal = cross(frustumPoints[1] - frustumPoints[0], frustumPoints[3] - frustumPoints[0]);
+            vec3 planeNormal = cross(tileFrustum.points[1] - tileFrustum.points[0], tileFrustum.points[3] - tileFrustum.points[0]);
             planeNormal = normalize(planeNormal);
-            tileFrustum.planes[4] = vec4(planeNormal, -dot(planeNormal, frustumPoints[0]));
+            tileFrustum.planes[4] = vec4(planeNormal, -dot(planeNormal, tileFrustum.points[0]));
         }
 
         // Far plane
         {
-            vec3 planeNormal = cross(frustumPoints[7] - frustumPoints[4], frustumPoints[5] - frustumPoints[4]);
+            vec3 planeNormal = cross(tileFrustum.points[7] - tileFrustum.points[4], tileFrustum.points[5] - tileFrustum.points[4]);
             planeNormal = normalize(planeNormal);
-            tileFrustum.planes[5] = vec4(planeNormal, -dot(planeNormal, frustumPoints[4]));
+            tileFrustum.planes[5] = vec4(planeNormal, -dot(planeNormal, tileFrustum.points[4]));
         }
 
         // Calculate tile AABB
         vec3 aabbMax = vec3(0.0f);
-        vec3 aabbMin = vec3(1000000000.0f);
+        vec3 aabbMin = vec3(10000000000.0f);
 
         for (int i = 0; i < 8; i++) {
-            aabbMax = max(aabbMax, frustumPoints[i]);
-            aabbMin = min(aabbMin, frustumPoints[i]);
+            aabbMax = max(aabbMax, tileFrustum.points[i]);
+            aabbMin = min(aabbMin, tileFrustum.points[i]);
         }
 
         tileAABB.center = (aabbMax + aabbMin) * 0.5;
@@ -234,7 +235,10 @@ void main() {
 
     memoryBarrierShared();
 
-    // Stage 2: Cull lights against the frustum
+    // Stage 3: Cull lights against the frustum. At this point,
+    // one invocation = one light. Since the light array is always
+    // tightly packed, we can just check if the index is less than
+    // the light count.
     if (gl_LocalInvocationIndex < buf_Lights.pack0.x) {
         uint lightIndex = gl_LocalInvocationIndex;
         Light light = buf_Lights.lights[lightIndex];
@@ -258,7 +262,19 @@ void main() {
         uint bucketIdx = lightIndex / 32;
         uint bucketBit = lightIndex % 32;
 
-        atomicOr(buf_LightTiles.tiles[tileIndex].lightIdMasks[bucketIdx], uint(inFrustum || lightType == LT_DIRECTIONAL) << bucketBit);
+        uint maxBucketId = subgroupMax(bucketIdx);
+
+        // Subgroup fun: take the maximum bucket ID, perform an or operation
+        // along the subgroup's light bitmask and then elect a single invocation
+        // to perform the atomic.
+        // This results in a *tiny* performance uplift.
+        for (int i = 0; i <= maxBucketId; i++) {
+            if (i == bucketIdx) {
+                uint setBits = subgroupBroadcastFirst(subgroupOr(uint(inFrustum || lightType == LT_DIRECTIONAL) << bucketBit));
+                if (subgroupElect())
+                    atomicOr(buf_LightTiles.tiles[tileIndex].lightIdMasks[bucketIdx], setBits);
+            }
+        }
 
 #ifdef DEBUG
         if (inFrustum)
@@ -281,20 +297,29 @@ void main() {
 
         uint bucketIdx = sphereIndex / 32;
         uint bucketBit = sphereIndex % 32;
-        atomicOr(buf_LightTiles.tiles[tileIndex].aoSphereIdMasks[bucketIdx], uint(inFrustum) << bucketBit);
+        uint maxBucketId = subgroupMax(bucketIdx);
+
+        // Subgroup fun again
+        for (int i = 0; i <= maxBucketId; i++) {
+            if (i == bucketIdx) {
+                uint setBits = subgroupBroadcastFirst(subgroupOr(uint(inFrustum) << bucketBit));
+                if (subgroupElect())
+                    atomicOr(buf_LightTiles.tiles[tileIndex].aoSphereIdMasks[bucketIdx], setBits);
+            }
+        }
     }
 
-    // Stage 3: Cull AO boxes against the frustum
-    //if (gl_LocalInvocationIndex < buf_Lights.pack1.x) {
-    //    uint boxIdx = gl_LocalInvocationIndex;
-    //    AOBox box = buf_Lights.aoBox[boxIdx];
-    //
-    //    bool inFrustum = frustumContainsOBB(getBoxScale(box), getBoxRotationMat(box), getBoxTranslation(box).zyx);
-    //
-    //    if (inFrustum) {
-    //		uint bucketIdx = boxIdx / 32;
-    //		uint bucketBit = boxIdx % 32;
-    //		atomicOr(buf_LightTiles.tiles[tileIndex].aoBoxIdMasks[bucketIdx], 1 << bucketBit);
-    //    }
-    //}
+    // Stage 4: Cull AO boxes against the frustum
+    if (gl_LocalInvocationIndex < buf_Lights.pack1.x) {
+        uint boxIdx = gl_LocalInvocationIndex;
+        AOBox box = buf_Lights.aoBox[boxIdx];
+
+        bool inFrustum = frustumContainsOBB(getBoxScale(box), getBoxRotationMat(box), getBoxTranslation(box).zyx);
+
+        if (inFrustum) {
+            uint bucketIdx = boxIdx / 32;
+            uint bucketBit = boxIdx % 32;
+            atomicOr(buf_LightTiles.tiles[tileIndex].aoBoxIdMasks[bucketIdx], 1 << bucketBit);
+        }
+    }
 }

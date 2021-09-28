@@ -12,7 +12,6 @@
 #include "ShaderCache.hpp"
 #include <slib/StaticAllocList.hpp>
 #include <Util/MatUtil.hpp>
-#include "vku/SamplerMaker.hpp"
 #include "vku/RenderpassMaker.hpp"
 #include "vku/PipelineMakers.hpp"
 #include "vku/DescriptorSetUtil.hpp"
@@ -673,16 +672,8 @@ namespace worlds {
             float distance = l.maxDistance;
             l.lightIdx = ~0u;
             if (!l.enabled) return;
-            if (l.type != LightType::Directional) {
-                if (!ctx.passSettings.enableVR) {
-                    if (!frustum.containsSphere(transform.position, distance) && !frustumB.containsSphere(transform.position, distance)) {
-                        return;
-                    }
-                } else {
-                    if (!frustum.containsSphere(transform.position, distance)) {
-                        return;
-                    }
-                }
+            if (!frustum.containsSphere(transform.position, distance)) {
+                return;
             }
 
             glm::vec3 lightForward = glm::normalize(transform.rotation * glm::vec3(0.0f, 0.0f, -1.0f));
