@@ -95,18 +95,18 @@ bool aabbContainsSphere(vec3 spherePos, float sphereRadius) {
     return fDistSq <= sphereRadius * sphereRadius;
 }
 
-bool frustumContainsOBB(vec3 boxSize, mat3 rotMat, vec3 pos) {
-    // We can determine if the frustum contains an AABB by checking if it contains
-    // any vertices of the AABB.
+bool frustumContainsOBB(vec3 boxSize, mat4 transform) {
+    // We can determine if the frustum contains an OBB by checking if it contains
+    // any vertices of the OBB.
 
-    vec3 v0 = ((vec3(-1.0,-1.0,-1.0) * boxSize)) + pos;
-    vec3 v1 = ((vec3( 1.0,-1.0,-1.0) * boxSize)) + pos;
-    vec3 v2 = ((vec3(-1.0, 1.0,-1.0) * boxSize)) + pos;
-    vec3 v3 = ((vec3( 1.0, 1.0,-1.0) * boxSize)) + pos;
-    vec3 v4 = ((vec3(-1.0,-1.0, 1.0) * boxSize)) + pos;
-    vec3 v5 = ((vec3( 1.0,-1.0, 1.0) * boxSize)) + pos;
-    vec3 v6 = ((vec3(-1.0, 1.0, 1.0) * boxSize)) + pos;
-    vec3 v7 = ((vec3( 1.0, 1.0, 1.0) * boxSize)) + pos;
+    vec3 v0 = (transform * vec4(vec3(-1.0,-1.0,-1.0) * boxSize, 1.0)).xyz;
+    vec3 v1 = (transform * vec4(vec3( 1.0,-1.0,-1.0) * boxSize, 1.0)).xyz;
+    vec3 v2 = (transform * vec4(vec3(-1.0, 1.0,-1.0) * boxSize, 1.0)).xyz;
+    vec3 v3 = (transform * vec4(vec3( 1.0, 1.0,-1.0) * boxSize, 1.0)).xyz;
+    vec3 v4 = (transform * vec4(vec3(-1.0,-1.0, 1.0) * boxSize, 1.0)).xyz;
+    vec3 v5 = (transform * vec4(vec3( 1.0,-1.0, 1.0) * boxSize, 1.0)).xyz;
+    vec3 v6 = (transform * vec4(vec3(-1.0, 1.0, 1.0) * boxSize, 1.0)).xyz;
+    vec3 v7 = (transform * vec4(vec3( 1.0, 1.0, 1.0) * boxSize, 1.0)).xyz;
 
     for (int i = 0; i < 6; i++) {
         int outside = 0;
@@ -124,6 +124,62 @@ bool frustumContainsOBB(vec3 boxSize, mat3 rotMat, vec3 pos) {
     }
 
     return true;
+}
+
+vec3 getTileMin() {
+    return min(tileAABB.center + tileAABB.extents, tileAABB.center - tileAABB.extents);
+}
+
+vec3 getTileMax() {
+    return max(tileAABB.center + tileAABB.extents, tileAABB.center - tileAABB.extents);
+}
+
+bool aabbContainsPoint(vec3 point) {
+    vec3 mi = getTileMin();
+    vec3 ma = getTileMax();
+    
+    return 
+        point.x >= mi.x && point.x <= ma.x &&
+        point.y >= mi.y && point.y <= ma.y &&
+        point.z >= mi.z && point.z <= ma.z;
+}
+
+bool aabbContainsOBB(vec3 boxSize, mat4 transform) {
+    vec3 v0 = (transform * vec4(vec3(-1.0,-1.0,-1.0) * boxSize, 1.0)).xyz;
+    vec3 v1 = (transform * vec4(vec3( 1.0,-1.0,-1.0) * boxSize, 1.0)).xyz;
+    vec3 v2 = (transform * vec4(vec3(-1.0, 1.0,-1.0) * boxSize, 1.0)).xyz;
+    vec3 v3 = (transform * vec4(vec3( 1.0, 1.0,-1.0) * boxSize, 1.0)).xyz;
+    vec3 v4 = (transform * vec4(vec3(-1.0,-1.0, 1.0) * boxSize, 1.0)).xyz;
+    vec3 v5 = (transform * vec4(vec3( 1.0,-1.0, 1.0) * boxSize, 1.0)).xyz;
+    vec3 v6 = (transform * vec4(vec3(-1.0, 1.0, 1.0) * boxSize, 1.0)).xyz;
+    vec3 v7 = (transform * vec4(vec3( 1.0, 1.0, 1.0) * boxSize, 1.0)).xyz;
+    
+    vec3 c = (transform * vec4(vec3(0.0, 0.0, 0.0) * boxSize, 1.0)).xyz;
+    
+    return aabbContainsPoint(v0) ||
+    aabbContainsPoint(v1) ||
+    aabbContainsPoint(v2) ||
+    aabbContainsPoint(v3) ||
+    aabbContainsPoint(v4) ||
+    aabbContainsPoint(v5) ||
+    aabbContainsPoint(v6) ||
+    aabbContainsPoint(v7);
+        
+}
+
+mat4 getBoxTransfomReal(AOBox box) {
+    mat4 rot = mat4(getBoxRotationMat(box));
+    rot[3][3] = 1.0;
+    vec3 translation = getBoxTranslation(box);
+
+    mat4 translationMatrix = mat4(
+            1.0, 0.0, 0.0, 0.0,
+            0.0, 1.0, 0.0, 0.0,
+            0.0, 0.0, 1.0, 0.0,
+            translation.x, translation.y, translation.z, 1.0
+            );
+
+    return inverse(translationMatrix * rot);
 }
 
 void main() {
@@ -310,11 +366,14 @@ void main() {
     }
 
     // Stage 4: Cull AO boxes against the frustum
-    if (gl_LocalInvocationIndex < buf_Lights.pack1.x) {
+     if (gl_LocalInvocationIndex < buf_Lights.pack1.x) {
         uint boxIdx = gl_LocalInvocationIndex;
         AOBox box = buf_Lights.aoBox[boxIdx];
-
-        bool inFrustum = frustumContainsOBB(getBoxScale(box), getBoxRotationMat(box), getBoxTranslation(box).zyx);
+        
+        vec3 scale = getBoxScale(box) * 2.0;
+        mat4 transform = getBoxTransfomReal(box);
+        
+        bool inFrustum = frustumContainsOBB(scale, transform);
 
         if (inFrustum) {
             uint bucketIdx = boxIdx / 32;
