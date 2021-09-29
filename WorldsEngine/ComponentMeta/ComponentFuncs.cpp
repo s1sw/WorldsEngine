@@ -16,14 +16,13 @@
 #include "../Audio/Audio.hpp"
 #include "../Render/Render.hpp"
 #include "robin_hood.h"
-#include "sajson.h"
-#include "../Util/JsonUtil.hpp"
 #include "../Physics/D6Joint.hpp"
 #include "ComponentEditorUtil.hpp"
 #include "../Scripting/ScriptComponent.hpp"
 #include "../Util/EnumUtil.hpp"
 #include "../Editor/Editor.hpp"
 #include <nlohmann/json.hpp>
+#include "../Util/JsonUtil.hpp"
 #include "../UI/WorldTextComponent.hpp"
 
 // Janky workaround to fix static constructors not being called
@@ -473,13 +472,7 @@ namespace worlds {
         "Mesh"
     };
 
-    const sajson::string saStr(const char* str) {
-        return sajson::string{ str, strlen(str) };
-    }
-
-    PhysicsShapeType valToShapeType(const sajson::value& val) {
-        const auto& str = val.as_string();
-
+    PhysicsShapeType valToShapeType(std::string str) {
         if (str == "CUBE")
             return PhysicsShapeType::Box;
         else
@@ -489,45 +482,36 @@ namespace worlds {
     std::vector<PhysicsShape> loadColliderJson(const char* path) {
         auto* file = PHYSFS_openRead(path);
         auto len = PHYSFS_fileLength(file);
-        char* buf = (char*)std::malloc(len);
 
-        PHYSFS_readBytes(file, buf, len);
+        std::string str;
+        str.resize(len);
+
+        PHYSFS_readBytes(file, str.data(), len);
         PHYSFS_close(file);
 
-        const sajson::document& doc = sajson::parse(sajson::single_allocation(), sajson::mutable_string_view(len, buf));
-
-
-        if (doc.get_root().get_type() != sajson::TYPE_ARRAY) {
-            logErr("Invalid collider JSON: Root object was not an array");
-            return std::vector<PhysicsShape>{};
-        }
+        json j = json::parse(str);
 
         std::vector<PhysicsShape> shapes;
-        const auto& root = doc.get_root();
-        shapes.resize(root.get_length());
+        shapes.reserve(j.size());
 
-        for (size_t i = 0; i < root.get_length(); i++) {
+        for (const auto& el : j) {
             PhysicsShape shape;
-            const auto& el = root.get_array_element(i);
-            const auto& typeval = el.get_value_of_key(sajson::string{ "type", 4 });
-            shape.type = valToShapeType(typeval);
+            //const auto& typeval = el.get_value_of_key(sajson::string{ "type", 4 });
+            shape.type = valToShapeType(el["type"]);
 
-            getVec3(el, "position", shape.pos);
-            glm::vec3 eulerAngles;
-            getVec3(el, "rotation", eulerAngles);
+            shape.pos = el["position"];
+            glm::vec3 eulerAngles = el["rotation"];
             shape.pos = glm::vec3{ shape.pos.x, shape.pos.z, -shape.pos.y };
             eulerAngles = glm::vec3{ eulerAngles.x, eulerAngles.z, -eulerAngles.y };
             shape.rot = glm::quat{ eulerAngles };
 
             if (shape.type == PhysicsShapeType::Box) {
-                getVec3(el, "scale", shape.box.halfExtents);
+                shape.box.halfExtents = el["scale"];
                 shape.box.halfExtents = glm::abs(glm::vec3{ shape.box.halfExtents.x, shape.box.halfExtents.z, shape.box.halfExtents.y });
             }
 
-            shapes[i] = shape;
+            shapes.push_back(shape);
         }
-
-        std::free(buf);
 
         return shapes;
     }

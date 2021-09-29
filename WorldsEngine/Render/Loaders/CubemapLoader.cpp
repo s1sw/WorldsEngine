@@ -1,6 +1,5 @@
 #include "CubemapLoader.hpp"
 #include "tracy/Tracy.hpp"
-#include <sajson.h>
 #include <SDL_log.h>
 #include "../../Core/Engine.hpp"
 #include "../RenderInternal.hpp"
@@ -9,6 +8,7 @@
 #include <algorithm>
 #define CRND_HEADER_FILE_ONLY
 #include <crn_decomp.h>
+#include <nlohmann/json.hpp>
 
 namespace worlds {
     CubemapData loadCubemapData(AssetID asset) {
@@ -17,47 +17,36 @@ namespace worlds {
 
         PHYSFS_File* f = AssetDB::openAssetFileRead(asset);
         size_t fileSize = PHYSFS_fileLength(f);
-        char* buffer = (char*)std::malloc(fileSize);
-        PHYSFS_readBytes(f, buffer, fileSize);
+        std::string str;
+        str.resize(fileSize);
+        PHYSFS_readBytes(f, str.data(), fileSize);
         PHYSFS_close(f);
 
-        const sajson::document& document = sajson::parse(
-            sajson::single_allocation(), sajson::mutable_string_view(fileSize, buffer)
-        );
+        nlohmann::json cubemapDoc = nlohmann::json::parse(str);
 
-        if (!document.is_valid()) {
-            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Invalid cubemap document");
-            std::free(buffer);
+        if (!cubemapDoc.is_array()) {
+            logErr(WELogCategoryRender, "Invalid cubemap document");
             return CubemapData{};
         }
 
-        const auto& root = document.get_root();
-
-        if (root.get_type() != sajson::TYPE_ARRAY) {
-            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Invalid cubemap document");
-            std::free(buffer);
-        }
-
-        if (root.get_length() != 6) {
-            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Invalid cubemap document");
-            std::free(buffer);
+        if (cubemapDoc.size() != 6) {
+            logErr(WELogCategoryRender, "Invalid cubemap document");
+            return CubemapData{};
         }
 
         CubemapData cd;
         JobList& jl = g_jobSys->getFreeJobList();
         jl.begin();
         for (int i = 0; i < 6; i++) {
-            Job j{ [i, &cd, &root] {
-                auto val = root.get_array_element(i);
-                cd.faceData[i] = loadTexData(AssetDB::pathToId(val.as_string()));
+            Job j{ [i, &cd, &cubemapDoc] {
+                auto val = cubemapDoc[i];
+                cd.faceData[i] = loadTexData(AssetDB::pathToId(val.get<std::string>()));
             } };
             jl.addJob(std::move(j));
         }
         jl.end();
         g_jobSys->signalJobListAvailable();
         jl.wait();
-
-        std::free(buffer);
 
         cd.debugName = AssetDB::idToPath(asset);
 
