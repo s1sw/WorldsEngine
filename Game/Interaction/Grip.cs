@@ -68,13 +68,33 @@ namespace Game.Interaction
             return linearScore * angularScore;
         }
 
-        public Transform GetAttachTransform(Vector3 handPos, Transform objTransform)
+        private Quaternion DecomposeTwist(Quaternion rotation, Vector3 axis)
+        {
+            Vector3 ra = new Vector3(rotation.x, rotation.y, rotation.z);
+            float aDotRa = axis.Dot(ra);
+
+            Vector3 projected = axis * aDotRa;
+
+            Quaternion twist = new Quaternion(rotation.w, projected.x, projected.y, projected.z);
+
+            if (aDotRa < 0f)
+                twist = twist * -1f;
+
+            return twist;
+        }
+
+        public Transform GetAttachTransform(Transform handTransform, Transform objTransform)
         {
             if (Type == GripType.Box)
             {
-                Vector3 position = objTransform.InverseTransformPoint(GetAttachPointForBoxGrip(handPos, objTransform));
-                Quaternion rotation = Quaternion.FromTo(Vector3.Right, objTransform.Rotation.Inverse * GetNormalForBoxGrip(handPos, objTransform));
-                 
+                Vector3 position = objTransform.InverseTransformPoint(GetAttachPointForBoxGrip(handTransform.Position, objTransform));
+                Vector3 normal = GetNormalForBoxGrip(handTransform.Position, objTransform);
+
+                // Get the hand's rotation around the normal axis and apply that to make the grip smoother
+                Quaternion handRotAroundNormal = DecomposeTwist(handTransform.Rotation, normal);
+
+                Quaternion rotation = (objTransform.Rotation.Inverse * handRotAroundNormal) * Quaternion.FromTo(Vector3.Right, objTransform.Rotation.Inverse * normal);
+
                 return new Transform(position, rotation);
             }
 
