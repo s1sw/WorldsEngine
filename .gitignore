@@ -357,3 +357,4 @@ build_*
 
 .clangd/
 /EngineData/Shaders
+compile_commands.json
