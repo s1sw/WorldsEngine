@@ -214,7 +214,7 @@ namespace Game.Interaction
             if (g.rotation.LengthSquared < 0.9f)
                 g.rotation = Quaternion.Identity;
 
-            Transform attachTransform = g.GetAttachTransform(handTransform.Position, grabbingTransform);
+            Transform attachTransform = g.GetAttachTransform(handTransform, grabbingTransform);
             d6.TargetLocalPose = attachTransform;
 
             d6.Target = grab;
@@ -231,7 +231,7 @@ namespace Game.Interaction
             var physHand = Registry.GetComponent<PhysHand>(Entity);
             Transform handTransform = Registry.GetComponent<DynamicPhysicsActor>(Entity).Pose;
             Transform grabTransform = Registry.GetComponent<DynamicPhysicsActor>(grabbed).Pose;
-            var gripTransform = CurrentGrip.GetAttachTransform(handTransform.Position, grabTransform);
+            var gripTransform = CurrentGrip.GetAttachTransform(handTransform, grabTransform);
 
             while (_bringingTowards)
             {
