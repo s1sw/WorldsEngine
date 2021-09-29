@@ -1,3 +1,4 @@
+using System;
 using System.Runtime.InteropServices;
 using WorldsEngine.Math;
 
@@ -43,5 +44,7 @@ namespace WorldsEngine
         {
             return Rotation * direction;
         }
+
+        public Vector3 InverseTransformDirection(Vector3 normal) => Rotation.Inverse * normal;
     }
 }

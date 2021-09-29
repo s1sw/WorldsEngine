@@ -65,7 +65,7 @@ namespace Game.Interaction
 
             float angularScore = Quaternion.Dot(hand.Rotation.SingleCover, (obj.Rotation * rotation).SingleCover);
 
-            return linearScore * angularScore;
+            return linearScore;
         }
 
         private Quaternion DecomposeTwist(Quaternion rotation, Vector3 axis)
@@ -91,9 +91,9 @@ namespace Game.Interaction
                 Vector3 normal = GetNormalForBoxGrip(handTransform.Position, objTransform);
 
                 // Get the hand's rotation around the normal axis and apply that to make the grip smoother
-                Quaternion handRotAroundNormal = DecomposeTwist(handTransform.Rotation, normal);
+                //Quaternion handRotAroundNormal = objTransform.Rotation.Inverse * DecomposeTwist(handTransform.Rotation, normal);
 
-                Quaternion rotation = (objTransform.Rotation.Inverse * handRotAroundNormal) * Quaternion.FromTo(Vector3.Right, objTransform.Rotation.Inverse * normal);
+                Quaternion rotation = Quaternion.FromTo(Vector3.Right, objTransform.Rotation.Inverse * normal);
 
                 return new Transform(position, rotation);
             }

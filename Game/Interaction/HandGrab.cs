@@ -200,10 +200,17 @@ namespace Game.Interaction
             GripHand thisHand = IsRightHand ? GripHand.Right : GripHand.Left;
 
             // Select an appropriate grip and use it
-            Grip g = grabbable.grips
-                .Where((Grip g) => g.CanAttach && (g.Hand == GripHand.Both || g.Hand == thisHand))
+            var filteredGrips = grabbable.grips
+                .Where((Grip g) => g.CanAttach && (g.Hand == GripHand.Both || g.Hand == thisHand));
+
+            Grip g = filteredGrips
                 .OrderByDescending((Grip g) => g.CalculateGripScore(grabbingTransform, handTransform))
                 .FirstOrDefault();
+
+            foreach ((Grip gripFromListAndStuffJustPleaseStopGivingMeErrors, float f) in filteredGrips.Select((Grip g) => (g, g.CalculateGripScore(grabbingTransform, handTransform))))
+            {
+                Logger.Log($"{gripFromListAndStuffJustPleaseStopGivingMeErrors.position}, {f}");
+            }
 
             if (g == null)
             {
