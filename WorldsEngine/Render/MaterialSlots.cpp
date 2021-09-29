@@ -8,17 +8,6 @@
 #include <mutex>
 
 namespace worlds {
-    std::optional<std::string> getString(const sajson::value& obj, const char* key) {
-        sajson::string keyStr{ key, strlen(key) };
-
-        auto idx = obj.find_object_key(keyStr);
-
-        if (idx == obj.get_length())
-            return std::nullopt;
-
-        return obj.get_object_value(idx).as_string();
-    }
-
     uint32_t MaterialSlots::getTexture(nlohmann::json& j, std::string key) {
         auto it = j.find(key);
 

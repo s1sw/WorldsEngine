@@ -1,12 +1,12 @@
 #include "../../ImGui/imgui.h"
 #include "EditorWindows.hpp"
 #include "../GuiUtil.hpp"
-#include <sajson.h>
 #include "../../Core/AssetDB.hpp"
 #include "../../Core/Log.hpp"
 #include "../../Util/JsonUtil.hpp"
 
 namespace worlds {
+    robin_hood::unordered_map<AssetID, ImTextureID> cacheTextures;
     struct EditableMaterial {
         AssetID albedo = ~0u;
         AssetID normalMap = ~0u;
@@ -26,21 +26,6 @@ namespace worlds {
         bool useAlphaTest = false;
     };
 
-    void getAssetId(const sajson::value& obj, const char* key, AssetID& aid) {
-        sajson::string keyStr{ key, strlen(key) };
-
-        auto idx = obj.find_object_key(keyStr);
-
-        if (idx == obj.get_length()) {
-            aid = ~0u;
-            return;
-        }
-
-        auto path = obj.get_object_value(idx).as_string();
-
-        aid = AssetDB::pathToId(path);
-    }
-
     template <typename T>
     std::string getJson(std::string key, T val) {
         return "    \"" + key + "\"" + " : " + std::to_string(val);
@@ -55,10 +40,21 @@ namespace worlds {
             std::to_string(value.x) + ", " + std::to_string(value.y) + ", " + std::to_string(value.z) + "]";
     }
 
-    void assetButton(AssetID& id, const char* title) {
-        std::string buttonLabel = "Change##";
+    void assetButton(AssetID& id, const char* title, UITextureManager* texMan) {
+        std::string buttonLabel = "Set##";
         buttonLabel += title;
-        bool open = ImGui::Button(buttonLabel.c_str());
+
+        bool open = false;
+
+        if (id == ~0u || !AssetDB::exists(id))
+            open = ImGui::Button(buttonLabel.c_str());
+        else {
+            if (!cacheTextures.contains(id))
+                cacheTextures.insert({ id, texMan->loadOrGet(id) });
+
+            open = ImGui::ImageButton(cacheTextures.at(id), ImVec2(128, 128));
+        }
+
         selectAssetPopup(title, id, open);
     }
 
@@ -123,6 +119,12 @@ namespace worlds {
         }
     }
 
+    AssetID getAssetId(const nlohmann::json& j, const char* key) {
+        if (!j.contains(key))
+            return ~0u;
+        return AssetDB::pathToId(j[key].get<std::string>());
+    }
+
     void MaterialEditor::draw(entt::registry&) {
         static AssetID materialId = ~0u;
         static bool needsReload = false;
@@ -133,38 +135,35 @@ namespace worlds {
                 if (needsReload) {
                     auto* f = AssetDB::openAssetFileRead(materialId);
                     size_t fileSize = PHYSFS_fileLength(f);
-                    char* buffer = (char*)std::malloc(fileSize);
-                    PHYSFS_readBytes(f, buffer, fileSize);
+                    std::string str;
+                    str.resize(fileSize);
+
+                    PHYSFS_readBytes(f, str.data(), fileSize);
                     PHYSFS_close(f);
 
-                    const sajson::document& document = sajson::parse(
-                        sajson::single_allocation(), sajson::mutable_string_view(fileSize, buffer)
-                    );
+                    nlohmann::json j = nlohmann::json::parse(str);
 
-                    const auto& root = document.get_root();
+                    mat.metallic = j.value("metallic", 0.0f);
+                    mat.roughness = j.value("roughness", 0.5f);
+                    mat.heightmapScale = j.value("heightmapScale", 0.05f);
+                    mat.alphaCutoff = j.value("alphaCutoff", 0.5f);
+                    mat.albedoColor = j.value("albedoColor", glm::vec3{1.0f});
+                    mat.emissiveColor = j.value("emissiveColor", glm::vec3{0.0f});
+                    mat.albedo = getAssetId(j, "albedoPath");
+                    mat.heightMap = getAssetId(j, "heightmapPath");
+                    mat.metalMap = getAssetId(j, "metalMapPath");
+                    mat.roughMap = getAssetId(j, "roughMapPath");
+                    mat.normalMap = getAssetId(j, "normalMapPath");
 
-                    getFloat(root, "metallic", mat.metallic);
-                    getFloat(root, "roughness", mat.roughness);
-                    getFloat(root, "heightmapScale", mat.heightmapScale);
-                    getFloat(root, "alphaCutoff", mat.alphaCutoff);
-                    getVec3(root, "albedoColor", mat.albedoColor);
-                    getVec3(root, "emissiveColor", mat.emissiveColor);
-                    getAssetId(root, "albedoPath", mat.albedo);
-                    getAssetId(root, "heightmapPath", mat.heightMap);
-                    getAssetId(root, "metalMapPath", mat.metalMap);
-                    getAssetId(root, "roughMapPath", mat.roughMap);
-                    getAssetId(root, "normalMapPath", mat.normalMap);
-
-                    mat.cullOff = hasKey(root, "cullOff");
-                    mat.wireframe = hasKey(root, "wireframe");
-                    mat.usePBRMap = hasKey(root, "pbrMapPath");
+                    mat.cullOff = j.contains("cullOff");
+                    mat.wireframe = j.contains("wireframe");
+                    mat.usePBRMap = j.contains( "pbrMapPath");
                     mat.useAlphaTest = mat.alphaCutoff > 0.0f;
 
                     if (mat.usePBRMap) {
-                        getAssetId(root, "pbrMapPath", mat.pbrMap);
+                        mat.pbrMap = getAssetId(j, "pbrMapPath");
                     }
 
-                    std::free(buffer);
                     needsReload = false;
                 }
 
@@ -178,24 +177,21 @@ namespace worlds {
                 ImGui::ColorEdit3("Emissive Color", &mat.emissiveColor.x);
 
                 ImGui::Text("Current albedo path: %s", AssetDB::idToPath(mat.albedo).c_str());
-                ImGui::SameLine();
-                assetButton(mat.albedo, "Albedo");
+                assetButton(mat.albedo, "Albedo", editor->texManager());
 
                 if (mat.normalMap != ~0u) {
                     ImGui::Text("Current normal map path: %s", AssetDB::idToPath(mat.normalMap).c_str());
                 } else {
                     ImGui::Text("No normal map set");
                 }
-                ImGui::SameLine();
-                assetButton(mat.normalMap, "Normal map");
+                assetButton(mat.normalMap, "Normal map", editor->texManager());
 
                 if (mat.heightMap != ~0u) {
                     ImGui::Text("Current height map path: %s", AssetDB::idToPath(mat.heightMap).c_str());
                 } else {
                     ImGui::Text("No height map set");
                 }
-                ImGui::SameLine();
-                assetButton(mat.heightMap, "Height map");
+                assetButton(mat.heightMap, "Height map", editor->texManager());
 
                 ImGui::Checkbox("Use packed PBR map", &mat.usePBRMap);
                 if (mat.usePBRMap) {
@@ -205,8 +201,7 @@ namespace worlds {
                         ImGui::Text("No PBR map set");
                     }
 
-                    ImGui::SameLine();
-                    assetButton(mat.pbrMap, "PBR Map");
+                    assetButton(mat.pbrMap, "PBR Map", editor->texManager());
                 } else {
                     if (mat.metalMap != ~0u) {
                         ImGui::Text("Current metallic map path: %s", AssetDB::idToPath(mat.metalMap).c_str());
@@ -214,9 +209,7 @@ namespace worlds {
                         ImGui::Text("No metallic map set");
                     }
 
-                    ImGui::SameLine();
-                    assetButton(mat.metalMap, "Metal Map");
-
+                    assetButton(mat.metalMap, "Metal Map", editor->texManager());
 
                     if (mat.roughMap != ~0u) {
                         ImGui::Text("Current roughness map path: %s", AssetDB::idToPath(mat.roughMap).c_str());
@@ -224,8 +217,7 @@ namespace worlds {
                         ImGui::Text("No roughness map set");
                     }
 
-                    ImGui::SameLine();
-                    assetButton(mat.roughMap, "Rough Map");
+                    assetButton(mat.roughMap, "Rough Map", editor->texManager());
                 }
 
                 ImGui::Checkbox("Alpha Test", &mat.useAlphaTest);

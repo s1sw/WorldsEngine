@@ -47,6 +47,8 @@ namespace worlds {
 
     UITextureManager::UITexInfo* UITextureManager::load(AssetID id) {
         auto tData = loadTexData(id);
+        if (tData.data == nullptr)
+            logErr("Failed to load UI image %s", AssetDB::idToPath(id).c_str());
         vku::TextureImage2D t2d = uploadTextureVk(handles, tData);
 
         auto texInfo = new UITexInfo;

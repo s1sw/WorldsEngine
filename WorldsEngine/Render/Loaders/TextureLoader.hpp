@@ -2,6 +2,7 @@
 #include <cstdint>
 #include "../vku/vku.hpp"
 #include "../../Core/AssetDB.hpp"
+#include <string>
 
 namespace worlds {
     struct TextureData {
