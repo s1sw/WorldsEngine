@@ -41,15 +41,6 @@ namespace worlds {
 #define UNUSED(thing) (void)thing
 #define VKCHECK(expr) vku::checkVkResult(expr, __FILE__, __LINE__)
 namespace vku {
-    /// Printf-style formatting function.
-    template <class ... Args>
-    std::string format(const char* fmt, Args... args) {
-        int n = snprintf(nullptr, 0, fmt, args...);
-        std::string result(n, '\0');
-        snprintf(&*result.begin(), n + 1, fmt, args...);
-        return result;
-    }
-
     const char* toString(VkPhysicalDeviceType type);
     const char* toString(VkMemoryPropertyFlags flags);
     const char* toString(VkResult result);
@@ -385,7 +376,7 @@ namespace vku {
     };
 
     // =============================
-    // Pipeline utils 
+    // Pipeline utils
     // =============================
 
     /// A class for building pipeline layouts.
