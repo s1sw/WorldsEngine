@@ -6,6 +6,7 @@
 #extension GL_KHR_shader_subgroup_arithmetic : require
 #extension GL_KHR_shader_subgroup_ballot : require
 #extension GL_KHR_shader_subgroup_basic : require
+#extension GL_ARB_shader_ballot : require
 layout (local_size_x = 16, local_size_y = 16) in;
 
 struct LightingTile {
@@ -60,7 +61,6 @@ layout(push_constant) uniform PC {
 
 struct Frustum {
     vec4 planes[6];
-    vec3 points[8];
 };
 
 struct AABB {
@@ -137,8 +137,8 @@ vec3 getTileMax() {
 bool aabbContainsPoint(vec3 point) {
     vec3 mi = getTileMin();
     vec3 ma = getTileMax();
-    
-    return 
+
+    return
         point.x >= mi.x && point.x <= ma.x &&
         point.y >= mi.y && point.y <= ma.y &&
         point.z >= mi.z && point.z <= ma.z;
@@ -153,9 +153,9 @@ bool aabbContainsOBB(vec3 boxSize, mat4 transform) {
     vec3 v5 = (transform * vec4(vec3( 1.0,-1.0, 1.0) * boxSize, 1.0)).xyz;
     vec3 v6 = (transform * vec4(vec3(-1.0, 1.0, 1.0) * boxSize, 1.0)).xyz;
     vec3 v7 = (transform * vec4(vec3( 1.0, 1.0, 1.0) * boxSize, 1.0)).xyz;
-    
+
     vec3 c = (transform * vec4(vec3(0.0, 0.0, 0.0) * boxSize, 1.0)).xyz;
-    
+
     return aabbContainsPoint(v0) ||
     aabbContainsPoint(v1) ||
     aabbContainsPoint(v2) ||
@@ -164,7 +164,7 @@ bool aabbContainsOBB(vec3 boxSize, mat4 transform) {
     aabbContainsPoint(v5) ||
     aabbContainsPoint(v6) ||
     aabbContainsPoint(v7);
-        
+
 }
 
 mat4 getBoxTransfomReal(AOBox box) {
@@ -198,7 +198,7 @@ void main() {
     buf_LightTiles.tiles[tileIndex].lightIdMasks[gl_LocalInvocationIndex % 8] = 0u;
     buf_LightTiles.tiles[tileIndex].aoSphereIdMasks[gl_LocalInvocationIndex % 2] = 0u;
     buf_LightTiles.tiles[tileIndex].aoBoxIdMasks[gl_LocalInvocationIndex % 2] = 0u;
-    if (buf_Lights.pack0.x == 0) return;
+    //if (buf_Lights.pack0.x == 0) return;
 
     // Stage 1: Determine the depth bounds of the tile using atomics.
     // THIS ONLY WORKS FOR 16x16 TILES.
@@ -210,16 +210,16 @@ void main() {
     // A depth of 0 only occurs when the skybox is visible.
     // Since the skybox can't receive lighting, there's no point in increasing
     // the depth bounds of the tile to receive the lighting.
-    if (depthAsUint != 0) {
+    if (depthAtCurrent > 0.0f) {
         atomicMin(minDepthU, depthAsUint);
         atomicMax(maxDepthU, depthAsUint);
     }
 
-    memoryBarrierShared();
+    barrier();
 
-    vec3 camPos = viewPos[eyeIdx].xyz;
     // Stage 2: Calculate frustum points.
     if (gl_LocalInvocationIndex == 0) {
+        vec3 camPos = viewPos[eyeIdx].xyz;
         float minDepth = uintBitsToFloat(minDepthU);
         float maxDepth = uintBitsToFloat(maxDepthU);
 
@@ -239,57 +239,60 @@ void main() {
         };
 
         mat4 invVP = inverse(projection[eyeIdx] * view[eyeIdx]);
+        vec3 frustumPoints[8];
 
-        // Find the points on the near and far planes
-        for (int i = 0; i < 8; i++) {
 #ifdef CULL_DEPTH
-            float nearZ = maxDepth;
-            float farZ = minDepth;
+        float nearZ = maxDepth;
+        float farZ = minDepth;
 #else
-            float nearZ = 1.0f;
-            float farZ = 0.000001f;
+        float nearZ = 1.0f;
+        float farZ = 0.000001f;
 #endif
-
-            float zVal = i >= 4 ? farZ : nearZ;
-
-            vec4 projected = invVP * vec4(ndcTileCorners[i % 4], zVal, 1.0f);
-            tileFrustum.points[i] = vec3(projected) / projected.w;
+        // Find the points on the near plane
+        for (int i = 0; i < 4; i++) {
+            vec4 projected = invVP * vec4(ndcTileCorners[i], nearZ, 1.0f);
+            frustumPoints[i] = vec3(projected) / projected.w;
         }
 
         for (int i = 0; i < 4; i++) {
-            vec3 planeNormal = cross(tileFrustum.points[i] - camPos, tileFrustum.points[i + 1] - camPos);
+            vec4 projected = invVP * vec4(ndcTileCorners[i], farZ, 1.0f);
+            frustumPoints[i + 4] = vec3(projected) / projected.w;
+        }
+
+        for (int i = 0; i < 4; i++) {
+            vec3 planeNormal = cross(frustumPoints[i] - camPos, frustumPoints[i + 1] - camPos);
             planeNormal = normalize(planeNormal);
-            tileFrustum.planes[i] = vec4(planeNormal, -dot(planeNormal, tileFrustum.points[i]));
+            tileFrustum.planes[i] = vec4(planeNormal, -dot(planeNormal, frustumPoints[i]));
         }
 
         // Near plane
         {
-            vec3 planeNormal = cross(tileFrustum.points[1] - tileFrustum.points[0], tileFrustum.points[3] - tileFrustum.points[0]);
+            vec3 planeNormal = cross(frustumPoints[1] - frustumPoints[0], frustumPoints[3] - frustumPoints[0]);
             planeNormal = normalize(planeNormal);
-            tileFrustum.planes[4] = vec4(planeNormal, -dot(planeNormal, tileFrustum.points[0]));
+            tileFrustum.planes[4] = vec4(planeNormal, -dot(planeNormal, frustumPoints[0]));
         }
 
         // Far plane
         {
-            vec3 planeNormal = cross(tileFrustum.points[7] - tileFrustum.points[4], tileFrustum.points[5] - tileFrustum.points[4]);
+            vec3 planeNormal = cross(frustumPoints[7] - frustumPoints[4], frustumPoints[5] - frustumPoints[4]);
             planeNormal = normalize(planeNormal);
-            tileFrustum.planes[5] = vec4(planeNormal, -dot(planeNormal, tileFrustum.points[4]));
+            tileFrustum.planes[5] = vec4(planeNormal, -dot(planeNormal, frustumPoints[4]));
         }
 
         // Calculate tile AABB
         vec3 aabbMax = vec3(0.0f);
-        vec3 aabbMin = vec3(10000000000.0f);
+        vec3 aabbMin = vec3(10000000.0f);
 
         for (int i = 0; i < 8; i++) {
-            aabbMax = max(aabbMax, tileFrustum.points[i]);
-            aabbMin = min(aabbMin, tileFrustum.points[i]);
+            aabbMax = max(aabbMax, frustumPoints[i]);
+            aabbMin = min(aabbMin, frustumPoints[i]);
         }
 
         tileAABB.center = (aabbMax + aabbMin) * 0.5;
         tileAABB.extents = (aabbMax - aabbMin) * 0.5;
     }
 
-    memoryBarrierShared();
+    barrier();
 
     // Stage 3: Cull lights against the frustum. At this point,
     // one invocation = one light. Since the light array is always
@@ -328,13 +331,13 @@ void main() {
             if (i == bucketIdx) {
                 uint setBits = subgroupBroadcastFirst(subgroupOr(uint(inFrustum || lightType == LT_DIRECTIONAL) << bucketBit));
                 if (subgroupElect())
-                    atomicOr(buf_LightTiles.tiles[tileIndex].lightIdMasks[bucketIdx], setBits);
+                    atomicOr(buf_LightTiles.tiles[tileIndex].lightIdMasks[i], setBits);
             }
         }
 
 #ifdef DEBUG
-        if (inFrustum)
-            atomicAdd(buf_LightTileLightCounts.tileLightCounts[tileIndex], 1);
+        //if (inFrustum)
+            //atomicAdd(buf_LightTileLightCounts.tileLightCounts[tileIndex], 1);
 #endif
     }
 
@@ -369,16 +372,28 @@ void main() {
      if (gl_LocalInvocationIndex < buf_Lights.pack1.x) {
         uint boxIdx = gl_LocalInvocationIndex;
         AOBox box = buf_Lights.aoBox[boxIdx];
-        
+
         vec3 scale = getBoxScale(box) * 2.0;
         mat4 transform = getBoxTransfomReal(box);
-        
+
         bool inFrustum = frustumContainsOBB(scale, transform);
 
-        if (inFrustum) {
-            uint bucketIdx = boxIdx / 32;
-            uint bucketBit = boxIdx % 32;
-            atomicOr(buf_LightTiles.tiles[tileIndex].aoBoxIdMasks[bucketIdx], 1 << bucketBit);
+        uint bucketIdx = boxIdx / 32;
+        uint bucketBit = boxIdx % 32;
+        uint maxBucketId = subgroupMax(bucketIdx);
+
+        // Subgroup fun again
+        for (int i = 0; i <= maxBucketId; i++) {
+            if (i == bucketIdx) {
+                uint setBits = subgroupBroadcastFirst(subgroupOr(uint(inFrustum) << bucketBit));
+                if (subgroupElect())
+                    atomicOr(buf_LightTiles.tiles[tileIndex].aoBoxIdMasks[bucketIdx], setBits);
+            }
         }
+
+#ifdef DEBUG
+        if (inFrustum)
+            atomicAdd(buf_LightTileLightCounts.tileLightCounts[tileIndex], 1);
+#endif
     }
 }

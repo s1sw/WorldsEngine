@@ -270,7 +270,6 @@ float calcProxyAO(vec3 wPos, vec3 normal) {
     }
 
     for (int i = 0; i < 2; i++) {
-        //uint sphereBits = readFirstInvocationARB(subgroupOr(buf_LightTiles.tiles[tileIdx].aoSphereIdMasks[i]));
         uint boxBits = buf_LightTiles.tiles[tileIdx].aoBoxIdMasks[i];
 
         while (boxBits != 0) {
