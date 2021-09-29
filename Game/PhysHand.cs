@@ -128,18 +128,6 @@ namespace Game
 
             //torque = torque.ClampMagnitude(TorqueLimit);
             dpa.AddTorque(torque);
-
-            if (Keyboard.KeyPressed(KeyCode.L) && !FollowRightHand)
-            {
-                rotationOffset = VR.LeftHandTransform.Rotation.Inverse;
-                Logger.Log($"New rotation offset for left hand: {rotationOffset}");
-            }
-
-            if (Keyboard.KeyPressed(KeyCode.R) && FollowRightHand)
-            {
-                rotationOffset = VR.RightHandTransform.Rotation.Inverse;
-                Logger.Log($"New rotation offset for right hand: {rotationOffset}");
-            }
         }
 
         public void Start(Entity entity)

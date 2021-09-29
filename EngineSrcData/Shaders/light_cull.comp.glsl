@@ -336,8 +336,8 @@ void main() {
         }
 
 #ifdef DEBUG
-        //if (inFrustum)
-            //atomicAdd(buf_LightTileLightCounts.tileLightCounts[tileIndex], 1);
+        if (inFrustum)
+            atomicAdd(buf_LightTileLightCounts.tileLightCounts[tileIndex], 1);
 #endif
     }
 
@@ -390,10 +390,5 @@ void main() {
                     atomicOr(buf_LightTiles.tiles[tileIndex].aoBoxIdMasks[bucketIdx], setBits);
             }
         }
-
-#ifdef DEBUG
-        if (inFrustum)
-            atomicAdd(buf_LightTileLightCounts.tileLightCounts[tileIndex], 1);
-#endif
     }
 }
