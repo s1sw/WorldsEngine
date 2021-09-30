@@ -309,7 +309,6 @@ namespace worlds {
         IVRInterface* vrInterface;
         VrApi vrApi;
         float vrPredictAmount;
-        bool clearMaterialIndices;
         bool isMinimised;
         bool useVsync;
         vku::GenericImage brdfLut;

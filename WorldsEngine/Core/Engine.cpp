@@ -258,6 +258,14 @@ namespace worlds {
     };
     ConVar simStepTime{ "sim_stepTime", "0.01" };
 
+    entt::registry renderRegistry;
+
+    template <typename T>
+    void cloneComponent(entt::registry& src, entt::registry& dst) {
+        auto view = src.view<T>();
+        dst.insert<T>(view.data(), view.data() + view.size(), view.raw(), view.raw() + view.size());
+    }
+
     WorldsEngine::WorldsEngine(EngineInitOptions initOptions, char* argv0)
         : pauseSim{ false }
         , running{ true }
@@ -861,14 +869,22 @@ namespace worlds {
 
 
             if (!dedicatedServer) {
+                renderRegistry.clear();
+                renderRegistry.assign(registry.data(), registry.data() + registry.size(), registry.destroyed());
+                cloneComponent<Transform>(registry, renderRegistry);
+                cloneComponent<WorldObject>(registry, renderRegistry);
+                cloneComponent<WorldLight>(registry, renderRegistry);
+                cloneComponent<WorldCubemap>(registry, renderRegistry);
+
                 auto sortLambda = [&](entt::entity a, entt::entity b) {
                     auto& aTransform = registry.get<Transform>(a);
                     auto& bTransform = registry.get<Transform>(b);
                     return glm::distance2(camPos, aTransform.position) < glm::distance2(camPos, bTransform.position);
                 };
-                registry.sort<WorldObject, decltype(sortLambda)>(sortLambda);
+                renderRegistry.sort<WorldObject, decltype(sortLambda)>(sortLambda);
+                renderRegistry.set<SceneSettings>(registry.ctx<SceneSettings>());
 
-                renderer->frame(cam, registry);
+                renderer->frame(cam, renderRegistry);
 
                 ImGui::UpdatePlatformWindows();
                 ImGui::RenderPlatformWindowsDefault();

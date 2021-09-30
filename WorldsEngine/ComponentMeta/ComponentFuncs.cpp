@@ -218,7 +218,6 @@ namespace worlds {
 
                             bool open = ImGui::Button(("Change" + idStr).c_str());
                             if (selectAssetPopup(("Material" + idStr).c_str(), worldObject.materials[i], open)) {
-                                worldObject.materialIdx[i] = INVALID_ASSET;
                                 worldObject.presentMaterials[i] = true;
                             }
                         }
@@ -264,7 +263,6 @@ namespace worlds {
                 if (isPresent) {
                     READ_FIELD(file, mat);
                     wo.materials[i] = mat;
-                    wo.materialIdx[i] = ~0u;
                 }
             }
 

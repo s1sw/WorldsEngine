@@ -583,11 +583,11 @@ namespace worlds {
                 sdi.vb = meshPos->second.vb.buffer();
                 sdi.indexCount = currSubmesh.indexCount;
                 sdi.indexOffset = currSubmesh.indexOffset;
-                sdi.materialIdx = wo.materialIdx[i];
+                sdi.materialIdx = ctx.resources.materials.get(wo.materials[i]);
                 sdi.matrixIdx = matrixIdx;
                 sdi.texScaleOffset = wo.texScaleOffset;
                 sdi.ent = ent;
-                auto& packedMat = resources.materials[wo.materialIdx[i]];
+                auto& packedMat = resources.materials[sdi.materialIdx];
                 sdi.opaque = packedMat.getCutoff() == 0.0f;
 
                 switch (wo.uvOverride) {
@@ -631,7 +631,7 @@ namespace worlds {
 
                 sdi.cubemapIdx = currCubemapIdx;
 
-                auto& extraDat = resources.materials.getExtraDat(wo.materialIdx[i]);
+                auto& extraDat = resources.materials.getExtraDat(sdi.materialIdx);
 
                 sdi.pipeline = sdi.opaque ? pipeline : alphaTestPipeline;
 
