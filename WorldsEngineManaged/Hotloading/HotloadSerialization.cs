@@ -222,6 +222,7 @@ namespace WorldsEngine
 
             foreach (var type in CurrentGameAssembly.GetTypes())
             {
+                if (type.GetCustomAttribute<System.Runtime.CompilerServices.CompilerGeneratedAttribute>() != null) continue;
                 var fields = type.GetFields(BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
 
                 if (fields.Length == 0) continue;
