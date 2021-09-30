@@ -210,7 +210,7 @@ bool checkPhysicalDeviceFeatures(const VkPhysicalDevice& physDev) {
 
     if (!supportedFeatures.shaderStorageImageMultisample) {
         logWarn(worlds::WELogCategoryRender, "Missing shaderStorageImageMultisample");
-        //return false;
+        return false;
     }
 
     if (!supportedFeatures.fragmentStoresAndAtomics) {
@@ -238,17 +238,17 @@ bool checkPhysicalDeviceFeatures(const VkPhysicalDevice& physDev) {
 
     if (!supportedVk11Features.multiview) {
         logErr(WELogCategoryRender, "Missing multiview support");
-        //return false;
+        return false;
     }
 
     if (!supportedVk12Features.descriptorIndexing) {
         logErr(WELogCategoryRender, "Missing descriptor indexing");
-        //return false;
+        return false;
     }
 
     if (!supportedVk12Features.descriptorBindingPartiallyBound) {
         logErr(WELogCategoryRender, "Missing partially bound descriptors");
-        //return false;
+        return false;
     }
 
     return true;

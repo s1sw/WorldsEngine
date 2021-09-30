@@ -401,7 +401,9 @@ namespace worlds {
             if (inputManager.keyHeld(SDL_SCANCODE_LSHIFT))
                 moveSpeed *= 2.0f;
 
-            ed->cameraSpeed += ImGui::GetIO().MouseWheel * 0.5f;
+            float linearisedCamSpeed = log2f(ed->cameraSpeed);
+            linearisedCamSpeed += ImGui::GetIO().MouseWheel * 0.1f;
+            ed->cameraSpeed = powf(2.0f, linearisedCamSpeed);
 
             if (inputManager.keyHeld(SDL_SCANCODE_W)) {
                 cam.position += cam.rotation * glm::vec3(0.0f, 0.0f, deltaTime * moveSpeed);

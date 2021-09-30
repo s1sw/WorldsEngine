@@ -1247,15 +1247,33 @@ namespace worlds {
 
         void edit(entt::entity ent, entt::registry& reg, Editor* ed) override {
             auto& wc = reg.get<WorldCubemap>(ent);
+            static entt::entity boundsCube = entt::null;
 
             if (ImGui::CollapsingHeader(ICON_FA_CIRCLE u8" Cubemap")) {
+                if (!reg.valid(boundsCube)) {
+                    boundsCube = createModelObject(reg,
+                        glm::vec3{1000.0f},
+                        glm::quat{},
+                        AssetDB::pathToId("Models/cube.wmdl"),
+                        AssetDB::pathToId("Materials/wireframe.json")
+                    );
+                    reg.emplace<HideFromEditor>(boundsCube);
+                    reg.emplace<DontSerialize>(boundsCube);
+                }
+
                 ImGui::DragFloat3("Extent", &wc.extent.x);
                 ImGui::Checkbox("Parallax Correction", &wc.cubeParallax);
                 ImGui::Text("Current Asset Path: %s", AssetDB::idToPath(wc.cubemapId).c_str());
                 ImGui::InputInt("Priority", &wc.priority);
                 selectAssetPopup("Cubemap Path", wc.cubemapId, ImGui::Button("Change"));
 
+                Transform& boundsTransform = reg.get<Transform>(boundsCube);
+                boundsTransform.position = reg.get<Transform>(ent).position;
+                boundsTransform.scale = wc.extent;
+
                 ImGui::Separator();
+            } else if (reg.valid(boundsCube)) {
+                reg.destroy(boundsCube);
             }
         }
 
