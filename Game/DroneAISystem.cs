@@ -105,7 +105,7 @@ namespace Game
             Transform pose = physicsActor.Pose;
 
             Vector3 playerDirection = targetLocation - pose.Position;
-            playerDirection.y = MathFX.Clamp(playerDirection.y, -2.0f, 2.0f);
+            //playerDirection.y = MathFX.Clamp(playerDirection.y, -2.0f, 2.0f);
             playerDirection.Normalize();
 
             targetLocation -= playerDirection * 3.5f;
@@ -239,7 +239,7 @@ namespace Game
                 return;
             }
 
-            bool foundFloor = Physics.Raycast(pose.Position + (Vector3.Down * 0.05f), Vector3.Down, out RaycastHit rHit, 50.0f);
+            bool foundFloor = Physics.Raycast(pose.Position + (Vector3.Down * 0.1f), Vector3.Down, out RaycastHit rHit, 50.0f);
 
             if (!burstInProgress)
                 target = Camera.Main.Position;
