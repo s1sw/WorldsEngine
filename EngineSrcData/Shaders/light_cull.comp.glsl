@@ -163,7 +163,8 @@ bool aabbContainsOBB(vec3 boxSize, mat4 transform) {
     aabbContainsPoint(v4) ||
     aabbContainsPoint(v5) ||
     aabbContainsPoint(v6) ||
-    aabbContainsPoint(v7);
+    aabbContainsPoint(v7) ||
+    aabbContainsPoint(c);
 
 }
 
@@ -373,7 +374,7 @@ void main() {
         uint boxIdx = gl_LocalInvocationIndex;
         AOBox box = buf_Lights.aoBox[boxIdx];
 
-        vec3 scale = getBoxScale(box) * 2.0;
+        vec3 scale = getBoxScale(box) + 1.0;
         mat4 transform = getBoxTransfomReal(box);
 
         bool inFrustum = frustumContainsOBB(scale, transform);
