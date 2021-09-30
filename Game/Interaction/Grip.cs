@@ -65,7 +65,7 @@ namespace Game.Interaction
 
             float angularScore = Quaternion.Dot(hand.Rotation.SingleCover, (obj.Rotation * rotation).SingleCover);
 
-            return linearScore;
+            return 1.0f / linearScore;
         }
 
         private Quaternion DecomposeTwist(Quaternion rotation, Vector3 axis)

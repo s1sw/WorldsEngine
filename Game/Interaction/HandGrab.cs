@@ -92,16 +92,14 @@ namespace Game.Interaction
 
             uint overlappedCount = Physics.OverlapSphereMultiple(dpa.Pose.TransformPoint(new Vector3(0.0f, 0.0f, 0.03f)), 0.5f, MaxOverlaps, overlapped);
 
-            var sorted = overlapped.Take((int)overlappedCount)
-                .OrderByDescending((Entity e) => Registry.GetTransform(e).Position.DistanceTo(dpa.Pose.Position));
+            var grips = overlapped.Take((int)overlappedCount)
+                .Where((Entity e) => Registry.HasComponent<Grabbable>(e))
+                .Select((Entity e) => (e, Registry.GetComponent<Grabbable>(e).grips))
+                .Select((p) => (p.e, score: p.grips.Select((g) => g.CalculateGripScore(Registry.GetComponent<DynamicPhysicsActor>(p.e).Pose, dpa.Pose)).Max()))
+                .OrderByDescending((p) => p.score);
 
-            foreach (Entity e in sorted)
-            {
-                if (!Registry.HasComponent<Grabbable>(e)) continue;
-
-                Grab(e);
-                return;
-            }
+            if (grips.Count() > 0)
+                Grab(grips.First().e);
         }
 
         private void AddShapeTensor(PhysicsShape shape, Transform offset, InertiaTensorComputer itComp)

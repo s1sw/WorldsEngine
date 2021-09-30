@@ -139,7 +139,7 @@ namespace Game
         public void OnCollision(Entity entity, ref PhysicsContactInfo contactInfo)
         {
             if (!Registry.HasComponent<Magazine>(contactInfo.OtherEntity) || contactInfo.OtherEntity == _currentMagazine) return;
-            
+
             if (_hasMagazine)
             {
                 EjectMag();
