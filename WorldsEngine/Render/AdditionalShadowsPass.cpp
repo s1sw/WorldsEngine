@@ -230,11 +230,11 @@ namespace worlds {
 
                     ShadowPushConstants spc{
                         .mvp = mvp,
-                        .materialIdx = obj.materialIdx[i]
+                        .materialIdx = ctx.resources.materials.get(obj.materials[i])
                     };
                     vkCmdPushConstants(cmdBuf, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(spc), &spc);
 
-                    bool opaque = ctx.resources.materials[obj.materialIdx[i]].getCutoff() == 0.0f;
+                    bool opaque = ctx.resources.materials[spc.materialIdx].getCutoff() == 0.0f;
 
                     if (!opaque)
                         vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, alphaTestPipeline);

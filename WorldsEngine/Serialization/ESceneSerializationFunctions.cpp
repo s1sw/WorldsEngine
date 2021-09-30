@@ -177,7 +177,6 @@ namespace worlds {
                     if (isPresent) {
                         PHYSFS_readBytes(file, &mat, sizeof(mat));
                         wo.materials[j] = mat;
-                        wo.materialIdx[j] = ~0u;
                     }
                 }
 
@@ -311,7 +310,6 @@ namespace worlds {
                     if (isPresent) {
                         PHYSFS_readBytes(file, &mat, sizeof(mat));
                         wo.materials[j] = mat;
-                        wo.materialIdx[j] = ~0u;
                     }
                 }
 
@@ -461,7 +459,6 @@ namespace worlds {
                     if (isPresent) {
                         PHYSFS_readBytes(file, &mat, sizeof(mat));
                         wo.materials[j] = mat;
-                        wo.materialIdx[j] = ~0u;
                     }
                 }
 

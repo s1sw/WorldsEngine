@@ -143,7 +143,6 @@ namespace worlds {
             for (int i = 0; i < NUM_SUBMESH_MATS; i++) {
                 materials[i] = material;
                 presentMaterials[i] = false;
-                materialIdx[i] = ~0u;
             }
             presentMaterials[0] = true;
         }
@@ -154,7 +153,6 @@ namespace worlds {
         AssetID mesh;
         glm::vec4 texScaleOffset;
         UVOverride uvOverride;
-        uint32_t materialIdx[NUM_SUBMESH_MATS];
     };
 
     struct UseWireframe {};

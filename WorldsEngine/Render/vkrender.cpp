@@ -288,7 +288,6 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     , enableVR(initInfo.enableVR)
     , irp(nullptr)
     , vrPredictAmount(0.033f)
-    , clearMaterialIndices(false)
     , useVsync(true)
     , enablePicking(initInfo.enablePicking)
     , frameIdx(0)
@@ -985,7 +984,7 @@ void VKRenderer::uploadSceneAssets(entt::registry& reg) {
         for (int i = 0; i < NUM_SUBMESH_MATS; i++) {
             if (!wo.presentMaterials[i]) continue;
 
-            if (wo.materialIdx[i] == ~0u) {
+            if (!matSlots->isLoaded(wo.materials[i])) {
                 reuploadMats = true;
                 uploadMats.insert(wo.materials[i]);
             }
@@ -1020,8 +1019,8 @@ void VKRenderer::uploadSceneAssets(entt::registry& reg) {
         for (int i = 0; i < NUM_SUBMESH_MATS; i++) {
             if (!wo.presentMaterials[i]) continue;
 
-            if (wo.materialIdx[i] == ~0u) {
-                wo.materialIdx[i] = matSlots->loadOrGet(wo.materials[i]);
+            if (!matSlots->isLoaded(wo.materials[i])) {
+                matSlots->loadOrGet(wo.materials[i]);
             }
         }
         });
@@ -1156,13 +1155,6 @@ void VKRenderer::writeCmdBuf(VkCommandBuffer cmdBuf, uint32_t imageIndex, Camera
     vkCmdWriteTimestamp(cmdBuf, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, queryPool, frameIdx * 2);
 
     texSlots->setUploadCommandBuffer(cmdBuf, frameIdx);
-
-    if (clearMaterialIndices) {
-        reg.view<WorldObject>().each([](entt::entity, WorldObject& wo) {
-            memset(wo.materialIdx, ~0u, sizeof(wo.materialIdx));
-            });
-        clearMaterialIndices = false;
-    }
 
     uploadSceneAssets(reg);
 
@@ -1554,36 +1546,37 @@ void VKRenderer::unloadUnusedMaterials(entt::registry& reg) {
     reg.view<WorldObject>().each([&materialReferenced, &textureReferenced, this](entt::entity, WorldObject& wo) {
         for (int i = 0; i < NUM_SUBMESH_MATS; i++) {
             if (!wo.presentMaterials[i]) continue;
-            materialReferenced[wo.materialIdx[i]] = true;
+            uint32_t materialIndex = matSlots->get(wo.materials[i]);
+            materialReferenced[materialIndex] = true;
 
-            uint32_t albedoIdx = (uint32_t)((*matSlots)[wo.materialIdx[i]].albedoTexIdx);
+            uint32_t albedoIdx = (uint32_t)((*matSlots)[materialIndex].albedoTexIdx);
             textureReferenced[albedoIdx] = true;
 
-            uint32_t normalTex = (*matSlots)[wo.materialIdx[i]].normalTexIdx;
+            uint32_t normalTex = (*matSlots)[materialIndex].normalTexIdx;
 
             if (normalTex != ~0u) {
                 textureReferenced[normalTex] = true;
             }
 
-            uint32_t heightmapTex = (*matSlots)[wo.materialIdx[i]].heightmapTexIdx;
+            uint32_t heightmapTex = (*matSlots)[materialIndex].heightmapTexIdx;
 
             if (heightmapTex != ~0u) {
                 textureReferenced[heightmapTex] = true;
             }
 
-            uint32_t metalMapTex = (*matSlots)[wo.materialIdx[i]].metalTexIdx;
+            uint32_t metalMapTex = (*matSlots)[materialIndex].metalTexIdx;
 
             if (metalMapTex != ~0u) {
                 textureReferenced[metalMapTex] = true;
             }
 
-            uint32_t roughTexIdx = (*matSlots)[wo.materialIdx[i]].roughTexIdx;
+            uint32_t roughTexIdx = (*matSlots)[materialIndex].roughTexIdx;
 
             if (roughTexIdx != ~0u) {
                 textureReferenced[roughTexIdx] = true;
             }
 
-            uint32_t aoTexIdx = (*matSlots)[wo.materialIdx[i]].aoTexIdx;
+            uint32_t aoTexIdx = (*matSlots)[materialIndex].aoTexIdx;
 
             if (aoTexIdx != ~0u) {
                 textureReferenced[aoTexIdx] = true;
@@ -1640,7 +1633,6 @@ void VKRenderer::reloadContent(ReloadFlags flags) {
         }
     }
 
-    clearMaterialIndices = true;
     if (enumHasFlag(flags, ReloadFlags::Meshes)) {
         loadedMeshes.clear();
     }
