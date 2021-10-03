@@ -67,6 +67,7 @@ extern "C" {
 #include "AudioBindings.hpp"
 #include "AudioSourceBindings.hpp"
 #include "VRBindings.hpp"
+#include "WorldLightBindings.hpp"
 #include "ImGui/cimgui.h"
 
 namespace worlds {

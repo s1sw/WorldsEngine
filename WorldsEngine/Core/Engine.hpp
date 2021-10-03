@@ -80,6 +80,7 @@ namespace worlds {
 
         void processEvents();
         static int windowThread(void* data);
+        static int renderThread(void* data);
         void setupSDL();
         static SDL_Window* createSDLWindow();
         void setupPhysfs(char* argv0);

@@ -6,6 +6,12 @@
 #include <tracy/TracyVulkan.hpp>
 #include <robin_hood.h>
 
+struct ImDrawData;
+
+namespace std {
+    class mutex;
+}
+
 namespace worlds {
     class PolyRenderPass;
     class ImGuiRenderPass;
@@ -332,6 +338,8 @@ namespace worlds {
         void calculateCascadeMatrices(bool forVr, entt::registry& world, Camera& cam, RenderContext& rCtx);
         void writeCmdBuf(VkCommandBuffer cmdBuf, uint32_t imageIndex, Camera& cam, entt::registry& reg);
         void reuploadMaterials();
+        ImDrawData* imDrawData;
+        std::mutex* apiMutex;
 
         friend class VKRTTPass;
     public:
@@ -344,12 +352,14 @@ namespace worlds {
         void reloadContent(ReloadFlags flags) override;
         float getLastRenderTime() const override { return lastRenderTimeTicks * timestampPeriod; }
         void setVRPredictAmount(float amt) override { vrPredictAmount = amt; }
-        void setVsync(bool vsync) override { if (useVsync != vsync) { useVsync = vsync; recreateSwapchain(); } }
+        void setVsync(bool vsync) override;
         bool getVsync() const override { return useVsync; }
         VulkanHandles* getHandles() { return &handles; }
         const RenderDebugStats& getDebugStats() const override { return dbgStats; }
         void uploadSceneAssets(entt::registry& reg) override;
         RenderResources getResources();
+
+        void setImGuiDrawData(void* drawData) override;
 
         VKRTTPass* createRTTPass(RTTPassCreateInfo& ci) override;
         void destroyRTTPass(RTTPass* pass) override;

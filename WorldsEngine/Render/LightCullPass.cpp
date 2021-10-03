@@ -17,7 +17,11 @@ namespace worlds {
         , depthStencilImage{ depthStencilImage } {
     }
 
-    void LightCullPass::setup(RenderContext& ctx, VkBuffer lightBuffer, VkBuffer lightTileInfoBuffer, VkBuffer lightTilesBuffer, VkBuffer lightTileLightCountBuffer, VkDescriptorPool descriptorPool) {
+    void LightCullPass::setup(
+            RenderContext& ctx,
+            VkBuffer lightBuffer, VkBuffer lightTileInfoBuffer,
+            VkBuffer lightTilesBuffer, VkBuffer lightTileLightCountBuffer,
+            VkDescriptorPool descriptorPool) {
         vku::DescriptorSetLayoutMaker dslm;
         dslm.buffer(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 1);
         dslm.buffer(1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 1);
@@ -77,8 +81,10 @@ namespace worlds {
         auto& cmdBuf = ctx.cmdBuf;
         addDebugLabel(cmdBuf, "Light Culling", 1.0f, 0.0f, 0.0f, 1.0f);
 
-        VkImageLayout oldLayout = depthStencilImage->image.layout();
-        depthStencilImage->image.setLayout(cmdBuf, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_READ_BIT, VK_IMAGE_ASPECT_DEPTH_BIT);
+        depthStencilImage->image.setLayout(cmdBuf,
+            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+            VK_ACCESS_SHADER_READ_BIT, VK_IMAGE_ASPECT_DEPTH_BIT);
 
         vkCmdBindDescriptorSets(cmdBuf, VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
         vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline);
@@ -104,7 +110,11 @@ namespace worlds {
             vkCmdDispatch(cmdBuf, xTiles, yTiles, 1);
         }
 
-        depthStencilImage->image.setLayout(cmdBuf, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, VK_IMAGE_ASPECT_DEPTH_BIT);
+        depthStencilImage->image.setLayout(cmdBuf,
+            VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+            VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
+            VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+            VK_IMAGE_ASPECT_DEPTH_BIT);
 
         vkCmdEndDebugUtilsLabelEXT(cmdBuf);
     }

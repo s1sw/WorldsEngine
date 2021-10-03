@@ -336,7 +336,8 @@ namespace worlds {
         ImGuiRenderPass(VulkanHandles* handles, Swapchain& swapchain);
         void setup();
         void execute(VkCommandBuffer&,
-                uint32_t width, uint32_t height, VkFramebuffer& currFb);
+                uint32_t width, uint32_t height, VkFramebuffer& currFb,
+                ImDrawData* drawData);
         virtual ~ImGuiRenderPass();
     };
 }
