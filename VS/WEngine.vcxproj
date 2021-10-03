@@ -443,7 +443,6 @@
     <ClInclude Include="..\WorldsEngine\Render\vku\DebugCallback.hpp" />
     <ClInclude Include="..\WorldsEngine\Render\vku\DescriptorSetUtil.hpp" />
     <ClInclude Include="..\WorldsEngine\Render\vku\DeviceMaker.hpp" />
-    <ClInclude Include="..\WorldsEngine\Render\vku\Image.hpp" />
     <ClInclude Include="..\WorldsEngine\Render\vku\InstanceMaker.hpp" />
     <ClInclude Include="..\WorldsEngine\Render\vku\RenderpassMaker.hpp" />
     <ClInclude Include="..\WorldsEngine\Render\vku\vkcheck.hpp" />

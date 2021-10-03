@@ -86,7 +86,7 @@ namespace Game
                 dpa.Pose.Position,
                 Vector3.Down,
                 out RaycastHit hit,
-                1.15f,
+                1.1f,
                 PhysicsLayers.Player
             );
 

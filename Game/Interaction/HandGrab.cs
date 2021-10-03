@@ -205,16 +205,11 @@ namespace Game.Interaction
                 .OrderByDescending((Grip g) => g.CalculateGripScore(grabbingTransform, handTransform))
                 .FirstOrDefault();
 
-            foreach ((Grip gripFromListAndStuffJustPleaseStopGivingMeErrors, float f) in filteredGrips.Select((Grip g) => (g, g.CalculateGripScore(grabbingTransform, handTransform))))
-            {
-                Logger.Log($"{gripFromListAndStuffJustPleaseStopGivingMeErrors.position}, {f}");
-            }
-
             if (g == null)
             {
                 Registry.RemoveComponent<D6Joint>(Entity);
                 return;
-            }
+            }   
 
             if (g.rotation.LengthSquared < 0.9f)
                 g.rotation = Quaternion.Identity;
@@ -223,6 +218,16 @@ namespace Game.Interaction
             d6.TargetLocalPose = attachTransform;
 
             d6.Target = grab;
+
+            // If the target is already in contact with the hand, it may continue to collide
+            // even though we've added a D6 joint that ignores collisions.
+            // We can work around this by toggling the Kinematic property of one of the bodies.
+            var handBody = Registry.GetComponent<DynamicPhysicsActor>(Entity);
+
+            Vector3 oldVelocity = handBody.Velocity;
+            handBody.Kinematic = true;
+            handBody.Kinematic = false;
+            handBody.Velocity = oldVelocity;
 
             g.Attach(IsRightHand ? AttachedHandFlags.Right : AttachedHandFlags.Left);
             CurrentGrip = g;

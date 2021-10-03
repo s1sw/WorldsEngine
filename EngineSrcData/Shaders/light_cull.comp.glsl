@@ -334,7 +334,7 @@ void main() {
         uint boxIdx = gl_LocalInvocationIndex;
         AOBox box = buf_Lights.aoBox[boxIdx];
 
-        vec3 scale = getBoxScale(box) + 1.0;
+        vec3 scale = getBoxScale(box) * 4.0;
         mat4 transform = getBoxTransform(box);
 
         bool inFrustum = frustumContainsOBB(scale, transform);

@@ -86,8 +86,7 @@ namespace vku {
     }
 
     void setObjectName(VkDevice device, uint64_t objectHandle, VkObjectType objectType, const char* name) {
-        VkDebugUtilsObjectNameInfoEXT nameInfo;
-        nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+        VkDebugUtilsObjectNameInfoEXT nameInfo{ VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT };
         nameInfo.pObjectName = name;
         nameInfo.objectHandle = objectHandle;
         nameInfo.objectType = objectType;
@@ -96,8 +95,7 @@ namespace vku {
     }
 
     void executeImmediately(VkDevice device, VkCommandPool commandPool, VkQueue queue, const std::function<void(VkCommandBuffer cb)>& func) {
-        VkCommandBufferAllocateInfo cbai{}; // { commandPool, VkCommandBufferLevel::ePrimary, 1 };
-        cbai.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+        VkCommandBufferAllocateInfo cbai{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO };
         cbai.commandBufferCount = 1;
         cbai.commandPool = commandPool;
         cbai.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
@@ -105,14 +103,7 @@ namespace vku {
         VkCommandBuffer cb;
         VKCHECK(vkAllocateCommandBuffers(device, &cbai, &cb));
 
-        VkDebugUtilsObjectNameInfoEXT nameInfo;
-        nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
-        nameInfo.pObjectName = "Immediate Command Buffer";
-        nameInfo.objectHandle = (uint64_t)cb;
-        nameInfo.objectType = VK_OBJECT_TYPE_COMMAND_BUFFER;
-        nameInfo.pNext = nullptr;
-        auto setObjName = (PFN_vkSetDebugUtilsObjectNameEXT)vkGetDeviceProcAddr(device, "vkSetDebugUtilsObjectNameEXT");
-        setObjName(device, &nameInfo);
+        setObjectName(device, (uint64_t)cb, VK_OBJECT_TYPE_COMMAND_BUFFER, "Immediate Command Buffer");
 
         VkCommandBufferBeginInfo cbbi{};
         cbbi.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;

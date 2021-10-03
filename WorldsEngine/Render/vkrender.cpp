@@ -817,6 +817,7 @@ VkSurfaceCapabilitiesKHR getSurfaceCaps(VkPhysicalDevice pd, VkSurfaceKHR surf) 
 }
 
 void VKRenderer::recreateSwapchain() {
+    std::unique_lock<std::mutex> lg{ *apiMutex };
     // Wait for current frame to finish
     vkDeviceWaitIdle(device);
 
@@ -1369,7 +1370,9 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
                 logVrb(WELogCategoryRender, "Swapchain out of date");
             else
                 logVrb(WELogCategoryRender, "Swapchain suboptimal");
+            lock.unlock();
             recreateSwapchain();
+            lock.lock();
 
             // acquire image from new swapchain
             swapchain->acquireImage(device, imgAvailable[frameIdx], &imageIndex);
@@ -1642,7 +1645,6 @@ void VKRenderer::reloadContent(ReloadFlags flags) {
 }
 
 void VKRenderer::setVsync(bool vsync) {
-    std::unique_lock<std::mutex> lg {*apiMutex};
     if (useVsync != vsync) {
         useVsync = vsync;
         recreateSwapchain();

@@ -284,12 +284,6 @@ namespace worlds {
         return false;
     }
 
-    template <typename T>
-    void copyComponent(entt::entity oldEnt, entt::entity newEnt, entt::registry& reg) {
-        if (reg.has<T>(oldEnt))
-            reg.emplace<T>(newEnt, reg.get<T>(oldEnt));
-    }
-
     ImGuizmo::OPERATION toolToOp(Tool t) {
         switch (t) {
         default:
@@ -355,10 +349,15 @@ namespace worlds {
         glm::mat4 tfMtx = t.getMatrix();
         glm::vec3 snap{ 0.0f };
 
+        static glm::vec3 boundsScale {1.0f};
+
         if (inputManager.keyHeld(SDL_SCANCODE_LCTRL, true)) {
             switch (currentTool) {
             case Tool::Rotate:
                 snap = glm::vec3{ settings.angularSnapIncrement };
+                break;
+            case Tool::Bounds:
+                snap = boundsScale;//glm::vec3{ settings.snapIncrement } / t.scale;
                 break;
             default:
                 snap = glm::vec3{ settings.snapIncrement };
@@ -385,6 +384,7 @@ namespace worlds {
         static bool usingLast = false;
         if (!usingLast && ImGuizmo::IsUsing()) {
             undo.pushState(reg);
+            boundsScale = glm::vec3{ settings.snapIncrement } / t.scale;
         }
 
         usingLast = ImGuizmo::IsUsing();

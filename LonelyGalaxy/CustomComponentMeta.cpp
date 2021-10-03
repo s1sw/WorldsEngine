@@ -194,6 +194,11 @@ namespace lg {
             auto& rpgStats = reg.get<RPGStats>(ent);
 
             if (ImGui::CollapsingHeader(" RPG Stats")) {
+                if (ImGui::Button("Remove##RPGStats")) {
+                    reg.remove<RPGStats>(ent);
+                    return;
+                }
+
                 ImGui::DragScalar("maxHP", ImGuiDataType_Double, &rpgStats.maxHP, 1.0f);
                 ImGui::DragScalar("currentHP", ImGuiDataType_Double, &rpgStats.currentHP, 1.0f);
                 ImGui::DragScalar("level", ImGuiDataType_U64, &rpgStats.level, 1.0f);
