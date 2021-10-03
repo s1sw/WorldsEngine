@@ -175,6 +175,8 @@ namespace worlds {
         virtual const RenderDebugStats& getDebugStats() const = 0;
         virtual void uploadSceneAssets(entt::registry& reg) = 0;
 
+        virtual void setImGuiDrawData(void* drawData) = 0;
+
         virtual RTTPass* createRTTPass(RTTPassCreateInfo& ci) = 0;
         virtual void destroyRTTPass(RTTPass* pass) = 0;
 

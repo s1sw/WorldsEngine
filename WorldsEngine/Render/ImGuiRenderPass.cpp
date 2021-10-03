@@ -1,6 +1,7 @@
 #include "RenderPasses.hpp"
 #include "../Core/Engine.hpp"
 #include "../ImGui/imgui_impl_vulkan.h"
+#include <ImGui/imgui_internal.h>
 #include "Render.hpp"
 #include "vku/RenderpassMaker.hpp"
 
@@ -54,9 +55,7 @@ namespace worlds {
 
     void ImGuiRenderPass::execute(VkCommandBuffer& cmdBuf,
             uint32_t width, uint32_t height,
-            VkFramebuffer& currFramebuffer) {
-        ImGui::Render();
-
+            VkFramebuffer& currFramebuffer, ImDrawData* drawData) {
         VkDebugUtilsLabelEXT label{ VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT };
         label.pLabelName = "Dear ImGui Pass";
         label.color[0] = 0.082f;
@@ -74,7 +73,7 @@ namespace worlds {
         rpbi.clearValueCount = 1;
         rpbi.pClearValues = &clearVal;
         vkCmdBeginRenderPass(cmdBuf, &rpbi, VK_SUBPASS_CONTENTS_INLINE);
-        ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), (VkCommandBuffer)cmdBuf);
+        ImGui_ImplVulkan_RenderDrawData(drawData, (VkCommandBuffer)cmdBuf);
         vkCmdEndRenderPass(cmdBuf);
         vkCmdEndDebugUtilsLabelEXT(cmdBuf);
     }

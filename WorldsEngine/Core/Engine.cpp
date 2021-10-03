@@ -259,6 +259,38 @@ namespace worlds {
     ConVar simStepTime{ "sim_stepTime", "0.01" };
 
     entt::registry renderRegistry;
+    ImDrawData renderThreadDrawData;
+    Camera renderThreadCamera;
+    std::mutex rendererLock;
+    std::condition_variable renderThreadCV;
+    bool renderThreadWorkReady = false;
+    bool renderThreadAvailable = true;
+
+    int WorldsEngine::renderThread(void* data) {
+        WorldsEngine* _this = (WorldsEngine*)data;
+
+        while (_this->running) {
+            std::unique_lock<std::mutex> lg {rendererLock};
+            renderThreadCV.wait(lg, [] {return renderThreadWorkReady;});
+            renderThreadWorkReady = false;
+            renderThreadAvailable = false;
+
+            if (!_this->running) break;
+
+            _this->renderer->setImGuiDrawData(&renderThreadDrawData);
+            _this->renderer->frame(renderThreadCamera, renderRegistry);
+
+            for (int i = 0; i < renderThreadDrawData.CmdListsCount; i++) {
+                delete renderThreadDrawData.CmdLists[i];
+            }
+
+            renderThreadAvailable = true;
+            lg.unlock();
+            renderThreadCV.notify_one();
+        }
+
+        return 0;
+    }
 
     template <typename T>
     void cloneComponent(entt::registry& src, entt::registry& dst) {
@@ -397,6 +429,8 @@ namespace worlds {
 
             bool renderInitSuccess = false;
             renderer = std::make_unique<VKRenderer>(initInfo, &renderInitSuccess);
+
+            SDL_DetachThread(SDL_CreateThread(renderThread, "Render Thread", this));
 
             if (!renderInitSuccess) {
                 fatalErr("Failed to initialise renderer");
@@ -869,6 +903,9 @@ namespace worlds {
 
 
             if (!dedicatedServer) {
+                std::unique_lock<std::mutex> lg(rendererLock);
+                renderThreadCV.wait(lg, []{return renderThreadAvailable;});
+
                 renderRegistry.clear();
                 renderRegistry.assign(registry.data(), registry.data() + registry.size(), registry.destroyed());
                 cloneComponent<Transform>(registry, renderRegistry);
@@ -884,10 +921,20 @@ namespace worlds {
                 renderRegistry.sort<WorldObject, decltype(sortLambda)>(sortLambda);
                 renderRegistry.set<SceneSettings>(registry.ctx<SceneSettings>());
 
-                renderer->frame(cam, renderRegistry);
+                ImGui::Render();
 
-                ImGui::UpdatePlatformWindows();
-                ImGui::RenderPlatformWindowsDefault();
+                renderThreadDrawData = *ImGui::GetDrawData();
+                for (int i = 0; i < renderThreadDrawData.CmdListsCount; i++) {
+                    ImDrawList* original = renderThreadDrawData.CmdLists[i];
+                    renderThreadDrawData.CmdLists[i] = original->CloneOutput();
+                }
+
+                renderThreadCamera = cam;
+
+                renderThreadWorkReady = true;
+
+                lg.unlock();
+                renderThreadCV.notify_one();
             }
 
             g_jobSys->completeFrameJobs();
@@ -906,6 +953,9 @@ namespace worlds {
                 sceneLoadQueued = false;
                 PHYSFS_File* file = AssetDB::openAssetFileRead(queuedSceneID);
                 SceneLoader::loadScene(file, registry);
+
+                std::unique_lock<std::mutex> lg{rendererLock};
+                renderThreadCV.wait(lg, []{ return renderThreadAvailable; });
 
                 if (renderer) {
                     renderer->uploadSceneAssets(registry);

@@ -144,45 +144,6 @@ bool aabbContainsPoint(vec3 point) {
         point.z >= mi.z && point.z <= ma.z;
 }
 
-bool aabbContainsOBB(vec3 boxSize, mat4 transform) {
-    vec3 v0 = (transform * vec4(vec3(-1.0,-1.0,-1.0) * boxSize, 1.0)).xyz;
-    vec3 v1 = (transform * vec4(vec3( 1.0,-1.0,-1.0) * boxSize, 1.0)).xyz;
-    vec3 v2 = (transform * vec4(vec3(-1.0, 1.0,-1.0) * boxSize, 1.0)).xyz;
-    vec3 v3 = (transform * vec4(vec3( 1.0, 1.0,-1.0) * boxSize, 1.0)).xyz;
-    vec3 v4 = (transform * vec4(vec3(-1.0,-1.0, 1.0) * boxSize, 1.0)).xyz;
-    vec3 v5 = (transform * vec4(vec3( 1.0,-1.0, 1.0) * boxSize, 1.0)).xyz;
-    vec3 v6 = (transform * vec4(vec3(-1.0, 1.0, 1.0) * boxSize, 1.0)).xyz;
-    vec3 v7 = (transform * vec4(vec3( 1.0, 1.0, 1.0) * boxSize, 1.0)).xyz;
-
-    vec3 c = (transform * vec4(vec3(0.0, 0.0, 0.0) * boxSize, 1.0)).xyz;
-
-    return aabbContainsPoint(v0) ||
-    aabbContainsPoint(v1) ||
-    aabbContainsPoint(v2) ||
-    aabbContainsPoint(v3) ||
-    aabbContainsPoint(v4) ||
-    aabbContainsPoint(v5) ||
-    aabbContainsPoint(v6) ||
-    aabbContainsPoint(v7) ||
-    aabbContainsPoint(c);
-
-}
-
-mat4 getBoxTransfomReal(AOBox box) {
-    mat4 rot = mat4(getBoxRotationMat(box));
-    rot[3][3] = 1.0;
-    vec3 translation = getBoxTranslation(box);
-
-    mat4 translationMatrix = mat4(
-            1.0, 0.0, 0.0, 0.0,
-            0.0, 1.0, 0.0, 0.0,
-            0.0, 0.0, 1.0, 0.0,
-            translation.x, translation.y, translation.z, 1.0
-            );
-
-    return inverse(translationMatrix * rot);
-}
-
 void main() {
     // Quick initialisation of group shared data
     if (gl_LocalInvocationIndex.x == 0) {
@@ -199,7 +160,6 @@ void main() {
     buf_LightTiles.tiles[tileIndex].lightIdMasks[gl_LocalInvocationIndex % 8] = 0u;
     buf_LightTiles.tiles[tileIndex].aoSphereIdMasks[gl_LocalInvocationIndex % 2] = 0u;
     buf_LightTiles.tiles[tileIndex].aoBoxIdMasks[gl_LocalInvocationIndex % 2] = 0u;
-    //if (buf_Lights.pack0.x == 0) return;
 
     // Stage 1: Determine the depth bounds of the tile using atomics.
     // THIS ONLY WORKS FOR 16x16 TILES.
@@ -375,7 +335,7 @@ void main() {
         AOBox box = buf_Lights.aoBox[boxIdx];
 
         vec3 scale = getBoxScale(box) + 1.0;
-        mat4 transform = getBoxTransfomReal(box);
+        mat4 transform = getBoxTransform(box);
 
         bool inFrustum = frustumContainsOBB(scale, transform);
 

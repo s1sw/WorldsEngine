@@ -307,6 +307,8 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     }
 #endif
 
+    apiMutex = new std::mutex;
+
     if (volkInitialize() != VK_SUCCESS) {
         fatalErr("Couldn't find Vulkan.");
     }
@@ -1283,7 +1285,7 @@ void VKRenderer::writeCmdBuf(VkCommandBuffer cmdBuf, uint32_t imageIndex, Camera
         VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
         VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_READ_BIT);
 
-    irp->execute(cmdBuf, width, height, framebuffers[imageIndex]);
+    irp->execute(cmdBuf, width, height, framebuffers[imageIndex], imDrawData);
 
     ::imageBarrier(cmdBuf, swapchain->images[imageIndex], VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
         VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_READ_BIT, VK_ACCESS_MEMORY_READ_BIT,
@@ -1312,6 +1314,7 @@ ConVar showSlotDebug{ "r_debugSlots", "0", "Shows a window for debugging resourc
 
 void VKRenderer::frame(Camera& cam, entt::registry& reg) {
     ZoneScoped;
+    std::unique_lock<std::mutex> lock{*apiMutex};
 
     if (vrApi == VrApi::OpenVR) {
         ZoneScopedN("WaitGetPoses");
@@ -1638,6 +1641,14 @@ void VKRenderer::reloadContent(ReloadFlags flags) {
     }
 }
 
+void VKRenderer::setVsync(bool vsync) {
+    std::unique_lock<std::mutex> lg {*apiMutex};
+    if (useVsync != vsync) {
+        useVsync = vsync;
+        recreateSwapchain();
+    }
+}
+
 RenderResources VKRenderer::getResources() {
     return RenderResources{
         *texSlots,
@@ -1650,6 +1661,10 @@ RenderResources VKRenderer::getResources() {
         shadowmapImage,
         shadowImages
     };
+}
+
+void VKRenderer::setImGuiDrawData(void* drawData) {
+    imDrawData = (ImDrawData*)drawData;
 }
 
 VKRTTPass* VKRenderer::createRTTPass(RTTPassCreateInfo& ci) {
