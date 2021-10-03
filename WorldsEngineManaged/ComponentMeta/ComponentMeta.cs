@@ -186,7 +186,7 @@ namespace WorldsEngine.ComponentMeta
                     fieldInfo.SetValue(instance, str);
                 }
 
-                if (ImGui.InputText(fieldName, ref str, 256))
+                if (ImGui.InputText(fieldName, ref str, (uint)(str.Length + 10)))
                 {
                     fieldInfo.SetValue(instance, str);
                 }
