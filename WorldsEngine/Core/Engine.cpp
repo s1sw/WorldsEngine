@@ -295,7 +295,12 @@ namespace worlds {
     template <typename T>
     void cloneComponent(entt::registry& src, entt::registry& dst) {
         auto view = src.view<T>();
-        dst.insert<T>(view.data(), view.data() + view.size(), view.raw(), view.raw() + view.size());
+
+        if constexpr (std::is_empty<T>::value) {
+            dst.insert<T>(view.data(), view.data() + view.size());
+        } else {
+            dst.insert<T>(view.data(), view.data() + view.size(), view.raw(), view.raw() + view.size());
+        }
     }
 
     WorldsEngine::WorldsEngine(EngineInitOptions initOptions, char* argv0)
@@ -912,6 +917,9 @@ namespace worlds {
                 cloneComponent<WorldObject>(registry, renderRegistry);
                 cloneComponent<WorldLight>(registry, renderRegistry);
                 cloneComponent<WorldCubemap>(registry, renderRegistry);
+                cloneComponent<UseWireframe>(registry, renderRegistry);
+                cloneComponent<ProxyAOComponent>(registry, renderRegistry);
+                cloneComponent<SphereAOProxy>(registry, renderRegistry);
 
                 auto sortLambda = [&](entt::entity a, entt::entity b) {
                     auto& aTransform = registry.get<Transform>(a);

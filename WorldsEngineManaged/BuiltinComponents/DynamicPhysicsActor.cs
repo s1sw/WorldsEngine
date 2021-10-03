@@ -76,6 +76,13 @@ namespace WorldsEngine
         [DllImport(WorldsEngine.NativeModule)]
         private static extern float dynamicpa_getMaxLinearVelocity(IntPtr reg, uint entity);
 
+        [DllImport(WorldsEngine.NativeModule)]
+        [return: MarshalAs(UnmanagedType.I1)]
+        private static extern bool dynamicpa_getKinematic(IntPtr reg, uint entity);
+
+        [DllImport(WorldsEngine.NativeModule)]
+        private static extern void dynamicpa_setKinematic(IntPtr reg, uint entity, [MarshalAs(UnmanagedType.I1)] bool kinematic);
+
         internal static ComponentMetadata Metadata
         {
             get
@@ -120,7 +127,7 @@ namespace WorldsEngine
 
                 return velocity;
             }
-            
+
             set => dynamicpa_setLinearVelocity(regPtr, entityId, value);
         }
 
@@ -174,6 +181,12 @@ namespace WorldsEngine
         {
             get => dynamicpa_getMaxLinearVelocity(regPtr, entityId);
             set => dynamicpa_setMaxLinearVelocity(regPtr, entityId, value);
+        }
+
+        public bool Kinematic
+        {
+            get => dynamicpa_getKinematic(regPtr, entityId);
+            set => dynamicpa_setKinematic(regPtr, entityId, value);
         }
 
         internal DynamicPhysicsActor(IntPtr regPtr, uint entityId) : base(regPtr, entityId)

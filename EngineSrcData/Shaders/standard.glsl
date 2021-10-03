@@ -271,16 +271,16 @@ float calcProxyAO(vec3 wPos, vec3 normal) {
 
     for (int i = 0; i < 2; i++) {
         uint boxBits = buf_LightTiles.tiles[tileIdx].aoBoxIdMasks[i];
-
+    
         while (boxBits != 0) {
             // find the next set sphere bit
             uint boxBitIndex = findLSB(boxBits);
-
+    
             // remove it from the mask with an XOR
             boxBits ^= 1 << boxBitIndex;
-
+    
             uint realIndex = boxBitIndex + (32 * i);
-
+    
             if (floatBitsToUint(aoBox[realIndex].pack3.w) != objectId) {
                 proxyAO *= (1.0 - getBoxOcclusionNonClipped(aoBox[realIndex], inWorldPos.xyz, normal));
             }

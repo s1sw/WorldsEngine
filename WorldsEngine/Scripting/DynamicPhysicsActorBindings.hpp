@@ -115,4 +115,12 @@ extern "C" {
     EXPORT float dynamicpa_getMaxLinearVelocity(entt::registry* reg, entt::entity entity) {
         return reg->get<DynamicPhysicsActor>(entity).maxLinearVelocity();
     }
+
+    EXPORT bool dynamicpa_getKinematic(entt::registry* reg, entt::entity entity) {
+        return (reg->get<DynamicPhysicsActor>(entity).actor->getRigidBodyFlags() & physx::PxRigidBodyFlag::eKINEMATIC) == physx::PxRigidBodyFlag::eKINEMATIC;
+    }
+
+    EXPORT void dynamicpa_setKinematic(entt::registry* reg, entt::entity entity, bool kinematic) {
+        reg->get<DynamicPhysicsActor>(entity).actor->setRigidBodyFlag(physx::PxRigidBodyFlag::eKINEMATIC, kinematic);
+    }
 }

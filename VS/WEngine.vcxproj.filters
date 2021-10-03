@@ -1439,9 +1439,6 @@
     <ClInclude Include="..\WorldsEngine\Render\vku\DeviceMaker.hpp">
       <Filter>Render\vku</Filter>
     </ClInclude>
-    <ClInclude Include="..\WorldsEngine\Render\vku\Image.hpp">
-      <Filter>Render\vku</Filter>
-    </ClInclude>
     <ClInclude Include="..\WorldsEngine\Render\vku\InstanceMaker.hpp">
       <Filter>Render\vku</Filter>
     </ClInclude>

@@ -17,10 +17,7 @@ namespace vku {
         allocInfo.flags = VMA_ALLOCATION_CREATE_USER_DATA_COPY_STRING_BIT;
         allocInfo.pUserData = (void*)debugName;
 
-        VkResult bufferCreateResult = vmaCreateBuffer(allocator, &ci, &allocInfo, &buffer_, &allocation, nullptr);
-        if (bufferCreateResult != VK_SUCCESS) {
-            fatalErr("error while creating buffer");
-        }
+        VKCHECK(vmaCreateBuffer(allocator, &ci, &allocInfo, &buffer_, &allocation, nullptr));
 
         if (debugName) {
             VkDebugUtilsObjectNameInfoEXT nameInfo;

@@ -126,7 +126,7 @@ namespace WorldsEngine
             var serializerOptions = new JsonSerializerOptions()
             {
                 IncludeFields = true,
-                IgnoreReadOnlyProperties = true
+                IgnoreReadOnlyProperties = true 
             };
 
             string idStr = Marshal.PtrToStringAnsi(idPtr)!;

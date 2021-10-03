@@ -16,8 +16,8 @@ namespace Game.Combat
     [Component]
     public class HealthComponent : IStartListener
     {
-        public Action<Entity> OnDeath;
-        public Action<Entity, double> OnDamage;
+        public event Action<Entity> OnDeath;
+        public event Action<Entity, double> OnDamage;
 
         public double Health = 1.0;
         public double MaxHealth = 1.0;

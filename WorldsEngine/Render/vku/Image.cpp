@@ -287,13 +287,8 @@ namespace vku {
         vaci.pUserData = (char*)debugName;
         vaci.flags = VMA_ALLOCATION_CREATE_USER_DATA_COPY_STRING_BIT;
         VmaAllocationInfo vci;
-        VkResult allocResult =
-            vmaAllocateMemoryForImage(allocator, s.image, &vaci, &s.allocation, &vci);
 
-        if (allocResult != VK_SUCCESS) {
-            fatalErr("Vulkan memory allocation failed");
-        }
-
+        VKCHECK(vmaAllocateMemoryForImage(allocator, s.image, &vaci, &s.allocation, &vci));
         VKCHECK(vkBindImageMemory(device, s.image, vci.deviceMemory, vci.offset));
 
         const VkImageUsageFlags viewFlags =

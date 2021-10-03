@@ -89,11 +89,12 @@ namespace Game.Interaction
             {
                 Vector3 position = objTransform.InverseTransformPoint(GetAttachPointForBoxGrip(handTransform.Position, objTransform));
                 Vector3 normal = GetNormalForBoxGrip(handTransform.Position, objTransform);
+                Logger.Log($"Normal {normal}");
 
                 // Get the hand's rotation around the normal axis and apply that to make the grip smoother
-                //Quaternion handRotAroundNormal = objTransform.Rotation.Inverse * DecomposeTwist(handTransform.Rotation, normal);
+                Quaternion handRotAroundNormal = DecomposeTwist(handTransform.Rotation, normal);
 
-                Quaternion rotation = Quaternion.FromTo(Vector3.Right, objTransform.Rotation.Inverse * normal);
+                Quaternion rotation = Quaternion.FromTo(Vector3.Right, objTransform.Rotation.Inverse * normal) * handRotAroundNormal;
 
                 return new Transform(position, rotation);
             }
