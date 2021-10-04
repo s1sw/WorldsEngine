@@ -102,6 +102,11 @@ namespace worlds {
         glm::vec3 aabbMax;
     };
 
+    struct SkinnedMeshInstance {
+        AssetID baseMesh;
+        vku::VertexBuffer vb;
+    };
+
     class Swapchain {
     public:
         Swapchain(VkPhysicalDevice&, VkDevice, VkSurfaceKHR&, QueueFamilyIndices qfi, bool fullscreen, VkSwapchainKHR oldSwapchain = VkSwapchainKHR(), VkPresentModeKHR presentMode = VK_PRESENT_MODE_FIFO_KHR);

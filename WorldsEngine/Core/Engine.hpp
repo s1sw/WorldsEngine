@@ -156,6 +156,20 @@ namespace worlds {
         UVOverride uvOverride;
     };
 
+    struct Bone {
+        glm::mat4 restPose;
+        uint32_t id;
+    };
+
+    class Skeleton {
+    public:
+        std::vector<Bone> bones;
+    };
+
+    struct SkinnedWorldObject : public WorldObject {
+        Skeleton* skeleton;
+    };
+
     struct UseWireframe {};
 
     enum class LightType {
