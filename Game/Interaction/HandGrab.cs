@@ -251,7 +251,6 @@ namespace Game.Interaction
                 gripInObjectSpace = CurrentGrip.GetAttachTransform(handDpa.Pose, grabbedDpa.Pose, IsRightHand);
 
                 var gripInWorldSpace = gripInObjectSpace.TransformBy(grabbedDpa.Pose);
-                Logger.Log($"world space pos: {gripInWorldSpace.Position}");
                 physHand.OverrideTarget = gripInWorldSpace;
 
                 float distance = handDpa.Pose.Position.DistanceTo(gripInWorldSpace.Position);
