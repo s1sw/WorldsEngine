@@ -523,9 +523,10 @@ namespace worlds {
             ImGui::OpenPopup("Collider JSON");
         }
 
-        openFileModal("Collider JSON", [&](const char* p) {
+        const char* extension = ".json";
+        openFileModalOffset("Collider JSON", [&](const char* p) {
             actor.physicsShapes = loadColliderJson(p);
-            }, ".json");
+            }, "SourceData/", &extension, 1, "ColliderJsons");
 
         ImGui::Text("Shapes: %zu", actor.physicsShapes.size());
 
