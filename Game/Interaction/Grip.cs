@@ -60,7 +60,9 @@ namespace Game.Interaction
 
             if (Type == GripType.Box)
             {
-                linearScore = hand.Position.DistanceTo(GetAttachPointForBoxGrip(hand.Position, obj));
+                Transform handInLocalSpace = hand.TransformByInverse(obj);
+
+                linearScore = hand.Position.DistanceTo(GetAttachPointForBoxGrip(handInLocalSpace.Position));
             }
 
             float angularScore = Quaternion.Dot(hand.Rotation.SingleCover, (obj.Rotation * rotation).SingleCover);
@@ -83,18 +85,18 @@ namespace Game.Interaction
             return twist;
         }
 
-        public Transform GetAttachTransform(Transform handTransform, Transform objTransform)
+        public Transform GetAttachTransform(Transform handTransform, Transform objTransform, bool isRightHand)
         {
+            Transform handInLocalSpace = handTransform.TransformByInverse(objTransform);
             if (Type == GripType.Box)
             {
-                Vector3 position = objTransform.InverseTransformPoint(GetAttachPointForBoxGrip(handTransform.Position, objTransform));
-                Vector3 normal = GetNormalForBoxGrip(handTransform.Position, objTransform);
-                Logger.Log($"Normal {normal}");
+                Vector3 position = GetAttachPointForBoxGrip(handInLocalSpace.Position);
+                Vector3 normal = GetNormalForBoxGrip(handInLocalSpace.Position);
 
                 // Get the hand's rotation around the normal axis and apply that to make the grip smoother
-                Quaternion handRotAroundNormal = DecomposeTwist(handTransform.Rotation, normal);
+                Quaternion handRotAroundNormal = DecomposeTwist(handInLocalSpace.Rotation, normal);
 
-                Quaternion rotation = Quaternion.FromTo(Vector3.Right, objTransform.Rotation.Inverse * normal) * handRotAroundNormal;
+                Quaternion rotation = handRotAroundNormal * Quaternion.FromTo(isRightHand ? Vector3.Right : Vector3.Left, normal);
 
                 return new Transform(position, rotation);
             }
@@ -102,18 +104,17 @@ namespace Game.Interaction
             return new Transform(position, rotation);
         }
 
-        private Vector3 GetAttachPointForBoxGrip(Vector3 p, Transform objTransform)
+        // Get the attach point in local space.
+        private Vector3 GetAttachPointForBoxGrip(Vector3 p)
         {
-            Vector3 d = p - (objTransform.TransformPoint(position));
+            Vector3 d = p - position;
 
             // Start result at center of box; make steps from there
-            Vector3 q = objTransform.TransformPoint(position);
+            Vector3 q = position;
 
-            Quaternion objectRotation = objTransform.Rotation;
-
-            Vector3 xAxis = rotation * objectRotation * Vector3.Left;
-            Vector3 yAxis = rotation * objectRotation * Vector3.Up;
-            Vector3 zAxis = rotation * objectRotation * Vector3.Forward;
+            Vector3 xAxis = rotation * Vector3.Left;
+            Vector3 yAxis = rotation * Vector3.Up;
+            Vector3 zAxis = rotation * Vector3.Forward;
 
             float xDist = Vector3.Dot(xAxis, d);
             xDist = MathFX.Clamp(xDist, -BoxExtents.x, BoxExtents.x);
@@ -127,15 +128,13 @@ namespace Game.Interaction
             return q + (xAxis * xDist) + (yAxis * yDist) + (zAxis * zDist);
         }
 
-        private Vector3 GetNormalForBoxGrip(Vector3 p, Transform objTransform)
+        private Vector3 GetNormalForBoxGrip(Vector3 p)
         {
-            Vector3 d = p - (objTransform.TransformPoint(position));
+            Vector3 d = p - position;
 
-            Quaternion objectRotation = objTransform.Rotation;
-
-            Vector3 xAxis = rotation * objectRotation * Vector3.Left;
-            Vector3 yAxis = rotation * objectRotation * Vector3.Up;
-            Vector3 zAxis = rotation * objectRotation * Vector3.Forward;
+            Vector3 xAxis = rotation * Vector3.Left;
+            Vector3 yAxis = rotation * Vector3.Up;
+            Vector3 zAxis = rotation * Vector3.Forward;
 
             float xDist = Vector3.Dot(xAxis, d);
             xDist = MathFX.Clamp(xDist, -BoxExtents.x, BoxExtents.x);
