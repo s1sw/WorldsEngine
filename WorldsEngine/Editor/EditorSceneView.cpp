@@ -29,7 +29,7 @@ namespace worlds {
             ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
 
         ImGui::SetNextWindowSizeConstraints(ImVec2(256.0f, 256.0f), ImVec2(FLT_MAX, FLT_MAX));
-        std::string windowTitle = std::string((char*)ICON_FA_MAP) + " Scene";//##" + std::to_string(uniqueId);
+        std::string windowTitle = std::string((char*)ICON_FA_MAP) + " Scene##" + std::to_string(uniqueId);
         if (ImGui::Begin(windowTitle.c_str(), &open)) {
             sceneViewPass->active = viewportActive;
             ImVec2 contentRegion = ImGui::GetContentRegionAvail();
@@ -47,7 +47,6 @@ namespace worlds {
 
             ImGui::SetCursorPos(ImGui::GetCursorStartPos());
 
-            static float animationProgress = 0.0f;
             const float ANIM_DURATION = 0.1f;
             const float ANIM_SPEED = 1.0f / ANIM_DURATION;
 
@@ -61,19 +60,19 @@ namespace worlds {
                 mousePos.x < ImGui::GetCursorScreenPos().x + wSize.x;
 
             if (mouseOverToggleArea && (ImGui::GetMousePos() - ImGui::GetCursorScreenPos()).y < 60.0f) {
-                animationProgress += ImGui::GetIO().DeltaTime * ANIM_SPEED;
+                drawerAnimationProgress += ImGui::GetIO().DeltaTime * ANIM_SPEED;
             } else if (GImGui->HoveredWindow && (GImGui->HoveredWindow->Flags & ImGuiWindowFlags_Popup) == 0) {
-                animationProgress -= ImGui::GetIO().DeltaTime * ANIM_SPEED;
+                drawerAnimationProgress -= ImGui::GetIO().DeltaTime * ANIM_SPEED;
             }
 
-            animationProgress = glm::clamp(animationProgress, 0.0f, 1.0f);
+            drawerAnimationProgress = glm::clamp(drawerAnimationProgress, 0.0f, 1.0f);
 
-            if (animationProgress > 0.0f) {
+            if (drawerAnimationProgress > 0.0f) {
                 ImDrawList* drawList = ImGui::GetWindowDrawList();
                 drawList->PushClipRect(ImGui::GetCursorScreenPos(), ImGui::GetCursorScreenPos() + wSize);
 
                 ImVec2 animatedOffset{ 0.0f, -50.0f };
-                animatedOffset *= powf(1.0f - animationProgress, 5.0f);
+                animatedOffset *= powf(1.0f - drawerAnimationProgress, 5.0f);
 
                 ImVec2 minPos = ImGui::GetCursorScreenPos() + animatedOffset;
 
@@ -100,7 +99,7 @@ namespace worlds {
                     "Lights Per Tile"
                 };
 
-                static int currentDbgDrawMode = 0;
+                int currentDbgDrawMode = g_console->getConVar("r_dbgdrawmode")->getInt();
 
                 ImGui::PushItemWidth(100.0f);
                 if (ImGui::Combo("Debug Draw", &currentDbgDrawMode, dbgDrawModes, IM_ARRAYSIZE(dbgDrawModes))) {
@@ -475,7 +474,12 @@ namespace worlds {
 
     EditorSceneView::~EditorSceneView() {
         auto vkCtx = static_cast<VKRenderer*>(interfaces.renderer)->getHandles();
-        vkFreeDescriptorSets(vkCtx->device, vkCtx->descriptorPool, 1, &sceneViewDS);
+
+        VkDescriptorSet sceneViewDS = this->sceneViewDS;
+        DeletionQueue::queueDeletion([vkCtx, sceneViewDS]() {
+            vkFreeDescriptorSets(vkCtx->device, vkCtx->descriptorPool, 1, &sceneViewDS);
+        });
+
         interfaces.renderer->destroyRTTPass(sceneViewPass);
     }
 }

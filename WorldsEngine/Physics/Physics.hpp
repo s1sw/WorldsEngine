@@ -10,11 +10,13 @@
 #include "PhysicsActor.hpp"
 #include <entt/entity/fwd.hpp>
 #include <functional>
+#include <Core/MeshManager.hpp>
 
 namespace worlds {
     extern physx::PxMaterial* defaultMaterial;
     extern physx::PxScene* g_scene;
     extern physx::PxPhysics* g_physics;
+    extern physx::PxCooking* g_cooking;
 
     const uint32_t DEFAULT_PHYSICS_LAYER = 1;
     const uint32_t PLAYER_PHYSICS_LAYER = 2;
@@ -84,6 +86,36 @@ namespace worlds {
             case PhysicsShapeType::Capsule:
                 shape = g_physics->createShape(
                     physx::PxCapsuleGeometry(ps.capsule.radius, ps.capsule.height * 0.5f),
+                    *mat
+                );
+                break;
+            case PhysicsShapeType::Mesh:
+                if (ps.mesh.mesh == ~0u) {
+                    logErr(WELogCategoryPhysics, "Mesh collider is missing a mesh!");
+                    continue;
+                }
+                const LoadedMesh& lm = MeshManager::loadOrGet(ps.mesh.mesh);
+
+                std::vector<physx::PxVec3> points;
+                points.resize(lm.vertices.size());
+
+                for (size_t i = 0; i < lm.vertices.size(); i++) {
+                    points[i] = glm2px(lm.vertices[i].position * scale);
+                }
+
+                physx::PxTriangleMeshDesc meshDesc;
+
+                meshDesc.points.count = points.size();
+                meshDesc.points.stride = sizeof(physx::PxVec3);
+                meshDesc.points.data = points.data();
+
+                meshDesc.triangles.count = lm.indices.size() / 3;
+                meshDesc.triangles.data = lm.indices.data();
+                meshDesc.triangles.stride = sizeof(uint32_t) * 3;
+
+                physx::PxTriangleMesh* triMesh = g_cooking->createTriangleMesh(meshDesc, g_physics->getPhysicsInsertionCallback());
+                shape = g_physics->createShape(
+                    physx::PxTriangleMeshGeometry(triMesh),
                     *mat
                 );
                 break;

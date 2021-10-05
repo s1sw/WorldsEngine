@@ -38,8 +38,9 @@ namespace worlds {
     }
 
     void GameProject::mountPaths() {
-        logMsg("Mounting %s as compiled data path", _compiledDataPath.c_str());
-        logMsg("Mounting %s as source data path", _srcDataPath.c_str());
+        logMsg("Mounting project %s", _name.c_str());
+        logVrb("Mounting %s as compiled data path", _compiledDataPath.c_str());
+        logVrb("Mounting %s as source data path", _srcDataPath.c_str());
         PHYSFS_mount(_compiledDataPath.c_str(), "/", 0);
         PHYSFS_mount(_srcDataPath.c_str(), "/SourceData", 0);
         PHYSFS_mount(_rawPath.c_str(), "/Raw", 0);
@@ -48,9 +49,9 @@ namespace worlds {
 
         for (const std::string& dir : _copyDirs) {
             std::string dirPath = _srcDataPath + "/" + dir;
-            logMsg("Mouting %s as %s", dirPath.c_str(), dir.c_str());
+            logVrb("Mounting %s as %s", dirPath.c_str(), dir.c_str());
             if (PHYSFS_mount(dirPath.c_str(), dir.c_str(), 1) == 0) {
-                logErr("Error mounting: %s", PHYSFS_getLastError());
+                logErr("Error mounting %s: %s", dirPath.c_str(), PHYSFS_getLastError());
             }
         }
     }
@@ -64,7 +65,7 @@ namespace worlds {
         for (const std::string& dir : _copyDirs) {
             std::string dirPath = _srcDataPath + "/" + dir;
             if (PHYSFS_unmount(dirPath.c_str()) == 0) {
-                logErr("Error unmounting: %s", PHYSFS_getLastError());
+                logErr("Error unmounting %s: %s", dirPath.c_str(), PHYSFS_getLastError());
             }
         }
     }

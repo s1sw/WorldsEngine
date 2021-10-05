@@ -1,4 +1,5 @@
 #include "vku.hpp"
+#include <Render/RenderInternal.hpp>
 
 #define UNUSED(x) (void)x
 namespace vku {
@@ -246,13 +247,20 @@ namespace vku {
     void GenericImage::destroy() {
         if (s.destroyed) return;
         if (s.image) {
-            if (s.imageView) {
-                vkDestroyImageView(s.device, s.imageView, nullptr);
-            }
+            VkImageView imageView = s.imageView;
+            VkImage image = s.image;
+            VkDevice device = s.device;
+            VmaAllocator allocator = s.allocator;
+            VmaAllocation allocation = s.allocation;
+            worlds::DeletionQueue::queueDeletion([=]() {
+                if (imageView) {
+                    vkDestroyImageView(device, imageView, nullptr);
+                }
 
-            vkDestroyImage(s.device, s.image, nullptr);
+                vkDestroyImage(device, image, nullptr);
 
-            vmaFreeMemory(s.allocator, s.allocation);
+                vmaFreeMemory(allocator, allocation);
+            });
         }
         s.destroyed = true;
     }

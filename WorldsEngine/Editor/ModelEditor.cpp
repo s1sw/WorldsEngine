@@ -37,7 +37,7 @@ namespace worlds {
     void ModelEditor::drawEditor() {
         ImGui::Text("Source model: %s", AssetDB::idToPath(srcModel).c_str());
         ImGui::SameLine();
-        selectAssetPopup("Source Model", srcModel, ImGui::Button("Change##SrcModel"));
+        selectRawAssetPopup("Source Model", srcModel, ImGui::Button("Change##SrcModel"));
     }
 
     void ModelEditor::save() {

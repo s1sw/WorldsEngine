@@ -351,15 +351,23 @@ namespace worlds {
     }
 
     VKRTTPass::~VKRTTPass() {
-        vkDeviceWaitIdle(renderer->device);
+        PolyRenderPass* prp = this->prp;
+        TonemapRenderPass* trp = this->trp;
+        RenderTexture* hdrTarget = this->hdrTarget;
+        RenderTexture* depthTarget = this->depthTarget;
 
-        delete prp;
-        delete trp;
+        bool outputToScreen = this->outputToScreen;
+        RenderTexture* sdrFinalTarget = this->sdrFinalTarget;
 
-        delete hdrTarget;
-        delete depthTarget;
+        DeletionQueue::queueDeletion([=]() {
+            delete prp;
+            delete trp;
 
-        if (!outputToScreen)
-            delete sdrFinalTarget;
+            delete hdrTarget;
+            delete depthTarget;
+
+            if (!outputToScreen)
+                delete sdrFinalTarget;
+        });
     }
 }

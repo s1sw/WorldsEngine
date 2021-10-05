@@ -260,13 +260,24 @@ namespace worlds {
 
                 if (ImGui::Button("Close")) {
                     materialId = ~0u;
+                    for (auto& p : cacheTextures) {
+                        editor->texManager()->unload(p.first);
+                    }
+                    cacheTextures.clear();
                 }
             } else {
                 bool open = ImGui::Button("Open Material");
-                needsReload = selectAssetPopup("Select Material", materialId, open);
+                needsReload = selectAssetPopup("Select Material", materialId, open, true);
             }
         }
 
         ImGui::End();
+
+        if (!active && cacheTextures.size() > 0) {
+            for (auto& p : cacheTextures) {
+                editor->texManager()->unload(p.first);
+            }
+            cacheTextures.clear();
+        }
     }
 }
