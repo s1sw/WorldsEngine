@@ -261,6 +261,14 @@ namespace worlds {
 
     void AudioSystem::initialise(entt::registry& worldState) {
         worldState.on_destroy<AudioSource>().connect<&AudioSystem::onAudioSourceDestroy>(*this);
+        g_console->registerCommand([&](void*, const char* arg) {
+            float vol = std::atof(arg);
+            if (!masterVCA->isValid()) {
+                logErr("Master VCA handle was invalid");
+            } else {
+                masterVCA->setVolume(vol);
+            }
+        }, "a_setMasterVolume", "Sets the master audio volume.");
     }
 
     void AudioSystem::onAudioSourceDestroy(entt::registry& reg, entt::entity entity) {
@@ -275,6 +283,7 @@ namespace worlds {
     void AudioSystem::loadMasterBanks() {
         masterBank = loadBank("FMOD/Desktop/Master.bank");
         stringsBank = loadBank("FMOD/Desktop/Master.strings.bank");
+        FMCHECK(studioSystem->getVCA("vca:/Master", &masterVCA));
     }
 
     FMOD_VECTOR convVec(glm::vec3 v3) {

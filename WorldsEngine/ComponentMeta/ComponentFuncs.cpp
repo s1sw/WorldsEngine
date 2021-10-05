@@ -547,6 +547,10 @@ namespace worlds {
                     bool isSelected = it->type == type;
                     if (ImGui::Selectable(shapeTypeNames[iType], &isSelected)) {
                         it->type = type;
+
+                        if (type == PhysicsShapeType::Mesh) {
+                            it->mesh.mesh = ~0u;
+                        }
                     }
 
                     if (isSelected)
@@ -591,6 +595,13 @@ namespace worlds {
             case PhysicsShapeType::Capsule:
                 ImGui::DragFloat("Height", &it->capsule.height);
                 ImGui::DragFloat("Radius", &it->capsule.radius);
+                break;
+            case PhysicsShapeType::Mesh:
+                if (it->mesh.mesh == ~0u)
+                    ImGui::Text("No mesh set");
+                else
+                    ImGui::Text("%s", AssetDB::idToPath(it->mesh.mesh).c_str());
+                selectAssetPopup("Mesh", it->mesh.mesh, ImGui::Button("Change"));
                 break;
             default: break;
             }
@@ -742,6 +753,9 @@ namespace worlds {
                         jShape["height"] = shape.capsule.height;
                         jShape["radius"] = shape.capsule.radius;
                         break;
+                    case PhysicsShapeType::Mesh:
+                        jShape["mesh"] = AssetDB::idToPath(shape.mesh.mesh);
+                        break;
                     default:
                         assert(false && "invalid physics shape type");
                         break;
@@ -775,6 +789,9 @@ namespace worlds {
                     case PhysicsShapeType::Capsule:
                         ps.capsule.height = shape["height"];
                         ps.capsule.radius = shape["radius"];
+                        break;
+                    case PhysicsShapeType::Mesh:
+                        ps.mesh.mesh = AssetDB::pathToId(shape["mesh"].get<std::string>());
                         break;
                     default:
                         assert(false && "invalid physics shape type");

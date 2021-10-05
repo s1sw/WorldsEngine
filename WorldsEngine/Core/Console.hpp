@@ -46,6 +46,7 @@ namespace worlds {
         void drawWindow();
         void setShowState(bool show);
         void executeCommandStr(std::string cmdStr, bool log = true);
+        ConVar* getConVar(const char* name) { return conVars.at(name); }
         ~Console();
     private:
         bool show;

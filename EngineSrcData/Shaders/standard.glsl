@@ -33,6 +33,7 @@ layout(constant_id = 0) const bool ENABLE_PICKING = false;
 layout(constant_id = 1) const float PARALLAX_MAX_LAYERS = 32.0;
 layout(constant_id = 2) const float PARALLAX_MIN_LAYERS = 4.0;
 layout(constant_id = 3) const bool DO_PARALLAX = false;
+layout(constant_id = 4) const bool ENABLE_PROXY_AO = true;
 #endif
 
 #ifdef VERTEX
@@ -230,6 +231,7 @@ float calculateCascade(out vec4 oShadowPos, out bool inCascade) {
 }
 
 float calcProxyAO(vec3 wPos, vec3 normal) {
+    if (!ENABLE_PROXY_AO) return 1.0;
     float proxyAO = 1.0;
 
     //for (int i = 0; i < int(pack1.x); i++) {

@@ -3,6 +3,7 @@
 #include <Render/vku/vku.hpp>
 #include <Render/vku/DebugCallback.hpp>
 #include <Render/ResourceSlots.hpp>
+#include <deque>
 #include <tracy/TracyVulkan.hpp>
 #include <robin_hood.h>
 
@@ -218,6 +219,17 @@ namespace worlds {
     };
 
     class VKRenderer;
+
+    class DeletionQueue {
+    public:
+        static void queueDeletion(std::function<void()>&& deleteFunc);
+        static void setCurrentFrame(uint32_t frame);
+        static void cleanupFrame(uint32_t frame);
+        static void resize(uint32_t maxFrames);
+    private:
+        static uint32_t currentFrameIndex;
+        static std::vector<std::deque<std::function<void()>>> deletionQueues;
+    };
 
     class VKRTTPass : public RTTPass {
     public:

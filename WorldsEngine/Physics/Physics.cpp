@@ -292,6 +292,10 @@ namespace worlds {
         }
 
         g_cooking = PxCreateCooking(PX_PHYSICS_VERSION, *g_physFoundation, physx::PxCookingParams(tolerancesScale));
+        physx::PxCookingParams params(tolerancesScale);
+        params.meshPreprocessParams |= PxMeshPreprocessingFlag::eDISABLE_CLEAN_MESH;
+
+        g_cooking->setParams(params);
         physx::PxSceneDesc desc(tolerancesScale);
         desc.gravity = physx::PxVec3(0.0f, -9.81f, 0.0f);
         desc.cpuDispatcher = physx::PxDefaultCpuDispatcherCreate(std::max(SDL_GetCPUCount(), 1));

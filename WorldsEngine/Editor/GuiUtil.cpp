@@ -151,6 +151,10 @@ namespace worlds {
     }
 
     void openFileModal(const char* title, std::function<void(const char*)> openCallback, const char** fileExtensions, int fileExtensionCount, const char* startingDir) {
+        openFileModalOffset(title, openCallback, "", fileExtensions, fileExtensionCount, startingDir);
+    }
+
+    void openFileModalOffset(const char* title, std::function<void(const char*)> openCallback, const char* rootOffset, const char** fileExtensions, int fileExtensionCount, const char* startingDir) {
         ImVec2 popupSize(windowSize.x - 50.0f, windowSize.y - 50.0f);
         ImGui::SetNextWindowPos(ImGui::GetMainViewport()->Pos + ImVec2((windowSize.x / 2) - (popupSize.x / 2), (windowSize.y / 2) - (popupSize.y / 2)));
         ImGui::SetNextWindowSize(popupSize);
@@ -174,7 +178,7 @@ namespace worlds {
             ImGui::Text("%s", currentDirectory->c_str());
 
             ImGui::BeginChild("Stuffs", ImVec2(ImGui::GetWindowWidth() - 17.0f, ImGui::GetWindowHeight() - 90.0f), true);
-            char** files = PHYSFS_enumerateFiles(currentDirectory->c_str());
+            char** files = PHYSFS_enumerateFiles((std::string(rootOffset) + *currentDirectory).c_str());
 
             std::string titleDoesntExist = "File Doesn't Exist##";
             titleDoesntExist += title;
@@ -210,7 +214,7 @@ namespace worlds {
                 });
 
             for (auto currFile : fileVec) {
-                std::string absPath = currentDirectory->empty() ? currFile : (*currentDirectory + "/" + currFile);
+                std::string absPath = rootOffset + (currentDirectory->empty() ? currFile : (*currentDirectory + "/" + currFile));
                 PHYSFS_Stat stat;
                 PHYSFS_stat(absPath.c_str(), &stat);
                 std::string extension = std::filesystem::path(currFile).extension().string();
@@ -605,17 +609,43 @@ namespace worlds {
             [popupDuration](PopupNotification& notification) { return notification.shownFor > popupDuration; }), popupNotifications.end());
     }
 
-    bool selectAssetPopup(const char* title, AssetID& id, bool open) {
+    bool selectAssetPopup(const char* title, AssetID& id, bool open, bool source) {
         static std::string path;
         bool changed = false;
 
         std::filesystem::path p(path);
         p = p.parent_path();
 
-        openFileModal(title, [&](const char* path) {
+        openFileModalOffset(title, [&](const char* path) {
             id = AssetDB::pathToId(path);
             changed = true;
-            }, nullptr, p.string().c_str());
+            }, source ? "SourceData/" : "", nullptr, 0, p.string().c_str());
+
+        if (open) {
+            if (id != ~0u)
+                path = AssetDB::idToPath(id);
+            else
+                path = "";
+            ImGui::OpenPopup(title);
+        }
+
+        return changed;
+    }
+    
+    bool selectRawAssetPopup(const char* title, AssetID& id, bool open) {
+        static std::string path;
+        bool changed = false;
+
+        std::filesystem::path p(path);
+        p = p.parent_path();
+
+        if (path.starts_with("Raw/"))
+            p = p.string().substr(3);
+
+        openFileModalOffset(title, [&](const char* path) {
+            id = AssetDB::pathToId(path);
+            changed = true;
+            }, "Raw/", nullptr, 0, p.string().c_str());
 
         if (open) {
             if (id != ~0u)

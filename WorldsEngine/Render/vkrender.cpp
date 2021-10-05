@@ -84,6 +84,31 @@ uint32_t findPresentQueue(VkPhysicalDevice pd, VkSurfaceKHR surface) {
     return ~0u;
 }
 
+std::vector<std::deque<std::function<void()>>> DeletionQueue::deletionQueues;
+uint32_t DeletionQueue::currentFrameIndex;
+
+void DeletionQueue::queueDeletion(std::function<void()>&& deleteFunc) {
+    deletionQueues[currentFrameIndex].push_back(deleteFunc);
+}
+
+void DeletionQueue::setCurrentFrame(uint32_t frame) {
+    currentFrameIndex = frame;
+}
+
+void DeletionQueue::cleanupFrame(uint32_t frame) {
+    auto& frameObjectQueue = deletionQueues[frame];
+
+    for (auto it = frameObjectQueue.rbegin(); it != frameObjectQueue.rend(); it++) {
+        (*it)();
+    }
+
+    frameObjectQueue.clear();
+}
+
+void DeletionQueue::resize(uint32_t maxFrames) {
+    deletionQueues.resize(maxFrames);
+}
+
 RenderTexture* VKRenderer::createRTResource(RTResourceCreateInfo resourceCreateInfo, const char* debugName) {
     return new RenderTexture{ &handles, resourceCreateInfo, debugName };
 }
@@ -415,6 +440,7 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     device = dm.create(physicalDevice);
 
     ShaderCache::setDevice(device);
+    DeletionQueue::resize(1);
 
     VmaAllocatorCreateInfo allocatorCreateInfo{};
     allocatorCreateInfo.device = device;
@@ -596,6 +622,8 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
         VKCHECK(vkCreateSemaphore(device, &sci, nullptr, &cmdBufferSemaphores[i]));
         VKCHECK(vkCreateSemaphore(device, &sci, nullptr, &imgAvailable[i]));
     }
+
+    DeletionQueue::resize(maxFramesInFlight);
     imgFences.resize(cmdBufs.size());
 
     timestampPeriod = physDevProps.limits.timestampPeriod;
@@ -1358,6 +1386,8 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
     dbgStats.numPipelineSwitches = 0;
     dbgStats.numTriangles = 0;
     destroyTempTexBuffers(frameIdx);
+    DeletionQueue::cleanupFrame(frameIdx);
+    DeletionQueue::setCurrentFrame(frameIdx);
 
     uint32_t imageIndex;
 
@@ -1670,6 +1700,7 @@ void VKRenderer::setImGuiDrawData(void* drawData) {
 }
 
 VKRTTPass* VKRenderer::createRTTPass(RTTPassCreateInfo& ci) {
+    std::lock_guard<std::mutex> lg { *apiMutex };
     VKRTTPass* pass = new VKRTTPass{
         ci,
         this,
@@ -1683,6 +1714,7 @@ VKRTTPass* VKRenderer::createRTTPass(RTTPassCreateInfo& ci) {
 }
 
 void VKRenderer::destroyRTTPass(RTTPass* pass) {
+    std::lock_guard<std::mutex> lg { *apiMutex };
     rttPasses.erase(
         std::remove(rttPasses.begin(), rttPasses.end(), pass),
         rttPasses.end());

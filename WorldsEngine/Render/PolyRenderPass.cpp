@@ -38,6 +38,7 @@ namespace ShaderFlags {
 namespace worlds {
     ConVar showWireframe("r_wireframeMode", "0", "0 - No wireframe; 1 - Wireframe only; 2 - Wireframe + solid");
     ConVar dbgDrawMode("r_dbgDrawMode", "0", "0 = Normal, 1 = Normals, 2 = Metallic, 3 = Roughness, 4 = AO");
+    ConVar enableProxyAO("r_enableProxyAO", "1");
 
     struct StandardPushConstants {
         uint32_t modelMatrixIdx;
@@ -360,17 +361,19 @@ namespace worlds {
             float parallaxMaxLayers = 32.0f;
             float parallaxMinLayers = 4.0f;
             VkBool32 doParallax = false;
+            VkBool32 enableProxyAO = false;
         };
 
         // standard shader specialization constants
-        VkSpecializationMapEntry entries[4] = {
+        VkSpecializationMapEntry entries[5] = {
             { 0, offsetof(StandardSpecConsts, enablePicking), sizeof(VkBool32) },
             { 1, offsetof(StandardSpecConsts, parallaxMaxLayers), sizeof(float) },
             { 2, offsetof(StandardSpecConsts, parallaxMinLayers), sizeof(float) },
-            { 3, offsetof(StandardSpecConsts, doParallax), sizeof(VkBool32) }
+            { 3, offsetof(StandardSpecConsts, doParallax), sizeof(VkBool32) },
+            { 4, offsetof(StandardSpecConsts, enableProxyAO), sizeof(VkBool32) }
         };
 
-        VkSpecializationInfo standardSpecInfo{ 4, entries, sizeof(StandardSpecConsts) };
+        VkSpecializationInfo standardSpecInfo{ 5, entries, sizeof(StandardSpecConsts) };
 
         {
             vku::PipelineMaker pm{ extent.width, extent.height };
@@ -379,7 +382,8 @@ namespace worlds {
                 enablePicking,
                 maxParallaxLayers.getFloat(),
                 minParallaxLayers.getFloat(),
-                (bool)enableParallaxMapping.getInt()
+                (bool)enableParallaxMapping.getInt(),
+                (bool)enableProxyAO.getInt()
             };
 
             standardSpecInfo.pData = &spc;
@@ -411,13 +415,12 @@ namespace worlds {
 
             vku::PipelineMaker pm{ extent.width, extent.height };
 
-            // Sadly we can't enable picking for alpha test surfaces as we can't use
-            // early fragment tests with them, which leads to strange issues.
             StandardSpecConsts spc{
-                (bool)enableDepthPrepass.getInt(),
+                enablePicking && enableDepthPrepass.getInt(),
                 maxParallaxLayers.getFloat(),
                 minParallaxLayers.getFloat(),
-                (bool)enableParallaxMapping.getInt()
+                (bool)enableParallaxMapping.getInt(),
+                (bool)enableProxyAO.getInt()
             };
 
             standardSpecInfo.pData = &spc;
@@ -449,7 +452,8 @@ namespace worlds {
                 enablePicking,
                 maxParallaxLayers.getFloat(),
                 minParallaxLayers.getFloat(),
-                (bool)enableParallaxMapping.getInt()
+                (bool)enableParallaxMapping.getInt(),
+                (bool)enableProxyAO.getInt()
             };
 
             standardSpecInfo.pData = &spc;

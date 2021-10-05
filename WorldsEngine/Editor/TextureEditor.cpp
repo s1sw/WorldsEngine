@@ -54,7 +54,7 @@ namespace worlds {
     void TextureEditor::drawEditor() {
         ImGui::Text("Source texture: %s", AssetDB::idToPath(srcTexture).c_str());
         ImGui::SameLine();
-        selectAssetPopup("Source Texture", srcTexture, ImGui::Button("Change##SrcTex"));
+        selectRawAssetPopup("Source Texture", srcTexture, ImGui::Button("Change##SrcTex"));
 
         if (ImGui::BeginCombo("Type", textureTypeNames[(int)texType])) {
             int i = 0;

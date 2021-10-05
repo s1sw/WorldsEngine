@@ -12,6 +12,7 @@ namespace worlds {
     void saveFileModal(const char* title, std::function<void(const char*)> saveCallback);
     void openFileModal(const char* title, std::function<void(const char*)> openCallback, const char* fileExtension = nullptr, const char* startingDir = nullptr);
     void openFileModal(const char* title, std::function<void(const char*)> openCallback, const char** fileExtensions = nullptr, int fileExtensionCount = 0, const char* startingDir = nullptr);
+    void openFileModalOffset(const char* title, std::function<void(const char*)> openCallback, const char* rootOffset, const char** fileExtensions = nullptr, int fileExtensionCount = 0, const char* startingDir = nullptr);
 
     void openFileFullFSModal(const char* title, std::function<void(const char*)> openCallback);
 
@@ -32,6 +33,7 @@ namespace worlds {
 
     void addNotification(const char* text, NotificationType type = NotificationType::Info);
     void drawPopupNotifications();
-    bool selectAssetPopup(const char* title, AssetID& id, bool open);
+    bool selectAssetPopup(const char* title, AssetID& id, bool open, bool source = false);
+    bool selectRawAssetPopup(const char* title, AssetID& id, bool open);
     void tooltipHover(const char* desc);
 }

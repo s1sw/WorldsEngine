@@ -1,16 +1,16 @@
 worlds_sources += [
-  'Util/JsonUtil.cpp',
   'Util/RichPresence.cpp',
   'Util/VKImGUIUtil.cpp',
+  'Util/JsonUtil.cpp',
   'Util/CreateModelObject.hpp',
-  'Util/EnumUtil.hpp',
-  'Util/Fnv.hpp',
   'Util/GlmStreamOps.hpp',
-  'Util/JsonUtil.hpp',
   'Util/MatUtil.hpp',
   'Util/Result.hpp',
   'Util/RichPresence.hpp',
   'Util/StaticLinkedList.hpp',
   'Util/TimingUtil.hpp',
-  'Util/VKImGUIUtil.hpp'
+  'Util/EnumUtil.hpp',
+  'Util/VKImGUIUtil.hpp',
+  'Util/Fnv.hpp',
+  'Util/JsonUtil.hpp'
 ]

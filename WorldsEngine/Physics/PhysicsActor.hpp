@@ -25,7 +25,12 @@ namespace worlds {
     }
 
     struct PhysicsShape {
-        PhysicsShape() : pos(0.0f), rot(1.0f, 0.0f, 0.0f, 0.0f), material(nullptr) {}
+        PhysicsShape()
+            : pos(0.0f)
+            , rot(1.0f, 0.0f, 0.0f, 0.0f)
+            , material(nullptr) {
+            mesh.mesh = ~0u;
+        }
         PhysicsShapeType type;
         union {
             struct {
