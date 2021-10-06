@@ -94,11 +94,10 @@ namespace Game
 
             if (_grounded && PlayerRigSystem.Jump)
             {
-                Vector3 forceVector = Vector3.Up * 6.0f;
-                dpa.AddForce(forceVector, ForceMode.VelocityChange);
-                PlayerRigSystem.Jump = false;
+                dpa.Velocity = (dpa.Velocity * new Vector3(1.0f, 0.0f, 1.0f)) + Vector3.Up * 6.0f;
                 Audio.PlayOneShotEvent("event:/Player/Jump", Vector3.Zero);
             }
+            PlayerRigSystem.Jump = false;
 
             if (_grounded && !PlayerRigSystem.Jump)
                 dpa.AddForce(pidController.CalculateForce(targetPosition - dpa.Pose.Position, Time.DeltaTime));

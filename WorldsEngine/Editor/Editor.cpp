@@ -544,6 +544,14 @@ namespace worlds {
             return;
         }
 
+        sceneViews.erase(std::remove_if(sceneViews.begin(), sceneViews.end(), [](EditorSceneView* esv) {
+            if (!esv->open) {
+                delete esv;
+                return true;
+            }
+            return false;
+            }), sceneViews.end());
+
         if ((SDL_GetWindowFlags(interfaces.engine->getMainWindow()) & SDL_WINDOW_INPUT_FOCUS) == 0) {
             SDL_Delay(500);
             for (EditorSceneView* esv : sceneViews) {
@@ -890,13 +898,6 @@ namespace worlds {
             JsonSceneSerializer::saveEntity(file, reg, currentSelectedEntity);
             });
 
-        sceneViews.erase(std::remove_if(sceneViews.begin(), sceneViews.end(), [](EditorSceneView* esv) {
-            if (!esv->open) {
-                delete esv;
-                return true;
-            }
-            return false;
-            }), sceneViews.end());
 
         if (!popupToOpen.empty())
             ImGui::OpenPopup(popupToOpen.c_str());

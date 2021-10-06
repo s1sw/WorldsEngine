@@ -309,7 +309,7 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     , shadowmapImage(nullptr)
     , imguiImage(nullptr)
     , window(initInfo.window)
-    , shadowmapRes(4096)
+    , shadowmapRes(2048)
     , enableVR(initInfo.enableVR)
     , irp(nullptr)
     , vrPredictAmount(0.033f)
@@ -606,7 +606,7 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     cmdBufferSemaphores.resize(maxFramesInFlight);
     imgAvailable.resize(maxFramesInFlight);
 
-    for (size_t i = 0; i < maxFramesInFlight; i++) {
+    for (int i = 0; i < maxFramesInFlight; i++) {
         std::string cmdBufName = "Command Buffer ";
         cmdBufName += std::to_string(i);
 

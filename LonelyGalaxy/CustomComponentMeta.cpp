@@ -251,6 +251,9 @@ namespace lg {
             auto& cdd = reg.get<ContactDamageDealer>(ent);
 
             if (ImGui::CollapsingHeader("Contact Damage Dealer")) {
+                if (ImGui::Button("Remove##CDD")) {
+                    reg.remove<ContactDamageDealer>(ent);
+                }
                 ImGui::DragScalar("Damage", ImGuiDataType_U8, &cdd.damage, 1.0f);
                 ImGui::DragFloat("Min Velocity", &cdd.minVelocity);
                 ImGui::DragFloat("Max Velocity", &cdd.maxVelocity);
@@ -393,7 +396,7 @@ namespace lg {
                                 if (grip.hand != GripHand::Both)
                                     previewEntity = createHandPreviewEnt(grip.hand == GripHand::Left, reg);
                             }
-                        } else if (editingGripIndex == gripIndex) {
+                        } else if ((int)editingGripIndex == gripIndex) {
                             if (ImGui::Button("Done")) {
                                 editingGrip = false;
                                 Transform transformedGripTransform = editedGripTransform.transformByInverse(grabbableTransform);
