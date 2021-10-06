@@ -8,6 +8,8 @@ namespace Game
     [Component]
     public class ExplodeOnDeath : IStartListener
     {
+        public bool Exploded = false;
+
         public void Start(Entity e)
         {
             var hc = Registry.GetComponent<HealthComponent>(e);
@@ -36,6 +38,7 @@ namespace Game
 
             var transform = Registry.GetTransform(e);
             transform.Scale = new Vector3(0.1f);
+            Exploded = true;
 
             for (int x = -2; x < 2; x++) {
             for (int y = -2; y < 2; y++) {

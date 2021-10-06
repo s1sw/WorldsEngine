@@ -50,15 +50,14 @@ namespace Game
         {
             var health = Registry.GetComponent<HealthComponent>(entity);
 
-            health.OnDeath += (Entity ent) => {
-                Logger.Log("ded");
-                _dead = true;
-                if (Registry.TryGetComponent<AudioSource>(ent, out AudioSource source))
-                {
-                    source.SetParameter("Alive", 0.0f);
-                }
-                //Audio.PlayOneShot(AssetDB.PathToId("Audio/SFX/drone death.ogg"), Registry.GetTransform(ent).Position, 2.0f);
-            };
+            //health.OnDeath += (Entity ent) => {
+            //    _dead = true;
+            //    if (Registry.TryGetComponent<AudioSource>(ent, out AudioSource source))
+            //    {
+            //        source.SetParameter("Alive", 0.0f);
+            //    }
+            //    //Audio.PlayOneShot(AssetDB.PathToId("Audio/SFX/drone death.ogg"), Registry.GetTransform(ent).Position, 2.0f);
+            //};
 
             health.OnDamage += (Entity e, double dmg, Entity attacker) => {
                 if (attacker == e) return;
@@ -216,6 +215,7 @@ namespace Game
 
                 var damagingProjectile = Registry.GetComponent<DamagingProjectile>(projectile);
                 damagingProjectile.Attacker = entity;
+                damagingProjectile.Damage = 300.0;
 
                 await Task.Delay(100);
             }
@@ -227,9 +227,8 @@ namespace Game
         public void Think(Entity entity)
         {
             UpdateInspectorVals();
-            ImGui.Text("Did normal update");
 
-            //if (_dead) return;
+            if (_dead) return;
 
             var physicsActor = Registry.GetComponent<DynamicPhysicsActor>(entity);
             Transform pose = physicsActor.Pose;

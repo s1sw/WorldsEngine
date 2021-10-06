@@ -111,7 +111,7 @@ namespace Game
                 DoHaptics(grabbable.AttachedHandFlags);
             }
 
-            var damagingProjectile = Registry.GetComponent<DamagingProjectile>(entity);
+            var damagingProjectile = Registry.GetComponent<DamagingProjectile>(projectile);
             damagingProjectile.Attacker = PlayerRigSystem.PlayerBody;
         }
 
