@@ -116,5 +116,10 @@ namespace WorldsEngine
                 Registry.HandleCollision(collision.EntityID, ref collision.ContactInfo);
             }
         }
+
+        internal static void ClearCollisionQueue()
+        {
+            _collisionQueue.Clear();
+        }
     }
 }

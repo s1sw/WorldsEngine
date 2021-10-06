@@ -127,7 +127,7 @@ namespace WorldsEngine
                     system.OnUpdate();
                 }
             }
-            catch (Exception e) when (!System.Diagnostics.Debugger.IsAttached)
+            catch (Exception e)
             {
                 Logger.LogError($"Caught exception: {e}");
             }
@@ -159,7 +159,7 @@ namespace WorldsEngine
 
                 Registry.UpdateThinkingComponents();
             }
-            catch (Exception e) when (!System.Diagnostics.Debugger.IsAttached)
+            catch (Exception e)
             {
                 Logger.LogError($"Caught exception: {e}");
             }
@@ -176,6 +176,7 @@ namespace WorldsEngine
         {
             hotloadManager.ReloadIfNecessary();
             SynchronizationContext.SetSynchronizationContext(editorUpdateSyncContext);
+            Physics.ClearCollisionQueue();
 
             if (ImGui.Begin($"{FontAwesome.FontAwesomeIcons.Cube} Selected Entity"))
             {
