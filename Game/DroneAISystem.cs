@@ -5,6 +5,7 @@ using WorldsEngine.Audio;
 using WorldsEngine.ComponentMeta;
 using System.Threading.Tasks;
 using Game.Combat;
+using ImGuiNET;
 
 namespace Game
 {
@@ -26,7 +27,6 @@ namespace Game
 
         public Vector3 FirePointPosition = new Vector3();
 
-        private Vector3 target = new Vector3();
         private float timeSinceLastBurst = 0.0f;
         private bool burstInProgress = false;
 
@@ -37,6 +37,8 @@ namespace Game
         private bool _dead = false;
         private Entity _ent;
         private Transform _idleHoverPose;
+        private Entity _target = Entity.Null;
+        private Vector3 _targetPosition;
 
         public void Alert()
         {
@@ -49,14 +51,22 @@ namespace Game
             var health = Registry.GetComponent<HealthComponent>(entity);
 
             health.OnDeath += (Entity ent) => {
+                Logger.Log("ded");
                 _dead = true;
-                Registry.GetComponent<AudioSource>(ent).SetParameter("Alive", 0.0f);
+                if (Registry.TryGetComponent<AudioSource>(ent, out AudioSource source))
+                {
+                    source.SetParameter("Alive", 0.0f);
+                }
                 //Audio.PlayOneShot(AssetDB.PathToId("Audio/SFX/drone death.ogg"), Registry.GetTransform(ent).Position, 2.0f);
             };
 
-            health.OnDamage += (Entity e, double dmg) => {
-                if (!_awake && !_dead)
+            health.OnDamage += (Entity e, double dmg, Entity attacker) => {
+                if (attacker == e) return;
+
+                _target = attacker;
+                if (!_awake && !_dead) {
                     Alert();
+                }
             };
 
             _ent = entity;
@@ -155,7 +165,7 @@ namespace Game
 
             timeSinceLastBurst += Time.DeltaTime;
 
-            Vector3 playerDirection = (target - pose.Position).Normalized;
+            Vector3 playerDirection = (_targetPosition - pose.Position).Normalized;
             float dotProduct = playerDirection.Dot(pose.Rotation * Vector3.Forward);
 
             Vector3 soundOrigin = pose.TransformPoint(FirePointPosition);
@@ -170,11 +180,9 @@ namespace Game
         {
             burstInProgress = true;
 
-            Logger.Log("Begin burst...");
             Audio.PlayOneShotEvent("event:/Drone/Charging", physicsActor.Pose.Position + Vector3.Up);
 
             await Task.Delay(1000);
-            Logger.Log("Firing!");
 
             for (int i = 0; i < 4; i++)
             {
@@ -206,6 +214,9 @@ namespace Game
                 //Audio.PlayOneShot(AssetDB.PathToId("Audio/SFX/gunshot.ogg"), soundOrigin, 1.0f);
                 Audio.PlayOneShotEvent("event:/Weapons/Gun Shot", soundOrigin);
 
+                var damagingProjectile = Registry.GetComponent<DamagingProjectile>(projectile);
+                damagingProjectile.Attacker = entity;
+
                 await Task.Delay(100);
             }
 
@@ -216,11 +227,15 @@ namespace Game
         public void Think(Entity entity)
         {
             UpdateInspectorVals();
+            ImGui.Text("Did normal update");
 
-            if (_dead) return;
+            //if (_dead) return;
 
             var physicsActor = Registry.GetComponent<DynamicPhysicsActor>(entity);
             Transform pose = physicsActor.Pose;
+
+            if (WorldsEngine.Input.Keyboard.KeyPressed(WorldsEngine.Input.KeyCode.L))
+                FireBurst(pose.Position, entity, physicsActor);
 
             if (!_awake)
             {
@@ -234,17 +249,28 @@ namespace Game
                 if (overlapCount > 0)
                 {
                     Alert();
+                    _target = PlayerRigSystem.PlayerBody;
                 }
 
+                return;
+            }
+
+            if (!Registry.Valid(_target))
+            {
+                _target = Entity.Null;
+                _awake = false;
+                Logger.Log("Target invalid, going to sleep.");
                 return;
             }
 
             bool foundFloor = Physics.Raycast(pose.Position + (Vector3.Down * 0.1f), Vector3.Down, out RaycastHit rHit, 50.0f);
 
             if (!burstInProgress)
-                target = Camera.Main.Position;
+            {
+                _targetPosition = Registry.GetTransform(_target).Position;
+            }
 
-            Transform targetPose = CalculateTargetPose(entity, target, foundFloor ? rHit.WorldHitPos.y : pose.Position.y + 0.01f);
+            Transform targetPose = CalculateTargetPose(entity, _targetPosition, foundFloor ? rHit.WorldHitPos.y : pose.Position.y + 0.01f);
 
             AvoidOtherDrones(entity, ref targetPose.Position);
             ApplyTargetPose(entity, targetPose);
@@ -253,6 +279,7 @@ namespace Game
 
         private void PlayStartupSound(Entity entity, Vector3 pos)
         {
+            if (!Registry.HasComponent<AudioSource>(entity)) return;
             var audioSource = Registry.GetComponent<AudioSource>(entity);
 
             Audio.PlayOneShotEvent("event:/Drone/Alert", pos);

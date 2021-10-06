@@ -30,7 +30,7 @@ namespace WorldsEngine
 
         [DllImport(WorldsEngine.NativeModule)]
         public static extern void registry_getEntityName(IntPtr regPtr, uint entityId, StringBuilder str);
-        
+
         [DllImport(WorldsEngine.NativeModule)]
         public static extern void registry_setEntityName(IntPtr regPtr, uint entityId, string str);
 
@@ -126,7 +126,7 @@ namespace WorldsEngine
             var serializerOptions = new JsonSerializerOptions()
             {
                 IncludeFields = true,
-                IgnoreReadOnlyProperties = true 
+                IgnoreReadOnlyProperties = true
             };
 
             string idStr = Marshal.PtrToStringAnsi(idPtr)!;
@@ -324,10 +324,26 @@ namespace WorldsEngine
             storage.SetBoxed(entity, value);
         }
 
+        public static bool TryGetComponent<T>(Entity entity, out T? component)
+        {
+            if (!HasComponent<T>(entity)) {
+                component = default(T);
+                return false;
+            }
+
+            component = GetComponent<T>(entity);
+            return true;
+        }
+
         public static T GetComponent<T>(Entity entity)
         {
             var type = typeof(T);
             if (entity.IsNull) throw new NullEntityException();
+
+            if (!HasComponent<T>(entity))
+            {
+                throw new MissingComponentException();
+            }
 
             if (type.IsAssignableTo(typeof(BuiltinComponent)))
             {
@@ -347,6 +363,11 @@ namespace WorldsEngine
         public static object GetComponent(Type type, Entity entity)
         {
             if (entity.IsNull) throw new NullEntityException();
+
+            if (!HasComponent(entity, type))
+            {
+                throw new MissingComponentException();
+            }
 
             if (type.IsAssignableTo(typeof(BuiltinComponent)))
             {
@@ -537,7 +558,14 @@ namespace WorldsEngine
                 {
                     object comp = componentStorage.GetBoxed(e);
 
-                    ((IStartListener)comp).Start(e);
+                    try
+                    {
+                        ((IStartListener)comp).Start(e);
+                    }
+                    catch (Exception exception)
+                    {
+                        Logger.LogError($"Caught exception: {exception}");
+                    }
                 }
             }
         }

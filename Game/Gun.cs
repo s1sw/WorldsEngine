@@ -3,6 +3,7 @@ using System;
 using WorldsEngine;
 using WorldsEngine.Audio;
 using WorldsEngine.Math;
+using Game.Combat;
 
 namespace Game
 {
@@ -109,6 +110,9 @@ namespace Game
 
                 DoHaptics(grabbable.AttachedHandFlags);
             }
+
+            var damagingProjectile = Registry.GetComponent<DamagingProjectile>(entity);
+            damagingProjectile.Attacker = PlayerRigSystem.PlayerBody;
         }
 
         public void Think(Entity entity)
@@ -130,8 +134,6 @@ namespace Game
                     HapticManager.Trigger(handFlags, 0.0f, 0.1f, 200f, 1.0f);
                     await System.Threading.Tasks.Task.Delay(100);
                     HapticManager.Trigger(handFlags, 0.0f, 0.1f, 50f, 1.0f);
-
-
                     break;
             }
         }

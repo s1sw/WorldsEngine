@@ -16,6 +16,7 @@ namespace Game.Combat
         public double Damage = 5.0;
         public double CreationTime = 0.0;
         public int BounceCount = 0;
+        public Entity Attacker = Entity.Null;
 
         public void Start(Entity e)
         {
@@ -47,7 +48,7 @@ namespace Game.Combat
 
             var health = Registry.GetComponent<HealthComponent>(contactInfo.OtherEntity);
 
-            health.Damage(Damage);
+            health.Damage(Damage, Attacker);
         }
     }
 
