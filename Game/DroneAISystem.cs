@@ -42,6 +42,7 @@ namespace Game
 
         public void Alert()
         {
+            if (_dead) return;
             _awake = true;
             PlayStartupSound(_ent, Registry.GetComponent<DynamicPhysicsActor>(_ent).Pose.Position);
         }
@@ -50,14 +51,14 @@ namespace Game
         {
             var health = Registry.GetComponent<HealthComponent>(entity);
 
-            //health.OnDeath += (Entity ent) => {
-            //    _dead = true;
-            //    if (Registry.TryGetComponent<AudioSource>(ent, out AudioSource source))
-            //    {
-            //        source.SetParameter("Alive", 0.0f);
-            //    }
-            //    //Audio.PlayOneShot(AssetDB.PathToId("Audio/SFX/drone death.ogg"), Registry.GetTransform(ent).Position, 2.0f);
-            //};
+            health.OnDeath += (Entity ent) => {
+                _dead = true;
+                if (Registry.TryGetComponent<AudioSource>(ent, out AudioSource source))
+                {
+                    source.SetParameter("Alive", 0.0f);
+                }
+                //Audio.PlayOneShot(AssetDB.PathToId("Audio/SFX/drone death.ogg"), Registry.GetTransform(ent).Position, 2.0f);
+            };
 
             health.OnDamage += (Entity e, double dmg, Entity attacker) => {
                 if (attacker == e) return;
@@ -215,7 +216,7 @@ namespace Game
 
                 var damagingProjectile = Registry.GetComponent<DamagingProjectile>(projectile);
                 damagingProjectile.Attacker = entity;
-                damagingProjectile.Damage = 300.0;
+                damagingProjectile.Damage = 40.0;
 
                 await Task.Delay(100);
             }

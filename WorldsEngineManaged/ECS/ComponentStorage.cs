@@ -23,9 +23,9 @@ namespace WorldsEngine
     struct SerializedComponentStorage
     {
         public string FullTypeName;
-        public Entity[] Packed;
+        public List<Entity> Packed;
         public SparseStorage SparseStorage;
-        public SerializedObject[] Components;
+        public List<SerializedObject> Components;
     }
 
     internal class ComponentTypeLookup
@@ -109,7 +109,7 @@ namespace WorldsEngine
             }
             else
             {
-                typeIndex = Interlocked.Increment(ref Registry.typeCounter);
+               typeIndex = Interlocked.Increment(ref Registry.typeCounter);
                 ComponentTypeLookup.typeIndices.Add(type.FullName!, typeIndex);
             }
         }
@@ -124,12 +124,8 @@ namespace WorldsEngine
             var serializedStorage = ComponentTypeLookup.serializedComponents[type.FullName!];
 
             _sparseStorage = serializedStorage.SparseStorage;
-
-            for (int i = 0; i < packedEntities.Count; i++)
-            {
-                packedEntities.Add(serializedStorage.Packed[i]);
-                components.Add((T)HotloadSerialization.Deserialize(serializedStorage.Components[i])!);
-            }
+            packedEntities = serializedStorage.Packed;
+            components = serializedStorage.Components.Select(x => (T)HotloadSerialization.Deserialize(x)!).ToList();
 
             ComponentTypeLookup.serializedComponents.Remove(type.FullName!);
         }
@@ -202,7 +198,7 @@ namespace WorldsEngine
             // To remove an entity, we want to swap the entity we're removing with the one at the end of the packed list.
             Entity replacementEntity = packedEntities[packedEntities.Count - 1];
             T replacementComponent = components[packedEntities.Count - 1];
-            
+
             // Remove this entity from the sparse set
             _sparseStorage[entity] = -1;
 
@@ -219,16 +215,11 @@ namespace WorldsEngine
         {
             var serializedStorage = new SerializedComponentStorage()
             {
-                Packed = packedEntities.ToArray(),
+                Packed = packedEntities,
                 SparseStorage = _sparseStorage,
-                Components = new SerializedObject[components.Count],
+                Components = components.Select(x => HotloadSerialization.Serialize(x)).ToList(),
                 FullTypeName = Type.FullName!
             };
-
-            for (int i = 0; i < components.Count; i++)
-            {
-                serializedStorage.Components[i] = HotloadSerialization.Serialize(components[i]!);
-            }
 
             ComponentTypeLookup.serializedComponents.Add(type.FullName!, serializedStorage);
         }
@@ -250,7 +241,7 @@ namespace WorldsEngine
 
         public void UpdateIfThinking()
         {
-            foreach (Entity entity in this)
+            foreach (Entity entity in packedEntities)
             {
                 ((IThinkingComponent)components[GetIndexOf(entity)]!).Think(entity);
             }

@@ -485,6 +485,15 @@ namespace WorldsEngine
         public static void Destroy(Entity entity)
         {
             NativeRegistry.registry_destroy(nativeRegistryPtr, entity.ID);
+            if (Valid(entity))
+                Logger.LogError("Destroy failed?");
+            foreach (IComponentStorage? storage in componentStorages)
+            {
+                if (storage == null) continue;
+
+                if (storage.Contains(entity))
+                    storage.Remove(entity);
+            }
         }
 
         public static void DestroyNext(Entity entity)
