@@ -357,6 +357,7 @@ namespace worlds {
         void reuploadMaterials();
         ImDrawData* imDrawData;
         std::mutex* apiMutex;
+        void recreateSwapchainInternal();
 
         friend class VKRTTPass;
     public:

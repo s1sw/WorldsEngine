@@ -845,7 +845,11 @@ VkSurfaceCapabilitiesKHR getSurfaceCaps(VkPhysicalDevice pd, VkSurfaceKHR surf) 
 }
 
 void VKRenderer::recreateSwapchain() {
-    std::unique_lock<std::mutex> lg{ *apiMutex };
+    std::lock_guard<std::mutex> lg { *apiMutex };
+    recreateSwapchainInternal();
+}
+
+void VKRenderer::recreateSwapchainInternal() {
     // Wait for current frame to finish
     vkDeviceWaitIdle(device);
 
@@ -863,7 +867,7 @@ void VKRenderer::recreateSwapchain() {
             SDL_Delay(50);
         }
 
-        recreateSwapchain();
+        recreateSwapchainInternal();
         return;
     }
 
@@ -1400,9 +1404,7 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
                 logVrb(WELogCategoryRender, "Swapchain out of date");
             else
                 logVrb(WELogCategoryRender, "Swapchain suboptimal");
-            lock.unlock();
-            recreateSwapchain();
-            lock.lock();
+            recreateSwapchainInternal();
 
             // acquire image from new swapchain
             swapchain->acquireImage(device, imgAvailable[frameIdx], &imageIndex);
@@ -1484,7 +1486,7 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
         vr::VRCompositor()->PostPresentHandoff();
 
     if (presentResult == VK_ERROR_OUT_OF_DATE_KHR) {
-        recreateSwapchain();
+        recreateSwapchainInternal();
     } else if (presentResult == VK_SUBOPTIMAL_KHR) {
         logVrb(WELogCategoryRender, "swapchain after present suboptimal");
         //recreateSwapchain();
@@ -1505,7 +1507,7 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
         lastRenderTimeTicks = timeStamps[1] - timeStamps[0];
 
     if (recreate)
-        recreateSwapchain();
+        recreateSwapchainInternal();
 
     lastFrameIdx = frameIdx;
 
