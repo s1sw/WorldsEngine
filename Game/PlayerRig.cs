@@ -25,6 +25,8 @@ namespace Game
         private VRAction _movementAction;
         private Vector3 _lastHMDPos = Vector3.Zero;
         private float _footstepTimer = 0.0f;
+        private float _timeSinceDodge = 1000.0f;
+        private Vector3 _lastDogeDirection = Vector3.Zero;
 
         private Vector2 GetInputVelocity()
         {
@@ -106,6 +108,11 @@ namespace Game
             Vector3 appliedVelocity = (targetVelocity - dpa.Velocity) * (_grounded ? 10f : 2.5f);
             appliedVelocity.y = 0.0f;
 
+            if (_timeSinceDodge < 0.1f)
+            {
+                appliedVelocity -= _lastDogeDirection * Vector3.Dot(appliedVelocity, _lastDogeDirection) * (1.0f - (_timeSinceDodge * 10f));
+            }
+
             if (_grounded || targetVelocity.LengthSquared > 0.01f)
                 dpa.AddForce(appliedVelocity, ForceMode.Acceleration);
 
@@ -133,6 +140,27 @@ namespace Game
             {
                 Audio.PlayOneShotEvent("event:/Player/Walking", Vector3.Zero);
                 _footstepTimer = 0f;
+            }
+
+            _timeSinceDodge += Time.DeltaTime;
+
+            if (_timeSinceDodge > 0.5f)
+            {
+                if (Keyboard.KeyPressed(KeyCode.NumberRow1))
+                {
+                    Vector3 dodgeDir = Camera.Main.Rotation * Vector3.Left;
+                    _lastDogeDirection = dodgeDir;
+                    dpa.AddForce(Camera.Main.Rotation * Vector3.Left * 15f, ForceMode.VelocityChange);
+                    _timeSinceDodge = 0.0f;
+                }
+
+                if (Keyboard.KeyPressed(KeyCode.NumberRow0))
+                {
+                    Vector3 dodgeDir = Camera.Main.Rotation * Vector3.Right;
+                    _lastDogeDirection = dodgeDir;
+                    dpa.AddForce(Camera.Main.Rotation * Vector3.Right * 15f, ForceMode.VelocityChange);
+                    _timeSinceDodge = 0.0f;
+                }
             }
 
             _groundedLast = _grounded;
@@ -178,6 +206,11 @@ namespace Game
                     (i < 10 ? "0" : "") + i + ".ogg";
                 _footstepNoises[i - 1] = AssetDB.PathToId(path);
             }
+
+            var healthComp = Registry.GetComponent<Combat.HealthComponent>(PlayerBody);
+            healthComp.OnDeath += (Entity e) => {
+                SceneLoader.LoadScene(SceneLoader.CurrentSceneID);
+            };
         }
 
         public void OnUpdate()
@@ -189,6 +222,14 @@ namespace Game
             {
                 Jump = true;
             }
+
+            var col = ImGui.GetStyle().Colors[(int)ImGuiCol.Text];
+
+            var playerHealth = Registry.GetComponent<Combat.HealthComponent>(PlayerBody);
+            var drawList = ImGui.GetForegroundDrawList();
+            var textPos = ImGui.GetMainViewport().Size * new Vector2(0.0f, 1.0f) - new Vector2(0.0f, 50.0f);
+
+            drawList.AddText(textPos, ~0u, $"Health: {playerHealth.Health} / {playerHealth.MaxHealth}");
         }
 
     }

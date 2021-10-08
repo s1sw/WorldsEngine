@@ -27,14 +27,13 @@ namespace Game.Combat
         {
             //Audio.PlayOneShot(AssetDB.PathToId("Audio/SFX/laser hiss.ogg"), contactInfo.AverageContactPoint, 0.9f);
             Audio.PlayOneShotEvent("event:/Weapons/Laser Hit", contactInfo.AverageContactPoint);
+            bool hitProjectile = Registry.HasComponent<DamagingProjectile>(contactInfo.OtherEntity);
 
-            if (BounceCount <= 0 && !Registry.HasComponent<DamagingProjectile>(contactInfo.OtherEntity))
+            if (BounceCount > 0 || hitProjectile)
             {
-                Registry.DestroyNext(entity);
-            }
-            else
-            {
-                BounceCount--;
+                if (!hitProjectile)
+                    BounceCount--;
+
                 var dpa = Registry.GetComponent<DynamicPhysicsActor>(entity);
 
                 dpa.Velocity = Vector3.Reflect(dpa.Velocity, contactInfo.Normal);
@@ -42,6 +41,10 @@ namespace Game.Combat
                 var pose = dpa.Pose;
                 pose.Rotation = Quaternion.SafeLookAt(dpa.Velocity.Normalized);
                 dpa.Pose = pose;
+            }
+            else
+            {
+                Registry.DestroyNext(entity);
             }
 
             if (!Registry.HasComponent<HealthComponent>(contactInfo.OtherEntity)) return;

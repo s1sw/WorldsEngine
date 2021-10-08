@@ -29,6 +29,7 @@ namespace Game
 
         private float timeSinceLastBurst = 0.0f;
         private bool burstInProgress = false;
+        private bool currentlyFiring = false;
 
         private StablePD PD = new StablePD();
         private V3PidController RotationPID = new V3PidController();
@@ -114,15 +115,19 @@ namespace Game
 
             Transform pose = physicsActor.Pose;
 
-            Vector3 playerDirection = targetLocation - pose.Position;
+            Transform fPointTransform = new(FirePointPosition, Quaternion.Identity);
+            fPointTransform = fPointTransform.TransformBy(pose);
             //playerDirection.y = MathFX.Clamp(playerDirection.y, -2.0f, 2.0f);
+            Vector3 firePlayerDirection = targetLocation - fPointTransform.Position;
+            firePlayerDirection.Normalize();
+
+            Vector3 playerDirection = targetLocation - pose.Position;
             playerDirection.Normalize();
 
             targetLocation -= playerDirection * 3.5f;
             targetLocation.y = MathF.Max(targetLocation.y, groundHeight + 2.5f);
 
-            Quaternion targetRotation = Quaternion.SafeLookAt(playerDirection);
-
+            Quaternion targetRotation = Quaternion.SafeLookAt(firePlayerDirection);
 
             return new Transform(targetLocation, targetRotation);
         }
@@ -158,7 +163,7 @@ namespace Game
 
         private void UpdateFiring(Entity entity)
         {
-            const float burstPeriod = 1.0f;
+            const float burstPeriod = 2.0f;
 
             var physicsActor = Registry.GetComponent<DynamicPhysicsActor>(entity);
             Transform pose = physicsActor.Pose;
@@ -182,7 +187,9 @@ namespace Game
 
             Audio.PlayOneShotEvent("event:/Drone/Charging", physicsActor.Pose.Position + Vector3.Up);
 
-            await Task.Delay(1000);
+            await Task.Delay(800);
+            currentlyFiring = true;
+            await Task.Delay(200);
 
             for (int i = 0; i < 4; i++)
             {
@@ -221,6 +228,7 @@ namespace Game
                 await Task.Delay(100);
             }
 
+            currentlyFiring = false;
             burstInProgress = false;
             timeSinceLastBurst = 0.0f;
         }
@@ -265,9 +273,18 @@ namespace Game
 
             bool foundFloor = Physics.Raycast(pose.Position + (Vector3.Down * 0.1f), Vector3.Down, out RaycastHit rHit, 50.0f);
 
-            if (!burstInProgress)
+            if (!currentlyFiring)
             {
-                _targetPosition = Registry.GetTransform(_target).Position;
+                if (!Registry.HasComponent<DynamicPhysicsActor>(_target))
+                {
+                    _targetPosition = Registry.GetTransform(_target).Position;
+                }
+                else
+                {
+                    var dpa = Registry.GetComponent<DynamicPhysicsActor>(_target);
+                    var com = dpa.CenterOfMassLocalPose.TransformBy(dpa.Pose);
+                    _targetPosition = com.Position;
+                }
             }
 
             Transform targetPose = CalculateTargetPose(entity, _targetPosition, foundFloor ? rHit.WorldHitPos.y : pose.Position.y + 0.01f);
