@@ -54,6 +54,7 @@ extern "C" {
     }
 }
 
+EngineInterfaces csharpInterfaces;
 #include "RegistryBindings.hpp"
 #include "WorldObjectBindings.hpp"
 #include "AssetDBBindings.hpp"
@@ -69,6 +70,16 @@ extern "C" {
 #include "VRBindings.hpp"
 #include "WorldLightBindings.hpp"
 #include "ImGui/cimgui.h"
+
+extern "C" {
+    EXPORT void sceneloader_loadScene(AssetID id) {
+        csharpInterfaces.engine->loadScene(id);
+    }
+
+    EXPORT AssetID sceneloader_getCurrentSceneID() {
+        return csharpInterfaces.engine->getCurrentSceneInfo().id;
+    }
+}
 
 namespace worlds {
     LibraryHandle_t loadLibrary(const char* path) {
@@ -92,6 +103,7 @@ namespace worlds {
         , reg(reg) {
         csharpInputManager = interfaces.inputManager;
         csharpVrInterface = interfaces.vrInterface;
+        csharpInterfaces = interfaces;
     }
 
     bool DotNetScriptEngine::initialise(Editor* editor) {

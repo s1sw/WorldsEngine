@@ -108,12 +108,20 @@ namespace WorldsEngine
             simulateSyncContext.ClearCallbacks();
             updateSyncContext.ClearCallbacks();
 
-            foreach (var system in hotloadManager.Systems)
+            try
             {
-                system.OnSceneStart();
+                foreach (var system in hotloadManager.Systems)
+                {
+                    system.OnSceneStart();
+                }
+
+                Registry.OnSceneStart();
+            }
+            catch (Exception e)
+            {
+                Logger.LogError($"Caught exception: {e}");
             }
 
-            Registry.OnSceneStart();
             SceneRunning = true;
         }
 
