@@ -144,6 +144,12 @@ namespace WorldsEngine.ComponentMeta
                 ImGui.DragInt(fieldName, ref val);
                 fieldInfo.SetValue(instance, val);
             }
+            else if (fieldInfo.FieldType == typeof(uint))
+            {
+                uint val = (uint)fieldInfo.GetValue(instance)!;
+                ImGui.DragScalar(fieldName, ImGuiDataType.U32, (IntPtr)(&val), 1.0f);
+                fieldInfo.SetValue(instance, val);
+            }
             else if (fieldInfo.FieldType == typeof(float))
             {
                 float val = (float)fieldInfo.GetValue(instance)!;

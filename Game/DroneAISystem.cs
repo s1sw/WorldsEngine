@@ -158,7 +158,7 @@ namespace Game
 
         private void UpdateFiring(Entity entity)
         {
-            const float burstPeriod = 3.0f;
+            const float burstPeriod = 1.0f;
 
             var physicsActor = Registry.GetComponent<DynamicPhysicsActor>(entity);
             Transform pose = physicsActor.Pose;
@@ -216,7 +216,7 @@ namespace Game
 
                 var damagingProjectile = Registry.GetComponent<DamagingProjectile>(projectile);
                 damagingProjectile.Attacker = entity;
-                damagingProjectile.Damage = 40.0;
+                damagingProjectile.Damage = 30.0;
 
                 await Task.Delay(100);
             }
