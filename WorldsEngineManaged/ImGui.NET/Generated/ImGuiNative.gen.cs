@@ -233,9 +233,9 @@ namespace ImGuiNET
         [DllImport(WorldsEngine.WorldsEngine.NativeModule, CallingConvention = CallingConvention.Cdecl)]
         public static extern void igGetFontTexUvWhitePixel(Vector2* pOut);
         [DllImport(WorldsEngine.WorldsEngine.NativeModule, CallingConvention = CallingConvention.Cdecl)]
-        public static extern ImDrawList* igGetForegroundDrawListNil();
+        public static extern ImDrawList* igGetForegroundDrawList_Nil();
         [DllImport(WorldsEngine.WorldsEngine.NativeModule, CallingConvention = CallingConvention.Cdecl)]
-        public static extern ImDrawList* igGetForegroundDrawListViewportPtr(ImGuiViewport* viewport);
+        public static extern ImDrawList* igGetForegroundDrawList_ViewportPtr(ImGuiViewport* viewport);
         [DllImport(WorldsEngine.WorldsEngine.NativeModule, CallingConvention = CallingConvention.Cdecl)]
         public static extern int igGetFrameCount();
         [DllImport(WorldsEngine.WorldsEngine.NativeModule, CallingConvention = CallingConvention.Cdecl)]
