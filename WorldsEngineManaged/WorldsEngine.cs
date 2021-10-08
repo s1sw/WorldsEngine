@@ -72,6 +72,12 @@ namespace WorldsEngine
             updateSyncContext = new EngineSynchronizationContext();
             simulateSyncContext = new EngineSynchronizationContext();
             editorUpdateSyncContext = new EngineSynchronizationContext();
+
+            GameAssemblyManager.OnAssemblyUnload += () =>
+            {
+                updateSyncContext.ClearCallbacks();
+                simulateSyncContext.ClearCallbacks();
+            };
         }
 
         [UsedImplicitly]
@@ -98,6 +104,9 @@ namespace WorldsEngine
         static void OnSceneStart()
         {
             Logger.Log("Scene started!");
+
+            simulateSyncContext.ClearCallbacks();
+            updateSyncContext.ClearCallbacks();
 
             foreach (var system in hotloadManager.Systems)
             {

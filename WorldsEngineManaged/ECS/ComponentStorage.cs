@@ -186,29 +186,22 @@ namespace WorldsEngine
                 throw new ArgumentException("Trying to remove a component that isn't there");
 
             int index = GetIndexOf(entity);
-
-            if (index == packedEntities.Count - 1)
-            {
-                _sparseStorage[entity] = -1;
-                packedEntities.RemoveAt(index);
-                components.RemoveAt(index);
-                return;
-            }
+            int lastIndex = packedEntities.Count - 1;
 
             // To remove an entity, we want to swap the entity we're removing with the one at the end of the packed list.
-            Entity replacementEntity = packedEntities[packedEntities.Count - 1];
-            T replacementComponent = components[packedEntities.Count - 1];
-
-            // Remove this entity from the sparse set
-            _sparseStorage[entity] = -1;
+            Entity replacementEntity = packedEntities[lastIndex];
+            T replacementComponent = components[lastIndex];
 
             _sparseStorage[replacementEntity] = index;
+
             packedEntities[index] = replacementEntity;
             components[index] = replacementComponent;
 
+            _sparseStorage[entity] = -1;
 
-            packedEntities.RemoveAt(packedEntities.Count - 1);
-            components.RemoveAt(packedEntities.Count - 1);
+            
+            packedEntities.RemoveAt(lastIndex);
+            components.RemoveAt(lastIndex);
         }
 
         public void SerializeForHotload()

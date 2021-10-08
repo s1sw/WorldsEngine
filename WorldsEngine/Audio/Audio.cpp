@@ -179,14 +179,15 @@ namespace worlds {
         phononPluginName = "libphonon_fmod.so";
 #endif
         //FMCHECK(FMOD::Debug_Initialize(FMOD_DEBUG_LEVEL_WARNING, FMOD_DEBUG_MODE_CALLBACK, fmodDebugCallback));
-        void* fmodHeap = malloc(20000 * 2 * 512); // 20MB
-        FMOD::Memory_Initialize(fmodHeap, 20000 * 2 * 512, nullptr, nullptr, nullptr);
+        //size_t fmodHeapSize = 100000 * 2 * 512;
+        //void* fmodHeap = malloc(fmodHeapSize);
+        //FMOD::Memory_Initialize(fmodHeap, 20000 * 2 * 512, nullptr, nullptr, nullptr);
 
         FMCHECK(FMOD::Studio::System::create(&studioSystem));
         FMCHECK(studioSystem->getCoreSystem(&system));
         FMCHECK(system->setSoftwareFormat(0, FMOD_SPEAKERMODE_STEREO, 0));
 
-        FMCHECK(studioSystem->initialize(1024, FMOD_STUDIO_INIT_NORMAL | FMOD_STUDIO_INIT_LIVEUPDATE, FMOD_INIT_NORMAL, nullptr));
+        FMCHECK(studioSystem->initialize(2048, FMOD_STUDIO_INIT_NORMAL | FMOD_STUDIO_INIT_LIVEUPDATE, FMOD_INIT_NORMAL, nullptr));
         FMCHECK(studioSystem->setNumListeners(1));
 
         FMCHECK(system->setFileSystem(fileOpenCallback, fileCloseCallback, fileReadCallback, fileSeekCallback, nullptr, nullptr, -1));

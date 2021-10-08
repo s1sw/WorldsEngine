@@ -38,5 +38,10 @@ namespace WorldsEngine
                 callback.Callback.Invoke(callback.State);
             }
         }
+
+        public void ClearCallbacks()
+        {
+            callbacks.Clear();
+        }
     }
 }
