@@ -921,12 +921,12 @@ namespace worlds {
                 cloneComponent<ProxyAOComponent>(registry, renderRegistry);
                 cloneComponent<SphereAOProxy>(registry, renderRegistry);
 
-                auto sortLambda = [&](entt::entity a, entt::entity b) {
-                    auto& aTransform = registry.get<Transform>(a);
-                    auto& bTransform = registry.get<Transform>(b);
-                    return glm::distance2(camPos, aTransform.position) < glm::distance2(camPos, bTransform.position);
-                };
-                renderRegistry.sort<WorldObject, decltype(sortLambda)>(sortLambda);
+                //auto sortLambda = [&](entt::entity a, entt::entity b) {
+                //    auto& aTransform = registry.get<Transform>(a);
+                //    auto& bTransform = registry.get<Transform>(b);
+                //    return glm::distance2(camPos, aTransform.position) < glm::distance2(camPos, bTransform.position);
+                //};
+                //renderRegistry.sort<WorldObject, decltype(sortLambda)>(sortLambda);
                 renderRegistry.set<SceneSettings>(registry.ctx<SceneSettings>());
 
                 ImGui::Render();
