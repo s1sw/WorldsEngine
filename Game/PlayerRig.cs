@@ -154,7 +154,7 @@ namespace Game
                     _timeSinceDodge = 0.0f;
                 }
 
-                if (Keyboard.KeyPressed(KeyCode.NumberRow0))
+                if (Keyboard.KeyPressed(KeyCode.NumberRow2))
                 {
                     Vector3 dodgeDir = Camera.Main.Rotation * Vector3.Right;
                     _lastDogeDirection = dodgeDir;
