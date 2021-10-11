@@ -2,6 +2,7 @@
 #include "AssetCompilation/AssetCompilerUtil.hpp"
 #include "Core/Log.hpp"
 #include "IO/IOUtil.hpp"
+#include "glm/gtc/type_ptr.hpp"
 #include "nlohmann/json.hpp"
 #include <WMDL.hpp>
 #include <assimp/scene.h>
@@ -14,6 +15,7 @@
 #include <vector>
 #include "../Libs/mikktspace.h"
 #include "../Libs/weldmesh.h"
+#include "robin_hood.h"
 #include <slib/Path.hpp>
 #include <filesystem>
 #define _CRT_SECURE_NO_WARNINGS
@@ -41,8 +43,10 @@ namespace worlds {
     };
 
     struct TangentCalcCtx {
-        std::vector<wmdl::Vertex2>& verts;
+        const std::vector<wmdl::Vertex2>& verts;
         std::vector<wmdl::Vertex2>& outVerts;
+        const std::vector<wmdl::VertexSkinningInfo>& skinInfo;
+        std::vector<wmdl::VertexSkinningInfo>& outSkinInfo;
     };
 
     void getPosition(const SMikkTSpaceContext* ctx, float outPos[3], const int face, const int vertIdx) {
@@ -50,7 +54,7 @@ namespace worlds {
 
         int baseIndexIndex = face * 3;
 
-        wmdl::Vertex2& vert = tcc->verts[baseIndexIndex + vertIdx];
+        const wmdl::Vertex2& vert = tcc->verts[baseIndexIndex + vertIdx];
 
         outPos[0] = vert.position.x;
         outPos[1] = vert.position.y;
@@ -62,7 +66,7 @@ namespace worlds {
 
         int baseIndexIndex = face * 3;
 
-        wmdl::Vertex2& vert = tcc->verts[baseIndexIndex + vertIdx];
+        const wmdl::Vertex2& vert = tcc->verts[baseIndexIndex + vertIdx];
 
         outNorm[0] = vert.normal.x;
         outNorm[1] = vert.normal.y;
@@ -74,7 +78,7 @@ namespace worlds {
 
         int baseIndexIndex = face * 3;
 
-        wmdl::Vertex2& vert = tcc->verts[baseIndexIndex + vertIdx];
+        const wmdl::Vertex2& vert = tcc->verts[baseIndexIndex + vertIdx];
 
         outTC[0] = vert.uv.x;
         outTC[1] = vert.uv.y;
@@ -85,11 +89,13 @@ namespace worlds {
 
         int baseIndexIndex = iFace * 3;
 
-        wmdl::Vertex2& vert = tcc->verts[baseIndexIndex + iVert];
+        wmdl::Vertex2 vert = tcc->verts[baseIndexIndex + iVert];
         vert.tangent = glm::vec3(fvTangent[0], fvTangent[1], fvTangent[2]);
         vert.bitangentSign = fSign;
 
         tcc->outVerts[(iFace * 3) + iVert] = vert;
+        if (tcc->skinInfo.size() > 0)
+            tcc->outSkinInfo[(iFace * 3) + iVert] = tcc->skinInfo[baseIndexIndex + iVert];
     }
 
     int getNumFaces(const SMikkTSpaceContext* ctx) {
@@ -106,14 +112,83 @@ namespace worlds {
     struct Mesh {
         std::vector<wmdl::Vertex2> verts;
         std::vector<uint32_t> indices;
+        std::vector<wmdl::VertexSkinningInfo> vertSkins;
+        std::vector<wmdl::Bone> bones;
         uint32_t indexOffsetInFile;
         uint32_t materialIdx;
     };
 
+
+    glm::mat4 convMtx(aiMatrix4x4& m4) {
+        aiMatrix4x4 m4t = m4.Transpose();
+        return glm::mat4 {
+            glm::make_vec4(m4t[0]),
+            glm::make_vec4(m4t[1]),
+            glm::make_vec4(m4t[2]),
+            glm::make_vec4(m4t[3])
+        };
+    }
+
     Mesh processAiMesh(aiMesh* aiMesh) {
+        bool hasBones = aiMesh->mNumBones > 0;
+
         Mesh mesh;
         mesh.materialIdx = aiMesh->mMaterialIndex;
         mesh.verts.reserve(mesh.verts.size() + aiMesh->mNumVertices);
+
+        robin_hood::unordered_flat_map<std::string, uint32_t> boneIds;
+
+        if (hasBones) {
+            mesh.vertSkins.resize(mesh.verts.size());
+            for (size_t i = 0; i < mesh.vertSkins.size(); i++) {
+                for (int j = 0; j < 4; j++) {
+                    mesh.vertSkins[i].boneId[j] = 0;
+                    mesh.vertSkins[i].boneWeight[j] = 0.0f;
+                }
+            }
+        }
+
+        for (unsigned int i = 0; i < aiMesh->mNumBones; i++) {
+            uint32_t boneIdx = 0;
+            aiBone* aiBone = aiMesh->mBones[i];
+
+            if (!boneIds.contains(aiBone->mName.C_Str())) {
+                boneIdx = mesh.bones.size();
+
+                wmdl::Bone bone;
+                bone.setName(aiBone->mName.C_Str());
+                bone.restTransform = convMtx(aiBone->mOffsetMatrix);
+
+                mesh.bones.push_back(bone);
+                boneIds.insert({ aiBone->mName.C_Str(), boneIdx });
+            } else {
+                boneIdx = boneIds[aiMesh->mBones[i]->mName.C_Str()];
+            }
+
+            for (uint32_t j = 0; j < aiBone->mNumWeights; j++) {
+                uint32_t vertexId = aiBone->mWeights[j].mVertexId;
+                float weight = aiBone->mWeights[j].mWeight;
+
+                if (weight == 0.0f) continue;
+
+                wmdl::VertexSkinningInfo& skinInfo = mesh.vertSkins[vertexId];
+
+                // Find the first bone index with 0 weight
+                uint32_t freeIdx = ~0u;
+
+                for (int k = 0; k < 4; k++) {
+                    if (skinInfo.boneWeight[k] == 0.0f) {
+                        freeIdx = k;
+                        break;
+                    }
+                }
+
+                if (freeIdx != ~0u) {
+                    skinInfo.boneWeight[freeIdx] = weight;
+                    skinInfo.boneId[freeIdx] = i;
+                }
+            }
+        }
 
         for (unsigned int j = 0; j < aiMesh->mNumFaces; j++) {
             for (int k = 0; k < 3; k++) {
@@ -129,7 +204,8 @@ namespace worlds {
         }
 
         std::vector<wmdl::Vertex2> mikkTSpaceOut(mesh.verts.size());
-        TangentCalcCtx tCalcCtx{ mesh.verts, mikkTSpaceOut };
+        std::vector<wmdl::VertexSkinningInfo> mikkTSpaceOutSkinInfo(mesh.vertSkins.size());
+        TangentCalcCtx tCalcCtx{ mesh.verts, mikkTSpaceOut, mesh.vertSkins, mikkTSpaceOutSkinInfo };
 
         SMikkTSpaceInterface interface {};
         interface.m_getNumFaces = getNumFaces;
@@ -154,6 +230,13 @@ namespace worlds {
         mesh.indices.reserve(mikkTSpaceOut.size());
         for (int i = 0; i < mikkTSpaceOut.size(); i++) {
             mesh.indices.push_back(remapTable[i]);
+        }
+
+        if (hasBones) {
+            mesh.vertSkins.resize(finalVertCount);
+            for (int i = 0; i < mikkTSpaceOutSkinInfo.size(); i++) {
+                mesh.vertSkins[remapTable[i]] = mikkTSpaceOutSkinInfo[i];
+            }
         }
 
         return mesh;
@@ -211,6 +294,12 @@ namespace worlds {
 
         std::vector<wmdl::Vertex2> combinedVerts;
         std::vector<uint32_t> combinedIndices;
+
+        std::vector<wmdl::Bone> combinedBones;
+        robin_hood::unordered_map<std::string, uint32_t> combinedBoneIds;
+
+        std::vector<wmdl::VertexSkinningInfo> combinedVertSkinningInfo;
+
         for (uint32_t i = 0; i < meshes.size(); i++) {
             compileOp->progress = (PROGRESS_PER_STEP * 2) + (perMeshProgress * i);
             auto& mesh = meshes[i];
@@ -224,19 +313,42 @@ namespace worlds {
             for (auto& vtx : mesh.verts) {
                 combinedVerts.push_back(vtx);
             }
+
+            for (auto& bone : mesh.bones) {
+                combinedBoneIds.insert({ bone.name, combinedBones.size() });
+                combinedBones.push_back(bone);
+            }
+
+            for (auto& skinInfo : mesh.vertSkins) {
+                for (int j = 0; j < 4; j++) {
+                    if (skinInfo.boneWeight[j] == 0.0f) continue;
+                    skinInfo.boneId[j] = combinedBoneIds[mesh.bones[skinInfo.boneId[j]].name];
+                }
+            }
         }
         compileOp->progress = PROGRESS_PER_STEP * 3;
 
         wmdl::Header hdr;
         hdr.useSmallIndices = false;
         hdr.numSubmeshes = scene->mNumMeshes;
-        hdr.submeshOffset = sizeof(hdr);
-        hdr.vertexOffset = sizeof(hdr) + sizeof(wmdl::SubmeshInfo) * meshes.size();
+        hdr.submeshOffset = sizeof(hdr) + sizeof(wmdl::SkinningInfoBlock) +
+            (sizeof(wmdl::VertexSkinningInfo) * combinedVertSkinningInfo.size()) +(sizeof(wmdl::Bone) * combinedBones.size());
+        hdr.vertexOffset = hdr.submeshOffset + (sizeof(wmdl::SubmeshInfo) * meshes.size());
         hdr.indexOffset = hdr.vertexOffset + combinedVerts.size() * sizeof(wmdl::Vertex2);
         hdr.numVertices = combinedVerts.size();
         hdr.numIndices = combinedIndices.size();
 
         PHYSFS_writeBytes(outFile, &hdr, sizeof(hdr));
+
+        wmdl::SkinningInfoBlock skinBlock;
+        skinBlock.numBones = combinedBones.size();
+        skinBlock.boneOffset = sizeof(hdr) + sizeof(skinBlock);
+        skinBlock.skinningInfoOffset = skinBlock.boneOffset + (sizeof(wmdl::Bone) * combinedBones.size());
+
+        PHYSFS_writeBytes(outFile, &skinBlock, sizeof(skinBlock));
+
+        PHYSFS_writeBytes(outFile, combinedBones.data(), combinedBones.size() * sizeof(wmdl::Bone));
+        PHYSFS_writeBytes(outFile, combinedVertSkinningInfo.data(), combinedVertSkinningInfo.size() * sizeof(wmdl::VertexSkinningInfo));
 
         int i = 0;
         for (auto& mesh : meshes) {

@@ -166,8 +166,14 @@ namespace worlds {
         std::vector<Bone> bones;
     };
 
+    class Pose {
+    public:
+        std::vector<glm::mat4> boneTransforms;
+    };
+
     struct SkinnedWorldObject : public WorldObject {
         Skeleton* skeleton;
+        Pose currentPose;
     };
 
     struct UseWireframe {};
