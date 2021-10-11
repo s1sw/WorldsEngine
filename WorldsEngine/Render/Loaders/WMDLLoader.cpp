@@ -14,6 +14,9 @@ namespace worlds {
         wmdl::Header* wHdr = (wmdl::Header*)buf;
 
         logVrb("loading wmdl: %i submeshes", wHdr->numSubmeshes);
+        if (wHdr->isSkinned()) {
+            logVrb("wmdl is skinned: %i bones", wHdr->getSkinningInfoBlock()->numBones);
+        }
 
         wmdl::SubmeshInfo* submeshBlock = wHdr->getSubmeshBlock();
         lmd.numSubmeshes = wHdr->numSubmeshes;
