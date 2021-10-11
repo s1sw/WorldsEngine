@@ -35,9 +35,38 @@ namespace wmdl {
         }
     };
 
+    struct SkinningInfoBlock {
+        CountType numBones;
+        OffsetType boneOffset;
+        OffsetType skinningInfoOffset;
+    };
+
+    struct Bone {
+        glm::mat4 restTransform;
+        char name[32] = {0};
+
+        void setName(const char* name) {
+            int i = 0;
+            for (; i < 32; i++) {
+                this->name[i] = name[i];
+
+                if (name[i] == '\0') break;
+            }
+
+            for (; i < 32; i++) {
+                this->name[i] = 0;
+            }
+        }
+    };
+
+    struct VertexSkinningInfo {
+        uint32_t boneId[4];
+        float boneWeight[4];
+    };
+
     struct Header {
         char magic[4] = {'W', 'M', 'D', 'L'};
-        int version = 2;
+        int version = 3;
         bool useSmallIndices;
         CountType numSubmeshes;
         CountType numVertices;
@@ -67,8 +96,27 @@ namespace wmdl {
         }
         
         Vertex2* getVertex2Block() {
-            assert(version == 2);
+            assert(version >= 2);
             return (Vertex2*)getRelPtr(vertexOffset);
+        }
+
+        SkinningInfoBlock* getSkinningInfoBlock() {
+            assert(version >= 3);
+            return (SkinningInfoBlock*)(this + 1);
+        }
+
+        Bone* getBones() {
+            assert(version >= 3);
+            return (Bone*)getRelPtr(getSkinningInfoBlock()->boneOffset);
+        }
+
+        VertexSkinningInfo* getVertexSkinningInfo() {
+            assert(version >= 3);
+            return (VertexSkinningInfo*)getRelPtr(getSkinningInfoBlock()->skinningInfoOffset);
+        }
+
+        bool isSkinned() {
+            return version >= 3 && getSkinningInfoBlock()->numBones > 0;
         }
 
         uint32_t* getIndexBlock() {
