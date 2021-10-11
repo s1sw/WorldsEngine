@@ -139,7 +139,7 @@ namespace worlds {
         robin_hood::unordered_flat_map<std::string, uint32_t> boneIds;
 
         if (hasBones) {
-            mesh.vertSkins.resize(mesh.verts.size());
+            mesh.vertSkins.resize(aiMesh->mNumVertices);
             for (size_t i = 0; i < mesh.vertSkins.size(); i++) {
                 for (int j = 0; j < 4; j++) {
                     mesh.vertSkins[i].boneId[j] = 0;
@@ -190,6 +190,9 @@ namespace worlds {
             }
         }
 
+        std::vector<wmdl::VertexSkinningInfo> vsi2;
+        vsi2.reserve(aiMesh->mNumFaces * 3);
+
         for (unsigned int j = 0; j < aiMesh->mNumFaces; j++) {
             for (int k = 0; k < 3; k++) {
                 int idx = aiMesh->mFaces[j].mIndices[k];
@@ -200,8 +203,11 @@ namespace worlds {
                 vtx.bitangentSign = 0.0f;
                 vtx.uv = !aiMesh->HasTextureCoords(0) ? glm::vec2(0.0f) : toGlm(aiMesh->mTextureCoords[0][idx]);
                 mesh.verts.push_back(vtx);
+                vsi2.push_back(mesh.vertSkins[idx]);
             }
         }
+
+        mesh.vertSkins = std::move(vsi2);
 
         std::vector<wmdl::Vertex2> mikkTSpaceOut(mesh.verts.size());
         std::vector<wmdl::VertexSkinningInfo> mikkTSpaceOutSkinInfo(mesh.vertSkins.size());
@@ -254,7 +260,7 @@ namespace worlds {
         const aiScene* scene = importer.ReadFileFromMemory(data, dataSize,
                 aiProcess_OptimizeMeshes |
                 aiProcess_Triangulate |
-                aiProcess_PreTransformVertices |
+                aiProcess_OptimizeGraph |
                 aiProcess_JoinIdenticalVertices |
                 aiProcess_FlipUVs, extension);
 
