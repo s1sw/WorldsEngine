@@ -119,8 +119,9 @@ namespace worlds {
     };
 
 
-    glm::mat4 convMtx(aiMatrix4x4& m4) {
-        aiMatrix4x4 m4t = m4.Transpose();
+    glm::mat4 convMtx(const aiMatrix4x4& m4) {
+        aiMatrix4x4 m4t = m4;
+        m4t.Transpose();
         return glm::mat4 {
             glm::make_vec4(m4t[0]),
             glm::make_vec4(m4t[1]),
@@ -129,7 +130,7 @@ namespace worlds {
         };
     }
 
-    Mesh processAiMesh(aiMesh* aiMesh, aiNode* node) {
+    Mesh processAiMesh(aiMesh* aiMesh, aiNode* node, aiMatrix4x4 hierarchyTransform) {
         bool hasBones = aiMesh->mNumBones > 0;
 
         Mesh mesh;
@@ -197,9 +198,9 @@ namespace worlds {
             for (int k = 0; k < 3; k++) {
                 int idx = aiMesh->mFaces[j].mIndices[k];
                 wmdl::Vertex2 vtx;
-                vtx.position = convMtx(node->mTransformation) * glm::vec4(toGlm(aiMesh->mVertices[idx]), 1.0f);
-                //vtx.normal = glm::transpose(glm::inverse(convMtx(node->mTransformation))) * glm::vec4(toGlm(aiMesh->mNormals[idx]), 0.0f);
-                vtx.normal = toGlm(aiMesh->mNormals[idx]);
+                vtx.position = convMtx(node->mTransformation * hierarchyTransform) * glm::vec4(toGlm(aiMesh->mVertices[idx]), 1.0f);
+                vtx.normal = glm::transpose(glm::inverse(convMtx(node->mTransformation))) * glm::vec4(toGlm(aiMesh->mNormals[idx]), 0.0f);
+                //vtx.normal = toGlm(aiMesh->mNormals[idx]);
                 vtx.tangent = glm::vec3{0.0f};
                 vtx.bitangentSign = 0.0f;
                 vtx.uv = !aiMesh->HasTextureCoords(0) ? glm::vec2(0.0f) : toGlm(aiMesh->mTextureCoords[0][idx]);
@@ -257,13 +258,13 @@ namespace worlds {
         return mesh;
     }
 
-    void processNode(aiNode* node, std::vector<Mesh>& meshes, const aiScene* scene) {
+    void processNode(aiNode* node, std::vector<Mesh>& meshes, const aiScene* scene, aiMatrix4x4 parentTransform) {
         for (int i = 0; i < node->mNumMeshes; i++) {
-            meshes.push_back(processAiMesh(scene->mMeshes[node->mMeshes[i]], node));
+            meshes.push_back(processAiMesh(scene->mMeshes[node->mMeshes[i]], node, parentTransform));
         }
 
         for (int i = 0; i < node->mNumChildren; i++) {
-            processNode(node->mChildren[i], meshes, scene);
+            processNode(node->mChildren[i], meshes, scene, node->mTransformation * parentTransform);
         }
     }
 
@@ -277,10 +278,21 @@ namespace worlds {
         logMsg("Loading file...");
 
         const aiScene* scene = importer.ReadFileFromMemory(data, dataSize,
-                aiProcess_OptimizeMeshes |
-                aiProcess_Triangulate |
-                aiProcess_OptimizeGraph |
+                aiProcess_CalcTangentSpace |
+                aiProcess_GenSmoothNormals |
                 aiProcess_JoinIdenticalVertices |
+                aiProcess_ImproveCacheLocality |
+                aiProcess_LimitBoneWeights |
+                aiProcess_RemoveRedundantMaterials |
+                aiProcess_Triangulate |
+                aiProcess_GenUVCoords |
+                aiProcess_SortByPType |
+                aiProcess_FindDegenerates |
+                aiProcess_FindInvalidData |
+                aiProcess_FindInstances |
+                aiProcess_ValidateDataStructure |
+                aiProcess_OptimizeMeshes |
+                aiProcess_OptimizeGraph |
                 aiProcess_FlipUVs, extension);
 
         compileOp->progress = PROGRESS_PER_STEP;
@@ -315,7 +327,7 @@ namespace worlds {
         //    meshes.push_back(processAiMesh(mesh));
         //}
 
-        processNode(scene->mRootNode, meshes, scene);
+        processNode(scene->mRootNode, meshes, scene, aiMatrix4x4{});
 
         compileOp->progress = PROGRESS_PER_STEP * 2;
 

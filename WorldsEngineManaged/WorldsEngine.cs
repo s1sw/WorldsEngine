@@ -219,6 +219,7 @@ namespace WorldsEngine
             if (ImGui.Begin("Misc"))
             {
                 ImGui.Text($"Managed memory usage at last GC: {GC.GetGCMemoryInfo().HeapSizeBytes / 1000:N0}K");
+                ImGui.Text($"Current managed memory usage: {GC.GetTotalMemory(false) / 1000:N0}K");
 
                 if (ImGui.Button("Force Collection"))
                 {
