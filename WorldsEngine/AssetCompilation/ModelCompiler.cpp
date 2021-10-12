@@ -129,7 +129,7 @@ namespace worlds {
         };
     }
 
-    Mesh processAiMesh(aiMesh* aiMesh) {
+    Mesh processAiMesh(aiMesh* aiMesh, aiNode* node) {
         bool hasBones = aiMesh->mNumBones > 0;
 
         Mesh mesh;
@@ -197,13 +197,22 @@ namespace worlds {
             for (int k = 0; k < 3; k++) {
                 int idx = aiMesh->mFaces[j].mIndices[k];
                 wmdl::Vertex2 vtx;
-                vtx.position = toGlm(aiMesh->mVertices[idx]);
+                vtx.position = convMtx(node->mTransformation) * glm::vec4(toGlm(aiMesh->mVertices[idx]), 1.0f);
+                //vtx.normal = glm::transpose(glm::inverse(convMtx(node->mTransformation))) * glm::vec4(toGlm(aiMesh->mNormals[idx]), 0.0f);
                 vtx.normal = toGlm(aiMesh->mNormals[idx]);
                 vtx.tangent = glm::vec3{0.0f};
                 vtx.bitangentSign = 0.0f;
                 vtx.uv = !aiMesh->HasTextureCoords(0) ? glm::vec2(0.0f) : toGlm(aiMesh->mTextureCoords[0][idx]);
                 mesh.verts.push_back(vtx);
-                vsi2.push_back(mesh.vertSkins[idx]);
+            }
+        }
+
+        if (hasBones) {
+            for (unsigned int j = 0; j < aiMesh->mNumFaces; j++) {
+                for (int k = 0; k < 3; k++) {
+                    int idx = aiMesh->mFaces[j].mIndices[k];
+                    vsi2.push_back(mesh.vertSkins[idx]);
+                }
             }
         }
 
@@ -248,6 +257,16 @@ namespace worlds {
         return mesh;
     }
 
+    void processNode(aiNode* node, std::vector<Mesh>& meshes, const aiScene* scene) {
+        for (int i = 0; i < node->mNumMeshes; i++) {
+            meshes.push_back(processAiMesh(scene->mMeshes[node->mMeshes[i]], node));
+        }
+
+        for (int i = 0; i < node->mNumChildren; i++) {
+            processNode(node->mChildren[i], meshes, scene);
+        }
+    }
+
     ErrorCodes convertModel(AssetCompileOperation* compileOp, PHYSFS_File* outFile, void* data, size_t dataSize, const char* extension) {
         const int NUM_STEPS = 5;
         const float PROGRESS_PER_STEP = 1.0f / NUM_STEPS;
@@ -290,11 +309,13 @@ namespace worlds {
         std::vector<Mesh> meshes;
 
         float perMeshProgress = PROGRESS_PER_STEP / scene->mNumMeshes;
-        for (unsigned int i = 0; i < scene->mNumMeshes; i++) {
-            compileOp->progress = PROGRESS_PER_STEP + (i * perMeshProgress);
-            auto mesh = scene->mMeshes[i];
-            meshes.push_back(processAiMesh(mesh));
-        }
+        //for (unsigned int i = 0; i < scene->mNumMeshes; i++) {
+        //    compileOp->progress = PROGRESS_PER_STEP + (i * perMeshProgress);
+        //    auto mesh = scene->mMeshes[i];
+        //    meshes.push_back(processAiMesh(mesh));
+        //}
+
+        processNode(scene->mRootNode, meshes, scene);
 
         compileOp->progress = PROGRESS_PER_STEP * 2;
 
