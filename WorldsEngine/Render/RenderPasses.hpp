@@ -47,6 +47,10 @@ namespace worlds {
         uint32_t drawMiscFlags;
         bool opaque;
         bool dontPrepass;
+
+        bool skinned;
+        uint32_t boneMatrixOffset;
+        VkBuffer boneVB;
     };
 
     class DebugLinesPass {
@@ -89,6 +93,7 @@ namespace worlds {
     private:
         VkPipeline depthPrePipeline;
         VkPipeline alphaTestPipeline;
+        VkPipeline skinnedPipeline;
         VulkanHandles* handles;
         VkPipelineLayout layout;
     public:
@@ -188,6 +193,7 @@ namespace worlds {
         VkPipeline pipeline;
         VkPipeline noBackfaceCullPipeline;
         VkPipeline alphaTestPipeline;
+        VkPipeline skinnedPipeline;
         VkPipelineLayout pipelineLayout;
         VkDescriptorSetLayout dsl;
 
@@ -197,6 +203,7 @@ namespace worlds {
         LightUB* lightMapped;
         LightTileInfoBuffer* lightTileInfoMapped;
         std::vector<ModelMatrices*> modelMatricesMapped;
+        glm::mat4* skinningMatricesMapped;
 
         vku::GenericBuffer lightsUB;
         vku::GenericBuffer lightTileInfoBuffer;
@@ -205,6 +212,7 @@ namespace worlds {
 
         std::vector<vku::GenericBuffer> modelMatrixUB;
         vku::GenericBuffer pickingBuffer;
+        vku::GenericBuffer skinningMatrixUB;
 
         VkShaderModule fragmentShader;
         VkShaderModule vertexShader;

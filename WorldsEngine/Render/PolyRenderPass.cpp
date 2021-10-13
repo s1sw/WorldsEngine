@@ -46,7 +46,8 @@ namespace worlds {
         uint32_t vpIdx;
         uint32_t objectId;
 
-        glm::vec4 cubemapExt;
+        glm::vec3 cubemapExt;
+        uint32_t skinningOffset;
         glm::vec4 cubemapPos;
 
         glm::vec4 texScaleOffset;
@@ -74,7 +75,7 @@ namespace worlds {
         auto& texSlots = ctx.resources.textures;
         auto& cubemapSlots = ctx.resources.cubemaps;
         vku::DescriptorSetUpdater updater(20, 256, 0);
-        size_t i = 0;
+        size_t dsIdx = 0;
         for (VkDescriptorSet& ds : descriptorSets) {
             updater.beginDescriptorSet(ds);
 
@@ -88,7 +89,7 @@ namespace worlds {
             updater.buffer(ctx.resources.materialBuffer->buffer(), 0, sizeof(MaterialsUB));
 
             updater.beginBuffers(3, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-            updater.buffer(modelMatrixUB[i].buffer(), 0, sizeof(ModelMatrices));
+            updater.buffer(modelMatrixUB[dsIdx].buffer(), 0, sizeof(ModelMatrices));
 
             for (uint32_t i = 0; i < texSlots.size(); i++) {
                 if (texSlots.isSlotPresent(i)) {
@@ -125,9 +126,12 @@ namespace worlds {
             updater.buffer(lightTilesBuffer.buffer(), 0, sizeof(LightingTile) * MAX_LIGHT_TILES);
 
             updater.beginBuffers(12, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+            updater.buffer(skinningMatrixUB.buffer(), 0, sizeof(glm::mat4) * 512);
+
+            updater.beginBuffers(13, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
             updater.buffer(pickingBuffer.buffer(), 0, sizeof(PickingBuffer));
 
-            i++;
+            dsIdx++;
         }
         if (!updater.ok())
             fatalErr("updater was not ok");
@@ -169,6 +173,12 @@ namespace worlds {
         pm.vertexAttribute(4, 0, VK_FORMAT_R32G32_SFLOAT, (uint32_t)offsetof(Vertex, uv));
     }
 
+    void setupSkinningVertexFormat(vku::PipelineMaker& pm) {
+        pm.vertexBinding(1, (uint32_t)sizeof(VertSkinningInfo));
+        pm.vertexAttribute(5, 1, VK_FORMAT_R32G32B32A32_SFLOAT, (uint32_t)offsetof(VertSkinningInfo, weights));
+        pm.vertexAttribute(6, 1, VK_FORMAT_R32G32B32A32_UINT, (uint32_t)offsetof(VertSkinningInfo, boneIds));
+    }
+
     void PolyRenderPass::setup(RenderContext& ctx, VkDescriptorPool descriptorPool) {
         ZoneScoped;
 
@@ -207,8 +217,10 @@ namespace worlds {
         dslm.buffer(10, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, 1);
         // Light tiles
         dslm.buffer(11, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, 1);
+        // Skinning matrices
+        dslm.buffer(12, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, 1);
         // Picking
-        dslm.buffer(12, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, 1);
+        dslm.buffer(13, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, 1);
 
         dsl = dslm.create(handles->device);
 
@@ -239,6 +251,12 @@ namespace worlds {
             sizeof(uint32_t) * MAX_LIGHT_TILES, VMA_MEMORY_USAGE_GPU_ONLY, "Light Tile Light Counts"
         );
 
+        skinningMatrixUB = vku::GenericBuffer(
+            handles->device, handles->allocator,
+            VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+            sizeof(glm::mat4) * 512, VMA_MEMORY_USAGE_CPU_TO_GPU, "Skinning Matrices"
+        );
+
 
         for (int i = 0; i < ctx.maxSimultaneousFrames; i++) {
             modelMatrixUB.push_back(vku::GenericBuffer(
@@ -257,6 +275,8 @@ namespace worlds {
         }
         lightMapped = (LightUB*)lightsUB.map(handles->device);
         lightTileInfoMapped = (LightTileInfoBuffer*)lightTileInfoBuffer.map(handles->device);
+
+        skinningMatricesMapped = (glm::mat4*)skinningMatrixUB.map(handles->device);
 
         VkEventCreateInfo eci{ VK_STRUCTURE_TYPE_EVENT_CREATE_INFO };
         vkCreateEvent(handles->device, &eci, nullptr, &pickEvent);
@@ -407,6 +427,45 @@ namespace worlds {
             pm.alphaToCoverageEnable(true);
 
             pipeline = pm.create(handles->device, handles->pipelineCache, pipelineLayout, renderPass);
+        }
+
+        {
+            vku::PipelineMaker pm{ extent.width, extent.height };
+
+            StandardSpecConsts spc{
+                enablePicking,
+                maxParallaxLayers.getFloat(),
+                minParallaxLayers.getFloat(),
+                (bool)enableParallaxMapping.getInt(),
+                (bool)enableProxyAO.getInt()
+            };
+
+            VkShaderModule skinnedVert = ShaderCache::getModule(handles->device, AssetDB::pathToId("Shaders/standard_skinned.vert.spv"));
+
+            standardSpecInfo.pData = &spc;
+
+            pm.shader(VK_SHADER_STAGE_FRAGMENT_BIT, fragmentShader, "main", &standardSpecInfo);
+            pm.shader(VK_SHADER_STAGE_VERTEX_BIT, skinnedVert);
+            setupVertexFormat(pm);
+            setupSkinningVertexFormat(pm);
+            pm.cullMode(VK_CULL_MODE_BACK_BIT);
+
+            if ((int)enableDepthPrepass)
+                pm.depthWriteEnable(false)
+                .depthTestEnable(true)
+                .depthCompareOp(VK_COMPARE_OP_EQUAL);
+            else
+                pm.depthWriteEnable(true)
+                .depthTestEnable(true)
+                .depthCompareOp(VK_COMPARE_OP_GREATER);
+
+            pm.blendBegin(false);
+            pm.frontFace(VK_FRONT_FACE_COUNTER_CLOCKWISE);
+
+            pm.rasterizationSamples(msaaSamples);
+            pm.alphaToCoverageEnable(true);
+
+            skinnedPipeline = pm.create(handles->device, handles->pipelineCache, pipelineLayout, renderPass);
         }
 
         {
@@ -657,6 +716,104 @@ namespace worlds {
 
             matrixIdx++;
             });
+
+        ctx.registry.view<Transform, SkinnedWorldObject>().each([&](entt::entity ent, Transform& t, SkinnedWorldObject& wo) {
+            auto meshPos = resources.meshes.find(wo.mesh);
+
+            if (meshPos == resources.meshes.end()) {
+                // Haven't loaded the mesh yet
+                matrixIdx++;
+                logWarn(WELogCategoryRender, "Missing mesh");
+                return;
+            }
+
+            for (int i = 0; i < meshPos->second.meshBones.size(); i++) {
+                glm::mat4 bonePose = wo.currentPose.boneTransforms[i];
+                skinningMatricesMapped[i] = glm::inverse(meshPos->second.meshBones[i].restPosition) * bonePose;
+            }
+
+            float maxScale = glm::max(t.scale.x, glm::max(t.scale.y, t.scale.z));
+            //if (!ctx.passSettings.enableVR) {
+            //    if (!frustum.containsSphere(t.position, meshPos->second.sphereRadius * maxScale)) {
+            //        ctx.debugContext.stats->numCulledObjs++;
+            //        return;
+            //    }
+            //} else {
+            //    if (!frustum.containsSphere(t.position, meshPos->second.sphereRadius * maxScale) &&
+            //        !frustumB.containsSphere(t.position, meshPos->second.sphereRadius * maxScale)) {
+            //        ctx.debugContext.stats->numCulledObjs++;
+            //        return;
+            //    }
+            //}
+
+            for (int i = 0; i < meshPos->second.numSubmeshes; i++) {
+                auto& currSubmesh = meshPos->second.submeshes[i];
+
+                SubmeshDrawInfo sdi{};
+                sdi.ib = meshPos->second.ib.buffer();
+                sdi.vb = meshPos->second.vb.buffer();
+                sdi.indexCount = currSubmesh.indexCount;
+                sdi.indexOffset = currSubmesh.indexOffset;
+                sdi.materialIdx = ctx.resources.materials.get(wo.materials[i]);
+                sdi.matrixIdx = matrixIdx;
+                sdi.texScaleOffset = wo.texScaleOffset;
+                sdi.ent = ent;
+                sdi.skinned = true;
+                sdi.boneVB = meshPos->second.vertexSkinWeights.buffer();
+                sdi.boneMatrixOffset = 0;
+                auto& packedMat = resources.materials[sdi.materialIdx];
+                sdi.opaque = packedMat.getCutoff() == 0.0f;
+
+                switch (wo.uvOverride) {
+                default:
+                    sdi.drawMiscFlags = 0;
+                    break;
+                case UVOverride::XY:
+                    sdi.drawMiscFlags = ShaderFlags::MISC_FLAG_UV_XY;
+                    break;
+                case UVOverride::XZ:
+                    sdi.drawMiscFlags = ShaderFlags::MISC_FLAG_UV_XZ;
+                    break;
+                case UVOverride::ZY:
+                    sdi.drawMiscFlags = ShaderFlags::MISC_FLAG_UV_ZY;
+                    break;
+                case UVOverride::PickBest:
+                    sdi.drawMiscFlags = ShaderFlags::MISC_FLAG_UV_PICK;
+                    break;
+                }
+
+                uint32_t currCubemapIdx = skyboxId;
+                int lastPriority = INT32_MIN;
+
+                ctx.registry.view<WorldCubemap, Transform>().each([&](WorldCubemap& wc, Transform& cubeT) {
+                    glm::vec3 cPos = t.position;
+                    glm::vec3 ma = wc.extent + cubeT.position;
+                    glm::vec3 mi = cubeT.position - wc.extent;
+
+                    if (cPos.x < ma.x && cPos.x > mi.x &&
+                        cPos.y < ma.y && cPos.y > mi.y &&
+                        cPos.z < ma.z && cPos.z > mi.z && wc.priority > lastPriority) {
+                        currCubemapIdx = resources.cubemaps.get(wc.cubemapId);
+                        if (wc.cubeParallax) {
+                            sdi.drawMiscFlags |= ShaderFlags::MISC_FLAG_CUBEMAP_PARALLAX; // flag for cubemap parallax correction
+                            sdi.cubemapPos = cubeT.position;
+                            sdi.cubemapExt = wc.extent;
+                        }
+                        lastPriority = wc.priority;
+                    }
+                    });
+
+                sdi.cubemapIdx = currCubemapIdx;
+
+                auto& extraDat = resources.materials.getExtraDat(sdi.materialIdx);
+
+                sdi.pipeline = skinnedPipeline;
+
+                ctx.debugContext.stats->numTriangles += currSubmesh.indexCount / 3;
+
+                drawInfo.add(std::move(sdi));
+            }
+            });
     }
 
     void PolyRenderPass::prePass(RenderContext& ctx) {
@@ -801,6 +958,10 @@ namespace worlds {
             VK_DEPENDENCY_BY_REGION_BIT, VK_ACCESS_HOST_WRITE_BIT, VK_ACCESS_UNIFORM_READ_BIT,
             VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED);
 
+        modelMatrixUB[ctx.imageIndex].barrier(
+            cmdBuf, VK_PIPELINE_STAGE_HOST_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+            VK_DEPENDENCY_BY_REGION_BIT, VK_ACCESS_HOST_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,
+            VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED);
 
         if (pickThisFrame) {
             pickingBuffer.barrier(cmdBuf, VK_PIPELINE_STAGE_HOST_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
@@ -927,6 +1088,11 @@ namespace worlds {
                 vkCmdPushConstants(cmdBuf, pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(pushConst), &pushConst);
                 VkDeviceSize offset = 0;
                 vkCmdBindVertexBuffers(cmdBuf, 0, 1, &sdi.vb, &offset);
+
+                if (sdi.skinned) {
+                    vkCmdBindVertexBuffers(cmdBuf, 1, 1, &sdi.boneVB, &offset);
+                }
+
                 vkCmdBindIndexBuffer(cmdBuf, sdi.ib, 0, VK_INDEX_TYPE_UINT32);
                 vkCmdDrawIndexed(cmdBuf, sdi.indexCount, 1, sdi.indexOffset, 0, 0);
 
@@ -979,6 +1145,7 @@ namespace worlds {
         }
         lightsUB.unmap(handles->device);
         lightTileInfoBuffer.unmap(handles->device);
+        skinningMatrixUB.unmap(handles->device);
         delete dbgLinesPass;
         delete skyboxPass;
         delete depthPrepass;

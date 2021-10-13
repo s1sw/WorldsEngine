@@ -5,13 +5,26 @@ layout(location = 0) in vec3 inPosition;
 
 // for alpha test
 layout(location = 1) in vec2 inUV;
+#ifdef SKINNED
+layout(location = 2) in vec4 inBoneWeights;
+layout(location = 3) in uvec4 inBoneIds;
+#endif
+
 layout(location = 0) out vec2 outUV;
 
 #include <standard_descriptors.glsl>
 #include <standard_push_constants.glsl>
 
 void main() {
-    mat4 model = modelMatrices[modelMatrixIdx];
+#ifdef SKINNED
+    mat4 model = mat4(0.0f);
+
+    for (int i = 0; i < 4; i++) {
+        model += buf_BoneTransforms.matrices[skinningOffset + inBoneIds[i]] * inBoneWeights[i];
+    }
+#else
+    mat4 model = modelMatrices[modelMatrixIdx + gl_InstanceIndex];
+#endif
     int vpMatIdx = vpIdx + gl_ViewIndex;
 
     mat4 projMat = projection[vpMatIdx];

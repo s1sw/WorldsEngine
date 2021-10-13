@@ -3,5 +3,5 @@
 #include "../RenderInternal.hpp"
 
 namespace worlds {
-    void loadWorldsModel(AssetID wmdlId, std::vector<Vertex>& vertices, std::vector<uint32_t>& indices, LoadedMeshData& lmd);
+    void loadWorldsModel(AssetID wmdlId, std::vector<Vertex>& vertices, std::vector<uint32_t>& indices, std::vector<VertSkinningInfo>& skinningInfos, LoadedMeshData& lmd);
 }

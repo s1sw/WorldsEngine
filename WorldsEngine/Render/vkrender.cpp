@@ -1520,6 +1520,7 @@ void VKRenderer::preloadMesh(AssetID id) {
     ZoneScoped;
     std::vector<Vertex> vertices;
     std::vector<uint32_t> indices;
+    std::vector<VertSkinningInfo> vertSkinInfos;
 
     auto ext = AssetDB::getAssetExtension(id);
     auto path = AssetDB::idToPath(id);
@@ -1527,7 +1528,7 @@ void VKRenderer::preloadMesh(AssetID id) {
 
     if (!PHYSFS_exists(path.c_str())) {
         logErr(WELogCategoryRender, "Mesh %s was missing!", path.c_str());
-        loadWorldsModel(AssetDB::pathToId("Models/missing.wmdl"), vertices, indices, lmd);
+        loadWorldsModel(AssetDB::pathToId("Models/missing.wmdl"), vertices, indices, vertSkinInfos, lmd);
     } else if (ext == ".obj") { // obj
         // Use C++ physfs ifstream for tinyobjloader
         PhysFS::ifstream meshFileStream(AssetDB::openAssetFileRead(id));
@@ -1546,7 +1547,7 @@ void VKRenderer::preloadMesh(AssetID id) {
         AssetID vvdId = AssetDB::pathToId(vvdPath);
         loadSourceModel(id, vtxId, vvdId, vertices, indices, lmd);
     } else if (ext == ".wmdl") {
-        loadWorldsModel(id, vertices, indices, lmd);
+        loadWorldsModel(id, vertices, indices, vertSkinInfos, lmd);
     } else if (ext == ".rblx") {
         loadRobloxMesh(id, vertices, indices, lmd);
     }
@@ -1557,6 +1558,11 @@ void VKRenderer::preloadMesh(AssetID id) {
     lmd.ib.upload(device, commandPool, getQueue(device, graphicsQueueFamilyIdx), indices);
     lmd.vb = vku::VertexBuffer{ device, allocator, vertices.size() * sizeof(Vertex), "Mesh Vertex Buffer" };
     lmd.vb.upload(device, commandPool, getQueue(device, graphicsQueueFamilyIdx), vertices);
+
+    if (lmd.isSkinned) {
+        lmd.vertexSkinWeights = vku::VertexBuffer{ device, allocator, vertSkinInfos.size() * sizeof(VertSkinningInfo), "Mesh Skinning Info" };
+        lmd.vertexSkinWeights.upload(device, commandPool, getQueue(device, graphicsQueueFamilyIdx), vertSkinInfos);
+    }
 
     lmd.aabbMax = glm::vec3(0.0f);
     lmd.aabbMin = glm::vec3(std::numeric_limits<float>::max());
