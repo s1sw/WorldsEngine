@@ -96,8 +96,8 @@ namespace worlds {
     };
 
     struct VertSkinningInfo {
-        float weights[4];
         int boneIds[4];
+        float weights[4];
     };
 
     struct LoadedMeshData {

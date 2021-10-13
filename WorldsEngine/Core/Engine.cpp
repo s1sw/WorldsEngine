@@ -915,6 +915,7 @@ namespace worlds {
                 renderRegistry.assign(registry.data(), registry.data() + registry.size(), registry.destroyed());
                 cloneComponent<Transform>(registry, renderRegistry);
                 cloneComponent<WorldObject>(registry, renderRegistry);
+                cloneComponent<SkinnedWorldObject>(registry, renderRegistry);
                 cloneComponent<WorldLight>(registry, renderRegistry);
                 cloneComponent<WorldCubemap>(registry, renderRegistry);
                 cloneComponent<UseWireframe>(registry, renderRegistry);
