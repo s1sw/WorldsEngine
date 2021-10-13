@@ -117,6 +117,7 @@ namespace worlds {
 
             if (needsPipeline != lastPipeline) {
                 vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, needsPipeline);
+                lastPipeline = needsPipeline;
             }
 
             StandardPushConstants pushConst {

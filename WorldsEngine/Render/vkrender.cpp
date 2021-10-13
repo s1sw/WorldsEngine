@@ -1030,6 +1030,21 @@ void VKRenderer::uploadSceneAssets(entt::registry& reg) {
         }
         });
 
+    reg.view<SkinnedWorldObject>().each([&](SkinnedWorldObject& wo) {
+        for (int i = 0; i < NUM_SUBMESH_MATS; i++) {
+            if (!wo.presentMaterials[i]) continue;
+
+            if (!matSlots->isLoaded(wo.materials[i])) {
+                reuploadMats = true;
+                uploadMats.insert(wo.materials[i]);
+            }
+        }
+
+        if (loadedMeshes.find(wo.mesh) == loadedMeshes.end()) {
+            uploadMeshes.insert(wo.mesh);
+        }
+        });
+
     if (uploadMats.size()) {
         JobList& jl = g_jobSys->getFreeJobList();
         jl.begin();

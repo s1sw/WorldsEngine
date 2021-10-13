@@ -722,14 +722,14 @@ namespace worlds {
 
             if (meshPos == resources.meshes.end()) {
                 // Haven't loaded the mesh yet
-                matrixIdx++;
                 logWarn(WELogCategoryRender, "Missing mesh");
                 return;
             }
 
             for (int i = 0; i < meshPos->second.meshBones.size(); i++) {
                 glm::mat4 bonePose = wo.currentPose.boneTransforms[i];
-                skinningMatricesMapped[i] = glm::inverse(meshPos->second.meshBones[i].restPosition) * bonePose;
+                //skinningMatricesMapped[i] = t.getMatrix() * bonePose * glm::inverse(meshPos->second.meshBones[i].restPosition);
+                skinningMatricesMapped[i] = glm::mat4{ 1.0f }; //meshPos->second.meshBones[i].restPosition;
             }
 
             float maxScale = glm::max(t.scale.x, glm::max(t.scale.y, t.scale.z));
