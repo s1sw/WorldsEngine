@@ -209,6 +209,7 @@ void main() {
         float nearZ = 1.0f;
         float farZ = 0.000001f;
 #endif
+
         // Find the points on the near plane
         for (int i = 0; i < 4; i++) {
             vec4 projected = invVP * vec4(ndcTileCorners[i], nearZ, 1.0f);

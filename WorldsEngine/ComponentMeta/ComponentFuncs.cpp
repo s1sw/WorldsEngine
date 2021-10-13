@@ -316,6 +316,172 @@ namespace worlds {
         }
     };
 
+    class SkinnedWorldObjectEditor : public BasicComponentUtil<SkinnedWorldObject> {
+    public:
+        const char* getName() override {
+            return "Skinned World Object";
+        }
+
+        void create(entt::entity ent, entt::registry& reg) override {
+            auto cubeId = AssetDB::pathToId("model.obj");
+            auto matId = AssetDB::pathToId("Materials/dev.json");
+            reg.emplace<SkinnedWorldObject>(ent, matId, cubeId);
+        }
+
+        void edit(entt::entity ent, entt::registry& reg, Editor* ed) override {
+            if (ImGui::CollapsingHeader(ICON_FA_PENCIL_ALT u8" SkinnedWorldObject")) {
+                if (ImGui::Button("Remove##WO")) {
+                    reg.remove<SkinnedWorldObject>(ent);
+                } else {
+                    auto& worldObject = reg.get<SkinnedWorldObject>(ent);
+                    if (ImGui::TreeNode("Static Flags")) {
+                        for (int i = 1; i < 8; i <<= 1) {
+                            bool hasFlag = enumHasFlag(worldObject.staticFlags, (StaticFlags)i);
+                            if (ImGui::Checkbox(flagNames.at((StaticFlags)i), &hasFlag)) {
+                                int withoutI = (int)worldObject.staticFlags & (~i);
+                                withoutI |= i * hasFlag;
+                                worldObject.staticFlags = (StaticFlags)withoutI;
+                            }
+                        }
+                        ImGui::TreePop();
+                    }
+
+                    if (ImGui::BeginCombo("UV Override", uvOverrideNames[(int)worldObject.uvOverride])) {
+                        int i = 0;
+                        for (auto& p : uvOverrideNames) {
+                            bool isSelected = (int)worldObject.uvOverride == i;
+                            if (ImGui::Selectable(p, &isSelected)) {
+                                worldObject.uvOverride = (UVOverride)i;
+                            }
+
+                            if (isSelected)
+                                ImGui::SetItemDefaultFocus();
+                            i++;
+                        }
+                        ImGui::EndCombo();
+                    }
+
+                    ImGui::DragFloat2("Texture Scale", &worldObject.texScaleOffset.x);
+                    ImGui::DragFloat2("Texture Offset", &worldObject.texScaleOffset.z);
+
+                    ImGui::Text("Mesh: %s", AssetDB::idToPath(worldObject.mesh).c_str());
+                    ImGui::SameLine();
+
+                    selectAssetPopup("Mesh", worldObject.mesh, ImGui::Button("Change##Mesh"));
+
+                    if (ImGui::TreeNode("Materials")) {
+                        for (int i = 0; i < NUM_SUBMESH_MATS; i++) {
+                            if (worldObject.presentMaterials[i]) {
+                                ImGui::Text("Material %i: %s", i, AssetDB::idToPath(worldObject.materials[i]).c_str());
+                            } else {
+                                ImGui::Text("Material %i: not set", i);
+                                worldObject.materials[i] = INVALID_ASSET;
+                            }
+
+                            ImGui::SameLine();
+
+                            std::string idStr = "##" + std::to_string(i);
+
+                            bool open = ImGui::Button(("Change" + idStr).c_str());
+                            if (selectAssetPopup(("Material" + idStr).c_str(), worldObject.materials[i], open)) {
+                                worldObject.presentMaterials[i] = true;
+                            }
+                        }
+                        ImGui::TreePop();
+                    }
+                }
+
+                ImGui::Separator();
+            }
+        }
+
+        void writeToFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file) override {
+            auto& wObj = reg.get<SkinnedWorldObject>(ent);
+            WRITE_FIELD(file, wObj.staticFlags);
+            for (int i = 0; i < NUM_SUBMESH_MATS; i++) {
+                bool isPresent = wObj.presentMaterials[i];
+                WRITE_FIELD(file, isPresent);
+
+                if (isPresent) {
+                    AssetID matId = wObj.materials[i];
+                    WRITE_FIELD(file, matId);
+                }
+            }
+
+            WRITE_FIELD(file, wObj.mesh);
+            WRITE_FIELD(file, wObj.texScaleOffset);
+            WRITE_FIELD(file, wObj.uvOverride);
+        }
+
+        void readFromFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file, int version) override {
+            auto& wo = reg.emplace<SkinnedWorldObject>(ent, 0, 0);
+
+            if (version >= 3) {
+                READ_FIELD(file, wo.staticFlags);
+            }
+
+            for (int i = 0; i < NUM_SUBMESH_MATS; i++) {
+                bool isPresent;
+                READ_FIELD(file, isPresent);
+                wo.presentMaterials[i] = isPresent;
+
+                AssetID mat;
+                if (isPresent) {
+                    READ_FIELD(file, mat);
+                    wo.materials[i] = mat;
+                }
+            }
+
+            READ_FIELD(file, wo.mesh);
+            READ_FIELD(file, wo.texScaleOffset);
+
+            if (version >= 4) {
+                READ_FIELD(file, wo.uvOverride);
+            }
+        }
+
+        void toJson(entt::entity ent, entt::registry& reg, json& j) override {
+            auto& wo = reg.get<SkinnedWorldObject>(ent);
+
+            uint32_t materialCount = wo.presentMaterials.count();
+            nlohmann::json matArray;
+
+            for (uint32_t i = 0; i < materialCount; i++) {
+                matArray.push_back(AssetDB::idToPath(wo.materials[i]));
+            }
+
+            j = {
+                { "mesh", AssetDB::idToPath(wo.mesh) },
+                { "texScaleOffset", wo.texScaleOffset },
+                { "uvOverride", wo.uvOverride },
+                { "materials", matArray },
+                { "staticFlags", wo.staticFlags }
+            };
+        }
+
+        void fromJson(entt::entity ent, entt::registry& reg, const json& j) override {
+            auto& wo = reg.emplace<SkinnedWorldObject>(ent, 0, 0);
+            std::string meshPath = j["mesh"];
+            wo.mesh = AssetDB::pathToId(meshPath);
+            wo.texScaleOffset = j["texScaleOffset"];
+            wo.uvOverride = j["uvOverride"];
+            wo.staticFlags = j["staticFlags"];
+
+            uint32_t matIdx = 0;
+
+            for (auto& v : j["materials"]) {
+                wo.presentMaterials[matIdx] = true;
+                if (v.is_number())
+                    wo.materials[matIdx] = v;
+                else {
+                    std::string path = v;
+                    wo.materials[matIdx] = AssetDB::pathToId(path);
+                }
+                matIdx++;
+            }
+        }
+    };
+
     const std::unordered_map<LightType, const char*> lightTypeNames = {
             { LightType::Directional, "Directional" },
             { LightType::Point, "Point" },
@@ -1719,6 +1885,7 @@ namespace worlds {
 
     TransformEditor transformEd;
     WorldObjectEditor worldObjEd;
+    SkinnedWorldObjectEditor skWorldObjEd;
     WorldLightEditor worldLightEd;
     PhysicsActorEditor paEd;
     DynamicPhysicsActorEditor dpaEd;

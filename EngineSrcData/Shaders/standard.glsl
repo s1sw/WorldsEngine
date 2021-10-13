@@ -42,6 +42,10 @@ layout(location = 1) in vec3 inNormal;
 layout(location = 2) in vec3 inTangent;
 layout(location = 3) in float inBitangentSign;
 layout(location = 4) in vec2 inUV;
+#ifdef SKINNED
+layout(location = 5) in vec4 inBoneWeights;
+layout(location = 6) in uvec4 inBoneIds;
+#endif
 #endif
 
 #include <standard_descriptors.glsl>
@@ -57,7 +61,15 @@ vec3 getViewPos() {
 
 #ifdef VERTEX
 void main() {
+#ifdef SKINNED
+    mat4 model = mat4(0.0f);
+
+    for (int i = 0; i < 4; i++) {
+        model += buf_BoneTransforms.matrices[skinningOffset + inBoneIds[i]] * inBoneWeights[i];
+    }
+#else
     mat4 model = modelMatrices[modelMatrixIdx + gl_InstanceIndex];
+#endif
 
     int vpMatIdx = vpIdx;
 #ifdef MULTIVIEW
@@ -132,7 +144,7 @@ vec3 EnvBRDFApprox(vec3 F, float roughness, float NoV) {
     const vec4 c1 = { 1, 0.0425, 1.04, -0.04 };
 
     vec4 r = roughness * c0 + c1;
-    float a004 = min( r.x * r.x, exp2( -9.28 * NoV ) ) * r.x + r.y;
+    float a004 = min(r.x * r.x, exp2( -9.28 * NoV )) * r.x + r.y;
     vec2 AB = vec2(-1.04, 1.04) * a004 + r.zw;
 
     return F * AB.x + AB.y;
@@ -173,7 +185,7 @@ vec3 calcAmbient(vec3 f0, float roughness, vec3 viewDir, float metallic, vec3 al
 
 vec3 decodeNormal (vec2 texVal) {
     vec3 n;
-    n.xy = (texVal*2.0)-1.0;
+    n.xy = texVal * 2.0 - 1.0;
     vec2 xySq = n.xy * n.xy;
     n.z = max(sqrt(1.0 - xySq.x - xySq.y), 0.0);
     return n;
@@ -273,16 +285,16 @@ float calcProxyAO(vec3 wPos, vec3 normal) {
 
     for (int i = 0; i < 2; i++) {
         uint boxBits = buf_LightTiles.tiles[tileIdx].aoBoxIdMasks[i];
-    
+
         while (boxBits != 0) {
             // find the next set sphere bit
             uint boxBitIndex = findLSB(boxBits);
-    
+
             // remove it from the mask with an XOR
             boxBits ^= 1 << boxBitIndex;
-    
+
             uint realIndex = boxBitIndex + (32 * i);
-    
+
             if (floatBitsToUint(aoBox[realIndex].pack3.w) != objectId) {
                 proxyAO *= (1.0 - getBoxOcclusionNonClipped(aoBox[realIndex], inWorldPos.xyz, normal));
             }
@@ -346,10 +358,10 @@ float pcf(vec3 sampleCoord, sampler2DShadow samp) {
     const float divVal = 4.0f;//((shadowSamples * 2)) * ((shadowSamples * 2));
 
     shadowIntensity += textureOffset(samp, sampleCoord, ivec2(-1, -1));
-    shadowIntensity += textureOffset(samp, sampleCoord, ivec2(-1, 0));
+    shadowIntensity += textureOffset(samp, sampleCoord, ivec2(-1,  0));
 
     shadowIntensity += textureOffset(samp, sampleCoord, ivec2(0, -1));
-    shadowIntensity += textureOffset(samp, sampleCoord, ivec2(0, 0));
+    shadowIntensity += textureOffset(samp, sampleCoord, ivec2(0,  0));
 
     shadowIntensity /= divVal;
 #else
@@ -508,9 +520,9 @@ void main() {
                 vec3(0.0, 1.0, 0.0) * -sign(inNormal.x) * sign(inUV.y),
                 vec3(1.0, 0.0, 0.0)) * sign(inNormal.x);
     } else if (inUvDir == 2) {
-        tbn = mat3(vec3(1.0, 0.0, 0.0) * sign(inNormal.y) * sign(inUV.x),
-                vec3(0.0, 0.0, 1.0) * sign(inNormal.y),
-                vec3(0.0, 1.0, 0.0)) * sign(inNormal.y);
+        tbn = mat3(vec3(1.0, 0.0, 0.0)  * sign(inNormal.y) * sign(inUV.x),
+                   vec3(0.0, 0.0, 1.0)  * sign(inNormal.y),
+                   vec3(0.0, 1.0, 0.0)) * sign(inNormal.y);
     } else if (inUvDir == 3) {
         tbn = mat3(vec3(1.0, 0.0, 0.0) * -sign(inNormal.z) * -sign(inUV.x),
                 vec3(0.0, 1.0, 0.0) * -sign(inNormal.z) * sign(inUV.y),

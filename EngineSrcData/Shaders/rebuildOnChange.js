@@ -15,6 +15,7 @@ const customArgs = {
         { stage: "frag", defines: ["FRAGMENT", "EFT"], outFile: "standard.frag.spv" },
         { stage: "frag", defines: ["FRAGMENT"], outFile: "standard_alpha_test.frag.spv" },
         { stage: "vert", defines: ["VERTEX"], outFile: "standard.vert.spv" },
+        { stage: "vert", defines: ["VERTEX", "SKINNED"], outFile: "standard_skinned.vert.spv" }
     ],
     "tonemap.comp.glsl": [
         { stage: "comp", defines: ["MSAA"], outFile: "tonemap.comp.spv" },
@@ -23,6 +24,10 @@ const customArgs = {
     "ui.glsl": [
         { stage: "frag", defines: ["FRAGMENT"], outFile: "ui.frag.spv" },
         { stage: "vert", defines: ["VERTEX"], outFile: "ui.vert.spv" }
+    ],
+    "depth_prepass.vert.glsl": [
+        { stage: "vert", defines: [], outFile: "depth_prepass.vert.spv" },
+        { stage: "vert", defines: ["SKINNED"], outFile: "depth_prepass_skinned.vert.spv" }
     ]
 };
 
@@ -50,12 +55,12 @@ function getDefineArgs(defines) {
 function getArgList(stage, defines, inFile, outFile) {
     return getDefaultArgs().concat(
         getDefineArgs(defines).concat(
-        [
-            `-fshader-stage=${stage}`,
-            `${inFile}`,
-            `-o`,
-            `${outFile}`
-        ])
+            [
+                `-fshader-stage=${stage}`,
+                `${inFile}`,
+                `-o`,
+                `${outFile}`
+            ])
     );
 }
 
@@ -125,9 +130,9 @@ for (let f of files) {
 }
 
 for (let f of findSourceFiles("Include")) {
-	fs.watchFile(`Include/${f}`, {"interval":1000}, (_, __) => {
-		rebuildAll();
-	});
+    fs.watchFile(`Include/${f}`, {"interval":1000}, (_, __) => {
+        rebuildAll();
+    });
 }
 
 rebuildAll();

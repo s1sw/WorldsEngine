@@ -7,7 +7,7 @@ layout(push_constant) uniform PushConstants {
     uint objectId;
 
     vec3 cubemapExt;
-    uint pad;
+    uint skinningOffset;
     vec3 cubemapPos;
     uint pad2;
 

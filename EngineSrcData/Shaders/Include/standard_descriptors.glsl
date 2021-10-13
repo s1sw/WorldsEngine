@@ -59,7 +59,11 @@ layout (binding = 11) readonly buffer TileLightTiles {
     LightingTile tiles[];
 } buf_LightTiles;
 
-layout(std430, binding = 12) writeonly buffer PickingBuffer {
+layout (binding = 12) readonly buffer BoneTransforms {
+    mat4 matrices[];
+} buf_BoneTransforms;
+
+layout(std430, binding = 13) writeonly buffer PickingBuffer {
     uint objectID;
 } pickBuf;
 #endif

@@ -11,9 +11,10 @@ namespace worlds {
     const LoadedMesh& MeshManager::loadOrGet(AssetID id) {
         if (loadedMeshes.contains(id)) return loadedMeshes.at(id);
 
+        std::vector<VertSkinningInfo> vertSkinning;
         LoadedMeshData lmd;
         LoadedMesh lm;
-        loadWorldsModel(id, lm.vertices, lm.indices, lmd);
+        loadWorldsModel(id, lm.vertices, lm.indices, vertSkinning, lmd);
 
         lm.numSubmeshes = lmd.numSubmeshes;
 

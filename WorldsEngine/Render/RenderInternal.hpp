@@ -91,9 +91,23 @@ namespace worlds {
 #endif
     };
 
+    struct MeshBone {
+        glm::mat4 restPosition;
+    };
+
+    struct VertSkinningInfo {
+        float weights[4];
+        int boneIds[4];
+    };
+
     struct LoadedMeshData {
         vku::VertexBuffer vb;
         vku::IndexBuffer ib;
+
+        bool isSkinned;
+        vku::VertexBuffer vertexSkinWeights;
+        std::vector<MeshBone> meshBones;
+
         uint32_t indexCount;
         VkIndexType indexType;
         SubmeshInfo submeshes[NUM_SUBMESH_MATS];
@@ -101,11 +115,6 @@ namespace worlds {
         float sphereRadius;
         glm::vec3 aabbMin;
         glm::vec3 aabbMax;
-    };
-
-    struct SkinnedMeshInstance {
-        AssetID baseMesh;
-        vku::VertexBuffer vb;
     };
 
     class Swapchain {
