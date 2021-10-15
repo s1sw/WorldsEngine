@@ -29,11 +29,10 @@
 #include "Loaders/RobloxMeshLoader.hpp"
 #include "ShaderCache.hpp"
 #include "RenderInternal.hpp"
+#define RDOC
 #ifdef RDOC
 #include "renderdoc_app.h"
-#define WIN32_LEAN_AND_MEAN
-#define NOMINMAX
-#include <windows.h>
+#include <slib/DynamicLibrary.hpp>
 #endif
 #include "../Util/EnumUtil.hpp"
 #include "vku/DeviceMaker.hpp"
@@ -322,12 +321,29 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     numMSAASamples = 2;
 
 #ifdef RDOC
-    if (HMODULE mod = GetModuleHandleA("renderdoc.dll")) {
+#ifdef _WIN32
+    const char* renderdocModule = "renderdoc.dll";
+#else
+    const char* renderdocModule = "librenderdoc.so";
+#endif
+    slib::DynamicLibrary dl{renderdocModule};
+    if (dl.loaded()) {
         pRENDERDOC_GetAPI RENDERDOC_GetAPI =
-            (pRENDERDOC_GetAPI)GetProcAddress(mod, "RENDERDOC_GetAPI");
+            (pRENDERDOC_GetAPI)dl.getFunctionPointer("RENDERDOC_GetAPI");
         int ret = RENDERDOC_GetAPI(eRENDERDOC_API_Version_1_1_2, (void**)&rdocApi);
-        assert(ret == 1);
+
+        if (ret != 1) {
+            logWarn(WELogCategoryRender, "Failed to get RenderDoc API");
+            rdocApi = nullptr;
+        } else {
+            RENDERDOC_API_1_1_2* api = (RENDERDOC_API_1_1_2*)rdocApi;
+            api->SetCaptureFilePathTemplate("rdocCaptures");
+            g_console->registerCommand([api](void*, const char*) {
+                api->TriggerCapture();
+            }, "r_triggerRenderdocCapture", "Triggers a Renderdoc capture.", nullptr);
+        }
     } else {
+        logWarn(WELogCategoryRender, "Failed to load RenderDoc dynamic library");
         rdocApi = nullptr;
     }
 #endif
