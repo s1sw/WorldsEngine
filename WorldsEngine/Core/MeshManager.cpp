@@ -17,6 +17,12 @@ namespace worlds {
         loadWorldsModel(id, lm.vertices, lm.indices, vertSkinning, lmd);
 
         lm.numSubmeshes = lmd.numSubmeshes;
+        lm.skinned = lmd.isSkinned;
+        lm.boneNames.resize(lmd.meshBones.size());
+
+        for (size_t i = 0; i < lm.boneNames.size(); i++) {
+            lm.boneNames[i] = lmd.meshBones[i].name;
+        }
 
         for (int i = 0; i < lmd.numSubmeshes; i++) {
             lm.submeshes[i] = lmd.submeshes[i];

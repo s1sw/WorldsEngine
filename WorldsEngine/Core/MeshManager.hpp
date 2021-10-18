@@ -10,6 +10,9 @@ namespace worlds {
 
         uint8_t numSubmeshes;
         SubmeshInfo submeshes[NUM_SUBMESH_MATS];
+
+        bool skinned;
+        std::vector<std::string> boneNames;
     };
 
     class MeshManager {

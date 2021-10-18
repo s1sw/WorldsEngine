@@ -70,6 +70,8 @@ EngineInterfaces csharpInterfaces;
 #include "VRBindings.hpp"
 #include "WorldLightBindings.hpp"
 #include "ImGui/cimgui.h"
+#include "SkinnedWorldObjectBindings.hpp"
+#include "MeshManagerBindings.hpp"
 
 extern "C" {
     EXPORT void sceneloader_loadScene(AssetID id) {

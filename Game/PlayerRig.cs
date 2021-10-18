@@ -197,6 +197,9 @@ namespace Game
                 _jumpAction = new VRAction("/actions/main/in/Jump");
 
             PlayerBody = Registry.Find("Player Body");
+
+            if (PlayerBody.IsNull) return;
+
             PlayerFender = Registry.Find("Fender");
 
             _footstepNoises = new AssetID[10];
@@ -215,6 +218,8 @@ namespace Game
 
         public void OnUpdate()
         {
+            if (PlayerBody.IsNull) return;
+
             if (Keyboard.KeyPressed(KeyCode.Space))
                 Jump = true;
 
