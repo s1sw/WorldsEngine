@@ -93,6 +93,7 @@ namespace worlds {
 
     struct MeshBone {
         glm::mat4 restPosition;
+        std::string name;
     };
 
     struct VertSkinningInfo {

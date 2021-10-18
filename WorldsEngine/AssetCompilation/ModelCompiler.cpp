@@ -253,6 +253,14 @@ namespace worlds {
                 for (int i = 0; i < mikkTSpaceOutSkinInfo.size(); i++) {
                     mesh.vertSkins[remapTable[i]] = mikkTSpaceOutSkinInfo[i];
                 }
+            } else {
+                mesh.vertSkins.resize(finalVertCount);
+                for (int i = 0; i < mesh.vertSkins.size(); i++) {
+                    for (int j = 0; j < 4; j++) {
+                        mesh.vertSkins[i].boneId[j] = 0;
+                        mesh.vertSkins[i].boneWeight[j] = 0.0f;
+                    }
+                }
             }
 
             return mesh;
@@ -305,8 +313,11 @@ namespace worlds {
 
             logMsg("Model importer: %i meshes:", scene->mNumMeshes);
 
+            bool hasBones = false;
+
             for (unsigned int i = 0; i < scene->mNumMeshes; i++) {
                 auto mesh = scene->mMeshes[i];
+                if (mesh->HasBones()) hasBones = true;
                 logMsg("\t-%s: %i verts, %i tris, material index is %i", mesh->mName.C_Str(), mesh->mNumVertices, mesh->mNumFaces, mesh->mMaterialIndex);
             }
 
@@ -353,19 +364,21 @@ namespace worlds {
                     combinedVerts.push_back(vtx);
                 }
 
-                for (auto& bone : mesh.bones) {
-                    if (combinedBoneIds.contains(bone.name)) continue;
-                    combinedBoneIds.insert({ bone.name, combinedBones.size() });
-                    combinedBones.push_back(bone);
-                }
-
-                for (auto& skinInfo : mesh.vertSkins) {
-                    for (int j = 0; j < 4; j++) {
-                        if (skinInfo.boneWeight[j] == 0.0f) continue;
-                        skinInfo.boneId[j] = combinedBoneIds[mesh.bones[skinInfo.boneId[j]].name];
+                if (hasBones) {
+                    for (auto& bone : mesh.bones) {
+                        if (combinedBoneIds.contains(bone.name)) continue;
+                        combinedBoneIds.insert({ bone.name, combinedBones.size() });
+                        combinedBones.push_back(bone);
                     }
 
-                    combinedVertSkinningInfo.push_back(skinInfo);
+                    for (auto& skinInfo : mesh.vertSkins) {
+                        for (int j = 0; j < 4; j++) {
+                            if (skinInfo.boneWeight[j] == 0.0f) continue;
+                            skinInfo.boneId[j] = combinedBoneIds[mesh.bones[skinInfo.boneId[j]].name];
+                        }
+
+                        combinedVertSkinningInfo.push_back(skinInfo);
+                    }
                 }
             }
             compileOp->progress = PROGRESS_PER_STEP * 3;
