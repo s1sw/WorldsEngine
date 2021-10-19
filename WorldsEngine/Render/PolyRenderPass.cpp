@@ -646,7 +646,10 @@ namespace worlds {
                 sdi.vb = meshPos->second.vb.buffer();
                 sdi.indexCount = currSubmesh.indexCount;
                 sdi.indexOffset = currSubmesh.indexOffset;
-                sdi.materialIdx = ctx.resources.materials.get(wo.materials[i]);
+                if (wo.presentMaterials[i])
+                    sdi.materialIdx = ctx.resources.materials.get(wo.materials[i]);
+                else
+                    sdi.materialIdx = ctx.resources.materials.get(wo.materials[0]);
                 sdi.matrixIdx = matrixIdx;
                 sdi.texScaleOffset = wo.texScaleOffset;
                 sdi.ent = ent;
@@ -729,7 +732,8 @@ namespace worlds {
             for (int i = 0; i < meshPos->second.meshBones.size(); i++) {
                 glm::mat4 bonePose = wo.currentPose.boneTransforms[i];
                 //skinningMatricesMapped[i] = t.getMatrix() * bonePose * glm::inverse(meshPos->second.meshBones[i].restPosition);
-                skinningMatricesMapped[i] = glm::mat4{ 1.0f }; //meshPos->second.meshBones[i].restPosition;
+                //if (i == 1) bonePose = glm::translate(glm::mat4{ 1.0f }, glm::vec3(0.0f, 0.0f, sin((double)SDL_GetPerformanceCounter() / SDL_GetPerformanceFrequency())));
+                skinningMatricesMapped[i] = t.getMatrix() * bonePose;
             }
 
             float maxScale = glm::max(t.scale.x, glm::max(t.scale.y, t.scale.z));

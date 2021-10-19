@@ -76,6 +76,21 @@ namespace WorldsEngine.Math
             z = c.x * c.y * s.z - s.x * s.y * c.z;
         }
 
+        public Quaternion DecomposeTwist(Vector3 axis)
+        {
+            Vector3 ra = new Vector3(x, y, z);
+            float aDotRa = axis.Dot(ra);
+
+            Vector3 projected = axis * aDotRa;
+
+            Quaternion twist = new Quaternion(w, projected.x, projected.y, projected.z);
+
+            if (aDotRa < 0f)
+                twist *= -1f;
+
+            return twist;
+        }
+
         public static float Dot(Quaternion left, Quaternion right)
         {
             return (left.x * right.x) + (left.y * right.y) + (left.z * right.z) + (left.w * right.w);

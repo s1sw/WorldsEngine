@@ -24,6 +24,7 @@ namespace worlds {
             wmdl::Bone* bones = wHdr->getBones();
             for (wmdl::CountType i = 0; i < skinInfoBlock->numBones; i++) {
                 lmd.meshBones[i].restPosition = bones[i].restTransform;
+                lmd.meshBones[i].name = bones[i].name;
             }
         }
 

@@ -53,6 +53,7 @@
     <ClCompile Include="..\WorldsEngine\Core\Engine.cpp" />
     <ClCompile Include="..\WorldsEngine\Core\Fatal.cpp" />
     <ClCompile Include="..\WorldsEngine\Core\JobSystem.cpp" />
+    <ClCompile Include="..\WorldsEngine\Core\MeshManager.cpp" />
     <ClCompile Include="..\WorldsEngine\Core\SplashScreenImpls\SplashScreenWin32.cpp" />
     <ClCompile Include="..\WorldsEngine\Core\SplashScreenImpls\SplashScreenX11.cpp" />
     <ClCompile Include="..\WorldsEngine\Core\SplashWindow.cpp" />
@@ -278,6 +279,7 @@
     <ClInclude Include="..\WorldsEngine\Core\JobSystem.hpp" />
     <ClInclude Include="..\WorldsEngine\Core\Log.hpp" />
     <ClInclude Include="..\WorldsEngine\Core\LogCategories.hpp" />
+    <ClInclude Include="..\WorldsEngine\Core\MeshManager.hpp" />
     <ClInclude Include="..\WorldsEngine\Core\NameComponent.hpp" />
     <ClInclude Include="..\WorldsEngine\Core\SplashScreenImpls\ISplashScreen.hpp" />
     <ClInclude Include="..\WorldsEngine\Core\SplashScreenImpls\SplashScreenWin32.hpp" />
@@ -458,10 +460,12 @@
     <ClInclude Include="..\WorldsEngine\Scripting\EditorBindings.hpp" />
     <ClInclude Include="..\WorldsEngine\Scripting\Export.hpp" />
     <ClInclude Include="..\WorldsEngine\Scripting\InputBindings.hpp" />
+    <ClInclude Include="..\WorldsEngine\Scripting\MeshManagerBindings.hpp" />
     <ClInclude Include="..\WorldsEngine\Scripting\NetVM.hpp" />
     <ClInclude Include="..\WorldsEngine\Scripting\PhysicsBindings.hpp" />
     <ClInclude Include="..\WorldsEngine\Scripting\RegistryBindings.hpp" />
     <ClInclude Include="..\WorldsEngine\Scripting\ScriptComponent.hpp" />
+    <ClInclude Include="..\WorldsEngine\Scripting\SkinnedWorldObjectBindings.hpp" />
     <ClInclude Include="..\WorldsEngine\Scripting\VRBindings.hpp" />
     <ClInclude Include="..\WorldsEngine\Scripting\WorldObjectBindings.hpp" />
     <ClInclude Include="..\WorldsEngine\Scripting\WorldTextBindings.hpp" />
