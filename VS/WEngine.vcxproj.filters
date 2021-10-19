@@ -684,6 +684,9 @@
     <ClCompile Include="..\WorldsEngine\Render\vku\Buffer.cpp">
       <Filter>Render\vku</Filter>
     </ClCompile>
+    <ClCompile Include="..\WorldsEngine\Core\MeshManager.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\WorldsEngine\AssetCompilation\AssetCompilerUtil.hpp">
@@ -1450,6 +1453,15 @@
     </ClInclude>
     <ClInclude Include="..\WorldsEngine\Render\vku\vku_framework.hpp">
       <Filter>Render\vku</Filter>
+    </ClInclude>
+    <ClInclude Include="..\WorldsEngine\Scripting\SkinnedWorldObjectBindings.hpp">
+      <Filter>Scripting</Filter>
+    </ClInclude>
+    <ClInclude Include="..\WorldsEngine\Core\MeshManager.hpp">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\WorldsEngine\Scripting\MeshManagerBindings.hpp">
+      <Filter>Scripting</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

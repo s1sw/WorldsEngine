@@ -70,21 +70,6 @@ namespace Game.Interaction
             return 1.0f / linearScore;
         }
 
-        private Quaternion DecomposeTwist(Quaternion rotation, Vector3 axis)
-        {
-            Vector3 ra = new Vector3(rotation.x, rotation.y, rotation.z);
-            float aDotRa = axis.Dot(ra);
-
-            Vector3 projected = axis * aDotRa;
-
-            Quaternion twist = new Quaternion(rotation.w, projected.x, projected.y, projected.z);
-
-            if (aDotRa < 0f)
-                twist = twist * -1f;
-
-            return twist;
-        }
-
         public Transform GetAttachTransform(Transform handTransform, Transform objTransform, bool isRightHand)
         {
             Transform handInLocalSpace = handTransform.TransformByInverse(objTransform);
@@ -94,7 +79,7 @@ namespace Game.Interaction
                 Vector3 normal = GetNormalForBoxGrip(handInLocalSpace.Position);
 
                 // Get the hand's rotation around the normal axis and apply that to make the grip smoother
-                Quaternion handRotAroundNormal = DecomposeTwist(handInLocalSpace.Rotation, normal);
+                Quaternion handRotAroundNormal = handInLocalSpace.Rotation.DecomposeTwist(normal);
 
                 Quaternion rotation = handRotAroundNormal * Quaternion.FromTo(isRightHand ? Vector3.Right : Vector3.Left, normal);
 
