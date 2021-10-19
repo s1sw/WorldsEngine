@@ -125,7 +125,7 @@ namespace worlds {
                 .materialIdx = sdi.materialIdx,
                 .vpIdx = 0,
                 .objectId = (uint32_t)sdi.ent,
-                .skinningOffset = 0,
+                .skinningOffset = sdi.boneMatrixOffset,
                 .texScaleOffset = sdi.texScaleOffset,
                 .screenSpacePickPos = glm::ivec3(0, 0, 0)
             };

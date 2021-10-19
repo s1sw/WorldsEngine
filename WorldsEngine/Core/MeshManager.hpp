@@ -13,6 +13,7 @@ namespace worlds {
 
         bool skinned;
         std::vector<std::string> boneNames;
+        std::vector<glm::mat4> boneRestPositions;
     };
 
     class MeshManager {

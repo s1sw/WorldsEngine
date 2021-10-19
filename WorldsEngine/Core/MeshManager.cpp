@@ -19,9 +19,11 @@ namespace worlds {
         lm.numSubmeshes = lmd.numSubmeshes;
         lm.skinned = lmd.isSkinned;
         lm.boneNames.resize(lmd.meshBones.size());
+        lm.boneRestPositions.resize(lmd.meshBones.size());
 
         for (size_t i = 0; i < lm.boneNames.size(); i++) {
             lm.boneNames[i] = lmd.meshBones[i].name;
+            lm.boneRestPositions[i] = lmd.meshBones[i].restPosition;
         }
 
         for (int i = 0; i < lmd.numSubmeshes; i++) {

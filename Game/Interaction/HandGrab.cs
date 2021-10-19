@@ -210,7 +210,7 @@ namespace Game.Interaction
             {
                 Registry.RemoveComponent<D6Joint>(Entity);
                 return;
-            }   
+            }
 
             if (g.rotation.LengthSquared < 0.9f)
                 g.rotation = Quaternion.Identity;

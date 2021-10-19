@@ -20,4 +20,14 @@ extern "C" {
 
         return ~0u;
     }
+
+    EXPORT void meshmanager_getBoneRestTransform(AssetID id, uint32_t boneId, Transform* transform) {
+        const auto& m = MeshManager::loadOrGet(id);
+        transform->fromMatrix(m.boneRestPositions[boneId]);
+    }
+
+    EXPORT uint32_t meshmanager_getBoneCount(AssetID id) {
+        const auto& m = MeshManager::loadOrGet(id);
+        return m.boneNames.size();
+    }
 };
