@@ -732,7 +732,7 @@ namespace worlds {
 
             for (int i = 0; i < meshPos->second.meshBones.size(); i++) {
                 glm::mat4 bonePose = wo.currentPose.boneTransforms[i];
-                skinningMatricesMapped[i + skinningOffset] = t.getMatrix() * bonePose * glm::inverse(meshPos->second.meshBones[i].restPosition);
+                skinningMatricesMapped[i + skinningOffset] = meshPos->second.meshBones[i].restPosition; //* glm::inverse(meshPos->second.meshBones[i].restPosition);
             }
 
             float maxScale = glm::max(t.scale.x, glm::max(t.scale.y, t.scale.z));
@@ -815,8 +815,9 @@ namespace worlds {
                 ctx.debugContext.stats->numTriangles += currSubmesh.indexCount / 3;
 
                 drawInfo.add(std::move(sdi));
-                skinningOffset += meshPos->second.meshBones.size();
             }
+            skinningOffset += meshPos->second.meshBones.size();
+
             });
     }
 

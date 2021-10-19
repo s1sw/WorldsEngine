@@ -120,14 +120,7 @@ namespace worlds {
 
 
         glm::mat4 convMtx(const aiMatrix4x4& m4) {
-            aiMatrix4x4 m4t = m4;
-            m4t.Transpose();
-            return glm::mat4{
-                glm::make_vec4(m4t[0]),
-                glm::make_vec4(m4t[1]),
-                glm::make_vec4(m4t[2]),
-                glm::make_vec4(m4t[3])
-            };
+            return glm::transpose(glm::make_mat4(&m4.a1));
         }
 
         Mesh processAiMesh(aiMesh* aiMesh, aiNode* node, aiMatrix4x4 hierarchyTransform) {
@@ -158,7 +151,7 @@ namespace worlds {
 
                     wmdl::Bone bone;
                     bone.setName(aiBone->mName.C_Str());
-                    bone.restTransform = convMtx(aiBone->mOffsetMatrix);
+                    bone.restTransform = convMtx(aiBone->mNode->mTransformation * aiBone->mOffsetMatrix);
 
                     mesh.bones.push_back(bone);
                     boneIds.insert({ aiBone->mName.C_Str(), boneIdx });
@@ -198,8 +191,13 @@ namespace worlds {
                 for (int k = 0; k < 3; k++) {
                     int idx = aiMesh->mFaces[j].mIndices[k];
                     wmdl::Vertex2 vtx;
-                    vtx.position = convMtx(node->mTransformation * hierarchyTransform) * glm::vec4(toGlm(aiMesh->mVertices[idx]), 1.0f);
-                    vtx.normal = glm::transpose(glm::inverse(convMtx(node->mTransformation * hierarchyTransform))) * glm::vec4(toGlm(aiMesh->mNormals[idx]), 0.0f);
+                    if (!hasBones) {
+                        vtx.position = convMtx(node->mTransformation * hierarchyTransform) * glm::vec4(toGlm(aiMesh->mVertices[idx]), 1.0f);
+                        vtx.normal = glm::transpose(glm::inverse(convMtx(node->mTransformation * hierarchyTransform))) * glm::vec4(toGlm(aiMesh->mNormals[idx]), 0.0f);
+                    } else {
+                        vtx.position = toGlm(aiMesh->mVertices[idx]);
+                        vtx.normal = toGlm(aiMesh->mNormals[idx]);
+                    }
                     //vtx.normal = toGlm(aiMesh->mNormals[idx]);
                     vtx.tangent = glm::vec3{ 0.0f };
                     vtx.bitangentSign = 0.0f;
@@ -258,7 +256,7 @@ namespace worlds {
                 for (int i = 0; i < mesh.vertSkins.size(); i++) {
                     for (int j = 0; j < 4; j++) {
                         mesh.vertSkins[i].boneId[j] = 0;
-                        mesh.vertSkins[i].boneWeight[j] = 0.0f;
+                        mesh.vertSkins[i].boneWeight[j] = j == 0 ? 1.0f : 0.0f;
                     }
                 }
             }
@@ -301,6 +299,7 @@ namespace worlds {
                 aiProcess_ValidateDataStructure |
                 aiProcess_OptimizeMeshes |
                 aiProcess_OptimizeGraph |
+                aiProcess_PopulateArmatureData |
                 aiProcess_FlipUVs, extension);
 
             compileOp->progress = PROGRESS_PER_STEP;
@@ -372,9 +371,15 @@ namespace worlds {
                     }
 
                     for (auto& skinInfo : mesh.vertSkins) {
+                        float weightSum = 0.0f;
                         for (int j = 0; j < 4; j++) {
                             if (skinInfo.boneWeight[j] == 0.0f) continue;
                             skinInfo.boneId[j] = combinedBoneIds[mesh.bones[skinInfo.boneId[j]].name];
+                            weightSum += skinInfo.boneWeight[j];
+                        }
+
+                        if (weightSum < 0.95f && weightSum > 0.0001f) {
+                            __debugbreak();
                         }
 
                         combinedVertSkinningInfo.push_back(skinInfo);
