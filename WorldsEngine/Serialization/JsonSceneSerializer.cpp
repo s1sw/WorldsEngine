@@ -9,6 +9,7 @@
 #include "robin_hood.h"
 #include "slib/StaticAllocList.hpp"
 #include "Scripting/NetVM.hpp"
+#include <Editor/Editor.hpp>
 
 namespace worlds {
     robin_hood::unordered_flat_map<AssetID, nlohmann::json> prefabCache;
@@ -79,6 +80,12 @@ namespace worlds {
             { "entities", entities },
             { "settings", { { "skyboxPath", AssetDB::idToPath(reg.ctx<SceneSettings>().skybox) }}}
         };
+
+        EntityFolders* entityFolders = reg.try_ctx<EntityFolders>();
+
+        if (entityFolders) {
+            
+        }
 
         return scene.dump(2);
     }

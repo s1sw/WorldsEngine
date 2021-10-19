@@ -19,9 +19,13 @@ void main() {
 #ifdef SKINNED
     mat4 model = mat4(0.0f);
 
-    for (int i = 0; i < 4; i++) {
-        model += buf_BoneTransforms.matrices[skinningOffset + inBoneIds[i]] * inBoneWeights[i];
-    }
+    //for (int i = 0; i < 4; i++) {
+    //    model += buf_BoneTransforms.matrices[skinningOffset + inBoneIds[i]] * inBoneWeights[i];
+    //}
+    model  = buf_BoneTransforms.matrices[skinningOffset + inBoneIds[0]] * inBoneWeights[0];
+    model += buf_BoneTransforms.matrices[skinningOffset + inBoneIds[1]] * inBoneWeights[1];
+    model += buf_BoneTransforms.matrices[skinningOffset + inBoneIds[2]] * inBoneWeights[2];
+    model += buf_BoneTransforms.matrices[skinningOffset + inBoneIds[3]] * inBoneWeights[3];
 #else
     mat4 model = modelMatrices[modelMatrixIdx + gl_InstanceIndex];
 #endif

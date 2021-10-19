@@ -2,6 +2,12 @@
 #include <glm/glm.hpp>
 #include <nlohmann/json.hpp>
 
+namespace worlds {
+    struct EntityFolder;
+    void to_json(nlohmann::json& j, const EntityFolder& folder);
+    void from_json(const nlohmann::json& j, EntityFolder& folder);
+}
+
 namespace glm {
     void to_json(nlohmann::json& j, const glm::vec3& vec);
     void from_json(const nlohmann::json& j, glm::vec3& vec);

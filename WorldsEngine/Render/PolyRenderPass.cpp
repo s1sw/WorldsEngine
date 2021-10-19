@@ -720,6 +720,7 @@ namespace worlds {
             matrixIdx++;
             });
 
+        int skinningOffset = 0;
         ctx.registry.view<Transform, SkinnedWorldObject>().each([&](entt::entity ent, Transform& t, SkinnedWorldObject& wo) {
             auto meshPos = resources.meshes.find(wo.mesh);
 
@@ -731,9 +732,7 @@ namespace worlds {
 
             for (int i = 0; i < meshPos->second.meshBones.size(); i++) {
                 glm::mat4 bonePose = wo.currentPose.boneTransforms[i];
-                //skinningMatricesMapped[i] = t.getMatrix() * bonePose * glm::inverse(meshPos->second.meshBones[i].restPosition);
-                //if (i == 1) bonePose = glm::translate(glm::mat4{ 1.0f }, glm::vec3(0.0f, 0.0f, sin((double)SDL_GetPerformanceCounter() / SDL_GetPerformanceFrequency())));
-                skinningMatricesMapped[i] = t.getMatrix() * bonePose;
+                skinningMatricesMapped[i + skinningOffset] = t.getMatrix() * bonePose * glm::inverse(meshPos->second.meshBones[i].restPosition);
             }
 
             float maxScale = glm::max(t.scale.x, glm::max(t.scale.y, t.scale.z));
@@ -764,7 +763,7 @@ namespace worlds {
                 sdi.ent = ent;
                 sdi.skinned = true;
                 sdi.boneVB = meshPos->second.vertexSkinWeights.buffer();
-                sdi.boneMatrixOffset = 0;
+                sdi.boneMatrixOffset = skinningOffset;
                 auto& packedMat = resources.materials[sdi.materialIdx];
                 sdi.opaque = packedMat.getCutoff() == 0.0f;
 
@@ -816,6 +815,7 @@ namespace worlds {
                 ctx.debugContext.stats->numTriangles += currSubmesh.indexCount / 3;
 
                 drawInfo.add(std::move(sdi));
+                skinningOffset += meshPos->second.meshBones.size();
             }
             });
     }
@@ -1083,6 +1083,7 @@ namespace worlds {
                     .vpIdx = 0,
                     .objectId = (uint32_t)sdi.ent,
                     .cubemapExt = glm::vec4(sdi.cubemapExt, 0.0f),
+                    .skinningOffset = sdi.boneMatrixOffset,
                     .cubemapPos = glm::vec4(sdi.cubemapPos, 0.0f),
                     .texScaleOffset = sdi.texScaleOffset,
                     .screenSpacePickPos = glm::ivec3(pickX, pickY, globalMiscFlags | sdi.drawMiscFlags),

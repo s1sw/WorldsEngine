@@ -9,20 +9,33 @@ using WorldsEngine.Math;
 namespace Game
 {
     [Component]
-    public class SkinningTest : IThinkingComponent
+    public class SkinningTest : IStartListener, IThinkingComponent
     {
-        public void Think(Entity e)
+        private Quaternion _startRotation;
+        public void Start(Entity e)
         {
-            if (!Registry.HasComponent<SkinnedWorldObject>(e)) return;
-
             var swo = Registry.GetComponent<SkinnedWorldObject>(e);
 
-            uint boneIdx = MeshManager.GetBoneIndex(swo.Mesh, "Bone.003");
+            for (uint i = 0; i < MeshManager.GetBoneCount(swo.Mesh); i++) {
+                swo.SetBoneTransform(i, MeshManager.GetBoneRestPose(swo.Mesh, i));
+            }
+            uint boneIdx = MeshManager.GetBoneIndex(swo.Mesh, "Bone.001");
+
+            _startRotation = MeshManager.GetBoneRestPose(swo.Mesh, boneIdx).Rotation;
+        }
+
+        public void Think(Entity e)
+        {
+            //return;
+            var swo = Registry.GetComponent<SkinnedWorldObject>(e);
+
+            uint boneIdx = MeshManager.GetBoneIndex(swo.Mesh, "Bone.001");
 
             if (boneIdx != ~0u)
             {
-                Quaternion rotation = Quaternion.AngleAxis((float)Math.Sin(Time.CurrentTime), Vector3.Left);
-                swo.SetBoneTransform(boneIdx, new Transform(Vector3.Zero, rotation));
+                float rotationT = (float)Math.Sin(Time.CurrentTime) * 0.5f + 0.5f;
+                Quaternion rotation = Quaternion.AngleAxis(rotationT * MathF.PI - (MathF.PI / 2.0f), Vector3.Left);
+                swo.SetBoneTransform(boneIdx, new Transform(Vector3.Zero, _startRotation * rotation));
             }
         }
     }
