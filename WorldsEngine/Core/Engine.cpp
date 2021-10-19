@@ -279,6 +279,7 @@ namespace worlds {
 
             _this->renderer->setImGuiDrawData(&renderThreadDrawData);
             _this->renderer->frame(renderThreadCamera, renderRegistry);
+            // <=>
 
             for (int i = 0; i < renderThreadDrawData.CmdListsCount; i++) {
                 delete renderThreadDrawData.CmdLists[i];
@@ -846,17 +847,22 @@ namespace worlds {
             static ConVar drawFPS { "drawFPS", "0", "Draws a simple FPS counter in the corner of the screen." };
             if (drawFPS.getInt()) {
                 auto drawList = ImGui::GetForegroundDrawList();
+
                 char buf[128];
                 snprintf(buf, 128, "%.1f fps (%.3fms)", 1.0f / dti.deltaTime, dti.deltaTime * 1000.0f);
+
                 auto bgSize = ImGui::CalcTextSize(buf);
                 auto pos = ImGui::GetMainViewport()->Pos;
+
                 drawList->AddRectFilled(pos, pos + bgSize, ImColor(0.0f, 0.0f, 0.0f, 0.5f));
+
                 ImColor col{1.0f, 1.0f, 1.0f};
 
                 if (dti.deltaTime > 0.02)
                     col = ImColor{1.0f, 0.0f, 0.0f};
                 else if (dti.deltaTime > 0.017)
                     col = ImColor{0.75f, 0.75f, 0.0f};
+
                 drawList->AddText(pos, ImColor(1.0f, 1.0f, 1.0f), buf);
             }
 
@@ -903,9 +909,6 @@ namespace worlds {
             }
 
             console->drawWindow();
-
-            glm::vec3 camPos = cam.position;
-
 
             if (!dedicatedServer) {
                 std::unique_lock<std::mutex> lg(rendererLock);
@@ -1238,8 +1241,13 @@ namespace worlds {
                 alpha = 1.0f;
 
             registry.view<DynamicPhysicsActor, Transform>().each([&](entt::entity ent, DynamicPhysicsActor&, Transform& transform) {
-                transform.position = glm::mix(px2glm(previousState[ent].p), px2glm(currentState[ent].p), (float)alpha);
-                transform.rotation = glm::slerp(px2glm(previousState[ent].q), px2glm(currentState[ent].q), (float)alpha);
+                if (!previousState.contains(ent)) {
+                    transform.position = px2glm(currentState[ent].p);
+                    transform.rotation = px2glm(currentState[ent].q);
+                } else {
+                    transform.position = glm::mix(px2glm(previousState[ent].p), px2glm(currentState[ent].p), (float)alpha);
+                    transform.rotation = glm::slerp(px2glm(previousState[ent].q), px2glm(currentState[ent].q), (float)alpha);
+                }
             });
             interpAlpha = alpha;
         } else if (deltaTime < 0.05f) {
