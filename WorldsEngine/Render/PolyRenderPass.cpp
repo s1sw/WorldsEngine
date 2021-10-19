@@ -386,11 +386,11 @@ namespace worlds {
 
         // standard shader specialization constants
         VkSpecializationMapEntry entries[5] = {
-            { 0, offsetof(StandardSpecConsts, enablePicking), sizeof(VkBool32) },
+            { 0, offsetof(StandardSpecConsts, enablePicking),     sizeof(VkBool32) },
             { 1, offsetof(StandardSpecConsts, parallaxMaxLayers), sizeof(float) },
             { 2, offsetof(StandardSpecConsts, parallaxMinLayers), sizeof(float) },
-            { 3, offsetof(StandardSpecConsts, doParallax), sizeof(VkBool32) },
-            { 4, offsetof(StandardSpecConsts, enableProxyAO), sizeof(VkBool32) }
+            { 3, offsetof(StandardSpecConsts, doParallax),        sizeof(VkBool32) },
+            { 4, offsetof(StandardSpecConsts, enableProxyAO),     sizeof(VkBool32) }
         };
 
         VkSpecializationInfo standardSpecInfo{ 5, entries, sizeof(StandardSpecConsts) };
