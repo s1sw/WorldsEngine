@@ -18,6 +18,7 @@ namespace Game
         public void Start(Entity e)
         {
             var swo = Registry.GetComponent<SkinnedWorldObject>(e);
+            var transform = Registry.GetTransform(e);
 
             for (uint i = 0; i < MeshManager.GetBoneCount(swo.Mesh); i++) {
                 var restPose = MeshManager.GetBoneRestPose(swo.Mesh, i);
@@ -30,7 +31,7 @@ namespace Game
 
                 restPose.Scale *= 0.1f;
 
-                Registry.SetTransform(entity, restPose);
+                Registry.SetTransform(entity, transform.TransformBy(restPose));
             }
             uint boneIdx = MeshManager.GetBoneIndex(swo.Mesh, "Bone");
 

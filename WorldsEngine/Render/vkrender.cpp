@@ -115,11 +115,10 @@ RenderTexture* VKRenderer::createRTResource(RTResourceCreateInfo resourceCreateI
 void VKRenderer::createSwapchain(VkSwapchainKHR oldSwapchain) {
     bool fullscreen = (SDL_GetWindowFlags(window) & SDL_WINDOW_FULLSCREEN) == SDL_WINDOW_FULLSCREEN;
     VkPresentModeKHR presentMode = (useVsync && !enableVR) ? VK_PRESENT_MODE_FIFO_KHR : VK_PRESENT_MODE_IMMEDIATE_KHR;
-    QueueFamilyIndices qfi{ graphicsQueueFamilyIdx, presentQueueFamilyIdx };
-    swapchain = new Swapchain(physicalDevice, device, surface, qfi, fullscreen, oldSwapchain, presentMode);
+    swapchain = new Swapchain(physicalDevice, device, surface, queueFamilies, fullscreen, oldSwapchain, presentMode);
     swapchain->getSize(&width, &height);
 
-    vku::executeImmediately(device, commandPool, getQueue(device, graphicsQueueFamilyIdx), [this](VkCommandBuffer cb) {
+    vku::executeImmediately(device, commandPool, queues.graphics, [this](VkCommandBuffer cb) {
         for (VkImage img : swapchain->images)
             vku::transitionLayout(cb, img, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VkAccessFlags{}, VK_ACCESS_MEMORY_READ_BIT);
         });
@@ -375,7 +374,7 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     std::vector<VkQueueFamilyProperties> qprops = getQueueFamilies(physicalDevice);
 
     const auto badQueue = ~(uint32_t)0;
-    graphicsQueueFamilyIdx = badQueue;
+    queueFamilies.graphics = badQueue;
     VkQueueFlags search = VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT;
 
     // Look for a queue family with both graphics and
@@ -383,32 +382,39 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     for (uint32_t qi = 0; qi != qprops.size(); ++qi) {
         auto& qprop = qprops[qi];
         if ((qprop.queueFlags & search) == search) {
-            graphicsQueueFamilyIdx = qi;
+            queueFamilies.graphics = qi;
             break;
         }
     }
 
     // Search for async compute queue family
-    asyncComputeQueueFamilyIdx = badQueue;
+    queueFamilies.asyncCompute = badQueue;
     for (size_t i = 0; i < qprops.size(); i++) {
         auto& qprop = qprops[i];
-        if ((qprop.queueFlags & (VK_QUEUE_COMPUTE_BIT)) == VK_QUEUE_COMPUTE_BIT && i != graphicsQueueFamilyIdx) {
-            asyncComputeQueueFamilyIdx = i;
+        if ((qprop.queueFlags & (VK_QUEUE_COMPUTE_BIT)) == VK_QUEUE_COMPUTE_BIT && i != queueFamilies.graphics) {
+            queueFamilies.asyncCompute = i;
             break;
         }
     }
 
-    if (asyncComputeQueueFamilyIdx == badQueue)
+    if (queueFamilies.asyncCompute == badQueue)
         logWarn(worlds::WELogCategoryRender, "Couldn't find async compute queue");
 
-    if (graphicsQueueFamilyIdx == badQueue) {
+    if (queueFamilies.graphics == badQueue) {
         *success = false;
         return;
     }
 
+
     vku::DeviceMaker dm{};
     dm.defaultLayers();
-    dm.queue(graphicsQueueFamilyIdx);
+    dm.queue(queueFamilies.graphics);
+
+    if (queueFamilies.asyncCompute != badQueue)
+        dm.queue(queueFamilies.asyncCompute);
+
+    if (queueFamilies.present != queueFamilies.graphics)
+        dm.queue(queueFamilies.present);
 
     for (auto& ext : initInfo.additionalDeviceExtensions) {
         dm.extension(ext.c_str());
@@ -431,6 +437,7 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
         *success = false;
         return;
     }
+
 
     VkPhysicalDeviceFeatures features{};
     features.shaderStorageImageMultisample = true;
@@ -457,6 +464,10 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
 
     ShaderCache::setDevice(device);
     DeletionQueue::resize(1);
+
+    queues.graphics = getQueue(device, queueFamilies.graphics);
+    queues.present = getQueue(device, queueFamilies.present);
+    queues.asyncCompute = getQueue(device, queueFamilies.asyncCompute);
 
     VmaAllocatorCreateInfo allocatorCreateInfo{};
     allocatorCreateInfo.device = device;
@@ -494,13 +505,13 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     SDL_Vulkan_CreateSurface(window, instance, &surface);
 
     this->surface = surface;
-    presentQueueFamilyIdx = findPresentQueue(physicalDevice, surface);
+    queueFamilies.present = findPresentQueue(physicalDevice, surface);
 
     // Command pool
     VkCommandPoolCreateInfo cpci{};
     cpci.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
     cpci.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-    cpci.queueFamilyIndex = graphicsQueueFamilyIdx;
+    cpci.queueFamilyIndex = queueFamilies.graphics;
 
     VKCHECK(vkCreateCommandPool(device, &cpci, nullptr, &commandPool));
     vku::setObjectName(device, (uint64_t)commandPool, VK_OBJECT_TYPE_COMMAND_POOL, "Main Command Pool");
@@ -537,7 +548,7 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
         commandPool,
         instance,
         allocator,
-        graphicsQueueFamilyIdx,
+        queueFamilies.graphics,
         GraphicsSettings {
             numMSAASamples,
             (int)shadowmapRes,
@@ -565,12 +576,12 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
         VK_SAMPLE_COUNT_1_BIT,
         VK_IMAGE_TILING_OPTIMAL,
         VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-        VK_SHARING_MODE_EXCLUSIVE, graphicsQueueFamilyIdx
+        VK_SHARING_MODE_EXCLUSIVE, queueFamilies.graphics
     };
 
     brdfLut = vku::GenericImage{ device, allocator, brdfLutIci, VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_COLOR_BIT, false, "BRDF LUT" };
 
-    vku::executeImmediately(device, commandPool, getQueue(device, graphicsQueueFamilyIdx), [&](auto cb) {
+    vku::executeImmediately(device, commandPool, queues.graphics, [&](auto cb) {
         brdfLut.setLayout(cb, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
         });
 
@@ -599,7 +610,7 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
         shadowImages[i] = createRTResource(shadowCreateInfo, ("Shadow Image " + std::to_string(i)).c_str());
     }
 
-    vku::executeImmediately(device, commandPool, getQueue(device, graphicsQueueFamilyIdx), [&](auto cb) {
+    vku::executeImmediately(device, commandPool, queues.graphics, [&](auto cb) {
         shadowmapImage->image.setLayout(cb, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_ASPECT_DEPTH_BIT);
         for (int i = 0; i < NUM_SHADOW_LIGHTS; i++) {
             shadowImages[i]->image.setLayout(cb, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_ASPECT_DEPTH_BIT);
@@ -741,7 +752,7 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
             shadowImages[i] = createRTResource(shadowCreateInfo, ("Shadow Image " + std::to_string(i)).c_str());
         }
 
-        vku::executeImmediately(device, commandPool, getQueue(device, graphicsQueueFamilyIdx), [&](auto cb) {
+        vku::executeImmediately(device, commandPool, queues.graphics, [&](auto cb) {
             for (int i = 0; i < NUM_SHADOW_LIGHTS; i++) {
                 shadowImages[i]->image.setLayout(cb, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_ASPECT_DEPTH_BIT);
             }
@@ -767,7 +778,7 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
         sizeof(MultiVP), VMA_MEMORY_USAGE_GPU_ONLY, "VP Buffer");
 
     MaterialsUB materials;
-    materialUB.upload(device, commandPool, getQueue(device, graphicsQueueFamilyIdx), &materials, sizeof(materials));
+    materialUB.upload(device, commandPool, queues.graphics, &materials, sizeof(materials));
 
     shadowCascadePass = new ShadowCascadePass(&handles, shadowmapImage);
     shadowCascadePass->setup();
@@ -826,7 +837,7 @@ void VKRenderer::createSCDependents() {
         rightEye = createRTResource(eyeCreateInfo, "Right Eye");
     }
 
-    vku::executeImmediately(device, commandPool, getQueue(device, graphicsQueueFamilyIdx), [&](VkCommandBuffer cmdBuf) {
+    vku::executeImmediately(device, commandPool, queues.graphics, [&](VkCommandBuffer cmdBuf) {
         finalPrePresent->image.setLayout(cmdBuf, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
         });
 
@@ -942,10 +953,9 @@ void VKRenderer::presentNothing(uint32_t imageIndex) {
     submitInfo.pSignalSemaphores = &cmdBufferSemaphores[frameIdx];
     submitInfo.pCommandBuffers = &cmdBuf;
     submitInfo.commandBufferCount = 1;
-    VkQueue q = getQueue(device, presentQueueFamilyIdx);
-    vkQueueSubmit(q, 1, &submitInfo, VK_NULL_HANDLE);
+    vkQueueSubmit(queues.present, 1, &submitInfo, VK_NULL_HANDLE);
 
-    auto presentResult = vkQueuePresentKHR(q, &presentInfo);
+    auto presentResult = vkQueuePresentKHR(queues.present, &presentInfo);
     if (presentResult != VK_SUCCESS && presentResult != VK_SUBOPTIMAL_KHR)
         fatalErr("Present failed!");
 }
@@ -1004,8 +1014,8 @@ void VKRenderer::submitToOpenVR() {
         .m_pDevice = device,
         .m_pPhysicalDevice = (VkPhysicalDevice_T*)physicalDevice,
         .m_pInstance = instance,
-        .m_pQueue = getQueue(device, graphicsQueueFamilyIdx),
-        .m_nQueueFamilyIndex = graphicsQueueFamilyIdx,
+        .m_pQueue = queues.graphics,
+        .m_nQueueFamilyIndex = queueFamilies.graphics,
         .m_nWidth = vrWidth,
         .m_nHeight = vrHeight,
         .m_nFormat = VK_FORMAT_R8G8B8A8_UNORM,
@@ -1366,7 +1376,7 @@ void VKRenderer::writeCmdBuf(VkCommandBuffer cmdBuf, uint32_t imageIndex, Camera
 
 void VKRenderer::reuploadMaterials() {
     ZoneScoped;
-    materialUB.upload(device, commandPool, getQueue(device, graphicsQueueFamilyIdx), matSlots->getSlots(), sizeof(PackedMaterial) * 256);
+    materialUB.upload(device, commandPool, queues.graphics, matSlots->getSlots(), sizeof(PackedMaterial) * 256);
 
     for (auto& pass : rttPasses) {
         pass->prp->reuploadDescriptors();
@@ -1488,8 +1498,7 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
     if (enableVR)
         vr::VRCompositor()->SubmitExplicitTimingData();
 
-    VkQueue queue = getQueue(device, graphicsQueueFamilyIdx);
-    VkResult submitResult = vkQueueSubmit(queue, 1, &submit, cmdBufFences[frameIdx]);
+    VkResult submitResult = vkQueueSubmit(queues.graphics, 1, &submit, cmdBufFences[frameIdx]);
 
     if (submitResult != VK_SUCCESS) {
         std::string errStr = vku::toString(submitResult);
@@ -1511,7 +1520,7 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
     presentInfo.pWaitSemaphores = &cmdBufferSemaphores[frameIdx];
     presentInfo.waitSemaphoreCount = 1;
 
-    VkResult presentResult = vkQueuePresentKHR(queue, &presentInfo);
+    VkResult presentResult = vkQueuePresentKHR(queues.present, &presentInfo);
 
     if (enableVR)
         vr::VRCompositor()->PostPresentHandoff();
@@ -1586,13 +1595,13 @@ void VKRenderer::preloadMesh(AssetID id) {
     lmd.indexType = VK_INDEX_TYPE_UINT32;
     lmd.indexCount = (uint32_t)indices.size();
     lmd.ib = vku::IndexBuffer{ device, allocator, indices.size() * sizeof(uint32_t), "Mesh Index Buffer" };
-    lmd.ib.upload(device, commandPool, getQueue(device, graphicsQueueFamilyIdx), indices);
+    lmd.ib.upload(device, commandPool, queues.graphics, indices);
     lmd.vb = vku::VertexBuffer{ device, allocator, vertices.size() * sizeof(Vertex), "Mesh Vertex Buffer" };
-    lmd.vb.upload(device, commandPool, getQueue(device, graphicsQueueFamilyIdx), vertices);
+    lmd.vb.upload(device, commandPool, queues.graphics, vertices);
 
     if (lmd.isSkinned) {
         lmd.vertexSkinWeights = vku::VertexBuffer{ device, allocator, vertSkinInfos.size() * sizeof(VertSkinningInfo), "Mesh Skinning Info" };
-        lmd.vertexSkinWeights.upload(device, commandPool, getQueue(device, graphicsQueueFamilyIdx), vertSkinInfos);
+        lmd.vertexSkinWeights.upload(device, commandPool, queues.graphics, vertSkinInfos);
     }
 
     lmd.aabbMax = glm::vec3(0.0f);

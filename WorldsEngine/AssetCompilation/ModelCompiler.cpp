@@ -113,7 +113,7 @@ namespace worlds {
             std::vector<wmdl::Vertex2> verts;
             std::vector<uint32_t> indices;
             std::vector<wmdl::VertexSkinningInfo> vertSkins;
-            std::vector<wmdl::Bone> bones;
+            std::vector<aiBone*> bones;
             uint32_t indexOffsetInFile;
             uint32_t materialIdx;
         };
@@ -149,11 +149,7 @@ namespace worlds {
                 if (!boneIds.contains(aiBone->mName.C_Str())) {
                     boneIdx = mesh.bones.size();
 
-                    wmdl::Bone bone;
-                    bone.setName(aiBone->mName.C_Str());
-                    bone.restTransform = convMtx(aiBone->mNode->mTransformation * aiBone->mOffsetMatrix);
-
-                    mesh.bones.push_back(bone);
+                    mesh.bones.push_back(aiBone);
                     boneIds.insert({ aiBone->mName.C_Str(), boneIdx });
                 } else {
                     boneIdx = boneIds[aiMesh->mBones[i]->mName.C_Str()];
@@ -191,13 +187,8 @@ namespace worlds {
                 for (int k = 0; k < 3; k++) {
                     int idx = aiMesh->mFaces[j].mIndices[k];
                     wmdl::Vertex2 vtx;
-                    if (!hasBones) {
-                        vtx.position = convMtx(node->mTransformation * hierarchyTransform) * glm::vec4(toGlm(aiMesh->mVertices[idx]), 1.0f);
-                        vtx.normal = glm::transpose(glm::inverse(convMtx(node->mTransformation * hierarchyTransform))) * glm::vec4(toGlm(aiMesh->mNormals[idx]), 0.0f);
-                    } else {
-                        vtx.position = toGlm(aiMesh->mVertices[idx]);
-                        vtx.normal = toGlm(aiMesh->mNormals[idx]);
-                    }
+                    vtx.position = convMtx(node->mTransformation * hierarchyTransform) * glm::vec4(toGlm(aiMesh->mVertices[idx]), 1.0f);
+                    vtx.normal = glm::transpose(glm::inverse(convMtx(node->mTransformation * hierarchyTransform))) * glm::vec4(toGlm(aiMesh->mNormals[idx]), 0.0f);
                     //vtx.normal = toGlm(aiMesh->mNormals[idx]);
                     vtx.tangent = glm::vec3{ 0.0f };
                     vtx.bitangentSign = 0.0f;
@@ -299,7 +290,6 @@ namespace worlds {
                 aiProcess_ValidateDataStructure |
                 aiProcess_OptimizeMeshes |
                 aiProcess_OptimizeGraph |
-                aiProcess_PopulateArmatureData |
                 aiProcess_FlipUVs, extension);
 
             compileOp->progress = PROGRESS_PER_STEP;
@@ -365,21 +355,19 @@ namespace worlds {
 
                 if (hasBones) {
                     for (auto& bone : mesh.bones) {
-                        if (combinedBoneIds.contains(bone.name)) continue;
-                        combinedBoneIds.insert({ bone.name, combinedBones.size() });
-                        combinedBones.push_back(bone);
+                        if (combinedBoneIds.contains(bone->mName.C_Str())) continue;
+
+                        wmdl::Bone wBone;
+                        wBone.setName(bone->mName.C_Str());
+                        wBone.restTransform = convMtx(bone->mOffsetMatrix);
+                        combinedBoneIds.insert({ wBone.name, combinedBones.size() });
+                        combinedBones.push_back(wBone);
                     }
 
                     for (auto& skinInfo : mesh.vertSkins) {
-                        float weightSum = 0.0f;
                         for (int j = 0; j < 4; j++) {
                             if (skinInfo.boneWeight[j] == 0.0f) continue;
-                            skinInfo.boneId[j] = combinedBoneIds[mesh.bones[skinInfo.boneId[j]].name];
-                            weightSum += skinInfo.boneWeight[j];
-                        }
-
-                        if (weightSum < 0.95f && weightSum > 0.0001f) {
-                            __debugbreak();
+                            skinInfo.boneId[j] = combinedBoneIds[mesh.bones[skinInfo.boneId[j]]->mName.C_Str()];
                         }
 
                         combinedVertSkinningInfo.push_back(skinInfo);

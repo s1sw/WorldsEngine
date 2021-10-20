@@ -7,6 +7,7 @@
 #include <SDL_mutex.h>
 #include <functional>
 #include "tracy/Tracy.hpp"
+#include "concurrentqueue.h"
 
 namespace worlds {
     class JobSystem;
@@ -32,52 +33,43 @@ namespace worlds {
 
     class JobList{
     public:
-        JobList() :
-            startJobCount(0),
-            completedJobs(0),
-            completed(true) {
-
-        }
+        JobList(){}
 
         void begin() {
 #ifdef TRACY_ENABLE
             ZoneScoped;
 #endif
-            jobs = std::queue<Job>();
+            jobs = moodycamel::ConcurrentQueue<Job>{};
         }
 
         void addJob(Job&& job) {
 #ifdef TRACY_ENABLE
             ZoneScoped;
 #endif
-            jobs.emplace(job);
+            jobs.enqueue(std::move(job));
+            jobCount++;
         }
 
         void end() {
 #ifdef TRACY_ENABLE
             ZoneScoped;
 #endif
-            startJobCount = (int)jobs.size();
-            completedJobs = 0;
-            completed = false;
         }
 
         void wait() {
 #ifdef TRACY_ENABLE
             ZoneScoped;
 #endif
-            if (completed) return;
+            if (jobCount == 0) return;
             SDL_LockMutex(completeMutex);
-            while (!completed) {
+            while (jobCount) {
                 SDL_CondWait(completeCV, completeMutex);
             }
             SDL_UnlockMutex(completeMutex);
         }
     private:
-        std::queue<Job> jobs;
-        std::atomic<int> startJobCount;
-        std::atomic<int> completedJobs;
-        std::atomic<bool> completed;
+        moodycamel::ConcurrentQueue<Job> jobs;
+        std::atomic<int> jobCount;
         SDL_cond* completeCV;
         SDL_mutex* completeMutex;
         friend class JobSystem;

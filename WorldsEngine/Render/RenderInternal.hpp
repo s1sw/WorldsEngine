@@ -65,11 +65,6 @@ namespace worlds {
         uint32_t sphereIds[16];
     };
 
-    struct QueueFamilyIndices {
-        uint32_t graphics;
-        uint32_t present;
-    };
-
     struct ModelMatrices {
         static const uint32_t SIZE = 2048;
         glm::mat4 modelMatrices[2048];
@@ -118,9 +113,21 @@ namespace worlds {
         glm::vec3 aabbMax;
     };
 
+    struct QueueFamilies {
+        uint32_t graphics;
+        uint32_t present;
+        uint32_t asyncCompute;
+    };
+
+    struct Queues {
+        VkQueue graphics;
+        VkQueue present;
+        VkQueue asyncCompute;
+    };
+
     class Swapchain {
     public:
-        Swapchain(VkPhysicalDevice&, VkDevice, VkSurfaceKHR&, QueueFamilyIndices qfi, bool fullscreen, VkSwapchainKHR oldSwapchain = VkSwapchainKHR(), VkPresentModeKHR presentMode = VK_PRESENT_MODE_FIFO_KHR);
+        Swapchain(VkPhysicalDevice&, VkDevice, VkSurfaceKHR&, QueueFamilies qfi, bool fullscreen, VkSwapchainKHR oldSwapchain = VkSwapchainKHR(), VkPresentModeKHR presentMode = VK_PRESENT_MODE_FIFO_KHR);
         ~Swapchain();
         void getSize(uint32_t* x, uint32_t* y) { *x = width; *y = height; }
         VkResult acquireImage(VkDevice device, VkSemaphore semaphore, uint32_t* imageIndex);
@@ -292,12 +299,14 @@ namespace worlds {
         VkDevice device;
         VkPipelineCache pipelineCache;
         VkDescriptorPool descriptorPool;
+
         VkSurfaceKHR surface;
         Swapchain* swapchain;
         vku::DebugCallback dbgCallback;
-        uint32_t graphicsQueueFamilyIdx;
-        uint32_t presentQueueFamilyIdx;
-        uint32_t asyncComputeQueueFamilyIdx;
+
+        QueueFamilies queueFamilies;
+        Queues queues;
+
         uint32_t width, height;
         VkSampleCountFlagBits msaaSamples;
         int32_t numMSAASamples;
