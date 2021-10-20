@@ -20,7 +20,7 @@ namespace worlds {
         }
 
         for (int i = 0; i < NUM_JOB_SLOTS; i++) {
-            currentJobLists[i].completed = true;
+            currentJobLists[i].jobCount = 0;
             currentJobLists[i].completeCV = SDL_CreateCond();
             currentJobLists[i].completeMutex = SDL_CreateMutex();
         }
@@ -55,14 +55,14 @@ namespace worlds {
 
     void JobSystem::completeFrameJobs() {
         for (auto& jobList : currentJobLists) {
-            if (!jobList.completed)
+            if (jobList.jobCount)
                 jobList.wait();
         }
     }
 
     int JobSystem::getFreeJobSlot() {
         for (int i = 0; i < NUM_JOB_SLOTS; i++) {
-            if (currentJobLists[i].completed)
+            if (currentJobLists[i].jobCount)
                 return i;
         }
         return -1;
@@ -79,9 +79,7 @@ namespace worlds {
             JobList* pulledFromList = nullptr;
 
             for (auto& jobList : currentJobLists) {
-                if (!jobList.completed && !jobList.jobs.empty()) {
-                    currentJob = jobList.jobs.front();
-                    jobList.jobs.pop();
+                if (jobList.jobCount && jobList.jobs.try_dequeue(currentJob)) {
                     pulledFromList = &jobList;
                 }
             }
@@ -95,7 +93,7 @@ namespace worlds {
                     newJobListCV.wait(newJobListLck);
                 }
 
-                // Check if the job list was actually just
+                // Check if the "available job list" was actually just
                 // the program terminating
                 if (!executing)
                     return;
@@ -107,16 +105,13 @@ namespace worlds {
             if (currentJob.completeFunc)
                 currentJob.completeFunc();
 
-            jobListsMutex.lock();
-            // Check if we just completed the list
-            pulledFromList->completedJobs.fetch_add(1);
-            if (pulledFromList->completedJobs.load() >= pulledFromList->startJobCount) {
+            // Decrement the job count and fire completion if necessary
+            pulledFromList->jobCount--;
+            if (pulledFromList->jobCount == 0) {
                 SDL_LockMutex(pulledFromList->completeMutex);
-                pulledFromList->completed = true;
                 SDL_CondBroadcast(pulledFromList->completeCV);
                 SDL_UnlockMutex(pulledFromList->completeMutex);
             }
-            jobListsMutex.unlock();
         }
     }
 }

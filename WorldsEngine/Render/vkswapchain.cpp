@@ -16,7 +16,9 @@ namespace worlds {
         fmt = fmts[0];
 
         if (fmts.size() == 1 && fmt.format == VK_FORMAT_UNDEFINED) {
-            return VkSurfaceFormatKHR(VK_FORMAT_B8G8R8A8_UNORM);
+            return VkSurfaceFormatKHR {
+                VK_FORMAT_B8G8R8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR
+            };
         } else {
             for (auto& fmt : fmts) {
                 if (fmt.format == VK_FORMAT_B8G8R8A8_UNORM) {
@@ -32,7 +34,7 @@ namespace worlds {
         VkPhysicalDevice& physicalDevice,
         VkDevice device,
         VkSurfaceKHR& surface,
-        QueueFamilyIndices qfi,
+        QueueFamilies qfi,
         bool fullscreen,
         VkSwapchainKHR oldSwapchain,
         VkPresentModeKHR requestedPresentMode)
