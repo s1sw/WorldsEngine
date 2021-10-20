@@ -146,7 +146,7 @@ namespace worlds {
         FMOD_RESULT result;
         result = _this->studioSystem->getEvent(eventPath.data(), &desc);
         if (result != FMOD_OK) {
-            logErr("Failed to get event %s: %s", eventPath.data(), FMOD_ErrorString(result));
+            logErr(WELogCategoryAudio, "Failed to get event %s: %s", eventPath.data(), FMOD_ErrorString(result));
             return;
         }
 
@@ -157,7 +157,7 @@ namespace worlds {
 
         result = desc->createInstance(&eventInstance);
         if (result != FMOD_OK) {
-            logErr("Failed to create event %s: %s", eventPath.data(), FMOD_ErrorString(result));
+            logErr(WELogCategoryAudio, "Failed to create event %s: %s", eventPath.data(), FMOD_ErrorString(result));
             return;
         }
 
@@ -265,7 +265,7 @@ namespace worlds {
         g_console->registerCommand([&](void*, const char* arg) {
             float vol = std::atof(arg);
             if (!masterVCA->isValid()) {
-                logErr("Master VCA handle was invalid");
+                logErr(WELogCategoryAudio, "Master VCA handle was invalid");
             } else {
                 masterVCA->setVolume(vol);
             }
@@ -366,7 +366,16 @@ namespace worlds {
         result = studioSystem->getEvent(eventPath, &desc);
 
         if (result != FMOD_OK) {
-            logErr("Failed to get event %s: %s", eventPath, FMOD_ErrorString(result));
+            logErr(WELogCategoryAudio, "Failed to get event %s: %s", eventPath, FMOD_ErrorString(result));
+            return;
+        }
+
+        int instanceCount = 0;
+
+        FMCHECK(desc->getInstanceCount(&instanceCount));
+
+        if (instanceCount > 100) {
+            logErr(WELogCategoryAudio, "Dropping event playback because there are wayyy too many instances right now!");
             return;
         }
 
@@ -374,7 +383,7 @@ namespace worlds {
 
         result = desc->createInstance(&instance);
         if (result != FMOD_OK) {
-            logErr("Failed to create instance of event %s: %s", eventPath, FMOD_ErrorString(result));
+            logErr(WELogCategoryAudio, "Failed to create instance of event %s: %s", eventPath, FMOD_ErrorString(result));
             return;
         }
 

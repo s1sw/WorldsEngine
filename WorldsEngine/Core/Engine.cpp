@@ -304,6 +304,8 @@ namespace worlds {
         }
     }
 
+    SDL_Thread* renderThreadInstance = nullptr;
+
     WorldsEngine::WorldsEngine(EngineInitOptions initOptions, char* argv0)
         : pauseSim{ false }
         , running{ true }
@@ -436,7 +438,7 @@ namespace worlds {
             bool renderInitSuccess = false;
             renderer = std::make_unique<VKRenderer>(initInfo, &renderInitSuccess);
 
-            SDL_DetachThread(SDL_CreateThread(renderThread, "Render Thread", this));
+            renderThreadInstance = SDL_CreateThread(renderThread, "Render Thread", this);
 
             if (!renderInitSuccess) {
                 fatalErr("Failed to initialise renderer");
@@ -1291,6 +1293,8 @@ namespace worlds {
     }
 
     WorldsEngine::~WorldsEngine() {
+        SDL_WaitThread(renderThreadInstance, nullptr);
+
         for (auto* system : systems) {
             delete system;
         }

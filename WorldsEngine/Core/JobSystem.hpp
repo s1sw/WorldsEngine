@@ -33,40 +33,14 @@ namespace worlds {
 
     class JobList{
     public:
-        JobList(){}
+        JobList();
 
-        void begin() {
-#ifdef TRACY_ENABLE
-            ZoneScoped;
-#endif
-            jobs = moodycamel::ConcurrentQueue<Job>{};
-        }
+        void begin();
+        void addJob(Job&& job);
+        void end();
+        void wait();
 
-        void addJob(Job&& job) {
-#ifdef TRACY_ENABLE
-            ZoneScoped;
-#endif
-            jobs.enqueue(std::move(job));
-            jobCount++;
-        }
-
-        void end() {
-#ifdef TRACY_ENABLE
-            ZoneScoped;
-#endif
-        }
-
-        void wait() {
-#ifdef TRACY_ENABLE
-            ZoneScoped;
-#endif
-            if (jobCount == 0) return;
-            SDL_LockMutex(completeMutex);
-            while (jobCount) {
-                SDL_CondWait(completeCV, completeMutex);
-            }
-            SDL_UnlockMutex(completeMutex);
-        }
+        bool isComplete();
     private:
         moodycamel::ConcurrentQueue<Job> jobs;
         std::atomic<int> jobCount;
@@ -95,7 +69,8 @@ namespace worlds {
         std::mutex newJobListM;
         std::condition_variable newJobListCV;
 
-        JobList currentJobLists[NUM_JOB_SLOTS];
+        JobList* currentJobLists;
         std::vector<std::thread> workers;
+        std::atomic<int> initialisedWorkerCount;
     };
 }

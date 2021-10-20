@@ -300,6 +300,8 @@ VkPhysicalDevice pickPhysicalDevice(std::vector<VkPhysicalDevice>& physicalDevic
     return physicalDevices[0];
 }
 
+VkBool32 canPresentFromCompute = false;
+
 VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     : finalPrePresent(nullptr)
     , leftEye(nullptr)
@@ -413,6 +415,16 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     if (queueFamilies.asyncCompute != badQueue)
         dm.queue(queueFamilies.asyncCompute);
 
+    // Create surface and find presentation queue
+    VkSurfaceKHR surface;
+    SDL_Vulkan_CreateSurface(window, instance, &surface);
+
+    this->surface = surface;
+    queueFamilies.present = findPresentQueue(physicalDevice, surface);
+
+    if (queueFamilies.asyncCompute != badQueue)
+        VKCHECK(vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, queueFamilies.asyncCompute, surface, &canPresentFromCompute));
+
     if (queueFamilies.present != queueFamilies.graphics)
         dm.queue(queueFamilies.present);
 
@@ -437,7 +449,6 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
         *success = false;
         return;
     }
-
 
     VkPhysicalDeviceFeatures features{};
     features.shaderStorageImageMultisample = true;
@@ -467,7 +478,8 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
 
     queues.graphics = getQueue(device, queueFamilies.graphics);
     queues.present = getQueue(device, queueFamilies.present);
-    queues.asyncCompute = getQueue(device, queueFamilies.asyncCompute);
+    if (queueFamilies.asyncCompute != badQueue)
+        queues.asyncCompute = getQueue(device, queueFamilies.asyncCompute);
 
     VmaAllocatorCreateInfo allocatorCreateInfo{};
     allocatorCreateInfo.device = device;
@@ -499,13 +511,6 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     descriptorPoolInfo.pPoolSizes = poolSizes.data();
 
     VKCHECK(vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool));
-
-    // Create surface and find presentation queue
-    VkSurfaceKHR surface;
-    SDL_Vulkan_CreateSurface(window, instance, &surface);
-
-    this->surface = surface;
-    queueFamilies.present = findPresentQueue(physicalDevice, surface);
 
     // Command pool
     VkCommandPoolCreateInfo cpci{};
@@ -665,9 +670,7 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     *success = true;
 #ifdef TRACY_ENABLE
     for (auto& cmdBuf : cmdBufs) {
-        VkQueue queue;
-        vkGetDeviceQueue(device, graphicsQueueFamilyIdx, 0, &queue);
-        tracyContexts.push_back(tracy::CreateVkContext(physicalDevice, device, queue, cmdBuf, vkGetPhysicalDeviceCalibrateableTimeDomainsEXT, vkGetCalibratedTimestampsEXT));
+        tracyContexts.push_back(tracy::CreateVkContext(physicalDevice, device, queues.graphics, cmdBuf, vkGetPhysicalDeviceCalibrateableTimeDomainsEXT, vkGetCalibratedTimestampsEXT));
     }
 #endif
 
@@ -927,6 +930,8 @@ void VKRenderer::recreateSwapchainInternal() {
     swapchainRecreated = true;
 }
 
+static worlds::ConVar presentFromCompute{ "r_presentFromCompute", "0" };
+
 void VKRenderer::presentNothing(uint32_t imageIndex) {
     VkSemaphore imgSemaphore = imgAvailable[frameIdx];
     VkSemaphore cmdBufSemaphore = cmdBufferSemaphores[frameIdx];
@@ -953,9 +958,13 @@ void VKRenderer::presentNothing(uint32_t imageIndex) {
     submitInfo.pSignalSemaphores = &cmdBufferSemaphores[frameIdx];
     submitInfo.pCommandBuffers = &cmdBuf;
     submitInfo.commandBufferCount = 1;
-    vkQueueSubmit(queues.present, 1, &submitInfo, VK_NULL_HANDLE);
 
-    auto presentResult = vkQueuePresentKHR(queues.present, &presentInfo);
+
+    VkQueue presentQueue = (presentFromCompute.getInt() && canPresentFromCompute) ? queues.asyncCompute : queues.present;
+
+    vkQueueSubmit(presentQueue, 1, &submitInfo, VK_NULL_HANDLE);
+
+    auto presentResult = vkQueuePresentKHR(presentQueue, &presentInfo);
     if (presentResult != VK_SUCCESS && presentResult != VK_SUBOPTIMAL_KHR)
         fatalErr("Present failed!");
 }
@@ -1511,6 +1520,8 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
         submitToOpenVR();
     }
 
+    VkQueue presentQueue = (presentFromCompute.getInt() && canPresentFromCompute) ? queues.asyncCompute : queues.present;
+
     VkPresentInfoKHR presentInfo{ VK_STRUCTURE_TYPE_PRESENT_INFO_KHR };
     VkSwapchainKHR cSwapchain = swapchain->getSwapchain();
     presentInfo.pSwapchains = &cSwapchain;
@@ -1520,7 +1531,7 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
     presentInfo.pWaitSemaphores = &cmdBufferSemaphores[frameIdx];
     presentInfo.waitSemaphoreCount = 1;
 
-    VkResult presentResult = vkQueuePresentKHR(queues.present, &presentInfo);
+    VkResult presentResult = vkQueuePresentKHR(presentQueue, &presentInfo);
 
     if (enableVR)
         vr::VRCompositor()->PostPresentHandoff();
@@ -1853,6 +1864,8 @@ VKRenderer::~VKRenderer() {
         materialUB.destroy();
         vpBuffer.destroy();
 
+        for (int i = 0 ; i < maxFramesInFlight; i++)
+            DeletionQueue::cleanupFrame(i);
 
 #ifndef NDEBUG
         char* statsString;
