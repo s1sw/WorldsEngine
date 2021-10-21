@@ -724,6 +724,14 @@ namespace worlds {
         ctx.registry.view<Transform, SkinnedWorldObject>().each([&](entt::entity ent, Transform& t, SkinnedWorldObject& wo) {
             auto meshPos = resources.meshes.find(wo.mesh);
 
+            if (matrixIdx == ModelMatrices::SIZE - 1) {
+                if (!warned) {
+                    logWarn("Out of model matrices!");
+                    warned = true;
+                }
+                return;
+            }
+
             if (meshPos == resources.meshes.end()) {
                 // Haven't loaded the mesh yet
                 logWarn(WELogCategoryRender, "Missing mesh");
@@ -732,8 +740,10 @@ namespace worlds {
 
             for (int i = 0; i < meshPos->second.meshBones.size(); i++) {
                 glm::mat4 bonePose = wo.currentPose.boneTransforms[i];
-                skinningMatricesMapped[i + skinningOffset] = t.getMatrix() * meshPos->second.meshBones[i].restPosition; //* glm::inverse(meshPos->second.meshBones[i].restPosition);
+                skinningMatricesMapped[i + skinningOffset] = bonePose * meshPos->second.meshBones[i].restPosition; //* glm::inverse(meshPos->second.meshBones[i].restPosition);
             }
+
+            modelMatricesMapped[ctx.imageIndex]->modelMatrices[matrixIdx] = t.getMatrix();
 
             float maxScale = glm::max(t.scale.x, glm::max(t.scale.y, t.scale.z));
             //if (!ctx.passSettings.enableVR) {
@@ -817,6 +827,7 @@ namespace worlds {
                 drawInfo.add(std::move(sdi));
             }
             skinningOffset += meshPos->second.meshBones.size();
+            matrixIdx++;
 
             });
     }
