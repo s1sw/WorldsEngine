@@ -252,11 +252,13 @@ namespace vku {
             VkDevice device = s.device;
             VmaAllocator allocator = s.allocator;
             VmaAllocation allocation = s.allocation;
+            VkImageCreateInfo ici = s.info;
             worlds::DeletionQueue::queueDeletion([=]() {
                 if (imageView) {
                     vkDestroyImageView(device, imageView, nullptr);
                 }
 
+                ici;
                 vkDestroyImage(device, image, nullptr);
 
                 vmaFreeMemory(allocator, allocation);

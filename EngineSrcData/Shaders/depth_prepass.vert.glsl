@@ -26,6 +26,7 @@ void main() {
     model += buf_BoneTransforms.matrices[skinningOffset + inBoneIds[1]] * inBoneWeights[1];
     model += buf_BoneTransforms.matrices[skinningOffset + inBoneIds[2]] * inBoneWeights[2];
     model += buf_BoneTransforms.matrices[skinningOffset + inBoneIds[3]] * inBoneWeights[3];
+    model = modelMatrices[modelMatrixIdx + gl_InstanceIndex] * model;
 #else
     mat4 model = modelMatrices[modelMatrixIdx + gl_InstanceIndex];
 #endif

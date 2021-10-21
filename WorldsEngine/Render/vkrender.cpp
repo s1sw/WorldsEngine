@@ -95,13 +95,18 @@ void DeletionQueue::setCurrentFrame(uint32_t frame) {
 }
 
 void DeletionQueue::cleanupFrame(uint32_t frame) {
-    auto& frameObjectQueue = deletionQueues[frame];
+    auto frameObjectQueue = deletionQueues[frame];
+    deletionQueues[frame].clear();
 
     for (auto it = frameObjectQueue.rbegin(); it != frameObjectQueue.rend(); it++) {
         (*it)();
     }
 
-    frameObjectQueue.clear();
+    for (auto it = deletionQueues[frame].rbegin(); it != deletionQueues[frame].rend(); it++) {
+        (*it)();
+    }
+
+    deletionQueues[frame].clear();
 }
 
 void DeletionQueue::resize(uint32_t maxFrames) {
@@ -565,6 +570,40 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
 
     auto vkCtx = std::make_shared<VulkanHandles>(handles);
 
+    VkCommandBufferAllocateInfo cbai{};
+    cbai.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    cbai.commandPool = commandPool;
+    cbai.commandBufferCount = maxFramesInFlight;
+    cbai.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+
+    cmdBufs.resize(maxFramesInFlight);
+
+    VKCHECK(vkAllocateCommandBuffers(device, &cbai, cmdBufs.data()));
+
+    cmdBufFences.resize(maxFramesInFlight);
+    cmdBufferSemaphores.resize(maxFramesInFlight);
+    imgAvailable.resize(maxFramesInFlight);
+
+    for (int i = 0; i < maxFramesInFlight; i++) {
+        std::string cmdBufName = "Command Buffer ";
+        cmdBufName += std::to_string(i);
+
+        vku::setObjectName(device, (uint64_t)cmdBufs[i], VK_OBJECT_TYPE_COMMAND_BUFFER, cmdBufName.c_str());
+        VkFenceCreateInfo fci{};
+        fci.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+        fci.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+        VKCHECK(vkCreateFence(device, &fci, nullptr, &cmdBufFences[i]));
+
+        VkSemaphoreCreateInfo sci{};
+        sci.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+        VKCHECK(vkCreateSemaphore(device, &sci, nullptr, &cmdBufferSemaphores[i]));
+        VKCHECK(vkCreateSemaphore(device, &sci, nullptr, &imgAvailable[i]));
+    }
+
+    DeletionQueue::resize(maxFramesInFlight);
+    imgFences.resize(cmdBufs.size());
+
     cubemapConvoluter = std::make_shared<CubemapConvoluter>(vkCtx);
 
     texSlots = std::make_unique<TextureSlots>(vkCtx);
@@ -623,40 +662,6 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
         });
 
     createSCDependents();
-
-    VkCommandBufferAllocateInfo cbai{};
-    cbai.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    cbai.commandPool = commandPool;
-    cbai.commandBufferCount = maxFramesInFlight;
-    cbai.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-
-    cmdBufs.resize(maxFramesInFlight);
-
-    VKCHECK(vkAllocateCommandBuffers(device, &cbai, cmdBufs.data()));
-
-    cmdBufFences.resize(maxFramesInFlight);
-    cmdBufferSemaphores.resize(maxFramesInFlight);
-    imgAvailable.resize(maxFramesInFlight);
-
-    for (int i = 0; i < maxFramesInFlight; i++) {
-        std::string cmdBufName = "Command Buffer ";
-        cmdBufName += std::to_string(i);
-
-        vku::setObjectName(device, (uint64_t)cmdBufs[i], VK_OBJECT_TYPE_COMMAND_BUFFER, cmdBufName.c_str());
-        VkFenceCreateInfo fci{};
-        fci.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-        fci.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-        VKCHECK(vkCreateFence(device, &fci, nullptr, &cmdBufFences[i]));
-
-        VkSemaphoreCreateInfo sci{};
-        sci.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-
-        VKCHECK(vkCreateSemaphore(device, &sci, nullptr, &cmdBufferSemaphores[i]));
-        VKCHECK(vkCreateSemaphore(device, &sci, nullptr, &imgAvailable[i]));
-    }
-
-    DeletionQueue::resize(maxFramesInFlight);
-    imgFences.resize(cmdBufs.size());
 
     timestampPeriod = physDevProps.limits.timestampPeriod;
 

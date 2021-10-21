@@ -349,10 +349,6 @@ namespace worlds {
                     combinedIndices.push_back(idx + combinedVerts.size());
                 }
 
-                for (auto& vtx : mesh.verts) {
-                    combinedVerts.push_back(vtx);
-                }
-
                 if (hasBones) {
                     for (auto& bone : mesh.bones) {
                         if (combinedBoneIds.contains(bone->mName.C_Str())) continue;
@@ -364,6 +360,7 @@ namespace worlds {
                         combinedBones.push_back(wBone);
                     }
 
+                    int vertIdx = 0;
                     for (auto& skinInfo : mesh.vertSkins) {
                         for (int j = 0; j < 4; j++) {
                             if (skinInfo.boneWeight[j] == 0.0f) continue;
@@ -371,7 +368,12 @@ namespace worlds {
                         }
 
                         combinedVertSkinningInfo.push_back(skinInfo);
+                        vertIdx++;
                     }
+                }
+
+                for (auto& vtx : mesh.verts) {
+                    combinedVerts.push_back(vtx);
                 }
             }
             compileOp->progress = PROGRESS_PER_STEP * 3;
