@@ -740,7 +740,7 @@ namespace worlds {
 
             for (int i = 0; i < meshPos->second.meshBones.size(); i++) {
                 glm::mat4 bonePose = wo.currentPose.boneTransforms[i];
-                skinningMatricesMapped[i + skinningOffset] = bonePose * meshPos->second.meshBones[i].restPosition; //* glm::inverse(meshPos->second.meshBones[i].restPosition);
+                skinningMatricesMapped[i + skinningOffset] = bonePose * meshPos->second.meshBones[i].restPosition;
             }
 
             modelMatricesMapped[ctx.imageIndex]->modelMatrices[matrixIdx] = t.getMatrix();

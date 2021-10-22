@@ -109,6 +109,11 @@ namespace worlds {
             return 3;
         }
 
+        struct IntermediateBone {
+            aiBone* bone;
+            aiBone* parentBone;
+        };
+
         struct Mesh {
             std::vector<wmdl::Vertex2> verts;
             std::vector<uint32_t> indices;
@@ -142,6 +147,7 @@ namespace worlds {
                 }
             }
 
+            logMsg("Mesh %s has %i bones", aiMesh->mName.C_Str(), aiMesh->mNumBones);
             for (unsigned int i = 0; i < aiMesh->mNumBones; i++) {
                 uint32_t boneIdx = 0;
                 aiBone* aiBone = aiMesh->mBones[i];
@@ -255,13 +261,25 @@ namespace worlds {
             return mesh;
         }
 
-        void processNode(aiNode* node, std::vector<Mesh>& meshes, const aiScene* scene, aiMatrix4x4 parentTransform) {
+        robin_hood::unordered_map<std::string, aiNode*> nodeLookup;
+
+        void processNode(aiNode* node, std::vector<Mesh>& meshes, const aiScene* scene, aiMatrix4x4 parentTransform, int depth = 0) {
+            char indentBuf[8] = { 0 };
+
+            for (int i = 0; i < depth; i++) {
+                indentBuf[i] = '\t';
+            }
+
+            logMsg("%s- %s", indentBuf, node->mName.C_Str());
+
             for (int i = 0; i < node->mNumMeshes; i++) {
                 meshes.push_back(processAiMesh(scene->mMeshes[node->mMeshes[i]], node, parentTransform));
             }
 
+            nodeLookup.insert({ node->mName.C_Str(), node });
+
             for (int i = 0; i < node->mNumChildren; i++) {
-                processNode(node->mChildren[i], meshes, scene, node->mTransformation * parentTransform);
+                processNode(node->mChildren[i], meshes, scene, node->mTransformation * parentTransform, depth + 1);
             }
         }
 
@@ -269,6 +287,7 @@ namespace worlds {
             const int NUM_STEPS = 5;
             const float PROGRESS_PER_STEP = 1.0f / NUM_STEPS;
             DefaultLogger::get()->attachStream(new PrintfStream);
+            nodeLookup.clear();
 
             Assimp::Importer importer;
 
@@ -356,8 +375,22 @@ namespace worlds {
                         wmdl::Bone wBone;
                         wBone.setName(bone->mName.C_Str());
                         wBone.restTransform = convMtx(bone->mOffsetMatrix);
+
+                        aiNode* boneNode = nodeLookup.at(bone->mName.C_Str());
+                        wBone.transform = convMtx(boneNode->mTransformation);
+
                         combinedBoneIds.insert({ wBone.name, combinedBones.size() });
                         combinedBones.push_back(wBone);
+                    }
+
+                    for (auto& bone : mesh.bones) {
+                        aiNode* boneNode = nodeLookup.at(bone->mName.C_Str());
+                        aiNode* parentNode = boneNode->mParent;
+                        uint32_t combinedId = combinedBoneIds.at(bone->mName.C_Str());
+
+                        if (combinedBoneIds.contains(parentNode->mName.C_Str())) {
+                            combinedBones[combinedId].parentBone = combinedBoneIds.at(parentNode->mName.C_Str());
+                        }
                     }
 
                     int vertIdx = 0;
@@ -376,6 +409,7 @@ namespace worlds {
                     combinedVerts.push_back(vtx);
                 }
             }
+
             compileOp->progress = PROGRESS_PER_STEP * 3;
 
             wmdl::Header hdr;

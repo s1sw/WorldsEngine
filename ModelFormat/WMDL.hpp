@@ -43,7 +43,9 @@ namespace wmdl {
 
     struct Bone {
         glm::mat4 restTransform;
+        glm::mat4 transform;
         char name[32] = {0};
+        uint32_t parentBone = ~0u;
 
         void setName(const char* name) {
             int i = 0;
