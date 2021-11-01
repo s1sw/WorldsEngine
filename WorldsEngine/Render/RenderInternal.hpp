@@ -55,6 +55,7 @@ namespace worlds {
     };
 
     struct LightUB {
+        static const int MAX_LIGHTS = 256;
         glm::mat4 additionalShadowMatrices[NUM_SHADOW_LIGHTS];
         glm::vec4 pack0;
         glm::vec4 pack1;
@@ -87,7 +88,9 @@ namespace worlds {
     };
 
     struct MeshBone {
-        glm::mat4 restPosition;
+        glm::mat4 inverseBindPose;
+        glm::mat4 transform;
+        uint32_t parentIdx;
         std::string name;
     };
 
@@ -103,6 +106,7 @@ namespace worlds {
         bool isSkinned;
         vku::VertexBuffer vertexSkinWeights;
         std::vector<MeshBone> meshBones;
+        std::vector<uint32_t> boneUpdateOrder;
 
         uint32_t indexCount;
         VkIndexType indexType;
@@ -146,6 +150,7 @@ namespace worlds {
     // Holds handles to useful Vulkan objects
     struct VulkanHandles {
         VKVendor vendor;
+        bool hasOutOfOrderRasterization;
         VkPhysicalDevice physicalDevice;
         VkDevice device;
         VkPipelineCache pipelineCache;
@@ -199,7 +204,7 @@ namespace worlds {
         VkCommandBuffer cmdBuf;
         uint32_t passWidth;
         uint32_t passHeight;
-        uint32_t imageIndex;
+        uint32_t frameIndex;
         int maxSimultaneousFrames;
     };
 
@@ -208,9 +213,9 @@ namespace worlds {
         BRDFLUTRenderer(VulkanHandles& ctx);
         void render(VulkanHandles& ctx, vku::GenericImage& target);
     private:
-        VkRenderPass renderPass;
-        VkPipeline pipeline;
-        VkPipelineLayout pipelineLayout;
+        vku::RenderPass renderPass;
+        vku::Pipeline pipeline;
+        vku::PipelineLayout pipelineLayout;
 
         vku::ShaderModule vs;
         vku::ShaderModule fs;
@@ -222,11 +227,11 @@ namespace worlds {
         void convolute(vku::TextureImageCube& cubemap);
     private:
         vku::ShaderModule cs;
-        VkPipeline pipeline;
-        VkPipelineLayout pipelineLayout;
-        VkDescriptorSetLayout dsl;
+        vku::Pipeline pipeline;
+        vku::PipelineLayout pipelineLayout;
+        vku::DescriptorSetLayout dsl;
         std::shared_ptr<VulkanHandles> vkCtx;
-        VkSampler sampler;
+        vku::Sampler sampler;
     };
 
     class PipelineCacheSerializer {
@@ -240,6 +245,7 @@ namespace worlds {
     class DeletionQueue {
     public:
         static void queueDeletion(std::function<void()>&& deleteFunc);
+        static void queueObjectDeletion(void* object, VkObjectType type);
         static void setCurrentFrame(uint32_t frame);
         static void cleanupFrame(uint32_t frame);
         static void resize(uint32_t maxFrames);
@@ -270,7 +276,7 @@ namespace worlds {
         IVRInterface* vrInterface;
         RenderDebugStats* dbgStats;
         void writeCmds(uint32_t frameIdx, VkCommandBuffer buf, entt::registry& world);
-        VkDescriptorPool descriptorPool;
+        vku::DescriptorPool descriptorPool;
 
         friend class VKRenderer;
     };
@@ -310,7 +316,7 @@ namespace worlds {
         uint32_t width, height;
         VkSampleCountFlagBits msaaSamples;
         int32_t numMSAASamples;
-        std::vector<VkFramebuffer> framebuffers;
+        std::vector<vku::Framebuffer> framebuffers;
         VkCommandPool commandPool;
         std::vector<VkCommandBuffer> cmdBufs;
         int maxFramesInFlight = 2;

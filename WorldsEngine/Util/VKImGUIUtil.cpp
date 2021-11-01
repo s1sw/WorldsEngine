@@ -13,7 +13,7 @@ namespace worlds {
             layout = dslm.create(vkCtx->device);
 
             vku::SamplerMaker sm;
-            sampler = sm.create(vkCtx->device);
+            sampler = sm.create(vkCtx->device).release();
         }
 
         void destroyObjects(const worlds::VulkanHandles* vkCtx) {

@@ -9,6 +9,7 @@ using ImGuiNET;
 using WorldsEngine.Math;
 using JetBrains.Annotations;
 using System.Diagnostics.CodeAnalysis;
+using WorldsEngine.Editor;
 
 namespace WorldsEngine
 {
@@ -123,6 +124,7 @@ namespace WorldsEngine
             }
 
             SceneRunning = true;
+            Editor.Editor.Notify("Scene started");
         }
 
         [UsedImplicitly]
@@ -165,9 +167,8 @@ namespace WorldsEngine
 
             try
             {
-                simulateSyncContext.RunCallbacks();
-
                 Physics.FlushCollisionQueue();
+                simulateSyncContext.RunCallbacks();
 
                 foreach (var system in hotloadManager.Systems)
                 {
@@ -195,26 +196,7 @@ namespace WorldsEngine
             SynchronizationContext.SetSynchronizationContext(editorUpdateSyncContext);
             Physics.ClearCollisionQueue();
 
-            if (ImGui.Begin($"{FontAwesome.FontAwesomeIcons.Cube} Selected Entity"))
-            {
-                if (!Registry.Valid(Editor.CurrentlySelected))
-                {
-                    ImGui.Text("No entity selected");
-                }
-                else
-                {
-                    MetadataManager.EditEntity(Editor.CurrentlySelected);
-
-                    if (ImGui.Button("Add Component"))
-                    {
-                        AddComponentPopup.Show();
-                    }
-                }
-
-                AddComponentPopup.Update();
-            }
-
-            ImGui.End();
+            Editor.Editor.Update();
 
             if (ImGui.Begin("Misc"))
             {

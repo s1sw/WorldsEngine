@@ -21,7 +21,7 @@ layout(location = 0) VARYING(vec4, WorldPos);
 layout(location = 1) VARYING(vec3, Normal);
 layout(location = 2) VARYING(vec4, Tangent);
 layout(location = 3) VARYING(vec2, UV);
-layout(location = 4) VARYING(flat uint, UvDir);
+//layout(location = 4) VARYING(flat uint, UvDir);
 
 #ifdef FRAGMENT
 //#ifdef EFT
@@ -63,68 +63,68 @@ vec3 getViewPos() {
 void main() {
 #ifdef SKINNED
     mat4 model = mat4(0.0f);
-
-    //for (int i = 0; i < 4; i++) {
-    //    model += buf_BoneTransforms.matrices[skinningOffset + inBoneIds[i]] * inBoneWeights[i];
-    //}
+    
     model  = buf_BoneTransforms.matrices[skinningOffset + inBoneIds[0]] * inBoneWeights[0];
     model += buf_BoneTransforms.matrices[skinningOffset + inBoneIds[1]] * inBoneWeights[1];
     model += buf_BoneTransforms.matrices[skinningOffset + inBoneIds[2]] * inBoneWeights[2];
     model += buf_BoneTransforms.matrices[skinningOffset + inBoneIds[3]] * inBoneWeights[3];
+    
     model = modelMatrices[modelMatrixIdx + gl_InstanceIndex] * model;
 #else
-    mat4 model = modelMatrices[modelMatrixIdx + gl_InstanceIndex];
+    mat4 model = modelMatrices[modelMatrixIdx];
 #endif
 
     int vpMatIdx = vpIdx;
+    
 #ifdef MULTIVIEW
     vpMatIdx += gl_ViewIndex;
 #endif
+
     outWorldPos = (model * vec4(inPosition, 1.0));
 
-    mat4 vp = projection[vpMatIdx] * view[vpMatIdx];
+    gl_Position = (projection[vpMatIdx] * view[vpMatIdx] * model) * vec4(inPosition, 1.0); // Apply MVP transform
+    
+    model = transpose(inverse(model));
 
-    gl_Position = vp * model * vec4(inPosition, 1.0); // Apply MVP transform
-
-    outNormal = normalize((transpose(inverse(model)) * vec4(inNormal, 0.0f)).xyz);
-    outTangent = vec4(normalize((transpose(inverse(model)) * vec4(inTangent, 0.0f)).xyz), inBitangentSign);
+    outNormal = normalize((model * vec4(inNormal, 0.0)).xyz);
+    outTangent = normalize(vec4((model * vec4(inTangent, 0.0)).xyz, inBitangentSign));
     gl_Position.y = -gl_Position.y; // Account for Vulkan viewport weirdness
 
     vec2 uv = inUV;
-    outUvDir = 0;
+    //outUvDir = 0;
 
-    if ((miscFlag & MISC_FLAG_UV_XY) == MISC_FLAG_UV_XY) {
-        uv = outWorldPos.xy;
-        outUvDir = 1;
-    } else if ((miscFlag & MISC_FLAG_UV_XZ) == MISC_FLAG_UV_XZ) {
-        uv = outWorldPos.xz;
-        outUvDir = 2;
-    } else if ((miscFlag & MISC_FLAG_UV_ZY) == MISC_FLAG_UV_ZY) {
-        uv = outWorldPos.zy;
-        outUvDir = 3;
-    } else if ((miscFlag & MISC_FLAG_UV_PICK) == MISC_FLAG_UV_PICK) {
-        // Find maximum axis
-        uint maxAxis = 0;
-
-        vec3 dots = vec3(0.0);
-
-        dots.x = abs(dot(outNormal, vec3(1.0, 0.0, 0.0)));
-        dots.y = abs(dot(outNormal, vec3(0.0, 1.0, 0.0)));
-        dots.z = abs(dot(outNormal, vec3(0.0, 0.0, 1.0)));
-        float maxProduct = max(dots.x, max(dots.y, dots.z));
-
-        // Assume flat surface for tangents
-        if (dots.x == maxProduct) {
-            uv = outWorldPos.zy;
-            outUvDir = 1;
-        } else if (dots.y == maxProduct) {
-            uv = outWorldPos.xz;
-            outUvDir = 2;
-        } else {
-            uv = outWorldPos.xy;
-            outUvDir = 3;
-        }
-    }
+    //if ((miscFlag & MISC_FLAG_UV_XY) == MISC_FLAG_UV_XY) {
+    //    uv = outWorldPos.xy;
+    //    outUvDir = 1;
+    //} else if ((miscFlag & MISC_FLAG_UV_XZ) == MISC_FLAG_UV_XZ) {
+    //    uv = outWorldPos.xz;
+    //    outUvDir = 2;
+    //} else if ((miscFlag & MISC_FLAG_UV_ZY) == MISC_FLAG_UV_ZY) {
+    //    uv = outWorldPos.zy;
+    //    outUvDir = 3;
+    //} else if ((miscFlag & MISC_FLAG_UV_PICK) == MISC_FLAG_UV_PICK) {
+    //    // Find maximum axis
+    //    uint maxAxis = 0;
+    //
+    //    vec3 dots = vec3(0.0);
+    //
+    //    dots.x = abs(dot(outNormal, vec3(1.0, 0.0, 0.0)));
+    //    dots.y = abs(dot(outNormal, vec3(0.0, 1.0, 0.0)));
+    //    dots.z = abs(dot(outNormal, vec3(0.0, 0.0, 1.0)));
+    //    float maxProduct = max(dots.x, max(dots.y, dots.z));
+    //
+    //    // Assume flat surface for tangents
+    //    if (dots.x == maxProduct) {
+    //        uv = outWorldPos.zy;
+    //        outUvDir = 1;
+    //    } else if (dots.y == maxProduct) {
+    //        uv = outWorldPos.xz;
+    //        outUvDir = 2;
+    //    } else {
+    //        uv = outWorldPos.xy;
+    //        outUvDir = 3;
+    //    }
+    //}
 
     outUV = (uv * texScaleOffset.xy) + texScaleOffset.zw;
 }
@@ -520,19 +520,19 @@ void main() {
     // with both normal mapping and parallax mapping, and this is what worked in the end.
     vec3 bitangent = cross(inNormal, inTangent.xyz) * inTangent.w;
     mat3 tbn = mat3(inTangent.xyz, bitangent, inNormal);
-    if (inUvDir == 1) {
-        tbn = mat3(vec3(0.0, 0.0, 1.0) * -sign(inNormal.x) * -sign(inUV.x),
-                vec3(0.0, 1.0, 0.0) * -sign(inNormal.x) * sign(inUV.y),
-                vec3(1.0, 0.0, 0.0)) * sign(inNormal.x);
-    } else if (inUvDir == 2) {
-        tbn = mat3(vec3(1.0, 0.0, 0.0)  * sign(inNormal.y) * sign(inUV.x),
-                   vec3(0.0, 0.0, 1.0)  * sign(inNormal.y),
-                   vec3(0.0, 1.0, 0.0)) * sign(inNormal.y);
-    } else if (inUvDir == 3) {
-        tbn = mat3(vec3(1.0, 0.0, 0.0) * -sign(inNormal.z) * -sign(inUV.x),
-                vec3(0.0, 1.0, 0.0) * -sign(inNormal.z) * sign(inUV.y),
-                vec3(0.0, 0.0, 1.0)) * sign(inNormal.z);
-    }
+    //if (inUvDir == 1) {
+    //    tbn = mat3(vec3(0.0, 0.0, 1.0) * -sign(inNormal.x) * -sign(inUV.x),
+    //            vec3(0.0, 1.0, 0.0) * -sign(inNormal.x) * sign(inUV.y),
+    //            vec3(1.0, 0.0, 0.0)) * sign(inNormal.x);
+    //} else if (inUvDir == 2) {
+    //    tbn = mat3(vec3(1.0, 0.0, 0.0)  * sign(inNormal.y) * sign(inUV.x),
+    //               vec3(0.0, 0.0, 1.0)  * sign(inNormal.y),
+    //               vec3(0.0, 1.0, 0.0)) * sign(inNormal.y);
+    //} else if (inUvDir == 3) {
+    //    tbn = mat3(vec3(1.0, 0.0, 0.0) * -sign(inNormal.z) * -sign(inUV.x),
+    //            vec3(0.0, 1.0, 0.0) * -sign(inNormal.z) * sign(inUV.y),
+    //            vec3(0.0, 0.0, 1.0)) * sign(inNormal.z);
+    //}
 
     uint doPicking = miscFlag & 0x1;
 

@@ -45,6 +45,8 @@
 #else
 #include "SplashScreenImpls/SplashScreenWin32.hpp"
 #endif
+#include <ImGui/imgui_freetype.h>
+#include <UI/WorldTextComponent.hpp>
 #undef min
 #undef max
 
@@ -52,7 +54,6 @@ namespace worlds {
     uint32_t fullscreenToggleEventId;
     uint32_t showWindowEventId;
 
-    bool useEventThread = false;
     int workerThreadOverride = -1;
     bool enableOpenVR = false;
     glm::ivec2 windowSize;
@@ -98,39 +99,8 @@ namespace worlds {
 
         windowCreated = true;
         while (_this->running) {
-            SDL_Event evt;
-
-            if (SDL_WaitEvent(&evt)) {
-                if (evt.type == SDL_QUIT) {
-                    _this->running = false;
-                    break;
-                } else if (evt.type == fullscreenToggleEventId) {
-                    if (fullscreen) {
-                        SDL_SetWindowResizable(_this->window, SDL_TRUE);
-                        SDL_SetWindowBordered(_this->window, SDL_TRUE);
-                        SDL_SetWindowPosition(_this->window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
-                        SDL_SetWindowSize(_this->window, 1600, 900);
-                    } else {
-                        SDL_SetWindowResizable(_this->window, SDL_FALSE);
-                        SDL_SetWindowBordered(_this->window, SDL_FALSE);
-                        SDL_SetWindowPosition(_this->window, 0, 0);
-                        SDL_DisplayMode dm;
-                        SDL_GetDesktopDisplayMode(0, &dm);
-                        SDL_SetWindowSize(_this->window, dm.w, dm.h);
-                    }
-                    fullscreen = !fullscreen;
-                } else if (evt.type == showWindowEventId) {
-                    uint32_t flags = SDL_GetWindowFlags(_this->window);
-
-                    if (flags & SDL_WINDOW_HIDDEN)
-                        SDL_ShowWindow(_this->window);
-                    else
-                        SDL_HideWindow(_this->window);
-                    logVrb(WELogCategoryEngine, "window state toggled");
-                } else {
-                    evts.emplace(evt);
-                }
-            }
+            SDL_PumpEvents();
+            SDL_Delay(1);
         }
 
         logVrb(WELogCategoryEngine, "window thread exiting");
@@ -246,6 +216,16 @@ namespace worlds {
         static const ImWchar iconRangesFAD[] = { ICON_MIN_FAD, ICON_MAX_FAD, 0 };
 
         addImGuiFont("Fonts/" FONT_ICON_FILE_NAME_FAD, 22.0f, &iconConfig2, iconRangesFAD);
+
+#ifdef _WIN32
+        ImFontConfig emojiFontConfig{};
+        emojiFontConfig.MergeMode = true;
+        emojiFontConfig.OversampleH = emojiFontConfig.OversampleV = 1;
+        emojiFontConfig.FontBuilderFlags |= ImGuiFreeTypeBuilderFlags_LoadColor;
+        static ImWchar ranges[] = { 0x1, 0x1FFFF, 0 };
+
+        ImGui::GetIO().Fonts->AddFontFromFileTTF("C:\\Windows\\Fonts\\seguiemj.ttf", 17.0f, &emojiFontConfig, ranges);
+#endif
     }
 
     ConVar showDebugInfo { "showDebugInfo", "0", "Shows the debug info window" };
@@ -265,11 +245,14 @@ namespace worlds {
     std::condition_variable renderThreadCV;
     bool renderThreadWorkReady = false;
     bool renderThreadAvailable = true;
+    ConVar pacingSleepTime{ "pacingSleepTime", "0" };
+
 
     int WorldsEngine::renderThread(void* data) {
         WorldsEngine* _this = (WorldsEngine*)data;
 
         while (_this->running) {
+            ZoneScoped;
             std::unique_lock<std::mutex> lg {rendererLock};
             renderThreadCV.wait(lg, [] {return renderThreadWorkReady;});
             renderThreadWorkReady = false;
@@ -311,7 +294,6 @@ namespace worlds {
         , running{ true }
         , simAccumulator{ 0.0 } {
         ZoneScoped;
-        useEventThread = initOptions.useEventThread;
         workerThreadOverride = initOptions.workerThreadOverride;
         evtHandler = initOptions.eventHandler;
         runAsEditor = initOptions.runAsEditor;
@@ -359,21 +341,13 @@ namespace worlds {
         registry.set<SceneSettings>(AssetDB::pathToId("Cubemaps/Miramar/miramar.json"));
 
         if (!dedicatedServer) {
-            if (useEventThread) {
-                SDL_DetachThread(SDL_CreateThread(windowThread, "Window Thread", this));
-                while(!windowCreated){}
-            } else {
-                window = createSDLWindow();
-                if (window == nullptr) {
-                    SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR,
-                            "Failed to create window", SDL_GetError(), NULL);
-                }
+            SDL_DetachThread(SDL_CreateThread(windowThread, "Window Thread", this));
+            while(!windowCreated){}
 
-                if (runAsEditor)
-                    setWindowIcon(window, "icon_engine.png");
-                else
-                    setWindowIcon(window);
-            }
+            if (runAsEditor)
+                setWindowIcon(window, "icon_engine.png");
+            else
+                setWindowIcon(window);
 
             SDL_SetWindowTitle(window, initOptions.gameName);
 
@@ -661,14 +635,8 @@ namespace worlds {
 
             delete splashWindow;
 
-            if (useEventThread) {
-                SDL_Event evt;
-                evt.type = showWindowEventId;
-                SDL_PushEvent(&evt);
-            } else {
-                SDL_ShowWindow(window);
-                SDL_RaiseWindow(window);
-            }
+            SDL_ShowWindow(window);
+            SDL_RaiseWindow(window);
         }
 
 
@@ -707,10 +675,13 @@ namespace worlds {
         currentScene.id = ~0u;
     }
 
+    SDL_Event evtBuffer[64];
+    int incomingEvents = 0;
     void WorldsEngine::processEvents() {
-        if (!useEventThread) {
-            SDL_Event evt;
-            while (SDL_PollEvent(&evt)) {
+        do {
+            while (incomingEvents > 0) {
+                incomingEvents--;
+                SDL_Event& evt = evtBuffer[incomingEvents];
                 if (evt.type == SDL_QUIT) {
                     running = false;
                     break;
@@ -728,16 +699,19 @@ namespace worlds {
 
                 if (ImGui::GetCurrentContext())
                     ImGui_ImplSDL2_ProcessEvent(&evt);
-            }
-        } else {
-            SDL_Event evt;
-            while (evts.try_dequeue(evt)) {
-                inputManager->processEvent(evt);
 
-                if (ImGui::GetCurrentContext())
-                    ImGui_ImplSDL2_ProcessEvent(&evt);
+                if (evt.type == SDL_WINDOWEVENT) {
+                    SDL_WindowEvent& windowEvt = evt.window;
+                    if (windowEvt.event == SDL_WINDOWEVENT_SIZE_CHANGED) {
+                        logMsg("window resized to %ix%i", windowEvt.data1, windowEvt.data2);
+                        int winSizeX, winSizeY;
+                        SDL_GetWindowSize(window, &winSizeX, &winSizeY);
+                        logMsg("SDL_GetWindowSize reports %ix%i", winSizeX, winSizeY);
+                        return;
+                    }
+                }
             }
-        }
+        } while ((incomingEvents = SDL_PeepEvents(evtBuffer, 64, SDL_GETEVENT, SDL_FIRSTEVENT, SDL_LASTEVENT)) > 0);
     }
 
     void WorldsEngine::mainLoop() {
@@ -747,11 +721,31 @@ namespace worlds {
 
         double deltaTime;
         double lastUpdateTime = 0.0;
+        double lastCompleteUpdateTime = 0.0;
+        double lastRendererTickTime = 0.0;
 
         while (running) {
             uint64_t now = SDL_GetPerformanceCounter();
-            bool recreateScreenRTT = false;
+
+            uint64_t deltaTicks = now - last;
+            last = now;
+            deltaTime = deltaTicks / (double)SDL_GetPerformanceFrequency();
+            gameTime += deltaTime;
+
+            double timeAtStart = (double)SDL_GetPerformanceCounter() / SDL_GetPerformanceFrequency();
+            double targetTime = 0.006;
+            double throttleTime = pacingSleepTime.getInt() ? pacingSleepTime.getInt() / 1000.0 : glm::clamp(targetTime - lastUpdateTime - 0.001, 0.0, 0.02);
+            double currTime = timeAtStart;
+            
+            while (currTime - timeAtStart < throttleTime) {
+                currTime = (double)SDL_GetPerformanceCounter() / SDL_GetPerformanceFrequency();
+                if (currTime - timeAtStart > 0.001) {
+                    SDL_Delay(1);
+                }
+            }
+
             uint64_t updateStart = SDL_GetPerformanceCounter();
+            bool recreateScreenRTT = false;
 
             processEvents();
 
@@ -762,8 +756,13 @@ namespace worlds {
                 ImGui_ImplSDL2_NewFrame(window);
             }
 
+            ImVec2 newFrameDisplaySize = ImGui::GetIO().DisplaySize;
             ImGui::NewFrame();
+            ImGui::GetMainViewport()->Size = newFrameDisplaySize;
             inputManager->update();
+
+            ImGui::Text("Sleep time: %.3fms", throttleTime * 1000.0);
+            ImGui::Text("Delta time: %.3f, last complete update time: %.3f", deltaTime * 1000.0, lastUpdateTime * 1000.0);
 
             if (openvrInterface)
                 openvrInterface->updateInput();
@@ -776,10 +775,6 @@ namespace worlds {
                 }
             }
 
-            uint64_t deltaTicks = now - last;
-            last = now;
-            deltaTime = deltaTicks / (double)SDL_GetPerformanceFrequency();
-            gameTime += deltaTime;
             if (!dedicatedServer)
                 static_cast<VKRenderer*>(renderer.get())->time = gameTime;
 
@@ -912,7 +907,10 @@ namespace worlds {
 
             console->drawWindow();
 
+            uint64_t renderTickStart = SDL_GetPerformanceCounter();
             if (!dedicatedServer) {
+                ZoneScopedN("Copy to Render Thread");
+
                 std::unique_lock<std::mutex> lg(rendererLock);
                 renderThreadCV.wait(lg, []{return renderThreadAvailable;});
 
@@ -926,6 +924,7 @@ namespace worlds {
                 cloneComponent<UseWireframe>(registry, renderRegistry);
                 cloneComponent<ProxyAOComponent>(registry, renderRegistry);
                 cloneComponent<SphereAOProxy>(registry, renderRegistry);
+                cloneComponent<WorldTextComponent>(registry, renderRegistry);
 
                 //auto sortLambda = [&](entt::entity a, entt::entity b) {
                 //    auto& aTransform = registry.get<Transform>(a);
@@ -950,6 +949,7 @@ namespace worlds {
                 lg.unlock();
                 renderThreadCV.notify_one();
             }
+            uint64_t renderTickEnd = SDL_GetPerformanceCounter();
 
             g_jobSys->completeFrameJobs();
             frameCounter++;
@@ -1000,8 +1000,6 @@ namespace worlds {
                 });
             }
 
-            lastUpdateTime = updateTime;
-
             if (recreateScreenRTT) {
                 int newWidth, newHeight;
 
@@ -1036,6 +1034,10 @@ namespace worlds {
                 if (waitTime > 0.0)
                     SDL_Delay(waitTime * 1000);
             }
+
+            lastCompleteUpdateTime = completeUpdateTime;
+            lastUpdateTime = updateTime;
+            lastRendererTickTime = (renderTickEnd - renderTickStart) / (double)SDL_GetPerformanceFrequency();
         }
     }
 

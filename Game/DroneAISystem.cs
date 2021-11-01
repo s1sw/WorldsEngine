@@ -3,6 +3,7 @@ using WorldsEngine;
 using WorldsEngine.Math;
 using WorldsEngine.Audio;
 using WorldsEngine.ComponentMeta;
+using WorldsEngine.Editor;
 using System.Threading.Tasks;
 using Game.Combat;
 using ImGuiNET;
@@ -58,6 +59,7 @@ namespace Game
                 {
                     source.SetParameter("Alive", 0.0f);
                 }
+                //Audio.PlayOneShotAttachedEvent("event:/Chromium/TheTea", Registry.GetTransform(ent).Position, ent);
                 //Audio.PlayOneShot(AssetDB.PathToId("Audio/SFX/drone death.ogg"), Registry.GetTransform(ent).Position, 2.0f);
             };
 
@@ -185,7 +187,8 @@ namespace Game
         {
             burstInProgress = true;
 
-            Audio.PlayOneShotEvent("event:/Drone/Charging", physicsActor.Pose.Position + Vector3.Up);
+            //Audio.PlayOneShotEvent("event:/Drone/Charging", physicsActor.Pose.Position + Vector3.Up);
+            Audio.PlayOneShotAttachedEvent("event:/Drone/Charging", physicsActor.Pose.Position + Vector3.Up, entity);
 
             await Task.Delay(800);
             currentlyFiring = true;
@@ -218,8 +221,7 @@ namespace Game
 
                 physicsActor.AddForce(-forward * 100.0f * projectileDpa.Mass, ForceMode.Impulse);
 
-                //Audio.PlayOneShot(AssetDB.PathToId("Audio/SFX/gunshot.ogg"), soundOrigin, 1.0f);
-                Audio.PlayOneShotEvent("event:/Weapons/Gun Shot", soundOrigin);
+                Audio.PlayOneShotAttachedEvent("event:/Weapons/Gun Shot", soundOrigin, entity);
 
                 var damagingProjectile = Registry.GetComponent<DamagingProjectile>(projectile);
                 damagingProjectile.Attacker = entity;
@@ -296,10 +298,9 @@ namespace Game
 
         private void PlayStartupSound(Entity entity, Vector3 pos)
         {
+            Audio.PlayOneShotAttachedEvent("event:/Drone/Alert", pos, entity);
             if (!Registry.HasComponent<AudioSource>(entity)) return;
             var audioSource = Registry.GetComponent<AudioSource>(entity);
-
-            Audio.PlayOneShotEvent("event:/Drone/Alert", pos);
 
             audioSource.Start();
         }

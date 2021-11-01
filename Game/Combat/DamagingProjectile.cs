@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using WorldsEngine;
 using WorldsEngine.Math;
 using WorldsEngine.Audio;
+using WorldsEngine.Editor;
 
 namespace Game.Combat
 {
@@ -25,7 +26,6 @@ namespace Game.Combat
 
         public void OnCollision(Entity entity, ref PhysicsContactInfo contactInfo)
         {
-            //Audio.PlayOneShot(AssetDB.PathToId("Audio/SFX/laser hiss.ogg"), contactInfo.AverageContactPoint, 0.9f);
             Audio.PlayOneShotEvent("event:/Weapons/Laser Hit", contactInfo.AverageContactPoint);
             bool hitProjectile = Registry.HasComponent<DamagingProjectile>(contactInfo.OtherEntity);
 
@@ -57,7 +57,7 @@ namespace Game.Combat
 
     public class ProjectileCleanupSystem : ISystem
     {
-        public void OnUpdate()
+        public void OnSimulate()
         {
             foreach (Entity projectileEntity in Registry.View<DamagingProjectile>())
             {

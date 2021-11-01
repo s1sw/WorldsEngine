@@ -174,7 +174,6 @@ namespace worlds {
         SDL_SetWindowBordered(window, SDL_FALSE);
         SDL_SetWindowResizable(window, SDL_TRUE);
         SDL_SetWindowHitTest(window, hitTest, nullptr);
-        SDL_SetWindowOpacity(window, 1.0f);
         sceneViews.add(new EditorSceneView{ interfaces, this });
 
         titleBarIcon = texMan->loadOrGet(AssetDB::pathToId("UI/Images/logo_no_background.png"));
@@ -443,12 +442,11 @@ namespace worlds {
         drawList->AddLine(crossCenter + ImVec2(+crossSize, +crossSize), crossCenter + ImVec2(-crossSize, -crossSize), crossColor, 1.0f);
         drawList->AddLine(crossCenter + ImVec2(+crossSize, -crossSize), crossCenter + ImVec2(-crossSize, +crossSize), crossColor, 1.0f);
 
+        SDL_Window* window = interfaces.engine->getMainWindow();
+        bool isMaximised = (SDL_GetWindowFlags(window) & SDL_WINDOW_MAXIMIZED) == SDL_WINDOW_MAXIMIZED;
         ImVec2 maximiseCenter(barWidth - 45.0f - 22.0f, menuBarCenter.y);
         if (mousePos.x > barWidth - 90.0f && mousePos.x < barWidth - 45.0f && mousePos.y < barHeight) {
             if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
-                SDL_Window* window = interfaces.engine->getMainWindow();
-                bool isMaximised = (SDL_GetWindowFlags(window) & SDL_WINDOW_MAXIMIZED) == SDL_WINDOW_MAXIMIZED;
-
                 if (isMaximised)
                     SDL_RestoreWindow(window);
                 else
@@ -456,8 +454,14 @@ namespace worlds {
             }
             drawList->AddRectFilled(ImVec2(barWidth - 45.0f - 45.0f, 0.0f), ImVec2(barWidth - 45.0f, barHeight), ImColor(255, 255, 255, 50));
         }
-        drawList->AddRect(maximiseCenter - ImVec2(crossSize, crossSize), maximiseCenter + ImVec2(crossSize, crossSize), ImColor(255, 255, 255));
 
+        if (!isMaximised) {
+            drawList->AddRect(maximiseCenter - ImVec2(crossSize, crossSize), maximiseCenter + ImVec2(crossSize, crossSize), ImColor(255, 255, 255));
+        } else {
+            drawList->AddRect(maximiseCenter - ImVec2(crossSize - 3, crossSize), maximiseCenter + ImVec2(crossSize, crossSize - 3), ImColor(255, 255, 255));
+            drawList->AddRectFilled(maximiseCenter - ImVec2(crossSize, crossSize - 3), maximiseCenter + ImVec2(crossSize - 3, crossSize), ImGui::GetColorU32(ImGuiCol_MenuBarBg));
+            drawList->AddRect(maximiseCenter - ImVec2(crossSize, crossSize - 3), maximiseCenter + ImVec2(crossSize - 3, crossSize), ImColor(255, 255, 255));
+        }
 
         ImVec2 minimiseCenter(barWidth - 90.0f - 22.0f, menuBarCenter.y);
         if (mousePos.x > barWidth - 135.0f && mousePos.x < barWidth - 90.0f && mousePos.y < barHeight) {
@@ -606,7 +610,7 @@ namespace worlds {
             ImGui::Begin("ProjectWindow", 0,
                 ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse |
                 ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
-                ImGuiWindowFlags_NoDocking);
+                ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoBringToFrontOnFocus);
             ImGui::PopStyleVar(2);
 
             ImGui::Text("Select a project.");
@@ -701,7 +705,6 @@ namespace worlds {
             }
         }
 
-        interfaces.scriptEngine->onEditorUpdate(deltaTime);
 
         int sceneViewIndex = 0;
         for (EditorSceneView* sceneView : sceneViews) {
@@ -898,6 +901,7 @@ namespace worlds {
             JsonSceneSerializer::saveEntity(file, reg, currentSelectedEntity);
             });
 
+        interfaces.scriptEngine->onEditorUpdate(deltaTime);
 
         if (!popupToOpen.empty())
             ImGui::OpenPopup(popupToOpen.c_str());

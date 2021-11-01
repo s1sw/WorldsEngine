@@ -80,10 +80,61 @@ namespace vku {
     /// Get the details of vulkan texture formats.
     BlockParams getBlockParams(VkFormat format);
 
+#define VULKAN_HANDLE_WRAPPER(name, objType) \
+    class name { \
+    public: \
+        name (); \
+        name(Vk ## name obj); \
+\
+        name(name const&) = delete; \
+        name(name&&) noexcept; \
+        name& operator=(name&& other) noexcept; \
+\
+        operator Vk ## name(); \
+        Vk ## name release(); \
+\
+        ~ name(); \
+    private: \
+        static const VkObjectType vulkanObjectType = objType; \
+        Vk ## name obj; \
+    }; 
+
+    VULKAN_HANDLE_WRAPPER(Pipeline, VK_OBJECT_TYPE_PIPELINE);
+    VULKAN_HANDLE_WRAPPER(PipelineLayout, VK_OBJECT_TYPE_PIPELINE_LAYOUT);
+    VULKAN_HANDLE_WRAPPER(DescriptorSetLayout, VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT);
+    VULKAN_HANDLE_WRAPPER(Sampler, VK_OBJECT_TYPE_SAMPLER);
+    VULKAN_HANDLE_WRAPPER(RenderPass, VK_OBJECT_TYPE_RENDER_PASS);
+    VULKAN_HANDLE_WRAPPER(Framebuffer, VK_OBJECT_TYPE_FRAMEBUFFER);
+    VULKAN_HANDLE_WRAPPER(DescriptorPool, VK_OBJECT_TYPE_DESCRIPTOR_POOL);
+
+#undef VULKAN_HANDLE_WRAPPER
+
+#define VULKAN_HANDLE_WRAPPER_CREATE(name) \
+    VkResult create ## name(VkDevice device, Vk ## name ## CreateInfo* createInfo, name* out);
+
+    VULKAN_HANDLE_WRAPPER_CREATE(Framebuffer);
+    VULKAN_HANDLE_WRAPPER_CREATE(DescriptorPool);
+#undef VULKAN_HANDLE_WRAPPER_CREATE
+
     /// Class for building shader modules and extracting metadata from shaders.
     class ShaderModule {
     public:
         ShaderModule() {
+        }
+
+        ShaderModule(ShaderModule const&) = delete;
+        ShaderModule(ShaderModule&& other) {
+            s = other.s;
+            other.s.module_ = VK_NULL_HANDLE;
+            other.s.ok_ = false;
+        }
+
+        ShaderModule& operator=(ShaderModule&& other) {
+            s = other.s;
+            other.s.module_ = VK_NULL_HANDLE;
+            other.s.ok_ = false;
+
+            return *this;
         }
 
         /// Construct a shader module from raw memory
@@ -116,6 +167,7 @@ namespace vku {
         bool ok() const { return s.ok_; }
         VkShaderModule module() { return s.module_; }
 
+        ~ShaderModule();
     private:
         struct State {
             VkShaderModule module_;
@@ -386,7 +438,7 @@ namespace vku {
         PipelineLayoutMaker();
 
         /// Create a pipeline layout object.
-        VkPipelineLayout create(VkDevice device) const;
+        PipelineLayout create(VkDevice device) const;
 
         /// Add a descriptor set layout to the pipeline.
         void descriptorSetLayout(VkDescriptorSetLayout layout);
@@ -410,7 +462,7 @@ namespace vku {
     public:
         PipelineMaker(uint32_t width, uint32_t height);
 
-        VkPipeline create(VkDevice device,
+        Pipeline create(VkDevice device,
             const VkPipelineCache& pipelineCache,
             const VkPipelineLayout& pipelineLayout,
             const VkRenderPass& renderPass, bool defaultBlend = true);
@@ -553,6 +605,7 @@ namespace vku {
         PipelineMaker& blendConstants(float r, float g, float b, float a) { float* bc = colorBlendState_.blendConstants; bc[0] = r; bc[1] = g; bc[2] = b; bc[3] = a; return *this; }
 
         PipelineMaker& dynamicState(VkDynamicState value) { dynamicState_.push_back(value); return *this; }
+        PipelineMaker& rasterizationOrderAMD(VkRasterizationOrderAMD rasterizationOrder) { rasterizationOrderAMD_.rasterizationOrder = rasterizationOrder; rasterizationState_.pNext = &rasterizationOrderAMD_; return *this; }
     private:
         VkPipelineInputAssemblyStateCreateInfo inputAssemblyState_{ VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO };
         VkViewport viewport_;
@@ -561,6 +614,7 @@ namespace vku {
         VkPipelineMultisampleStateCreateInfo multisampleState_{ VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO };
         VkPipelineDepthStencilStateCreateInfo depthStencilState_{ VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO };
         VkPipelineColorBlendStateCreateInfo colorBlendState_{ VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO };
+        VkPipelineRasterizationStateRasterizationOrderAMD rasterizationOrderAMD_;
         std::vector<VkPipelineColorBlendAttachmentState> colorBlendAttachments_;
         std::vector<VkPipelineShaderStageCreateInfo> modules_;
         std::vector<VkVertexInputAttributeDescription> vertexAttributeDescriptions_;
@@ -642,7 +696,7 @@ namespace vku {
         SamplerMaker& unnormalizedCoordinates(VkBool32 value) { s.info.unnormalizedCoordinates = value; return *this; }
 
         /// Allocate a non self-deleting Sampler.
-        VkSampler create(VkDevice device) const;
+        vku::Sampler create(VkDevice device) const;
 
     private:
         struct State {
@@ -651,6 +705,24 @@ namespace vku {
 
         State s;
     };
+
+    // Some other helpers - essentially just wrappers around various Vulkan handles
+    class Event {
+    public:
+        Event();
+        Event(VkDevice device);
+
+        Event(Event const&) = delete;
+        Event(Event&&) noexcept;
+        Event& operator=(Event&& other) noexcept;
+
+        operator VkEvent();
+
+        ~Event();
+    private:
+        VkEvent evt;
+    };
+
 
     void transitionLayout(VkCommandBuffer& cb, VkImage img, VkImageLayout oldLayout, VkImageLayout newLayout, VkPipelineStageFlags srcStageMask, VkPipelineStageFlags dstStageMask, VkAccessFlags srcMask, VkAccessFlags dstMask, VkImageAspectFlags aspectMask = VK_IMAGE_ASPECT_COLOR_BIT);
 

@@ -213,6 +213,7 @@
     <ClCompile Include="..\WorldsEngine\Render\vku\Image.cpp" />
     <ClCompile Include="..\WorldsEngine\Render\vku\InstanceMaker.cpp" />
     <ClCompile Include="..\WorldsEngine\Render\vku\PipelineMakers.cpp" />
+    <ClCompile Include="..\WorldsEngine\Render\vku\SamplerMaker.cpp" />
     <ClCompile Include="..\WorldsEngine\Render\vku\vku.cpp" />
     <ClCompile Include="..\WorldsEngine\Render\VRCullMeshRenderer.cpp" />
     <ClCompile Include="..\WorldsEngine\Render\WorldSpaceUIPass.cpp" />
@@ -260,6 +261,7 @@
     <ClInclude Include="..\LonelyGalaxy\StabbySystem.hpp" />
     <ClInclude Include="..\LonelyGalaxy\StatDisplayInfo.hpp" />
     <ClInclude Include="..\LonelyGalaxy\SyncedRB.hpp" />
+    <ClInclude Include="..\ModelFormat\WMDL.hpp" />
     <ClInclude Include="..\WorldsEngine\AssetCompilation\AssetCompilers.hpp" />
     <ClInclude Include="..\WorldsEngine\AssetCompilation\AssetCompilerUtil.hpp" />
     <ClInclude Include="..\WorldsEngine\AssetCompilation\ModelCompiler.hpp" />
@@ -449,7 +451,6 @@
     <ClInclude Include="..\WorldsEngine\Render\vku\RenderpassMaker.hpp" />
     <ClInclude Include="..\WorldsEngine\Render\vku\vkcheck.hpp" />
     <ClInclude Include="..\WorldsEngine\Render\vku\vku.hpp" />
-    <ClInclude Include="..\WorldsEngine\Render\vku\vku_framework.hpp" />
     <ClInclude Include="..\WorldsEngine\Scripting\AssetDBBindings.hpp" />
     <ClInclude Include="..\WorldsEngine\Scripting\AudioBindings.hpp" />
     <ClInclude Include="..\WorldsEngine\Scripting\AudioSourceBindings.hpp" />

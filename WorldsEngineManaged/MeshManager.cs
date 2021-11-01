@@ -20,6 +20,9 @@ namespace WorldsEngine
         private static extern void meshmanager_getBoneRestTransform(uint meshId, uint boneId, ref Transform t);
 
         [DllImport(WorldsEngine.NativeModule)]
+        private static extern void meshmanager_getBoneRelativeTransform(uint meshId, uint boneId, ref Transform t);
+
+        [DllImport(WorldsEngine.NativeModule)]
         private static extern uint meshmanager_getBoneCount(uint meshId);
 
         public static bool IsMeshSkinned(AssetID id) => meshmanager_isMeshSkinned(id.ID);
@@ -29,6 +32,13 @@ namespace WorldsEngine
         {
             Transform t = new();
             meshmanager_getBoneRestTransform(id.ID, boneId, ref t);
+            return t;
+        }
+
+        public static Transform GetBoneRestTransform(AssetID id, uint boneId)
+        {
+            Transform t = new();
+            meshmanager_getBoneRelativeTransform(id.ID, boneId, ref t);
             return t;
         }
 

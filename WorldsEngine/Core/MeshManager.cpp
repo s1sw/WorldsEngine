@@ -20,10 +20,12 @@ namespace worlds {
         lm.skinned = lmd.isSkinned;
         lm.boneNames.resize(lmd.meshBones.size());
         lm.boneRestPositions.resize(lmd.meshBones.size());
+        lm.relativeBoneTransforms.resize(lmd.meshBones.size());
 
         for (size_t i = 0; i < lm.boneNames.size(); i++) {
             lm.boneNames[i] = lmd.meshBones[i].name;
-            lm.boneRestPositions[i] = lmd.meshBones[i].restPosition;
+            lm.boneRestPositions[i] = lmd.meshBones[i].inverseBindPose;
+            lm.relativeBoneTransforms[i] = lmd.meshBones[i].transform;
         }
 
         for (int i = 0; i < lmd.numSubmeshes; i++) {

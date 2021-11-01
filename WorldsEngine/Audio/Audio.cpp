@@ -302,6 +302,9 @@ namespace worlds {
         if (glm::any(glm::isinf(movement)) || glm::any(glm::isnan(movement)))
             movement = glm::vec3{ 0.0f };
 
+        if (glm::any(glm::isnan(listenerPos)))
+            listenerPos = glm::vec3{ 0.0f };
+
         FMOD_3D_ATTRIBUTES listenerAttributes{};
         listenerAttributes.forward = convVec(listenerRot * glm::vec3(0.0f, 0.0f, 1.0f));
         listenerAttributes.up = convVec(listenerRot * glm::vec3(0.0f, 1.0f, 0.0f));
@@ -321,6 +324,42 @@ namespace worlds {
         });
 
         FMCHECK(studioSystem->setListenerAttributes(0, &listenerAttributes, &listenerAttributes.position));
+
+        for (AttachedOneshot& ao : attachedOneshots) {
+            if (!worldState.valid(ao.entity)) {
+                ao.markForRemoval = true;
+                FMCHECK(ao.instance->stop(FMOD_STUDIO_STOP_IMMEDIATE));
+                FMCHECK(ao.instance->release());
+                continue;
+            }
+
+            FMOD_STUDIO_PLAYBACK_STATE playbackState;
+            FMCHECK(ao.instance->getPlaybackState(&playbackState));
+
+            if (playbackState == FMOD_STUDIO_PLAYBACK_STOPPED) {
+                ao.markForRemoval = true;
+                FMCHECK(ao.instance->release());
+                continue;
+            }
+
+            Transform& t = worldState.get<Transform>(ao.entity);
+
+            FMOD_3D_ATTRIBUTES sourceAttributes{};
+            sourceAttributes.position = convVec(t.position);
+            sourceAttributes.forward = convVec(t.rotation * glm::vec3(0.0f, 0.0f, 1.0f));
+            sourceAttributes.up = convVec(t.rotation * glm::vec3(0.0f, 1.0f, 0.0f));
+            sourceAttributes.velocity = convVec((t.position - ao.lastPosition) / deltaTime);
+
+            ao.lastPosition = t.position;
+
+            FMCHECK(ao.instance->set3DAttributes(&sourceAttributes));
+        }
+
+        attachedOneshots.erase(
+            std::remove_if(attachedOneshots.begin(), attachedOneshots.end(), [](AttachedOneshot& ao) { return ao.markForRemoval; }),
+            attachedOneshots.end()
+        );
+
         FMCHECK(studioSystem->update());
     }
 
@@ -360,6 +399,10 @@ namespace worlds {
     }
 
     void AudioSystem::playOneShotEvent(const char* eventPath, glm::vec3 location, float volume) {
+        playOneShotAttachedEvent(eventPath, location, entt::null, volume);
+    }
+
+    void AudioSystem::playOneShotAttachedEvent(const char* eventPath, glm::vec3 location, entt::entity attachedEntity, float volume) {
         FMOD_RESULT result;
 
         FMOD::Studio::EventDescription* desc;
@@ -375,7 +418,6 @@ namespace worlds {
         FMCHECK(desc->getInstanceCount(&instanceCount));
 
         if (instanceCount > 100) {
-            logErr(WELogCategoryAudio, "Dropping event playback because there are wayyy too many instances right now!");
             return;
         }
 
@@ -397,7 +439,18 @@ namespace worlds {
         FMCHECK(instance->setVolume(volume));
 
         FMCHECK(instance->start());
-        FMCHECK(instance->release());
+
+        if (attachedEntity == entt::null)
+            FMCHECK(instance->release());
+        else {
+            AttachedOneshot attachedOneshot{
+                .instance = instance,
+                .entity = attachedEntity,
+                .lastPosition = location
+            };
+
+            attachedOneshots.push_back(attachedOneshot);
+        }
     }
 
     void AudioSystem::shutdown(entt::registry& worldState) {

@@ -23,10 +23,25 @@ namespace worlds {
             
             wmdl::Bone* bones = wHdr->getBones();
             for (wmdl::CountType i = 0; i < skinInfoBlock->numBones; i++) {
-                lmd.meshBones[i].restPosition = bones[i].restTransform;
+                lmd.meshBones[i].inverseBindPose = bones[i].inverseBindPose;
+                lmd.meshBones[i].transform = bones[i].transform;
+                lmd.meshBones[i].parentIdx = bones[i].parentBone;
                 lmd.meshBones[i].name = bones[i].name;
+                lmd.boneUpdateOrder.push_back(i);
             }
         }
+
+        //std::sort(lmd.boneUpdateOrder.begin(), lmd.boneUpdateOrder.end(), [&](uint32_t boneIdxA, uint32_t boneIdxB) {
+        //    uint32_t parentIdxA = lmd.meshBones[boneIdxA].parentIdx;
+        //    uint32_t parentIdxB = lmd.meshBones[boneIdxB].parentIdx;
+        //
+        //    if (parentIdxA == ~0u && parentIdxB != ~0u)
+        //        return true;
+        //    else if (parentIdxB == ~0u && parentIdxA != ~0u)
+        //        return false;
+        //
+        //    return parentIdxA < boneIdxB;
+        //});
 
         wmdl::SubmeshInfo* submeshBlock = wHdr->getSubmeshBlock();
         lmd.numSubmeshes = wHdr->numSubmeshes;

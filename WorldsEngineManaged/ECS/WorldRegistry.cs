@@ -484,6 +484,8 @@ namespace WorldsEngine
 
         public static void Destroy(Entity entity)
         {
+            if (!Valid(entity))
+                throw new InvalidEntityException("Tried to destroy an invalid entity");
             NativeRegistry.registry_destroy(nativeRegistryPtr, entity.ID);
             foreach (IComponentStorage? storage in componentStorages)
             {

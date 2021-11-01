@@ -156,6 +156,24 @@ bool ImGui_ImplSDL2_ProcessEvent(const SDL_Event* event) {
     return false;
 }
 
+#ifdef _WIN32
+static void ImGui_ImplSDL2_SetWin32InputScreenPos(ImGuiViewport* vp, ImVec2 pos) {
+    ImGuiIO& io = ImGui::GetIO();
+    HWND hwnd = (HWND)vp->PlatformHandleRaw;
+
+    if (!hwnd) return;
+
+    if (HIMC himc = ::ImmGetContext(hwnd)) {
+        COMPOSITIONFORM cf{};
+        cf.ptCurrentPos.x = pos.x;
+        cf.ptCurrentPos.y = pos.y;
+        cf.dwStyle = CFS_FORCE_POSITION;
+        ::ImmSetCompositionWindow(himc, &cf);
+        ::ImmReleaseContext(hwnd, himc);
+    }
+}
+#endif
+
 static bool ImGui_ImplSDL2_Init(SDL_Window* window, void* sdl_gl_context) {
     g_Window = window;
 
@@ -217,6 +235,7 @@ static bool ImGui_ImplSDL2_Init(SDL_Window* window, void* sdl_gl_context) {
     SDL_VERSION(&info.version);
     if (SDL_GetWindowWMInfo(window, &info))
         main_viewport->PlatformHandleRaw = info.info.win.window;
+    ImGui::GetPlatformIO().Platform_SetImeInputPos = ImGui_ImplSDL2_SetWin32InputScreenPos;
 #endif
 
     // Update monitors
@@ -426,8 +445,8 @@ void ImGui_ImplSDL2_NewFrame(SDL_Window* window) {
         w = h = 0;
     SDL_GL_GetDrawableSize(window, &display_w, &display_h);
     io.DisplaySize = ImVec2((float)w, (float)h);
-    if (w > 0 && h > 0)
-        io.DisplayFramebufferScale = ImVec2((float)display_w / w, (float)display_h / h);
+    //if (w > 0 && h > 0)
+    //    io.DisplayFramebufferScale = ImVec2((float)display_w / w, (float)display_h / h);
 
     // Setup time step (we don't use SDL_GetTicks() because it is using millisecond resolution)
     static Uint64 frequency = SDL_GetPerformanceFrequency();

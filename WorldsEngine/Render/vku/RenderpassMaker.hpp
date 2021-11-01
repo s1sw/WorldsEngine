@@ -71,7 +71,7 @@ namespace vku {
             subpass.pDepthStencilAttachment = p;
         }
 
-        VkRenderPass create(VkDevice device) const {
+        RenderPass create(VkDevice device) const {
             VkRenderPassCreateInfo renderPassInfo{};
             renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
             renderPassInfo.attachmentCount = (uint32_t)s.attachmentDescriptions.size();

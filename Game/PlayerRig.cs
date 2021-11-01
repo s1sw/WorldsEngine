@@ -7,6 +7,7 @@ using WorldsEngine;
 using WorldsEngine.Input;
 using WorldsEngine.Math;
 using WorldsEngine.Audio;
+using WorldsEngine.Editor;
 using ImGuiNET;
 
 namespace Game
@@ -26,7 +27,7 @@ namespace Game
         private Vector3 _lastHMDPos = Vector3.Zero;
         private float _footstepTimer = 0.0f;
         private float _timeSinceDodge = 1000.0f;
-        private Vector3 _lastDogeDirection = Vector3.Zero;
+        private Vector3 _lastDodgeDirection = Vector3.Zero;
 
         private Vector2 GetInputVelocity()
         {
@@ -110,7 +111,7 @@ namespace Game
 
             if (_timeSinceDodge < 0.1f)
             {
-                appliedVelocity -= _lastDogeDirection * Vector3.Dot(appliedVelocity, _lastDogeDirection) * (1.0f - (_timeSinceDodge * 10f));
+                appliedVelocity -= _lastDodgeDirection * Vector3.Dot(appliedVelocity, _lastDodgeDirection) * (1.0f - (_timeSinceDodge * 10f));
             }
 
             if (_grounded || targetVelocity.LengthSquared > 0.01f)
@@ -149,7 +150,7 @@ namespace Game
                 if (Keyboard.KeyPressed(KeyCode.NumberRow1))
                 {
                     Vector3 dodgeDir = Camera.Main.Rotation * Vector3.Left;
-                    _lastDogeDirection = dodgeDir;
+                    _lastDodgeDirection = dodgeDir;
                     dpa.AddForce(Camera.Main.Rotation * Vector3.Left * 15f, ForceMode.VelocityChange);
                     _timeSinceDodge = 0.0f;
                 }
@@ -157,7 +158,7 @@ namespace Game
                 if (Keyboard.KeyPressed(KeyCode.NumberRow2))
                 {
                     Vector3 dodgeDir = Camera.Main.Rotation * Vector3.Right;
-                    _lastDogeDirection = dodgeDir;
+                    _lastDodgeDirection = dodgeDir;
                     dpa.AddForce(Camera.Main.Rotation * Vector3.Right * 15f, ForceMode.VelocityChange);
                     _timeSinceDodge = 0.0f;
                 }

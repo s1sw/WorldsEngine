@@ -13,7 +13,7 @@ namespace worlds {
         : handles {handles} {
     }
 
-    void VRCullMeshRenderer::setup(RenderContext& ctx, VkRenderPass& rp, VkDescriptorPool descriptorPool) {
+    void VRCullMeshRenderer::setup(RenderContext& ctx, VkRenderPass rp, VkDescriptorPool descriptorPool) {
         vku::DescriptorSetLayoutMaker dslm;
         dslm.buffer(0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, 1);
         dsl = dslm.create(handles->device);
@@ -86,8 +86,5 @@ namespace worlds {
     }
 
     VRCullMeshRenderer::~VRCullMeshRenderer() {
-        vkDestroyPipeline(handles->device, pipeline, nullptr);
-        vkDestroyPipelineLayout(handles->device, pipelineLayout, nullptr);
-        vkDestroyDescriptorSetLayout(handles->device, dsl, nullptr);
     }
 }

@@ -102,9 +102,6 @@ namespace worlds {
     }
 
     DebugLinesPass::~DebugLinesPass() {
-        vkDestroyPipeline(handles->device, linePipeline, nullptr);
-        vkDestroyPipelineLayout(handles->device, linePipelineLayout, nullptr);
-        vkDestroyDescriptorSetLayout(handles->device, lineDsl, nullptr);
         lineVB.destroy();
     }
 }

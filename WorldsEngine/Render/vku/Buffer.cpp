@@ -1,4 +1,5 @@
 #include "vku.hpp"
+#include <Render/RenderInternal.hpp>
 
 namespace vku {
     GenericBuffer::GenericBuffer() : buffer_(VK_NULL_HANDLE) {}
@@ -102,17 +103,18 @@ namespace vku {
 
     void GenericBuffer::destroy() {
         VkBuffer cBuf = buffer_;
-        if (cBuf) {
-            vmaDestroyBuffer(allocator, cBuf, allocation);
-            buffer_ = VkBuffer{};
-        }
+        VmaAllocator allocator = this->allocator;
+        VmaAllocation allocation = this->allocation;
+        worlds::DeletionQueue::queueDeletion([=]() {
+            if (cBuf) {
+                vmaDestroyBuffer(allocator, cBuf, allocation);
+            }
+        });
+        buffer_ = VK_NULL_HANDLE;
+        allocation = nullptr;
     }
 
     GenericBuffer::~GenericBuffer() {
-        VkBuffer cBuf = buffer_;
-        if (cBuf) {
-            vmaDestroyBuffer(allocator, cBuf, allocation);
-            buffer_ = VkBuffer{};
-        }
+        destroy();
     }
 }

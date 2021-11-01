@@ -38,11 +38,6 @@ namespace WorldsEngine
         public Entity OtherEntity;
         public Vector3 AverageContactPoint;
         public Vector3 Normal;
-    };
-
-    public struct CollisionHandlerHandle
-    {
-        internal uint ID;
     }
 
     public static class Physics
@@ -113,7 +108,10 @@ namespace WorldsEngine
             while (_collisionQueue.Count > 0)
             {
                 var collision = _collisionQueue.Dequeue();
-                Registry.HandleCollision(collision.EntityID, ref collision.ContactInfo);
+                if (Registry.Valid(new Entity(collision.EntityID)))
+                {
+                    Registry.HandleCollision(collision.EntityID, ref collision.ContactInfo);
+                }
             }
         }
 

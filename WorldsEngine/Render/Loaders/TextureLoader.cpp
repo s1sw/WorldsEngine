@@ -294,28 +294,8 @@ namespace worlds {
         return tex;
     }
 
-    // store these in a vector so they can be destroyed after the command buffer has completed
-    std::vector<std::vector<vku::GenericBuffer>> tempBuffers;
-    std::mutex tempBufMutex;
-
-    void ensureTempVectorExists(uint32_t frameIdx) {
-        tempBufMutex.lock();
-        if (frameIdx >= tempBuffers.size()) {
-            tempBuffers.resize(frameIdx + 1);
-        }
-        tempBufMutex.unlock();
-    }
-
-    void destroyTempTexBuffers(uint32_t frameIdx) {
-        ensureTempVectorExists(frameIdx);
-        tempBufMutex.lock();
-        tempBuffers[frameIdx].clear();
-        tempBufMutex.unlock();
-    }
-
     vku::TextureImage2D uploadTextureVk(const VulkanHandles& ctx, TextureData& td, VkCommandBuffer cb, uint32_t frameIdx) {
         ZoneScoped;
-        ensureTempVectorExists(frameIdx);
 
         bool createMips = td.numMips == 1 && (td.format == VK_FORMAT_R8G8B8A8_SRGB || td.format == VK_FORMAT_R8G8B8A8_UNORM);
         uint32_t maxMips = static_cast<uint32_t>(std::floor(std::log2(std::max(td.width, td.height)))) + 1;
@@ -348,10 +328,6 @@ namespace worlds {
             }
             tex.setLayout(cb, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_ACCESS_SHADER_READ_BIT);
         }
-
-        tempBufMutex.lock();
-        tempBuffers[frameIdx].push_back(std::move(stagingBuffer));
-        tempBufMutex.unlock();
 
         if (createMips)
             generateMips(ctx, tex, cb);

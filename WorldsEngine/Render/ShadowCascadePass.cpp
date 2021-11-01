@@ -98,7 +98,7 @@ namespace worlds {
         fci.renderPass = renderPass;
         fci.layers = 1;
 
-        VKCHECK(vkCreateFramebuffer(handles->device, &fci, nullptr, &shadowFb));
+        VKCHECK(vku::createFramebuffer(handles->device, &fci, &shadowFb));
 
         matrixBuffer = vku::UniformBuffer {
             handles->device, handles->allocator, sizeof(CascadeMatrices), VMA_MEMORY_USAGE_GPU_ONLY, "Cascade Matrices"
@@ -117,7 +117,7 @@ namespace worlds {
     void ShadowCascadePass::execute(RenderContext& ctx) {
 #ifdef TRACY_ENABLE
         ZoneScoped;
-        TracyVkZone((*ctx.debugContext.tracyContexts)[ctx.imageIndex], ctx.cmdBuf, "Shadowmap");
+        TracyVkZone((*ctx.debugContext.tracyContexts)[ctx.frameIndex], ctx.cmdBuf, "Shadowmap");
 #endif
         auto cmdBuf = ctx.cmdBuf;
         VkDebugUtilsLabelEXT label{ VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT };
@@ -207,6 +207,5 @@ namespace worlds {
 
     ShadowCascadePass::~ShadowCascadePass() {
         vkFreeDescriptorSets(handles->device, handles->descriptorPool, 1, &ds);
-        vkDestroyDescriptorSetLayout(handles->device, dsl, nullptr);
     }
 }

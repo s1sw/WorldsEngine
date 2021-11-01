@@ -23,6 +23,9 @@ namespace WorldsEngine.Audio
         private static extern void audio_playOneShotEvent(string eventPath, ref Vector3 location, float volume);
 
         [DllImport(WorldsEngine.NativeModule)]
+        private static extern void audio_playOneShotAttachedEvent(string eventPath, ref Vector3 location, uint entity, float volume);
+
+        [DllImport(WorldsEngine.NativeModule)]
         private static extern void audio_loadBank(string bankPath);
 
         [Obsolete("Use PlayOneShotEvent")]
@@ -39,9 +42,10 @@ namespace WorldsEngine.Audio
         }
 
         public static void PlayOneShotEvent(string eventPath, Vector3 location, float volume = 1f)
-        {
-            audio_playOneShotEvent(eventPath, ref location, volume);
-        }
+            => audio_playOneShotEvent(eventPath, ref location, volume);
+
+        public static void PlayOneShotAttachedEvent(string eventPath, Vector3 location, Entity entity, float volume = 1f)
+            => audio_playOneShotAttachedEvent(eventPath, ref location, entity.ID, volume);
 
         public static void LoadBank(string bankPath)
         {

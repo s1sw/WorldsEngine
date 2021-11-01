@@ -4,7 +4,7 @@ using System.Linq;
 using WorldsEngine.ComponentMeta;
 using WorldsEngine.Math;
 
-namespace WorldsEngine
+namespace WorldsEngine.Editor
 {
     public static class AddComponentPopup
     {

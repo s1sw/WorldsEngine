@@ -21,28 +21,30 @@ namespace Game
             var transform = Registry.GetTransform(e);
 
             for (uint i = 0; i < MeshManager.GetBoneCount(swo.Mesh); i++) {
-                var restPose = MeshManager.GetBoneRestPose(swo.Mesh, i);
+                var restPose = MeshManager.GetBoneRestTransform(swo.Mesh, i);
                 swo.SetBoneTransform(i, restPose);
             }
-            uint boneIdx = MeshManager.GetBoneIndex(swo.Mesh, "finger_index_2_l");
+            uint boneIdx = MeshManager.GetBoneIndex(swo.Mesh, "Bone.001");
 
             if (boneIdx == ~0u) return;
 
-            _startRotation = MeshManager.GetBoneRestPose(swo.Mesh, boneIdx).Rotation;
-            _startPosition = MeshManager.GetBoneRestPose(swo.Mesh, boneIdx).Position;
+            _startRotation = MeshManager.GetBoneRestTransform(swo.Mesh, boneIdx).Rotation;
+            _startPosition = MeshManager.GetBoneRestTransform(swo.Mesh, boneIdx).Position;
+            Logger.Log($"startPos: {_startPosition}, startRot: {_startRotation}");
         }
 
         public void Think(Entity e)
         {
             var swo = Registry.GetComponent<SkinnedWorldObject>(e);
 
-            uint boneIdx = MeshManager.GetBoneIndex(swo.Mesh, "finger_index_2_l");
+            uint boneIdx = MeshManager.GetBoneIndex(swo.Mesh, "Bone.001");
 
             if (boneIdx != ~0u)
             {
                 float rotationT = (float)Math.Sin(Time.CurrentTime) * 0.5f + 0.5f;
                 Quaternion rotation = Quaternion.AngleAxis(rotationT * MathF.PI - (MathF.PI / 2.0f), Vector3.Left);
-                Transform t = new Transform(_startPosition, rotation * _startRotation);
+                Transform extraT = new Transform(Vector3.Zero, rotation);
+                Transform t = new Transform(_startPosition, _startRotation);//.TransformBy(extraT);
                 swo.SetBoneTransform(boneIdx, t);
             }
         }

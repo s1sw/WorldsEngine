@@ -84,10 +84,48 @@ uint32_t findPresentQueue(VkPhysicalDevice pd, VkSurfaceKHR surface) {
 }
 
 std::vector<std::deque<std::function<void()>>> DeletionQueue::deletionQueues;
-uint32_t DeletionQueue::currentFrameIndex;
+uint32_t DeletionQueue::currentFrameIndex = 0u;
+VkDevice deletionDevice = VK_NULL_HANDLE;
 
 void DeletionQueue::queueDeletion(std::function<void()>&& deleteFunc) {
     deletionQueues[currentFrameIndex].push_back(deleteFunc);
+}
+
+void DeletionQueue::queueObjectDeletion(void* object, VkObjectType type) {
+    queueDeletion([=]() {
+        switch (type) {
+        case VK_OBJECT_TYPE_EVENT:
+            vkDestroyEvent(deletionDevice, (VkEvent)object, nullptr);
+            break;
+        case VK_OBJECT_TYPE_PIPELINE:
+            vkDestroyPipeline(deletionDevice, (VkPipeline)object, nullptr);
+            break;
+        case VK_OBJECT_TYPE_SAMPLER:
+            vkDestroySampler(deletionDevice, (VkSampler)object, nullptr);
+            break;
+        case VK_OBJECT_TYPE_PIPELINE_LAYOUT:
+            vkDestroyPipelineLayout(deletionDevice, (VkPipelineLayout)object, nullptr);
+            break;
+        case VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT:
+            vkDestroyDescriptorSetLayout(deletionDevice, (VkDescriptorSetLayout)object, nullptr);
+            break;
+        case VK_OBJECT_TYPE_SHADER_MODULE:
+            vkDestroyShaderModule(deletionDevice, (VkShaderModule)object, nullptr);
+            break;
+        case VK_OBJECT_TYPE_RENDER_PASS:
+            vkDestroyRenderPass(deletionDevice, (VkRenderPass)object, nullptr);
+            break;
+        case VK_OBJECT_TYPE_FRAMEBUFFER:
+            vkDestroyFramebuffer(deletionDevice, (VkFramebuffer)object, nullptr);
+            break;
+        case VK_OBJECT_TYPE_DESCRIPTOR_POOL:
+            vkDestroyDescriptorPool(deletionDevice, (VkDescriptorPool)object, nullptr);
+            break;
+        default:
+            fatalErr("Unhandled Vulkan object deletion! This is a bug.");
+            break;
+        }
+    });
 }
 
 void DeletionQueue::setCurrentFrame(uint32_t frame) {
@@ -130,6 +168,7 @@ void VKRenderer::createSwapchain(VkSwapchainKHR oldSwapchain) {
 }
 
 void VKRenderer::createFramebuffers() {
+    framebuffers.resize(swapchain->imageViews.size());
     for (size_t i = 0; i != swapchain->imageViews.size(); i++) {
         VkImageView attachments[1] = { swapchain->imageViews[i] };
         VkFramebufferCreateInfo fci{};
@@ -141,9 +180,7 @@ void VKRenderer::createFramebuffers() {
         fci.renderPass = irp->getRenderPass();
         fci.layers = 1;
 
-        VkFramebuffer framebuffer;
-        VKCHECK(vkCreateFramebuffer(device, &fci, nullptr, &framebuffer));
-        framebuffers.push_back(framebuffer);
+        VKCHECK(vku::createFramebuffer(device, &fci, &framebuffers[i]));
     }
 }
 
@@ -412,6 +449,26 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
         return;
     }
 
+    VkPhysicalDeviceProperties physDevProps = getPhysicalDeviceProperties(physicalDevice);
+
+    VKVendor vendor = VKVendor::Other;
+
+    switch (physDevProps.vendorID) {
+    case 0x1002:
+        vendor = VKVendor::AMD;
+        break;
+    case 0x10DE:
+        vendor = VKVendor::Nvidia;
+        break;
+    case 0x8086:
+        vendor = VKVendor::Intel;
+        break;
+    }
+
+    uint32_t count;
+    VKCHECK(vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &count, nullptr));
+    std::vector<VkExtensionProperties> extensionProperties;
+    VKCHECK(vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &count, nullptr));
 
     vku::DeviceMaker dm{};
     dm.defaultLayers();
@@ -446,6 +503,12 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     }
 
     dm.extension(VK_EXT_SHADER_SUBGROUP_BALLOT_EXTENSION_NAME);
+
+    bool hasRasterizationOrderExtension = std::find_if(extensionProperties.begin(), extensionProperties.end(), [](VkExtensionProperties props) {return strcmp(props.extensionName, VK_AMD_RASTERIZATION_ORDER_EXTENSION_NAME) == 0; }) != extensionProperties.end();
+
+    if (hasRasterizationOrderExtension)
+        dm.extension(VK_AMD_RASTERIZATION_ORDER_EXTENSION_NAME);
+
 #if TRACY_ENABLE
     dm.extension(VK_EXT_CALIBRATED_TIMESTAMPS_EXTENSION_NAME);
 #endif
@@ -477,6 +540,7 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     vk11Features.pNext = &vk12Features;
 
     device = dm.create(physicalDevice);
+    deletionDevice = device;
 
     ShaderCache::setDevice(device);
     DeletionQueue::resize(1);
@@ -533,24 +597,9 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
         vrInterface->getRenderResolution(&vrWidth, &vrHeight);
     }
 
-    VkPhysicalDeviceProperties physDevProps = getPhysicalDeviceProperties(physicalDevice);
-
-    VKVendor vendor = VKVendor::Other;
-
-    switch (physDevProps.vendorID) {
-    case 0x1002:
-        vendor = VKVendor::AMD;
-        break;
-    case 0x10DE:
-        vendor = VKVendor::Nvidia;
-        break;
-    case 0x8086:
-        vendor = VKVendor::Intel;
-        break;
-    }
-
     handles = VulkanHandles{
         vendor,
+        hasRasterizationOrderExtension,
         physicalDevice,
         device,
         pipelineCache,
@@ -601,7 +650,10 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
         VKCHECK(vkCreateSemaphore(device, &sci, nullptr, &imgAvailable[i]));
     }
 
+    VKCHECK(vkDeviceWaitIdle(device));
+    DeletionQueue::cleanupFrame(0);
     DeletionQueue::resize(maxFramesInFlight);
+    DeletionQueue::setCurrentFrame(maxFramesInFlight - 1);
     imgFences.resize(cmdBufs.size());
 
     cubemapConvoluter = std::make_shared<CubemapConvoluter>(vkCtx);
@@ -793,6 +845,8 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
 
     additionalShadowsPass = new AdditionalShadowsPass(&handles);
     additionalShadowsPass->setup(getResources());
+    VKCHECK(vkDeviceWaitIdle(device));
+    DeletionQueue::cleanupFrame(0);
 }
 
 // Quite a lot of resources are dependent on either the number of images
@@ -923,16 +977,14 @@ void VKRenderer::recreateSwapchainInternal() {
         isMinimised = false;
     }
 
-    delete swapchain;
-    for (VkFramebuffer fb : framebuffers)
-        vkDestroyFramebuffer(device, fb, nullptr);
-
+    worlds::Swapchain* oldSwapchain = swapchain;
     framebuffers.clear();
 
-    createSwapchain(nullptr);
+    createSwapchain(oldSwapchain->getSwapchain());
     createSCDependents();
 
     swapchainRecreated = true;
+    delete oldSwapchain;
 }
 
 static worlds::ConVar presentFromCompute{ "r_presentFromCompute", "0" };
@@ -1272,7 +1324,7 @@ void VKRenderer::writeCmdBuf(VkCommandBuffer cmdBuf, uint32_t imageIndex, Camera
         },
         .registry = reg,
         .cmdBuf = cmdBuf,
-        .imageIndex = frameIdx,
+        .frameIndex = frameIdx,
         .maxSimultaneousFrames = maxFramesInFlight
     };
 
@@ -1444,9 +1496,6 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
     dbgStats.numDrawCalls = 0;
     dbgStats.numPipelineSwitches = 0;
     dbgStats.numTriangles = 0;
-    destroyTempTexBuffers(frameIdx);
-    DeletionQueue::cleanupFrame(frameIdx);
-    DeletionQueue::setCurrentFrame(frameIdx);
 
     uint32_t imageIndex;
 
@@ -1493,6 +1542,9 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
     if (vkResetFences(device, 1, &cmdBufFences[frameIdx]) != VK_SUCCESS) {
         fatalErr("Failed to reset fences");
     }
+
+    DeletionQueue::cleanupFrame(frameIdx);
+    DeletionQueue::setCurrentFrame(frameIdx);
 
     VkCommandBuffer cmdBuf = cmdBufs[frameIdx];
     writeCmdBuf(cmdBuf, imageIndex, cam, reg);
@@ -1549,6 +1601,7 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
     } else if (presentResult != VK_SUCCESS) {
         fatalErr("Failed to present");
     }
+
 
     std::array<std::uint64_t, 2> timeStamps = { {0} };
 
@@ -1868,6 +1921,8 @@ VKRenderer::~VKRenderer() {
 
         materialUB.destroy();
         vpBuffer.destroy();
+
+        framebuffers.clear();
 
         for (int i = 0 ; i < maxFramesInFlight; i++)
             DeletionQueue::cleanupFrame(i);

@@ -3,7 +3,7 @@
 namespace vku {
     PipelineLayoutMaker::PipelineLayoutMaker() {}
 
-    VkPipelineLayout PipelineLayoutMaker::create(VkDevice device) const {
+    vku::PipelineLayout PipelineLayoutMaker::create(VkDevice device) const {
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{
             VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
             nullptr, {}, (uint32_t)setLayouts_.size(),
@@ -44,7 +44,7 @@ namespace vku {
         depthStencilState_.front = depthStencilState_.back;
     }
 
-    VkPipeline PipelineMaker::create(VkDevice device,
+    vku::Pipeline PipelineMaker::create(VkDevice device,
         const VkPipelineCache& pipelineCache,
         const VkPipelineLayout& pipelineLayout,
         const VkRenderPass& renderPass, bool defaultBlend) {

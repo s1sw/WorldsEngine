@@ -1,4 +1,5 @@
 #include "Editor/Editor.hpp"
+#include "Editor/GuiUtil.hpp"
 #include "Export.hpp"
 
 using namespace worlds;
@@ -11,5 +12,9 @@ extern "C" {
 
     EXPORT void editor_select(uint32_t ent) {
         csharpEditor->select((entt::entity)ent);
+    }
+
+    EXPORT void editor_addNotification(const char* notification, NotificationType type) {
+        addNotification(notification, type);
     }
 }
