@@ -27,6 +27,6 @@ void main() {
         alpha = texture(tex2dSampler[mat.albedoTexIdx], inUV).a;
         alpha = (alpha - alphaCutoff) / max(fwidth(alpha), 0.0001) + 0.5;
     }
-	
+
     finalCol = vec4(1.0, 1.0, 1.0, alpha);
 }

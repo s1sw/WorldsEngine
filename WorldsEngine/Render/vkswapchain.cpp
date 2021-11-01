@@ -4,7 +4,13 @@
 #include <SDL_messagebox.h>
 
 namespace worlds {
+    bool isFormatCached = false;
+    VkSurfaceFormatKHR cachedFormat;
+
     VkSurfaceFormatKHR findSurfaceFormat(VkPhysicalDevice pd, VkSurfaceKHR surface) {
+        if (isFormatCached)
+            return cachedFormat;
+
         uint32_t fmtCount;
         VKCHECK(vkGetPhysicalDeviceSurfaceFormatsKHR(pd, surface, &fmtCount, nullptr));
 
@@ -22,11 +28,15 @@ namespace worlds {
         } else {
             for (auto& fmt : fmts) {
                 if (fmt.format == VK_FORMAT_B8G8R8A8_UNORM) {
+                    isFormatCached = true;
+                    cachedFormat = fmt;
                     return fmt;
                 }
             }
         }
 
+        isFormatCached = true;
+        cachedFormat = fmt;
         return fmt;
     }
 
@@ -41,7 +51,7 @@ namespace worlds {
         : device(device)
         , format(VK_FORMAT_UNDEFINED) {
 
-        auto surfaceFormat = findSurfaceFormat(physicalDevice, surface);
+        auto surfaceFormat = isFormatCached ? cachedFormat : findSurfaceFormat(physicalDevice, surface);
 
         VkSurfaceCapabilitiesKHR surfCaps;
         VKCHECK(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, surface, &surfCaps));

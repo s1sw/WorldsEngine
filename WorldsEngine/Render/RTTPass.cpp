@@ -17,16 +17,16 @@ namespace worlds {
         RenderResources resources = renderer->getResources();
 
         std::vector<VkDescriptorPoolSize> poolSizes;
-        poolSizes.emplace_back(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 512);
-        poolSizes.emplace_back(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 512);
-        poolSizes.emplace_back(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 512);
+        poolSizes.emplace_back(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 256 * renderer->maxFramesInFlight);
+        poolSizes.emplace_back(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 256 * renderer->maxFramesInFlight);
+        poolSizes.emplace_back(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 256 * renderer->maxFramesInFlight);
 
         VkDescriptorPoolCreateInfo descriptorPoolInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
         descriptorPoolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
         descriptorPoolInfo.maxSets = 256;
         descriptorPoolInfo.poolSizeCount = (uint32_t)poolSizes.size();
         descriptorPoolInfo.pPoolSizes = poolSizes.data();
-        VKCHECK(vkCreateDescriptorPool(handles.device, &descriptorPoolInfo, nullptr, &descriptorPool));
+        VKCHECK(vku::createDescriptorPool(handles.device, &descriptorPoolInfo, &descriptorPool));
 
         VkImageCreateInfo ici{ VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
         ici.imageType = VK_IMAGE_TYPE_2D;
@@ -104,7 +104,7 @@ namespace worlds {
             .registry = r,
             .passWidth = ci.width,
             .passHeight = ci.height,
-            .imageIndex = frameIdx,
+            .frameIndex = frameIdx,
             .maxSimultaneousFrames = renderer->maxFramesInFlight
         };
 
@@ -292,7 +292,7 @@ namespace worlds {
             .cmdBuf = cmdBuf,
             .passWidth = width,
             .passHeight = height,
-            .imageIndex = frameIdx
+            .frameIndex = frameIdx
         };
 
         if (isVr) {
@@ -359,15 +359,13 @@ namespace worlds {
         bool outputToScreen = this->outputToScreen;
         RenderTexture* sdrFinalTarget = this->sdrFinalTarget;
 
-        DeletionQueue::queueDeletion([=]() {
-            delete prp;
-            delete trp;
+        delete prp;
+        delete trp;
 
-            delete hdrTarget;
-            delete depthTarget;
+        delete hdrTarget;
+        delete depthTarget;
 
-            if (!outputToScreen)
-                delete sdrFinalTarget;
-        });
+        if (!outputToScreen)
+            delete sdrFinalTarget;
     }
 }

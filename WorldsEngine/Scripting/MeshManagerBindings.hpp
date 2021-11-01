@@ -26,6 +26,11 @@ extern "C" {
         transform->fromMatrix(glm::inverse(m.boneRestPositions[boneId]));
     }
 
+    EXPORT void meshmanager_getBoneRelativeTransform(AssetID id, uint32_t boneId, Transform* transform) {
+        const auto& m = MeshManager::loadOrGet(id);
+        transform->fromMatrix(m.relativeBoneTransforms[boneId]);
+    }
+
     EXPORT uint32_t meshmanager_getBoneCount(AssetID id) {
         const auto& m = MeshManager::loadOrGet(id);
         return m.boneNames.size();

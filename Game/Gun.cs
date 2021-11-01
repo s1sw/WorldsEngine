@@ -3,6 +3,7 @@ using System;
 using WorldsEngine;
 using WorldsEngine.Audio;
 using WorldsEngine.Math;
+using WorldsEngine.Editor;
 using Game.Combat;
 
 namespace Game
@@ -86,7 +87,7 @@ namespace Game
                 _ => "event:/Weapons/Gun Shot"
             };
 
-            Audio.PlayOneShotEvent(evt, transform.Position);
+            Audio.PlayOneShotAttachedEvent(evt, transform.Position, entity);
 
             Entity projectile = Registry.CreatePrefab(_projectilePrefab);
 

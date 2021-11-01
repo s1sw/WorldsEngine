@@ -531,7 +531,7 @@ namespace worlds {
     }
 
     struct PopupNotification {
-        const char* text;
+        std::string text;
         float shownFor = 0.0f;
         NotificationType type;
     };
@@ -562,7 +562,7 @@ namespace worlds {
         }
     }
 
-    void addNotification(const char* text, NotificationType type) {
+    void addNotification(std::string text, NotificationType type) {
         popupNotifications.push_back(PopupNotification{ .text = text, .type = type });
     }
 
@@ -576,9 +576,10 @@ namespace worlds {
         const ImColor popupBg = style.Colors[ImGuiCol_WindowBg];
         const float popupDuration = 5.0f;
 
-        for (PopupNotification& notification : popupNotifications) {
+        for (auto it = popupNotifications.rbegin(); it != popupNotifications.rend(); it++) {
+            PopupNotification& notification = *it;
             ImVec2 thisPopupSize = popupSize;
-            ImVec2 textSize = ImGui::CalcTextSize(notification.text);
+            ImVec2 textSize = ImGui::CalcTextSize(notification.text.c_str());
             thisPopupSize.x = glm::max(textSize.x, thisPopupSize.x);
 
             float alpha = glm::min(glm::min(1.0f, notification.shownFor * 5.0f), ((popupDuration - 0.5f) - notification.shownFor) * 2.0f);
@@ -599,7 +600,7 @@ namespace worlds {
             drawList->AddRectFilled(min, max, animatedBg, 7.0f);
             drawList->AddRect(min, max, animatedBorder, 7.0f, ~0, 2.0f);
             ImVec2 textPos = ImVec2(min.x + 4.0f, min.y + popupSize.y * 0.25f);
-            drawList->AddText(textPos, animatedTextColor, notification.text);
+            drawList->AddText(textPos, animatedTextColor, notification.text.c_str());
 
             notification.shownFor += ImGui::GetIO().DeltaTime;
             popupCorner.y -= 55.0f;

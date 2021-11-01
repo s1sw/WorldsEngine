@@ -135,7 +135,7 @@ namespace worlds {
         fci.flags = VK_FRAMEBUFFER_CREATE_IMAGELESS_BIT;
         fci.pNext = &faci;
 
-        VKCHECK(vkCreateFramebuffer(handles->device, &fci, nullptr, &fb));
+        VKCHECK(vku::createFramebuffer(handles->device, &fci, &fb));
 
         updateDescriptorSet(ctx);
     }
@@ -170,7 +170,7 @@ namespace worlds {
 
     void AdditionalShadowsPass::execute(RenderContext& ctx) {
         ZoneScoped;
-        TracyVkZone((*ctx.debugContext.tracyContexts)[ctx.imageIndex], ctx.cmdBuf, "Additional Shadows");
+        TracyVkZone((*ctx.debugContext.tracyContexts)[ctx.frameIndex], ctx.cmdBuf, "Additional Shadows");
 
         auto cmdBuf = ctx.cmdBuf;
 
@@ -262,9 +262,5 @@ namespace worlds {
     }
 
     AdditionalShadowsPass::~AdditionalShadowsPass() {
-        vkDestroyRenderPass(handles->device, renderPass, nullptr);
-        vkDestroyFramebuffer(handles->device, fb, nullptr);
-        vkDestroyPipeline(handles->device, pipeline, nullptr);
-        vkDestroyPipeline(handles->device, alphaTestPipeline, nullptr);
     }
 }

@@ -74,7 +74,7 @@ namespace worlds {
         ZoneScoped;
         auto& texSlots = ctx.resources.textures;
         auto& cubemapSlots = ctx.resources.cubemaps;
-        vku::DescriptorSetUpdater updater(20, 256, 0);
+        vku::DescriptorSetUpdater updater(10 * descriptorSets.size(), 128 * descriptorSets.size(), 0);
         size_t dsIdx = 0;
         for (VkDescriptorSet& ds : descriptorSets) {
             updater.beginDescriptorSet(ds);
@@ -278,12 +278,11 @@ namespace worlds {
 
         skinningMatricesMapped = (glm::mat4*)skinningMatrixUB.map(handles->device);
 
-        VkEventCreateInfo eci{ VK_STRUCTURE_TYPE_EVENT_CREATE_INFO };
-        vkCreateEvent(handles->device, &eci, nullptr, &pickEvent);
+        pickEvent = vku::Event{handles->device};
 
         vku::DescriptorSetMaker dsm;
-        dsm.layout(dsl);
-        dsm.layout(dsl);
+        for (int i = 0; i < ctx.maxSimultaneousFrames; i++)
+            dsm.layout(dsl);
         descriptorSets = dsm.create(handles->device, descriptorPool);
 
         vku::RenderpassMaker rPassMaker;
@@ -360,14 +359,14 @@ namespace worlds {
         fci.renderPass = renderPass;
         fci.layers = 1;
 
-        VKCHECK(vkCreateFramebuffer(handles->device, &fci, nullptr, &renderFb));
+        VKCHECK(vku::createFramebuffer(handles->device, &fci, &renderFb));
 
         VkImageView depthAttachment = depthStencilImage->image.imageView();
         fci.attachmentCount = 1;
         fci.pAttachments = &depthAttachment;
         fci.renderPass = depthPass;
 
-        VKCHECK(vkCreateFramebuffer(handles->device, &fci, nullptr, &depthFb));
+        VKCHECK(vku::createFramebuffer(handles->device, &fci, &depthFb));
 
         AssetID vsID = AssetDB::pathToId("Shaders/standard.vert.spv");
         AssetID fsID = AssetDB::pathToId("Shaders/standard.frag.spv");
@@ -425,6 +424,9 @@ namespace worlds {
 
             pm.rasterizationSamples(msaaSamples);
             pm.alphaToCoverageEnable(true);
+
+            if (handles->hasOutOfOrderRasterization)
+                pm.rasterizationOrderAMD(VK_RASTERIZATION_ORDER_RELAXED_AMD);
 
             pipeline = pm.create(handles->device, handles->pipelineCache, pipelineLayout, renderPass);
         }
@@ -585,6 +587,27 @@ namespace worlds {
 
     slib::StaticAllocList<SubmeshDrawInfo> drawInfo{ 8192 };
 
+    glm::mat4 getBoneTransform(LoadedMeshData& meshData, Pose& pose, int boneIdx) {
+        glm::mat4 transform = pose.boneTransforms[boneIdx];
+
+        uint32_t parentId = meshData.meshBones[boneIdx].parentIdx;
+
+        while (parentId != ~0u) {
+            transform = pose.boneTransforms[parentId] * transform;
+            parentId = meshData.meshBones[parentId].parentIdx;
+        }
+
+        return transform;
+    }
+
+    void updateSkinningMatrices(LoadedMeshData& meshData, Pose& pose, glm::mat4* skinningMatricesMapped, int skinningOffset) {
+        for (int i = 0; i < meshData.meshBones.size(); i++) {
+            glm::mat4 bonePose = getBoneTransform(meshData, pose, i);
+
+            skinningMatricesMapped[i + skinningOffset] = getBoneTransform(meshData, pose, i) * meshData.meshBones[i].inverseBindPose;
+        }
+    }
+
     void PolyRenderPass::generateDrawInfo(RenderContext& ctx) {
         ZoneScoped;
 
@@ -636,7 +659,7 @@ namespace worlds {
                 }
             }
 
-            modelMatricesMapped[ctx.imageIndex]->modelMatrices[matrixIdx] = t.getMatrix();
+            modelMatricesMapped[ctx.frameIndex]->modelMatrices[matrixIdx] = t.getMatrix();
 
             for (int i = 0; i < meshPos->second.numSubmeshes; i++) {
                 auto& currSubmesh = meshPos->second.submeshes[i];
@@ -738,12 +761,9 @@ namespace worlds {
                 return;
             }
 
-            for (int i = 0; i < meshPos->second.meshBones.size(); i++) {
-                glm::mat4 bonePose = wo.currentPose.boneTransforms[i];
-                skinningMatricesMapped[i + skinningOffset] = bonePose * meshPos->second.meshBones[i].restPosition;
-            }
+            updateSkinningMatrices(meshPos->second, wo.currentPose, skinningMatricesMapped, skinningOffset);
 
-            modelMatricesMapped[ctx.imageIndex]->modelMatrices[matrixIdx] = t.getMatrix();
+            modelMatricesMapped[ctx.frameIndex]->modelMatrices[matrixIdx] = t.getMatrix();
 
             float maxScale = glm::max(t.scale.x, glm::max(t.scale.y, t.scale.z));
             //if (!ctx.passSettings.enableVR) {
@@ -845,8 +865,13 @@ namespace worlds {
 
         int lightIdx = 0;
         ctx.registry.view<WorldLight, Transform>().each([&](auto ent, WorldLight& l, Transform& transform) {
-            float distance = l.maxDistance;
             l.lightIdx = ~0u;
+
+            if (lightIdx >= LightUB::MAX_LIGHTS - 1) {
+                return;
+            }
+
+            float distance = l.maxDistance;
             if (!l.enabled) return;
             if (l.type != LightType::Directional) {
                 bool inFrustum = frustum.containsSphere(transform.position, distance);
@@ -951,7 +976,7 @@ namespace worlds {
 
     void PolyRenderPass::execute(RenderContext& ctx) {
         ZoneScoped;
-        TracyVkZone((*ctx.debugContext.tracyContexts)[ctx.imageIndex], ctx.cmdBuf, "Polys");
+        TracyVkZone((*ctx.debugContext.tracyContexts)[ctx.frameIndex], ctx.cmdBuf, "Polys");
 
         std::array<VkClearValue, 2> clearValues;
         clearValues[0] = vku::makeColorClearValue(0.0f, 0.0f, 0.0f, 1.0f);
@@ -974,7 +999,7 @@ namespace worlds {
             VK_DEPENDENCY_BY_REGION_BIT, VK_ACCESS_HOST_WRITE_BIT, VK_ACCESS_UNIFORM_READ_BIT,
             VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED);
 
-        modelMatrixUB[ctx.imageIndex].barrier(
+        modelMatrixUB[ctx.frameIndex].barrier(
             cmdBuf, VK_PIPELINE_STAGE_HOST_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
             VK_DEPENDENCY_BY_REGION_BIT, VK_ACCESS_HOST_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,
             VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED);
@@ -1010,7 +1035,7 @@ namespace worlds {
             cullMeshRenderer->draw(cmdBuf);
         }
 
-        vkCmdBindDescriptorSets(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[ctx.imageIndex], 0, nullptr);
+        vkCmdBindDescriptorSets(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[ctx.frameIndex], 0, nullptr);
 
         uint32_t globalMiscFlags = 0;
 
@@ -1076,7 +1101,7 @@ namespace worlds {
         vkCmdBeginRenderPass(cmdBuf, &rpbi, VK_SUBPASS_CONTENTS_INLINE);
 
         {
-            TracyVkZone((*ctx.debugContext.tracyContexts)[ctx.imageIndex], ctx.cmdBuf, "Main Pass");
+            TracyVkZone((*ctx.debugContext.tracyContexts)[ctx.frameIndex], ctx.cmdBuf, "Main Pass");
             addDebugLabel(cmdBuf, "Main Pass", 0.466f, 0.211f, 0.639f, 1.0f);
             vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
             SubmeshDrawInfo last;
@@ -1167,6 +1192,7 @@ namespace worlds {
         delete skyboxPass;
         delete depthPrepass;
         delete uiPass;
+        delete lightCullPass;
 
         if (cullMeshRenderer)
             delete cullMeshRenderer;

@@ -20,5 +20,4 @@ namespace worlds {
     TextureData loadVtfTexture(void* fileData, size_t fileLen, AssetID id);
     vku::TextureImage2D uploadTextureVk(const VulkanHandles& ctx, TextureData& td, bool generateMips = true);
     vku::TextureImage2D uploadTextureVk(const VulkanHandles& ctx, TextureData& td, VkCommandBuffer cb, uint32_t imageIndex);
-    void destroyTempTexBuffers(uint32_t imageIndex);
 }

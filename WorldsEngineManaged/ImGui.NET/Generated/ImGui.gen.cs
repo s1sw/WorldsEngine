@@ -8964,7 +8964,7 @@ namespace ImGuiNET
             byte* native_shortcut = null;
             byte selected = 0;
             byte enabled = 1;
-            byte ret = ImGuiNative.igMenuItemBool(native_label, native_shortcut, selected, enabled);
+            byte ret = ImGuiNative.igMenuItem_Bool(native_label, native_shortcut, selected, enabled);
             if (label_byteCount > Util.StackAllocationSizeLimit)
             {
                 Util.Free(native_label);
@@ -9011,7 +9011,7 @@ namespace ImGuiNET
             else { native_shortcut = null; }
             byte selected = 0;
             byte enabled = 1;
-            byte ret = ImGuiNative.igMenuItemBool(native_label, native_shortcut, selected, enabled);
+            byte ret = ImGuiNative.igMenuItem_Bool(native_label, native_shortcut, selected, enabled);
             if (label_byteCount > Util.StackAllocationSizeLimit)
             {
                 Util.Free(native_label);
@@ -9062,7 +9062,7 @@ namespace ImGuiNET
             else { native_shortcut = null; }
             byte native_selected = selected ? (byte)1 : (byte)0;
             byte enabled = 1;
-            byte ret = ImGuiNative.igMenuItemBool(native_label, native_shortcut, native_selected, enabled);
+            byte ret = ImGuiNative.igMenuItem_Bool(native_label, native_shortcut, native_selected, enabled);
             if (label_byteCount > Util.StackAllocationSizeLimit)
             {
                 Util.Free(native_label);
@@ -9113,7 +9113,7 @@ namespace ImGuiNET
             else { native_shortcut = null; }
             byte native_selected = selected ? (byte)1 : (byte)0;
             byte native_enabled = enabled ? (byte)1 : (byte)0;
-            byte ret = ImGuiNative.igMenuItemBool(native_label, native_shortcut, native_selected, native_enabled);
+            byte ret = ImGuiNative.igMenuItem_Bool(native_label, native_shortcut, native_selected, native_enabled);
             if (label_byteCount > Util.StackAllocationSizeLimit)
             {
                 Util.Free(native_label);
@@ -10170,15 +10170,15 @@ namespace ImGuiNET
         }
         public static void PushStyleColor(ImGuiCol idx, Vector4 col)
         {
-            ImGuiNative.igPushStyleColorVec4(idx, col);
+            ImGuiNative.igPushStyleColor_Vec4(idx, col);
         }
         public static void PushStyleVar(ImGuiStyleVar idx, float val)
         {
-            ImGuiNative.igPushStyleVarFloat(idx, val);
+            ImGuiNative.igPushStyleVar_Float(idx, val);
         }
         public static void PushStyleVar(ImGuiStyleVar idx, Vector2 val)
         {
-            ImGuiNative.igPushStyleVarVec2(idx, val);
+            ImGuiNative.igPushStyleVar_Vec2(idx, val);
         }
         public static void PushTextWrapPos()
         {

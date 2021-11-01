@@ -42,7 +42,8 @@ namespace Game
             async void DestroyAfter(int ms, Entity entity)
             {
                 await System.Threading.Tasks.Task.Delay(ms);
-                Registry.Destroy(entity);
+                if (Registry.Valid(entity))
+                    Registry.Destroy(entity);
             }
 
             for (int x = -2; x < 2; x++) {

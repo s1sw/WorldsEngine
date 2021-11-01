@@ -400,6 +400,8 @@ namespace worlds {
 
         static std::string searchString;
         static std::vector<ConsoleMsg> filteredMsgs;
+        static bool filterByCategory = false;
+        static LogCategory filteredCategory = WELogCategoryEngine;
 
         static int lastMsgCount = 0;
         if (ImGui::Begin("Console", &show)) {
@@ -410,6 +412,40 @@ namespace worlds {
             ImGui::Combo("Priority Level", &currentPriorityLevel, priorityLabels, sizeof(priorityLabels) / sizeof(priorityLabels[0]));
             ImGui::PopItemWidth();
             currentPriorityLevel += 1;
+
+            const char* filterableCategories[] = {
+                "Engine",
+                "Audio",
+                "Render",
+                "UI",
+                "App",
+                "Scripting",
+                "Physics"
+            };
+
+            ImGui::SameLine();
+            ImGui::PushItemWidth(200.0f);
+            if (ImGui::BeginCombo("Category", filterByCategory ? filterableCategories[filteredCategory - SDL_LOG_CATEGORY_CUSTOM] : "None")) {
+                for (int i = 0; i < IM_ARRAYSIZE(filterableCategories) + 1; i++) {
+                    bool isSelected = i == 0 ? !filterByCategory : (filteredCategory == i - 1 + SDL_LOG_CATEGORY_CUSTOM && filterByCategory);
+
+                    const char* itemText = i == 0 ? "None" : filterableCategories[i - 1];
+
+                    if (ImGui::Selectable(itemText, &isSelected)) {
+                        if (i == 0)
+                            filterByCategory = false;
+                        else {
+                            filteredCategory = (worlds::LogCategory)(i - 1 + SDL_LOG_CATEGORY_CUSTOM);
+                            filterByCategory = true;
+                        }
+                    }
+
+                    if (isSelected)
+                        ImGui::SetItemDefaultFocus();
+                }
+                ImGui::EndCombo();
+            }
+            ImGui::PopItemWidth();
 
             ImGui::SameLine();
             ImGui::PushItemWidth(200.0f);
@@ -424,32 +460,79 @@ namespace worlds {
                 msgs.clear();
             }
 
-            if (ImGui::BeginChild("ConsoleScroll", ImVec2(0, -ImGui::GetFrameHeightWithSpacing()))) {
-                float scrollRegionY = ImGui::GetContentRegionAvail().y;
-                int currMsgIdx = 0;
-                float scroll = ImGui::GetScrollY();
-                float scrollMax = scroll + scrollRegionY;
-                float cHeight = 0.0f;
-                float lineHeight = ImGui::GetTextLineHeightWithSpacing();
-                consoleMutex.lock();
-                float padding = ImGui::GetStyle().ItemSpacing.y;
-                for (auto& msg : (searchString.empty() ? msgs : filteredMsgs)) {
-                    if (msg.priority < currentPriorityLevel) continue;
-                    ImVec2 textSize = ImGui::CalcTextSize(msg.msg.c_str(), nullptr, false, 0.0f);
+            ImGui::Separator();
 
-                    if ((cHeight + lineHeight) > scroll && (cHeight - lineHeight) < scrollMax) {
-                        ImGui::PushStyleColor(ImGuiCol_Text, (ImVec4)priorityColors.at(msg.priority));
-                        if (msg.category != CONSOLE_RESPONSE_CATEGORY)
-                            ImGui::TextUnformatted(("[" + std::string(categories.at(msg.category)) + "] " + "[" + std::string(priorities.at(msg.priority)) + "] " + msg.msg).c_str());
-                        else
-                            ImGui::TextUnformatted(msg.msg.c_str());
-                        ImGui::PopStyleColor();
-                    } else {
-                        ImGui::Dummy(ImVec2(0.0f, textSize.y));
+            if (ImGui::BeginChild("ConsoleScroll", ImVec2(0, -ImGui::GetFrameHeightWithSpacing() - 5.0f))) {
+                consoleMutex.lock();
+                float width = ImGui::GetContentRegionAvailWidth();
+
+                int currMsgIdx = 0;
+                const float CATEGORY_COLUMN_WIDTH = 65.0f;
+                const float TIME_COLUMN_WIDTH = 80.0f;
+                float cHeight = 0.0f;
+
+                if (ImGui::BeginTable("LogMessages", 3, ImGuiTableFlags_BordersInnerV, ImVec2(width, 0.0f))) {
+                    ImGui::TableSetupColumn("Category", ImGuiTableColumnFlags_WidthFixed, CATEGORY_COLUMN_WIDTH);
+                    ImGui::TableSetupColumn("Message", ImGuiTableColumnFlags_WidthFixed, width - CATEGORY_COLUMN_WIDTH - TIME_COLUMN_WIDTH);
+                    ImGui::TableSetupColumn("Time", ImGuiTableColumnFlags_WidthFixed, TIME_COLUMN_WIDTH);
+
+
+                    float lineHeight = ImGui::GetTextLineHeightWithSpacing();
+                    float linePadding = ImGui::GetStyle().CellPadding.y;
+                    float scrollRegionY = ImGui::GetContentRegionAvail().y;
+
+                    float scroll = ImGui::GetScrollY();
+                    float scrollMax = scroll + scrollRegionY;
+
+                    for (auto& msg : (searchString.empty() ? msgs : filteredMsgs)) {
+                        if (msg.priority < currentPriorityLevel) continue;
+                        if (filterByCategory && msg.category != filteredCategory) continue;
+
+                        ImVec2 textSize = ImGui::CalcTextSize(msg.msg.c_str(), nullptr, false, 0.0f);
+
+                        ImGui::TableNextRow();
+
+                        if (cHeight + linePadding + textSize.y > scroll && cHeight < scrollMax) {
+                            ImColor priorityCol = priorityColors.at(msg.priority);
+                            ImGui::PushStyleColor(ImGuiCol_Text, (ImVec4)priorityCol);
+
+                            if (msg.category != CONSOLE_RESPONSE_CATEGORY) {
+                                ImGui::TableNextColumn();
+
+                                ImDrawList* drawList = ImGui::GetWindowDrawList();
+                                ImVec2 topLeft = ImGui::GetCursorScreenPos();
+
+                                const float priorityBackgroundOffset = 63.0f;
+                                topLeft.x += priorityBackgroundOffset;
+
+                                drawList->AddRectFilled(topLeft, ImVec2(topLeft.x + CATEGORY_COLUMN_WIDTH - priorityBackgroundOffset + 4.0f, topLeft.y + lineHeight), priorityCol);
+
+                                ImGui::TextUnformatted(categories.at(msg.category));
+                                ImGui::TableNextColumn();
+                                ImGui::TextUnformatted(msg.msg.c_str());
+                                ImGui::TableNextColumn();
+                                ImGui::TextUnformatted(msg.dateTimeStr.c_str());
+                            } else {
+                                ImGui::TableNextColumn();
+                                ImGui::TableNextColumn();
+                                ImGui::TextUnformatted(msg.msg.c_str());
+                                ImGui::TableNextColumn();
+                                ImGui::TextUnformatted(msg.dateTimeStr.c_str());
+                            }
+
+                            ImGui::PopStyleColor();
+                        } else {
+                            ImGui::TableNextColumn();
+                            ImGui::TableNextColumn();
+                            ImGui::Dummy(ImVec2(0.0f, textSize.y));
+                            ImGui::TableNextColumn();
+                        }
+
+                        cHeight += textSize.y + linePadding * 2.0f;
+                        currMsgIdx++;
                     }
 
-                    cHeight += textSize.y + padding;
-                    currMsgIdx++;
+                    ImGui::EndTable();
                 }
 
                 if (lastMsgCount != (int)msgs.size()) {
@@ -458,12 +541,17 @@ namespace worlds {
                 }
                 consoleMutex.unlock();
 
-                ImGui::EndChild();
             }
+            ImGui::EndChild();
 
-            if (setKeyboardFocus)
-                ImGui::SetKeyboardFocusHere();
+            ImGui::Separator();
+            
+            ImGui::PushItemWidth(ImGui::GetWindowContentRegionWidth() - 65.0f);
             bool executeCmd = ImGui::InputText("##command", &currentCommand, ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_CallbackHistory | ImGuiInputTextFlags_CallbackCompletion | ImGuiInputTextFlags_CallbackEdit, inputTextCallback);
+            ImGui::PopItemWidth();
+            if (setKeyboardFocus)
+                ImGui::SetKeyboardFocusHere(-1);
+            ImGui::SetItemDefaultFocus();
 
             ImGui::SameLine();
             executeCmd |= ImGui::Button("Submit");
@@ -477,8 +565,6 @@ namespace worlds {
                 historyPos = previousCommands.size();
                 setKeyboardFocus = true;
             }
-
-            ImGui::SetItemDefaultFocus();
         }
         ImGui::End();
     }
@@ -557,15 +643,12 @@ namespace worlds {
 
         if (logToStdout.getInt()) {
             if (enableVT100) {
-                std::string colorStr = std::string("\033[38;2;")
-                          + std::to_string(r)
-                    + ";" + std::to_string(g)
-                    + ";" + std::to_string(b)
-                    + "m";
-
                 const char* clearLineCode = "\033[2K";
 
-                std::cout << "\r" << clearLineCode << colorStr << outStr << "\n";
+                std::cout << "\r"
+                    << clearLineCode << 
+                    "\033[38;2;" << r << ";" << g << ";" << "m" << outStr << "\n";
+
                 if (g_console->asyncConsoleThread)
                     std::cout << "\033[32mworlds> \033[0m";
                 else
@@ -583,7 +666,7 @@ namespace worlds {
         }
 
         consoleMutex.lock();
-        con->msgs.push_back(ConsoleMsg{ priority, msg, category });
+        con->msgs.push_back(ConsoleMsg{ priority, msg, category, getDateTimeString()});
         consoleMutex.unlock();
 
 #ifdef _WIN32

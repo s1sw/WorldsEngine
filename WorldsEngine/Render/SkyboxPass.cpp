@@ -76,7 +76,7 @@ namespace worlds {
 
     void SkyboxPass::execute(RenderContext& ctx) {
         ZoneScoped;
-        TracyVkZone((*ctx.debugContext.tracyContexts)[ctx.imageIndex], ctx.cmdBuf, "Skybox");
+        TracyVkZone((*ctx.debugContext.tracyContexts)[ctx.frameIndex], ctx.cmdBuf, "Skybox");
 
         auto& cmdBuf = ctx.cmdBuf;
         addDebugLabel(cmdBuf, "Skybox Pass", 0.321f, 0.705f, 0.871f, 1.0f);

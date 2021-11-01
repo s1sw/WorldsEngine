@@ -76,7 +76,7 @@ namespace worlds {
     void LightCullPass::execute(RenderContext& ctx, int tileSize) {
 #ifdef TRACY_ENABLE
         ZoneScoped;
-        TracyVkZone((*ctx.debugContext.tracyContexts)[ctx.imageIndex], ctx.cmdBuf, "Light Culling");
+        TracyVkZone((*ctx.debugContext.tracyContexts)[ctx.frameIndex], ctx.cmdBuf, "Light Culling");
 #endif
         auto& cmdBuf = ctx.cmdBuf;
         addDebugLabel(cmdBuf, "Light Culling", 1.0f, 0.0f, 0.0f, 1.0f);
@@ -120,9 +120,5 @@ namespace worlds {
     }
 
     LightCullPass::~LightCullPass() {
-        vkDestroyPipeline(handles->device, pipeline, nullptr);
-        vkDestroyPipelineLayout(handles->device, pipelineLayout, nullptr);
-        vkDestroySampler(handles->device, sampler, nullptr);
-        vkDestroyDescriptorSetLayout(handles->device, dsl, nullptr);
     }
 }

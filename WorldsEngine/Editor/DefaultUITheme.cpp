@@ -55,14 +55,16 @@ namespace worlds {
         colors[ImGuiCol_NavWindowingDimBg]      = ImVec4(0.80f, 0.80f, 0.80f, 0.20f);
         colors[ImGuiCol_ModalWindowDimBg]       = ImVec4(0.80f, 0.80f, 0.80f, 0.35f);
 
-        ImGui::GetStyle().WindowBorderSize = 1.0f;
-        ImGui::GetStyle().PopupBorderSize = 0.0f;
-        ImGui::GetStyle().FrameRounding = 2.0f;
-        ImGui::GetStyle().PopupRounding = 1.0f;
-        ImGui::GetStyle().WindowRounding = 3.0f;
-        ImGui::GetStyle().ScrollbarRounding = 3.0f;
-        ImGui::GetStyle().GrabRounding = 2.0f;
-        ImGui::GetStyle().ChildBorderSize = 0.0f;
-        ImGui::GetStyle().TabBorderSize = 2.0f;
+        ImGuiStyle& style = ImGui::GetStyle();
+        style.WindowBorderSize = 1.0f;
+        style.PopupBorderSize = 0.0f;
+        style.FrameRounding = 6.0f;
+        style.PopupRounding = 1.0f;
+        style.WindowRounding = 3.0f;
+        style.ScrollbarRounding = 3.0f;
+        style.GrabRounding = 2.0f;
+        style.ChildBorderSize = 0.0f;
+        style.TabBorderSize = 2.0f;
+        style.AntiAliasedLinesUseTex = false;
     }
 }

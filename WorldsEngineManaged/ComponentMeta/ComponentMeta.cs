@@ -5,6 +5,7 @@ using System.Runtime.InteropServices;
 using System.Collections;
 using System.Reflection;
 using WorldsEngine.Math;
+using WorldsEngine.Editor;
 using ImGuiNET;
 
 namespace WorldsEngine.ComponentMeta
@@ -293,8 +294,10 @@ namespace WorldsEngine.ComponentMeta
         {
             if (!Registry.HasComponent(entity, type)) return;
 
+            ImGui.PushStyleVar(ImGuiStyleVar.FrameBorderSize, 1.0f);
             if (ImGui.CollapsingHeader(EditorName))
             {
+                ImGui.PopStyleVar();
                 if (ImGui.Button("Remove"))
                 {
                     Registry.RemoveComponent(type, entity);
@@ -307,6 +310,10 @@ namespace WorldsEngine.ComponentMeta
                 {
                     EditField(fieldInfo, component);
                 }
+            }
+            else
+            {
+                ImGui.PopStyleVar();
             }
         }
 

@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using WorldsEngine;
 using WorldsEngine.Input;
 using WorldsEngine.Math;
+using WorldsEngine.Editor;
 
 namespace Game
 {

@@ -1,6 +1,7 @@
 #include "vku.hpp"
 #include <physfs.h>
 #include <Core/AssetDB.hpp>
+#include <Render/RenderInternal.hpp>
 
 namespace vku {
     const char* toString(VkPhysicalDeviceType type) {
@@ -319,6 +320,11 @@ namespace vku {
         }
     }
 
+
+    ShaderModule::~ShaderModule() {
+        worlds::DeletionQueue::queueObjectDeletion(s.module_, VK_OBJECT_TYPE_SHADER_MODULE);
+    }
+
     void transitionLayout(VkCommandBuffer& cb, VkImage img, VkImageLayout oldLayout, VkImageLayout newLayout, VkPipelineStageFlags srcStageMask, VkPipelineStageFlags dstStageMask, VkAccessFlags srcMask, VkAccessFlags dstMask, VkImageAspectFlags aspectMask) {
         VkImageMemoryBarrier imageMemoryBarriers = { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
         imageMemoryBarriers.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
@@ -371,4 +377,79 @@ namespace vku {
         std::free(buffer);
         return sm;
     }
+
+    Event::Event() : evt(VK_NULL_HANDLE) {}
+
+    Event::Event(Event&& other) noexcept {
+        evt = other.evt;
+        other.evt = VK_NULL_HANDLE;
+    }
+
+    Event::Event(VkDevice device) {
+        VkEventCreateInfo eci{ VK_STRUCTURE_TYPE_EVENT_CREATE_INFO };
+        VKCHECK(vkCreateEvent(device, &eci, nullptr, &evt));
+    }
+
+    Event& Event::operator=(Event&& other) noexcept {
+        evt = other.evt;
+        other.evt = VK_NULL_HANDLE;
+
+        return *this;
+    }
+
+    Event::operator VkEvent() {
+        return evt;
+    }
+
+    Event::~Event() {
+        worlds::DeletionQueue::queueObjectDeletion(evt, VK_OBJECT_TYPE_EVENT);
+    }
+
+#define VULKAN_HANDLE_WRAPPER_IMPL(name) \
+    name::name() : obj(VK_NULL_HANDLE) {} \
+\
+    name::name(Vk ## name obj) : obj(obj) {} \
+\
+    name::name(name&& other) noexcept { \
+        obj = other.obj; \
+        other.obj = VK_NULL_HANDLE; \
+    } \
+\
+    name& name::operator=(name&& other) noexcept { \
+        obj = other.obj; \
+        other.obj = VK_NULL_HANDLE; \
+        return *this; \
+    } \
+\
+    name::operator Vk ## name() { \
+        return obj; \
+    } \
+    Vk ## name name::release() { \
+        Vk ## name o = obj; \
+        obj = VK_NULL_HANDLE; \
+        return o; \
+    } \
+\
+    name::~name() { \
+        worlds::DeletionQueue::queueObjectDeletion(obj, vulkanObjectType); \
+    }
+
+    VULKAN_HANDLE_WRAPPER_IMPL(Pipeline);
+    VULKAN_HANDLE_WRAPPER_IMPL(PipelineLayout);
+    VULKAN_HANDLE_WRAPPER_IMPL(DescriptorSetLayout);
+    VULKAN_HANDLE_WRAPPER_IMPL(Sampler);
+    VULKAN_HANDLE_WRAPPER_IMPL(RenderPass);
+    VULKAN_HANDLE_WRAPPER_IMPL(Framebuffer);
+    VULKAN_HANDLE_WRAPPER_IMPL(DescriptorPool);
+
+#define VULKAN_HANDLE_WRAPPER_CREATE_IMPL(name) \
+    VkResult create ## name(VkDevice device, Vk ## name ## CreateInfo* createInfo, name* out) { \
+        Vk ## name created; \
+        VkResult result = vkCreate ## name(device, createInfo, nullptr, &created); \
+        *out = name(created); \
+        return result; \
+    }
+
+    VULKAN_HANDLE_WRAPPER_CREATE_IMPL(Framebuffer);
+    VULKAN_HANDLE_WRAPPER_CREATE_IMPL(DescriptorPool);
 }

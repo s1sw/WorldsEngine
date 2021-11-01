@@ -26,7 +26,12 @@ namespace worlds {
             pm.frontFace(VK_FRONT_FACE_COUNTER_CLOCKWISE);
 
             pm.rasterizationSamples(vku::sampleCountFlags(ctx.passSettings.msaaSamples));
+            pm.alphaToCoverageEnable(false);
             pm.subPass(0);
+
+            if (handles->hasOutOfOrderRasterization)
+                pm.rasterizationOrderAMD(VK_RASTERIZATION_ORDER_RELAXED_AMD);
+
             depthPrePipeline = pm.create(handles->device, handles->pipelineCache, layout, renderPass);
         }
 
@@ -48,7 +53,11 @@ namespace worlds {
             pm.blendBegin(false);
             pm.frontFace(VK_FRONT_FACE_COUNTER_CLOCKWISE);
 
+            if (handles->hasOutOfOrderRasterization)
+                pm.rasterizationOrderAMD(VK_RASTERIZATION_ORDER_RELAXED_AMD);
+
             pm.rasterizationSamples(vku::sampleCountFlags(ctx.passSettings.msaaSamples));
+            pm.alphaToCoverageEnable(false);
             pm.subPass(0);
             skinnedPipeline = pm.create(handles->device, handles->pipelineCache, layout, renderPass);
         }
@@ -97,7 +106,7 @@ namespace worlds {
 
     void DepthPrepass::execute(RenderContext& ctx, slib::StaticAllocList<SubmeshDrawInfo>& drawInfo) {
         ZoneScoped;
-        TracyVkZone((*ctx.debugContext.tracyContexts)[ctx.imageIndex], ctx.cmdBuf, "Depth Pre-Pass");
+        TracyVkZone((*ctx.debugContext.tracyContexts)[ctx.frameIndex], ctx.cmdBuf, "Depth Pre-Pass");
 
         auto& cmdBuf = ctx.cmdBuf;
         addDebugLabel(cmdBuf, "Depth Pre-Pass", 0.368f, 0.415f, 0.819f, 1.0f);

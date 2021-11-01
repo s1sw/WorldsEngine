@@ -74,7 +74,7 @@ namespace worlds {
     void TonemapRenderPass::execute(RenderContext& ctx) {
 #ifdef TRACY_ENABLE
         ZoneScoped;
-        TracyVkZone((*ctx.debugContext.tracyContexts)[ctx.imageIndex], ctx.cmdBuf, "Tonemap/Postprocessing");
+        TracyVkZone((*ctx.debugContext.tracyContexts)[ctx.frameIndex], ctx.cmdBuf, "Tonemap/Postprocessing");
 #endif
         auto& cmdBuf = ctx.cmdBuf;
 

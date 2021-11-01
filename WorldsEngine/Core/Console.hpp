@@ -62,6 +62,7 @@ namespace worlds {
             SDL_LogPriority priority;
             std::string msg;
             int category;
+            std::string dateTimeStr;
         };
 
         size_t historyPos;

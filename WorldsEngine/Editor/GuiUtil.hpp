@@ -31,7 +31,7 @@ namespace worlds {
         Error
     };
 
-    void addNotification(const char* text, NotificationType type = NotificationType::Info);
+    void addNotification(std::string text, NotificationType type = NotificationType::Info);
     void drawPopupNotifications();
     bool selectAssetPopup(const char* title, AssetID& id, bool open, bool source = false);
     bool selectRawAssetPopup(const char* title, AssetID& id, bool open);

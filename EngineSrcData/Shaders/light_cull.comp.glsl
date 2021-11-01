@@ -331,7 +331,7 @@ void main() {
     }
 
     // Stage 4: Cull AO boxes against the frustum
-     if (gl_LocalInvocationIndex < buf_Lights.pack1.x) {
+    if (gl_LocalInvocationIndex < buf_Lights.pack1.x) {
         uint boxIdx = gl_LocalInvocationIndex;
         AOBox box = buf_Lights.aoBox[boxIdx];
 

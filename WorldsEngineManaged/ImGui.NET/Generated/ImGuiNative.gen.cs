@@ -445,7 +445,7 @@ namespace ImGuiNET
         [DllImport(WorldsEngine.WorldsEngine.NativeModule, CallingConvention = CallingConvention.Cdecl)]
         public static extern void igMemFree(void* ptr);
         [DllImport(WorldsEngine.WorldsEngine.NativeModule, CallingConvention = CallingConvention.Cdecl)]
-        public static extern byte igMenuItemBool(byte* label, byte* shortcut, byte selected, byte enabled);
+        public static extern byte igMenuItem_Bool(byte* label, byte* shortcut, byte selected, byte enabled);
         [DllImport(WorldsEngine.WorldsEngine.NativeModule, CallingConvention = CallingConvention.Cdecl)]
         public static extern byte igMenuItemBoolPtr(byte* label, byte* shortcut, byte* p_selected, byte enabled);
         [DllImport(WorldsEngine.WorldsEngine.NativeModule, CallingConvention = CallingConvention.Cdecl)]
@@ -503,11 +503,11 @@ namespace ImGuiNET
         [DllImport(WorldsEngine.WorldsEngine.NativeModule, CallingConvention = CallingConvention.Cdecl)]
         public static extern void igPushStyleColorU32(ImGuiCol idx, uint col);
         [DllImport(WorldsEngine.WorldsEngine.NativeModule, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void igPushStyleColorVec4(ImGuiCol idx, Vector4 col);
+        public static extern void igPushStyleColor_Vec4(ImGuiCol idx, Vector4 col);
         [DllImport(WorldsEngine.WorldsEngine.NativeModule, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void igPushStyleVarFloat(ImGuiStyleVar idx, float val);
+        public static extern void igPushStyleVar_Float(ImGuiStyleVar idx, float val);
         [DllImport(WorldsEngine.WorldsEngine.NativeModule, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void igPushStyleVarVec2(ImGuiStyleVar idx, Vector2 val);
+        public static extern void igPushStyleVar_Vec2(ImGuiStyleVar idx, Vector2 val);
         [DllImport(WorldsEngine.WorldsEngine.NativeModule, CallingConvention = CallingConvention.Cdecl)]
         public static extern void igPushTextWrapPos(float wrap_local_pos_x);
         [DllImport(WorldsEngine.WorldsEngine.NativeModule, CallingConvention = CallingConvention.Cdecl)]

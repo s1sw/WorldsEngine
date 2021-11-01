@@ -12,6 +12,10 @@ extern "C" {
         AudioSystem::getInstance()->playOneShotEvent(eventPath, *location, volume);
     }
 
+    EXPORT void audio_playOneShotAttachedEvent(const char* eventPath, glm::vec3* location, entt::entity entity, float volume) {
+        AudioSystem::getInstance()->playOneShotAttachedEvent(eventPath, *location, entity, volume);
+    }
+
     EXPORT void audio_loadBank(const char* bankPath) {
         AudioSystem::getInstance()->loadBank(bankPath);
     }

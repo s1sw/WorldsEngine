@@ -14,6 +14,7 @@ namespace worlds {
         bool skinned;
         std::vector<std::string> boneNames;
         std::vector<glm::mat4> boneRestPositions;
+        std::vector<glm::mat4> relativeBoneTransforms;
     };
 
     class MeshManager {

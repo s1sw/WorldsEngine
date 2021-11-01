@@ -42,7 +42,7 @@ namespace wmdl {
     };
 
     struct Bone {
-        glm::mat4 restTransform;
+        glm::mat4 inverseBindPose;
         glm::mat4 transform;
         char name[32] = {0};
         uint32_t parentBone = ~0u;

@@ -55,7 +55,7 @@ namespace worlds {
 
     void ImGuiRenderPass::execute(VkCommandBuffer& cmdBuf,
             uint32_t width, uint32_t height,
-            VkFramebuffer& currFramebuffer, ImDrawData* drawData) {
+            VkFramebuffer currFramebuffer, ImDrawData* drawData) {
         VkDebugUtilsLabelEXT label{ VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT };
         label.pLabelName = "Dear ImGui Pass";
         label.color[0] = 0.082f;

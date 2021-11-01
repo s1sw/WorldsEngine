@@ -21,6 +21,8 @@ namespace worlds {
         glm::vec3 pad;
     };
 
+    robin_hood::unordered_flat_map<AssetID, SDFFont> fonts;
+
     SDFFont& WorldSpaceUIPass::getFont(AssetID id) {
         if (id == INVALID_ASSET) return fonts.at(AssetDB::pathToId("UI/SDFFonts/mulish.json"));
         return fonts.at(id);

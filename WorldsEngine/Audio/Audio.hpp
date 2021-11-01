@@ -74,6 +74,7 @@ namespace worlds {
         void stopEverything(entt::registry& reg);
         void playOneShotClip(AssetID id, glm::vec3 location, bool spatialise = false, float volume = 1.0f, MixerChannel channel = MixerChannel::SFX);
         void playOneShotEvent(const char* eventPath, glm::vec3 location, float volume = 1.0f);
+        void playOneShotAttachedEvent(const char* eventPath, glm::vec3 location, entt::entity entity, float volume = 1.0f);
         inline bool getPauseState() { return false; }
         void shutdown(entt::registry& worldState);
         void precacheAudioClip(AssetID id) {}
@@ -81,6 +82,13 @@ namespace worlds {
         FMOD::Studio::Bank* loadBank(const char* path);
     private:
         void onAudioSourceDestroy(entt::registry& reg, entt::entity ent);
+
+        struct AttachedOneshot {
+            FMOD::Studio::EventInstance* instance;
+            entt::entity entity;
+            glm::vec3 lastPosition;
+            bool markForRemoval = false;
+        };
 
         friend struct AudioSource;
 
@@ -99,5 +107,6 @@ namespace worlds {
 
         robin_hood::unordered_map<const char*, FMOD::Studio::Bank*> loadedBanks;
         robin_hood::unordered_map<AssetID, FMOD::Sound*> sounds;
+        std::vector<AttachedOneshot> attachedOneshots;
     };
 }

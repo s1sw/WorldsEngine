@@ -309,6 +309,7 @@ namespace worlds {
                 aiProcess_ValidateDataStructure |
                 aiProcess_OptimizeMeshes |
                 aiProcess_OptimizeGraph |
+                aiProcess_PopulateArmatureData |
                 aiProcess_FlipUVs, extension);
 
             compileOp->progress = PROGRESS_PER_STEP;
@@ -374,17 +375,17 @@ namespace worlds {
 
                         wmdl::Bone wBone;
                         wBone.setName(bone->mName.C_Str());
-                        wBone.restTransform = convMtx(bone->mOffsetMatrix);
+                        wBone.inverseBindPose = convMtx(bone->mOffsetMatrix);
 
                         aiNode* boneNode = nodeLookup.at(bone->mName.C_Str());
-                        wBone.transform = convMtx(boneNode->mTransformation);
+                        wBone.transform = convMtx(bone->mNode->mTransformation);
 
                         combinedBoneIds.insert({ wBone.name, combinedBones.size() });
                         combinedBones.push_back(wBone);
                     }
 
                     for (auto& bone : mesh.bones) {
-                        aiNode* boneNode = nodeLookup.at(bone->mName.C_Str());
+                        aiNode* boneNode = bone->mNode;
                         aiNode* parentNode = boneNode->mParent;
                         uint32_t combinedId = combinedBoneIds.at(bone->mName.C_Str());
 

@@ -19,7 +19,7 @@ namespace vku {
         s.info.unnormalizedCoordinates = 0;
     }
 
-    VkSampler SamplerMaker::create(VkDevice device) const {
+    vku::Sampler SamplerMaker::create(VkDevice device) const {
         VkSampler sampler;
         VKCHECK(vkCreateSampler(device, &s.info, nullptr, &sampler));
         return sampler;
