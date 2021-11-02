@@ -42,13 +42,13 @@ namespace worlds {
             | VK_IMAGE_USAGE_STORAGE_BIT
             | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
 
-        RTResourceCreateInfo polyCreateInfo{ ici, VK_IMAGE_VIEW_TYPE_2D_ARRAY, VK_IMAGE_ASPECT_COLOR_BIT };
-        hdrTarget = renderer->createRTResource(polyCreateInfo, "HDR Target");
+        TextureResourceCreateInfo polyCreateInfo{ ici, VK_IMAGE_VIEW_TYPE_2D_ARRAY, VK_IMAGE_ASPECT_COLOR_BIT };
+        hdrTarget = renderer->createTextureResource(polyCreateInfo, "HDR Target");
 
         ici.format = VK_FORMAT_D32_SFLOAT;
         ici.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-        RTResourceCreateInfo depthCreateInfo{ ici, VK_IMAGE_VIEW_TYPE_2D_ARRAY, VK_IMAGE_ASPECT_DEPTH_BIT };
-        depthTarget = renderer->createRTResource(depthCreateInfo, "Depth Stencil Image");
+        TextureResourceCreateInfo depthCreateInfo{ ici, VK_IMAGE_VIEW_TYPE_2D_ARRAY, VK_IMAGE_ASPECT_DEPTH_BIT };
+        depthTarget = renderer->createTextureResource(depthCreateInfo, "Depth Stencil Image");
 
         prp = new PolyRenderPass(
             &handles,
@@ -66,8 +66,8 @@ namespace worlds {
         ici.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 
         if (!ci.outputToScreen) {
-            RTResourceCreateInfo sdrTarget{ ici, VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_COLOR_BIT };
-            sdrFinalTarget = renderer->createRTResource(sdrTarget, "SDR Target");
+            TextureResourceCreateInfo sdrTarget{ ici, VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_COLOR_BIT };
+            sdrFinalTarget = renderer->createTextureResource(sdrTarget, "SDR Target");
         }
 
         trp = new TonemapRenderPass(
@@ -80,12 +80,12 @@ namespace worlds {
         vkGetDeviceQueue(handles.device, handles.graphicsQueueFamilyIdx, 0, &queue);
 
         vku::executeImmediately(handles.device, handles.commandPool, queue, [&](VkCommandBuffer cmdBuf) {
-            hdrTarget->image.setLayout(cmdBuf, VK_IMAGE_LAYOUT_GENERAL);
+            hdrTarget->image().setLayout(cmdBuf, VK_IMAGE_LAYOUT_GENERAL);
             if (!ci.outputToScreen)
-                sdrFinalTarget->image.setLayout(cmdBuf, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+                sdrFinalTarget->image().setLayout(cmdBuf, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
             if (ci.isVr) {
-                renderer->leftEye->image.setLayout(cmdBuf, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
-                renderer->rightEye->image.setLayout(cmdBuf, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+                renderer->leftEye->image().setLayout(cmdBuf, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+                renderer->rightEye->image().setLayout(cmdBuf, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
             }
             });
 
@@ -191,15 +191,15 @@ namespace worlds {
                 VK_ACCESS_TRANSFER_WRITE_BIT,
                 VK_ACCESS_TRANSFER_WRITE_BIT);
 
-            auto oldHdrLayout = hdrTarget->image.layout();
-            hdrTarget->image.setLayout(cmdBuf,
+            auto oldHdrLayout = hdrTarget->image().layout();
+            hdrTarget->image().setLayout(cmdBuf,
                 VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
                 VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT,
                 VK_PIPELINE_STAGE_TRANSFER_BIT,
                 VK_ACCESS_SHADER_READ_BIT,
                 VK_ACCESS_TRANSFER_READ_BIT);
 
-            bool needsResolve = hdrTarget->image.info().samples != VK_SAMPLE_COUNT_1_BIT;
+            bool needsResolve = hdrTarget->image().info().samples != VK_SAMPLE_COUNT_1_BIT;
             if (needsResolve) {
                 VkImageResolve resolve = { 0 };
                 resolve.srcSubresource.layerCount = 1;
@@ -210,7 +210,7 @@ namespace worlds {
                 resolve.extent = VkExtent3D{ width, height, 1 };
                 vkCmdResolveImage(
                     cmdBuf,
-                    hdrTarget->image.image(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                    hdrTarget->image().image(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
                     resolveImg.image(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                     1, &resolve);
             }
@@ -232,13 +232,13 @@ namespace worlds {
 
             vkCmdBlitImage(
                 cmdBuf,
-                needsResolve ? resolveImg.image() : hdrTarget->image.image(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                needsResolve ? resolveImg.image() : hdrTarget->image().image(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
                 targetImg.image(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                 1,
                 &blit,
                 VK_FILTER_NEAREST);
 
-            hdrTarget->image.setLayout(cmdBuf,
+            hdrTarget->image().setLayout(cmdBuf,
                 oldHdrLayout,
                 VK_PIPELINE_STAGE_TRANSFER_BIT,
                 VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT,
@@ -343,7 +343,7 @@ namespace worlds {
         prp->prePass(rCtx);
         prp->execute(rCtx);
 
-        hdrTarget->image.barrier(cmdBuf,
+        hdrTarget->image().barrier(cmdBuf,
             VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
             VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
 
@@ -351,14 +351,6 @@ namespace worlds {
     }
 
     VKRTTPass::~VKRTTPass() {
-        PolyRenderPass* prp = this->prp;
-        TonemapRenderPass* trp = this->trp;
-        RenderTexture* hdrTarget = this->hdrTarget;
-        RenderTexture* depthTarget = this->depthTarget;
-
-        bool outputToScreen = this->outputToScreen;
-        RenderTexture* sdrFinalTarget = this->sdrFinalTarget;
-
         delete prp;
         delete trp;
 

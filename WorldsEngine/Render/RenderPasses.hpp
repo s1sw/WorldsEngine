@@ -11,7 +11,7 @@ namespace worlds {
     struct LightUB;
     struct ModelMatrices;
     struct RenderContext;
-    class RenderTexture;
+    class RenderResource;
     class Swapchain;
     class VKRenderer;
     class VRCullMeshRenderer {
@@ -127,6 +127,13 @@ namespace worlds {
         uint32_t index;
     };
 
+    class RenderPass {
+    protected:
+        VulkanHandles* handles;
+    public:
+        RenderPass(VulkanHandles* handles);
+    };
+
     class WorldSpaceUIPass {
     private:
         vku::Pipeline textPipeline;
@@ -151,7 +158,7 @@ namespace worlds {
         void execute(RenderContext& ctx);
     };
 
-    class LightCullPass {
+    class LightCullPass : public RenderPass {
     private:
         vku::Pipeline pipeline;
         vku::PipelineLayout pipelineLayout;
@@ -161,10 +168,9 @@ namespace worlds {
         vku::Sampler sampler;
 
         VkShaderModule shader;
-        VulkanHandles* handles;
-        RenderTexture* depthStencilImage;
+        RenderResource* depthResource;
     public:
-        LightCullPass(VulkanHandles* handles, RenderTexture* depthStencilImage);
+        LightCullPass(VulkanHandles* handles, RenderResource* depthStencilImage);
         void setup(RenderContext& ctx, VkBuffer lightBuffer, VkBuffer lightTileInfoBuffer, VkBuffer lightTileBuffer, VkBuffer lightTileLightCountBuffer, VkDescriptorPool descriptorPool);
         void execute(RenderContext& ctx, int tileSize);
         ~LightCullPass();
@@ -226,8 +232,8 @@ namespace worlds {
         vku::Framebuffer depthFb;
         std::vector<VkDescriptorSet> descriptorSets;
 
-        RenderTexture* depthStencilImage;
-        RenderTexture* polyImage;
+        RenderResource* depthResource;
+        RenderResource* colourResource;
 
         bool enablePicking;
         int pickX, pickY;
@@ -248,7 +254,7 @@ namespace worlds {
 
         void generateDrawInfo(RenderContext& ctx);
     public:
-        PolyRenderPass(VulkanHandles* handles, RenderTexture* depthStencilImage, RenderTexture* polyImage, bool enablePicking = false);
+        PolyRenderPass(VulkanHandles* handles, RenderResource* depthStencilImage, RenderResource* polyImage, bool enablePicking = false);
         void setPickCoords(int x, int y) { pickX = x; pickY = y; }
         void setup(RenderContext& ctx, VkDescriptorPool descriptorPool);
         void prePass(RenderContext& ctx);
@@ -267,7 +273,7 @@ namespace worlds {
         vku::PipelineLayout pipelineLayout;
         vku::DescriptorSetLayout dsl;
         VkDescriptorSet ds;
-        RenderTexture* shadowImage;
+        RenderResource* shadowImage;
         vku::Framebuffer shadowFb;
         VkShaderModule shadowVertexShader;
         VkShaderModule shadowFragmentShader;
@@ -278,7 +284,7 @@ namespace worlds {
         void createRenderPass();
         void createDescriptorSet();
     public:
-        ShadowCascadePass(VulkanHandles* handles, RenderTexture* shadowImage);
+        ShadowCascadePass(VulkanHandles* handles, RenderResource* shadowImage);
         void setup();
         void prePass(RenderContext& ctx);
         void execute(RenderContext& ctx);
@@ -319,22 +325,22 @@ namespace worlds {
         VkDescriptorSet rDescriptorSet;
         vku::Sampler sampler;
         VkDescriptorPool dsPool;
-        RenderTexture* finalPrePresent;
-        RenderTexture* finalPrePresentR;
-        RenderTexture* hdrImg;
+        RenderResource* finalPrePresent;
+        RenderResource* finalPrePresentR;
+        RenderResource* hdrImg;
         VulkanHandles* handles;
     public:
-        TonemapRenderPass(VulkanHandles* handles, RenderTexture* hdrImg, RenderTexture* finalPrePresent);
+        TonemapRenderPass(VulkanHandles* handles, RenderResource* hdrImg, RenderResource* finalPrePresent);
         void setup(RenderContext& ctx, VkDescriptorPool descriptorPool);
         void execute(RenderContext& ctx);
-        void setRightFinalImage(RenderTexture* right);
+        void setRightFinalImage(RenderResource* right);
         virtual ~TonemapRenderPass();
     };
 
     class ImGuiRenderPass {
     private:
         vku::RenderPass renderPass;
-        RenderTexture* target;
+        RenderResource* target;
         Swapchain& currSwapchain;
         VulkanHandles* handles;
     public:
