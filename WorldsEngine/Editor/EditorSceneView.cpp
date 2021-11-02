@@ -364,7 +364,7 @@ namespace worlds {
         }
 
         sceneViewDS = VKImGUIUtil::createDescriptorSetFor(
-            static_cast<VKRTTPass*>(sceneViewPass)->sdrFinalTarget->image, vkCtx);
+            static_cast<VKRTTPass*>(sceneViewPass)->sdrFinalTarget->image(), vkCtx);
         sceneViewPass->active = true;
     }
 

@@ -196,7 +196,7 @@ namespace worlds {
 
             VkRenderPassAttachmentBeginInfo attachmentBeginInfo{ VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO };
             attachmentBeginInfo.attachmentCount = 1;
-            auto imgView = ctx.resources.additionalShadowImages[i]->image.imageView();
+            auto imgView = ctx.resources.additionalShadowImages[i]->image().imageView();
             attachmentBeginInfo.pAttachments = &imgView;
 
             VkRenderPassBeginInfo rpbi{ VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
@@ -252,7 +252,7 @@ namespace worlds {
             });
 
             vkCmdEndRenderPass(cmdBuf);
-            ctx.resources.additionalShadowImages[i]->image.setCurrentLayout(
+            ctx.resources.additionalShadowImages[i]->image().setCurrentLayout(
                 VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                 VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
                 VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);

@@ -70,6 +70,8 @@ namespace worlds {
         glm::vec4 col;
     };
 
+    RenderPass::RenderPass(VulkanHandles* handles) : handles(handles) {}
+
     void PolyRenderPass::updateDescriptorSets(RenderContext& ctx) {
         ZoneScoped;
         auto& texSlots = ctx.resources.textures;
@@ -99,7 +101,7 @@ namespace worlds {
             }
 
             updater.beginImages(5, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-            updater.image(shadowSampler, ctx.resources.shadowCascades->image.imageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+            updater.image(shadowSampler, ctx.resources.shadowCascades->image().imageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
             for (uint32_t i = 0; i < cubemapSlots.size(); i++) {
                 if (cubemapSlots.isSlotPresent(i)) {
@@ -113,7 +115,7 @@ namespace worlds {
 
             for (int i = 0; i < NUM_SHADOW_LIGHTS; i++) {
                 updater.beginImages(8, i, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-                updater.image(shadowSampler, ctx.resources.additionalShadowImages[i]->image.imageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+                updater.image(shadowSampler, ctx.resources.additionalShadowImages[i]->image().imageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
             }
 
             updater.beginBuffers(9, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
@@ -143,11 +145,11 @@ namespace worlds {
 
     PolyRenderPass::PolyRenderPass(
         VulkanHandles* handles,
-        RenderTexture* depthStencilImage,
-        RenderTexture* polyImage,
+        RenderResource* depthStencilImage,
+        RenderResource* polyImage,
         bool enablePicking)
-        : depthStencilImage(depthStencilImage)
-        , polyImage(polyImage)
+        : depthResource(depthStencilImage)
+        , colourResource(polyImage)
         , enablePicking(enablePicking)
         , pickX(0)
         , pickY(0)
@@ -290,13 +292,13 @@ namespace worlds {
         rPassMaker.attachmentBegin(VK_FORMAT_B10G11R11_UFLOAT_PACK32);
         rPassMaker.attachmentLoadOp(VK_ATTACHMENT_LOAD_OP_CLEAR);
         rPassMaker.attachmentStoreOp(VK_ATTACHMENT_STORE_OP_DONT_CARE);
-        rPassMaker.attachmentSamples(polyImage->image.info().samples);
+        rPassMaker.attachmentSamples(colourResource->image().info().samples);
         rPassMaker.attachmentFinalLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
         rPassMaker.attachmentBegin(VK_FORMAT_D32_SFLOAT);
         rPassMaker.attachmentLoadOp(VK_ATTACHMENT_LOAD_OP_LOAD);
         rPassMaker.attachmentStencilLoadOp(VK_ATTACHMENT_LOAD_OP_DONT_CARE);
-        rPassMaker.attachmentSamples(polyImage->image.info().samples);
+        rPassMaker.attachmentSamples(colourResource->image().info().samples);
         rPassMaker.attachmentInitialLayout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
         rPassMaker.attachmentFinalLayout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
 
@@ -314,7 +316,7 @@ namespace worlds {
         depthPassMaker.attachmentBegin(VK_FORMAT_D32_SFLOAT);
         depthPassMaker.attachmentLoadOp(VK_ATTACHMENT_LOAD_OP_CLEAR);
         depthPassMaker.attachmentStencilLoadOp(VK_ATTACHMENT_LOAD_OP_DONT_CARE);
-        depthPassMaker.attachmentSamples(polyImage->image.info().samples);
+        depthPassMaker.attachmentSamples(colourResource->image().info().samples);
         depthPassMaker.attachmentFinalLayout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
 
         depthPassMaker.subpassBegin(VK_PIPELINE_BIND_POINT_GRAPHICS);
@@ -348,9 +350,12 @@ namespace worlds {
         renderPass = rPassMaker.create(handles->device);
         depthPass = depthPassMaker.create(handles->device);
 
-        VkImageView attachments[2] = { polyImage->image.imageView(), depthStencilImage->image.imageView() };
+        vku::GenericImage& colourImage = colourResource->image();
+        vku::GenericImage& depthImage = depthResource->image();
 
-        auto extent = polyImage->image.info().extent;
+        VkImageView attachments[2] = { colourImage.imageView(), depthImage.imageView() };
+
+        auto extent = colourImage.info().extent;
         VkFramebufferCreateInfo fci{ VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
         fci.attachmentCount = 2;
         fci.pAttachments = attachments;
@@ -361,7 +366,7 @@ namespace worlds {
 
         VKCHECK(vku::createFramebuffer(handles->device, &fci, &renderFb));
 
-        VkImageView depthAttachment = depthStencilImage->image.imageView();
+        VkImageView depthAttachment = depthImage.imageView();
         fci.attachmentCount = 1;
         fci.pAttachments = &depthAttachment;
         fci.renderPass = depthPass;
@@ -572,7 +577,7 @@ namespace worlds {
         uiPass = new WorldSpaceUIPass(handles);
         uiPass->setup(ctx, renderPass, descriptorPool);
 
-        lightCullPass = new LightCullPass(handles, depthStencilImage);
+        lightCullPass = new LightCullPass(handles, depthResource);
         lightCullPass->setup(ctx, lightsUB.buffer(), lightTileInfoBuffer.buffer(), lightTilesBuffer.buffer(), lightTileLightCountBuffer.buffer(), descriptorPool);
 
         updateDescriptorSets(ctx);
@@ -1020,9 +1025,11 @@ namespace worlds {
                 VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED);
         }
 
-        ctx.resources.shadowCascades->image.barrier(cmdBuf, VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-            VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
-            VK_ACCESS_SHADER_READ_BIT);
+        ctx.resources.shadowCascades->image()
+            .barrier(cmdBuf,
+                VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+                VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+                VK_ACCESS_SHADER_READ_BIT);
 
         if (setEventNextFrame) {
             vkCmdSetEvent(cmdBuf, pickEvent, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
@@ -1149,8 +1156,8 @@ namespace worlds {
         uiPass->execute(ctx);
 
         vkCmdEndRenderPass(cmdBuf);
-        polyImage->image.setCurrentLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT);
-        depthStencilImage->image.setCurrentLayout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
+        colourResource->image().setCurrentLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT);
+        depthResource->image().setCurrentLayout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
 
         if (pickThisFrame) {
             vkCmdResetEvent(cmdBuf, pickEvent, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);

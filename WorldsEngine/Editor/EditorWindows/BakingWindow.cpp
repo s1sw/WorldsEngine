@@ -111,7 +111,7 @@ namespace worlds {
                     ib.srcOffsets[1] = VkOffset3D{ (int)rttPass->width, (int)rttPass->height, 1 };
 
                     vku::executeImmediately(vkHandles->device, vkHandles->commandPool, queue, [&](VkCommandBuffer cb) {
-                        vku::GenericImage& srcImg = rttPass->hdrTarget->image;
+                        vku::GenericImage& srcImg = rttPass->hdrTarget->image();
 
                         loadedCube.setLayout(cb, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                             VK_PIPELINE_STAGE_TRANSFER_BIT,

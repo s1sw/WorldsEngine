@@ -164,19 +164,30 @@ namespace worlds {
         uint32_t vrWidth, vrHeight;
     };
 
-    struct RTResourceCreateInfo {
+    struct TextureResourceCreateInfo {
         VkImageCreateInfo ici;
         VkImageViewType viewType;
         VkImageAspectFlagBits aspectFlags;
     };
 
-    class RenderTexture {
-    public:
-        vku::GenericImage image;
-        VkImageAspectFlagBits aspectFlags;
-    private:
-        RenderTexture(VulkanHandles* ctx, RTResourceCreateInfo resourceCreateInfo, const char* debugName);
-        friend class VKRenderer;
+    enum class ResourceType {
+        Buffer,
+        Image
+    };
+
+    // A class for either a buffer or an image.
+    struct RenderResource {
+        ResourceType type;
+        std::unique_ptr<vku::Resource> resource;
+        std::string name;
+
+        vku::GenericImage& image() {
+            return *static_cast<vku::GenericImage*>(resource.get());
+        }
+
+        vku::GenericBuffer& buffer() {
+            return *static_cast<vku::GenericBuffer*>(resource.get());
+        }
     };
 
     struct RenderResources {
@@ -187,8 +198,8 @@ namespace worlds {
         vku::GenericImage* brdfLut;
         vku::GenericBuffer* materialBuffer;
         vku::GenericBuffer* vpMatrixBuffer;
-        RenderTexture* shadowCascades;
-        RenderTexture** additionalShadowImages;
+        RenderResource* shadowCascades;
+        RenderResource** additionalShadowImages;
     };
 
     struct RenderContext {
@@ -257,9 +268,9 @@ namespace worlds {
     class VKRTTPass : public RTTPass {
     public:
         void drawNow(entt::registry& world) override;
-        RenderTexture* hdrTarget;
-        RenderTexture* sdrFinalTarget;
-        RenderTexture* depthTarget;
+        RenderResource* hdrTarget;
+        RenderResource* sdrFinalTarget;
+        RenderResource* depthTarget;
         void requestPick(int x, int y) override;
         bool getPickResult(uint32_t* result) override;
         float* getHDRData() override;
@@ -290,9 +301,9 @@ namespace worlds {
             PolyRenderPass* prp;
             TonemapRenderPass* trp;
             uint32_t width, height;
-            RenderTexture* hdrTarget;
-            RenderTexture* sdrFinalTarget;
-            RenderTexture* depthTarget;
+            RenderResource* hdrTarget;
+            RenderResource* sdrFinalTarget;
+            RenderResource* depthTarget;
             bool isVr;
             bool outputToScreen;
             bool enableShadows;
@@ -329,14 +340,14 @@ namespace worlds {
         vku::GenericBuffer vpBuffer;
         VulkanHandles handles;
 
-        RenderTexture* finalPrePresent;
+        RenderResource* finalPrePresent;
 
-        RenderTexture* leftEye;
-        RenderTexture* rightEye;
+        RenderResource* leftEye;
+        RenderResource* rightEye;
 
-        RenderTexture* shadowmapImage;
-        RenderTexture* shadowImages[NUM_SHADOW_LIGHTS];
-        RenderTexture* imguiImage;
+        RenderResource* shadowmapImage;
+        RenderResource* shadowImages[NUM_SHADOW_LIGHTS];
+        RenderResource* imguiImage;
 
         SDL_Window* window;
         VkQueryPool queryPool;
@@ -407,7 +418,7 @@ namespace worlds {
         VKRTTPass* createRTTPass(RTTPassCreateInfo& ci) override;
         void destroyRTTPass(RTTPass* pass) override;
 
-        RenderTexture* createRTResource(RTResourceCreateInfo resourceCreateInfo, const char* debugName = nullptr);
+        RenderResource* createTextureResource(TextureResourceCreateInfo resourceCreateInfo, const char* debugName = nullptr);
 
         void triggerRenderdocCapture() override;
         void startRdocCapture() override;

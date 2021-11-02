@@ -5,7 +5,7 @@
 
 namespace worlds {
     typedef uint32_t AssetID;
-    const AssetID INVALID_ASSET = ~0u;
+    static constexpr AssetID INVALID_ASSET = ~0u;
 
     class AssetDB {
     public:

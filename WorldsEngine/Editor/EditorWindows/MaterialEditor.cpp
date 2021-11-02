@@ -27,15 +27,15 @@ namespace worlds {
     };
 
     template <typename T>
-    std::string getJson(std::string key, T val) {
+    std::string getJson(const std::string& key, T val) {
         return "    \"" + key + "\"" + " : " + std::to_string(val);
     }
 
-    std::string getJson(std::string key, std::string value) {
+    std::string getJson(const std::string& key, std::string value) {
         return "    \"" + key + "\"" + " : \"" + value + '"';
     }
 
-    std::string getJson(std::string key, glm::vec3 value) {
+    std::string getJson(const std::string& key, glm::vec3 value) {
         return "    \"" + key + "\"" + " : [" +
             std::to_string(value.x) + ", " + std::to_string(value.y) + ", " + std::to_string(value.z) + "]";
     }
@@ -64,7 +64,7 @@ namespace worlds {
         j += getJson("albedoPath", AssetDB::idToPath(mat.albedo));
 
         if (!mat.usePBRMap) {
-            if (mat.roughMap != ~0u)
+            if (mat.roughMap != INVALID_ASSET)
                 j += ",\n" + getJson("roughMapPath", AssetDB::idToPath(mat.roughMap));
 
             if (mat.metalMap != ~0u)
@@ -113,7 +113,7 @@ namespace worlds {
         }
     }
 
-    void setIfExists(std::string path, AssetID& toSet) {
+    void setIfExists(const std::string& path, AssetID& toSet) {
         if (PHYSFS_exists(path.c_str())) {
             toSet = AssetDB::pathToId(path);
         }

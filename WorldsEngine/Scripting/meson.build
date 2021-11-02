@@ -4,7 +4,6 @@ worlds_sources += [
   'Scripting/Export.hpp',
   'Scripting/AssetDBBindings.hpp',
   'Scripting/ConsoleBindings.hpp',
-  'Scripting/EditorBindings.hpp',
   'Scripting/InputBindings.hpp',
   'Scripting/VRBindings.hpp',
   'Scripting/WorldObjectBindings.hpp',
@@ -13,9 +12,12 @@ worlds_sources += [
   'Scripting/CameraBindings.hpp',
   'Scripting/PhysicsBindings.hpp',
   'Scripting/NetVM.hpp',
-  'Scripting/AudioBindings.hpp',
   'Scripting/AudioSourceBindings.hpp',
   'Scripting/RegistryBindings.hpp',
   'Scripting/WorldLightBindings.hpp',
-  'Scripting/DynamicPhysicsActorBindings.hpp'
+  'Scripting/DynamicPhysicsActorBindings.hpp',
+  'Scripting/SkinnedWorldObjectBindings.hpp',
+  'Scripting/AudioBindings.hpp',
+  'Scripting/EditorBindings.hpp',
+  'Scripting/MeshManagerBindings.hpp'
 ]

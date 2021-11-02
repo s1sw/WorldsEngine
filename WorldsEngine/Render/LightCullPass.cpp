@@ -12,9 +12,9 @@ namespace worlds {
     };
 #pragma pack(pop)
 
-    LightCullPass::LightCullPass(VulkanHandles* handles, RenderTexture* depthStencilImage)
-        : handles{ handles }
-        , depthStencilImage{ depthStencilImage } {
+    LightCullPass::LightCullPass(VulkanHandles* handles, RenderResource* depthResource)
+        : RenderPass(handles)
+        , depthResource(depthResource) {
     }
 
     void LightCullPass::setup(
@@ -62,7 +62,7 @@ namespace worlds {
         dsu.buffer(ctx.resources.vpMatrixBuffer->buffer(), 0, sizeof(MultiVP));
 
         dsu.beginImages(3, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-        dsu.image(sampler, depthStencilImage->image.imageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+        dsu.image(sampler, depthResource->image().imageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
         dsu.beginBuffers(4, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
         dsu.buffer(lightTileLightCountBuffer, 0, sizeof(uint32_t) * MAX_LIGHT_TILES);
@@ -81,7 +81,7 @@ namespace worlds {
         auto& cmdBuf = ctx.cmdBuf;
         addDebugLabel(cmdBuf, "Light Culling", 1.0f, 0.0f, 0.0f, 1.0f);
 
-        depthStencilImage->image.setLayout(cmdBuf,
+        depthResource->image().setLayout(cmdBuf,
             VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
             VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
             VK_ACCESS_SHADER_READ_BIT, VK_IMAGE_ASPECT_DEPTH_BIT);
@@ -110,7 +110,7 @@ namespace worlds {
             vkCmdDispatch(cmdBuf, xTiles, yTiles, 1);
         }
 
-        depthStencilImage->image.setLayout(cmdBuf,
+        depthResource->image().setLayout(cmdBuf,
             VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
             VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
             VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,

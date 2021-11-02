@@ -151,8 +151,16 @@ void DeletionQueue::resize(uint32_t maxFrames) {
     deletionQueues.resize(maxFrames);
 }
 
-RenderTexture* VKRenderer::createRTResource(RTResourceCreateInfo resourceCreateInfo, const char* debugName) {
-    return new RenderTexture{ &handles, resourceCreateInfo, debugName };
+RenderResource* VKRenderer::createTextureResource(TextureResourceCreateInfo resourceCreateInfo, const char* debugName) {
+    RenderResource* resource = new RenderResource;
+
+    resource->name = debugName;
+    resource->type = ResourceType::Image;
+    resource->resource = std::make_unique<vku::GenericImage>(
+        device, allocator, resourceCreateInfo.ici, resourceCreateInfo.viewType,
+        resourceCreateInfo.aspectFlags, false, debugName);
+
+    return resource;
 }
 
 void VKRenderer::createSwapchain(VkSwapchainKHR oldSwapchain) {
@@ -694,22 +702,22 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     shadowmapIci.samples = VK_SAMPLE_COUNT_1_BIT;
     shadowmapIci.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 
-    RTResourceCreateInfo shadowmapCreateInfo{ shadowmapIci, VK_IMAGE_VIEW_TYPE_2D_ARRAY, VK_IMAGE_ASPECT_DEPTH_BIT };
-    shadowmapImage = createRTResource(shadowmapCreateInfo, "Shadowmap Image");
+    TextureResourceCreateInfo shadowmapCreateInfo{ shadowmapIci, VK_IMAGE_VIEW_TYPE_2D_ARRAY, VK_IMAGE_ASPECT_DEPTH_BIT };
+    shadowmapImage = createTextureResource(shadowmapCreateInfo, "Shadowmap Image");
     shadowmapIci.arrayLayers = 1;
 
     shadowmapIci.extent = VkExtent3D{
         (uint32_t)handles.graphicsSettings.spotShadowmapRes,
         (uint32_t)handles.graphicsSettings.spotShadowmapRes, 1 };
     for (int i = 0; i < NUM_SHADOW_LIGHTS; i++) {
-        RTResourceCreateInfo shadowCreateInfo{ shadowmapIci, VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_DEPTH_BIT };
-        shadowImages[i] = createRTResource(shadowCreateInfo, ("Shadow Image " + std::to_string(i)).c_str());
+        TextureResourceCreateInfo shadowCreateInfo{ shadowmapIci, VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_DEPTH_BIT };
+        shadowImages[i] = createTextureResource(shadowCreateInfo, ("Shadow Image " + std::to_string(i)).c_str());
     }
 
     vku::executeImmediately(device, commandPool, queues.graphics, [&](auto cb) {
-        shadowmapImage->image.setLayout(cb, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_ASPECT_DEPTH_BIT);
+        shadowmapImage->image().setLayout(cb, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_ASPECT_DEPTH_BIT);
         for (int i = 0; i < NUM_SHADOW_LIGHTS; i++) {
-            shadowImages[i]->image.setLayout(cb, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_ASPECT_DEPTH_BIT);
+            shadowImages[i]->image().setLayout(cb, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_ASPECT_DEPTH_BIT);
         }
         });
 
@@ -780,8 +788,8 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
         shadowmapIci.samples = VK_SAMPLE_COUNT_1_BIT;
         shadowmapIci.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 
-        RTResourceCreateInfo shadowmapCreateInfo{ shadowmapIci, VK_IMAGE_VIEW_TYPE_2D_ARRAY, VK_IMAGE_ASPECT_DEPTH_BIT };
-        shadowmapImage = createRTResource(shadowmapCreateInfo, "Shadowmap Image");
+        TextureResourceCreateInfo shadowmapCreateInfo{ shadowmapIci, VK_IMAGE_VIEW_TYPE_2D_ARRAY, VK_IMAGE_ASPECT_DEPTH_BIT };
+        shadowmapImage = createTextureResource(shadowmapCreateInfo, "Shadowmap Image");
         delete shadowCascadePass;
         shadowCascadePass = new ShadowCascadePass(&handles, shadowmapImage);
         shadowCascadePass->setup();
@@ -808,13 +816,13 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
         shadowmapIci.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 
         for (int i = 0; i < NUM_SHADOW_LIGHTS; i++) {
-            RTResourceCreateInfo shadowCreateInfo{ shadowmapIci, VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_DEPTH_BIT };
-            shadowImages[i] = createRTResource(shadowCreateInfo, ("Shadow Image " + std::to_string(i)).c_str());
+            TextureResourceCreateInfo shadowCreateInfo{ shadowmapIci, VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_DEPTH_BIT };
+            shadowImages[i] = createTextureResource(shadowCreateInfo, ("Shadow Image " + std::to_string(i)).c_str());
         }
 
         vku::executeImmediately(device, commandPool, queues.graphics, [&](auto cb) {
             for (int i = 0; i < NUM_SHADOW_LIGHTS; i++) {
-                shadowImages[i]->image.setLayout(cb, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_ASPECT_DEPTH_BIT);
+                shadowImages[i]->image().setLayout(cb, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_ASPECT_DEPTH_BIT);
             }
             });
 
@@ -880,27 +888,27 @@ void VKRenderer::createSCDependents() {
         VK_IMAGE_USAGE_SAMPLED_BIT |
         VK_IMAGE_USAGE_STORAGE_BIT;
 
-    RTResourceCreateInfo imguiImageCreateInfo{ ici, VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_COLOR_BIT };
-    imguiImage = createRTResource(imguiImageCreateInfo, "ImGui Image");
+    TextureResourceCreateInfo imguiImageCreateInfo{ ici, VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_COLOR_BIT };
+    imguiImage = createTextureResource(imguiImageCreateInfo, "ImGui Image");
 
     ici.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
         VK_IMAGE_USAGE_SAMPLED_BIT |
         VK_IMAGE_USAGE_STORAGE_BIT |
         VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
 
-    RTResourceCreateInfo finalPrePresentCI{ ici, VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_COLOR_BIT };
+    TextureResourceCreateInfo finalPrePresentCI{ ici, VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_COLOR_BIT };
 
-    finalPrePresent = createRTResource(finalPrePresentCI, "Final Pre-Present");
+    finalPrePresent = createTextureResource(finalPrePresentCI, "Final Pre-Present");
 
     if (enableVR) {
         ici.extent = VkExtent3D{ vrWidth, vrHeight, 1 };
-        RTResourceCreateInfo eyeCreateInfo{ ici, VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_COLOR_BIT };
-        leftEye = createRTResource(eyeCreateInfo, "Left Eye");
-        rightEye = createRTResource(eyeCreateInfo, "Right Eye");
+        TextureResourceCreateInfo eyeCreateInfo{ ici, VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_COLOR_BIT };
+        leftEye = createTextureResource(eyeCreateInfo, "Left Eye");
+        rightEye = createTextureResource(eyeCreateInfo, "Right Eye");
     }
 
     vku::executeImmediately(device, commandPool, queues.graphics, [&](VkCommandBuffer cmdBuf) {
-        finalPrePresent->image.setLayout(cmdBuf, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+        finalPrePresent->image().setLayout(cmdBuf, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
         });
 
     for (auto& p : rttPasses) {
@@ -1073,7 +1081,7 @@ void VKRenderer::submitToOpenVR() {
         .vMax = 1.0f
     };
 
-    VkImage vkImg = leftEye->image.image();
+    VkImage vkImg = leftEye->image().image();
 
     vr::VRVulkanTextureData_t vulkanData{
         .m_nImage = (uint64_t)vkImg,
@@ -1094,7 +1102,7 @@ void VKRenderer::submitToOpenVR() {
         vr::Texture_t texture = { &vulkanData, vr::TextureType_Vulkan, vr::ColorSpace_Auto };
         vr::VRCompositor()->Submit(vr::Eye_Left, &texture, &bounds);
 
-        vulkanData.m_nImage = (uint64_t)(VkImage)rightEye->image.image();
+        vulkanData.m_nImage = (uint64_t)(VkImage)rightEye->image().image();
         vr::VRCompositor()->Submit(vr::Eye_Right, &texture, &bounds);
     }
 }
@@ -1300,7 +1308,7 @@ void VKRenderer::writeCmdBuf(VkCommandBuffer cmdBuf, uint32_t imageIndex, Camera
 
     uploadSceneAssets(reg);
 
-    finalPrePresent->image.setLayout(cmdBuf,
+    finalPrePresent->image().setLayout(cmdBuf,
         VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
         VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
         VK_ACCESS_TRANSFER_READ_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT);
@@ -1338,7 +1346,7 @@ void VKRenderer::writeCmdBuf(VkCommandBuffer cmdBuf, uint32_t imageIndex, Camera
         numActivePasses++;
 
         if (!p->outputToScreen) {
-            p->sdrFinalTarget->image.setLayout(cmdBuf,
+            p->sdrFinalTarget->image().setLayout(cmdBuf,
                 VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
                 VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
                 VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT);
@@ -1355,7 +1363,7 @@ void VKRenderer::writeCmdBuf(VkCommandBuffer cmdBuf, uint32_t imageIndex, Camera
             p->cam = nullptr;
 
         if (!p->outputToScreen) {
-            p->sdrFinalTarget->image.setLayout(cmdBuf,
+            p->sdrFinalTarget->image().setLayout(cmdBuf,
                 VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                 VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
                 VK_ACCESS_SHADER_READ_BIT);
@@ -1372,18 +1380,18 @@ void VKRenderer::writeCmdBuf(VkCommandBuffer cmdBuf, uint32_t imageIndex, Camera
 
 
     if (enableVR) {
-        leftEye->image.setLayout(cmdBuf,
+        leftEye->image().setLayout(cmdBuf,
             VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
             VK_PIPELINE_STAGE_TRANSFER_BIT,
             VK_ACCESS_TRANSFER_READ_BIT);
 
-        rightEye->image.setLayout(cmdBuf,
+        rightEye->image().setLayout(cmdBuf,
             VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
             VK_PIPELINE_STAGE_TRANSFER_BIT,
             VK_ACCESS_TRANSFER_READ_BIT);
     }
 
-    finalPrePresent->image.setLayout(cmdBuf,
+    finalPrePresent->image().setLayout(cmdBuf,
         VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
         VK_PIPELINE_STAGE_TRANSFER_BIT,
         VK_ACCESS_TRANSFER_READ_BIT);
@@ -1399,7 +1407,7 @@ void VKRenderer::writeCmdBuf(VkCommandBuffer cmdBuf, uint32_t imageIndex, Camera
         VkImageBlit imageBlit{};
         imageBlit.srcOffsets[1] = imageBlit.dstOffsets[1] = VkOffset3D{ (int)width, (int)height, 1 };
         imageBlit.dstSubresource = imageBlit.srcSubresource = VkImageSubresourceLayers{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 };
-        vkCmdBlitImage(cmdBuf, finalPrePresent->image.image(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+        vkCmdBlitImage(cmdBuf, finalPrePresent->image().image(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
             swapchain->images[imageIndex], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imageBlit, VK_FILTER_NEAREST);
     } else {
         // Calculate the best crop for the current window size against the VR render target
@@ -1416,7 +1424,7 @@ void VKRenderer::writeCmdBuf(VkCommandBuffer cmdBuf, uint32_t imageIndex, Camera
         imageBlit.dstOffsets[1] = VkOffset3D{ (int)windowSize.x, (int)windowSize.y, 1 };
         imageBlit.dstSubresource = imageBlit.srcSubresource = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 };
 
-        vkCmdBlitImage(cmdBuf, leftEye->image.image(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+        vkCmdBlitImage(cmdBuf, leftEye->image().image(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
             swapchain->images[imageIndex], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imageBlit, VK_FILTER_LINEAR);
     }
 

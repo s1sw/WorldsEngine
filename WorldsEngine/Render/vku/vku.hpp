@@ -177,13 +177,15 @@ namespace vku {
         State s;
     };
 
+    class Resource {};
+
     // =============================
     // Buffers
     // =============================
 
     /// A generic buffer that may be used as a vertex buffer, uniform buffer or other kinds of memory resident data.
     /// Buffers require memory objects which represent GPU and CPU resources.
-    class GenericBuffer {
+    class GenericBuffer : public Resource {
     public:
         GenericBuffer();
 
@@ -312,7 +314,7 @@ namespace vku {
 
     /// Generic image with a view and memory object.
     /// Vulkan images need a memory object to hold the data and a view object for the GPU to access the data.
-    class GenericImage {
+    class GenericImage : public Resource {
     public:
         GenericImage();
 
@@ -365,6 +367,7 @@ namespace vku {
         VkExtent3D extent() const { return s.info.extent; }
         const VkImageCreateInfo& info() const { return s.info; }
         VkImageLayout layout() const { return s.currentLayout; }
+        VkImageAspectFlags aspect() const { return s.aspectFlags; }
 
         void* map();
         void unmap();
