@@ -164,10 +164,58 @@ namespace worlds {
         uint32_t vrWidth, vrHeight;
     };
 
+    enum class TextureType {
+        T1D,
+        T2D,
+        T2DArray,
+        T3D,
+        TCube
+    };
+
+    enum class SharingMode {
+        Exclusive,
+        Concurrent
+    };
+
     struct TextureResourceCreateInfo {
-        VkImageCreateInfo ici;
-        VkImageViewType viewType;
-        VkImageAspectFlagBits aspectFlags;
+        TextureResourceCreateInfo() {}
+
+        TextureResourceCreateInfo(TextureType type, VkFormat format,
+            int width, int height, VkImageUsageFlags usage)
+            : type(type)
+            , format(format)
+            , width(width)
+            , height(height)
+            , usage(usage)
+            , initialLayout(VK_IMAGE_LAYOUT_UNDEFINED) {
+
+            if (format > 124 && format < 130) {
+                aspectFlags = (VkImageAspectFlags)0;
+                if (format != VK_FORMAT_S8_UINT)
+                    aspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT;
+
+                if (format >= 127)
+                    aspectFlags &= VK_IMAGE_ASPECT_STENCIL_BIT;
+            } else {
+                aspectFlags = VK_IMAGE_ASPECT_COLOR_BIT;
+            }
+        }
+
+        TextureType type;
+        VkFormat format;
+
+        int width;
+        int height;
+        int depth = 1;
+        int mipLevels = 1;
+        int layers = 1;
+        int samples = 1;
+
+        VkImageUsageFlags usage;
+        VkImageLayout initialLayout;
+        SharingMode sharingMode = SharingMode::Exclusive;
+
+        VkImageAspectFlags aspectFlags;
     };
 
     enum class ResourceType {
@@ -394,6 +442,8 @@ namespace worlds {
         ImDrawData* imDrawData;
         std::mutex* apiMutex;
         void recreateSwapchainInternal();
+        void createSpotShadowImages();
+        void createCascadeShadowImages();
 
         friend class VKRTTPass;
     public:

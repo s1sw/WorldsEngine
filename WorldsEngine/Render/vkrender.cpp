@@ -154,10 +154,72 @@ void DeletionQueue::resize(uint32_t maxFrames) {
 RenderResource* VKRenderer::createTextureResource(TextureResourceCreateInfo resourceCreateInfo, const char* debugName) {
     RenderResource* resource = new RenderResource;
 
+    VkImageCreateInfo ici { VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
+
+    switch (resourceCreateInfo.type) {
+    case TextureType::T1D:
+        ici.imageType = VK_IMAGE_TYPE_1D;
+    case TextureType::T2D:
+    case TextureType::T2DArray:
+        ici.imageType = VK_IMAGE_TYPE_2D;
+        break;
+    case TextureType::T3D:
+        ici.imageType = VK_IMAGE_TYPE_3D;
+        break;
+    case TextureType::TCube:
+        ici.imageType = VK_IMAGE_TYPE_2D;
+        break;
+    }
+
+    ici.extent.depth  = resourceCreateInfo.depth;
+    ici.extent.width  = resourceCreateInfo.width;
+    ici.extent.height = resourceCreateInfo.height;
+    ici.mipLevels = resourceCreateInfo.mipLevels;
+    ici.arrayLayers = resourceCreateInfo.layers;
+    ici.initialLayout = resourceCreateInfo.initialLayout;
+
+    if (resourceCreateInfo.type == TextureType::TCube) {
+        ici.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
+        ici.arrayLayers = 6;
+    }
+
+    ici.samples = vku::sampleCountFlags(resourceCreateInfo.samples);
+    ici.tiling = VK_IMAGE_TILING_OPTIMAL;
+    ici.usage = resourceCreateInfo.usage;
+
+    switch (resourceCreateInfo.sharingMode) {
+    case SharingMode::Concurrent:
+        ici.sharingMode = VK_SHARING_MODE_CONCURRENT;
+        break;
+    case SharingMode::Exclusive:
+        ici.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        break;
+    }
+
+    VkImageViewType viewType;
+
+    switch (resourceCreateInfo.type) {
+    case TextureType::T1D:
+        viewType = VK_IMAGE_VIEW_TYPE_1D;
+        break;
+    case TextureType::T2D:
+        viewType = VK_IMAGE_VIEW_TYPE_2D;
+        break;
+    case TextureType::T2DArray:
+        viewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
+        break;
+    case TextureType::T3D:
+        viewType = VK_IMAGE_VIEW_TYPE_3D;
+        break;
+    case TextureType::TCube:
+        viewType = VK_IMAGE_VIEW_TYPE_CUBE;
+        break;
+    }
+
     resource->name = debugName;
     resource->type = ResourceType::Image;
     resource->resource = std::make_unique<vku::GenericImage>(
-        device, allocator, resourceCreateInfo.ici, resourceCreateInfo.viewType,
+        device, allocator, ici, viewType,
         resourceCreateInfo.aspectFlags, false, debugName);
 
     return resource;
@@ -692,34 +754,8 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     BRDFLUTRenderer brdfLutRenderer{ *vkCtx };
     brdfLutRenderer.render(*vkCtx, brdfLut);
 
-    VkImageCreateInfo shadowmapIci{ VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
-    shadowmapIci.imageType = VK_IMAGE_TYPE_2D;
-    shadowmapIci.extent = VkExtent3D{ shadowmapRes, shadowmapRes, 1 };
-    shadowmapIci.arrayLayers = 3;
-    shadowmapIci.mipLevels = 1;
-    shadowmapIci.format = VK_FORMAT_D32_SFLOAT;
-    shadowmapIci.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    shadowmapIci.samples = VK_SAMPLE_COUNT_1_BIT;
-    shadowmapIci.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-
-    TextureResourceCreateInfo shadowmapCreateInfo{ shadowmapIci, VK_IMAGE_VIEW_TYPE_2D_ARRAY, VK_IMAGE_ASPECT_DEPTH_BIT };
-    shadowmapImage = createTextureResource(shadowmapCreateInfo, "Shadowmap Image");
-    shadowmapIci.arrayLayers = 1;
-
-    shadowmapIci.extent = VkExtent3D{
-        (uint32_t)handles.graphicsSettings.spotShadowmapRes,
-        (uint32_t)handles.graphicsSettings.spotShadowmapRes, 1 };
-    for (int i = 0; i < NUM_SHADOW_LIGHTS; i++) {
-        TextureResourceCreateInfo shadowCreateInfo{ shadowmapIci, VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_DEPTH_BIT };
-        shadowImages[i] = createTextureResource(shadowCreateInfo, ("Shadow Image " + std::to_string(i)).c_str());
-    }
-
-    vku::executeImmediately(device, commandPool, queues.graphics, [&](auto cb) {
-        shadowmapImage->image().setLayout(cb, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_ASPECT_DEPTH_BIT);
-        for (int i = 0; i < NUM_SHADOW_LIGHTS; i++) {
-            shadowImages[i]->image().setLayout(cb, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_ASPECT_DEPTH_BIT);
-        }
-        });
+    createCascadeShadowImages();
+    createSpotShadowImages();
 
     createSCDependents();
 
@@ -778,18 +814,9 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
         shadowmapRes = std::atoi(arg);
         handles.graphicsSettings.shadowmapRes = shadowmapRes;
         delete shadowmapImage;
-        VkImageCreateInfo shadowmapIci{ VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
-        shadowmapIci.imageType = VK_IMAGE_TYPE_2D;
-        shadowmapIci.extent = VkExtent3D{ shadowmapRes, shadowmapRes, 1 };
-        shadowmapIci.arrayLayers = 3;
-        shadowmapIci.mipLevels = 1;
-        shadowmapIci.format = VK_FORMAT_D16_UNORM;
-        shadowmapIci.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        shadowmapIci.samples = VK_SAMPLE_COUNT_1_BIT;
-        shadowmapIci.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 
-        TextureResourceCreateInfo shadowmapCreateInfo{ shadowmapIci, VK_IMAGE_VIEW_TYPE_2D_ARRAY, VK_IMAGE_ASPECT_DEPTH_BIT };
-        shadowmapImage = createTextureResource(shadowmapCreateInfo, "Shadowmap Image");
+        createCascadeShadowImages();
+
         delete shadowCascadePass;
         shadowCascadePass = new ShadowCascadePass(&handles, shadowmapImage);
         shadowCascadePass->setup();
@@ -803,28 +830,10 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
         vkDeviceWaitIdle(device);
         handles.graphicsSettings.spotShadowmapRes = std::atoi(arg);
 
-        VkImageCreateInfo shadowmapIci{ VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
-        shadowmapIci.imageType = VK_IMAGE_TYPE_2D;
-        shadowmapIci.extent = VkExtent3D{
-            (uint32_t)handles.graphicsSettings.spotShadowmapRes,
-            (uint32_t)handles.graphicsSettings.spotShadowmapRes, 1 };
-        shadowmapIci.arrayLayers = 1;
-        shadowmapIci.mipLevels = 1;
-        shadowmapIci.format = VK_FORMAT_D32_SFLOAT;
-        shadowmapIci.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        shadowmapIci.samples = VK_SAMPLE_COUNT_1_BIT;
-        shadowmapIci.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-
         for (int i = 0; i < NUM_SHADOW_LIGHTS; i++) {
-            TextureResourceCreateInfo shadowCreateInfo{ shadowmapIci, VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_DEPTH_BIT };
-            shadowImages[i] = createTextureResource(shadowCreateInfo, ("Shadow Image " + std::to_string(i)).c_str());
+            delete shadowImages[i];
         }
-
-        vku::executeImmediately(device, commandPool, queues.graphics, [&](auto cb) {
-            for (int i = 0; i < NUM_SHADOW_LIGHTS; i++) {
-                shadowImages[i]->image().setLayout(cb, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_ASPECT_DEPTH_BIT);
-            }
-            });
+        createSpotShadowImages();
 
         delete additionalShadowsPass;
         additionalShadowsPass = new AdditionalShadowsPass(&handles);
@@ -857,6 +866,51 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     DeletionQueue::cleanupFrame(0);
 }
 
+void VKRenderer::createSpotShadowImages() {
+    TextureResourceCreateInfo shadowmapCreateInfo{
+        TextureType::T2DArray,
+        VK_FORMAT_D32_SFLOAT,
+        (int)shadowmapRes, (int)shadowmapRes,
+        VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT
+    };
+    shadowmapCreateInfo.layers = 3;
+
+    shadowmapImage = createTextureResource(shadowmapCreateInfo, "Shadowmap Image");
+
+    for (int i = 0; i < NUM_SHADOW_LIGHTS; i++) {
+        int spotRes = handles.graphicsSettings.spotShadowmapRes;
+        TextureResourceCreateInfo shadowCreateInfo{
+            TextureType::T2D,
+            VK_FORMAT_D32_SFLOAT,
+            spotRes, spotRes,
+            VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT
+        };
+
+        shadowImages[i] = createTextureResource(shadowCreateInfo, ("Shadow Image " + std::to_string(i)).c_str());
+    }
+
+    vku::executeImmediately(device, commandPool, queues.graphics, [&](auto cb) {
+        for (int i = 0; i < NUM_SHADOW_LIGHTS; i++) {
+            shadowImages[i]->image().setLayout(cb, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_ASPECT_DEPTH_BIT);
+        }
+        });
+}
+
+void VKRenderer::createCascadeShadowImages() {
+    TextureResourceCreateInfo shadowmapCreateInfo{
+        TextureType::T2DArray,
+        VK_FORMAT_D32_SFLOAT,
+        (int)shadowmapRes, (int)shadowmapRes,
+        VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT
+    };
+    shadowmapCreateInfo.layers = 3;
+    shadowmapImage = createTextureResource(shadowmapCreateInfo, "Shadowmap Image");
+
+    vku::executeImmediately(device, commandPool, queues.graphics, [&](auto cb) {
+        shadowmapImage->image().setLayout(cb, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_ASPECT_DEPTH_BIT);
+        });
+}
+
 // Quite a lot of resources are dependent on either the number of images
 // there are in the swap chain or the swapchain itself, so they need to be
 // recreated whenever the swap chain changes.
@@ -876,35 +930,27 @@ void VKRenderer::createSCDependents() {
 
     createFramebuffers();
 
-    VkImageCreateInfo ici{ VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
-    ici.imageType = VK_IMAGE_TYPE_2D;
-    ici.extent = VkExtent3D{ width, height, 1 };
-    ici.arrayLayers = 1;
-    ici.mipLevels = 1;
-    ici.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    ici.format = VK_FORMAT_R8G8B8A8_UNORM;
-    ici.samples = VK_SAMPLE_COUNT_1_BIT;
-    ici.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
-        VK_IMAGE_USAGE_SAMPLED_BIT |
-        VK_IMAGE_USAGE_STORAGE_BIT;
+    TextureResourceCreateInfo imguiImageCreateInfo{
+        TextureType::T2D,
+        VK_FORMAT_R8G8B8A8_UNORM,
+        (int)width, (int)height,
+        VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT
+    };
 
-    TextureResourceCreateInfo imguiImageCreateInfo{ ici, VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_COLOR_BIT };
     imguiImage = createTextureResource(imguiImageCreateInfo, "ImGui Image");
 
-    ici.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
+    imguiImageCreateInfo.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
         VK_IMAGE_USAGE_SAMPLED_BIT |
         VK_IMAGE_USAGE_STORAGE_BIT |
         VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
 
-    TextureResourceCreateInfo finalPrePresentCI{ ici, VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_COLOR_BIT };
-
-    finalPrePresent = createTextureResource(finalPrePresentCI, "Final Pre-Present");
+    finalPrePresent = createTextureResource(imguiImageCreateInfo, "Final Pre-Present");
 
     if (enableVR) {
-        ici.extent = VkExtent3D{ vrWidth, vrHeight, 1 };
-        TextureResourceCreateInfo eyeCreateInfo{ ici, VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_COLOR_BIT };
-        leftEye = createTextureResource(eyeCreateInfo, "Left Eye");
-        rightEye = createTextureResource(eyeCreateInfo, "Right Eye");
+        imguiImageCreateInfo.width = vrWidth;
+        imguiImageCreateInfo.height = vrHeight;
+        leftEye = createTextureResource(imguiImageCreateInfo, "Left Eye");
+        rightEye = createTextureResource(imguiImageCreateInfo, "Right Eye");
     }
 
     vku::executeImmediately(device, commandPool, queues.graphics, [&](VkCommandBuffer cmdBuf) {
