@@ -28,27 +28,25 @@ namespace worlds {
         descriptorPoolInfo.pPoolSizes = poolSizes.data();
         VKCHECK(vku::createDescriptorPool(handles.device, &descriptorPoolInfo, &descriptorPool));
 
-        VkImageCreateInfo ici{ VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
-        ici.imageType = VK_IMAGE_TYPE_2D;
-        ici.extent = VkExtent3D{ ci.width, ci.height, 1 };
-        ici.arrayLayers = ci.isVr ? 2 : 1;
-        ici.mipLevels = 1;
-        ici.format = VK_FORMAT_B10G11R11_UFLOAT_PACK32;
-        ici.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        ici.samples = vku::sampleCountFlags(ci.msaaLevel == 0 ? handles.graphicsSettings.msaaLevel : ci.msaaLevel);
-        ici.usage =
+        VkImageUsageFlags usages =
             VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT
             | VK_IMAGE_USAGE_SAMPLED_BIT
             | VK_IMAGE_USAGE_STORAGE_BIT
             | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
 
-        TextureResourceCreateInfo polyCreateInfo{ ici, VK_IMAGE_VIEW_TYPE_2D_ARRAY, VK_IMAGE_ASPECT_COLOR_BIT };
+        TextureResourceCreateInfo polyCreateInfo{
+            TextureType::T2D,
+            VK_FORMAT_B10G11R11_UFLOAT_PACK32,
+            (int)ci.width, (int)ci.height,
+            usages
+        };
+        polyCreateInfo.samples = ci.msaaLevel == 0 ? handles.graphicsSettings.msaaLevel : ci.msaaLevel;
         hdrTarget = renderer->createTextureResource(polyCreateInfo, "HDR Target");
 
-        ici.format = VK_FORMAT_D32_SFLOAT;
-        ici.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-        TextureResourceCreateInfo depthCreateInfo{ ici, VK_IMAGE_VIEW_TYPE_2D_ARRAY, VK_IMAGE_ASPECT_DEPTH_BIT };
-        depthTarget = renderer->createTextureResource(depthCreateInfo, "Depth Stencil Image");
+        polyCreateInfo.aspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT;
+        polyCreateInfo.format = VK_FORMAT_D32_SFLOAT;
+        polyCreateInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+        depthTarget = renderer->createTextureResource(polyCreateInfo, "Depth Stencil Image");
 
         prp = new PolyRenderPass(
             &handles,
@@ -57,17 +55,13 @@ namespace worlds {
             ci.useForPicking
         );
 
-        ici.samples = VK_SAMPLE_COUNT_1_BIT;
-        ici.format = VK_FORMAT_R8_UNORM;
-        ici.usage = VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_STORAGE_BIT;
-
-        ici.arrayLayers = 1;
-        ici.format = VK_FORMAT_R8G8B8A8_UNORM;
-        ici.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+        polyCreateInfo.samples = 1;
+        polyCreateInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
+        polyCreateInfo.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+        polyCreateInfo.aspectFlags = VK_IMAGE_ASPECT_COLOR_BIT;
 
         if (!ci.outputToScreen) {
-            TextureResourceCreateInfo sdrTarget{ ici, VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_COLOR_BIT };
-            sdrFinalTarget = renderer->createTextureResource(sdrTarget, "SDR Target");
+            sdrFinalTarget = renderer->createTextureResource(polyCreateInfo, "SDR Target");
         }
 
         trp = new TonemapRenderPass(
