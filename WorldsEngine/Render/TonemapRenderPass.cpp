@@ -14,8 +14,8 @@ namespace worlds {
 
     TonemapRenderPass::TonemapRenderPass(
             VulkanHandles* handles,
-            RenderTexture* hdrImg,
-            RenderTexture* finalPrePresent)
+            RenderResource* hdrImg,
+            RenderResource* finalPrePresent)
         : finalPrePresent{finalPrePresent}
         , hdrImg {hdrImg}
         , handles {handles} {
@@ -30,7 +30,7 @@ namespace worlds {
 
         dsl = tonemapDslm.create(handles->device);
 
-        auto msaaSamples = hdrImg->image.info().samples;
+        auto msaaSamples = hdrImg->image().info().samples;
         std::string shaderName = (int)msaaSamples > 1 ? "tonemap.comp.spv" : "tonemap_nomsaa.comp.spv";
         tonemapShader = ShaderCache::getModule(handles->device, AssetDB::pathToId("Shaders/" + shaderName));
 
@@ -63,10 +63,10 @@ namespace worlds {
         dsu.beginDescriptorSet(descriptorSet);
 
         dsu.beginImages(0, 0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
-        dsu.image(sampler, finalPrePresent->image.imageView(), VK_IMAGE_LAYOUT_GENERAL);
+        dsu.image(sampler, finalPrePresent->image().imageView(), VK_IMAGE_LAYOUT_GENERAL);
 
         dsu.beginImages(1, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-        dsu.image(sampler, hdrImg->image.imageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+        dsu.image(sampler, hdrImg->image().imageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
         dsu.update(handles->device);
     }
@@ -86,7 +86,7 @@ namespace worlds {
         label.color[3] = 1.0f;
         vkCmdBeginDebugUtilsLabelEXT(cmdBuf, &label);
 
-        finalPrePresent->image.setLayout(cmdBuf,
+        finalPrePresent->image().setLayout(cmdBuf,
             VK_IMAGE_LAYOUT_GENERAL,
             VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
             VK_ACCESS_SHADER_WRITE_BIT);
@@ -99,7 +99,7 @@ namespace worlds {
         vkCmdDispatch(cmdBuf, (ctx.passWidth + 15) / 16, (ctx.passHeight + 15) / 16, 1);
 
         if (ctx.passSettings.enableVR) {
-            finalPrePresentR->image.setLayout(cmdBuf,
+            finalPrePresentR->image().setLayout(cmdBuf,
                 VK_IMAGE_LAYOUT_GENERAL,
                 VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                 VK_ACCESS_SHADER_WRITE_BIT);
@@ -110,7 +110,7 @@ namespace worlds {
             vkCmdDispatch(cmdBuf, (ctx.passWidth + 15) / 16, (ctx.passHeight + 15) / 16, 1);
         }
 
-        finalPrePresent->image.setLayout(cmdBuf,
+        finalPrePresent->image().setLayout(cmdBuf,
             VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
             VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
             VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT);
@@ -118,7 +118,7 @@ namespace worlds {
         vkCmdEndDebugUtilsLabelEXT(cmdBuf);
     }
 
-    void TonemapRenderPass::setRightFinalImage(RenderTexture* right) {
+    void TonemapRenderPass::setRightFinalImage(RenderResource* right) {
         vku::DescriptorSetMaker dsm;
         dsm.layout(dsl);
         rDescriptorSet = std::move(dsm.create(handles->device, dsPool)[0]);
@@ -129,10 +129,10 @@ namespace worlds {
         finalPrePresentR = right;
 
         dsu.beginImages(0, 0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
-        dsu.image(sampler, finalPrePresentR->image.imageView(), VK_IMAGE_LAYOUT_GENERAL);
+        dsu.image(sampler, finalPrePresentR->image().imageView(), VK_IMAGE_LAYOUT_GENERAL);
 
         dsu.beginImages(1, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-        dsu.image(sampler, hdrImg->image.imageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+        dsu.image(sampler, hdrImg->image().imageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
         dsu.update(handles->device);
     }

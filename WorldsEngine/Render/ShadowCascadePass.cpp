@@ -17,7 +17,7 @@ namespace worlds {
         glm::mat4 matrices[3];
     };
 
-    ShadowCascadePass::ShadowCascadePass(VulkanHandles* handles, RenderTexture* shadowImage)
+    ShadowCascadePass::ShadowCascadePass(VulkanHandles* handles, RenderResource* shadowImage)
         : shadowImage(shadowImage)
         , handles(handles) {
     }
@@ -89,7 +89,7 @@ namespace worlds {
 
         pipeline = pm.create(handles->device, handles->pipelineCache, pipelineLayout, renderPass);
 
-        auto attachment = shadowImage->image.imageView();
+        auto attachment = shadowImage->image().imageView();
 
         VkFramebufferCreateInfo fci{ VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
         fci.attachmentCount = 1;
@@ -201,7 +201,7 @@ namespace worlds {
 
         vkCmdEndRenderPass(cmdBuf);
 
-        shadowImage->image.setCurrentLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
+        shadowImage->image().setCurrentLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
         vkCmdEndDebugUtilsLabelEXT(cmdBuf);
     }
 

@@ -11,7 +11,7 @@ namespace worlds {
     struct LightUB;
     struct ModelMatrices;
     struct RenderContext;
-    class RenderResource;
+    struct RenderResource;
     class Swapchain;
     class VKRenderer;
     class VRCullMeshRenderer {
