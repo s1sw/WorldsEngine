@@ -195,6 +195,7 @@
     <ClCompile Include="..\WorldsEngine\Render\Loaders\TextureLoader.cpp" />
     <ClCompile Include="..\WorldsEngine\Render\Loaders\VTFLoader.cpp" />
     <ClCompile Include="..\WorldsEngine\Render\Loaders\WMDLLoader.cpp" />
+    <ClCompile Include="..\WorldsEngine\Render\MainPass.cpp" />
     <ClCompile Include="..\WorldsEngine\Render\MaterialSlots.cpp" />
     <ClCompile Include="..\WorldsEngine\Render\PipelineCacheSerializer.cpp" />
     <ClCompile Include="..\WorldsEngine\Render\PolyRenderPass.cpp" />

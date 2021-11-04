@@ -1,6 +1,6 @@
 worlds_sources += [
-  'IO/physfs.cpp',
   'IO/IOUtil.cpp',
-  'IO/physfs.hpp',
-  'IO/IOUtil.hpp'
+  'IO/physfs.cpp',
+  'IO/IOUtil.hpp',
+  'IO/physfs.hpp'
 ]

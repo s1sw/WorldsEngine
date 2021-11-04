@@ -35,18 +35,20 @@ namespace worlds {
             | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
 
         TextureResourceCreateInfo polyCreateInfo{
-            TextureType::T2D,
+            TextureType::T2DArray,
             VK_FORMAT_B10G11R11_UFLOAT_PACK32,
             (int)ci.width, (int)ci.height,
             usages
         };
+        polyCreateInfo.layers = ci.isVr ? 2 : 1;
         polyCreateInfo.samples = ci.msaaLevel == 0 ? handles.graphicsSettings.msaaLevel : ci.msaaLevel;
         hdrTarget = renderer->createTextureResource(polyCreateInfo, "HDR Target");
 
-        polyCreateInfo.aspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT;
-        polyCreateInfo.format = VK_FORMAT_D32_SFLOAT;
-        polyCreateInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-        depthTarget = renderer->createTextureResource(polyCreateInfo, "Depth Stencil Image");
+        TextureResourceCreateInfo depthCreateInfo = polyCreateInfo;
+        depthCreateInfo.aspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT;
+        depthCreateInfo.format = VK_FORMAT_D32_SFLOAT;
+        depthCreateInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+        depthTarget = renderer->createTextureResource(depthCreateInfo, "Depth Stencil Image");
 
         prp = new PolyRenderPass(
             &handles,
@@ -55,13 +57,15 @@ namespace worlds {
             ci.useForPicking
         );
 
-        polyCreateInfo.samples = 1;
-        polyCreateInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
-        polyCreateInfo.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-        polyCreateInfo.aspectFlags = VK_IMAGE_ASPECT_COLOR_BIT;
+        TextureResourceCreateInfo finalTargetCreateInfo{
+            TextureType::T2D,
+            VK_FORMAT_R8G8B8A8_UNORM,
+            (int)ci.width, (int)ci.height,
+            VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT
+        };
 
         if (!ci.outputToScreen) {
-            sdrFinalTarget = renderer->createTextureResource(polyCreateInfo, "SDR Target");
+            sdrFinalTarget = renderer->createTextureResource(finalTargetCreateInfo, "SDR Target");
         }
 
         trp = new TonemapRenderPass(

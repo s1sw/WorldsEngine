@@ -177,6 +177,7 @@ RenderResource* VKRenderer::createTextureResource(TextureResourceCreateInfo reso
     ici.mipLevels = resourceCreateInfo.mipLevels;
     ici.arrayLayers = resourceCreateInfo.layers;
     ici.initialLayout = resourceCreateInfo.initialLayout;
+    ici.format = resourceCreateInfo.format;
 
     if (resourceCreateInfo.type == TextureType::TCube) {
         ici.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
@@ -1505,6 +1506,9 @@ void VKRenderer::reuploadMaterials() {
 }
 
 ConVar showSlotDebug{ "r_debugSlots", "0", "Shows a window for debugging resource slots." };
+namespace worlds {
+    volatile bool processingResize = false;
+}
 
 void VKRenderer::frame(Camera& cam, entt::registry& reg) {
     ZoneScoped;
@@ -1544,8 +1548,6 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
         ImGui::End();
     }
 
-    bool recreate = false;
-
     dbgStats.numCulledObjs = 0;
     dbgStats.numDrawCalls = 0;
     dbgStats.numPipelineSwitches = 0;
@@ -1553,20 +1555,22 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
 
     uint32_t imageIndex;
 
+    bool resizedThisFrame = false;
     {
         PerfTimer pt;
         VkResult nextImageRes = swapchain->acquireImage(device, imgAvailable[frameIdx], &imageIndex);
 
-        if ((nextImageRes == VK_ERROR_OUT_OF_DATE_KHR || nextImageRes == VK_SUBOPTIMAL_KHR) && width != 0 && height != 0) {
-            if (nextImageRes == VK_ERROR_OUT_OF_DATE_KHR)
-                logVrb(WELogCategoryRender, "Swapchain out of date");
-            else
-                logVrb(WELogCategoryRender, "Swapchain suboptimal");
-            recreateSwapchainInternal();
+        //if ((nextImageRes == VK_ERROR_OUT_OF_DATE_KHR || nextImageRes == VK_SUBOPTIMAL_KHR) && width != 0 && height != 0) {
+        //    if (nextImageRes == VK_ERROR_OUT_OF_DATE_KHR)
+        //        logVrb(WELogCategoryRender, "Swapchain out of date");
+        //    else
+        //        logVrb(WELogCategoryRender, "Swapchain suboptimal");
+        //    recreateSwapchainInternal();
+        //    resizedThisFrame = true;
 
-            // acquire image from new swapchain
-            swapchain->acquireImage(device, imgAvailable[frameIdx], &imageIndex);
-        }
+        //    // acquire image from new swapchain
+        //    swapchain->acquireImage(device, imgAvailable[frameIdx], &imageIndex);
+        //}
         dbgStats.imgAcquisitionTime = pt.stopGetMs();
     }
 
@@ -1648,7 +1652,8 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
         vr::VRCompositor()->PostPresentHandoff();
 
     if (presentResult == VK_ERROR_OUT_OF_DATE_KHR) {
-        recreateSwapchainInternal();
+        logVrb(WELogCategoryRender, "swapchain out of date after present");
+        //recreateSwapchainInternal();
     } else if (presentResult == VK_SUBOPTIMAL_KHR) {
         logVrb(WELogCategoryRender, "swapchain after present suboptimal");
         //recreateSwapchain();
@@ -1669,8 +1674,8 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
     if (queryRes == VK_SUCCESS)
         lastRenderTimeTicks = timeStamps[1] - timeStamps[0];
 
-    if (recreate)
-        recreateSwapchainInternal();
+    if (resizedThisFrame)
+        processingResize = false;
 
     lastFrameIdx = frameIdx;
 

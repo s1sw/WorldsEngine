@@ -580,6 +580,8 @@ namespace worlds {
         lightCullPass = new LightCullPass(handles, depthResource);
         lightCullPass->setup(ctx, lightsUB.buffer(), lightTileInfoBuffer.buffer(), lightTilesBuffer.buffer(), lightTileLightCountBuffer.buffer(), descriptorPool);
 
+        mainPass = new MainPass(handles, pipelineLayout);
+
         updateDescriptorSets(ctx);
 
         if (ctx.passSettings.enableVR) {
@@ -983,9 +985,10 @@ namespace worlds {
         ZoneScoped;
         TracyVkZone((*ctx.debugContext.tracyContexts)[ctx.frameIndex], ctx.cmdBuf, "Polys");
 
-        std::array<VkClearValue, 2> clearValues;
-        clearValues[0] = vku::makeColorClearValue(0.0f, 0.0f, 0.0f, 1.0f);
-        clearValues[1] = vku::makeDepthStencilClearValue(0.0f, 0);
+        std::array<VkClearValue, 2> clearValues{
+            vku::makeColorClearValue(0.0f, 0.0f, 0.0f, 1.0f),
+            vku::makeDepthStencilClearValue(0.0f, 0)
+        };
 
         VkClearValue depthClearValue = vku::makeDepthStencilClearValue(0.0f, 0);
 
@@ -1105,57 +1108,17 @@ namespace worlds {
         rpbi.pClearValues = clearValues.data();
         rpbi.renderPass = renderPass;
         rpbi.framebuffer = renderFb;
+
         vkCmdBeginRenderPass(cmdBuf, &rpbi, VK_SUBPASS_CONTENTS_INLINE);
 
-        {
-            TracyVkZone((*ctx.debugContext.tracyContexts)[ctx.frameIndex], ctx.cmdBuf, "Main Pass");
-            addDebugLabel(cmdBuf, "Main Pass", 0.466f, 0.211f, 0.639f, 1.0f);
-            vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-            SubmeshDrawInfo last;
-            last.pipeline = pipeline;
-            for (const auto& sdi : drawInfo) {
-                ZoneScopedN("SDI cmdbuf write");
-
-                if (last.pipeline != sdi.pipeline) {
-                    vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, sdi.pipeline);
-                    ctx.debugContext.stats->numPipelineSwitches++;
-                }
-
-                StandardPushConstants pushConst{
-                    .modelMatrixIdx = sdi.matrixIdx,
-                    .materialIdx = sdi.materialIdx,
-                    .vpIdx = 0,
-                    .objectId = (uint32_t)sdi.ent,
-                    .cubemapExt = glm::vec4(sdi.cubemapExt, 0.0f),
-                    .skinningOffset = sdi.boneMatrixOffset,
-                    .cubemapPos = glm::vec4(sdi.cubemapPos, 0.0f),
-                    .texScaleOffset = sdi.texScaleOffset,
-                    .screenSpacePickPos = glm::ivec3(pickX, pickY, globalMiscFlags | sdi.drawMiscFlags),
-                    .cubemapIdx = sdi.cubemapIdx
-                };
-
-                vkCmdPushConstants(cmdBuf, pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(pushConst), &pushConst);
-                VkDeviceSize offset = 0;
-                vkCmdBindVertexBuffers(cmdBuf, 0, 1, &sdi.vb, &offset);
-
-                if (sdi.skinned) {
-                    vkCmdBindVertexBuffers(cmdBuf, 1, 1, &sdi.boneVB, &offset);
-                }
-
-                vkCmdBindIndexBuffer(cmdBuf, sdi.ib, 0, VK_INDEX_TYPE_UINT32);
-                vkCmdDrawIndexed(cmdBuf, sdi.indexCount, 1, sdi.indexOffset, 0, 0);
-
-                last = sdi;
-                ctx.debugContext.stats->numDrawCalls++;
-            }
-            vkCmdEndDebugUtilsLabelEXT(cmdBuf);
-        }
+        mainPass->execute(ctx, drawInfo, pickThisFrame, pickX, pickY);
 
         dbgLinesPass->execute(ctx);
         skyboxPass->execute(ctx);
         uiPass->execute(ctx);
 
         vkCmdEndRenderPass(cmdBuf);
+
         colourResource->image().setCurrentLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT);
         depthResource->image().setCurrentLayout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
 
@@ -1200,6 +1163,7 @@ namespace worlds {
         delete depthPrepass;
         delete uiPass;
         delete lightCullPass;
+        delete mainPass;
 
         if (cullMeshRenderer)
             delete cullMeshRenderer;
