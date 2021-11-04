@@ -430,6 +430,7 @@ namespace worlds {
         ImDrawList* drawList = ImGui::GetWindowDrawList();
         drawList->AddText(ImVec2(menuBarCenter.x - (textSize.x * 0.5f), ImGui::GetWindowHeight() * 0.15f), ImColor(255, 255, 255), windowTitle);
 
+#ifndef __linux__
         float barWidth = ImGui::GetWindowWidth();
         float barHeight = ImGui::GetWindowHeight();
         const float crossSize = 6.0f;
@@ -484,6 +485,7 @@ namespace worlds {
             drawList->AddRectFilled(ImVec2(barWidth - 135.0f, 0.0f), ImVec2(barWidth - 90.0f, barHeight), ImColor(255, 255, 255, 50));
         }
         drawList->AddRectFilled(minimiseCenter - ImVec2(5, 0), minimiseCenter + ImVec2(5, 1), ImColor(255, 255, 255));
+#endif
     }
 
     void Editor::openProject(std::string path) {
