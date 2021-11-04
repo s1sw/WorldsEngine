@@ -32,6 +32,8 @@ namespace worlds {
         dsu.buffer(resources.materialBuffer->buffer(), 0, resources.materialBuffer->size());
 
         dsu.update(handles->device);
+
+        dsUpdateNeeded = false;
     }
 
     void AdditionalShadowsPass::setup(RenderResources ctx) {

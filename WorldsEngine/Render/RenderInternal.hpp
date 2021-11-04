@@ -303,14 +303,38 @@ namespace worlds {
 
     class DeletionQueue {
     public:
-        static void queueDeletion(std::function<void()>&& deleteFunc);
         static void queueObjectDeletion(void* object, VkObjectType type);
+        static void queueMemoryFree(VmaAllocation allocation);
+        static void queueDescriptorSetFree(VkDescriptorPool dPool, VkDescriptorSet ds);
         static void setCurrentFrame(uint32_t frame);
         static void cleanupFrame(uint32_t frame);
         static void resize(uint32_t maxFrames);
     private:
+        struct ObjectDeletion {
+            void* object;
+            VkObjectType type;
+        };
+
+        struct MemoryFree {
+            VmaAllocation allocation;
+        };
+
+        struct DescriptorSetFree {
+            VkDescriptorPool desciptorPool;
+            VkDescriptorSet descriptorSet;
+        };
+
+        struct DQueue {
+            std::deque<ObjectDeletion> objectDeletions;
+            std::deque<MemoryFree> memoryFrees;
+            std::deque<DescriptorSetFree> dsFrees;
+        };
+
+        static std::vector<DQueue> deletionQueues;
         static uint32_t currentFrameIndex;
-        static std::vector<std::deque<std::function<void()>>> deletionQueues;
+
+        static void processObjectDeletion(const ObjectDeletion& od);
+        static void processMemoryFree(const MemoryFree& mf);
     };
 
     class VKRTTPass : public RTTPass {
@@ -441,7 +465,7 @@ namespace worlds {
         void reuploadMaterials();
         ImDrawData* imDrawData;
         std::mutex* apiMutex;
-        void recreateSwapchainInternal();
+        void recreateSwapchainInternal(int newWidth = -1, int newHeight = -1);
         void createSpotShadowImages();
         void createCascadeShadowImages();
 
@@ -449,7 +473,7 @@ namespace worlds {
     public:
         double time;
         VKRenderer(const RendererInitInfo& initInfo, bool* success);
-        void recreateSwapchain() override;
+        void recreateSwapchain(int newWidth = -1, int newHeight = -1) override;
         void frame(Camera& cam, entt::registry& reg) override;
         void preloadMesh(AssetID id) override;
         void unloadUnusedMaterials(entt::registry& reg) override;

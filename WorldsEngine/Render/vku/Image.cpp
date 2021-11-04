@@ -247,22 +247,12 @@ namespace vku {
     void GenericImage::destroy() {
         if (s.destroyed) return;
         if (s.image) {
-            VkImageView imageView = s.imageView;
-            VkImage image = s.image;
-            VkDevice device = s.device;
-            VmaAllocator allocator = s.allocator;
-            VmaAllocation allocation = s.allocation;
-            VkImageCreateInfo ici = s.info;
-            worlds::DeletionQueue::queueDeletion([=]() {
-                if (imageView) {
-                    vkDestroyImageView(device, imageView, nullptr);
-                }
+            worlds::DeletionQueue::queueObjectDeletion(s.image, VK_OBJECT_TYPE_IMAGE);
 
-                ici;
-                vkDestroyImage(device, image, nullptr);
+            if (s.imageView)
+                worlds::DeletionQueue::queueObjectDeletion(s.imageView, VK_OBJECT_TYPE_IMAGE_VIEW);
 
-                vmaFreeMemory(allocator, allocation);
-            });
+            worlds::DeletionQueue::queueMemoryFree(s.allocation);
         }
         s.destroyed = true;
     }

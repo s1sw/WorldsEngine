@@ -44,7 +44,9 @@ namespace worlds {
     }
 
     void MainPass::execute(RenderContext& ctx, slib::StaticAllocList<SubmeshDrawInfo>& drawInfo, bool pickThisFrame, int pickX, int pickY) {
+#ifdef TRACY_ENABLE
         ZoneScoped;
+#endif
         TracyVkZone((*ctx.debugContext.tracyContexts)[ctx.frameIndex], ctx.cmdBuf, "Main Pass");
 
         VkCommandBuffer cmdBuf = ctx.cmdBuf;

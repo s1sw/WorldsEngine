@@ -540,6 +540,7 @@ namespace worlds {
 
     ImColor getNotificationTextColor(NotificationType type) {
         switch (type) {
+        default:
         case NotificationType::Info:
             return ImColor(255, 255, 255);
         case NotificationType::Warning:

@@ -163,7 +163,7 @@ namespace worlds {
 
     class Renderer {
     public:
-        virtual void recreateSwapchain() = 0;
+        virtual void recreateSwapchain(int newWidth = -1, int newHeight = -1) = 0;
         virtual void frame(Camera& cam, entt::registry& reg) = 0;
         virtual void preloadMesh(AssetID id) = 0;
         virtual void unloadUnusedMaterials(entt::registry& reg) = 0;

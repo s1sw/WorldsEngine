@@ -38,9 +38,7 @@ namespace worlds {
         }
 
         void destroyDescriptorSet(VkDescriptorSet ds, const VulkanHandles* handles) {
-            DeletionQueue::queueDeletion([=]() {
-                vkFreeDescriptorSets(handles->device, handles->descriptorPool, 1, &ds);
-            });
+            DeletionQueue::queueDescriptorSetFree(handles->descriptorPool, ds);
         }
     }
 }
