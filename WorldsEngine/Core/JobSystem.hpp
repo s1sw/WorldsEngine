@@ -53,10 +53,6 @@ namespace worlds {
     public:
         JobSystem(int numWorkers);
         ~JobSystem();
-        //void addJobs(std::queue<Job> jobQueue);
-        //void addJobsAndWait(std::queue<Job> jobQueue);
-        //void addJob(Job job);
-        //void addJobAndWait(Job job);
         JobList& getFreeJobList();
         void signalJobListAvailable();
         void completeFrameJobs();
