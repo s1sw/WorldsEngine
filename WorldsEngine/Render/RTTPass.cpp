@@ -11,10 +11,15 @@ namespace worlds {
         , renderer{ renderer }
         , vrInterface{ vrInterface }
         , dbgStats{ dbgStats } {
-        width = ci.width;
-        height = ci.height;
-        auto& handles = *renderer->getHandles();
+        createInfo = ci;
+        create(renderer, vrInterface, frameIdx, dbgStats);
+    }
 
+    void VKRTTPass::create(VKRenderer* renderer, IVRInterface* vrInterface, uint32_t frameIdx, RenderDebugStats* dbgStats) {
+        width = createInfo.width;
+        height = createInfo.height;
+
+        auto& handles = *renderer->getHandles();
         std::vector<VkDescriptorPoolSize> poolSizes;
         poolSizes.emplace_back(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 256 * renderer->maxFramesInFlight);
         poolSizes.emplace_back(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 256 * renderer->maxFramesInFlight);
@@ -36,11 +41,11 @@ namespace worlds {
         TextureResourceCreateInfo polyCreateInfo{
             TextureType::T2DArray,
             VK_FORMAT_B10G11R11_UFLOAT_PACK32,
-            (int)ci.width, (int)ci.height,
+            (int)width, (int)height,
             usages
         };
-        polyCreateInfo.layers = ci.isVr ? 2 : 1;
-        polyCreateInfo.samples = ci.msaaLevel == 0 ? handles.graphicsSettings.msaaLevel : ci.msaaLevel;
+        polyCreateInfo.layers = createInfo.isVr ? 2 : 1;
+        polyCreateInfo.samples = createInfo.msaaLevel == 0 ? handles.graphicsSettings.msaaLevel : createInfo.msaaLevel;
         hdrTarget = renderer->createTextureResource(polyCreateInfo, "HDR Target");
 
         TextureResourceCreateInfo depthCreateInfo = polyCreateInfo;
@@ -53,24 +58,24 @@ namespace worlds {
             &handles,
             depthTarget,
             hdrTarget,
-            ci.useForPicking
+            createInfo.useForPicking
         );
 
         TextureResourceCreateInfo finalTargetCreateInfo{
             TextureType::T2D,
             VK_FORMAT_R8G8B8A8_UNORM,
-            (int)ci.width, (int)ci.height,
+            (int)createInfo.width, (int)createInfo.height,
             VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT
         };
 
-        if (!ci.outputToScreen) {
+        if (!createInfo.outputToScreen) {
             sdrFinalTarget = renderer->createTextureResource(finalTargetCreateInfo, "SDR Target");
         }
 
         trp = new TonemapRenderPass(
             &handles,
             hdrTarget,
-            ci.isVr ? renderer->leftEye : ci.outputToScreen ? renderer->finalPrePresent : sdrFinalTarget
+            createInfo.isVr ? renderer->leftEye : createInfo.outputToScreen ? renderer->finalPrePresent : sdrFinalTarget
         );
 
         VkQueue queue;
@@ -78,9 +83,9 @@ namespace worlds {
 
         vku::executeImmediately(handles.device, handles.commandPool, queue, [&](VkCommandBuffer cmdBuf) {
             hdrTarget->image().setLayout(cmdBuf, VK_IMAGE_LAYOUT_GENERAL);
-            if (!ci.outputToScreen)
+            if (!createInfo.outputToScreen)
                 sdrFinalTarget->image().setLayout(cmdBuf, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-            if (ci.isVr) {
+            if (createInfo.isVr) {
                 renderer->leftEye->image().setLayout(cmdBuf, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
                 renderer->rightEye->image().setLayout(cmdBuf, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
             }
@@ -94,13 +99,13 @@ namespace worlds {
                 .stats = dbgStats
             },
             .passSettings = PassSettings {
-                .enableVR = ci.isVr,
+                .enableVR = createInfo.isVr,
                 .enableShadows = enableShadows,
-                .msaaSamples = ci.msaaLevel == 0 ? handles.graphicsSettings.msaaLevel : ci.msaaLevel
+                .msaaSamples = createInfo.msaaLevel == 0 ? handles.graphicsSettings.msaaLevel : createInfo.msaaLevel
             },
             .registry = r,
-            .passWidth = ci.width,
-            .passHeight = ci.height,
+            .passWidth = width,
+            .passHeight = height,
             .frameIndex = frameIdx,
             .maxSimultaneousFrames = renderer->maxFramesInFlight
         };
@@ -108,9 +113,20 @@ namespace worlds {
         trp->setup(rCtx, descriptorPool);
         prp->setup(rCtx, descriptorPool);
 
-        if (ci.isVr) {
+        if (isVr) {
             trp->setRightFinalImage(renderer->rightEye);
         }
+    }
+
+    void VKRTTPass::destroy() {
+        delete prp;
+        delete trp;
+
+        delete hdrTarget;
+        delete depthTarget;
+
+        if (!outputToScreen)
+            delete sdrFinalTarget;
     }
 
     void VKRTTPass::drawNow(entt::registry& world) {
@@ -348,13 +364,6 @@ namespace worlds {
     }
 
     VKRTTPass::~VKRTTPass() {
-        delete prp;
-        delete trp;
-
-        delete hdrTarget;
-        delete depthTarget;
-
-        if (!outputToScreen)
-            delete sdrFinalTarget;
+        destroy();
     }
 }

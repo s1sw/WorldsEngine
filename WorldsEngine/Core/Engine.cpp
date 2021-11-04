@@ -66,6 +66,8 @@ namespace worlds {
     }
 
     SDL_Window* WorldsEngine::createSDLWindow() {
+        windowWidth = 1600;
+        windowHeight = 900;
         return SDL_CreateWindow("Loading...",
             SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
             1600, 900,
@@ -79,14 +81,6 @@ namespace worlds {
     bool fullscreen = false;
     volatile bool windowCreated = false;
 
-    int WorldsEngine::eventFilter(void* enginePtr, SDL_Event* evt) {
-        if (evt->type == SDL_WINDOWEVENT && evt->window.event == SDL_WINDOWEVENT_RESIZED) {
-            Renderer* renderer = ((WorldsEngine*)enginePtr)->renderer.get();
-            renderer->recreateSwapchain(evt->window.data1, evt->window.data2);
-        }
-        return 1;
-    }
-
     // SDL_PollEvent blocks when the window is being resized or moved,
     // so I run it on a different thread.
     // I would put it through the job system, but thanks to Windows
@@ -95,7 +89,7 @@ namespace worlds {
     int WorldsEngine::windowThread(void* data) {
         WorldsEngine* _this = (WorldsEngine*)data;
 
-        _this->window = createSDLWindow();
+        _this->window = _this->createSDLWindow();
         if (_this->window == nullptr) {
             SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "err", SDL_GetError(), NULL);
         }
@@ -284,6 +278,20 @@ namespace worlds {
         }
 
         return 0;
+    }
+
+    int WorldsEngine::eventFilter(void* enginePtr, SDL_Event* evt) {
+        WorldsEngine* _this = (WorldsEngine*)enginePtr;
+        if (evt->type == SDL_WINDOWEVENT && evt->window.event == SDL_WINDOWEVENT_RESIZED) {
+            Renderer* renderer = _this->renderer.get();
+            _this->windowWidth = evt->window.data1;
+            _this->windowHeight = evt->window.data2;
+            renderer->recreateSwapchain(evt->window.data1, evt->window.data2);
+
+            std::unique_lock<std::mutex> lg(rendererLock);
+            renderThreadCV.wait(lg, []{return renderThreadAvailable;});
+        }
+        return 1;
     }
 
     template <typename T>
@@ -755,7 +763,9 @@ namespace worlds {
                 ImGui_ImplSDL2_NewFrame(window);
             }
 
-            ImVec2 newFrameDisplaySize = ImGui::GetIO().DisplaySize;
+            ImVec2 newFrameDisplaySize(windowWidth, windowHeight);
+            ImGui::GetIO().DisplaySize = newFrameDisplaySize;
+
             ImGui::NewFrame();
             ImGui::GetMainViewport()->Size = newFrameDisplaySize;
             inputManager->update();
@@ -764,11 +774,7 @@ namespace worlds {
                 openvrInterface->updateInput();
 
             if (!dedicatedServer) {
-                if (!screenRTTPass->isValid) {
-                    recreateScreenRTT = true;
-                } else {
-                    screenRTTPass->active = !runAsEditor || !editor->active;
-                }
+                screenRTTPass->active = !runAsEditor || !editor->active;
             }
 
             if (!dedicatedServer)
@@ -799,7 +805,8 @@ namespace worlds {
             }
 
             if (!dedicatedServer) {
-                SDL_GetWindowSize(window, &windowSize.x, &windowSize.y);
+                windowSize.x = windowWidth;
+                windowSize.y = windowHeight;
 
                 if (runAsEditor) {
                     editor->update((float)deltaTime);
@@ -906,44 +913,7 @@ namespace worlds {
             uint64_t renderTickStart = SDL_GetPerformanceCounter();
             if (!dedicatedServer) {
                 ZoneScopedN("Copy to Render Thread");
-
-                std::unique_lock<std::mutex> lg(rendererLock);
-                renderThreadCV.wait(lg, []{return renderThreadAvailable;});
-
-                renderRegistry.clear();
-                renderRegistry.assign(registry.data(), registry.data() + registry.size(), registry.destroyed());
-                cloneComponent<Transform>(registry, renderRegistry);
-                cloneComponent<WorldObject>(registry, renderRegistry);
-                cloneComponent<SkinnedWorldObject>(registry, renderRegistry);
-                cloneComponent<WorldLight>(registry, renderRegistry);
-                cloneComponent<WorldCubemap>(registry, renderRegistry);
-                cloneComponent<UseWireframe>(registry, renderRegistry);
-                cloneComponent<ProxyAOComponent>(registry, renderRegistry);
-                cloneComponent<SphereAOProxy>(registry, renderRegistry);
-                cloneComponent<WorldTextComponent>(registry, renderRegistry);
-
-                //auto sortLambda = [&](entt::entity a, entt::entity b) {
-                //    auto& aTransform = registry.get<Transform>(a);
-                //    auto& bTransform = registry.get<Transform>(b);
-                //    return glm::distance2(camPos, aTransform.position) < glm::distance2(camPos, bTransform.position);
-                //};
-                //renderRegistry.sort<WorldObject, decltype(sortLambda)>(sortLambda);
-                renderRegistry.set<SceneSettings>(registry.ctx<SceneSettings>());
-
-                ImGui::Render();
-
-                renderThreadDrawData = *ImGui::GetDrawData();
-                for (int i = 0; i < renderThreadDrawData.CmdListsCount; i++) {
-                    ImDrawList* original = renderThreadDrawData.CmdLists[i];
-                    renderThreadDrawData.CmdLists[i] = original->CloneOutput();
-                }
-
-                renderThreadCamera = cam;
-
-                renderThreadWorkReady = true;
-
-                lg.unlock();
-                renderThreadCV.notify_one();
+                tickRenderer(true);
             }
             uint64_t renderTickEnd = SDL_GetPerformanceCounter();
 
@@ -996,32 +966,6 @@ namespace worlds {
                 });
             }
 
-            if (recreateScreenRTT) {
-                int newWidth, newHeight;
-
-                SDL_GetWindowSize(window, &newWidth, &newHeight);
-
-                if (enableOpenVR) {
-                    uint32_t w, h;
-                    openvrInterface->getRenderResolution(&w, &h);
-                    newWidth = w;
-                    newHeight = h;
-                }
-
-                renderer->destroyRTTPass(screenRTTPass);
-
-                RTTPassCreateInfo screenRTTCI {
-                    .width = static_cast<uint32_t>(newWidth),
-                    .height = static_cast<uint32_t>(newHeight),
-                    .isVr = enableOpenVR,
-                    .useForPicking = false,
-                    .enableShadows = true,
-                    .outputToScreen = true,
-                };
-
-                screenRTTPass = renderer->createRTTPass(screenRTTCI);
-            }
-
             uint64_t postUpdate = SDL_GetPerformanceCounter();
             double completeUpdateTime = (postUpdate - now) / (double)SDL_GetPerformanceFrequency();
 
@@ -1035,6 +979,48 @@ namespace worlds {
             lastUpdateTime = updateTime;
             lastRendererTickTime = (renderTickEnd - renderTickStart) / (double)SDL_GetPerformanceFrequency();
         }
+    }
+
+    void WorldsEngine::tickRenderer(bool renderImGui) {
+        std::unique_lock<std::mutex> lg(rendererLock);
+        renderThreadCV.wait(lg, []{return renderThreadAvailable;});
+
+        renderRegistry.clear();
+        renderRegistry.assign(registry.data(), registry.data() + registry.size(), registry.destroyed());
+        cloneComponent<Transform>(registry, renderRegistry);
+        cloneComponent<WorldObject>(registry, renderRegistry);
+        cloneComponent<SkinnedWorldObject>(registry, renderRegistry);
+        cloneComponent<WorldLight>(registry, renderRegistry);
+        cloneComponent<WorldCubemap>(registry, renderRegistry);
+        cloneComponent<UseWireframe>(registry, renderRegistry);
+        cloneComponent<ProxyAOComponent>(registry, renderRegistry);
+        cloneComponent<SphereAOProxy>(registry, renderRegistry);
+        cloneComponent<WorldTextComponent>(registry, renderRegistry);
+
+        //auto sortLambda = [&](entt::entity a, entt::entity b) {
+        //    auto& aTransform = registry.get<Transform>(a);
+        //    auto& bTransform = registry.get<Transform>(b);
+        //    return glm::distance2(camPos, aTransform.position) < glm::distance2(camPos, bTransform.position);
+        //};
+        //renderRegistry.sort<WorldObject, decltype(sortLambda)>(sortLambda);
+        renderRegistry.set<SceneSettings>(registry.ctx<SceneSettings>());
+
+
+        if (renderImGui) {
+            ImGui::Render();
+            renderThreadDrawData = *ImGui::GetDrawData();
+            for (int i = 0; i < renderThreadDrawData.CmdListsCount; i++) {
+                ImDrawList* original = renderThreadDrawData.CmdLists[i];
+                renderThreadDrawData.CmdLists[i] = original->CloneOutput();
+            }
+        }
+
+        renderThreadCamera = cam;
+
+        renderThreadWorkReady = true;
+
+        lg.unlock();
+        renderThreadCV.notify_one();
     }
 
     void WorldsEngine::drawDebugInfoWindow(DebugTimeInfo timeInfo) {

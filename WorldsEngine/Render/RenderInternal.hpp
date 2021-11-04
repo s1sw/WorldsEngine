@@ -349,6 +349,8 @@ namespace worlds {
     private:
         VKRTTPass(const RTTPassCreateInfo& ci, VKRenderer* renderer, IVRInterface* vrInterface, uint32_t frameIdx, RenderDebugStats* dbgStats);
         ~VKRTTPass();
+        void create(VKRenderer* renderer, IVRInterface* vrInterface, uint32_t frameIdx, RenderDebugStats* dbgStats);
+        void destroy();
         PolyRenderPass* prp;
         TonemapRenderPass* trp;
         bool isVr;
@@ -360,6 +362,7 @@ namespace worlds {
         RenderDebugStats* dbgStats;
         void writeCmds(uint32_t frameIdx, VkCommandBuffer buf, entt::registry& world);
         vku::DescriptorPool descriptorPool;
+        RTTPassCreateInfo createInfo;
 
         friend class VKRenderer;
     };

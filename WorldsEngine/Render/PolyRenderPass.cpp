@@ -310,8 +310,8 @@ namespace worlds {
         rPassMaker.dependencyBegin(VK_SUBPASS_EXTERNAL, 0);
         rPassMaker.dependencySrcStageMask(VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT);
         rPassMaker.dependencySrcAccessMask(VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
-        rPassMaker.dependencyDstStageMask(VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT);
-        rPassMaker.dependencyDstAccessMask(VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
+        rPassMaker.dependencyDstStageMask(VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+        rPassMaker.dependencyDstAccessMask(VK_ACCESS_SHADER_READ_BIT);
 
         vku::RenderpassMaker depthPassMaker;
 
@@ -326,8 +326,8 @@ namespace worlds {
         depthPassMaker.subpassDepthStencilAttachment(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, 0);
 
         depthPassMaker.dependencyBegin(0, VK_SUBPASS_EXTERNAL);
-        depthPassMaker.dependencySrcStageMask(VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT);
-        depthPassMaker.dependencySrcAccessMask(VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
+        depthPassMaker.dependencySrcStageMask(VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+        depthPassMaker.dependencySrcAccessMask(VK_ACCESS_SHADER_READ_BIT);
         depthPassMaker.dependencyDstStageMask(VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT);
         depthPassMaker.dependencyDstAccessMask(VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT);
 
@@ -1076,6 +1076,7 @@ namespace worlds {
         if ((int)enableDepthPrepass) {
             ZoneScopedN("Depth prepass");
             depthPrepass->execute(ctx, drawInfo);
+            depthResource->image().setCurrentLayout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
         }
 
         vkCmdEndRenderPass(cmdBuf);
