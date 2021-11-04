@@ -14,7 +14,6 @@ namespace worlds {
         width = ci.width;
         height = ci.height;
         auto& handles = *renderer->getHandles();
-        RenderResources resources = renderer->getResources();
 
         std::vector<VkDescriptorPoolSize> poolSizes;
         poolSizes.emplace_back(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 256 * renderer->maxFramesInFlight);

@@ -78,12 +78,11 @@ namespace worlds {
 
     bool fullscreen = false;
     volatile bool windowCreated = false;
-    volatile extern bool processingResize;
 
     int WorldsEngine::eventFilter(void* enginePtr, SDL_Event* evt) {
         if (evt->type == SDL_WINDOWEVENT && evt->window.event == SDL_WINDOWEVENT_RESIZED) {
             Renderer* renderer = ((WorldsEngine*)enginePtr)->renderer.get();
-            renderer->recreateSwapchain();
+            renderer->recreateSwapchain(evt->window.data1, evt->window.data2);
         }
         return 1;
     }
@@ -736,7 +735,7 @@ namespace worlds {
             double targetTime = 0.006;
             double throttleTime = pacingSleepTime.getInt() ? pacingSleepTime.getInt() / 1000.0 : glm::clamp(targetTime - lastUpdateTime - 0.001, 0.0, 0.02);
             double currTime = timeAtStart;
-            
+
             while (currTime - timeAtStart < throttleTime) {
                 currTime = (double)SDL_GetPerformanceCounter() / SDL_GetPerformanceFrequency();
                 if (currTime - timeAtStart > 0.001) {

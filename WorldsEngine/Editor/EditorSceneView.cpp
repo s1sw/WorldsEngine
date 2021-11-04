@@ -475,10 +475,7 @@ namespace worlds {
     EditorSceneView::~EditorSceneView() {
         auto vkCtx = static_cast<VKRenderer*>(interfaces.renderer)->getHandles();
 
-        VkDescriptorSet sceneViewDS = this->sceneViewDS;
-        DeletionQueue::queueDeletion([vkCtx, sceneViewDS]() {
-            vkFreeDescriptorSets(vkCtx->device, vkCtx->descriptorPool, 1, &sceneViewDS);
-        });
+        DeletionQueue::queueDescriptorSetFree(vkCtx->descriptorPool, sceneViewDS);
 
         interfaces.renderer->destroyRTTPass(sceneViewPass);
     }

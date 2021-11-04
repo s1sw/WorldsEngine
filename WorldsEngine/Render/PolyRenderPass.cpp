@@ -291,13 +291,14 @@ namespace worlds {
 
         rPassMaker.attachmentBegin(VK_FORMAT_B10G11R11_UFLOAT_PACK32);
         rPassMaker.attachmentLoadOp(VK_ATTACHMENT_LOAD_OP_CLEAR);
-        rPassMaker.attachmentStoreOp(VK_ATTACHMENT_STORE_OP_DONT_CARE);
+        rPassMaker.attachmentStoreOp(VK_ATTACHMENT_STORE_OP_STORE);
         rPassMaker.attachmentSamples(colourResource->image().info().samples);
         rPassMaker.attachmentFinalLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
         rPassMaker.attachmentBegin(VK_FORMAT_D32_SFLOAT);
         rPassMaker.attachmentLoadOp(VK_ATTACHMENT_LOAD_OP_LOAD);
         rPassMaker.attachmentStencilLoadOp(VK_ATTACHMENT_LOAD_OP_DONT_CARE);
+        rPassMaker.attachmentStoreOp(VK_ATTACHMENT_STORE_OP_DONT_CARE);
         rPassMaker.attachmentSamples(colourResource->image().info().samples);
         rPassMaker.attachmentInitialLayout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
         rPassMaker.attachmentFinalLayout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
@@ -307,25 +308,28 @@ namespace worlds {
         rPassMaker.subpassDepthStencilAttachment(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, 1);
 
         rPassMaker.dependencyBegin(VK_SUBPASS_EXTERNAL, 0);
-        rPassMaker.dependencySrcStageMask(VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT);
+        rPassMaker.dependencySrcStageMask(VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT);
+        rPassMaker.dependencySrcAccessMask(VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
         rPassMaker.dependencyDstStageMask(VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT);
-        rPassMaker.dependencyDstAccessMask(VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
+        rPassMaker.dependencyDstAccessMask(VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
 
         vku::RenderpassMaker depthPassMaker;
 
         depthPassMaker.attachmentBegin(VK_FORMAT_D32_SFLOAT);
         depthPassMaker.attachmentLoadOp(VK_ATTACHMENT_LOAD_OP_CLEAR);
         depthPassMaker.attachmentStencilLoadOp(VK_ATTACHMENT_LOAD_OP_DONT_CARE);
+        depthPassMaker.attachmentStoreOp(VK_ATTACHMENT_STORE_OP_STORE);
         depthPassMaker.attachmentSamples(colourResource->image().info().samples);
         depthPassMaker.attachmentFinalLayout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
 
         depthPassMaker.subpassBegin(VK_PIPELINE_BIND_POINT_GRAPHICS);
         depthPassMaker.subpassDepthStencilAttachment(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, 0);
 
-        depthPassMaker.dependencyBegin(VK_SUBPASS_EXTERNAL, 0);
-        depthPassMaker.dependencySrcStageMask(VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT);
+        depthPassMaker.dependencyBegin(0, VK_SUBPASS_EXTERNAL);
+        depthPassMaker.dependencySrcStageMask(VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT);
+        depthPassMaker.dependencySrcAccessMask(VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
         depthPassMaker.dependencyDstStageMask(VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT);
-        depthPassMaker.dependencyDstAccessMask(VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
+        depthPassMaker.dependencyDstAccessMask(VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT);
 
         // AMD driver bug workaround: shaders that use ViewIndex without a multiview renderpass
         // will crash the driver, so we always set up a renderpass with multiview even if it's only
@@ -992,14 +996,6 @@ namespace worlds {
 
         VkClearValue depthClearValue = vku::makeDepthStencilClearValue(0.0f, 0);
 
-        VkRenderPassBeginInfo rpbi{ VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
-
-        rpbi.renderPass = depthPass;
-        rpbi.framebuffer = depthFb;
-        rpbi.renderArea = VkRect2D{ {0, 0}, {ctx.passWidth, ctx.passHeight} };
-        rpbi.clearValueCount = 1;
-        rpbi.pClearValues = &depthClearValue;
-
         VkCommandBuffer cmdBuf = ctx.cmdBuf;
 
         lightsUB.barrier(
@@ -1039,13 +1035,13 @@ namespace worlds {
             setEventNextFrame = false;
         }
 
-        vkCmdBeginRenderPass(cmdBuf, &rpbi, VK_SUBPASS_CONTENTS_INLINE);
+        VkRenderPassBeginInfo rpbi{ VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
 
-        if (ctx.passSettings.enableVR) {
-            cullMeshRenderer->draw(cmdBuf);
-        }
-
-        vkCmdBindDescriptorSets(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[ctx.frameIndex], 0, nullptr);
+        rpbi.renderPass = depthPass;
+        rpbi.framebuffer = depthFb;
+        rpbi.renderArea = VkRect2D{ {0, 0}, {ctx.passWidth, ctx.passHeight} };
+        rpbi.clearValueCount = 1;
+        rpbi.pClearValues = &depthClearValue;
 
         uint32_t globalMiscFlags = 0;
 
@@ -1059,6 +1055,14 @@ namespace worlds {
         if (!ctx.passSettings.enableShadows) {
             globalMiscFlags |= ShaderFlags::MISC_FLAG_DISABLE_SHADOWS;
         }
+
+        vkCmdBeginRenderPass(cmdBuf, &rpbi, VK_SUBPASS_CONTENTS_INLINE);
+
+        if (ctx.passSettings.enableVR) {
+            cullMeshRenderer->draw(cmdBuf);
+        }
+
+        vkCmdBindDescriptorSets(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[ctx.frameIndex], 0, nullptr);
 
         std::sort(drawInfo.begin(), drawInfo.end(), [&](const SubmeshDrawInfo& sdiA, const SubmeshDrawInfo& sdiB) {
             if (sdiA.opaque && !sdiB.opaque)
@@ -1120,7 +1124,7 @@ namespace worlds {
         vkCmdEndRenderPass(cmdBuf);
 
         colourResource->image().setCurrentLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT);
-        depthResource->image().setCurrentLayout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
+        depthResource->image().setCurrentLayout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
 
         if (pickThisFrame) {
             vkCmdResetEvent(cmdBuf, pickEvent, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);

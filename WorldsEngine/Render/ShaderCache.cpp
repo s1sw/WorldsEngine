@@ -21,7 +21,9 @@ namespace worlds {
         void* buffer = std::malloc(size);
 
         size_t readBytes = PHYSFS_readBytes(file, buffer, size);
-        assert(readBytes == size);
+        if (readBytes != size) {
+            fatalErr("Failed to read whole shader file");
+        }
         PHYSFS_close(file);
 
         VkShaderModuleCreateInfo smci{ VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO };

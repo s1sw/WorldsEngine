@@ -102,14 +102,11 @@ namespace vku {
     }
 
     void GenericBuffer::destroy() {
-        VkBuffer cBuf = buffer_;
-        VmaAllocator allocator = this->allocator;
-        VmaAllocation allocation = this->allocation;
-        worlds::DeletionQueue::queueDeletion([=]() {
-            if (cBuf) {
-                vmaDestroyBuffer(allocator, cBuf, allocation);
-            }
-        });
+        if (buffer_) {
+            worlds::DeletionQueue::queueObjectDeletion(buffer_, VK_OBJECT_TYPE_BUFFER);
+            worlds::DeletionQueue::queueMemoryFree(allocation);
+        }
+
         buffer_ = VK_NULL_HANDLE;
         allocation = nullptr;
     }
