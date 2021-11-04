@@ -1,10 +1,10 @@
 worlds_sources += [
-  'AssetCompilation/TextureCompiler.cpp',
-  'AssetCompilation/AssetCompilerUtil.cpp',
   'AssetCompilation/AssetCompilers.cpp',
+  'AssetCompilation/AssetCompilerUtil.cpp',
   'AssetCompilation/ModelCompiler.cpp',
-  'AssetCompilation/AssetCompilerUtil.hpp',
+  'AssetCompilation/TextureCompiler.cpp',
   'AssetCompilation/AssetCompilers.hpp',
+  'AssetCompilation/AssetCompilerUtil.hpp',
   'AssetCompilation/ModelCompiler.hpp',
   'AssetCompilation/TextureCompiler.hpp'
 ]

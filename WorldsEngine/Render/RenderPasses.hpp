@@ -31,6 +31,13 @@ namespace worlds {
         ~VRCullMeshRenderer();
     };
 
+    class RenderPass {
+    protected:
+        VulkanHandles* handles;
+    public:
+        RenderPass(VulkanHandles* handles);
+    };
+
     struct SubmeshDrawInfo {
         uint32_t materialIdx;
         uint32_t matrixIdx;
@@ -104,6 +111,14 @@ namespace worlds {
         void execute(RenderContext& ctx, slib::StaticAllocList<SubmeshDrawInfo>& drawInfo);
     };
 
+    class MainPass : public RenderPass {
+    private:
+        vku::PipelineLayout& pipelineLayout;
+    public:
+        MainPass(VulkanHandles* handles, vku::PipelineLayout& pipelineLayout);
+        void execute(RenderContext& ctx, slib::StaticAllocList<SubmeshDrawInfo>& drawInfo, bool pickThisFrame, int pickX, int pickY);
+    };
+
     struct FontChar {
         uint32_t codepoint;
 
@@ -127,12 +142,6 @@ namespace worlds {
         uint32_t index;
     };
 
-    class RenderPass {
-    protected:
-        VulkanHandles* handles;
-    public:
-        RenderPass(VulkanHandles* handles);
-    };
 
     class WorldSpaceUIPass {
     private:
@@ -250,6 +259,7 @@ namespace worlds {
         DepthPrepass* depthPrepass;
         WorldSpaceUIPass* uiPass;
         LightCullPass* lightCullPass;
+        MainPass* mainPass;
         VulkanHandles* handles;
 
         void generateDrawInfo(RenderContext& ctx);

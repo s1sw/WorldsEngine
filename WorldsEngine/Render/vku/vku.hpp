@@ -177,7 +177,10 @@ namespace vku {
         State s;
     };
 
-    class Resource {};
+    class Resource {
+    public:
+        virtual ~Resource() {}
+    };
 
     // =============================
     // Buffers

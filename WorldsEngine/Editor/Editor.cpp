@@ -92,7 +92,14 @@ namespace worlds {
     SDL_HitTestResult hitTest(SDL_Window* win, const SDL_Point* p, void* v) {
         int w, h;
         SDL_GetWindowSize(win, &w, &h);
-        if (p->x > menuButtonsExtent && p->x < w - 120 && p->y < 20 && p->y > 0) {
+
+        uint32_t windowFlags = SDL_GetWindowFlags(win);
+
+        if (windowFlags & SDL_WINDOW_MAXIMIZED) {
+            return SDL_HITTEST_NORMAL;
+        }
+
+        if (p->x > menuButtonsExtent && p->x < w - 135 && p->y < 20 && p->y > 0) {
             return SDL_HITTEST_DRAGGABLE;
         }
 

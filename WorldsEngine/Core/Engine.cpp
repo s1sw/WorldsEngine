@@ -78,6 +78,15 @@ namespace worlds {
 
     bool fullscreen = false;
     volatile bool windowCreated = false;
+    volatile extern bool processingResize;
+
+    int WorldsEngine::eventFilter(void* enginePtr, SDL_Event* evt) {
+        if (evt->type == SDL_WINDOWEVENT && evt->window.event == SDL_WINDOWEVENT_RESIZED) {
+            Renderer* renderer = ((WorldsEngine*)enginePtr)->renderer.get();
+            renderer->recreateSwapchain();
+        }
+        return 1;
+    }
 
     // SDL_PollEvent blocks when the window is being resized or moved,
     // so I run it on a different thread.
@@ -96,6 +105,8 @@ namespace worlds {
             setWindowIcon(_this->window, "icon_engine.png");
         else
             setWindowIcon(_this->window);
+
+        SDL_SetEventFilter(eventFilter, _this);
 
         windowCreated = true;
         while (_this->running) {
@@ -699,17 +710,6 @@ namespace worlds {
 
                 if (ImGui::GetCurrentContext())
                     ImGui_ImplSDL2_ProcessEvent(&evt);
-
-                if (evt.type == SDL_WINDOWEVENT) {
-                    SDL_WindowEvent& windowEvt = evt.window;
-                    if (windowEvt.event == SDL_WINDOWEVENT_SIZE_CHANGED) {
-                        logMsg("window resized to %ix%i", windowEvt.data1, windowEvt.data2);
-                        int winSizeX, winSizeY;
-                        SDL_GetWindowSize(window, &winSizeX, &winSizeY);
-                        logMsg("SDL_GetWindowSize reports %ix%i", winSizeX, winSizeY);
-                        return;
-                    }
-                }
             }
         } while ((incomingEvents = SDL_PeepEvents(evtBuffer, 64, SDL_GETEVENT, SDL_FIRSTEVENT, SDL_LASTEVENT)) > 0);
     }
@@ -760,9 +760,6 @@ namespace worlds {
             ImGui::NewFrame();
             ImGui::GetMainViewport()->Size = newFrameDisplaySize;
             inputManager->update();
-
-            ImGui::Text("Sleep time: %.3fms", throttleTime * 1000.0);
-            ImGui::Text("Delta time: %.3f, last complete update time: %.3f", deltaTime * 1000.0, lastUpdateTime * 1000.0);
 
             if (openvrInterface)
                 openvrInterface->updateInput();
