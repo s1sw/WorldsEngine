@@ -164,9 +164,12 @@ namespace crnlib
       {
       }
 
-      inline color_quad(const color_quad& other) :
-         r(other.r), g(other.g), b(other.b), a(other.a)
+      inline color_quad(const color_quad& other)
       {
+          r = other.r;
+          g = other.g;
+          b = other.b;
+          a = other.a;
       }
 
       explicit inline color_quad(parameter_type y, parameter_type alpha = component_traits::cMax)

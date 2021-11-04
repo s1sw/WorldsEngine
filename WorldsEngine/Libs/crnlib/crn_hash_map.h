@@ -14,6 +14,8 @@
 
 namespace crnlib
 {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wclass-memaccess"
    template <typename T>
    struct hasher
    {
@@ -874,3 +876,5 @@ namespace crnlib
    extern void hash_map_test();
 
 } // namespace crnlib
+#pragma GCC diagnostic pop
+

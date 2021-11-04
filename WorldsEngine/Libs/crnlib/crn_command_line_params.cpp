@@ -16,7 +16,7 @@ namespace crnlib
 {
    void get_command_line_as_single_string(dynamic_string& cmd_line, int argc, char *argv[])
    {
-      argc, argv;
+      (void)argc, (void)argv;
 #if CRNLIB_USE_WIN32_API
       cmd_line.set(GetCommandLineA());
 #else

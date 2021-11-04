@@ -177,6 +177,7 @@ namespace crnlib
       {
       public:
          virtual void execute_task(uint64 data, void* pData_ptr) = 0;
+         virtual ~executable_task() {}
       };
 
       // It's the caller's responsibility to delete pObj within the execute_task() method, if needed!

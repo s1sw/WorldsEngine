@@ -13,6 +13,7 @@ namespace crnlib
       CRNLIB_ASSUME(X::num_cols == Y::num_rows);
       CRNLIB_ASSERT((&result != &lhs) && (&result != &rhs));
       for (int r = 0; r < X::num_rows; r++)
+      {
          for (int c = 0; c < Y::num_cols; c++)
          {
             typename Z::scalar_type s = lhs(r, 0) * rhs(0, c);
@@ -20,7 +21,9 @@ namespace crnlib
                s += lhs(r, i) * rhs(i, c);
             result(r, c) = s;
          }
-         return result;
+      }
+
+     return result;
    }
 
    template<class X, class Y, class Z> Z& matrix_mul_helper_transpose_lhs(Z& result, const X& lhs, const Y& rhs)
@@ -28,7 +31,9 @@ namespace crnlib
       CRNLIB_ASSUME(Z::num_rows == X::num_cols);
       CRNLIB_ASSUME(Z::num_cols == Y::num_cols);
       CRNLIB_ASSUME(X::num_rows == Y::num_rows);
+
       for (int r = 0; r < X::num_cols; r++)
+      {
          for (int c = 0; c < Y::num_cols; c++)
          {
             typename Z::scalar_type s = lhs(0, r) * rhs(0, c);
@@ -36,7 +41,9 @@ namespace crnlib
                s += lhs(i, r) * rhs(i, c);
             result(r, c) = s;
          }
-         return result;
+      }
+
+     return result;
    }
 
    template<class X, class Y, class Z> Z& matrix_mul_helper_transpose_rhs(Z& result, const X& lhs, const Y& rhs)
@@ -44,7 +51,9 @@ namespace crnlib
       CRNLIB_ASSUME(Z::num_rows == X::num_rows);
       CRNLIB_ASSUME(Z::num_cols == Y::num_rows);
       CRNLIB_ASSUME(X::num_cols == Y::num_cols);
+
       for (int r = 0; r < X::num_rows; r++)
+      {
          for (int c = 0; c < Y::num_rows; c++)
          {
             typename Z::scalar_type s = lhs(r, 0) * rhs(c, 0);
@@ -52,7 +61,9 @@ namespace crnlib
                s += lhs(r, i) * rhs(c, i);
             result(r, c) = s;
          }
-         return result;
+      }
+
+     return result;
    }
 
    template<uint R, uint C, typename T>
@@ -421,7 +432,7 @@ namespace crnlib
          *this = result;
          return *this;
       }
-                  
+
       // This method transforms a column vec by a matrix (D3D-style).
       static inline row_vec transform(const col_vec& a, const matrix& b)
       {
@@ -561,5 +572,5 @@ namespace crnlib
    typedef matrix<4, 4, double> matrix44D;
 
    typedef matrix<8, 8, float> matrix88F;
-   
+
 } // namespace crnlib
