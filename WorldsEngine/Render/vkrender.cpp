@@ -657,6 +657,8 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     allocatorCreateInfo.flags = 0;
     vmaCreateAllocator(&allocatorCreateInfo, &allocator);
 
+    deletionAllocator = allocator;
+
     VkPipelineCacheCreateInfo pipelineCacheInfo{VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO};
     PipelineCacheSerializer::loadPipelineCache(getPhysicalDeviceProperties(physicalDevice), pipelineCacheInfo);
 
@@ -987,7 +989,11 @@ void VKRenderer::createSCDependents() {
 
     for (auto& p : rttPasses) {
         if (p->outputToScreen) {
-            p->isValid = false;
+            // Recreate pass
+            p->destroy();
+            p->createInfo.width = width;
+            p->createInfo.height = height;
+            p->create(this, vrInterface, frameIdx, &dbgStats);
         }
     }
 

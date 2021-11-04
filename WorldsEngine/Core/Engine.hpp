@@ -83,13 +83,15 @@ namespace worlds {
         static int windowThread(void* data);
         static int renderThread(void* data);
         void setupSDL();
-        static SDL_Window* createSDLWindow();
+        SDL_Window* createSDLWindow();
         void setupPhysfs(char* argv0);
         void drawDebugInfoWindow(DebugTimeInfo timeInfo);
         void updateSimulation(float& interpAlpha, double deltaTime);
         void doSimStep(float deltaTime);
+        void tickRenderer(bool renderImgui = false);
 
         SDL_Window* window;
+        int windowWidth, windowHeight;
 
         bool running;
         bool dedicatedServer;
