@@ -814,7 +814,7 @@ namespace worlds {
             }
 
             if (inputManager->keyPressed(SDL_SCANCODE_RCTRL, true)) {
-                SDL_SetRelativeMouseMode((SDL_bool)!SDL_GetRelativeMouseMode());
+                inputManager->lockMouse(!inputManager->mouseLockState());
             }
 
             if (inputManager->keyPressed(SDL_SCANCODE_F3, true)) {
