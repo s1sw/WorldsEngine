@@ -818,6 +818,7 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     cubemapSlots->loadOrGet(AssetDB::pathToId("envmap_miramar/miramar.json"));
 
     g_console->registerCommand([&](void*, const char* arg) {
+        std::lock_guard<std::mutex> lg {*apiMutex};
         numMSAASamples = std::atoi(arg);
         // The sample count flags are actually identical to the number of samples
         msaaSamples = (VkSampleCountFlagBits)numMSAASamples;
@@ -840,7 +841,7 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
         }, "r_printAllocInfo", "", nullptr);
 
     g_console->registerCommand([&](void*, const char* arg) {
-        vkDeviceWaitIdle(device);
+        std::lock_guard<std::mutex> lg {*apiMutex};
         shadowmapRes = std::atoi(arg);
         handles.graphicsSettings.shadowmapRes = shadowmapRes;
         delete shadowmapImage;
@@ -857,7 +858,7 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
         }, "r_setCSMResolution", "Sets the resolution of the cascaded shadow map.");
 
     g_console->registerCommand([&](void*, const char* arg) {
-        vkDeviceWaitIdle(device);
+        std::lock_guard<std::mutex> lg {*apiMutex};
         handles.graphicsSettings.spotShadowmapRes = std::atoi(arg);
 
         for (int i = 0; i < NUM_SHADOW_LIGHTS; i++) {
@@ -1041,14 +1042,6 @@ void VKRenderer::recreateSwapchainInternal(int newWidth, int newHeight) {
     if (newWidth == 0 || newHeight == 0) {
         logVrb(WELogCategoryRender, "Ignoring resize with 0 width or height");
         isMinimised = true;
-
-        while (isMinimised) {
-            isMinimised = newWidth == 0 || newHeight == 0;
-            SDL_PumpEvents();
-            SDL_Delay(50);
-        }
-
-        recreateSwapchainInternal();
         return;
     }
 
@@ -1539,6 +1532,7 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
     ZoneScoped;
     std::unique_lock<std::mutex> lock{*apiMutex};
 
+
     if (vrApi == VrApi::OpenVR) {
         ZoneScopedN("WaitGetPoses");
         vr::VRCompositor()->WaitGetPoses(nullptr, 0, nullptr, 0);
@@ -1618,7 +1612,8 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
     DeletionQueue::setCurrentFrame(frameIdx);
 
     VkCommandBuffer cmdBuf = cmdBufs[frameIdx];
-    writeCmdBuf(cmdBuf, imageIndex, cam, reg);
+    if (!isMinimised && !enableVR)
+        writeCmdBuf(cmdBuf, imageIndex, cam, reg);
 
     VkSubmitInfo submit{ VK_STRUCTURE_TYPE_SUBMIT_INFO };
     submit.waitSemaphoreCount = 1;
@@ -1666,14 +1661,11 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
 
     if (presentResult == VK_ERROR_OUT_OF_DATE_KHR) {
         logVrb(WELogCategoryRender, "swapchain out of date after present");
-        //recreateSwapchainInternal();
     } else if (presentResult == VK_SUBOPTIMAL_KHR) {
         logVrb(WELogCategoryRender, "swapchain after present suboptimal");
-        //recreateSwapchain();
     } else if (presentResult != VK_SUCCESS) {
         fatalErr("Failed to present");
     }
-
 
     std::array<std::uint64_t, 2> timeStamps = { {0} };
 
