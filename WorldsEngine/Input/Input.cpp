@@ -1,5 +1,8 @@
 #include "Input.hpp"
 #include "../ImGui/imgui.h"
+#ifdef __linux__
+#define RELATIVE_MOUSE_HACK
+#endif
 
 namespace worlds {
     InputManager::InputManager(SDL_Window* window)
@@ -15,6 +18,17 @@ namespace worlds {
 
         SDL_GetRelativeMouseState(&mouseDelta.x, &mouseDelta.y);
         SDL_GetMouseState(&mousePos.x, &mousePos.y);
+
+#ifdef RELATIVE_MOUSE_HACK
+        int x, y;
+        SDL_GetWindowSize(window, &x, &y);
+
+        if (mouseLocked) {
+            mouseDelta.x = mousePos.x - x / 2;
+            mouseDelta.y = mousePos.y - y / 2;
+            SDL_WarpMouseInWindow(window, x / 2, y / 2);
+        }
+#endif
     }
 
     void InputManager::processEvent(const SDL_Event& evt) {
@@ -88,7 +102,21 @@ namespace worlds {
         SDL_CaptureMouse((SDL_bool)capture);
     }
 
+    bool InputManager::mouseLockState() const {
+        return mouseLocked;
+    }
+
     void InputManager::lockMouse(bool lock) {
+#ifdef RELATIVE_MOUSE_HACK
+        SDL_SetWindowGrab(window, (SDL_bool)lock);
+        if (lock)
+            ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_NoMouseCursorChange;
+        else
+            ImGui::GetIO().ConfigFlags &= ~ImGuiConfigFlags_NoMouseCursorChange;
+        SDL_ShowCursor(lock ? SDL_DISABLE : SDL_ENABLE);
+#else
         SDL_SetRelativeMouseMode((SDL_bool)lock);
+#endif
+        mouseLocked = lock;
     }
 }
