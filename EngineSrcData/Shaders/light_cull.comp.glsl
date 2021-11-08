@@ -42,7 +42,11 @@ layout (binding = 2) uniform MultiVP {
     vec4 viewPos[2];
 };
 
+#ifdef MSAA
 layout (binding = 3) uniform sampler2DMSArray depthBuffer;
+#else
+layout (binding = 3) uniform sampler2DArray depthBuffer;
+#endif
 
 layout (binding = 4) buffer TileLightCounts {
     uint tileLightCounts[];
@@ -165,6 +169,9 @@ void main() {
     // THIS ONLY WORKS FOR 16x16 TILES.
     // Changing the tile size means that there's no longer a 1:1 correlation between threads
     // and tile pixels, so this atomic depth read won't work.
+    //
+    // NOTE: When MSAA is on, the last parameter refers to the MSAA sample to load. When MSAA is 
+    // off, it refers to the mipmap level to load from.
     float depthAtCurrent = texelFetch(depthBuffer, ivec3(gl_GlobalInvocationID.xy, eyeIdx), 0).x;
     uint depthAsUint = floatBitsToUint(depthAtCurrent);
 
