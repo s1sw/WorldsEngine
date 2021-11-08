@@ -40,7 +40,9 @@ namespace worlds {
         plm.pushConstantRange(VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(LightCullPushConstants));
         pipelineLayout = plm.create(handles->device);
 
-        shader = ShaderCache::getModule(handles->device, AssetDB::pathToId("Shaders/light_cull.comp.spv"));
+        AssetID shaderID = ctx.passSettings.msaaSamples > 1 ? 
+            AssetDB::pathToId("Shaders/light_cull.comp.spv") : AssetDB::pathToId("Shaders/light_cull_nomsaa.comp.spv");
+        shader = ShaderCache::getModule(handles->device, shaderID);
 
         vku::SamplerMaker sm;
         sampler = sm.create(handles->device);

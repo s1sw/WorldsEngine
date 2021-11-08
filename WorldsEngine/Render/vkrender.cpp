@@ -823,8 +823,7 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
         // The sample count flags are actually identical to the number of samples
         msaaSamples = (VkSampleCountFlagBits)numMSAASamples;
         handles.graphicsSettings.msaaLevel = numMSAASamples;
-        recreateSwapchain();
-        }, "r_setMSAASamples", "Sets the number of MSAA samples.", nullptr);
+        }, "r_setMSAASamples", "Sets the number of MSAA samples. Does not automatically recreate RTT passes!", nullptr);
 
     g_console->registerCommand([&](void*, const char*) {
         recreateSwapchain();
@@ -1598,8 +1597,9 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
 
     {
         PerfTimer pt;
-        if (vkWaitForFences(device, 1, &cmdBufFences[frameIdx], VK_TRUE, UINT64_MAX) != VK_SUCCESS) {
-            fatalErr("Failed to wait on fences");
+        VkResult result = vkWaitForFences(device, 1, &cmdBufFences[frameIdx], VK_TRUE, UINT64_MAX);
+        if (result != VK_SUCCESS) {
+            fatalErr((std::string("Failed to wait on fences: ") + vku::toString(result)).c_str());
         }
         dbgStats.cmdBufFenceWaitTime = pt.stopGetMs();
     }
