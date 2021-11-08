@@ -992,8 +992,8 @@ void VKRenderer::createSCDependents() {
         if (p->outputToScreen) {
             // Recreate pass
             p->destroy();
-            p->createInfo.width = width;
-            p->createInfo.height = height;
+            p->createInfo.width = p->isVr ? vrWidth : width;
+            p->createInfo.height = p->isVr ? vrHeight : height;
             p->create(this, vrInterface, frameIdx, &dbgStats);
         }
     }
@@ -1612,7 +1612,7 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
     DeletionQueue::setCurrentFrame(frameIdx);
 
     VkCommandBuffer cmdBuf = cmdBufs[frameIdx];
-    if (!isMinimised && !enableVR)
+    if (!isMinimised || enableVR)
         writeCmdBuf(cmdBuf, imageIndex, cam, reg);
 
     VkSubmitInfo submit{ VK_STRUCTURE_TYPE_SUBMIT_INFO };
@@ -1634,7 +1634,7 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
 
     if (submitResult != VK_SUCCESS) {
         std::string errStr = vku::toString(submitResult);
-        fatalErr(("Failed to submit queue (error: " + errStr + ")").c_str());
+        logErr(("Failed to submit queue (error: " + errStr + ")").c_str());
     }
 
     TracyMessageL("Queue submitted");

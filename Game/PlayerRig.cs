@@ -184,14 +184,6 @@ namespace Game
 
         private VRAction _jumpAction;
 
-        private static AssetID[] _footstepNoises;
-        private static Random _footstepRng = new();
-
-        public static AssetID GetRandomFootstepSound()
-        {
-            return _footstepNoises[_footstepRng.Next(0, 10)];
-        }
-
         public void OnSceneStart()
         {
             if (VR.Enabled)
@@ -202,14 +194,6 @@ namespace Game
             if (PlayerBody.IsNull) return;
 
             PlayerFender = Registry.Find("Fender");
-
-            _footstepNoises = new AssetID[10];
-            for (int i = 1; i <= 10; i++)
-            {
-                string path = "Audio/SFX/Footsteps/Concrete/step" +
-                    (i < 10 ? "0" : "") + i + ".ogg";
-                _footstepNoises[i - 1] = AssetDB.PathToId(path);
-            }
 
             var healthComp = Registry.GetComponent<Combat.HealthComponent>(PlayerBody);
             healthComp.OnDeath += (Entity e) => {

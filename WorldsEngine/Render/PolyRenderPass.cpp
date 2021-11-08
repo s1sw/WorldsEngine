@@ -308,10 +308,10 @@ namespace worlds {
         rPassMaker.subpassDepthStencilAttachment(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, 1);
 
         rPassMaker.dependencyBegin(VK_SUBPASS_EXTERNAL, 0);
-        rPassMaker.dependencySrcStageMask(VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT);
-        rPassMaker.dependencySrcAccessMask(VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
-        rPassMaker.dependencyDstStageMask(VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-        rPassMaker.dependencyDstAccessMask(VK_ACCESS_SHADER_READ_BIT);
+        rPassMaker.dependencyDstStageMask(VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT);
+        rPassMaker.dependencyDstAccessMask(VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
+        rPassMaker.dependencySrcStageMask(VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+        rPassMaker.dependencySrcAccessMask(VK_ACCESS_SHADER_READ_BIT);
 
         vku::RenderpassMaker depthPassMaker;
 
@@ -326,10 +326,10 @@ namespace worlds {
         depthPassMaker.subpassDepthStencilAttachment(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, 0);
 
         depthPassMaker.dependencyBegin(0, VK_SUBPASS_EXTERNAL);
-        depthPassMaker.dependencySrcStageMask(VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-        depthPassMaker.dependencySrcAccessMask(VK_ACCESS_SHADER_READ_BIT);
-        depthPassMaker.dependencyDstStageMask(VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT);
-        depthPassMaker.dependencyDstAccessMask(VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT);
+        depthPassMaker.dependencyDstStageMask(VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+        depthPassMaker.dependencyDstAccessMask(VK_ACCESS_SHADER_READ_BIT);
+        depthPassMaker.dependencySrcStageMask(VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT);
+        depthPassMaker.dependencySrcAccessMask(VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT);
 
         // AMD driver bug workaround: shaders that use ViewIndex without a multiview renderpass
         // will crash the driver, so we always set up a renderpass with multiview even if it's only
@@ -590,7 +590,7 @@ namespace worlds {
 
         if (ctx.passSettings.enableVR) {
             cullMeshRenderer = new VRCullMeshRenderer{ handles };
-            cullMeshRenderer->setup(ctx, renderPass, descriptorPool);
+            cullMeshRenderer->setup(ctx, depthPass, descriptorPool);
         }
 
         VKCHECK(vkSetEvent(handles->device, pickEvent));

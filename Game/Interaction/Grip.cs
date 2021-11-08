@@ -54,9 +54,10 @@ namespace Game.Interaction
             CurrentlyAttachedHand &= ~hand;
         }
 
-        public float CalculateGripScore(Transform obj, Transform hand)
+        public float CalculateGripScore(Transform obj, Transform hand, bool isRightHand)
         {
-            float linearScore = hand.Position.DistanceTo(obj.TransformPoint(position));
+            Transform attachTransform = GetAttachTransform(hand, obj, isRightHand);
+            float linearScore = hand.Position.DistanceTo(obj.TransformPoint(attachTransform.Position));
 
             if (Type == GripType.Box)
             {
@@ -67,7 +68,7 @@ namespace Game.Interaction
 
             float angularScore = Quaternion.Dot(hand.Rotation.SingleCover, (obj.Rotation * rotation).SingleCover);
 
-            return 1.0f / linearScore;
+            return 10.0f / linearScore;
         }
 
         public Transform GetAttachTransform(Transform handTransform, Transform objTransform, bool isRightHand)

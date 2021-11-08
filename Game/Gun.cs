@@ -8,7 +8,7 @@ using Game.Combat;
 
 namespace Game
 {
-    public enum ProjectileType
+    public enum AmmoType
     {
         Laser,
         Humongous
@@ -21,7 +21,7 @@ namespace Game
         public bool Automatic = false;
         public float ShotSpacing = 0.1f;
         public float ProjectileSpawnDistance = 0.5f;
-        public ProjectileType ProjectileType;
+        public AmmoType ProjectileType;
         public bool MagazineRequired = false;
         public Vector3 MagazineAttachedPosition;
 
@@ -39,7 +39,7 @@ namespace Game
 
             _projectilePrefab = ProjectileType switch
             {
-                ProjectileType.Humongous => AssetDB.PathToId("Prefabs/big_ass_projectile.wprefab"),
+                AmmoType.Humongous => AssetDB.PathToId("Prefabs/big_ass_projectile.wprefab"),
                 _ => AssetDB.PathToId("Prefabs/gun_projectile.wprefab"),
             };
         }
@@ -83,7 +83,7 @@ namespace Game
 
             string evt = ProjectileType switch
             {
-                ProjectileType.Humongous => "event:/Weapons/Big Gun",
+                AmmoType.Humongous => "event:/Weapons/Big Gun",
                 _ => "event:/Weapons/Gun Shot"
             };
 
@@ -93,7 +93,7 @@ namespace Game
 
             float speed = ProjectileType switch
             {
-                ProjectileType.Humongous => 10f,
+                AmmoType.Humongous => 10f,
                 _ => 100f
             };
 
@@ -120,16 +120,19 @@ namespace Game
         {
             if (_shotTimer < ShotSpacing * 2f)
                 _shotTimer += Time.DeltaTime;
+
+            if (WorldsEngine.Input.Keyboard.KeyPressed(WorldsEngine.Input.KeyCode.K))
+                EjectMag();
         }
 
         private async void DoHaptics(AttachedHandFlags handFlags)
         {
             switch (ProjectileType)
             {
-                case ProjectileType.Laser:
+                case AmmoType.Laser:
                     HapticManager.Trigger(handFlags, 0.0f, MathF.Min(ShotSpacing, 0.2f), 50f, 1.0f);
                     break;
-                case ProjectileType.Humongous:
+                case AmmoType.Humongous:
                     HapticManager.Trigger(handFlags, 0.0f, 0.1f, 500f, 1.0f);
                     await System.Threading.Tasks.Task.Delay(100);
                     HapticManager.Trigger(handFlags, 0.0f, 0.1f, 200f, 1.0f);
@@ -141,21 +144,25 @@ namespace Game
 
         public void OnCollision(Entity entity, ref PhysicsContactInfo contactInfo)
         {
+            if (_hasMagazine) return;
             if (!Registry.HasComponent<Magazine>(contactInfo.OtherEntity) || contactInfo.OtherEntity == _currentMagazine) return;
 
-            if (_hasMagazine)
-            {
-                EjectMag();
-            }
+            Transform gunTransform = Registry.GetTransform(entity);
+            if (contactInfo.AverageContactPoint.DistanceTo(gunTransform.TransformPoint(MagazineAttachedPosition)) > 0.05f) return;
 
             _hasMagazine = true;
 
-            var d6 = Registry.AddComponent<D6Joint>(contactInfo.OtherEntity);
-            d6.Target = entity;
-            d6.TargetLocalPose = new Transform(MagazineAttachedPosition, Quaternion.Identity);
+            var d6 = Registry.AddComponent<D6Joint>(entity);
+            d6.Target = contactInfo.OtherEntity;
+            d6.LocalPose = new Transform(MagazineAttachedPosition, Quaternion.Identity);
 
             d6.SetAllAxisMotion(D6Motion.Locked);
             _currentMagazine = contactInfo.OtherEntity;
+
+            // i hate physx
+            var dpa = Registry.GetComponent<DynamicPhysicsActor>(entity);
+            dpa.Kinematic = true;
+            dpa.Kinematic = false;
         }
 
         public void EjectMag()
