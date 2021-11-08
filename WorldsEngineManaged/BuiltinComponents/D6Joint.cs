@@ -122,6 +122,16 @@ namespace WorldsEngine
         [DllImport(WorldsEngine.NativeModule)]
         private static extern void d6joint_setDrive(IntPtr regPtr, uint d6ent, D6Drive drive, ref D6JointDrive jointDrive);
 
+        [DllImport(WorldsEngine.NativeModule)]
+        private static extern void d6joint_setBreakForce(IntPtr regPtr, uint d6ent, float breakForce);
+
+        [DllImport(WorldsEngine.NativeModule)]
+        private static extern float d6joint_getBreakForce(IntPtr regPtr, uint d6ent);
+
+        [DllImport(WorldsEngine.NativeModule)]
+        [return: MarshalAs(UnmanagedType.I1)]
+        private static extern bool d6joint_isBroken(IntPtr regPtr, uint d6ent);
+
         internal static ComponentMetadata Metadata
         {
             get
@@ -175,6 +185,14 @@ namespace WorldsEngine
                 d6joint_setLocalPose(regPtr, entityId, 1, ref value);
             }
         }
+
+        public float BreakForce
+        {
+            get => d6joint_getBreakForce(regPtr, entityId);
+            set => d6joint_setBreakForce(regPtr, entityId, value);
+        }
+
+        public bool IsBroken => d6joint_isBroken(regPtr, entityId);
 
         internal D6Joint(IntPtr regPtr, uint entityId) : base(regPtr, entityId)
         {

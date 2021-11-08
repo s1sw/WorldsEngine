@@ -92,7 +92,7 @@ namespace WorldsEngine
             var serializerOptions = new JsonSerializerOptions()
             {
                 IncludeFields = true,
-                IgnoreReadOnlyProperties = true
+                IgnoreReadOnlyProperties = true,
             };
 
             for (int i = 0; i < ComponentPoolCount; i++)
@@ -342,7 +342,7 @@ namespace WorldsEngine
 
             if (!HasComponent<T>(entity))
             {
-                throw new MissingComponentException();
+                throw new MissingComponentException(type.Name);
             }
 
             if (type.IsAssignableTo(typeof(BuiltinComponent)))

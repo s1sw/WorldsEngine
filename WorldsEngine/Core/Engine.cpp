@@ -739,15 +739,31 @@ namespace worlds {
             deltaTime = deltaTicks / (double)SDL_GetPerformanceFrequency();
             gameTime += deltaTime;
 
-            double timeAtStart = (double)SDL_GetPerformanceCounter() / SDL_GetPerformanceFrequency();
-            double targetTime = 0.006;
-            double throttleTime = pacingSleepTime.getInt() ? pacingSleepTime.getInt() / 1000.0 : glm::clamp(targetTime - lastUpdateTime - 0.001, 0.0, 0.02);
-            double currTime = timeAtStart;
+            if (renderer->getVsync() || enableOpenVR) {
+                double targetTime;
 
-            while (currTime - timeAtStart < throttleTime) {
-                currTime = (double)SDL_GetPerformanceCounter() / SDL_GetPerformanceFrequency();
-                if (currTime - timeAtStart > 0.001) {
-                    SDL_Delay(1);
+                if (enableOpenVR) {
+                    float fDisplayFrequency = vr::VRSystem()->GetFloatTrackedDeviceProperty(vr::k_unTrackedDeviceIndex_Hmd, vr::Prop_DisplayFrequency_Float);
+                    targetTime = 1.0 / fDisplayFrequency;
+                } else {
+                    int displayIdx = SDL_GetWindowDisplayIndex(window);
+                    SDL_DisplayMode displayMode;
+                    SDL_GetCurrentDisplayMode(displayIdx, &displayMode);
+                    targetTime = 1.0 / displayMode.refresh_rate;
+                }
+
+                // Leave about 3ms of margin just in case
+                targetTime -= 0.003;
+
+                double timeAtStart = (double)SDL_GetPerformanceCounter() / SDL_GetPerformanceFrequency();
+                double throttleTime = pacingSleepTime.getInt() ? pacingSleepTime.getInt() / 1000.0 : glm::clamp(targetTime - lastUpdateTime, 0.0, 0.02);
+                double currTime = timeAtStart;
+
+                while (currTime - timeAtStart < throttleTime) {
+                    currTime = (double)SDL_GetPerformanceCounter() / SDL_GetPerformanceFrequency();
+                    if (currTime - timeAtStart > 0.001) {
+                        SDL_Delay(1);
+                    }
                 }
             }
 

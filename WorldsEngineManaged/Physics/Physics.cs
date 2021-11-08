@@ -108,9 +108,16 @@ namespace WorldsEngine
             while (_collisionQueue.Count > 0)
             {
                 var collision = _collisionQueue.Dequeue();
-                if (Registry.Valid(new Entity(collision.EntityID)))
+                try
                 {
-                    Registry.HandleCollision(collision.EntityID, ref collision.ContactInfo);
+                    if (Registry.Valid(new Entity(collision.EntityID)))
+                    {
+                        Registry.HandleCollision(collision.EntityID, ref collision.ContactInfo);
+                    }
+                }
+                catch (Exception e)
+                {
+                    Logger.LogError($"Caught exception: {e}");
                 }
             }
         }

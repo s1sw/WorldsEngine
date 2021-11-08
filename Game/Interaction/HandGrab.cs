@@ -96,7 +96,7 @@ namespace Game.Interaction
             var grips = overlapped.Take((int)overlappedCount)
                 .Where((Entity e) => Registry.HasComponent<Grabbable>(e))
                 .Select((Entity e) => (e, Registry.GetComponent<Grabbable>(e).grips))
-                .Select((p) => (p.e, score: p.grips.Select((g) => g.CalculateGripScore(Registry.GetComponent<DynamicPhysicsActor>(p.e).Pose, dpa.Pose)).Max()))
+                .Select((p) => (p.e, score: p.grips.Select((g) => g.CalculateGripScore(Registry.GetComponent<DynamicPhysicsActor>(p.e).Pose, dpa.Pose, IsRightHand)).Max()))
                 .OrderByDescending((p) => p.score);
 
             if (grips.TryFirst(out var firstGrip))
@@ -203,7 +203,7 @@ namespace Game.Interaction
                 .Where((Grip g) => g.CanAttach && (g.Hand == GripHand.Both || g.Hand == thisHand));
 
             Grip g = filteredGrips
-                .OrderByDescending((Grip g) => g.CalculateGripScore(grabbingTransform, handTransform))
+                .OrderByDescending((Grip g) => g.CalculateGripScore(grabbingTransform, handTransform, IsRightHand))
                 .FirstOrDefault();
 
             if (g == null)

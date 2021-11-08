@@ -107,4 +107,23 @@ extern "C" {
     EXPORT void d6joint_setDrive(entt::registry* reg, entt::entity entity, physx::PxD6Drive::Enum axis, physx::PxD6JointDrive* drive) {
         reg->get<D6Joint>(entity).pxJoint->setDrive(axis, *drive);
     }
+
+    EXPORT void d6joint_setBreakForce(entt::registry* reg, entt::entity entity, float breakForce) {
+        D6Joint& j = reg->get<D6Joint>(entity);
+        float force, torque;
+        j.pxJoint->getBreakForce(force, torque);
+        j.pxJoint->setBreakForce(breakForce, torque);
+    }
+
+    EXPORT float d6joint_getBreakForce(entt::registry* reg, entt::entity entity) {
+        D6Joint& j = reg->get<D6Joint>(entity);
+        float force, torque;
+        j.pxJoint->getBreakForce(force, torque);
+        return force;
+    }
+
+    EXPORT bool d6joint_isBroken(entt::registry* reg, entt::entity entity) {
+        D6Joint& j = reg->get<D6Joint>(entity);
+        return (j.pxJoint->getConstraintFlags() & physx::PxConstraintFlag::eBROKEN);
+    }
 }
