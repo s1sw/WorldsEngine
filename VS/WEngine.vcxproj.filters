@@ -693,6 +693,9 @@
     <ClCompile Include="..\WorldsEngine\Render\MainPass.cpp">
       <Filter>Render</Filter>
     </ClCompile>
+    <ClCompile Include="..\WorldsEngine\Render\ShaderReflector.cpp">
+      <Filter>Render</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\WorldsEngine\AssetCompilation\AssetCompilerUtil.hpp">
