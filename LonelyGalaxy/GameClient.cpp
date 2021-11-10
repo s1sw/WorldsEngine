@@ -4,7 +4,7 @@
 #include "LocospherePlayerSystem.hpp"
 #include "NetMessage.hpp"
 #include <entt/entity/registry.hpp>
-#include <Physics/Physics.hpp>
+#include <Physics/PhysicsActor.hpp>
 #include <ImGui/imgui.h>
 
 namespace lg {
@@ -73,8 +73,9 @@ namespace lg {
 
         static glm::vec3 lastVel{ 0.0f };
 
-        pastLocosphereStates.insert({ clientInputIdx,
-            {
+        pastLocosphereStates.insert({
+            clientInputIdx,
+            LocosphereState {
                 worlds::px2glm(pose.p),
                 worlds::px2glm(rd->getLinearVelocity()),
                 worlds::px2glm(rd->getAngularVelocity()),
@@ -134,9 +135,11 @@ namespace lg {
                         lsphereErrIdx = 0;
                 }
 
-                std::erase_if(pastLocosphereStates, [&](auto& k) {
-                    return k.first <= pPos.inputIdx;
-                });
+                auto it = pastLocosphereStates.begin();
+                while (it != pastLocosphereStates.end()) {
+                    if (it->first <= pPos.inputIdx)
+                        it = pastLocosphereStates.erase(it);
+                }
 
                 pose.p = worlds::glm2px(pPos.pos);
                 pose.q = worlds::glm2px(pPos.rot);
