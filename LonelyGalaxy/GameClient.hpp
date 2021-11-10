@@ -2,7 +2,7 @@
 #include "Client.hpp"
 #include "NetMessage.hpp"
 #include <entt/entity/fwd.hpp>
-#include <unordered_map>
+#include <robin_hood.h>
 
 namespace lg {
     class GameClient {
@@ -25,7 +25,7 @@ namespace lg {
             uint16_t inputIndex;
         };
 
-        std::unordered_map<uint16_t, LocosphereState> pastLocosphereStates;
+        robin_hood::unordered_map<uint16_t, LocosphereState> pastLocosphereStates;
         float lsphereErr[128];
         uint32_t lsphereErrIdx = 0;
         uint16_t clientInputIdx = 0;

@@ -142,7 +142,7 @@ namespace vku {
         }
 
         /// Create a self-deleting descriptor set object.
-        VkDescriptorSetLayout create(VkDevice device) const {
+        DescriptorSetLayout create(VkDevice device) const {
             VkDescriptorSetLayoutCreateInfo dsci{};
             dsci.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
             dsci.bindingCount = (uint32_t)s.bindings.size();

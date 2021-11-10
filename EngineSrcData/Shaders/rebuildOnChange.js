@@ -21,6 +21,10 @@ const customArgs = {
         { stage: "comp", defines: ["MSAA"], outFile: "tonemap.comp.spv" },
         { stage: "comp", defines: [], outFile: "tonemap_nomsaa.comp.spv" }
     ],
+    "light_cull.comp.glsl": [
+        { stage: "comp", defines: ["MSAA"], outFile: "light_cull.comp.spv" },
+        { stage: "comp", defines: [], outFile: "light_cull_nomsaa.comp.spv" }
+    ],
     "ui.glsl": [
         { stage: "frag", defines: ["FRAGMENT"], outFile: "ui.frag.spv" },
         { stage: "vert", defines: ["VERTEX"], outFile: "ui.vert.spv" }
