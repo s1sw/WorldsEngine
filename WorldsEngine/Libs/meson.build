@@ -62,6 +62,7 @@ worlds_sources += [
   'Libs/cxxopts.hpp',
   'Libs/crnlib/crn_ryg_dxt.hpp',
   'Libs/crnlib/crn_ryg_types.hpp',
+  'Libs/spirv_reflect.c',
   'Libs/mikktspace.c',
   'Libs/volk.c',
   'Libs/pcg_basic.c',
