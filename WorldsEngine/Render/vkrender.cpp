@@ -1614,6 +1614,10 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
     VkCommandBuffer cmdBuf = cmdBufs[frameIdx];
     if (!isMinimised || enableVR)
         writeCmdBuf(cmdBuf, imageIndex, cam, reg);
+    else {
+        vku::beginCommandBuffer(cmdBuf, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+        VKCHECK(vkEndCommandBuffer(cmdBuf));
+    }
 
     VkSubmitInfo submit{ VK_STRUCTURE_TYPE_SUBMIT_INFO };
     submit.waitSemaphoreCount = 1;

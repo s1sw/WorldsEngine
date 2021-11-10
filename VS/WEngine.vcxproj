@@ -202,6 +202,7 @@
     <ClCompile Include="..\WorldsEngine\Render\RenderTexture.cpp" />
     <ClCompile Include="..\WorldsEngine\Render\RTTPass.cpp" />
     <ClCompile Include="..\WorldsEngine\Render\ShaderCache.cpp" />
+    <ClCompile Include="..\WorldsEngine\Render\ShaderReflector.cpp" />
     <ClCompile Include="..\WorldsEngine\Render\ShadowCascadePass.cpp" />
     <ClCompile Include="..\WorldsEngine\Render\SkyboxPass.cpp" />
     <ClCompile Include="..\WorldsEngine\Render\TextureSlots.cpp" />
