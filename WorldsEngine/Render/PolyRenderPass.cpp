@@ -16,23 +16,25 @@
 #include "vku/DescriptorSetUtil.hpp"
 
 namespace ShaderFlags {
-    const int DBG_FLAG_NORMALS = 2;
-    const int DBG_FLAG_METALLIC = 4;
-    const int DBG_FLAG_ROUGHNESS = 8;
-    const int DBG_FLAG_AO = 16;
-    const int DBG_FLAG_NORMAL_MAP = 32;
-    const int DBG_FLAG_LIGHTING_ONLY = 64;
-    const int DBG_FLAG_UVS = 128;
-    const int DBG_FLAG_SHADOW_CASCADES = 256;
-    const int DBG_FLAG_ALBEDO = 512;
-    const int DBG_FLAG_LIGHT_TILES = 1024;
+    enum ShaderFlag {
+        DBG_FLAG_NORMALS = 2,
+        DBG_FLAG_METALLIC = 4,
+        DBG_FLAG_ROUGHNESS = 8,
+        DBG_FLAG_AO = 16,
+        DBG_FLAG_NORMAL_MAP = 32,
+        DBG_FLAG_LIGHTING_ONLY = 64,
+        DBG_FLAG_UVS = 128,
+        DBG_FLAG_SHADOW_CASCADES = 256,
+        DBG_FLAG_ALBEDO = 512,
+        DBG_FLAG_LIGHT_TILES = 1024,
 
-    const int MISC_FLAG_UV_XY = 2048;
-    const int MISC_FLAG_UV_XZ = 4096;
-    const int MISC_FLAG_UV_ZY = 8192;
-    const int MISC_FLAG_UV_PICK = 16384;
-    const int MISC_FLAG_CUBEMAP_PARALLAX = 32768;
-    const int MISC_FLAG_DISABLE_SHADOWS = 65536;
+        MISC_FLAG_UV_XY = 2048,
+        MISC_FLAG_UV_XZ = 4096,
+        MISC_FLAG_UV_ZY = 8192,
+        MISC_FLAG_UV_PICK = 16384,
+        MISC_FLAG_CUBEMAP_PARALLAX = 32768,
+        MISC_FLAG_DISABLE_SHADOWS = 65536
+    };
 }
 
 namespace worlds {
@@ -659,13 +661,13 @@ namespace worlds {
             float maxScale = glm::max(t.scale.x, glm::max(t.scale.y, t.scale.z));
             if (!ctx.passSettings.enableVR) {
                 if (!frustum.containsSphere(t.position, meshPos->second.sphereRadius * maxScale)) {
-                    ctx.debugContext.stats->numCulledObjs++;
+                    //ctx.debugContext.stats->numCulledObjs++;
                     return;
                 }
             } else {
                 if (!frustum.containsSphere(t.position, meshPos->second.sphereRadius * maxScale) &&
                     !frustumB.containsSphere(t.position, meshPos->second.sphereRadius * maxScale)) {
-                    ctx.debugContext.stats->numCulledObjs++;
+                    //ctx.debugContext.stats->numCulledObjs++;
                     return;
                 }
             }
@@ -742,11 +744,11 @@ namespace worlds {
                     sdi.dontPrepass = true;
                 } else if (ctx.registry.has<UseWireframe>(ent) || showWireframe.getInt() == 2) {
                     drawInfo.add(sdi);
-                    ctx.debugContext.stats->numTriangles += currSubmesh.indexCount / 3;
+                    //ctx.debugContext.stats->numTriangles += currSubmesh.indexCount / 3;
                     sdi.pipeline = wireframePipeline;
                     sdi.dontPrepass = true;
                 }
-                ctx.debugContext.stats->numTriangles += currSubmesh.indexCount / 3;
+                //ctx.debugContext.stats->numTriangles += currSubmesh.indexCount / 3;
 
                 drawInfo.add(std::move(sdi));
             }
@@ -776,7 +778,7 @@ namespace worlds {
 
             modelMatricesMapped[ctx.frameIndex]->modelMatrices[matrixIdx] = t.getMatrix();
 
-            float maxScale = glm::max(t.scale.x, glm::max(t.scale.y, t.scale.z));
+            //float maxScale = glm::max(t.scale.x, glm::max(t.scale.y, t.scale.z));
             //if (!ctx.passSettings.enableVR) {
             //    if (!frustum.containsSphere(t.position, meshPos->second.sphereRadius * maxScale)) {
             //        ctx.debugContext.stats->numCulledObjs++;
@@ -848,12 +850,9 @@ namespace worlds {
                     });
 
                 sdi.cubemapIdx = currCubemapIdx;
-
-                auto& extraDat = resources.materials.getExtraDat(sdi.materialIdx);
-
                 sdi.pipeline = skinnedPipeline;
 
-                ctx.debugContext.stats->numTriangles += currSubmesh.indexCount / 3;
+                //ctx.debugContext.stats->numTriangles += currSubmesh.indexCount / 3;
 
                 drawInfo.add(std::move(sdi));
             }
