@@ -666,9 +666,9 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     std::free((void*)pipelineCacheInfo.pInitialData);
 
     std::vector<VkDescriptorPoolSize> poolSizes;
-    poolSizes.emplace_back(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1024);
-    poolSizes.emplace_back(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1024);
-    poolSizes.emplace_back(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1024);
+    poolSizes.emplace_back(VkDescriptorPoolSize { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1024 });
+    poolSizes.emplace_back(VkDescriptorPoolSize { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1024 });
+    poolSizes.emplace_back(VkDescriptorPoolSize { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1024 });
 
     // Create an arbitrary number of descriptors in a pool.
     // Allow the descriptors to be freed, possibly not optimal behaviour.
