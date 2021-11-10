@@ -1,7 +1,9 @@
 #include "IOUtil.hpp"
 #include "../Util/Result.hpp"
+#include "Core/Log.hpp"
 #include <SDL_log.h>
 #include <physfs.h>
+#include <Core/AssetDB.hpp>
 
 namespace worlds {
     Result<void*, IOError> LoadFileToBuffer(std::string path, int64_t* fileLength) {
@@ -79,5 +81,56 @@ namespace worlds {
         PHYSFS_close(f);
 
         return true;
+    }
+
+    Result<void*, IOError> loadAssetToBuffer(AssetID asset, int64_t* fileLength) {
+        PHYSFS_File* file = AssetDB::openAssetFileRead(asset);
+
+        if (file == nullptr) {
+            PHYSFS_ErrorCode errCode = PHYSFS_getLastErrorCode();
+            logErr(
+                "Failed to open file %s due to following error: %s",
+                AssetDB::idToPath(asset).c_str(),
+                PHYSFS_getErrorByCode(errCode));
+
+            switch (errCode) {
+            case PHYSFS_ErrorCode::PHYSFS_ERR_NOT_FOUND:
+                return IOError::FileNotFound;
+            default:
+                return IOError::Unknown;
+            }
+        }
+
+        PHYSFS_sint64 diskFileLength = PHYSFS_fileLength(file);
+
+        if (diskFileLength == -1) {
+            logErr(
+                "Failed to obtain the length of file %s.",
+                AssetDB::idToPath(asset).c_str());
+
+            return IOError::CouldntStat;
+        }
+
+        void* buf = std::malloc(diskFileLength);
+
+        PHYSFS_sint64 readBytes = PHYSFS_readBytes(file, buf, diskFileLength);
+
+        if (readBytes != diskFileLength) {
+            logErr(
+                "Only read %lld bytes of %lld in file %s",
+                readBytes,
+                diskFileLength,
+                AssetDB::idToPath(asset).c_str());
+
+            std::free(buf);
+
+            return IOError::IncompleteRead;
+        }
+
+        PHYSFS_close(file);
+
+        (*fileLength) = diskFileLength;
+
+        return buf;
     }
 }
