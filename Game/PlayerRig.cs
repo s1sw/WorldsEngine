@@ -66,6 +66,51 @@ namespace Game
             return inputVel;
         }
 
+        private void UpdateDodge(Entity entity)
+        {
+            var dpa = Registry.GetComponent<DynamicPhysicsActor>(entity);
+
+            _timeSinceDodge += Time.DeltaTime;
+
+            if (_timeSinceDodge > 0.5f)
+            {
+                if (Keyboard.KeyPressed(KeyCode.NumberRow1))
+                {
+                    Vector3 dodgeDir = Camera.Main.Rotation * Vector3.Left;
+                    _lastDodgeDirection = dodgeDir;
+                    dpa.AddForce(Camera.Main.Rotation * Vector3.Left * 15f, ForceMode.VelocityChange);
+                    _timeSinceDodge = 0.0f;
+                }
+
+                if (Keyboard.KeyPressed(KeyCode.NumberRow2))
+                {
+                    Vector3 dodgeDir = Camera.Main.Rotation * Vector3.Right;
+                    _lastDodgeDirection = dodgeDir;
+                    dpa.AddForce(Camera.Main.Rotation * Vector3.Right * 15f, ForceMode.VelocityChange);
+                    _timeSinceDodge = 0.0f;
+                }
+            }
+        }
+
+        private void UpdateSound(Entity entity, Vector3 inputDirCS)
+        {
+            if (_grounded && !_groundedLast)
+            {
+                Audio.PlayOneShotEvent("event:/Player/Land", Vector3.Zero);
+            }
+
+            if (inputDirCS.LengthSquared > 0.0f && _grounded)
+            {
+                _footstepTimer += Time.DeltaTime * 2f;
+            }
+
+            if (_footstepTimer >= 1.0f)
+            {
+                Audio.PlayOneShotEvent("event:/Player/Walking", Vector3.Zero);
+                _footstepTimer = 0f;
+            }
+        }
+
         public void Think(Entity entity)
         {
             var dpa = Registry.GetComponent<DynamicPhysicsActor>(entity);
@@ -117,11 +162,6 @@ namespace Game
             if (_grounded || targetVelocity.LengthSquared > 0.01f)
                 dpa.AddForce(appliedVelocity, ForceMode.Acceleration);
 
-            if (_grounded && !_groundedLast)
-            {
-                Audio.PlayOneShotEvent("event:/Player/Land", Vector3.Zero);
-            }
-
             if (VR.Enabled)
             {
                 Vector3 movement = VR.HMDTransform.Position - _lastHMDPos;
@@ -132,37 +172,8 @@ namespace Game
                 _lastHMDPos = VR.HMDTransform.Position;
             }
 
-            if (inputDirCS.LengthSquared > 0.0f && _grounded)
-            {
-                _footstepTimer += Time.DeltaTime * 2f;
-            }
-
-            if (_footstepTimer >= 1.0f)
-            {
-                Audio.PlayOneShotEvent("event:/Player/Walking", Vector3.Zero);
-                _footstepTimer = 0f;
-            }
-
-            _timeSinceDodge += Time.DeltaTime;
-
-            if (_timeSinceDodge > 0.5f)
-            {
-                if (Keyboard.KeyPressed(KeyCode.NumberRow1))
-                {
-                    Vector3 dodgeDir = Camera.Main.Rotation * Vector3.Left;
-                    _lastDodgeDirection = dodgeDir;
-                    dpa.AddForce(Camera.Main.Rotation * Vector3.Left * 15f, ForceMode.VelocityChange);
-                    _timeSinceDodge = 0.0f;
-                }
-
-                if (Keyboard.KeyPressed(KeyCode.NumberRow2))
-                {
-                    Vector3 dodgeDir = Camera.Main.Rotation * Vector3.Right;
-                    _lastDodgeDirection = dodgeDir;
-                    dpa.AddForce(Camera.Main.Rotation * Vector3.Right * 15f, ForceMode.VelocityChange);
-                    _timeSinceDodge = 0.0f;
-                }
-            }
+            UpdateSound(entity, inputDirCS);
+            UpdateDodge(entity);
 
             _groundedLast = _grounded;
         }
