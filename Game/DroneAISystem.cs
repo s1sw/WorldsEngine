@@ -3,7 +3,6 @@ using WorldsEngine;
 using WorldsEngine.Math;
 using WorldsEngine.Audio;
 using WorldsEngine.ComponentMeta;
-using WorldsEngine.Editor;
 using System.Threading.Tasks;
 using Game.Combat;
 using ImGuiNET;

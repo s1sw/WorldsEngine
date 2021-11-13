@@ -7,7 +7,6 @@ using WorldsEngine;
 using WorldsEngine.Input;
 using WorldsEngine.Math;
 using WorldsEngine.Audio;
-using WorldsEngine.Editor;
 using ImGuiNET;
 
 namespace Game

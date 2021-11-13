@@ -132,7 +132,13 @@ namespace WorldsEngine
             string idStr = Marshal.PtrToStringAnsi(idPtr)!;
             string jsonStr = Marshal.PtrToStringAnsi(jsonPtr)!;
 
-            Type type = HotloadSerialization.CurrentGameAssembly!.GetType(idStr)!;
+            Type? type = HotloadSerialization.CurrentGameAssembly!.GetType(idStr);
+
+            if (type == null)
+            {
+                Log.Warn($"Failed to find type with ID {idStr}.");
+                return;
+            }
 
             IComponentStorage storage = AssureStorage(type);
 
@@ -161,6 +167,7 @@ namespace WorldsEngine
                 componentStorages[i]!.SerializeForHotload();
                 componentStorages[i] = null;
             }
+
             _collisionHandlers.Clear();
             _startListeners.Clear();
         }
@@ -168,6 +175,7 @@ namespace WorldsEngine
         private static void DeserializeStorages(Assembly gameAssembly)
         {
             List<string> componentTypes = new List<string>();
+
             foreach (KeyValuePair<string, SerializedComponentStorage> kvp in ComponentTypeLookup.serializedComponents)
             {
                 componentTypes.Add(kvp.Value.FullTypeName);
@@ -178,28 +186,33 @@ namespace WorldsEngine
                 Type? componentType = gameAssembly.GetType(typename);
 
                 if (componentType == null)
-                    Logger.LogWarning($"Component type {typename} no longer exists");
+                    Log.Warn($"Component type {typename} no longer exists");
                 else
                     AssureStorage(componentType);
             }
+        }
+
+        private static IComponentStorage CreateStorage(Type type)
+        {
+            const BindingFlags storageConstructorBindFlags = BindingFlags.NonPublic | BindingFlags.Instance;
+            Type storageType = typeof(ComponentStorage<>).MakeGenericType(type);
+
+            int index = (int)storageType.GetField("typeIndex", BindingFlags.Static | BindingFlags.Public)!.GetValue(null)!;
+
+            bool hotload = ComponentTypeLookup.serializedComponents.ContainsKey(type.FullName!);
+
+            componentStorages[index] = (IComponentStorage)Activator.CreateInstance(storageType, , null, new object[] { hotload }, null)!;
+            if (typeof(ICollisionHandler).IsAssignableFrom(type))
+                _collisionHandlers.Add(componentStorages[index]!);
+
+            if (typeof(IStartListener).IsAssignableFrom(type))
+                _startListeners.Add(componentStorages[index]!);
         }
 
         private static IComponentStorage AssureStorage(Type type)
         {
             if (!ComponentTypeLookup.typeIndices.ContainsKey(type.FullName!) || componentStorages[ComponentTypeLookup.typeIndices[type.FullName!]] == null)
             {
-                Type storageType = typeof(ComponentStorage<>).MakeGenericType(type);
-
-                int index = (int)storageType.GetField("typeIndex", BindingFlags.Static | BindingFlags.Public)!.GetValue(null)!;
-
-                bool hotload = ComponentTypeLookup.serializedComponents.ContainsKey(type.FullName!);
-
-                componentStorages[index] = (IComponentStorage)Activator.CreateInstance(storageType, BindingFlags.NonPublic | BindingFlags.Instance, null, new object[] { hotload }, null)!;
-                if (typeof(ICollisionHandler).IsAssignableFrom(type))
-                    _collisionHandlers.Add(componentStorages[index]!);
-
-                if (typeof(IStartListener).IsAssignableFrom(type))
-                    _startListeners.Add(componentStorages[index]!);
             }
 
             return componentStorages[ComponentTypeLookup.typeIndices[type.FullName!]]!;

@@ -3,7 +3,6 @@ using System;
 using WorldsEngine;
 using WorldsEngine.Audio;
 using WorldsEngine.Math;
-using WorldsEngine.Editor;
 using Game.Combat;
 
 namespace Game
