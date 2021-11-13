@@ -11,6 +11,32 @@ namespace WorldsEngine
         Error
     }
 
+    public static class Log
+    {
+        [DllImport(WorldsEngine.NativeModule)]
+        private static extern void logging_log(int severity, string message);
+
+        public static void LogWithSeverity(MessageSeverity severity, string message)
+        {
+            logging_log((int)severity, message);
+        }
+
+        public static void Msg(string str)
+        {
+            LogWithSeverity(MessageSeverity.Info, str);
+        }
+
+        public static void Warn(string str)
+        {
+            LogWithSeverity(MessageSeverity.Warning, str);
+        }
+
+        public static void Error(string str)
+        {
+            LogWithSeverity(MessageSeverity.Error, str);
+        }
+    }
+
     public class Logger
     {
         [DllImport(WorldsEngine.NativeModule)]

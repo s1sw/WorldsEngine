@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace WorldsEngine.Editor
+namespace WorldsEngine
 {
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct)]
     public class EditorIconAttribute : Attribute
