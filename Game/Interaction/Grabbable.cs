@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using WorldsEngine;
-using WorldsEngine.Editor;
 
 namespace Game.Interaction
 {

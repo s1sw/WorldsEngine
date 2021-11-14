@@ -6,7 +6,6 @@ using System.Threading.Tasks;
 using WorldsEngine;
 using WorldsEngine.Math;
 using WorldsEngine.Audio;
-using WorldsEngine.Editor;
 
 namespace Game.Combat
 {

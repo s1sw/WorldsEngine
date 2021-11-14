@@ -5,7 +5,6 @@ using System.Text;
 using System.Threading.Tasks;
 using WorldsEngine;
 using WorldsEngine.Audio;
-using WorldsEngine.Editor;
 
 namespace Game
 {
