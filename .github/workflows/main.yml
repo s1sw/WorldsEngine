@@ -34,7 +34,7 @@ jobs:
         run: sudo apt-get install -y meson ninja-build
       
       - name: Install dependencies
-        run: sudo apt-get install -y assimp
+        run: sudo apt-get install -y libassimp-dev libassimp5
 
       # Runs a single command using the runners shell
       - name: Native build setup
