@@ -94,7 +94,7 @@ namespace Game
 
             float speed = ProjectileType switch
             {
-                AmmoType.Humongous => 10f,
+                AmmoType.Humongous => 75f,
                 _ => 100f
             };
 

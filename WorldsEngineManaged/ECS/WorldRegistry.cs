@@ -195,7 +195,7 @@ namespace WorldsEngine
 
         private static IComponentStorage AssureStorage(Type type)
         {
-            if (!ComponentTypeLookup.typeIndices.ContainsKey(type) || componentStorages[ComponentTypeLookup.typeIndices[type]] == null)
+            if (!ComponentTypeLookup.typeIndices.ContainsKey(type.FullName!) || componentStorages[ComponentTypeLookup.typeIndices[type.FullName!]] == null)
             {
                 Type storageType = typeof(ComponentStorage<>).MakeGenericType(type);
 
@@ -212,7 +212,7 @@ namespace WorldsEngine
                     _startListeners.Add(componentStorages[index]!);
             }
 
-            return componentStorages[ComponentTypeLookup.typeIndices[type]]!;
+            return componentStorages[ComponentTypeLookup.typeIndices[type.FullName!]]!;
         }
 
         private static ComponentStorage<T> AssureStorage<T>()
