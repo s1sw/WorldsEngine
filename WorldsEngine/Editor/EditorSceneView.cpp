@@ -67,9 +67,9 @@ namespace worlds {
 
             drawerAnimationProgress = glm::clamp(drawerAnimationProgress, 0.0f, 1.0f);
 
+            ImDrawList* drawList = ImGui::GetWindowDrawList();
+            drawList->PushClipRect(ImGui::GetCursorScreenPos(), ImGui::GetCursorScreenPos() + wSize);
             if (drawerAnimationProgress > 0.0f) {
-                ImDrawList* drawList = ImGui::GetWindowDrawList();
-                drawList->PushClipRect(ImGui::GetCursorScreenPos(), ImGui::GetCursorScreenPos() + wSize);
 
                 ImVec2 animatedOffset{ 0.0f, -50.0f };
                 animatedOffset *= powf(1.0f - drawerAnimationProgress, 5.0f);
@@ -108,7 +108,6 @@ namespace worlds {
                 ImGui::PopItemWidth();
 
                 ImGui::SetCursorPos(ImGui::GetCursorStartPos());
-                drawList->PopClipRect();
             }
 
             glm::vec2 wPos = glm::vec2(ImGui::GetWindowPos()) + glm::vec2(ImGui::GetCursorStartPos());
@@ -332,6 +331,8 @@ namespace worlds {
                     pickRequested = false;
                 }
             }
+
+            drawList->PopClipRect();
         } else {
             sceneViewPass->active = false;
         }
