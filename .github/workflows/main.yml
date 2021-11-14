@@ -32,6 +32,9 @@ jobs:
           
       - name: Install Meson & Ninja
         run: sudo apt-get install -y meson ninja-build
+      
+      - name: Install dependencies
+        run: sudo apt-get install -y assimp
 
       # Runs a single command using the runners shell
       - name: Native build setup
