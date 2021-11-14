@@ -84,16 +84,15 @@ namespace Game.Interaction
             }
         }
 
+        private readonly Entity[] _overlapped = new Entity[32];
         private void GrabNearby()
         {
             var dpa = Registry.GetComponent<DynamicPhysicsActor>(Entity);
 
             const int MaxOverlaps = 32;
-            Entity[] overlapped = new Entity[MaxOverlaps];
+            uint overlappedCount = Physics.OverlapSphereMultiple(dpa.Pose.TransformPoint(new Vector3(0.0f, 0.0f, 0.03f)), 0.5f, MaxOverlaps, _overlapped);
 
-            uint overlappedCount = Physics.OverlapSphereMultiple(dpa.Pose.TransformPoint(new Vector3(0.0f, 0.0f, 0.03f)), 0.5f, MaxOverlaps, overlapped);
-
-            var grips = overlapped.Take((int)overlappedCount)
+            var grips = _overlapped.Take((int)overlappedCount)
                 .Where((Entity e) => Registry.HasComponent<Grabbable>(e))
                 .Select((Entity e) => (e, Registry.GetComponent<Grabbable>(e).grips))
                 .Select((p) => (p.e, score: p.grips.Select((g) => g.CalculateGripScore(Registry.GetComponent<DynamicPhysicsActor>(p.e).Pose, dpa.Pose, IsRightHand)).Max()))

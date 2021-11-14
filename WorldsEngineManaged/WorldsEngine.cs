@@ -141,15 +141,17 @@ namespace WorldsEngine
             {
                 updateSyncContext.RunCallbacks();
 
-                foreach (var system in hotloadManager.Systems)
+                for (int i = 0; i < hotloadManager.Systems.Count; i++)
                 {
-                    system.OnUpdate();
+                    hotloadManager.Systems[i].OnUpdate();
                 }
             }
             catch (Exception e)
             {
                 Logger.LogError($"Caught exception: {e}");
             }
+
+            DrawMiscWindow();
 
             Registry.ClearDestroyQueue();
 
@@ -170,9 +172,9 @@ namespace WorldsEngine
                 Physics.FlushCollisionQueue();
                 simulateSyncContext.RunCallbacks();
 
-                foreach (var system in hotloadManager.Systems)
+                for (int i = 0; i < hotloadManager.Systems.Count; i++)
                 {
-                    system.OnSimulate();
+                    hotloadManager.Systems[i].OnSimulate();
                 }
 
                 Registry.UpdateThinkingComponents();
@@ -187,21 +189,64 @@ namespace WorldsEngine
             _simulationTime += Time.DeltaTime;
         }
 
-        [UsedImplicitly]
-        [SuppressMessage("CodeQuality", "IDE0051:Remove unused private members",
-            Justification = "Called from native C++")]
-        static void EditorUpdate()
+        /// <summary>
+        /// Converts a long to a byte, in string format
+        /// 
+        /// This method essentially performs the same operation as ToString, with the output being a byte array,
+        /// rather than a string
+        /// </summary>
+        /// <param name="val">long integer input, with as many or fewer digits as the output buffer length</param>
+        /// <param name="outBuffer">output buffer</param>
+        private static char[] nums = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' };
+        private static void ConvertLong(long val, Span<char> outBuffer)
         {
-            hotloadManager.ReloadIfNecessary();
-            SynchronizationContext.SetSynchronizationContext(editorUpdateSyncContext);
-            Physics.ClearCollisionQueue();
+            int index = 0;
+            int numNums = (int)System.Math.Ceiling(System.Math.Log10(val)) - 1;
 
-            Editor.Editor.Update();
+            while (val > 0)
+            {
+                outBuffer[numNums - index] = nums[val % 10];
+                val /= 10;
+                index++;
+            }
+        }
 
+        private static int GetRequiredNumberBufferLength(long val)
+        {
+            return (int)System.Math.Ceiling(System.Math.Log10(val));
+        }
+
+        private static void DrawMiscWindow()
+        {
             if (ImGui.Begin("Misc"))
             {
-                ImGui.Text($"Managed memory usage at last GC: {GC.GetGCMemoryInfo().HeapSizeBytes / 1000:N0}K");
-                ImGui.Text($"Current managed memory usage: {GC.GetTotalMemory(false) / 1000:N0}K");
+                //ImGui.Text($"Managed memory usage at last GC: {GC.GetGCMemoryInfo().HeapSizeBytes / 1000:N0}K");
+                //ImGui.Text($"Current managed memory usage: {GC.GetTotalMemory(false) / 1000}K");
+
+                // Do some very janky string stuff so we don't allocate any memory
+
+                ImGui.TextUnformatted("Current managed memory usage: ");
+                ImGui.SameLine();
+
+                var len = GetRequiredNumberBufferLength(GC.GetTotalMemory(false) / 1000);
+
+                Span<char> buffer = stackalloc char[len + 1];
+                ConvertLong(GC.GetTotalMemory(false) / 1000, buffer);
+                buffer[len] = 'K';
+
+                int byteCount = System.Text.Encoding.UTF8.GetByteCount(buffer);
+
+                Span<byte> nativeTextBuffer = stackalloc byte[byteCount + 1];
+                System.Text.Encoding.UTF8.GetBytes(buffer, nativeTextBuffer);
+                nativeTextBuffer[byteCount] = 0;
+
+                unsafe
+                {
+                    fixed (byte* nativeText = nativeTextBuffer)
+                    {
+                        ImGuiNative.igTextUnformatted(nativeText, null);
+                    }
+                }
 
                 if (ImGui.Button("Force Collection"))
                 {
@@ -224,6 +269,19 @@ namespace WorldsEngine
                 }
             }
             ImGui.End();
+        }
+
+        [UsedImplicitly]
+        [SuppressMessage("CodeQuality", "IDE0051:Remove unused private members",
+            Justification = "Called from native C++")]
+        static void EditorUpdate()
+        {
+            hotloadManager.ReloadIfNecessary();
+            SynchronizationContext.SetSynchronizationContext(editorUpdateSyncContext);
+            Physics.ClearCollisionQueue();
+
+            Editor.Editor.Update();
+            DrawMiscWindow();
 
             editorUpdateSyncContext.RunCallbacks();
             SceneRunning = false;

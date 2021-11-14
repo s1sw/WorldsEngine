@@ -5,7 +5,7 @@ using System.Linq;
 using System.Reflection;
 using System.Threading;
 
-namespace WorldsEngine
+namespace WorldsEngine.ECS
 {
     interface IComponentStorage
     {
@@ -30,63 +30,8 @@ namespace WorldsEngine
 
     internal class ComponentTypeLookup
     {
-        public static Dictionary<string, int> typeIndices = new();
+        public static Dictionary<Type, int> typeIndices = new();
         public static Dictionary<string, SerializedComponentStorage> serializedComponents = new();
-    }
-
-    class SparseStorage
-    {
-        const int PageSize = 500;
-        private List<int[]> _pages = new();
-
-        public SparseStorage()
-        {
-            // Start off with 1 page
-            ResizePages(0);
-        }
-
-        private void ResizePages(int requiredIndex)
-        {
-            for (int i = _pages.Count; i <= requiredIndex; i++)
-            {
-                _pages.Add(new int[PageSize]);
-
-                for (int j = 0; j < PageSize; j++)
-                {
-                    _pages[i][j] = -1;
-                }
-            }
-        }
-
-        public int this[Entity entity]
-        {
-            get
-            {
-                int pageIndex = (int)(entity.Identifier / PageSize);
-                int valIndex = (int)(entity.Identifier % PageSize);
-
-                return _pages[pageIndex][valIndex];
-            }
-
-            set
-            {
-                int pageIndex = (int)(entity.Identifier / PageSize);
-                int valIndex = (int)(entity.Identifier % PageSize);
-
-                if (_pages.Count <= pageIndex)
-                    ResizePages(pageIndex);
-
-                _pages[pageIndex][valIndex] = value;
-            }
-        }
-
-        public bool Contains(Entity entity)
-        {
-            int pageIndex = (int)(entity.Identifier / PageSize);
-            int valIndex = (int)(entity.Identifier % PageSize);
-
-            return pageIndex < _pages.Count && _pages[pageIndex][valIndex] != -1;
-        }
     }
 
     public class ComponentStorage<T> : IComponentStorage, IEnumerable
@@ -98,19 +43,19 @@ namespace WorldsEngine
         public List<Entity> packedEntities = new();
         public bool IsThinking { get; private set; }
 
-        private SparseStorage _sparseStorage = new();
+        private readonly SparseStorage _sparseStorage = new();
 
         static ComponentStorage()
         {
             type = typeof(T);
-            if (ComponentTypeLookup.typeIndices.ContainsKey(type.FullName!))
+            if (ComponentTypeLookup.typeIndices.ContainsKey(type))
             {
-                typeIndex = ComponentTypeLookup.typeIndices[type.FullName!];
+                typeIndex = ComponentTypeLookup.typeIndices[type];
             }
             else
             {
                typeIndex = Interlocked.Increment(ref Registry.typeCounter);
-                ComponentTypeLookup.typeIndices.Add(type.FullName!, typeIndex);
+                ComponentTypeLookup.typeIndices.Add(type, typeIndex);
             }
         }
 
@@ -157,8 +102,6 @@ namespace WorldsEngine
 
         internal void Set(Entity entity, T component)
         {
-            Logger.Log($"Set entity {entity.ID}");
-
             int index = packedEntities.Count;
 
             _sparseStorage[entity] = index;
@@ -171,7 +114,6 @@ namespace WorldsEngine
         public void SetBoxed(Entity entity, object component)
         {
             int index = packedEntities.Count;
-            // Put the component in and mark the slot as used.
 
             _sparseStorage[entity] = index;
 
@@ -183,7 +125,7 @@ namespace WorldsEngine
         public void Remove(Entity entity)
         {
             if (!Contains(entity))
-                throw new ArgumentException("Trying to remove a component that isn't there");
+                throw new ArgumentException($"Trying to remove component {typeof(T).Name} that isn't there");
 
             int index = GetIndexOf(entity);
             int lastIndex = packedEntities.Count - 1;

@@ -29,6 +29,7 @@ namespace Game
         private AssetID _projectilePrefab;
         private bool _hasMagazine = false;
         private Entity _currentMagazine = Entity.Null;
+        private Entity _entity;
 
         public void Start(Entity entity)
         {
@@ -42,6 +43,7 @@ namespace Game
                 AmmoType.Humongous => AssetDB.PathToId("Prefabs/big_ass_projectile.wprefab"),
                 _ => AssetDB.PathToId("Prefabs/gun_projectile.wprefab"),
             };
+            _entity = entity;
         }
 
         private void Grabbable_TriggerPressed(Entity entity)
@@ -170,7 +172,7 @@ namespace Game
             if (!_hasMagazine) return;
 
             _hasMagazine = false;
-            Registry.RemoveComponent<D6Joint>(_currentMagazine);
+            Registry.RemoveComponent<D6Joint>(_entity);
 
             var dpa = Registry.GetComponent<DynamicPhysicsActor>(_currentMagazine);
             dpa.AddForce(dpa.Pose.TransformDirection(Vector3.Left), ForceMode.VelocityChange);

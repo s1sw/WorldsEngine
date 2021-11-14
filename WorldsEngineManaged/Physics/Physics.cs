@@ -49,7 +49,7 @@ namespace WorldsEngine
         private static extern bool physics_overlapSphere(Vector3 origin, float radius, out uint overlappedEntity);
 
         [DllImport(WorldsEngine.NativeModule)]
-        private static extern uint physics_overlapSphereMultiple(Vector3 origin, float radius, uint maxTouchCount, IntPtr entityBuffer, uint excludeLayerMask);
+        private static unsafe extern uint physics_overlapSphereMultiple(Vector3 origin, float radius, uint maxTouchCount, Entity* entityBuffer, uint excludeLayerMask);
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         private delegate void NativeCollisionDelegate(uint entityId, uint id, ref PhysicsContactInfo contactInfo);
@@ -76,13 +76,14 @@ namespace WorldsEngine
             return overlapped;
         }
 
-        public static uint OverlapSphereMultiple(Vector3 origin, float radius, uint maxTouchCount, Entity[] entityBuffer, PhysicsLayers excludeLayerMask = PhysicsLayers.None)
+        public static unsafe uint OverlapSphereMultiple(Vector3 origin, float radius, uint maxTouchCount, Span<Entity> entityBuffer, PhysicsLayers excludeLayerMask = PhysicsLayers.None)
         {
-            var handle = GCHandle.Alloc(entityBuffer, GCHandleType.Pinned);
+            uint count;
 
-            uint count = physics_overlapSphereMultiple(origin, radius, maxTouchCount, handle.AddrOfPinnedObject(), (uint)excludeLayerMask);
-
-            handle.Free();
+            fixed (Entity* ptr = entityBuffer)
+            {
+                count = physics_overlapSphereMultiple(origin, radius, maxTouchCount, ptr, (uint)excludeLayerMask);
+            }
 
             return count;
         }

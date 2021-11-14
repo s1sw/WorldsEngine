@@ -235,6 +235,7 @@ namespace Game
             timeSinceLastBurst = 0.0f;
         }
 
+        private readonly Entity[] _overlapBuf = new Entity[32];
         public void Think(Entity entity)
         {
             UpdateInspectorVals();
@@ -251,8 +252,7 @@ namespace Game
             {
                 // Look for a player nearby
                 const int MaxOverlap = 32;
-                Entity[] buf = new Entity[MaxOverlap];
-                uint overlapCount = Physics.OverlapSphereMultiple(pose.Position, 7.5f, MaxOverlap, buf, ~PhysicsLayers.Player);
+                uint overlapCount = Physics.OverlapSphereMultiple(pose.Position, 7.5f, MaxOverlap, _overlapBuf, ~PhysicsLayers.Player);
 
                 ApplyTargetPose(entity, _idleHoverPose);
 

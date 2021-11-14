@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Reflection.Metadata;
 
 namespace WorldsEngine
 {
