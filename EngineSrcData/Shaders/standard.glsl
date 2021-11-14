@@ -446,6 +446,22 @@ float getAntiAliasedRoughness(float inRoughness, vec3 normal) {
     return max(inRoughness, geoRoughness);
 }
 
+mat3 cotangent_frame( vec3 N, vec3 p, vec2 uv ) {
+    // get edge vectors of the pixel triangle
+    vec3 dp1 = dFdx( p );
+    vec3 dp2 = dFdy( p );
+    vec2 duv1 = dFdx( uv );
+    vec2 duv2 = dFdy( uv );
+    // solve the linear system
+    vec3 dp2perp = cross( dp2, N );
+    vec3 dp1perp = cross( N, dp1 );
+    vec3 T = dp2perp * duv1.x + dp1perp * duv2.x;
+    vec3 B = dp2perp * duv1.y + dp1perp * duv2.y;
+    // construct a scale-invariant frame
+    float invmax = inversesqrt( max( dot(T,T), dot(B,B) ) );
+    return mat3( T * invmax, B * invmax, N );
+}
+
 void unpackMaterial(inout ShadeInfo si, mat3 tbn) {
     Material mat = materials[matIdx];
     si.metallic = mat.metallic;
@@ -520,19 +536,22 @@ void main() {
     // with both normal mapping and parallax mapping, and this is what worked in the end.
     vec3 bitangent = cross(inNormal, inTangent.xyz) * inTangent.w;
     mat3 tbn = mat3(inTangent.xyz, bitangent, inNormal);
-    if (inUvDir == 1) {
-        tbn = mat3(vec3(0.0, 0.0, 1.0) * -sign(inNormal.x) * -sign(inUV.x),
-                vec3(0.0, 1.0, 0.0) * -sign(inNormal.x) * sign(inUV.y),
-                vec3(1.0, 0.0, 0.0)) * sign(inNormal.x);
-    } else if (inUvDir == 2) {
-        tbn = mat3(vec3(1.0, 0.0, 0.0)  * sign(inNormal.y) * sign(inUV.x),
-                   vec3(0.0, 0.0, 1.0)  * sign(inNormal.y),
-                   vec3(0.0, 1.0, 0.0)) * sign(inNormal.y);
-    } else if (inUvDir == 3) {
-        tbn = mat3(vec3(1.0, 0.0, 0.0) * -sign(inNormal.z) * -sign(inUV.x),
-                vec3(0.0, 1.0, 0.0) * -sign(inNormal.z) * sign(inUV.y),
-                vec3(0.0, 0.0, 1.0)) * sign(inNormal.z);
-    }
+    //if (inUvDir == 1) {
+    //    tbn = mat3(vec3(0.0, 0.0, 1.0) * -sign(inNormal.x) * -sign(inUV.x),
+    //            vec3(0.0, 1.0, 0.0) * -sign(inNormal.x) * sign(inUV.y),
+    //            vec3(1.0, 0.0, 0.0)) * sign(inNormal.x);
+    //} else if (inUvDir == 2) {
+    //    tbn = mat3(vec3(1.0, 0.0, 0.0)  * sign(inNormal.y) * sign(inUV.x),
+    //               vec3(0.0, 0.0, 1.0)  * sign(inNormal.y),
+    //               vec3(0.0, 1.0, 0.0)) * sign(inNormal.y);
+    //} else if (inUvDir == 3) {
+    //    tbn = mat3(vec3(1.0, 0.0, 0.0) * -sign(inNormal.z) * -sign(inUV.x),
+    //            vec3(0.0, 1.0, 0.0) * -sign(inNormal.z) * sign(inUV.y),
+    //            vec3(0.0, 0.0, 1.0)) * sign(inNormal.z);
+    //}
+    // Let's attempt some tangent frame construction on the fly!
+    if (inUvDir != 0)
+    tbn = cotangent_frame(inNormal, getViewPos() - inWorldPos.xyz, abs(inUV));
 
     uint doPicking = miscFlag & 0x1;
 

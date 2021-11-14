@@ -6,6 +6,7 @@ using WorldsEngine.Util;
 using System.Threading.Tasks;
 using Game.Util;
 using ImGuiNET;
+using System;
 
 namespace Game.Interaction
 {
@@ -84,22 +85,41 @@ namespace Game.Interaction
             }
         }
 
-        private readonly Entity[] _overlapped = new Entity[32];
         private void GrabNearby()
         {
             var dpa = Registry.GetComponent<DynamicPhysicsActor>(Entity);
 
             const int MaxOverlaps = 32;
-            uint overlappedCount = Physics.OverlapSphereMultiple(dpa.Pose.TransformPoint(new Vector3(0.0f, 0.0f, 0.03f)), 0.5f, MaxOverlaps, _overlapped);
+            Span<Entity> overlaps = stackalloc Entity[MaxOverlaps];
+            uint overlappedCount = Physics.OverlapSphereMultiple(dpa.Pose.TransformPoint(new Vector3(0.0f, 0.0f, 0.03f)), 0.5f, MaxOverlaps, overlaps);
 
-            var grips = _overlapped.Take((int)overlappedCount)
-                .Where((Entity e) => Registry.HasComponent<Grabbable>(e))
-                .Select((Entity e) => (e, Registry.GetComponent<Grabbable>(e).grips))
-                .Select((p) => (p.e, score: p.grips.Select((g) => g.CalculateGripScore(Registry.GetComponent<DynamicPhysicsActor>(p.e).Pose, dpa.Pose, IsRightHand)).Max()))
-                .OrderByDescending((p) => p.score);
+            Entity? bestGrabbable = null;
+            float bestGrabbableScore = 0.0f;
+            for (int i = 0; i < overlappedCount; i++)
+            {
+                Entity candidate = overlaps[i];
+                if (!Registry.HasComponent<Grabbable>(candidate)) continue;
+                var grabbable = Registry.GetComponent<Grabbable>(candidate);
+                var candidateDpa = Registry.GetComponent<DynamicPhysicsActor>(candidate);
 
-            if (grips.TryFirst(out var firstGrip))
-                Grab(firstGrip.e);
+                float maxGrabbableScore = 0.0f;
+                for (int j = 0; j < grabbable.grips.Count; j++)
+                {
+                    float score = grabbable.grips[j].CalculateGripScore(candidateDpa.Pose, dpa.Pose, IsRightHand);
+
+                    if (score > maxGrabbableScore)
+                        maxGrabbableScore = score;
+                }
+
+                if (maxGrabbableScore > bestGrabbableScore)
+                {
+                    bestGrabbableScore = maxGrabbableScore;
+                    bestGrabbable = overlaps[i];
+                }
+            }
+
+            if (bestGrabbable != null)
+                Grab(bestGrabbable.Value);
         }
 
         private void AddShapeTensor(PhysicsShape shape, Transform offset, InertiaTensorComputer itComp)

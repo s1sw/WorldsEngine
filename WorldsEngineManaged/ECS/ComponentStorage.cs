@@ -30,7 +30,7 @@ namespace WorldsEngine.ECS
 
     internal class ComponentTypeLookup
     {
-        public static Dictionary<Type, int> typeIndices = new();
+        public static Dictionary<string, int> typeIndices = new();
         public static Dictionary<string, SerializedComponentStorage> serializedComponents = new();
     }
 
@@ -48,14 +48,14 @@ namespace WorldsEngine.ECS
         static ComponentStorage()
         {
             type = typeof(T);
-            if (ComponentTypeLookup.typeIndices.ContainsKey(type))
+            if (ComponentTypeLookup.typeIndices.ContainsKey(type.FullName!))
             {
-                typeIndex = ComponentTypeLookup.typeIndices[type];
+                typeIndex = ComponentTypeLookup.typeIndices[type.FullName!];
             }
             else
             {
                typeIndex = Interlocked.Increment(ref Registry.typeCounter);
-                ComponentTypeLookup.typeIndices.Add(type, typeIndex);
+                ComponentTypeLookup.typeIndices.Add(type.FullName!, typeIndex);
             }
         }
 
