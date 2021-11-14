@@ -1,13 +1,14 @@
-using System;
-using System.Text;
-using System.Runtime.InteropServices;
-using System.Reflection;
-using System.Text.Json;
-using System.Collections.Generic;
 using ImGuiNET;
-using WorldsEngine.ComponentMeta;
 using JetBrains.Annotations;
+using System;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
+using System.Runtime.InteropServices;
+using System.Text;
+using System.Text.Json;
+using WorldsEngine.ComponentMeta;
+using WorldsEngine.ECS;
 
 namespace WorldsEngine
 {
@@ -186,7 +187,7 @@ namespace WorldsEngine
 
         private static IComponentStorage AssureStorage(Type type)
         {
-            if (!ComponentTypeLookup.typeIndices.ContainsKey(type.FullName!) || componentStorages[ComponentTypeLookup.typeIndices[type.FullName!]] == null)
+            if (!ComponentTypeLookup.typeIndices.ContainsKey(type) || componentStorages[ComponentTypeLookup.typeIndices[type]] == null)
             {
                 Type storageType = typeof(ComponentStorage<>).MakeGenericType(type);
 
@@ -202,7 +203,7 @@ namespace WorldsEngine
                     _startListeners.Add(componentStorages[index]!);
             }
 
-            return componentStorages[ComponentTypeLookup.typeIndices[type.FullName!]]!;
+            return componentStorages[ComponentTypeLookup.typeIndices[type]]!;
         }
 
         private static ComponentStorage<T> AssureStorage<T>()
@@ -274,10 +275,8 @@ namespace WorldsEngine
             if (type.IsAssignableTo(typeof(BuiltinComponent)))
             {
                 GetBuiltinComponentMetadata(type).Create(entity);
-
                 return (T)GetComponent(type, entity);
             }
-
 
             var storage = AssureStorage<T>();
 
@@ -340,22 +339,36 @@ namespace WorldsEngine
             var type = typeof(T);
             if (entity.IsNull) throw new NullEntityException();
 
-            if (!HasComponent<T>(entity))
-            {
-                throw new MissingComponentException(type.Name);
-            }
+            var storage = AssureStorage<T>();
 
             if (type.IsAssignableTo(typeof(BuiltinComponent)))
             {
-                ConstructorInfo ci = type.GetConstructor(
-                    BindingFlags.NonPublic | BindingFlags.Instance,
-                    null,
-                    new Type[] { typeof(IntPtr), typeof(uint) }, null)!;
+                if (GetBuiltinComponentMetadata(type).ExistsOn(entity))
+                {
+                    if (!storage.Contains(entity))
+                    {
+                        ConstructorInfo ci = type.GetConstructor(
+                            BindingFlags.NonPublic | BindingFlags.Instance,
+                            null,
+                            new Type[] { typeof(IntPtr), typeof(uint) }, null)!;
 
-                return (T)ci.Invoke(new object[] { nativeRegistryPtr, entity.ID });
+                        T comp = (T)ci.Invoke(new object[] { nativeRegistryPtr, entity.ID });
+
+                        storage.Set(entity, comp);
+
+                        return comp;
+                    }
+                    else
+                    {
+                        return storage.Get(entity);
+                    }
+                }
+
+                throw new MissingComponentException(type.Name);
             }
 
-            var storage = AssureStorage<T>();
+            if (!storage.Contains(entity))
+                throw new MissingComponentException(type.Name);
 
             return storage.Get(entity);
         }
@@ -364,22 +377,36 @@ namespace WorldsEngine
         {
             if (entity.IsNull) throw new NullEntityException();
 
-            if (!HasComponent(entity, type))
-            {
-                throw new MissingComponentException();
-            }
+            var storage = AssureStorage(type);
 
             if (type.IsAssignableTo(typeof(BuiltinComponent)))
             {
-                ConstructorInfo ci = type.GetConstructor(
-                    BindingFlags.NonPublic | BindingFlags.Instance,
-                    null,
-                    new Type[] { typeof(IntPtr), typeof(uint) }, null)!;
+                if (!storage.Contains(entity) && GetBuiltinComponentMetadata(type).ExistsOn(entity))
+                {
+                    if (!storage.Contains(entity))
+                    {
+                        ConstructorInfo ci = type.GetConstructor(
+                            BindingFlags.NonPublic | BindingFlags.Instance,
+                            null,
+                            new Type[] { typeof(IntPtr), typeof(uint) }, null)!;
 
-                return ci.Invoke(new object[] { nativeRegistryPtr, entity.ID });
+                        object comp = ci.Invoke(new object[] { nativeRegistryPtr, entity.ID });
+
+                        storage.SetBoxed(entity, comp);
+
+                        return comp;
+                    }
+                    else
+                    {
+                        return storage.GetBoxed(entity);
+                    }
+                }
+
+                throw new MissingComponentException(type.Name);
             }
 
-            var storage = AssureStorage(type);
+            if (!storage.Contains(entity))
+                throw new MissingComponentException(type.Name);
 
             return storage.GetBoxed(entity);
         }
@@ -387,15 +414,20 @@ namespace WorldsEngine
         public static void RemoveComponent<T>(Entity entity)
         {
             var type = typeof(T);
-            if (type.IsAssignableTo(typeof(BuiltinComponent)))
+            bool builtin = type.IsAssignableTo(typeof(BuiltinComponent));
+
+            if (builtin)
             {
-                GetBuiltinComponentMetadata(type).Destroy(entity);
-                return;
+                var meta = GetBuiltinComponentMetadata(type);
+                if (!meta.ExistsOn(entity))
+                    throw new ArgumentException($"Trying to remove component {type.Name} that isn't on the given entity");
+                meta.Destroy(entity);
             }
 
             var storage = AssureStorage<T>();
 
-            storage.Remove(entity);
+            if (!builtin || storage.Contains(entity))
+                storage.Remove(entity);
         }
 
         public static void RemoveComponent(Type type, Entity entity)
@@ -403,7 +435,6 @@ namespace WorldsEngine
             if (type.IsAssignableTo(typeof(BuiltinComponent)))
             {
                 GetBuiltinComponentMetadata(type).Destroy(entity);
-                return;
             }
 
             var storage = AssureStorage(type);

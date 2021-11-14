@@ -224,6 +224,7 @@ namespace Game
                 Jump = true;
             }
 
+            return;
             var col = ImGui.GetStyle().Colors[(int)ImGuiCol.Text];
 
             var playerHealth = Registry.GetComponent<Combat.HealthComponent>(PlayerBody);
