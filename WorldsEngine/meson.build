@@ -18,10 +18,12 @@ subdir('VR')
 
 cc = meson.get_compiler('cpp')
 
-lib_dir = meson.project_source_root() + '/External/Lib/' + host_machine.system() + '64dbg'
+extern_dir = '../External'
+
+lib_dir = extern_dir + '/Lib/' + host_machine.system() + '64dbg'
 
 if get_option('buildtype').startswith('release')
-  lib_dir = meson.project_source_root() + '/External/Lib/' + host_machine.system() + '64rel'
+  lib_dir = extern_dir + '/Lib/' + host_machine.system() + '64rel'
 endif
 
 physx_deps = [
@@ -50,11 +52,11 @@ endif
 
 if not assimp_dep.found()
   cpp_comp = meson.get_compiler('cpp')
-    assimp_dir = meson.project_source_root() + '/External/Assimp/' + system_lib_dir
+    assimp_dir = extern_dir + '/Assimp/' + system_lib_dir
     if get_option('buildtype').startswith('release')
-      assimp_dir = meson.project_source_root() + '/External/Assimp/' + system_lib_dir
+      assimp_dir = extern_dir + '/Assimp/' + system_lib_dir
     endif
-    assimp_inc_dir = '../External/Assimp/include'
+    assimp_inc_dir = extern_dir + '/Assimp/include'
 
     assimp_lib = cpp_comp.find_library('assimp', dirs: assimp_dir)
     assimp_dep = declare_dependency(dependencies: assimp_lib, include_directories: include_directories(assimp_inc_dir))
@@ -69,7 +71,7 @@ enet_dep = declare_dependency(link_with: enetlib, include_directories: enet_inc)
 
 dl_dep = cc.find_library('dl', required : false)
 openvr_dep = cc.find_library('openvr_api', dirs: lib_dir)
-discord_csdk_dep = cc.find_library('discord_game_sdk', dirs: meson.project_source_root() + '/External/Lib')
+discord_csdk_dep = cc.find_library('discord_game_sdk', dirs: extern_dir + '/Lib')
 
 platform_deps = []
 platform_incdirs = []
@@ -108,13 +110,13 @@ if host_machine.system() == 'linux'
   platform_deps += cc.find_library('fmodstudio', dirs: fmod_studio_lib_dir)
 endif
 
-steam_audio_dep = cc.find_library('phonon', dirs: meson.project_source_root() + '/External/Lib')
+steam_audio_dep = cc.find_library('phonon', dirs: extern_dir + '/Lib')
 
 freetype_dep = dependency('freetype', required: false)
 
 if not freetype_dep.found()
   cpp_comp = meson.get_compiler('cpp')
-    freetype_dir = meson.project_source_root() + '/External/Lib/' + system_lib_dir
+    freetype_dir = extern_dir + '/Lib/' + system_lib_dir
 
     freetype_lib = cpp_comp.find_library('freetype', dirs: freetype_dir)
     freetype_dep = declare_dependency(dependencies: freetype_lib)
