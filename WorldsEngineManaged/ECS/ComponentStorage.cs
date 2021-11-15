@@ -59,7 +59,7 @@ namespace WorldsEngine.ECS
             }
         }
 
-        internal ComponentStorage(bool hotload = false)
+        public ComponentStorage(bool hotload = false)
         {
             IsThinking = Type.IsAssignableTo(typeof(IThinkingComponent));
 
@@ -100,7 +100,7 @@ namespace WorldsEngine.ECS
             return components[GetIndexOf(entity)]!;
         }
 
-        internal void Set(Entity entity, T component)
+        public void Set(Entity entity, T component)
         {
             int index = packedEntities.Count;
 
