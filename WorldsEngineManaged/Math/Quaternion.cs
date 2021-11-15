@@ -149,23 +149,23 @@ namespace WorldsEngine.Math
             Mat3x3 mat = new();
             float invs = 1 / (sqx + sqy + sqz + sqw);
 
-            mat.m00 = ( sqx - sqy - sqz + sqw)*invs ; // since sqw + sqx + sqy + sqz =1/invs*invs
-            mat.m11 = (-sqx + sqy - sqz + sqw)*invs ;
-            mat.m22 = (-sqx - sqy + sqz + sqw)*invs ;
+            mat.m00 = ( sqx - sqy - sqz + sqw) * invs; // since sqw + sqx + sqy + sqz =1/invs*invs
+            mat.m11 = (-sqx + sqy - sqz + sqw) * invs;
+            mat.m22 = (-sqx - sqy + sqz + sqw) * invs;
             
-            float tmp1 = x*y;
-            float tmp2 = z*w;
-            mat.m01 = 2f * (tmp1 + tmp2)*invs ;
-            mat.m10 = 2f * (tmp1 - tmp2)*invs ;
+            float tmp1 = x * y;
+            float tmp2 = z * w;
+            mat.m01 = 2f * (tmp1 + tmp2) * invs;
+            mat.m10 = 2f * (tmp1 - tmp2) * invs;
             
-            tmp1 = x*z;
-            tmp2 = y*w;
-            mat.m02 = 2f * (tmp1 - tmp2)*invs ;
-            mat.m20 = 2f * (tmp1 + tmp2)*invs ;
-            tmp1 = y*z;
-            tmp2 = x*w;
-            mat.m12 = 2f * (tmp1 + tmp2)*invs ;
-            mat.m21 = 2f * (tmp1 - tmp2)*invs ;     
+            tmp1 = x * z;
+            tmp2 = y * w;
+            mat.m02 = 2f * (tmp1 - tmp2) * invs;
+            mat.m20 = 2f * (tmp1 + tmp2) * invs;
+            tmp1 = y * z;
+            tmp2 = x * w;
+            mat.m12 = 2f * (tmp1 + tmp2) * invs;
+            mat.m21 = 2f * (tmp1 - tmp2) * invs;     
 
             return mat;
         }
@@ -193,9 +193,9 @@ namespace WorldsEngine.Math
         {
             return new Quaternion(
                 -a.x * b.x - a.y * b.y - a.z * b.z + a.w * b.w,
-                a.x * b.w + a.y * b.z - a.z * b.y + a.w * b.x,
+                 a.x * b.w + a.y * b.z - a.z * b.y + a.w * b.x,
                 -a.x * b.z + a.y * b.w + a.z * b.x + a.w * b.y,
-                a.x * b.y - a.y * b.x + a.z * b.w + a.w * b.z
+                 a.x * b.y - a.y * b.x + a.z * b.w + a.w * b.z
              );
         }
 

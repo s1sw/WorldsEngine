@@ -67,7 +67,7 @@ namespace WorldsEngine.Tests
                 new Vector3(0.2836622f, -0.9589243f, 0.0f),
                 new Vector3(0.9589243f, 0.2836622f, 0.0f),
                 new Vector3(0.0f, 0.0f, 1.0f)
-            )); 
+            ));
         }
 
         [Fact]

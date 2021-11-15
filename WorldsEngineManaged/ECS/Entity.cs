@@ -27,7 +27,7 @@ namespace WorldsEngine
             set { ID = Identifier & (value << 20); }
         }
 
-        internal Entity(uint id)
+        public Entity(uint id)
         {
             ID = id;
         }
