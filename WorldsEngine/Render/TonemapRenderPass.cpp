@@ -1,8 +1,9 @@
 #include "RenderPasses.hpp"
-#include "../Core/Engine.hpp"
+#include <Core/Engine.hpp>
 #include "Render.hpp"
 #include "ShaderCache.hpp"
 #include "vku/DescriptorSetUtil.hpp"
+#include "ShaderReflector.hpp"
 
 namespace worlds {
     struct TonemapPushConstants {
@@ -24,15 +25,13 @@ namespace worlds {
 
     void TonemapRenderPass::setup(RenderContext& ctx, VkDescriptorPool descriptorPool) {
         dsPool = descriptorPool;
-        vku::DescriptorSetLayoutMaker tonemapDslm;
-        tonemapDslm.image(0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_SHADER_STAGE_COMPUTE_BIT, 1);
-        tonemapDslm.image(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_COMPUTE_BIT, 1);
 
-        dsl = tonemapDslm.create(handles->device);
+        int msaaSamples = hdrImg->image().info().samples;
+        std::string shaderName = msaaSamples > 1 ? "tonemap.comp.spv" : "tonemap_nomsaa.comp.spv";
+        AssetID shaderId = AssetDB::pathToId("Shaders/" + shaderName);
+        tonemapShader = ShaderCache::getModule(handles->device, shaderId);
 
-        auto msaaSamples = hdrImg->image().info().samples;
-        std::string shaderName = (int)msaaSamples > 1 ? "tonemap.comp.spv" : "tonemap_nomsaa.comp.spv";
-        tonemapShader = ShaderCache::getModule(handles->device, AssetDB::pathToId("Shaders/" + shaderName));
+        dsl = ShaderReflector{shaderId}.createDescriptorSetLayout(handles->device, 0);
 
         vku::PipelineLayoutMaker plm;
         plm.descriptorSetLayout(dsl);
