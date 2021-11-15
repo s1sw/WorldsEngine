@@ -181,12 +181,5 @@ namespace WorldsEngine.ECS
                 ((IThinkingComponent)components[GetIndexOf(entity)]!).Think(entity);
             }
         }
-
-        private void ExpandPackedList(int newSize)
-        {
-            if (newSize <= packedEntities.Count) return;
-
-            packedEntities.AddRange(Enumerable.Repeat(Entity.Null, newSize - packedEntities.Count));
-        }
     }
 }
