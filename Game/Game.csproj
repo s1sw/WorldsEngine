@@ -4,7 +4,7 @@
     <IsWindows Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' == 'true'">true</IsWindows>
     <IsLinux Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Linux)))' == 'true'">true</IsLinux>
   </PropertyGroup>
-  <ItemGroup Condition="'$(IsWindows)' == 'true'">
+  <ItemGroup>
     <ProjectReference Include="../WorldsEngineManaged/WorldsEngineManaged.csproj" />
   </ItemGroup>
   <PropertyGroup Condition="'$(IsWindows)' == 'true'">
@@ -13,12 +13,6 @@
   <PropertyGroup Condition="'$(IsLinux)' == 'true'">
     <OutDir>../build_release/LonelyGalaxy/GameAssemblies</OutDir>
   </PropertyGroup>
-  <ItemGroup Condition="'$(IsLinux)' == 'true'">
-    <Reference Include="WorldsEngineManaged">
-      <HintPath>../build_release/LonelyGalaxy/NetAssemblies/WorldsEngineManaged.dll</HintPath>
-      <Private>false</Private>
-    </Reference>
-  </ItemGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <GenerateSerializationAssemblies>Off</GenerateSerializationAssemblies>
   </PropertyGroup>
