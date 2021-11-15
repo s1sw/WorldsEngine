@@ -347,6 +347,24 @@ namespace worlds {
         virtual ~TonemapRenderPass();
     };
 
+    class BloomRenderPass : public RenderPass {
+    private:
+        RenderResource* mipChain;
+        RenderResource* hdrImg;
+        vku::Pipeline bloomApplyPipeline;
+        vku::PipelineLayout bloomApplyPipelineLayout;
+        VkDescriptorSet descriptorSet;
+        vku::DescriptorSetLayout dsl;
+        vku::Sampler sampler;
+        int nMips;
+        void setupApplyShader(RenderContext& ctx, VkDescriptorPool descriptorPool);
+    public:
+        BloomRenderPass(VulkanHandles* handles, RenderResource* hdrImg);
+        void setup(RenderContext& ctx, VkDescriptorPool descriptorPool);
+        void execute(RenderContext& ctx);
+        virtual ~BloomRenderPass();
+    };
+
     class ImGuiRenderPass {
     private:
         vku::RenderPass renderPass;
