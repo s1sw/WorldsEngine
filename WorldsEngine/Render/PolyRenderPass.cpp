@@ -195,39 +195,6 @@ namespace worlds {
         ssm.magFilter(VK_FILTER_LINEAR).minFilter(VK_FILTER_LINEAR).mipmapMode(VK_SAMPLER_MIPMAP_MODE_LINEAR).compareEnable(true).compareOp(VK_COMPARE_OP_GREATER);
         shadowSampler = ssm.create(handles->device);
 
-        //vku::DescriptorSetLayoutMaker dslm;
-        //// VP
-        //dslm.buffer(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 1);
-        //// Lights
-        //dslm.buffer(1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_VERTEX_BIT, 1);
-        //// Materials
-        //dslm.buffer(2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, 1);
-        //// Model matrices
-        //dslm.buffer(3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, 1);
-        //// Textures
-        //dslm.image(4, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, NUM_TEX_SLOTS);
-        //dslm.bindFlag(4, VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT);
-        //// Shadowmap
-        //dslm.image(5, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 1);
-        //// Cubemaps
-        //dslm.image(6, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, NUM_CUBEMAP_SLOTS);
-        //dslm.bindFlag(6, VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT);
-        //// BRDF LUT
-        //dslm.image(7, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 1);
-        //// Additional shadow images
-        //dslm.image(8, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, NUM_SHADOW_LIGHTS);
-        //// Light tile info
-        //dslm.buffer(9, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, 1);
-        //// Light tile light counts
-        //dslm.buffer(10, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, 1);
-        //// Light tiles
-        //dslm.buffer(11, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, 1);
-        //// Skinning matrices
-        //dslm.buffer(12, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, 1);
-        //// Picking
-        //dslm.buffer(13, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, 1);
-
-        //dsl = dslm.create(handles->device);
         AssetID fsID = AssetDB::pathToId("Shaders/standard.frag.spv");
         ShaderReflector reflector { fsID };
         dsl = reflector.createDescriptorSetLayout(handles->device, 0);

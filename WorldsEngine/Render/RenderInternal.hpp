@@ -20,6 +20,7 @@ namespace worlds {
     class ShadowCascadePass;
     class AdditionalShadowsPass;
     class GTAORenderPass;
+    class VKRenderer;
 
     struct AOBox {
         glm::vec4 pack0, pack1, pack2, pack3;
@@ -256,6 +257,7 @@ namespace worlds {
         RenderDebugContext debugContext;
         PassSettings passSettings;
         entt::registry& registry;
+        VKRenderer* renderer;
 
         glm::mat4 projMatrices[2];
         glm::mat4 viewMatrices[2];
@@ -298,8 +300,6 @@ namespace worlds {
         static void loadPipelineCache(const VkPhysicalDeviceProperties&, VkPipelineCacheCreateInfo&);
         static void savePipelineCache(const VkPhysicalDeviceProperties&, const VkPipelineCache&, const VkDevice&);
     };
-
-    class VKRenderer;
 
     class DeletionQueue {
     public:

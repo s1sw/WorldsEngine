@@ -44,6 +44,7 @@ namespace worlds {
             (int)width, (int)height,
             usages
         };
+
         polyCreateInfo.layers = createInfo.isVr ? 2 : 1;
         polyCreateInfo.samples = createInfo.msaaLevel == 0 ? handles.graphicsSettings.msaaLevel : createInfo.msaaLevel;
         hdrTarget = renderer->createTextureResource(polyCreateInfo, "HDR Target");
@@ -104,6 +105,7 @@ namespace worlds {
                 .msaaSamples = createInfo.msaaLevel == 0 ? handles.graphicsSettings.msaaLevel : createInfo.msaaLevel
             },
             .registry = r,
+            .renderer = renderer,
             .passWidth = width,
             .passHeight = height,
             .frameIndex = frameIdx,

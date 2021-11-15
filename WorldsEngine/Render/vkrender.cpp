@@ -1398,6 +1398,7 @@ void VKRenderer::writeCmdBuf(VkCommandBuffer cmdBuf, uint32_t imageIndex, Camera
             .enableShadows = true
         },
         .registry = reg,
+        .renderer = this,
         .cmdBuf = cmdBuf,
         .frameIndex = frameIdx,
         .maxSimultaneousFrames = maxFramesInFlight

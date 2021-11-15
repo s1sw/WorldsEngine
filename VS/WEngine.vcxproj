@@ -181,6 +181,7 @@
     <ClCompile Include="..\WorldsEngine\Physics\Physics.cpp" />
     <ClCompile Include="..\WorldsEngine\Physics\PhysicsActor.cpp" />
     <ClCompile Include="..\WorldsEngine\Render\AdditionalShadowsPass.cpp" />
+    <ClCompile Include="..\WorldsEngine\Render\BloomRenderPass.cpp" />
     <ClCompile Include="..\WorldsEngine\Render\BRDFLUTRenderer.cpp" />
     <ClCompile Include="..\WorldsEngine\Render\CubemapConvoluter.cpp" />
     <ClCompile Include="..\WorldsEngine\Render\CubemapSlots.cpp" />
