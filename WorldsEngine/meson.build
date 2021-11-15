@@ -18,7 +18,7 @@ subdir('VR')
 
 cc = meson.get_compiler('cpp')
 
-extern_dir = '../External'
+extern_dir = meson.source_root() + '/External'
 
 lib_dir = extern_dir + '/Lib/' + host_machine.system() + '64dbg'
 
