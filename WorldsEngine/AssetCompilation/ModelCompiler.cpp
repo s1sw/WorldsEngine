@@ -309,7 +309,7 @@ namespace worlds {
                 aiProcess_ValidateDataStructure |
                 aiProcess_OptimizeMeshes |
                 aiProcess_OptimizeGraph |
-                aiProcess_PopulateArmatureData |
+                //aiProcess_PopulateArmatureData |
                 aiProcess_FlipUVs, extension);
 
             compileOp->progress = PROGRESS_PER_STEP;
@@ -378,20 +378,22 @@ namespace worlds {
                         wBone.inverseBindPose = convMtx(bone->mOffsetMatrix);
 
                         aiNode* boneNode = nodeLookup.at(bone->mName.C_Str());
-                        wBone.transform = convMtx(bone->mNode->mTransformation);
+                        // TODO
+                        //wBone.transform = convMtx(bone->mNode->mTransformation);
 
                         combinedBoneIds.insert({ wBone.name, combinedBones.size() });
                         combinedBones.push_back(wBone);
                     }
 
                     for (auto& bone : mesh.bones) {
-                        aiNode* boneNode = bone->mNode;
-                        aiNode* parentNode = boneNode->mParent;
+                        // TODO
+                        //aiNode* boneNode = bone->mNode;
+                        //aiNode* parentNode = boneNode->mParent;
                         uint32_t combinedId = combinedBoneIds.at(bone->mName.C_Str());
 
-                        if (combinedBoneIds.contains(parentNode->mName.C_Str())) {
-                            combinedBones[combinedId].parentBone = combinedBoneIds.at(parentNode->mName.C_Str());
-                        }
+                        //if (combinedBoneIds.contains(parentNode->mName.C_Str())) {
+                        //    combinedBones[combinedId].parentBone = combinedBoneIds.at(parentNode->mName.C_Str());
+                        //}
                     }
 
                     int vertIdx = 0;

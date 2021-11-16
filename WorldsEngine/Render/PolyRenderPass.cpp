@@ -150,9 +150,11 @@ namespace worlds {
         VulkanHandles* handles,
         RenderResource* depthStencilImage,
         RenderResource* polyImage,
+        RenderResource* bloomTarget,
         bool enablePicking)
         : depthResource(depthStencilImage)
         , colourResource(polyImage)
+        , bloomResource(bloomTarget)
         , enablePicking(enablePicking)
         , pickX(0)
         , pickY(0)
@@ -557,6 +559,9 @@ namespace worlds {
         lightCullPass->setup(ctx, lightsUB.buffer(), lightTileInfoBuffer.buffer(), lightTilesBuffer.buffer(), lightTileLightCountBuffer.buffer(), descriptorPool);
 
         mainPass = new MainPass(handles, pipelineLayout);
+
+        bloomPass = new BloomRenderPass(handles, colourResource, bloomResource);
+        bloomPass->setup(ctx, descriptorPool);
 
         updateDescriptorSets(ctx);
 
@@ -1095,6 +1100,8 @@ namespace worlds {
 
         colourResource->image().setCurrentLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT);
         depthResource->image().setCurrentLayout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
+
+        bloomPass->execute(ctx);
 
         if (pickThisFrame) {
             vkCmdResetEvent(cmdBuf, pickEvent, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);

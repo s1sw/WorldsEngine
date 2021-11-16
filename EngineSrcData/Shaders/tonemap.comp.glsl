@@ -5,6 +5,7 @@ layout (binding = 1) uniform sampler2DMSArray hdrImage;
 #else
 layout (binding = 1) uniform sampler2DArray hdrImage;
 #endif
+layout (binding = 2) uniform sampler2D bloomImage;
 layout (local_size_x = 16, local_size_y = 16) in;
 
 #ifdef MSAA
@@ -53,10 +54,12 @@ vec3 tonemapCol(vec3 col, vec3 whiteScale) {
 
 void main() {
     vec3 acc = vec3(0.0);
+    vec2 size = textureSize(bloomImage, 0);
     vec3 whiteScale = 1.0 / Uncharted2Tonemap(vec3(W));
+    vec3 bloom = textureLod(bloomImage, vec2(gl_GlobalInvocationID.xy / size), 0).xyz;
     for (int i = 0; i < NUM_MSAA_SAMPLES; i++) {
         vec3 raw = texelFetch(hdrImage, ivec3(gl_GlobalInvocationID.xy, idx), i).xyz;
-        acc += tonemapCol(raw, whiteScale);
+        acc += tonemapCol(raw + bloom, whiteScale);
         //acc += ACESFilm(raw * 4.0);
     }
 

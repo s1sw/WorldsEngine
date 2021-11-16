@@ -441,6 +441,7 @@ namespace vku {
     VULKAN_HANDLE_WRAPPER_IMPL(RenderPass);
     VULKAN_HANDLE_WRAPPER_IMPL(Framebuffer);
     VULKAN_HANDLE_WRAPPER_IMPL(DescriptorPool);
+    VULKAN_HANDLE_WRAPPER_IMPL(ImageView);
 
 #define VULKAN_HANDLE_WRAPPER_CREATE_IMPL(name) \
     VkResult create ## name(VkDevice device, Vk ## name ## CreateInfo* createInfo, name* out) { \
