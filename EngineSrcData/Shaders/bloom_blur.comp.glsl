@@ -8,6 +8,7 @@ layout (binding = 1, rgba16f) uniform writeonly image2D outputTexture;
 layout (push_constant) uniform PC {
     vec2 direction;
     uint inputMipLevel;
+    uvec2 resolution;
 };
 
 vec4 samp(vec2 uv) {
@@ -52,7 +53,7 @@ vec4 blur5(vec2 uv, vec2 resolution, vec2 direction) {
 }
 
 void main() {
-    vec2 resolution = textureSize(inputTexture, 0).xy;
+    //vec2 resolution = textureSize(inputTexture, inputMipLevel).xy;
     vec2 uv = vec2(gl_GlobalInvocationID.xy) / resolution;
 
     imageStore(outputTexture, ivec2(gl_GlobalInvocationID.xy), vec4(blur5(uv, resolution, direction).xyz, 1.0f));

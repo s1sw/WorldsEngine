@@ -8,7 +8,7 @@ void main() {
     vec3 accumulator = vec3(0.0);
 
     for (int i = 1; i < 5; i++) {
-        accumulator += textureLod(mipChain, vec2(gl_GlobalInvocationID.xy / size), 0).xyz * 0.2;
+        accumulator = textureLod(mipChain, vec2(gl_GlobalInvocationID.xy / size), i).xyz * 0.25;
     }
 
     imageStore(img, ivec2(gl_GlobalInvocationID.xy), vec4(accumulator, 1.0));
