@@ -31,14 +31,28 @@ namespace worlds {
         applyDescriptorSet = dsm.create(handles->device, descriptorPool)[0];
     }
 
+    struct BloomBlurPC {
+        glm::vec2 direction;
+        uint32_t inputMipLevel;
+        uint32_t pad;
+        glm::uvec2 resolution;
+    };
+
     void BloomRenderPass::setupBlurShader(RenderContext& ctx, VkDescriptorPool descriptorPool) {
         AssetID shaderId = AssetDB::pathToId("Shaders/bloom_blur.comp.spv");
 
+        blurDsl = ShaderReflector{ shaderId }.createDescriptorSetLayout(handles->device, 0);
+
+        vku::PipelineLayoutMaker plm;
+        plm.descriptorSetLayout(blurDsl);
+        plm.pushConstantRange(VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(BloomBlurPC));
+
+        blurPipelineLayout = plm.create(handles->device);
+
         vku::ComputePipelineMaker cpm;
         cpm.shader(VK_SHADER_STAGE_COMPUTE_BIT, ShaderCache::getModule(handles->device, shaderId));
-        blurPipeline = cpm.create(handles->device, handles->pipelineCache, applyPipelineLayout);
+        blurPipeline = cpm.create(handles->device, handles->pipelineCache, blurPipelineLayout);
 
-        vku::DescriptorSetMaker dsm;
         for (int i = 0; i < nMips; i++) {
             VkImageViewCreateInfo ivci { VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
             ivci.image = mipChain->image().image();
@@ -57,16 +71,26 @@ namespace worlds {
             VKCHECK(vkCreateImageView(handles->device, &ivci, nullptr, &view));
             blurMipChainImageViews.push_back(view);
 
-            dsm.layout(applyDsl);
+        }
+
+        vku::DescriptorSetMaker dsm;
+        for (int i = 0; i < nMips * 2; i++) {
+            dsm.layout(blurDsl);
         }
 
         blurDescriptorSets = dsm.create(handles->device, handles->descriptorPool);
 
-        vku::DescriptorSetUpdater dsu;
+        vku::DescriptorSetUpdater dsu(0, nMips * 4, 0);
         for (int i = 0; i < nMips; i++) {
-            dsu.beginDescriptorSet(blurDescriptorSets[i]);
+            dsu.beginDescriptorSet(blurDescriptorSets[(i * 2)]);
             dsu.beginImages(0, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
             dsu.image(sampler, mipChain->image().imageView(), VK_IMAGE_LAYOUT_GENERAL);
+            dsu.beginImages(1, 0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
+            dsu.image(sampler, blurIntermediate->image().imageView(), VK_IMAGE_LAYOUT_GENERAL);
+
+            dsu.beginDescriptorSet(blurDescriptorSets[(i * 2) + 1]);
+            dsu.beginImages(0, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+            dsu.image(sampler, blurIntermediate->image().imageView(), VK_IMAGE_LAYOUT_GENERAL);
             dsu.beginImages(1, 0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
             dsu.image(sampler, blurMipChainImageViews[i], VK_IMAGE_LAYOUT_GENERAL);
         }
@@ -86,6 +110,15 @@ namespace worlds {
         rci.mipLevels = nMips;
 
         mipChain = ctx.renderer->createTextureResource(rci, "Bloom mip chain");
+
+        TextureResourceCreateInfo intermediateCi{
+            TextureType::T2D,
+            VK_FORMAT_B10G11R11_UFLOAT_PACK32,
+            (int)hdrExtent.width, (int)hdrExtent.height,
+            VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT
+        };
+
+        blurIntermediate = ctx.renderer->createTextureResource(intermediateCi, "Intermediate texture");
 
         setupApplyShader(ctx, descriptorPool);
         setupBlurShader(ctx, descriptorPool);
@@ -137,9 +170,10 @@ namespace worlds {
             hdrImg->image().image(), hdrImg->image().layout(),
             mipChain->image().image(), mipChain->image().layout(), 1, &resolve);
 
-        hdrImg->image().setLayout(cb, initialLayout);
+        hdrImg->image().setLayout(cb, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_READ_BIT);
 
-        mipChain->image().setLayout(cb, VK_IMAGE_LAYOUT_GENERAL);
+        mipChain->image().setLayout(cb, VK_IMAGE_LAYOUT_GENERAL, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT);
+        blurIntermediate->image().setLayout(cb, VK_IMAGE_LAYOUT_GENERAL, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT);
 
         vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_COMPUTE, blurPipeline);
         for (int i = 1; i < nMips; i++) {
@@ -149,7 +183,18 @@ namespace worlds {
 
             int prevWidth = vku::mipScale(chainExtent.width, i - 1);
             int prevHeight = vku::mipScale(chainExtent.height, i - 1);
-            vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_COMPUTE, applyPipelineLayout, 0, 1, &blurDescriptorSets[i], 0, nullptr);
+            vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_COMPUTE, blurPipelineLayout, 0, 1, &blurDescriptorSets[(i * 2)], 0, nullptr);
+            BloomBlurPC pushConstants{
+                .direction = glm::vec2(3.0f, 0.0f),
+                .inputMipLevel = (uint32_t)(i - 1),
+                .resolution = glm::uvec2(thisWidth, thisHeight)
+            };
+            vkCmdPushConstants(cb, blurPipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(pushConstants), &pushConstants);
+            vkCmdDispatch(cb, (thisWidth + 15) / 16, (thisHeight + 15) / 16, 1);
+
+            vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_COMPUTE, blurPipelineLayout, 0, 1, &blurDescriptorSets[(i * 2) + 1], 0, nullptr);
+            pushConstants.direction = glm::vec2(0.0f, 3.0f);
+            vkCmdPushConstants(cb, blurPipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(pushConstants), &pushConstants);
             vkCmdDispatch(cb, (thisWidth + 15) / 16, (thisHeight + 15) / 16, 1);
 
             //VkImageMemoryBarrier srcImb {};

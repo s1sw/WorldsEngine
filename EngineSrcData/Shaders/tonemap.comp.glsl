@@ -59,7 +59,7 @@ void main() {
     vec3 bloom = textureLod(bloomImage, vec2(gl_GlobalInvocationID.xy / size), 0).xyz;
     for (int i = 0; i < NUM_MSAA_SAMPLES; i++) {
         vec3 raw = texelFetch(hdrImage, ivec3(gl_GlobalInvocationID.xy, idx), i).xyz;
-        acc += tonemapCol(raw + bloom, whiteScale);
+        acc += tonemapCol(bloom, whiteScale);
         //acc += ACESFilm(raw * 4.0);
     }
 

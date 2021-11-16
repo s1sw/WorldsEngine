@@ -56,7 +56,7 @@ if not assimp_dep.found()
     if get_option('buildtype').startswith('release')
       assimp_dir = extern_dir + '/Assimp/' + system_lib_dir
     endif
-    assimp_inc_dir = extern_dir + '/Assimp/include'
+    assimp_inc_dir =  '../External/Assimp/include'
 
     assimp_lib = cpp_comp.find_library('assimp', dirs: assimp_dir)
     assimp_dep = declare_dependency(dependencies: assimp_lib, include_directories: include_directories(assimp_inc_dir))
