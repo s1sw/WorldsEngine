@@ -358,3 +358,20 @@ build_*
 .clangd/
 /EngineData/Shaders
 compile_commands.json
+
+# Auto-generated Meson files
+WorldsEngine/AssetCompilation/meson.build
+WorldsEngine/Audio/meson.build
+WorldsEngine/ComponentMeta/meson.build
+WorldsEngine/Core/meson.build
+WorldsEngine/Editor/meson.build
+WorldsEngine/ImGui/meson.build
+WorldsEngine/Input/meson.build
+WorldsEngine/IO/meson.build
+WorldsEngine/Physics/meson.build
+WorldsEngine/Render/meson.build
+WorldsEngine/Scripting/meson.build
+WorldsEngine/Serialization/meson.build
+WorldsEngine/UI/meson.build
+WorldsEngine/Util/meson.build
+WorldsEngine/VR/meson.build
