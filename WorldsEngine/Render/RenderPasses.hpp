@@ -14,6 +14,8 @@ namespace worlds {
     struct RenderResource;
     class Swapchain;
     class VKRenderer;
+    class BloomRenderPass;
+
     class VRCullMeshRenderer {
     private:
         vku::Pipeline pipeline;
@@ -243,6 +245,7 @@ namespace worlds {
 
         RenderResource* depthResource;
         RenderResource* colourResource;
+        RenderResource* bloomResource;
 
         bool enablePicking;
         int pickX, pickY;
@@ -260,11 +263,12 @@ namespace worlds {
         WorldSpaceUIPass* uiPass;
         LightCullPass* lightCullPass;
         MainPass* mainPass;
+        BloomRenderPass* bloomPass;
         VulkanHandles* handles;
 
         void generateDrawInfo(RenderContext& ctx);
     public:
-        PolyRenderPass(VulkanHandles* handles, RenderResource* depthStencilImage, RenderResource* polyImage, bool enablePicking = false);
+        PolyRenderPass(VulkanHandles* handles, RenderResource* depthStencilImage, RenderResource* polyImage, RenderResource* bloomTarget, bool enablePicking = false);
         void setPickCoords(int x, int y) { pickX = x; pickY = y; }
         void setup(RenderContext& ctx, VkDescriptorPool descriptorPool);
         void prePass(RenderContext& ctx);
@@ -338,9 +342,10 @@ namespace worlds {
         RenderResource* finalPrePresent;
         RenderResource* finalPrePresentR;
         RenderResource* hdrImg;
+        RenderResource* bloomImg;
         VulkanHandles* handles;
     public:
-        TonemapRenderPass(VulkanHandles* handles, RenderResource* hdrImg, RenderResource* finalPrePresent);
+        TonemapRenderPass(VulkanHandles* handles, RenderResource* hdrImg, RenderResource* finalPrePresent, RenderResource* bloomImg);
         void setup(RenderContext& ctx, VkDescriptorPool descriptorPool);
         void execute(RenderContext& ctx);
         void setRightFinalImage(RenderResource* right);
@@ -351,15 +356,24 @@ namespace worlds {
     private:
         RenderResource* mipChain;
         RenderResource* hdrImg;
-        vku::Pipeline bloomApplyPipeline;
-        vku::PipelineLayout bloomApplyPipelineLayout;
-        VkDescriptorSet descriptorSet;
-        vku::DescriptorSetLayout dsl;
+        RenderResource* resolveIntermediate;
+        RenderResource* bloomTarget;
+
+        vku::Pipeline applyPipeline;
+        vku::PipelineLayout applyPipelineLayout;
+        VkDescriptorSet applyDescriptorSet;
+        vku::DescriptorSetLayout applyDsl;
+
+        vku::Pipeline blurPipeline;
+        std::vector<VkDescriptorSet> blurDescriptorSets;
+        std::vector<vku::ImageView> blurMipChainImageViews;
+
         vku::Sampler sampler;
         int nMips;
         void setupApplyShader(RenderContext& ctx, VkDescriptorPool descriptorPool);
+        void setupBlurShader(RenderContext& ctx, VkDescriptorPool descriptorPool);
     public:
-        BloomRenderPass(VulkanHandles* handles, RenderResource* hdrImg);
+        BloomRenderPass(VulkanHandles* handles, RenderResource* hdrImg, RenderResource* bloomTarget);
         void setup(RenderContext& ctx, VkDescriptorPool descriptorPool);
         void execute(RenderContext& ctx);
         virtual ~BloomRenderPass();

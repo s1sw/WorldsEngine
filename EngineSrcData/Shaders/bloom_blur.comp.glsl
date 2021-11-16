@@ -1,18 +1,18 @@
 #version 450
 layout (local_size_x = 16, local_size_y = 16) in;
-layout (binding = 0, r8) uniform writeonly image2DArray outputTexture;
-layout (binding = 1) uniform sampler2DArray inputTexture;
+layout (binding = 0) uniform sampler2D inputTexture;
+layout (binding = 1, rgba16f) uniform writeonly image2D outputTexture;
 
 // Simple box filter
 
 layout (push_constant) uniform PC {
     vec2 direction;
-    uint idx;
+    uint inputMipLevel;
 };
 
 vec4 samp(vec2 uv) {
-    vec3 coords = vec3(uv, gl_GlobalInvocationID.z);
-    return textureLod(inputTexture, coords, 0);
+    vec2 coords = vec2(uv);
+    return textureLod(inputTexture, coords, inputMipLevel);
 }
 
 vec4 blur13(vec2 uv, vec2 resolution, vec2 direction) {
@@ -55,5 +55,5 @@ void main() {
     vec2 resolution = textureSize(inputTexture, 0).xy;
     vec2 uv = vec2(gl_GlobalInvocationID.xy) / resolution;
 
-    imageStore(outputTexture, ivec3(gl_GlobalInvocationID.xyz), vec4(blur5(uv, resolution, direction).xyz, 1.0f));
+    imageStore(outputTexture, ivec2(gl_GlobalInvocationID.xy), vec4(blur5(uv, resolution, direction).xyz, 1.0f));
 }

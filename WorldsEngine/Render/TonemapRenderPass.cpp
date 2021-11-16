@@ -16,9 +16,11 @@ namespace worlds {
     TonemapRenderPass::TonemapRenderPass(
             VulkanHandles* handles,
             RenderResource* hdrImg,
-            RenderResource* finalPrePresent)
+            RenderResource* finalPrePresent,
+            RenderResource* bloomImg)
         : finalPrePresent{finalPrePresent}
         , hdrImg {hdrImg}
+        , bloomImg {bloomImg}
         , handles {handles} {
 
     }
@@ -66,6 +68,9 @@ namespace worlds {
 
         dsu.beginImages(1, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
         dsu.image(sampler, hdrImg->image().imageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+        dsu.beginImages(2, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+        dsu.image(sampler, bloomImg->image().imageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
         dsu.update(handles->device);
     }

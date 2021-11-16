@@ -343,6 +343,7 @@ namespace worlds {
         RenderResource* hdrTarget;
         RenderResource* sdrFinalTarget;
         RenderResource* depthTarget;
+        RenderResource* bloomTarget;
         void requestPick(int x, int y) override;
         bool getPickResult(uint32_t* result) override;
         float* getHDRData() override;
