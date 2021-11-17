@@ -54,20 +54,19 @@ vec3 tonemapCol(vec3 col, vec3 whiteScale) {
 
 void main() {
     vec3 acc = vec3(0.0);
-    vec2 size = textureSize(bloomImage, 0);
     vec3 whiteScale = 1.0 / Uncharted2Tonemap(vec3(W));
-    vec3 bloom = textureLod(bloomImage, vec2(gl_GlobalInvocationID.xy / size), 0).xyz;
+    vec3 bloom = texelFetch(bloomImage, ivec2(gl_GlobalInvocationID.xy), 0).xyz;
     for (int i = 0; i < NUM_MSAA_SAMPLES; i++) {
         vec3 raw = texelFetch(hdrImage, ivec3(gl_GlobalInvocationID.xy, idx), i).xyz;
-        acc += tonemapCol(bloom, whiteScale);
+        acc += tonemapCol(bloom + raw, whiteScale);
         //acc += ACESFilm(raw * 4.0);
     }
 
-    // debugging checks for NaN and negatives
-    /*
-       if (any(lessThan(acc, vec3(0.0)))) acc = vec3(1.0, 0.0, 0.0);
-       if (any(isnan(acc))) acc = vec3(1.0, 0.0, 1.0);
-     */
+    //// debugging checks for NaN and negatives
+    ///*
+    //   if (any(lessThan(acc, vec3(0.0)))) acc = vec3(1.0, 0.0, 0.0);
+    //   if (any(isnan(acc))) acc = vec3(1.0, 0.0, 1.0);
+    // */
 
     vec3 final = pow(acc / float(NUM_MSAA_SAMPLES), vec3(1 / 2.2));
 
