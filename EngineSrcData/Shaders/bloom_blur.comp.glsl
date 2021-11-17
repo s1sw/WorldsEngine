@@ -67,11 +67,11 @@ void main() {
     vec2 uv = (vec2(gl_GlobalInvocationID.xy) + 0.5) / vec2(resolution * resScalar);
 
 #ifndef SEED
-    vec4 blurred = blur9(uv, resolution * resScalar, direction);
+    vec4 blurred = blur5(uv, resolution * resScalar, direction);
     imageStore(outputTexture, ivec2(gl_GlobalInvocationID.xy), vec4(blurred.xyz, 1.0f));
 #else
     vec3 col = samp(uv).xyz;
-    col -= 1.0;
+    col -= 1.2;
     col = saturate(col);
     imageStore(outputTexture, ivec2(gl_GlobalInvocationID.xy), vec4(col, 1.0));
 #endif
