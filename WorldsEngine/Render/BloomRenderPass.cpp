@@ -38,6 +38,7 @@ namespace worlds {
         uint32_t inputMipLevel;
         float resScalar;
         glm::uvec2 resolution;
+        bool useUpsampleFilter;
     };
 
     void BloomRenderPass::setupBlurShader(RenderContext& ctx, VkDescriptorPool descriptorPool) {
@@ -85,24 +86,35 @@ namespace worlds {
             dsm.layout(blurDsl);
         }
 
-        chainToIntermediateDS = dsm.create(handles->device, handles->descriptorPool);
-        intermediateToChainDS = dsm.create(handles->device, handles->descriptorPool);
+        intermediateToChainDS = dsm.create(handles->device, descriptorPool);
+        chainToChainDS = dsm.create(handles->device, descriptorPool);
 
         vku::DescriptorSetMaker dsm2;
         dsm2.layout(blurDsl);
-        hdrToChainDS = dsm2.create(handles->device, handles->descriptorPool)[0];
 
-        vku::DescriptorSetUpdater dsu(0, nMips * 4 + 2, 0);
+        chainToIntermediateDS = dsm2.create(handles->device, descriptorPool)[0];
+
+        vku::DescriptorSetMaker dsm3;
+        dsm3.layout(blurDsl);
+        hdrToChainDS = dsm3.create(handles->device, descriptorPool)[0];
+
+        vku::DescriptorSetUpdater dsu(0, nMips * 4 + 4, 0);
+        dsu.beginDescriptorSet(chainToIntermediateDS);
+        dsu.beginImages(0, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+        dsu.image(sampler, mipChain->image().imageView(), VK_IMAGE_LAYOUT_GENERAL);
+        dsu.beginImages(1, 0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
+        dsu.image(sampler, blurIntermediate->image().imageView(), VK_IMAGE_LAYOUT_GENERAL);
+
         for (int i = 0; i < nMips; i++) {
-            dsu.beginDescriptorSet(chainToIntermediateDS[i]);
-            dsu.beginImages(0, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-            dsu.image(sampler, mipChain->image().imageView(), VK_IMAGE_LAYOUT_GENERAL);
-            dsu.beginImages(1, 0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
-            dsu.image(sampler, blurIntermediate->image().imageView(), VK_IMAGE_LAYOUT_GENERAL);
-
             dsu.beginDescriptorSet(intermediateToChainDS[i]);
             dsu.beginImages(0, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
             dsu.image(sampler, blurIntermediate->image().imageView(), VK_IMAGE_LAYOUT_GENERAL);
+            dsu.beginImages(1, 0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
+            dsu.image(sampler, blurMipChainImageViews[i], VK_IMAGE_LAYOUT_GENERAL);
+
+            dsu.beginDescriptorSet(chainToChainDS[i]);
+            dsu.beginImages(0, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+            dsu.image(sampler, mipChain->image().imageView(), VK_IMAGE_LAYOUT_GENERAL);
             dsu.beginImages(1, 0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
             dsu.image(sampler, blurMipChainImageViews[i], VK_IMAGE_LAYOUT_GENERAL);
         }
@@ -211,7 +223,7 @@ namespace worlds {
                 VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                 VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_WRITE_BIT);
             // Blur from previous mip to intermediate
-            vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_COMPUTE, blurPipelineLayout, 0, 1, &chainToIntermediateDS[i], 0, nullptr);
+            vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_COMPUTE, blurPipelineLayout, 0, 1, &chainToIntermediateDS, 0, nullptr);
             BloomBlurPC pushConstants{
                 .direction = glm::vec2(1.0f, 0.0f),
                 .inputMipLevel = (uint32_t)(i - 1),
@@ -247,32 +259,15 @@ namespace worlds {
             mipChain->image().barrier(cb,
                 VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                 VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
-            vkCmdClearColorImage(cb, blurIntermediate->image().image(), VK_IMAGE_LAYOUT_GENERAL, &clearVal, 1, &range);
-            blurIntermediate->image().barrier(cb,
-                VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_WRITE_BIT);
-            // Horizontal from this mip to intermediate
-            vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_COMPUTE, blurPipelineLayout, 0, 1, &chainToIntermediateDS[i], 0, nullptr);
+            // From this mip to next 
+            vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_COMPUTE, blurPipelineLayout, 0, 1, &chainToChainDS[i - 1], 0, nullptr);
             BloomBlurPC pushConstants{
                 .direction = glm::vec2(0.5f, 0.0f),
                 .inputMipLevel = (uint32_t)i,
                 .resScalar = 1.0f,
-                .resolution = glm::uvec2(nextWidth, nextHeight)
+                .resolution = glm::uvec2(nextWidth, nextHeight),
+                .useUpsampleFilter = true
             };
-            vkCmdPushConstants(cb, blurPipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(pushConstants), &pushConstants);
-            vkCmdDispatch(cb, (nextWidth + 15) / 16, (nextHeight + 15) / 16, 1);
-
-            // The intermediate buffer always has a size of chainExtent
-            // Therefore when sampling from it, we must select the right region
-            pushConstants.resScalar = (float)chainExtent.width / nextWidth;
-
-            blurIntermediate->image().barrier(cb,
-                VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
-
-            // Vertical blur from intermediate to next mip
-            vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_COMPUTE, blurPipelineLayout, 0, 1, &intermediateToChainDS[i - 1], 0, nullptr);
-            pushConstants.direction = glm::vec2(0.0f, 0.5f);
             vkCmdPushConstants(cb, blurPipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(pushConstants), &pushConstants);
             vkCmdDispatch(cb, (nextWidth + 15) / 16, (nextHeight + 15) / 16, 1);
         }
