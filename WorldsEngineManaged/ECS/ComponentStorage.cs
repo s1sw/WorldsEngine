@@ -59,7 +59,7 @@ namespace WorldsEngine.ECS
             }
         }
 
-        public ComponentStorage(bool hotload = false)
+        internal ComponentStorage(bool hotload = false)
         {
             IsThinking = Type.IsAssignableTo(typeof(IThinkingComponent));
 

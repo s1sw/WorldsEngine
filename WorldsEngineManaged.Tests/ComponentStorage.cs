@@ -2,7 +2,7 @@ using System;
 using Xunit;
 using WorldsEngine.ECS;
 
-namespace WorldsEngine.Tests
+namespace WorldsEngine.ECS.Tests
 {
     [Component]
     public class TestComponent
