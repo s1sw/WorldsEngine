@@ -24,6 +24,8 @@ namespace worlds {
         applyPipeline = cpm.create(handles->device, handles->pipelineCache, applyPipelineLayout);
 
         vku::SamplerMaker sm;
+        sm.magFilter(VK_FILTER_LINEAR).minFilter(VK_FILTER_LINEAR).minLod(0.0f).maxLod(16.0f).mipmapMode(VK_SAMPLER_MIPMAP_MODE_LINEAR);
+        sm.addressModeU(VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE).addressModeV(VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE);
         sampler = sm.create(handles->device);
 
         vku::DescriptorSetMaker dsm;
@@ -34,7 +36,7 @@ namespace worlds {
     struct BloomBlurPC {
         glm::vec2 direction;
         uint32_t inputMipLevel;
-        uint32_t pad;
+        float resScalar;
         glm::uvec2 resolution;
     };
 
@@ -53,6 +55,12 @@ namespace worlds {
         cpm.shader(VK_SHADER_STAGE_COMPUTE_BIT, ShaderCache::getModule(handles->device, shaderId));
         blurPipeline = cpm.create(handles->device, handles->pipelineCache, blurPipelineLayout);
 
+        AssetID seedShaderId = AssetDB::pathToId("Shaders/bloom_blur_seed.comp.spv");
+
+        vku::ComputePipelineMaker cpm2;
+        cpm2.shader(VK_SHADER_STAGE_COMPUTE_BIT, ShaderCache::getModule(handles->device, seedShaderId));
+        seedBlurPipeline = cpm2.create(handles->device, handles->pipelineCache, blurPipelineLayout);
+
         for (int i = 0; i < nMips; i++) {
             VkImageViewCreateInfo ivci { VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
             ivci.image = mipChain->image().image();
@@ -70,30 +78,40 @@ namespace worlds {
             VkImageView view;
             VKCHECK(vkCreateImageView(handles->device, &ivci, nullptr, &view));
             blurMipChainImageViews.push_back(view);
-
         }
 
         vku::DescriptorSetMaker dsm;
-        for (int i = 0; i < nMips * 2; i++) {
+        for (int i = 0; i < nMips; i++) {
             dsm.layout(blurDsl);
         }
 
-        blurDescriptorSets = dsm.create(handles->device, handles->descriptorPool);
+        chainToIntermediateDS = dsm.create(handles->device, handles->descriptorPool);
+        intermediateToChainDS = dsm.create(handles->device, handles->descriptorPool);
 
-        vku::DescriptorSetUpdater dsu(0, nMips * 4, 0);
+        vku::DescriptorSetMaker dsm2;
+        dsm2.layout(blurDsl);
+        hdrToChainDS = dsm2.create(handles->device, handles->descriptorPool)[0];
+
+        vku::DescriptorSetUpdater dsu(0, nMips * 4 + 2, 0);
         for (int i = 0; i < nMips; i++) {
-            dsu.beginDescriptorSet(blurDescriptorSets[(i * 2)]);
+            dsu.beginDescriptorSet(chainToIntermediateDS[i]);
             dsu.beginImages(0, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
             dsu.image(sampler, mipChain->image().imageView(), VK_IMAGE_LAYOUT_GENERAL);
             dsu.beginImages(1, 0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
             dsu.image(sampler, blurIntermediate->image().imageView(), VK_IMAGE_LAYOUT_GENERAL);
 
-            dsu.beginDescriptorSet(blurDescriptorSets[(i * 2) + 1]);
+            dsu.beginDescriptorSet(intermediateToChainDS[i]);
             dsu.beginImages(0, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
             dsu.image(sampler, blurIntermediate->image().imageView(), VK_IMAGE_LAYOUT_GENERAL);
             dsu.beginImages(1, 0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
             dsu.image(sampler, blurMipChainImageViews[i], VK_IMAGE_LAYOUT_GENERAL);
         }
+
+        dsu.beginDescriptorSet(hdrToChainDS);
+        dsu.beginImages(0, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+        dsu.image(sampler, hdrImg->image().imageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+        dsu.beginImages(1, 0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
+        dsu.image(sampler, blurMipChainImageViews[0], VK_IMAGE_LAYOUT_GENERAL);
         dsu.update(handles->device);
     }
 
@@ -154,26 +172,22 @@ namespace worlds {
         addDebugLabel(ctx.cmdBuf, "Bloom Pass", 1.0f, 0.5f, 0.5f, 1.0f);
         VkCommandBuffer cb = ctx.cmdBuf;
 
-        VkImageResolve resolve{};
-        resolve.dstOffset = { 0, 0, 0 };
-        resolve.dstSubresource = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 };
-        resolve.srcOffset = { 0, 0, 0 };
-        resolve.srcSubresource = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 };
-        resolve.extent = hdrImg->image().extent();
-
-        VkImageLayout initialLayout = hdrImg->image().layout();
-
-        hdrImg->image().setLayout(cb, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_READ_BIT);
         mipChain->image().setLayout(cb, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT);
-
-        vkCmdResolveImage(cb,
-            hdrImg->image().image(), hdrImg->image().layout(),
-            mipChain->image().image(), mipChain->image().layout(), 1, &resolve);
-
-        hdrImg->image().setLayout(cb, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_READ_BIT);
 
         mipChain->image().setLayout(cb, VK_IMAGE_LAYOUT_GENERAL, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT);
         blurIntermediate->image().setLayout(cb, VK_IMAGE_LAYOUT_GENERAL, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT);
+
+        // Perform initial copy to mip 0 of the chain
+        VkExtent3D chainExtent = mipChain->image().extent();
+        vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_COMPUTE, seedBlurPipeline);
+        vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_COMPUTE, blurPipelineLayout, 0, 1, &hdrToChainDS, 0, nullptr);
+        BloomBlurPC pushConstants{
+            .direction = glm::vec2(0.0f, 0.0f),
+            .inputMipLevel = (uint32_t)(0),
+            .resolution = glm::uvec2(chainExtent.width, chainExtent.height)
+        };
+        vkCmdPushConstants(cb, blurPipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(pushConstants), &pushConstants);
+        vkCmdDispatch(cb, (chainExtent.width + 15) / 16, (chainExtent.height + 15) / 16, 1);
 
         vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_COMPUTE, blurPipeline);
         for (int i = 1; i < nMips; i++) {
@@ -181,78 +195,67 @@ namespace worlds {
             int thisWidth = vku::mipScale(chainExtent.width, i);
             int thisHeight = vku::mipScale(chainExtent.height, i);
 
-            int prevWidth = vku::mipScale(chainExtent.width, i - 1);
-            int prevHeight = vku::mipScale(chainExtent.height, i - 1);
-            vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_COMPUTE, blurPipelineLayout, 0, 1, &blurDescriptorSets[(i * 2)], 0, nullptr);
+            // Blur from previous mip to intermediate
+            vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_COMPUTE, blurPipelineLayout, 0, 1, &chainToIntermediateDS[i], 0, nullptr);
             BloomBlurPC pushConstants{
-                .direction = glm::vec2(3.0f, 0.0f),
+                .direction = glm::vec2(1.0f, 0.0f),
                 .inputMipLevel = (uint32_t)(i - 1),
+                .resScalar = 1.0f,
                 .resolution = glm::uvec2(thisWidth, thisHeight)
             };
             vkCmdPushConstants(cb, blurPipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(pushConstants), &pushConstants);
             vkCmdDispatch(cb, (thisWidth + 15) / 16, (thisHeight + 15) / 16, 1);
 
-            vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_COMPUTE, blurPipelineLayout, 0, 1, &blurDescriptorSets[(i * 2) + 1], 0, nullptr);
-            pushConstants.direction = glm::vec2(0.0f, 3.0f);
+            // The intermediate buffer always has a size of chainExtent
+            // Therefore when sampling from it, we must select the right region
+            pushConstants.resScalar = (float)chainExtent.width / thisWidth;
+
+            blurIntermediate->image().barrier(cb,
+                VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
+
+            // Vertical blur from intermediate to current mip
+            vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_COMPUTE, blurPipelineLayout, 0, 1, &intermediateToChainDS[i], 0, nullptr);
+            pushConstants.direction = glm::vec2(0.0f, 1.0f);
             vkCmdPushConstants(cb, blurPipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(pushConstants), &pushConstants);
             vkCmdDispatch(cb, (thisWidth + 15) / 16, (thisHeight + 15) / 16, 1);
-
-            //VkImageMemoryBarrier srcImb {};
-            //transitionOneMip(srcImb, mipChain->image(), i - 1, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-            //    VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_TRANSFER_READ_BIT);
-
-            //vkCmdPipelineBarrier(cb,
-            //    VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
-            //    VK_DEPENDENCY_BY_REGION_BIT,
-            //    0, nullptr,
-            //    0, nullptr,
-            //    1, &srcImb
-            //);
-
-            //VkImageBlit ib{
-            //    .srcSubresource = VkImageSubresourceLayers {
-            //        .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-            //        .mipLevel = (uint32_t)(i - 1),
-            //        .baseArrayLayer = 0,
-            //        .layerCount = 1
-            //    },
-            //    .srcOffsets = {
-            //        VkOffset3D { 0, 0, 0 },
-            //        VkOffset3D { prevWidth, prevHeight, 1 }
-            //    },
-            //    .dstSubresource = VkImageSubresourceLayers {
-            //        .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-            //        .mipLevel = (uint32_t)i,
-            //        .baseArrayLayer = 0,
-            //        .layerCount = 1
-            //    },
-            //    .dstOffsets = {
-            //        VkOffset3D { 0, 0, 0 },
-            //        VkOffset3D { thisWidth, thisHeight, 1 }
-            //    }
-            //};
-
-            //vkCmdBlitImage(cb,
-            //    mipChain->image().image(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-            //    mipChain->image().image(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-            //    1, &ib, VK_FILTER_NEAREST);
         }
 
-        // Set the layout of the final mip as well
-        //VkImageMemoryBarrier srcImb {};
-        //transitionOneMip(srcImb, mipChain->image(), nMips - 1, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-        //    VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_TRANSFER_READ_BIT);
+        for (int i = nMips; i < 0; i++) {
+            VkExtent3D chainExtent = mipChain->image().extent();
+            int thisWidth = vku::mipScale(chainExtent.width, i);
+            int thisHeight = vku::mipScale(chainExtent.height, i);
 
-        //vkCmdPipelineBarrier(cb,
-        //    VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
-        //    VK_DEPENDENCY_BY_REGION_BIT,
-        //    0, nullptr,
-        //    0, nullptr,
-        //    1, &srcImb
-        //);
+            int nextWidth = vku::mipScale(chainExtent.width, i + 1);
+            int nextHeight = vku::mipScale(chainExtent.height, i + 1);
+
+            // Blur from this mip to intermediate
+            vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_COMPUTE, blurPipelineLayout, 0, 1, &chainToIntermediateDS[i], 0, nullptr);
+            BloomBlurPC pushConstants{
+                .direction = glm::vec2(1.0f, 0.0f),
+                .inputMipLevel = (uint32_t)i,
+                .resScalar = 1.0f,
+                .resolution = glm::uvec2(nextWidth, nextHeight)
+            };
+            vkCmdPushConstants(cb, blurPipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(pushConstants), &pushConstants);
+            vkCmdDispatch(cb, (nextWidth + 15) / 16, (nextHeight + 15) / 16, 1);
+
+            // The intermediate buffer always has a size of chainExtent
+            // Therefore when sampling from it, we must select the right region
+            pushConstants.resScalar = (float)chainExtent.width / thisWidth;
+
+            blurIntermediate->image().barrier(cb,
+                VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
+
+            // Vertical blur from intermediate to next mip
+            vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_COMPUTE, blurPipelineLayout, 0, 1, &intermediateToChainDS[i + 1], 0, nullptr);
+            pushConstants.direction = glm::vec2(0.0f, 1.0f);
+            vkCmdPushConstants(cb, blurPipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(pushConstants), &pushConstants);
+            vkCmdDispatch(cb, (thisWidth + 15) / 16, (thisHeight + 15) / 16, 1);
+        }
 
         bloomTarget->image().setLayout(cb, VK_IMAGE_LAYOUT_GENERAL, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT);
-        mipChain->image().setCurrentLayout(VK_IMAGE_LAYOUT_GENERAL, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT);
 
         mipChain->image().setLayout(cb, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_READ_BIT);
 

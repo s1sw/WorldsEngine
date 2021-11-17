@@ -32,7 +32,11 @@ const customArgs = {
     "depth_prepass.vert.glsl": [
         { stage: "vert", defines: [], outFile: "depth_prepass.vert.spv" },
         { stage: "vert", defines: ["SKINNED"], outFile: "depth_prepass_skinned.vert.spv" }
-    ]
+    ],
+    "bloom_blur.comp.glsl": [
+        { stage: "comp", defines: ["SEED"], outFile: "bloom_blur_seed.comp.spv" },
+        { stage: "comp", defines: [], outFile: "bloom_blur.comp.spv" }
+    ],
 };
 
 function findSourceFiles(dir) {

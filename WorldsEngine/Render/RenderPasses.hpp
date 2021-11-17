@@ -365,9 +365,12 @@ namespace worlds {
         vku::DescriptorSetLayout applyDsl;
 
         vku::Pipeline blurPipeline;
+        vku::Pipeline seedBlurPipeline;
         vku::PipelineLayout blurPipelineLayout;
         vku::DescriptorSetLayout blurDsl;
-        std::vector<VkDescriptorSet> blurDescriptorSets;
+        std::vector<VkDescriptorSet> chainToIntermediateDS;
+        std::vector<VkDescriptorSet> intermediateToChainDS;
+        VkDescriptorSet hdrToChainDS;
         std::vector<vku::ImageView> blurMipChainImageViews;
 
         vku::Sampler sampler;

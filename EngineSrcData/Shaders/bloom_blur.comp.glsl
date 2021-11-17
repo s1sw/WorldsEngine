@@ -1,19 +1,29 @@
 #version 450
 layout (local_size_x = 16, local_size_y = 16) in;
+#ifdef SEED
+layout (binding = 0) uniform sampler2DMSArray inputTexture;
+#else
 layout (binding = 0) uniform sampler2D inputTexture;
+#endif
 layout (binding = 1, rgba16f) uniform writeonly image2D outputTexture;
+#include <math.glsl>
 
 // Simple box filter
 
 layout (push_constant) uniform PC {
     vec2 direction;
     uint inputMipLevel;
+    float resScalar;
     uvec2 resolution;
 };
 
 vec4 samp(vec2 uv) {
     vec2 coords = vec2(uv);
+#ifdef SEED
+    return texelFetch(inputTexture, ivec3(gl_GlobalInvocationID.xy, 0), 0);
+#else
     return textureLod(inputTexture, coords, inputMipLevel);
+#endif
 }
 
 vec4 blur13(vec2 uv, vec2 resolution, vec2 direction) {
@@ -54,7 +64,15 @@ vec4 blur5(vec2 uv, vec2 resolution, vec2 direction) {
 
 void main() {
     //vec2 resolution = textureSize(inputTexture, inputMipLevel).xy;
-    vec2 uv = vec2(gl_GlobalInvocationID.xy) / resolution;
+    vec2 uv = (vec2(gl_GlobalInvocationID.xy) + 0.5) / vec2(resolution * resScalar);
 
-    imageStore(outputTexture, ivec2(gl_GlobalInvocationID.xy), vec4(blur5(uv, resolution, direction).xyz, 1.0f));
+#ifndef SEED
+    vec4 blurred = blur9(uv, resolution * resScalar, direction);
+    imageStore(outputTexture, ivec2(gl_GlobalInvocationID.xy), vec4(blurred.xyz, 1.0f));
+#else
+    vec3 col = samp(uv).xyz;
+    col -= 1.0;
+    col = saturate(col);
+    imageStore(outputTexture, ivec2(gl_GlobalInvocationID.xy), vec4(col, 1.0));
+#endif
 }
