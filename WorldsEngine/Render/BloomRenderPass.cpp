@@ -127,6 +127,7 @@ namespace worlds {
         dsu.update(handles->device);
     }
 
+    ConVar maxMips { "r_bloomMaxMips", "5" };
     void BloomRenderPass::setup(RenderContext& ctx, VkDescriptorPool descriptorPool) {
         VkExtent3D hdrExtent = hdrImg->image().extent();
         TextureResourceCreateInfo rci{
@@ -136,7 +137,8 @@ namespace worlds {
             VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT
         };
 
-        nMips = std::min((int)floor(log2(std::max(hdrExtent.width, hdrExtent.height))), 6);
+        nMips = (int)floor(log2(std::max(hdrExtent.width, hdrExtent.height)));
+        nMips = std::min(nMips, maxMips.getInt());
         rci.mipLevels = nMips;
 
         mipChain = ctx.renderer->createTextureResource(rci, "Bloom mip chain");

@@ -64,23 +64,23 @@ vec4 blur5(vec2 uv, vec2 resolution, vec2 direction) {
 }
 
 vec4 tent(vec2 uv, vec2 resolution) {
-    const float radius = 1.0;
-    vec2 xOffset = vec2(1.0 / resolution.x, 0.0) * radius;
-    vec2 yOffset = vec2(0.0, 1.0 / resolution.y) * radius;
+    const float radius = 2.0;
+    vec2 xOffset = vec2(1.3333 / resolution.x, 0.0) * radius;
+    vec2 yOffset = vec2(0.0, 1.3333 / resolution.y) * radius;
     vec4 color = vec4(0.0);
     color += samp(uv) * (4.0 / 16.0);
-    
+
     color += samp(uv + xOffset) * (2.0 / 16.0);
     color += samp(uv - xOffset) * (2.0 / 16.0);
-    
+
     color += samp(uv + yOffset) * (2.0 / 16.0);
     color += samp(uv - yOffset) * (2.0 / 16.0);
-    
+
     color += samp(uv + xOffset + yOffset) * (1.0 / 16.0);
     color += samp(uv + xOffset - yOffset) * (1.0 / 16.0);
     color += samp(uv - xOffset + yOffset) * (1.0 / 16.0);
     color += samp(uv - xOffset - yOffset) * (1.0 / 16.0);
-    
+
     return color;
 }
 
@@ -91,14 +91,13 @@ void main() {
 #ifndef SEED
     vec4 blurred = vec4(0.0);
     if (!useUpsampleFilter)
-        blurred = blur5(uv, resolution * resScalar, direction);
+        blurred = blur5(uv, resolution * resScalar, direction * 0.5);
     else
         blurred = tent(uv, resolution * resScalar);
     imageStore(outputTexture, ivec2(gl_GlobalInvocationID.xy), vec4(blurred.xyz, 1.0f));
 #else
     vec3 col = samp(uv).xyz;
-    col -= 1.5;
-    col *= 0.1;
+    col -= 1.0;
     col = max(col, vec3(0.0));
     //col = saturate(col);
     imageStore(outputTexture, ivec2(gl_GlobalInvocationID.xy), vec4(col, 1.0));
