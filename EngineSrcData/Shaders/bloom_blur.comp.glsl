@@ -16,12 +16,20 @@ layout (push_constant) uniform PC {
     float resScalar;
     uvec2 resolution;
     bool useUpsampleFilter;
+    uint inputArrayIdx;
 };
 
 vec4 samp(vec2 uv) {
     vec2 coords = vec2(uv);
 #ifdef SEED
-    return texelFetch(inputTexture, ivec3(gl_GlobalInvocationID.xy, 0), 0);
+    int nSamples = 4;
+    vec4 acc = vec4(0.0);
+    for (int i = 0; i < nSamples; i++) {
+        acc += texelFetch(inputTexture, ivec3(gl_GlobalInvocationID.xy, inputArrayIdx), i);
+    }
+    acc /= float(nSamples);
+    return acc;
+
 #else
     return textureLod(inputTexture, coords, inputMipLevel);
 #endif
@@ -63,6 +71,48 @@ vec4 blur5(vec2 uv, vec2 resolution, vec2 direction) {
     return color;
 }
 
+vec4 downsample13(vec2 uv, vec2 resolution) {
+    vec2 texelSize = 1.0 / resolution;
+    
+    // A  B  C
+    //  D  E
+    // F  G  H
+    //  I  J
+    // K  L  M
+    
+    // Samples going clockwise from the top left corner
+    
+    vec4 a = samp(uv - vec2(-1.0,  1.0) * texelSize);
+    vec4 b = samp(uv - vec2( 0.0,  1.0) * texelSize);
+    vec4 c = samp(uv - vec2( 1.0,  1.0) * texelSize);
+    
+    vec4 d = samp(uv - vec2(-0.5,  0.5) * texelSize);
+    vec4 e = samp(uv - vec2( 0.5,  0.5) * texelSize);
+    
+    vec4 f = samp(uv - vec2(-1.0,  0.0) * texelSize);
+    vec4 g = samp(uv - vec2( 0.0,  0.0) * texelSize);
+    vec4 h = samp(uv - vec2( 1.0,  0.0) * texelSize);
+    
+    vec4 i = samp(uv - vec2(-0.5, -0.5) * texelSize);
+    vec4 j = samp(uv - vec2( 0.5, -0.5) * texelSize);
+    
+    vec4 k = samp(uv - vec2(-1.0, -1.0) * texelSize);
+    vec4 l = samp(uv - vec2( 0.0, -1.0) * texelSize);
+    vec4 m = samp(uv - vec2( 1.0, -1.0) * texelSize);
+    
+    float sampleWeight = 0.25;
+    
+    // slides 154-158
+    vec4 final =
+        (d + e + i + j) * sampleWeight * 0.5
+      + (a + b + f + g) * sampleWeight * 0.125
+      + (b + c + g + h) * sampleWeight * 0.125
+      + (g + h + l + m) * sampleWeight * 0.125
+      + (f + g + k + l) * sampleWeight * 0.125;
+
+    return final;
+}
+
 vec4 tent(vec2 uv, vec2 resolution) {
     const float radius = 2.0;
     vec2 xOffset = vec2(1.3333 / resolution.x, 0.0) * radius;
@@ -91,13 +141,13 @@ void main() {
 #ifndef SEED
     vec4 blurred = vec4(0.0);
     if (!useUpsampleFilter)
-        blurred = blur5(uv, resolution * resScalar, direction * 0.5);
+        blurred = downsample13(uv, resolution * resScalar);//blur5(uv, resolution * resScalar, direction * 0.5);
     else
         blurred = tent(uv, resolution * resScalar);
     imageStore(outputTexture, ivec2(gl_GlobalInvocationID.xy), vec4(blurred.xyz, 1.0f));
 #else
     vec3 col = samp(uv).xyz;
-    col -= 1.0;
+    col -= 5.0;
     col = max(col, vec3(0.0));
     //col = saturate(col);
     imageStore(outputTexture, ivec2(gl_GlobalInvocationID.xy), vec4(col, 1.0));

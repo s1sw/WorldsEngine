@@ -61,6 +61,7 @@ namespace worlds {
             (int)createInfo.width, (int)createInfo.height,
             VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT
         };
+        bloomTargetCreateInfo.layers = createInfo.isVr ? 2 : 1;
 
         bloomTarget = renderer->createTextureResource(bloomTargetCreateInfo, "Bloom Target");
 

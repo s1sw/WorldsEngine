@@ -193,7 +193,7 @@ namespace worlds {
         uint32_t aoSphereIdMasks[2];
     };
 
-    const int MAX_LIGHT_TILES = 40000;
+    const int MAX_LIGHT_TILES = 65536;
 
     struct LightTileInfoBuffer {
         uint32_t tileSize;
