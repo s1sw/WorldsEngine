@@ -7,28 +7,28 @@ layout (binding = 0) uniform sampler2D inputTexture;
 #endif
 layout (binding = 1, rgba16f) uniform writeonly image2D outputTexture;
 #include <math.glsl>
+#include <inversible_tonemap.glsl>
 
 // Simple box filter
 
 layout (push_constant) uniform PC {
-    vec2 direction;
     uint inputMipLevel;
-    float resScalar;
-    uvec2 resolution;
-    bool useUpsampleFilter;
     uint inputArrayIdx;
+    int numMsaaSamples;
 };
 
 vec4 samp(vec2 uv) {
     vec2 coords = vec2(uv);
 #ifdef SEED
-    int nSamples = 4;
-    vec4 acc = vec4(0.0);
+    int nSamples = numMsaaSamples;
+    vec3 acc = vec3(0.0);
     for (int i = 0; i < nSamples; i++) {
-        acc += texelFetch(inputTexture, ivec3(gl_GlobalInvocationID.xy, inputArrayIdx), i);
+        vec3 sampl = texelFetch(inputTexture, ivec3(gl_GlobalInvocationID.xy, inputArrayIdx), i).xyz;
+        acc += Tonemap(sampl);
     }
     acc /= float(nSamples);
-    return acc;
+    acc = TonemapInvert(acc);
+    return vec4(acc, 0.0);
 
 #else
     return textureLod(inputTexture, coords, inputMipLevel);
@@ -114,40 +114,59 @@ vec4 downsample13(vec2 uv, vec2 resolution) {
 }
 
 vec4 tent(vec2 uv, vec2 resolution) {
-    const float radius = 2.0;
-    vec2 xOffset = vec2(1.3333 / resolution.x, 0.0) * radius;
-    vec2 yOffset = vec2(0.0, 1.3333 / resolution.y) * radius;
+    const float radius = 1.0;
+    vec2 xOffset = vec2(1.0 / resolution.x, 0.0) * radius;
+    vec2 yOffset = vec2(0.0, 1.0 / resolution.y) * radius;
     vec4 color = vec4(0.0);
-    color += samp(uv) * (4.0 / 16.0);
+    
+    color += samp(uv) * 4.0;
 
-    color += samp(uv + xOffset) * (2.0 / 16.0);
-    color += samp(uv - xOffset) * (2.0 / 16.0);
+    color += samp(uv + xOffset) * 2.0;
+    color += samp(uv - xOffset) * 2.0;
 
-    color += samp(uv + yOffset) * (2.0 / 16.0);
-    color += samp(uv - yOffset) * (2.0 / 16.0);
+    color += samp(uv + yOffset) * 2.0;
+    color += samp(uv - yOffset) * 2.0;
 
-    color += samp(uv + xOffset + yOffset) * (1.0 / 16.0);
-    color += samp(uv + xOffset - yOffset) * (1.0 / 16.0);
-    color += samp(uv - xOffset + yOffset) * (1.0 / 16.0);
-    color += samp(uv - xOffset - yOffset) * (1.0 / 16.0);
+    color += samp(uv + xOffset + yOffset);
+    color += samp(uv + xOffset - yOffset);
+    color += samp(uv - xOffset + yOffset);
+    color += samp(uv - xOffset - yOffset);
+    
+    color /= 16.0;
+
+    return color;
+}
+
+vec3 QuadraticThreshold(vec3 color, float threshold, float knee) {
+    // Pixel brightness
+    float br = gmax3(color.r, color.g, color.b);
+
+    // Under-threshold part: quadratic curve
+    float rq = clamp(br - (threshold - knee), 0.0, knee * 2.0);
+    rq = (0.25 / knee) * rq * rq;
+
+    // Combine and apply the brightness response curve.
+    color *= max(rq, br - threshold) / max(br, 0.0001);
 
     return color;
 }
 
 void main() {
-    //vec2 resolution = textureSize(inputTexture, inputMipLevel).xy;
-    vec2 uv = (vec2(gl_GlobalInvocationID.xy) + 0.5) / vec2(resolution * resScalar);
+    uvec2 resolution = imageSize(outputTexture).xy;
+    vec2 uv = (vec2(gl_GlobalInvocationID.xy) + 0.5) / vec2(resolution);
 
 #ifndef SEED
     vec4 blurred = vec4(0.0);
-    if (!useUpsampleFilter)
-        blurred = downsample13(uv, resolution * resScalar);//blur5(uv, resolution * resScalar, direction * 0.5);
-    else
-        blurred = tent(uv, resolution * resScalar);
+#ifndef UPSAMPLE
+    blurred = downsample13(uv, resolution);
+#else
+    vec4 orig = textureLod(inputTexture, uv, inputMipLevel - 1);
+    blurred = tent(uv, resolution) + orig;
+#endif
     imageStore(outputTexture, ivec2(gl_GlobalInvocationID.xy), vec4(blurred.xyz, 1.0f));
 #else
     vec3 col = samp(uv).xyz;
-    col -= 5.0;
+    col = QuadraticThreshold(col, 4.85, 0.1);
     col = max(col, vec3(0.0));
     //col = saturate(col);
     imageStore(outputTexture, ivec2(gl_GlobalInvocationID.xy), vec4(col, 1.0));

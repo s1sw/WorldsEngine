@@ -1145,6 +1145,7 @@ namespace worlds {
         delete uiPass;
         delete lightCullPass;
         delete mainPass;
+        delete bloomPass;
 
         if (cullMeshRenderer)
             delete cullMeshRenderer;

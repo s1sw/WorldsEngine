@@ -10,14 +10,14 @@ namespace Game
     {
         public static float WrapAngle(float inputAngle)
         {
-            return ((inputAngle % MathF.Tau) + MathF.Tau) % MathF.Tau;
+            return inputAngle % MathF.Tau;
         }
 
         public static float AngleToErr(float angle)
         {
             angle = WrapAngle(angle);
 
-            if (angle > MathF.PI && angle < MathF.Tau)
+            if (angle > MathF.PI)
             {
                 angle = MathF.Tau - angle;
                 angle *= -1.0f;

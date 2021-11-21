@@ -139,6 +139,7 @@ namespace worlds {
 
         delete hdrTarget;
         delete depthTarget;
+        delete bloomTarget;
 
         if (!outputToScreen)
             delete sdrFinalTarget;
