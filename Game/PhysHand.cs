@@ -111,13 +111,14 @@ namespace Game
             torque = pose.Rotation.SingleCover.Inverse * torque;
             if (!UseOverrideTensor)
             {
+                Mat3x3 inertiaTensor = new(
+                    new Vector3(dpa.InertiaTensor.x, 0.0f, 0.0f),
+                    new Vector3(0.0f, dpa.InertiaTensor.y, 0.0f),
+                    new Vector3(0.0f, 0.0f, dpa.InertiaTensor.z));
                 Quaternion itRotation = dpa.CenterOfMassLocalPose.Rotation.SingleCover;
-                Vector3 tensor = dpa.InertiaTensor;
+                Mat3x3 finalTensor = (Mat3x3)itRotation * inertiaTensor * (Mat3x3)itRotation.Inverse;
 
-                torque = itRotation * torque;
-                torque *= tensor;
-
-                torque = itRotation.Inverse * torque;
+                torque = finalTensor.Transform(torque);
             }
             else
             {

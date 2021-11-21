@@ -356,7 +356,6 @@ namespace worlds {
     private:
         RenderResource* mipChain;
         RenderResource* hdrImg;
-        RenderResource* blurIntermediate;
         RenderResource* bloomTarget;
 
         vku::Pipeline applyPipeline;
@@ -366,6 +365,7 @@ namespace worlds {
 
         vku::Pipeline blurPipeline;
         vku::Pipeline seedBlurPipeline;
+        vku::Pipeline upsamplePipeline;
         vku::PipelineLayout blurPipelineLayout;
         vku::DescriptorSetLayout blurDsl;
         VkDescriptorSet chainToIntermediateDS;

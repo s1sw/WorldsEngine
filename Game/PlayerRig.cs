@@ -115,6 +115,7 @@ namespace Game
             var dpa = Registry.GetComponent<DynamicPhysicsActor>(entity);
 
             Vector2 inputVel = GetInputVelocity();
+            float max = MathF.Max(MathF.Abs(inputVel.x), MathF.Abs(inputVel.y));
             inputVel.Normalize();
 
             Vector3 inputDir = new Vector3(inputVel.x, 0.0f, inputVel.y);
@@ -149,7 +150,7 @@ namespace Game
             if (_grounded && !PlayerRigSystem.Jump)
                 dpa.AddForce(pidController.CalculateForce(targetPosition - dpa.Pose.Position, Time.DeltaTime));
 
-            Vector3 targetVelocity = inputDirCS * 7.5f;
+            Vector3 targetVelocity = inputDirCS * 7.5f * max;
             Vector3 appliedVelocity = (targetVelocity - dpa.Velocity) * (_grounded ? 10f : 2.5f);
             appliedVelocity.y = 0.0f;
 

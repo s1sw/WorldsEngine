@@ -42,6 +42,8 @@ namespace WorldsEngine.Math
         {
             get
             {
+                if ((1 - w * w) <= 0.0f) return 0.0f;
+
                 if (w > MathF.Cos(1.0f / 2.0f))
                 {
                     return MathF.Asin(MathF.Sqrt(x * x + y * y + z * z)) * 2.0f;

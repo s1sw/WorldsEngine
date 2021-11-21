@@ -35,6 +35,7 @@ const customArgs = {
     ],
     "bloom_blur.comp.glsl": [
         { stage: "comp", defines: ["SEED"], outFile: "bloom_blur_seed.comp.spv" },
+        { stage: "comp", defines: ["UPSAMPLE"], outFile: "bloom_blur_upsample.comp.spv" },
         { stage: "comp", defines: [], outFile: "bloom_blur.comp.spv" }
     ],
 };
