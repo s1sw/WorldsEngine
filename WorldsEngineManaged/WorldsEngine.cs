@@ -191,7 +191,7 @@ namespace WorldsEngine
 
         /// <summary>
         /// Converts a long to a byte, in string format
-        /// 
+        ///
         /// This method essentially performs the same operation as ToString, with the output being a byte array,
         /// rather than a string
         /// </summary>
@@ -228,10 +228,11 @@ namespace WorldsEngine
                 ImGui.TextUnformatted("Current managed memory usage: ");
                 ImGui.SameLine();
 
-                var len = GetRequiredNumberBufferLength(GC.GetTotalMemory(false) / 1000);
+                long memUsage = GC.GetTotalMemory(false);
+                var len = GetRequiredNumberBufferLength(memUsage / 1000);
 
                 Span<char> buffer = stackalloc char[len + 1];
-                ConvertLong(GC.GetTotalMemory(false) / 1000, buffer);
+                ConvertLong(memUsage / 1000, buffer);
                 buffer[len] = 'K';
 
                 int byteCount = System.Text.Encoding.UTF8.GetByteCount(buffer);
