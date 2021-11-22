@@ -518,7 +518,7 @@ namespace worlds {
 
                     ImGui::Checkbox("Enabled", &worldLight.enabled);
                     ImGui::ColorEdit3("Color", &worldLight.color.x, ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
-                    ImGui::DragFloat("Intensity", &worldLight.intensity);
+                    ImGui::DragFloat("Intensity", &worldLight.intensity, 0.1f, 0.000001f, FLT_MAX, "%.3f", ImGuiSliderFlags_AlwaysClamp);
 
                     Transform& sphereTransform = reg.get<Transform>(rangeSphere);
                     sphereTransform.position = transform.position;
