@@ -1,4 +1,5 @@
 #include "ShaderCache.hpp"
+#include "Core/Fatal.hpp"
 #include <Core/AssetDB.hpp>
 #include <string>
 
@@ -14,7 +15,8 @@ namespace worlds {
         PHYSFS_File* file = worlds::AssetDB::openAssetFileRead(id);
 
         if (!file) {
-            logErr(WELogCategoryRender, "Failed to open shader file %s", AssetDB::idToPath(id).c_str());
+            std::string msg = "Failed to open shader file" + AssetDB::idToPath(id);
+            fatalErr(msg.c_str());
         }
 
         size_t size = PHYSFS_fileLength(file);
