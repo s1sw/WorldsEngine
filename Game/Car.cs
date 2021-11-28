@@ -16,22 +16,17 @@ namespace Game
         public void Think(Entity e)
         {
             var dpa = Registry.GetComponent<DynamicPhysicsActor>(e);
-
-            // I honestly can't be bothered to fully simulate a car,
-            // so let's go with a pretty simple approximation for now.
-            // Acceleration just applies a force of 1000N.
-            // Steering applies a magical torque from nowhere!
-            if (Accelerate)
-            {
-                dpa.AddForce(dpa.Pose.Forward * 1000.0f);
-            }
-
             ImGuiNET.ImGui.Text($"Steer: {Steer}");
+
+            // Simple approximation of a car - just add force+torque
+            if (Accelerate)
+                dpa.AddForce(dpa.Pose.Forward * 1000.0f);
+
 
             dpa.AddTorque(dpa.Pose.TransformDirection(Vector3.Up) * Steer * 400.0f);
 
-            // Here's a really awful approximation for drag.
-            // We're assuming a surface area of 4m,
+            // Here's an approximation for drag.
+            // We're assuming that... 
             const float surfaceArea = 4.0f;
             const float dragCoefficient = 0.20f;
             const float airDensity = 1.225f;
