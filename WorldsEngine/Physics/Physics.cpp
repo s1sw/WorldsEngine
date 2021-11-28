@@ -36,6 +36,7 @@ namespace worlds {
                 case PxErrorCode::ePERF_WARNING:
                 case PxErrorCode::eINVALID_OPERATION:
                 case PxErrorCode::eINVALID_PARAMETER:
+                    if (strcmp(msg, "PxScene::getRenderBuffer() not allowed while simulation is running.") == 0) return;
                     logWarn(WELogCategoryPhysics, "%s (%s:%i)", msg, file, line);
                     break;
                 case PxErrorCode::eINTERNAL_ERROR:
