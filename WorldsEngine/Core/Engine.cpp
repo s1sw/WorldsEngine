@@ -999,7 +999,7 @@ namespace worlds {
 
     void WorldsEngine::tickRenderer(bool renderImGui) {
         std::unique_lock<std::mutex> lg(rendererLock);
-        renderThreadCV.wait(lg, []{return renderThreadAvailable;});
+        renderThreadCV.wait(lg, [this]{return renderThreadAvailable || !running;});
 
         renderRegistry.clear();
         renderRegistry.assign(registry.data(), registry.data() + registry.size(), registry.destroyed());
