@@ -11,24 +11,30 @@ namespace Game
 
         public void Start(Entity e)
         {
+            // make. wheel.
+        }
+
+        public Entity SpawnWheel(Transform carRelativePose)
+        {
+            AssetID wheelPrefab = AssetDB.PathToId("Prefabs/wheel.wprefab");
+            Entity wheel = Registry.CreatePrefab(wheelPrefab);
+            return wheel;
         }
 
         public void Think(Entity e)
         {
             var dpa = Registry.GetComponent<DynamicPhysicsActor>(e);
-            ImGuiNET.ImGui.Text($"Steer: {Steer}");
 
             // Simple approximation of a car - just add force+torque
             if (Accelerate)
                 dpa.AddForce(dpa.Pose.Forward * 1000.0f);
 
-
             dpa.AddTorque(dpa.Pose.TransformDirection(Vector3.Up) * Steer * 400.0f);
 
             // Here's an approximation for drag.
-            // We're assuming that... 
-            const float surfaceArea = 4.0f;
-            const float dragCoefficient = 0.20f;
+            // We're assuming that...
+            const float surfaceArea = 1.5f * 1.695f;
+            const float dragCoefficient = 0.298f;
             const float airDensity = 1.225f;
 
             float dragMagnitude = 0.5f * airDensity * dpa.Velocity.LengthSquared * dragCoefficient * surfaceArea;
