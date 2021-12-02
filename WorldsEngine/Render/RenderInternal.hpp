@@ -255,7 +255,7 @@ namespace worlds {
         RenderResources resources;
         ShadowCascadeInfo cascadeInfo;
         RenderDebugContext debugContext;
-        PassSettings passSettings;
+        GraphicsSettings passSettings;
         entt::registry& registry;
         VKRenderer* renderer;
 

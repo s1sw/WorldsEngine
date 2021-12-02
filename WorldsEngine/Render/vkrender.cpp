@@ -1393,10 +1393,7 @@ void VKRenderer::writeCmdBuf(VkCommandBuffer cmdBuf, uint32_t imageIndex, Camera
             , .tracyContexts = &tracyContexts
 #endif
         },
-        .passSettings = PassSettings {
-            .enableVR = false,
-            .enableShadows = true
-        },
+        .passSettings = this->handles.graphicsSettings,
         .registry = reg,
         .renderer = this,
         .cmdBuf = cmdBuf,

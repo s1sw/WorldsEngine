@@ -23,17 +23,11 @@ namespace worlds {
             VkBuffer lightBuffer, VkBuffer lightTileInfoBuffer,
             VkBuffer lightTilesBuffer, VkBuffer lightTileLightCountBuffer,
             VkDescriptorPool descriptorPool) {
+
         AssetID shaderMsaa = AssetDB::pathToId("Shaders/light_cull.comp.spv");
         AssetID shaderNoMsaa = AssetDB::pathToId("Shaders/light_cull_nomsaa.comp.spv");
         AssetID shaderID = ctx.passSettings.msaaSamples > 1 ? shaderMsaa : shaderNoMsaa;
-        //vku::DescriptorSetLayoutMaker dslm;
-        //dslm.buffer(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 1);
-        //dslm.buffer(1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 1);
-        //dslm.buffer(2, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 1);
-        //dslm.buffer(3, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_COMPUTE_BIT, 1);
-        //dslm.buffer(4, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 1);
-        //dslm.buffer(5, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 1);
-        //dsl = dslm.create(handles->device);
+
         ShaderReflector reflector{shaderID};
         dsl = reflector.createDescriptorSetLayout(handles->device, 0);
 
