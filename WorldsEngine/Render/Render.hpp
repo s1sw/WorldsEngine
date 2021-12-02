@@ -67,18 +67,28 @@ namespace worlds {
             : msaaLevel(2)
             , shadowmapRes(1024)
             , spotShadowmapRes(512)
-            , enableVr(false) {}
+            , enableVr(false)
+            , enableBloom(true)
+            , enableCascadeShadows(true)
+            , enableSpotlightShadows(true) {}
+
         GraphicsSettings(int msaaLevel, int shadowmapRes, bool enableVr)
             : msaaLevel(msaaLevel)
             , shadowmapRes(shadowmapRes)
             , spotShadowmapRes(512)
-            , enableVr(enableVr) {
+            , enableVr(enableVr)
+            , enableBloom(true)
+            , enableCascadeShadows(true)
+            , enableSpotlightShadows(true) {
         }
 
         int msaaLevel;
         int shadowmapRes;
         int spotShadowmapRes;
         bool enableVr;
+        bool enableBloom;
+        bool enableCascadeShadows;
+        bool enableSpotlightShadows;
     };
 
     struct SubmeshInfo {
@@ -106,12 +116,6 @@ namespace worlds {
         Nvidia,
         Intel,
         Other
-    };
-
-    struct PassSettings {
-        bool enableVR;
-        bool enableShadows;
-        int msaaSamples;
     };
 
     struct RendererInitInfo {

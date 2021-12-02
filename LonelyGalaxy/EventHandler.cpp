@@ -64,10 +64,7 @@ namespace lg {
     }
 
     EventHandler::EventHandler(bool dedicatedServer)
-        : isDedicated{ dedicatedServer }
-        , client{ nullptr }
-        , server{ nullptr }
-        , lHandEnt{ entt::null }
+        : lHandEnt{ entt::null }
         , rHandEnt{ entt::null } {
     }
 
@@ -287,8 +284,6 @@ namespace lg {
         if (enet_initialize() != 0) {
             logErr("Failed to initialize enet.");
         }
-
-        mpManager = new MultiplayerManager{ registry, isDedicated };
 
         new DebugArrows(registry);
 
@@ -538,8 +533,6 @@ namespace lg {
 
     extern void resetHand(PhysHand& ph, physx::PxRigidBody* rb);
     void EventHandler::simulate(entt::registry& registry, float simStep) {
-        mpManager->simulate(simStep);
-
         entt::entity localLocosphereEnt = entt::null;
         LocospherePlayerComponent* localLpc = nullptr;
 
@@ -769,10 +762,6 @@ namespace lg {
             }
         }
 
-        if (isDedicated) {
-            mpManager->onSceneStart(registry);
-        }
-
         g_dbgArrows->createEntities();
         camera->rotation = glm::quat{ glm::vec3{0.0f} };
     }
@@ -783,15 +772,7 @@ namespace lg {
             registry.destroy(rHandEnt);
         }
 
-        if (client)
-            delete client;
-
-        if (server)
-            delete server;
-
         if (playerGrabManager)
             delete playerGrabManager;
-
-        enet_deinitialize();
     }
 }

@@ -138,6 +138,7 @@ namespace worlds {
 
             dsIdx++;
         }
+
         if (!updater.ok())
             fatalErr("updater was not ok");
 
@@ -313,7 +314,7 @@ namespace worlds {
         uint32_t viewMasks[2] = { 0b00000001, 0b00000001 };
         uint32_t correlationMask = 0b00000001;
 
-        if (ctx.passSettings.enableVR) {
+        if (ctx.passSettings.enableVr) {
             viewMasks[0] = 0b00000011;
             viewMasks[1] = 0b00000011;
             correlationMask = 0b00000011;
@@ -356,7 +357,7 @@ namespace worlds {
         vertexShader = ShaderCache::getModule(handles->device, vsID);
         fragmentShader = ShaderCache::getModule(handles->device, fsID);
 
-        auto msaaSamples = vku::sampleCountFlags(ctx.passSettings.msaaSamples);
+        auto msaaSamples = vku::sampleCountFlags(ctx.passSettings.msaaLevel);
 
         struct StandardSpecConsts {
             VkBool32 enablePicking = false;
@@ -565,7 +566,7 @@ namespace worlds {
 
         updateDescriptorSets(ctx);
 
-        if (ctx.passSettings.enableVR) {
+        if (ctx.passSettings.enableVr) {
             cullMeshRenderer = new VRCullMeshRenderer{ handles };
             cullMeshRenderer->setup(ctx, depthPass, descriptorPool);
         }
@@ -603,7 +604,7 @@ namespace worlds {
         frustum.fromVPMatrix(ctx.projMatrices[0] * ctx.viewMatrices[0]);
 
         Frustum frustumB;
-        if (ctx.passSettings.enableVR) {
+        if (ctx.passSettings.enableVr) {
             frustumB.fromVPMatrix(ctx.projMatrices[1] * ctx.viewMatrices[1]);
         }
 
@@ -634,7 +635,7 @@ namespace worlds {
             }
 
             float maxScale = glm::max(t.scale.x, glm::max(t.scale.y, t.scale.z));
-            if (!ctx.passSettings.enableVR) {
+            if (!ctx.passSettings.enableVr) {
                 if (!frustum.containsSphere(t.position, meshPos->second.sphereRadius * maxScale)) {
                     //ctx.debugContext.stats->numCulledObjs++;
                     return;
@@ -844,7 +845,7 @@ namespace worlds {
         frustum.fromVPMatrix(ctx.projMatrices[0] * ctx.viewMatrices[0]);
 
         Frustum frustumB;
-        if (ctx.passSettings.enableVR) {
+        if (ctx.passSettings.enableVr) {
             frustumB.fromVPMatrix(ctx.projMatrices[1] * ctx.viewMatrices[1]);
         }
 
@@ -861,7 +862,7 @@ namespace worlds {
             if (l.type != LightType::Directional) {
                 bool inFrustum = frustum.containsSphere(transform.position, distance);
 
-                if (ctx.passSettings.enableVR)
+                if (ctx.passSettings.enableVr)
                     inFrustum |= frustumB.containsSphere(transform.position, distance);
                 if (!inFrustum) {
                     return;
@@ -913,7 +914,7 @@ namespace worlds {
 
         int realTotalTiles = totalTiles;
 
-        if (ctx.passSettings.enableVR)
+        if (ctx.passSettings.enableVr)
             realTotalTiles *= 2;
 
         if (realTotalTiles > MAX_LIGHT_TILES)
@@ -1026,13 +1027,13 @@ namespace worlds {
             globalMiscFlags |= (1 << dbgDrawMode.getInt());
         }
 
-        if (!ctx.passSettings.enableShadows) {
+        if (!ctx.passSettings.enableCascadeShadows) {
             globalMiscFlags |= ShaderFlags::MISC_FLAG_DISABLE_SHADOWS;
         }
 
         vkCmdBeginRenderPass(cmdBuf, &rpbi, VK_SUBPASS_CONTENTS_INLINE);
 
-        if (ctx.passSettings.enableVR) {
+        if (ctx.passSettings.enableVr) {
             cullMeshRenderer->draw(cmdBuf);
         }
 
@@ -1101,7 +1102,22 @@ namespace worlds {
         colourResource->image().setCurrentLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT);
         depthResource->image().setCurrentLayout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
 
-        bloomPass->execute(ctx);
+        if (ctx.passSettings.enableBloom) {
+            bloomPass->execute(ctx);
+        } else {
+            VkClearColorValue clearVal { {.0f, .0f, .0f, .0f} };
+            VkImageSubresourceRange subresourceRange {
+                .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                .baseMipLevel = 0,
+                .levelCount = 1,
+                .baseArrayLayer = 0,
+                .layerCount = 1
+            };
+
+            bloomResource->image().setLayout(cmdBuf, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT);
+            vkCmdClearColorImage(cmdBuf, bloomResource->image().image(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, &clearVal, 1, &subresourceRange);
+            bloomResource->image().setLayout(cmdBuf, VK_IMAGE_LAYOUT_GENERAL, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_READ_BIT);
+        }
 
         if (pickThisFrame) {
             vkCmdResetEvent(cmdBuf, pickEvent, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
