@@ -62,7 +62,7 @@ namespace worlds {
             globalMiscFlags |= (1 << dbgDrawMode->getInt());
         }
 
-        if (!ctx.passSettings.enableShadows) {
+        if (!ctx.passSettings.enableCascadeShadows) {
             globalMiscFlags |= ShaderFlags::MISC_FLAG_DISABLE_SHADOWS;
         }
 

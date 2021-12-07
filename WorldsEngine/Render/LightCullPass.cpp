@@ -26,7 +26,7 @@ namespace worlds {
 
         AssetID shaderMsaa = AssetDB::pathToId("Shaders/light_cull.comp.spv");
         AssetID shaderNoMsaa = AssetDB::pathToId("Shaders/light_cull_nomsaa.comp.spv");
-        AssetID shaderID = ctx.passSettings.msaaSamples > 1 ? shaderMsaa : shaderNoMsaa;
+        AssetID shaderID = ctx.passSettings.msaaLevel > 1 ? shaderMsaa : shaderNoMsaa;
 
         ShaderReflector reflector{shaderID};
         dsl = reflector.createDescriptorSetLayout(handles->device, 0);
@@ -104,7 +104,7 @@ namespace worlds {
 
         vkCmdDispatch(cmdBuf, xTiles, yTiles, 1);
 
-        if (ctx.passSettings.enableVR) {
+        if (ctx.passSettings.enableVr) {
             lcpc.eyeIdx = 1;
             lcpc.invViewProj = glm::inverse(ctx.projMatrices[1] * ctx.viewMatrices[1]);
             vkCmdPushConstants(cmdBuf, pipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(lcpc), &lcpc);

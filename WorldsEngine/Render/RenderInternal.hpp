@@ -364,6 +364,7 @@ namespace worlds {
         void writeCmds(uint32_t frameIdx, VkCommandBuffer buf, entt::registry& world);
         vku::DescriptorPool descriptorPool;
         RTTPassCreateInfo createInfo;
+        GraphicsSettings passSettings;
 
         friend class VKRenderer;
     };

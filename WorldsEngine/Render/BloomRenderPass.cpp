@@ -114,7 +114,7 @@ namespace worlds {
         dsu.update(handles->device);
     }
 
-    ConVar maxMips { "r_bloomMaxMips", "6" };
+    ConVar maxMips { "r_bloomMaxMips", "4" };
     void BloomRenderPass::setup(RenderContext& ctx, VkDescriptorPool descriptorPool) {
         VkExtent3D hdrExtent = hdrImg->image().extent();
         TextureResourceCreateInfo rci{
@@ -171,7 +171,7 @@ namespace worlds {
 
         bloomTarget->image().setLayout(cb, VK_IMAGE_LAYOUT_GENERAL, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT);
 
-        uint32_t numLayers = ctx.passSettings.enableVR ? 2 : 1;
+        uint32_t numLayers = ctx.passSettings.enableVr ? 2 : 1;
         for (uint32_t layer = 0; layer < numLayers; layer++) {
             mipChain->image().setLayout(cb, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT);
 

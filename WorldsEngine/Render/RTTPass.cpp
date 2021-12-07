@@ -106,17 +106,17 @@ namespace worlds {
             });
 
         entt::registry r;
+        passSettings = renderer->handles.graphicsSettings;
+        passSettings.enableVr = createInfo.isVr;
+        passSettings.enableCascadeShadows = enableShadows;
+        passSettings.msaaLevel = createInfo.msaaLevel == 0 ? handles.graphicsSettings.msaaLevel : createInfo.msaaLevel;
         RenderContext rCtx{
             .resources = renderer->getResources(),
             .cascadeInfo = {},
             .debugContext = RenderDebugContext {
                 .stats = dbgStats
             },
-            .passSettings = PassSettings {
-                .enableVR = createInfo.isVr,
-                .enableShadows = enableShadows,
-                .msaaSamples = createInfo.msaaLevel == 0 ? handles.graphicsSettings.msaaLevel : createInfo.msaaLevel
-            },
+            .passSettings = passSettings,
             .registry = r,
             .renderer = renderer,
             .passWidth = width,
@@ -313,10 +313,7 @@ namespace worlds {
             , .tracyContexts = &renderer->tracyContexts
 #endif
             },
-            .passSettings = PassSettings {
-                .enableVR = isVr,
-                .enableShadows = enableShadows
-            },
+            .passSettings = passSettings,
             .registry = world,
             .cmdBuf = cmdBuf,
             .passWidth = width,

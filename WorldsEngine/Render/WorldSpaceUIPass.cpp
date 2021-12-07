@@ -184,7 +184,7 @@ namespace worlds {
         pm.cullMode(VK_CULL_MODE_NONE);
         pm.blendBegin(true);
 
-        pm.rasterizationSamples(vku::sampleCountFlags(ctx.passSettings.msaaSamples));
+        pm.rasterizationSamples(vku::sampleCountFlags(ctx.passSettings.msaaLevel));
 
         textPipeline = pm.create(handles->device, handles->pipelineCache, pipelineLayout, renderPass);
 
