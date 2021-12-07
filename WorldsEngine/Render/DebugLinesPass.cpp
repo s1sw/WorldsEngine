@@ -50,7 +50,7 @@ namespace worlds {
         pm.topology(VK_PRIMITIVE_TOPOLOGY_LINE_LIST);
         pm.depthWriteEnable(true).depthTestEnable(true).depthCompareOp(VK_COMPARE_OP_GREATER);
 
-        auto sampleFlags = vku::sampleCountFlags(ctx.passSettings.msaaSamples);
+        auto sampleFlags = vku::sampleCountFlags(ctx.passSettings.msaaLevel);
         pm.rasterizationSamples(sampleFlags);
 
         linePipeline = pm.create(

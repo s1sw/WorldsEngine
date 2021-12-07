@@ -53,7 +53,7 @@ namespace worlds {
         pm.topology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
         pm.depthWriteEnable(true).depthTestEnable(true).depthCompareOp(VK_COMPARE_OP_GREATER_OR_EQUAL);
 
-        pm.rasterizationSamples(vku::sampleCountFlags(ctx.passSettings.msaaSamples));
+        pm.rasterizationSamples(vku::sampleCountFlags(ctx.passSettings.msaaLevel));
 
         skyboxPipeline = pm.create(handles->device, handles->pipelineCache, skyboxPipelineLayout, renderPass);
 

@@ -102,7 +102,7 @@ namespace worlds {
 
         vkCmdDispatch(cmdBuf, (ctx.passWidth + 15) / 16, (ctx.passHeight + 15) / 16, 1);
 
-        if (ctx.passSettings.enableVR) {
+        if (ctx.passSettings.enableVr) {
             finalPrePresentR->image().setLayout(cmdBuf,
                 VK_IMAGE_LAYOUT_GENERAL,
                 VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,

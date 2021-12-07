@@ -25,7 +25,7 @@ namespace worlds {
             pm.blendBegin(false);
             pm.frontFace(VK_FRONT_FACE_COUNTER_CLOCKWISE);
 
-            pm.rasterizationSamples(vku::sampleCountFlags(ctx.passSettings.msaaSamples));
+            pm.rasterizationSamples(vku::sampleCountFlags(ctx.passSettings.msaaLevel));
             pm.alphaToCoverageEnable(false);
             pm.subPass(0);
 
@@ -56,7 +56,7 @@ namespace worlds {
             if (handles->hasOutOfOrderRasterization)
                 pm.rasterizationOrderAMD(VK_RASTERIZATION_ORDER_RELAXED_AMD);
 
-            pm.rasterizationSamples(vku::sampleCountFlags(ctx.passSettings.msaaSamples));
+            pm.rasterizationSamples(vku::sampleCountFlags(ctx.passSettings.msaaLevel));
             pm.alphaToCoverageEnable(false);
             pm.subPass(0);
             skinnedPipeline = pm.create(handles->device, handles->pipelineCache, layout, renderPass);
@@ -77,7 +77,7 @@ namespace worlds {
             pm.blendBegin(false);
             pm.frontFace(VK_FRONT_FACE_COUNTER_CLOCKWISE);
 
-            pm.rasterizationSamples(vku::sampleCountFlags(ctx.passSettings.msaaSamples));
+            pm.rasterizationSamples(vku::sampleCountFlags(ctx.passSettings.msaaLevel));
             pm.alphaToCoverageEnable(true);
             pm.subPass(0);
             alphaTestPipeline = pm.create(handles->device, handles->pipelineCache, layout, renderPass);
