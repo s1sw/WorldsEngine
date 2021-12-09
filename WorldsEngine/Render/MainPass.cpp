@@ -67,10 +67,9 @@ namespace worlds {
         }
 
         addDebugLabel(cmdBuf, "Main Pass", 0.466f, 0.211f, 0.639f, 1.0f);
-        SubmeshDrawInfo last;
-        last.pipeline = VK_NULL_HANDLE;
+        VkPipeline lastPipeline = VK_NULL_HANDLE;
         for (const auto& sdi : drawInfo) {
-            if (last.pipeline != sdi.pipeline) {
+            if (lastPipeline != sdi.pipeline) {
                 vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, sdi.pipeline);
                 ctx.debugContext.stats->numPipelineSwitches++;
             }
@@ -99,7 +98,7 @@ namespace worlds {
             vkCmdBindIndexBuffer(cmdBuf, sdi.ib, 0, VK_INDEX_TYPE_UINT32);
             vkCmdDrawIndexed(cmdBuf, sdi.indexCount, 1, sdi.indexOffset, 0, 0);
 
-            last = sdi;
+            lastPipeline = sdi.pipeline;
             ctx.debugContext.stats->numDrawCalls++;
         }
         vkCmdEndDebugUtilsLabelEXT(cmdBuf);
