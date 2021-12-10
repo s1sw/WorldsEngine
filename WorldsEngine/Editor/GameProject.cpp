@@ -4,7 +4,7 @@
 #include <slib/Path.hpp>
 #include <Core/Log.hpp>
 #include <filesystem>
-
+#include <physfs.h>
 
 namespace worlds {
     GameProject::GameProject(std::string path) {

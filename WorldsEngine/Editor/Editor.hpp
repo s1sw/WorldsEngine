@@ -4,7 +4,7 @@
 #include "../Render/Camera.hpp"
 #include "../Core/Transform.hpp"
 #include "../Core/IGameEventHandler.hpp"
-#include "UITextureManager.hpp"
+#include "ImGui/imgui.h"
 #include <deque>
 #include <slib/List.hpp>
 #include <string>
@@ -179,7 +179,6 @@ namespace worlds {
         entt::entity getSelectedEntity() { return currentSelectedEntity; }
         const slib::List<entt::entity>& getSelectedEntities() const { return selectedEntities; }
         bool isEntitySelected(entt::entity ent) const;
-        UITextureManager* texManager() { return texMan; }
         EditorUndo undo;
         bool active = true;
         void overrideHandle(Transform* t);
@@ -211,8 +210,6 @@ namespace worlds {
         entt::entity eyedroppedEntity = entt::null;
         uint32_t lastSaveModificationCount = 0;
         Transform* overrideTransform;
-
-        UITextureManager* texMan;
 
         EditorSettings settings;
         EngineInterfaces interfaces;

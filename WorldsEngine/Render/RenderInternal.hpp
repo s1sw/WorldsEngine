@@ -369,6 +369,23 @@ namespace worlds {
         friend class VKRenderer;
     };
 
+    class VKUITextureManager : public IUITextureManager {
+    public:
+        VKUITextureManager(const VulkanHandles& handles);
+        ImTextureID loadOrGet(AssetID id) override;
+        void unload(AssetID id) override;
+        ~VKUITextureManager();
+    private:
+        struct UITexInfo {
+            VkDescriptorSet ds;
+            vku::TextureImage2D image;
+        };
+
+        UITexInfo* load(AssetID id);
+        const VulkanHandles& handles;
+        robin_hood::unordered_map<AssetID, UITexInfo*> texInfo;
+    };
+
     class VKRenderer : public Renderer {
         const static uint32_t NUM_TEX_SLOTS = 256;
         const static uint32_t NUM_MAT_SLOTS = 256;
@@ -456,6 +473,7 @@ namespace worlds {
         ShadowCascadePass* shadowCascadePass;
         AdditionalShadowsPass* additionalShadowsPass;
         void* rdocApi;
+        VKUITextureManager* uiTextureMan;
 
         void createSwapchain(VkSwapchainKHR oldSwapchain);
         void createFramebuffers();
@@ -502,6 +520,8 @@ namespace worlds {
         void triggerRenderdocCapture() override;
         void startRdocCapture() override;
         void endRdocCapture() override;
+
+        IUITextureManager& uiTextureManager() override;
 
         ~VKRenderer();
     };

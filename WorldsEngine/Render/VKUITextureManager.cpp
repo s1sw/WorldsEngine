@@ -1,19 +1,14 @@
-#include "UITextureManager.hpp"
-#include "../Render/Loaders/TextureLoader.hpp"
-#include "Render/vku/vku.hpp"
-#include "../Util/VKImGUIUtil.hpp"
+#include "RenderInternal.hpp"
+#include "Loaders/TextureLoader.hpp"
+#include "vku/vku.hpp"
+#include "Util/VKImGUIUtil.hpp"
 
 namespace worlds {
-    struct UITextureManager::UITexInfo {
-        VkDescriptorSet ds;
-        vku::TextureImage2D image;
-    };
-
-    UITextureManager::UITextureManager(const VulkanHandles& handles)
+    VKUITextureManager::VKUITextureManager(const VulkanHandles& handles)
         : handles { handles } {
     }
 
-    UITextureManager::~UITextureManager() {
+    VKUITextureManager::~VKUITextureManager() {
         for (auto& p : texInfo) {
             VKImGUIUtil::destroyDescriptorSet(p.second->ds, &handles);
             delete p.second;
@@ -22,7 +17,7 @@ namespace worlds {
         texInfo.clear();
     }
 
-    void UITextureManager::unload(AssetID id) {
+    void VKUITextureManager::unload(AssetID id) {
         auto it = texInfo.find(id);
 
         if (it == texInfo.end()) return;
@@ -31,7 +26,7 @@ namespace worlds {
         texInfo.erase(id);
     }
 
-    ImTextureID UITextureManager::loadOrGet(AssetID id) {
+    ImTextureID VKUITextureManager::loadOrGet(AssetID id) {
         auto it = texInfo.find(id);
 
         UITexInfo* ti;
@@ -45,10 +40,12 @@ namespace worlds {
         return (ImTextureID)ti->ds;
     }
 
-    UITextureManager::UITexInfo* UITextureManager::load(AssetID id) {
+    VKUITextureManager::UITexInfo* VKUITextureManager::load(AssetID id) {
         auto tData = loadTexData(id);
+
         if (tData.data == nullptr)
             logErr("Failed to load UI image %s", AssetDB::idToPath(id).c_str());
+
         vku::TextureImage2D t2d = uploadTextureVk(handles, tData);
 
         auto texInfo = new UITexInfo;

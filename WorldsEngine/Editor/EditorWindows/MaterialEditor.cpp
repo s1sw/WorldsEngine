@@ -1,9 +1,11 @@
-#include "../../ImGui/imgui.h"
+#include "ImGui/imgui.h"
 #include "EditorWindows.hpp"
 #include "../GuiUtil.hpp"
-#include "../../Core/AssetDB.hpp"
-#include "../../Core/Log.hpp"
-#include "../../Util/JsonUtil.hpp"
+#include "Core/AssetDB.hpp"
+#include "Core/Log.hpp"
+#include "Util/JsonUtil.hpp"
+#include "Render/Render.hpp"
+#include "robin_hood.h"
 
 namespace worlds {
     robin_hood::unordered_map<AssetID, ImTextureID> cacheTextures;
@@ -40,7 +42,7 @@ namespace worlds {
             std::to_string(value.x) + ", " + std::to_string(value.y) + ", " + std::to_string(value.z) + "]";
     }
 
-    void assetButton(AssetID& id, const char* title, UITextureManager* texMan) {
+    void assetButton(AssetID& id, const char* title, IUITextureManager& texMan) {
         std::string buttonLabel = "Set##";
         buttonLabel += title;
 
@@ -50,7 +52,7 @@ namespace worlds {
             open = ImGui::Button(buttonLabel.c_str());
         else {
             if (!cacheTextures.contains(id))
-                cacheTextures.insert({ id, texMan->loadOrGet(id) });
+                cacheTextures.insert({ id, texMan.loadOrGet(id) });
 
             open = ImGui::ImageButton(cacheTextures.at(id), ImVec2(128, 128));
         }
@@ -176,22 +178,23 @@ namespace worlds {
                 ImGui::ColorEdit3("Albedo Color", &mat.albedoColor.x);
                 ImGui::ColorEdit3("Emissive Color", &mat.emissiveColor.x);
 
+                auto& texMan = interfaces.renderer->uiTextureManager();
                 ImGui::Text("Current albedo path: %s", AssetDB::idToPath(mat.albedo).c_str());
-                assetButton(mat.albedo, "Albedo", editor->texManager());
+                assetButton(mat.albedo, "Albedo", texMan);
 
                 if (mat.normalMap != ~0u) {
                     ImGui::Text("Current normal map path: %s", AssetDB::idToPath(mat.normalMap).c_str());
                 } else {
                     ImGui::Text("No normal map set");
                 }
-                assetButton(mat.normalMap, "Normal map", editor->texManager());
+                assetButton(mat.normalMap, "Normal map", texMan);
 
                 if (mat.heightMap != ~0u) {
                     ImGui::Text("Current height map path: %s", AssetDB::idToPath(mat.heightMap).c_str());
                 } else {
                     ImGui::Text("No height map set");
                 }
-                assetButton(mat.heightMap, "Height map", editor->texManager());
+                assetButton(mat.heightMap, "Height map", texMan);
 
                 ImGui::Checkbox("Use packed PBR map", &mat.usePBRMap);
                 if (mat.usePBRMap) {
@@ -201,7 +204,7 @@ namespace worlds {
                         ImGui::Text("No PBR map set");
                     }
 
-                    assetButton(mat.pbrMap, "PBR Map", editor->texManager());
+                    assetButton(mat.pbrMap, "PBR Map", texMan);
                 } else {
                     if (mat.metalMap != ~0u) {
                         ImGui::Text("Current metallic map path: %s", AssetDB::idToPath(mat.metalMap).c_str());
@@ -209,7 +212,7 @@ namespace worlds {
                         ImGui::Text("No metallic map set");
                     }
 
-                    assetButton(mat.metalMap, "Metal Map", editor->texManager());
+                    assetButton(mat.metalMap, "Metal Map", texMan);
 
                     if (mat.roughMap != ~0u) {
                         ImGui::Text("Current roughness map path: %s", AssetDB::idToPath(mat.roughMap).c_str());
@@ -217,7 +220,7 @@ namespace worlds {
                         ImGui::Text("No roughness map set");
                     }
 
-                    assetButton(mat.roughMap, "Rough Map", editor->texManager());
+                    assetButton(mat.roughMap, "Rough Map", texMan);
                 }
 
                 ImGui::Checkbox("Alpha Test", &mat.useAlphaTest);
@@ -261,7 +264,7 @@ namespace worlds {
                 if (ImGui::Button("Close")) {
                     materialId = ~0u;
                     for (auto& p : cacheTextures) {
-                        editor->texManager()->unload(p.first);
+                        texMan.unload(p.first);
                     }
                     cacheTextures.clear();
                 }
@@ -275,7 +278,7 @@ namespace worlds {
 
         if (!active && cacheTextures.size() > 0) {
             for (auto& p : cacheTextures) {
-                editor->texManager()->unload(p.first);
+                interfaces.renderer->uiTextureManager().unload(p.first);
             }
             cacheTextures.clear();
         }

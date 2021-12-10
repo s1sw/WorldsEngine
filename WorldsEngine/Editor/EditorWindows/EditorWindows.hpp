@@ -1,5 +1,6 @@
 #pragma once
 #include "../Editor.hpp"
+#include "Core/AssetDB.hpp"
 
 namespace worlds {
     class EntityList : public EditorWindow {
