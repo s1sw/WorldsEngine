@@ -428,9 +428,9 @@ namespace worlds {
         ImVec2 menuBarCenter = ImGui::GetWindowSize() * 0.5f;
 
         ImDrawList* drawList = ImGui::GetWindowDrawList();
-        drawList->AddText(ImVec2(menuBarCenter.x - (textSize.x * 0.5f), ImGui::GetWindowHeight() * 0.15f), ImColor(255, 255, 255), windowTitle);
-
         if (integratedMenuBar.getInt()) {
+            drawList->AddText(ImVec2(menuBarCenter.x - (textSize.x * 0.5f), ImGui::GetWindowHeight() * 0.15f), ImColor(255, 255, 255), windowTitle);
+
             SDL_SetWindowBordered(interfaces.engine->getMainWindow(), SDL_FALSE);
             float barWidth = ImGui::GetWindowWidth();
             float barHeight = ImGui::GetWindowHeight();
@@ -605,7 +605,8 @@ namespace worlds {
 
             ImVec2 menuBarSize;
             if (ImGui::BeginMainMenuBar()) {
-                ImGui::Image(titleBarIcon, ImVec2(24, 24));
+                if (integratedMenuBar.getInt())
+                    ImGui::Image(titleBarIcon, ImVec2(24, 24));
                 menuButtonsExtent = 24;
 
                 menuBarSize = ImGui::GetWindowSize();
@@ -811,7 +812,8 @@ namespace worlds {
         std::string popupToOpen;
 
         if (ImGui::BeginMainMenuBar()) {
-            ImGui::Image(titleBarIcon, ImVec2(24, 24));
+            if (integratedMenuBar.getInt())
+                ImGui::Image(titleBarIcon, ImVec2(24, 24));
             if (ImGui::BeginMenu("File")) {
                 for (auto& window : editorWindows) {
                     if (window->menuSection() == EditorMenu::File) {
