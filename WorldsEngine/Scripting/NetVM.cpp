@@ -12,18 +12,11 @@
 #include "Export.hpp"
 #include <Serialization/SceneSerialization.hpp>
 #include "tracy/Tracy.hpp"
+#include <slib/DynamicLibrary.hpp>
 
 #if defined(_WIN32)
-#define WIN32_LEAN_AND_MEAN
-#define WIN32_LEANER
-#include <Windows.h>
-typedef HMODULE LibraryHandle_t;
 #define NET_LIBRARY_PATH "./NetAssemblies/coreclr.dll"
 #elif defined(__linux__)
-#include <limits.h>
-typedef void* LibraryHandle_t;
-#include <unistd.h>
-#include <dlfcn.h>
 #define NET_LIBRARY_PATH "NetAssemblies/libcoreclr.so"
 #endif
 
@@ -72,6 +65,7 @@ EngineInterfaces csharpInterfaces;
 #include "ImGui/cimgui.h"
 #include "SkinnedWorldObjectBindings.hpp"
 #include "MeshManagerBindings.hpp"
+#include "WorldTextBindings.hpp"
 
 extern "C" {
     EXPORT void sceneloader_loadScene(AssetID id) {
@@ -84,22 +78,6 @@ extern "C" {
 }
 
 namespace worlds {
-    LibraryHandle_t loadLibrary(const char* path) {
-#if defined(_WIN32)
-        return LoadLibraryExA(path, NULL, 0);
-#elif defined(__linux__)
-        return dlopen(path, RTLD_NOW);
-#endif
-    }
-
-    void* getLibraryFunction(LibraryHandle_t libHandle, const char* functionName) {
-#if defined(_WIN32)
-        return (void*)GetProcAddress(libHandle, functionName);
-#elif defined(__linux__)
-        return dlsym(libHandle, functionName);
-#endif
-    }
-
     DotNetScriptEngine::DotNetScriptEngine(entt::registry& reg, EngineInterfaces interfaces)
         : interfaces(interfaces)
         , reg(reg) {
@@ -111,16 +89,16 @@ namespace worlds {
     bool DotNetScriptEngine::initialise(Editor* editor) {
         ZoneScoped;
         igGET_FLT_MAX();
-        LibraryHandle_t netLibrary = loadLibrary(NET_LIBRARY_PATH);
+        slib::DynamicLibrary netLibrary(NET_LIBRARY_PATH);
 
-        if (netLibrary == 0) {
+        if (!netLibrary.loaded()) {
             logErr("Failed to load coreclr");
             return false;
         }
 
-        netFuncs.init = (coreclr_initialize_ptr)getLibraryFunction(netLibrary, "coreclr_initialize");
-        netFuncs.createDelegate = (coreclr_create_delegate_ptr)getLibraryFunction(netLibrary, "coreclr_create_delegate");
-        netFuncs.shutdown = (coreclr_shutdown_ptr)getLibraryFunction(netLibrary, "coreclr_shutdown");
+        netFuncs.init = (coreclr_initialize_ptr)netLibrary.getFunctionPointer("coreclr_initialize");
+        netFuncs.createDelegate = (coreclr_create_delegate_ptr)netLibrary.getFunctionPointer("coreclr_create_delegate");
+        netFuncs.shutdown = (coreclr_shutdown_ptr)netLibrary.getFunctionPointer("coreclr_shutdown");
 
         if (netFuncs.init == NULL || netFuncs.createDelegate == NULL || netFuncs.shutdown == NULL) {
             logErr("Failed to get .net functions");

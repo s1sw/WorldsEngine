@@ -1,4 +1,6 @@
 #include "Export.hpp"
+#include <entt/entity/registry.hpp>
+#include <string.h>
 #include "UI/WorldTextComponent.hpp"
 
 namespace worlds {
@@ -12,8 +14,8 @@ namespace worlds {
 
     EXPORT void worldtext_getText(entt::registry* registry, entt::entity entity, char* buffer) {
         auto& wtc = registry->get<WorldTextComponent>(entity);
-        buffer[wtc.name.size()] = 0;
-        strncpy(buffer, wtc.name.c_str(), wtc.name.size());
+        buffer[wtc.text.size()] = 0;
+        strncpy(buffer, wtc.text.c_str(), wtc.text.size());
     }
 
     EXPORT void worldtext_setFont(entt::registry* registry, entt::entity entity, AssetID font) {
