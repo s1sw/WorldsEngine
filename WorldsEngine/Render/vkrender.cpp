@@ -757,6 +757,7 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     imgFences.resize(cmdBufs.size());
 
     cubemapConvoluter = std::make_shared<CubemapConvoluter>(vkCtx);
+    uiTextureMan = new VKUITextureManager(handles);
 
     texSlots = std::make_unique<TextureSlots>(vkCtx);
     matSlots = std::make_unique<MaterialSlots>(vkCtx, *texSlots);
@@ -1923,6 +1924,10 @@ void VKRenderer::endRdocCapture() {
 #endif
 }
 
+IUITextureManager& VKRenderer::uiTextureManager() {
+    return *uiTextureMan;
+}
+
 VKRenderer::~VKRenderer() {
     if (device) {
         VKCHECK(vkDeviceWaitIdle(device));
@@ -1965,6 +1970,8 @@ VKRenderer::~VKRenderer() {
 
         delete shadowCascadePass;
         delete additionalShadowsPass;
+
+        delete uiTextureMan;
 
         delete imguiImage;
         delete shadowmapImage;

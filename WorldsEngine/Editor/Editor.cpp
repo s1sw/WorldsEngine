@@ -155,7 +155,6 @@ namespace worlds {
         , settings()
         , interfaces(interfaces)
         , inputManager(*interfaces.inputManager) {
-        texMan = new UITextureManager{ *static_cast<VKRenderer*>(interfaces.renderer)->getHandles() };
         ComponentMetadataManager::setupLookup();
         interfaces.engine->pauseSim = true;
 
@@ -183,7 +182,7 @@ namespace worlds {
         SDL_SetWindowHitTest(window, hitTest, nullptr);
         sceneViews.add(new EditorSceneView{ interfaces, this });
 
-        titleBarIcon = texMan->loadOrGet(AssetDB::pathToId("UI/Images/logo_no_background.png"));
+        titleBarIcon = interfaces.renderer->uiTextureManager().loadOrGet(AssetDB::pathToId("UI/Images/logo_no_background.png"));
 
         EntityFolders folders;
         folders.rootFolder.name = "Root";
@@ -194,7 +193,6 @@ namespace worlds {
 #undef REGISTER_COMPONENT_TYPE
 
     Editor::~Editor() {
-        delete texMan;
     }
 
     void Editor::select(entt::entity entity) {
@@ -422,6 +420,8 @@ namespace worlds {
         }
     }
 
+    static ConVar integratedMenuBar{ "ed_integratedMenuBar", "0" };
+
     void Editor::drawMenuBarTitle() {
         const char* windowTitle = SDL_GetWindowTitle(interfaces.engine->getMainWindow());
         ImVec2 textSize = ImGui::CalcTextSize(windowTitle);
@@ -430,62 +430,65 @@ namespace worlds {
         ImDrawList* drawList = ImGui::GetWindowDrawList();
         drawList->AddText(ImVec2(menuBarCenter.x - (textSize.x * 0.5f), ImGui::GetWindowHeight() * 0.15f), ImColor(255, 255, 255), windowTitle);
 
-#ifndef __linux__
-        float barWidth = ImGui::GetWindowWidth();
-        float barHeight = ImGui::GetWindowHeight();
-        const float crossSize = 6.0f;
-        ImVec2 crossCenter(ImGui::GetWindowWidth() - 17.0f - crossSize, menuBarCenter.y);
-        crossCenter -= ImVec2(0.5f, 0.5f);
-        auto crossColor = ImColor(255, 255, 255);
+        if (integratedMenuBar.getInt()) {
+            SDL_SetWindowBordered(interfaces.engine->getMainWindow(), SDL_FALSE);
+            float barWidth = ImGui::GetWindowWidth();
+            float barHeight = ImGui::GetWindowHeight();
+            const float crossSize = 6.0f;
+            ImVec2 crossCenter(ImGui::GetWindowWidth() - 17.0f - crossSize, menuBarCenter.y);
+            crossCenter -= ImVec2(0.5f, 0.5f);
+            auto crossColor = ImColor(255, 255, 255);
 
-        ImVec2 mousePos = ImGui::GetMousePos();
+            ImVec2 mousePos = ImGui::GetMousePos();
 
-        if (mousePos.x > barWidth - 45.0f && mousePos.y < barHeight) {
-            if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
-                interfaces.engine->quit();
+            if (mousePos.x > barWidth - 45.0f && mousePos.y < barHeight) {
+                if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+                    interfaces.engine->quit();
+                }
+                drawList->AddRectFilled(ImVec2(barWidth - 45.0f, 0.0f), ImVec2(barWidth, barHeight), ImColor(255, 0, 0, 255));
             }
-            drawList->AddRectFilled(ImVec2(barWidth - 45.0f, 0.0f), ImVec2(barWidth, barHeight), ImColor(255, 0, 0, 255));
-        }
 
-        drawList->AddLine(crossCenter + ImVec2(+crossSize, +crossSize), crossCenter + ImVec2(-crossSize, -crossSize), crossColor, 1.0f);
-        drawList->AddLine(crossCenter + ImVec2(+crossSize, -crossSize), crossCenter + ImVec2(-crossSize, +crossSize), crossColor, 1.0f);
+            drawList->AddLine(crossCenter + ImVec2(+crossSize, +crossSize), crossCenter + ImVec2(-crossSize, -crossSize), crossColor, 1.0f);
+            drawList->AddLine(crossCenter + ImVec2(+crossSize, -crossSize), crossCenter + ImVec2(-crossSize, +crossSize), crossColor, 1.0f);
 
-        SDL_Window* window = interfaces.engine->getMainWindow();
-        bool isMaximised = (SDL_GetWindowFlags(window) & SDL_WINDOW_MAXIMIZED) == SDL_WINDOW_MAXIMIZED;
-        ImVec2 maximiseCenter(barWidth - 45.0f - 22.0f, menuBarCenter.y);
-        if (mousePos.x > barWidth - 90.0f && mousePos.x < barWidth - 45.0f && mousePos.y < barHeight) {
-            if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
-                if (isMaximised)
-                    SDL_RestoreWindow(window);
-                else
-                    SDL_MaximizeWindow(window);
+            SDL_Window* window = interfaces.engine->getMainWindow();
+            bool isMaximised = (SDL_GetWindowFlags(window) & SDL_WINDOW_MAXIMIZED) == SDL_WINDOW_MAXIMIZED;
+            ImVec2 maximiseCenter(barWidth - 45.0f - 22.0f, menuBarCenter.y);
+            if (mousePos.x > barWidth - 90.0f && mousePos.x < barWidth - 45.0f && mousePos.y < barHeight) {
+                if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+                    if (isMaximised)
+                        SDL_RestoreWindow(window);
+                    else
+                        SDL_MaximizeWindow(window);
+                }
+                drawList->AddRectFilled(ImVec2(barWidth - 45.0f - 45.0f, 0.0f), ImVec2(barWidth - 45.0f, barHeight), ImColor(255, 255, 255, 50));
             }
-            drawList->AddRectFilled(ImVec2(barWidth - 45.0f - 45.0f, 0.0f), ImVec2(barWidth - 45.0f, barHeight), ImColor(255, 255, 255, 50));
-        }
 
-        if (!isMaximised) {
-            drawList->AddRect(maximiseCenter - ImVec2(crossSize, crossSize), maximiseCenter + ImVec2(crossSize, crossSize), ImColor(255, 255, 255));
+            if (!isMaximised) {
+                drawList->AddRect(maximiseCenter - ImVec2(crossSize, crossSize), maximiseCenter + ImVec2(crossSize, crossSize), ImColor(255, 255, 255));
+            } else {
+                drawList->AddRect(maximiseCenter - ImVec2(crossSize - 3, crossSize), maximiseCenter + ImVec2(crossSize, crossSize - 3), ImColor(255, 255, 255));
+                drawList->AddRectFilled(maximiseCenter - ImVec2(crossSize, crossSize - 3), maximiseCenter + ImVec2(crossSize - 3, crossSize), ImGui::GetColorU32(ImGuiCol_MenuBarBg));
+                drawList->AddRect(maximiseCenter - ImVec2(crossSize, crossSize - 3), maximiseCenter + ImVec2(crossSize - 3, crossSize), ImColor(255, 255, 255));
+            }
+
+            ImVec2 minimiseCenter(barWidth - 90.0f - 22.0f, menuBarCenter.y);
+            if (mousePos.x > barWidth - 135.0f && mousePos.x < barWidth - 90.0f && mousePos.y < barHeight) {
+                if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+                    SDL_Window* window = interfaces.engine->getMainWindow();
+                    bool isMaximised = (SDL_GetWindowFlags(window) & SDL_WINDOW_MINIMIZED) == SDL_WINDOW_MINIMIZED;
+
+                    if (isMaximised)
+                        SDL_RestoreWindow(window);
+                    else
+                        SDL_MinimizeWindow(window);
+                }
+                drawList->AddRectFilled(ImVec2(barWidth - 135.0f, 0.0f), ImVec2(barWidth - 90.0f, barHeight), ImColor(255, 255, 255, 50));
+            }
+            drawList->AddRectFilled(minimiseCenter - ImVec2(5, 0), minimiseCenter + ImVec2(5, 1), ImColor(255, 255, 255));
         } else {
-            drawList->AddRect(maximiseCenter - ImVec2(crossSize - 3, crossSize), maximiseCenter + ImVec2(crossSize, crossSize - 3), ImColor(255, 255, 255));
-            drawList->AddRectFilled(maximiseCenter - ImVec2(crossSize, crossSize - 3), maximiseCenter + ImVec2(crossSize - 3, crossSize), ImGui::GetColorU32(ImGuiCol_MenuBarBg));
-            drawList->AddRect(maximiseCenter - ImVec2(crossSize, crossSize - 3), maximiseCenter + ImVec2(crossSize - 3, crossSize), ImColor(255, 255, 255));
+            SDL_SetWindowBordered(interfaces.engine->getMainWindow(), SDL_TRUE);
         }
-
-        ImVec2 minimiseCenter(barWidth - 90.0f - 22.0f, menuBarCenter.y);
-        if (mousePos.x > barWidth - 135.0f && mousePos.x < barWidth - 90.0f && mousePos.y < barHeight) {
-            if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
-                SDL_Window* window = interfaces.engine->getMainWindow();
-                bool isMaximised = (SDL_GetWindowFlags(window) & SDL_WINDOW_MINIMIZED) == SDL_WINDOW_MINIMIZED;
-
-                if (isMaximised)
-                    SDL_RestoreWindow(window);
-                else
-                    SDL_MinimizeWindow(window);
-            }
-            drawList->AddRectFilled(ImVec2(barWidth - 135.0f, 0.0f), ImVec2(barWidth - 90.0f, barHeight), ImColor(255, 255, 255, 50));
-        }
-        drawList->AddRectFilled(minimiseCenter - ImVec2(5, 0), minimiseCenter + ImVec2(5, 1), ImColor(255, 255, 255));
-#endif
     }
 
     void Editor::openProject(std::string path) {

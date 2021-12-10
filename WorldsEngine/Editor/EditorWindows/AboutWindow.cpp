@@ -1,8 +1,9 @@
 #include "EditorWindows.hpp"
-#include "../../ImGui/imgui.h"
+#include "ImGui/imgui.h"
 #define IMGUI_DEFINE_MATH_OPERATORS
-#include "../../ImGui/imgui_internal.h"
-#include "../../Audio/Audio.hpp"
+#include "ImGui/imgui_internal.h"
+#include "Audio/Audio.hpp"
+#include "Render/Render.hpp"
 
 namespace worlds {
     ImTextureID bgId = nullptr;
@@ -10,8 +11,9 @@ namespace worlds {
 
     void AboutWindow::setActive(bool active) {
         this->active = active;
-        bgId = editor->texManager()->loadOrGet(AssetDB::pathToId("UI/Images/worlds_no_logo.png"));
-        bradnoId = editor->texManager()->loadOrGet(AssetDB::pathToId("UI/Images/bradno.png"));
+        auto& texMan = interfaces.renderer->uiTextureManager();
+        bgId = texMan.loadOrGet(AssetDB::pathToId("UI/Images/worlds_no_logo.png"));
+        bradnoId = texMan.loadOrGet(AssetDB::pathToId("UI/Images/bradno.png"));
     }
 
     ImVec2 rotatePoint(ImVec2 p, float angle) {

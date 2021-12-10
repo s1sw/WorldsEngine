@@ -4,6 +4,7 @@
 #include "Core/Engine.hpp"
 #include "Camera.hpp"
 #include <SDL.h>
+#include "ImGui/imgui.h"
 #include "PackedMaterial.hpp"
 
 namespace worlds {
@@ -165,6 +166,13 @@ namespace worlds {
         return (ReloadFlags)((uint32_t)l | (uint32_t)r);
     }
 
+    class IUITextureManager {
+    public:
+        virtual ImTextureID loadOrGet(AssetID id) = 0;
+        virtual void unload(AssetID id) = 0;
+        virtual ~IUITextureManager() {}
+    };
+
     class Renderer {
     public:
         virtual void recreateSwapchain(int newWidth = -1, int newHeight = -1) = 0;
@@ -187,6 +195,8 @@ namespace worlds {
         virtual void triggerRenderdocCapture() = 0;
         virtual void startRdocCapture() = 0;
         virtual void endRdocCapture() = 0;
+
+        virtual IUITextureManager& uiTextureManager() = 0;
 
         virtual ~Renderer() {}
     };
