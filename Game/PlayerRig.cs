@@ -223,15 +223,6 @@ namespace Game
             {
                 Jump = true;
             }
-
-            return;
-            var col = ImGui.GetStyle().Colors[(int)ImGuiCol.Text];
-
-            var playerHealth = Registry.GetComponent<Combat.HealthComponent>(PlayerBody);
-            var drawList = ImGui.GetForegroundDrawList();
-            var textPos = ImGui.GetMainViewport().Size * new Vector2(0.0f, 1.0f) - new Vector2(0.0f, 50.0f);
-
-            drawList.AddText(textPos, ~0u, $"Health: {playerHealth.Health} / {playerHealth.MaxHealth}");
         }
 
     }
