@@ -16,6 +16,8 @@
 
 #if defined(_WIN32)
 #define NET_LIBRARY_PATH "./NetAssemblies/coreclr.dll"
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
 #elif defined(__linux__)
 #define NET_LIBRARY_PATH "NetAssemblies/libcoreclr.so"
 #endif
@@ -89,16 +91,16 @@ namespace worlds {
     bool DotNetScriptEngine::initialise(Editor* editor) {
         ZoneScoped;
         igGET_FLT_MAX();
-        slib::DynamicLibrary netLibrary(NET_LIBRARY_PATH);
+        coreclrLib = new slib::DynamicLibrary(NET_LIBRARY_PATH);
 
-        if (!netLibrary.loaded()) {
+        if (!coreclrLib->loaded()) {
             logErr("Failed to load coreclr");
             return false;
         }
 
-        netFuncs.init = (coreclr_initialize_ptr)netLibrary.getFunctionPointer("coreclr_initialize");
-        netFuncs.createDelegate = (coreclr_create_delegate_ptr)netLibrary.getFunctionPointer("coreclr_create_delegate");
-        netFuncs.shutdown = (coreclr_shutdown_ptr)netLibrary.getFunctionPointer("coreclr_shutdown");
+        netFuncs.init = (coreclr_initialize_ptr)coreclrLib->getFunctionPointer("coreclr_initialize");
+        netFuncs.createDelegate = (coreclr_create_delegate_ptr)coreclrLib->getFunctionPointer("coreclr_create_delegate");
+        netFuncs.shutdown = (coreclr_shutdown_ptr)coreclrLib->getFunctionPointer("coreclr_shutdown");
 
         if (netFuncs.init == NULL || netFuncs.createDelegate == NULL || netFuncs.shutdown == NULL) {
             logErr("Failed to get .net functions");

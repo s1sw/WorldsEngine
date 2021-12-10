@@ -3,6 +3,10 @@
 #include <nlohmann/json_fwd.hpp>
 #include "Core/IGameEventHandler.hpp"
 
+namespace slib {
+    class DynamicLibrary;
+}
+
 namespace worlds {
     class Editor;
     struct DotNetFunctionPtrs {
@@ -49,5 +53,6 @@ namespace worlds {
             void(*physicsContactFunc)(uint32_t id, PhysicsContactInfo* contactInfo);
             void(*copyManagedComponentsFunc)(entt::entity from, entt::entity to);
             void(*sceneStartFunc)();
+            slib::DynamicLibrary* coreclrLib;
     };
 }
