@@ -2,7 +2,7 @@ using System.Collections.Generic;
 
 namespace Game
 {
-    struct BackConnection
+    public struct BackConnection
     {
         public Neuron Source;
         public float Weight;
@@ -13,33 +13,27 @@ namespace Game
     /// efficient, but it makes adding/removing neurons to a
     /// neural network much easier.
     /// </summary>
-    class Neuron
+    public class Neuron
     {
         public float Bias = 0.0f;
         public List<BackConnection> BackConnections = new();
 
-        public float Value
+        public virtual float Value
         {
             get
             {
-                if (!_cacheCanBeUsed)
+                float sum = 0.0f;
+
+                // Iterate over all the connections
+                foreach (var bc in BackConnections)
                 {
-                    float sum = 0.0f;
-
-                    // Iterate over all the connections
-                    foreach (var bc in BackConnections)
-                    {
-                        sum += bc.Source.Value * bc.Weight;
-                    }
-
-                    // Apply the bias
-                    sum += Bias;
-
-                    _cachedValue = sum;
-                    _cacheCanBeUsed = true;
+                    sum += bc.Source.Value * bc.Weight;
                 }
 
-                return _cachedValue;
+                // Apply the bias
+                sum += Bias;
+
+                return sum;
             }
         }
 
@@ -59,5 +53,11 @@ namespace Game
         {
             _cacheCanBeUsed = false;
         }
+    }
+
+    public class ConstantValueNeuron : Neuron
+    {
+        public override float Value => OverrideValue;
+        public float OverrideValue = 0.0f;
     }
 }
