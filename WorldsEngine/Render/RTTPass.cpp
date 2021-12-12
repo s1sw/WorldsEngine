@@ -56,7 +56,7 @@ namespace worlds {
         depthTarget = renderer->createTextureResource(depthCreateInfo, "Depth Stencil Image");
 
         TextureResourceCreateInfo bloomTargetCreateInfo {
-            TextureType::T2D,
+            TextureType::T2DArray,
             VK_FORMAT_R16G16B16A16_SFLOAT,
             (int)createInfo.width, (int)createInfo.height,
             VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT
