@@ -166,7 +166,7 @@ void main() {
     imageStore(outputTexture, ivec2(gl_GlobalInvocationID.xy), vec4(blurred.xyz, 1.0f));
 #else
     vec3 col = samp(uv).xyz;
-    col = QuadraticThreshold(col, 10.0, 0.5);
+    col = QuadraticThreshold(col, 12.5, 0.5);
     col = max(col, vec3(0.0));
     //col = saturate(col);
     imageStore(outputTexture, ivec2(gl_GlobalInvocationID.xy), vec4(col, 1.0));
