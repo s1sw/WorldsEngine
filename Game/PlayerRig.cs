@@ -194,6 +194,7 @@ namespace Game
         public static bool Jump = false;
 
         private VRAction _jumpAction;
+        private Entity _hpTextEntity;
 
         public void OnSceneStart()
         {
@@ -210,6 +211,9 @@ namespace Game
             healthComp.OnDeath += (Entity e) => {
                 SceneLoader.LoadScene(SceneLoader.CurrentSceneID);
             };
+
+            _hpTextEntity = Registry.Create();
+            Registry.AddComponent<WorldText>(_hpTextEntity);
         }
 
         public void OnUpdate()
@@ -223,7 +227,9 @@ namespace Game
             {
                 Jump = true;
             }
-        }
 
+            var hpText = Registry.GetComponent<WorldText>(_hpTextEntity);
+            hpText.Text = $"HP: {Registry.GetComponent<Combat.HealthComponent>(PlayerBody).Health}";
+        }
     }
 }
