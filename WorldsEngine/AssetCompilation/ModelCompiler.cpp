@@ -264,16 +264,18 @@ namespace worlds {
         robin_hood::unordered_map<std::string, aiNode*> nodeLookup;
 
         void processNode(aiNode* node, std::vector<Mesh>& meshes, const aiScene* scene, aiMatrix4x4 parentTransform, int depth = 0) {
-            char indentBuf[8] = { 0 };
+            char indentBuf[16] = { 0 };
 
-            for (int i = 0; i < depth; i++) {
+            for (int i = 0; i < std::max(depth, 15); i++) {
                 indentBuf[i] = '\t';
             }
 
             logMsg("%s- %s", indentBuf, node->mName.C_Str());
 
             for (int i = 0; i < node->mNumMeshes; i++) {
-                meshes.push_back(processAiMesh(scene->mMeshes[node->mMeshes[i]], node, parentTransform));
+                aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
+                if (mesh->mPrimitiveTypes != aiPrimitiveType_TRIANGLE) continue;
+                meshes.push_back(processAiMesh(mesh, node, parentTransform));
             }
 
             nodeLookup.insert({ node->mName.C_Str(), node });
@@ -317,6 +319,7 @@ namespace worlds {
             if (scene == nullptr) {
                 logErr("Failed to import file: %s", importer.GetErrorString());
                 compileOp->complete = true;
+                compileOp->result = CompilationResult::Error;
                 return ErrorCodes::ImportFailure;
             }
 
@@ -458,6 +461,7 @@ namespace worlds {
 
             compileOp->progress = 1.0f;
             compileOp->complete = true;
+            compileOp->result = CompilationResult::Success;
 
             return ErrorCodes::None;
         }
@@ -486,13 +490,15 @@ namespace worlds {
 
         int64_t fileLen;
         auto result = LoadFileToBuffer(modelSourcePath, &fileLen);
+        AssetCompileOperation* compileOp = new AssetCompileOperation;
 
         if (result.error != IOError::None) {
             logErr("Error opening source path %s", modelSourcePath.c_str());
-            return nullptr;
+            compileOp->result = CompilationResult::Error;
+            compileOp->complete = true;
+            return compileOp;
         }
 
-        AssetCompileOperation* compileOp = new AssetCompileOperation;
         compileOp->outputId = AssetDB::pathToId(outputPath);
 
         std::filesystem::path fullPath = projectRoot;
@@ -509,7 +515,20 @@ namespace worlds {
             PHYSFS_close(outFile);
             }).detach();
 
-            return compileOp;
+        return compileOp;
+    }
+
+    void ModelCompiler::getFileDependencies(AssetID src, std::vector<std::string>& out) {
+        std::string inputPath = AssetDB::idToPath(src);
+        auto jsonContents = LoadFileToString(inputPath);
+
+        if (jsonContents.error != IOError::None) {
+            logErr("Error opening asset file");
+            return;
+        }
+
+        nlohmann::json j = nlohmann::json::parse(jsonContents.value);
+        out.push_back(j["srcPath"]);
     }
 
     const char* ModelCompiler::getSourceExtension() {

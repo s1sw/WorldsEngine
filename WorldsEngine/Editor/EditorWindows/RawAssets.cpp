@@ -10,6 +10,9 @@
 #include "../AssetEditors.hpp"
 #include "Serialization/SceneSerialization.hpp"
 #include <Core/Log.hpp>
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+#include <shellapi.h>
 
 namespace worlds {
     void RawAssets::draw(entt::registry& reg) {
@@ -193,6 +196,23 @@ namespace worlds {
                             }
                         }
                     }
+
+                    if (ext == ".fbx") {
+                        if (ImGui::Button("Import model")) {
+                            std::string path = assetContextMenu;
+                            std::string removeStr = "Raw/";
+
+                            size_t pos = path.find(removeStr);
+                            if (pos != std::string::npos) {
+                                path.erase(pos, removeStr.size());
+                                pos = path.find(ext.cStr());
+                                path.erase(pos, ext.byteLength());
+                                path += ".wmdlj";
+                                std::filesystem::create_directory(std::filesystem::path{ path }.parent_path());
+                                AssetEditors::getEditorFor(".wmdlj")->importAsset(assetContextMenu, path);
+                            }
+                        }
+                    }
                     ImGui::Separator();
                 }
 
@@ -247,6 +267,15 @@ namespace worlds {
                     ImGui::CloseCurrentPopup();
                     openNewFolderPopup = true;
                 }
+
+#ifdef _WIN32
+                if (ImGui::Button("Open Folder in Explorer")) {
+                    ImGui::CloseCurrentPopup();
+                    std::string rawAssetDir = std::string(editor->currentProject().root()) + "/Raw/" + currentDir;
+                    logMsg("opening %s", rawAssetDir.c_str());
+                    ShellExecuteA(nullptr, "open", rawAssetDir.c_str(), nullptr, nullptr, SW_SHOW);
+                }
+#endif
 
                 for (size_t i = 0; i < AssetCompilers::registeredCompilerCount(); i++) {
                     IAssetCompiler* compiler = AssetCompilers::registeredCompilers()[i];

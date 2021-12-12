@@ -57,12 +57,14 @@
     <ClCompile Include="..\WorldsEngine\Core\SplashScreenImpls\SplashScreenWin32.cpp" />
     <ClCompile Include="..\WorldsEngine\Core\SplashScreenImpls\SplashScreenX11.cpp" />
     <ClCompile Include="..\WorldsEngine\Core\SplashWindow.cpp" />
+    <ClCompile Include="..\WorldsEngine\Core\Window.cpp" />
     <ClCompile Include="..\WorldsEngine\Editor\AssetEditors.cpp" />
     <ClCompile Include="..\WorldsEngine\Editor\DefaultUITheme.cpp" />
     <ClCompile Include="..\WorldsEngine\Editor\Editor.cpp" />
     <ClCompile Include="..\WorldsEngine\Editor\EditorSceneView.cpp" />
     <ClCompile Include="..\WorldsEngine\Editor\EditorUndo.cpp" />
     <ClCompile Include="..\WorldsEngine\Editor\EditorWindows\AboutWindow.cpp" />
+    <ClCompile Include="..\WorldsEngine\Editor\EditorWindows\AssetCompilationManager.cpp" />
     <ClCompile Include="..\WorldsEngine\Editor\EditorWindows\AssetEditor.cpp" />
     <ClCompile Include="..\WorldsEngine\Editor\EditorWindows\Assets.cpp" />
     <ClCompile Include="..\WorldsEngine\Editor\EditorWindows\BakingWindow.cpp" />
@@ -281,6 +283,7 @@
     <ClInclude Include="..\WorldsEngine\Core\Fatal.hpp" />
     <ClInclude Include="..\WorldsEngine\Core\IGameEventHandler.hpp" />
     <ClInclude Include="..\WorldsEngine\Core\ISystem.hpp" />
+    <ClInclude Include="..\WorldsEngine\Core\Window.hpp" />
     <ClInclude Include="..\WorldsEngine\Core\JobSystem.hpp" />
     <ClInclude Include="..\WorldsEngine\Core\Log.hpp" />
     <ClInclude Include="..\WorldsEngine\Core\LogCategories.hpp" />

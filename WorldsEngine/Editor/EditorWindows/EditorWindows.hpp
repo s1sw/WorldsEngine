@@ -97,4 +97,13 @@ namespace worlds {
     private:
         AssetID lastId = INVALID_ASSET;
     };
+    
+    class AssetCompilationManager : public EditorWindow {
+    public:
+        AssetCompilationManager(EngineInterfaces interfaces, Editor* editor) : EditorWindow{ interfaces, editor } { active = false; }
+        void draw(entt::registry&) override;
+        EditorMenu menuSection() override { return EditorMenu::Edit; }
+        const char* getName() override { return "Asset Compilation Manager"; }
+        ~AssetCompilationManager() {}
+    };
 }

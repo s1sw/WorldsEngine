@@ -6,6 +6,7 @@ namespace worlds {
     public:
         ModelCompiler();
         AssetCompileOperation* compile(std::string_view projectRoot, AssetID src) override;
+        void getFileDependencies(AssetID src, std::vector<std::string>& out) override;
         const char* getSourceExtension() override;
         const char* getCompiledExtension() override;
     };

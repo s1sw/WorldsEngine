@@ -4,6 +4,7 @@
 #include "Editor/GuiUtil.hpp"
 #include "ImGui/imgui.h"
 #include <nlohmann/json.hpp>
+#include <filesystem>
 
 namespace worlds {
     const char* textureTypeNames[] = {
@@ -25,6 +26,21 @@ namespace worlds {
             { "type", "regular" },
             { "isSrgb", true }
         };
+        std::string sourceFileName = std::filesystem::path{ filePath }.filename().string();
+        // Let's do some file name guessing...
+        if (sourceFileName.find("Normal") != std::string::npos) {
+            j["type"] = "normal";
+            j["isSrgb"] = false;
+        }
+
+        if (sourceFileName.find("forcelin") != std::string::npos) {
+            j["isSrgb"] = false;
+        }
+
+        if (sourceFileName.find("PBRPack") != std::string::npos) {
+            j["isSrgb"] = false;
+        }
+
         std::string serializedJson = j.dump(4);
         PHYSFS_writeBytes(f, serializedJson.data(), serializedJson.size());
         PHYSFS_close(f);

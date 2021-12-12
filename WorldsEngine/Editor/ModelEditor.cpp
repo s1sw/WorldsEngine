@@ -7,13 +7,13 @@
 namespace worlds {
     void ModelEditor::importAsset(std::string filePath, std::string newAssetPath) {
         AssetID id = AssetDB::createAsset(newAssetPath);
-        FILE* f = fopen(newAssetPath.c_str(), "wb");
+        PHYSFS_File* f = PHYSFS_openWrite(("SourceData/" + newAssetPath).c_str());
         nlohmann::json j = {
             { "srcPath", filePath }
         };
         std::string serializedJson = j.dump(4);
-        fwrite(serializedJson.data(), 1, serializedJson.size(), f);
-        fclose(f);
+        PHYSFS_writeBytes(f, serializedJson.data(), serializedJson.size());
+        PHYSFS_close(f);
         open(id);
     }
 
@@ -30,8 +30,13 @@ namespace worlds {
         editingID = id;
 
         std::string contents = LoadFileToString(AssetDB::idToPath(id)).value;
-        nlohmann::json j = nlohmann::json::parse(contents);
-        srcModel = AssetDB::pathToId(j.value("srcPath", "SrcData/Raw/Models/cube.obj"));
+        try {
+            nlohmann::json j = nlohmann::json::parse(contents);
+            srcModel = AssetDB::pathToId(j.value("srcPath", "Raw/Models/cube.obj"));
+        } catch (nlohmann::detail::exception except) {
+            addNotification(("Error opening " + AssetDB::idToPath(id)), NotificationType::Error);
+            srcModel = INVALID_ASSET;
+        }
     }
 
     void ModelEditor::drawEditor() {

@@ -1,11 +1,19 @@
 #pragma once
-#include "../Core/AssetDB.hpp"
+#include <Core/AssetDB.hpp>
+#include <vector>
 
 namespace worlds {
+    enum class CompilationResult {
+        Incomplete,
+        Error,
+        Success
+    };
+
     struct AssetCompileOperation {
         AssetID outputId;
         bool complete = false;
         float progress = 0.0f;
+        CompilationResult result = CompilationResult::Incomplete;
     };
 
     class IAssetCompiler {
@@ -13,6 +21,7 @@ namespace worlds {
         virtual AssetCompileOperation* compile(std::string_view projectRoot, AssetID src) = 0;
         virtual const char* getSourceExtension() = 0;
         virtual const char* getCompiledExtension() = 0;
+        virtual void getFileDependencies(AssetID src, std::vector<std::string>& out) = 0;
         virtual ~IAssetCompiler() {}
     };
 

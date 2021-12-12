@@ -3,6 +3,7 @@
 #include "../AssetEditors.hpp"
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include "../ImGui/imgui_internal.h"
+#include <Editor/GuiUtil.hpp>
 
 namespace worlds {
     void AssetEditor::draw(entt::registry& reg) {
@@ -43,6 +44,10 @@ namespace worlds {
                     ImGui::ProgressBar(currCompileOp->progress);
 
                     if (currCompileOp->complete) {
+                        if (currCompileOp->result == CompilationResult::Error) {
+                            addNotification("Failed to compile asset", NotificationType::Error);
+                        }
+
                         delete currCompileOp;
                         currCompileOp = nullptr;
                     }
