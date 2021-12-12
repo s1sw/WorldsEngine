@@ -3,7 +3,7 @@
 #include <string.h>
 #include "UI/WorldTextComponent.hpp"
 
-namespace worlds {
+extern "C" {
     EXPORT void worldtext_setText(entt::registry* registry, entt::entity entity, const char* text) {
         registry->get<WorldTextComponent>(entity).setText(text);
     }
