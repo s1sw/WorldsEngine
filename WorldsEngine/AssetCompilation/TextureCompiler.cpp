@@ -40,13 +40,15 @@ namespace worlds {
         std::string outputPath = getOutputPath(inputPath);
 
         auto jsonContents = LoadFileToString(inputPath);
+        AssetCompileOperation* compileOp = new AssetCompileOperation;
 
         if (jsonContents.error != IOError::None) {
             logErr("Error opening asset file");
-            return nullptr;
+            compileOp->complete = true;
+            compileOp->result = CompilationResult::Error;
+            return compileOp;
         }
 
-        AssetCompileOperation* compileOp = new AssetCompileOperation;
         compileOp->outputId = AssetDB::pathToId(outputPath);
         TexCompileThreadInfo* tcti = new TexCompileThreadInfo;
         tcti->j = nlohmann::json::parse(jsonContents.value);
@@ -63,6 +65,20 @@ namespace worlds {
         logMsg("Compiling %s to %s", AssetDB::idToPath(src).c_str(), outputPath.c_str());
         return compileOp;
     }
+
+    void TextureCompiler::getFileDependencies(AssetID src, std::vector<std::string>& out) {
+        std::string inputPath = AssetDB::idToPath(src);
+        auto jsonContents = LoadFileToString(inputPath);
+
+        if (jsonContents.error != IOError::None) {
+            logErr("Error opening asset file");
+            return;
+        }
+
+        nlohmann::json j = nlohmann::json::parse(jsonContents.value);
+        out.push_back(j["srcPath"]);
+    }
+
 
     const char* TextureCompiler::getSourceExtension() {
         return ".wtexj";
@@ -127,5 +143,6 @@ namespace worlds {
         delete inTexData.data;
         tcti->compileOp->progress = 1.0f;
         tcti->compileOp->complete = true;
+        tcti->compileOp->result = CompilationResult::Success;
     }
 }

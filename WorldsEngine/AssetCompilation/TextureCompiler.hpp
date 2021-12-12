@@ -1,12 +1,12 @@
 #pragma once
 #include "AssetCompilers.hpp"
-#include <nlohmann/json_fwd.hpp>
 
 namespace worlds {
     class TextureCompiler : public IAssetCompiler {
     public:
         TextureCompiler();
         AssetCompileOperation* compile(std::string_view projectRoot, AssetID src) override;
+        void getFileDependencies(AssetID src, std::vector<std::string>& out) override;
         const char* getSourceExtension() override;
         const char* getCompiledExtension() override;
     private:

@@ -83,8 +83,9 @@ namespace worlds {
         static std::string lastTitle;
         std::string newTitle = generateWindowTitle();
 
-        if (lastTitle != newTitle)
-            SDL_SetWindowTitle(interfaces.engine->getMainWindow(), newTitle.c_str());
+        if (lastTitle != newTitle) {
+            interfaces.engine->getMainWindow().setTitle(newTitle.c_str());
+        }
     }
 
     static int menuButtonsExtent = 0;
@@ -171,11 +172,12 @@ namespace worlds {
         ADD_EDITOR_WINDOW(SceneSettingsWindow);
         ADD_EDITOR_WINDOW(AssetEditor);
         ADD_EDITOR_WINDOW(RawAssets);
+        ADD_EDITOR_WINDOW(AssetCompilationManager);
 
 #undef ADD_EDITOR_WINDOW
         AssetCompilers::initialise();
         AssetEditors::initialise();
-        SDL_Window* window = interfaces.engine->getMainWindow();
+        SDL_Window* window = interfaces.engine->getMainWindow().getWrappedHandle();
         SDL_SetHint("SDL_BORDERLESS_WINDOWED_STYLE", "1");
         SDL_SetWindowBordered(window, SDL_FALSE);
         SDL_SetWindowResizable(window, SDL_TRUE);
@@ -423,7 +425,7 @@ namespace worlds {
     static ConVar integratedMenuBar{ "ed_integratedMenuBar", "0" };
 
     void Editor::drawMenuBarTitle() {
-        const char* windowTitle = SDL_GetWindowTitle(interfaces.engine->getMainWindow());
+        const char* windowTitle = interfaces.engine->getMainWindow().getTitle();
         ImVec2 textSize = ImGui::CalcTextSize(windowTitle);
         ImVec2 menuBarCenter = ImGui::GetWindowSize() * 0.5f;
 
@@ -431,7 +433,7 @@ namespace worlds {
         if (integratedMenuBar.getInt()) {
             drawList->AddText(ImVec2(menuBarCenter.x - (textSize.x * 0.5f), ImGui::GetWindowHeight() * 0.15f), ImColor(255, 255, 255), windowTitle);
 
-            SDL_SetWindowBordered(interfaces.engine->getMainWindow(), SDL_FALSE);
+            SDL_SetWindowBordered(interfaces.engine->getMainWindow().getWrappedHandle(), SDL_FALSE);
             float barWidth = ImGui::GetWindowWidth();
             float barHeight = ImGui::GetWindowHeight();
             const float crossSize = 6.0f;
@@ -451,20 +453,19 @@ namespace worlds {
             drawList->AddLine(crossCenter + ImVec2(+crossSize, +crossSize), crossCenter + ImVec2(-crossSize, -crossSize), crossColor, 1.0f);
             drawList->AddLine(crossCenter + ImVec2(+crossSize, -crossSize), crossCenter + ImVec2(-crossSize, +crossSize), crossColor, 1.0f);
 
-            SDL_Window* window = interfaces.engine->getMainWindow();
-            bool isMaximised = (SDL_GetWindowFlags(window) & SDL_WINDOW_MAXIMIZED) == SDL_WINDOW_MAXIMIZED;
+            Window& window = interfaces.engine->getMainWindow();
             ImVec2 maximiseCenter(barWidth - 45.0f - 22.0f, menuBarCenter.y);
             if (mousePos.x > barWidth - 90.0f && mousePos.x < barWidth - 45.0f && mousePos.y < barHeight) {
                 if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
-                    if (isMaximised)
-                        SDL_RestoreWindow(window);
+                    if (window.isMaximised())
+                        window.restore();
                     else
-                        SDL_MaximizeWindow(window);
+                        window.maximise();
                 }
                 drawList->AddRectFilled(ImVec2(barWidth - 45.0f - 45.0f, 0.0f), ImVec2(barWidth - 45.0f, barHeight), ImColor(255, 255, 255, 50));
             }
 
-            if (!isMaximised) {
+            if (!window.isMaximised()) {
                 drawList->AddRect(maximiseCenter - ImVec2(crossSize, crossSize), maximiseCenter + ImVec2(crossSize, crossSize), ImColor(255, 255, 255));
             } else {
                 drawList->AddRect(maximiseCenter - ImVec2(crossSize - 3, crossSize), maximiseCenter + ImVec2(crossSize, crossSize - 3), ImColor(255, 255, 255));
@@ -475,19 +476,17 @@ namespace worlds {
             ImVec2 minimiseCenter(barWidth - 90.0f - 22.0f, menuBarCenter.y);
             if (mousePos.x > barWidth - 135.0f && mousePos.x < barWidth - 90.0f && mousePos.y < barHeight) {
                 if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
-                    SDL_Window* window = interfaces.engine->getMainWindow();
-                    bool isMaximised = (SDL_GetWindowFlags(window) & SDL_WINDOW_MINIMIZED) == SDL_WINDOW_MINIMIZED;
 
-                    if (isMaximised)
-                        SDL_RestoreWindow(window);
+                    if (window.isMinimised())
+                        window.restore();
                     else
-                        SDL_MinimizeWindow(window);
+                        window.minimise();
                 }
                 drawList->AddRectFilled(ImVec2(barWidth - 135.0f, 0.0f), ImVec2(barWidth - 90.0f, barHeight), ImColor(255, 255, 255, 50));
             }
             drawList->AddRectFilled(minimiseCenter - ImVec2(5, 0), minimiseCenter + ImVec2(5, 1), ImColor(255, 255, 255));
         } else {
-            SDL_SetWindowBordered(interfaces.engine->getMainWindow(), SDL_TRUE);
+            SDL_SetWindowBordered(interfaces.engine->getMainWindow().getWrappedHandle(), SDL_TRUE);
         }
     }
 
@@ -532,6 +531,7 @@ namespace worlds {
         ZoneScoped;
 
         if (!active) {
+            drawPopupNotifications();
             for (EditorSceneView* esv : sceneViews) {
                 esv->setViewportActive(false);
             }
@@ -568,8 +568,7 @@ namespace worlds {
             return false;
             }), sceneViews.end());
 
-        if ((SDL_GetWindowFlags(interfaces.engine->getMainWindow()) & SDL_WINDOW_INPUT_FOCUS) == 0) {
-            SDL_Delay(500);
+        if (!interfaces.engine->getMainWindow().isFocused()) {
             for (EditorSceneView* esv : sceneViews) {
                 esv->setViewportActive(false);
             }

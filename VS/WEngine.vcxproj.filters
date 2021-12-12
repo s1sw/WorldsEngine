@@ -699,6 +699,12 @@
     <ClCompile Include="..\WorldsEngine\Render\BloomRenderPass.cpp">
       <Filter>Render</Filter>
     </ClCompile>
+    <ClCompile Include="..\WorldsEngine\Core\Window.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WorldsEngine\Editor\EditorWindows\AssetCompilationManager.cpp">
+      <Filter>Editor\EditorWindows</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\WorldsEngine\AssetCompilation\AssetCompilerUtil.hpp">
@@ -1473,5 +1479,8 @@
       <Filter>Scripting</Filter>
     </ClInclude>
     <ClInclude Include="..\ModelFormat\WMDL.hpp" />
+    <ClInclude Include="..\WorldsEngine\Core\Window.hpp">
+      <Filter>Core</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
