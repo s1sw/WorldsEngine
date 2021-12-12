@@ -229,10 +229,15 @@ namespace worlds {
 
                 for (int i = 0; i < meshPos->second.numSubmeshes; i++) {
                     auto& currSubmesh = meshPos->second.submeshes[i];
+                    uint32_t materialIdx;
+                    if (obj.presentMaterials[i])
+                        materialIdx = ctx.resources.materials.get(obj.materials[i]);
+                    else
+                        materialIdx = ctx.resources.materials.get(obj.materials[0]);
 
                     ShadowPushConstants spc{
                         .mvp = mvp,
-                        .materialIdx = ctx.resources.materials.get(obj.materials[i])
+                        .materialIdx = materialIdx
                     };
                     vkCmdPushConstants(cmdBuf, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(spc), &spc);
 
