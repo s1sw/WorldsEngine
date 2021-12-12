@@ -47,6 +47,7 @@
 #endif
 #include <ImGui/imgui_freetype.h>
 #include <UI/WorldTextComponent.hpp>
+#include <Editor/GuiUtil.hpp>
 #undef min
 #undef max
 
@@ -65,17 +66,10 @@ namespace worlds {
         SDL_Init(SDL_INIT_AUDIO | SDL_INIT_EVENTS | SDL_INIT_VIDEO | SDL_INIT_TIMER);
     }
 
-    SDL_Window* WorldsEngine::createSDLWindow() {
+    Window* WorldsEngine::createWindow() {
         windowWidth = 1600;
         windowHeight = 900;
-        return SDL_CreateWindow("Loading...",
-            SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-            1600, 900,
-            SDL_WINDOW_VULKAN |
-            SDL_WINDOW_RESIZABLE |
-            SDL_WINDOW_ALLOW_HIGHDPI |
-            SDL_WINDOW_HIDDEN
-        );
+        return new Window("Loading...", 1600, 900, true);
     }
 
     bool fullscreen = false;
@@ -89,15 +83,15 @@ namespace worlds {
     int WorldsEngine::windowThread(void* data) {
         WorldsEngine* _this = (WorldsEngine*)data;
 
-        _this->window = _this->createSDLWindow();
+        _this->window = _this->createWindow();
         if (_this->window == nullptr) {
             SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "err", SDL_GetError(), NULL);
         }
 
         if (_this->runAsEditor)
-            setWindowIcon(_this->window, "icon_engine.png");
+            setWindowIcon(_this->window->getWrappedHandle(), "icon_engine.png");
         else
-            setWindowIcon(_this->window);
+            setWindowIcon(_this->window->getWrappedHandle());
 
         SDL_SetEventFilter(eventFilter, _this);
 
@@ -359,15 +353,23 @@ namespace worlds {
         registry.set<SceneSettings>(AssetDB::pathToId("Cubemaps/Miramar/miramar.json"));
 
         if (!dedicatedServer) {
-            SDL_DetachThread(SDL_CreateThread(windowThread, "Window Thread", this));
-            while(!windowCreated){}
+            //SDL_DetachThread(SDL_CreateThread(windowThread, "Window Thread", this));
+            //while(!windowCreated){}
+            window = createWindow();
+            if (window == nullptr) {
+                SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "err", SDL_GetError(), NULL);
+            }
 
             if (runAsEditor)
-                setWindowIcon(window, "icon_engine.png");
+                setWindowIcon(window->getWrappedHandle(), "icon_engine.png");
             else
-                setWindowIcon(window);
+                setWindowIcon(window->getWrappedHandle());
 
-            SDL_SetWindowTitle(window, initOptions.gameName);
+            SDL_SetEventFilter(eventFilter, this);
+
+            windowCreated = true;
+
+            window->setTitle(initOptions.gameName);
 
             if (runAsEditor)
                 splashWindow->changeOverlay("initialising ui");
@@ -381,7 +383,7 @@ namespace worlds {
         io.Fonts->TexDesiredWidth = 512;
 
         if (!dedicatedServer) {
-            ImGui_ImplSDL2_InitForVulkan(window);
+            ImGui_ImplSDL2_InitForVulkan(window->getWrappedHandle());
             setupUIFonts();
             loadDefaultUITheme();
         }
@@ -402,9 +404,7 @@ namespace worlds {
 
                 float scaleFac = glm::min(((float)rect.w * 0.9f) / newW, ((float)rect.h * 0.9f) / newH);
 
-                SDL_SetWindowSize(window,
-                        (uint32_t)(newW * scaleFac),
-                        (uint32_t)(newH * scaleFac));
+                window->resize(newW * scaleFac, newH * scaleFac);
             }
         }
 
@@ -421,7 +421,7 @@ namespace worlds {
 
         if (!dedicatedServer) {
             RendererInitInfo initInfo{
-                window,
+                window->getWrappedHandle(),
                 additionalInstanceExts, additionalDeviceExts,
                 enableOpenVR, activeApi, vrInterface,
                 runAsEditor, initOptions.gameName
@@ -440,7 +440,8 @@ namespace worlds {
 
         cam.position = glm::vec3(0.0f, 0.0f, -1.0f);
 
-        inputManager = std::make_unique<InputManager>(window);
+        inputManager = std::make_unique<InputManager>(window->getWrappedHandle());
+        window->bindInputManager(inputManager.get());
 
         EngineInterfaces interfaces{
             .vrInterface = enableOpenVR ? openvrInterface.get() : nullptr,
@@ -532,6 +533,7 @@ namespace worlds {
                     inputManager->lockMouse(false);
                     if (!enableOpenVR)
                         console->executeCommandStr("sim_lockToRefresh 1");
+                    addNotification("Scene paused");
                 }, "pauseAndEdit", "pause and edit.");
 
                 console->registerCommand([&](void*, const char*) {
@@ -588,7 +590,7 @@ namespace worlds {
             }
             int width = std::stoi(argS.substr(0, xPos));
             int height = std::stoi(argS.substr(xPos + 1));
-            SDL_SetWindowSize(window, width, height);
+            window->resize(width, height);
         }, "setWindowSize", "Sets size of the window.", nullptr);
 
         if (enableOpenVR) {
@@ -631,7 +633,6 @@ namespace worlds {
             }
         }
 
-
         if (!dedicatedServer) {
             uint32_t w = 1600;
             uint32_t h = 900;
@@ -653,10 +654,9 @@ namespace worlds {
 
             delete splashWindow;
 
-            SDL_ShowWindow(window);
-            SDL_RaiseWindow(window);
+            window->show();
+            window->raise();
         }
-
 
         if (dedicatedServer) {
             // do a lil' dance to make dear imgui happy
@@ -671,6 +671,8 @@ namespace worlds {
             std::free(outPixels);
             io.IniFilename = nullptr;
         }
+
+        SDL_EventState(SDL_DROPFILE, SDL_ENABLE);
     }
 
     void WorldsEngine::createStartupScene() {
@@ -691,34 +693,6 @@ namespace worlds {
         registry.emplace<Transform>(dirLightEnt, glm::vec3(0.0f), glm::angleAxis(glm::radians(90.01f), glm::vec3(1.0f, 0.0f, 0.0f)));
         currentScene.name = "Untitled";
         currentScene.id = ~0u;
-    }
-
-    SDL_Event evtBuffer[64];
-    int incomingEvents = 0;
-    void WorldsEngine::processEvents() {
-        do {
-            while (incomingEvents > 0) {
-                incomingEvents--;
-                SDL_Event& evt = evtBuffer[incomingEvents];
-                if (evt.type == SDL_QUIT) {
-                    running = false;
-                    break;
-                }
-
-                if (evt.type == fullscreenToggleEventId) {
-                    auto currentWindowFlags = SDL_GetWindowFlags(window);
-                    if (enumHasFlag<Uint32>(currentWindowFlags, SDL_WINDOW_FULLSCREEN_DESKTOP))
-                        SDL_SetWindowFullscreen(window, 0);
-                    else
-                        SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP);
-                }
-
-                inputManager->processEvent(evt);
-
-                if (ImGui::GetCurrentContext())
-                    ImGui_ImplSDL2_ProcessEvent(&evt);
-            }
-        } while ((incomingEvents = SDL_PeepEvents(evtBuffer, 64, SDL_GETEVENT, SDL_FIRSTEVENT, SDL_LASTEVENT)) > 0);
     }
 
     void WorldsEngine::mainLoop() {
@@ -746,7 +720,7 @@ namespace worlds {
                     float fDisplayFrequency = vr::VRSystem()->GetFloatTrackedDeviceProperty(vr::k_unTrackedDeviceIndex_Hmd, vr::Prop_DisplayFrequency_Float);
                     targetTime = 1.0 / fDisplayFrequency;
                 } else {
-                    int displayIdx = SDL_GetWindowDisplayIndex(window);
+                    int displayIdx = SDL_GetWindowDisplayIndex(window->getWrappedHandle());
                     SDL_DisplayMode displayMode;
                     SDL_GetCurrentDisplayMode(displayIdx, &displayMode);
                     targetTime = 1.0 / displayMode.refresh_rate;
@@ -770,13 +744,15 @@ namespace worlds {
             uint64_t updateStart = SDL_GetPerformanceCounter();
             bool recreateScreenRTT = false;
 
-            processEvents();
+            window->processEvents();
+            if (window->shouldQuit())
+                running = false;
 
             if (!dedicatedServer) {
                 tickRichPresence();
 
                 ImGui_ImplVulkan_NewFrame();
-                ImGui_ImplSDL2_NewFrame(window);
+                ImGui_ImplSDL2_NewFrame(window->getWrappedHandle());
             }
 
             ImVec2 newFrameDisplaySize(windowWidth, windowHeight);

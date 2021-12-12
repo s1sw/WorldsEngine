@@ -7,6 +7,7 @@
 #include "ISystem.hpp"
 #include "../Render/Camera.hpp"
 #include "Console.hpp"
+#include "Window.hpp"
 
 namespace worlds {
     const int NUM_SUBMESH_MATS = 32;
@@ -61,7 +62,7 @@ namespace worlds {
         void loadScene(AssetID scene);
         void createStartupScene();
         void addSystem(ISystem* system);
-        SDL_Window* getMainWindow() const { return window; }
+        Window& getMainWindow() const { return *window; }
         const SceneInfo& getCurrentSceneInfo() const { return currentScene; }
         void quit() { running = false; }
         bool pauseSim;
@@ -78,19 +79,18 @@ namespace worlds {
             int frameCounter;
         };
 
-        void processEvents();
         static int eventFilter(void* enginePtr, SDL_Event* evt);
         static int windowThread(void* data);
         static int renderThread(void* data);
         void setupSDL();
-        SDL_Window* createSDLWindow();
+        Window* createWindow();
         void setupPhysfs(char* argv0);
         void drawDebugInfoWindow(DebugTimeInfo timeInfo);
         void updateSimulation(float& interpAlpha, double deltaTime);
         void doSimStep(float deltaTime);
         void tickRenderer(bool renderImgui = false);
 
-        SDL_Window* window;
+        Window* window;
         int windowWidth, windowHeight;
 
         bool running;

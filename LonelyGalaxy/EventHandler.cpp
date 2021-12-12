@@ -371,7 +371,7 @@ namespace lg {
                     if (spectatorPass)
                         renderer->destroyRTTPass(spectatorPass);
                     int w, h;
-                    SDL_GetWindowSize(engine->getMainWindow(), &w, &h);
+                    engine->getMainWindow().getSize(&w, &h);
                     worlds::RTTPassCreateInfo ci{
                         .cam = &spectatorCam,
                         .width = static_cast<uint32_t>(w),
