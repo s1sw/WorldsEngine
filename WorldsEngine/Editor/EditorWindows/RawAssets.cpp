@@ -10,9 +10,12 @@
 #include "../AssetEditors.hpp"
 #include "Serialization/SceneSerialization.hpp"
 #include <Core/Log.hpp>
+#ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 #include <shellapi.h>
+#elif defined(__linux__)
+#endif
 
 namespace worlds {
     void RawAssets::draw(entt::registry& reg) {
@@ -274,6 +277,11 @@ namespace worlds {
                     std::string rawAssetDir = std::string(editor->currentProject().root()) + "/Raw/" + currentDir;
                     logMsg("opening %s", rawAssetDir.c_str());
                     ShellExecuteA(nullptr, "open", rawAssetDir.c_str(), nullptr, nullptr, SW_SHOW);
+                }
+#elif defined(__linux__)
+                if (ImGui::Button("Open Folder in File Manager")) {
+                    std::string cmd = std::string("xdg-open ") + std::string(editor->currentProject().root()) + "/Raw/" + currentDir;
+                    system(cmd.c_str());
                 }
 #endif
 
