@@ -36,4 +36,8 @@ namespace worlds {
 
         return loadedMeshes.at(id);
     }
+
+    void MeshManager::unload(AssetID id) {
+        loadedMeshes.erase(id);
+    }
 }
