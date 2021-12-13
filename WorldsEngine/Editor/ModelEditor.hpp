@@ -12,6 +12,7 @@ namespace worlds {
         const char* getHandledExtension() override;
     private:
         AssetID srcModel = INVALID_ASSET;
+        bool preTransformVerts = false;
         AssetID editingID = INVALID_ASSET;
     };
 }
