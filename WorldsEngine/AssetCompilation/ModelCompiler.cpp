@@ -28,6 +28,10 @@ namespace worlds {
         MiscInternal = -3
     };
 
+    struct ConversionSettings {
+        bool preTransformVerts = false;
+    };
+
     namespace mc_internal {
         using namespace Assimp;
 
@@ -147,7 +151,6 @@ namespace worlds {
                 }
             }
 
-            logMsg("Mesh %s has %i bones", aiMesh->mName.C_Str(), aiMesh->mNumBones);
             for (unsigned int i = 0; i < aiMesh->mNumBones; i++) {
                 uint32_t boneIdx = 0;
                 aiBone* aiBone = aiMesh->mBones[i];
@@ -266,7 +269,7 @@ namespace worlds {
         void processNode(aiNode* node, std::vector<Mesh>& meshes, const aiScene* scene, aiMatrix4x4 parentTransform, int depth = 0) {
             char indentBuf[16] = { 0 };
 
-            for (int i = 0; i < std::max(depth, 15); i++) {
+            for (int i = 0; i < std::min(depth, 15); i++) {
                 indentBuf[i] = '\t';
             }
 
@@ -285,7 +288,7 @@ namespace worlds {
             }
         }
 
-        ErrorCodes convertModel(AssetCompileOperation* compileOp, PHYSFS_File* outFile, void* data, size_t dataSize, const char* extension) {
+        ErrorCodes convertModel(AssetCompileOperation* compileOp, PHYSFS_File* outFile, void* data, size_t dataSize, const char* extension, ConversionSettings settings) {
             const int NUM_STEPS = 5;
             const float PROGRESS_PER_STEP = 1.0f / NUM_STEPS;
             DefaultLogger::get()->attachStream(new PrintfStream);
@@ -295,7 +298,7 @@ namespace worlds {
 
             logMsg("Loading file...");
 
-            const aiScene* scene = importer.ReadFileFromMemory(data, dataSize,
+            uint32_t processFlags =
                 aiProcess_CalcTangentSpace |
                 aiProcess_GenSmoothNormals |
                 aiProcess_JoinIdenticalVertices |
@@ -312,7 +315,11 @@ namespace worlds {
                 aiProcess_OptimizeMeshes |
                 aiProcess_OptimizeGraph |
                 //aiProcess_PopulateArmatureData |
-                aiProcess_FlipUVs, extension);
+                aiProcess_FlipUVs;
+
+            if (settings.preTransformVerts)
+                processFlags |= aiProcess_PreTransformVertices;
+            const aiScene* scene = importer.ReadFileFromMemory(data, dataSize, processFlags, extension);
 
             compileOp->progress = PROGRESS_PER_STEP;
 
@@ -353,6 +360,37 @@ namespace worlds {
             processNode(scene->mRootNode, meshes, scene, aiMatrix4x4{});
 
             compileOp->progress = PROGRESS_PER_STEP * 2;
+
+            // Merge meshes with the same material
+            if (!hasBones) {
+                robin_hood::unordered_map<uint32_t, std::vector<uint32_t>> materialMeshes;
+                uint32_t meshIndex = 0;
+                for (Mesh& m : meshes) {
+                    if (!materialMeshes.contains(m.materialIdx)) {
+                        materialMeshes.insert({ m.materialIdx, std::vector<uint32_t>()});
+                    }
+                    materialMeshes[m.materialIdx].push_back(meshIndex);
+                    meshIndex++;
+                }
+
+                std::vector<Mesh> oldMeshes;
+                oldMeshes.swap(meshes);
+
+                for (auto& pair : materialMeshes) {
+                    Mesh newMesh;
+                    newMesh.materialIdx = pair.first;
+                    for (uint32_t mIdx : pair.second) {
+                        Mesh& m = oldMeshes[mIdx];
+
+                        newMesh.indices.reserve(newMesh.indices.size() + m.indices.size());
+                        for (uint32_t idx : m.indices) {
+                            newMesh.indices.push_back(idx + newMesh.verts.size());
+                        }
+                        newMesh.verts.insert(newMesh.verts.end(), m.verts.begin(), m.verts.end());
+                    }
+                    meshes.push_back(std::move(newMesh));
+                }
+            }
 
             std::vector<wmdl::Vertex2> combinedVerts;
             std::vector<uint32_t> combinedIndices;
@@ -420,7 +458,7 @@ namespace worlds {
 
             wmdl::Header hdr;
             hdr.useSmallIndices = false;
-            hdr.numSubmeshes = scene->mNumMeshes;
+            hdr.numSubmeshes = meshes.size();
             hdr.submeshOffset = sizeof(hdr) + sizeof(wmdl::SkinningInfoBlock) +
                 (sizeof(wmdl::VertexSkinningInfo) * combinedVertSkinningInfo.size()) + (sizeof(wmdl::Bone) * combinedBones.size());
             hdr.vertexOffset = hdr.submeshOffset + (sizeof(wmdl::SubmeshInfo) * meshes.size());
@@ -507,11 +545,13 @@ namespace worlds {
         fullPath = fullPath.lexically_normal();
 
         std::filesystem::create_directories(fullPath);
+        ConversionSettings settings;
+        settings.preTransformVerts = j.value("preTransformVerts", false);
 
-        std::thread([compileOp, outputPath, path, result, fileLen]() {
+        std::thread([compileOp, outputPath, path, result, fileLen, settings]() {
             PHYSFS_File* outFile = PHYSFS_openWrite(outputPath.c_str());
             slib::Path p = path;
-            mc_internal::convertModel(compileOp, outFile, result.value, fileLen, p.fileExtension().cStr());
+            mc_internal::convertModel(compileOp, outFile, result.value, fileLen, p.fileExtension().cStr(), settings);
             PHYSFS_close(outFile);
             }).detach();
 
