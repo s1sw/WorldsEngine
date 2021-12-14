@@ -109,8 +109,11 @@ namespace worlds {
                     while (assetFileCompileIterator != assetFiles.end() && (!assetFileCompileIterator->needsCompile || !assetFileCompileIterator->dependenciesExist)) {
                         assetFileCompileIterator++;
                     }
+                    
                     if (assetFileCompileIterator != assetFiles.end())
                         currentCompileOp = AssetCompilers::buildAsset(editor->currentProject().root(), assetFileCompileIterator->sourceAssetId);
+                    else
+                        isCompiling = false;
                 }
 
                 if (currentCompileOp) {
@@ -122,10 +125,11 @@ namespace worlds {
                             logWarn("Failed to build %s", AssetDB::idToPath(assetFileCompileIterator->sourceAssetId).c_str());
                         else
                             assetFileCompileIterator->needsCompile = false;
+
                         delete currentCompileOp;
                         assetFileCompileIterator++;
                         currentCompileOp = nullptr;
-                        if (assetFileCompileIterator == assetFiles.end()) {
+                        if (assetFileCompileIterator >= assetFiles.end()) {
                             isCompiling = false;
                         }
                     }
