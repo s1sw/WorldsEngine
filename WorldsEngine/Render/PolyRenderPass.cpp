@@ -1102,7 +1102,9 @@ namespace worlds {
         colourResource->image().setCurrentLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT);
         depthResource->image().setCurrentLayout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
 
-        if (ctx.passSettings.enableBloom) {
+        static ConVar forceDisableBloom {"r_forceDisableBloom", "0"};
+
+        if (ctx.passSettings.enableBloom && !forceDisableBloom.getInt()) {
             bloomPass->execute(ctx);
         } else {
             VkClearColorValue clearVal { {.0f, .0f, .0f, .0f} };
