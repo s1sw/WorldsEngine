@@ -56,6 +56,58 @@ class NeuralNetwork
         }
     }
 
+    public NeuralNetwork(NeuralNetwork other)
+    {
+        for (int i = 0; i < other.InputNeurons.Count; i++)
+            InputNeurons.Add(new ConstantValueNeuron());
+
+        for (int i = 0; i < other.RelayNeurons.Count; i++)
+            RelayNeurons.Add(new Neuron());
+
+        for (int i = 0; i < other.OutputNeurons.Count; i++)
+            OutputNeurons.Add(new Neuron());
+
+        {
+            int outputIdx = 0;
+            foreach (var outputNeuron in OutputNeurons)
+            {
+                int relayIdx = 0;
+                foreach (var relayNeuron in RelayNeurons)
+                {
+                    BackConnection connection = new()
+                    {
+                        Source = relayNeuron,
+                        Weight = other.OutputNeurons[outputIdx].BackConnections[relayIdx].Weight
+                    };
+
+                    outputNeuron.BackConnections.Add(connection);
+                    relayIdx++;
+                }
+                outputIdx++;
+            }
+        }
+
+        {
+            int relayIdx = 0;
+            foreach (var relayNeuron in RelayNeurons)
+            {
+                int inputIdx = 0;
+                foreach (var inputNeuron in InputNeurons)
+                {
+                    BackConnection connection = new()
+                    {
+                        Source = inputNeuron,
+                        Weight = other.RelayNeurons[relayIdx].BackConnections[inputIdx].Weight
+                    };
+
+                    relayNeuron.BackConnections.Add(connection);
+                    inputIdx++;
+                }
+            }
+            relayIdx++;
+        }
+    }
+
     public void Update()
     {
         foreach (Neuron n in InputNeurons)

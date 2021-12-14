@@ -1,3 +1,4 @@
+using System;
 using WorldsEngine;
 using WorldsEngine.Math;
 
@@ -29,7 +30,8 @@ namespace Game
             if (Accelerate)
                 dpa.AddForce(dpa.Pose.Forward * 1000.0f);
 
-            dpa.AddTorque(dpa.Pose.TransformDirection(Vector3.Up) * Steer * 400.0f);
+            if (MathF.Abs(dpa.AngularVelocity.y) < 2 * MathF.PI * 4 || MathF.Sign(Steer) != MathF.Sign(dpa.AngularVelocity.y))
+                dpa.AddTorque(dpa.Pose.TransformDirection(Vector3.Up) * Steer * 400.0f);
 
             // Here's an approximation for drag.
             // We're assuming that...
