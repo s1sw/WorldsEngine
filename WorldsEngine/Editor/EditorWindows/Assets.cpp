@@ -1,15 +1,22 @@
 #include "EditorWindows.hpp"
-#include "../../ImGui/imgui.h"
+#include <ImGui/imgui.h>
 #include <filesystem>
-#include "../../Util/CreateModelObject.hpp"
-#include "../../Core/Console.hpp"
-#include "../../Libs/IconsFontAwesome5.h"
-#include "../GuiUtil.hpp"
+#include <Util/CreateModelObject.hpp>
+#include <Core/Console.hpp>
+#include <Libs/IconsFontAwesome5.h>
+#include <Editor/GuiUtil.hpp>
 #include <slib/Path.hpp>
-#include "../../AssetCompilation/AssetCompilers.hpp"
-#include "../AssetEditors.hpp"
-#include "Serialization/SceneSerialization.hpp"
+#include <AssetCompilation/AssetCompilers.hpp>
+#include <Editor/AssetEditors.hpp>
+#include <Serialization/SceneSerialization.hpp>
 #include <Core/Log.hpp>
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+#include <shellapi.h>
+#elif defined(__linux__)
+#endif
+#include <AssetCompilation/AssetCompilerUtil.hpp>
 
 namespace worlds {
     void Assets::draw(entt::registry& reg) {
@@ -132,42 +139,9 @@ namespace worlds {
             }
 
             static std::string assetContextMenu;
-            static bool isTextureFolder = false;
             if (ImGui::IsMouseClicked(ImGuiMouseButton_Right) && ImGui::IsWindowHovered()) {
                 assetContextMenu = assetContextMenuPath;
                 ImGui::OpenPopup("ContextMenu");
-
-                isTextureFolder = true;
-                for (char** currFile = files; *currFile != nullptr; currFile++) {
-                    slib::Path path{*currFile};
-                    std::string origDirStr = "SourceData/" + currentDir;
-                    if (origDirStr[0] == '/') {
-                        origDirStr = origDirStr.substr(1);
-                    }
-
-                    std::string fullPath;
-
-                    if (origDirStr.empty())
-                        fullPath = *currFile;
-                    else
-                        fullPath = origDirStr + "/" + std::string(*currFile);
-
-                    PHYSFS_Stat stat;
-                    PHYSFS_stat(fullPath.c_str(), &stat);
-
-                    if (stat.filetype == PHYSFS_FILETYPE_REGULAR) {
-                        bool isFileTexture = false;
-                        std::array<const char*, 3> textureExtensions = { ".png", ".jpg", ".tga" };
-
-                        for (const char* ext : textureExtensions) {
-                            if (path.fileExtension() == ext) {
-                                isFileTexture = true;
-                            }
-                        }
-
-                        isTextureFolder &= isFileTexture;
-                    }
-                }
             }
 
             bool openAssetNamePopup = false;
@@ -177,6 +151,29 @@ namespace worlds {
                     ImGui::CloseCurrentPopup();
                     openNewFolderPopup = true;
                 }
+
+                std::string assetExtension = std::filesystem::path{ assetContextMenu }.extension().string();
+
+                if (assetExtension == ".wmdlj") {
+                    if (ImGui::Button("Create in scene")) {
+                        AssetID compiledAsset = getOutputAsset(assetContextMenu);
+                        createModelObject(reg, interfaces.mainCamera->position, interfaces.mainCamera->rotation, compiledAsset, AssetDB::pathToId("Materials/dev.json"));
+                    }
+                }
+
+#ifdef _WIN32
+                if (ImGui::Button("Open Folder in Explorer")) {
+                    ImGui::CloseCurrentPopup();
+                    std::string rawAssetDir = std::string(editor->currentProject().root()) + "/SourceData/" + currentDir;
+                    logMsg("opening %s", rawAssetDir.c_str());
+                    ShellExecuteA(nullptr, "open", rawAssetDir.c_str(), nullptr, nullptr, SW_SHOW);
+                }
+#elif defined(__linux__)
+                if (ImGui::Button("Open Folder in File Manager")) {
+                    std::string cmd = std::string("xdg-open ") + std::string(editor->currentProject().root()) + "/SourceData/" + currentDir;
+                    system(cmd.c_str());
+                }
+#endif
 
                 for (size_t i = 0; i < AssetCompilers::registeredCompilerCount(); i++) {
                     IAssetCompiler* compiler = AssetCompilers::registeredCompilers()[i];
