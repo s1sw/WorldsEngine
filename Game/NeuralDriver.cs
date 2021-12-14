@@ -3,6 +3,8 @@ using WorldsEngine;
 using WorldsEngine.Math;
 using WorldsEngine.Input;
 using ImGuiNET;
+using System.Text.Json.Serialization;
+using System.Collections.Generic;
 
 namespace Game;
 
@@ -10,14 +12,42 @@ namespace Game;
 class NeuralDriverComponent
 {
     [NonSerialized]
+    [JsonIgnore]
     public NeuralNetwork NeuralNetwork = new(5, 5, 3);
+}
+
+struct Candidate
+{
+    public NeuralNetwork Network;
+    public float Score;
 }
 
 public class NeuralDriverSystem : ISystem
 {
+    private double _currentGenerationTime = 0.0;
+    private List<Candidate> _generation = new();
+    private int _candidateIndex = 0;
+    private int _generationNumber = 0;
+
+    public void OnSceneStart()
+    {
+        for (int i = 0; i < 7; i++)
+        {
+            _generation.Add(new Candidate() { Network = new NeuralNetwork(5, 5, 3), Score = 0f });
+        }
+
+        var drivers = Registry.View<NeuralDriverComponent>();
+        foreach (var driverEntity in drivers)
+        {
+            var driver = Registry.GetComponent<NeuralDriverComponent>(driverEntity);
+            driver.NeuralNetwork = _generation[_candidateIndex].Network;
+        }
+    }
+
     public void OnUpdate()
     {
         var drivers = Registry.View<NeuralDriverComponent>();
+        _currentGenerationTime += Time.DeltaTime;
 
         foreach (var driverEntity in drivers)
         {
@@ -44,6 +74,7 @@ public class NeuralDriverSystem : ISystem
             driver.NeuralNetwork.Update();
             ImGui.Text($"Acceleration: {driver.NeuralNetwork.OutputNeurons[0].Value}");
             ImGui.Text($"Steer: {driver.NeuralNetwork.OutputNeurons[1].Value}");
+            ImGui.Text($"Score: {MathF.Min(10000f, 1.0f / pose.Position.DistanceTo(Vector3.Zero))}");
 
             for (int i = 0; i < 5; i++)
             {
@@ -56,9 +87,117 @@ public class NeuralDriverSystem : ISystem
             car.Steer = Math.Clamp(driver.NeuralNetwork.OutputNeurons[1].Value, -1.0f, 1.0f);
 
             if (Keyboard.KeyHeld(KeyCode.M))
-            {
                 driver.NeuralNetwork.Mutate();
+
+            if (ImGui.Begin("Current Network")) {
+                ImDrawListPtr drawList = ImGui.GetWindowDrawList();
+                Vector2 wpos = ImGui.GetWindowPos();
+                const float columnSpacing = 50.0f;
+
+                for (int i = 0; i < driver.NeuralNetwork.InputNeurons.Count; i++) {
+                    drawList.AddCircle(new Vector2(30.0f, 50f + (30f * i)) + wpos, 15f, uint.MaxValue);
+                }
+
+                for (int i = 0; i < driver.NeuralNetwork.RelayNeurons.Count; i++) {
+                    Neuron n = driver.NeuralNetwork.RelayNeurons[i];
+                    Vector2 nPos = new Vector2(30.0f + columnSpacing, 50f + (30f * i)) + wpos;
+                    drawList.AddCircle(nPos, 15f, uint.MaxValue);
+
+                    int nIdx = 0;
+                    foreach (BackConnection bc in n.BackConnections)
+                    {
+                        Vector2 fromPos = new Vector2(30.0f, 50f + (30f * nIdx)) + wpos;
+                        drawList.AddLine(fromPos, nPos, (uint)(uint.MaxValue * MathF.Abs(bc.Weight)));
+                        nIdx++;
+                    }
+                }
+
+                for (int i = 0; i < driver.NeuralNetwork.OutputNeurons.Count; i++) {
+                    Neuron n = driver.NeuralNetwork.RelayNeurons[i];
+                    Vector2 nPos = new Vector2(30.0f + columnSpacing * 2, 50f + (30f * i)) + wpos;
+
+                    drawList.AddCircle(nPos, 15f, uint.MaxValue);
+
+                    int nIdx = 0;
+                    foreach (BackConnection bc in n.BackConnections)
+                    {
+                        Vector2 fromPos = new Vector2(30.0f + columnSpacing, 50f + (30f * nIdx)) + wpos;
+                        drawList.AddLine(fromPos, nPos, (uint)(uint.MaxValue * MathF.Abs(bc.Weight)));
+                        nIdx++;
+                    }
+                }
             }
+            ImGui.End();
         }
+
+        if (Keyboard.KeyPressed(KeyCode.R) || _currentGenerationTime > 7.0) {
+            NextCandidate();
+        }
+
+        ImGui.Text($"Current generation time: {_currentGenerationTime}");
+        ImGui.Text($"Current candidate: {_candidateIndex}");
+        ImGui.Text($"Current generation: {_generationNumber}");
+    }
+
+    public void Reset()
+    {
+        var drivers = Registry.View<NeuralDriverComponent>();
+
+        foreach (var driverEntity in drivers)
+        {
+            var dpa = Registry.GetComponent<DynamicPhysicsActor>(driverEntity);
+            var pose = dpa.Pose;
+            pose.Position = new Vector3(0.0f, 1.0f, 25.0f);
+            dpa.Pose = pose;
+            Registry.GetComponent<NeuralDriverComponent>(driverEntity).NeuralNetwork.Mutate();
+        }
+        _currentGenerationTime = 0.0;
+    }
+
+    public void NextCandidate()
+    {
+        if (_candidateIndex == _generation.Count - 1)
+        {
+            const int numTopCandidates = 7;
+            // Descending sort
+            _generation.Sort((a, b) => b.Score.CompareTo(a.Score));
+            _generation.RemoveRange(numTopCandidates, _generation.Count - numTopCandidates);
+
+            for (int i = 0; i < 3; i++)
+            {
+                for (int j = 0; j < numTopCandidates; j++)
+                {
+                    Candidate child = new()
+                    {
+                        Network = new NeuralNetwork(_generation[j].Network),
+                        Score = 0
+                    };
+                    child.Network.Mutate();
+                    _generation.Add(child);
+                }
+            }
+            _candidateIndex = 0;
+            _currentGenerationTime = 0.0;
+            _generationNumber++;
+            return;
+        }
+
+        var lastCandidate = _generation[_candidateIndex];
+        _candidateIndex++;
+        var drivers = Registry.View<NeuralDriverComponent>();
+
+        foreach (var driverEntity in drivers)
+        {
+            var dpa = Registry.GetComponent<DynamicPhysicsActor>(driverEntity);
+            var pose = dpa.Pose;
+            lastCandidate.Score = pose.Position.DistanceTo(Vector3.Zero);
+            pose.Position = new Vector3(0.0f, 1.0f, 25.0f);
+            dpa.Pose = pose;
+            dpa.AngularVelocity = Vector3.Zero;
+            dpa.Velocity = Vector3.Zero;
+            Registry.GetComponent<NeuralDriverComponent>(driverEntity).NeuralNetwork = _generation[_candidateIndex].Network;
+        }
+
+        _currentGenerationTime = 0.0;
     }
 }

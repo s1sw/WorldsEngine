@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 namespace Game
@@ -33,7 +34,7 @@ namespace Game
                 // Apply the bias
                 sum += Bias;
 
-                return sum;
+                return sum / (1 + MathF.Abs(sum));
             }
         }
 
