@@ -28,15 +28,23 @@ public class NeuralDriverSystem : ISystem
     private List<Candidate> _generation = new();
     private int _candidateIndex = 0;
     private int _generationNumber = 0;
+    private bool _active = false;
 
     public void OnSceneStart()
     {
+        var drivers = Registry.View<NeuralDriverComponent>();
+
+        if (drivers.components.Count == 0)
+        {
+            _active = false;
+            return;
+        }
+
         for (int i = 0; i < 7; i++)
         {
             _generation.Add(new Candidate() { Network = new NeuralNetwork(5, 5, 3), Score = 0f });
         }
 
-        var drivers = Registry.View<NeuralDriverComponent>();
         foreach (var driverEntity in drivers)
         {
             var driver = Registry.GetComponent<NeuralDriverComponent>(driverEntity);
@@ -46,6 +54,8 @@ public class NeuralDriverSystem : ISystem
 
     public void OnUpdate()
     {
+        if (!_active) return;
+
         var drivers = Registry.View<NeuralDriverComponent>();
         _currentGenerationTime += Time.DeltaTime;
 
