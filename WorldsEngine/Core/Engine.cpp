@@ -974,20 +974,27 @@ namespace worlds {
     }
 
     void WorldsEngine::tickRenderer(bool renderImGui) {
+        ZoneScoped;
         std::unique_lock<std::mutex> lg(rendererLock);
-        renderThreadCV.wait(lg, [this]{return renderThreadAvailable || !running;});
+        {
+            ZoneScopedN("Waiting on CV");
+            renderThreadCV.wait(lg, [this]{return renderThreadAvailable || !running;});
+        }
 
-        renderRegistry.clear();
-        renderRegistry.assign(registry.data(), registry.data() + registry.size(), registry.destroyed());
-        cloneComponent<Transform>(registry, renderRegistry);
-        cloneComponent<WorldObject>(registry, renderRegistry);
-        cloneComponent<SkinnedWorldObject>(registry, renderRegistry);
-        cloneComponent<WorldLight>(registry, renderRegistry);
-        cloneComponent<WorldCubemap>(registry, renderRegistry);
-        cloneComponent<UseWireframe>(registry, renderRegistry);
-        cloneComponent<ProxyAOComponent>(registry, renderRegistry);
-        cloneComponent<SphereAOProxy>(registry, renderRegistry);
-        cloneComponent<WorldTextComponent>(registry, renderRegistry);
+        {
+            ZoneScopedN("Copying entities and components");
+            renderRegistry.clear();
+            renderRegistry.assign(registry.data(), registry.data() + registry.size(), registry.destroyed());
+            cloneComponent<Transform>(registry, renderRegistry);
+            cloneComponent<WorldObject>(registry, renderRegistry);
+            cloneComponent<SkinnedWorldObject>(registry, renderRegistry);
+            cloneComponent<WorldLight>(registry, renderRegistry);
+            cloneComponent<WorldCubemap>(registry, renderRegistry);
+            cloneComponent<UseWireframe>(registry, renderRegistry);
+            cloneComponent<ProxyAOComponent>(registry, renderRegistry);
+            cloneComponent<SphereAOProxy>(registry, renderRegistry);
+            cloneComponent<WorldTextComponent>(registry, renderRegistry);
+        }
 
         //auto sortLambda = [&](entt::entity a, entt::entity b) {
         //    auto& aTransform = registry.get<Transform>(a);
@@ -999,6 +1006,7 @@ namespace worlds {
 
 
         if (renderImGui) {
+            ZoneScopedN("Copy ImGui data");
             ImGui::Render();
             renderThreadDrawData = *ImGui::GetDrawData();
             for (int i = 0; i < renderThreadDrawData.CmdListsCount; i++) {
@@ -1141,6 +1149,7 @@ namespace worlds {
     }
 
     void WorldsEngine::doSimStep(float deltaTime) {
+        ZoneScoped;
         stepSimulation(deltaTime);
 
         if (evtHandler != nullptr && !(runAsEditor && editor->active)) {
