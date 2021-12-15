@@ -14,7 +14,7 @@
 #include "../IO/physfs.hpp"
 #include "../Core/Transform.hpp"
 #include "tracy/Tracy.hpp"
-#include "tracy/TracyC.h"
+#include <tracy/TracyC.h>
 #include "tracy/TracyVulkan.hpp"
 #include "RenderPasses.hpp"
 #include "../Input/Input.hpp"
@@ -1657,7 +1657,9 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
     presentInfo.pWaitSemaphores = &cmdBufferSemaphores[frameIdx];
     presentInfo.waitSemaphoreCount = 1;
 
+    TracyCZoneN(__presentZone, "vkQueuePresentKHR", true);
     VkResult presentResult = vkQueuePresentKHR(presentQueue, &presentInfo);
+    TracyCZoneEnd(__presentZone);
 
     if (enableVR)
         vr::VRCompositor()->PostPresentHandoff();
