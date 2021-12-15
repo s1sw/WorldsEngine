@@ -93,6 +93,7 @@ namespace worlds {
         friend struct AudioSource;
 
         glm::vec3 lastListenerPos;
+        bool available = true;
         static AudioSystem* instance;
         FMOD::Studio::System* studioSystem;
         FMOD::System* system;

@@ -171,6 +171,7 @@ namespace worlds {
     }
 
     AudioSystem::AudioSystem() {
+        instance = this;
         const char* phononPluginName;
 
 #ifdef _WIN32
@@ -187,7 +188,16 @@ namespace worlds {
         FMCHECK(studioSystem->getCoreSystem(&system));
         FMCHECK(system->setSoftwareFormat(0, FMOD_SPEAKERMODE_STEREO, 0));
 
-        FMCHECK(studioSystem->initialize(2048, FMOD_STUDIO_INIT_NORMAL | FMOD_STUDIO_INIT_LIVEUPDATE, FMOD_INIT_NORMAL, nullptr));
+        FMOD_RESULT result = studioSystem->initialize(2048, FMOD_STUDIO_INIT_NORMAL | FMOD_STUDIO_INIT_LIVEUPDATE, FMOD_INIT_NORMAL, nullptr);
+
+        if (result == FMOD_ERR_OUTPUT_INIT) {
+            logErr(WELogCategoryAudio, "Initializing the audio output device failed");
+            available = false;
+            return;
+        } else {
+            FMCHECK(result);
+        }
+
         FMCHECK(studioSystem->setNumListeners(1));
 
         FMCHECK(system->setFileSystem(fileOpenCallback, fileCloseCallback, fileReadCallback, fileSeekCallback, nullptr, nullptr, -1));
@@ -256,13 +266,16 @@ namespace worlds {
 
         iplFMODSetSimulationSettings(simulationSettings);
 
-        instance = this;
         lastListenerPos = glm::vec3(0.0f, 0.0f, 0.0f);
     }
 
     void AudioSystem::initialise(entt::registry& worldState) {
         worldState.on_destroy<AudioSource>().connect<&AudioSystem::onAudioSourceDestroy>(*this);
         g_console->registerCommand([&](void*, const char* arg) {
+            if (!available) {
+                logErr(WELogCategoryAudio, "Audio subsystem is unavailable");
+            }
+
             float vol = std::atof(arg);
             if (!masterVCA->isValid()) {
                 logErr(WELogCategoryAudio, "Master VCA handle was invalid");
@@ -273,6 +286,7 @@ namespace worlds {
     }
 
     void AudioSystem::onAudioSourceDestroy(entt::registry& reg, entt::entity entity) {
+        if (!available) return;
         AudioSource& as = reg.get<AudioSource>(entity);
 
         if (as.eventInstance) {
@@ -282,6 +296,7 @@ namespace worlds {
     }
 
     void AudioSystem::loadMasterBanks() {
+        if (!available) return;
         masterBank = loadBank("FMOD/Desktop/Master.bank");
         stringsBank = loadBank("FMOD/Desktop/Master.strings.bank");
         FMCHECK(studioSystem->getVCA("vca:/Master", &masterVCA));
@@ -296,6 +311,7 @@ namespace worlds {
     }
 
     void AudioSystem::update(entt::registry& worldState, glm::vec3 listenerPos, glm::quat listenerRot, float deltaTime) {
+        if (!available) return;
         glm::vec3 movement = listenerPos - lastListenerPos;
         movement /= deltaTime;
 
@@ -364,12 +380,14 @@ namespace worlds {
     }
 
     void AudioSystem::stopEverything(entt::registry& reg) {
+        if (!available) return;
         reg.view<AudioSource>().each([](AudioSource& as) {
             as.eventInstance->stop(FMOD_STUDIO_STOP_IMMEDIATE);
         });
     }
 
     void AudioSystem::playOneShotClip(AssetID id, glm::vec3 location, bool spatialise, float volume, MixerChannel) {
+        if (!available) return;
         FMOD::Sound* sound;
 
         if (sounds.contains(id)) {
@@ -403,6 +421,7 @@ namespace worlds {
     }
 
     void AudioSystem::playOneShotAttachedEvent(const char* eventPath, glm::vec3 location, entt::entity attachedEntity, float volume) {
+        if (!available) return;
         FMOD_RESULT result;
 
         FMOD::Studio::EventDescription* desc;
@@ -454,6 +473,7 @@ namespace worlds {
     }
 
     void AudioSystem::shutdown(entt::registry& worldState) {
+        if (!available) return;
         FMCHECK(studioSystem->release());
         worldState.view<AudioSource>().each([](AudioSource& as) {
             FMCHECK(as.eventInstance->stop(FMOD_STUDIO_STOP_IMMEDIATE));
@@ -462,6 +482,8 @@ namespace worlds {
     }
 
     FMOD::Studio::Bank* AudioSystem::loadBank(const char* path) {
+        if (!available) return nullptr;
+
         PHYSFS_getLastErrorCode();
         FMOD::Studio::Bank* bank;
 
