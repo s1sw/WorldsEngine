@@ -256,6 +256,7 @@ RenderResource* VKRenderer::createTextureResource(TextureResourceCreateInfo reso
 void VKRenderer::createSwapchain(VkSwapchainKHR oldSwapchain) {
     bool fullscreen = (SDL_GetWindowFlags(window) & SDL_WINDOW_FULLSCREEN) == SDL_WINDOW_FULLSCREEN;
     VkPresentModeKHR presentMode = (useVsync && !enableVR) ? VK_PRESENT_MODE_FIFO_KHR : VK_PRESENT_MODE_IMMEDIATE_KHR;
+    std::lock_guard<std::mutex> lg{swapchainMutex};
     swapchain = new Swapchain(physicalDevice, device, surface, queueFamilies, fullscreen, oldSwapchain, presentMode);
     swapchain->getSize(&width, &height);
 
@@ -1097,6 +1098,7 @@ void VKRenderer::presentNothing(uint32_t imageIndex) {
 
     vkQueueSubmit(presentQueue, 1, &submitInfo, VK_NULL_HANDLE);
 
+    std::lock_guard<std::mutex> lg{swapchainMutex};
     auto presentResult = vkQueuePresentKHR(presentQueue, &presentInfo);
     if (presentResult != VK_SUCCESS && presentResult != VK_SUBOPTIMAL_KHR)
         fatalErr("Present failed!");
@@ -1570,31 +1572,8 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
     dbgStats.numPipelineSwitches = 0;
     dbgStats.numTriangles = 0;
 
-    uint32_t imageIndex;
-
     {
-        PerfTimer pt;
-        swapchain->acquireImage(device, imgAvailable[frameIdx], &imageIndex);
-
-        dbgStats.imgAcquisitionTime = pt.stopGetMs();
-    }
-
-    if (imgFences[imageIndex] && imgFences[imageIndex] != cmdBufFences[frameIdx]) {
-        PerfTimer pt;
-        VkResult result = vkWaitForFences(device, 1, &imgFences[imageIndex], true, UINT64_MAX);
-        if (result != VK_SUCCESS) {
-            std::string errStr = "Failed to wait on image fence: ";
-            errStr += vku::toString(result);
-            fatalErr(errStr.c_str());
-        }
-        dbgStats.imgFenceWaitTime = pt.stopGetMs();
-    } else {
-        dbgStats.imgFenceWaitTime = 0.0;
-    }
-
-    imgFences[imageIndex] = cmdBufFences[frameIdx];
-
-    {
+        ZoneScopedN("Waiting for command buffer fence");
         PerfTimer pt;
         VkResult result = vkWaitForFences(device, 1, &cmdBufFences[frameIdx], VK_TRUE, UINT64_MAX);
         if (result != VK_SUCCESS) {
@@ -1609,6 +1588,33 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
 
     DeletionQueue::cleanupFrame(frameIdx);
     DeletionQueue::setCurrentFrame(frameIdx);
+
+    uint32_t imageIndex;
+
+    {
+        ZoneScopedN("Acquiring Image");
+        PerfTimer pt;
+        std::lock_guard<std::mutex> lg{swapchainMutex};
+        swapchain->acquireImage(device, imgAvailable[frameIdx], &imageIndex);
+
+        dbgStats.imgAcquisitionTime = pt.stopGetMs();
+    }
+
+    if (imgFences[imageIndex] && imgFences[imageIndex] != cmdBufFences[frameIdx]) {
+        ZoneScopedN("Waiting for image fence");
+        PerfTimer pt;
+        VkResult result = vkWaitForFences(device, 1, &imgFences[imageIndex], true, UINT64_MAX);
+        if (result != VK_SUCCESS) {
+            std::string errStr = "Failed to wait on image fence: ";
+            errStr += vku::toString(result);
+            fatalErr(errStr.c_str());
+        }
+        dbgStats.imgFenceWaitTime = pt.stopGetMs();
+    } else {
+        dbgStats.imgFenceWaitTime = 0.0;
+    }
+
+    imgFences[imageIndex] = cmdBufFences[frameIdx];
 
     VkCommandBuffer cmdBuf = cmdBufs[frameIdx];
     if (!isMinimised || enableVR)
@@ -1647,29 +1653,72 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
     }
 
     VkQueue presentQueue = (presentFromCompute.getInt() && canPresentFromCompute) ? queues.asyncCompute : queues.present;
+    if (handles.vendor == VKVendor::Nvidia) {
+        ZoneScopedN("Submitting Present Job");
+        static JobList* lastJobList = nullptr;
 
-    VkPresentInfoKHR presentInfo{ VK_STRUCTURE_TYPE_PRESENT_INFO_KHR };
-    VkSwapchainKHR cSwapchain = swapchain->getSwapchain();
-    presentInfo.pSwapchains = &cSwapchain;
-    presentInfo.swapchainCount = 1;
-    presentInfo.pImageIndices = &imageIndex;
+        if (lastJobList)
+            lastJobList->wait();
 
-    presentInfo.pWaitSemaphores = &cmdBufferSemaphores[frameIdx];
-    presentInfo.waitSemaphoreCount = 1;
+        uint32_t fIdx = frameIdx;
+        uint32_t imgIdx = imageIndex;
+        JobList& jlist = g_jobSys->getFreeJobList();
+        jlist.begin();
+        jlist.addJob(Job { [this, imgIdx, fIdx, presentQueue]() {
+            VkPresentInfoKHR presentInfo{ VK_STRUCTURE_TYPE_PRESENT_INFO_KHR };
+            VkSwapchainKHR cSwapchain = swapchain->getSwapchain();
+            presentInfo.pSwapchains = &cSwapchain;
+            presentInfo.swapchainCount = 1;
+            presentInfo.pImageIndices = &imgIdx;
 
-    TracyCZoneN(__presentZone, "vkQueuePresentKHR", true);
-    VkResult presentResult = vkQueuePresentKHR(presentQueue, &presentInfo);
-    TracyCZoneEnd(__presentZone);
+            presentInfo.pWaitSemaphores = &cmdBufferSemaphores[fIdx];
+            presentInfo.waitSemaphoreCount = 1;
 
-    if (enableVR)
-        vr::VRCompositor()->PostPresentHandoff();
+            std::lock_guard<std::mutex> lg{swapchainMutex};
+            TracyCZoneN(__presentZone, "vkQueuePresentKHR", true);
+            VkResult presentResult = vkQueuePresentKHR(presentQueue, &presentInfo);
+            TracyCZoneEnd(__presentZone);
 
-    if (presentResult == VK_ERROR_OUT_OF_DATE_KHR) {
-        logVrb(WELogCategoryRender, "swapchain out of date after present");
-    } else if (presentResult == VK_SUBOPTIMAL_KHR) {
-        logVrb(WELogCategoryRender, "swapchain after present suboptimal");
-    } else if (presentResult != VK_SUCCESS) {
-        fatalErr("Failed to present");
+            if (enableVR)
+                vr::VRCompositor()->PostPresentHandoff();
+
+            if (presentResult == VK_ERROR_OUT_OF_DATE_KHR) {
+                logVrb(WELogCategoryRender, "swapchain out of date after present");
+            } else if (presentResult == VK_SUBOPTIMAL_KHR) {
+                logVrb(WELogCategoryRender, "swapchain after present suboptimal");
+            } else if (presentResult != VK_SUCCESS) {
+                fatalErr("Failed to present");
+            }
+        }});
+        jlist.end();
+        g_jobSys->signalJobListAvailable();
+        lastJobList = &jlist;
+    } else {
+        ZoneScopedN("Presenting");
+        VkPresentInfoKHR presentInfo{ VK_STRUCTURE_TYPE_PRESENT_INFO_KHR };
+        VkSwapchainKHR cSwapchain = swapchain->getSwapchain();
+        presentInfo.pSwapchains = &cSwapchain;
+        presentInfo.swapchainCount = 1;
+        presentInfo.pImageIndices = &imageIndex;
+
+        presentInfo.pWaitSemaphores = &cmdBufferSemaphores[frameIdx];
+        presentInfo.waitSemaphoreCount = 1;
+
+        std::lock_guard<std::mutex> lg{swapchainMutex};
+        TracyCZoneN(__presentZone, "vkQueuePresentKHR", true);
+        VkResult presentResult = vkQueuePresentKHR(presentQueue, &presentInfo);
+        TracyCZoneEnd(__presentZone);
+
+        if (enableVR)
+            vr::VRCompositor()->PostPresentHandoff();
+
+        if (presentResult == VK_ERROR_OUT_OF_DATE_KHR) {
+            logVrb(WELogCategoryRender, "swapchain out of date after present");
+        } else if (presentResult == VK_SUBOPTIMAL_KHR) {
+            logVrb(WELogCategoryRender, "swapchain after present suboptimal");
+        } else if (presentResult != VK_SUCCESS) {
+            fatalErr("Failed to present");
+        }
     }
 
     std::array<std::uint64_t, 2> timeStamps = { {0} };
