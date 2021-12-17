@@ -9,6 +9,9 @@
 #include "Console.hpp"
 #include "Window.hpp"
 
+void* operator new(size_t count);
+void operator delete(void* ptr) noexcept;
+
 namespace worlds {
     const int NUM_SUBMESH_MATS = 32;
     extern glm::ivec2 windowSize;
