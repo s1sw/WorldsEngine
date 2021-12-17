@@ -869,10 +869,12 @@ namespace worlds {
                 }
             }
 
+            glm::vec3 colLinear = glm::pow(l.color, glm::vec3(2.2));
+
             glm::vec3 lightForward = glm::normalize(transform.rotation * glm::vec3(0.0f, 0.0f, -1.0f));
             if (l.type != LightType::Tube) {
                 lightMapped->lights[lightIdx] = PackedLight{
-                    glm::vec4(l.color * l.intensity, (float)l.type),
+                    glm::vec4(colLinear * l.intensity, (float)l.type),
                     glm::vec4(lightForward, l.type == LightType::Sphere ? l.spotCutoff : glm::cos(l.spotCutoff)),
                     transform.position, l.shadowmapIdx,
                     distance
@@ -881,7 +883,7 @@ namespace worlds {
                 glm::vec3 tubeP0 = transform.position + lightForward * l.tubeLength;
                 glm::vec3 tubeP1 = transform.position - lightForward * l.tubeLength;
                 lightMapped->lights[lightIdx] = PackedLight{
-                    glm::vec4(l.color * l.intensity, (float)l.type),
+                    glm::vec4(colLinear * l.intensity, (float)l.type),
                     glm::vec4(tubeP0, l.tubeRadius),
                     tubeP1, ~0u,
                     distance
