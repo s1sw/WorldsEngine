@@ -51,15 +51,27 @@
 #undef min
 #undef max
 
+#ifdef CHECK_NEW_DELETE
+robin_hood::unordered_set<void*> allocatedPtrs;
+#endif
+
 void* operator new(size_t count) {
     void* ptr = malloc(count);
 #ifdef TRACY_ENABLE
     TracyAlloc(ptr, count);
 #endif
+#ifdef CHECK_NEW_DELETE
+    allocatedPtrs.insert(ptr);
+#endif
     return ptr;
 }
 
 void operator delete(void* ptr) noexcept {
+    if (ptr == nullptr) return;
+#ifdef CHECK_NEW_DELETE
+    if (!allocatedPtrs.contains(ptr))
+        __debugbreak();
+#endif
 #ifdef TRACY_ENABLE
     TracyFree(ptr);
 #endif
@@ -278,7 +290,7 @@ namespace worlds {
             // <=>
 
             for (int i = 0; i < renderThreadDrawData.CmdListsCount; i++) {
-                delete renderThreadDrawData.CmdLists[i];
+                IM_DELETE(renderThreadDrawData.CmdLists[i]);
             }
 
             renderThreadAvailable = true;
