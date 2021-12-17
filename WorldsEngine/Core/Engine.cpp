@@ -51,6 +51,21 @@
 #undef min
 #undef max
 
+void* operator new(size_t count) {
+    void* ptr = malloc(count);
+#ifdef TRACY_ENABLE
+    TracyAlloc(ptr, count);
+#endif
+    return ptr;
+}
+
+void operator delete(void* ptr) noexcept {
+#ifdef TRACY_ENABLE
+    TracyFree(ptr);
+#endif
+    free(ptr);
+}
+
 namespace worlds {
     uint32_t fullscreenToggleEventId;
     uint32_t showWindowEventId;
