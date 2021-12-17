@@ -488,6 +488,7 @@ namespace worlds {
         void reuploadMaterials();
         ImDrawData* imDrawData;
         std::mutex* apiMutex;
+        std::mutex swapchainMutex;
         void recreateSwapchainInternal(int newWidth = -1, int newHeight = -1);
         void createSpotShadowImages();
         void createCascadeShadowImages();
