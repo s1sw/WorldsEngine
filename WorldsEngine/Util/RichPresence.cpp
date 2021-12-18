@@ -2,6 +2,7 @@
 #include "../Core/Log.hpp"
 #include <SDL_timer.h>
 #include "../Core/Engine.hpp"
+#define DISCORD_RPC
 
 namespace worlds {
     discord::Core* discordCore;
@@ -11,16 +12,15 @@ namespace worlds {
     WorldsEngine* engine;
 
 #ifdef DISCORD_RPC
-    void onDiscordReady(const DiscordUser* user) {
-        logMsg("Rich presence ready for %s", user->username);
-
+    void onDiscordReady(discord::User& user) {
+        logMsg("Rich presence ready for %s", user.GetUsername());
 
         presenceUpdateTimer = SDL_AddTimer(1000, [](uint32_t interval, void*) {
             std::string state = ((engine->runAsEditor ? "Editing " : "On ") + engine->getCurrentSceneInfo().name);
 #ifndef NDEBUG
             state += "(DEVELOPMENT BUILD)";
 #endif
-            discord::Activity activity;
+            discord::Activity activity{};
             activity.SetState(state.c_str());
             activity.SetType(discord::ActivityType::Playing);
             auto& actAssets = activity.GetAssets();
@@ -46,15 +46,43 @@ namespace worlds {
 #endif
 
     void initRichPresence(EngineInterfaces interfaces) {
-        return;
 #ifdef DISCORD_RPC
         engine = interfaces.engine;
 
-        auto result = discord::Core::Create(742075252028211310, DiscordCreateFlags_NoRequireDiscord, &discordCore);
+        auto result = discord::Core::Create(742075252028211310, DiscordCreateFlags_Default, &discordCore);
 
         if (result != discord::Result::Ok) {
             logErr("failed to initialise discord :(");
+            return;
         }
+
+        discordCore->SetLogHook(discord::LogLevel::Debug, [](discord::LogLevel level, const char* msg) {
+            SDL_LogPriority priority = SDL_LOG_PRIORITY_DEBUG;
+            switch (level) {
+            case discord::LogLevel::Debug:
+                priority = SDL_LOG_PRIORITY_DEBUG;
+                break;
+            case discord::LogLevel::Error:
+                priority = SDL_LOG_PRIORITY_ERROR;
+                break;
+            case discord::LogLevel::Info:
+                priority = SDL_LOG_PRIORITY_INFO;
+                break;
+            case discord::LogLevel::Warn:
+                priority = SDL_LOG_PRIORITY_WARN;
+                break;
+            }
+            SDL_LogMessage(WELogCategoryEngine, priority, "%s", msg);
+        });
+
+        discordCore->UserManager().OnCurrentUserUpdate.Connect([]() {
+            discord::User currentUser;
+            auto result = discordCore->UserManager().GetCurrentUser(&currentUser);
+            if (result != discord::Result::Ok) {
+                logErr("failed to get current discord user :(");
+                return;
+            }
+        });
 #endif
     }
 
