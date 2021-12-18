@@ -1,6 +1,6 @@
 #pragma once
 #include <glm/glm.hpp>
-#include "../VR/IVRInterface.hpp"
+#include <VR/IVRInterface.hpp>
 #include "Core/Engine.hpp"
 #include "Camera.hpp"
 #include <SDL.h>

@@ -4,41 +4,40 @@
 #include <thread>
 #include "JobSystem.hpp"
 #include "Engine.hpp"
-#include "../ImGui/imgui.h"
+#include <ImGui/imgui.h>
 #include <physfs.h>
-#include "../ImGui/imgui_impl_sdl.h"
-#include "../ImGui/imgui_impl_vulkan.h"
+#include <ImGui/imgui_impl_sdl.h>
+#include <ImGui/imgui_impl_vulkan.h>
 #include <entt/entt.hpp>
-#include "Scripting/NetVM.hpp"
+#include <Scripting/NetVM.hpp>
 #include "Transform.hpp"
-#include "../Physics/Physics.hpp"
-#include "../Input/Input.hpp"
-#include "../Physics/PhysicsActor.hpp"
+#include <Physics/Physics.hpp>
+#include <Input/Input.hpp>
+#include <Physics/PhysicsActor.hpp>
 #include <glm/gtx/norm.hpp>
 #include <physx/PxQueryReport.h>
 #include "tracy/Tracy.hpp"
-#include "../Editor/Editor.hpp"
-#include "../VR/OpenVRInterface.hpp"
-#include "../Core/Log.hpp"
-#include "../Audio/Audio.hpp"
+#include <Editor/Editor.hpp>
+#include <VR/OpenVRInterface.hpp>
+#include <Core/Log.hpp>
+#include <Audio/Audio.hpp>
 #include <stb_image.h>
-#include "../Core/Console.hpp"
-#include "../Serialization/SceneSerialization.hpp"
-#include "../Render/Render.hpp"
-#include "../Util/TimingUtil.hpp"
-#include "../Util/VKImGUIUtil.hpp"
+#include <Core/Console.hpp>
+#include <Serialization/SceneSerialization.hpp>
+#include <Render/Render.hpp>
+#include <Util/TimingUtil.hpp>
+#include <Util/VKImGUIUtil.hpp>
 #define IMGUI_DEFINE_MATH_OPERATORS
-#include "../ImGui/imgui_internal.h"
-#include "../Util/CreateModelObject.hpp"
-#include "../Libs/IconsFontAwesome5.h"
-#include "../Libs/IconsFontaudio.h"
-#include "../Util/RichPresence.hpp"
+#include <ImGui/imgui_internal.h>
+#include <Util/CreateModelObject.hpp>
+#include <Libs/IconsFontAwesome5.h>
+#include <Libs/IconsFontaudio.h>
+#include <Util/RichPresence.hpp>
 #include "EarlySDLUtil.hpp"
-#include "vk_mem_alloc.h"
-#include "../Render/ShaderCache.hpp"
+#include <Render/ShaderCache.hpp>
 #include "readerwriterqueue.h"
-#include "../ComponentMeta/ComponentMetadata.hpp"
-#include "../Util/EnumUtil.hpp"
+#include <ComponentMeta/ComponentMetadata.hpp>
+#include <Util/EnumUtil.hpp>
 #include "SplashScreenImpls/ISplashScreen.hpp"
 #ifdef __linux__
 #include "SplashScreenImpls/SplashScreenX11.hpp"
@@ -74,10 +73,10 @@ void operator delete(void* ptr) noexcept {
 #endif
 #ifdef TRACY_ENABLE
     TracyFree(ptr);
-#endif
+#endif             
     free(ptr);
-}
-
+}                  
+                   
 namespace worlds {
     uint32_t fullscreenToggleEventId;
     uint32_t showWindowEventId;
@@ -1023,14 +1022,7 @@ namespace worlds {
             cloneComponent<WorldTextComponent>(registry, renderRegistry);
         }
 
-        //auto sortLambda = [&](entt::entity a, entt::entity b) {
-        //    auto& aTransform = registry.get<Transform>(a);
-        //    auto& bTransform = registry.get<Transform>(b);
-        //    return glm::distance2(camPos, aTransform.position) < glm::distance2(camPos, bTransform.position);
-        //};
-        //renderRegistry.sort<WorldObject, decltype(sortLambda)>(sortLambda);
         renderRegistry.set<SceneSettings>(registry.ctx<SceneSettings>());
-
 
         if (renderImGui) {
             ZoneScopedN("Copy ImGui data");
