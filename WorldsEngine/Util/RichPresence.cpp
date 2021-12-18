@@ -1,7 +1,7 @@
 #include <core.h>
-#include "../Core/Log.hpp"
+#include <Core/Log.hpp>
 #include <SDL_timer.h>
-#include "../Core/Engine.hpp"
+#include <Core/Engine.hpp>
 #define DISCORD_RPC
 
 namespace worlds {
