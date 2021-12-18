@@ -84,9 +84,6 @@
     <ClCompile Include="..\WorldsEngine\Audio\Audio.cpp">
       <Filter>Audio</Filter>
     </ClCompile>
-    <ClCompile Include="..\WorldsEngine\Audio\stb_vorbis.c">
-      <Filter>Audio</Filter>
-    </ClCompile>
     <ClCompile Include="..\WorldsEngine\ComponentMeta\ComponentFuncs.cpp">
       <Filter>ComponentMeta</Filter>
     </ClCompile>
@@ -1338,9 +1335,6 @@
       <Filter>LonelyGalaxy</Filter>
     </ClInclude>
     <ClInclude Include="..\LonelyGalaxy\StatDisplayInfo.hpp">
-      <Filter>LonelyGalaxy</Filter>
-    </ClInclude>
-    <ClInclude Include="..\LonelyGalaxy\SyncedRB.hpp">
       <Filter>LonelyGalaxy</Filter>
     </ClInclude>
     <ClInclude Include="..\LonelyGalaxy\Enemies\DroneAI.hpp">
