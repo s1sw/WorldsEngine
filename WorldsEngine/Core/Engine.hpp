@@ -9,8 +9,10 @@
 #include "Console.hpp"
 #include "Window.hpp"
 
+#ifdef CHECK_NEW_DELETE
 void* operator new(size_t count);
 void operator delete(void* ptr) noexcept;
+#endif
 
 namespace worlds {
     const int NUM_SUBMESH_MATS = 32;
