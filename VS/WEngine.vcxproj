@@ -45,7 +45,6 @@
     <ClCompile Include="..\WorldsEngine\AssetCompilation\ModelCompiler.cpp" />
     <ClCompile Include="..\WorldsEngine\AssetCompilation\TextureCompiler.cpp" />
     <ClCompile Include="..\WorldsEngine\Audio\Audio.cpp" />
-    <ClCompile Include="..\WorldsEngine\Audio\stb_vorbis.c" />
     <ClCompile Include="..\WorldsEngine\ComponentMeta\ComponentFuncs.cpp" />
     <ClCompile Include="..\WorldsEngine\Core\AssetDB.cpp" />
     <ClCompile Include="..\WorldsEngine\Core\Console.cpp" />
@@ -265,7 +264,6 @@
     <ClInclude Include="..\LonelyGalaxy\Stabby.hpp" />
     <ClInclude Include="..\LonelyGalaxy\StabbySystem.hpp" />
     <ClInclude Include="..\LonelyGalaxy\StatDisplayInfo.hpp" />
-    <ClInclude Include="..\LonelyGalaxy\SyncedRB.hpp" />
     <ClInclude Include="..\ModelFormat\WMDL.hpp" />
     <ClInclude Include="..\WorldsEngine\AssetCompilation\AssetCompilers.hpp" />
     <ClInclude Include="..\WorldsEngine\AssetCompilation\AssetCompilerUtil.hpp" />
@@ -594,7 +592,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);TRACY_ENABLE</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)..\External\Include;$(SolutionDir)..\subprojects\physfs.git\src;$(SolutionDir)..\subprojects\slib.git\include;$(SolutionDir)..\subprojects\SDL2-2.0.12\include;$(SolutionDir)..\WorldsEngine;$(SolutionDir)..\ModelFormat;$(SolutionDir)..\External\Assimp\include;C:\Program Files (x86)\FMOD SoundSystem\FMOD Studio API Windows\api\core\inc;C:\Program Files (x86)\FMOD SoundSystem\FMOD Studio API Windows\api\studio\inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\External\Include;$(SolutionDir)..\subprojects\physfs.git\src;$(SolutionDir)..\subprojects\slib.git\include;$(SolutionDir)..\subprojects\SDL2-2.0.12\include;$(SolutionDir)..\WorldsEngine;$(SolutionDir)..\ModelFormat;$(SolutionDir)..\External\Assimp\include;C:\Program Files (x86)\FMOD SoundSystem\FMOD Studio API Windows\api\core\inc;C:\Program Files (x86)\FMOD SoundSystem\FMOD Studio API Windows\api\studio\inc;$(SolutionDir)..\DiscordSDK;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
@@ -610,7 +608,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);TRACY_ENABLE</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)..\External\Include;$(SolutionDir)..\subprojects\physfs.git\src;$(SolutionDir)..\subprojects\slib.git\include;$(SolutionDir)..\subprojects\SDL2-2.0.12\include;$(SolutionDir)..\WorldsEngine;$(SolutionDir)..\ModelFormat;$(SolutionDir)..\External\Assimp\include;C:\Program Files (x86)\FMOD SoundSystem\FMOD Studio API Windows\api\core\inc;C:\Program Files (x86)\FMOD SoundSystem\FMOD Studio API Windows\api\studio\inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\External\Include;$(SolutionDir)..\subprojects\physfs.git\src;$(SolutionDir)..\subprojects\slib.git\include;$(SolutionDir)..\subprojects\SDL2-2.0.12\include;$(SolutionDir)..\WorldsEngine;$(SolutionDir)..\ModelFormat;$(SolutionDir)..\External\Assimp\include;C:\Program Files (x86)\FMOD SoundSystem\FMOD Studio API Windows\api\core\inc;C:\Program Files (x86)\FMOD SoundSystem\FMOD Studio API Windows\api\studio\inc;$(SolutionDir)..\DiscordSDK;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
