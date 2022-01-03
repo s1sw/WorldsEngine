@@ -16,6 +16,12 @@ public class WorldText : BuiltinComponent
     [DllImport(WorldsEngine.NativeModule)]
     private static extern void worldtext_setText(IntPtr regPtr, uint entityId, [MarshalAs(UnmanagedType.LPStr)] string str);
 
+    [DllImport(WorldsEngine.NativeModule)]
+    private static extern void worldtext_setSize(IntPtr regPtr, uint entityId, float size);
+
+    [DllImport(WorldsEngine.NativeModule)]
+    private static extern float worldtext_getSize(IntPtr regPtr, uint entityId);
+
     internal static ComponentMetadata Metadata
     {
         get
@@ -42,6 +48,12 @@ public class WorldText : BuiltinComponent
         {
             worldtext_setText(regPtr, entityId, value);
         }
+    }
+
+    public float Size
+    {
+        get => worldtext_getSize(regPtr, entityId);
+        set => worldtext_setSize(regPtr, entityId, value);
     }
 
     internal WorldText(IntPtr regPtr, uint entityId) : base(regPtr, entityId) {}
