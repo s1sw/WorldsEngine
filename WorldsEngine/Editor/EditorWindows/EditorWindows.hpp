@@ -27,14 +27,6 @@ namespace worlds {
         ~RawAssets() {}
     };
 
-    class EntityEditor : public EditorWindow {
-    public:
-        EntityEditor(EngineInterfaces interfaces, Editor* editor) : EditorWindow(interfaces, editor) {}
-        void draw(entt::registry& reg) override;
-        const char* getName() override { return "EntityEditor"; }
-        ~EntityEditor() {}
-    };
-
     class GameControls : public EditorWindow {
     public:
         GameControls(EngineInterfaces interfaces, Editor* editor) : EditorWindow(interfaces, editor) { active = false; }
