@@ -51,6 +51,10 @@ namespace WorldsEngine
         [DllImport(WorldsEngine.NativeModule)]
         private static unsafe extern uint physics_overlapSphereMultiple(Vector3 origin, float radius, uint maxTouchCount, Entity* entityBuffer, uint excludeLayerMask);
 
+        [DllImport(WorldsEngine.NativeModule)]
+        [return: MarshalAs(UnmanagedType.I1)]
+        private static unsafe extern bool physics_sweepSphere(Vector3 origin, float radius, Vector3 direction, float distance, out RaycastHit hit, uint excludeLayerMask);
+
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         private delegate void NativeCollisionDelegate(uint entityId, uint id, ref PhysicsContactInfo contactInfo);
 
@@ -86,6 +90,11 @@ namespace WorldsEngine
             }
 
             return count;
+        }
+
+        public static bool SweepSphere(Vector3 origin, float radius, Vector3 direction, float distance, out RaycastHit hit, PhysicsLayers excludeLayerMask = PhysicsLayers.None)
+        {
+            return physics_sweepSphere(origin, radius, direction, distance, out hit, (uint)excludeLayerMask);
         }
 
         struct Collision

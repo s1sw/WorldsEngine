@@ -15,10 +15,11 @@
 #include "Physics.hpp"
 #include "D6Joint.hpp"
 #include "FixedJoint.hpp"
-#include "PxSceneDesc.h"
-#include "PxSimulationEventCallback.h"
+#include <physx/PxSceneDesc.h>
+#include <physx/PxSimulationEventCallback.h>
 #include <slib/Intrinsic.hpp>
 #include <entt/entity/registry.hpp>
+#include <Util/MathsUtil.hpp>
 using namespace physx;
 
 #define ENABLE_PVD 0
@@ -420,5 +421,44 @@ namespace worlds {
         }
 
         return hit.getNbTouches();
+    }
+    
+    bool sweepSphere(glm::vec3 origin, float radius, glm::vec3 direction, float distance, RaycastHitInfo* hitInfo, uint32_t excludeLayerMask) {
+        physx::PxSweepBuffer hitBuf;
+        physx::PxSphereGeometry sphere{ radius };
+        physx::PxTransform transform{ glm2px(origin) };
+        bool hit;
+
+        physx::PxQueryFilterData filterData;
+        filterData.flags = physx::PxQueryFlag::eDYNAMIC
+            | physx::PxQueryFlag::eSTATIC
+            | physx::PxQueryFlag::ePREFILTER;
+
+        if (excludeLayerMask != 0u) {
+            RaycastFilterCallback raycastFilterCallback;
+            raycastFilterCallback.excludeLayerMask = excludeLayerMask;
+
+            hit = worlds::g_scene->sweep(
+                sphere,
+                transform,
+                glm2px(direction),
+                distance,
+                hitBuf,
+                PxHitFlag::eDEFAULT,
+                filterData,
+                &raycastFilterCallback
+            );
+        } else
+            hit = worlds::g_scene->sweep(sphere, transform, glm2px(direction), distance, hitBuf);
+
+        if (hit && hitInfo) {
+            hitInfo->normal = px2glm(hitBuf.block.normal);
+            hitInfo->worldPos = px2glm(hitBuf.block.position);
+            hitInfo->entity = (entt::entity)(uintptr_t)hitBuf.block.actor->userData;
+            hitInfo->distance = hitBuf.block.distance;
+        }
+
+        return hit;
+
     }
 }
