@@ -26,6 +26,7 @@ namespace Game
         private Vector3 _lastHMDPos = Vector3.Zero;
         private float _footstepTimer = 0.0f;
         private float _timeSinceDodge = 1000.0f;
+        private float _timeSinceJump = 0.0f;
         private Vector3 _lastDodgeDirection = Vector3.Zero;
 
         private Vector2 GetInputVelocity()
@@ -130,24 +131,34 @@ namespace Game
             inputDirCS.y = 0.0f;
             inputDirCS.Normalize();
 
-            _grounded = Physics.Raycast(
+            //_grounded = Physics.Raycast(
+            //    dpa.Pose.Position,
+            //    Vector3.Down,
+            //    out RaycastHit hit,
+            //    1.1f,
+            //    PhysicsLayers.Player
+            //);
+
+            _grounded = Physics.SweepSphere(
                 dpa.Pose.Position,
+                0.1f,
                 Vector3.Down,
+                1.15f,
                 out RaycastHit hit,
-                1.1f,
                 PhysicsLayers.Player
             );
 
-            Vector3 targetPosition = hit.WorldHitPos + (Vector3.Up * 1.1f);
+            Vector3 targetPosition = hit.WorldHitPos + (Vector3.Up * 1.15f);
 
             if (_grounded && PlayerRigSystem.Jump)
             {
-                dpa.Velocity = (dpa.Velocity * new Vector3(1.0f, 0.0f, 1.0f)) + Vector3.Up * 6.0f;
+                dpa.Velocity = (dpa.Velocity * new Vector3(1.0f, 0.0f, 1.0f)) + Vector3.Up * 4.0f;
+                _timeSinceJump = 0.0f;
                 Audio.PlayOneShotEvent("event:/Player/Jump", Vector3.Zero);
             }
             PlayerRigSystem.Jump = false;
 
-            if (_grounded && !PlayerRigSystem.Jump)
+            if (_grounded && _timeSinceJump > 0.1f)
                 dpa.AddForce(pidController.CalculateForce(targetPosition - dpa.Pose.Position, Time.DeltaTime));
 
             Vector3 targetVelocity = inputDirCS * 7.5f * max;
@@ -176,6 +187,7 @@ namespace Game
             UpdateDodge(entity);
 
             _groundedLast = _grounded;
+            _timeSinceJump += Time.DeltaTime;
         }
 
         public void Start(Entity entity)
@@ -195,6 +207,7 @@ namespace Game
 
         private VRAction _jumpAction;
         private Entity _hpTextEntity;
+        private Entity _leftHandEntity;
 
         public void OnSceneStart()
         {
@@ -214,6 +227,7 @@ namespace Game
 
             _hpTextEntity = Registry.Create();
             Registry.AddComponent<WorldText>(_hpTextEntity);
+            _leftHandEntity = Registry.Find("LeftHand");
         }
 
         public void OnUpdate()
@@ -229,7 +243,16 @@ namespace Game
             }
 
             var hpText = Registry.GetComponent<WorldText>(_hpTextEntity);
+            hpText.Size = 0.001f;
             hpText.Text = $"HP: {Registry.GetComponent<Combat.HealthComponent>(PlayerBody).Health}";
+
+            var lhTransform = Registry.GetTransform(_leftHandEntity);
+            var hpTransform = Registry.GetTransform(_hpTextEntity);
+            hpTransform.Rotation = lhTransform.Rotation * 
+                Quaternion.AngleAxis(MathF.PI / 2f, Vector3.Left) * Quaternion.AngleAxis(MathF.PI, Vector3.Up);
+            Vector3 offset = Vector3.Forward * 0.05f + Vector3.Down * 0.02f;
+            hpTransform.Position = lhTransform.Position + hpTransform.Rotation * offset;
+            Registry.SetTransform(_hpTextEntity, hpTransform);
         }
     }
 }
