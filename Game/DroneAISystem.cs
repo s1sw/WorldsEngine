@@ -246,7 +246,7 @@ namespace Game
             if (WorldsEngine.Input.Keyboard.KeyPressed(WorldsEngine.Input.KeyCode.L))
                 FireBurst(pose.Position, entity, physicsActor);
 
-            if (!_awake)
+            if (!_awake && !DebugGlobals.AIIgnorePlayer)
             {
                 // Look for a player nearby
                 const int MaxOverlap = 1;
@@ -262,6 +262,12 @@ namespace Game
                 }
 
                 return;
+            }
+
+            if (DebugGlobals.AIIgnorePlayer && _target == PlayerRigSystem.PlayerBody)
+            {
+                _target = Entity.Null;
+                _awake = false;
             }
 
             if (!Registry.Valid(_target))
