@@ -163,7 +163,6 @@ namespace worlds {
 
         ADD_EDITOR_WINDOW(EntityList);
         ADD_EDITOR_WINDOW(Assets);
-        //ADD_EDITOR_WINDOW(EntityEditor);
         ADD_EDITOR_WINDOW(GameControls);
         ADD_EDITOR_WINDOW(StyleEditor);
         ADD_EDITOR_WINDOW(MaterialEditor);
@@ -422,7 +421,7 @@ namespace worlds {
         }
     }
 
-    static ConVar integratedMenuBar{ "ed_integratedMenuBar", "0" };
+    static ConVar integratedMenuBar{ "ed_integratedMenuBar", "1" };
 
     void Editor::drawMenuBarTitle() {
         const char* windowTitle = interfaces.engine->getMainWindow().getTitle();

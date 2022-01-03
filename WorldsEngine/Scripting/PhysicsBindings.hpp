@@ -2,6 +2,7 @@
 #include <entt/entity/registry.hpp>
 #include "Physics/Physics.hpp"
 #include <Physics/D6Joint.hpp>
+#include <Util/MathsUtil.hpp>
 
 using namespace worlds;
 
@@ -34,6 +35,10 @@ extern "C" {
 
     EXPORT uint32_t physics_overlapSphereMultiple(glm::vec3 origin, float radius, uint32_t maxTouchCount, uint32_t* hitEntityBuffer, uint32_t excludeLayerMask) {
         return overlapSphereMultiple(origin, radius, maxTouchCount, hitEntityBuffer, excludeLayerMask);
+    }
+
+    EXPORT bool physics_sweepSphere(glm::vec3 origin, float radius, glm::vec3 direction, float distance, RaycastHitInfo* hitInfo, uint32_t excludeLayerMask) {
+        return sweepSphere(origin, radius, direction, distance, hitInfo, excludeLayerMask);
     }
 
     EXPORT physx::PxMaterial* physicsmaterial_new(float staticFriction, float dynamicFriction, float restitution) {
