@@ -201,11 +201,11 @@ namespace WorldsEngine
         private static void ConvertLong(long val, Span<char> outBuffer)
         {
             int index = 0;
-            int numNums = (int)System.Math.Ceiling(System.Math.Log10(val)) - 1;
+            int numNums = (int)(System.Math.Floor(System.Math.Log10(val))) + 1;
 
             while (val > 0)
             {
-                outBuffer[numNums - index] = nums[val % 10];
+                outBuffer[numNums - index - 1] = nums[val % 10];
                 val /= 10;
                 index++;
             }
@@ -213,25 +213,21 @@ namespace WorldsEngine
 
         private static int GetRequiredNumberBufferLength(long val)
         {
-            return (int)System.Math.Ceiling(System.Math.Log10(val));
+            return (int)(System.Math.Floor(System.Math.Log10(val))) + 1;
         }
 
         private static void DrawMiscWindow()
         {
             if (ImGui.Begin("Misc"))
             {
-                //ImGui.Text($"Managed memory usage at last GC: {GC.GetGCMemoryInfo().HeapSizeBytes / 1000:N0}K");
-                //ImGui.Text($"Current managed memory usage: {GC.GetTotalMemory(false) / 1000}K");
-
                 // Do some very janky string stuff so we don't allocate any memory
-
                 ImGui.TextUnformatted("Current managed memory usage: ");
                 ImGui.SameLine();
 
                 long memUsage = GC.GetTotalMemory(false);
                 var len = GetRequiredNumberBufferLength(memUsage / 1000);
 
-                Span<char> buffer = stackalloc char[len + 1];
+                Span<char> buffer = stackalloc char[len + 1]; // 1 more for letter K
                 ConvertLong(memUsage / 1000, buffer);
                 buffer[len] = 'K';
 
