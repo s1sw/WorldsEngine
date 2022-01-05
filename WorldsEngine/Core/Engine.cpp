@@ -699,8 +699,8 @@ namespace worlds {
 
     void WorldsEngine::createStartupScene() {
         registry.clear();
-        AssetID grassMatId = AssetDB::pathToId("Materials/grass.json");
-        AssetID devMatId = AssetDB::pathToId("Materials/dev.json");
+        AssetID grassMatId = AssetDB::pathToId("Materials/DevTextures/dev_green.json");
+        AssetID devMatId = AssetDB::pathToId("Materials/DevTextures/dev_blue.json");
 
         AssetID modelId = AssetDB::pathToId("Models/cube.wmdl");
         AssetID monkeyId = AssetDB::pathToId("Models/monkey.wmdl");
