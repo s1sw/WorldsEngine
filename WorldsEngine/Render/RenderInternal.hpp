@@ -129,11 +129,15 @@ namespace worlds {
         VkQueue graphics;
         VkQueue present;
         VkQueue asyncCompute;
+
+        uint32_t graphicsIdx;
+        uint32_t presentIdx;
+        uint32_t asyncComputeIdx;
     };
 
     class Swapchain {
     public:
-        Swapchain(VkPhysicalDevice&, VkDevice, VkSurfaceKHR&, QueueFamilies qfi, bool fullscreen, VkSwapchainKHR oldSwapchain = VkSwapchainKHR(), VkPresentModeKHR presentMode = VK_PRESENT_MODE_FIFO_KHR);
+        Swapchain(VkPhysicalDevice&, VkDevice, VkSurfaceKHR&, const Queues& queues, bool fullscreen, VkSwapchainKHR oldSwapchain = VkSwapchainKHR(), VkPresentModeKHR presentMode = VK_PRESENT_MODE_FIFO_KHR);
         ~Swapchain();
         void getSize(uint32_t* x, uint32_t* y) { *x = width; *y = height; }
         VkResult acquireImage(VkDevice device, VkSemaphore semaphore, uint32_t* imageIndex);
@@ -387,6 +391,37 @@ namespace worlds {
         robin_hood::unordered_map<AssetID, UITexInfo*> texInfo;
     };
 
+    class VKPresentSubmitManager {
+    public:
+        VKPresentSubmitManager(SDL_Window* window, VkSurfaceKHR surface, VulkanHandles* handles, Queues* queues, RenderDebugStats* dbgStats);
+        void recreateSwapchain(bool useVsync, uint32_t& width, uint32_t& height);
+        int acquireFrame(VkCommandBuffer& cmdBuf, int& imageIndex);
+        void submit();
+        void present();
+        void presentNothing();
+        int numFramesInFlight();
+        Swapchain& currentSwapchain();
+#ifdef TRACY_ENABLE
+        void setupTracyContexts(std::vector<TracyVkCtx>& tracyContexts);
+#endif
+    private:
+        std::vector<VkCommandBuffer> cmdBufs;
+        int maxFramesInFlight = 2;
+        int currentFrame = 0;
+        int currentImage = 0;
+        std::vector<VkSemaphore> cmdBufferSemaphores;
+        std::vector<VkSemaphore> imgAvailable;
+        std::vector<VkFence> cmdBufFences;
+        std::vector<VkFence> imgFences;
+        Swapchain* sc;
+        RenderDebugStats* dbgStats;
+        VulkanHandles* handles;
+        Queues* queues;
+        SDL_Window* window;
+        VkSurfaceKHR surface;
+        std::mutex swapchainMutex;
+    };
+
     class VKRenderer : public Renderer {
         const static uint32_t NUM_TEX_SLOTS = 256;
         const static uint32_t NUM_MAT_SLOTS = 256;
@@ -412,24 +447,18 @@ namespace worlds {
         VkPipelineCache pipelineCache;
         VkDescriptorPool descriptorPool;
 
-        VkSurfaceKHR surface;
-        Swapchain* swapchain;
-        vku::DebugCallback dbgCallback;
-
-        QueueFamilies queueFamilies;
         Queues queues;
+
+        VkSurfaceKHR surface;
+        vku::DebugCallback dbgCallback;
 
         uint32_t width, height;
         VkSampleCountFlagBits msaaSamples;
         int32_t numMSAASamples;
         std::vector<vku::Framebuffer> framebuffers;
         VkCommandPool commandPool;
-        std::vector<VkCommandBuffer> cmdBufs;
-        int maxFramesInFlight = 2;
-        std::vector<VkSemaphore> cmdBufferSemaphores;
-        std::vector<VkSemaphore> imgAvailable;
-        std::vector<VkFence> cmdBufFences;
-        std::vector<VkFence> imgFences;
+
+        std::unique_ptr<VKPresentSubmitManager> presentSubmitManager;
         VmaAllocator allocator;
         vku::GenericBuffer materialUB;
         vku::GenericBuffer vpBuffer;
@@ -476,10 +505,8 @@ namespace worlds {
         void* rdocApi;
         VKUITextureManager* uiTextureMan;
 
-        void createSwapchain(VkSwapchainKHR oldSwapchain);
         void createFramebuffers();
         void createSCDependents();
-        void presentNothing(uint32_t imageIndex);
         vku::ShaderModule loadShaderAsset(AssetID id);
         void createInstance(const RendererInitInfo& initInfo);
         void submitToOpenVR();
@@ -489,7 +516,6 @@ namespace worlds {
         void reuploadMaterials();
         ImDrawData* imDrawData;
         std::mutex* apiMutex;
-        std::mutex swapchainMutex;
         void recreateSwapchainInternal(int newWidth = -1, int newHeight = -1);
         void createSpotShadowImages();
         void createCascadeShadowImages();

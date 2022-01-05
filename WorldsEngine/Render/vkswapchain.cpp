@@ -44,7 +44,7 @@ namespace worlds {
         VkPhysicalDevice& physicalDevice,
         VkDevice device,
         VkSurfaceKHR& surface,
-        QueueFamilies qfi,
+        const Queues& queues,
         bool fullscreen,
         VkSwapchainKHR oldSwapchain,
         VkPresentModeKHR requestedPresentMode)
@@ -73,7 +73,7 @@ namespace worlds {
         }
 
         VkSwapchainCreateInfoKHR swapinfo{ VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR };
-        std::array<uint32_t, 2> queueFamilyIndices = { qfi.graphics, qfi.present };
+        std::array<uint32_t, 2> queueFamilyIndices = { queues.graphicsIdx, queues.presentIdx };
         bool sameQueues = queueFamilyIndices[0] == queueFamilyIndices[1];
         VkSharingMode sharingMode = !sameQueues ? VK_SHARING_MODE_CONCURRENT : VK_SHARING_MODE_EXCLUSIVE;
         swapinfo.imageExtent = surfCaps.currentExtent;
