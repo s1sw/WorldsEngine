@@ -299,6 +299,7 @@ namespace worlds {
         if (!available) return;
         masterBank = loadBank("FMOD/Desktop/Master.bank");
         stringsBank = loadBank("FMOD/Desktop/Master.strings.bank");
+        if (!masterBank) return;
         FMCHECK(studioSystem->getVCA("vca:/Master", &masterVCA));
     }
 
@@ -490,7 +491,9 @@ namespace worlds {
         if (loadedBanks.contains(path))
             return loadedBanks.at(path);
 
-        FMCHECK(studioSystem->loadBankFile(path, FMOD_STUDIO_LOAD_BANK_NORMAL, &bank));
+        if (studioSystem->loadBankFile(path, FMOD_STUDIO_LOAD_BANK_NORMAL, &bank) != FMOD_OK) {
+            return nullptr;
+        }
         loadedBanks.insert({ path, bank });
 
         return bank;
