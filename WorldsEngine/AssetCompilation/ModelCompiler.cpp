@@ -30,6 +30,7 @@ namespace worlds {
 
     struct ConversionSettings {
         bool preTransformVerts = false;
+        float uniformScale = 1.0f;
     };
 
     namespace mc_internal {
@@ -315,7 +316,10 @@ namespace worlds {
                 aiProcess_OptimizeMeshes |
                 aiProcess_OptimizeGraph |
                 //aiProcess_PopulateArmatureData |
+                aiProcess_GlobalScale |
                 aiProcess_FlipUVs;
+
+            importer.SetPropertyFloat(AI_CONFIG_GLOBAL_SCALE_FACTOR_KEY, settings.uniformScale);
 
             if (settings.preTransformVerts)
                 processFlags |= aiProcess_PreTransformVertices;
@@ -547,6 +551,7 @@ namespace worlds {
         std::filesystem::create_directories(fullPath);
         ConversionSettings settings;
         settings.preTransformVerts = j.value("preTransformVerts", false);
+        settings.uniformScale = j.value("uniformScale", 1.0f);
 
         std::thread([compileOp, outputPath, path, result, fileLen, settings]() {
             PHYSFS_File* outFile = PHYSFS_openWrite(outputPath.c_str());

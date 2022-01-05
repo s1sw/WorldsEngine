@@ -13,6 +13,7 @@ namespace worlds {
     private:
         AssetID srcModel = INVALID_ASSET;
         bool preTransformVerts = false;
+        float uniformScale = 1.0f;
         AssetID editingID = INVALID_ASSET;
     };
 }
