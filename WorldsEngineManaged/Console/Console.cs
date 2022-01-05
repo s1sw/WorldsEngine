@@ -5,7 +5,7 @@ using System.Reflection;
 
 namespace WorldsEngine
 {
-    public static class Console
+    internal static class Console
     {
         class Command
         {
