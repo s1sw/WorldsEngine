@@ -25,4 +25,12 @@ extern "C" {
     EXPORT AssetID worldtext_getFont(entt::registry* registry, entt::entity entity, AssetID font) {
         return registry->get<WorldTextComponent>(entity).font;
     }
+
+    EXPORT void worldtext_setSize(entt::registry* registry, entt::entity entity, float size) {
+        registry->get<WorldTextComponent>(entity).textScale = size;
+    }
+
+    EXPORT float worldtext_getSize(entt::registry* registry, entt::entity entity) {
+        return registry->get<WorldTextComponent>(entity).textScale;
+    }
 }
