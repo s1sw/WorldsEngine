@@ -7,6 +7,17 @@
 #include "../../Core/Log.hpp"
 
 namespace worlds {
+    void showFolderButtons(entt::entity e, EntityFolder& folder, int counter) {
+        if (ImGui::Button((folder.name + "##" + std::to_string(counter)).c_str())) {
+            folder.entities.push_back(e);
+            ImGui::CloseCurrentPopup();
+        }
+
+        for (EntityFolder& c : folder.children) {
+            showFolderButtons(e, c, counter++);
+        }
+    }
+
     void EntityList::draw(entt::registry& reg) {
         static std::string searchText;
         static std::vector<entt::entity> filteredEntities;
@@ -14,6 +25,7 @@ namespace worlds {
         static bool showUnnamed = false;
         static bool folderView = true;
         static entt::entity currentlyRenaming = entt::null;
+        static entt::entity popupOpenFor = entt::null;
 
         if (ImGui::Begin(ICON_FA_LIST u8" Entity List", &active)) {
             size_t currNamedEntCount = reg.view<NameComponent>().size();
@@ -65,6 +77,8 @@ namespace worlds {
                 ImGui::EndPopup();
             }
 
+            bool openEntityContextMenu = false;
+
             auto forEachEnt = [&](entt::entity ent) {
                 ImGui::PushID((int)ent);
                 auto nc = reg.try_get<NameComponent>(ent);
@@ -106,6 +120,12 @@ namespace worlds {
                     }
                 }
 
+                if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Right)) {
+                    popupOpenFor = ent;
+                    openEntityContextMenu = true;
+                    ImGui::OpenPopup("Entity Context Menu");
+                }
+
                 if (ImGui::IsItemClicked()) {
                     if (!interfaces.inputManager->keyHeld(SDL_SCANCODE_LSHIFT)) {
                         editor->select(ent);
@@ -116,16 +136,48 @@ namespace worlds {
                 ImGui::PopID();
             };
 
-            std::function<void(EntityFolder&)> doFolderEntry = [&](EntityFolder& folder) {
-                if (ImGui::TreeNode(folder.name.c_str())) {
+
+            EntityFolder* renamingFolder = nullptr;
+
+            std::function<void(EntityFolder&, int)> doFolderEntry = [&](EntityFolder& folder, int folderNum) {
+                bool thisFolderRenaming = &folder == renamingFolder;
+
+                std::string label;
+
+                if (thisFolderRenaming)
+                    label = "##" + std::to_string(folderNum);
+                else
+                    label = folder.name + "##" + std::to_string(folderNum);
+
+                ImGuiTreeNodeFlags treeNodeFlags = ImGuiTreeNodeFlags_None;
+
+                if (thisFolderRenaming) {
+                    treeNodeFlags |= ImGuiTreeNodeFlags_AllowItemOverlap;
+                }
+
+                if (ImGui::TreeNodeEx(label.c_str(), treeNodeFlags)) {
+                    if (renamingFolder) {
+                        if (ImGui::InputText("##foldername", &folder.name, ImGuiInputTextFlags_EnterReturnsTrue)) {
+                            renamingFolder = nullptr;
+                        }
+                    }
+
+                    if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Right)) {
+                        renamingFolder = &folder;
+                    }
+
                     for (entt::entity ent : folder.entities) {
                         forEachEnt(ent);
                     }
-                    ImGui::TreePop();
-                }
 
-                for (EntityFolder& child : folder.children) {
-                    doFolderEntry(child);
+                    for (EntityFolder& child : folder.children) {
+                        doFolderEntry(child, folderNum++);
+                    }
+
+                    if (ImGui::Button("+")) {
+                        folder.children.push_back(EntityFolder{.name = "Untitled Entity Folder"});
+                    }
+                    ImGui::TreePop();
                 }
             };
 
@@ -133,7 +185,7 @@ namespace worlds {
                 if (searchText.empty()) {
                     if (folderView) {
                         EntityFolders& folders = reg.ctx<EntityFolders>();
-                        doFolderEntry(folders.rootFolder);
+                        doFolderEntry(folders.rootFolder, 0);
                     } else {
                         if (showUnnamed) {
                             reg.each(forEachEnt);
@@ -147,8 +199,57 @@ namespace worlds {
                     for (auto& ent : filteredEntities)
                         forEachEnt(ent);
                 }
+
             }
             ImGui::EndChild();
+
+            bool openFolderPopup = false;
+
+            // Using a lambda here for early exit
+            auto entityPopup = [&](entt::entity e) {
+                if (!reg.valid(e)) {
+                    ImGui::CloseCurrentPopup();
+                    return;
+                }
+
+                if (ImGui::Button("Delete")) {
+                    reg.destroy(e);
+                    ImGui::CloseCurrentPopup();
+                    return;
+                }
+
+                if (ImGui::Button("Rename")) {
+                    currentlyRenaming = e;
+                    ImGui::CloseCurrentPopup();
+                }
+
+                if (ImGui::Button("Add to folder")) {
+                    ImGui::CloseCurrentPopup();
+                    openFolderPopup = true;
+                }
+            };
+
+            if (openEntityContextMenu) {
+                ImGui::OpenPopup("Entity Context Menu");
+            }
+
+            if (ImGui::BeginPopup("Entity Context Menu")) {
+                entityPopup(popupOpenFor);
+                ImGui::EndPopup();
+            }
+
+            auto folderPopup = [&](entt::entity e) {
+                EntityFolders& folders = reg.ctx<EntityFolders>();
+                showFolderButtons(e, folders.rootFolder, 0);
+            };
+
+            if (openFolderPopup)
+                ImGui::OpenPopup("Add to folder");
+
+            if (ImGui::BeginPopup("Add to folder")) {
+                folderPopup(popupOpenFor);
+                ImGui::EndPopup();
+            }
         }
         ImGui::End();
     }
