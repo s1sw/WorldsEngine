@@ -253,23 +253,11 @@ RenderResource* VKRenderer::createTextureResource(TextureResourceCreateInfo reso
     return resource;
 }
 
-void VKRenderer::createSwapchain(VkSwapchainKHR oldSwapchain) {
-    bool fullscreen = (SDL_GetWindowFlags(window) & SDL_WINDOW_FULLSCREEN) == SDL_WINDOW_FULLSCREEN;
-    VkPresentModeKHR presentMode = (useVsync && !enableVR) ? VK_PRESENT_MODE_FIFO_KHR : VK_PRESENT_MODE_IMMEDIATE_KHR;
-    std::lock_guard<std::mutex> lg{swapchainMutex};
-    swapchain = new Swapchain(physicalDevice, device, surface, queueFamilies, fullscreen, oldSwapchain, presentMode);
-    swapchain->getSize(&width, &height);
-
-    vku::executeImmediately(device, commandPool, queues.graphics, [this](VkCommandBuffer cb) {
-        for (VkImage img : swapchain->images)
-            vku::transitionLayout(cb, img, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VkAccessFlags{}, VK_ACCESS_MEMORY_READ_BIT);
-        });
-}
-
 void VKRenderer::createFramebuffers() {
-    framebuffers.resize(swapchain->imageViews.size());
-    for (size_t i = 0; i != swapchain->imageViews.size(); i++) {
-        VkImageView attachments[1] = { swapchain->imageViews[i] };
+    Swapchain& swapchain = presentSubmitManager->currentSwapchain();
+    framebuffers.resize(swapchain.images.size());
+    for (size_t i = 0; i != swapchain.images.size(); i++) {
+        VkImageView attachments[1] = { swapchain.imageViews[i] };
         VkFramebufferCreateInfo fci{};
         fci.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
         fci.attachmentCount = 1;
@@ -458,7 +446,6 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     , enablePicking(initInfo.enablePicking)
     , frameIdx(0)
     , lastFrameIdx(0) {
-    maxFramesInFlight = 2;
     msaaSamples = VK_SAMPLE_COUNT_2_BIT;
     numMSAASamples = 2;
 
@@ -510,6 +497,7 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     physDevs.resize(physicalDeviceCount);
     vkEnumeratePhysicalDevices(instance, &physicalDeviceCount, physDevs.data());
 
+
     physicalDevice = pickPhysicalDevice(physDevs);
 
     logPhysDevInfo(physicalDevice);
@@ -517,7 +505,7 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     std::vector<VkQueueFamilyProperties> qprops = getQueueFamilies(physicalDevice);
 
     const auto badQueue = ~(uint32_t)0;
-    queueFamilies.graphics = badQueue;
+    queues.graphicsIdx = badQueue;
     VkQueueFlags search = VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT;
 
     // Look for a queue family with both graphics and
@@ -525,25 +513,25 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     for (uint32_t qi = 0; qi != qprops.size(); ++qi) {
         auto& qprop = qprops[qi];
         if ((qprop.queueFlags & search) == search) {
-            queueFamilies.graphics = qi;
+            queues.graphicsIdx = qi;
             break;
         }
     }
 
     // Search for async compute queue family
-    queueFamilies.asyncCompute = badQueue;
+    queues.asyncComputeIdx = badQueue;
     for (size_t i = 0; i < qprops.size(); i++) {
         auto& qprop = qprops[i];
-        if ((qprop.queueFlags & (VK_QUEUE_COMPUTE_BIT)) == VK_QUEUE_COMPUTE_BIT && i != queueFamilies.graphics) {
-            queueFamilies.asyncCompute = i;
+        if ((qprop.queueFlags & (VK_QUEUE_COMPUTE_BIT)) == VK_QUEUE_COMPUTE_BIT && i != queues.graphicsIdx) {
+            queues.asyncComputeIdx = i;
             break;
         }
     }
 
-    if (queueFamilies.asyncCompute == badQueue)
+    if (queues.asyncComputeIdx == badQueue)
         logWarn(worlds::WELogCategoryRender, "Couldn't find async compute queue");
 
-    if (queueFamilies.graphics == badQueue) {
+    if (queues.graphicsIdx == badQueue) {
         *success = false;
         return;
     }
@@ -571,23 +559,23 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
 
     vku::DeviceMaker dm{};
     dm.defaultLayers();
-    dm.queue(queueFamilies.graphics);
+    dm.queue(queues.graphicsIdx);
 
-    if (queueFamilies.asyncCompute != badQueue)
-        dm.queue(queueFamilies.asyncCompute);
+    if (queues.asyncComputeIdx != badQueue)
+        dm.queue(queues.asyncComputeIdx);
 
     // Create surface and find presentation queue
     VkSurfaceKHR surface;
     SDL_Vulkan_CreateSurface(window, instance, &surface);
 
     this->surface = surface;
-    queueFamilies.present = findPresentQueue(physicalDevice, surface);
+    queues.presentIdx = findPresentQueue(physicalDevice, surface);
 
-    if (queueFamilies.asyncCompute != badQueue)
-        VKCHECK(vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, queueFamilies.asyncCompute, surface, &canPresentFromCompute));
+    if (queues.asyncComputeIdx != badQueue)
+        VKCHECK(vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, queues.asyncComputeIdx, surface, &canPresentFromCompute));
 
-    if (queueFamilies.present != queueFamilies.graphics)
-        dm.queue(queueFamilies.present);
+    if (queues.presentIdx != queues.graphicsIdx)
+        dm.queue(queues.presentIdx);
 
     for (auto& ext : initInfo.additionalDeviceExtensions) {
         dm.extension(ext.c_str());
@@ -644,10 +632,10 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     ShaderCache::setDevice(device);
     DeletionQueue::resize(1);
 
-    queues.graphics = getQueue(device, queueFamilies.graphics);
-    queues.present = getQueue(device, queueFamilies.present);
-    if (queueFamilies.asyncCompute != badQueue)
-        queues.asyncCompute = getQueue(device, queueFamilies.asyncCompute);
+    queues.graphics = getQueue(device, queues.graphicsIdx);
+    queues.present = getQueue(device, queues.presentIdx);
+    if (queues.asyncComputeIdx != badQueue)
+        queues.asyncCompute = getQueue(device, queues.asyncComputeIdx);
 
     VmaAllocatorCreateInfo allocatorCreateInfo{};
     allocatorCreateInfo.device = device;
@@ -686,12 +674,10 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     VkCommandPoolCreateInfo cpci{};
     cpci.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
     cpci.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-    cpci.queueFamilyIndex = queueFamilies.graphics;
+    cpci.queueFamilyIndex = queues.graphicsIdx;
 
     VKCHECK(vkCreateCommandPool(device, &cpci, nullptr, &commandPool));
     vku::setObjectName(device, (uint64_t)commandPool, VK_OBJECT_TYPE_COMMAND_POOL, "Main Command Pool");
-
-    createSwapchain(nullptr);
 
     if (initInfo.activeVrApi == VrApi::OpenVR) {
         OpenVRInterface* vrInterface = static_cast<OpenVRInterface*>(initInfo.vrInterface);
@@ -708,7 +694,7 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
         commandPool,
         instance,
         allocator,
-        queueFamilies.graphics,
+        queues.graphicsIdx,
         GraphicsSettings {
             numMSAASamples,
             (int)shadowmapRes,
@@ -720,42 +706,14 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
 
     auto vkCtx = std::make_shared<VulkanHandles>(handles);
 
-    VkCommandBufferAllocateInfo cbai{};
-    cbai.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    cbai.commandPool = commandPool;
-    cbai.commandBufferCount = maxFramesInFlight;
-    cbai.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-
-    cmdBufs.resize(maxFramesInFlight);
-
-    VKCHECK(vkAllocateCommandBuffers(device, &cbai, cmdBufs.data()));
-
-    cmdBufFences.resize(maxFramesInFlight);
-    cmdBufferSemaphores.resize(maxFramesInFlight);
-    imgAvailable.resize(maxFramesInFlight);
-
-    for (int i = 0; i < maxFramesInFlight; i++) {
-        std::string cmdBufName = "Command Buffer ";
-        cmdBufName += std::to_string(i);
-
-        vku::setObjectName(device, (uint64_t)cmdBufs[i], VK_OBJECT_TYPE_COMMAND_BUFFER, cmdBufName.c_str());
-        VkFenceCreateInfo fci{};
-        fci.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-        fci.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-        VKCHECK(vkCreateFence(device, &fci, nullptr, &cmdBufFences[i]));
-
-        VkSemaphoreCreateInfo sci{};
-        sci.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-
-        VKCHECK(vkCreateSemaphore(device, &sci, nullptr, &cmdBufferSemaphores[i]));
-        VKCHECK(vkCreateSemaphore(device, &sci, nullptr, &imgAvailable[i]));
-    }
+    presentSubmitManager = std::make_unique<VKPresentSubmitManager>(window, surface, &handles, &queues, &dbgStats);
+    presentSubmitManager->recreateSwapchain(useVsync && !enableVR, width, height);
+    presentSubmitManager->setupTracyContexts(tracyContexts);
 
     VKCHECK(vkDeviceWaitIdle(device));
     DeletionQueue::cleanupFrame(0);
-    DeletionQueue::resize(maxFramesInFlight);
-    DeletionQueue::setCurrentFrame(maxFramesInFlight - 1);
-    imgFences.resize(cmdBufs.size());
+    DeletionQueue::resize(presentSubmitManager->numFramesInFlight());
+    DeletionQueue::setCurrentFrame(presentSubmitManager->numFramesInFlight() - 1);
 
     cubemapConvoluter = std::make_shared<CubemapConvoluter>(vkCtx);
     uiTextureMan = new VKUITextureManager(handles);
@@ -774,7 +732,7 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
         VK_SAMPLE_COUNT_1_BIT,
         VK_IMAGE_TILING_OPTIMAL,
         VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-        VK_SHARING_MODE_EXCLUSIVE, queueFamilies.graphics
+        VK_SHARING_MODE_EXCLUSIVE, queues.graphicsIdx
     };
 
     brdfLut = vku::GenericImage{ device, allocator, brdfLutIci, VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_COLOR_BIT, false, "BRDF LUT" };
@@ -796,24 +754,21 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     VkQueryPoolCreateInfo qpci{};
     qpci.sType = VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO;
     qpci.queryType = VK_QUERY_TYPE_TIMESTAMP;
-    qpci.queryCount = 2 * maxFramesInFlight;
+    qpci.queryCount = 2 * presentSubmitManager->numFramesInFlight();
 
     VKCHECK(vkCreateQueryPool(device, &qpci, nullptr, &queryPool));
 
     *success = true;
-#ifdef TRACY_ENABLE
-    for (auto& cmdBuf : cmdBufs) {
-        tracyContexts.push_back(tracy::CreateVkContext(physicalDevice, device, queues.graphics, cmdBuf, vkGetPhysicalDeviceCalibrateableTimeDomainsEXT, vkGetCalibratedTimestampsEXT));
-    }
-#endif
 
     if (enableVR) {
         if (initInfo.activeVrApi == VrApi::OpenVR) {
-            vr::VRCompositor()->SetExplicitTimingMode(vr::EVRCompositorTimingMode::VRCompositorTimingMode_Explicit_ApplicationPerformsPostPresentHandoff);
+            //vr::VRCompositor()->SetExplicitTimingMode(vr::EVRCompositorTimingMode::VRCompositorTimingMode_Explicit_ApplicationPerformsPostPresentHandoff);
         }
 
         vrInterface = initInfo.vrInterface;
         vrApi = initInfo.activeVrApi;
+    } else {
+        vrApi = VrApi::None;
     }
 
     // Load cubemap for the sky
@@ -956,7 +911,7 @@ void VKRenderer::createSCDependents() {
     }
 
     if (irp == nullptr) {
-        irp = new ImGuiRenderPass(&handles, *swapchain);
+        irp = new ImGuiRenderPass(&handles, presentSubmitManager->currentSwapchain());
         irp->setup();
     }
 
@@ -998,23 +953,6 @@ void VKRenderer::createSCDependents() {
             p->create(this, vrInterface, frameIdx, &dbgStats);
         }
     }
-
-    imgFences.clear();
-    imgFences.resize(swapchain->images.size());
-
-    for (auto& s : imgAvailable) {
-        vkDestroySemaphore(device, s, nullptr);
-    }
-
-    imgAvailable.clear();
-    imgAvailable.resize(cmdBufs.size());
-
-    for (size_t i = 0; i < cmdBufs.size(); i++) {
-        VkSemaphoreCreateInfo sci{};
-        sci.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-
-        VKCHECK(vkCreateSemaphore(device, &sci, nullptr, &imgAvailable[i]));
-    }
 }
 
 VkSurfaceCapabilitiesKHR getSurfaceCaps(VkPhysicalDevice pd, VkSurfaceKHR surf) {
@@ -1054,54 +992,12 @@ void VKRenderer::recreateSwapchainInternal(int newWidth, int newHeight) {
     width = newWidth;
     height = newHeight;
 
-    worlds::Swapchain* oldSwapchain = swapchain;
     framebuffers.clear();
 
-    createSwapchain(oldSwapchain->getSwapchain());
+    presentSubmitManager->recreateSwapchain(useVsync && !enableVR, width, height);
     createSCDependents();
 
     swapchainRecreated = true;
-    delete oldSwapchain;
-}
-
-static worlds::ConVar presentFromCompute{ "r_presentFromCompute", "0" };
-
-void VKRenderer::presentNothing(uint32_t imageIndex) {
-    VkSemaphore imgSemaphore = imgAvailable[frameIdx];
-    VkSemaphore cmdBufSemaphore = cmdBufferSemaphores[frameIdx];
-
-    VkPresentInfoKHR presentInfo;
-    VkSwapchainKHR cSwapchain = swapchain->getSwapchain();
-    presentInfo.pSwapchains = &cSwapchain;
-    presentInfo.swapchainCount = 1;
-    presentInfo.pImageIndices = &imageIndex;
-
-    presentInfo.pWaitSemaphores = &cmdBufSemaphore;
-    presentInfo.waitSemaphoreCount = 1;
-
-    auto& cmdBuf = cmdBufs[frameIdx];
-    vku::beginCommandBuffer(cmdBuf);
-    VKCHECK(vkEndCommandBuffer(cmdBuf));
-
-    VkSubmitInfo submitInfo{};
-    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    submitInfo.waitSemaphoreCount = 1;
-    submitInfo.pWaitSemaphores = &imgSemaphore;
-
-    submitInfo.signalSemaphoreCount = 1;
-    submitInfo.pSignalSemaphores = &cmdBufferSemaphores[frameIdx];
-    submitInfo.pCommandBuffers = &cmdBuf;
-    submitInfo.commandBufferCount = 1;
-
-
-    VkQueue presentQueue = (presentFromCompute.getInt() && canPresentFromCompute) ? queues.asyncCompute : queues.present;
-
-    vkQueueSubmit(presentQueue, 1, &submitInfo, VK_NULL_HANDLE);
-
-    std::lock_guard<std::mutex> lg{swapchainMutex};
-    auto presentResult = vkQueuePresentKHR(presentQueue, &presentInfo);
-    if (presentResult != VK_SUCCESS && presentResult != VK_SUBOPTIMAL_KHR)
-        fatalErr("Present failed!");
 }
 
 void imageBarrier(VkCommandBuffer& cb, VkImage image, VkImageLayout layout,
@@ -1159,7 +1055,7 @@ void VKRenderer::submitToOpenVR() {
         .m_pPhysicalDevice = (VkPhysicalDevice_T*)physicalDevice,
         .m_pInstance = instance,
         .m_pQueue = queues.graphics,
-        .m_nQueueFamilyIndex = queueFamilies.graphics,
+        .m_nQueueFamilyIndex = queues.graphicsIdx,
         .m_nWidth = vrWidth,
         .m_nHeight = vrHeight,
         .m_nFormat = VK_FORMAT_R8G8B8A8_UNORM,
@@ -1401,7 +1297,7 @@ void VKRenderer::writeCmdBuf(VkCommandBuffer cmdBuf, uint32_t imageIndex, Camera
         .renderer = this,
         .cmdBuf = cmdBuf,
         .frameIndex = frameIdx,
-        .maxSimultaneousFrames = maxFramesInFlight
+        .maxSimultaneousFrames = presentSubmitManager->numFramesInFlight()
     };
 
     additionalShadowsPass->prePass(rCtx);
@@ -1441,7 +1337,7 @@ void VKRenderer::writeCmdBuf(VkCommandBuffer cmdBuf, uint32_t imageIndex, Camera
     dbgStats.numActiveRTTPasses = numActivePasses;
     dbgStats.numRTTPasses = rttPasses.size();
 
-    vku::transitionLayout(cmdBuf, swapchain->images[imageIndex],
+    vku::transitionLayout(cmdBuf, presentSubmitManager->currentSwapchain().images[imageIndex],
         VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
         VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
         VK_ACCESS_MEMORY_READ_BIT, VK_ACCESS_TRANSFER_WRITE_BIT);
@@ -1476,7 +1372,7 @@ void VKRenderer::writeCmdBuf(VkCommandBuffer cmdBuf, uint32_t imageIndex, Camera
         imageBlit.srcOffsets[1] = imageBlit.dstOffsets[1] = VkOffset3D{ (int)width, (int)height, 1 };
         imageBlit.dstSubresource = imageBlit.srcSubresource = VkImageSubresourceLayers{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 };
         vkCmdBlitImage(cmdBuf, finalPrePresent->image().image(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-            swapchain->images[imageIndex], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imageBlit, VK_FILTER_NEAREST);
+            presentSubmitManager->currentSwapchain().images[imageIndex], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imageBlit, VK_FILTER_NEAREST);
     } else {
         // Calculate the best crop for the current window size against the VR render target
         //float scaleFac = glm::min((float)windowSize.x / renderWidth, (float)windowSize.y / renderHeight);
@@ -1493,17 +1389,17 @@ void VKRenderer::writeCmdBuf(VkCommandBuffer cmdBuf, uint32_t imageIndex, Camera
         imageBlit.dstSubresource = imageBlit.srcSubresource = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 };
 
         vkCmdBlitImage(cmdBuf, leftEye->image().image(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-            swapchain->images[imageIndex], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imageBlit, VK_FILTER_LINEAR);
+            presentSubmitManager->currentSwapchain().images[imageIndex], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imageBlit, VK_FILTER_LINEAR);
     }
 
-    vku::transitionLayout(cmdBuf, swapchain->images[imageIndex],
+    vku::transitionLayout(cmdBuf, presentSubmitManager->currentSwapchain().images[imageIndex],
         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
         VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
         VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_READ_BIT);
 
     irp->execute(cmdBuf, width, height, framebuffers[imageIndex], imDrawData);
 
-    ::imageBarrier(cmdBuf, swapchain->images[imageIndex], VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+    ::imageBarrier(cmdBuf, presentSubmitManager->currentSwapchain().images[imageIndex], VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
         VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_READ_BIT, VK_ACCESS_MEMORY_READ_BIT,
         VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
 
@@ -1572,51 +1468,12 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
     dbgStats.numPipelineSwitches = 0;
     dbgStats.numTriangles = 0;
 
-    {
-        ZoneScopedN("Waiting for command buffer fence");
-        PerfTimer pt;
-        VkResult result = vkWaitForFences(device, 1, &cmdBufFences[frameIdx], VK_TRUE, UINT64_MAX);
-        if (result != VK_SUCCESS) {
-            fatalErr((std::string("Failed to wait on fences: ") + vku::toString(result)).c_str());
-        }
-        dbgStats.cmdBufFenceWaitTime = pt.stopGetMs();
-    }
-
-    if (vkResetFences(device, 1, &cmdBufFences[frameIdx]) != VK_SUCCESS) {
-        fatalErr("Failed to reset fences");
-    }
-
+    VkCommandBuffer cmdBuf;
+    int imageIndex;
+    int frameIdx = presentSubmitManager->acquireFrame(cmdBuf, imageIndex);
     DeletionQueue::cleanupFrame(frameIdx);
     DeletionQueue::setCurrentFrame(frameIdx);
 
-    uint32_t imageIndex;
-
-    {
-        ZoneScopedN("Acquiring Image");
-        PerfTimer pt;
-        std::lock_guard<std::mutex> lg{swapchainMutex};
-        swapchain->acquireImage(device, imgAvailable[frameIdx], &imageIndex);
-
-        dbgStats.imgAcquisitionTime = pt.stopGetMs();
-    }
-
-    if (imgFences[imageIndex] && imgFences[imageIndex] != cmdBufFences[frameIdx]) {
-        ZoneScopedN("Waiting for image fence");
-        PerfTimer pt;
-        VkResult result = vkWaitForFences(device, 1, &imgFences[imageIndex], true, UINT64_MAX);
-        if (result != VK_SUCCESS) {
-            std::string errStr = "Failed to wait on image fence: ";
-            errStr += vku::toString(result);
-            fatalErr(errStr.c_str());
-        }
-        dbgStats.imgFenceWaitTime = pt.stopGetMs();
-    } else {
-        dbgStats.imgFenceWaitTime = 0.0;
-    }
-
-    imgFences[imageIndex] = cmdBufFences[frameIdx];
-
-    VkCommandBuffer cmdBuf = cmdBufs[frameIdx];
     if (!isMinimised || enableVR)
         writeCmdBuf(cmdBuf, imageIndex, cam, reg);
     else {
@@ -1624,101 +1481,14 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
         VKCHECK(vkEndCommandBuffer(cmdBuf));
     }
 
-    VkSubmitInfo submit{ VK_STRUCTURE_TYPE_SUBMIT_INFO };
-    submit.waitSemaphoreCount = 1;
-    submit.pWaitSemaphores = &imgAvailable[frameIdx];
-
-    VkPipelineStageFlags waitStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-    submit.pWaitDstStageMask = &waitStages;
-
-    submit.commandBufferCount = 1;
-    submit.pCommandBuffers = &cmdBuf;
-    submit.pSignalSemaphores = &cmdBufferSemaphores[frameIdx];
-    submit.signalSemaphoreCount = 1;
-
-    if (enableVR)
-        vr::VRCompositor()->SubmitExplicitTimingData();
-
-    VkResult submitResult = vkQueueSubmit(queues.graphics, 1, &submit, cmdBufFences[frameIdx]);
-
-    if (submitResult != VK_SUCCESS) {
-        std::string errStr = vku::toString(submitResult);
-        logErr(("Failed to submit queue (error: " + errStr + ")").c_str());
-    }
-
-    TracyMessageL("Queue submitted");
-
     if (enableVR) {
+        vr::VRCompositor()->SubmitExplicitTimingData();
+        presentSubmitManager->submit();
         submitToOpenVR();
-    }
-
-    VkQueue presentQueue = (presentFromCompute.getInt() && canPresentFromCompute) ? queues.asyncCompute : queues.present;
-    if (handles.vendor == VKVendor::Nvidia) {
-        ZoneScopedN("Submitting Present Job");
-        static JobList* lastJobList = nullptr;
-
-        if (lastJobList)
-            lastJobList->wait();
-
-        uint32_t fIdx = frameIdx;
-        uint32_t imgIdx = imageIndex;
-        JobList& jlist = g_jobSys->getFreeJobList();
-        jlist.begin();
-        jlist.addJob(Job { [this, imgIdx, fIdx, presentQueue]() {
-            VkPresentInfoKHR presentInfo{ VK_STRUCTURE_TYPE_PRESENT_INFO_KHR };
-            VkSwapchainKHR cSwapchain = swapchain->getSwapchain();
-            presentInfo.pSwapchains = &cSwapchain;
-            presentInfo.swapchainCount = 1;
-            presentInfo.pImageIndices = &imgIdx;
-
-            presentInfo.pWaitSemaphores = &cmdBufferSemaphores[fIdx];
-            presentInfo.waitSemaphoreCount = 1;
-
-            std::lock_guard<std::mutex> lg{swapchainMutex};
-            TracyCZoneN(__presentZone, "vkQueuePresentKHR", true);
-            VkResult presentResult = vkQueuePresentKHR(presentQueue, &presentInfo);
-            TracyCZoneEnd(__presentZone);
-
-            if (enableVR)
-                vr::VRCompositor()->PostPresentHandoff();
-
-            if (presentResult == VK_ERROR_OUT_OF_DATE_KHR) {
-                logVrb(WELogCategoryRender, "swapchain out of date after present");
-            } else if (presentResult == VK_SUBOPTIMAL_KHR) {
-                logVrb(WELogCategoryRender, "swapchain after present suboptimal");
-            } else if (presentResult != VK_SUCCESS) {
-                fatalErr("Failed to present");
-            }
-        }});
-        jlist.end();
-        g_jobSys->signalJobListAvailable();
-        lastJobList = &jlist;
+        presentSubmitManager->present();
     } else {
-        ZoneScopedN("Presenting");
-        VkPresentInfoKHR presentInfo{ VK_STRUCTURE_TYPE_PRESENT_INFO_KHR };
-        VkSwapchainKHR cSwapchain = swapchain->getSwapchain();
-        presentInfo.pSwapchains = &cSwapchain;
-        presentInfo.swapchainCount = 1;
-        presentInfo.pImageIndices = &imageIndex;
-
-        presentInfo.pWaitSemaphores = &cmdBufferSemaphores[frameIdx];
-        presentInfo.waitSemaphoreCount = 1;
-
-        std::lock_guard<std::mutex> lg{swapchainMutex};
-        TracyCZoneN(__presentZone, "vkQueuePresentKHR", true);
-        VkResult presentResult = vkQueuePresentKHR(presentQueue, &presentInfo);
-        TracyCZoneEnd(__presentZone);
-
-        if (enableVR)
-            vr::VRCompositor()->PostPresentHandoff();
-
-        if (presentResult == VK_ERROR_OUT_OF_DATE_KHR) {
-            logVrb(WELogCategoryRender, "swapchain out of date after present");
-        } else if (presentResult == VK_SUBOPTIMAL_KHR) {
-            logVrb(WELogCategoryRender, "swapchain after present suboptimal");
-        } else if (presentResult != VK_SUCCESS) {
-            fatalErr("Failed to present");
-        }
+        presentSubmitManager->submit();
+        presentSubmitManager->present();
     }
 
     std::array<std::uint64_t, 2> timeStamps = { {0} };
@@ -1736,7 +1506,7 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
     lastFrameIdx = frameIdx;
 
     frameIdx++;
-    frameIdx %= maxFramesInFlight;
+    frameIdx %= presentSubmitManager->numFramesInFlight();
     FrameMark;
 }
 
@@ -1987,17 +1757,6 @@ VKRenderer::~VKRenderer() {
 
         ShaderCache::clear();
 
-        for (auto& semaphore : cmdBufferSemaphores) {
-            vkDestroySemaphore(device, semaphore, nullptr);
-        }
-
-        for (auto& semaphore : imgAvailable) {
-            vkDestroySemaphore(device, semaphore, nullptr);
-        }
-
-        for (auto& fence : cmdBufFences) {
-            vkDestroyFence(device, fence, nullptr);
-        }
 
         std::vector<VKRTTPass*> toDelete;
         for (auto& p : rttPasses) {
@@ -2042,8 +1801,10 @@ VKRenderer::~VKRenderer() {
 
         framebuffers.clear();
 
-        for (int i = 0 ; i < maxFramesInFlight; i++)
+        for (int i = 0 ; i < presentSubmitManager->numFramesInFlight(); i++)
             DeletionQueue::cleanupFrame(i);
+
+        presentSubmitManager.reset();
 
 #ifndef NDEBUG
         char* statsString;
@@ -2057,10 +1818,7 @@ VKRenderer::~VKRenderer() {
 #endif
         vmaDestroyAllocator(allocator);
 
-        delete swapchain;
-
         vkDestroySurfaceKHR(instance, surface, nullptr);
-        logVrb(WELogCategoryRender, "Renderer destroyed.");
 
         vkDestroyQueryPool(device, queryPool, nullptr);
         vkDestroyCommandPool(device, commandPool, nullptr);
@@ -2070,5 +1828,6 @@ VKRenderer::~VKRenderer() {
         vkDestroyDevice(device, nullptr);
         dbgCallback.reset();
         vkDestroyInstance(instance, nullptr);
+        logVrb(WELogCategoryRender, "Renderer destroyed.");
     }
 }

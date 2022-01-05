@@ -19,11 +19,12 @@ namespace worlds {
         width = createInfo.width;
         height = createInfo.height;
 
+        int framesInFlight = renderer->presentSubmitManager->numFramesInFlight();
         auto& handles = *renderer->getHandles();
         std::vector<VkDescriptorPoolSize> poolSizes;
-        poolSizes.emplace_back(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 256 * renderer->maxFramesInFlight);
-        poolSizes.emplace_back(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 256 * renderer->maxFramesInFlight);
-        poolSizes.emplace_back(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 256 * renderer->maxFramesInFlight);
+        poolSizes.emplace_back(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 256 * framesInFlight);
+        poolSizes.emplace_back(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 256 * framesInFlight);
+        poolSizes.emplace_back(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 256 * framesInFlight);
 
         VkDescriptorPoolCreateInfo descriptorPoolInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
         descriptorPoolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
@@ -122,7 +123,7 @@ namespace worlds {
             .passWidth = width,
             .passHeight = height,
             .frameIndex = frameIdx,
-            .maxSimultaneousFrames = renderer->maxFramesInFlight
+            .maxSimultaneousFrames = renderer->presentSubmitManager->numFramesInFlight()
         };
 
         trp->setup(rCtx, descriptorPool);
