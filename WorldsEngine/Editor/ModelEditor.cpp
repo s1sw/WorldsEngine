@@ -36,6 +36,7 @@ namespace worlds {
             nlohmann::json j = nlohmann::json::parse(contents);
             srcModel = AssetDB::pathToId(j.value("srcPath", "Raw/Models/cube.obj"));
             preTransformVerts = j.value("preTransformVerts", false);
+            uniformScale = j.value("uniformScale", 1.0f);
         } catch (nlohmann::detail::exception except) {
             addNotification(("Error opening " + AssetDB::idToPath(id)), NotificationType::Error);
             srcModel = INVALID_ASSET;
@@ -47,6 +48,7 @@ namespace worlds {
         ImGui::SameLine();
         selectRawAssetPopup("Source Model", srcModel, ImGui::Button("Change##SrcModel"));
         ImGui::Checkbox("Pre-Transform Vertices", &preTransformVerts);
+        ImGui::DragFloat("Uniform Scaling", &uniformScale);
 
         if (AssetDB::exists(srcModel)) {
             AssetID outputAsset = getOutputAsset(AssetDB::idToPath(editingID));
@@ -72,7 +74,8 @@ namespace worlds {
 
     void ModelEditor::save() {
         nlohmann::json j = {
-            { "srcPath", AssetDB::idToPath(srcModel) }
+            { "srcPath", AssetDB::idToPath(srcModel) },
+            { "uniformScale", uniformScale }
         };
 
         if (preTransformVerts)
