@@ -53,6 +53,45 @@ namespace worlds {
         }
     }
 
+    nlohmann::json entityVectorToJson(const std::vector<entt::entity>& v) {
+        nlohmann::json arr = nlohmann::json::array();
+
+        for (const entt::entity e : v) {
+            arr.push_back((uint32_t)e);
+        }
+
+        return arr;
+    }
+
+    nlohmann::json getJsonForFolder(const EntityFolder& folder) {
+        nlohmann::json children = nlohmann::json::array();
+        for (const EntityFolder& f : folder.children) {
+            children.push_back(getJsonForFolder(f));
+        }
+
+        return nlohmann::json {
+            { "name", folder.name },
+            { "entities", entityVectorToJson(folder.entities) },
+            { "children", children }
+        };
+    }
+
+    EntityFolder folderFromJson(nlohmann::json j) {
+        EntityFolder f{
+            .name = j["name"]
+        };
+
+        for (uint32_t v : j["entities"]) {
+            f.entities.push_back((entt::entity)v);
+        }
+
+        for (nlohmann::json& c : j["children"]) {
+            f.children.push_back(folderFromJson(c));
+        }
+
+        return f;
+    }
+
     std::string sceneToJson(entt::registry& reg) {
         nlohmann::json entities;
 
@@ -84,7 +123,7 @@ namespace worlds {
         EntityFolders* entityFolders = reg.try_ctx<EntityFolders>();
 
         if (entityFolders) {
-            
+            scene["rootEntityFolder"] = getJsonForFolder(entityFolders->rootFolder);
         }
 
         return scene.dump(2);
@@ -268,9 +307,15 @@ namespace worlds {
                 loadSceneEntities(reg, j);
             } else {
                 loadSceneEntities(reg, j["entities"]);
-                SceneSettings settings;
+                SceneSettings settings{};
                 settings.skybox = AssetDB::pathToId(j["settings"]["skyboxPath"].get<std::string>());
                 reg.set<SceneSettings>(settings);
+
+                if (j.contains("rootEntityFolder")) {
+                    EntityFolders folders;
+                    folders.rootFolder = folderFromJson(j["rootEntityFolder"]);
+                    reg.set<EntityFolders>(folders);
+                }
             }
 
             logMsg("loaded json scene in %.3fms", timer.stopGetMs());
