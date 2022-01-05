@@ -114,9 +114,6 @@
     <ClCompile Include="..\WorldsEngine\Editor\EditorWindows\BakingWindow.cpp">
       <Filter>Editor\EditorWindows</Filter>
     </ClCompile>
-    <ClCompile Include="..\WorldsEngine\Editor\EditorWindows\EntityEditor.cpp">
-      <Filter>Editor\EditorWindows</Filter>
-    </ClCompile>
     <ClCompile Include="..\WorldsEngine\Editor\EditorWindows\EntityList.cpp">
       <Filter>Editor\EditorWindows</Filter>
     </ClCompile>
@@ -585,9 +582,6 @@
     <ClCompile Include="..\LonelyGalaxy\Enemies\DroneAISystem.cpp">
       <Filter>LonelyGalaxy</Filter>
     </ClCompile>
-    <ClCompile Include="..\LonelyGalaxy\Client.cpp">
-      <Filter>LonelyGalaxy</Filter>
-    </ClCompile>
     <ClCompile Include="..\LonelyGalaxy\CustomComponentMeta.cpp">
       <Filter>LonelyGalaxy</Filter>
     </ClCompile>
@@ -600,12 +594,6 @@
     <ClCompile Include="..\LonelyGalaxy\Events.cpp">
       <Filter>LonelyGalaxy</Filter>
     </ClCompile>
-    <ClCompile Include="..\LonelyGalaxy\GameClient.cpp">
-      <Filter>LonelyGalaxy</Filter>
-    </ClCompile>
-    <ClCompile Include="..\LonelyGalaxy\GameServer.cpp">
-      <Filter>LonelyGalaxy</Filter>
-    </ClCompile>
     <ClCompile Include="..\LonelyGalaxy\LocospherePlayerSystem.cpp">
       <Filter>LonelyGalaxy</Filter>
     </ClCompile>
@@ -613,15 +601,6 @@
       <Filter>LonelyGalaxy</Filter>
     </ClCompile>
     <ClCompile Include="..\LonelyGalaxy\MathsUtil.cpp">
-      <Filter>LonelyGalaxy</Filter>
-    </ClCompile>
-    <ClCompile Include="..\LonelyGalaxy\MultiplayerManager.cpp">
-      <Filter>LonelyGalaxy</Filter>
-    </ClCompile>
-    <ClCompile Include="..\LonelyGalaxy\NetBase.cpp">
-      <Filter>LonelyGalaxy</Filter>
-    </ClCompile>
-    <ClCompile Include="..\LonelyGalaxy\NetMessage.cpp">
       <Filter>LonelyGalaxy</Filter>
     </ClCompile>
     <ClCompile Include="..\LonelyGalaxy\ObjectParentSystem.cpp">
@@ -637,9 +616,6 @@
       <Filter>LonelyGalaxy</Filter>
     </ClCompile>
     <ClCompile Include="..\LonelyGalaxy\PlayerSoundSystem.cpp">
-      <Filter>LonelyGalaxy</Filter>
-    </ClCompile>
-    <ClCompile Include="..\LonelyGalaxy\Server.cpp">
       <Filter>LonelyGalaxy</Filter>
     </ClCompile>
     <ClCompile Include="..\WorldsEngine\Editor\GameProject.cpp">
@@ -701,6 +677,15 @@
     </ClCompile>
     <ClCompile Include="..\WorldsEngine\Editor\EditorWindows\AssetCompilationManager.cpp">
       <Filter>Editor\EditorWindows</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WorldsEngine\Util\MathsUtil.cpp">
+      <Filter>Util</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WorldsEngine\Render\VKUITextureManager.cpp">
+      <Filter>Render</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WorldsEngine\Render\VKPresentSubmitManager.cpp">
+      <Filter>Render</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -1340,9 +1325,6 @@
     <ClInclude Include="..\LonelyGalaxy\Enemies\DroneAI.hpp">
       <Filter>LonelyGalaxy</Filter>
     </ClInclude>
-    <ClInclude Include="..\LonelyGalaxy\Client.hpp">
-      <Filter>LonelyGalaxy</Filter>
-    </ClInclude>
     <ClInclude Include="..\LonelyGalaxy\ContactDamageDealer.hpp">
       <Filter>LonelyGalaxy</Filter>
     </ClInclude>
@@ -1356,12 +1338,6 @@
       <Filter>LonelyGalaxy</Filter>
     </ClInclude>
     <ClInclude Include="..\LonelyGalaxy\EventHandler.hpp">
-      <Filter>LonelyGalaxy</Filter>
-    </ClInclude>
-    <ClInclude Include="..\LonelyGalaxy\GameClient.hpp">
-      <Filter>LonelyGalaxy</Filter>
-    </ClInclude>
-    <ClInclude Include="..\LonelyGalaxy\GameServer.hpp">
       <Filter>LonelyGalaxy</Filter>
     </ClInclude>
     <ClInclude Include="..\LonelyGalaxy\Grabbable.hpp">
@@ -1380,15 +1356,6 @@
       <Filter>LonelyGalaxy</Filter>
     </ClInclude>
     <ClInclude Include="..\LonelyGalaxy\MathsUtil.hpp">
-      <Filter>LonelyGalaxy</Filter>
-    </ClInclude>
-    <ClInclude Include="..\LonelyGalaxy\MultiplayerManager.hpp">
-      <Filter>LonelyGalaxy</Filter>
-    </ClInclude>
-    <ClInclude Include="..\LonelyGalaxy\NetMessage.hpp">
-      <Filter>LonelyGalaxy</Filter>
-    </ClInclude>
-    <ClInclude Include="..\LonelyGalaxy\Network.hpp">
       <Filter>LonelyGalaxy</Filter>
     </ClInclude>
     <ClInclude Include="..\LonelyGalaxy\ObjectParentSystem.hpp">
@@ -1419,9 +1386,6 @@
       <Filter>LonelyGalaxy</Filter>
     </ClInclude>
     <ClInclude Include="..\LonelyGalaxy\RPGStats.hpp">
-      <Filter>LonelyGalaxy</Filter>
-    </ClInclude>
-    <ClInclude Include="..\LonelyGalaxy\Server.hpp">
       <Filter>LonelyGalaxy</Filter>
     </ClInclude>
     <ClInclude Include="..\WorldsEngine\Render\RenderInternal.hpp">
@@ -1475,6 +1439,9 @@
     <ClInclude Include="..\ModelFormat\WMDL.hpp" />
     <ClInclude Include="..\WorldsEngine\Core\Window.hpp">
       <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\WorldsEngine\Util\MathsUtil.hpp">
+      <Filter>Util</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

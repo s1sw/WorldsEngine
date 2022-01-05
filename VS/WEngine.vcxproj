@@ -19,26 +19,19 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\LonelyGalaxy\Client.cpp" />
     <ClCompile Include="..\LonelyGalaxy\CustomComponentMeta.cpp" />
     <ClCompile Include="..\LonelyGalaxy\DebugArrow.cpp" />
     <ClCompile Include="..\LonelyGalaxy\Enemies\DroneAISystem.cpp" />
     <ClCompile Include="..\LonelyGalaxy\EventHandler.cpp" />
     <ClCompile Include="..\LonelyGalaxy\Events.cpp" />
-    <ClCompile Include="..\LonelyGalaxy\GameClient.cpp" />
-    <ClCompile Include="..\LonelyGalaxy\GameServer.cpp" />
     <ClCompile Include="..\LonelyGalaxy\LocospherePlayerSystem.cpp" />
     <ClCompile Include="..\LonelyGalaxy\Main.cpp" />
     <ClCompile Include="..\LonelyGalaxy\MathsUtil.cpp" />
-    <ClCompile Include="..\LonelyGalaxy\MultiplayerManager.cpp" />
-    <ClCompile Include="..\LonelyGalaxy\NetBase.cpp" />
-    <ClCompile Include="..\LonelyGalaxy\NetMessage.cpp" />
     <ClCompile Include="..\LonelyGalaxy\ObjectParentSystem.cpp" />
     <ClCompile Include="..\LonelyGalaxy\PhysHandSystem.cpp" />
     <ClCompile Include="..\LonelyGalaxy\PlayerGrabManager.cpp" />
     <ClCompile Include="..\LonelyGalaxy\PlayerInput.cpp" />
     <ClCompile Include="..\LonelyGalaxy\PlayerSoundSystem.cpp" />
-    <ClCompile Include="..\LonelyGalaxy\Server.cpp" />
     <ClCompile Include="..\LonelyGalaxy\StabbySystem.cpp" />
     <ClCompile Include="..\WorldsEngine\AssetCompilation\AssetCompilers.cpp" />
     <ClCompile Include="..\WorldsEngine\AssetCompilation\AssetCompilerUtil.cpp" />
@@ -67,7 +60,6 @@
     <ClCompile Include="..\WorldsEngine\Editor\EditorWindows\AssetEditor.cpp" />
     <ClCompile Include="..\WorldsEngine\Editor\EditorWindows\Assets.cpp" />
     <ClCompile Include="..\WorldsEngine\Editor\EditorWindows\BakingWindow.cpp" />
-    <ClCompile Include="..\WorldsEngine\Editor\EditorWindows\EntityEditor.cpp" />
     <ClCompile Include="..\WorldsEngine\Editor\EditorWindows\EntityList.cpp" />
     <ClCompile Include="..\WorldsEngine\Editor\EditorWindows\GameControls.cpp" />
     <ClCompile Include="..\WorldsEngine\Editor\EditorWindows\MaterialEditor.cpp" />
@@ -209,8 +201,10 @@
     <ClCompile Include="..\WorldsEngine\Render\SkyboxPass.cpp" />
     <ClCompile Include="..\WorldsEngine\Render\TextureSlots.cpp" />
     <ClCompile Include="..\WorldsEngine\Render\TonemapRenderPass.cpp" />
+    <ClCompile Include="..\WorldsEngine\Render\VKPresentSubmitManager.cpp" />
     <ClCompile Include="..\WorldsEngine\Render\vkrender.cpp" />
     <ClCompile Include="..\WorldsEngine\Render\vkswapchain.cpp" />
+    <ClCompile Include="..\WorldsEngine\Render\VKUITextureManager.cpp" />
     <ClCompile Include="..\WorldsEngine\Render\vku\Buffer.cpp" />
     <ClCompile Include="..\WorldsEngine\Render\vku\DebugCallback.cpp" />
     <ClCompile Include="..\WorldsEngine\Render\vku\DeviceMaker.cpp" />
@@ -227,29 +221,24 @@
     <ClCompile Include="..\WorldsEngine\Serialization\JsonSceneSerializer.cpp" />
     <ClCompile Include="..\WorldsEngine\Serialization\SceneSerialization.cpp" />
     <ClCompile Include="..\WorldsEngine\Util\JsonUtil.cpp" />
+    <ClCompile Include="..\WorldsEngine\Util\MathsUtil.cpp" />
     <ClCompile Include="..\WorldsEngine\Util\RichPresence.cpp" />
     <ClCompile Include="..\WorldsEngine\Util\VKImGUIUtil.cpp" />
     <ClCompile Include="..\WorldsEngine\VR\OpenVRInterface.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\LonelyGalaxy\Client.hpp" />
     <ClInclude Include="..\LonelyGalaxy\ContactDamageDealer.hpp" />
     <ClInclude Include="..\LonelyGalaxy\DamageForwarder.hpp" />
     <ClInclude Include="..\LonelyGalaxy\DamagingProjectile.hpp" />
     <ClInclude Include="..\LonelyGalaxy\DebugArrow.hpp" />
     <ClInclude Include="..\LonelyGalaxy\Enemies\DroneAI.hpp" />
     <ClInclude Include="..\LonelyGalaxy\EventHandler.hpp" />
-    <ClInclude Include="..\LonelyGalaxy\GameClient.hpp" />
-    <ClInclude Include="..\LonelyGalaxy\GameServer.hpp" />
     <ClInclude Include="..\LonelyGalaxy\Grabbable.hpp" />
     <ClInclude Include="..\LonelyGalaxy\GripPoint.hpp" />
     <ClInclude Include="..\LonelyGalaxy\Gun.hpp" />
     <ClInclude Include="..\LonelyGalaxy\IPlayerInput.hpp" />
     <ClInclude Include="..\LonelyGalaxy\LocospherePlayerSystem.hpp" />
     <ClInclude Include="..\LonelyGalaxy\MathsUtil.hpp" />
-    <ClInclude Include="..\LonelyGalaxy\MultiplayerManager.hpp" />
-    <ClInclude Include="..\LonelyGalaxy\NetMessage.hpp" />
-    <ClInclude Include="..\LonelyGalaxy\Network.hpp" />
     <ClInclude Include="..\LonelyGalaxy\ObjectParentSystem.hpp" />
     <ClInclude Include="..\LonelyGalaxy\PhysHandSystem.hpp" />
     <ClInclude Include="..\LonelyGalaxy\PhysicsSoundComponent.hpp" />
@@ -260,7 +249,6 @@
     <ClInclude Include="..\LonelyGalaxy\PlayerSoundSystem.hpp" />
     <ClInclude Include="..\LonelyGalaxy\PlayerStartPoint.hpp" />
     <ClInclude Include="..\LonelyGalaxy\RPGStats.hpp" />
-    <ClInclude Include="..\LonelyGalaxy\Server.hpp" />
     <ClInclude Include="..\LonelyGalaxy\Stabby.hpp" />
     <ClInclude Include="..\LonelyGalaxy\StabbySystem.hpp" />
     <ClInclude Include="..\LonelyGalaxy\StatDisplayInfo.hpp" />
@@ -482,6 +470,7 @@
     <ClInclude Include="..\WorldsEngine\Util\Fnv.hpp" />
     <ClInclude Include="..\WorldsEngine\Util\GlmStreamOps.hpp" />
     <ClInclude Include="..\WorldsEngine\Util\JsonUtil.hpp" />
+    <ClInclude Include="..\WorldsEngine\Util\MathsUtil.hpp" />
     <ClInclude Include="..\WorldsEngine\Util\MatUtil.hpp" />
     <ClInclude Include="..\WorldsEngine\Util\Result.hpp" />
     <ClInclude Include="..\WorldsEngine\Util\RichPresence.hpp" />
@@ -594,6 +583,7 @@
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(SolutionDir)..\External\Include;$(SolutionDir)..\subprojects\physfs.git\src;$(SolutionDir)..\subprojects\slib.git\include;$(SolutionDir)..\subprojects\SDL2-2.0.12\include;$(SolutionDir)..\WorldsEngine;$(SolutionDir)..\ModelFormat;$(SolutionDir)..\External\Assimp\include;C:\Program Files (x86)\FMOD SoundSystem\FMOD Studio API Windows\api\core\inc;C:\Program Files (x86)\FMOD SoundSystem\FMOD Studio API Windows\api\studio\inc;$(SolutionDir)..\DiscordSDK;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -610,6 +600,7 @@
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(SolutionDir)..\External\Include;$(SolutionDir)..\subprojects\physfs.git\src;$(SolutionDir)..\subprojects\slib.git\include;$(SolutionDir)..\subprojects\SDL2-2.0.12\include;$(SolutionDir)..\WorldsEngine;$(SolutionDir)..\ModelFormat;$(SolutionDir)..\External\Assimp\include;C:\Program Files (x86)\FMOD SoundSystem\FMOD Studio API Windows\api\core\inc;C:\Program Files (x86)\FMOD SoundSystem\FMOD Studio API Windows\api\studio\inc;$(SolutionDir)..\DiscordSDK;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
