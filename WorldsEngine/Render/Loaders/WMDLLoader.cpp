@@ -13,6 +13,11 @@ namespace worlds {
 
         wmdl::Header* wHdr = (wmdl::Header*)buf;
 
+        if (!wHdr->verifyMagic()) {
+            logErr("Failed to load %s: invalid magic", AssetDB::idToPath(wmdlId).c_str());
+            return;
+        }
+
         logVrb("loading wmdl: %i submeshes", wHdr->numSubmeshes);
 
         lmd.isSkinned = wHdr->isSkinned();
