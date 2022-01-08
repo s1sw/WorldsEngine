@@ -1,10 +1,10 @@
 #include "EditorWindows.hpp"
-#include "../../ImGui/imgui.h"
-#include "../../Core/NameComponent.hpp"
-#include "../../Libs/IconsFontAwesome5.h"
-#include "../../ImGui/imgui_stdlib.h"
+#include <ImGui/imgui.h>
+#include <Core/NameComponent.hpp>
+#include <Libs/IconsFontAwesome5.h>
+#include <ImGui/imgui_stdlib.h>
 #include <algorithm>
-#include "../../Core/Log.hpp"
+#include <Core/Log.hpp>
 
 namespace worlds {
     void showFolderButtons(entt::entity e, EntityFolder& folder, int counter) {
@@ -160,12 +160,21 @@ namespace worlds {
                 glm::vec2 br = tl + glm::vec2(ImGui::GetWindowWidth(), ImGui::GetTextLineHeightWithSpacing());
                 tl = tl + (glm::vec2)ImGui::GetWindowPos();
                 br = br + (glm::vec2)ImGui::GetWindowPos();
-                
+
                 if (ImGui::IsMouseHoveringRect(tl, br) && ImGui::IsMouseClicked(ImGuiMouseButton_Right)) {
                     renamingFolder = folder.randomId;
                 }
 
-                if (ImGui::TreeNodeEx(label.c_str(), treeNodeFlags)) {
+                bool showContents = ImGui::TreeNodeEx(label.c_str(), treeNodeFlags);
+
+                if (thisFolderRenaming) {
+                    ImGui::SameLine();
+                    if (ImGui::InputText("##foldername", &folder.name, ImGuiInputTextFlags_EnterReturnsTrue)) {
+                        renamingFolder = 0u;
+                    }
+                }
+
+                if (showContents) {
                     if (parent) {
                         ImGui::SameLine();
                         if (ImGui::Button("Remove")) {
@@ -184,16 +193,10 @@ namespace worlds {
                         doFolderEntry(child, &folder);
                     }
 
-                    if (ImGui::Button("+")) {
+                    if (ImGui::Button("Add Folder")) {
                         folder.children.emplace_back(EntityFolder{"Untitled Entity Folder"});
                     }
                     ImGui::TreePop();
-                }
-
-                if (thisFolderRenaming) {
-                    if (ImGui::InputText("##foldername", &folder.name, ImGuiInputTextFlags_EnterReturnsTrue)) {
-                        renamingFolder = 0u;
-                    }
                 }
                 ImGui::PopID();
             };
