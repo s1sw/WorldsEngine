@@ -88,9 +88,37 @@ namespace WorldsEngine.ComponentMeta
 
     internal class ManagedComponentMetadata : ComponentMetadata
     {
+        private class TransformEditContext
+        {
+            public bool CurrentlyUsing = false;
+            public object? Component;
+            public string? FieldName;
+            public Entity? Entity;
+
+            public void StartUsing(object component, string fieldName)
+            {
+                CurrentlyUsing = true;
+                Component = component;
+                FieldName = fieldName;
+
+                Entity = Registry.Create();
+            }
+
+            public void StopUsing()
+            {
+                if (Entity == null) return;
+                Registry.Destroy(Entity.Value);
+                Entity = null;
+                Component = null;
+                FieldName = null;
+                CurrentlyUsing = false;
+            }
+        }
+
         private readonly Type type;
         private readonly FieldInfo[] fieldInfos;
-        private string friendlyName = string.Empty;
+        private readonly string friendlyName = string.Empty;
+        private static readonly TransformEditContext transformCtx = new();
 
         public override string Name => type.Name;
         public override string EditorName => friendlyName;
@@ -130,7 +158,7 @@ namespace WorldsEngine.ComponentMeta
             Registry.SetComponent(to, type, Registry.GetComponent(type, from));
         }
 
-        private unsafe void EditField(FieldInfo fieldInfo, object instance)
+        private unsafe void EditField(FieldInfo fieldInfo, object instance, Entity entity)
         {
             string fieldName = fieldInfo.Name;
 
@@ -139,6 +167,8 @@ namespace WorldsEngine.ComponentMeta
             if (nameAttribute != null)
                 fieldName = nameAttribute.FriendlyName!;
 
+            // Since the type object is dynamic and typeof technically isn't constant,
+            // we're forced to use if/else if here ;-;
             if (fieldInfo.FieldType == typeof(int))
             {
                 int val = (int)fieldInfo.GetValue(instance)!;
@@ -208,6 +238,39 @@ namespace WorldsEngine.ComponentMeta
                     fieldInfo.SetValue(instance, val);
                 }
             }
+            else if (fieldInfo.FieldType == typeof(Transform))
+            {
+                if (fieldInfo.GetCustomAttribute<EditRelativeTransformAttribute>() != null)
+                {
+                    if (!transformCtx.CurrentlyUsing)
+                    {
+                        ImGui.Text(fieldName);
+                        ImGui.SameLine();
+                        if (ImGui.Button("Change"))
+                        {
+                            transformCtx.StartUsing(instance, fieldName);
+                            Transform currentValue = (Transform)fieldInfo.GetValue(instance)!;
+                            currentValue = currentValue.TransformBy(Registry.GetTransform(entity));
+                            Registry.SetTransform(transformCtx.Entity!.Value, currentValue);
+                        }
+                    }
+                    else
+                    {
+                        Editor.Editor.OverrideHandle(transformCtx.Entity!.Value);
+                        var transform = Registry.GetTransform(transformCtx.Entity!.Value);
+                        transform = transform.TransformByInverse(Registry.GetTransform(entity));
+                        fieldInfo.SetValue(instance, transform);
+
+                        ImGui.Text(fieldName);
+                        ImGui.SameLine();
+
+                        if (ImGui.Button("Done"))
+                        {
+                            transformCtx.StopUsing();
+                        }
+                    }
+                }
+            }
 
             if (fieldInfo.GetCustomAttribute<EditableClassAttribute>() != null)
             {
@@ -252,7 +315,7 @@ namespace WorldsEngine.ComponentMeta
 
                                 foreach (FieldInfo fieldInfo1 in classFieldInfo)
                                 {
-                                    EditField(fieldInfo1, classInstance);
+                                    EditField(fieldInfo1, classInstance, entity);
                                 }
                             }
 
@@ -280,7 +343,7 @@ namespace WorldsEngine.ComponentMeta
 
                             foreach (FieldInfo fieldInfo1 in classFieldInfo)
                             {
-                                EditField(fieldInfo1, classInstance);
+                                EditField(fieldInfo1, classInstance, entity);
                             }
                         }
 
@@ -308,7 +371,7 @@ namespace WorldsEngine.ComponentMeta
 
                 foreach (FieldInfo fieldInfo in fieldInfos!)
                 {
-                    EditField(fieldInfo, component);
+                    EditField(fieldInfo, component, entity);
                 }
             }
             else

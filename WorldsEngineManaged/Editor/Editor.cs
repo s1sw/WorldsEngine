@@ -27,9 +27,12 @@ namespace WorldsEngine.Editor
 
         [DllImport(WorldsEngine.NativeModule)]
         private static extern void editor_addNotification(string notification, NotificationType type);
+
+        [DllImport(WorldsEngine.NativeModule)]
+        private static extern void editor_overrideHandle(uint entity);
         #endregion
 
-        public static Entity CurrentlySelected => new Entity(editor_getCurrentlySelected());
+        public static Entity CurrentlySelected => new(editor_getCurrentlySelected());
 
         private readonly static Dictionary<Type, EditorWindow> _singleInstanceWindows = new();
         private readonly static List<EditorWindow> _editorWindows = new();
@@ -48,6 +51,7 @@ namespace WorldsEngine.Editor
         }
 
         public static void Notify(string content, NotificationType type = NotificationType.Info) => editor_addNotification(content, type);
+        public static void OverrideHandle(Entity entity) => editor_overrideHandle(entity.ID);
 
         public static void OpenWindowOfType(Type type)
         {

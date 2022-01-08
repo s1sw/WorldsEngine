@@ -118,10 +118,16 @@ namespace worlds {
 
             entt::entity selectedEntity = ed->currentSelectedEntity;
 
-            if (reg.valid(ed->currentSelectedEntity)) {
+            if (ed->handleOverriden) {
+                ed->handleTools(*ed->overrideTransform, wPos, wSize, cam);
+            } else if (ed->handleOverrideEntity != entt::null) {
+                if (reg.valid(ed->handleOverrideEntity)) {
+                    auto& t = reg.get<Transform>(ed->handleOverrideEntity);
+                    ed->handleTools(t, wPos, wSize, cam);
+                }
+            } else if (reg.valid(ed->currentSelectedEntity)) {
                 auto& selectedTransform = reg.get<Transform>(ed->currentSelectedEntity);
-                auto& t = ed->handleOverriden ? *ed->overrideTransform : selectedTransform;
-                ed->handleTools(t, wPos, wSize, cam);
+                ed->handleTools(selectedTransform, wPos, wSize, cam);
 
                 if (interfaces.inputManager->ctrlHeld() &&
                     interfaces.inputManager->keyPressed(SDL_SCANCODE_D) &&

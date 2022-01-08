@@ -184,6 +184,7 @@ namespace worlds {
         EditorUndo undo;
         bool active = true;
         void overrideHandle(Transform* t);
+        void overrideHandle(entt::entity entity);
         bool entityEyedropper(entt::entity& picked);
         AssetID currentSelectedAsset;
         const GameProject& currentProject() { return *project; }
@@ -214,6 +215,7 @@ namespace worlds {
         entt::entity eyedroppedEntity = entt::null;
         uint32_t lastSaveModificationCount = 0;
         Transform* overrideTransform;
+        entt::entity handleOverrideEntity = entt::null;
 
         EditorSettings settings;
         EngineInterfaces interfaces;
