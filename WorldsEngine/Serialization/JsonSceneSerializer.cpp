@@ -77,9 +77,7 @@ namespace worlds {
     }
 
     EntityFolder folderFromJson(nlohmann::json j) {
-        EntityFolder f{
-            .name = j["name"]
-        };
+        EntityFolder f{ j["name"] };
 
         for (uint32_t v : j["entities"]) {
             f.entities.push_back((entt::entity)v);

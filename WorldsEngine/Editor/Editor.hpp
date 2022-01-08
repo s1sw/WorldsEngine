@@ -159,13 +159,15 @@ namespace worlds {
     };
 
     struct EntityFolder {
+        EntityFolder(std::string name);
         std::string name;
+        uint32_t randomId;
         std::vector<EntityFolder> children;
         std::vector<entt::entity> entities;
     };
 
     struct EntityFolders {
-        EntityFolder rootFolder;
+        EntityFolder rootFolder{ "Root" };
     };
 
     class Editor {
@@ -185,6 +187,8 @@ namespace worlds {
         bool entityEyedropper(entt::entity& picked);
         AssetID currentSelectedAsset;
         const GameProject& currentProject() { return *project; }
+        void saveOpenWindows();
+        void loadOpenWindows();
     private:
         std::unique_ptr<GameProject> project;
         ImTextureID titleBarIcon;

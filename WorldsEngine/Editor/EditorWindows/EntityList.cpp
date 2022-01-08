@@ -137,17 +137,18 @@ namespace worlds {
             };
 
 
-            EntityFolder* renamingFolder = nullptr;
+            static uint32_t renamingFolder = 0u;
 
-            std::function<void(EntityFolder&, int)> doFolderEntry = [&](EntityFolder& folder, int folderNum) {
-                bool thisFolderRenaming = &folder == renamingFolder;
+            std::function<void(EntityFolder&, EntityFolder*)> doFolderEntry = [&](EntityFolder& folder, EntityFolder* parent) {
+                bool thisFolderRenaming = folder.randomId == renamingFolder;
 
                 std::string label;
+                ImGui::PushID(folder.randomId);
 
                 if (thisFolderRenaming)
-                    label = "##" + std::to_string(folderNum);
+                    label = "##" + std::to_string(folder.randomId);
                 else
-                    label = folder.name + "##" + std::to_string(folderNum);
+                    label = folder.name + "##" + std::to_string(folder.randomId);
 
                 ImGuiTreeNodeFlags treeNodeFlags = ImGuiTreeNodeFlags_None;
 
@@ -155,15 +156,24 @@ namespace worlds {
                     treeNodeFlags |= ImGuiTreeNodeFlags_AllowItemOverlap;
                 }
 
-                if (ImGui::TreeNodeEx(label.c_str(), treeNodeFlags)) {
-                    if (renamingFolder) {
-                        if (ImGui::InputText("##foldername", &folder.name, ImGuiInputTextFlags_EnterReturnsTrue)) {
-                            renamingFolder = nullptr;
-                        }
-                    }
+                glm::vec2 tl = ImGui::GetCursorPos();
+                glm::vec2 br = tl + glm::vec2(ImGui::GetWindowWidth(), ImGui::GetTextLineHeightWithSpacing());
+                tl = tl + (glm::vec2)ImGui::GetWindowPos();
+                br = br + (glm::vec2)ImGui::GetWindowPos();
+                
+                if (ImGui::IsMouseHoveringRect(tl, br) && ImGui::IsMouseClicked(ImGuiMouseButton_Right)) {
+                    renamingFolder = folder.randomId;
+                }
 
-                    if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Right)) {
-                        renamingFolder = &folder;
+                if (ImGui::TreeNodeEx(label.c_str(), treeNodeFlags)) {
+                    if (parent) {
+                        ImGui::SameLine();
+                        if (ImGui::Button("Remove")) {
+                            uint32_t id = folder.randomId;
+                            parent->children.erase(
+                                std::remove_if(parent->children.begin(), parent->children.end(), [id](EntityFolder& f) { return f.randomId == id; })
+                            );
+                        }
                     }
 
                     for (entt::entity ent : folder.entities) {
@@ -171,14 +181,21 @@ namespace worlds {
                     }
 
                     for (EntityFolder& child : folder.children) {
-                        doFolderEntry(child, folderNum++);
+                        doFolderEntry(child, &folder);
                     }
 
                     if (ImGui::Button("+")) {
-                        folder.children.push_back(EntityFolder{.name = "Untitled Entity Folder"});
+                        folder.children.emplace_back(EntityFolder{"Untitled Entity Folder"});
                     }
                     ImGui::TreePop();
                 }
+
+                if (thisFolderRenaming) {
+                    if (ImGui::InputText("##foldername", &folder.name, ImGuiInputTextFlags_EnterReturnsTrue)) {
+                        renamingFolder = 0u;
+                    }
+                }
+                ImGui::PopID();
             };
 
             if (ImGui::BeginChild("Entities")) {
