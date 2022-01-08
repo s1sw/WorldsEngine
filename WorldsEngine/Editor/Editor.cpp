@@ -32,6 +32,7 @@
 #include "ImGui/imgui_internal.h"
 #include "tracy/Tracy.hpp"
 #include <fstream>
+#include <Libs/pcg_basic.h>
 
 namespace worlds {
     std::unordered_map<ENTT_ID_TYPE, ComponentEditor*> ComponentMetadataManager::metadata;
@@ -142,6 +143,10 @@ namespace worlds {
         return SDL_HITTEST_NORMAL;
     }
 
+    EntityFolder::EntityFolder(std::string name) : name(name) {
+        randomId = pcg32_random();
+    }
+
     Editor::Editor(entt::registry& reg, EngineInterfaces interfaces)
         : active(true)
         , currentSelectedAsset(~0u)
@@ -186,14 +191,15 @@ namespace worlds {
         titleBarIcon = interfaces.renderer->uiTextureManager().loadOrGet(AssetDB::pathToId("UI/Images/logo_no_background.png"));
 
         EntityFolders folders;
-        folders.rootFolder.name = "Root";
 
         reg.set<EntityFolders>(std::move(folders));
+        loadOpenWindows();
     }
 
 #undef REGISTER_COMPONENT_TYPE
 
     Editor::~Editor() {
+        saveOpenWindows();
     }
 
     void Editor::select(entt::entity entity) {
@@ -320,6 +326,45 @@ namespace worlds {
         }
 
         return false;
+    }
+
+    void Editor::saveOpenWindows() {
+        char* prefPath = SDL_GetPrefPath("Someone Somewhere", "Worlds Engine");
+        std::string openWindowPath = prefPath + std::string("openWindows.json");
+
+        nlohmann::json j;
+
+        for (auto& window : editorWindows) {
+            j[window->getName()] = {
+                { "open", window->isActive() }
+            };
+        }
+
+        std::ofstream o{ openWindowPath };
+        o << std::setw(2) << j;
+        o.close();
+    }
+
+    void Editor::loadOpenWindows() {
+        char* prefPath = SDL_GetPrefPath("Someone Somewhere", "Worlds Engine");
+        std::string openWindowPath = prefPath + std::string("openWindows.json");
+
+        nlohmann::json j;
+        std::ifstream i{ openWindowPath };
+
+        if (!i.good()) return;
+
+        i >> j;
+        i.close();
+
+        for (auto& p : j.items()) {
+            std::string name = p.key();
+            for (auto& win : editorWindows) {
+                if (win->getName() == name) {
+                    win->setActive(p.value().value("open", win->isActive()));
+                }
+            }
+        }
     }
 
     void Editor::eyedropperSelect(entt::entity picked) {
