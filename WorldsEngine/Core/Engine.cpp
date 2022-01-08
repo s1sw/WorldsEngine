@@ -377,6 +377,8 @@ namespace worlds {
         if (!dedicatedServer) {
             //SDL_DetachThread(SDL_CreateThread(windowThread, "Window Thread", this));
             //while(!windowCreated){}
+            if (runAsEditor)
+                SDL_SetHint(SDL_HINT_VIDEO_X11_NET_WM_BYPASS_COMPOSITOR, "0");
             window = createWindow();
             if (window == nullptr) {
                 SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "err", SDL_GetError(), NULL);
