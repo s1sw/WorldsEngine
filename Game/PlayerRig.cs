@@ -119,7 +119,7 @@ namespace Game
             float max = MathF.Max(MathF.Abs(inputVel.x), MathF.Abs(inputVel.y));
             inputVel.Normalize();
 
-            Vector3 inputDir = new Vector3(inputVel.x, 0.0f, inputVel.y);
+            Vector3 inputDir = new(inputVel.x, 0.0f, inputVel.y);
 
             Vector3 inputDirCS = Camera.Main.Rotation * inputDir;
 
@@ -131,19 +131,11 @@ namespace Game
             inputDirCS.y = 0.0f;
             inputDirCS.Normalize();
 
-            //_grounded = Physics.Raycast(
-            //    dpa.Pose.Position,
-            //    Vector3.Down,
-            //    out RaycastHit hit,
-            //    1.1f,
-            //    PhysicsLayers.Player
-            //);
-
             _grounded = Physics.SweepSphere(
-                dpa.Pose.Position,
+                dpa.Pose.Position + (Vector3.Down * 0.75f),
                 0.1f,
                 Vector3.Down,
-                1.15f,
+                0.45f,
                 out RaycastHit hit,
                 PhysicsLayers.Player
             );

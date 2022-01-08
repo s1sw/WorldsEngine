@@ -315,6 +315,10 @@ namespace worlds {
         overrideTransform = t;
     }
 
+    void Editor::overrideHandle(entt::entity e) {
+        handleOverrideEntity = e;
+    }
+
     bool Editor::entityEyedropper(entt::entity& picked) {
         entityEyedropperActive = true;
 
@@ -761,12 +765,6 @@ namespace worlds {
             }
         }
 
-
-        int sceneViewIndex = 0;
-        for (EditorSceneView* sceneView : sceneViews) {
-            sceneView->drawWindow(sceneViewIndex++);
-        }
-
         if (inputManager.keyPressed(SDL_SCANCODE_S) && inputManager.ctrlHeld()) {
             if (interfaces.engine->getCurrentSceneInfo().id != ~0u && !inputManager.shiftHeld()) {
                 AssetID sceneId = interfaces.engine->getCurrentSceneInfo().id;
@@ -960,6 +958,11 @@ namespace worlds {
 
         interfaces.scriptEngine->onEditorUpdate(deltaTime);
 
+        int sceneViewIndex = 0;
+        for (EditorSceneView* sceneView : sceneViews) {
+            sceneView->drawWindow(sceneViewIndex++);
+        }
+
         if (!popupToOpen.empty())
             ImGui::OpenPopup(popupToOpen.c_str());
 
@@ -971,5 +974,6 @@ namespace worlds {
         updateWindowTitle();
 
         entityEyedropperActive = false;
+        handleOverrideEntity = entt::null;
     }
 }

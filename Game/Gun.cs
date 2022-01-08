@@ -3,6 +3,7 @@ using System;
 using WorldsEngine;
 using WorldsEngine.Audio;
 using WorldsEngine.Math;
+using WorldsEngine.Editor;
 using Game.Combat;
 
 namespace Game
@@ -19,10 +20,11 @@ namespace Game
     {
         public bool Automatic = false;
         public float ShotSpacing = 0.1f;
-        public float ProjectileSpawnDistance = 0.5f;
         public AmmoType ProjectileType;
         public bool MagazineRequired = false;
         public Vector3 MagazineAttachedPosition;
+        [EditRelativeTransform]
+        public Transform ProjectileSpawnTransform;
 
         private float _shotTimer = 0f;
         private AssetID _projectilePrefab;
@@ -79,8 +81,7 @@ namespace Game
             var dpa = Registry.GetComponent<DynamicPhysicsActor>(entity);
             var transform = dpa.Pose;
 
-            Transform projectileTransform = transform;
-            projectileTransform.Position += transform.Forward * ProjectileSpawnDistance;
+            Transform projectileTransform = ProjectileSpawnTransform.TransformBy(transform);
 
             string evt = ProjectileType switch
             {

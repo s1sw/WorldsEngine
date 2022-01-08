@@ -17,4 +17,8 @@ extern "C" {
     EXPORT void editor_addNotification(const char* notification, NotificationType type) {
         addNotification(notification, type);
     }
+
+    EXPORT void editor_overrideHandle(entt::entity entity) {
+        csharpEditor->overrideHandle(entity);
+    }
 }
