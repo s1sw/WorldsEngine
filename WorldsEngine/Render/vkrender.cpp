@@ -708,7 +708,9 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
 
     presentSubmitManager = std::make_unique<VKPresentSubmitManager>(window, surface, &handles, &queues, &dbgStats);
     presentSubmitManager->recreateSwapchain(useVsync && !enableVR, width, height);
+#ifdef TRACY_ENABLE
     presentSubmitManager->setupTracyContexts(tracyContexts);
+#endif
 
     VKCHECK(vkDeviceWaitIdle(device));
     DeletionQueue::cleanupFrame(0);
