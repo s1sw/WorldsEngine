@@ -25,7 +25,8 @@ namespace Game
         [EditorFriendlyName("Minimum Positional Force")]
         public Vector3 MinPositionalForces = new Vector3(-1000.0f);
 
-        public Vector3 FirePointPosition = new Vector3();
+        [WorldsEngine.Editor.EditRelativeTransform]
+        public Transform FirePoint = new();
 
         private float timeSinceLastBurst = 0.0f;
         private bool burstInProgress = false;
@@ -116,7 +117,7 @@ namespace Game
 
             Transform pose = physicsActor.Pose;
 
-            Transform fPointTransform = new(FirePointPosition, Quaternion.Identity);
+            Transform fPointTransform = FirePoint;
             fPointTransform = fPointTransform.TransformBy(pose);
             //playerDirection.y = MathFX.Clamp(playerDirection.y, -2.0f, 2.0f);
             Vector3 firePlayerDirection = targetLocation - fPointTransform.Position;
@@ -174,7 +175,7 @@ namespace Game
             Vector3 playerDirection = (_targetPosition - pose.Position).Normalized;
             float dotProduct = playerDirection.Dot(pose.Rotation * Vector3.Forward);
 
-            Vector3 soundOrigin = pose.TransformPoint(FirePointPosition);
+            Vector3 soundOrigin = pose.TransformPoint(FirePoint.Position);
 
             if (dotProduct > 0.95f && timeSinceLastBurst > burstPeriod - 1.0f && !burstInProgress)
             {
@@ -201,7 +202,7 @@ namespace Game
                 AssetID projectileId = AssetDB.PathToId("Prefabs/gun_projectile.wprefab");
                 Entity projectile = Registry.CreatePrefab(projectileId);
 
-                Transform firePoint = new(FirePointPosition, Quaternion.Identity);
+                Transform firePoint = FirePoint; 
 
                 Transform projectileTransform = Registry.GetTransform(projectile);
                 Transform firePointTransform = firePoint.TransformBy(pose);

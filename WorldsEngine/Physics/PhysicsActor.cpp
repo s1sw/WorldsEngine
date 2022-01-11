@@ -1,6 +1,6 @@
 #include "PhysicsActor.hpp"
-#include "Physics/Physics.hpp"
-#include "PxRigidDynamic.h"
+#include <physx/PxRigidDynamic.h>
+#include <Physics/Physics.hpp>
 
 namespace worlds {
     glm::vec3 DynamicPhysicsActor::linearVelocity() const {

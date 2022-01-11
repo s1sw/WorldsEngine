@@ -138,6 +138,20 @@ namespace worlds {
                 ImGui::EndPopup();
             }
 
+            if (ImGui::BeginPopup("New Material")) {
+                static std::string newMaterialName;
+                if (ImGui::InputText("Name", &newMaterialName, ImGuiInputTextFlags_EnterReturnsTrue)) {
+                    std::string p = "SourceData/" + currentDir + "/" + newMaterialName;
+                    AssetID id = AssetDB::createAsset(p);
+                    PHYSFS_File* f = PHYSFS_openWrite(p.c_str());
+                    const char emptyJson[] = "{}";
+                    PHYSFS_writeBytes(f, emptyJson, sizeof(emptyJson));
+                    PHYSFS_close(f);
+                    ImGui::CloseCurrentPopup();
+                }
+                ImGui::EndPopup();
+            }
+
             static std::string assetContextMenu;
             if (ImGui::IsMouseClicked(ImGuiMouseButton_Right) && ImGui::IsWindowHovered()) {
                 assetContextMenu = assetContextMenuPath;
@@ -146,10 +160,16 @@ namespace worlds {
 
             bool openAssetNamePopup = false;
             bool openNewFolderPopup = false;
+            bool openNMaterialPopup = false;
             if (ImGui::BeginPopup("ContextMenu")) {
                 if (ImGui::Button("New Folder")) {
                     ImGui::CloseCurrentPopup();
                     openNewFolderPopup = true;
+                }
+
+                if (ImGui::Button("Create Material")) {
+                    ImGui::CloseCurrentPopup();
+                    openNMaterialPopup = true;
                 }
 
                 std::string assetExtension = std::filesystem::path{ assetContextMenu }.extension().string();
@@ -192,6 +212,9 @@ namespace worlds {
 
             if (openNewFolderPopup)
                 ImGui::OpenPopup("New Folder");
+
+            if (openNMaterialPopup)
+                ImGui::OpenPopup("New Material");
 
             PHYSFS_freeList(files);
         }

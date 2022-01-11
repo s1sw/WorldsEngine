@@ -280,7 +280,7 @@ namespace WorldsEngine
                     {
                         field.SetValue(null, Deserialize((SerializedObject)serializedField.Value!));
                     }
-                    else
+                    else if (!field.IsInitOnly)
                     {
                         field.SetValue(null, serializedField.Value);
                     }

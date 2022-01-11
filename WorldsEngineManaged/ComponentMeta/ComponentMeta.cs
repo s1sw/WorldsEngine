@@ -250,6 +250,7 @@ namespace WorldsEngine.ComponentMeta
                         {
                             transformCtx.StartUsing(instance, fieldName);
                             Transform currentValue = (Transform)fieldInfo.GetValue(instance)!;
+                            if (!currentValue.Rotation.Valid) currentValue.Rotation = Quaternion.Identity;
                             currentValue = currentValue.TransformBy(Registry.GetTransform(entity));
                             Registry.SetTransform(transformCtx.Entity!.Value, currentValue);
                         }

@@ -9,11 +9,16 @@ namespace worlds {
     struct TonemapPushConstants {
         int idx;
         float exposureBias;
+        float vignetteRadius;
+        float vignetteSoftness;
+        glm::vec3 vignetteColor;
     };
 
     static ConVar exposureBias("r_exposure", "0.5");
+    static ConVar vignetteRadius("r_vignetteRadius", "0.75");
+    static ConVar vignetteSoftness("r_vignetteSoftness", "0.2");
 
-    TonemapRenderPass::TonemapRenderPass(
+    TonemapFXRenderPass::TonemapFXRenderPass(
             VulkanHandles* handles,
             RenderResource* hdrImg,
             RenderResource* finalPrePresent,
@@ -25,7 +30,7 @@ namespace worlds {
 
     }
 
-    void TonemapRenderPass::setup(RenderContext& ctx, VkDescriptorPool descriptorPool) {
+    void TonemapFXRenderPass::setup(RenderContext& ctx, VkDescriptorPool descriptorPool) {
         dsPool = descriptorPool;
 
         int msaaSamples = hdrImg->image().info().samples;
@@ -75,7 +80,7 @@ namespace worlds {
         dsu.update(handles->device);
     }
 
-    void TonemapRenderPass::execute(RenderContext& ctx) {
+    void TonemapFXRenderPass::execute(RenderContext& ctx) {
 #ifdef TRACY_ENABLE
         ZoneScoped;
         TracyVkZone((*ctx.debugContext.tracyContexts)[ctx.frameIndex], ctx.cmdBuf, "Tonemap/Postprocessing");
@@ -83,7 +88,7 @@ namespace worlds {
         auto& cmdBuf = ctx.cmdBuf;
 
         VkDebugUtilsLabelEXT label{ VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT };
-        label.pLabelName = "Tonemap Render Pass";
+        label.pLabelName = "Tonemap/Postprocessing Render Pass";
         label.color[0] = 0.760f;
         label.color[1] = 0.298f;
         label.color[2] = 0.411f;
@@ -97,7 +102,7 @@ namespace worlds {
 
         vkCmdBindDescriptorSets(cmdBuf, VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
         vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline);
-        TonemapPushConstants tpc{ 0, exposureBias.getFloat() };
+        TonemapPushConstants tpc{ 0, exposureBias.getFloat(), vignetteRadius.getFloat(), vignetteSoftness.getFloat(), glm::vec3(1.0, 0.0, 0.0) };
         vkCmdPushConstants(cmdBuf, pipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(tpc), &tpc);
 
         vkCmdDispatch(cmdBuf, (ctx.passWidth + 15) / 16, (ctx.passHeight + 15) / 16, 1);
@@ -109,7 +114,7 @@ namespace worlds {
                 VK_ACCESS_SHADER_WRITE_BIT);
 
             vkCmdBindDescriptorSets(cmdBuf, VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, 0, 1, &rDescriptorSet, 0, nullptr);
-            TonemapPushConstants tpc{ 1, exposureBias.getFloat() };
+            tpc.idx = 1;
             vkCmdPushConstants(cmdBuf, pipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(tpc), &tpc);
             vkCmdDispatch(cmdBuf, (ctx.passWidth + 15) / 16, (ctx.passHeight + 15) / 16, 1);
         }
@@ -122,7 +127,7 @@ namespace worlds {
         vkCmdEndDebugUtilsLabelEXT(cmdBuf);
     }
 
-    void TonemapRenderPass::setRightFinalImage(RenderResource* right) {
+    void TonemapFXRenderPass::setRightFinalImage(RenderResource* right) {
         vku::DescriptorSetMaker dsm;
         dsm.layout(dsl);
         rDescriptorSet = std::move(dsm.create(handles->device, dsPool)[0]);
@@ -144,6 +149,6 @@ namespace worlds {
         dsu.update(handles->device);
     }
 
-    TonemapRenderPass::~TonemapRenderPass() {
+    TonemapFXRenderPass::~TonemapFXRenderPass() {
     }
 }

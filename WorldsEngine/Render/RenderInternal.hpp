@@ -17,7 +17,7 @@ namespace std {
 namespace worlds {
     class PolyRenderPass;
     class ImGuiRenderPass;
-    class TonemapRenderPass;
+    class TonemapFXRenderPass;
     class ShadowCascadePass;
     class AdditionalShadowsPass;
     class GTAORenderPass;
@@ -358,7 +358,7 @@ namespace worlds {
         void create(VKRenderer* renderer, IVRInterface* vrInterface, uint32_t frameIdx, RenderDebugStats* dbgStats);
         void destroy();
         PolyRenderPass* prp;
-        TonemapRenderPass* trp;
+        TonemapFXRenderPass* trp;
         bool isVr;
         bool outputToScreen;
         bool enableShadows;
@@ -429,7 +429,7 @@ namespace worlds {
 
         struct RTTPassInternal {
             PolyRenderPass* prp;
-            TonemapRenderPass* trp;
+            TonemapFXRenderPass* trp;
             uint32_t width, height;
             RenderResource* hdrTarget;
             RenderResource* sdrFinalTarget;
