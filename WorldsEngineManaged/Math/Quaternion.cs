@@ -59,6 +59,8 @@ namespace WorldsEngine.Math
         public Vector3 Left => this * Vector3.Left;
         public Vector3 Up => this * Vector3.Up;
 
+        public bool Valid => Length > 0.9999f && Length < 1.00001f;
+
         public Quaternion(float w, float x, float y, float z)
         {
             this.w = w;

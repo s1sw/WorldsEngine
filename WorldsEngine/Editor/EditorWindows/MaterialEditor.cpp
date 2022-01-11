@@ -179,7 +179,11 @@ namespace worlds {
                 ImGui::ColorEdit3("Emissive Color", &mat.emissiveColor.x);
 
                 auto& texMan = interfaces.renderer->uiTextureManager();
-                ImGui::Text("Current albedo path: %s", AssetDB::idToPath(mat.albedo).c_str());
+                if (mat.albedo != ~0u) {
+                    ImGui::Text("Current albedo path: %s", AssetDB::idToPath(mat.albedo).c_str());
+                } else {
+                    ImGui::TextColored(ImVec4(1, 0, 0, 1), "Invalid albedo map");
+                }
                 assetButton(mat.albedo, "Albedo", texMan);
 
                 if (mat.normalMap != ~0u) {

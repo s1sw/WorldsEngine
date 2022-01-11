@@ -12,6 +12,7 @@ namespace Game
         private float lookY = 0.0f;
 
         private Entity _listenerEntity;
+        private static readonly Vector3 _toFloor = new(0.0f, -(1.8f * 0.5f) - 0.15f, 0.0f);
 
         public void OnSceneStart()
         {
@@ -34,14 +35,15 @@ namespace Game
 
             if (!VR.Enabled)
             {
-                return bodyDpa.Pose.Position + new Vector3(0.0f, bodyTransform.Scale.y - 0.05f, 0.0f);
+                return bodyDpa.Pose.Position + _toFloor + new Vector3(0.0f, 1.8f, 0.0f);
+
             }
             else
             {
                 Vector3 hmdOffset = VR.HMDTransform.Position;
                 hmdOffset.y = 0.0f;
 
-                return bodyDpa.Pose.Position + (Camera.Main.Rotation * -hmdOffset) - new Vector3(0f, bodyTransform.Scale.y - 0.05f, 0f);
+                return bodyDpa.Pose.Position + (Camera.Main.Rotation * -hmdOffset) + _toFloor;
             }
         }
 
@@ -64,7 +66,7 @@ namespace Game
                 {
                     Camera.Main.Rotation = cameraRotation;
                     Transform bodyTransform = Registry.GetTransform(PlayerRigSystem.PlayerBody);
-                    Camera.Main.Position = bodyTransform.Position + new Vector3(0.0f, bodyTransform.Scale.y - 0.05f, 0.0f);
+                    Camera.Main.Position = bodyTransform.Position + _toFloor + new Vector3(0.0f, 1.8f, 0.0f);
                 }
             }
             else
@@ -73,8 +75,7 @@ namespace Game
                 hmdOffset.y = 0.0f;
 
                 Transform bodyTransform = Registry.GetTransform(PlayerRigSystem.PlayerBody);
-                Camera.Main.Position = bodyTransform.Position + (Camera.Main.Rotation * -hmdOffset) - new Vector3(0f, bodyTransform.Scale.y - 0.05f, 0f);
-
+                Camera.Main.Position = bodyTransform.Position + (Camera.Main.Rotation * -hmdOffset) + _toFloor;
                 Transform listenerTransform = new();
 
                 listenerTransform.Position = Camera.Main.Position + VR.HMDTransform.Position;

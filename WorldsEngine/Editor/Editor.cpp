@@ -67,10 +67,11 @@ namespace worlds {
 
         std::string base =
 #ifndef NDEBUG
-            "Worlds Engine Editor (debug) | "
+            "Worlds Engine Editor (debug) - "
 #else
-            "Worlds Engine Editor | "
+            "Worlds Engine Editor - "
 #endif
+            + std::string(project->name()) + " | "
             + interfaces.engine->getCurrentSceneInfo().name;
 
         if (lastSaveModificationCount != undo.modificationCount()) {

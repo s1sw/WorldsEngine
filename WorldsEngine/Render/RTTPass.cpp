@@ -86,7 +86,7 @@ namespace worlds {
         }
 
 
-        trp = new TonemapRenderPass(
+        trp = new TonemapFXRenderPass(
             &handles,
             hdrTarget,
             createInfo.isVr ? renderer->leftEye : createInfo.outputToScreen ? renderer->finalPrePresent : sdrFinalTarget,

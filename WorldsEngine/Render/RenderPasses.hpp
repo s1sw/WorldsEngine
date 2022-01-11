@@ -329,7 +329,7 @@ namespace worlds {
         ~AdditionalShadowsPass();
     };
 
-    class TonemapRenderPass {
+    class TonemapFXRenderPass {
     private:
         VkShaderModule tonemapShader;
         vku::DescriptorSetLayout dsl;
@@ -345,11 +345,11 @@ namespace worlds {
         RenderResource* bloomImg;
         VulkanHandles* handles;
     public:
-        TonemapRenderPass(VulkanHandles* handles, RenderResource* hdrImg, RenderResource* finalPrePresent, RenderResource* bloomImg);
+        TonemapFXRenderPass(VulkanHandles* handles, RenderResource* hdrImg, RenderResource* finalPrePresent, RenderResource* bloomImg);
         void setup(RenderContext& ctx, VkDescriptorPool descriptorPool);
         void execute(RenderContext& ctx);
         void setRightFinalImage(RenderResource* right);
-        virtual ~TonemapRenderPass();
+        virtual ~TonemapFXRenderPass();
     };
 
     class BloomRenderPass : public RenderPass {

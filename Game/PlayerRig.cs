@@ -15,10 +15,8 @@ namespace Game
     [EditorFriendlyName("C# Player Rig")]
     public class PlayerRig : IThinkingComponent, IStartListener
     {
-        const float LocosphereRadius = 0.15f;
-
         [EditableClass]
-        public V3PidController pidController = new V3PidController();
+        public V3PidController pidController = new();
 
         private bool _grounded = false;
         private bool _groundedLast = false;
@@ -27,12 +25,13 @@ namespace Game
         private float _footstepTimer = 0.0f;
         private float _timeSinceDodge = 1000.0f;
         private float _timeSinceJump = 0.0f;
+        private float _airTime = 0.0f;
         private Vector3 _lastDodgeDirection = Vector3.Zero;
 
         private Vector2 GetInputVelocity()
         {
             if (FreecamSystem.Enabled) return Vector2.Zero;
-            Vector2 inputVel = new Vector2();
+            Vector2 inputVel = new();
 
             if (Keyboard.KeyHeld(KeyCode.W))
             {
@@ -94,7 +93,7 @@ namespace Game
 
         private void UpdateSound(Entity entity, Vector3 inputDirCS)
         {
-            if (_grounded && !_groundedLast)
+            if (_grounded && !_groundedLast && _airTime > 0.1f)
             {
                 Audio.PlayOneShotEvent("event:/Player/Land", Vector3.Zero);
             }
@@ -132,10 +131,10 @@ namespace Game
             inputDirCS.Normalize();
 
             _grounded = Physics.SweepSphere(
-                dpa.Pose.Position + (Vector3.Down * 0.75f),
+                dpa.Pose.Position + (Vector3.Down * 0.9f),
                 0.1f,
                 Vector3.Down,
-                0.45f,
+                0.1f,
                 out RaycastHit hit,
                 PhysicsLayers.Player
             );
@@ -151,7 +150,18 @@ namespace Game
             PlayerRigSystem.Jump = false;
 
             if (_grounded && _timeSinceJump > 0.1f)
-                dpa.AddForce(pidController.CalculateForce(targetPosition - dpa.Pose.Position, Time.DeltaTime));
+            {
+                Vector3 force = pidController.CalculateForce(targetPosition - dpa.Pose.Position, Time.DeltaTime);
+                force.x = 0.0f;
+                force.z = 0.0f;
+                dpa.AddForce(force);
+            }
+
+            if (!_grounded && _groundedLast)
+                _airTime = 0.0f;
+
+            if (!_grounded)
+                _airTime += Time.DeltaTime;
 
             Vector3 targetVelocity = inputDirCS * 7.5f * max;
             Vector3 appliedVelocity = (targetVelocity - dpa.Velocity) * (_grounded ? 10f : 2.5f);

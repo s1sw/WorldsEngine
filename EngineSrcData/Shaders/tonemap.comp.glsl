@@ -7,6 +7,7 @@ layout (binding = 1) uniform sampler2DArray hdrImage;
 #endif
 layout (binding = 2) uniform sampler2DArray bloomImage;
 layout (local_size_x = 16, local_size_y = 16) in;
+#include <math.glsl>
 
 #ifdef MSAA
 layout(constant_id = 0) const int NUM_MSAA_SAMPLES = 4;
@@ -16,6 +17,9 @@ const int NUM_MSAA_SAMPLES = 1;
 layout(push_constant) uniform PushConstants {
     int idx;
     float exposureBias;
+    float vignetteRadius;
+    float vignetteSoftness;
+    vec3 vignetteColor;
 };
 
 float A = 0.15;
@@ -83,7 +87,18 @@ void main() {
     
     acc *= rcp(NUM_MSAA_SAMPLES);
     acc = TonemapInvert(acc);
-    acc = tonemapCol(acc, whiteScale);
+    acc = saturate(tonemapCol(acc, whiteScale));
+    
+#ifdef MSAA
+    vec2 uv = vec2(gl_GlobalInvocationID.xy) / vec2(textureSize(hdrImage));
+#else
+    vec2 uv = vec2(gl_GlobalInvocationID.xy) / vec2(textureSize(hdrImage, 0));
+#endif
+    
+    vec2 centerVec = (uv - vec2(0.5, 0.5));
+    float smoothness = 0.2;
+    float vig = smoothstep(vignetteRadius, vignetteRadius - vignetteSoftness, length(centerVec));
+    float vigBlend = smoothstep(vignetteRadius * 2, vignetteRadius * 2 - (vignetteSoftness * 5), length(centerVec));
     
     //// debugging checks for NaN and negatives
     ///*
@@ -91,7 +106,7 @@ void main() {
     //   if (any(isnan(acc))) acc = vec3(1.0, 0.0, 1.0);
     // */
 
-    vec3 final = pow(acc, vec3(1 / 2.2));
+    vec3 final = pow(mix(acc, mix(vec3(0.5, 0.0, 0.0), acc, vigBlend), 1.0 - vig), vec3(1 / 2.2));
 
     imageStore(resultImage, ivec2(gl_GlobalInvocationID.xy), vec4(final, 1.0));
 }
