@@ -104,8 +104,8 @@ namespace worlds {
 
         void create(entt::entity ent, entt::registry& reg) override {
             if (!reg.has<DynamicPhysicsActor>(ent)) {
-                logWarn("Can't add a D6 joint to an entity without a dynamic physics actor!");
-                return;
+                //logWarn("Can't add a D6 joint to an entity without a dynamic physics actor!");
+                //return;
             }
 
             reg.emplace<D6Joint>(ent);
@@ -113,17 +113,12 @@ namespace worlds {
 
         void edit(entt::entity ent, entt::registry& reg, Editor* ed) override {
             auto& j = reg.get<D6Joint>(ent);
-            if (!reg.has<DynamicPhysicsActor>(ent)) {
-                reg.remove<D6Joint>(ent);
-                return;
-            }
 
-            auto& dpa = reg.get<DynamicPhysicsActor>(ent);
+            auto* dpa = reg.try_get<DynamicPhysicsActor>(ent);
             auto* pxj = j.pxJoint;
 
             if (ImGui::CollapsingHeader(ICON_FA_ATOM u8" D6 Joint")) {
                 if (ImGui::Button("Remove##D6")) {
-                    logMsg("removing d6");
                     reg.remove<D6Joint>(ent);
                     return;
                 }
@@ -161,7 +156,40 @@ namespace worlds {
                     }
                 }
 
-                dpa.actor->is<physx::PxRigidDynamic>()->wakeUp();
+                if (dpa)
+                    dpa->actor->is<physx::PxRigidDynamic>()->wakeUp();
+                else {
+                    if (reg.valid(j.getAttached())) {
+                        NameComponent* nc = reg.try_get<NameComponent>(j.getAttached());
+
+                        if (nc) {
+                            ImGui::Text("Attached to %s", nc->name.c_str());
+                        } else {
+                            ImGui::Text("Attached to entity %u", (uint32_t)j.getAttached());
+                        }
+                    } else {
+                        ImGui::Text("Not attached");
+                    }
+
+                    ImGui::SameLine();
+
+                    static bool changingAttached = false;
+
+                    if (!changingAttached) {
+                        if (ImGui::Button("Change##Attached")) {
+                            changingAttached = true;
+                        }
+                    }
+
+                    if (changingAttached) {
+                        entt::entity attached = j.getAttached();
+                        if (ed->entityEyedropper(attached)) {
+                            changingAttached = false;
+                            j.setAttached(attached, reg);
+                        }
+                    }
+                }
+
                 for (int axisInt = physx::PxD6Axis::eX; axisInt < physx::PxD6Axis::eCOUNT; axisInt++) {
                     auto axis = (physx::PxD6Axis::Enum)axisInt;
                     auto motion = j.pxJoint->getMotion(axis);
@@ -230,12 +258,12 @@ namespace worlds {
 
                 float connectedMassScale = 1.0f / j.pxJoint->getInvMassScale1();
                 if (ImGui::DragFloat("Connected Mass Scale", &connectedMassScale)) {
-                    j.pxJoint->setInvMassScale0(1.0f / connectedMassScale);
+                    j.pxJoint->setInvMassScale1(1.0f / connectedMassScale);
                 }
 
                 float connectedInertiaScale = 1.0f / j.pxJoint->getInvInertiaScale1();
                 if (ImGui::DragFloat("Connected Inertia Scale", &connectedInertiaScale)) {
-                    j.pxJoint->setInvInertiaScale0(1.0f / connectedInertiaScale);
+                    j.pxJoint->setInvInertiaScale1(1.0f / connectedInertiaScale);
                 }
 
                 float breakForce, breakTorque;
@@ -381,6 +409,9 @@ namespace worlds {
             else
                 logErr("invalid d6 target");
 
+            if (reg.valid(d6.getAttached()))
+                j["attached"] = d6.getAttached();
+
             json linearLimits;
             for (int axisInt = physx::PxD6Axis::eX; axisInt < physx::PxD6Axis::eTWIST; axisInt++) {
                 auto axis = (physx::PxD6Axis::Enum)axisInt;
@@ -461,6 +492,13 @@ namespace worlds {
                     logErr("Invalid target while deserializing D6!");
                 else
                     d6.setTarget(j["target"], reg);
+            }
+
+            if (j.contains("attached")) {
+                if (!reg.valid(j["attached"]))
+                    logErr("Invalid attached entity while deserializing D6 joint");
+                else
+                    d6.setAttached(j["attached"], reg);
             }
         }
     };

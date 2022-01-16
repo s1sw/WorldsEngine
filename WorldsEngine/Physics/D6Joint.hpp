@@ -1,4 +1,5 @@
 #pragma once
+#include <entt/entity/entity.hpp>
 #include <entt/entity/fwd.hpp>
 
 namespace physx {
@@ -21,7 +22,7 @@ namespace worlds {
         D6Joint(const D6Joint&) = delete;
         D6Joint(D6Joint&& other) noexcept;
         void operator=(D6Joint&& other);
-        physx::PxD6Joint* pxJoint;
+        physx::PxD6Joint* pxJoint = nullptr;
         bool reverseJoint = false;
 
         void setTarget(entt::entity newTargetEnt, entt::registry& reg);
@@ -29,11 +30,18 @@ namespace worlds {
         void setAllAngularMotion(D6Motion motion);
         entt::entity getTarget();
 
+        entt::entity getAttached();
+        void setAttached(entt::entity entity, entt::registry& reg);
+
         ~D6Joint();
     private:
+        void updateJointActors();
         friend void setupD6Joint(entt::registry&, entt::entity);
         friend class D6JointEditor;
-        physx::PxRigidActor* thisActor;
+        physx::PxRigidActor* thisActor = nullptr;
+        physx::PxRigidActor* originalThisActor = nullptr;
+        physx::PxRigidActor* targetActor = nullptr;
         entt::entity targetEntity;
+        entt::entity replaceThis = entt::null;
     };
 }

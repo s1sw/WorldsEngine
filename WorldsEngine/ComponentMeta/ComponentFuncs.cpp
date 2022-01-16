@@ -1005,8 +1005,14 @@ namespace worlds {
             auto* actor = g_physics->createRigidDynamic(pTf);
 
             auto& newPhysActor = reg.emplace<DynamicPhysicsActor>(to, actor);
-            newPhysActor = oldDpa;
+            newPhysActor.mass = oldDpa.mass;
             newPhysActor.actor = actor;
+            newPhysActor.physicsShapes = oldDpa.physicsShapes;
+            newPhysActor.layer = oldDpa.layer;
+            newPhysActor.setLockFlags(oldDpa.lockFlags());
+            newPhysActor.enableGravity = oldDpa.enableGravity;
+            newPhysActor.enableCCD = oldDpa.enableCCD;
+            newPhysActor.layer = oldDpa.layer;
 
             g_scene->addActor(*actor);
 
