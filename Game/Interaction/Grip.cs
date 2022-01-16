@@ -19,7 +19,8 @@ namespace Game.Interaction
     {
         Manual,
         Box,
-        Cylinder
+        Cylinder,
+        Sphere
     }
 
     public class Grip
@@ -31,6 +32,7 @@ namespace Game.Interaction
         public Quaternion rotation;
 
         public Vector3 BoxExtents;
+        public float SphereRadius;
 
         public bool Exclusive;
 
@@ -65,6 +67,12 @@ namespace Game.Interaction
 
                 linearScore = hand.Position.DistanceTo(GetAttachPointForBoxGrip(handInLocalSpace.Position));
             }
+            else if (Type == GripType.Sphere)
+            {
+                Transform handInLocalSpace = hand.TransformByInverse(obj);
+
+                linearScore = hand.Position.DistanceTo(GetAttachPointForBoxGrip(handInLocalSpace.Position));
+            }
 
             float angularScore = Quaternion.Dot(hand.Rotation.SingleCover, (obj.Rotation * rotation).SingleCover);
 
@@ -84,6 +92,18 @@ namespace Game.Interaction
 
                 Quaternion rotation = handRotAroundNormal * Quaternion.FromTo(isRightHand ? Vector3.Right : Vector3.Left, normal);
 
+                return new Transform(position, rotation);
+            }
+            else if (Type == GripType.Sphere)
+            {
+                Vector3 position = GetAttachPointForSphereGrip(handInLocalSpace.Position);
+                Vector3 normal = GetNormalForSphereGrip(handInLocalSpace.Position);
+                
+                // Get the hand's rotation around the normal axis and apply that to make the grip smoother
+                Quaternion handRotAroundNormal = handInLocalSpace.Rotation.DecomposeTwist(normal);
+                
+                Quaternion rotation = handRotAroundNormal * Quaternion.FromTo(isRightHand ? Vector3.Right : Vector3.Left, normal);
+                
                 return new Transform(position, rotation);
             }
 
@@ -147,6 +167,18 @@ namespace Game.Interaction
             }
 
             return yAxis;
+        }
+
+        private Vector3 GetAttachPointForSphereGrip(Vector3 p)
+        {
+            Vector3 d = p - position;
+            d.Normalize();
+            return position + d * SphereRadius;
+        }
+
+        private Vector3 GetNormalForSphereGrip(Vector3 p)
+        {
+            return (p - position).Normalized;
         }
     }
 }

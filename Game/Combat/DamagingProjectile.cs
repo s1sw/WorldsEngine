@@ -17,6 +17,7 @@ namespace Game.Combat
         public double CreationTime = 0.0;
         public int BounceCount = 0;
         public Entity Attacker = Entity.Null;
+        public AmmoType ProjectileType;
 
         public void Start(Entity e)
         {
@@ -43,6 +44,11 @@ namespace Game.Combat
             }
             else
             {
+                if (Registry.TryGetComponent<ProjectilePrism>(contactInfo.OtherEntity, out var projectilePrism))
+                {
+                    projectilePrism.RefractProjectile(entity);
+                }
+
                 Registry.DestroyNext(entity);
             }
 
