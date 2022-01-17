@@ -647,7 +647,7 @@ namespace worlds {
 
                 std::cout << "\r"
                     << clearLineCode << 
-                    "\033[38;2;" << r << ";" << g << ";" << "m" << outStr << "\n";
+                    "\033[38;2;" << r << ";" << g << ";" << b << "m" << outStr << "\n";
 
                 if (g_console->asyncConsoleThread)
                     std::cout << "\033[32mworlds> \033[0m";
