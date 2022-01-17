@@ -28,7 +28,7 @@ public class NeuralDriverSystem : ISystem
     private List<Candidate> _generation = new();
     private int _candidateIndex = 0;
     private int _generationNumber = 0;
-    private bool _active = false;
+    private bool _active = true;
 
     public void OnSceneStart()
     {
@@ -36,6 +36,7 @@ public class NeuralDriverSystem : ISystem
 
         if (drivers.components.Count == 0)
         {
+            Log.Msg("no drivers!!");
             _active = false;
             return;
         }
@@ -55,6 +56,7 @@ public class NeuralDriverSystem : ISystem
     public void OnUpdate()
     {
         if (!_active) return;
+        Log.Msg("active");
 
         var drivers = Registry.View<NeuralDriverComponent>();
         _currentGenerationTime += Time.DeltaTime;
