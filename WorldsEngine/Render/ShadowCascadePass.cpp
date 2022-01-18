@@ -115,6 +115,7 @@ namespace worlds {
     }
 
     void ShadowCascadePass::execute(RenderContext& ctx) {
+        if (!ctx.cascadeInfo.shadowCascadeNeeded) return;
 #ifdef TRACY_ENABLE
         ZoneScoped;
         TracyVkZone((*ctx.debugContext.tracyContexts)[ctx.frameIndex], ctx.cmdBuf, "Shadowmap");

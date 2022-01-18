@@ -1225,6 +1225,7 @@ glm::mat4 VKRenderer::getCascadeMatrix(bool forVr, Camera cam, glm::vec3 lightDi
 worlds::ConVar doGTAO{ "r_doGTAO", "0" };
 
 void VKRenderer::calculateCascadeMatrices(bool forVr, entt::registry& world, Camera& cam, RenderContext& rCtx) {
+    bool hasLight = false;
     world.view<WorldLight, Transform>().each([&](auto, WorldLight& l, Transform& transform) {
         glm::vec3 lightForward = transform.rotation * glm::vec3(0.0f, 0.0f, -1.0f);
         if (l.type == LightType::Directional) {
@@ -1258,8 +1259,10 @@ void VKRenderer::calculateCascadeMatrices(bool forVr, entt::registry& world, Cam
                         frustumMatrices[i], rCtx.cascadeInfo.texelsPerUnit[i]
                     );
             }
+            hasLight = true;
         }
         });
+    rCtx.cascadeInfo.shadowCascadeNeeded = hasLight;
 }
 
 void VKRenderer::writeCmdBuf(VkCommandBuffer cmdBuf, uint32_t imageIndex, Camera& cam, entt::registry& reg) {
@@ -1362,13 +1365,6 @@ void VKRenderer::writeCmdBuf(VkCommandBuffer cmdBuf, uint32_t imageIndex, Camera
         VK_PIPELINE_STAGE_TRANSFER_BIT,
         VK_ACCESS_TRANSFER_READ_BIT);
 
-    //cmdBuf->clearColorImage(
-    //    swapchain->images[imageIndex],
-    //    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-    //    VkClearColorValue{ std::array<float, 4>{ 0.0f, 0.0f, 0.0f, 1.0f } },
-    //    VkImageSubresourceRange{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 }
-    //);
-
     if (!lastPassIsVr) {
         VkImageBlit imageBlit{};
         imageBlit.srcOffsets[1] = imageBlit.dstOffsets[1] = VkOffset3D{ (int)width, (int)height, 1 };
@@ -1377,7 +1373,6 @@ void VKRenderer::writeCmdBuf(VkCommandBuffer cmdBuf, uint32_t imageIndex, Camera
             presentSubmitManager->currentSwapchain().images[imageIndex], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imageBlit, VK_FILTER_NEAREST);
     } else {
         // Calculate the best crop for the current window size against the VR render target
-        //float scaleFac = glm::min((float)windowSize.x / renderWidth, (float)windowSize.y / renderHeight);
         float aspect = (float)windowSize.y / (float)windowSize.x;
         float croppedHeight = aspect * vrWidth;
 
