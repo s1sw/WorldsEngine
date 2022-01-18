@@ -78,6 +78,7 @@ namespace worlds {
     };
 
     struct ShadowCascadeInfo {
+        bool shadowCascadeNeeded = false;
         glm::mat4 matrices[3];
         float texelsPerUnit[3];
     };
