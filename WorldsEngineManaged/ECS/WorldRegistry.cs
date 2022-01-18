@@ -332,10 +332,11 @@ namespace WorldsEngine
             storage.SetBoxed(entity, value);
         }
 
-        public static bool TryGetComponent<T>(Entity entity, out T? component)
+        public static bool TryGetComponent<T>(Entity entity, out T component)
         {
-            if (!HasComponent<T>(entity)) {
-                component = default(T);
+            if (!HasComponent<T>(entity))
+            {
+                component = default(T)!;
                 return false;
             }
 
@@ -450,10 +451,20 @@ namespace WorldsEngine
             storage.Remove(entity);
         }
 
+        internal static bool OverrideTransformToDPAPose = false;
+
         [MustUseReturnValue]
         public static Transform GetTransform(Entity entity)
         {
             if (!Valid(entity)) throw new ArgumentException("Invalid entity handle");
+            if (OverrideTransformToDPAPose)
+            {
+                if (HasComponent<DynamicPhysicsActor>(entity))
+                {
+                    return GetComponent<DynamicPhysicsActor>(entity).Pose;
+                }
+            }
+
             Transform t = new Transform();
             unsafe
             {
@@ -465,6 +476,12 @@ namespace WorldsEngine
 
         public static void SetTransform(Entity entity, Transform t)
         {
+            if (OverrideTransformToDPAPose && TryGetComponent<DynamicPhysicsActor>(entity, out var dpa))
+            {
+                dpa.Pose = t;
+                return;
+            }
+
             unsafe
             {
                 Transform* tPtr = &t;
@@ -601,7 +618,6 @@ namespace WorldsEngine
 
                 var componentStorage = componentStorages[i]!;
                 if (!typeof(IStartListener).IsAssignableFrom(componentStorage.Type)) continue;
-
 
                 foreach (Entity e in componentStorages[i]!)
                 {
