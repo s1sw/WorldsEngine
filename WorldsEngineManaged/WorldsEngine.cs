@@ -167,6 +167,7 @@ namespace WorldsEngine
             Time.DeltaTime = deltaTime;
             Time.CurrentTime = _simulationTime;
 
+            Registry.OverrideTransformToDPAPose = true;
             try
             {
                 Physics.FlushCollisionQueue();
@@ -185,19 +186,11 @@ namespace WorldsEngine
             }
 
             Registry.ClearDestroyQueue();
+            Registry.OverrideTransformToDPAPose = false;
 
             _simulationTime += Time.DeltaTime;
         }
 
-        /// <summary>
-        /// Converts a long to a byte, in string format
-        ///
-        /// This method essentially performs the same operation as ToString, with the output being a byte array,
-        /// rather than a string
-        /// </summary>
-        /// <param name="val">long integer input, with as many or fewer digits as the output buffer length</param>
-        /// <param name="outBuffer">output buffer</param>
-        private static char[] nums = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' };
         private static void ConvertLong(long val, Span<char> outBuffer)
         {
             int index = 0;
@@ -205,7 +198,7 @@ namespace WorldsEngine
 
             while (val > 0)
             {
-                outBuffer[numNums - index - 1] = nums[val % 10];
+                outBuffer[numNums - index - 1] = (char)('0' + (char)(val % 10));
                 val /= 10;
                 index++;
             }
