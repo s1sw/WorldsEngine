@@ -5,12 +5,12 @@
 #include <openvr.h>
 
 namespace worlds {
-    VKPresentSubmitManager::VKPresentSubmitManager(SDL_Window* window, VkSurfaceKHR surface, VulkanHandles* handles, Queues* queues, RenderDebugStats* dbgStats) 
+    VKPresentSubmitManager::VKPresentSubmitManager(SDL_Window* window, VkSurfaceKHR surface, VulkanHandles* handles, Queues* queues, RenderDebugStats* dbgStats)
         : sc(nullptr)
-        , window(window)
+        , dbgStats(dbgStats)
         , handles(handles)
         , queues(queues)
-        , dbgStats(dbgStats)
+        , window(window)
         , surface(surface) {
         VkCommandBufferAllocateInfo cbai{};
         cbai.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
