@@ -29,8 +29,8 @@ namespace worlds {
         glm::vec3 emissiveColor;
 		int aoTexIdx;
 
-		float getCutoff() { 
-			return (cutoffFlags & 0xFF) / 255.0f; 
+		float getCutoff() {
+			return (cutoffFlags & 0xFF) / 255.0f;
 		}
 
 		void setCutoff(float cutoff) {

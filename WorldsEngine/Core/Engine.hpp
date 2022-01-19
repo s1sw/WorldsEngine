@@ -1,13 +1,17 @@
 #pragma once
-#include <glm/glm.hpp>
-#include <SDL.h>
-#include "AssetDB.hpp"
-#include "IGameEventHandler.hpp"
+#include <stdint.h>
+#include <memory>
+#include <string>
+#include <vector>
 #include <bitset>
-#include "ISystem.hpp"
-#include "../Render/Camera.hpp"
-#include "Console.hpp"
-#include "Window.hpp"
+
+#include <SDL_events.h>
+#include <entt/entity/fwd.hpp>
+#include <entt/entity/registry.hpp>
+#include <glm/glm.hpp>
+
+#include "AssetDB.hpp"
+#include <Render/Camera.hpp>
 
 #ifdef CHECK_NEW_DELETE
 void* operator new(size_t count);
@@ -18,13 +22,16 @@ namespace worlds {
     const int NUM_SUBMESH_MATS = 32;
     extern glm::ivec2 windowSize;
     class Renderer;
-    class PolyRenderPass;
     class AudioSystem;
     class InputManager;
     class Editor;
     class DotNetScriptEngine;
     class OpenVRInterface;
     class RTTPass;
+    class Console;
+    class IGameEventHandler;
+    class ISystem;
+    class Window;
 
     struct SceneInfo {
         std::string name;

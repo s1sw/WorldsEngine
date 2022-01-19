@@ -3,6 +3,8 @@
 #include <iostream>
 #include <thread>
 #include "JobSystem.hpp"
+#include <Core/Window.hpp>
+#include <Core/ISystem.hpp>
 #include "Engine.hpp"
 #include <ImGui/imgui.h>
 #include <physfs.h>
@@ -72,7 +74,7 @@ void operator delete(void* ptr) noexcept {
     free(ptr);
 }
 #endif
-                   
+
 namespace worlds {
     uint32_t fullscreenToggleEventId;
     uint32_t showWindowEventId;
@@ -282,7 +284,6 @@ namespace worlds {
 
             _this->renderer->setImGuiDrawData(&renderThreadDrawData);
             _this->renderer->frame(renderThreadCamera, renderRegistry);
-            // <=>
 
             for (int i = 0; i < renderThreadDrawData.CmdListsCount; i++) {
                 IM_DELETE(renderThreadDrawData.CmdLists[i]);
@@ -668,10 +669,11 @@ namespace worlds {
             RTTPassCreateInfo screenRTTCI {
                 .width = w,
                 .height = h,
+                .resScale = 0.5f,
                 .isVr = enableOpenVR,
                 .useForPicking = false,
                 .enableShadows = true,
-                .outputToScreen = true
+                .outputToScreen = true,
             };
 
             screenRTTPass = renderer->createRTTPass(screenRTTCI);
@@ -766,7 +768,6 @@ namespace worlds {
             }
 
             uint64_t updateStart = SDL_GetPerformanceCounter();
-            bool recreateScreenRTT = false;
 
             window->processEvents();
             if (window->shouldQuit())

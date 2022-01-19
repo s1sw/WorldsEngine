@@ -133,6 +133,7 @@ namespace worlds {
     struct RTTPassCreateInfo {
         Camera* cam = nullptr;
         uint32_t width, height;
+        float resScale = 1.0f;
         bool isVr;
         bool useForPicking;
         bool enableShadows;
@@ -146,6 +147,10 @@ namespace worlds {
         uint32_t width, height;
         bool isValid = true;
         bool active = false;
+        float resScale = 1.0f;
+
+        uint32_t actualWidth() { return width * resScale; }
+        uint32_t actualHeight() { return height * resScale; }
 
         virtual void drawNow(entt::registry& world) = 0;
         virtual void requestPick(int x, int y) = 0;

@@ -1,17 +1,18 @@
 #include "ComponentEditorUtil.hpp"
-#include "../Physics/D6Joint.hpp"
+#include <Core/NameComponent.hpp>
+#include <Physics/D6Joint.hpp>
 #include <foundation/PxTransform.h>
-#include "../ImGui/imgui.h"
+#include <ImGui/imgui.h>
 #include <physx/PxPhysicsAPI.h>
 #include <physx/extensions/PxJoint.h>
 #include <physx/extensions/PxD6Joint.h>
-#include "../Physics/Physics.hpp"
-#include "../Physics/PhysicsActor.hpp"
-#include "../Libs/IconsFontAwesome5.h"
-#include "../Editor/GuiUtil.hpp"
-#include "../Core/Log.hpp"
+#include <Physics/Physics.hpp>
+#include <Physics/PhysicsActor.hpp>
+#include <Libs/IconsFontAwesome5.h>
+#include <Editor/GuiUtil.hpp>
+#include <Core/Log.hpp>
 #include <entt/entity/registry.hpp>
-#include "../Core/Fatal.hpp"
+#include <Core/Fatal.hpp>
 #include <nlohmann/json.hpp>
 
 using json = nlohmann::json;
@@ -103,11 +104,6 @@ namespace worlds {
         const char* getName() override { return "D6 Joint"; }
 
         void create(entt::entity ent, entt::registry& reg) override {
-            if (!reg.has<DynamicPhysicsActor>(ent)) {
-                //logWarn("Can't add a D6 joint to an entity without a dynamic physics actor!");
-                //return;
-            }
-
             reg.emplace<D6Joint>(ent);
         }
 
@@ -140,7 +136,7 @@ namespace worlds {
                 ImGui::Text("target: %u", (uint32_t)j.getTarget());
 
                 ImGui::SameLine();
-                
+
                 static bool changingTarget = false;
 
                 if (!changingTarget) {

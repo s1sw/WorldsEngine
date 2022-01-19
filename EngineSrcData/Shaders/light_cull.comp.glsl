@@ -170,7 +170,7 @@ void main() {
     // Changing the tile size means that there's no longer a 1:1 correlation between threads
     // and tile pixels, so this atomic depth read won't work.
     //
-    // NOTE: When MSAA is on, the last parameter refers to the MSAA sample to load. When MSAA is 
+    // NOTE: When MSAA is on, the last parameter refers to the MSAA sample to load. When MSAA is
     // off, it refers to the mipmap level to load from.
     float depthAtCurrent = texelFetch(depthBuffer, ivec3(gl_GlobalInvocationID.xy, eyeIdx), 0).x;
     uint depthAsUint = floatBitsToUint(depthAtCurrent);
@@ -296,6 +296,7 @@ void main() {
         // along the subgroup's light bitmask and then elect a single invocation
         // to perform the atomic.
         // This results in a *tiny* performance uplift.
+#ifdef USE_SUBGROUPS
         for (int i = 0; i <= maxBucketId; i++) {
             if (i == bucketIdx) {
                 uint setBits = subgroupBroadcastFirst(subgroupOr(uint(inFrustum || lightType == LT_DIRECTIONAL) << bucketBit));
@@ -303,6 +304,10 @@ void main() {
                     atomicOr(buf_LightTiles.tiles[tileIndex].lightIdMasks[i], setBits);
             }
         }
+#else
+        uint setBits = uint(inFrustum || lightType == LT_DIRECTIONAL) << bucketBit;
+        atomicOr(buf_LightTiles.tiles[tileIndex].lightIdMasks[bucketIdx], setBits);
+#endif
 
 #ifdef DEBUG
         if (inFrustum)

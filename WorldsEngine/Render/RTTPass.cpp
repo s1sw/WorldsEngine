@@ -11,6 +11,7 @@ namespace worlds {
         , renderer{ renderer }
         , vrInterface{ vrInterface }
         , dbgStats{ dbgStats } {
+        resScale = ci.resScale;
         createInfo = ci;
         create(renderer, vrInterface, frameIdx, dbgStats);
     }
@@ -18,6 +19,9 @@ namespace worlds {
     void VKRTTPass::create(VKRenderer* renderer, IVRInterface* vrInterface, uint32_t frameIdx, RenderDebugStats* dbgStats) {
         width = createInfo.width;
         height = createInfo.height;
+
+        uint32_t width = actualWidth();
+        uint32_t height = actualHeight();
 
         int framesInFlight = renderer->presentSubmitManager->numFramesInFlight();
         auto& handles = *renderer->getHandles();
@@ -172,6 +176,9 @@ namespace worlds {
             return nullptr;
         }
 
+        uint32_t width = actualWidth();
+        uint32_t height = actualHeight();
+
         VkImageCreateInfo ici{ VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
         ici.imageType = VK_IMAGE_TYPE_2D;
         ici.extent = VkExtent3D{ width, height, 1 };
@@ -231,7 +238,7 @@ namespace worlds {
 
             bool needsResolve = hdrTarget->image().info().samples != VK_SAMPLE_COUNT_1_BIT;
             if (needsResolve) {
-                VkImageResolve resolve = { 0 };
+                VkImageResolve resolve = {{ 0 }};
                 resolve.srcSubresource.layerCount = 1;
                 resolve.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 
@@ -252,7 +259,7 @@ namespace worlds {
                 VK_ACCESS_TRANSFER_WRITE_BIT,
                 VK_ACCESS_TRANSFER_READ_BIT);
 
-            VkImageBlit blit = { 0 };
+            VkImageBlit blit = {{ 0 }};
             blit.srcSubresource.layerCount = 1;
             blit.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
             blit.dstSubresource.layerCount = 1;
@@ -305,6 +312,8 @@ namespace worlds {
     void VKRTTPass::writeCmds(uint32_t frameIdx, VkCommandBuffer cmdBuf, entt::registry& world) {
         ZoneScoped;
         RenderResources resources = renderer->getResources();
+        uint32_t width = actualWidth();
+        uint32_t height = actualHeight();
         RenderContext rCtx{
             .resources = renderer->getResources(),
             .cascadeInfo = {},
