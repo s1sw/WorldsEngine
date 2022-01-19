@@ -37,7 +37,7 @@ namespace worlds {
             srcModel = AssetDB::pathToId(j.value("srcPath", "Raw/Models/cube.obj"));
             preTransformVerts = j.value("preTransformVerts", false);
             uniformScale = j.value("uniformScale", 1.0f);
-        } catch (nlohmann::detail::exception except) {
+        } catch (nlohmann::detail::exception& except) {
             addNotification(("Error opening " + AssetDB::idToPath(id)), NotificationType::Error);
             srcModel = INVALID_ASSET;
         }

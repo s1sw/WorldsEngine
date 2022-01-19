@@ -1,8 +1,10 @@
 #pragma once
-#include <SDL_video.h>
-#include <SDL_render.h>
 #include <string>
 #include <thread>
+
+#include <SDL_video.h>
+#include <SDL_render.h>
+#include <SDL_surface.h>
 
 namespace worlds {
     class SplashWindow {

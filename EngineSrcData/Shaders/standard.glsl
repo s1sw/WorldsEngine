@@ -7,7 +7,7 @@
 #extension GL_EXT_multiview : enable
 #endif
 #define MAX_SHADOW_LIGHTS 16
-#define HIGH_QUALITY_SHADOWS
+//#define HIGH_QUALITY_SHADOWS
 #include <math.glsl>
 #include <light.glsl>
 #include <material.glsl>
@@ -63,19 +63,19 @@ vec3 getViewPos() {
 void main() {
 #ifdef SKINNED
     mat4 model = mat4(0.0f);
-    
+
     model  = buf_BoneTransforms.matrices[skinningOffset + inBoneIds[0]] * inBoneWeights[0];
     model += buf_BoneTransforms.matrices[skinningOffset + inBoneIds[1]] * inBoneWeights[1];
     model += buf_BoneTransforms.matrices[skinningOffset + inBoneIds[2]] * inBoneWeights[2];
     model += buf_BoneTransforms.matrices[skinningOffset + inBoneIds[3]] * inBoneWeights[3];
-    
+
     model = modelMatrices[modelMatrixIdx + gl_InstanceIndex] * model;
 #else
     mat4 model = modelMatrices[modelMatrixIdx];
 #endif
 
     int vpMatIdx = vpIdx;
-    
+
 #ifdef MULTIVIEW
     vpMatIdx += gl_ViewIndex;
 #endif
@@ -83,7 +83,7 @@ void main() {
     outWorldPos = (model * vec4(inPosition, 1.0));
 
     gl_Position = (projection[vpMatIdx] * view[vpMatIdx] * model) * vec4(inPosition, 1.0); // Apply MVP transform
-    
+
     model = transpose(inverse(model));
 
     outNormal = normalize((model * vec4(inNormal, 0.0)).xyz);
@@ -105,14 +105,14 @@ void main() {
     } else if ((miscFlag & MISC_FLAG_UV_PICK) == MISC_FLAG_UV_PICK) {
         // Find maximum axis
         uint maxAxis = 0;
-    
+
         vec3 dots = vec3(0.0);
-    
+
         dots.x = abs(dot(outNormal, vec3(1.0, 0.0, 0.0)));
         dots.y = abs(dot(outNormal, vec3(0.0, 1.0, 0.0)));
         dots.z = abs(dot(outNormal, vec3(0.0, 0.0, 1.0)));
         float maxProduct = max(dots.x, max(dots.y, dots.z));
-    
+
         // Assume flat surface for tangents
         if (dots.x == maxProduct) {
             uv = outWorldPos.zy;
@@ -370,7 +370,7 @@ float pcf(vec3 sampleCoord, sampler2DShadow samp) {
 
     shadowIntensity /= divVal;
 #else
-    shadowIntensity = texture(shadowSampler, vec3(coord, depth)).x;
+    shadowIntensity = texture(samp, sampleCoord).x;
 #endif
     return shadowIntensity;
 }
@@ -462,6 +462,7 @@ mat3 cotangent_frame( vec3 N, vec3 p, vec2 uv ) {
     return mat3( T * invmax, B * invmax, N );
 }
 
+#define MATERIAL_FLAG_PACKED_PBR (1 << 8)
 void unpackMaterial(inout ShadeInfo si, mat3 tbn) {
     Material mat = materials[matIdx];
     si.metallic = mat.metallic;
@@ -481,7 +482,7 @@ void unpackMaterial(inout ShadeInfo si, mat3 tbn) {
     }
     si.ao = 1.0;
 
-    if (mat.roughTexIdx > -1) {
+    if ((mat.cutoffFlags & MATERIAL_FLAG_PACKED_PBR) == MATERIAL_FLAG_PACKED_PBR) {
         // Treat the rough texture as a packed PBR file
         // R = Metallic, G = Roughness, B = AO
         vec3 packVals = texture(tex2dSampler[mat.roughTexIdx], tCoord).xyz;
@@ -489,17 +490,17 @@ void unpackMaterial(inout ShadeInfo si, mat3 tbn) {
         si.roughness = packVals.g;
         si.ao = packVals.b;
     }
-    //else {
-    //    if (mat.roughTexIdx > -1)
-    //        roughness = pow(texture(tex2dSampler[mat.roughTexIdx], tCoord).x, 1.0 / 2.2);
+    else {
+        if (mat.roughTexIdx > -1)
+            si.roughness = texture(tex2dSampler[mat.roughTexIdx], tCoord).x;
 
-    //    if (mat.metalTexIdx > -1)
-    //        metallic = pow(texture(tex2dSampler[mat.metalTexIdx], tCoord).x, 1.0 / 2.2);
+        if (mat.metalTexIdx > -1)
+            si.metallic = texture(tex2dSampler[mat.metalTexIdx], tCoord).x;
 
-    //    if (mat.aoTexIdx > -1)
-    //        ao = pow(texture(tex2dSampler[mat.aoTexIdx], tCoord).x, 1.0 / 2.2);
-    //}
-    //
+        if (mat.aoTexIdx > -1)
+            si.ao = texture(tex2dSampler[mat.aoTexIdx], tCoord).x;
+    }
+
     vec4 albedoColor = texture(tex2dSampler[mat.albedoTexIdx], tCoord) * vec4(mat.albedoColor, 1.0);
 #ifdef DEBUG
     if ((miscFlag & DBG_FLAG_LIGHTING_ONLY) == DBG_FLAG_LIGHTING_ONLY) {

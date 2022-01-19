@@ -1,12 +1,15 @@
 #include "AssetDB.hpp"
+
 #include <filesystem>
-#include <iostream>
-#include "Log.hpp"
-#include "Fatal.hpp"
 #include <mutex>
 #include <string.h>
+
 #include <robin_hood.h>
-#include "../Util/Fnv.hpp"
+#include <slib/MinMax.hpp>
+
+#include <Core/Log.hpp>
+#include <Core/Fatal.hpp>
+#include <Util/Fnv.hpp>
 
 namespace worlds {
     class ADBStorage {
@@ -67,7 +70,7 @@ namespace worlds {
             auto ext = std::filesystem::path(path).extension().string();
             storage.extensions.insert({ id, ext });
 
-            maxId = std::max(id, maxId);
+            maxId = slib::max(id, maxId);
         }
 
         PHYSFS_close(dbFile);

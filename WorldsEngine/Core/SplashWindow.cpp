@@ -1,11 +1,12 @@
 #include "SplashWindow.hpp"
-#include <SDL_events.h>
-#include "Fatal.hpp"
-#include "EarlySDLUtil.hpp"
-#include "Log.hpp"
-#include "SDL_timer.h"
+
 #include <functional>
 #include <thread>
+#include <stdlib.h>
+
+#include <Core/Fatal.hpp>
+#include <Core/EarlySDLUtil.hpp>
+#include <Core/Log.hpp>
 
 namespace worlds {
     SplashWindow::SplashWindow(bool small)
