@@ -552,7 +552,7 @@ void main() {
     //}
     // Let's attempt some tangent frame construction on the fly!
     if (inUvDir != 0)
-    tbn = cotangent_frame(inNormal, getViewPos() - inWorldPos.xyz, abs(inUV));
+        tbn = cotangent_frame(inNormal, getViewPos() - inWorldPos.xyz, abs(inUV));
 
     uint doPicking = miscFlag & 0x1;
 
@@ -563,6 +563,9 @@ void main() {
     ShadeInfo si;
     unpackMaterial(si, tbn);
     si.viewDir = normalize(getViewPos() - inWorldPos.xyz);
+
+    vec3 thingy = (getViewPos() - floor(inWorldPos.xyz)) * 5.0;
+    si.albedoColor *=  1.0 / length(thingy);
 
 #ifdef DEBUG
     // debug views
