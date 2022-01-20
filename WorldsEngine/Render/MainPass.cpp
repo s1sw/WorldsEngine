@@ -1,4 +1,5 @@
 #include "RenderPasses.hpp"
+#include <Core/Console.hpp>
 
 namespace ShaderFlags {
     const int DBG_FLAG_NORMALS = 2;

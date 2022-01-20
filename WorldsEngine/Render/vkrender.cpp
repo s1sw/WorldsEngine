@@ -38,6 +38,7 @@
 #include "vku/DeviceMaker.hpp"
 #include "vku/InstanceMaker.hpp"
 #include <Core/JobSystem.hpp>
+#include <Core/Console.hpp>
 
 using namespace worlds;
 

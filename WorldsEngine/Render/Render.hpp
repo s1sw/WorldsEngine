@@ -45,11 +45,13 @@ namespace worlds {
     };
 
     struct PackedLight {
-        glm::vec4 pack0;
-        glm::vec4 pack1;
-        glm::vec3 pack2;
-        uint32_t shadowIdx;
-        float distanceCutoff;
+        glm::vec4 pack0; // (xyz linear color, w light type)
+        glm::vec4 pack1; // (xyz forward direction, w sphere radius or spotlight cutoff)
+        glm::vec3 pack2; // light position
+        uint32_t shadowIdx; // index in shadowmap
+        float distanceCutoff; // distance after which the light isn't visible
+
+        // padding to multiple of 16 bytes
         uint32_t pad0;
         uint32_t pad1;
         uint32_t pad2;

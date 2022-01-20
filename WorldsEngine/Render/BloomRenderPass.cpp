@@ -2,6 +2,8 @@
 #include "ShaderReflector.hpp"
 #include "ShaderCache.hpp"
 #include "vku/DescriptorSetUtil.hpp"
+#include <Core/Console.hpp>
+#include <slib/MinMax.hpp>
 
 namespace worlds {
     BloomRenderPass::BloomRenderPass(VulkanHandles* handles, RenderResource* hdrImg, RenderResource* bloomTarget)
@@ -124,8 +126,8 @@ namespace worlds {
             VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT
         };
 
-        nMips = (int)floor(log2(std::max(hdrExtent.width, hdrExtent.height)));
-        nMips = std::min(nMips, maxMips.getInt());
+        nMips = (int)floor(log2(slib::max(hdrExtent.width, hdrExtent.height)));
+        nMips = slib::min(nMips, maxMips.getInt());
         rci.mipLevels = nMips;
 
         mipChain = ctx.renderer->createTextureResource(rci, "Bloom mip chain");
@@ -194,7 +196,7 @@ namespace worlds {
             BloomBlurPC pushConstants{
                 .inputMipLevel = (uint32_t)(0),
                 .inputArrayIdx = layer,
-                .numMsaaSamples = numSamples 
+                .numMsaaSamples = numSamples
             };
             vkCmdPushConstants(cb, blurPipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(pushConstants), &pushConstants);
             vkCmdDispatch(cb, (chainExtent.width + 15) / 16, (chainExtent.height + 15) / 16, 1);
@@ -229,7 +231,7 @@ namespace worlds {
                 mipChain->image().barrier(cb,
                     VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                     VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
-                // From this mip to next 
+                // From this mip to next
                 vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_COMPUTE, blurPipelineLayout, 0, 1, &chainToChainDS[i - 1], 0, nullptr);
                 BloomBlurPC pushConstants{
                     .inputMipLevel = (uint32_t)i,

@@ -853,12 +853,16 @@ namespace worlds {
         ctx.registry.view<WorldLight, Transform>().each([&](auto ent, WorldLight& l, Transform& transform) {
             l.lightIdx = ~0u;
 
+            // Don't overrun the end of the buffer, just give up if there are too many lights
             if (lightIdx >= LightUB::MAX_LIGHTS - 1) {
                 return;
             }
 
-            float distance = l.maxDistance;
+            // If the light isn't enabled, just early out
             if (!l.enabled) return;
+
+            // Do a coarse cull stage against the frustum
+            float distance = l.maxDistance;
             if (l.type != LightType::Directional) {
                 bool inFrustum = frustum.containsSphere(transform.position, distance);
 
@@ -869,10 +873,13 @@ namespace worlds {
                 }
             }
 
+            // Convert the color of the light to linear space
             glm::vec3 colLinear = glm::pow(l.color, glm::vec3(2.2));
 
+            // Find the forward direction of the light in world space
             glm::vec3 lightForward = glm::normalize(transform.rotation * glm::vec3(0.0f, 0.0f, -1.0f));
             if (l.type != LightType::Tube) {
+                // Set up the light in the correct position in the buffer
                 lightMapped->lights[lightIdx] = PackedLight{
                     glm::vec4(colLinear * l.intensity, (float)l.type),
                     glm::vec4(lightForward, l.type == LightType::Sphere ? l.spotCutoff : glm::cos(l.spotCutoff)),
@@ -880,6 +887,7 @@ namespace worlds {
                     distance
                 };
             } else {
+                // Tube lights use the struct layout slightly differently
                 glm::vec3 tubeP0 = transform.position + lightForward * l.tubeLength;
                 glm::vec3 tubeP1 = transform.position - lightForward * l.tubeLength;
                 lightMapped->lights[lightIdx] = PackedLight{
@@ -890,6 +898,8 @@ namespace worlds {
                 };
             }
 
+            // If shadows are enabled, construct the appropriate
+            // matrices and put those in the buffer too
             if (l.enableShadows && l.shadowmapIdx != ~0u) {
                 Camera shadowCam;
                 shadowCam.position = transform.position;
@@ -900,6 +910,8 @@ namespace worlds {
                 shadowCam.verticalFOV = fov;
                 lightMapped->additionalShadowMatrices[l.shadowmapIdx] = shadowCam.getProjectMatrixNonInfinite(1.0f) * shadowCam.getViewMatrix();
             }
+
+            // Set indices and increment for the next light
             l.lightIdx = lightIdx;
             lightIdx++;
             });
@@ -922,10 +934,10 @@ namespace worlds {
         if (realTotalTiles > MAX_LIGHT_TILES)
             fatalErr("Too many lighting tiles");
 
-        lightMapped->pack0.x = (float)lightIdx;
-        lightMapped->pack0.y = ctx.cascadeInfo.texelsPerUnit[0];
-        lightMapped->pack0.z = ctx.cascadeInfo.texelsPerUnit[1];
-        lightMapped->pack0.w = ctx.cascadeInfo.texelsPerUnit[2];
+        lightMapped->numLights = lightIdx;
+        for (int i = 0; i < 3; i++) {
+            lightMapped->cascadeTexelsPerUnit[i] = ctx.cascadeInfo.texelsPerUnit[i];
+        }
         lightMapped->shadowmapMatrices[0] = ctx.cascadeInfo.matrices[0];
         lightMapped->shadowmapMatrices[1] = ctx.cascadeInfo.matrices[1];
         lightMapped->shadowmapMatrices[2] = ctx.cascadeInfo.matrices[2];
