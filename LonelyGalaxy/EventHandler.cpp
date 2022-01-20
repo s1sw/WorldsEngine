@@ -42,6 +42,7 @@
 #include "Enemies/DroneAI.hpp"
 #include "DamageForwarder.hpp"
 #include "PlayerInput.hpp"
+#include <Core/Window.hpp>
 
 namespace lg {
     worlds::RTTPass* spectatorPass = nullptr;

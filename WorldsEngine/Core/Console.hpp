@@ -1,9 +1,12 @@
 #pragma once
 #include <string>
 #include <unordered_map>
-#include <SDL_log.h>
-#include "../Core/LogCategories.hpp"
 #include <functional>
+
+#include <SDL_log.h>
+
+#include <Core/LogCategories.hpp>
+#include <Core/Engine.hpp>
 
 struct ImGuiInputTextCallbackData;
 
@@ -14,28 +17,6 @@ namespace std {
 namespace worlds {
     class Console;
     extern Console* g_console;
-
-    class ConVar {
-    public:
-        ConVar(const char* name, const char* defaultValue, const char* help = nullptr);
-        ~ConVar();
-        float getFloat() const { return parsedFloat; }
-        int getInt() const { return parsedInt; }
-        const char* getString() const { return value.c_str(); }
-        const char* getName() const { return name; }
-        const char* getHelp() const { return help; }
-        void setValue(std::string newValue);
-        operator float() const { return getFloat(); }
-        operator bool() const { return (bool)getInt(); }
-    private:
-        const char* help;
-        const char* name;
-        std::string value;
-        int parsedInt;
-        float parsedFloat;
-
-        friend class Console;
-    };
 
     typedef std::function<void(void* obj, const char* argString)> CommandFuncPtr;
 

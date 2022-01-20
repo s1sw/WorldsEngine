@@ -33,6 +33,28 @@ namespace worlds {
     class ISystem;
     class Window;
 
+    class ConVar {
+    public:
+        ConVar(const char* name, const char* defaultValue, const char* help = nullptr);
+        ~ConVar();
+        float getFloat() const { return parsedFloat; }
+        int getInt() const { return parsedInt; }
+        const char* getString() const { return value.c_str(); }
+        const char* getName() const { return name; }
+        const char* getHelp() const { return help; }
+        void setValue(std::string newValue);
+        operator float() const { return getFloat(); }
+        operator bool() const { return (bool)getInt(); }
+    private:
+        const char* help;
+        const char* name;
+        std::string value;
+        int parsedInt;
+        float parsedFloat;
+
+        friend class Console;
+    };
+
     struct SceneInfo {
         std::string name;
         AssetID id;
@@ -211,18 +233,28 @@ namespace worlds {
     struct WorldLight {
         WorldLight() {}
         WorldLight(LightType type) : type(type) {}
+
+        // Whether the light should be actually rendered
         bool enabled = true;
         LightType type = LightType::Point;
         glm::vec3 color = glm::vec3{1.0f};
         float intensity = 1.0f;
-        float spotCutoff = 0.7f;
+
+        // Angle of the spotlight cutoff in radians
+        float spotCutoff = glm::pi<float>() * 0.5f;
+
+        // Physical dimensions of a tube light
         float tubeLength = 0.25f;
         float tubeRadius = 0.1f;
+
+        // Shadowing settings
         bool enableShadows = false;
         uint32_t shadowmapIdx = ~0u;
-        float maxDistance = 1.0f;
         float shadowNear = 0.05f;
         float shadowFar = 100.0f;
+
+        float maxDistance = 1.0f;
+        // Index of the light in the light buffer
         uint32_t lightIdx = 0u;
     };
 

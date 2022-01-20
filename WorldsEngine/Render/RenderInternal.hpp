@@ -59,7 +59,8 @@ namespace worlds {
     struct LightUB {
         static const int MAX_LIGHTS = 256;
         glm::mat4 additionalShadowMatrices[NUM_SHADOW_LIGHTS];
-        glm::vec4 pack0;
+        float numLights;
+        float cascadeTexelsPerUnit[3];
         glm::vec4 pack1;
         glm::mat4 shadowmapMatrices[3];
         PackedLight lights[256];
