@@ -21,8 +21,7 @@ float GeometrySchlickGGX(float NdotV, float roughness) {
     float num = NdotV;
     float denom = max(NdotV * (1.0f - k) + k, 0.0001);
 
-    return num / denom;
-}
+    return num / denom; }
 
 float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness) {
     float NdotV = max(dot(N, V), 0.0f);
@@ -65,14 +64,14 @@ float gaSchlickGGX(float cosLi, float cosLo, float roughness) {
     return gaSchlickG1(cosLi, k) * gaSchlickG1(cosLo, k);
 }
 
+float pow5(float a) {
+    return a * a * a * a * a;
+}
+
 // Shlick's approximation of the Fresnel factor.
 vec3 fresnelSchlick(vec3 F0, float cosTheta) {
     float omCosTheta = 1.0 - cosTheta;
-    return F0 + (1.0 - F0) * omCosTheta * omCosTheta * omCosTheta * omCosTheta * omCosTheta;
-}
-
-float pow5(float a) {
-    return a * a * a * a * a;
+    return F0 + (1.0 - F0) * pow5(omCosTheta);
 }
 
 vec3 fresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness) {

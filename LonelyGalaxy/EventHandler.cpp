@@ -16,7 +16,6 @@
 #include "Core/NameComponent.hpp"
 #include "LocospherePlayerSystem.hpp"
 #include "PhysHandSystem.hpp"
-#include <enet/enet.h>
 #include <Core/JobSystem.hpp>
 #include "PlayerSoundSystem.hpp"
 #include "ObjectParentSystem.hpp"
@@ -281,10 +280,6 @@ namespace lg {
         interfaces.engine->addSystem(new StabbySystem{ interfaces, registry });
         interfaces.engine->addSystem(new PlayerSoundSystem{ interfaces, registry });
         interfaces.engine->addSystem(new DroneAISystem{ interfaces, registry });
-
-        if (enet_initialize() != 0) {
-            logErr("Failed to initialize enet.");
-        }
 
         new DebugArrows(registry);
 

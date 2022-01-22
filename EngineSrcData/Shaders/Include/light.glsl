@@ -1,22 +1,26 @@
 #ifndef LIGHT_H
 #define LIGHT_H
-const int LT_POINT = 0;
-const int LT_SPOT = 1;
-const int LT_DIRECTIONAL = 2;
-const int LT_SPHERE = 3;
-const int LT_TUBE = 4;
+const uint LT_POINT = 0;
+const uint LT_SPOT = 1;
+const uint LT_DIRECTIONAL = 2;
+const uint LT_SPHERE = 3;
+const uint LT_TUBE = 4;
 
 struct Light {
     // (color rgb, type)
     vec4 pack0;
     // (direction xyz or first point for tube, spotlight cutoff, sphere light radius or tube light radius)
     vec4 pack1;
-    // (position xyz or second point for tube, shadow index)
+    // (position xyz or second point for tube)
     vec3 pack2;
-    uint shadowIdx;
     float distanceCutoff;
-    float pad0;
-    float pad1;
-    float pad2;
 };
+
+uint getLightType(Light l) {
+    return floatBitsToUint(l.pack0.w) & 7; // 0b111
+}
+
+uint getShadowmapIndex(Light l) {
+    return (floatBitsToUint(l.pack0.w) & (15 << 3)) >> 3;
+}
 #endif
