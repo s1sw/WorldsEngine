@@ -669,7 +669,7 @@ namespace worlds {
             RTTPassCreateInfo screenRTTCI {
                 .width = w,
                 .height = h,
-                .resScale = 0.5f,
+                .resScale = 1.0f,
                 .isVr = enableOpenVR,
                 .useForPicking = false,
                 .enableShadows = true,

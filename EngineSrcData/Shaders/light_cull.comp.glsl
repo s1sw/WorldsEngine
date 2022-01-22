@@ -272,7 +272,7 @@ void main() {
         Light light = buf_Lights.lights[lightIndex];
         vec3 lightPosition = light.pack2.xyz;
 
-        int lightType = int(light.pack0.w);
+        uint lightType = getLightType(light);
 
         if (lightType == LT_TUBE) {
             // Take the average position of the two end points

@@ -62,12 +62,6 @@ if not assimp_dep.found()
     assimp_dep = declare_dependency(dependencies: assimp_lib, include_directories: include_directories(assimp_inc_dir))
 endif
 
-enet_subproj = subproject('enet')
-
-enetlib = enet_subproj.get_variable('enetlib')
-enet_inc = enet_subproj.get_variable('incdir')
-
-enet_dep = declare_dependency(link_with: enetlib, include_directories: enet_inc)
 
 dl_dep = cc.find_library('dl', required : false)
 openvr_dep = cc.find_library('openvr_api', dirs: lib_dir)
@@ -127,7 +121,7 @@ worlds = static_library('worlds', worlds_sources + ['tracy/TracyClient.cpp'],
   dependencies: [
     assimp_dep, physfs_dep, sdl2_dep, physx_deps,
     dl_dep, openvr_dep, wmdl_dep, discord_csdk_dep,
-    discord_sdk_dep, enet_dep,
+    discord_sdk_dep,
     slib_dep, platform_deps, steam_audio_dep,
     freetype_dep
     ],

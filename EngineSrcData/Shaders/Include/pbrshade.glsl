@@ -21,7 +21,7 @@ LightShadeInfo calcLightShadeInfo(Light light, ShadeInfo shadeInfo, vec3 worldPo
     LightShadeInfo lsi;
     lsi.radiance = light.pack0.xyz;
     lsi.L = vec3(0.0f, 0.0f, 0.0f);
-    int lightType = int(light.pack0.w);
+    uint lightType = uint(getLightType(light));
 
     if (lightType == LT_DIRECTIONAL) {
         lsi.L = normalize(light.pack1.xyz);
@@ -117,7 +117,7 @@ vec3 calculateLighting(Light light, ShadeInfo shadeInfo, vec3 worldPos) {
     float cosLo = max(0.0f, dot(norm, shadeInfo.viewDir));
 
     float NDF;
-    int lType = int(light.pack0.w);
+    int lType = int(getLightType(light));
 
     if (lType != LT_SPHERE && lType != LT_TUBE) {
         NDF = ndfGGX(cosLh, shadeInfo.roughness);
