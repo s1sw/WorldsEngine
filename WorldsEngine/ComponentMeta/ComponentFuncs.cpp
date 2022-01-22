@@ -202,11 +202,20 @@ namespace worlds {
 
                     selectAssetPopup("Mesh", worldObject.mesh, ImGui::Button("Change##Mesh"));
 
+                    bool hitNotSet = false;
+                    int notSetCount = 0;
                     if (ImGui::TreeNode("Materials")) {
                         for (int i = 0; i < NUM_SUBMESH_MATS; i++) {
                             if (worldObject.presentMaterials[i]) {
+                                if (hitNotSet) {
+                                    hitNotSet = false;
+                                    ImGui::Text("%i unset materials", notSetCount);
+                                    notSetCount = 0;
+                                }
                                 ImGui::Text("Material %i: %s", i, AssetDB::idToPath(worldObject.materials[i]).c_str());
                             } else {
+                                hitNotSet = true;
+                                notSetCount++;
                                 ImGui::Text("Material %i: not set", i);
                                 worldObject.materials[i] = INVALID_ASSET;
                             }
@@ -221,6 +230,12 @@ namespace worlds {
                             }
                         }
                         ImGui::TreePop();
+                    }
+
+                    if (hitNotSet) {
+                        hitNotSet = false;
+                        ImGui::Text("%i unset materials", notSetCount);
+                        notSetCount = 0;
                     }
                 }
 

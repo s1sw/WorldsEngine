@@ -1,3 +1,4 @@
+#include <Core/IGameEventHandler.hpp>
 #include <core.h>
 #include <SDL_timer.h>
 
@@ -50,6 +51,7 @@ namespace worlds {
     void initRichPresence(EngineInterfaces interfaces) {
 #ifdef DISCORD_RPC
         engine = interfaces.engine;
+        return;
 
         auto result = discord::Core::Create(742075252028211310, DiscordCreateFlags_Default, &discordCore);
 

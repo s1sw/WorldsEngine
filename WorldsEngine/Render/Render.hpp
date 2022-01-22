@@ -45,16 +45,32 @@ namespace worlds {
     };
 
     struct PackedLight {
-        glm::vec4 pack0; // (xyz linear color, w light type)
-        glm::vec4 pack1; // (xyz forward direction, w sphere radius or spotlight cutoff)
-        glm::vec3 pack2; // light position
-        uint32_t shadowIdx; // index in shadowmap
+        // color in linear space
+        glm::vec3 color;
+        /*
+                              light type
+                      shadowmap index  |
+                 currently unused   |  |
+                                |   |  |
+         /-----------------------\/--\/-\
+         00000000000000000000000000000000 */
+        uint32_t packedFlags;
+
+        // xyz: forward direction or first tube point
+        // w: sphere/tube radius or spotlight cutoff
+        glm::vec4 packedVars;
+        glm::vec3 position; // light position or second tube point
         float distanceCutoff; // distance after which the light isn't visible
 
-        // padding to multiple of 16 bytes
-        uint32_t pad0;
-        uint32_t pad1;
-        uint32_t pad2;
+        void setLightType(LightType type) {
+            packedFlags &= 0b111;
+            packedFlags |= (uint32_t)type;
+        }
+
+        void setShadowmapIndex(uint32_t shadowmapIdx) {
+            packedFlags &= ~(0b1111 << 3);
+            packedFlags |= (shadowmapIdx & 0b1111) << 3;
+        }
     };
 
     struct ProxyAOComponent {
