@@ -1,5 +1,5 @@
 #pragma once
-#include <entt/fwd.hpp>
+#include <entt/entity/fwd.hpp>
 
 namespace worlds {
     class WorldsEngine;

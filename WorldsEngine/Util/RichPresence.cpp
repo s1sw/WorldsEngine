@@ -1,7 +1,9 @@
 #include <core.h>
-#include <Core/Log.hpp>
 #include <SDL_timer.h>
+
+#include <Core/Log.hpp>
 #include <Core/Engine.hpp>
+#include <Core/IGameEventHandler.hpp>
 #define DISCORD_RPC
 
 namespace worlds {
