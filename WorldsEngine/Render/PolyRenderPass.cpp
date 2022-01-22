@@ -881,21 +881,25 @@ namespace worlds {
             if (l.type != LightType::Tube) {
                 // Set up the light in the correct position in the buffer
                 lightMapped->lights[lightIdx] = PackedLight{
-                    glm::vec4(colLinear * l.intensity, (float)l.type),
+                    colLinear * l.intensity, 0,
                     glm::vec4(lightForward, l.type == LightType::Sphere ? l.spotCutoff : glm::cos(l.spotCutoff)),
-                    transform.position, l.shadowmapIdx,
+                    transform.position,
                     distance
                 };
+                lightMapped->lights[lightIdx].setLightType(l.type);
+                lightMapped->lights[lightIdx].setShadowmapIndex(l.shadowmapIdx);
             } else {
                 // Tube lights use the struct layout slightly differently
                 glm::vec3 tubeP0 = transform.position + lightForward * l.tubeLength;
                 glm::vec3 tubeP1 = transform.position - lightForward * l.tubeLength;
                 lightMapped->lights[lightIdx] = PackedLight{
-                    glm::vec4(colLinear * l.intensity, (float)l.type),
+                    colLinear * l.intensity, 0,
                     glm::vec4(tubeP0, l.tubeRadius),
-                    tubeP1, ~0u,
+                    tubeP1,
                     distance
                 };
+                lightMapped->lights[lightIdx].setLightType(l.type);
+                lightMapped->lights[lightIdx].setShadowmapIndex(~0u);
             }
 
             // If shadows are enabled, construct the appropriate

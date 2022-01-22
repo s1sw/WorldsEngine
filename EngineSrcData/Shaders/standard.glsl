@@ -376,7 +376,7 @@ float pcf(vec3 sampleCoord, sampler2DShadow samp) {
 }
 
 float getNormalLightShadowIntensity(int lightIdx) {
-    uint shadowIdx = lights[lightIdx].shadowIdx;
+    uint shadowIdx = getShadowmapIndex(lights[lightIdx]);
     vec4 shadowPos = otherShadowMatrices[shadowIdx] * inWorldPos;
     shadowPos.y = -shadowPos.y;
 
@@ -395,15 +395,15 @@ float getNormalLightShadowIntensity(int lightIdx) {
     return shadowIntensity;
 }
 
-vec3 shadeLight(int globalLightIndex, ShadeInfo si) {
-    vec3 l = calculateLighting(lights[globalLightIndex], si, inWorldPos.xyz);
+vec3 shadeLight(int lightIndex, ShadeInfo si) {
+    vec3 l = calculateLighting(lights[lightIndex], si, inWorldPos.xyz);
 
     float shadowIntensity = 1.0;
 
-    if (int(lights[globalLightIndex].pack0.w) == LT_DIRECTIONAL && !((miscFlag & MISC_FLAG_DISABLE_SHADOWS) == MISC_FLAG_DISABLE_SHADOWS)) {
-        shadowIntensity = getDirLightShadowIntensity(int(globalLightIndex));
-    } else if (lights[globalLightIndex].shadowIdx != ~0u) {
-        shadowIntensity = getNormalLightShadowIntensity(int(globalLightIndex));
+    if (getLightType(lights[lightIndex]) == LT_DIRECTIONAL && !((miscFlag & MISC_FLAG_DISABLE_SHADOWS) == MISC_FLAG_DISABLE_SHADOWS)) {
+        shadowIntensity = getDirLightShadowIntensity(lightIndex);
+    } else if (getShadowmapIndex(lights[globalLightIndex]) != ~0u) {
+        shadowIntensity = getNormalLightShadowIntensity(lightIndex);
     }
 
     return l * shadowIntensity;
@@ -563,9 +563,6 @@ void main() {
     ShadeInfo si;
     unpackMaterial(si, tbn);
     si.viewDir = normalize(getViewPos() - inWorldPos.xyz);
-
-    vec3 thingy = (getViewPos() - floor(inWorldPos.xyz)) * 5.0;
-    si.albedoColor *=  1.0 / length(thingy);
 
 #ifdef DEBUG
     // debug views
