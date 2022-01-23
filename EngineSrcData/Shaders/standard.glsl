@@ -169,7 +169,7 @@ vec3 calcAmbient(vec3 f0, float roughness, vec3 viewDir, float metallic, vec3 al
 
     vec3 specularAmbient = textureLod(cubemapSampler[cubemapIdx], R, roughness * MAX_REFLECTION_LOD).rgb;
 
-#define BRDF_APPROX
+//#define BRDF_APPROX
 #ifdef BRDF_APPROX
     vec3 specularColor = EnvBRDFApprox(F, roughness, max(dot(normal, viewDir), 0.0));
 #else
@@ -402,7 +402,7 @@ vec3 shadeLight(int lightIndex, ShadeInfo si) {
 
     if (getLightType(lights[lightIndex]) == LT_DIRECTIONAL && !((miscFlag & MISC_FLAG_DISABLE_SHADOWS) == MISC_FLAG_DISABLE_SHADOWS)) {
         shadowIntensity = getDirLightShadowIntensity(lightIndex);
-    } else if (getShadowmapIndex(lights[globalLightIndex]) != ~0u) {
+    } else if (getShadowmapIndex(lights[lightIndex]) != ~0u) {
         shadowIntensity = getNormalLightShadowIntensity(lightIndex);
     }
 
