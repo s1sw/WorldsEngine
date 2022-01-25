@@ -53,25 +53,33 @@
 #undef max
 
 #ifdef CHECK_NEW_DELETE
-robin_hood::unordered_set<void*> allocatedPtrs;
+robin_hood::unordered_map<void*, size_t> allocatedPtrs;
+size_t allocatedMem = 0;
+size_t liveAllocations = 0;
 
 void* operator new(size_t count) {
     void* ptr = malloc(count);
 #ifdef TRACY_ENABLE
     TracyAlloc(ptr, count);
 #endif
-    allocatedPtrs.insert(ptr);
+    allocatedPtrs.insert({ptr, count});
+    allocatedMem += count;
+    liveAllocations++;
     return ptr;
 }
 
 void operator delete(void* ptr) noexcept {
     if (ptr == nullptr) return;
-    if (!allocatedPtrs.contains(ptr))
-        __debugbreak();
+    if (!allocatedPtrs.contains(ptr)) {
+        fatalErr("Deleted non-existent pointer!");
+    }
 #ifdef TRACY_ENABLE
     TracyFree(ptr);
 #endif
     free(ptr);
+    allocatedMem -= allocatedPtrs[ptr];
+    allocatedPtrs.erase(ptr);
+    liveAllocations--;
 }
 #endif
 
@@ -1128,6 +1136,13 @@ namespace worlds {
                 }
 
                 if (ImGui::CollapsingHeader(ICON_FA_MEMORY u8" Memory Stats")) {
+                    ImGui::Text("CPU:");
+#ifdef CHECK_NEW_DELETE
+                    ImGui::Text("Live allocations: %lu", liveAllocations);
+                    ImGui::Text("Allocated bytes: %lu", allocatedMem);
+#endif
+                    ImGui::Separator();
+                    ImGui::Text("GPU:");
                     auto vkCtx = static_cast<VKRenderer*>(renderer.get())->getHandles();
 
                     VmaBudget budget[16];
