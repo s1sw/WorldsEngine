@@ -1,6 +1,6 @@
 #include "MeshManager.hpp"
-#include "../Render/RenderInternal.hpp"
-#include "../Render/Loaders/WMDLLoader.hpp"
+#include <Render/RenderInternal.hpp>
+#include <Render/Loaders/WMDLLoader.hpp>
 
 namespace worlds {
     robin_hood::unordered_node_map<AssetID, LoadedMesh> MeshManager::loadedMeshes;
@@ -24,7 +24,7 @@ namespace worlds {
 
         for (size_t i = 0; i < lm.boneNames.size(); i++) {
             lm.boneNames[i] = lmd.meshBones[i].name;
-            lm.boneRestPositions[i] = lmd.meshBones[i].inverseBindPose;
+            lm.boneRestPositions[i] = lmd.meshBones[i].transform;
             lm.relativeBoneTransforms[i] = lmd.meshBones[i].transform;
         }
 

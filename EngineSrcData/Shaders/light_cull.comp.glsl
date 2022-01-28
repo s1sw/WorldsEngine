@@ -148,121 +148,106 @@ bool aabbContainsPoint(vec3 point) {
         point.z >= mi.z && point.z <= ma.z;
 }
 
-void main() {
-    // Quick initialisation of group shared data
+// Calculates frustum planes from the set of frustum points
+void setupTileFrustum(vec3 frustumPoints[8]) {
+    vec3 camPos = viewPos[eyeIdx].xyz;
+
+    for (int i = 0; i < 4; i++) {
+        vec3 planeNormal = cross(frustumPoints[i] - camPos, frustumPoints[i + 1] - camPos);
+        planeNormal = normalize(planeNormal);
+        tileFrustum.planes[i] = vec4(planeNormal, -dot(planeNormal, frustumPoints[i]));
+    }
+
+    // Near plane
+    {
+        vec3 planeNormal = cross(frustumPoints[1] - frustumPoints[0], frustumPoints[3] - frustumPoints[0]);
+        planeNormal = normalize(planeNormal);
+        tileFrustum.planes[4] = vec4(planeNormal, -dot(planeNormal, frustumPoints[0]));
+    }
+
+    // Far plane
+    {
+        vec3 planeNormal = cross(frustumPoints[7] - frustumPoints[4], frustumPoints[5] - frustumPoints[4]);
+        planeNormal = normalize(planeNormal);
+        tileFrustum.planes[5] = vec4(planeNormal, -dot(planeNormal, frustumPoints[4]));
+    }
+}
+
+// Calculates the tile's AABB from the set of frustum points
+void setupTileAABB(vec3 frustumPoints[8]) {
+    // Calculate tile AABB
+    vec3 aabbMax = vec3(0.0f);
+    vec3 aabbMin = vec3(10000000.0f);
+
+    for (int i = 0; i < 8; i++) {
+        aabbMax = max(aabbMax, frustumPoints[i]);
+        aabbMin = min(aabbMin, frustumPoints[i]);
+    }
+
+    tileAABB.center = (aabbMax + aabbMin) * 0.5;
+    tileAABB.extents = (aabbMax - aabbMin) * 0.5;
+}
+
+void setupTile(uint tileIndex, uint x, uint y) {
+    vec3 camPos = viewPos[eyeIdx].xyz;
+    float minDepth = uintBitsToFloat(minDepthU);
+    float maxDepth = uintBitsToFloat(maxDepthU);
+
+    buf_LightTileLightCounts.tileLightCounts[tileIndex] = 0;
+    float tileSize = buf_LightTileInfo.tileSize;
+    vec2 ndcTileSize = 2.0f * vec2(tileSize, -tileSize) / vec2(screenWidth, screenHeight);
+
+    // Calculate frustum
+    vec2 ndcTopLeftCorner = vec2(-1.0f, 1.0f);
+    vec2 tileCoords = vec2(x, y);
+
+    vec2 ndcTileCorners[4] = {
+        ndcTopLeftCorner + ndcTileSize * tileCoords, // Top left
+        ndcTopLeftCorner + ndcTileSize * (tileCoords + vec2(1, 0)), // Top right
+        ndcTopLeftCorner + ndcTileSize * (tileCoords + vec2(1, 1)), // Bottom right
+        ndcTopLeftCorner + ndcTileSize * (tileCoords + vec2(0, 1)), // Bottom left
+    };
+
+    mat4 invVP = inverse(projection[eyeIdx] * view[eyeIdx]);
+    vec3 frustumPoints[8];
+
+#ifdef CULL_DEPTH
+    float nearZ = maxDepth;
+    float farZ = minDepth;
+#else
+    float nearZ = 1.0f;
+    float farZ = 0.000001f;
+#endif
+
+    // Find the points on the near plane
+    for (int i = 0; i < 4; i++) {
+        vec4 projected = invVP * vec4(ndcTileCorners[i], nearZ, 1.0f);
+        frustumPoints[i] = vec3(projected) / projected.w;
+    }
+
+    for (int i = 0; i < 4; i++) {
+        vec4 projected = invVP * vec4(ndcTileCorners[i], farZ, 1.0f);
+        frustumPoints[i + 4] = vec3(projected) / projected.w;
+    }
+
+    setupTileFrustum(frustumPoints);
+    setupTileAABB(frustumPoints);
+}
+
+void clearBuffers(uint tileIndex) {
     if (gl_LocalInvocationIndex.x == 0) {
         minDepthU = floatBitsToUint(1.0);
         maxDepthU = 0u;
     }
-
-    uint x = gl_WorkGroupID.x;
-    uint y = gl_WorkGroupID.y;
-    uint tileIndex = ((y * buf_LightTileInfo.numTilesX) + x) + (eyeIdx * buf_LightTileInfo.tilesPerEye);
 
     // Clear light values. This is doing a bunch of unnecessary writes, but I'm unsure if
     // that really matters in terms of performance.
     buf_LightTiles.tiles[tileIndex].lightIdMasks[gl_LocalInvocationIndex % 8] = 0u;
     buf_LightTiles.tiles[tileIndex].aoSphereIdMasks[gl_LocalInvocationIndex % 2] = 0u;
     buf_LightTiles.tiles[tileIndex].aoBoxIdMasks[gl_LocalInvocationIndex % 2] = 0u;
+}
 
-    // Stage 1: Determine the depth bounds of the tile using atomics.
-    // THIS ONLY WORKS FOR 16x16 TILES.
-    // Changing the tile size means that there's no longer a 1:1 correlation between threads
-    // and tile pixels, so this atomic depth read won't work.
-    //
-    // NOTE: When MSAA is on, the last parameter refers to the MSAA sample to load. When MSAA is
-    // off, it refers to the mipmap level to load from.
-    float depthAtCurrent = texelFetch(depthBuffer, ivec3(gl_GlobalInvocationID.xy, eyeIdx), 0).x;
-    uint depthAsUint = floatBitsToUint(depthAtCurrent);
-
-    // A depth of 0 only occurs when the skybox is visible.
-    // Since the skybox can't receive lighting, there's no point in increasing
-    // the depth bounds of the tile to receive the lighting.
-    if (depthAtCurrent > 0.0f) {
-        atomicMin(minDepthU, depthAsUint);
-        atomicMax(maxDepthU, depthAsUint);
-    }
-
-    barrier();
-
-    // Stage 2: Calculate frustum points.
-    if (gl_LocalInvocationIndex == 0) {
-        vec3 camPos = viewPos[eyeIdx].xyz;
-        float minDepth = uintBitsToFloat(minDepthU);
-        float maxDepth = uintBitsToFloat(maxDepthU);
-
-        buf_LightTileLightCounts.tileLightCounts[tileIndex] = 0;
-        float tileSize = buf_LightTileInfo.tileSize;
-        vec2 ndcTileSize = 2.0f * vec2(tileSize, -tileSize) / vec2(screenWidth, screenHeight);
-
-        // Calculate frustum
-        vec2 ndcTopLeftCorner = vec2(-1.0f, 1.0f);
-        vec2 tileCoords = vec2(x, y);
-
-        vec2 ndcTileCorners[4] = {
-            ndcTopLeftCorner + ndcTileSize * tileCoords, // Top left
-            ndcTopLeftCorner + ndcTileSize * (tileCoords + vec2(1, 0)), // Top right
-            ndcTopLeftCorner + ndcTileSize * (tileCoords + vec2(1, 1)), // Bottom right
-            ndcTopLeftCorner + ndcTileSize * (tileCoords + vec2(0, 1)), // Bottom left
-        };
-
-        mat4 invVP = inverse(projection[eyeIdx] * view[eyeIdx]);
-        vec3 frustumPoints[8];
-
-#ifdef CULL_DEPTH
-        float nearZ = maxDepth;
-        float farZ = minDepth;
-#else
-        float nearZ = 1.0f;
-        float farZ = 0.000001f;
-#endif
-
-        // Find the points on the near plane
-        for (int i = 0; i < 4; i++) {
-            vec4 projected = invVP * vec4(ndcTileCorners[i], nearZ, 1.0f);
-            frustumPoints[i] = vec3(projected) / projected.w;
-        }
-
-        for (int i = 0; i < 4; i++) {
-            vec4 projected = invVP * vec4(ndcTileCorners[i], farZ, 1.0f);
-            frustumPoints[i + 4] = vec3(projected) / projected.w;
-        }
-
-        for (int i = 0; i < 4; i++) {
-            vec3 planeNormal = cross(frustumPoints[i] - camPos, frustumPoints[i + 1] - camPos);
-            planeNormal = normalize(planeNormal);
-            tileFrustum.planes[i] = vec4(planeNormal, -dot(planeNormal, frustumPoints[i]));
-        }
-
-        // Near plane
-        {
-            vec3 planeNormal = cross(frustumPoints[1] - frustumPoints[0], frustumPoints[3] - frustumPoints[0]);
-            planeNormal = normalize(planeNormal);
-            tileFrustum.planes[4] = vec4(planeNormal, -dot(planeNormal, frustumPoints[0]));
-        }
-
-        // Far plane
-        {
-            vec3 planeNormal = cross(frustumPoints[7] - frustumPoints[4], frustumPoints[5] - frustumPoints[4]);
-            planeNormal = normalize(planeNormal);
-            tileFrustum.planes[5] = vec4(planeNormal, -dot(planeNormal, frustumPoints[4]));
-        }
-
-        // Calculate tile AABB
-        vec3 aabbMax = vec3(0.0f);
-        vec3 aabbMin = vec3(10000000.0f);
-
-        for (int i = 0; i < 8; i++) {
-            aabbMax = max(aabbMax, frustumPoints[i]);
-            aabbMin = min(aabbMin, frustumPoints[i]);
-        }
-
-        tileAABB.center = (aabbMax + aabbMin) * 0.5;
-        tileAABB.extents = (aabbMax - aabbMin) * 0.5;
-    }
-
-    barrier();
-
+void cullLights(uint tileIndex) {
     // Stage 3: Cull lights against the frustum. At this point,
     // one invocation = one light. Since the light array is always
     // tightly packed, we can just check if the index is less than
@@ -314,7 +299,9 @@ void main() {
             atomicAdd(buf_LightTileLightCounts.tileLightCounts[tileIndex], 1);
 #endif
     }
+}
 
+void cullAO(uint tileIndex) {
     // Stage 3: Cull AO spheres against the frustum
     if (gl_LocalInvocationIndex < buf_Lights.pack1.y) {
         uint sphereIndex = gl_LocalInvocationIndex;
@@ -365,4 +352,42 @@ void main() {
             }
         }
     }
+}
+
+void main() {
+    uint x = gl_WorkGroupID.x;
+    uint y = gl_WorkGroupID.y;
+    uint tileIndex = ((y * buf_LightTileInfo.numTilesX) + x) + (eyeIdx * buf_LightTileInfo.tilesPerEye);
+
+    clearBuffers(tileIndex);
+
+    // Stage 1: Determine the depth bounds of the tile using atomics.
+    // THIS ONLY WORKS FOR 16x16 TILES.
+    // Changing the tile size means that there's no longer a 1:1 correlation between threads
+    // and tile pixels, so this atomic depth read won't work.
+    //
+    // NOTE: When MSAA is on, the last parameter refers to the MSAA sample to load. When MSAA is
+    // off, it refers to the mipmap level to load from.
+    float depthAtCurrent = texelFetch(depthBuffer, ivec3(gl_GlobalInvocationID.xy, eyeIdx), 0).x;
+    uint depthAsUint = floatBitsToUint(depthAtCurrent);
+
+    // A depth of 0 only occurs when the skybox is visible.
+    // Since the skybox can't receive lighting, there's no point in increasing
+    // the depth bounds of the tile to receive the lighting.
+    if (depthAtCurrent > 0.0f) {
+        atomicMin(minDepthU, depthAsUint);
+        atomicMax(maxDepthU, depthAsUint);
+    }
+
+    barrier();
+
+    // Stage 2: Calculate frustum points.
+    if (gl_LocalInvocationIndex == 0) {
+        setupTile(tileIndex, x, y);
+    }
+
+    barrier();
+
+    cullLights(tileIndex);
+    cullAO(tileIndex);
 }

@@ -169,7 +169,6 @@ vec3 calcAmbient(vec3 f0, float roughness, vec3 viewDir, float metallic, vec3 al
 
     vec3 specularAmbient = textureLod(cubemapSampler[cubemapIdx], R, roughness * MAX_REFLECTION_LOD).rgb;
 
-#define BRDF_APPROX
 #ifdef BRDF_APPROX
     vec3 specularColor = EnvBRDFApprox(F, roughness, max(dot(normal, viewDir), 0.0));
 #else
@@ -333,11 +332,6 @@ float getDirLightShadowIntensity(int lightIdx) {
         const float divVal = 7.0f;//((shadowSamples * 2)) * ((shadowSamples * 2));
         float sampleRadius = 0.0005 * (textureSize(shadowSampler, 0).x / 1024.0);
 
-        //for (int x = -shadowSamples; x < shadowSamples; x++)
-        //    for (int y = -shadowSamples; y < shadowSamples; y++) {
-        //        //shadowIntensity += texture(shadowSampler, vec4(coord + (vec2(x, y) * sampleRadius), float(cascadeSplit), depth)).x;
-        //        shadowIntensity += textureOffset(shadowSampler, vec4(coord, cascadeSplit, depth), ivec2(x, y));
-        //    }
         vec4 sampleCoord = vec4(coord, cascadeSplit, depth);
         shadowIntensity += textureOffset(shadowSampler, sampleCoord, ivec2(-1, -1));
         shadowIntensity += textureOffset(shadowSampler, sampleCoord, ivec2(-1, 0));
@@ -402,7 +396,7 @@ vec3 shadeLight(int lightIndex, ShadeInfo si) {
 
     if (getLightType(lights[lightIndex]) == LT_DIRECTIONAL && !((miscFlag & MISC_FLAG_DISABLE_SHADOWS) == MISC_FLAG_DISABLE_SHADOWS)) {
         shadowIntensity = getDirLightShadowIntensity(lightIndex);
-    } else if (getShadowmapIndex(lights[globalLightIndex]) != ~0u) {
+    } else if (getShadowmapIndex(lights[lightIndex]) != ~0u) {
         shadowIntensity = getNormalLightShadowIntensity(lightIndex);
     }
 
@@ -417,6 +411,8 @@ vec3 shade(ShadeInfo si) {
     uint tileIdx = ((tileIdxY * buf_LightTileInfo.numTilesX) + tileIdxX) + eyeOffset;
 
     vec3 lo = vec3(0.0);
+#define TILED
+#ifdef TILED
     for (int i = 0; i < 8; i++) {
         uint lightBits = readFirstInvocationARB(subgroupOr(buf_LightTiles.tiles[tileIdx].lightIdMasks[i]));
 
@@ -431,6 +427,11 @@ vec3 shade(ShadeInfo si) {
             lo += shadeLight(int(realIndex), si);
         }
     }
+#else
+    for (int i = 0; i < pack0.x; i++) {
+        lo += shadeLight(i, si);
+    }
+#endif
 
     vec3 f0 = mix(vec3(0.04), si.albedoColor, si.metallic);
     vec3 ambient = calcAmbient(f0, si.roughness, si.viewDir, si.metallic, si.albedoColor, si.normal);
