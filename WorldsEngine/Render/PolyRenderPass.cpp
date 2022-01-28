@@ -591,8 +591,6 @@ namespace worlds {
 
     void updateSkinningMatrices(LoadedMeshData& meshData, Pose& pose, glm::mat4* skinningMatricesMapped, int skinningOffset) {
         for (int i = 0; i < meshData.meshBones.size(); i++) {
-            glm::mat4 bonePose = getBoneTransform(meshData, pose, i);
-
             skinningMatricesMapped[i + skinningOffset] = getBoneTransform(meshData, pose, i) * meshData.meshBones[i].inverseBindPose;
         }
     }
@@ -918,7 +916,7 @@ namespace worlds {
             // Set indices and increment for the next light
             l.lightIdx = lightIdx;
             lightIdx++;
-            });
+        });
 
         int tileSize = 16;
         const int xTiles = (ctx.passWidth + (tileSize - 1)) / tileSize;

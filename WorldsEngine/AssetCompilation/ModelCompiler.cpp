@@ -129,8 +129,13 @@ namespace worlds {
         };
 
 
-        glm::mat4 convMtx(const aiMatrix4x4& m4) {
-            return glm::transpose(glm::make_mat4(&m4.a1));
+        glm::mat4 convMtx(const aiMatrix4x4& aiMat) {
+            return {
+            aiMat.a1, aiMat.b1, aiMat.c1, aiMat.d1,
+            aiMat.a2, aiMat.b2, aiMat.c2, aiMat.d2,
+            aiMat.a3, aiMat.b3, aiMat.c3, aiMat.d3,
+            aiMat.a4, aiMat.b4, aiMat.c4, aiMat.d4
+            };
         }
 
         Mesh processAiMesh(aiMesh* aiMesh, aiNode* node, aiMatrix4x4 hierarchyTransform) {
@@ -306,6 +311,7 @@ namespace worlds {
                 aiProcess_ImproveCacheLocality |
                 aiProcess_LimitBoneWeights |
                 aiProcess_RemoveRedundantMaterials |
+                aiProcess_MakeLeftHanded |
                 aiProcess_Triangulate |
                 aiProcess_GenUVCoords |
                 aiProcess_SortByPType |
@@ -315,7 +321,7 @@ namespace worlds {
                 aiProcess_ValidateDataStructure |
                 aiProcess_OptimizeMeshes |
                 aiProcess_OptimizeGraph |
-                //aiProcess_PopulateArmatureData |
+                aiProcess_PopulateArmatureData |
                 aiProcess_GlobalScale |
                 aiProcess_FlipUVs;
 
@@ -423,22 +429,20 @@ namespace worlds {
                         wBone.inverseBindPose = convMtx(bone->mOffsetMatrix);
 
                         aiNode* boneNode = nodeLookup.at(bone->mName.C_Str());
-                        // TODO
-                        //wBone.transform = convMtx(bone->mNode->mTransformation);
+                        wBone.transform = convMtx(bone->mNode->mTransformation);
 
                         combinedBoneIds.insert({ wBone.name, combinedBones.size() });
                         combinedBones.push_back(wBone);
                     }
 
                     for (auto& bone : mesh.bones) {
-                        // TODO
-                        //aiNode* boneNode = bone->mNode;
-                        //aiNode* parentNode = boneNode->mParent;
+                        aiNode* boneNode = bone->mNode;
+                        aiNode* parentNode = boneNode->mParent;
                         uint32_t combinedId = combinedBoneIds.at(bone->mName.C_Str());
 
-                        //if (combinedBoneIds.contains(parentNode->mName.C_Str())) {
-                        //    combinedBones[combinedId].parentBone = combinedBoneIds.at(parentNode->mName.C_Str());
-                        //}
+                        if (combinedBoneIds.contains(parentNode->mName.C_Str())) {
+                            combinedBones[combinedId].parentBone = combinedBoneIds.at(parentNode->mName.C_Str());
+                        }
                     }
 
                     int vertIdx = 0;

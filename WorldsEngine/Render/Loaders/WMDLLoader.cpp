@@ -25,7 +25,7 @@ namespace worlds {
             wmdl::SkinningInfoBlock* skinInfoBlock = wHdr->getSkinningInfoBlock();
             logVrb("wmdl is skinned: %i bones", wHdr->getSkinningInfoBlock()->numBones);
             lmd.meshBones.resize(skinInfoBlock->numBones);
-            
+
             wmdl::Bone* bones = wHdr->getBones();
             for (wmdl::CountType i = 0; i < skinInfoBlock->numBones; i++) {
                 lmd.meshBones[i].inverseBindPose = bones[i].inverseBindPose;

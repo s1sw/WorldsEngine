@@ -505,35 +505,73 @@ namespace worlds {
     };
 
     class WorldLightEditor : public BasicComponentUtil<WorldLight> {
+    private:
+        entt::entity rangeSphere = entt::null;
+
+        void ensureRangeSphereExists(entt::registry& reg) {
+            if (reg.valid(rangeSphere)) return;
+
+            // If the light range sphere doesn't exist, create it.
+            rangeSphere = createModelObject(reg,
+                glm::vec3{1000.0f},
+                glm::quat{},
+                AssetDB::pathToId("Models/sphere.wmdl"),
+                AssetDB::pathToId("Materials/wireframe.json")
+            );
+
+            // Make sure the sphere doesn't get saved with the scene and is hidden in the hierarchy.
+            reg.emplace<DontSerialize>(rangeSphere);
+            reg.emplace<HideFromEditor>(rangeSphere);
+        }
+
+        void showTypeSpecificControls(WorldLight& worldLight) {
+            // Show options specific to certain types of light
+            switch (worldLight.type) {
+            case LightType::Spot:
+                {
+                    float cutoff = glm::degrees(worldLight.spotCutoff);
+                    ImGui::DragFloat("Spot Cutoff", &cutoff);
+                    worldLight.spotCutoff = glm::radians(cutoff);
+                    ImGui::Checkbox("Enable Shadows", &worldLight.enableShadows);
+
+                    if (worldLight.enableShadows) {
+                        ImGui::DragFloat("Near Plane", &worldLight.shadowNear);
+                        ImGui::DragFloat("Far Plane", &worldLight.shadowFar);
+                    }
+                }
+                break;
+            case LightType::Sphere:
+                {
+                    ImGui::DragFloat("Sphere Radius", &worldLight.spotCutoff);
+                }
+                break;
+            case LightType::Tube:
+                {
+                    ImGui::DragFloat("Tube Length", &worldLight.tubeLength);
+                    ImGui::DragFloat("Tube Radius", &worldLight.tubeRadius);
+                }
+                break;
+            default: break;
+            }
+        }
     public:
         const char* getName() override { return "World Light"; }
 
         void edit(entt::entity ent, entt::registry& reg, Editor* ed) override {
-            static entt::entity rangeSphere = entt::null;
-
             if (ImGui::CollapsingHeader(ICON_FA_LIGHTBULB u8" Light")) {
-                if (!reg.valid(rangeSphere)) {
-                    rangeSphere = createModelObject(reg,
-                        glm::vec3{1000.0f},
-                        glm::quat{},
-                        AssetDB::pathToId("Models/sphere.wmdl"),
-                        AssetDB::pathToId("Materials/wireframe.json")
-                    );
-
-                    reg.emplace<DontSerialize>(rangeSphere);
-                    reg.emplace<HideFromEditor>(rangeSphere);
-                }
+                ensureRangeSphereExists(reg);
 
                 if (ImGui::Button("Remove##WL")) {
                     reg.remove<WorldLight>(ent);
                 } else {
-                    auto& worldLight = reg.get<WorldLight>(ent);
+                    WorldLight& worldLight = reg.get<WorldLight>(ent);
                     Transform& transform = reg.get<Transform>(ent);
 
                     ImGui::Checkbox("Enabled", &worldLight.enabled);
-                    ImGui::ColorEdit3("Color", &worldLight.color.x, ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
+                    ImGui::ColorEdit3("Color", &worldLight.color.x, ImGuiColorEditFlags_Float);
                     ImGui::DragFloat("Intensity", &worldLight.intensity, 0.1f, 0.000001f, FLT_MAX, "%.3f", ImGuiSliderFlags_AlwaysClamp);
 
+                    // Move the range sphere to center on the light
                     Transform& sphereTransform = reg.get<Transform>(rangeSphere);
                     sphereTransform.position = transform.position;
 
@@ -553,31 +591,16 @@ namespace worlds {
                         ImGui::EndCombo();
                     }
 
-                    ImGui::Text("Recommended Value: %.3f", glm::sqrt(worldLight.intensity / 0.1f));
+                    // Show a rough guide for a radius - the point at which the light's
+                    // intensity falls to less than 0.05
+                    ImGui::Text("Recommended radius: %.3f", glm::sqrt(worldLight.intensity / 0.05f));
+
                     // The sphere mesh has a radius of 0.25, so scale it up 4x
                     sphereTransform.scale = glm::vec3 { worldLight.maxDistance * 4.0f };
 
                     ImGui::DragFloat("Distance Cutoff", &worldLight.maxDistance);
 
-                    if (worldLight.type == LightType::Spot) {
-                        float cutoff = glm::degrees(worldLight.spotCutoff);
-                        ImGui::DragFloat("Spot Cutoff", &cutoff);
-                        worldLight.spotCutoff = glm::radians(cutoff);
-                        ImGui::Checkbox("Enable Shadows", &worldLight.enableShadows);
-                        if (worldLight.enableShadows) {
-                            ImGui::DragFloat("Near Plane", &worldLight.shadowNear);
-                            ImGui::DragFloat("Far Plane", &worldLight.shadowFar);
-                        }
-                    }
-
-                    if (worldLight.type == LightType::Sphere) {
-                        ImGui::DragFloat("Sphere Radius", &worldLight.spotCutoff);
-                    }
-
-                    if (worldLight.type == LightType::Tube) {
-                        ImGui::DragFloat("Tube Length", &worldLight.tubeLength);
-                        ImGui::DragFloat("Tube Radius", &worldLight.tubeRadius);
-                    }
+                    showTypeSpecificControls(worldLight);
                 }
             } else if (reg.valid(rangeSphere)) {
                 reg.destroy(rangeSphere);
