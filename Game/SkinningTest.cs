@@ -22,9 +22,22 @@ namespace Game
 
             for (uint i = 0; i < MeshManager.GetBoneCount(swo.Mesh); i++) {
                 var restPose = MeshManager.GetBoneRestTransform(swo.Mesh, i);
+
+                Log.Msg($"Rest pose pos: {restPose.Position}");
+                if (!restPose.Rotation.Valid)
+                {
+                    Log.Error($"Rest pose rotation was invalid!! {restPose.Rotation}");
+                    restPose.Rotation = Quaternion.Identity;
+                }
+
                 swo.SetBoneTransform(i, restPose);
             }
             uint boneIdx = MeshManager.GetBoneIndex(swo.Mesh, "Bone.001");
+
+            if (boneIdx == ~0u)
+            {
+                boneIdx = MeshManager.GetBoneIndex(swo.Mesh, "finger_index_0_l");
+            }
 
             if (boneIdx == ~0u) return;
 
@@ -35,6 +48,7 @@ namespace Game
 
         public void Think(Entity e)
         {
+            return;
             var swo = Registry.GetComponent<SkinnedWorldObject>(e);
 
             uint boneIdx = MeshManager.GetBoneIndex(swo.Mesh, "Bone.001");
