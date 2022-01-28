@@ -23,7 +23,7 @@ extern "C" {
 
     EXPORT void meshmanager_getBoneRestTransform(AssetID id, uint32_t boneId, Transform* transform) {
         const auto& m = MeshManager::loadOrGet(id);
-        transform->fromMatrix(glm::inverse(m.boneRestPositions[boneId]));
+        transform->fromMatrix(m.boneRestPositions[boneId]);
     }
 
     EXPORT void meshmanager_getBoneRelativeTransform(AssetID id, uint32_t boneId, Transform* transform) {
@@ -34,5 +34,10 @@ extern "C" {
     EXPORT uint32_t meshmanager_getBoneCount(AssetID id) {
         const auto& m = MeshManager::loadOrGet(id);
         return m.boneNames.size();
+    }
+
+    EXPORT const char* meshmanager_getBoneName(AssetID id, uint32_t boneId) {
+        const auto& m = MeshManager::loadOrGet(id);
+        return m.boneNames[id].c_str();
     }
 };
