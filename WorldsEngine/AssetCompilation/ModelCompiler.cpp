@@ -311,7 +311,6 @@ namespace worlds {
                 aiProcess_ImproveCacheLocality |
                 aiProcess_LimitBoneWeights |
                 aiProcess_RemoveRedundantMaterials |
-                aiProcess_MakeLeftHanded |
                 aiProcess_Triangulate |
                 aiProcess_GenUVCoords |
                 aiProcess_SortByPType |
