@@ -555,7 +555,6 @@ namespace worlds {
                         if (as.playOnSceneStart)
                             as.eventInstance->start();
                         });
-                    inputManager->lockMouse(true);
                     if (!enableOpenVR)
                         console->executeCommandStr("sim_lockToRefresh 0");
                 }, "play", "play.");
@@ -582,7 +581,6 @@ namespace worlds {
                 console->registerCommand([&](void*, const char*) {
                     editor->active = false;
                     pauseSim = false;
-                    inputManager->lockMouse(true);
                     if (!enableOpenVR)
                         console->executeCommandStr("sim_lockToRefresh 0");
                 }, "unpause", "unpause and go back to play mode.");
@@ -1183,7 +1181,6 @@ namespace worlds {
 
     void WorldsEngine::doSimStep(float deltaTime) {
         ZoneScoped;
-        stepSimulation(deltaTime);
 
         if (evtHandler != nullptr && !(runAsEditor && editor->active)) {
             evtHandler->simulate(registry, deltaTime);
@@ -1195,6 +1192,8 @@ namespace worlds {
         if (!runAsEditor || !editor->active) {
             scriptEngine->onSimulate(deltaTime);
         }
+
+        stepSimulation(deltaTime);
     }
 
     void WorldsEngine::updateSimulation(float& interpAlpha, double deltaTime) {
