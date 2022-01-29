@@ -71,7 +71,7 @@ namespace Game
 
             Vector3 force = PD.CalculateForce(pose.Position, _targetTransform.Position + (bodyDpa.Velocity * Time.DeltaTime), dpa.Velocity, Time.DeltaTime, bodyDpa.Velocity)
                 .ClampMagnitude(ForceLimit);
-            
+
             dpa.AddForce(force);
             bodyDpa.AddForce(-force);
 
