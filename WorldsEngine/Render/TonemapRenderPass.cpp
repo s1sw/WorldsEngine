@@ -15,7 +15,7 @@ namespace worlds {
     };
 
     static ConVar exposureBias("r_exposure", "0.5");
-    static ConVar vignetteRadius("r_vignetteRadius", "0.75");
+    static ConVar vignetteRadius("r_vignetteRadius", "1.0");
     static ConVar vignetteSoftness("r_vignetteSoftness", "0.2");
 
     TonemapFXRenderPass::TonemapFXRenderPass(
