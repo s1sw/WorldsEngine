@@ -291,6 +291,19 @@ namespace worlds {
         }
     }
 
+    void validateFolder(EntityFolder& folder, entt::registry& registry) {
+        folder.entities.erase(
+            std::remove_if(
+                folder.entities.begin(),
+                folder.entities.end(),
+                [&registry](entt::entity e) { return !registry.valid(e); }
+            ), folder.entities.end());
+
+        for (EntityFolder& e : folder.children) {
+            validateFolder(e, registry);
+        }
+    }
+
     void JsonSceneSerializer::loadScene(PHYSFS_File* file, entt::registry& reg) {
         PerfTimer timer;
         try {
@@ -312,6 +325,7 @@ namespace worlds {
                 if (j.contains("rootEntityFolder")) {
                     EntityFolders folders;
                     folders.rootFolder = folderFromJson(j["rootEntityFolder"]);
+                    validateFolder(folders.rootFolder, reg);
                     reg.set<EntityFolders>(folders);
                 }
             }
