@@ -34,52 +34,26 @@ namespace Game
         public Transform? OverrideTarget = null;
 
         private Transform _targetTransform = new Transform();
-        private Vector3 lastRefVel = Vector3.Zero;
 
-        private void SetTargets()
+#if DEBUG_HAND_VIS
+        private Entity _visEntity;
+#endif
+
+        public void Start(Entity entity)
         {
-            if (OverrideTarget != null)
-            {
-                _targetTransform = OverrideTarget.Value;
-                return;
-            }
+            if (FollowRightHand)
+                rotationOffset = new Quaternion(0.348f, 0.254f, -0.456f, -0.779f);
+            else
+                rotationOffset = new Quaternion(-0.409f, -0.154f, 0.419f, 0.796f);
 
-            if (!VR.Enabled)
-            {
-                _targetTransform.Rotation = Camera.Main.Rotation;
-                Vector3 offset = _nonVROffset;
+#if DEBUG_HAND_VIS
+            _visEntity = Registry.Create();
+            var currentWO = Registry.GetComponent<WorldObject>(entity);
 
-                if (FollowRightHand)
-                    offset.x *= -1.0f;
-
-                Transform camT = new Transform(Camera.Main.Position, Camera.Main.Rotation);
-
-                camT.Position = PlayerCameraSystem.GetCamPosForSimulation();
-
-                _targetTransform.Position = camT.TransformPoint(offset);
-                return;
-            }
-
-            _targetTransform = FollowRightHand ? VR.RightHandTransform : VR.LeftHandTransform;
-
-            if (_targetTransform.Rotation.HasNaNComponent)
-                _targetTransform.Rotation = Quaternion.Identity;
-
-            if (_targetTransform.Position.HasNaNComponent)
-                _targetTransform.Position = Vector3.Zero;
-
-            Quaternion virtualRotation = Camera.Main.Rotation;//* Quaternion.AngleAxis(MathF.PI, Vector3.Up);
-            //
-            //_targetTransform.Position += _targetTransform.Rotation * PositionOffset;
-            //_targetTransform.Position = virtualRotation * _targetTransform.Position;
-            //
-
-            _targetTransform.Position += PlayerCameraSystem.GetCamPosForSimulation();//Camera.Main.Position;
-            //
-            _targetTransform.Rotation *= rotationOffset;
-            //_targetTransform.Rotation *= new Quaternion(EulerRotationOffset);
-            //
-            _targetTransform.Rotation = virtualRotation * _targetTransform.Rotation;
+            var duplWo = Registry.AddComponent<WorldObject>(_visEntity);
+            duplWo.Mesh = currentWO.Mesh;
+            Registry.SetName(_visEntity, $"{Registry.GetName(entity)} visualiser");
+#endif
         }
 
         public void Think(Entity entity)
@@ -87,16 +61,17 @@ namespace Game
             SetTargets();
             var bodyDpa = Registry.GetComponent<DynamicPhysicsActor>(PlayerRigSystem.PlayerBody);
 
+#if DEBUG_HAND_VIS
+            _targetTransform.Scale = Vector3.One;
+            Registry.SetTransform(_visEntity, _targetTransform);
+#endif
+
             var dpa = Registry.GetComponent<DynamicPhysicsActor>(entity);
             Transform pose = dpa.Pose;
 
             Vector3 force = PD.CalculateForce(pose.Position, _targetTransform.Position + (bodyDpa.Velocity * Time.DeltaTime), dpa.Velocity, Time.DeltaTime, bodyDpa.Velocity)
                 .ClampMagnitude(ForceLimit);
             
-            dpa.AddForce((bodyDpa.Velocity - lastRefVel), ForceMode.VelocityChange);
-
-            lastRefVel = bodyDpa.Velocity;
-
             dpa.AddForce(force);
             bodyDpa.AddForce(-force);
 
@@ -130,13 +105,42 @@ namespace Game
             //torque = torque.ClampMagnitude(TorqueLimit);
             dpa.AddTorque(torque);
         }
-
-        public void Start(Entity entity)
+        private void SetTargets()
         {
-            if (FollowRightHand)
-                rotationOffset = new Quaternion(0.348f, 0.254f, -0.456f, -0.779f);
-            else
-                rotationOffset = new Quaternion(-0.409f, -0.154f, 0.419f, 0.796f);
+            if (OverrideTarget != null)
+            {
+                _targetTransform = OverrideTarget.Value;
+                return;
+            }
+
+            if (!VR.Enabled)
+            {
+                _targetTransform.Rotation = Camera.Main.Rotation;
+                Vector3 offset = _nonVROffset;
+
+                if (FollowRightHand)
+                    offset.x *= -1.0f;
+
+                Transform camT = new(PlayerCameraSystem.GetCamPosForSimulation(), Camera.Main.Rotation);
+
+                _targetTransform.Position = camT.TransformPoint(offset);
+                return;
+            }
+
+            _targetTransform = FollowRightHand ? VR.RightHandTransform : VR.LeftHandTransform;
+
+            if (_targetTransform.Rotation.HasNaNComponent)
+                _targetTransform.Rotation = Quaternion.Identity;
+
+            if (_targetTransform.Position.HasNaNComponent)
+                _targetTransform.Position = Vector3.Zero;
+
+            Quaternion virtualRotation = Camera.Main.Rotation;
+            _targetTransform.Position = virtualRotation * _targetTransform.Position;
+
+            _targetTransform.Position += PlayerCameraSystem.GetCamPosForSimulation();
+            _targetTransform.Rotation *= rotationOffset;
+            _targetTransform.Rotation = virtualRotation * _targetTransform.Rotation;
         }
     }
 }

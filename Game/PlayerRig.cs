@@ -21,12 +21,14 @@ namespace Game
         private bool _grounded = false;
         private bool _groundedLast = false;
         private VRAction _movementAction;
+        private VRAction _rightStickAction;
         private Vector3 _lastHMDPos = Vector3.Zero;
         private float _footstepTimer = 0.0f;
         private float _timeSinceDodge = 1000.0f;
         private float _timeSinceJump = 0.0f;
         private float _airTime = 0.0f;
         private Vector3 _lastDodgeDirection = Vector3.Zero;
+        private bool _snapTurned = false;
 
         private Vector2 GetInputVelocity()
         {
@@ -58,6 +60,18 @@ namespace Game
                 if (_movementAction == null)
                     _movementAction = new VRAction("/actions/main/in/Movement");
 
+                if (_rightStickAction == null)
+                    _rightStickAction = new VRAction("/actions/main/in/RStick");
+
+                Vector2 rsVal = _rightStickAction.Vector2Value;
+                if (MathF.Abs(rsVal.x) < 0.5f)
+                    _snapTurned = false;
+                else if (!_snapTurned)
+                {
+                    PlayerRigSystem.VirtualRotation *= Quaternion.AngleAxis(-MathF.Sign(rsVal.x) * MathF.PI / 2.0f, Vector3.Up);
+                    _snapTurned = true;
+                }
+
                 inputVel = _movementAction.Vector2Value;
                 inputVel.x = -inputVel.x;
             }
@@ -77,7 +91,7 @@ namespace Game
                 {
                     Vector3 dodgeDir = Camera.Main.Rotation * Vector3.Left;
                     _lastDodgeDirection = dodgeDir;
-                    dpa.AddForce(Camera.Main.Rotation * Vector3.Left * 15f, ForceMode.VelocityChange);
+                    PlayerRigSystem.AddForceToRig(Camera.Main.Rotation * Vector3.Left * 15f, ForceMode.VelocityChange);
                     _timeSinceDodge = 0.0f;
                 }
 
@@ -85,7 +99,7 @@ namespace Game
                 {
                     Vector3 dodgeDir = Camera.Main.Rotation * Vector3.Right;
                     _lastDodgeDirection = dodgeDir;
-                    dpa.AddForce(Camera.Main.Rotation * Vector3.Right * 15f, ForceMode.VelocityChange);
+                    PlayerRigSystem.AddForceToRig(Camera.Main.Rotation * Vector3.Right * 15f, ForceMode.VelocityChange);
                     _timeSinceDodge = 0.0f;
                 }
             }
@@ -143,7 +157,8 @@ namespace Game
 
             if (_grounded && PlayerRigSystem.Jump)
             {
-                dpa.Velocity = (dpa.Velocity * new Vector3(1.0f, 0.0f, 1.0f)) + Vector3.Up * 4.0f;
+                Vector3 velChange = (dpa.Velocity * new Vector3(0.0f, -1.0f, 0.0f)) + Vector3.Up * 4.0f;
+                PlayerRigSystem.AddForceToRig(velChange, ForceMode.VelocityChange);
                 _timeSinceJump = 0.0f;
                 Audio.PlayOneShotEvent("event:/Player/Jump", Vector3.Zero);
             }
@@ -154,7 +169,7 @@ namespace Game
                 Vector3 force = pidController.CalculateForce(targetPosition - dpa.Pose.Position, Time.DeltaTime);
                 force.x = 0.0f;
                 force.z = 0.0f;
-                dpa.AddForce(force);
+                PlayerRigSystem.AddForceToRig(force, ForceMode.Force);
             }
 
             if (!_grounded && _groundedLast)
@@ -173,7 +188,9 @@ namespace Game
             }
 
             if (_grounded || targetVelocity.LengthSquared > 0.01f)
-                dpa.AddForce(appliedVelocity, ForceMode.Acceleration);
+            {
+                PlayerRigSystem.AddForceToRig(appliedVelocity, ForceMode.Acceleration);
+            }
 
             if (VR.Enabled)
             {
@@ -206,10 +223,12 @@ namespace Game
         public static Entity PlayerFender { get; private set; }
 
         public static bool Jump = false;
+        public static Quaternion VirtualRotation = Quaternion.Identity;
 
         private VRAction _jumpAction;
         private Entity _hpTextEntity;
-        private Entity _leftHandEntity;
+        private static Entity _leftHandEntity;
+        private static Entity _rightHandEntity;
 
         public void OnSceneStart()
         {
@@ -230,6 +249,7 @@ namespace Game
             _hpTextEntity = Registry.Create();
             Registry.AddComponent<WorldText>(_hpTextEntity);
             _leftHandEntity = Registry.Find("LeftHand");
+            _rightHandEntity = Registry.Find("RightHand");
         }
 
         public void OnUpdate()
@@ -255,6 +275,37 @@ namespace Game
             Vector3 offset = Vector3.Forward * 0.05f + Vector3.Down * 0.02f;
             hpTransform.Position = lhTransform.Position + hpTransform.Rotation * offset;
             Registry.SetTransform(_hpTextEntity, hpTransform);
+        }
+
+        public static void AddForceToRig(Vector3 force, ForceMode mode)
+        {
+            var bodyDpa = Registry.GetComponent<DynamicPhysicsActor>(PlayerBody);
+            var lhDpa = Registry.GetComponent<DynamicPhysicsActor>(_leftHandEntity);
+            var rhDpa = Registry.GetComponent<DynamicPhysicsActor>(_rightHandEntity);
+
+            bodyDpa.AddForce(force, mode);
+            if (mode == ForceMode.Force || mode == ForceMode.Impulse)
+            {
+                force /= bodyDpa.Mass;
+            }
+
+            return;
+            switch (mode)
+            {
+                case ForceMode.Force:
+                    lhDpa.AddForce(force, ForceMode.Acceleration);
+                    rhDpa.AddForce(force, ForceMode.Acceleration);
+                    break;
+                case ForceMode.Impulse:
+                    lhDpa.AddForce(force, ForceMode.VelocityChange);
+                    rhDpa.AddForce(force, ForceMode.VelocityChange);
+                    break;
+                case ForceMode.VelocityChange:
+                case ForceMode.Acceleration:
+                    lhDpa.AddForce(force, mode);
+                    rhDpa.AddForce(force, mode);
+                    break;
+            }
         }
     }
 }
