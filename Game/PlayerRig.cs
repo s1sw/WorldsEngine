@@ -289,7 +289,6 @@ namespace Game
                 force /= bodyDpa.Mass;
             }
 
-            return;
             switch (mode)
             {
                 case ForceMode.Force:
