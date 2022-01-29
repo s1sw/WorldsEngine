@@ -60,6 +60,7 @@ namespace worlds {
 #endif
     physx::PxCooking* g_cooking;
     physx::PxScene* g_scene;
+    physx::PxRigidBody* dummyBody;
 
     bool started = false;
 
@@ -85,7 +86,10 @@ namespace worlds {
 
     void setupD6Joint(entt::registry& reg, entt::entity ent) {
         auto& j = reg.get<D6Joint>(ent);
-        j.pxJoint = physx::PxD6JointCreate(*g_physics, nullptr, physx::PxTransform{ physx::PxIdentity }, nullptr, physx::PxTransform{ physx::PxIdentity });
+        auto* pxj = physx::PxD6JointCreate(*g_physics, dummyBody, physx::PxTransform{ physx::PxIdentity }, nullptr, physx::PxTransform{ physx::PxIdentity });
+
+        j.pxJoint = pxj;
+
         if (!reg.has<DynamicPhysicsActor>(ent)) {
             logWarn("D6 joint added to entity without a dynamic physics actor");
             return;
@@ -328,6 +332,9 @@ namespace worlds {
         g_console->registerCommand(cmdToggleMassAxesVis, "phys_toggleMassAxesVis", "Toggles mass axes visualisations.", nullptr);
 
         defaultMaterial = g_physics->createMaterial(0.6f, 0.6f, 0.0f);
+
+        dummyBody = g_physics->createRigidDynamic(physx::PxTransform{ physx::PxIdentity });
+        dummyBody->setRigidBodyFlag(physx::PxRigidBodyFlag::eKINEMATIC, true);
     }
 
     void stepSimulation(float deltaTime) {
