@@ -133,6 +133,20 @@ namespace worlds {
         PHYSFS_close(file);
     }
 
+    void JsonSceneSerializer::saveScene(AssetID id, entt::registry& reg) {
+        std::string jsonStr = sceneToJson(reg);
+        PHYSFS_File* file = AssetDB::openAssetFileWrite(id);
+        PHYSFS_writeBytes(file, jsonStr.data(), jsonStr.size());
+        PHYSFS_close(file);
+    }
+
+    void JsonSceneSerializer::saveScene(std::string path, entt::registry& reg) {
+        std::string jsonStr = sceneToJson(reg);
+        PHYSFS_File* file = PHYSFS_openWrite(path.c_str());
+        PHYSFS_writeBytes(file, jsonStr.data(), jsonStr.size());
+        PHYSFS_close(file);
+    }
+
     struct ComponentDeserializationInfo {
         std::string id;
         bool isNative;

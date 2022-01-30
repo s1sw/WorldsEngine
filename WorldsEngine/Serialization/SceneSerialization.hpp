@@ -38,7 +38,10 @@ namespace worlds {
 
     class JsonSceneSerializer {
     public:
+        [[deprecated("Please use the AssetID or path variants to avoid data loss.")]]
         static void saveScene(PHYSFS_File* file, entt::registry& reg);
+        static void saveScene(AssetID id, entt::registry& reg);
+        static void saveScene(std::string path, entt::registry& reg);
         static void loadScene(PHYSFS_File* file, entt::registry& reg);
 
         static void saveEntity(PHYSFS_File* file, entt::registry& reg, entt::entity ent);
