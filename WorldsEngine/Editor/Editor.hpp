@@ -1,10 +1,10 @@
 #pragma once
 #include <entt/entt.hpp>
-#include "../Input/Input.hpp"
-#include "../Render/Camera.hpp"
-#include "../Core/Transform.hpp"
-#include "../Core/IGameEventHandler.hpp"
-#include "ImGui/imgui.h"
+#include <Input/Input.hpp>
+#include <Render/Camera.hpp>
+#include <Core/Transform.hpp>
+#include <Core/IGameEventHandler.hpp>
+#include <ImGui/imgui.h>
 #include <deque>
 #include <slib/List.hpp>
 #include <string>
