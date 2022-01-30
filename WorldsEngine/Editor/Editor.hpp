@@ -89,6 +89,9 @@ namespace worlds {
         GameProject(std::string path);
         std::string_view name() const;
         std::string_view root() const;
+        std::string_view sourceData() const;
+        std::string_view builtData() const;
+        std::string_view rawData() const;
         void mountPaths();
         void unmountPaths();
     private:
