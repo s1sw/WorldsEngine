@@ -79,6 +79,11 @@ namespace WorldsEngine
                 updateSyncContext.ClearCallbacks();
                 simulateSyncContext.ClearCallbacks();
             };
+
+            GameAssemblyManager.OnAssemblyLoad += (Assembly) =>
+            {
+                Editor.Editor.Notify("Assembly loaded");
+            };
         }
 
         [UsedImplicitly]
