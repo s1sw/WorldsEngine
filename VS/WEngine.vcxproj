@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -581,7 +581,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);TRACY_ENABLE</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)..\External\Include;$(SolutionDir)..\subprojects\physfs.git\src;$(SolutionDir)..\subprojects\slib.git\include;$(SolutionDir)..\subprojects\SDL2-2.0.12\include;$(SolutionDir)..\WorldsEngine;$(SolutionDir)..\ModelFormat;$(SolutionDir)..\External\Assimp\include;C:\Program Files (x86)\FMOD SoundSystem\FMOD Studio API Windows\api\core\inc;C:\Program Files (x86)\FMOD SoundSystem\FMOD Studio API Windows\api\studio\inc;$(SolutionDir)..\DiscordSDK;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\External\Include;$(SolutionDir)..\subprojects\physfs.git\src;$(SolutionDir)..\subprojects\slib.git\include;$(SolutionDir)..\subprojects\SDL2-2.0.12\include;$(SolutionDir)..\WorldsEngine;$(SolutionDir)..\ModelFormat;$(SolutionDir)..\External\Assimp\include;C:\Program Files (x86)\FMOD SoundSystem\FMOD Studio API Windows\api\core\inc;C:\Program Files (x86)\FMOD SoundSystem\FMOD Studio API Windows\api\studio\inc;$(SolutionDir)..\DiscordSDK;$(SolutionDir)..\subprojects\recastnavigation\Recast\Include;$(SolutionDir)..\subprojects\recastnavigation\Detour\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
@@ -598,7 +598,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);TRACY_ENABLE</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)..\External\Include;$(SolutionDir)..\subprojects\physfs.git\src;$(SolutionDir)..\subprojects\slib.git\include;$(SolutionDir)..\subprojects\SDL2-2.0.12\include;$(SolutionDir)..\WorldsEngine;$(SolutionDir)..\ModelFormat;$(SolutionDir)..\External\Assimp\include;C:\Program Files (x86)\FMOD SoundSystem\FMOD Studio API Windows\api\core\inc;C:\Program Files (x86)\FMOD SoundSystem\FMOD Studio API Windows\api\studio\inc;$(SolutionDir)..\DiscordSDK;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\External\Include;$(SolutionDir)..\subprojects\physfs.git\src;$(SolutionDir)..\subprojects\slib.git\include;$(SolutionDir)..\subprojects\SDL2-2.0.12\include;$(SolutionDir)..\WorldsEngine;$(SolutionDir)..\ModelFormat;$(SolutionDir)..\External\Assimp\include;C:\Program Files (x86)\FMOD SoundSystem\FMOD Studio API Windows\api\core\inc;C:\Program Files (x86)\FMOD SoundSystem\FMOD Studio API Windows\api\studio\inc;$(SolutionDir)..\DiscordSDK;$(SolutionDir)..\subprojects\recastnavigation\Recast\Include;$(SolutionDir)..\subprojects\recastnavigation\Detour\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
