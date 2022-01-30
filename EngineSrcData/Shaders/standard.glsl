@@ -396,7 +396,7 @@ vec3 shadeLight(int lightIndex, ShadeInfo si) {
 
     if (getLightType(lights[lightIndex]) == LT_DIRECTIONAL && !((miscFlag & MISC_FLAG_DISABLE_SHADOWS) == MISC_FLAG_DISABLE_SHADOWS)) {
         shadowIntensity = getDirLightShadowIntensity(lightIndex);
-    } else if (getShadowmapIndex(lights[lightIndex]) != ~0u) {
+    } else if (getShadowmapIndex(lights[lightIndex]) != 0xF) {
         shadowIntensity = getNormalLightShadowIntensity(lightIndex);
     }
 
