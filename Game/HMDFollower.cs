@@ -15,7 +15,7 @@ namespace Game
 
         public void Think(Entity entity)
         {
-            Transform t = VR.HMDTransform;
+            Transform t = VRTransforms.HMDTransform;
             t.Scale = new Vector3(1.0f);
             Registry.SetTransform(entity, t);
         }

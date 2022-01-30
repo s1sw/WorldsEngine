@@ -12,7 +12,7 @@ namespace Game
         private float lookY = 0.0f;
 
         private Entity _listenerEntity;
-        private static readonly Vector3 _toFloor = new(0.0f, -(1.8f * 0.5f) - 0.15f, 0.0f);
+        private static readonly Vector3 _toFloor = new(0.0f, -(1.8f * 0.5f) - PlayerRig.HoverDistance, 0.0f);
 
         public void OnSceneStart()
         {
@@ -40,7 +40,7 @@ namespace Game
             }
             else
             {
-                Vector3 hmdOffset = VR.HMDTransform.Position;
+                Vector3 hmdOffset = VRTransforms.HMDTransform.Position;
                 hmdOffset.y = 0.0f;
 
                 return bodyDpa.Pose.Position + PlayerRigSystem.VirtualRotation * (-hmdOffset) + _toFloor;
@@ -71,7 +71,7 @@ namespace Game
             }
             else
             {
-                Vector3 hmdOffset = VR.HMDTransform.Position;
+                Vector3 hmdOffset = VRTransforms.HMDTransform.Position;
                 hmdOffset.y = 0.0f;
 
                 Transform bodyTransform = Registry.GetTransform(PlayerRigSystem.PlayerBody);
@@ -79,8 +79,8 @@ namespace Game
                 Camera.Main.Rotation = PlayerRigSystem.VirtualRotation;
                 Transform listenerTransform = new();
 
-                listenerTransform.Position = Camera.Main.Position + VR.HMDTransform.Position;
-                listenerTransform.Rotation = PlayerRigSystem.VirtualRotation * VR.HMDTransform.Rotation;
+                listenerTransform.Position = Camera.Main.Position + PlayerRigSystem.VirtualRotation * (VRTransforms.HMDTransform.Position);
+                listenerTransform.Rotation = PlayerRigSystem.VirtualRotation * VRTransforms.HMDTransform.Rotation;
                 listenerTransform.Scale = Vector3.One;
 
                 Registry.SetTransform(_listenerEntity, listenerTransform);

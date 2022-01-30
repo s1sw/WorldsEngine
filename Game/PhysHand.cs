@@ -127,7 +127,7 @@ namespace Game
                 return;
             }
 
-            _targetTransform = FollowRightHand ? VR.RightHandTransform : VR.LeftHandTransform;
+            _targetTransform = FollowRightHand ? VRTransforms.RightHandTransform : VRTransforms.LeftHandTransform;
 
             if (_targetTransform.Rotation.HasNaNComponent)
                 _targetTransform.Rotation = Quaternion.Identity;
