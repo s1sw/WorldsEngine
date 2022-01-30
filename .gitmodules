@@ -1,3 +1,8 @@
 [submodule "WorldsEngine/tracy"]
 	path = WorldsEngine/tracy
 	url = https://github.com/wolfpld/tracy.git
+[submodule "WorldsEngine/recastnavigation"]
+	path = WorldsEngine/recastnavigation
+	url = https://github.com/recastnavigation/recastnavigation.git
+[submodule "recastnavigation"]
+	url = https://github.com/someonesomewheredev/recastnavigation.git
