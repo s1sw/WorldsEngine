@@ -28,10 +28,10 @@ namespace Game
 
             // Simple approximation of a car - just add force+torque
             if (Accelerate)
-                dpa.AddForce(dpa.Pose.Forward * 1000.0f);
+                dpa.AddForce(dpa.Pose.Forward * 100.0f, ForceMode.Acceleration);
 
             if (MathF.Abs(dpa.AngularVelocity.y) < 2 * MathF.PI * 4 || MathF.Sign(Steer) != MathF.Sign(dpa.AngularVelocity.y))
-                dpa.AddTorque(dpa.Pose.TransformDirection(Vector3.Up) * Steer * 400.0f);
+                dpa.AddTorque(dpa.Pose.TransformDirection(Vector3.Up) * Steer * 40.0f, ForceMode.Acceleration);
 
             // Here's an approximation for drag.
             // We're assuming that...
@@ -40,9 +40,11 @@ namespace Game
             const float airDensity = 1.225f;
 
             float dragMagnitude = 0.5f * airDensity * dpa.Velocity.LengthSquared * dragCoefficient * surfaceArea;
-            Vector3 dragForce = -dpa.Velocity.Normalized * dragMagnitude;
-
-            dpa.AddForce(dragForce);
+            if (!dpa.Velocity.IsZero)
+            {
+                Vector3 dragForce = -dpa.Velocity.Normalized * dragMagnitude;
+                dpa.AddForce(dragForce);
+            }
         }
     }
 }
