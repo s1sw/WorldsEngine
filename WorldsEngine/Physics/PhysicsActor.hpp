@@ -13,6 +13,7 @@ namespace worlds {
         Box,
         Capsule,
         Mesh,
+        ConvexMesh,
         Count
     };
 
@@ -46,6 +47,9 @@ namespace worlds {
             struct {
                 AssetID mesh;
             } mesh;
+            struct {
+                AssetID mesh;
+            } convexMesh;
         };
         glm::vec3 pos;
         glm::quat rot;

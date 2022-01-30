@@ -9,7 +9,8 @@ namespace WorldsEngine
         Sphere,
         Box,
         Capsule,
-        Mesh
+        Mesh,
+        ConvexMesh
     }
 
     [StructLayout(LayoutKind.Explicit)]
@@ -58,6 +59,7 @@ namespace WorldsEngine
                 PhysicsShapeType.Sphere => new SpherePhysicsShape(psi.sphereRadius),
                 PhysicsShapeType.Capsule => new CapsulePhysicsShape(psi.capsuleRadius, psi.capsuleHeight),
                 PhysicsShapeType.Box => new BoxPhysicsShape(psi.boxHalfExtents),
+                PhysicsShapeType.ConvexMesh => new ConvexMeshShape(psi.meshId),
                 _ => new SpherePhysicsShape(0.5f),
             };
 
@@ -85,7 +87,7 @@ namespace WorldsEngine
 
         internal override PhysicsShapeInternal ToInternal()
         {
-            PhysicsShapeInternal psi = new PhysicsShapeInternal
+            PhysicsShapeInternal psi = new()
             {
                 type = PhysicsShapeType.Box,
                 boxHalfExtents = halfExtents,
@@ -111,7 +113,7 @@ namespace WorldsEngine
 
         internal override PhysicsShapeInternal ToInternal()
         {
-            PhysicsShapeInternal psi = new PhysicsShapeInternal
+            PhysicsShapeInternal psi = new()
             {
                 type = PhysicsShapeType.Sphere,
                 sphereRadius = radius,
@@ -139,11 +141,35 @@ namespace WorldsEngine
 
         internal override PhysicsShapeInternal ToInternal()
         {
-            PhysicsShapeInternal psi = new PhysicsShapeInternal
+            PhysicsShapeInternal psi = new()
             {
                 type = PhysicsShapeType.Capsule,
                 capsuleRadius = radius,
                 capsuleHeight = height,
+                material = physicsMaterial?.NativeHandle ?? IntPtr.Zero
+            };
+
+            return psi;
+        }
+    }
+
+    public class ConvexMeshShape : PhysicsShape
+    {
+        public AssetID MeshID;
+
+        public ConvexMeshShape(AssetID meshId, PhysicsMaterial? material = null)
+        {
+            MeshID = meshId;
+            type = PhysicsShapeType.ConvexMesh;
+            physicsMaterial = material;
+        }
+
+        internal override PhysicsShapeInternal ToInternal()
+        {
+            PhysicsShapeInternal psi = new()
+            {
+                type = PhysicsShapeType.ConvexMesh,
+                meshId = MeshID,
                 material = physicsMaterial?.NativeHandle ?? IntPtr.Zero
             };
 
