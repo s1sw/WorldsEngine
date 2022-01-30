@@ -211,7 +211,12 @@ namespace worlds {
                                 pos = path.find(ext.cStr());
                                 path.erase(pos, ext.byteLength());
                                 path += ".wmdlj";
-                                std::filesystem::create_directory(std::filesystem::path{ path }.parent_path());
+                                slib::Path assetPath{ path.c_str()};
+                                assetPath = assetPath.parentPath();
+                                slib::String fullPath = slib::String(editor->currentProject().sourceData().data()) + '/' + assetPath;
+                                logMsg("Creating %s", fullPath.cStr());
+
+                                std::filesystem::create_directories(fullPath.cStr());
                                 AssetEditors::getEditorFor(".wmdlj")->importAsset(assetContextMenu, path);
                             }
                         }
