@@ -21,6 +21,6 @@ uint getLightType(Light l) {
 }
 
 uint getShadowmapIndex(Light l) {
-    return (floatBitsToUint(l.pack0.w) & (15 << 3)) >> 3;
+    return (floatBitsToUint(l.pack0.w) >> 3) & 0xF;
 }
 #endif
