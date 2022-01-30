@@ -5,8 +5,7 @@ namespace worlds {
     void EditorUndo::pushState(entt::registry& reg) {
         // Serialize to file
         std::string savedPath = "Temp/" + std::to_string(currentPos) + ".json";
-        PHYSFS_File* file = PHYSFS_openWrite(savedPath.c_str());
-        JsonSceneSerializer::saveScene(file, reg);
+        JsonSceneSerializer::saveScene(savedPath, reg);
         highestSaved = currentPos;
         currentPos++;
     }
