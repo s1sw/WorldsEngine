@@ -20,9 +20,13 @@
 namespace worlds {
     void checkFmodErr(FMOD_RESULT result, const char* file, int line) {
         if (result != FMOD_OK) {
+#ifdef DEBUG
             char buffer[256];
             snprintf(buffer, sizeof(buffer), "FMOD error: %s", FMOD_ErrorString(result));
             fatalErrInternal(buffer, file, line);
+#else
+            logErr("FMOD error: %s", FMOD_ErrorString(result));
+#endif
         }
     }
 
