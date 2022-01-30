@@ -42,6 +42,11 @@ extern_include_dir = include_directories('External/Include')
 physx_include_dir = include_directories('External/Include/physx')
 sdl2_dep = dependency('sdl2', fallback: ['sdl2', 'sdl2_dep'])
 
+recastnav_proj = subproject('recastnavigation')
+recast_dep = recastnav_proj.get_variable('recast_dep')
+detour_dep = recastnav_proj.get_variable('detour_dep')
+
+
 subdir('ModelFormat')
 subdir('Tools')
 subdir('DiscordSDK')
