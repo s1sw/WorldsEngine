@@ -27,6 +27,13 @@ namespace worlds {
         for (auto& dir : j["copyDirectories"]) {
             _copyDirs.push_back(dir);
         }
+
+        slib::String tempDir = ((slib::String)rootPath + "/");
+        bool tempDirExists = std::filesystem::is_directory(tempDir.cStr());
+
+        if (!tempDirExists) {
+            std::filesystem::create_directory(tempDir.cStr());
+        }
     }
 
     std::string_view GameProject::name() const {
@@ -35,6 +42,18 @@ namespace worlds {
 
     std::string_view GameProject::root() const {
         return _root;
+    }
+
+    std::string_view GameProject::builtData() const {
+        return _compiledDataPath;
+    }
+
+    std::string_view GameProject::rawData() const {
+        return _rawPath;
+    }
+
+    std::string_view GameProject::sourceData() const {
+        return _srcDataPath;
     }
 
     void GameProject::mountPaths() {
