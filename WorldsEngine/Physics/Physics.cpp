@@ -453,7 +453,7 @@ namespace worlds {
                 glm2px(direction),
                 distance,
                 hitBuf,
-                PxHitFlag::eDEFAULT,
+                PxHitFlag::ePOSITION | PxHitFlag::eNORMAL,
                 filterData,
                 &raycastFilterCallback
             );

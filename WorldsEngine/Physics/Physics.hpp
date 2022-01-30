@@ -90,34 +90,75 @@ namespace worlds {
                 );
                 break;
             case PhysicsShapeType::Mesh:
-                if (ps.mesh.mesh == ~0u) {
-                    logErr(WELogCategoryPhysics, "Mesh collider is missing a mesh!");
-                    continue;
+                {
+                    if (ps.mesh.mesh == ~0u) {
+                        logErr(WELogCategoryPhysics, "Mesh collider is missing a mesh!");
+                        continue;
+                    }
+                    const LoadedMesh& lm = MeshManager::loadOrGet(ps.mesh.mesh);
+
+                    std::vector<physx::PxVec3> points;
+                    points.resize(lm.vertices.size());
+
+                    for (size_t i = 0; i < lm.vertices.size(); i++) {
+                        points[i] = glm2px(lm.vertices[i].position * scale);
+                    }
+
+                    physx::PxTriangleMeshDesc meshDesc;
+
+                    meshDesc.points.count = points.size();
+                    meshDesc.points.stride = sizeof(physx::PxVec3);
+                    meshDesc.points.data = points.data();
+
+                    meshDesc.triangles.count = lm.indices.size() / 3;
+                    meshDesc.triangles.data = lm.indices.data();
+                    meshDesc.triangles.stride = sizeof(uint32_t) * 3;
+
+                    physx::PxTriangleMesh* triMesh = g_cooking->createTriangleMesh(meshDesc, g_physics->getPhysicsInsertionCallback());
+                    shape = g_physics->createShape(
+                        physx::PxTriangleMeshGeometry(triMesh),
+                        *mat
+                    );
                 }
-                const LoadedMesh& lm = MeshManager::loadOrGet(ps.mesh.mesh);
+                break;
+            case PhysicsShapeType::ConvexMesh:
+                {
+                    if (ps.convexMesh.mesh == ~0u) {
+                        logErr(WELogCategoryPhysics, "Convex mesh collider is missing a mesh!");
+                        continue;
+                    }
 
-                std::vector<physx::PxVec3> points;
-                points.resize(lm.vertices.size());
+                    const LoadedMesh& lm = MeshManager::loadOrGet(ps.convexMesh.mesh);
 
-                for (size_t i = 0; i < lm.vertices.size(); i++) {
-                    points[i] = glm2px(lm.vertices[i].position * scale);
+                    std::vector<physx::PxVec3> points;
+                    points.resize(lm.vertices.size());
+
+                    for (size_t i = 0; i < lm.vertices.size(); i++) {
+                        points[i] = glm2px(lm.vertices[i].position * scale);
+                    }
+
+                    physx::PxConvexMeshDesc convexDesc;
+                    convexDesc.points.count = points.size();
+                    convexDesc.points.stride = sizeof(physx::PxVec3);
+                    convexDesc.points.data = points.data();
+                    convexDesc.flags = physx::PxConvexFlag::eCOMPUTE_CONVEX;
+
+                    physx::PxDefaultMemoryOutputStream buf;
+                    physx::PxConvexMeshCookingResult::Enum result;
+
+                    if (!g_cooking->cookConvexMesh(convexDesc, buf, &result)) {
+                        logErr(WELogCategoryPhysics, "Failed to cook mesh %s", AssetDB::idToPath(ps.convexMesh.mesh).c_str());
+                        continue;
+                    }
+
+                    physx::PxDefaultMemoryInputData input(buf.getData(), buf.getSize());
+                    physx::PxConvexMesh* convexMesh = g_physics->createConvexMesh(input);
+
+                    shape = g_physics->createShape(
+                        physx::PxConvexMeshGeometry(convexMesh),
+                        *mat
+                    );
                 }
-
-                physx::PxTriangleMeshDesc meshDesc;
-
-                meshDesc.points.count = points.size();
-                meshDesc.points.stride = sizeof(physx::PxVec3);
-                meshDesc.points.data = points.data();
-
-                meshDesc.triangles.count = lm.indices.size() / 3;
-                meshDesc.triangles.data = lm.indices.data();
-                meshDesc.triangles.stride = sizeof(uint32_t) * 3;
-
-                physx::PxTriangleMesh* triMesh = g_cooking->createTriangleMesh(meshDesc, g_physics->getPhysicsInsertionCallback());
-                shape = g_physics->createShape(
-                    physx::PxTriangleMeshGeometry(triMesh),
-                    *mat
-                );
                 break;
             }
 

@@ -670,7 +670,8 @@ namespace worlds {
         "Sphere",
         "Box",
         "Capsule",
-        "Mesh"
+        "Mesh",
+        "Convex Mesh"
     };
 
     PhysicsShapeType valToShapeType(std::string str) {
@@ -755,6 +756,10 @@ namespace worlds {
                         if (type == PhysicsShapeType::Mesh) {
                             it->mesh.mesh = ~0u;
                         }
+
+                        if (type == PhysicsShapeType::ConvexMesh) {
+                            it->convexMesh.mesh = ~0u;
+                        }
                     }
 
                     if (isSelected)
@@ -806,6 +811,13 @@ namespace worlds {
                 else
                     ImGui::Text("%s", AssetDB::idToPath(it->mesh.mesh).c_str());
                 selectAssetPopup("Mesh", it->mesh.mesh, ImGui::Button("Change"));
+                break;
+            case PhysicsShapeType::ConvexMesh:
+                if (it->convexMesh.mesh == ~0u)
+                    ImGui::Text("No mesh set");
+                else
+                    ImGui::Text("%s", AssetDB::idToPath(it->convexMesh.mesh).c_str());
+                selectAssetPopup("Mesh", it->convexMesh.mesh, ImGui::Button("Change"));
                 break;
             default: break;
             }
@@ -1194,6 +1206,9 @@ namespace worlds {
                         jShape["height"] = shape.capsule.height;
                         jShape["radius"] = shape.capsule.radius;
                         break;
+                    case PhysicsShapeType::ConvexMesh:
+                        jShape["mesh"] = AssetDB::idToPath(shape.convexMesh.mesh);
+                        break;
                     default:
                         assert(false && "invalid physics shape type");
                         break;
@@ -1231,6 +1246,9 @@ namespace worlds {
                     case PhysicsShapeType::Capsule:
                         ps.capsule.height = shape["height"];
                         ps.capsule.radius = shape["radius"];
+                        break;
+                    case PhysicsShapeType::ConvexMesh:
+                        ps.convexMesh.mesh = AssetDB::pathToId(shape["mesh"].get<std::string>());
                         break;
                     default:
                         assert(false && "invalid physics shape type");
