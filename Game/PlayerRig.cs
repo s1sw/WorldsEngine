@@ -15,6 +15,7 @@ namespace Game
     [EditorFriendlyName("C# Player Rig")]
     public class PlayerRig : IThinkingComponent, IStartListener
     {
+        public const float HoverDistance = 0.2f;
         [EditableClass]
         public V3PidController pidController = new();
 
@@ -68,7 +69,7 @@ namespace Game
                     _snapTurned = false;
                 else if (!_snapTurned)
                 {
-                    PlayerRigSystem.VirtualRotation *= Quaternion.AngleAxis(-MathF.Sign(rsVal.x) * MathF.PI / 2.0f, Vector3.Up);
+                    PlayerRigSystem.VirtualRotation *= Quaternion.AngleAxis(-MathF.Sign(rsVal.x) * MathF.PI / 4.0f, Vector3.Up);
                     _snapTurned = true;
                 }
 
@@ -138,22 +139,25 @@ namespace Game
 
             if (VR.Enabled)
             {
-                inputDirCS = VR.HMDTransform.Rotation * Camera.Main.Rotation * inputDir;
+                inputDirCS = VRTransforms.HMDTransform.Rotation * Camera.Main.Rotation * inputDir;
             }
 
             inputDirCS.y = 0.0f;
             inputDirCS.Normalize();
 
-            _grounded = Physics.SweepSphere(
-                dpa.Pose.Position + (Vector3.Down * 0.9f),
+            bool nearGround = Physics.SweepSphere(
+                dpa.Pose.Position + (Vector3.Down * 0.8f),
                 0.1f,
                 Vector3.Down,
-                0.1f,
+                0.3f,
                 out RaycastHit hit,
                 PhysicsLayers.Player
             );
 
-            Vector3 targetPosition = hit.WorldHitPos + (Vector3.Up * 1.15f);
+
+            _grounded = nearGround && hit.Distance < 0.2f + HoverDistance;
+
+            Vector3 targetPosition = hit.WorldHitPos + (Vector3.Up * (1f + HoverDistance));
 
             if (_grounded && PlayerRigSystem.Jump)
             {
@@ -164,7 +168,7 @@ namespace Game
             }
             PlayerRigSystem.Jump = false;
 
-            if (_grounded && _timeSinceJump > 0.1f)
+            if (_timeSinceJump > 0.3f && nearGround && hit.Distance != 0f)
             {
                 Vector3 force = pidController.CalculateForce(targetPosition - dpa.Pose.Position, Time.DeltaTime);
                 force.x = 0.0f;
@@ -194,12 +198,12 @@ namespace Game
 
             if (VR.Enabled)
             {
-                Vector3 movement = VR.HMDTransform.Position - _lastHMDPos;
+                Vector3 movement = VRTransforms.HMDTransform.Position - _lastHMDPos;
                 movement.y = 0f;
                 var pose = dpa.Pose;
                 pose.Position += movement;
                 dpa.Pose = pose;
-                _lastHMDPos = VR.HMDTransform.Position;
+                _lastHMDPos = VRTransforms.HMDTransform.Position;
             }
 
             UpdateSound(entity, inputDirCS);
@@ -212,7 +216,7 @@ namespace Game
         public void Start(Entity entity)
         {
             if (VR.Enabled)
-                _lastHMDPos = VR.HMDTransform.Position;
+                _lastHMDPos = VRTransforms.HMDTransform.Position;
         }
     }
 
