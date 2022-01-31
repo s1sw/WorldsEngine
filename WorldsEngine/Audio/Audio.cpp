@@ -259,13 +259,14 @@ namespace worlds {
         IPLSimulationSettings simulationSettings{};
         simulationSettings.flags = (IPLSimulationFlags)(IPL_SIMULATIONFLAGS_DIRECT | IPL_SIMULATIONFLAGS_REFLECTIONS);
         simulationSettings.sceneType = IPL_SCENETYPE_DEFAULT;
+        simulationSettings.reflectionType = IPL_REFLECTIONEFFECTTYPE_CONVOLUTION;
+        simulationSettings.maxNumRays = 4096;
         simulationSettings.maxNumOcclusionSamples = 1024;
-        simulationSettings.maxNumRays = 64;
-        simulationSettings.numDiffuseSamples = 1024;
-        simulationSettings.maxDuration = 1.0f;
+        simulationSettings.numDiffuseSamples = 32;
+        simulationSettings.maxDuration = 2.0f;
         simulationSettings.maxOrder = 1;
         simulationSettings.maxNumSources = 512;
-        simulationSettings.numThreads = 5;
+        simulationSettings.numThreads = 4;
         simulationSettings.rayBatchSize = 16;
         simulationSettings.numVisSamples = 512;
         simulationSettings.samplingRate = audioSettings.samplingRate;
@@ -273,14 +274,23 @@ namespace worlds {
 
         SACHECK(iplSimulatorCreate(phononContext, &simulationSettings, &simulator));
 
-        iplFMODSetSimulationSettings(simulationSettings);
-
         IPLSourceSettings sourceSettings{};
         sourceSettings.flags = simulationSettings.flags;
         listenerCentricSource = nullptr;
         SACHECK(iplSourceCreate(simulator, &sourceSettings, &listenerCentricSource));
+
         iplSourceAdd(listenerCentricSource, simulator);
+
+        // Create a blank scene
+        IPLSceneSettings sceneSettings{};
+        sceneSettings.type = IPL_SCENETYPE_DEFAULT;
+        SACHECK(iplSceneCreate(phononContext, &sceneSettings, &scene));
+
+        iplSimulatorSetScene(simulator, scene);
         iplSimulatorCommit(simulator);
+
+        iplFMODSetSimulationSettings(simulationSettings);
+        iplFMODSetReverbSource(listenerCentricSource);
 
         lastListenerPos = glm::vec3(0.0f, 0.0f, 0.0f);
     }
@@ -363,7 +373,10 @@ namespace worlds {
         listenerAttributes.position = convVec(listenerPos);
         listenerAttributes.velocity = convVec(movement);
 
-        IPLSimulationFlags simFlags = (IPLSimulationFlags)(IPL_SIMULATIONFLAGS_DIRECT | IPL_SIMULATIONFLAGS_REFLECTIONS);
+        IPLSimulationFlags simFlags = (IPLSimulationFlags)(IPL_SIMULATIONFLAGS_REFLECTIONS);
+
+        iplSimulatorRunDirect(simulator);
+
         IPLSimulationInputs inputs{};
         inputs.flags = simFlags;
         inputs.source.right = convVecSA(listenerRot * glm::vec3(1.0f, 0.0f, 0.0f));
@@ -383,15 +396,19 @@ namespace worlds {
 
         IPLSimulationSharedInputs sharedInputs{};
         sharedInputs.listener = inputs.source;
-        sharedInputs.numRays = 4096;
-        sharedInputs.numBounces = 16;
-        sharedInputs.duration = 0.5f;
+        sharedInputs.numRays = 2048;
+        sharedInputs.numBounces = 4;
+        sharedInputs.duration = 1.0f;
         sharedInputs.order = 1;
         sharedInputs.irradianceMinDistance = 1.0f;
 
         iplSimulatorSetSharedInputs(simulator, simFlags, &sharedInputs);
 
-        iplSimulatorRunReflections(simulator);
+        timeSinceLastSim += deltaTime;
+        if (timeSinceLastSim > 0.1f) {
+            iplSimulatorRunReflections(simulator);
+            timeSinceLastSim = 0.0f;
+        }
 
         worldState.view<AudioSource, Transform>().each([](AudioSource& as, Transform& t) {
             if (as.eventInstance == nullptr) return;
@@ -599,7 +616,7 @@ namespace worlds {
     IPLScene AudioSystem::createScene(entt::registry& reg) {
         IPLSceneSettings sceneSettings{};
         sceneSettings.type = IPL_SCENETYPE_DEFAULT;
-        
+
         IPLScene scene = nullptr;
         SACHECK(iplSceneCreate(phononContext, &sceneSettings, &scene));
 
@@ -608,7 +625,7 @@ namespace worlds {
             glm::mat4 tMat = t.getMatrix();
 
             // oh boy
-            IPLMaterial mat{0.1f, 0.2f, 0.3f, 0.05f, 0.1f, 0.05f, 0.03f};
+            IPLMaterial mat{{0.1f, 0.2f, 0.3f}, 0.05f, {0.1f, 0.05f, 0.03f}};
             std::vector<IPLVector3> verts;
             std::vector<IPLTriangle> triangles;
             std::vector<int> materialIndices;
@@ -649,7 +666,8 @@ namespace worlds {
             //iplStaticMeshRelease(&mesh);
         });
         iplSceneCommit(scene);
-        
+        iplSceneSaveOBJ(scene, "thingy.obj");
+
         return scene;
     }
 }
