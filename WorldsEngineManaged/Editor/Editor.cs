@@ -79,6 +79,78 @@ namespace WorldsEngine.Editor
             instance.Open();
         }
 
+        private static void ConvertLong(long val, Span<char> outBuffer)
+        {
+            int index = 0;
+            int numNums = (int)(System.Math.Floor(System.Math.Log10(val))) + 1;
+
+            while (val > 0)
+            {
+                outBuffer[numNums - index - 1] = (char)('0' + (char)(val % 10));
+                val /= 10;
+                index++;
+            }
+        }
+
+        private static int GetRequiredNumberBufferLength(long val)
+        {
+            return (int)(System.Math.Floor(System.Math.Log10(val))) + 1;
+        }
+
+        private static bool _miscWindowOpen = false;
+        internal static void DrawMiscWindow()
+        {
+            if (!_miscWindowOpen) return;
+            if (ImGui.Begin("Misc", ref _miscWindowOpen))
+            {
+                // Do some very janky string stuff so we don't allocate any memory
+                ImGui.TextUnformatted("Current managed memory usage: ");
+                ImGui.SameLine();
+
+                long memUsage = GC.GetTotalMemory(false);
+                var len = GetRequiredNumberBufferLength(memUsage / 1000);
+
+                Span<char> buffer = stackalloc char[len + 1]; // 1 more for letter K
+                ConvertLong(memUsage / 1000, buffer);
+                buffer[len] = 'K';
+
+                int byteCount = System.Text.Encoding.UTF8.GetByteCount(buffer);
+
+                Span<byte> nativeTextBuffer = stackalloc byte[byteCount + 1];
+                System.Text.Encoding.UTF8.GetBytes(buffer, nativeTextBuffer);
+                nativeTextBuffer[byteCount] = 0;
+
+                unsafe
+                {
+                    fixed (byte* nativeText = nativeTextBuffer)
+                    {
+                        ImGuiNative.igTextUnformatted(nativeText, null);
+                    }
+                }
+
+                if (ImGui.Button("Force Collection"))
+                {
+                    GC.Collect(99, GCCollectionMode.Forced, true, true);
+                }
+
+                if (ImGui.Button("Force Reload Assembly"))
+                {
+                    WorldsEngine.HotloadManager.ForceReload();
+                }
+
+                if (ImGui.Button("Destroy Far-Away Objects"))
+                {
+                    Registry.Each((Entity e) =>
+                    {
+                        Transform t = Registry.GetTransform(e);
+                        if (t.Position.y < -9000.0f)
+                            Registry.Destroy(e);
+                    });
+                }
+            }
+            ImGui.End();
+        }
+
         internal static void Update()
         {
             if (ImGui.BeginMainMenuBar())
@@ -86,7 +158,11 @@ namespace WorldsEngine.Editor
                 if (ImGui.BeginMenu("Window"))
                 {
                     ImGui.Separator();
-                    
+                    if (ImGui.MenuItem("Misc"))
+                    {
+                        _miscWindowOpen = true;
+                    }
+
                     foreach (Type t in _editorWindowTypes)
                     {
                         if (ImGui.MenuItem(t.Name))
@@ -100,6 +176,7 @@ namespace WorldsEngine.Editor
             }
 
             DrawOpenWindows();
+            DrawMiscWindow();
         }
 
         private static EditorWindow CreateWindowOfType(Type t)

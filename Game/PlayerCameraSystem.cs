@@ -30,8 +30,8 @@ namespace Game
 
         public static Vector3 GetCamPosForSimulation()
         {
-            Transform bodyTransform = Registry.GetTransform(PlayerRigSystem.PlayerBody);
-            var bodyDpa = Registry.GetComponent<DynamicPhysicsActor>(PlayerRigSystem.PlayerBody);
+            Transform bodyTransform = Registry.GetTransform(LocalPlayerSystem.PlayerBody);
+            var bodyDpa = Registry.GetComponent<DynamicPhysicsActor>(LocalPlayerSystem.PlayerBody);
 
             if (!VR.Enabled)
             {
@@ -43,13 +43,13 @@ namespace Game
                 Vector3 hmdOffset = VRTransforms.HMDTransform.Position;
                 hmdOffset.y = 0.0f;
 
-                return bodyDpa.Pose.Position + PlayerRigSystem.VirtualRotation * (-hmdOffset) + _toFloor;
+                return bodyDpa.Pose.Position + LocalPlayerSystem.VirtualRotation * (-hmdOffset) + _toFloor;
             }
         }
 
         public void OnUpdate()
         {
-            if (PlayerRigSystem.PlayerBody.IsNull || FreecamSystem.Enabled) return;
+            if (LocalPlayerSystem.PlayerBody.IsNull || FreecamSystem.Enabled) return;
 
             if (!VR.Enabled)
             {
@@ -62,10 +62,10 @@ namespace Game
                 Quaternion cameraRotation = leftRight * upDown;
 
 
-                if (Registry.Valid(PlayerRigSystem.PlayerBody))
+                if (Registry.Valid(LocalPlayerSystem.PlayerBody))
                 {
                     Camera.Main.Rotation = cameraRotation;
-                    Transform bodyTransform = Registry.GetTransform(PlayerRigSystem.PlayerBody);
+                    Transform bodyTransform = Registry.GetTransform(LocalPlayerSystem.PlayerBody);
                     Camera.Main.Position = bodyTransform.Position + _toFloor + new Vector3(0.0f, 1.8f, 0.0f);
                 }
             }
@@ -74,13 +74,13 @@ namespace Game
                 Vector3 hmdOffset = VRTransforms.HMDTransform.Position;
                 hmdOffset.y = 0.0f;
 
-                Transform bodyTransform = Registry.GetTransform(PlayerRigSystem.PlayerBody);
-                Camera.Main.Position = bodyTransform.Position + PlayerRigSystem.VirtualRotation * (-hmdOffset) + _toFloor;
-                Camera.Main.Rotation = PlayerRigSystem.VirtualRotation;
+                Transform bodyTransform = Registry.GetTransform(LocalPlayerSystem.PlayerBody);
+                Camera.Main.Position = bodyTransform.Position + LocalPlayerSystem.VirtualRotation * (-hmdOffset) + _toFloor;
+                Camera.Main.Rotation = LocalPlayerSystem.VirtualRotation;
                 Transform listenerTransform = new();
 
-                listenerTransform.Position = Camera.Main.Position + PlayerRigSystem.VirtualRotation * (VRTransforms.HMDTransform.Position);
-                listenerTransform.Rotation = PlayerRigSystem.VirtualRotation * VRTransforms.HMDTransform.Rotation;
+                listenerTransform.Position = Camera.Main.Position + LocalPlayerSystem.VirtualRotation * (VRTransforms.HMDTransform.Position);
+                listenerTransform.Rotation = LocalPlayerSystem.VirtualRotation * VRTransforms.HMDTransform.Rotation;
                 listenerTransform.Scale = Vector3.One;
 
                 Registry.SetTransform(_listenerEntity, listenerTransform);

@@ -100,10 +100,17 @@ namespace worlds {
                 PrefabInstanceComponent& pic = reg.get<PrefabInstanceComponent>(ent);
                 nlohmann::json instanceJson = getEntityJson(ent, reg);
                 nlohmann::json prefab = getPrefabJson(pic.prefab);
+                
+                // HACK: To avoid generating patch data for the transform, set the serialized instances's transform
+                // to the prefab's.
+                instanceJson["Transform"] = prefab["Transform"];
+                nlohmann::json transform;
+                ComponentMetadataManager::byName["Transform"]->toJson(ent, reg, transform);
 
                 entity = {
                     { "diff", nlohmann::json::diff(prefab, instanceJson) },
-                    { "prefabPath", AssetDB::idToPath(pic.prefab) }
+                    { "prefabPath", AssetDB::idToPath(pic.prefab) },
+                    { "Transform", transform }
                 };
             } else {
                 entity = getEntityJson(ent, reg);
@@ -242,6 +249,10 @@ namespace worlds {
                     } else {
                         throw ex;
                     }
+                }
+
+                if (p.value().contains("Transform")) {
+                    components["Transform"] = p.value()["Transform"];
                 }
 
                 deserializeEntityComponents(components, reg, newEnt);

@@ -11,6 +11,7 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include <stb_image_write.h>
 #include <Editor/GuiUtil.hpp>
+#include <Audio/Audio.hpp>
 
 namespace worlds {
     void stbiWriteFunc(void* ctx, void* data, int bytes) {
@@ -110,6 +111,7 @@ namespace worlds {
                     ib.srcOffsets[0] = VkOffset3D{ 0, 0, 0 };
                     ib.srcOffsets[1] = VkOffset3D{ (int)rttPass->width, (int)rttPass->height, 1 };
 
+
                     vku::executeImmediately(vkHandles->device, vkHandles->commandPool, queue, [&](VkCommandBuffer cb) {
                         vku::GenericImage& srcImg = rttPass->hdrTarget->image();
 
@@ -203,6 +205,10 @@ namespace worlds {
                 else {
                     ImGui::TextColored(ImColor(1.0f, 0.0f, 0.0f),
                         "There aren't any objects marked as audio static in the scene.");
+                }
+
+                if (ImGui::Button("Bake")) {
+                    AudioSystem::getInstance()->bakeProbes(reg);
                 }
             }
 

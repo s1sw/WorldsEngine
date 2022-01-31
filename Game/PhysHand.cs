@@ -59,7 +59,7 @@ namespace Game
         public void Think(Entity entity)
         {
             SetTargets();
-            var bodyDpa = Registry.GetComponent<DynamicPhysicsActor>(PlayerRigSystem.PlayerBody);
+            var bodyDpa = Registry.GetComponent<DynamicPhysicsActor>(LocalPlayerSystem.PlayerBody);
 
 #if DEBUG_HAND_VIS
             _targetTransform.Scale = Vector3.One;

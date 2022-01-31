@@ -36,7 +36,7 @@ namespace Game
 
                 var pose = Registry.GetTransform(e);
 
-                Camera.Main.Position = pose.Position - (pose.Forward * 3f) + Vector3.Up;
+                Camera.Main.Position = pose.Position - (pose.Forward * 7f) + Vector3.Up;
                 Camera.Main.Rotation = Quaternion.SafeLookAt((pose.Position + pose.Forward * 1.5f - Camera.Main.Position).Normalized);
             }
         }

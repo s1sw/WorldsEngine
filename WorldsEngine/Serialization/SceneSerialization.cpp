@@ -3,6 +3,7 @@
 #include "../Core/AssetDB.hpp"
 #include <physfs.h>
 #include "Core/Engine.hpp"
+#include <Audio/Audio.hpp>
 
 namespace worlds {
     // Do basic checks on the first byte to determine
@@ -29,7 +30,9 @@ namespace worlds {
             return;
         }
 
+
         PHYSFS_close(file);
+        AudioSystem::getInstance()->updateAudioScene(reg);
     }
 
     entt::entity SceneLoader::loadEntity(PHYSFS_File* file, entt::registry& reg) {
