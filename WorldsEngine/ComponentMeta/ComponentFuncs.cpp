@@ -1619,35 +1619,24 @@ namespace worlds {
         const char* getName() override { return "Reverb Probe Box"; }
 
         void edit(entt::entity ent, entt::registry& reg, Editor* ed) override {
-            auto& rpb = reg.get<ReverbProbeBox>(ent);
-
             if (ImGui::CollapsingHeader("Reverb Probe Box")) {
-                ImGui::DragFloat3("Extents", glm::value_ptr(rpb.bounds));
                 ImGui::Separator();
             }
         }
 
         void writeToFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file) override {
-            auto& rbp = reg.get<ReverbProbeBox>(ent);
-            WRITE_FIELD(file, rbp.bounds);
         }
 
         void readFromFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file, int version) override {
-            auto& rbp = reg.emplace<ReverbProbeBox>(ent);
-            READ_FIELD(file, rbp.bounds);
+            reg.emplace<ReverbProbeBox>(ent);
         }
 
         void toJson(entt::entity ent, entt::registry& reg, json& j) override {
-            auto& rbp = reg.get<ReverbProbeBox>(ent);
-
-            j = {
-                { "bounds", rbp.bounds }
-            };
+            j = {};
         }
 
         void fromJson(entt::entity ent, entt::registry& reg, const json& j) override {
-            auto& rbp = reg.emplace<ReverbProbeBox>(ent);
-            rbp.bounds = j["bounds"];
+            reg.emplace<ReverbProbeBox>(ent);
         }
     };
 

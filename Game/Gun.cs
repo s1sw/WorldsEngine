@@ -113,7 +113,7 @@ namespace Game
             }
 
             var damagingProjectile = Registry.GetComponent<DamagingProjectile>(projectile);
-            damagingProjectile.Attacker = PlayerRigSystem.PlayerBody;
+            damagingProjectile.Attacker = LocalPlayerSystem.PlayerBody;
         }
 
         public void Think(Entity entity)

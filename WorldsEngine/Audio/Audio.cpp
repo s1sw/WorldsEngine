@@ -13,6 +13,8 @@
 #include "../Physics/Physics.hpp"
 #include <fmod_errors.h>
 #include <stdlib.h>
+#include <glm/gtc/type_ptr.hpp>
+#include <Util/EnumUtil.hpp>
 
 #define FMCHECK(_result) checkFmodErr(_result, __FILE__, __LINE__)
 #define SACHECK(_result) checkSteamAudioErr(_result, __FILE__, __LINE__)
@@ -105,6 +107,7 @@ namespace worlds {
     typedef void(*PFN_iplFMODInitialize)(IPLContext context);
     typedef void(*PFN_iplFMODSetHRTF)(IPLHRTF hrtf);
     typedef void(*PFN_iplFMODSetSimulationSettings)(IPLSimulationSettings simulationSettings);
+    typedef void(*PFN_iplFMODSetReverbSource)(IPLSource reverbSource);
 
     FMOD_RESULT F_CALL fmodDebugCallback(FMOD_DEBUG_FLAGS flags, const char* file, int line, const char* func, const char* message) {
         if (flags & FMOD_DEBUG_LEVEL_ERROR) {
@@ -228,10 +231,12 @@ namespace worlds {
         PFN_iplFMODInitialize iplFMODInitialize;
         PFN_iplFMODSetHRTF iplFMODSetHRTF;
         PFN_iplFMODSetSimulationSettings iplFMODSetSimulationSettings;
+        PFN_iplFMODSetReverbSource iplFMODSetReverbSource;
 
         iplFMODInitialize = (PFN_iplFMODInitialize)fmodPlugin.getFunctionPointer("iplFMODInitialize");
         iplFMODSetHRTF = (PFN_iplFMODSetHRTF)fmodPlugin.getFunctionPointer("iplFMODSetHRTF");
         iplFMODSetSimulationSettings = (PFN_iplFMODSetSimulationSettings)fmodPlugin.getFunctionPointer("iplFMODSetSimulationSettings");
+        iplFMODSetReverbSource = (PFN_iplFMODSetReverbSource)fmodPlugin.getFunctionPointer("iplFMODSetReverbSource");
 
         // Create the Steam Audio context
         IPLContextSettings contextSettings{};
@@ -257,8 +262,8 @@ namespace worlds {
         simulationSettings.maxNumOcclusionSamples = 1024;
         simulationSettings.maxNumRays = 64;
         simulationSettings.numDiffuseSamples = 1024;
-        simulationSettings.maxDuration = 0.5f;
-        simulationSettings.maxOrder = 8;
+        simulationSettings.maxDuration = 1.0f;
+        simulationSettings.maxOrder = 1;
         simulationSettings.maxNumSources = 512;
         simulationSettings.numThreads = 5;
         simulationSettings.rayBatchSize = 16;
@@ -270,6 +275,13 @@ namespace worlds {
 
         iplFMODSetSimulationSettings(simulationSettings);
 
+        IPLSourceSettings sourceSettings{};
+        sourceSettings.flags = simulationSettings.flags;
+        listenerCentricSource = nullptr;
+        SACHECK(iplSourceCreate(simulator, &sourceSettings, &listenerCentricSource));
+        iplSourceAdd(listenerCentricSource, simulator);
+        iplSimulatorCommit(simulator);
+
         lastListenerPos = glm::vec3(0.0f, 0.0f, 0.0f);
     }
 
@@ -278,6 +290,7 @@ namespace worlds {
         g_console->registerCommand([&](void*, const char* arg) {
             if (!available) {
                 logErr(WELogCategoryAudio, "Audio subsystem is unavailable");
+                return;
             }
 
             float vol = std::atof(arg);
@@ -287,6 +300,15 @@ namespace worlds {
                 masterVCA->setVolume(vol);
             }
         }, "a_setMasterVolume", "Sets the master audio volume.");
+
+        g_console->registerCommand([&](void*, const char*) {
+            if (!available) {
+                logErr(WELogCategoryAudio, "Audio subsystem is unavailable");
+                return;
+            }
+
+            updateAudioScene(worldState);
+        }, "a_forceUpdateAudioScene", "Forces an update of the Steam Audio scene.");
     }
 
     void AudioSystem::onAudioSourceDestroy(entt::registry& reg, entt::entity entity) {
@@ -315,6 +337,14 @@ namespace worlds {
         return v;
     }
 
+    IPLVector3 convVecSA(glm::vec3 v3) {
+        IPLVector3 v{};
+        v.x = v3.x;
+        v.y = v3.y;
+        v.z = v3.z;
+        return v;
+    }
+
     void AudioSystem::update(entt::registry& worldState, glm::vec3 listenerPos, glm::quat listenerRot, float deltaTime) {
         if (!available) return;
         glm::vec3 movement = listenerPos - lastListenerPos;
@@ -332,6 +362,36 @@ namespace worlds {
 
         listenerAttributes.position = convVec(listenerPos);
         listenerAttributes.velocity = convVec(movement);
+
+        IPLSimulationFlags simFlags = (IPLSimulationFlags)(IPL_SIMULATIONFLAGS_DIRECT | IPL_SIMULATIONFLAGS_REFLECTIONS);
+        IPLSimulationInputs inputs{};
+        inputs.flags = simFlags;
+        inputs.source.right = convVecSA(listenerRot * glm::vec3(1.0f, 0.0f, 0.0f));
+        inputs.source.up = convVecSA(listenerRot * glm::vec3(0.0f, 1.0f, 0.0f));
+        inputs.source.ahead = convVecSA(listenerRot * glm::vec3(0.0f, 0.0f, 1.0f));
+        inputs.source.origin = convVecSA(listenerPos);
+        inputs.distanceAttenuationModel.type = IPL_DISTANCEATTENUATIONTYPE_DEFAULT;
+        inputs.airAbsorptionModel.type = IPL_AIRABSORPTIONTYPE_DEFAULT;
+        inputs.reverbScale[0] = 1.0f;
+        inputs.reverbScale[1] = 1.0f;
+        inputs.reverbScale[2] = 1.0f;
+        inputs.hybridReverbTransitionTime = 1.0f;
+        inputs.hybridReverbOverlapPercent = 0.25f;
+        inputs.baked = IPL_FALSE;
+
+        iplSourceSetInputs(listenerCentricSource, simFlags, &inputs);
+
+        IPLSimulationSharedInputs sharedInputs{};
+        sharedInputs.listener = inputs.source;
+        sharedInputs.numRays = 4096;
+        sharedInputs.numBounces = 16;
+        sharedInputs.duration = 0.5f;
+        sharedInputs.order = 1;
+        sharedInputs.irradianceMinDistance = 1.0f;
+
+        iplSimulatorSetSharedInputs(simulator, simFlags, &sharedInputs);
+
+        iplSimulatorRunReflections(simulator);
 
         worldState.view<AudioSource, Transform>().each([](AudioSource& as, Transform& t) {
             if (as.eventInstance == nullptr) return;
@@ -501,5 +561,95 @@ namespace worlds {
         loadedBanks.insert({ path, bank });
 
         return bank;
+    }
+
+    void AudioSystem::bakeProbes(entt::registry& registry) {
+
+        IPLProbeBatch probeBatch = nullptr;
+        SACHECK(iplProbeBatchCreate(phononContext, &probeBatch));
+
+        std::vector<IPLProbeArray> probeArrays;
+        registry.view<ReverbProbeBox, Transform>().each([&](Transform& t) {
+            IPLMatrix4x4 iplMat{};
+            glm::mat4 tMat = glm::transpose(t.getMatrix());
+            memcpy(iplMat.elements, glm::value_ptr(tMat), sizeof(float) * 16);
+
+            IPLProbeGenerationParams probeGenParams{};
+            probeGenParams.type = IPL_PROBEGENERATIONTYPE_UNIFORMFLOOR;
+            probeGenParams.spacing = 2.0f;
+            probeGenParams.height = 1.5f;
+            probeGenParams.transform = iplMat;
+
+            IPLProbeArray probeArray = nullptr;
+            SACHECK(iplProbeArrayCreate(phononContext, &probeArray));
+            iplProbeArrayGenerateProbes(probeArray, scene, &probeGenParams);
+            probeArrays.push_back(probeArray);
+        });
+    }
+
+    void AudioSystem::updateAudioScene(entt::registry& reg) {
+        if (scene)
+            iplSceneRelease(&scene);
+
+        scene = createScene(reg);
+        iplSimulatorSetScene(simulator, scene);
+        iplSimulatorCommit(simulator);
+    }
+
+    IPLScene AudioSystem::createScene(entt::registry& reg) {
+        IPLSceneSettings sceneSettings{};
+        sceneSettings.type = IPL_SCENETYPE_DEFAULT;
+        
+        IPLScene scene = nullptr;
+        SACHECK(iplSceneCreate(phononContext, &sceneSettings, &scene));
+
+        reg.view<WorldObject, Transform>().each([&](WorldObject& wo, Transform& t) {
+            if (!enumHasFlag(wo.staticFlags, StaticFlags::Audio)) return;
+            glm::mat4 tMat = t.getMatrix();
+
+            // oh boy
+            IPLMaterial mat{0.1f, 0.2f, 0.3f, 0.05f, 0.1f, 0.05f, 0.03f};
+            std::vector<IPLVector3> verts;
+            std::vector<IPLTriangle> triangles;
+            std::vector<int> materialIndices;
+
+            const LoadedMesh& lm = MeshManager::loadOrGet(wo.mesh);
+
+            verts.resize(lm.vertices.size());
+            triangles.resize(lm.indices.size() / 3);
+            materialIndices.resize(triangles.size());
+
+            for (uint32_t i = 0; i < lm.vertices.size(); i++) {
+                glm::vec3 pos = tMat * glm::vec4(lm.vertices[i].position, 1.0f);
+                verts[i].x = pos.x;
+                verts[i].y = pos.y;
+                verts[i].z = pos.z;
+            }
+
+            for (uint32_t i = 0; i < lm.indices.size(); i += 3) {
+                triangles[i / 3] = { (int)lm.indices[i], (int)lm.indices[i + 1], (int)lm.indices[i + 2] };
+            }
+
+            for (uint32_t i = 0; i < materialIndices.size(); i++) {
+                materialIndices[i] = 0;
+            }
+
+            IPLStaticMeshSettings settings{};
+            settings.numVertices = verts.size();
+            settings.numTriangles = triangles.size();
+            settings.numMaterials = 1;
+            settings.vertices = verts.data();
+            settings.triangles = triangles.data();
+            settings.materialIndices = materialIndices.data();
+            settings.materials = &mat;
+
+            IPLStaticMesh mesh = nullptr;
+            SACHECK(iplStaticMeshCreate(scene, &settings, &mesh));
+            iplStaticMeshAdd(mesh, scene);
+            //iplStaticMeshRelease(&mesh);
+        });
+        iplSceneCommit(scene);
+        
+        return scene;
     }
 }

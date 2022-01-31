@@ -48,10 +48,10 @@ namespace WorldsEngine
         }
 #endif
 
-        static HotloadManager hotloadManager = new HotloadManager();
-        static EngineSynchronizationContext updateSyncContext = new EngineSynchronizationContext();
-        static EngineSynchronizationContext simulateSyncContext = new EngineSynchronizationContext();
-        static EngineSynchronizationContext editorUpdateSyncContext = new EngineSynchronizationContext();
+        internal static HotloadManager HotloadManager = new();
+        static readonly EngineSynchronizationContext updateSyncContext = new();
+        static readonly EngineSynchronizationContext simulateSyncContext = new();
+        static readonly EngineSynchronizationContext editorUpdateSyncContext = new();
 
         static double _simulationTime = 0.0;
         static double _updateTime = 0.0;
@@ -68,11 +68,7 @@ namespace WorldsEngine
             MetadataManager.Initialise();
             Console.Initialise();
 
-            hotloadManager.Active = true;
-
-            updateSyncContext = new EngineSynchronizationContext();
-            simulateSyncContext = new EngineSynchronizationContext();
-            editorUpdateSyncContext = new EngineSynchronizationContext();
+            HotloadManager.Active = true;
 
             GameAssemblyManager.OnAssemblyUnload += () =>
             {
@@ -116,7 +112,7 @@ namespace WorldsEngine
 
             try
             {
-                foreach (var system in hotloadManager.Systems)
+                foreach (var system in HotloadManager.Systems)
                 {
                     system.OnSceneStart();
                 }
@@ -137,7 +133,7 @@ namespace WorldsEngine
             Justification = "Called from native C++")]
         static void Update(float deltaTime)
         {
-            hotloadManager.ReloadIfNecessary();
+            HotloadManager.ReloadIfNecessary();
             SynchronizationContext.SetSynchronizationContext(updateSyncContext);
             Time.DeltaTime = deltaTime;
             Time.CurrentTime = _updateTime;
@@ -146,17 +142,15 @@ namespace WorldsEngine
             {
                 updateSyncContext.RunCallbacks();
 
-                for (int i = 0; i < hotloadManager.Systems.Count; i++)
+                for (int i = 0; i < HotloadManager.Systems.Count; i++)
                 {
-                    hotloadManager.Systems[i].OnUpdate();
+                    HotloadManager.Systems[i].OnUpdate();
                 }
             }
             catch (Exception e)
             {
                 Logger.LogError($"Caught exception: {e}");
             }
-
-            DrawMiscWindow();
 
             Registry.ClearDestroyQueue();
 
@@ -178,9 +172,9 @@ namespace WorldsEngine
                 Physics.FlushCollisionQueue();
                 simulateSyncContext.RunCallbacks();
 
-                for (int i = 0; i < hotloadManager.Systems.Count; i++)
+                for (int i = 0; i < HotloadManager.Systems.Count; i++)
                 {
-                    hotloadManager.Systems[i].OnSimulate();
+                    HotloadManager.Systems[i].OnSimulate();
                 }
 
                 Registry.UpdateThinkingComponents();
@@ -196,87 +190,16 @@ namespace WorldsEngine
             _simulationTime += Time.DeltaTime;
         }
 
-        private static void ConvertLong(long val, Span<char> outBuffer)
-        {
-            int index = 0;
-            int numNums = (int)(System.Math.Floor(System.Math.Log10(val))) + 1;
-
-            while (val > 0)
-            {
-                outBuffer[numNums - index - 1] = (char)('0' + (char)(val % 10));
-                val /= 10;
-                index++;
-            }
-        }
-
-        private static int GetRequiredNumberBufferLength(long val)
-        {
-            return (int)(System.Math.Floor(System.Math.Log10(val))) + 1;
-        }
-
-        private static void DrawMiscWindow()
-        {
-            if (ImGui.Begin("Misc"))
-            {
-                // Do some very janky string stuff so we don't allocate any memory
-                ImGui.TextUnformatted("Current managed memory usage: ");
-                ImGui.SameLine();
-
-                long memUsage = GC.GetTotalMemory(false);
-                var len = GetRequiredNumberBufferLength(memUsage / 1000);
-
-                Span<char> buffer = stackalloc char[len + 1]; // 1 more for letter K
-                ConvertLong(memUsage / 1000, buffer);
-                buffer[len] = 'K';
-
-                int byteCount = System.Text.Encoding.UTF8.GetByteCount(buffer);
-
-                Span<byte> nativeTextBuffer = stackalloc byte[byteCount + 1];
-                System.Text.Encoding.UTF8.GetBytes(buffer, nativeTextBuffer);
-                nativeTextBuffer[byteCount] = 0;
-
-                unsafe
-                {
-                    fixed (byte* nativeText = nativeTextBuffer)
-                    {
-                        ImGuiNative.igTextUnformatted(nativeText, null);
-                    }
-                }
-
-                if (ImGui.Button("Force Collection"))
-                {
-                    GC.Collect(99, GCCollectionMode.Forced, true, true);
-                }
-
-                if (ImGui.Button("Force Reload Assembly"))
-                {
-                    hotloadManager.ForceReload();
-                }
-
-                if (ImGui.Button("Destroy Far-Away Objects"))
-                {
-                    Registry.Each((Entity e) =>
-                    {
-                        Transform t = Registry.GetTransform(e);
-                        if (t.Position.y < -9000.0f)
-                            Registry.Destroy(e);
-                    });
-                }
-            }
-            ImGui.End();
-        }
-
         [UsedImplicitly]
         [SuppressMessage("CodeQuality", "IDE0051:Remove unused private members",
             Justification = "Called from native C++")]
         static void EditorUpdate()
         {
-            hotloadManager.ReloadIfNecessary();
+            HotloadManager.ReloadIfNecessary();
             SynchronizationContext.SetSynchronizationContext(editorUpdateSyncContext);
             Physics.ClearCollisionQueue();
 
             Editor.Editor.Update();
-            DrawMiscWindow();
 
             editorUpdateSyncContext.RunCallbacks();
             SceneRunning = false;

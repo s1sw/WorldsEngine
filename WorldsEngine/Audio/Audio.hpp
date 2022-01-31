@@ -60,7 +60,6 @@ namespace worlds {
     };
 
     struct ReverbProbeBox {
-        glm::vec3 bounds;
     };
 
     struct AudioListenerOverride { int meh; };
@@ -80,8 +79,11 @@ namespace worlds {
         void precacheAudioClip(AssetID id) {}
         static AudioSystem* getInstance() { return instance; }
         FMOD::Studio::Bank* loadBank(const char* path);
+        void bakeProbes(entt::registry& registry);
+        void updateAudioScene(entt::registry& reg);
     private:
         void onAudioSourceDestroy(entt::registry& reg, entt::entity ent);
+        IPLScene createScene(entt::registry& reg);
 
         struct AttachedOneshot {
             FMOD::Studio::EventInstance* instance;
@@ -105,6 +107,8 @@ namespace worlds {
         IPLContext phononContext;
         IPLHRTF phononHrtf;
         IPLSimulator simulator;
+        IPLSource listenerCentricSource;
+        IPLScene scene = nullptr;
 
         robin_hood::unordered_map<const char*, FMOD::Studio::Bank*> loadedBanks;
         robin_hood::unordered_map<AssetID, FMOD::Sound*> sounds;

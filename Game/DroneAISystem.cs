@@ -259,13 +259,13 @@ namespace Game
                 if (overlapCount > 0)
                 {
                     Alert();
-                    _target = PlayerRigSystem.PlayerBody;
+                    _target = LocalPlayerSystem.PlayerBody;
                 }
 
                 return;
             }
 
-            if (DebugGlobals.AIIgnorePlayer && _target == PlayerRigSystem.PlayerBody)
+            if (DebugGlobals.AIIgnorePlayer && _target == LocalPlayerSystem.PlayerBody)
             {
                 _target = Entity.Null;
                 _awake = false;
