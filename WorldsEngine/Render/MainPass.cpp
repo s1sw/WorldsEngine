@@ -30,7 +30,8 @@ namespace worlds {
 
         glm::vec3 cubemapExt;
         uint32_t skinningOffset;
-        glm::vec4 cubemapPos;
+        glm::vec3 cubemapPos;
+        float cubemapBoost;
 
         glm::vec4 texScaleOffset;
 
@@ -80,9 +81,10 @@ namespace worlds {
                 .materialIdx = sdi.materialIdx,
                 .vpIdx = 0,
                 .objectId = (uint32_t)sdi.ent,
-                .cubemapExt = glm::vec4(sdi.cubemapExt, 0.0f),
+                .cubemapExt = sdi.cubemapExt,
                 .skinningOffset = sdi.boneMatrixOffset,
-                .cubemapPos = glm::vec4(sdi.cubemapPos, 0.0f),
+                .cubemapPos = sdi.cubemapPos,
+                .cubemapBoost = glm::length2(sdi.cubemapExt) == 0.0f  ? ctx.registry.ctx<SceneSettings>().skyboxBoost : 1.0f,
                 .texScaleOffset = sdi.texScaleOffset,
                 .screenSpacePickPos = glm::ivec3(pickX, pickY, globalMiscFlags | sdi.drawMiscFlags),
                 .cubemapIdx = sdi.cubemapIdx

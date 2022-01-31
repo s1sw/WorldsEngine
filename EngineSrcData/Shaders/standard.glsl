@@ -167,7 +167,7 @@ vec3 calcAmbient(vec3 f0, float roughness, vec3 viewDir, float metallic, vec3 al
     R.x = -R.x;
     R = normalize(R);
 
-    vec3 specularAmbient = textureLod(cubemapSampler[cubemapIdx], R, roughness * MAX_REFLECTION_LOD).rgb;
+    vec3 specularAmbient = textureLod(cubemapSampler[cubemapIdx], R, roughness * MAX_REFLECTION_LOD).rgb * cubemapBoost;
 
 #ifdef BRDF_APPROX
     vec3 specularColor = EnvBRDFApprox(F, roughness, max(dot(normal, viewDir), 0.0));
@@ -181,7 +181,7 @@ vec3 calcAmbient(vec3 f0, float roughness, vec3 viewDir, float metallic, vec3 al
 
     if (metallic < 1.0) {
         vec3 kD = (1.0 - F) * (1.0 - metallic);
-        totalAmbient += kD * textureLod(cubemapSampler[cubemapIdx], normal, 7.0).xyz * albedoColor;
+        totalAmbient += kD * textureLod(cubemapSampler[cubemapIdx], normal, 7.0).xyz * albedoColor * cubemapBoost;
     }
 
     return totalAmbient;

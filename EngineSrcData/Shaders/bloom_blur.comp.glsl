@@ -72,7 +72,7 @@ vec4 blur5(vec2 uv, vec2 resolution, vec2 direction) {
 }
 
 vec4 downsample13(vec2 uv, vec2 resolution) {
-    vec2 texelSize = 1.0 / resolution;
+    vec2 texelSize = 2.0 / resolution;
     
     // A  B  C
     //  D  E
@@ -137,20 +137,6 @@ vec4 tent(vec2 uv, vec2 resolution) {
     return color;
 }
 
-vec3 QuadraticThreshold(vec3 color, float threshold, float knee) {
-    // Pixel brightness
-    float br = gmax3(color.r, color.g, color.b);
-
-    // Under-threshold part: quadratic curve
-    float rq = clamp(br - (threshold - knee), 0.0, knee * 2.0);
-    rq = (0.25 / knee) * rq * rq;
-
-    // Combine and apply the brightness response curve.
-    color *= max(rq, br - threshold) / max(br, 0.0001);
-
-    return color;
-}
-
 void main() {
     uvec2 resolution = imageSize(outputTexture).xy;
     vec2 uv = (vec2(gl_GlobalInvocationID.xy) + 0.5) / vec2(resolution);
@@ -161,12 +147,15 @@ void main() {
     blurred = downsample13(uv, resolution);
 #else
     vec4 orig = textureLod(inputTexture, uv, inputMipLevel - 1);
-    blurred = tent(uv, resolution) + orig;
+    blurred = tent(uv, resolution);
+    //if (length(blurred) < 1.1) blurred = orig;
+    blurred = mix(orig, blurred, 0.85);
+    //blurred += orig;
 #endif
     imageStore(outputTexture, ivec2(gl_GlobalInvocationID.xy), vec4(blurred.xyz, 1.0f));
 #else
     vec3 col = samp(uv).xyz;
-    col = QuadraticThreshold(col, 12.5, 0.5);
+    //col = QuadraticThreshold(col, 12.5, 0.5);
     col = max(col, vec3(0.0));
     //col = saturate(col);
     imageStore(outputTexture, ivec2(gl_GlobalInvocationID.xy), vec4(col, 1.0));

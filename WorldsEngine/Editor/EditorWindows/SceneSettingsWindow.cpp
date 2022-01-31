@@ -12,6 +12,8 @@ namespace worlds {
 
             bool open = ImGui::Button("Change");
             selectAssetPopup("Change Skybox", settings.skybox, open);
+
+            ImGui::DragFloat("Boost", &settings.skyboxBoost);
         }
         ImGui::End();
     }

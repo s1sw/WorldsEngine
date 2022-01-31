@@ -9,9 +9,10 @@ layout (binding = 1) uniform samplerCube cubemap;
 
 layout (push_constant) uniform PushConstants {
     // (x: vp index, y: cubemap index)
-    ivec4 ubIndices; 
+    ivec2 ubIndices;
+    float boost;
 };
 
 void main() {
-    FragColor = vec4(textureLod(cubemap, inTexCoords, 0).xyz, 1.0);
+    FragColor = vec4(textureLod(cubemap, inTexCoords, 0).xyz * boost, 1.0);
 }
