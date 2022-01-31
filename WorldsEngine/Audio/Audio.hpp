@@ -109,6 +109,7 @@ namespace worlds {
         IPLSimulator simulator;
         IPLSource listenerCentricSource;
         IPLScene scene = nullptr;
+        float timeSinceLastSim = 0.0f;
 
         robin_hood::unordered_map<const char*, FMOD::Studio::Bank*> loadedBanks;
         robin_hood::unordered_map<AssetID, FMOD::Sound*> sounds;
