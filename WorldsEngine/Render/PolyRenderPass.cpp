@@ -51,7 +51,8 @@ namespace worlds {
 
         glm::vec3 cubemapExt;
         uint32_t skinningOffset;
-        glm::vec4 cubemapPos;
+        glm::vec3 cubemapPos;
+        float cubemapBoost;
 
         glm::vec4 texScaleOffset;
 
@@ -696,10 +697,10 @@ namespace worlds {
                         cPos.y < ma.y && cPos.y > mi.y &&
                         cPos.z < ma.z && cPos.z > mi.z && wc.priority > lastPriority) {
                         currCubemapIdx = resources.cubemaps.get(wc.cubemapId);
+                        sdi.cubemapPos = cubeT.position;
+                        sdi.cubemapExt = wc.extent;
                         if (wc.cubeParallax) {
                             sdi.drawMiscFlags |= ShaderFlags::MISC_FLAG_CUBEMAP_PARALLAX; // flag for cubemap parallax correction
-                            sdi.cubemapPos = cubeT.position;
-                            sdi.cubemapExt = wc.extent;
                         }
                         lastPriority = wc.priority;
                     }

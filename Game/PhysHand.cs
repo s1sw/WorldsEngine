@@ -73,7 +73,7 @@ namespace Game
                 .ClampMagnitude(ForceLimit);
 
             dpa.AddForce(force);
-            bodyDpa.AddForce(-force);
+            bodyDpa.AddForce(-force * 0.1f);
 
             Quaternion quatDiff = _targetTransform.Rotation.SingleCover * pose.Rotation.SingleCover.Inverse;
             quatDiff = quatDiff.SingleCover;

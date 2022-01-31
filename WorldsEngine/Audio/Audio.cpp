@@ -15,6 +15,7 @@
 #include <stdlib.h>
 #include <glm/gtc/type_ptr.hpp>
 #include <Util/EnumUtil.hpp>
+#include <Core/JobSystem.hpp>
 
 #define FMCHECK(_result) checkFmodErr(_result, __FILE__, __LINE__)
 #define SACHECK(_result) checkSteamAudioErr(_result, __FILE__, __LINE__)
@@ -177,6 +178,27 @@ namespace worlds {
         return ret;
     }
 
+    std::atomic<bool> simRunning = false;
+    std::atomic<bool> simThreadKickoff;
+    std::condition_variable simConVar;
+    std::mutex simMutex;
+    std::thread steamAudioSimThread;
+    std::atomic<bool> simThreadAlive = true;
+    
+    void simThread(IPLSimulator simulator) {
+        while (simThreadAlive) {
+            {
+                std::unique_lock lock{ simMutex };
+                simConVar.wait(lock, []() { return simThreadKickoff.load(); });
+            }
+
+            simRunning = true;
+            iplSimulatorRunReflections(simulator);
+            iplSimulatorRunPathing(simulator);
+            simRunning = false;
+        }
+    }
+
     AudioSystem::AudioSystem() {
         instance = this;
         const char* phononPluginName;
@@ -257,16 +279,16 @@ namespace worlds {
         iplFMODSetHRTF(phononHrtf);
 
         IPLSimulationSettings simulationSettings{};
-        simulationSettings.flags = (IPLSimulationFlags)(IPL_SIMULATIONFLAGS_DIRECT | IPL_SIMULATIONFLAGS_REFLECTIONS);
+        simulationSettings.flags = (IPLSimulationFlags)(IPL_SIMULATIONFLAGS_REFLECTIONS);
         simulationSettings.sceneType = IPL_SCENETYPE_DEFAULT;
         simulationSettings.reflectionType = IPL_REFLECTIONEFFECTTYPE_CONVOLUTION;
         simulationSettings.maxNumRays = 4096;
         simulationSettings.maxNumOcclusionSamples = 1024;
         simulationSettings.numDiffuseSamples = 32;
         simulationSettings.maxDuration = 2.0f;
-        simulationSettings.maxOrder = 1;
+        simulationSettings.maxOrder = 2;
         simulationSettings.maxNumSources = 512;
-        simulationSettings.numThreads = 4;
+        simulationSettings.numThreads = 8;
         simulationSettings.rayBatchSize = 16;
         simulationSettings.numVisSamples = 512;
         simulationSettings.samplingRate = audioSettings.samplingRate;
@@ -293,6 +315,7 @@ namespace worlds {
         iplFMODSetReverbSource(listenerCentricSource);
 
         lastListenerPos = glm::vec3(0.0f, 0.0f, 0.0f);
+        steamAudioSimThread = std::thread([=]() {simThread(simulator); });
     }
 
     void AudioSystem::initialise(entt::registry& worldState) {
@@ -373,15 +396,13 @@ namespace worlds {
         listenerAttributes.position = convVec(listenerPos);
         listenerAttributes.velocity = convVec(movement);
 
-        IPLSimulationFlags simFlags = (IPLSimulationFlags)(IPL_SIMULATIONFLAGS_REFLECTIONS);
-
-        iplSimulatorRunDirect(simulator);
+        IPLSimulationFlags simFlags = (IPLSimulationFlags)(IPL_SIMULATIONFLAGS_DIRECT | IPL_SIMULATIONFLAGS_REFLECTIONS);
 
         IPLSimulationInputs inputs{};
         inputs.flags = simFlags;
-        inputs.source.right = convVecSA(listenerRot * glm::vec3(1.0f, 0.0f, 0.0f));
+        inputs.source.right = convVecSA(listenerRot * glm::vec3(-1.0f, 0.0f, 0.0f));
         inputs.source.up = convVecSA(listenerRot * glm::vec3(0.0f, 1.0f, 0.0f));
-        inputs.source.ahead = convVecSA(listenerRot * glm::vec3(0.0f, 0.0f, 1.0f));
+        inputs.source.ahead = convVecSA(listenerRot * glm::vec3(0.0f, 0.0f, -1.0f));
         inputs.source.origin = convVecSA(listenerPos);
         inputs.distanceAttenuationModel.type = IPL_DISTANCEATTENUATIONTYPE_DEFAULT;
         inputs.airAbsorptionModel.type = IPL_AIRABSORPTIONTYPE_DEFAULT;
@@ -397,16 +418,19 @@ namespace worlds {
         IPLSimulationSharedInputs sharedInputs{};
         sharedInputs.listener = inputs.source;
         sharedInputs.numRays = 2048;
-        sharedInputs.numBounces = 4;
-        sharedInputs.duration = 1.0f;
-        sharedInputs.order = 1;
+        sharedInputs.numBounces = 16;
+        sharedInputs.duration = 2.0f;
+        sharedInputs.order = 2;
         sharedInputs.irradianceMinDistance = 1.0f;
 
         iplSimulatorSetSharedInputs(simulator, simFlags, &sharedInputs);
 
+        iplSimulatorRunDirect(simulator);
+
         timeSinceLastSim += deltaTime;
-        if (timeSinceLastSim > 0.1f) {
-            iplSimulatorRunReflections(simulator);
+        if (timeSinceLastSim > 0.1f && !simRunning) {
+            simThreadKickoff = true;
+            simConVar.notify_one();
             timeSinceLastSim = 0.0f;
         }
 
@@ -556,6 +580,8 @@ namespace worlds {
 
     void AudioSystem::shutdown(entt::registry& worldState) {
         if (!available) return;
+        simThreadAlive = false;
+        steamAudioSimThread.join();
         FMCHECK(studioSystem->release());
         worldState.view<AudioSource>().each([](AudioSource& as) {
             FMCHECK(as.eventInstance->stop(FMOD_STUDIO_STOP_IMMEDIATE));
@@ -609,6 +635,7 @@ namespace worlds {
             iplSceneRelease(&scene);
 
         scene = createScene(reg);
+        while (simRunning) {}
         iplSimulatorSetScene(simulator, scene);
         iplSimulatorCommit(simulator);
     }
@@ -666,7 +693,6 @@ namespace worlds {
             //iplStaticMeshRelease(&mesh);
         });
         iplSceneCommit(scene);
-        iplSceneSaveOBJ(scene, "thingy.obj");
 
         return scene;
     }

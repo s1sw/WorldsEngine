@@ -1,12 +1,13 @@
 #include "RenderPasses.hpp"
 #include "vku/DescriptorSetUtil.hpp"
 #include <tracy/Tracy.hpp>
+#include <Core/Console.hpp>
 
 namespace worlds {
     struct SkyboxPushConstants {
         uint32_t vpIdx;
         uint32_t cubemapIdx;
-        uint32_t pad0;
+        float boost;
         uint32_t pad1;
     };
 
@@ -84,6 +85,7 @@ namespace worlds {
         vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, skyboxPipeline);
         vkCmdBindDescriptorSets(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, skyboxPipelineLayout, 0, 1, &skyboxDs, 0, nullptr);
         SkyboxPushConstants spc{ 0, 0, 0, 0 };
+        spc.boost = ctx.registry.ctx<SceneSettings>().skyboxBoost;
         vkCmdPushConstants(cmdBuf, skyboxPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(spc), &spc);
         vkCmdDraw(cmdBuf, 36, 1, 0, 0);
         vkCmdEndDebugUtilsLabelEXT(cmdBuf);

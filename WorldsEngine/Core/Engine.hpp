@@ -81,6 +81,7 @@ namespace worlds {
 
     struct SceneSettings {
         AssetID skybox;
+        float skyboxBoost;
     };
 
     struct PrefabInstanceComponent {

@@ -28,7 +28,6 @@ namespace Game
         private float _airTime = 0.0f;
         private Vector3 _lastDodgeDirection = Vector3.Zero;
 
-
         private void UpdateDodge(Entity entity)
         {
             var dpa = Registry.GetComponent<DynamicPhysicsActor>(entity);
@@ -150,7 +149,7 @@ namespace Game
                 Vector3 movement = VRTransforms.HMDTransform.Position - _lastHMDPos;
                 movement.y = 0f;
                 var pose = dpa.Pose;
-                pose.Position += movement;
+                pose.Position += Camera.Main.Rotation * movement;
                 dpa.Pose = pose;
                 _lastHMDPos = VRTransforms.HMDTransform.Position;
             }
@@ -175,7 +174,7 @@ namespace Game
         public static Entity PlayerBody { get; private set; }
         public static bool Jump { get; private set; }
         public static Vector2 MovementInput { get; private set; }
-        public static Quaternion VirtualRotation { get; private set; }
+        public static Quaternion VirtualRotation { get; private set; } = Quaternion.Identity;
 
         private VRAction _jumpAction;
         private Entity _hpTextEntity;

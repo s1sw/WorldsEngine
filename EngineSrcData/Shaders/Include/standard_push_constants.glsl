@@ -9,7 +9,7 @@ layout(push_constant) uniform PushConstants {
     vec3 cubemapExt;
     uint skinningOffset;
     vec3 cubemapPos;
-    uint pad2;
+    float cubemapBoost;
 
     vec4 texScaleOffset;
 

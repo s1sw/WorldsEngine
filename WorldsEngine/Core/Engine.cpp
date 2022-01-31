@@ -331,6 +331,7 @@ namespace worlds {
     }
 
     SDL_Thread* renderThreadInstance = nullptr;
+    bool screenPassIsVR = false;
 
     WorldsEngine::WorldsEngine(EngineInitOptions initOptions, char* argv0)
         : pauseSim{ false }
@@ -381,7 +382,7 @@ namespace worlds {
             splashWindow->changeOverlay("loading assetdb");
 
         AssetDB::load();
-        registry.set<SceneSettings>(AssetDB::pathToId("Cubemaps/Miramar/miramar.json"));
+        registry.set<SceneSettings>(AssetDB::pathToId("Cubemaps/Miramar/miramar.json"), 1.0f);
 
         if (!dedicatedServer) {
             //SDL_DetachThread(SDL_CreateThread(windowThread, "Window Thread", this));
@@ -670,6 +671,7 @@ namespace worlds {
 
             if (enableOpenVR) {
                 openvrInterface->getRenderResolution(&w, &h);
+                screenPassIsVR = true;
             }
 
             RTTPassCreateInfo screenRTTCI {
@@ -726,6 +728,7 @@ namespace worlds {
         currentScene.name = "Untitled";
         currentScene.id = ~0u;
     }
+
 
     void WorldsEngine::mainLoop() {
         int frameCounter = 0;

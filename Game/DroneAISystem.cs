@@ -254,12 +254,19 @@ namespace Game
                 Span<Entity> overlaps = stackalloc Entity[MaxOverlap];
                 uint overlapCount = Physics.OverlapSphereMultiple(pose.Position, 7.5f, MaxOverlap, overlaps, ~PhysicsLayers.Player);
 
+
                 ApplyTargetPose(entity, _idleHoverPose);
 
                 if (overlapCount > 0)
                 {
-                    Alert();
-                    _target = LocalPlayerSystem.PlayerBody;
+                    var playerTransform = Registry.GetTransform(LocalPlayerSystem.PlayerBody);
+                    var playerDir = (playerTransform.Position - pose.Position).Normalized;
+                    // Check visibility
+                    if (Physics.Raycast(pose.Position + playerDir, playerDir, out RaycastHit hit) && hit.HitEntity == LocalPlayerSystem.PlayerBody)
+                    {
+                        Alert();
+                        _target = LocalPlayerSystem.PlayerBody;
+                    }
                 }
 
                 return;
