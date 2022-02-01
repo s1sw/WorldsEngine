@@ -532,30 +532,18 @@ namespace worlds {
 
         if (!dedicatedServer) {
             console->registerCommand(cmdToggleFullscreen, "toggleFullscreen", "Toggles fullscreen.", nullptr);
+            console->registerCommand([&](void*, const char*) {
+                screenPassIsVR = (!screenRTTPass) && enableOpenVR;
+                }, "toggleVRRendering", "Toggle whether the screen RTT pass has VR enabled.");
 
             if (runAsEditor) {
                 console->registerCommand([&](void*, const char*) {
                     editor->active = false;
                     pauseSim = false;
 
-                    if (evtHandler)
-                        evtHandler->onSceneStart(registry);
+                    if (currentScene.id != ~0u)
+                        loadScene(currentScene.id);
 
-                    for (auto* system : systems)
-                        system->onSceneStart(registry);
-
-                    scriptEngine->onSceneStart();
-
-                    registry.view<OldAudioSource>().each([](auto, auto& as) {
-                        if (as.playOnSceneOpen) {
-                            as.isPlaying = true;
-                        }
-                    });
-
-                    registry.view<AudioSource>().each([](AudioSource& as) {
-                        if (as.playOnSceneStart)
-                            as.eventInstance->start();
-                        });
                     if (!enableOpenVR)
                         console->executeCommandStr("sim_lockToRefresh 0");
                 }, "play", "play.");
@@ -737,9 +725,8 @@ namespace worlds {
 
         double deltaTime;
         double lastUpdateTime = 0.0;
-        double lastCompleteUpdateTime = 0.0;
-        double lastRendererTickTime = 0.0;
 
+        renderer->recreateSwapchain();
         while (running) {
             uint64_t now = SDL_GetPerformanceCounter();
 
@@ -803,6 +790,32 @@ namespace worlds {
                 screenRTTPass->active = !runAsEditor || !editor->active;
             }
 
+            if (enableOpenVR) {
+                static bool lastIsVR = true;
+                if (screenPassIsVR != lastIsVR) {
+                    delete screenRTTPass;
+
+                    uint32_t w = 1600;
+                    uint32_t h = 900;
+
+                    if (screenPassIsVR) {
+                        openvrInterface->getRenderResolution(&w, &h);
+                    }
+
+                    RTTPassCreateInfo screenRTTCI {
+                        .width = w,
+                        .height = h,
+                        .resScale = 1.0f,
+                        .isVr = screenPassIsVR,
+                        .useForPicking = false,
+                        .enableShadows = true,
+                        .outputToScreen = true,
+                    };
+
+                    screenRTTPass = renderer->createRTTPass(screenRTTCI);
+                }
+            }
+
             if (!dedicatedServer)
                 static_cast<VKRenderer*>(renderer.get())->time = gameTime;
 
@@ -845,7 +858,6 @@ namespace worlds {
 
             if (inputManager->keyPressed(SDL_SCANCODE_F3, true)) {
                 ShaderCache::clear();
-                renderer->recreateSwapchain();
             }
 
             if (inputManager->keyPressed(SDL_SCANCODE_F11, true)) {
@@ -936,12 +948,10 @@ namespace worlds {
 
             console->drawWindow();
 
-            uint64_t renderTickStart = SDL_GetPerformanceCounter();
             if (!dedicatedServer) {
                 ZoneScopedN("Copy to Render Thread");
                 tickRenderer(true);
             }
-            uint64_t renderTickEnd = SDL_GetPerformanceCounter();
 
             g_jobSys->completeFrameJobs();
             frameCounter++;
@@ -1001,9 +1011,7 @@ namespace worlds {
                     SDL_Delay(waitTime * 1000);
             }
 
-            lastCompleteUpdateTime = completeUpdateTime;
             lastUpdateTime = updateTime;
-            lastRendererTickTime = (renderTickEnd - renderTickStart) / (double)SDL_GetPerformanceFrequency();
         }
     }
 
@@ -1319,6 +1327,7 @@ namespace worlds {
             delete system;
         }
 
+        audioSystem->shutdown(registry);
         if (evtHandler != nullptr && !runAsEditor)
             evtHandler->shutdown(registry);
 
