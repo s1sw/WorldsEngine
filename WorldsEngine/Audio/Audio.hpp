@@ -82,6 +82,7 @@ namespace worlds {
         void bakeProbes(entt::registry& registry);
         void updateAudioScene(entt::registry& reg);
     private:
+        class SteamAudioSimThread;
         void onAudioSourceDestroy(entt::registry& reg, entt::entity ent);
         IPLScene createScene(entt::registry& reg);
 
@@ -110,6 +111,7 @@ namespace worlds {
         IPLSource listenerCentricSource;
         IPLScene scene = nullptr;
         float timeSinceLastSim = 0.0f;
+        SteamAudioSimThread* simThread;
 
         robin_hood::unordered_map<const char*, FMOD::Studio::Bank*> loadedBanks;
         robin_hood::unordered_map<AssetID, FMOD::Sound*> sounds;

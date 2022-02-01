@@ -1,24 +1,28 @@
 #include <SDL_audio.h>
-#include "../Core/Log.hpp"
+#include <Core/Log.hpp>
 #include "Audio.hpp"
 #include <glm/glm.hpp>
 #include <glm/ext/scalar_constants.hpp>
-#include "../Util/TimingUtil.hpp"
-#include "../IO/IOUtil.hpp"
-#include "../ImGui/imgui.h"
-#include "../Core/Transform.hpp"
+#include <Util/TimingUtil.hpp>
+#include <IO/IOUtil.hpp>
+#include <ImGui/imgui.h>
+#include <Core/Transform.hpp>
+#include <Libs/IconsFontaudio.h>
 #include "phonon.h"
-#include "../Core/Fatal.hpp"
+#include <Core/Fatal.hpp>
 #include <slib/DynamicLibrary.hpp>
-#include "../Physics/Physics.hpp"
+#include <Physics/Physics.hpp>
 #include <fmod_errors.h>
 #include <stdlib.h>
 #include <glm/gtc/type_ptr.hpp>
 #include <Util/EnumUtil.hpp>
 #include <Core/JobSystem.hpp>
+#include <debugbreak.h>
 
 #define FMCHECK(_result) checkFmodErr(_result, __FILE__, __LINE__)
 #define SACHECK(_result) checkSteamAudioErr(_result, __FILE__, __LINE__)
+
+const bool BREAK_ON_ERR = false;
 
 namespace worlds {
     void checkFmodErr(FMOD_RESULT result, const char* file, int line) {
@@ -28,8 +32,11 @@ namespace worlds {
             snprintf(buffer, sizeof(buffer), "FMOD error: %s", FMOD_ErrorString(result));
             fatalErrInternal(buffer, file, line);
 #else
-            logErr("FMOD error: %s", FMOD_ErrorString(result));
+            logErr("FMOD error: %s (file %s, line %i)", FMOD_ErrorString(result), file, line);
 #endif
+            if (BREAK_ON_ERR) {
+                debug_break();
+            }
         }
     }
 
@@ -178,26 +185,59 @@ namespace worlds {
         return ret;
     }
 
-    std::atomic<bool> simRunning = false;
-    std::atomic<bool> simThreadKickoff;
-    std::condition_variable simConVar;
-    std::mutex simMutex;
-    std::thread steamAudioSimThread;
-    std::atomic<bool> simThreadAlive = true;
-    
-    void simThread(IPLSimulator simulator) {
-        while (simThreadAlive) {
-            {
-                std::unique_lock lock{ simMutex };
-                simConVar.wait(lock, []() { return simThreadKickoff.load(); });
-            }
-
-            simRunning = true;
-            iplSimulatorRunReflections(simulator);
-            iplSimulatorRunPathing(simulator);
-            simRunning = false;
+    class AudioSystem::SteamAudioSimThread {
+    public:
+        SteamAudioSimThread(IPLSimulator simulator) : simulator{simulator} {
+            thread = std::thread([this]() { actualThread(); });
         }
-    }
+
+        bool isSimRunning() { return simRunning; }
+        void runSimulation() {
+            simThreadKickoff = true;
+            conVar.notify_one();
+        }
+
+        double lastStepTime() {
+            return lastRunTime;
+        }
+
+        ~SteamAudioSimThread() {
+            threadAlive = false;
+            simThreadKickoff = true;
+            conVar.notify_one();
+            thread.join();
+        }
+    private:
+        void actualThread() {
+            while (threadAlive) {
+                {
+                    std::unique_lock lock{ mutex };
+                    conVar.wait(lock, [this]() { return simThreadKickoff.load(); });
+                    simThreadKickoff.store(false);
+                }
+
+                {
+                    PerfTimer pt;
+                    simRunning = true;
+                    iplSimulatorRunReflections(simulator);
+                    iplSimulatorRunPathing(simulator);
+                    simRunning = false;
+                    lastRunTime = pt.stopGetMs();
+                }
+            }
+        }
+
+        std::atomic<bool> simRunning = false;
+        std::atomic<bool> simThreadKickoff;
+        std::condition_variable conVar;
+        std::mutex mutex;
+        std::thread thread;
+        std::atomic<bool> threadAlive = true;
+        IPLSimulator simulator;
+        double lastRunTime = 0.0;
+    };
+
+    ConVar a_showDebugInfo {"a_showDebugInfo", "0"};
 
     AudioSystem::AudioSystem() {
         instance = this;
@@ -208,10 +248,6 @@ namespace worlds {
 #elif defined(__linux__)
         phononPluginName = "libphonon_fmod.so";
 #endif
-        //FMCHECK(FMOD::Debug_Initialize(FMOD_DEBUG_LEVEL_WARNING, FMOD_DEBUG_MODE_CALLBACK, fmodDebugCallback));
-        //size_t fmodHeapSize = 100000 * 2 * 512;
-        //void* fmodHeap = malloc(fmodHeapSize);
-        //FMOD::Memory_Initialize(fmodHeap, 20000 * 2 * 512, nullptr, nullptr, nullptr);
 
         FMCHECK(FMOD::Studio::System::create(&studioSystem));
         FMCHECK(studioSystem->getCoreSystem(&system));
@@ -284,9 +320,9 @@ namespace worlds {
         simulationSettings.reflectionType = IPL_REFLECTIONEFFECTTYPE_CONVOLUTION;
         simulationSettings.maxNumRays = 4096;
         simulationSettings.maxNumOcclusionSamples = 1024;
-        simulationSettings.numDiffuseSamples = 32;
+        simulationSettings.numDiffuseSamples = 16;
         simulationSettings.maxDuration = 2.0f;
-        simulationSettings.maxOrder = 2;
+        simulationSettings.maxOrder = 1;
         simulationSettings.maxNumSources = 512;
         simulationSettings.numThreads = 8;
         simulationSettings.rayBatchSize = 16;
@@ -315,7 +351,8 @@ namespace worlds {
         iplFMODSetReverbSource(listenerCentricSource);
 
         lastListenerPos = glm::vec3(0.0f, 0.0f, 0.0f);
-        steamAudioSimThread = std::thread([=]() {simThread(simulator); });
+
+        simThread = new SteamAudioSimThread(simulator);
     }
 
     void AudioSystem::initialise(entt::registry& worldState) {
@@ -420,7 +457,7 @@ namespace worlds {
         sharedInputs.numRays = 2048;
         sharedInputs.numBounces = 16;
         sharedInputs.duration = 2.0f;
-        sharedInputs.order = 2;
+        sharedInputs.order = 1;
         sharedInputs.irradianceMinDistance = 1.0f;
 
         iplSimulatorSetSharedInputs(simulator, simFlags, &sharedInputs);
@@ -428,9 +465,12 @@ namespace worlds {
         iplSimulatorRunDirect(simulator);
 
         timeSinceLastSim += deltaTime;
-        if (timeSinceLastSim > 0.1f && !simRunning) {
-            simThreadKickoff = true;
-            simConVar.notify_one();
+        if (timeSinceLastSim > 0.3f) {
+            if (!simThread->isSimRunning()) {
+                simThread->runSimulation();
+            } else {
+                logWarn(WELogCategoryAudio, "Phonon simulation thread is falling behind");
+            }
             timeSinceLastSim = 0.0f;
         }
 
@@ -483,6 +523,15 @@ namespace worlds {
         );
 
         FMCHECK(studioSystem->update());
+
+        if (a_showDebugInfo.getInt()) {
+            bool keepShowing = true;
+
+            if (ImGui::Begin(ICON_FAD_SPEAKER " Audio Debug", &keepShowing)) {
+                ImGui::Text("Last Phonon simulation tick took %.3fms", simThread->lastStepTime());
+                ImGui::Text("Simulation running: %i", simThread->isSimRunning());
+            }
+        }
     }
 
     void AudioSystem::stopEverything(entt::registry& reg) {
@@ -580,13 +629,11 @@ namespace worlds {
 
     void AudioSystem::shutdown(entt::registry& worldState) {
         if (!available) return;
-        simThreadAlive = false;
-        steamAudioSimThread.join();
+        delete simThread;
+
+        worldState.clear<AudioSource>();
+
         FMCHECK(studioSystem->release());
-        worldState.view<AudioSource>().each([](AudioSource& as) {
-            FMCHECK(as.eventInstance->stop(FMOD_STUDIO_STOP_IMMEDIATE));
-            FMCHECK(as.eventInstance->release());
-        });
     }
 
     FMOD::Studio::Bank* AudioSystem::loadBank(const char* path) {
@@ -635,7 +682,7 @@ namespace worlds {
             iplSceneRelease(&scene);
 
         scene = createScene(reg);
-        while (simRunning) {}
+        while (simThread->isSimRunning()) {}
         iplSimulatorSetScene(simulator, scene);
         iplSimulatorCommit(simulator);
     }
