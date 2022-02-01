@@ -26,6 +26,9 @@ namespace Game
             var dpa = Registry.AddComponent<DynamicPhysicsActor>(entity);
             dpa.Mass = 0.25f;
 
+            var physSounds = Registry.AddComponent<CollisionSound>(entity);
+            physSounds.EventPath = "event:/Impacts/ReallyLight";
+
             List<PhysicsShape> physicsShapes = new() {
                 new BoxPhysicsShape(Vector3.One)
             };
