@@ -19,4 +19,12 @@ extern "C" {
     EXPORT void audio_loadBank(const char* bankPath) {
         AudioSystem::getInstance()->loadBank(bankPath);
     }
+
+    EXPORT void audio_stopEverything(entt::registry* reg) {
+        AudioSystem::getInstance()->stopEverything(*reg);
+    }
+
+    EXPORT void audio_updateAudioScene(entt::registry* reg) {
+        AudioSystem::getInstance()->updateAudioScene(*reg);
+    }
 }

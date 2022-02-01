@@ -28,6 +28,12 @@ namespace WorldsEngine.Audio
         [DllImport(WorldsEngine.NativeModule)]
         private static extern void audio_loadBank(string bankPath);
 
+        [DllImport(WorldsEngine.NativeModule)]
+        private static extern void audio_stopEverything(IntPtr regPtr);
+
+        [DllImport(WorldsEngine.NativeModule)]
+        private static extern void audio_updateAudioScene(IntPtr regPtr);
+
         [Obsolete("Use PlayOneShotEvent")]
         public static void PlayOneShot(AssetID clipId, float volume, MixerChannel channel = MixerChannel.SFX)
         {
@@ -47,9 +53,9 @@ namespace WorldsEngine.Audio
         public static void PlayOneShotAttachedEvent(string eventPath, Vector3 location, Entity entity, float volume = 1f)
             => audio_playOneShotAttachedEvent(eventPath, ref location, entity.ID, volume);
 
-        public static void LoadBank(string bankPath)
-        {
-            audio_loadBank(bankPath);
-        }
+        public static void LoadBank(string bankPath) => audio_loadBank(bankPath);
+
+        public static void StopEverything() => audio_stopEverything(Registry.NativePtr);
+        public static void UpdateAudioScene() => audio_updateAudioScene(Registry.NativePtr);
     }
 }
