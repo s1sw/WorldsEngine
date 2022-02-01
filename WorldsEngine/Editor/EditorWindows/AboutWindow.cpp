@@ -107,22 +107,7 @@ namespace worlds {
             ImGui::SetCursorPos(ImGui::GetCursorStartPos() + ImVec2(375, 174 + 5 + ImGui::GetTextLineHeightWithSpacing()));
             ImGui::Text("Thanks to:");
 
-            if (showBradno) {
-                ImGui::SetCursorPosX(cursorX);
-                ImGui::Text(" - lil b (based god)");
-                ImGui::SetCursorPosX(cursorX);
-                ImGui::Text(" - soulja boy");
-                ImGui::SetCursorPosX(cursorX);
-                ImGui::Text(" - boneworks ninja");
-                ImGui::SetCursorPosX(cursorX);
-                ImGui::Text(" - VR_Player");
-                ImGui::SetCursorPosX(cursorX);
-                ImGui::Text(" - bradno (smooch)");
-                ImGui::SetCursorPosX(cursorX);
-                ImGui::Text(" - doctor SEX 😳");
-                ImGui::SetCursorPosX(cursorX);
-                ImGui::Text(" - L4rs the gamer girl for the sanity depriving C++ questions");
-            } else {
+            {
                 ImGui::SetCursorPosX(cursorX);
                 ImGui::Text(" - PixHammer for the physics hands help");
                 ImGui::SetCursorPosX(cursorX);
@@ -131,6 +116,13 @@ namespace worlds {
                 ImGui::Text(" - Maranara for");
                 ImGui::SetCursorPosX(cursorX);
                 ImGui::Text(" - Tabloid for motivation");
+            }
+
+            if (showBradno) {
+                for (int i = 0; i < 15; i++) {
+                    ImGui::SetCursorPosX(cursorX);
+                    ImGui::Text("- bradno");
+                }
             }
 
             ImGui::SetCursorPosX(cursorX);
