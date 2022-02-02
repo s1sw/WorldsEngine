@@ -765,7 +765,7 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
 
     if (enableVR) {
         if (initInfo.activeVrApi == VrApi::OpenVR) {
-            //vr::VRCompositor()->SetExplicitTimingMode(vr::EVRCompositorTimingMode::VRCompositorTimingMode_Explicit_ApplicationPerformsPostPresentHandoff);
+            vr::VRCompositor()->SetExplicitTimingMode(vr::EVRCompositorTimingMode::VRCompositorTimingMode_Explicit_ApplicationPerformsPostPresentHandoff);
         }
 
         vrInterface = initInfo.vrInterface;
