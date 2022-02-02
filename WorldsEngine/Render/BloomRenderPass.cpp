@@ -100,6 +100,8 @@ namespace worlds {
 
         vku::DescriptorSetUpdater dsu(0, nMips * 4 + 4, 0);
 
+        // Descriptor set i consists of an inputTexture for the whole chain
+        // and an outputTexture for mip level i
         for (int i = 0; i < nMips; i++) {
             dsu.beginDescriptorSet(chainToChainDS[i]);
             dsu.beginImages(0, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
@@ -116,7 +118,7 @@ namespace worlds {
         dsu.update(handles->device);
     }
 
-    ConVar maxMips { "r_bloomMaxMips", "4" };
+    ConVar maxMips { "r_bloomMaxMips", "8" };
     void BloomRenderPass::setup(RenderContext& ctx, VkDescriptorPool descriptorPool) {
         VkExtent3D hdrExtent = hdrImg->image().extent();
         TextureResourceCreateInfo rci{
@@ -210,7 +212,8 @@ namespace worlds {
                 mipChain->image().barrier(cb,
                     VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                     VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
-                // Blur from previous mip to intermediate
+                // Blur from previous mip to current
+                // Input from i - 1, output to i
                 vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_COMPUTE, blurPipelineLayout, 0, 1, &chainToChainDS[i], 0, nullptr);
                 BloomBlurPC pushConstants{
                     .inputMipLevel = (uint32_t)(i - 1),
@@ -232,6 +235,7 @@ namespace worlds {
                     VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                     VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
                 // From this mip to next
+                // Output to i - 1, input from i
                 vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_COMPUTE, blurPipelineLayout, 0, 1, &chainToChainDS[i - 1], 0, nullptr);
                 BloomBlurPC pushConstants{
                     .inputMipLevel = (uint32_t)i,
