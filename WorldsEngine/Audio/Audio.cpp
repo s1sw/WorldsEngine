@@ -437,9 +437,9 @@ namespace worlds {
 
         IPLSimulationInputs inputs{};
         inputs.flags = simFlags;
-        inputs.source.right = convVecSA(listenerRot * glm::vec3(-1.0f, 0.0f, 0.0f));
+        inputs.source.right = convVecSA(listenerRot * glm::vec3(1.0f, 0.0f, 0.0f));
         inputs.source.up = convVecSA(listenerRot * glm::vec3(0.0f, 1.0f, 0.0f));
-        inputs.source.ahead = convVecSA(listenerRot * glm::vec3(0.0f, 0.0f, -1.0f));
+        inputs.source.ahead = convVecSA(listenerRot * glm::vec3(0.0f, 0.0f, 1.0f));
         inputs.source.origin = convVecSA(listenerPos);
         inputs.distanceAttenuationModel.type = IPL_DISTANCEATTENUATIONTYPE_DEFAULT;
         inputs.airAbsorptionModel.type = IPL_AIRABSORPTIONTYPE_DEFAULT;
