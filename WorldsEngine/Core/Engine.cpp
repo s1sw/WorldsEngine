@@ -858,6 +858,7 @@ namespace worlds {
 
             if (inputManager->keyPressed(SDL_SCANCODE_F3, true)) {
                 ShaderCache::clear();
+                renderer->recreateSwapchain();
             }
 
             if (inputManager->keyPressed(SDL_SCANCODE_F11, true)) {
