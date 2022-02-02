@@ -176,7 +176,7 @@ namespace worlds {
                     ImGui::SliderFloat("Heightmap Scale", &mat.heightmapScale, 0.0f, 0.1f);
 
                 ImGui::ColorEdit3("Albedo Color", &mat.albedoColor.x);
-                ImGui::ColorEdit3("Emissive Color", &mat.emissiveColor.x);
+                ImGui::ColorEdit3("Emissive Color", &mat.emissiveColor.x, ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
 
                 auto& texMan = interfaces.renderer->uiTextureManager();
                 if (mat.albedo != ~0u) {
