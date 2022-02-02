@@ -3,7 +3,7 @@
 #include <memory>
 #include <string>
 #include <vector>
-#include <bitset>
+#include <slib/Bitset.hpp>
 
 #include <SDL_events.h>
 #include <entt/entity/fwd.hpp>
@@ -188,7 +188,7 @@ namespace worlds {
 
         StaticFlags staticFlags;
         AssetID materials[NUM_SUBMESH_MATS];
-        std::bitset<NUM_SUBMESH_MATS> presentMaterials;
+        slib::Bitset<NUM_SUBMESH_MATS> presentMaterials;
         AssetID mesh;
         glm::vec4 texScaleOffset;
         UVOverride uvOverride;
