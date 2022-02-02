@@ -175,6 +175,9 @@ namespace worlds {
         registerCommand(cmdExec, "exec", "Executes a command file.", this);
 
         for (auto& cPair : categories) {
+#if defined(__linux__)
+            if (cPair.first == SDL_LOG_CATEGORY_ERROR) continue;
+#endif
             SDL_LogSetPriority(cPair.first, SDL_LOG_PRIORITY_VERBOSE);
         }
 
