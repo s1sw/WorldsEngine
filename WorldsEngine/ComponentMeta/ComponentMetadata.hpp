@@ -20,7 +20,6 @@ namespace worlds {
                 metadata.insert({ curr->editor->getComponentID(), curr->editor });
                 bySerializedID.insert({ curr->editor->getSerializedID(), curr->editor });
                 byName.insert({ curr->editor->getName(), curr->editor });
-                logVrb("Found component editor for %s, id is %u", curr->editor->getName(), curr->editor->getComponentID());
                 sorted.push_back(curr->editor);
                 curr = curr->next;
             }
