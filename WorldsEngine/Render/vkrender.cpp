@@ -350,7 +350,7 @@ void logPhysDevInfo(const VkPhysicalDevice& physicalDevice) {
     for (uint32_t i = 0; i < memProps.memoryTypeCount; i++) {
         auto& memType = memProps.memoryTypes[i];
         const char* str = vku::toString(memType.propertyFlags);
-        logVrb(worlds::WELogCategoryRender, "Memory type for heap %i: %s", memType.heapIndex, str);
+        logVrb(worlds::WELogCategoryRender, "Memory type %i: heap %i, %s", i, memType.heapIndex, str);
         free((char*)str);
     }
 

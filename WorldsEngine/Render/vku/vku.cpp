@@ -22,7 +22,9 @@ namespace vku {
     }
 
     const char* toString(VkMemoryPropertyFlags flags) {
-        static const char* props[] = {
+        if (flags == 0) return strdup("No flags set");
+
+        static const char* propStrs[] = {
             "Device Local",
             "Host Visible",
             "Host Coherent",
@@ -31,8 +33,20 @@ namespace vku {
             "Protected",
             "Device Coherent (AMD)",
             "Device Uncached (AMD)",
-            "RDMA Capable (Nvidia)"
         };
+
+        static const VkMemoryPropertyFlagBits props[] = {
+            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+            VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+            VK_MEMORY_PROPERTY_HOST_CACHED_BIT,
+            VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT,
+            VK_MEMORY_PROPERTY_PROTECTED_BIT,
+            VK_MEMORY_PROPERTY_DEVICE_COHERENT_BIT_AMD,
+            VK_MEMORY_PROPERTY_DEVICE_UNCACHED_BIT_AMD
+        };
+
+        const int numProps = sizeof(props) / sizeof(props[0]);
 
         // Maximum length is (23 + 3) * 9 + 4
         //                   ^     ^    ^   ^
@@ -46,15 +60,15 @@ namespace vku {
 
         bool first = true;
 
-        for (int i = 0; i < 9; i++) {
-            int testFlag = 1 << i;
+        for (int i = 0; i < numProps; i++) {
+            int testFlag = props[i];
             if ((flags & testFlag) == 0) continue;
 
             if (first)
                 first = false;
             else
                 strcat(buf, " | ");
-            strcat(buf, props[i]);
+            strcat(buf, propStrs[i]);
         }
 
         strcat(buf, " }");
