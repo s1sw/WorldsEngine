@@ -149,7 +149,7 @@ void main() {
     vec4 orig = textureLod(inputTexture, uv, inputMipLevel - 1);
     blurred = tent(uv, resolution);
     //if (length(blurred) < 1.1) blurred = orig;
-    blurred = mix(orig, blurred, 0.85);
+    blurred = mix(orig, blurred, 0.5);
     //blurred += orig;
 #endif
     imageStore(outputTexture, ivec2(gl_GlobalInvocationID.xy), vec4(blurred.xyz, 1.0f));

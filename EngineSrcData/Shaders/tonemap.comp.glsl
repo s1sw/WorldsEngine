@@ -81,7 +81,7 @@ void main() {
     bloom = max(bloom, vec3(0.0));
     for (int i = 0; i < NUM_MSAA_SAMPLES; i++) {
         vec3 raw = texelFetch(hdrImage, ivec3(gl_GlobalInvocationID.xy, idx), i).xyz;
-        acc += Tonemap(mix(raw, bloom, 0.2));
+        acc += Tonemap(mix(raw, bloom, 0.3));
         //acc += ACESFilm(raw * 4.0);
     }
     
