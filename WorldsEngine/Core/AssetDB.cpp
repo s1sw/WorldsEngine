@@ -113,7 +113,7 @@ namespace worlds {
 
         // Figure out the file extension
         auto ext = std::filesystem::path(path).extension().string();
-        logVrb("Added asset %s with extension %s", path.data(), ext.c_str());
+        //logVrb("Added asset %s with extension %s", path.data(), ext.c_str());
         storage.extensions.insert({ id, ext });
         storage.paths.insert({ id, path });
 
