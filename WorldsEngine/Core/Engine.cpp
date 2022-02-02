@@ -338,6 +338,7 @@ namespace worlds {
         , running{ true }
         , simAccumulator{ 0.0 } {
         ZoneScoped;
+        PerfTimer startupTimer;
         workerThreadOverride = initOptions.workerThreadOverride;
         evtHandler = initOptions.eventHandler;
         runAsEditor = initOptions.runAsEditor;
@@ -695,6 +696,7 @@ namespace worlds {
         }
 
         SDL_EventState(SDL_DROPFILE, SDL_ENABLE);
+        logMsg("Engine startup took about %.3fms", startupTimer.stopGetMs());
     }
 
     void WorldsEngine::createStartupScene() {
