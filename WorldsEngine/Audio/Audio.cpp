@@ -579,8 +579,17 @@ namespace worlds {
         if (!available) return;
         FMOD_RESULT result;
 
+        bool usePathing = true;
         FMOD::Studio::EventDescription* desc;
         result = studioSystem->getEvent(eventPath, &desc);
+        FMOD_STUDIO_USER_PROPERTY userProp;
+        FMOD_RESULT pathingResult = desc->getUserProperty("UsePathing", &userProp);
+
+        if (pathingResult == FMOD_ERR_EVENT_NOTFOUND) {
+            usePathing = false;
+        } else {
+            FMCHECK(pathingResult);
+        }
 
         if (result != FMOD_OK) {
             logErr(WELogCategoryAudio, "Failed to get event %s: %s", eventPath, FMOD_ErrorString(result));
@@ -613,6 +622,8 @@ namespace worlds {
         FMCHECK(instance->setVolume(volume));
 
         FMCHECK(instance->start());
+        //FMOD::ChannelGroup* channelGroup;
+        //FMCHECK(instance->getChannelGroup(&channelGroup));
 
         if (attachedEntity == entt::null)
             FMCHECK(instance->release());

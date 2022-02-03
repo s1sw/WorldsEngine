@@ -88,6 +88,7 @@ namespace worlds {
 
         struct AttachedOneshot {
             FMOD::Studio::EventInstance* instance;
+            FMOD::DSP* steamAudioDsp;
             entt::entity entity;
             glm::vec3 lastPosition;
             bool markForRemoval = false;
