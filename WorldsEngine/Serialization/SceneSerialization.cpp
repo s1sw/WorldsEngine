@@ -9,6 +9,11 @@ namespace worlds {
     // Do basic checks on the first byte to determine
     // the most appropriate scene serializer to call.
     void SceneLoader::loadScene(PHYSFS_File* file, entt::registry& reg, bool additive) {
+        if (PHYSFS_fileLength(file) <= 4) {
+            logErr(WELogCategoryEngine, "Scene file was too short.");
+            return;
+        }
+
         unsigned char firstByte;
         PHYSFS_readBytes(file, &firstByte, 1);
         PHYSFS_seek(file, 0);
@@ -18,7 +23,17 @@ namespace worlds {
             if (!additive)
                 reg.clear();
 
-            BinarySceneSerializer::loadScene(file, reg);
+            // Next up, check if it's the old binary format or WMSP
+            char maybeHeader[5] = "____";
+
+            PHYSFS_readBytes(file, maybeHeader, 4);
+
+            if (strcmp(maybeHeader, "WMSP")) {
+                MessagePackSceneSerializer::loadScene(file, reg);
+            } else {
+                PHYSFS_seek(file, 0);
+                BinarySceneSerializer::loadScene(file, reg);
+            }
         } else if (firstByte == '{') {
             if (!additive)
                 reg.clear();

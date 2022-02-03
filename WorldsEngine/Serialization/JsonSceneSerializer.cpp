@@ -90,7 +90,7 @@ namespace worlds {
         return f;
     }
 
-    std::string sceneToJson(entt::registry& reg) {
+    nlohmann::json sceneToJsonObject(entt::registry& reg) {
         nlohmann::json entities;
 
         reg.view<Transform>(entt::exclude_t<DontSerialize>{}).each([&](entt::entity ent, Transform&) {
@@ -100,7 +100,7 @@ namespace worlds {
                 PrefabInstanceComponent& pic = reg.get<PrefabInstanceComponent>(ent);
                 nlohmann::json instanceJson = getEntityJson(ent, reg);
                 nlohmann::json prefab = getPrefabJson(pic.prefab);
-                
+
                 // HACK: To avoid generating patch data for the transform, set the serialized instances's transform
                 // to the prefab's.
                 instanceJson["Transform"] = prefab["Transform"];
@@ -115,7 +115,6 @@ namespace worlds {
             } else {
                 entity = getEntityJson(ent, reg);
             }
-
 
             entities[std::to_string((uint32_t)ent)] = entity;
         });
@@ -134,7 +133,11 @@ namespace worlds {
             scene["rootEntityFolder"] = getJsonForFolder(entityFolders->rootFolder);
         }
 
-        return scene.dump(2);
+        return scene;
+    }
+
+    std::string sceneToJson(entt::registry& reg) {
+        return sceneToJsonObject(reg).dump(2);
     }
 
     void JsonSceneSerializer::saveScene(PHYSFS_File* file, entt::registry& reg) {
@@ -154,6 +157,19 @@ namespace worlds {
         std::string jsonStr = sceneToJson(reg);
         PHYSFS_File* file = PHYSFS_openWrite(path.c_str());
         PHYSFS_writeBytes(file, jsonStr.data(), jsonStr.size());
+        PHYSFS_close(file);
+    }
+
+    void MessagePackSceneSerializer::saveScene(std::string path, entt::registry& reg) {
+        nlohmann::json j = sceneToJsonObject(reg);
+        std::vector<uint8_t> data = nlohmann::json::to_msgpack(j);
+
+        PHYSFS_File* file = PHYSFS_openWrite(path.c_str());
+
+        const char header[5] = "WMSP";
+
+        PHYSFS_writeBytes(file, header, 4);
+        PHYSFS_writeBytes(file, data.data(), data.size());
         PHYSFS_close(file);
     }
 
@@ -332,6 +348,25 @@ namespace worlds {
         }
     }
 
+    void deserializeJsonScene(nlohmann::json& j, entt::registry& reg) {
+        if (!j.contains("entities")) {
+            loadSceneEntities(reg, j);
+        } else {
+            loadSceneEntities(reg, j["entities"]);
+            SceneSettings settings{};
+            settings.skybox = AssetDB::pathToId(j["settings"]["skyboxPath"].get<std::string>());
+            settings.skyboxBoost = j["settings"].value("skyboxBoost", 1.0f);
+            reg.set<SceneSettings>(settings);
+
+            if (j.contains("rootEntityFolder")) {
+                EntityFolders folders;
+                folders.rootFolder = folderFromJson(j["rootEntityFolder"]);
+                validateFolder(folders.rootFolder, reg);
+                reg.set<EntityFolders>(folders);
+            }
+        }
+    }
+
     void JsonSceneSerializer::loadScene(PHYSFS_File* file, entt::registry& reg) {
         PerfTimer timer;
         try {
@@ -341,25 +376,26 @@ namespace worlds {
             PHYSFS_readBytes(file, str.data(), str.size());
 
             nlohmann::json j = nlohmann::json::parse(str);
-
-            if (!j.contains("entities")) {
-                loadSceneEntities(reg, j);
-            } else {
-                loadSceneEntities(reg, j["entities"]);
-                SceneSettings settings{};
-                settings.skybox = AssetDB::pathToId(j["settings"]["skyboxPath"].get<std::string>());
-                settings.skyboxBoost = j["settings"].value("skyboxBoost", 1.0f);
-                reg.set<SceneSettings>(settings);
-
-                if (j.contains("rootEntityFolder")) {
-                    EntityFolders folders;
-                    folders.rootFolder = folderFromJson(j["rootEntityFolder"]);
-                    validateFolder(folders.rootFolder, reg);
-                    reg.set<EntityFolders>(folders);
-                }
-            }
+            deserializeJsonScene(j, reg);
 
             logMsg("loaded json scene in %.3fms", timer.stopGetMs());
+        } catch (nlohmann::detail::exception& ex) {
+            logErr("Failed to load scene: %s", ex.what());
+        }
+    }
+
+    void MessagePackSceneSerializer::loadScene(PHYSFS_File* file, entt::registry& reg) {
+        PerfTimer timer;
+        try {
+            prefabCache.clear();
+            std::vector<uint8_t> dat;
+            dat.resize(PHYSFS_fileLength(file));
+            PHYSFS_readBytes(file, dat.data(), dat.size());
+
+            nlohmann::json j = nlohmann::json::from_msgpack(dat.begin(), dat.end());
+            deserializeJsonScene(j, reg);
+
+            logMsg("loaded msgpack scene in %.3fms", timer.stopGetMs());
         } catch (nlohmann::detail::exception& ex) {
             logErr("Failed to load scene: %s", ex.what());
         }

@@ -36,6 +36,12 @@ namespace worlds {
         ~BinarySceneSerializer() {}
     };
 
+    class MessagePackSceneSerializer {
+    public:
+        static void saveScene(std::string path, entt::registry& reg);
+        static void loadScene(PHYSFS_File* file, entt::registry& reg);
+    };
+
     class JsonSceneSerializer {
     public:
         [[deprecated("Please use the AssetID or path variants to avoid data loss.")]]

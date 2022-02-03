@@ -614,6 +614,10 @@ namespace worlds {
             window->resize(width, height);
         }, "setWindowSize", "Sets size of the window.", nullptr);
 
+        console->registerCommand([this](void*, const char* arg) {
+            MessagePackSceneSerializer::saveScene("msgpack_test.wscn", registry);
+        }, "saveMsgPack", "Saves the current scene in MessagePack format.");
+
         if (enableOpenVR) {
             lockSimToRefresh.setValue("1");
         }
