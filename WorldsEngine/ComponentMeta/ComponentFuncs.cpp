@@ -206,29 +206,32 @@ namespace worlds {
                     int notSetCount = 0;
                     if (ImGui::TreeNode("Materials")) {
                         for (int i = 0; i < NUM_SUBMESH_MATS; i++) {
+                            bool showButton = false;
                             if (worldObject.presentMaterials[i]) {
                                 if (hitNotSet) {
                                     hitNotSet = false;
                                     ImGui::Text("%i unset materials", notSetCount);
                                     notSetCount = 0;
                                 }
-                                ImGui::Text("Material %i: %s", i, AssetDB::idToPath(worldObject.materials[i]).c_str());
-                            } else {
-                                if (!hitNotSet) {
-                                    hitNotSet = true;
-                                    notSetCount++;
-                                    ImGui::Text("Material %i: not set", i);
-                                    worldObject.materials[i] = INVALID_ASSET;
-                                }
+
+                                showButton = true;
+                            } else if (!hitNotSet) {
+                                hitNotSet = true;
+                                notSetCount++;
+                                ImGui::Text("Material %i: not set", i);
+                                worldObject.materials[i] = INVALID_ASSET;
                             }
 
-                            ImGui::SameLine();
 
-                            std::string idStr = "##" + std::to_string(i);
+                            if (showButton) {
+                                ImGui::SameLine();
 
-                            bool open = ImGui::Button(("Change" + idStr).c_str());
-                            if (selectAssetPopup(("Material" + idStr).c_str(), worldObject.materials[i], open)) {
-                                worldObject.presentMaterials[i] = true;
+                                std::string idStr = "##" + std::to_string(i);
+
+                                bool open = ImGui::Button(("Change" + idStr).c_str());
+                                if (selectAssetPopup(("Material" + idStr).c_str(), worldObject.materials[i], open)) {
+                                    worldObject.presentMaterials[i] = true;
+                                }
                             }
                         }
                         ImGui::TreePop();
