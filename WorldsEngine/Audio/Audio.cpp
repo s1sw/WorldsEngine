@@ -678,6 +678,8 @@ namespace worlds {
     }
 
     void AudioSystem::updateAudioScene(entt::registry& reg) {
+        ZoneScoped;
+
         if (scene)
             iplSceneRelease(&scene);
 
@@ -687,7 +689,14 @@ namespace worlds {
         iplSimulatorCommit(simulator);
     }
 
+    struct CacheableMeshInfo {
+        std::vector<IPLTriangle> triangles;
+        std::vector<int> materialIndices;
+    };
+    robin_hood::unordered_map<AssetID, CacheableMeshInfo> cachedMeshes;
     IPLScene AudioSystem::createScene(entt::registry& reg) {
+        ZoneScoped;
+
         IPLSceneSettings sceneSettings{};
         sceneSettings.type = IPL_SCENETYPE_DEFAULT;
 
@@ -701,14 +710,28 @@ namespace worlds {
             // oh boy
             IPLMaterial mat{{0.1f, 0.2f, 0.3f}, 0.05f, {0.1f, 0.05f, 0.03f}};
             std::vector<IPLVector3> verts;
-            std::vector<IPLTriangle> triangles;
-            std::vector<int> materialIndices;
 
             const LoadedMesh& lm = MeshManager::loadOrGet(wo.mesh);
 
+            if (!cachedMeshes.contains(wo.mesh)) {
+                CacheableMeshInfo cmi;
+                cmi.triangles.resize(lm.indices.size() / 3);
+                cmi.materialIndices.resize(cmi.triangles.size());
+
+                for (uint32_t i = 0; i < lm.indices.size(); i += 3) {
+                    cmi.triangles[i / 3] = { (int)lm.indices[i], (int)lm.indices[i + 1], (int)lm.indices[i + 2] };
+                }
+
+                for (uint32_t i = 0; i < cmi.materialIndices.size(); i++) {
+                    cmi.materialIndices[i] = 0;
+                }
+
+                cachedMeshes.insert({ wo.mesh, std::move(cmi) });
+            }
+
+            CacheableMeshInfo& cmi = cachedMeshes.at(wo.mesh);
+
             verts.resize(lm.vertices.size());
-            triangles.resize(lm.indices.size() / 3);
-            materialIndices.resize(triangles.size());
 
             for (uint32_t i = 0; i < lm.vertices.size(); i++) {
                 glm::vec3 pos = tMat * glm::vec4(lm.vertices[i].position, 1.0f);
@@ -717,27 +740,19 @@ namespace worlds {
                 verts[i].z = pos.z;
             }
 
-            for (uint32_t i = 0; i < lm.indices.size(); i += 3) {
-                triangles[i / 3] = { (int)lm.indices[i], (int)lm.indices[i + 1], (int)lm.indices[i + 2] };
-            }
-
-            for (uint32_t i = 0; i < materialIndices.size(); i++) {
-                materialIndices[i] = 0;
-            }
-
             IPLStaticMeshSettings settings{};
             settings.numVertices = verts.size();
-            settings.numTriangles = triangles.size();
+            settings.numTriangles = cmi.triangles.size();
             settings.numMaterials = 1;
             settings.vertices = verts.data();
-            settings.triangles = triangles.data();
-            settings.materialIndices = materialIndices.data();
+            settings.triangles = cmi.triangles.data();
+            settings.materialIndices = cmi.materialIndices.data();
             settings.materials = &mat;
 
             IPLStaticMesh mesh = nullptr;
             SACHECK(iplStaticMeshCreate(scene, &settings, &mesh));
             iplStaticMeshAdd(mesh, scene);
-            //iplStaticMeshRelease(&mesh);
+            iplStaticMeshRelease(&mesh);
         });
         iplSceneCommit(scene);
 
