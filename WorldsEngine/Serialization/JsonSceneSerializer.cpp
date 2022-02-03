@@ -10,6 +10,7 @@
 #include "slib/StaticAllocList.hpp"
 #include "Scripting/NetVM.hpp"
 #include <Editor/Editor.hpp>
+#include <tracy/Tracy.hpp>
 
 namespace worlds {
     robin_hood::unordered_flat_map<AssetID, nlohmann::json> prefabCache;
@@ -179,6 +180,7 @@ namespace worlds {
     };
 
     void deserializeEntityComponents(const nlohmann::json& j, entt::registry& reg, entt::entity ent) {
+        ZoneScoped;
         slib::StaticAllocList<ComponentDeserializationInfo> componentIds(j.size());
 
         for (auto& compPair : j.items()) {
@@ -201,6 +203,7 @@ namespace worlds {
 
         for (auto& cdsi : componentIds) {
             if (cdsi.isNative) {
+                ZoneScopedN("deserializeEntityComponents fromJson");
                 auto compMeta = ComponentMetadataManager::byName.at(cdsi.id);
                 compMeta->fromJson(ent, reg, j[cdsi.id]);
             } else {
@@ -239,6 +242,7 @@ namespace worlds {
     // Loads entities into the specified registry.
     // j is the array of entities to load.
     void loadSceneEntities(entt::registry& reg, const nlohmann::json& j) {
+        ZoneScoped;
         logMsg("scene has %lu entities", j.size());
         // 1. Create all the scene's entities
         for (const auto& p : j.items()) {
@@ -303,20 +307,27 @@ namespace worlds {
             prioritisedEntities.add({ newEnt, maxSort });
         }
 
-        // 4. Sort by max sort ID
-        // This way entities with a component with a high sort ID will be deserialized
-        // after those with a low sort ID
-        std::sort(prioritisedEntities.begin(), prioritisedEntities.end(), [](PrioritisedEntity& a, PrioritisedEntity& b) {
-            return a.maxComponentSort < b.maxComponentSort;
-            });
+        {
+            ZoneScopedN("Sort prioritised entities");
+            // 4. Sort by max sort ID
+            // This way entities with a component with a high sort ID will be deserialized
+            // after those with a low sort ID
+            std::sort(prioritisedEntities.begin(), prioritisedEntities.end(), [](PrioritisedEntity& a, PrioritisedEntity& b) {
+                return a.maxComponentSort < b.maxComponentSort;
+                });
+        }
 
-        for (worlds::ComponentEditor* meta : ComponentMetadataManager::sorted) {
-            for (PrioritisedEntity& pe : prioritisedEntities) {
-                entt::entity newEnt = pe.ent;
-                const auto& entityJson = j[std::to_string((uint32_t)newEnt)];
+        {
+            ZoneScopedN("component deserialization");
+            for (worlds::ComponentEditor* meta : ComponentMetadataManager::sorted) {
+                for (PrioritisedEntity& pe : prioritisedEntities) {
+                    entt::entity newEnt = pe.ent;
+                    const auto& entityJson = j[std::to_string((uint32_t)newEnt)];
 
-                if (entityJson.contains(meta->getName())) {
-                    meta->fromJson(newEnt, reg, entityJson[meta->getName()]);
+                    if (entityJson.contains(meta->getName())) {
+                        ZoneScopedN("meta->fromJson");
+                        meta->fromJson(newEnt, reg, entityJson[meta->getName()]);
+                    }
                 }
             }
         }
@@ -386,10 +397,22 @@ namespace worlds {
 
     void MessagePackSceneSerializer::loadScene(PHYSFS_File* file, entt::registry& reg) {
         PerfTimer timer;
+
+        char maybeHeader[5] = "____";
+
+        PHYSFS_readBytes(file, maybeHeader, 4);
+
+        if (strcmp(maybeHeader, "WMSP") != 0) {
+            logErr("Scene file had incorrect header for msgpack");
+            return;
+        }
+
         try {
             prefabCache.clear();
+
             std::vector<uint8_t> dat;
-            dat.resize(PHYSFS_fileLength(file));
+            // subtract header length
+            dat.resize(PHYSFS_fileLength(file) - 4);
             PHYSFS_readBytes(file, dat.data(), dat.size());
 
             nlohmann::json j = nlohmann::json::from_msgpack(dat.begin(), dat.end());
