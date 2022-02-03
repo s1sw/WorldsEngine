@@ -4,11 +4,13 @@
 #include <physfs.h>
 #include "Core/Engine.hpp"
 #include <Audio/Audio.hpp>
+#include <tracy/Tracy.hpp>
 
 namespace worlds {
     // Do basic checks on the first byte to determine
     // the most appropriate scene serializer to call.
     void SceneLoader::loadScene(PHYSFS_File* file, entt::registry& reg, bool additive) {
+        ZoneScoped;
         if (PHYSFS_fileLength(file) <= 4) {
             logErr(WELogCategoryEngine, "Scene file was too short.");
             return;
@@ -27,11 +29,11 @@ namespace worlds {
             char maybeHeader[5] = "____";
 
             PHYSFS_readBytes(file, maybeHeader, 4);
+            PHYSFS_seek(file, 0);
 
-            if (strcmp(maybeHeader, "WMSP")) {
+            if (strcmp(maybeHeader, "WMSP") == 0) {
                 MessagePackSceneSerializer::loadScene(file, reg);
             } else {
-                PHYSFS_seek(file, 0);
                 BinarySceneSerializer::loadScene(file, reg);
             }
         } else if (firstByte == '{') {

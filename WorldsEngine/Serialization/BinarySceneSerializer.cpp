@@ -80,14 +80,14 @@ namespace worlds {
     bool deserializeWScene(PHYSFS_File* file, entt::registry& reg, char* magicCheck, unsigned char formatId) {
         PerfTimer timer;
 
-        if (formatId > MAX_WSCN_FORMAT_ID) {
-            logErr(WELogCategoryEngine, "Tried to load a wscn that is too new (%i, while we can load up to %i)",
-                formatId, MAX_WSCN_FORMAT_ID);
+        if (memcmp(magicCheck, WSCN_FORMAT_MAGIC, 4) != 0) {
+            logErr(WELogCategoryEngine, "failed magic check: got %s, expected %s", magicCheck, WSCN_FORMAT_MAGIC);
             return false;
         }
 
-        if (memcmp(magicCheck, WSCN_FORMAT_MAGIC, 4) != 0) {
-            logErr(WELogCategoryEngine, "failed magic check: got %s, expected %s", magicCheck, WSCN_FORMAT_MAGIC);
+        if (formatId > MAX_WSCN_FORMAT_ID) {
+            logErr(WELogCategoryEngine, "Tried to load a wscn that is too new (%i, while we can load up to %i)",
+                formatId, MAX_WSCN_FORMAT_ID);
             return false;
         }
 
