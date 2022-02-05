@@ -1,10 +1,10 @@
 #include "SceneSerialization.hpp"
 #include "SceneSerializationFuncs.hpp"
-#include "../Core/Log.hpp"
-#include "../Core/Transform.hpp"
-#include "../Util/TimingUtil.hpp"
-#include "../ComponentMeta/ComponentMetadata.hpp"
-#include "../Core/AssetDB.hpp"
+#include <Core/Log.hpp>
+#include <Core/Transform.hpp>
+#include <Util/TimingUtil.hpp>
+#include <ComponentMeta/ComponentMetadata.hpp>
+#include <Core/AssetDB.hpp>
 
 namespace worlds {
     typedef void(*LoadSceneFunc)(PHYSFS_File*, entt::registry&, bool);

@@ -2,9 +2,9 @@
 #include "SceneSerialization.hpp"
 #include <string>
 #include <nlohmann/json.hpp>
-#include "../ComponentMeta/ComponentMetadata.hpp"
-#include "../Core/Transform.hpp"
-#include "../Util/TimingUtil.hpp"
+#include <ComponentMeta/ComponentMetadata.hpp>
+#include <Core/Transform.hpp>
+#include <Util/TimingUtil.hpp>
 #include "Core/AssetDB.hpp"
 #include "robin_hood.h"
 #include "slib/StaticAllocList.hpp"
