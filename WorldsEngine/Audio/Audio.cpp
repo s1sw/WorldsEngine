@@ -18,6 +18,7 @@
 #include <Util/EnumUtil.hpp>
 #include <Core/JobSystem.hpp>
 #include <debugbreak.h>
+#include "PhononFmod.hpp"
 
 #define FMCHECK(_result) checkFmodErr(_result, __FILE__, __LINE__)
 #define SACHECK(_result) checkSteamAudioErr(_result, __FILE__, __LINE__)
@@ -187,7 +188,9 @@ namespace worlds {
 
     class AudioSystem::SteamAudioSimThread {
     public:
-        SteamAudioSimThread(IPLSimulator simulator) : simulator{simulator} {
+        SteamAudioSimThread(IPLSimulator simulator, AudioSystem* system) :
+            simulator{simulator},
+            system(system) {
             thread = std::thread([this]() { actualThread(); });
         }
 
@@ -223,6 +226,14 @@ namespace worlds {
                     iplSimulatorRunPathing(simulator);
                     simRunning = false;
                     lastRunTime = pt.stopGetMs();
+
+                    for (AttachedOneshot* oneshot : system->attachedOneshots) {
+                        iplSourceGetOutputs(
+                            oneshot->phononSource,
+                            (IPLSimulationFlags)(IPL_SIMULATIONFLAGS_REFLECTIONS | IPL_SIMULATIONFLAGS_PATHING),
+                            &oneshot->phononOutputs
+                        );
+                    }
                 }
             }
         }
@@ -234,6 +245,7 @@ namespace worlds {
         std::thread thread;
         std::atomic<bool> threadAlive = true;
         IPLSimulator simulator;
+        AudioSystem* system;
         double lastRunTime = 0.0;
     };
 
@@ -315,7 +327,7 @@ namespace worlds {
         iplFMODSetHRTF(phononHrtf);
 
         IPLSimulationSettings simulationSettings{};
-        simulationSettings.flags = (IPLSimulationFlags)(IPL_SIMULATIONFLAGS_REFLECTIONS);
+        simulationSettings.flags = (IPLSimulationFlags)(IPL_SIMULATIONFLAGS_DIRECT | IPL_SIMULATIONFLAGS_REFLECTIONS);
         simulationSettings.sceneType = IPL_SCENETYPE_DEFAULT;
         simulationSettings.reflectionType = IPL_REFLECTIONEFFECTTYPE_CONVOLUTION;
         simulationSettings.maxNumRays = 4096;
@@ -352,7 +364,7 @@ namespace worlds {
 
         lastListenerPos = glm::vec3(0.0f, 0.0f, 0.0f);
 
-        simThread = new SteamAudioSimThread(simulator);
+        simThread = new SteamAudioSimThread(simulator, this);
     }
 
     void AudioSystem::initialise(entt::registry& worldState) {
@@ -415,24 +427,7 @@ namespace worlds {
         return v;
     }
 
-    void AudioSystem::update(entt::registry& worldState, glm::vec3 listenerPos, glm::quat listenerRot, float deltaTime) {
-        if (!available) return;
-        glm::vec3 movement = listenerPos - lastListenerPos;
-        movement /= deltaTime;
-
-        if (glm::any(glm::isinf(movement)) || glm::any(glm::isnan(movement)))
-            movement = glm::vec3{ 0.0f };
-
-        if (glm::any(glm::isnan(listenerPos)))
-            listenerPos = glm::vec3{ 0.0f };
-
-        FMOD_3D_ATTRIBUTES listenerAttributes{};
-        listenerAttributes.forward = convVec(listenerRot * glm::vec3(0.0f, 0.0f, 1.0f));
-        listenerAttributes.up = convVec(listenerRot * glm::vec3(0.0f, 1.0f, 0.0f));
-
-        listenerAttributes.position = convVec(listenerPos);
-        listenerAttributes.velocity = convVec(movement);
-
+    void AudioSystem::updateSteamAudio(entt::registry& registry, float deltaTime, glm::vec3 listenerPos, glm::quat listenerRot) {
         IPLSimulationFlags simFlags = (IPLSimulationFlags)(IPL_SIMULATIONFLAGS_DIRECT | IPL_SIMULATIONFLAGS_REFLECTIONS);
 
         IPLSimulationInputs inputs{};
@@ -452,6 +447,32 @@ namespace worlds {
 
         iplSourceSetInputs(listenerCentricSource, simFlags, &inputs);
 
+        for (AttachedOneshot* oneshot : attachedOneshots) {
+            Transform& t = registry.get<Transform>(oneshot->entity);
+            IPLSimulationInputs inputs{};
+            inputs.flags = simFlags;
+            inputs.source.right = convVecSA(t.rotation * glm::vec3(1.0f, 0.0f, 0.0f));
+            inputs.source.up = convVecSA(t.rotation * glm::vec3(0.0f, 1.0f, 0.0f));
+            inputs.source.ahead = convVecSA(t.rotation * glm::vec3(0.0f, 0.0f, 1.0f));
+            inputs.source.origin = convVecSA(t.position);
+            inputs.distanceAttenuationModel.type = IPL_DISTANCEATTENUATIONTYPE_DEFAULT;
+            inputs.airAbsorptionModel.type = IPL_AIRABSORPTIONTYPE_DEFAULT;
+            inputs.reverbScale[0] = 1.0f;
+            inputs.reverbScale[1] = 1.0f;
+            inputs.reverbScale[2] = 1.0f;
+            inputs.hybridReverbTransitionTime = 1.0f;
+            inputs.hybridReverbOverlapPercent = 0.25f;
+            inputs.baked = IPL_FALSE;
+
+            iplSourceSetInputs(oneshot->phononSource, simFlags, &inputs);
+        }
+
+        if (needsSimCommit) {
+            while (simThread->isSimRunning()) {}
+            iplSimulatorCommit(simulator);
+            needsSimCommit = false;
+        }
+
         IPLSimulationSharedInputs sharedInputs{};
         sharedInputs.listener = inputs.source;
         sharedInputs.numRays = 2048;
@@ -461,7 +482,6 @@ namespace worlds {
         sharedInputs.irradianceMinDistance = 1.0f;
 
         iplSimulatorSetSharedInputs(simulator, simFlags, &sharedInputs);
-
         iplSimulatorRunDirect(simulator);
 
         timeSinceLastSim += deltaTime;
@@ -473,6 +493,27 @@ namespace worlds {
             }
             timeSinceLastSim = 0.0f;
         }
+    }
+
+    void AudioSystem::update(entt::registry& worldState, glm::vec3 listenerPos, glm::quat listenerRot, float deltaTime) {
+        if (!available) return;
+        glm::vec3 movement = listenerPos - lastListenerPos;
+        movement /= deltaTime;
+
+        if (glm::any(glm::isinf(movement)) || glm::any(glm::isnan(movement)))
+            movement = glm::vec3{ 0.0f };
+
+        if (glm::any(glm::isnan(listenerPos)))
+            listenerPos = glm::vec3{ 0.0f };
+
+        FMOD_3D_ATTRIBUTES listenerAttributes{};
+        listenerAttributes.forward = convVec(listenerRot * glm::vec3(0.0f, 0.0f, 1.0f));
+        listenerAttributes.up = convVec(listenerRot * glm::vec3(0.0f, 1.0f, 0.0f));
+
+        listenerAttributes.position = convVec(listenerPos);
+        listenerAttributes.velocity = convVec(movement);
+
+        updateSteamAudio(worldState, deltaTime, listenerPos, listenerRot);
 
         worldState.view<AudioSource, Transform>().each([](AudioSource& as, Transform& t) {
             if (as.eventInstance == nullptr) return;
@@ -487,38 +528,42 @@ namespace worlds {
 
         FMCHECK(studioSystem->setListenerAttributes(0, &listenerAttributes, &listenerAttributes.position));
 
-        for (AttachedOneshot& ao : attachedOneshots) {
-            if (!worldState.valid(ao.entity)) {
-                ao.markForRemoval = true;
-                FMCHECK(ao.instance->stop(FMOD_STUDIO_STOP_IMMEDIATE));
-                FMCHECK(ao.instance->release());
+        for (AttachedOneshot* ao : attachedOneshots) {
+            if (!worldState.valid(ao->entity)) {
+                ao->markForRemoval = true;
+                FMCHECK(ao->instance->stop(FMOD_STUDIO_STOP_IMMEDIATE));
+                FMCHECK(ao->instance->release());
                 continue;
             }
 
             FMOD_STUDIO_PLAYBACK_STATE playbackState;
-            FMCHECK(ao.instance->getPlaybackState(&playbackState));
+            FMCHECK(ao->instance->getPlaybackState(&playbackState));
 
             if (playbackState == FMOD_STUDIO_PLAYBACK_STOPPED) {
-                ao.markForRemoval = true;
-                FMCHECK(ao.instance->release());
+                ao->markForRemoval = true;
+                FMCHECK(ao->instance->release());
                 continue;
             }
 
-            Transform& t = worldState.get<Transform>(ao.entity);
+            Transform& t = worldState.get<Transform>(ao->entity);
 
             FMOD_3D_ATTRIBUTES sourceAttributes{};
             sourceAttributes.position = convVec(t.position);
             sourceAttributes.forward = convVec(t.rotation * glm::vec3(0.0f, 0.0f, 1.0f));
             sourceAttributes.up = convVec(t.rotation * glm::vec3(0.0f, 1.0f, 0.0f));
-            sourceAttributes.velocity = convVec((t.position - ao.lastPosition) / deltaTime);
+            sourceAttributes.velocity = convVec((t.position - ao->lastPosition) / deltaTime);
 
-            ao.lastPosition = t.position;
+            ao->lastPosition = t.position;
 
-            FMCHECK(ao.instance->set3DAttributes(&sourceAttributes));
+            FMCHECK(ao->instance->set3DAttributes(&sourceAttributes));
         }
 
         attachedOneshots.erase(
-            std::remove_if(attachedOneshots.begin(), attachedOneshots.end(), [](AttachedOneshot& ao) { return ao.markForRemoval; }),
+            std::remove_if(attachedOneshots.begin(), attachedOneshots.end(), [](AttachedOneshot* ao){
+                bool marked = ao->markForRemoval;
+                if (marked) delete ao;
+                return marked;
+            }),
             attachedOneshots.end()
         );
 
@@ -528,8 +573,18 @@ namespace worlds {
             bool keepShowing = true;
 
             if (ImGui::Begin(ICON_FAD_SPEAKER " Audio Debug", &keepShowing)) {
-                ImGui::Text("Last Phonon simulation tick took %.3fms", simThread->lastStepTime());
-                ImGui::Text("Simulation running: %i", simThread->isSimRunning());
+                int currentAlloced, maxAlloced;
+                FMOD::Memory_GetStats(&currentAlloced, &maxAlloced);
+                if (ImGui::CollapsingHeader("Phonon")) {
+                    ImGui::Text("Last Phonon simulation tick took %.3fms", simThread->lastStepTime());
+                    ImGui::Text("Simulation running: %i", simThread->isSimRunning());
+                    ImGui::TreePop();
+                }
+
+                if (ImGui::CollapsingHeader("FMOD")) {
+                    ImGui::Text("Currently allocated: %.3fMB", currentAlloced / 1024.0 / 1024.0);
+                    ImGui::Text("Currently allocated: %.3fMB", maxAlloced / 1024.0 / 1024.0);
+                }
             }
         }
     }
@@ -575,25 +630,82 @@ namespace worlds {
         playOneShotAttachedEvent(eventPath, location, entt::null, volume);
     }
 
+    FMOD_RESULT findSteamAudioDSP(FMOD::Studio::EventInstance* instance, FMOD::DSP** dsp) {
+        FMOD::ChannelGroup* channelGroup;
+        FMOD_RESULT res = instance->getChannelGroup(&channelGroup);
+
+        if (res != FMOD_OK)
+            return res;
+
+        int numDsps;
+        res = channelGroup->getNumDSPs(&numDsps);
+        if (res != FMOD_OK)
+            return res;
+
+        FMOD::DSP* spatializerDsp;
+        bool found = false;
+        for (int i = 0; i < numDsps; i++) {
+            res = channelGroup->getDSP(i, &spatializerDsp);
+            if (res != FMOD_OK)
+                return res;
+
+            char buffer[33] = {0};
+            res = spatializerDsp->getInfo(buffer, nullptr, nullptr, nullptr, nullptr);
+            if (res != FMOD_OK)
+                return res;
+
+            if (strcmp(buffer, "Steam Audio Spatializer") == 0) {
+                *dsp = spatializerDsp;
+                found = true;
+            }
+        }
+
+        if (!found) return FMOD_ERR_DSP_NOTFOUND;
+
+        return FMOD_OK;
+    }
+
+    FMOD_RESULT AudioSystem::phononEventInstanceCallback(FMOD_STUDIO_EVENT_CALLBACK_TYPE type, FMOD_STUDIO_EVENTINSTANCE* cevent, void* param) {
+        if (type != FMOD_STUDIO_EVENT_CALLBACK_CREATED) return FMOD_OK;
+
+        FMOD::Studio::EventInstance* event = (FMOD::Studio::EventInstance*)cevent;
+
+        AttachedOneshot* ao;
+        FMCHECK(event->getUserData((void**)&ao));
+        FMCHECK(findSteamAudioDSP(event, &ao->phononDsp));
+
+        // The FMOD plugin says here that it wants the simulation outputs.
+        // However, this is wrong. The code is actually looking for the IPLSource attached
+        // to the Steam Audio source!
+        FMCHECK(ao->phononDsp->setParameterData(
+                SpatializerEffect::SIMULATION_OUTPUTS,
+                &ao->phononSource,
+                sizeof(IPLSource)
+        ));
+
+        return FMOD_OK;
+    }
+
     void AudioSystem::playOneShotAttachedEvent(const char* eventPath, glm::vec3 location, entt::entity attachedEntity, float volume) {
         if (!available) return;
         FMOD_RESULT result;
 
-        bool usePathing = true;
+        bool createPhononSource = true;
         FMOD::Studio::EventDescription* desc;
         result = studioSystem->getEvent(eventPath, &desc);
-        FMOD_STUDIO_USER_PROPERTY userProp;
-        FMOD_RESULT pathingResult = desc->getUserProperty("UsePathing", &userProp);
-
-        if (pathingResult == FMOD_ERR_EVENT_NOTFOUND) {
-            usePathing = false;
-        } else {
-            FMCHECK(pathingResult);
-        }
 
         if (result != FMOD_OK) {
             logErr(WELogCategoryAudio, "Failed to get event %s: %s", eventPath, FMOD_ErrorString(result));
             return;
+        }
+
+        FMOD_STUDIO_USER_PROPERTY userProp;
+        FMOD_RESULT propertyResult = desc->getUserProperty("UsePhononSource", &userProp);
+
+        if (propertyResult == FMOD_ERR_EVENT_NOTFOUND) {
+            createPhononSource = false;
+        } else {
+            FMCHECK(propertyResult);
         }
 
         int instanceCount = 0;
@@ -622,17 +734,29 @@ namespace worlds {
         FMCHECK(instance->setVolume(volume));
 
         FMCHECK(instance->start());
-        //FMOD::ChannelGroup* channelGroup;
-        //FMCHECK(instance->getChannelGroup(&channelGroup));
 
         if (attachedEntity == entt::null)
             FMCHECK(instance->release());
         else {
-            AttachedOneshot attachedOneshot{
+            AttachedOneshot* attachedOneshot = new AttachedOneshot{
                 .instance = instance,
                 .entity = attachedEntity,
                 .lastPosition = location
             };
+
+            if (createPhononSource) {
+                attachedOneshot->phononDsp = nullptr;
+                instance->setUserData(attachedOneshot);
+                instance->setCallback(phononEventInstanceCallback, FMOD_STUDIO_EVENT_CALLBACK_CREATED);
+
+                IPLSourceSettings sourceSettings {
+                    (IPLSimulationFlags)(IPL_SIMULATIONFLAGS_REFLECTIONS | IPL_SIMULATIONFLAGS_DIRECT)
+                };
+
+                SACHECK(iplSourceCreate(simulator, &sourceSettings, &attachedOneshot->phononSource));
+                iplSourceAdd(attachedOneshot->phononSource, simulator);
+                needsSimCommit = true;
+            }
 
             attachedOneshots.push_back(attachedOneshot);
         }

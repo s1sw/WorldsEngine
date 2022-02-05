@@ -83,12 +83,15 @@ namespace worlds {
         void updateAudioScene(entt::registry& reg);
     private:
         class SteamAudioSimThread;
+        void updateSteamAudio(entt::registry& registry, float deltaTime, glm::vec3 listenerPos, glm::quat listenerRot);
         void onAudioSourceDestroy(entt::registry& reg, entt::entity ent);
+        static FMOD_RESULT phononEventInstanceCallback(FMOD_STUDIO_EVENT_CALLBACK_TYPE type, FMOD_STUDIO_EVENTINSTANCE* event, void* param);
         IPLScene createScene(entt::registry& reg);
 
         struct AttachedOneshot {
             FMOD::Studio::EventInstance* instance;
-            FMOD::DSP* steamAudioDsp;
+            FMOD::DSP* phononDsp;
+            IPLSource phononSource;
             entt::entity entity;
             glm::vec3 lastPosition;
             bool markForRemoval = false;
@@ -98,6 +101,7 @@ namespace worlds {
 
         glm::vec3 lastListenerPos;
         bool available = true;
+        bool needsSimCommit = false;
         static AudioSystem* instance;
         FMOD::Studio::System* studioSystem;
         FMOD::System* system;
@@ -116,6 +120,6 @@ namespace worlds {
 
         robin_hood::unordered_map<const char*, FMOD::Studio::Bank*> loadedBanks;
         robin_hood::unordered_map<AssetID, FMOD::Sound*> sounds;
-        std::vector<AttachedOneshot> attachedOneshots;
+        std::vector<AttachedOneshot*> attachedOneshots;
     };
 }
