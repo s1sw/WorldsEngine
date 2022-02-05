@@ -1080,7 +1080,7 @@ namespace worlds {
 
                 if (ImGui::CollapsingHeader(ICON_FA_CLOCK u8" Performance")) {
                     ImGui::PlotLines("Historical Frametimes", historicalFrametimes, 128, historicalFrametimeIdx, nullptr,
-                        0.0f, 20.0f, ImVec2(0.0f, 125.0f));
+                        0.0f, FLT_MAX, ImVec2(0.0f, 125.0f));
                     ImGui::Text("Frametime: %.3fms", timeInfo.deltaTime * 1000.0);
                     ImGui::Text("Update time: %.3fms", timeInfo.updateTime * 1000.0);
                     ImGui::Text("Physics time: %.3fms", timeInfo.simTime);
