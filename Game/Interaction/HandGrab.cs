@@ -309,8 +309,12 @@ namespace Game.Interaction
 
             if (Registry.TryGetComponent<DynamicPhysicsActor>(GrippedEntity, out var dpa))
             {
+                Vector3 linVel = dpa.Velocity;
+                Vector3 angVel = dpa.AngularVelocity;
                 dpa.Kinematic = true;
                 dpa.Kinematic = false;
+                dpa.Velocity = linVel;
+                dpa.AngularVelocity = angVel;
             }
             Registry.RemoveComponent<D6Joint>(Entity);
             GrippedEntity = Entity.Null;
