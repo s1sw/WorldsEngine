@@ -15,7 +15,7 @@ namespace Game
     }
 
     [Component]
-    [EditorFriendlyName("C# Gun")]
+    [EditorFriendlyName("Gun")]
     class Gun : IThinkingComponent, IStartListener, ICollisionHandler
     {
         public bool Automatic = false;

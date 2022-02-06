@@ -5,7 +5,8 @@ using WorldsEngine;
 namespace Game.Interaction
 {
     [Component]
-    [EditorFriendlyName("C# Grabbable")]
+    [EditorFriendlyName("Grabbable")]
+    [EditorIcon(FontAwesome.FontAwesomeIcons.Hands)]
     class Grabbable
     {
         public event Action<Entity> TriggerPressed;

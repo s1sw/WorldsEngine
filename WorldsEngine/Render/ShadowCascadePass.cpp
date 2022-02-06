@@ -62,6 +62,105 @@ namespace worlds {
         renderPass = rPassMaker.create(handles->device);
     }
 
+    glm::mat4 getCascadeMatrix(RenderContext& rCtx, glm::vec3 lightDir, glm::mat4 frustumMatrix, float& texelsPerUnit) {
+        glm::mat4 view = rCtx.viewMatrices[0];
+
+        glm::mat4 vpInv = glm::inverse(frustumMatrix * view);
+
+        glm::vec3 frustumCorners[8] = {
+            glm::vec3(-1.0f,  1.0f, -1.0f),
+            glm::vec3(1.0f,  1.0f, -1.0f),
+            glm::vec3(1.0f, -1.0f, -1.0f),
+            glm::vec3(-1.0f, -1.0f, -1.0f),
+            glm::vec3(-1.0f,  1.0f,  1.0f),
+            glm::vec3(1.0f,  1.0f,  1.0f),
+            glm::vec3(1.0f, -1.0f,  1.0f),
+            glm::vec3(-1.0f, -1.0f,  1.0f),
+        };
+
+        for (int i = 0; i < 8; i++) {
+            glm::vec4 transformed = vpInv * glm::vec4{ frustumCorners[i], 1.0f };
+            transformed /= transformed.w;
+            frustumCorners[i] = transformed;
+        }
+
+        glm::vec3 center{ 0.0f };
+
+        for (int i = 0; i < 8; i++) {
+            center += frustumCorners[i];
+        }
+
+        center /= 8.0f;
+
+        float diameter = 0.0f;
+        for (int i = 0; i < 8; i++) {
+            float dist = glm::length(frustumCorners[i] - center);
+            diameter = glm::max(diameter, dist);
+        }
+        float radius = diameter * 0.5f;
+
+        texelsPerUnit = (float)rCtx.passSettings.shadowmapRes / diameter;
+
+        glm::mat4 scaleMatrix = glm::scale(glm::mat4{ 1.0f }, glm::vec3{ texelsPerUnit });
+
+        glm::mat4 lookAt = glm::lookAt(glm::vec3{ 0.0f }, lightDir, glm::vec3{ 0.0f, 1.0f, 0.0f });
+        lookAt *= scaleMatrix;
+
+        glm::mat4 lookAtInv = glm::inverse(lookAt);
+
+        center = lookAt * glm::vec4{ center, 1.0f };
+        center = glm::floor(center);
+        center = lookAtInv * glm::vec4{ center, 1.0f };
+
+        glm::vec3 eye = center + (lightDir * diameter);
+
+        glm::mat4 viewMat = glm::lookAt(eye, center, glm::vec3{ 0.0f, 1.0f, 0.0f });
+        glm::mat4 projMat = glm::orthoZO(-radius, radius, -radius, radius, radius * 12.0f, -radius * 12.0f);
+
+        return projMat * viewMat;
+    }
+
+    void ShadowCascadePass::calculateCascadeMatrices(RenderContext& rCtx) {
+        bool hasLight = false;
+        rCtx.registry.view<WorldLight, Transform>().each([&](auto, WorldLight& l, Transform& transform) {
+            glm::vec3 lightForward = transform.rotation * glm::vec3(0.0f, 0.0f, -1.0f);
+            if (l.type == LightType::Directional) {
+                glm::mat4 frustumMatrices[3];
+                float aspect = (float)rCtx.passWidth / (float)rCtx.passHeight;
+                // frustum 0: near -> 20m
+                // frustum 1: 20m  -> 125m
+                // frustum 2: 125m -> 250m
+                float splits[4] = { 0.1f, 15.0f, 45.0f, 105.0f };
+                if (!rCtx.passSettings.enableVr) {
+                    for (int i = 1; i < 4; i++) {
+                        frustumMatrices[i - 1] = glm::perspective(
+                            rCtx.camera.verticalFOV, aspect,
+                            splits[i - 1], splits[i]
+                        );
+                    }
+                } else {
+                    for (int i = 1; i < 4; i++) {
+                        // TODO: fix this for VR
+                        //frustumMatrices[i - 1] = vrInterface->getEyeProjectionMatrix(
+                        //    Eye::LeftEye,
+                        //    splits[i - 1], splits[i]
+                        //);
+                    }
+                }
+
+                for (int i = 0; i < 3; i++) {
+                    rCtx.cascadeInfo.matrices[i] =
+                        getCascadeMatrix(
+                            rCtx, lightForward,
+                            frustumMatrices[i], rCtx.cascadeInfo.texelsPerUnit[i]
+                        );
+                }
+                hasLight = true;
+            }
+            });
+        rCtx.cascadeInfo.shadowCascadeNeeded = hasLight;
+    }
+
     void ShadowCascadePass::setup() {
         ZoneScoped;
         shadowmapRes = handles->graphicsSettings.shadowmapRes;
@@ -112,6 +211,7 @@ namespace worlds {
     }
 
     void ShadowCascadePass::prePass(RenderContext& ctx) {
+        calculateCascadeMatrices(ctx);
     }
 
     void ShadowCascadePass::execute(RenderContext& ctx) {

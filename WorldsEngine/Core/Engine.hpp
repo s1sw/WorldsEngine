@@ -19,7 +19,6 @@ void operator delete(void* ptr) noexcept;
 #endif
 
 namespace worlds {
-    const int NUM_SUBMESH_MATS = 32;
     extern glm::ivec2 windowSize;
     class Renderer;
     class AudioSystem;
@@ -32,28 +31,6 @@ namespace worlds {
     class IGameEventHandler;
     class ISystem;
     class Window;
-
-    class ConVar {
-    public:
-        ConVar(const char* name, const char* defaultValue, const char* help = nullptr);
-        ~ConVar();
-        float getFloat() const { return parsedFloat; }
-        int getInt() const { return parsedInt; }
-        const char* getString() const { return value.c_str(); }
-        const char* getName() const { return name; }
-        const char* getHelp() const { return help; }
-        void setValue(std::string newValue);
-        operator float() const { return getFloat(); }
-        operator bool() const { return (bool)getInt(); }
-    private:
-        const char* help;
-        const char* name;
-        std::string value;
-        int parsedInt;
-        float parsedFloat;
-
-        friend class Console;
-    };
 
     struct SceneInfo {
         std::string name;
@@ -157,112 +134,4 @@ namespace worlds {
 
         std::vector<const char*> cmdLineOptions;
     };
-
-    enum class StaticFlags : uint8_t {
-        None = 0,
-        Audio = 1,
-        Rendering = 2,
-        Navigation = 4
-    };
-
-    enum class UVOverride {
-        None,
-        XY,
-        XZ,
-        ZY,
-        PickBest
-    };
-
-    struct WorldObject {
-        WorldObject(AssetID material, AssetID mesh)
-            : staticFlags(StaticFlags::None)
-            , mesh(mesh)
-            , texScaleOffset(1.0f, 1.0f, 0.0f, 0.0f)
-            , uvOverride(UVOverride::None) {
-            for (int i = 0; i < NUM_SUBMESH_MATS; i++) {
-                materials[i] = material;
-                presentMaterials[i] = false;
-            }
-            presentMaterials[0] = true;
-        }
-
-        StaticFlags staticFlags;
-        AssetID materials[NUM_SUBMESH_MATS];
-        slib::Bitset<NUM_SUBMESH_MATS> presentMaterials;
-        AssetID mesh;
-        glm::vec4 texScaleOffset;
-        UVOverride uvOverride;
-    };
-
-    struct Bone {
-        glm::mat4 restPose;
-        uint32_t id;
-    };
-
-    class Skeleton {
-    public:
-        std::vector<Bone> bones;
-    };
-
-    class Pose {
-    public:
-        std::vector<glm::mat4> boneTransforms;
-    };
-
-    struct SkinnedWorldObject : public WorldObject {
-        SkinnedWorldObject(AssetID material, AssetID mesh)
-            : WorldObject(material, mesh) {
-            currentPose.boneTransforms.resize(64); // TODO
-
-            for (glm::mat4& t : currentPose.boneTransforms) {
-                t = glm::mat4{1.0f};
-            }
-        }
-        Pose currentPose;
-    };
-
-    struct UseWireframe {};
-
-    enum class LightType {
-        Point,
-        Spot,
-        Directional,
-        Sphere,
-        Tube
-    };
-
-    struct WorldLight {
-        WorldLight() {}
-        WorldLight(LightType type) : type(type) {}
-
-        // Whether the light should be actually rendered
-        bool enabled = true;
-        LightType type = LightType::Point;
-        glm::vec3 color = glm::vec3{1.0f};
-        float intensity = 1.0f;
-
-        // Angle of the spotlight cutoff in radians
-        float spotCutoff = glm::pi<float>() * 0.5f;
-
-        // Physical dimensions of a tube light
-        float tubeLength = 0.25f;
-        float tubeRadius = 0.1f;
-
-        // Shadowing settings
-        bool enableShadows = false;
-        uint32_t shadowmapIdx = ~0u;
-        float shadowNear = 0.05f;
-        float shadowFar = 100.0f;
-
-        float maxDistance = 1.0f;
-        // Index of the light in the light buffer
-        uint32_t lightIdx = 0u;
-    };
-
-    struct EditorLabel {
-        std::string label;
-    };
-
-    struct DontSerialize {};
-    struct HideFromEditor {};
 }

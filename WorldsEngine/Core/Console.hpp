@@ -7,6 +7,7 @@
 
 #include <Core/LogCategories.hpp>
 #include <Core/Engine.hpp>
+#include <Core/ConVar.hpp>
 
 struct ImGuiInputTextCallbackData;
 

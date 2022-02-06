@@ -265,6 +265,7 @@ namespace worlds {
         GraphicsSettings passSettings;
         entt::registry& registry;
         VKRenderer* renderer;
+        Camera camera;
 
         glm::mat4 projMatrices[2];
         glm::mat4 viewMatrices[2];
@@ -429,20 +430,6 @@ namespace worlds {
         const static uint32_t NUM_MAT_SLOTS = 256;
         const static uint32_t NUM_CUBEMAP_SLOTS = 64;
 
-        struct RTTPassInternal {
-            PolyRenderPass* prp;
-            TonemapFXRenderPass* trp;
-            uint32_t width, height;
-            RenderResource* hdrTarget;
-            RenderResource* sdrFinalTarget;
-            RenderResource* depthTarget;
-            bool isVr;
-            bool outputToScreen;
-            bool enableShadows;
-            bool active;
-            Camera* cam;
-        };
-
         VkInstance instance;
         VkPhysicalDevice physicalDevice;
         VkDevice device;
@@ -499,7 +486,6 @@ namespace worlds {
         vku::GenericImage brdfLut;
         std::shared_ptr<CubemapConvoluter> cubemapConvoluter;
         bool swapchainRecreated;
-        bool enablePicking;
         RenderDebugStats dbgStats;
         uint32_t frameIdx, lastFrameIdx;
         ShadowCascadePass* shadowCascadePass;
@@ -512,8 +498,6 @@ namespace worlds {
         vku::ShaderModule loadShaderAsset(AssetID id);
         void createInstance(const RendererInitInfo& initInfo);
         void submitToOpenVR();
-        glm::mat4 getCascadeMatrix(bool forVr, Camera cam, glm::vec3 lightdir, glm::mat4 frustumMatrix, float& texelsPerUnit);
-        void calculateCascadeMatrices(bool forVr, entt::registry& world, Camera& cam, RenderContext& rCtx);
         void writeCmdBuf(VkCommandBuffer cmdBuf, uint32_t imageIndex, Camera& cam, entt::registry& reg);
         void reuploadMaterials();
         ImDrawData* imDrawData;
@@ -524,13 +508,14 @@ namespace worlds {
 
         friend class VKRTTPass;
     public:
-        double time;
         VKRenderer(const RendererInitInfo& initInfo, bool* success);
         void recreateSwapchain(int newWidth = -1, int newHeight = -1) override;
         void frame(Camera& cam, entt::registry& reg) override;
+
         void preloadMesh(AssetID id) override;
         void unloadUnusedMaterials(entt::registry& reg) override;
         void reloadContent(ReloadFlags flags) override;
+
         float getLastRenderTime() const override { return lastRenderTimeTicks * timestampPeriod; }
         void setVRPredictAmount(float amt) override { vrPredictAmount = amt; }
         void setVsync(bool vsync) override;

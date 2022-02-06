@@ -767,10 +767,15 @@ namespace worlds {
             }
         }
 
+        static ConVar ed_saveAsJson { "ed_saveAsJson", "0", "Save scene files as JSON rather than MessagePack." };
         if (inputManager.keyPressed(SDL_SCANCODE_S) && inputManager.ctrlHeld()) {
             if (interfaces.engine->getCurrentSceneInfo().id != ~0u && !inputManager.shiftHeld()) {
                 AssetID sceneId = interfaces.engine->getCurrentSceneInfo().id;
-                JsonSceneSerializer::saveScene(sceneId, reg);
+                if (ed_saveAsJson.getInt())
+                    JsonSceneSerializer::saveScene(sceneId, reg);
+                else
+                    MessagePackSceneSerializer::saveScene(sceneId, reg);
+
                 lastSaveModificationCount = undo.modificationCount();
             } else {
                 ImGui::OpenPopup("Save Scene");

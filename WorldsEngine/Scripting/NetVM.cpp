@@ -13,6 +13,7 @@
 #include <Serialization/SceneSerialization.hpp>
 #include <tracy/Tracy.hpp>
 #include <slib/DynamicLibrary.hpp>
+#include <Core/WorldComponents.hpp>
 
 #if defined(_WIN32)
 #define NET_LIBRARY_PATH "./NetAssemblies/coreclr.dll"

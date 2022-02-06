@@ -30,6 +30,7 @@ namespace worlds {
 
     struct ConversionSettings {
         bool preTransformVerts = false;
+        bool removeRedundantMaterials = true;
         float uniformScale = 1.0f;
     };
 
@@ -310,7 +311,6 @@ namespace worlds {
                 aiProcess_JoinIdenticalVertices |
                 aiProcess_ImproveCacheLocality |
                 aiProcess_LimitBoneWeights |
-                aiProcess_RemoveRedundantMaterials |
                 aiProcess_Triangulate |
                 aiProcess_GenUVCoords |
                 aiProcess_SortByPType |
@@ -328,6 +328,9 @@ namespace worlds {
 
             if (settings.preTransformVerts)
                 processFlags |= aiProcess_PreTransformVertices;
+
+            if (settings.removeRedundantMaterials)
+                processFlags |= aiProcess_RemoveRedundantMaterials;
             const aiScene* scene = importer.ReadFileFromMemory(data, dataSize, processFlags, extension);
 
             compileOp->progress = PROGRESS_PER_STEP;
@@ -554,6 +557,7 @@ namespace worlds {
         std::filesystem::create_directories(fullPath);
         ConversionSettings settings;
         settings.preTransformVerts = j.value("preTransformVerts", false);
+        settings.removeRedundantMaterials = j.value("removeRedundantMaterials", true);
         settings.uniformScale = j.value("uniformScale", 1.0f);
 
         std::thread([compileOp, outputPath, path, result, fileLen, settings]() {

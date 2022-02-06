@@ -12,7 +12,7 @@ using ImGuiNET;
 namespace Game
 {
     [Component]
-    [EditorFriendlyName("C# Player Rig")]
+    [EditorFriendlyName("Player Rig")]
     public class PlayerRig : IThinkingComponent, IStartListener
     {
         public const float HoverDistance = 0.2f;
@@ -222,7 +222,7 @@ namespace Game
 
             var lhTransform = Registry.GetTransform(_leftHandEntity);
             var hpTransform = Registry.GetTransform(_hpTextEntity);
-            hpTransform.Rotation = lhTransform.Rotation * 
+            hpTransform.Rotation = lhTransform.Rotation *
                 Quaternion.AngleAxis(MathF.PI / 2f, Vector3.Left) * Quaternion.AngleAxis(MathF.PI, Vector3.Up);
             Vector3 offset = Vector3.Forward * 0.05f + Vector3.Down * 0.02f;
             hpTransform.Position = lhTransform.Position + hpTransform.Rotation * offset;

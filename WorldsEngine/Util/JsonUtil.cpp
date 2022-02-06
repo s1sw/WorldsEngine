@@ -4,6 +4,16 @@
 
 using json = nlohmann::json;
 
+namespace slib {
+    void to_json(json& j, const slib::String& str) {
+        j = std::string(str.cStr());
+    }
+
+    void from_json(const json& j, slib::String& str) {
+        str = slib::String{j.get<std::string>().c_str()};
+    }
+}
+
 namespace glm {
     // glm::vec3
     void to_json(json& j, const glm::vec3& vec) {

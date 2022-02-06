@@ -1,4 +1,5 @@
 #include "Core/Engine.hpp"
+#include <Core/WorldComponents.hpp>
 #include "SceneSerialization.hpp"
 #include <string>
 #include <nlohmann/json.hpp>
@@ -174,6 +175,10 @@ namespace worlds {
         PHYSFS_close(file);
     }
 
+    void MessagePackSceneSerializer::saveScene(AssetID id, entt::registry& reg) {
+        saveScene(AssetDB::idToPath(id), reg);
+    }
+
     struct ComponentDeserializationInfo {
         std::string id;
         bool isNative;
@@ -268,7 +273,7 @@ namespace worlds {
                     components = components.patch(p.value()["diff"]);
                 } catch (nlohmann::detail::out_of_range& ex) {
                     if (ex.id == 403) {
-                        logErr("Malformed prefab instance!");
+                        logErr("Malformed prefab instance! (%s)", ex.what());
                     } else {
                         throw ex;
                     }
