@@ -62,9 +62,9 @@ namespace WorldsEngine
 
         internal static int typeCounter = 0;
 
-        private static Queue<Entity> _destroyQueue = new();
-        private static List<IComponentStorage> _collisionHandlers = new();
-        private static List<IComponentStorage> _startListeners = new();
+        private readonly static Queue<Entity> _destroyQueue = new();
+        private readonly static List<IComponentStorage> _collisionHandlers = new();
+        private readonly static List<IComponentStorage> _startListeners = new();
 
         static Registry()
         {
