@@ -576,25 +576,10 @@
     <ClCompile Include="..\WorldsEngine\VR\OpenVRInterface.cpp">
       <Filter>VR</Filter>
     </ClCompile>
-    <ClCompile Include="..\LonelyGalaxy\StabbySystem.cpp">
-      <Filter>LonelyGalaxy</Filter>
-    </ClCompile>
-    <ClCompile Include="..\LonelyGalaxy\Enemies\DroneAISystem.cpp">
-      <Filter>LonelyGalaxy</Filter>
-    </ClCompile>
-    <ClCompile Include="..\LonelyGalaxy\CustomComponentMeta.cpp">
-      <Filter>LonelyGalaxy</Filter>
-    </ClCompile>
     <ClCompile Include="..\LonelyGalaxy\DebugArrow.cpp">
       <Filter>LonelyGalaxy</Filter>
     </ClCompile>
     <ClCompile Include="..\LonelyGalaxy\EventHandler.cpp">
-      <Filter>LonelyGalaxy</Filter>
-    </ClCompile>
-    <ClCompile Include="..\LonelyGalaxy\Events.cpp">
-      <Filter>LonelyGalaxy</Filter>
-    </ClCompile>
-    <ClCompile Include="..\LonelyGalaxy\LocospherePlayerSystem.cpp">
       <Filter>LonelyGalaxy</Filter>
     </ClCompile>
     <ClCompile Include="..\LonelyGalaxy\Main.cpp">
@@ -604,18 +589,6 @@
       <Filter>LonelyGalaxy</Filter>
     </ClCompile>
     <ClCompile Include="..\LonelyGalaxy\ObjectParentSystem.cpp">
-      <Filter>LonelyGalaxy</Filter>
-    </ClCompile>
-    <ClCompile Include="..\LonelyGalaxy\PhysHandSystem.cpp">
-      <Filter>LonelyGalaxy</Filter>
-    </ClCompile>
-    <ClCompile Include="..\LonelyGalaxy\PlayerGrabManager.cpp">
-      <Filter>LonelyGalaxy</Filter>
-    </ClCompile>
-    <ClCompile Include="..\LonelyGalaxy\PlayerInput.cpp">
-      <Filter>LonelyGalaxy</Filter>
-    </ClCompile>
-    <ClCompile Include="..\LonelyGalaxy\PlayerSoundSystem.cpp">
       <Filter>LonelyGalaxy</Filter>
     </ClCompile>
     <ClCompile Include="..\WorldsEngine\Editor\GameProject.cpp">
@@ -1313,79 +1286,16 @@
     <ClInclude Include="..\WorldsEngine\VR\OpenVRInterface.hpp">
       <Filter>VR</Filter>
     </ClInclude>
-    <ClInclude Include="..\LonelyGalaxy\Stabby.hpp">
-      <Filter>LonelyGalaxy</Filter>
-    </ClInclude>
-    <ClInclude Include="..\LonelyGalaxy\StabbySystem.hpp">
-      <Filter>LonelyGalaxy</Filter>
-    </ClInclude>
-    <ClInclude Include="..\LonelyGalaxy\StatDisplayInfo.hpp">
-      <Filter>LonelyGalaxy</Filter>
-    </ClInclude>
-    <ClInclude Include="..\LonelyGalaxy\Enemies\DroneAI.hpp">
-      <Filter>LonelyGalaxy</Filter>
-    </ClInclude>
-    <ClInclude Include="..\LonelyGalaxy\ContactDamageDealer.hpp">
-      <Filter>LonelyGalaxy</Filter>
-    </ClInclude>
-    <ClInclude Include="..\LonelyGalaxy\DamageForwarder.hpp">
-      <Filter>LonelyGalaxy</Filter>
-    </ClInclude>
-    <ClInclude Include="..\LonelyGalaxy\DamagingProjectile.hpp">
-      <Filter>LonelyGalaxy</Filter>
-    </ClInclude>
     <ClInclude Include="..\LonelyGalaxy\DebugArrow.hpp">
       <Filter>LonelyGalaxy</Filter>
     </ClInclude>
     <ClInclude Include="..\LonelyGalaxy\EventHandler.hpp">
       <Filter>LonelyGalaxy</Filter>
     </ClInclude>
-    <ClInclude Include="..\LonelyGalaxy\Grabbable.hpp">
-      <Filter>LonelyGalaxy</Filter>
-    </ClInclude>
-    <ClInclude Include="..\LonelyGalaxy\GripPoint.hpp">
-      <Filter>LonelyGalaxy</Filter>
-    </ClInclude>
-    <ClInclude Include="..\LonelyGalaxy\Gun.hpp">
-      <Filter>LonelyGalaxy</Filter>
-    </ClInclude>
-    <ClInclude Include="..\LonelyGalaxy\IPlayerInput.hpp">
-      <Filter>LonelyGalaxy</Filter>
-    </ClInclude>
-    <ClInclude Include="..\LonelyGalaxy\LocospherePlayerSystem.hpp">
-      <Filter>LonelyGalaxy</Filter>
-    </ClInclude>
     <ClInclude Include="..\LonelyGalaxy\MathsUtil.hpp">
       <Filter>LonelyGalaxy</Filter>
     </ClInclude>
     <ClInclude Include="..\LonelyGalaxy\ObjectParentSystem.hpp">
-      <Filter>LonelyGalaxy</Filter>
-    </ClInclude>
-    <ClInclude Include="..\LonelyGalaxy\PhysHandSystem.hpp">
-      <Filter>LonelyGalaxy</Filter>
-    </ClInclude>
-    <ClInclude Include="..\LonelyGalaxy\PhysicsSoundComponent.hpp">
-      <Filter>LonelyGalaxy</Filter>
-    </ClInclude>
-    <ClInclude Include="..\LonelyGalaxy\PidController.hpp">
-      <Filter>LonelyGalaxy</Filter>
-    </ClInclude>
-    <ClInclude Include="..\LonelyGalaxy\PlayerGrabManager.hpp">
-      <Filter>LonelyGalaxy</Filter>
-    </ClInclude>
-    <ClInclude Include="..\LonelyGalaxy\PlayerInput.hpp">
-      <Filter>LonelyGalaxy</Filter>
-    </ClInclude>
-    <ClInclude Include="..\LonelyGalaxy\PlayerSoundComponent.hpp">
-      <Filter>LonelyGalaxy</Filter>
-    </ClInclude>
-    <ClInclude Include="..\LonelyGalaxy\PlayerSoundSystem.hpp">
-      <Filter>LonelyGalaxy</Filter>
-    </ClInclude>
-    <ClInclude Include="..\LonelyGalaxy\PlayerStartPoint.hpp">
-      <Filter>LonelyGalaxy</Filter>
-    </ClInclude>
-    <ClInclude Include="..\LonelyGalaxy\RPGStats.hpp">
       <Filter>LonelyGalaxy</Filter>
     </ClInclude>
     <ClInclude Include="..\WorldsEngine\Render\RenderInternal.hpp">
