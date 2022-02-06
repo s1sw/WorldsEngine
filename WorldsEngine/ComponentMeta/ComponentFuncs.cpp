@@ -207,6 +207,7 @@ namespace worlds {
                     if (ImGui::TreeNode("Materials")) {
                         for (int i = 0; i < NUM_SUBMESH_MATS; i++) {
                             bool showButton = false;
+
                             if (worldObject.presentMaterials[i]) {
                                 if (hitNotSet) {
                                     hitNotSet = false;
@@ -215,13 +216,16 @@ namespace worlds {
                                 }
 
                                 showButton = true;
+                                ImGui::Text("Material %i: %s", i, AssetDB::idToPath(worldObject.materials[i]).c_str());
                             } else if (!hitNotSet) {
                                 hitNotSet = true;
                                 notSetCount++;
                                 ImGui::Text("Material %i: not set", i);
                                 worldObject.materials[i] = INVALID_ASSET;
+                                showButton = true;
+                            } else {
+                                notSetCount++;
                             }
-
 
                             if (showButton) {
                                 ImGui::SameLine();
@@ -234,13 +238,14 @@ namespace worlds {
                                 }
                             }
                         }
-                        ImGui::TreePop();
-                    }
 
-                    if (hitNotSet) {
-                        hitNotSet = false;
-                        ImGui::Text("%i unset materials", notSetCount);
-                        notSetCount = 0;
+                        if (hitNotSet) {
+                            hitNotSet = false;
+                            ImGui::Text("%i unset materials", notSetCount);
+                            notSetCount = 0;
+                        }
+
+                        ImGui::TreePop();
                     }
                 }
 
