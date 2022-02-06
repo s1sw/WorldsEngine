@@ -223,7 +223,8 @@ namespace WorldsEngine.ComponentMeta
                     fieldInfo.SetValue(instance, str);
                 }
 
-                if (ImGui.InputText(fieldName, ref str, (uint)(str.Length + 10)))
+                // TODO: find a better way of handling this
+                if (ImGui.InputText(fieldName, ref str, (uint)(str.Length + 50)))
                 {
                     fieldInfo.SetValue(instance, str);
                 }
