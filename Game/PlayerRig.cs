@@ -230,7 +230,7 @@ namespace Game
             MovementInput = GetInputVelocity();
         }
 
-        public static void AddForceToRig(Vector3 force, ForceMode mode)
+        public static void AddForceToRig(Vector3 force, ForceMode mode = ForceMode.Force)
         {
             var bodyDpa = Registry.GetComponent<DynamicPhysicsActor>(PlayerBody);
             var lhDpa = Registry.GetComponent<DynamicPhysicsActor>(_leftHandEntity);
