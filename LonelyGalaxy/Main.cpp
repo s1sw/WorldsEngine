@@ -2,10 +2,6 @@
 #include "EventHandler.hpp"
 #include <Core/Engine.hpp>
 
-namespace lg {
-    void registerComponentMeta();
-}
-
 // 32 bit systems are not supported!
 // Make sure that we're 64 bit
 int _dummy[sizeof(void*) - 7];
@@ -91,8 +87,6 @@ int main(int argc, char** argv) {
     initOptions.eventHandler = &evtHandler;
 
     worlds::WorldsEngine engine(initOptions, argv[0]);
-
-    lg::registerComponentMeta();
 
     for (auto& cmd : startupCommands) {
         worlds::g_console->executeCommandStr(cmd);
