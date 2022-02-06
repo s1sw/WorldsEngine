@@ -217,14 +217,15 @@ namespace worlds {
 
                                 showButton = true;
                                 ImGui::Text("Material %i: %s", i, AssetDB::idToPath(worldObject.materials[i]).c_str());
-                            } else if (!hitNotSet) {
-                                hitNotSet = true;
-                                notSetCount++;
-                                ImGui::Text("Material %i: not set", i);
-                                worldObject.materials[i] = INVALID_ASSET;
-                                showButton = true;
                             } else {
                                 notSetCount++;
+                                worldObject.materials[i] = INVALID_ASSET;
+
+                                if (!hitNotSet) {
+                                    hitNotSet = true;
+                                    ImGui::Text("Material %i: not set", i);
+                                    showButton = true;
+                                }
                             }
 
                             if (showButton) {
