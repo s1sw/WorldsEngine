@@ -219,6 +219,11 @@ namespace worlds {
                     simThreadKickoff.store(false);
                 }
 
+                if (system->needsSimCommit) {
+                    iplSimulatorCommit(simulator);
+                    system->needsSimCommit = false;
+                }
+
                 {
                     PerfTimer pt;
                     simRunning = true;
@@ -226,14 +231,6 @@ namespace worlds {
                     iplSimulatorRunPathing(simulator);
                     simRunning = false;
                     lastRunTime = pt.stopGetMs();
-
-                    for (AttachedOneshot* oneshot : system->attachedOneshots) {
-                        iplSourceGetOutputs(
-                            oneshot->phononSource,
-                            (IPLSimulationFlags)(IPL_SIMULATIONFLAGS_REFLECTIONS | IPL_SIMULATIONFLAGS_PATHING),
-                            &oneshot->phononOutputs
-                        );
-                    }
                 }
             }
         }
@@ -467,11 +464,6 @@ namespace worlds {
             iplSourceSetInputs(oneshot->phononSource, simFlags, &inputs);
         }
 
-        if (needsSimCommit) {
-            while (simThread->isSimRunning()) {}
-            iplSimulatorCommit(simulator);
-            needsSimCommit = false;
-        }
 
         IPLSimulationSharedInputs sharedInputs{};
         sharedInputs.listener = inputs.source;
@@ -485,7 +477,7 @@ namespace worlds {
         iplSimulatorRunDirect(simulator);
 
         timeSinceLastSim += deltaTime;
-        if (timeSinceLastSim > 0.3f) {
+        if (timeSinceLastSim > 0.1f) {
             if (!simThread->isSimRunning()) {
                 simThread->runSimulation();
             } else {
@@ -559,9 +551,14 @@ namespace worlds {
         }
 
         attachedOneshots.erase(
-            std::remove_if(attachedOneshots.begin(), attachedOneshots.end(), [](AttachedOneshot* ao){
+            std::remove_if(attachedOneshots.begin(), attachedOneshots.end(), [this](AttachedOneshot* ao){
                 bool marked = ao->markForRemoval;
-                if (marked) delete ao;
+                if (marked) {
+                    iplSourceRemove(ao->phononSource, simulator);
+                    iplSourceRelease(&ao->phononSource);
+                    needsSimCommit = true;
+                    delete ao;
+                }
                 return marked;
             }),
             attachedOneshots.end()
@@ -578,13 +575,16 @@ namespace worlds {
                 if (ImGui::CollapsingHeader("Phonon")) {
                     ImGui::Text("Last Phonon simulation tick took %.3fms", simThread->lastStepTime());
                     ImGui::Text("Simulation running: %i", simThread->isSimRunning());
-                    ImGui::TreePop();
                 }
 
                 if (ImGui::CollapsingHeader("FMOD")) {
                     ImGui::Text("Currently allocated: %.3fMB", currentAlloced / 1024.0 / 1024.0);
                     ImGui::Text("Currently allocated: %.3fMB", maxAlloced / 1024.0 / 1024.0);
                 }
+            }
+
+            if (!keepShowing) {
+                a_showDebugInfo.setValue("0");
             }
         }
     }
