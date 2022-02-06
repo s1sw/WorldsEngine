@@ -20,9 +20,9 @@ namespace Game
     {
         public bool Automatic = false;
         public float ShotSpacing = 0.1f;
-        public AmmoType ProjectileType;
+        public AmmoType ProjectileType = AmmoType.Laser;
         public bool MagazineRequired = false;
-        public Vector3 MagazineAttachedPosition;
+        public Vector3 MagazineAttachedPosition = Vector3.Zero;
         [EditRelativeTransform]
         public Transform ProjectileSpawnTransform;
 
