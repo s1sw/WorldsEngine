@@ -19,20 +19,11 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\LonelyGalaxy\CustomComponentMeta.cpp" />
     <ClCompile Include="..\LonelyGalaxy\DebugArrow.cpp" />
-    <ClCompile Include="..\LonelyGalaxy\Enemies\DroneAISystem.cpp" />
     <ClCompile Include="..\LonelyGalaxy\EventHandler.cpp" />
-    <ClCompile Include="..\LonelyGalaxy\Events.cpp" />
-    <ClCompile Include="..\LonelyGalaxy\LocospherePlayerSystem.cpp" />
     <ClCompile Include="..\LonelyGalaxy\Main.cpp" />
     <ClCompile Include="..\LonelyGalaxy\MathsUtil.cpp" />
     <ClCompile Include="..\LonelyGalaxy\ObjectParentSystem.cpp" />
-    <ClCompile Include="..\LonelyGalaxy\PhysHandSystem.cpp" />
-    <ClCompile Include="..\LonelyGalaxy\PlayerGrabManager.cpp" />
-    <ClCompile Include="..\LonelyGalaxy\PlayerInput.cpp" />
-    <ClCompile Include="..\LonelyGalaxy\PlayerSoundSystem.cpp" />
-    <ClCompile Include="..\LonelyGalaxy\StabbySystem.cpp" />
     <ClCompile Include="..\WorldsEngine\AssetCompilation\AssetCompilers.cpp" />
     <ClCompile Include="..\WorldsEngine\AssetCompilation\AssetCompilerUtil.cpp" />
     <ClCompile Include="..\WorldsEngine\AssetCompilation\ModelCompiler.cpp" />
@@ -227,31 +218,10 @@
     <ClCompile Include="..\WorldsEngine\VR\OpenVRInterface.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\LonelyGalaxy\ContactDamageDealer.hpp" />
-    <ClInclude Include="..\LonelyGalaxy\DamageForwarder.hpp" />
-    <ClInclude Include="..\LonelyGalaxy\DamagingProjectile.hpp" />
     <ClInclude Include="..\LonelyGalaxy\DebugArrow.hpp" />
-    <ClInclude Include="..\LonelyGalaxy\Enemies\DroneAI.hpp" />
     <ClInclude Include="..\LonelyGalaxy\EventHandler.hpp" />
-    <ClInclude Include="..\LonelyGalaxy\Grabbable.hpp" />
-    <ClInclude Include="..\LonelyGalaxy\GripPoint.hpp" />
-    <ClInclude Include="..\LonelyGalaxy\Gun.hpp" />
-    <ClInclude Include="..\LonelyGalaxy\IPlayerInput.hpp" />
-    <ClInclude Include="..\LonelyGalaxy\LocospherePlayerSystem.hpp" />
     <ClInclude Include="..\LonelyGalaxy\MathsUtil.hpp" />
     <ClInclude Include="..\LonelyGalaxy\ObjectParentSystem.hpp" />
-    <ClInclude Include="..\LonelyGalaxy\PhysHandSystem.hpp" />
-    <ClInclude Include="..\LonelyGalaxy\PhysicsSoundComponent.hpp" />
-    <ClInclude Include="..\LonelyGalaxy\PidController.hpp" />
-    <ClInclude Include="..\LonelyGalaxy\PlayerGrabManager.hpp" />
-    <ClInclude Include="..\LonelyGalaxy\PlayerInput.hpp" />
-    <ClInclude Include="..\LonelyGalaxy\PlayerSoundComponent.hpp" />
-    <ClInclude Include="..\LonelyGalaxy\PlayerSoundSystem.hpp" />
-    <ClInclude Include="..\LonelyGalaxy\PlayerStartPoint.hpp" />
-    <ClInclude Include="..\LonelyGalaxy\RPGStats.hpp" />
-    <ClInclude Include="..\LonelyGalaxy\Stabby.hpp" />
-    <ClInclude Include="..\LonelyGalaxy\StabbySystem.hpp" />
-    <ClInclude Include="..\LonelyGalaxy\StatDisplayInfo.hpp" />
     <ClInclude Include="..\ModelFormat\WMDL.hpp" />
     <ClInclude Include="..\WorldsEngine\AssetCompilation\AssetCompilers.hpp" />
     <ClInclude Include="..\WorldsEngine\AssetCompilation\AssetCompilerUtil.hpp" />
