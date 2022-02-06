@@ -1,6 +1,12 @@
 #pragma once
 #include <glm/glm.hpp>
+#include <slib/String.hpp>
 #include <nlohmann/json.hpp>
+
+namespace slib {
+    void to_json(nlohmann::json& j, const slib::String& str);
+    void from_json(const nlohmann::json& j, slib::String& str);
+}
 
 namespace worlds {
     struct EntityFolder;

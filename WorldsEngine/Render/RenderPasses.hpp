@@ -297,6 +297,7 @@ namespace worlds {
 
         void createRenderPass();
         void createDescriptorSet();
+        void calculateCascadeMatrices(RenderContext& rCtx);
     public:
         ShadowCascadePass(VulkanHandles* handles, RenderResource* shadowImage);
         void setup();

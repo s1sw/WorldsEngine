@@ -459,7 +459,7 @@ namespace worlds {
                 window->getWrappedHandle(),
                 additionalInstanceExts, additionalDeviceExts,
                 enableOpenVR, activeApi, vrInterface,
-                runAsEditor, initOptions.gameName
+                initOptions.gameName
             };
 
             bool renderInitSuccess = false;
@@ -821,9 +821,6 @@ namespace worlds {
                     screenRTTPass = renderer->createRTTPass(screenRTTCI);
                 }
             }
-
-            if (!dedicatedServer)
-                static_cast<VKRenderer*>(renderer.get())->time = gameTime;
 
             float interpAlpha = 1.0f;
 

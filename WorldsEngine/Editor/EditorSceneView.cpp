@@ -214,13 +214,13 @@ namespace worlds {
                 ndcObjectPosition.y = wSize.y - ndcObjectPosition.y;
 
                 if ((ndcObjPosPreDivide.z / ndcObjPosPreDivide.w) > 0.0f && glm::distance(t.position, cam.position) < ed->settings.sceneIconDrawDistance) {
-                    glm::vec2 textSize = ImGui::CalcTextSize(label.label.c_str());
+                    glm::vec2 textSize = ImGui::CalcTextSize(label.label.cStr());
                     glm::vec2 drawPos = ndcObjectPosition + wPos - (textSize * 0.5f);
 
                     ImDrawList* drawList = ImGui::GetWindowDrawList();
 
                     drawList->AddRectFilled(drawPos - glm::vec2(5.0f, 2.0f), drawPos + textSize + glm::vec2(5.0f, 2.0f), popupBg, 7.0f);
-                    drawList->AddText(drawPos, ImColor(1.0f, 1.0f, 1.0f), label.label.c_str());
+                    drawList->AddText(drawPos, ImColor(1.0f, 1.0f, 1.0f), label.label.cStr());
                 }
 
                 });

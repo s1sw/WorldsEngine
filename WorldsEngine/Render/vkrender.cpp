@@ -444,7 +444,6 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     , irp(nullptr)
     , vrPredictAmount(0.033f)
     , useVsync(true)
-    , enablePicking(initInfo.enablePicking)
     , frameIdx(0)
     , lastFrameIdx(0) {
     msaaSamples = VK_SAMPLE_COUNT_2_BIT;
@@ -857,16 +856,6 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
 }
 
 void VKRenderer::createSpotShadowImages() {
-    TextureResourceCreateInfo shadowmapCreateInfo{
-        TextureType::T2DArray,
-        VK_FORMAT_D32_SFLOAT,
-        (int)shadowmapRes, (int)shadowmapRes,
-        VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT
-    };
-    shadowmapCreateInfo.layers = 3;
-
-    shadowmapImage = createTextureResource(shadowmapCreateInfo, "Shadowmap Image");
-
     for (int i = 0; i < NUM_SHADOW_LIGHTS; i++) {
         int spotRes = handles.graphicsSettings.spotShadowmapRes;
         TextureResourceCreateInfo shadowCreateInfo{
@@ -1157,113 +1146,6 @@ void VKRenderer::uploadSceneAssets(entt::registry& reg) {
 
     if (reuploadMats)
         reuploadMaterials();
-}
-
-glm::mat4 VKRenderer::getCascadeMatrix(bool forVr, Camera cam, glm::vec3 lightDir, glm::mat4 frustumMatrix, float& texelsPerUnit) {
-    glm::mat4 view;
-
-    if (!forVr) {
-        view = cam.getViewMatrix();
-    } else {
-        view = glm::inverse(vrInterface->getHeadTransform(vrPredictAmount)) * cam.getViewMatrix();
-    }
-
-    glm::mat4 vpInv = glm::inverse(frustumMatrix * view);
-
-    glm::vec3 frustumCorners[8] = {
-        glm::vec3(-1.0f,  1.0f, -1.0f),
-        glm::vec3(1.0f,  1.0f, -1.0f),
-        glm::vec3(1.0f, -1.0f, -1.0f),
-        glm::vec3(-1.0f, -1.0f, -1.0f),
-        glm::vec3(-1.0f,  1.0f,  1.0f),
-        glm::vec3(1.0f,  1.0f,  1.0f),
-        glm::vec3(1.0f, -1.0f,  1.0f),
-        glm::vec3(-1.0f, -1.0f,  1.0f),
-    };
-
-    for (int i = 0; i < 8; i++) {
-        glm::vec4 transformed = vpInv * glm::vec4{ frustumCorners[i], 1.0f };
-        transformed /= transformed.w;
-        frustumCorners[i] = transformed;
-    }
-
-    glm::vec3 center{ 0.0f };
-
-    for (int i = 0; i < 8; i++) {
-        center += frustumCorners[i];
-    }
-
-    center /= 8.0f;
-
-    float diameter = 0.0f;
-    for (int i = 0; i < 8; i++) {
-        float dist = glm::length(frustumCorners[i] - center);
-        diameter = glm::max(diameter, dist);
-    }
-    float radius = diameter * 0.5f;
-
-    texelsPerUnit = (float)shadowmapRes / diameter;
-
-    glm::mat4 scaleMatrix = glm::scale(glm::mat4{ 1.0f }, glm::vec3{ texelsPerUnit });
-
-    glm::mat4 lookAt = glm::lookAt(glm::vec3{ 0.0f }, lightDir, glm::vec3{ 0.0f, 1.0f, 0.0f });
-    lookAt *= scaleMatrix;
-
-    glm::mat4 lookAtInv = glm::inverse(lookAt);
-
-    center = lookAt * glm::vec4{ center, 1.0f };
-    center = glm::floor(center);
-    center = lookAtInv * glm::vec4{ center, 1.0f };
-
-    glm::vec3 eye = center + (lightDir * diameter);
-
-    glm::mat4 viewMat = glm::lookAt(eye, center, glm::vec3{ 0.0f, 1.0f, 0.0f });
-    glm::mat4 projMat = glm::orthoZO(-radius, radius, -radius, radius, radius * 12.0f, -radius * 12.0f);
-
-    return projMat * viewMat;
-}
-
-worlds::ConVar doGTAO{ "r_doGTAO", "0" };
-
-void VKRenderer::calculateCascadeMatrices(bool forVr, entt::registry& world, Camera& cam, RenderContext& rCtx) {
-    bool hasLight = false;
-    world.view<WorldLight, Transform>().each([&](auto, WorldLight& l, Transform& transform) {
-        glm::vec3 lightForward = transform.rotation * glm::vec3(0.0f, 0.0f, -1.0f);
-        if (l.type == LightType::Directional) {
-            glm::mat4 frustumMatrices[3];
-            float aspect = (float)rCtx.passWidth / (float)rCtx.passHeight;
-            // frustum 0: near -> 20m
-            // frustum 1: 20m  -> 125m
-            // frustum 2: 125m -> 250m
-            float splits[4] = { 0.1f, 15.0f, 45.0f, 105.0f };
-            if (!rCtx.passSettings.enableVr) {
-                for (int i = 1; i < 4; i++) {
-                    frustumMatrices[i - 1] = glm::perspective(
-                        cam.verticalFOV, aspect,
-                        splits[i - 1], splits[i]
-                    );
-                }
-            } else {
-                for (int i = 1; i < 4; i++) {
-                    frustumMatrices[i - 1] = vrInterface->getEyeProjectionMatrix(
-                        Eye::LeftEye,
-                        splits[i - 1], splits[i]
-                    );
-                }
-            }
-
-            for (int i = 0; i < 3; i++) {
-                rCtx.cascadeInfo.matrices[i] =
-                    getCascadeMatrix(
-                        forVr,
-                        cam, lightForward,
-                        frustumMatrices[i], rCtx.cascadeInfo.texelsPerUnit[i]
-                    );
-            }
-            hasLight = true;
-        }
-        });
-    rCtx.cascadeInfo.shadowCascadeNeeded = hasLight;
 }
 
 void VKRenderer::writeCmdBuf(VkCommandBuffer cmdBuf, uint32_t imageIndex, Camera& cam, entt::registry& reg) {

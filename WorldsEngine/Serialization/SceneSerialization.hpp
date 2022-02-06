@@ -39,6 +39,7 @@ namespace worlds {
     class MessagePackSceneSerializer {
     public:
         static void saveScene(std::string path, entt::registry& reg);
+        static void saveScene(AssetID path, entt::registry& reg);
         static void loadScene(PHYSFS_File* file, entt::registry& reg);
     };
 

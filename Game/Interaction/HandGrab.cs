@@ -307,6 +307,11 @@ namespace Game.Interaction
             if (CurrentGrip != null)
                 CurrentGrip.Detach(IsRightHand ? AttachedHandFlags.Right : AttachedHandFlags.Left);
 
+            if (Registry.TryGetComponent<DynamicPhysicsActor>(GrippedEntity, out var dpa))
+            {
+                dpa.Kinematic = true;
+                dpa.Kinematic = false;
+            }
             Registry.RemoveComponent<D6Joint>(Entity);
             GrippedEntity = Entity.Null;
             _bringingTowards = false;

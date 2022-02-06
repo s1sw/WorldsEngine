@@ -8,6 +8,7 @@
 #include "glm/gtc/type_ptr.hpp"
 #include "../UI/WorldTextComponent.hpp"
 #include "vku/DescriptorSetUtil.hpp"
+#include <entt/entity/registry.hpp>
 
 namespace worlds {
     struct UIVertex {

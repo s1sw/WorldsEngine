@@ -60,6 +60,7 @@ class GrapplingHook : IThinkingComponent, IStartListener
             {
                 if (!Registry.Valid(_grapplingEntity))
                 {
+                    _grappling = false;
                     _grapplingDynamic = false;
                     _grapplingEntity = Entity.Null;
                 }

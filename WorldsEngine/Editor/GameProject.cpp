@@ -28,11 +28,12 @@ namespace worlds {
             _copyDirs.push_back(dir);
         }
 
-        slib::String tempDir = ((slib::String)rootPath + "/");
+        slib::String tempDir = ((slib::String)rootPath + "/Temp");
         bool tempDirExists = std::filesystem::is_directory(tempDir.cStr());
 
         if (!tempDirExists) {
             std::filesystem::create_directory(tempDir.cStr());
+            logVrb("Creating project temp directory %s", tempDir.cStr());
         }
     }
 
@@ -70,7 +71,8 @@ namespace worlds {
             std::string dirPath = _srcDataPath + "/" + dir;
             logVrb("Mounting %s as %s", dirPath.c_str(), dir.c_str());
             if (PHYSFS_mount(dirPath.c_str(), dir.c_str(), 1) == 0) {
-                logErr("Error mounting %s: %s", dirPath.c_str(), PHYSFS_getLastError());
+                PHYSFS_ErrorCode errCode = PHYSFS_getLastErrorCode();
+                logErr("Error mounting %s: %s", dirPath.c_str(), PHYSFS_getErrorByCode(errCode));
             }
         }
     }
@@ -84,7 +86,8 @@ namespace worlds {
         for (const std::string& dir : _copyDirs) {
             std::string dirPath = _srcDataPath + "/" + dir;
             if (PHYSFS_unmount(dirPath.c_str()) == 0) {
-                logErr("Error unmounting %s: %s", dirPath.c_str(), PHYSFS_getLastError());
+                PHYSFS_ErrorCode errCode = PHYSFS_getLastErrorCode();
+                logErr("Error unmounting %s: %s", dirPath.c_str(), PHYSFS_getErrorByCode(errCode));
             }
         }
     }

@@ -1,6 +1,7 @@
 #include <tracy/Tracy.hpp>
 #include "RenderInternal.hpp"
 #include "RenderPasses.hpp"
+#include <entt/entity/registry.hpp>
 
 namespace worlds {
     VKRTTPass::VKRTTPass(const RTTPassCreateInfo& ci, VKRenderer* renderer, IVRInterface* vrInterface, uint32_t frameIdx, RenderDebugStats* dbgStats)
@@ -325,6 +326,7 @@ namespace worlds {
             },
             .passSettings = passSettings,
             .registry = world,
+            .camera = *cam,
             .cmdBuf = cmdBuf,
             .passWidth = width,
             .passHeight = height,
@@ -371,7 +373,6 @@ namespace worlds {
         );
 
         if (enableShadows) {
-            renderer->calculateCascadeMatrices(isVr, world, *cam, rCtx);
             renderer->shadowCascadePass->prePass(rCtx);
             renderer->shadowCascadePass->execute(rCtx);
         }

@@ -1,11 +1,15 @@
 #pragma once
 #include <glm/glm.hpp>
-#include <VR/IVRInterface.hpp>
-#include "Core/Engine.hpp"
-#include "Camera.hpp"
+#include <entt/entity/fwd.hpp>
 #include <SDL.h>
-#include "ImGui/imgui.h"
+
+//#include <ImGui/imgui.h>
+#include <VR/IVRInterface.hpp>
+#include <Core/WorldComponents.hpp>
+#include "Camera.hpp"
 #include "PackedMaterial.hpp"
+
+typedef void* ImTextureID;
 
 namespace worlds {
     const int NUM_SHADOW_LIGHTS = 4;
@@ -19,13 +23,6 @@ namespace worlds {
         glm::vec2 uv2;
     };
 #pragma pack(pop)
-
-    struct WorldCubemap {
-        AssetID cubemapId;
-        glm::vec3 extent{0.0f};
-        bool cubeParallax = false;
-        int priority = 0;
-    };
 
     struct MVP {
         glm::mat4 model;
@@ -144,7 +141,6 @@ namespace worlds {
         bool enableVR;
         VrApi activeVrApi;
         IVRInterface* vrInterface;
-        bool enablePicking;
         const char* applicationName = nullptr;
     };
 
