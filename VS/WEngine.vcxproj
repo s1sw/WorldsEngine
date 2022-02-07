@@ -170,6 +170,7 @@
     <ClCompile Include="..\WorldsEngine\Render\CubemapConvoluter.cpp" />
     <ClCompile Include="..\WorldsEngine\Render\CubemapSlots.cpp" />
     <ClCompile Include="..\WorldsEngine\Render\DebugLinesPass.cpp" />
+    <ClCompile Include="..\WorldsEngine\Render\DeletionQueue.cpp" />
     <ClCompile Include="..\WorldsEngine\Render\DepthPrepass.cpp" />
     <ClCompile Include="..\WorldsEngine\Render\ImGuiRenderPass.cpp" />
     <ClCompile Include="..\WorldsEngine\Render\LightCullPass.cpp" />
@@ -184,7 +185,6 @@
     <ClCompile Include="..\WorldsEngine\Render\MaterialSlots.cpp" />
     <ClCompile Include="..\WorldsEngine\Render\PipelineCacheSerializer.cpp" />
     <ClCompile Include="..\WorldsEngine\Render\PolyRenderPass.cpp" />
-    <ClCompile Include="..\WorldsEngine\Render\RenderTexture.cpp" />
     <ClCompile Include="..\WorldsEngine\Render\RTTPass.cpp" />
     <ClCompile Include="..\WorldsEngine\Render\ShaderCache.cpp" />
     <ClCompile Include="..\WorldsEngine\Render\ShaderReflector.cpp" />
