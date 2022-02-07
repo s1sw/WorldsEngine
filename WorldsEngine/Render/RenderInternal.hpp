@@ -311,6 +311,7 @@ namespace worlds {
 
     class DeletionQueue {
     public:
+        static void intitialize(VkDevice, VmaAllocator);
         static void queueObjectDeletion(void* object, VkObjectType type);
         static void queueMemoryFree(VmaAllocation allocation);
         static void queueDescriptorSetFree(VkDescriptorPool dPool, VkDescriptorSet ds);
@@ -318,6 +319,9 @@ namespace worlds {
         static void cleanupFrame(uint32_t frame);
         static void resize(uint32_t maxFrames);
     private:
+        static VkDevice deletionDevice;
+        static VmaAllocator deletionAllocator;
+
         struct ObjectDeletion {
             void* object;
             VkObjectType type;
