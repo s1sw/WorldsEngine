@@ -178,7 +178,7 @@ namespace WorldsEngine.ECS
         {
             foreach (Entity entity in packedEntities)
             {
-                ((IThinkingComponent)components[GetIndexOf(entity)]!).Think(entity);
+                ((IThinkingComponent)components[GetIndexOf(entity)]!).Think();
             }
         }
     }

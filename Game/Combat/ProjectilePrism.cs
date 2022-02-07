@@ -9,21 +9,15 @@ using WorldsEngine.Math;
 namespace Game.Combat
 {
     [Component]
-    public class ProjectilePrism : IStartListener
+    public class ProjectilePrism : Component
     {
         public int SplitCount = 3;
         public bool SingleUse = false;
         public AmmoType ProjectileType;
-        private Entity _entity;
-
-        public void Start(Entity e)
-        {
-            _entity = e;
-        }
 
         public void RefractProjectile(Entity incomingEntity)
         {
-            Transform thisTransform = Registry.GetTransform(_entity);
+            Transform thisTransform = Registry.GetTransform(Entity);
             var dpa = Registry.GetComponent<DynamicPhysicsActor>(incomingEntity);
             Transform incomingTransform = dpa.Pose;
 
@@ -46,7 +40,7 @@ namespace Game.Combat
             }
 
             if (SingleUse)
-                Registry.DestroyNext(_entity);
+                Registry.DestroyNext(Entity);
         }
     }
 }

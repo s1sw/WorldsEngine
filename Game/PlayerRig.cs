@@ -13,7 +13,7 @@ namespace Game
 {
     [Component]
     [EditorFriendlyName("Player Rig")]
-    public class PlayerRig : IThinkingComponent, IStartListener
+    public class PlayerRig : Component, IThinkingComponent, IStartListener
     {
         public const float HoverDistance = 0.2f;
         [EditableClass]
@@ -32,9 +32,9 @@ namespace Game
         private bool _peakHit = false;
         private int _lastPeakSign = 0;
 
-        private void UpdateDodge(Entity entity)
+        private void UpdateDodge()
         {
-            var dpa = entity.GetComponent<DynamicPhysicsActor>();
+            var dpa = Entity.GetComponent<DynamicPhysicsActor>();
 
             _timeSinceDodge += Time.DeltaTime;
             _timeSinceLastPeak += Time.DeltaTime;
@@ -85,7 +85,7 @@ namespace Game
             }
         }
 
-        private void UpdateSound(Entity entity, Vector3 inputDirCS)
+        private void UpdateSound(Vector3 inputDirCS)
         {
             if (_grounded && !_groundedLast && _airTime > 0.1f)
             {
@@ -123,9 +123,9 @@ namespace Game
             dpa.Pose = pose;
         }
 
-        public void Think(Entity entity)
+        public void Think()
         {
-            var dpa = Registry.GetComponent<DynamicPhysicsActor>(entity);
+            var dpa = Registry.GetComponent<DynamicPhysicsActor>(Entity);
 
             Vector2 inputVel = LocalPlayerSystem.MovementInput;
             float max = MathF.Max(MathF.Abs(inputVel.x), MathF.Abs(inputVel.y));
@@ -206,14 +206,14 @@ namespace Game
                 _lastHMDPos = VRTransforms.HMDTransform.Position;
             }
 
-            UpdateSound(entity, inputDirCS);
-            UpdateDodge(entity);
+            UpdateSound(inputDirCS);
+            UpdateDodge();
 
             _groundedLast = _grounded;
             _timeSinceJump += Time.DeltaTime;
         }
 
-        public void Start(Entity entity)
+        public void Start()
         {
             if (VR.Enabled)
                 _lastHMDPos = VRTransforms.HMDTransform.Position;

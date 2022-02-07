@@ -10,15 +10,15 @@ using WorldsEngine.Util;
 namespace Game
 {
     [Component]
-    public class SkinningTest : IStartListener, IThinkingComponent
+    public class SkinningTest : Component, IStartListener, IThinkingComponent
     {
         private Quaternion _startRotation;
         private Vector3 _startPosition;
 
-        public void Start(Entity e)
+        public void Start()
         {
-            var swo = Registry.GetComponent<SkinnedWorldObject>(e);
-            var transform = Registry.GetTransform(e);
+            var swo = Registry.GetComponent<SkinnedWorldObject>(Entity);
+            var transform = Registry.GetTransform(Entity);
 
             for (uint i = 0; i < MeshManager.GetBoneCount(swo.Mesh); i++) {
                 var restPose = MeshManager.GetBoneRestTransform(swo.Mesh, i);
@@ -46,10 +46,10 @@ namespace Game
             Logger.Log($"startPos: {_startPosition}, startRot: {_startRotation}");
         }
 
-        public void Think(Entity e)
+        public void Think()
         {
             return;
-            var swo = Registry.GetComponent<SkinnedWorldObject>(e);
+            var swo = Registry.GetComponent<SkinnedWorldObject>(Entity);
 
             uint boneIdx = MeshManager.GetBoneIndex(swo.Mesh, "Bone.001");
 

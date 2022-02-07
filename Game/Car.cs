@@ -4,18 +4,14 @@ using WorldsEngine.Math;
 namespace Game;
 
 [Component]
-class Car : IStartListener, IThinkingComponent
+class Car : Component, IThinkingComponent
 {
     public float Acceleration = 0f;
     public float TargetAngularVelocity = 0f;
 
-    public void Start(Entity e)
+    public void Think()
     {
-    }
-
-    public void Think(Entity e)
-    {
-        var dpa = Registry.GetComponent<DynamicPhysicsActor>(e);
+        var dpa = Registry.GetComponent<DynamicPhysicsActor>(Entity);
 
         // Simple approximation of a car - just add force+torque
         dpa.AddForce(dpa.Pose.Forward * 100.0f * Acceleration, ForceMode.Acceleration);

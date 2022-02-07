@@ -6,16 +6,16 @@ using System.Collections.Generic;
 namespace Game
 {
     [Component]
-    public class ExplodeOnDeath : IStartListener
+    public class ExplodeOnDeath : Component, IStartListener
     {
 
-        public void Start(Entity e)
+        public void Start()
         {
-            var hc = Registry.GetComponent<HealthComponent>(e);
+            var hc = Registry.GetComponent<HealthComponent>(Entity);
             hc.OnDeath += OnDeath;
         }
 
-        public Entity SpawnCube(Transform transform)
+        private Entity SpawnCube(Transform transform)
         {
             var entity = Registry.Create();
             Registry.SetTransform(entity, transform);
@@ -29,7 +29,8 @@ namespace Game
             var physSounds = Registry.AddComponent<CollisionSound>(entity);
             physSounds.EventPath = "event:/Impacts/ReallyLight";
 
-            List<PhysicsShape> physicsShapes = new() {
+            List<PhysicsShape> physicsShapes = new()
+            {
                 new BoxPhysicsShape(Vector3.One)
             };
             dpa.SetPhysicsShapes(physicsShapes);
@@ -42,7 +43,7 @@ namespace Game
             var transform = Registry.GetTransform(e);
             transform.Scale = new Vector3(0.1f);
 
-            async void DestroyAfter(int ms, Entity entity)
+            async static void DestroyAfter(int ms, Entity entity)
             {
                 await System.Threading.Tasks.Task.Delay(ms);
                 if (Registry.Valid(entity))

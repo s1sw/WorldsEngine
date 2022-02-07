@@ -14,8 +14,7 @@ namespace WorldsEngine
         /// <summary>
         /// Callback for a collision.
         /// </summary>
-        /// <param name="entity">The entity this component is attached to.</param>
         /// <param name="contactInfo">Info regarding the collision.</param>
-        void OnCollision(Entity entity, ref PhysicsContactInfo contactInfo);
+        void OnCollision(ref PhysicsContactInfo contactInfo);
     }
 }

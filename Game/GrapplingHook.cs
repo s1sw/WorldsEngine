@@ -5,16 +5,16 @@ using WorldsEngine.Math;
 namespace Game;
 
 [Component]
-class GrapplingHook : IThinkingComponent, IStartListener
+class GrapplingHook : Component, IThinkingComponent, IStartListener
 {
     private bool _grappling = false;
     private bool _grapplingDynamic = false;
     private Entity _grapplingEntity = Entity.Null;
     private Vector3 _targetPos = Vector3.Zero;
 
-    public void Start(Entity entity)
+    public void Start()
     {
-        var grabbable = Registry.GetComponent<Grabbable>(entity);
+        var grabbable = Registry.GetComponent<Grabbable>(Entity);
         grabbable.TriggerPressed += Grabbable_TriggerPressed;
         grabbable.TriggerReleased += Grabbable_TriggerReleased;
     }
@@ -42,11 +42,11 @@ class GrapplingHook : IThinkingComponent, IStartListener
         _grapplingDynamic = false;
     }
 
-    public void Think(Entity entity)
+    public void Think()
     {
         if (_grappling)
         {
-            var pos = Registry.GetTransform(entity).Position;
+            var pos = Registry.GetTransform(Entity).Position;
             float forceMagnitude = 27.5f * 80f;
 
             if (_grapplingDynamic)

@@ -10,7 +10,7 @@ using WorldsEngine.Math;
 namespace Game
 {
     [Component]
-    class DummyHand : IStartListener, IThinkingComponent
+    class DummyHand : Component, IThinkingComponent
     {
         static Vector3 _nonVROffset = new Vector3(0.1f, -0.2f, 0.55f);
 
@@ -59,15 +59,15 @@ namespace Game
             _targetTransform.Rotation = virtualRotation * _targetTransform.Rotation;
         }
 
-        public void Think(Entity entity)
+        public void Think()
         {
             SetTargets();
             Transform goTo = new Transform(_targetTransform.Position, _targetTransform.Rotation);
 
-            Registry.SetTransform(entity, goTo);
+            Registry.SetTransform(Entity, goTo);
         }
 
-        public void Start(Entity entity)
+        public void Start()
         {
             if (FollowRightHand)
                 rotationOffset = new Quaternion(0.348f, 0.254f, -0.456f, -0.779f);

@@ -5,15 +5,15 @@ using WorldsEngine.Math;
 namespace Game
 {
     [Component]
-    class KeyboardCarControl : IThinkingComponent
+    class KeyboardCarControl : Component, IThinkingComponent
     {
         public bool DHeld = false;
         public bool AHeld = false;
         public bool WHeld = false;
 
-        public void Think(Entity e)
+        public void Think()
         {
-            var car = Registry.GetComponent<Car>(e);
+            var car = Registry.GetComponent<Car>(Entity);
 
             car.Acceleration = WHeld ? 1.0f : 0.0f;
 

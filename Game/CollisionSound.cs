@@ -14,7 +14,7 @@ namespace Game
     {
         public string EventPath;
 
-        public void OnCollision(Entity entity, ref PhysicsContactInfo contactInfo)
+        public void OnCollision(ref PhysicsContactInfo contactInfo)
         {
             Audio.PlayOneShotEvent(EventPath, contactInfo.AverageContactPoint, MathF.Min(contactInfo.RelativeSpeed * 0.125f, 1.0f));
         }
