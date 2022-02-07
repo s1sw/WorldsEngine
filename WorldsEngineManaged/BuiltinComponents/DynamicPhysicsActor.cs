@@ -38,6 +38,9 @@ namespace WorldsEngine
         private static extern void dynamicpa_addTorque(IntPtr registryPtr, uint entityId, Vector3 force, int forceMode);
 
         [DllImport(WorldsEngine.NativeModule)]
+        private static extern void dynamicpa_addForceAtPosition(IntPtr registryPtr, uint entityId, Vector3 force, Vector3 pos, int forceMode);
+
+        [DllImport(WorldsEngine.NativeModule)]
         private static extern void dynamicpa_getPose(IntPtr registryPtr, uint entityId, ref Transform pose);
 
         [DllImport(WorldsEngine.NativeModule)]
@@ -240,6 +243,11 @@ namespace WorldsEngine
         public void AddTorque(Vector3 torque, ForceMode forceMode = ForceMode.Force)
         {
             dynamicpa_addTorque(regPtr, entityId, torque, (int)forceMode);
+        }
+
+        public void AddForceAtPosition(Vector3 force, Vector3 position, ForceMode forceMode = ForceMode.Force)
+        {
+            dynamicpa_addForceAtPosition(regPtr, entityId, force, position, (int)forceMode);
         }
     }
 }

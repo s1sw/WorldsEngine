@@ -48,6 +48,12 @@ extern "C" {
         dpa.addTorque(torque, forceMode);
     }
 
+    EXPORT void dynamicpa_addForceAtPosition(entt::registry* reg, entt::entity entity, glm::vec3 force, glm::vec3 pos, ForceMode forceMode) {
+        DynamicPhysicsActor& dpa = reg->get<DynamicPhysicsActor>(entity);
+
+        dpa.addForceAtPosition(force, pos, forceMode);
+    }
+
     EXPORT void dynamicpa_getPose(entt::registry* reg, entt::entity entity, Transform* pose) {
         DynamicPhysicsActor& dpa = reg->get<DynamicPhysicsActor>(entity);
 

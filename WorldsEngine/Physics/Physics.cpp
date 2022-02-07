@@ -563,7 +563,7 @@ namespace worlds {
 
         return hit.getNbTouches();
     }
-    
+
     bool sweepSphere(glm::vec3 origin, float radius, glm::vec3 direction, float distance, RaycastHitInfo* hitInfo, uint32_t excludeLayerMask) {
         physx::PxSweepBuffer hitBuf;
         physx::PxSphereGeometry sphere{ radius };
