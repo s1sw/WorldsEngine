@@ -15,11 +15,11 @@ namespace Game
         {
             var car = Registry.GetComponent<Car>(e);
 
-            car.Accelerate = WHeld;
+            car.Acceleration = WHeld ? 1.0f : 0.0f;
 
-            car.Steer = 0.0f;
-            car.Steer += AHeld ? 1.0f : 0.0f;
-            car.Steer -= DHeld ? 1.0f : 0.0f;
+            car.TargetAngularVelocity = 0.0f;
+            car.TargetAngularVelocity += AHeld ? 1.0f : 0.0f;
+            car.TargetAngularVelocity -= DHeld ? 1.0f : 0.0f;
         }
     }
 

@@ -19,7 +19,7 @@ namespace Game
 
         public void OnUpdate()
         {
-            if (!Enabled) return;
+            if (!Enabled || ImGuiNET.ImGui.GetIO().WantCaptureMouse) return;
 
             Vector3 direction = new Vector3();
 

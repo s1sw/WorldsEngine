@@ -1,50 +1,39 @@
-using System;
 using WorldsEngine;
 using WorldsEngine.Math;
 
-namespace Game
+namespace Game;
+
+[Component]
+class Car : IStartListener, IThinkingComponent
 {
-    [Component]
-    class Car : IStartListener, IThinkingComponent
+    public float Acceleration = 0f;
+    public float TargetAngularVelocity = 0f;
+
+    public void Start(Entity e)
     {
-        public bool Accelerate = false;
-        public float Steer = 0.0f;
+    }
 
-        public void Start(Entity e)
+    public void Think(Entity e)
+    {
+        var dpa = Registry.GetComponent<DynamicPhysicsActor>(e);
+
+        // Simple approximation of a car - just add force+torque
+        dpa.AddForce(dpa.Pose.Forward * 100.0f * Acceleration, ForceMode.Acceleration);
+
+        float angVelDif = (TargetAngularVelocity - dpa.AngularVelocity.y);
+        dpa.AddTorque(Vector3.Up * angVelDif * 50.0f);
+
+        // Here's an approximation for drag.
+        // We're assuming that...
+        const float surfaceArea = 1.5f * 1.695f;
+        const float dragCoefficient = 0.298f;
+        const float airDensity = 1.225f;
+
+        float dragMagnitude = 0.5f * airDensity * dpa.Velocity.LengthSquared * dragCoefficient * surfaceArea;
+        if (!dpa.Velocity.IsZero)
         {
-            // make. wheel.
-        }
-
-        public Entity SpawnWheel(Transform carRelativePose)
-        {
-            AssetID wheelPrefab = AssetDB.PathToId("Prefabs/wheel.wprefab");
-            Entity wheel = Registry.CreatePrefab(wheelPrefab);
-            return wheel;
-        }
-
-        public void Think(Entity e)
-        {
-            var dpa = Registry.GetComponent<DynamicPhysicsActor>(e);
-
-            // Simple approximation of a car - just add force+torque
-            if (Accelerate)
-                dpa.AddForce(dpa.Pose.Forward * 100.0f, ForceMode.Acceleration);
-
-            if (MathF.Abs(dpa.AngularVelocity.y) < 2 * MathF.PI * 4 || MathF.Sign(Steer) != MathF.Sign(dpa.AngularVelocity.y))
-                dpa.AddTorque(dpa.Pose.TransformDirection(Vector3.Up) * Steer * 40.0f, ForceMode.Acceleration);
-
-            // Here's an approximation for drag.
-            // We're assuming that...
-            const float surfaceArea = 1.5f * 1.695f;
-            const float dragCoefficient = 0.298f;
-            const float airDensity = 1.225f;
-
-            float dragMagnitude = 0.5f * airDensity * dpa.Velocity.LengthSquared * dragCoefficient * surfaceArea;
-            if (!dpa.Velocity.IsZero)
-            {
-                Vector3 dragForce = -dpa.Velocity.Normalized * dragMagnitude;
-                dpa.AddForce(dragForce);
-            }
+            Vector3 dragForce = -dpa.Velocity.Normalized * dragMagnitude;
+            dpa.AddForce(dragForce);
         }
     }
 }
