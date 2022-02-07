@@ -32,44 +32,21 @@ namespace WorldsEngine
         NoCollision = 4
     }
 
-    public struct PhysicsContactInfo
+    public readonly struct PhysicsContactInfo
     {
-        public float RelativeSpeed;
-        public Entity OtherEntity;
-        public Vector3 AverageContactPoint;
-        public Vector3 Normal;
+        public readonly float RelativeSpeed;
+        public readonly Entity OtherEntity;
+        public readonly Vector3 AverageContactPoint;
+        public readonly Vector3 Normal;
     }
 
-    public static class Physics
+    public static partial class Physics
     {
-        [DllImport(WorldsEngine.NativeModule)]
-        private static extern bool physics_raycast(Vector3 origin, Vector3 direction, float maxDist, uint excludeLayerMask, out RaycastHit hit);
-
-        [DllImport(WorldsEngine.NativeModule)]
-        private static extern bool physics_overlapSphere(Vector3 origin, float radius, out uint overlappedEntity);
-
-        [DllImport(WorldsEngine.NativeModule)]
-        private static unsafe extern uint physics_overlapSphereMultiple(Vector3 origin, float radius, uint maxTouchCount, Entity* entityBuffer, uint excludeLayerMask);
-
-        [DllImport(WorldsEngine.NativeModule)]
-        [return: MarshalAs(UnmanagedType.I1)]
-        private static unsafe extern bool physics_sweepSphere(Vector3 origin, float radius, Vector3 direction, float distance, out RaycastHit hit, uint excludeLayerMask);
-
-        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-        private delegate void NativeCollisionDelegate(uint entityId, uint id, ref PhysicsContactInfo contactInfo);
-
-        [DllImport(WorldsEngine.NativeModule)]
-        private static extern void physics_addEventHandler(NativeCollisionDelegate collisionDelegate);
-
         public static bool Raycast(Vector3 origin, Vector3 direction, float maxDist = float.MaxValue, PhysicsLayers excludeLayerMask = PhysicsLayers.None)
-        {
-            return physics_raycast(origin, direction, maxDist, (uint)excludeLayerMask, out RaycastHit _);
-        }
+            => physics_raycast(origin, direction, maxDist, (uint)excludeLayerMask, out RaycastHit _);
 
         public static bool Raycast(Vector3 origin, Vector3 direction, out RaycastHit hit, float maxDist = float.MaxValue, PhysicsLayers excludeLayerMask = PhysicsLayers.None)
-        {
-            return physics_raycast(origin, direction, maxDist, (uint)excludeLayerMask, out hit);
-        }
+            => physics_raycast(origin, direction, maxDist, (uint)excludeLayerMask, out hit);
 
         public static bool OverlapSphere(Vector3 origin, float radius, out Entity entity)
         {
@@ -93,48 +70,6 @@ namespace WorldsEngine
         }
 
         public static bool SweepSphere(Vector3 origin, float radius, Vector3 direction, float distance, out RaycastHit hit, PhysicsLayers excludeLayerMask = PhysicsLayers.None)
-        {
-            return physics_sweepSphere(origin, radius, direction, distance, out hit, (uint)excludeLayerMask);
-        }
-
-        struct Collision
-        {
-            public uint EntityID;
-            public PhysicsContactInfo ContactInfo;
-        }
-
-        private static readonly Queue<Collision> _collisionQueue = new();
-
-        [UsedImplicitly]
-        [SuppressMessage("CodeQuality", "IDE0051:Remove unused private members",
-            Justification = "Called from native C++ during deserialization")]
-        private static void HandleCollisionFromNative(uint entityId, ref PhysicsContactInfo contactInfo)
-        {
-            _collisionQueue.Enqueue(new Collision() { EntityID = entityId, ContactInfo = contactInfo });
-        }
-
-        internal static void FlushCollisionQueue()
-        {
-            while (_collisionQueue.Count > 0)
-            {
-                var collision = _collisionQueue.Dequeue();
-                try
-                {
-                    if (Registry.Valid(new Entity(collision.EntityID)))
-                    {
-                        Registry.HandleCollision(collision.EntityID, ref collision.ContactInfo);
-                    }
-                }
-                catch (Exception e)
-                {
-                    Logger.LogError($"Caught exception: {e}");
-                }
-            }
-        }
-
-        internal static void ClearCollisionQueue()
-        {
-            _collisionQueue.Clear();
-        }
+            => physics_sweepSphere(origin, radius, direction, distance, out hit, (uint)excludeLayerMask);
     }
 }
