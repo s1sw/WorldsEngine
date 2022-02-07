@@ -6,8 +6,8 @@ using System.Threading.Tasks;
 
 namespace WorldsEngine
 {
-    public interface IThinkingComponent
+    public class Component
     {
-        void Think();
+        public Entity Entity { get; internal set; }
     }
 }

@@ -16,7 +16,7 @@ namespace Game
 
     [Component]
     [EditorFriendlyName("Gun")]
-    class Gun : IThinkingComponent, IStartListener, ICollisionHandler
+    class Gun : Component, IThinkingComponent, IStartListener, ICollisionHandler
     {
         public bool Automatic = false;
         public float ShotSpacing = 0.1f;
@@ -30,11 +30,10 @@ namespace Game
         private AssetID _projectilePrefab;
         private bool _hasMagazine = false;
         private Entity _currentMagazine = Entity.Null;
-        private Entity _entity;
 
-        public void Start(Entity entity)
+        public void Start()
         {
-            var grabbable = Registry.GetComponent<Grabbable>(entity);
+            var grabbable = Registry.GetComponent<Grabbable>(Entity);
 
             grabbable.TriggerPressed += Grabbable_TriggerPressed;
             grabbable.TriggerHeld += Grabbable_TriggerHeld;
@@ -44,7 +43,6 @@ namespace Game
                 AmmoType.Humongous => AssetDB.PathToId("Prefabs/big_ass_projectile.wprefab"),
                 _ => AssetDB.PathToId("Prefabs/gun_projectile.wprefab"),
             };
-            _entity = entity;
         }
 
         private void Grabbable_TriggerPressed(Entity entity)
@@ -116,7 +114,7 @@ namespace Game
             damagingProjectile.Attacker = LocalPlayerSystem.PlayerBody;
         }
 
-        public void Think(Entity entity)
+        public void Think()
         {
             if (_shotTimer < ShotSpacing * 2f)
                 _shotTimer += Time.DeltaTime;
@@ -142,17 +140,17 @@ namespace Game
             }
         }
 
-        public void OnCollision(Entity entity, ref PhysicsContactInfo contactInfo)
+        public void OnCollision(ref PhysicsContactInfo contactInfo)
         {
             if (_hasMagazine) return;
             if (!Registry.HasComponent<Magazine>(contactInfo.OtherEntity) || contactInfo.OtherEntity == _currentMagazine) return;
 
-            Transform gunTransform = Registry.GetTransform(entity);
+            Transform gunTransform = Registry.GetTransform(Entity);
             if (contactInfo.AverageContactPoint.DistanceTo(gunTransform.TransformPoint(MagazineAttachedPosition)) > 0.05f) return;
 
             _hasMagazine = true;
 
-            var d6 = Registry.AddComponent<D6Joint>(entity);
+            var d6 = Registry.AddComponent<D6Joint>(Entity);
             d6.Target = contactInfo.OtherEntity;
             d6.LocalPose = new Transform(MagazineAttachedPosition, Quaternion.Identity);
 
@@ -160,7 +158,7 @@ namespace Game
             _currentMagazine = contactInfo.OtherEntity;
 
             // i hate physx
-            var dpa = Registry.GetComponent<DynamicPhysicsActor>(entity);
+            var dpa = Registry.GetComponent<DynamicPhysicsActor>(Entity);
             dpa.Kinematic = true;
             dpa.Kinematic = false;
         }
@@ -170,7 +168,7 @@ namespace Game
             if (!_hasMagazine) return;
 
             _hasMagazine = false;
-            Registry.RemoveComponent<D6Joint>(_entity);
+            Registry.RemoveComponent<D6Joint>(Entity);
 
             var dpa = Registry.GetComponent<DynamicPhysicsActor>(_currentMagazine);
             dpa.AddForce(dpa.Pose.TransformDirection(Vector3.Left), ForceMode.VelocityChange);

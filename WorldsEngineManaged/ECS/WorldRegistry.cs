@@ -294,7 +294,10 @@ namespace WorldsEngine
             storage.Set(entity, Activator.CreateInstance<T>());
 
             if (type.IsAssignableTo(typeof(IStartListener)))
-                ((IStartListener)instance!).Start(entity);
+                ((IStartListener)instance!).Start();
+
+            if (type.IsSubclassOf(typeof(Component)))
+                ((Component)(object)instance!).Entity = entity;
 
             return instance;
         }
@@ -314,7 +317,10 @@ namespace WorldsEngine
             object instance = Activator.CreateInstance(type)!;
 
             if (type.IsAssignableTo(typeof(IStartListener)))
-                ((IStartListener)instance!).Start(entity);
+                ((IStartListener)instance!).Start();
+
+            if (type.IsSubclassOf(typeof(Component)))
+                ((Component)instance!).Entity = entity;
 
             storage.SetBoxed(entity, instance);
             return instance;
@@ -328,6 +334,9 @@ namespace WorldsEngine
             }
 
             var storage = AssureStorage(type);
+
+            if (type.IsSubclassOf(typeof(Component)))
+                ((Component)value).Entity = entity;
 
             storage.SetBoxed(entity, value);
         }
@@ -570,7 +579,7 @@ namespace WorldsEngine
             foreach (IComponentStorage storage in _startListeners)
             {
                 if (!storage.Contains(e)) continue;
-                ((IStartListener)storage.GetBoxed(e)).Start(e);
+                ((IStartListener)storage.GetBoxed(e)).Start();
             }
 
             return e;
@@ -625,7 +634,7 @@ namespace WorldsEngine
 
                     try
                     {
-                        ((IStartListener)comp).Start(e);
+                        ((IStartListener)comp).Start();
                     }
                     catch (Exception exception)
                     {
@@ -652,7 +661,7 @@ namespace WorldsEngine
             {
                 if (!storage.Contains(entity)) continue;
                 var handler = (ICollisionHandler)storage.GetBoxed(entity);
-                handler.OnCollision(entity, ref contactInfo);
+                handler.OnCollision(ref contactInfo);
             }
         }
     }

@@ -11,11 +11,9 @@ using System;
 namespace Game.Interaction
 {
     [Component]
-    public class HandGrab : IStartListener, IThinkingComponent
+    public class HandGrab : Component, IThinkingComponent
     {
         public bool IsRightHand = false;
-
-        private Entity Entity;
 
         public Entity GrippedEntity { get; private set; } = Entity.Null;
 
@@ -25,14 +23,8 @@ namespace Game.Interaction
         private VRAction _triggerAction;
         private bool _bringingTowards = false;
 
-        public void Start(Entity entity)
+        public void Think()
         {
-            Entity = entity;
-        }
-
-        public void Think(Entity entity)
-        {
-            Entity = entity;
             if (VR.Enabled)
             {
                 if (_grabAction == null)

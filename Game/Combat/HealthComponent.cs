@@ -14,7 +14,7 @@ namespace Game.Combat
     }
 
     [Component]
-    public class HealthComponent : IStartListener
+    public class HealthComponent : Component
     {
         public event Action<Entity> OnDeath;
         public event Action<Entity, double, Entity> OnDamage;
@@ -24,26 +24,19 @@ namespace Game.Combat
         public DeathBehaviour DeathBehaviour = DeathBehaviour.Destroy;
         public bool Dead { get; private set; }
 
-        private Entity _entity;
-
-        public void Start(Entity entity)
-        {
-            _entity = entity;
-        }
-
         public void Damage(double dmg, Entity damager)
         {
             Health -= dmg;
-            OnDamage?.Invoke(_entity, dmg, damager);
+            OnDamage?.Invoke(Entity, dmg, damager);
 
             if (Health <= 0.0 && !Dead)
             {
                 Dead = true;
-                OnDeath?.Invoke(_entity);
+                OnDeath?.Invoke(Entity);
 
                 if (DeathBehaviour == DeathBehaviour.Destroy)
                 {
-                    Registry.DestroyNext(_entity);
+                    Registry.DestroyNext(Entity);
                 }
             }
         }

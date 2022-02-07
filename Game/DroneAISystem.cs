@@ -10,7 +10,7 @@ namespace Game
     [Component]
     [EditorFriendlyName("Drone A.I.")]
     [EditorIcon(FontAwesome.FontAwesomeIcons.Brain)]
-    public class DroneAI : IStartListener, IThinkingComponent
+    public class DroneAI : Component, IStartListener, IThinkingComponent
     {
         public float P = 0.0f;
         public float D = 0.0f;
@@ -35,7 +35,6 @@ namespace Game
 
         private bool _awake = false;
         private bool _dead = false;
-        private Entity _ent;
         private Transform _idleHoverPose;
         private Entity _target = Entity.Null;
         private Vector3 _targetPosition;
@@ -44,12 +43,12 @@ namespace Game
         {
             if (_dead) return;
             _awake = true;
-            PlayStartupSound(_ent, Registry.GetComponent<DynamicPhysicsActor>(_ent).Pose.Position);
+            PlayStartupSound(Registry.GetComponent<DynamicPhysicsActor>(Entity).Pose.Position);
         }
 
-        public void Start(Entity entity)
+        public void Start()
         {
-            var health = Registry.GetComponent<HealthComponent>(entity);
+            var health = Registry.GetComponent<HealthComponent>(Entity);
 
             health.OnDeath += (Entity ent) => {
                 _dead = true;
@@ -70,8 +69,7 @@ namespace Game
                 }
             };
 
-            _ent = entity;
-            _idleHoverPose = Registry.GetTransform(entity);
+            _idleHoverPose = Registry.GetTransform(Entity);
         }
 
         private void UpdateInspectorVals()
@@ -83,16 +81,16 @@ namespace Game
             RotationPID.D = RotationD;
         }
 
-        private void AvoidOtherDrones(Entity entity, ref Vector3 targetPosition)
+        private void AvoidOtherDrones(ref Vector3 targetPosition)
         {
             const float repulsionDistance = 3.0f;
 
-            var physicsActor = Registry.GetComponent<DynamicPhysicsActor>(entity);
+            var physicsActor = Registry.GetComponent<DynamicPhysicsActor>(Entity);
             Transform pose = physicsActor.Pose;
 
             foreach (Entity entityB in Registry.View<DroneAI>())
             {
-                if (entity == entityB) continue;
+                if (Entity == entityB) continue;
 
                 var physicsActorB = Registry.GetComponent<DynamicPhysicsActor>(entityB);
                 Transform poseB = physicsActorB.Pose;
@@ -109,9 +107,9 @@ namespace Game
             }
         }
 
-        private Transform CalculateTargetPose(Entity entity, Vector3 targetLocation, float groundHeight)
+        private Transform CalculateTargetPose(Vector3 targetLocation, float groundHeight)
         {
-            var physicsActor = Registry.GetComponent<DynamicPhysicsActor>(entity);
+            var physicsActor = Registry.GetComponent<DynamicPhysicsActor>(Entity);
 
             Transform pose = physicsActor.Pose;
 
@@ -132,9 +130,9 @@ namespace Game
             return new Transform(targetLocation, targetRotation);
         }
 
-        private void ApplyTargetPose(Entity entity, Transform targetPose)
+        private void ApplyTargetPose(Transform targetPose)
         {
-            var physicsActor = Registry.GetComponent<DynamicPhysicsActor>(entity);
+            var physicsActor = Registry.GetComponent<DynamicPhysicsActor>(Entity);
 
             Transform pose = physicsActor.Pose;
 
@@ -161,11 +159,11 @@ namespace Game
                 Logger.LogWarning("Torque had NaN component");
         }
 
-        private void UpdateFiring(Entity entity)
+        private void UpdateFiring()
         {
             const float burstPeriod = 2.0f;
 
-            var physicsActor = Registry.GetComponent<DynamicPhysicsActor>(entity);
+            var physicsActor = Registry.GetComponent<DynamicPhysicsActor>(Entity);
             Transform pose = physicsActor.Pose;
 
             timeSinceLastBurst += Time.DeltaTime;
@@ -177,16 +175,16 @@ namespace Game
 
             if (dotProduct > 0.95f && timeSinceLastBurst > burstPeriod - 1.0f && !burstInProgress)
             {
-                FireBurst(soundOrigin, entity, physicsActor);
+                FireBurst(soundOrigin, physicsActor);
             }
         }
 
-        private async void FireBurst(Vector3 soundOrigin, Entity entity, DynamicPhysicsActor physicsActor)
+        private async void FireBurst(Vector3 soundOrigin, DynamicPhysicsActor physicsActor)
         {
             burstInProgress = true;
 
             //Audio.PlayOneShotEvent("event:/Drone/Charging", physicsActor.Pose.Position + Vector3.Up);
-            Audio.PlayOneShotAttachedEvent("event:/Drone/Charging", physicsActor.Pose.Position + Vector3.Up, entity);
+            Audio.PlayOneShotAttachedEvent("event:/Drone/Charging", physicsActor.Pose.Position + Vector3.Up, Entity);
 
             await Task.Delay(800);
             currentlyFiring = true;
@@ -194,7 +192,7 @@ namespace Game
 
             for (int i = 0; i < 4; i++)
             {
-                if (!Registry.Valid(entity) || _dead) return;
+                if (!Registry.Valid(Entity) || _dead) return;
 
                 Transform pose = physicsActor.Pose;
                 AssetID projectileId = AssetDB.PathToId("Prefabs/gun_projectile.wprefab");
@@ -219,10 +217,10 @@ namespace Game
 
                 physicsActor.AddForce(-forward * 100.0f * projectileDpa.Mass, ForceMode.Impulse);
 
-                Audio.PlayOneShotAttachedEvent("event:/Weapons/Gun Shot", soundOrigin, entity);
+                Audio.PlayOneShotAttachedEvent("event:/Weapons/Gun Shot", soundOrigin, Entity);
 
                 var damagingProjectile = Registry.GetComponent<DamagingProjectile>(projectile);
-                damagingProjectile.Attacker = entity;
+                damagingProjectile.Attacker = Entity;
                 damagingProjectile.Damage = 30.0;
 
                 await Task.Delay(100);
@@ -233,17 +231,17 @@ namespace Game
             timeSinceLastBurst = 0.0f;
         }
 
-        public void Think(Entity entity)
+        public void Think()
         {
             UpdateInspectorVals();
 
             if (_dead) return;
 
-            var physicsActor = Registry.GetComponent<DynamicPhysicsActor>(entity);
+            var physicsActor = Registry.GetComponent<DynamicPhysicsActor>(Entity);
             Transform pose = physicsActor.Pose;
 
             if (WorldsEngine.Input.Keyboard.KeyPressed(WorldsEngine.Input.KeyCode.L))
-                FireBurst(pose.Position, entity, physicsActor);
+                FireBurst(pose.Position, physicsActor);
 
             if (!_awake && !DebugGlobals.AIIgnorePlayer)
             {
@@ -253,7 +251,7 @@ namespace Game
                 uint overlapCount = Physics.OverlapSphereMultiple(pose.Position, 7.5f, MaxOverlap, overlaps, ~PhysicsLayers.Player);
 
 
-                ApplyTargetPose(entity, _idleHoverPose);
+                ApplyTargetPose(_idleHoverPose);
 
                 if (overlapCount > 0)
                 {
@@ -300,18 +298,18 @@ namespace Game
                 }
             }
 
-            Transform targetPose = CalculateTargetPose(entity, _targetPosition, foundFloor ? rHit.WorldHitPos.y : pose.Position.y + 0.01f);
+            Transform targetPose = CalculateTargetPose(_targetPosition, foundFloor ? rHit.WorldHitPos.y : pose.Position.y + 0.01f);
 
-            AvoidOtherDrones(entity, ref targetPose.Position);
-            ApplyTargetPose(entity, targetPose);
-            UpdateFiring(entity);
+            AvoidOtherDrones(ref targetPose.Position);
+            ApplyTargetPose(targetPose);
+            UpdateFiring();
         }
 
-        private void PlayStartupSound(Entity entity, Vector3 pos)
+        private void PlayStartupSound(Vector3 pos)
         {
-            Audio.PlayOneShotAttachedEvent("event:/Drone/Alert", pos, entity);
-            if (!Registry.HasComponent<AudioSource>(entity)) return;
-            var audioSource = Registry.GetComponent<AudioSource>(entity);
+            Audio.PlayOneShotAttachedEvent("event:/Drone/Alert", pos, Entity);
+            if (!Registry.HasComponent<AudioSource>(Entity)) return;
+            var audioSource = Registry.GetComponent<AudioSource>(Entity);
 
             audioSource.Start();
         }

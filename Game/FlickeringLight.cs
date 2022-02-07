@@ -3,7 +3,7 @@ using WorldsEngine;
 namespace Game
 {
     [Component]
-    class FlickeringLight : IThinkingComponent, IStartListener
+    class FlickeringLight : Component, IThinkingComponent, IStartListener
     {
         // Flicker strings go A-Z, where A is minimum brightness and Z is 2x.
         // This string matches the "Fluorescent Flicker" pattern from Quake.
@@ -13,13 +13,13 @@ namespace Game
 
         private float _initialIntensity = 0.0f;
 
-        public void Start(Entity e)
+        public void Start()
         {
-            var worldLight = Registry.GetComponent<WorldLight>(e);
+            var worldLight = Registry.GetComponent<WorldLight>(Entity);
             _initialIntensity = worldLight.Intensity;
         }
 
-        public void Think(Entity e)
+        public void Think()
         {
             int index = (int)((Time.CurrentTime * 10 * FlickerSpeed + Offset) % FlickerString.Length);
 
@@ -27,7 +27,7 @@ namespace Game
 
             float intensity = flickerVal / 13.0f;
 
-            var worldLight = Registry.GetComponent<WorldLight>(e);
+            var worldLight = Registry.GetComponent<WorldLight>(Entity);
             worldLight.Intensity = _initialIntensity * intensity;
         }
     }

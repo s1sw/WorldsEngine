@@ -9,15 +9,15 @@ using WorldsEngine.Math;
 namespace Game
 {
     [Component]
-    class HMDFollower : IThinkingComponent
+    class HMDFollower : Component, IThinkingComponent
     {
         public bool FollowRightHand = false;
 
-        public void Think(Entity entity)
+        public void Think()
         {
             Transform t = VRTransforms.HMDTransform;
             t.Scale = new Vector3(1.0f);
-            Registry.SetTransform(entity, t);
+            Registry.SetTransform(Entity, t);
         }
     }
 }

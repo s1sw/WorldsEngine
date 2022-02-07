@@ -11,7 +11,7 @@ namespace Game.Combat
 {
     [Component]
     [EditorFriendlyName("C# Damaging Projectile")]
-    public class DamagingProjectile : IStartListener, ICollisionHandler
+    public class DamagingProjectile : Component, IStartListener, ICollisionHandler
     {
         public double Damage = 5.0;
         public double CreationTime = 0.0;
@@ -19,12 +19,12 @@ namespace Game.Combat
         public Entity Attacker = Entity.Null;
         public AmmoType ProjectileType;
 
-        public void Start(Entity e)
+        public void Start()
         {
             CreationTime = Time.CurrentTime;
         }
 
-        public void OnCollision(Entity entity, ref PhysicsContactInfo contactInfo)
+        public void OnCollision(ref PhysicsContactInfo contactInfo)
         {
             Audio.PlayOneShotEvent("event:/Weapons/Laser Hit", contactInfo.AverageContactPoint);
             bool hitProjectile = Registry.HasComponent<DamagingProjectile>(contactInfo.OtherEntity);
@@ -34,7 +34,7 @@ namespace Game.Combat
                 if (!hitProjectile)
                     BounceCount--;
 
-                var dpa = Registry.GetComponent<DynamicPhysicsActor>(entity);
+                var dpa = Registry.GetComponent<DynamicPhysicsActor>(Entity);
 
                 dpa.Velocity = Vector3.Reflect(dpa.Velocity, contactInfo.Normal);
 
@@ -46,10 +46,10 @@ namespace Game.Combat
             {
                 if (Registry.TryGetComponent<ProjectilePrism>(contactInfo.OtherEntity, out var projectilePrism))
                 {
-                    projectilePrism.RefractProjectile(entity);
+                    projectilePrism.RefractProjectile(Entity);
                 }
 
-                Registry.DestroyNext(entity);
+                Registry.DestroyNext(Entity);
             }
 
             if (!Registry.HasComponent<HealthComponent>(contactInfo.OtherEntity)) return;

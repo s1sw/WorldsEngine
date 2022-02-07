@@ -8,17 +8,17 @@ using WorldsEngine;
 namespace Game.Combat;
 
 [Component]
-public class ImpactDamageDealer : ICollisionHandler
+public class ImpactDamageDealer : Component, ICollisionHandler
 {
     public double Damage = 5.0f;
     public float MinimumVelocity = 2.0f;
 
-    public void OnCollision(Entity entity, ref PhysicsContactInfo contactInfo)
+    public void OnCollision(ref PhysicsContactInfo contactInfo)
     {
         if (!Registry.TryGetComponent<HealthComponent>(contactInfo.OtherEntity, out var healthComponent)) return;
 
         // Calculate difference in velocity, taking into account angular velocity
-        var dpa = Registry.GetComponent<DynamicPhysicsActor>(entity);
+        var dpa = Registry.GetComponent<DynamicPhysicsActor>(Entity);
         var localSpaceContactPoint = dpa.Pose.InverseTransformPoint(contactInfo.AverageContactPoint);
         var pointVelocity = (localSpaceContactPoint * dpa.AngularVelocity) + dpa.Velocity;
 

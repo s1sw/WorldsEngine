@@ -11,7 +11,7 @@ namespace Game
 {
     [Component]
     [EditorFriendlyName("Physics Hand")]
-    class PhysHand : IThinkingComponent, IStartListener
+    class PhysHand : Component, IThinkingComponent, IStartListener
     {
         static Vector3 _nonVROffset = new Vector3(0.1f, -0.2f, 0.55f);
         const float ForceLimit = 1000f;
@@ -39,7 +39,7 @@ namespace Game
         private Entity _visEntity;
 #endif
 
-        public void Start(Entity entity)
+        public void Start()
         {
             if (FollowRightHand)
                 rotationOffset = new Quaternion(0.348f, 0.254f, -0.456f, -0.779f);
@@ -56,7 +56,7 @@ namespace Game
 #endif
         }
 
-        public void Think(Entity entity)
+        public void Think()
         {
             SetTargets();
             var bodyDpa = Registry.GetComponent<DynamicPhysicsActor>(LocalPlayerSystem.PlayerBody);
@@ -66,7 +66,7 @@ namespace Game
             Registry.SetTransform(_visEntity, _targetTransform);
 #endif
 
-            var dpa = Registry.GetComponent<DynamicPhysicsActor>(entity);
+            var dpa = Registry.GetComponent<DynamicPhysicsActor>(Entity);
             Transform pose = dpa.Pose;
 
             Vector3 force = PD.CalculateForce(pose.Position, _targetTransform.Position + (bodyDpa.Velocity * Time.DeltaTime), dpa.Velocity, Time.DeltaTime, bodyDpa.Velocity)
