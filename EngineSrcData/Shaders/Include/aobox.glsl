@@ -43,10 +43,12 @@ mat4 getBoxInverseTransform(AOBox box) {
 mat4 getBoxTransform(AOBox box) {
     return inverse(getBoxInverseTransform(box));
 }
+//#define SLOW_BOX
 
 // THIS CODE IS NOT MINE.
 // It is taken from https://iquilezles.org/www/articles/boxocclusion/boxocclusion.htm
 // It is publicly available for use and is not part of my computing project.
+#ifdef SLOW_BOX
 float getBoxOcclusionNonClipped(AOBox box, vec3 pos, vec3 nor) {
     vec3 boxSize = getBoxScale(box);
     mat4 transform = getBoxInverseTransform(box);
@@ -89,4 +91,36 @@ float getBoxOcclusionNonClipped(AOBox box, vec3 pos, vec3 nor) {
 
     return occ / 6.283185;
 }
+#else
+float getBoxOcclusionNonClipped(AOBox box, vec3 pos, vec3 nor) {
+    vec3 boxSize = getBoxScale(box);
+    mat4 transform = getBoxInverseTransform(box);
+    
+	vec3 p = (transform*vec4(pos,1.0)).xyz;
+	vec3 n = (transform*vec4(nor,0.0)).xyz;
+    
+    // Orient the hexagon based on p
+    vec3 f = boxSize * sign(p);
+    
+    // Make sure the hexagon is always convex
+    vec3 s = sign(boxSize - abs(p));
+    
+    // 6 verts
+    vec3 v0 = normalize( vec3( 1.0, 1.0,-1.0)*f - p);
+    vec3 v1 = normalize( vec3( 1.0, s.x, s.x)*f - p);
+    vec3 v2 = normalize( vec3( 1.0,-1.0, 1.0)*f - p);
+    vec3 v3 = normalize( vec3( s.z, s.z, 1.0)*f - p);
+    vec3 v4 = normalize( vec3(-1.0, 1.0, 1.0)*f - p);
+    vec3 v5 = normalize( vec3( s.y, 1.0, s.y)*f - p);
+    
+    // 6 edges
+    return abs( dot( n, normalize( cross(v0,v1)) ) * acos( dot(v0,v1) ) +
+    	    	dot( n, normalize( cross(v1,v2)) ) * acos( dot(v1,v2) ) +
+    	    	dot( n, normalize( cross(v2,v3)) ) * acos( dot(v2,v3) ) +
+    	    	dot( n, normalize( cross(v3,v4)) ) * acos( dot(v3,v4) ) +
+    	    	dot( n, normalize( cross(v4,v5)) ) * acos( dot(v4,v5) ) +
+    	    	dot( n, normalize( cross(v5,v0)) ) * acos( dot(v5,v0) ))
+            	/ 6.283185;
+}
+#endif
 #endif
