@@ -1234,6 +1234,7 @@ namespace worlds {
             j["enableGravity"] = pa.enableGravity;
             j["lockFlags"] = (uint32_t)pa.lockFlags();
             j["layer"] = pa.layer;
+            j["scaleShapes"] = pa.scaleShapes;
         }
 
         void fromJson(entt::entity ent, entt::registry& reg, const json& j) override {
@@ -1241,6 +1242,7 @@ namespace worlds {
             g_scene->addActor(*pActor);
 
             auto& pa = reg.emplace<DynamicPhysicsActor>(ent, pActor);
+            pa.scaleShapes = j.value("scaleShapes", true);
 
             for (auto& shape : j["shapes"]) {
                 PhysicsShape ps;
