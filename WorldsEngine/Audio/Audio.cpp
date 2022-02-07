@@ -474,7 +474,8 @@ namespace worlds {
         sharedInputs.irradianceMinDistance = 1.0f;
 
         iplSimulatorSetSharedInputs(simulator, simFlags, &sharedInputs);
-        iplSimulatorRunDirect(simulator);
+        if (!needsSimCommit)
+            iplSimulatorRunDirect(simulator);
 
         timeSinceLastSim += deltaTime;
         if (timeSinceLastSim > 0.1f) {
