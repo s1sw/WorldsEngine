@@ -4,7 +4,7 @@ namespace WorldsEngine
 {
     public struct Entity
     {
-        public static Entity Null => new Entity(0x000FFFFF);
+        public static Entity Null => new(0x000FFFFF);
 
         public uint ID { get; private set; }
         public bool IsNull => Identifier == 0x000FFFFF;
@@ -46,5 +46,9 @@ namespace WorldsEngine
         {
             return HashCode.Combine(ID);
         }
+
+        public T GetComponent<T>() => Registry.GetComponent<T>(this);
+        public bool HasComponent<T>() => Registry.HasComponent<T>(this);
+        public bool TryGetComponent<T>(out T comp) => Registry.TryGetComponent<T>(this, out comp);
     }
 }
