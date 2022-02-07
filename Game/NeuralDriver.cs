@@ -13,7 +13,7 @@ class NeuralDriverComponent
 {
     [NonSerialized]
     [JsonIgnore]
-    public NeuralNetwork NeuralNetwork = new(5, 5, 3);
+    public NeuralNetwork NeuralNetwork = new(5, 5, 2);
 }
 
 struct Candidate
@@ -32,6 +32,8 @@ public class NeuralDriverSystem : ISystem
 
     public void OnSceneStart()
     {
+        _candidateIndex = 0;
+        _generationNumber = 0;
         var drivers = Registry.View<NeuralDriverComponent>();
 
         if (drivers.components.Count == 0)
@@ -56,14 +58,15 @@ public class NeuralDriverSystem : ISystem
     public void OnUpdate()
     {
         if (!_active) return;
-        Log.Msg("active");
 
         var drivers = Registry.View<NeuralDriverComponent>();
         _currentGenerationTime += Time.DeltaTime;
 
+        float velocityMagnitude = 0f;
         foreach (var driverEntity in drivers)
         {
             var dpa = Registry.GetComponent<DynamicPhysicsActor>(driverEntity);
+            velocityMagnitude = dpa.Velocity.Length;
             var pose = dpa.Pose;
 
             var driver = Registry.GetComponent<NeuralDriverComponent>(driverEntity);
@@ -95,8 +98,8 @@ public class NeuralDriverSystem : ISystem
 
             // Then apply the inputs to the car
             var car = Registry.GetComponent<Car>(driverEntity);
-            car.Accelerate = driver.NeuralNetwork.OutputNeurons[0].Value > 0.5f;
-            car.Steer = Math.Clamp(driver.NeuralNetwork.OutputNeurons[1].Value, -1.0f, 1.0f);
+            car.Acceleration = driver.NeuralNetwork.OutputNeurons[0].Value;
+            car.TargetAngularVelocity = driver.NeuralNetwork.OutputNeurons[1].Value;
 
             if (Keyboard.KeyHeld(KeyCode.M))
                 driver.NeuralNetwork.Mutate();
@@ -142,7 +145,7 @@ public class NeuralDriverSystem : ISystem
             ImGui.End();
         }
 
-        if (Keyboard.KeyPressed(KeyCode.R) || _currentGenerationTime > 7.0) {
+        if (Keyboard.KeyPressed(KeyCode.R) || _currentGenerationTime > 7.0 || (_currentGenerationTime > 1.0 && velocityMagnitude < 0.1f)) {
             NextCandidate();
         }
 
@@ -160,6 +163,7 @@ public class NeuralDriverSystem : ISystem
             var dpa = Registry.GetComponent<DynamicPhysicsActor>(driverEntity);
             var pose = dpa.Pose;
             pose.Position = new Vector3(0.0f, 1.0f, 25.0f);
+            pose.Rotation = Quaternion.Identity;
             dpa.Pose = pose;
             Registry.GetComponent<NeuralDriverComponent>(driverEntity).NeuralNetwork.Mutate();
         }
@@ -203,7 +207,8 @@ public class NeuralDriverSystem : ISystem
             var dpa = Registry.GetComponent<DynamicPhysicsActor>(driverEntity);
             var pose = dpa.Pose;
             lastCandidate.Score = pose.Position.DistanceTo(Vector3.Zero);
-            pose.Position = new Vector3(0.0f, 1.0f, 25.0f);
+            pose.Position = new Vector3(0.0f, 0f, 25.0f);
+            pose.Rotation = Quaternion.Identity;
             dpa.Pose = pose;
             dpa.AngularVelocity = Vector3.Zero;
             dpa.Velocity = Vector3.Zero;
