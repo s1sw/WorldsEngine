@@ -28,12 +28,18 @@ namespace Game
         private float _airTime = 0.0f;
         private Vector3 _lastDodgeDirection = Vector3.Zero;
 
+        private float _timeSinceLastPeak = 0f;
+        private bool _peakHit = false;
+        private int _lastPeakSign = 0;
+
         private void UpdateDodge(Entity entity)
         {
-            var dpa = Registry.GetComponent<DynamicPhysicsActor>(entity);
+            var dpa = entity.GetComponent<DynamicPhysicsActor>();
 
             _timeSinceDodge += Time.DeltaTime;
+            _timeSinceLastPeak += Time.DeltaTime;
 
+            Vector2 inputVel = LocalPlayerSystem.MovementInput;
             if (_timeSinceDodge > 0.5f)
             {
                 if (Keyboard.KeyPressed(KeyCode.NumberRow1))
@@ -50,6 +56,31 @@ namespace Game
                     _lastDodgeDirection = dodgeDir;
                     LocalPlayerSystem.AddForceToRig(Camera.Main.Rotation * Vector3.Right * 15f, ForceMode.VelocityChange);
                     _timeSinceDodge = 0.0f;
+                }
+
+                if (MathF.Abs(inputVel.x) > 0.5f)
+                {
+                    int peakSign = MathF.Sign(inputVel.x);
+                    if (_timeSinceLastPeak > 0.2f)
+                    {
+                        // we hit a peak!
+                        _peakHit = true;
+                        _lastPeakSign = MathF.Sign(inputVel.x);
+                    }
+                    else if (!_peakHit && _lastPeakSign == peakSign)
+                    {
+                        // dodge time
+                        Vector3 dodgeDir = dpa.Pose.Rotation * (inputVel.x < 0f ? Vector3.Right : Vector3.Left);
+                        _lastDodgeDirection = dodgeDir;
+                        LocalPlayerSystem.AddForceToRig(dodgeDir * 15f, ForceMode.VelocityChange);
+                        _timeSinceDodge = 0.0f;
+                    }
+                }
+
+                if (MathF.Abs(inputVel.x) < 0.1f && _peakHit)
+                {
+                    _peakHit = false;
+                    _timeSinceLastPeak = 0f;
                 }
             }
         }
@@ -73,6 +104,25 @@ namespace Game
             }
         }
 
+        private void ApplyBodyRotation(DynamicPhysicsActor dpa)
+        {
+            Vector3 lookDir;
+            if (VR.Enabled)
+            {
+                lookDir = (VRTransforms.HMDTransform.Rotation * Camera.Main.Rotation).Forward;
+            }
+            else
+            {
+                lookDir = Camera.Main.Rotation.Forward;
+            }
+
+            lookDir.y = 0.0f;
+            lookDir.Normalize();
+            var pose = dpa.Pose;
+            pose.Rotation = Quaternion.LookAt(lookDir, Vector3.Up);
+            dpa.Pose = pose;
+        }
+
         public void Think(Entity entity)
         {
             var dpa = Registry.GetComponent<DynamicPhysicsActor>(entity);
@@ -92,6 +142,8 @@ namespace Game
 
             inputDirCS.y = 0.0f;
             inputDirCS.Normalize();
+
+            ApplyBodyRotation(dpa);
 
             bool nearGround = Physics.SweepSphere(
                 dpa.Pose.Position + (Vector3.Down * 0.8f),
