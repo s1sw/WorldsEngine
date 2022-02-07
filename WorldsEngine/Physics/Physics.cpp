@@ -160,6 +160,8 @@ namespace worlds {
             pa.actor->detachShape(*buf[i]);
         }
 
+        if (!pa.scaleShapes) scale = glm::vec3{ 1.0f };
+
         std::free(buf);
 
         for (PhysicsShape& ps : pa.physicsShapes) {
