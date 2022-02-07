@@ -121,6 +121,14 @@ namespace worlds {
         int priority = 0;
     };
 
+    struct ProxyAOComponent {
+        glm::vec3 bounds;
+    };
+
+    struct SphereAOProxy {
+        float radius;
+    };
+
     struct EditorLabel {
         slib::String label;
     };

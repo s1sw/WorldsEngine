@@ -1,9 +1,8 @@
 #pragma once
 #include <glm/glm.hpp>
 #include <entt/entity/fwd.hpp>
-#include <SDL.h>
+#include <SDL_video.h>
 
-//#include <ImGui/imgui.h>
 #include <VR/IVRInterface.hpp>
 #include <Core/WorldComponents.hpp>
 #include "Camera.hpp"
@@ -70,14 +69,10 @@ namespace worlds {
         }
     };
 
-    struct ProxyAOComponent {
-        glm::vec3 bounds;
-    };
 
-    struct SphereAOProxy {
-        float radius;
-    };
-
+    /**
+     * Graphics settings applied to individual RTT passes.
+     */
     struct GraphicsSettings {
         GraphicsSettings()
             : msaaLevel(2)
@@ -98,9 +93,9 @@ namespace worlds {
             , enableSpotlightShadows(true) {
         }
 
-        int msaaLevel;
-        int shadowmapRes;
-        int spotShadowmapRes;
+        int msaaLevel; //!< MSAA level (1x, 2x, 4x, 8x etc.)
+        int shadowmapRes; //!< Shadowmap resolution for cascade shadows
+        int spotShadowmapRes; //!< Shadowmap resolution specifically for spotlights
         bool enableVr;
         bool enableBloom;
         bool enableCascadeShadows;
@@ -108,8 +103,8 @@ namespace worlds {
     };
 
     struct SubmeshInfo {
-        uint32_t indexOffset;
-        uint32_t indexCount;
+        uint32_t indexOffset; //!< The offset of the submesh in the mesh index buffer.
+        uint32_t indexCount; //!< The number of indices in the submesh.
     };
 
     struct RenderDebugStats {
@@ -155,6 +150,9 @@ namespace worlds {
         int msaaLevel = 0;
     };
 
+    /**
+     * A complete rendering pass, either to the screen or an accessible texture.
+     */
     class RTTPass {
     public:
         int drawSortKey = 0;
@@ -166,9 +164,19 @@ namespace worlds {
         uint32_t actualWidth() { return (uint32_t)(width * resScale); }
         uint32_t actualHeight() { return (uint32_t)(height * resScale); }
 
+        //! Draws the render pass immediately. Slow!!
         virtual void drawNow(entt::registry& world) = 0;
+
+        //! Requests an entity pick at the specified coordinates.
         virtual void requestPick(int x, int y) = 0;
+        //! Gets the result of the last request pick.
+        /**
+         * \param result The entity ID under the coordinates specified in requestPick.
+         * \return True if the pick results were retrieved, false if the results aren't ready yet.
+         */
         virtual bool getPickResult(uint32_t* result) = 0;
+
+        //! Get a float array of the HDR pass result.
         virtual float* getHDRData() = 0;
         virtual ~RTTPass() {}
     };
@@ -192,19 +200,26 @@ namespace worlds {
         virtual ~IUITextureManager() {}
     };
 
+    /**
+     * Base renderer class that doesn't expose any API-specific details.
+     */
     class Renderer {
     public:
         virtual void recreateSwapchain(int newWidth = -1, int newHeight = -1) = 0;
         virtual void frame(Camera& cam, entt::registry& reg) = 0;
+
+        virtual float getLastRenderTime() const = 0;
+        virtual void setVRPredictAmount(float amt) = 0;
+
+        virtual void setVsync(bool vsync) = 0;
+        virtual bool getVsync() const = 0;
+
+        virtual const RenderDebugStats& getDebugStats() const = 0;
+
+        virtual void uploadSceneAssets(entt::registry& reg) = 0;
         virtual void preloadMesh(AssetID id) = 0;
         virtual void unloadUnusedMaterials(entt::registry& reg) = 0;
         virtual void reloadContent(ReloadFlags flags) = 0;
-        virtual float getLastRenderTime() const = 0;
-        virtual void setVRPredictAmount(float amt) = 0;
-        virtual void setVsync(bool vsync) = 0;
-        virtual bool getVsync() const = 0;
-        virtual const RenderDebugStats& getDebugStats() const = 0;
-        virtual void uploadSceneAssets(entt::registry& reg) = 0;
 
         virtual void setImGuiDrawData(void* drawData) = 0;
 
