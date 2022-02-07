@@ -128,6 +128,8 @@ namespace worlds {
         void addForce(glm::vec3 force, ForceMode forceMode = ForceMode::Force);
         void addTorque(glm::vec3 torque, ForceMode forceMode = ForceMode::Force);
 
+        void addForceAtPosition(glm::vec3 force, glm::vec3 position, ForceMode forceMode = ForceMode::Force);
+
         float maxAngularVelocity() const;
         void setMaxAngularVelocity(float vel);
 
