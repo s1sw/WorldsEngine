@@ -519,9 +519,6 @@
     <ClCompile Include="..\WorldsEngine\Render\PolyRenderPass.cpp">
       <Filter>Render</Filter>
     </ClCompile>
-    <ClCompile Include="..\WorldsEngine\Render\RenderTexture.cpp">
-      <Filter>Render</Filter>
-    </ClCompile>
     <ClCompile Include="..\WorldsEngine\Render\RTTPass.cpp">
       <Filter>Render</Filter>
     </ClCompile>
@@ -658,6 +655,9 @@
       <Filter>Render</Filter>
     </ClCompile>
     <ClCompile Include="..\WorldsEngine\Render\VKPresentSubmitManager.cpp">
+      <Filter>Render</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WorldsEngine\Render\DeletionQueue.cpp">
       <Filter>Render</Filter>
     </ClCompile>
   </ItemGroup>
