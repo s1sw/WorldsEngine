@@ -68,6 +68,15 @@ namespace worlds {
             globalMiscFlags |= ShaderFlags::MISC_FLAG_DISABLE_SHADOWS;
         }
 
+        VkViewport vp{};
+        vp.minDepth = 0.0f;
+        vp.maxDepth = 1.0f;
+        vp.x = 0.0f;
+        vp.y = 0.0f;
+        vp.width = ctx.passWidth;
+        vp.height = ctx.passHeight;
+        vkCmdSetViewport(cmdBuf, 0, 1, &vp);
+
         addDebugLabel(cmdBuf, "Main Pass", 0.466f, 0.211f, 0.639f, 1.0f);
         VkPipeline lastPipeline = VK_NULL_HANDLE;
         for (const auto& sdi : drawInfo) {
