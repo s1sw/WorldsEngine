@@ -23,18 +23,27 @@ namespace Game
         {
             get
             {
-                float sum = 0.0f;
-
-                // Iterate over all the connections
-                foreach (var bc in BackConnections)
+                if (!_cacheCanBeUsed)
                 {
-                    sum += bc.Source.Value * bc.Weight;
+                    float sum = 0.0f;
+
+                    // Iterate over all the connections
+                    foreach (var bc in BackConnections)
+                    {
+                        sum += bc.Source.Value * bc.Weight;
+                    }
+
+                    // Apply the bias
+                    sum += Bias;
+
+                    float v = sum / (1 + MathF.Abs(sum));
+                    _cachedValue = v;
+                    return v;
                 }
-
-                // Apply the bias
-                sum += Bias;
-
-                return sum / (1 + MathF.Abs(sum));
+                else
+                {
+                    return _cachedValue;
+                }
             }
         }
 
