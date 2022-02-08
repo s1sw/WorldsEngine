@@ -143,9 +143,9 @@ namespace worlds {
             pm.frontFace(VK_FRONT_FACE_COUNTER_CLOCKWISE);
 
             pm.rasterizationSamples(vku::sampleCountFlags(msaaSamples));
-            //pm.alphaToCoverageEnable(true);
 
             pm.dynamicState(VK_DYNAMIC_STATE_VIEWPORT);
+            pm.dynamicState(VK_DYNAMIC_STATE_SCISSOR);
 
             if (handles->hasOutOfOrderRasterization)
                 pm.rasterizationOrderAMD(VK_RASTERIZATION_ORDER_RELAXED_AMD);
@@ -456,7 +456,6 @@ namespace worlds {
         vertexShader = ShaderCache::getModule(handles->device, vsID);
         fragmentShader = ShaderCache::getModule(handles->device, fsID);
 
-        // Create ordinary pipeline
         {
             StandardPipelineMaker pm{ vsID, fsID };
             pm
@@ -1133,9 +1132,11 @@ namespace worlds {
         for (vku::GenericBuffer& matrixUB : modelMatrixUB) {
             matrixUB.unmap(handles->device);
         }
+
         lightsUB.unmap(handles->device);
         lightTileInfoBuffer.unmap(handles->device);
         skinningMatrixUB.unmap(handles->device);
+
         delete dbgLinesPass;
         delete skyboxPass;
         delete depthPrepass;
