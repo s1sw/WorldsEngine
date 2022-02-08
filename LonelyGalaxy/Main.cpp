@@ -1,6 +1,7 @@
 #define _CRT_SECURE_NO_WARNINGS
 #include "EventHandler.hpp"
 #include <Core/Engine.hpp>
+#include <SDL_main.h>
 
 // 32 bit systems are not supported!
 // Make sure that we're 64 bit
