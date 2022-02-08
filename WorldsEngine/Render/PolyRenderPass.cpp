@@ -1,17 +1,18 @@
-#include "../Core/Engine.hpp"
-#include "ImGui/imgui_internal.h"
-#include "ImGui/imgui.h"
-#include "RenderPasses.hpp"
-#include "../Core/Transform.hpp"
 #include <openvr.h>
-#include "tracy/Tracy.hpp"
-#include "Render.hpp"
-#include "../Physics/Physics.hpp"
-#include "Frustum.hpp"
-#include "../Core/Console.hpp"
-#include "ShaderCache.hpp"
 #include <slib/StaticAllocList.hpp>
+
+#include <Core/Console.hpp>
+#include <Core/Engine.hpp>
+#include <Core/Transform.hpp>
+#include <ImGui/imgui_internal.h>
+#include <ImGui/imgui.h>
+#include <Physics/Physics.hpp>
+#include <tracy/Tracy.hpp>
 #include <Util/MatUtil.hpp>
+#include "RenderPasses.hpp"
+#include "Render.hpp"
+#include "Frustum.hpp"
+#include "ShaderCache.hpp"
 #include "vku/RenderpassMaker.hpp"
 #include "vku/DescriptorSetUtil.hpp"
 #include "ShaderReflector.hpp"
@@ -42,6 +43,123 @@ namespace worlds {
     ConVar showWireframe("r_wireframeMode", "0", "0 - No wireframe; 1 - Wireframe only; 2 - Wireframe + solid");
     ConVar dbgDrawMode("r_dbgDrawMode", "0", "0 = Normal, 1 = Normals, 2 = Metallic, 3 = Roughness, 4 = AO");
     ConVar enableProxyAO("r_enableProxyAO", "1");
+    ConVar enableDepthPrepass("r_depthPrepass", "1");
+    ConVar enableParallaxMapping("r_doParallaxMapping", "0");
+    ConVar maxParallaxLayers("r_maxParallaxLayers", "32");
+    ConVar minParallaxLayers("r_minParallaxLayers", "4");
+
+    struct StandardSpecConsts {
+        VkBool32 enablePicking = false;
+        float parallaxMaxLayers = 32.0f;
+        float parallaxMinLayers = 4.0f;
+        VkBool32 doParallax = false;
+        VkBool32 enableProxyAO = false;
+    };
+
+    void setupVertexFormat(vku::PipelineMaker& pm) {
+        pm.vertexBinding(0, (uint32_t)sizeof(Vertex));
+        pm.vertexAttribute(0, 0, VK_FORMAT_R32G32B32_SFLOAT, (uint32_t)offsetof(Vertex, position));
+        pm.vertexAttribute(1, 0, VK_FORMAT_R32G32B32_SFLOAT, (uint32_t)offsetof(Vertex, normal));
+        pm.vertexAttribute(2, 0, VK_FORMAT_R32G32B32_SFLOAT, (uint32_t)offsetof(Vertex, tangent));
+        pm.vertexAttribute(3, 0, VK_FORMAT_R32_SFLOAT, (uint32_t)offsetof(Vertex, bitangentSign));
+        pm.vertexAttribute(4, 0, VK_FORMAT_R32G32_SFLOAT, (uint32_t)offsetof(Vertex, uv));
+    }
+
+    void setupSkinningVertexFormat(vku::PipelineMaker& pm) {
+        pm.vertexBinding(1, (uint32_t)sizeof(VertSkinningInfo));
+        pm.vertexAttribute(5, 1, VK_FORMAT_R32G32B32A32_SFLOAT, (uint32_t)offsetof(VertSkinningInfo, weights));
+        pm.vertexAttribute(6, 1, VK_FORMAT_R32G32B32A32_UINT, (uint32_t)offsetof(VertSkinningInfo, boneIds));
+    }
+
+    class StandardPipelineMaker {
+    public:
+        StandardPipelineMaker(AssetID vertexShader, AssetID fragmentShader) {
+            vs = vertexShader;
+            fs = fragmentShader;
+        }
+
+        StandardPipelineMaker& setMsaaSamples(int val) {
+            msaaSamples = val;
+            return *this;
+        }
+
+        StandardPipelineMaker& setPickingEnabled(bool val) {
+            enablePicking = val;
+            return *this;
+        }
+
+        StandardPipelineMaker& setCullMode(VkCullModeFlags val) {
+            cullFlags = val;
+            return *this;
+        }
+
+        StandardPipelineMaker& setUseSkinningAttributes(bool val) {
+            useSkinningAttributes = val;
+            return *this;
+        }
+
+        vku::Pipeline createPipeline(VulkanHandles* handles, VkPipelineLayout layout, VkRenderPass renderPass) {
+            VkSpecializationMapEntry entries[5] = {
+                { 0, offsetof(StandardSpecConsts, enablePicking),     sizeof(VkBool32) },
+                { 1, offsetof(StandardSpecConsts, parallaxMaxLayers), sizeof(float) },
+                { 2, offsetof(StandardSpecConsts, parallaxMinLayers), sizeof(float) },
+                { 3, offsetof(StandardSpecConsts, doParallax),        sizeof(VkBool32) },
+                { 4, offsetof(StandardSpecConsts, enableProxyAO),     sizeof(VkBool32) }
+            };
+
+            VkSpecializationInfo standardSpecInfo{ 5, entries, sizeof(StandardSpecConsts) };
+
+            vku::PipelineMaker pm{ 1600, 900 };
+            VkShaderModule fragmentShader = ShaderCache::getModule(handles->device, fs);
+            VkShaderModule vertexShader = ShaderCache::getModule(handles->device, vs);
+
+            StandardSpecConsts spc{
+                enablePicking,
+                maxParallaxLayers.getFloat(),
+                minParallaxLayers.getFloat(),
+                (bool)enableParallaxMapping.getInt(),
+                (bool)enableProxyAO.getInt()
+            };
+
+            standardSpecInfo.pData = &spc;
+
+            pm.shader(VK_SHADER_STAGE_FRAGMENT_BIT, fragmentShader, "main", &standardSpecInfo);
+            pm.shader(VK_SHADER_STAGE_VERTEX_BIT, vertexShader);
+            setupVertexFormat(pm);
+
+            if (useSkinningAttributes)
+                setupSkinningVertexFormat(pm);
+
+            pm.cullMode(cullFlags);
+
+            if ((int)enableDepthPrepass)
+                pm.depthWriteEnable(false)
+                .depthTestEnable(true)
+                .depthCompareOp(VK_COMPARE_OP_EQUAL);
+            else
+                pm.depthWriteEnable(true).depthTestEnable(true).depthCompareOp(VK_COMPARE_OP_GREATER);
+
+            pm.blendBegin(false);
+            pm.frontFace(VK_FRONT_FACE_COUNTER_CLOCKWISE);
+
+            pm.rasterizationSamples(vku::sampleCountFlags(msaaSamples));
+            //pm.alphaToCoverageEnable(true);
+
+            pm.dynamicState(VK_DYNAMIC_STATE_VIEWPORT);
+
+            if (handles->hasOutOfOrderRasterization)
+                pm.rasterizationOrderAMD(VK_RASTERIZATION_ORDER_RELAXED_AMD);
+
+            return pm.create(handles->device, handles->pipelineCache, layout, renderPass);
+        }
+    private:
+        AssetID vs;
+        AssetID fs;
+        int msaaSamples = 1;
+        bool enablePicking = false;
+        bool useSkinningAttributes = false;
+        VkCullModeFlags cullFlags = VK_CULL_MODE_BACK_BIT;
+    };
 
     struct StandardPushConstants {
         uint32_t modelMatrixIdx;
@@ -166,26 +284,6 @@ namespace worlds {
         , cullMeshRenderer(nullptr)
         , handles(handles) {
 
-    }
-
-    static ConVar enableDepthPrepass("r_depthPrepass", "1");
-    static ConVar enableParallaxMapping("r_doParallaxMapping", "0");
-    static ConVar maxParallaxLayers("r_maxParallaxLayers", "32");
-    static ConVar minParallaxLayers("r_minParallaxLayers", "4");
-
-    void setupVertexFormat(vku::PipelineMaker& pm) {
-        pm.vertexBinding(0, (uint32_t)sizeof(Vertex));
-        pm.vertexAttribute(0, 0, VK_FORMAT_R32G32B32_SFLOAT, (uint32_t)offsetof(Vertex, position));
-        pm.vertexAttribute(1, 0, VK_FORMAT_R32G32B32_SFLOAT, (uint32_t)offsetof(Vertex, normal));
-        pm.vertexAttribute(2, 0, VK_FORMAT_R32G32B32_SFLOAT, (uint32_t)offsetof(Vertex, tangent));
-        pm.vertexAttribute(3, 0, VK_FORMAT_R32_SFLOAT, (uint32_t)offsetof(Vertex, bitangentSign));
-        pm.vertexAttribute(4, 0, VK_FORMAT_R32G32_SFLOAT, (uint32_t)offsetof(Vertex, uv));
-    }
-
-    void setupSkinningVertexFormat(vku::PipelineMaker& pm) {
-        pm.vertexBinding(1, (uint32_t)sizeof(VertSkinningInfo));
-        pm.vertexAttribute(5, 1, VK_FORMAT_R32G32B32A32_SFLOAT, (uint32_t)offsetof(VertSkinningInfo, weights));
-        pm.vertexAttribute(6, 1, VK_FORMAT_R32G32B32A32_UINT, (uint32_t)offsetof(VertSkinningInfo, boneIds));
     }
 
     void PolyRenderPass::setup(RenderContext& ctx, VkDescriptorPool descriptorPool) {
@@ -358,163 +456,32 @@ namespace worlds {
         vertexShader = ShaderCache::getModule(handles->device, vsID);
         fragmentShader = ShaderCache::getModule(handles->device, fsID);
 
-        auto msaaSamples = vku::sampleCountFlags(ctx.passSettings.msaaLevel);
-
-        struct StandardSpecConsts {
-            VkBool32 enablePicking = false;
-            float parallaxMaxLayers = 32.0f;
-            float parallaxMinLayers = 4.0f;
-            VkBool32 doParallax = false;
-            VkBool32 enableProxyAO = false;
-        };
-
-        // standard shader specialization constants
-        VkSpecializationMapEntry entries[5] = {
-            { 0, offsetof(StandardSpecConsts, enablePicking),     sizeof(VkBool32) },
-            { 1, offsetof(StandardSpecConsts, parallaxMaxLayers), sizeof(float) },
-            { 2, offsetof(StandardSpecConsts, parallaxMinLayers), sizeof(float) },
-            { 3, offsetof(StandardSpecConsts, doParallax),        sizeof(VkBool32) },
-            { 4, offsetof(StandardSpecConsts, enableProxyAO),     sizeof(VkBool32) }
-        };
-
-        VkSpecializationInfo standardSpecInfo{ 5, entries, sizeof(StandardSpecConsts) };
-
+        // Create ordinary pipeline
         {
-            vku::PipelineMaker pm{ extent.width, extent.height };
-
-            StandardSpecConsts spc{
-                enablePicking,
-                maxParallaxLayers.getFloat(),
-                minParallaxLayers.getFloat(),
-                (bool)enableParallaxMapping.getInt(),
-                (bool)enableProxyAO.getInt()
-            };
-
-            standardSpecInfo.pData = &spc;
-
-            pm.shader(VK_SHADER_STAGE_FRAGMENT_BIT, fragmentShader, "main", &standardSpecInfo);
-            pm.shader(VK_SHADER_STAGE_VERTEX_BIT, vertexShader);
-            setupVertexFormat(pm);
-            pm.cullMode(VK_CULL_MODE_BACK_BIT);
-
-            if ((int)enableDepthPrepass)
-                pm.depthWriteEnable(false)
-                .depthTestEnable(true)
-                .depthCompareOp(VK_COMPARE_OP_EQUAL);
-            else
-                pm.depthWriteEnable(true).depthTestEnable(true).depthCompareOp(VK_COMPARE_OP_GREATER);
-
-            pm.blendBegin(false);
-            pm.frontFace(VK_FRONT_FACE_COUNTER_CLOCKWISE);
-
-            pm.rasterizationSamples(msaaSamples);
-            pm.alphaToCoverageEnable(true);
-
-            if (handles->hasOutOfOrderRasterization)
-                pm.rasterizationOrderAMD(VK_RASTERIZATION_ORDER_RELAXED_AMD);
-
-            pipeline = pm.create(handles->device, handles->pipelineCache, pipelineLayout, renderPass);
+            StandardPipelineMaker pm{ vsID, fsID };
+            pm
+                .setMsaaSamples(ctx.passSettings.msaaLevel)
+                .setPickingEnabled(enablePicking);
+            pipeline = pm.createPipeline(handles, pipelineLayout, renderPass);
         }
 
         {
-            vku::PipelineMaker pm{ extent.width, extent.height };
-
-            StandardSpecConsts spc{
-                enablePicking,
-                maxParallaxLayers.getFloat(),
-                minParallaxLayers.getFloat(),
-                (bool)enableParallaxMapping.getInt(),
-                (bool)enableProxyAO.getInt()
-            };
-
-            VkShaderModule skinnedVert = ShaderCache::getModule(handles->device, AssetDB::pathToId("Shaders/standard_skinned.vert.spv"));
-
-            standardSpecInfo.pData = &spc;
-
-            pm.shader(VK_SHADER_STAGE_FRAGMENT_BIT, fragmentShader, "main", &standardSpecInfo);
-            pm.shader(VK_SHADER_STAGE_VERTEX_BIT, skinnedVert);
-            setupVertexFormat(pm);
-            setupSkinningVertexFormat(pm);
-            pm.cullMode(VK_CULL_MODE_BACK_BIT);
-
-            if ((int)enableDepthPrepass)
-                pm.depthWriteEnable(false)
-                .depthTestEnable(true)
-                .depthCompareOp(VK_COMPARE_OP_EQUAL);
-            else
-                pm.depthWriteEnable(true)
-                .depthTestEnable(true)
-                .depthCompareOp(VK_COMPARE_OP_GREATER);
-
-            pm.blendBegin(false);
-            pm.frontFace(VK_FRONT_FACE_COUNTER_CLOCKWISE);
-
-            pm.rasterizationSamples(msaaSamples);
-            pm.alphaToCoverageEnable(true);
-
-            skinnedPipeline = pm.create(handles->device, handles->pipelineCache, pipelineLayout, renderPass);
+            AssetID skinnedVSID = AssetDB::pathToId("Shaders/standard_skinned.vert.spv");
+            StandardPipelineMaker pm{ skinnedVSID, fsID };
+            pm
+                .setMsaaSamples(ctx.passSettings.msaaLevel)
+                .setPickingEnabled(enablePicking)
+                .setUseSkinningAttributes(true);
+            skinnedPipeline = pm.createPipeline(handles, pipelineLayout, renderPass);
         }
 
         {
-            AssetID fsID = AssetDB::pathToId("Shaders/standard_alpha_test.frag.spv");
-            auto atFragmentShader = vku::loadShaderAsset(handles->device, fsID);
-
-            vku::PipelineMaker pm{ extent.width, extent.height };
-
-            StandardSpecConsts spc{
-                enablePicking && enableDepthPrepass.getInt(),
-                maxParallaxLayers.getFloat(),
-                minParallaxLayers.getFloat(),
-                (bool)enableParallaxMapping.getInt(),
-                (bool)enableProxyAO.getInt()
-            };
-
-            standardSpecInfo.pData = &spc;
-
-            pm.shader(VK_SHADER_STAGE_FRAGMENT_BIT, atFragmentShader, "main", &standardSpecInfo);
-            pm.shader(VK_SHADER_STAGE_VERTEX_BIT, vertexShader);
-            setupVertexFormat(pm);
-            pm.cullMode(VK_CULL_MODE_BACK_BIT);
-            if ((int)enableDepthPrepass)
-                pm.depthWriteEnable(false)
-                .depthTestEnable(true)
-                .depthCompareOp(VK_COMPARE_OP_EQUAL);
-            else
-                pm.depthWriteEnable(true).depthTestEnable(true).depthCompareOp(VK_COMPARE_OP_GREATER);
-
-            pm.blendBegin(false);
-            pm.frontFace(VK_FRONT_FACE_COUNTER_CLOCKWISE);
-
-            pm.rasterizationSamples(msaaSamples);
-            pm.alphaToCoverageEnable(true);
-
-            alphaTestPipeline = pm.create(handles->device, handles->pipelineCache, pipelineLayout, renderPass);
-        }
-
-        {
-            vku::PipelineMaker pm{ extent.width, extent.height };
-
-            StandardSpecConsts spc{
-                enablePicking,
-                maxParallaxLayers.getFloat(),
-                minParallaxLayers.getFloat(),
-                (bool)enableParallaxMapping.getInt(),
-                (bool)enableProxyAO.getInt()
-            };
-
-            standardSpecInfo.pData = &spc;
-
-            pm.shader(VK_SHADER_STAGE_FRAGMENT_BIT, fragmentShader, "main", &standardSpecInfo);
-            pm.shader(VK_SHADER_STAGE_VERTEX_BIT, vertexShader);
-            setupVertexFormat(pm);
-            pm.cullMode(VK_CULL_MODE_NONE);
-            pm.depthWriteEnable(true).depthTestEnable(true).depthCompareOp(VK_COMPARE_OP_GREATER);
-            pm.blendBegin(false);
-            pm.frontFace(VK_FRONT_FACE_COUNTER_CLOCKWISE);
-
-            pm.rasterizationSamples(msaaSamples);
-            pm.alphaToCoverageEnable(true);
-            noBackfaceCullPipeline = pm.create(handles->device, handles->pipelineCache, pipelineLayout, renderPass);
+            StandardPipelineMaker pm{ vsID, fsID };
+            pm
+                .setMsaaSamples(ctx.passSettings.msaaLevel)
+                .setPickingEnabled(enablePicking)
+                .setCullMode(VK_CULL_MODE_NONE);
+            noBackfaceCullPipeline = pm.createPipeline(handles, pipelineLayout, renderPass);
         }
 
         {
@@ -534,7 +501,7 @@ namespace worlds {
             pm.lineWidth(2.0f);
 
             VkPipelineMultisampleStateCreateInfo pmsci{ VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO };
-            pmsci.rasterizationSamples = msaaSamples;
+            pmsci.rasterizationSamples = vku::sampleCountFlags(ctx.passSettings.msaaLevel);
             pm.multisampleState(pmsci);
 
             vku::PipelineLayoutMaker plm;
@@ -710,7 +677,7 @@ namespace worlds {
 
                 auto& extraDat = resources.materials.getExtraDat(sdi.materialIdx);
 
-                sdi.pipeline = sdi.opaque ? pipeline : alphaTestPipeline;
+                sdi.pipeline = pipeline;
 
                 if (extraDat.noCull) {
                     sdi.pipeline = noBackfaceCullPipeline;
@@ -1035,19 +1002,6 @@ namespace worlds {
         rpbi.clearValueCount = 1;
         rpbi.pClearValues = &depthClearValue;
 
-        uint32_t globalMiscFlags = 0;
-
-        if (pickThisFrame)
-            globalMiscFlags |= 1;
-
-        if (dbgDrawMode.getInt() != 0) {
-            globalMiscFlags |= (1 << dbgDrawMode.getInt());
-        }
-
-        if (!ctx.passSettings.enableCascadeShadows) {
-            globalMiscFlags |= ShaderFlags::MISC_FLAG_DISABLE_SHADOWS;
-        }
-
         vkCmdBeginRenderPass(cmdBuf, &rpbi, VK_SUBPASS_CONTENTS_INLINE);
 
         if (ctx.passSettings.enableVr) {
@@ -1108,6 +1062,14 @@ namespace worlds {
 
         vkCmdBeginRenderPass(cmdBuf, &rpbi, VK_SUBPASS_CONTENTS_INLINE);
 
+        VkViewport vp{};
+        vp.minDepth = 0.0f;
+        vp.maxDepth = 1.0f;
+        vp.x = 0.0f;
+        vp.y = 0.0f;
+        vp.width = ctx.passWidth;
+        vp.height = ctx.passHeight;
+        vkCmdSetViewport(cmdBuf, 0, 1, &vp);
         mainPass->execute(ctx, drawInfo, pickThisFrame, pickX, pickY);
 
         dbgLinesPass->execute(ctx);

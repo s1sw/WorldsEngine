@@ -1,4 +1,5 @@
 #include "RenderInternal.hpp"
+#include <SDL_filesystem.h>
 
 namespace worlds {
     // adapted from https://zeux.io/2019/07/17/serializing-pipeline-cache/

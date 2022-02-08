@@ -468,12 +468,12 @@ void unpackMaterial(inout ShadeInfo si, mat3 tbn) {
     Material mat = materials[matIdx];
     si.metallic = mat.metallic;
     si.roughness = mat.roughness;
-#ifndef EFT
-    float alphaCutoff = (mat.cutoffFlags & (0xFF)) / 255.0f;
-    si.alphaCutoff = alphaCutoff;
-#else
+//#ifndef EFT
+//    float alphaCutoff = (mat.cutoffFlags & (0xFF)) / 255.0f;
+//    si.alphaCutoff = alphaCutoff;
+//#else
     si.alphaCutoff = 0.0;
-#endif
+//#endif
 
     vec2 tCoord = inUV;
     if (mat.heightmapIdx > -1 && DO_PARALLAX) {

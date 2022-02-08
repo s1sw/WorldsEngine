@@ -208,7 +208,6 @@ namespace worlds {
         vku::RenderPass depthPass;
         vku::Pipeline pipeline;
         vku::Pipeline noBackfaceCullPipeline;
-        vku::Pipeline alphaTestPipeline;
         vku::Pipeline skinnedPipeline;
         vku::PipelineLayout pipelineLayout;
         vku::DescriptorSetLayout dsl;
