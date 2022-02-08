@@ -56,8 +56,6 @@ namespace Game
                 {
                     source.SetParameter("Alive", 0.0f);
                 }
-                //Audio.PlayOneShotAttachedEvent("event:/Chromium/TheTea", Registry.GetTransform(ent).Position, ent);
-                //Audio.PlayOneShot(AssetDB.PathToId("Audio/SFX/drone death.ogg"), Registry.GetTransform(ent).Position, 2.0f);
             };
 
             health.OnDamage += (Entity e, double dmg, Entity attacker) => {
@@ -282,7 +280,7 @@ namespace Game
                 return;
             }
 
-            bool foundFloor = Physics.Raycast(pose.Position + (Vector3.Down * 0.1f), Vector3.Down, out RaycastHit rHit, 50.0f);
+            bool foundFloor = Physics.Raycast(pose.Position + (Vector3.Down * 0.2f), Vector3.Down, out RaycastHit rHit, 50.0f);
 
             if (!currentlyFiring)
             {
