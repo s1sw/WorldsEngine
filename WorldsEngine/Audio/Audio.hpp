@@ -1,4 +1,5 @@
 #pragma once
+#include <queue>
 #include <unordered_map>
 #include "../Core/AssetDB.hpp"
 #include <entt/entt.hpp>
@@ -118,6 +119,8 @@ namespace worlds {
         float timeSinceLastSim = 0.0f;
         SteamAudioSimThread* simThread;
 
+        std::queue<IPLSource> sourcesToAdd;
+        std::queue<IPLSource> sourcesToRemove;
         robin_hood::unordered_map<const char*, FMOD::Studio::Bank*> loadedBanks;
         robin_hood::unordered_map<AssetID, FMOD::Sound*> sounds;
         std::vector<AttachedOneshot*> attachedOneshots;
