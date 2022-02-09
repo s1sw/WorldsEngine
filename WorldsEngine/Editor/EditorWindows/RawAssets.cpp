@@ -260,9 +260,7 @@ namespace worlds {
                                     strPath.erase(pos, ext.byteLength());
                                     strPath += ".wtexj";
 
-                                    strPath = "SourceData/" + strPath;
-
-                                    std::filesystem::path realPath = editor->currentProject().root();
+                                    std::filesystem::path realPath = editor->currentProject().sourceData();
                                     realPath /= strPath;
                                     realPath = realPath.lexically_normal();
 
