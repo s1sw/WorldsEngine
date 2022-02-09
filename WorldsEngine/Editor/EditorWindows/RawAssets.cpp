@@ -183,18 +183,23 @@ namespace worlds {
                     slib::Path p{ assetContextMenu.c_str() };
                     auto ext = p.fileExtension();
 
-                    if (ext == ".png" || ext == ".jpg") {
+                    if (ext == ".png" || ext == ".jpg" || ext == ".exr") {
                         if (ImGui::Button("Create corresponding wtex")) {
                             std::string path = assetContextMenu;
+                            // path will be something like Raw/Textures/whatever/something.png
                             std::string removeStr = "Raw/";
 
                             size_t pos = path.find(removeStr);
                             if (pos != std::string::npos) {
                                 path.erase(pos, removeStr.size());
+                                // now something like Textures/whatever/something.png
                                 pos = path.find(ext.cStr());
                                 path.erase(pos, ext.byteLength());
                                 path += ".wtexj";
-                                std::filesystem::create_directory(std::filesystem::path{ path }.parent_path());
+                                // now something like Textures/whatever/something.wtexj
+                                slib::String fullPath = slib::String(editor->currentProject().sourceData().data()) + '/' + slib::Path{ path.c_str() }.parentPath();
+
+                                std::filesystem::create_directories(fullPath.cStr());
                                 AssetEditors::getEditorFor(".wtexj")->importAsset(assetContextMenu, path);
                             }
                         }
