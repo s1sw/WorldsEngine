@@ -25,7 +25,7 @@ namespace Game
         {
             if (Keyboard.KeyHeld(KeyCode.K))
             {
-                Vector3 camRelativeSpawnPoint = new Vector3(0.0f, 0.0f, 1.0f);
+                Vector3 camRelativeSpawnPoint = new(0.0f, 0.0f, 1.0f);
 
                 Entity entity = Registry.Create();
                 WorldObject wo = Registry.AddComponent<WorldObject>(entity);

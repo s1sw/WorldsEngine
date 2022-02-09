@@ -220,6 +220,19 @@ namespace worlds {
                 }
 
                 if (system->needsSimCommit) {
+                    while(!system->sourcesToAdd.empty()) {
+                        IPLSource source = system->sourcesToAdd.front();
+                        iplSourceAdd(source, simulator);
+                        system->sourcesToAdd.pop();
+                    }
+
+                    while(!system->sourcesToRemove.empty()) {
+                        IPLSource source = system->sourcesToRemove.front();
+                        iplSourceRemove(source, simulator);
+                        iplSourceRelease(&source);
+                        system->sourcesToRemove.pop();
+                    }
+
                     iplSimulatorCommit(simulator);
                     system->needsSimCommit = false;
                 }
@@ -555,8 +568,7 @@ namespace worlds {
             std::remove_if(attachedOneshots.begin(), attachedOneshots.end(), [this](AttachedOneshot* ao){
                 bool marked = ao->markForRemoval;
                 if (marked) {
-                    iplSourceRemove(ao->phononSource, simulator);
-                    iplSourceRelease(&ao->phononSource);
+                    sourcesToRemove.push(ao->phononSource);
                     needsSimCommit = true;
                     delete ao;
                 }
@@ -755,7 +767,7 @@ namespace worlds {
                 };
 
                 SACHECK(iplSourceCreate(simulator, &sourceSettings, &attachedOneshot->phononSource));
-                iplSourceAdd(attachedOneshot->phononSource, simulator);
+                sourcesToAdd.push(attachedOneshot->phononSource);
                 needsSimCommit = true;
             }
 
@@ -822,7 +834,7 @@ namespace worlds {
         scene = createScene(reg);
         while (simThread->isSimRunning()) {}
         iplSimulatorSetScene(simulator, scene);
-        iplSimulatorCommit(simulator);
+        needsSimCommit = true;
     }
 
     struct CacheableMeshInfo {
