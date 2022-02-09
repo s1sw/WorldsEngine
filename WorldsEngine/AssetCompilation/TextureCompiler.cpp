@@ -99,6 +99,11 @@ namespace worlds {
         auto& j = tcti->j;
         bool isSrgb = j.value("isSrgb", true);
         TextureData inTexData = loadTexData(AssetDB::pathToId(j["srcPath"].get<std::string>()));
+
+        if (inTexData.data == nullptr) {
+            logErr("Failed to compile %s", AssetDB::idToPath(tcti->compileOp->outputId));
+            return;
+        }
         logMsg("Texture is %ix%i", inTexData.width, inTexData.height);
 
         crn_comp_params compParams;
@@ -114,6 +119,23 @@ namespace worlds {
         compParams.m_pProgress_func_data = tcti->compileOp;
         compParams.m_userdata0 = isSrgb;
         logMsg("perceptual: %i, format: %i", compParams.get_flag(cCRNCompFlagPerceptual), compParams.m_format);
+
+        if (inTexData.format == VK_FORMAT_R32G32B32A32_SFLOAT) {
+            // Need to convert to an array of u8s
+            uint8_t* newData = (uint8_t*)malloc(inTexData.width * inTexData.height * 4);
+
+            for (int x = 0; x < inTexData.width; x++) {
+                for (int y = 0; y < inTexData.height; y++) {
+                    int pixelIndex = x + (y * inTexData.width);
+                    for (int c = 0; c < 4; c++) {
+                        int realIndex = c + pixelIndex * 4;
+                        newData[realIndex] = ((float*)inTexData.data)[realIndex] * 255.f;
+                    }
+                }
+            }
+
+            compParams.m_pImages[0][0] = (crn_uint32*)newData;
+        }
 
         crn_mipmap_params mipParams;
         mipParams.m_gamma_filtering = true;
@@ -144,5 +166,10 @@ namespace worlds {
         tcti->compileOp->progress = 1.0f;
         tcti->compileOp->complete = true;
         tcti->compileOp->result = CompilationResult::Success;
+
+        if (inTexData.format == VK_FORMAT_R32G32B32A32_SFLOAT) {
+            // Free the previously allocated temp array
+            free((void*)compParams.m_pImages[0][0]);
+        }
     }
 }

@@ -1,15 +1,17 @@
 #define CRND_HEADER_FILE_ONLY
 #include "TextureLoader.hpp"
-#include "../../Core/Engine.hpp"
+#include <Core/Engine.hpp>
 #include "tracy/Tracy.hpp"
 #include "crn_decomp.h"
 #include "stb_image.h"
-#include "../../Core/LogCategories.hpp"
-#include "../RenderInternal.hpp"
-#include "../../Core/Fatal.hpp"
+#include <Core/LogCategories.hpp>
+#include <Render/RenderInternal.hpp>
+#include <Core/Fatal.hpp>
 #include <physfs.h>
 #include <algorithm>
 #include <mutex>
+#define TINYEXR_IMPLEMENTATION
+#include <tinyexr.h>
 
 namespace worlds {
     std::mutex vkMutex;
@@ -76,6 +78,30 @@ namespace worlds {
             td.format = VK_FORMAT_R8G8B8A8_UNORM;
         td.name = AssetDB::idToPath(id);
         td.totalDataSize = hdr ? x * y * 4 * sizeof(float) : x * y * 4;
+
+        return td;
+    }
+
+    TextureData loadExrTexture(void* fileData, size_t fileLen, AssetID id) {
+        ZoneScoped;
+        TextureData td;
+
+        float* data;
+        int width, height;
+        const char* err;
+        int result = LoadEXRFromMemory(&data, &width, &height, (uint8_t*)fileData, fileLen, &err);
+
+        if (result != TINYEXR_SUCCESS) {
+            logErr("Error loading %s: %s", AssetDB::idToPath(id).c_str(), err);
+            return TextureData{nullptr};
+        }
+
+        td.data = (uint8_t*)data;
+        td.width = width;
+        td.height = height;
+        td.format = VK_FORMAT_R32G32B32A32_SFLOAT;
+        td.name = AssetDB::idToPath(id);
+        td.totalDataSize = width * height * 4 * sizeof(float);
 
         return td;
     }
@@ -170,6 +196,10 @@ namespace worlds {
 
         if (AssetDB::getAssetExtension(id) == ".vtf") {
             return loadVtfTexture(fileVec.data(), fileLen, id);
+        }
+
+        if (AssetDB::getAssetExtension(id) == ".exr") {
+            return loadExrTexture(fileVec.data(), fileLen, id);
         }
 
         if (!crunch) {
