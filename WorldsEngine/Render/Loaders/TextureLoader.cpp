@@ -10,6 +10,7 @@
 #include <physfs.h>
 #include <algorithm>
 #include <mutex>
+#include <Libs/miniz.h>
 #define TINYEXR_IMPLEMENTATION
 #include <tinyexr.h>
 
