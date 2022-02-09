@@ -18,6 +18,7 @@ namespace worlds {
     };
 
     void TextureEditor::importAsset(std::string filePath, std::string newAssetPath) {
+        newAssetPath = "SourceData/" + newAssetPath;
         AssetID id = AssetDB::createAsset(newAssetPath);
 
         PHYSFS_File* f = PHYSFS_openWrite(newAssetPath.c_str());
