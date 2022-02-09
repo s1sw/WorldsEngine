@@ -107,7 +107,6 @@ endif
 steam_audio_dep = cc.find_library('phonon', dirs: extern_dir + '/Lib')
 
 freetype_dep = dependency('freetype', required: false)
-zlib_dep = dependency('zlib')
 
 if not freetype_dep.found()
   cpp_comp = meson.get_compiler('cpp')
@@ -125,7 +124,7 @@ worlds = static_library('worlds', worlds_sources + ['tracy/TracyClient.cpp'],
     discord_sdk_dep,
     slib_dep, platform_deps, steam_audio_dep,
     recast_dep, detour_dep,
-    freetype_dep, zlib_dep
+    freetype_dep
     ],
   link_args: ['-rdynamic']
 )
