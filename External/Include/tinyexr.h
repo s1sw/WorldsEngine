@@ -84,7 +84,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <stddef.h>  // for size_t
 #include <stdint.h>  // guess stdint.h is available(C99)
-#include <zlib.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -107,7 +106,7 @@ extern "C" {
 // Use miniz or not to decode ZIP format pixel. Linking with zlib
 // required if this flas is 0.
 #ifndef TINYEXR_USE_MINIZ
-#define TINYEXR_USE_MINIZ (0)
+#define TINYEXR_USE_MINIZ (1)
 #endif
 
 // Disable PIZ comporession when applying cpplint.
@@ -613,7 +612,7 @@ extern int LoadEXRFromMemory(float **out_rgba, int *width, int *height,
 #endif
 
 #if TINYEXR_USE_MINIZ
-#include <miniz.h>
+//#include <miniz.h>
 #else
 //  Issue #46. Please include your own zlib-compatible API header before
 //  including `tinyexr.h`

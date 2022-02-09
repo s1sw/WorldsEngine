@@ -66,6 +66,7 @@ worlds_sources += [
   'Libs/mikktspace.c',
   'Libs/volk.c',
   'Libs/pcg_basic.c',
+  'Libs/miniz.c',
   'Libs/IconsFontAwesome5.h',
   'Libs/IconsFontaudio.h',
   'Libs/mikktspace.h',
@@ -187,7 +188,8 @@ worlds_sources += [
   'Libs/crnlib/lzma_MyVersion.h',
   #'Libs/crnlib/lzma_Threads.cpp',
   #'Libs/crnlib/lzma_Threads.h',
-  'Libs/crnlib/lzma_Types.h'
+  'Libs/crnlib/lzma_Types.h',
+  'Libs/miniz.h'
 ]
 
 if host_machine.system() == 'windows'
