@@ -517,7 +517,7 @@ namespace worlds {
         void frame(Camera& cam, entt::registry& reg) override;
 
         void preloadMesh(AssetID id) override;
-        void unloadUnusedMaterials(entt::registry& reg) override;
+        void unloadUnusedAssets(entt::registry& reg) override;
         void reloadContent(ReloadFlags flags) override;
 
         float getLastRenderTime() const override { return lastRenderTimeTicks * timestampPeriod; }

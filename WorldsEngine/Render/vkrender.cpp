@@ -1367,7 +1367,7 @@ void VKRenderer::preloadMesh(AssetID id) {
     loadedMeshes.insert({ id, std::move(lmd) });
 }
 
-void VKRenderer::unloadUnusedMaterials(entt::registry& reg) {
+void VKRenderer::unloadUnusedAssets(entt::registry& reg) {
     ZoneScoped;
 
     bool textureReferenced[NUM_TEX_SLOTS] { 0 };

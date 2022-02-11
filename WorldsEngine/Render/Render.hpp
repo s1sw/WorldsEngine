@@ -216,9 +216,13 @@ namespace worlds {
 
         virtual const RenderDebugStats& getDebugStats() const = 0;
 
+        //! Load all materials, textures, models and cubemaps referenced in the scene.
         virtual void uploadSceneAssets(entt::registry& reg) = 0;
+        //! Loads a specified mesh.
         virtual void preloadMesh(AssetID id) = 0;
-        virtual void unloadUnusedMaterials(entt::registry& reg) = 0;
+        //! Unloads any materials, textures, models and cubemaps not referenced in the scene.
+        //! Reloads the assets specified by the flags.
+        virtual void unloadUnusedAssets(entt::registry& reg) = 0;
         virtual void reloadContent(ReloadFlags flags) = 0;
 
         virtual void setImGuiDrawData(void* drawData) = 0;
