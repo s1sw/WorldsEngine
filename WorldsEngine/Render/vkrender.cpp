@@ -177,6 +177,14 @@ void VKRenderer::createFramebuffers() {
     }
 }
 
+bool shouldEnableValidation(bool enableVR) {
+    bool activateValidationLayers = EngineArguments::hasArgument("validation-layers");
+#ifndef NDEBUG
+    activateValidationLayers |= !enableVR;
+#endif
+    return activateValidationLayers;
+}
+
 void VKRenderer::createInstance(const RendererInitInfo& initInfo) {
     vku::InstanceMaker instanceMaker;
     instanceMaker.apiVersion(VK_API_VERSION_1_2);
@@ -210,13 +218,12 @@ void VKRenderer::createInstance(const RendererInitInfo& initInfo) {
         instanceMaker.extension(e.c_str());
     }
 
-#ifndef NDEBUG
-    if (!enableVR || vrValidationLayers) {
+    if (shouldEnableValidation(enableVR)) {
         logVrb(WELogCategoryRender, "Activating validation layers");
         instanceMaker.layer("VK_LAYER_KHRONOS_validation");
         instanceMaker.extension(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
     }
-#endif
+
     instanceMaker.extension(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 
     auto appName = initInfo.applicationName ? "Worlds Engine" : initInfo.applicationName;
@@ -384,6 +391,7 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
 
     apiMutex = new std::mutex;
 
+    // Initialize and create instance
     if (volkInitialize() != VK_SUCCESS) {
         fatalErr("Couldn't find Vulkan.");
     }
@@ -391,10 +399,10 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     createInstance(initInfo);
     volkLoadInstance(instance);
 
-#ifndef NDEBUG
-    if (!enableVR || vrValidationLayers)
+    if (shouldEnableValidation(enableVR))
         dbgCallback = vku::DebugCallback(instance);
-#endif
+
+    // Select an appropriate physical device
     uint32_t physicalDeviceCount;
     vkEnumeratePhysicalDevices(instance, &physicalDeviceCount, nullptr);
 
@@ -402,11 +410,11 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     physDevs.resize(physicalDeviceCount);
     vkEnumeratePhysicalDevices(instance, &physicalDeviceCount, physDevs.data());
 
-
     physicalDevice = pickPhysicalDevice(physDevs);
 
     logPhysDevInfo(physicalDevice);
 
+    // Now find the queues
     std::vector<VkQueueFamilyProperties> qprops = getQueueFamilies(physicalDevice);
 
     const auto badQueue = ~(uint32_t)0;
@@ -496,7 +504,8 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
 
     dm.extension(VK_EXT_SHADER_SUBGROUP_BALLOT_EXTENSION_NAME);
 
-    bool hasRasterizationOrderExtension = std::find_if(extensionProperties.begin(), extensionProperties.end(), [](VkExtensionProperties props) {return strcmp(props.extensionName, VK_AMD_RASTERIZATION_ORDER_EXTENSION_NAME) == 0; }) != extensionProperties.end();
+    bool hasRasterizationOrderExtension = std::find_if(extensionProperties.begin(), extensionProperties.end(),
+            [](VkExtensionProperties props) {return strcmp(props.extensionName, VK_AMD_RASTERIZATION_ORDER_EXTENSION_NAME) == 0; }) != extensionProperties.end();
 
     if (hasRasterizationOrderExtension)
         dm.extension(VK_AMD_RASTERIZATION_ORDER_EXTENSION_NAME);
@@ -537,6 +546,7 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
 
     queues.graphics = getQueue(device, queues.graphicsIdx);
     queues.present = getQueue(device, queues.presentIdx);
+
     if (queues.asyncComputeIdx != badQueue)
         queues.asyncCompute = getQueue(device, queues.asyncComputeIdx);
 
@@ -549,6 +559,7 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     allocatorCreateInfo.flags = 0;
     vmaCreateAllocator(&allocatorCreateInfo, &allocator);
 
+    // Initialize the deletion queue
     DeletionQueue::intitialize(device, allocator);
     DeletionQueue::resize(1);
 
