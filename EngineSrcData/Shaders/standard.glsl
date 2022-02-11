@@ -250,11 +250,12 @@ float calcProxyAO(vec3 wPos, vec3 normal) {
     if (!ENABLE_PROXY_AO) return 1.0;
     float proxyAO = 1.0;
 
-    //for (int i = 0; i < int(pack1.x); i++) {
-    //    if (floatBitsToUint(aoBox[i].pack3.w) != objectId) {
-    //        proxyAO *= (1.0 - getBoxOcclusionNonClipped(aoBox[i], inWorldPos.xyz, normal));
-    //    }
-    //}
+    for (int i = 0; i < int(pack1.x); i++) {
+        if (floatBitsToUint(aoBox[i].pack3.w) != objectId) {
+            proxyAO *= (1.0 - getBoxOcclusionArtistic(aoBox[i], inWorldPos.xyz, normal));
+            //proxyAO *= (1.0 - getBoxOcclusionNonClipped(aoBox[i], inWorldPos.xyz, normal));
+        }
+    }
     //
     //for (int i = 0; i < int(pack1.y); i++) {
     //    if (sphereIds[i] != objectId) {
@@ -287,23 +288,24 @@ float calcProxyAO(vec3 wPos, vec3 normal) {
         }
     }
 
-    for (int i = 0; i < 2; i++) {
-        uint boxBits = buf_LightTiles.tiles[tileIdx].aoBoxIdMasks[i];
+    //for (int i = 0; i < 2; i++) {
+    //    uint boxBits = buf_LightTiles.tiles[tileIdx].aoBoxIdMasks[i];
 
-        while (boxBits != 0) {
-            // find the next set sphere bit
-            uint boxBitIndex = findLSB(boxBits);
+    //    while (boxBits != 0) {
+    //        // find the next set sphere bit
+    //        uint boxBitIndex = findLSB(boxBits);
 
-            // remove it from the mask with an XOR
-            boxBits ^= 1 << boxBitIndex;
+    //        // remove it from the mask with an XOR
+    //        boxBits ^= 1 << boxBitIndex;
 
-            uint realIndex = boxBitIndex + (32 * i);
+    //        uint realIndex = boxBitIndex + (32 * i);
 
-            if (floatBitsToUint(aoBox[realIndex].pack3.w) != objectId) {
-                proxyAO *= (1.0 - getBoxOcclusionNonClipped(aoBox[realIndex], inWorldPos.xyz, normal));
-            }
-        }
-    }
+    //        if (floatBitsToUint(aoBox[realIndex].pack3.w) != objectId) {
+    //            //proxyAO *= (1.0 - getBoxOcclusionNonClipped(aoBox[realIndex], inWorldPos.xyz, normal));
+    //            proxyAO *= (1.0 - getBoxOcclusionArtistic(aoBox[realIndex], inWorldPos.xyz, normal));
+    //        }
+    //    }
+    //}
 
     return proxyAO;
 }

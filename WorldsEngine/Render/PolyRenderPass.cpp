@@ -914,9 +914,13 @@ namespace worlds {
 
         uint32_t aoBoxIdx = 0;
         ctx.registry.view<Transform, ProxyAOComponent>().each([&](auto ent, Transform& t, ProxyAOComponent& pac) {
+            Transform ct = t;
+            ct.scale = glm::vec3(1.0f);
             lightMapped->box[aoBoxIdx].setScale(pac.bounds);
-            glm::mat4 tMat = glm::translate(glm::mat4(1.0f), t.position);
-            lightMapped->box[aoBoxIdx].setMatrix(glm::mat4_cast(glm::inverse(t.rotation)) * glm::inverse(tMat));
+            //glm::mat4 tMat = glm::translate(glm::mat4(1.0f), t.position);
+            //lightMapped->box[aoBoxIdx].setMatrix(glm::mat4_cast(glm::inverse(t.rotation)) * glm::inverse(tMat));
+            lightMapped->box[aoBoxIdx].setMatrix(ct.getMatrix());
+            //lightMapped->box[aoBoxIdx].setTranslation(t.position);
             lightMapped->box[aoBoxIdx].setEntityId((uint32_t)ent);
             aoBoxIdx++;
             });

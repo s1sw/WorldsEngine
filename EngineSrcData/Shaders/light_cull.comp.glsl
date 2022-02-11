@@ -335,7 +335,7 @@ void cullAO(uint tileIndex) {
         AOBox box = buf_Lights.aoBox[boxIdx];
 
         vec3 scale = getBoxScale(box) * 4.0;
-        mat4 transform = getBoxTransform(box);
+        mat4 transform = getBoxInverseTransform(box);
 
         bool inFrustum = frustumContainsOBB(scale, transform);
 

@@ -45,6 +45,37 @@ mat4 getBoxTransform(AOBox box) {
 }
 //#define SLOW_BOX
 
+float getBoxOcclusionArtistic(AOBox box, vec3 pos, vec3 nor) {
+    vec3 boxSize = getBoxScale(box);
+    mat3 rotation = getBoxRotationMat(box);
+
+    vec3 boxCenter = getBoxTranslation(box);
+    vec3 dv = pos - boxCenter;
+
+    vec3 xAxis = rotation * vec3(1.0, 0.0, 0.0);
+    vec3 yAxis = rotation * vec3(0.0, 1.0, 0.0);
+    vec3 zAxis = rotation * vec3(0.0, 0.0, 1.0);
+
+    float xDist = dot(xAxis, dv);
+    float yDist = dot(yAxis, dv);
+    float zDist = dot(zAxis, dv);
+
+    xDist = clamp(xDist, -boxSize.x, boxSize.x);
+    yDist = clamp(yDist, -boxSize.y, boxSize.y);
+    zDist = clamp(zDist, -boxSize.z, boxSize.z);
+
+    vec3 point = boxCenter + (xAxis * xDist) + (yAxis * yDist) + (zAxis * zDist);
+    float d = distance(point, pos);
+
+    //return distance(pos, point);
+    //vec3 dirToPoint = normalize(point - pos);
+
+    //return 1.0f;
+    //return d;
+    return clamp(pow(1.0f / 1.0 - d, 5.0), 0.0, 1.0);
+    //return distanceToBox;
+}
+
 // THIS CODE IS NOT MINE.
 // It is taken from https://iquilezles.org/www/articles/boxocclusion/boxocclusion.htm
 // It is publicly available for use and is not part of my computing project.
