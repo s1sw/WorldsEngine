@@ -1,11 +1,14 @@
 #include "ResourceSlots.hpp"
-#include "../Core/Engine.hpp"
-#include "tracy/Tracy.hpp"
-#include <physfs.h>
-#include <optional>
-#include "../Util/JsonUtil.hpp"
-#include <nlohmann/json.hpp>
+
 #include <mutex>
+#include <optional>
+
+#include <physfs.h>
+#include <tracy/Tracy.hpp>
+#include <nlohmann/json.hpp>
+
+#include <Core/Engine.hpp>
+#include <Util/JsonUtil.hpp>
 
 namespace worlds {
     uint32_t MaterialSlots::getTexture(nlohmann::json& j, std::string key) {
