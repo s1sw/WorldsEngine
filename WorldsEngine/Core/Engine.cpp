@@ -978,7 +978,7 @@ namespace worlds {
 
                 if (renderer) {
                     renderer->uploadSceneAssets(registry);
-                    renderer->unloadUnusedMaterials(registry);
+                    renderer->unloadUnusedAssets(registry);
                 }
 
                 currentScene.name = std::filesystem::path(AssetDB::idToPath(queuedSceneID)).stem().string();
@@ -1090,7 +1090,7 @@ namespace worlds {
                     ImGui::Text("Current scene: %s (%u)", currentScene.name.c_str(), currentScene.id);
 
                     if (ImGui::Button("Unload Unused Assets")) {
-                        renderer->unloadUnusedMaterials(registry);
+                        renderer->unloadUnusedAssets(registry);
                     }
 
                     if (ImGui::Button("Reload Materials and Textures")) {
