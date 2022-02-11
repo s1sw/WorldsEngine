@@ -237,11 +237,23 @@ namespace WorldsEngine
 
         public void AddForce(Vector3 force, ForceMode forceMode = ForceMode.Force)
         {
+            if (force.HasNaNComponent)
+            {
+                Log.Error("Tried to add force with a NaN component!");
+                return;
+            }
+
             dynamicpa_addForce(regPtr, entityId, force, (int)forceMode);
         }
 
         public void AddTorque(Vector3 torque, ForceMode forceMode = ForceMode.Force)
         {
+            if (torque.HasNaNComponent)
+            {
+                Log.Error("Tried to add torque with a NaN component!");
+                return;
+            }
+
             dynamicpa_addTorque(regPtr, entityId, torque, (int)forceMode);
         }
 
