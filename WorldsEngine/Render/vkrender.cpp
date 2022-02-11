@@ -1112,7 +1112,7 @@ void VKRenderer::writeCmdBuf(VkCommandBuffer cmdBuf, uint32_t imageIndex, Camera
     int numActivePasses = 0;
     bool lastPassIsVr = false;
     for (auto& p : rttPasses) {
-        if (!p->active || !p->isValid) continue;
+        if (!p->active) continue;
         numActivePasses++;
 
         if (!p->outputToScreen) {
