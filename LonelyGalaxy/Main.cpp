@@ -3,6 +3,8 @@
 #include <Core/Engine.hpp>
 #include <SDL_main.h>
 
+using namespace worlds;
+
 // 32 bit systems are not supported!
 // Make sure that we're 64 bit
 int _dummy[sizeof(void*) - 7];
@@ -49,21 +51,16 @@ int main(int argc, char** argv) {
 #endif
     worlds::EngineInitOptions initOptions;
     initOptions.gameName = "Lightline";
-    initOptions.enableVR = true;
 
     std::vector<std::string> startupCommands;
-    std::vector<const char*> engineOptions;
 
-    bool ds = false;
+    EngineArguments::parseArguments(argc, argv);
+    initOptions.runAsEditor = EngineArguments::hasArgument("editor");
+    initOptions.enableVR = !EngineArguments::hasArgument("novr");
+    initOptions.dedicatedServer = EngineArguments::hasArgument("dedicated-server");
+
     for (int i = 0; i < argc; i++) {
-        if (strcmp(argv[i], "--editor") == 0) {
-            initOptions.runAsEditor = true;
-        } else if (strcmp(argv[i], "--novr") == 0) {
-            initOptions.enableVR = false;
-        } else if (strcmp(argv[i], "--dedicated-server") == 0) {
-           ds = true;
-           initOptions.dedicatedServer = true;
-        } else if (argv[i][0] == '+') {
+        if (argv[i][0] == '+') {
             std::string strArg = argv[i];
             size_t colonPos = strArg.find(":");
             if (colonPos != std::string::npos) {
@@ -71,20 +68,17 @@ int main(int argc, char** argv) {
                 std::string cmdArg = strArg.substr(colonPos + 1);
                 startupCommands.push_back(cmd + " " + cmdArg);
             }
-        } else {
-            engineOptions.push_back(argv[i]);
         }
     }
 
-    if (ds && (initOptions.enableVR || initOptions.runAsEditor)) {
+    if (initOptions.dedicatedServer && (initOptions.enableVR || initOptions.runAsEditor)) {
         fprintf(stderr, "%s: invalid arguments.\n", argv[0]);
         return -1;
     }
 
     initOptions.useEventThread = false;
-    initOptions.cmdLineOptions = engineOptions;
 
-    lg::EventHandler evtHandler {ds};
+    lg::EventHandler evtHandler {initOptions.dedicatedServer};
     initOptions.eventHandler = &evtHandler;
 
     worlds::WorldsEngine engine(initOptions, argv[0]);

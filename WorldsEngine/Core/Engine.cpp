@@ -344,7 +344,6 @@ namespace worlds {
         runAsEditor = initOptions.runAsEditor;
         enableOpenVR = initOptions.enableVR;
         dedicatedServer = initOptions.dedicatedServer;
-        cmdLineOptions = initOptions.cmdLineOptions;
 
         // Initialisation Stuffs
         // =====================
@@ -359,8 +358,8 @@ namespace worlds {
         }
 
         console = std::make_unique<Console>(
-            hasCommandLineArg("create-console-window") || dedicatedServer,
-            hasCommandLineArg("enable-console-window-input") || dedicatedServer);
+            EngineArguments::hasArgument("create-console-window") || dedicatedServer,
+            EngineArguments::hasArgument("enable-console-window-input") || dedicatedServer);
 
         setupSDL();
 
@@ -1315,13 +1314,7 @@ namespace worlds {
     }
 
     bool WorldsEngine::hasCommandLineArg(const char* arg) {
-        for (const char* opt : cmdLineOptions) {
-            if (strlen(opt) < 3) continue;
-            if (strcmp(&opt[2], arg) == 0)
-                return true;
-        }
-
-        return false;
+        return EngineArguments::hasArgument(arg);
     }
 
     WorldsEngine::~WorldsEngine() {

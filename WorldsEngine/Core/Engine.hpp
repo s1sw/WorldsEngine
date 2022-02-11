@@ -53,7 +53,6 @@ namespace worlds {
         bool dedicatedServer;
         IGameEventHandler* eventHandler;
         const char* gameName;
-        std::vector<const char*> cmdLineOptions;
     };
 
     struct SceneSettings {
@@ -63,6 +62,14 @@ namespace worlds {
 
     struct PrefabInstanceComponent {
         AssetID prefab;
+    };
+
+    class EngineArguments {
+    public:
+        static void parseArguments(int argc, char** argv);
+        static void addArgument(const char* arg, const char* value = nullptr);
+        static bool hasArgument(const char* arg);
+        static std::string_view argumentValue(const char* arg);
     };
 
     class WorldsEngine {
@@ -81,7 +88,7 @@ namespace worlds {
         bool runAsEditor;
         void destroyNextFrame(entt::entity ent) { this->nextFrameKillList.push_back(ent); }
         [[nodiscard]] double getGameTime() const { return gameTime; }
-        bool hasCommandLineArg(const char* arg);
+        [[deprecated("Use EngineArguments")]] bool hasCommandLineArg(const char* arg);
     private:
         struct DebugTimeInfo {
             double deltaTime;
@@ -131,7 +138,5 @@ namespace worlds {
 
         std::vector<ISystem*> systems;
         std::vector<entt::entity> nextFrameKillList;
-
-        std::vector<const char*> cmdLineOptions;
     };
 }
