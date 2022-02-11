@@ -1424,7 +1424,7 @@ void VKRenderer::unloadUnusedAssets(entt::registry& reg) {
 
     std::unordered_set<AssetID> referencedMeshes;
 
-    reg.view<WorldObject>().each([&referencedMeshes](entt::entity, WorldObject& wo) {
+    reg.view<WorldObject>().each([&referencedMeshes](WorldObject& wo) {
         referencedMeshes.insert(wo.mesh);
         });
 
@@ -1438,17 +1438,29 @@ void VKRenderer::unloadUnusedAssets(entt::registry& reg) {
     for (auto& id : toUnload) {
         loadedMeshes.erase(id);
     }
+
+    robin_hood::unordered_set<AssetID> referencedCubemaps;
+
+    reg.view<WorldCubemap>().each([&referencedCubemaps](WorldCubemap& wc) {
+        referencedCubemaps.insert(wc.cubemapId);
+        });
+
+    referencedCubemaps.insert(reg.ctx<SceneSettings>().skybox);
+
+    for (int i = 0; i < NUM_CUBEMAP_SLOTS; i++) {
+        if (cubemapSlots->isSlotPresent(i)) {
+            AssetID id = cubemapSlots->getKeyForSlot(i);
+
+            if (!referencedCubemaps.contains(id)) {
+                logMsg("unloading %s", AssetDB::idToPath(id).c_str());
+                cubemapSlots->unload(i);
+            }
+        }
+    }
 }
 
 void VKRenderer::reloadContent(ReloadFlags flags) {
     VKCHECK(vkDeviceWaitIdle(device));
-    if (enumHasFlag(flags, ReloadFlags::Materials)) {
-        for (uint32_t i = 0; i < NUM_MAT_SLOTS; i++) {
-            if (matSlots->isSlotPresent(i))
-                matSlots->unload(i);
-        }
-    }
-
     if (enumHasFlag(flags, ReloadFlags::Textures)) {
         for (uint32_t i = 0; i < NUM_TEX_SLOTS; i++) {
             if (texSlots->isSlotPresent(i))
@@ -1460,6 +1472,13 @@ void VKRenderer::reloadContent(ReloadFlags flags) {
         for (uint32_t i = 0; i < NUM_CUBEMAP_SLOTS; i++) {
             if (cubemapSlots->isSlotPresent(i))
                 cubemapSlots->unload(i);
+        }
+    }
+
+    if (enumHasFlag(flags, ReloadFlags::Materials)) {
+        for (uint32_t i = 0; i < NUM_MAT_SLOTS; i++) {
+            if (matSlots->isSlotPresent(i))
+                matSlots->unload(i);
         }
     }
 
