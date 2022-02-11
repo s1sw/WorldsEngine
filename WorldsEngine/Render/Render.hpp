@@ -156,9 +156,11 @@ namespace worlds {
      */
     class RTTPass {
     public:
+        //! Controls the order in which the RTTPasses are executed.
         int drawSortKey = 0;
         uint32_t width, height;
-        bool isValid = true;
+
+        //! Whether the RTTPass should be rendered every frame.
         bool active = false;
         float resScale = 1.0f;
 
