@@ -225,8 +225,8 @@ namespace worlds {
             vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_COMPUTE, upsamplePipeline);
             for (int i = nMips - 1; i > 0; i--) {
                 VkExtent3D chainExtent = mipChain->image().extent();
-                int thisWidth = vku::mipScale(chainExtent.width, i);
-                int thisHeight = vku::mipScale(chainExtent.height, i);
+                [[maybe_unused]] int thisWidth = vku::mipScale(chainExtent.width, i);
+                [[maybe_unused]] int thisHeight = vku::mipScale(chainExtent.height, i);
 
                 int nextWidth = vku::mipScale(chainExtent.width, i - 1);
                 int nextHeight = vku::mipScale(chainExtent.height, i - 1);
