@@ -126,6 +126,7 @@ namespace worlds {
         AMD,
         Nvidia,
         Intel,
+        Qualcomm,
         Other
     };
 

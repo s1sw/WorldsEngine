@@ -463,6 +463,9 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     case 0x8086:
         vendor = VKVendor::Intel;
         break;
+    case 0x5143:
+        vendor = VKVendor::Qualcomm;
+        break;
     }
 
     uint32_t count;
