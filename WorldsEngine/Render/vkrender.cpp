@@ -1,6 +1,5 @@
 #include <Util/TimingUtil.hpp>
 #define _CRT_SECURE_NO_WARNINGS
-#define VMA_IMPLEMENTATION
 #include <Libs/volk.h>
 #include "vku/vku.hpp"
 #include <Core/Engine.hpp>
@@ -8,14 +7,12 @@
 #include <SDL_vulkan.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#define STB_IMAGE_IMPLEMENTATION
-#include <stb_image.h>
 #include <ImGui/imgui_impl_vulkan.h>
 #include <IO/physfs.hpp>
 #include <Core/Transform.hpp>
-#include "tracy/Tracy.hpp"
+#include <tracy/Tracy.hpp>
 #include <tracy/TracyC.h>
-#include "tracy/TracyVulkan.hpp"
+#include <tracy/TracyVulkan.hpp>
 #include "RenderPasses.hpp"
 #include <Input/Input.hpp>
 #include <VR/OpenVRInterface.hpp>
