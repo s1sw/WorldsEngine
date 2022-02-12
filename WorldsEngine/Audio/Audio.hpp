@@ -46,6 +46,7 @@ namespace worlds {
     struct AudioSource {
         FMOD::Studio::EventInstance* eventInstance = nullptr;
         bool playOnSceneStart = true;
+        IPLSource phononSource = nullptr;
 
         const std::string_view eventPath() { return _eventPath; }
         void changeEventPath(const std::string_view& eventPath);
@@ -77,7 +78,6 @@ namespace worlds {
         void playOneShotAttachedEvent(const char* eventPath, glm::vec3 location, entt::entity entity, float volume = 1.0f);
         inline bool getPauseState() { return false; }
         void shutdown(entt::registry& worldState);
-        void precacheAudioClip(AssetID id) {}
         static AudioSystem* getInstance() { return instance; }
         FMOD::Studio::Bank* loadBank(const char* path);
         void bakeProbes(entt::registry& registry);

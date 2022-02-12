@@ -154,6 +154,65 @@ namespace worlds {
 #endif
     }
 
+    FMOD_RESULT findSteamAudioDSP(FMOD::Studio::EventInstance* instance, FMOD::DSP** dsp) {
+        FMOD::ChannelGroup* channelGroup;
+        FMOD_RESULT res = instance->getChannelGroup(&channelGroup);
+
+        if (res != FMOD_OK)
+            return res;
+
+        int numDsps;
+        res = channelGroup->getNumDSPs(&numDsps);
+        if (res != FMOD_OK)
+            return res;
+
+        FMOD::DSP* spatializerDsp;
+        bool found = false;
+        for (int i = 0; i < numDsps; i++) {
+            res = channelGroup->getDSP(i, &spatializerDsp);
+            if (res != FMOD_OK)
+                return res;
+
+            char buffer[33] = {0};
+            res = spatializerDsp->getInfo(buffer, nullptr, nullptr, nullptr, nullptr);
+            if (res != FMOD_OK)
+                return res;
+
+            if (strcmp(buffer, "Steam Audio Spatializer") == 0) {
+                *dsp = spatializerDsp;
+                found = true;
+            }
+        }
+
+        if (!found) return FMOD_ERR_DSP_NOTFOUND;
+
+        return FMOD_OK;
+    }
+
+    FMOD_RESULT audioSourcePhononEventCallback(FMOD_STUDIO_EVENT_CALLBACK_TYPE type, FMOD_STUDIO_EVENTINSTANCE* cevent, void* param) {
+        if (type != FMOD_STUDIO_EVENT_CALLBACK_CREATED) return FMOD_OK;
+
+        FMOD::Studio::EventInstance* event = (FMOD::Studio::EventInstance*)cevent;
+
+        IPLSource source;
+
+        FMCHECK(event->getUserData((void**)&source));
+        FMOD::DSP* dsp;
+        FMCHECK(findSteamAudioDSP(event, &dsp));
+
+        // The FMOD plugin says here that it wants the simulation outputs.
+        // However, this is wrong. The code is actually looking for the IPLSource attached
+        // to the Steam Audio source!
+        FMCHECK(dsp->setParameterData(
+                SpatializerEffect::SIMULATION_OUTPUTS,
+                &source,
+                sizeof(IPLSource)
+        ));
+
+
+        return FMOD_OK;
+    }
+
     void AudioSource::changeEventPath(const std::string_view& eventPath) {
         FMOD::Studio::EventDescription* desc;
 
@@ -164,6 +223,17 @@ namespace worlds {
         if (result != FMOD_OK) {
             logErr(WELogCategoryAudio, "Failed to get event %s: %s", eventPath.data(), FMOD_ErrorString(result));
             return;
+        }
+
+        bool createPhononSource = true;
+
+        FMOD_STUDIO_USER_PROPERTY userProp;
+        FMOD_RESULT propertyResult = desc->getUserProperty("UsePhononSource", &userProp);
+
+        if (propertyResult == FMOD_ERR_EVENT_NOTFOUND) {
+            createPhononSource = false;
+        } else {
+            FMCHECK(propertyResult);
         }
 
         if (eventInstance != nullptr) {
@@ -178,6 +248,20 @@ namespace worlds {
         }
 
         _eventPath.assign(eventPath);
+
+        if (createPhononSource) {
+            IPLSourceSettings sourceSettings {
+                (IPLSimulationFlags)(IPL_SIMULATIONFLAGS_REFLECTIONS | IPL_SIMULATIONFLAGS_DIRECT)
+            };
+
+            AudioSystem* as = AudioSystem::getInstance();
+            SACHECK(iplSourceCreate(as->simulator, &sourceSettings, &phononSource));
+            as->sourcesToAdd.push(phononSource);
+            as->needsSimCommit = true;
+
+            eventInstance->setUserData(phononSource);
+            eventInstance->setCallback(audioSourcePhononEventCallback, FMOD_STUDIO_EVENT_CALLBACK_CREATED);
+        }
     }
 
     FMOD_STUDIO_PLAYBACK_STATE AudioSource::playbackState() {
@@ -275,7 +359,13 @@ namespace worlds {
         FMCHECK(studioSystem->getCoreSystem(&system));
         FMCHECK(system->setSoftwareFormat(0, FMOD_SPEAKERMODE_STEREO, 0));
 
-        FMOD_RESULT result = studioSystem->initialize(2048, FMOD_STUDIO_INIT_NORMAL | FMOD_STUDIO_INIT_LIVEUPDATE, FMOD_INIT_NORMAL, nullptr);
+        FMOD_STUDIO_INITFLAGS studioInitFlags = FMOD_STUDIO_INIT_NORMAL;
+
+        bool useLiveUpdate = EngineArguments::hasArgument("editor") || EngineArguments::hasArgument("fmod-live-update");
+
+        if (useLiveUpdate) studioInitFlags |= FMOD_STUDIO_INIT_LIVEUPDATE;
+
+        FMOD_RESULT result = studioSystem->initialize(2048, studioInitFlags, FMOD_INIT_NORMAL, nullptr);
 
         if (result == FMOD_ERR_OUTPUT_INIT) {
             logErr(WELogCategoryAudio, "Initializing the audio output device failed");
@@ -477,6 +567,28 @@ namespace worlds {
             iplSourceSetInputs(oneshot->phononSource, simFlags, &inputs);
         }
 
+        registry.view<AudioSource, Transform>().each([simFlags](AudioSource& as, Transform& t) {
+            FMOD_STUDIO_PLAYBACK_STATE playbackState;
+            FMCHECK(as.eventInstance->getPlaybackState(&playbackState));
+            if (as.phononSource == nullptr || playbackState == FMOD_STUDIO_PLAYBACK_STOPPED) return;
+            IPLSimulationInputs inputs{};
+            inputs.flags = simFlags;
+            inputs.source.right = convVecSA(t.rotation * glm::vec3(1.0f, 0.0f, 0.0f));
+            inputs.source.up = convVecSA(t.rotation * glm::vec3(0.0f, 1.0f, 0.0f));
+            inputs.source.ahead = convVecSA(t.rotation * glm::vec3(0.0f, 0.0f, 1.0f));
+            inputs.source.origin = convVecSA(t.position);
+            inputs.distanceAttenuationModel.type = IPL_DISTANCEATTENUATIONTYPE_DEFAULT;
+            inputs.airAbsorptionModel.type = IPL_AIRABSORPTIONTYPE_DEFAULT;
+            inputs.reverbScale[0] = 1.0f;
+            inputs.reverbScale[1] = 1.0f;
+            inputs.reverbScale[2] = 1.0f;
+            inputs.hybridReverbTransitionTime = 1.0f;
+            inputs.hybridReverbOverlapPercent = 0.25f;
+            inputs.baked = IPL_FALSE;
+
+            iplSourceSetInputs(as.phononSource, simFlags, &inputs);
+            });
+
 
         IPLSimulationSharedInputs sharedInputs{};
         sharedInputs.listener = inputs.source;
@@ -643,40 +755,6 @@ namespace worlds {
         playOneShotAttachedEvent(eventPath, location, entt::null, volume);
     }
 
-    FMOD_RESULT findSteamAudioDSP(FMOD::Studio::EventInstance* instance, FMOD::DSP** dsp) {
-        FMOD::ChannelGroup* channelGroup;
-        FMOD_RESULT res = instance->getChannelGroup(&channelGroup);
-
-        if (res != FMOD_OK)
-            return res;
-
-        int numDsps;
-        res = channelGroup->getNumDSPs(&numDsps);
-        if (res != FMOD_OK)
-            return res;
-
-        FMOD::DSP* spatializerDsp;
-        bool found = false;
-        for (int i = 0; i < numDsps; i++) {
-            res = channelGroup->getDSP(i, &spatializerDsp);
-            if (res != FMOD_OK)
-                return res;
-
-            char buffer[33] = {0};
-            res = spatializerDsp->getInfo(buffer, nullptr, nullptr, nullptr, nullptr);
-            if (res != FMOD_OK)
-                return res;
-
-            if (strcmp(buffer, "Steam Audio Spatializer") == 0) {
-                *dsp = spatializerDsp;
-                found = true;
-            }
-        }
-
-        if (!found) return FMOD_ERR_DSP_NOTFOUND;
-
-        return FMOD_OK;
-    }
 
     FMOD_RESULT AudioSystem::phononEventInstanceCallback(FMOD_STUDIO_EVENT_CALLBACK_TYPE type, FMOD_STUDIO_EVENTINSTANCE* cevent, void* param) {
         if (type != FMOD_STUDIO_EVENT_CALLBACK_CREATED) return FMOD_OK;
