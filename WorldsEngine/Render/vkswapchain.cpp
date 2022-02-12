@@ -65,7 +65,8 @@ namespace worlds {
         std::vector<VkPresentModeKHR> pms(presentModeCount);
         VKCHECK(vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &presentModeCount, pms.data()));
 
-        VkPresentModeKHR presentMode = pms[0];
+        // FIFO support is always required
+        VkPresentModeKHR presentMode = VK_PRESENT_MODE_FIFO_KHR;
         if (std::find(pms.begin(), pms.end(), requestedPresentMode) != pms.end()) {
             presentMode = requestedPresentMode;
         } else {
