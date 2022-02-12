@@ -151,7 +151,7 @@ namespace worlds {
 
         if (submitResult != VK_SUCCESS) {
             std::string errStr = vku::toString(submitResult);
-            logErr(("Failed to submit queue (error: " + errStr + ")").c_str());
+            fatalErr(("Failed to submit queue (error: " + errStr + ")").c_str());
         }
     }
 
