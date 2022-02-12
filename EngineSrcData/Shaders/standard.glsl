@@ -7,7 +7,7 @@
 #extension GL_EXT_multiview : enable
 #endif
 #define MAX_SHADOW_LIGHTS 16
-//#define HIGH_QUALITY_SHADOWS
+#define HIGH_QUALITY_SHADOWS
 #include <math.glsl>
 #include <light.glsl>
 #include <material.glsl>
@@ -250,12 +250,12 @@ float calcProxyAO(vec3 wPos, vec3 normal) {
     if (!ENABLE_PROXY_AO) return 1.0;
     float proxyAO = 1.0;
 
-    for (int i = 0; i < int(pack1.x); i++) {
-        if (floatBitsToUint(aoBox[i].pack3.w) != objectId) {
-            proxyAO *= (1.0 - getBoxOcclusionArtistic(aoBox[i], inWorldPos.xyz, normal));
-            //proxyAO *= (1.0 - getBoxOcclusionNonClipped(aoBox[i], inWorldPos.xyz, normal));
-        }
-    }
+    //for (int i = 0; i < int(pack1.x); i++) {
+    //    if (floatBitsToUint(aoBox[i].pack3.w) != objectId) {
+    //        proxyAO *= (1.0 - getBoxOcclusionArtistic(aoBox[i], inWorldPos.xyz, normal));
+    //        //proxyAO *= (1.0 - getBoxOcclusionNonClipped(aoBox[i], inWorldPos.xyz, normal));
+    //    }
+    //}
     //
     //for (int i = 0; i < int(pack1.y); i++) {
     //    if (sphereIds[i] != objectId) {
@@ -288,24 +288,24 @@ float calcProxyAO(vec3 wPos, vec3 normal) {
         }
     }
 
-    //for (int i = 0; i < 2; i++) {
-    //    uint boxBits = buf_LightTiles.tiles[tileIdx].aoBoxIdMasks[i];
+    for (int i = 0; i < 2; i++) {
+        uint boxBits = buf_LightTiles.tiles[tileIdx].aoBoxIdMasks[i];
 
-    //    while (boxBits != 0) {
-    //        // find the next set sphere bit
-    //        uint boxBitIndex = findLSB(boxBits);
+        while (boxBits != 0) {
+            // find the next set sphere bit
+            uint boxBitIndex = findLSB(boxBits);
 
-    //        // remove it from the mask with an XOR
-    //        boxBits ^= 1 << boxBitIndex;
+            // remove it from the mask with an XOR
+            boxBits ^= 1 << boxBitIndex;
 
-    //        uint realIndex = boxBitIndex + (32 * i);
+            uint realIndex = boxBitIndex + (32 * i);
 
-    //        if (floatBitsToUint(aoBox[realIndex].pack3.w) != objectId) {
-    //            //proxyAO *= (1.0 - getBoxOcclusionNonClipped(aoBox[realIndex], inWorldPos.xyz, normal));
-    //            proxyAO *= (1.0 - getBoxOcclusionArtistic(aoBox[realIndex], inWorldPos.xyz, normal));
-    //        }
-    //    }
-    //}
+            if (floatBitsToUint(aoBox[realIndex].pack3.w) != objectId) {
+                //proxyAO *= (1.0 - getBoxOcclusionNonClipped(aoBox[realIndex], inWorldPos.xyz, normal));
+                proxyAO *= (1.0 - getBoxOcclusionArtistic(aoBox[realIndex], inWorldPos.xyz, normal));
+            }
+        }
+    }
 
     return proxyAO;
 }
@@ -466,7 +466,7 @@ mat3 cotangent_frame( vec3 N, vec3 p, vec2 uv ) {
 }
 
 #define MATERIAL_FLAG_PACKED_PBR (1 << 8)
-void unpackMaterial(inout ShadeInfo si, mat3 tbn) {
+void unpackMaterial(inout ShadeInfo si, vec2 tCoord, mat3 tbn) {
     Material mat = materials[matIdx];
     si.metallic = mat.metallic;
     si.roughness = mat.roughness;
@@ -477,7 +477,6 @@ void unpackMaterial(inout ShadeInfo si, mat3 tbn) {
     si.alphaCutoff = 0.0;
 //#endif
 
-    vec2 tCoord = inUV;
     if (mat.heightmapIdx > -1 && DO_PARALLAX) {
         mat3 tbnT = transpose(tbn);
         vec3 tViewDir = normalize((tbnT * getViewPos()) - (tbnT * inWorldPos.xyz));
@@ -554,8 +553,17 @@ void main() {
     //            vec3(0.0, 0.0, 1.0)) * sign(inNormal.z);
     //}
     // Let's attempt some tangent frame construction on the fly!
-    if (inUvDir != 0)
-        tbn = cotangent_frame(inNormal, getViewPos() - inWorldPos.xyz, abs(inUV));
+    vec2 tCoord = inUV;
+    if (inUvDir != 0) {
+        if (inUV.x < 0.0) {
+            tCoord.x += 20.0; 
+        }
+        
+        if (inUV.y < 0.0) {
+            tCoord.y += 20.0;//= mod(tCoord.y, 1.0) + 1.0;
+        }
+        tbn = cotangent_frame(inNormal, getViewPos() - inWorldPos.xyz, abs(tCoord));
+    }
 
     uint doPicking = miscFlag & 0x1;
 
@@ -564,7 +572,7 @@ void main() {
     }
 
     ShadeInfo si;
-    unpackMaterial(si, tbn);
+    unpackMaterial(si, tCoord, tbn);
     si.viewDir = normalize(getViewPos() - inWorldPos.xyz);
 
 #ifdef DEBUG

@@ -45,6 +45,7 @@ mat4 getBoxTransform(AOBox box) {
 }
 //#define SLOW_BOX
 
+// Returns 1 for a fully occluded point and 0 for a fully unoccluded point
 float getBoxOcclusionArtistic(AOBox box, vec3 pos, vec3 nor) {
     vec3 boxSize = getBoxScale(box);
     mat3 rotation = getBoxRotationMat(box);
@@ -67,13 +68,9 @@ float getBoxOcclusionArtistic(AOBox box, vec3 pos, vec3 nor) {
     vec3 point = boxCenter + (xAxis * xDist) + (yAxis * yDist) + (zAxis * zDist);
     float d = distance(point, pos);
 
-    //return distance(pos, point);
-    //vec3 dirToPoint = normalize(point - pos);
+    vec3 dirToPoint = normalize(point - pos);
 
-    //return 1.0f;
-    //return d;
-    return clamp(pow(1.0f / 1.0 - d, 5.0), 0.0, 1.0);
-    //return distanceToBox;
+    return clamp(pow(1.0f / 1.0 - d, 5.0), 0.0, 1.0) * smoothstep(0.0, 1.0, pow(dot(dirToPoint, nor), 0.25));
 }
 
 // THIS CODE IS NOT MINE.
