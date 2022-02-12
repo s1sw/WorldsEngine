@@ -118,7 +118,7 @@ namespace worlds {
             jl.wait();
         }
 
-        bool needsCopy = newFormat == VK_FORMAT_BC1_RGBA_SRGB_BLOCK;
+        bool needsCopy = newFormat == VK_FORMAT_BC1_RGBA_SRGB_BLOCK || newFormat == VK_FORMAT_BC3_SRGB_BLOCK;
         bool hdr = newFormat == VK_FORMAT_R32G32B32A32_SFLOAT;
         VkImageUsageFlags usageFlags = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
