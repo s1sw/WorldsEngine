@@ -58,7 +58,7 @@ namespace WorldsEngine
 
         public static bool SceneRunning { get; private set; }
 
-        static void ActualInit(IntPtr registryPtr)
+        static void ActualInit(IntPtr registryPtr, bool editorActive)
         {
             NativeLibrary.SetDllImportResolver(typeof(WorldsEngine).Assembly, ImportResolver);
             Registry.nativeRegistryPtr = registryPtr;
@@ -68,7 +68,7 @@ namespace WorldsEngine
             MetadataManager.Initialise();
             Console.Initialise();
 
-            HotloadManager.Active = true;
+            HotloadManager.Active = !editorActive;
 
             GameAssemblyManager.OnAssemblyUnload += () =>
             {
@@ -85,11 +85,11 @@ namespace WorldsEngine
         [UsedImplicitly]
         [SuppressMessage("CodeQuality", "IDE0051:Remove unused private members",
             Justification = "Called from native C++")]
-        static bool Init(IntPtr registryPtr)
+        static bool Init(IntPtr registryPtr, bool editorActive)
         {
             try
             {
-                ActualInit(registryPtr );
+                ActualInit(registryPtr, editorActive);
             }
             catch (Exception ex)
             {

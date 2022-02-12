@@ -153,10 +153,10 @@ namespace worlds {
         }
 
         // C# bools are always 4 bytes
-        uint32_t(*initFunc)(entt::registry* reg);
+        uint32_t(*initFunc)(entt::registry* reg, uint32_t editorActive);
         createManagedDelegate("WorldsEngine.WorldsEngine", "Init", (void**)&initFunc);
 
-        if (!initFunc(&reg))
+        if (!initFunc(&reg, interfaces.engine->runAsEditor))
             return false;
 
         createManagedDelegate("WorldsEngine.WorldsEngine", "Update", (void**)&updateFunc);
