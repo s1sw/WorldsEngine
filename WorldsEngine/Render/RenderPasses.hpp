@@ -293,12 +293,13 @@ namespace worlds {
         vku::UniformBuffer matrixBuffer;
         uint32_t shadowmapRes;
         VulkanHandles* handles;
+        IVRInterface* vrInterface;
 
         void createRenderPass();
         void createDescriptorSet();
         void calculateCascadeMatrices(RenderContext& rCtx);
     public:
-        ShadowCascadePass(VulkanHandles* handles, RenderResource* shadowImage);
+        ShadowCascadePass(IVRInterface* vrInterface, VulkanHandles* handles, RenderResource* shadowImage);
         void setup();
         void prePass(RenderContext& ctx);
         void execute(RenderContext& ctx);

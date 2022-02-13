@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using WorldsEngine;
+using WorldsEngine.Audio;
 
 namespace Game.Combat
 {
@@ -28,6 +29,11 @@ namespace Game.Combat
         {
             Health -= dmg;
             OnDamage?.Invoke(Entity, dmg, damager);
+
+            if (damager == LocalPlayerSystem.PlayerBody)
+            {
+                Audio.PlayOneShotEvent("event:/Player/Hitmarker");
+            }
 
             if (Health <= 0.0 && !Dead)
             {

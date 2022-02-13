@@ -722,7 +722,7 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
         createCascadeShadowImages();
 
         delete shadowCascadePass;
-        shadowCascadePass = new ShadowCascadePass(&handles, shadowmapImage);
+        shadowCascadePass = new ShadowCascadePass(vrInterface, &handles, shadowmapImage);
         shadowCascadePass->setup();
 
         for (VKRTTPass* rttPass : rttPasses) {
@@ -761,7 +761,7 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     MaterialsUB materials;
     materialUB.upload(device, commandPool, queues.graphics, &materials, sizeof(materials));
 
-    shadowCascadePass = new ShadowCascadePass(&handles, shadowmapImage);
+    shadowCascadePass = new ShadowCascadePass(vrInterface, &handles, shadowmapImage);
     shadowCascadePass->setup();
 
     additionalShadowsPass = new AdditionalShadowsPass(&handles);
