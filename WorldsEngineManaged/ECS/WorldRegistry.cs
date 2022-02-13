@@ -293,11 +293,11 @@ namespace WorldsEngine
 
             storage.Set(entity, Activator.CreateInstance<T>());
 
-            if (type.IsAssignableTo(typeof(IStartListener)))
-                ((IStartListener)instance!).Start();
-
             if (type.IsSubclassOf(typeof(Component)))
                 ((Component)(object)instance!).Entity = entity;
+
+            if (type.IsAssignableTo(typeof(IStartListener)))
+                ((IStartListener)instance!).Start();
 
             return instance;
         }
@@ -316,11 +316,11 @@ namespace WorldsEngine
 
             object instance = Activator.CreateInstance(type)!;
 
-            if (type.IsAssignableTo(typeof(IStartListener)))
-                ((IStartListener)instance!).Start();
-
             if (type.IsSubclassOf(typeof(Component)))
                 ((Component)instance!).Entity = entity;
+
+            if (type.IsAssignableTo(typeof(IStartListener)))
+                ((IStartListener)instance!).Start();
 
             storage.SetBoxed(entity, instance);
             return instance;

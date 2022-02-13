@@ -17,9 +17,10 @@ namespace worlds {
         glm::mat4 matrices[3];
     };
 
-    ShadowCascadePass::ShadowCascadePass(VulkanHandles* handles, RenderResource* shadowImage)
+    ShadowCascadePass::ShadowCascadePass(IVRInterface* vrInterface, VulkanHandles* handles, RenderResource* shadowImage)
         : shadowImage(shadowImage)
-        , handles(handles) {
+        , handles(handles)
+        , vrInterface(vrInterface) {
     }
 
     void ShadowCascadePass::createDescriptorSet() {
@@ -141,10 +142,10 @@ namespace worlds {
                 } else {
                     for (int i = 1; i < 4; i++) {
                         // TODO: fix this for VR
-                        //frustumMatrices[i - 1] = vrInterface->getEyeProjectionMatrix(
-                        //    Eye::LeftEye,
-                        //    splits[i - 1], splits[i]
-                        //);
+                        frustumMatrices[i - 1] = vrInterface->getEyeProjectionMatrix(
+                            Eye::LeftEye,
+                            splits[i - 1], splits[i]
+                        );
                     }
                 }
 

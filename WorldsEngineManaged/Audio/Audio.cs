@@ -50,6 +50,12 @@ namespace WorldsEngine.Audio
         public static void PlayOneShotEvent(string eventPath, Vector3 location, float volume = 1f)
             => audio_playOneShotEvent(eventPath, ref location, volume);
 
+        public static void PlayOneShotEvent(string eventPath, float volume = 1f)
+        {
+            Vector3 location = Vector3.Zero;
+            audio_playOneShotEvent(eventPath, ref location, volume);
+        }
+
         public static void PlayOneShotAttachedEvent(string eventPath, Vector3 location, Entity entity, float volume = 1f)
             => audio_playOneShotAttachedEvent(eventPath, ref location, entity.ID, volume);
 
