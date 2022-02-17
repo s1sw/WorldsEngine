@@ -39,6 +39,12 @@ namespace WorldsEngine
         [DllImport(WorldsEngine.NativeModule)]
         private static extern char worldObject_exists(IntPtr registryPtr, uint entityId);
 
+        [DllImport(WorldsEngine.NativeModule)]
+        private static extern byte worldObject_getStaticFlags(IntPtr registryPtr, uint entityId);
+
+        [DllImport(WorldsEngine.NativeModule)]
+        private static extern void worldObject_setStaticFlags(IntPtr registryPtr, uint entityId, byte flags);
+
         internal static ComponentMetadata Metadata
         {
             get
@@ -58,6 +64,12 @@ namespace WorldsEngine
         {
             get => new AssetID(worldObject_getMesh(regPtr, entityId));
             set => worldObject_setMesh(regPtr, entityId, value.ID);
+        }
+
+        public StaticFlags StaticFlags
+        {
+            get => (StaticFlags)worldObject_getStaticFlags(regPtr, entityId);
+            set => worldObject_setStaticFlags(regPtr, entityId, (byte)value);
         }
 
         internal WorldObject(IntPtr regPtr, uint entityId) : base(regPtr, entityId)

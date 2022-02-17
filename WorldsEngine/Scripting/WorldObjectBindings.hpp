@@ -27,4 +27,12 @@ extern "C" {
     EXPORT char worldObject_exists(entt::registry* registry, entt::entity entity) {
         return registry->has<WorldObject>(entity);
     }
+
+    EXPORT uint8_t worldObject_getStaticFlags(entt::registry* registry, entt::entity entity) {
+        return (uint8_t)registry->get<WorldObject>(entity).staticFlags;
+    }
+
+    EXPORT void worldObject_setStaticFlags(entt::registry* registry, entt::entity entity, uint8_t staticFlags) {
+        registry->get<WorldObject>(entity).staticFlags = (StaticFlags)staticFlags;
+    }
 }
