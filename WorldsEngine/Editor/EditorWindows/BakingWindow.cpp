@@ -12,6 +12,8 @@
 #include <stb_image_write.h>
 #include <Editor/GuiUtil.hpp>
 #include <Audio/Audio.hpp>
+#include <Recast.h>
+#include <Core/MeshManager.hpp>
 
 namespace worlds {
     void stbiWriteFunc(void* ctx, void* data, int bytes) {
@@ -215,7 +217,7 @@ namespace worlds {
             if (ImGui::CollapsingHeader(ICON_FA_CUBE u8" Cubemaps")) {
                 static int numIterations = 1;
                 ImGui::DragInt("Iterations", &numIterations);
-                reg.view<Transform, WorldCubemap, NameComponent>().each([&](auto,
+                reg.view<Transform, WorldCubemap, NameComponent>().each([&](
                     Transform& t, WorldCubemap&, NameComponent& nc) {
                         ImGui::Text("%s (%.2f, %.2f, %.2f)", nc.name.c_str(),
                             t.position.x, t.position.y, t.position.z);
@@ -226,6 +228,24 @@ namespace worlds {
                         }
                         ImGui::PopID();
                     });
+            }
+
+            if (ImGui::CollapsingHeader(ICON_FA_MAP u8" Navigation")) {
+                glm::vec3 bbMin{FLT_MAX};
+                glm::vec3 bbMax{ -FLT_MAX };
+                reg.view<Transform, WorldObject>().each([&](
+                    Transform& t, WorldObject& o) {
+                        if (!enumHasFlag(o.staticFlags, StaticFlags::Navigation)) return;
+
+                        glm::mat4 tMat = t.getMatrix();
+                        auto& mesh = MeshManager::loadOrGet(o.mesh);
+                        for (const Vertex& v : mesh.vertices) {
+                            glm::vec3 transformedPosition = tMat * glm::vec4(v.position, 1.0f);
+                            bbMin = glm::min(transformedPosition, bbMin);
+                            bbMax = glm::max(transformedPosition, bbMax);
+                        }
+                    });
+                ImGui::Text("World Bounds: (%.3f, %.3f, %.3f) to (%.3f, %.3f, %.3f)", bbMin.x, bbMin.y, bbMin.z, bbMax.x, bbMax.y, bbMax.z);
             }
         }
         ImGui::End();
