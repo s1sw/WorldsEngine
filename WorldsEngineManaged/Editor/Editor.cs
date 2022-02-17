@@ -147,6 +147,18 @@ namespace WorldsEngine.Editor
                             Registry.Destroy(e);
                     });
                 }
+
+                if (ImGui.Button("Mark all static PhysicsActors as static WorldObjects"))
+                {
+                    Registry.Each((Entity e) =>
+                    {
+                        if (Registry.HasComponent<PhysicsActor>(e) && Registry.HasComponent<WorldObject>(e))
+                        {
+                            var wo = Registry.GetComponent<WorldObject>(e);
+                            wo.StaticFlags = StaticFlags.Audio | StaticFlags.Rendering | StaticFlags.Navigation;
+                        }
+                    });
+                }
             }
             ImGui.End();
         }
