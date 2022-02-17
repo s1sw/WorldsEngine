@@ -69,6 +69,7 @@ EngineInterfaces csharpInterfaces;
 #include "SkinnedWorldObjectBindings.hpp"
 #include "MeshManagerBindings.hpp"
 #include "WorldTextBindings.hpp"
+#include "NavigationSystemBindings.hpp"
 
 extern "C" {
     EXPORT void sceneloader_loadScene(AssetID id) {
@@ -175,6 +176,11 @@ namespace worlds {
         JsonSceneSerializer::setScriptEngine(this);
 
         return true;
+    }
+
+    void DotNetScriptEngine::shutdown() {
+        reg.on_destroy<Transform>().disconnect<&DotNetScriptEngine::onTransformDestroy>(*this);
+        netFuncs.shutdown(hostHandle, domainId);
     }
 
     void DotNetScriptEngine::onTransformDestroy(entt::registry& reg, entt::entity ent) {

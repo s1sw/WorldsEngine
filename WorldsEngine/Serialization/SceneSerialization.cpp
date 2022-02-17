@@ -5,6 +5,7 @@
 #include "Core/Engine.hpp"
 #include <Audio/Audio.hpp>
 #include <tracy/Tracy.hpp>
+#include <Navigation/Navigation.hpp>
 
 namespace worlds {
     // Do basic checks on the first byte to determine
@@ -50,6 +51,7 @@ namespace worlds {
 
         PHYSFS_close(file);
         AudioSystem::getInstance()->updateAudioScene(reg);
+        NavigationSystem::updateNavMesh(reg);
     }
 
     entt::entity SceneLoader::loadEntity(PHYSFS_File* file, entt::registry& reg) {
