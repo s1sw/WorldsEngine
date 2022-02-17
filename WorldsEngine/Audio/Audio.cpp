@@ -501,6 +501,10 @@ namespace worlds {
             FMCHECK(as.eventInstance->stop(FMOD_STUDIO_STOP_IMMEDIATE));
             FMCHECK(as.eventInstance->release());
         }
+
+        if (as.phononSource) {
+            sourcesToRemove.push(as.phononSource);
+        }
     }
 
     void AudioSystem::loadMasterBanks() {
