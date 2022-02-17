@@ -67,6 +67,9 @@
     <Filter Include="Core\SplashScreenImpls">
       <UniqueIdentifier>{038b84be-e0e1-498b-b47e-62f42f8839be}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Navigation">
+      <UniqueIdentifier>{3291c057-ab3a-4e3b-a82f-ce6c4275693e}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\WorldsEngine\AssetCompilation\AssetCompilerUtil.cpp">
@@ -659,6 +662,12 @@
     </ClCompile>
     <ClCompile Include="..\WorldsEngine\Render\DeletionQueue.cpp">
       <Filter>Render</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WorldsEngine\Core\EngineArguments.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WorldsEngine\Navigation\Navigation.cpp">
+      <Filter>Navigation</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -1352,6 +1361,12 @@
     </ClInclude>
     <ClInclude Include="..\WorldsEngine\Util\MathsUtil.hpp">
       <Filter>Util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\WorldsEngine\Navigation\Navigation.hpp">
+      <Filter>Navigation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\WorldsEngine\Scripting\NavigationSystemBindings.hpp">
+      <Filter>Scripting</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
