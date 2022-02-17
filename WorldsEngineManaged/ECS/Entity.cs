@@ -50,5 +50,10 @@ namespace WorldsEngine
         public T GetComponent<T>() => Registry.GetComponent<T>(this);
         public bool HasComponent<T>() => Registry.HasComponent<T>(this);
         public bool TryGetComponent<T>(out T comp) => Registry.TryGetComponent<T>(this, out comp);
+        public Transform Transform
+        {
+            get => Registry.GetTransform(this);
+            set => Registry.SetTransform(this, value);
+        }
     }
 }
