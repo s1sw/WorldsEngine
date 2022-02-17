@@ -491,6 +491,10 @@ namespace worlds {
 
             updateAudioScene(worldState);
         }, "a_forceUpdateAudioScene", "Forces an update of the Steam Audio scene.");
+
+        g_console->registerCommand([&](void*, const char*) {
+            iplSceneSaveOBJ(scene, "audioScene.obj");
+            }, "a_dumpToObj", "Dumps the Steam Audio scene to an obj file.");
     }
 
     void AudioSystem::onAudioSourceDestroy(entt::registry& reg, entt::entity entity) {
