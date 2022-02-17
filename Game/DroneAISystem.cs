@@ -4,6 +4,7 @@ using WorldsEngine.Math;
 using WorldsEngine.Audio;
 using System.Threading.Tasks;
 using Game.Combat;
+using WorldsEngine.Navigation;
 
 namespace Game
 {
@@ -19,9 +20,9 @@ namespace Game
         public float RotationD = 0f;
 
         [EditorFriendlyName("Maximum Positional Force")]
-        public Vector3 MaxPositionalForces = new Vector3(1000.0f);
+        public Vector3 MaxPositionalForces = new(1000.0f);
         [EditorFriendlyName("Minimum Positional Force")]
-        public Vector3 MinPositionalForces = new Vector3(-1000.0f);
+        public Vector3 MinPositionalForces = new(-1000.0f);
 
         [WorldsEngine.Editor.EditRelativeTransform]
         public Transform FirePoint = new();
@@ -30,14 +31,18 @@ namespace Game
         private bool burstInProgress = false;
         private bool currentlyFiring = false;
 
-        private StablePD PD = new StablePD();
-        private V3PidController RotationPID = new V3PidController();
+        private readonly StablePD PD = new();
+        private readonly V3PidController RotationPID = new();
 
         private bool _awake = false;
         private bool _dead = false;
         private Transform _idleHoverPose;
         private Entity _target = Entity.Null;
         private Vector3 _targetPosition;
+
+        private NavigationPath _navigationPath = null;
+        private int _pathPointIdx = 0;
+        private Vector3 _pathTargetPos;
 
         public void Alert()
         {
@@ -121,7 +126,7 @@ namespace Game
             playerDirection.Normalize();
 
             targetLocation -= playerDirection * 3.5f;
-            targetLocation.y = MathF.Max(targetLocation.y, groundHeight + 2.5f);
+            targetLocation.y = groundHeight;
 
             Quaternion targetRotation = Quaternion.SafeLookAt(firePlayerDirection);
 
@@ -241,7 +246,7 @@ namespace Game
             if (WorldsEngine.Input.Keyboard.KeyPressed(WorldsEngine.Input.KeyCode.L))
                 FireBurst(pose.Position, physicsActor);
 
-            if (!_awake && !DebugGlobals.AIIgnorePlayer)
+            if (!_awake)
             {
                 // Look for a player nearby
                 const int MaxOverlap = 1;
@@ -251,7 +256,7 @@ namespace Game
 
                 ApplyTargetPose(_idleHoverPose);
 
-                if (overlapCount > 0)
+                if (overlapCount > 0 && !DebugGlobals.AIIgnorePlayer)
                 {
                     var playerTransform = Registry.GetTransform(LocalPlayerSystem.PlayerBody);
                     var playerDir = (playerTransform.Position - pose.Position).Normalized;
@@ -296,10 +301,27 @@ namespace Game
                 }
             }
 
-            Transform targetPose = CalculateTargetPose(_targetPosition, foundFloor ? rHit.WorldHitPos.y : pose.Position.y + 0.01f);
+            Transform targetPose = CalculateTargetPose(_targetPosition, foundFloor ? rHit.WorldHitPos.y : pose.Position.y);
 
             AvoidOtherDrones(ref targetPose.Position);
-            ApplyTargetPose(targetPose);
+
+            if (_navigationPath == null || !_navigationPath.Valid || _targetPosition.DistanceTo(_pathTargetPos) > 1.5f)
+            {
+                _pathTargetPos = _targetPosition;
+                _navigationPath = NavigationSystem.FindPath(rHit.WorldHitPos, _targetPosition);
+                _pathPointIdx = 0;
+            }
+            else
+            {
+                Vector3 targetPoint = _navigationPath[_pathPointIdx];
+
+                if ((pose.Position - Vector3.Up * 2.0f).DistanceTo(targetPoint) < 1.0f && _pathPointIdx < _navigationPath.NumPoints - 1)
+                    _pathPointIdx++;
+
+                targetPose.Position = _navigationPath[_pathPointIdx] + Vector3.Up * 2.0f;
+                ApplyTargetPose(targetPose);
+            }
+
             UpdateFiring();
         }
 

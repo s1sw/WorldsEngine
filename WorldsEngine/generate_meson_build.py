@@ -13,6 +13,7 @@ subdirs = [
     'Input',
     'IO',
     # 'Libs',
+    'Navigation',
     'Physics',
     'Render',
     'Scripting',
