@@ -34,6 +34,7 @@
     <ClCompile Include="..\WorldsEngine\Core\Console.cpp" />
     <ClCompile Include="..\WorldsEngine\Core\EarlySDLUtil.cpp" />
     <ClCompile Include="..\WorldsEngine\Core\Engine.cpp" />
+    <ClCompile Include="..\WorldsEngine\Core\EngineArguments.cpp" />
     <ClCompile Include="..\WorldsEngine\Core\Fatal.cpp" />
     <ClCompile Include="..\WorldsEngine\Core\JobSystem.cpp" />
     <ClCompile Include="..\WorldsEngine\Core\MeshManager.cpp" />
@@ -160,6 +161,7 @@
     <ClCompile Include="..\WorldsEngine\Libs\tiny_obj_loader.cc" />
     <ClCompile Include="..\WorldsEngine\Libs\volk.c" />
     <ClCompile Include="..\WorldsEngine\Libs\weldmesh.cpp" />
+    <ClCompile Include="..\WorldsEngine\Navigation\Navigation.cpp" />
     <ClCompile Include="..\WorldsEngine\Physics\D6Joint.cpp" />
     <ClCompile Include="..\WorldsEngine\Physics\FixedJoint.cpp" />
     <ClCompile Include="..\WorldsEngine\Physics\Physics.cpp" />
@@ -385,6 +387,7 @@
     <ClInclude Include="..\WorldsEngine\Libs\tiny_obj_loader.h" />
     <ClInclude Include="..\WorldsEngine\Libs\volk.h" />
     <ClInclude Include="..\WorldsEngine\Libs\weldmesh.h" />
+    <ClInclude Include="..\WorldsEngine\Navigation\Navigation.hpp" />
     <ClInclude Include="..\WorldsEngine\Physics\D6Joint.hpp" />
     <ClInclude Include="..\WorldsEngine\Physics\FilterEntities.hpp" />
     <ClInclude Include="..\WorldsEngine\Physics\FixedJoint.hpp" />
@@ -424,6 +427,7 @@
     <ClInclude Include="..\WorldsEngine\Scripting\Export.hpp" />
     <ClInclude Include="..\WorldsEngine\Scripting\InputBindings.hpp" />
     <ClInclude Include="..\WorldsEngine\Scripting\MeshManagerBindings.hpp" />
+    <ClInclude Include="..\WorldsEngine\Scripting\NavigationSystemBindings.hpp" />
     <ClInclude Include="..\WorldsEngine\Scripting\NetVM.hpp" />
     <ClInclude Include="..\WorldsEngine\Scripting\PhysicsBindings.hpp" />
     <ClInclude Include="..\WorldsEngine\Scripting\RegistryBindings.hpp" />
