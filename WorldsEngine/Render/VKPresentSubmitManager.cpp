@@ -44,6 +44,18 @@ namespace worlds {
         }
     }
 
+    VKPresentSubmitManager::~VKPresentSubmitManager() {
+        for (int i = 0; i < maxFramesInFlight; i++) {
+            vkDestroyFence(handles->device, cmdBufFences[i], nullptr);
+            vkDestroySemaphore(handles->device, cmdBufferSemaphores[i], nullptr);
+            vkDestroySemaphore(handles->device, imgAvailable[i], nullptr);
+        }
+
+        vkFreeCommandBuffers(handles->device, handles->commandPool, cmdBufs.size(), cmdBufs.data());
+
+        delete sc;
+    }
+
 #ifdef TRACY_ENABLE
     void VKPresentSubmitManager::setupTracyContexts(std::vector<TracyVkCtx>& tracyContexts) {
         for (auto& cmdBuf : cmdBufs) {

@@ -6,6 +6,7 @@
 #include "PackedMaterial.hpp"
 #include <array>
 #include <nlohmann/json_fwd.hpp>
+#include <slib/Bitset.hpp>
 
 namespace std {
     class mutex;
@@ -22,7 +23,7 @@ namespace worlds {
     class ResourceSlots {
     protected:
         std::array<slotType, slotCount> slots;
-        std::array<bool, slotCount> present;
+        slib::Bitset<slotCount> present;
         robin_hood::unordered_flat_map<key, uint32_t> lookup;
         robin_hood::unordered_flat_map<uint32_t, key> reverseLookup;
         virtual uint32_t load(key k) = 0;

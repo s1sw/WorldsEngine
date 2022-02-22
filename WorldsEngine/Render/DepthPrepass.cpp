@@ -32,6 +32,7 @@ namespace worlds {
             if (handles->hasOutOfOrderRasterization)
                 pm.rasterizationOrderAMD(VK_RASTERIZATION_ORDER_RELAXED_AMD);
 
+            pm.dynamicState(VK_DYNAMIC_STATE_VIEWPORT).dynamicState(VK_DYNAMIC_STATE_SCISSOR);
             depthPrePipeline = pm.create(handles->device, handles->pipelineCache, layout, renderPass);
         }
 
@@ -59,6 +60,7 @@ namespace worlds {
             pm.rasterizationSamples(vku::sampleCountFlags(ctx.passSettings.msaaLevel));
             pm.alphaToCoverageEnable(false);
             pm.subPass(0);
+            pm.dynamicState(VK_DYNAMIC_STATE_VIEWPORT).dynamicState(VK_DYNAMIC_STATE_SCISSOR);
             skinnedPipeline = pm.create(handles->device, handles->pipelineCache, layout, renderPass);
         }
 
@@ -80,6 +82,7 @@ namespace worlds {
             pm.rasterizationSamples(vku::sampleCountFlags(ctx.passSettings.msaaLevel));
             pm.alphaToCoverageEnable(true);
             pm.subPass(0);
+            pm.dynamicState(VK_DYNAMIC_STATE_VIEWPORT).dynamicState(VK_DYNAMIC_STATE_SCISSOR);
             alphaTestPipeline = pm.create(handles->device, handles->pipelineCache, layout, renderPass);
         }
         this->layout = layout;

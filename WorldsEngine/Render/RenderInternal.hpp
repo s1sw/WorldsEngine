@@ -75,7 +75,7 @@ namespace worlds {
     };
 
     struct MaterialsUB {
-        PackedMaterial materials[256];
+        PackedMaterial materials[NUM_MAT_SLOTS];
     };
 
     struct ShadowCascadeInfo {
@@ -238,11 +238,13 @@ namespace worlds {
         std::string name;
 
         vku::GenericImage& image() {
-            return *static_cast<vku::GenericImage*>(resource.get());
+            vku::Resource* raw = resource.get();
+            return *static_cast<vku::GenericImage*>(raw);
         }
 
         vku::GenericBuffer& buffer() {
-            return *static_cast<vku::GenericBuffer*>(resource.get());
+            vku::Resource* raw = resource.get();
+            return *static_cast<vku::GenericBuffer*>(raw);
         }
     };
 
@@ -359,10 +361,12 @@ namespace worlds {
         void requestPick(int x, int y) override;
         bool getPickResult(uint32_t* result) override;
         float* getHDRData() override;
+        void resize(int newWidth, int newHeight) override;
     private:
         VKRTTPass(const RTTPassCreateInfo& ci, VKRenderer* renderer, IVRInterface* vrInterface, uint32_t frameIdx, RenderDebugStats* dbgStats);
         ~VKRTTPass();
         void create(VKRenderer* renderer, IVRInterface* vrInterface, uint32_t frameIdx, RenderDebugStats* dbgStats);
+        void createRenderTargets();
         void destroy();
         PolyRenderPass* prp;
         TonemapFXRenderPass* trp;
@@ -373,10 +377,13 @@ namespace worlds {
         VKRenderer* renderer;
         IVRInterface* vrInterface;
         RenderDebugStats* dbgStats;
+        void prePass(uint32_t frameIdx, entt::registry& world);
         void writeCmds(uint32_t frameIdx, VkCommandBuffer buf, entt::registry& world);
+        void setFinalPrePresents();
         vku::DescriptorPool descriptorPool;
         RTTPassCreateInfo createInfo;
         GraphicsSettings passSettings;
+        ShadowCascadeInfo cascadeInfo;
 
         friend class VKRenderer;
     };
@@ -401,6 +408,7 @@ namespace worlds {
     class VKPresentSubmitManager {
     public:
         VKPresentSubmitManager(SDL_Window* window, VkSurfaceKHR surface, VulkanHandles* handles, Queues* queues, RenderDebugStats* dbgStats);
+        ~VKPresentSubmitManager();
         void recreateSwapchain(bool useVsync, uint32_t& width, uint32_t& height);
         int acquireFrame(VkCommandBuffer& cmdBuf, int& imageIndex);
         void submit();
@@ -509,6 +517,7 @@ namespace worlds {
         void recreateSwapchainInternal(int newWidth = -1, int newHeight = -1);
         void createSpotShadowImages();
         void createCascadeShadowImages();
+        void uploadSceneAssetsForReg(entt::registry& reg, bool& reuploadMats, bool& dsUpdateNeeded);
 
         friend class VKRTTPass;
     public:
@@ -535,6 +544,7 @@ namespace worlds {
         void destroyRTTPass(RTTPass* pass) override;
 
         RenderResource* createTextureResource(TextureResourceCreateInfo resourceCreateInfo, const char* debugName = nullptr);
+        void updateTextureResource(RenderResource* resource, TextureResourceCreateInfo newCreateInfo);
 
         void triggerRenderdocCapture() override;
         void startRdocCapture() override;

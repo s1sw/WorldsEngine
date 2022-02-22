@@ -108,7 +108,7 @@ namespace worlds {
         slotMutex->lock();
         uint32_t slot = getFreeSlot();
 
-        if (slot > NUM_MAT_SLOTS) {
+        if (slot == ~0u) {
             fatalErr("Out of material slots");
         }
 
@@ -118,7 +118,6 @@ namespace worlds {
         slotMutex->unlock();
 
         parseMaterial(asset, slots[slot], matExtraData[slot]);
-
 
         return slot;
     }

@@ -141,7 +141,6 @@ namespace worlds {
                     }
                 } else {
                     for (int i = 1; i < 4; i++) {
-                        // TODO: fix this for VR
                         frustumMatrices[i - 1] = vrInterface->getEyeProjectionMatrix(
                             Eye::LeftEye,
                             splits[i - 1], splits[i]

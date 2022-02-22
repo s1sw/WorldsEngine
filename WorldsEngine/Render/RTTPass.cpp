@@ -65,7 +65,7 @@ namespace worlds {
             TextureType::T2DArray,
             VK_FORMAT_R16G16B16A16_SFLOAT,
             (int)createInfo.width, (int)createInfo.height,
-            VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT
+            VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT
         };
         bloomTargetCreateInfo.layers = createInfo.isVr ? 2 : 1;
 
@@ -310,9 +310,17 @@ namespace worlds {
         return buffer;
     }
 
-    void VKRTTPass::writeCmds(uint32_t frameIdx, VkCommandBuffer cmdBuf, entt::registry& world) {
-        ZoneScoped;
-        RenderResources resources = renderer->getResources();
+    void VKRTTPass::resize(int newWidth, int newHeight) {
+        std::lock_guard<std::mutex> lg{ *renderer->apiMutex };
+        width = newWidth;
+        height = newHeight;
+        createInfo.width = width;
+        createInfo.height = height;
+        destroy();
+        create(renderer, vrInterface, renderer->frameIdx, &renderer->dbgStats);
+    }
+
+    void VKRTTPass::prePass(uint32_t frameIdx, entt::registry& world) {
         uint32_t width = actualWidth();
         uint32_t height = actualHeight();
         RenderContext rCtx{
@@ -325,13 +333,66 @@ namespace worlds {
 #endif
             },
             .passSettings = passSettings,
-            .registry = world,
+            .registry = createInfo.registryOverride ? *createInfo.registryOverride : world,
+            .camera = *cam,
+            .passWidth = width,
+            .passHeight = height,
+            .frameIndex = frameIdx
+        };
+
+        if (isVr) {
+            glm::mat4 headViewMatrix = vrInterface->getHeadTransform(renderer->vrPredictAmount);
+
+            glm::mat4 viewMats[2] = {
+                vrInterface->getEyeViewMatrix(Eye::LeftEye),
+                vrInterface->getEyeViewMatrix(Eye::RightEye)
+            };
+
+            glm::mat4 projMats[2] = {
+                vrInterface->getEyeProjectionMatrix(Eye::LeftEye, cam->near),
+                vrInterface->getEyeProjectionMatrix(Eye::RightEye, cam->near)
+            };
+
+            for (int i = 0; i < 2; i++) {
+                rCtx.viewMatrices[i] = glm::inverse(headViewMatrix * viewMats[i]) * cam->getViewMatrix();
+                rCtx.projMatrices[i] = projMats[i];
+            }
+        } else {
+            rCtx.projMatrices[0] = cam->getProjectionMatrix((float)width / (float)height);
+            rCtx.viewMatrices[0] = cam->getViewMatrix();
+        }
+
+        if (enableShadows) {
+            renderer->shadowCascadePass->prePass(rCtx);
+        }
+
+        prp->prePass(rCtx);
+        cascadeInfo = rCtx.cascadeInfo;
+    }
+
+    void VKRTTPass::writeCmds(uint32_t frameIdx, VkCommandBuffer cmdBuf, entt::registry& world) {
+        ZoneScoped;
+        RenderResources resources = renderer->getResources();
+        uint32_t width = actualWidth();
+        uint32_t height = actualHeight();
+        RenderContext rCtx{
+            .resources = renderer->getResources(),
+            .cascadeInfo = cascadeInfo,
+            .debugContext = RenderDebugContext {
+                .stats = dbgStats
+#ifdef TRACY_ENABLE
+            , .tracyContexts = &renderer->tracyContexts
+#endif
+            },
+            .passSettings = passSettings,
+            .registry = createInfo.registryOverride ? *createInfo.registryOverride : world,
             .camera = *cam,
             .cmdBuf = cmdBuf,
             .passWidth = width,
             .passHeight = height,
             .frameIndex = frameIdx
         };
+        rCtx.cascadeInfo.shadowCascadeNeeded = true;
 
         if (isVr) {
             glm::mat4 headViewMatrix = vrInterface->getHeadTransform(renderer->vrPredictAmount);
@@ -373,11 +434,9 @@ namespace worlds {
         );
 
         if (enableShadows) {
-            renderer->shadowCascadePass->prePass(rCtx);
             renderer->shadowCascadePass->execute(rCtx);
         }
 
-        prp->prePass(rCtx);
         prp->execute(rCtx);
 
         hdrTarget->image().barrier(cmdBuf,
@@ -385,6 +444,14 @@ namespace worlds {
             VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
 
         trp->execute(rCtx);
+    }
+
+    void VKRTTPass::setFinalPrePresents() {
+        trp->setFinalImage(renderer->finalPrePresent);
+
+        if (isVr) {
+            trp->setRightFinalImage(renderer->rightEye);
+        }
     }
 
     VKRTTPass::~VKRTTPass() {
