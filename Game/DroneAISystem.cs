@@ -285,6 +285,15 @@ namespace Game
                 return;
             }
 
+            if (_target.TryGetComponent<HealthComponent>(out var targetHealth))
+            {
+                if (targetHealth.Dead)
+                {
+                    _target = Entity.Null;
+                    _awake = false;
+                }
+            }
+
             bool foundFloor = Physics.Raycast(pose.Position + (Vector3.Down * 0.2f), Vector3.Down, out RaycastHit rHit, 50.0f);
 
             if (!currentlyFiring)
