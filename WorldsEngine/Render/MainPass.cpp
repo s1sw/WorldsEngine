@@ -68,20 +68,6 @@ namespace worlds {
             globalMiscFlags |= ShaderFlags::MISC_FLAG_DISABLE_SHADOWS;
         }
 
-        VkViewport vp{};
-        vp.minDepth = 0.0f;
-        vp.maxDepth = 1.0f;
-        vp.x = 0.0f;
-        vp.y = 0.0f;
-        vp.width = ctx.passWidth;
-        vp.height = ctx.passHeight;
-        vkCmdSetViewport(cmdBuf, 0, 1, &vp);
-
-        VkRect2D scissor{};
-        scissor.extent.width = ctx.passWidth;
-        scissor.extent.height = ctx.passHeight;
-        vkCmdSetScissor(cmdBuf, 0, 1, &scissor);
-
         addDebugLabel(cmdBuf, "Main Pass", 0.466f, 0.211f, 0.639f, 1.0f);
         VkPipeline lastPipeline = VK_NULL_HANDLE;
         for (const auto& sdi : drawInfo) {

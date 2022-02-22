@@ -127,6 +127,24 @@ namespace worlds {
         vkCmdEndDebugUtilsLabelEXT(cmdBuf);
     }
 
+    void TonemapFXRenderPass::setFinalImage(RenderResource* final) {
+        finalPrePresent = final;
+
+        vku::DescriptorSetUpdater dsu;
+        dsu.beginDescriptorSet(descriptorSet);
+
+        dsu.beginImages(0, 0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
+        dsu.image(sampler, finalPrePresent->image().imageView(), VK_IMAGE_LAYOUT_GENERAL);
+
+        dsu.beginImages(1, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+        dsu.image(sampler, hdrImg->image().imageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+        dsu.beginImages(2, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+        dsu.image(sampler, bloomImg->image().imageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+        dsu.update(handles->device);
+    }
+
     void TonemapFXRenderPass::setRightFinalImage(RenderResource* right) {
         vku::DescriptorSetMaker dsm;
         dsm.layout(dsl);
