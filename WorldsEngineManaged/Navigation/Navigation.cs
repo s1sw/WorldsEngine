@@ -29,6 +29,7 @@ namespace WorldsEngine.Navigation
         internal NavigationPath(IntPtr nativePtr)
         {
             _nativePath = Marshal.PtrToStructure<NativeNavigationPath>(nativePtr);
+            if (!_nativePath.Valid) _nativePath.NumPoints = 0;
             navigation_deletePath(nativePtr);
         }
 
@@ -38,7 +39,14 @@ namespace WorldsEngine.Navigation
         }
 
         public bool Valid => _nativePath.Valid;
-        public Vector3 this[int idx] => _nativePath.PathPoints[idx];
+        public Vector3 this[int index]
+        {
+            get
+            {
+                if (index >= _nativePath.NumPoints || index < 0) throw new ArgumentOutOfRangeException(nameof(index));
+                return _nativePath.PathPoints[index];
+            }
+        }
     }
     public static class NavigationSystem
     {
