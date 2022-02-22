@@ -798,7 +798,7 @@ namespace worlds {
             if (enableOpenVR) {
                 static bool lastIsVR = true;
                 if (screenPassIsVR != lastIsVR) {
-                    delete screenRTTPass;
+                    renderer->destroyRTTPass(screenRTTPass);
 
                     uint32_t w = 1600;
                     uint32_t h = 900;
