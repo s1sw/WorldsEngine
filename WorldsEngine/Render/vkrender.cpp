@@ -1563,6 +1563,8 @@ IUITextureManager& VKRenderer::uiTextureManager() {
     return *uiTextureMan;
 }
 
+namespace worlds { extern void unloadSDFFonts(); }
+
 VKRenderer::~VKRenderer() {
     if (device) {
         VKCHECK(vkDeviceWaitIdle(device));
@@ -1591,6 +1593,8 @@ VKRenderer::~VKRenderer() {
 
         brdfLut.destroy();
         loadedMeshes.clear();
+
+        unloadSDFFonts();
 
         delete shadowCascadePass;
         delete additionalShadowsPass;
