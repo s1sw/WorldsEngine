@@ -24,6 +24,6 @@ namespace worlds {
     }
 
     glm::quat safeQuatLookat(glm::vec3 dir, glm::vec3 up, glm::vec3 fallbackUp) {
-        return glm::abs(glm::dot(dir, up)) > 0.999f ? glm::quatLookAt(dir, fallbackUp) : glm::quatLookAt(dir, up);
+        return glm::abs(glm::dot(dir, up)) > 0.99999f ? glm::quatLookAt(dir, fallbackUp) : glm::quatLookAt(dir, up);
     }
 }
