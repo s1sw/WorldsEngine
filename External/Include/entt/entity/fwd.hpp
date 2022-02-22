@@ -3,6 +3,7 @@
 
 
 #include "../core/fwd.hpp"
+#include "lw_fwd.hpp"
 
 
 namespace entt {
@@ -14,10 +15,6 @@ class basic_sparse_set;
 
 template<typename, typename, typename>
 class basic_storage;
-
-
-template<typename>
-class basic_registry;
 
 
 template<typename...>
@@ -56,9 +53,6 @@ template<typename>
 class basic_continuous_loader;
 
 
-/*! @brief Default entity identifier. */
-enum class entity: id_type {};
-
 
 /*! @brief Alias declaration for the most common use case. */
 using sparse_set = basic_sparse_set<entity>;
@@ -70,10 +64,6 @@ using sparse_set = basic_sparse_set<entity>;
  */
 template<typename... Args>
 using storage = basic_storage<entity, Args...>;
-
-
-/*! @brief Alias declaration for the most common use case. */
-using registry = basic_registry<entity>;
 
 
 /*! @brief Alias declaration for the most common use case. */

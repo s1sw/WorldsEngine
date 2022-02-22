@@ -1,7 +1,7 @@
 #pragma once
 #include <glm/glm.hpp>
-#include <entt/entity/fwd.hpp>
 #include <SDL_video.h>
+#include <entt/entity/lw_fwd.hpp>
 
 #include <VR/IVRInterface.hpp>
 #include <Core/WorldComponents.hpp>
@@ -149,6 +149,7 @@ namespace worlds {
         bool enableShadows;
         bool outputToScreen;
         int msaaLevel = 0;
+        entt::registry* registryOverride = nullptr;
     };
 
     /**
@@ -181,7 +182,10 @@ namespace worlds {
 
         //! Get a float array of the HDR pass result.
         virtual float* getHDRData() = 0;
+        virtual void resize(int newWidth, int newHeight) = 0;
+    protected:
         virtual ~RTTPass() {}
+        friend class Renderer;
     };
 
     enum class ReloadFlags {

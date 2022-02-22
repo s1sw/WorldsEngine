@@ -24,6 +24,10 @@ namespace worlds {
 
     robin_hood::unordered_flat_map<AssetID, SDFFont> fonts;
 
+    void unloadSDFFonts() {
+        fonts.clear();
+    }
+
     SDFFont& WorldSpaceUIPass::getFont(AssetID id) {
         if (id == INVALID_ASSET) return fonts.at(AssetDB::pathToId("UI/SDFFonts/mulish.json"));
         return fonts.at(id);

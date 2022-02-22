@@ -55,7 +55,7 @@ namespace vku {
 
     void GenericBuffer::updateLocal(const VkDevice& device, const void* value, VkDeviceSize size) const {
         void* ptr; // = device.mapMemory(*mem_, 0, size_, VkMemoryMapFlags{});
-        vmaMapMemory(allocator, allocation, &ptr);
+        VKCHECK(vmaMapMemory(allocator, allocation, &ptr));
         memcpy(ptr, value, (size_t)size);
         flush(device);
         vmaUnmapMemory(allocator, allocation);
@@ -63,7 +63,7 @@ namespace vku {
 
     void GenericBuffer::upload(VkDevice device, VkCommandPool commandPool, VkQueue queue, const void* value, VkDeviceSize size) const {
         if (size == 0) return;
-        auto tmp = vku::GenericBuffer(device, allocator, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, size, VMA_MEMORY_USAGE_CPU_ONLY);
+        vku::GenericBuffer tmp{ device, allocator, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, size, VMA_MEMORY_USAGE_CPU_ONLY };
         tmp.updateLocal(device, value, size);
 
         vku::executeImmediately(device, commandPool, queue, [&](VkCommandBuffer cb) {
@@ -93,12 +93,12 @@ namespace vku {
 
     void GenericBuffer::flush(const VkDevice& device) const {
         (void)device;
-        vmaFlushAllocation(allocator, allocation, 0, VK_WHOLE_SIZE);
+        VKCHECK(vmaFlushAllocation(allocator, allocation, 0, VK_WHOLE_SIZE));
     }
 
     void GenericBuffer::invalidate(const VkDevice& device) const {
         (void)device;
-        vmaInvalidateAllocation(allocator, allocation, 0, VK_WHOLE_SIZE);
+        VKCHECK(vmaInvalidateAllocation(allocator, allocation, 0, VK_WHOLE_SIZE));
     }
 
     void GenericBuffer::destroy() {

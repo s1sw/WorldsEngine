@@ -59,6 +59,7 @@ namespace worlds {
         skyboxPipeline = pm.create(handles->device, handles->pipelineCache, skyboxPipelineLayout, renderPass);
 
         vku::SamplerMaker sm;
+        sm.minFilter(VK_FILTER_LINEAR).magFilter(VK_FILTER_LINEAR).maxLod(16.0f).mipmapMode(VK_SAMPLER_MIPMAP_MODE_LINEAR);
         sampler = sm.create(handles->device);
         updateDescriptors(ctx, 0);
     }

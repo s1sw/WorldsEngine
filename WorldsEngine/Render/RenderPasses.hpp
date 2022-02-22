@@ -1,6 +1,7 @@
 #pragma once
 #include "RenderGraph.hpp"
 #include "vku/vku.hpp"
+#include "vku/DescriptorSetUtil.hpp"
 #include "RenderInternal.hpp"
 #include <glm/glm.hpp>
 #include <slib/StaticAllocList.hpp>
@@ -254,6 +255,7 @@ namespace worlds {
         bool setEventNextFrame;
         bool dsUpdateNeeded = false;
 
+        void updateDescriptorSet(RenderContext& ctx, size_t dsIdx, vku::DescriptorSetUpdater& updater);
         void updateDescriptorSets(RenderContext& ctx);
         VRCullMeshRenderer* cullMeshRenderer;
         DebugLinesPass* dbgLinesPass;
@@ -264,6 +266,7 @@ namespace worlds {
         MainPass* mainPass;
         BloomRenderPass* bloomPass;
         VulkanHandles* handles;
+        slib::StaticAllocList<SubmeshDrawInfo> drawInfo{ 8192 };
 
         void generateDrawInfo(RenderContext& ctx);
     public:
@@ -275,6 +278,7 @@ namespace worlds {
         void requestEntityPick();
         void reuploadDescriptors() { dsUpdateNeeded = true; }
         bool getPickedEnt(uint32_t* out);
+        void recreateFramebuffers();
         virtual ~PolyRenderPass();
     };
 
@@ -349,6 +353,7 @@ namespace worlds {
         TonemapFXRenderPass(VulkanHandles* handles, RenderResource* hdrImg, RenderResource* finalPrePresent, RenderResource* bloomImg);
         void setup(RenderContext& ctx, VkDescriptorPool descriptorPool);
         void execute(RenderContext& ctx);
+        void setFinalImage(RenderResource* final);
         void setRightFinalImage(RenderResource* right);
         virtual ~TonemapFXRenderPass();
     };

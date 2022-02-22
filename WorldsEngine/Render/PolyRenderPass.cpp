@@ -194,67 +194,71 @@ namespace worlds {
 
     RenderPass::RenderPass(VulkanHandles* handles) : handles(handles) {}
 
-    void PolyRenderPass::updateDescriptorSets(RenderContext& ctx) {
-        ZoneScoped;
+    void PolyRenderPass::updateDescriptorSet(RenderContext& ctx, size_t dsIdx, vku::DescriptorSetUpdater& updater) {
+        VkDescriptorSet ds = descriptorSets[dsIdx];
         auto& texSlots = ctx.resources.textures;
         auto& cubemapSlots = ctx.resources.cubemaps;
+        updater.beginDescriptorSet(ds);
+
+        updater.beginBuffers(0, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+        updater.buffer(ctx.resources.vpMatrixBuffer->buffer(), 0, sizeof(MultiVP));
+
+        updater.beginBuffers(1, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+        updater.buffer(lightsUB.buffer(), 0, sizeof(LightUB));
+
+        updater.beginBuffers(2, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+        updater.buffer(ctx.resources.materialBuffer->buffer(), 0, sizeof(MaterialsUB));
+
+        updater.beginBuffers(3, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+        updater.buffer(modelMatrixUB[dsIdx].buffer(), 0, sizeof(ModelMatrices));
+
+        for (uint32_t i = 0; i < texSlots.size(); i++) {
+            if (texSlots.isSlotPresent(i)) {
+                updater.beginImages(4, i, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+                updater.image(albedoSampler, texSlots[i].imageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+            }
+        }
+
+        updater.beginImages(5, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+        updater.image(shadowSampler, ctx.resources.shadowCascades->image().imageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+        for (uint32_t i = 0; i < cubemapSlots.size(); i++) {
+            if (cubemapSlots.isSlotPresent(i)) {
+                updater.beginImages(6, i, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+                updater.image(albedoSampler, cubemapSlots[i].imageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+            }
+        }
+
+        updater.beginImages(7, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+        updater.image(albedoSampler, ctx.resources.brdfLut->imageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+        for (int i = 0; i < NUM_SHADOW_LIGHTS; i++) {
+            updater.beginImages(8, i, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+            updater.image(shadowSampler, ctx.resources.additionalShadowImages[i]->image().imageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+        }
+
+        updater.beginBuffers(9, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+        updater.buffer(lightTileInfoBuffer.buffer(), 0, sizeof(LightTileInfoBuffer));
+
+        updater.beginBuffers(10, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+        updater.buffer(lightTileLightCountBuffer.buffer(), 0, sizeof(uint32_t) * MAX_LIGHT_TILES);
+
+        updater.beginBuffers(11, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+        updater.buffer(lightTilesBuffer.buffer(), 0, sizeof(LightingTile) * MAX_LIGHT_TILES);
+
+        updater.beginBuffers(12, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+        updater.buffer(skinningMatrixUB.buffer(), 0, sizeof(glm::mat4) * 512);
+
+        updater.beginBuffers(13, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+        updater.buffer(pickingBuffer.buffer(), 0, sizeof(PickingBuffer));
+    }
+
+    void PolyRenderPass::updateDescriptorSets(RenderContext& ctx) {
+        ZoneScoped;
         vku::DescriptorSetUpdater updater(10 * descriptorSets.size(), 128 * descriptorSets.size(), 0);
         size_t dsIdx = 0;
         for (VkDescriptorSet& ds : descriptorSets) {
-            updater.beginDescriptorSet(ds);
-
-            updater.beginBuffers(0, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-            updater.buffer(ctx.resources.vpMatrixBuffer->buffer(), 0, sizeof(MultiVP));
-
-            updater.beginBuffers(1, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-            updater.buffer(lightsUB.buffer(), 0, sizeof(LightUB));
-
-            updater.beginBuffers(2, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-            updater.buffer(ctx.resources.materialBuffer->buffer(), 0, sizeof(MaterialsUB));
-
-            updater.beginBuffers(3, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-            updater.buffer(modelMatrixUB[dsIdx].buffer(), 0, sizeof(ModelMatrices));
-
-            for (uint32_t i = 0; i < texSlots.size(); i++) {
-                if (texSlots.isSlotPresent(i)) {
-                    updater.beginImages(4, i, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-                    updater.image(albedoSampler, texSlots[i].imageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-                }
-            }
-
-            updater.beginImages(5, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-            updater.image(shadowSampler, ctx.resources.shadowCascades->image().imageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-
-            for (uint32_t i = 0; i < cubemapSlots.size(); i++) {
-                if (cubemapSlots.isSlotPresent(i)) {
-                    updater.beginImages(6, i, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-                    updater.image(albedoSampler, cubemapSlots[i].imageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-                }
-            }
-
-            updater.beginImages(7, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-            updater.image(albedoSampler, ctx.resources.brdfLut->imageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-
-            for (int i = 0; i < NUM_SHADOW_LIGHTS; i++) {
-                updater.beginImages(8, i, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-                updater.image(shadowSampler, ctx.resources.additionalShadowImages[i]->image().imageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-            }
-
-            updater.beginBuffers(9, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-            updater.buffer(lightTileInfoBuffer.buffer(), 0, sizeof(LightTileInfoBuffer));
-
-            updater.beginBuffers(10, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-            updater.buffer(lightTileLightCountBuffer.buffer(), 0, sizeof(uint32_t) * MAX_LIGHT_TILES);
-
-            updater.beginBuffers(11, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-            updater.buffer(lightTilesBuffer.buffer(), 0, sizeof(LightingTile) * MAX_LIGHT_TILES);
-
-            updater.beginBuffers(12, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-            updater.buffer(skinningMatrixUB.buffer(), 0, sizeof(glm::mat4) * 512);
-
-            updater.beginBuffers(13, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-            updater.buffer(pickingBuffer.buffer(), 0, sizeof(PickingBuffer));
-
+            updateDescriptorSet(ctx, dsIdx, updater);
             dsIdx++;
         }
 
@@ -366,7 +370,7 @@ namespace worlds {
 
         rPassMaker.attachmentBegin(VK_FORMAT_B10G11R11_UFLOAT_PACK32);
         rPassMaker.attachmentLoadOp(VK_ATTACHMENT_LOAD_OP_CLEAR);
-        rPassMaker.attachmentStoreOp(VK_ATTACHMENT_STORE_OP_STORE);
+        rPassMaker.attachmentStoreOp(VK_ATTACHMENT_STORE_OP_STORE); 
         rPassMaker.attachmentSamples(colourResource->image().info().samples);
         rPassMaker.attachmentFinalLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
@@ -541,7 +545,31 @@ namespace worlds {
         VKCHECK(vkSetEvent(handles->device, pickEvent));
     }
 
-    slib::StaticAllocList<SubmeshDrawInfo> drawInfo{ 8192 };
+    void PolyRenderPass::recreateFramebuffers() {
+        DeletionQueue::queueObjectDeletion(renderFb.release(), VK_OBJECT_TYPE_FRAMEBUFFER);
+        DeletionQueue::queueObjectDeletion(depthFb.release(), VK_OBJECT_TYPE_FRAMEBUFFER);
+        vku::GenericImage& colourImage = colourResource->image();
+        vku::GenericImage& depthImage = depthResource->image();
+
+        VkImageView attachments[2] = { colourImage.imageView(), depthImage.imageView() };
+        auto extent = colourImage.info().extent;
+        VkFramebufferCreateInfo fci{ VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
+        fci.attachmentCount = 2;
+        fci.pAttachments = attachments;
+        fci.width = extent.width;
+        fci.height = extent.height;
+        fci.renderPass = renderPass;
+        fci.layers = 1;
+
+        VKCHECK(vku::createFramebuffer(handles->device, &fci, &renderFb));
+
+        VkImageView depthAttachment = depthImage.imageView();
+        fci.attachmentCount = 1;
+        fci.pAttachments = &depthAttachment;
+        fci.renderPass = depthPass;
+
+        VKCHECK(vku::createFramebuffer(handles->device, &fci, &depthFb));
+    }
 
     glm::mat4 getBoneTransform(LoadedMeshData& meshData, Pose& pose, int boneIdx) {
         glm::mat4 transform = pose.boneTransforms[boneIdx];
@@ -575,6 +603,8 @@ namespace worlds {
 
         auto& resources = ctx.resources;
         auto& sceneSettings = ctx.registry.ctx<SceneSettings>();
+        // skybox should always be loaded
+        // if it isn't, something has already gone terribly wrong
         uint32_t skyboxId = ctx.resources.cubemaps.loadOrGet(sceneSettings.skybox);
 
         drawInfo.clear();
@@ -1007,6 +1037,20 @@ namespace worlds {
 
         vkCmdBeginRenderPass(cmdBuf, &rpbi, VK_SUBPASS_CONTENTS_INLINE);
 
+        VkViewport vp{};
+        vp.minDepth = 0.0f;
+        vp.maxDepth = 1.0f;
+        vp.x = 0.0f;
+        vp.y = 0.0f;
+        vp.width = ctx.passWidth;
+        vp.height = ctx.passHeight;
+        vkCmdSetViewport(cmdBuf, 0, 1, &vp);
+
+        VkRect2D scissor{};
+        scissor.extent.width = ctx.passWidth;
+        scissor.extent.height = ctx.passHeight;
+        vkCmdSetScissor(cmdBuf, 0, 1, &scissor);
+
         if (ctx.passSettings.enableVr) {
             cullMeshRenderer->draw(cmdBuf);
         }
@@ -1065,14 +1109,6 @@ namespace worlds {
 
         vkCmdBeginRenderPass(cmdBuf, &rpbi, VK_SUBPASS_CONTENTS_INLINE);
 
-        VkViewport vp{};
-        vp.minDepth = 0.0f;
-        vp.maxDepth = 1.0f;
-        vp.x = 0.0f;
-        vp.y = 0.0f;
-        vp.width = ctx.passWidth;
-        vp.height = ctx.passHeight;
-        vkCmdSetViewport(cmdBuf, 0, 1, &vp);
         mainPass->execute(ctx, drawInfo, pickThisFrame, pickX, pickY);
 
         dbgLinesPass->execute(ctx);
