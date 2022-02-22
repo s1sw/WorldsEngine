@@ -45,10 +45,14 @@ namespace worlds {
 
     class MaterialEditor : public EditorWindow {
     public:
-        MaterialEditor(EngineInterfaces interfaces, Editor* editor) : EditorWindow(interfaces, editor) { active = false; }
+        MaterialEditor(EngineInterfaces interfaces, Editor* editor);
         void draw(entt::registry& reg) override;
         const char* getName() override { return "Material Editor"; }
-        ~MaterialEditor() {}
+        ~MaterialEditor();
+    private:
+        RTTPass* rttPass;
+        Camera previewCam;
+        entt::entity previewEntity;
     };
 
     class AboutWindow : public EditorWindow {
