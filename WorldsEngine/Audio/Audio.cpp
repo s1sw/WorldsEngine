@@ -688,7 +688,8 @@ namespace worlds {
             std::remove_if(attachedOneshots.begin(), attachedOneshots.end(), [this](AttachedOneshot* ao){
                 bool marked = ao->markForRemoval;
                 if (marked) {
-                    sourcesToRemove.push(ao->phononSource);
+                    if (ao->phononSource)
+                        sourcesToRemove.push(ao->phononSource);
                     needsSimCommit = true;
                     delete ao;
                 }
