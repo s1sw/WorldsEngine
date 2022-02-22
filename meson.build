@@ -48,6 +48,7 @@ detour_dep = recastnav_proj.get_variable('detour_dep')
 
 
 subdir('ModelFormat')
+subdir('TextureFormat')
 subdir('Tools')
 subdir('DiscordSDK')
 subdir('WorldsEngine')

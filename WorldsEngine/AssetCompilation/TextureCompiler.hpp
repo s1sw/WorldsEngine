@@ -1,7 +1,48 @@
 #pragma once
 #include "AssetCompilers.hpp"
+#include <nlohmann/json_fwd.hpp>
 
 namespace worlds {
+    struct CrunchTextureSettings {
+        bool isNormalMap;
+        int qualityLevel;
+        bool isSrgb;
+        AssetID sourceTexture;
+    };
+
+    struct RGBATextureSettings {
+        bool isSrgb;
+        AssetID sourceTexture;
+    };
+
+    struct PBRTextureSettings {
+        AssetID roughnessSource;
+        AssetID metallicSource;
+        AssetID occlusionSource;
+        AssetID normalMap;
+        float normalRoughnessMipStrength;
+        float defaultRoughness; 
+        float defaultMetallic;
+        float defaultOcclusion;
+    };
+
+    enum class TextureAssetType {
+        Crunch,
+        RGBA,
+        PBR
+    };
+
+    struct TextureAssetSettings {
+        TextureAssetType type;
+        union {
+            CrunchTextureSettings crunch;
+            RGBATextureSettings rgba;
+            PBRTextureSettings pbr;
+        };
+
+        static TextureAssetSettings fromJson(nlohmann::json& j);
+    };
+
     class TextureCompiler : public IAssetCompiler {
     public:
         TextureCompiler();
@@ -11,6 +52,9 @@ namespace worlds {
         const char* getCompiledExtension() override;
     private:
         struct TexCompileThreadInfo;
+        void compileCrunch(TexCompileThreadInfo*);
+        void compileRGBA(TexCompileThreadInfo*);
+        void writeWtex();
         void compileInternal(TexCompileThreadInfo*);
     };
 }
