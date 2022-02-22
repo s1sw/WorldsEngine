@@ -121,7 +121,7 @@ worlds = static_library('worlds', worlds_sources + ['tracy/TracyClient.cpp'],
   include_directories: [extern_include_dir, physx_include_dir, tracy_inc] + platform_incdirs,
   dependencies: [
     assimp_dep, physfs_dep, sdl2_dep, physx_deps,
-    dl_dep, openvr_dep, wmdl_dep, discord_csdk_dep,
+    dl_dep, openvr_dep, wmdl_dep, wtex_dep, discord_csdk_dep,
     discord_sdk_dep,
     slib_dep, platform_deps, steam_audio_dep,
     recast_dep, detour_dep,
