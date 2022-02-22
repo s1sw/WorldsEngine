@@ -156,6 +156,78 @@ RenderResource* VKRenderer::createTextureResource(TextureResourceCreateInfo reso
     return resource;
 }
 
+void VKRenderer::updateTextureResource(RenderResource* resource, TextureResourceCreateInfo resourceCreateInfo) {
+    std::lock_guard<std::mutex> lg{ *apiMutex };
+    assert(resource->type == ResourceType::Image);
+    VkImageCreateInfo ici { VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
+
+    switch (resourceCreateInfo.type) {
+    case TextureType::T1D:
+        ici.imageType = VK_IMAGE_TYPE_1D;
+    case TextureType::T2D:
+    case TextureType::T2DArray:
+        ici.imageType = VK_IMAGE_TYPE_2D;
+        break;
+    case TextureType::T3D:
+        ici.imageType = VK_IMAGE_TYPE_3D;
+        break;
+    case TextureType::TCube:
+        ici.imageType = VK_IMAGE_TYPE_2D;
+        break;
+    }
+
+    ici.extent.depth  = resourceCreateInfo.depth;
+    ici.extent.width  = resourceCreateInfo.width;
+    ici.extent.height = resourceCreateInfo.height;
+    ici.mipLevels = resourceCreateInfo.mipLevels;
+    ici.arrayLayers = resourceCreateInfo.layers;
+    ici.initialLayout = resourceCreateInfo.initialLayout;
+    ici.format = resourceCreateInfo.format;
+
+    if (resourceCreateInfo.type == TextureType::TCube) {
+        ici.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
+        ici.arrayLayers = 6;
+    }
+
+    ici.samples = vku::sampleCountFlags(resourceCreateInfo.samples);
+    ici.tiling = VK_IMAGE_TILING_OPTIMAL;
+    ici.usage = resourceCreateInfo.usage;
+
+    switch (resourceCreateInfo.sharingMode) {
+    case SharingMode::Concurrent:
+        ici.sharingMode = VK_SHARING_MODE_CONCURRENT;
+        break;
+    case SharingMode::Exclusive:
+        ici.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        break;
+    }
+
+    VkImageViewType viewType;
+
+    switch (resourceCreateInfo.type) {
+    case TextureType::T1D:
+        viewType = VK_IMAGE_VIEW_TYPE_1D;
+        break;
+    case TextureType::T2D:
+        viewType = VK_IMAGE_VIEW_TYPE_2D;
+        break;
+    case TextureType::T2DArray:
+        viewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
+        break;
+    case TextureType::T3D:
+        viewType = VK_IMAGE_VIEW_TYPE_3D;
+        break;
+    case TextureType::TCube:
+        viewType = VK_IMAGE_VIEW_TYPE_CUBE;
+        break;
+    }
+
+    resource->resource.reset();
+    resource->resource = std::make_unique<vku::GenericImage>(
+        device, allocator, ici, viewType,
+        resourceCreateInfo.aspectFlags, false, resource->name.c_str());
+}
+
 void VKRenderer::createFramebuffers() {
     Swapchain& swapchain = presentSubmitManager->currentSwapchain();
     framebuffers.resize(swapchain.images.size());
@@ -758,7 +830,7 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
         VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
         sizeof(MultiVP), VMA_MEMORY_USAGE_GPU_ONLY, "VP Buffer");
 
-    MaterialsUB materials;
+    MaterialsUB materials{};
     materialUB.upload(device, commandPool, queues.graphics, &materials, sizeof(materials));
 
     shadowCascadePass = new ShadowCascadePass(vrInterface, &handles, shadowmapImage);
@@ -855,9 +927,10 @@ void VKRenderer::createSCDependents() {
         if (p->outputToScreen) {
             // Recreate pass
             p->destroy();
-            p->createInfo.width = p->isVr ? vrWidth : width;
-            p->createInfo.height = p->isVr ? vrHeight : height;
+            p->width = p->isVr ? vrWidth : width;
+            p->height = p->isVr ? vrHeight : height;
             p->create(this, vrInterface, frameIdx, &dbgStats);
+            p->setFinalPrePresents();
         }
     }
 }
@@ -980,10 +1053,7 @@ void VKRenderer::submitToOpenVR() {
     }
 }
 
-void VKRenderer::uploadSceneAssets(entt::registry& reg) {
-    ZoneScoped;
-    bool reuploadMats = false;
-
+void VKRenderer::uploadSceneAssetsForReg(entt::registry& reg, bool& reuploadMats, bool& dsUpdateNeeded) {
     std::unordered_set<AssetID> uploadMats;
     std::unordered_set<AssetID> uploadMeshes;
 
@@ -1044,6 +1114,7 @@ void VKRenderer::uploadSceneAssets(entt::registry& reg) {
 
             if (!matSlots->isLoaded(wo.materials[i])) {
                 matSlots->loadOrGet(wo.materials[i]);
+                reuploadMats = true;
             }
         }
         });
@@ -1052,39 +1123,48 @@ void VKRenderer::uploadSceneAssets(entt::registry& reg) {
         preloadMesh(id);
     }
 
+    AssetID skyboxId = reg.ctx<SceneSettings>().skybox;
+
+    if (!cubemapSlots->isLoaded(skyboxId)) {
+        cubemapSlots->loadOrGet(skyboxId);
+    }
+
     reg.view<WorldCubemap>().each([&](WorldCubemap& wc) {
         if (!cubemapSlots->isLoaded(wc.cubemapId)) {
             cubemapSlots->loadOrGet(wc.cubemapId);
-            reuploadMats = true;
+            dsUpdateNeeded = true;
         }
         });
+}
+
+void VKRenderer::uploadSceneAssets(entt::registry& reg) {
+    ZoneScoped;
+    bool reuploadMats = false;
+    bool dsUpdateNeeded = false;
+
+    uploadSceneAssetsForReg(reg, reuploadMats, dsUpdateNeeded);
+
+    for (auto& pass : rttPasses) {
+        if (pass->createInfo.registryOverride) {
+            uploadSceneAssetsForReg(*pass->createInfo.registryOverride, reuploadMats, dsUpdateNeeded);
+        }
+    }
+
+    dsUpdateNeeded |= reuploadMats;
 
     if (reuploadMats)
         reuploadMaterials();
+    else if (dsUpdateNeeded) {
+        for (auto& pass : rttPasses) {
+            pass->prp->reuploadDescriptors();
+        }
+        additionalShadowsPass->reuploadDescriptors();
+    }
 }
 
 void VKRenderer::writeCmdBuf(VkCommandBuffer cmdBuf, uint32_t imageIndex, Camera& cam, entt::registry& reg) {
     ZoneScoped;
     PerfTimer pt;
-
-    vku::beginCommandBuffer(cmdBuf, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
-    texSlots->frameStarted = true;
-
-    vkCmdResetQueryPool(cmdBuf, queryPool, 2 * frameIdx, 2);
-    vkCmdWriteTimestamp(cmdBuf, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, queryPool, frameIdx * 2);
-
-    texSlots->setUploadCommandBuffer(cmdBuf, frameIdx);
-
-    uploadSceneAssets(reg);
-
-    finalPrePresent->image().setLayout(cmdBuf,
-        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-        VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-        VK_ACCESS_TRANSFER_READ_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT);
-
-    std::sort(rttPasses.begin(), rttPasses.end(), [](VKRTTPass* a, VKRTTPass* b) {
-        return a->drawSortKey < b->drawSortKey;
-        });
 
     RenderContext rCtx{
         .resources = getResources(),
@@ -1103,7 +1183,41 @@ void VKRenderer::writeCmdBuf(VkCommandBuffer cmdBuf, uint32_t imageIndex, Camera
         .maxSimultaneousFrames = presentSubmitManager->numFramesInFlight()
     };
 
+    uploadSceneAssets(reg);
+
+    std::sort(rttPasses.begin(), rttPasses.end(), [](VKRTTPass* a, VKRTTPass* b) {
+        return a->drawSortKey < b->drawSortKey;
+        });
+
     additionalShadowsPass->prePass(rCtx);
+
+    for (auto& p : rttPasses) {
+        if (!p->active) continue;
+
+        bool nullCam = p->cam == nullptr;
+
+        if (nullCam)
+            p->cam = &cam;
+
+        p->prePass(frameIdx, reg);
+
+        if (nullCam)
+            p->cam = nullptr;
+    }
+
+    vku::beginCommandBuffer(cmdBuf, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+    texSlots->frameStarted = true;
+
+    vkCmdResetQueryPool(cmdBuf, queryPool, 2 * frameIdx, 2);
+    vkCmdWriteTimestamp(cmdBuf, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, queryPool, frameIdx * 2);
+
+    texSlots->setUploadCommandBuffer(cmdBuf, frameIdx);
+
+    finalPrePresent->image().setLayout(cmdBuf,
+        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+        VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+        VK_ACCESS_TRANSFER_READ_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT);
+
     additionalShadowsPass->execute(rCtx);
 
     int numActivePasses = 0;
@@ -1209,12 +1323,13 @@ void VKRenderer::writeCmdBuf(VkCommandBuffer cmdBuf, uint32_t imageIndex, Camera
 
 void VKRenderer::reuploadMaterials() {
     ZoneScoped;
-    materialUB.upload(device, commandPool, queues.graphics, matSlots->getSlots(), sizeof(PackedMaterial) * 256);
 
     for (auto& pass : rttPasses) {
         pass->prp->reuploadDescriptors();
     }
     additionalShadowsPass->reuploadDescriptors();
+
+    materialUB.upload(device, commandPool, queues.graphics, matSlots->getSlots(), sizeof(PackedMaterial) * NUM_MAT_SLOTS);
 }
 
 ConVar showSlotDebug{ "r_debugSlots", "0", "Shows a window for debugging resource slots." };
@@ -1265,7 +1380,7 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
 
     VkCommandBuffer cmdBuf;
     int imageIndex;
-    int frameIdx = presentSubmitManager->acquireFrame(cmdBuf, imageIndex);
+    frameIdx = presentSubmitManager->acquireFrame(cmdBuf, imageIndex);
     DeletionQueue::cleanupFrame(frameIdx);
     DeletionQueue::setCurrentFrame(frameIdx);
 
@@ -1457,6 +1572,8 @@ void VKRenderer::unloadUnusedAssets(entt::registry& reg) {
             }
         }
     }
+
+    reuploadMaterials();
 }
 
 void VKRenderer::reloadContent(ReloadFlags flags) {
@@ -1532,7 +1649,7 @@ void VKRenderer::destroyRTTPass(RTTPass* pass) {
         std::remove(rttPasses.begin(), rttPasses.end(), pass),
         rttPasses.end());
 
-    delete pass;
+    delete (VKRTTPass*)pass;
 }
 
 void VKRenderer::triggerRenderdocCapture() {
@@ -1563,6 +1680,8 @@ IUITextureManager& VKRenderer::uiTextureManager() {
     return *uiTextureMan;
 }
 
+namespace worlds { extern void unloadSDFFonts(); }
+
 VKRenderer::~VKRenderer() {
     if (device) {
         VKCHECK(vkDeviceWaitIdle(device));
@@ -1591,6 +1710,8 @@ VKRenderer::~VKRenderer() {
 
         brdfLut.destroy();
         loadedMeshes.clear();
+
+        unloadSDFFonts();
 
         delete shadowCascadePass;
         delete additionalShadowsPass;

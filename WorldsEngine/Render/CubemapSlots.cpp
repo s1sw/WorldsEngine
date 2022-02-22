@@ -25,6 +25,7 @@ namespace worlds {
         }
 
         if (!PHYSFS_exists(AssetDB::idToPath(asset).c_str())) {
+            logErr(WELogCategoryRender, "Missing cubemap %s", AssetDB::idToPath(asset).c_str());
             lookup.insert({ asset, missingSlot });
             return missingSlot;
         }

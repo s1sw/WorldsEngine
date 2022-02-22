@@ -92,7 +92,7 @@ namespace worlds {
         struct AttachedOneshot {
             FMOD::Studio::EventInstance* instance;
             FMOD::DSP* phononDsp;
-            IPLSource phononSource;
+            IPLSource phononSource = nullptr;
             entt::entity entity;
             glm::vec3 lastPosition;
             bool markForRemoval = false;

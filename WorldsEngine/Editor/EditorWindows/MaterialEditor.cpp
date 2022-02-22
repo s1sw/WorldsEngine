@@ -1,4 +1,6 @@
 #include "ImGui/imgui.h"
+#define IMGUI_DEFINE_MATH_OPERATORS
+#include <ImGui/imgui_internal.h>
 #include "EditorWindows.hpp"
 #include "../GuiUtil.hpp"
 #include "Core/AssetDB.hpp"
@@ -6,9 +8,16 @@
 #include "Util/JsonUtil.hpp"
 #include "Render/Render.hpp"
 #include "robin_hood.h"
+#include <Core/Engine.hpp>
+#include <Util/CreateModelObject.hpp>
+#include <Util/VKImGUIUtil.hpp>
+#include <Util/MathsUtil.hpp>
 
 namespace worlds {
     robin_hood::unordered_map<AssetID, ImTextureID> cacheTextures;
+    entt::registry previewRegistry;
+    ImTextureID previewPassTex;
+
     struct EditableMaterial {
         AssetID albedo = ~0u;
         AssetID normalMap = ~0u;
@@ -127,6 +136,31 @@ namespace worlds {
         return AssetDB::pathToId(j[key].get<std::string>());
     }
 
+    MaterialEditor::MaterialEditor(EngineInterfaces interfaces, Editor* editor)
+        : EditorWindow(interfaces, editor) {
+        previewRegistry.set<SceneSettings>(AssetDB::pathToId("Cubemaps/Miramar/miramar.json"), 1.0f);
+
+        RTTPassCreateInfo pci{};
+        pci.enableShadows = false;
+        pci.msaaLevel = 0;
+        pci.cam = &previewCam;
+        pci.registryOverride = &previewRegistry;
+        pci.width = 256;
+        pci.height = 256;
+        rttPass = interfaces.renderer->createRTTPass(pci);
+
+        previewEntity = createModelObject(previewRegistry, glm::vec3(0.0f), glm::quat(1.0f, 0.0f, 0.0f, 0.0f),
+            AssetDB::pathToId("Models/sphere.wmdl"), AssetDB::pathToId("Materials/DevTextures/dev_metal.json"));
+
+        previewPassTex = (ImTextureID)VKImGUIUtil::createDescriptorSetFor(
+            static_cast<VKRTTPass*>(rttPass)->sdrFinalTarget->image(), static_cast<VKRenderer*>(interfaces.renderer)->getHandles());
+
+        previewCam.position = glm::vec3(0.0f, 0.0f, -1.0f);
+        previewCam.rotation = glm::angleAxis(0.0f, glm::vec3(0.0f, 1.0f, 0.0f)) * glm::angleAxis(0.0f, glm::vec3(1.0f, 0.0f, 0.0f));
+
+        rttPass->active = true;
+    }
+
     void MaterialEditor::draw(entt::registry&) {
         static AssetID materialId = ~0u;
         static bool needsReload = false;
@@ -168,6 +202,8 @@ namespace worlds {
 
                     needsReload = false;
                 }
+
+                previewRegistry.get<WorldObject>(previewEntity).materials[0] = materialId;
 
                 ImGui::SliderFloat("Metallic", &mat.metallic, 0.0f, 1.0f);
                 ImGui::SliderFloat("Roughness", &mat.roughness, 0.0f, 1.0f);
@@ -276,8 +312,84 @@ namespace worlds {
                 bool open = ImGui::Button("Open Material");
                 needsReload = selectAssetPopup("Select Material", materialId, open, true);
             }
+
         }
 
+        ImGui::End();
+
+        static bool dragging = false;
+        if (ImGui::Begin("Material Preview", nullptr, (dragging ? ImGuiWindowFlags_NoMove : 0)) | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse) {
+            static ImVec2 lastPreviewSize{ 0.0f, 0.0f };
+            ImVec2 previewSize = ImGui::GetContentRegionAvail() - ImVec2(0.0f, ImGui::GetTextLineHeightWithSpacing() * 2.0f);
+            if (previewSize.x != lastPreviewSize.x || previewSize.y != lastPreviewSize.y) {
+                VulkanHandles* handles = static_cast<VKRenderer*>(interfaces.renderer)->getHandles();
+                DeletionQueue::queueDescriptorSetFree(handles->descriptorPool, (VkDescriptorSet)previewPassTex);
+                rttPass->resize(previewSize.x, previewSize.y);
+                previewPassTex = (ImTextureID)VKImGUIUtil::createDescriptorSetFor(
+                    static_cast<VKRTTPass*>(rttPass)->sdrFinalTarget->image(), static_cast<VKRenderer*>(interfaces.renderer)->getHandles());
+                lastPreviewSize = previewSize;
+            }
+            ImVec2 cpos = ImGui::GetWindowPos() + ImGui::GetCursorPos() - ImVec2(ImGui::GetScrollX(), ImGui::GetScrollY());
+            ImVec2 end = previewSize + cpos;
+            ImGui::ImageButton(previewPassTex, previewSize, ImVec2(0, 0), ImVec2(1, 1), 0);
+
+            static float lx = 0.0f;
+            static float ly = 0.0f;
+            static float dist = 2.0f;
+
+            if (ImGui::IsMouseHoveringRect(cpos, end)) {
+                rttPass->active = true;
+                if (ImGui::IsMouseDown(0)) {
+                    dragging = true;
+                }
+
+                dist -= ImGui::GetIO().MouseWheel * 0.25;
+                dist = glm::max(dist, 0.25f);
+            } else {
+                rttPass->active = false;
+            }
+
+            if (!ImGui::IsMouseDown(0)) {
+                dragging = false;
+            }
+
+            if (dragging) {
+                lx -= ImGui::GetIO().MouseDelta.x * 0.01f;
+                ly -= ImGui::GetIO().MouseDelta.y * 0.01f;
+
+                ly = glm::clamp(ly, -glm::half_pi<float>() + 0.1f, glm::half_pi<float>() - 0.1f);
+            }
+
+            glm::quat q = glm::angleAxis(lx, glm::vec3(0.0f, 1.0f, 0.0f)) * glm::angleAxis(ly, glm::vec3(1.0f, 0.0f, 0.0f));
+
+            glm::vec3 dir = q * glm::vec3(0.0f, 0.0f, 1.0f);
+            previewCam.position = dir * dist;
+            previewCam.rotation = glm::quatLookAt(dir, glm::vec3(0.0f, 1.0f, 0.0f));
+
+            if (ImGui::Button("Box")) {
+                previewRegistry.get<WorldObject>(previewEntity).mesh = AssetDB::pathToId("Models/cube.wmdl");
+            }
+
+            ImGui::SameLine();
+            if (ImGui::Button("Sphere")) {
+                previewRegistry.get<WorldObject>(previewEntity).mesh = AssetDB::pathToId("Models/sphere.wmdl");
+            }
+
+            ImGui::SameLine();
+            if (ImGui::Button("Plane")) {
+                previewRegistry.get<WorldObject>(previewEntity).mesh = AssetDB::pathToId("Models/plane.wmdl");
+            }
+
+            static AssetID customModel = ~0u;
+            ImGui::SameLine();
+            bool open = false;
+            if (ImGui::Button("Other Model")) {
+                open = true;
+            }
+            if (selectAssetPopup("Preview Model", customModel, open)) {
+                previewRegistry.get<WorldObject>(previewEntity).mesh = customModel;
+            }
+        }
         ImGui::End();
 
         if (!active && cacheTextures.size() > 0) {
@@ -286,5 +398,9 @@ namespace worlds {
             }
             cacheTextures.clear();
         }
+    }
+
+    MaterialEditor::~MaterialEditor() {
+        interfaces.renderer->destroyRTTPass(rttPass);
     }
 }
