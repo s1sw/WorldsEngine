@@ -478,9 +478,9 @@ void unpackMaterial(inout ShadeInfo si, vec2 tCoord, mat3 tbn) {
 //#endif
 
     if (mat.heightmapIdx > -1 && DO_PARALLAX) {
-        mat3 tbnT = transpose(tbn);
+        mat3 tbnT = (tbn);
         vec3 tViewDir = normalize((tbnT * getViewPos()) - (tbnT * inWorldPos.xyz));
-        tCoord = parallaxMapping(inUV, tViewDir, tex2dSampler[mat.heightmapIdx], mat.heightScale, PARALLAX_MIN_LAYERS, PARALLAX_MAX_LAYERS);
+        tCoord = parallaxMapping(tCoord, tViewDir, tex2dSampler[mat.heightmapIdx], mat.heightScale, PARALLAX_MIN_LAYERS, PARALLAX_MAX_LAYERS);
     }
     si.ao = 1.0;
 
@@ -555,14 +555,14 @@ void main() {
     // Let's attempt some tangent frame construction on the fly!
     vec2 tCoord = inUV;
     if (inUvDir != 0) {
-        if (inUV.x < 0.0) {
-            tCoord.x += 20.0; 
-        }
-        
-        if (inUV.y < 0.0) {
-            tCoord.y += 20.0;//= mod(tCoord.y, 1.0) + 1.0;
-        }
-        tbn = cotangent_frame(inNormal, getViewPos() - inWorldPos.xyz, abs(tCoord));
+        tbn = cotangent_frame(inNormal, getViewPos() - inWorldPos.xyz, tCoord);
+        //if (inUV.x < 0.0) {
+        //    tCoord.x += 20.0; 
+        //}
+        //
+        //if (inUV.y < 0.0) {
+        //    tCoord.y += 20.0;//= mod(tCoord.y, 1.0) + 1.0;
+        //}
     }
 
     uint doPicking = miscFlag & 0x1;

@@ -25,7 +25,7 @@ layout(std430, binding = 1) readonly buffer LightBuffer {
 };
 
 layout(std140, binding = 2) readonly buffer MaterialSettingsBuffer {
-    Material materials[256];
+    Material materials[];
 };
 
 layout(std140, binding = 3) readonly buffer ModelMatrices {
