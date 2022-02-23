@@ -14,7 +14,7 @@ const char* format(const char* fmt, Args... args) {
 
 void fatalErrInternal(const char* msg, const char* file, int line) {
     const char* formatted = format("%s\n(file: %s, line %i)", msg, file, line);
-    logErr(SDL_LOG_PRIORITY_CRITICAL, "%s", formatted);
+    logErr("%s", formatted);
     SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Worlds Engine", formatted, nullptr);
     abort();
 }

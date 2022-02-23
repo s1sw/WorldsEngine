@@ -5,7 +5,10 @@
 #include <Core/LogCategories.hpp>
 #include <Core/Log.hpp>
 #include <stb_image.h>
-#include "Tracy.hpp"
+#include <Tracy/Tracy.hpp>
+#include <Libs/miniz.h>
+#define TINYEXR_IMPLEMENTATION
+#include <tinyexr.h>
 
 namespace worlds {
     bool RawTextureLoader::loadStbTexture(void* fileData, size_t fileLen, AssetID id, RawTextureData& texData) {
@@ -37,6 +40,28 @@ namespace worlds {
         return true;
     }
 
+    bool RawTextureLoader::loadExrTexture(void* fileData, size_t fileLen, AssetID id, RawTextureData& texData) {
+        ZoneScoped;
+
+        float* data;
+        int width, height;
+        const char* err;
+        int result = LoadEXRFromMemory(&data, &width, &height, (uint8_t*)fileData, fileLen, &err);
+
+        if (result != TINYEXR_SUCCESS) {
+            logErr("Error loading %s: %s", AssetDB::idToPath(id).c_str(), err);
+            return false;
+        }
+
+        texData.data = (uint8_t*)data;
+        texData.width = width;
+        texData.height = height;
+        texData.format = RawTextureFormat::RGBA32F;
+        texData.totalDataSize = width * height * 4 * sizeof(float);
+
+        return true;
+    }
+
     bool RawTextureLoader::loadRawTexture(AssetID id, RawTextureData& texData) {
         ZoneScoped;
 
@@ -62,8 +87,7 @@ namespace worlds {
 
 
         if (AssetDB::getAssetExtension(id) == ".exr") {
-            // TODO
-            //return loadExrTexture(fileVec.data(), fileLen, id);
+            return loadExrTexture(fileVec.data(), fileLen, id, texData);
         }
 
         return loadStbTexture(fileVec.data(), fileLen, id, texData);

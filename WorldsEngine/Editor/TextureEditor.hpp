@@ -1,5 +1,6 @@
 #pragma once
 #include "AssetEditors.hpp"
+#include <AssetCompilation/TextureCompiler.hpp>
 
 namespace worlds {
     class TextureEditor : public IAssetEditor {
@@ -11,16 +12,7 @@ namespace worlds {
         void save() override;
         const char* getHandledExtension() override;
     private:
-        enum class TextureType {
-            Regular,
-            NormalMap
-        };
-        TextureType strToTexType(std::string_view texType);
-
-        TextureType texType = TextureType::Regular;
-        bool isSrgb = true;
-        int qualityLevel = 127;
-        AssetID srcTexture = INVALID_ASSET;
+        TextureAssetSettings currentAssetSettings;
         AssetID editingID = INVALID_ASSET;
     };
 }

@@ -23,5 +23,6 @@ namespace worlds {
         static bool loadRawTexture(AssetID id, RawTextureData& texData);
     private:
         static bool loadStbTexture(void* fileData, size_t fileLen, AssetID id, RawTextureData& texData);
+        static bool loadExrTexture(void* fileData, size_t fileLen, AssetID id, RawTextureData& texData);
     };
 }

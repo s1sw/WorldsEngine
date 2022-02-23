@@ -27,6 +27,7 @@
     <ClCompile Include="..\WorldsEngine\AssetCompilation\AssetCompilers.cpp" />
     <ClCompile Include="..\WorldsEngine\AssetCompilation\AssetCompilerUtil.cpp" />
     <ClCompile Include="..\WorldsEngine\AssetCompilation\ModelCompiler.cpp" />
+    <ClCompile Include="..\WorldsEngine\AssetCompilation\RawTextureLoader.cpp" />
     <ClCompile Include="..\WorldsEngine\AssetCompilation\TextureCompiler.cpp" />
     <ClCompile Include="..\WorldsEngine\Audio\Audio.cpp" />
     <ClCompile Include="..\WorldsEngine\ComponentMeta\ComponentFuncs.cpp" />
@@ -225,9 +226,11 @@
     <ClInclude Include="..\LonelyGalaxy\MathsUtil.hpp" />
     <ClInclude Include="..\LonelyGalaxy\ObjectParentSystem.hpp" />
     <ClInclude Include="..\ModelFormat\WMDL.hpp" />
+    <ClInclude Include="..\TextureFormat\WTex.hpp" />
     <ClInclude Include="..\WorldsEngine\AssetCompilation\AssetCompilers.hpp" />
     <ClInclude Include="..\WorldsEngine\AssetCompilation\AssetCompilerUtil.hpp" />
     <ClInclude Include="..\WorldsEngine\AssetCompilation\ModelCompiler.hpp" />
+    <ClInclude Include="..\WorldsEngine\AssetCompilation\RawTextureLoader.hpp" />
     <ClInclude Include="..\WorldsEngine\AssetCompilation\TextureCompiler.hpp" />
     <ClInclude Include="..\WorldsEngine\Audio\Audio.hpp" />
     <ClInclude Include="..\WorldsEngine\ComponentMeta\ComponentEditorUtil.hpp" />
@@ -555,7 +558,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);TRACY_ENABLE</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)..\External\Include;$(SolutionDir)..\subprojects\physfs.git\src;$(SolutionDir)..\subprojects\slib.git\include;$(SolutionDir)..\subprojects\SDL2-2.0.12\include;$(SolutionDir)..\WorldsEngine;$(SolutionDir)..\ModelFormat;$(SolutionDir)..\External\Assimp\include;C:\Program Files (x86)\FMOD SoundSystem\FMOD Studio API Windows\api\core\inc;C:\Program Files (x86)\FMOD SoundSystem\FMOD Studio API Windows\api\studio\inc;$(SolutionDir)..\DiscordSDK;$(SolutionDir)..\subprojects\recastnavigation\Recast\Include;$(SolutionDir)..\subprojects\recastnavigation\Detour\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\External\Include;$(SolutionDir)..\subprojects\physfs.git\src;$(SolutionDir)..\subprojects\slib.git\include;$(SolutionDir)..\subprojects\SDL2-2.0.12\include;$(SolutionDir)..\WorldsEngine;$(SolutionDir)..\ModelFormat;$(SolutionDir)..\External\Assimp\include;C:\Program Files (x86)\FMOD SoundSystem\FMOD Studio API Windows\api\core\inc;C:\Program Files (x86)\FMOD SoundSystem\FMOD Studio API Windows\api\studio\inc;$(SolutionDir)..\DiscordSDK;$(SolutionDir)..\subprojects\recastnavigation\Recast\Include;$(SolutionDir)..\subprojects\recastnavigation\Detour\Include;$(SolutionDir)..\TextureFormat;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
@@ -572,7 +575,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);TRACY_ENABLE</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)..\External\Include;$(SolutionDir)..\subprojects\physfs.git\src;$(SolutionDir)..\subprojects\slib.git\include;$(SolutionDir)..\subprojects\SDL2-2.0.12\include;$(SolutionDir)..\WorldsEngine;$(SolutionDir)..\ModelFormat;$(SolutionDir)..\External\Assimp\include;C:\Program Files (x86)\FMOD SoundSystem\FMOD Studio API Windows\api\core\inc;C:\Program Files (x86)\FMOD SoundSystem\FMOD Studio API Windows\api\studio\inc;$(SolutionDir)..\DiscordSDK;$(SolutionDir)..\subprojects\recastnavigation\Recast\Include;$(SolutionDir)..\subprojects\recastnavigation\Detour\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\External\Include;$(SolutionDir)..\subprojects\physfs.git\src;$(SolutionDir)..\subprojects\slib.git\include;$(SolutionDir)..\subprojects\SDL2-2.0.12\include;$(SolutionDir)..\WorldsEngine;$(SolutionDir)..\ModelFormat;$(SolutionDir)..\External\Assimp\include;C:\Program Files (x86)\FMOD SoundSystem\FMOD Studio API Windows\api\core\inc;C:\Program Files (x86)\FMOD SoundSystem\FMOD Studio API Windows\api\studio\inc;$(SolutionDir)..\DiscordSDK;$(SolutionDir)..\subprojects\recastnavigation\Recast\Include;$(SolutionDir)..\subprojects\recastnavigation\Detour\Include;$(SolutionDir)..\TextureFormat;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>

@@ -60,28 +60,33 @@ namespace worlds {
 
             std::string atlasPath = "UI/SDFFonts/" + j["atlas"].get<std::string>();
             TextureData sdfData = loadTexData(AssetDB::pathToId(atlasPath));
-            font.atlas = uploadTextureVk(*handles, sdfData);
-            std::free(sdfData.data);
+            if (sdfData.data != nullptr) {
+                font.atlas = uploadTextureVk(*handles, sdfData);
+                std::free(sdfData.data);
 
-            auto& chars = j["characters"];
-            for (auto& charPair : chars.items()) {
-                auto& charVal = charPair.value();
+                auto& chars = j["characters"];
+                for (auto& charPair : chars.items()) {
+                    auto& charVal = charPair.value();
 
-                // TODO: Handle Unicode correctly!
-                // THIS WILL BREAK FOR NON-ASCII CHARACTERS!!!!!
-                uint32_t codepoint = charPair.key()[0];
-                FontChar thisChar {
-                    .codepoint = codepoint,
-                    .x = charVal["x"],
-                    .y = charVal["y"],
-                    .width = charVal["width"],
-                    .height = charVal["height"],
-                    .originX = charVal["originX"],
-                    .originY = charVal["originY"],
-                    .advance = charVal["advance"]
-                };
+                    // TODO: Handle Unicode correctly!
+                    // THIS WILL BREAK FOR NON-ASCII CHARACTERS!!!!!
+                    uint32_t codepoint = charPair.key()[0];
+                    FontChar thisChar{
+                        .codepoint = codepoint,
+                        .x = charVal["x"],
+                        .y = charVal["y"],
+                        .width = charVal["width"],
+                        .height = charVal["height"],
+                        .originX = charVal["originX"],
+                        .originY = charVal["originY"],
+                        .advance = charVal["advance"]
+                    };
 
-                font.characters.insert({ codepoint, thisChar });
+                    font.characters.insert({ codepoint, thisChar });
+                }
+            } else {
+                logErr("Failed to load font atlas texture");
+                return;
             }
         } catch(nlohmann::detail::exception& ex) {
             logErr("Failed to parse font");

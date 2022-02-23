@@ -10,9 +10,7 @@
 #include <physfs.h>
 #include <algorithm>
 #include <mutex>
-#include <Libs/miniz.h>
-#define TINYEXR_IMPLEMENTATION
-#include <tinyexr.h>
+#include <WTex.hpp>
 
 namespace worlds {
     std::mutex vkMutex;
@@ -38,73 +36,6 @@ namespace worlds {
 
     inline int getNumMips(int w, int h) {
         return (int)(1 + floor(log2(glm::max(w, h))));
-    }
-
-    TextureData loadStbTexture(void* fileData, size_t fileLen, AssetID id) {
-        ZoneScoped;
-        int x, y, channelsInFile;
-        bool hdr = false;
-        bool forceLinear = false;
-        stbi_uc* dat;
-
-        std::string path = AssetDB::idToPath(id);
-
-        if (path.find("forcelin") != std::string::npos) {
-            forceLinear = true;
-        }
-
-        if (AssetDB::getAssetExtension(id) == ".hdr") {
-            float* fpDat;
-            fpDat = stbi_loadf_from_memory((stbi_uc*)fileData, (int)fileLen, &x, &y, &channelsInFile, 4);
-            dat = (stbi_uc*)fpDat;
-            hdr = true;
-        } else {
-            dat = stbi_load_from_memory((stbi_uc*)fileData, (int)fileLen, &x, &y, &channelsInFile, 4);
-        }
-
-        if (dat == nullptr) {
-            SDL_LogError(worlds::WELogCategoryEngine, "STB Image error\n");
-        }
-
-        TextureData td;
-        td.data = dat;
-        td.numMips = 1;
-        td.width = (uint32_t)x;
-        td.height = (uint32_t)y;
-        if (hdr)
-            td.format = VK_FORMAT_R32G32B32A32_SFLOAT;
-        else if (!forceLinear)
-            td.format = VK_FORMAT_R8G8B8A8_SRGB;
-        else
-            td.format = VK_FORMAT_R8G8B8A8_UNORM;
-        td.name = AssetDB::idToPath(id);
-        td.totalDataSize = hdr ? x * y * 4 * sizeof(float) : x * y * 4;
-
-        return td;
-    }
-
-    TextureData loadExrTexture(void* fileData, size_t fileLen, AssetID id) {
-        ZoneScoped;
-        TextureData td;
-
-        float* data;
-        int width, height;
-        const char* err;
-        int result = LoadEXRFromMemory(&data, &width, &height, (uint8_t*)fileData, fileLen, &err);
-
-        if (result != TINYEXR_SUCCESS) {
-            logErr("Error loading %s: %s", AssetDB::idToPath(id).c_str(), err);
-            return TextureData{nullptr};
-        }
-
-        td.data = (uint8_t*)data;
-        td.width = width;
-        td.height = height;
-        td.format = VK_FORMAT_R32G32B32A32_SFLOAT;
-        td.name = AssetDB::idToPath(id);
-        td.totalDataSize = width * height * 4 * sizeof(float);
-
-        return td;
     }
 
     TextureData loadCrunchTexture(void* fileData, size_t fileLen, AssetID id) {
@@ -170,6 +101,43 @@ namespace worlds {
         return td;
     }
 
+    TextureData loadStbTexture(void* fileData, size_t fileLen, AssetID id) {
+        ZoneScoped;
+        int x, y, channelsInFile;
+        bool hdr = false;
+        bool forceLinear = false;
+        stbi_uc* dat;
+        std::string path = AssetDB::idToPath(id);
+        if (path.find("forcelin") != std::string::npos) {
+            forceLinear = true;
+        }
+        if (AssetDB::getAssetExtension(id) == ".hdr") {
+            float* fpDat;
+            fpDat = stbi_loadf_from_memory((stbi_uc*)fileData, (int)fileLen, &x, &y, &channelsInFile, 4);
+            dat = (stbi_uc*)fpDat;
+            hdr = true;
+        } else {
+            dat = stbi_load_from_memory((stbi_uc*)fileData, (int)fileLen, &x, &y, &channelsInFile, 4);
+        }
+        if (dat == nullptr) {
+            SDL_LogError(worlds::WELogCategoryEngine, "STB Image error\n");
+        }
+        TextureData td;
+        td.data = dat;
+        td.numMips = 1;
+        td.width = (uint32_t)x;
+        td.height = (uint32_t)y;
+        if (hdr)
+            td.format = VK_FORMAT_R32G32B32A32_SFLOAT;
+        else if (!forceLinear)
+            td.format = VK_FORMAT_R8G8B8A8_SRGB;
+        else
+            td.format = VK_FORMAT_R8G8B8A8_UNORM;
+        td.name = AssetDB::idToPath(id);
+        td.totalDataSize = hdr ? x * y * 4 * sizeof(float) : x * y * 4;
+        return td;
+    }
+
     TextureData loadTexData(AssetID id) {
         ZoneScoped;
 
@@ -193,20 +161,26 @@ namespace worlds {
 
         std::string ext = AssetDB::getAssetExtension(id);
 
-        bool crunch = ext == ".crn" || ext == ".wtex";
-
-        if (AssetDB::getAssetExtension(id) == ".vtf") {
-            return loadVtfTexture(fileVec.data(), fileLen, id);
-        }
-
-        if (AssetDB::getAssetExtension(id) == ".exr") {
-            return loadExrTexture(fileVec.data(), fileLen, id);
-        }
-
-        if (!crunch) {
+        if (ext == ".jpg" || ext == ".png" || ext == ".hdr") {
             return loadStbTexture(fileVec.data(), fileLen, id);
-        } else {
+        }
+
+        if (fileVec[0] == 'H' && fileVec[1] == 'x') {
+            // old raw crunch texture, load directly
             return loadCrunchTexture(fileVec.data(), fileLen, id);
+        }
+
+        wtex::Header* header = reinterpret_cast<wtex::Header*>(fileVec.data());
+        
+        if (!header->verifyMagic()) {
+            return TextureData{ nullptr };
+        }
+
+        if (header->containedFormat == wtex::ContainedFormat::Crunch) {
+            return loadCrunchTexture(header->getData(), header->dataSize, id);
+        } else {
+            logErr("Unsupported texture containedFormat");
+            return TextureData{ nullptr };
         }
     }
 

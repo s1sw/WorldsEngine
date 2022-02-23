@@ -669,6 +669,9 @@
     <ClCompile Include="..\WorldsEngine\Navigation\Navigation.cpp">
       <Filter>Navigation</Filter>
     </ClCompile>
+    <ClCompile Include="..\WorldsEngine\AssetCompilation\RawTextureLoader.cpp">
+      <Filter>AssetCompilation</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\WorldsEngine\AssetCompilation\AssetCompilerUtil.hpp">
@@ -1368,5 +1371,9 @@
     <ClInclude Include="..\WorldsEngine\Scripting\NavigationSystemBindings.hpp">
       <Filter>Scripting</Filter>
     </ClInclude>
+    <ClInclude Include="..\WorldsEngine\AssetCompilation\RawTextureLoader.hpp">
+      <Filter>AssetCompilation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\TextureFormat\WTex.hpp" />
   </ItemGroup>
 </Project>

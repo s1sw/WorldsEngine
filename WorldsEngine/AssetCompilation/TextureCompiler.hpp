@@ -41,6 +41,7 @@ namespace worlds {
         };
 
         static TextureAssetSettings fromJson(nlohmann::json& j);
+        void toJson(nlohmann::json& j);
     };
 
     class TextureCompiler : public IAssetCompiler {
@@ -54,7 +55,7 @@ namespace worlds {
         struct TexCompileThreadInfo;
         void compileCrunch(TexCompileThreadInfo*);
         void compileRGBA(TexCompileThreadInfo*);
-        void writeWtex();
+        void writeCrunchedWtex(TexCompileThreadInfo* tcti, bool isSrgb, int width, int height, int nMips, void* data, size_t dataSize);
         void compileInternal(TexCompileThreadInfo*);
     };
 }
