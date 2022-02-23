@@ -228,7 +228,7 @@ void VKRenderer::updateTextureResource(RenderResource* resource, TextureResource
         resourceCreateInfo.aspectFlags, false, resource->name.c_str());
 
     vku::executeImmediately(handles.device, handles.commandPool, queues.graphics, [&](VkCommandBuffer cmdbuf) {
-        resource->image().setLayout(cmdbuf, oldLayout);
+        resource->image().setLayout(cmdbuf, oldLayout, resourceCreateInfo.aspectFlags);
     });
 }
 
