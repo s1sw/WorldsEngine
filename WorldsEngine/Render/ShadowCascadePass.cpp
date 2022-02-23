@@ -9,12 +9,13 @@
 #include "vku/DescriptorSetUtil.hpp"
 
 namespace worlds {
+    const int NUM_CASCADES = 4;
     struct ShadowmapPushConstants {
         glm::mat4 model;
     };
 
     struct CascadeMatrices {
-        glm::mat4 matrices[3];
+        glm::mat4 matrices[NUM_CASCADES];
     };
 
     ShadowCascadePass::ShadowCascadePass(IVRInterface* vrInterface, VulkanHandles* handles, RenderResource* shadowImage)
@@ -51,7 +52,7 @@ namespace worlds {
         rPassMaker.dependencyDstAccessMask(VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
 
         VkRenderPassMultiviewCreateInfo multiviewCI{ VK_STRUCTURE_TYPE_RENDER_PASS_MULTIVIEW_CREATE_INFO };
-        uint32_t viewMask = 0b00000111;
+        uint32_t viewMask = 0b00001111;
 
         multiviewCI.subpassCount = 1;
         multiviewCI.pViewMasks = &viewMask;
@@ -126,21 +127,22 @@ namespace worlds {
         rCtx.registry.view<WorldLight, Transform>().each([&](auto, WorldLight& l, Transform& transform) {
             glm::vec3 lightForward = transform.rotation * glm::vec3(0.0f, 0.0f, -1.0f);
             if (l.type == LightType::Directional) {
-                glm::mat4 frustumMatrices[3];
+                glm::mat4 frustumMatrices[NUM_CASCADES];
                 float aspect = (float)rCtx.passWidth / (float)rCtx.passHeight;
-                // frustum 0: near -> 20m
-                // frustum 1: 20m  -> 125m
-                // frustum 2: 125m -> 250m
-                float splits[4] = { 0.1f, 15.0f, 45.0f, 105.0f };
+                // frustum 0: near -> 10m
+                // frustum 1: 10m  -> 50m
+                // frustum 2: 50m -> 200m
+                // frustum 3: 200m -> 700m
+                float splits[5] = { 0.1f, 10.0f, 50.0f, 200.0f, 700.0f };
                 if (!rCtx.passSettings.enableVr) {
-                    for (int i = 1; i < 4; i++) {
+                    for (int i = 1; i < NUM_CASCADES; i++) {
                         frustumMatrices[i - 1] = glm::perspective(
                             rCtx.camera.verticalFOV, aspect,
                             splits[i - 1], splits[i]
                         );
                     }
                 } else {
-                    for (int i = 1; i < 4; i++) {
+                    for (int i = 1; i < NUM_CASCADES; i++) {
                         frustumMatrices[i - 1] = vrInterface->getEyeProjectionMatrix(
                             Eye::LeftEye,
                             splits[i - 1], splits[i]
@@ -148,7 +150,7 @@ namespace worlds {
                     }
                 }
 
-                for (int i = 0; i < 3; i++) {
+                for (int i = 0; i < NUM_CASCADES; i++) {
                     rCtx.cascadeInfo.matrices[i] =
                         getCascadeMatrix(
                             rCtx, lightForward,
@@ -249,7 +251,7 @@ namespace worlds {
 
         CascadeMatrices matrices;
 
-        for (int i = 0; i < 3; i++) {
+        for (int i = 0; i < NUM_CASCADES; i++) {
             matrices.matrices[i] = ctx.cascadeInfo.matrices[i];
         }
 
@@ -259,9 +261,9 @@ namespace worlds {
         vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
         vkCmdBindDescriptorSets(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &ds, 0, nullptr);
 
-        Frustum shadowFrustums[3];
+        Frustum shadowFrustums[NUM_CASCADES];
 
-        for (int i = 0; i < 3; i++) {
+        for (int i = 0; i < NUM_CASCADES; i++) {
             shadowFrustums[i].fromVPMatrix(ctx.cascadeInfo.matrices[i]);
         }
 
@@ -277,7 +279,7 @@ namespace worlds {
 
             bool visible = false;
 
-            for (int i = 0; i < 3; i++) {
+            for (int i = 0; i < NUM_CASCADES; i++) {
                 visible |= shadowFrustums[i].containsSphere(transform.position, meshPos->second.sphereRadius * scaleMax);
             }
 

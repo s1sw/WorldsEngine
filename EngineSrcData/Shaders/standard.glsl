@@ -228,11 +228,11 @@ bool isTextureEnough(ivec2 texSize) {
 }
 
 float calculateCascade(out vec4 oShadowPos, out bool inCascade) {
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < 4; i++) {
         vec4 shadowPos = dirShadowMatrices[i] * inWorldPos;
         shadowPos.y = -shadowPos.y;
         vec2 coord = (shadowPos.xy * 0.5 + 0.5);
-        const float lThresh = (1.0 / pack0[i + 1]);
+        const float lThresh = (1.0 / cascadeTexelsPerUnit[i]);
         const float hThresh = 1.0 - lThresh;
 
         if (coord.x > lThresh && coord.x < hThresh &&
@@ -250,14 +250,14 @@ float calcProxyAO(vec3 wPos, vec3 normal) {
     if (!ENABLE_PROXY_AO) return 1.0;
     float proxyAO = 1.0;
 
-    //for (int i = 0; i < int(pack1.x); i++) {
+    //for (int i = 0; i < aoBoxCount; i++) {
     //    if (floatBitsToUint(aoBox[i].pack3.w) != objectId) {
     //        proxyAO *= (1.0 - getBoxOcclusionArtistic(aoBox[i], inWorldPos.xyz, normal));
     //        //proxyAO *= (1.0 - getBoxOcclusionNonClipped(aoBox[i], inWorldPos.xyz, normal));
     //    }
     //}
     //
-    //for (int i = 0; i < int(pack1.y); i++) {
+    //for (int i = 0; i < aoSphereCount; i++) {
     //    if (sphereIds[i] != objectId) {
     //        proxyAO *= (1.0 - getSphereOcclusion(inWorldPos.xyz, normal, aoSphere[i]));
     //    }

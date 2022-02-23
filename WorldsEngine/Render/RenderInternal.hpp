@@ -59,10 +59,12 @@ namespace worlds {
     struct LightUB {
         static const int MAX_LIGHTS = 256;
         glm::mat4 additionalShadowMatrices[NUM_SHADOW_LIGHTS];
-        float numLights;
-        float cascadeTexelsPerUnit[3];
-        glm::vec4 pack1;
-        glm::mat4 shadowmapMatrices[3];
+        uint32_t lightCount;
+        uint32_t aoBoxCount;
+        uint32_t aoSphereCount;
+        uint32_t pad;
+        float cascadeTexelsPerUnit[4];
+        glm::mat4 shadowmapMatrices[4];
         PackedLight lights[256];
         AOBox box[16];
         AOSphere sphere[16];
@@ -80,8 +82,8 @@ namespace worlds {
 
     struct ShadowCascadeInfo {
         bool shadowCascadeNeeded = false;
-        glm::mat4 matrices[3];
-        float texelsPerUnit[3];
+        glm::mat4 matrices[4];
+        float texelsPerUnit[4];
     };
 
     struct RenderDebugContext {

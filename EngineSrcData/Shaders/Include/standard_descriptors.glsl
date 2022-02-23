@@ -13,11 +13,15 @@ layout(binding = 0) uniform MultiVP {
 
 layout(std430, binding = 1) readonly buffer LightBuffer {
     mat4 otherShadowMatrices[4];
+    uint lightCount;
+    uint aoBoxCount;
+    uint aoSphereCount;
+    uint pad;
     // (light count, yzw cascade texels per unit)
-    vec4 pack0;
+    vec4 cascadeTexelsPerUnit;
     // (ao box count, ao sphere count, zw unused)
-    vec4 pack1;
-    mat4 dirShadowMatrices[3];
+    //vec4 pack1;
+    mat4 dirShadowMatrices[4];
 	Light lights[256];
     AOBox aoBox[16];
 	AOSphere aoSphere[16];

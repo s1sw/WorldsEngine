@@ -1141,10 +1141,10 @@ namespace worlds {
                     ImGui::Text("Triangles: %u", dbgStats.numTriangles);
                     ImGui::Text("Lights in view: %i", dbgStats.numLightsInView);
 
-                    size_t numLights = registry.view<WorldLight>().size();
+                    size_t lightCount = registry.view<WorldLight>().size();
                     size_t worldObjects = registry.view<WorldObject>().size();
 
-                    ImGui::Text("%zu light(s) / %zu world object(s)", numLights, worldObjects);
+                    ImGui::Text("%zu light(s) / %zu world object(s)", lightCount, worldObjects);
                 }
 
                 if (ImGui::CollapsingHeader(ICON_FA_MEMORY u8" Memory Stats")) {
