@@ -873,7 +873,7 @@ void VKRenderer::createCascadeShadowImages() {
         (int)shadowmapRes, (int)shadowmapRes,
         VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT
     };
-    shadowmapCreateInfo.layers = 3;
+    shadowmapCreateInfo.layers = 4;
     shadowmapImage = createTextureResource(shadowmapCreateInfo, "Shadowmap Image");
 
     vku::executeImmediately(device, commandPool, queues.graphics, [&](auto cb) {

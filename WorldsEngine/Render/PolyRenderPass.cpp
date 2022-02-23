@@ -936,13 +936,11 @@ namespace worlds {
         if (realTotalTiles > MAX_LIGHT_TILES)
             fatalErr("Too many lighting tiles");
 
-        lightMapped->numLights = lightIdx;
-        for (int i = 0; i < 3; i++) {
+        lightMapped->lightCount = lightIdx;
+        for (int i = 0; i < 4; i++) {
             lightMapped->cascadeTexelsPerUnit[i] = ctx.cascadeInfo.texelsPerUnit[i];
+            lightMapped->shadowmapMatrices[i] = ctx.cascadeInfo.matrices[i];
         }
-        lightMapped->shadowmapMatrices[0] = ctx.cascadeInfo.matrices[0];
-        lightMapped->shadowmapMatrices[1] = ctx.cascadeInfo.matrices[1];
-        lightMapped->shadowmapMatrices[2] = ctx.cascadeInfo.matrices[2];
         ctx.debugContext.stats->numLightsInView = lightIdx;
 
         uint32_t aoBoxIdx = 0;
@@ -957,7 +955,7 @@ namespace worlds {
             lightMapped->box[aoBoxIdx].setEntityId((uint32_t)ent);
             aoBoxIdx++;
             });
-        lightMapped->pack1.x = aoBoxIdx;
+        lightMapped->aoBoxCount = aoBoxIdx;
 
         uint32_t aoSphereIdx = 0;
         ctx.registry.view<Transform, SphereAOProxy>().each([&](entt::entity entity, Transform& t, SphereAOProxy& sao) {
@@ -966,7 +964,7 @@ namespace worlds {
             lightMapped->sphereIds[aoSphereIdx] = (uint32_t)entity;
             aoSphereIdx++;
             });
-        lightMapped->pack1.y = aoSphereIdx;
+        lightMapped->aoSphereCount = aoSphereIdx;
 
         if (dsUpdateNeeded) {
             // Update descriptor sets to bring in any new textures

@@ -22,19 +22,22 @@ layout (binding = 0) uniform LightTileInfo {
     uint numTilesY;
 } buf_LightTileInfo;
 
-layout (std430, binding = 1) readonly buffer LightBuffer {
+layout(std430, binding = 1) readonly buffer LightBuffer {
     mat4 otherShadowMatrices[4];
+    uint lightCount;
+    uint aoBoxCount;
+    uint aoSphereCount;
+    uint pad;
     // (light count, yzw cascade texels per unit)
-    vec4 pack0;
+    vec4 cascadeTexelsPerUnit;
     // (ao box count, ao sphere count, zw unused)
-    vec4 pack1;
-    mat4 dirShadowMatrices[3];
+    //vec4 pack1;
+    mat4 dirShadowMatrices[4];
     Light lights[256];
     AOBox aoBox[16];
     AOSphere aoSphere[16];
     uint sphereIds[16];
 } buf_Lights;
-
 
 layout (binding = 2) uniform MultiVP {
     mat4 view[2];
@@ -252,7 +255,7 @@ void cullLights(uint tileIndex) {
     // one invocation = one light. Since the light array is always
     // tightly packed, we can just check if the index is less than
     // the light count.
-    if (gl_LocalInvocationIndex < buf_Lights.pack0.x) {
+    if (gl_LocalInvocationIndex < buf_Lights.lightCount) {
         uint lightIndex = gl_LocalInvocationIndex;
         Light light = buf_Lights.lights[lightIndex];
         vec3 lightPosition = light.pack2.xyz;
@@ -303,7 +306,7 @@ void cullLights(uint tileIndex) {
 
 void cullAO(uint tileIndex) {
     // Stage 3: Cull AO spheres against the frustum
-    if (gl_LocalInvocationIndex < buf_Lights.pack1.y) {
+    if (gl_LocalInvocationIndex < buf_Lights.aoSphereCount) {
         uint sphereIndex = gl_LocalInvocationIndex;
         AOSphere sph = buf_Lights.aoSphere[sphereIndex];
         vec3 spherePos = sph.position;
@@ -330,7 +333,7 @@ void cullAO(uint tileIndex) {
     }
 
     // Stage 4: Cull AO boxes against the frustum
-    if (gl_LocalInvocationIndex < buf_Lights.pack1.x) {
+    if (gl_LocalInvocationIndex < buf_Lights.aoBoxCount) {
         uint boxIdx = gl_LocalInvocationIndex;
         AOBox box = buf_Lights.aoBox[boxIdx];
 
