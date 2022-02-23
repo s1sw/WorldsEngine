@@ -18,6 +18,7 @@ namespace wtex {
         int32_t width;
         int32_t height;
         int32_t numMipLevels;
+        bool isSrgb;
         uint64_t dataSize;
         OffsetType dataOffset;
 

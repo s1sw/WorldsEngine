@@ -923,12 +923,19 @@ void VKRenderer::createSCDependents() {
         finalPrePresent->image().setLayout(cmdBuf, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
         });
 
+    if (vrApi == VrApi::OpenVR) {
+        OpenVRInterface* vrInterface = static_cast<OpenVRInterface*>(vrInterface);
+        vrInterface->getRenderResolution(&vrWidth, &vrHeight);
+    }
+
     for (auto& p : rttPasses) {
         if (p->outputToScreen) {
             // Recreate pass
             p->destroy();
             p->width = p->isVr ? vrWidth : width;
             p->height = p->isVr ? vrHeight : height;
+            p->createInfo.width = p->width;
+            p->createInfo.height = p->height;
             p->create(this, vrInterface, frameIdx, &dbgStats);
             p->setFinalPrePresents();
         }

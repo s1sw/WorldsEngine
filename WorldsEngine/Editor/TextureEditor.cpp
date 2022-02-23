@@ -8,13 +8,9 @@
 
 namespace worlds {
     const char* textureTypeNames[] = {
-        "Regular",
-        "Normal Map"
-    };
-
-    const char* textureTypeSerializedKeys[] = {
-        "regular",
-        "normal"
+        "Crunch",
+        "RGBA",
+        "Packed PBR Map"
     };
 
     void TextureEditor::importAsset(std::string filePath, std::string newAssetPath) {
@@ -23,15 +19,17 @@ namespace worlds {
 
         PHYSFS_File* f = PHYSFS_openWrite(newAssetPath.c_str());
         nlohmann::json j = {
-            { "srcPath", filePath },
-            { "type", "regular" },
-            { "isSrgb", true }
+            { "sourceTexture", filePath },
+            { "type", "crunch" },
+            { "isSrgb", true },
+            { "isNormalMap", false }
         };
+
         std::string sourceFileName = std::filesystem::path{ filePath }.filename().string();
         // Let's do some file name guessing...
         if (sourceFileName.find("Normal") != std::string::npos) {
-            j["type"] = "normal";
             j["isSrgb"] = false;
+            j["isNormalMap"] = true;
         }
 
         if (sourceFileName.find("forcelin") != std::string::npos) {
@@ -62,24 +60,18 @@ namespace worlds {
 
         std::string contents = LoadFileToString(AssetDB::idToPath(id)).value;
         nlohmann::json j = nlohmann::json::parse(contents);
-        srcTexture = AssetDB::pathToId(j.value("srcPath", "SrcData/Raw/Textures/512SimpleOrange.png"));
-        texType = strToTexType(j.value("type", "regular"));
-        isSrgb = j.value("isSrgb", true);
-        qualityLevel = j.value("qualityLevel", 127);
+        currentAssetSettings = TextureAssetSettings::fromJson(j);
     }
 
     void TextureEditor::drawEditor() {
-        ImGui::Text("Source texture: %s", AssetDB::idToPath(srcTexture).c_str());
-        ImGui::SameLine();
-        selectRawAssetPopup("Source Texture", srcTexture, ImGui::Button("Change##SrcTex"));
 
-        if (ImGui::BeginCombo("Type", textureTypeNames[(int)texType])) {
+        if (ImGui::BeginCombo("Type", textureTypeNames[(int)currentAssetSettings.type])) {
             int i = 0;
             for (const char* name : textureTypeNames) {
-                bool isSelected = (int)texType == i;
+                bool isSelected = (int)currentAssetSettings.type == i;
 
                 if (ImGui::Selectable(name, &isSelected)) {
-                    texType = (TextureType)i;
+                    currentAssetSettings.type = (TextureAssetType)i;
                 }
 
                 if (isSelected) {
@@ -91,17 +83,20 @@ namespace worlds {
             ImGui::EndCombo();
         }
 
-        ImGui::Checkbox("Is SRGB", &isSrgb);
-        ImGui::SliderInt("Quality Level", &qualityLevel, 0, 255);
+        if (currentAssetSettings.type == TextureAssetType::Crunch) {
+            CrunchTextureSettings& cts = currentAssetSettings.crunch;
+            ImGui::Checkbox("Is SRGB", &cts.isSrgb);
+            ImGui::Checkbox("Is Normal Map", &cts.isNormalMap);
+            ImGui::SliderInt("Quality Level", &cts.qualityLevel, 0, 255);
+            ImGui::Text("Source texture: %s", AssetDB::idToPath(cts.sourceTexture).c_str());
+            ImGui::SameLine();
+            selectRawAssetPopup("Source Texture", cts.sourceTexture, ImGui::Button("Change##SrcTex"));
+        }
     }
 
     void TextureEditor::save() {
-        nlohmann::json j = {
-            { "srcPath", AssetDB::idToPath(srcTexture) },
-            { "type", textureTypeSerializedKeys[(int)texType] },
-            { "isSrgb", isSrgb },
-            { "qualityLevel", qualityLevel }
-        };
+        nlohmann::json j;
+        currentAssetSettings.toJson(j);
 
         std::string s = j.dump(4);
         std::string path = AssetDB::idToPath(editingID);
@@ -112,15 +107,5 @@ namespace worlds {
 
     const char* TextureEditor::getHandledExtension() {
         return ".wtexj";
-    }
-
-    TextureEditor::TextureType TextureEditor::strToTexType(std::string_view texType) { if (texType == "normal") {
-            return TextureType::NormalMap;
-        } else if(texType == "regular") {
-            return TextureType::Regular;
-        } else {
-            logErr("Invalid texture type: %s", texType.data());
-            return TextureType::Regular;
-        }
     }
 }

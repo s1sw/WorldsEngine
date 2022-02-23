@@ -49,8 +49,19 @@ namespace worlds {
         }
     }
 
+    std::string getAssetTypeString(TextureAssetType t) {
+        switch (t) {
+        case TextureAssetType::Crunch:
+            return "crunch";
+        case TextureAssetType::RGBA:
+            return "rgba";
+        case TextureAssetType::PBR:
+            return "pbr";
+        }
+    }
+
     void loadCrunchSettings(TextureAssetSettings& settings, nlohmann::json& j) {
-        settings.crunch.isNormalMap = j.value("isNormalMap", true);
+        settings.crunch.isNormalMap = j.value("isNormalMap", false);
         settings.crunch.qualityLevel = j.value("qualityLevel", 127);
         settings.crunch.isSrgb = j.value("isSrgb", true);
         settings.crunch.sourceTexture = AssetDB::pathToId(j["sourceTexture"].get<std::string>());
@@ -90,6 +101,28 @@ namespace worlds {
         }
 
         return s;
+    }
+
+    void saveCrunchSettings(TextureAssetSettings& settings, nlohmann::json& j) {
+        CrunchTextureSettings& cts = settings.crunch;
+        j["isNormalMap"] = cts.isNormalMap;
+        j["qualityLevel"] = cts.qualityLevel;
+        j["isSrgb"] = cts.isSrgb;
+        j["sourceTexture"] = AssetDB::idToPath(cts.sourceTexture);
+    }
+
+    void TextureAssetSettings::toJson(nlohmann::json& j) {
+        j["type"] = getAssetTypeString(type);
+
+        switch (type) {
+        case TextureAssetType::Crunch:
+            saveCrunchSettings(*this, j);
+            break;
+        case TextureAssetType::RGBA:
+            break;
+        case TextureAssetType::PBR:
+            break;
+        }
     }
 
     AssetCompileOperation* TextureCompiler::compile(std::string_view projectRoot, AssetID src) {
@@ -134,7 +167,7 @@ namespace worlds {
         }
 
         nlohmann::json j = nlohmann::json::parse(jsonContents.value);
-        out.push_back(j["srcPath"]);
+        out.push_back(j["sourceTexture"]);
     }
 
 
@@ -206,17 +239,9 @@ namespace worlds {
         void* outData = crn_compress(compParams, mipParams, outputSize, &actualQualityLevel, &actualBitrate);
         logMsg("Compressed %s with actual quality of %u and bitrate of %f", tcti->inputPath.c_str(), actualQualityLevel, actualBitrate);
 
-        std::filesystem::path fullPath = tcti->projectRoot;
-        fullPath /= tcti->outputPath;
-        fullPath = fullPath.parent_path();
-        fullPath = fullPath.lexically_normal();
+        int nMips = std::floor(std::log2(std::max(inTexData.width, inTexData.height))) + 1;
 
-        std::filesystem::create_directories(fullPath);
-
-        // TODO: Assumes that we are writing to the GameData directory! BADDD!!!!
-        PHYSFS_File* outFile = PHYSFS_openWrite(tcti->outputPath.c_str());
-        PHYSFS_writeBytes(outFile, outData, outputSize);
-        PHYSFS_close(outFile);
+        writeCrunchedWtex(tcti, isSrgb, inTexData.width, inTexData.height, nMips, outData, outputSize);
 
         crn_free_block(outData);
 
@@ -231,14 +256,43 @@ namespace worlds {
         }
     }
 
+    void TextureCompiler::writeCrunchedWtex(TexCompileThreadInfo* tcti, bool isSrgb, int width, int height, int nMips, void* data, size_t dataSize) {
+        wtex::Header header{};
+        header.containedFormat = wtex::ContainedFormat::Crunch;
+        header.dataOffset = sizeof(header);
+        header.dataSize = dataSize;
+        header.width = width;
+        header.height = height;
+        header.numMipLevels = nMips;
+        header.isSrgb = isSrgb;
+
+        std::filesystem::path fullPath = tcti->projectRoot;
+        fullPath /= tcti->outputPath;
+        fullPath = fullPath.parent_path();
+        fullPath = fullPath.lexically_normal();
+
+        std::filesystem::create_directories(fullPath);
+
+        PHYSFS_File* outFile = PHYSFS_openWrite(tcti->outputPath.c_str());
+        PHYSFS_writeBytes(outFile, &header, sizeof(header));
+        PHYSFS_writeBytes(outFile, data, dataSize);
+        PHYSFS_close(outFile);
+    }
+
     void TextureCompiler::compileInternal(TexCompileThreadInfo* tcti) {
         switch (tcti->assetSettings.type) {
         case TextureAssetType::Crunch:
             compileCrunch(tcti);
             break;
         case TextureAssetType::RGBA:
+            logErr("Currently unsupported :(");
+            tcti->compileOp->complete = true;
+            tcti->compileOp->result = CompilationResult::Error;
             break;
         case TextureAssetType::PBR:
+            logErr("Currently unsupported :(");
+            tcti->compileOp->complete = true;
+            tcti->compileOp->result = CompilationResult::Error;
             break;
         }
     }

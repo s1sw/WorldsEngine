@@ -108,6 +108,14 @@ namespace worlds {
                 }
                 ImGui::PopItemWidth();
 
+                ImGui::SetCursorPos(ImGui::GetCursorStartPos() + animatedOffset + ImGui::GetStyle().WindowPadding + ImVec2(200.0f, 0.0f));
+
+                ConVar* bloomConvar = g_console->getConVar("r_forcedisablebloom");
+                bool enableBloom = bloomConvar->getInt() == 0;
+                if (ImGui::Checkbox("Bloom", &enableBloom)) {
+                    bloomConvar->setValue(enableBloom ? "0" : "1");
+                }
+
                 ImGui::SetCursorPos(ImGui::GetCursorStartPos());
             }
 
