@@ -5,7 +5,7 @@
 #include <Core/LogCategories.hpp>
 #include <Core/Log.hpp>
 #include <stb_image.h>
-#include <Tracy/Tracy.hpp>
+#include <tracy/Tracy.hpp>
 #include <Libs/miniz.h>
 #define TINYEXR_IMPLEMENTATION
 #include <tinyexr.h>
