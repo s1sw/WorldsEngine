@@ -39,6 +39,14 @@ namespace worlds {
             return ds;
         }
 
+        void updateDescriptorSet(VkDescriptorSet ds, vku::GenericImage& img) {
+            vku::DescriptorSetUpdater dsu;
+            dsu.beginDescriptorSet(ds);
+            dsu.beginImages(0, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+            dsu.image(sampler, img.imageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+            dsu.update(handles->device);
+        }
+
         void destroyDescriptorSet(VkDescriptorSet ds, const VulkanHandles* handles) {
             DeletionQueue::queueDescriptorSetFree(handles->descriptorPool, ds);
         }

@@ -321,9 +321,13 @@ namespace worlds {
         if (ImGui::Begin("Material Preview", nullptr, (dragging ? ImGuiWindowFlags_NoMove : 0) | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse)) {
             static ImVec2 lastPreviewSize{ 0.0f, 0.0f };
             ImVec2 previewSize = ImGui::GetContentRegionAvail() - ImVec2(0.0f, ImGui::GetTextLineHeightWithSpacing() * 2.0f);
+            bool resized = false;
             if (previewSize.x != lastPreviewSize.x || previewSize.y != lastPreviewSize.y) {
                 rttPass->resize(std::max(16, (int)previewSize.x), std::max(16, (int)previewSize.y));
+                VKImGUIUtil::updateDescriptorSet((VkDescriptorSet)previewPassTex, static_cast<VKRTTPass*>(rttPass)->sdrFinalTarget->image());
                 lastPreviewSize = previewSize;
+                resized = true;
+                rttPass->active = true;
             }
             ImVec2 cpos = ImGui::GetWindowPos() + ImGui::GetCursorPos() - ImVec2(ImGui::GetScrollX(), ImGui::GetScrollY());
             ImVec2 end = previewSize + cpos;
@@ -341,7 +345,7 @@ namespace worlds {
 
                 dist -= ImGui::GetIO().MouseWheel * 0.25;
                 dist = glm::max(dist, 0.25f);
-            } else {
+            } else if (!resized) {
                 rttPass->active = false;
             }
 
@@ -382,6 +386,7 @@ namespace worlds {
             if (ImGui::Button("Other Model")) {
                 open = true;
             }
+
             if (selectAssetPopup("Preview Model", customModel, open)) {
                 previewRegistry.get<WorldObject>(previewEntity).mesh = customModel;
             }

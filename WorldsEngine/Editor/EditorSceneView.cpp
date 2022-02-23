@@ -39,7 +39,8 @@ namespace worlds {
                 && contentRegion.x > 256 && contentRegion.y > 256) {
                 currentWidth  = contentRegion.x;
                 currentHeight = contentRegion.y;
-                recreateRTT();
+                sceneViewPass->resize(currentWidth, currentHeight);
+                VKImGUIUtil::updateDescriptorSet(sceneViewDS, static_cast<VKRTTPass*>(sceneViewPass)->sdrFinalTarget->image());
             }
             cam.verticalFOV = interfaces.mainCamera->verticalFOV;
 

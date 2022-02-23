@@ -55,6 +55,8 @@ namespace worlds {
         pm.depthWriteEnable(true).depthTestEnable(true).depthCompareOp(VK_COMPARE_OP_GREATER_OR_EQUAL);
 
         pm.rasterizationSamples(vku::sampleCountFlags(ctx.passSettings.msaaLevel));
+        pm.dynamicState(VK_DYNAMIC_STATE_VIEWPORT);
+        pm.dynamicState(VK_DYNAMIC_STATE_SCISSOR);
 
         skyboxPipeline = pm.create(handles->device, handles->pipelineCache, skyboxPipelineLayout, renderPass);
 
