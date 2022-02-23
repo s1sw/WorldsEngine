@@ -8,12 +8,14 @@
 namespace worlds {
     ImTextureID bgId = nullptr;
     ImTextureID bradnoId = nullptr;
+    ImTextureID someoneId = nullptr;
 
     void AboutWindow::setActive(bool active) {
         this->active = active;
         auto& texMan = interfaces.renderer->uiTextureManager();
-        bgId = texMan.loadOrGet(AssetDB::pathToId("UI/Images/worlds_no_logo.png"));
-        bradnoId = texMan.loadOrGet(AssetDB::pathToId("UI/Images/bradno.png"));
+        bgId = texMan.loadOrGet(AssetDB::pathToId("UI/Editor/Images/worlds_no_logo.png"));
+        bradnoId = texMan.loadOrGet(AssetDB::pathToId("UI/Editor/Images/bradno.png"));
+        someoneId = texMan.loadOrGet(AssetDB::pathToId("UI/Editor/Images/someone_avatar.png"));
     }
 
     ImVec2 rotatePoint(ImVec2 p, float angle) {
@@ -82,7 +84,11 @@ namespace worlds {
             drawList->AddCircleFilled(outerPos, 4.0f, ImColor(1.0f, 1.0f, 1.0f), 32);
 
             ImGui::SetCursorPos(ImGui::GetCursorStartPos() + ImVec2(0, 174 + 5));
+            ImGui::Image(someoneId, ImVec2(32.0f, 32.0f));
+            ImGui::SameLine();
+            ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 6.0f);
             ImGui::Text("Programmed by Someone Somewhere :)");
+            ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 6.0f);
             ImGui::Text("Open source libraries:");
             ImGui::Text(" - EnTT");
             ImGui::Text(" - PhysX");

@@ -18,9 +18,9 @@ namespace worlds {
         cam = *interfaces.mainCamera;
         recreateRTT();
         auto& texMan = interfaces.renderer->uiTextureManager();
-        audioSourceIcon = texMan.loadOrGet(AssetDB::pathToId("UI/Images/Audio Source.png"));
-        worldLightIcon   = texMan.loadOrGet(AssetDB::pathToId("UI/Images/WorldLight.png"));
-        worldCubemapIcon = texMan.loadOrGet(AssetDB::pathToId("UI/Images/Cubemap.png"));
+        audioSourceIcon = texMan.loadOrGet(AssetDB::pathToId("UI/Editor/Images/Audio Source.png"));
+        worldLightIcon   = texMan.loadOrGet(AssetDB::pathToId("UI/Editor/Images/WorldLight.png"));
+        worldCubemapIcon = texMan.loadOrGet(AssetDB::pathToId("UI/Editor/Images/Cubemap.png"));
     }
 
     void EditorSceneView::drawWindow(int uniqueId) {
