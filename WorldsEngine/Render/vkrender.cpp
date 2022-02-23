@@ -157,8 +157,8 @@ RenderResource* VKRenderer::createTextureResource(TextureResourceCreateInfo reso
 }
 
 void VKRenderer::updateTextureResource(RenderResource* resource, TextureResourceCreateInfo resourceCreateInfo) {
-    std::lock_guard<std::mutex> lg{ *apiMutex };
     assert(resource->type == ResourceType::Image);
+    VkImageLayout oldLayout = resource->image().layout();
     VkImageCreateInfo ici { VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
 
     switch (resourceCreateInfo.type) {
@@ -226,6 +226,10 @@ void VKRenderer::updateTextureResource(RenderResource* resource, TextureResource
     resource->resource = std::make_unique<vku::GenericImage>(
         device, allocator, ici, viewType,
         resourceCreateInfo.aspectFlags, false, resource->name.c_str());
+
+    vku::executeImmediately(handles.device, handles.commandPool, queues.graphics, [&](VkCommandBuffer cmdbuf) {
+        resource->image().setLayout(cmdbuf, oldLayout);
+    });
 }
 
 void VKRenderer::createFramebuffers() {

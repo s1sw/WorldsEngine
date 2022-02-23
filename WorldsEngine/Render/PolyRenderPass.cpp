@@ -193,6 +193,7 @@ namespace worlds {
     };
 
     RenderPass::RenderPass(VulkanHandles* handles) : handles(handles) {}
+    RenderPass::~RenderPass() {}
 
     void PolyRenderPass::updateDescriptorSet(RenderContext& ctx, size_t dsIdx, vku::DescriptorSetUpdater& updater) {
         VkDescriptorSet ds = descriptorSets[dsIdx];
@@ -256,10 +257,9 @@ namespace worlds {
     void PolyRenderPass::updateDescriptorSets(RenderContext& ctx) {
         ZoneScoped;
         vku::DescriptorSetUpdater updater(10 * descriptorSets.size(), 128 * descriptorSets.size(), 0);
-        size_t dsIdx = 0;
-        for (VkDescriptorSet& ds : descriptorSets) {
-            updateDescriptorSet(ctx, dsIdx, updater);
-            dsIdx++;
+
+        for (size_t i = 0; i < descriptorSets.size(); i++) {
+            updateDescriptorSet(ctx, i, updater);
         }
 
         if (!updater.ok())
@@ -276,7 +276,8 @@ namespace worlds {
         RenderResource* polyImage,
         RenderResource* bloomTarget,
         bool enablePicking)
-        : depthResource(depthStencilImage)
+        : RenderPass(handles)
+        , depthResource(depthStencilImage)
         , colourResource(polyImage)
         , bloomResource(bloomTarget)
         , enablePicking(enablePicking)
@@ -285,8 +286,7 @@ namespace worlds {
         , pickThisFrame(false)
         , awaitingResults(false)
         , setEventNextFrame(false)
-        , cullMeshRenderer(nullptr)
-        , handles(handles) {
+        , cullMeshRenderer(nullptr) {
 
     }
 
@@ -545,7 +545,7 @@ namespace worlds {
         VKCHECK(vkSetEvent(handles->device, pickEvent));
     }
 
-    void PolyRenderPass::recreateFramebuffers() {
+    void PolyRenderPass::resizeInternalBuffers(RenderContext& ctx) {
         DeletionQueue::queueObjectDeletion(renderFb.release(), VK_OBJECT_TYPE_FRAMEBUFFER);
         DeletionQueue::queueObjectDeletion(depthFb.release(), VK_OBJECT_TYPE_FRAMEBUFFER);
         vku::GenericImage& colourImage = colourResource->image();
@@ -569,6 +569,9 @@ namespace worlds {
         fci.renderPass = depthPass;
 
         VKCHECK(vku::createFramebuffer(handles->device, &fci, &depthFb));
+
+        bloomPass->resizeInternalBuffers(ctx);
+        lightCullPass->resizeInternalBuffers(ctx);
     }
 
     glm::mat4 getBoneTransform(LoadedMeshData& meshData, Pose& pose, int boneIdx) {
