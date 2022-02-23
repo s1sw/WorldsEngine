@@ -3,10 +3,12 @@
 
 namespace worlds {
     namespace VKImGUIUtil {
+        const worlds::VulkanHandles* handles;
         VkDescriptorSetLayout layout;
         VkSampler sampler;
 
         void createObjects(const worlds::VulkanHandles* vkCtx) {
+            handles = vkCtx;
             vku::DescriptorSetLayoutMaker dslm;
             dslm.image(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 1);
 

@@ -6,10 +6,81 @@
 #include <slib/MinMax.hpp>
 
 namespace worlds {
+    ConVar maxMips { "r_bloomMaxMips", "8" };
     BloomRenderPass::BloomRenderPass(VulkanHandles* handles, RenderResource* hdrImg, RenderResource* bloomTarget)
         : RenderPass(handles)
         , hdrImg(hdrImg)
         , bloomTarget(bloomTarget) {}
+
+    void BloomRenderPass::resizeInternalBuffers(RenderContext& ctx) {
+        if (mipChain) {
+            delete mipChain;
+        }
+
+        TextureResourceCreateInfo rci{
+            TextureType::T2D,
+            VK_FORMAT_B10G11R11_UFLOAT_PACK32,
+            (int)ctx.passWidth, (int)ctx.passHeight,
+            VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT
+        };
+
+        nMips = (int)floor(log2(slib::max(ctx.passWidth, ctx.passHeight)));
+        nMips = slib::min(nMips, maxMips.getInt());
+        rci.mipLevels = nMips;
+
+        mipChain = ctx.renderer->createTextureResource(rci, "Bloom mip chain");
+
+        {
+            vku::DescriptorSetUpdater dsu;
+            dsu.beginDescriptorSet(applyDescriptorSet);
+            dsu.beginImages(0, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+            dsu.image(sampler, mipChain->image().imageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+            dsu.beginImages(1, 0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
+            dsu.image(sampler, bloomTarget->image().imageView(), VK_IMAGE_LAYOUT_GENERAL);
+            dsu.update(handles->device);
+        }
+
+        blurMipChainImageViews.clear();
+        for (int i = 0; i < nMips; i++) {
+            VkImageViewCreateInfo ivci { VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
+            ivci.image = mipChain->image().image();
+            ivci.viewType = VK_IMAGE_VIEW_TYPE_2D;
+            ivci.components = VkComponentMapping { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A };
+            ivci.format = VK_FORMAT_B10G11R11_UFLOAT_PACK32;
+            ivci.subresourceRange = VkImageSubresourceRange {
+                .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                .baseMipLevel = (uint32_t)i,
+                .levelCount = 1,
+                .baseArrayLayer = 0,
+                .layerCount = 1
+            };
+
+            VkImageView view;
+            VKCHECK(vkCreateImageView(handles->device, &ivci, nullptr, &view));
+            blurMipChainImageViews.push_back(view);
+        }
+
+        {
+            vku::DescriptorSetUpdater dsu(0, nMips * 4 + 4, 0);
+
+            // Descriptor set i consists of an inputTexture for the whole chain
+            // and an outputTexture for mip level i
+            for (int i = 0; i < nMips; i++) {
+                dsu.beginDescriptorSet(chainToChainDS[i]);
+                dsu.beginImages(0, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+                dsu.image(sampler, mipChain->image().imageView(), VK_IMAGE_LAYOUT_GENERAL);
+                dsu.beginImages(1, 0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
+                dsu.image(sampler, blurMipChainImageViews[i], VK_IMAGE_LAYOUT_GENERAL);
+            }
+
+            dsu.beginDescriptorSet(hdrToChainDS);
+            dsu.beginImages(0, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+            dsu.image(sampler, hdrImg->image().imageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+            dsu.beginImages(1, 0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
+            dsu.image(sampler, blurMipChainImageViews[0], VK_IMAGE_LAYOUT_GENERAL);
+            dsu.update(handles->device);
+        }
+    }
 
     void BloomRenderPass::setupApplyShader(RenderContext& ctx, VkDescriptorPool descriptorPool) {
         AssetID shaderId = AssetDB::pathToId("Shaders/bloom.comp.spv");
@@ -118,17 +189,17 @@ namespace worlds {
         dsu.update(handles->device);
     }
 
-    ConVar maxMips { "r_bloomMaxMips", "8" };
     void BloomRenderPass::setup(RenderContext& ctx, VkDescriptorPool descriptorPool) {
         VkExtent3D hdrExtent = hdrImg->image().extent();
+
         TextureResourceCreateInfo rci{
             TextureType::T2D,
             VK_FORMAT_B10G11R11_UFLOAT_PACK32,
-            (int)hdrExtent.width, (int)hdrExtent.height,
+            (int)ctx.passWidth, (int)ctx.passHeight,
             VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT
         };
 
-        nMips = (int)floor(log2(slib::max(hdrExtent.width, hdrExtent.height)));
+        nMips = (int)floor(log2(slib::max(ctx.passWidth, ctx.passHeight)));
         nMips = slib::min(nMips, maxMips.getInt());
         rci.mipLevels = nMips;
 

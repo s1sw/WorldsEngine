@@ -312,12 +312,78 @@ namespace worlds {
 
     void VKRTTPass::resize(int newWidth, int newHeight) {
         std::lock_guard<std::mutex> lg{ *renderer->apiMutex };
+        VKCHECK(vkDeviceWaitIdle(renderer->handles.device));
         width = newWidth;
         height = newHeight;
         createInfo.width = width;
         createInfo.height = height;
-        destroy();
-        create(renderer, vrInterface, renderer->frameIdx, &renderer->dbgStats);
+        //destroy();
+        //create(renderer, vrInterface, renderer->frameIdx, &renderer->dbgStats);
+
+        VkImageUsageFlags usages =
+            VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT
+            | VK_IMAGE_USAGE_SAMPLED_BIT
+            | VK_IMAGE_USAGE_STORAGE_BIT
+            | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+
+        TextureResourceCreateInfo polyCreateInfo{
+            TextureType::T2DArray,
+            VK_FORMAT_B10G11R11_UFLOAT_PACK32,
+            (int)width, (int)height,
+            usages
+        };
+
+        polyCreateInfo.layers = createInfo.isVr ? 2 : 1;
+        polyCreateInfo.samples = createInfo.msaaLevel == 0 ? renderer->handles.graphicsSettings.msaaLevel : createInfo.msaaLevel;
+        renderer->updateTextureResource(hdrTarget, polyCreateInfo);
+
+        TextureResourceCreateInfo depthCreateInfo = polyCreateInfo;
+        depthCreateInfo.aspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT;
+        depthCreateInfo.format = VK_FORMAT_D32_SFLOAT;
+        depthCreateInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+        renderer->updateTextureResource(depthTarget, depthCreateInfo);
+
+        TextureResourceCreateInfo bloomTargetCreateInfo {
+            TextureType::T2DArray,
+            VK_FORMAT_R16G16B16A16_SFLOAT,
+            (int)createInfo.width, (int)createInfo.height,
+            VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT
+        };
+        bloomTargetCreateInfo.layers = createInfo.isVr ? 2 : 1;
+        renderer->updateTextureResource(bloomTarget, bloomTargetCreateInfo);
+
+        TextureResourceCreateInfo finalTargetCreateInfo{
+            TextureType::T2D,
+            VK_FORMAT_R8G8B8A8_UNORM,
+            (int)createInfo.width, (int)createInfo.height,
+            VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT
+        };
+
+        if (!createInfo.outputToScreen) {
+            renderer->updateTextureResource(sdrFinalTarget, finalTargetCreateInfo);
+        }
+
+        entt::registry r;
+        RenderContext rCtx{
+            .resources = renderer->getResources(),
+            .cascadeInfo = cascadeInfo,
+            .debugContext = RenderDebugContext {
+                .stats = dbgStats
+#ifdef TRACY_ENABLE
+            , .tracyContexts = &renderer->tracyContexts
+#endif
+            },
+            .passSettings = passSettings,
+            .registry = r,
+            .renderer = renderer,
+            .camera = *cam,
+            .passWidth = width,
+            .passHeight = height,
+            .frameIndex = 0
+        };
+
+        prp->resizeInternalBuffers(rCtx);
+        trp->resizeInternalBuffers(rCtx);
     }
 
     void VKRTTPass::prePass(uint32_t frameIdx, entt::registry& world) {
@@ -334,6 +400,7 @@ namespace worlds {
             },
             .passSettings = passSettings,
             .registry = createInfo.registryOverride ? *createInfo.registryOverride : world,
+            .renderer = renderer,
             .camera = *cam,
             .passWidth = width,
             .passHeight = height,
@@ -392,7 +459,6 @@ namespace worlds {
             .passHeight = height,
             .frameIndex = frameIdx
         };
-        rCtx.cascadeInfo.shadowCascadeNeeded = true;
 
         if (isVr) {
             glm::mat4 headViewMatrix = vrInterface->getHeadTransform(renderer->vrPredictAmount);

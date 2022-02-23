@@ -39,6 +39,8 @@ namespace worlds {
         VulkanHandles* handles;
     public:
         RenderPass(VulkanHandles* handles);
+        virtual void resizeInternalBuffers(RenderContext& ctx) {}
+        virtual ~RenderPass();
     };
 
     struct SubmeshDrawInfo {
@@ -183,6 +185,7 @@ namespace worlds {
         RenderResource* depthResource;
     public:
         LightCullPass(VulkanHandles* handles, RenderResource* depthStencilImage);
+        void resizeInternalBuffers(RenderContext& ctx) override;
         void setup(RenderContext& ctx, VkBuffer lightBuffer, VkBuffer lightTileInfoBuffer, VkBuffer lightTileBuffer, VkBuffer lightTileLightCountBuffer, VkDescriptorPool descriptorPool);
         void execute(RenderContext& ctx, int tileSize);
         ~LightCullPass();
@@ -203,7 +206,7 @@ namespace worlds {
         uint32_t numTilesY;
     };
 
-    class PolyRenderPass {
+    class PolyRenderPass : public RenderPass {
     private:
         vku::RenderPass renderPass;
         vku::RenderPass depthPass;
@@ -265,7 +268,6 @@ namespace worlds {
         LightCullPass* lightCullPass;
         MainPass* mainPass;
         BloomRenderPass* bloomPass;
-        VulkanHandles* handles;
         slib::StaticAllocList<SubmeshDrawInfo> drawInfo{ 8192 };
 
         void generateDrawInfo(RenderContext& ctx);
@@ -278,7 +280,7 @@ namespace worlds {
         void requestEntityPick();
         void reuploadDescriptors() { dsUpdateNeeded = true; }
         bool getPickedEnt(uint32_t* out);
-        void recreateFramebuffers();
+        void resizeInternalBuffers(RenderContext& ctx) override;
         virtual ~PolyRenderPass();
     };
 
@@ -334,7 +336,7 @@ namespace worlds {
         ~AdditionalShadowsPass();
     };
 
-    class TonemapFXRenderPass {
+    class TonemapFXRenderPass : public RenderPass {
     private:
         VkShaderModule tonemapShader;
         vku::DescriptorSetLayout dsl;
@@ -348,14 +350,14 @@ namespace worlds {
         RenderResource* finalPrePresentR;
         RenderResource* hdrImg;
         RenderResource* bloomImg;
-        VulkanHandles* handles;
     public:
         TonemapFXRenderPass(VulkanHandles* handles, RenderResource* hdrImg, RenderResource* finalPrePresent, RenderResource* bloomImg);
+        void resizeInternalBuffers(RenderContext& ctx) override;
         void setup(RenderContext& ctx, VkDescriptorPool descriptorPool);
         void execute(RenderContext& ctx);
         void setFinalImage(RenderResource* final);
         void setRightFinalImage(RenderResource* right);
-        virtual ~TonemapFXRenderPass();
+        ~TonemapFXRenderPass();
     };
 
     class BloomRenderPass : public RenderPass {
@@ -386,6 +388,7 @@ namespace worlds {
         void setupBlurShader(RenderContext& ctx, VkDescriptorPool descriptorPool);
     public:
         BloomRenderPass(VulkanHandles* handles, RenderResource* hdrImg, RenderResource* bloomTarget);
+        void resizeInternalBuffers(RenderContext& ctx) override;
         void setup(RenderContext& ctx, VkDescriptorPool descriptorPool);
         void execute(RenderContext& ctx);
         virtual ~BloomRenderPass();

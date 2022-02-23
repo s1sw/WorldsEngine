@@ -318,15 +318,11 @@ namespace worlds {
         ImGui::End();
 
         static bool dragging = false;
-        if (ImGui::Begin("Material Preview", nullptr, (dragging ? ImGuiWindowFlags_NoMove : 0)) | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse) {
+        if (ImGui::Begin("Material Preview", nullptr, (dragging ? ImGuiWindowFlags_NoMove : 0) | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse)) {
             static ImVec2 lastPreviewSize{ 0.0f, 0.0f };
             ImVec2 previewSize = ImGui::GetContentRegionAvail() - ImVec2(0.0f, ImGui::GetTextLineHeightWithSpacing() * 2.0f);
             if (previewSize.x != lastPreviewSize.x || previewSize.y != lastPreviewSize.y) {
-                VulkanHandles* handles = static_cast<VKRenderer*>(interfaces.renderer)->getHandles();
-                DeletionQueue::queueDescriptorSetFree(handles->descriptorPool, (VkDescriptorSet)previewPassTex);
-                rttPass->resize(previewSize.x, previewSize.y);
-                previewPassTex = (ImTextureID)VKImGUIUtil::createDescriptorSetFor(
-                    static_cast<VKRTTPass*>(rttPass)->sdrFinalTarget->image(), static_cast<VKRenderer*>(interfaces.renderer)->getHandles());
+                rttPass->resize(std::max(16, (int)previewSize.x), std::max(16, (int)previewSize.y));
                 lastPreviewSize = previewSize;
             }
             ImVec2 cpos = ImGui::GetWindowPos() + ImGui::GetCursorPos() - ImVec2(ImGui::GetScrollX(), ImGui::GetScrollY());

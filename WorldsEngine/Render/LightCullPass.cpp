@@ -18,6 +18,16 @@ namespace worlds {
         , depthResource(depthResource) {
     }
 
+    void LightCullPass::resizeInternalBuffers(RenderContext& ctx) {
+        vku::DescriptorSetUpdater dsu;
+        dsu.beginDescriptorSet(descriptorSet);
+
+        dsu.beginImages(3, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+        dsu.image(sampler, depthResource->image().imageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+        dsu.update(handles->device);
+    }
+
     void LightCullPass::setup(
             RenderContext& ctx,
             VkBuffer lightBuffer, VkBuffer lightTileInfoBuffer,

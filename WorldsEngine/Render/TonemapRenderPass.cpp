@@ -23,11 +23,40 @@ namespace worlds {
             RenderResource* hdrImg,
             RenderResource* finalPrePresent,
             RenderResource* bloomImg)
-        : finalPrePresent{finalPrePresent}
+        : RenderPass(handles)
+        , finalPrePresent{finalPrePresent}
         , hdrImg {hdrImg}
-        , bloomImg {bloomImg}
-        , handles {handles} {
+        , bloomImg {bloomImg} {
 
+    }
+
+    void TonemapFXRenderPass::resizeInternalBuffers(RenderContext& ctx) {
+        vku::DescriptorSetUpdater dsu;
+        dsu.beginDescriptorSet(descriptorSet);
+
+        dsu.beginImages(0, 0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
+        dsu.image(sampler, finalPrePresent->image().imageView(), VK_IMAGE_LAYOUT_GENERAL);
+
+        dsu.beginImages(1, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+        dsu.image(sampler, hdrImg->image().imageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+        dsu.beginImages(2, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+        dsu.image(sampler, bloomImg->image().imageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+        if (ctx.passSettings.enableVr) {
+            dsu.beginDescriptorSet(rDescriptorSet);
+
+            dsu.beginImages(0, 0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
+            dsu.image(sampler, finalPrePresentR->image().imageView(), VK_IMAGE_LAYOUT_GENERAL);
+
+            dsu.beginImages(1, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+            dsu.image(sampler, hdrImg->image().imageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+            dsu.beginImages(2, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+            dsu.image(sampler, bloomImg->image().imageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+        }
+
+        dsu.update(handles->device);
     }
 
     void TonemapFXRenderPass::setup(RenderContext& ctx, VkDescriptorPool descriptorPool) {
