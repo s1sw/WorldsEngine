@@ -329,6 +329,7 @@ namespace worlds {
                 resized = true;
                 rttPass->active = true;
             }
+
             ImVec2 cpos = ImGui::GetWindowPos() + ImGui::GetCursorPos() - ImVec2(ImGui::GetScrollX(), ImGui::GetScrollY());
             ImVec2 end = previewSize + cpos;
             ImGui::ImageButton(previewPassTex, previewSize, ImVec2(0, 0), ImVec2(1, 1), 0);
