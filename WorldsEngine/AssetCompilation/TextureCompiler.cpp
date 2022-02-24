@@ -373,7 +373,7 @@ namespace worlds {
 
         if (pts.occlusionSource != INVALID_ASSET) {
             if (RawTextureLoader::loadRawTexture(pts.occlusionSource, occlusionData)) {
-                useMetallic = true;
+                useOcclusion = true;
             } else {
                 logErr("Failed to load occlusion layer");
             }
