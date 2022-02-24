@@ -24,6 +24,7 @@ namespace worlds {
         float defaultRoughness; 
         float defaultMetallic;
         float defaultOcclusion;
+        int qualityLevel;
     };
 
     enum class TextureAssetType {
@@ -40,6 +41,7 @@ namespace worlds {
             PBRTextureSettings pbr;
         };
 
+        void initialiseForType(TextureAssetType t);
         static TextureAssetSettings fromJson(nlohmann::json& j);
         void toJson(nlohmann::json& j);
     };
@@ -55,6 +57,7 @@ namespace worlds {
         struct TexCompileThreadInfo;
         void compileCrunch(TexCompileThreadInfo*);
         void compileRGBA(TexCompileThreadInfo*);
+        void compilePBR(TexCompileThreadInfo*);
         void writeCrunchedWtex(TexCompileThreadInfo* tcti, bool isSrgb, int width, int height, int nMips, void* data, size_t dataSize);
         void compileInternal(TexCompileThreadInfo*);
     };

@@ -64,14 +64,14 @@ namespace worlds {
     }
 
     void TextureEditor::drawEditor() {
-
         if (ImGui::BeginCombo("Type", textureTypeNames[(int)currentAssetSettings.type])) {
             int i = 0;
             for (const char* name : textureTypeNames) {
                 bool isSelected = (int)currentAssetSettings.type == i;
 
                 if (ImGui::Selectable(name, &isSelected)) {
-                    currentAssetSettings.type = (TextureAssetType)i;
+                    currentAssetSettings.type = static_cast<TextureAssetType>(i);
+                    currentAssetSettings.initialiseForType(static_cast<TextureAssetType>(i));
                 }
 
                 if (isSelected) {
@@ -88,9 +88,46 @@ namespace worlds {
             ImGui::Checkbox("Is SRGB", &cts.isSrgb);
             ImGui::Checkbox("Is Normal Map", &cts.isNormalMap);
             ImGui::SliderInt("Quality Level", &cts.qualityLevel, 0, 255);
-            ImGui::Text("Source texture: %s", AssetDB::idToPath(cts.sourceTexture).c_str());
+
+            if (cts.sourceTexture != INVALID_ASSET)
+                ImGui::Text("Source texture: %s", AssetDB::idToPath(cts.sourceTexture).c_str());
+            else
+                ImGui::Text("Source texture: not set");
+
             ImGui::SameLine();
             selectRawAssetPopup("Source Texture", cts.sourceTexture, ImGui::Button("Change##SrcTex"));
+        } else if (currentAssetSettings.type == TextureAssetType::PBR) {
+            PBRTextureSettings& pts = currentAssetSettings.pbr;
+
+            ImGui::DragFloat("Default Metallic", &pts.defaultMetallic);
+            ImGui::DragFloat("Default Roughness", &pts.defaultRoughness);
+            ImGui::DragFloat("Default Occlusion", &pts.defaultOcclusion);
+
+            if (pts.metallicSource != INVALID_ASSET) {
+                ImGui::Text("Metallic texture: %s", AssetDB::idToPath(pts.metallicSource).c_str());
+            } else {
+                ImGui::Text("No metallic texture set");
+            }
+
+            selectRawAssetPopup("Metallic Texture", pts.metallicSource, ImGui::Button("Change Metallic"));
+
+            if (pts.roughnessSource != INVALID_ASSET) {
+                ImGui::Text("Roughness texture: %s", AssetDB::idToPath(pts.roughnessSource).c_str());
+            } else {
+                ImGui::Text("No roughness texture set");
+            }
+
+            selectRawAssetPopup("Roughness Texture", pts.roughnessSource, ImGui::Button("Change Roughness"));
+
+            if (pts.occlusionSource != INVALID_ASSET) {
+                ImGui::Text("Occlusion texture: %s", AssetDB::idToPath(pts.occlusionSource).c_str());
+            } else {
+                ImGui::Text("No occlusion texture set");
+            }
+
+            selectRawAssetPopup("Occlusion Texture", pts.occlusionSource, ImGui::Button("Change Occlusion"));
+
+            ImGui::SliderInt("Quality Level", &pts.qualityLevel, 0, 255);
         }
     }
 
