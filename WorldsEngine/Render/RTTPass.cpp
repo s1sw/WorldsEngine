@@ -312,13 +312,10 @@ namespace worlds {
 
     void VKRTTPass::resize(int newWidth, int newHeight) {
         std::lock_guard<std::mutex> lg{ *renderer->apiMutex };
-        VKCHECK(vkDeviceWaitIdle(renderer->handles.device));
         width = newWidth;
         height = newHeight;
         createInfo.width = width;
         createInfo.height = height;
-        //destroy();
-        //create(renderer, vrInterface, renderer->frameIdx, &renderer->dbgStats);
 
         VkImageUsageFlags usages =
             VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT
