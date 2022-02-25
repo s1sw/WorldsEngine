@@ -507,6 +507,9 @@ namespace worlds {
             pmsci.rasterizationSamples = vku::sampleCountFlags(ctx.passSettings.msaaLevel);
             pm.multisampleState(pmsci);
 
+            pm.dynamicState(VK_DYNAMIC_STATE_VIEWPORT);
+            pm.dynamicState(VK_DYNAMIC_STATE_SCISSOR);
+
             vku::PipelineLayoutMaker plm;
             plm.pushConstantRange(VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(StandardPushConstants));
             plm.descriptorSetLayout(dsl);

@@ -195,6 +195,8 @@ namespace worlds {
         pm.blendBegin(true);
 
         pm.rasterizationSamples(vku::sampleCountFlags(ctx.passSettings.msaaLevel));
+        pm.dynamicState(VK_DYNAMIC_STATE_VIEWPORT);
+        pm.dynamicState(VK_DYNAMIC_STATE_SCISSOR);
 
         textPipeline = pm.create(handles->device, handles->pipelineCache, pipelineLayout, renderPass);
 

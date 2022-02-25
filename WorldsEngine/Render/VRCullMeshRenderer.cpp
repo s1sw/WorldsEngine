@@ -42,6 +42,8 @@ namespace worlds {
         pm.rasterizationSamples((VkSampleCountFlagBits)handles->graphicsSettings.msaaLevel);
         pm.subPass(0);
         pm.blendBegin(false);
+        pm.dynamicState(VK_DYNAMIC_STATE_VIEWPORT);
+        pm.dynamicState(VK_DYNAMIC_STATE_SCISSOR);
 
         pipeline = pm.create(handles->device, handles->pipelineCache, pipelineLayout, rp);
 
