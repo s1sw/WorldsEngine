@@ -1392,6 +1392,7 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
     VkCommandBuffer cmdBuf;
     int imageIndex;
     frameIdx = presentSubmitManager->acquireFrame(cmdBuf, imageIndex);
+
     DeletionQueue::cleanupFrame(frameIdx);
     DeletionQueue::setCurrentFrame(frameIdx);
 

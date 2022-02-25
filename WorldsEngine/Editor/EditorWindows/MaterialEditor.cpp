@@ -161,12 +161,25 @@ namespace worlds {
         rttPass->active = true;
     }
 
+    bool unloadNext = false;
+
     void MaterialEditor::draw(entt::registry&) {
         static AssetID materialId = ~0u;
         static bool needsReload = false;
         static EditableMaterial mat;
 
-        if (ImGui::Begin("Material Editor", &active)) {
+        static bool dragging = false;
+
+        if (unloadNext) {
+            for (auto& p : cacheTextures) {
+                interfaces.renderer->uiTextureManager().unload(p.first);
+            }
+            cacheTextures.clear();
+            unloadNext = false;
+        }
+
+        if (ImGui::Begin("Material Editor", &active, dragging ? ImGuiWindowFlags_NoMove : 0)) {
+            ImGui::Columns(2);
             if (materialId != ~0u) {
                 if (needsReload) {
                     auto* f = AssetDB::openAssetFileRead(materialId);
@@ -303,102 +316,105 @@ namespace worlds {
 
                 if (ImGui::Button("Close")) {
                     materialId = ~0u;
-                    for (auto& p : cacheTextures) {
-                        texMan.unload(p.first);
-                    }
-                    cacheTextures.clear();
+                    unloadNext = true;
                 }
+
+                ImGui::NextColumn();
+
+                static ImVec2 lastPreviewSize{ 0.0f, 0.0f };
+                ImVec2 previewSize = ImGui::GetContentRegionAvail() - ImVec2(0.0f, ImGui::GetTextLineHeightWithSpacing() * 2.0f);
+                bool resized = false;
+                if (previewSize.x != lastPreviewSize.x || previewSize.y != lastPreviewSize.y) {
+                    rttPass->resize(std::max(16, (int)previewSize.x), std::max(16, (int)previewSize.y));
+                    VKImGUIUtil::updateDescriptorSet((VkDescriptorSet)previewPassTex, static_cast<VKRTTPass*>(rttPass)->sdrFinalTarget->image());
+                    lastPreviewSize = previewSize;
+                    resized = true;
+                    rttPass->active = true;
+                }
+
+                ImVec2 cpos = ImGui::GetWindowPos() + ImGui::GetCursorPos() - ImVec2(ImGui::GetScrollX(), ImGui::GetScrollY());
+                ImVec2 end = previewSize + cpos;
+                ImGui::ImageButton(previewPassTex, previewSize, ImVec2(0, 0), ImVec2(1, 1), 0);
+
+                static float lx = 0.0f;
+                static float ly = 0.0f;
+                static float dist = 2.0f;
+
+                if (ImGui::IsMouseHoveringRect(cpos, end)) {
+                    rttPass->active = true;
+                    if (ImGui::IsMouseDown(0)) {
+                        dragging = true;
+                    }
+
+                    dist -= ImGui::GetIO().MouseWheel * 0.25;
+                    dist = glm::max(dist, 0.25f);
+                } else if (!resized) {
+                    rttPass->active = false;
+                }
+
+                if (!ImGui::IsMouseDown(0)) {
+                    dragging = false;
+                }
+
+                if (dragging) {
+                    lx -= ImGui::GetIO().MouseDelta.x * 0.01f;
+                    ly -= ImGui::GetIO().MouseDelta.y * 0.01f;
+
+                    ly = glm::clamp(ly, -glm::half_pi<float>() + 0.1f, glm::half_pi<float>() - 0.1f);
+                }
+
+                glm::quat q = glm::angleAxis(lx, glm::vec3(0.0f, 1.0f, 0.0f)) * glm::angleAxis(ly, glm::vec3(1.0f, 0.0f, 0.0f));
+
+                glm::vec3 dir = q * glm::vec3(0.0f, 0.0f, 1.0f);
+                previewCam.position = dir * dist;
+                previewCam.rotation = glm::quatLookAt(dir, glm::vec3(0.0f, 1.0f, 0.0f));
+
+                if (ImGui::Button("Box")) {
+                    previewRegistry.get<WorldObject>(previewEntity).mesh = AssetDB::pathToId("Models/cube.wmdl");
+                }
+
+                ImGui::SameLine();
+                if (ImGui::Button("Sphere")) {
+                    previewRegistry.get<WorldObject>(previewEntity).mesh = AssetDB::pathToId("Models/sphere.wmdl");
+                }
+
+                ImGui::SameLine();
+                if (ImGui::Button("Plane")) {
+                    previewRegistry.get<WorldObject>(previewEntity).mesh = AssetDB::pathToId("Models/plane.wmdl");
+                }
+
+                static AssetID customModel = ~0u;
+                ImGui::SameLine();
+                bool openModelPopup = false;
+                if (ImGui::Button("Other Model")) {
+                    openModelPopup = true;
+                }
+
+                ImGui::SameLine();
+
+                bool openSkyboxPopup = false;
+                auto& sceneSettings = previewRegistry.ctx<SceneSettings>();
+
+                if (ImGui::Button("Change Background")) {
+                    openSkyboxPopup = true;
+                }
+
+                if (selectAssetPopup("Preview Model", customModel, openModelPopup)) {
+                    previewRegistry.get<WorldObject>(previewEntity).mesh = customModel;
+                }
+
+                selectAssetPopup("Skybox", sceneSettings.skybox, openSkyboxPopup);
             } else {
                 bool open = ImGui::Button("Open Material");
                 needsReload = selectAssetPopup("Select Material", materialId, open, true);
-            }
-
-        }
-
-        ImGui::End();
-
-        static bool dragging = false;
-        if (ImGui::Begin("Material Preview", nullptr, (dragging ? ImGuiWindowFlags_NoMove : 0) | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse)) {
-            static ImVec2 lastPreviewSize{ 0.0f, 0.0f };
-            ImVec2 previewSize = ImGui::GetContentRegionAvail() - ImVec2(0.0f, ImGui::GetTextLineHeightWithSpacing() * 2.0f);
-            bool resized = false;
-            if (previewSize.x != lastPreviewSize.x || previewSize.y != lastPreviewSize.y) {
-                rttPass->resize(std::max(16, (int)previewSize.x), std::max(16, (int)previewSize.y));
-                VKImGUIUtil::updateDescriptorSet((VkDescriptorSet)previewPassTex, static_cast<VKRTTPass*>(rttPass)->sdrFinalTarget->image());
-                lastPreviewSize = previewSize;
-                resized = true;
-                rttPass->active = true;
-            }
-
-            ImVec2 cpos = ImGui::GetWindowPos() + ImGui::GetCursorPos() - ImVec2(ImGui::GetScrollX(), ImGui::GetScrollY());
-            ImVec2 end = previewSize + cpos;
-            ImGui::ImageButton(previewPassTex, previewSize, ImVec2(0, 0), ImVec2(1, 1), 0);
-
-            static float lx = 0.0f;
-            static float ly = 0.0f;
-            static float dist = 2.0f;
-
-            if (ImGui::IsMouseHoveringRect(cpos, end)) {
-                rttPass->active = true;
-                if (ImGui::IsMouseDown(0)) {
-                    dragging = true;
-                }
-
-                dist -= ImGui::GetIO().MouseWheel * 0.25;
-                dist = glm::max(dist, 0.25f);
-            } else if (!resized) {
                 rttPass->active = false;
             }
-
-            if (!ImGui::IsMouseDown(0)) {
-                dragging = false;
-            }
-
-            if (dragging) {
-                lx -= ImGui::GetIO().MouseDelta.x * 0.01f;
-                ly -= ImGui::GetIO().MouseDelta.y * 0.01f;
-
-                ly = glm::clamp(ly, -glm::half_pi<float>() + 0.1f, glm::half_pi<float>() - 0.1f);
-            }
-
-            glm::quat q = glm::angleAxis(lx, glm::vec3(0.0f, 1.0f, 0.0f)) * glm::angleAxis(ly, glm::vec3(1.0f, 0.0f, 0.0f));
-
-            glm::vec3 dir = q * glm::vec3(0.0f, 0.0f, 1.0f);
-            previewCam.position = dir * dist;
-            previewCam.rotation = glm::quatLookAt(dir, glm::vec3(0.0f, 1.0f, 0.0f));
-
-            if (ImGui::Button("Box")) {
-                previewRegistry.get<WorldObject>(previewEntity).mesh = AssetDB::pathToId("Models/cube.wmdl");
-            }
-
-            ImGui::SameLine();
-            if (ImGui::Button("Sphere")) {
-                previewRegistry.get<WorldObject>(previewEntity).mesh = AssetDB::pathToId("Models/sphere.wmdl");
-            }
-
-            ImGui::SameLine();
-            if (ImGui::Button("Plane")) {
-                previewRegistry.get<WorldObject>(previewEntity).mesh = AssetDB::pathToId("Models/plane.wmdl");
-            }
-
-            static AssetID customModel = ~0u;
-            ImGui::SameLine();
-            bool open = false;
-            if (ImGui::Button("Other Model")) {
-                open = true;
-            }
-
-            if (selectAssetPopup("Preview Model", customModel, open)) {
-                previewRegistry.get<WorldObject>(previewEntity).mesh = customModel;
-            }
         }
+
         ImGui::End();
 
         if (!active && cacheTextures.size() > 0) {
-            for (auto& p : cacheTextures) {
-                interfaces.renderer->uiTextureManager().unload(p.first);
-            }
-            cacheTextures.clear();
+            unloadNext = true;
         }
     }
 

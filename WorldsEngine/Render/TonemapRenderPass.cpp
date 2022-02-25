@@ -12,6 +12,7 @@ namespace worlds {
         float vignetteRadius;
         float vignetteSoftness;
         glm::vec3 vignetteColor;
+        float resolutionScale;
     };
 
     static ConVar exposureBias("r_exposure", "0.5");
@@ -131,10 +132,12 @@ namespace worlds {
 
         vkCmdBindDescriptorSets(cmdBuf, VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
         vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline);
-        TonemapPushConstants tpc{ 0, exposureBias.getFloat(), vignetteRadius.getFloat(), vignetteSoftness.getFloat(), glm::vec3(1.0, 0.0, 0.0) };
+        TonemapPushConstants tpc{ 0, exposureBias.getFloat(), vignetteRadius.getFloat(), vignetteSoftness.getFloat(), glm::vec3(1.0, 0.0, 0.0), ctx.passSettings.resolutionScale };
         vkCmdPushConstants(cmdBuf, pipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(tpc), &tpc);
 
-        vkCmdDispatch(cmdBuf, (ctx.passWidth + 15) / 16, (ctx.passHeight + 15) / 16, 1);
+        int realWidth = finalPrePresent->image().extent().width;
+        int realHeight = finalPrePresent->image().extent().height;
+        vkCmdDispatch(cmdBuf, (realWidth + 15) / 16, (realHeight + 15) / 16, 1);
 
         if (ctx.passSettings.enableVr) {
             finalPrePresentR->image().setLayout(cmdBuf,

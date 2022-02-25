@@ -1,3 +1,4 @@
+#include "Core/ConVar.hpp"
 #include "RenderPasses.hpp"
 #include "../Core/Engine.hpp"
 #include "../Core/Transform.hpp"
@@ -122,6 +123,7 @@ namespace worlds {
         return projMat * viewMat;
     }
 
+    ConVar shadowDistanceScalar{ "r_shadowDistanceScalar", "1.0" };
     void ShadowCascadePass::calculateCascadeMatrices(RenderContext& rCtx) {
         bool hasLight = false;
         rCtx.registry.view<WorldLight, Transform>().each([&](auto, WorldLight& l, Transform& transform) {
@@ -138,14 +140,14 @@ namespace worlds {
                     for (int i = 1; i < NUM_CASCADES; i++) {
                         frustumMatrices[i - 1] = glm::perspective(
                             rCtx.camera.verticalFOV, aspect,
-                            splits[i - 1], splits[i]
+                            splits[i - 1] * shadowDistanceScalar.getFloat(), splits[i] * shadowDistanceScalar.getFloat()
                         );
                     }
                 } else {
                     for (int i = 1; i < NUM_CASCADES; i++) {
                         frustumMatrices[i - 1] = vrInterface->getEyeProjectionMatrix(
                             Eye::LeftEye,
-                            splits[i - 1], splits[i]
+                            splits[i - 1] * shadowDistanceScalar.getFloat(), splits[i] * shadowDistanceScalar.getFloat()
                         );
                     }
                 }

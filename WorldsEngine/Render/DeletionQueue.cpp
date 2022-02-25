@@ -8,7 +8,6 @@ namespace worlds {
 
     void DeletionQueue::queueObjectDeletion(void* object, VkObjectType type) {
         deletionQueues[currentFrameIndex].objectDeletions.emplace_back(object, type);
-
     }
 
     void DeletionQueue::queueMemoryFree(VmaAllocation allocation) {
