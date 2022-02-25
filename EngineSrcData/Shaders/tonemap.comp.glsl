@@ -20,6 +20,7 @@ layout(push_constant) uniform PushConstants {
     float vignetteRadius;
     float vignetteSoftness;
     vec3 vignetteColor;
+    float resolutionScale;
 };
 
 float A = 0.15;
@@ -73,14 +74,57 @@ vec3 tonemapCol(vec3 col, vec3 whiteScale) {
     return curr * whiteScale;
 }
 
+vec2 hdrTexSize() {
+#ifdef MSAA
+    return vec2(textureSize(hdrImage));
+#else
+    return vec2(textureSize(hdrImage, 0));
+#endif
+}
+
+vec2 outSize() {
+    return hdrTexSize() / resolutionScale; 
+}
+
+vec3 pointSample(vec2 uv, int sampleIdx) {
+    vec2 texSize = hdrTexSize();
+    
+    return texelFetch(hdrImage, ivec3(texSize * uv, idx), sampleIdx).xyz;
+}
+
+vec3 bilinearSample(vec2 uv, int sampleIdx) {
+    vec2 texelSize = 1.0 / hdrTexSize();
+    vec2 tl = uv;
+    vec2 tr = uv + vec2(texelSize.x, 0.0);
+    vec2 bl = uv + vec2(0.0, texelSize.y);
+    vec2 br = uv + texelSize;
+
+    vec3 tls = pointSample(tl, sampleIdx);
+    vec3 trs = pointSample(tr, sampleIdx);
+    vec3 bls = pointSample(bl, sampleIdx);
+    vec3 brs = pointSample(br, sampleIdx);
+
+    vec2 texCoord = fract(hdrTexSize() * uv);
+
+    vec3 topRow = mix(tls, trs, texCoord.x);
+    vec3 bottomRow = mix(bls, brs, texCoord.x);
+
+    return mix(topRow, bottomRow, texCoord.y);
+}
+
 void main() {
     vec3 acc = vec3(0.0);
     vec3 whiteScale = 1.0 / Uncharted2Tonemap(vec3(W));
-    vec3 bloom = texelFetch(bloomImage, ivec3(gl_GlobalInvocationID.xy, idx), 0).xyz;
+    vec2 uv = (vec2(gl_GlobalInvocationID.xy) + vec2(0.5)) / outSize();
+
+    vec3 bloom = texture(bloomImage, vec3(uv * resolutionScale, 0)).xyz;//texelFetch(bloomImage, ivec3(gl_GlobalInvocationID.xy, idx), 0).xyz;
     //bloom -= vec3(0.1);
     bloom = max(bloom, vec3(0.0));
     for (int i = 0; i < NUM_MSAA_SAMPLES; i++) {
-        vec3 raw = texelFetch(hdrImage, ivec3(gl_GlobalInvocationID.xy, idx), i).xyz;
+        //vec3 raw = texelFetch(hdrImage, ivec3(gl_GlobalInvocationID.xy, idx), i).xyz;
+        //vec3 raw = texelFetch(hdrImage, ivec3(vec2(gl_GlobalInvocationID.xy) * resolutionScale, idx), i).xyz;
+        vec3 raw = resolutionScale == 1.0 ? texelFetch(hdrImage, ivec3(gl_GlobalInvocationID.xy, idx), i).xyz : bilinearSample(uv, i);
+        //vec3 raw = bilinearSample(uv, i);
         acc += Tonemap(mix(raw, bloom, 0.2));
         //acc += ACESFilm(raw * 4.0);
     }
@@ -89,12 +133,6 @@ void main() {
     acc = TonemapInvert(acc);
     acc = saturate(tonemapCol(acc, whiteScale));
     //acc = ACESFilm(acc * exposureBias);
-    
-#ifdef MSAA
-    vec2 uv = vec2(gl_GlobalInvocationID.xy) / vec2(textureSize(hdrImage));
-#else
-    vec2 uv = vec2(gl_GlobalInvocationID.xy) / vec2(textureSize(hdrImage, 0));
-#endif
     
     vec2 centerVec = (uv - vec2(0.5, 0.5));
     float smoothness = 0.2;

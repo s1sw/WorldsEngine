@@ -332,6 +332,7 @@ namespace worlds {
 
     SDL_Thread* renderThreadInstance = nullptr;
     bool screenPassIsVR = false;
+    float screenPassResScale = 1.0f;
 
     WorldsEngine::WorldsEngine(EngineInitOptions initOptions, char* argv0)
         : pauseSim{ false }
@@ -573,6 +574,10 @@ namespace worlds {
                     if (!enableOpenVR)
                         console->executeCommandStr("sim_lockToRefresh 0");
                 }, "unpause", "unpause and go back to play mode.");
+
+                console->registerCommand([&](void*, const char* arg) {
+                    screenPassResScale = std::atof(arg);
+                }, "setGameResScale", "Sets the resolution scale of the game view.");
             }
 
             console->registerCommand([&](void*, const char*) {
@@ -669,7 +674,7 @@ namespace worlds {
             RTTPassCreateInfo screenRTTCI {
                 .width = w,
                 .height = h,
-                .resScale = 1.0f,
+                .resScale = 0.75f,
                 .isVr = enableOpenVR,
                 .useForPicking = false,
                 .enableShadows = true,
@@ -819,6 +824,27 @@ namespace worlds {
 
                     screenRTTPass = renderer->createRTTPass(screenRTTCI);
                 }
+            }
+
+            static float lastResScale = 1.0f;
+            if (screenPassResScale != lastResScale) {
+                lastResScale = screenPassResScale;
+                renderer->destroyRTTPass(screenRTTPass);
+
+                uint32_t w = 1600;
+                uint32_t h = 900;
+
+                RTTPassCreateInfo screenRTTCI {
+                    .width = w,
+                    .height = h,
+                    .resScale = screenPassResScale,
+                    .isVr = screenPassIsVR,
+                    .useForPicking = false,
+                    .enableShadows = true,
+                    .outputToScreen = true,
+                };
+
+                screenRTTPass = renderer->createRTTPass(screenRTTCI);
             }
 
             float interpAlpha = 1.0f;

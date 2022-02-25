@@ -6,6 +6,7 @@ namespace worlds {
         const worlds::VulkanHandles* handles;
         VkDescriptorSetLayout layout;
         VkSampler sampler;
+        std::vector<VkDescriptorSet> freeQueue;
 
         void createObjects(const worlds::VulkanHandles* vkCtx) {
             handles = vkCtx;
@@ -48,7 +49,15 @@ namespace worlds {
         }
 
         void destroyDescriptorSet(VkDescriptorSet ds, const VulkanHandles* handles) {
-            DeletionQueue::queueDescriptorSetFree(handles->descriptorPool, ds);
+            freeQueue.push_back(ds);
+        }
+
+        void destroyQueued() {
+            for (VkDescriptorSet ds : freeQueue) {
+                DeletionQueue::queueDescriptorSetFree(handles->descriptorPool, ds);
+            }
+
+            freeQueue.clear();
         }
     }
 }

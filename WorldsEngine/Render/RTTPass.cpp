@@ -116,6 +116,7 @@ namespace worlds {
         passSettings.enableVr = createInfo.isVr;
         passSettings.enableCascadeShadows = enableShadows;
         passSettings.msaaLevel = createInfo.msaaLevel == 0 ? handles.graphicsSettings.msaaLevel : createInfo.msaaLevel;
+        passSettings.resolutionScale = createInfo.resScale;
         RenderContext rCtx{
             .resources = renderer->getResources(),
             .cascadeInfo = {},

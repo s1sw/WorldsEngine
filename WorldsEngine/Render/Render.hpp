@@ -81,7 +81,8 @@ namespace worlds {
             , enableVr(false)
             , enableBloom(true)
             , enableCascadeShadows(true)
-            , enableSpotlightShadows(true) {}
+            , enableSpotlightShadows(true)
+            , resolutionScale(1.0f) {}
 
         GraphicsSettings(int msaaLevel, int shadowmapRes, bool enableVr)
             : msaaLevel(msaaLevel)
@@ -90,8 +91,8 @@ namespace worlds {
             , enableVr(enableVr)
             , enableBloom(true)
             , enableCascadeShadows(true)
-            , enableSpotlightShadows(true) {
-        }
+            , enableSpotlightShadows(true)
+            , resolutionScale(1.0f) {}
 
         int msaaLevel; //!< MSAA level (1x, 2x, 4x, 8x etc.)
         int shadowmapRes; //!< Shadowmap resolution for cascade shadows
@@ -100,6 +101,7 @@ namespace worlds {
         bool enableBloom;
         bool enableCascadeShadows;
         bool enableSpotlightShadows;
+        float resolutionScale;
     };
 
     struct SubmeshInfo {
