@@ -28,11 +28,39 @@ namespace worlds {
         dsu.update(handles->device);
     }
 
+    void LightCullPass::changeLightTileBuffers(RenderContext& ctx, VkBuffer lightTilesBuffer, VkBuffer lightTileLightCountBuffer) {
+        vku::DescriptorSetUpdater dsu;
+        dsu.beginDescriptorSet(descriptorSet);
+
+        int tileSize = 16;
+        const int xTiles = (ctx.passWidth + (tileSize - 1)) / tileSize;
+        const int yTiles = (ctx.passHeight + (tileSize - 1)) / tileSize;
+        int numLightTiles = xTiles * yTiles;
+
+        if (ctx.passSettings.enableVr)
+            numLightTiles *= 2;
+
+        dsu.beginBuffers(4, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+        dsu.buffer(lightTileLightCountBuffer, 0, sizeof(uint32_t) * numLightTiles);
+
+        dsu.beginBuffers(5, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+        dsu.buffer(lightTilesBuffer, 0, sizeof(LightingTile) * numLightTiles);
+
+        dsu.update(handles->device);
+    }
+
     void LightCullPass::setup(
             RenderContext& ctx,
             VkBuffer lightBuffer, VkBuffer lightTileInfoBuffer,
             VkBuffer lightTilesBuffer, VkBuffer lightTileLightCountBuffer,
             VkDescriptorPool descriptorPool) {
+        int tileSize = 16;
+        const int xTiles = (ctx.passWidth + (tileSize - 1)) / tileSize;
+        const int yTiles = (ctx.passHeight + (tileSize - 1)) / tileSize;
+        int numLightTiles = xTiles * yTiles;
+
+        if (ctx.passSettings.enableVr)
+            numLightTiles *= 2;
 
         AssetID shaderMsaa = AssetDB::pathToId("Shaders/light_cull.comp.spv");
         AssetID shaderNoMsaa = AssetDB::pathToId("Shaders/light_cull_nomsaa.comp.spv");
@@ -75,10 +103,10 @@ namespace worlds {
         dsu.image(sampler, depthResource->image().imageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
         dsu.beginBuffers(4, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-        dsu.buffer(lightTileLightCountBuffer, 0, sizeof(uint32_t) * MAX_LIGHT_TILES);
+        dsu.buffer(lightTileLightCountBuffer, 0, sizeof(uint32_t) * numLightTiles);
 
         dsu.beginBuffers(5, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-        dsu.buffer(lightTilesBuffer, 0, sizeof(LightingTile) * MAX_LIGHT_TILES);
+        dsu.buffer(lightTilesBuffer, 0, sizeof(LightingTile) * numLightTiles);
 
         dsu.update(handles->device);
     }

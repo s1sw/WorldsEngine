@@ -115,10 +115,10 @@ namespace worlds {
     };
 
     struct WorldCubemap {
-        AssetID cubemapId;
         glm::vec3 extent{0.0f};
         bool cubeParallax = false;
         int priority = 0;
+        AssetID cubemapId = ~0u;
     };
 
     struct ProxyAOComponent {

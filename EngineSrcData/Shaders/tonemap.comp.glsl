@@ -117,7 +117,7 @@ void main() {
     vec3 whiteScale = 1.0 / Uncharted2Tonemap(vec3(W));
     vec2 uv = (vec2(gl_GlobalInvocationID.xy) + vec2(0.5)) / outSize();
 
-    vec3 bloom = texture(bloomImage, vec3(uv * resolutionScale, 0)).xyz;//texelFetch(bloomImage, ivec3(gl_GlobalInvocationID.xy, idx), 0).xyz;
+    vec3 bloom = texture(bloomImage, vec3(uv * resolutionScale, idx)).xyz;
     //bloom -= vec3(0.1);
     bloom = max(bloom, vec3(0.0));
     for (int i = 0; i < NUM_MSAA_SAMPLES; i++) {

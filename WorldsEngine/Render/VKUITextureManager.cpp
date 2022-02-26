@@ -4,8 +4,9 @@
 #include "Util/VKImGUIUtil.hpp"
 
 namespace worlds {
-    VKUITextureManager::VKUITextureManager(const VulkanHandles& handles)
-        : handles { handles } {
+    VKUITextureManager::VKUITextureManager(VKRenderer* renderer, const VulkanHandles& handles)
+        : handles{ handles }
+        , renderer{ renderer } {
     }
 
     VKUITextureManager::~VKUITextureManager() {
@@ -46,6 +47,7 @@ namespace worlds {
         if (tData.data == nullptr)
             logErr("Failed to load UI image %s", AssetDB::idToPath(id).c_str());
 
+        std::lock_guard<std::mutex> lg{ *renderer->apiMutex };
         vku::TextureImage2D t2d = uploadTextureVk(handles, tData);
 
         auto texInfo = new UITexInfo;

@@ -156,6 +156,7 @@ namespace worlds {
         auto handles = renderer->getHandles();
         VkQueue queue;
         vkGetDeviceQueue(handles->device, handles->graphicsQueueFamilyIdx, 0, &queue);
+        prePass(0, world);
         vku::executeImmediately(handles->device, handles->commandPool, queue, [&](auto cmdbuf) {
             renderer->uploadSceneAssets(world);
             writeCmds(0, cmdbuf, world);
@@ -384,6 +385,10 @@ namespace worlds {
         trp->resizeInternalBuffers(rCtx);
     }
 
+    void VKRTTPass::setResolutionScale(float newResolutionScale) {
+        createInfo.resScale = newResolutionScale;
+    }
+
     void VKRTTPass::prePass(uint32_t frameIdx, entt::registry& world) {
         uint32_t width = actualWidth();
         uint32_t height = actualHeight();
@@ -511,10 +516,11 @@ namespace worlds {
     }
 
     void VKRTTPass::setFinalPrePresents() {
-        trp->setFinalImage(renderer->finalPrePresent);
-
         if (isVr) {
+            trp->setFinalImage(renderer->leftEye);
             trp->setRightFinalImage(renderer->rightEye);
+        } else {
+            trp->setFinalImage(renderer->finalPrePresent);
         }
     }
 

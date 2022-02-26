@@ -93,6 +93,8 @@ namespace worlds {
         descriptorSet = std::move(dsm.create(handles->device, descriptorPool)[0]);
 
         vku::SamplerMaker sm;
+        sm.magFilter(VK_FILTER_LINEAR);
+        sm.minFilter(VK_FILTER_LINEAR);
         sampler = sm.create(handles->device);
 
         vku::DescriptorSetUpdater dsu;

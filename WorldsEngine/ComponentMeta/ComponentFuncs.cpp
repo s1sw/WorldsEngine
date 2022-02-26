@@ -1505,6 +1505,7 @@ namespace worlds {
             auto& wc = reg.get<WorldCubemap>(ent);
             static entt::entity boundsCube = entt::null;
 
+            wc.cubemapId = AssetDB::pathToId("LevelData/Cubemaps/" + reg.ctx<SceneInfo>().name + "/" + reg.get<NameComponent>(ent).name + ".json");
             if (ImGui::CollapsingHeader(ICON_FA_CIRCLE u8" Cubemap")) {
                 if (!reg.valid(boundsCube)) {
                     boundsCube = createModelObject(reg,
@@ -1519,9 +1520,7 @@ namespace worlds {
 
                 ImGui::DragFloat3("Extent", &wc.extent.x);
                 ImGui::Checkbox("Parallax Correction", &wc.cubeParallax);
-                ImGui::Text("Current Asset Path: %s", AssetDB::idToPath(wc.cubemapId).c_str());
                 ImGui::InputInt("Priority", &wc.priority);
-                selectAssetPopup("Cubemap Path", wc.cubemapId, ImGui::Button("Change"));
 
                 Transform& boundsTransform = reg.get<Transform>(boundsCube);
                 boundsTransform.position = reg.get<Transform>(ent).position;
@@ -1556,7 +1555,6 @@ namespace worlds {
             auto& wc = reg.get<WorldCubemap>(ent);
 
             j = {
-                { "path", AssetDB::idToPath(wc.cubemapId) },
                 { "useCubeParallax", wc.cubeParallax },
                 { "extent", wc.extent },
                 { "priority", wc.priority }
@@ -1568,7 +1566,7 @@ namespace worlds {
             AssetID cubemapId = AssetDB::pathToId(path);
             auto& wc = reg.emplace<WorldCubemap>(ent);
 
-            wc.cubemapId = cubemapId;
+            wc.cubemapId = AssetDB::pathToId("LevelData/Cubemaps/" + reg.ctx<SceneInfo>().name + "/" + reg.get<NameComponent>(ent).name + ".json");
             wc.extent = j["extent"];
             wc.cubeParallax = j["useCubeParallax"];
             wc.priority = j.value("priority", 0);

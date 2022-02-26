@@ -82,7 +82,6 @@ namespace worlds {
         void createStartupScene();
         void addSystem(ISystem* system);
         Window& getMainWindow() const { return *window; }
-        const SceneInfo& getCurrentSceneInfo() const { return currentScene; }
         void quit() { running = false; }
         bool pauseSim;
         bool runAsEditor;
@@ -120,7 +119,6 @@ namespace worlds {
         RTTPass* screenRTTPass;
         Camera cam;
 
-        SceneInfo currentScene;
         bool sceneLoadQueued = false;
         AssetID queuedSceneID;
 

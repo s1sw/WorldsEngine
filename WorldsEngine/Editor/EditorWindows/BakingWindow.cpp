@@ -14,13 +14,14 @@
 #include <Audio/Audio.hpp>
 #include <Recast.h>
 #include <Core/MeshManager.hpp>
+#include <filesystem>
 
 namespace worlds {
     void stbiWriteFunc(void* ctx, void* data, int bytes) {
         PHYSFS_writeBytes((PHYSFS_File*)ctx, data, bytes);
     }
 
-    void bakeCubemap(glm::vec3 pos, worlds::VKRenderer* renderer,
+    void bakeCubemap(Editor* ed, glm::vec3 pos, worlds::VKRenderer* renderer,
         std::string name, entt::registry& world, int iterations = 1) {
         // create RTT pass
         RTTPassCreateInfo rtci;
@@ -68,7 +69,9 @@ namespace worlds {
         std::vector<std::string> outputPaths;
         logMsg("baking cubemap %s", name.c_str());
 
-        auto jsonPath = "LevelCubemaps/" + name + ".json";
+        std::string levelCubemapPath = "LevelData/Cubemaps/" + world.ctx<SceneInfo>().name + "/";
+        auto jsonPath = levelCubemapPath + name + ".json";
+        std::filesystem::create_directories(std::string(ed->currentProject().builtData()) + "/" + levelCubemapPath);
         AssetID cubemapId = AssetDB::pathToId(jsonPath);
         auto resources = renderer->getResources();
 
@@ -88,6 +91,7 @@ namespace worlds {
                 });
         }
 
+        renderer->startRdocCapture();
         for (int iteration = 0; iteration < iterations; iteration++) {
             // for every face:
             // 1. setup camera
@@ -140,7 +144,7 @@ namespace worlds {
                 // Don't save unless this is the final iteration
                 if (iteration == iterations - 1) {
                     float* data = rttPass->getHDRData();
-                    auto outPath = "LevelCubemaps/" + name + outputNames[i] + ".hdr";
+                    auto outPath = levelCubemapPath + name + outputNames[i] + ".hdr";
                     PHYSFS_File* fHandle = PHYSFS_openWrite(("Data/" + outPath).c_str());
                     if (fHandle == nullptr) {
                         logErr("Failed to open cubemap file as write");
@@ -175,6 +179,7 @@ namespace worlds {
             }
         }
 
+        renderer->endRdocCapture();
         auto file = PHYSFS_openWrite(("Data/" + jsonPath).c_str());
 
         std::string j = "[\n";
@@ -224,7 +229,7 @@ namespace worlds {
                         ImGui::SameLine();
                         ImGui::PushID(nc.name.c_str());
                         if (ImGui::Button("Bake")) {
-                            bakeCubemap(t.position, static_cast<worlds::VKRenderer*>(interfaces.renderer), nc.name, reg, numIterations);
+                            bakeCubemap(editor, t.position, static_cast<worlds::VKRenderer*>(interfaces.renderer), nc.name, reg, numIterations);
                         }
                         ImGui::PopID();
                     });
