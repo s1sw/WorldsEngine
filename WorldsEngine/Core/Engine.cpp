@@ -376,8 +376,7 @@ namespace worlds {
         // means that jobs can be missed
         g_jobSys = new JobSystem{ workerThreadOverride == -1 ? std::max(SDL_GetCPUCount(), 2) : workerThreadOverride };
 
-        currentScene.name = "Untitled";
-        currentScene.id = ~0u;
+        registry.set<SceneInfo>("Untitled", ~0u);
 
         if (!dedicatedServer && runAsEditor)
             splashWindow->changeOverlay("loading assetdb");
@@ -542,8 +541,8 @@ namespace worlds {
                     editor->active = false;
                     pauseSim = false;
 
-                    if (currentScene.id != ~0u)
-                        loadScene(currentScene.id);
+                    if (registry.ctx<SceneInfo>().id != ~0u)
+                        loadScene(registry.ctx<SceneInfo>().id);
 
                     if (!enableOpenVR)
                         console->executeCommandStr("sim_lockToRefresh 0");
@@ -560,8 +559,8 @@ namespace worlds {
 
                 console->registerCommand([&](void*, const char*) {
                     editor->active = true;
-                    if (currentScene.id != ~0u)
-                        loadScene(currentScene.id);
+                    if (registry.ctx<SceneInfo>().id != ~0u)
+                        loadScene(registry.ctx<SceneInfo>().id);
                     pauseSim = true;
                     inputManager->lockMouse(false);
                     if (!enableOpenVR)
@@ -674,7 +673,7 @@ namespace worlds {
             RTTPassCreateInfo screenRTTCI {
                 .width = w,
                 .height = h,
-                .resScale = 0.75f,
+                .resScale = 1.0f,
                 .isVr = enableOpenVR,
                 .useForPicking = false,
                 .enableShadows = true,
@@ -723,10 +722,8 @@ namespace worlds {
         entt::entity dirLightEnt = registry.create();
         registry.emplace<WorldLight>(dirLightEnt, LightType::Directional);
         registry.emplace<Transform>(dirLightEnt, glm::vec3(0.0f), glm::angleAxis(glm::radians(90.01f), glm::vec3(1.0f, 0.0f, 0.0f)));
-        currentScene.name = "Untitled";
-        currentScene.id = ~0u;
+        registry.set<SceneInfo>("Untitled", INVALID_ASSET);
     }
-
 
     void WorldsEngine::mainLoop() {
         int frameCounter = 0;
@@ -802,20 +799,20 @@ namespace worlds {
 
             if (enableOpenVR) {
                 static bool lastIsVR = true;
-                if (screenPassIsVR != lastIsVR) {
+                uint32_t w = 1600;
+                uint32_t h = 900;
+
+                if (screenPassIsVR) {
+                    openvrInterface->getRenderResolution(&w, &h);
+                }
+
+                if (screenPassIsVR != lastIsVR || w != screenRTTPass->width || h != screenRTTPass->height) {
                     renderer->destroyRTTPass(screenRTTPass);
-
-                    uint32_t w = 1600;
-                    uint32_t h = 900;
-
-                    if (screenPassIsVR) {
-                        openvrInterface->getRenderResolution(&w, &h);
-                    }
 
                     RTTPassCreateInfo screenRTTCI {
                         .width = w,
                         .height = h,
-                        .resScale = 1.0f,
+                        .resScale = screenPassResScale,
                         .isVr = screenPassIsVR,
                         .useForPicking = false,
                         .enableShadows = true,
@@ -826,26 +823,7 @@ namespace worlds {
                 }
             }
 
-            static float lastResScale = 1.0f;
-            if (screenPassResScale != lastResScale) {
-                lastResScale = screenPassResScale;
-                renderer->destroyRTTPass(screenRTTPass);
-
-                uint32_t w = 1600;
-                uint32_t h = 900;
-
-                RTTPassCreateInfo screenRTTCI {
-                    .width = w,
-                    .height = h,
-                    .resScale = screenPassResScale,
-                    .isVr = screenPassIsVR,
-                    .useForPicking = false,
-                    .enableShadows = true,
-                    .outputToScreen = true,
-                };
-
-                screenRTTPass = renderer->createRTTPass(screenRTTCI);
-            }
+            screenRTTPass->setResolutionScale(screenPassResScale);
 
             float interpAlpha = 1.0f;
 
@@ -996,6 +974,9 @@ namespace worlds {
 
             if (sceneLoadQueued) {
                 sceneLoadQueued = false;
+                SceneInfo& si = registry.ctx<SceneInfo>();
+                si.name = std::filesystem::path(AssetDB::idToPath(queuedSceneID)).stem().string();
+                si.id = queuedSceneID;
                 PHYSFS_File* file = AssetDB::openAssetFileRead(queuedSceneID);
                 SceneLoader::loadScene(file, registry);
 
@@ -1006,9 +987,6 @@ namespace worlds {
                     renderer->uploadSceneAssets(registry);
                     renderer->unloadUnusedAssets(registry);
                 }
-
-                currentScene.name = std::filesystem::path(AssetDB::idToPath(queuedSceneID)).stem().string();
-                currentScene.id = queuedSceneID;
 
                 if (evtHandler && (!runAsEditor || !editor->active)) {
                     evtHandler->onSceneStart(registry);
@@ -1113,7 +1091,7 @@ namespace worlds {
                 if (ImGui::CollapsingHeader(ICON_FA_BARS u8" Misc")) {
                     ImGui::Text("Frame: %i", timeInfo.frameCounter);
                     ImGui::Text("Cam pos: %.3f, %.3f, %.3f", cam.position.x, cam.position.y, cam.position.z);
-                    ImGui::Text("Current scene: %s (%u)", currentScene.name.c_str(), currentScene.id);
+                    ImGui::Text("Current scene: %s (%u)", registry.ctx<SceneInfo>().name.c_str(), registry.ctx<SceneInfo>().id);
 
                     if (ImGui::Button("Unload Unused Assets")) {
                         renderer->unloadUnusedAssets(registry);

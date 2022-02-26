@@ -90,7 +90,7 @@ namespace worlds {
 
     void DebugLinesPass::execute(RenderContext& ctx) {
         auto cmdBuf = ctx.cmdBuf;
-        if (numLineVerts > 0) {
+        if (numLineVerts > 0 && lineVB.buffer()) {
             vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, linePipeline);
             VkBuffer buffer = lineVB.buffer();
             VkDeviceSize offset = 0;

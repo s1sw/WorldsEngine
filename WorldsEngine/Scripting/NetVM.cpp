@@ -71,13 +71,14 @@ EngineInterfaces csharpInterfaces;
 #include "WorldTextBindings.hpp"
 #include "NavigationSystemBindings.hpp"
 
+entt::registry* sceneLoaderBindReg;
 extern "C" {
     EXPORT void sceneloader_loadScene(AssetID id) {
         csharpInterfaces.engine->loadScene(id);
     }
 
     EXPORT AssetID sceneloader_getCurrentSceneID() {
-        return csharpInterfaces.engine->getCurrentSceneInfo().id;
+        return sceneLoaderBindReg->ctx<SceneInfo>().id;
     }
 }
 
@@ -145,6 +146,7 @@ namespace worlds {
 
         csharpEditor = editor;
         csharpMainCamera = interfaces.mainCamera;
+        sceneLoaderBindReg = &reg;
 
         int ret = netFuncs.init(exePath, "WorldsEngine", 1, propertyKeys, propertyValues, &hostHandle, &domainId);
 

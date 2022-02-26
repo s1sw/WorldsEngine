@@ -242,10 +242,10 @@ namespace worlds {
         updater.buffer(lightTileInfoBuffer.buffer(), 0, sizeof(LightTileInfoBuffer));
 
         updater.beginBuffers(10, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-        updater.buffer(lightTileLightCountBuffer.buffer(), 0, sizeof(uint32_t) * MAX_LIGHT_TILES);
+        updater.buffer(lightTileLightCountBuffer.buffer(), 0, sizeof(uint32_t) * numLightTiles);
 
         updater.beginBuffers(11, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-        updater.buffer(lightTilesBuffer.buffer(), 0, sizeof(LightingTile) * MAX_LIGHT_TILES);
+        updater.buffer(lightTilesBuffer.buffer(), 0, sizeof(LightingTile) * numLightTiles);
 
         updater.beginBuffers(12, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
         updater.buffer(skinningMatrixUB.buffer(), 0, sizeof(glm::mat4) * 512);
@@ -293,6 +293,14 @@ namespace worlds {
     void PolyRenderPass::setup(RenderContext& ctx, VkDescriptorPool descriptorPool) {
         ZoneScoped;
 
+        int tileSize = 16;
+        const int xTiles = (ctx.passWidth + (tileSize - 1)) / tileSize;
+        const int yTiles = (ctx.passHeight + (tileSize - 1)) / tileSize;
+        numLightTiles = xTiles * yTiles;
+
+        if (ctx.passSettings.enableVr)
+            numLightTiles *= 2;
+
         vku::SamplerMaker sm{};
         sm.magFilter(VK_FILTER_LINEAR).minFilter(VK_FILTER_LINEAR).mipmapMode(VK_SAMPLER_MIPMAP_MODE_LINEAR).anisotropyEnable(true).maxAnisotropy(16.0f).maxLod(VK_LOD_CLAMP_NONE).minLod(0.0f);
         albedoSampler = sm.create(handles->device);
@@ -323,13 +331,13 @@ namespace worlds {
         lightTilesBuffer = vku::GenericBuffer(
             handles->device, handles->allocator,
             VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
-            sizeof(LightingTile) * MAX_LIGHT_TILES, VMA_MEMORY_USAGE_GPU_ONLY, "Light Tiles"
+            sizeof(LightingTile) * numLightTiles, VMA_MEMORY_USAGE_GPU_ONLY, "Light Tiles"
         );
 
         lightTileLightCountBuffer = vku::GenericBuffer(
             handles->device, handles->allocator,
             VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
-            sizeof(uint32_t) * MAX_LIGHT_TILES, VMA_MEMORY_USAGE_GPU_ONLY, "Light Tile Light Counts"
+            sizeof(uint32_t) * numLightTiles, VMA_MEMORY_USAGE_GPU_ONLY, "Light Tile Light Counts"
         );
 
         skinningMatrixUB = vku::GenericBuffer(
@@ -573,7 +581,30 @@ namespace worlds {
 
         VKCHECK(vku::createFramebuffer(handles->device, &fci, &depthFb));
 
+        int tileSize = 16;
+        const int xTiles = (ctx.passWidth + (tileSize - 1)) / tileSize;
+        const int yTiles = (ctx.passHeight + (tileSize - 1)) / tileSize;
+        numLightTiles = xTiles * yTiles;
+
+        if (ctx.passSettings.enableVr)
+            numLightTiles *= 2;
+
+        lightTilesBuffer = vku::GenericBuffer(
+            handles->device, handles->allocator,
+            VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+            sizeof(LightingTile) * numLightTiles, VMA_MEMORY_USAGE_GPU_ONLY, "Light Tiles"
+        );
+
+        lightTileLightCountBuffer = vku::GenericBuffer(
+            handles->device, handles->allocator,
+            VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+            sizeof(uint32_t) * numLightTiles, VMA_MEMORY_USAGE_GPU_ONLY, "Light Tile Light Counts"
+        );
+
+        updateDescriptorSets(ctx);
+
         bloomPass->resizeInternalBuffers(ctx);
+        lightCullPass->changeLightTileBuffers(ctx, lightTilesBuffer.buffer(), lightTileLightCountBuffer.buffer());
         lightCullPass->resizeInternalBuffers(ctx);
     }
 
@@ -936,8 +967,8 @@ namespace worlds {
         if (ctx.passSettings.enableVr)
             realTotalTiles *= 2;
 
-        if (realTotalTiles > MAX_LIGHT_TILES)
-            fatalErr("Too many lighting tiles");
+        //if (realTotalTiles > MAX_LIGHT_TILES)
+            //fatalErr("Too many lighting tiles");
 
         lightMapped->lightCount = lightIdx;
         for (int i = 0; i < 4; i++) {
@@ -1140,7 +1171,7 @@ namespace worlds {
 
             bloomResource->image().setLayout(cmdBuf, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT);
             vkCmdClearColorImage(cmdBuf, bloomResource->image().image(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, &clearVal, 1, &subresourceRange);
-            bloomResource->image().setLayout(cmdBuf, VK_IMAGE_LAYOUT_GENERAL, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_READ_BIT);
+            bloomResource->image().setLayout(cmdBuf, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_READ_BIT);
         }
 
         if (pickThisFrame) {

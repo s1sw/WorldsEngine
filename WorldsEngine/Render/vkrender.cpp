@@ -709,7 +709,7 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     DeletionQueue::setCurrentFrame(presentSubmitManager->numFramesInFlight() - 1);
 
     cubemapConvoluter = std::make_shared<CubemapConvoluter>(vkCtx);
-    uiTextureMan = new VKUITextureManager(handles);
+    uiTextureMan = new VKUITextureManager(this, handles);
 
     texSlots = std::make_unique<TextureSlots>(vkCtx);
     matSlots = std::make_unique<MaterialSlots>(vkCtx, *texSlots);
@@ -1396,6 +1396,10 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
     DeletionQueue::cleanupFrame(frameIdx);
     DeletionQueue::setCurrentFrame(frameIdx);
 
+    if (enableVR) {
+        vr::VRCompositor()->SubmitExplicitTimingData();
+    }
+
     if (!isMinimised || enableVR)
         writeCmdBuf(cmdBuf, imageIndex, cam, reg);
     else {
@@ -1404,7 +1408,6 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
     }
 
     if (enableVR) {
-        vr::VRCompositor()->SubmitExplicitTimingData();
         presentSubmitManager->submit();
         submitToOpenVR();
         presentSubmitManager->present();

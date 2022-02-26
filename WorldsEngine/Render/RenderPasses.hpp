@@ -186,6 +186,7 @@ namespace worlds {
     public:
         LightCullPass(VulkanHandles* handles, RenderResource* depthStencilImage);
         void resizeInternalBuffers(RenderContext& ctx) override;
+        void changeLightTileBuffers(RenderContext& ctx, VkBuffer lightTileBuffer, VkBuffer lightTileLightCountBuffer);
         void setup(RenderContext& ctx, VkBuffer lightBuffer, VkBuffer lightTileInfoBuffer, VkBuffer lightTileBuffer, VkBuffer lightTileLightCountBuffer, VkDescriptorPool descriptorPool);
         void execute(RenderContext& ctx, int tileSize);
         ~LightCullPass();
@@ -257,6 +258,7 @@ namespace worlds {
         bool awaitingResults;
         bool setEventNextFrame;
         bool dsUpdateNeeded = false;
+        int numLightTiles;
 
         void updateDescriptorSet(RenderContext& ctx, size_t dsIdx, vku::DescriptorSetUpdater& updater);
         void updateDescriptorSets(RenderContext& ctx);

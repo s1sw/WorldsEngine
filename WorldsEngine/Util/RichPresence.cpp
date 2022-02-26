@@ -19,7 +19,7 @@ namespace worlds {
         logMsg("Rich presence ready for %s", user.GetUsername());
 
         presenceUpdateTimer = SDL_AddTimer(1000, [](uint32_t interval, void*) {
-            std::string state = ((engine->runAsEditor ? "Editing " : "On ") + engine->getCurrentSceneInfo().name);
+            std::string state = "what";//((engine->runAsEditor ? "Editing " : "On ") + engine->getCurrentSceneInfo().name);
 #ifndef NDEBUG
             state += "(DEVELOPMENT BUILD)";
 #endif

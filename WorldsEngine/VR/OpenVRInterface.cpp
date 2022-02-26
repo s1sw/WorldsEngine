@@ -113,7 +113,7 @@ namespace worlds {
     }
 
     void OpenVRInterface::getRenderResolution(uint32_t* x, uint32_t* y) {
-        system->GetRecommendedRenderTargetSize(x, y);
+        vr::VRSystem()->GetRecommendedRenderTargetSize(x, y);
     }
 
 

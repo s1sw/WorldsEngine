@@ -364,11 +364,11 @@ namespace worlds {
         bool getPickResult(uint32_t* result) override;
         float* getHDRData() override;
         void resize(int newWidth, int newHeight) override;
+        void setResolutionScale(float newResolutionScale) override;
     private:
         VKRTTPass(const RTTPassCreateInfo& ci, VKRenderer* renderer, IVRInterface* vrInterface, uint32_t frameIdx, RenderDebugStats* dbgStats);
         ~VKRTTPass();
         void create(VKRenderer* renderer, IVRInterface* vrInterface, uint32_t frameIdx, RenderDebugStats* dbgStats);
-        void createRenderTargets();
         void destroy();
         PolyRenderPass* prp;
         TonemapFXRenderPass* trp;
@@ -392,7 +392,7 @@ namespace worlds {
 
     class VKUITextureManager : public IUITextureManager {
     public:
-        VKUITextureManager(const VulkanHandles& handles);
+        VKUITextureManager(VKRenderer* renderer, const VulkanHandles& handles);
         ImTextureID loadOrGet(AssetID id) override;
         void unload(AssetID id) override;
         ~VKUITextureManager();
@@ -404,6 +404,7 @@ namespace worlds {
 
         UITexInfo* load(AssetID id);
         const VulkanHandles& handles;
+        VKRenderer* renderer;
         robin_hood::unordered_map<AssetID, UITexInfo*> texInfo;
     };
 
@@ -522,6 +523,7 @@ namespace worlds {
         void uploadSceneAssetsForReg(entt::registry& reg, bool& reuploadMats, bool& dsUpdateNeeded);
 
         friend class VKRTTPass;
+        friend class VKUITextureManager;
     public:
         VKRenderer(const RendererInitInfo& initInfo, bool* success);
         void recreateSwapchain(int newWidth = -1, int newHeight = -1) override;

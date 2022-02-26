@@ -626,7 +626,7 @@ void main() {
         if (int(gl_FragCoord.x) % int(buf_LightTileInfo.tileSize) == 0 || int(gl_FragCoord.y) % int(buf_LightTileInfo.tileSize) == 0)
             heatmapCol.z = 1.0;
 
-        FragColor = vec4(heatmapCol, 1.0);
+        FragColor = vec4(shade(si) * heatmapCol, 1.0);
         return;
     }
 #endif

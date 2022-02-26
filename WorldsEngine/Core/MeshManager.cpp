@@ -4,6 +4,7 @@
 
 namespace worlds {
     robin_hood::unordered_node_map<AssetID, LoadedMesh> MeshManager::loadedMeshes;
+    LoadedMesh errorMesh{ .numSubmeshes = 0 };
     const LoadedMesh& MeshManager::get(AssetID id) {
         return loadedMeshes.at(id);
     }
@@ -11,6 +12,10 @@ namespace worlds {
     const LoadedMesh& MeshManager::loadOrGet(AssetID id) {
         if (loadedMeshes.contains(id)) return loadedMeshes.at(id);
 
+        if (!AssetDB::exists(id)) {
+            logErr("Failed to load mesh ID %u", id);
+            return errorMesh;
+        }
         std::vector<VertSkinningInfo> vertSkinning;
         LoadedMeshData lmd;
         LoadedMesh lm;
