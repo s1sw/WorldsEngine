@@ -1375,5 +1375,8 @@
       <Filter>AssetCompilation</Filter>
     </ClInclude>
     <ClInclude Include="..\TextureFormat\WTex.hpp" />
+    <ClInclude Include="..\WorldsEngine\Core\WorldComponents.hpp">
+      <Filter>Core</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

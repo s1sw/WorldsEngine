@@ -255,6 +255,7 @@
     <ClInclude Include="..\WorldsEngine\Core\SplashScreenImpls\SplashScreenX11.hpp" />
     <ClInclude Include="..\WorldsEngine\Core\SplashWindow.hpp" />
     <ClInclude Include="..\WorldsEngine\Core\Transform.hpp" />
+    <ClInclude Include="..\WorldsEngine\Core\WorldComponents.hpp" />
     <ClInclude Include="..\WorldsEngine\Editor\AssetEditors.hpp" />
     <ClInclude Include="..\WorldsEngine\Editor\Editor.hpp" />
     <ClInclude Include="..\WorldsEngine\Editor\EditorWindows\EditorWindows.hpp" />
