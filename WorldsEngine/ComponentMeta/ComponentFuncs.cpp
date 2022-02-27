@@ -1562,8 +1562,6 @@ namespace worlds {
         }
 
         void fromJson(entt::entity ent, entt::registry& reg, const json& j) override {
-            std::string path = j["path"];
-            AssetID cubemapId = AssetDB::pathToId(path);
             auto& wc = reg.emplace<WorldCubemap>(ent);
 
             wc.cubemapId = AssetDB::pathToId("LevelData/Cubemaps/" + reg.ctx<SceneInfo>().name + "/" + reg.get<NameComponent>(ent).name + ".json");

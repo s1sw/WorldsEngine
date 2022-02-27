@@ -28,8 +28,8 @@ namespace worlds {
         Camera cam;
         rtci.cam = &cam;
         rtci.enableShadows = true;
-        rtci.width = 512;
-        rtci.height = 512;
+        rtci.width = 128;
+        rtci.height = 128;
         rtci.isVr = false;
         rtci.outputToScreen = false;
         rtci.useForPicking = false;
@@ -157,7 +157,7 @@ namespace worlds {
                     int retVal = stbi_write_hdr_to_func(
                         stbiWriteFunc,
                         (void*)fHandle,
-                        512, 512, 4, data);
+                        rtci.width, rtci.height, 4, data);
 
                     if (retVal == 0) {
                         logErr(("Failed to write cubemap " + outPath).c_str());
