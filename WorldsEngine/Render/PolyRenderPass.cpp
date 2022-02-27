@@ -306,7 +306,7 @@ namespace worlds {
         albedoSampler = sm.create(handles->device);
 
         vku::SamplerMaker ssm{};
-        ssm.magFilter(VK_FILTER_LINEAR).minFilter(VK_FILTER_LINEAR).mipmapMode(VK_SAMPLER_MIPMAP_MODE_LINEAR).compareEnable(true).compareOp(VK_COMPARE_OP_GREATER);
+        ssm.magFilter(VK_FILTER_LINEAR).minFilter(VK_FILTER_LINEAR).mipmapMode(VK_SAMPLER_MIPMAP_MODE_LINEAR);
         shadowSampler = ssm.create(handles->device);
 
         AssetID fsID = AssetDB::pathToId("Shaders/standard.frag.spv");
