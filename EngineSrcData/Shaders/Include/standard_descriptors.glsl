@@ -37,10 +37,10 @@ layout(std140, binding = 3) readonly buffer ModelMatrices {
 };
 
 layout (binding = 4) uniform sampler2D tex2dSampler[256];
-layout (binding = 5) uniform sampler2DArrayShadow shadowSampler;
+layout (binding = 5) uniform sampler2DArray shadowSampler;
 layout (binding = 6) uniform samplerCube cubemapSampler[64];
 layout (binding = 7) uniform sampler2D brdfLutSampler;
-layout (binding = 8) uniform sampler2DShadow additionalShadowSampler[4];
+layout (binding = 8) uniform sampler2D additionalShadowSampler[4];
 
 struct LightingTile {
     uint lightIdMasks[8];

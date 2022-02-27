@@ -310,6 +310,25 @@ float calcProxyAO(vec3 wPos, vec3 normal) {
     return proxyAO;
 }
 
+vec2 poissonDisk[64] = vec2[]( // don't use 'const' b/c of OSX GL compiler bug
+    vec2(0.511749, 0.547686), vec2(0.58929, 0.257224), vec2(0.165018, 0.57663), vec2(0.407692, 0.742285),
+    vec2(0.707012, 0.646523), vec2(0.31463, 0.466825), vec2(0.801257, 0.485186), vec2(0.418136, 0.146517),
+    vec2(0.579889, 0.0368284), vec2(0.79801, 0.140114), vec2(-0.0413185, 0.371455), vec2(-0.0529108, 0.627352),
+    vec2(0.0821375, 0.882071), vec2(0.17308, 0.301207), vec2(-0.120452, 0.867216), vec2(0.371096, 0.916454),
+    vec2(-0.178381, 0.146101), vec2(-0.276489, 0.550525), vec2(0.12542, 0.126643), vec2(-0.296654, 0.286879),
+    vec2(0.261744, -0.00604975), vec2(-0.213417, 0.715776), vec2(0.425684, -0.153211), vec2(-0.480054, 0.321357),
+    vec2(-0.0717878, -0.0250567), vec2(-0.328775, -0.169666), vec2(-0.394923, 0.130802), vec2(-0.553681, -0.176777),
+    vec2(-0.722615, 0.120616), vec2(-0.693065, 0.309017), vec2(0.603193, 0.791471), vec2(-0.0754941, -0.297988),
+    vec2(0.109303, -0.156472), vec2(0.260605, -0.280111), vec2(0.129731, -0.487954), vec2(-0.537315, 0.520494),
+    vec2(-0.42758, 0.800607), vec2(0.77309, -0.0728102), vec2(0.908777, 0.328356), vec2(0.985341, 0.0759158),
+    vec2(0.947536, -0.11837), vec2(-0.103315, -0.610747), vec2(0.337171, -0.584), vec2(0.210919, -0.720055),
+    vec2(0.41894, -0.36769), vec2(-0.254228, -0.49368), vec2(-0.428562, -0.404037), vec2(-0.831732, -0.189615),
+    vec2(-0.922642, 0.0888026), vec2(-0.865914, 0.427795), vec2(0.706117, -0.311662), vec2(0.545465, -0.520942),
+    vec2(-0.695738, 0.664492), vec2(0.389421, -0.899007), vec2(0.48842, -0.708054), vec2(0.760298, -0.62735),
+    vec2(-0.390788, -0.707388), vec2(-0.591046, -0.686721), vec2(-0.769903, -0.413775), vec2(-0.604457, -0.502571),
+    vec2(-0.557234, 0.00451362), vec2(0.147572, -0.924353), vec2(-0.0662488, -0.892081), vec2(0.863832, -0.407206)
+);
+
 float getDirLightShadowIntensity(int lightIdx) {
     vec4 shadowPos;
     float shadowIntensity = 1.0;
@@ -328,24 +347,40 @@ float getDirLightShadowIntensity(int lightIdx) {
     //        coord.y > 0.0 && coord.y < 1.0 &&
     //        depth < 1.0 && depth > 0.0)
     {
-        shadowIntensity = 0.0;
 #ifdef HIGH_QUALITY_SHADOWS
-        const int shadowSamples = 1;
-        const float divVal = 7.0f;//((shadowSamples * 2)) * ((shadowSamples * 2));
-        float sampleRadius = 0.0005 * (textureSize(shadowSampler, 0).x / 1024.0);
-
-        vec4 sampleCoord = vec4(coord, cascadeSplit, depth);
-        shadowIntensity += textureOffset(shadowSampler, sampleCoord, ivec2(-1, -1));
-        shadowIntensity += textureOffset(shadowSampler, sampleCoord, ivec2(-1, 0));
-        shadowIntensity += textureOffset(shadowSampler, sampleCoord, ivec2(0, -1));
-
-        shadowIntensity += textureOffset(shadowSampler, sampleCoord, ivec2(0, 0));
-
-        shadowIntensity += textureOffset(shadowSampler, sampleCoord, ivec2(1, 1));
-        shadowIntensity += textureOffset(shadowSampler, sampleCoord, ivec2(1, 0));
-        shadowIntensity += textureOffset(shadowSampler, sampleCoord, ivec2(0, 1));
-
-        shadowIntensity /= divVal;
+        float percentOccluded = 0.0;
+        float distanceSum = 0.0;
+        float kernelScale = (1.0 / 512.0); //* (textureSize(shadowSampler, 0).x / 1024.0);
+        //float kernelScale = (1.0 / 512.0);
+        
+        const int NUM_TAPS = 8;
+        
+        for (int t = 0; t < NUM_TAPS; t++) {
+            vec4 smDepths = textureGather(shadowSampler, vec3(coord + (poissonDisk[t] * kernelScale), cascadeSplit));
+            for (int i = 0; i < 4; i++) {
+                float dist = smDepths[i] - depth;
+                float occluded = step(0.0, dist);
+                
+                percentOccluded += occluded;
+                distanceSum += dist;
+            }
+        }
+        
+        if (percentOccluded != 0.0) {
+            float averageDistance = distanceSum / percentOccluded;
+            percentOccluded /= 4.0f * NUM_TAPS;
+            
+            float pcfWeight = saturate(averageDistance * depth);
+            percentOccluded = 2.0 * percentOccluded - 1.0;
+            float occludedSign = sign(percentOccluded);
+            percentOccluded = 1.0 - (sign(percentOccluded) * percentOccluded);
+            percentOccluded = mix(percentOccluded * percentOccluded * percentOccluded, percentOccluded, pcfWeight);
+            percentOccluded = 1.0 - percentOccluded;
+            percentOccluded *= occludedSign;
+            percentOccluded = 0.5 * percentOccluded + 0.5;
+        }
+        
+        shadowIntensity = 1.0 - percentOccluded;
 #else
         shadowIntensity = texture(shadowSampler, vec4(coord, float(cascadeSplit), depth)).x;
 #endif
@@ -353,18 +388,53 @@ float getDirLightShadowIntensity(int lightIdx) {
     return shadowIntensity;
 }
 
-float pcf(vec3 sampleCoord, sampler2DShadow samp) {
+float harden(float x) {
+    x = 2.0 * x - 1.0;
+    float xSign = sign(x);
+    x = 1.0 - (xSign * x);
+    x = x * x * x;
+    x = 1.0 - x;
+    x *= xSign;
+    x = 0.5 * x + 0.5;
+    
+    return x;
+}
+
+float pcf(vec3 sampleCoord, sampler2D samp, float bias) {
     float shadowIntensity = 0.0;
 #ifdef HIGH_QUALITY_SHADOWS
-    const float divVal = 4.0f;//((shadowSamples * 2)) * ((shadowSamples * 2));
-
-    shadowIntensity += textureOffset(samp, sampleCoord, ivec2(-1, -1));
-    shadowIntensity += textureOffset(samp, sampleCoord, ivec2(-1,  0));
-
-    shadowIntensity += textureOffset(samp, sampleCoord, ivec2(0, -1));
-    shadowIntensity += textureOffset(samp, sampleCoord, ivec2(0,  0));
-
-    shadowIntensity /= divVal;
+    float percentOccluded = 0.0;
+    float distanceSum = 0.0;
+    float kernelScale = (1.5 / 512.0);
+    
+    const int NUM_TAPS = 16;
+    
+    for (int t = 0; t < NUM_TAPS; t++) {
+        //vec4 smDepths = textureGather(samp, sampleCoord.xy + (poissonDisk[t] * kernelScale));
+        float smDepth = textureLod(samp, sampleCoord.xy + (poissonDisk[t] * kernelScale), 0.0).x;
+        float dist = (smDepth - sampleCoord.z);
+        float occluded = step(bias, dist);
+        
+        percentOccluded += occluded;
+        distanceSum += dist;
+    }
+    
+    if (percentOccluded != 0.0) {
+        float averageDistance = distanceSum / percentOccluded;
+        percentOccluded /= NUM_TAPS;
+        
+        float pcfWeight = saturate(averageDistance / sampleCoord.z);
+        //percentOccluded = 2.0 * percentOccluded - 1.0;
+        //float occludedSign = sign(percentOccluded);
+        //percentOccluded = 1.0 - (sign(percentOccluded) * percentOccluded);
+        //percentOccluded = mix(percentOccluded * percentOccluded * percentOccluded, percentOccluded, pcfWeight);
+        //percentOccluded = 1.0 - percentOccluded;
+        //percentOccluded *= occludedSign;
+        //percentOccluded = 0.5 * percentOccluded + 0.5;
+        percentOccluded = mix(harden(percentOccluded), percentOccluded, pcfWeight);
+    }
+    
+    shadowIntensity = 1.0 - percentOccluded;
 #else
     shadowIntensity = texture(samp, sampleCoord).x;
 #endif
@@ -375,8 +445,8 @@ float getNormalLightShadowIntensity(int lightIdx) {
     uint shadowIdx = getShadowmapIndex(lights[lightIdx]);
     vec4 shadowPos = otherShadowMatrices[shadowIdx] * inWorldPos;
     shadowPos.y = -shadowPos.y;
-
-    float bias = max(0.0004 * (1.0 - dot(inNormal, lights[lightIdx].pack1.xyz)), 0.00025);
+    
+    float bias = max(0.0005 * (1.0 - dot(inNormal, getLightDirection(lights[lightIdx], inWorldPos.xyz))), 0.00004);
 
     float depth = (shadowPos.z / shadowPos.w);
     vec2 coord = (shadowPos.xy / shadowPos.w) * 0.5 + 0.5;//(shadowPos.xy * 0.5 + 0.5);
@@ -386,7 +456,7 @@ float getNormalLightShadowIntensity(int lightIdx) {
     if (coord.x > 0.0 && coord.x < 1.0 &&
             coord.y > 0.0 && coord.y < 1.0 &&
             depth < 1.0 && depth > 0.0) {
-        shadowIntensity = pcf(vec3(coord, depth), additionalShadowSampler[shadowIdx]);
+        shadowIntensity = pcf(vec3(coord, depth), additionalShadowSampler[shadowIdx], bias);
     }
     return shadowIntensity;
 }
@@ -621,12 +691,13 @@ void main() {
         uint tileIdx = ((tileIdxY * buf_LightTileInfo.numTilesX) + tileIdxX) + (buf_LightTileInfo.tilesPerEye * gl_ViewIndex);
         int lightCount = int(buf_LightTileLightCounts.tileLightCounts[tileIdx]);
 
-        vec3 heatmapCol = mix(vec3(0.0), vec3(1.0), lightCount / 64.0);
+        //vec3 heatmapCol = mix(vec3(0.0), vec3(1.0), lightCount / 64.0);
+        vec3 heatmapCol = vec3(saturate((lightCount - 8.0) / 4.0), saturate(lightCount / 4.0), saturate((lightCount - 4.0) / 4.0));
 
         if (int(gl_FragCoord.x) % int(buf_LightTileInfo.tileSize) == 0 || int(gl_FragCoord.y) % int(buf_LightTileInfo.tileSize) == 0)
             heatmapCol.z = 1.0;
 
-        FragColor = vec4(shade(si) * heatmapCol, 1.0);
+        FragColor = vec4(mix(shade(si), heatmapCol, 0.25), 1.0);
         return;
     }
 #endif

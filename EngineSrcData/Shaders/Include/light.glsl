@@ -23,4 +23,16 @@ uint getLightType(Light l) {
 uint getShadowmapIndex(Light l) {
     return (floatBitsToUint(l.pack0.w) >> 3) & 0xF;
 }
+
+vec3 getLightDirection(Light l, vec3 worldPos) {
+    switch(getLightType(l)) {
+    case LT_POINT:
+    case LT_SPOT:
+    case LT_SPHERE:
+    case LT_TUBE:
+        return l.pack2.xyz - worldPos;
+    case LT_DIRECTIONAL:
+        return l.pack1.xyz;
+    }
+}
 #endif
