@@ -2,7 +2,7 @@
 #include "SplashScreenWin32.hpp"
 
 #define WIN32_LEAN_AND_MIN
-#include <Windows.h>
+#include <windows.h>
 #include <windowsx.h>
 #include <dwmapi.h>
 #include <thread>
@@ -13,12 +13,16 @@
 #include <mutex>
 
 // ew ew ew ew ew
+#ifndef __MINGW32__
 #define min(a, b) a < b ? a : b
 #define max(a, b) a > b ? a : b
+#endif
 #include <gdiplus.h>
 #undef small
+#ifndef __MINGW32__
 #undef min
 #undef max
+#endif
 
 namespace {
     // we cannot just use WS_POPUP style

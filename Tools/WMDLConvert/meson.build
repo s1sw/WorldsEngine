@@ -18,9 +18,9 @@ if not assimp_dep.found()
     assimp_dep = declare_dependency(dependencies: assimp_lib, include_directories: include_directories(assimp_inc_dir))
 endif
 
-if assimp_dep.found()
-  wmdl_convert = executable('wmdl_convert',
-    sources: wmdl_convert_sources,
-    dependencies: [assimp_dep, wmdl_dep],
-    include_directories: extern_include_dir)
-endif
+#if assimp_dep.found()
+#  wmdl_convert = executable('wmdl_convert',
+#    sources: wmdl_convert_sources,
+#    dependencies: [assimp_dep, wmdl_dep],
+#    include_directories: extern_include_dir)
+#endif

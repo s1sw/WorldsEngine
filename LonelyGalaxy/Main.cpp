@@ -11,8 +11,8 @@ int _dummy[sizeof(void*) - 7];
 
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
-#include <Windows.h>
-#include <DbgHelp.h>
+#include <windows.h>
+#include <dbghelp.h>
 LONG unhandledExceptionHandler(LPEXCEPTION_POINTERS exceptionPtrs) {
     FILE* f = fopen("crash.txt", "w");
     fprintf(f, "hey, we're still in alpha ok?\n");

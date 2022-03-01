@@ -20,7 +20,7 @@ namespace WorldsEngine
 #if Linux
         const int RTLD_NOW = 0x00002;
         const int RTLD_NOLOAD = 0x00004;
-        [DllImport("dl")]
+        [DllImport("libdl.so.2")]
         internal static extern IntPtr dlopen(string? file, int mode);
 
         private static IntPtr ImportResolver(string libraryName, Assembly assembly, DllImportSearchPath? searchPath)

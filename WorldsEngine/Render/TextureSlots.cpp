@@ -40,7 +40,7 @@ namespace worlds {
         this->frameIdx = frameIdx;
     }
 
-    void TextureSlots::unload(int idx) {
+    void TextureSlots::unload(uint32_t idx) {
         present[idx] = false;
         slots[idx].destroy();
         lookup.erase(reverseLookup.at(idx));

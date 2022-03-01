@@ -5,6 +5,7 @@
 #include <Util/TimingUtil.hpp>
 #include <ComponentMeta/ComponentMetadata.hpp>
 #include <Core/AssetDB.hpp>
+#include <string.h>
 
 namespace worlds {
     typedef void(*LoadSceneFunc)(PHYSFS_File*, entt::registry&, bool);

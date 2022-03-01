@@ -358,6 +358,7 @@ void cullAO(uint tileIndex) {
 }
 
 void main() {
+    return;
     uint x = gl_WorkGroupID.x;
     uint y = gl_WorkGroupID.y;
     uint tileIndex = ((y * buf_LightTileInfo.numTilesX) + x) + (eyeIdx * buf_LightTileInfo.tilesPerEye);

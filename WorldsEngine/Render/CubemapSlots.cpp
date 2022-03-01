@@ -4,6 +4,7 @@
 namespace worlds {
     CubemapSlots::CubemapSlots(std::shared_ptr<VulkanHandles> vkCtx, std::shared_ptr<CubemapConvoluter> cc)
         : vkCtx(vkCtx)
+        , cb(VK_NULL_HANDLE)
         , imageIndex(0)
         , cc{ cc }{
         missingSlot = loadOrGet(AssetDB::pathToId("Cubemaps/missing.json"));
@@ -33,11 +34,11 @@ namespace worlds {
         present[slot] = true;
 
         auto cubemapData = loadCubemapData(asset);
-        //if (!cb)
-        //else
-        //    slots[slot] = uploadCubemapVk(*vkCtx, cubemapData, cb, imageIndex);
+        if (!cb)
+            slots[slot] = uploadCubemapVk(*vkCtx, cubemapData);
+        else
+            slots[slot] = uploadCubemapVk(*vkCtx, cubemapData, cb, imageIndex);
 
-        slots[slot] = uploadCubemapVk(*vkCtx, cubemapData);
         cc->convolute(slots[slot]);
 
         lookup.insert({ asset, slot });
@@ -46,7 +47,7 @@ namespace worlds {
         return slot;
     }
 
-    void CubemapSlots::unload(int idx) {
+    void CubemapSlots::unload(uint32_t idx) {
         if (idx == missingSlot) return;
 
         present[idx] = false;

@@ -28,7 +28,7 @@ namespace worlds {
         }
     }
 
-    vku::DescriptorSetLayout ShaderReflector::createDescriptorSetLayout(VkDevice device, int setIndex) {
+    vku::DescriptorSetLayout ShaderReflector::createDescriptorSetLayout(VkDevice device, uint32_t setIndex) {
         uint32_t numBindings;
         std::vector<SpvReflectDescriptorBinding*> bindings;
         spvReflectEnumerateDescriptorBindings(&mod, &numBindings, nullptr);

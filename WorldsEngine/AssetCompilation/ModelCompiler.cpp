@@ -4,6 +4,8 @@
 #include "IO/IOUtil.hpp"
 #include "glm/gtc/type_ptr.hpp"
 #include "nlohmann/json.hpp"
+#define TINYGLTF_IMPLEMENTATION
+#include <tiny_gltf.h>
 #include <WMDL.hpp>
 #include <assimp/scene.h>
 #include <assimp/Importer.hpp>
@@ -512,6 +514,27 @@ namespace worlds {
             compileOp->result = CompilationResult::Success;
 
             return ErrorCodes::None;
+        }
+    }
+
+    ErrorCodes importAssimpModel(AssetCompileOperation* compileOp, PHYSFS_File* outFile, void* data, size_t dataSize, ConversionSettings settings) {
+        tinygltf::Model model;
+        tinygltf::TinyGLTF gltfContext;
+        std::string errString;
+        std::string warnString;
+        gltfContext.LoadBinaryFromMemory(&model, &errString, &warnString, (uint8_t*)data, dataSize);
+
+        std::vector<uint32_t> indices;
+        std::vector<wmdl::Vertex2> verts;
+
+        const tinygltf::Scene& scene = model.scenes[0];
+
+        auto processNode = [&](tinygltf::Node n) {
+            if (n.mesh > -1) {
+            }
+        };
+
+        for (size_t i = 0; i < scene.nodes.size(); i++) {
         }
     }
 

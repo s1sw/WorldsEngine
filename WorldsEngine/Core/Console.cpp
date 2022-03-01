@@ -10,12 +10,15 @@
 #include "../IO/IOUtil.hpp"
 #include <sstream>
 #include "LogCategories.hpp"
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(__MINGW32__)
 #define _AMD64_
 #include <debugapi.h>
 #include <ConsoleApi.h>
 #include <wtypes.h>
 #include <WinBase.h>
+#elif defined(__MINGW32__)
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
 #endif
 #include "Log.hpp"
 #include <thread>

@@ -63,7 +63,7 @@ namespace worlds {
         uint32_t get(key k) const { return lookup.at(k); }
         key getKeyForSlot(uint32_t idx) const { return reverseLookup.at(idx); }
         bool isLoaded(key k) const { return lookup.find(k) != lookup.end(); }
-        virtual void unload(int idx) = 0;
+        virtual void unload(uint32_t idx) = 0;
     };
 
     class TextureSlots : public ResourceSlots<vku::TextureImage2D, NUM_TEX_SLOTS, AssetID> {
@@ -80,7 +80,7 @@ namespace worlds {
         TextureSlots(std::shared_ptr<VulkanHandles> vkCtx);
         void setUploadCommandBuffer(VkCommandBuffer cb, uint32_t frameIdx);
 
-        void unload(int idx) override;
+        void unload(uint32_t idx) override;
         ~TextureSlots();
     };
 
@@ -105,7 +105,7 @@ namespace worlds {
     public:
         MatExtraData& getExtraDat(uint32_t slot);
         MaterialSlots(std::shared_ptr<VulkanHandles> vkCtx, TextureSlots& texSlots);
-        void unload(int idx) override;
+        void unload(uint32_t idx) override;
         ~MaterialSlots();
     };
 
@@ -132,6 +132,6 @@ namespace worlds {
 
         CubemapSlots(std::shared_ptr<VulkanHandles> vkCtx, std::shared_ptr<CubemapConvoluter> cc);
 
-        void unload(int idx) override;
+        void unload(uint32_t idx) override;
     };
 }
