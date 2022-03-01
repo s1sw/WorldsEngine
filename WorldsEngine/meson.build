@@ -41,7 +41,7 @@ worlds_inc = include_directories('.')
 tracy_inc = include_directories('./tracy/')
 physfs_dep = dependency('physfs', fallback: ['physfs', 'physfs_dep'])
 slib_dep = dependency('slib', fallback: ['slib', 'slib_dep'])
-vk_dep = dependency('vulkan')
+#vk_dep = dependency('vulkan')
 
 assimp_dep = dependency('assimp', required: false)
 
@@ -78,11 +78,19 @@ if host_machine.system() == 'windows'
   platform_deps += cc.find_library('gdiplus')
 
   # FMOD
-  platform_incdirs += include_directories('C:\\Program Files (x86)\\FMOD SoundSystem\\FMOD Studio API Windows\\api\\studio\\inc')
-  platform_incdirs += include_directories('C:\\Program Files (x86)\\FMOD SoundSystem\\FMOD Studio API Windows\\api\\core\\inc')
+  if build_machine.system() == 'windows'
+    platform_incdirs += include_directories('C:\\Program Files (x86)\\FMOD SoundSystem\\FMOD Studio API Windows\\api\\studio\\inc')
+    platform_incdirs += include_directories('C:\\Program Files (x86)\\FMOD SoundSystem\\FMOD Studio API Windows\\api\\core\\inc')
 
-  fmod_lib_dir = 'C:\\Program Files (x86)\\FMOD SoundSystem\\FMOD Studio API Windows\\api\\core\\lib\\x64'
-  fmod_studio_lib_dir = 'C:\\Program Files (x86)\\FMOD SoundSystem\\FMOD Studio API Windows\\api\\studio\\lib\\x64'
+    fmod_lib_dir = 'C:\\Program Files (x86)\\FMOD SoundSystem\\FMOD Studio API Windows\\api\\core\\lib\\x64'
+    fmod_studio_lib_dir = 'C:\\Program Files (x86)\\FMOD SoundSystem\\FMOD Studio API Windows\\api\\studio\\lib\\x64'
+  else
+    platform_incdirs += get_option('fmod_api_path') + '/api/studio/inc'
+    platform_incdirs += get_option('fmod_api_path') + '/api/core/inc'
+
+    fmod_lib_dir = get_option('fmod_api_path') + '/api/core/lib/x64'
+    fmod_studio_lib_dir = get_option('fmod_api_path') + '/api/studio/lib/x64'
+  endif
 
   platform_deps += cc.find_library('fmod_vc', dirs: fmod_lib_dir)
   platform_deps += cc.find_library('fmodstudio_vc', dirs: fmod_studio_lib_dir)

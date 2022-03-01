@@ -10,7 +10,7 @@ namespace worlds {
     public:
         ShaderReflector(AssetID shaderId);
         ~ShaderReflector();
-        vku::DescriptorSetLayout createDescriptorSetLayout(VkDevice device, int setIndex);
+        vku::DescriptorSetLayout createDescriptorSetLayout(VkDevice device, uint32_t setIndex);
     private:
         SpvReflectShaderModule mod;
         bool valid = true;

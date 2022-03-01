@@ -1,11 +1,16 @@
 #pragma once
 #include "ISplashScreen.hpp"
+#include <stdint.h>
 
 struct HWND__;
 typedef struct HWND__* HWND;
 typedef unsigned long long WPARAM;
 typedef long long LPARAM;
+#ifndef __MINGW32__
 typedef __int64 LONG_PTR;
+#else
+typedef int64_t LONG_PTR;
+#endif
 typedef LONG_PTR LRESULT;
 
 namespace worlds {

@@ -18,7 +18,7 @@
 #if defined(_WIN32)
 #define NET_LIBRARY_PATH "./NetAssemblies/coreclr.dll"
 #define WIN32_LEAN_AND_MEAN
-#include <Windows.h>
+#include <windows.h>
 #elif defined(__linux__)
 #define NET_LIBRARY_PATH "NetAssemblies/libcoreclr.so"
 #endif

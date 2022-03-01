@@ -3,7 +3,7 @@
 LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_UK
 #pragma code_page(65001) // UTF-8 codepage
 
-101 ICON "..\\WorldsEngine\\icon.ico"
+101 ICON "../WorldsEngine/icon.ico"
 
 VS_VERSION_INFO VERSIONINFO
  FILEVERSION 0,0,1,0

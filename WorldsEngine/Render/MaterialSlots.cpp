@@ -133,7 +133,7 @@ namespace worlds {
         slotMutex = new std::mutex;
     }
 
-    void MaterialSlots::unload(int idx) {
+    void MaterialSlots::unload(uint32_t idx) {
         present[idx] = false;
         lookup.erase(reverseLookup.at(idx));
         reverseLookup.erase(idx);

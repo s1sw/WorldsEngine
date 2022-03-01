@@ -6,8 +6,8 @@
 
 namespace worlds {
     Window::Window(const char* title, int w, int h, bool startHidden)
-        : _shouldQuit(false)
-        , inputManager(nullptr) {
+        : inputManager(nullptr)
+        , _shouldQuit(false) {
         uint32_t flags =
             SDL_WINDOW_VULKAN
             | SDL_WINDOW_RESIZABLE
