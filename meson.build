@@ -30,7 +30,7 @@ if cpp_compiler.get_argument_syntax() == 'gcc'
   add_global_arguments('-ffast-math', language: 'cpp')
   add_global_arguments('-fno-rtti', language: 'cpp')
   add_global_arguments('-Wno-volatile', language: 'cpp') # remove if we ever move off of glm (unlikely)
-  add_global_arguments('-g', language: 'cpp') # generate debug symbols even in release
+  add_global_arguments('-Wno-maybe-uninitialized', language: 'cpp')
 elif cpp_compiler.get_argument_syntax() == 'msvc'
   add_global_arguments('/fp:fast', language: 'cpp')
   add_global_arguments('/arch:AVX', language: 'cpp')
