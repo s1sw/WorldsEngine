@@ -58,6 +58,7 @@ namespace worlds {
 
     struct LightUB {
         static const int MAX_LIGHTS = 256;
+        static int LIGHT_TILE_SIZE;
         glm::mat4 additionalShadowMatrices[NUM_SHADOW_LIGHTS];
         uint32_t lightCount;
         uint32_t aoBoxCount;

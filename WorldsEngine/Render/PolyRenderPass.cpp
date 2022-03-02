@@ -293,7 +293,7 @@ namespace worlds {
     void PolyRenderPass::setup(RenderContext& ctx, VkDescriptorPool descriptorPool) {
         ZoneScoped;
 
-        int tileSize = 16;
+        int tileSize = LightUB::LIGHT_TILE_SIZE;
         const int xTiles = (ctx.passWidth + (tileSize - 1)) / tileSize;
         const int yTiles = (ctx.passHeight + (tileSize - 1)) / tileSize;
         numLightTiles = xTiles * yTiles;
@@ -581,7 +581,7 @@ namespace worlds {
 
         VKCHECK(vku::createFramebuffer(handles->device, &fci, &depthFb));
 
-        int tileSize = 16;
+        int tileSize = LightUB::LIGHT_TILE_SIZE;
         const int xTiles = (ctx.passWidth + (tileSize - 1)) / tileSize;
         const int yTiles = (ctx.passHeight + (tileSize - 1)) / tileSize;
         numLightTiles = xTiles * yTiles;
@@ -952,7 +952,7 @@ namespace worlds {
             lightIdx++;
         });
 
-        int tileSize = 16;
+        int tileSize = LightUB::LIGHT_TILE_SIZE;
         const int xTiles = (ctx.passWidth + (tileSize - 1)) / tileSize;
         const int yTiles = (ctx.passHeight + (tileSize - 1)) / tileSize;
         const int totalTiles = xTiles * yTiles;
@@ -1122,7 +1122,7 @@ namespace worlds {
                 VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT,
                 VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED);
 
-            lightCullPass->execute(ctx, 16);
+            lightCullPass->execute(ctx, LightUB::LIGHT_TILE_SIZE);
 
             lightTilesBuffer.barrier(cmdBuf,
                 VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,

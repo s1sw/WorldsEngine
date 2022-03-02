@@ -362,10 +362,10 @@ float getDirLightShadowIntensity(int lightIdx) {
 #ifdef HIGH_QUALITY_SHADOWS
         float percentOccluded = 0.0;
         float distanceSum = 0.0;
-        float kernelScale = (1.0 / 512.0); //* (textureSize(shadowSampler, 0).x / 1024.0);
+        float kernelScale = (2.0 / 512.0); //* (textureSize(shadowSampler, 0).x / 1024.0);
         //float kernelScale = (1.0 / 512.0);
 
-        const int NUM_TAPS = 8;
+        const int NUM_TAPS = 32;
 
         for (int t = 0; t < NUM_TAPS; t++) {
             float smDepth = textureLod(shadowSampler, vec3(coord + (poissonDisk[t] * kernelScale), cascadeSplit), 0.0).x;

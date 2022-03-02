@@ -77,6 +77,7 @@ struct AABB {
 
 #define CULL_DEPTH
 #define CULL_AABB
+#define USE_SUBGROUPS
 
 shared Frustum tileFrustum;
 shared AABB tileAABB;
@@ -84,14 +85,15 @@ shared uint minDepthU;
 shared uint maxDepthU;
 
 bool frustumContainsSphere(vec3 spherePos, float sphereRadius) {
+    bool inside = true;
     for (int i = 0; i < 6; i++) {
         float dist = dot(spherePos, tileFrustum.planes[i].xyz) + tileFrustum.planes[i].w;
 
         if (dist < -sphereRadius)
-            return false;
+            inside = false;
     }
 
-    return true;
+    return inside;
 }
 
 bool aabbContainsSphere(vec3 spherePos, float sphereRadius) {
@@ -337,7 +339,7 @@ void cullAO(uint tileIndex) {
         uint boxIdx = gl_LocalInvocationIndex;
         AOBox box = buf_Lights.aoBox[boxIdx];
 
-        vec3 scale = getBoxScale(box) * 4.0;
+        vec3 scale = getBoxScale(box) * 2.0;
         mat4 transform = getBoxInverseTransform(box);
 
         bool inFrustum = frustumContainsOBB(scale, transform);
@@ -358,7 +360,6 @@ void cullAO(uint tileIndex) {
 }
 
 void main() {
-    return;
     uint x = gl_WorkGroupID.x;
     uint y = gl_WorkGroupID.y;
     uint tileIndex = ((y * buf_LightTileInfo.numTilesX) + x) + (eyeIdx * buf_LightTileInfo.tilesPerEye);
@@ -372,15 +373,29 @@ void main() {
     //
     // NOTE: When MSAA is on, the last parameter refers to the MSAA sample to load. When MSAA is
     // off, it refers to the mipmap level to load from.
+//#define TILES_16
+#ifdef TILES_16
     float depthAtCurrent = texelFetch(depthBuffer, ivec3(gl_GlobalInvocationID.xy, eyeIdx), 0).x;
+#else
+    float depthAtCurrent = 1.0;
+    ivec2 coord = ivec2(gl_GlobalInvocationID.xy * 2);
+    depthAtCurrent = min(depthAtCurrent, texelFetch(depthBuffer, ivec3(coord, eyeIdx), 0).x);
+    depthAtCurrent = min(depthAtCurrent, texelFetch(depthBuffer, ivec3(coord + ivec2(0, 1), eyeIdx), 0).x);
+    depthAtCurrent = min(depthAtCurrent, texelFetch(depthBuffer, ivec3(coord + ivec2(1, 1), eyeIdx), 0).x);
+    depthAtCurrent = min(depthAtCurrent, texelFetch(depthBuffer, ivec3(coord + ivec2(1, 0), eyeIdx), 0).x);
+#endif
     uint depthAsUint = floatBitsToUint(depthAtCurrent);
 
     // A depth of 0 only occurs when the skybox is visible.
     // Since the skybox can't receive lighting, there's no point in increasing
     // the depth bounds of the tile to receive the lighting.
     if (depthAtCurrent > 0.0f) {
-        atomicMin(minDepthU, depthAsUint);
-        atomicMax(maxDepthU, depthAsUint);
+        uint sgMinDepth = subgroupMin(depthAsUint);
+        uint sgMaxDepth = subgroupMax(depthAsUint);
+        if (subgroupElect()) {
+            atomicMin(minDepthU, sgMinDepth);
+            atomicMax(maxDepthU, sgMaxDepth);
+        }
     }
 
     barrier();

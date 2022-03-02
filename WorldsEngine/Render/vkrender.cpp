@@ -416,6 +416,7 @@ VkPhysicalDevice pickPhysicalDevice(std::vector<VkPhysicalDevice>& physicalDevic
 }
 
 VkBool32 canPresentFromCompute = false;
+int LightUB::LIGHT_TILE_SIZE;
 
 VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     : finalPrePresent(nullptr)
@@ -823,6 +824,12 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
         }
 
         }, "r_setSpotShadowResolution", "Sets the resolution of spotlight shadows.");
+
+    g_console->registerCommand([&](void*, const char* arg) {
+        LightUB::LIGHT_TILE_SIZE = std::atoi(arg);
+        }, "r_setLightTileSize", "Sets the size of the tiles used for light culling.", nullptr);
+
+    LightUB::LIGHT_TILE_SIZE = 32;
 
     materialUB = vku::GenericBuffer(
         device, allocator,
