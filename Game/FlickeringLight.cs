@@ -12,11 +12,13 @@ namespace Game
         public int Offset = 0;
 
         private float _initialIntensity = 0.0f;
+        private bool _initiallyEnabled;
 
         public void Start()
         {
             var worldLight = Registry.GetComponent<WorldLight>(Entity);
             _initialIntensity = worldLight.Intensity;
+            _initiallyEnabled = worldLight.Enabled;
         }
 
         public void Think()
@@ -29,6 +31,10 @@ namespace Game
 
             var worldLight = Registry.GetComponent<WorldLight>(Entity);
             worldLight.Intensity = _initialIntensity * intensity;
+            if (intensity == 0.0f)
+                worldLight.Enabled = false;
+            else
+                worldLight.Enabled = _initiallyEnabled;
         }
     }
 }
