@@ -32,7 +32,7 @@ namespace worlds {
         vku::DescriptorSetUpdater dsu;
         dsu.beginDescriptorSet(descriptorSet);
 
-        int tileSize = 16;
+        int tileSize = LightUB::LIGHT_TILE_SIZE;
         const int xTiles = (ctx.passWidth + (tileSize - 1)) / tileSize;
         const int yTiles = (ctx.passHeight + (tileSize - 1)) / tileSize;
         int numLightTiles = xTiles * yTiles;
@@ -54,7 +54,8 @@ namespace worlds {
             VkBuffer lightBuffer, VkBuffer lightTileInfoBuffer,
             VkBuffer lightTilesBuffer, VkBuffer lightTileLightCountBuffer,
             VkDescriptorPool descriptorPool) {
-        int tileSize = 16;
+
+        int tileSize = LightUB::LIGHT_TILE_SIZE;
         const int xTiles = (ctx.passWidth + (tileSize - 1)) / tileSize;
         const int yTiles = (ctx.passHeight + (tileSize - 1)) / tileSize;
         int numLightTiles = xTiles * yTiles;
