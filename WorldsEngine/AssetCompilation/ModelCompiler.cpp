@@ -297,7 +297,7 @@ namespace worlds {
             }
         }
 
-        ErrorCodes convertModel(AssetCompileOperation* compileOp, PHYSFS_File* outFile, void* data, size_t dataSize, const char* extension, ConversionSettings settings) {
+        ErrorCodes convertAssimpModel(AssetCompileOperation* compileOp, PHYSFS_File* outFile, void* data, size_t dataSize, const char* extension, ConversionSettings settings) {
             const int NUM_STEPS = 5;
             const float PROGRESS_PER_STEP = 1.0f / NUM_STEPS;
             DefaultLogger::get()->attachStream(new PrintfStream);
@@ -517,7 +517,25 @@ namespace worlds {
         }
     }
 
-    ErrorCodes importAssimpModel(AssetCompileOperation* compileOp, PHYSFS_File* outFile, void* data, size_t dataSize, ConversionSettings settings) {
+    template<typename T>
+    const T* getAttributeData(const tinygltf::Model& model, const tinygltf::Primitive& prim, const char* attribute) {
+        const tinygltf::Accessor& accessor = model.accessors[prim.attributes.find(attribute)->second];
+        const tinygltf::BufferView& bufferView = model.bufferViews[accessor.bufferView];
+        size_t totalOffset = accessor.byteOffset + bufferView.byteOffset;
+        return reinterpret_cast<const T*>(&model.buffers[bufferView.buffer].data[totalOffset]);
+    }
+
+    size_t getAttributeCount(const tinygltf::Model& model, const tinygltf::Primitive& prim, const char* attribute) {
+        const tinygltf::Accessor& accessor = model.accessors[prim.attributes.find(attribute)->second];
+        return accessor.count;
+    }
+
+    bool hasAttribute(const tinygltf::Primitive& prim, const char* attribute) {
+        return prim.attributes.contains(attribute);
+    }
+
+    ErrorCodes convertGltfModel(AssetCompileOperation* compileOp, PHYSFS_File* outFile, void* data, size_t dataSize, ConversionSettings settings) {
+        // Load the actual model
         tinygltf::Model model;
         tinygltf::TinyGLTF gltfContext;
         std::string errString;
@@ -526,11 +544,47 @@ namespace worlds {
 
         std::vector<uint32_t> indices;
         std::vector<wmdl::Vertex2> verts;
+        std::vector<wmdl::VertexSkinningInfo> skinInfo;
+        bool isModelSkinned = false;
 
+        // For now, just assume there's one scene
         const tinygltf::Scene& scene = model.scenes[0];
 
+        // Lambda to process nodes so we can recurse through children
         auto processNode = [&](tinygltf::Node n) {
             if (n.mesh > -1) {
+                const tinygltf::Mesh& mesh = model.meshes[n.mesh];
+                for (size_t i = 0; i < mesh.primitives.size(); i++) {
+                    const tinygltf::Primitive& prim = mesh.primitives[i];
+                    uint32_t indexOffset = verts.size();
+
+                    const glm::vec3* positions = nullptr;
+                    const glm::vec3* normals = nullptr;
+                    const glm::vec2* uvs = nullptr;
+                    const uint16_t*  skindices = nullptr;
+                    const glm::vec4* weights = nullptr;
+                    const size_t vertexCount = getAttributeCount(model, prim, "POSITION");
+
+                    positions = getAttributeData<glm::vec3>(model, prim, "POSITION");
+                    normals = getAttributeData<glm::vec3>(model, prim, "NORMAL");
+                    uvs = getAttributeData<glm::vec2>(model, prim, "TEXCOORD_0");
+
+                    if (hasAttribute(prim, "JOINTS_0"))
+                        skindices = getAttributeData<uint16_t>(model, prim, "JOINTS_0");
+
+                    if (hasAttribute(prim, "WEIGHTS_0"))
+                        weights = getAttributeData<glm::vec4>(model, prim, "WEIGHTS_0");
+
+                    bool isPrimitiveSkinned = skindices != nullptr && weights != nullptr;
+                    isModelSkinned |= isPrimitiveSkinned;
+
+                    for (size_t v = 0; v < vertexCount; v++) {
+                        wmdl::Vertex2 vert{};
+                        vert.position = positions[v];
+                        vert.normal = normals[v];
+                        vert.uv = uvs[v];
+                    }
+                }
             }
         };
 
@@ -586,7 +640,7 @@ namespace worlds {
         std::thread([compileOp, outputPath, path, result, fileLen, settings]() {
             PHYSFS_File* outFile = PHYSFS_openWrite(outputPath.c_str());
             slib::Path p = path;
-            mc_internal::convertModel(compileOp, outFile, result.value, fileLen, p.fileExtension().cStr(), settings);
+            mc_internal::convertAssimpModel(compileOp, outFile, result.value, fileLen, p.fileExtension().cStr(), settings);
             PHYSFS_close(outFile);
             }).detach();
 
