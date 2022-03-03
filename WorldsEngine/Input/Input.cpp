@@ -2,6 +2,7 @@
 #include "../ImGui/imgui.h"
 #include "Core/Log.hpp"
 #include "Scripting/NetVM.hpp"
+#include <SDL_gamecontroller.h>
 #ifdef __linux__
 #define RELATIVE_MOUSE_HACK
 #endif
