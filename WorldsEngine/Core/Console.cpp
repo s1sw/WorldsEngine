@@ -368,7 +368,13 @@ namespace worlds {
                     }
                 }
             } else {
-                completionPos++;
+                if (ImGui::GetIO().KeysDown[SDL_SCANCODE_LSHIFT])
+                    completionPos--;
+                else
+                    completionPos++;
+
+                if (completionPos < 0)
+                    completionPos = completions.size() + completionPos;
 
                 if ((size_t)completionPos >= completions.size())
                     completionPos = 0;
