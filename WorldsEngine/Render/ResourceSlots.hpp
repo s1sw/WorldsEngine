@@ -13,9 +13,9 @@ namespace std {
 }
 
 namespace worlds {
-    const uint32_t NUM_TEX_SLOTS = 256;
-    const uint32_t NUM_MAT_SLOTS = 256;
-    const uint32_t NUM_CUBEMAP_SLOTS = 64;
+    const uint32_t NUM_TEX_SLOTS = 128;
+    const uint32_t NUM_MAT_SLOTS = 128;
+    const uint32_t NUM_CUBEMAP_SLOTS = 32;
     struct VulkanHandles;
     class CubemapConvoluter;
 

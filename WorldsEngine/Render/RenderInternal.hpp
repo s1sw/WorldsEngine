@@ -442,10 +442,6 @@ namespace worlds {
     };
 
     class VKRenderer : public Renderer {
-        const static uint32_t NUM_TEX_SLOTS = 256;
-        const static uint32_t NUM_MAT_SLOTS = 256;
-        const static uint32_t NUM_CUBEMAP_SLOTS = 64;
-
         VkInstance instance;
         VkPhysicalDevice physicalDevice;
         VkDevice device;
