@@ -95,7 +95,10 @@ namespace worlds {
     moodycamel::ReaderWriterQueue<SDL_Event> evts;
 
     void WorldsEngine::setupSDL() {
-        SDL_Init(SDL_INIT_AUDIO | SDL_INIT_EVENTS | SDL_INIT_VIDEO | SDL_INIT_TIMER);
+        SDL_SetHint(SDL_HINT_JOYSTICK_HIDAPI_PS4_RUMBLE, "1");
+        SDL_SetHint(SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS, "1");
+        SDL_SetHint(SDL_HINT_LINUX_JOYSTICK_DEADZONES, "1");
+        SDL_Init(SDL_INIT_AUDIO | SDL_INIT_GAMECONTROLLER | SDL_INIT_EVENTS | SDL_INIT_VIDEO | SDL_INIT_TIMER);
     }
 
     Window* WorldsEngine::createWindow() {
@@ -503,6 +506,8 @@ namespace worlds {
 
         if (!scriptEngine->initialise(editor.get()))
             fatalErr("Failed to initialise .net");
+
+        inputManager->setScriptEngine(scriptEngine.get());
 
         if (!runAsEditor)
             pauseSim = false;

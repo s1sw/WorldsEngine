@@ -3,6 +3,7 @@
 #include <glm/glm.hpp>
 
 namespace worlds {
+    class DotNetScriptEngine;
     enum class MouseButton : uint32_t {
         None,
         Left = SDL_BUTTON_LEFT,
@@ -13,6 +14,7 @@ namespace worlds {
     class InputManager {
         public:
             InputManager(SDL_Window* window);
+            void setScriptEngine(DotNetScriptEngine*);
             void update();
             void processEvent(const SDL_Event& evt);
             void endFrame();
@@ -30,6 +32,7 @@ namespace worlds {
             void captureMouse(bool capture);
             bool mouseLockState() const;
             void lockMouse(bool lock);
+            void triggerControllerHaptics(uint16_t leftIntensity, uint16_t rightIntensity, uint32_t duration);
         private:
             SDL_Window* window;
             uint32_t mouseButtonFlags;
@@ -39,5 +42,9 @@ namespace worlds {
             glm::ivec2 mouseDelta;
             glm::ivec2 mousePos;
             bool mouseLocked = false;
+            DotNetScriptEngine* scriptEngine = nullptr;
+            struct NativeInputEvent;
+            void(*processNativeEvent)(NativeInputEvent*) = nullptr;
+            void(*managedEndFrame)() = nullptr;
     };
 }
