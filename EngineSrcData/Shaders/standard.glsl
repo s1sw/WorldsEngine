@@ -398,9 +398,9 @@ float pcf(vec3 sampleCoord, sampler2D samp, float bias) {
 #ifdef HIGH_QUALITY_SHADOWS
     float percentOccluded = 0.0;
     float distanceSum = 0.0;
-    float kernelScale = (1.5 / 512.0);
+    float kernelScale = (1.0 / 512.0);
 
-    const int NUM_TAPS = 16;
+    const int NUM_TAPS = 24;
 
     for (int t = 0; t < NUM_TAPS; t++) {
         //vec4 smDepths = textureGather(samp, sampleCoord.xy + (poissonDisk[t] * kernelScale));
@@ -432,7 +432,7 @@ float getNormalLightShadowIntensity(int lightIdx) {
     vec4 shadowPos = otherShadowMatrices[shadowIdx] * inWorldPos;
     shadowPos.y = -shadowPos.y;
 
-    float bias = max(0.0005 * (1.0 - dot(inNormal, getLightDirection(lights[lightIdx], inWorldPos.xyz))), 0.00004);
+    float bias = 0.00001;//max(0.0005 * (1.0 - dot(inNormal, getLightDirection(lights[lightIdx], inWorldPos.xyz))), 0.00002);
 
     float depth = (shadowPos.z / shadowPos.w);
     vec2 coord = (shadowPos.xy / shadowPos.w) * 0.5 + 0.5;//(shadowPos.xy * 0.5 + 0.5);
