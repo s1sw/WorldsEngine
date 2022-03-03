@@ -389,6 +389,16 @@ bool checkPhysicalDeviceFeatures(const VkPhysicalDevice& physDev) {
         return false;
     }
 
+    VkPhysicalDeviceLimits limits{};
+    vkGetPhysicalDeviceLimits(physDev, &limits);
+
+    const int requiredSampledImages = 128 + 2 + 32 + 4;
+    if (limits.maxPerStageDescriptorSampledImages < requiredSampledImages) {
+        logErr(WELogCategoryRender, "maxPerStageDescriptorSampledImages too low! Must be at least %i, was %i",
+                requiredSampledImages, limits.maxPerStageDescriptorSampledImages);
+        return false;
+    }
+
     return true;
 }
 
