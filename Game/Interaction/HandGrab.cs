@@ -22,6 +22,7 @@ namespace Game.Interaction
         private VRAction _grabAction;
         private VRAction _triggerAction;
         private bool _bringingTowards = false;
+        private float _lastControllerTrigVal = 0.0f;
 
         public void Think()
         {
@@ -42,12 +43,13 @@ namespace Game.Interaction
             else
             {
                 MouseButton mouseButton = IsRightHand ? MouseButton.Right : MouseButton.Left;
+                ControllerButton cButton = IsRightHand ? ControllerButton.RightShoulder : ControllerButton.LeftShoulder;
 
-                if (Mouse.ButtonPressed(mouseButton) && GrippedEntity.IsNull)
-                    GrabNearby();
-
-                if (Mouse.ButtonReleased(mouseButton) && !GrippedEntity.IsNull)
+                if ((Mouse.ButtonReleased(mouseButton) || Controller.ButtonPressed(cButton)) && !GrippedEntity.IsNull)
                     Release();
+
+                if ((Mouse.ButtonPressed(mouseButton) || Controller.ButtonPressed(cButton)) && GrippedEntity.IsNull)
+                    GrabNearby();
             }
 
             if (!GrippedEntity.IsNull)
@@ -57,11 +59,18 @@ namespace Game.Interaction
                 if (!VR.Enabled)
                 {
                     KeyCode keycode = IsRightHand ? KeyCode.E : KeyCode.Q;
+                    ControllerAxis axis = IsRightHand ? ControllerAxis.TriggerRight : ControllerAxis.TriggerLeft;
+                    float axisVal = Controller.AxisValue(axis);
+
+                    bool axisPressed = axisVal > 0.75f && _lastControllerTrigVal < 0.75f;
+                    bool axisReleased = _lastControllerTrigVal > 0.75f && axisVal < 0.75f;
+
+                    _lastControllerTrigVal = axisVal;
 
                     grabbable.RunEvents(
-                        Keyboard.KeyPressed(keycode),
-                        Keyboard.KeyReleased(keycode),
-                        Keyboard.KeyHeld(keycode),
+                        Keyboard.KeyPressed(keycode) || axisPressed,
+                        Keyboard.KeyReleased(keycode) || axisReleased,
+                        Keyboard.KeyHeld(keycode) || axisVal > 0.75f,
                         GrippedEntity
                     );
                 }

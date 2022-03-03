@@ -266,6 +266,9 @@ public class LocalPlayerSystem : ISystem
         if (Keyboard.KeyPressed(KeyCode.Space))
             Jump = true;
 
+        if (Controller.ButtonPressed(ControllerButton.A))
+            Jump = true;
+
         if (VR.Enabled && _jumpAction.Pressed)
         {
             Jump = true;
@@ -323,7 +326,7 @@ public class LocalPlayerSystem : ISystem
     private Vector2 GetInputVelocity()
     {
         if (FreecamSystem.Enabled) return Vector2.Zero;
-        Vector2 inputVel = new();
+        Vector2 inputVel = new(-Controller.DeadzonedAxisValue(ControllerAxis.LeftX), -Controller.DeadzonedAxisValue(ControllerAxis.LeftY));
 
         if (Keyboard.KeyHeld(KeyCode.W))
         {

@@ -1,16 +1,69 @@
 #include "Input.hpp"
 #include "../ImGui/imgui.h"
+#include "Core/Log.hpp"
+#include "Scripting/NetVM.hpp"
 #ifdef __linux__
 #define RELATIVE_MOUSE_HACK
 #endif
 
 namespace worlds {
+    enum NativeEventKind : int32_t {
+        NEInvalid = -1,
+        NEKeyDown,
+        NEKeyUp,
+        NEMouseButtonDown,
+        NEMouseButtonUp,
+        NEControllerButtonDown,
+        NEControllerButtonUp,
+        NEControllerAxisMotion
+    };
+
+    struct InputManager::NativeInputEvent {
+        NativeEventKind eventKind;
+
+        union {
+            SDL_Scancode scancode;
+            int mouseButtonIndex;
+            SDL_GameControllerButton controllerButton;
+            struct {
+                SDL_GameControllerAxis controllerAxis;
+                float axisValue;
+            };
+        };
+    };
+
+    SDL_GameController* controller;
+    int controllerIndex;
     InputManager::InputManager(SDL_Window* window)
-        :  window(window)
-           , mouseButtonFlags(0)
-           , lastMouseButtonFlags(0) {
-               memset(keyState, 0, sizeof(keyState));
+        : window(window)
+        , mouseButtonFlags(0)
+        , lastMouseButtonFlags(0) {
+       memset(keyState, 0, sizeof(keyState));
+       
+       if (SDL_GameControllerAddMappingsFromFile("gamecontrollerdb.txt") == -1) {
+           logErr("Failed to load game controller database.");
+       }
+
+       for (int i = 0; i < SDL_NumJoysticks(); i++) {
+           if (SDL_IsGameController(i)) {
+               controller = SDL_GameControllerOpen(i);
+               controllerIndex = i;
+               logMsg("controller %i: %s", i, SDL_GameControllerName(controller));
+
+               if (SDL_GameControllerHasRumble(controller)) {
+                   SDL_GameControllerRumble(controller, 0xFFFF, 0xFFFF, 100);
+               }
+
+               break;
            }
+       }
+   }
+
+    void InputManager::setScriptEngine(DotNetScriptEngine* scriptEngine) {
+        this->scriptEngine = scriptEngine;
+        scriptEngine->createManagedDelegate("WorldsEngine.Input.InputSystem", "ProcessNativeEvent", (void**)&processNativeEvent);
+        scriptEngine->createManagedDelegate("WorldsEngine.Input.InputSystem", "EndFrame", (void**)&managedEndFrame);
+    }
 
     void InputManager::update() {
         lastMouseButtonFlags = mouseButtonFlags;
@@ -32,12 +85,61 @@ namespace worlds {
     }
 
     void InputManager::processEvent(const SDL_Event& evt) {
-        if (evt.type == SDL_KEYDOWN) {
+        NativeInputEvent nativeEvent { NEInvalid };
+        switch (evt.type) {
+        case SDL_KEYDOWN: {
             auto scancode = evt.key.keysym.scancode;
             keyState[scancode] = true;
-        } else if (evt.type == SDL_KEYUP) {
+            nativeEvent.eventKind = NEKeyDown;
+            nativeEvent.scancode = scancode;
+        }
+            break;
+        case SDL_KEYUP: {
             auto scancode = evt.key.keysym.scancode;
             keyState[scancode] = false;
+            nativeEvent.eventKind = NEKeyUp;
+            nativeEvent.scancode = scancode;
+        }
+            break;
+        case SDL_MOUSEBUTTONDOWN:
+            nativeEvent.eventKind = NEMouseButtonDown;
+            nativeEvent.mouseButtonIndex = evt.button.button;
+            break;
+        case SDL_MOUSEBUTTONUP:
+            nativeEvent.eventKind = NEMouseButtonUp;
+            nativeEvent.mouseButtonIndex = evt.button.button;
+            break;
+        case SDL_CONTROLLERBUTTONDOWN:
+            nativeEvent.eventKind = NEControllerButtonDown;
+            nativeEvent.controllerButton = (SDL_GameControllerButton)evt.cbutton.button;
+            break;
+        case SDL_CONTROLLERBUTTONUP:
+            nativeEvent.eventKind = NEControllerButtonUp;
+            nativeEvent.controllerButton = (SDL_GameControllerButton)evt.cbutton.button;
+            break;
+        case SDL_CONTROLLERAXISMOTION:
+            nativeEvent.eventKind = NEControllerAxisMotion;
+            nativeEvent.controllerAxis = (SDL_GameControllerAxis)evt.caxis.axis;
+            nativeEvent.axisValue = (float)evt.caxis.value / 32768.0f;
+            break;
+        case SDL_CONTROLLERDEVICEADDED:
+            controller = SDL_GameControllerOpen(evt.cdevice.which);
+            controllerIndex = evt.cdevice.which;
+            logMsg("controller %i: %s", evt.cdevice.which, SDL_GameControllerName(controller));
+
+            if (SDL_GameControllerHasRumble(controller)) {
+                SDL_GameControllerRumble(controller, 0xFFFF, 0xFFFF, 100);
+            }
+            break;
+        case SDL_CONTROLLERDEVICEREMOVED:
+            if (evt.cdevice.which == controllerIndex) {
+                SDL_GameControllerClose(controller);
+            }
+            break;
+        }
+
+        if (nativeEvent.eventKind != NEInvalid && processNativeEvent) {
+            processNativeEvent(&nativeEvent);
         }
     }
 
@@ -84,6 +186,7 @@ namespace worlds {
 
     void InputManager::endFrame() {
         memcpy(reinterpret_cast<void*>(lastKeyState), keyState, SDL_NUM_SCANCODES);
+        if (managedEndFrame) managedEndFrame();
     }
 
     void InputManager::warpMouse(glm::ivec2 position) {
@@ -118,5 +221,9 @@ namespace worlds {
         SDL_SetRelativeMouseMode((SDL_bool)lock);
 #endif
         mouseLocked = lock;
+    }
+
+    void InputManager::triggerControllerHaptics(uint16_t leftIntensity, uint16_t rightIntensity, uint32_t duration) {
+        SDL_GameControllerRumble(controller, leftIntensity, rightIntensity, duration);
     }
 }

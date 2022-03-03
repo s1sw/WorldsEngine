@@ -36,11 +36,11 @@ namespace worlds {
             void serializeManagedComponents(nlohmann::json& entityJson, entt::entity entity);
             void deserializeManagedComponent(const char* id, const nlohmann::json& componentJson, entt::entity entity);
             void copyManagedComponents(entt::entity from, entt::entity to);
+            void createManagedDelegate(const char* typeName, const char* methodName, void** func);
         private:
             EngineInterfaces interfaces;
             entt::registry& reg;
             void onTransformDestroy(entt::registry& reg, entt::entity ent);
-            void createManagedDelegate(const char* typeName, const char* methodName, void** func);
             void* hostHandle;
             unsigned int domainId;
             DotNetFunctionPtrs netFuncs;

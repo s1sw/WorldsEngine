@@ -56,6 +56,9 @@ namespace Game
                 lookX += Mouse.PositionDelta.x * 0.005f;
                 lookY += Mouse.PositionDelta.y * 0.005f;
 
+                lookX += Controller.DeadzonedAxisValue(ControllerAxis.RightX) * 0.05f;
+                lookY += Controller.DeadzonedAxisValue(ControllerAxis.RightY) * 0.05f;
+
                 Quaternion upDown = Quaternion.AngleAxis(lookY, new Vector3(1f, 0f, 0f));
                 Quaternion leftRight = Quaternion.AngleAxis(-lookX, new Vector3(0f, 1f, 0f));
 
