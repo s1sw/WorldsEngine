@@ -92,9 +92,9 @@ namespace worlds {
             pm.vertexAttribute(1, 0, VK_FORMAT_R32G32_SFLOAT, (uint32_t)offsetof(Vertex, uv));
             pm.cullMode(VK_CULL_MODE_BACK_BIT);
             pm.depthWriteEnable(true).depthTestEnable(true).depthCompareOp(VK_COMPARE_OP_GREATER);
-            //pm.depthBiasEnable(true);
-            //pm.depthBiasConstantFactor(-1.4f);
-            //pm.depthBiasSlopeFactor(-1.75f);
+            pm.depthBiasEnable(true);
+            pm.depthBiasConstantFactor(-1.4f);
+            pm.depthBiasSlopeFactor(-1.75f);
 
             pipeline = pm.create(handles->device, handles->pipelineCache, pipelineLayout, renderPass);
         }
@@ -110,9 +110,9 @@ namespace worlds {
             pm.vertexAttribute(1, 0, VK_FORMAT_R32G32_SFLOAT, (uint32_t)offsetof(Vertex, uv));
             pm.cullMode(VK_CULL_MODE_BACK_BIT);
             pm.depthWriteEnable(true).depthTestEnable(true).depthCompareOp(VK_COMPARE_OP_GREATER);
-            //pm.depthBiasEnable(true);
-            //pm.depthBiasConstantFactor(-1.4f);
-            //pm.depthBiasSlopeFactor(-1.75f);
+            pm.depthBiasEnable(true);
+            pm.depthBiasConstantFactor(-1.4f);
+            pm.depthBiasSlopeFactor(-1.75f);
 
             alphaTestPipeline = pm.create(handles->device, handles->pipelineCache, pipelineLayout, renderPass);
         }
