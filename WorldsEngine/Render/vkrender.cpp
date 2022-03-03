@@ -557,6 +557,7 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     // Create surface and find presentation queue
     VkSurfaceKHR surface;
     SDL_Vulkan_CreateSurface(window, instance, &surface);
+    logVrb("Surface created");
 
     this->surface = surface;
     queues.presentIdx = findPresentQueue(physicalDevice, surface);
@@ -618,6 +619,7 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     vk11Features.pNext = &vk12Features;
 
     device = dm.create(physicalDevice);
+    logVrb("Device created");
 
     ShaderCache::setDevice(device);
 

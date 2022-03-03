@@ -36,9 +36,9 @@ layout(std140, binding = 3) readonly buffer ModelMatrices {
     mat4 modelMatrices[];
 };
 
-layout (binding = 4) uniform sampler2D tex2dSampler[256];
+layout (binding = 4) uniform sampler2D tex2dSampler[128];
 layout (binding = 5) uniform sampler2DArray shadowSampler;
-layout (binding = 6) uniform samplerCube cubemapSampler[64];
+layout (binding = 6) uniform samplerCube cubemapSampler[32];
 layout (binding = 7) uniform sampler2D brdfLutSampler;
 layout (binding = 8) uniform sampler2D additionalShadowSampler[4];
 
