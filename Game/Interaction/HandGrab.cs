@@ -47,8 +47,7 @@ namespace Game.Interaction
 
                 if ((Mouse.ButtonReleased(mouseButton) || Controller.ButtonPressed(cButton)) && !GrippedEntity.IsNull)
                     Release();
-
-                if ((Mouse.ButtonPressed(mouseButton) || Controller.ButtonPressed(cButton)) && GrippedEntity.IsNull)
+                else if ((Mouse.ButtonPressed(mouseButton) || Controller.ButtonPressed(cButton)) && GrippedEntity.IsNull)
                     GrabNearby();
             }
 
