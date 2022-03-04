@@ -70,4 +70,6 @@ layout (binding = 12) readonly buffer BoneTransforms {
 layout(std430, binding = 13) writeonly buffer PickingBuffer {
     uint objectID;
 } pickBuf;
+
+layout (binding = 14) uniform sampler2D noiseSampler;
 #endif

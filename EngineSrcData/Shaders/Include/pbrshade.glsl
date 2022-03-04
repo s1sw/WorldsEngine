@@ -17,6 +17,16 @@ float calculateFalloff(float pixelDist, float cutoffDist) {
     return max((1.0 / (pixelDist * pixelDist)) * (1.0 - (pixelDist / cutoffDist)), 0.0);
 }
 
+float diffuseAA(vec3 N, vec3 l) {
+    float a = dot(N, l);
+    float w = max(length(N), 0.95);
+    float x = sqrt(1.0 - w);
+    float x0 = 0.37837 * a;
+    float x1 = 0.66874 * x;
+    float n = x0 + x1;
+    return w * ((abs(x0) <= x1) ? n * n / x : saturate(a));
+}
+
 LightShadeInfo calcLightShadeInfo(Light light, ShadeInfo shadeInfo, vec3 worldPos) {
     LightShadeInfo lsi;
     lsi.radiance = light.pack0.xyz;
@@ -105,7 +115,11 @@ vec3 calculateLighting(Light light, ShadeInfo shadeInfo, vec3 worldPos) {
     vec3 halfway = normalize(shadeInfo.viewDir + lsi.L);
     vec3 norm = shadeInfo.normal;
     float cosLh = max(0.0f, dot(norm, halfway));
+#ifdef DIFFUSE_AA
+    float cosLi = max(0.0f, diffuseAA(norm, lsi.L));
+#else
     float cosLi = max(0.0f, dot(norm, lsi.L));
+#endif
 
 #ifdef BLINN_PHONG
     float roughness = shadeInfo.roughness;

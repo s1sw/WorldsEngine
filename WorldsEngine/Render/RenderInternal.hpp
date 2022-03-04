@@ -257,6 +257,7 @@ namespace worlds {
         MaterialSlots& materials;
         robin_hood::unordered_map<AssetID, LoadedMeshData>& meshes;
         vku::GenericImage* brdfLut;
+        vku::GenericImage* blueNoiseTexture;
         vku::GenericBuffer* materialBuffer;
         vku::GenericBuffer* vpMatrixBuffer;
         RenderResource* shadowCascades;
@@ -496,6 +497,7 @@ namespace worlds {
         bool isMinimised;
         bool useVsync;
         vku::GenericImage brdfLut;
+        vku::GenericImage blueNoiseTexture;
         std::shared_ptr<CubemapConvoluter> cubemapConvoluter;
         bool swapchainRecreated;
         RenderDebugStats dbgStats;

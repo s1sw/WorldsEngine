@@ -252,6 +252,9 @@ namespace worlds {
 
         updater.beginBuffers(13, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
         updater.buffer(pickingBuffer.buffer(), 0, sizeof(PickingBuffer));
+
+        updater.beginImages(14, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+        updater.image(albedoSampler, ctx.resources.blueNoiseTexture->imageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
     }
 
     void PolyRenderPass::updateDescriptorSets(RenderContext& ctx) {

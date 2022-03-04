@@ -341,13 +341,39 @@ float harden(float x) {
     return x;
 }
 
+vec2 rotateSample(vec2 inSample, vec2 rotComponents) {
+    float sinTheta = rotComponents.x;
+    float cosTheta = rotComponents.y;
+
+    vec2 outSample;
+    outSample.x = inSample.x * cosTheta - inSample.y * sinTheta;
+    outSample.y = inSample.x * sinTheta + inSample.y * cosTheta;
+    return outSample;
+}
+
+vec2 getRotationComponents(float angle) {
+    return vec2(sin(angle), cos(angle));
+}
+
+float rand(vec2 co) {
+    return texture(noiseSampler, co * vec2(1.0 / 64.0)).x;
+}
+
+float getSampleAngle() {
+    float angle = rand(vec2(gl_FragCoord));
+    angle -= 0.5;
+    angle *= PI;
+    return angle;
+}
+
+const int NUM_DPCF_TAPS = 24;
 float getDirLightShadowIntensity(int lightIdx) {
     vec4 shadowPos;
     float shadowIntensity = 1.0;
     bool inCascade = true;
     float cascadeSplit = calculateCascade(shadowPos, inCascade);
 
-    float bias = max(0.0004 * (1.0 - dot(inNormal, lights[lightIdx].pack1.xyz)), 0.00025);
+    float bias = 0.0004;//max(0.0004 * (1.0 - dot(inNormal, lights[lightIdx].pack1.xyz)), 0.0004);
     //float bias = 0.000325;
     float depth = (shadowPos.z / shadowPos.w);
     vec2 coord = (shadowPos.xy * 0.5 + 0.5);
@@ -362,13 +388,14 @@ float getDirLightShadowIntensity(int lightIdx) {
 #ifdef HIGH_QUALITY_SHADOWS
         float percentOccluded = 0.0;
         float distanceSum = 0.0;
-        float kernelScale = (2.0 / 512.0); //* (textureSize(shadowSampler, 0).x / 1024.0);
+        float kernelScale = (1.5 / 512.0); //* (textureSize(shadowSampler, 0).x / 1024.0);
         //float kernelScale = (1.0 / 512.0);
 
-        const int NUM_TAPS = 32;
-
-        for (int t = 0; t < NUM_TAPS; t++) {
-            float smDepth = textureLod(shadowSampler, vec3(coord + (poissonDisk[t] * kernelScale), cascadeSplit), 0.0).x;
+        float angle = getSampleAngle();
+        vec2 rotationComponents = getRotationComponents(angle);
+        for (int t = 0; t < NUM_DPCF_TAPS; t++) {
+            vec2 sampleOffset = (rotateSample(poissonDisk[t], rotationComponents) * kernelScale);
+            float smDepth = textureLod(shadowSampler, vec3(coord + sampleOffset, cascadeSplit), 0.0).x;
             float dist = (smDepth - depth);
             float occluded = step(bias, dist);
 
@@ -378,7 +405,7 @@ float getDirLightShadowIntensity(int lightIdx) {
 
         if (percentOccluded != 0.0) {
             float averageDistance = distanceSum / percentOccluded;
-            percentOccluded /= NUM_TAPS;
+            percentOccluded /= NUM_DPCF_TAPS;
 
             float pcfWeight = saturate(averageDistance * depth);
             percentOccluded = mix(harden(percentOccluded), percentOccluded, pcfWeight);
@@ -392,19 +419,19 @@ float getDirLightShadowIntensity(int lightIdx) {
     return shadowIntensity;
 }
 
-
 float pcf(vec3 sampleCoord, sampler2D samp, float bias) {
     float shadowIntensity = 0.0;
 #ifdef HIGH_QUALITY_SHADOWS
     float percentOccluded = 0.0;
     float distanceSum = 0.0;
-    float kernelScale = (1.0 / 512.0);
+    float kernelScale = (2.0 / 512.0);
 
-    const int NUM_TAPS = 24;
-
-    for (int t = 0; t < NUM_TAPS; t++) {
-        //vec4 smDepths = textureGather(samp, sampleCoord.xy + (poissonDisk[t] * kernelScale));
-        float smDepth = textureLod(samp, sampleCoord.xy + (poissonDisk[t] * kernelScale), 0.0).x;
+    float angle = getSampleAngle();
+    vec2 rotationComponents = getRotationComponents(angle);
+    for (int t = 0; t < NUM_DPCF_TAPS; t++) {
+        vec2 sampleOffset = (rotateSample(poissonDisk[t], rotationComponents) * kernelScale);
+        //vec2 sampleOffset = poissonDisk[t] * kernelScale;
+        float smDepth = textureLod(samp, sampleCoord.xy + sampleOffset, 0.0).x;
         float dist = (smDepth - sampleCoord.z);
         float occluded = step(bias, dist);
 
@@ -414,7 +441,7 @@ float pcf(vec3 sampleCoord, sampler2D samp, float bias) {
 
     if (percentOccluded != 0.0) {
         float averageDistance = distanceSum / percentOccluded;
-        percentOccluded /= NUM_TAPS;
+        percentOccluded /= NUM_DPCF_TAPS;
 
         float pcfWeight = saturate(averageDistance / sampleCoord.z);
         percentOccluded = mix(harden(percentOccluded), percentOccluded, pcfWeight);
@@ -432,7 +459,7 @@ float getNormalLightShadowIntensity(int lightIdx) {
     vec4 shadowPos = otherShadowMatrices[shadowIdx] * inWorldPos;
     shadowPos.y = -shadowPos.y;
 
-    float bias = 0.00001;//max(0.0005 * (1.0 - dot(inNormal, getLightDirection(lights[lightIdx], inWorldPos.xyz))), 0.00002);
+    float bias = 0.00007;//max(0.0005 * (1.0 - dot(inNormal, getLightDirection(lights[lightIdx], inWorldPos.xyz))), 0.00002);
 
     float depth = (shadowPos.z / shadowPos.w);
     vec2 coord = (shadowPos.xy / shadowPos.w) * 0.5 + 0.5;//(shadowPos.xy * 0.5 + 0.5);
