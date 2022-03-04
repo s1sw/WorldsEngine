@@ -99,7 +99,9 @@ namespace Game
 
             var projectileDpa = Registry.GetComponent<DynamicPhysicsActor>(projectile);
             projectileDpa.AddForce(transform.TransformDirection(Vector3.Forward) * speed, ForceMode.VelocityChange);
+            projectileTransform.Scale = projectile.Transform.Scale;
             projectileDpa.Pose = projectileTransform;
+            projectile.Transform = projectileTransform;
 
             dpa.AddForce(-transform.TransformDirection(Vector3.Forward) * speed * projectileDpa.Mass, ForceMode.Impulse);
 
