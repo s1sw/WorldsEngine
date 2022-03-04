@@ -65,18 +65,18 @@ namespace Game.Interaction
             {
                 Transform handInLocalSpace = hand.TransformByInverse(obj);
 
-                linearScore = hand.Position.DistanceTo(GetAttachPointForBoxGrip(handInLocalSpace.Position));
+                linearScore = handInLocalSpace.Position.DistanceTo(GetAttachPointForBoxGrip(handInLocalSpace.Position));
             }
             else if (Type == GripType.Sphere)
             {
                 Transform handInLocalSpace = hand.TransformByInverse(obj);
 
-                linearScore = hand.Position.DistanceTo(GetAttachPointForBoxGrip(handInLocalSpace.Position));
+                linearScore = handInLocalSpace.Position.DistanceTo(GetAttachPointForBoxGrip(handInLocalSpace.Position));
             }
 
             float angularScore = Quaternion.Dot(hand.Rotation.SingleCover, (obj.Rotation * rotation).SingleCover);
 
-            return 10.0f / linearScore;
+            return 5.0f - linearScore;
         }
 
         public Transform GetAttachTransform(Transform handTransform, Transform objTransform, bool isRightHand)

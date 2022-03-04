@@ -11,7 +11,7 @@ using System;
 namespace Game.Interaction
 {
     [Component]
-    public class HandGrab : Component, IThinkingComponent
+    public class HandGrab : Component
     {
         public bool IsRightHand = false;
 
@@ -24,7 +24,7 @@ namespace Game.Interaction
         private bool _bringingTowards = false;
         private float _lastControllerTrigVal = 0.0f;
 
-        public void Think()
+        public void Update()
         {
             if (VR.Enabled)
             {
@@ -43,11 +43,12 @@ namespace Game.Interaction
             else
             {
                 MouseButton mouseButton = IsRightHand ? MouseButton.Right : MouseButton.Left;
+                KeyCode key = IsRightHand ? KeyCode.E : KeyCode.Q;
                 ControllerButton cButton = IsRightHand ? ControllerButton.RightShoulder : ControllerButton.LeftShoulder;
 
-                if ((Mouse.ButtonReleased(mouseButton) || Controller.ButtonPressed(cButton)) && !GrippedEntity.IsNull)
+                if ((Keyboard.KeyPressed(key) || Controller.ButtonPressed(cButton)) && !GrippedEntity.IsNull)
                     Release();
-                else if ((Mouse.ButtonPressed(mouseButton) || Controller.ButtonPressed(cButton)) && GrippedEntity.IsNull)
+                else if ((Keyboard.KeyPressed(key) || Controller.ButtonPressed(cButton)) && GrippedEntity.IsNull)
                     GrabNearby();
             }
 
@@ -58,6 +59,7 @@ namespace Game.Interaction
                 if (!VR.Enabled)
                 {
                     KeyCode keycode = IsRightHand ? KeyCode.E : KeyCode.Q;
+                    MouseButton mouseButton = IsRightHand ? MouseButton.Right : MouseButton.Left;
                     ControllerAxis axis = IsRightHand ? ControllerAxis.TriggerRight : ControllerAxis.TriggerLeft;
                     float axisVal = Controller.AxisValue(axis);
 
@@ -67,9 +69,9 @@ namespace Game.Interaction
                     _lastControllerTrigVal = axisVal;
 
                     grabbable.RunEvents(
-                        Keyboard.KeyPressed(keycode) || axisPressed,
-                        Keyboard.KeyReleased(keycode) || axisReleased,
-                        Keyboard.KeyHeld(keycode) || axisVal > 0.75f,
+                        Mouse.ButtonPressed(mouseButton) || axisPressed,
+                        Mouse.ButtonReleased(mouseButton) || axisReleased,
+                        Mouse.ButtonHeld(mouseButton) || axisVal > 0.75f,
                         GrippedEntity
                     );
                 }
@@ -94,27 +96,27 @@ namespace Game.Interaction
             uint overlappedCount = Physics.OverlapSphereMultiple(dpa.Pose.TransformPoint(new Vector3(0.0f, 0.0f, 0.03f)), 0.5f, MaxOverlaps, overlaps);
 
             Entity? bestGrabbable = null;
-            float bestGrabbableScore = 0.0f;
+            float bestGrabbableScore = -100000.0f;
             for (int i = 0; i < overlappedCount; i++)
             {
                 Entity candidate = overlaps[i];
-                if (!Registry.HasComponent<Grabbable>(candidate)) continue;
-                var grabbable = Registry.GetComponent<Grabbable>(candidate);
-                var candidateDpa = Registry.GetComponent<DynamicPhysicsActor>(candidate);
+                if (!candidate.HasComponent<Grabbable>()) continue;
+                var grabbable = candidate.GetComponent<Grabbable>();
+                var candidateDpa = candidate.GetComponent<DynamicPhysicsActor>();
 
-                float maxGrabbableScore = 0.0f;
+                float maxGripScore = 0.0f;
                 for (int j = 0; j < grabbable.grips.Count; j++)
                 {
                     float score = grabbable.grips[j].CalculateGripScore(candidateDpa.Pose, dpa.Pose, IsRightHand);
 
-                    if (score > maxGrabbableScore)
-                        maxGrabbableScore = score;
+                    if (score > maxGripScore)
+                        maxGripScore = score;
                 }
 
-                if (maxGrabbableScore > bestGrabbableScore)
+                if (maxGripScore > bestGrabbableScore)
                 {
-                    bestGrabbableScore = maxGrabbableScore;
-                    bestGrabbable = overlaps[i];
+                    bestGrabbableScore = maxGripScore;
+                    bestGrabbable = candidate;
                 }
             }
 
@@ -322,6 +324,17 @@ namespace Game.Interaction
 
             var physHand = Registry.GetComponent<PhysHand>(Entity);
             physHand.UseOverrideTensor = false;
+        }
+    }
+
+    public class HandGrabSystem : ISystem
+    {
+        public void OnUpdate()
+        {
+            foreach (Entity e in Registry.View<HandGrab>())
+            {
+                e.GetComponent<HandGrab>().Update();
+            }
         }
     }
 }
