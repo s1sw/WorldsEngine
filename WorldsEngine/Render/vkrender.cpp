@@ -749,6 +749,10 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     BRDFLUTRenderer brdfLutRenderer{ *vkCtx };
     brdfLutRenderer.render(*vkCtx, brdfLut);
 
+    TextureData blueNoiseTD = loadTexData(AssetDB::pathToId("Textures/bluenoise.png"));
+    blueNoiseTexture = uploadTextureVk(handles, blueNoiseTD);
+    free(blueNoiseTD.data);
+
     createCascadeShadowImages();
     createSpotShadowImages();
 
@@ -1651,6 +1655,7 @@ RenderResources VKRenderer::getResources() {
         *matSlots,
         loadedMeshes,
         &brdfLut,
+        &blueNoiseTexture,
         &materialUB,
         &vpBuffer,
         shadowmapImage,
