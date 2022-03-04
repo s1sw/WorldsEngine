@@ -145,8 +145,10 @@ public class PlayerRig : Component, IThinkingComponent, IStartListener
 
         ApplyBodyRotation(dpa);
 
+        Vector3 centerOffset = new(0.0f, 0.0f, -0.150f);
+        centerOffset = dpa.Pose.Rotation * centerOffset;
         bool nearGround = Physics.SweepSphere(
-            dpa.Pose.Position + (Vector3.Down * 0.8f),
+            dpa.Pose.Position + centerOffset + (Vector3.Down * 0.8f),
             0.1f,
             Vector3.Down,
             0.3f,
