@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.InteropServices;
 
 namespace WorldsEngine.Input;
 
@@ -41,6 +42,9 @@ public enum ControllerAxis : int
 
 public static class Controller
 {
+    [DllImport(WorldsEngine.NativeModule)]
+    private static extern void input_triggerControllerHaptics(ushort leftIntensity, ushort rightIntensity, uint duration);
+
     public static bool ButtonHeld(ControllerButton button) => _heldButtons[(int)button];
     public static bool ButtonPressed(ControllerButton button)
         => _heldButtons[(int)button] && !_lastHeldButtons[(int)button];
@@ -55,6 +59,9 @@ public static class Controller
 
         return v;
     }
+
+    public static void HapticFeedback(float leftIntensity, float rightIntensity, uint durationMs)
+        => input_triggerControllerHaptics((ushort)(leftIntensity * 0xFFFF), (ushort)(rightIntensity * 0xFFFF), durationMs);
 
     private static bool[] _heldButtons = new bool[21];
     private static bool[] _lastHeldButtons = new bool[21];

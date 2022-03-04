@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using WorldsEngine;
+using WorldsEngine.Input;
 
 namespace Game
 {
@@ -26,7 +27,13 @@ namespace Game
 
         public static void Trigger(AttachedHandFlags handFlags, float timeFromNow, float duration, float frequency, float amplitude)
         {
-            if (!VR.Enabled) return;
+            if (!VR.Enabled)
+            {
+                float lIntensity = handFlags.HasFlag(AttachedHandFlags.Left) ? amplitude : 0.0f;
+                float rIntensity = handFlags.HasFlag(AttachedHandFlags.Right) ? amplitude : 0.0f;
+                Controller.HapticFeedback(lIntensity, rIntensity, (uint)(duration * 1000));
+                return;
+            }
 
             if (!_initialized) Initialize();
 
