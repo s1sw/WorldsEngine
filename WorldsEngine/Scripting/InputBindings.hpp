@@ -41,4 +41,8 @@ extern "C" {
     EXPORT int input_getMouseButtonHeld(MouseButton button) {
         return csharpInputManager->mouseButtonHeld(button);
     }
+
+    EXPORT void input_triggerControllerHaptics(uint16_t leftIntensity, uint16_t rightIntensity, uint32_t duration) {
+        return csharpInputManager->triggerControllerHaptics(leftIntensity, rightIntensity, duration);
+    }
 }
