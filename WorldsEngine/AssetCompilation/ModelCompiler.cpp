@@ -551,7 +551,7 @@ namespace worlds {
         const tinygltf::Scene& scene = model.scenes[0];
 
         // Lambda to process nodes so we can recurse through children
-        auto processNode = [&](tinygltf::Node n) {
+        std::function<void(const tinygltf::Node&)> processNode = [&](const tinygltf::Node& n) {
             if (n.mesh > -1) {
                 const tinygltf::Mesh& mesh = model.meshes[n.mesh];
                 for (size_t i = 0; i < mesh.primitives.size(); i++) {
@@ -586,10 +586,17 @@ namespace worlds {
                     }
                 }
             }
+
+            for (int childIndex : n.children) {
+                processNode(model.nodes[childIndex]);
+            }
         };
 
         for (size_t i = 0; i < scene.nodes.size(); i++) {
+            processNode(model.nodes[scene.nodes[i]]);
         }
+        
+        return ErrorCodes::None;
     }
 
     ModelCompiler::ModelCompiler() {
