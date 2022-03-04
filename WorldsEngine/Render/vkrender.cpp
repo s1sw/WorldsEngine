@@ -389,13 +389,13 @@ bool checkPhysicalDeviceFeatures(const VkPhysicalDevice& physDev) {
         return false;
     }
 
-    VkPhysicalDeviceLimits limits{};
-    vkGetPhysicalDeviceLimits(physDev, &limits);
+    VkPhysicalDeviceProperties properties{};
+    vkGetPhysicalDeviceProperties(physDev, &properties);
 
     const int requiredSampledImages = 128 + 2 + 32 + 4;
-    if (limits.maxPerStageDescriptorSampledImages < requiredSampledImages) {
+    if (properties.limits.maxPerStageDescriptorSampledImages < requiredSampledImages) {
         logErr(WELogCategoryRender, "maxPerStageDescriptorSampledImages too low! Must be at least %i, was %i",
-                requiredSampledImages, limits.maxPerStageDescriptorSampledImages);
+                requiredSampledImages, properties.limits.maxPerStageDescriptorSampledImages);
         return false;
     }
 
@@ -468,7 +468,6 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
             }, "r_triggerRenderdocCapture", "Triggers a Renderdoc capture.", nullptr);
         }
     } else {
-        logWarn(WELogCategoryRender, "Failed to load RenderDoc dynamic library");
         rdocApi = nullptr;
     }
 #endif
