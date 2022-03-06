@@ -68,7 +68,7 @@ namespace WorldsEngine
             MetadataManager.Initialise();
             Console.Initialise();
 
-            HotloadManager.Active = !editorActive;
+            HotloadManager.Active = editorActive;
 
             GameAssemblyManager.OnAssemblyUnload += () =>
             {
