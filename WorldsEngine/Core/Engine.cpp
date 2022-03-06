@@ -181,13 +181,6 @@ namespace worlds {
         PHYSFS_close(ttfFile);
     }
 
-    void cmdToggleFullscreen(void*, const char*) {
-        SDL_Event evt;
-        SDL_zero(evt);
-        evt.type = fullscreenToggleEventId;
-        SDL_PushEvent(&evt);
-    }
-
     JobSystem* g_jobSys;
 
     robin_hood::unordered_map<entt::entity, physx::PxTransform> currentState;
@@ -536,7 +529,6 @@ namespace worlds {
         }, "setTimeScale", "Sets the current time scale.", nullptr);
 
         if (!dedicatedServer) {
-            console->registerCommand(cmdToggleFullscreen, "toggleFullscreen", "Toggles fullscreen.", nullptr);
             console->registerCommand([&](void*, const char*) {
                 screenPassIsVR = (!screenRTTPass) && enableOpenVR;
                 }, "toggleVRRendering", "Toggle whether the screen RTT pass has VR enabled.");
@@ -873,10 +865,11 @@ namespace worlds {
             }
 
             if (inputManager->keyPressed(SDL_SCANCODE_F11, true)) {
-                SDL_Event evt;
-                SDL_zero(evt);
-                evt.type = fullscreenToggleEventId;
-                SDL_PushEvent(&evt);
+                //SDL_Event evt;
+                //SDL_zero(evt);
+                //evt.type = fullscreenToggleEventId;
+                //SDL_PushEvent(&evt);
+                window->setFullscreen(true);
             }
 
             uint64_t updateEnd = SDL_GetPerformanceCounter();
