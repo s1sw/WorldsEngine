@@ -1433,6 +1433,7 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
         presentSubmitManager->submit();
         submitToOpenVR();
         presentSubmitManager->present();
+        vr::VRCompositor()->PostPresentHandoff();
     } else {
         presentSubmitManager->submit();
         presentSubmitManager->present();
