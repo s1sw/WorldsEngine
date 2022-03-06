@@ -58,6 +58,7 @@ namespace Game.Interaction
 
         public float CalculateGripScore(Transform obj, Transform hand, bool isRightHand)
         {
+            hand.Position += hand.Rotation * new Vector3(0.0f, 0.0f, 0.04f);
             Transform attachTransform = GetAttachTransform(hand, obj, isRightHand);
             float linearScore = hand.Position.DistanceTo(obj.TransformPoint(attachTransform.Position));
 
@@ -81,6 +82,7 @@ namespace Game.Interaction
 
         public Transform GetAttachTransform(Transform handTransform, Transform objTransform, bool isRightHand)
         {
+            handTransform.Position += handTransform.Rotation * new Vector3(0.0f, 0.0f, 0.03f);
             Transform handInLocalSpace = handTransform.TransformByInverse(objTransform);
             if (Type == GripType.Box)
             {
