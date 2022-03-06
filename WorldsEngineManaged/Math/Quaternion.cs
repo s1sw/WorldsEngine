@@ -142,6 +142,28 @@ namespace WorldsEngine.Math
             return q.Normalized;
         }
 
+        public static Quaternion Lerp(Quaternion a, Quaternion b, float t)
+            => new Quaternion(
+                MathFX.Lerp(a.x, b.x, t),
+                MathFX.Lerp(a.y, b.y, t),
+                MathFX.Lerp(a.z, b.z, t),
+                MathFX.Lerp(a.w, b.w, t)
+            );
+
+        public static Quaternion Slerp(Quaternion a, Quaternion b, float t)
+        {
+            float d = Dot(a, b);
+
+            Quaternion aPrime = d < 0 ? a * -1f : a;
+            float theta = MathF.Acos(MathF.Abs(d));
+
+            if (d > 0.9999999f)
+            {
+                return Lerp(a, b, t);
+            }
+
+            return (MathF.Sin((1.0f - t) * theta) * aPrime + MathF.Sin(t * theta) * b) * (1.0f / MathF.Sin(theta));
+        }
 
         private Mat3x3 ToMat3x3()
         {
@@ -184,7 +206,7 @@ namespace WorldsEngine.Math
             return MathF.Abs(dir.Dot(up)) > 0.999f ? LookAt(dir, fallbackUp) : LookAt(dir, up);
         }
 
-        public static Vector3 operator *(Quaternion q, Vector3 v)
+        public static Vector3 operator*(Quaternion q, Vector3 v)
         {
             Vector3 QuatVector = new Vector3(q.x, q.y, q.z);
             Vector3 uv = Vector3.Cross(QuatVector, v);
@@ -204,14 +226,16 @@ namespace WorldsEngine.Math
         }
 
         public static Quaternion operator/(Quaternion q, float scalar)
-        {
-            return new Quaternion(q.w / scalar, q.x / scalar, q.y / scalar, q.z / scalar);
-        }
+            =>  new Quaternion(q.w / scalar, q.x / scalar, q.y / scalar, q.z / scalar);
 
         public static Quaternion operator*(Quaternion q, float scalar)
-        {
-            return new Quaternion(q.w * scalar, q.x * scalar, q.y * scalar, q.z * scalar);
-        }
+            => new Quaternion(q.w * scalar, q.x * scalar, q.y * scalar, q.z * scalar);
+
+        public static Quaternion operator*(float scalar, Quaternion q)
+            => new Quaternion(q.w * scalar, q.x * scalar, q.y * scalar, q.z * scalar);
+
+        public static Quaternion operator+(Quaternion a, Quaternion b)
+            => new Quaternion(a.w + b.w, a.x + b.x, a.y + b.y, a.z + b.z);
 
         public override string ToString()
         {
