@@ -1814,7 +1814,11 @@ namespace worlds {
                 ImGui::Text("Instance of %s", AssetDB::idToPath(pic.prefab).c_str());
 
                 if (ImGui::Button("Apply Prefab")) {
-                    PHYSFS_File* file = AssetDB::openAssetFileWrite(pic.prefab);
+                    std::string path = AssetDB::idToPath(pic.prefab);
+                    if (path.find("SourceData") == std::string::npos) {
+                        path = "SourceData/" + path;
+                    }
+                    PHYSFS_File* file = PHYSFS_openWrite(path.c_str());
                     JsonSceneSerializer::saveEntity(file, reg, ent);
                     PHYSFS_close(file);
                 }
