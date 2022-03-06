@@ -1748,6 +1748,7 @@ VKRenderer::~VKRenderer() {
         cubemapConvoluter.reset();
 
         brdfLut.destroy();
+        blueNoiseTexture.destroy();
         loadedMeshes.clear();
 
         unloadSDFFonts();
