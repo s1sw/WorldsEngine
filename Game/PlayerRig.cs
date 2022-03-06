@@ -94,13 +94,12 @@ public class PlayerRig : Component, IThinkingComponent, IStartListener
 
         if (inputDirCS.LengthSquared > 0.0f && _grounded)
         {
-            _footstepTimer += Time.DeltaTime * 2f;
-        }
-
-        if (_footstepTimer >= 1.0f)
-        {
-            Audio.PlayOneShotEvent("event:/Player/Walking", Vector3.Zero);
-            _footstepTimer = 0f;
+            _footstepTimer += Time.DeltaTime * 2f * inputDirCS.Length;
+            if (_footstepTimer >= 0.75f)
+            {
+                Audio.PlayOneShotEvent("event:/Player/Walking", Vector3.Zero);
+                _footstepTimer = 0f;
+            }
         }
     }
 
@@ -211,7 +210,7 @@ public class PlayerRig : Component, IThinkingComponent, IStartListener
             _lastHMDPos = VRTransforms.HMDTransform.Position;
         }
 
-        UpdateSound(inputDirCS);
+        UpdateSound(inputDir * max);
         UpdateDodge();
 
         _groundedLast = _grounded;
