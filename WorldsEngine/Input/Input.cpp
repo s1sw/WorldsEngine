@@ -135,6 +135,7 @@ namespace worlds {
         case SDL_CONTROLLERDEVICEREMOVED:
             if (evt.cdevice.which == controllerIndex) {
                 SDL_GameControllerClose(controller);
+                controller = nullptr;
             }
             break;
         }
@@ -225,6 +226,7 @@ namespace worlds {
     }
 
     void InputManager::triggerControllerHaptics(uint16_t leftIntensity, uint16_t rightIntensity, uint32_t duration) {
-        SDL_GameControllerRumble(controller, leftIntensity, rightIntensity, duration);
+        if (controller)
+            SDL_GameControllerRumble(controller, leftIntensity, rightIntensity, duration);
     }
 }
