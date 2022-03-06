@@ -48,17 +48,16 @@ namespace Game
 
         public void Think()
         {
-            return;
             var swo = Registry.GetComponent<SkinnedWorldObject>(Entity);
 
-            uint boneIdx = MeshManager.GetBoneIndex(swo.Mesh, "Bone.001");
+            uint boneIdx = MeshManager.GetBoneIndex(swo.Mesh, "finger_index_0_l");
 
             if (boneIdx != ~0u)
             {
                 float rotationT = (float)Math.Sin(Time.CurrentTime) * 0.5f + 0.5f;
-                Quaternion rotation = Quaternion.AngleAxis(rotationT * MathF.PI - (MathF.PI / 2.0f), Vector3.Left);
+                Quaternion rotation = Quaternion.AngleAxis(rotationT * MathF.PI - (MathF.PI / 2.0f), Vector3.Forward);
                 Transform extraT = new Transform(Vector3.Zero, rotation);
-                Transform t = new Transform(_startPosition, _startRotation);//.TransformBy(extraT);
+                Transform t = extraT.TransformBy(new Transform(_startPosition, _startRotation));
                 swo.SetBoneTransform(boneIdx, t);
             }
         }
