@@ -521,6 +521,7 @@ namespace worlds {
         private:
             struct ConvertedGltfNode {
                 glm::mat4 transform;
+                glm::mat4 localTransform;
                 std::string name;
                 int index;
                 int parentIdx;
@@ -569,14 +570,14 @@ namespace worlds {
                             scale = glm::make_vec3(n.scale.data());
                         }
 
-                        convertedNode.transform = 
+                        convertedNode.localTransform = 
                             (translation ? glm::translate(glm::mat4(1.0f), translation.value()) : glm::mat4(1.0f)) *
                             (rotation ? glm::mat4(rotation.value()) : glm::mat4(1.0f)) *
                             (scale ? glm::scale(glm::mat4(1.0f), scale.value()) : glm::mat4(1.0f));
                     }
 
                     glm::mat4 parentTransform = parent ? parent->transform : glm::mat4(1.0f);
-                    convertedNode.transform = parentTransform * convertedNode.transform;
+                    convertedNode.transform = parentTransform * convertedNode.localTransform;
                     convertedNode.name = n.name;
                     convertedNode.parentIdx = parent ? parent->index : -1;
                     auto result = convertedNodes.insert({ nodeIdx, convertedNode });
@@ -596,7 +597,8 @@ namespace worlds {
                         const glm::vec3* positions = nullptr;
                         const glm::vec3* normals = nullptr;
                         const glm::vec2* uvs = nullptr;
-                        const uint16_t*  skindices = nullptr;
+                        const void* skindices = nullptr;
+                        int skindicesType = 0;
                         const glm::vec4* weights = nullptr;
                         const size_t vertexCount = getAttributeCount(model, prim, "POSITION");
 
@@ -605,8 +607,11 @@ namespace worlds {
                         if (hasAttribute(prim, "TEXCOORD_0"))
                             uvs = getAttributeData<glm::vec2>(model, prim, "TEXCOORD_0");
 
-                        if (hasAttribute(prim, "JOINTS_0"))
-                            skindices = getAttributeData<uint16_t>(model, prim, "JOINTS_0");
+                        if (hasAttribute(prim, "JOINTS_0")) {
+                            const tinygltf::Accessor& accessor = model.accessors[prim.attributes.find("JOINTS_0")->second];
+                            skindicesType = accessor.componentType;
+                            skindices = getAttributeData<void>(model, prim, "JOINTS_0");
+                        }
 
                         if (hasAttribute(prim, "WEIGHTS_0"))
                             weights = getAttributeData<glm::vec4>(model, prim, "WEIGHTS_0");
@@ -672,9 +677,14 @@ namespace worlds {
                                 size_t v = primIndices[idx];
                                 wmdl::VertexSkinningInfo skinfo{};
                                 for (int i = 0; i < 4; i++) {
-                                    skinfo.boneId[i] = skindices[v * 4 + i];
+                                    if (skindicesType == TINYGLTF_PARAMETER_TYPE_UNSIGNED_BYTE)
+                                        skinfo.boneId[i] = reinterpret_cast<const uint8_t*>(skindices)[v * 4 + i];
+                                    else if (skindicesType == TINYGLTF_PARAMETER_TYPE_UNSIGNED_SHORT)
+                                        skinfo.boneId[i] = reinterpret_cast<const uint16_t*>(skindices)[v * 4 + i];
+
                                     skinfo.boneWeight[i] = weights[v][i];
                                 }
+
                                 primSkinfos.push_back(skinfo);
                             }
                         }
@@ -704,7 +714,6 @@ namespace worlds {
                         // Re-weld the mesh to convert back to indices
                         // Also automatically joins identical vertices
                         int finalVertCount = WeldMesh(remapTable.data(), (float*)primVerts.data(), (float*)mikkTSpaceOut.data(), mikkTSpaceOut.size(), sizeof(wmdl::Vertex2) / sizeof(float));
-                        primVerts.resize(finalVertCount);
 
                         // Copy the actual indices and vertices to the buffer
                         for (int i = 0; i < mikkTSpaceOut.size(); i++) {
@@ -714,7 +723,7 @@ namespace worlds {
                         if (isModelSkinned) {
                             if (isPrimitiveSkinned) {
                                 primSkinfos.resize(finalVertCount);
-                                for (size_t i = 0; i < mikkTSpaceOutSkinInfo.size(); i++) {
+                                for (int i = 0; i < mikkTSpaceOutSkinInfo.size(); i++) {
                                     primSkinfos[remapTable[i]] = mikkTSpaceOutSkinInfo[i];
                                 }
                             } else {
@@ -730,7 +739,7 @@ namespace worlds {
 
                         // Add the submesh info
                         wmdl::SubmeshInfo smInfo{};
-                        smInfo.numVerts = vertexCount;
+                        smInfo.numVerts = finalVertCount;
                         smInfo.numIndices = indicesAccessor.count;
                         smInfo.indexOffset = indexOffset;
                         smInfo.materialIndex = prim.material;
@@ -793,7 +802,7 @@ namespace worlds {
                     for (int jointIdx : skin.joints) {
                         ConvertedGltfNode& jointNode = convertedNodes.at(jointIdx);
                         nodeToJoint.insert({ jointNode.index, i });
-                        glm::mat4 transform = convertedNodes.at(jointIdx).transform;
+                        glm::mat4 transform = convertedNodes.at(jointIdx).localTransform;
 
                         wmdl::Bone b;
                         // For now, just set the parent bone index to the
@@ -808,10 +817,10 @@ namespace worlds {
                     }
 
                     for (wmdl::Bone& b : bones) {
-                        //if (nodeToJoint.contains(b.parentBone))
-                        //    b.parentBone = nodeToJoint[b.parentBone];
-                        //else
-                        b.parentBone = ~0u;
+                        if (nodeToJoint.contains(b.parentBone))
+                            b.parentBone = nodeToJoint[b.parentBone];
+                        else
+                            b.parentBone = ~0u;
                     }
                 }
 
@@ -847,8 +856,6 @@ namespace worlds {
                 return ErrorCodes::None;
             }
         };
-
-
     }
 
 
