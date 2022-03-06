@@ -28,6 +28,7 @@ namespace worlds {
 
             wmdl::Bone* bones = wHdr->getBones();
             for (wmdl::CountType i = 0; i < skinInfoBlock->numBones; i++) {
+                logMsg("n: %s", bones[i].name);
                 lmd.meshBones[i].inverseBindPose = bones[i].inverseBindPose;
                 lmd.meshBones[i].transform = bones[i].transform;
                 lmd.meshBones[i].parentIdx = bones[i].parentBone;

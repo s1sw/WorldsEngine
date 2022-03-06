@@ -1,4 +1,5 @@
 #include "MeshManager.hpp"
+#include "Util/MathsUtil.hpp"
 #include <Render/RenderInternal.hpp>
 #include <Render/Loaders/WMDLLoader.hpp>
 
@@ -30,6 +31,12 @@ namespace worlds {
         for (size_t i = 0; i < lm.boneNames.size(); i++) {
             lm.boneNames[i] = lmd.meshBones[i].name;
             lm.boneRestPositions[i] = lmd.meshBones[i].transform;
+            glm::vec3 p;
+            glm::quat r;
+            decomposePosRot(lm.boneRestPositions[i], p, r);
+            logMsg("n: %s", lm.boneNames[i]);
+            logMsg("p: %.3f, %.3f, %3f", p[0], p[1], p[2]);
+            logMsg("q: %.3f, %.3f, %.3f, %.3f", r[0], r[1], r[2], r[3]);
             lm.relativeBoneTransforms[i] = lmd.meshBones[i].transform;
         }
 
