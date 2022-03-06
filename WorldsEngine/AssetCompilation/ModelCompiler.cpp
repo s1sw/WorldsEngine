@@ -551,8 +551,11 @@ namespace worlds {
             // For now, just assume there's one scene
             const tinygltf::Scene& scene = model.scenes[0];
 
+            robin_hood::unordered_map<int, glm::mat4> nodeTransforms;
+
             // Lambda to process nodes so we can recurse through children
-            std::function<void(const tinygltf::Node&, const glm::mat4&)> processNode = [&](const tinygltf::Node& n, const glm::mat4& parentMatrix) {
+            std::function<void(int, const glm::mat4&)> processNode = [&](int nodeIdx, const glm::mat4& parentMatrix) {
+                const tinygltf::Node& n = model.nodes[nodeIdx];
                 glm::mat4 finalNodeMatrix{1.0f};
 
                 // In glTF, node transforms can be defined as TRS or as a matrix
@@ -582,6 +585,7 @@ namespace worlds {
                         (scale ? glm::scale(glm::mat4(1.0f), scale.value()) : glm::mat4(1.0f));
                 }
                 finalNodeMatrix = parentMatrix * finalNodeMatrix;
+                nodeTransforms.insert({ nodeIdx, finalNodeMatrix });
 
                 if (n.mesh > -1) {
                     const tinygltf::Mesh& mesh = model.meshes[n.mesh];
@@ -745,6 +749,15 @@ namespace worlds {
             }
 
             std::vector<wmdl::Bone> bones;
+
+            for (const tinygltf::Skin& skin : model.skins) {
+                for (int jointIdx : skin.joints) {
+                    glm::mat4 transform = nodeTransforms.at(jointIdx);
+
+                    wmdl::Bone b;
+                    b.trasnform = transform;
+                }
+            }
 
             size_t vertSkinInfoLength = skinInfo.size() * sizeof(wmdl::VertexSkinningInfo);
             wmdl::Header hdr{};
