@@ -971,6 +971,9 @@ namespace worlds {
             nextFrameKillList.clear();
 
             if (sceneLoadQueued) {
+                if (enableOpenVR) {
+                    vr::VRCompositor()->FadeGrid(0.1f, true);
+                }
                 sceneLoadQueued = false;
                 SceneInfo& si = registry.ctx<SceneInfo>();
                 si.name = std::filesystem::path(AssetDB::idToPath(queuedSceneID)).stem().string();
@@ -1005,6 +1008,10 @@ namespace worlds {
                     if (as.playOnSceneStart)
                         as.eventInstance->start();
                 });
+
+                if (enableOpenVR) {
+                    vr::VRCompositor()->FadeGrid(0.1f, false);
+                }
             }
 
             uint64_t postUpdate = SDL_GetPerformanceCounter();
