@@ -20,6 +20,7 @@
 #include "robin_hood.h"
 #include <slib/Path.hpp>
 #include <filesystem>
+#include <optional>
 #define _CRT_SECURE_NO_WARNINGS
 
 namespace worlds {
@@ -515,89 +516,262 @@ namespace worlds {
 
             return ErrorCodes::None;
         }
-    }
 
-    template<typename T>
-    const T* getAttributeData(const tinygltf::Model& model, const tinygltf::Primitive& prim, const char* attribute) {
-        const tinygltf::Accessor& accessor = model.accessors[prim.attributes.find(attribute)->second];
-        const tinygltf::BufferView& bufferView = model.bufferViews[accessor.bufferView];
-        size_t totalOffset = accessor.byteOffset + bufferView.byteOffset;
-        return reinterpret_cast<const T*>(&model.buffers[bufferView.buffer].data[totalOffset]);
-    }
+        template<typename T>
+        const T* getAttributeData(const tinygltf::Model& model, const tinygltf::Primitive& prim, const char* attribute) {
+            const tinygltf::Accessor& accessor = model.accessors[prim.attributes.find(attribute)->second];
+            const tinygltf::BufferView& bufferView = model.bufferViews[accessor.bufferView];
+            size_t totalOffset = accessor.byteOffset + bufferView.byteOffset;
+            return reinterpret_cast<const T*>(&model.buffers[bufferView.buffer].data[totalOffset]);
+        }
 
-    size_t getAttributeCount(const tinygltf::Model& model, const tinygltf::Primitive& prim, const char* attribute) {
-        const tinygltf::Accessor& accessor = model.accessors[prim.attributes.find(attribute)->second];
-        return accessor.count;
-    }
+        size_t getAttributeCount(const tinygltf::Model& model, const tinygltf::Primitive& prim, const char* attribute) {
+            const tinygltf::Accessor& accessor = model.accessors[prim.attributes.find(attribute)->second];
+            return accessor.count;
+        }
 
-    bool hasAttribute(const tinygltf::Primitive& prim, const char* attribute) {
-        return prim.attributes.contains(attribute);
-    }
+        bool hasAttribute(const tinygltf::Primitive& prim, const char* attribute) {
+            return prim.attributes.contains(attribute);
+        }
 
-    ErrorCodes convertGltfModel(AssetCompileOperation* compileOp, PHYSFS_File* outFile, void* data, size_t dataSize, ConversionSettings settings) {
-        // Load the actual model
-        tinygltf::Model model;
-        tinygltf::TinyGLTF gltfContext;
-        std::string errString;
-        std::string warnString;
-        gltfContext.LoadBinaryFromMemory(&model, &errString, &warnString, (uint8_t*)data, dataSize);
+        ErrorCodes convertGltfModel(AssetCompileOperation* compileOp, PHYSFS_File* outFile, void* data, size_t dataSize, ConversionSettings settings) {
+            // Load the actual model
+            tinygltf::Model model;
+            tinygltf::TinyGLTF gltfContext;
+            std::string errString;
+            std::string warnString;
+            gltfContext.LoadBinaryFromMemory(&model, &errString, &warnString, (uint8_t*)data, dataSize);
 
-        std::vector<uint32_t> indices;
-        std::vector<wmdl::Vertex2> verts;
-        std::vector<wmdl::VertexSkinningInfo> skinInfo;
-        bool isModelSkinned = false;
+            std::vector<uint32_t> indices;
+            std::vector<wmdl::Vertex2> verts;
+            std::vector<wmdl::VertexSkinningInfo> skinInfo;
+            std::vector<wmdl::SubmeshInfo> submeshes;
+            bool isModelSkinned = model.skins.size() > 0;
 
-        // For now, just assume there's one scene
-        const tinygltf::Scene& scene = model.scenes[0];
+            // For now, just assume there's one scene
+            const tinygltf::Scene& scene = model.scenes[0];
 
-        // Lambda to process nodes so we can recurse through children
-        std::function<void(const tinygltf::Node&)> processNode = [&](const tinygltf::Node& n) {
-            if (n.mesh > -1) {
-                const tinygltf::Mesh& mesh = model.meshes[n.mesh];
-                for (size_t i = 0; i < mesh.primitives.size(); i++) {
-                    const tinygltf::Primitive& prim = mesh.primitives[i];
-                    uint32_t indexOffset = verts.size();
+            // Lambda to process nodes so we can recurse through children
+            std::function<void(const tinygltf::Node&, const glm::mat4&)> processNode = [&](const tinygltf::Node& n, const glm::mat4& parentMatrix) {
+                glm::mat4 finalNodeMatrix{1.0f};
 
-                    const glm::vec3* positions = nullptr;
-                    const glm::vec3* normals = nullptr;
-                    const glm::vec2* uvs = nullptr;
-                    const uint16_t*  skindices = nullptr;
-                    const glm::vec4* weights = nullptr;
-                    const size_t vertexCount = getAttributeCount(model, prim, "POSITION");
+                // In glTF, node transforms can be defined as TRS or as a matrix
+                // Either way, convert to a matrix to make it easier everywhere else
+                if (n.matrix.size()) {
+                    finalNodeMatrix = glm::make_mat4x4(n.matrix.data());
+                } else {
+                    std::optional<glm::quat> rotation;
+                    std::optional<glm::vec3> translation;
+                    std::optional<glm::vec3> scale;
 
-                    positions = getAttributeData<glm::vec3>(model, prim, "POSITION");
-                    normals = getAttributeData<glm::vec3>(model, prim, "NORMAL");
-                    uvs = getAttributeData<glm::vec2>(model, prim, "TEXCOORD_0");
+                    if (n.rotation.size()) {
+                        rotation = glm::make_quat(n.rotation.data());
+                    }
 
-                    if (hasAttribute(prim, "JOINTS_0"))
-                        skindices = getAttributeData<uint16_t>(model, prim, "JOINTS_0");
+                    if (n.translation.size()) {
+                        translation = glm::make_vec3(n.translation.data());
+                    }
 
-                    if (hasAttribute(prim, "WEIGHTS_0"))
-                        weights = getAttributeData<glm::vec4>(model, prim, "WEIGHTS_0");
+                    if (n.scale.size()) {
+                        scale = glm::make_vec3(n.scale.data());
+                    }
 
-                    bool isPrimitiveSkinned = skindices != nullptr && weights != nullptr;
-                    isModelSkinned |= isPrimitiveSkinned;
+                    finalNodeMatrix = 
+                        (translation ? glm::translate(glm::mat4(1.0f), translation.value()) : glm::mat4(1.0f)) *
+                        (rotation ? glm::mat4(rotation.value()) : glm::mat4(1.0f)) *
+                        (scale ? glm::scale(glm::mat4(1.0f), scale.value()) : glm::mat4(1.0f));
+                }
+                finalNodeMatrix = parentMatrix * finalNodeMatrix;
 
-                    for (size_t v = 0; v < vertexCount; v++) {
-                        wmdl::Vertex2 vert{};
-                        vert.position = positions[v];
-                        vert.normal = normals[v];
-                        vert.uv = uvs[v];
+                if (n.mesh > -1) {
+                    const tinygltf::Mesh& mesh = model.meshes[n.mesh];
+                    for (size_t primIdx = 0; primIdx < mesh.primitives.size(); primIdx++) {
+                        const tinygltf::Primitive& prim = mesh.primitives[primIdx];
+                        uint32_t indexOffset = verts.size();
+
+                        // Get the buffers for the various attributes
+                        const glm::vec3* positions = nullptr;
+                        const glm::vec3* normals = nullptr;
+                        const glm::vec2* uvs = nullptr;
+                        const uint16_t*  skindices = nullptr;
+                        const glm::vec4* weights = nullptr;
+                        const size_t vertexCount = getAttributeCount(model, prim, "POSITION");
+
+                        positions = getAttributeData<glm::vec3>(model, prim, "POSITION");
+                        normals = getAttributeData<glm::vec3>(model, prim, "NORMAL");
+                        if (hasAttribute(prim, "TEXCOORD_0"))
+                            uvs = getAttributeData<glm::vec2>(model, prim, "TEXCOORD_0");
+
+                        if (hasAttribute(prim, "JOINTS_0"))
+                            skindices = getAttributeData<uint16_t>(model, prim, "JOINTS_0");
+
+                        if (hasAttribute(prim, "WEIGHTS_0"))
+                            weights = getAttributeData<glm::vec4>(model, prim, "WEIGHTS_0");
+
+                        bool isPrimitiveSkinned = skindices != nullptr && weights != nullptr;
+                        isModelSkinned |= isPrimitiveSkinned;
+
+                        // Load indices into vectors
+                        std::vector<uint32_t> primIndices;
+
+                        const tinygltf::Accessor& indicesAccessor = model.accessors[prim.indices];
+                        const tinygltf::BufferView& bufferView = model.bufferViews[indicesAccessor.bufferView];
+                        const tinygltf::Buffer& buffer = model.buffers[bufferView.buffer];
+
+                        // We always use 32 bit uint indices, but glTF supports a few different types so convert
+                        const void* indexBufferPtr = &buffer.data[indicesAccessor.byteOffset + bufferView.byteOffset];
+                        switch (indicesAccessor.componentType) {
+                        case TINYGLTF_PARAMETER_TYPE_UNSIGNED_INT: {
+                                const uint32_t* buffer = reinterpret_cast<const uint32_t*>(indexBufferPtr);
+
+                                for (size_t idx = 0; idx < indicesAccessor.count; idx++) {
+                                    primIndices.push_back(buffer[idx]);
+                                }
+                            }
+                            break;
+                        case TINYGLTF_PARAMETER_TYPE_UNSIGNED_SHORT: {
+                                const uint16_t* buffer = reinterpret_cast<const uint16_t*>(indexBufferPtr);
+
+                                for (size_t idx = 0; idx < indicesAccessor.count; idx++) {
+                                    primIndices.push_back(buffer[idx]);
+                                }
+                            }
+                            break;
+                        case TINYGLTF_PARAMETER_TYPE_UNSIGNED_BYTE: {
+                                const uint8_t* buffer = reinterpret_cast<const uint8_t*>(indexBufferPtr);
+
+                                for (size_t idx = 0; idx < indicesAccessor.count; idx++) {
+                                    primIndices.push_back(buffer[idx]);
+                                }
+                            }
+                            break;
+                        }
+
+                        // De-index the vertices and make them into one big buffer for tangent calculation
+                        std::vector<wmdl::Vertex2> primVerts;
+                        primVerts.reserve(indicesAccessor.count);
+
+                        for (size_t idx = 0; idx < indicesAccessor.count; idx++) {
+                            size_t v = primIndices[idx];
+                            wmdl::Vertex2 vert{};
+                            vert.position = finalNodeMatrix * glm::vec4(positions[v], 1.0f);
+                            vert.normal = glm::transpose(glm::inverse(finalNodeMatrix)) * glm::vec4(normals[v], 1.0f);
+                            vert.uv = uvs ? uvs[v] : glm::vec2(0.0f);
+                            primVerts.push_back(vert);
+                        }
+
+                        std::vector<wmdl::VertexSkinningInfo> primSkinfos;
+
+                        if (isPrimitiveSkinned) {
+                            primSkinfos.reserve(indicesAccessor.count);
+
+                            for (size_t idx = 0; idx < indicesAccessor.count; idx++) {
+                                size_t v = primIndices[idx];
+                                wmdl::VertexSkinningInfo skinfo{};
+                                for (int i = 0; i < 4; i++) {
+                                    skinfo.boneId[i] = skindices[v * 4 + i];
+                                    skinfo.boneWeight[i] = weights[v][i];
+                                }
+                                primSkinfos.push_back(skinfo);
+                            }
+                        }
+
+                        std::vector<wmdl::Vertex2> mikkTSpaceOut(primVerts.size());
+                        std::vector<wmdl::VertexSkinningInfo> mikkTSpaceOutSkinInfo(primSkinfos.size());
+                        TangentCalcCtx tCalcCtx{ primVerts, mikkTSpaceOut, primSkinfos, mikkTSpaceOutSkinInfo };
+
+                        SMikkTSpaceInterface interface {};
+                        interface.m_getNumFaces = getNumFaces;
+                        interface.m_getNumVerticesOfFace = getNumVertsOfFace;
+                        interface.m_getPosition = getPosition;
+                        interface.m_getNormal = getNormal;
+                        interface.m_getTexCoord = getTexCoord;
+                        interface.m_setTSpaceBasic = setTSpace;
+
+                        SMikkTSpaceContext ctx;
+                        ctx.m_pInterface = &interface;
+                        ctx.m_pUserData = &tCalcCtx;
+
+                        genTangSpaceDefault(&ctx);
+
+                        std::vector<int> remapTable;
+                        remapTable.resize(mikkTSpaceOut.size());
+                        primVerts.resize(mikkTSpaceOut.size());
+
+                        // Re-weld the mesh to convert back to indices
+                        // Also automatically joins identical vertices
+                        int finalVertCount = WeldMesh(remapTable.data(), (float*)primVerts.data(), (float*)mikkTSpaceOut.data(), mikkTSpaceOut.size(), sizeof(wmdl::Vertex2) / sizeof(float));
+                        primVerts.resize(finalVertCount);
+
+                        // Copy the actual indices and vertices to the buffer
+                        for (int i = 0; i < mikkTSpaceOut.size(); i++) {
+                            indices.push_back(remapTable[i] + indexOffset);
+                        }
+
+                        if (isModelSkinned) {
+                            if (isPrimitiveSkinned) {
+                                primSkinfos.resize(finalVertCount);
+                                for (size_t i = 0; i < mikkTSpaceOutSkinInfo.size(); i++) {
+                                    primSkinfos[remapTable[i]] = mikkTSpaceOutSkinInfo[i];
+                                }
+                            } else {
+                                primSkinfos.reserve(finalVertCount);
+                                for (size_t i = 0; i < finalVertCount; i++) {
+                                    primSkinfos.emplace_back();
+                                }
+                            }
+                            skinInfo.insert(skinInfo.end(), primSkinfos.begin(), primSkinfos.end());
+                        }
+
+                        verts.insert(verts.end(), primVerts.begin(), primVerts.end());
+
+                        // Add the submesh info
+                        wmdl::SubmeshInfo smInfo{};
+                        smInfo.numVerts = vertexCount;
+                        smInfo.numIndices = indicesAccessor.count;
+                        smInfo.indexOffset = indexOffset;
+                        smInfo.materialIndex = prim.material;
+                        submeshes.push_back(smInfo);
                     }
                 }
+
+                for (int childIndex : n.children) {
+                    processNode(model.nodes[childIndex], finalNodeMatrix);
+                }
+            };
+
+            for (size_t i = 0; i < scene.nodes.size(); i++) {
+                processNode(model.nodes[scene.nodes[i]], glm::mat4(1.0f));
             }
 
-            for (int childIndex : n.children) {
-                processNode(model.nodes[childIndex]);
-            }
-        };
+            std::vector<wmdl::Bone> bones;
 
-        for (size_t i = 0; i < scene.nodes.size(); i++) {
-            processNode(model.nodes[scene.nodes[i]]);
+            size_t vertSkinInfoLength = skinInfo.size() * sizeof(wmdl::VertexSkinningInfo);
+            wmdl::Header hdr{};
+            hdr.useSmallIndices = false;
+            hdr.numSubmeshes = submeshes.size();
+            hdr.submeshOffset = sizeof(hdr) + sizeof(wmdl::SkinningInfoBlock) + vertSkinInfoLength;
+            hdr.vertexOffset = hdr.submeshOffset + (sizeof(wmdl::SubmeshInfo) * submeshes.size());
+            hdr.indexOffset = hdr.vertexOffset + verts.size() * sizeof(wmdl::Vertex2);
+            hdr.numVertices = verts.size();
+            hdr.numIndices = indices.size();
+
+            PHYSFS_writeBytes(outFile, &hdr, sizeof(hdr));
+
+            wmdl::SkinningInfoBlock sib{};
+            PHYSFS_writeBytes(outFile, &sib, sizeof(sib));
+            PHYSFS_writeBytes(outFile, submeshes.data(), sizeof(wmdl::SubmeshInfo) * submeshes.size());
+            PHYSFS_writeBytes(outFile, verts.data(), sizeof(wmdl::Vertex2) * verts.size());
+            PHYSFS_writeBytes(outFile, indices.data(), sizeof(uint32_t) * indices.size());
+
+            compileOp->progress = 1.0f;
+            compileOp->complete = true;
+            compileOp->result = CompilationResult::Success;
+            
+            return ErrorCodes::None;
         }
-        
-        return ErrorCodes::None;
     }
+
 
     ModelCompiler::ModelCompiler() {
         AssetCompilers::registerCompiler(this);
@@ -647,7 +821,10 @@ namespace worlds {
         std::thread([compileOp, outputPath, path, result, fileLen, settings]() {
             PHYSFS_File* outFile = PHYSFS_openWrite(outputPath.c_str());
             slib::Path p = path;
-            mc_internal::convertAssimpModel(compileOp, outFile, result.value, fileLen, p.fileExtension().cStr(), settings);
+            if (p.fileExtension() == ".glb")
+                mc_internal::convertGltfModel(compileOp, outFile, result.value, fileLen, settings);
+            else
+                mc_internal::convertAssimpModel(compileOp, outFile, result.value, fileLen, p.fileExtension().cStr(), settings);
             PHYSFS_close(outFile);
             }).detach();
 
