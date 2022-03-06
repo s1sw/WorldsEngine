@@ -93,7 +93,7 @@ namespace Game.Interaction
 
             const int MaxOverlaps = 32;
             Span<Entity> overlaps = stackalloc Entity[MaxOverlaps];
-            uint overlappedCount = Physics.OverlapSphereMultiple(dpa.Pose.TransformPoint(new Vector3(0.0f, 0.0f, 0.03f)), 0.5f, MaxOverlaps, overlaps);
+            uint overlappedCount = Physics.OverlapSphereMultiple(dpa.Pose.TransformPoint(new Vector3(0.0f, 0.0f, 0.03f)), 0.2f, MaxOverlaps, overlaps);
 
             Entity? bestGrabbable = null;
             float bestGrabbableScore = -100000.0f;
