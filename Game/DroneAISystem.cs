@@ -312,8 +312,6 @@ namespace Game
 
             Transform targetPose = CalculateTargetPose(_targetPosition, foundFloor ? rHit.WorldHitPos.y : pose.Position.y);
 
-            AvoidOtherDrones(ref targetPose.Position);
-
             if (_navigationPath == null || !_navigationPath.Valid || _targetPosition.DistanceTo(_pathTargetPos) > 1.5f)
             {
                 _pathTargetPos = _targetPosition;
@@ -328,6 +326,7 @@ namespace Game
                     _pathPointIdx++;
 
                 targetPose.Position = _navigationPath[_pathPointIdx] + Vector3.Up * 2.0f;
+                AvoidOtherDrones(ref targetPose.Position);
                 ApplyTargetPose(targetPose);
             }
 
