@@ -34,6 +34,8 @@ namespace Game
         public Transform? OverrideTarget = null;
 
         private Transform _targetTransform = new Transform();
+        [EditableClass]
+        public QuaternionEuroFilter RotationFilter = new();
 
 #if DEBUG_HAND_VIS
         private Entity _visEntity;
@@ -75,8 +77,9 @@ namespace Game
             dpa.AddForce(force);
             bodyDpa.AddForce(-force * 0.1f);
 
-            Quaternion quatDiff = _targetTransform.Rotation.SingleCover * pose.Rotation.SingleCover.Inverse;
-            quatDiff = quatDiff.SingleCover;
+            Quaternion targetRotation = RotationFilter.Filter(_targetTransform.Rotation, Time.DeltaTime);
+            Quaternion quatDiff = targetRotation * pose.Rotation.Inverse;
+            quatDiff = quatDiff.Normalized;
 
             float angle = PDUtil.AngleToErr(quatDiff.Angle);
             Vector3 axis = quatDiff.Axis;
@@ -105,6 +108,7 @@ namespace Game
             //torque = torque.ClampMagnitude(TorqueLimit);
             dpa.AddTorque(torque);
         }
+
         private void SetTargets()
         {
             if (OverrideTarget != null)
