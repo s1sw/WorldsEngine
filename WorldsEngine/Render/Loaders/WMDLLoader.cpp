@@ -82,12 +82,18 @@ namespace worlds {
             memcpy(vertices.data(), wHdr->getVertex2Block(), wHdr->numVertices * sizeof(wmdl::Vertex2));
         }
 
+        logMsg("skins for %s", AssetDB::idToPath(wmdlId).c_str());
         if (wHdr->isSkinned()) {
             skinningInfos.resize(wHdr->numVertices);
             memcpy(skinningInfos.data(), wHdr->getVertexSkinningInfo(), wHdr->numVertices * sizeof(wmdl::VertexSkinningInfo));
+            for (int i = 0; i < wHdr->numVertices; i++) {
+                auto& vsi = skinningInfos[i];
+                //logMsg("%i: (%i, %i, %i, %i)", i, vsi.boneIds[0], vsi.boneIds[1], vsi.boneIds[2], vsi.boneIds[3]);
+            }
         }
 
         memcpy(indices.data(), wHdr->getIndexBlock(), wHdr->numIndices * sizeof(uint32_t));
         free(buf);
+        logMsg("Loaded %s", AssetDB::idToPath(wmdlId).c_str());
     }
 }

@@ -657,13 +657,18 @@ namespace worlds {
 
                         // De-index the vertices and make them into one big buffer for tangent calculation
                         std::vector<wmdl::Vertex2> primVerts;
-                        primVerts.reserve(indicesAccessor.count);
+                        primVerts.reserve(primIndices.size());
 
-                        for (size_t idx = 0; idx < indicesAccessor.count; idx++) {
+                        for (size_t idx = 0; idx < primIndices.size(); idx++) {
                             size_t v = primIndices[idx];
                             wmdl::Vertex2 vert{};
-                            vert.position = /* convertedNode.transform * */ glm::vec4(positions[v], 1.0f);
-                            vert.normal = /* glm::transpose(glm::inverse(convertedNode.transform)) * */ glm::vec4(normals[v], 1.0f);
+                            if (isPrimitiveSkinned) {
+                                vert.position = positions[v];
+                                vert.normal = normals[v];
+                            } else {
+                                vert.position = convertedNode.transform * glm::vec4(positions[v], 1.0f);
+                                vert.normal = glm::transpose(glm::inverse(convertedNode.transform)) * glm::vec4(normals[v], 1.0f);
+                            }
                             vert.uv = uvs ? uvs[v] : glm::vec2(0.0f);
                             primVerts.push_back(vert);
                         }
@@ -671,9 +676,9 @@ namespace worlds {
                         std::vector<wmdl::VertexSkinningInfo> primSkinfos;
 
                         if (isPrimitiveSkinned) {
-                            primSkinfos.reserve(indicesAccessor.count);
+                            primSkinfos.reserve(primVerts.size());
 
-                            for (size_t idx = 0; idx < indicesAccessor.count; idx++) {
+                            for (size_t idx = 0; idx < primVerts.size(); idx++) {
                                 size_t v = primIndices[idx];
                                 wmdl::VertexSkinningInfo skinfo{};
                                 for (int i = 0; i < 4; i++) {
@@ -691,6 +696,8 @@ namespace worlds {
 
                         std::vector<wmdl::Vertex2> mikkTSpaceOut(primVerts.size());
                         std::vector<wmdl::VertexSkinningInfo> mikkTSpaceOutSkinInfo(primSkinfos.size());
+
+                        assert(primVerts.size() == primSkinfos.size());
                         TangentCalcCtx tCalcCtx{ primVerts, mikkTSpaceOut, primSkinfos, mikkTSpaceOutSkinInfo };
 
                         SMikkTSpaceInterface interface {};
@@ -714,19 +721,23 @@ namespace worlds {
                         // Re-weld the mesh to convert back to indices
                         // Also automatically joins identical vertices
                         int finalVertCount = WeldMesh(remapTable.data(), (float*)primVerts.data(), (float*)mikkTSpaceOut.data(), mikkTSpaceOut.size(), sizeof(wmdl::Vertex2) / sizeof(float));
+                        primVerts.resize(finalVertCount);
 
+                        size_t offsetOfIndices = indices.size();
                         // Copy the actual indices and vertices to the buffer
                         for (int i = 0; i < mikkTSpaceOut.size(); i++) {
                             indices.push_back(remapTable[i] + indexOffset);
                         }
 
+                        // Now copy the skinning info back
                         if (isModelSkinned) {
                             if (isPrimitiveSkinned) {
                                 primSkinfos.resize(finalVertCount);
-                                for (int i = 0; i < mikkTSpaceOutSkinInfo.size(); i++) {
+                                for (int i = 0; i < mikkTSpaceOut.size(); i++) {
                                     primSkinfos[remapTable[i]] = mikkTSpaceOutSkinInfo[i];
                                 }
                             } else {
+                                primSkinfos.clear();
                                 primSkinfos.reserve(finalVertCount);
                                 for (size_t i = 0; i < finalVertCount; i++) {
                                     primSkinfos.emplace_back();
@@ -739,9 +750,9 @@ namespace worlds {
 
                         // Add the submesh info
                         wmdl::SubmeshInfo smInfo{};
-                        smInfo.numVerts = finalVertCount;
-                        smInfo.numIndices = indicesAccessor.count;
-                        smInfo.indexOffset = indexOffset;
+                        smInfo.numVerts = mikkTSpaceOut.size();
+                        smInfo.numIndices = primIndices.size();
+                        smInfo.indexOffset = offsetOfIndices;
                         smInfo.materialIndex = prim.material;
                         submeshes.push_back(smInfo);
                     }
@@ -778,6 +789,7 @@ namespace worlds {
                 std::string warnString;
                 gltfContext.LoadBinaryFromMemory(&model, &errString, &warnString, (uint8_t*)data, dataSize);
                 isModelSkinned = model.skins.size() > 0;
+                logMsg("skins: %i", model.skins.size());
 
                 // For now, just assume there's one scene
                 const tinygltf::Scene& scene = model.scenes[0];
