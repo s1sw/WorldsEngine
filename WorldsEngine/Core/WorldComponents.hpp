@@ -47,6 +47,7 @@ namespace worlds {
         AssetID mesh;
         glm::vec4 texScaleOffset;
         UVOverride uvOverride;
+        bool castShadows = true;
     };
 
     struct Bone {
