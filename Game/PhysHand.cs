@@ -77,7 +77,7 @@ namespace Game
             dpa.AddForce(force);
             bodyDpa.AddForce(-force * 0.1f);
 
-            Quaternion targetRotation = RotationFilter.Filter(_targetTransform.Rotation, Time.DeltaTime);
+            Quaternion targetRotation = _targetTransform.Rotation;//RotationFilter.Filter(_targetTransform.Rotation, Time.DeltaTime);
             Quaternion quatDiff = targetRotation * pose.Rotation.Inverse;
             quatDiff = quatDiff.Normalized;
 
