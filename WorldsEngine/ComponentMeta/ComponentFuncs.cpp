@@ -28,6 +28,7 @@
 // (static constructors are only required to be called before the first function in the translation unit)
 // (yay for typical c++ specification bullshittery)
 #include "D6JointEditor.hpp"
+#include "Render/DebugLines.hpp"
 
 using json = nlohmann::json;
 
@@ -533,6 +534,7 @@ namespace worlds {
             // Make sure the sphere doesn't get saved with the scene and is hidden in the hierarchy.
             reg.emplace<DontSerialize>(rangeSphere);
             reg.emplace<HideFromEditor>(rangeSphere);
+            reg.get<WorldObject>(rangeSphere).castShadows = false;
         }
 
         void showTypeSpecificControls(WorldLight& worldLight) {
@@ -609,9 +611,15 @@ namespace worlds {
                     // The sphere mesh has a radius of 0.25, so scale it up 4x
                     sphereTransform.scale = glm::vec3 { worldLight.maxDistance * 4.0f };
 
-                    ImGui::DragFloat("Distance Cutoff", &worldLight.maxDistance);
+                    ImGui::DragFloat("Radius", &worldLight.maxDistance);
 
                     showTypeSpecificControls(worldLight);
+
+                    if (worldLight.type == LightType::Spot) {
+                        glm::vec3 lightForward = transform.rotation * glm::vec3(0.0f, 0.0f, 1.0f);
+                        float radiusAtCutoff = glm::tan(worldLight.spotCutoff) * worldLight.maxDistance * 0.5f;
+                        drawCircle(transform.position + lightForward * worldLight.maxDistance * 0.5f, radiusAtCutoff, transform.rotation * glm::angleAxis(glm::half_pi<float>(), glm::vec3(1.f, 0.f, 0.f)), glm::vec4(1.0f));
+                    }
                 }
             } else if (reg.valid(rangeSphere)) {
                 reg.destroy(rangeSphere);
