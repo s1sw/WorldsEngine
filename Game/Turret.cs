@@ -33,6 +33,7 @@ public class Turret : Component, IStartListener, IThinkingComponent
     private float _fireTimer = 0f;
     private int _shotsToFire = 15;
     private bool _isReloading = false;
+
     public void Think()
     {
         var transform = Entity.Transform;
@@ -63,14 +64,21 @@ public class Turret : Component, IStartListener, IThinkingComponent
         _firePoint = finalFireTransform.TransformPoint(new Vector3(0.0f, 0.0f, 0.5f));
         _fireDirection = finalFireTransform.TransformDirection(new Vector3(0f, 0f, 1f));
 
+        Entity targetEntity = LocalPlayerSystem.PlayerBody;
+        bool targetVisible = false;
+
+        if (Physics.Raycast(_firePoint, _fireDirection, out RaycastHit hit, 20.0f))
+        {
+            targetVisible = hit.HitEntity == targetEntity;
+        }
+
         _fireTimer += Time.DeltaTime;
         if (!_isReloading)
         {
-            if (_fireTimer > 0.05f)
+            if (_fireTimer > 0.05f && targetVisible)
             {
                 AssetID projectileId = AssetDB.PathToId("Prefabs/gun_projectile.wprefab");
                 Entity projectile = Registry.CreatePrefab(projectileId);
-
 
                 Transform projectileTransform = Registry.GetTransform(projectile);
 
