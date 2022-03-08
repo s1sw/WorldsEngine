@@ -49,6 +49,10 @@ public class Turret : Component, IStartListener, IThinkingComponent
         float pitchAngle = MathF.Asin(direction.y);
         float yawAngle = MathF.Atan2(direction.x, direction.z);
 
+        if (_isReloading) {
+            pitchAngle = -(MathF.PI * 0.25f) * ((5f - _fireTimer) / 5f);
+        }
+
         Transform pitchPivotTransform = _initialPitchTransform; 
         Quaternion rotation = Quaternion.AngleAxis(pitchAngle - (MathF.PI * 0.5f), Vector3.Forward);
         pitchPivotTransform.Rotation = rotation;
@@ -75,7 +79,7 @@ public class Turret : Component, IStartListener, IThinkingComponent
         _fireTimer += Time.DeltaTime;
         if (!_isReloading)
         {
-            if (_fireTimer > 0.05f && targetVisible)
+            if (_fireTimer > 0.2f && targetVisible)
             {
                 AssetID projectileId = AssetDB.PathToId("Prefabs/gun_projectile.wprefab");
                 Entity projectile = Registry.CreatePrefab(projectileId);
@@ -108,7 +112,7 @@ public class Turret : Component, IStartListener, IThinkingComponent
         }
         else
         {
-            if (_fireTimer >= 10f)
+            if (_fireTimer >= 5f)
             {
                 _isReloading = false;
                 _shotsToFire = 15;
