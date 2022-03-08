@@ -717,6 +717,7 @@ namespace worlds {
                     ImGui::Text("Currently allocated: %.3fMB", maxAlloced / 1024.0 / 1024.0);
                 }
             }
+            ImGui::End();
 
             if (!keepShowing) {
                 a_showDebugInfo.setValue("0");
