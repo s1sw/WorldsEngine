@@ -46,12 +46,14 @@ namespace worlds {
         pm.vertexAttribute(0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(LineVert, pos));
         pm.vertexAttribute(1, 0, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(LineVert, col));
         pm.polygonMode(VK_POLYGON_MODE_LINE);
-        pm.lineWidth(4.0f);
+        pm.lineWidth(2.0f);
         pm.topology(VK_PRIMITIVE_TOPOLOGY_LINE_LIST);
         pm.depthWriteEnable(true).depthTestEnable(true).depthCompareOp(VK_COMPARE_OP_GREATER);
 
         auto sampleFlags = vku::sampleCountFlags(ctx.passSettings.msaaLevel);
         pm.rasterizationSamples(sampleFlags);
+        pm.dynamicState(VK_DYNAMIC_STATE_VIEWPORT);
+        pm.dynamicState(VK_DYNAMIC_STATE_SCISSOR);
 
         linePipeline = pm.create(
             handles->device, handles->pipelineCache,
@@ -59,8 +61,7 @@ namespace worlds {
     }
 
     void DebugLinesPass::prePass(RenderContext& rCtx) {
-        auto& pxRenderBuffer = g_scene->getRenderBuffer();
-        uint32_t requiredVBSize = pxRenderBuffer.getNbLines() * 2u * sizeof(LineVert);
+        uint32_t requiredVBSize = rCtx.resources.numDebugLines * 2u * sizeof(LineVert);
 
         if (!lineVB.buffer() || currentLineVBSize < requiredVBSize) {
             currentLineVBSize = requiredVBSize + 128;
@@ -75,16 +76,16 @@ namespace worlds {
 
         if (currentLineVBSize > 0) {
             LineVert* lineVBDat = (LineVert*)lineVB.map(handles->device);
-            for (uint32_t i = 0; i < pxRenderBuffer.getNbLines(); i++) {
-                const auto& physLine = pxRenderBuffer.getLines()[i];
-                lineVBDat[(i * 2) + 0] = LineVert{ px2glm(physLine.pos0), glm::vec4(1.0f, 0.0f, 1.0f, 1.0f) };
-                lineVBDat[(i * 2) + 1] = LineVert{ px2glm(physLine.pos1), glm::vec4(1.0f, 0.0f, 1.0f, 1.0f) };
+            for (uint32_t i = 0; i < rCtx.resources.numDebugLines; i++) {
+                const DebugLine& dbgLine = rCtx.resources.debugLineBuffer[i];
+                lineVBDat[(i * 2) + 0] = LineVert{ dbgLine.p0, dbgLine.color };
+                lineVBDat[(i * 2) + 1] = LineVert{ dbgLine.p1, dbgLine.color };
             }
 
             lineVB.unmap(handles->device);
             lineVB.invalidate(handles->device);
             lineVB.flush(handles->device);
-            numLineVerts = pxRenderBuffer.getNbLines() * 2;
+            numLineVerts = rCtx.resources.numDebugLines * 2;
         }
     }
 
