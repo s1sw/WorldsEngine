@@ -1,5 +1,6 @@
 #pragma once
 #include "Render.hpp"
+#include <Render/DebugLines.hpp>
 #include <Render/vku/vku.hpp>
 #include <Render/vku/DebugCallback.hpp>
 #include <Render/ResourceSlots.hpp>
@@ -262,6 +263,8 @@ namespace worlds {
         vku::GenericBuffer* vpMatrixBuffer;
         RenderResource* shadowCascades;
         RenderResource** additionalShadowImages;
+        size_t numDebugLines;
+        const DebugLine* debugLineBuffer;
     };
 
     struct RenderContext {
@@ -506,6 +509,9 @@ namespace worlds {
         AdditionalShadowsPass* additionalShadowsPass;
         void* rdocApi;
         VKUITextureManager* uiTextureMan;
+
+        size_t numDebugLines;
+        const DebugLine* debugLineBuffer;
 
         void createFramebuffers();
         void createSCDependents();
