@@ -165,6 +165,7 @@ namespace WorldsEngine
             for (int i = 0; i < ComponentPoolCount; i++)
             {
                 if (componentStorages[i] == null) continue;
+                if (componentStorages[i].Type.Assembly == Assembly.GetExecutingAssembly()) continue;
                 componentStorages[i]!.SerializeForHotload();
                 componentStorages[i] = null;
             }
@@ -200,6 +201,9 @@ namespace WorldsEngine
                 Type storageType = typeof(ComponentStorage<>).MakeGenericType(type);
 
                 int index = (int)storageType.GetField("typeIndex", BindingFlags.Static | BindingFlags.Public)!.GetValue(null)!;
+
+                if (index >= ComponentPoolCount)
+                    throw new ArgumentOutOfRangeException("Out of component pools. Oops.");
 
                 bool hotload = ComponentTypeLookup.serializedComponents.ContainsKey(type.FullName!);
 
