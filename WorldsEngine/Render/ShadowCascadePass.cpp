@@ -270,6 +270,7 @@ namespace worlds {
         }
 
         reg.view<Transform, WorldObject>().each([&](auto ent, Transform& transform, WorldObject& obj) {
+            if (!obj.castShadows) return;
             auto meshPos = ctx.resources.meshes.find(obj.mesh);
 
             if (meshPos == ctx.resources.meshes.end()) {

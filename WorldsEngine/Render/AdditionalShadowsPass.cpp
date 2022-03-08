@@ -213,6 +213,7 @@ namespace worlds {
             vkCmdBeginRenderPass(cmdBuf, &rpbi, VK_SUBPASS_CONTENTS_INLINE);
 
             ctx.registry.view<Transform, WorldObject>().each([&](auto ent, Transform& transform, WorldObject& obj) {
+                if (!obj.castShadows) return;
                 auto meshPos = ctx.resources.meshes.find(obj.mesh);
 
                 if (meshPos == ctx.resources.meshes.end()) {
