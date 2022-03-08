@@ -452,7 +452,7 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     const char* renderdocModule = "librenderdoc.so";
 #endif
     slib::DynamicLibrary dl{renderdocModule};
-    if (dl.loaded()) {
+    if (dl.loaded() && !EngineArguments::hasArgument("no-renderdoc")) {
         pRENDERDOC_GetAPI RENDERDOC_GetAPI =
             (pRENDERDOC_GetAPI)dl.getFunctionPointer("RENDERDOC_GetAPI");
         int ret = RENDERDOC_GetAPI(eRENDERDOC_API_Version_1_1_2, (void**)&rdocApi);
@@ -466,6 +466,7 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
             g_console->registerCommand([api](void*, const char*) {
                 api->TriggerCapture();
             }, "r_triggerRenderdocCapture", "Triggers a Renderdoc capture.", nullptr);
+            logMsg(WELogCategoryRender, "RenderDoc loaded");
         }
     } else {
         rdocApi = nullptr;
@@ -1370,7 +1371,7 @@ ConVar showSlotDebug{ "r_debugSlots", "0", "Shows a window for debugging resourc
 void VKRenderer::frame(Camera& cam, entt::registry& reg) {
     ZoneScoped;
     std::unique_lock<std::mutex> lock{*apiMutex};
-
+    debugLineBuffer = swapDebugLineBuffer(numDebugLines);
 
     if (vrApi == VrApi::OpenVR) {
         ZoneScopedN("WaitGetPoses");
@@ -1660,7 +1661,9 @@ RenderResources VKRenderer::getResources() {
         &materialUB,
         &vpBuffer,
         shadowmapImage,
-        shadowImages
+        shadowImages,
+        numDebugLines,
+        debugLineBuffer
     };
 }
 

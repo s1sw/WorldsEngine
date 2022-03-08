@@ -49,6 +49,7 @@
 #include <ImGui/imgui_freetype.h>
 #include <UI/WorldTextComponent.hpp>
 #include <Editor/GuiUtil.hpp>
+#include <Render/DebugLines.hpp>
 #undef min
 #undef max
 
@@ -1030,6 +1031,13 @@ namespace worlds {
     void WorldsEngine::tickRenderer(bool renderImGui) {
         ZoneScoped;
         std::unique_lock<std::mutex> lg(rendererLock);
+        const physx::PxRenderBuffer& pxRenderBuffer = g_scene->getRenderBuffer();
+
+        for (uint32_t i = 0; i < pxRenderBuffer.getNbLines(); i++) {
+            const physx::PxDebugLine& line = pxRenderBuffer.getLines()[i];
+            drawLine(px2glm(line.pos0), px2glm(line.pos1), glm::vec4(1.0f, 0.0f, 1.0f, 1.0f));
+        }
+
         {
             ZoneScopedN("Waiting on CV");
             renderThreadCV.wait(lg, [this]{return renderThreadAvailable || !running;});
