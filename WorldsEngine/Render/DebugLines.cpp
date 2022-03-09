@@ -13,12 +13,12 @@ namespace worlds {
         buffers[currentBuffer].emplace_back(p0, p1, color);
     }
 
-    void drawCircle(glm::vec3 center, float radius, glm::quat rotation, glm::vec4 color) {
-        const int NUM_POINTS = 16;
+    void drawCircle(glm::vec3 center, float radius, glm::quat rotation, glm::vec4 color, int detail) {
+        int numPoints = detail == 0 ? 32 : detail;
         glm::vec3 prevPoint;
 
-        for (int i = 0; i < NUM_POINTS; i++) {
-            float angle = glm::pi<float>() * 2.0f * ((float)i / NUM_POINTS);
+        for (int i = 0; i < numPoints; i++) {
+            float angle = glm::pi<float>() * 2.0f * ((float)i / numPoints);
 
             float xOffset = glm::cos(angle);
             float yOffset = glm::sin(angle);
