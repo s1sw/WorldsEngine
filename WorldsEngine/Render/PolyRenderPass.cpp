@@ -35,7 +35,8 @@ namespace ShaderFlags {
         MISC_FLAG_UV_ZY = 8192,
         MISC_FLAG_UV_PICK = 16384,
         MISC_FLAG_CUBEMAP_PARALLAX = 32768,
-        MISC_FLAG_DISABLE_SHADOWS = 65536
+        MISC_FLAG_DISABLE_SHADOWS = 65536,
+        MISC_FLAG_SELECTION_GLOW = 131072
     };
 }
 
@@ -721,6 +722,10 @@ namespace worlds {
                     break;
                 }
 
+                if (ctx.registry.has<EditorGlow>(ent)) {
+                    sdi.drawMiscFlags |= ShaderFlags::MISC_FLAG_SELECTION_GLOW;
+                }
+
                 uint32_t currCubemapIdx = skyboxId;
                 int lastPriority = INT32_MIN;
 
@@ -837,6 +842,10 @@ namespace worlds {
                 case UVOverride::PickBest:
                     sdi.drawMiscFlags = ShaderFlags::MISC_FLAG_UV_PICK;
                     break;
+                }
+
+                if (ctx.registry.has<EditorGlow>(ent)) {
+                    sdi.drawMiscFlags |= ShaderFlags::MISC_FLAG_SELECTION_GLOW;
                 }
 
                 uint32_t currCubemapIdx = skyboxId;

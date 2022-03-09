@@ -1053,6 +1053,7 @@ namespace worlds {
             cloneComponent<WorldLight>(registry, renderRegistry);
             cloneComponent<WorldCubemap>(registry, renderRegistry);
             cloneComponent<UseWireframe>(registry, renderRegistry);
+            cloneComponent<EditorGlow>(registry, renderRegistry);
             cloneComponent<ProxyAOComponent>(registry, renderRegistry);
             cloneComponent<SphereAOProxy>(registry, renderRegistry);
             cloneComponent<WorldTextComponent>(registry, renderRegistry);

@@ -26,12 +26,14 @@ layout(push_constant) uniform PushConstants {
 	// 8 - Debug display UVs                   (128)
 	// 9 - Debug display shadowmap cascades    (256)
 	// 10 - Debug display albedo               (512)
-    // 11 - World space UVs (XY)               (1024)
-    // 12 - World space UVs (XZ)               (2048)
-    // 13 - World space UVs (ZY)               (4096)
-    // 14 - World space UVs (pick with normal) (8192)
-    // 15 - Use cubemap parallax               (16384)
-    // 16 - Disable shadows                    (32768)
+    // 11 - Debug display light tiles          (1024)
+    // 11 - World space UVs (XY)               (2048)
+    // 12 - World space UVs (XZ)               (4096)
+    // 13 - World space UVs (ZY)               (8192)
+    // 14 - World space UVs (pick with normal) (16384)
+    // 15 - Use cubemap parallax               (32768)
+    // 16 - Disable shadows                    (65536)
+    // 17 - Selection glow                     (131072)
     uint miscFlag;
     uint cubemapIdx;
     //total: 80 bytes
@@ -54,4 +56,5 @@ const int MISC_FLAG_UV_ZY = 8192;
 const int MISC_FLAG_UV_PICK = 16384;
 const int MISC_FLAG_CUBEMAP_PARALLAX = 32768;
 const int MISC_FLAG_DISABLE_SHADOWS = 65536;
+const int MISC_FLAG_SELECTION_GLOW = 131072;
 #endif
