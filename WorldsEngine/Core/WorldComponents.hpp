@@ -136,4 +136,5 @@ namespace worlds {
 
     struct DontSerialize {};
     struct HideFromEditor {};
+    struct EditorGlow {};
 }

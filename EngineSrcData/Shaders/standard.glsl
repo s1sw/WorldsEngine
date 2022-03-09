@@ -727,6 +727,13 @@ void main() {
     //    float finalAlpha = 1.0f;
     //#endif
 
-    FragColor = vec4(shade(si) + si.emissive, 1.0);
+    vec3 shadedColor = shade(si);
+    if ((miscFlag & MISC_FLAG_SELECTION_GLOW) == MISC_FLAG_SELECTION_GLOW) {
+        float dp = 1.0 - dot(inNormal, normalize(getViewPos() - inWorldPos.xyz));
+        dp *= dp;
+        si.emissive += pow(vec3(0.87, 0.517, 0.125), vec3(2.2)) * max(dp, 0.05);
+    }
+
+    FragColor = vec4(shadedColor + si.emissive, 1.0);
 }
 #endif

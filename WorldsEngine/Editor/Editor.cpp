@@ -206,21 +206,21 @@ namespace worlds {
 
     void Editor::select(entt::entity entity) {
         // Remove selection from existing entity
-        if (reg.valid(currentSelectedEntity) && reg.has<UseWireframe>(currentSelectedEntity)) {
-            reg.remove<UseWireframe>(currentSelectedEntity);
+        if (reg.valid(currentSelectedEntity) && reg.has<EditorGlow>(currentSelectedEntity)) {
+            reg.remove<EditorGlow>(currentSelectedEntity);
         }
 
         currentSelectedEntity = entity;
         // A null entity means we should deselect the current entity
         if (!reg.valid(entity)) {
             for (auto ent : selectedEntities) {
-                reg.remove_if_exists<UseWireframe>(ent);
+                reg.remove_if_exists<EditorGlow>(ent);
             }
             selectedEntities.clear();
             return;
         }
 
-        reg.emplace<UseWireframe>(currentSelectedEntity);
+        reg.emplace<EditorGlow>(currentSelectedEntity);
     }
 
     void Editor::multiSelect(entt::entity entity) {
@@ -243,9 +243,9 @@ namespace worlds {
 
         if (selectedEntities.contains(entity)) {
             selectedEntities.removeValue(entity);
-            reg.remove_if_exists<UseWireframe>(entity);
+            reg.remove_if_exists<EditorGlow>(entity);
         } else {
-            reg.emplace<UseWireframe>(entity);
+            reg.emplace<EditorGlow>(entity);
             selectedEntities.add(entity);
         }
     }
