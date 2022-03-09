@@ -1,0 +1,22 @@
+using WorldsEngine;
+using WorldsEngine.Math;
+
+namespace Game;
+
+[Component]
+public class SceneTrigger : Component, IThinkingComponent
+{
+    public Vector3 Size = new();
+    public string Scene = string.Empty;
+
+    public void Think()
+    {
+        Transform t = Entity.Transform;
+        AABB aabb = new AABB(Size);
+
+        if (aabb.ContainsPoint(t.InverseTransformPoint(Camera.Main.Position)))
+        {
+            SceneLoader.LoadScene(AssetDB.PathToId(Scene));
+        }
+    }
+}

@@ -95,6 +95,8 @@ namespace worlds {
             pm.depthBiasEnable(true);
             pm.depthBiasConstantFactor(-1.4f);
             pm.depthBiasSlopeFactor(-1.75f);
+            pm.dynamicState(VK_DYNAMIC_STATE_VIEWPORT);
+            pm.dynamicState(VK_DYNAMIC_STATE_SCISSOR);
 
             pipeline = pm.create(handles->device, handles->pipelineCache, pipelineLayout, renderPass);
         }
@@ -113,6 +115,8 @@ namespace worlds {
             pm.depthBiasEnable(true);
             pm.depthBiasConstantFactor(-1.4f);
             pm.depthBiasSlopeFactor(-1.75f);
+            pm.dynamicState(VK_DYNAMIC_STATE_VIEWPORT);
+            pm.dynamicState(VK_DYNAMIC_STATE_SCISSOR);
 
             alphaTestPipeline = pm.create(handles->device, handles->pipelineCache, pipelineLayout, renderPass);
         }
@@ -149,9 +153,14 @@ namespace worlds {
             renderIdx[i] = false;
         }
 
+        ctx.registry.sort<WorldLight>([&](entt::entity a, entt::entity b) {
+            Transform& aT = ctx.registry.get<Transform>(a);
+            Transform& bT = ctx.registry.get<Transform>(b);
+            return glm::distance2(ctx.camera.position, aT.position) < glm::distance2(ctx.camera.position, bT.position);
+            });
         uint32_t shadowIdx = 0;
         ctx.registry.view<WorldLight, Transform>().each([&](WorldLight& light, Transform& t) {
-            if (light.enableShadows && enableSpotShadows.getInt()) {
+            if (light.enableShadows && enableSpotShadows.getInt() && shadowIdx < NUM_SHADOW_LIGHTS) {
                 light.shadowmapIdx = shadowIdx;
                 renderIdx[shadowIdx] = true;
                 Camera shadowCam;
@@ -203,10 +212,26 @@ namespace worlds {
             auto imgView = ctx.resources.additionalShadowImages[i]->image().imageView();
             attachmentBeginInfo.pAttachments = &imgView;
 
+            int res = 1024 >> i;
+
+            VkViewport vp{};
+            vp.minDepth = 0.0f;
+            vp.maxDepth = 1.0f;
+            vp.x = 0.0f;
+            vp.y = 0.0f;
+            vp.width = res;
+            vp.height = res;
+            vkCmdSetViewport(cmdBuf, 0, 1, &vp);
+
+            VkRect2D scissor{};
+            scissor.extent.width = res;
+            scissor.extent.height = res;
+            vkCmdSetScissor(cmdBuf, 0, 1, &scissor);
+
             VkRenderPassBeginInfo rpbi{ VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
             rpbi.renderPass = renderPass;
             rpbi.framebuffer = fb;
-            rpbi.renderArea = VkRect2D{ {0, 0}, {spotRes, spotRes} };
+            rpbi.renderArea = VkRect2D{ {0, 0}, {(uint32_t)res, (uint32_t)res} };
             rpbi.clearValueCount = 1;
             rpbi.pClearValues = &clearVal;
             rpbi.pNext = &attachmentBeginInfo;

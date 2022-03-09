@@ -68,7 +68,6 @@ namespace WorldsEngine
         {
             if ((DateTime.Now - _lastReloadTime).TotalMilliseconds < 500)
             {
-                Logger.LogWarning("Ignoring assembly reload as too soon");
                 return;
             }
 

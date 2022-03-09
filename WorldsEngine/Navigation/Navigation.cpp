@@ -135,8 +135,6 @@ namespace worlds {
 
         rcCalcGridSize(recastConfig.bmin, recastConfig.bmax, recastConfig.cs, &recastConfig.width, &recastConfig.height);
 
-        logMsg("%ix%i cells", recastConfig.width, recastConfig.height);
-
         rcHeightfield* heightfield = rcAllocHeightfield();
 
         bool lastResult = rcCreateHeightfield(ctx, *heightfield,
@@ -306,7 +304,7 @@ namespace worlds {
         status = navMeshQuery->findPath(startPolygon, endPolygon, glm::value_ptr(onPolyStartPos), glm::value_ptr(onPolyEndPos),
             &queryFilter, pathPolys, &numPathPolys, 32);
 
-        if (dtStatusFailed(status)) {
+        if (dtStatusFailed(status) && !dtStatusDetail(status, DT_PARTIAL_RESULT)) {
             logErr("Failed to find nav mesh poly path");
             return;
         }
@@ -317,7 +315,7 @@ namespace worlds {
         int numPathPoints;
         status = navMeshQuery->findStraightPath(glm::value_ptr(onPolyStartPos), glm::value_ptr(onPolyEndPos), pathPolys, numPathPolys, glm::value_ptr(pathPoints[0]), pathFlags, straightPathPolys, &numPathPoints, 32, DT_STRAIGHTPATH_ALL_CROSSINGS);
 
-        if (dtStatusFailed(status)) {
+        if (dtStatusFailed(status) && !dtStatusDetail(status, DT_PARTIAL_RESULT)) {
             logErr("Failed to find straight path");
             return;
         }
