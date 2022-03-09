@@ -49,7 +49,8 @@ public class Turret : Component, IStartListener, IThinkingComponent
         float pitchAngle = MathF.Asin(direction.y);
         float yawAngle = MathF.Atan2(direction.x, direction.z);
 
-        if (_isReloading) {
+        if (_isReloading)
+        {
             pitchAngle = -(MathF.PI * 0.25f) * ((5f - _fireTimer) / 5f);
         }
 
