@@ -737,6 +737,94 @@ namespace worlds {
         return shapes;
     }
 
+    void drawTransformedLine(const Transform& transform, glm::vec3 p0, glm::vec3 p1, glm::vec4 col) {
+        drawLine(transform.transformPoint(p0), transform.transformPoint(p1), col);
+    }
+
+    // Draws a box shape using lines.
+    void drawPhysicsBox(const Transform& actorTransform, const PhysicsShape& ps) {
+        glm::vec3 max = ps.box.halfExtents * actorTransform.scale;
+        glm::vec3 min = -ps.box.halfExtents * actorTransform.scale;
+
+        Transform overallTransform{ps.pos * actorTransform.scale, ps.rot};
+        overallTransform = overallTransform.transformBy(actorTransform);
+
+        //                      y
+        //      _____           ^
+        //     /    /|          |   ^ z
+        //max /----/ |          |  /
+        //    |    | |          | /
+        //    |    | / min      |/
+        //    |----|/           ---------> x
+
+        glm::vec4 col = glm::vec4(0.0f, 1.0f, 0.0f, 1.0f);
+        // x->> lines
+        drawTransformedLine(overallTransform, glm::vec3(max.x, max.y, max.z), glm::vec3(min.x, max.y, max.z), col);
+        drawTransformedLine(overallTransform, glm::vec3(max.x, max.y, min.z), glm::vec3(min.x, max.y, min.z), col);
+
+        drawTransformedLine(overallTransform, glm::vec3(max.x, min.y, max.z), glm::vec3(min.x, min.y, max.z), col);
+        drawTransformedLine(overallTransform, glm::vec3(max.x, min.y, min.z), glm::vec3(min.x, min.y, min.z), col);
+
+        // y ^ lines
+        drawTransformedLine(overallTransform, glm::vec3(max.x, min.y, max.z), glm::vec3(max.x, max.y, max.z), col);
+        drawTransformedLine(overallTransform, glm::vec3(max.x, min.y, min.z), glm::vec3(max.x, max.y, min.z), col);
+
+        drawTransformedLine(overallTransform, glm::vec3(min.x, min.y, max.z), glm::vec3(min.x, max.y, max.z), col);
+        drawTransformedLine(overallTransform, glm::vec3(min.x, min.y, min.z), glm::vec3(min.x, max.y, min.z), col);
+
+        // z /^ lines
+        drawTransformedLine(overallTransform, glm::vec3(max.x, max.y, max.z), glm::vec3(max.x, max.y, min.z), col);
+        drawTransformedLine(overallTransform, glm::vec3(max.x, min.y, max.z), glm::vec3(max.x, min.y, min.z), col);
+
+        drawTransformedLine(overallTransform, glm::vec3(min.x, max.y, max.z), glm::vec3(min.x, max.y, min.z), col);
+        drawTransformedLine(overallTransform, glm::vec3(min.x, min.y, max.z), glm::vec3(min.x, min.y, min.z), col);
+    }
+
+    void drawPhysicsSphere(const Transform& actorTransform, const PhysicsShape& ps) {
+        // We can't really draw a sphere with just lines, so draw two circles
+        // perpendicular to eachother
+
+        glm::vec3 center = actorTransform.transformPoint(ps.pos);
+        glm::vec4 col = glm::vec4(0.0f, 1.0f, 0.0f, 1.0f);
+
+        glm::quat worldRotation = actorTransform.rotation * ps.rot;
+        drawCircle(center, ps.sphere.radius, worldRotation, col);
+
+        // Rotate it 90deg on the X axis
+        worldRotation = worldRotation * glm::angleAxis(glm::half_pi<float>(), glm::vec3(1.0f, 0.0f, 0.0f));
+        drawCircle(center, ps.sphere.radius, worldRotation, col);
+    }
+
+    void drawPhysicsMesh(const Transform& actorTransform, const PhysicsShape& ps) {
+        AssetID meshId = ps.type == PhysicsShapeType::ConvexMesh ? ps.convexMesh.mesh : ps.mesh.mesh;
+        const LoadedMesh& lm = MeshManager::loadOrGet(meshId);
+
+        glm::vec4 col = glm::vec4(0.0f, 1.0f, 0.0f, 1.0f);
+        for (size_t i = 0; i < lm.indices.size(); i += 3) {
+            glm::vec3 p0 = actorTransform.transformPoint(lm.vertices[lm.indices[i + 0]].position * actorTransform.scale);
+            glm::vec3 p1 = actorTransform.transformPoint(lm.vertices[lm.indices[i + 1]].position * actorTransform.scale);
+            glm::vec3 p2 = actorTransform.transformPoint(lm.vertices[lm.indices[i + 2]].position * actorTransform.scale);
+
+            drawLine(p0, p1, col);
+            drawLine(p1, p2, col);
+        }
+    }
+
+    // Draws the given shape using lines.
+    void drawPhysicsShape(const Transform& actorTransform, const PhysicsShape& ps) {
+        switch (ps.type) {
+        case PhysicsShapeType::Box:
+            drawPhysicsBox(actorTransform, ps);
+            break;
+        case PhysicsShapeType::Sphere:
+            drawPhysicsSphere(actorTransform, ps);
+        case PhysicsShapeType::ConvexMesh:
+        case PhysicsShapeType::Mesh:
+            drawPhysicsMesh(actorTransform, ps);
+        default: break;
+        }
+    }
+
     template <typename T>
     void editPhysicsShapes(T& actor, Transform& actorTransform, worlds::Editor* ed) {
         static size_t currentShapeIdx = 0;
@@ -786,6 +874,8 @@ namespace worlds {
                 }
                 ImGui::EndCombo();
             }
+
+            drawPhysicsShape(actorTransform, *it);
 
             ImGui::SameLine();
             if (ImGui::Button("Remove##PhysicsShape")) {
