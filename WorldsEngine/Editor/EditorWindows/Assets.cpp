@@ -102,7 +102,12 @@ namespace worlds {
                             if (ext == ".wscn") {
                                 interfaces.engine->loadScene(AssetDB::pathToId(fullPath));
                             } else if (ext == ".wprefab") {
-                                SceneLoader::createPrefab(AssetDB::pathToId(fullPath), reg);
+                                entt::entity ent = SceneLoader::createPrefab(AssetDB::pathToId(fullPath), reg);
+                                if (editor->getFirstSceneView()) {
+                                    Transform& t = reg.get<Transform>(ent);
+                                    Camera& cam = editor->getFirstSceneView()->getCamera();
+                                    t.position = cam.position + cam.rotation * glm::vec3(0.0f, 0.0f, 1.0f);
+                                }
                             } else {
                                 editor->currentSelectedAsset = AssetDB::pathToId(fullPath);
                             }

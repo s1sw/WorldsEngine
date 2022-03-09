@@ -393,7 +393,9 @@ namespace worlds {
                     ImGui::Text("Mesh: %s", AssetDB::idToPath(worldObject.mesh).c_str());
                     ImGui::SameLine();
 
-                    selectAssetPopup("Mesh", worldObject.mesh, ImGui::Button("Change##Mesh"));
+                    if (selectAssetPopup("Mesh", worldObject.mesh, ImGui::Button("Change##Mesh"))) {
+                        worldObject.resetPose();
+                    }
 
                     if (ImGui::TreeNode("Materials")) {
                         for (int i = 0; i < NUM_SUBMESH_MATS; i++) {
@@ -486,9 +488,10 @@ namespace worlds {
         }
 
         void fromJson(entt::entity ent, entt::registry& reg, const json& j) override {
-            auto& wo = reg.emplace<SkinnedWorldObject>(ent, 0, 0);
             std::string meshPath = j["mesh"];
-            wo.mesh = AssetDB::pathToId(meshPath);
+            AssetID mesh = AssetDB::pathToId(meshPath);
+            auto& wo = reg.emplace<SkinnedWorldObject>(ent, INVALID_ASSET, mesh);
+
             wo.texScaleOffset = j["texScaleOffset"];
             wo.uvOverride = j["uvOverride"];
             wo.staticFlags = j["staticFlags"];
@@ -877,8 +880,7 @@ namespace worlds {
 
             drawPhysicsShape(actorTransform, *it);
 
-            ImGui::SameLine();
-            if (ImGui::Button("Remove##PhysicsShape")) {
+            if (ImGui::Button("Remove Shape")) {
                 eraseIter = it;
                 erase = true;
             }

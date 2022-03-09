@@ -155,7 +155,6 @@ namespace worlds {
         , currentTool(Tool::Translate)
         , reg(reg)
         , currentSelectedEntity(entt::null)
-        , cam(*interfaces.mainCamera)
         , lookX(0.0f)
         , lookY(0.0f)
         , cameraSpeed(5.0f)
@@ -371,6 +370,10 @@ namespace worlds {
                 }
             }
         }
+    }
+
+    EditorSceneView* Editor::getFirstSceneView() {
+        return sceneViews[0];
     }
 
     void Editor::eyedropperSelect(entt::entity picked) {
@@ -748,9 +751,6 @@ namespace worlds {
             ImGui::InputFloat("Snap increment", &settings.snapIncrement, 0.1f, 0.5f);
             ImGui::InputFloat("Angular snap increment", &settings.angularSnapIncrement, 0.5f, 1.0f);
             ImGui::InputFloat("Camera speed", &cameraSpeed, 0.1f);
-            float fov = glm::degrees(cam.verticalFOV);
-            ImGui::InputFloat("Camera FOV", &fov);
-            cam.verticalFOV = glm::radians(fov);
 
             ImGui::InputFloat("Scene icon distance", &settings.sceneIconDrawDistance);
             if (ImGui::Checkbox("Shadows", &settings.enableShadows)) {

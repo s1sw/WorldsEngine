@@ -10,7 +10,7 @@
 #include <Audio/Audio.hpp>
 
 namespace worlds {
-    EditorSceneView::EditorSceneView(EngineInterfaces interfaces, Editor* ed)
+   EditorSceneView::EditorSceneView(EngineInterfaces interfaces, Editor* ed)
         : interfaces(interfaces)
         , ed(ed) {
         currentWidth = 256;
@@ -393,6 +393,10 @@ namespace worlds {
     void EditorSceneView::setViewportActive(bool active) {
         viewportActive = active;
         sceneViewPass->active = active;
+    }
+
+    Camera& EditorSceneView::getCamera() {
+        return cam;
     }
 
     void EditorSceneView::updateCamera(float deltaTime) {

@@ -87,7 +87,7 @@ namespace worlds {
         GraphicsSettings(int msaaLevel, int shadowmapRes, bool enableVr)
             : msaaLevel(msaaLevel)
             , shadowmapRes(shadowmapRes)
-            , spotShadowmapRes(512)
+            , spotShadowmapRes(2048)
             , enableVr(enableVr)
             , enableBloom(true)
             , enableCascadeShadows(true)

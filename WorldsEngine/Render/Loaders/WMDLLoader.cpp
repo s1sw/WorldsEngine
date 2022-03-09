@@ -32,21 +32,8 @@ namespace worlds {
                 lmd.meshBones[i].transform = bones[i].transform;
                 lmd.meshBones[i].parentIdx = bones[i].parentBone;
                 lmd.meshBones[i].name = bones[i].name;
-                lmd.boneUpdateOrder.push_back(i);
             }
         }
-
-        //std::sort(lmd.boneUpdateOrder.begin(), lmd.boneUpdateOrder.end(), [&](uint32_t boneIdxA, uint32_t boneIdxB) {
-        //    uint32_t parentIdxA = lmd.meshBones[boneIdxA].parentIdx;
-        //    uint32_t parentIdxB = lmd.meshBones[boneIdxB].parentIdx;
-        //
-        //    if (parentIdxA == ~0u && parentIdxB != ~0u)
-        //        return true;
-        //    else if (parentIdxB == ~0u && parentIdxA != ~0u)
-        //        return false;
-        //
-        //    return parentIdxA < boneIdxB;
-        //});
 
         wmdl::SubmeshInfo* submeshBlock = wHdr->getSubmeshBlock();
         lmd.numSubmeshes = wHdr->numSubmeshes;
@@ -82,18 +69,12 @@ namespace worlds {
             memcpy(vertices.data(), wHdr->getVertex2Block(), wHdr->numVertices * sizeof(wmdl::Vertex2));
         }
 
-        logMsg("skins for %s", AssetDB::idToPath(wmdlId).c_str());
         if (wHdr->isSkinned()) {
             skinningInfos.resize(wHdr->numVertices);
             memcpy(skinningInfos.data(), wHdr->getVertexSkinningInfo(), wHdr->numVertices * sizeof(wmdl::VertexSkinningInfo));
-            for (int i = 0; i < wHdr->numVertices; i++) {
-                auto& vsi = skinningInfos[i];
-                //logMsg("%i: (%i, %i, %i, %i)", i, vsi.boneIds[0], vsi.boneIds[1], vsi.boneIds[2], vsi.boneIds[3]);
-            }
         }
 
         memcpy(indices.data(), wHdr->getIndexBlock(), wHdr->numIndices * sizeof(uint32_t));
         free(buf);
-        logMsg("Loaded %s", AssetDB::idToPath(wmdlId).c_str());
     }
 }

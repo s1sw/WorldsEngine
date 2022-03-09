@@ -419,7 +419,7 @@ namespace worlds {
         depthPassMaker.dependencyBegin(0, VK_SUBPASS_EXTERNAL);
         depthPassMaker.dependencyDstStageMask(VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
         depthPassMaker.dependencyDstAccessMask(VK_ACCESS_SHADER_READ_BIT);
-        depthPassMaker.dependencySrcStageMask(VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT);
+        depthPassMaker.dependencySrcStageMask(VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT);
         depthPassMaker.dependencySrcAccessMask(VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT);
 
         // AMD driver bug workaround: shaders that use ViewIndex without a multiview renderpass

@@ -114,7 +114,6 @@ namespace worlds {
         bool isSkinned;
         vku::VertexBuffer vertexSkinWeights;
         std::vector<MeshBone> meshBones;
-        std::vector<uint32_t> boneUpdateOrder;
 
         uint32_t indexCount;
         VkIndexType indexType;

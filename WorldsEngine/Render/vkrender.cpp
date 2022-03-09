@@ -392,7 +392,11 @@ bool checkPhysicalDeviceFeatures(const VkPhysicalDevice& physDev) {
     VkPhysicalDeviceProperties properties{};
     vkGetPhysicalDeviceProperties(physDev, &properties);
 
-    const int requiredSampledImages = 128 + 2 + 32 + 4;
+    const int requiredSampledImages =
+          128  // tex2dSampler
+        + 3    // shadowSampler + brdfLutSampler + noiseSampler
+        + 32   // cubemapSampler
+        + 4;   // additionalShadowSampler
     if (properties.limits.maxPerStageDescriptorSampledImages < requiredSampledImages) {
         logErr(WELogCategoryRender, "maxPerStageDescriptorSampledImages too low! Must be at least %i, was %i",
                 requiredSampledImages, properties.limits.maxPerStageDescriptorSampledImages);
@@ -871,11 +875,11 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
 
 void VKRenderer::createSpotShadowImages() {
     for (int i = 0; i < NUM_SHADOW_LIGHTS; i++) {
-        int spotRes = handles.graphicsSettings.spotShadowmapRes;
+        int spotRes = 1024;//handles.graphicsSettings.spotShadowmapRes;
         TextureResourceCreateInfo shadowCreateInfo{
             TextureType::T2D,
             VK_FORMAT_D32_SFLOAT,
-            spotRes, spotRes,
+            spotRes >> i, spotRes >> i,
             VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT
         };
 
@@ -1223,20 +1227,25 @@ void VKRenderer::writeCmdBuf(VkCommandBuffer cmdBuf, uint32_t imageIndex, Camera
         return a->drawSortKey < b->drawSortKey;
         });
 
-    additionalShadowsPass->prePass(rCtx);
 
     for (auto& p : rttPasses) {
         if (!p->active) continue;
 
         bool nullCam = p->cam == nullptr;
 
-        if (nullCam)
+        if (nullCam) {
             p->cam = &cam;
+            rCtx.camera = cam;
+        } else {
+            rCtx.camera = *p->cam;
+        }
 
+        additionalShadowsPass->prePass(rCtx);
         p->prePass(frameIdx, reg);
 
-        if (nullCam)
+        if (nullCam) {
             p->cam = nullptr;
+        }
     }
 
     vku::beginCommandBuffer(cmdBuf, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
@@ -1252,7 +1261,6 @@ void VKRenderer::writeCmdBuf(VkCommandBuffer cmdBuf, uint32_t imageIndex, Camera
         VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
         VK_ACCESS_TRANSFER_READ_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT);
 
-    additionalShadowsPass->execute(rCtx);
 
     int numActivePasses = 0;
     bool lastPassIsVr = false;
@@ -1269,9 +1277,14 @@ void VKRenderer::writeCmdBuf(VkCommandBuffer cmdBuf, uint32_t imageIndex, Camera
 
         bool nullCam = p->cam == nullptr;
 
-        if (nullCam)
+        if (nullCam) {
             p->cam = &cam;
+            rCtx.camera = cam;
+        } else {
+            rCtx.camera = *p->cam;
+        }
 
+        additionalShadowsPass->execute(rCtx);
         p->writeCmds(frameIdx, cmdBuf, reg);
 
         if (nullCam)

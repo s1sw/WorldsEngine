@@ -141,6 +141,7 @@ namespace worlds {
         void recreateRTT();
         void setShadowsEnabled(bool enabled);
         void setViewportActive(bool active);
+        Camera& getCamera();
         bool open = true;
         ~EditorSceneView();
     private:
@@ -193,6 +194,7 @@ namespace worlds {
         const GameProject& currentProject() { return *project; }
         void saveOpenWindows();
         void loadOpenWindows();
+        EditorSceneView* getFirstSceneView();
     private:
         std::unique_ptr<GameProject> project;
         ImTextureID titleBarIcon;
@@ -207,7 +209,6 @@ namespace worlds {
         entt::registry& reg;
         slib::List<entt::entity> selectedEntities;
         entt::entity currentSelectedEntity;
-        Camera& cam;
         Transform originalObjectTransform;
         float lookX;
         float lookY;

@@ -53,7 +53,7 @@ namespace WorldsEngine
 
     public static class Registry
     {
-        const int ComponentPoolCount = 32;
+        const int ComponentPoolCount = 128;
 
         internal static IntPtr NativePtr => nativeRegistryPtr;
 
@@ -201,6 +201,7 @@ namespace WorldsEngine
                 Type storageType = typeof(ComponentStorage<>).MakeGenericType(type);
 
                 int index = (int)storageType.GetField("typeIndex", BindingFlags.Static | BindingFlags.Public)!.GetValue(null)!;
+                Log.Msg($"Creating storage for {type.FullName}, index {index}");
 
                 if (index >= ComponentPoolCount)
                     throw new ArgumentOutOfRangeException("Out of component pools. Oops.");
@@ -232,6 +233,7 @@ namespace WorldsEngine
 
             if (componentStorages[typeIndex] == null)
             {
+                Log.Msg($"Creating storage for {typeof(T).FullName}, index {typeIndex}");
                 componentStorages[typeIndex] = new ComponentStorage<T>(hotload);
                 if (typeof(ICollisionHandler).IsAssignableFrom(typeof(T)))
                     _collisionHandlers.Add(componentStorages[typeIndex]!);

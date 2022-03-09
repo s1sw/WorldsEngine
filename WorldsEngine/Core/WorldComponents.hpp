@@ -66,14 +66,8 @@ namespace worlds {
     };
 
     struct SkinnedWorldObject : public WorldObject {
-        SkinnedWorldObject(AssetID material, AssetID mesh)
-            : WorldObject(material, mesh) {
-            currentPose.boneTransforms.resize(64); // TODO
-
-            for (glm::mat4& t : currentPose.boneTransforms) {
-                t = glm::mat4{1.0f};
-            }
-        }
+        SkinnedWorldObject(AssetID material, AssetID mesh);
+        void resetPose();
         Pose currentPose;
     };
 
