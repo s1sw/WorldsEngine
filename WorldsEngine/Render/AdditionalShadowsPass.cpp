@@ -121,29 +121,32 @@ namespace worlds {
             alphaTestPipeline = pm.create(handles->device, handles->pipelineCache, pipelineLayout, renderPass);
         }
 
-        VkFramebufferAttachmentsCreateInfo faci{ VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENTS_CREATE_INFO };
-        faci.attachmentImageInfoCount = 1;
+        for (int i = 0; i < NUM_SHADOW_LIGHTS; i++) {
+            int lightRes = spotRes >> i;
+            VkFramebufferAttachmentsCreateInfo faci{ VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENTS_CREATE_INFO };
+            faci.attachmentImageInfoCount = 1;
 
-        VkFramebufferAttachmentImageInfo faii{ VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENT_IMAGE_INFO };
-        faii.width = faii.height = spotRes;
-        faii.layerCount = 1;
-        faii.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-        faii.viewFormatCount = 1;
-        VkFormat shadowFormat = VK_FORMAT_D32_SFLOAT;
-        faii.pViewFormats = &shadowFormat;
+            VkFramebufferAttachmentImageInfo faii{ VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENT_IMAGE_INFO };
+            faii.width = faii.height = lightRes;
+            faii.layerCount = 1;
+            faii.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+            faii.viewFormatCount = 1;
+            VkFormat shadowFormat = VK_FORMAT_D32_SFLOAT;
+            faii.pViewFormats = &shadowFormat;
 
-        faci.pAttachmentImageInfos = &faii;
+            faci.pAttachmentImageInfos = &faii;
 
-        VkFramebufferCreateInfo fci{ VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
-        fci.attachmentCount = 1;
-        fci.pAttachments = nullptr;
-        fci.width = fci.height = spotRes;
-        fci.renderPass = renderPass;
-        fci.layers = 1;
-        fci.flags = VK_FRAMEBUFFER_CREATE_IMAGELESS_BIT;
-        fci.pNext = &faci;
+            VkFramebufferCreateInfo fci{ VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
+            fci.attachmentCount = 1;
+            fci.pAttachments = nullptr;
+            fci.width = fci.height = lightRes;
+            fci.renderPass = renderPass;
+            fci.layers = 1;
+            fci.flags = VK_FRAMEBUFFER_CREATE_IMAGELESS_BIT;
+            fci.pNext = &faci;
 
-        VKCHECK(vku::createFramebuffer(handles->device, &fci, &fb));
+            VKCHECK(vku::createFramebuffer(handles->device, &fci, &fbs[i]));
+        }
 
         updateDescriptorSet(ctx);
     }
@@ -212,7 +215,7 @@ namespace worlds {
             auto imgView = ctx.resources.additionalShadowImages[i]->image().imageView();
             attachmentBeginInfo.pAttachments = &imgView;
 
-            int res = 1024 >> i;
+            int res = spotRes >> i;
 
             VkViewport vp{};
             vp.minDepth = 0.0f;
@@ -230,7 +233,7 @@ namespace worlds {
 
             VkRenderPassBeginInfo rpbi{ VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
             rpbi.renderPass = renderPass;
-            rpbi.framebuffer = fb;
+            rpbi.framebuffer = fbs[i];
             rpbi.renderArea = VkRect2D{ {0, 0}, {(uint32_t)res, (uint32_t)res} };
             rpbi.clearValueCount = 1;
             rpbi.pClearValues = &clearVal;

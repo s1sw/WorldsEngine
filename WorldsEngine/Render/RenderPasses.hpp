@@ -317,7 +317,7 @@ namespace worlds {
     class AdditionalShadowsPass {
     private:
         vku::RenderPass renderPass;
-        vku::Framebuffer fb;
+        vku::Framebuffer fbs[NUM_SHADOW_LIGHTS];
         vku::Pipeline pipeline;
         vku::Pipeline alphaTestPipeline;
         vku::PipelineLayout pipelineLayout;
@@ -325,8 +325,8 @@ namespace worlds {
         VkDescriptorSet descriptorSet;
         vku::Sampler sampler;
         VulkanHandles* handles;
-        glm::mat4 shadowMatrices[4];
-        bool renderIdx[4];
+        glm::mat4 shadowMatrices[NUM_SHADOW_LIGHTS];
+        bool renderIdx[NUM_SHADOW_LIGHTS];
         bool dsUpdateNeeded = false;
         void updateDescriptorSet(RenderResources);
     public:

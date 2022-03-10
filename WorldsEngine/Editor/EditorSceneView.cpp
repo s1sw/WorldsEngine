@@ -138,6 +138,14 @@ namespace worlds {
                 auto& selectedTransform = reg.get<Transform>(ed->currentSelectedEntity);
                 ed->handleTools(selectedTransform, wPos, wSize, cam);
 
+                ChildComponent* childComponent = reg.try_get<ChildComponent>(ed->currentSelectedEntity);
+                if (childComponent) {
+                    if (reg.valid(childComponent->parent)) {
+                        Transform& parentTransform = reg.get<Transform>(childComponent->parent);
+                        childComponent->offset = selectedTransform.transformByInverse(parentTransform);
+                    }
+                }
+
                 if (interfaces.inputManager->ctrlHeld() &&
                     interfaces.inputManager->keyPressed(SDL_SCANCODE_D) &&
                     !interfaces.inputManager->mouseButtonHeld(MouseButton::Right, true)) {
