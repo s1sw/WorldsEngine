@@ -389,7 +389,7 @@ float getDirLightShadowIntensity(int lightIdx) {
 #ifdef HIGH_QUALITY_SHADOWS
         float percentOccluded = 0.0;
         float distanceSum = 0.0;
-        float kernelScale = (1.5 / 512.0); //* (textureSize(shadowSampler, 0).x / 1024.0);
+        float kernelScale = (2.0 / 512.0) / cascadeTexelsPerUnit[0] * cascadeTexelsPerUnit[int(cascadeSplit)];
         //float kernelScale = (1.0 / 512.0);
 
         float angle = getSampleAngle();
