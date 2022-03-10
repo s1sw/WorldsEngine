@@ -115,6 +115,7 @@ namespace worlds {
         glm::vec3 extent{0.0f};
         bool cubeParallax = false;
         int priority = 0;
+        int resolution = 128;
         AssetID cubemapId = ~0u;
     };
 

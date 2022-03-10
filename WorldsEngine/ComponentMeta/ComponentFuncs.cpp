@@ -1563,13 +1563,16 @@ namespace worlds {
 
             if (ImGui::CollapsingHeader(ICON_FA_CIRCLE u8" Cubemap")) {
                 ImGui::DragFloat3("Extent", &wc.extent.x);
+                ImGui::InputInt("Resolution", &wc.resolution);
+                tooltipHover("Powers of two are highly recommended for this setting.");
                 ImGui::Checkbox("Parallax Correction", &wc.cubeParallax);
                 ImGui::InputInt("Priority", &wc.priority);
+                tooltipHover("Cubemaps with a higher priority value will be preferred over cubemaps with a lower priority value.");
 
                 Transform boundsTransform{};
                 boundsTransform.position = reg.get<Transform>(ent).position;
                 boundsTransform.scale = wc.extent;
-                drawBox(boundsTransform.position, glm::quat{1.0f, 0.0f, 0.0f, 0.0f}, wc.extent * 0.5f);
+                drawBox(boundsTransform.position, glm::quat{1.0f, 0.0f, 0.0f, 0.0f}, wc.extent);
 
                 ImGui::Separator();
             }
@@ -1600,7 +1603,8 @@ namespace worlds {
             j = {
                 { "useCubeParallax", wc.cubeParallax },
                 { "extent", wc.extent },
-                { "priority", wc.priority }
+                { "priority", wc.priority },
+                { "resolution", wc.resolution }
             };
         }
 
@@ -1611,6 +1615,7 @@ namespace worlds {
             wc.extent = j["extent"];
             wc.cubeParallax = j["useCubeParallax"];
             wc.priority = j.value("priority", 0);
+            wc.resolution = j.value("resolution", 128);
         }
     };
 
