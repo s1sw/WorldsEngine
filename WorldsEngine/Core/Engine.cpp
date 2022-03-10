@@ -954,6 +954,11 @@ namespace worlds {
 
             console->drawWindow();
 
+            registry.view<ChildComponent, Transform>().each([&](ChildComponent& c, Transform& t) {
+                if (!registry.valid(c.parent)) return;
+                t = c.offset.transformBy(registry.get<Transform>(c.parent));
+                });
+
             if (!dedicatedServer) {
                 ZoneScopedN("Copy to Render Thread");
                 tickRenderer(true);

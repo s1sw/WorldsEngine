@@ -875,7 +875,7 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
 
 void VKRenderer::createSpotShadowImages() {
     for (int i = 0; i < NUM_SHADOW_LIGHTS; i++) {
-        int spotRes = 1024;//handles.graphicsSettings.spotShadowmapRes;
+        int spotRes = handles.graphicsSettings.spotShadowmapRes;
         TextureResourceCreateInfo shadowCreateInfo{
             TextureType::T2D,
             VK_FORMAT_D32_SFLOAT,

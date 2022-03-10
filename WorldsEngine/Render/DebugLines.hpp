@@ -6,6 +6,8 @@
 namespace worlds {
     void drawLine(glm::vec3 p0, glm::vec3 p1, glm::vec4 color);
     void drawCircle(glm::vec3 center, float radius, glm::quat rotation, glm::vec4 color, int detail = 0);
+    void drawSphere(glm::vec3 center, glm::quat rotation, float radius, glm::vec4 color = glm::vec4{1.0f});
+    void drawBox(glm::vec3 center, glm::quat rotation, glm::vec3 halfExtents, glm::vec4 color = glm::vec4{1.0f});
 
     struct DebugLine {
         glm::vec3 p0;

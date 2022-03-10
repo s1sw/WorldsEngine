@@ -1,6 +1,8 @@
 #pragma once
+#include <Core/Transform.hpp>
 #include <stdint.h>
 #include <vector>
+#include <entt/entity/lw_fwd.hpp>
 
 #include <glm/ext/scalar_constants.hpp>
 #include <glm/ext/matrix_float4x4.hpp>
@@ -131,4 +133,9 @@ namespace worlds {
     struct DontSerialize {};
     struct HideFromEditor {};
     struct EditorGlow {};
+
+    struct ChildComponent {
+        Transform offset;
+        entt::entity parent;
+    };
 }

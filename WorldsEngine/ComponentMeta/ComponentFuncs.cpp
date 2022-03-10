@@ -740,62 +740,17 @@ namespace worlds {
         return shapes;
     }
 
-    void drawTransformedLine(const Transform& transform, glm::vec3 p0, glm::vec3 p1, glm::vec4 col) {
-        drawLine(transform.transformPoint(p0), transform.transformPoint(p1), col);
-    }
-
     // Draws a box shape using lines.
     void drawPhysicsBox(const Transform& actorTransform, const PhysicsShape& ps) {
-        glm::vec3 max = ps.box.halfExtents * actorTransform.scale;
-        glm::vec3 min = -ps.box.halfExtents * actorTransform.scale;
-
-        Transform overallTransform{ps.pos * actorTransform.scale, ps.rot};
-        overallTransform = overallTransform.transformBy(actorTransform);
-
-        //                      y
-        //      _____           ^
-        //     /    /|          |   ^ z
-        //max /----/ |          |  /
-        //    |    | |          | /
-        //    |    | / min      |/
-        //    |----|/           ---------> x
-
-        glm::vec4 col = glm::vec4(0.0f, 1.0f, 0.0f, 1.0f);
-        // x->> lines
-        drawTransformedLine(overallTransform, glm::vec3(max.x, max.y, max.z), glm::vec3(min.x, max.y, max.z), col);
-        drawTransformedLine(overallTransform, glm::vec3(max.x, max.y, min.z), glm::vec3(min.x, max.y, min.z), col);
-
-        drawTransformedLine(overallTransform, glm::vec3(max.x, min.y, max.z), glm::vec3(min.x, min.y, max.z), col);
-        drawTransformedLine(overallTransform, glm::vec3(max.x, min.y, min.z), glm::vec3(min.x, min.y, min.z), col);
-
-        // y ^ lines
-        drawTransformedLine(overallTransform, glm::vec3(max.x, min.y, max.z), glm::vec3(max.x, max.y, max.z), col);
-        drawTransformedLine(overallTransform, glm::vec3(max.x, min.y, min.z), glm::vec3(max.x, max.y, min.z), col);
-
-        drawTransformedLine(overallTransform, glm::vec3(min.x, min.y, max.z), glm::vec3(min.x, max.y, max.z), col);
-        drawTransformedLine(overallTransform, glm::vec3(min.x, min.y, min.z), glm::vec3(min.x, max.y, min.z), col);
-
-        // z /^ lines
-        drawTransformedLine(overallTransform, glm::vec3(max.x, max.y, max.z), glm::vec3(max.x, max.y, min.z), col);
-        drawTransformedLine(overallTransform, glm::vec3(max.x, min.y, max.z), glm::vec3(max.x, min.y, min.z), col);
-
-        drawTransformedLine(overallTransform, glm::vec3(min.x, max.y, max.z), glm::vec3(min.x, max.y, min.z), col);
-        drawTransformedLine(overallTransform, glm::vec3(min.x, min.y, max.z), glm::vec3(min.x, min.y, min.z), col);
+        Transform shapeTransform{ps.pos, ps.rot};
+        shapeTransform.transformBy(actorTransform);
+        drawBox(actorTransform.position, actorTransform.rotation, ps.box.halfExtents * actorTransform.scale);
     }
 
     void drawPhysicsSphere(const Transform& actorTransform, const PhysicsShape& ps) {
-        // We can't really draw a sphere with just lines, so draw two circles
-        // perpendicular to eachother
-
-        glm::vec3 center = actorTransform.transformPoint(ps.pos);
-        glm::vec4 col = glm::vec4(0.0f, 1.0f, 0.0f, 1.0f);
-
-        glm::quat worldRotation = actorTransform.rotation * ps.rot;
-        drawCircle(center, ps.sphere.radius, worldRotation, col);
-
-        // Rotate it 90deg on the X axis
-        worldRotation = worldRotation * glm::angleAxis(glm::half_pi<float>(), glm::vec3(1.0f, 0.0f, 0.0f));
-        drawCircle(center, ps.sphere.radius, worldRotation, col);
+        Transform shapeTransform{ps.pos, ps.rot};
+        shapeTransform.transformBy(actorTransform);
+        drawSphere(shapeTransform.position, shapeTransform.rotation, ps.sphere.radius);
     }
 
     void drawPhysicsMesh(const Transform& actorTransform, const PhysicsShape& ps) {
@@ -810,6 +765,7 @@ namespace worlds {
 
             drawLine(p0, p1, col);
             drawLine(p1, p2, col);
+            drawLine(p0, p2, col);
         }
     }
 
@@ -1603,32 +1559,19 @@ namespace worlds {
 
         void edit(entt::entity ent, entt::registry& reg, Editor* ed) override {
             auto& wc = reg.get<WorldCubemap>(ent);
-            static entt::entity boundsCube = entt::null;
-
             wc.cubemapId = AssetDB::pathToId("LevelData/Cubemaps/" + reg.ctx<SceneInfo>().name + "/" + reg.get<NameComponent>(ent).name + ".json");
-            if (ImGui::CollapsingHeader(ICON_FA_CIRCLE u8" Cubemap")) {
-                if (!reg.valid(boundsCube)) {
-                    boundsCube = createModelObject(reg,
-                        glm::vec3{1000.0f},
-                        glm::quat{},
-                        AssetDB::pathToId("Models/cube.wmdl"),
-                        AssetDB::pathToId("Materials/wireframe.json")
-                    );
-                    reg.emplace<HideFromEditor>(boundsCube);
-                    reg.emplace<DontSerialize>(boundsCube);
-                }
 
+            if (ImGui::CollapsingHeader(ICON_FA_CIRCLE u8" Cubemap")) {
                 ImGui::DragFloat3("Extent", &wc.extent.x);
                 ImGui::Checkbox("Parallax Correction", &wc.cubeParallax);
                 ImGui::InputInt("Priority", &wc.priority);
 
-                Transform& boundsTransform = reg.get<Transform>(boundsCube);
+                Transform boundsTransform{};
                 boundsTransform.position = reg.get<Transform>(ent).position;
                 boundsTransform.scale = wc.extent;
+                drawBox(boundsTransform.position, glm::quat{1.0f, 0.0f, 0.0f, 0.0f}, wc.extent * 0.5f);
 
                 ImGui::Separator();
-            } else if (reg.valid(boundsCube)) {
-                reg.destroy(boundsCube);
             }
         }
 
@@ -2027,6 +1970,7 @@ namespace worlds {
                     reg.remove<AudioListenerOverride>(entity);
                     return;
                 }
+
             }
         }
 
@@ -2043,6 +1987,67 @@ namespace worlds {
 
         void fromJson(entt::entity ent, entt::registry& reg, const json& j) override {
             reg.emplace<AudioListenerOverride>(ent);
+        }
+    };
+
+    class ChildComponentEditor : public BasicComponentUtil<ChildComponent> {
+    public:
+        const char* getName() override { return "ChildComponent"; }
+
+        void create(entt::entity ent, entt::registry& reg) override {
+            reg.emplace<ChildComponent>(ent, ChildComponent { Transform{}, entt::null });
+        }
+
+        void edit(entt::entity entity, entt::registry& reg, Editor* ed) override {
+            static bool changingTarget = false;
+
+            if (ImGui::CollapsingHeader("ChildComponent")) {
+                if (ImGui::Button("Remove##ChildComponent")) {
+                    reg.remove<ChildComponent>(entity);
+                    return;
+                }
+
+                ChildComponent& cc = reg.get<ChildComponent>(entity);
+
+                if (!changingTarget) {
+                    if (ImGui::Button("Change")) {
+                        changingTarget = true;
+                    }
+                }
+
+                if (changingTarget) {
+                    if (ed->entityEyedropper(cc.parent)) {
+                        changingTarget = false;
+                    }
+                }
+            } else {
+                changingTarget = false;
+            }
+        }
+
+        void writeToFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file) override {
+        }
+
+        void readFromFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file, int version) override {
+        }
+
+        void toJson(entt::entity ent, entt::registry& reg, json& j) override {
+            ChildComponent& c = reg.get<ChildComponent>(ent);
+
+            j = {
+                { "parent", (uint32_t)c.parent },
+                { "position", c.offset.position },
+                { "rotation", c.offset.rotation }
+            };
+        }
+
+        void fromJson(entt::entity ent, entt::registry& reg, const json& j) override {
+            ChildComponent& c = reg.emplace<ChildComponent>(ent);
+            if (!j.is_object()) return;
+            c.parent = (entt::entity)j["parent"];
+            c.offset.position = j.value("position", glm::vec3(0.0f));
+            c.offset.rotation = j.value("rotation", glm::quat{1.0f, 0.0f, 0.0f, 0.0f});
+            c.offset.scale = glm::vec3(1.0f);
         }
     };
 
@@ -2065,4 +2070,5 @@ namespace worlds {
     EditorLabelEditor ele;
     FMODAudioSourceEditor fase;
     AudioListenerOverrideEditor alo;
+    ChildComponentEditor ced;
 }
