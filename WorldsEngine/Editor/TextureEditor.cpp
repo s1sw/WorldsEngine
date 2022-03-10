@@ -101,7 +101,6 @@ namespace worlds {
 
             ImGui::DragFloat("Default Metallic", &pts.defaultMetallic);
             ImGui::DragFloat("Default Roughness", &pts.defaultRoughness);
-            ImGui::DragFloat("Default Occlusion", &pts.defaultOcclusion);
 
             if (pts.metallicSource != INVALID_ASSET) {
                 ImGui::Text("Metallic texture: %s", AssetDB::idToPath(pts.metallicSource).c_str());

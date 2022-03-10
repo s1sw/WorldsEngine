@@ -23,7 +23,6 @@ namespace worlds {
         float normalRoughnessMipStrength;
         float defaultRoughness; 
         float defaultMetallic;
-        float defaultOcclusion;
         int qualityLevel;
     };
 
