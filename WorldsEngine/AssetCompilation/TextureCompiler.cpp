@@ -81,7 +81,6 @@ namespace worlds {
             pbr.normalRoughnessMipStrength = 0.0f;
             pbr.defaultRoughness = 0.5f;
             pbr.defaultMetallic = 0.0f;
-            pbr.defaultOcclusion = 1.0f;
             pbr.qualityLevel = 127;
             break;
         }
@@ -105,7 +104,6 @@ namespace worlds {
     void loadPBRSettings(TextureAssetSettings& settings, nlohmann::json& j) {
         settings.pbr.defaultMetallic = j.value("defaultMetallic", 0.0f);
         settings.pbr.defaultRoughness = j.value("defaultRoughness", 0.0f);
-        settings.pbr.defaultOcclusion = j.value("defaultOcclusion", 0.0f);
 
         if (j.contains("metallicSource"))
             settings.pbr.metallicSource = AssetDB::pathToId(j["metallicSource"].get<std::string>());
@@ -163,7 +161,6 @@ namespace worlds {
         PBRTextureSettings& pbs = settings.pbr;
         j["defaultMetallic"] = pbs.defaultMetallic;
         j["defaultRoughness"] = pbs.defaultRoughness;
-        j["defaultOcclusion"] = pbs.defaultOcclusion;
 
         if (pbs.metallicSource != INVALID_ASSET) {
             j["metallicSource"] = AssetDB::idToPath(pbs.metallicSource);
@@ -283,6 +280,7 @@ namespace worlds {
             logErr("Failed to compile %s", AssetDB::idToPath(tcti->compileOp->outputId));
             return;
         }
+
         logMsg("Texture is %ix%i", inTexData.width, inTexData.height);
 
         crn_comp_params compParams;
@@ -409,7 +407,7 @@ namespace worlds {
                 if (useOcclusion)
                     layeredData[baseIdx + 2] = static_cast<uint8_t*>(occlusionData.data)[baseIdx + 2];
                 else
-                    layeredData[baseIdx + 2] = 255;//255 * pts.defaultOcclusion;
+                    layeredData[baseIdx + 2] = 255;
 
                 // Alpha channel is currently unused, set it to 255
                 layeredData[baseIdx + 3] = 255;
