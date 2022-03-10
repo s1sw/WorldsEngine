@@ -22,14 +22,14 @@ namespace worlds {
     }
 
     void bakeCubemap(Editor* ed, glm::vec3 pos, worlds::VKRenderer* renderer,
-        std::string name, entt::registry& world, int iterations = 1) {
+        std::string name, entt::registry& world, int resolution, int iterations = 1) {
         // create RTT pass
         RTTPassCreateInfo rtci;
         Camera cam;
         rtci.cam = &cam;
         rtci.enableShadows = true;
-        rtci.width = 128;
-        rtci.height = 128;
+        rtci.width = resolution;
+        rtci.height = resolution;
         rtci.isVr = false;
         rtci.outputToScreen = false;
         rtci.useForPicking = false;
@@ -223,13 +223,13 @@ namespace worlds {
                 static int numIterations = 1;
                 ImGui::DragInt("Iterations", &numIterations);
                 reg.view<Transform, WorldCubemap, NameComponent>().each([&](
-                    Transform& t, WorldCubemap&, NameComponent& nc) {
+                    Transform& t, WorldCubemap& wc, NameComponent& nc) {
                         ImGui::Text("%s (%.2f, %.2f, %.2f)", nc.name.c_str(),
                             t.position.x, t.position.y, t.position.z);
                         ImGui::SameLine();
                         ImGui::PushID(nc.name.c_str());
                         if (ImGui::Button("Bake")) {
-                            bakeCubemap(editor, t.position, static_cast<worlds::VKRenderer*>(interfaces.renderer), nc.name, reg, numIterations);
+                            bakeCubemap(editor, t.position, static_cast<worlds::VKRenderer*>(interfaces.renderer), nc.name, reg, wc.resolution, numIterations);
                         }
                         ImGui::PopID();
                     });
