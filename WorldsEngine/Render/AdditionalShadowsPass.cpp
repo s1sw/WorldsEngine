@@ -1,4 +1,3 @@
-#include "Core/NameComponent.hpp"
 #include "RenderPasses.hpp"
 #include "Render/Frustum.hpp"
 #include "ShaderCache.hpp"
@@ -157,71 +156,11 @@ namespace worlds {
             renderIdx[i] = false;
         }
 
-        glm::mat4 viewVp = ctx.projMatrices[0] * ctx.viewMatrices[0];
-        ctx.registry.view<WorldLight, Transform>().each([&](WorldLight& light, Transform& t) {
-            if (!light.enableShadows) return;
-
-            Camera shadowCam;
-            shadowCam.position = t.position;
-            shadowCam.rotation = t.rotation;
-            shadowCam.verticalFOV = light.spotCutoff * 2.0f;
-            shadowCam.near = light.shadowNear;
-            shadowCam.far = light.shadowFar;
-            glm::mat4 shadowVP = shadowCam.getProjectMatrixNonInfinite(1.0f) * shadowCam.getViewMatrix();
-            glm::mat4 invVP = glm::inverse(shadowVP);
-
-            glm::vec3 viewPos = glm::inverse(ctx.viewMatrices[0])[3];
-            glm::vec4 transformedViewPos = shadowVP * glm::vec4(viewPos, 1.0f);
-            transformedViewPos /= transformedViewPos.w;
-
-            if (transformedViewPos.x > -1.0f && transformedViewPos.x < 1.0f &&
-                transformedViewPos.y > -1.0f && transformedViewPos.y < 1.0f &&
-                transformedViewPos.z > 0.0f && transformedViewPos.z < 1.0f) {
-                // we're inside the shadow frustum, max priority
-                light.currentViewSpaceSize = 4.0f;
-                return;
-            }
-
-            glm::vec3 boundingPoints[8] = {
-                glm::vec3(-1.0f, -1.0f, 1e-5),
-                glm::vec3(1.0f, -1.0f, 1e-5),
-                glm::vec3(1.0f, 1.0f, 1e-5),
-                glm::vec3(-1.0f, 1.0f, 1e-5),
-                glm::vec3(-1.0f, -1.0f, 1.0f),
-                glm::vec3(1.0f, -1.0f, 1.0f),
-                glm::vec3(1.0f, 1.0f, 1.0f),
-                glm::vec3(-1.0f, 1.0f, 1.0f),
-            };
-
-            glm::vec3 screenSpaceBoundingPoints[8];
-
-            for (int i = 0; i < 8; i++) {
-                glm::vec4 pointTransformed = invVP * glm::vec4(boundingPoints[i], 1.0f);
-                glm::vec3 pointWS = glm::vec3(pointTransformed) / pointTransformed.w;
-                drawSphere(pointWS, glm::quat{1.0f, 0.0f, 0.0f, 0.0f}, 0.1f);
-                glm::vec4 pointViewTransformed = viewVp * glm::vec4(pointWS, 1.0f);
-                glm::vec3 pointVS = glm::vec3(pointViewTransformed) / pointViewTransformed.w;
-                // clamp to screen
-                pointVS.x = glm::clamp(pointVS.x, -1.0f, 1.0f);
-                pointVS.y = glm::clamp(pointVS.y, -1.0f, 1.0f);
-
-                screenSpaceBoundingPoints[i] = pointVS;
-            }
-
-            float totalArea = 0.0f;
-
-            // area of near plane
-
-            glm::vec2 sizeDif = maxCamVS - minCamVS;
-            light.currentViewSpaceSize = sizeDif.x * sizeDif.y;
+        ctx.registry.sort<WorldLight>([&](entt::entity a, entt::entity b) {
+            Transform& aT = ctx.registry.get<Transform>(a);
+            Transform& bT = ctx.registry.get<Transform>(b);
+            return glm::distance2(ctx.camera.position, aT.position) < glm::distance2(ctx.camera.position, bT.position);
             });
-
-        ctx.registry.sort<WorldLight>([&](entt::entity ea, entt::entity eb) {
-            WorldLight& a = ctx.registry.get<WorldLight>(ea);
-            WorldLight& b = ctx.registry.get<WorldLight>(eb);
-            return a.currentViewSpaceSize < b.currentViewSpaceSize;
-            });
-
         uint32_t shadowIdx = 0;
         ctx.registry.view<WorldLight, Transform>().each([&](WorldLight& light, Transform& t) {
             if (light.enableShadows && enableSpotShadows.getInt() && shadowIdx < NUM_SHADOW_LIGHTS) {
