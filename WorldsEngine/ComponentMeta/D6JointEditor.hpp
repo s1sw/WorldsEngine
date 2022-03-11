@@ -55,8 +55,6 @@ namespace physx {
 }
 
 namespace worlds {
-#define WRITE_FIELD(file, field) PHYSFS_writeBytes(file, &field, sizeof(field))
-#define READ_FIELD(file, field) PHYSFS_readBytes(file, &field, sizeof(field))
     const char* motionNames[3] = {
         "Locked",
         "Limited",
@@ -303,86 +301,6 @@ namespace worlds {
             }
         }
 
-        void writeToFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file) override {
-            auto& d6 = reg.get<D6Joint>(ent);
-            auto* px = d6.pxJoint;
-
-            for (int axisInt = physx::PxD6Axis::eX; axisInt < physx::PxD6Axis::eCOUNT; axisInt++) {
-                auto axis = (physx::PxD6Axis::Enum)axisInt;
-                auto motion = (unsigned char)px->getMotion(axis);
-                WRITE_FIELD(file, motion);
-            }
-
-            auto p0 = px->getLocalPose(physx::PxJointActorIndex::eACTOR0);
-            auto p1 = px->getLocalPose(physx::PxJointActorIndex::eACTOR1);
-
-            WRITE_FIELD(file, p0);
-            WRITE_FIELD(file, p1);
-
-            for (int axisInt = physx::PxD6Axis::eX; axisInt < physx::PxD6Axis::eCOUNT; axisInt++) {
-                auto axis = (physx::PxD6Axis::Enum)axisInt;
-                auto lim = px->getLinearLimit(axis);
-                WRITE_FIELD(file, lim);
-            }
-
-            float invMS0 = px->getInvMassScale0();
-            float invMS1 = px->getInvMassScale1();
-            float invIS0 = px->getInvInertiaScale0();
-            float invIS1 = px->getInvInertiaScale1();
-
-            WRITE_FIELD(file, invMS0);
-            WRITE_FIELD(file, invMS1);
-            WRITE_FIELD(file, invIS0);
-            WRITE_FIELD(file, invIS1);
-
-            float breakTorque, breakForce;
-            px->getBreakForce(breakForce, breakTorque);
-
-            WRITE_FIELD(file, breakTorque);
-            WRITE_FIELD(file, breakForce);
-        }
-
-        void readFromFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file, int version) override {
-            assert(reg.has<DynamicPhysicsActor>(ent));
-
-            auto& d6 = reg.emplace<D6Joint>(ent);
-            auto* px = d6.pxJoint;
-
-            for (int axisInt = physx::PxD6Axis::eX; axisInt < physx::PxD6Axis::eCOUNT; axisInt++) {
-                auto axis = (physx::PxD6Axis::Enum)axisInt;
-                unsigned char motion;
-                READ_FIELD(file, motion);
-                px->setMotion(axis, (physx::PxD6Motion::Enum)motion);
-            }
-
-            physx::PxTransform p0;
-            physx::PxTransform p1;
-
-            READ_FIELD(file, p0);
-            READ_FIELD(file, p1);
-
-            px->setLocalPose(physx::PxJointActorIndex::eACTOR0, p0);
-            px->setLocalPose(physx::PxJointActorIndex::eACTOR1, p1);
-
-            for (int axisInt = physx::PxD6Axis::eX; axisInt < physx::PxD6Axis::eCOUNT; axisInt++) {
-                auto axis = (physx::PxD6Axis::Enum)axisInt;
-                physx::PxJointLinearLimitPair lim{ 0.0f, 0.0f, physx::PxSpring{0.0f, 0.0f} };
-                READ_FIELD(file, lim);
-                px->setLinearLimit(axis, lim);
-            }
-
-            if (version >= 2) {
-                px->setInvMassScale0(readFloat(file));
-                px->setInvMassScale1(readFloat(file));
-                px->setInvInertiaScale0(readFloat(file));
-                px->setInvInertiaScale1(readFloat(file));
-
-                float breakTorque = readFloat(file);
-                float breakForce = readFloat(file);
-                px->setBreakForce(breakForce, breakTorque);
-            }
-        }
-
         void toJson(entt::entity ent, entt::registry& reg, json& j) override {
             auto& d6 = reg.get<D6Joint>(ent);
             auto* px = d6.pxJoint;
@@ -442,7 +360,7 @@ namespace worlds {
             j["breakTorque"] = breakTorque;
         }
 
-        void fromJson(entt::entity ent, entt::registry& reg, const json& j) override {
+        void fromJson(entt::entity ent, entt::registry& reg, EntityIDMap& idMap, const json& j) override {
             auto& d6 = reg.emplace<D6Joint>(ent);
             auto* px = d6.pxJoint;
 
@@ -484,17 +402,19 @@ namespace worlds {
             px->setBreakForce(j["breakForce"], j["breakTorque"]);
 
             if (j.contains("target")) {
-                if (!reg.valid(j["target"]))
+                entt::entity target = idMap[j["target"]];
+                if (!reg.valid(target))
                     logErr("Invalid target while deserializing D6!");
                 else
-                    d6.setTarget(j["target"], reg);
+                    d6.setTarget(target, reg);
             }
 
             if (j.contains("attached")) {
-                if (!reg.valid(j["attached"]))
+                entt::entity attached = idMap[j["attached"]];
+                if (!reg.valid(attached))
                     logErr("Invalid attached entity while deserializing D6 joint");
                 else
-                    d6.setAttached(j["attached"], reg);
+                    d6.setAttached(attached, reg);
             }
         }
     };

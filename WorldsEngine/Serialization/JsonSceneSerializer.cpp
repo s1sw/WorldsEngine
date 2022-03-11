@@ -15,6 +15,7 @@
 
 namespace worlds {
     robin_hood::unordered_flat_map<AssetID, nlohmann::json> prefabCache;
+    robin_hood::unordered_flat_map<entt::entity, entt::entity> idRemap;
     DotNetScriptEngine* scriptEngine;
 
     nlohmann::json getEntityJson(entt::entity ent, entt::registry& reg)  {
@@ -210,7 +211,7 @@ namespace worlds {
             if (cdsi.isNative) {
                 ZoneScopedN("deserializeEntityComponents fromJson");
                 auto compMeta = ComponentMetadataManager::byName.at(cdsi.id);
-                compMeta->fromJson(ent, reg, j[cdsi.id]);
+                compMeta->fromJson(ent, reg, idRemap, j[cdsi.id]);
             } else {
                 auto componentJson = j[cdsi.id];
                 scriptEngine->deserializeManagedComponent(cdsi.id.c_str(), componentJson, ent);
@@ -254,10 +255,7 @@ namespace worlds {
             entt::entity id = (entt::entity)std::stoul(p.key());
             entt::entity newEnt = reg.create(id);
 
-            if (id != newEnt) {
-                logErr("failed to deserialize");
-                return;
-            }
+            idRemap.insert({ id, newEnt });
         }
 
         // 2. Load prefabs
@@ -331,7 +329,7 @@ namespace worlds {
 
                     if (entityJson.contains(meta->getName())) {
                         ZoneScopedN("meta->fromJson");
-                        meta->fromJson(newEnt, reg, entityJson[meta->getName()]);
+                        meta->fromJson(newEnt, reg, idRemap, entityJson[meta->getName()]);
                     }
                 }
             }
@@ -387,6 +385,7 @@ namespace worlds {
         PerfTimer timer;
         try {
             prefabCache.clear();
+            idRemap.clear();
             std::string str;
             str.resize(PHYSFS_fileLength(file));
             PHYSFS_readBytes(file, str.data(), str.size());

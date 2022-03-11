@@ -26,11 +26,7 @@ namespace worlds {
 
     class BinarySceneSerializer {
     public:
-        static void saveScene(PHYSFS_File* file, entt::registry& reg);
         static void loadScene(PHYSFS_File* file, entt::registry& reg);
-
-        static void saveEntity(PHYSFS_File* file, entt::registry& reg, entt::entity ent);
-        static entt::entity loadEntity(PHYSFS_File* file, entt::registry& reg);
     private:
         BinarySceneSerializer() {}
         ~BinarySceneSerializer() {}

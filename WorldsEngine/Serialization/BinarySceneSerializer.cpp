@@ -17,49 +17,6 @@ namespace worlds {
     const int MAX_ESCN_FORMAT_ID = 4;
     const int MAX_WSCN_FORMAT_ID = 6;
 
-
-    void BinarySceneSerializer::saveScene(PHYSFS_File* file, entt::registry& reg) {
-        PerfTimer timer;
-
-        PHYSFS_writeBytes(file, WSCN_FORMAT_MAGIC, 4);
-        PHYSFS_writeBytes(file, &MAX_WSCN_FORMAT_ID, 1);
-
-        uint32_t numEnts = (uint32_t)reg.view<Transform>().size();
-        PHYSFS_writeULE32(file, numEnts);
-
-        reg.view<Transform>().each([file, &reg](entt::entity ent, Transform&) {
-            PHYSFS_writeULE32(file, (uint32_t)ent);
-
-            uint8_t numComponents = 0;
-
-            for (auto& mdata : ComponentMetadataManager::sorted) {
-                std::array<ENTT_ID_TYPE, 1> arr = { mdata->getComponentID() };
-                auto rView = reg.runtime_view(arr.begin(), arr.end());
-
-                if (!rView.contains(ent)) continue;
-                numComponents++;
-            }
-
-            PHYSFS_writeBytes(file, &numComponents, 1);
-
-            for (auto& mdata : ComponentMetadataManager::sorted) {
-                std::array<ENTT_ID_TYPE, 1> arr = { mdata->getComponentID() };
-                auto rView = reg.runtime_view(arr.begin(), arr.end());
-
-                if (!rView.contains(ent)) continue;
-
-                PHYSFS_writeULE32(file, mdata->getSerializedID());
-                mdata->writeToFile(ent, reg, file);
-            }
-        });
-
-        PHYSFS_close(file);
-
-        logMsg("Saved scene in %.3fms", timer.stopGetMs());
-
-        AssetDB::save();
-    }
-
     // Old scene format before the renaming of the engine and restructure of serialization
     bool deserializeEScene(PHYSFS_File* file, entt::registry& reg, char* magicCheck, unsigned char formatId) {
         if (formatId > MAX_ESCN_FORMAT_ID) {
@@ -132,14 +89,5 @@ namespace worlds {
         } else if (magicCheck[0] == 'E') {
             deserializeEScene(file, reg, magicCheck, formatId);
         }
-    }
-
-    void BinarySceneSerializer::saveEntity(PHYSFS_File* file, entt::registry& reg, entt::entity ent) {
-        assert(false && "Not implemented yet!");
-    }
-
-    entt::entity BinarySceneSerializer::loadEntity(PHYSFS_File* file, entt::registry& reg) {
-        assert(false && "Not implemented yet!");
-        return entt::null;
     }
 }
