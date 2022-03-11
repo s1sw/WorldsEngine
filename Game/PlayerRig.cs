@@ -240,8 +240,34 @@ public class LocalPlayerSystem : ISystem
     private static Entity _leftHandEntity;
     private static Entity _rightHandEntity;
 
+    private void SpawnPlayer()
+    {
+        if (Registry.View<SpawnPoint>().Count == 0) return;
+        Entity spawnPointEntity = Registry.View<SpawnPoint>().GetEnumerator().Current;
+        Transform spawnPoint = Registry.GetTransform(spawnPointEntity);
+        //
+        //Camera.Main.Position = spawnPoint.Position;
+
+        if (Registry.View<PlayerRig>().Count > 0)
+        {
+            // Player exists, don't spawn!
+            return;
+        }
+
+        Entity body = Registry.CreatePrefab(AssetDB.PathToId("Prefabs/player_body.wprefab"));
+        Registry.CreatePrefab(AssetDB.PathToId("Prefabs/player_left_hand.wprefab"));
+        Registry.CreatePrefab(AssetDB.PathToId("Prefabs/player_right_hand.wprefab"));
+        spawnPoint.Scale = body.Transform.Scale;
+        body.Transform = spawnPoint;
+
+    }
+
     public void OnSceneStart()
     {
+        Camera.Main.Rotation = Quaternion.Identity;
+        Camera.Main.Position = Vector3.Zero;
+        SpawnPlayer();
+
         if (VR.Enabled)
             _jumpAction = new VRAction("/actions/main/in/Jump");
 
