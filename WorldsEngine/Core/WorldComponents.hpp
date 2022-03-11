@@ -109,7 +109,6 @@ namespace worlds {
         float maxDistance = 1.0f;
         // Index of the light in the light buffer
         uint32_t lightIdx = 0u;
-        float currentViewSpaceSize = 0.0f;
     };
 
     struct WorldCubemap {
