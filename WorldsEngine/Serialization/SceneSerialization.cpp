@@ -3,11 +3,23 @@
 #include "../Core/AssetDB.hpp"
 #include <physfs.h>
 #include "Core/Engine.hpp"
+#include "Core/WorldComponents.hpp"
 #include <Audio/Audio.hpp>
 #include <tracy/Tracy.hpp>
 #include <Navigation/Navigation.hpp>
 
 namespace worlds {
+    void clearEntities(entt::registry& reg) {
+        std::vector<entt::entity> entitiesToClear;
+        reg.view<Transform>(entt::exclude_t<KeepOnSceneLoad>{}).each([&](entt::entity e, Transform&) {
+            entitiesToClear.push_back(e);
+        });
+
+        for (entt::entity e : entitiesToClear) {
+            reg.destroy(e, 0);
+        }
+    }
+
     // Do basic checks on the first byte to determine
     // the most appropriate scene serializer to call.
     void SceneLoader::loadScene(PHYSFS_File* file, entt::registry& reg, bool additive) {
@@ -23,8 +35,9 @@ namespace worlds {
 
         // check first character of magic to determine WSCN or ESCN
         if (firstByte == 'W' || firstByte == 'E') {
-            if (!additive)
-                reg.clear();
+            if (!additive) {
+                clearEntities(reg);
+            }
 
             // Next up, check if it's the old binary format or WMSP
             char maybeHeader[5] = "____";
@@ -35,11 +48,12 @@ namespace worlds {
             if (strcmp(maybeHeader, "WMSP") == 0) {
                 MessagePackSceneSerializer::loadScene(file, reg);
             } else {
-                BinarySceneSerializer::loadScene(file, reg);
+                logErr("Unrecognised scene header: %s", maybeHeader);
             }
         } else if (firstByte == '{') {
-            if (!additive)
-                reg.clear();
+            if (!additive) {
+                clearEntities(reg);
+            }
 
             JsonSceneSerializer::loadScene(file, reg);
         } else {
