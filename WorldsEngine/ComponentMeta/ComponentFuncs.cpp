@@ -105,20 +105,6 @@ namespace worlds {
             }
         }
 
-        void writeToFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file) override {
-            auto& t = reg.get<Transform>(ent);
-            WRITE_FIELD(file, t.position);
-            WRITE_FIELD(file, t.rotation);
-            WRITE_FIELD(file, t.scale);
-        }
-
-        void readFromFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file, int) override {
-            auto& t = reg.emplace<Transform>(ent);
-            READ_FIELD(file, t.position);
-            READ_FIELD(file, t.rotation);
-            READ_FIELD(file, t.scale);
-        }
-
         void toJson(entt::entity ent, entt::registry& reg, nlohmann::json& j) override {
             const auto& t = reg.get<Transform>(ent);
             j = {
@@ -128,7 +114,7 @@ namespace worlds {
             };
         }
 
-        void fromJson(entt::entity ent, entt::registry& reg, const nlohmann::json& j) override {
+        void fromJson(entt::entity ent, entt::registry& reg, EntityIDMap&, const nlohmann::json& j) override {
             auto& t = reg.emplace<Transform>(ent);
             t.position = j["position"].get<glm::vec3>();
             t.rotation = j["rotation"].get<glm::quat>();
@@ -255,51 +241,6 @@ namespace worlds {
             }
         }
 
-        void writeToFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file) override {
-            auto& wObj = reg.get<WorldObject>(ent);
-            WRITE_FIELD(file, wObj.staticFlags);
-            for (int i = 0; i < NUM_SUBMESH_MATS; i++) {
-                bool isPresent = wObj.presentMaterials[i];
-                WRITE_FIELD(file, isPresent);
-
-                if (isPresent) {
-                    AssetID matId = wObj.materials[i];
-                    WRITE_FIELD(file, matId);
-                }
-            }
-
-            WRITE_FIELD(file, wObj.mesh);
-            WRITE_FIELD(file, wObj.texScaleOffset);
-            WRITE_FIELD(file, wObj.uvOverride);
-        }
-
-        void readFromFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file, int version) override {
-            auto& wo = reg.emplace<WorldObject>(ent, 0, 0);
-
-            if (version >= 3) {
-                READ_FIELD(file, wo.staticFlags);
-            }
-
-            for (int i = 0; i < NUM_SUBMESH_MATS; i++) {
-                bool isPresent;
-                READ_FIELD(file, isPresent);
-                wo.presentMaterials[i] = isPresent;
-
-                AssetID mat;
-                if (isPresent) {
-                    READ_FIELD(file, mat);
-                    wo.materials[i] = mat;
-                }
-            }
-
-            READ_FIELD(file, wo.mesh);
-            READ_FIELD(file, wo.texScaleOffset);
-
-            if (version >= 4) {
-                READ_FIELD(file, wo.uvOverride);
-            }
-        }
-
         void toJson(entt::entity ent, entt::registry& reg, json& j) override {
             auto& wo = reg.get<WorldObject>(ent);
 
@@ -319,7 +260,7 @@ namespace worlds {
             };
         }
 
-        void fromJson(entt::entity ent, entt::registry& reg, const json& j) override {
+        void fromJson(entt::entity ent, entt::registry& reg, EntityIDMap&, const json& j) override {
             auto& wo = reg.emplace<WorldObject>(ent, 0, 0);
             std::string meshPath = j["mesh"];
             wo.mesh = AssetDB::pathToId(meshPath);
@@ -423,51 +364,6 @@ namespace worlds {
             }
         }
 
-        void writeToFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file) override {
-            auto& wObj = reg.get<SkinnedWorldObject>(ent);
-            WRITE_FIELD(file, wObj.staticFlags);
-            for (int i = 0; i < NUM_SUBMESH_MATS; i++) {
-                bool isPresent = wObj.presentMaterials[i];
-                WRITE_FIELD(file, isPresent);
-
-                if (isPresent) {
-                    AssetID matId = wObj.materials[i];
-                    WRITE_FIELD(file, matId);
-                }
-            }
-
-            WRITE_FIELD(file, wObj.mesh);
-            WRITE_FIELD(file, wObj.texScaleOffset);
-            WRITE_FIELD(file, wObj.uvOverride);
-        }
-
-        void readFromFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file, int version) override {
-            auto& wo = reg.emplace<SkinnedWorldObject>(ent, 0, 0);
-
-            if (version >= 3) {
-                READ_FIELD(file, wo.staticFlags);
-            }
-
-            for (int i = 0; i < NUM_SUBMESH_MATS; i++) {
-                bool isPresent;
-                READ_FIELD(file, isPresent);
-                wo.presentMaterials[i] = isPresent;
-
-                AssetID mat;
-                if (isPresent) {
-                    READ_FIELD(file, mat);
-                    wo.materials[i] = mat;
-                }
-            }
-
-            READ_FIELD(file, wo.mesh);
-            READ_FIELD(file, wo.texScaleOffset);
-
-            if (version >= 4) {
-                READ_FIELD(file, wo.uvOverride);
-            }
-        }
-
         void toJson(entt::entity ent, entt::registry& reg, json& j) override {
             auto& wo = reg.get<SkinnedWorldObject>(ent);
 
@@ -487,7 +383,7 @@ namespace worlds {
             };
         }
 
-        void fromJson(entt::entity ent, entt::registry& reg, const json& j) override {
+        void fromJson(entt::entity ent, entt::registry& reg, EntityIDMap&, const json& j) override {
             std::string meshPath = j["mesh"];
             AssetID mesh = AssetDB::pathToId(meshPath);
             auto& wo = reg.emplace<SkinnedWorldObject>(ent, INVALID_ASSET, mesh);
@@ -629,29 +525,6 @@ namespace worlds {
             }
         }
 
-        void writeToFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file) override {
-            auto& wl = reg.get<WorldLight>(ent);
-            WRITE_FIELD(file, wl.type);
-            WRITE_FIELD(file, wl.color);
-            WRITE_FIELD(file, wl.spotCutoff);
-            WRITE_FIELD(file, wl.intensity);
-            WRITE_FIELD(file, wl.tubeLength);
-            WRITE_FIELD(file, wl.tubeRadius);
-        }
-
-        void readFromFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file, int version) override {
-            auto& wl = reg.emplace<WorldLight>(ent);
-            READ_FIELD(file, wl.type);
-            READ_FIELD(file, wl.color);
-            READ_FIELD(file, wl.spotCutoff);
-
-            if (version >= 6) {
-                READ_FIELD(file, wl.intensity);
-                READ_FIELD(file, wl.tubeLength);
-                READ_FIELD(file, wl.tubeRadius);
-            }
-        }
-
         void toJson(entt::entity ent, entt::registry& reg, json& j) override {
             auto& wl = reg.get<WorldLight>(ent);
 
@@ -670,7 +543,7 @@ namespace worlds {
             };
         }
 
-        void fromJson(entt::entity ent, entt::registry& reg, const json& j) override {
+        void fromJson(entt::entity ent, entt::registry& reg, EntityIDMap&, const json& j) override {
             auto& wl = reg.emplace<WorldLight>(ent);
 
             wl.type = j["type"];
@@ -948,79 +821,6 @@ namespace worlds {
             }
         }
 
-        void writeToFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file) override {
-            PhysicsActor& pa = reg.get<PhysicsActor>(ent);
-            PHYSFS_writeULE16(file, (uint16_t)pa.physicsShapes.size());
-
-            for (size_t i = 0; i < pa.physicsShapes.size(); i++) {
-                const auto& shape = pa.physicsShapes[i];
-                WRITE_FIELD(file, shape.type);
-
-                WRITE_FIELD(file, shape.pos);
-                WRITE_FIELD(file, shape.rot);
-
-                switch (shape.type) {
-                case PhysicsShapeType::Sphere:
-                    WRITE_FIELD(file, shape.sphere.radius);
-                    break;
-                case PhysicsShapeType::Box:
-                    WRITE_FIELD(file, shape.box.halfExtents.x);
-                    WRITE_FIELD(file, shape.box.halfExtents.y);
-                    WRITE_FIELD(file, shape.box.halfExtents.z);
-                    break;
-                case PhysicsShapeType::Capsule:
-                    WRITE_FIELD(file, shape.capsule.height);
-                    WRITE_FIELD(file, shape.capsule.radius);
-                    break;
-                default:
-                    logErr("invalid physics shape type??");
-                    break;
-                }
-            }
-        }
-
-        void readFromFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file, int version) override {
-            auto* pActor = g_physics->createRigidStatic(glm2px(reg.get<Transform>(ent)));
-            g_scene->addActor(*pActor);
-
-            PhysicsActor& pa = reg.emplace<PhysicsActor>(ent, pActor);
-
-            uint16_t shapeCount;
-            PHYSFS_readULE16(file, &shapeCount);
-
-            pa.physicsShapes.resize(shapeCount);
-
-            for (uint16_t i = 0; i < shapeCount; i++) {
-                auto& shape = pa.physicsShapes[i];
-                READ_FIELD(file, shape.type);
-
-                READ_FIELD(file, shape.pos);
-                READ_FIELD(file, shape.rot);
-
-                switch (shape.type) {
-                case PhysicsShapeType::Sphere:
-                    READ_FIELD(file, shape.sphere.radius);
-                    break;
-                case PhysicsShapeType::Box:
-                    READ_FIELD(file, shape.box.halfExtents.x);
-                    READ_FIELD(file, shape.box.halfExtents.y);
-                    READ_FIELD(file, shape.box.halfExtents.z);
-                    break;
-                case PhysicsShapeType::Capsule:
-                    READ_FIELD(file, shape.capsule.height);
-                    READ_FIELD(file, shape.capsule.radius);
-                    break;
-                default:
-                    logErr("invalid physics shape type??");
-                    break;
-                }
-            }
-
-            auto& t = reg.get<Transform>(ent);
-
-            updatePhysicsShapes(pa, t.scale);
-        }
-
         void toJson(entt::entity ent, entt::registry& reg, json& j) override {
             auto& pa = reg.get<PhysicsActor>(ent);
             json shapeArray;
@@ -1058,7 +858,7 @@ namespace worlds {
             j["layer"] = pa.layer;
         }
 
-        void fromJson(entt::entity ent, entt::registry& reg, const json& j) override {
+        void fromJson(entt::entity ent, entt::registry& reg, EntityIDMap&, const json& j) override {
             auto* pActor = g_physics->createRigidStatic(glm2px(reg.get<Transform>(ent)));
             g_scene->addActor(*pActor);
 
@@ -1181,83 +981,6 @@ namespace worlds {
             }
         }
 
-        void writeToFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file) override {
-            DynamicPhysicsActor& pa = reg.get<DynamicPhysicsActor>(ent);
-            float mass = ((physx::PxRigidBody*)pa.actor)->getMass();
-            WRITE_FIELD(file, mass);
-            PHYSFS_writeULE16(file, (uint16_t)pa.physicsShapes.size());
-
-            for (size_t i = 0; i < pa.physicsShapes.size(); i++) {
-                const auto& shape = pa.physicsShapes[i];
-                WRITE_FIELD(file, shape.type);
-
-                WRITE_FIELD(file, shape.pos);
-                WRITE_FIELD(file, shape.rot);
-
-                switch (shape.type) {
-                case PhysicsShapeType::Sphere:
-                    WRITE_FIELD(file, shape.sphere.radius);
-                    break;
-                case PhysicsShapeType::Box:
-                    WRITE_FIELD(file, shape.box.halfExtents.x);
-                    WRITE_FIELD(file, shape.box.halfExtents.y);
-                    WRITE_FIELD(file, shape.box.halfExtents.z);
-                    break;
-                case PhysicsShapeType::Capsule:
-                    WRITE_FIELD(file, shape.capsule.height);
-                    WRITE_FIELD(file, shape.capsule.radius);
-                    break;
-                default:
-                    logErr("invalid physics shape type??");
-                    break;
-                }
-            }
-        }
-
-        void readFromFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file, int version) override {
-            auto* pActor = g_physics->createRigidDynamic(glm2px(reg.get<Transform>(ent)));
-            pActor->setSolverIterationCounts(12, 4);
-            g_scene->addActor(*pActor);
-            DynamicPhysicsActor& pa = reg.emplace<DynamicPhysicsActor>(ent, pActor);
-
-            READ_FIELD(file, pa.mass);
-
-            uint16_t shapeCount;
-            PHYSFS_readULE16(file, &shapeCount);
-
-            pa.physicsShapes.resize(shapeCount);
-
-            for (uint16_t i = 0; i < shapeCount; i++) {
-                auto& shape = pa.physicsShapes[i];
-                READ_FIELD(file, shape.type);
-
-                READ_FIELD(file, shape.pos);
-                READ_FIELD(file, shape.rot);
-
-                switch (shape.type) {
-                case PhysicsShapeType::Sphere:
-                    READ_FIELD(file, shape.sphere.radius);
-                    break;
-                case PhysicsShapeType::Box:
-                    READ_FIELD(file, shape.box.halfExtents.x);
-                    READ_FIELD(file, shape.box.halfExtents.y);
-                    READ_FIELD(file, shape.box.halfExtents.z);
-                    break;
-                case PhysicsShapeType::Capsule:
-                    READ_FIELD(file, shape.capsule.height);
-                    READ_FIELD(file, shape.capsule.radius);
-                    break;
-                default:
-                    logErr("invalid physics shape type??");
-                    break;
-                }
-            }
-
-            auto& t = reg.get<Transform>(ent);
-            updatePhysicsShapes(pa, t.scale);
-            updateMass(pa);
-        }
-
         void toJson(entt::entity ent, entt::registry& reg, json& j) override {
             auto& pa = reg.get<DynamicPhysicsActor>(ent);
             json shapeArray;
@@ -1300,7 +1023,7 @@ namespace worlds {
             j["scaleShapes"] = pa.scaleShapes;
         }
 
-        void fromJson(entt::entity ent, entt::registry& reg, const json& j) override {
+        void fromJson(entt::entity ent, entt::registry& reg, EntityIDMap&, const json& j) override {
             auto* pActor = g_physics->createRigidDynamic(glm2px(reg.get<Transform>(ent)));
             g_scene->addActor(*pActor);
 
@@ -1373,24 +1096,6 @@ namespace worlds {
             ImGui::Separator();
         }
 
-        void writeToFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file) override {
-            NameComponent& nc = reg.get<NameComponent>(ent);
-
-            int nameLen = nc.name.length();
-            WRITE_FIELD(file, nameLen);
-
-            PHYSFS_writeBytes(file, nc.name.data(), nameLen);
-        }
-
-        void readFromFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file, int version) override {
-            NameComponent& nc = reg.emplace<NameComponent>(ent);
-            int nameLen;
-            READ_FIELD(file, nameLen);
-
-            nc.name.resize(nameLen);
-            PHYSFS_readBytes(file, nc.name.data(), nameLen);
-        }
-
         void toJson(entt::entity ent, entt::registry& reg, json& j) override {
             auto& nc = reg.get<NameComponent>(ent);
             j = {
@@ -1398,7 +1103,7 @@ namespace worlds {
             };
         }
 
-        void fromJson(entt::entity ent, entt::registry& reg, const json& j) override {
+        void fromJson(entt::entity ent, entt::registry& reg, EntityIDMap&, const json& j) override {
             auto& nc = reg.emplace<NameComponent>(ent);
             nc.name = j["name"];
         }
@@ -1436,28 +1141,6 @@ namespace worlds {
             }
         }
 
-        void writeToFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file) override {
-            auto& as = reg.get<OldAudioSource>(ent);
-
-            WRITE_FIELD(file, as.clipId);
-            WRITE_FIELD(file, as.channel);
-            WRITE_FIELD(file, as.loop);
-            WRITE_FIELD(file, as.playOnSceneOpen);
-            WRITE_FIELD(file, as.spatialise);
-            WRITE_FIELD(file, as.volume);
-        }
-
-        void readFromFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file, int version) override {
-            AssetID clipId;
-            READ_FIELD(file, clipId);
-            auto& as = reg.emplace<OldAudioSource>(ent, clipId);
-            READ_FIELD(file, as.channel);
-            READ_FIELD(file, as.loop);
-            READ_FIELD(file, as.playOnSceneOpen);
-            READ_FIELD(file, as.spatialise);
-            READ_FIELD(file, as.volume);
-        }
-
         void toJson(entt::entity ent, entt::registry& reg, json& j) override {
             auto& as = reg.get<OldAudioSource>(ent);
 
@@ -1471,7 +1154,7 @@ namespace worlds {
             };
         }
 
-        void fromJson(entt::entity ent, entt::registry& reg, const json& j) override {
+        void fromJson(entt::entity ent, entt::registry& reg, EntityIDMap&, const json& j) override {
             std::string clipPath = j["clipPath"];
             AssetID id = AssetDB::pathToId(clipPath);
             auto& as = reg.emplace<OldAudioSource>(ent, id);
@@ -1529,12 +1212,6 @@ namespace worlds {
             }
         }
 
-        void writeToFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file) override {
-        }
-
-        void readFromFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file, int version) override {
-        }
-
         void toJson(entt::entity ent, entt::registry& reg, json& j) override {
             auto& as = reg.get<AudioSource>(ent);
             std::string evtPath;
@@ -1546,7 +1223,7 @@ namespace worlds {
             };
         }
 
-        void fromJson(entt::entity ent, entt::registry& reg, const json& j) override {
+        void fromJson(entt::entity ent, entt::registry& reg, EntityIDMap&, const json& j) override {
             auto& as = reg.emplace<AudioSource>(ent);
             as.changeEventPath(j["eventPath"].get<std::string>());
             as.playOnSceneStart = j["playOnSceneStart"];
@@ -1585,25 +1262,6 @@ namespace worlds {
             }
         }
 
-        void writeToFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file) override {
-            WorldCubemap& wc = reg.get<WorldCubemap>(ent);
-
-            WRITE_FIELD(file, wc.cubemapId);
-            WRITE_FIELD(file, wc.extent);
-            WRITE_FIELD(file, wc.cubeParallax);
-        }
-
-        void readFromFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file, int version) override {
-            auto& wc = reg.emplace<WorldCubemap>(ent);
-
-            READ_FIELD(file, wc.cubemapId);
-            READ_FIELD(file, wc.extent);
-
-            if (version >= 5) {
-                READ_FIELD(file, wc.cubeParallax);
-            }
-        }
-
         void toJson(entt::entity ent, entt::registry& reg, json& j) override {
             auto& wc = reg.get<WorldCubemap>(ent);
 
@@ -1615,7 +1273,7 @@ namespace worlds {
             };
         }
 
-        void fromJson(entt::entity ent, entt::registry& reg, const json& j) override {
+        void fromJson(entt::entity ent, entt::registry& reg, EntityIDMap&, const json& j) override {
             auto& wc = reg.emplace<WorldCubemap>(ent);
 
             wc.cubemapId = AssetDB::pathToId("LevelData/Cubemaps/" + reg.ctx<SceneInfo>().name + "/" + reg.get<NameComponent>(ent).name + ".json");
@@ -1653,17 +1311,6 @@ namespace worlds {
             }
         }
 
-        void writeToFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file) override {
-            auto& sc = reg.get<ScriptComponent>(ent);
-            WRITE_FIELD(file, sc.script);
-        }
-
-        void readFromFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file, int version) override {
-            AssetID aid;
-            READ_FIELD(file, aid);
-            reg.emplace<ScriptComponent>(ent, aid);
-        }
-
         void toJson(entt::entity ent, entt::registry& reg, json& j) override {
             auto& sc = reg.get<ScriptComponent>(ent);
             j = {
@@ -1671,7 +1318,7 @@ namespace worlds {
             };
         }
 
-        void fromJson(entt::entity ent, entt::registry& reg, const json& j) override {
+        void fromJson(entt::entity ent, entt::registry& reg, EntityIDMap&, const json& j) override {
             std::string path = j["path"];
             AssetID scriptID = AssetDB::pathToId(path);
             reg.emplace<ScriptComponent>(ent, scriptID);
@@ -1688,18 +1335,11 @@ namespace worlds {
             }
         }
 
-        void writeToFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file) override {
-        }
-
-        void readFromFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file, int version) override {
-            reg.emplace<ReverbProbeBox>(ent);
-        }
-
         void toJson(entt::entity ent, entt::registry& reg, json& j) override {
             j = {};
         }
 
-        void fromJson(entt::entity ent, entt::registry& reg, const json& j) override {
+        void fromJson(entt::entity ent, entt::registry& reg, EntityIDMap&, const json& j) override {
             reg.emplace<ReverbProbeBox>(ent);
         }
     };
@@ -1722,25 +1362,6 @@ namespace worlds {
             }
         }
 
-        // hasPlayed was incorrectly serialized here
-        // to avoid breaking binary compatibility we'll just serialize dummy values
-        // for now
-        void writeToFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file) override {
-            auto& at = reg.get<AudioTrigger>(ent);
-            WRITE_FIELD(file, at.playOnce);
-
-            bool hasPlayed = false;
-            WRITE_FIELD(file, hasPlayed);
-        }
-
-        void readFromFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file, int version) override {
-            auto& at = reg.emplace<AudioTrigger>(ent);
-            READ_FIELD(file, at.playOnce);
-
-            bool hasPlayed;
-            READ_FIELD(file, hasPlayed);
-        }
-
         void toJson(entt::entity ent, entt::registry& reg, json& j) override {
             auto& at = reg.get<AudioTrigger>(ent);
 
@@ -1749,7 +1370,7 @@ namespace worlds {
             };
         }
 
-        void fromJson(entt::entity ent, entt::registry& reg, const json& j) override {
+        void fromJson(entt::entity ent, entt::registry& reg, EntityIDMap&, const json& j) override {
             auto& at = reg.emplace<AudioTrigger>(ent);
 
             at.playOnce = j["playOnce"];
@@ -1791,7 +1412,7 @@ namespace worlds {
             };
         }
 
-        void fromJson(entt::entity ent, entt::registry& reg, const json& j) override {
+        void fromJson(entt::entity ent, entt::registry& reg, EntityIDMap&, const json& j) override {
             auto& pac = reg.emplace<ProxyAOComponent>(ent);
 
             pac.bounds = j["bounds"];
@@ -1824,12 +1445,6 @@ namespace worlds {
             }
         }
 
-        void writeToFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file) override {
-        }
-
-        void readFromFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file, int version) override {
-        }
-
         void toJson(entt::entity ent, entt::registry& reg, json& j) override {
             auto& wtc = reg.get<WorldTextComponent>(ent);
 
@@ -1842,7 +1457,7 @@ namespace worlds {
                 j["font"] = AssetDB::idToPath(wtc.font);
         }
 
-        void fromJson(entt::entity ent, entt::registry& reg, const json& j) override {
+        void fromJson(entt::entity ent, entt::registry& reg, EntityIDMap&, const json& j) override {
             auto& wtc = reg.emplace<WorldTextComponent>(ent);
 
             wtc.text = j["text"];
@@ -1892,7 +1507,7 @@ namespace worlds {
             j = nullptr;
         }
 
-        void fromJson(entt::entity ent, entt::registry& reg, const json& j) override {
+        void fromJson(entt::entity ent, entt::registry& reg, EntityIDMap&, const json& j) override {
         }
     };
 
@@ -1913,12 +1528,6 @@ namespace worlds {
             }
         }
 
-        void writeToFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file) override {
-        }
-
-        void readFromFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file, int version) override {
-        }
-
         void toJson(entt::entity ent, entt::registry& reg, json& j) override {
             auto& proxy = reg.get<SphereAOProxy>(ent);
 
@@ -1927,7 +1536,7 @@ namespace worlds {
             };
         }
 
-        void fromJson(entt::entity ent, entt::registry& reg, const json& j) override {
+        void fromJson(entt::entity ent, entt::registry& reg, EntityIDMap&, const json& j) override {
             auto& proxy = reg.emplace<SphereAOProxy>(ent);
 
             proxy.radius = j["radius"];
@@ -1951,12 +1560,6 @@ namespace worlds {
             }
         }
 
-        void writeToFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file) override {
-        }
-
-        void readFromFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file, int version) override {
-        }
-
         void toJson(entt::entity ent, entt::registry& reg, json& j) override {
             auto& label = reg.get<EditorLabel>(ent);
 
@@ -1965,7 +1568,7 @@ namespace worlds {
             };
         }
 
-        void fromJson(entt::entity ent, entt::registry& reg, const json& j) override {
+        void fromJson(entt::entity ent, entt::registry& reg, EntityIDMap&, const json& j) override {
             auto& label = reg.emplace<EditorLabel>(ent);
 
             label.label = j["label"];
@@ -1986,18 +1589,12 @@ namespace worlds {
             }
         }
 
-        void writeToFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file) override {
-        }
-
-        void readFromFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file, int version) override {
-        }
-
         void toJson(entt::entity ent, entt::registry& reg, json& j) override {
             j = {
             };
         }
 
-        void fromJson(entt::entity ent, entt::registry& reg, const json& j) override {
+        void fromJson(entt::entity ent, entt::registry& reg, EntityIDMap&, const json& j) override {
             reg.emplace<AudioListenerOverride>(ent);
         }
     };
@@ -2037,12 +1634,6 @@ namespace worlds {
             }
         }
 
-        void writeToFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file) override {
-        }
-
-        void readFromFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file, int version) override {
-        }
-
         void toJson(entt::entity ent, entt::registry& reg, json& j) override {
             ChildComponent& c = reg.get<ChildComponent>(ent);
 
@@ -2053,10 +1644,10 @@ namespace worlds {
             };
         }
 
-        void fromJson(entt::entity ent, entt::registry& reg, const json& j) override {
+        void fromJson(entt::entity ent, entt::registry& reg, EntityIDMap& idMap, const json& j) override {
             ChildComponent& c = reg.emplace<ChildComponent>(ent);
             if (!j.is_object()) return;
-            c.parent = (entt::entity)j["parent"];
+            c.parent = (entt::entity)idMap[j["parent"]];
             c.offset.position = j.value("position", glm::vec3(0.0f));
             c.offset.rotation = j.value("rotation", glm::quat{1.0f, 0.0f, 0.0f, 0.0f});
             c.offset.scale = glm::vec3(1.0f);
