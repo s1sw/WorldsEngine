@@ -1394,16 +1394,6 @@ namespace worlds {
             }
         }
 
-        void writeToFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file) override {
-            auto& pac = reg.get<ProxyAOComponent>(ent);
-            WRITE_FIELD(file, pac.bounds);
-        }
-
-        void readFromFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file, int version) override {
-            auto& pac = reg.emplace<ProxyAOComponent>(ent);
-            READ_FIELD(file, pac.bounds);
-        }
-
         void toJson(entt::entity ent, entt::registry& reg, json& j) override {
             auto& pac = reg.get<ProxyAOComponent>(ent);
 
@@ -1495,12 +1485,6 @@ namespace worlds {
 
                 ImGui::Separator();
             }
-        }
-
-        void writeToFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file) override {
-        }
-
-        void readFromFile(entt::entity ent, entt::registry& reg, PHYSFS_File* file, int version) override {
         }
 
         void toJson(entt::entity ent, entt::registry& reg, json& j) override {

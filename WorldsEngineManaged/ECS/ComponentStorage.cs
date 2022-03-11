@@ -37,11 +37,12 @@ namespace WorldsEngine.ECS
     public class ComponentStorage<T> : IComponentStorage, IEnumerable
     {
         public Type Type { get { return type; } }
-        public List<T> components = new();
+        public readonly List<T> components = new();
         public static readonly int typeIndex;
         public static readonly Type type;
-        public List<Entity> packedEntities = new();
+        public readonly List<Entity> packedEntities = new();
         public bool IsThinking { get; private set; }
+        public int Count => components.Count;
 
         private readonly SparseStorage _sparseStorage = new();
 
