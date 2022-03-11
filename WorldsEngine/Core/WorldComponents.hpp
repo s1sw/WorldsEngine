@@ -134,6 +134,7 @@ namespace worlds {
     struct DontSerialize {};
     struct HideFromEditor {};
     struct EditorGlow {};
+    struct KeepOnSceneLoad {};
 
     struct ChildComponent {
         Transform offset;
