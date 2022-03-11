@@ -162,6 +162,7 @@ namespace worlds {
             Transform& bT = ctx.registry.get<Transform>(b);
             return glm::distance2(viewPos, aT.position) < glm::distance2(viewPos, bT.position);
             });
+
         uint32_t shadowIdx = 0;
         ctx.registry.view<WorldLight, Transform>().each([&](WorldLight& light, Transform& t) {
             if (light.enableShadows && enableSpotShadows.getInt() && shadowIdx < NUM_SHADOW_LIGHTS) {
