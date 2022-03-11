@@ -664,7 +664,9 @@ namespace worlds {
                 { "tubeRadius", wl.tubeRadius },
                 { "enableShadows", wl.enableShadows },
                 { "enabled", wl.enabled },
-                { "maxDistance", wl.maxDistance}
+                { "maxDistance", wl.maxDistance},
+                { "shadowNear", wl.shadowNear },
+                { "shadowFar", wl.shadowFar }
             };
         }
 
@@ -685,6 +687,9 @@ namespace worlds {
             } else {
                 wl.maxDistance = j.value("maxDistance", wl.maxDistance);
             }
+
+            wl.shadowNear = j.value("shadowNear", wl.shadowNear);
+            wl.shadowFar = j.value("shadowFar", wl.shadowFar);
         }
     };
 
@@ -740,32 +745,32 @@ namespace worlds {
         return shapes;
     }
 
+    glm::vec4 physShapeColor{0.f, 1.f, 0.f, 1.f};
     // Draws a box shape using lines.
     void drawPhysicsBox(const Transform& actorTransform, const PhysicsShape& ps) {
-        Transform shapeTransform{ps.pos, ps.rot};
-        shapeTransform.transformBy(actorTransform);
-        drawBox(actorTransform.position, actorTransform.rotation, ps.box.halfExtents * actorTransform.scale);
+        Transform shapeTransform{ps.pos * actorTransform.scale, ps.rot};
+        shapeTransform = shapeTransform.transformBy(actorTransform);
+        drawBox(shapeTransform.position, shapeTransform.rotation, ps.box.halfExtents * actorTransform.scale, physShapeColor);
     }
 
     void drawPhysicsSphere(const Transform& actorTransform, const PhysicsShape& ps) {
-        Transform shapeTransform{ps.pos, ps.rot};
-        shapeTransform.transformBy(actorTransform);
-        drawSphere(shapeTransform.position, shapeTransform.rotation, ps.sphere.radius);
+        Transform shapeTransform{ps.pos * actorTransform.scale, ps.rot};
+        shapeTransform = shapeTransform.transformBy(actorTransform);
+        drawSphere(shapeTransform.position, shapeTransform.rotation, ps.sphere.radius, physShapeColor);
     }
 
     void drawPhysicsMesh(const Transform& actorTransform, const PhysicsShape& ps) {
         AssetID meshId = ps.type == PhysicsShapeType::ConvexMesh ? ps.convexMesh.mesh : ps.mesh.mesh;
         const LoadedMesh& lm = MeshManager::loadOrGet(meshId);
 
-        glm::vec4 col = glm::vec4(0.0f, 1.0f, 0.0f, 1.0f);
         for (size_t i = 0; i < lm.indices.size(); i += 3) {
             glm::vec3 p0 = actorTransform.transformPoint(lm.vertices[lm.indices[i + 0]].position * actorTransform.scale);
             glm::vec3 p1 = actorTransform.transformPoint(lm.vertices[lm.indices[i + 1]].position * actorTransform.scale);
             glm::vec3 p2 = actorTransform.transformPoint(lm.vertices[lm.indices[i + 2]].position * actorTransform.scale);
 
-            drawLine(p0, p1, col);
-            drawLine(p1, p2, col);
-            drawLine(p0, p2, col);
+            drawLine(p0, p1, physShapeColor);
+            drawLine(p1, p2, physShapeColor);
+            drawLine(p0, p2, physShapeColor);
         }
     }
 
@@ -777,9 +782,11 @@ namespace worlds {
             break;
         case PhysicsShapeType::Sphere:
             drawPhysicsSphere(actorTransform, ps);
+            break;
         case PhysicsShapeType::ConvexMesh:
         case PhysicsShapeType::Mesh:
             drawPhysicsMesh(actorTransform, ps);
+            break;
         default: break;
         }
     }
