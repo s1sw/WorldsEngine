@@ -156,10 +156,11 @@ namespace worlds {
             renderIdx[i] = false;
         }
 
+        glm::vec3 viewPos = glm::inverse(ctx.viewMatrices[0])[3];
         ctx.registry.sort<WorldLight>([&](entt::entity a, entt::entity b) {
             Transform& aT = ctx.registry.get<Transform>(a);
             Transform& bT = ctx.registry.get<Transform>(b);
-            return glm::distance2(ctx.camera.position, aT.position) < glm::distance2(ctx.camera.position, bT.position);
+            return glm::distance2(viewPos, aT.position) < glm::distance2(viewPos, bT.position);
             });
         uint32_t shadowIdx = 0;
         ctx.registry.view<WorldLight, Transform>().each([&](WorldLight& light, Transform& t) {

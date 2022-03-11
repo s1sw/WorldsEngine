@@ -1240,6 +1240,28 @@ void VKRenderer::writeCmdBuf(VkCommandBuffer cmdBuf, uint32_t imageIndex, Camera
             rCtx.camera = *p->cam;
         }
 
+        if (p->isVr) {
+            glm::mat4 headViewMatrix = vrInterface->getHeadTransform(vrPredictAmount);
+
+            glm::mat4 viewMats[2] = {
+                vrInterface->getEyeViewMatrix(Eye::LeftEye),
+                vrInterface->getEyeViewMatrix(Eye::RightEye)
+            };
+
+            glm::mat4 projMats[2] = {
+                vrInterface->getEyeProjectionMatrix(Eye::LeftEye, rCtx.camera.near),
+                vrInterface->getEyeProjectionMatrix(Eye::RightEye, rCtx.camera.near)
+            };
+
+            for (int i = 0; i < 2; i++) {
+                rCtx.viewMatrices[i] = glm::inverse(headViewMatrix * viewMats[i]) * rCtx.camera.getViewMatrix();
+                rCtx.projMatrices[i] = projMats[i];
+            }
+        } else {
+            rCtx.projMatrices[0] = rCtx.camera.getProjectionMatrix((float)p->width / (float)p->height);
+            rCtx.viewMatrices[0] = rCtx.camera.getViewMatrix();
+        }
+
         additionalShadowsPass->prePass(rCtx);
         p->prePass(frameIdx, reg);
 
@@ -1282,6 +1304,28 @@ void VKRenderer::writeCmdBuf(VkCommandBuffer cmdBuf, uint32_t imageIndex, Camera
             rCtx.camera = cam;
         } else {
             rCtx.camera = *p->cam;
+        }
+
+        if (p->isVr) {
+            glm::mat4 headViewMatrix = vrInterface->getHeadTransform(vrPredictAmount);
+
+            glm::mat4 viewMats[2] = {
+                vrInterface->getEyeViewMatrix(Eye::LeftEye),
+                vrInterface->getEyeViewMatrix(Eye::RightEye)
+            };
+
+            glm::mat4 projMats[2] = {
+                vrInterface->getEyeProjectionMatrix(Eye::LeftEye, rCtx.camera.near),
+                vrInterface->getEyeProjectionMatrix(Eye::RightEye, rCtx.camera.near)
+            };
+
+            for (int i = 0; i < 2; i++) {
+                rCtx.viewMatrices[i] = glm::inverse(headViewMatrix * viewMats[i]) * rCtx.camera.getViewMatrix();
+                rCtx.projMatrices[i] = projMats[i];
+            }
+        } else {
+            rCtx.projMatrices[0] = rCtx.camera.getProjectionMatrix((float)p->width / (float)p->height);
+            rCtx.viewMatrices[0] = rCtx.camera.getViewMatrix();
         }
 
         additionalShadowsPass->execute(rCtx);
