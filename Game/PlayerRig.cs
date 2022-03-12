@@ -243,7 +243,20 @@ public class LocalPlayerSystem : ISystem
     private void SpawnPlayer()
     {
         if (Registry.View<SpawnPoint>().Count == 0) return;
-        Entity spawnPointEntity = Registry.View<SpawnPoint>().GetEnumerator().Current;
+        if (Registry.View<SpawnPoint>().Count > 1)
+        {
+            Log.Warn("Multiple spawn points!!");
+        }
+        Entity spawnPointEntity = Registry.View<SpawnPoint>().GetFirst();
+        if (Registry.HasName(spawnPointEntity))
+        {
+            Log.Msg($"Spawn point {Registry.GetName(spawnPointEntity)}");
+        }
+        else
+        {
+            Log.Msg($"Spawn point {spawnPointEntity.ID}");
+        }
+
         Transform spawnPoint = Registry.GetTransform(spawnPointEntity);
         //
         //Camera.Main.Position = spawnPoint.Position;
@@ -254,12 +267,22 @@ public class LocalPlayerSystem : ISystem
             return;
         }
 
+        Log.Msg("spawning player");
         Entity body = Registry.CreatePrefab(AssetDB.PathToId("Prefabs/player_body.wprefab"));
-        Registry.CreatePrefab(AssetDB.PathToId("Prefabs/player_left_hand.wprefab"));
-        Registry.CreatePrefab(AssetDB.PathToId("Prefabs/player_right_hand.wprefab"));
+        Entity lh = Registry.CreatePrefab(AssetDB.PathToId("Prefabs/player_left_hand.wprefab"));
+        Entity rh = Registry.CreatePrefab(AssetDB.PathToId("Prefabs/player_right_hand.wprefab"));
+
+        Log.Msg($"spawn pos: {spawnPoint.Position}");
         spawnPoint.Scale = body.Transform.Scale;
         body.Transform = spawnPoint;
-
+        Vector3 handOffset = new(0.1f, 0.0f, 0.2f);
+        spawnPoint.Position += handOffset; 
+        spawnPoint.Scale = lh.Transform.Scale;
+        lh.Transform = spawnPoint;
+        spawnPoint.Position -= handOffset * 2f;
+        spawnPoint.Scale = rh.Transform.Scale;
+        rh.Transform = spawnPoint;
+        Log.Msg($"body pos: {body.Transform.Position}");
     }
 
     public void OnSceneStart()
