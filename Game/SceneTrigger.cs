@@ -16,6 +16,7 @@ public class SceneTrigger : Component, IThinkingComponent
 
         if (aabb.ContainsPoint(t.InverseTransformPoint(Camera.Main.Position)))
         {
+            LocalPlayerSystem.SetTransitionSpawn(t);
             SceneLoader.LoadScene(AssetDB.PathToId(Scene));
         }
     }
