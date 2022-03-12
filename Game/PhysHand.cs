@@ -36,6 +36,7 @@ namespace Game
         private Transform _targetTransform = new Transform();
         [EditableClass]
         public QuaternionEuroFilter RotationFilter = new();
+        public bool DisableForces = false;
 
 #if DEBUG_HAND_VIS
         private Entity _visEntity;
@@ -74,8 +75,11 @@ namespace Game
             Vector3 force = PD.CalculateForce(pose.Position, _targetTransform.Position + (bodyDpa.Velocity * Time.DeltaTime), dpa.Velocity, Time.DeltaTime, bodyDpa.Velocity)
                 .ClampMagnitude(ForceLimit);
 
-            dpa.AddForce(force);
-            bodyDpa.AddForce(-force * 0.1f);
+            if (!DisableForces)
+            {
+                dpa.AddForce(force);
+                bodyDpa.AddForce(-force * 0.1f);
+            }
 
             Quaternion targetRotation = _targetTransform.Rotation;//RotationFilter.Filter(_targetTransform.Rotation, Time.DeltaTime);
             Quaternion quatDiff = targetRotation * pose.Rotation.Inverse;
@@ -106,7 +110,10 @@ namespace Game
             torque = pose.Rotation.SingleCover * torque;
 
             //torque = torque.ClampMagnitude(TorqueLimit);
-            dpa.AddTorque(torque);
+            if (!DisableForces)
+            {
+                dpa.AddTorque(torque);
+            }
         }
 
         private void SetTargets()
