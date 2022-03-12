@@ -472,19 +472,21 @@ namespace WorldsEngine
         public static Transform GetTransform(Entity entity)
         {
             if (!Valid(entity)) throw new ArgumentException("Invalid entity handle");
-            if (OverrideTransformToDPAPose)
-            {
-                if (HasComponent<DynamicPhysicsActor>(entity))
-                {
-                    return GetComponent<DynamicPhysicsActor>(entity).Pose;
-                }
-            }
-
             Transform t = new Transform();
             unsafe
             {
                 Transform* tPtr = &t;
                 NativeRegistry.registry_getTransform(nativeRegistryPtr, entity.ID, (IntPtr)tPtr);
+            }
+
+            if (OverrideTransformToDPAPose)
+            {
+                if (HasComponent<DynamicPhysicsActor>(entity))
+                {
+                    Transform pose = GetComponent<DynamicPhysicsActor>(entity).Pose;
+                    t.Position = pose.Position;
+                    t.Rotation = pose.Rotation;
+                }
             }
             return t;
         }
@@ -494,7 +496,6 @@ namespace WorldsEngine
             if (OverrideTransformToDPAPose && TryGetComponent<DynamicPhysicsActor>(entity, out var dpa))
             {
                 dpa.Pose = t;
-                return;
             }
 
             unsafe
