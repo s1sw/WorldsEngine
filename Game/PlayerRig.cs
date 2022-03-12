@@ -176,6 +176,11 @@ public class PlayerRig : Component, IThinkingComponent, IStartListener
             force.x = 0.0f;
             force.z = 0.0f;
             LocalPlayerSystem.AddForceToRig(force, ForceMode.Force);
+
+            if (Registry.TryGetComponent<DynamicPhysicsActor>(hit.HitEntity, out DynamicPhysicsActor standingOnDpa))
+            {
+                standingOnDpa.AddForceAtPosition(dpa.Mass * 9.81f * Vector3.Down, hit.WorldHitPos);
+            }
         }
 
         if (!_grounded && _groundedLast)
