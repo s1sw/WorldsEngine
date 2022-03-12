@@ -244,6 +244,7 @@ public class LocalPlayerSystem : ISystem
     private bool _snapTurned = false;
     private static Entity _leftHandEntity;
     private static Entity _rightHandEntity;
+    private static RelativePlayerTransforms? _spawnRPT = null;
 
     private void SpawnPlayer()
     {
@@ -277,21 +278,41 @@ public class LocalPlayerSystem : ISystem
         Entity lh = Registry.CreatePrefab(AssetDB.PathToId("Prefabs/player_left_hand.wprefab"));
         Entity rh = Registry.CreatePrefab(AssetDB.PathToId("Prefabs/player_right_hand.wprefab"));
 
-        Log.Msg($"spawn pos: {spawnPoint.Position}");
-        spawnPoint.Scale = body.Transform.Scale;
-        body.Transform = spawnPoint;
-        Vector3 handOffset = new(0.1f, 0.0f, 0.2f);
-        spawnPoint.Position += handOffset; 
-        spawnPoint.Scale = lh.Transform.Scale;
-        lh.Transform = spawnPoint;
-        spawnPoint.Position -= handOffset * 2f;
-        spawnPoint.Scale = rh.Transform.Scale;
-        rh.Transform = spawnPoint;
-        Log.Msg($"body pos: {body.Transform.Position}");
+        if (_spawnRPT == null)
+        {
+            Log.Msg($"spawn pos: {spawnPoint.Position}");
+            spawnPoint.Scale = body.Transform.Scale;
+            body.Transform = spawnPoint;
+            Vector3 handOffset = new(0.1f, 0.0f, 0.2f);
+            spawnPoint.Position += handOffset; 
+            spawnPoint.Scale = lh.Transform.Scale;
+            lh.Transform = spawnPoint;
+            spawnPoint.Position -= handOffset * 2f;
+            spawnPoint.Scale = rh.Transform.Scale;
+            rh.Transform = spawnPoint;
+            Log.Msg($"body pos: {body.Transform.Position}");
+        }
+        else
+        {
+            Transform bodyT = _spawnRPT.Value.Body.TransformBy(spawnPoint);
+            bodyT.Scale = body.Transform.Scale;
+
+            Transform lhT = _spawnRPT.Value.LeftHand.TransformBy(spawnPoint);
+            lhT.Scale = lh.Transform.Scale;
+
+            Transform rhT = _spawnRPT.Value.RightHand.TransformBy(spawnPoint);
+            rhT.Scale = rh.Transform.Scale;
+
+            body.Transform = bodyT;
+            lh.Transform = lhT;
+            rh.Transform = rhT;
+            _spawnRPT = null;
+        }
     }
 
     public void OnSceneStart()
     {
+        MovementInput = Vector2.Zero;
         Camera.Main.Rotation = Quaternion.Identity;
         Camera.Main.Position = Vector3.Zero;
         SpawnPlayer();
@@ -426,4 +447,21 @@ public class LocalPlayerSystem : ISystem
 
         return inputVel;
     }
+
+    public static void SetTransitionSpawn(Transform trigger)
+    {
+        _spawnRPT = new RelativePlayerTransforms()
+        {
+            Body = PlayerBody.Transform.TransformByInverse(trigger),
+            LeftHand = _leftHandEntity.Transform.TransformByInverse(trigger),
+            RightHand = _rightHandEntity.Transform.TransformByInverse(trigger)
+        };
+    }
+}
+
+public struct RelativePlayerTransforms
+{
+    public Transform Body;
+    public Transform LeftHand;
+    public Transform RightHand;
 }
