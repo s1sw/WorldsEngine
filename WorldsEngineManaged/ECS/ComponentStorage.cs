@@ -175,6 +175,11 @@ namespace WorldsEngine.ECS
             return packedEntities.GetEnumerator();
         }
 
+        public Entity GetFirst()
+        {
+            return packedEntities[0];
+        }
+
         public void UpdateIfThinking()
         {
             foreach (Entity entity in packedEntities)
