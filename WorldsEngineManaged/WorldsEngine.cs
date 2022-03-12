@@ -109,6 +109,7 @@ namespace WorldsEngine
 
             simulateSyncContext.ClearCallbacks();
             updateSyncContext.ClearCallbacks();
+            Registry.OverrideTransformToDPAPose = true;
 
             try
             {
@@ -124,6 +125,7 @@ namespace WorldsEngine
                 Logger.LogError($"Caught exception: {e}");
             }
 
+            Registry.OverrideTransformToDPAPose = false;
             SceneRunning = true;
             Editor.Editor.Notify("Scene started");
         }
