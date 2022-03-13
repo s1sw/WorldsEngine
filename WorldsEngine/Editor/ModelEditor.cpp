@@ -45,7 +45,10 @@ namespace worlds {
     }
 
     void ModelEditor::drawEditor() {
-        ImGui::Text("Source model: %s", AssetDB::idToPath(srcModel).c_str());
+        if (srcModel != INVALID_ASSET)
+            ImGui::Text("Source model: %s", AssetDB::idToPath(srcModel).c_str());
+        else
+            ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "Invalid source");
         ImGui::SameLine();
         selectRawAssetPopup("Source Model", srcModel, ImGui::Button("Change##SrcModel"));
         ImGui::Checkbox("Pre-Transform Vertices", &preTransformVerts);
