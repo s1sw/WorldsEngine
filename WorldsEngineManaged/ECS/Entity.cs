@@ -1,4 +1,5 @@
 using System;
+using System.Text.Json.Serialization;
 
 namespace WorldsEngine
 {
@@ -7,11 +8,13 @@ namespace WorldsEngine
         public static Entity Null => new(0x000FFFFF);
 
         public uint ID { get; private set; }
+        [JsonIgnore]
         public bool IsNull => Identifier == 0x000FFFFF;
 
         /// <summary>
         /// The 20-bit packed identifier value for this entity.
         /// </summary>
+        [JsonIgnore]
         internal uint Identifier
         {
             get { return ID & 0x000FFFFF; }
@@ -21,6 +24,7 @@ namespace WorldsEngine
         /// <summary>
         /// The 12-bit packed version value for this entity.
         /// </summary>
+        [JsonIgnore]
         internal uint Version
         {
             get { return (ID & 0xFFF00000) >> 20; }
@@ -50,6 +54,7 @@ namespace WorldsEngine
         public T GetComponent<T>() => Registry.GetComponent<T>(this);
         public bool HasComponent<T>() => Registry.HasComponent<T>(this);
         public bool TryGetComponent<T>(out T comp) => Registry.TryGetComponent<T>(this, out comp);
+        [JsonIgnore]
         public Transform Transform
         {
             get => Registry.GetTransform(this);
