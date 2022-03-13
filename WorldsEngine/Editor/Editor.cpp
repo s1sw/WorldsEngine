@@ -921,6 +921,16 @@ namespace worlds {
                     sceneViews.add(new EditorSceneView{ interfaces, this });
                 }
 
+                if (ImGui::MenuItem("Add Static Physics", nullptr, false, reg.valid(currentSelectedEntity) && reg.has<WorldObject>(currentSelectedEntity))) {
+                    WorldObject& wo = reg.get<WorldObject>(currentSelectedEntity);
+                    ComponentMetadataManager::byName["Physics Actor"]->create(currentSelectedEntity, reg);
+                    PhysicsActor& pa = reg.get<PhysicsActor>(currentSelectedEntity);
+                    PhysicsShape ps;
+                    ps.type = PhysicsShapeType::Mesh;
+                    ps.mesh.mesh = wo.mesh;
+                    pa.physicsShapes.push_back(std::move(ps));
+                }
+
                 ImGui::EndMenu();
             }
 
