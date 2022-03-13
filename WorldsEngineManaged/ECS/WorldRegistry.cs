@@ -101,8 +101,12 @@ namespace WorldsEngine
                 var storage = componentStorages[i];
                 if (storage != null && storage.Contains(entity))
                 {
-                    object component = storage.GetBoxed(entity);
                     var type = storage.Type;
+
+                    // Components defined in this assembly will be native, so we
+                    // don't want to serialize them twice
+                    if (type.Assembly == Assembly.GetExecutingAssembly()) continue;
+                    object component = storage.GetBoxed(entity);
 
                     byte[] serialized = JsonSerializer.SerializeToUtf8Bytes(component, type, serializerOptions);
                     string key = type.FullName!;
