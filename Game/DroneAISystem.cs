@@ -317,6 +317,7 @@ namespace Game
                 _pathTargetPos = _targetPosition;
                 _navigationPath = NavigationSystem.FindPath(rHit.WorldHitPos, _targetPosition);
                 _pathPointIdx = 0;
+                targetPose.Position = _targetPosition;
             }
             else
             {
@@ -326,9 +327,10 @@ namespace Game
                     _pathPointIdx++;
 
                 targetPose.Position = _navigationPath[_pathPointIdx] + Vector3.Up * 2.0f;
-                AvoidOtherDrones(ref targetPose.Position);
-                ApplyTargetPose(targetPose);
             }
+
+            AvoidOtherDrones(ref targetPose.Position);
+            ApplyTargetPose(targetPose);
 
             UpdateFiring();
         }
