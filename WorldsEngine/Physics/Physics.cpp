@@ -202,7 +202,7 @@ namespace worlds {
                         points.resize(lm.vertices.size());
 
                         for (size_t i = 0; i < lm.vertices.size(); i++) {
-                            points[i] = glm2px(lm.vertices[i].position * scale);
+                            points[i] = glm2px(lm.vertices[i].position);
                         }
 
                         physx::PxTriangleMeshDesc meshDesc;
@@ -219,8 +219,9 @@ namespace worlds {
                         physicsTriMesh.insert({ ps.mesh.mesh, triMesh });
                     }
 
+                    PxMeshScale meshScale{PxVec3{scale.x, scale.y, scale.z}, PxQuat{PxIdentity}};
                     shape = g_physics->createShape(
-                        physx::PxTriangleMeshGeometry(physicsTriMesh.at(ps.mesh.mesh)),
+                        physx::PxTriangleMeshGeometry(physicsTriMesh.at(ps.mesh.mesh), meshScale),
                         *mat
                     );
                 }
