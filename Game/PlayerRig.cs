@@ -306,6 +306,11 @@ public class LocalPlayerSystem : ISystem
             body.Transform = bodyT;
             lh.Transform = lhT;
             rh.Transform = rhT;
+
+            body.GetComponent<DynamicPhysicsActor>().Velocity = spawnPoint.TransformDirection(_spawnRPT.Value.BodyVelocity);
+            lh.GetComponent<DynamicPhysicsActor>().Velocity = spawnPoint.TransformDirection(_spawnRPT.Value.LeftHandVelocity);
+            rh.GetComponent<DynamicPhysicsActor>().Velocity = spawnPoint.TransformDirection(_spawnRPT.Value.RightHandVelocity);
+
             _spawnRPT = null;
         }
     }
@@ -454,7 +459,10 @@ public class LocalPlayerSystem : ISystem
         {
             Body = PlayerBody.Transform.TransformByInverse(trigger),
             LeftHand = _leftHandEntity.Transform.TransformByInverse(trigger),
-            RightHand = _rightHandEntity.Transform.TransformByInverse(trigger)
+            RightHand = _rightHandEntity.Transform.TransformByInverse(trigger),
+            BodyVelocity = PlayerBody.GetComponent<DynamicPhysicsActor>().Velocity,
+            LeftHandVelocity = trigger.InverseTransformDirection(_leftHandEntity.GetComponent<DynamicPhysicsActor>().Velocity),
+            RightHandVelocity = trigger.InverseTransformDirection(_rightHandEntity.GetComponent<DynamicPhysicsActor>().Velocity)
         };
     }
 }
@@ -464,4 +472,7 @@ public struct RelativePlayerTransforms
     public Transform Body;
     public Transform LeftHand;
     public Transform RightHand;
+    public Vector3 BodyVelocity;
+    public Vector3 LeftHandVelocity;
+    public Vector3 RightHandVelocity;
 }
