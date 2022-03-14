@@ -10,7 +10,7 @@ using WorldsEngine.Audio;
 namespace Game.Combat
 {
     [Component]
-    [EditorFriendlyName("C# Damaging Projectile")]
+    [EditorFriendlyName("Damaging Projectile")]
     public class DamagingProjectile : Component, IStartListener, ICollisionHandler
     {
         public double Damage = 5.0;
