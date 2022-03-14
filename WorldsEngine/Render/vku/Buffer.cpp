@@ -42,6 +42,8 @@ namespace vku {
     }
 
     GenericBuffer& GenericBuffer::operator=(GenericBuffer&& other) noexcept {
+        if (buffer_) destroy();
+
         allocation = other.allocation;
         allocator = other.allocator;
         if (other.buffer_) {
