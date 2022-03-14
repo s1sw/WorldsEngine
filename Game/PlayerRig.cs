@@ -16,6 +16,7 @@ namespace Game;
 public class PlayerRig : Component, IThinkingComponent, IStartListener
 {
     public const float HoverDistance = 0.2f;
+    public const float MovementSpeed = 5.0f;
     [EditableClass]
     public V3PidController pidController = new();
 
@@ -189,7 +190,7 @@ public class PlayerRig : Component, IThinkingComponent, IStartListener
         if (!_grounded)
             _airTime += Time.DeltaTime;
 
-        Vector3 targetVelocity = inputDirCS * 7.5f * max;
+        Vector3 targetVelocity = inputDirCS * MovementSpeed * max;
         Vector3 appliedVelocity = (targetVelocity - dpa.Velocity) * (_grounded ? 10f : 2.5f);
         appliedVelocity.y = 0.0f;
 
