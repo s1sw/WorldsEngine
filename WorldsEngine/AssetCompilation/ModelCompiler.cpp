@@ -600,7 +600,6 @@ namespace worlds {
                         const void* skindices = nullptr;
                         int skindicesType = 0;
                         const glm::vec4* weights = nullptr;
-                        const size_t vertexCount = getAttributeCount(model, prim, "POSITION");
 
                         positions = getAttributeData<glm::vec3>(model, prim, "POSITION");
                         normals = getAttributeData<glm::vec3>(model, prim, "NORMAL");
@@ -697,7 +696,7 @@ namespace worlds {
                         std::vector<wmdl::Vertex2> mikkTSpaceOut(primVerts.size());
                         std::vector<wmdl::VertexSkinningInfo> mikkTSpaceOutSkinInfo(primSkinfos.size());
 
-                        assert(primVerts.size() == primSkinfos.size());
+                        assert(!isPrimitiveSkinned || primVerts.size() == primSkinfos.size());
                         TangentCalcCtx tCalcCtx{ primVerts, mikkTSpaceOut, primSkinfos, mikkTSpaceOutSkinInfo };
 
                         SMikkTSpaceInterface interface {};

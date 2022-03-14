@@ -151,7 +151,7 @@ public class PlayerRig : Component, IThinkingComponent, IStartListener
             dpa.Pose.Position + centerOffset + (Vector3.Down * 0.8f),
             0.1f,
             Vector3.Down,
-            0.3f,
+            0.2f,
             out RaycastHit hit,
             PhysicsLayers.Player
         );

@@ -247,6 +247,21 @@ float calculateCascade(out vec4 oShadowPos, out bool inCascade) {
     return -1.0;
 }
 
+void getCascadeSamplePos(int i, out vec4 oShadowPos, out bool inCascade) {
+    inCascade = false;
+    vec4 shadowPos = dirShadowMatrices[i] * inWorldPos;
+    shadowPos.y = -shadowPos.y;
+    vec2 coord = (shadowPos.xy * 0.5 + 0.5);
+    const float lThresh = (1.0 / cascadeTexelsPerUnit[i]);
+    const float hThresh = 1.0 - lThresh;
+
+    if (coord.x > lThresh && coord.x < hThresh &&
+            coord.y > lThresh && coord.y < hThresh) {
+        oShadowPos = shadowPos;
+        inCascade = true;
+    }
+}
+
 float calcProxyAO(vec3 wPos, vec3 normal) {
     if (!ENABLE_PROXY_AO) return 1.0;
     float proxyAO = 1.0;
@@ -376,16 +391,14 @@ float getDirLightShadowIntensity(int lightIdx) {
 
     float bias = 0.0004;//max(0.0004 * (1.0 - dot(inNormal, lights[lightIdx].pack1.xyz)), 0.0004);
     //float bias = 0.000325;
-    float depth = (shadowPos.z / shadowPos.w);
-    vec2 coord = (shadowPos.xy * 0.5 + 0.5);
 
-    if (!inCascade)
-        return 1.0;
-
-    //if (coord.x > 0.0 && coord.x < 1.0 &&
-    //        coord.y > 0.0 && coord.y < 1.0 &&
-    //        depth < 1.0 && depth > 0.0)
+    if (!inCascade) return 1.0;
+    //for (int i = 0; i < 4; i++) {
     {
+        //getCascadeSamplePos(i, shadowPos, inCascade);
+        //if (!inCascade) continue;
+        float depth = (shadowPos.z / shadowPos.w);
+        vec2 coord = (shadowPos.xy * 0.5 + 0.5);
 #ifdef HIGH_QUALITY_SHADOWS
         float percentOccluded = 0.0;
         float distanceSum = 0.0;
@@ -412,9 +425,9 @@ float getDirLightShadowIntensity(int lightIdx) {
             percentOccluded = mix(harden(percentOccluded), percentOccluded, pcfWeight);
         }
 
-        shadowIntensity = 1.0 - percentOccluded;
+        shadowIntensity = min(shadowIntensity, 1.0 - percentOccluded);
 #else
-        shadowIntensity = step(textureLod(shadowSampler, vec3(coord, float(cascadeSplit)), 0.0).x - depth, bias);
+        shadowIntensity = min(shadowIntensity, step(textureLod(shadowSampler, vec3(coord, float(cascadeSplit)), 0.0).x - depth, bias));
 #endif
     }
     return shadowIntensity;
