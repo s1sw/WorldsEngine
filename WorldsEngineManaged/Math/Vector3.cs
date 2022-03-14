@@ -6,6 +6,7 @@ namespace WorldsEngine.Math
     [StructLayout(LayoutKind.Sequential)]
     public struct Vector3
     {
+#region Common Vectors
         public static readonly Vector3 Zero = new Vector3(0.0f, 0.0f, 0.0f);
         public static readonly Vector3 One = new Vector3(1.0f);
 
@@ -17,11 +18,16 @@ namespace WorldsEngine.Math
 
         public static readonly Vector3 Up = new Vector3(0.0f, 1.0f, 0.0f);
         public static readonly Vector3 Down = new Vector3(0.0f, -1.0f, 0.0f);
+#endregion
 
         public float x, y, z;
 
         public float ComponentSum => x + y + z;
         public float ComponentMean => (x + y + z) / 3.0f;
+
+        public float Length => MathF.Sqrt(LengthSquared);
+
+        public float LengthSquared => (x * x) + (y * y) + (z * z);
 
         public bool HasNaNComponent => float.IsNaN(x) || float.IsNaN(y) || float.IsNaN(z);
         public bool IsZero => x == 0.0f && y == 0.0f && z == 0.0f;
@@ -41,6 +47,7 @@ namespace WorldsEngine.Math
             z = value;
         }
 
+#region Operators
         public static Vector3 operator-(Vector3 v)
         {
             return new Vector3(-v.x, -v.y, -v.z);
@@ -75,6 +82,7 @@ namespace WorldsEngine.Math
         {
             return new Vector3(v.x / scalar, v.y / scalar, v.z / scalar);
         }
+#endregion
 
         public static float Dot(Vector3 a, Vector3 b)
         {
@@ -94,9 +102,10 @@ namespace WorldsEngine.Math
             return v - 2 * (v.Dot(normal)) * normal;
         }
 
-        public float Length => MathF.Sqrt(LengthSquared);
-
-        public float LengthSquared => (x * x) + (y * y) + (z * z);
+        public static Vector3 Lerp(Vector3 a, Vector3 b, float t)
+        {
+            return a * (1f - t) + b * t;
+        }
 
         public float Dot(Vector3 other)
         {
