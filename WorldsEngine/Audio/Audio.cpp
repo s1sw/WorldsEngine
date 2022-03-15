@@ -603,9 +603,9 @@ namespace worlds {
 
         IPLSimulationSharedInputs sharedInputs{};
         sharedInputs.listener = inputs.source;
-        sharedInputs.numRays = 2048;
-        sharedInputs.numBounces = 16;
-        sharedInputs.duration = 2.0f;
+        sharedInputs.numRays = 1024;
+        sharedInputs.numBounces = 8;
+        sharedInputs.duration = 1.5f;
         sharedInputs.order = 1;
         sharedInputs.irradianceMinDistance = 1.0f;
 
