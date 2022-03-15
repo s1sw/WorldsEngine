@@ -24,6 +24,8 @@
 #include <thread>
 #include "Fatal.hpp"
 #include <mutex>
+#include <deque>
+#include <queue>
 
 namespace worlds {
     // Because static initialisation is the first thing that occurs when the game is started,
@@ -37,6 +39,8 @@ namespace worlds {
     ConVar logToStdout { "logToStdOut",
         "1",
         "Log to stdout in addition to the file and the console." };
+    
+    ConVar popupConsoleMessages { "popupConsoleMessages", "0" };
 
     ConvarLink* firstLink = nullptr;
     const int CONSOLE_RESPONSE_CATEGORY = 255;
@@ -395,11 +399,29 @@ namespace worlds {
         return 0;
     }
 
+    struct PopupMessage {
+        std::string contents;
+        SDL_LogPriority priority;
+        float shownFor;
+    };
+
+    std::deque<PopupMessage> popupMessages;
+
     void Console::drawWindow() {
         if (asyncCommandReady) {
             executeCommandStr(asyncCommand);
             asyncCommandReady = false;
         }
+
+        float popupMessageY = ImGui::GetTextLineHeight();
+        ImDrawList* popupDrawlist = ImGui::GetForegroundDrawList();
+        for (PopupMessage& pm : popupMessages) {
+            pm.shownFor += ImGui::GetIO().DeltaTime;
+            popupDrawlist->AddText(ImVec2(0.0f, popupMessageY), priorityColors.at(pm.priority), pm.contents.c_str());
+            popupMessageY += ImGui::GetTextLineHeight();
+        }
+
+        popupMessages.erase(std::remove_if(popupMessages.begin(), popupMessages.end(), [](PopupMessage& pm) { return pm.shownFor > 5.0f; }), popupMessages.end());
 
         if (ImGui::GetIO().KeysDownDuration[SDL_SCANCODE_GRAVE] == 0.0f) {
             show = !show;
@@ -679,6 +701,8 @@ namespace worlds {
 
         consoleMutex.lock();
         con->msgs.push_back(ConsoleMsg{ priority, msg, category, getDateTimeString()});
+        if (popupConsoleMessages.getInt())
+            popupMessages.push_front(PopupMessage{ msg, priority, 0.0f });
         consoleMutex.unlock();
 
 #ifdef _WIN32
