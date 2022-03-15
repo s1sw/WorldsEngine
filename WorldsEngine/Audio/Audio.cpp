@@ -430,15 +430,15 @@ namespace worlds {
         simulationSettings.flags = (IPLSimulationFlags)(IPL_SIMULATIONFLAGS_DIRECT | IPL_SIMULATIONFLAGS_REFLECTIONS);
         simulationSettings.sceneType = IPL_SCENETYPE_DEFAULT;
         simulationSettings.reflectionType = IPL_REFLECTIONEFFECTTYPE_CONVOLUTION;
-        simulationSettings.maxNumRays = 4096;
+        simulationSettings.maxNumRays = 2048;
         simulationSettings.maxNumOcclusionSamples = 1024;
-        simulationSettings.numDiffuseSamples = 16;
-        simulationSettings.maxDuration = 2.0f;
+        simulationSettings.numDiffuseSamples = 12;
+        simulationSettings.maxDuration = 1.5f;
         simulationSettings.maxOrder = 1;
         simulationSettings.maxNumSources = 512;
         simulationSettings.numThreads = 8;
         simulationSettings.rayBatchSize = 16;
-        simulationSettings.numVisSamples = 512;
+        simulationSettings.numVisSamples = 256;
         simulationSettings.samplingRate = audioSettings.samplingRate;
         simulationSettings.frameSize = audioSettings.frameSize;
 
@@ -577,6 +577,8 @@ namespace worlds {
         }
 
         registry.view<AudioSource, Transform>().each([simFlags](AudioSource& as, Transform& t) {
+            if (!as.eventInstance->isValid()) return;
+
             FMOD_STUDIO_PLAYBACK_STATE playbackState;
             FMCHECK(as.eventInstance->getPlaybackState(&playbackState));
             if (as.phononSource == nullptr || playbackState == FMOD_STUDIO_PLAYBACK_STOPPED) return;
