@@ -1,12 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
 using WorldsEngine;
+using WorldsEngine.Editor;
+using Game.Editors;
 
 namespace Game.Interaction
 {
     [Component]
     [EditorFriendlyName("Grabbable")]
     [EditorIcon(FontAwesome.FontAwesomeIcons.Hands)]
+    [CustomEditor(typeof(GrabbableEditor))]
     class Grabbable
     {
         public event Action<Entity> TriggerPressed;
