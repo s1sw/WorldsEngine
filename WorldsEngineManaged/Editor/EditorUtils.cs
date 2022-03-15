@@ -19,7 +19,7 @@ public static class EditorUtils
 
         if (ImGui.Combo(name, ref val, names, names.Length))
         {
-            eVal = (T)Convert.ChangeType(val, typeof(T));
+            eVal = (T)Enum.ToObject(typeof(T), val);
         }
     }
 
