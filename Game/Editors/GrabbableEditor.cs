@@ -8,6 +8,9 @@ namespace Game.Editors;
 
 public class GrabbableEditor : IComponentEditor
 {
+    private const string RightHandModelPath = "Models/VRHands/hand_placeholder_r.wmdl";
+    private const string LeftHandModelPath = "Models/VRHands/hand_placeholder_l.wmdl";
+
     private TransformEditContext _transformEditContext = new();
     private Entity _handEntity = Entity.Null;
     
@@ -21,7 +24,7 @@ public class GrabbableEditor : IComponentEditor
                 _transformEditContext.StartUsing(t.TransformBy(e.Transform));
                 _handEntity = Registry.Create();
                 var wo = Registry.AddComponent<WorldObject>(_handEntity);
-                wo.Mesh = AssetDB.PathToId("Models/VRHands/hand_placeholder_r.wmdl");
+                wo.Mesh = AssetDB.PathToId(g.Hand == GripHand.Left ? LeftHandModelPath : RightHandModelPath);
             }
         }
         else
@@ -43,11 +46,15 @@ public class GrabbableEditor : IComponentEditor
     
     private void EditBoxGrip(Entity e, Grip g)
     {
+        Transform eT = e.Transform;
+        DebugShapes.DrawBox(eT.TransformPoint(g.position), g.BoxExtents, eT.Rotation * g.rotation, new Vector4(0.0f, 0.1f, 1.0f, 1.0f));
         ImGui.DragFloat3("Box Extents", ref g.BoxExtents);
     }
     
     private void EditSphereGrip(Entity e, Grip g)
     {
+        Transform eT = e.Transform;
+        DebugShapes.DrawSphere(eT.TransformPoint(g.position), g.SphereRadius, eT.Rotation * g.rotation, new Vector4(0.0f, 0.1f, 1.0f, 1.0f));
         ImGui.DragFloat("Sphere Radius", ref g.SphereRadius);
     }
 
@@ -59,12 +66,22 @@ public class GrabbableEditor : IComponentEditor
         {
             ImGui.Text($"{grabbable.grips.Count} grips");
             
+            if (ImGui.Button("Add Grip"))
+                grabbable.grips.Add(new Grip());
+            
             int i = 0;
             foreach (Grip g in grabbable.grips)
             {
                 if (ImGui.TreeNode($"Grip {i}"))
                 {
+                    if (ImGui.Button("Remove Grip"))
+                    {
+                        grabbable.grips.RemoveAt(i);
+                        break;
+                    }
+
                     EditorUtils.EnumDropdown("Type", ref g.Type);
+                    EditorUtils.EnumDropdown("Hand", ref g.Hand);
                     
                     switch (g.Type)
                     {
@@ -80,7 +97,7 @@ public class GrabbableEditor : IComponentEditor
                     }
                     
                     ImGui.TreePop();
-}
+                }
 
                 i++;
             }
