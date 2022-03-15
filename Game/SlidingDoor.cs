@@ -1,4 +1,5 @@
 using WorldsEngine;
+using WorldsEngine.Audio;
 using WorldsEngine.Math;
 using ImGuiNET;
 using System;
@@ -14,6 +15,7 @@ public class SlidingDoor : Component, IStartListener, IThinkingComponent
     public float Speed = 1f;
 
     private float _slideT = 0f;
+    private int _previousSlideDir = 0;
     private Transform _initialTransform;
 
     public void Start()
@@ -33,11 +35,17 @@ public class SlidingDoor : Component, IStartListener, IThinkingComponent
 
         if (aabb.ContainsPoint(_initialTransform.InverseTransformPoint(Camera.Main.Position)))
         {
+            if (_previousSlideDir == -1)
+                Audio.PlayOneShotAttachedEvent("event:/Misc/Sliding Door", t.Position, Entity);
             _slideT += Time.DeltaTime * Speed;
+            _previousSlideDir = 1;
         }
         else
         {
+            if (_previousSlideDir == 1)
+                Audio.PlayOneShotAttachedEvent("event:/Misc/Sliding Door", t.Position, Entity);
             _slideT -= Time.DeltaTime * Speed;
+            _previousSlideDir = -1;
         }
 
         _slideT = MathFX.Clamp(_slideT, 0f, 1f);
