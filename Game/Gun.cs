@@ -22,7 +22,10 @@ namespace Game
         public float ShotSpacing = 0.1f;
         public AmmoType ProjectileType = AmmoType.Laser;
         public bool MagazineRequired = false;
-        public Vector3 MagazineAttachedPosition = Vector3.Zero;
+        
+        [EditRelativeTransform]
+        public Transform MagazineAttachPoint;
+
         [EditRelativeTransform]
         public Transform ProjectileSpawnTransform;
 
@@ -148,13 +151,13 @@ namespace Game
             if (!Registry.HasComponent<Magazine>(contactInfo.OtherEntity) || contactInfo.OtherEntity == _currentMagazine) return;
 
             Transform gunTransform = Registry.GetTransform(Entity);
-            if (contactInfo.AverageContactPoint.DistanceTo(gunTransform.TransformPoint(MagazineAttachedPosition)) > 0.05f) return;
+            if (contactInfo.AverageContactPoint.DistanceTo(MagazineAttachPoint.TransformBy(gunTransform).Position) > 0.05f) return;
 
             _hasMagazine = true;
 
             var d6 = Registry.AddComponent<D6Joint>(Entity);
             d6.Target = contactInfo.OtherEntity;
-            d6.LocalPose = new Transform(MagazineAttachedPosition, Quaternion.Identity);
+            d6.LocalPose = MagazineAttachPoint;
 
             d6.SetAllAxisMotion(D6Motion.Locked);
             _currentMagazine = contactInfo.OtherEntity;

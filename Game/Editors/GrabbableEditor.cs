@@ -77,6 +77,7 @@ public class GrabbableEditor : IComponentEditor
                     if (ImGui.Button("Remove Grip"))
                     {
                         grabbable.grips.RemoveAt(i);
+                        // Break so we're not iterating over a modified collection
                         break;
                     }
 
