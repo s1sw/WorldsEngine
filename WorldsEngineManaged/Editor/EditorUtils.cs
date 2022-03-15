@@ -11,6 +11,7 @@ namespace WorldsEngine.Editor;
 public static class EditorUtils
 {
     private static readonly TransformEditContext transformCtx = new();
+    private static string? transformCtxFieldName;
     
     public static void EnumDropdown<T>(string name, ref T eVal) where T : Enum
     {
@@ -120,9 +121,10 @@ public static class EditorUtils
                         if (!currentValue.Rotation.Valid) currentValue.Rotation = Quaternion.Identity;
                         currentValue = currentValue.TransformBy(Registry.GetTransform(entity));
                         transformCtx.StartUsing(currentValue);
+                        transformCtxFieldName = fieldName;
                     }
                 }
-                else
+                else if (transformCtxFieldName == fieldName)
                 {
                     Editor.OverrideHandle(transformCtx.Entity!.Value);
                     var transform = Registry.GetTransform(transformCtx.Entity!.Value);
@@ -135,6 +137,7 @@ public static class EditorUtils
                     if (ImGui.Button("Done"))
                     {
                         transformCtx.StopUsing();
+                        transformCtxFieldName = null;
                     }
                 }
             }
