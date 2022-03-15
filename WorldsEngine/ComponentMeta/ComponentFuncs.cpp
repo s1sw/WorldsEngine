@@ -417,25 +417,6 @@ namespace worlds {
 
     class WorldLightEditor : public BasicComponentUtil<WorldLight> {
     private:
-        entt::entity rangeSphere = entt::null;
-
-        void ensureRangeSphereExists(entt::registry& reg) {
-            if (reg.valid(rangeSphere)) return;
-
-            // If the light range sphere doesn't exist, create it.
-            rangeSphere = createModelObject(reg,
-                glm::vec3{1000.0f},
-                glm::quat{},
-                AssetDB::pathToId("Models/sphere.wmdl"),
-                AssetDB::pathToId("Materials/wireframe.json")
-            );
-
-            // Make sure the sphere doesn't get saved with the scene and is hidden in the hierarchy.
-            reg.emplace<DontSerialize>(rangeSphere);
-            reg.emplace<HideFromEditor>(rangeSphere);
-            reg.get<WorldObject>(rangeSphere).castShadows = false;
-        }
-
         void showTypeSpecificControls(WorldLight& worldLight) {
             // Show options specific to certain types of light
             switch (worldLight.type) {
@@ -471,8 +452,6 @@ namespace worlds {
 
         void edit(entt::entity ent, entt::registry& reg, Editor* ed) override {
             if (ImGui::CollapsingHeader(ICON_FA_LIGHTBULB u8" Light")) {
-                ensureRangeSphereExists(reg);
-
                 if (ImGui::Button("Remove##WL")) {
                     reg.remove<WorldLight>(ent);
                 } else {
@@ -484,8 +463,7 @@ namespace worlds {
                     ImGui::DragFloat("Intensity", &worldLight.intensity, 0.1f, 0.000001f, FLT_MAX, "%.3f", ImGuiSliderFlags_AlwaysClamp);
 
                     // Move the range sphere to center on the light
-                    Transform& sphereTransform = reg.get<Transform>(rangeSphere);
-                    sphereTransform.position = transform.position;
+                    drawSphere(transform.position, transform.rotation, worldLight.maxDistance);
 
                     if (ImGui::BeginCombo("Light Type", lightTypeNames.at(worldLight.type))) {
                         for (auto& p : lightTypeNames) {
@@ -507,9 +485,6 @@ namespace worlds {
                     // intensity falls to less than 0.05
                     ImGui::Text("Recommended radius: %.3f", glm::sqrt(worldLight.intensity / 0.05f));
 
-                    // The sphere mesh has a radius of 0.25, so scale it up 4x
-                    sphereTransform.scale = glm::vec3 { worldLight.maxDistance * 4.0f };
-
                     ImGui::DragFloat("Radius", &worldLight.maxDistance);
 
                     showTypeSpecificControls(worldLight);
@@ -520,8 +495,6 @@ namespace worlds {
                         drawCircle(transform.position + lightForward * worldLight.maxDistance * 0.5f, radiusAtCutoff, transform.rotation * glm::angleAxis(glm::half_pi<float>(), glm::vec3(1.f, 0.f, 0.f)), glm::vec4(1.0f));
                     }
                 }
-            } else if (reg.valid(rangeSphere)) {
-                reg.destroy(rangeSphere);
             }
         }
 
