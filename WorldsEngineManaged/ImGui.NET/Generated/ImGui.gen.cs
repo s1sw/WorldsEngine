@@ -10145,7 +10145,7 @@ namespace ImGuiNET
                 native_str_id[native_str_id_offset] = 0;
             }
             else { native_str_id = null; }
-            ImGuiNative.igPushIDStr(native_str_id);
+            ImGuiNative.igPushID_Str(native_str_id);
             if (str_id_byteCount > Util.StackAllocationSizeLimit)
             {
                 Util.Free(native_str_id);
@@ -10154,11 +10154,11 @@ namespace ImGuiNET
         public static void PushID(IntPtr ptr_id)
         {
             void* native_ptr_id = (void*)ptr_id.ToPointer();
-            ImGuiNative.igPushIDPtr(native_ptr_id);
+            ImGuiNative.igPushID_Ptr(native_ptr_id);
         }
         public static void PushID(int int_id)
         {
-            ImGuiNative.igPushIDInt(int_id);
+            ImGuiNative.igPushID_Int(int_id);
         }
         public static void PushItemWidth(float item_width)
         {

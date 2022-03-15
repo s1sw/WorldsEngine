@@ -491,13 +491,13 @@ namespace ImGuiNET
         [DllImport(WorldsEngine.WorldsEngine.NativeModule, CallingConvention = CallingConvention.Cdecl)]
         public static extern void igPushFont(ImFont* font);
         [DllImport(WorldsEngine.WorldsEngine.NativeModule, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void igPushIDStr(byte* str_id);
+        public static extern void igPushID_Str(byte* str_id);
         [DllImport(WorldsEngine.WorldsEngine.NativeModule, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void igPushIDStrStr(byte* str_id_begin, byte* str_id_end);
+        public static extern void igPushID_StrStr(byte* str_id_begin, byte* str_id_end);
         [DllImport(WorldsEngine.WorldsEngine.NativeModule, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void igPushIDPtr(void* ptr_id);
+        public static extern void igPushID_Ptr(void* ptr_id);
         [DllImport(WorldsEngine.WorldsEngine.NativeModule, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void igPushIDInt(int int_id);
+        public static extern void igPushID_Int(int int_id);
         [DllImport(WorldsEngine.WorldsEngine.NativeModule, CallingConvention = CallingConvention.Cdecl)]
         public static extern void igPushItemWidth(float item_width);
         [DllImport(WorldsEngine.WorldsEngine.NativeModule, CallingConvention = CallingConvention.Cdecl)]
