@@ -118,7 +118,7 @@ namespace worlds {
         glm::vec3 eye = center + (lightDir * diameter);
 
         glm::mat4 viewMat = glm::lookAt(eye, center, glm::vec3{ 0.0f, 1.0f, 0.0f });
-        glm::mat4 projMat = glm::orthoZO(-radius, radius, -radius, radius, radius * 12.0f, -radius * 12.0f);
+        glm::mat4 projMat = glm::orthoZO(-radius, radius, -radius, radius, radius * 20.0f, -radius * 20.0f);
 
         return projMat * viewMat;
     }

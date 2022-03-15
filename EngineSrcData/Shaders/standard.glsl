@@ -389,7 +389,7 @@ float getDirLightShadowIntensity(int lightIdx) {
     bool inCascade = true;
     float cascadeSplit = calculateCascade(shadowPos, inCascade);
 
-    float bias = 0.0004;//max(0.0004 * (1.0 - dot(inNormal, lights[lightIdx].pack1.xyz)), 0.0004);
+    float bias = 0.0003;//max(0.0004 * (1.0 - dot(inNormal, lights[lightIdx].pack1.xyz)), 0.0004);
     //float bias = 0.000325;
 
     if (!inCascade) return 1.0;
