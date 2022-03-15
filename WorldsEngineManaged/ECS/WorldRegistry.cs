@@ -169,7 +169,7 @@ namespace WorldsEngine
             for (int i = 0; i < ComponentPoolCount; i++)
             {
                 if (componentStorages[i] == null) continue;
-                if (componentStorages[i].Type.Assembly == Assembly.GetExecutingAssembly()) continue;
+                if (componentStorages[i]!.Type.Assembly == Assembly.GetExecutingAssembly()) continue;
                 componentStorages[i]!.SerializeForHotload();
                 componentStorages[i] = null;
             }
