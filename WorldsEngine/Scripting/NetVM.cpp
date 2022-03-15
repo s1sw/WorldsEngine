@@ -70,6 +70,7 @@ EngineInterfaces csharpInterfaces;
 #include "MeshManagerBindings.hpp"
 #include "WorldTextBindings.hpp"
 #include "NavigationSystemBindings.hpp"
+#include "DebugShapeBindings.hpp"
 
 entt::registry* sceneLoaderBindReg;
 extern "C" {
