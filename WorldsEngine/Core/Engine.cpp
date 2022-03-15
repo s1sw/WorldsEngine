@@ -171,7 +171,7 @@ namespace worlds {
         if (config) {
             memcpy(config->Name, fontPath.c_str(), fontPath.size());
         } else {
-            for (int i = 0; i < fontPath.size(); i++) {
+            for (size_t i = 0; i < fontPath.size(); i++) {
                 defaultConfig.Name[i] = fontPath[i];
             }
             config = &defaultConfig;
