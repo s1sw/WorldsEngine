@@ -31,6 +31,8 @@ public static class EditorUtils
 
         if (nameAttribute != null)
             fieldName = nameAttribute.FriendlyName!;
+        
+        ImGui.PushID(fieldName);
 
         // Since the type object is dynamic and typeof technically isn't constant,
         // we're forced to use if/else if here ;-;
@@ -112,7 +114,7 @@ public static class EditorUtils
                 {
                     ImGui.Text(fieldName);
                     ImGui.SameLine();
-                    if (ImGui.Button("Change"))
+                    if (ImGui.Button($"Change##{fieldInfo.Name}"))
                     {
                         Transform currentValue = (Transform)fieldInfo.GetValue(instance)!;
                         if (!currentValue.Rotation.Valid) currentValue.Rotation = Quaternion.Identity;
@@ -217,5 +219,7 @@ public static class EditorUtils
                 }
             }
         }
+        
+        ImGui.PopID();
     }
 }
