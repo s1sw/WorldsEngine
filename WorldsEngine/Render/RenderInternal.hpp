@@ -68,7 +68,7 @@ namespace worlds {
         float cascadeTexelsPerUnit[4];
         glm::mat4 shadowmapMatrices[4];
         PackedLight lights[256];
-        AOBox box[16];
+        AOBox box[128];
         AOSphere sphere[16];
         uint32_t sphereIds[16];
     };

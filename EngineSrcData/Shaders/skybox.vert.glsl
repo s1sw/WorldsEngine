@@ -17,7 +17,6 @@ layout (push_constant) uniform PushConstants {
 };
 
 void main() {
-
     int tri = gl_VertexIndex / 3;
     int idx = gl_VertexIndex % 3;
     int face = tri / 2;

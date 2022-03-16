@@ -23,7 +23,7 @@ layout(std430, binding = 1) readonly buffer LightBuffer {
     //vec4 pack1;
     mat4 dirShadowMatrices[4];
 	Light lights[256];
-    AOBox aoBox[16];
+    AOBox aoBox[128];
 	AOSphere aoSphere[16];
 	uint sphereIds[16];
 };
