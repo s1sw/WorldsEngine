@@ -1000,6 +1000,7 @@ namespace worlds {
             EditorActions::triggerBoundActions(this, reg, qd.scancode, qd.modifiers);
         }
         queuedKeydowns.clear();
+        EditorActions::reenable();
 
         entityEyedropperActive = false;
         handleOverrideEntity = entt::null;

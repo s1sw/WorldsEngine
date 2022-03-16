@@ -37,8 +37,18 @@ namespace worlds {
         keyBindings.actionHashes[idx] = FnvHash(id);
     }
 
+    bool disabled = false;
+
+    void EditorActions::disableForThisFrame() {
+        disabled = true;
+    }
+
+    void EditorActions::reenable() {
+        disabled = false;
+    }
+
     void EditorActions::triggerBoundActions(Editor* ed, entt::registry& reg, SDL_Scancode scancode, ModifierFlags modifiers) {
-        if (!actionBindings.contains(scancode)) return;
+        if (disabled || !actionBindings.contains(scancode)) return;
 
         KeyBindings& bindings = actionBindings.at(scancode);
         for (int i = 0; i < bindings.numBinds; i++) {
