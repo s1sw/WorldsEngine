@@ -175,7 +175,6 @@ namespace worlds {
         ADD_EDITOR_WINDOW(Assets);
         ADD_EDITOR_WINDOW(GameControls);
         ADD_EDITOR_WINDOW(StyleEditor);
-        ADD_EDITOR_WINDOW(MaterialEditor);
         ADD_EDITOR_WINDOW(AboutWindow);
         ADD_EDITOR_WINDOW(BakingWindow);
         ADD_EDITOR_WINDOW(SceneSettingsWindow);
@@ -185,7 +184,7 @@ namespace worlds {
 
 #undef ADD_EDITOR_WINDOW
         AssetCompilers::initialise();
-        AssetEditors::initialise();
+        AssetEditors::initialise(interfaces);
         SDL_Window* window = interfaces.engine->getMainWindow().getWrappedHandle();
         SDL_SetHint("SDL_BORDERLESS_WINDOWED_STYLE", "1");
         SDL_SetWindowBordered(window, SDL_FALSE);

@@ -1,10 +1,12 @@
 #pragma once
-#include "../Core/AssetDB.hpp"
+#include <Core/AssetDB.hpp>
+#include <Core/IGameEventHandler.hpp>
 
 namespace worlds {
     class IAssetEditor {
     public:
         IAssetEditor();
+        virtual void setInterfaces(EngineInterfaces interfaces) {}
         virtual void importAsset(std::string filePath, std::string newAssetPath) = 0;
         virtual void create(std::string path) = 0;
         virtual void open(AssetID id) = 0;
@@ -16,7 +18,7 @@ namespace worlds {
 
     class AssetEditors {
     public:
-        static void initialise();
+        static void initialise(EngineInterfaces interfaces);
         static void registerAssetEditor(IAssetEditor* editor);
         static IAssetEditor* getEditorFor(AssetID asset);
         static IAssetEditor* getEditorFor(std::string_view extension);
