@@ -1,5 +1,7 @@
 #pragma once
+#include <slib/List.hpp>
 #include <SDL.h>
+#include <functional>
 #include <glm/glm.hpp>
 
 namespace worlds {
@@ -33,7 +35,9 @@ namespace worlds {
             bool mouseLockState() const;
             void lockMouse(bool lock);
             void triggerControllerHaptics(uint16_t leftIntensity, uint16_t rightIntensity, uint32_t duration);
+            void addKeydownHandler(std::function<void(SDL_Scancode)> handler);
         private:
+            slib::List<std::function<void(SDL_Scancode)>> keydownHandlers;
             SDL_Window* window;
             uint32_t mouseButtonFlags;
             uint32_t lastMouseButtonFlags;

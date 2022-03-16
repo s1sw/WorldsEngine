@@ -93,6 +93,10 @@ namespace worlds {
             keyState[scancode] = true;
             nativeEvent.eventKind = NEKeyDown;
             nativeEvent.scancode = scancode;
+
+            for (auto& handler : keydownHandlers) {
+                handler(scancode);
+            }
         }
             break;
         case SDL_KEYUP: {
@@ -228,5 +232,9 @@ namespace worlds {
     void InputManager::triggerControllerHaptics(uint16_t leftIntensity, uint16_t rightIntensity, uint32_t duration) {
         if (controller)
             SDL_GameControllerRumble(controller, leftIntensity, rightIntensity, duration);
+    }
+
+    void InputManager::addKeydownHandler(std::function<void (SDL_Scancode)> handler) {
+        keydownHandlers.add(handler);
     }
 }
