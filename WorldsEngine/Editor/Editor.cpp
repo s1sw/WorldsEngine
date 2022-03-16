@@ -200,6 +200,7 @@ namespace worlds {
         loadOpenWindows();
 
         inputManager.addKeydownHandler([&](SDL_Scancode scancode) {
+            if (!active) return;
             ModifierFlags flags = ModifierFlags::None;
 
             if (inputManager.ctrlHeld())
