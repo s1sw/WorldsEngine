@@ -8,6 +8,7 @@ using WorldsEngine.Input;
 using WorldsEngine.Math;
 using WorldsEngine.Audio;
 using ImGuiNET;
+using Game.Interaction;
 
 namespace Game;
 
@@ -375,6 +376,8 @@ public class LocalPlayerSystem : ISystem
         var bodyDpa = Registry.GetComponent<DynamicPhysicsActor>(PlayerBody);
         var lhDpa = Registry.GetComponent<DynamicPhysicsActor>(_leftHandEntity);
         var rhDpa = Registry.GetComponent<DynamicPhysicsActor>(_rightHandEntity);
+        var lhHg = _leftHandEntity.GetComponent<HandGrab>();
+        var rhHg = _rightHandEntity.GetComponent<HandGrab>();
 
         bodyDpa.AddForce(force, mode);
         if (mode == ForceMode.Force || mode == ForceMode.Impulse)
@@ -387,15 +390,45 @@ public class LocalPlayerSystem : ISystem
             case ForceMode.Force:
                 lhDpa.AddForce(force, ForceMode.Acceleration);
                 rhDpa.AddForce(force, ForceMode.Acceleration);
+
+                if (!lhHg.GrippedEntity.IsNull && lhHg.GrippedEntity.HasComponent<DynamicPhysicsActor>())
+                {
+                    lhDpa.AddForce(force * lhHg.GrippedEntity.GetComponent<DynamicPhysicsActor>().Mass);
+                }
+
+                if (!rhHg.GrippedEntity.IsNull && rhHg.GrippedEntity.HasComponent<DynamicPhysicsActor>())
+                {
+                    rhDpa.AddForce(force * rhHg.GrippedEntity.GetComponent<DynamicPhysicsActor>().Mass);
+                }
                 break;
             case ForceMode.Impulse:
                 lhDpa.AddForce(force, ForceMode.VelocityChange);
                 rhDpa.AddForce(force, ForceMode.VelocityChange);
+
+                if (!lhHg.GrippedEntity.IsNull && lhHg.GrippedEntity.HasComponent<DynamicPhysicsActor>())
+                {
+                    lhDpa.AddForce(force * lhHg.GrippedEntity.GetComponent<DynamicPhysicsActor>().Mass, ForceMode.Impulse);
+                }
+
+                if (!rhHg.GrippedEntity.IsNull && rhHg.GrippedEntity.HasComponent<DynamicPhysicsActor>())
+                {
+                    rhDpa.AddForce(force * rhHg.GrippedEntity.GetComponent<DynamicPhysicsActor>().Mass, ForceMode.Impulse);
+                }
                 break;
             case ForceMode.VelocityChange:
             case ForceMode.Acceleration:
                 lhDpa.AddForce(force, mode);
                 rhDpa.AddForce(force, mode);
+
+                if (!lhHg.GrippedEntity.IsNull && lhHg.GrippedEntity.HasComponent<DynamicPhysicsActor>())
+                {
+                    lhDpa.AddForce(force * lhHg.GrippedEntity.GetComponent<DynamicPhysicsActor>().Mass, mode == ForceMode.Acceleration ? ForceMode.Force : ForceMode.Impulse);
+                }
+
+                if (!rhHg.GrippedEntity.IsNull && rhHg.GrippedEntity.HasComponent<DynamicPhysicsActor>())
+                {
+                    rhDpa.AddForce(force * rhHg.GrippedEntity.GetComponent<DynamicPhysicsActor>().Mass, mode == ForceMode.Acceleration ? ForceMode.Force : ForceMode.Impulse);
+                }
                 break;
         }
     }
