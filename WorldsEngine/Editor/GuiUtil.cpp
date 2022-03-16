@@ -54,7 +54,15 @@ namespace worlds {
             PHYSFS_stat(absPathB.c_str(), &statB);
             std::string extensionB = std::filesystem::path(pathB).extension().string();
 
-            return extensionA < extensionB;
+            if (extensionA < extensionB) return true;
+            if (extensionB > extensionA) return false;
+
+            int cmpResult = strcmp(pathA, pathB);
+
+            if (cmpResult < 0) return true;
+            if (cmpResult > 0) return false;
+            
+            return false;
             });
 
         for (auto currFile : fileVec) {
@@ -554,6 +562,7 @@ namespace worlds {
         ImGuiStyle& style = ImGui::GetStyle();
         ImVec4* colors = style.Colors;
         switch (type) {
+        default:
         case NotificationType::Info:
             return colors[ImGuiCol_Border];
         case NotificationType::Warning:
@@ -642,7 +651,7 @@ namespace worlds {
         p = p.parent_path();
 
         if (path.starts_with("Raw/"))
-            p = p.string().substr(3);
+            p = p.string().substr(4);
 
         openFileModalOffset(title, [&](const char* path) {
             id = AssetDB::pathToId(path);
