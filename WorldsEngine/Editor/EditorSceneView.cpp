@@ -491,13 +491,18 @@ namespace worlds {
             }
         }
 
+
         if (ed->reg.valid(ed->currentSelectedEntity) && inputManager.keyPressed(SDL_SCANCODE_F)) {
             auto& t = ed->reg.get<Transform>(ed->currentSelectedEntity);
 
             glm::vec3 dirVec = glm::normalize(cam.position - t.position);
             float dist = 5.0f;
             cam.position = t.position + dirVec * dist;
-            cam.rotation = glm::quatLookAt(dirVec, glm::vec3{0.0f, 1.0f, 0.0f});
+            float pitch = asinf(dirVec.y);
+            float yaw = atan2f(dirVec.x, dirVec.z);
+            lookX = glm::pi<float>() - yaw;
+            lookY = pitch;
+            cam.rotation = glm::angleAxis(-lookX, glm::vec3(0.0f, 1.0f, 0.0f)) * glm::angleAxis(lookY, glm::vec3(1.0f, 0.0f, 0.0f));
         }
     }
 
