@@ -1,4 +1,5 @@
 #pragma once
+#include <Editor/EditorActions.hpp>
 #include <entt/entt.hpp>
 #include <Input/Input.hpp>
 #include <Render/Camera.hpp>
@@ -226,6 +227,11 @@ namespace worlds {
         InputManager& inputManager;
         slib::List<std::unique_ptr<EditorWindow>> editorWindows;
         slib::List<EditorSceneView*> sceneViews;
+        struct QueuedKeydown {
+            SDL_Scancode scancode;
+            ModifierFlags modifiers;
+        };
+        slib::List<QueuedKeydown> queuedKeydowns;
 
         friend class EditorSceneView;
     };

@@ -4,7 +4,9 @@
 #include <glm/gtx/norm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include "GuiUtil.hpp"
+#include "SDL_scancode.h"
 #include <ComponentMeta/ComponentMetadata.hpp>
+#include <memory>
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include <ImGui/imgui_internal.h>
 #include <Physics/PhysicsActor.hpp>
@@ -34,12 +36,14 @@
 #include <fstream>
 #include <Libs/pcg_basic.h>
 #include <Core/Window.hpp>
+#include <Editor/EditorActions.hpp>
 
 namespace worlds {
     std::unordered_map<ENTT_ID_TYPE, ComponentEditor*> ComponentMetadataManager::metadata;
     std::vector<ComponentEditor*> ComponentMetadataManager::sorted;
     std::unordered_map<ENTT_ID_TYPE, ComponentEditor*> ComponentMetadataManager::bySerializedID;
     std::unordered_map<std::string, ComponentEditor*> ComponentMetadataManager::byName;
+    static ConVar ed_saveAsJson { "ed_saveAsJson", "0", "Save scene files as JSON rather than MessagePack." };
 
     const char* toolStr(Tool tool) {
         switch (tool) {
@@ -195,9 +199,78 @@ namespace worlds {
 
         reg.set<EntityFolders>(std::move(folders));
         loadOpenWindows();
-    }
 
-#undef REGISTER_COMPONENT_TYPE
+        inputManager.addKeydownHandler([&](SDL_Scancode scancode) {
+            ModifierFlags flags = ModifierFlags::None;
+
+            if (inputManager.ctrlHeld())
+                flags = flags | ModifierFlags::Control;
+
+            if (inputManager.shiftHeld())
+                flags = flags | ModifierFlags::Shift;
+            
+            queuedKeydowns.add({scancode, flags});
+        });
+
+        EditorActions::addAction({ "scene.save", [&](Editor* ed, entt::registry& reg) {
+            if (reg.ctx<SceneInfo>().id != ~0u && !inputManager.shiftHeld()) {
+                AssetID sceneId = reg.ctx<SceneInfo>().id;
+                if (ed_saveAsJson.getInt())
+                    JsonSceneSerializer::saveScene(sceneId, reg);
+                else
+                    MessagePackSceneSerializer::saveScene(sceneId, reg);
+
+                lastSaveModificationCount = undo.modificationCount();
+            } else {
+                ImGui::OpenPopup("Save Scene");
+            }
+        }});
+
+        EditorActions::addAction({ "scene.open", [](Editor* ed, entt::registry& reg) {
+            ImGui::OpenPopup("Open Scene");
+        }});
+
+        EditorActions::addAction({ "scene.new", [](Editor* ed, entt::registry& reg) {
+            messageBoxModal("New Scene",
+                "Are you sure you want to clear the current scene and create a new one?",
+                [&](bool result) {
+                    if (result) {
+                        ed->interfaces.engine->createStartupScene();
+                        ed->updateWindowTitle();
+                    }
+               });
+        }});
+
+        EditorActions::addAction({ "editor.undo", [](Editor* ed, entt::registry& reg) {
+            ed->undo.undo(reg);
+        }});
+
+        EditorActions::addAction({ "editor.redo", [](Editor* ed, entt::registry& reg) {
+            ed->undo.redo(reg);
+        }});
+
+        EditorActions::addAction({ "editor.togglePlay", [](Editor* ed, entt::registry& reg) {
+            ed->interfaces.engine->pauseSim = false;
+            g_console->executeCommandStr("play");
+        }});
+
+        EditorActions::addAction({ "editor.unpause", [](Editor* ed, entt::registry& reg) {
+            g_console->executeCommandStr("unpause");
+        }});
+
+        EditorActions::addAction({ "editor.toggleImGuiMetrics", [](Editor* ed, entt::registry&) {
+            ed->imguiMetricsOpen = !ed->imguiMetricsOpen;
+        }});
+
+
+        EditorActions::bindAction("scene.save", ActionKeybind{SDL_SCANCODE_S, ModifierFlags::Control});
+        EditorActions::bindAction("scene.open", ActionKeybind{SDL_SCANCODE_O, ModifierFlags::Control});
+        EditorActions::bindAction("scene.new", ActionKeybind{SDL_SCANCODE_N, ModifierFlags::Control});
+        EditorActions::bindAction("editor.undo", ActionKeybind{SDL_SCANCODE_Z, ModifierFlags::Control});
+        EditorActions::bindAction("editor.redo", ActionKeybind{SDL_SCANCODE_Z, ModifierFlags::Control | ModifierFlags::Shift});
+        EditorActions::bindAction("editor.togglePlay", ActionKeybind{SDL_SCANCODE_P, ModifierFlags::Control});
+        EditorActions::bindAction("editor.unpause", ActionKeybind{SDL_SCANCODE_P, ModifierFlags::Control | ModifierFlags::Shift});
+    }
 
     Editor::~Editor() {
         saveOpenWindows();
@@ -548,7 +621,7 @@ namespace worlds {
 
         project = std::make_unique<GameProject>(path);
         project->mountPaths();
-        interfaces.renderer->reloadContent(worlds::ReloadFlags::All);
+        interfaces.renderer->reloadContent(ReloadFlags::All);
 
         // Update recent projects list
         std::vector<std::string> recentProjects;
@@ -767,33 +840,6 @@ namespace worlds {
             }
         }
 
-        static ConVar ed_saveAsJson { "ed_saveAsJson", "0", "Save scene files as JSON rather than MessagePack." };
-        if (inputManager.keyPressed(SDL_SCANCODE_S) && inputManager.ctrlHeld()) {
-            if (reg.ctx<SceneInfo>().id != ~0u && !inputManager.shiftHeld()) {
-                AssetID sceneId = reg.ctx<SceneInfo>().id;
-                if (ed_saveAsJson.getInt())
-                    JsonSceneSerializer::saveScene(sceneId, reg);
-                else
-                    MessagePackSceneSerializer::saveScene(sceneId, reg);
-
-                lastSaveModificationCount = undo.modificationCount();
-            } else {
-                ImGui::OpenPopup("Save Scene");
-            }
-        }
-
-
-        if (inputManager.keyPressed(SDL_SCANCODE_N) && inputManager.ctrlHeld()) {
-            messageBoxModal("New Scene",
-                "Are you sure you want to clear the current scene and create a new one?",
-                [&](bool result) {
-                    if (result) {
-                        interfaces.engine->createStartupScene();
-                        updateWindowTitle();
-                    }
-                });
-        }
-
         if (inputManager.keyPressed(SDL_SCANCODE_C) && inputManager.ctrlHeld() && reg.valid(currentSelectedEntity)) {
             std::string entityJson = JsonSceneSerializer::entityToJson(reg, currentSelectedEntity);
             SDL_SetClipboardText(entityJson.c_str());
@@ -817,18 +863,6 @@ namespace worlds {
             interfaces.engine->loadScene(sceneId);
             });
 
-        if (inputManager.keyPressed(SDL_SCANCODE_O) && inputManager.ctrlHeld()) {
-            ImGui::OpenPopup("Open Scene");
-        }
-
-        if (inputManager.keyPressed(SDL_SCANCODE_Z) && inputManager.ctrlHeld()) {
-            if (inputManager.shiftHeld()) {
-                undo.redo(reg);
-            } else {
-                undo.undo(reg);
-            }
-        }
-
         const char* sceneFileExts[2] = { ".escn", ".wscn" };
 
         openFileModalOffset("Open Scene", [this](const char* path) {
@@ -836,24 +870,6 @@ namespace worlds {
             updateWindowTitle();
             undo.clear();
             }, "SourceData/", sceneFileExts, 2);
-
-        if (inputManager.keyPressed(SDL_SCANCODE_I, true) &&
-            inputManager.ctrlHeld() &&
-            inputManager.shiftHeld()) {
-            imguiMetricsOpen = !imguiMetricsOpen;
-        }
-
-        if (inputManager.keyPressed(SDL_SCANCODE_P, true) &&
-            inputManager.ctrlHeld()) {
-            interfaces.engine->pauseSim = false;
-            g_console->executeCommandStr("play");
-        }
-
-        if (inputManager.keyPressed(SDL_SCANCODE_P, true) &&
-            inputManager.ctrlHeld() &&
-            inputManager.shiftHeld()) {
-            g_console->executeCommandStr("unpause");
-        }
 
         std::string popupToOpen;
 
@@ -870,21 +886,15 @@ namespace worlds {
                 }
 
                 if (ImGui::MenuItem("New")) {
-                    popupToOpen = "New Scene";
+                    EditorActions::findAction("scene.new").function(this, reg);
                 }
 
                 if (ImGui::MenuItem("Open")) {
-                    popupToOpen = "Open Scene";
+                    EditorActions::findAction("scene.open").function(this, reg);
                 }
 
                 if (ImGui::MenuItem("Save")) {
-                    if (reg.ctx<SceneInfo>().id != ~0u && !inputManager.shiftHeld()) {
-                        AssetID sceneId = reg.ctx<SceneInfo>().id;
-                        JsonSceneSerializer::saveScene(sceneId, reg);
-                        lastSaveModificationCount = undo.modificationCount();
-                    } else {
-                        popupToOpen = "Save Scene";
-                    }
+                    EditorActions::findAction("scene.save").function(this, reg);
                 }
 
                 ImGui::Separator();
@@ -986,6 +996,11 @@ namespace worlds {
         drawModals();
         drawPopupNotifications();
         updateWindowTitle();
+
+        for (QueuedKeydown& qd : queuedKeydowns) {
+            EditorActions::triggerBoundActions(this, reg, qd.scancode, qd.modifiers);
+        }
+        queuedKeydowns.clear();
 
         entityEyedropperActive = false;
         handleOverrideEntity = entt::null;
