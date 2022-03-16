@@ -147,7 +147,6 @@ namespace worlds {
                 static std::string newMaterialName;
                 if (ImGui::InputText("Name", &newMaterialName, ImGuiInputTextFlags_EnterReturnsTrue)) {
                     std::string p = "SourceData/" + currentDir + "/" + newMaterialName;
-                    AssetID id = AssetDB::createAsset(p);
                     PHYSFS_File* f = PHYSFS_openWrite(p.c_str());
                     const char emptyJson[] = "{}";
                     PHYSFS_writeBytes(f, emptyJson, sizeof(emptyJson));
