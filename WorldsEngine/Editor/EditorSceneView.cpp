@@ -1,4 +1,5 @@
 #include "Editor.hpp"
+#include "Editor/EditorActions.hpp"
 #include "ImGui/ImGuizmo.h"
 #include "Render/RenderInternal.hpp"
 #include "Util/VKImGUIUtil.hpp"
@@ -428,6 +429,8 @@ namespace worlds {
             // Camera movement
             if (inputManager.keyHeld(SDL_SCANCODE_LSHIFT))
                 moveSpeed *= 2.0f;
+
+            EditorActions::disableForThisFrame();
 
             float linearisedCamSpeed = log2f(ed->cameraSpeed);
             linearisedCamSpeed += ImGui::GetIO().MouseWheel * 0.1f;

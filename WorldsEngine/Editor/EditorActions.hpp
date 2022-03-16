@@ -41,7 +41,8 @@ namespace worlds {
         static void addAction(EditorAction&& action);
         static const EditorAction& findAction(const char* id);
         static void bindAction(const char* id, ActionKeybind keybind);
-
+        static void disableForThisFrame();
+        static void reenable();
         static void triggerBoundActions(Editor* ed, entt::registry& reg, SDL_Scancode scancode, ModifierFlags modifiers);
     private:
         struct KeyBindings {
