@@ -1,15 +1,18 @@
 #include "AssetEditors.hpp"
+#include "Core/IGameEventHandler.hpp"
 #include "Core/Log.hpp"
 #include "robin_hood.h"
 #include "../Util/Fnv.hpp"
 #include <slib/List.hpp>
 #include "TextureEditor.hpp"
 #include "ModelEditor.hpp"
+#include "MaterialEditor.hpp"
 
 namespace worlds {
     namespace asset_editors {
         TextureEditor te;
         ModelEditor me;
+        MaterialEditor mate;
     }
 }
 
@@ -23,7 +26,7 @@ namespace worlds {
         AssetEditors::registerAssetEditor(this);
     }
 
-    void AssetEditors::initialise() {
+    void AssetEditors::initialise(EngineInterfaces interfaces) {
         StaticLink* current = staticLink;
         while (current) {
             assetEditors.add(current->editor);
@@ -32,6 +35,8 @@ namespace worlds {
                 extensionHash,
                 current->editor
             });
+
+            current->editor->setInterfaces(interfaces);
 
             StaticLink* tmp = current;
             current = current->next;
