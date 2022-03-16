@@ -114,9 +114,15 @@ namespace worlds {
         PHYSFS_freeList(files);
     }
 
+    ImVec2 getPopupPosition(ImVec2 popupSize) {
+        ImVec2 halfWinSize(windowSize.x / 2.0f, windowSize.y / 2.0f);
+        ImVec2 halfPopupSize = popupSize / 2.0f;
+        return ImGui::GetMainViewport()->Pos + (halfWinSize - halfPopupSize);
+    }
+
     void saveFileModal(const char* title, std::function<void(const char*)> saveCallback) {
         ImVec2 popupSize(windowSize.x - 50.0f, windowSize.y - 50.0f);
-        ImGui::SetNextWindowPos(ImGui::GetMainViewport()->Pos + ImVec2((windowSize.x / 2) - (popupSize.x / 2), (windowSize.y / 2) - (popupSize.y / 2)));
+        ImGui::SetNextWindowPos(getPopupPosition(popupSize));
         ImGui::SetNextWindowSize(popupSize);
 
         if (ImGui::BeginPopupModal(title, nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove)) {
@@ -182,7 +188,7 @@ namespace worlds {
 
     void openFileModalOffset(const char* title, std::function<void(const char*)> openCallback, const char* rootOffset, const char** fileExtensions, int fileExtensionCount, const char* startingDir) {
         ImVec2 popupSize(windowSize.x - 50.0f, windowSize.y - 50.0f);
-        ImGui::SetNextWindowPos(ImGui::GetMainViewport()->Pos + ImVec2((windowSize.x / 2) - (popupSize.x / 2), (windowSize.y / 2) - (popupSize.y / 2)));
+        ImGui::SetNextWindowPos(getPopupPosition(popupSize));
         ImGui::SetNextWindowSize(popupSize);
 
         if (ImGui::BeginPopupModal(title, nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove)) {
@@ -324,7 +330,7 @@ namespace worlds {
 
     void openFileFullFSModal(const char* title, std::function<void(const char*)> openCallback) {
         ImVec2 popupSize(windowSize.x - 50.0f, windowSize.y - 50.0f);
-        ImGui::SetNextWindowPos(ImGui::GetMainViewport()->Pos + ImVec2((windowSize.x / 2) - (popupSize.x / 2), (windowSize.y / 2) - (popupSize.y / 2)));
+        ImGui::SetNextWindowPos(getPopupPosition(popupSize));
         ImGui::SetNextWindowSize(popupSize);
 
         if (ImGui::BeginPopupModal(title, nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove)) {
