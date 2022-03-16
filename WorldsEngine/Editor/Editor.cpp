@@ -831,11 +831,11 @@ namespace worlds {
 
         const char* sceneFileExts[2] = { ".escn", ".wscn" };
 
-        openFileModal("Open Scene", [this](const char* path) {
+        openFileModalOffset("Open Scene", [this](const char* path) {
             interfaces.engine->loadScene(AssetDB::pathToId(path));
             updateWindowTitle();
             undo.clear();
-            }, sceneFileExts, 2);
+            }, "SourceData/", sceneFileExts, 2);
 
         if (inputManager.keyPressed(SDL_SCANCODE_I, true) &&
             inputManager.ctrlHeld() &&
