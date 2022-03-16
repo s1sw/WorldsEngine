@@ -3,6 +3,8 @@
 #include "../Libs/IconsFontAwesome5.h"
 #include "../Libs/IconsFontaudio.h"
 #include "ImGui/imgui.h"
+#include "robin_hood.h"
+#include <string>
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include "../ImGui/imgui_internal.h"
 #include "../Core/Log.hpp"
@@ -12,16 +14,32 @@
 #endif
 
 namespace worlds {
+    const char8_t* ICONSTR_MODEL = ICON_FA_SHAPES u8" ";
+    const char8_t* ICONSTR_SCENE = ICON_FA_MAP u8" ";
+    const char8_t* ICONSTR_TEXTURE = ICON_FA_IMAGE u8" ";
+
+    const robin_hood::unordered_map<std::string, const char8_t*> extensionIcons = {
+        { ".wscn", ICONSTR_SCENE },
+        { ".wtexj", ICONSTR_TEXTURE },
+        { ".wmdlj", ICONSTR_MODEL },
+
+        { ".wmdl", ICONSTR_MODEL },
+        { ".wtex", ICONSTR_TEXTURE },
+
+        { ".png", ICONSTR_TEXTURE },
+        { ".jpg", ICONSTR_TEXTURE },
+        { ".tga", ICONSTR_TEXTURE },
+
+        { ".fbx", ICONSTR_MODEL },
+        { ".obj", ICONSTR_MODEL },
+        { ".glb", ICONSTR_MODEL }
+    };
+
     const char* getIcon(const std::string& extension) {
-        if (extension == ".escn" || extension == ".wscn") {
-            return (const char*)(ICON_FA_MAP u8" ");
-        } else if (extension == ".ogg") {
-            return (const char*)(ICON_FAD_SPEAKER u8" ");
-        } else if (extension == ".crn") {
-            return (const char*)(ICON_FA_IMAGE u8" ");
-        } else if (extension == ".obj" || extension == ".wmdl" || extension == ".mdl") {
-            return (const char*)(ICON_FA_SHAPES u8" ");
+        if (extensionIcons.contains(extension)) {
+            return reinterpret_cast<const char*>(extensionIcons.at(extension));
         }
+
         return "      ";
     }
 
