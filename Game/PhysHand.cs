@@ -13,7 +13,7 @@ namespace Game
     [EditorFriendlyName("Physics Hand")]
     class PhysHand : Component, IThinkingComponent, IStartListener
     {
-        static Vector3 _nonVROffset = new Vector3(0.1f, -0.2f, 0.55f);
+        static Vector3 _nonVROffset = new Vector3(0.125f, -0.2f, 0.55f);
         const float ForceLimit = 1000f;
         const float TorqueLimit = 15f;
 
@@ -42,6 +42,8 @@ namespace Game
         private Entity _visEntity;
 #endif
 
+        private bool _moveToCenter = false;
+
         public void Start()
         {
             if (FollowRightHand)
@@ -63,6 +65,9 @@ namespace Game
         {
             SetTargets();
             var bodyDpa = Registry.GetComponent<DynamicPhysicsActor>(LocalPlayerSystem.PlayerBody);
+
+            if (Keyboard.KeyPressed(KeyCode.T))
+                _moveToCenter = !_moveToCenter;
 
 #if DEBUG_HAND_VIS
             _targetTransform.Scale = Vector3.One;
@@ -131,6 +136,21 @@ namespace Game
 
                 if (FollowRightHand)
                     offset.x *= -1.0f;
+
+                if (_moveToCenter)
+                {
+                    if (FollowRightHand)
+                    {
+                        offset.x = -0.05f;
+                        //offset.y = -0.1f;
+                        offset.z = 0.2f;
+                        _targetTransform.Rotation = Camera.Main.Rotation * Quaternion.AngleAxis(0.05f, Vector3.Right);
+                    }
+                    else
+                    {
+                        offset.x *= 1.5f;
+                    }
+                }
 
                 Transform camT = new(PlayerCameraSystem.GetCamPosForSimulation(), Camera.Main.Rotation);
 
