@@ -368,6 +368,7 @@ WorldsEngine/Editor/meson.build
 WorldsEngine/ImGui/meson.build
 WorldsEngine/Input/meson.build
 WorldsEngine/IO/meson.build
+WorldsEngine/PathTracer/meson.build
 WorldsEngine/Physics/meson.build
 WorldsEngine/Render/meson.build
 WorldsEngine/Scripting/meson.build
