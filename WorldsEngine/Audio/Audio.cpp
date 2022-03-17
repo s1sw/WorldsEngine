@@ -8,7 +8,9 @@
 #include <ImGui/imgui.h>
 #include <Core/Transform.hpp>
 #include <Libs/IconsFontaudio.h>
+#ifdef ENABLE_STEAM_AUDIO
 #include "phonon.h"
+#endif
 #include <Core/Fatal.hpp>
 #include <slib/DynamicLibrary.hpp>
 #include <Physics/Physics.hpp>
@@ -41,6 +43,7 @@ namespace worlds {
         }
     }
 
+    #ifdef ENABLE_STEAM_AUDIO
     void checkSteamAudioErr(IPLerror result, const char* file, int line) {
         if (result != IPLerror::IPL_STATUS_SUCCESS) {
             const char* iplErrs[] = {
@@ -55,6 +58,7 @@ namespace worlds {
             fatalErrInternal(buffer, file, line);
         }
     }
+    #endif
 
     FMOD_RESULT convertPhysFSError(PHYSFS_ErrorCode errCode) {
         switch (errCode) {
@@ -113,10 +117,12 @@ namespace worlds {
 
     AudioSystem* AudioSystem::instance;
 
+    #ifdef ENABLE_STEAM_AUDIO
     typedef void(*PFN_iplFMODInitialize)(IPLContext context);
     typedef void(*PFN_iplFMODSetHRTF)(IPLHRTF hrtf);
     typedef void(*PFN_iplFMODSetSimulationSettings)(IPLSimulationSettings simulationSettings);
     typedef void(*PFN_iplFMODSetReverbSource)(IPLSource reverbSource);
+    #endif
 
     FMOD_RESULT F_CALL fmodDebugCallback(FMOD_DEBUG_FLAGS flags, const char* file, int line, const char* func, const char* message) {
         if (flags & FMOD_DEBUG_LEVEL_ERROR) {
@@ -134,6 +140,7 @@ namespace worlds {
         return FMOD_OK;
     }
 
+    #ifdef ENABLE_STEAM_AUDIO
     void IPLCALL steamAudioDebugCallback(IPLLogLevel logLevel, const char* message) {
         logMsg(WELogCategoryAudio, "%s", message);
     }
@@ -212,6 +219,7 @@ namespace worlds {
 
         return FMOD_OK;
     }
+    #endif
 
     void AudioSource::changeEventPath(const std::string_view& eventPath) {
         FMOD::Studio::EventDescription* desc;
@@ -249,6 +257,7 @@ namespace worlds {
 
         _eventPath.assign(eventPath);
 
+        #ifdef ENABLE_STEAM_AUDIO
         if (createPhononSource) {
             IPLSourceSettings sourceSettings {
                 (IPLSimulationFlags)(IPL_SIMULATIONFLAGS_REFLECTIONS | IPL_SIMULATIONFLAGS_DIRECT)
@@ -262,6 +271,7 @@ namespace worlds {
             eventInstance->setUserData(phononSource);
             eventInstance->setCallback(audioSourcePhononEventCallback, FMOD_STUDIO_EVENT_CALLBACK_CREATED);
         }
+        #endif
     }
 
     FMOD_STUDIO_PLAYBACK_STATE AudioSource::playbackState() {
@@ -304,6 +314,7 @@ namespace worlds {
                 }
 
                 if (system->needsSimCommit) {
+                    #ifdef ENABLE_STEAM_AUDIO
                     while(!system->sourcesToAdd.empty()) {
                         IPLSource source = system->sourcesToAdd.front();
                         iplSourceAdd(source, simulator);
@@ -318,14 +329,17 @@ namespace worlds {
                     }
 
                     iplSimulatorCommit(simulator);
+                    #endif
                     system->needsSimCommit = false;
                 }
 
                 {
                     PerfTimer pt;
                     simRunning = true;
+                    #ifdef ENABLE_STEAM_AUDIO
                     iplSimulatorRunReflections(simulator);
                     iplSimulatorRunPathing(simulator);
+                    #endif
                     simRunning = false;
                     lastRunTime = pt.stopGetMs();
                 }
@@ -381,6 +395,7 @@ namespace worlds {
 
         FMCHECK(system->loadPlugin(phononPluginName, &phononPluginHandle));
 
+        #ifdef STEAM_AUDIO_ENABLE
         // Get Steam Audio's setting equivalents from FMOD
         IPLAudioSettings audioSettings{};
 
@@ -461,10 +476,12 @@ namespace worlds {
 
         iplFMODSetSimulationSettings(simulationSettings);
         iplFMODSetReverbSource(listenerCentricSource);
+        simThread = new SteamAudioSimThread(simulator, this);
+        #else
+        simThread = nullptr;
+        #endif
 
         lastListenerPos = glm::vec3(0.0f, 0.0f, 0.0f);
-
-        simThread = new SteamAudioSimThread(simulator, this);
     }
 
     void AudioSystem::initialise(entt::registry& worldState) {
@@ -492,9 +509,11 @@ namespace worlds {
             updateAudioScene(worldState);
         }, "a_forceUpdateAudioScene", "Forces an update of the Steam Audio scene.");
 
+        #ifdef ENABLE_STEAM_AUDIO
         g_console->registerCommand([&](void*, const char*) {
             iplSceneSaveOBJ(scene, "audioScene.obj");
             }, "a_dumpToObj", "Dumps the Steam Audio scene to an obj file.");
+        #endif
     }
 
     void AudioSystem::onAudioSourceDestroy(entt::registry& reg, entt::entity entity) {
@@ -527,6 +546,7 @@ namespace worlds {
         return v;
     }
 
+    #ifdef ENABLE_STEAM_AUDIO
     IPLVector3 convVecSA(glm::vec3 v3) {
         IPLVector3 v{};
         v.x = v3.x;
@@ -534,9 +554,11 @@ namespace worlds {
         v.z = v3.z;
         return v;
     }
+    #endif
 
     ConVar a_audioUpdateRate { "a_audioUpdateRate", "0.3" };
     void AudioSystem::updateSteamAudio(entt::registry& registry, float deltaTime, glm::vec3 listenerPos, glm::quat listenerRot) {
+        #ifdef ENABLE_STEAM_AUDIO
         IPLSimulationFlags simFlags = (IPLSimulationFlags)(IPL_SIMULATIONFLAGS_DIRECT | IPL_SIMULATIONFLAGS_REFLECTIONS);
 
         IPLSimulationInputs inputs{};
@@ -622,6 +644,7 @@ namespace worlds {
             }
             timeSinceLastSim = 0.0f;
         }
+        #endif
     }
 
     void AudioSystem::update(entt::registry& worldState, glm::vec3 listenerPos, glm::quat listenerRot, float deltaTime) {
@@ -776,6 +799,7 @@ namespace worlds {
 
         AttachedOneshot* ao;
         FMCHECK(event->getUserData((void**)&ao));
+        #ifdef ENABLE_STEAM_AUDIO
         FMCHECK(findSteamAudioDSP(event, &ao->phononDsp));
 
         // The FMOD plugin says here that it wants the simulation outputs.
@@ -786,6 +810,7 @@ namespace worlds {
                 &ao->phononSource,
                 sizeof(IPLSource)
         ));
+        #endif
 
         return FMOD_OK;
     }
@@ -848,6 +873,7 @@ namespace worlds {
                 .lastPosition = location
             };
 
+            #ifdef ENABLE_STEAM_AUDIO
             if (createPhononSource) {
                 attachedOneshot->phononDsp = nullptr;
                 instance->setUserData(attachedOneshot);
@@ -861,6 +887,7 @@ namespace worlds {
                 sourcesToAdd.push(attachedOneshot->phononSource);
                 needsSimCommit = true;
             }
+            #endif
 
             attachedOneshots.push_back(attachedOneshot);
         }
@@ -868,7 +895,7 @@ namespace worlds {
 
     void AudioSystem::shutdown(entt::registry& worldState) {
         if (!available) return;
-        delete simThread;
+        if (simThread) delete simThread;
 
         worldState.clear<AudioSource>();
 
@@ -893,7 +920,7 @@ namespace worlds {
     }
 
     void AudioSystem::bakeProbes(entt::registry& registry) {
-
+        #ifdef ENABLE_STEAM_AUDIO
         IPLProbeBatch probeBatch = nullptr;
         SACHECK(iplProbeBatchCreate(phononContext, &probeBatch));
 
@@ -914,28 +941,34 @@ namespace worlds {
             iplProbeArrayGenerateProbes(probeArray, scene, &probeGenParams);
             probeArrays.push_back(probeArray);
         });
+        #endif
     }
 
     void AudioSystem::updateAudioScene(entt::registry& reg) {
         ZoneScoped;
 
+        #ifdef ENABLE_STEAM_AUDIO
         if (scene)
             iplSceneRelease(&scene);
 
         scene = createScene(reg);
         while (simThread->isSimRunning()) {}
         iplSimulatorSetScene(simulator, scene);
+        #endif
         needsSimCommit = true;
     }
 
+    #ifdef ENABLE_STEAM_AUDIO
     struct CacheableMeshInfo {
         std::vector<IPLTriangle> triangles;
         std::vector<int> materialIndices;
     };
     robin_hood::unordered_map<AssetID, CacheableMeshInfo> cachedMeshes;
+    #endif
     IPLScene AudioSystem::createScene(entt::registry& reg) {
         ZoneScoped;
 
+        #ifdef ENABLE_STEAM_AUDIO
         IPLSceneSettings sceneSettings{};
         sceneSettings.type = IPL_SCENETYPE_DEFAULT;
 
@@ -996,5 +1029,8 @@ namespace worlds {
         iplSceneCommit(scene);
 
         return scene;
+        #else
+        return nullptr;
+        #endif
     }
 }

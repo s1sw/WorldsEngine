@@ -7,7 +7,9 @@
 #include <slib/StaticAllocList.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <SDL_audio.h>
+#ifdef ENABLE_STEAM_AUDIO
 #include <phonon.h>
+#endif
 #include <slib/HeapArray.hpp>
 #include <glm/glm.hpp>
 #include <fmod_studio.hpp>
@@ -15,6 +17,16 @@
 #include <robin_hood.h>
 
 struct stb_vorbis;
+
+#ifndef ENABLE_STEAM_AUDIO
+#define DECLARE_OPAQUE_HANDLE(x)    typedef struct _##x##_t* x
+DECLARE_OPAQUE_HANDLE(IPLSource);
+DECLARE_OPAQUE_HANDLE(IPLContext);
+DECLARE_OPAQUE_HANDLE(IPLHRTF);
+DECLARE_OPAQUE_HANDLE(IPLScene);
+DECLARE_OPAQUE_HANDLE(IPLSimulator);
+#undef DECLARE_OPAQUE_HANDLE
+#endif
 
 namespace worlds {
     enum class MixerChannel : uint32_t {
