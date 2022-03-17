@@ -139,17 +139,18 @@ namespace Game
 
                 if (_moveToCenter)
                 {
+                    offset.y = -0.15f;
+                    offset.z = 0.2f;
                     if (FollowRightHand)
                     {
                         offset.x = -0.05f;
-                        //offset.y = -0.1f;
-                        offset.z = 0.2f;
-                        _targetTransform.Rotation = Camera.Main.Rotation * Quaternion.AngleAxis(0.05f, Vector3.Right);
                     }
                     else
                     {
-                        offset.x *= 1.5f;
+                        offset.x = 0.05f;
                     }
+                    offset.x += 0.01f;
+                    _targetTransform.Rotation = Camera.Main.Rotation * Quaternion.AngleAxis(-0.08f, Vector3.Right);
                 }
 
                 Transform camT = new(PlayerCameraSystem.GetCamPosForSimulation(), Camera.Main.Rotation);
