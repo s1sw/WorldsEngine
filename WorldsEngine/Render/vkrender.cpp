@@ -254,6 +254,7 @@ bool shouldEnableValidation(bool enableVR) {
     bool activateValidationLayers = EngineArguments::hasArgument("validation-layers");
 #ifndef NDEBUG
     activateValidationLayers |= !enableVR;
+    activateValidationLayers &= !EngineArguments::hasArgument("no-validation-layers");
 #endif
     return activateValidationLayers;
 }
