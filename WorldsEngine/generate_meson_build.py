@@ -14,6 +14,7 @@ subdirs = [
     'IO',
     # 'Libs',
     'Navigation',
+    'PathTracer',
     'Physics',
     'Render',
     'Scripting',

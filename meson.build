@@ -46,7 +46,6 @@ recastnav_proj = subproject('recastnavigation')
 recast_dep = recastnav_proj.get_variable('recast_dep')
 detour_dep = recastnav_proj.get_variable('detour_dep')
 
-
 subdir('ModelFormat')
 subdir('TextureFormat')
 subdir('Tools')

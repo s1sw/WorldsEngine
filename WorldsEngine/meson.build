@@ -10,6 +10,7 @@ subdir('Input')
 subdir('IO')
 subdir('Libs')
 subdir('Navigation')
+subdir('PathTracer')
 subdir('Physics')
 subdir('Render')
 subdir('Scripting')
@@ -42,6 +43,7 @@ tracy_inc = include_directories('./tracy/')
 physfs_dep = dependency('physfs', fallback: ['physfs', 'physfs_dep'])
 slib_dep = dependency('slib', fallback: ['slib', 'slib_dep'])
 #vk_dep = dependency('vulkan')
+embree_dep = dependency('embree')
 
 assimp_dep = dependency('assimp', required: false)
 
@@ -131,9 +133,9 @@ worlds = static_library('worlds', worlds_sources + ['tracy/TracyClient.cpp'],
     assimp_dep, physfs_dep, sdl2_dep, physx_deps,
     dl_dep, openvr_dep, wmdl_dep, wtex_dep, discord_csdk_dep,
     discord_sdk_dep,
-    slib_dep, platform_deps, steam_audio_dep,
+    slib_dep, platform_deps, #steam_audio_dep,
     recast_dep, detour_dep,
-    freetype_dep
+    freetype_dep, embree_dep
     ],
   link_args: ['-rdynamic']
 )
