@@ -2,7 +2,7 @@ using System;
 using Xunit;
 using WorldsEngine.ECS;
 
-namespace WorldsEngine.ECS.Tests
+namespace WorldsEngine.Tests
 {
     [Component]
     public class TestComponent
@@ -15,7 +15,7 @@ namespace WorldsEngine.ECS.Tests
     {
         public bool HasThought = false;
 
-        public void Think(Entity e)
+        public void Think()
         {
             HasThought = true;
         }
