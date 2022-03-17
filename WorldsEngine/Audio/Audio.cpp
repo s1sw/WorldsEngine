@@ -352,7 +352,7 @@ namespace worlds {
 #ifdef _WIN32
         phononPluginName = "phonon_fmod.dll";
 #elif defined(__linux__)
-        phononPluginName = "libphonon_fmod.so";
+        phononPluginName = "./libphonon_fmod.so";
 #endif
 
         FMCHECK(FMOD::Studio::System::create(&studioSystem));
