@@ -393,12 +393,12 @@ public class LocalPlayerSystem : ISystem
 
                 if (!lhHg.GrippedEntity.IsNull && lhHg.GrippedEntity.HasComponent<DynamicPhysicsActor>())
                 {
-                    lhDpa.AddForce(force * lhHg.GrippedEntity.GetComponent<DynamicPhysicsActor>().Mass);
+                    lhHg.GrippedEntity.GetComponent<DynamicPhysicsActor>().AddForce(force * lhHg.GrippedEntity.GetComponent<DynamicPhysicsActor>().Mass);
                 }
 
                 if (!rhHg.GrippedEntity.IsNull && rhHg.GrippedEntity.HasComponent<DynamicPhysicsActor>())
                 {
-                    rhDpa.AddForce(force * rhHg.GrippedEntity.GetComponent<DynamicPhysicsActor>().Mass);
+                    rhHg.GrippedEntity.GetComponent<DynamicPhysicsActor>().AddForce(force * rhHg.GrippedEntity.GetComponent<DynamicPhysicsActor>().Mass);
                 }
                 break;
             case ForceMode.Impulse:
@@ -407,12 +407,12 @@ public class LocalPlayerSystem : ISystem
 
                 if (!lhHg.GrippedEntity.IsNull && lhHg.GrippedEntity.HasComponent<DynamicPhysicsActor>())
                 {
-                    lhDpa.AddForce(force * lhHg.GrippedEntity.GetComponent<DynamicPhysicsActor>().Mass, ForceMode.Impulse);
+                    lhHg.GrippedEntity.GetComponent<DynamicPhysicsActor>().AddForce(force * lhHg.GrippedEntity.GetComponent<DynamicPhysicsActor>().Mass, ForceMode.Impulse);
                 }
 
                 if (!rhHg.GrippedEntity.IsNull && rhHg.GrippedEntity.HasComponent<DynamicPhysicsActor>())
                 {
-                    rhDpa.AddForce(force * rhHg.GrippedEntity.GetComponent<DynamicPhysicsActor>().Mass, ForceMode.Impulse);
+                    rhHg.GrippedEntity.GetComponent<DynamicPhysicsActor>().AddForce(force * rhHg.GrippedEntity.GetComponent<DynamicPhysicsActor>().Mass, ForceMode.Impulse);
                 }
                 break;
             case ForceMode.VelocityChange:
@@ -422,12 +422,12 @@ public class LocalPlayerSystem : ISystem
 
                 if (!lhHg.GrippedEntity.IsNull && lhHg.GrippedEntity.HasComponent<DynamicPhysicsActor>())
                 {
-                    lhDpa.AddForce(force * lhHg.GrippedEntity.GetComponent<DynamicPhysicsActor>().Mass, mode == ForceMode.Acceleration ? ForceMode.Force : ForceMode.Impulse);
+                    lhHg.GrippedEntity.GetComponent<DynamicPhysicsActor>().AddForce(force * lhHg.GrippedEntity.GetComponent<DynamicPhysicsActor>().Mass, mode == ForceMode.Acceleration ? ForceMode.Force : ForceMode.Impulse);
                 }
 
                 if (!rhHg.GrippedEntity.IsNull && rhHg.GrippedEntity.HasComponent<DynamicPhysicsActor>())
                 {
-                    rhDpa.AddForce(force * rhHg.GrippedEntity.GetComponent<DynamicPhysicsActor>().Mass, mode == ForceMode.Acceleration ? ForceMode.Force : ForceMode.Impulse);
+                    rhHg.GrippedEntity.GetComponent<DynamicPhysicsActor>().AddForce(force * rhHg.GrippedEntity.GetComponent<DynamicPhysicsActor>().Mass, mode == ForceMode.Acceleration ? ForceMode.Force : ForceMode.Impulse);
                 }
                 break;
         }
