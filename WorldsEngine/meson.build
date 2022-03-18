@@ -43,7 +43,12 @@ tracy_inc = include_directories('./tracy/')
 physfs_dep = dependency('physfs', fallback: ['physfs', 'physfs_dep'])
 slib_dep = dependency('slib', fallback: ['slib', 'slib_dep'])
 #vk_dep = dependency('vulkan')
-embree_dep = dependency('embree')
+embree_dep = dependency('embree', required: false)
+
+if not embree_dep.found()
+  cpp_comp = meson.get_compiler('cpp')
+  embree_dep = declare_dependency(dependencies: cpp_comp.find_library('embree3', dirs: extern_dir + '/Lib/'))
+endif
 
 assimp_dep = dependency('assimp', required: false)
 
@@ -55,14 +60,14 @@ endif
 
 if not assimp_dep.found()
   cpp_comp = meson.get_compiler('cpp')
+  assimp_dir = extern_dir + '/Assimp/' + system_lib_dir
+  if get_option('buildtype').startswith('release')
     assimp_dir = extern_dir + '/Assimp/' + system_lib_dir
-    if get_option('buildtype').startswith('release')
-      assimp_dir = extern_dir + '/Assimp/' + system_lib_dir
-    endif
-    assimp_inc_dir =  '../External/Assimp/include'
+  endif
+  assimp_inc_dir =  '../External/Assimp/include'
 
-    assimp_lib = cpp_comp.find_library('assimp', dirs: assimp_dir)
-    assimp_dep = declare_dependency(dependencies: assimp_lib, include_directories: include_directories(assimp_inc_dir))
+  assimp_lib = cpp_comp.find_library('assimp', dirs: assimp_dir)
+  assimp_dep = declare_dependency(dependencies: assimp_lib, include_directories: include_directories(assimp_inc_dir))
 endif
 
 
@@ -78,6 +83,7 @@ if host_machine.system() == 'windows'
   platform_deps += cc.find_library('ws2_32')
   platform_deps += cc.find_library('dwmapi')
   platform_deps += cc.find_library('gdiplus')
+  platform_incdirs += '../External/WindowsOnlyInclude/'
 
   # FMOD
   if build_machine.system() == 'windows'
