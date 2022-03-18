@@ -212,7 +212,7 @@ namespace WorldsEngine
 
                 bool hotload = ComponentTypeLookup.serializedComponents.ContainsKey(type.FullName!);
 
-                componentStorages[index] = (IComponentStorage)Activator.CreateInstance(storageType, BindingFlags.NonPublic | BindingFlags.Instance, null, new object[] { hotload }, null)!;
+                componentStorages[index] = (IComponentStorage)Activator.CreateInstance(storageType, BindingFlags.Public | BindingFlags.Instance, null, new object[] { hotload }, null)!;
 
                 if (typeof(ICollisionHandler).IsAssignableFrom(type))
                     _collisionHandlers.Add(componentStorages[index]!);
