@@ -137,12 +137,31 @@ namespace WorldsEngine
             string idStr = Marshal.PtrToStringAnsi(idPtr)!;
             string jsonStr = Marshal.PtrToStringAnsi(jsonPtr)!;
 
-            Type? type = HotloadSerialization.CurrentGameAssembly!.GetType(idStr);
+            if (HotloadSerialization.CurrentGameAssembly == null)
+            {
+                Log.Error("Game assembly isn't loaded!");
+                return;
+            }
+
+            Type? type = HotloadSerialization.CurrentGameAssembly.GetType(idStr);
 
             if (type == null)
             {
-                Log.Warn($"Failed to find type with ID {idStr}.");
-                return;
+                Log.Warn($"Failed to find type with ID {idStr}. Trying with fuzzier search in case the namespace changed.");
+                string[] split = idStr.Split(".");
+                string typename = split[split.Length - 1];
+
+                foreach (Type candidate in HotloadSerialization.CurrentGameAssembly.GetTypes())
+                {
+                    if (candidate.Name == typename)
+                        type = candidate;
+                }
+
+                if (type == null)
+                {
+                    Log.Error("Still couldn't find the type.");   
+                    return;
+                }
             }
 
             IComponentStorage storage = AssureStorage(type);
