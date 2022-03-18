@@ -4,7 +4,7 @@ using WorldsEngine.Math;
 using ImGuiNET;
 using System;
 
-namespace Game;
+namespace Game.World;
 
 [Component]
 public class SlidingDoor : Component, IStartListener, IThinkingComponent

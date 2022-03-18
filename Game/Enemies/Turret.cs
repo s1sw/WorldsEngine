@@ -5,8 +5,9 @@ using WorldsEngine.Util;
 using WorldsEngine.Audio;
 using WorldsEngine.Input;
 using Game.Combat;
+using Game.Player;
 
-namespace Game;
+namespace Game.Enemies;
 
 [Component]
 public class Turret : Component, IStartListener, IThinkingComponent

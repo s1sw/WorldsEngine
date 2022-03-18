@@ -10,7 +10,7 @@ using WorldsEngine.Audio;
 using ImGuiNET;
 using Game.Interaction;
 
-namespace Game;
+namespace Game.Player;
 
 [Component]
 [EditorFriendlyName("Player Rig")]
