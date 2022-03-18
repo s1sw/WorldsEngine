@@ -5,10 +5,11 @@ using System.Text;
 using System.Threading.Tasks;
 using WorldsEngine;
 
-namespace Game;
+namespace Game.Player;
 
 [Component]
-class Magazine
+[EditorIcon(FontAwesome.FontAwesomeIcons.HandPointDown)]
+[EditorFriendlyName("Spawn Point")]
+public class SpawnPoint
 {
-    public int NumShots = 16;
 }

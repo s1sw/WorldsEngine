@@ -1,6 +1,7 @@
 using WorldsEngine;
 using Game.Interaction;
 using WorldsEngine.Math;
+using Game.Player;
 
 namespace Game;
 

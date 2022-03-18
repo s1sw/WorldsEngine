@@ -1,7 +1,8 @@
 using WorldsEngine;
 using WorldsEngine.Math;
+using Game.Player;
 
-namespace Game;
+namespace Game.World;
 
 [Component]
 public class SceneTrigger : Component, IThinkingComponent

@@ -5,69 +5,68 @@ using System.Text;
 using System.Threading.Tasks;
 using WorldsEngine.Math;
 
-namespace Game
+namespace Game;
+
+public class V3PidController
 {
-    public class V3PidController
+    [NonSerialized]
+    private Vector3 lastError;
+    [NonSerialized]
+    private Vector3 integral;
+
+    public float P = 0.0f;
+    public float I = 0.0f;
+    public float D = 0.0f;
+
+    public bool ClampIntegral = false;
+    public float MaxIntegralMagnitude = float.MaxValue;
+
+    public float AverageAmount = 20.0f;
+
+    private void CheckNaNs()
     {
-        [NonSerialized]
-        private Vector3 lastError;
-        [NonSerialized]
-        private Vector3 integral;
+        if (lastError.HasNaNComponent)
+            lastError = Vector3.Zero;
 
-        public float P = 0.0f;
-        public float I = 0.0f;
-        public float D = 0.0f;
+        if (integral.HasNaNComponent)
+            integral = Vector3.Zero;
+    }
 
-        public bool ClampIntegral = false;
-        public float MaxIntegralMagnitude = float.MaxValue;
+    public Vector3 CalculateForce(Vector3 error, float deltaTime, Vector3 referenceVelocity)
+    {
+        CheckNaNs();
 
-        public float AverageAmount = 20.0f;
+        Vector3 derivative = ((error - lastError) / deltaTime) + referenceVelocity;
+        integral += error * deltaTime;
 
-        private void CheckNaNs()
+        if (ClampIntegral)
         {
-            if (lastError.HasNaNComponent)
-                lastError = Vector3.Zero;
-
-            if (integral.HasNaNComponent)
-                integral = Vector3.Zero;
+            integral = integral.ClampMagnitude(MaxIntegralMagnitude);
         }
 
-        public Vector3 CalculateForce(Vector3 error, float deltaTime, Vector3 referenceVelocity)
+        integral += (error - integral) / AverageAmount;
+
+        lastError = error;
+
+        return P * error + I * integral + D * derivative;
+    }
+
+    public Vector3 CalculateForce(Vector3 error, float deltaTime)
+    {
+        CheckNaNs();
+
+        Vector3 derivative = ((error - lastError) / deltaTime);
+        integral += error * deltaTime;
+
+        if (ClampIntegral)
         {
-            CheckNaNs();
-
-            Vector3 derivative = ((error - lastError) / deltaTime) + referenceVelocity;
-            integral += error * deltaTime;
-
-            if (ClampIntegral)
-            {
-                integral = integral.ClampMagnitude(MaxIntegralMagnitude);
-            }
-
-            integral += (error - integral) / AverageAmount;
-
-            lastError = error;
-
-            return P * error + I * integral + D * derivative;
+            integral = integral.ClampMagnitude(MaxIntegralMagnitude);
         }
 
-        public Vector3 CalculateForce(Vector3 error, float deltaTime)
-        {
-            CheckNaNs();
+        integral += (error - integral) / AverageAmount;
 
-            Vector3 derivative = ((error - lastError) / deltaTime);
-            integral += error * deltaTime;
+        lastError = error;
 
-            if (ClampIntegral)
-            {
-                integral = integral.ClampMagnitude(MaxIntegralMagnitude);
-            }
-
-            integral += (error - integral) / AverageAmount;
-
-            lastError = error;
-
-            return P * error + I * integral + D * derivative;
-        }
+        return P * error + I * integral + D * derivative;
     }
 }

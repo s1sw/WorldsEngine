@@ -2,65 +2,64 @@ using WorldsEngine;
 using WorldsEngine.Math;
 using Game.Combat;
 using System.Collections.Generic;
+using Game.World;
 
-namespace Game
+namespace Game;
+
+[Component]
+public class ExplodeOnDeath : Component, IStartListener
 {
-    [Component]
-    public class ExplodeOnDeath : Component, IStartListener
+    public void Start()
     {
+        var hc = Registry.GetComponent<HealthComponent>(Entity);
+        hc.OnDeath += OnDeath;
+    }
 
-        public void Start()
+    private Entity SpawnCube(Transform transform)
+    {
+        var entity = Registry.Create();
+        Registry.SetTransform(entity, transform);
+
+        var worldObject = Registry.AddComponent<WorldObject>(entity);
+        worldObject.Mesh = AssetDB.PathToId("Models/cube.wmdl");
+
+        var dpa = Registry.AddComponent<DynamicPhysicsActor>(entity);
+        dpa.Mass = 0.25f;
+
+        var physSounds = Registry.AddComponent<CollisionSound>(entity);
+        physSounds.EventPath = "event:/Impacts/ReallyLight";
+
+        List<PhysicsShape> physicsShapes = new()
         {
-            var hc = Registry.GetComponent<HealthComponent>(Entity);
-            hc.OnDeath += OnDeath;
+            new BoxPhysicsShape(Vector3.One)
+        };
+        dpa.SetPhysicsShapes(physicsShapes);
+
+        return entity;
+    }
+
+    private void OnDeath(Entity e)
+    {
+        var transform = Registry.GetTransform(e);
+        transform.Scale = new Vector3(0.1f);
+
+        async static void DestroyAfter(int ms, Entity entity)
+        {
+            await System.Threading.Tasks.Task.Delay(ms);
+            if (Registry.Valid(entity))
+                Registry.Destroy(entity);
         }
 
-        private Entity SpawnCube(Transform transform)
-        {
-            var entity = Registry.Create();
-            Registry.SetTransform(entity, transform);
-
-            var worldObject = Registry.AddComponent<WorldObject>(entity);
-            worldObject.Mesh = AssetDB.PathToId("Models/cube.wmdl");
-
-            var dpa = Registry.AddComponent<DynamicPhysicsActor>(entity);
-            dpa.Mass = 0.25f;
-
-            var physSounds = Registry.AddComponent<CollisionSound>(entity);
-            physSounds.EventPath = "event:/Impacts/ReallyLight";
-
-            List<PhysicsShape> physicsShapes = new()
-            {
-                new BoxPhysicsShape(Vector3.One)
-            };
-            dpa.SetPhysicsShapes(physicsShapes);
-
-            return entity;
+        for (int x = -2; x < 2; x++) {
+        for (int y = -2; y < 2; y++) {
+            var spawnTransform = transform;
+            var pos = spawnTransform.Position;
+            pos += new Vector3(x * 0.1f, y * 0.1f, 0.0f);
+            spawnTransform.Position = pos;
+            DestroyAfter(5000, SpawnCube(spawnTransform));
+        }
         }
 
-        private void OnDeath(Entity e)
-        {
-            var transform = Registry.GetTransform(e);
-            transform.Scale = new Vector3(0.1f);
-
-            async static void DestroyAfter(int ms, Entity entity)
-            {
-                await System.Threading.Tasks.Task.Delay(ms);
-                if (Registry.Valid(entity))
-                    Registry.Destroy(entity);
-            }
-
-            for (int x = -2; x < 2; x++) {
-            for (int y = -2; y < 2; y++) {
-                var spawnTransform = transform;
-                var pos = spawnTransform.Position;
-                pos += new Vector3(x * 0.1f, y * 0.1f, 0.0f);
-                spawnTransform.Position = pos;
-                DestroyAfter(5000, SpawnCube(spawnTransform));
-            }
-            }
-
-            Registry.Destroy(e);
-        }
+        Registry.Destroy(e);
     }
 }
