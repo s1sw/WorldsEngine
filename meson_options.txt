@@ -1,2 +1,3 @@
 option('enable_discord_rpc', type: 'boolean', value: false)
 option('fmod_api_path', type: 'string')
+option('enable_path_tracer', type: 'boolean', value: false)
