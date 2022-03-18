@@ -40,4 +40,8 @@ extern "C" {
     EXPORT void vr_triggerHaptics(InputActionHandle handle, float timeFromNow, float duration, float frequency, float amplitude) {
         csharpVrInterface->triggerHaptics(handle, timeFromNow, duration, frequency, amplitude);
     }
+
+    EXPORT void vr_getHandBoneTransform(Hand hand, int boneIdx, Transform* transform) {
+        *transform = csharpVrInterface->getHandBoneTransform(hand, boneIdx);
+    }
 }

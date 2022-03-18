@@ -33,7 +33,8 @@ namespace worlds {
 
         void checkErr(vr::EVRInputError err);
         uint32_t handBoneCount;
-        vr::VRBoneTransform_t* handBoneArray;
+        vr::VRBoneTransform_t* lhandBoneArray;
+        vr::VRBoneTransform_t* rhandBoneArray;
     public:
         void init();
 
@@ -53,6 +54,8 @@ namespace worlds {
         bool getHandTransform(Hand hand, Transform& t) override;
         glm::mat4 getHeadTransform(float predictionTime) override;
         glm::vec2 getLocomotionInput() override;
+
+        Transform getHandBoneTransform(Hand hand, int boneIdx);
 
         bool getJumpInput() override;
         bool getSprintInput() override;

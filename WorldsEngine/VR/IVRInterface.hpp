@@ -41,6 +41,8 @@ namespace worlds {
         virtual bool getSprintInput() = 0;
         virtual bool getJumpInput() = 0;
 
+        virtual Transform getHandBoneTransform(Hand hand, int boneIdx) = 0;
+
         virtual glm::mat4 getEyeViewMatrix(Eye eye) = 0;
         virtual glm::mat4 getEyeProjectionMatrix(Eye eye, float near) = 0;
         virtual glm::mat4 getEyeProjectionMatrix(Eye eye, float near, float far) = 0;
