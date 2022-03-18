@@ -125,6 +125,14 @@ steam_audio_dep = cc.find_library('phonon', dirs: extern_dir + '/Lib')
 
 freetype_dep = dependency('freetype', required: false)
 
+worlds_cpp_args = []
+if get_option('enable_path_tracer')
+  platform_deps += embree_dep
+else
+  platform_deps += steam_audio_dep
+  worlds_cpp_args += '-DENABLE_STEAM_AUDIO'
+endif
+
 if not freetype_dep.found()
   cpp_comp = meson.get_compiler('cpp')
     freetype_dir = extern_dir + '/Lib/' + system_lib_dir
@@ -143,7 +151,8 @@ worlds = static_library('worlds', worlds_sources + ['tracy/TracyClient.cpp'],
     recast_dep, detour_dep,
     freetype_dep, embree_dep
     ],
-  link_args: ['-rdynamic']
+  link_args: ['-rdynamic'],
+  cpp_args: worlds_cpp_args
 )
 
 worlds_dep = declare_dependency(include_directories: worlds_inc, link_with: worlds)
