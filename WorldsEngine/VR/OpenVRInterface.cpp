@@ -50,7 +50,8 @@ namespace worlds {
         updateInput();
 
         handBoneCount = 31;
-        handBoneArray = (vr::VRBoneTransform_t*)malloc(sizeof(vr::VRBoneTransform_t) * handBoneCount);
+        rhandBoneArray = (vr::VRBoneTransform_t*)malloc(sizeof(vr::VRBoneTransform_t) * handBoneCount);
+        lhandBoneArray = (vr::VRBoneTransform_t*)malloc(sizeof(vr::VRBoneTransform_t) * handBoneCount);
 
         g_console->registerCommand([&](auto, auto) {
             for (uint32_t i = 0; i < handBoneCount; i++) {
@@ -179,17 +180,19 @@ namespace worlds {
                 &skeletalActionData,
                 sizeof(skeletalActionData));
 
+        vr::VRBoneTransform_t* boneArray = hand == Hand::LeftHand ? lhandBoneArray : rhandBoneArray;
+
         vr::VRInput()->GetSkeletalBoneData(skeletalAction,
                 vr::VRSkeletalTransformSpace_Model, vr::VRSkeletalMotionRange_WithoutController,
-                handBoneArray,
+                boneArray,
                 handBoneCount);
 
 
         glm::mat4 matrix = toMat4(pose.pose.mDeviceToAbsoluteTracking);
 
         t.rotation = getMatrixRotation(matrix);
-        t.position = getMatrixTranslation(matrix) + (t.rotation * glm::make_vec3(handBoneArray[1].position.v));
-        t.rotation *= glm::make_quat((float*)&handBoneArray[1].orientation);
+        t.position = getMatrixTranslation(matrix) + (t.rotation * glm::make_vec3(boneArray[1].position.v));
+        t.rotation *= glm::make_quat((float*)&boneArray[1].orientation);
 
         if (glm::any(glm::isnan(t.position)) || glm::any(glm::isnan(t.rotation)))
             return false;
@@ -221,6 +224,25 @@ namespace worlds {
         vr::VRInput()->GetDigitalActionData(sprintAction, &data, sizeof(data), vr::k_ulInvalidInputValueHandle);
 
         return data.bState;
+    }
+
+    Transform OpenVRInterface::getHandBoneTransform(Hand hand, int boneIdx) {
+        vr::VRBoneTransform_t* arr = hand == Hand::LeftHand ? lhandBoneArray : rhandBoneArray;
+        vr::VRBoneTransform_t bt = arr[boneIdx];
+
+        return Transform {
+            glm::vec3 {
+                bt.position.v[0],
+                bt.position.v[1],
+                bt.position.v[2]
+            },
+            glm::quat {
+                bt.orientation.w,
+                bt.orientation.x,
+                bt.orientation.y,
+                bt.orientation.z
+            }
+        };
     }
 
     const char* inputErrorStrings[] = {

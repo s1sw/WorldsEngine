@@ -14,6 +14,30 @@ namespace WorldsEngine
         Right
     }
 
+    public class BoneTransforms
+    {
+
+        [DllImport(WorldsEngine.NativeModule)]
+        private static extern void vr_getHandBoneTransform(VRHand hand, int boneIdx, ref Transform transform);
+
+        internal VRHand _hand;
+
+        internal BoneTransforms(VRHand hand)
+        {
+            _hand = hand;
+        }
+
+        public Transform this[int idx]
+        {
+            get
+            {
+                Transform t = new();
+                vr_getHandBoneTransform(_hand, idx, ref t);
+                return t;
+            }
+        }
+    }
+
     public static class VR
     {
         [DllImport(WorldsEngine.NativeModule)]
@@ -70,6 +94,9 @@ namespace WorldsEngine
                 return t;
             }
         }
+
+        public static BoneTransforms LeftHandBones = new(VRHand.Left);
+        public static BoneTransforms RightHandBones = new(VRHand.Right);
         
         private static void ConvertCoordinateSystem(ref Transform t)
         {
