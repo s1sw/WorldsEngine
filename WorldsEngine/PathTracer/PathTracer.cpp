@@ -166,7 +166,7 @@ namespace worlds {
             glm::vec3 pos;
             rtcInterpolate0(geom, rayHit.hit.primID, rayHit.hit.u, rayHit.hit.v, RTC_BUFFER_TYPE_VERTEX, 0, &pos.x, 3);
 
-            glm::vec3 albedo{0.9f};
+            glm::vec3 albedo{0.8f};
 
             const float bias = 0.0002f;
             reg.view<WorldLight, Transform>().each([&](WorldLight& wl, Transform& t) {
@@ -203,6 +203,7 @@ namespace worlds {
                 float pdf = 1.0f / (2.0f * glm::pi<float>());
                 glm::vec3 t, b;
                 buildCoordinateSystem(norm, t, b);
+                glm::vec3 indirect{0.0f};
                 for (int i = 0; i < numIndirectSamples.getInt(); i++) {
                     float r1 = distribution(generator);
                     float r2 = distribution(generator);
@@ -213,15 +214,17 @@ namespace worlds {
                         localDir.x * b.y + localDir.y * norm.y + localDir.z * t.y,
                         localDir.x * b.z + localDir.y * norm.z + localDir.z * t.z,
                     };
-                    PathTraceResult indirectResult = pathTrace(pos + dir * bias, dir, depth + 1);
+                    PathTraceResult indirectResult = pathTrace(pos, dir, depth + 1);
 
                     glm::vec3 overallResult = ptrToCol(indirectResult);
-                    result.indirect += r1 * overallResult * albedo;
+                    indirect += r1 * overallResult * albedo;
                 }
-                result.indirect /= (float)numIndirectSamples.getInt();
+                indirect /= (float)numIndirectSamples.getFloat();
+                result.indirect = indirect;
             }
         } else {
-            result.direct = glm::vec3(0.05f);
+            result.direct = glm::vec3(0.0f);
+            result.indirect = glm::vec3(0.0f);
         }
 
         return result;
@@ -272,8 +275,8 @@ namespace worlds {
 
         float exposure = g_console->getConVar("r_exposure")->getFloat();
 
-        JobList& jl = g_jobSys->getFreeJobList();
-        jl.begin();
+        //JobList& jl = g_jobSys->getFreeJobList();
+        //jl.begin();
         int numXTiles = ((IMAGE_WIDTH + TILE_SIZE - 1) / TILE_SIZE);
         int numYTiles = ((IMAGE_HEIGHT + TILE_SIZE - 1) / TILE_SIZE);
         int numTiles = numXTiles * numYTiles; 
@@ -292,12 +295,13 @@ namespace worlds {
                     rt.imageAspectRatio = imageAspectRatio;
                     traceTile(rt);
                 }};
-                jl.addJob(std::move(j));
+                j.function();
+                //jl.addJob(std::move(j));
             }
         }
-        jl.end();
-        g_jobSys->signalJobListAvailable();
-        jl.wait();
+        //jl.end();
+        //g_jobSys->signalJobListAvailable();
+        //jl.wait();
 
         stbi_write_png("trace.png", IMAGE_WIDTH, IMAGE_HEIGHT, 3, outputBuffer, 0);
 
