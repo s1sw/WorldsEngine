@@ -62,7 +62,7 @@ namespace WorldsEngine.Tests
         {
             ComponentStorage<ThinkingComponent> cs = new();
             cs.Set(new Entity(), new ThinkingComponent());
-            cs.UpdateIfThinking();
+            cs.RunSimulate();
             Assert.True(cs.Get(new Entity()).HasThought);
         }
     }
