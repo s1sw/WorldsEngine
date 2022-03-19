@@ -31,7 +31,6 @@ namespace worlds {
         vr::VRActionHandle_t jumpAction;
         vr::VRActionSetHandle_t actionSet;
 
-        void checkErr(vr::EVRInputError err);
         uint32_t handBoneCount;
         vr::VRBoneTransform_t* lhandBoneArray;
         vr::VRBoneTransform_t* rhandBoneArray;

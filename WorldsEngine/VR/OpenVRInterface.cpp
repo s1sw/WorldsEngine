@@ -4,6 +4,7 @@
 #include "../Core/Console.hpp"
 
 namespace worlds {
+    #define VRCHECK(val) checkErr(val, __FILE__, __LINE__)
     vr::EVREye convEye(Eye e) {
         if (e == Eye::LeftEye)
             return vr::EVREye::Eye_Left;
@@ -11,9 +12,9 @@ namespace worlds {
             return vr::EVREye::Eye_Right;
     }
 
-    void OpenVRInterface::checkErr(vr::EVRInputError err) {
+    void checkErr(vr::EVRInputError err, const char* file, int line) {
         if (err != vr::VRInputError_None) {
-            logErr("VR Input Error: %i", err);
+            logErr("VR Input Error: %i (%s:%i)", (int)err, file, line);
         }
     }
 
@@ -35,20 +36,21 @@ namespace worlds {
         logMsg("Using %s as actionsPath", actionsPath);
         auto vrInput = vr::VRInput();
         vrInput->SetActionManifestPath(actionsPath);
-        checkErr(vrInput->GetActionHandle("/actions/main/in/Movement", &movementAction));
-        checkErr(vrInput->GetActionHandle("/actions/main/in/LeftHand", &leftHand));
-        checkErr(vrInput->GetActionHandle("/actions/main/in/RightHand", &rightHand));
-        checkErr(vrInput->GetActionHandle("/actions/main/in/Sprint", &sprintAction));
-        checkErr(vrInput->GetActionHandle("/actions/main/in/Jump", &jumpAction));
+        VRCHECK(vrInput->GetActionHandle("/actions/main/in/Movement", &movementAction));
+        VRCHECK(vrInput->GetActionHandle("/actions/main/in/LeftHand", &leftHand));
+        VRCHECK(vrInput->GetActionHandle("/actions/main/in/RightHand", &rightHand));
+        VRCHECK(vrInput->GetActionHandle("/actions/main/in/Sprint", &sprintAction));
+        VRCHECK(vrInput->GetActionHandle("/actions/main/in/Jump", &jumpAction));
 
-        checkErr(vrInput->GetActionHandle("/actions/main/in/LeftHand_Anim", &leftHandSkeletal));
-        checkErr(vrInput->GetActionHandle("/actions/main/in/RightHand_Anim", &rightHandSkeletal));
+        VRCHECK(vrInput->GetActionHandle("/actions/main/in/LeftHand_Anim", &leftHandSkeletal));
+        VRCHECK(vrInput->GetActionHandle("/actions/main/in/RightHand_Anim", &rightHandSkeletal));
 
         logMsg("left hand handle: %u", leftHand);
         logMsg("left hand skeletal handle: %u", leftHandSkeletal);
 
         updateInput();
 
+        // VRCHECK(vrInput->GetBoneCount(leftHandSkeletal, &handBoneCount));
         handBoneCount = 31;
         rhandBoneArray = (vr::VRBoneTransform_t*)malloc(sizeof(vr::VRBoneTransform_t) * handBoneCount);
         lhandBoneArray = (vr::VRBoneTransform_t*)malloc(sizeof(vr::VRBoneTransform_t) * handBoneCount);
@@ -62,7 +64,7 @@ namespace worlds {
         }, "printbones", "printbones", nullptr);
 
 
-        checkErr(vrInput->GetActionSetHandle("/actions/main", &actionSet));
+        VRCHECK(vrInput->GetActionSetHandle("/actions/main", &actionSet));
     }
 
     std::vector<std::string> OpenVRInterface::getVulkanInstanceExtensions() {
@@ -193,6 +195,11 @@ namespace worlds {
         t.rotation = getMatrixRotation(matrix);
         t.position = getMatrixTranslation(matrix) + (t.rotation * glm::make_vec3(boneArray[1].position.v));
         t.rotation *= glm::make_quat((float*)&boneArray[1].orientation);
+
+        vr::VRInput()->GetSkeletalBoneData(skeletalAction,
+                vr::VRSkeletalTransformSpace_Parent, vr::VRSkeletalMotionRange_WithoutController,
+                boneArray,
+                handBoneCount);
 
         if (glm::any(glm::isnan(t.position)) || glm::any(glm::isnan(t.rotation)))
             return false;
