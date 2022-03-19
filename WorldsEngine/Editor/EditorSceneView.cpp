@@ -364,11 +364,11 @@ namespace worlds {
         }
         ImGui::End();
 
-        if (interfaces.inputManager->keyPressed(SDL_SCANCODE_P)) {
-            PathTracer pt{ed->reg};
-            pt.buildAS();
-            pt.trace(cam, "trace.png");
-        }
+        // if (interfaces.inputManager->keyPressed(SDL_SCANCODE_P)) {
+        //     PathTracer pt{ed->reg};
+        //     pt.buildAS();
+        //     pt.trace(cam, "trace.png");
+        // }
 
         if (noScenePad)
             ImGui::PopStyleVar();
