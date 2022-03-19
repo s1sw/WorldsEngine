@@ -11,12 +11,14 @@ namespace WorldsEngine.ECS
     {
         Type Type { get; }
         bool IsThinking { get; }
+        bool IsUpdateable { get; }
         void SerializeForHotload();
         object GetBoxed(Entity entity);
         void SetBoxed(Entity entity, object val);
         bool Contains(Entity entity);
         void Remove(Entity entity);
-        void UpdateIfThinking();
+        void RunSimulate();
+        void RunUpdate();
         List<Entity>.Enumerator GetEnumerator();
     }
 
@@ -42,6 +44,7 @@ namespace WorldsEngine.ECS
         public static readonly Type type;
         public readonly List<Entity> packedEntities = new();
         public bool IsThinking { get; private set; }
+        public bool IsUpdateable { get; private set; }
         public int Count => components.Count;
 
         private readonly SparseStorage _sparseStorage = new();
@@ -63,6 +66,7 @@ namespace WorldsEngine.ECS
         public ComponentStorage(bool hotload = false)
         {
             IsThinking = Type.IsAssignableTo(typeof(IThinkingComponent));
+            IsUpdateable = Type.IsAssignableTo(typeof(IUpdateableComponent));
 
             if (!hotload || !ComponentTypeLookup.serializedComponents.ContainsKey(type.FullName!))
                 return;
@@ -180,11 +184,19 @@ namespace WorldsEngine.ECS
             return packedEntities[0];
         }
 
-        public void UpdateIfThinking()
+        public void RunSimulate()
         {
             foreach (Entity entity in packedEntities)
             {
                 ((IThinkingComponent)components[GetIndexOf(entity)]!).Think();
+            }
+        }
+
+        public void RunUpdate()
+        {
+            foreach (Entity entity in packedEntities)
+            {
+                ((IUpdateableComponent)components[GetIndexOf(entity)]!).Update();
             }
         }
     }

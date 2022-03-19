@@ -148,6 +148,8 @@ namespace WorldsEngine
                 {
                     HotloadManager.Systems[i].OnUpdate();
                 }
+
+                Registry.RunUpdateOnComponents();
             }
             catch (Exception e)
             {
@@ -179,7 +181,7 @@ namespace WorldsEngine
                     HotloadManager.Systems[i].OnSimulate();
                 }
 
-                Registry.UpdateThinkingComponents();
+                Registry.RunSimulateOnComponents();
             }
             catch (Exception e)
             {

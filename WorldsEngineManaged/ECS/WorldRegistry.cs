@@ -457,6 +457,7 @@ namespace WorldsEngine
                 throw new MissingComponentException(type.Name);
 
             return storage.GetBoxed(entity);
+            
         }
 
         public static void RemoveComponent<T>(Entity entity)
@@ -640,12 +641,21 @@ namespace WorldsEngine
             }
         }
 
-        internal static void UpdateThinkingComponents()
+        internal static void RunSimulateOnComponents()
         {
             for (int i = 0; i < ComponentPoolCount; i++)
             {
                 if (componentStorages[i] == null || !componentStorages[i]!.IsThinking) continue;
-                componentStorages[i]!.UpdateIfThinking();
+                componentStorages[i]!.RunSimulate();
+            }
+        }
+
+        internal static void RunUpdateOnComponents()
+        {
+            for (int i = 0; i < ComponentPoolCount; i++)
+            {
+                if (componentStorages[i] == null || !componentStorages[i]!.IsUpdateable) continue;
+                componentStorages[i]!.RunUpdate();
             }
         }
 
