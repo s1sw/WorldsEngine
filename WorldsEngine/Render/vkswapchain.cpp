@@ -82,6 +82,10 @@ namespace worlds {
 
         uint32_t minImageCount = surfCaps.minImageCount;
 
+        logVrb(WELogCategoryRender, "surfcaps:");
+        logVrb(WELogCategoryRender, "\t-minImageCount: %i", surfCaps.minImageCount);
+        logVrb(WELogCategoryRender, "\t-maxImageCount: %i", surfCaps.maxImageCount);
+
         if (fullscreen) {
             minImageCount = surfCaps.minImageCount < 2 ? 2 : surfCaps.minImageCount;
         }
@@ -140,7 +144,7 @@ namespace worlds {
             ivci.format = format;
             ivci.subresourceRange = VkImageSubresourceRange{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
 
-            vkCreateImageView(device, &ivci, nullptr, &imageViews[i]);
+            VKCHECK(vkCreateImageView(device, &ivci, nullptr, &imageViews[i]));
             i++;
         }
     }
