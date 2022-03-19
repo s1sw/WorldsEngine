@@ -395,7 +395,7 @@ namespace worlds {
 
         FMCHECK(system->loadPlugin(phononPluginName, &phononPluginHandle));
 
-        #ifdef STEAM_AUDIO_ENABLE
+        #ifdef ENABLE_STEAM_AUDIO 
         // Get Steam Audio's setting equivalents from FMOD
         IPLAudioSettings audioSettings{};
 
