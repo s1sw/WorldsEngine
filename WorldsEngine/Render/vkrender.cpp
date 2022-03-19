@@ -36,6 +36,11 @@
 #include "vku/InstanceMaker.hpp"
 #include <Core/JobSystem.hpp>
 #include <Core/Console.hpp>
+#define ENABLE_NV_AFTERMATH
+#ifdef ENABLE_NV_AFTERMATH
+#include <GFSDK_Aftermath.h>
+#include <GFSDK_Aftermath_GpuCrashDump.h>
+#endif
 
 using namespace worlds;
 
@@ -1377,7 +1382,7 @@ void VKRenderer::writeCmdBuf(VkCommandBuffer cmdBuf, uint32_t imageIndex, Camera
             presentSubmitManager->currentSwapchain().images[imageIndex], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imageBlit, VK_FILTER_NEAREST);
     } else {
         // Calculate the best crop for the current window size against the VR render target
-        float aspect = (float)windowSize.y / (float)windowSize.x;
+        float aspect = (float)height / (float)width;
         float croppedHeight = aspect * vrWidth;
 
         glm::vec2 srcCorner0(0.0f, vrHeight / 2.0f - croppedHeight / 2.0f);
@@ -1386,7 +1391,7 @@ void VKRenderer::writeCmdBuf(VkCommandBuffer cmdBuf, uint32_t imageIndex, Camera
         VkImageBlit imageBlit{};
         imageBlit.srcOffsets[0] = VkOffset3D{ (int)srcCorner0.x, (int)srcCorner0.y, 0 };
         imageBlit.srcOffsets[1] = VkOffset3D{ (int)srcCorner1.x, (int)srcCorner1.y, 1 };
-        imageBlit.dstOffsets[1] = VkOffset3D{ (int)windowSize.x, (int)windowSize.y, 1 };
+        imageBlit.dstOffsets[1] = VkOffset3D{ (int)width, (int)height, 1 };
         imageBlit.dstSubresource = imageBlit.srcSubresource = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 };
 
         vkCmdBlitImage(cmdBuf, leftEye->image().image(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
