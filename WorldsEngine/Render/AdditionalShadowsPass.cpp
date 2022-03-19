@@ -49,11 +49,17 @@ namespace worlds {
         rpm.subpassBegin(VK_PIPELINE_BIND_POINT_GRAPHICS);
         rpm.subpassDepthStencilAttachment(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, 0);
 
-        rpm.dependencyBegin(0, 0);
-        rpm.dependencyDependencyFlags(VK_DEPENDENCY_VIEW_LOCAL_BIT | VK_DEPENDENCY_BY_REGION_BIT);
+        rpm.dependencyBegin(VK_SUBPASS_EXTERNAL, 0);
         rpm.dependencySrcStageMask(VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT);
         rpm.dependencyDstStageMask(VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT);
+        rpm.dependencySrcAccessMask(VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
         rpm.dependencyDstAccessMask(VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
+
+        rpm.dependencyBegin(0, VK_SUBPASS_EXTERNAL);
+        rpm.dependencySrcStageMask(VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT);
+        rpm.dependencyDstStageMask(VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
+        rpm.dependencySrcAccessMask(VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
+        rpm.dependencyDstAccessMask(VK_ACCESS_SHADER_READ_BIT);
 
         renderPass = rpm.create(handles->device);
 
