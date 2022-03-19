@@ -97,7 +97,7 @@ namespace worlds {
         imb3.image = t.image();
 
         VkImageMemoryBarrier barriers2[2] = { imb3, imb4 };
-        vkCmdPipelineBarrier(cb, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+        vkCmdPipelineBarrier(cb, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
             VK_DEPENDENCY_BY_REGION_BIT,
             0, nullptr,
             0, nullptr,
@@ -187,7 +187,7 @@ namespace worlds {
 
         vku::executeImmediately(vkCtx->device, vkCtx->commandPool, queue,
             [&](VkCommandBuffer cb) {
-                cube.setLayout(cb, VK_IMAGE_LAYOUT_GENERAL, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_READ_BIT);
+                cube.setLayout(cb, VK_IMAGE_LAYOUT_GENERAL, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT);
                 for (int i = 0; i < (int)descriptorSets.size(); i++) {
                     vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline);
 

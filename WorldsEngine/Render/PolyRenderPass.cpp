@@ -398,11 +398,26 @@ namespace worlds {
         rPassMaker.subpassColorAttachment(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, 0);
         rPassMaker.subpassDepthStencilAttachment(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, 1);
 
+        // Dependency on the depth prepass
         rPassMaker.dependencyBegin(VK_SUBPASS_EXTERNAL, 0);
-        rPassMaker.dependencyDstStageMask(VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT);
-        rPassMaker.dependencyDstAccessMask(VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
-        rPassMaker.dependencySrcStageMask(VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-        rPassMaker.dependencySrcAccessMask(VK_ACCESS_SHADER_READ_BIT);
+        rPassMaker.dependencySrcStageMask(VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT);
+        rPassMaker.dependencySrcAccessMask(VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
+        rPassMaker.dependencyDstStageMask(VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT);
+        rPassMaker.dependencyDstAccessMask(VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT);
+
+        // Dependency on the previous write
+        rPassMaker.dependencyBegin(VK_SUBPASS_EXTERNAL, 0);
+        rPassMaker.dependencySrcStageMask(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
+        rPassMaker.dependencyDstStageMask(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
+        rPassMaker.dependencySrcAccessMask(0);
+        rPassMaker.dependencyDstAccessMask(VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT);
+
+        // Dependency for post-processing
+        rPassMaker.dependencyBegin(0, VK_SUBPASS_EXTERNAL);
+        rPassMaker.dependencySrcStageMask(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
+        rPassMaker.dependencyDstStageMask(VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+        rPassMaker.dependencySrcAccessMask(VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT);
+        rPassMaker.dependencyDstAccessMask(VK_ACCESS_SHADER_READ_BIT);
 
         vku::RenderpassMaker depthPassMaker;
 
@@ -420,7 +435,7 @@ namespace worlds {
         depthPassMaker.dependencyDstStageMask(VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
         depthPassMaker.dependencyDstAccessMask(VK_ACCESS_SHADER_READ_BIT);
         depthPassMaker.dependencySrcStageMask(VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT);
-        depthPassMaker.dependencySrcAccessMask(VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT);
+        depthPassMaker.dependencySrcAccessMask(VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
 
         // AMD driver bug workaround: shaders that use ViewIndex without a multiview renderpass
         // will crash the driver, so we always set up a renderpass with multiview even if it's only

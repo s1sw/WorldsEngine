@@ -492,11 +492,20 @@ namespace worlds {
             vp.viewPos[i] = glm::inverse(vp.views[i])[3];
         }
 
+        // Last read by vertex shader + light cull compute shader
+        resources.vpMatrixBuffer->barrier(
+            cmdBuf,
+            VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT | VK_PIPELINE_STAGE_VERTEX_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
+            VK_DEPENDENCY_BY_REGION_BIT,
+            VK_ACCESS_UNIFORM_READ_BIT, VK_ACCESS_TRANSFER_WRITE_BIT,
+            VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED
+        );
+
         vkCmdUpdateBuffer(cmdBuf, resources.vpMatrixBuffer->buffer(), 0, sizeof(vp), &vp);
 
         resources.vpMatrixBuffer->barrier(
             cmdBuf,
-            VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_VERTEX_SHADER_BIT,
+            VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
             VK_DEPENDENCY_BY_REGION_BIT,
             VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_UNIFORM_READ_BIT,
             VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED

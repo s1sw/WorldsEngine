@@ -46,11 +46,23 @@ namespace worlds {
         rPassMaker.subpassBegin(VK_PIPELINE_BIND_POINT_GRAPHICS);
         rPassMaker.subpassDepthStencilAttachment(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, 0);
 
-        rPassMaker.dependencyBegin(0, 0);
-        rPassMaker.dependencyDependencyFlags(VK_DEPENDENCY_VIEW_LOCAL_BIT | VK_DEPENDENCY_BY_REGION_BIT);
+        rPassMaker.dependencyBegin(VK_SUBPASS_EXTERNAL, 0);
+        rPassMaker.dependencySrcStageMask(VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
+        rPassMaker.dependencyDstStageMask(VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT);
+        rPassMaker.dependencySrcAccessMask(VK_ACCESS_SHADER_READ_BIT);
+        rPassMaker.dependencyDstAccessMask(VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
+
+        rPassMaker.dependencyBegin(VK_SUBPASS_EXTERNAL, 0);
         rPassMaker.dependencySrcStageMask(VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT);
         rPassMaker.dependencyDstStageMask(VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT);
+        rPassMaker.dependencySrcAccessMask(VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
         rPassMaker.dependencyDstAccessMask(VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
+
+        rPassMaker.dependencyBegin(0, VK_SUBPASS_EXTERNAL);
+        rPassMaker.dependencySrcStageMask(VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT);
+        rPassMaker.dependencyDstStageMask(VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
+        rPassMaker.dependencySrcAccessMask(VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
+        rPassMaker.dependencyDstAccessMask(VK_ACCESS_SHADER_READ_BIT);
 
         VkRenderPassMultiviewCreateInfo multiviewCI{ VK_STRUCTURE_TYPE_RENDER_PASS_MULTIVIEW_CREATE_INFO };
         uint32_t viewMask = 0b00001111;
@@ -257,7 +269,19 @@ namespace worlds {
             matrices.matrices[i] = ctx.cascadeInfo.matrices[i];
         }
 
+        matrixBuffer.barrier(cmdBuf,
+            VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
+            VK_DEPENDENCY_BY_REGION_BIT,
+            VK_ACCESS_UNIFORM_READ_BIT, VK_ACCESS_TRANSFER_WRITE_BIT,
+            VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED
+        );
         vkCmdUpdateBuffer(cmdBuf, matrixBuffer.buffer(), 0, sizeof(matrices), &matrices);
+        matrixBuffer.barrier(cmdBuf,
+            VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+            VK_DEPENDENCY_BY_REGION_BIT,
+            VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_UNIFORM_READ_BIT,
+            VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED
+        );
 
         vkCmdBeginRenderPass(cmdBuf, &rpbi, VK_SUBPASS_CONTENTS_INLINE);
         vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
