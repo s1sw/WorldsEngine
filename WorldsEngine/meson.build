@@ -36,7 +36,7 @@ physx_deps = [
   cc.find_library('PhysXPvdSDK_static_64', dirs: lib_dir),
   cc.find_library('PhysX_static_64', dirs: lib_dir),
   cc.find_library('PhysXVehicle_static_64', dirs: lib_dir)
-  ]
+]
 
 worlds_inc = include_directories('.')
 tracy_inc = include_directories('./tracy/')
@@ -46,8 +46,7 @@ slib_dep = dependency('slib', fallback: ['slib', 'slib_dep'])
 embree_dep = dependency('embree', required: false)
 
 if not embree_dep.found()
-  cpp_comp = meson.get_compiler('cpp')
-  embree_dep = declare_dependency(dependencies: cpp_comp.find_library('embree3', dirs: extern_dir + '/Lib/'))
+  embree_dep = declare_dependency(dependencies: cc.find_library('embree3', dirs: extern_dir + '/Lib/'))
 endif
 
 assimp_dep = dependency('assimp', required: false)
@@ -133,12 +132,17 @@ else
   worlds_cpp_args += '-DENABLE_STEAM_AUDIO'
 endif
 
-if not freetype_dep.found()
-  cpp_comp = meson.get_compiler('cpp')
-    freetype_dir = extern_dir + '/Lib/' + system_lib_dir
+if get_option('enable_nv_aftermath')
+  nv_aftermath_dep = cc.find_library('GFSDK_Aftermath_Lib.x64', dirs: extern_dir + '/Lib')
+  platform_deps += nv_aftermath_dep
+  worlds_cpp_args += '-DENABLE_NV_AFTERMATH'
+endif
 
-    freetype_lib = cpp_comp.find_library('freetype', dirs: freetype_dir)
-    freetype_dep = declare_dependency(dependencies: freetype_lib)
+if not freetype_dep.found()
+  freetype_dir = extern_dir + '/Lib/' + system_lib_dir
+
+  freetype_lib = cc.find_library('freetype', dirs: freetype_dir)
+  freetype_dep = declare_dependency(dependencies: freetype_lib)
 endif
 
 worlds = static_library('worlds', worlds_sources + ['tracy/TracyClient.cpp'],
