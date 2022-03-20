@@ -3,6 +3,7 @@
 #include <Input/Input.hpp>
 #include <ImGui/imgui.h>
 #include <ImGui/imgui_impl_sdl.h>
+#include <SDL_hints.h>
 
 namespace worlds {
     Window::Window(const char* title, int w, int h, bool startHidden)
@@ -14,6 +15,8 @@ namespace worlds {
             | SDL_WINDOW_ALLOW_HIGHDPI;
 
         if (startHidden) flags |= SDL_WINDOW_HIDDEN;
+        SDL_SetHint("SDL_BORDERLESS_RESIZABLE_STYLE", "1");
+        SDL_SetHint("SDL_BORDERLESS_WINDOWED_STYLE", "1");
 
         window = SDL_CreateWindow(title,
             SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
