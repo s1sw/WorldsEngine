@@ -69,8 +69,12 @@ namespace worlds {
         VkPresentModeKHR presentMode = useVsync ? VK_PRESENT_MODE_FIFO_KHR : VK_PRESENT_MODE_IMMEDIATE_KHR;
         std::lock_guard<std::mutex> lg{swapchainMutex};
 
+        Swapchain* oldSc = sc;
         sc = new Swapchain(handles->physicalDevice, handles->device, surface, *queues, fullscreen, sc ? sc->getSwapchain() : VK_NULL_HANDLE, presentMode);
         sc->getSize(&width, &height);
+
+        if (oldSc)
+            delete oldSc;
 
         vku::executeImmediately(handles->device, handles->commandPool, queues->graphics, [this](VkCommandBuffer cb) {
             for (VkImage img : sc->images)
