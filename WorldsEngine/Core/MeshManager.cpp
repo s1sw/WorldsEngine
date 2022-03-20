@@ -41,6 +41,11 @@ namespace worlds {
             lm.submeshes[i] = lmd.submeshes[i];
         }
 
+        lm.sphereBoundRadius = 0.0f;
+        for (auto& vtx : lm.vertices) {
+            lm.sphereBoundRadius = glm::max(glm::length(vtx.position), lm.sphereBoundRadius);
+        }
+
         loadedMeshes.insert({ id, std::move(lm) });
 
         return loadedMeshes.at(id);

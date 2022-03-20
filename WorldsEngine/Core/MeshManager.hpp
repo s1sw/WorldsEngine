@@ -15,6 +15,7 @@ namespace worlds {
         std::vector<std::string> boneNames;
         std::vector<glm::mat4> boneRestPositions;
         std::vector<glm::mat4> relativeBoneTransforms;
+        float sphereBoundRadius;
     };
 
     class MeshManager {

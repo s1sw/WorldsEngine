@@ -40,4 +40,10 @@ extern "C" {
         const auto& m = MeshManager::loadOrGet(id);
         return m.boneNames[id].c_str();
     }
+
+
+    EXPORT float meshmanager_getSphereBoundRadius(AssetID id) {
+        const auto& m = MeshManager::loadOrGet(id);
+        return m.sphereBoundRadius;
+    }
 };

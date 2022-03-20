@@ -69,4 +69,10 @@ public class V3PidController
 
         return P * error + I * integral + D * derivative;
     }
+
+    public void ResetState()
+    {
+        lastError = Vector3.Zero;
+        integral = Vector3.Zero;
+    }
 }

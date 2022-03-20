@@ -601,6 +601,5 @@ namespace worlds {
         }
 
         return hit;
-
     }
 }
