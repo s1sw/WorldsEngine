@@ -107,6 +107,7 @@ namespace worlds {
         void updateSimulation(float& interpAlpha, double deltaTime);
         void doSimStep(float deltaTime);
         void tickRenderer(bool renderImgui = false);
+        void runSingleFrame(bool processEvents);
 
         Window* window;
         int windowWidth, windowHeight;
@@ -136,5 +137,14 @@ namespace worlds {
 
         std::vector<ISystem*> systems;
         std::vector<entt::entity> nextFrameKillList;
+
+        struct InterFrameInfo {
+            int frameCounter;
+            uint64_t lastPerfCounter;
+            double deltaTime;
+            double lastUpdateTime;
+        };
+
+        InterFrameInfo interFrameInfo;
     };
 }

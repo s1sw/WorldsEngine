@@ -302,6 +302,8 @@ namespace worlds {
         return 0;
     }
 
+    bool inFrame = false;
+
     int WorldsEngine::eventFilter(void* enginePtr, SDL_Event* evt) {
         WorldsEngine* _this = (WorldsEngine*)enginePtr;
         if (evt->type == SDL_WINDOWEVENT && evt->window.event == SDL_WINDOWEVENT_RESIZED) {
@@ -310,8 +312,13 @@ namespace worlds {
             _this->windowHeight = evt->window.data2;
             renderer->recreateSwapchain(evt->window.data1, evt->window.data2);
 
-            std::unique_lock<std::mutex> lg(rendererLock);
-            renderThreadCV.wait(lg, []{return renderThreadAvailable;});
+            {
+                std::unique_lock<std::mutex> lg(rendererLock);
+                renderThreadCV.wait(lg, []{return renderThreadAvailable;});
+            }
+
+            if (!inFrame)
+                _this->runSingleFrame(false);
         }
         return 1;
     }
@@ -724,313 +731,320 @@ namespace worlds {
     }
 
     void WorldsEngine::mainLoop() {
-        int frameCounter = 0;
+        interFrameInfo.frameCounter = 0;
 
-        uint64_t last = SDL_GetPerformanceCounter();
+        interFrameInfo.lastPerfCounter = SDL_GetPerformanceCounter();
 
-        double deltaTime;
-        double lastUpdateTime = 0.0;
+        interFrameInfo.deltaTime;
+        interFrameInfo.lastUpdateTime = 0.0;
 
         renderer->recreateSwapchain();
         while (running) {
-            uint64_t now = SDL_GetPerformanceCounter();
-
-            uint64_t deltaTicks = now - last;
-            last = now;
-            deltaTime = deltaTicks / (double)SDL_GetPerformanceFrequency();
-            gameTime += deltaTime;
-
-            if (renderer->getVsync() || enableOpenVR) {
-                double targetTime;
-
-                if (enableOpenVR) {
-                    float fDisplayFrequency = vr::VRSystem()->GetFloatTrackedDeviceProperty(vr::k_unTrackedDeviceIndex_Hmd, vr::Prop_DisplayFrequency_Float);
-                    targetTime = 1.0 / fDisplayFrequency;
-                } else {
-                    int displayIdx = SDL_GetWindowDisplayIndex(window->getWrappedHandle());
-                    SDL_DisplayMode displayMode;
-                    SDL_GetCurrentDisplayMode(displayIdx, &displayMode);
-                    targetTime = 1.0 / displayMode.refresh_rate;
-                }
-
-                // Leave about 3ms of margin just in case
-                targetTime -= 0.003;
-
-                double timeAtStart = (double)SDL_GetPerformanceCounter() / SDL_GetPerformanceFrequency();
-                double throttleTime = pacingSleepTime.getInt() ? pacingSleepTime.getInt() / 1000.0 : glm::clamp(targetTime - lastUpdateTime, 0.0, 0.02);
-                double currTime = timeAtStart;
-
-                while (currTime - timeAtStart < throttleTime) {
-                    currTime = (double)SDL_GetPerformanceCounter() / SDL_GetPerformanceFrequency();
-                    if (currTime - timeAtStart > 0.001) {
-                        SDL_Delay(1);
-                    }
-                }
-            }
-
-            uint64_t updateStart = SDL_GetPerformanceCounter();
-
-            window->processEvents();
-            if (window->shouldQuit())
-                running = false;
-
-            if (!dedicatedServer) {
-                tickRichPresence();
-
-                ImGui_ImplVulkan_NewFrame();
-                ImGui_ImplSDL2_NewFrame(window->getWrappedHandle());
-            }
-
-            ImVec2 newFrameDisplaySize(windowWidth, windowHeight);
-            ImGui::GetIO().DisplaySize = newFrameDisplaySize;
-
-            ImGui::NewFrame();
-            ImGui::GetMainViewport()->Size = newFrameDisplaySize;
-            inputManager->update();
-
-            if (openvrInterface)
-                openvrInterface->updateInput();
-
-            if (!dedicatedServer) {
-                screenRTTPass->active = !runAsEditor || !editor->active;
-            }
-
-            if (enableOpenVR) {
-                static bool lastIsVR = true;
-                uint32_t w = 1600;
-                uint32_t h = 900;
-
-                if (screenPassIsVR) {
-                    openvrInterface->getRenderResolution(&w, &h);
-                }
-
-                if (screenPassIsVR != lastIsVR || w != screenRTTPass->width || h != screenRTTPass->height) {
-                    renderer->destroyRTTPass(screenRTTPass);
-
-                    RTTPassCreateInfo screenRTTCI {
-                        .width = w,
-                        .height = h,
-                        .resScale = screenPassResScale,
-                        .isVr = screenPassIsVR,
-                        .useForPicking = false,
-                        .enableShadows = true,
-                        .outputToScreen = true,
-                    };
-
-                    screenRTTPass = renderer->createRTTPass(screenRTTCI);
-                }
-            }
-
-            screenRTTPass->setResolutionScale(screenPassResScale);
-
-            float interpAlpha = 1.0f;
-
-            if (evtHandler != nullptr && (!runAsEditor || !editor->active)) {
-                evtHandler->preSimUpdate(registry, deltaTime);
-
-                for (auto* system : systems)
-                    system->preSimUpdate(registry, deltaTime);
-            }
-
-            double simTime = 0.0;
-            if (!pauseSim) {
-                PerfTimer perfTimer;
-                updateSimulation(interpAlpha, deltaTime);
-                simTime = perfTimer.stopGetMs();
-            }
-
-            if (evtHandler != nullptr && !(runAsEditor && editor->active)) {
-                for (auto* system : systems)
-                    system->update(registry, deltaTime * timeScale, interpAlpha);
-
-                evtHandler->update(registry, deltaTime * timeScale, interpAlpha);
-                scriptEngine->onUpdate(deltaTime * timeScale);
-            }
-
-            if (!dedicatedServer) {
-                windowSize.x = windowWidth;
-                windowSize.y = windowHeight;
-
-                if (runAsEditor) {
-                    editor->update((float)deltaTime);
-                }
-            }
-
-            if (inputManager->keyPressed(SDL_SCANCODE_RCTRL, true)) {
-                inputManager->lockMouse(!inputManager->mouseLockState());
-            }
-
-            if (inputManager->keyPressed(SDL_SCANCODE_F3, true)) {
-                ShaderCache::clear();
-                renderer->recreateSwapchain();
-            }
-
-            if (inputManager->keyPressed(SDL_SCANCODE_F11, true)) {
-                //SDL_Event evt;
-                //SDL_zero(evt);
-                //evt.type = fullscreenToggleEventId;
-                //SDL_PushEvent(&evt);
-                window->setFullscreen(true);
-            }
-
-            uint64_t updateEnd = SDL_GetPerformanceCounter();
-
-            uint64_t updateLength = updateEnd - updateStart;
-            double updateTime = updateLength / (double)SDL_GetPerformanceFrequency();
-
-            DebugTimeInfo dti {
-                .deltaTime = deltaTime,
-                .updateTime = updateTime,
-                .simTime = simTime,
-                .lastUpdateTime = lastUpdateTime,
-                .frameCounter = frameCounter
-            };
-
-            drawDebugInfoWindow(dti);
-
-            static ConVar drawFPS { "drawFPS", "0", "Draws a simple FPS counter in the corner of the screen." };
-            if (drawFPS.getInt()) {
-                auto drawList = ImGui::GetForegroundDrawList();
-
-                char buf[128];
-                snprintf(buf, 128, "%.1f fps (%.3fms)", 1.0f / dti.deltaTime, dti.deltaTime * 1000.0f);
-
-                auto bgSize = ImGui::CalcTextSize(buf);
-                auto pos = ImGui::GetMainViewport()->Pos;
-
-                drawList->AddRectFilled(pos, pos + bgSize, ImColor(0.0f, 0.0f, 0.0f, 0.5f));
-
-                ImColor col{1.0f, 1.0f, 1.0f};
-
-                if (dti.deltaTime > 0.02)
-                    col = ImColor{1.0f, 0.0f, 0.0f};
-                else if (dti.deltaTime > 0.017)
-                    col = ImColor{0.75f, 0.75f, 0.0f};
-
-                drawList->AddText(pos, ImColor(1.0f, 1.0f, 1.0f), buf);
-            }
-
-            if (enableOpenVR) {
-                auto vrSys = vr::VRSystem();
-
-                float secondsSinceLastVsync;
-                vrSys->GetTimeSinceLastVsync(&secondsSinceLastVsync, NULL);
-
-                float hmdFrequency = vrSys->GetFloatTrackedDeviceProperty(
-                    vr::k_unTrackedDeviceIndex_Hmd,
-                    vr::Prop_DisplayFrequency_Float
-                );
-
-                float frameDuration = 1.f / hmdFrequency;
-                float vsyncToPhotons = vrSys->GetFloatTrackedDeviceProperty(
-                    vr::k_unTrackedDeviceIndex_Hmd,
-                    vr::Prop_SecondsFromVsyncToPhotons_Float
-                );
-
-                float predictAmount = frameDuration - secondsSinceLastVsync + vsyncToPhotons;
-
-                // Not sure why we predict an extra frame here, but it feels like crap without it
-                renderer->setVRPredictAmount(predictAmount + frameDuration);
-            }
-
-            if (glm::any(glm::isnan(cam.position))) {
-                cam.position = glm::vec3{ 0.0f };
-                logWarn("cam.position was NaN!");
-            }
-
-            if (!dedicatedServer) {
-                glm::vec3 alPos = cam.position;
-                glm::quat alRot = cam.rotation;
-
-                auto view = registry.view<AudioListenerOverride>();
-                if (view.size() > 0) {
-                    auto overrideEnt = view.front();
-                    auto overrideT = registry.get<Transform>(overrideEnt);
-                    alPos = overrideT.position;
-                    alRot = overrideT.rotation;
-                }
-                audioSystem->update(registry, alPos, alRot, deltaTime);
-            }
-
-            console->drawWindow();
-
-            registry.view<ChildComponent, Transform>().each([&](ChildComponent& c, Transform& t) {
-                if (!registry.valid(c.parent)) return;
-                t = c.offset.transformBy(registry.get<Transform>(c.parent));
-                });
-
-            if (!dedicatedServer) {
-                ZoneScopedN("Copy to Render Thread");
-                tickRenderer(true);
-            }
-
-            g_jobSys->completeFrameJobs();
-            frameCounter++;
-
-            inputManager->endFrame();
-
-            for (auto& e : nextFrameKillList) {
-                if (registry.valid(e))
-                    registry.destroy(e);
-            }
-
-            nextFrameKillList.clear();
-
-            if (sceneLoadQueued) {
-                if (enableOpenVR) {
-                    vr::VRCompositor()->FadeGrid(0.1f, true);
-                }
-                sceneLoadQueued = false;
-                SceneInfo& si = registry.ctx<SceneInfo>();
-                si.name = std::filesystem::path(AssetDB::idToPath(queuedSceneID)).stem().string();
-                si.id = queuedSceneID;
-                PHYSFS_File* file = AssetDB::openAssetFileRead(queuedSceneID);
-                SceneLoader::loadScene(file, registry);
-
-                std::unique_lock<std::mutex> lg{rendererLock};
-                renderThreadCV.wait(lg, []{ return renderThreadAvailable; });
-
-                if (renderer) {
-                    renderer->uploadSceneAssets(registry);
-                    renderer->unloadUnusedAssets(registry);
-                }
-
-                if (evtHandler && (!runAsEditor || !editor->active)) {
-                    evtHandler->onSceneStart(registry);
-
-                    for (auto* system : systems)
-                        system->onSceneStart(registry);
-
-                    scriptEngine->onSceneStart();
-                }
-
-                registry.view<OldAudioSource>().each([](OldAudioSource& as) {
-                    if (as.playOnSceneOpen) {
-                        as.isPlaying = true;
-                    }
-                });
-
-                registry.view<AudioSource>().each([](AudioSource& as) {
-                    if (as.playOnSceneStart)
-                        as.eventInstance->start();
-                });
-
-                if (enableOpenVR) {
-                    vr::VRCompositor()->FadeGrid(0.1f, false);
-                }
-            }
-
-            uint64_t postUpdate = SDL_GetPerformanceCounter();
-            double completeUpdateTime = (postUpdate - now) / (double)SDL_GetPerformanceFrequency();
-
-            if (dedicatedServer) {
-                double waitTime = simStepTime.getFloat() - completeUpdateTime;
-                if (waitTime > 0.0)
-                    SDL_Delay(waitTime * 1000);
-            }
-
-            lastUpdateTime = updateTime;
+            runSingleFrame(true);
         }
+    }
+
+    void WorldsEngine::runSingleFrame(bool processEvents) {
+        uint64_t now = SDL_GetPerformanceCounter();
+
+        uint64_t deltaTicks = now - interFrameInfo.lastPerfCounter;
+        interFrameInfo.lastPerfCounter = now;
+        interFrameInfo.deltaTime = deltaTicks / (double)SDL_GetPerformanceFrequency();
+        gameTime += interFrameInfo.deltaTime;
+
+        if (renderer->getVsync() || enableOpenVR) {
+            double targetTime;
+
+            if (enableOpenVR) {
+                float fDisplayFrequency = vr::VRSystem()->GetFloatTrackedDeviceProperty(vr::k_unTrackedDeviceIndex_Hmd, vr::Prop_DisplayFrequency_Float);
+                targetTime = 1.0 / fDisplayFrequency;
+            } else {
+                int displayIdx = SDL_GetWindowDisplayIndex(window->getWrappedHandle());
+                SDL_DisplayMode displayMode;
+                SDL_GetCurrentDisplayMode(displayIdx, &displayMode);
+                targetTime = 1.0 / displayMode.refresh_rate;
+            }
+
+            // Leave about 3ms of margin just in case
+            targetTime -= 0.003;
+
+            double timeAtStart = (double)SDL_GetPerformanceCounter() / SDL_GetPerformanceFrequency();
+            double throttleTime = pacingSleepTime.getInt() ? pacingSleepTime.getInt() / 1000.0 : glm::clamp(targetTime - interFrameInfo.lastUpdateTime, 0.0, 0.02);
+            double currTime = timeAtStart;
+
+            while (currTime - timeAtStart < throttleTime) {
+                currTime = (double)SDL_GetPerformanceCounter() / SDL_GetPerformanceFrequency();
+                if (currTime - timeAtStart > 0.001) {
+                    SDL_Delay(1);
+                }
+            }
+        }
+
+        uint64_t updateStart = SDL_GetPerformanceCounter();
+
+        if (processEvents)
+            window->processEvents();
+        if (window->shouldQuit())
+            running = false;
+
+        if (!dedicatedServer) {
+            tickRichPresence();
+
+            ImGui_ImplVulkan_NewFrame();
+            ImGui_ImplSDL2_NewFrame(window->getWrappedHandle());
+        }
+        inFrame = true;
+
+        ImVec2 newFrameDisplaySize(windowWidth, windowHeight);
+        ImGui::GetIO().DisplaySize = newFrameDisplaySize;
+
+        ImGui::NewFrame();
+        ImGui::GetMainViewport()->Size = newFrameDisplaySize;
+        inputManager->update();
+
+        if (openvrInterface)
+            openvrInterface->updateInput();
+
+        if (!dedicatedServer) {
+            screenRTTPass->active = !runAsEditor || !editor->active;
+        }
+
+        if (enableOpenVR) {
+            static bool lastIsVR = true;
+            uint32_t w = 1600;
+            uint32_t h = 900;
+
+            if (screenPassIsVR) {
+                openvrInterface->getRenderResolution(&w, &h);
+            }
+
+            if (screenPassIsVR != lastIsVR || w != screenRTTPass->width || h != screenRTTPass->height) {
+                renderer->destroyRTTPass(screenRTTPass);
+
+                RTTPassCreateInfo screenRTTCI {
+                    .width = w,
+                    .height = h,
+                    .resScale = screenPassResScale,
+                    .isVr = screenPassIsVR,
+                    .useForPicking = false,
+                    .enableShadows = true,
+                    .outputToScreen = true,
+                };
+
+                screenRTTPass = renderer->createRTTPass(screenRTTCI);
+            }
+        }
+
+        screenRTTPass->setResolutionScale(screenPassResScale);
+
+        float interpAlpha = 1.0f;
+
+        if (evtHandler != nullptr && (!runAsEditor || !editor->active)) {
+            evtHandler->preSimUpdate(registry, interFrameInfo.deltaTime);
+
+            for (auto* system : systems)
+                system->preSimUpdate(registry, interFrameInfo.deltaTime);
+        }
+
+        double simTime = 0.0;
+        if (!pauseSim) {
+            PerfTimer perfTimer;
+            updateSimulation(interpAlpha, interFrameInfo.deltaTime);
+            simTime = perfTimer.stopGetMs();
+        }
+
+        if (evtHandler != nullptr && !(runAsEditor && editor->active)) {
+            for (auto* system : systems)
+                system->update(registry, interFrameInfo.deltaTime * timeScale, interpAlpha);
+
+            evtHandler->update(registry, interFrameInfo.deltaTime * timeScale, interpAlpha);
+            scriptEngine->onUpdate(interFrameInfo.deltaTime * timeScale);
+        }
+
+        if (!dedicatedServer) {
+            windowSize.x = windowWidth;
+            windowSize.y = windowHeight;
+
+            if (runAsEditor) {
+                editor->update((float)interFrameInfo.deltaTime);
+            }
+        }
+
+        if (inputManager->keyPressed(SDL_SCANCODE_RCTRL, true)) {
+            inputManager->lockMouse(!inputManager->mouseLockState());
+        }
+
+        if (inputManager->keyPressed(SDL_SCANCODE_F3, true)) {
+            ShaderCache::clear();
+            renderer->recreateSwapchain();
+        }
+
+        if (inputManager->keyPressed(SDL_SCANCODE_F11, true)) {
+            //SDL_Event evt;
+            //SDL_zero(evt);
+            //evt.type = fullscreenToggleEventId;
+            //SDL_PushEvent(&evt);
+            window->setFullscreen(true);
+        }
+
+        uint64_t updateEnd = SDL_GetPerformanceCounter();
+
+        uint64_t updateLength = updateEnd - updateStart;
+        double updateTime = updateLength / (double)SDL_GetPerformanceFrequency();
+
+        DebugTimeInfo dti {
+            .deltaTime = interFrameInfo.deltaTime,
+            .updateTime = updateTime,
+            .simTime = simTime,
+            .lastUpdateTime = interFrameInfo.lastUpdateTime,
+            .frameCounter = interFrameInfo.frameCounter
+        };
+
+        drawDebugInfoWindow(dti);
+
+        static ConVar drawFPS { "drawFPS", "0", "Draws a simple FPS counter in the corner of the screen." };
+        if (drawFPS.getInt()) {
+            auto drawList = ImGui::GetForegroundDrawList();
+
+            char buf[128];
+            snprintf(buf, 128, "%.1f fps (%.3fms)", 1.0f / dti.deltaTime, dti.deltaTime * 1000.0f);
+
+            auto bgSize = ImGui::CalcTextSize(buf);
+            auto pos = ImGui::GetMainViewport()->Pos;
+
+            drawList->AddRectFilled(pos, pos + bgSize, ImColor(0.0f, 0.0f, 0.0f, 0.5f));
+
+            ImColor col{1.0f, 1.0f, 1.0f};
+
+            if (dti.deltaTime > 0.02)
+                col = ImColor{1.0f, 0.0f, 0.0f};
+            else if (dti.deltaTime > 0.017)
+                col = ImColor{0.75f, 0.75f, 0.0f};
+
+            drawList->AddText(pos, ImColor(1.0f, 1.0f, 1.0f), buf);
+        }
+
+        if (enableOpenVR) {
+            auto vrSys = vr::VRSystem();
+
+            float secondsSinceLastVsync;
+            vrSys->GetTimeSinceLastVsync(&secondsSinceLastVsync, NULL);
+
+            float hmdFrequency = vrSys->GetFloatTrackedDeviceProperty(
+                vr::k_unTrackedDeviceIndex_Hmd,
+                vr::Prop_DisplayFrequency_Float
+            );
+
+            float frameDuration = 1.f / hmdFrequency;
+            float vsyncToPhotons = vrSys->GetFloatTrackedDeviceProperty(
+                vr::k_unTrackedDeviceIndex_Hmd,
+                vr::Prop_SecondsFromVsyncToPhotons_Float
+            );
+
+            float predictAmount = frameDuration - secondsSinceLastVsync + vsyncToPhotons;
+
+            // Not sure why we predict an extra frame here, but it feels like crap without it
+            renderer->setVRPredictAmount(predictAmount + frameDuration);
+        }
+
+        if (glm::any(glm::isnan(cam.position))) {
+            cam.position = glm::vec3{ 0.0f };
+            logWarn("cam.position was NaN!");
+        }
+
+        if (!dedicatedServer) {
+            glm::vec3 alPos = cam.position;
+            glm::quat alRot = cam.rotation;
+
+            auto view = registry.view<AudioListenerOverride>();
+            if (view.size() > 0) {
+                auto overrideEnt = view.front();
+                auto overrideT = registry.get<Transform>(overrideEnt);
+                alPos = overrideT.position;
+                alRot = overrideT.rotation;
+            }
+            audioSystem->update(registry, alPos, alRot, interFrameInfo.deltaTime);
+        }
+
+        console->drawWindow();
+
+        registry.view<ChildComponent, Transform>().each([&](ChildComponent& c, Transform& t) {
+            if (!registry.valid(c.parent)) return;
+            t = c.offset.transformBy(registry.get<Transform>(c.parent));
+            });
+
+        if (!dedicatedServer) {
+            ZoneScopedN("Copy to Render Thread");
+            tickRenderer(true);
+        }
+
+        g_jobSys->completeFrameJobs();
+        interFrameInfo.frameCounter++;
+
+        inputManager->endFrame();
+
+        for (auto& e : nextFrameKillList) {
+            if (registry.valid(e))
+                registry.destroy(e);
+        }
+
+        nextFrameKillList.clear();
+
+        if (sceneLoadQueued) {
+            if (enableOpenVR) {
+                vr::VRCompositor()->FadeGrid(0.1f, true);
+            }
+            sceneLoadQueued = false;
+            SceneInfo& si = registry.ctx<SceneInfo>();
+            si.name = std::filesystem::path(AssetDB::idToPath(queuedSceneID)).stem().string();
+            si.id = queuedSceneID;
+            PHYSFS_File* file = AssetDB::openAssetFileRead(queuedSceneID);
+            SceneLoader::loadScene(file, registry);
+
+            std::unique_lock<std::mutex> lg{rendererLock};
+            renderThreadCV.wait(lg, []{ return renderThreadAvailable; });
+
+            if (renderer) {
+                renderer->uploadSceneAssets(registry);
+                renderer->unloadUnusedAssets(registry);
+            }
+
+            if (evtHandler && (!runAsEditor || !editor->active)) {
+                evtHandler->onSceneStart(registry);
+
+                for (auto* system : systems)
+                    system->onSceneStart(registry);
+
+                scriptEngine->onSceneStart();
+            }
+
+            registry.view<OldAudioSource>().each([](OldAudioSource& as) {
+                if (as.playOnSceneOpen) {
+                    as.isPlaying = true;
+                }
+            });
+
+            registry.view<AudioSource>().each([](AudioSource& as) {
+                if (as.playOnSceneStart)
+                    as.eventInstance->start();
+            });
+
+            if (enableOpenVR) {
+                vr::VRCompositor()->FadeGrid(0.1f, false);
+            }
+        }
+
+        uint64_t postUpdate = SDL_GetPerformanceCounter();
+        double completeUpdateTime = (postUpdate - now) / (double)SDL_GetPerformanceFrequency();
+
+        if (dedicatedServer) {
+            double waitTime = simStepTime.getFloat() - completeUpdateTime;
+            if (waitTime > 0.0)
+                SDL_Delay(waitTime * 1000);
+        }
+
+        interFrameInfo.lastUpdateTime = updateTime;
+        inFrame = false;
     }
 
     void WorldsEngine::tickRenderer(bool renderImGui) {
