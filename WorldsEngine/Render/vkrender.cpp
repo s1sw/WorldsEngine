@@ -993,6 +993,12 @@ void VKRenderer::recreateSwapchain(int newWidth, int newHeight) {
 void VKRenderer::recreateSwapchainInternal(int newWidth, int newHeight) {
     // Wait for current frame to finish
     vkDeviceWaitIdle(device);
+    
+    // Clear all deletion queues
+    // Thanks to Windows weirdness, we might spend a while resizing so this
+    // prevents a memory leak
+    for (int i = 0; i < presentSubmitManager->numFramesInFlight(); i++)
+        DeletionQueue::cleanupFrame(i);
 
     // Check width/height - if it's 0, just ignore it
     auto surfaceCaps = getSurfaceCaps(physicalDevice, surface);
