@@ -85,6 +85,9 @@ namespace worlds {
         logVrb(WELogCategoryRender, "surfcaps:");
         logVrb(WELogCategoryRender, "\t-minImageCount: %i", surfCaps.minImageCount);
         logVrb(WELogCategoryRender, "\t-maxImageCount: %i", surfCaps.maxImageCount);
+        logVrb(WELogCategoryRender, "\t-sameQueues: %i", sameQueues);
+        logVrb(WELogCategoryRender, "\t-currentExtent: %ix%i", surfCaps.currentExtent.width, surfCaps.currentExtent.height);
+        logVrb(WELogCategoryRender, "surface format: %i, color space %i", surfaceFormat.format, surfaceFormat.colorSpace);
 
         if (fullscreen) {
             minImageCount = surfCaps.minImageCount < 2 ? 2 : surfCaps.minImageCount;

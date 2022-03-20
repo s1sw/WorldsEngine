@@ -88,7 +88,7 @@ public class HandGrab : Component
         }
     }
 
-    private void GrabNearby()
+    public void GrabNearby()
     {
         var dpa = Registry.GetComponent<DynamicPhysicsActor>(Entity);
 

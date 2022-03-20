@@ -25,6 +25,9 @@ namespace WorldsEngine
         [DllImport(WorldsEngine.NativeModule)]
         private static extern uint meshmanager_getBoneCount(uint meshId);
 
+        [DllImport(WorldsEngine.NativeModule)]
+        private static extern float meshmanager_getSphereBoundRadius(uint meshId);
+
         public static bool IsMeshSkinned(AssetID id) => meshmanager_isMeshSkinned(id.ID);
         public static uint GetBoneIndex(AssetID id, string name) => meshmanager_getBoneId(id.ID, name);
 
@@ -43,5 +46,7 @@ namespace WorldsEngine
         }
 
         public static int GetBoneCount(AssetID mesh) => (int)meshmanager_getBoneCount(mesh.ID);
+
+        public static float GetMeshSphereBoundRadius(AssetID mesh) => meshmanager_getSphereBoundRadius(mesh.ID);
     }
 }
