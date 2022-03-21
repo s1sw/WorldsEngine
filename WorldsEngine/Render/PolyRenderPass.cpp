@@ -691,6 +691,14 @@ namespace worlds {
                     //ctx.debugContext.stats->numCulledObjs++;
                     return;
                 }
+
+                glm::vec3 mi = t.transformPoint(meshPos->second.aabbMin * t.scale);
+                glm::vec3 ma = t.transformPoint(meshPos->second.aabbMax * t.scale);
+
+                glm::vec3 aabbMin = glm::min(mi, ma);
+                glm::vec3 aabbMax = glm::max(mi, ma);
+
+                if (!frustum.containsAABB(aabbMin, aabbMax)) return;
             } else {
                 if (!frustum.containsSphere(t.position, meshPos->second.sphereRadius * maxScale) &&
                     !frustumB.containsSphere(t.position, meshPos->second.sphereRadius * maxScale)) {
@@ -994,8 +1002,8 @@ namespace worlds {
         if (ctx.passSettings.enableVr)
             realTotalTiles *= 2;
 
-        //if (realTotalTiles > MAX_LIGHT_TILES)
-            //fatalErr("Too many lighting tiles");
+        if (realTotalTiles > MAX_LIGHT_TILES)
+            fatalErr("Too many lighting tiles");
 
         lightMapped->lightCount = lightIdx;
         for (int i = 0; i < 4; i++) {
@@ -1006,6 +1014,18 @@ namespace worlds {
 
         uint32_t aoBoxIdx = 0;
         ctx.registry.view<Transform, ProxyAOComponent>().each([&](auto ent, Transform& t, ProxyAOComponent& pac) {
+            glm::vec3 p0 = t.transformPoint(pac.bounds);
+            glm::vec3 p1 = t.transformPoint(-pac.bounds);
+
+            glm::vec3 mi = glm::min(p0, p1);
+            glm::vec3 ma = glm::max(p0, p1);
+
+            if (ctx.passSettings.enableVr) {
+                if (!frustum.containsAABB(mi, ma) && !frustumB.containsAABB(mi, ma)) return;
+            } else {
+                if (!frustum.containsAABB(mi, ma)) return;
+            }
+
             Transform ct = t;
             ct.scale = glm::vec3(1.0f);
             lightMapped->box[aoBoxIdx].setScale(pac.bounds);

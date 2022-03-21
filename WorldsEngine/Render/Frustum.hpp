@@ -1,6 +1,7 @@
 #pragma once
 #include <Core/Log.hpp>
 #include <glm/glm.hpp>
+#include <Util/AABB.hpp>
 
 namespace worlds {
     struct Plane {
@@ -23,6 +24,10 @@ namespace worlds {
 
         glm::vec3 normal() const {
             return glm::vec3{ a, b, c };
+        }
+
+        float pointDistance(glm::vec3 point) {
+            return glm::dot(point, normal()) + d;
         }
     };
 
@@ -68,17 +73,25 @@ namespace worlds {
 
             glm::mat4 invVP = glm::inverse(vp);
 
+            glm::vec2 ndcScreenPoints[4] {
+                glm::vec2(-1.0f, -1.0f),
+                glm::vec2(1.0f, -1.0f),
+                glm::vec2(1.0f, 1.0f),
+                glm::vec2(-1.0f, 1.0f)
+            };
+
+            const float NEAR_EPSILON = 1e-4;
             // near plane points
-            points[0] = glm::vec3(invVP * glm::vec4(-1.0f, -1.0f, 0.0f, 1.0f));
-            points[1] = glm::vec3(invVP * glm::vec4(1.0f, -1.0f, 0.0f, 1.0f));
-            points[2] = glm::vec3(invVP * glm::vec4(1.0f, 1.0f, 0.0f, 1.0f));
-            points[3] = glm::vec3(invVP * glm::vec4(-1.0f, 1.0f, 0.0f, 1.0f));
+            for (int i = 0; i < 4; i++) {
+                glm::vec4 projected = invVP * glm::vec4(ndcScreenPoints[i], NEAR_EPSILON, 1.0f);
+                points[i] = glm::vec3(projected) / projected.w;
+            }
 
             // far plane points
-            points[4] = glm::vec3(invVP * glm::vec4(-1.0f, -1.0f, 1.0f, 1.0f));
-            points[5] = glm::vec3(invVP * glm::vec4(1.0f, -1.0f, 1.0f, 1.0f));
-            points[6] = glm::vec3(invVP * glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
-            points[7] = glm::vec3(invVP * glm::vec4(-1.0f, 1.0f, 1.0f, 1.0f));
+            for (int i = 0; i < 4; i++) {
+                glm::vec4 projected = invVP * glm::vec4(ndcScreenPoints[i], 1.0f, 1.0f);
+                points[i + 4] = glm::vec3(projected) / projected.w;
+            }
         }
 
         void fromViewAndProj(glm::mat4 view, glm::mat4 proj) {
@@ -123,26 +136,32 @@ namespace worlds {
             for (int i = 0; i < 6; i++) {
                 int out = 0;
 
-                out += ((glm::dot((glm::vec4)planes[i], glm::vec4(min.x, min.y, min.z, 1.0f)) < 0.0f) ? 1 : 0);
-                out += ((glm::dot((glm::vec4)planes[i], glm::vec4(max.x, min.y, min.z, 1.0f)) < 0.0f) ? 1 : 0);
-                out += ((glm::dot((glm::vec4)planes[i], glm::vec4(min.x, max.y, min.z, 1.0f)) < 0.0f) ? 1 : 0);
-                out += ((glm::dot((glm::vec4)planes[i], glm::vec4(max.x, max.y, min.z, 1.0f)) < 0.0f) ? 1 : 0);
-                out += ((glm::dot((glm::vec4)planes[i], glm::vec4(min.x, min.y, max.z, 1.0f)) < 0.0f) ? 1 : 0);
-                out += ((glm::dot((glm::vec4)planes[i], glm::vec4(max.x, min.y, max.z, 1.0f)) < 0.0f) ? 1 : 0);
-                out += ((glm::dot((glm::vec4)planes[i], glm::vec4(min.x, max.y, max.z, 1.0f)) < 0.0f) ? 1 : 0);
-                out += ((glm::dot((glm::vec4)planes[i], glm::vec4(max.x, max.y, max.z, 1.0f)) < 0.0f) ? 1 : 0);
+                out += planes[i].pointDistance(min) < 0.0f ? 1 : 0;
+                out += planes[i].pointDistance(glm::vec3(max.x, min.y, min.z)) < 0.0f ? 1 : 0;
+                out += planes[i].pointDistance(glm::vec3(min.x, max.y, min.z)) < 0.0f ? 1 : 0;
+                out += planes[i].pointDistance(glm::vec3(max.x, max.y, min.z)) < 0.0f ? 1 : 0;
+                out += planes[i].pointDistance(glm::vec3(min.x, min.y, max.z)) < 0.0f ? 1 : 0;
+                out += planes[i].pointDistance(glm::vec3(max.x, min.y, max.z)) < 0.0f ? 1 : 0;
+                out += planes[i].pointDistance(glm::vec3(min.x, max.y, max.z)) < 0.0f ? 1 : 0;
+                out += planes[i].pointDistance(glm::vec3(max.x, max.y, max.z)) < 0.0f ? 1 : 0;
 
                 if (out == 8)
                     return false;
             }
 
-            int out;
-            out = 0; for (int i = 0; i < 8; i++) out += ((points[i].x > max.x) ? 1 : 0); if (out == 8) return false;
-            out = 0; for (int i = 0; i < 8; i++) out += ((points[i].x < min.x) ? 1 : 0); if (out == 8) return false;
-            out = 0; for (int i = 0; i < 8; i++) out += ((points[i].y > max.y) ? 1 : 0); if (out == 8) return false;
-            out = 0; for (int i = 0; i < 8; i++) out += ((points[i].y < min.y) ? 1 : 0); if (out == 8) return false;
-            out = 0; for (int i = 0; i < 8; i++) out += ((points[i].z > max.z) ? 1 : 0); if (out == 8) return false;
-            out = 0; for (int i = 0; i < 8; i++) out += ((points[i].z < min.z) ? 1 : 0); if (out == 8) return false;
+            //AABB aabb{min, max};
+            //int outside[6];
+            //for (int i = 0; i < 8; i++) {
+            //    // on each axis...
+            //    for (int j = 0; j < 3; j++) {
+            //        outside[j] += points[i][j] > max[j];
+            //        outside[j + 3] += points[i][j] < min[j];
+            //    }
+            //}
+
+            //for (int i = 0; i < 6; i++) {
+            //    if (outside[i] == 8) return false;
+            //}
 
             return true;
         }
