@@ -732,10 +732,7 @@ namespace worlds {
 
     void WorldsEngine::mainLoop() {
         interFrameInfo.frameCounter = 0;
-
         interFrameInfo.lastPerfCounter = SDL_GetPerformanceCounter();
-
-        interFrameInfo.deltaTime;
         interFrameInfo.lastUpdateTime = 0.0;
 
         renderer->recreateSwapchain();
