@@ -37,13 +37,23 @@ public class Turret : Component, IStartListener, IThinkingComponent
 
     public void Think()
     {
+        if (DebugGlobals.AIIgnorePlayer) return;
+
         var transform = Entity.Transform;
         var swo = Entity.GetComponent<SkinnedWorldObject>();
         uint pitchBoneIdx = MeshManager.GetBoneIndex(swo.Mesh, "PitchPivot");
         uint yawBoneIdx = MeshManager.GetBoneIndex(swo.Mesh, "YawPivot");
 
+        Entity targetEntity = LocalPlayerSystem.PlayerBody;
+        bool targetVisible = false;
+
+        if (Physics.Raycast(_firePoint, _fireDirection, out RaycastHit hit, 20.0f))
+        {
+            targetVisible = hit.HitEntity == targetEntity;
+        }
+
         Vector3 gunPos = new Vector3(0.0f, 0.875f, 0.0f);
-        Vector3 target = transform.InverseTransformPoint(Camera.Main.Position);
+        Vector3 target = transform.InverseTransformPoint(targetEntity.Transform.Position);
         float distance = gunPos.DistanceTo(target);
         Vector3 direction = (target - gunPos).Normalized;
 
@@ -70,13 +80,6 @@ public class Turret : Component, IStartListener, IThinkingComponent
         _firePoint = finalFireTransform.TransformPoint(new Vector3(0.0f, 0.0f, 0.5f));
         _fireDirection = finalFireTransform.TransformDirection(new Vector3(0f, 0f, 1f));
 
-        Entity targetEntity = LocalPlayerSystem.PlayerBody;
-        bool targetVisible = false;
-
-        if (Physics.Raycast(_firePoint, _fireDirection, out RaycastHit hit, 20.0f))
-        {
-            targetVisible = hit.HitEntity == targetEntity;
-        }
 
         _fireTimer += Time.DeltaTime;
         if (!_isReloading)
