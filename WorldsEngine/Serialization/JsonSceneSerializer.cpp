@@ -110,9 +110,14 @@ namespace worlds {
                 nlohmann::json transform;
                 ComponentMetadataManager::byName["Transform"]->toJson(ent, reg, transform);
 
+                std::string path = AssetDB::idToPath(pic.prefab);
+
+                if (path.contains("SourceData/"))
+                    path = path.substr(11);
+
                 entity = {
                     { "diff", nlohmann::json::diff(prefab, instanceJson) },
-                    { "prefabPath", AssetDB::idToPath(pic.prefab) },
+                    { "prefabPath", path },
                     { "Transform", transform }
                 };
             } else {
