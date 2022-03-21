@@ -22,12 +22,14 @@ class ForceGrabbing : Component, IStartListener, IThinkingComponent
 
     public void Start()
     {
+        if (!VR.Enabled) return;
         _grabAction = new VRAction(IsRightHand ? "/actions/main/in/GrabR" : "/actions/main/in/GrabL");
         _triggerAction = new VRAction(IsRightHand ? "/actions/main/in/TriggerR" : "/actions/main/in/TriggerL");
     }
 
     public void Think()
     {
+        if (!VR.Enabled) return;
         var hg = Entity.GetComponent<HandGrab>();
 
         if (hg.GrippedEntity != Entity.Null) return;
