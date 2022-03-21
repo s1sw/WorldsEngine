@@ -33,7 +33,7 @@ public class SlidingDoor : Component, IStartListener, IThinkingComponent
         Transform t = Entity.Transform;
         AABB aabb = new(TriggerSize);
 
-        if (aabb.ContainsPoint(_initialTransform.InverseTransformPoint(Camera.Main.Position)))
+        if (aabb.ContainsPoint(_initialTransform.InverseTransformPoint(Player.PlayerCameraSystem.GetCamPosForSimulation())))
         {
             if (_previousSlideDir == -1)
                 Audio.PlayOneShotAttachedEvent("event:/Misc/Sliding Door", t.Position, Entity);
