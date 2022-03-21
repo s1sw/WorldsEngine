@@ -171,11 +171,12 @@ namespace worlds {
         }
     }
 
+    const bool ENABLE_PRESENT_JOB = false;
     void VKPresentSubmitManager::present() {
         VkQueue presentQueue = queues->present;
         // On Nvidia, vkQueuePresentKHR blocks, seemingly until the next vsync.
         // We therefore run it in a job so we can free up the render thread.
-        if (handles->vendor == VKVendor::Nvidia) {
+        if (handles->vendor == VKVendor::Nvidia && ENABLE_PRESENT_JOB) {
             ZoneScopedN("Submitting Present Job");
             static JobList* lastJobList = nullptr;
 
