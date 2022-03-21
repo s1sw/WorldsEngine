@@ -111,30 +111,37 @@ namespace WorldsEngine
             }
         }
 
-        public void LoadGameAssembly()
+        public void LoadGameAssembly(bool copyToTemp)
         {
             Logger.Log("Loading DLL...");
             loadContext = new AssemblyLoadContext("Game Context", true);
 
             Logger.Log("AssemblyLoadContext created");
 
-            // On Windows the assembly is locked when it's loaded into memory.
-            // To fix this, copy the assembly into a temporary directory and load from there.
-            if (Directory.Exists("GameAssembliesTemp"))
+            if (copyToTemp)
             {
-                try
+                // On Windows the assembly is locked when it's loaded into memory.
+                // To fix this, copy the assembly into a temporary directory and load from there.
+                if (Directory.Exists("GameAssembliesTemp"))
                 {
-                    Directory.Delete("GameAssembliesTemp", true);
+                    try
+                    {
+                        Directory.Delete("GameAssembliesTemp", true);
+                    }
+                    catch (UnauthorizedAccessException)
+                    {
+                        Logger.LogWarning("Failed to delete temp game assemblies directory, renaming instead...");
+                        Directory.Move("GameAssembliesTemp", $"GameAssembliesTemp-{DateTime.Now.ToString("yy-MM-dd-HH-mm", DateTimeFormatInfo.InvariantInfo)}");
+                    }
                 }
-                catch (UnauthorizedAccessException)
-                {
-                    Logger.LogWarning("Failed to delete temp game assemblies directory, renaming instead...");
-                    Directory.Move("GameAssembliesTemp", $"GameAssembliesTemp-{DateTime.Now.ToString("yy-MM-dd-HH-mm", DateTimeFormatInfo.InvariantInfo)}");
-                }
-            }
 
-            DirectoryCopy("GameAssemblies", "GameAssembliesTemp", true);
-            Assembly = loadContext.LoadFromAssemblyPath(Path.GetFullPath("GameAssembliesTemp/Game.dll"));
+                DirectoryCopy("GameAssemblies", "GameAssembliesTemp", true);
+                Assembly = loadContext.LoadFromAssemblyPath(Path.GetFullPath("GameAssembliesTemp/Game.dll"));
+            }
+            else
+            {
+                Assembly = loadContext.LoadFromAssemblyPath(Path.GetFullPath("GameAssemblies/Game.dll"));
+            }
 
             if (Assembly == null)
             {
@@ -198,7 +205,7 @@ namespace WorldsEngine
         public void ReloadGameAssembly()
         {
             UnloadGameAssembly();
-            LoadGameAssembly();
+            LoadGameAssembly(true);
         }
     }
 }

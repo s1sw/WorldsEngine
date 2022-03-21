@@ -11,7 +11,7 @@ namespace WorldsEngine
         public IReadOnlyList<ISystem> Systems => _assemblyManager.Systems;
 
         private readonly FileSystemWatcher _dllWatcher;
-        private readonly GameAssemblyManager _assemblyManager;
+        private readonly GameAssemblyManager _assemblyManager = new();
         private DateTime _lastReloadTime;
         private bool _reloadAssemblyNextFrame = false;
 
@@ -30,9 +30,6 @@ namespace WorldsEngine
 
         public HotloadManager()
         {
-            _assemblyManager = new GameAssemblyManager();
-            _assemblyManager.LoadGameAssembly();
-
             string watchPath = Path.GetFullPath("GameAssemblies");
 
 #if Linux
@@ -62,6 +59,11 @@ namespace WorldsEngine
                     Directory.Delete(d, true);
                 }
             }
+        }
+
+        public void Initialize()
+        {
+            _assemblyManager.LoadGameAssembly(Active);
         }
 
         private void OnDLLChanged(object sender, FileSystemEventArgs e)
