@@ -255,6 +255,7 @@ public class LocalPlayerSystem : ISystem
         {
             Log.Warn("Multiple spawn points!!");
         }
+
         Entity spawnPointEntity = Registry.View<SpawnPoint>().GetFirst();
         if (Registry.HasName(spawnPointEntity))
         {
@@ -266,8 +267,6 @@ public class LocalPlayerSystem : ISystem
         }
 
         Transform spawnPoint = Registry.GetTransform(spawnPointEntity);
-        //
-        //Camera.Main.Position = spawnPoint.Position;
 
         if (Registry.View<PlayerRig>().Count > 0)
         {
