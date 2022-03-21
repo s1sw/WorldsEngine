@@ -83,7 +83,7 @@ vec2 hdrTexSize() {
 }
 
 vec2 outSize() {
-    return hdrTexSize() / resolutionScale; 
+    return vec2(imageSize(resultImage));
 }
 
 vec3 pointSample(vec2 uv, int sampleIdx) {
@@ -115,7 +115,7 @@ vec3 bilinearSample(vec2 uv, int sampleIdx) {
 void main() {
     vec3 acc = vec3(0.0);
     vec3 whiteScale = 1.0 / Uncharted2Tonemap(vec3(W));
-    vec2 uv = (vec2(gl_GlobalInvocationID.xy) + vec2(0.5)) / hdrTexSize();//outSize();
+    vec2 uv = (vec2(gl_GlobalInvocationID.xy) + vec2(0.5)) / (hdrTexSize() / resolutionScale);//outSize();
 
     vec3 bloom = texture(bloomImage, vec3(uv * resolutionScale, idx)).xyz;
     //bloom -= vec3(0.1);

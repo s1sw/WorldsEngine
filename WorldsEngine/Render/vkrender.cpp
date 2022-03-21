@@ -36,7 +36,6 @@
 #include "vku/InstanceMaker.hpp"
 #include <Core/JobSystem.hpp>
 #include <Core/Console.hpp>
-#define ENABLE_NV_AFTERMATH
 #ifdef ENABLE_NV_AFTERMATH
 #include <GFSDK_Aftermath.h>
 #include <GFSDK_Aftermath_GpuCrashDump.h>
@@ -961,7 +960,7 @@ void VKRenderer::createSCDependents() {
         });
 
     if (vrApi == VrApi::OpenVR) {
-        OpenVRInterface* vrInterface = static_cast<OpenVRInterface*>(vrInterface);
+        OpenVRInterface* vrInterface = static_cast<OpenVRInterface*>(this->vrInterface);
         vrInterface->getRenderResolution(&vrWidth, &vrHeight);
     }
 
