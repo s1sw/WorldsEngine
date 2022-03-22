@@ -158,7 +158,7 @@ namespace worlds {
         previewCam.position = glm::vec3(0.0f, 0.0f, -1.0f);
         previewCam.rotation = glm::angleAxis(0.0f, glm::vec3(0.0f, 1.0f, 0.0f)) * glm::angleAxis(0.0f, glm::vec3(1.0f, 0.0f, 0.0f));
 
-        rttPass->active = true;
+        rttPass->active = false;
         this->interfaces = interfaces;
     }
 
