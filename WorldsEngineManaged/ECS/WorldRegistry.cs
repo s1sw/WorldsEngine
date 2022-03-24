@@ -621,6 +621,11 @@ namespace WorldsEngine
             return AssureStorage<T>();
         }
 
+        public static IComponentStorage View(Type t)
+        {
+            return AssureStorage(t);
+        }
+
         public static bool Valid(Entity entity)
         {
             return NativeRegistry.registry_valid(NativePtr, entity.ID);
@@ -703,6 +708,21 @@ namespace WorldsEngine
                 var handler = (ICollisionHandler)storage.GetBoxed(entity);
                 handler.OnCollision(ref contactInfo);
             }
+        }
+
+        internal static List<Type> GetTypesWithAttribute(Type attributeType)
+        {
+            List<Type> t = new();
+            foreach (IComponentStorage? storage in componentStorages)
+            {
+                if (storage == null) continue;
+                if (storage.Type.GetCustomAttribute(attributeType) != null)
+                {
+                    t.Add(storage.Type);
+                }
+            }
+
+            return t;
         }
     }
 }
