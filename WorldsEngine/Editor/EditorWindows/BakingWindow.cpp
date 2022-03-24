@@ -229,7 +229,7 @@ namespace worlds {
                         ImGui::SameLine();
                         ImGui::PushID(nc.name.c_str());
                         if (ImGui::Button("Bake")) {
-                            bakeCubemap(editor, t.position, static_cast<worlds::VKRenderer*>(interfaces.renderer), nc.name, reg, wc.resolution, numIterations);
+                            bakeCubemap(editor, t.position + wc.captureOffset, static_cast<worlds::VKRenderer*>(interfaces.renderer), nc.name, reg, wc.resolution, numIterations);
                         }
                         ImGui::PopID();
                     });
