@@ -149,19 +149,18 @@ namespace worlds {
                     return false;
             }
 
-            //AABB aabb{min, max};
-            //int outside[6];
-            //for (int i = 0; i < 8; i++) {
-            //    // on each axis...
-            //    for (int j = 0; j < 3; j++) {
-            //        outside[j] += points[i][j] > max[j];
-            //        outside[j + 3] += points[i][j] < min[j];
-            //    }
-            //}
+            int outside[6] = { 0 };
+            for (int i = 0; i < 8; i++) {
+                // on each axis...
+                for (int j = 0; j < 3; j++) {
+                    outside[j] += points[i][j] > max[j];
+                    outside[j + 3] += points[i][j] < min[j];
+                }
+            }
 
-            //for (int i = 0; i < 6; i++) {
-            //    if (outside[i] == 8) return false;
-            //}
+            for (int i = 0; i < 6; i++) {
+                if (outside[i] == 8) return false;
+            }
 
             return true;
         }

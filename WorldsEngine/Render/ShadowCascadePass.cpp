@@ -307,7 +307,14 @@ namespace worlds {
             bool visible = false;
 
             for (int i = 0; i < NUM_CASCADES; i++) {
-                visible |= shadowFrustums[i].containsSphere(transform.position, meshPos->second.sphereRadius * scaleMax);
+                //bool visibleInFrustum = shadowFrustums[i].containsSphere(transform.position, meshPos->second.sphereRadius * scaleMax);
+                glm::vec3 mi = transform.transformPoint(meshPos->second.aabbMin * transform.scale);
+                glm::vec3 ma = transform.transformPoint(meshPos->second.aabbMax * transform.scale);
+
+                glm::vec3 aabbMin = glm::min(mi, ma);
+                glm::vec3 aabbMax = glm::max(mi, ma);
+
+                visible |= shadowFrustums[i].containsAABB(aabbMin, aabbMax);
             }
 
             if (!visible) {

@@ -263,6 +263,17 @@ namespace worlds {
                     return;
                 }
 
+                glm::vec3 mi = transform.transformPoint(meshPos->second.aabbMin * transform.scale);
+                glm::vec3 ma = transform.transformPoint(meshPos->second.aabbMax * transform.scale);
+
+                glm::vec3 aabbMin = glm::min(mi, ma);
+                glm::vec3 aabbMax = glm::max(mi, ma);
+
+                if (!shadowFrustum.containsAABB(aabbMin, aabbMax)) {
+                    ctx.debugContext.stats->numCulledObjs++;
+                    return;
+                }
+
                 glm::mat4 mvp = shadowMatrices[i] * transform.getMatrix();
 
 

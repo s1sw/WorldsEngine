@@ -688,7 +688,7 @@ namespace worlds {
             float maxScale = glm::max(t.scale.x, glm::max(t.scale.y, t.scale.z));
             if (!ctx.passSettings.enableVr) {
                 if (!frustum.containsSphere(t.position, meshPos->second.sphereRadius * maxScale)) {
-                    //ctx.debugContext.stats->numCulledObjs++;
+                    ctx.debugContext.stats->numCulledObjs++;
                     return;
                 }
 
@@ -698,11 +698,14 @@ namespace worlds {
                 glm::vec3 aabbMin = glm::min(mi, ma);
                 glm::vec3 aabbMax = glm::max(mi, ma);
 
-                if (!frustum.containsAABB(aabbMin, aabbMax)) return;
+                if (!frustum.containsAABB(aabbMin, aabbMax)) {
+                    ctx.debugContext.stats->numCulledObjs++;
+                    return;
+                }
             } else {
                 if (!frustum.containsSphere(t.position, meshPos->second.sphereRadius * maxScale) &&
                     !frustumB.containsSphere(t.position, meshPos->second.sphereRadius * maxScale)) {
-                    //ctx.debugContext.stats->numCulledObjs++;
+                    ctx.debugContext.stats->numCulledObjs++;
                     return;
                 }
             }
