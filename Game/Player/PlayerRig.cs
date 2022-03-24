@@ -281,6 +281,8 @@ public class LocalPlayerSystem : ISystem
 
         if (_spawnRPT == null)
         {
+            Vector3 offset = new(0.0f, 1.2f, 0.0f);
+            spawnPoint.Position += offset;
             Log.Msg($"spawn pos: {spawnPoint.Position}");
             spawnPoint.Scale = body.Transform.Scale;
             body.Transform = spawnPoint;
@@ -357,8 +359,10 @@ public class LocalPlayerSystem : ISystem
         }
 
         var hpText = Registry.GetComponent<WorldText>(_hpTextEntity);
+        var hc = PlayerBody.GetComponent<Combat.HealthComponent>();
+        if (DebugGlobals.PlayerInvincible) hc.Health = hc.MaxHealth;
         hpText.Size = 0.001f;
-        hpText.Text = $"HP: {Registry.GetComponent<Combat.HealthComponent>(PlayerBody).Health}";
+        hpText.Text = $"HP: {hc.Health}";
 
         var lhTransform = Registry.GetTransform(_leftHandEntity);
         var hpTransform = Registry.GetTransform(_hpTextEntity);
