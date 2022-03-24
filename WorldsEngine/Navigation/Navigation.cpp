@@ -285,7 +285,6 @@ namespace worlds {
         status = navMeshQuery->findNearestPoly(glm::value_ptr(startPos), glm::value_ptr(polySearchExtent), &queryFilter, &startPolygon, glm::value_ptr(onPolyStartPos));
 
         if (dtStatusFailed(status)) {
-            logErr("Failed to find nearest nav mesh polygon to starting position.");
             return;
         }
 
@@ -295,7 +294,6 @@ namespace worlds {
         status = navMeshQuery->findNearestPoly(glm::value_ptr(endPos), glm::value_ptr(polySearchExtent), &queryFilter, &endPolygon, glm::value_ptr(onPolyEndPos));
 
         if (dtStatusFailed(status)) {
-            logErr("Failed to find nearest nav mesh polygon to ending position.");
             return;
         }
 
@@ -305,7 +303,6 @@ namespace worlds {
             &queryFilter, pathPolys, &numPathPolys, 32);
 
         if (dtStatusFailed(status) && !dtStatusDetail(status, DT_PARTIAL_RESULT)) {
-            logErr("Failed to find nav mesh poly path");
             return;
         }
 
@@ -316,7 +313,6 @@ namespace worlds {
         status = navMeshQuery->findStraightPath(glm::value_ptr(onPolyStartPos), glm::value_ptr(onPolyEndPos), pathPolys, numPathPolys, glm::value_ptr(pathPoints[0]), pathFlags, straightPathPolys, &numPathPoints, 32, DT_STRAIGHTPATH_ALL_CROSSINGS);
 
         if (dtStatusFailed(status) && !dtStatusDetail(status, DT_PARTIAL_RESULT)) {
-            logErr("Failed to find straight path");
             return;
         }
 
