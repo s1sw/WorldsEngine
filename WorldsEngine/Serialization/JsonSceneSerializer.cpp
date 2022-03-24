@@ -112,7 +112,7 @@ namespace worlds {
 
                 std::string path = AssetDB::idToPath(pic.prefab);
 
-                if (path.contains("SourceData/"))
+                if (path.find("SourceData/") != std::string::npos)
                     path = path.substr(11);
 
                 entity = {
