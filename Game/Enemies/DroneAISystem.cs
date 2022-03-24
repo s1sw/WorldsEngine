@@ -102,12 +102,12 @@ public class DroneAI : Component, IStartListener, IThinkingComponent
             Vector3 direction = poseB.Position - pose.Position;
             float distance = direction.Length;
 
-            if (distance > repulsionDistance) return;
+            if (distance > repulsionDistance) continue;
 
             direction.y = 0.0f;
 
             direction /= distance;
-            targetPosition -= direction * (distance + 1.0f);
+            targetPosition -= direction * 2.5f;
         }
     }
 
