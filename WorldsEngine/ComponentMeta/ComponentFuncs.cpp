@@ -1220,6 +1220,7 @@ namespace worlds {
 
             if (ImGui::CollapsingHeader(ICON_FA_CIRCLE u8" Cubemap")) {
                 ImGui::DragFloat3("Extent", &wc.extent.x);
+                ImGui::DragFloat3("Capture Offset", glm::value_ptr(wc.captureOffset));
                 ImGui::InputInt("Resolution", &wc.resolution);
                 tooltipHover("Powers of two are highly recommended for this setting.");
                 ImGui::Checkbox("Parallax Correction", &wc.cubeParallax);
@@ -1230,6 +1231,7 @@ namespace worlds {
                 boundsTransform.position = reg.get<Transform>(ent).position;
                 boundsTransform.scale = wc.extent;
                 drawBox(boundsTransform.position, glm::quat{1.0f, 0.0f, 0.0f, 0.0f}, wc.extent);
+                drawSphere(boundsTransform.position + wc.captureOffset, glm::quat{1.0f, 0.0f, 0.0f, 0.0f}, 0.25f, glm::vec4(1.0f));
 
                 ImGui::Separator();
             }
@@ -1242,7 +1244,8 @@ namespace worlds {
                 { "useCubeParallax", wc.cubeParallax },
                 { "extent", wc.extent },
                 { "priority", wc.priority },
-                { "resolution", wc.resolution }
+                { "resolution", wc.resolution },
+                { "captureOffset", wc.captureOffset }
             };
         }
 
@@ -1254,6 +1257,7 @@ namespace worlds {
             wc.cubeParallax = j["useCubeParallax"];
             wc.priority = j.value("priority", 0);
             wc.resolution = j.value("resolution", 128);
+            wc.captureOffset = j.value("captureOffset", glm::vec3{0.0f});
         }
     };
 

@@ -116,6 +116,7 @@ namespace worlds {
         bool cubeParallax = false;
         int priority = 0;
         int resolution = 128;
+        glm::vec3 captureOffset{0.0f};
         AssetID cubemapId = ~0u;
     };
 
