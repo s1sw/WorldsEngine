@@ -189,6 +189,16 @@ namespace WorldsEngine.Editor
 
             DrawOpenWindows();
             DrawMiscWindow();
+
+            foreach (Type t in Registry.GetTypesWithAttribute(typeof(GizmoAttribute)))
+            {
+                GizmoAttribute ga = t.GetCustomAttribute<GizmoAttribute>()!;
+
+                foreach (Entity e in Registry.View(t))
+                {
+                    GizmoRenderer.DrawGizmo(e, ga.GizmoPath);
+                }
+            }
         }
 
         private static EditorWindow CreateWindowOfType(Type t)
