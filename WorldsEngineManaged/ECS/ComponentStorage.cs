@@ -7,7 +7,7 @@ using System.Threading;
 
 namespace WorldsEngine.ECS
 {
-    interface IComponentStorage
+    public interface IComponentStorage
     {
         Type Type { get; }
         bool IsThinking { get; }
@@ -45,7 +45,7 @@ namespace WorldsEngine.ECS
         public readonly List<Entity> packedEntities = new();
         public bool IsThinking { get; private set; }
         public bool IsUpdateable { get; private set; }
-        public int Count => components.Count;
+        public int Count => packedEntities.Count;
 
         private readonly SparseStorage _sparseStorage = new();
 
