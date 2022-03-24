@@ -284,11 +284,12 @@ namespace worlds {
 
         currentSelectedEntity = entity;
         // A null entity means we should deselect the current entity
+        for (auto ent : selectedEntities) {
+            reg.remove_if_exists<EditorGlow>(ent);
+        }
+        selectedEntities.clear();
+
         if (!reg.valid(entity)) {
-            for (auto ent : selectedEntities) {
-                reg.remove_if_exists<EditorGlow>(ent);
-            }
-            selectedEntities.clear();
             return;
         }
 
