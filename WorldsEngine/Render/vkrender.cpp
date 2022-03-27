@@ -1,3 +1,4 @@
+#include "Core/WorldComponents.hpp"
 #include <Util/TimingUtil.hpp>
 #define _CRT_SECURE_NO_WARNINGS
 #include <Libs/volk.h>
@@ -1475,6 +1476,8 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
         ImGui::End();
     }
 
+    dbgStats.numTexturesLoaded = texSlots->loadedCount;
+    dbgStats.numMaterialsLoaded = matSlots->loadedCount;
     dbgStats.numCulledObjs = 0;
     dbgStats.numDrawCalls = 0;
     dbgStats.numPipelineSwitches = 0;
@@ -1595,44 +1598,56 @@ void VKRenderer::unloadUnusedAssets(entt::registry& reg) {
     bool textureReferenced[NUM_TEX_SLOTS] { 0 };
     bool materialReferenced[NUM_MAT_SLOTS] { 0 };
 
-    reg.view<WorldObject>().each([&materialReferenced, &textureReferenced, this](entt::entity, WorldObject& wo) {
+    auto markReferenced = [&](uint32_t materialIndex) {
+        materialReferenced[materialIndex] = true;
+
+        uint32_t albedoIdx = (uint32_t)((*matSlots)[materialIndex].albedoTexIdx);
+        textureReferenced[albedoIdx] = true;
+
+        uint32_t normalTex = (*matSlots)[materialIndex].normalTexIdx;
+
+        if (normalTex != ~0u) {
+            textureReferenced[normalTex] = true;
+        }
+
+        uint32_t heightmapTex = (*matSlots)[materialIndex].heightmapTexIdx;
+
+        if (heightmapTex != ~0u) {
+            textureReferenced[heightmapTex] = true;
+        }
+
+        uint32_t metalMapTex = (*matSlots)[materialIndex].metalTexIdx;
+
+        if (metalMapTex != ~0u) {
+            textureReferenced[metalMapTex] = true;
+        }
+
+        uint32_t roughTexIdx = (*matSlots)[materialIndex].roughTexIdx;
+
+        if (roughTexIdx != ~0u) {
+            textureReferenced[roughTexIdx] = true;
+        }
+
+        uint32_t aoTexIdx = (*matSlots)[materialIndex].aoTexIdx;
+
+        if (aoTexIdx != ~0u) {
+            textureReferenced[aoTexIdx] = true;
+        }
+    };
+
+    reg.view<WorldObject>().each([&](entt::entity, WorldObject& wo) {
         for (int i = 0; i < NUM_SUBMESH_MATS; i++) {
             if (!wo.presentMaterials[i]) continue;
             uint32_t materialIndex = matSlots->get(wo.materials[i]);
-            materialReferenced[materialIndex] = true;
+            markReferenced(materialIndex);
+        }
+        });
 
-            uint32_t albedoIdx = (uint32_t)((*matSlots)[materialIndex].albedoTexIdx);
-            textureReferenced[albedoIdx] = true;
-
-            uint32_t normalTex = (*matSlots)[materialIndex].normalTexIdx;
-
-            if (normalTex != ~0u) {
-                textureReferenced[normalTex] = true;
-            }
-
-            uint32_t heightmapTex = (*matSlots)[materialIndex].heightmapTexIdx;
-
-            if (heightmapTex != ~0u) {
-                textureReferenced[heightmapTex] = true;
-            }
-
-            uint32_t metalMapTex = (*matSlots)[materialIndex].metalTexIdx;
-
-            if (metalMapTex != ~0u) {
-                textureReferenced[metalMapTex] = true;
-            }
-
-            uint32_t roughTexIdx = (*matSlots)[materialIndex].roughTexIdx;
-
-            if (roughTexIdx != ~0u) {
-                textureReferenced[roughTexIdx] = true;
-            }
-
-            uint32_t aoTexIdx = (*matSlots)[materialIndex].aoTexIdx;
-
-            if (aoTexIdx != ~0u) {
-                textureReferenced[aoTexIdx] = true;
-            }
+    reg.view<SkinnedWorldObject>().each([&](entt::entity, SkinnedWorldObject& wo) {
+        for (int i = 0; i < NUM_SUBMESH_MATS; i++) {
+            if (!wo.presentMaterials[i]) continue;
+            uint32_t materialIndex = matSlots->get(wo.materials[i]);
+            markReferenced(materialIndex);
         }
         });
 
@@ -1647,6 +1662,10 @@ void VKRenderer::unloadUnusedAssets(entt::registry& reg) {
     std::unordered_set<AssetID> referencedMeshes;
 
     reg.view<WorldObject>().each([&referencedMeshes](WorldObject& wo) {
+        referencedMeshes.insert(wo.mesh);
+        });
+
+    reg.view<SkinnedWorldObject>().each([&referencedMeshes](SkinnedWorldObject& wo) {
         referencedMeshes.insert(wo.mesh);
         });
 
@@ -1669,7 +1688,7 @@ void VKRenderer::unloadUnusedAssets(entt::registry& reg) {
 
     referencedCubemaps.insert(reg.ctx<SceneSettings>().skybox);
 
-    for (int i = 0; i < NUM_CUBEMAP_SLOTS; i++) {
+    for (uint32_t i = 0; i < NUM_CUBEMAP_SLOTS; i++) {
         if (cubemapSlots->isSlotPresent(i)) {
             AssetID id = cubemapSlots->getKeyForSlot(i);
 

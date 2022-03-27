@@ -1,4 +1,5 @@
 #include "vku.hpp"
+#include "vulkan/vulkan_core.h"
 #include <Render/RenderInternal.hpp>
 
 #define UNUSED(x) (void)x
@@ -255,6 +256,8 @@ namespace vku {
             worlds::DeletionQueue::queueMemoryFree(s.allocation);
         }
         s.destroyed = true;
+        s.image = VK_NULL_HANDLE;
+        s.imageView = VK_NULL_HANDLE;
     }
 
     void GenericImage::create(VkDevice device, VmaAllocator allocator, const VkImageCreateInfo& info, VkImageViewType viewType, VkImageAspectFlags aspectMask, bool hostImage, const char* debugName) {

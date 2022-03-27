@@ -29,6 +29,7 @@
 // (yay for typical c++ specification bullshittery)
 #include "D6JointEditor.hpp"
 #include "Render/DebugLines.hpp"
+#include "glm/gtc/constants.hpp"
 
 using json = nlohmann::json;
 
@@ -97,8 +98,11 @@ namespace worlds {
 
                 if (ImGui::Button("Snap Rotation")) {
                     ed->undo.pushState(reg);
-                    eulerRot = glm::round(eulerRot / 15.0f) * 15.0f;
-                    selectedTransform.rotation = glm::radians(eulerRot);
+                    //eulerRot = glm::round(eulerRot / 15.0f) * 15.0f;
+                    glm::vec3 radEuler = glm::eulerAngles(selectedTransform.rotation);
+                    const float ROUND_TO = glm::half_pi<float>() * 0.25f;
+                    radEuler = glm::round(radEuler / ROUND_TO) * ROUND_TO;
+                    selectedTransform.rotation = radEuler;
                 }
 
                 ImGui::Separator();

@@ -1,4 +1,5 @@
 #include "RenderInternal.hpp"
+#include "vulkan/vulkan_core.h"
 
 namespace worlds {
     std::vector<DeletionQueue::DQueue> DeletionQueue::deletionQueues;

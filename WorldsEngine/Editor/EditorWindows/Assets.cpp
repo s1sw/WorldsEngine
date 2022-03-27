@@ -181,7 +181,9 @@ namespace worlds {
                 if (assetExtension == ".wmdlj") {
                     if (ImGui::Button("Create in scene")) {
                         AssetID compiledAsset = getOutputAsset(assetContextMenu);
-                        createModelObject(reg, interfaces.mainCamera->position, interfaces.mainCamera->rotation, compiledAsset, AssetDB::pathToId("Materials/dev.json"));
+                        Camera& editorCam = editor->getFirstSceneView()->getCamera();
+                        glm::vec3 pos = editorCam.position + editorCam.rotation * glm::vec3(0.0f, 0.0f, 1.0f);
+                        createModelObject(reg, pos, glm::quat{1.0f, 0.0f, 0.0f, 0.0f}, compiledAsset, AssetDB::pathToId("Materials/dev.json"));
                     }
                 }
 

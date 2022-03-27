@@ -171,6 +171,8 @@ namespace worlds {
 
         uint32_t shadowIdx = 0;
         ctx.registry.view<WorldLight, Transform>().each([&](WorldLight& light, Transform& t) {
+            if (!light.enabled) return;
+
             if (light.enableShadows && enableSpotShadows.getInt() && shadowIdx < NUM_SHADOW_LIGHTS) {
                 light.shadowmapIdx = shadowIdx;
                 renderIdx[shadowIdx] = true;

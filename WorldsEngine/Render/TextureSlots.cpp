@@ -25,6 +25,7 @@ namespace worlds {
         else
             slots[slot] = uploadTextureVk(*vkCtx, texData);
         std::free(texData.data);
+        loadedCount++;
 
         return slot;
     }
@@ -45,6 +46,7 @@ namespace worlds {
         slots[idx].destroy();
         lookup.erase(reverseLookup.at(idx));
         reverseLookup.erase(idx);
+        loadedCount--;
     }
 
     TextureSlots::~TextureSlots() {

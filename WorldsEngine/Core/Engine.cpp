@@ -1174,6 +1174,8 @@ namespace worlds {
                     ImGui::Text("V-Sync status: %s", renderer->getVsync() ? "On" : "Off");
                     ImGui::Text("Triangles: %u", dbgStats.numTriangles);
                     ImGui::Text("Lights in view: %i", dbgStats.numLightsInView);
+                    ImGui::Text("%i textures loaded", dbgStats.numTexturesLoaded);
+                    ImGui::Text("%i materials loaded", dbgStats.numMaterialsLoaded);
 
                     size_t lightCount = registry.view<WorldLight>().size();
                     size_t worldObjects = registry.view<WorldObject>().size();

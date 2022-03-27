@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Game.Interaction;
 using WorldsEngine;
 using WorldsEngine.Input;
 using WorldsEngine.Math;
@@ -14,7 +15,6 @@ namespace Game.Player;
 class PhysHand : Component, IThinkingComponent, IStartListener
 {
     static Vector3 _nonVROffset = new Vector3(0.125f, -0.2f, 0.55f);
-    const float ForceLimit = 1000f;
     const float TorqueLimit = 15f;
 
     private Quaternion rotationOffset = Quaternion.Identity;
@@ -53,11 +53,11 @@ class PhysHand : Component, IThinkingComponent, IStartListener
 
 #if DEBUG_HAND_VIS
             _visEntity = Registry.Create();
-            var currentWO = Registry.GetComponent<WorldObject>(entity);
+            var currentWO = Registry.GetComponent<SkinnedWorldObject>(Entity);
 
             var duplWo = Registry.AddComponent<WorldObject>(_visEntity);
             duplWo.Mesh = currentWO.Mesh;
-            Registry.SetName(_visEntity, $"{Registry.GetName(entity)} visualiser");
+            Registry.SetName(_visEntity, $"{Registry.GetName(Entity)} visualiser");
 #endif
     }
 
@@ -77,13 +77,22 @@ class PhysHand : Component, IThinkingComponent, IStartListener
         var dpa = Registry.GetComponent<DynamicPhysicsActor>(Entity);
         Transform pose = dpa.Pose;
 
-        Vector3 force = PD.CalculateForce(pose.Position, _targetTransform.Position + (bodyDpa.Velocity * Time.DeltaTime), dpa.Velocity, Time.DeltaTime, bodyDpa.Velocity)
-            .ClampMagnitude(ForceLimit);
+        Vector3 force = PD.CalculateForce(pose.Position, _targetTransform.Position + (bodyDpa.Velocity * Time.DeltaTime), dpa.Velocity, Time.DeltaTime, bodyDpa.Velocity);
+
+        ImGuiNET.ImGui.Text($"dist {pose.Position.DistanceTo(_targetTransform.Position)}");
+        ImGuiNET.ImGui.Text($"magnitude {force.Length}");
 
         if (!DisableForces)
         {
             dpa.AddForce(force);
-            bodyDpa.AddForce(-force * 0.1f);
+            var handGrab = Entity.GetComponent<HandGrab>();
+            if (!handGrab.GrippedEntity.IsNull)
+            {
+                if (handGrab.GrippedEntity.HasComponent<PhysicsActor>() || handGrab.GrippedEntity.GetComponent<DynamicPhysicsActor>().Mass > 20.0f)
+                {
+                    bodyDpa.AddForce(-force);
+                }
+            }
         }
 
         Quaternion targetRotation = _targetTransform.Rotation;//RotationFilter.Filter(_targetTransform.Rotation, Time.DeltaTime);
@@ -114,7 +123,8 @@ class PhysHand : Component, IThinkingComponent, IStartListener
 
         torque = pose.Rotation.SingleCover * torque;
 
-        //torque = torque.ClampMagnitude(TorqueLimit);
+        if (torque.LengthSquared > 0.5f)
+            torque = torque.ClampMagnitude(TorqueLimit);
         if (!DisableForces)
         {
             dpa.AddTorque(torque);

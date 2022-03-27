@@ -1,6 +1,8 @@
 #include <SDL_audio.h>
 #include <Core/Log.hpp>
 #include "Audio.hpp"
+#include "Core/Engine.hpp"
+#include "Core/LogCategories.hpp"
 #include <glm/glm.hpp>
 #include <glm/ext/scalar_constants.hpp>
 #include <Util/TimingUtil.hpp>
@@ -8,6 +10,7 @@
 #include <ImGui/imgui.h>
 #include <Core/Transform.hpp>
 #include <Libs/IconsFontaudio.h>
+#include <physfs.h>
 #ifdef ENABLE_STEAM_AUDIO
 #include "phonon.h"
 #endif
@@ -944,6 +947,23 @@ namespace worlds {
         #endif
     }
 
+    void AudioSystem::saveAudioScene(entt::registry &reg, const char *path) {
+        #ifdef ENABLE_STEAM_AUDIO
+        IPLSerializedObjectSettings settings{0};
+        IPLSerializedObject serializedObject;
+        SACHECK(iplSerializedObjectCreate(phononContext, &settings, &serializedObject));
+
+        // Create the audio scene just for this
+        IPLScene newScene = createScene(reg);
+        iplSceneSave(newScene, serializedObject);
+        iplSceneRelease(&newScene);
+
+        PHYSFS_File* file = PHYSFS_openWrite(path);
+        PHYSFS_writeBytes(file, iplSerializedObjectGetData(serializedObject), iplSerializedObjectGetSize(serializedObject));
+        PHYSFS_close(file);
+        #endif
+    }
+
     void AudioSystem::updateAudioScene(entt::registry& reg) {
         ZoneScoped;
 
@@ -951,7 +971,15 @@ namespace worlds {
         if (scene)
             iplSceneRelease(&scene);
 
-        scene = createScene(reg);
+        std::string savedPath = "LevelData/PhononScenes/" + reg.ctx<SceneInfo>().name + ".bin";
+
+        if (PHYSFS_exists(savedPath.c_str())) {
+            scene = loadScene(savedPath.c_str());
+        } else {
+            logWarn(WELogCategoryAudio, "Scene %s doesn't have baked audio data!", reg.ctx<SceneInfo>().name.c_str());
+            scene = createScene(reg);
+        }
+
         while (simThread->isSimRunning()) {}
         iplSimulatorSetScene(simulator, scene);
         #endif
@@ -1027,6 +1055,37 @@ namespace worlds {
             iplStaticMeshRelease(&mesh);
         });
         iplSceneCommit(scene);
+
+        return scene;
+        #else
+        return nullptr;
+        #endif
+    }
+
+    IPLScene AudioSystem::loadScene(const char* path) {
+        #ifdef ENABLE_STEAM_AUDIO
+        PHYSFS_File* file = PHYSFS_openRead(path);
+
+        size_t dataSize = PHYSFS_fileLength(file);
+        uint8_t* buffer = new uint8_t[dataSize];
+
+        PHYSFS_readBytes(file, buffer, dataSize);
+        PHYSFS_close(file);
+
+        IPLSerializedObjectSettings serializedObjectSettings{};
+        serializedObjectSettings.data = buffer;
+        serializedObjectSettings.size = dataSize;
+
+        IPLSerializedObject serializedObject;
+        SACHECK(iplSerializedObjectCreate(phononContext, &serializedObjectSettings, &serializedObject));
+
+        IPLSceneSettings sceneSettings{};
+        sceneSettings.type = IPL_SCENETYPE_DEFAULT;
+
+        IPLScene scene = nullptr;
+        SACHECK(iplSceneLoad(phononContext, &sceneSettings, serializedObject, nullptr, nullptr, &scene));
+
+        delete[] buffer;
 
         return scene;
         #else
