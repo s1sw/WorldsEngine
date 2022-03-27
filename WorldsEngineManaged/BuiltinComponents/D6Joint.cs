@@ -132,6 +132,12 @@ namespace WorldsEngine
         [return: MarshalAs(UnmanagedType.I1)]
         private static extern bool d6joint_isBroken(IntPtr regPtr, uint d6ent);
 
+        [DllImport(WorldsEngine.NativeModule)]
+        private static extern uint d6joint_getAttached(IntPtr regPtr, uint d6ent);
+
+        [DllImport(WorldsEngine.NativeModule)]
+        private static extern void d6joint_setAttached(IntPtr regPtr, uint d6ent, uint attachedEnt);
+
         internal static ComponentMetadata Metadata
         {
             get
@@ -147,15 +153,14 @@ namespace WorldsEngine
 
         public Entity Target
         {
-            get
-            {
-                return new Entity(d6joint_getTarget(regPtr, entityId));
-            }
+            get => new Entity(d6joint_getTarget(regPtr, entityId));
+            set => d6joint_setTarget(regPtr, entityId, value.ID);
+        }
 
-            set
-            {
-                d6joint_setTarget(regPtr, entityId, value.ID);
-            }
+        public Entity Attached
+        {
+            get => new Entity(d6joint_getAttached(regPtr, entityId));
+            set => d6joint_setAttached(regPtr, entityId, value.ID);
         }
 
         public Transform LocalPose

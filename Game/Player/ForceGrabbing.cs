@@ -1,6 +1,7 @@
 using WorldsEngine;
 using WorldsEngine.Math;
 using Game.Interaction;
+using System;
 
 namespace Game.Player;
 
@@ -19,6 +20,7 @@ class ForceGrabbing : Component, IStartListener, IThinkingComponent
 
     [EditableClass]
     public V3PidController PidController = new();
+    public float MaxLiftMass = 30.0f;
 
     public void Start()
     {
@@ -68,7 +70,7 @@ class ForceGrabbing : Component, IStartListener, IThinkingComponent
             Log.Msg($"dist: {dist}");
 
             Vector3 targetPos = palmPos + palmDir * dist;
-            dpa.AddForce(PidController.CalculateForce(-(dpa.Pose.Position - targetPos), Time.DeltaTime, Vector3.Zero), ForceMode.Acceleration);
+            dpa.AddForce(PidController.CalculateForce(-(dpa.Pose.Position - targetPos) * MathF.Min(dpa.Mass, MaxLiftMass), Time.DeltaTime, Vector3.Zero));
             return;
         }
 
@@ -115,7 +117,7 @@ class ForceGrabbing : Component, IStartListener, IThinkingComponent
 
             if (_hoveringEntity)
             {
-                dpa.AddForce(PidController.CalculateForce(-(dpa.Pose.Position - _floatingTargetPos), Time.DeltaTime, Vector3.Zero), ForceMode.Acceleration);
+                dpa.AddForce(PidController.CalculateForce(-(dpa.Pose.Position - _floatingTargetPos) * MathF.Min(dpa.Mass, MaxLiftMass), Time.DeltaTime, Vector3.Zero));
 
                 if (_triggerAction.Pressed)
                 {

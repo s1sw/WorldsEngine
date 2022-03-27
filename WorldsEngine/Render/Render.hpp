@@ -82,6 +82,7 @@ namespace worlds {
             , enableBloom(true)
             , enableCascadeShadows(true)
             , enableSpotlightShadows(true)
+            , enableDebugLines(true)
             , resolutionScale(1.0f) {}
 
         GraphicsSettings(int msaaLevel, int shadowmapRes, bool enableVr)
@@ -92,6 +93,7 @@ namespace worlds {
             , enableBloom(true)
             , enableCascadeShadows(true)
             , enableSpotlightShadows(true)
+            , enableDebugLines(true)
             , resolutionScale(1.0f) {}
 
         int msaaLevel; //!< MSAA level (1x, 2x, 4x, 8x etc.)
@@ -101,6 +103,7 @@ namespace worlds {
         bool enableBloom;
         bool enableCascadeShadows;
         bool enableSpotlightShadows;
+        bool enableDebugLines;
         float resolutionScale;
     };
 
@@ -154,6 +157,7 @@ namespace worlds {
         bool outputToScreen;
         int msaaLevel = 0;
         entt::registry* registryOverride = nullptr;
+        bool renderDebugShapes = true;
     };
 
     /**

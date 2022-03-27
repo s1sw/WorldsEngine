@@ -53,6 +53,27 @@ namespace worlds {
     }
 
     class TransformEditor : public virtual BasicComponentUtil<Transform> {
+    private:
+        glm::vec3 getEulerAngles(glm::quat rotation) {
+            float roll = atan2f(2.0f * rotation.y * rotation.w - 2.0f * rotation.x * rotation.z, 1.0f - 2.0f * rotation.y * rotation.y - 2.0f * rotation.z * rotation.z);
+            float pitch = atan2f(2.0f * rotation.x * rotation.w - 2.0f * rotation.y * rotation.z, 1.0f - 2.0f * rotation.x * rotation.x - 2.0f * rotation.z * rotation.z);
+            float yaw = glm::asin(2.0f * rotation.x * rotation.y + 2.0f * rotation.z * rotation.w);
+
+            return glm::vec3(pitch, roll, yaw);
+        }
+
+        glm::quat eulerQuat(glm::vec3 eulerAngles) {
+            eulerAngles *= 0.5f;
+            glm::vec3 c(cosf(eulerAngles.x), cosf(eulerAngles.y), cosf(eulerAngles.z));
+            glm::vec3 s(sinf(eulerAngles.x), sinf(eulerAngles.y), sinf(eulerAngles.z));
+
+            float w = c.x * c.y * c.z - s.x * s.y * s.z;
+            float x = s.x * c.y * c.z + c.x * s.y * s.z;
+            float y = c.x * s.y * c.z + s.x * c.y * s.z;
+            float z = c.x * c.y * s.z - s.x * s.y * c.z;
+
+            return glm::quat {w, x, y, z};
+        }
     public:
         int getSortID() override {
             return -1;
@@ -75,10 +96,10 @@ namespace worlds {
                     selectedTransform.position = pos;
                 }
 
-                glm::vec3 eulerRot = glm::degrees(glm::eulerAngles(selectedTransform.rotation));
+                glm::vec3 eulerRot = glm::degrees(getEulerAngles(selectedTransform.rotation));
                 if (ImGui::DragFloat3("Rotation", glm::value_ptr(eulerRot))) {
                     ed->undo.pushState(reg);
-                    selectedTransform.rotation = glm::radians(eulerRot);
+                    selectedTransform.rotation = eulerQuat(glm::radians(eulerRot));
                 }
 
                 glm::vec3 scale = selectedTransform.scale;

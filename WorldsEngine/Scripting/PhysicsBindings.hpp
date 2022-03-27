@@ -131,4 +131,14 @@ extern "C" {
         D6Joint& j = reg->get<D6Joint>(entity);
         return (j.pxJoint->getConstraintFlags() & physx::PxConstraintFlag::eBROKEN);
     }
+
+    EXPORT entt::entity d6joint_getAttached(entt::registry* reg, entt::entity entity) {
+        D6Joint& j = reg->get<D6Joint>(entity);
+        return j.getAttached();
+    }
+
+    EXPORT void d6joint_setAttached(entt::registry* reg, entt::entity entity, entt::entity attached) {
+        D6Joint& j = reg->get<D6Joint>(entity);
+        j.setAttached(attached, *reg);
+    }
 }

@@ -83,14 +83,13 @@ namespace worlds {
             }
 
             lineVB.unmap(handles->device);
-            lineVB.invalidate(handles->device);
-            lineVB.flush(handles->device);
             numLineVerts = rCtx.resources.numDebugLines * 2;
         }
     }
 
     void DebugLinesPass::execute(RenderContext& ctx) {
         auto cmdBuf = ctx.cmdBuf;
+        if (!ctx.passSettings.enableDebugLines) return;
         if (numLineVerts > 0 && lineVB.buffer()) {
             vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, linePipeline);
             VkBuffer buffer = lineVB.buffer();
