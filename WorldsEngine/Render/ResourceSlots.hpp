@@ -38,7 +38,8 @@ namespace worlds {
             return ~0u;
         }
     public:
-        ResourceSlots() : slots(), present() {
+        uint32_t loadedCount;
+        ResourceSlots() : slots(), present(), loadedCount(0) {
             for (uint32_t i = 0; i < slotCount; i++) {
                 present[i] = false;
             }

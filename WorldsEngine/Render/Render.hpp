@@ -118,6 +118,8 @@ namespace worlds {
         int numPipelineSwitches;
         int numTriangles;
         int numLightsInView;
+        int numTexturesLoaded;
+        int numMaterialsLoaded;
         double imgAcquisitionTime;
         double cmdBufWriteTime;
         double cmdBufFenceWaitTime;

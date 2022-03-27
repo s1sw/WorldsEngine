@@ -177,7 +177,8 @@ public class PlayerRig : Component, IThinkingComponent, IStartListener
             Vector3 force = pidController.CalculateForce(targetPosition - dpa.Pose.Position, Time.DeltaTime);
             force.x = 0.0f;
             force.z = 0.0f;
-            LocalPlayerSystem.AddForceToRig(force, ForceMode.Force);
+            //LocalPlayerSystem.AddForceToRig(force, ForceMode.Force);
+            dpa.AddForce(force);
 
             if (Registry.TryGetComponent<DynamicPhysicsActor>(hit.HitEntity, out DynamicPhysicsActor standingOnDpa))
             {
@@ -430,13 +431,15 @@ public class LocalPlayerSystem : ISystem
                 if (!lhHg.GrippedEntity.IsNull && lhHg.GrippedEntity.HasComponent<DynamicPhysicsActor>())
                 {
                     var grabbedDpa = lhHg.GrippedEntity.GetComponent<DynamicPhysicsActor>();
-                    grabbedDpa.AddForce(force, mode);
+                    if (grabbedDpa.Mass < 10f)
+                        grabbedDpa.AddForce(force, mode);
                 }
 
                 if (!rhHg.GrippedEntity.IsNull && rhHg.GrippedEntity.HasComponent<DynamicPhysicsActor>())
                 {
                     var grabbedDpa = rhHg.GrippedEntity.GetComponent<DynamicPhysicsActor>();
-                    grabbedDpa.AddForce(force, mode);
+                    if (grabbedDpa.Mass < 10f)
+                        grabbedDpa.AddForce(force, mode);
                 }
                 break;
         }

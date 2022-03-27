@@ -1,5 +1,6 @@
 #include <Core/Engine.hpp>
 #include "EditorWindows.hpp"
+#include "Navigation/Navigation.hpp"
 #include <ImGui/imgui.h>
 #include <Libs/IconsFontAwesome5.h>
 #include <Libs/IconsFontaudio.h>
@@ -214,8 +215,12 @@ namespace worlds {
                         "There aren't any objects marked as audio static in the scene.");
                 }
 
-                if (ImGui::Button("Bake")) {
-                    AudioSystem::getInstance()->bakeProbes(reg);
+                //if (ImGui::Button("Bake")) {
+                //    AudioSystem::getInstance()->bakeProbes(reg);
+                //}
+                if (ImGui::Button("Bake Geometry")) {
+                    std::string savedPath = "Data/LevelData/PhononScenes/" + reg.ctx<SceneInfo>().name + ".bin";
+                    AudioSystem::getInstance()->saveAudioScene(reg, savedPath.c_str());
                 }
             }
 
@@ -251,6 +256,11 @@ namespace worlds {
                         }
                     });
                 ImGui::Text("World Bounds: (%.3f, %.3f, %.3f) to (%.3f, %.3f, %.3f)", bbMin.x, bbMin.y, bbMin.z, bbMax.x, bbMax.y, bbMax.z);
+                
+                if (ImGui::Button("Bake")) {
+                    std::string savedPath = "Data/LevelData/Navmeshes/" + reg.ctx<SceneInfo>().name + ".bin";
+                    NavigationSystem::buildAndSave(reg, savedPath.c_str());
+                }
             }
         }
         ImGui::End();

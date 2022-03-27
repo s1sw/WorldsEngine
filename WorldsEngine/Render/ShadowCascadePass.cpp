@@ -302,8 +302,6 @@ namespace worlds {
                 return;
             }
 
-            float scaleMax = glm::max(transform.scale.x, glm::max(transform.scale.y, transform.scale.z));
-
             bool visible = false;
 
             for (int i = 0; i < NUM_CASCADES; i++) {

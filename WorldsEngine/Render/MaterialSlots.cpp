@@ -119,6 +119,7 @@ namespace worlds {
 
         parseMaterial(asset, slots[slot], matExtraData[slot]);
 
+        loadedCount++;
         return slot;
     }
 
@@ -137,6 +138,7 @@ namespace worlds {
         present[idx] = false;
         lookup.erase(reverseLookup.at(idx));
         reverseLookup.erase(idx);
+        loadedCount--;
     }
 
     MaterialSlots::~MaterialSlots() {

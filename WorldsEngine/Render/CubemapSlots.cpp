@@ -43,6 +43,7 @@ namespace worlds {
 
         lookup.insert({ asset, slot });
         reverseLookup.insert({ slot, asset });
+        loadedCount++;
 
         return slot;
     }
@@ -54,5 +55,6 @@ namespace worlds {
         slots[idx].destroy();
         lookup.erase(reverseLookup.at(idx));
         reverseLookup.erase(idx);
+        loadedCount--;
     }
 }

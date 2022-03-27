@@ -93,6 +93,7 @@ namespace worlds {
         static AudioSystem* getInstance() { return instance; }
         FMOD::Studio::Bank* loadBank(const char* path);
         void bakeProbes(entt::registry& registry);
+        void saveAudioScene(entt::registry& reg, const char* path);
         void updateAudioScene(entt::registry& reg);
     private:
         class SteamAudioSimThread;
@@ -100,6 +101,7 @@ namespace worlds {
         void onAudioSourceDestroy(entt::registry& reg, entt::entity ent);
         static FMOD_RESULT phononEventInstanceCallback(FMOD_STUDIO_EVENT_CALLBACK_TYPE type, FMOD_STUDIO_EVENTINSTANCE* event, void* param);
         IPLScene createScene(entt::registry& reg);
+        IPLScene loadScene(const char* path);
 
         struct AttachedOneshot {
             FMOD::Studio::EventInstance* instance;

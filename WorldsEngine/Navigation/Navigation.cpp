@@ -1,4 +1,7 @@
 #include "Navigation.hpp"
+#include "Core/Engine.hpp"
+#include "Core/NameComponent.hpp"
+#include "Util/TimingUtil.hpp"
 
 #include <entt/entity/registry.hpp>
 #include <Recast.h>
@@ -11,6 +14,7 @@
 #include <Util/EnumUtil.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <physfs.h>
+#include <sys/types.h>
 
 namespace worlds {
     const float CellSize = 0.3f;
@@ -57,19 +61,63 @@ namespace worlds {
     private:
     };
 
-    rcPolyMesh* currentPolyMesh = nullptr;
-    rcPolyMeshDetail* currentPolyMeshDetail = nullptr;
-    dtNavMesh* navMesh = nullptr;
-    dtNavMeshQuery* navMeshQuery = nullptr;
+    dtNavMesh* NavigationSystem::navMesh = nullptr;
+    dtNavMeshQuery* NavigationSystem::navMeshQuery = nullptr;
 
-    void NavigationSystem::updateNavMesh(entt::registry& reg) {
+    void NavigationSystem::setupFromNavMeshData(uint8_t* data, size_t dataSize) {
+        if (data == nullptr || dataSize == 0) return;
+        if (navMesh) {
+            dtFreeNavMesh(navMesh);
+            navMesh = nullptr;
+        }
+
+        navMesh = dtAllocNavMesh();
+
+        dtStatus status = navMesh->init(data, dataSize, DT_TILE_FREE_DATA);
+
+        if (dtStatusFailed(status)) {
+            logErr("Failed to initialise nav mesh");
+            return;
+        }
+
+        if (navMeshQuery) {
+            dtFreeNavMeshQuery(navMeshQuery);
+            navMeshQuery = nullptr;
+        }
+
+        navMeshQuery = dtAllocNavMeshQuery();
+
+        status = navMeshQuery->init(navMesh, 2048);
+
+        if (dtStatusFailed(status)) {
+            logErr("Failed to initialise nav mesh query");
+            return;
+        }
+    }
+
+    void NavigationSystem::loadNavMeshFromFile(const char* path) {
+        PHYSFS_File* file = PHYSFS_openRead(path);
+        size_t navmeshSize = PHYSFS_fileLength(file);
+        uint8_t* navmeshData = new uint8_t[navmeshSize];
+
+        if (navmeshSize != PHYSFS_readBytes(file, navmeshData, navmeshSize)) {
+            logErr("Failed to load navmesh");
+        }
+        PHYSFS_close(file);
+        setupFromNavMeshData(navmeshData, navmeshSize);
+    }
+
+    void NavigationSystem::buildNavMesh(entt::registry& registry, uint8_t*& dataOut, size_t& dataSizeOut) {
+        dataOut = nullptr;
+        dataSizeOut = 0;
         // Find the bounding boxes and poly/vert counts of all the navigation static objects in the scene
         glm::vec3 bbMin{FLT_MAX};
         glm::vec3 bbMax{-FLT_MAX};
         uint32_t numTriangles = 0;
         uint32_t numVertices = 0;
 
-        reg.view<Transform, WorldObject>().each([&](Transform& t, WorldObject& o) {
+        PerfTimer pt;
+        registry.view<Transform, WorldObject>().each([&](Transform& t, WorldObject& o) {
             if (!enumHasFlag(o.staticFlags, StaticFlags::Navigation)) return;
 
             glm::mat4 tMat = t.getMatrix();
@@ -98,7 +146,7 @@ namespace worlds {
         std::vector<glm::vec3> recastVertices;
         recastVertices.reserve(numVertices);
 
-        reg.view<Transform, WorldObject>().each([&](Transform& t, WorldObject& o) {
+        registry.view<Transform, WorldObject>().each([&](Transform& t, WorldObject& o) {
             if (!enumHasFlag(o.staticFlags, StaticFlags::Navigation)) return;
             auto& mesh = MeshManager::loadOrGet(o.mesh);
             glm::mat4 mat = t.getMatrix();
@@ -191,33 +239,24 @@ namespace worlds {
         rcFreeContourSet(contourSet);
         ctx->stopTimer(RC_TIMER_TOTAL);
 
-        if (currentPolyMesh)
-            rcFreePolyMesh(currentPolyMesh);
-
-        if (currentPolyMeshDetail)
-            rcFreePolyMeshDetail(currentPolyMeshDetail);
-
-        currentPolyMesh = polyMesh;
-        currentPolyMeshDetail = polyMeshDetail;
-
         for (int i = 0; i < polyMesh->npolys; i++) {
             polyMesh->flags[i] = 1;
         }
 
         dtNavMeshCreateParams params{};
-        params.verts = currentPolyMesh->verts;
-        params.vertCount = currentPolyMesh->nverts;
-        params.polys = currentPolyMesh->polys;
-        params.polyAreas = currentPolyMesh->areas;
-        params.polyFlags = currentPolyMesh->flags;
-        params.polyCount = currentPolyMesh->npolys;
-        params.nvp = currentPolyMesh->nvp;
+        params.verts = polyMesh->verts;
+        params.vertCount = polyMesh->nverts;
+        params.polys = polyMesh->polys;
+        params.polyAreas = polyMesh->areas;
+        params.polyFlags = polyMesh->flags;
+        params.polyCount = polyMesh->npolys;
+        params.nvp = polyMesh->nvp;
 
-        params.detailMeshes = currentPolyMeshDetail->meshes;
-        params.detailVerts = currentPolyMeshDetail->verts;
-        params.detailVertsCount = currentPolyMeshDetail->nverts;
-        params.detailTris = currentPolyMeshDetail->tris;
-        params.detailTriCount = currentPolyMeshDetail->ntris;
+        params.detailMeshes = polyMeshDetail->meshes;
+        params.detailVerts = polyMeshDetail->verts;
+        params.detailVertsCount = polyMeshDetail->nverts;
+        params.detailTris = polyMeshDetail->tris;
+        params.detailTriCount = polyMeshDetail->ntris;
 
         params.walkableHeight = recastConfig.walkableHeight * recastConfig.ch;
         params.walkableRadius = recastConfig.walkableRadius * recastConfig.cs;
@@ -239,35 +278,43 @@ namespace worlds {
             return;
         }
 
-        PHYSFS_File* f = PHYSFS_openWrite("navmesh.bin");
-        PHYSFS_writeBytes(f, navMeshData, navMeshDataSize);
-        PHYSFS_close(f);
+        rcFreePolyMesh(polyMesh);
+        rcFreePolyMeshDetail(polyMeshDetail);
+        logMsg("navmesh generation took %.3fms", pt.stopGetMs());
+        dataOut = navMeshData;
+        dataSizeOut = static_cast<size_t>(navMeshDataSize);
+    }
 
-        if (navMesh) {
-            dtFreeNavMesh(navMesh);
-        }
+    void NavigationSystem::buildAndSave(entt::registry &registry, const char *path) {
+        uint8_t* data;
+        size_t dataSize;
+        buildNavMesh(registry, data, dataSize);
 
-        navMesh = dtAllocNavMesh();
+        PHYSFS_File* file = PHYSFS_openWrite(path);
 
-        dtStatus status = navMesh->init(navMeshData, navMeshDataSize, DT_TILE_FREE_DATA);
-
-        if (dtStatusFailed(status)) {
-            logErr("Failed to initialise nav mesh");
+        if (file == nullptr) {
+            logErr("Failed to open writing location for navmesh %s", path);
             return;
         }
 
-        if (navMeshQuery) {
-            dtFreeNavMeshQuery(navMeshQuery);
-        }
+        PHYSFS_writeBytes(file, data, dataSize);
+        PHYSFS_close(file);
+        free(data);
+    }
 
-        navMeshQuery = dtAllocNavMeshQuery();
-
-        status = navMeshQuery->init(navMesh, 2048);
-
-        if (dtStatusFailed(status)) {
-            logErr("Failed to initialise nav mesh query");
+    void NavigationSystem::updateNavMesh(entt::registry& reg) {
+        std::string savedPath = "LevelData/Navmeshes/" + reg.ctx<SceneInfo>().name + ".bin";
+        
+        if (PHYSFS_exists(savedPath.c_str())) {
+            loadNavMeshFromFile(savedPath.c_str());
             return;
         }
+        logWarn("Scene %s doesn't have baked navmesh data", reg.ctx<SceneInfo>().name.c_str());
+
+        uint8_t* navMeshData;
+        size_t navMeshDataSize;
+        buildNavMesh(reg, navMeshData, navMeshDataSize);
+        setupFromNavMeshData(navMeshData, navMeshDataSize);
     }
 
     void NavigationSystem::findPath(glm::vec3 startPos, glm::vec3 endPos, NavigationPath& path) {
