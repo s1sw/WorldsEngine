@@ -35,6 +35,7 @@ namespace worlds {
         rtci.outputToScreen = false;
         rtci.useForPicking = false;
         rtci.msaaLevel = 1;
+        rtci.renderDebugShapes = false;
         cam.verticalFOV = glm::radians(90.0f);
         cam.position = pos;
 

@@ -147,6 +147,7 @@ namespace worlds {
         pci.registryOverride = &previewRegistry;
         pci.width = 256;
         pci.height = 256;
+        pci.renderDebugShapes = false;
         rttPass = interfaces.renderer->createRTTPass(pci);
 
         previewEntity = createModelObject(previewRegistry, glm::vec3(0.0f), glm::quat(1.0f, 0.0f, 0.0f, 0.0f),

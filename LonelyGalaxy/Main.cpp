@@ -48,6 +48,7 @@ int main(int argc, char** argv) {
 #ifdef _WIN32
     if (!IsDebuggerPresent())
         SetUnhandledExceptionFilter(unhandledExceptionHandler);
+    SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
 #endif
     worlds::EngineInitOptions initOptions;
     initOptions.gameName = "Lightline";

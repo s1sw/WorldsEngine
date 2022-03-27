@@ -17,7 +17,7 @@ lg_link_args = []
 if host_machine.system() == 'windows'
   cpp_compiler = meson.get_compiler('cpp')
   crash_handler_deps += cpp_compiler.find_library('dbghelp')
-  sources += import('windows').compile_resources('LonelyGalaxy.rc')
+  sources += import('windows').compile_resources('LonelyGalaxy.rc', depend_files: 'Manifest.xml')
 else
   lg_link_args += '-rdynamic'
 endif

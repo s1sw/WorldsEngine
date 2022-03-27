@@ -474,16 +474,16 @@ float getNormalLightShadowIntensity(int lightIdx) {
     shadowPos.y = -shadowPos.y;
 
     float bias = 0.00007;//max(0.0005 * (1.0 - dot(inNormal, getLightDirection(lights[lightIdx], inWorldPos.xyz))), 0.00002);
+    shadowPos /= shadowPos.w;
 
-    float depth = (shadowPos.z / shadowPos.w);
-    vec2 coord = (shadowPos.xy / shadowPos.w) * 0.5 + 0.5;//(shadowPos.xy * 0.5 + 0.5);
+    vec2 coord = shadowPos.xy * 0.5 + 0.5;//(shadowPos.xy * 0.5 + 0.5);
 
     float shadowIntensity = 1.0;
 
     if (coord.x > 0.0 && coord.x < 1.0 &&
             coord.y > 0.0 && coord.y < 1.0 &&
             depth < 1.0 && depth > 0.0) {
-        shadowIntensity = pcf(vec3(coord, depth), additionalShadowSampler[shadowIdx], bias);
+        shadowIntensity = pcf(vec3(coord, shadowPos.z), additionalShadowSampler[shadowIdx], bias);
     }
     return shadowIntensity;
 }
