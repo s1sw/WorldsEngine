@@ -84,7 +84,7 @@ namespace worlds {
         }
 
         std::sort(candidates.begin(), candidates.end(), [](const SearchCandidate& a, const SearchCandidate& b) {
-            return a.score < b.score;
+            return a.score > b.score;
         });
 
         slib::List<uint32_t> orderedHashes;
