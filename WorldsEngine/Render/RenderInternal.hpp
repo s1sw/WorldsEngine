@@ -323,6 +323,7 @@ namespace worlds {
         static void queueObjectDeletion(void* object, VkObjectType type);
         static void queueMemoryFree(VmaAllocation allocation);
         static void queueDescriptorSetFree(VkDescriptorPool dPool, VkDescriptorSet ds);
+        static void queueCustomDeletion(std::function<void()> func);
         static void setCurrentFrame(uint32_t frame);
         static void cleanupFrame(uint32_t frame);
         static void resize(uint32_t maxFrames);
@@ -348,6 +349,7 @@ namespace worlds {
             std::deque<ObjectDeletion> objectDeletions;
             std::deque<MemoryFree> memoryFrees;
             std::deque<DescriptorSetFree> dsFrees;
+            std::deque<std::function<void()>> customDeletions;
         };
 
         static std::vector<DQueue> deletionQueues;
