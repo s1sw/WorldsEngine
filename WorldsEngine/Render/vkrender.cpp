@@ -1774,11 +1774,13 @@ VKRTTPass* VKRenderer::createRTTPass(RTTPassCreateInfo& ci) {
 
 void VKRenderer::destroyRTTPass(RTTPass* pass) {
     std::lock_guard<std::mutex> lg { *apiMutex };
-    rttPasses.erase(
-        std::remove(rttPasses.begin(), rttPasses.end(), pass),
-        rttPasses.end());
+    DeletionQueue::queueCustomDeletion([this, pass]() {
+        rttPasses.erase(
+            std::remove(rttPasses.begin(), rttPasses.end(), pass),
+            rttPasses.end());
 
-    delete (VKRTTPass*)pass;
+        delete (VKRTTPass*)pass;
+    });
 }
 
 void VKRenderer::triggerRenderdocCapture() {
@@ -1819,14 +1821,8 @@ VKRenderer::~VKRenderer() {
 
         ShaderCache::clear();
 
-
-        std::vector<VKRTTPass*> toDelete;
         for (auto& p : rttPasses) {
-            toDelete.push_back(p);
-        }
-
-        for (auto& p : toDelete) {
-            destroyRTTPass(p);
+            delete p;
         }
 
         rttPasses.clear();

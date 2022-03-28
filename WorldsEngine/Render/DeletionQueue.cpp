@@ -19,6 +19,10 @@ namespace worlds {
         deletionQueues[currentFrameIndex].dsFrees.emplace_back(pool, set);
     }
 
+    void DeletionQueue::queueCustomDeletion(std::function<void ()> func) {
+        deletionQueues[currentFrameIndex].customDeletions.push_back(func);
+    }
+
     void DeletionQueue::setCurrentFrame(uint32_t frame) {
         currentFrameIndex = frame;
     }
@@ -38,9 +42,14 @@ namespace worlds {
             vkFreeDescriptorSets(deletionDevice, dsf.desciptorPool, 1, &dsf.descriptorSet);
         }
 
+        for (const auto& cf : queue.customDeletions) {
+            cf();
+        }
+
         queue.objectDeletions.clear();
         queue.memoryFrees.clear();
         queue.dsFrees.clear();
+        queue.customDeletions.clear();
     }
 
     void DeletionQueue::resize(uint32_t maxFrames) {
