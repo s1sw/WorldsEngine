@@ -19,16 +19,18 @@ namespace worlds {
     }
 
     void EditorActionSearchPopup::draw() {
-        ImVec2 size(500.0f, ImGui::GetTextLineHeightWithSpacing() * (2 + currentCandidateList.numElements()));
+        ImVec2 size(500.0f, ImGui::GetTextLineHeightWithSpacing() * (3 + currentCandidateList.numElements()));
         ImVec2 pos(ImGui::GetMainViewport()->Size.x * 0.5f, 200.0f);
         pos = ImVec2(pos.x - size.x * 0.5f, pos.y);
         ImGui::SetNextWindowPos(pos);
         ImGui::SetNextWindowSize(size);
+        uint32_t queuedAction = ~0u;
 
         if (ImGui::BeginPopup("Action Search")) {
-            ImGui::PushItemWidth(size.x);
+            ImGui::Text("Actions");
+            ImGui::PushItemWidth(ImGui::GetContentRegionAvailWidth());
             ImGui::SetKeyboardFocusHere();
-            if (ImGui::InputText("##search", &currentSearchText)) {
+            if (ImGui::InputText("Action##", &currentSearchText)) {
                 currentCandidateList = EditorActions::searchForActions(currentSearchText);
             }
 
@@ -44,7 +46,7 @@ namespace worlds {
                 ImGui::CloseCurrentPopup();
             }
 
-            if (selectedIndex >= currentCandidateList.numElements()) selectedIndex = 0;
+            if (selectedIndex >= (int)currentCandidateList.numElements()) selectedIndex = 0;
             if (selectedIndex < 0) selectedIndex = currentCandidateList.numElements() - 1;
 
             float lineHeight = ImGui::CalcTextSize("w").y;
@@ -68,7 +70,7 @@ namespace worlds {
                         ImGui::CloseCurrentPopup();
                         currentCandidateList.clear();
                         currentSearchText.clear();
-                        action.function(ed, reg);
+                        queuedAction = candidate;
                     }
                 }
 
@@ -77,6 +79,10 @@ namespace worlds {
                 idx++;
             }
             ImGui::EndPopup();
+        }
+
+        if (queuedAction != ~0u) {
+            EditorActions::getActionByHash(queuedAction).function(ed, reg);
         }
     }
 }

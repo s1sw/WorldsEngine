@@ -263,7 +263,7 @@ namespace worlds {
 
         EditorActions::addAction({ "editor.openActionSearch", [](Editor* ed, entt::registry&) {
             ed->actionSearch.show();
-        }, "Open action search"});
+        }});
 
         EditorActions::addAction({ "editor.addStaticPhysics", [](Editor* ed, entt::registry& reg) {
             if (!reg.valid(ed->currentSelectedEntity)) {
@@ -284,6 +284,10 @@ namespace worlds {
             ps.mesh.mesh = wo.mesh;
             pa.physicsShapes.push_back(std::move(ps));
         }, "Add static physics"});
+
+        EditorActions::addAction({ "editor.createPrefab", [](Editor*, entt::registry& reg) {
+            ImGui::OpenPopup("Save Prefab");
+        }, "Create prefab"});
 
         EditorActions::bindAction("scene.save", ActionKeybind{SDL_SCANCODE_S, ModifierFlags::Control});
         EditorActions::bindAction("scene.open", ActionKeybind{SDL_SCANCODE_O, ModifierFlags::Control});
