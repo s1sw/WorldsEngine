@@ -109,7 +109,7 @@ namespace worlds {
                                     t.position = cam.position + cam.rotation * glm::vec3(0.0f, 0.0f, 1.0f);
                                 }
                             } else {
-                                editor->currentSelectedAsset = AssetDB::pathToId(fullPath);
+                                editor->openAsset(AssetDB::pathToId(fullPath));
                             }
                         }
 
@@ -120,7 +120,7 @@ namespace worlds {
                 }
             }
 
-            static IAssetEditor* newAssetEditor = nullptr;
+            static IAssetEditorMeta* newAssetEditor = nullptr;
             static std::string newAssetName;
 
             if (ImGui::BeginPopup("New Asset Name")) {

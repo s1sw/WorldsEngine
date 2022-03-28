@@ -97,16 +97,6 @@ namespace worlds {
                     ImGui::Text("%s", buttonLabel.cStr());
 
                     if (ImGui::IsItemHovered()) {
-                        if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
-                            if (ext == ".wscn") {
-                                interfaces.engine->loadScene(AssetDB::pathToId(fullPath));
-                            } else if (ext == ".wprefab") {
-                                SceneLoader::createPrefab(AssetDB::pathToId(fullPath), reg);
-                            } else {
-                                editor->currentSelectedAsset = AssetDB::pathToId(fullPath);
-                            }
-                        }
-
                         if (ImGui::IsMouseClicked(ImGuiMouseButton_Right)) {
                             assetContextMenuPath = fullPath;
                         }
@@ -114,7 +104,7 @@ namespace worlds {
                 }
             }
 
-            static IAssetEditor* newAssetEditor = nullptr;
+            static IAssetEditorMeta* newAssetEditor = nullptr;
             static std::string newAssetName;
 
             if (ImGui::BeginPopup("New Asset Name")) {

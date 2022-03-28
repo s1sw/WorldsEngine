@@ -9,6 +9,7 @@
 #include <deque>
 #include <slib/List.hpp>
 #include <string>
+#include "EditorActionSearchPopup.hpp"
 
 struct VkDescriptorSet_T;
 typedef VkDescriptorSet_T* VkDescriptorSet;
@@ -175,6 +176,8 @@ namespace worlds {
         EntityFolder rootFolder{ "Root" };
     };
 
+    class AssetEditorWindow;
+
     class Editor {
     public:
         Editor(entt::registry& reg, EngineInterfaces interfaces);
@@ -191,12 +194,13 @@ namespace worlds {
         void overrideHandle(Transform* t);
         void overrideHandle(entt::entity entity);
         bool entityEyedropper(entt::entity& picked);
-        AssetID currentSelectedAsset;
         const GameProject& currentProject() { return *project; }
         void saveOpenWindows();
         void loadOpenWindows();
         EditorSceneView* getFirstSceneView();
+        void openAsset(AssetID id);
     private:
+        EditorActionSearchPopup actionSearch;
         std::unique_ptr<GameProject> project;
         ImTextureID titleBarIcon;
         void drawMenuBarTitle();
@@ -227,6 +231,7 @@ namespace worlds {
         InputManager& inputManager;
         slib::List<std::unique_ptr<EditorWindow>> editorWindows;
         slib::List<EditorSceneView*> sceneViews;
+        slib::List<AssetEditorWindow*> assetEditors;
         struct QueuedKeydown {
             SDL_Scancode scancode;
             ModifierFlags modifiers;

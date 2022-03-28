@@ -34,6 +34,7 @@ namespace worlds {
     struct EditorAction {
         slib::String id;
         std::function<void(Editor* ed, entt::registry& reg)> function;
+        slib::String friendlyString;
     };
 
     class EditorActions {
@@ -44,6 +45,8 @@ namespace worlds {
         static void disableForThisFrame();
         static void reenable();
         static void triggerBoundActions(Editor* ed, entt::registry& reg, SDL_Scancode scancode, ModifierFlags modifiers);
+        static const EditorAction& getActionByHash(uint32_t hash);
+        static slib::List<uint32_t> searchForActions(slib::String pattern);
     private:
         struct KeyBindings {
             ModifierFlags modifiers[4];
@@ -52,6 +55,7 @@ namespace worlds {
         };
 
         static robin_hood::unordered_map<SDL_Scancode, KeyBindings> actionBindings;
-        static robin_hood::unordered_map<uint32_t, EditorAction> registeredActions;
+        static robin_hood::unordered_node_map<uint32_t, EditorAction> registeredActions;
+        static slib::List<EditorAction> actionList;
     };
 }

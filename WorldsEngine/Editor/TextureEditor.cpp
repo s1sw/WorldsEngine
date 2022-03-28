@@ -1,6 +1,8 @@
 #include "TextureEditor.hpp"
-#include "../Core/Log.hpp"
-#include "../IO/IOUtil.hpp"
+#include <Core/Log.hpp>
+#include <IO/IOUtil.hpp>
+#include "Core/IGameEventHandler.hpp"
+#include "Editor/AssetEditors.hpp"
 #include "Editor/GuiUtil.hpp"
 #include "ImGui/imgui.h"
 #include <nlohmann/json.hpp>
@@ -13,49 +15,7 @@ namespace worlds {
         "Packed PBR Map"
     };
 
-    void TextureEditor::importAsset(std::string filePath, std::string newAssetPath) {
-        newAssetPath = "SourceData/" + newAssetPath;
-        AssetID id = AssetDB::createAsset(newAssetPath);
-
-        PHYSFS_File* f = PHYSFS_openWrite(newAssetPath.c_str());
-        nlohmann::json j = {
-            { "sourceTexture", filePath },
-            { "type", "crunch" },
-            { "isSrgb", true },
-            { "isNormalMap", false }
-        };
-
-        std::string sourceFileName = std::filesystem::path{ filePath }.filename().string();
-        // Let's do some file name guessing...
-        if (sourceFileName.find("Normal") != std::string::npos) {
-            j["isSrgb"] = false;
-            j["isNormalMap"] = true;
-        }
-
-        if (sourceFileName.find("forcelin") != std::string::npos) {
-            j["isSrgb"] = false;
-        }
-
-        if (sourceFileName.find("PBRPack") != std::string::npos) {
-            j["isSrgb"] = false;
-        }
-
-        std::string serializedJson = j.dump(4);
-        PHYSFS_writeBytes(f, serializedJson.data(), serializedJson.size());
-        PHYSFS_close(f);
-        open(id);
-    }
-
-    void TextureEditor::create(std::string path) {
-        AssetID id = AssetDB::createAsset(path);
-        PHYSFS_File* f = PHYSFS_openWrite(path.c_str());
-        const char emptyJson[] = "{}";
-        PHYSFS_writeBytes(f, emptyJson, sizeof(emptyJson));
-        PHYSFS_close(f);
-        open(id);
-    }
-
-    void TextureEditor::open(AssetID id) {
+    TextureEditor::TextureEditor(AssetID id) {
         editingID = id;
 
         std::string contents = LoadFileToString(AssetDB::idToPath(id)).value;
@@ -63,7 +23,7 @@ namespace worlds {
         currentAssetSettings = TextureAssetSettings::fromJson(j);
     }
 
-    void TextureEditor::drawEditor() {
+    void TextureEditor::draw() {
         if (ImGui::BeginCombo("Type", textureTypeNames[(int)currentAssetSettings.type])) {
             int i = 0;
             for (const char* name : textureTypeNames) {
@@ -141,7 +101,52 @@ namespace worlds {
         PHYSFS_close(file);
     }
 
-    const char* TextureEditor::getHandledExtension() {
+    TextureEditor::~TextureEditor() {
+    }
+
+    void TextureEditorMeta::importAsset(std::string filePath, std::string newAssetPath) {
+        newAssetPath = "SourceData/" + newAssetPath;
+
+        PHYSFS_File* f = PHYSFS_openWrite(newAssetPath.c_str());
+        nlohmann::json j = {
+            { "sourceTexture", filePath },
+            { "type", "crunch" },
+            { "isSrgb", true },
+            { "isNormalMap", false }
+        };
+
+        std::string sourceFileName = std::filesystem::path{ filePath }.filename().string();
+        // Let's do some file name guessing...
+        if (sourceFileName.find("Normal") != std::string::npos) {
+            j["isSrgb"] = false;
+            j["isNormalMap"] = true;
+        }
+
+        if (sourceFileName.find("forcelin") != std::string::npos) {
+            j["isSrgb"] = false;
+        }
+
+        if (sourceFileName.find("PBRPack") != std::string::npos) {
+            j["isSrgb"] = false;
+        }
+
+        std::string serializedJson = j.dump(4);
+        PHYSFS_writeBytes(f, serializedJson.data(), serializedJson.size());
+        PHYSFS_close(f);
+    }
+
+    void TextureEditorMeta::create(std::string path) {
+        PHYSFS_File* f = PHYSFS_openWrite(path.c_str());
+        const char emptyJson[] = "{}";
+        PHYSFS_writeBytes(f, emptyJson, sizeof(emptyJson));
+        PHYSFS_close(f);
+    }
+
+    IAssetEditor* TextureEditorMeta::createEditorFor(AssetID id) {
+        return new TextureEditor(id);
+    }
+
+    const char* TextureEditorMeta::getHandledExtension() {
         return ".wtexj";
     }
 }

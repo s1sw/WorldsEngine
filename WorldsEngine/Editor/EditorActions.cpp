@@ -2,10 +2,14 @@
 #include <Core/Log.hpp>
 #include <Editor/Editor.hpp>
 #include <Util/Fnv.hpp>
+#include <algorithm>
+#define FTS_FUZZY_MATCH_IMPLEMENTATION
+#include <fts_fuzzy_match.h>
 
 namespace worlds {
     robin_hood::unordered_map<SDL_Scancode, EditorActions::KeyBindings> EditorActions::actionBindings;
     robin_hood::unordered_map<uint32_t, EditorAction> EditorActions::registeredActions;
+    slib::List<EditorAction> EditorActions::actionList;
 
     void EditorActions::addAction(EditorAction&& action) {
         uint32_t idHash = FnvHash(action.id.cStr());
@@ -15,6 +19,7 @@ namespace worlds {
             return;
         }
 
+        actionList.add(action);
         registeredActions.insert({ idHash, std::move(action) });
     }
 
@@ -55,5 +60,38 @@ namespace worlds {
             if (bindings.modifiers[i] == modifiers)
                 registeredActions[bindings.actionHashes[i]].function(ed, reg);
         }
+    }
+
+    const EditorAction& EditorActions::getActionByHash(uint32_t hash) {
+        return registeredActions.at(hash);
+    }
+
+    struct SearchCandidate {
+        uint32_t actionHash;
+        int score;
+    };
+
+    slib::List<uint32_t> EditorActions::searchForActions(slib::String pattern) {
+        std::vector<SearchCandidate> candidates;
+
+        for (EditorAction& action : actionList) {
+            int score;
+            if (fts::fuzzy_match(pattern.cStr(), action.friendlyString.cStr(), score)) {
+                candidates.push_back({ FnvHash(action.id.cStr()), score });
+            }
+        }
+
+        std::sort(candidates.begin(), candidates.end(), [](const SearchCandidate& a, const SearchCandidate& b) {
+            return a.score < b.score;
+        });
+
+        slib::List<uint32_t> orderedHashes;
+        orderedHashes.reserve(candidates.size());
+
+        for (SearchCandidate& sc : candidates) {
+            orderedHashes.add(sc.actionHash);
+        }
+
+        return orderedHashes;
     }
 }

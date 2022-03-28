@@ -1,40 +1,31 @@
+#include "Core/IGameEventHandler.hpp"
+#include <Editor/Editor.hpp>
 #include "EditorWindows.hpp"
-#include "../../AssetCompilation/AssetCompilers.hpp"
-#include "../AssetEditors.hpp"
+#include <AssetCompilation/AssetCompilers.hpp>
+#include <Editor/AssetEditors.hpp>
+#include <ImGui/imgui.h>
 #define IMGUI_DEFINE_MATH_OPERATORS
-#include "../ImGui/imgui_internal.h"
+#include <ImGui/imgui_internal.h>
 #include <Editor/GuiUtil.hpp>
 
 namespace worlds {
-    void AssetEditor::draw(entt::registry& reg) {
-        static AssetCompileOperation* currCompileOp = nullptr;
-        if (ImGui::Begin("Asset Editor", &active)) {
-            if (editor->currentSelectedAsset == INVALID_ASSET) {
-                ImGui::Text("No asset currently selected.");
+    AssetEditorWindow::AssetEditorWindow(AssetID id, EngineInterfaces interfaces, Editor* editor)
+        : EditorWindow(interfaces, editor)
+        , assetId(id)
+        , currCompileOp(nullptr) {
+        IAssetEditorMeta* assetEditorMeta = AssetEditors::getEditorFor(id);
+        assetEditor = assetEditorMeta->createEditorFor(id);
+    }
+
+    void AssetEditorWindow::draw(entt::registry& reg) {
+        std::string path = AssetDB::idToPath(assetId);
+        ImGui::SetNextWindowPos(glm::vec2(ImGui::GetMainViewport()->GetCenter()) - glm::vec2(640.0f, 480.0f) * 0.5f, ImGuiCond_Once);
+        ImGui::SetNextWindowSize(ImVec2(640, 480), ImGuiCond_Once);
+        if (ImGui::Begin(path.c_str(), &active)) {
+            if (assetId == INVALID_ASSET) {
+                ImGui::Text("Invalid asset!");
             } else {
-                IAssetEditor* assetEditor = AssetEditors::getEditorFor(editor->currentSelectedAsset);
-                if (editor->currentSelectedAsset != lastId && assetEditor) {
-                    if (lastId != INVALID_ASSET) {
-                        IAssetEditor* lastEditor = AssetEditors::getEditorFor(lastId);
-                        if (lastEditor)
-                            lastEditor->save();
-                    }
-                    assetEditor->open(editor->currentSelectedAsset);
-                }
-
-                std::string path = AssetDB::idToPath(editor->currentSelectedAsset);
-                ImGui::Text("Path: %s", path.c_str());
-
-                ImGui::SameLine();
-
-                if (ImGui::Button("Close")) {
-                    editor->currentSelectedAsset = INVALID_ASSET;
-                }
-
-                if (assetEditor)
-                    assetEditor->drawEditor();
-                else
-                    ImGui::TextColored(ImColor(1.0f, 0.0f, 0.0f), "OOF");
+                assetEditor->draw();
 
                 if (ImGui::Button("Save")) {
                     assetEditor->save();
@@ -54,12 +45,16 @@ namespace worlds {
                 } else {
                     ImGui::SameLine();
                     if (ImGui::Button("Compile")) {
-                        currCompileOp = AssetCompilers::buildAsset(editor->currentProject().root(), editor->currentSelectedAsset);
+                        currCompileOp = AssetCompilers::buildAsset(editor->currentProject().root(), assetId);
                     }
                 }
             }
-            lastId = editor->currentSelectedAsset;
         }
         ImGui::End();
+    }
+
+    AssetEditorWindow::~AssetEditorWindow() {
+        assetEditor->save();
+        delete assetEditor;
     }
 }

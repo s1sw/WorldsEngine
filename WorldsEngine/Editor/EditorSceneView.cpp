@@ -288,8 +288,9 @@ namespace worlds {
                 ndcObjectPosition *= (glm::vec2)contentRegion;
                 // Not sure why flipping Y is necessary?
                 ndcObjectPosition.y = wSize.y - ndcObjectPosition.y;
+                float dist = glm::distance(t.position, cam.position);
 
-                if ((ndcObjPosPreDivide.z / ndcObjPosPreDivide.w) > 0.0f && glm::distance(t.position, cam.position) < ed->settings.sceneIconDrawDistance) {
+                if ((ndcObjPosPreDivide.z / ndcObjPosPreDivide.w) > 0.0f && dist < ed->settings.sceneIconDrawDistance && dist > 0.1f) {
                     glm::vec2 imgSize{ 64.0f, 64.0f };
                     glm::vec2 drawPos = ndcObjectPosition + wPos - (imgSize * 0.5f);
 
