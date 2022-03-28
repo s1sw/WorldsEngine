@@ -289,6 +289,11 @@ namespace worlds {
             ImGui::OpenPopup("Save Prefab");
         }, "Create prefab"});
 
+        EditorActions::addAction({ "assets.refresh", [](Editor* ed, entt::registry& reg) {
+            ed->currentProject().assets().enumerateAssets();
+            ed->currentProject().assets().checkForAssetChanges();
+        }, "Refresh assets"});
+
         EditorActions::bindAction("scene.save", ActionKeybind{SDL_SCANCODE_S, ModifierFlags::Control});
         EditorActions::bindAction("scene.open", ActionKeybind{SDL_SCANCODE_O, ModifierFlags::Control});
         EditorActions::bindAction("scene.new", ActionKeybind{SDL_SCANCODE_N, ModifierFlags::Control});

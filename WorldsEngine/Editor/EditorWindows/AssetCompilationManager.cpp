@@ -6,111 +6,35 @@
 #include <AssetCompilation/AssetCompilers.hpp>
 
 namespace worlds {
-    struct AssetFile {
-        AssetID sourceAssetId;
-        std::string path;
-        int64_t lastModified;
-        std::string compiledPath;
-        bool needsCompile = false;
-        bool dependenciesExist = true;
-    };
-
-    static std::vector<AssetFile> assetFiles;
     static std::vector<AssetFile>::iterator assetFileCompileIterator;
     static bool isCompiling = false;
     static AssetCompileOperation* currentCompileOp = nullptr;
 
-    void enumerateForAssets(const char* path) {
-        char** list = PHYSFS_enumerateFiles(path);
-
-        for (char** p = list; *p != nullptr; p++) {
-            char* subpath = *p;
-            std::string fullPath = std::string(path) + '/' + subpath;
-
-            PHYSFS_Stat stat;
-            PHYSFS_stat(fullPath.c_str(), &stat);
-
-            logMsg("f: %s", subpath);
-            if (stat.filetype == PHYSFS_FILETYPE_DIRECTORY) {
-                enumerateForAssets(fullPath.c_str());
-            } else if (stat.filetype == PHYSFS_FILETYPE_REGULAR) {
-                std::filesystem::path sp = subpath;
-                if (sp.has_extension()) {
-                    std::string extension = std::filesystem::path{ subpath }.extension().string();
-
-                    if (extension == ".wmdlj" || extension == ".wtexj") {
-                        assetFiles.push_back(AssetFile{
-                            .sourceAssetId = AssetDB::pathToId(fullPath),
-                            .path = fullPath,
-                            .lastModified = stat.modtime,
-                            .compiledPath = getOutputPath(fullPath).substr(5)
-                        });
-                    }
-                }
-            }
-        }
-
-        PHYSFS_freeList(list);
-    }
-
-    void checkForAssetChange(AssetFile& file) {
-        PHYSFS_Stat compiledStat;
-        PHYSFS_stat(file.compiledPath.c_str(), &compiledStat);
-
-        if (compiledStat.modtime < file.lastModified)
-            file.needsCompile = true;
-
-        IAssetCompiler* compiler = AssetCompilers::getCompilerFor(file.sourceAssetId);
-        std::vector<std::string> dependencies;
-        compiler->getFileDependencies(file.sourceAssetId, dependencies);
-
-        file.dependenciesExist = true;
-        for (auto& dependency : dependencies) {
-            if (!PHYSFS_exists(dependency.c_str())) {
-                file.dependenciesExist = false;
-                continue;
-            }
-
-            PHYSFS_Stat dependencyStat;
-            PHYSFS_stat(dependency.c_str(), &dependencyStat);
-
-            if (dependencyStat.modtime > compiledStat.modtime)
-                file.needsCompile = true;
-        }
-    }
-
     void AssetCompilationManager::draw(entt::registry&) {
+        ProjectAssets& assets = editor->currentProject().assets();
         if (ImGui::Begin("Asset Compilation Manager", &active)) {
             if (!isCompiling) {
                 if (ImGui::Button("Discover Assets")) {
-                    assetFiles.clear();
-                    enumerateForAssets("SourceData");
+                    assets.enumerateAssets();
                 }
 
                 if (ImGui::Button("Check for changes")) {
-                    for (auto& file : assetFiles) {
-                        if (!PHYSFS_exists(file.compiledPath.c_str())) {
-                            file.needsCompile = true;
-                            continue;
-                        }
-
-                        checkForAssetChange(file);
-                    }
+                    assets.checkForAssetChanges();
                 }
 
                 if (ImGui::Button("Compile them!")) {
-                    assetFileCompileIterator = assetFiles.begin();
+                    assetFileCompileIterator = assets.assetFiles.begin();
                     isCompiling = true;
                 }
             }
 
             if (isCompiling) {
                 if (currentCompileOp == nullptr) {
-                    while (assetFileCompileIterator != assetFiles.end() && (!assetFileCompileIterator->needsCompile || !assetFileCompileIterator->dependenciesExist)) {
+                    while (assetFileCompileIterator != assets.assetFiles.end() && (!assetFileCompileIterator->needsCompile || !assetFileCompileIterator->dependenciesExist)) {
                         assetFileCompileIterator++;
                     }
                     
-                    if (assetFileCompileIterator != assetFiles.end())
+                    if (assetFileCompileIterator != assets.assetFiles.end())
                         currentCompileOp = AssetCompilers::buildAsset(editor->currentProject().root(), assetFileCompileIterator->sourceAssetId);
                     else
                         isCompiling = false;
@@ -129,14 +53,14 @@ namespace worlds {
                         delete currentCompileOp;
                         assetFileCompileIterator++;
                         currentCompileOp = nullptr;
-                        if (assetFileCompileIterator >= assetFiles.end()) {
+                        if (assetFileCompileIterator >= assets.assetFiles.end()) {
                             isCompiling = false;
                         }
                     }
                 }
             }
 
-            for (auto& file : assetFiles) {
+            for (auto& file : assets.assetFiles) {
                 ImGui::Text("%s -> %s", file.path.c_str(), file.compiledPath.c_str());
 
                 if (file.needsCompile) {

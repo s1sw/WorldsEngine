@@ -35,6 +35,8 @@ namespace worlds {
             std::filesystem::create_directory(tempDir.cStr());
             logVrb("Creating project temp directory %s", tempDir.cStr());
         }
+
+        _projectAssets = std::make_unique<ProjectAssets>(*this);
     }
 
     std::string_view GameProject::name() const {
@@ -57,6 +59,10 @@ namespace worlds {
         return _srcDataPath;
     }
 
+    ProjectAssets& GameProject::assets() {
+        return *_projectAssets;
+    }
+
     void GameProject::mountPaths() {
         logMsg("Mounting project %s", _name.c_str());
         logVrb("Mounting %s as compiled data path", _compiledDataPath.c_str());
@@ -75,6 +81,8 @@ namespace worlds {
                 logErr("Error mounting %s: %s", dirPath.c_str(), PHYSFS_getErrorByCode(errCode));
             }
         }
+
+        _projectAssets->enumerateAssets();
     }
 
     void GameProject::unmountPaths() {
