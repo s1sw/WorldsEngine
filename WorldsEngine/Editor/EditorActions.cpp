@@ -19,7 +19,9 @@ namespace worlds {
             return;
         }
 
-        actionList.add(action);
+        if (!action.friendlyString.empty())
+            actionList.add(action);
+
         registeredActions.insert({ idHash, std::move(action) });
     }
 
