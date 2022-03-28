@@ -141,9 +141,7 @@ namespace fts {
         // Calculate score
         if (matched) {
             const int sequential_bonus = 15;            // bonus for adjacent matches
-            const int separator_bonus = 30;             // bonus if match occurs after a separator
-            const int camel_bonus = 30;                 // bonus if match is uppercase and prev is lower
-            const int first_letter_bonus = 15;          // bonus if the first letter is matched
+            const int first_letter_bonus = 30;          // bonus if the first letter is matched
 
             const int leading_letter_penalty = -5;      // penalty applied for every letter in str before the first match
             const int max_leading_letter_penalty = -15; // maximum penalty for leading letters
@@ -180,16 +178,6 @@ namespace fts {
 
                 // Check for bonuses based on neighbor character value
                 if (currIdx > 0) {
-                    // Camel case
-                    char neighbor = strBegin[currIdx - 1];
-                    char curr = strBegin[currIdx];
-                    if (::islower(neighbor) && ::isupper(curr))
-                        outScore += camel_bonus;
-
-                    // Separator
-                    bool neighborSeparator = neighbor == '_' || neighbor == ' ';
-                    if (neighborSeparator)
-                        outScore += separator_bonus;
                 }
                 else {
                     // First letter
