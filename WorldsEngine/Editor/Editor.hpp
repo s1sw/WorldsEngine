@@ -10,6 +10,7 @@
 #include <slib/List.hpp>
 #include <string>
 #include "EditorActionSearchPopup.hpp"
+#include <memory>
 
 struct VkDescriptorSet_T;
 typedef VkDescriptorSet_T* VkDescriptorSet;
@@ -86,6 +87,29 @@ namespace worlds {
         Help
     };
 
+    struct AssetFile {
+        AssetID sourceAssetId;
+        std::string path;
+        int64_t lastModified;
+        std::string compiledPath;
+        bool needsCompile = false;
+        bool dependenciesExist = true;
+    };
+
+    class GameProject;
+
+    class ProjectAssets {
+    public:
+        ProjectAssets(const GameProject& project);
+        std::vector<AssetFile> assetFiles;
+        void checkForAssetChanges();
+        void checkForAssetChange(AssetFile& file);
+        void enumerateAssets();
+    private:
+        void enumerateForAssets(const char* path);
+        const GameProject& project;
+    };
+
     class GameProject {
     public:
         GameProject(std::string path);
@@ -94,6 +118,7 @@ namespace worlds {
         std::string_view sourceData() const;
         std::string_view builtData() const;
         std::string_view rawData() const;
+        ProjectAssets& assets();
         void mountPaths();
         void unmountPaths();
     private:
@@ -103,6 +128,7 @@ namespace worlds {
         std::string _compiledDataPath;
         std::string _rawPath;
         std::vector<std::string> _copyDirs;
+        std::unique_ptr<ProjectAssets> _projectAssets;
     };
 
     class EditorWindow {
@@ -194,7 +220,7 @@ namespace worlds {
         void overrideHandle(Transform* t);
         void overrideHandle(entt::entity entity);
         bool entityEyedropper(entt::entity& picked);
-        const GameProject& currentProject() { return *project; }
+        GameProject& currentProject() { return *project; }
         void saveOpenWindows();
         void loadOpenWindows();
         EditorSceneView* getFirstSceneView();
