@@ -19,7 +19,7 @@ namespace worlds {
     }
 
     void EditorActionSearchPopup::draw() {
-        ImVec2 size(500.0f, ImGui::GetTextLineHeightWithSpacing() * (3 + currentCandidateList.numElements()));
+        ImVec2 size(500.0f, ImGui::GetTextLineHeightWithSpacing() * (2 + currentCandidateList.numElements()));
         ImVec2 pos(ImGui::GetMainViewport()->Size.x * 0.5f, 200.0f);
         pos = ImVec2(pos.x - size.x * 0.5f, pos.y);
         ImGui::SetNextWindowPos(pos);
@@ -27,7 +27,6 @@ namespace worlds {
         uint32_t queuedAction = ~0u;
 
         if (ImGui::BeginPopup("Action Search")) {
-            ImGui::Text("Actions");
             ImGui::PushItemWidth(ImGui::GetContentRegionAvailWidth());
             ImGui::SetKeyboardFocusHere();
             if (ImGui::InputText("Action##", &currentSearchText)) {
@@ -71,6 +70,7 @@ namespace worlds {
                         currentCandidateList.clear();
                         currentSearchText.clear();
                         queuedAction = candidate;
+                        break;
                     }
                 }
 
