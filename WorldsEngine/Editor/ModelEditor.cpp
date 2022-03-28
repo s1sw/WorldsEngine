@@ -1,4 +1,5 @@
 #include "ModelEditor.hpp"
+#include "Editor/AssetEditors.hpp"
 #include <ImGui/imgui.h>
 #include <Core/MeshManager.hpp>
 #include <Editor/GuiUtil.hpp>
@@ -7,28 +8,7 @@
 #include <AssetCompilation/AssetCompilerUtil.hpp>
 
 namespace worlds {
-    void ModelEditor::importAsset(std::string filePath, std::string newAssetPath) {
-        AssetID id = AssetDB::createAsset(newAssetPath);
-        PHYSFS_File* f = PHYSFS_openWrite(("SourceData/" + newAssetPath).c_str());
-        nlohmann::json j = {
-            { "srcPath", filePath }
-        };
-        std::string serializedJson = j.dump(4);
-        PHYSFS_writeBytes(f, serializedJson.data(), serializedJson.size());
-        PHYSFS_close(f);
-        open(id);
-    }
-
-    void ModelEditor::create(std::string path) {
-        AssetID id = AssetDB::createAsset(path);
-        PHYSFS_File* f = PHYSFS_openWrite(path.c_str());
-        const char emptyJson[] = "{}";
-        PHYSFS_writeBytes(f, emptyJson, sizeof(emptyJson));
-        PHYSFS_close(f);
-        open(id);
-    }
-
-    void ModelEditor::open(AssetID id) {
+    ModelEditor::ModelEditor(AssetID id) {
         editingID = id;
 
         std::string contents = LoadFileToString(AssetDB::idToPath(id)).value;
@@ -44,7 +24,7 @@ namespace worlds {
         }
     }
 
-    void ModelEditor::drawEditor() {
+    void ModelEditor::draw() {
         if (srcModel != INVALID_ASSET)
             ImGui::Text("Source model: %s", AssetDB::idToPath(srcModel).c_str());
         else
@@ -94,7 +74,30 @@ namespace worlds {
         PHYSFS_close(file);
     }
 
-    const char* ModelEditor::getHandledExtension() {
+    void ModelEditorMeta::importAsset(std::string filePath, std::string newAssetPath) {
+        AssetID id = AssetDB::createAsset(newAssetPath);
+        PHYSFS_File* f = PHYSFS_openWrite(("SourceData/" + newAssetPath).c_str());
+        nlohmann::json j = {
+            { "srcPath", filePath }
+        };
+        std::string serializedJson = j.dump(4);
+        PHYSFS_writeBytes(f, serializedJson.data(), serializedJson.size());
+        PHYSFS_close(f);
+    }
+
+    void ModelEditorMeta::create(std::string path) {
+        AssetID id = AssetDB::createAsset(path);
+        PHYSFS_File* f = PHYSFS_openWrite(path.c_str());
+        const char emptyJson[] = "{}";
+        PHYSFS_writeBytes(f, emptyJson, sizeof(emptyJson));
+        PHYSFS_close(f);
+    }
+
+    IAssetEditor* ModelEditorMeta::createEditorFor(AssetID id) {
+        return new ModelEditor(id);
+    }
+
+    const char* ModelEditorMeta::getHandledExtension() {
         return ".wmdlj";
     }
 }

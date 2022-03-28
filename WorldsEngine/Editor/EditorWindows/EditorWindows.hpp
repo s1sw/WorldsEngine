@@ -1,6 +1,8 @@
 #pragma once
 #include "../Editor.hpp"
+#include "AssetCompilation/AssetCompilers.hpp"
 #include "Core/AssetDB.hpp"
+#include "Editor/AssetEditors.hpp"
 
 namespace worlds {
     class EntityList : public EditorWindow {
@@ -43,12 +45,12 @@ namespace worlds {
         ~StyleEditor() {}
     };
 
-    class MaterialEditor : public EditorWindow {
+    class MaterialEditorMeta : public EditorWindow {
     public:
-        MaterialEditor(EngineInterfaces interfaces, Editor* editor);
+        MaterialEditorMeta(EngineInterfaces interfaces, Editor* editor);
         void draw(entt::registry& reg) override;
         const char* getName() override { return "Material Editor"; }
-        ~MaterialEditor();
+        ~MaterialEditorMeta();
     private:
         RTTPass* rttPass;
         Camera previewCam;
@@ -83,15 +85,17 @@ namespace worlds {
         ~SceneSettingsWindow() {}
     };
 
-    class AssetEditor : public EditorWindow {
+    class AssetEditorWindow : public EditorWindow {
     public:
-        AssetEditor(EngineInterfaces interfaces, Editor* editor) : EditorWindow{interfaces, editor} { active = false; }
+        AssetEditorWindow(AssetID id, EngineInterfaces interfaces, Editor* editor);
         void draw(entt::registry&) override;
         EditorMenu menuSection() override { return EditorMenu::Edit; }
         const char* getName() override { return "Asset Editor"; }
-        ~AssetEditor() {}
+        ~AssetEditorWindow();
     private:
-        AssetID lastId = INVALID_ASSET;
+        AssetID assetId;
+        AssetCompileOperation* currCompileOp;
+        IAssetEditor* assetEditor;
     };
     
     class AssetCompilationManager : public EditorWindow {

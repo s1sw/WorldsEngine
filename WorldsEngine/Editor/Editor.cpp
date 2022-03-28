@@ -155,7 +155,7 @@ namespace worlds {
 
     Editor::Editor(entt::registry& reg, EngineInterfaces interfaces)
         : active(true)
-        , currentSelectedAsset(~0u)
+        , actionSearch(this, reg)
         , currentTool(Tool::Translate)
         , reg(reg)
         , currentSelectedEntity(entt::null)
@@ -178,7 +178,6 @@ namespace worlds {
         ADD_EDITOR_WINDOW(AboutWindow);
         ADD_EDITOR_WINDOW(BakingWindow);
         ADD_EDITOR_WINDOW(SceneSettingsWindow);
-        ADD_EDITOR_WINDOW(AssetEditor);
         ADD_EDITOR_WINDOW(RawAssets);
         ADD_EDITOR_WINDOW(AssetCompilationManager);
 
@@ -224,11 +223,11 @@ namespace worlds {
             } else {
                 ImGui::OpenPopup("Save Scene");
             }
-        }});
+        }, "Save Scene"});
 
         EditorActions::addAction({ "scene.open", [](Editor* ed, entt::registry& reg) {
             ImGui::OpenPopup("Open Scene");
-        }});
+        }, "Open Scene"});
 
         EditorActions::addAction({ "scene.new", [](Editor* ed, entt::registry& reg) {
             messageBoxModal("New Scene",
@@ -239,29 +238,52 @@ namespace worlds {
                         ed->updateWindowTitle();
                     }
                });
-        }});
+        }, "New Scene"});
 
         EditorActions::addAction({ "editor.undo", [](Editor* ed, entt::registry& reg) {
             ed->undo.undo(reg);
-        }});
+        }, "Undo"});
 
         EditorActions::addAction({ "editor.redo", [](Editor* ed, entt::registry& reg) {
             ed->undo.redo(reg);
-        }});
+        }, "Redo"});
 
         EditorActions::addAction({ "editor.togglePlay", [](Editor* ed, entt::registry& reg) {
             ed->interfaces.engine->pauseSim = false;
             g_console->executeCommandStr("play");
-        }});
+        }, "Play"});
 
         EditorActions::addAction({ "editor.unpause", [](Editor* ed, entt::registry& reg) {
             g_console->executeCommandStr("unpause");
-        }});
+        }, "Unpause"});
 
         EditorActions::addAction({ "editor.toggleImGuiMetrics", [](Editor* ed, entt::registry&) {
             ed->imguiMetricsOpen = !ed->imguiMetricsOpen;
-        }});
+        }, "Toggle ImGUI Metrics"});
 
+        EditorActions::addAction({ "editor.openActionSearch", [](Editor* ed, entt::registry&) {
+            ed->actionSearch.show();
+        }, "Open action search"});
+
+        EditorActions::addAction({ "editor.addStaticPhysics", [](Editor* ed, entt::registry& reg) {
+            if (!reg.valid(ed->currentSelectedEntity)) {
+                addNotification("Nothing selected to add physics to!", NotificationType::Error);
+                return;
+            }
+
+            if (!reg.has<WorldObject>(ed->currentSelectedEntity)) {
+                addNotification("Selected object doesn't have a WorldObject!", NotificationType::Error);
+                return;
+            }
+
+            WorldObject& wo = reg.get<WorldObject>(ed->currentSelectedEntity);
+            ComponentMetadataManager::byName["Physics Actor"]->create(ed->currentSelectedEntity, reg);
+            PhysicsActor& pa = reg.get<PhysicsActor>(ed->currentSelectedEntity);
+            PhysicsShape ps;
+            ps.type = PhysicsShapeType::Mesh;
+            ps.mesh.mesh = wo.mesh;
+            pa.physicsShapes.push_back(std::move(ps));
+        }, "Add static physics"});
 
         EditorActions::bindAction("scene.save", ActionKeybind{SDL_SCANCODE_S, ModifierFlags::Control});
         EditorActions::bindAction("scene.open", ActionKeybind{SDL_SCANCODE_O, ModifierFlags::Control});
@@ -270,6 +292,7 @@ namespace worlds {
         EditorActions::bindAction("editor.redo", ActionKeybind{SDL_SCANCODE_Z, ModifierFlags::Control | ModifierFlags::Shift});
         EditorActions::bindAction("editor.togglePlay", ActionKeybind{SDL_SCANCODE_P, ModifierFlags::Control});
         EditorActions::bindAction("editor.unpause", ActionKeybind{SDL_SCANCODE_P, ModifierFlags::Control | ModifierFlags::Shift});
+        EditorActions::bindAction("editor.openActionSearch", ActionKeybind{SDL_SCANCODE_SPACE, ModifierFlags::Control});
     }
 
     Editor::~Editor() {
@@ -448,6 +471,12 @@ namespace worlds {
 
     EditorSceneView* Editor::getFirstSceneView() {
         return sceneViews[0];
+    }
+
+    void Editor::openAsset(AssetID id) {
+        AssetEditorWindow* editor = new AssetEditorWindow(id, interfaces, this);
+        editor->setActive(true);
+        assetEditors.add(editor);
     }
 
     void Editor::eyedropperSelect(entt::entity picked) {
@@ -695,6 +724,15 @@ namespace worlds {
             return false;
             }), sceneViews.end());
 
+        assetEditors.erase(std::remove_if(assetEditors.begin(), assetEditors.end(), [](AssetEditorWindow* ae) {
+            if (!ae->isActive()) {
+                delete ae;
+                return true;
+            }
+
+            return false;
+        }), assetEditors.end());
+
         if (!interfaces.engine->getMainWindow().isFocused()) {
             for (EditorSceneView* esv : sceneViews) {
                 esv->setViewportActive(false);
@@ -839,6 +877,10 @@ namespace worlds {
             if (edWindow->isActive()) {
                 edWindow->draw(reg);
             }
+        }
+
+        for (AssetEditorWindow* ae : assetEditors) {
+            ae->draw(reg);
         }
 
         if (inputManager.keyPressed(SDL_SCANCODE_C) && inputManager.ctrlHeld() && reg.valid(currentSelectedEntity)) {
@@ -987,6 +1029,8 @@ namespace worlds {
         for (EditorSceneView* sceneView : sceneViews) {
             sceneView->drawWindow(sceneViewIndex++);
         }
+
+        actionSearch.draw();
 
         if (!popupToOpen.empty())
             ImGui::OpenPopup(popupToOpen.c_str());
