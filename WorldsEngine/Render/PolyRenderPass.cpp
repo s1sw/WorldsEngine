@@ -728,7 +728,7 @@ namespace worlds {
                 sdi.texScaleOffset = wo.texScaleOffset;
                 sdi.ent = ent;
                 auto& packedMat = resources.materials[sdi.materialIdx];
-                sdi.opaque = packedMat.getCutoff() == 0.0f;
+                sdi.opaque = packedMat.getCutoff() < 0.004f;
 
                 switch (wo.uvOverride) {
                 default:
