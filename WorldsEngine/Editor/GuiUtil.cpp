@@ -14,6 +14,7 @@
 #endif
 
 namespace worlds {
+    ImFont* boldFont;
     const char8_t* ICONSTR_MODEL = ICON_FA_SHAPES u8" ";
     const char8_t* ICONSTR_SCENE = ICON_FA_MAP u8" ";
     const char8_t* ICONSTR_TEXTURE = ICON_FA_IMAGE u8" ";
@@ -701,6 +702,20 @@ namespace worlds {
             ImGui::TextUnformatted(desc);
             ImGui::PopTextWrapPos();
             ImGui::EndTooltip();
+        }
+    }
+
+    void pushBoldFont() {
+        ImGui::PushFont(boldFont);
+    }
+
+    namespace EditorUI {
+        void centeredText(const char *text) {
+            float windowWidth = ImGui::GetWindowSize().x;
+            float textWidth   = ImGui::CalcTextSize(text).x;
+
+            ImGui::SetCursorPosX((windowWidth - textWidth) * 0.5f);
+            ImGui::TextUnformatted(text);
         }
     }
 }

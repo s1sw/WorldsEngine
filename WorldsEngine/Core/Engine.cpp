@@ -142,11 +142,11 @@ namespace worlds {
         return 0;
     }
 
-    void addImGuiFont(std::string fontPath, float size, ImFontConfig* config = nullptr, const ImWchar* ranges = nullptr) {
+    ImFont* addImGuiFont(std::string fontPath, float size, ImFontConfig* config = nullptr, const ImWchar* ranges = nullptr) {
         PHYSFS_File* ttfFile = PHYSFS_openRead(fontPath.c_str());
         if (ttfFile == nullptr) {
             logWarn("Couldn't open font file");
-            return;
+            return nullptr;
         }
 
         auto fileLength = PHYSFS_fileLength(ttfFile);
@@ -154,7 +154,7 @@ namespace worlds {
         if (fileLength == -1) {
             PHYSFS_close(ttfFile);
             logWarn("Couldn't determine size of editor font file");
-            return;
+            return nullptr;
         }
 
         void* buf = std::malloc(fileLength);
@@ -163,8 +163,10 @@ namespace worlds {
         if (readBytes != fileLength) {
             PHYSFS_close(ttfFile);
             logWarn("Failed to read full TTF file");
-            return;
+            return nullptr;
         }
+
+        PHYSFS_close(ttfFile);
 
         ImFontConfig defaultConfig{};
 
@@ -177,9 +179,7 @@ namespace worlds {
             config = &defaultConfig;
         }
 
-        ImGui::GetIO().Fonts->AddFontFromMemoryTTF(buf, (int)readBytes, size, config, ranges);
-
-        PHYSFS_close(ttfFile);
+        return ImGui::GetIO().Fonts->AddFontFromMemoryTTF(buf, (int)readBytes, size, config, ranges);
     }
 
     JobSystem* g_jobSys;
@@ -217,12 +217,14 @@ namespace worlds {
     }
 
     extern void loadDefaultUITheme();
+    extern ImFont* boldFont;
 
     void setupUIFonts() {
         if (PHYSFS_exists("Fonts/EditorFont.ttf"))
             ImGui::GetIO().Fonts->Clear();
 
-        addImGuiFont("Fonts/EditorFont.ttf", 20.0f);
+        boldFont = addImGuiFont("Fonts/EditorFont-Bold.ttf", 20.0f);
+        ImGui::GetIO().FontDefault = addImGuiFont("Fonts/EditorFont.ttf", 20.0f);
 
         static const ImWchar iconRanges[] = { ICON_MIN_FA, ICON_MAX_FA, 0 };
         ImFontConfig iconConfig{};

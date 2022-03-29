@@ -36,4 +36,9 @@ namespace worlds {
     bool selectAssetPopup(const char* title, AssetID& id, bool open, bool source = false);
     bool selectRawAssetPopup(const char* title, AssetID& id, bool open);
     void tooltipHover(const char* desc);
+    void pushBoldFont();
+
+    namespace EditorUI {
+        void centeredText(const char* text);
+    }
 }
