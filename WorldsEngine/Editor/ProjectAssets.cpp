@@ -1,4 +1,5 @@
 #include "Editor.hpp"
+#include "fts_fuzzy_match.h"
 #include <physfs.h>
 #include <Core/Log.hpp>
 #include <Core/AssetDB.hpp>
@@ -21,6 +22,8 @@ namespace worlds {
             file.needsCompile = true;
             return;
         }
+
+        if (!file.isCompiled) return;
 
         PHYSFS_Stat compiledStat;
         PHYSFS_stat(file.compiledPath.c_str(), &compiledStat);
@@ -62,7 +65,6 @@ namespace worlds {
             PHYSFS_Stat stat;
             PHYSFS_stat(fullPath.c_str(), &stat);
 
-            logMsg("f: %s", subpath);
             if (stat.filetype == PHYSFS_FILETYPE_DIRECTORY) {
                 enumerateForAssets(fullPath.c_str());
             } else if (stat.filetype == PHYSFS_FILETYPE_REGULAR) {
@@ -75,7 +77,15 @@ namespace worlds {
                             .sourceAssetId = AssetDB::pathToId(fullPath),
                             .path = fullPath,
                             .lastModified = stat.modtime,
-                            .compiledPath = getOutputPath(fullPath).substr(5)
+                            .compiledPath = getOutputPath(fullPath).substr(5),
+                            .isCompiled = true
+                        });
+                    } else if (extension == ".wscn" || extension == ".wprefab") {
+                        assetFiles.push_back(AssetFile {
+                            .sourceAssetId = AssetDB::pathToId(fullPath),
+                            .path = fullPath,
+                            .lastModified = stat.modtime,
+                            .isCompiled = false
                         });
                     }
                 }
@@ -83,5 +93,34 @@ namespace worlds {
         }
 
         PHYSFS_freeList(list);
+    }
+
+    struct AssetSearchCandidate {
+        AssetID assetId;
+        int score;
+    };
+
+    slib::List<AssetID> ProjectAssets::searchForAssets(slib::String pattern) {
+        std::vector<AssetSearchCandidate> candidates;
+
+        for (AssetFile& af : assetFiles) {
+            int score;
+            if (fts::fuzzy_match(pattern.cStr(), af.path.c_str(), score)) {
+                candidates.push_back({ af.sourceAssetId, score });
+            }
+        }
+
+        std::sort(candidates.begin(), candidates.end(), [](const AssetSearchCandidate& a, const AssetSearchCandidate& b) {
+            return a.score > b.score;
+        });
+
+        slib::List<AssetID> orderedIds;
+        orderedIds.reserve(candidates.size());
+
+        for (AssetSearchCandidate& sc : candidates) {
+            orderedIds.add(sc.assetId);
+        }
+
+        return orderedIds;
     }
 }

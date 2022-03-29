@@ -1,18 +1,19 @@
 #pragma once
 #include "EditorActions.hpp"
+#include "SearchPopup.hpp"
 
 namespace worlds {
-    class EditorActionSearchPopup {
+    class EditorActionSearchPopup : SearchPopup<uint32_t> {
     public:
         EditorActionSearchPopup(Editor* ed, entt::registry& reg);
         void show();
-        void hide();
         void draw();
+    protected:
+        void candidateSelected(size_t index) override;
+        void drawCandidate(size_t index) override;
+        void updateCandidates() override;
     private:
         Editor* ed;
         entt::registry& reg;
-        slib::String currentSearchText;
-        slib::List<uint32_t> currentCandidateList;
-        int selectedIndex = 0;
     };
 }

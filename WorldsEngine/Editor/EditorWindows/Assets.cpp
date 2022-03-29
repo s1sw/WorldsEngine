@@ -99,18 +99,7 @@ namespace worlds {
 
                     if (ImGui::IsItemHovered()) {
                         if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
-                            if (ext == ".wscn") {
-                                interfaces.engine->loadScene(AssetDB::pathToId(fullPath));
-                            } else if (ext == ".wprefab") {
-                                entt::entity ent = SceneLoader::createPrefab(AssetDB::pathToId(fullPath), reg);
-                                if (editor->getFirstSceneView()) {
-                                    Transform& t = reg.get<Transform>(ent);
-                                    Camera& cam = editor->getFirstSceneView()->getCamera();
-                                    t.position = cam.position + cam.rotation * glm::vec3(0.0f, 0.0f, 1.0f);
-                                }
-                            } else {
-                                editor->openAsset(AssetDB::pathToId(fullPath));
-                            }
+                            editor->openAsset(AssetDB::pathToId(fullPath));
                         }
 
                         if (ImGui::IsMouseClicked(ImGuiMouseButton_Right)) {

@@ -161,7 +161,7 @@ namespace worlds {
         mat.metallic = j.value("metallic", 0.0f);
         mat.roughness = j.value("roughness", 0.5f);
         mat.heightmapScale = j.value("heightmapScale", 0.05f);
-        mat.alphaCutoff = j.value("alphaCutoff", 0.5f);
+        mat.alphaCutoff = j.value("alphaCutoff", 0.0f);
         mat.albedoColor = j.value("albedoColor", glm::vec3{1.0f});
         mat.emissiveColor = j.value("emissiveColor", glm::vec3{0.0f});
         mat.albedo = getAssetId(j, "albedoPath");
@@ -173,7 +173,7 @@ namespace worlds {
         mat.cullOff = j.contains("cullOff");
         mat.wireframe = j.contains("wireframe");
         mat.usePBRMap = j.contains( "pbrMapPath");
-        mat.useAlphaTest = mat.alphaCutoff > 0.0f;
+        mat.useAlphaTest = mat.alphaCutoff > 0.004f;
 
         if (mat.usePBRMap) {
             mat.pbrMap = getAssetId(j, "pbrMapPath");
