@@ -17,6 +17,8 @@ namespace worlds {
             pos = ImVec2(pos.x - size.x * 0.5f, pos.y);
             ImGui::SetNextWindowPos(pos);
             ImGui::SetNextWindowSize(size);
+            bool activate = false;
+            size_t activateIndex;
 
             ImGui::PushStyleVar(ImGuiStyleVar_PopupRounding, 5.0f);
             if (ImGui::BeginPopup(title)) {
@@ -51,8 +53,6 @@ namespace worlds {
 
                 float lineHeight = ImGui::CalcTextSize("w").y;
                 ImGui::BeginChild("candidates");
-                bool activate = false;
-                size_t activateIndex;
                 for (size_t idx = 0; idx < currentCandidateList.numElements(); idx++) {
                     ImVec2 cursorPos = ImGui::GetCursorPos();
                     ImDrawList* drawList = ImGui::GetWindowDrawList();
@@ -85,13 +85,15 @@ namespace worlds {
                     }
                 }
 
-                if (activate) {
-                    currentCandidateList.clear();
-                    currentSearchText.clear();
-                    candidateSelected(activateIndex);
-                }
 
                 ImGui::EndChild();
+                ImGui::EndPopup();
+            }
+
+            if (activate) {
+                candidateSelected(activateIndex);
+                currentCandidateList.clear();
+                currentSearchText.clear();
             }
             ImGui::PopStyleVar();
         }
