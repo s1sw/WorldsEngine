@@ -38,6 +38,7 @@
 #include <Libs/pcg_basic.h>
 #include <Core/Window.hpp>
 #include <Editor/EditorActions.hpp>
+#include <Editor/Widgets/LogoWidget.hpp>
 
 namespace worlds {
     std::unordered_map<ENTT_ID_TYPE, ComponentEditor*> ComponentMetadataManager::metadata;
@@ -787,10 +788,12 @@ namespace worlds {
             struct RecentProject {
                 std::string name;
                 std::string path;
+                ImTextureID badge = nullptr;
             };
 
             static std::vector<RecentProject> recentProjects;
             static bool loadedRecentProjects = false;
+            static LogoWidget logo{interfaces};
 
             if (!loadedRecentProjects) {
                 loadedRecentProjects = true;
@@ -802,6 +805,11 @@ namespace worlds {
 
                     while (std::getline(recentProjectsStream, currLine)) {
                         nlohmann::json pj = nlohmann::json::parse(std::ifstream(currLine));
+                        RecentProject rp { pj["projectName"], currLine };
+
+                        std::filesystem::path badgePath = std::filesystem::path(currLine).parent_path() / "Editor" / "badge.png";
+                        if (std::filesystem::exists(badgePath)) {
+                        }
                         recentProjects.push_back({ pj["projectName"], currLine });
                     }
                 }
@@ -823,8 +831,9 @@ namespace worlds {
             }
 
             ImGuiViewport* viewport = ImGui::GetMainViewport();
+            glm::vec2 projectWinSize = viewport->Size - glm::vec2(0.0f, menuBarSize.y);
             ImGui::SetNextWindowPos(viewport->Pos + ImVec2(0.0f, menuBarSize.y));
-            ImGui::SetNextWindowSize(viewport->Size - ImVec2(0.0f, menuBarSize.y));
+            ImGui::SetNextWindowSize(projectWinSize);
             ImGui::SetNextWindowViewport(viewport->ID);
             ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
             ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
@@ -834,9 +843,13 @@ namespace worlds {
                 ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoBringToFrontOnFocus);
             ImGui::PopStyleVar(2);
 
-            ImGui::Columns(2, nullptr, true);
+            glm::vec2 initialCpos = ImGui::GetCursorScreenPos();
+            ImGui::GetWindowDrawList()->AddLine(initialCpos + glm::vec2(490.0f, 0.0f), initialCpos + glm::vec2(490.0f, projectWinSize.y - ImGui::GetStyle().WindowPadding.y * 2.0f), ImGui::GetColorU32(ImGuiCol_Separator), 2.0f);
+
+            ImGui::Columns(2, nullptr, false);
             ImGui::SetColumnWidth(0, 500.0f);
 
+            logo.draw();
             ImGui::Text("Select a project.");
 
             openFileFullFSModal("Open Project", [&](const char* path) {
@@ -859,7 +872,9 @@ namespace worlds {
                     pushBoldFont();
                     ImGui::TextUnformatted(project.name.c_str());
                     ImGui::PopFont();
+                    ImGui::SameLine();
                     ImGui::TextUnformatted(project.path.c_str());
+                    
                     if (ImGui::Button("Open Project")) {
                         openProject(project.path);
                     }
@@ -867,7 +882,10 @@ namespace worlds {
                 ImGui::EndChild();
                 ImGui::PopStyleVar();
                 ImGui::PopID();
+                ImGui::Dummy(ImVec2(0.0f, ImGui::GetTextLineHeightWithSpacing()));
             }
+
+            ImGui::Dummy(ImVec2(0.0f, glm::max(projectWinSize.y - ImGui::GetCursorPosY() - ImGui::GetStyle().WindowPadding.y, 0.0f)));
 
             ImGui::End();
 
@@ -1008,6 +1026,7 @@ namespace worlds {
                 if (ImGui::MenuItem("Close Project")) {
                     project->unmountPaths();
                     project.reset();
+                    interfaces.engine->createStartupScene();
                     interfaces.renderer->reloadContent(worlds::ReloadFlags::All);
                 }
 
