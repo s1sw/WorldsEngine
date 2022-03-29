@@ -234,7 +234,7 @@ namespace worlds {
         EditorActions::addAction({ "scene.new", [](Editor* ed, entt::registry& reg) {
             messageBoxModal("New Scene",
                 "Are you sure you want to clear the current scene and create a new one?",
-                [&](bool result) {
+                [=](bool result) {
                     if (result) {
                         ed->interfaces.engine->createStartupScene();
                         ed->updateWindowTitle();
@@ -498,6 +498,13 @@ namespace worlds {
         } else if (AssetDB::getAssetExtension(id) == ".wprefab") {
             entt::entity ent = SceneLoader::createPrefab(id, reg);
             if (getFirstSceneView()) {
+                float dist = 1.0f;
+                if (reg.has<WorldObject>(ent)) {
+                    WorldObject& wo = reg.get<WorldObject>(ent);
+                    const LoadedMesh& lm = MeshManager::loadOrGet(wo.mesh);
+                    dist = lm.sphereBoundRadius + 1.0f;
+                }
+
                 Transform& t = reg.get<Transform>(ent);
                 Camera& cam = getFirstSceneView()->getCamera();
                 t.position = cam.position + cam.rotation * glm::vec3(0.0f, 0.0f, 1.0f);
@@ -777,7 +784,12 @@ namespace worlds {
         AudioSystem::getInstance()->stopEverything(reg);
 
         if (!project) {
-            static std::vector<std::string> recentProjects;
+            struct RecentProject {
+                std::string name;
+                std::string path;
+            };
+
+            static std::vector<RecentProject> recentProjects;
             static bool loadedRecentProjects = false;
 
             if (!loadedRecentProjects) {
@@ -789,7 +801,8 @@ namespace worlds {
                     std::string currLine;
 
                     while (std::getline(recentProjectsStream, currLine)) {
-                        recentProjects.push_back(currLine);
+                        nlohmann::json pj = nlohmann::json::parse(std::ifstream(currLine));
+                        recentProjects.push_back({ pj["projectName"], currLine });
                     }
                 }
 
@@ -821,6 +834,9 @@ namespace worlds {
                 ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoBringToFrontOnFocus);
             ImGui::PopStyleVar(2);
 
+            ImGui::Columns(2, nullptr, true);
+            ImGui::SetColumnWidth(0, 500.0f);
+
             ImGui::Text("Select a project.");
 
             openFileFullFSModal("Open Project", [&](const char* path) {
@@ -831,22 +847,25 @@ namespace worlds {
                 ImGui::OpenPopup("Open Project");
             }
 
-            for (std::string& path : recentProjects) {
-                ImGui::PushID(path.c_str());
+            ImGui::NextColumn();
+
+            for (RecentProject& project : recentProjects) {
+                const ImVec2 widgetSize{600.0f, 200.0f};
+                ImGui::PushID(project.path.c_str());
                 ImDrawList* dl = ImGui::GetWindowDrawList();
-                dl->AddRect(ImGui::GetCursorScreenPos(), ImVec2(600.0f, 400.0f), ImColor(ImGui::GetStyleColorVec4(ImGuiCol_FrameBg)), 5.0f, 0, 3.0f);
+                dl->AddRect(ImGui::GetCursorScreenPos(), ImGui::GetCursorScreenPos() + widgetSize, ImColor(ImGui::GetStyleColorVec4(ImGuiCol_FrameBg)), 5.0f, 0, 3.0f);
                 ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5.0f, 5.0f));
-                if (ImGui::BeginChild(ImGui::GetID("project"), ImVec2(500.0f, 150.0f), true, ImGuiWindowFlags_AlwaysUseWindowPadding)) {
+                if (ImGui::BeginChild(ImGui::GetID("project"), widgetSize, true, ImGuiWindowFlags_AlwaysUseWindowPadding)) {
                     pushBoldFont();
-                    ImGui::Text("Project");
+                    ImGui::TextUnformatted(project.name.c_str());
                     ImGui::PopFont();
-                    ImGui::TextUnformatted(path.c_str());
+                    ImGui::TextUnformatted(project.path.c_str());
                     if (ImGui::Button("Open Project")) {
-                        openProject(path);
+                        openProject(project.path);
                     }
                 }
-                ImGui::PopStyleVar();
                 ImGui::EndChild();
+                ImGui::PopStyleVar();
                 ImGui::PopID();
             }
 
