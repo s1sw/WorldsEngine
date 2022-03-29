@@ -10,6 +10,7 @@
 #include <slib/List.hpp>
 #include <string>
 #include "EditorActionSearchPopup.hpp"
+#include "EditorAssetSearchPopup.hpp"
 #include <memory>
 
 struct VkDescriptorSet_T;
@@ -93,6 +94,7 @@ namespace worlds {
         int64_t lastModified;
         std::string compiledPath;
         bool needsCompile = false;
+        bool isCompiled = false;
         bool dependenciesExist = true;
     };
 
@@ -105,6 +107,7 @@ namespace worlds {
         void checkForAssetChanges();
         void checkForAssetChange(AssetFile& file);
         void enumerateAssets();
+        slib::List<AssetID> searchForAssets(slib::String pattern);
     private:
         void enumerateForAssets(const char* path);
         const GameProject& project;
@@ -227,6 +230,7 @@ namespace worlds {
         void openAsset(AssetID id);
     private:
         EditorActionSearchPopup actionSearch;
+        EditorAssetSearchPopup assetSearch;
         std::unique_ptr<GameProject> project;
         ImTextureID titleBarIcon;
         void drawMenuBarTitle();

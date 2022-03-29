@@ -61,6 +61,8 @@ namespace worlds {
             }
 
             for (auto& file : assets.assetFiles) {
+                if (!file.isCompiled) continue;
+
                 ImGui::Text("%s -> %s", file.path.c_str(), file.compiledPath.c_str());
 
                 if (file.needsCompile) {

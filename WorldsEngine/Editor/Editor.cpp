@@ -3,6 +3,7 @@
 #include <Core/Transform.hpp>
 #include <glm/gtx/norm.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include "Editor/EditorAssetSearchPopup.hpp"
 #include "GuiUtil.hpp"
 #include "SDL_scancode.h"
 #include <ComponentMeta/ComponentMetadata.hpp>
@@ -156,6 +157,7 @@ namespace worlds {
     Editor::Editor(entt::registry& reg, EngineInterfaces interfaces)
         : active(true)
         , actionSearch(this, reg)
+        , assetSearch(this)
         , currentTool(Tool::Translate)
         , reg(reg)
         , currentSelectedEntity(entt::null)
@@ -265,6 +267,10 @@ namespace worlds {
             ed->actionSearch.show();
         }});
 
+        EditorActions::addAction({ "editor.openAssetSearch", [](Editor* ed, entt::registry&) {
+            ed->assetSearch.show();
+        }});
+
         EditorActions::addAction({ "editor.addStaticPhysics", [](Editor* ed, entt::registry& reg) {
             if (!reg.valid(ed->currentSelectedEntity)) {
                 addNotification("Nothing selected to add physics to!", NotificationType::Error);
@@ -302,6 +308,7 @@ namespace worlds {
         EditorActions::bindAction("editor.togglePlay", ActionKeybind{SDL_SCANCODE_P, ModifierFlags::Control});
         EditorActions::bindAction("editor.unpause", ActionKeybind{SDL_SCANCODE_P, ModifierFlags::Control | ModifierFlags::Shift});
         EditorActions::bindAction("editor.openActionSearch", ActionKeybind{SDL_SCANCODE_SPACE, ModifierFlags::Control});
+        EditorActions::bindAction("editor.openAssetSearch", ActionKeybind{SDL_SCANCODE_SPACE, ModifierFlags::Control | ModifierFlags::Shift});
     }
 
     Editor::~Editor() {
@@ -483,6 +490,21 @@ namespace worlds {
     }
 
     void Editor::openAsset(AssetID id) {
+        if (AssetDB::getAssetExtension(id) == ".wscn") {
+            interfaces.engine->loadScene(id);
+            updateWindowTitle();
+            undo.clear();
+            return;
+        } else if (AssetDB::getAssetExtension(id) == ".wprefab") {
+            entt::entity ent = SceneLoader::createPrefab(id, reg);
+            if (getFirstSceneView()) {
+                Transform& t = reg.get<Transform>(ent);
+                Camera& cam = getFirstSceneView()->getCamera();
+                t.position = cam.position + cam.rotation * glm::vec3(0.0f, 0.0f, 1.0f);
+            }
+            return;
+        }
+
         AssetEditorWindow* editor = new AssetEditorWindow(id, interfaces, this);
         editor->setActive(true);
         assetEditors.add(editor);
@@ -1040,6 +1062,7 @@ namespace worlds {
         }
 
         actionSearch.draw();
+        assetSearch.draw();
 
         if (!popupToOpen.empty())
             ImGui::OpenPopup(popupToOpen.c_str());
