@@ -832,9 +832,22 @@ namespace worlds {
             }
 
             for (std::string& path : recentProjects) {
-                if (ImGui::Button(path.c_str())) {
-                    openProject(path);
+                ImGui::PushID(path.c_str());
+                ImDrawList* dl = ImGui::GetWindowDrawList();
+                dl->AddRect(ImGui::GetCursorScreenPos(), ImVec2(600.0f, 400.0f), ImColor(ImGui::GetStyleColorVec4(ImGuiCol_FrameBg)), 5.0f, 0, 3.0f);
+                ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5.0f, 5.0f));
+                if (ImGui::BeginChild(ImGui::GetID("project"), ImVec2(500.0f, 150.0f), true, ImGuiWindowFlags_AlwaysUseWindowPadding)) {
+                    pushBoldFont();
+                    ImGui::Text("Project");
+                    ImGui::PopFont();
+                    ImGui::TextUnformatted(path.c_str());
+                    if (ImGui::Button("Open Project")) {
+                        openProject(path);
+                    }
                 }
+                ImGui::PopStyleVar();
+                ImGui::EndChild();
+                ImGui::PopID();
             }
 
             ImGui::End();
