@@ -165,13 +165,13 @@ namespace worlds {
 
                         interfaces.scriptEngine->copyManagedComponents(selectedEntity, newEnt);
 
-                        ed->select(newEnt);
-                        ed->activateTool(Tool::Translate);
-
                         slib::List<entt::entity> multiSelectEnts;
                         slib::List<entt::entity> tempEnts = ed->selectedEntities;
 
-                        for (auto ent : ed->selectedEntities) {
+                        ed->select(newEnt);
+                        ed->activateTool(Tool::Translate);
+
+                        for (auto ent : tempEnts) {
                             auto newMultiEnt = reg.create();
 
                             for (auto& ed : ComponentMetadataManager::sorted) {
@@ -186,10 +186,6 @@ namespace worlds {
                             interfaces.scriptEngine->copyManagedComponents(ent, newMultiEnt);
 
                             multiSelectEnts.add(newMultiEnt);
-                        }
-
-                        for (auto ent : tempEnts) {
-                            ed->multiSelect(ent);
                         }
 
                         for (auto ent : multiSelectEnts) {

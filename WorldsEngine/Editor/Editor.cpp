@@ -814,6 +814,7 @@ namespace worlds {
                     }
                 }
                 ImGui::EndChild();
+
                 ImGui::PopStyleVar();
                 ImGui::PopID();
                 ImGui::Dummy(ImVec2(0.0f, ImGui::GetTextLineHeightWithSpacing()));
