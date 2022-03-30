@@ -47,6 +47,26 @@ public class PlayerCameraSystem : ISystem
         }
     }
 
+    public static Vector3 WorldSpaceHeadPosition
+    {
+        get
+        {
+            if (VR.Enabled)
+            {
+                Transform bodyTransform = Registry.GetTransform(LocalPlayerSystem.PlayerBody);
+                Vector3 hmdOffset = VRTransforms.HMDTransform.Position;
+                hmdOffset *= Vector3.Up;
+
+                return bodyTransform.Position + LocalPlayerSystem.VirtualRotation * (hmdOffset) + _toFloor;
+            }
+            else
+            {
+                Transform bodyTransform = Registry.GetTransform(LocalPlayerSystem.PlayerBody);
+                return bodyTransform.Position + _toFloor + new Vector3(0.0f, 1.8f, 0.0f);
+            }
+        }
+    }
+
     public void OnUpdate()
     {
         if (LocalPlayerSystem.PlayerBody.IsNull || FreecamSystem.Enabled) return;
