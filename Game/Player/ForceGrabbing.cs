@@ -17,6 +17,7 @@ class ForceGrabbing : Component, IStartListener, IThinkingComponent
     private Vector3 _floatingTargetPos;
     private Entity _lockedEntity = Entity.Null;
     private Entity _lastHoveredEntity = Entity.Null;
+    private Vector3 _lowpassedPalmDir;
 
     [EditableClass]
     public V3PidController PidController = new();
@@ -43,6 +44,8 @@ class ForceGrabbing : Component, IStartListener, IThinkingComponent
         Vector3 palmPos = transform.Position + transform.Forward * 0.1f;
         Vector3 palmDir = transform.TransformDirection(new Vector3(IsRightHand ? 0.75f : -0.75f, 0.0f, 0.25f).Normalized);
         DebugShapes.DrawLine(palmPos, palmPos + palmDir, new Vector4(1.0f, 1.0f, 1.0f, 1.0f));
+        _lowpassedPalmDir = Vector3.Lerp(_lowpassedPalmDir, palmDir, Time.DeltaTime * 5.0f);
+        DebugShapes.DrawLine(palmPos, palmPos + _lowpassedPalmDir, new Vector4(1.0f, 0.0f, 0.0f, 1.0f));
 
         if (_bringToHand)
         {
@@ -50,6 +53,7 @@ class ForceGrabbing : Component, IStartListener, IThinkingComponent
             {
                 _hoveringEntity = false;
                 _bringToHand = false;
+                return;
             }
             var dpa = _lockedEntity.GetComponent<DynamicPhysicsActor>();
 
@@ -57,6 +61,10 @@ class ForceGrabbing : Component, IStartListener, IThinkingComponent
             {
                 _hoveringEntity = false;
                 _bringToHand = false;
+                if (Entity.GetComponent<DynamicPhysicsActor>().Velocity.Dot(palmDir) > 1.0f)
+                {
+                    dpa.AddForce(_lowpassedPalmDir * 300.0f, ForceMode.Impulse);
+                }
             }
 
             float dist = 1.0f;
@@ -67,9 +75,7 @@ class ForceGrabbing : Component, IStartListener, IThinkingComponent
                 dist = MeshManager.GetMeshSphereBoundRadius(obj.Mesh) + 0.25f;
             }
 
-            Log.Msg($"dist: {dist}");
-
-            Vector3 targetPos = palmPos + palmDir * dist;
+            Vector3 targetPos = palmPos + _lowpassedPalmDir * dist;
             dpa.AddForce(PidController.CalculateForce(-(dpa.Pose.Position - targetPos) * MathF.Min(dpa.Mass, MaxLiftMass), Time.DeltaTime, Vector3.Zero));
             return;
         }
@@ -117,8 +123,6 @@ class ForceGrabbing : Component, IStartListener, IThinkingComponent
 
             if (_hoveringEntity)
             {
-                dpa.AddForce(PidController.CalculateForce(-(dpa.Pose.Position - _floatingTargetPos) * MathF.Min(dpa.Mass, MaxLiftMass), Time.DeltaTime, Vector3.Zero));
-
                 if (_triggerAction.Pressed)
                 {
                     _bringToHand = true;
