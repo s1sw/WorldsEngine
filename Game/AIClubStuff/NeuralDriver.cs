@@ -38,7 +38,6 @@ public class NeuralDriverSystem : ISystem
 
         if (drivers.components.Count == 0)
         {
-            Log.Msg("no drivers!!");
             _active = false;
             return;
         }
