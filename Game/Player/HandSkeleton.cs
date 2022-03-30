@@ -15,8 +15,6 @@ class HandSkeleton : Component, IStartListener, IUpdateableComponent
     {
         SkinnedWorldObject swo = Entity.GetComponent<SkinnedWorldObject>();
         _boneCount = MeshManager.GetBoneCount(swo.Mesh);
-        Log.Msg($"boneCount: {_boneCount}");
-        Log.Msg($"wrist_l idx: {MeshManager.GetBoneIndex(swo.Mesh, "wrist_l")}");
     }
 
     public void Update()
