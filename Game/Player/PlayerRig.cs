@@ -258,15 +258,6 @@ public class LocalPlayerSystem : ISystem
         }
 
         Entity spawnPointEntity = Registry.View<SpawnPoint>().GetFirst();
-        if (Registry.HasName(spawnPointEntity))
-        {
-            Log.Msg($"Spawn point {Registry.GetName(spawnPointEntity)}");
-        }
-        else
-        {
-            Log.Msg($"Spawn point {spawnPointEntity.ID}");
-        }
-
         Transform spawnPoint = Registry.GetTransform(spawnPointEntity);
 
         if (Registry.View<PlayerRig>().Count > 0)
@@ -275,7 +266,7 @@ public class LocalPlayerSystem : ISystem
             return;
         }
 
-        Log.Msg("spawning player");
+        Log.Msg("Spawning player");
         Entity body = Registry.CreatePrefab(AssetDB.PathToId("Prefabs/player_body.wprefab"));
         Entity lh = Registry.CreatePrefab(AssetDB.PathToId("Prefabs/player_left_hand.wprefab"));
         Entity rh = Registry.CreatePrefab(AssetDB.PathToId("Prefabs/player_right_hand.wprefab"));
@@ -284,7 +275,6 @@ public class LocalPlayerSystem : ISystem
         {
             Vector3 offset = new(0.0f, 1.2f, 0.0f);
             spawnPoint.Position += offset;
-            Log.Msg($"spawn pos: {spawnPoint.Position}");
             spawnPoint.Scale = body.Transform.Scale;
             body.Transform = spawnPoint;
             Vector3 handOffset = new(0.1f, 0.0f, 0.2f);
