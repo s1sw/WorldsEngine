@@ -233,7 +233,6 @@ namespace worlds {
         EditorAssetSearchPopup assetSearch;
         std::unique_ptr<GameProject> project;
         ImTextureID titleBarIcon;
-        void drawMenuBarTitle();
         void handleTools(Transform& t, ImVec2 wPos, ImVec2 wSize, Camera& camera);
         std::string generateWindowTitle();
         void updateWindowTitle();
