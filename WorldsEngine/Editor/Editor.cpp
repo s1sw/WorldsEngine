@@ -508,7 +508,7 @@ namespace worlds {
 
                 Transform& t = reg.get<Transform>(ent);
                 Camera& cam = getFirstSceneView()->getCamera();
-                t.position = cam.position + cam.rotation * glm::vec3(0.0f, 0.0f, 1.0f);
+                t.position = cam.position + cam.rotation * glm::vec3(0.0f, 0.0f, dist);
             }
             return;
         }
