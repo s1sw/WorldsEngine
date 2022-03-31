@@ -120,13 +120,10 @@ public class DroneAI : Component, IStartListener, IThinkingComponent
         Transform fPointTransform = FirePoint;
         fPointTransform = fPointTransform.TransformBy(pose);
         //playerDirection.y = MathFX.Clamp(playerDirection.y, -2.0f, 2.0f);
-        Vector3 firePlayerDirection = targetLocation - fPointTransform.Position;
-        firePlayerDirection.Normalize();
+        Vector3 firePlayerDirection = fPointTransform.Position.DirectionTo(targetLocation);
+        Vector3 playerDirection = pose.Position.DirectionTo(targetLocation);
 
-        Vector3 playerDirection = targetLocation - pose.Position;
-        playerDirection.Normalize();
-
-        targetLocation -= playerDirection * 3.5f;
+        targetLocation -= playerDirection * 5f;
         targetLocation.y = groundHeight;
 
         Quaternion targetRotation = Quaternion.SafeLookAt(firePlayerDirection);
@@ -313,10 +310,10 @@ public class DroneAI : Component, IStartListener, IThinkingComponent
 
         Transform targetPose = CalculateTargetPose(_targetPosition, foundFloor ? rHit.WorldHitPos.y : pose.Position.y);
 
-        if (_navigationPath == null || !_navigationPath.Valid || _targetPosition.DistanceTo(_pathTargetPos) > 1.5f)
+        if (_navigationPath == null || !_navigationPath.Valid || targetPose.Position.DistanceTo(_pathTargetPos) > 1.5f)
         {
-            _pathTargetPos = _targetPosition;
-            _navigationPath = NavigationSystem.FindPath(rHit.WorldHitPos, _targetPosition);
+            _pathTargetPos = targetPose.Position;
+            _navigationPath = NavigationSystem.FindPath(rHit.WorldHitPos, targetPose.Position);
             _pathPointIdx = 0;
             targetPose.Position = _targetPosition;
         }
