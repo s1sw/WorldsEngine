@@ -559,7 +559,7 @@ namespace worlds {
     }
     #endif
 
-    ConVar a_audioUpdateRate { "a_audioUpdateRate", "0.3" };
+    ConVar a_phononUpdateRate { "a_phononUpdateRate", "0.1" };
     void AudioSystem::updateSteamAudio(entt::registry& registry, float deltaTime, glm::vec3 listenerPos, glm::quat listenerRot) {
         #ifdef ENABLE_STEAM_AUDIO
         IPLSimulationFlags simFlags = (IPLSimulationFlags)(IPL_SIMULATIONFLAGS_DIRECT | IPL_SIMULATIONFLAGS_REFLECTIONS);
@@ -639,7 +639,7 @@ namespace worlds {
             iplSimulatorRunDirect(simulator);
 
         timeSinceLastSim += deltaTime;
-        if (timeSinceLastSim > a_audioUpdateRate.getFloat()) {
+        if (timeSinceLastSim > a_phononUpdateRate.getFloat()) {
             if (!simThread->isSimRunning()) {
                 simThread->runSimulation();
             } else {
