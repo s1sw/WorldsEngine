@@ -1,12 +1,14 @@
 using WorldsEngine;
 using WorldsEngine.Audio;
 using WorldsEngine.Math;
+using WorldsEngine.Editor;
 using ImGuiNET;
 using System;
 
 namespace Game.World;
 
 [Component]
+[CustomEditor(typeof(Editors.SlidingDoorEditor))]
 public class SlidingDoor : Component, IStartListener, IThinkingComponent
 {
     public Vector3 SlideAxis;
