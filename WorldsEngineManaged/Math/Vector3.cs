@@ -136,6 +136,8 @@ namespace WorldsEngine.Math
             return (this - other).Length;
         }
 
+        public Vector3 DirectionTo(Vector3 other) => (other - this).Normalized;
+
         public override string ToString()
         {
             return $"({x:0.###}, {y:0.###}, {z:0.###})";
