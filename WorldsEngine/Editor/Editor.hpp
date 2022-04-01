@@ -9,6 +9,7 @@
 #include <deque>
 #include <slib/List.hpp>
 #include <string>
+#include "AssetCompilation/AssetCompilers.hpp"
 #include "EditorActionSearchPopup.hpp"
 #include "EditorAssetSearchPopup.hpp"
 #include <memory>
@@ -99,6 +100,7 @@ namespace worlds {
     };
 
     class GameProject;
+    class ProjectAssetCompiler;
 
     class ProjectAssets {
     public:
@@ -122,6 +124,7 @@ namespace worlds {
         std::string_view builtData() const;
         std::string_view rawData() const;
         ProjectAssets& assets();
+        ProjectAssetCompiler& assetCompiler();
         void mountPaths();
         void unmountPaths();
     private:
@@ -132,6 +135,7 @@ namespace worlds {
         std::string _rawPath;
         std::vector<std::string> _copyDirs;
         std::unique_ptr<ProjectAssets> _projectAssets;
+        std::unique_ptr<ProjectAssetCompiler> _assetCompiler;
     };
 
     class EditorWindow {
