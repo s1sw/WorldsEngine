@@ -19,11 +19,9 @@
 #include <ImGui/imgui.h>
 #include <ImGui/ImGuizmo.h>
 #include <filesystem>
-#include <Render/Loaders/SourceModelLoader.hpp>
 #include <Core/NameComponent.hpp>
 #include "EditorWindows/EditorWindows.hpp"
 #include <Util/CreateModelObject.hpp>
-#include <Util/VKImGUIUtil.hpp>
 #include <Libs/IconsFontAwesome5.h>
 #include <Libs/IconsFontaudio.h>
 #include <ComponentMeta/ComponentFuncs.hpp>
@@ -40,6 +38,7 @@
 #include <Core/Window.hpp>
 #include <Editor/EditorActions.hpp>
 #include <Editor/Widgets/LogoWidget.hpp>
+#include <Editor/ProjectAssetCompiler.hpp>
 
 namespace worlds {
     std::unordered_map<ENTT_ID_TYPE, ComponentEditor*> ComponentMetadataManager::metadata;
@@ -301,6 +300,32 @@ namespace worlds {
             ed->currentProject().assets().enumerateAssets();
             ed->currentProject().assets().checkForAssetChanges();
         }, "Refresh assets"});
+
+        EditorActions::addAction({ "assets.compile", [](Editor* ed, entt::registry& reg) {
+            ed->currentProject().assetCompiler().startCompiling();
+        }, "Compile assets"});
+
+        EditorActions::addAction({ "editor.roundScale", [](Editor* ed, entt::registry& reg) {
+            if (!reg.valid(ed->currentSelectedEntity)) return;
+            Transform& t = reg.get<Transform>(ed->currentSelectedEntity);
+            t.scale = glm::round(t.scale);
+
+            for (entt::entity e : ed->selectedEntities) {
+                Transform& t = reg.get<Transform>(e);
+                t.scale = glm::round(t.scale);
+            }
+        }, "Round selection scale"});
+
+        EditorActions::addAction({ "editor.clearScale", [](Editor* ed, entt::registry& reg) {
+            if (!reg.valid(ed->currentSelectedEntity)) return;
+            Transform& t = reg.get<Transform>(ed->currentSelectedEntity);
+            t.scale = glm::vec3(1.0f);
+
+            for (entt::entity e : ed->selectedEntities) {
+                Transform& t = reg.get<Transform>(e);
+                t.scale = glm::vec3(1.0f);
+            }
+        }, "Clear selection scale"});
 
         EditorActions::bindAction("scene.save", ActionKeybind{SDL_SCANCODE_S, ModifierFlags::Control});
         EditorActions::bindAction("scene.open", ActionKeybind{SDL_SCANCODE_O, ModifierFlags::Control});
@@ -1066,6 +1091,7 @@ namespace worlds {
         }
         queuedKeydowns.clear();
         EditorActions::reenable();
+        project->assetCompiler().updateCompilation();
 
         entityEyedropperActive = false;
         handleOverrideEntity = entt::null;

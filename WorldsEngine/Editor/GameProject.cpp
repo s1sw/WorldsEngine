@@ -5,6 +5,7 @@
 #include <Core/Log.hpp>
 #include <filesystem>
 #include <physfs.h>
+#include <Editor/ProjectAssetCompiler.hpp>
 
 namespace worlds {
     GameProject::GameProject(std::string path) {
@@ -37,6 +38,7 @@ namespace worlds {
         }
 
         _projectAssets = std::make_unique<ProjectAssets>(*this);
+        _assetCompiler = std::make_unique<ProjectAssetCompiler>(*this);
     }
 
     std::string_view GameProject::name() const {
@@ -61,6 +63,10 @@ namespace worlds {
 
     ProjectAssets& GameProject::assets() {
         return *_projectAssets;
+    }
+
+    ProjectAssetCompiler& GameProject::assetCompiler() {
+        return *_assetCompiler;
     }
 
     void GameProject::mountPaths() {
