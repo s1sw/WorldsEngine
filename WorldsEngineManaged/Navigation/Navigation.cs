@@ -53,6 +53,22 @@ namespace WorldsEngine.Navigation
         [DllImport(WorldsEngine.NativeModule)]
         private static extern IntPtr navigation_findPath(Vector3 startPos, Vector3 endPos);
 
+        [DllImport(WorldsEngine.NativeModule)]
+        [return: MarshalAs(UnmanagedType.I1)]
+        private static extern bool navigation_getClosestPointOnMesh(Vector3 point, ref Vector3 outPoint, Vector3 searchExtent);
+
         public static NavigationPath FindPath(Vector3 startPos, Vector3 endPos) => new(navigation_findPath(startPos, endPos));
+
+        public static bool GetClosestPoint(Vector3 point, out Vector3 foundPoint)
+        {
+            foundPoint = Vector3.Zero;
+            return navigation_getClosestPointOnMesh(point, ref foundPoint, new Vector3(1.0f, 3.5f, 1.0f));
+        }
+
+        public static bool GetClosestPoint(Vector3 point, out Vector3 foundPoint, Vector3 searchExtent)
+        {
+            foundPoint = Vector3.Zero;
+            return navigation_getClosestPointOnMesh(point, ref foundPoint, searchExtent);
+        }
     }
 }
