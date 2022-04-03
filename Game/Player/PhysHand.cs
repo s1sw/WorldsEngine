@@ -79,9 +79,6 @@ class PhysHand : Component, IThinkingComponent, IStartListener
 
         Vector3 force = PD.CalculateForce(pose.Position, _targetTransform.Position + (bodyDpa.Velocity * Time.DeltaTime), dpa.Velocity, Time.DeltaTime, bodyDpa.Velocity);
 
-        ImGuiNET.ImGui.Text($"dist {pose.Position.DistanceTo(_targetTransform.Position)}");
-        ImGuiNET.ImGui.Text($"magnitude {force.Length}");
-
         if (!DisableForces)
         {
             dpa.AddForce(force);
