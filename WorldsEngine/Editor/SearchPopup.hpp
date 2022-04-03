@@ -21,6 +21,7 @@ namespace worlds {
             size_t activateIndex;
 
             ImGui::PushStyleVar(ImGuiStyleVar_PopupRounding, 5.0f);
+            ImGui::PushStyleVar(ImGuiStyleVar_Alpha, fadeAlpha);
             if (ImGui::BeginPopup(title)) {
                 pushBoldFont();
                 EditorUI::centeredText(title);
@@ -95,7 +96,9 @@ namespace worlds {
                 currentCandidateList.clear();
                 currentSearchText.clear();
             }
-            ImGui::PopStyleVar();
+            ImGui::PopStyleVar(2);
+            fadeAlpha += ImGui::GetIO().DeltaTime * 15.0f;
+            fadeAlpha = fadeAlpha > 1.0f ? 1.0f : fadeAlpha;
         }
 
         virtual void candidateSelected(size_t index) = 0;
@@ -104,5 +107,6 @@ namespace worlds {
         size_t selectedIndex = 0;
         slib::String currentSearchText;
         slib::List<T> currentCandidateList;
+        float fadeAlpha = 0.0f;
     };
 }

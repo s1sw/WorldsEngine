@@ -13,6 +13,7 @@ namespace worlds {
 
     void EditorActionSearchPopup::show() {
         ImGui::OpenPopup("Actions");
+        fadeAlpha = 0.0f;
     }
 
     void EditorActionSearchPopup::draw() {
