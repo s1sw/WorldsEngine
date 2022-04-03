@@ -369,4 +369,21 @@ namespace worlds {
             path.pathPoints[i] = pathPoints[i];
         }
     }
+
+    bool NavigationSystem::getClosestPointOnMesh(glm::vec3 point, glm::vec3& outPoint, glm::vec3 searchExtent) {
+        if (glm::length2(searchExtent) == 0.0f) {
+            searchExtent = glm::vec3(1.0f, 3.0f, 1.0f);
+        }
+
+        dtQueryFilter queryFilter;
+        dtPolyRef startPolygon;
+
+        dtStatus status = navMeshQuery->findNearestPoly(glm::value_ptr(point), glm::value_ptr(searchExtent), &queryFilter, &startPolygon, glm::value_ptr(outPoint));
+
+        if (dtStatusFailed(status)) {
+            return false;
+        }
+
+        return true;
+    }
 }
