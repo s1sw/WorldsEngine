@@ -52,8 +52,6 @@ public class SlidingDoor : Component, IStartListener, IThinkingComponent
 
         _slideT = MathFX.Clamp(_slideT, 0f, 1f);
 
-        ImGui.Text($"_slideT: {_slideT}");
-
         t.Position = Vector3.Lerp(_initialTransform.Position, _initialTransform.Position + SlideAxis * SlideDistance, EaseInOutQuad(_slideT));
         Registry.SetTransform(Entity, t);
     }
