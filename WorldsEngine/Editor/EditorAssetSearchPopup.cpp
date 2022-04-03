@@ -10,6 +10,7 @@ namespace worlds {
 
     void EditorAssetSearchPopup::show() {
         ImGui::OpenPopup("Asset Search");
+        fadeAlpha = 0.0f;
     }
 
     void EditorAssetSearchPopup::draw() {
