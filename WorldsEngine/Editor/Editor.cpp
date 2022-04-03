@@ -296,15 +296,6 @@ namespace worlds {
             ImGui::OpenPopup("Save Prefab");
         }, "Create prefab"});
 
-        EditorActions::addAction({ "assets.refresh", [](Editor* ed, entt::registry& reg) {
-            ed->currentProject().assets().enumerateAssets();
-            ed->currentProject().assets().checkForAssetChanges();
-        }, "Refresh assets"});
-
-        EditorActions::addAction({ "assets.compile", [](Editor* ed, entt::registry& reg) {
-            ed->currentProject().assetCompiler().startCompiling();
-        }, "Compile assets"});
-
         EditorActions::addAction({ "editor.roundScale", [](Editor* ed, entt::registry& reg) {
             if (!reg.valid(ed->currentSelectedEntity)) return;
             Transform& t = reg.get<Transform>(ed->currentSelectedEntity);
@@ -326,6 +317,25 @@ namespace worlds {
                 t.scale = glm::vec3(1.0f);
             }
         }, "Clear selection scale"});
+
+        EditorActions::addAction({ "editor.setStatic", [](Editor* ed, entt::registry& reg) {
+            if (!reg.valid(ed->currentSelectedEntity)) return;
+            StaticFlags allFlags = (StaticFlags)((int)StaticFlags::Audio | (int)StaticFlags::Rendering | (int)StaticFlags::Navigation);
+            WorldObject& wo = reg.get<WorldObject>(ed->currentSelectedEntity);
+            wo.staticFlags = allFlags;
+            for (entt::entity e : ed->getSelectedEntities()) {
+                reg.get<WorldObject>(e).staticFlags = allFlags;
+            }
+        }, "Set selected object as static"});
+
+        EditorActions::addAction({ "assets.refresh", [](Editor* ed, entt::registry& reg) {
+            ed->currentProject().assets().enumerateAssets();
+            ed->currentProject().assets().checkForAssetChanges();
+        }, "Refresh assets"});
+
+        EditorActions::addAction({ "assets.compile", [](Editor* ed, entt::registry& reg) {
+            ed->currentProject().assetCompiler().startCompiling();
+        }, "Compile assets"});
 
         EditorActions::bindAction("scene.save", ActionKeybind{SDL_SCANCODE_S, ModifierFlags::Control});
         EditorActions::bindAction("scene.open", ActionKeybind{SDL_SCANCODE_O, ModifierFlags::Control});
