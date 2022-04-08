@@ -133,4 +133,12 @@ extern "C" {
     EXPORT void dynamicpa_setKinematic(entt::registry* reg, entt::entity entity, bool kinematic) {
         reg->get<DynamicPhysicsActor>(entity).actor->setRigidBodyFlag(physx::PxRigidBodyFlag::eKINEMATIC, kinematic);
     }
+
+    EXPORT bool dynamicpa_getUseContactMod(entt::registry* reg, entt::entity entity) {
+        return reg->get<DynamicPhysicsActor>(entity).useContactMod;
+    }
+
+    EXPORT void dynamicpa_setUseContactMod(entt::registry* reg, entt::entity entity, bool useContactMod) {
+        reg->get<DynamicPhysicsActor>(entity).useContactMod = useContactMod;
+    }
 }

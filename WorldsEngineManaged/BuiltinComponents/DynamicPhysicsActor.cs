@@ -89,6 +89,13 @@ namespace WorldsEngine
         [DllImport(WorldsEngine.NativeModule)]
         private static extern void dynamicpa_setKinematic(IntPtr reg, uint entity, [MarshalAs(UnmanagedType.I1)] bool kinematic);
 
+        [DllImport(WorldsEngine.NativeModule)]
+        [return: MarshalAs(UnmanagedType.I1)]
+        private static extern bool dynamicpa_getUseContactMod(IntPtr reg, uint entity);
+
+        [DllImport(WorldsEngine.NativeModule)]
+        private static extern void dynamicpa_setUseContactMod(IntPtr reg, uint entity, [MarshalAs(UnmanagedType.I1)] bool useContactMod);
+
         internal static ComponentMetadata Metadata
         {
             get
@@ -166,6 +173,8 @@ namespace WorldsEngine
             }
         }
 
+        public Transform WorldSpaceCenterOfMass => CenterOfMassLocalPose.TransformBy(Pose);
+
         /// <summary>
         /// The diagonal inertia tensor in mass space.
         /// </summary>
@@ -195,6 +204,17 @@ namespace WorldsEngine
         {
             get => dynamicpa_getKinematic(regPtr, entityId);
             set => dynamicpa_setKinematic(regPtr, entityId, value);
+        }
+
+        public bool UseContactMod
+        {
+            get => dynamicpa_getUseContactMod(regPtr, entityId);
+
+            set
+            {
+                dynamicpa_setUseContactMod(regPtr, entityId, value);
+                ForceShapeUpdate();
+            }
         }
 
         internal DynamicPhysicsActor(IntPtr regPtr, uint entityId) : base(regPtr, entityId)

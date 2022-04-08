@@ -270,6 +270,7 @@ namespace worlds {
             shape->setLocalPose(physx::PxTransform{ glm2px(ps.pos * scale), glm2px(ps.rot) });
             physx::PxFilterData data;
             data.word0 = pa.layer;
+            data.word1 = pa.useContactMod;
             shape->setSimulationFilterData(data);
             shape->setQueryFilterData(data);
 
@@ -290,9 +291,9 @@ namespace worlds {
     };
 
     static physx::PxFilterFlags filterShader(
-        physx::PxFilterObjectAttributes,
+        physx::PxFilterObjectAttributes attributes1,
         physx::PxFilterData data1,
-        physx::PxFilterObjectAttributes,
+        physx::PxFilterObjectAttributes attributes2,
         physx::PxFilterData data2,
         physx::PxPairFlags& pairFlags,
         const void*,
@@ -305,11 +306,17 @@ namespace worlds {
             (physicsLayerMask[layer2] & data1.word0) == 0)
             return physx::PxFilterFlag::eKILL;
 
+
         pairFlags = physx::PxPairFlag::eSOLVE_CONTACT
                   | physx::PxPairFlag::eDETECT_DISCRETE_CONTACT
                   | physx::PxPairFlag::eDETECT_CCD_CONTACT
                   | physx::PxPairFlag::eNOTIFY_TOUCH_FOUND
                   | physx::PxPairFlag::eNOTIFY_CONTACT_POINTS;
+
+        if (data1.word1 || data2.word1) {
+            pairFlags |= PxPairFlag::eMODIFY_CONTACTS;
+        }
+
         return physx::PxFilterFlags();
     }
 
@@ -406,7 +413,23 @@ namespace worlds {
         entt::registry& reg;
     };
 
+    class ContactModificationCallback : public PxContactModifyCallback {
+    public:
+        void onContactModify(PxContactModifyPair* const pairs, uint32_t count) override {
+            if (callback) callback(callbackCtx, pairs, count);
+        }
+
+        void setCallback(void* ctx, ContactModCallback callback) {
+            this->callback = callback;
+            callbackCtx = ctx;
+        }
+    private:
+        ContactModCallback callback;
+        void* callbackCtx;
+    };
+
     SimulationCallback* simCallback;
+    ContactModificationCallback* contactModCallback;
 
     void initPhysx(const EngineInterfaces& interfaces, entt::registry& reg) {
         g_physFoundation = PxCreateFoundation(PX_PHYSICS_VERSION, gDefaultAllocator, gErrorCallback);
@@ -448,7 +471,9 @@ namespace worlds {
         g_scene = g_physics->createScene(desc);
 
         simCallback = new SimulationCallback(reg);
+        contactModCallback = new ContactModificationCallback();
         g_scene->setSimulationEventCallback(simCallback);
+        g_scene->setContactModifyCallback(contactModCallback);
 
         reg.on_destroy<PhysicsActor>().connect<&destroyPhysXActor<PhysicsActor>>();
         reg.on_destroy<DynamicPhysicsActor>().connect<&destroyPhysXActor<DynamicPhysicsActor>>();
@@ -484,6 +509,10 @@ namespace worlds {
         g_cooking->release();
         g_physics->release();
         g_physFoundation->release();
+    }
+
+    void setContactModCallback(void* ctx, ContactModCallback callback) {
+        contactModCallback->setCallback(ctx, callback);
     }
 
     class RaycastFilterCallback : public PxQueryFilterCallback {

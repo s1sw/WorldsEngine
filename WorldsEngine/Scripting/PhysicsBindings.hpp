@@ -41,6 +41,10 @@ extern "C" {
         return sweepSphere(origin, radius, direction, distance, hitInfo, excludeLayerMask);
     }
 
+    EXPORT void physics_setContactModCallback(void* ctx, ContactModCallback callback) {
+        setContactModCallback(ctx, callback);
+    }
+
     EXPORT physx::PxMaterial* physicsmaterial_new(float staticFriction, float dynamicFriction, float restitution) {
         return g_physics->createMaterial(staticFriction, dynamicFriction, restitution);
     }
@@ -140,5 +144,33 @@ extern "C" {
     EXPORT void d6joint_setAttached(entt::registry* reg, entt::entity entity, entt::entity attached) {
         D6Joint& j = reg->get<D6Joint>(entity);
         j.setAttached(attached, *reg);
+    }
+
+    EXPORT entt::entity ContactModifyPair_getEntity(physx::PxContactModifyPair* pair, int idx) {
+        return (entt::entity)(uint32_t)(pair->actor[idx]->userData);
+    }
+
+    EXPORT void ContactModifyPair_getTransform(physx::PxContactModifyPair* pair, int idx, Transform* t) {
+        *t = px2glm(pair->transform[idx]);
+    }
+
+    EXPORT physx::PxContactSet* ContactModifyPair_getContactSetPointer(physx::PxContactModifyPair* pair) {
+        return &pair->contacts;
+    }
+
+    EXPORT void ContactSet_getTargetVelocity(physx::PxContactSet* contactSet, int idx, glm::vec3* value) {
+        *value = px2glm(contactSet->getTargetVelocity(idx));
+    }
+
+    EXPORT void ContactSet_setTargetVelocity(physx::PxContactSet* contactSet, int idx, glm::vec3 value) {
+        contactSet->setTargetVelocity(idx, glm2px(value));
+    }
+
+    EXPORT uint32_t ContactSet_getCount(physx::PxContactSet* contactSet) {
+        return contactSet->size();
+    }
+
+    EXPORT int ContactModifyPair_getSize() {
+        return sizeof(physx::PxContactModifyPair);
     }
 }

@@ -87,6 +87,7 @@ namespace worlds {
         std::vector<PhysicsShape> physicsShapes;
         bool scaleShapes = true;
         uint32_t layer = 1;
+        bool useContactMod = false;
     };
 
     enum class ForceMode : int32_t {
@@ -118,6 +119,7 @@ namespace worlds {
         std::vector<PhysicsShape> physicsShapes;
         bool scaleShapes = true;
         uint32_t layer = 1;
+        bool useContactMod = false;
 
         glm::vec3 linearVelocity() const;
         glm::vec3 angularVelocity() const;

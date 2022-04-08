@@ -70,6 +70,9 @@ namespace worlds {
     void stepSimulation(float deltaTime);
     void shutdownPhysx();
 
+    typedef void (*ContactModCallback)(void* ctx, physx::PxContactModifyPair* pairs, uint32_t count);
+    void setContactModCallback(void* ctx, ContactModCallback callback);
+
     struct PhysicsContactInfo {
         float relativeSpeed;
         entt::entity otherEntity;
