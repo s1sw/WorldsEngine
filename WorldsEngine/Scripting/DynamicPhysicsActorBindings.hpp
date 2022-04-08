@@ -32,7 +32,7 @@ extern "C" {
         DynamicPhysicsActor& dpa = reg->get<DynamicPhysicsActor>(entity);
         Transform& t = reg->get<Transform>(entity);
 
-        updatePhysicsShapes(dpa, t.scale);
+        csharpInterfaces->physics->updatePhysicsShapes(dpa, t.scale);
         updateMass(dpa);
     }
 

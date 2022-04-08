@@ -1,24 +1,8 @@
 #pragma once
+#include <Core/Engine.hpp>
 #include <entt/entity/fwd.hpp>
 
 namespace worlds {
-    class WorldsEngine;
-    class Renderer;
-    struct Camera;
-    class InputManager;
-    class IVRInterface;
-    class JobSystem;
-    class DotNetScriptEngine;
-
-    struct EngineInterfaces {
-        IVRInterface* vrInterface;
-        Renderer* renderer;
-        Camera* mainCamera;
-        InputManager* inputManager;
-        WorldsEngine* engine;
-        DotNetScriptEngine* scriptEngine;
-    };
-
     class IGameEventHandler {
     public:
         virtual void init(entt::registry& registry, EngineInterfaces interfaces) = 0;

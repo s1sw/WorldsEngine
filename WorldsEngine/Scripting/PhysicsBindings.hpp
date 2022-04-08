@@ -5,10 +5,10 @@
 #include <Util/MathsUtil.hpp>
 
 using namespace worlds;
-
+extern EngineInterfaces const* csharpInterfaces;
 extern "C" {
     EXPORT uint32_t physics_raycast(glm::vec3 origin, glm::vec3 direction, float maxDist, uint32_t excludeLayerMask, RaycastHitInfo* hitInfo) {
-        return (uint32_t)raycast(origin, direction, maxDist, hitInfo, excludeLayerMask);
+        return (uint32_t)csharpInterfaces->physics->raycast(origin, direction, maxDist, hitInfo, excludeLayerMask);
     }
 
     EXPORT uint32_t physics_overlapSphere(glm::vec3 origin, float radius, uint32_t* entPtr) {
@@ -23,7 +23,7 @@ extern "C" {
         physx::PxTransform t{ physx::PxIdentity };
         t.p = glm2px(origin);
 
-        bool overlapped = g_scene->overlap(sphereGeo, t, hit, filterData);
+        bool overlapped = csharpInterfaces->physics->scene()->overlap(sphereGeo, t, hit, filterData);
 
         if (overlapped) {
             const auto& touch = hit.getAnyHit(0);
@@ -34,19 +34,19 @@ extern "C" {
     }
 
     EXPORT uint32_t physics_overlapSphereMultiple(glm::vec3 origin, float radius, uint32_t maxTouchCount, uint32_t* hitEntityBuffer, uint32_t excludeLayerMask) {
-        return overlapSphereMultiple(origin, radius, maxTouchCount, hitEntityBuffer, excludeLayerMask);
+        return csharpInterfaces->physics->overlapSphereMultiple(origin, radius, maxTouchCount, reinterpret_cast<entt::entity*>(hitEntityBuffer), excludeLayerMask);
     }
 
     EXPORT bool physics_sweepSphere(glm::vec3 origin, float radius, glm::vec3 direction, float distance, RaycastHitInfo* hitInfo, uint32_t excludeLayerMask) {
-        return sweepSphere(origin, radius, direction, distance, hitInfo, excludeLayerMask);
+        return csharpInterfaces->physics->sweepSphere(origin, radius, direction, distance, hitInfo, excludeLayerMask);
     }
 
     EXPORT void physics_setContactModCallback(void* ctx, ContactModCallback callback) {
-        setContactModCallback(ctx, callback);
+        csharpInterfaces->physics->setContactModCallback(ctx, callback);
     }
 
     EXPORT physx::PxMaterial* physicsmaterial_new(float staticFriction, float dynamicFriction, float restitution) {
-        return g_physics->createMaterial(staticFriction, dynamicFriction, restitution);
+        return csharpInterfaces->physics->physics()->createMaterial(staticFriction, dynamicFriction, restitution);
     }
 
     EXPORT void physicsmaterial_acquireReference(physx::PxMaterial* material) {

@@ -6,6 +6,8 @@
 #include "../Core/Log.hpp"
 
 namespace worlds {
+    struct EngineInterfaces;
+
     class ComponentMetadataManager {
     public:
         static std::unordered_map<ENTT_ID_TYPE, ComponentEditor*> metadata;
@@ -13,7 +15,7 @@ namespace worlds {
         static std::unordered_map<ENTT_ID_TYPE, ComponentEditor*> bySerializedID;
         static std::unordered_map<std::string, ComponentEditor*> byName;
 
-        static void setupLookup() {
+        static void setupLookup(EngineInterfaces* interfaces) {
             ComponentEditorLink* curr = ComponentEditor::first;
 
             while (curr) {
@@ -21,6 +23,7 @@ namespace worlds {
                 bySerializedID.insert({ curr->editor->getSerializedID(), curr->editor });
                 byName.insert({ curr->editor->getName(), curr->editor });
                 sorted.push_back(curr->editor);
+                curr->editor->setInterfaces(interfaces);
                 curr = curr->next;
             }
 

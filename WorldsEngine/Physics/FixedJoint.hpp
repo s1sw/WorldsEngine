@@ -19,7 +19,7 @@ namespace worlds {
 
         ~FixedJoint();
     private:
-        friend void setupFixedJoint(entt::registry&, entt::entity);
+        friend class PhysicsSystem;
         physx::PxRigidActor* thisActor;
         entt::entity targetEntity;
     };

@@ -782,23 +782,23 @@ namespace worlds {
             auto& t = reg.get<Transform>(ent);
 
             physx::PxTransform pTf(glm2px(t.position), glm2px(t.rotation));
-            auto* actor = g_physics->createRigidStatic(pTf);
+            auto* actor = interfaces->physics->physics()->createRigidStatic(pTf);
             reg.emplace<PhysicsActor>(ent, actor);
-            g_scene->addActor(*actor);
+            interfaces->physics->scene()->addActor(*actor);
         }
 
         void clone(entt::entity from, entt::entity to, entt::registry& reg) override {
             auto& t = reg.get<Transform>(from);
 
             physx::PxTransform pTf(glm2px(t.position), glm2px(t.rotation));
-            auto* actor = g_physics->createRigidStatic(pTf);
+            auto* actor = interfaces->physics->physics()->createRigidStatic(pTf);
 
             auto& newPhysActor = reg.emplace<PhysicsActor>(to, actor);
             newPhysActor.physicsShapes = reg.get<PhysicsActor>(from).physicsShapes;
 
-            g_scene->addActor(*actor);
+            interfaces->physics->scene()->addActor(*actor);
 
-            updatePhysicsShapes(newPhysActor, t.scale);
+            interfaces->physics->updatePhysicsShapes(newPhysActor, t.scale);
         }
 
         void edit(entt::entity ent, entt::registry& reg, Editor* ed) override {
@@ -808,7 +808,7 @@ namespace worlds {
                     reg.remove<PhysicsActor>(ent);
                 } else {
                     if (ImGui::Button("Update Collisions")) {
-                        updatePhysicsShapes(pa, reg.get<Transform>(ent).scale);
+                        interfaces->physics->updatePhysicsShapes(pa, reg.get<Transform>(ent).scale);
                     }
 
                     auto& t = reg.get<Transform>(ent);
@@ -857,8 +857,8 @@ namespace worlds {
         }
 
         void fromJson(entt::entity ent, entt::registry& reg, EntityIDMap&, const json& j) override {
-            auto* pActor = g_physics->createRigidStatic(glm2px(reg.get<Transform>(ent)));
-            g_scene->addActor(*pActor);
+            auto* pActor = interfaces->physics->physics()->createRigidStatic(glm2px(reg.get<Transform>(ent)));
+            interfaces->physics->scene()->addActor(*pActor);
 
             PhysicsActor& pa = reg.emplace<PhysicsActor>(ent, pActor);
 
@@ -899,7 +899,7 @@ namespace worlds {
 
             auto& t = reg.get<Transform>(ent);
 
-            updatePhysicsShapes(pa, t.scale);
+            interfaces->physics->updatePhysicsShapes(pa, t.scale);
         }
     };
 
@@ -913,11 +913,11 @@ namespace worlds {
             auto& t = reg.get<Transform>(ent);
 
             physx::PxTransform pTf(glm2px(t.position), glm2px(t.rotation));
-            auto* actor = g_physics->createRigidDynamic(pTf);
+            auto* actor = interfaces->physics->physics()->createRigidDynamic(pTf);
             actor->setSolverIterationCounts(32, 6);
             actor->setMaxDepenetrationVelocity(10.0f);
             reg.emplace<DynamicPhysicsActor>(ent, actor);
-            g_scene->addActor(*actor);
+            interfaces->physics->scene()->addActor(*actor);
         }
 
         void clone(entt::entity from, entt::entity to, entt::registry& reg) override {
@@ -925,7 +925,7 @@ namespace worlds {
             auto& oldDpa = reg.get<DynamicPhysicsActor>(from);
 
             physx::PxTransform pTf(glm2px(t.position), glm2px(t.rotation));
-            auto* actor = g_physics->createRigidDynamic(pTf);
+            auto* actor = interfaces->physics->physics()->createRigidDynamic(pTf);
 
             auto& newPhysActor = reg.emplace<DynamicPhysicsActor>(to, actor);
             newPhysActor.mass = oldDpa.mass;
@@ -937,9 +937,9 @@ namespace worlds {
             newPhysActor.enableCCD = oldDpa.enableCCD;
             newPhysActor.layer = oldDpa.layer;
 
-            g_scene->addActor(*actor);
+            interfaces->physics->scene()->addActor(*actor);
 
-            updatePhysicsShapes(newPhysActor, t.scale);
+            interfaces->physics->updatePhysicsShapes(newPhysActor, t.scale);
         }
 
         void edit(entt::entity ent, entt::registry& reg, Editor* ed) override {
@@ -969,7 +969,7 @@ namespace worlds {
                     ImGui::Checkbox("Enable CCD", &pa.enableCCD);
                     if (ImGui::Button("Update Collisions##DPA")) {
                         auto& t = reg.get<Transform>(ent);
-                        updatePhysicsShapes(pa, t.scale);
+                        interfaces->physics->updatePhysicsShapes(pa, t.scale);
                         updateMass(pa);
                     }
 
@@ -1024,11 +1024,11 @@ namespace worlds {
         }
 
         void fromJson(entt::entity ent, entt::registry& reg, EntityIDMap&, const json& j) override {
-            auto* pActor = g_physics->createRigidDynamic(glm2px(reg.get<Transform>(ent)));
+            auto* pActor = interfaces->physics->physics()->createRigidDynamic(glm2px(reg.get<Transform>(ent)));
             pActor->setSolverIterationCounts(32, 6);
             pActor->setSleepThreshold(0.005f);
             pActor->setMaxDepenetrationVelocity(10.0f);
-            g_scene->addActor(*pActor);
+            interfaces->physics->scene()->addActor(*pActor);
 
             auto& pa = reg.emplace<DynamicPhysicsActor>(ent, pActor);
             pa.scaleShapes = j.value("scaleShapes", true);
@@ -1069,7 +1069,7 @@ namespace worlds {
 
             auto& t = reg.get<Transform>(ent);
 
-            updatePhysicsShapes(pa, t.scale);
+            interfaces->physics->updatePhysicsShapes(pa, t.scale);
             pa.mass = j["mass"];
             pa.enableCCD = j.value("enableCCD", false);
             pa.enableGravity = j.value("enableGravity", true);

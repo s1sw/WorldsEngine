@@ -50,7 +50,7 @@ extern "C" {
     }
 }
 
-EngineInterfaces csharpInterfaces;
+EngineInterfaces const* csharpInterfaces;
 #include "RegistryBindings.hpp"
 #include "WorldObjectBindings.hpp"
 #include "AssetDBBindings.hpp"
@@ -75,7 +75,7 @@ EngineInterfaces csharpInterfaces;
 entt::registry* sceneLoaderBindReg;
 extern "C" {
     EXPORT void sceneloader_loadScene(AssetID id) {
-        csharpInterfaces.engine->loadScene(id);
+        csharpInterfaces->engine->loadScene(id);
     }
 
     EXPORT AssetID sceneloader_getCurrentSceneID() {
@@ -84,12 +84,12 @@ extern "C" {
 }
 
 namespace worlds {
-    DotNetScriptEngine::DotNetScriptEngine(entt::registry& reg, EngineInterfaces interfaces)
+    DotNetScriptEngine::DotNetScriptEngine(entt::registry& reg, const EngineInterfaces& interfaces)
         : interfaces(interfaces)
         , reg(reg) {
         csharpInputManager = interfaces.inputManager;
         csharpVrInterface = interfaces.vrInterface;
-        csharpInterfaces = interfaces;
+        csharpInterfaces = &interfaces;
     }
 
     bool DotNetScriptEngine::initialise(Editor* editor) {

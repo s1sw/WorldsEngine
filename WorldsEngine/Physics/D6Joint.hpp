@@ -36,7 +36,7 @@ namespace worlds {
         ~D6Joint();
     private:
         void updateJointActors();
-        friend void setupD6Joint(entt::registry&, entt::entity);
+        friend class PhysicsSystem;
         friend class D6JointEditor;
         physx::PxRigidActor* thisActor = nullptr;
         physx::PxRigidActor* originalThisActor = nullptr;
