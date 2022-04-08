@@ -15,7 +15,7 @@ public class SceneTrigger : Component, IThinkingComponent
         Transform t = Entity.Transform;
         AABB aabb = new AABB(Size);
 
-        if (aabb.ContainsPoint(t.InverseTransformPoint(Camera.Main.Position)))
+        if (aabb.ContainsPoint(t.InverseTransformPoint(PlayerCameraSystem.WorldSpaceHeadPosition)))
         {
             LocalPlayerSystem.SetTransitionSpawn(t);
             SceneLoader.LoadScene(AssetDB.PathToId(Scene));
