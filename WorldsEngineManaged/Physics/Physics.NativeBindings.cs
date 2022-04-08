@@ -28,12 +28,35 @@ namespace WorldsEngine
                 return new ContactModifyPair(IntPtr.Add(_nativePtr, index * _stride));
             }
         }
+
+        public System.Collections.Generic.IEnumerator<ContactModifyPair> GetEnumerator()
+        {
+            for (int i = 0; i < Count; i++)
+            {
+                yield return this[i];
+            }
+        }
     }
 
-    public class ContactSet
+    // TODO: Maybe we can use this at some point instead of making an unmanaged call for everything?
+    [StructLayout(LayoutKind.Sequential, Pack = 16)]
+    internal struct PxModifiableContact
     {
-        private IntPtr _nativePtr;
-        
+        public Vector3 Contact;
+        public float Separation;
+        public Vector3 TargetVelocity;
+        public float MaxImpulse;
+        public Vector3 Normal;
+        public float Restitution;
+        public uint MaterialFlags;
+        public ushort MaterialIndex0;
+        public ushort MaterialIndex1;
+        public float StaticFriction;
+        public float DynamicFriction;
+    }
+
+    public class ModifiableContact
+    {
         [DllImport(WorldsEngine.NativeModule)]
         private static extern void ContactSet_getTargetVelocity(IntPtr ptr, int idx, out Vector3 value);
 
@@ -47,37 +70,119 @@ namespace WorldsEngine
         private static extern void ContactSet_setNormal(IntPtr ptr, int idx, Vector3 value);
 
         [DllImport(WorldsEngine.NativeModule)]
+        private static extern float ContactSet_getMaxImpulse(IntPtr ptr, int idx);
+
+        [DllImport(WorldsEngine.NativeModule)]
+        private static extern void ContactSet_setMaxImpulse(IntPtr ptr, int idx, float impulse);
+
+        [DllImport(WorldsEngine.NativeModule)]
+        private static extern float ContactSet_getDynamicFriction(IntPtr ptr, int idx);
+
+        [DllImport(WorldsEngine.NativeModule)]
+        private static extern void ContactSet_setDynamicFriction(IntPtr ptr, int idx, float val);
+
+        [DllImport(WorldsEngine.NativeModule)]
+        private static extern float ContactSet_getStaticFriction(IntPtr ptr, int idx);
+
+        [DllImport(WorldsEngine.NativeModule)]
+        private static extern void ContactSet_setStaticFriction(IntPtr ptr, int idx, float val);
+
+        [DllImport(WorldsEngine.NativeModule)]
+        private static extern void ContactSet_getPoint(IntPtr ptr, int idx, out Vector3 value);
+
+        private readonly IntPtr _contactSetPtr;
+        internal int idx;
+
+        public Vector3 TargetVelocity
+        {
+            get
+            {
+                Vector3 v = new();
+                ContactSet_getTargetVelocity(_contactSetPtr, idx, out v);
+                return v;
+            }
+            set => ContactSet_setTargetVelocity(_contactSetPtr, idx, value);
+        }
+
+        public Vector3 Normal
+        {
+            get
+            {
+                Vector3 v = new();
+                ContactSet_getNormal(_contactSetPtr, idx, out v);
+                return v;
+            }
+
+            set => ContactSet_setNormal(_contactSetPtr, idx, value);
+        }
+
+        public float MaxImpulse
+        {
+            get => ContactSet_getMaxImpulse(_contactSetPtr, idx);
+            set => ContactSet_setMaxImpulse(_contactSetPtr, idx, value);
+        }
+
+        public float DynamicFriction
+        {
+            get => ContactSet_getDynamicFriction(_contactSetPtr, idx);
+            set => ContactSet_setDynamicFriction(_contactSetPtr, idx, value);
+        }
+
+        public float StaticFriction
+        {
+            get => ContactSet_getStaticFriction(_contactSetPtr, idx);
+            set => ContactSet_setStaticFriction(_contactSetPtr, idx, value);
+        }
+
+        public Vector3 Point
+        {
+            get
+            {
+                Vector3 v = new();
+                ContactSet_getPoint(_contactSetPtr, idx, out v);
+                return v;
+            }
+        }
+
+        internal ModifiableContact(IntPtr contactSetPtr, int idx)
+        {
+            _contactSetPtr = contactSetPtr;
+            this.idx = idx;
+        }
+    }
+
+    public class ContactSet
+    {
+        private IntPtr _nativePtr;
+        private ModifiableContact _contactDummy;
+
+        [DllImport(WorldsEngine.NativeModule)]
         private static extern uint ContactSet_getCount(IntPtr ptr);
 
         public int Count => (int)ContactSet_getCount(_nativePtr);
 
-        public Vector3 GetTargetVelocity(int i)
+        public ModifiableContact this[int index]
         {
-            Vector3 v = new();
-            ContactSet_getTargetVelocity(_nativePtr, i, out v);
-            return v;
-        }
-        
-        public void SetTargetVelocity(int i, Vector3 v)
-        {
-            ContactSet_setTargetVelocity(_nativePtr, i, v);
-        }
-
-        public Vector3 GetNormal(int i)
-        {
-            Vector3 v = new();
-            ContactSet_getNormal(_nativePtr, i, out v);
-            return v;
-        }
-
-        public void SetNormal(int i, Vector3 v)
-        {
-            ContactSet_setNormal(_nativePtr, i, v);
+            get
+            {
+                _contactDummy.idx = index;
+                return _contactDummy;
+            }
         }
 
         internal ContactSet(IntPtr ptr)
         {
+            _contactDummy = new(ptr, 0);
             _nativePtr = ptr;
+        }
+
+        public System.Collections.Generic.IEnumerator<ModifiableContact> GetEnumerator()
+        {
+            for (int i = 0; i < Count; i++)
+            {
+                _contactDummy.idx = i;
+                yield return _contactDummy;
+            }
         }
     }
 
@@ -118,6 +223,11 @@ namespace WorldsEngine
         }
 
         public ContactSet ContactSet => _contactSet;
+
+        public bool InvolvesEntity(Entity entity)
+        {
+            return EntityA == entity || EntityB == entity;
+        }
 
         private ContactSet _contactSet;
 

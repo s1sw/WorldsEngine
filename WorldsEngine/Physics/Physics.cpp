@@ -273,6 +273,7 @@ namespace worlds {
             data.word1 = pa.useContactMod;
             shape->setSimulationFilterData(data);
             shape->setQueryFilterData(data);
+            shape->setContactOffset(0.00001f);
 
             pa.actor->attachShape(*shape);
             shape->release();
@@ -466,8 +467,8 @@ namespace worlds {
         desc.filterShader = filterShader;
         desc.solverType = physx::PxSolverType::eTGS;
         desc.flags = PxSceneFlag::eENABLE_CCD
-                   | PxSceneFlag::eENABLE_PCM
-                   | PxSceneFlag::eENABLE_STABILIZATION;
+                   | PxSceneFlag::eENABLE_PCM;
+        desc.bounceThresholdVelocity = 2.0f;
         g_scene = g_physics->createScene(desc);
 
         simCallback = new SimulationCallback(reg);

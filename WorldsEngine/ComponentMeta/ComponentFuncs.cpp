@@ -914,6 +914,8 @@ namespace worlds {
 
             physx::PxTransform pTf(glm2px(t.position), glm2px(t.rotation));
             auto* actor = g_physics->createRigidDynamic(pTf);
+            actor->setSolverIterationCounts(32, 6);
+            actor->setMaxDepenetrationVelocity(10.0f);
             reg.emplace<DynamicPhysicsActor>(ent, actor);
             g_scene->addActor(*actor);
         }
@@ -1023,6 +1025,9 @@ namespace worlds {
 
         void fromJson(entt::entity ent, entt::registry& reg, EntityIDMap&, const json& j) override {
             auto* pActor = g_physics->createRigidDynamic(glm2px(reg.get<Transform>(ent)));
+            pActor->setSolverIterationCounts(32, 6);
+            pActor->setSleepThreshold(0.005f);
+            pActor->setMaxDepenetrationVelocity(10.0f);
             g_scene->addActor(*pActor);
 
             auto& pa = reg.emplace<DynamicPhysicsActor>(ent, pActor);
