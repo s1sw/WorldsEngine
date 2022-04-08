@@ -26,11 +26,13 @@ namespace worlds {
     class Editor;
     class DotNetScriptEngine;
     class OpenVRInterface;
+    class IVRInterface;
     class RTTPass;
     class Console;
     class IGameEventHandler;
     class ISystem;
     class Window;
+    class PhysicsSystem;
 
     struct SceneInfo {
         std::string name;
@@ -70,6 +72,17 @@ namespace worlds {
         static void addArgument(const char* arg, const char* value = nullptr);
         static bool hasArgument(const char* arg);
         static std::string_view argumentValue(const char* arg);
+    };
+
+    class WorldsEngine;
+    struct EngineInterfaces {
+        IVRInterface* vrInterface;
+        Renderer* renderer;
+        Camera* mainCamera;
+        InputManager* inputManager;
+        WorldsEngine* engine;
+        DotNetScriptEngine* scriptEngine;
+        PhysicsSystem* physics;
     };
 
     class WorldsEngine {
@@ -127,6 +140,7 @@ namespace worlds {
         double gameTime = 0.0;
         double simAccumulator;
 
+        EngineInterfaces interfaces;
         std::unique_ptr<Renderer> renderer;
         std::unique_ptr<InputManager> inputManager;
         std::unique_ptr<AudioSystem> audioSystem;
@@ -134,6 +148,7 @@ namespace worlds {
         std::unique_ptr<Editor> editor;
         std::unique_ptr<DotNetScriptEngine> scriptEngine;
         std::unique_ptr<OpenVRInterface> openvrInterface;
+        std::unique_ptr<PhysicsSystem> physicsSystem;
 
         std::vector<ISystem*> systems;
         std::vector<entt::entity> nextFrameKillList;

@@ -483,7 +483,7 @@ namespace worlds {
         inputManager = std::make_unique<InputManager>(window->getWrappedHandle());
         window->bindInputManager(inputManager.get());
 
-        EngineInterfaces interfaces{
+        interfaces = EngineInterfaces {
             .vrInterface = enableOpenVR ? openvrInterface.get() : nullptr,
             .renderer = renderer.get(),
             .mainCamera = &cam,
@@ -497,14 +497,15 @@ namespace worlds {
 
         scriptEngine = std::make_unique<DotNetScriptEngine>(registry, interfaces);
         interfaces.scriptEngine = scriptEngine.get();
-
-        initPhysx(interfaces, registry);
+        
+        physicsSystem = std::make_unique<PhysicsSystem>(interfaces, registry);
+        interfaces.physics = physicsSystem.get();
 
         if (!dedicatedServer && runAsEditor) {
             splashWindow->changeOverlay("initialising editor");
             editor = std::make_unique<Editor>(registry, interfaces);
         } else {
-            ComponentMetadataManager::setupLookup();
+            ComponentMetadataManager::setupLookup(&interfaces);
         }
 
         if (!scriptEngine->initialise(editor.get()))
@@ -1050,7 +1051,7 @@ namespace worlds {
     void WorldsEngine::tickRenderer(bool renderImGui) {
         ZoneScoped;
         std::unique_lock<std::mutex> lg(rendererLock);
-        const physx::PxRenderBuffer& pxRenderBuffer = g_scene->getRenderBuffer();
+        const physx::PxRenderBuffer& pxRenderBuffer = physicsSystem->scene()->getRenderBuffer();
 
         for (uint32_t i = 0; i < pxRenderBuffer.getNbLines(); i++) {
             const physx::PxDebugLine& line = pxRenderBuffer.getLines()[i];
@@ -1213,14 +1214,15 @@ namespace worlds {
                 }
 
                 if (ImGui::CollapsingHeader(ICON_FA_SHAPES u8" Physics Stats")) {
-                    uint32_t nDynamic = g_scene->getNbActors(physx::PxActorTypeFlag::eRIGID_DYNAMIC);
-                    uint32_t nStatic = g_scene->getNbActors(physx::PxActorTypeFlag::eRIGID_STATIC);
+                    physx::PxScene* scene = physicsSystem->scene();
+                    uint32_t nDynamic = scene->getNbActors(physx::PxActorTypeFlag::eRIGID_DYNAMIC);
+                    uint32_t nStatic = scene->getNbActors(physx::PxActorTypeFlag::eRIGID_STATIC);
                     uint32_t nTotal = nDynamic + nStatic;
 
                     ImGui::Text("%u dynamic actors, %u static actors (%u total)", nDynamic, nStatic, nTotal);
-                    uint32_t nConstraints = g_scene->getNbConstraints();
+                    uint32_t nConstraints = scene->getNbConstraints();
                     ImGui::Text("%u constraints", nConstraints);
-                    uint32_t nShapes = g_physics->getNbShapes();
+                    uint32_t nShapes = physicsSystem->physics()->getNbShapes();
                     ImGui::Text("%u shapes", nShapes);
                 }
             }
@@ -1246,7 +1248,7 @@ namespace worlds {
             scriptEngine->onSimulate(deltaTime);
         }
 
-        stepSimulation(deltaTime);
+        physicsSystem->stepSimulation(deltaTime);
     }
 
     void WorldsEngine::updateSimulation(float& interpAlpha, double deltaTime) {
@@ -1380,7 +1382,6 @@ namespace worlds {
             renderer.reset();
         }
 
-        shutdownPhysx();
         PHYSFS_deinit();
         logVrb("Quitting SDL.");
         SDL_Quit();

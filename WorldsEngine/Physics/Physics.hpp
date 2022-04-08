@@ -13,11 +13,6 @@
 #include <Core/MeshManager.hpp>
 
 namespace worlds {
-    extern physx::PxMaterial* defaultMaterial;
-    extern physx::PxScene* g_scene;
-    extern physx::PxPhysics* g_physics;
-    extern physx::PxCooking* g_cooking;
-
     const uint32_t DEFAULT_PHYSICS_LAYER = 1;
     const uint32_t PLAYER_PHYSICS_LAYER = 2;
     const uint32_t NOCOLLISION_PHYSICS_LAYER = 4;
@@ -52,8 +47,6 @@ namespace worlds {
         pa.actor->setRigidBodyFlag(physx::PxRigidBodyFlag::eENABLE_CCD, pa.enableCCD);
     }
 
-    template <typename T>
-    void updatePhysicsShapes(T& pa, glm::vec3 scale = glm::vec3{ 1.0f });
 
     struct RaycastHitInfo {
         entt::entity entity;
@@ -62,16 +55,37 @@ namespace worlds {
         float distance;
     };
 
-    bool raycast(physx::PxVec3 position, physx::PxVec3 direction, float maxDist = FLT_MAX, RaycastHitInfo* hitInfo = nullptr, uint32_t excludeLayer = 0u);
-    bool raycast(glm::vec3 position, glm::vec3 direction, float maxDist = FLT_MAX, RaycastHitInfo* hitInfo = nullptr, uint32_t excludeLayer = 0u);
-    uint32_t overlapSphereMultiple(glm::vec3 origin, float radius, uint32_t maxTouchCount, uint32_t* hitEntityBuffer, uint32_t excludeLayerMask = 0u);
-    bool sweepSphere(glm::vec3 origin, float radius, glm::vec3 direction, float distance, RaycastHitInfo* hitInfo = nullptr, uint32_t excludeLayerMask = 0u);
-    void initPhysx(const EngineInterfaces& interfaces, entt::registry& reg);
-    void stepSimulation(float deltaTime);
-    void shutdownPhysx();
-
     typedef void (*ContactModCallback)(void* ctx, physx::PxContactModifyPair* pairs, uint32_t count);
-    void setContactModCallback(void* ctx, ContactModCallback callback);
+
+    class PhysicsSystem {
+    public:
+        PhysicsSystem(const EngineInterfaces& interfaces, entt::registry& reg);
+        void stepSimulation(float deltaTime);
+        bool raycast(glm::vec3 position, glm::vec3 direction, float maxDist = FLT_MAX, RaycastHitInfo* hitInfo = nullptr, uint32_t excludedLayers = 0u);
+        uint32_t overlapSphereMultiple(glm::vec3 origin, float radius, uint32_t maxTouchCount, entt::entity* hitEntityBuffer, uint32_t excludedLayers = 0u);
+        bool sweepSphere(glm::vec3 origin, float radius, glm::vec3 direction, float distance, RaycastHitInfo* hitInfo = nullptr, uint32_t excludedLayers = 0u);
+        void setContactModCallback(void* ctx, ContactModCallback callback);
+
+        template <typename T>
+        void updatePhysicsShapes(T& pa, glm::vec3 scale = glm::vec3{ 1.0f });
+
+        physx::PxScene* scene() { return _scene; }
+        physx::PxPhysics* physics() { return _physics; }
+        ~PhysicsSystem();
+    private:
+        void setupD6Joint(entt::registry& reg, entt::entity ent);
+        void destroyD6Joint(entt::registry& reg, entt::entity ent);
+        void setupFixedJoint(entt::registry& reg, entt::entity ent);
+        void destroyFixedJoint(entt::registry& reg, entt::entity ent);
+        physx::PxMaterial* _defaultMaterial;
+        physx::PxScene* _scene;
+        physx::PxPhysics* _physics;
+        physx::PxCooking* _cooking;
+        physx::PxFoundation* foundation;
+        physx::PxDefaultAllocator allocator;
+        physx::PxErrorCallback* errorCallback;
+        physx::PxRigidBody* dummyBody;
+    };
 
     struct PhysicsContactInfo {
         float relativeSpeed;

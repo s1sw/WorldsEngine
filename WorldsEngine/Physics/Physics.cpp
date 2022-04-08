@@ -49,19 +49,6 @@ namespace worlds {
         }
     };
 
-    physx::PxMaterial* defaultMaterial;
-    PhysErrCallback gErrorCallback;
-    physx::PxDefaultAllocator gDefaultAllocator;
-    physx::PxFoundation* g_physFoundation;
-    physx::PxPhysics* g_physics;
-#if ENABLE_PVD
-    physx::PxPvd* g_pvd;
-    physx::PxPvdTransport* g_pvdTransport;
-#endif
-    physx::PxCooking* g_cooking;
-    physx::PxScene* g_scene;
-    physx::PxRigidBody* dummyBody;
-
     bool started = false;
 
     void* entToPtr(entt::entity ent) {
@@ -84,9 +71,9 @@ namespace worlds {
         pa.actor->userData = entToPtr(ent);
     }
 
-    void setupD6Joint(entt::registry& reg, entt::entity ent) {
+    void PhysicsSystem::setupD6Joint(entt::registry& reg, entt::entity ent) {
         auto& j = reg.get<D6Joint>(ent);
-        auto* pxj = physx::PxD6JointCreate(*g_physics, dummyBody, physx::PxTransform{ physx::PxIdentity }, nullptr, physx::PxTransform{ physx::PxIdentity });
+        auto* pxj = physx::PxD6JointCreate(*_physics, dummyBody, physx::PxTransform{ physx::PxIdentity }, nullptr, physx::PxTransform{ physx::PxIdentity });
 
         j.pxJoint = pxj;
 
@@ -101,14 +88,14 @@ namespace worlds {
         j.updateJointActors();
     }
 
-    void destroyD6Joint(entt::registry& reg, entt::entity ent) {
+    void PhysicsSystem::destroyD6Joint(entt::registry& reg, entt::entity ent) {
         auto& j = reg.get<D6Joint>(ent);
         if (j.pxJoint) {
             j.pxJoint->release();
         }
     }
 
-    void setupFixedJoint(entt::registry& reg, entt::entity ent) {
+    void PhysicsSystem::setupFixedJoint(entt::registry& reg, entt::entity ent) {
         auto& j = reg.get<FixedJoint>(ent);
 
         if (!reg.has<DynamicPhysicsActor>(ent)) {
@@ -117,41 +104,23 @@ namespace worlds {
         }
 
         auto& dpa = reg.get<DynamicPhysicsActor>(ent);
-        j.pxJoint = physx::PxFixedJointCreate(*g_physics, dpa.actor, physx::PxTransform{ physx::PxIdentity }, nullptr, physx::PxTransform{ physx::PxIdentity });
+        j.pxJoint = physx::PxFixedJointCreate(*_physics, dpa.actor, physx::PxTransform{ physx::PxIdentity }, nullptr, physx::PxTransform{ physx::PxIdentity });
         j.pxJoint->setInvMassScale0(1.0f);
         j.pxJoint->setInvMassScale1(1.0f);
         j.thisActor = dpa.actor;
     }
 
-    void destroyFixedJoint(entt::registry& reg, entt::entity ent) {
+    void PhysicsSystem::destroyFixedJoint(entt::registry& reg, entt::entity ent) {
         auto& j = reg.get<FixedJoint>(ent);
         if (j.pxJoint) {
             j.pxJoint->release();
         }
     }
 
-    void cmdTogglePhysVis(void*, const char*) {
-        float currentScale = g_scene->getVisualizationParameter(physx::PxVisualizationParameter::eSCALE);
-
-        g_scene->setVisualizationParameter(physx::PxVisualizationParameter::eSCALE, 1.0f - currentScale);
-    }
-
-    void cmdToggleShapeVis(void*, const char*) {
-        float currentVal = g_scene->getVisualizationParameter(physx::PxVisualizationParameter::eCOLLISION_SHAPES);
-
-        g_scene->setVisualizationParameter(physx::PxVisualizationParameter::eCOLLISION_SHAPES, 1.0f - currentVal);
-    }
-
-    void cmdToggleMassAxesVis(void*, const char*) {
-        float currentVal = g_scene->getVisualizationParameter(physx::PxVisualizationParameter::eBODY_MASS_AXES);
-
-        g_scene->setVisualizationParameter(physx::PxVisualizationParameter::eBODY_MASS_AXES, 1.0f - currentVal);
-    }
-
     robin_hood::unordered_map<AssetID, physx::PxTriangleMesh*> physicsTriMesh;
 
     template <typename T>
-    void updatePhysicsShapes(T& pa, glm::vec3 scale) {
+    void PhysicsSystem::updatePhysicsShapes(T& pa, glm::vec3 scale) {
         uint32_t nShapes = pa.actor->getNbShapes();
         physx::PxShape** buf = (physx::PxShape**)std::malloc(nShapes * sizeof(physx::PxShape*));
         pa.actor->getShapes(buf, nShapes);
@@ -166,11 +135,11 @@ namespace worlds {
 
         for (PhysicsShape& ps : pa.physicsShapes) {
             physx::PxShape* shape;
-            physx::PxMaterial* mat = ps.material ? ps.material : defaultMaterial;
+            physx::PxMaterial* mat = ps.material ? ps.material : _defaultMaterial;
 
             switch (ps.type) {
             case PhysicsShapeType::Box:
-                shape = g_physics->createShape(
+                shape = _physics->createShape(
                     physx::PxBoxGeometry(glm2px(ps.box.halfExtents * scale)),
                     *mat
                 );
@@ -178,13 +147,13 @@ namespace worlds {
             default:
                 ps.sphere.radius = 0.5f;
             case PhysicsShapeType::Sphere:
-                shape = g_physics->createShape(
+                shape = _physics->createShape(
                     physx::PxSphereGeometry(ps.sphere.radius * glm::compAdd(scale) / 3.0f),
                     *mat
                 );
                 break;
             case PhysicsShapeType::Capsule:
-                shape = g_physics->createShape(
+                shape = _physics->createShape(
                     physx::PxCapsuleGeometry(ps.capsule.radius, ps.capsule.height * 0.5f),
                     *mat
                 );
@@ -215,12 +184,12 @@ namespace worlds {
                         meshDesc.triangles.data = lm.indices.data();
                         meshDesc.triangles.stride = sizeof(uint32_t) * 3;
 
-                        physx::PxTriangleMesh* triMesh = g_cooking->createTriangleMesh(meshDesc, g_physics->getPhysicsInsertionCallback());
+                        physx::PxTriangleMesh* triMesh = _cooking->createTriangleMesh(meshDesc, _physics->getPhysicsInsertionCallback());
                         physicsTriMesh.insert({ ps.mesh.mesh, triMesh });
                     }
 
                     PxMeshScale meshScale{PxVec3{scale.x, scale.y, scale.z}, PxQuat{PxIdentity}};
-                    shape = g_physics->createShape(
+                    shape = _physics->createShape(
                         physx::PxTriangleMeshGeometry(physicsTriMesh.at(ps.mesh.mesh), meshScale),
                         *mat
                     );
@@ -251,15 +220,15 @@ namespace worlds {
                     physx::PxDefaultMemoryOutputStream buf;
                     physx::PxConvexMeshCookingResult::Enum result;
 
-                    if (!g_cooking->cookConvexMesh(convexDesc, buf, &result)) {
+                    if (!_cooking->cookConvexMesh(convexDesc, buf, &result)) {
                         logErr(WELogCategoryPhysics, "Failed to cook mesh %s", AssetDB::idToPath(ps.convexMesh.mesh).c_str());
                         continue;
                     }
 
                     physx::PxDefaultMemoryInputData input(buf.getData(), buf.getSize());
-                    physx::PxConvexMesh* convexMesh = g_physics->createConvexMesh(input);
+                    physx::PxConvexMesh* convexMesh = _physics->createConvexMesh(input);
 
-                    shape = g_physics->createShape(
+                    shape = _physics->createShape(
                         physx::PxConvexMeshGeometry(convexMesh),
                         *mat
                     );
@@ -280,8 +249,8 @@ namespace worlds {
         }
     }
 
-    template void updatePhysicsShapes<PhysicsActor>(PhysicsActor& pa, glm::vec3 scale);
-    template void updatePhysicsShapes<DynamicPhysicsActor>(DynamicPhysicsActor& pa, glm::vec3 scale);
+    template void PhysicsSystem::updatePhysicsShapes<PhysicsActor>(PhysicsActor& pa, glm::vec3 scale);
+    template void PhysicsSystem::updatePhysicsShapes<DynamicPhysicsActor>(DynamicPhysicsActor& pa, glm::vec3 scale);
 
     uint32_t physicsLayerMask[32] =
     {
@@ -432,8 +401,9 @@ namespace worlds {
     SimulationCallback* simCallback;
     ContactModificationCallback* contactModCallback;
 
-    void initPhysx(const EngineInterfaces& interfaces, entt::registry& reg) {
-        g_physFoundation = PxCreateFoundation(PX_PHYSICS_VERSION, gDefaultAllocator, gErrorCallback);
+    PhysicsSystem::PhysicsSystem(const EngineInterfaces& interfaces, entt::registry& reg) {
+        errorCallback = new PhysErrCallback;
+        foundation = PxCreateFoundation(PX_PHYSICS_VERSION, allocator, *errorCallback);
         physScriptEngine = interfaces.scriptEngine;
 
         physx::PxPvd* pvd = nullptr;
@@ -450,17 +420,17 @@ namespace worlds {
 
         physx::PxTolerancesScale tolerancesScale;
 
-        g_physics = PxCreatePhysics(PX_PHYSICS_VERSION, *g_physFoundation, tolerancesScale, true, pvd);
+        _physics = PxCreatePhysics(PX_PHYSICS_VERSION, *foundation, tolerancesScale, true, pvd);
 
-        if (g_physics == nullptr) {
+        if (_physics == nullptr) {
             fatalErr("failed to create physics engine??");
         }
 
-        g_cooking = PxCreateCooking(PX_PHYSICS_VERSION, *g_physFoundation, physx::PxCookingParams(tolerancesScale));
+        _cooking = PxCreateCooking(PX_PHYSICS_VERSION, *foundation, physx::PxCookingParams(tolerancesScale));
         physx::PxCookingParams params(tolerancesScale);
         params.meshPreprocessParams |= PxMeshPreprocessingFlag::eDISABLE_CLEAN_MESH;
 
-        g_cooking->setParams(params);
+        _cooking->setParams(params);
         physx::PxSceneDesc desc(tolerancesScale);
         desc.gravity = physx::PxVec3(0.0f, -9.81f, 0.0f);
         desc.cpuDispatcher = physx::PxDefaultCpuDispatcherCreate(std::max(SDL_GetCPUCount(), 1));
@@ -469,50 +439,50 @@ namespace worlds {
         desc.flags = PxSceneFlag::eENABLE_CCD
                    | PxSceneFlag::eENABLE_PCM;
         desc.bounceThresholdVelocity = 2.0f;
-        g_scene = g_physics->createScene(desc);
+        _scene = _physics->createScene(desc);
 
         simCallback = new SimulationCallback(reg);
         contactModCallback = new ContactModificationCallback();
-        g_scene->setSimulationEventCallback(simCallback);
-        g_scene->setContactModifyCallback(contactModCallback);
+        _scene->setSimulationEventCallback(simCallback);
+        _scene->setContactModifyCallback(contactModCallback);
 
         reg.on_destroy<PhysicsActor>().connect<&destroyPhysXActor<PhysicsActor>>();
         reg.on_destroy<DynamicPhysicsActor>().connect<&destroyPhysXActor<DynamicPhysicsActor>>();
         reg.on_construct<PhysicsActor>().connect<&setPhysXActorUserdata<PhysicsActor>>();
         reg.on_construct<DynamicPhysicsActor>().connect<&setPhysXActorUserdata<DynamicPhysicsActor>>();
 
-        reg.on_construct<D6Joint>().connect<&setupD6Joint>();
-        reg.on_destroy<D6Joint>().connect<&destroyD6Joint>();
-        reg.on_construct<FixedJoint>().connect<&setupFixedJoint>();
-        reg.on_destroy<FixedJoint>().connect<&destroyFixedJoint>();
+        reg.on_construct<D6Joint>().connect<&PhysicsSystem::setupD6Joint>(this);
+        reg.on_destroy<D6Joint>().connect<&PhysicsSystem::destroyD6Joint>(this);
+        reg.on_construct<FixedJoint>().connect<&PhysicsSystem::setupFixedJoint>(this);
+        reg.on_destroy<FixedJoint>().connect<&PhysicsSystem::destroyFixedJoint>(this);
 
-        g_console->registerCommand(cmdTogglePhysVis, "phys_toggleVis", "Toggles all physics visualisations.", nullptr);
-        g_console->registerCommand(cmdToggleShapeVis, "phys_toggleShapeVis", "Toggles physics shape visualisations.", nullptr);
-        g_console->registerCommand(cmdToggleMassAxesVis, "phys_toggleMassAxesVis", "Toggles mass axes visualisations.", nullptr);
+        g_console->registerCommand([](void*, const char*){}, "phys_toggleVis", "Toggles all physics visualisations.", nullptr);
+        g_console->registerCommand([](void*, const char*){}, "phys_toggleShapeVis", "Toggles physics shape visualisations.", nullptr);
+        g_console->registerCommand([](void*, const char*){}, "phys_toggleMassAxesVis", "Toggles mass axes visualisations.", nullptr);
 
-        defaultMaterial = g_physics->createMaterial(0.6f, 0.6f, 0.0f);
+        _defaultMaterial = _physics->createMaterial(0.6f, 0.6f, 0.0f);
 
-        dummyBody = g_physics->createRigidDynamic(physx::PxTransform{ physx::PxIdentity });
+        dummyBody = _physics->createRigidDynamic(physx::PxTransform{ physx::PxIdentity });
         dummyBody->setRigidBodyFlag(physx::PxRigidBodyFlag::eKINEMATIC, true);
     }
 
-    void stepSimulation(float deltaTime) {
-        g_scene->simulate(deltaTime);
-        g_scene->fetchResults(true);
+    void PhysicsSystem::stepSimulation(float deltaTime) {
+        _scene->simulate(deltaTime);
+        _scene->fetchResults(true);
     }
 
-    void shutdownPhysx() {
+    PhysicsSystem::~PhysicsSystem() {
 #if ENABLE_PVD
         g_pvd->disconnect();
         g_pvd->release();
         g_pvdTransport->release();
 #endif
-        g_cooking->release();
-        g_physics->release();
-        g_physFoundation->release();
+        _cooking->release();
+        _physics->release();
+        foundation->release();
     }
 
-    void setContactModCallback(void* ctx, ContactModCallback callback) {
+    void PhysicsSystem::setContactModCallback(void* ctx, ContactModCallback callback) {
         contactModCallback->setCallback(ctx, callback);
     }
 
@@ -536,7 +506,7 @@ namespace worlds {
         }
     };
 
-    bool raycast(physx::PxVec3 position, physx::PxVec3 direction, float maxDist, RaycastHitInfo* hitInfo, uint32_t excludeLayerMask) {
+    bool PhysicsSystem::raycast(glm::vec3 position, glm::vec3 direction, float maxDist, RaycastHitInfo* hitInfo, uint32_t excludeLayerMask) {
         physx::PxRaycastBuffer hitBuf;
         bool hit;
 
@@ -544,31 +514,27 @@ namespace worlds {
             RaycastFilterCallback raycastFilterCallback;
             raycastFilterCallback.excludeLayerMask = excludeLayerMask;
 
-            hit = worlds::g_scene->raycast(
-                position, direction,
+            hit = _scene->raycast(
+                glm2px(position), glm2px(direction),
                 maxDist, hitBuf,
                 PxHitFlag::eDEFAULT,
                 PxQueryFilterData(PxFilterData{}, PxQueryFlag::ePREFILTER | PxQueryFlag::eDYNAMIC | PxQueryFlag::eSTATIC),
                 &raycastFilterCallback
             );
         } else
-            hit = worlds::g_scene->raycast(position, direction, maxDist, hitBuf);
+            hit = _scene->raycast(glm2px(position), glm2px(direction), maxDist, hitBuf);
 
         if (hit && hitInfo) {
             hitInfo->normal = px2glm(hitBuf.block.normal);
             hitInfo->worldPos = px2glm(hitBuf.block.position);
             hitInfo->entity = (entt::entity)(uintptr_t)hitBuf.block.actor->userData;
-            hitInfo->distance = direction.dot(hitBuf.block.position - position);
+            hitInfo->distance = glm::dot(direction, px2glm(hitBuf.block.position) - position);
         }
 
         return hit;
     }
 
-    bool raycast(glm::vec3 position, glm::vec3 direction, float maxDist, RaycastHitInfo* hitInfo, uint32_t excludeLayer) {
-        return raycast(glm2px(position), glm2px(direction), maxDist, hitInfo, excludeLayer);
-    }
-
-    uint32_t overlapSphereMultiple(glm::vec3 origin, float radius, uint32_t maxTouchCount, uint32_t* hitEntityBuffer, uint32_t excludeLayerMask) {
+    uint32_t PhysicsSystem::overlapSphereMultiple(glm::vec3 origin, float radius, uint32_t maxTouchCount, entt::entity* hitEntityBuffer, uint32_t excludeLayerMask) {
         physx::PxOverlapHit* hitMem = (physx::PxOverlapHit*)alloca(maxTouchCount * sizeof(physx::PxOverlapHit));
         physx::PxSphereGeometry sphereGeo{ radius };
         physx::PxOverlapBuffer hit{ hitMem, maxTouchCount };
@@ -585,17 +551,17 @@ namespace worlds {
         physx::PxTransform t{ physx::PxIdentity };
         t.p = glm2px(origin);
 
-        if (!g_scene->overlap(sphereGeo, t, hit, filterData, &raycastFilterCallback)) return 0;
+        if (!_scene->overlap(sphereGeo, t, hit, filterData, &raycastFilterCallback)) return 0;
 
         for (uint32_t i = 0; i < hit.getNbTouches(); i++) {
             const physx::PxOverlapHit& overlap = hit.getTouch(i);
-            hitEntityBuffer[i] = (uint32_t)(uintptr_t)overlap.actor->userData;
+            hitEntityBuffer[i] = ptrToEnt(overlap.actor->userData);
         }
 
         return hit.getNbTouches();
     }
 
-    bool sweepSphere(glm::vec3 origin, float radius, glm::vec3 direction, float distance, RaycastHitInfo* hitInfo, uint32_t excludeLayerMask) {
+    bool PhysicsSystem::sweepSphere(glm::vec3 origin, float radius, glm::vec3 direction, float distance, RaycastHitInfo* hitInfo, uint32_t excludeLayerMask) {
         physx::PxSweepBuffer hitBuf;
         physx::PxSphereGeometry sphere{ radius };
         physx::PxTransform transform{ glm2px(origin) };
@@ -610,7 +576,7 @@ namespace worlds {
             RaycastFilterCallback raycastFilterCallback;
             raycastFilterCallback.excludeLayerMask = excludeLayerMask;
 
-            hit = worlds::g_scene->sweep(
+            hit = _scene->sweep(
                 sphere,
                 transform,
                 glm2px(direction),
@@ -621,12 +587,12 @@ namespace worlds {
                 &raycastFilterCallback
             );
         } else
-            hit = worlds::g_scene->sweep(sphere, transform, glm2px(direction), distance, hitBuf);
+            hit = _scene->sweep(sphere, transform, glm2px(direction), distance, hitBuf);
 
         if (hit && hitInfo) {
             hitInfo->normal = px2glm(hitBuf.block.normal);
             hitInfo->worldPos = px2glm(hitBuf.block.position);
-            hitInfo->entity = (entt::entity)(uintptr_t)hitBuf.block.actor->userData;
+            hitInfo->entity = ptrToEnt(hitBuf.block.actor->userData);
             hitInfo->distance = hitBuf.block.distance;
         }
 

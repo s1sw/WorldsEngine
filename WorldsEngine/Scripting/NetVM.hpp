@@ -25,7 +25,7 @@ namespace worlds {
 
     class DotNetScriptEngine {
         public:
-            DotNetScriptEngine(entt::registry& reg, EngineInterfaces interfaces);
+            DotNetScriptEngine(entt::registry& reg, const EngineInterfaces& interfaces);
             bool initialise(Editor* editor);
             void shutdown();
             void onSceneStart();
@@ -38,7 +38,7 @@ namespace worlds {
             void copyManagedComponents(entt::entity from, entt::entity to);
             void createManagedDelegate(const char* typeName, const char* methodName, void** func);
         private:
-            EngineInterfaces interfaces;
+            const EngineInterfaces& interfaces;
             entt::registry& reg;
             void onTransformDestroy(entt::registry& reg, entt::entity ent);
             void* hostHandle;

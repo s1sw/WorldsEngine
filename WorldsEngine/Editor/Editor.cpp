@@ -155,7 +155,7 @@ namespace worlds {
         randomId = pcg32_random();
     }
 
-    Editor::Editor(entt::registry& reg, EngineInterfaces interfaces)
+    Editor::Editor(entt::registry& reg, EngineInterfaces& interfaces)
         : active(true)
         , actionSearch(this, reg)
         , assetSearch(this)
@@ -169,7 +169,7 @@ namespace worlds {
         , settings()
         , interfaces(interfaces)
         , inputManager(*interfaces.inputManager) {
-        ComponentMetadataManager::setupLookup();
+        ComponentMetadataManager::setupLookup(&interfaces);
         interfaces.engine->pauseSim = true;
 
 #define ADD_EDITOR_WINDOW(type) editorWindows.add(std::make_unique<type>(interfaces, this))

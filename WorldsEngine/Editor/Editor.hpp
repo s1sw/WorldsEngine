@@ -213,7 +213,7 @@ namespace worlds {
 
     class Editor {
     public:
-        Editor(entt::registry& reg, EngineInterfaces interfaces);
+        Editor(entt::registry& reg, EngineInterfaces& interfaces);
         ~Editor();
         void select(entt::entity entity);
         void multiSelect(entt::entity entity);
@@ -260,7 +260,7 @@ namespace worlds {
         entt::entity handleOverrideEntity = entt::null;
 
         EditorSettings settings;
-        EngineInterfaces interfaces;
+        EngineInterfaces& interfaces;
         InputManager& inputManager;
         slib::List<std::unique_ptr<EditorWindow>> editorWindows;
         slib::List<EditorSceneView*> sceneViews;
