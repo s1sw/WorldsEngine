@@ -123,8 +123,9 @@ public class DroneAI : Component, IStartListener, IThinkingComponent
         Vector3 firePlayerDirection = fPointTransform.Position.DirectionTo(targetLocation);
         Vector3 playerDirection = pose.Position.DirectionTo(targetLocation);
 
-        targetLocation -= playerDirection * 5f;
-        targetLocation.y = groundHeight;
+        float oldY = targetLocation.y;
+        targetLocation -= playerDirection * 7f;
+        targetLocation.y = oldY;
 
         Quaternion targetRotation = Quaternion.SafeLookAt(firePlayerDirection);
 
@@ -289,6 +290,7 @@ public class DroneAI : Component, IStartListener, IThinkingComponent
             {
                 _target = Entity.Null;
                 _awake = false;
+                return;
             }
         }
 
@@ -312,16 +314,21 @@ public class DroneAI : Component, IStartListener, IThinkingComponent
 
         if (_navigationPath == null || !_navigationPath.Valid || targetPose.Position.DistanceTo(_pathTargetPos) > 1.5f)
         {
-            _pathTargetPos = targetPose.Position;
-            _navigationPath = NavigationSystem.FindPath(rHit.WorldHitPos, targetPose.Position);
+            Vector3 pointOnNavmesh;
+            bool success = NavigationSystem.GetClosestPoint(targetPose.Position, out pointOnNavmesh, new Vector3(7.0f, 3.0f, 7.0f));
+            _pathTargetPos = success ? pointOnNavmesh : targetPose.Position;
+            Vector3 fromPos = rHit.WorldHitPos;
+            _navigationPath = NavigationSystem.FindPath(fromPos, _pathTargetPos);
             _pathPointIdx = 0;
             targetPose.Position = _targetPosition;
         }
         else
         {
             Vector3 targetPoint = _navigationPath[_pathPointIdx];
+            Vector3 currentPointOnNM = (pose.Position - Vector3.Up * 2.0f);
+            float dist = currentPointOnNM.DistanceTo(targetPoint);
 
-            if ((pose.Position - Vector3.Up * 2.0f).DistanceTo(targetPoint) < 1.0f && _pathPointIdx < _navigationPath.NumPoints - 1)
+            if (dist < 1.0f && _pathPointIdx < _navigationPath.NumPoints - 1)
                 _pathPointIdx++;
 
             targetPose.Position = _navigationPath[_pathPointIdx] + Vector3.Up * 2.0f;
