@@ -582,6 +582,9 @@ namespace worlds {
         iplSourceSetInputs(listenerCentricSource, simFlags, &inputs);
 
         for (AttachedOneshot* oneshot : attachedOneshots) {
+            if (oneshot->phononSource == nullptr) continue;
+            if (!registry.valid(oneshot->entity)) continue;
+
             Transform& t = registry.get<Transform>(oneshot->entity);
             IPLSimulationInputs inputs{};
             inputs.flags = simFlags;
