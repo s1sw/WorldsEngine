@@ -9,6 +9,7 @@ using System.Threading;
 using ImGuiNET;
 using WorldsEngine.Math;
 using WorldsEngine.Util;
+using Game.Combat;
 
 namespace Game
 {
@@ -16,9 +17,22 @@ namespace Game
     {
         private PhysicsMaterial physicsMaterial;
 
+        private static void ContactMod(ContactModPairArray pairArray)
+        {
+            for (int i = 0; i < pairArray.Count; i++)
+            {
+                var contactSet = pairArray[i].ContactSet;
+                for (int j = 0; j < pairArray[i].ContactSet.Count; j++)
+                {
+                    contactSet.SetTargetVelocity(j, contactSet.GetTargetVelocity(j) + Vector3.Up * 2f);
+                }
+            }
+        }
+
         public void OnSceneStart()
         {
             physicsMaterial = new PhysicsMaterial(0.25f, 0.25f, 0.5f);
+            Physics.ContactModCallback = ContactMod;
         }
 
         public void OnSimulate()
@@ -45,6 +59,9 @@ namespace Game
 
                 dpa.SetPhysicsShapes(shapes);
                 dpa.AddForce(Camera.Main.Rotation.Forward * 25.0f, ForceMode.VelocityChange);
+                var idd = Registry.AddComponent<ImpactDamageDealer>(entity);
+                idd.Damage = 15.0;
+                idd.MinimumVelocity = 1.0f;
             }
         }
 

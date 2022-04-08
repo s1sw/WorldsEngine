@@ -40,6 +40,8 @@ namespace WorldsEngine
         public readonly Vector3 Normal;
     }
 
+    public delegate void ContactModCallback(ContactModPairArray pairs);
+
     public static partial class Physics
     {
         public static bool Raycast(Vector3 origin, Vector3 direction, float maxDist = float.MaxValue, PhysicsLayers excludeLayerMask = PhysicsLayers.None)
@@ -71,5 +73,33 @@ namespace WorldsEngine
 
         public static bool SweepSphere(Vector3 origin, float radius, Vector3 direction, float distance, out RaycastHit hit, PhysicsLayers excludeLayerMask = PhysicsLayers.None)
             => physics_sweepSphere(origin, radius, direction, distance, out hit, (uint)excludeLayerMask);
+
+
+        public static ContactModCallback? ContactModCallback
+        {
+            set
+            {
+                if (value == null)
+                {
+                    _callback = null;
+                    physics_setContactModCallback(IntPtr.Zero, null);
+                    return;
+                }
+
+                _callback = value;
+                physics_setContactModCallback(IntPtr.Zero, _nativeContactModCallback);
+            }
+        }
+        
+        private static ContactModCallback? _callback;
+        private static NativeContactModCallback _nativeContactModCallback = new(CallbackWrapper);
+
+        private static void CallbackWrapper(IntPtr ctx, IntPtr pairs, uint count)
+        {
+            if (_callback == null) return;
+
+            ContactModPairArray pairArray = new(pairs, count);
+            _callback(pairArray);
+        }
     }
 }

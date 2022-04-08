@@ -75,6 +75,7 @@ namespace WorldsEngine
             {
                 updateSyncContext.ClearCallbacks();
                 simulateSyncContext.ClearCallbacks();
+                Physics.ContactModCallback = null;
             };
 
             GameAssemblyManager.OnAssemblyLoad += (Assembly) =>
@@ -106,6 +107,7 @@ namespace WorldsEngine
             Justification = "Called from native C++")]
         static void OnSceneStart()
         {
+            Physics.ContactModCallback = null;
             Logger.Log("Scene started!");
 
             simulateSyncContext.ClearCallbacks();
