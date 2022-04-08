@@ -16,5 +16,13 @@ namespace worlds {
                 && point.y > min.y && point.y < max.y
                 && point.z > min.z && point.z < max.z;
         }
+
+        glm::vec3 center() {
+            return (min + max) * 0.5f;
+        }
+
+        glm::vec3 extents() {
+            return max - min;
+        }
     };
 }
