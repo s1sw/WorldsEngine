@@ -1033,7 +1033,14 @@ namespace worlds {
         ctx.debugContext.stats->numLightsInView = lightIdx;
 
         uint32_t aoBoxIdx = 0;
-        ctx.registry.view<Transform, ProxyAOComponent>().each([&](auto ent, Transform& t, ProxyAOComponent& pac) {
+        ctx.registry.sort<ProxyAOComponent>([&](const entt::entity a, const entt::entity b) {
+            const Transform& ta = ctx.registry.get<Transform>(a);
+            const Transform& tb = ctx.registry.get<Transform>(b);
+            return glm::length2(ta.position - ctx.camera.position) < glm::length2(tb.position - ctx.camera.position);
+        });
+
+        ctx.registry.view<ProxyAOComponent, Transform>().each([&](auto ent, ProxyAOComponent& pac, Transform& t) {
+            if (aoBoxIdx >= 128) return;
             glm::vec3 aabbMin{FLT_MAX};
             glm::vec3 aabbMax{-FLT_MAX};
 
@@ -1076,7 +1083,7 @@ namespace worlds {
         lightMapped->aoBoxCount = aoBoxIdx;
 
         uint32_t aoSphereIdx = 0;
-        ctx.registry.view<Transform, SphereAOProxy>().each([&](entt::entity entity, Transform& t, SphereAOProxy& sao) {
+        ctx.registry.view<SphereAOProxy, Transform>().each([&](entt::entity entity, SphereAOProxy& sao, Transform& t) {
             lightMapped->sphere[aoSphereIdx].position = t.position;
             lightMapped->sphere[aoSphereIdx].radius = sao.radius;
             lightMapped->sphereIds[aoSphereIdx] = (uint32_t)entity;
