@@ -133,20 +133,28 @@ namespace worlds {
         }
 
         bool containsAABB(glm::vec3 min, glm::vec3 max) {
+            glm::vec3 points[] = {
+                min,
+                glm::vec3(max.x, min.y, min.z),
+                glm::vec3(min.x, max.y, min.z),
+                glm::vec3(max.x, max.y, min.z),
+                glm::vec3(min.x, min.y, max.z),
+                glm::vec3(max.x, min.y, max.z),
+                glm::vec3(min.x, max.y, max.z),
+                glm::vec3(max.x, max.y, max.z)
+            };
+
             for (int i = 0; i < 6; i++) {
-                int out = 0;
+                bool inside = false;
 
-                out += planes[i].pointDistance(min) < 0.0f ? 1 : 0;
-                out += planes[i].pointDistance(glm::vec3(max.x, min.y, min.z)) < 0.0f ? 1 : 0;
-                out += planes[i].pointDistance(glm::vec3(min.x, max.y, min.z)) < 0.0f ? 1 : 0;
-                out += planes[i].pointDistance(glm::vec3(max.x, max.y, min.z)) < 0.0f ? 1 : 0;
-                out += planes[i].pointDistance(glm::vec3(min.x, min.y, max.z)) < 0.0f ? 1 : 0;
-                out += planes[i].pointDistance(glm::vec3(max.x, min.y, max.z)) < 0.0f ? 1 : 0;
-                out += planes[i].pointDistance(glm::vec3(min.x, max.y, max.z)) < 0.0f ? 1 : 0;
-                out += planes[i].pointDistance(glm::vec3(max.x, max.y, max.z)) < 0.0f ? 1 : 0;
+                for (int j = 0; j < 8; j++) {
+                    if (planes[i].pointDistance(points[j]) > 0.0f) {
+                        inside = true;
+                        break;
+                    }
+                }
 
-                if (out == 8)
-                    return false;
+                if (!inside) return false;
             }
 
             int outside[6] = { 0 };
