@@ -12,7 +12,7 @@ public class PlayerCameraSystem : ISystem
     private float lookY = 0.0f;
 
     private Entity _listenerEntity;
-    private static readonly Vector3 _toFloor = new(0.0f, -(1.8f * 0.5f) - PlayerRig.HoverDistance, 0.0f);
+    private static readonly Vector3 _toFloor = new(0.0f, -(1.85f * 0.5f), 0.0f);
 
     public void OnSceneStart()
     {
@@ -35,7 +35,7 @@ public class PlayerCameraSystem : ISystem
 
         if (!VR.Enabled)
         {
-            return bodyDpa.Pose.Position + _toFloor + new Vector3(0.0f, 1.8f, 0.0f);
+            return bodyDpa.Pose.Position + _toFloor + new Vector3(0.0f, 1.85f, 0.0f);
 
         }
         else
@@ -62,7 +62,7 @@ public class PlayerCameraSystem : ISystem
             else
             {
                 Transform bodyTransform = Registry.GetTransform(LocalPlayerSystem.PlayerBody);
-                return bodyTransform.Position + _toFloor + new Vector3(0.0f, 1.8f, 0.0f);
+                return bodyTransform.Position + _toFloor + new Vector3(0.0f, 1.85f, 0.0f);
             }
         }
     }
@@ -89,7 +89,7 @@ public class PlayerCameraSystem : ISystem
             {
                 Camera.Main.Rotation = cameraRotation;
                 Transform bodyTransform = Registry.GetTransform(LocalPlayerSystem.PlayerBody);
-                Camera.Main.Position = bodyTransform.Position + _toFloor + new Vector3(0.0f, 1.8f, 0.0f);
+                Camera.Main.Position = bodyTransform.Position + _toFloor + new Vector3(0.0f, 1.85f, 0.0f);
             }
         }
         else

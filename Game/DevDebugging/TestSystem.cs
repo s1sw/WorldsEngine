@@ -17,22 +17,9 @@ namespace Game
     {
         private PhysicsMaterial physicsMaterial;
 
-        private static void ContactMod(ContactModPairArray pairArray)
-        {
-            for (int i = 0; i < pairArray.Count; i++)
-            {
-                var contactSet = pairArray[i].ContactSet;
-                for (int j = 0; j < pairArray[i].ContactSet.Count; j++)
-                {
-                    contactSet.SetTargetVelocity(j, contactSet.GetTargetVelocity(j) + Vector3.Up * 2f);
-                }
-            }
-        }
-
         public void OnSceneStart()
         {
             physicsMaterial = new PhysicsMaterial(0.25f, 0.25f, 0.5f);
-            Physics.ContactModCallback = ContactMod;
         }
 
         public void OnSimulate()

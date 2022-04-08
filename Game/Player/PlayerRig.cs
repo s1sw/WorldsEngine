@@ -16,12 +16,8 @@ namespace Game.Player;
 [EditorFriendlyName("Player Rig")]
 public class PlayerRig : Component, IThinkingComponent, IStartListener
 {
-    public const float HoverDistance = 0.2f;
     public const float NormalMoveSpeed = 5.0f;
     public const float SprintMoveSpeed = 8.0f;
-
-    [EditableClass]
-    public V3PidController pidController = new();
 
     private bool _grounded = false;
     private bool _groundedLast = false;
@@ -34,6 +30,8 @@ public class PlayerRig : Component, IThinkingComponent, IStartListener
     private bool _peakHit = false;
     private int _lastPeakSign = 0;
     private bool _isSprinting = false;
+
+    public Vector3 CurrentMovementVector = new();
 
     private void UpdateSprintToggle()
     {
@@ -124,18 +122,16 @@ public class PlayerRig : Component, IThinkingComponent, IStartListener
 
         Vector3 centerOffset = new(0.0f, 0.0f, -0.150f);
         centerOffset = dpa.Pose.Rotation * centerOffset;
-        bool nearGround = Physics.SweepSphere(
-            dpa.Pose.Position + centerOffset + (Vector3.Down * 0.8f),
-            0.1f,
+        Vector3 ro = dpa.Pose.Position + centerOffset + (Vector3.Down * 0.9f);
+        _grounded = Physics.Raycast(
+            ro,
             Vector3.Down,
-            0.2f,
             out RaycastHit hit,
+            0.2f,
             PhysicsLayers.Player
         );
 
-        _grounded = nearGround && hit.Distance < 0.2f + HoverDistance;
-
-        Vector3 targetPosition = hit.WorldHitPos + (Vector3.Up * (1f + HoverDistance));
+        DebugShapes.DrawLine(ro, ro + Vector3.Down * 0.2f, WorldsEngine.Util.Colors.Blue);
 
         if (_grounded && LocalPlayerSystem.Jump && _timeSinceJump > 0.1f)
         {
@@ -146,21 +142,6 @@ public class PlayerRig : Component, IThinkingComponent, IStartListener
         }
 
         LocalPlayerSystem.ConsumeJump();
-
-        // Add floating force if we're near the ground
-        if (_timeSinceJump > 0.3f && nearGround && hit.Distance != 0f)
-        {
-            Vector3 force = pidController.CalculateForce(targetPosition - dpa.Pose.Position, Time.DeltaTime);
-            force.x = 0.0f;
-            force.z = 0.0f;
-            //LocalPlayerSystem.AddForceToRig(force, ForceMode.Force);
-            dpa.AddForce(force);
-
-            if (Registry.TryGetComponent<DynamicPhysicsActor>(hit.HitEntity, out DynamicPhysicsActor standingOnDpa))
-            {
-                standingOnDpa.AddForceAtPosition(dpa.Mass * 9.81f * Vector3.Down, hit.WorldHitPos);
-            }
-        }
 
         if (!_grounded && _groundedLast)
             _airTime = 0.0f;
@@ -175,7 +156,12 @@ public class PlayerRig : Component, IThinkingComponent, IStartListener
 
         if (_grounded || targetVelocity.LengthSquared > 0.01f)
         {
-            LocalPlayerSystem.AddForceToRig(appliedVelocity, ForceMode.Acceleration);
+            CurrentMovementVector = targetVelocity;
+            //LocalPlayerSystem.AddForceToRig(appliedVelocity, ForceMode.Acceleration);
+        }
+        else
+        {
+            CurrentMovementVector = Vector3.Zero;
         }
 
         // Take into account roomscale movement
@@ -221,9 +207,35 @@ public class LocalPlayerSystem : ISystem
     private static Entity _rightHandEntity;
     private static RelativePlayerTransforms? _spawnRPT = null;
 
+    private static void ContactModCallback(ContactModPairArray array)
+    {
+        PlayerRig r = PlayerBody.GetComponent<PlayerRig>();
+
+        foreach (ContactModifyPair pair in array)
+        {
+            if (!pair.InvolvesEntity(PlayerBody)) continue;
+
+            foreach (ModifiableContact contact in pair.ContactSet)
+            {
+                Vector3 normal = pair.EntityB == PlayerBody ? -contact.Normal : contact.Normal;
+
+                if (normal.Dot(Vector3.Up) < 0.6f) continue;
+                var tv = contact.TargetVelocity;
+                Vector3 projected = r.CurrentMovementVector.ProjectOntoPlane(contact.Normal);
+                if (pair.EntityB == PlayerBody) projected *= -1f;
+                tv += projected;
+
+                contact.DynamicFriction = 3f;
+                contact.StaticFriction = 3f;
+                contact.TargetVelocity = tv;
+            }
+        }
+    }
+
     private void SpawnPlayer()
     {
         if (Registry.View<SpawnPoint>().Count == 0) return;
+
         if (Registry.View<SpawnPoint>().Count > 1)
         {
             Log.Warn("Multiple spawn points!!");
@@ -243,7 +255,6 @@ public class LocalPlayerSystem : ISystem
         Entity lh = Registry.CreatePrefab(AssetDB.PathToId("Prefabs/player_left_hand.wprefab"));
         Entity rh = Registry.CreatePrefab(AssetDB.PathToId("Prefabs/player_right_hand.wprefab"));
 
-        body.GetComponent<DynamicPhysicsActor>().UseContactMod = true;
 
         if (_spawnRPT == null)
         {
@@ -306,6 +317,8 @@ public class LocalPlayerSystem : ISystem
         Registry.AddComponent<WorldText>(_hpTextEntity);
         _leftHandEntity = Registry.Find("LeftHand");
         _rightHandEntity = Registry.Find("RightHand");
+        Physics.ContactModCallback = ContactModCallback;
+        PlayerBody.GetComponent<DynamicPhysicsActor>().UseContactMod = true;
     }
 
     public void OnUpdate()
