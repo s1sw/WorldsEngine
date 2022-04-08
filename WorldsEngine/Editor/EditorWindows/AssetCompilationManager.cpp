@@ -23,6 +23,7 @@ namespace worlds {
                 }
 
                 if (ImGui::Button("Compile them!")) {
+                    assetCompiler.startCompiling();
                 }
             } else  {
                 if (assetCompiler.currentOperation()) {
