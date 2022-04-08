@@ -73,6 +73,11 @@ namespace worlds {
     }
 
     entt::entity SceneLoader::createPrefab(AssetID id, entt::registry& reg) {
+        if (id == INVALID_ASSET) {
+            logWarn(WELogCategoryScripting, "Invalid asset ID!");
+            return entt::null;
+        }
+
         entt::entity ent = JsonSceneSerializer::loadEntity(id, reg);
         if (reg.valid(ent)) {
             PrefabInstanceComponent& pic = reg.emplace<PrefabInstanceComponent>(ent);
