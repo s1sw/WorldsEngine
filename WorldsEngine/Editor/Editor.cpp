@@ -825,8 +825,25 @@ namespace worlds {
                 openProject(path);
                 });
 
+            if (ImGui::BeginPopupModal("Create Project")) {
+                static slib::String projectName;
+                ImGui::InputText("Name", &projectName);
+
+                static slib::String projectPath;
+                ImGui::InputText("Path", &projectPath);
+
+                if (ImGui::Button("Create")) {
+                    ImGui::CloseCurrentPopup();
+                }
+                ImGui::EndPopup();
+            }
+
             if (ImGui::Button("Open")) {
                 ImGui::OpenPopup("Open Project");
+            }
+
+            if (ImGui::Button("Create New")) {
+                ImGui::OpenPopup("Create Project");
             }
 
             ImGui::NextColumn();
