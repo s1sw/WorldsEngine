@@ -138,6 +138,12 @@ namespace WorldsEngine.Math
 
         public Vector3 DirectionTo(Vector3 other) => (other - this).Normalized;
 
+        public Vector3 ProjectOntoPlane(Vector3 planeNormal)
+        {
+            float dp = Dot(planeNormal);
+            return this - dp * planeNormal;
+        }
+
         public override string ToString()
         {
             return $"({x:0.###}, {y:0.###}, {z:0.###})";

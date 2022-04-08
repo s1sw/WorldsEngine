@@ -174,6 +174,34 @@ extern "C" {
         contactSet->setNormal(idx, glm2px(value));
     }
 
+    EXPORT float ContactSet_getMaxImpulse(physx::PxContactSet* contactSet, int idx) {
+        return contactSet->getMaxImpulse(idx);
+    }
+
+    EXPORT void ContactSet_setMaxImpulse(physx::PxContactSet* contactSet, int idx, float val) {
+        contactSet->setMaxImpulse(idx, val);
+    }
+
+    EXPORT float ContactSet_getDynamicFriction(physx::PxContactSet* contactSet, int idx) {
+        return contactSet->getDynamicFriction(idx);
+    }
+
+    EXPORT void ContactSet_setDynamicFriction(physx::PxContactSet* contactSet, int idx, float val) {
+        contactSet->setDynamicFriction(idx, val);
+    }
+
+    EXPORT float ContactSet_getStaticFriction(physx::PxContactSet* contactSet, int idx) {
+        return contactSet->getStaticFriction(idx);
+    }
+
+    EXPORT void ContactSet_setStaticFriction(physx::PxContactSet* contactSet, int idx, float val) {
+        contactSet->setStaticFriction(idx, val);
+    }
+
+    EXPORT void ContactSet_getPoint(physx::PxContactSet* contactSet, int idx, glm::vec3* val) {
+        *val = px2glm(contactSet->getPoint(idx));
+    }
+
     EXPORT uint32_t ContactSet_getCount(physx::PxContactSet* contactSet) {
         return contactSet->size();
     }
