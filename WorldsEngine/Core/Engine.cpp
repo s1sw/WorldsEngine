@@ -688,6 +688,7 @@ namespace worlds {
             };
 
             screenRTTPass = renderer->createRTTPass(screenRTTCI);
+            logVrb("Created screen RTT pass");
 
             delete splashWindow;
 
