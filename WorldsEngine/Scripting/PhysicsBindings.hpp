@@ -166,6 +166,14 @@ extern "C" {
         contactSet->setTargetVelocity(idx, glm2px(value));
     }
 
+    EXPORT void ContactSet_getNormal(physx::PxContactSet* contactSet, int idx, glm::vec3* value) {
+        *value = px2glm(contactSet->getNormal(idx));
+    }
+
+    EXPORT void ContactSet_setNormal(physx::PxContactSet* contactSet, int idx, glm::vec3 value) {
+        contactSet->setNormal(idx, glm2px(value));
+    }
+
     EXPORT uint32_t ContactSet_getCount(physx::PxContactSet* contactSet) {
         return contactSet->size();
     }

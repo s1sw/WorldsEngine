@@ -63,6 +63,18 @@ namespace WorldsEngine
             ContactSet_setTargetVelocity(_nativePtr, i, v);
         }
 
+        public Vector3 GetNormal(int i)
+        {
+            Vector3 v = new();
+            ContactSet_getNormal(_nativePtr, i, out v);
+            return v;
+        }
+
+        public void SetNormal(int i, Vector3 v)
+        {
+            ContactSet_setNormal(_nativePtr, i, v);
+        }
+
         internal ContactSet(IntPtr ptr)
         {
             _nativePtr = ptr;
@@ -141,6 +153,6 @@ namespace WorldsEngine
         private delegate void NativeContactModCallback(IntPtr ctx, IntPtr pairs, uint count);
 
         [DllImport(WorldsEngine.NativeModule)]
-        private static extern void physics_setContactModCallback(IntPtr ctx, NativeContactModCallback callback);
+        private static extern void physics_setContactModCallback(IntPtr ctx, NativeContactModCallback? callback);
     }
 }
