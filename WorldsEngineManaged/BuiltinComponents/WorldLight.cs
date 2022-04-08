@@ -1,9 +1,18 @@
 using System;
 using System.Runtime.InteropServices;
 using WorldsEngine.ComponentMeta;
+using WorldsEngine.Math;
 
 namespace WorldsEngine
 {
+    public enum LightType {
+        Point,
+        Spot,
+        Directional,
+        Sphere,
+        Tube
+    };
+    
     public class WorldLight : BuiltinComponent
     {
         [DllImport(WorldsEngine.NativeModule)]
@@ -19,6 +28,24 @@ namespace WorldsEngine
         [DllImport(WorldsEngine.NativeModule)]
         private static extern void worldlight_setIntensity(IntPtr registryPtr, uint entityId, float intensity);
 
+        [DllImport(WorldsEngine.NativeModule)]
+        private static extern void worldlight_setColor(IntPtr registryPtr, uint entityId, Vector3 color);
+
+        [DllImport(WorldsEngine.NativeModule)]
+        private static extern Vector3 worldlight_getColor(IntPtr registryPtr, uint entityId);
+
+        [DllImport(WorldsEngine.NativeModule)]
+        private static extern float worldlight_getRadius(IntPtr registryPtr, uint entityId);
+
+        [DllImport(WorldsEngine.NativeModule)]
+        private static extern void worldlight_setRadius(IntPtr registryPtr, uint entityId, float radius);
+
+        [DllImport(WorldsEngine.NativeModule)]
+        private static extern LightType worldlight_getType(IntPtr registryPtr, uint entityId);
+
+        [DllImport(WorldsEngine.NativeModule)]
+        private static extern void worldlight_setType(IntPtr registryPtr, uint entityId, LightType type);
+
         public bool Enabled
         {
             get => worldlight_getEnabled(regPtr, entityId);
@@ -29,6 +56,24 @@ namespace WorldsEngine
         {
             get => worldlight_getIntensity(regPtr, entityId);
             set => worldlight_setIntensity(regPtr, entityId, value);
+        }
+
+        public Vector3 Color
+        {
+            get => worldlight_getColor(regPtr, entityId);
+            set => worldlight_setColor(regPtr, entityId, value);
+        }
+
+        public float Radius
+        {
+            get => worldlight_getRadius(regPtr, entityId);
+            set => worldlight_setRadius(regPtr, entityId, value);
+        }
+
+        public LightType Type
+        {
+            get => worldlight_getType(regPtr, entityId);
+            set => worldlight_setType(regPtr, entityId, value);
         }
 
         internal static ComponentMetadata Metadata
