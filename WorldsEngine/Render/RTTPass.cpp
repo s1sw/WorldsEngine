@@ -136,6 +136,7 @@ namespace worlds {
 
         trp->setup(rCtx, descriptorPool);
         prp->setup(rCtx, descriptorPool);
+        logVrb("setup trp + prp");
 
         if (isVr) {
             trp->setRightFinalImage(renderer->rightEye);
