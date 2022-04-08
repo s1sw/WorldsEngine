@@ -17,7 +17,9 @@ namespace Game.Player;
 public class PlayerRig : Component, IThinkingComponent, IStartListener
 {
     public const float HoverDistance = 0.2f;
-    public const float MovementSpeed = 5.0f;
+    public const float NormalMoveSpeed = 5.0f;
+    public const float SprintMoveSpeed = 8.0f;
+
     [EditableClass]
     public V3PidController pidController = new();
 
@@ -25,65 +27,39 @@ public class PlayerRig : Component, IThinkingComponent, IStartListener
     private bool _groundedLast = false;
     private Vector3 _lastHMDPos = Vector3.Zero;
     private float _footstepTimer = 0.0f;
-    private float _timeSinceDodge = 1000.0f;
     private float _timeSinceJump = 0.0f;
     private float _airTime = 0.0f;
-    private Vector3 _lastDodgeDirection = Vector3.Zero;
 
     private float _timeSinceLastPeak = 0f;
     private bool _peakHit = false;
     private int _lastPeakSign = 0;
+    private bool _isSprinting = false;
 
-    private void UpdateDodge()
+    private void UpdateSprintToggle()
     {
-        var dpa = Entity.GetComponent<DynamicPhysicsActor>();
-
-        _timeSinceDodge += Time.DeltaTime;
         _timeSinceLastPeak += Time.DeltaTime;
 
         Vector2 inputVel = LocalPlayerSystem.MovementInput;
-        if (_timeSinceDodge > 0.5f)
+        if (MathF.Abs(inputVel.y) > 0.5f)
         {
-            if (Keyboard.KeyPressed(KeyCode.NumberRow1))
+            int peakSign = MathF.Sign(inputVel.y);
+            if (_timeSinceLastPeak > 0.1f)
             {
-                Vector3 dodgeDir = Camera.Main.Rotation * Vector3.Left;
-                _lastDodgeDirection = dodgeDir;
-                LocalPlayerSystem.AddForceToRig(Camera.Main.Rotation * Vector3.Left * 15f, ForceMode.VelocityChange);
-                _timeSinceDodge = 0.0f;
+                // we hit a peak!
+                _peakHit = true;
+                _lastPeakSign = MathF.Sign(inputVel.y);
             }
+            else if (!_peakHit && _lastPeakSign == peakSign)
+            {
+                _isSprinting = true;
+            }
+        }
 
-            if (Keyboard.KeyPressed(KeyCode.NumberRow2))
-            {
-                Vector3 dodgeDir = Camera.Main.Rotation * Vector3.Right;
-                _lastDodgeDirection = dodgeDir;
-                LocalPlayerSystem.AddForceToRig(Camera.Main.Rotation * Vector3.Right * 15f, ForceMode.VelocityChange);
-                _timeSinceDodge = 0.0f;
-            }
-
-            if (MathF.Abs(inputVel.x) > 0.5f)
-            {
-                int peakSign = MathF.Sign(inputVel.x);
-                if (_timeSinceLastPeak > 0.2f)
-                {
-                    // we hit a peak!
-                    _peakHit = true;
-                    _lastPeakSign = MathF.Sign(inputVel.x);
-                }
-                else if (!_peakHit && _lastPeakSign == peakSign)
-                {
-                    // dodge time
-                    Vector3 dodgeDir = dpa.Pose.Rotation * (inputVel.x < 0f ? Vector3.Right : Vector3.Left);
-                    _lastDodgeDirection = dodgeDir;
-                    LocalPlayerSystem.AddForceToRig(dodgeDir * 15f, ForceMode.VelocityChange);
-                    _timeSinceDodge = 0.0f;
-                }
-            }
-
-            if (MathF.Abs(inputVel.x) < 0.1f && _peakHit)
-            {
-                _peakHit = false;
-                _timeSinceLastPeak = 0f;
-            }
+        if (MathF.Abs(inputVel.y) < 0.1f && _peakHit)
+        {
+            _peakHit = false;
+            _timeSinceLastPeak = 0f;
+            _isSprinting = false;
         }
     }
 
@@ -96,8 +72,8 @@ public class PlayerRig : Component, IThinkingComponent, IStartListener
 
         if (inputDirCS.LengthSquared > 0.0f && _grounded)
         {
-            _footstepTimer += Time.DeltaTime * 2f * inputDirCS.Length;
-            if (_footstepTimer >= 0.75f)
+            _footstepTimer += Time.DeltaTime * inputDirCS.Length;
+            if (_footstepTimer >= 0.45f)
             {
                 Audio.PlayOneShotEvent("event:/Player/Walking", Vector3.Zero);
                 _footstepTimer = 0f;
@@ -192,14 +168,10 @@ public class PlayerRig : Component, IThinkingComponent, IStartListener
         if (!_grounded)
             _airTime += Time.DeltaTime;
 
-        Vector3 targetVelocity = inputDirCS * MovementSpeed * max;
+        float moveSpeed = _isSprinting ? SprintMoveSpeed : NormalMoveSpeed;
+        Vector3 targetVelocity = inputDirCS * moveSpeed * max;
         Vector3 appliedVelocity = (targetVelocity - dpa.Velocity) * (_grounded ? 10f : 2.5f);
         appliedVelocity.y = 0.0f;
-
-        if (_timeSinceDodge < 0.1f)
-        {
-            appliedVelocity -= _lastDodgeDirection * Vector3.Dot(appliedVelocity, _lastDodgeDirection) * (1.0f - (_timeSinceDodge * 10f));
-        }
 
         if (_grounded || targetVelocity.LengthSquared > 0.01f)
         {
@@ -218,8 +190,8 @@ public class PlayerRig : Component, IThinkingComponent, IStartListener
             _lastHMDPos = VRTransforms.HMDTransform.Position;
         }
 
-        UpdateSound(inputDir * max);
-        UpdateDodge();
+        UpdateSound(inputDir * max * (moveSpeed / NormalMoveSpeed));
+        UpdateSprintToggle();
 
         _groundedLast = _grounded;
         _timeSinceJump += Time.DeltaTime;
@@ -270,6 +242,8 @@ public class LocalPlayerSystem : ISystem
         Entity body = Registry.CreatePrefab(AssetDB.PathToId("Prefabs/player_body.wprefab"));
         Entity lh = Registry.CreatePrefab(AssetDB.PathToId("Prefabs/player_left_hand.wprefab"));
         Entity rh = Registry.CreatePrefab(AssetDB.PathToId("Prefabs/player_right_hand.wprefab"));
+
+        body.GetComponent<DynamicPhysicsActor>().UseContactMod = true;
 
         if (_spawnRPT == null)
         {
