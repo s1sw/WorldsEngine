@@ -260,7 +260,7 @@ namespace worlds {
 
     void PolyRenderPass::updateDescriptorSets(RenderContext& ctx) {
         ZoneScoped;
-        vku::DescriptorSetUpdater updater(10 * descriptorSets.size(), 128 * descriptorSets.size(), 0);
+        vku::DescriptorSetUpdater updater(10 * descriptorSets.size(), 200 * descriptorSets.size(), 0);
 
         for (size_t i = 0; i < descriptorSets.size(); i++) {
             updateDescriptorSet(ctx, i, updater);
@@ -692,11 +692,28 @@ namespace worlds {
                     return;
                 }
 
-                glm::vec3 mi = t.transformPoint(meshPos->second.aabbMin * t.scale);
-                glm::vec3 ma = t.transformPoint(meshPos->second.aabbMax * t.scale);
+                glm::vec3 aabbMin{FLT_MAX};
+                glm::vec3 aabbMax{-FLT_MAX};
 
-                glm::vec3 aabbMin = glm::min(mi, ma);
-                glm::vec3 aabbMax = glm::max(mi, ma);
+                glm::vec3 mi = meshPos->second.aabbMin * t.scale;
+                glm::vec3 ma = meshPos->second.aabbMax * t.scale;
+
+                glm::vec3 points[] = {
+                    mi,
+                    glm::vec3(ma.x, mi.y, mi.z),
+                    glm::vec3(mi.x, ma.y, mi.z),
+                    glm::vec3(ma.x, ma.y, mi.z),
+                    glm::vec3(mi.x, mi.y, ma.z),
+                    glm::vec3(ma.x, mi.y, ma.z),
+                    glm::vec3(mi.x, ma.y, ma.z),
+                    glm::vec3(ma.x, ma.y, ma.z)
+                };
+
+                for (int i = 0; i < 8; i++) {
+                    glm::vec3 p = t.transformPoint(points[i]);
+                    aabbMin = glm::min(aabbMin, p);
+                    aabbMax = glm::max(aabbMax, p);
+                }
 
                 if (!frustum.containsAABB(aabbMin, aabbMax)) {
                     ctx.debugContext.stats->numCulledObjs++;
@@ -1017,16 +1034,33 @@ namespace worlds {
 
         uint32_t aoBoxIdx = 0;
         ctx.registry.view<Transform, ProxyAOComponent>().each([&](auto ent, Transform& t, ProxyAOComponent& pac) {
-            glm::vec3 p0 = t.transformPoint(pac.bounds);
-            glm::vec3 p1 = t.transformPoint(-pac.bounds);
+            glm::vec3 aabbMin{FLT_MAX};
+            glm::vec3 aabbMax{-FLT_MAX};
 
-            glm::vec3 mi = glm::min(p0, p1);
-            glm::vec3 ma = glm::max(p0, p1);
+            glm::vec3 mi = -pac.bounds;
+            glm::vec3 ma = pac.bounds;
+
+            glm::vec3 points[] = {
+                mi,
+                glm::vec3(ma.x, mi.y, mi.z),
+                glm::vec3(mi.x, ma.y, mi.z),
+                glm::vec3(ma.x, ma.y, mi.z),
+                glm::vec3(mi.x, mi.y, ma.z),
+                glm::vec3(ma.x, mi.y, ma.z),
+                glm::vec3(mi.x, ma.y, ma.z),
+                glm::vec3(ma.x, ma.y, ma.z)
+            };
+
+            for (int i = 0; i < 8; i++) {
+                glm::vec3 p = t.transformPoint(points[i]);
+                aabbMin = glm::min(aabbMin, p);
+                aabbMax = glm::max(aabbMax, p);
+            }
 
             if (ctx.passSettings.enableVr) {
-                if (!frustum.containsAABB(mi, ma) && !frustumB.containsAABB(mi, ma)) return;
+                if (!frustum.containsAABB(aabbMin, aabbMax) && !frustumB.containsAABB(aabbMin, aabbMax)) return;
             } else {
-                if (!frustum.containsAABB(mi, ma)) return;
+                if (!frustum.containsAABB(aabbMin, aabbMax)) return;
             }
 
             Transform ct = t;
