@@ -242,7 +242,7 @@ namespace worlds {
             data.word1 = pa.useContactMod;
             shape->setSimulationFilterData(data);
             shape->setQueryFilterData(data);
-            shape->setContactOffset(0.00001f);
+            shape->setContactOffset(pa.contactOffset);
 
             pa.actor->attachShape(*shape);
             shape->release();

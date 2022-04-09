@@ -141,4 +141,12 @@ extern "C" {
     EXPORT void dynamicpa_setUseContactMod(entt::registry* reg, entt::entity entity, bool useContactMod) {
         reg->get<DynamicPhysicsActor>(entity).useContactMod = useContactMod;
     }
+
+    EXPORT float dynamicpa_getContactOffset(entt::registry* reg, entt::entity entity) {
+        return reg->get<DynamicPhysicsActor>(entity).contactOffset;
+    }
+
+    EXPORT void dynamicpa_setContactOffset(entt::registry* reg, entt::entity entity, float value) {
+        reg->get<DynamicPhysicsActor>(entity).contactOffset = value;
+    }
 }

@@ -96,6 +96,12 @@ namespace WorldsEngine
         [DllImport(WorldsEngine.NativeModule)]
         private static extern void dynamicpa_setUseContactMod(IntPtr reg, uint entity, [MarshalAs(UnmanagedType.I1)] bool useContactMod);
 
+        [DllImport(WorldsEngine.NativeModule)]
+        private static extern float dynamicpa_getContactOffset(IntPtr reg, uint entity);
+
+        [DllImport(WorldsEngine.NativeModule)]
+        private static extern void dynamicpa_setContactOffset(IntPtr reg, uint entity, float val);
+
         internal static ComponentMetadata Metadata
         {
             get
@@ -213,6 +219,17 @@ namespace WorldsEngine
             set
             {
                 dynamicpa_setUseContactMod(regPtr, entityId, value);
+                ForceShapeUpdate();
+            }
+        }
+
+        public float ContactOffset
+        {
+            get => dynamicpa_getContactOffset(regPtr, entityId);
+
+            set
+            {
+                dynamicpa_setContactOffset(regPtr, entityId, value);
                 ForceShapeUpdate();
             }
         }
