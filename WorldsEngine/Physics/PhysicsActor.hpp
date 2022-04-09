@@ -88,6 +88,7 @@ namespace worlds {
         bool scaleShapes = true;
         uint32_t layer = 1;
         bool useContactMod = false;
+        float contactOffset = 0.0005f;
     };
 
     enum class ForceMode : int32_t {
@@ -120,6 +121,7 @@ namespace worlds {
         bool scaleShapes = true;
         uint32_t layer = 1;
         bool useContactMod = false;
+        float contactOffset = 0.01f;
 
         glm::vec3 linearVelocity() const;
         glm::vec3 angularVelocity() const;
