@@ -38,10 +38,10 @@ public class PlayerRig : Component, IThinkingComponent, IStartListener
         _timeSinceLastPeak += Time.DeltaTime;
 
         Vector2 inputVel = LocalPlayerSystem.MovementInput;
-        if (MathF.Abs(inputVel.y) > 0.5f)
+        if (MathF.Abs(inputVel.y) > 0.2f)
         {
             int peakSign = MathF.Sign(inputVel.y);
-            if (_timeSinceLastPeak > 0.1f)
+            if (_timeSinceLastPeak > 0.2f)
             {
                 // we hit a peak!
                 _peakHit = true;
@@ -131,12 +131,10 @@ public class PlayerRig : Component, IThinkingComponent, IStartListener
             PhysicsLayers.Player
         );
 
-        DebugShapes.DrawLine(ro, ro + Vector3.Down * 0.2f, WorldsEngine.Util.Colors.Blue);
-
         if (_grounded && LocalPlayerSystem.Jump && _timeSinceJump > 0.1f)
         {
             Vector3 velChange = (dpa.Velocity * new Vector3(0.0f, -1.0f, 0.0f)) + Vector3.Up * 4.0f;
-            LocalPlayerSystem.AddForceToRig(velChange, ForceMode.VelocityChange);
+            LocalPlayerSystem.PlayerBody.GetComponent<DynamicPhysicsActor>().AddForce(velChange, ForceMode.VelocityChange);
             _timeSinceJump = 0.0f;
             Audio.PlayOneShotEvent("event:/Player/Jump", Vector3.Zero);
         }
@@ -151,13 +149,13 @@ public class PlayerRig : Component, IThinkingComponent, IStartListener
 
         float moveSpeed = _isSprinting ? SprintMoveSpeed : NormalMoveSpeed;
         Vector3 targetVelocity = inputDirCS * moveSpeed * max;
-        Vector3 appliedVelocity = (targetVelocity - dpa.Velocity) * (_grounded ? 10f : 2.5f);
+        Vector3 appliedVelocity = (targetVelocity - dpa.Velocity) * (_grounded ? 20f : 0f);
         appliedVelocity.y = 0.0f;
 
         if (_grounded || targetVelocity.LengthSquared > 0.01f)
         {
             CurrentMovementVector = targetVelocity;
-            //LocalPlayerSystem.AddForceToRig(appliedVelocity, ForceMode.Acceleration);
+            //LocalPlayerSystem.AddForceToRig(appliedVelocity, ForceMode.Acceleration, false);
         }
         else
         {
@@ -225,8 +223,8 @@ public class LocalPlayerSystem : ISystem
                 if (pair.EntityB == PlayerBody) projected *= -1f;
                 tv += projected;
 
-                contact.DynamicFriction = 3f;
-                contact.StaticFriction = 3f;
+                contact.DynamicFriction = 50f;
+                contact.StaticFriction = 50f;
                 contact.TargetVelocity = tv;
             }
         }
@@ -318,7 +316,10 @@ public class LocalPlayerSystem : ISystem
         _leftHandEntity = Registry.Find("LeftHand");
         _rightHandEntity = Registry.Find("RightHand");
         Physics.ContactModCallback = ContactModCallback;
-        PlayerBody.GetComponent<DynamicPhysicsActor>().UseContactMod = true;
+
+        var bodyDpa = PlayerBody.GetComponent<DynamicPhysicsActor>();
+        bodyDpa.UseContactMod = true;
+        bodyDpa.ContactOffset = 0.00001f;
     }
 
     public void OnUpdate()
@@ -352,76 +353,6 @@ public class LocalPlayerSystem : ISystem
         MovementInput = GetInputVelocity();
     }
 
-    public static void AddForceToRig(Vector3 force, ForceMode mode = ForceMode.Force)
-    {
-        var bodyDpa = Registry.GetComponent<DynamicPhysicsActor>(PlayerBody);
-        var lhDpa = Registry.GetComponent<DynamicPhysicsActor>(_leftHandEntity);
-        var rhDpa = Registry.GetComponent<DynamicPhysicsActor>(_rightHandEntity);
-        var lhHg = _leftHandEntity.GetComponent<HandGrab>();
-        var rhHg = _rightHandEntity.GetComponent<HandGrab>();
-
-        bodyDpa.AddForce(force, mode);
-        if (mode == ForceMode.Force || mode == ForceMode.Impulse)
-        {
-            force /= bodyDpa.Mass;
-        }
-
-        switch (mode)
-        {
-            case ForceMode.Force:
-                lhDpa.AddForce(force, ForceMode.Acceleration);
-                rhDpa.AddForce(force, ForceMode.Acceleration);
-
-                if (!lhHg.GrippedEntity.IsNull && lhHg.GrippedEntity.HasComponent<DynamicPhysicsActor>())
-                {
-                    var grabbedDpa = lhHg.GrippedEntity.GetComponent<DynamicPhysicsActor>();
-                    grabbedDpa.AddForce(force, ForceMode.Acceleration);
-                }
-
-                if (!rhHg.GrippedEntity.IsNull && rhHg.GrippedEntity.HasComponent<DynamicPhysicsActor>())
-                {
-                    var grabbedDpa = rhHg.GrippedEntity.GetComponent<DynamicPhysicsActor>();
-                    grabbedDpa.AddForce(force, ForceMode.Acceleration);
-                }
-                break;
-            case ForceMode.Impulse:
-                lhDpa.AddForce(force, ForceMode.VelocityChange);
-                rhDpa.AddForce(force, ForceMode.VelocityChange);
-
-                if (!lhHg.GrippedEntity.IsNull && lhHg.GrippedEntity.HasComponent<DynamicPhysicsActor>())
-                {
-                    var grabbedDpa = lhHg.GrippedEntity.GetComponent<DynamicPhysicsActor>();
-                    grabbedDpa.AddForce(force, ForceMode.VelocityChange);
-                }
-
-                if (!rhHg.GrippedEntity.IsNull && rhHg.GrippedEntity.HasComponent<DynamicPhysicsActor>())
-                {
-                    var grabbedDpa = rhHg.GrippedEntity.GetComponent<DynamicPhysicsActor>();
-                    grabbedDpa.AddForce(force, ForceMode.VelocityChange);
-                }
-                break;
-            case ForceMode.VelocityChange:
-            case ForceMode.Acceleration:
-                lhDpa.AddForce(force, mode);
-                rhDpa.AddForce(force, mode);
-
-                if (!lhHg.GrippedEntity.IsNull && lhHg.GrippedEntity.HasComponent<DynamicPhysicsActor>())
-                {
-                    var grabbedDpa = lhHg.GrippedEntity.GetComponent<DynamicPhysicsActor>();
-                    if (grabbedDpa.Mass < 10f)
-                        grabbedDpa.AddForce(force, mode);
-                }
-
-                if (!rhHg.GrippedEntity.IsNull && rhHg.GrippedEntity.HasComponent<DynamicPhysicsActor>())
-                {
-                    var grabbedDpa = rhHg.GrippedEntity.GetComponent<DynamicPhysicsActor>();
-                    if (grabbedDpa.Mass < 10f)
-                        grabbedDpa.AddForce(force, mode);
-                }
-                break;
-        }
-    }
-
     public static void ConsumeJump()
     {
         Jump = false;
@@ -429,7 +360,7 @@ public class LocalPlayerSystem : ISystem
 
     private Vector2 GetInputVelocity()
     {
-        if (FreecamSystem.Enabled) return Vector2.Zero;
+        //if (FreecamSystem.Enabled) return Vector2.Zero;
         Vector2 inputVel = new(-Controller.DeadzonedAxisValue(ControllerAxis.LeftX), -Controller.DeadzonedAxisValue(ControllerAxis.LeftY));
 
         if (Keyboard.KeyHeld(KeyCode.W))

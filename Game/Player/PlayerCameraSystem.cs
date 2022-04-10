@@ -5,7 +5,7 @@ using WorldsEngine.Input;
 
 namespace Game.Player;
 
-[SystemUpdateOrder(-1)]
+[SystemUpdateOrder(10)]
 public class PlayerCameraSystem : ISystem
 {
     private float lookX = 0.0f;
@@ -35,15 +35,14 @@ public class PlayerCameraSystem : ISystem
 
         if (!VR.Enabled)
         {
-            return bodyDpa.Pose.Position + _toFloor + new Vector3(0.0f, 1.85f, 0.0f);
-
+            return (bodyDpa.Pose.Position) + _toFloor + new Vector3(0.0f, 1.85f, 0.0f);
         }
         else
         {
             Vector3 hmdOffset = VRTransforms.HMDTransform.Position;
             hmdOffset.y = 0.0f;
 
-            return bodyDpa.Pose.Position + LocalPlayerSystem.VirtualRotation * (-hmdOffset) + _toFloor;
+            return bodyDpa.Pose.Position + bodyDpa.Velocity * Time.DeltaTime + LocalPlayerSystem.VirtualRotation * (-hmdOffset) + _toFloor;
         }
     }
 
@@ -65,6 +64,18 @@ public class PlayerCameraSystem : ISystem
                 return bodyTransform.Position + _toFloor + new Vector3(0.0f, 1.85f, 0.0f);
             }
         }
+    }
+
+    // lol
+    // Manually interpolate the camera position to add an extra frame of latency
+    // so it fits with everything else that calculates its position a frame off
+    private static Vector3 _lastLastBodyPos = Vector3.Zero;
+    private static Vector3 _lastBodyPos = Vector3.Zero;
+
+    public void OnSimulate()
+    {
+        _lastLastBodyPos = _lastBodyPos;
+        _lastBodyPos = LocalPlayerSystem.PlayerBody.Transform.Position;
     }
 
     public void OnUpdate()
@@ -89,7 +100,8 @@ public class PlayerCameraSystem : ISystem
             {
                 Camera.Main.Rotation = cameraRotation;
                 Transform bodyTransform = Registry.GetTransform(LocalPlayerSystem.PlayerBody);
-                Camera.Main.Position = bodyTransform.Position + _toFloor + new Vector3(0.0f, 1.85f, 0.0f);
+                Vector3 manualBpos = Vector3.Lerp(_lastLastBodyPos, _lastBodyPos, Time.InterpolationAlpha);
+                Camera.Main.Position = _lastBodyPos + _toFloor + new Vector3(0.0f, 1.85f, 0.0f);
             }
         }
         else
