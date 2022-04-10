@@ -35,12 +35,15 @@ namespace Game
             if (Keyboard.KeyHeld(KeyCode.D))
                 direction.x -= 1.0f;
 
-            float speed = 3.0f;
+            float speed = 5.0f;
 
             if (Keyboard.KeyHeld(KeyCode.LeftShift))
             {
                 speed *= 2.0f;
             }
+
+            if (Keyboard.KeyHeld(KeyCode.LeftAlt))
+                speed = 0.0f;
 
             lookX += Mouse.PositionDelta.x * 0.005f;
             lookY += Mouse.PositionDelta.y * 0.005f;
