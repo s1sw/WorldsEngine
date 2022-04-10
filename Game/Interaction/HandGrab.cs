@@ -55,6 +55,12 @@ public class HandGrab : Component
 
         if (!GrippedEntity.IsNull)
         {
+            if (!Registry.Valid(GrippedEntity))
+            {
+                GrippedEntity = Entity.Null;
+                return;
+            }
+
             var grabbable = Registry.GetComponent<Grabbable>(GrippedEntity);
 
             if (!VR.Enabled)
