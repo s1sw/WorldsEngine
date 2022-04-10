@@ -29,7 +29,7 @@ namespace worlds {
             bool initialise(Editor* editor);
             void shutdown();
             void onSceneStart();
-            void onUpdate(float deltaTime);
+            void onUpdate(float deltaTime, float interpAlpha);
             void onEditorUpdate(float deltaTime);
             void onSimulate(float deltaTime);
             void handleCollision(entt::entity entity, PhysicsContactInfo* contactInfo);
@@ -44,7 +44,7 @@ namespace worlds {
             void* hostHandle;
             unsigned int domainId;
             DotNetFunctionPtrs netFuncs;
-            void(*updateFunc)(float deltaTime);
+            void(*updateFunc)(float deltaTime, float interpAlpha);
             void(*simulateFunc)(float deltaTime);
             void(*editorUpdateFunc)(float deltaTime);
             void(*nativeEntityDestroyFunc)(uint32_t id);

@@ -11,5 +11,6 @@ namespace WorldsEngine
         public static float DeltaTime { get; internal set; }
 
         public static double CurrentTime { get; internal set; }
+        public static float InterpolationAlpha { get; internal set; }
     }
 }
