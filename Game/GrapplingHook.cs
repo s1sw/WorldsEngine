@@ -55,7 +55,7 @@ class GrapplingHook : Component, IThinkingComponent, IStartListener
 
             Vector3 targetPosActual = _grapplingDynamic ? Registry.GetTransform(_grapplingEntity).TransformPoint(_targetPos) : _targetPos;
             Vector3 forceDir = (targetPosActual - pos).Normalized;
-            LocalPlayerSystem.AddForceToRig(forceDir * forceMagnitude);
+            LocalPlayerSystem.PlayerBody.GetComponent<DynamicPhysicsActor>().AddForce(forceDir * forceMagnitude);
 
             if (_grapplingDynamic)
             {

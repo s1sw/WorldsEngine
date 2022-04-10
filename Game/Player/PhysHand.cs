@@ -12,7 +12,7 @@ namespace Game.Player;
 
 [Component]
 [EditorFriendlyName("Physics Hand")]
-class PhysHand : Component, IThinkingComponent, IStartListener
+class PhysHand : Component, IThinkingComponent, IStartListener, IUpdateableComponent
 {
     static Vector3 _nonVROffset = new Vector3(0.125f, -0.2f, 0.55f);
     const float TorqueLimit = 15f;
@@ -20,7 +20,8 @@ class PhysHand : Component, IThinkingComponent, IStartListener
     private Quaternion rotationOffset = Quaternion.Identity;
 
     [EditableClass]
-    public StablePD PD = new StablePD();
+    public V3PidController PD = new();
+
     [EditableClass]
     public V3PidController RotationPID = new V3PidController();
     public bool FollowRightHand = false;
@@ -61,39 +62,39 @@ class PhysHand : Component, IThinkingComponent, IStartListener
 #endif
     }
 
+    private Vector3 lastAppliedVel = Vector3.Zero;
+
     public void Think()
     {
-        SetTargets();
         var bodyDpa = Registry.GetComponent<DynamicPhysicsActor>(LocalPlayerSystem.PlayerBody);
-
-        if (Keyboard.KeyPressed(KeyCode.T))
-            _moveToCenter = !_moveToCenter;
-
-#if DEBUG_HAND_VIS
-            _targetTransform.Scale = Vector3.One;
-            Registry.SetTransform(_visEntity, _targetTransform);
-#endif
+        SetTargets();
 
         var dpa = Registry.GetComponent<DynamicPhysicsActor>(Entity);
         Transform pose = dpa.Pose;
 
-        Vector3 force = PD.CalculateForce(pose.Position, _targetTransform.Position + (bodyDpa.Velocity * Time.DeltaTime), dpa.Velocity, Time.DeltaTime, bodyDpa.Velocity);
+        var rig = Registry.GetComponent<PlayerRig>(LocalPlayerSystem.PlayerBody);
+
+        Vector3 velDiff = bodyDpa.Velocity;
+        dpa.AddForce(velDiff - lastAppliedVel, ForceMode.VelocityChange);
+        lastAppliedVel = velDiff;
+
+#if DEBUG_HAND_VIS
+        _targetTransform.Scale = Vector3.One;
+        Registry.SetTransform(_visEntity, _targetTransform);
+#endif
+
+        //Vector3 force = PD.CalculateForce(pose.TransformByInverse(fakePose).Position + velDiff * Time.DeltaTime, _targetTransform.Position, dpa.Velocity - velDiff, Time.DeltaTime, Vector3.Zero);
+        Vector3 force = PD.CalculateForce(_targetTransform.Position - pose.Position - velDiff * Time.DeltaTime, Time.DeltaTime, Vector3.Zero);
 
         if (!DisableForces)
         {
             dpa.AddForce(force);
-            var handGrab = Entity.GetComponent<HandGrab>();
-            if (!handGrab.GrippedEntity.IsNull)
-            {
-                if (handGrab.GrippedEntity.HasComponent<PhysicsActor>() || handGrab.GrippedEntity.GetComponent<DynamicPhysicsActor>().Mass > 20.0f)
-                {
-                    bodyDpa.AddForce(-force);
-                }
-            }
+            bodyDpa.AddForce(-force);
         }
 
+        Quaternion relativeRotation = pose.Rotation;
         Quaternion targetRotation = _targetTransform.Rotation;//RotationFilter.Filter(_targetTransform.Rotation, Time.DeltaTime);
-        Quaternion quatDiff = targetRotation * pose.Rotation.Inverse;
+        Quaternion quatDiff = targetRotation * relativeRotation.Inverse;
         quatDiff = quatDiff.Normalized;
 
         float angle = PDUtil.AngleToErr(quatDiff.Angle);
@@ -162,7 +163,10 @@ class PhysHand : Component, IThinkingComponent, IStartListener
 
             Transform camT = new(PlayerCameraSystem.GetCamPosForSimulation(), Camera.Main.Rotation);
 
+            Transform fakePose = LocalPlayerSystem.PlayerBody.GetComponent<DynamicPhysicsActor>().Pose;
+            fakePose.Rotation = Quaternion.Identity;
             _targetTransform.Position = camT.TransformPoint(offset);
+            //_targetTransform = _targetTransform.TransformByInverse(fakePose);
             return;
         }
 
@@ -180,5 +184,11 @@ class PhysHand : Component, IThinkingComponent, IStartListener
         _targetTransform.Position += PlayerCameraSystem.GetCamPosForSimulation();
         _targetTransform.Rotation *= rotationOffset;
         _targetTransform.Rotation = virtualRotation * _targetTransform.Rotation;
+    }
+
+    public void Update()
+    {
+        if (Keyboard.KeyPressed(KeyCode.T))
+            _moveToCenter = !_moveToCenter;
     }
 }
