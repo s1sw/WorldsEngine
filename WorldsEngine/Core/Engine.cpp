@@ -551,17 +551,12 @@ namespace worlds {
 
                     if (registry.ctx<SceneInfo>().id != ~0u)
                         loadScene(registry.ctx<SceneInfo>().id);
-
-                    if (!enableOpenVR)
-                        console->executeCommandStr("sim_lockToRefresh 0");
                 }, "play", "play.");
 
                 console->registerCommand([&](void*, const char*) {
                     editor->active = true;
                     pauseSim = true;
                     inputManager->lockMouse(false);
-                    if (!enableOpenVR)
-                        console->executeCommandStr("sim_lockToRefresh 1");
                     addNotification("Scene paused");
                 }, "pauseAndEdit", "pause and edit.");
 
@@ -571,15 +566,11 @@ namespace worlds {
                         loadScene(registry.ctx<SceneInfo>().id);
                     pauseSim = true;
                     inputManager->lockMouse(false);
-                    if (!enableOpenVR)
-                        console->executeCommandStr("sim_lockToRefresh 1");
                 }, "reloadAndEdit", "reload and edit.");
 
                 console->registerCommand([&](void*, const char*) {
                     editor->active = false;
                     pauseSim = false;
-                    if (!enableOpenVR)
-                        console->executeCommandStr("sim_lockToRefresh 0");
                 }, "unpause", "unpause and go back to play mode.");
 
                 console->registerCommand([&](void*, const char* arg) {
@@ -859,7 +850,7 @@ namespace worlds {
                 system->update(registry, interFrameInfo.deltaTime * timeScale, interpAlpha);
 
             evtHandler->update(registry, interFrameInfo.deltaTime * timeScale, interpAlpha);
-            scriptEngine->onUpdate(interFrameInfo.deltaTime * timeScale);
+            scriptEngine->onUpdate(interFrameInfo.deltaTime * timeScale, interpAlpha);
         }
 
         if (!dedicatedServer) {
@@ -1253,7 +1244,7 @@ namespace worlds {
 
     void WorldsEngine::updateSimulation(float& interpAlpha, double deltaTime) {
         ZoneScoped;
-        if (lockSimToRefresh.getInt() || disableSimInterp.getInt()) {
+        if (lockSimToRefresh.getInt() || disableSimInterp.getInt() || (editor && editor->active)) {
             registry.view<DynamicPhysicsActor, Transform>().each([](DynamicPhysicsActor& dpa, Transform& transform) {
                 auto curr = dpa.actor->getGlobalPose();
 
@@ -1303,11 +1294,11 @@ namespace worlds {
                 // avoid spiral of death if simulation is taking too long
                 if (realTime > simStepTime.getFloat())
                     simAccumulator = 0.0;
-
-                registry.view<DynamicPhysicsActor>().each([&](auto ent, DynamicPhysicsActor& dpa) {
-                    currentState[ent] = dpa.actor->getGlobalPose();
-                });
             }
+
+            registry.view<DynamicPhysicsActor>().each([&](auto ent, DynamicPhysicsActor& dpa) {
+                currentState[ent] = dpa.actor->getGlobalPose();
+            });
 
             float alpha = simAccumulator / simStepTime.getFloat();
 
