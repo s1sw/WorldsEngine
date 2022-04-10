@@ -482,7 +482,7 @@ float getNormalLightShadowIntensity(int lightIdx) {
 
     if (coord.x > 0.0 && coord.x < 1.0 &&
             coord.y > 0.0 && coord.y < 1.0 &&
-            depth < 1.0 && depth > 0.0) {
+            shadowPos.z < 1.0 && shadowPos.z > 0.0) {
         shadowIntensity = pcf(vec3(coord, shadowPos.z), additionalShadowSampler[shadowIdx], bias);
     }
     return shadowIntensity;
