@@ -196,10 +196,10 @@ namespace worlds {
         sceneStartFunc();
     }
 
-    void DotNetScriptEngine::onUpdate(float deltaTime) {
+    void DotNetScriptEngine::onUpdate(float deltaTime, float interpAlpha) {
         ZoneScoped;
 
-        updateFunc(deltaTime);
+        updateFunc(deltaTime, interpAlpha);
     }
 
     void DotNetScriptEngine::onEditorUpdate(float deltaTime) {
