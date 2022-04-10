@@ -136,11 +136,12 @@ namespace WorldsEngine
         [UsedImplicitly]
         [SuppressMessage("CodeQuality", "IDE0051:Remove unused private members",
             Justification = "Called from native C++")]
-        static void Update(float deltaTime)
+        static void Update(float deltaTime, float interpAlpha)
         {
             HotloadManager.ReloadIfNecessary();
             SynchronizationContext.SetSynchronizationContext(updateSyncContext);
             Time.DeltaTime = deltaTime;
+            Time.InterpolationAlpha = interpAlpha;
             Time.CurrentTime = _updateTime;
 
             try
