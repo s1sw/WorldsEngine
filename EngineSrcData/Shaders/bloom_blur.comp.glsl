@@ -113,6 +113,20 @@ vec4 downsample13(vec2 uv, vec2 resolution) {
     return final;
 }
 
+vec4 downsample4(vec2 uv, vec2 resolution) {
+    vec2 texelSize = 1.0 / resolution;
+
+    vec4 final =
+        samp(uv + vec2(1.0, 1.0) * texelSize) +
+        samp(uv + vec2(1.0, -1.0) * texelSize) +
+        samp(uv + vec2(-1.0, -1.0) * texelSize) +
+        samp(uv + vec2(-1.0, 1.0) * texelSize);
+    
+    final *= 0.25;
+
+    return final;
+}
+
 vec4 tent(vec2 uv, vec2 resolution) {
     const float radius = 1.0;
     vec2 xOffset = vec2(1.0 / resolution.x, 0.0) * radius;
@@ -137,6 +151,23 @@ vec4 tent(vec2 uv, vec2 resolution) {
     return color;
 }
 
+vec4 upsampleLq(vec2 uv, vec2 resolution) {
+    const float radius = 1.0;
+    vec2 offset = 0.5 / resolution;
+    vec4 color = vec4(0.0);
+
+    color += samp(uv + vec2(1.0, 1.0) * offset);
+    color += samp(uv + vec2(-1.0, 1.0) * offset);
+    color += samp(uv + vec2(-1.0, -1.0) * offset);
+    color += samp(uv + vec2(1.0, -1.0) * offset);
+    
+    color /= 4.0;
+
+    return color;
+}
+
+//#define LOW_QUALITY
+
 void main() {
     uvec2 resolution = imageSize(outputTexture).xy;
     vec2 uv = (vec2(gl_GlobalInvocationID.xy) + 0.5) / vec2(resolution);
@@ -144,10 +175,18 @@ void main() {
 #ifndef SEED
     vec4 blurred = vec4(0.0);
 #ifndef UPSAMPLE
+#ifdef LOW_QUALITY
+    blurred = downsample4(uv, resolution);
+#else
     blurred = downsample13(uv, resolution);
+#endif
 #else
     vec4 orig = textureLod(inputTexture, uv, inputMipLevel - 1);
+#ifdef LOW_QUALITY
+    blurred = upsampleLq(uv, resolution);
+#else
     blurred = tent(uv, resolution);
+#endif
     //if (length(blurred) < 1.1) blurred = orig;
     blurred = mix(orig, blurred, 0.5);
     //blurred += orig;
