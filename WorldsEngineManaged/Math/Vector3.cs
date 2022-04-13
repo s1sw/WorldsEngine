@@ -24,6 +24,7 @@ namespace WorldsEngine.Math
 
         public float ComponentSum => x + y + z;
         public float ComponentMean => (x + y + z) / 3.0f;
+        public float ComponentMax => MathF.Max(x, MathF.Max(y, z));
 
         public float Length => MathF.Sqrt(LengthSquared);
 
