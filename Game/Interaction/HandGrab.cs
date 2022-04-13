@@ -20,6 +20,9 @@ public class HandGrab : Component
 
     public Grip CurrentGrip { get; private set; } = null;
 
+    public static event Action<Entity, AttachedHandFlags> OnGrabEntity;
+    public static event Action<Entity, AttachedHandFlags> OnReleaseEntity;
+
     private VRAction _grabAction;
     private VRAction _triggerAction;
     private bool _bringingTowards = false;
@@ -57,7 +60,7 @@ public class HandGrab : Component
         {
             if (!Registry.Valid(GrippedEntity))
             {
-                GrippedEntity = Entity.Null;
+                Release();
                 return;
             }
 
@@ -198,6 +201,7 @@ public class HandGrab : Component
 
     private void Grab(Entity grab)
     {
+        if (_bringingTowards) return;
         Grabbable grabbable = Registry.GetComponent<Grabbable>(grab);
         var physHand = Registry.GetComponent<PhysHand>(Entity);
 
@@ -270,28 +274,40 @@ public class HandGrab : Component
         var physHand = Registry.GetComponent<PhysHand>(Entity);
         var handDpa = Registry.GetComponent<DynamicPhysicsActor>(Entity);
         var grabbedDpa = Registry.GetComponent<DynamicPhysicsActor>(grabbed);
-        var gripInObjectSpace = CurrentGrip.GetAttachTransform(handDpa.Pose, grabbedDpa.Pose, IsRightHand);
+        // THIS IS ALL MADNESS
+        // AAAAAAa.
+        Transform handOffset = new(new Vector3(0.025f * (IsRightHand ? -1f : 1f), -0.0f, 0.0f), Quaternion.Identity);
 
+        if (CurrentGrip.Type == GripType.Manual) handOffset.Position = Vector3.Zero;
+
+        var gripInObjectSpace = CurrentGrip.GetAttachTransform(handDpa.Pose, grabbedDpa.Pose, IsRightHand);
+        Transform gripInWorldSpace = new();
+
+        float timeWaiting = 0.0f;
         while (_bringingTowards)
         {
             await Task.Delay(10);
+            timeWaiting += 0.01f;
 
-            gripInObjectSpace = CurrentGrip.GetAttachTransform(handDpa.Pose, grabbedDpa.Pose, IsRightHand);
+            //gripInObjectSpace = CurrentGrip.GetAttachTransform(handDpa.Pose, grabbedDpa.Pose, IsRightHand);
 
-            var gripInWorldSpace = gripInObjectSpace.TransformBy(grabbedDpa.Pose);
+            gripInWorldSpace = gripInObjectSpace.TransformBy(grabbedDpa.Pose);
+            gripInWorldSpace.Position += gripInWorldSpace.Rotation * handOffset.Position;
             physHand.OverrideTarget = gripInWorldSpace;
+            DebugShapes.DrawSphere(gripInWorldSpace.Position, 0.1f, gripInWorldSpace.Rotation, WorldsEngine.Util.Colors.White);
 
             float distance = handDpa.Pose.Position.DistanceTo(gripInWorldSpace.Position);
 
-            if (distance < 0.1f)
+            float acceptableDistance = 0.05f + MathF.Max(timeWaiting - 0.2f, 0.0f);
+            if (distance < acceptableDistance)
                 break;
 
             // Too far, let's give up
-            if (distance > 1.0f)
-            {
-                Release();
-                break;
-            }
+            //if (distance > 1.0f)
+            //{
+            //    Release();
+            //    break;
+            //}
         }
 
         if (!_bringingTowards)
@@ -300,15 +316,18 @@ public class HandGrab : Component
             return;
         }
 
-        Mat3x3 combinedTensor = CalculateCombinedTensor(grabbed, gripInObjectSpace);
+        var finalOsGrip = gripInWorldSpace.TransformByInverse(grabbedDpa.Pose);
+
+        Mat3x3 combinedTensor = CalculateCombinedTensor(grabbed, finalOsGrip);
 
         physHand.UseOverrideTensor = true;
         physHand.OverrideTensor = combinedTensor;
         physHand.OverrideTarget = null;
 
         D6Joint d6 = Registry.GetComponent<D6Joint>(Entity);
-        d6.TargetLocalPose = gripInObjectSpace;
+        d6.TargetLocalPose = finalOsGrip;
         d6.SetAllAxisMotion(D6Motion.Locked);
+        OnGrabEntity?.Invoke(grabbed, IsRightHand ? AttachedHandFlags.Right : AttachedHandFlags.Left);
     }
 
     private void Release()
@@ -316,7 +335,7 @@ public class HandGrab : Component
         if (CurrentGrip != null)
             CurrentGrip.Detach(IsRightHand ? AttachedHandFlags.Right : AttachedHandFlags.Left);
 
-        if (Registry.TryGetComponent<DynamicPhysicsActor>(GrippedEntity, out var dpa))
+        if (GrippedEntity.IsValid && Registry.TryGetComponent<DynamicPhysicsActor>(GrippedEntity, out var dpa))
         {
             Vector3 linVel = dpa.Velocity;
             Vector3 angVel = dpa.AngularVelocity;
@@ -325,12 +344,18 @@ public class HandGrab : Component
             dpa.Velocity = linVel;
             dpa.AngularVelocity = angVel;
         }
+
         Registry.RemoveComponent<D6Joint>(Entity);
+
+        Entity gripped = GrippedEntity;
         GrippedEntity = Entity.Null;
         _bringingTowards = false;
 
         var physHand = Registry.GetComponent<PhysHand>(Entity);
         physHand.UseOverrideTensor = false;
+
+        if (gripped.IsValid)
+            OnReleaseEntity?.Invoke(gripped, IsRightHand ? AttachedHandFlags.Right : AttachedHandFlags.Left);
     }
 }
 

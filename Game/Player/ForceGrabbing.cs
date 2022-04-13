@@ -46,7 +46,11 @@ class ForceGrabbing : Component, IStartListener, IThinkingComponent
         if (!VR.Enabled) return;
         var hg = Entity.GetComponent<HandGrab>();
 
-        if (hg.GrippedEntity != Entity.Null) return;
+        if (hg.GrippedEntity != Entity.Null)
+        {
+            _lightEntity.GetComponent<WorldLight>().Enabled = false;
+            return;
+        }
 
         var transform = Entity.Transform;
 
@@ -59,7 +63,7 @@ class ForceGrabbing : Component, IStartListener, IThinkingComponent
 
         // DebugShapes.DrawLine(palmPos, palmPos + palmDir, new Vector4(1.0f, 1.0f, 1.0f, 1.0f));
         // DebugShapes.DrawLine(palmPos, palmPos + _pushPalmDir.Value, new Vector4(1.0f, 0.0f, 0.0f, 1.0f));
-        // DebugShapes.DrawLine(palmPos, palmPos + _hoverPalmDir.Value, new Vector4(0.0f, 1.0f, 0.0f, 1.0f));
+        DebugShapes.DrawLine(palmPos, palmPos + _hoverPalmDir.Value, new Vector4(0.0f, 1.0f, 0.0f, 1.0f));
 
         var audioSource = Registry.GetComponent<AudioSource>(Entity);
         if (_bringToHand)
@@ -78,18 +82,24 @@ class ForceGrabbing : Component, IStartListener, IThinkingComponent
             // Let go when grab or trigger is released
             if (_grabAction.Released)
             {
-                Reset();
-
                 Vector3 handVel = Entity.GetComponent<DynamicPhysicsActor>().Velocity;
+
+                // Limit acceleration due to the launch to 20ms^-2
+                float launchForce = MathF.Min(300.0f, dpa.Mass * 20.0f);
 
                 // Launch the object if the hands are going forward
                 if (handVel.Normalized.Dot(_pushPalmDir.Value) > 0.7f && handVel.LengthSquared > 4.0f)
                 {
-                    // Limit acceleration due to the launch to 20ms^-2
-                    float launchForce = MathF.Min(300.0f, dpa.Mass * 20.0f);
                     dpa.AddForce(_pushPalmDir.Value * launchForce, ForceMode.Impulse);
                     WorldsEngine.Audio.Audio.PlayOneShotEvent("event:/Player/Telekinesis Launch", Entity.Transform.Position);
                 }
+                else if (handVel.Normalized.Dot(_pushPalmDir.Value) < -0.7f && handVel.LengthSquared > 2.0f)
+                {
+                    //dpa.AddForce(dpa.Pose.Position.DirectionTo(transform.Position) * launchForce * 0.33f, ForceMode.Impulse);
+                    dpa.AddForce(CalculateBallisticAcceleration(dpa.Pose.Position, transform.Position) - dpa.Velocity, ForceMode.VelocityChange);
+                    WorldsEngine.Audio.Audio.PlayOneShotEvent("event:/Player/Telekinesis Launch", Entity.Transform.Position);
+                }
+                Reset();
                 return;
             }
 
@@ -98,7 +108,7 @@ class ForceGrabbing : Component, IStartListener, IThinkingComponent
             if (_lockedEntity.HasComponent<WorldObject>())
             {
                 var obj = _lockedEntity.GetComponent<WorldObject>();
-                dist = MeshManager.GetMeshSphereBoundRadius(obj.Mesh) * 1.25f;
+                dist = MeshManager.GetMeshSphereBoundRadius(obj.Mesh) * 1.5f * _lockedEntity.Transform.Scale.ComponentMax + 1.5f;
             }
 
             Vector3 targetPos = palmPos + _hoverPalmDir.Value * dist;
@@ -176,6 +186,20 @@ class ForceGrabbing : Component, IStartListener, IThinkingComponent
         {
             _lightEntity.GetComponent<WorldLight>().Enabled = false;
         }
+    }
+
+    private Vector3 CalculateBallisticAcceleration(Vector3 from, Vector3 to)
+    {
+        const float time = 0.5f;
+        const float timeSq = time * time;
+        // Handle Y separately
+        float yDistance = to.y - from.y;
+        float uY = (yDistance - 0.5f * -9.81f * timeSq) / time;
+
+        Vector3 uXZ = (to - from) / time;
+        uXZ.y = uY;
+
+        return uXZ;
     }
 
     private void Reset()

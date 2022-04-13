@@ -192,9 +192,12 @@ public class PlayerRig : Component, IThinkingComponent, IStartListener
 public class LocalPlayerSystem : ISystem
 {
     public static Entity PlayerBody { get; private set; }
+    public static Entity LeftHand => _leftHandEntity;
+    public static Entity RightHand => _rightHandEntity;
+
     public static bool Jump { get; private set; }
     public static Vector2 MovementInput { get; private set; }
-    public static Quaternion VirtualRotation { get; private set; } = Quaternion.Identity;
+    public static Quaternion VirtualRotation = Quaternion.Identity;
 
     private VRAction _jumpAction;
     private Entity _hpTextEntity;
@@ -223,8 +226,8 @@ public class LocalPlayerSystem : ISystem
                 if (pair.EntityB == PlayerBody) projected *= -1f;
                 tv += projected;
 
-                contact.DynamicFriction = 50f;
-                contact.StaticFriction = 50f;
+                contact.DynamicFriction = 5f;
+                contact.StaticFriction = 5f;
                 contact.TargetVelocity = tv;
             }
         }
@@ -256,6 +259,7 @@ public class LocalPlayerSystem : ISystem
 
         if (_spawnRPT == null)
         {
+            VirtualRotation = spawnPoint.Rotation;
             Vector3 offset = new(0.0f, 1.2f, 0.0f);
             spawnPoint.Position += offset;
             spawnPoint.Scale = body.Transform.Scale;
@@ -287,6 +291,7 @@ public class LocalPlayerSystem : ISystem
             body.GetComponent<DynamicPhysicsActor>().Velocity = spawnPoint.TransformDirection(_spawnRPT.Value.BodyVelocity);
             lh.GetComponent<DynamicPhysicsActor>().Velocity = spawnPoint.TransformDirection(_spawnRPT.Value.LeftHandVelocity);
             rh.GetComponent<DynamicPhysicsActor>().Velocity = spawnPoint.TransformDirection(_spawnRPT.Value.RightHandVelocity);
+            VirtualRotation *= spawnPoint.Rotation;
 
             _spawnRPT = null;
         }
@@ -294,6 +299,7 @@ public class LocalPlayerSystem : ISystem
 
     public void OnSceneStart()
     {
+        PlayerResources.Metal = 0;
         MovementInput = Vector2.Zero;
         Camera.Main.Rotation = Quaternion.Identity;
         Camera.Main.Position = Vector3.Zero;
@@ -341,7 +347,7 @@ public class LocalPlayerSystem : ISystem
         var hc = PlayerBody.GetComponent<Combat.HealthComponent>();
         if (DebugGlobals.PlayerInvincible) hc.Health = hc.MaxHealth;
         hpText.Size = 0.001f;
-        hpText.Text = $"HP: {hc.Health}";
+        hpText.Text = $"HP: {hc.Health}\nMetal: {PlayerResources.Metal}";
 
         var lhTransform = Registry.GetTransform(_leftHandEntity);
         var hpTransform = Registry.GetTransform(_hpTextEntity);
