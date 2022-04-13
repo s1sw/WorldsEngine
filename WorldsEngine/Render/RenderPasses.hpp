@@ -143,6 +143,7 @@ namespace worlds {
         robin_hood::unordered_flat_map<uint32_t, FontChar> characters;
         float width;
         float height;
+        float size;
         vku::TextureImage2D atlas;
         uint32_t index;
     };
