@@ -916,6 +916,7 @@ namespace worlds {
             auto* actor = interfaces->physics->physics()->createRigidDynamic(pTf);
             actor->setSolverIterationCounts(32, 6);
             actor->setMaxDepenetrationVelocity(10.0f);
+            actor->setMaxAngularVelocity(1000.0f);
             reg.emplace<DynamicPhysicsActor>(ent, actor);
             interfaces->physics->scene()->addActor(*actor);
         }
@@ -1028,6 +1029,7 @@ namespace worlds {
             pActor->setSolverIterationCounts(32, 6);
             pActor->setSleepThreshold(0.005f);
             pActor->setMaxDepenetrationVelocity(10.0f);
+            pActor->setMaxAngularVelocity(1000.0f);
             interfaces->physics->scene()->addActor(*pActor);
 
             auto& pa = reg.emplace<DynamicPhysicsActor>(ent, pActor);
