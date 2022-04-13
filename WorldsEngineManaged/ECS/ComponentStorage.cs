@@ -59,7 +59,7 @@ namespace WorldsEngine.ECS
             else
             {
                typeIndex = Interlocked.Increment(ref Registry.typeCounter);
-                ComponentTypeLookup.typeIndices.Add(type.FullName!, typeIndex);
+               ComponentTypeLookup.typeIndices.Add(type.FullName!, typeIndex);
             }
         }
 
@@ -76,6 +76,17 @@ namespace WorldsEngine.ECS
             _sparseStorage = serializedStorage.SparseStorage;
             packedEntities = serializedStorage.Packed;
             components = serializedStorage.Components.Select(x => (T)HotloadSerialization.Deserialize(x)!).ToList();
+
+            if (typeof(T).IsSubclassOf(typeof(Component)))
+            {
+                int i = 0;
+                foreach (T comp in components)
+                {
+                    if (comp != null)
+                        ((Component)(object)comp).Entity = packedEntities[i];
+                    i++;
+                }
+            }
 
             ComponentTypeLookup.serializedComponents.Remove(type.FullName!);
         }
