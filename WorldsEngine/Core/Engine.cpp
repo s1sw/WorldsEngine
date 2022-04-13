@@ -1246,6 +1246,7 @@ namespace worlds {
         ZoneScoped;
         if (lockSimToRefresh.getInt() || disableSimInterp.getInt() || (editor && editor->active)) {
             registry.view<DynamicPhysicsActor, Transform>().each([](DynamicPhysicsActor& dpa, Transform& transform) {
+                if (dpa.actor->isSleeping()) return;
                 auto curr = dpa.actor->getGlobalPose();
 
                 if (curr.p != glm2px(transform.position) || curr.q != glm2px(transform.rotation)) {
@@ -1297,6 +1298,7 @@ namespace worlds {
             }
 
             registry.view<DynamicPhysicsActor>().each([&](auto ent, DynamicPhysicsActor& dpa) {
+                if (dpa.actor->isSleeping()) return;
                 currentState[ent] = dpa.actor->getGlobalPose();
             });
 
@@ -1305,7 +1307,8 @@ namespace worlds {
             if (disableSimInterp.getInt())
                 alpha = 1.0f;
 
-            registry.view<DynamicPhysicsActor, Transform>().each([&](entt::entity ent, DynamicPhysicsActor&, Transform& transform) {
+            registry.view<DynamicPhysicsActor, Transform>().each([&](entt::entity ent, DynamicPhysicsActor& dpa, Transform& transform) {
+                if (dpa.actor->isSleeping()) return;
                 if (!previousState.contains(ent)) {
                     transform.position = px2glm(currentState[ent].p);
                     transform.rotation = px2glm(currentState[ent].q);
