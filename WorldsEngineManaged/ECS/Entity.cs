@@ -8,8 +8,12 @@ namespace WorldsEngine
         public static Entity Null => new(0x000FFFFF);
 
         public uint ID { get; private set; }
+
         [JsonIgnore]
         public bool IsNull => Identifier == 0x000FFFFF;
+
+        [JsonIgnore]
+        public bool IsValid => Registry.Valid(this);
 
         /// <summary>
         /// The 20-bit packed identifier value for this entity.
