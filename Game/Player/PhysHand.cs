@@ -1,4 +1,5 @@
-﻿using System;
+﻿using ImGuiNET;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -14,16 +15,19 @@ namespace Game.Player;
 [EditorFriendlyName("Physics Hand")]
 class PhysHand : Component, IThinkingComponent, IStartListener, IUpdateableComponent
 {
+    private static Entity LeftHand;
+    private static Entity RightHand;
+
     static Vector3 _nonVROffset = new Vector3(0.125f, -0.2f, 0.55f);
-    const float TorqueLimit = 15f;
+    const float TorqueLimit = 35f;
+    float RotationDMax = 32.0f;
+    float RotationPMax = 700.0f;
+
+    float PositionP = 2003f;
+    float PositionD = 100f;
 
     private Quaternion rotationOffset = Quaternion.Identity;
 
-    [EditableClass]
-    public V3PidController PD = new();
-
-    [EditableClass]
-    public V3PidController RotationPID = new V3PidController();
     public bool FollowRightHand = false;
 
     [NonSerialized]
@@ -60,38 +64,74 @@ class PhysHand : Component, IThinkingComponent, IStartListener, IUpdateableCompo
             duplWo.Mesh = currentWO.Mesh;
             Registry.SetName(_visEntity, $"{Registry.GetName(Entity)} visualiser");
 #endif
+        if (FollowRightHand)
+            RightHand = Entity;
+        else
+            LeftHand = Entity;
     }
-
-    private Vector3 lastAppliedVel = Vector3.Zero;
 
     public void Think()
     {
-        var bodyDpa = Registry.GetComponent<DynamicPhysicsActor>(LocalPlayerSystem.PlayerBody);
         SetTargets();
-
-        var dpa = Registry.GetComponent<DynamicPhysicsActor>(Entity);
-        Transform pose = dpa.Pose;
-
-        var rig = Registry.GetComponent<PlayerRig>(LocalPlayerSystem.PlayerBody);
-
-        Vector3 velDiff = bodyDpa.Velocity;
-        dpa.AddForce(velDiff - lastAppliedVel, ForceMode.VelocityChange);
-        lastAppliedVel = velDiff;
 
 #if DEBUG_HAND_VIS
         _targetTransform.Scale = Vector3.One;
         Registry.SetTransform(_visEntity, _targetTransform);
 #endif
 
-        //Vector3 force = PD.CalculateForce(pose.TransformByInverse(fakePose).Position + velDiff * Time.DeltaTime, _targetTransform.Position, dpa.Velocity - velDiff, Time.DeltaTime, Vector3.Zero);
-        Vector3 force = PD.CalculateForce(_targetTransform.Position - pose.Position - velDiff * Time.DeltaTime, Time.DeltaTime, Vector3.Zero);
+        UpdatePosition();
+        AvoidSpin();
+        UpdateRotation();
+    }
+
+    private void UpdatePosition()
+    {
+        var bodyDpa = Registry.GetComponent<DynamicPhysicsActor>(LocalPlayerSystem.PlayerBody);
+        var dpa = Entity.GetComponent<DynamicPhysicsActor>();
+
+        float forceScale = 1f;
+        HandGrab otherGrab = FollowRightHand ? LeftHand.GetComponent<HandGrab>() : RightHand.GetComponent<HandGrab>();
+        HandGrab thisGrab = Entity.GetComponent<HandGrab>();
+
+        if (thisGrab.GrippedEntity.IsValid && otherGrab.GrippedEntity == thisGrab.GrippedEntity)
+            forceScale *= 0.7f;
+
+        Vector3 pForce = (_targetTransform.Position - dpa.Pose.Position) * PositionP;
+        Vector3 dForce = (dpa.Velocity - bodyDpa.Velocity) * PositionD;
+
+        Vector3 force = (pForce - dForce) * forceScale;
 
         if (!DisableForces)
         {
             dpa.AddForce(force);
             bodyDpa.AddForce(-force);
         }
+    }
 
+    private void AvoidSpin()
+    {
+        var dpa = Entity.GetComponent<DynamicPhysicsActor>();
+        // Desparate Spin Avoidance
+        if (dpa.AngularVelocity.Length > 500.0f)
+        {
+            dpa.MaxAngularVelocity = 10.0f;
+            var hg = Entity.GetComponent<HandGrab>();
+            if (Registry.Valid(hg.GrippedEntity) && hg.GrippedEntity.HasComponent<DynamicPhysicsActor>())
+            {
+                var grabbedDpa = hg.GrippedEntity.GetComponent<DynamicPhysicsActor>();
+                grabbedDpa.AngularVelocity = grabbedDpa.AngularVelocity.ClampMagnitude(15.0f);
+            }
+        }
+        else
+        {
+            dpa.MaxAngularVelocity = 1000.0f;
+        }
+    }
+
+    private void UpdateRotation()
+    {
+        var dpa = Entity.GetComponent<DynamicPhysicsActor>();
+        var pose = dpa.Pose;
         Quaternion relativeRotation = pose.Rotation;
         Quaternion targetRotation = _targetTransform.Rotation;//RotationFilter.Filter(_targetTransform.Rotation, Time.DeltaTime);
         Quaternion quatDiff = targetRotation * relativeRotation.Inverse;
@@ -100,7 +140,10 @@ class PhysHand : Component, IThinkingComponent, IStartListener, IUpdateableCompo
         float angle = PDUtil.AngleToErr(quatDiff.Angle);
         Vector3 axis = quatDiff.Axis;
 
-        Vector3 torque = RotationPID.CalculateForce(angle * axis, Time.DeltaTime);
+        Vector3 pTorque = angle * axis * RotationPMax;
+        Vector3 dTorque = dpa.AngularVelocity * RotationDMax;
+
+        Vector3 torque = pTorque - dTorque;
 
         torque = pose.Rotation.SingleCover.Inverse * torque;
         if (!UseOverrideTensor)
@@ -123,6 +166,9 @@ class PhysHand : Component, IThinkingComponent, IStartListener, IUpdateableCompo
 
         if (torque.LengthSquared > 0.5f)
             torque = torque.ClampMagnitude(TorqueLimit);
+        
+        ImGui.Text($"torque mag: {torque.Length}");
+
         if (!DisableForces)
         {
             dpa.AddTorque(torque);
@@ -163,10 +209,7 @@ class PhysHand : Component, IThinkingComponent, IStartListener, IUpdateableCompo
 
             Transform camT = new(PlayerCameraSystem.GetCamPosForSimulation(), Camera.Main.Rotation);
 
-            Transform fakePose = LocalPlayerSystem.PlayerBody.GetComponent<DynamicPhysicsActor>().Pose;
-            fakePose.Rotation = Quaternion.Identity;
             _targetTransform.Position = camT.TransformPoint(offset);
-            //_targetTransform = _targetTransform.TransformByInverse(fakePose);
             return;
         }
 
@@ -190,5 +233,10 @@ class PhysHand : Component, IThinkingComponent, IStartListener, IUpdateableCompo
     {
         if (Keyboard.KeyPressed(KeyCode.T))
             _moveToCenter = !_moveToCenter;
+
+        ImGui.DragFloat("PosP", ref PositionP);
+        ImGui.DragFloat("PosD", ref PositionD);
+        ImGui.DragFloat("RotP", ref RotationPMax);
+        ImGui.DragFloat("RotD", ref RotationDMax);
     }
 }

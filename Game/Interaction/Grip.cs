@@ -58,22 +58,8 @@ public class Grip
 
     public float CalculateGripScore(Transform obj, Transform hand, bool isRightHand)
     {
-        hand.Position += hand.Rotation * new Vector3(0.0f, 0.0f, 0.04f);
         Transform attachTransform = GetAttachTransform(hand, obj, isRightHand);
         float linearScore = hand.Position.DistanceTo(obj.TransformPoint(attachTransform.Position));
-
-        if (Type == GripType.Box)
-        {
-            Transform handInLocalSpace = hand.TransformByInverse(obj);
-
-            linearScore = handInLocalSpace.Position.DistanceTo(GetAttachPointForBoxGrip(handInLocalSpace.Position));
-        }
-        else if (Type == GripType.Sphere)
-        {
-            Transform handInLocalSpace = hand.TransformByInverse(obj);
-
-            linearScore = handInLocalSpace.Position.DistanceTo(GetAttachPointForBoxGrip(handInLocalSpace.Position));
-        }
 
         float angularScore = Quaternion.Dot(hand.Rotation.SingleCover, (obj.Rotation * rotation).SingleCover);
 
@@ -82,8 +68,9 @@ public class Grip
 
     public Transform GetAttachTransform(Transform handTransform, Transform objTransform, bool isRightHand)
     {
-        handTransform.Position += handTransform.Rotation * new Vector3(0.0f, 0.0f, 0.03f);
         Transform handInLocalSpace = handTransform.TransformByInverse(objTransform);
+        Transform outT = new();
+
         if (Type == GripType.Box)
         {
             Vector3 position = GetAttachPointForBoxGrip(handInLocalSpace.Position);
@@ -94,7 +81,7 @@ public class Grip
 
             Quaternion rotation = handRotAroundNormal * Quaternion.FromTo(isRightHand ? Vector3.Right : Vector3.Left, normal);
 
-            return new Transform(position, rotation);
+            outT = new Transform(position, rotation);
         }
         else if (Type == GripType.Sphere)
         {
@@ -106,10 +93,14 @@ public class Grip
             
             Quaternion rotation = handRotAroundNormal * Quaternion.FromTo(isRightHand ? Vector3.Right : Vector3.Left, normal);
             
-            return new Transform(position, rotation);
+            outT = new Transform(position, rotation);
+        }
+        else
+        {
+            outT = new Transform(position, rotation);
         }
 
-        return new Transform(position, rotation);
+        return outT;
     }
 
     // Get the attach point in local space.

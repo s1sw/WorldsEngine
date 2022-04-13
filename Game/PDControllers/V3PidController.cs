@@ -70,6 +70,22 @@ public class V3PidController
         return P * error + I * integral + D * derivative;
     }
 
+    public Vector3 CalculateForceWithExplicitVel(Vector3 error, Vector3 velocity, float deltaTime)
+    {
+        CheckNaNs();
+
+        integral += error * deltaTime;
+
+        if (ClampIntegral)
+        {
+            integral = integral.ClampMagnitude(MaxIntegralMagnitude);
+        }
+
+        integral += (error - integral) / AverageAmount;
+
+        return P * error + I * integral - D * velocity;
+    }
+
     public void ResetState()
     {
         lastError = Vector3.Zero;

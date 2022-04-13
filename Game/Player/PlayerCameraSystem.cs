@@ -8,8 +8,8 @@ namespace Game.Player;
 [SystemUpdateOrder(10)]
 public class PlayerCameraSystem : ISystem
 {
-    private float lookX = 0.0f;
-    private float lookY = 0.0f;
+    private static float lookX = 0.0f;
+    private static float lookY = 0.0f;
 
     private Entity _listenerEntity;
     private static readonly Vector3 _toFloor = new(0.0f, -(1.85f * 0.5f), 0.0f);
@@ -66,6 +66,26 @@ public class PlayerCameraSystem : ISystem
         }
     }
 
+    public static Quaternion WorldSpaceHeadRotation
+    {
+        get
+        {
+            if (!VR.Enabled)
+            {
+                Quaternion upDown = Quaternion.AngleAxis(lookY, new Vector3(1f, 0f, 0f));
+                Quaternion leftRight = Quaternion.AngleAxis(-lookX, new Vector3(0f, 1f, 0f));
+
+                return leftRight * upDown;
+            }
+            else
+            {
+                return LocalPlayerSystem.VirtualRotation * VRTransforms.HMDTransform.Rotation;
+            }
+        }
+    }
+
+    public static Transform WorldSpaceHeadTransform => new(WorldSpaceHeadPosition, WorldSpaceHeadRotation);
+
     // lol
     // Manually interpolate the camera position to add an extra frame of latency
     // so it fits with everything else that calculates its position a frame off
@@ -101,7 +121,7 @@ public class PlayerCameraSystem : ISystem
                 Camera.Main.Rotation = cameraRotation;
                 Transform bodyTransform = Registry.GetTransform(LocalPlayerSystem.PlayerBody);
                 Vector3 manualBpos = Vector3.Lerp(_lastLastBodyPos, _lastBodyPos, Time.InterpolationAlpha);
-                Camera.Main.Position = _lastBodyPos + _toFloor + new Vector3(0.0f, 1.85f, 0.0f);
+                Camera.Main.Position = bodyTransform.Position + _toFloor + new Vector3(0.0f, 1.85f, 0.0f);
             }
         }
         else

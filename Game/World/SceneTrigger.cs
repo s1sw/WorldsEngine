@@ -17,6 +17,7 @@ public class SceneTrigger : Component, IThinkingComponent
 
         if (aabb.ContainsPoint(t.InverseTransformPoint(PlayerCameraSystem.WorldSpaceHeadPosition)))
         {
+            LocalPlayerSystem.VirtualRotation *= t.Rotation.Inverse;
             LocalPlayerSystem.SetTransitionSpawn(t);
             SceneLoader.LoadScene(AssetDB.PathToId(Scene));
         }
