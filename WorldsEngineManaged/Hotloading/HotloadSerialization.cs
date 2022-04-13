@@ -196,6 +196,23 @@ namespace WorldsEngine
                     FieldName = field.Name
                 };
 
+                EventInfo? eventInfo = type.GetEvent(field.Name);
+
+                if (eventInfo != null)
+                {
+                    Delegate? del = (Delegate?)field.GetValue(obj);
+                    
+                    if (del != null)
+                    {
+                        var invocations = del.GetInvocationList();
+
+                        foreach (Delegate invocation in invocations)
+                        {
+                            // TODO
+                        }
+                    }
+                }
+
                 if (field.FieldType.Assembly == CurrentGameAssembly || HasGenericParameterFromGameAssembly(field.FieldType))
                 {
                     serializedField.IsValueSerialized = true;
@@ -236,6 +253,7 @@ namespace WorldsEngine
                 foreach (var field in fields)
                 {
                     if (field.IsLiteral && !field.IsInitOnly) continue;
+                    if (type.GetEvent(field.Name) != null) continue;
 
                     SerializedField serializedField = new();
                     serializedField.FieldName = field.Name;

@@ -75,7 +75,6 @@ namespace WorldsEngine
             {
                 updateSyncContext.ClearCallbacks();
                 simulateSyncContext.ClearCallbacks();
-                Physics.ContactModCallback = null;
             };
 
             GameAssemblyManager.OnAssemblyLoad += (Assembly) =>
