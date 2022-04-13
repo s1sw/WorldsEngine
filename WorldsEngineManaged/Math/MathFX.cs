@@ -16,6 +16,14 @@ namespace WorldsEngine.Math
             return MathF.Max(MathF.Min(value, maximum), minimum);
         }
 
+        /// <summary>
+        /// Clamps a value between 0 and 1.
+        /// </summary>
+        public static float Saturate(float val)
+        {
+            return Clamp(val, 0.0f, 1.0f);
+        }
+
         public static Vector3 Clamp(Vector3 value, Vector3 minimum, Vector3 maximum)
         {
             return new Vector3(
