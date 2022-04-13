@@ -57,6 +57,7 @@ namespace worlds {
             auto j = nlohmann::json::parse(str);
             font.width = j["width"];
             font.height = j["height"];
+            font.size = j["size"];
 
             std::string atlasPath = "UI/SDFFonts/" + j["atlas"].get<std::string>();
             TextureData sdfData = loadTexData(AssetDB::pathToId(atlasPath));
@@ -265,28 +266,54 @@ namespace worlds {
 
             float totalWidth = 0.0f;
             for (auto c : wtc.text) {
+                if (c == '\n') {
+                    totalWidth = 0.0f;
+                    continue;
+                }
                 totalWidth += font.characters.at(c).advance;
             }
 
             wtc.idxOffset = idxOffset;
             float xPos = 0.0f;
+            float yPos = 0.0f;
+            float initialXPos = 0.0f;
 
             if (wtc.hAlign == HTextAlign::Middle)
-                xPos = -totalWidth * 0.5f;
+                initialXPos = -totalWidth * 0.5f;
             else if (wtc.hAlign == HTextAlign::Right)
-                xPos = -totalWidth;
+                initialXPos = -totalWidth;
 
-            xPos *= wtc.textScale;
+            initialXPos *= wtc.textScale;
+            xPos = initialXPos;
 
             for (auto c : wtc.text) {
-                buildCharQuad(glm::vec3{xPos, 0.0f, 0.0f}, wtc.textScale, font.characters.at(c), font, vbMap);
-                vbMap += 4;
-                xPos += font.characters.at(c).advance * wtc.textScale;
-
                 const uint32_t indexPattern[] = {
                     0, 1, 2,
                     0, 3, 2
                 };
+
+                if (c == '\n') {
+                    yPos += font.size * wtc.textScale;
+
+                    for (int i = 0; i < 4; i++) {
+                        vbMap[i].pos = glm::vec3{0.0f};
+                    }
+                    vbMap += 4;
+
+                    for (int i = 0; i < 6; i++) {
+                        *ibMap = indexPattern[i] + vertexOffset;
+                        ibMap++;
+                    }
+
+                    idxOffset += 6;
+                    vertexOffset += 4;
+                    xPos = initialXPos;
+                    continue;
+                }
+
+                buildCharQuad(glm::vec3{xPos, yPos, 0.0f}, wtc.textScale, font.characters.at(c), font, vbMap);
+                vbMap += 4;
+                xPos += font.characters.at(c).advance * wtc.textScale;
 
                 for (int i = 0; i < 6; i++) {
                     *ibMap = indexPattern[i] + vertexOffset;
