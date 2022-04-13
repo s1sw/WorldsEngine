@@ -7,6 +7,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using WorldsEngine.Math;
+using System.Reflection;
 
 namespace WorldsEngine
 {
@@ -100,6 +101,68 @@ namespace WorldsEngine
 
             ContactModPairArray pairArray = new(pairs, count);
             _callback(pairArray);
+        }
+
+        struct OldCallback
+        {
+            public string TypeName;
+            public string MethodName;
+            public BindingFlags Flags;
+        }
+
+        private static OldCallback? _lastContactModCallback;
+
+        private static BindingFlags GetBindingFlags(MethodInfo info)
+        {
+            BindingFlags flags = BindingFlags.Default;
+
+            flags |= info.IsStatic ? BindingFlags.Static : BindingFlags.Instance;
+            flags |= info.IsPublic ? BindingFlags.Public : BindingFlags.NonPublic;
+            
+            return flags;
+        }
+
+        static Physics()
+        {
+            GameAssemblyManager.OnAssemblyUnload += () =>
+            {
+                if (_callback == null) return;
+
+                MethodInfo callbackMethod = _callback.Method;
+                _lastContactModCallback = new OldCallback()
+                {
+                    TypeName = callbackMethod.DeclaringType.FullName,
+                    MethodName = callbackMethod.Name,
+                    Flags = GetBindingFlags(callbackMethod)
+                };
+                _callback = null;
+            };
+
+            GameAssemblyManager.OnAssemblyLoad += (Assembly asm) =>
+            { 
+                Log.Msg("Physics OnAssemblyLoad");
+                if (_lastContactModCallback == null) return;
+                Log.Msg("callback wasn't null");
+
+                OldCallback oc = _lastContactModCallback.Value;
+                var type = asm.GetType(oc.TypeName);
+
+                if (type == null)
+                {
+                    Log.Error("Failed to set contact mod callback: type not found");
+                    return;
+                }
+
+                MethodInfo? method = type.GetMethod(oc.MethodName, oc.Flags);
+
+                if (method == null)
+                {
+                    Log.Error("Failed to set contact mod callback: method not found");
+                    return;
+                }
+
+                _callback = (ContactModCallback)Delegate.CreateDelegate(typeof(ContactModCallback), method);
+            };
         }
     }
 }
