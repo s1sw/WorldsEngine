@@ -1257,7 +1257,7 @@ namespace worlds {
                 .baseMipLevel = 0,
                 .levelCount = 1,
                 .baseArrayLayer = 0,
-                .layerCount = 1
+                .layerCount = ctx.passSettings.enableVr ? 2u : 1u
             };
 
             bloomResource->image().setLayout(cmdBuf, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT);
