@@ -108,26 +108,13 @@ bool frustumContainsOBB(vec3 boxSize, mat4 transform) {
     // We can determine if the frustum contains an OBB by checking if it contains
     // any vertices of the OBB.
 
-    vec3 v0 = (transform * vec4(vec3(-1.0,-1.0,-1.0) * boxSize, 1.0)).xyz;
-    vec3 v1 = (transform * vec4(vec3( 1.0,-1.0,-1.0) * boxSize, 1.0)).xyz;
-    vec3 v2 = (transform * vec4(vec3(-1.0, 1.0,-1.0) * boxSize, 1.0)).xyz;
-    vec3 v3 = (transform * vec4(vec3( 1.0, 1.0,-1.0) * boxSize, 1.0)).xyz;
-    vec3 v4 = (transform * vec4(vec3(-1.0,-1.0, 1.0) * boxSize, 1.0)).xyz;
-    vec3 v5 = (transform * vec4(vec3( 1.0,-1.0, 1.0) * boxSize, 1.0)).xyz;
-    vec3 v6 = (transform * vec4(vec3(-1.0, 1.0, 1.0) * boxSize, 1.0)).xyz;
-    vec3 v7 = (transform * vec4(vec3( 1.0, 1.0, 1.0) * boxSize, 1.0)).xyz;
-
     for (int i = 0; i < 6; i++) {
         int outside = 0;
 
-        outside += (dot(tileFrustum.planes[i], vec4(v0, 1.0)) < 0.0) ? 1 : 0;
-        outside += (dot(tileFrustum.planes[i], vec4(v1, 1.0)) < 0.0) ? 1 : 0;
-        outside += (dot(tileFrustum.planes[i], vec4(v2, 1.0)) < 0.0) ? 1 : 0;
-        outside += (dot(tileFrustum.planes[i], vec4(v3, 1.0)) < 0.0) ? 1 : 0;
-        outside += (dot(tileFrustum.planes[i], vec4(v4, 1.0)) < 0.0) ? 1 : 0;
-        outside += (dot(tileFrustum.planes[i], vec4(v5, 1.0)) < 0.0) ? 1 : 0;
-        outside += (dot(tileFrustum.planes[i], vec4(v6, 1.0)) < 0.0) ? 1 : 0;
-        outside += (dot(tileFrustum.planes[i], vec4(v7, 1.0)) < 0.0) ? 1 : 0;
+        for (int j = 0; j < 8; j++) {
+            vec3 v = vec3(j % 2 == 0 ? -1.0 : 1.0, (j >> 1) % 2 == 0 ? -1.0 : 1.0, j < 4 ? -1.0 : 1.0);
+            outside += (dot(tileFrustum.planes[i], vec4(v, 1.0)) < 0.0) ? 1 : 0;
+        }
 
         if (outside == 8) return false;
     }
