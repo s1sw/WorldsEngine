@@ -32,7 +32,7 @@ class PhysHand : Component, IThinkingComponent, IStartListener, IUpdateableCompo
     public bool UseOverrideTensor = false;
     [NonSerialized]
     public Mat3x3 OverrideTensor = new();
-    public float TorqueFactor = 1.0f;
+    public Vector3 TorqueScale = new(1.0f);
 
     [NonSerialized]
     public Transform? OverrideTarget = null;
@@ -110,7 +110,9 @@ class PhysHand : Component, IThinkingComponent, IStartListener, IUpdateableCompo
         {
             if (hg.GrippedEntity.IsValid && hg.GrippedEntity.TryGetComponent<DynamicPhysicsActor>(out DynamicPhysicsActor gripped))
             {
+                Vector3 handVel = FollowRightHand ? VR.RightHandVelocity : VR.LeftHandVelocity;
                 dpa.AddForce(force);
+                //gripped.AddForce(((dpa.Velocity - handVel) - bodyDpa.Velocity) * 10f, ForceMode.Acceleration);
             }
             else
             {
@@ -175,10 +177,10 @@ class PhysHand : Component, IThinkingComponent, IStartListener, IUpdateableCompo
             torque = OverrideTensor.Transform(torque);
         }
 
-        torque = pose.Rotation.SingleCover * torque * TorqueFactor;
+        torque = pose.Rotation.SingleCover * (torque * TorqueScale);
 
-        //if (torque.LengthSquared > 0.5f)
-        //    torque = torque.ClampMagnitude(TorqueLimit);
+        if (torque.LengthSquared > 0.5f)
+            torque = torque.ClampMagnitude(TorqueLimit);
         
         if (!DisableForces)
         {

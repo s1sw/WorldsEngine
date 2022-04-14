@@ -24,6 +24,7 @@ class Gun : Component, IThinkingComponent, IStartListener, ICollisionHandler
     public float ShotSpacing = 0.1f;
     public AmmoType ProjectileType = AmmoType.Laser;
     public bool MagazineRequired = false;
+    public event Action OnFire;
 
     [EditRelativeTransform]
     public Transform MagazineAttachPoint;
@@ -121,6 +122,7 @@ class Gun : Component, IThinkingComponent, IStartListener, ICollisionHandler
 
         var damagingProjectile = Registry.GetComponent<DamagingProjectile>(projectile);
         damagingProjectile.Attacker = LocalPlayerSystem.PlayerBody;
+        OnFire?.Invoke();
     }
 
     public void Think()
