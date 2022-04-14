@@ -21,6 +21,7 @@
 #include <slib/Path.hpp>
 #include <filesystem>
 #include <optional>
+#include <slib/Subprocess.hpp>
 #define _CRT_SECURE_NO_WARNINGS
 
 namespace worlds {
@@ -909,18 +910,42 @@ namespace worlds {
         fullPath = fullPath.parent_path();
         fullPath = fullPath.lexically_normal();
 
+        std::filesystem::path fullSourcePath = projectRoot;
+        fullSourcePath /= modelSourcePath;
+        fullSourcePath = fullSourcePath.lexically_normal();
+
         std::filesystem::create_directories(fullPath);
         ConversionSettings settings;
         settings.preTransformVerts = j.value("preTransformVerts", false);
         settings.removeRedundantMaterials = j.value("removeRedundantMaterials", true);
         settings.uniformScale = j.value("uniformScale", 1.0f);
 
-        std::thread([compileOp, outputPath, path, result, fileLen, settings]() {
+        std::thread([compileOp, outputPath, fullSourcePath, path, result, fileLen, settings]() {
             PHYSFS_File* outFile = PHYSFS_openWrite(outputPath.c_str());
             slib::Path p = path;
             if (p.fileExtension() == ".glb") {
                 mc_internal::GltfModelConverter converter;
                 converter.convertGltfModel(compileOp, outFile, result.value, fileLen, settings);
+            } else if (p.fileExtension() == ".blend") {
+                // If it's a Blender file, we first have to convert to .glb in a temporary directory
+                slib::String commandString = "\"C:/Program Files (x86)/Steam/steamapps/common/Blender/blender.exe\"";
+                commandString = commandString + " " + slib::String(fullSourcePath.string().c_str()) + " --background --python blender_glbexport.py -- blender_model_import.glb";
+                slib::Subprocess sb{commandString};
+                sb.waitForFinish();
+
+                FILE* glbFile = fopen("blender_model_import.glb", "rb");
+                fseek(glbFile, 0, SEEK_END);
+                size_t size = ftell(glbFile);
+                fseek(glbFile, 0, SEEK_SET);
+                char* glbData = new char[size];
+                fread(glbData, 1, size, glbFile);
+                fclose(glbFile);
+
+                mc_internal::GltfModelConverter converter;
+                converter.convertGltfModel(compileOp, outFile, glbData, size, settings);
+
+                delete[] glbData;
+                remove("blender_model_import.glb");
             } else {
                 mc_internal::convertAssimpModel(compileOp, outFile, result.value, fileLen, p.fileExtension().cStr(), settings);
             }
