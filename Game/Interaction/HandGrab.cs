@@ -319,7 +319,6 @@ public class HandGrab : Component
 
         _bringingTowards = true;
         BringTowards(grab);
-        Entity.GetComponent<PhysHand>().TorqueFactor = g.TorqueFactor;
     }
 
     private async void BringTowards(Entity grabbed)
@@ -389,7 +388,9 @@ public class HandGrab : Component
         //d6.SetDrive(D6Drive.X, posDrive);
         //d6.SetDrive(D6Drive.Y, posDrive);
         //d6.SetDrive(D6Drive.Z, posDrive);
+        Entity.GetComponent<PhysHand>().TorqueScale = CurrentGrip.TorqueScale;
         OnGrabEntity?.Invoke(grabbed, IsRightHand ? AttachedHandFlags.Right : AttachedHandFlags.Left);
+        grabbed.GetComponent<Grabbable>().InvokeOnGrabbed();
     }
 
     private void Release()
@@ -415,10 +416,13 @@ public class HandGrab : Component
 
         var physHand = Registry.GetComponent<PhysHand>(Entity);
         physHand.UseOverrideTensor = false;
-        physHand.TorqueFactor = 1.0f;
+        physHand.TorqueScale = new(1.0f);
 
         if (gripped.IsValid)
+        {
             OnReleaseEntity?.Invoke(gripped, IsRightHand ? AttachedHandFlags.Right : AttachedHandFlags.Left);
+            gripped.GetComponent<Grabbable>().InvokeOnReleased();
+        }
     }
 }
 

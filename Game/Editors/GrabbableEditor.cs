@@ -83,7 +83,7 @@ public class GrabbableEditor : IComponentEditor
 
                     EditorUtils.EnumDropdown("Type", ref g.Type);
                     EditorUtils.EnumDropdown("Hand", ref g.Hand);
-                    ImGui.DragFloat("Torque Factor", ref g.TorqueFactor);
+                    ImGui.DragFloat3("Torque Scale", ref g.TorqueScale);
                     
                     switch (g.Type)
                     {

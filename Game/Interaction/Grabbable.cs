@@ -14,6 +14,8 @@ class Grabbable
     public event Action<Entity> TriggerPressed;
     public event Action<Entity> TriggerReleased;
     public event Action<Entity> TriggerHeld;
+    public event Action OnGrabbed;
+    public event Action OnReleased;
 
     [EditableClass]
     public List<Grip> grips = new List<Grip>();
@@ -44,4 +46,7 @@ class Grabbable
         if (triggerHeld)
             TriggerHeld?.Invoke(entity);
     }
+
+    internal void InvokeOnGrabbed() => OnGrabbed?.Invoke();
+    internal void InvokeOnReleased() => OnReleased?.Invoke();
 }
