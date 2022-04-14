@@ -64,6 +64,12 @@ public class HandGrab : Component
                 return;
             }
 
+            var physHand = Entity.GetComponent<PhysHand>();
+            //Mat3x3 combinedTensor = CalculateCombinedTensor(GrippedEntity);
+
+            //physHand.UseOverrideTensor = true;
+            //physHand.OverrideTensor = combinedTensor;
+
             var grabbable = Registry.GetComponent<Grabbable>(GrippedEntity);
 
             if (!VR.Enabled)
@@ -159,7 +165,52 @@ public class HandGrab : Component
         itComp.Add(shapeComp);
     }
 
-    private Mat3x3 CalculateCombinedTensor(Entity grabbed, Transform gripTransform)
+    private Mat3x3 CalculateCombinedTensor(Entity grabbed)
+    {
+        var dpa = Registry.GetComponent<DynamicPhysicsActor>(Entity);
+        var grabbedDpa = Registry.GetComponent<DynamicPhysicsActor>(grabbed);
+
+        var transform = Registry.GetTransform(Entity);
+        var grabbedTransform = Registry.GetTransform(grabbed);
+
+        InertiaTensorComputer itComp = new();
+
+        var handShapes = dpa.GetPhysicsShapes();
+        var grabbedShapes = grabbedDpa.GetPhysicsShapes();
+
+        InertiaTensorComputer handComp = new();
+        foreach (var physShape in handShapes)
+        {
+            AddShapeTensor(physShape, new Transform(physShape.position, physShape.rotation), handComp);
+        }
+        handComp.Translate(dpa.Pose.Position);
+        handComp.Rotate(dpa.Pose.Rotation);
+
+        InertiaTensorComputer grabbedComp = new();
+        foreach (var physShape in grabbedShapes)
+        {
+            Transform shapeTransform = new(physShape.position, physShape.rotation);
+            shapeTransform.Scale = grabbedTransform.Scale;
+
+            AddShapeTensor(physShape, shapeTransform, grabbedComp);
+        }
+
+        grabbedComp.Translate(grabbedDpa.Pose.Position);
+        grabbedComp.Rotate(grabbedDpa.Pose.Rotation);
+
+        handComp.ScaleDensity(dpa.Mass / handComp.Mass);
+        grabbedComp.ScaleDensity(grabbedDpa.Mass / grabbedComp.Mass);
+
+        itComp.Add(handComp);
+        itComp.Add(grabbedComp);
+
+        itComp.Rotate(dpa.Pose.Rotation.Inverse);
+        itComp.Translate(-dpa.Pose.Position);
+
+        return itComp.InertiaTensor;
+    }
+
+    private Mat3x3 CalculateCombinedTensorOld(Entity grabbed, Transform gripTransform)
     {
         var dpa = Registry.GetComponent<DynamicPhysicsActor>(Entity);
         var grabbedDpa = Registry.GetComponent<DynamicPhysicsActor>(grabbed);
@@ -199,6 +250,7 @@ public class HandGrab : Component
         return itComp.InertiaTensor;
     }
 
+
     private void Grab(Entity grab)
     {
         if (_bringingTowards) return;
@@ -223,7 +275,7 @@ public class HandGrab : Component
             d6.Target = grab;
 
             physHand.UseOverrideTensor = true;
-            physHand.OverrideTensor = CalculateCombinedTensor(grab, gripTransform);
+            physHand.OverrideTensor = CalculateCombinedTensor(grab);
             d6.SetAllAxisMotion(D6Motion.Locked);
             return;
         }
@@ -267,6 +319,7 @@ public class HandGrab : Component
 
         _bringingTowards = true;
         BringTowards(grab);
+        Entity.GetComponent<PhysHand>().TorqueFactor = g.TorqueFactor;
     }
 
     private async void BringTowards(Entity grabbed)
@@ -318,7 +371,7 @@ public class HandGrab : Component
 
         var finalOsGrip = gripInWorldSpace.TransformByInverse(grabbedDpa.Pose);
 
-        Mat3x3 combinedTensor = CalculateCombinedTensor(grabbed, finalOsGrip);
+        Mat3x3 combinedTensor = CalculateCombinedTensorOld(grabbed, finalOsGrip);
 
         physHand.UseOverrideTensor = true;
         physHand.OverrideTensor = combinedTensor;
@@ -327,6 +380,15 @@ public class HandGrab : Component
         D6Joint d6 = Registry.GetComponent<D6Joint>(Entity);
         d6.TargetLocalPose = finalOsGrip;
         d6.SetAllAxisMotion(D6Motion.Locked);
+        //d6.SetAllAxisMotion(D6Motion.Free);
+        //d6.SetAllAngularAxisMotion(D6Motion.Free);
+        //D6JointDrive drive = new(25f, 5f, float.MaxValue, false);
+        //D6JointDrive posDrive = new(5000f, 200f, float.MaxValue, false);
+        //d6.SetDrive(D6Drive.Swing, drive);
+        //d6.SetDrive(D6Drive.Twist, drive);
+        //d6.SetDrive(D6Drive.X, posDrive);
+        //d6.SetDrive(D6Drive.Y, posDrive);
+        //d6.SetDrive(D6Drive.Z, posDrive);
         OnGrabEntity?.Invoke(grabbed, IsRightHand ? AttachedHandFlags.Right : AttachedHandFlags.Left);
     }
 
@@ -353,6 +415,7 @@ public class HandGrab : Component
 
         var physHand = Registry.GetComponent<PhysHand>(Entity);
         physHand.UseOverrideTensor = false;
+        physHand.TorqueFactor = 1.0f;
 
         if (gripped.IsValid)
             OnReleaseEntity?.Invoke(gripped, IsRightHand ? AttachedHandFlags.Right : AttachedHandFlags.Left);

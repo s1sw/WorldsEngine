@@ -35,6 +35,7 @@ public class Grip
     public float SphereRadius;
 
     public bool Exclusive;
+    public float TorqueFactor = 1.0f;
 
     public bool InUse => CurrentlyAttached > 0;
     public bool CanAttach => !Exclusive || !InUse;

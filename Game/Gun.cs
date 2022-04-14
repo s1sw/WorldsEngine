@@ -12,7 +12,8 @@ namespace Game;
 public enum AmmoType
 {
     Laser,
-    Humongous
+    Humongous,
+    PrecisionBolt
 }
 
 [Component]
@@ -45,6 +46,7 @@ class Gun : Component, IThinkingComponent, IStartListener, ICollisionHandler
         _projectilePrefab = ProjectileType switch
         {
             AmmoType.Humongous => AssetDB.PathToId("Prefabs/big_ass_projectile.wprefab"),
+            AmmoType.PrecisionBolt => AssetDB.PathToId("Prefabs/precision_bolt_projectile.wprefab"),
             _ => AssetDB.PathToId("Prefabs/gun_projectile.wprefab"),
         };
     }
@@ -88,6 +90,7 @@ class Gun : Component, IThinkingComponent, IStartListener, ICollisionHandler
         string evt = ProjectileType switch
         {
             AmmoType.Humongous => "event:/Weapons/Big Gun",
+            AmmoType.PrecisionBolt => "event:/Weapons/Precision Bolt",
             _ => "event:/Weapons/Gun Shot"
         };
 
@@ -102,12 +105,12 @@ class Gun : Component, IThinkingComponent, IStartListener, ICollisionHandler
         };
 
         var projectileDpa = Registry.GetComponent<DynamicPhysicsActor>(projectile);
-        projectileDpa.AddForce(transform.TransformDirection(Vector3.Forward) * speed, ForceMode.VelocityChange);
+        projectileDpa.AddForce(projectileTransform.TransformDirection(Vector3.Forward) * speed, ForceMode.VelocityChange);
         projectileTransform.Scale = projectile.Transform.Scale;
         projectileDpa.Pose = projectileTransform;
         projectile.Transform = projectileTransform;
 
-        dpa.AddForce(-transform.TransformDirection(Vector3.Forward) * speed * projectileDpa.Mass, ForceMode.Impulse);
+        dpa.AddForce(-projectileTransform.TransformDirection(Vector3.Forward) * speed * projectileDpa.Mass, ForceMode.Impulse);
 
         if (Registry.HasComponent<Grabbable>(entity))
         {
