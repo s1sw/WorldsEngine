@@ -630,6 +630,12 @@ namespace worlds {
         drawSphere(shapeTransform.position, shapeTransform.rotation, ps.sphere.radius, physShapeColor);
     }
 
+    void drawPhysicsCapsule(const Transform& actorTransform, const PhysicsShape& ps) {
+        Transform shapeTransform{ps.pos * actorTransform.scale, ps.rot};
+        shapeTransform = shapeTransform.transformBy(actorTransform);
+        drawCapsule(shapeTransform.position, glm::quat{glm::vec3{glm::half_pi<float>(), 0.0f, 0.0f}} * shapeTransform.rotation, ps.capsule.height * 0.5f, ps.capsule.radius, physShapeColor);
+    }
+
     void drawPhysicsMesh(const Transform& actorTransform, const PhysicsShape& ps) {
         AssetID meshId = ps.type == PhysicsShapeType::ConvexMesh ? ps.convexMesh.mesh : ps.mesh.mesh;
         const LoadedMesh& lm = MeshManager::loadOrGet(meshId);
@@ -657,6 +663,9 @@ namespace worlds {
         case PhysicsShapeType::ConvexMesh:
         case PhysicsShapeType::Mesh:
             drawPhysicsMesh(actorTransform, ps);
+            break;
+        case PhysicsShapeType::Capsule:
+            drawPhysicsCapsule(actorTransform, ps);
             break;
         default: break;
         }

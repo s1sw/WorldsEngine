@@ -88,6 +88,11 @@ namespace worlds {
         drawTransformedLine(overallTransform, glm::vec3(min.x, min.y, max.z), glm::vec3(min.x, min.y, min.z), color);
     }
 
+    void drawCapsule(glm::vec3 center, glm::quat rotation, float height, float radius, glm::vec4 color) {
+        drawSphere(center + rotation * glm::vec3(0.0f, height, 0.0f), rotation, radius, color);
+        drawSphere(center - rotation * glm::vec3(0.0f, height, 0.0f), rotation, radius, color);
+    }
+
     const DebugLine* swapDebugLineBuffer(size_t& numLines) {
         numLines = buffers[currentBuffer].size();
         const DebugLine* dbgLines = buffers[currentBuffer].data();
