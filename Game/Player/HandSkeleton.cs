@@ -1,6 +1,7 @@
 using WorldsEngine;
 using WorldsEngine.ECS;
 using WorldsEngine.Math;
+using System;
 
 namespace Game.Player;
 
@@ -29,6 +30,7 @@ class HandSkeleton : Component, IStartListener, IUpdateableComponent
         }
         Transform t = new();
         t.Scale = Vector3.One;
+        //t.Rotation = Quaternion.AngleAxis(MathF.PI, Vector3.Up);
         swo.SetBoneTransform(1, t);
     }
 }

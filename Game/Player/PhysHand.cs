@@ -20,13 +20,11 @@ class PhysHand : Component, IThinkingComponent, IStartListener, IUpdateableCompo
 
     static Vector3 _nonVROffset = new Vector3(0.125f, -0.2f, 0.55f);
     const float TorqueLimit = 35f;
-    float RotationDMax = 32.0f;
-    float RotationPMax = 700.0f;
+    float RotationDMax = 15.0f;
+    float RotationPMax = 600.0f;
 
     float PositionP = 2003f;
     float PositionD = 100f;
-
-    private Quaternion rotationOffset = Quaternion.Identity;
 
     public bool FollowRightHand = false;
 
@@ -34,11 +32,15 @@ class PhysHand : Component, IThinkingComponent, IStartListener, IUpdateableCompo
     public bool UseOverrideTensor = false;
     [NonSerialized]
     public Mat3x3 OverrideTensor = new();
+    public float TorqueFactor = 1.0f;
 
     [NonSerialized]
     public Transform? OverrideTarget = null;
 
     private Transform _targetTransform = new Transform();
+
+    private Transform _offsetTransform = new(Vector3.Zero, Quaternion.Identity);
+
     [EditableClass]
     public QuaternionEuroFilter RotationFilter = new();
     public bool DisableForces = false;
@@ -51,10 +53,11 @@ class PhysHand : Component, IThinkingComponent, IStartListener, IUpdateableCompo
 
     public void Start()
     {
-        if (FollowRightHand)
-            rotationOffset = new Quaternion(0.348f, 0.254f, -0.456f, -0.779f);
-        else
-            rotationOffset = new Quaternion(-0.409f, -0.154f, 0.419f, 0.796f);
+        //if (FollowRightHand)
+        //    rotationOffset = new Quaternion(0.348f, 0.254f, -0.456f, -0.779f);
+        //else
+        //    rotationOffset = new Quaternion(-0.409f, -0.154f, 0.419f, 0.796f);
+
 
 #if DEBUG_HAND_VIS
             _visEntity = Registry.Create();
@@ -99,12 +102,22 @@ class PhysHand : Component, IThinkingComponent, IStartListener, IUpdateableCompo
         Vector3 pForce = (_targetTransform.Position - dpa.Pose.Position) * PositionP;
         Vector3 dForce = (dpa.Velocity - bodyDpa.Velocity) * PositionD;
 
+        var hg = Entity.GetComponent<HandGrab>();
+
         Vector3 force = (pForce - dForce) * forceScale;
 
         if (!DisableForces)
         {
-            dpa.AddForce(force);
+            if (hg.GrippedEntity.IsValid && hg.GrippedEntity.TryGetComponent<DynamicPhysicsActor>(out DynamicPhysicsActor gripped))
+            {
+                dpa.AddForce(force);
+            }
+            else
+            {
+                dpa.AddForce(force);
+            }
             bodyDpa.AddForce(-force);
+
         }
     }
 
@@ -143,7 +156,7 @@ class PhysHand : Component, IThinkingComponent, IStartListener, IUpdateableCompo
         Vector3 pTorque = angle * axis * RotationPMax;
         Vector3 dTorque = dpa.AngularVelocity * RotationDMax;
 
-        Vector3 torque = pTorque - dTorque;
+        Vector3 torque = (pTorque - dTorque);
 
         torque = pose.Rotation.SingleCover.Inverse * torque;
         if (!UseOverrideTensor)
@@ -162,13 +175,11 @@ class PhysHand : Component, IThinkingComponent, IStartListener, IUpdateableCompo
             torque = OverrideTensor.Transform(torque);
         }
 
-        torque = pose.Rotation.SingleCover * torque;
+        torque = pose.Rotation.SingleCover * torque * TorqueFactor;
 
-        if (torque.LengthSquared > 0.5f)
-            torque = torque.ClampMagnitude(TorqueLimit);
+        //if (torque.LengthSquared > 0.5f)
+        //    torque = torque.ClampMagnitude(TorqueLimit);
         
-        ImGui.Text($"torque mag: {torque.Length}");
-
         if (!DisableForces)
         {
             dpa.AddTorque(torque);
@@ -213,7 +224,12 @@ class PhysHand : Component, IThinkingComponent, IStartListener, IUpdateableCompo
             return;
         }
 
-        _targetTransform = FollowRightHand ? VRTransforms.RightHandTransform : VRTransforms.LeftHandTransform;
+        Transform handT = FollowRightHand ? VRTransforms.RightHandTransform : VRTransforms.LeftHandTransform;
+        //_targetTransform = _offsetTransform.TransformBy(_targetTransform);
+        BoneTransforms bt = FollowRightHand ? VR.RightHandBones : VR.LeftHandBones;
+        Transform conversion = new(Vector3.Zero, Quaternion.AngleAxis(MathF.PI, Vector3.Up));
+        //_targetTransform = handT.TransformBy(conversion).TransformBy(bt[0]).TransformBy(bt[1]);
+        _targetTransform = bt[1].TransformBy(bt[0]).TransformBy(conversion).TransformBy(handT);
 
         if (_targetTransform.Rotation.HasNaNComponent)
             _targetTransform.Rotation = Quaternion.Identity;
@@ -225,7 +241,6 @@ class PhysHand : Component, IThinkingComponent, IStartListener, IUpdateableCompo
         _targetTransform.Position = virtualRotation * _targetTransform.Position;
 
         _targetTransform.Position += PlayerCameraSystem.GetCamPosForSimulation();
-        _targetTransform.Rotation *= rotationOffset;
         _targetTransform.Rotation = virtualRotation * _targetTransform.Rotation;
     }
 
