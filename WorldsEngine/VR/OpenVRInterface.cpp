@@ -184,17 +184,10 @@ namespace worlds {
 
         vr::VRBoneTransform_t* boneArray = hand == Hand::LeftHand ? lhandBoneArray : rhandBoneArray;
 
-        vr::VRInput()->GetSkeletalBoneData(skeletalAction,
-                vr::VRSkeletalTransformSpace_Model, vr::VRSkeletalMotionRange_WithoutController,
-                boneArray,
-                handBoneCount);
-
-
         glm::mat4 matrix = toMat4(pose.pose.mDeviceToAbsoluteTracking);
 
         t.rotation = getMatrixRotation(matrix);
-        t.position = getMatrixTranslation(matrix) + (t.rotation * glm::make_vec3(boneArray[1].position.v));
-        t.rotation *= glm::make_quat((float*)&boneArray[1].orientation);
+        t.position = getMatrixTranslation(matrix);
 
         vr::VRInput()->GetSkeletalBoneData(skeletalAction,
                 vr::VRSkeletalTransformSpace_Parent, vr::VRSkeletalMotionRange_WithoutController,
