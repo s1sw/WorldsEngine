@@ -49,6 +49,9 @@ namespace WorldsEngine
 
         [DllImport(WorldsEngine.NativeModule)]
         private static extern void vr_getHandTransform(VRHand hand, ref Transform transform);
+
+        [DllImport(WorldsEngine.NativeModule)]
+        private static extern void vr_getHandVelocity(VRHand hand, ref Vector3 velocity);
 		
 		private static bool _enabled = false;
 		
@@ -83,6 +86,18 @@ namespace WorldsEngine
             }
         }
 
+        public static Vector3 LeftHandVelocity
+        {
+            get
+            {
+                if (!Enabled) throw new InvalidOperationException();
+                Vector3 vel = new();
+                vr_getHandVelocity(VRHand.Left, ref vel);
+                ConvertCoordinateSystem(ref vel);
+                return vel;
+            }
+        }
+
         public static Transform RightHandTransform
         {
             get
@@ -95,16 +110,31 @@ namespace WorldsEngine
             }
         }
 
+        public static Vector3 RightHandVelocity
+        {
+            get
+            {
+                if (!Enabled) throw new InvalidOperationException();
+                Vector3 vel = new();
+                vr_getHandVelocity(VRHand.Right, ref vel);
+                ConvertCoordinateSystem(ref vel);
+                return vel;
+            }
+        }
+
         public static BoneTransforms LeftHandBones = new(VRHand.Left);
         public static BoneTransforms RightHandBones = new(VRHand.Right);
+        private static Vector3 CoordinateConversion = new Vector3(-1.0f, 1.0f, -1.0f);
         
         private static void ConvertCoordinateSystem(ref Transform t)
         {
-            Vector3 flipVec = new Vector3(-1.0f, 1.0f, -1.0f);
+            t.Position *= CoordinateConversion;
+            t.Rotation = Quaternion.AngleAxis(t.Rotation.Angle, t.Rotation.Axis * CoordinateConversion);
+        }
 
-            t.Position *= flipVec;
-
-            t.Rotation = Quaternion.AngleAxis(t.Rotation.Angle, t.Rotation.Axis * flipVec);
+        private static void ConvertCoordinateSystem(ref Vector3 vel)
+        {
+            vel *= CoordinateConversion;
         }
     }
 }

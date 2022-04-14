@@ -17,6 +17,10 @@ extern "C" {
         csharpVrInterface->getHandTransform(hand, *transform);
     }
 
+    EXPORT void vr_getHandVelocity(Hand hand, glm::vec3* vel) {
+        csharpVrInterface->getHandVelocity(hand, *vel);
+    }
+
     EXPORT InputActionHandle vr_getActionHandle(const char* actionPath) {
         return csharpVrInterface->getActionHandle(actionPath);
     }

@@ -49,6 +49,7 @@ namespace worlds {
 
         virtual glm::mat4 getHeadTransform(float predictionTime = 0.0f) = 0;
         virtual bool getHandTransform(Hand hand, Transform& t) = 0;
+        virtual bool getHandVelocity(Hand hand, glm::vec3& velocity) = 0;
 
         virtual InputActionHandle getActionHandle(std::string actionPath) = 0;
         virtual bool getActionHeld(InputActionHandle handle) = 0;
