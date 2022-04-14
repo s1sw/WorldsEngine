@@ -131,7 +131,7 @@ namespace WorldsEngine
                 MethodInfo callbackMethod = _callback.Method;
                 _lastContactModCallback = new OldCallback()
                 {
-                    TypeName = callbackMethod.DeclaringType.FullName,
+                    TypeName = callbackMethod.DeclaringType!.FullName!,
                     MethodName = callbackMethod.Name,
                     Flags = GetBindingFlags(callbackMethod)
                 };

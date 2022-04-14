@@ -200,6 +200,22 @@ namespace worlds {
         return true;
     }
 
+    bool OpenVRInterface::getHandVelocity(Hand hand, glm::vec3& vel) {
+        vr::InputPoseActionData_t pose;
+
+        auto retVal = vr::VRInput()->GetPoseActionDataForNextFrame(
+            hand == Hand::LeftHand ? leftHand : rightHand,
+            vr::TrackingUniverseStanding, &pose, sizeof(pose),
+            vr::k_ulInvalidInputValueHandle
+        );
+
+        if (retVal != vr::VRInputError_None)
+            return false;
+
+        vel = glm::make_vec3(pose.pose.vVelocity.v);
+        return true;
+    }
+
     glm::mat4 OpenVRInterface::getHeadTransform(float predictionTime) {
         vr::TrackedDevicePose_t hmdPose;
         system->GetDeviceToAbsoluteTrackingPose(vr::TrackingUniverseStanding, predictionTime, &hmdPose, 1);

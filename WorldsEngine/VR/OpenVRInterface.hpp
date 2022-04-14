@@ -51,6 +51,7 @@ namespace worlds {
 
         void updateInput() override;
         bool getHandTransform(Hand hand, Transform& t) override;
+        bool getHandVelocity(Hand hand, glm::vec3& velocity) override;
         glm::mat4 getHeadTransform(float predictionTime) override;
         glm::vec2 getLocomotionInput() override;
 
