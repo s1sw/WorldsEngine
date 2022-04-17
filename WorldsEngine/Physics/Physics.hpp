@@ -69,6 +69,8 @@ namespace worlds {
         template <typename T>
         void updatePhysicsShapes(T& pa, glm::vec3 scale = glm::vec3{ 1.0f });
 
+        void resetMeshCache();
+
         physx::PxScene* scene() { return _scene; }
         physx::PxPhysics* physics() { return _physics; }
         ~PhysicsSystem();
@@ -77,6 +79,7 @@ namespace worlds {
         void destroyD6Joint(entt::registry& reg, entt::entity ent);
         void setupFixedJoint(entt::registry& reg, entt::entity ent);
         void destroyFixedJoint(entt::registry& reg, entt::entity ent);
+        entt::registry& reg;
         physx::PxMaterial* _defaultMaterial;
         physx::PxScene* _scene;
         physx::PxPhysics* _physics;
