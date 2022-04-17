@@ -1,6 +1,7 @@
 #include "ProjectAssetCompiler.hpp"
 #include "AssetCompilation/AssetCompilers.hpp"
 #include "Core/Log.hpp"
+#include <Core/Console.hpp>
 #include "Editor/Editor.hpp"
 
 namespace worlds {
@@ -28,8 +29,10 @@ namespace worlds {
                 
                 if (assetFileCompileIterator != assets.assetFiles.end())
                     currentCompileOp = AssetCompilers::buildAsset(project.root(), assetFileCompileIterator->sourceAssetId);
-                else
+                else {
                     _isCompiling = false;
+                    g_console->executeCommandStr("reloadContent");
+                }
             }
 
             if (currentCompileOp) {
@@ -44,6 +47,8 @@ namespace worlds {
                     currentCompileOp = nullptr;
                     if (assetFileCompileIterator >= assets.assetFiles.end()) {
                         _isCompiling = false;
+
+                        g_console->executeCommandStr("reloadContent");
                     }
                 }
             }
