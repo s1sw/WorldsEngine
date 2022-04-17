@@ -401,7 +401,7 @@ namespace worlds {
     SimulationCallback* simCallback;
     ContactModificationCallback* contactModCallback;
 
-    PhysicsSystem::PhysicsSystem(const EngineInterfaces& interfaces, entt::registry& reg) {
+    PhysicsSystem::PhysicsSystem(const EngineInterfaces& interfaces, entt::registry& reg) : reg(reg) {
         errorCallback = new PhysErrCallback;
         foundation = PxCreateFoundation(PX_PHYSICS_VERSION, allocator, *errorCallback);
         physScriptEngine = interfaces.scriptEngine;
@@ -476,6 +476,21 @@ namespace worlds {
     void PhysicsSystem::stepSimulation(float deltaTime) {
         _scene->simulate(deltaTime);
         _scene->fetchResults(true);
+    }
+
+    void PhysicsSystem::resetMeshCache() {
+        for (auto& kv : physicsTriMesh) {
+            kv.second->release();
+        }
+        physicsTriMesh.clear();
+
+        reg.view<PhysicsActor, Transform>().each([this](PhysicsActor& pa, Transform& t) {
+            updatePhysicsShapes(pa, t.scale);
+        });
+
+        reg.view<DynamicPhysicsActor, Transform>().each([this](DynamicPhysicsActor& pa, Transform& t) {
+            updatePhysicsShapes(pa, t.scale);
+        });
     }
 
     PhysicsSystem::~PhysicsSystem() {

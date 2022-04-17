@@ -580,6 +580,7 @@ namespace worlds {
 
             console->registerCommand([&](void*, const char*) {
                 renderer->reloadContent(ReloadFlags::All);
+                physicsSystem->resetMeshCache();
             }, "reloadContent", "Reloads all content.");
 
             console->registerCommand([&](void*, const char*) {
@@ -592,6 +593,7 @@ namespace worlds {
 
             console->registerCommand([&](void*, const char*) {
                 renderer->reloadContent(ReloadFlags::Meshes);
+                physicsSystem->resetMeshCache();
             }, "reloadMeshes", "Reloads meshes.");
 
             console->registerCommand([&](void*, const char*) {
