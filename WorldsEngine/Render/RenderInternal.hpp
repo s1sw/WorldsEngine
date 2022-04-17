@@ -565,6 +565,44 @@ namespace worlds {
         ~VKRenderer();
     };
 
+    enum class ShaderVariantFlags : uint32_t {
+        None = 0,
+        AlphaTest = 1,
+        Skinnning = 2,
+        NoBackfaceCulling = 4
+    };
+
+    inline ShaderVariantFlags operator|(ShaderVariantFlags a, ShaderVariantFlags b) {
+        return static_cast<ShaderVariantFlags>(static_cast<uint32_t>(a) | static_cast<uint32_t>(b));
+    }
+
+    inline ShaderVariantFlags operator|=(ShaderVariantFlags& a, ShaderVariantFlags b) {
+        return (a = a | b);
+    }
+
+    class VKPipelineVariants {
+    public:
+        VKPipelineVariants(VulkanHandles* handles, bool depthOnly, VkPipelineLayout layout, VkRenderPass renderPass);
+        VkPipeline getPipeline(bool enablePicking, int msaaSamples, ShaderVariantFlags flags);
+    private:
+        struct ShaderKey {
+            bool enablePicking;
+            int msaaSamples;
+            ShaderVariantFlags flags;
+
+            uint32_t hash();
+        };
+
+        robin_hood::unordered_map<uint32_t, vku::Pipeline> cache;
+
+        AssetID getFS(ShaderVariantFlags flags);
+        AssetID getVS(ShaderVariantFlags flags);
+        VulkanHandles* handles;
+        bool depthOnly;
+        VkPipelineLayout layout;
+        VkRenderPass renderPass;
+    };
+
     inline void addDebugLabel(VkCommandBuffer cmdBuf, const char* name, float r, float g, float b, float a) {
         VkDebugUtilsLabelEXT label{ VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT };
         label.pLabelName = name;

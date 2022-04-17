@@ -8,83 +8,8 @@ namespace worlds {
     void DepthPrepass::setup(RenderContext& ctx, VkRenderPass renderPass, VkPipelineLayout layout) {
         ZoneScoped;
 
-        AssetID vsID = AssetDB::pathToId("Shaders/depth_prepass.vert.spv");
-        auto preVertexShader = ShaderCache::getModule(handles->device, vsID);
-        {
-            AssetID fsID = AssetDB::pathToId("Shaders/blank.frag.spv");
-            auto preFragmentShader = ShaderCache::getModule(handles->device, fsID);
-            vku::PipelineMaker pm{ ctx.passWidth, ctx.passHeight };
+        pipelineVariants = new VKPipelineVariants{handles, true, layout, renderPass};
 
-            pm.shader(VK_SHADER_STAGE_FRAGMENT_BIT, preFragmentShader);
-            pm.shader(VK_SHADER_STAGE_VERTEX_BIT, preVertexShader);
-            pm.vertexBinding(0, (uint32_t)sizeof(Vertex));
-            pm.vertexAttribute(0, 0, VK_FORMAT_R32G32B32_SFLOAT, (uint32_t)offsetof(Vertex, position));
-            pm.vertexAttribute(1, 0, VK_FORMAT_R32G32_SFLOAT, (uint32_t)offsetof(Vertex, uv));
-            pm.cullMode(VK_CULL_MODE_BACK_BIT);
-            pm.depthWriteEnable(true).depthTestEnable(true).depthCompareOp(VK_COMPARE_OP_GREATER);
-            pm.blendBegin(false);
-            pm.frontFace(VK_FRONT_FACE_COUNTER_CLOCKWISE);
-
-            pm.rasterizationSamples(vku::sampleCountFlags(ctx.passSettings.msaaLevel));
-            pm.alphaToCoverageEnable(false);
-            pm.subPass(0);
-
-            if (handles->hasOutOfOrderRasterization)
-                pm.rasterizationOrderAMD(VK_RASTERIZATION_ORDER_RELAXED_AMD);
-
-            pm.dynamicState(VK_DYNAMIC_STATE_VIEWPORT).dynamicState(VK_DYNAMIC_STATE_SCISSOR);
-            depthPrePipeline = pm.create(handles->device, handles->pipelineCache, layout, renderPass);
-        }
-
-        {
-            AssetID fsID = AssetDB::pathToId("Shaders/blank.frag.spv");
-            auto preFragmentShader = vku::loadShaderAsset(handles->device, fsID);
-            vku::PipelineMaker pm{ ctx.passWidth, ctx.passHeight };
-
-            pm.shader(VK_SHADER_STAGE_FRAGMENT_BIT, preFragmentShader);
-            pm.shader(VK_SHADER_STAGE_VERTEX_BIT, ShaderCache::getModule(handles->device, AssetDB::pathToId("Shaders/depth_prepass_skinned.vert.spv")));
-            pm.vertexBinding(0, (uint32_t)sizeof(Vertex));
-            pm.vertexBinding(1, (uint32_t)sizeof(VertSkinningInfo));
-            pm.vertexAttribute(0, 0, VK_FORMAT_R32G32B32_SFLOAT, (uint32_t)offsetof(Vertex, position));
-            pm.vertexAttribute(1, 0, VK_FORMAT_R32G32_SFLOAT, (uint32_t)offsetof(Vertex, uv));
-            pm.vertexAttribute(2, 1, VK_FORMAT_R32G32B32A32_SFLOAT, (uint32_t)offsetof(VertSkinningInfo, weights));
-            pm.vertexAttribute(3, 1, VK_FORMAT_R32G32B32A32_UINT, (uint32_t)offsetof(VertSkinningInfo, boneIds));
-            pm.cullMode(VK_CULL_MODE_BACK_BIT);
-            pm.depthWriteEnable(true).depthTestEnable(true).depthCompareOp(VK_COMPARE_OP_GREATER);
-            pm.blendBegin(false);
-            pm.frontFace(VK_FRONT_FACE_COUNTER_CLOCKWISE);
-
-            if (handles->hasOutOfOrderRasterization)
-                pm.rasterizationOrderAMD(VK_RASTERIZATION_ORDER_RELAXED_AMD);
-
-            pm.rasterizationSamples(vku::sampleCountFlags(ctx.passSettings.msaaLevel));
-            pm.alphaToCoverageEnable(false);
-            pm.subPass(0);
-            pm.dynamicState(VK_DYNAMIC_STATE_VIEWPORT).dynamicState(VK_DYNAMIC_STATE_SCISSOR);
-            skinnedPipeline = pm.create(handles->device, handles->pipelineCache, layout, renderPass);
-        }
-
-        {
-            AssetID alphaTestID = AssetDB::pathToId("Shaders/alpha_test_prepass.frag.spv");
-            auto alphaTestFragment = vku::loadShaderAsset(handles->device, alphaTestID);
-            vku::PipelineMaker pm{ ctx.passWidth, ctx.passHeight };
-
-            pm.shader(VK_SHADER_STAGE_FRAGMENT_BIT, alphaTestFragment);
-            pm.shader(VK_SHADER_STAGE_VERTEX_BIT, preVertexShader);
-            pm.vertexBinding(0, (uint32_t)sizeof(Vertex));
-            pm.vertexAttribute(0, 0, VK_FORMAT_R32G32B32_SFLOAT, (uint32_t)offsetof(Vertex, position));
-            pm.vertexAttribute(1, 0, VK_FORMAT_R32G32_SFLOAT, (uint32_t)offsetof(Vertex, uv));
-            pm.cullMode(VK_CULL_MODE_BACK_BIT);
-            pm.depthWriteEnable(true).depthTestEnable(true).depthCompareOp(VK_COMPARE_OP_GREATER);
-            pm.blendBegin(false);
-            pm.frontFace(VK_FRONT_FACE_COUNTER_CLOCKWISE);
-
-            pm.rasterizationSamples(vku::sampleCountFlags(ctx.passSettings.msaaLevel));
-            pm.alphaToCoverageEnable(true);
-            pm.subPass(0);
-            pm.dynamicState(VK_DYNAMIC_STATE_VIEWPORT).dynamicState(VK_DYNAMIC_STATE_SCISSOR);
-            alphaTestPipeline = pm.create(handles->device, handles->pipelineCache, layout, renderPass);
-        }
         this->layout = layout;
     }
 
@@ -113,19 +38,26 @@ namespace worlds {
 
         auto& cmdBuf = ctx.cmdBuf;
         addDebugLabel(cmdBuf, "Depth Pre-Pass", 0.368f, 0.415f, 0.819f, 1.0f);
-        vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, depthPrePipeline);
 
-        VkPipeline lastPipeline = depthPrePipeline;
+        VkPipeline lastPipeline =
+            pipelineVariants->getPipeline(false, ctx.passSettings.msaaLevel, ShaderVariantFlags::None);
+
+        vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, lastPipeline);
+
 
         for (auto& sdi : drawInfo) {
             if (sdi.dontPrepass) continue;
-            VkPipeline needsPipeline = depthPrePipeline;
+            ShaderVariantFlags svf = ShaderVariantFlags::None;
 
-            if (!sdi.opaque)
-                needsPipeline = alphaTestPipeline;
+            if (!sdi.opaque) {
+                svf |= ShaderVariantFlags::AlphaTest;
+            }
 
-            if (sdi.skinned)
-                needsPipeline = skinnedPipeline;
+            if (sdi.skinned) {
+                svf |= ShaderVariantFlags::Skinnning;
+            }
+
+            VkPipeline needsPipeline = pipelineVariants->getPipeline(false, ctx.passSettings.msaaLevel, svf);
 
             if (needsPipeline != lastPipeline) {
                 vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, needsPipeline);
@@ -153,5 +85,9 @@ namespace worlds {
             ctx.debugContext.stats->numDrawCalls++;
         }
         vkCmdEndDebugUtilsLabelEXT(cmdBuf);
+    }
+
+    DepthPrepass::~DepthPrepass() {
+        delete pipelineVariants;
     }
 }

@@ -110,6 +110,7 @@ namespace worlds {
     struct SubmeshInfo {
         uint32_t indexOffset; //!< The offset of the submesh in the mesh index buffer.
         uint32_t indexCount; //!< The number of indices in the submesh.
+        int materialIndex;
     };
 
     struct RenderDebugStats {

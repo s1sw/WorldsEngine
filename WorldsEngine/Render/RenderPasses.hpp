@@ -57,8 +57,8 @@ namespace worlds {
         entt::entity ent;
         VkPipeline pipeline;
         uint32_t drawMiscFlags;
-        bool opaque;
         bool dontPrepass;
+        bool opaque;
 
         bool skinned;
         uint32_t boneMatrixOffset;
@@ -103,9 +103,7 @@ namespace worlds {
 
     class DepthPrepass {
     private:
-        vku::Pipeline depthPrePipeline;
-        vku::Pipeline alphaTestPipeline;
-        vku::Pipeline skinnedPipeline;
+        VKPipelineVariants* pipelineVariants;
         VulkanHandles* handles;
         VkPipelineLayout layout;
     public:
@@ -114,6 +112,7 @@ namespace worlds {
         void setup(RenderContext& ctx, VkRenderPass renderPass, VkPipelineLayout pipelineLayout);
         void prePass(RenderContext& ctx);
         void execute(RenderContext& ctx, slib::StaticAllocList<SubmeshDrawInfo>& drawInfo);
+        ~DepthPrepass();
     };
 
     class MainPass : public RenderPass {
@@ -212,11 +211,9 @@ namespace worlds {
     private:
         vku::RenderPass renderPass;
         vku::RenderPass depthPass;
-        vku::Pipeline pipeline;
-        vku::Pipeline noBackfaceCullPipeline;
-        vku::Pipeline skinnedPipeline;
         vku::PipelineLayout pipelineLayout;
         vku::DescriptorSetLayout dsl;
+        VKPipelineVariants* pipelineVariants;
 
         vku::Pipeline wireframePipeline;
         vku::PipelineLayout wireframePipelineLayout;

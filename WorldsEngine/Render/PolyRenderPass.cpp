@@ -43,124 +43,6 @@ namespace ShaderFlags {
 namespace worlds {
     ConVar showWireframe("r_wireframeMode", "0", "0 - No wireframe; 1 - Wireframe only; 2 - Wireframe + solid");
     ConVar dbgDrawMode("r_dbgDrawMode", "0", "0 = Normal, 1 = Normals, 2 = Metallic, 3 = Roughness, 4 = AO");
-    ConVar enableProxyAO("r_enableProxyAO", "1");
-    ConVar enableDepthPrepass("r_depthPrepass", "1");
-    ConVar enableParallaxMapping("r_doParallaxMapping", "0");
-    ConVar maxParallaxLayers("r_maxParallaxLayers", "32");
-    ConVar minParallaxLayers("r_minParallaxLayers", "4");
-
-    struct StandardSpecConsts {
-        VkBool32 enablePicking = false;
-        float parallaxMaxLayers = 32.0f;
-        float parallaxMinLayers = 4.0f;
-        VkBool32 doParallax = false;
-        VkBool32 enableProxyAO = false;
-    };
-
-    void setupVertexFormat(vku::PipelineMaker& pm) {
-        pm.vertexBinding(0, (uint32_t)sizeof(Vertex));
-        pm.vertexAttribute(0, 0, VK_FORMAT_R32G32B32_SFLOAT, (uint32_t)offsetof(Vertex, position));
-        pm.vertexAttribute(1, 0, VK_FORMAT_R32G32B32_SFLOAT, (uint32_t)offsetof(Vertex, normal));
-        pm.vertexAttribute(2, 0, VK_FORMAT_R32G32B32_SFLOAT, (uint32_t)offsetof(Vertex, tangent));
-        pm.vertexAttribute(3, 0, VK_FORMAT_R32_SFLOAT, (uint32_t)offsetof(Vertex, bitangentSign));
-        pm.vertexAttribute(4, 0, VK_FORMAT_R32G32_SFLOAT, (uint32_t)offsetof(Vertex, uv));
-    }
-
-    void setupSkinningVertexFormat(vku::PipelineMaker& pm) {
-        pm.vertexBinding(1, (uint32_t)sizeof(VertSkinningInfo));
-        pm.vertexAttribute(5, 1, VK_FORMAT_R32G32B32A32_SFLOAT, (uint32_t)offsetof(VertSkinningInfo, weights));
-        pm.vertexAttribute(6, 1, VK_FORMAT_R32G32B32A32_UINT, (uint32_t)offsetof(VertSkinningInfo, boneIds));
-    }
-
-    class StandardPipelineMaker {
-    public:
-        StandardPipelineMaker(AssetID vertexShader, AssetID fragmentShader) {
-            vs = vertexShader;
-            fs = fragmentShader;
-        }
-
-        StandardPipelineMaker& setMsaaSamples(int val) {
-            msaaSamples = val;
-            return *this;
-        }
-
-        StandardPipelineMaker& setPickingEnabled(bool val) {
-            enablePicking = val;
-            return *this;
-        }
-
-        StandardPipelineMaker& setCullMode(VkCullModeFlags val) {
-            cullFlags = val;
-            return *this;
-        }
-
-        StandardPipelineMaker& setUseSkinningAttributes(bool val) {
-            useSkinningAttributes = val;
-            return *this;
-        }
-
-        vku::Pipeline createPipeline(VulkanHandles* handles, VkPipelineLayout layout, VkRenderPass renderPass) {
-            VkSpecializationMapEntry entries[5] = {
-                { 0, offsetof(StandardSpecConsts, enablePicking),     sizeof(VkBool32) },
-                { 1, offsetof(StandardSpecConsts, parallaxMaxLayers), sizeof(float) },
-                { 2, offsetof(StandardSpecConsts, parallaxMinLayers), sizeof(float) },
-                { 3, offsetof(StandardSpecConsts, doParallax),        sizeof(VkBool32) },
-                { 4, offsetof(StandardSpecConsts, enableProxyAO),     sizeof(VkBool32) }
-            };
-
-            VkSpecializationInfo standardSpecInfo{ 5, entries, sizeof(StandardSpecConsts) };
-
-            vku::PipelineMaker pm{ 1600, 900 };
-            VkShaderModule fragmentShader = ShaderCache::getModule(handles->device, fs);
-            VkShaderModule vertexShader = ShaderCache::getModule(handles->device, vs);
-
-            StandardSpecConsts spc{
-                enablePicking,
-                maxParallaxLayers.getFloat(),
-                minParallaxLayers.getFloat(),
-                (bool)enableParallaxMapping.getInt(),
-                (bool)enableProxyAO.getInt()
-            };
-
-            standardSpecInfo.pData = &spc;
-
-            pm.shader(VK_SHADER_STAGE_FRAGMENT_BIT, fragmentShader, "main", &standardSpecInfo);
-            pm.shader(VK_SHADER_STAGE_VERTEX_BIT, vertexShader);
-            setupVertexFormat(pm);
-
-            if (useSkinningAttributes)
-                setupSkinningVertexFormat(pm);
-
-            pm.cullMode(cullFlags);
-
-            if ((int)enableDepthPrepass)
-                pm.depthWriteEnable(false)
-                .depthTestEnable(true)
-                .depthCompareOp(VK_COMPARE_OP_EQUAL);
-            else
-                pm.depthWriteEnable(true).depthTestEnable(true).depthCompareOp(VK_COMPARE_OP_GREATER);
-
-            pm.blendBegin(false);
-            pm.frontFace(VK_FRONT_FACE_COUNTER_CLOCKWISE);
-
-            pm.rasterizationSamples(vku::sampleCountFlags(msaaSamples));
-
-            pm.dynamicState(VK_DYNAMIC_STATE_VIEWPORT);
-            pm.dynamicState(VK_DYNAMIC_STATE_SCISSOR);
-
-            if (handles->hasOutOfOrderRasterization)
-                pm.rasterizationOrderAMD(VK_RASTERIZATION_ORDER_RELAXED_AMD);
-
-            return pm.create(handles->device, handles->pipelineCache, layout, renderPass);
-        }
-    private:
-        AssetID vs;
-        AssetID fs;
-        int msaaSamples = 1;
-        bool enablePicking = false;
-        bool useSkinningAttributes = false;
-        VkCullModeFlags cullFlags = VK_CULL_MODE_BACK_BIT;
-    };
 
     struct StandardPushConstants {
         uint32_t modelMatrixIdx;
@@ -482,37 +364,7 @@ namespace worlds {
         fci.renderPass = depthPass;
 
         VKCHECK(vku::createFramebuffer(handles->device, &fci, &depthFb));
-
-        AssetID vsID = AssetDB::pathToId("Shaders/standard.vert.spv");
-        vertexShader = ShaderCache::getModule(handles->device, vsID);
-        fragmentShader = ShaderCache::getModule(handles->device, fsID);
-
-        {
-            StandardPipelineMaker pm{ vsID, fsID };
-            pm
-                .setMsaaSamples(ctx.passSettings.msaaLevel)
-                .setPickingEnabled(enablePicking);
-            pipeline = pm.createPipeline(handles, pipelineLayout, renderPass);
-        }
-
-        {
-            AssetID skinnedVSID = AssetDB::pathToId("Shaders/standard_skinned.vert.spv");
-            StandardPipelineMaker pm{ skinnedVSID, fsID };
-            pm
-                .setMsaaSamples(ctx.passSettings.msaaLevel)
-                .setPickingEnabled(enablePicking)
-                .setUseSkinningAttributes(true);
-            skinnedPipeline = pm.createPipeline(handles, pipelineLayout, renderPass);
-        }
-
-        {
-            StandardPipelineMaker pm{ vsID, fsID };
-            pm
-                .setMsaaSamples(ctx.passSettings.msaaLevel)
-                .setPickingEnabled(enablePicking)
-                .setCullMode(VK_CULL_MODE_NONE);
-            noBackfaceCullPipeline = pm.createPipeline(handles, pipelineLayout, renderPass);
-        }
+        pipelineVariants = new VKPipelineVariants{handles, false, pipelineLayout, renderPass};
 
         {
             AssetID wvsID = AssetDB::pathToId("Shaders/wire_obj.vert.spv");
@@ -737,8 +589,8 @@ namespace worlds {
                 sdi.vb = meshPos->second.vb.buffer();
                 sdi.indexCount = currSubmesh.indexCount;
                 sdi.indexOffset = currSubmesh.indexOffset;
-                if (wo.presentMaterials[i])
-                    sdi.materialIdx = ctx.resources.materials.get(wo.materials[i]);
+                if (wo.presentMaterials[currSubmesh.materialIndex])
+                    sdi.materialIdx = ctx.resources.materials.get(wo.materials[currSubmesh.materialIndex]);
                 else
                     sdi.materialIdx = ctx.resources.materials.get(wo.materials[0]);
                 sdi.matrixIdx = matrixIdx;
@@ -772,8 +624,8 @@ namespace worlds {
                 uint32_t currCubemapIdx = skyboxId;
                 int lastPriority = INT32_MIN;
 
+                glm::vec3 cPos = t.transformPoint((meshPos->second.aabbMax + meshPos->second.aabbMin) * 0.5f);
                 ctx.registry.view<WorldCubemap, Transform>().each([&](WorldCubemap& wc, Transform& cubeT) {
-                    glm::vec3 cPos = t.position;
                     glm::vec3 ma = wc.extent + cubeT.position;
                     glm::vec3 mi = cubeT.position - wc.extent;
 
@@ -794,11 +646,19 @@ namespace worlds {
 
                 auto& extraDat = resources.materials.getExtraDat(sdi.materialIdx);
 
-                sdi.pipeline = pipeline;
+                ShaderVariantFlags svf = ShaderVariantFlags::None;
 
                 if (extraDat.noCull) {
-                    sdi.pipeline = noBackfaceCullPipeline;
-                } else if (extraDat.wireframe || showWireframe.getInt() == 1) {
+                    svf |= ShaderVariantFlags::NoBackfaceCulling;
+                } 
+
+                if (!sdi.opaque) {
+                    svf |= ShaderVariantFlags::AlphaTest;
+                }
+
+                sdi.pipeline = pipelineVariants->getPipeline(enablePicking, ctx.passSettings.msaaLevel, svf);
+
+                if (extraDat.wireframe || showWireframe.getInt() == 1) {
                     sdi.pipeline = wireframePipeline;
                     sdi.dontPrepass = true;
                 } else if (ctx.registry.has<UseWireframe>(ent) || showWireframe.getInt() == 2) {
@@ -859,7 +719,10 @@ namespace worlds {
                 sdi.vb = meshPos->second.vb.buffer();
                 sdi.indexCount = currSubmesh.indexCount;
                 sdi.indexOffset = currSubmesh.indexOffset;
-                sdi.materialIdx = ctx.resources.materials.get(wo.materials[i]);
+                if (wo.presentMaterials[currSubmesh.materialIndex])
+                    sdi.materialIdx = ctx.resources.materials.get(wo.materials[currSubmesh.materialIndex]);
+                else
+                    sdi.materialIdx = ctx.resources.materials.get(wo.materials[0]);
                 sdi.matrixIdx = matrixIdx;
                 sdi.texScaleOffset = wo.texScaleOffset;
                 sdi.ent = ent;
@@ -867,7 +730,7 @@ namespace worlds {
                 sdi.boneVB = meshPos->second.vertexSkinWeights.buffer();
                 sdi.boneMatrixOffset = skinningOffset;
                 auto& packedMat = resources.materials[sdi.materialIdx];
-                sdi.opaque = packedMat.getCutoff() == 0.0f;
+                sdi.opaque = packedMat.getCutoff() < 0.004f;
 
                 switch (wo.uvOverride) {
                 default:
@@ -913,7 +776,20 @@ namespace worlds {
                     });
 
                 sdi.cubemapIdx = currCubemapIdx;
-                sdi.pipeline = skinnedPipeline;
+
+                ShaderVariantFlags svf = ShaderVariantFlags::Skinnning;
+
+                auto& extraDat = resources.materials.getExtraDat(sdi.materialIdx);
+
+                if (extraDat.noCull) {
+                    svf |= ShaderVariantFlags::NoBackfaceCulling;
+                }
+
+                if (!sdi.opaque) {
+                    svf |= ShaderVariantFlags::AlphaTest;
+                }
+
+                sdi.pipeline = pipelineVariants->getPipeline(enablePicking, ctx.passSettings.msaaLevel, svf);
 
                 //ctx.debugContext.stats->numTriangles += currSubmesh.indexCount / 3;
 
@@ -1192,7 +1068,7 @@ namespace worlds {
             return sdiA.pipeline > sdiB.pipeline;
             });
 
-        if ((int)enableDepthPrepass) {
+        if (g_console->getConVar("r_depthprepass")->getInt()) {
             ZoneScopedN("Depth prepass");
             depthPrepass->execute(ctx, drawInfo);
             depthResource->image().setCurrentLayout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
@@ -1313,5 +1189,7 @@ namespace worlds {
 
         if (cullMeshRenderer)
             delete cullMeshRenderer;
+        
+        delete pipelineVariants;
     }
 }
