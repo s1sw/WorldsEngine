@@ -47,6 +47,11 @@ namespace worlds {
                 const LoadedMesh& lm = MeshManager::loadOrGet(outputAsset);
                 ImGui::Text("%i submeshes", lm.numSubmeshes);
 
+                glm::vec3 aabbCenter = (lm.aabbMin + lm.aabbMax) * 0.5f;
+                ImGui::Text("AABB min: %.3f, %.3f, %.3f", lm.aabbMin.x, lm.aabbMin.y, lm.aabbMin.z);
+                ImGui::Text("AABB max: %.3f, %.3f, %.3f", lm.aabbMax.x, lm.aabbMax.y, lm.aabbMax.z);
+                ImGui::Text("AABB center: %.3f, %.3f, %.3f", aabbCenter.x, aabbCenter.y, aabbCenter.z);
+
                 if (ImGui::TreeNode("Submeshes")) {
                     for (int i = 0; i < lm.numSubmeshes; i++) {
                         ImGui::Text("%i indices", lm.submeshes[i].indexCount);

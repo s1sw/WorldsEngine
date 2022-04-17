@@ -42,8 +42,12 @@ namespace worlds {
         }
 
         lm.sphereBoundRadius = 0.0f;
+        lm.aabbMax = glm::vec3(0.0f);
+        lm.aabbMin = glm::vec3(std::numeric_limits<float>::max());
         for (auto& vtx : lm.vertices) {
             lm.sphereBoundRadius = glm::max(glm::length(vtx.position), lm.sphereBoundRadius);
+            lm.aabbMax = glm::max(lm.aabbMax, vtx.position);
+            lm.aabbMin = glm::min(lm.aabbMin, vtx.position);
         }
 
         loadedMeshes.insert({ id, std::move(lm) });
