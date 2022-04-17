@@ -331,11 +331,8 @@ namespace worlds {
         EditorActions::addAction({ "assets.refresh", [](Editor* ed, entt::registry& reg) {
             ed->currentProject().assets().enumerateAssets();
             ed->currentProject().assets().checkForAssetChanges();
-        }, "Refresh assets"});
-
-        EditorActions::addAction({ "assets.compile", [](Editor* ed, entt::registry& reg) {
             ed->currentProject().assetCompiler().startCompiling();
-        }, "Compile assets"});
+        }, "Refresh assets"});
 
         EditorActions::bindAction("scene.save", ActionKeybind{SDL_SCANCODE_S, ModifierFlags::Control});
         EditorActions::bindAction("scene.open", ActionKeybind{SDL_SCANCODE_O, ModifierFlags::Control});
