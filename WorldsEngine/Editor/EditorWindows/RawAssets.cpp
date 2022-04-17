@@ -195,7 +195,7 @@ namespace worlds {
                         }
                     }
 
-                    if (ext == ".fbx" || ext == ".glb") {
+                    if (ext == ".fbx" || ext == ".glb" || ext == ".blend") {
                         if (ImGui::Button("Import model")) {
                             std::string path = assetContextMenu;
                             std::string removeStr = "Raw/";
