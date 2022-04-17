@@ -113,6 +113,7 @@ bool frustumContainsOBB(vec3 boxSize, mat4 transform) {
 
         for (int j = 0; j < 8; j++) {
             vec3 v = vec3(j % 2 == 0 ? -1.0 : 1.0, (j >> 1) % 2 == 0 ? -1.0 : 1.0, j < 4 ? -1.0 : 1.0);
+            v = (transform * vec4(v * boxSize, 1.0)).xyz;
             outside += (dot(tileFrustum.planes[i], vec4(v, 1.0)) < 0.0) ? 1 : 0;
         }
 
