@@ -108,16 +108,7 @@ class PhysHand : Component, IThinkingComponent, IStartListener, IUpdateableCompo
 
         if (!DisableForces)
         {
-            if (hg.GrippedEntity.IsValid && hg.GrippedEntity.TryGetComponent<DynamicPhysicsActor>(out DynamicPhysicsActor gripped))
-            {
-                Vector3 handVel = FollowRightHand ? VR.RightHandVelocity : VR.LeftHandVelocity;
-                dpa.AddForce(force);
-                //gripped.AddForce(((dpa.Velocity - handVel) - bodyDpa.Velocity) * 10f, ForceMode.Acceleration);
-            }
-            else
-            {
-                dpa.AddForce(force);
-            }
+            dpa.AddForce(force);
             bodyDpa.AddForce(-force);
 
         }
@@ -179,8 +170,8 @@ class PhysHand : Component, IThinkingComponent, IStartListener, IUpdateableCompo
 
         torque = pose.Rotation.SingleCover * (torque * TorqueScale);
 
-        if (torque.LengthSquared > 0.5f)
-            torque = torque.ClampMagnitude(TorqueLimit);
+        //if (torque.LengthSquared > 0.5f)
+        //    torque = torque.ClampMagnitude(TorqueLimit);
         
         if (!DisableForces)
         {
