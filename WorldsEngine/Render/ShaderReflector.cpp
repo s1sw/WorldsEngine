@@ -87,4 +87,38 @@ namespace worlds {
 
         return layout;
     }
+
+    VertexAttributeBindings ShaderReflector::getVertexAttributeBindings() {
+        VertexAttributeBindings bindings{ -1, -1, -1, -1, -1, -1, -1 };
+
+        if (mod.shader_stage != VK_SHADER_STAGE_VERTEX_BIT) {
+            return bindings;
+        }
+
+        uint32_t numInputVariables;
+        std::vector<SpvReflectInterfaceVariable*> inVars;
+        spvReflectEnumerateInputVariables(&mod, &numInputVariables, nullptr);
+        inVars.resize(numInputVariables);
+        spvReflectEnumerateInputVariables(&mod, &numInputVariables, inVars.data());
+
+        for (SpvReflectInterfaceVariable* iv : inVars) {
+            if (strcmp(iv->name, "inPosition") == 0) {
+                bindings.position = iv->location;
+            } else if (strcmp(iv->name, "inNormal") == 0) {
+                bindings.normal = iv->location;
+            } else if (strcmp(iv->name, "inTangent") == 0) {
+                bindings.tangent = iv->location;
+            } else if (strcmp(iv->name, "inBitangentSign") == 0) {
+                bindings.bitangentSign = iv->location;
+            } else if (strcmp(iv->name, "inUV") == 0) {
+                bindings.uv = iv->location;
+            } else if (strcmp(iv->name, "inBoneWeights") == 0) {
+                bindings.boneWeights = iv->location;
+            } else if (strcmp(iv->name, "inBoneIds") == 0) {
+                bindings.boneIds = iv->location;
+            }
+        }
+
+        return bindings;
+    }
 }

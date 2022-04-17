@@ -45,6 +45,9 @@ namespace worlds {
         for (wmdl::CountType i = 0; i < lmd.numSubmeshes; i++) {
             lmd.submeshes[i].indexCount = submeshBlock[i].numIndices;
             lmd.submeshes[i].indexOffset = submeshBlock[i].indexOffset;
+            lmd.submeshes[i].materialIndex = submeshBlock[i].materialIndex;
+            if (lmd.submeshes[i].materialIndex < 0 || lmd.submeshes[i].materialIndex > NUM_SUBMESH_MATS)
+                lmd.submeshes[i].materialIndex = 0;
         }
 
         indices.resize(wHdr->numIndices);
