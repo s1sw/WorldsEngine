@@ -217,6 +217,14 @@ namespace worlds {
                     bool hitNotSet = false;
                     int notSetCount = 0;
                     if (ImGui::TreeNode("Materials")) {
+                        if (ImGui::Button("Reset")) {
+                            worldObject.materials[0] = AssetDB::pathToId("Materials/DevTextures/dev_blue.json");
+                            worldObject.presentMaterials[0] = true;
+                            for (int i = 1; i < NUM_SUBMESH_MATS; i++) {
+                                worldObject.materials[i] = INVALID_ASSET;
+                                worldObject.presentMaterials[i] = false;
+                            }
+                        }
                         for (int i = 0; i < NUM_SUBMESH_MATS; i++) {
                             bool showButton = false;
 
@@ -486,6 +494,7 @@ namespace worlds {
                     ImGui::Checkbox("Enabled", &worldLight.enabled);
                     ImGui::ColorEdit3("Color", &worldLight.color.x, ImGuiColorEditFlags_Float);
                     ImGui::DragFloat("Intensity", &worldLight.intensity, 0.1f, 0.000001f, FLT_MAX, "%.3f", ImGuiSliderFlags_AlwaysClamp);
+                    tooltipHover("Controls brightness of the light in the scene.");
 
                     // Move the range sphere to center on the light
                     drawSphere(transform.position, transform.rotation, worldLight.maxDistance);
@@ -509,8 +518,10 @@ namespace worlds {
                     // Show a rough guide for a radius - the point at which the light's
                     // intensity falls to less than 0.05
                     ImGui::Text("Recommended radius: %.3f", glm::sqrt(worldLight.intensity / 0.05f));
+                    tooltipHover("This is the distance at which a light's influence falls below 5%.");
 
                     ImGui::DragFloat("Radius", &worldLight.maxDistance);
+                    tooltipHover("Controls the maximum distance at which a light still affects objects.");
 
                     showTypeSpecificControls(worldLight);
 

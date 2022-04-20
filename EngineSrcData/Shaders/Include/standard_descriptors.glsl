@@ -4,6 +4,7 @@
 #include <aosphere.glsl>
 #include <light.glsl>
 #include <material.glsl>
+#include <cubemap.glsl>
 
 layout(binding = 0) uniform MultiVP {
     mat4 view[2];
@@ -13,19 +14,23 @@ layout(binding = 0) uniform MultiVP {
 
 layout(std430, binding = 1) readonly buffer LightBuffer {
     mat4 otherShadowMatrices[4];
+
     uint lightCount;
     uint aoBoxCount;
     uint aoSphereCount;
-    uint pad;
+    uint cubemapCount;
+
     // (light count, yzw cascade texels per unit)
     vec4 cascadeTexelsPerUnit;
     // (ao box count, ao sphere count, zw unused)
     //vec4 pack1;
     mat4 dirShadowMatrices[4];
+
 	Light lights[256];
     AOBox aoBox[128];
 	AOSphere aoSphere[16];
 	uint sphereIds[16];
+    Cubemap cubemaps[64];
 };
 
 layout(std140, binding = 2) readonly buffer MaterialSettingsBuffer {
@@ -44,6 +49,7 @@ layout (binding = 8) uniform sampler2D additionalShadowSampler[4];
 
 struct LightingTile {
     uint lightIdMasks[8];
+    uint cubemapIdMasks[2];
 	uint aoBoxIdMasks[2];
 	uint aoSphereIdMasks[2];
 };

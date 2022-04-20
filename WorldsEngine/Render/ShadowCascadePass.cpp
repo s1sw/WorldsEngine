@@ -8,6 +8,7 @@
 #include "ShaderCache.hpp"
 #include "vku/RenderpassMaker.hpp"
 #include "vku/DescriptorSetUtil.hpp"
+#include <Util/EnumUtil.hpp>
 
 namespace worlds {
     const int NUM_CASCADES = 4;
@@ -294,6 +295,7 @@ namespace worlds {
         }
 
         reg.view<Transform, WorldObject>().each([&](auto ent, Transform& transform, WorldObject& obj) {
+            if (ctx.passSettings.staticsOnly && !enumHasFlag(obj.staticFlags, StaticFlags::Rendering)) return;
             if (!obj.castShadows) return;
             auto meshPos = ctx.resources.meshes.find(obj.mesh);
 

@@ -118,6 +118,7 @@ namespace worlds {
         int resolution = 128;
         glm::vec3 captureOffset{0.0f};
         AssetID cubemapId = ~0u;
+        uint32_t renderIdx = 0u;
     };
 
     struct ProxyAOComponent {

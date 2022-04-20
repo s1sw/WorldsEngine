@@ -2,6 +2,7 @@
 #include <light.glsl>
 #include <aobox.glsl>
 #include <aosphere.glsl>
+#include <cubemap.glsl>
 
 #extension GL_KHR_shader_subgroup_arithmetic : require
 #extension GL_KHR_shader_subgroup_ballot : require
@@ -11,6 +12,7 @@ layout (local_size_x = 16, local_size_y = 16) in;
 
 struct LightingTile {
     uint lightIdMasks[8];
+    uint cubemapIdMasks[2];
     uint aoBoxIdMasks[2];
     uint aoSphereIdMasks[2];
 };
@@ -24,19 +26,20 @@ layout (binding = 0) uniform LightTileInfo {
 
 layout(std430, binding = 1) readonly buffer LightBuffer {
     mat4 otherShadowMatrices[4];
+
     uint lightCount;
     uint aoBoxCount;
     uint aoSphereCount;
-    uint pad;
-    // (light count, yzw cascade texels per unit)
+    uint cubemapCount;
+
     vec4 cascadeTexelsPerUnit;
-    // (ao box count, ao sphere count, zw unused)
-    //vec4 pack1;
     mat4 dirShadowMatrices[4];
+
     Light lights[256];
-    AOBox aoBox[16];
+    AOBox aoBox[128];
     AOSphere aoSphere[16];
     uint sphereIds[16];
+    Cubemap cubemaps[64];
 } buf_Lights;
 
 layout (binding = 2) uniform MultiVP {
@@ -118,6 +121,64 @@ bool frustumContainsOBB(vec3 boxSize, mat4 transform) {
         }
 
         if (outside == 8) return false;
+    }
+
+    return true;
+}
+
+vec3 aabbPoint(int index, vec3 min, vec3 max) {
+    return vec3(index % 2 == 0 ? min.x : max.x, (index >> 1) % 2 == 0 ? min.y : max.y, index < 4 ? min.z : max.z);
+}
+
+bool frustumContainsAABB(vec3 min, vec3 max) {
+    vec3 points[8] = vec3[](
+        min,
+        vec3(max.x, min.y, min.z),
+        vec3(min.x, max.y, min.z),
+        vec3(max.x, max.y, min.z),
+        vec3(min.x, min.y, max.z),
+        vec3(max.x, min.y, max.z),
+        vec3(min.x, max.y, max.z),
+        vec3(max.x, max.y, max.z)
+    );
+
+    for (int i = 0; i < 6; i++) {
+        bool inside = false;
+
+        for (int j = 0; j < 8; j++) {
+            if (dot(tileFrustum.planes[i], vec4(points[j], 1.0)) > 0.0) {
+                inside = true;
+                break;
+            }
+        }
+
+        if (!inside) return false;
+    }
+
+    //int outside[6] = int[](0, 0, 0, 0, 0, 0);
+    //for (int i = 0; i < 8; i++) {
+    //    // on each axis...
+    //    for (int j = 0; j < 3; j++) {
+    //        outside[j] += int(points[i][j] > max[j]);
+    //        outside[j + 3] += int(points[i][j] < min[j]);
+    //    }
+    //}
+
+    //for (int i = 0; i < 6; i++) {
+    //    if (outside[i] == 8) return false;
+    //}
+
+    return true;
+}
+
+bool aabbContainsAABB(vec3 min, vec3 max) {
+    vec3 tileMin = tileAABB.center - tileAABB.extents;
+    vec3 tileMax = tileAABB.center + tileAABB.extents;
+
+    for (int i = 0; i < 3; i++) {
+        if (!(tileMin[i] <= max[i] && tileMax[i] >= min[i])) {
+            return false;
+        }
     }
 
     return true;
@@ -238,6 +299,7 @@ void clearBuffers(uint tileIndex) {
     buf_LightTiles.tiles[tileIndex].lightIdMasks[gl_LocalInvocationIndex % 8] = 0u;
     buf_LightTiles.tiles[tileIndex].aoSphereIdMasks[gl_LocalInvocationIndex % 2] = 0u;
     buf_LightTiles.tiles[tileIndex].aoBoxIdMasks[gl_LocalInvocationIndex % 2] = 0u;
+    buf_LightTiles.tiles[tileIndex].cubemapIdMasks[gl_LocalInvocationIndex & 2] = 0u;
 }
 
 void cullLights(uint tileIndex) {
@@ -323,7 +385,7 @@ void cullAO(uint tileIndex) {
     }
 
     // Stage 4: Cull AO boxes against the frustum
-    if (gl_LocalInvocationIndex < buf_Lights.aoBoxCount) {
+    if (gl_LocalInvocationIndex < buf_Lights.aoBoxCount && gl_LocalInvocationIndex < 64) {
         uint boxIdx = gl_LocalInvocationIndex;
         AOBox box = buf_Lights.aoBox[boxIdx];
 
@@ -342,6 +404,30 @@ void cullAO(uint tileIndex) {
                 uint setBits = subgroupBroadcastFirst(subgroupOr(uint(inFrustum) << bucketBit));
                 if (subgroupElect())
                     atomicOr(buf_LightTiles.tiles[tileIndex].aoBoxIdMasks[bucketIdx], setBits);
+            }
+        }
+    }
+}
+
+void cullCubemaps(uint tileIndex) {
+    if (gl_LocalInvocationIndex < buf_Lights.cubemapCount && gl_LocalInvocationIndex > 0) {
+        uint cubemapIdx = gl_LocalInvocationIndex;
+        Cubemap c = buf_Lights.cubemaps[cubemapIdx];
+
+        vec3 mi = c.position - c.extent;
+        vec3 ma = c.position + c.extent;
+        bool inFrustum = frustumContainsAABB(mi, ma);
+
+        uint bucketIdx = cubemapIdx / 32;
+        uint bucketBit = cubemapIdx % 32;
+        uint maxBucketId = subgroupMax(bucketIdx);
+
+        // Subgroup fun again
+        for (int i = 0; i <= maxBucketId; i++) {
+            if (i == bucketIdx) {
+                //uint setBits = subgroupBroadcastFirst(subgroupOr(uint(inFrustum) << bucketBit));
+                //if (subgroupElect())
+                    atomicOr(buf_LightTiles.tiles[tileIndex].cubemapIdMasks[bucketIdx], uint(inFrustum) << bucketBit);
             }
         }
     }
@@ -395,6 +481,7 @@ void main() {
 
     barrier();
 
-    cullLights(tileIndex);
     cullAO(tileIndex);
+    cullCubemaps(tileIndex);
+    cullLights(tileIndex);
 }

@@ -1298,6 +1298,7 @@ void VKRenderer::writeCmdBuf(VkCommandBuffer cmdBuf, uint32_t imageIndex, Camera
 
     int numActivePasses = 0;
     bool lastPassIsVr = false;
+    bool fppWritten = false;
     for (auto& p : rttPasses) {
         if (!p->active) continue;
         numActivePasses++;
@@ -1351,6 +1352,8 @@ void VKRenderer::writeCmdBuf(VkCommandBuffer cmdBuf, uint32_t imageIndex, Camera
                 VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                 VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
                 VK_ACCESS_SHADER_READ_BIT);
+        } else {
+            fppWritten = true;
         }
         lastPassIsVr = p->isVr;
     }
@@ -1380,28 +1383,34 @@ void VKRenderer::writeCmdBuf(VkCommandBuffer cmdBuf, uint32_t imageIndex, Camera
         VK_PIPELINE_STAGE_TRANSFER_BIT,
         VK_ACCESS_TRANSFER_READ_BIT);
 
-    if (!lastPassIsVr) {
-        VkImageBlit imageBlit{};
-        imageBlit.srcOffsets[1] = imageBlit.dstOffsets[1] = VkOffset3D{ (int)width, (int)height, 1 };
-        imageBlit.dstSubresource = imageBlit.srcSubresource = VkImageSubresourceLayers{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 };
-        vkCmdBlitImage(cmdBuf, finalPrePresent->image().image(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-            presentSubmitManager->currentSwapchain().images[imageIndex], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imageBlit, VK_FILTER_NEAREST);
+    if (!fppWritten) {
+        VkClearColorValue ccv{0.0f, 0.0f, 0.0f, 1.0f};
+        VkImageSubresourceRange range{VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
+        vkCmdClearColorImage(cmdBuf, presentSubmitManager->currentSwapchain().images[imageIndex], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, &ccv, 1, &range);
     } else {
-        // Calculate the best crop for the current window size against the VR render target
-        float aspect = (float)height / (float)width;
-        float croppedHeight = aspect * vrWidth;
+        if (!lastPassIsVr) {
+            VkImageBlit imageBlit{};
+            imageBlit.srcOffsets[1] = imageBlit.dstOffsets[1] = VkOffset3D{ (int)width, (int)height, 1 };
+            imageBlit.dstSubresource = imageBlit.srcSubresource = VkImageSubresourceLayers{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 };
+            vkCmdBlitImage(cmdBuf, finalPrePresent->image().image(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                presentSubmitManager->currentSwapchain().images[imageIndex], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imageBlit, VK_FILTER_NEAREST);
+        } else {
+            // Calculate the best crop for the current window size against the VR render target
+            float aspect = (float)height / (float)width;
+            float croppedHeight = aspect * vrWidth;
 
-        glm::vec2 srcCorner0(0.0f, vrHeight / 2.0f - croppedHeight / 2.0f);
-        glm::vec2 srcCorner1(vrWidth, vrHeight / 2.0f + croppedHeight / 2.0f);
+            glm::vec2 srcCorner0(0.0f, vrHeight / 2.0f - croppedHeight / 2.0f);
+            glm::vec2 srcCorner1(vrWidth, vrHeight / 2.0f + croppedHeight / 2.0f);
 
-        VkImageBlit imageBlit{};
-        imageBlit.srcOffsets[0] = VkOffset3D{ (int)srcCorner0.x, (int)srcCorner0.y, 0 };
-        imageBlit.srcOffsets[1] = VkOffset3D{ (int)srcCorner1.x, (int)srcCorner1.y, 1 };
-        imageBlit.dstOffsets[1] = VkOffset3D{ (int)width, (int)height, 1 };
-        imageBlit.dstSubresource = imageBlit.srcSubresource = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 };
+            VkImageBlit imageBlit{};
+            imageBlit.srcOffsets[0] = VkOffset3D{ (int)srcCorner0.x, (int)srcCorner0.y, 0 };
+            imageBlit.srcOffsets[1] = VkOffset3D{ (int)srcCorner1.x, (int)srcCorner1.y, 1 };
+            imageBlit.dstOffsets[1] = VkOffset3D{ (int)width, (int)height, 1 };
+            imageBlit.dstSubresource = imageBlit.srcSubresource = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 };
 
-        vkCmdBlitImage(cmdBuf, leftEye->image().image(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-            presentSubmitManager->currentSwapchain().images[imageIndex], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imageBlit, VK_FILTER_LINEAR);
+            vkCmdBlitImage(cmdBuf, leftEye->image().image(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                presentSubmitManager->currentSwapchain().images[imageIndex], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imageBlit, VK_FILTER_LINEAR);
+        }
     }
 
     vku::transitionLayout(cmdBuf, presentSubmitManager->currentSwapchain().images[imageIndex],
@@ -1578,13 +1587,26 @@ void VKRenderer::preloadMesh(AssetID id) {
         lmd.vertexSkinWeights.upload(device, commandPool, queues.graphics, vertSkinInfos);
     }
 
-    lmd.aabbMax = glm::vec3(0.0f);
+    lmd.aabbMax = glm::vec3(std::numeric_limits<float>::lowest());
     lmd.aabbMin = glm::vec3(std::numeric_limits<float>::max());
     lmd.sphereRadius = 0.0f;
     for (auto& vtx : vertices) {
         lmd.sphereRadius = std::max(glm::length(vtx.position), lmd.sphereRadius);
         lmd.aabbMax = glm::max(lmd.aabbMax, vtx.position);
         lmd.aabbMin = glm::min(lmd.aabbMin, vtx.position);
+    }
+
+    for (int i = 0; i < lmd.numSubmeshes; i++) {
+        SubmeshInfo& si = lmd.submeshes[i];
+        si.aabbMax = glm::vec3(std::numeric_limits<float>::lowest());
+        si.aabbMin = glm::vec3(std::numeric_limits<float>::max());
+
+        for (uint32_t j = si.indexOffset; j < si.indexOffset + si.indexCount; j++) {
+            uint32_t idx = indices[j];
+            Vertex& vert = vertices[idx];
+            si.aabbMax = glm::max(si.aabbMax, vert.position);
+            si.aabbMin = glm::min(si.aabbMin, vert.position);
+        }
     }
 
     logVrb(WELogCategoryRender, "Loaded mesh %u, %u verts. Sphere radius %f", id, (uint32_t)vertices.size(), lmd.sphereRadius);

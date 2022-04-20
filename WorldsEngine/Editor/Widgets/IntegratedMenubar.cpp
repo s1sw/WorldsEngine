@@ -3,9 +3,11 @@
 #include <Core/ConVar.hpp>
 #include <Core/Engine.hpp>
 #include <ImGui/imgui.h>
+#include <slib/Win32Util.hpp>
+#include <Editor/Editor.hpp>
 
 namespace worlds {
-    static ConVar integratedMenuBar{ "ed_integratedMenuBar", "0" };
+    static ConVar integratedMenuBar{ "ed_integratedMenuBar", "1" };
     IntegratedMenubar::IntegratedMenubar(EngineInterfaces interfaces) : interfaces(interfaces) {}
 
     void IntegratedMenubar::draw() {
@@ -70,6 +72,24 @@ namespace worlds {
                 drawList->AddRectFilled(ImVec2(barWidth - 135.0f, 0.0f), ImVec2(barWidth - 90.0f, barHeight), ImColor(255, 255, 255, 50));
             }
             drawList->AddRectFilled(minimiseCenter - glm::vec2(5, 0), minimiseCenter + glm::vec2(5, 1), ImColor(255, 255, 255));
+
+            if (interfaces.editor->getCurrentState() == GameState::Editing) {
+                if (!interfaces.engine->getMainWindow().isMaximised()) {
+                    uint8_t r, g, b;
+                    slib::Win32Util::getAccentColor(r, g, b);
+                    if (interfaces.engine->getMainWindow().isFocused()) {
+                        ImGui::GetForegroundDrawList()->AddRect(ImVec2(0, 0), ImVec2(windowSize.x, windowSize.y), ImColor(r, g, b));
+                    } else {
+                        ImGui::GetForegroundDrawList()->AddRect(ImVec2(0, 0), ImVec2(windowSize.x, windowSize.y), ImColor(90, 90, 90));
+                    }
+                }
+            } else {
+                if (interfaces.editor->getCurrentState() == GameState::Playing) {
+                    ImGui::GetForegroundDrawList()->AddRect(ImVec2(0, 0), ImVec2(windowSize.x, windowSize.y), ImColor(50, 127, 50));
+                } else {
+                    ImGui::GetForegroundDrawList()->AddRect(ImVec2(0, 0), ImVec2(windowSize.x, windowSize.y), ImColor(127, 50, 50));
+                }
+            }
         } else {
             SDL_SetWindowBordered(interfaces.engine->getMainWindow().getWrappedHandle(), SDL_TRUE);
         }

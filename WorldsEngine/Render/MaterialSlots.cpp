@@ -98,6 +98,13 @@ namespace worlds {
 
             auto wireframeIt = j.find("wireframe");
             extraDat.wireframe = wireframeIt != j.end();
+
+            if (j.contains("fragmentShader")) {
+                extraDat.overrideShader = AssetDB::pathToId(j["fragmentShader"]);
+            } else {
+                extraDat.overrideShader = INVALID_ASSET;
+            }
+
         } catch(nlohmann::detail::exception& ex) {
             std::string path = AssetDB::idToPath(asset);
             logErr(WELogCategoryRender, "Invalid material document %s (%s)", path.c_str(), ex.what());

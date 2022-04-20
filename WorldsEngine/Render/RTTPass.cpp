@@ -119,6 +119,7 @@ namespace worlds {
         passSettings.msaaLevel = createInfo.msaaLevel == 0 ? handles.graphicsSettings.msaaLevel : createInfo.msaaLevel;
         passSettings.resolutionScale = createInfo.resScale;
         passSettings.enableDebugLines = createInfo.renderDebugShapes;
+        passSettings.staticsOnly = createInfo.staticsOnly;
         RenderContext rCtx{
             .resources = renderer->getResources(),
             .cascadeInfo = {},

@@ -706,8 +706,8 @@ namespace worlds {
         consoleMutex.unlock();
 
 #ifdef _WIN32
-        OutputDebugStringA(outStr.c_str());
-        OutputDebugStringA("\n");
+        //OutputDebugStringA(outStr.c_str());
+        //OutputDebugStringA("\n");
 #endif
     }
 

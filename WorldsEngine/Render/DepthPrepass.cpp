@@ -16,22 +16,6 @@ namespace worlds {
     void DepthPrepass::prePass(RenderContext& ctx) {
     }
 
-    struct StandardPushConstants {
-        uint32_t modelMatrixIdx;
-        uint32_t materialIdx;
-        uint32_t vpIdx;
-        uint32_t objectId;
-
-        glm::vec3 cubemapExt;
-        uint32_t skinningOffset;
-        glm::vec4 cubemapPos;
-
-        glm::vec4 texScaleOffset;
-
-        glm::ivec3 screenSpacePickPos;
-        uint32_t cubemapIdx;
-    };
-
     void DepthPrepass::execute(RenderContext& ctx, slib::StaticAllocList<SubmeshDrawInfo>& drawInfo) {
         ZoneScoped;
         TracyVkZone((*ctx.debugContext.tracyContexts)[ctx.frameIndex], ctx.cmdBuf, "Depth Pre-Pass");
@@ -39,8 +23,9 @@ namespace worlds {
         auto& cmdBuf = ctx.cmdBuf;
         addDebugLabel(cmdBuf, "Depth Pre-Pass", 0.368f, 0.415f, 0.819f, 1.0f);
 
+        PipelineKey pk { false, ctx.passSettings.msaaLevel, ShaderVariantFlags::None };
         VkPipeline lastPipeline =
-            pipelineVariants->getPipeline(false, ctx.passSettings.msaaLevel, ShaderVariantFlags::None);
+            pipelineVariants->getPipeline(pk);
 
         vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, lastPipeline);
 
@@ -57,7 +42,8 @@ namespace worlds {
                 svf |= ShaderVariantFlags::Skinnning;
             }
 
-            VkPipeline needsPipeline = pipelineVariants->getPipeline(false, ctx.passSettings.msaaLevel, svf);
+            PipelineKey pk { false, ctx.passSettings.msaaLevel, svf };
+            VkPipeline needsPipeline = pipelineVariants->getPipeline(pk);
 
             if (needsPipeline != lastPipeline) {
                 vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, needsPipeline);

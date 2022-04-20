@@ -8,13 +8,13 @@ public class AudioOnGrip : Component, IStartListener
     public void Start()
     {
         var grabbable = Entity.GetComponent<Grabbable>();
-        grabbable.OnGrabbed += () => 
+        grabbable.OnGrabbed += (Grip g) => 
         {
             if (grabbable.AttachedHandFlags == AttachedHandFlags.Left || grabbable.AttachedHandFlags == AttachedHandFlags.Right)
                 Entity.GetComponent<AudioSource>().Start();
         };
 
-        grabbable.OnReleased += () => 
+        grabbable.OnReleased += (Grip g) => 
         {
             if (grabbable.AttachedHandFlags == AttachedHandFlags.None)
                 Entity.GetComponent<AudioSource>().Stop(StopMode.AllowFadeout);

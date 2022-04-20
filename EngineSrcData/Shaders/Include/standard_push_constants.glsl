@@ -6,10 +6,10 @@ layout(push_constant) uniform PushConstants {
     int vpIdx;
     uint objectId;
 
-    vec3 cubemapExt;
-    uint skinningOffset;
-    vec3 cubemapPos;
+    uint pad0;
+    uint cubemapIdx2;
     float cubemapBoost;
+    uint skinningOffset;
 
     vec4 texScaleOffset;
 

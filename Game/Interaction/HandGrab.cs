@@ -390,7 +390,7 @@ public class HandGrab : Component
         //d6.SetDrive(D6Drive.Z, posDrive);
         Entity.GetComponent<PhysHand>().TorqueScale = CurrentGrip.TorqueScale;
         OnGrabEntity?.Invoke(grabbed, IsRightHand ? AttachedHandFlags.Right : AttachedHandFlags.Left);
-        grabbed.GetComponent<Grabbable>().InvokeOnGrabbed();
+        grabbed.GetComponent<Grabbable>().InvokeOnGrabbed(CurrentGrip);
     }
 
     private void Release()
@@ -421,8 +421,9 @@ public class HandGrab : Component
         if (gripped.IsValid)
         {
             OnReleaseEntity?.Invoke(gripped, IsRightHand ? AttachedHandFlags.Right : AttachedHandFlags.Left);
-            gripped.GetComponent<Grabbable>().InvokeOnReleased();
+            gripped.GetComponent<Grabbable>().InvokeOnReleased(CurrentGrip);
         }
+        CurrentGrip = null;
     }
 }
 

@@ -250,10 +250,10 @@ public class DroneAI : Component, IStartListener, IThinkingComponent
             // Look for a player nearby
             const int MaxOverlap = 1;
             Span<Entity> overlaps = stackalloc Entity[MaxOverlap];
-            uint overlapCount = Physics.OverlapSphereMultiple(pose.Position, 7.5f, MaxOverlap, overlaps, ~PhysicsLayers.Player);
+            uint overlapCount = Physics.OverlapSphereMultiple(pose.Position, 15f, MaxOverlap, overlaps, ~PhysicsLayers.Player);
 
 
-            ApplyTargetPose(_idleHoverPose);
+            //ApplyTargetPose(_idleHoverPose);
 
             if (overlapCount > 0 && !DebugGlobals.AIIgnorePlayer)
             {

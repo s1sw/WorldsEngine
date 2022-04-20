@@ -87,9 +87,9 @@ namespace worlds {
 
     struct PackedMaterial;
     struct MatExtraData {
-        MatExtraData() : noCull(false), wireframe(false) {}
-        bool noCull;
-        bool wireframe;
+        bool noCull = false;
+        bool wireframe = false;
+        AssetID overrideShader = INVALID_ASSET;
     };
 
     class MaterialSlots : public ResourceSlots<PackedMaterial, NUM_MAT_SLOTS, AssetID> {

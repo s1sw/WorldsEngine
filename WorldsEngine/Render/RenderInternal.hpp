@@ -57,6 +57,30 @@ namespace worlds {
         float radius;
     };
 
+    struct GPUCubemap {
+        glm::vec3 extent;
+        uint32_t texture;
+        glm::vec3 position;
+        uint32_t flags;
+    };
+
+    struct StandardPushConstants {
+        uint32_t modelMatrixIdx;
+        uint32_t materialIdx;
+        uint32_t vpIdx;
+        uint32_t objectId;
+
+        uint32_t pad0;
+        uint32_t cubemapIdx2;
+        float cubemapBoost;
+        uint32_t skinningOffset;
+
+        glm::vec4 texScaleOffset;
+
+        glm::ivec3 screenSpacePickPos;
+        uint32_t cubemapIdx;
+    };
+
     struct LightUB {
         static const int MAX_LIGHTS = 256;
         static int LIGHT_TILE_SIZE;
@@ -64,13 +88,14 @@ namespace worlds {
         uint32_t lightCount;
         uint32_t aoBoxCount;
         uint32_t aoSphereCount;
-        uint32_t pad;
+        uint32_t cubemapCount;
         float cascadeTexelsPerUnit[4];
         glm::mat4 shadowmapMatrices[4];
         PackedLight lights[256];
         AOBox box[128];
         AOSphere sphere[16];
         uint32_t sphereIds[16];
+        GPUCubemap cubemaps[64];
     };
 
     struct ModelMatrices {
@@ -580,18 +605,20 @@ namespace worlds {
         return (a = a | b);
     }
 
+    struct PipelineKey {
+        bool enablePicking;
+        int msaaSamples;
+        ShaderVariantFlags flags;
+        AssetID overrideFS = INVALID_ASSET;
+
+        uint32_t hash();
+    };
+
     class VKPipelineVariants {
     public:
         VKPipelineVariants(VulkanHandles* handles, bool depthOnly, VkPipelineLayout layout, VkRenderPass renderPass);
-        VkPipeline getPipeline(bool enablePicking, int msaaSamples, ShaderVariantFlags flags);
+        VkPipeline getPipeline(PipelineKey k);
     private:
-        struct ShaderKey {
-            bool enablePicking;
-            int msaaSamples;
-            ShaderVariantFlags flags;
-
-            uint32_t hash();
-        };
 
         robin_hood::unordered_map<uint32_t, vku::Pipeline> cache;
 

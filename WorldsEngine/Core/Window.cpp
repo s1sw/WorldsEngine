@@ -51,6 +51,10 @@ namespace worlds {
             return;
         }
 
+        if (evt.type == SDL_WINDOWEVENT_SIZE_CHANGED) {
+            logMsg("resized to %ix%i", evt.window.data1, evt.window.data2);
+        }
+
         if (inputManager)
             inputManager->processEvent(evt);
 

@@ -94,6 +94,7 @@ public class PlayerCameraSystem : ISystem
 
     public void OnSimulate()
     {
+        if (!LocalPlayerSystem.PlayerBody.IsValid) return;
         _lastLastBodyPos = _lastBodyPos;
         _lastBodyPos = LocalPlayerSystem.PlayerBody.Transform.Position;
     }
@@ -110,6 +111,8 @@ public class PlayerCameraSystem : ISystem
             lookX += Controller.DeadzonedAxisValue(ControllerAxis.RightX) * 0.05f;
             lookY += Controller.DeadzonedAxisValue(ControllerAxis.RightY) * 0.05f;
 
+            lookY = MathFX.Clamp(lookY, -MathF.PI * 0.4999f, MathF.PI * 0.4999f);
+
             Quaternion upDown = Quaternion.AngleAxis(lookY, new Vector3(1f, 0f, 0f));
             Quaternion leftRight = Quaternion.AngleAxis(-lookX, new Vector3(0f, 1f, 0f));
 
@@ -121,7 +124,7 @@ public class PlayerCameraSystem : ISystem
                 Camera.Main.Rotation = cameraRotation;
                 Transform bodyTransform = Registry.GetTransform(LocalPlayerSystem.PlayerBody);
                 Vector3 manualBpos = Vector3.Lerp(_lastLastBodyPos, _lastBodyPos, Time.InterpolationAlpha);
-                Camera.Main.Position = bodyTransform.Position + _toFloor + new Vector3(0.0f, 1.85f, 0.0f);
+                Camera.Main.Position = manualBpos + _toFloor + new Vector3(0.0f, 1.85f, 0.0f);
             }
         }
         else

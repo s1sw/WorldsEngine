@@ -10,16 +10,9 @@ namespace worlds {
         return loadedMeshes.at(id);
     }
 
-    const LoadedMesh& MeshManager::loadOrGet(AssetID id) {
-        if (loadedMeshes.contains(id)) return loadedMeshes.at(id);
-
-        if (!AssetDB::exists(id)) {
-            logErr("Failed to load mesh ID %u", id);
-            return errorMesh;
-        }
+    void loadToLM(LoadedMesh& lm, AssetID id) {
         std::vector<VertSkinningInfo> vertSkinning;
         LoadedMeshData lmd;
-        LoadedMesh lm;
         loadWorldsModel(id, lm.vertices, lm.indices, vertSkinning, lmd);
 
         lm.numSubmeshes = lmd.numSubmeshes;
@@ -27,6 +20,7 @@ namespace worlds {
         lm.boneNames.resize(lmd.meshBones.size());
         lm.boneRestPositions.resize(lmd.meshBones.size());
         lm.relativeBoneTransforms.resize(lmd.meshBones.size());
+        lm.boneParents.resize(lmd.meshBones.size());
 
         for (size_t i = 0; i < lm.boneNames.size(); i++) {
             lm.boneNames[i] = lmd.meshBones[i].name;
@@ -35,6 +29,7 @@ namespace worlds {
             glm::quat r;
             decomposePosRot(lm.boneRestPositions[i], p, r);
             lm.relativeBoneTransforms[i] = lmd.meshBones[i].transform;
+            lm.boneParents[i] = lmd.meshBones[i].parentIdx;
         }
 
         for (int i = 0; i < lmd.numSubmeshes; i++) {
@@ -49,6 +44,18 @@ namespace worlds {
             lm.aabbMax = glm::max(lm.aabbMax, vtx.position);
             lm.aabbMin = glm::min(lm.aabbMin, vtx.position);
         }
+    }
+
+    const LoadedMesh& MeshManager::loadOrGet(AssetID id) {
+        if (loadedMeshes.contains(id)) return loadedMeshes.at(id);
+
+        if (!AssetDB::exists(id)) {
+            logErr("Mesh ID %u doesn't exist!", id);
+            return errorMesh;
+        }
+
+        LoadedMesh lm;
+        loadToLM(lm, id);
 
         loadedMeshes.insert({ id, std::move(lm) });
 
@@ -57,5 +64,13 @@ namespace worlds {
 
     void MeshManager::unload(AssetID id) {
         loadedMeshes.erase(id);
+    }
+
+    void MeshManager::reloadMeshes() {
+        // We rely on references to meshes being stable, so
+        // rewrite the mesh data in place
+        for (auto& pair : loadedMeshes) {
+            loadToLM(pair.second, pair.first);
+        }
     }
 }
