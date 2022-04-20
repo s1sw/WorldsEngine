@@ -22,23 +22,6 @@ namespace ShaderFlags {
 }
 
 namespace worlds {
-    struct StandardPushConstants {
-        uint32_t modelMatrixIdx;
-        uint32_t materialIdx;
-        uint32_t vpIdx;
-        uint32_t objectId;
-
-        glm::vec3 cubemapExt;
-        uint32_t skinningOffset;
-        glm::vec3 cubemapPos;
-        float cubemapBoost;
-
-        glm::vec4 texScaleOffset;
-
-        glm::ivec3 screenSpacePickPos;
-        uint32_t cubemapIdx;
-    };
-
     MainPass::MainPass(VulkanHandles* handles, vku::PipelineLayout& pipelineLayout) 
         : RenderPass(handles)
         , pipelineLayout(pipelineLayout) {
@@ -81,10 +64,9 @@ namespace worlds {
                 .materialIdx = sdi.materialIdx,
                 .vpIdx = 0,
                 .objectId = (uint32_t)sdi.ent,
-                .cubemapExt = sdi.cubemapExt,
+                .cubemapIdx2 = sdi.cubemapIdx2,
+                .cubemapBoost = sdi.cubemapIdx == 0 ? ctx.registry.ctx<SceneSettings>().skyboxBoost : 1.0f,
                 .skinningOffset = sdi.boneMatrixOffset,
-                .cubemapPos = sdi.cubemapPos,
-                .cubemapBoost = glm::length2(sdi.cubemapExt) == 0.0f  ? ctx.registry.ctx<SceneSettings>().skyboxBoost : 1.0f,
                 .texScaleOffset = sdi.texScaleOffset,
                 .screenSpacePickPos = glm::ivec3(pickX, pickY, globalMiscFlags | sdi.drawMiscFlags),
                 .cubemapIdx = sdi.cubemapIdx

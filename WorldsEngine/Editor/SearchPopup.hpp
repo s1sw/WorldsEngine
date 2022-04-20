@@ -68,7 +68,7 @@ namespace worlds {
                             col
                         );
 
-                        if (ImGui::GetIO().KeysDownDuration[SDL_SCANCODE_RETURN] == 0.0f) {
+                        if (ImGui::GetIO().KeysDownDuration[SDL_SCANCODE_RETURN] == 0.0f || ImGui::GetIO().KeysDownDuration[SDL_SCANCODE_KP_ENTER] == 0.0f) {
                             ImGui::CloseCurrentPopup();
                             activate = true;
                             activateIndex = idx;

@@ -207,28 +207,76 @@ public class LocalPlayerSystem : ISystem
     private static Entity _leftHandEntity;
     private static Entity _rightHandEntity;
     private static RelativePlayerTransforms? _spawnRPT = null;
+    private static Entity climbEntity = Entity.Null;
+    private static Vector3 climbPoint = Vector3.Zero;
 
     private static void ContactModCallback(ContactModPairArray array)
     {
         PlayerRig r = PlayerBody.GetComponent<PlayerRig>();
+        var playerPose = PlayerBody.GetComponent<DynamicPhysicsActor>().Pose;
+
+        foreach (ContactModifyPair pair in array)
+        {
+            if (pair.InvolvesEntity(LeftHand))
+            {
+                foreach (ModifiableContact contact in pair.ContactSet)
+                {
+                    if (contact.Normal.y > 0.7f)
+                    {
+                        climbEntity = pair.EntityA == LeftHand ? pair.EntityB : pair.EntityA;
+                        climbPoint = contact.Point;
+                    }
+                }
+            }
+
+            if (pair.InvolvesEntity(RightHand))
+            {
+                foreach (ModifiableContact contact in pair.ContactSet)
+                {
+                    if (contact.Normal.y > 0.7f)
+                    {
+                        climbEntity = pair.EntityA == RightHand ? pair.EntityB : pair.EntityA;
+                        climbPoint = contact.Point;
+                    }
+                }
+            }
+        }
 
         foreach (ContactModifyPair pair in array)
         {
             if (!pair.InvolvesEntity(PlayerBody)) continue;
+            Entity otherEntity = pair.EntityA == PlayerBody ? pair.EntityB : pair.EntityA;
+            bool isOther = pair.EntityB == PlayerBody;
 
             foreach (ModifiableContact contact in pair.ContactSet)
             {
                 Vector3 normal = pair.EntityB == PlayerBody ? -contact.Normal : contact.Normal;
 
-                if (normal.Dot(Vector3.Up) < 0.6f) continue;
-                var tv = contact.TargetVelocity;
-                Vector3 projected = r.CurrentMovementVector.ProjectOntoPlane(contact.Normal);
-                if (pair.EntityB == PlayerBody) projected *= -1f;
-                tv += projected;
+                if (contact.Point.y < playerPose.Position.y - 0.6f)
+                {
+                    if (normal.Dot(Vector3.Up) < 0.05f)
+                    {
+                        contact.MaxImpulse = 0.000f;
+                        contact.StaticFriction = 0f;
+                        contact.DynamicFriction = 0f;
+                        contact.TargetVelocity = Vector3.Zero;
+                        contact.Normal = Vector3.Up;
+                        continue;   
+                    }
 
-                contact.DynamicFriction = 5f;
-                contact.StaticFriction = 5f;
-                contact.TargetVelocity = tv;
+                    var tv = contact.TargetVelocity;
+                    Vector3 projected = r.CurrentMovementVector.ProjectOntoPlane(contact.Normal);
+                    if (pair.EntityB == PlayerBody) projected *= -1f;
+                    //tv += projected;
+
+                    if (normal.Dot(Vector3.Up) > 0.6f)
+                    {
+                        tv = projected;
+                        contact.DynamicFriction = 5f;
+                        contact.StaticFriction = 5f;
+                        contact.TargetVelocity = tv;
+                    }
+                }
             }
         }
     }
@@ -326,6 +374,9 @@ public class LocalPlayerSystem : ISystem
         var bodyDpa = PlayerBody.GetComponent<DynamicPhysicsActor>();
         bodyDpa.UseContactMod = true;
         bodyDpa.ContactOffset = 0.00001f;
+
+        _leftHandEntity.GetComponent<DynamicPhysicsActor>().UseContactMod = true;
+        _rightHandEntity.GetComponent<DynamicPhysicsActor>().UseContactMod = true;
     }
 
     public void OnUpdate()
@@ -346,7 +397,7 @@ public class LocalPlayerSystem : ISystem
         var hpText = Registry.GetComponent<WorldText>(_hpTextEntity);
         var hc = PlayerBody.GetComponent<Combat.HealthComponent>();
         if (DebugGlobals.PlayerInvincible) hc.Health = hc.MaxHealth;
-        hpText.Size = 0.001f;
+        hpText.Size = 0.00f;
         hpText.Text = $"HP: {hc.Health}\nMetal: {PlayerResources.Metal}";
 
         var lhTransform = Registry.GetTransform(_leftHandEntity);
@@ -357,6 +408,15 @@ public class LocalPlayerSystem : ISystem
         hpTransform.Position = lhTransform.Position + hpTransform.Rotation * offset;
         Registry.SetTransform(_hpTextEntity, hpTransform);
         MovementInput = GetInputVelocity();
+    }
+
+    public void OnSimulate()
+    {
+        if (climbEntity.IsValid && LeftHand.Transform.Position.DistanceTo(climbPoint) > 0.3f && RightHand.Transform.Position.DistanceTo(climbPoint) > 0.3f)
+        {
+            Log.Msg("nulled");
+            climbEntity = Entity.Null;
+        }
     }
 
     public static void ConsumeJump()

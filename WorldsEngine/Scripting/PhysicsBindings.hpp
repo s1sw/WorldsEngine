@@ -198,6 +198,22 @@ extern "C" {
         contactSet->setStaticFriction(idx, val);
     }
 
+    EXPORT float ContactSet_getRestitution(physx::PxContactSet* contactSet, int idx) {
+        return contactSet->getRestitution(idx);
+    }
+
+    EXPORT void ContactSet_setRestitution(physx::PxContactSet* contactSet, int idx, float val) {
+        contactSet->setRestitution(idx, val);
+    }
+
+    EXPORT float ContactSet_getSeparation(physx::PxContactSet* contactSet, int idx) {
+        return contactSet->getSeparation(idx);
+    }
+
+    EXPORT void ContactSet_setSeparation(physx::PxContactSet* contactSet, int idx, float val) {
+        contactSet->setSeparation(idx, val);
+    }
+
     EXPORT void ContactSet_getPoint(physx::PxContactSet* contactSet, int idx, glm::vec3* val) {
         *val = px2glm(contactSet->getPoint(idx));
     }

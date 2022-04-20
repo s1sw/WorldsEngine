@@ -211,6 +211,12 @@ namespace worlds {
 
     class AssetEditorWindow;
 
+    enum class GameState {
+        Editing,
+        Playing,
+        Paused
+    };
+
     class Editor {
     public:
         Editor(entt::registry& reg, EngineInterfaces& interfaces);
@@ -232,6 +238,7 @@ namespace worlds {
         void loadOpenWindows();
         EditorSceneView* getFirstSceneView();
         void openAsset(AssetID id);
+        GameState getCurrentState() { return currentState; }
     private:
         EditorActionSearchPopup actionSearch;
         EditorAssetSearchPopup assetSearch;
@@ -270,6 +277,7 @@ namespace worlds {
             ModifierFlags modifiers;
         };
         slib::List<QueuedKeydown> queuedKeydowns;
+        GameState currentState = GameState::Editing;
 
         friend class EditorSceneView;
     };

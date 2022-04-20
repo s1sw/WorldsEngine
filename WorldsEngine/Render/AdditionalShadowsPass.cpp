@@ -7,6 +7,7 @@
 #include <tracy/Tracy.hpp>
 #include <Core/ConVar.hpp>
 #include <entt/entity/registry.hpp>
+#include <Util/EnumUtil.hpp>
 
 namespace worlds {
     ConVar enableSpotShadows { "r_enableSpotShadows", "1" };
@@ -251,6 +252,7 @@ namespace worlds {
             vkCmdBeginRenderPass(cmdBuf, &rpbi, VK_SUBPASS_CONTENTS_INLINE);
 
             ctx.registry.view<Transform, WorldObject>().each([&](auto ent, Transform& transform, WorldObject& obj) {
+                if (ctx.passSettings.staticsOnly && !enumHasFlag(obj.staticFlags, StaticFlags::Rendering)) return;
                 if (!obj.castShadows) return;
                 auto meshPos = ctx.resources.meshes.find(obj.mesh);
 

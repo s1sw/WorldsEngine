@@ -39,6 +39,8 @@
 #include <Editor/EditorActions.hpp>
 #include <Editor/Widgets/LogoWidget.hpp>
 #include <Editor/ProjectAssetCompiler.hpp>
+#include <dwmapi.h>
+#include <SDL_syswm.h>
 
 namespace worlds {
     std::unordered_map<ENTT_ID_TYPE, ComponentEditor*> ComponentMetadataManager::metadata;
@@ -214,6 +216,42 @@ namespace worlds {
             queuedKeydowns.add({scancode, flags});
         });
 
+        g_console->registerCommand([&](void*, const char*) {
+            if (currentState != GameState::Editing) return;
+            active = false;
+            interfaces.engine->pauseSim = false;
+
+            if (reg.ctx<SceneInfo>().id != ~0u)
+                interfaces.engine->loadScene(reg.ctx<SceneInfo>().id);
+            currentState = GameState::Playing;
+        }, "play", "play.");
+
+        g_console->registerCommand([&](void*, const char*) {
+            if (currentState != GameState::Playing) return;
+            active = true;
+            interfaces.engine->pauseSim = true;
+            interfaces.inputManager->lockMouse(false);
+            addNotification("Scene paused");
+            currentState = GameState::Paused;
+        }, "pauseAndEdit", "pause and edit.");
+
+        g_console->registerCommand([&](void*, const char*) {
+            active = true;
+
+            if (reg.ctx<SceneInfo>().id != ~0u)
+                interfaces.engine->loadScene(reg.ctx<SceneInfo>().id);
+
+            interfaces.engine->pauseSim = true;
+            interfaces.inputManager->lockMouse(false);
+            currentState = GameState::Editing;
+        }, "reloadAndEdit", "reload and edit.");
+
+        g_console->registerCommand([&](void*, const char*) {
+            active = false;
+            interfaces.engine->pauseSim = false;
+            currentState = GameState::Playing;
+        }, "unpause", "unpause and go back to play mode.");
+
         EditorActions::addAction({ "scene.save", [&](Editor* ed, entt::registry& reg) {
             if (reg.ctx<SceneInfo>().id != ~0u && !inputManager.shiftHeld()) {
                 AssetID sceneId = reg.ctx<SceneInfo>().id;
@@ -252,7 +290,6 @@ namespace worlds {
         }, "Redo"});
 
         EditorActions::addAction({ "editor.togglePlay", [](Editor* ed, entt::registry& reg) {
-            ed->interfaces.engine->pauseSim = false;
             g_console->executeCommandStr("play");
         }, "Play"});
 
@@ -343,6 +380,13 @@ namespace worlds {
         EditorActions::bindAction("editor.unpause", ActionKeybind{SDL_SCANCODE_P, ModifierFlags::Control | ModifierFlags::Shift});
         EditorActions::bindAction("editor.openActionSearch", ActionKeybind{SDL_SCANCODE_SPACE, ModifierFlags::Control});
         EditorActions::bindAction("editor.openAssetSearch", ActionKeybind{SDL_SCANCODE_SPACE, ModifierFlags::Control | ModifierFlags::Shift});
+
+        SDL_SysWMinfo wmInfo;
+        SDL_VERSION(&wmInfo.version);
+        SDL_GetWindowWMInfo(window, &wmInfo);
+        HWND hwnd = wmInfo.info.win.window;
+        MARGINS m { 0, 0, -5, 0 };
+        DwmExtendFrameIntoClientArea(hwnd, &m);
     }
 
     Editor::~Editor() {

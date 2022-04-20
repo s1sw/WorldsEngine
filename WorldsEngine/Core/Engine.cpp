@@ -312,6 +312,7 @@ namespace worlds {
             Renderer* renderer = _this->renderer.get();
             _this->windowWidth = evt->window.data1;
             _this->windowHeight = evt->window.data2;
+
             renderer->recreateSwapchain(evt->window.data1, evt->window.data2);
 
             {
@@ -508,6 +509,8 @@ namespace worlds {
             ComponentMetadataManager::setupLookup(&interfaces);
         }
 
+        interfaces.editor = editor.get();
+
         if (!scriptEngine->initialise(editor.get()))
             fatalErr("Failed to initialise .net");
 
@@ -545,33 +548,6 @@ namespace worlds {
                 }, "toggleVRRendering", "Toggle whether the screen RTT pass has VR enabled.");
 
             if (runAsEditor) {
-                console->registerCommand([&](void*, const char*) {
-                    editor->active = false;
-                    pauseSim = false;
-
-                    if (registry.ctx<SceneInfo>().id != ~0u)
-                        loadScene(registry.ctx<SceneInfo>().id);
-                }, "play", "play.");
-
-                console->registerCommand([&](void*, const char*) {
-                    editor->active = true;
-                    pauseSim = true;
-                    inputManager->lockMouse(false);
-                    addNotification("Scene paused");
-                }, "pauseAndEdit", "pause and edit.");
-
-                console->registerCommand([&](void*, const char*) {
-                    editor->active = true;
-                    if (registry.ctx<SceneInfo>().id != ~0u)
-                        loadScene(registry.ctx<SceneInfo>().id);
-                    pauseSim = true;
-                    inputManager->lockMouse(false);
-                }, "reloadAndEdit", "reload and edit.");
-
-                console->registerCommand([&](void*, const char*) {
-                    editor->active = false;
-                    pauseSim = false;
-                }, "unpause", "unpause and go back to play mode.");
 
                 console->registerCommand([&](void*, const char* arg) {
                     screenPassResScale = std::atof(arg);
@@ -579,6 +555,7 @@ namespace worlds {
             }
 
             console->registerCommand([&](void*, const char*) {
+                MeshManager::reloadMeshes();
                 renderer->reloadContent(ReloadFlags::All);
                 physicsSystem->resetMeshCache();
             }, "reloadContent", "Reloads all content.");
@@ -592,6 +569,7 @@ namespace worlds {
             }, "reloadMaterials", "Reloads materials.");
 
             console->registerCommand([&](void*, const char*) {
+                MeshManager::reloadMeshes();
                 renderer->reloadContent(ReloadFlags::Meshes);
                 physicsSystem->resetMeshCache();
             }, "reloadMeshes", "Reloads meshes.");
@@ -1248,7 +1226,6 @@ namespace worlds {
         ZoneScoped;
         if (lockSimToRefresh.getInt() || disableSimInterp.getInt() || (editor && editor->active)) {
             registry.view<DynamicPhysicsActor, Transform>().each([](DynamicPhysicsActor& dpa, Transform& transform) {
-                if (dpa.actor->isSleeping()) return;
                 auto curr = dpa.actor->getGlobalPose();
 
                 if (curr.p != glm2px(transform.position) || curr.q != glm2px(transform.rotation)) {
@@ -1300,7 +1277,6 @@ namespace worlds {
             }
 
             registry.view<DynamicPhysicsActor>().each([&](auto ent, DynamicPhysicsActor& dpa) {
-                if (dpa.actor->isSleeping()) return;
                 currentState[ent] = dpa.actor->getGlobalPose();
             });
 
@@ -1310,7 +1286,6 @@ namespace worlds {
                 alpha = 1.0f;
 
             registry.view<DynamicPhysicsActor, Transform>().each([&](entt::entity ent, DynamicPhysicsActor& dpa, Transform& transform) {
-                if (dpa.actor->isSleeping()) return;
                 if (!previousState.contains(ent)) {
                     transform.position = px2glm(currentState[ent].p);
                     transform.rotation = px2glm(currentState[ent].q);

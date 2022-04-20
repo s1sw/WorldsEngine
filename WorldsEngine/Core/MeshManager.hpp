@@ -15,6 +15,7 @@ namespace worlds {
         std::vector<std::string> boneNames;
         std::vector<glm::mat4> boneRestPositions;
         std::vector<glm::mat4> relativeBoneTransforms;
+        std::vector<uint32_t> boneParents;
         float sphereBoundRadius;
         glm::vec3 aabbMin;
         glm::vec3 aabbMax;
@@ -25,6 +26,7 @@ namespace worlds {
         static const LoadedMesh& get(AssetID id);
         static const LoadedMesh& loadOrGet(AssetID id);
         static void unload(AssetID id);
+        static void reloadMeshes();
     private:
         static robin_hood::unordered_node_map<AssetID, LoadedMesh> loadedMeshes;
     };

@@ -41,6 +41,11 @@ extern "C" {
         return m.boneNames[id].c_str();
     }
 
+    EXPORT uint32_t meshmanager_getBoneParent(AssetID id, uint32_t boneId) {
+        const auto& m = MeshManager::loadOrGet(id);
+        return m.boneParents[boneId];
+    }
+
 
     EXPORT float meshmanager_getSphereBoundRadius(AssetID id) {
         const auto& m = MeshManager::loadOrGet(id);

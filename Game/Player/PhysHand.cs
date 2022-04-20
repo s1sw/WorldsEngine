@@ -20,11 +20,19 @@ class PhysHand : Component, IThinkingComponent, IStartListener, IUpdateableCompo
 
     static Vector3 _nonVROffset = new Vector3(0.125f, -0.2f, 0.55f);
     const float TorqueLimit = 35f;
+
     float RotationDMax = 15.0f;
     float RotationPMax = 600.0f;
 
     float PositionP = 2003f;
     float PositionD = 100f;
+
+    // "Safe Mode" controls for lower tickrates for testing without
+    // hand explosions
+    //float RotationDMax = 8.0f;
+    //float RotationPMax = 300.0f;
+    //float PositionP = 1000f;
+    //float PositionD = 25f;
 
     public bool FollowRightHand = false;
 

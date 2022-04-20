@@ -63,7 +63,7 @@ class ForceGrabbing : Component, IStartListener, IThinkingComponent
 
         // DebugShapes.DrawLine(palmPos, palmPos + palmDir, new Vector4(1.0f, 1.0f, 1.0f, 1.0f));
         // DebugShapes.DrawLine(palmPos, palmPos + _pushPalmDir.Value, new Vector4(1.0f, 0.0f, 0.0f, 1.0f));
-        DebugShapes.DrawLine(palmPos, palmPos + _hoverPalmDir.Value, new Vector4(0.0f, 1.0f, 0.0f, 1.0f));
+        // DebugShapes.DrawLine(palmPos, palmPos + _hoverPalmDir.Value, new Vector4(0.0f, 1.0f, 0.0f, 1.0f));
 
         var audioSource = Registry.GetComponent<AudioSource>(Entity);
         if (_bringToHand)

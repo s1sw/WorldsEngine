@@ -65,7 +65,7 @@ namespace worlds {
         vkCmdBeginDebugUtilsLabelEXT(cmdBuf, &label);
 
         VkClearValue clearVal;
-        clearVal.color = VkClearColorValue{ 0.0f, 0.0f, 0.0f, 0.0f };
+        clearVal.color = VkClearColorValue{ 0.0f, 0.0f, 0.0f, 1.0f };
         VkRenderPassBeginInfo rpbi{ VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
         rpbi.renderPass = renderPass;
         rpbi.framebuffer = currFramebuffer;

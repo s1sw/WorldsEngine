@@ -88,6 +88,18 @@ namespace WorldsEngine
         private static extern void ContactSet_setStaticFriction(IntPtr ptr, int idx, float val);
 
         [DllImport(WorldsEngine.NativeModule)]
+        private static extern float ContactSet_getRestitution(IntPtr ptr, int idx);
+
+        [DllImport(WorldsEngine.NativeModule)]
+        private static extern void ContactSet_setRestitution(IntPtr ptr, int idx, float val);
+
+        [DllImport(WorldsEngine.NativeModule)]
+        private static extern float ContactSet_getSeparation(IntPtr ptr, int idx);
+
+        [DllImport(WorldsEngine.NativeModule)]
+        private static extern void ContactSet_setSeparation(IntPtr ptr, int idx, float val);
+
+        [DllImport(WorldsEngine.NativeModule)]
         private static extern void ContactSet_getPoint(IntPtr ptr, int idx, out Vector3 value);
 
         private readonly IntPtr _contactSetPtr;
@@ -132,6 +144,18 @@ namespace WorldsEngine
         {
             get => ContactSet_getStaticFriction(_contactSetPtr, idx);
             set => ContactSet_setStaticFriction(_contactSetPtr, idx, value);
+        }
+
+        public float Restitution
+        {
+            get => ContactSet_getRestitution(_contactSetPtr, idx);
+            set => ContactSet_setRestitution(_contactSetPtr, idx, value);
+        }
+
+        public float Separation
+        {
+            get => ContactSet_getSeparation(_contactSetPtr, idx);
+            set => ContactSet_setSeparation(_contactSetPtr, idx, value);
         }
 
         public Vector3 Point
@@ -180,8 +204,7 @@ namespace WorldsEngine
         {
             for (int i = 0; i < Count; i++)
             {
-                _contactDummy.idx = i;
-                yield return _contactDummy;
+                yield return new ModifiableContact(_nativePtr, i);
             }
         }
     }

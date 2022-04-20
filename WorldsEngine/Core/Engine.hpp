@@ -83,6 +83,7 @@ namespace worlds {
         WorldsEngine* engine;
         DotNetScriptEngine* scriptEngine;
         PhysicsSystem* physics;
+        Editor* editor;
     };
 
     class WorldsEngine {

@@ -51,8 +51,9 @@ namespace worlds {
         uint32_t indexCount;
         uint32_t indexOffset;
         uint32_t cubemapIdx;
-        glm::vec3 cubemapExt;
-        glm::vec3 cubemapPos;
+        uint32_t cubemapIdx2;
+        float cubemapBlendFactor;
+
         glm::vec4 texScaleOffset;
         entt::entity ent;
         VkPipeline pipeline;
@@ -196,6 +197,7 @@ namespace worlds {
         uint32_t lightIdMasks[8];
         uint32_t aoBoxIdMasks[2];
         uint32_t aoSphereIdMasks[2];
+        uint32_t cubemapIdMasks[2];
     };
 
     const int MAX_LIGHT_TILES = 65536;

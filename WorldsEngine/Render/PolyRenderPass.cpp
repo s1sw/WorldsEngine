@@ -16,6 +16,7 @@
 #include "vku/RenderpassMaker.hpp"
 #include "vku/DescriptorSetUtil.hpp"
 #include "ShaderReflector.hpp"
+#include <Util/EnumUtil.hpp>
 
 namespace ShaderFlags {
     enum ShaderFlag {
@@ -43,23 +44,6 @@ namespace ShaderFlags {
 namespace worlds {
     ConVar showWireframe("r_wireframeMode", "0", "0 - No wireframe; 1 - Wireframe only; 2 - Wireframe + solid");
     ConVar dbgDrawMode("r_dbgDrawMode", "0", "0 = Normal, 1 = Normals, 2 = Metallic, 3 = Roughness, 4 = AO");
-
-    struct StandardPushConstants {
-        uint32_t modelMatrixIdx;
-        uint32_t materialIdx;
-        uint32_t vpIdx;
-        uint32_t objectId;
-
-        glm::vec3 cubemapExt;
-        uint32_t skinningOffset;
-        glm::vec3 cubemapPos;
-        float cubemapBoost;
-
-        glm::vec4 texScaleOffset;
-
-        glm::ivec3 screenSpacePickPos;
-        uint32_t cubemapIdx;
-    };
 
     struct SkyboxPushConstants {
         // (x: vp index, y: cubemap index)
@@ -510,16 +494,13 @@ namespace worlds {
         }
 
         auto& resources = ctx.resources;
-        auto& sceneSettings = ctx.registry.ctx<SceneSettings>();
-        // skybox should always be loaded
-        // if it isn't, something has already gone terribly wrong
-        uint32_t skyboxId = ctx.resources.cubemaps.loadOrGet(sceneSettings.skybox);
 
         drawInfo.clear();
 
         int matrixIdx = 0;
         bool warned = false;
         ctx.registry.view<Transform, WorldObject>().each([&](entt::entity ent, Transform& t, WorldObject& wo) {
+            if (ctx.passSettings.staticsOnly && !enumHasFlag(wo.staticFlags, StaticFlags::Rendering)) return;
             if (matrixIdx == ModelMatrices::SIZE - 1) {
                 if (!warned) {
                     logWarn("Out of model matrices!");
@@ -621,28 +602,52 @@ namespace worlds {
                     sdi.drawMiscFlags |= ShaderFlags::MISC_FLAG_SELECTION_GLOW;
                 }
 
-                uint32_t currCubemapIdx = skyboxId;
-                int lastPriority = INT32_MIN;
 
-                glm::vec3 cPos = t.transformPoint((meshPos->second.aabbMax + meshPos->second.aabbMin) * 0.5f);
+                AABB submeshBB{glm::vec3{FLT_MAX}, glm::vec3{-FLT_MAX}};
+                {
+                    glm::vec3 mi = currSubmesh.aabbMin * t.scale;
+                    glm::vec3 ma = currSubmesh.aabbMax * t.scale;
+
+                    glm::vec3 points[] = {
+                        mi,
+                        glm::vec3(ma.x, mi.y, mi.z),
+                        glm::vec3(mi.x, ma.y, mi.z),
+                        glm::vec3(ma.x, ma.y, mi.z),
+                        glm::vec3(mi.x, mi.y, ma.z),
+                        glm::vec3(ma.x, mi.y, ma.z),
+                        glm::vec3(mi.x, ma.y, ma.z),
+                        glm::vec3(ma.x, ma.y, ma.z)
+                    };
+
+                    for (int i = 0; i < 8; i++) {
+                        glm::vec3 p = t.transformPoint(points[i]);
+                        submeshBB.min = glm::min(submeshBB.min, p);
+                        submeshBB.max = glm::max(submeshBB.max, p);
+                    }
+                }
+
+                sdi.cubemapBlendFactor = 0.0f;
+
+                int lastPriority = INT32_MIN;
+                sdi.cubemapIdx = 0;
+                sdi.cubemapIdx2 = ~0u;
+
+                glm::vec3 cPos = t.transformPoint((currSubmesh.aabbMax + currSubmesh.aabbMin) * 0.5f);
                 ctx.registry.view<WorldCubemap, Transform>().each([&](WorldCubemap& wc, Transform& cubeT) {
                     glm::vec3 ma = wc.extent + cubeT.position;
                     glm::vec3 mi = cubeT.position - wc.extent;
 
-                    if (cPos.x < ma.x && cPos.x > mi.x &&
-                        cPos.y < ma.y && cPos.y > mi.y &&
-                        cPos.z < ma.z && cPos.z > mi.z && wc.priority > lastPriority) {
-                        currCubemapIdx = resources.cubemaps.get(wc.cubemapId);
-                        sdi.cubemapPos = cubeT.position;
-                        sdi.cubemapExt = wc.extent;
-                        if (wc.cubeParallax) {
-                            sdi.drawMiscFlags |= ShaderFlags::MISC_FLAG_CUBEMAP_PARALLAX; // flag for cubemap parallax correction
+                    AABB cubemapBB{ mi, ma };
+                    if (cubemapBB.intersects(submeshBB)) {
+                        if (wc.priority > lastPriority) {
+                            sdi.cubemapIdx = wc.renderIdx;
+                            lastPriority = wc.priority;
                         }
-                        lastPriority = wc.priority;
+                        else if (wc.priority >= lastPriority) {
+                            sdi.cubemapIdx2 = wc.renderIdx;
+                        }
                     }
                     });
-
-                sdi.cubemapIdx = currCubemapIdx;
 
                 auto& extraDat = resources.materials.getExtraDat(sdi.materialIdx);
 
@@ -656,7 +661,8 @@ namespace worlds {
                     svf |= ShaderVariantFlags::AlphaTest;
                 }
 
-                sdi.pipeline = pipelineVariants->getPipeline(enablePicking, ctx.passSettings.msaaLevel, svf);
+                PipelineKey pk { enablePicking, ctx.passSettings.msaaLevel, svf, extraDat.overrideShader };
+                sdi.pipeline = pipelineVariants->getPipeline(pk);
 
                 if (extraDat.wireframe || showWireframe.getInt() == 1) {
                     sdi.pipeline = wireframePipeline;
@@ -677,6 +683,7 @@ namespace worlds {
 
         int skinningOffset = 0;
         ctx.registry.view<Transform, SkinnedWorldObject>().each([&](entt::entity ent, Transform& t, SkinnedWorldObject& wo) {
+            if (ctx.passSettings.staticsOnly && !enumHasFlag(wo.staticFlags, StaticFlags::Rendering)) return;
             auto meshPos = resources.meshes.find(wo.mesh);
 
             if (matrixIdx == ModelMatrices::SIZE - 1) {
@@ -754,28 +761,29 @@ namespace worlds {
                     sdi.drawMiscFlags |= ShaderFlags::MISC_FLAG_SELECTION_GLOW;
                 }
 
-                uint32_t currCubemapIdx = skyboxId;
-                int lastPriority = INT32_MIN;
+                sdi.cubemapBlendFactor = 0.0f;
 
+                int lastPriority = INT32_MIN;
+                sdi.cubemapIdx = 0;
+                sdi.cubemapIdx2 = ~0u;
+
+                glm::vec3 cPos = t.transformPoint((currSubmesh.aabbMax + currSubmesh.aabbMin) * 0.5f);
                 ctx.registry.view<WorldCubemap, Transform>().each([&](WorldCubemap& wc, Transform& cubeT) {
-                    glm::vec3 cPos = t.position;
                     glm::vec3 ma = wc.extent + cubeT.position;
                     glm::vec3 mi = cubeT.position - wc.extent;
 
-                    if (cPos.x < ma.x && cPos.x > mi.x &&
-                        cPos.y < ma.y && cPos.y > mi.y &&
-                        cPos.z < ma.z && cPos.z > mi.z && wc.priority > lastPriority) {
-                        currCubemapIdx = resources.cubemaps.get(wc.cubemapId);
-                        if (wc.cubeParallax) {
-                            sdi.drawMiscFlags |= ShaderFlags::MISC_FLAG_CUBEMAP_PARALLAX; // flag for cubemap parallax correction
-                            sdi.cubemapPos = cubeT.position;
-                            sdi.cubemapExt = wc.extent;
+                    AABB cubemapBB{ mi, ma };
+                    if (cubemapBB.containsPoint(t.position)) {
+                        if (wc.priority > lastPriority) {
+                            sdi.cubemapIdx = wc.renderIdx;
+                            sdi.cubemapIdx2 = 0;
+                            lastPriority = wc.priority;
                         }
-                        lastPriority = wc.priority;
+                        else if (wc.priority >= lastPriority) {
+                            sdi.cubemapIdx2 = wc.renderIdx;
+                        }
                     }
                     });
-
-                sdi.cubemapIdx = currCubemapIdx;
 
                 ShaderVariantFlags svf = ShaderVariantFlags::Skinnning;
 
@@ -789,7 +797,8 @@ namespace worlds {
                     svf |= ShaderVariantFlags::AlphaTest;
                 }
 
-                sdi.pipeline = pipelineVariants->getPipeline(enablePicking, ctx.passSettings.msaaLevel, svf);
+                PipelineKey pk { enablePicking, ctx.passSettings.msaaLevel, svf, extraDat.overrideShader };
+                sdi.pipeline = pipelineVariants->getPipeline(pk);
 
                 //ctx.debugContext.stats->numTriangles += currSubmesh.indexCount / 3;
 
@@ -967,6 +976,25 @@ namespace worlds {
             });
         lightMapped->aoSphereCount = aoSphereIdx;
 
+        auto& sceneSettings = ctx.registry.ctx<SceneSettings>();
+        // skybox should always be loaded
+        // if it isn't, something has already gone terribly wrong
+        uint32_t skyboxId = ctx.resources.cubemaps.loadOrGet(sceneSettings.skybox);
+        
+        uint32_t cubemapIdx = 1;
+        lightMapped->cubemaps[0] = GPUCubemap { glm::vec3{100000.0f}, skyboxId, glm::vec3{0.0f}, 0 };
+        ctx.registry.view<WorldCubemap, Transform>().each([&](WorldCubemap& wc, Transform& t) {
+            GPUCubemap gc{};
+            gc.extent = wc.extent;
+            gc.position = t.position;
+            gc.flags = wc.cubeParallax;
+            gc.texture = ctx.resources.cubemaps.loadOrGet(wc.cubemapId);
+            lightMapped->cubemaps[cubemapIdx] = gc;
+            wc.renderIdx = cubemapIdx;
+            cubemapIdx++;
+        });
+        lightMapped->cubemapCount = cubemapIdx;
+
         if (dsUpdateNeeded) {
             // Update descriptor sets to bring in any new textures
             updateDescriptorSets(ctx);
@@ -994,7 +1022,7 @@ namespace worlds {
 
         lightsUB.barrier(
             cmdBuf, VK_PIPELINE_STAGE_HOST_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-            VK_DEPENDENCY_BY_REGION_BIT, VK_ACCESS_HOST_WRITE_BIT, VK_ACCESS_UNIFORM_READ_BIT,
+            VK_DEPENDENCY_BY_REGION_BIT, VK_ACCESS_HOST_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,
             VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED);
 
         modelMatrixUB[ctx.frameIndex].barrier(

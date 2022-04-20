@@ -79,6 +79,16 @@ namespace worlds {
             return *this;
         }
 
+        StandardPipelineMaker& requireZPrepass(bool val) {
+            _requireZPrepass = val;
+            return *this;
+        }
+
+        StandardPipelineMaker& alphaToCoverage(bool val) {
+            _alphaToCoverage = val;
+            return *this;
+        }
+
         vku::Pipeline createPipeline(VulkanHandles* handles, VkPipelineLayout layout, VkRenderPass renderPass) {
             VkSpecializationMapEntry entries[5] = {
                 { 0, offsetof(StandardSpecConsts, enablePicking),     sizeof(VkBool32) },
@@ -119,7 +129,7 @@ namespace worlds {
 
             pm.cullMode(cullFlags);
 
-            if ((int)enableDepthPrepass)
+            if ((int)enableDepthPrepass && _requireZPrepass)
                 pm.depthWriteEnable(false)
                 .depthTestEnable(true)
                 .depthCompareOp(VK_COMPARE_OP_EQUAL);
@@ -136,6 +146,8 @@ namespace worlds {
 
             if (handles->hasOutOfOrderRasterization)
                 pm.rasterizationOrderAMD(VK_RASTERIZATION_ORDER_RELAXED_AMD);
+            
+            pm.alphaToCoverageEnable(_alphaToCoverage);
 
             return pm.create(handles->device, handles->pipelineCache, layout, renderPass);
         }
@@ -146,75 +158,11 @@ namespace worlds {
         bool enablePicking = false;
         bool useSkinningAttributes = false;
         bool _useSpecConstants = false;
+        bool _requireZPrepass = true;
+        bool _alphaToCoverage = false;
         VkCullModeFlags cullFlags = VK_CULL_MODE_BACK_BIT;
     };
 
-    class DepthPrepassPipelineMaker {
-    public:
-        DepthPrepassPipelineMaker(AssetID vs, AssetID fs)
-            : vs(vs)
-            , fs(fs) {
-        }
-
-        DepthPrepassPipelineMaker& setEnableSkinning(bool enable) {
-            enableSkinning = enable;
-            return *this;
-        }
-
-        DepthPrepassPipelineMaker& setEnableAlphaTest(bool enable) {
-            enableAlphaTest = enable;
-            return *this;
-        }
-
-        DepthPrepassPipelineMaker& setMsaaSamples(int samples) {
-            msaaSamples = samples;
-            return *this;
-        }
-
-        vku::Pipeline createPipeline(VulkanHandles* handles, VkPipelineLayout layout, VkRenderPass renderPass) {
-            vku::PipelineMaker pm { 1600, 900 };
-
-            pm.shader(VK_SHADER_STAGE_FRAGMENT_BIT, ShaderCache::getModule(handles->device, fs));
-            pm.shader(VK_SHADER_STAGE_VERTEX_BIT, ShaderCache::getModule(handles->device, vs));
-            pm.cullMode(VK_CULL_MODE_BACK_BIT);
-            pm.depthWriteEnable(true).depthTestEnable(true).depthCompareOp(VK_COMPARE_OP_GREATER);
-            pm.blendBegin(false);
-            pm.frontFace(VK_FRONT_FACE_COUNTER_CLOCKWISE);
-
-            pm.rasterizationSamples(vku::sampleCountFlags(msaaSamples));
-            pm.alphaToCoverageEnable(enableAlphaTest);
-            pm.subPass(0);
-
-            if (handles->hasOutOfOrderRasterization)
-                pm.rasterizationOrderAMD(VK_RASTERIZATION_ORDER_RELAXED_AMD);
-
-            pm.dynamicState(VK_DYNAMIC_STATE_VIEWPORT).dynamicState(VK_DYNAMIC_STATE_SCISSOR);
-
-            ShaderReflector vsr{vs};
-            VertexAttributeBindings vab = vsr.getVertexAttributeBindings();
-
-            //pm.vertexBinding(0, (uint32_t)sizeof(Vertex));
-
-            //pm.vertexAttribute(0, 0, VK_FORMAT_R32G32B32_SFLOAT, (uint32_t)offsetof(Vertex, position));
-            //pm.vertexAttribute(1, 0, VK_FORMAT_R32G32_SFLOAT, (uint32_t)offsetof(Vertex, uv));
-            setupVertexFormat(vab, pm);
-
-            if (enableSkinning) {
-                //pm.vertexBinding(1, (uint32_t)sizeof(VertSkinningInfo));
-                //pm.vertexAttribute(2, 1, VK_FORMAT_R32G32B32A32_SFLOAT, (uint32_t)offsetof(VertSkinningInfo, weights));
-                //pm.vertexAttribute(3, 1, VK_FORMAT_R32G32B32A32_UINT, (uint32_t)offsetof(VertSkinningInfo, boneIds));
-                setupSkinningVertexFormat(vab, pm);
-            }
-
-            return pm.create(handles->device, handles->pipelineCache, layout, renderPass);
-        }
-    private:
-        AssetID vs;
-        AssetID fs;
-        bool enableSkinning = false;
-        bool enableAlphaTest = false;
-        int msaaSamples = 1;
-    };
 
     VKPipelineVariants::VKPipelineVariants(VulkanHandles* handles, bool depthOnly, VkPipelineLayout layout, VkRenderPass renderPass) 
         : handles(handles)
@@ -223,39 +171,25 @@ namespace worlds {
         , renderPass(renderPass) {
     }
 
-    VkPipeline VKPipelineVariants::getPipeline(bool enablePicking, int msaaSamples, ShaderVariantFlags flags) {
-        ShaderKey key {
-            enablePicking, msaaSamples,
-            flags
-        };
-
+    VkPipeline VKPipelineVariants::getPipeline(PipelineKey key) {
         uint32_t hash = key.hash();
         if (cache.contains(hash)) {
             return cache.at(hash);
         }
 
-        if (depthOnly) {
-            DepthPrepassPipelineMaker pm { getVS(flags), getFS(flags) };
-            pm.setEnableAlphaTest(enumHasFlag(flags, ShaderVariantFlags::AlphaTest))
-              .setEnableSkinning(enumHasFlag(flags, ShaderVariantFlags::Skinnning))
-              .setMsaaSamples(msaaSamples);
+        StandardPipelineMaker pm { getVS(key.flags), key.overrideFS == INVALID_ASSET ? getFS(key.flags) : key.overrideFS };
+        pm.setCullMode(enumHasFlag(key.flags, ShaderVariantFlags::NoBackfaceCulling) ? VK_CULL_MODE_NONE : VK_CULL_MODE_BACK_BIT)
+            .msaaSamples(key.msaaSamples)
+            .setPickingEnabled(key.enablePicking)
+            .setEnableSkinning(enumHasFlag(key.flags, ShaderVariantFlags::Skinnning))
+            .useSpecConstants(!depthOnly)
+            .requireZPrepass(!depthOnly)
+            .alphaToCoverage(depthOnly && enumHasFlag(key.flags, ShaderVariantFlags::AlphaTest));
 
-            vku::Pipeline p = pm.createPipeline(handles, layout, renderPass);
-            VkPipeline safe = p;
-            cache.insert({ hash, std::move(p) });
-            return safe;
-        } else {
-            StandardPipelineMaker pm { getVS(flags), getFS(flags) };
-            pm.setCullMode(enumHasFlag(flags, ShaderVariantFlags::NoBackfaceCulling) ? VK_CULL_MODE_NONE : VK_CULL_MODE_BACK_BIT)
-              .msaaSamples(msaaSamples)
-              .setPickingEnabled(enablePicking)
-              .setEnableSkinning(enumHasFlag(flags, ShaderVariantFlags::Skinnning));
-
-            vku::Pipeline p = pm.createPipeline(handles, layout, renderPass);
-            VkPipeline safe = p;
-            cache.insert({ hash, std::move(p) });
-            return safe;
-        }
+        vku::Pipeline p = pm.createPipeline(handles, layout, renderPass);
+        VkPipeline safe = p;
+        cache.insert({ hash, std::move(p) });
+        return safe;
     }
 
     AssetID VKPipelineVariants::getFS(ShaderVariantFlags flags) {
@@ -286,11 +220,13 @@ namespace worlds {
         }
     }
 
-    uint32_t VKPipelineVariants::ShaderKey::hash() {
+    uint32_t PipelineKey::hash() {
         uint32_t h = 
             (uint32_t)enablePicking
           | (((uint32_t)msaaSamples) << 1)
           | (((uint32_t)flags) << 8);
+
+        h = h * 31 + overrideFS;
 
         return h;
     }

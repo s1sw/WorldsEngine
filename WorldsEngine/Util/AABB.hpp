@@ -24,5 +24,15 @@ namespace worlds {
         glm::vec3 extents() {
             return max - min;
         }
+
+        bool intersects(AABB& other) {
+            bool isects = true;
+
+            for (int i = 0; i < 3; i++) {
+                isects &= min[i] <= other.max[i] && max[i] >= other.min[i];
+            }
+
+            return isects;
+        }
     };
 }

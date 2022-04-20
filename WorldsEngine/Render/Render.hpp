@@ -77,40 +77,31 @@ namespace worlds {
         GraphicsSettings()
             : msaaLevel(2)
             , shadowmapRes(1024)
-            , spotShadowmapRes(1024)
-            , enableVr(false)
-            , enableBloom(true)
-            , enableCascadeShadows(true)
-            , enableSpotlightShadows(true)
-            , enableDebugLines(true)
-            , resolutionScale(1.0f) {}
+            , enableVr(false) {}
 
         GraphicsSettings(int msaaLevel, int shadowmapRes, bool enableVr)
             : msaaLevel(msaaLevel)
             , shadowmapRes(shadowmapRes)
-            , spotShadowmapRes(1024)
-            , enableVr(enableVr)
-            , enableBloom(true)
-            , enableCascadeShadows(true)
-            , enableSpotlightShadows(true)
-            , enableDebugLines(true)
-            , resolutionScale(1.0f) {}
+            , enableVr(enableVr) {}
 
         int msaaLevel; //!< MSAA level (1x, 2x, 4x, 8x etc.)
         int shadowmapRes; //!< Shadowmap resolution for cascade shadows
-        int spotShadowmapRes; //!< Shadowmap resolution specifically for spotlights
+        int spotShadowmapRes = 1024; //!< Shadowmap resolution specifically for spotlights
         bool enableVr;
-        bool enableBloom;
-        bool enableCascadeShadows;
-        bool enableSpotlightShadows;
-        bool enableDebugLines;
-        float resolutionScale;
+        bool enableBloom = true;
+        bool enableCascadeShadows = true;
+        bool enableSpotlightShadows = true;
+        bool enableDebugLines = true;
+        bool staticsOnly = false;
+        float resolutionScale = 1.0f;
     };
 
     struct SubmeshInfo {
         uint32_t indexOffset; //!< The offset of the submesh in the mesh index buffer.
         uint32_t indexCount; //!< The number of indices in the submesh.
         int materialIndex;
+        glm::vec3 aabbMax;
+        glm::vec3 aabbMin;
     };
 
     struct RenderDebugStats {
@@ -156,6 +147,7 @@ namespace worlds {
         bool useForPicking;
         bool enableShadows;
         bool outputToScreen;
+        bool staticsOnly = false;
         int msaaLevel = 0;
         entt::registry* registryOverride = nullptr;
         bool renderDebugShapes = true;

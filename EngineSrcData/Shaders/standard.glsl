@@ -156,19 +156,108 @@ vec3 EnvBRDFApprox(vec3 F, float roughness, float NoV) {
     return F * AB.x + AB.y;
 }
 
+vec3 sampleCubemap(Cubemap cubemap, vec3 dir, float mip) {
+    if (cubemaps[cubemapIdx].flags > 0) {
+        dir = parallaxCorrect(dir, cubemap.position, cubemap.position + cubemap.extent, cubemap.position - cubemap.extent, inWorldPos.xyz);
+    }
+
+    dir.x = -dir.x;
+    dir = normalize(dir);
+
+    return textureLod(cubemapSampler[cubemap.texture], dir, mip).rgb;
+}
+
+float calcBlendWeight(Cubemap c) {
+    vec3 t = abs(inWorldPos.xyz - c.position);
+    const float blendDist = 1.0;
+    t = (t - (c.extent - vec3(blendDist))) / (vec3(blendDist));
+    return 1.0 - saturate(max(t.x, max(t.y, t.z)));
+}
+
 vec3 calcAmbient(vec3 f0, float roughness, vec3 viewDir, float metallic, vec3 albedoColor, vec3 normal) {
     const float MAX_REFLECTION_LOD = 6.0;
     vec3 R = reflect(-viewDir, normal);
 
     vec3 F = fresnelSchlickRoughness(clamp(dot(normal, viewDir), 0.0, 1.0), f0, roughness);
+    vec3 specularAmbient = vec3(0.0);
+    vec3 diffuseAmbient = vec3(0.0);
 
-    if ((miscFlag & MISC_FLAG_CUBEMAP_PARALLAX) == MISC_FLAG_CUBEMAP_PARALLAX) {
-        R = parallaxCorrect(R, cubemapPos, cubemapPos + cubemapExt, cubemapPos - cubemapExt, inWorldPos.xyz);
+    int tileIdxX = int(gl_FragCoord.x / buf_LightTileInfo.tileSize);
+    int tileIdxY = int(gl_FragCoord.y / buf_LightTileInfo.tileSize);
+
+    uint eyeOffset = buf_LightTileInfo.tilesPerEye * gl_ViewIndex;
+    uint tileIdx = ((tileIdxY * buf_LightTileInfo.numTilesX) + tileIdxX) + eyeOffset;
+    float specMipLevel = roughness * MAX_REFLECTION_LOD;
+    //if (cubemapIdx2 != ~0u) {
+    //    Cubemap a = cubemaps[cubemapIdx];
+    //    Cubemap b = cubemaps[cubemapIdx2];
+
+    //    float blendA = calcBlendWeight(a);
+    //    float blendB = cubemapIdx2 == 0 ? 0.0 : calcBlendWeight(b);
+
+    //    float sum = blendA + blendB;
+
+    //    if (sum > 0.0) {
+    //        blendA /= sum;
+    //        blendB /= sum;
+    //    } else {
+    //        blendB = 1.0;
+    //    }
+
+    //    vec3 specA = sampleCubemap(a, R, mipLevel);
+    //    vec3 specB = sampleCubemap(b, R, mipLevel);
+    //    specularAmbient = specA * blendA + specB * blendB;
+
+    //    vec3 diffuseA = sampleCubemap(a, normal, 7.0);
+    //    vec3 diffuseB = sampleCubemap(b, normal, 7.0);
+    //    diffuseAmbient = diffuseA * blendA + diffuseB * blendB;
+    //} else {
+    //    Cubemap cubemap = cubemaps[cubemapIdx];
+    //    specularAmbient = sampleCubemap(cubemap, R, roughness * MAX_REFLECTION_LOD) * cubemapBoost;
+    //    diffuseAmbient = sampleCubemap(cubemap, normal, 7.0) * cubemapBoost;
+    //}
+
+    int numCubemaps = 0;
+    float weightSum = 0.0;
+    for (int i = 0; i < 2; i++) {
+        uint cubemapBits = readFirstInvocationARB(subgroupOr(buf_LightTiles.tiles[tileIdx].cubemapIdMasks[i]));
+
+        while (cubemapBits != 0) {
+            // find the next set sphere bit
+            uint cubemapBitIndex = findLSB(cubemapBits);
+
+            // remove it from the mask with an XOR
+            cubemapBits ^= 1 << cubemapBitIndex;
+
+            uint realIndex = cubemapBitIndex + (32 * i);
+            Cubemap c = cubemaps[realIndex];
+            numCubemaps++;
+            weightSum += calcBlendWeight(c);
+        }
     }
-    R.x = -R.x;
-    R = normalize(R);
 
-    vec3 specularAmbient = textureLod(cubemapSampler[cubemapIdx], R, roughness * MAX_REFLECTION_LOD).rgb * cubemapBoost;
+    for (int i = 0; i < 2; i++) {
+        uint cubemapBits = readFirstInvocationARB(subgroupOr(buf_LightTiles.tiles[tileIdx].cubemapIdMasks[i]));
+
+        while (cubemapBits != 0) {
+            // find the next set sphere bit
+            uint cubemapBitIndex = findLSB(cubemapBits);
+
+            // remove it from the mask with an XOR
+            cubemapBits ^= 1 << cubemapBitIndex;
+
+            uint realIndex = cubemapBitIndex + (32 * i);
+            Cubemap c = cubemaps[realIndex];
+            float blendWeight = calcBlendWeight(c) / weightSum;
+            specularAmbient += sampleCubemap(c, R, specMipLevel) * blendWeight;
+            diffuseAmbient += sampleCubemap(c, R, 7.0) * blendWeight;
+        }
+    }
+
+    if (weightSum == 0.0) {
+        specularAmbient = sampleCubemap(cubemaps[0], R, specMipLevel);
+        diffuseAmbient = sampleCubemap(cubemaps[0], R, 7.0);
+    }
 
 #ifdef BRDF_APPROX
     vec3 specularColor = EnvBRDFApprox(F, roughness, max(dot(normal, viewDir), 0.0));
@@ -182,7 +271,7 @@ vec3 calcAmbient(vec3 f0, float roughness, vec3 viewDir, float metallic, vec3 al
 
     if (metallic < 1.0) {
         vec3 kD = (1.0 - F) * (1.0 - metallic);
-        totalAmbient += kD * textureLod(cubemapSampler[cubemapIdx], normal, 7.0).xyz * albedoColor * cubemapBoost;
+        totalAmbient += kD * diffuseAmbient * albedoColor;
     }
 
     return totalAmbient;
@@ -500,7 +589,6 @@ vec3 shade(ShadeInfo si) {
     uint tileIdx = ((tileIdxY * buf_LightTileInfo.numTilesX) + tileIdxX) + eyeOffset;
 
     vec3 f0 = mix(vec3(0.04), si.albedoColor, si.metallic);
-    vec3 ambient = calcAmbient(f0, si.roughness, si.viewDir, si.metallic, si.albedoColor, si.normal);
     //return ambient * si.ao;
 
     vec3 lo = vec3(0.0);
@@ -508,6 +596,7 @@ vec3 shade(ShadeInfo si) {
 #ifdef TILED
     for (int i = 0; i < 8; i++) {
         uint lightBits = readFirstInvocationARB(subgroupOr(buf_LightTiles.tiles[tileIdx].lightIdMasks[i]));
+        //uint lightBits = buf_LightTiles.tiles[tileIdx].lightIdMasks[i];
 
         while (lightBits != 0) {
             // find the next set light bit
@@ -525,6 +614,7 @@ vec3 shade(ShadeInfo si) {
         lo += shadeLight(i, si);
     }
 #endif
+    vec3 ambient = calcAmbient(f0, si.roughness, si.viewDir, si.metallic, si.albedoColor, si.normal);
 
     return (ambient * si.ao) + lo;
 }
@@ -599,7 +689,6 @@ void unpackMaterial(inout ShadeInfo si, vec2 tCoord, mat3 tbn) {
 #endif
     si.albedoColor = albedoColor.rgb;
     si.normal = mat.normalTexIdx > -1 ? getNormalMapNormal(mat, tCoord, tbn) : inNormal;
-    si.ao *= calcProxyAO(inWorldPos.xyz, si.normal);
     //si.roughness = getAntiAliasedRoughness(si.roughness, si.normal);
     si.alpha = albedoColor.a;
     si.emissive = mat.emissiveColor;
@@ -661,6 +750,7 @@ void main() {
 
     ShadeInfo si;
     unpackMaterial(si, tCoord, tbn);
+    si.ao *= calcProxyAO(inWorldPos.xyz, si.normal);
     si.viewDir = normalize(getViewPos() - inWorldPos.xyz);
 
 #ifdef DEBUG
@@ -715,7 +805,7 @@ void main() {
         if (int(gl_FragCoord.x) % int(buf_LightTileInfo.tileSize) == 0 || int(gl_FragCoord.y) % int(buf_LightTileInfo.tileSize) == 0)
             heatmapCol.z = 1.0;
 
-        FragColor = vec4(mix(shade(si), heatmapCol, 0.25), 1.0);
+        FragColor = vec4(heatmapCol, 1.0);//vec4(mix(shade(si), heatmapCol, 0.25), 1.0);
         return;
     }
 #endif
