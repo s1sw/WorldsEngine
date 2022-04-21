@@ -3,8 +3,10 @@
 #include <Core/ConVar.hpp>
 #include <Core/Engine.hpp>
 #include <ImGui/imgui.h>
-#include <slib/Win32Util.hpp>
 #include <Editor/Editor.hpp>
+#ifdef _WIN32
+#include <slib/Win32Util.hpp>
+#endif
 
 namespace worlds {
     static ConVar integratedMenuBar{ "ed_integratedMenuBar", "1" };
@@ -73,6 +75,7 @@ namespace worlds {
             }
             drawList->AddRectFilled(minimiseCenter - glm::vec2(5, 0), minimiseCenter + glm::vec2(5, 1), ImColor(255, 255, 255));
 
+            #ifdef _WIN32
             if (interfaces.editor->getCurrentState() == GameState::Editing) {
                 if (!interfaces.engine->getMainWindow().isMaximised()) {
                     uint8_t r, g, b;
@@ -90,6 +93,7 @@ namespace worlds {
                     ImGui::GetForegroundDrawList()->AddRect(ImVec2(0, 0), ImVec2(windowSize.x, windowSize.y), ImColor(127, 50, 50));
                 }
             }
+            #endif
         } else {
             SDL_SetWindowBordered(interfaces.engine->getMainWindow().getWrappedHandle(), SDL_TRUE);
         }

@@ -58,6 +58,12 @@ namespace worlds {
                     }
                     ImGui::TreePop();
                 }
+
+                if (ImGui::TreeNode("Bones")) {
+                    for (const Bone& v : lm.bones) {
+                        ImGui::Text("%s", v.name.cStr());
+                    }
+                }
             }
         }
     }

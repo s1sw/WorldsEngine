@@ -52,16 +52,6 @@ namespace worlds {
         bool castShadows = true;
     };
 
-    struct Bone {
-        glm::mat4 restPose;
-        uint32_t id;
-    };
-
-    class Skeleton {
-    public:
-        std::vector<Bone> bones;
-    };
-
     class Pose {
     public:
         std::vector<glm::mat4> boneTransforms;

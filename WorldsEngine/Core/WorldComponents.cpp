@@ -11,8 +11,8 @@ namespace worlds {
         const LoadedMesh& lm = MeshManager::loadOrGet(mesh);
         currentPose.boneTransforms.clear();
 
-        for (const glm::mat4& t : lm.boneRestPositions) {
-            currentPose.boneTransforms.push_back(t);
+        for (const Bone& b : lm.bones) {
+            currentPose.boneTransforms.push_back(b.restPose);
         }
     }
 }

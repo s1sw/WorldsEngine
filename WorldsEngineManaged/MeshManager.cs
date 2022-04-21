@@ -7,6 +7,22 @@ using System.Runtime.InteropServices;
 
 namespace WorldsEngine
 {
+    public struct Bone
+    {
+        [DllImport(WorldsEngine.NativeModule)]
+        private static extern uint meshmanager_getBoneParent(uint meshId, uint boneId);
+
+        public uint ID { get; private set; }
+        public int Parent => (int)meshmanager_getBoneParent(_mesh, ID);
+        private uint _mesh;
+
+        internal Bone(uint id, uint meshId)
+        {
+            ID = id;
+            _mesh = meshId;
+        }
+    }
+
     public class LoadedMesh
     {
         [DllImport(WorldsEngine.NativeModule)]
@@ -28,21 +44,12 @@ namespace WorldsEngine
         [DllImport(WorldsEngine.NativeModule)]
         private static extern float meshmanager_getSphereBoundRadius(uint meshId);
 
-        [DllImport(WorldsEngine.NativeModule)]
-        private static extern uint meshmanager_getBoneParent(uint meshId, uint boneId);
 
         public int BoneCount => (int)meshmanager_getBoneCount(_id.ID);
         public float SphereBoundRadius => meshmanager_getSphereBoundRadius(_id.ID);
 
-        public int BoneParentIndex(int boneIndex)
-        {
-            uint v = meshmanager_getBoneParent(_id.ID, (uint)boneIndex);
-
-            if (v == ~0u)
-                return -1;
-
-            return (int)v;
-        }
+        public Bone GetBone(int idx) => new Bone((uint)idx, _id.ID);
+        public Bone GetBone(string name) => GetBone((int)meshmanager_getBoneId(_id.ID, name));
 
         private AssetID _id;
 
