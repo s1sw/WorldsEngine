@@ -100,7 +100,7 @@ namespace worlds {
             extraDat.wireframe = wireframeIt != j.end();
 
             if (j.contains("fragmentShader")) {
-                extraDat.overrideShader = AssetDB::pathToId(j["fragmentShader"]);
+                extraDat.overrideShader = AssetDB::pathToId(j["fragmentShader"].get<std::string>());
             } else {
                 extraDat.overrideShader = INVALID_ASSET;
             }

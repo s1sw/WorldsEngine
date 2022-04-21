@@ -18,37 +18,37 @@ public class PlayerSkeletonMatch : Component, IStartListener, IUpdateableCompone
         _initialT = swo.GetBoneTransform(root);
 
         var mesh = MeshManager.GetMesh(swo.Mesh);
-        var lh = MeshManager.GetBoneIndex(swo.Mesh, "hand_L");
-        var rh = MeshManager.GetBoneIndex(swo.Mesh, "hand_R");
+        var lh = mesh.GetBone("hand_L");
+        var rh = mesh.GetBone("hand_R");
 
-        int parentIdx = mesh.BoneParentIndex((int)lh);
+        int parentIdx = lh.Parent;
 
         while (parentIdx != -1)
         {
             _lhToWorld = _lhToWorld.TransformBy(swo.GetBoneTransform((uint)parentIdx));
-            parentIdx = mesh.BoneParentIndex(parentIdx);
+            parentIdx = mesh.GetBone(parentIdx).Parent;
         }
 
-        parentIdx = mesh.BoneParentIndex((int)rh);
+        parentIdx = rh.Parent;
 
         while (parentIdx != -1)
         {
             _rhToWorld = _rhToWorld.TransformBy(swo.GetBoneTransform((uint)parentIdx));
-            parentIdx = mesh.BoneParentIndex(parentIdx);
+            parentIdx = mesh.GetBone(parentIdx).Parent;
         }
     }
     public void Update()
     {
         var swo = Entity.GetComponent<SkinnedWorldObject>();
         var root = MeshManager.GetBoneIndex(swo.Mesh, "root");
-        var rootTransform = new Transform(Vector3.Down * 0.9f, _initialT.Rotation);
+        var rootTransform = new Transform(Vector3.Down * 0.9f + Vector3.Backward * 0.25f, _initialT.Rotation);
         swo.SetBoneTransform(MeshManager.GetBoneIndex(swo.Mesh, "root"), rootTransform);
         var lh = MeshManager.GetBoneIndex(swo.Mesh, "hand_L");
         var rh = MeshManager.GetBoneIndex(swo.Mesh, "hand_R");
         
         {
             var wsTarget = LocalPlayerSystem.LeftHand.Transform;
-            wsTarget.Position += Vector3.Up * 0.9f;
+            wsTarget.Position += Entity.Transform.TransformDirection(Vector3.Up * 0.9f + Vector3.Forward * 0.25f);
             wsTarget.Rotation *= new Quaternion(new Vector3(MathF.PI * 0.25f, 0f, MathF.PI * 0.25f));
             swo.SetBoneTransform(lh, wsTarget.TransformByInverse(Entity.Transform).TransformByInverse(_lhToWorld));
         }

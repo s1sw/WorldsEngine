@@ -928,8 +928,12 @@ namespace worlds {
                 converter.convertGltfModel(compileOp, outFile, result.value, fileLen, settings);
             } else if (p.fileExtension() == ".blend") {
                 // If it's a Blender file, we first have to convert to .glb in a temporary directory
-                slib::String commandString = "\"C:/Program Files (x86)/Steam/steamapps/common/Blender/blender.exe\"";
-                commandString = commandString + " " + slib::String(fullSourcePath.string().c_str()) + " --background --python blender_glbexport.py -- blender_model_import.glb";
+                #ifdef _WIN32
+                slib::String blenderExe = "\"C:/Program Files (x86)/Steam/steamapps/common/Blender/blender.exe\"";
+                #else
+                slib::String blenderExe = "blender";
+                #endif
+                slib::String commandString = blenderExe + " " + slib::String(fullSourcePath.string().c_str()) + " --background --python blender_glbexport.py -- blender_model_import.glb";
                 slib::Subprocess sb{commandString};
                 sb.waitForFinish();
 

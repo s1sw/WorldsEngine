@@ -17,19 +17,14 @@ namespace worlds {
 
         lm.numSubmeshes = lmd.numSubmeshes;
         lm.skinned = lmd.isSkinned;
-        lm.boneNames.resize(lmd.meshBones.size());
-        lm.boneRestPositions.resize(lmd.meshBones.size());
-        lm.relativeBoneTransforms.resize(lmd.meshBones.size());
-        lm.boneParents.resize(lmd.meshBones.size());
+        lm.bones.resize(lmd.meshBones.size());
 
-        for (size_t i = 0; i < lm.boneNames.size(); i++) {
-            lm.boneNames[i] = lmd.meshBones[i].name;
-            lm.boneRestPositions[i] = lmd.meshBones[i].transform;
-            glm::vec3 p;
-            glm::quat r;
-            decomposePosRot(lm.boneRestPositions[i], p, r);
-            lm.relativeBoneTransforms[i] = lmd.meshBones[i].transform;
-            lm.boneParents[i] = lmd.meshBones[i].parentIdx;
+        for (size_t i = 0; i < lmd.meshBones.size(); i++) {
+            Bone& b = lm.bones[i];
+            b.id = i;
+            b.name = lmd.meshBones[i].name.c_str();
+            b.parentId = lmd.meshBones[i].parentIdx;
+            b.restPose = lmd.meshBones[i].transform;
         }
 
         for (int i = 0; i < lmd.numSubmeshes; i++) {

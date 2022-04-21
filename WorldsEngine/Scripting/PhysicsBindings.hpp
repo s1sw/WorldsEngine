@@ -147,7 +147,7 @@ extern "C" {
     }
 
     EXPORT entt::entity ContactModifyPair_getEntity(physx::PxContactModifyPair* pair, int idx) {
-        return (entt::entity)(uint32_t)(pair->actor[idx]->userData);
+        return (entt::entity)(uint32_t)(uintptr_t)(pair->actor[idx]->userData);
     }
 
     EXPORT void ContactModifyPair_getTransform(physx::PxContactModifyPair* pair, int idx, Transform* t) {

@@ -2,8 +2,16 @@
 #include "Render/Render.hpp"
 #include <vector>
 #include <robin_hood.h>
+#include <slib/String.hpp>
 
 namespace worlds {
+    struct Bone {
+        glm::mat4 restPose;
+        uint32_t id;
+        uint32_t parentId;
+        slib::String name;
+    };
+
     struct LoadedMesh {
         std::vector<Vertex> vertices;
         std::vector<uint32_t> indices;
@@ -12,10 +20,7 @@ namespace worlds {
         SubmeshInfo submeshes[NUM_SUBMESH_MATS];
 
         bool skinned;
-        std::vector<std::string> boneNames;
-        std::vector<glm::mat4> boneRestPositions;
-        std::vector<glm::mat4> relativeBoneTransforms;
-        std::vector<uint32_t> boneParents;
+        std::vector<Bone> bones;
         float sphereBoundRadius;
         glm::vec3 aabbMin;
         glm::vec3 aabbMax;

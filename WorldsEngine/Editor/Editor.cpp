@@ -39,8 +39,10 @@
 #include <Editor/EditorActions.hpp>
 #include <Editor/Widgets/LogoWidget.hpp>
 #include <Editor/ProjectAssetCompiler.hpp>
-#include <dwmapi.h>
+#ifdef _WIN32
 #include <SDL_syswm.h>
+#include <dwmapi.h>
+#endif
 
 namespace worlds {
     std::unordered_map<ENTT_ID_TYPE, ComponentEditor*> ComponentMetadataManager::metadata;
@@ -381,12 +383,14 @@ namespace worlds {
         EditorActions::bindAction("editor.openActionSearch", ActionKeybind{SDL_SCANCODE_SPACE, ModifierFlags::Control});
         EditorActions::bindAction("editor.openAssetSearch", ActionKeybind{SDL_SCANCODE_SPACE, ModifierFlags::Control | ModifierFlags::Shift});
 
+        #ifdef _WIN32
         SDL_SysWMinfo wmInfo;
         SDL_VERSION(&wmInfo.version);
         SDL_GetWindowWMInfo(window, &wmInfo);
         HWND hwnd = wmInfo.info.win.window;
         MARGINS m { 0, 0, -5, 0 };
         DwmExtendFrameIntoClientArea(hwnd, &m);
+        #endif
     }
 
     Editor::~Editor() {
