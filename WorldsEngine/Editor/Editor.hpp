@@ -178,6 +178,7 @@ namespace worlds {
         void setViewportActive(bool active);
         Camera& getCamera();
         bool open = true;
+        bool isSeparateWindow = false;
         ~EditorSceneView();
     private:
         void updateCamera(float deltaTime);

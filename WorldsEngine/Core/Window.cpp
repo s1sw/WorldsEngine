@@ -4,6 +4,9 @@
 #include <ImGui/imgui.h>
 #include <ImGui/imgui_impl_sdl.h>
 #include <SDL_hints.h>
+#include <SDL_syswm.h>
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
 
 namespace worlds {
     Window::Window(const char* title, int w, int h, bool startHidden)
@@ -80,6 +83,17 @@ namespace worlds {
 
     void Window::maximise() {
         SDL_MaximizeWindow(window);
+
+#ifdef _WIN32
+        int w, h;
+        SDL_GetWindowSize(window, &w, &h);
+        SDL_SysWMinfo wminfo;
+        SDL_VERSION(&wminfo.version);
+        SDL_GetWindowWMInfo(window, &wminfo);
+        HWND hwnd = wminfo.info.win.window;
+        HRGN rgn = CreateRectRgn(8, 8, w - 8, h - 8);
+        SetWindowRgn(hwnd, rgn, true);
+#endif
     }
 
     void Window::minimise() {
@@ -88,6 +102,15 @@ namespace worlds {
 
     void Window::restore() {
         SDL_RestoreWindow(window);
+#ifdef _WIN32
+        int w, h;
+        SDL_GetWindowSize(window, &w, &h);
+        SDL_SysWMinfo wminfo;
+        SDL_VERSION(&wminfo.version);
+        SDL_GetWindowWMInfo(window, &wminfo);
+        HWND hwnd = wminfo.info.win.window;
+        SetWindowRgn(hwnd, nullptr, true);
+#endif
     }
 
     void Window::resize(int width, int height) {
@@ -124,6 +147,10 @@ namespace worlds {
 
     void Window::getSize(int* width, int* height) {
         SDL_GetWindowSize(window, width, height);
+        if (isMaximised()) {
+            //width -= 8;
+            //height -= 8;
+        }
     }
 
     SDL_Window* Window::getWrappedHandle() {

@@ -766,6 +766,16 @@ namespace worlds {
                 menubar.draw();
                 ImGui::EndMainMenuBar();
             }
+
+            int sceneViewIndex = 0;
+            for (EditorSceneView* esv : sceneViews) {
+                if (esv->isSeparateWindow) {
+                    esv->setViewportActive(true);
+                    esv->drawWindow(sceneViewIndex++);
+                } else {
+                    sceneViewIndex++;
+                }
+            }
             return;
         }
 
@@ -786,14 +796,15 @@ namespace worlds {
             return false;
         }), assetEditors.end());
 
-        if (!interfaces.engine->getMainWindow().isFocused()) {
-            for (EditorSceneView* esv : sceneViews) {
-                esv->setViewportActive(false);
-            }
-        } else {
-            for (EditorSceneView* esv : sceneViews) {
-                esv->setViewportActive(true);
-            }
+        bool anyFocused = false;
+
+        for (ImGuiViewport* v : ImGui::GetPlatformIO().Viewports) {
+            bool focus = ImGui::GetPlatformIO().Platform_GetWindowFocus(v);
+            if (focus) anyFocused = true;
+        }
+
+        for (EditorSceneView* esv : sceneViews) {
+            esv->setViewportActive(anyFocused);
         }
 
         AudioSystem::getInstance()->stopEverything(reg);

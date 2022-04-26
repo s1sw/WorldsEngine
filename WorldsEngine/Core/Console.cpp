@@ -675,7 +675,7 @@ namespace worlds {
         int g = (int)(col.Value.y * 255);
         int b = (int)(col.Value.z * 255);
 
-        if (logToStdout.getInt()) {
+        if (1) {
             if (enableVT100) {
                 const char* clearLineCode = "\033[2K";
 

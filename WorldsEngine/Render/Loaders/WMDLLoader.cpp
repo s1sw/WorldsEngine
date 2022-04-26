@@ -2,7 +2,7 @@
 #include <WMDL.hpp>
 
 namespace worlds {
-    void loadWorldsModel(AssetID wmdlId, std::vector<Vertex>& vertices, std::vector<uint32_t>& indices, std::vector<VertSkinningInfo>& skinningInfos, LoadedMeshData& lmd) {
+    void loadWorldsModel(AssetID wmdlId, std::vector<Vertex>& vertices, std::vector<uint32_t>& indices, std::vector<uint16_t>& indices16, std::vector<VertSkinningInfo>& skinningInfos, LoadedMeshData& lmd) {
         PHYSFS_File* f = AssetDB::openAssetFileRead(wmdlId);
         size_t fileSize = PHYSFS_fileLength(f);
 
@@ -18,7 +18,7 @@ namespace worlds {
             return;
         }
 
-        logVrb("loading wmdl: %i submeshes", wHdr->numSubmeshes);
+        logVrb("loading wmdl: %i submeshes, small indices: %i", wHdr->numSubmeshes, wHdr->useSmallIndices);
 
         lmd.isSkinned = wHdr->isSkinned();
         if (wHdr->isSkinned()) {
@@ -50,7 +50,10 @@ namespace worlds {
                 lmd.submeshes[i].materialIndex = 0;
         }
 
-        indices.resize(wHdr->numIndices);
+        if (wHdr->useSmallIndices)
+            indices16.resize(wHdr->numIndices);
+        else
+            indices.resize(wHdr->numIndices);
 
         if (wHdr->version == 1) {
             vertices.reserve(wHdr->numVertices);
@@ -77,7 +80,13 @@ namespace worlds {
             memcpy(skinningInfos.data(), wHdr->getVertexSkinningInfo(), wHdr->numVertices * sizeof(wmdl::VertexSkinningInfo));
         }
 
-        memcpy(indices.data(), wHdr->getIndexBlock(), wHdr->numIndices * sizeof(uint32_t));
+        if (wHdr->useSmallIndices) {
+            lmd.indexType = VK_INDEX_TYPE_UINT16;
+            memcpy(indices16.data(), wHdr->getIndexBlock(), wHdr->numIndices * sizeof(uint16_t));
+        } else {
+            lmd.indexType = VK_INDEX_TYPE_UINT32;
+            memcpy(indices.data(), wHdr->getIndexBlock(), wHdr->numIndices * sizeof(uint32_t));
+        }
         free(buf);
     }
 }

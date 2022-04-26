@@ -31,6 +31,11 @@ extern "C" {
         transform->fromMatrix(m.bones[boneId].restPose);
     }
 
+    EXPORT const Bone* meshmanager_getBonePointer(AssetID id, uint32_t boneIdx) {
+        const auto& m = MeshManager::loadOrGet(id);
+        return &m.bones[boneIdx];
+    }
+
     EXPORT uint32_t meshmanager_getBoneCount(AssetID id) {
         const auto& m = MeshManager::loadOrGet(id);
         return m.bones.size();

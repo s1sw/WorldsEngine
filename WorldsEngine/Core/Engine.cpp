@@ -219,12 +219,12 @@ namespace worlds {
     extern void loadDefaultUITheme();
     extern ImFont* boldFont;
 
-    void setupUIFonts() {
+    void setupUIFonts(float dpiScale) {
         if (PHYSFS_exists("Fonts/EditorFont.ttf"))
             ImGui::GetIO().Fonts->Clear();
 
-        boldFont = addImGuiFont("Fonts/EditorFont-Bold.ttf", 20.0f);
-        ImGui::GetIO().FontDefault = addImGuiFont("Fonts/EditorFont.ttf", 20.0f);
+        boldFont = addImGuiFont("Fonts/EditorFont-Bold.ttf", 20.0f * dpiScale);
+        ImGui::GetIO().FontDefault = addImGuiFont("Fonts/EditorFont.ttf", 20.0f * dpiScale);
 
         static const ImWchar iconRanges[] = { ICON_MIN_FA, ICON_MAX_FA, 0 };
         ImFontConfig iconConfig{};
@@ -232,8 +232,8 @@ namespace worlds {
         iconConfig.PixelSnapH = true;
         iconConfig.OversampleH = 1;
 
-        addImGuiFont("Fonts/" FONT_ICON_FILE_NAME_FAR, 17.0f, &iconConfig, iconRanges);
-        addImGuiFont("Fonts/" FONT_ICON_FILE_NAME_FAS, 17.0f, &iconConfig, iconRanges);
+        addImGuiFont("Fonts/" FONT_ICON_FILE_NAME_FAR, 17.0f * dpiScale, &iconConfig, iconRanges);
+        addImGuiFont("Fonts/" FONT_ICON_FILE_NAME_FAS, 17.0f * dpiScale, &iconConfig, iconRanges);
 
         ImFontConfig iconConfig2{};
         iconConfig2.MergeMode = true;
@@ -244,7 +244,7 @@ namespace worlds {
 
         static const ImWchar iconRangesFAD[] = { ICON_MIN_FAD, ICON_MAX_FAD, 0 };
 
-        addImGuiFont("Fonts/" FONT_ICON_FILE_NAME_FAD, 22.0f, &iconConfig2, iconRangesFAD);
+        addImGuiFont("Fonts/" FONT_ICON_FILE_NAME_FAD, 22.0f * dpiScale, &iconConfig2, iconRangesFAD);
 
 #ifdef _WIN32
         ImFontConfig emojiFontConfig{};
@@ -253,7 +253,7 @@ namespace worlds {
         emojiFontConfig.FontBuilderFlags |= ImGuiFreeTypeBuilderFlags_LoadColor;
         static ImWchar ranges[] = { 0x1, 0x1FFFF, 0 };
 
-        ImGui::GetIO().Fonts->AddFontFromFileTTF("C:\\Windows\\Fonts\\seguiemj.ttf", 17.0f, &emojiFontConfig, ranges);
+        ImGui::GetIO().Fonts->AddFontFromFileTTF("C:\\Windows\\Fonts\\seguiemj.ttf", 17.0f * dpiScale, &emojiFontConfig, ranges);
 #endif
     }
 
@@ -308,12 +308,14 @@ namespace worlds {
 
     int WorldsEngine::eventFilter(void* enginePtr, SDL_Event* evt) {
         WorldsEngine* _this = (WorldsEngine*)enginePtr;
-        if (evt->type == SDL_WINDOWEVENT && evt->window.event == SDL_WINDOWEVENT_RESIZED) {
-            Renderer* renderer = _this->renderer.get();
-            _this->windowWidth = evt->window.data1;
-            _this->windowHeight = evt->window.data2;
+        if (evt->type == SDL_WINDOWEVENT && SDL_GetWindowFromID(evt->window.windowID) == _this->window->getWrappedHandle() && (evt->window.event == SDL_WINDOWEVENT_RESIZED || evt->window.event == SDL_WINDOWEVENT_MOVED)) {
+            if (evt->window.event == SDL_WINDOWEVENT_RESIZED) {
+                Renderer* renderer = _this->renderer.get();
+                _this->windowWidth = evt->window.data1;
+                _this->windowHeight = evt->window.data2;
 
-            renderer->recreateSwapchain(evt->window.data1, evt->window.data2);
+                renderer->recreateSwapchain(evt->window.data1, evt->window.data2);
+            }
 
             {
                 std::unique_lock<std::mutex> lg(rendererLock);
@@ -419,13 +421,22 @@ namespace worlds {
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();
         ImGuiIO& io = ImGui::GetIO();
-        io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+        io.ConfigFlags |= ImGuiConfigFlags_DockingEnable | ImGuiConfigFlags_ViewportsEnable;
         io.IniFilename = runAsEditor ? "imgui_editor.ini" : "imgui.ini";
         io.Fonts->TexDesiredWidth = 512;
 
         if (!dedicatedServer) {
             ImGui_ImplSDL2_InitForVulkan(window->getWrappedHandle());
-            setupUIFonts();
+
+            float dpiScale = 1.0f;
+            int dI = SDL_GetWindowDisplayIndex(window->getWrappedHandle());
+            float ddpi, hdpi, vdpi;
+            if (SDL_GetDisplayDPI(dI, &ddpi, &hdpi, &vdpi) != -1) {
+                dpiScale = ddpi / 96.0f;
+            }
+
+            setupUIFonts(dpiScale);
+
             loadDefaultUITheme();
         }
 
@@ -768,10 +779,17 @@ namespace worlds {
         inFrame = true;
 
         ImVec2 newFrameDisplaySize(windowWidth, windowHeight);
-        ImGui::GetIO().DisplaySize = newFrameDisplaySize;
+        if (window->isMaximised()) {
+            newFrameDisplaySize.x -= 16;
+            newFrameDisplaySize.y -= 16;
+        }
+
+        //ImGui::GetIO().DisplaySize = newFrameDisplaySize;
+        ImGui::GetMainViewport()->Size = newFrameDisplaySize;
 
         ImGui::NewFrame();
         ImGui::GetMainViewport()->Size = newFrameDisplaySize;
+
         inputManager->update();
 
         if (openvrInterface)
@@ -1060,6 +1078,13 @@ namespace worlds {
                 ImDrawList* original = renderThreadDrawData.CmdLists[i];
                 renderThreadDrawData.CmdLists[i] = original->CloneOutput();
             }
+
+            if (window->isMaximised()) {
+                renderThreadDrawData.DisplayPos += ImVec2(-9, -9);
+            }
+
+            ImGui::UpdatePlatformWindows();
+            ImGui::RenderPlatformWindowsDefault();
         }
 
         renderThreadCamera = cam;

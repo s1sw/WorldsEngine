@@ -48,6 +48,7 @@ namespace worlds {
         uint32_t matrixIdx;
         VkBuffer vb;
         VkBuffer ib;
+        VkIndexType indexType;
         uint32_t indexCount;
         uint32_t indexOffset;
         uint32_t cubemapIdx;

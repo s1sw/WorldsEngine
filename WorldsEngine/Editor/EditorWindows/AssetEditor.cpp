@@ -22,6 +22,10 @@ namespace worlds {
         ImGui::SetNextWindowPos(glm::vec2(ImGui::GetMainViewport()->GetCenter()) - glm::vec2(640.0f, 480.0f) * 0.5f, ImGuiCond_Once);
         ImGui::SetNextWindowSize(ImVec2(640, 480), ImGuiCond_Once);
         if (ImGui::Begin(path.c_str(), &active)) {
+            if (ImGui::IsWindowFocused() && ImGui::GetIO().KeysDownDuration[SDL_SCANCODE_ESCAPE] == 0.0f) {
+                active = false;
+            }
+
             if (assetId == INVALID_ASSET) {
                 ImGui::Text("Invalid asset!");
             } else {
