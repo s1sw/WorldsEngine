@@ -20,38 +20,42 @@ namespace worlds {
 
     void LightCullPass::resizeInternalBuffers(RenderContext& ctx) {
         vku::DescriptorSetUpdater dsu;
-        dsu.beginDescriptorSet(descriptorSet);
+        for (VkDescriptorSet ds : descriptorSet) {
+            dsu.beginDescriptorSet(ds);
 
-        dsu.beginImages(3, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-        dsu.image(sampler, depthResource->image().imageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+            dsu.beginImages(3, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+            dsu.image(sampler, depthResource->image().imageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
-        dsu.update(handles->device);
+            dsu.update(handles->device);
+        }
     }
 
     void LightCullPass::changeLightTileBuffers(RenderContext& ctx, VkBuffer lightTilesBuffer, VkBuffer lightTileLightCountBuffer) {
         vku::DescriptorSetUpdater dsu;
-        dsu.beginDescriptorSet(descriptorSet);
+        for (VkDescriptorSet ds : descriptorSet) {
+            dsu.beginDescriptorSet(ds);
 
-        int tileSize = LightUB::LIGHT_TILE_SIZE;
-        const int xTiles = (ctx.passWidth + (tileSize - 1)) / tileSize;
-        const int yTiles = (ctx.passHeight + (tileSize - 1)) / tileSize;
-        int numLightTiles = xTiles * yTiles;
+            const int tileSize = LightUB::LIGHT_TILE_SIZE;
+            const int xTiles = (ctx.passWidth + (tileSize - 1)) / tileSize;
+            const int yTiles = (ctx.passHeight + (tileSize - 1)) / tileSize;
+            int numLightTiles = xTiles * yTiles;
 
-        if (ctx.passSettings.enableVr)
-            numLightTiles *= 2;
+            if (ctx.passSettings.enableVr)
+                numLightTiles *= 2;
 
-        dsu.beginBuffers(4, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-        dsu.buffer(lightTileLightCountBuffer, 0, sizeof(uint32_t) * numLightTiles);
+            dsu.beginBuffers(4, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+            dsu.buffer(lightTileLightCountBuffer, 0, sizeof(uint32_t) * numLightTiles);
 
-        dsu.beginBuffers(5, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-        dsu.buffer(lightTilesBuffer, 0, sizeof(LightingTile) * numLightTiles);
+            dsu.beginBuffers(5, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+            dsu.buffer(lightTilesBuffer, 0, sizeof(LightingTile) * numLightTiles);
 
-        dsu.update(handles->device);
+            dsu.update(handles->device);
+        }
     }
 
     void LightCullPass::setup(
             RenderContext& ctx,
-            VkBuffer lightBuffer, VkBuffer lightTileInfoBuffer,
+            std::vector<vku::GenericBuffer>& lightBuffers, VkBuffer lightTileInfoBuffer,
             VkBuffer lightTilesBuffer, VkBuffer lightTileLightCountBuffer,
             VkDescriptorPool descriptorPool) {
 
@@ -70,9 +74,6 @@ namespace worlds {
         ShaderReflector reflector{shaderID};
         dsl = reflector.createDescriptorSetLayout(handles->device, 0);
 
-        vku::DescriptorSetMaker dsm;
-        dsm.layout(dsl);
-        descriptorSet = dsm.create(handles->device, descriptorPool)[0];
 
         vku::PipelineLayoutMaker plm;
         plm.descriptorSetLayout(dsl);
@@ -88,26 +89,35 @@ namespace worlds {
         pm.shader(VK_SHADER_STAGE_COMPUTE_BIT, shader);
         pipeline = pm.create(handles->device, handles->pipelineCache, pipelineLayout);
 
+        vku::DescriptorSetMaker dsm;
+        dsm.layout(dsl);
+        dsm.layout(dsl);
+        descriptorSet = dsm.create(handles->device, descriptorPool);
+
         vku::DescriptorSetUpdater dsu;
-        dsu.beginDescriptorSet(descriptorSet);
+        int idx = 0;
+        for (VkDescriptorSet ds : descriptorSet) {
+            dsu.beginDescriptorSet(ds);
 
-        dsu.beginBuffers(0, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-        dsu.buffer(lightTileInfoBuffer, 0, sizeof(LightTileInfoBuffer));
+            dsu.beginBuffers(0, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+            dsu.buffer(lightTileInfoBuffer, 0, sizeof(LightTileInfoBuffer));
 
-        dsu.beginBuffers(1, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-        dsu.buffer(lightBuffer, 0, sizeof(LightUB));
+            dsu.beginBuffers(1, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+            dsu.buffer(lightBuffers[idx].buffer(), 0, sizeof(LightUB));
 
-        dsu.beginBuffers(2, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-        dsu.buffer(ctx.resources.vpMatrixBuffer->buffer(), 0, sizeof(MultiVP));
+            dsu.beginBuffers(2, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+            dsu.buffer(ctx.resources.vpMatrixBuffer->buffer(), 0, sizeof(MultiVP));
 
-        dsu.beginImages(3, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-        dsu.image(sampler, depthResource->image().imageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+            dsu.beginImages(3, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+            dsu.image(sampler, depthResource->image().imageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
-        dsu.beginBuffers(4, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-        dsu.buffer(lightTileLightCountBuffer, 0, sizeof(uint32_t) * numLightTiles);
+            dsu.beginBuffers(4, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+            dsu.buffer(lightTileLightCountBuffer, 0, sizeof(uint32_t) * numLightTiles);
 
-        dsu.beginBuffers(5, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-        dsu.buffer(lightTilesBuffer, 0, sizeof(LightingTile) * numLightTiles);
+            dsu.beginBuffers(5, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+            dsu.buffer(lightTilesBuffer, 0, sizeof(LightingTile) * numLightTiles);
+            idx++;
+        }
 
         dsu.update(handles->device);
     }
@@ -126,7 +136,7 @@ namespace worlds {
             VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
             VK_ACCESS_SHADER_READ_BIT, VK_IMAGE_ASPECT_DEPTH_BIT);
 
-        vkCmdBindDescriptorSets(cmdBuf, VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
+        vkCmdBindDescriptorSets(cmdBuf, VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, 0, 1, &descriptorSet[ctx.frameIndex], 0, nullptr);
         vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline);
 
         LightCullPushConstants lcpc{
