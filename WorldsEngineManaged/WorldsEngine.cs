@@ -111,25 +111,27 @@ namespace WorldsEngine
 
             simulateSyncContext.ClearCallbacks();
             updateSyncContext.ClearCallbacks();
+
+            SceneRunning = true;
+            Editor.Editor.Notify("Scene started");
+
             Registry.OverrideTransformToDPAPose = true;
 
-            try
+            foreach (var system in HotloadManager.Systems)
             {
-                foreach (var system in HotloadManager.Systems)
+                try
                 {
                     system.OnSceneStart();
                 }
+                catch (Exception e)
+                {
+                    Log.Error($"Error starting system {system.GetType().FullName}: {e}");
+                }
+            }
 
-                Registry.OnSceneStart();
-            }
-            catch (Exception e)
-            {
-                Logger.LogError($"Caught exception: {e}");
-            }
+            Registry.OnSceneStart();
 
             Registry.OverrideTransformToDPAPose = false;
-            SceneRunning = true;
-            Editor.Editor.Notify("Scene started");
         }
 
         [UsedImplicitly]
