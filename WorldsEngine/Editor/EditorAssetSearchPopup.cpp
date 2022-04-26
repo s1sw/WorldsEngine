@@ -1,4 +1,5 @@
 #include "EditorAssetSearchPopup.hpp"
+#include "SearchPopup.inl"
 #include "Editor/GuiUtil.hpp"
 #include <Editor/Editor.hpp>
 #include <ImGui/imgui.h>

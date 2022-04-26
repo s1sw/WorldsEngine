@@ -1,4 +1,5 @@
 #include "EditorActionSearchPopup.hpp"
+#include "SearchPopup.inl"
 #include <Editor/EditorActions.hpp>
 #include <Editor/Editor.hpp>
 #include <ImGui/imgui.h>
