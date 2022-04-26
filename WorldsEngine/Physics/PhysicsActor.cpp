@@ -66,4 +66,12 @@ namespace worlds {
     void DynamicPhysicsActor::setMaxLinearVelocity(float vel) {
         actor->setMaxLinearVelocity(vel);
     }
+
+    void DynamicPhysicsActor::setEnabled(bool enabled) {
+        actor->setActorFlag(physx::PxActorFlag::eDISABLE_SIMULATION, !enabled);
+    }
+
+    bool DynamicPhysicsActor::enabled() const {
+        return (actor->getActorFlags() & physx::PxActorFlag::eDISABLE_SIMULATION) == (physx::PxActorFlag::Enum)0;
+    }
 }

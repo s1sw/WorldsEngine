@@ -986,6 +986,12 @@ namespace worlds {
 
                     ImGui::DragScalar("Layer", ImGuiDataType_U32, &pa.layer);
                     ImGui::DragFloat("Mass", &pa.mass);
+                    bool enabled = pa.enabled();
+
+                    if (ImGui::Checkbox("Enabled", &enabled)) {
+                        pa.setEnabled(enabled);
+                    }
+
                     ImGui::Checkbox("Enable Gravity", &pa.enableGravity);
                     ImGui::Checkbox("Enable CCD", &pa.enableCCD);
                     if (ImGui::Button("Update Collisions##DPA")) {
@@ -1042,6 +1048,7 @@ namespace worlds {
             j["lockFlags"] = (uint32_t)pa.lockFlags();
             j["layer"] = pa.layer;
             j["scaleShapes"] = pa.scaleShapes;
+            if (!pa.enabled()) j["enabled"] = false;
         }
 
         void fromJson(entt::entity ent, entt::registry& reg, EntityIDMap&, const json& j) override {
@@ -1099,6 +1106,9 @@ namespace worlds {
 
             if (j.contains("lockFlags"))
                 pa.setLockFlags((DPALockFlags)j["lockFlags"].get<uint32_t>());
+            
+            if (!j.value("enabled", true))
+                pa.setEnabled(false);
         }
     };
 

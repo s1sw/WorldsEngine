@@ -143,6 +143,9 @@ namespace worlds {
         DPALockFlags lockFlags() const;
         void setLockFlags(DPALockFlags flags);
 
+        void setEnabled(bool enabled);
+        bool enabled() const;
+
         Transform pose() const;
         void setPose(const Transform& t);
     };
