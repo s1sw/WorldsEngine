@@ -1095,22 +1095,49 @@ namespace worlds {
         renderThreadCV.notify_one();
     }
 
+    template<typename T, size_t sz>
+    struct CircularBuffer {
+        T values[sz];
+        size_t idx;
+
+        void add(T value) {
+            values[idx] = value;
+            idx++;
+            if (idx >= sz) idx = 0;
+        }
+
+        size_t size() const {
+            return sz;
+        }
+    };
     void WorldsEngine::drawDebugInfoWindow(DebugTimeInfo timeInfo) {
         if (showDebugInfo.getInt()) {
             bool open = true;
             if (ImGui::Begin("Info", &open)) {
-                static float historicalFrametimes[128] = { 0.0f };
-                static int historicalFrametimeIdx = 0;
+                static CircularBuffer<float, 128> historicalFrametimes;
+                static CircularBuffer<float, 128> historicalUpdateTimes;
+                static CircularBuffer<float, 128> historicalPhysicsTimes;
 
-                historicalFrametimes[historicalFrametimeIdx] = timeInfo.deltaTime * 1000.0;
-                historicalFrametimeIdx++;
-                if (historicalFrametimeIdx >= 128) {
-                    historicalFrametimeIdx = 0;
-                }
+                historicalFrametimes.add(timeInfo.deltaTime * 1000.0);
+                historicalUpdateTimes.add(timeInfo.updateTime * 1000.0);
+                historicalPhysicsTimes.add(timeInfo.simTime);
 
                 if (ImGui::CollapsingHeader(ICON_FA_CLOCK u8" Performance")) {
-                    ImGui::PlotLines("Historical Frametimes", historicalFrametimes, 128, historicalFrametimeIdx, nullptr,
-                        0.0f, FLT_MAX, ImVec2(0.0f, 125.0f));
+                    ImGui::PlotLines("Historical Frametimes", historicalFrametimes.values, historicalFrametimes.size(),
+                        historicalFrametimes.idx, nullptr,
+                        0.0f, FLT_MAX, ImVec2(0.0f, 125.0f)
+                    );
+
+                    ImGui::PlotLines("Historical UpdateTimes", historicalUpdateTimes.values, historicalUpdateTimes.size(),
+                        historicalUpdateTimes.idx, nullptr,
+                        0.0f, FLT_MAX, ImVec2(0.0f, 125.0f)
+                    );
+
+                    ImGui::PlotLines("Historical PhysicsTimes", historicalPhysicsTimes.values, historicalPhysicsTimes.size(),
+                        historicalPhysicsTimes.idx, nullptr,
+                        0.0f, FLT_MAX, ImVec2(0.0f, 125.0f)
+                    );
+
                     ImGui::Text("Frametime: %.3fms", timeInfo.deltaTime * 1000.0);
                     ImGui::Text("Update time: %.3fms", timeInfo.updateTime * 1000.0);
                     ImGui::Text("Physics time: %.3fms", timeInfo.simTime);
