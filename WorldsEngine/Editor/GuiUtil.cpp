@@ -602,11 +602,12 @@ namespace worlds {
     }
 
     void drawPopupNotifications() {
+        ImGuiViewport* vp = ImGui::GetMainViewport();
         ImDrawList* drawList = ImGui::GetForegroundDrawList();
 
         ImVec2 popupSize(300, 45);
 
-        ImVec2 popupCorner = ImVec2(windowSize) - popupSize - ImVec2(15, 15);
+        ImVec2 popupCorner = vp->Pos + (vp->Size) - popupSize - ImVec2(15, 15);
         ImGuiStyle& style = ImGui::GetStyle();
         const ImColor popupBg = style.Colors[ImGuiCol_WindowBg];
         const float popupDuration = 5.0f;
