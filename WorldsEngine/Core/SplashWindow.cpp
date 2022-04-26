@@ -1,6 +1,4 @@
 #include "SplashWindow.hpp"
-
-#include <functional>
 #include <thread>
 #include <stdlib.h>
 
@@ -9,13 +7,29 @@
 #include <Core/Log.hpp>
 
 namespace worlds {
+    template<typename T, typename V>
+    struct FakeBind {
+        FakeBind(T thing, V target) {
+            thingInstance = thingInstance;
+            bindTarget = target;
+        }
+
+        void operator()() {
+            (*bindTarget.*thingInstance)();
+        }
+
+        T thingInstance;
+        V bindTarget;
+    };
+
     SplashWindow::SplashWindow(bool small)
         : small { small }
         , overlaySurface { nullptr }
         , overlayTexture { nullptr }
         , overlay {}
         , loadedOverlay {} {
-        winThread = std::thread{std::bind(&SplashWindow::eventThread, this)};
+        //winThread = std::thread{std::bind(&SplashWindow::eventThread, this)};
+        winThread = std::thread{FakeBind(&SplashWindow::eventThread, this)};
 
         while (!windowCreated) {}
     }

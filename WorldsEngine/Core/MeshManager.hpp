@@ -6,9 +6,9 @@
 
 namespace worlds {
     struct Bone {
-        glm::mat4 restPose;
         uint32_t id;
         uint32_t parentId;
+        glm::mat4 restPose;
         slib::String name;
     };
 

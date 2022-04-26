@@ -420,10 +420,10 @@ bool isDeviceBetter(VkPhysicalDevice a, VkPhysicalDevice b) {
 
     if (bProps.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU &&
         aProps.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU) {
-        return true;
+        return false;
     } else if (aProps.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU &&
         bProps.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU) {
-        return false;
+        return true;
     }
 
     return aProps.deviceID < bProps.deviceID;
@@ -628,15 +628,15 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     VkPhysicalDeviceVulkan11Features vk11Features{};
     vk11Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES;
     vk11Features.multiview = true;
-    dm.setPNext(&vk11Features);
 
     VkPhysicalDeviceVulkan12Features vk12Features{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES};
     vk12Features.timelineSemaphore = true;
     vk12Features.descriptorBindingPartiallyBound = true;
     vk12Features.runtimeDescriptorArray = true;
     vk12Features.imagelessFramebuffer = true;
+    dm.setPNext(&vk12Features);
 
-    vk11Features.pNext = &vk12Features;
+    vk12Features.pNext = &vk11Features;
 
     device = dm.create(physicalDevice);
     logVrb("Device created");
@@ -1543,6 +1543,7 @@ void VKRenderer::preloadMesh(AssetID id) {
     ZoneScoped;
     std::vector<Vertex> vertices;
     std::vector<uint32_t> indices;
+    std::vector<uint16_t> indices16;
     std::vector<VertSkinningInfo> vertSkinInfos;
 
     auto ext = AssetDB::getAssetExtension(id);
@@ -1551,7 +1552,7 @@ void VKRenderer::preloadMesh(AssetID id) {
 
     if (!PHYSFS_exists(path.c_str())) {
         logErr(WELogCategoryRender, "Mesh %s was missing!", path.c_str());
-        loadWorldsModel(AssetDB::pathToId("Models/missing.wmdl"), vertices, indices, vertSkinInfos, lmd);
+        loadWorldsModel(AssetDB::pathToId("Models/missing.wmdl"), vertices, indices, indices16, vertSkinInfos, lmd);
     } else if (ext == ".obj") { // obj
         // Use C++ physfs ifstream for tinyobjloader
         PhysFS::ifstream meshFileStream(AssetDB::openAssetFileRead(id));
@@ -1559,6 +1560,7 @@ void VKRenderer::preloadMesh(AssetID id) {
         lmd.numSubmeshes = 1;
         lmd.submeshes[0].indexCount = indices.size();
         lmd.submeshes[0].indexOffset = 0;
+        lmd.indexType = VK_INDEX_TYPE_UINT32;
     } else if (ext == ".mdl") { // source model
         std::filesystem::path mdlPath = AssetDB::idToPath(id);
         std::string vtxPath = mdlPath.parent_path().string() + "/" + mdlPath.stem().string();
@@ -1569,17 +1571,28 @@ void VKRenderer::preloadMesh(AssetID id) {
         AssetID vtxId = AssetDB::pathToId(vtxPath);
         AssetID vvdId = AssetDB::pathToId(vvdPath);
         loadSourceModel(id, vtxId, vvdId, vertices, indices, lmd);
+        lmd.indexType = VK_INDEX_TYPE_UINT32;
     } else if (ext == ".wmdl") {
-        loadWorldsModel(id, vertices, indices, vertSkinInfos, lmd);
+        loadWorldsModel(id, vertices, indices, indices16, vertSkinInfos, lmd);
     } else if (ext == ".rblx") {
         loadRobloxMesh(id, vertices, indices, lmd);
+        lmd.indexType = VK_INDEX_TYPE_UINT32;
     }
 
-    lmd.indexType = VK_INDEX_TYPE_UINT32;
-    lmd.indexCount = (uint32_t)indices.size();
-    lmd.ib = vku::IndexBuffer{ device, allocator, indices.size() * sizeof(uint32_t), "Mesh Index Buffer" };
-    lmd.ib.upload(device, commandPool, queues.graphics, indices);
-    lmd.vb = vku::VertexBuffer{ device, allocator, vertices.size() * sizeof(Vertex), "Mesh Vertex Buffer" };
+    bool smallIndices = lmd.indexType == VK_INDEX_TYPE_UINT16;
+    size_t indexSize = smallIndices ? sizeof(uint16_t) : sizeof(uint32_t);
+
+    lmd.indexCount = (uint16_t)(smallIndices ? indices16.size() : indices.size());
+    std::string ibName = AssetDB::idToPath(id) + " index buffer";
+    std::string vbName = AssetDB::idToPath(id) + " vertex buffer";
+    lmd.ib = vku::IndexBuffer{ device, allocator, lmd.indexCount * indexSize, ibName.c_str() };
+
+    if (smallIndices)
+        lmd.ib.upload(device, commandPool, queues.graphics, indices16);
+    else
+        lmd.ib.upload(device, commandPool, queues.graphics, indices);
+
+    lmd.vb = vku::VertexBuffer{ device, allocator, vertices.size() * sizeof(Vertex), vbName.c_str() };
     lmd.vb.upload(device, commandPool, queues.graphics, vertices);
 
     if (lmd.isSkinned) {
@@ -1602,14 +1615,14 @@ void VKRenderer::preloadMesh(AssetID id) {
         si.aabbMin = glm::vec3(std::numeric_limits<float>::max());
 
         for (uint32_t j = si.indexOffset; j < si.indexOffset + si.indexCount; j++) {
-            uint32_t idx = indices[j];
+            uint32_t idx = smallIndices ? indices16[j] : indices[j];
             Vertex& vert = vertices[idx];
             si.aabbMax = glm::max(si.aabbMax, vert.position);
             si.aabbMin = glm::min(si.aabbMin, vert.position);
         }
     }
 
-    logVrb(WELogCategoryRender, "Loaded mesh %u, %u verts. Sphere radius %f", id, (uint32_t)vertices.size(), lmd.sphereRadius);
+    logVrb(WELogCategoryRender, "Loaded mesh %u, %u verts. Sphere radius %f, small indices: %i", id, (uint32_t)vertices.size(), lmd.sphereRadius, smallIndices);
 
     loadedMeshes.insert({ id, std::move(lmd) });
 }

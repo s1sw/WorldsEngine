@@ -19,5 +19,7 @@ namespace WorldsEngine.Math
             this.z = z;
             this.w = w;
         }
+
+        public Vector3 TruncateToVec3() => new Vector3(x, y, z);
     }
 }

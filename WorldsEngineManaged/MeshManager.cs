@@ -4,22 +4,42 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Runtime.InteropServices;
+using WorldsEngine.Math;
 
 namespace WorldsEngine
 {
+    [StructLayout(LayoutKind.Sequential, Pack = 8)]
+    internal struct NativeBone
+    {
+        public uint ID;
+        public uint ParentID;
+        public Mat4x4 RestPose;
+        public NativeInterop.SlibString Name;
+    }
+
     public struct Bone
     {
         [DllImport(WorldsEngine.NativeModule)]
-        private static extern uint meshmanager_getBoneParent(uint meshId, uint boneId);
+        private static extern IntPtr meshmanager_getBonePointer(uint meshId, uint boneId);
 
-        public uint ID { get; private set; }
-        public int Parent => (int)meshmanager_getBoneParent(_mesh, ID);
-        private uint _mesh;
+        public unsafe uint ID
+        {
+            get
+            {
+                NativeBone* nb = (NativeBone*)_nativePtr;
+                return nb->ID;
+            }
+        }
+
+        public unsafe int Parent => (int)((NativeBone*)_nativePtr)->ParentID;
+        public unsafe string Name => ((NativeBone*)_nativePtr)->Name.Convert();
+        public unsafe Transform RestPose => ((NativeBone*)_nativePtr)->RestPose.ToTransform;
+
+        private IntPtr _nativePtr;
 
         internal Bone(uint id, uint meshId)
         {
-            ID = id;
-            _mesh = meshId;
+            _nativePtr = meshmanager_getBonePointer(meshId, id);
         }
     }
 

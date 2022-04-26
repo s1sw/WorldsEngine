@@ -160,6 +160,7 @@ class PhysHand : Component, IThinkingComponent, IStartListener, IUpdateableCompo
         Vector3 torque = (pTorque - dTorque);
 
         torque = pose.Rotation.SingleCover.Inverse * torque;
+        Vector3 originalTorque = torque;
         if (!UseOverrideTensor)
         {
             Mat3x3 inertiaTensor = new(

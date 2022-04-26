@@ -570,6 +570,7 @@ namespace worlds {
                 sdi.vb = meshPos->second.vb.buffer();
                 sdi.indexCount = currSubmesh.indexCount;
                 sdi.indexOffset = currSubmesh.indexOffset;
+                sdi.indexType = meshPos->second.indexType;
                 if (wo.presentMaterials[currSubmesh.materialIndex])
                     sdi.materialIdx = ctx.resources.materials.get(wo.materials[currSubmesh.materialIndex]);
                 else
@@ -726,6 +727,7 @@ namespace worlds {
                 sdi.vb = meshPos->second.vb.buffer();
                 sdi.indexCount = currSubmesh.indexCount;
                 sdi.indexOffset = currSubmesh.indexOffset;
+                sdi.indexType = meshPos->second.indexType;
                 if (wo.presentMaterials[currSubmesh.materialIndex])
                     sdi.materialIdx = ctx.resources.materials.get(wo.materials[currSubmesh.materialIndex]);
                 else
@@ -1021,7 +1023,7 @@ namespace worlds {
         VkCommandBuffer cmdBuf = ctx.cmdBuf;
 
         lightsUB.barrier(
-            cmdBuf, VK_PIPELINE_STAGE_HOST_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+            cmdBuf, VK_PIPELINE_STAGE_HOST_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
             VK_DEPENDENCY_BY_REGION_BIT, VK_ACCESS_HOST_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,
             VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED);
 
@@ -1139,6 +1141,7 @@ namespace worlds {
 
         vkCmdBeginRenderPass(cmdBuf, &rpbi, VK_SUBPASS_CONTENTS_INLINE);
 
+        vkCmdBindDescriptorSets(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[ctx.frameIndex], 0, nullptr);
         mainPass->execute(ctx, drawInfo, pickThisFrame, pickX, pickY);
 
         dbgLinesPass->execute(ctx);

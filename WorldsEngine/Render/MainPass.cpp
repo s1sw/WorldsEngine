@@ -80,7 +80,7 @@ namespace worlds {
                 vkCmdBindVertexBuffers(cmdBuf, 1, 1, &sdi.boneVB, &offset);
             }
 
-            vkCmdBindIndexBuffer(cmdBuf, sdi.ib, 0, VK_INDEX_TYPE_UINT32);
+            vkCmdBindIndexBuffer(cmdBuf, sdi.ib, 0, sdi.indexType);
             vkCmdDrawIndexed(cmdBuf, sdi.indexCount, 1, sdi.indexOffset, 0, 0);
 
             lastPipeline = sdi.pipeline;

@@ -34,6 +34,7 @@ namespace worlds {
         ImGui::SetNextWindowSizeConstraints(ImVec2(256.0f, 256.0f), ImVec2(FLT_MAX, FLT_MAX));
         std::string windowTitle = std::string((char*)ICON_FA_MAP) + " Scene##" + std::to_string(uniqueId);
         if (ImGui::Begin(windowTitle.c_str(), &open)) {
+            isSeparateWindow = ImGui::GetWindowViewport() != ImGui::GetMainViewport();
             sceneViewPass->active = viewportActive;
             ImVec2 contentRegion = ImGui::GetContentRegionAvail();
 

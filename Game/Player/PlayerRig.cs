@@ -397,7 +397,7 @@ public class LocalPlayerSystem : ISystem
         var hpText = Registry.GetComponent<WorldText>(_hpTextEntity);
         var hc = PlayerBody.GetComponent<Combat.HealthComponent>();
         if (DebugGlobals.PlayerInvincible) hc.Health = hc.MaxHealth;
-        hpText.Size = 0.00f;
+        hpText.Size = 0.001f;
         hpText.Text = $"HP: {hc.Health}\nMetal: {PlayerResources.Metal}";
 
         var lhTransform = Registry.GetTransform(_leftHandEntity);

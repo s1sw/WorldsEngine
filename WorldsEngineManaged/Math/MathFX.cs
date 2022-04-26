@@ -33,6 +33,15 @@ namespace WorldsEngine.Math
             );
         }
 
+        public static Vector3 Max(Vector3 a, Vector3 b)
+        {
+            return new Vector3(
+                MathF.Max(a.x, b.x),
+                MathF.Max(a.y, b.y),
+                MathF.Max(a.z, b.z)
+            );
+        }
+
         public static float Lerp(float a, float b, float t) => a + (b - a) * t;
     }
 }

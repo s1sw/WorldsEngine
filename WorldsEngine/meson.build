@@ -22,7 +22,7 @@ cc = meson.get_compiler('cpp')
 
 extern_dir = meson.source_root() + '/External'
 
-lib_dir = extern_dir + '/Lib/' + host_machine.system() + '64dbg'
+lib_dir = extern_dir + '/Lib/' + host_machine.system() + '64rel'
 
 if get_option('buildtype').startswith('release')
   lib_dir = extern_dir + '/Lib/' + host_machine.system() + '64rel'
@@ -51,7 +51,7 @@ endif
 
 assimp_dep = dependency('assimp', required: false)
 
-system_lib_dir = host_machine.system() + '64dbg'
+system_lib_dir = host_machine.system() + '64rel'
 
 if get_option('buildtype').startswith('release')
   system_lib_dir = host_machine.system() + '64rel'

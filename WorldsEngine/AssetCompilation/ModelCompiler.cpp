@@ -471,7 +471,7 @@ namespace worlds {
             compileOp->progress = PROGRESS_PER_STEP * 3;
 
             wmdl::Header hdr;
-            hdr.useSmallIndices = false;
+            hdr.useSmallIndices = combinedVerts.size() >= UINT16_MAX;
             hdr.numSubmeshes = meshes.size();
             hdr.submeshOffset = sizeof(hdr) + sizeof(wmdl::SkinningInfoBlock) +
                 (sizeof(wmdl::VertexSkinningInfo) * combinedVertSkinningInfo.size()) + (sizeof(wmdl::Bone) * combinedBones.size());
@@ -509,7 +509,18 @@ namespace worlds {
             compileOp->progress = PROGRESS_PER_STEP * 4;
 
             PHYSFS_writeBytes(outFile, combinedVerts.data(), sizeof(wmdl::Vertex2) * combinedVerts.size());
-            PHYSFS_writeBytes(outFile, combinedIndices.data(), sizeof(uint32_t) * combinedIndices.size());
+            if (hdr.useSmallIndices) {
+                std::vector<uint16_t> smallIndices;
+                smallIndices.resize(combinedIndices.size());
+
+                for (size_t i = 0; i < combinedIndices.size(); i++) {
+                    smallIndices[i] = (uint16_t)combinedIndices[i];
+                }
+
+                PHYSFS_writeBytes(outFile, smallIndices.data(), sizeof(uint16_t) * smallIndices.size());
+            } else {
+                PHYSFS_writeBytes(outFile, combinedIndices.data(), sizeof(uint32_t) * combinedIndices.size());
+            }
 
             compileOp->progress = 1.0f;
             compileOp->complete = true;
@@ -839,7 +850,8 @@ namespace worlds {
                 size_t vertSkinInfoLength = skinInfo.size() * sizeof(wmdl::VertexSkinningInfo);
                 size_t boneLength = bones.size() * sizeof(wmdl::Bone);
                 wmdl::Header hdr{};
-                hdr.useSmallIndices = false;
+                hdr.useSmallIndices = verts.size() >= UINT16_MAX;
+
                 hdr.numSubmeshes = submeshes.size();
                 hdr.submeshOffset = sizeof(hdr) + sizeof(wmdl::SkinningInfoBlock) + vertSkinInfoLength + boneLength;
                 hdr.vertexOffset = hdr.submeshOffset + (sizeof(wmdl::SubmeshInfo) * submeshes.size());
@@ -859,7 +871,18 @@ namespace worlds {
                 PHYSFS_writeBytes(outFile, skinInfo.data(), vertSkinInfoLength);
                 PHYSFS_writeBytes(outFile, submeshes.data(), sizeof(wmdl::SubmeshInfo) * submeshes.size());
                 PHYSFS_writeBytes(outFile, verts.data(), sizeof(wmdl::Vertex2) * verts.size());
-                PHYSFS_writeBytes(outFile, indices.data(), sizeof(uint32_t) * indices.size());
+                if (!hdr.useSmallIndices) {
+                    PHYSFS_writeBytes(outFile, indices.data(), sizeof(uint32_t) * indices.size());
+                } else {
+                    std::vector<uint16_t> smallIndices;
+                    smallIndices.resize(indices.size());
+
+                    for (size_t i = 0; i < indices.size(); i++) {
+                        smallIndices[i] = (uint16_t)indices[i];
+                    }
+
+                    PHYSFS_writeBytes(outFile, smallIndices.data(), sizeof(uint16_t) * smallIndices.size());
+                }
 
                 compileOp->progress = 1.0f;
                 compileOp->complete = true;
@@ -938,18 +961,25 @@ namespace worlds {
                 sb.waitForFinish();
 
                 FILE* glbFile = fopen("blender_model_import.glb", "rb");
-                fseek(glbFile, 0, SEEK_END);
-                size_t size = ftell(glbFile);
-                fseek(glbFile, 0, SEEK_SET);
-                char* glbData = new char[size];
-                fread(glbData, 1, size, glbFile);
-                fclose(glbFile);
 
-                mc_internal::GltfModelConverter converter;
-                converter.convertGltfModel(compileOp, outFile, glbData, size, settings);
+                if (glbFile) {
+                    fseek(glbFile, 0, SEEK_END);
+                    size_t size = ftell(glbFile);
+                    fseek(glbFile, 0, SEEK_SET);
+                    char* glbData = new char[size];
+                    fread(glbData, 1, size, glbFile);
+                    fclose(glbFile);
+                    mc_internal::GltfModelConverter converter;
+                    converter.convertGltfModel(compileOp, outFile, glbData, size, settings);
 
-                delete[] glbData;
-                remove("blender_model_import.glb");
+                    delete[] glbData;
+                    remove("blender_model_import.glb");
+                } else {
+                    compileOp->progress = 1.0f;
+                    compileOp->complete = 1.0f;
+                    compileOp->result = CompilationResult::Error;
+                }
+
             } else {
                 mc_internal::convertAssimpModel(compileOp, outFile, result.value, fileLen, p.fileExtension().cStr(), settings);
             }

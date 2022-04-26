@@ -2,8 +2,8 @@ using System;
 using System.Runtime.InteropServices;
 namespace WorldsEngine.NativeInterop;
 
-[StructLayout(LayoutKind.Explicit)]
-struct SlibString
+[StructLayout(LayoutKind.Explicit, Size = 24)]
+public struct SlibString
 {
     [FieldOffset(0)]
     [MarshalAs(UnmanagedType.I1)]
@@ -18,19 +18,21 @@ struct SlibString
     [FieldOffset(8)]
     public byte SmallLength;
 
-    //[FieldOffset(9)]
-    //[MarshalAs(UnmanagedType.ByValArray, SizeConst = 14)]
-    //public byte[] SmallChars;
-
-    //public string Convert()
-    //{
-    //    if (SSO)
-    //    {
-    //        return System.Text.Encoding.UTF8.GetString(SmallChars.AsSpan(0, SmallLength));
-    //    }
-    //    else
-    //    {
-    //        return Marshal.PtrToStringUTF8(Data, (int)Length);
-    //    }
-    //}
+    public unsafe string Convert()
+    {
+        if (SSO)
+        {
+            string str;
+            fixed (byte* ptr = &SmallLength)
+            {
+                byte* stringStart = ptr + 1;
+                str = Marshal.PtrToStringUTF8((IntPtr)stringStart, SmallLength);
+            }
+            return str;
+        }
+        else
+        {
+            return Marshal.PtrToStringUTF8(Data, (int)Length);
+        }
+    }
 }

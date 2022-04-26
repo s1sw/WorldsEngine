@@ -20,12 +20,18 @@ public class PlayerSkeletonMatch : Component, IStartListener, IUpdateableCompone
         var mesh = MeshManager.GetMesh(swo.Mesh);
         var lh = mesh.GetBone("hand_L");
         var rh = mesh.GetBone("hand_R");
+        Log.Msg($"lh id: {lh.ID}");
+        Log.Msg($"lh name: {lh.Name}");
+        Log.Msg($"rh id: {rh.ID}");
+        Log.Msg($"rh name: {rh.Name}");
 
-        int parentIdx = lh.Parent;
+        int parentIdx = (int)lh.Parent;
+        Log.Msg($"{lh.RestPose.Rotation}  {swo.GetBoneTransform((uint)lh.ID).Rotation}");
 
         while (parentIdx != -1)
         {
-            _lhToWorld = _lhToWorld.TransformBy(swo.GetBoneTransform((uint)parentIdx));
+            Bone b = mesh.GetBone(parentIdx);
+            _lhToWorld = _lhToWorld.TransformBy(b.RestPose);
             parentIdx = mesh.GetBone(parentIdx).Parent;
         }
 
@@ -33,7 +39,8 @@ public class PlayerSkeletonMatch : Component, IStartListener, IUpdateableCompone
 
         while (parentIdx != -1)
         {
-            _rhToWorld = _rhToWorld.TransformBy(swo.GetBoneTransform((uint)parentIdx));
+            Bone b = mesh.GetBone(parentIdx);
+            _rhToWorld = _rhToWorld.TransformBy(b.RestPose);
             parentIdx = mesh.GetBone(parentIdx).Parent;
         }
     }
@@ -55,7 +62,7 @@ public class PlayerSkeletonMatch : Component, IStartListener, IUpdateableCompone
 
         {
             var wsTarget = LocalPlayerSystem.RightHand.Transform;
-            wsTarget.Position += Vector3.Up * 0.9f;
+            wsTarget.Position += Entity.Transform.TransformDirection(Vector3.Up * 0.9f + Vector3.Forward * 0.25f);
             wsTarget.Rotation *= new Quaternion(new Vector3(MathF.PI * 0.25f, 0f, MathF.PI * 0.25f));
             swo.SetBoneTransform(rh, wsTarget.TransformByInverse(Entity.Transform).TransformByInverse(_rhToWorld));
         }

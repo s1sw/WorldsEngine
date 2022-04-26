@@ -13,7 +13,15 @@ namespace worlds {
     void loadToLM(LoadedMesh& lm, AssetID id) {
         std::vector<VertSkinningInfo> vertSkinning;
         LoadedMeshData lmd;
-        loadWorldsModel(id, lm.vertices, lm.indices, vertSkinning, lmd);
+        std::vector<uint16_t> indices16;
+        loadWorldsModel(id, lm.vertices, lm.indices, indices16, vertSkinning, lmd);
+
+        if (indices16.size() > 0) {
+            lm.indices.resize(indices16.size());
+            for (size_t i = 0; i < indices16.size(); i++) {
+                lm.indices[i] = indices16[i];
+            }
+        }
 
         lm.numSubmeshes = lmd.numSubmeshes;
         lm.skinned = lmd.isSkinned;
