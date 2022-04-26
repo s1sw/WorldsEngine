@@ -72,7 +72,7 @@ namespace worlds {
         updater.buffer(ctx.resources.vpMatrixBuffer->buffer(), 0, sizeof(MultiVP));
 
         updater.beginBuffers(1, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-        updater.buffer(lightsUB.buffer(), 0, sizeof(LightUB));
+        updater.buffer(lightsUB[dsIdx].buffer(), 0, sizeof(LightUB));
 
         updater.beginBuffers(2, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
         updater.buffer(ctx.resources.materialBuffer->buffer(), 0, sizeof(MaterialsUB));
@@ -188,10 +188,6 @@ namespace worlds {
         plm.descriptorSetLayout(dsl);
         pipelineLayout = plm.create(handles->device);
 
-        lightsUB = vku::GenericBuffer(
-            handles->device, handles->allocator,
-            VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-            sizeof(LightUB), VMA_MEMORY_USAGE_CPU_TO_GPU, "Lights");
 
         lightTileInfoBuffer = vku::GenericBuffer(
             handles->device, handles->allocator,
@@ -222,6 +218,11 @@ namespace worlds {
                 handles->device, handles->allocator,
                 VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
                 sizeof(ModelMatrices), VMA_MEMORY_USAGE_CPU_TO_GPU, "Model matrices"));
+
+            lightsUB.push_back(vku::GenericBuffer(
+                handles->device, handles->allocator,
+                VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+                sizeof(LightUB), VMA_MEMORY_USAGE_CPU_TO_GPU, "Lights"));
         }
 
         pickingBuffer = vku::GenericBuffer(
@@ -232,7 +233,10 @@ namespace worlds {
         for (vku::GenericBuffer& matrixUB : modelMatrixUB) {
             modelMatricesMapped.push_back((ModelMatrices*)matrixUB.map(handles->device));
         }
-        lightMapped = (LightUB*)lightsUB.map(handles->device);
+        for (vku::GenericBuffer& lightUB : lightsUB) {
+            lightBufferMaps.push_back((LightUB*)lightUB.map(handles->device));
+        }
+
         lightTileInfoMapped = (LightTileInfoBuffer*)lightTileInfoBuffer.map(handles->device);
 
         skinningMatricesMapped = (glm::mat4*)skinningMatrixUB.map(handles->device);
@@ -394,7 +398,7 @@ namespace worlds {
         uiPass->setup(ctx, renderPass, descriptorPool);
 
         lightCullPass = new LightCullPass(handles, depthResource);
-        lightCullPass->setup(ctx, lightsUB.buffer(), lightTileInfoBuffer.buffer(), lightTilesBuffer.buffer(), lightTileLightCountBuffer.buffer(), descriptorPool);
+        lightCullPass->setup(ctx, lightsUB, lightTileInfoBuffer.buffer(), lightTilesBuffer.buffer(), lightTileLightCountBuffer.buffer(), descriptorPool);
 
         mainPass = new MainPass(handles, pipelineLayout);
 
@@ -823,6 +827,7 @@ namespace worlds {
             frustumB.fromVPMatrix(ctx.projMatrices[1] * ctx.viewMatrices[1]);
         }
 
+        LightUB* currLightMapped = lightBufferMaps[ctx.frameIndex];
         int lightIdx = 0;
         ctx.registry.view<WorldLight, Transform>().each([&](auto ent, WorldLight& l, Transform& transform) {
             l.lightIdx = ~0u;
@@ -854,26 +859,26 @@ namespace worlds {
             glm::vec3 lightForward = glm::normalize(transform.rotation * glm::vec3(0.0f, 0.0f, -1.0f));
             if (l.type != LightType::Tube) {
                 // Set up the light in the correct position in the buffer
-                lightMapped->lights[lightIdx] = PackedLight{
+                currLightMapped->lights[lightIdx] = PackedLight{
                     colLinear * l.intensity, 0,
                     glm::vec4(lightForward, l.type == LightType::Sphere ? l.spotCutoff : glm::cos(l.spotCutoff)),
                     transform.position,
                     distance
                 };
-                lightMapped->lights[lightIdx].setLightType(l.type);
-                lightMapped->lights[lightIdx].setShadowmapIndex(l.shadowmapIdx);
+                currLightMapped->lights[lightIdx].setLightType(l.type);
+                currLightMapped->lights[lightIdx].setShadowmapIndex(l.shadowmapIdx);
             } else {
                 // Tube lights use the struct layout slightly differently
                 glm::vec3 tubeP0 = transform.position + lightForward * l.tubeLength;
                 glm::vec3 tubeP1 = transform.position - lightForward * l.tubeLength;
-                lightMapped->lights[lightIdx] = PackedLight{
+                currLightMapped->lights[lightIdx] = PackedLight{
                     colLinear * l.intensity, 0,
                     glm::vec4(tubeP0, l.tubeRadius),
                     tubeP1,
                     distance
                 };
-                lightMapped->lights[lightIdx].setLightType(l.type);
-                lightMapped->lights[lightIdx].setShadowmapIndex(~0u);
+                currLightMapped->lights[lightIdx].setLightType(l.type);
+                currLightMapped->lights[lightIdx].setShadowmapIndex(~0u);
             }
 
             // If shadows are enabled, construct the appropriate
@@ -886,7 +891,7 @@ namespace worlds {
                 shadowCam.far = l.shadowFar;
                 float fov = l.spotCutoff * 2.0f;
                 shadowCam.verticalFOV = fov;
-                lightMapped->additionalShadowMatrices[l.shadowmapIdx] = shadowCam.getProjectMatrixNonInfinite(1.0f) * shadowCam.getViewMatrix();
+                currLightMapped->additionalShadowMatrices[l.shadowmapIdx] = shadowCam.getProjectMatrixNonInfinite(1.0f) * shadowCam.getViewMatrix();
             }
 
             // Set indices and increment for the next light
@@ -894,7 +899,7 @@ namespace worlds {
             lightIdx++;
         });
 
-        int tileSize = LightUB::LIGHT_TILE_SIZE;
+        const int const const const const const tileSize = LightUB::LIGHT_TILE_SIZE;
         const int xTiles = (ctx.passWidth + (tileSize - 1)) / tileSize;
         const int yTiles = (ctx.passHeight + (tileSize - 1)) / tileSize;
         const int totalTiles = xTiles * yTiles;
@@ -912,10 +917,10 @@ namespace worlds {
         if (realTotalTiles > MAX_LIGHT_TILES)
             fatalErr("Too many lighting tiles");
 
-        lightMapped->lightCount = lightIdx;
+        currLightMapped->lightCount = lightIdx;
         for (int i = 0; i < 4; i++) {
-            lightMapped->cascadeTexelsPerUnit[i] = ctx.cascadeInfo.texelsPerUnit[i];
-            lightMapped->shadowmapMatrices[i] = ctx.cascadeInfo.matrices[i];
+            lightBufferMaps[ctx.frameIndex]->cascadeTexelsPerUnit[i] = ctx.cascadeInfo.texelsPerUnit[i];
+            lightBufferMaps[ctx.frameIndex]->shadowmapMatrices[i] = ctx.cascadeInfo.matrices[i];
         }
         ctx.debugContext.stats->numLightsInView = lightIdx;
 
@@ -959,24 +964,24 @@ namespace worlds {
 
             Transform ct = t;
             ct.scale = glm::vec3(1.0f);
-            lightMapped->box[aoBoxIdx].setScale(pac.bounds);
+            currLightMapped->box[aoBoxIdx].setScale(pac.bounds);
             //glm::mat4 tMat = glm::translate(glm::mat4(1.0f), t.position);
             //lightMapped->box[aoBoxIdx].setMatrix(glm::mat4_cast(glm::inverse(t.rotation)) * glm::inverse(tMat));
-            lightMapped->box[aoBoxIdx].setMatrix(ct.getMatrix());
-            //lightMapped->box[aoBoxIdx].setTranslation(t.position);
-            lightMapped->box[aoBoxIdx].setEntityId((uint32_t)ent);
+            currLightMapped->box[aoBoxIdx].setMatrix(ct.getMatrix());
+            //lightBufferMaps->box[aoBoxIdx].setTranslation(t.position);
+            currLightMapped->box[aoBoxIdx].setEntityId((uint32_t)ent);
             aoBoxIdx++;
             });
-        lightMapped->aoBoxCount = aoBoxIdx;
+        lightBufferMaps[ctx.frameIndex]->aoBoxCount = aoBoxIdx;
 
         uint32_t aoSphereIdx = 0;
         ctx.registry.view<SphereAOProxy, Transform>().each([&](entt::entity entity, SphereAOProxy& sao, Transform& t) {
-            lightMapped->sphere[aoSphereIdx].position = t.position;
-            lightMapped->sphere[aoSphereIdx].radius = sao.radius;
-            lightMapped->sphereIds[aoSphereIdx] = (uint32_t)entity;
+            currLightMapped->sphere[aoSphereIdx].position = t.position;
+            currLightMapped->sphere[aoSphereIdx].radius = sao.radius;
+            currLightMapped->sphereIds[aoSphereIdx] = (uint32_t)entity;
             aoSphereIdx++;
             });
-        lightMapped->aoSphereCount = aoSphereIdx;
+        currLightMapped->aoSphereCount = aoSphereIdx;
 
         auto& sceneSettings = ctx.registry.ctx<SceneSettings>();
         // skybox should always be loaded
@@ -984,18 +989,18 @@ namespace worlds {
         uint32_t skyboxId = ctx.resources.cubemaps.loadOrGet(sceneSettings.skybox);
         
         uint32_t cubemapIdx = 1;
-        lightMapped->cubemaps[0] = GPUCubemap { glm::vec3{100000.0f}, skyboxId, glm::vec3{0.0f}, 0 };
+        currLightMapped->cubemaps[0] = GPUCubemap { glm::vec3{100000.0f}, skyboxId, glm::vec3{0.0f}, 0 };
         ctx.registry.view<WorldCubemap, Transform>().each([&](WorldCubemap& wc, Transform& t) {
             GPUCubemap gc{};
             gc.extent = wc.extent;
             gc.position = t.position;
             gc.flags = wc.cubeParallax;
             gc.texture = ctx.resources.cubemaps.loadOrGet(wc.cubemapId);
-            lightMapped->cubemaps[cubemapIdx] = gc;
+            currLightMapped->cubemaps[cubemapIdx] = gc;
             wc.renderIdx = cubemapIdx;
             cubemapIdx++;
         });
-        lightMapped->cubemapCount = cubemapIdx;
+        currLightMapped->cubemapCount = cubemapIdx;
 
         if (dsUpdateNeeded) {
             // Update descriptor sets to bring in any new textures
@@ -1022,7 +1027,7 @@ namespace worlds {
 
         VkCommandBuffer cmdBuf = ctx.cmdBuf;
 
-        lightsUB.barrier(
+        lightsUB[ctx.frameIndex].barrier(
             cmdBuf, VK_PIPELINE_STAGE_HOST_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
             VK_DEPENDENCY_BY_REGION_BIT, VK_ACCESS_HOST_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,
             VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED);
@@ -1206,7 +1211,10 @@ namespace worlds {
             matrixUB.unmap(handles->device);
         }
 
-        lightsUB.unmap(handles->device);
+        for (vku::GenericBuffer& gb : lightsUB) {
+            gb.unmap(handles->device);
+        }
+
         lightTileInfoBuffer.unmap(handles->device);
         skinningMatrixUB.unmap(handles->device);
 

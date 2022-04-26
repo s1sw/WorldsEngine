@@ -180,7 +180,7 @@ namespace worlds {
         vku::PipelineLayout pipelineLayout;
 
         vku::DescriptorSetLayout dsl;
-        VkDescriptorSet descriptorSet;
+        std::vector<VkDescriptorSet> descriptorSet;
         vku::Sampler sampler;
 
         VkShaderModule shader;
@@ -189,7 +189,7 @@ namespace worlds {
         LightCullPass(VulkanHandles* handles, RenderResource* depthStencilImage);
         void resizeInternalBuffers(RenderContext& ctx) override;
         void changeLightTileBuffers(RenderContext& ctx, VkBuffer lightTileBuffer, VkBuffer lightTileLightCountBuffer);
-        void setup(RenderContext& ctx, VkBuffer lightBuffer, VkBuffer lightTileInfoBuffer, VkBuffer lightTileBuffer, VkBuffer lightTileLightCountBuffer, VkDescriptorPool descriptorPool);
+        void setup(RenderContext& ctx, std::vector<vku::GenericBuffer>& lightBuffers, VkBuffer lightTileInfoBuffer, VkBuffer lightTileBuffer, VkBuffer lightTileLightCountBuffer, VkDescriptorPool descriptorPool);
         void execute(RenderContext& ctx, int tileSize);
         ~LightCullPass();
     };
@@ -221,12 +221,12 @@ namespace worlds {
         vku::Pipeline wireframePipeline;
         vku::PipelineLayout wireframePipelineLayout;
 
-        LightUB* lightMapped;
+        std::vector<LightUB*> lightBufferMaps;
         LightTileInfoBuffer* lightTileInfoMapped;
         std::vector<ModelMatrices*> modelMatricesMapped;
         glm::mat4* skinningMatricesMapped;
 
-        vku::GenericBuffer lightsUB;
+        std::vector<vku::GenericBuffer> lightsUB;
         vku::GenericBuffer lightTileInfoBuffer;
         vku::GenericBuffer lightTilesBuffer;
         vku::GenericBuffer lightTileLightCountBuffer;
