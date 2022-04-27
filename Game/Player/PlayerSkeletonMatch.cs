@@ -1,6 +1,7 @@
 using System;
 using WorldsEngine;
 using WorldsEngine.Math;
+using WorldsEngine.Util;
 
 namespace Game.Player;
 
@@ -44,6 +45,20 @@ public class PlayerSkeletonMatch : Component, IStartListener, IUpdateableCompone
             parentIdx = mesh.GetBone(parentIdx).Parent;
         }
     }
+
+    float CosAngle(float a, float b, float c)
+    {
+        float val = MathF.Acos((-(c * c) + (a * a) + (b * b)) / (-2 * a * b));
+        if (!float.IsNaN(val))
+        {
+            return val;
+        }
+        else
+        {
+            return 1;
+        }
+    }
+
     public void Update()
     {
         var swo = Entity.GetComponent<SkinnedWorldObject>();
@@ -52,12 +67,52 @@ public class PlayerSkeletonMatch : Component, IStartListener, IUpdateableCompone
         swo.SetBoneTransform(MeshManager.GetBoneIndex(swo.Mesh, "root"), rootTransform);
         var lh = MeshManager.GetBoneIndex(swo.Mesh, "hand_L");
         var rh = MeshManager.GetBoneIndex(swo.Mesh, "hand_R");
-        
+
         {
             var wsTarget = LocalPlayerSystem.LeftHand.Transform;
-            wsTarget.Position += Entity.Transform.TransformDirection(Vector3.Up * 0.9f + Vector3.Forward * 0.25f);
-            wsTarget.Rotation *= new Quaternion(new Vector3(MathF.PI * 0.25f, 0f, MathF.PI * 0.25f));
-            swo.SetBoneTransform(lh, wsTarget.TransformByInverse(Entity.Transform).TransformByInverse(_lhToWorld));
+            var targetTransform = wsTarget.TransformByInverse(Entity.Transform);
+            // Root offset
+            targetTransform.Position += Entity.Transform.TransformDirection(Vector3.Up * 0.9f + Vector3.Forward * 0.25f);
+            // Fix rotation
+            targetTransform.Rotation *= new Quaternion(new Vector3(MathF.PI * 0.25f, 0f, MathF.PI * 0.25f));
+            targetTransform = targetTransform.TransformByInverse(Entity.Transform);
+
+            var mesh = MeshManager.GetMesh(swo.Mesh);
+            var lowerArm = mesh.GetBone("lowerarm_L");
+            var upperArm = mesh.GetBone("upperarm_L");
+            var lhb = mesh.GetBone("hand_L");
+            var laT = swo.GetBoneTransform(lowerArm.ID);
+            var hT = swo.GetBoneTransform(lhb.ID);
+
+            float a = laT.Position.Length;
+            float b = hT.Position.Length;
+            float c = swo.GetBoneComponentSpaceTransform(upperArm.ID).Position.DistanceTo(targetTransform.Position);
+
+            var upperArmWS = swo.GetBoneComponentSpaceTransform(upperArm.ID).TransformBy(Entity.Transform);
+            var lowerArmWS = swo.GetBoneComponentSpaceTransform(lowerArm.ID).TransformBy(Entity.Transform);
+
+            DebugShapes.DrawLine(upperArmWS.Position, wsTarget.Position, Colors.Red);
+            DebugShapes.DrawLine((upperArmWS.Position + wsTarget.Position) * 0.5f, lowerArmWS.Position, Colors.Red);
+
+            Quaternion upperRotation = Quaternion.LookAt(wsTarget.Position - upperArmWS.Position, Vector3.Forward);
+            upperRotation *= (Quaternion.FromTo(Vector3.Forward, laT.Position)).Inverse;
+            upperRotation = Quaternion.AngleAxis(-CosAngle(a, c, b), -Vector3.Forward) * upperRotation;
+
+            var newUpperArmWS = upperArmWS;
+            newUpperArmWS.Rotation = upperRotation * new Quaternion(new Vector3(MathF.PI * 0.25f, 0f, MathF.PI * 0.25f));
+            newUpperArmWS = newUpperArmWS.TransformByInverse(Entity.Transform);
+            newUpperArmWS = newUpperArmWS.TransformByInverse(swo.GetBoneComponentSpaceTransform((uint)upperArm.Parent));
+            swo.SetBoneTransform(upperArm.ID, newUpperArmWS);
+
+            Quaternion lowerRotation =
+                Quaternion.LookAt(wsTarget.Position - lowerArmWS.Position, Vector3.Forward);
+            lowerRotation *= (Quaternion.FromTo(Vector3.Forward, hT.Position)).Inverse;
+
+            var newLowerarmWS = lowerArmWS;
+            newLowerarmWS.Rotation = lowerRotation * new Quaternion(new Vector3(MathF.PI * 0.25f, 0f, MathF.PI * 0.25f));
+            newLowerarmWS = newLowerarmWS.TransformByInverse(Entity.Transform);
+            newLowerarmWS = newLowerarmWS.TransformByInverse(swo.GetBoneComponentSpaceTransform((uint)lowerArm.Parent));
+            swo.SetBoneTransform(lowerArm.ID, newLowerarmWS);
         }
 
         {

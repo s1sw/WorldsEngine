@@ -75,6 +75,23 @@ namespace WorldsEngine
             return t;
         }
 
+        public Transform GetBoneComponentSpaceTransform(uint boneIdx)
+        {
+            var mesh = MeshManager.GetMesh(Mesh);
+            var b = mesh.GetBone((int)boneIdx);
+
+            Transform t = GetBoneTransform(b.ID);
+            int parentIdx = b.Parent;
+            while (parentIdx != -1)
+            {
+                Bone b2 = mesh.GetBone(parentIdx);
+                t = t.TransformBy(GetBoneTransform(b2.ID));
+                parentIdx = b2.Parent;
+            }
+
+            return t;
+        }
+
         public void SetBoneTransform(uint boneIdx, Transform t)
         {
             skinnedWorldObject_setBoneTransform(regPtr, entityId, boneIdx, ref t);
