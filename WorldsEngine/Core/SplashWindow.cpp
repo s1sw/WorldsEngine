@@ -34,7 +34,7 @@ namespace worlds {
         while (!windowCreated) {}
     }
 
-    void SplashWindow::changeOverlay(std::string overlay) {
+    void SplashWindow::changeOverlay(const std::string& overlay) {
         this->overlay = overlay;
     }
 

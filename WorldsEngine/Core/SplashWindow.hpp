@@ -10,7 +10,7 @@ namespace worlds {
     class SplashWindow {
     public:
         SplashWindow(bool small);
-        void changeOverlay(std::string overlay);
+        void changeOverlay(const std::string& overlay);
         ~SplashWindow();
     private:
         void redraw();
