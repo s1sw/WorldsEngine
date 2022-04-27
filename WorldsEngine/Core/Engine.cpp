@@ -1119,7 +1119,7 @@ namespace worlds {
                 static CircularBuffer<float, 128> historicalPhysicsTimes;
 
                 historicalFrametimes.add(timeInfo.deltaTime * 1000.0);
-                historicalUpdateTimes.add(timeInfo.updateTime * 1000.0);
+                historicalUpdateTimes.add((timeInfo.updateTime * 1000.0) - timeInfo.simTime);
                 historicalPhysicsTimes.add(timeInfo.simTime);
 
                 if (ImGui::CollapsingHeader(ICON_FA_CLOCK u8" Performance")) {
