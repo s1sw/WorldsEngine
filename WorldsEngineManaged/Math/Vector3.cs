@@ -139,6 +139,8 @@ namespace WorldsEngine.Math
 
         public Vector3 DirectionTo(Vector3 other) => (other - this).Normalized;
 
+        public Vector3 VectorTo(Vector3 other) => other - this;
+
         public Vector3 ProjectOntoPlane(Vector3 planeNormal)
         {
             float dp = Dot(planeNormal);
