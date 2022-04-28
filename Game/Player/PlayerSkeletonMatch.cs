@@ -47,7 +47,8 @@ public class PlayerSkeletonMatch : Component, IStartListener, IUpdateableCompone
             parentIdx = mesh.GetBone(parentIdx).Parent;
         }
 
-        _leftHandIK = new TwoBoneIK(mesh.GetBone("lowerarm_L").RestPose.Position.Length, mesh.GetBone("hand_L").RestPose.Position.Length);
+        var lowerArm = mesh.GetBone("lowerarm_L");
+        _leftHandIK = new TwoBoneIK(lowerArm.RestPose.Position.Length, mesh.GetBone("hand_L").RestPose.Position.Length, lowerArm.RestPose.Position);
     }
 
     private static float CosineRule(float a, float b, float c)
@@ -88,7 +89,7 @@ public class PlayerSkeletonMatch : Component, IStartListener, IUpdateableCompone
             Vector3 pvec = Vector3.Cross(upperArm.RestPose.Position.DirectionTo(wsTarget.Position), cdir);//wsTarget.TransformDirection(Vector3.Right);
 
             var solveResult = _leftHandIK.Solve(
-                swo.GetBoneComponentSpaceTransform(upperArm.ID).TransformBy(Entity.Transform),
+                swo.GetBoneComponentSpaceTransform(upperArm.ID),
                 swo.GetBoneComponentSpaceTransform(lowerArm.ID).TransformBy(Entity.Transform),
                 wsTarget, pvec
             );
@@ -124,6 +125,7 @@ public class PlayerSkeletonMatch : Component, IStartListener, IUpdateableCompone
             float c = lhb.RestPose.Position.Length;
 
             var upperArmWS = swo.GetBoneComponentSpaceTransform(upperArm.ID).TransformBy(Entity.Transform);
+            Log.Msg($"up2: {upperArmWS.Position}");
             float b = upperArmWS.Position.DistanceTo(wsTarget.Position);
 
 
