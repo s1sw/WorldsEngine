@@ -666,6 +666,10 @@ namespace worlds {
                     svf |= ShaderVariantFlags::AlphaTest;
                 }
 
+                if (!sdi.opaque && extraDat.overrideShader != INVALID_ASSET) {
+                    sdi.dontPrepass = true;
+                }
+
                 PipelineKey pk { enablePicking, ctx.passSettings.msaaLevel, svf, extraDat.overrideShader };
                 sdi.pipeline = pipelineVariants->getPipeline(pk);
 
@@ -801,6 +805,10 @@ namespace worlds {
 
                 if (!sdi.opaque) {
                     svf |= ShaderVariantFlags::AlphaTest;
+                }
+
+                if (!sdi.opaque && extraDat.overrideShader != INVALID_ASSET) {
+                    sdi.dontPrepass = true;
                 }
 
                 PipelineKey pk { enablePicking, ctx.passSettings.msaaLevel, svf, extraDat.overrideShader };

@@ -177,14 +177,15 @@ namespace worlds {
             return cache.at(hash);
         }
 
+        bool customFS = key.overrideFS != INVALID_ASSET;
         StandardPipelineMaker pm { getVS(key.flags), key.overrideFS == INVALID_ASSET ? getFS(key.flags) : key.overrideFS };
         pm.setCullMode(enumHasFlag(key.flags, ShaderVariantFlags::NoBackfaceCulling) ? VK_CULL_MODE_NONE : VK_CULL_MODE_BACK_BIT)
             .msaaSamples(key.msaaSamples)
             .setPickingEnabled(key.enablePicking)
             .setEnableSkinning(enumHasFlag(key.flags, ShaderVariantFlags::Skinnning))
             .useSpecConstants(!depthOnly)
-            .requireZPrepass(!depthOnly)
-            .alphaToCoverage(depthOnly && enumHasFlag(key.flags, ShaderVariantFlags::AlphaTest));
+            .requireZPrepass(!depthOnly && !(customFS && enumHasFlag(key.flags, ShaderVariantFlags::AlphaTest)))
+            .alphaToCoverage((depthOnly || customFS) && enumHasFlag(key.flags, ShaderVariantFlags::AlphaTest));
 
         vku::Pipeline p = pm.createPipeline(handles, layout, renderPass);
         VkPipeline safe = p;
