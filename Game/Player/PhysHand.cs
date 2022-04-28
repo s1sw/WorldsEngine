@@ -21,8 +21,8 @@ class PhysHand : Component, IThinkingComponent, IStartListener, IUpdateableCompo
     static Vector3 _nonVROffset = new Vector3(0.125f, -0.2f, 0.55f);
     const float TorqueLimit = 35f;
 
-    float RotationDMax = 15.0f;
-    float RotationPMax = 600.0f;
+    float RotationDMax = 30.0f;
+    float RotationPMax = 1000.0f;
 
     float PositionP = 2003f;
     float PositionD = 100f;
