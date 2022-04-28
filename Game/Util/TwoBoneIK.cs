@@ -15,6 +15,7 @@ public class TwoBoneIK
 {
     public readonly float UpperLength;
     public readonly float LowerLength;
+    private readonly Vector3 _lowerDisplacement;
 
 
     //  __b___
@@ -29,24 +30,24 @@ public class TwoBoneIK
         return float.IsFinite(v) ? v : 0.0f;
     }
 
-    public TwoBoneIK(float upperLength, float lowerLength)
+    public TwoBoneIK(float upperLength, float lowerLength, Vector3 lowerDisplacement)
     {
         UpperLength = upperLength;
         LowerLength = lowerLength;
+        _lowerDisplacement = lowerDisplacement;
     }
 
     public TwoBoneIKSolveResult Solve(Transform upper, Transform lower, Transform target, Vector3 pole)
     {
+        Log.Msg($"up: {upper.Position}");
         float a = UpperLength;
         float b = upper.Position.DistanceTo(target.Position);
         float c = LowerLength;
 
-        Vector3 upperOffset = upper.Position.VectorTo(lower.Position);
-
         Quaternion upperRotation = Quaternion.LookAt(target.Position - upper.Position, pole);
         upperRotation = Quaternion.AngleAxis(CosineRule(a, b, c), -pole) * upperRotation;
 
-        lower.Position = upper.Position + (upperRotation * upperOffset);
+        lower.Position = upper.Position + (upperRotation * _lowerDisplacement);
 
         Quaternion lowerRotation = Quaternion.LookAt(target.Position - lower.Position, pole);
 
