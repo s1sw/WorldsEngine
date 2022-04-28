@@ -84,7 +84,7 @@ public class PlayerRig : Component, IThinkingComponent, IStartListener
         Vector3 lookDir;
         if (VR.Enabled)
         {
-            lookDir = (VRTransforms.HMDTransform.Rotation * Camera.Main.Rotation).Forward;
+            lookDir = (Camera.Main.Rotation * VRTransforms.HMDTransform.Rotation).Forward;
         }
         else
         {
@@ -252,7 +252,7 @@ public class LocalPlayerSystem : ISystem
             {
                 Vector3 normal = pair.EntityB == PlayerBody ? -contact.Normal : contact.Normal;
 
-                if (contact.Point.y < playerPose.Position.y - 0.6f)
+                if (contact.Point.y < playerPose.Position.y - 0.75f)
                 {
                     if (normal.Dot(Vector3.Up) < 0.05f)
                     {
