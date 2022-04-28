@@ -47,13 +47,6 @@ layout (binding = 6) uniform samplerCube cubemapSampler[32];
 layout (binding = 7) uniform sampler2D brdfLutSampler;
 layout (binding = 8) uniform sampler2D additionalShadowSampler[4];
 
-struct LightingTile {
-    uint lightIdMasks[8];
-    uint cubemapIdMasks[2];
-	uint aoBoxIdMasks[2];
-	uint aoSphereIdMasks[2];
-};
-
 layout (binding = 9) readonly uniform LightTileInfo {
     uint tileSize;
     uint tilesPerEye;

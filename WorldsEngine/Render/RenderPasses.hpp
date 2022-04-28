@@ -176,20 +176,23 @@ namespace worlds {
 
     class LightCullPass : public RenderPass {
     private:
-        vku::Pipeline pipeline;
+        vku::Pipeline clearPipeline;
+        vku::Pipeline depthPipeline;
+        vku::Pipeline setupPipeline;
+        vku::Pipeline cullPipeline;
         vku::PipelineLayout pipelineLayout;
 
         vku::DescriptorSetLayout dsl;
         std::vector<VkDescriptorSet> descriptorSet;
         vku::Sampler sampler;
 
-        VkShaderModule shader;
         RenderResource* depthResource;
+        vku::GenericBuffer* lightTileBuffer;
     public:
         LightCullPass(VulkanHandles* handles, RenderResource* depthStencilImage);
         void resizeInternalBuffers(RenderContext& ctx) override;
-        void changeLightTileBuffers(RenderContext& ctx, VkBuffer lightTileBuffer, VkBuffer lightTileLightCountBuffer);
-        void setup(RenderContext& ctx, std::vector<vku::GenericBuffer>& lightBuffers, VkBuffer lightTileInfoBuffer, VkBuffer lightTileBuffer, VkBuffer lightTileLightCountBuffer, VkDescriptorPool descriptorPool);
+        void changeLightTileBuffers(RenderContext& ctx, vku::GenericBuffer& lightTileBuffer, VkBuffer lightTileLightCountBuffer);
+        void setup(RenderContext& ctx, std::vector<vku::GenericBuffer>& lightBuffers, VkBuffer lightTileInfoBuffer, vku::GenericBuffer& lightTileBuffer, VkBuffer lightTileLightCountBuffer, VkDescriptorPool descriptorPool);
         void execute(RenderContext& ctx, int tileSize);
         ~LightCullPass();
     };
@@ -199,6 +202,9 @@ namespace worlds {
         uint32_t aoBoxIdMasks[2];
         uint32_t aoSphereIdMasks[2];
         uint32_t cubemapIdMasks[2];
+        glm::vec4 frustumPlanes[6];
+        glm::vec4 center;
+        glm::vec4 extents;
     };
 
     const int MAX_LIGHT_TILES = 65536;
