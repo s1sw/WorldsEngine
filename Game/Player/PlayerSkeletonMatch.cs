@@ -2,6 +2,7 @@ using System;
 using WorldsEngine;
 using WorldsEngine.Math;
 using WorldsEngine.Util;
+using Game.Util;
 
 namespace Game.Player;
 
@@ -11,6 +12,7 @@ public class PlayerSkeletonMatch : Component, IStartListener, IUpdateableCompone
     private Transform _initialT;
     private Transform _lhToWorld = new(Vector3.Zero, Quaternion.Identity);
     private Transform _rhToWorld = new(Vector3.Zero, Quaternion.Identity);
+    private TwoBoneIK _leftHandIK;
 
     public void Start()
     {
@@ -44,14 +46,11 @@ public class PlayerSkeletonMatch : Component, IStartListener, IUpdateableCompone
             _rhToWorld = _rhToWorld.TransformBy(b.RestPose);
             parentIdx = mesh.GetBone(parentIdx).Parent;
         }
+
+        _leftHandIK = new TwoBoneIK(mesh.GetBone("lowerarm_L").RestPose.Position.Length, mesh.GetBone("hand_L").RestPose.Position.Length);
     }
 
-    //  __b___
-    //  \<v  /
-    //   a  c
-    //    \/ 
-    //
-    float CosineRule(float a, float b, float c)
+    private static float CosineRule(float a, float b, float c)
     {
         float v = MathF.Acos(((a * a) + (b * b) - (c * c)) / (2 * a * b));
 
@@ -83,36 +82,26 @@ public class PlayerSkeletonMatch : Component, IStartListener, IUpdateableCompone
 
             swo.SetBoneWorldSpaceTransform(lhb.ID, targetTransform, Entity.Transform);
 
-            float a = lowerArm.RestPose.Position.Length;
-            float c = lhb.RestPose.Position.Length;
-
-            var upperArmWS = swo.GetBoneComponentSpaceTransform(upperArm.ID).TransformBy(Entity.Transform);
-            float b = upperArmWS.Position.DistanceTo(wsTarget.Position);
-
-
-            DebugShapes.DrawLine(upperArmWS.Position, wsTarget.Position, Colors.Red);
-
             Vector3 fwaf = wsTarget.TransformDirection(Vector3.Right);
             Vector3 fwaf2 = Entity.Transform.TransformDirection(Vector3.Right);
             Vector3 cdir = Vector3.Lerp(fwaf, fwaf2, MathF.Pow(1f - MathFX.Saturate(fwaf.Dot(Vector3.Up)), 2.0f));
-            Vector3 pvec = Vector3.Cross(upperArmWS.Position.DirectionTo(wsTarget.Position), cdir);//wsTarget.TransformDirection(Vector3.Right);
+            Vector3 pvec = Vector3.Cross(upperArm.RestPose.Position.DirectionTo(wsTarget.Position), cdir);//wsTarget.TransformDirection(Vector3.Right);
 
-            Quaternion upperRotation = Quaternion.LookAt(wsTarget.Position - upperArmWS.Position, pvec);
-            upperRotation = Quaternion.AngleAxis(CosineRule(a, b, c), -pvec) * upperRotation;
+            var solveResult = _leftHandIK.Solve(
+                swo.GetBoneComponentSpaceTransform(upperArm.ID).TransformBy(Entity.Transform),
+                swo.GetBoneComponentSpaceTransform(lowerArm.ID).TransformBy(Entity.Transform),
+                wsTarget, pvec
+            );
 
-            var newUpperArmWS = upperArmWS;
-            newUpperArmWS.Rotation = upperRotation * new Quaternion(new Vector3(MathF.PI * 0.25f, 0f, MathF.PI * 0.25f));
+            Transform newUpperArmWS = upperArm.RestPose;
+            newUpperArmWS.Rotation = solveResult.UpperRotation * new Quaternion(new Vector3(MathF.PI * 0.25f, 0f, MathF.PI * 0.25f));
+
+            Transform newLowerArmWS = lowerArm.RestPose;
+            newLowerArmWS.Rotation = solveResult.LowerRotation * new Quaternion(new Vector3(MathF.PI * 0.25f, 0f, MathF.PI * 0.25f));
+            newLowerArmWS.Position = solveResult.LowerPosition;
+
             swo.SetBoneWorldSpaceTransform(upperArm.ID, newUpperArmWS, Entity.Transform);
-
-            var lowerArmWS = swo.GetBoneComponentSpaceTransform(lowerArm.ID).TransformBy(Entity.Transform);
-            DebugShapes.DrawLine((upperArmWS.Position + wsTarget.Position) * 0.5f, lowerArmWS.Position, Colors.Red);
-
-            Quaternion lowerRotation =
-                Quaternion.LookAt(wsTarget.Position - lowerArmWS.Position, pvec);
-
-            var newLowerarmWS = lowerArmWS;
-            newLowerarmWS.Rotation = lowerRotation * new Quaternion(new Vector3(MathF.PI * 0.25f, 0f, MathF.PI * 0.25f));
-            swo.SetBoneWorldSpaceTransform(lowerArm.ID, newLowerarmWS, Entity.Transform);
+            swo.SetBoneWorldSpaceTransform(lowerArm.ID, newLowerArmWS, Entity.Transform);
         }
 
         {
