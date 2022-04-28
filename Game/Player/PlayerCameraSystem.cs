@@ -12,7 +12,7 @@ public class PlayerCameraSystem : ISystem
     private static float lookY = 0.0f;
 
     private Entity _listenerEntity;
-    private static readonly Vector3 _toFloor = new(0.0f, -(1.85f * 0.5f), 0.0f);
+    private static readonly Vector3 _toFloor = new(0.0f, -(1.85f * 0.5f) + 0.15f, 0.0f);
 
     public void OnSceneStart()
     {
