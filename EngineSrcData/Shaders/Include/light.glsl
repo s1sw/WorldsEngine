@@ -35,17 +35,4 @@ vec3 getLightDirection(Light l, vec3 worldPos) {
         return l.pack1.xyz;
     }
 }
-
-struct LightingTile {
-    uint lightIdMasks[8];
-    uint cubemapIdMasks[2];
-    uint aoBoxIdMasks[2];
-    uint aoSphereIdMasks[2];
-
-    vec4 frustumPlanes[6];
-    vec3 aabbCenter;
-    uint minDepthU;
-    vec3 aabbExtents;
-    uint maxDepthU;
-};
 #endif

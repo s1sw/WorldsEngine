@@ -10,6 +10,12 @@
 #extension GL_ARB_shader_ballot : require
 layout (local_size_x = 16, local_size_y = 16) in;
 
+struct LightingTile {
+    uint lightIdMasks[8];
+    uint cubemapIdMasks[2];
+    uint aoBoxIdMasks[2];
+    uint aoSphereIdMasks[2];
+};
 
 layout (binding = 0) uniform LightTileInfo {
     uint tileSize;
@@ -42,12 +48,10 @@ layout (binding = 2) uniform MultiVP {
     vec4 viewPos[2];
 };
 
-#ifdef TILE_DEPTH_SHADER
 #ifdef MSAA
 layout (binding = 3) uniform sampler2DMSArray depthBuffer;
 #else
 layout (binding = 3) uniform sampler2DArray depthBuffer;
-#endif
 #endif
 
 layout (binding = 4) buffer TileLightCounts {
@@ -78,10 +82,15 @@ struct AABB {
 #define CULL_AABB
 #define USE_SUBGROUPS
 
-bool frustumContainsSphere(in LightingTile tile, vec3 spherePos, float sphereRadius) {
+shared Frustum tileFrustum;
+shared AABB tileAABB;
+shared uint minDepthU;
+shared uint maxDepthU;
+
+bool frustumContainsSphere(vec3 spherePos, float sphereRadius) {
     bool inside = true;
     for (int i = 0; i < 6; i++) {
-        float dist = dot(spherePos, tile.frustumPlanes[i].xyz) + tile.frustumPlanes[i].w;
+        float dist = dot(spherePos, tileFrustum.planes[i].xyz) + tileFrustum.planes[i].w;
 
         if (dist < -sphereRadius)
             inside = false;
@@ -90,15 +99,15 @@ bool frustumContainsSphere(in LightingTile tile, vec3 spherePos, float sphereRad
     return inside;
 }
 
-bool aabbContainsSphere(in LightingTile tile, vec3 spherePos, float sphereRadius) {
-    vec3 vDelta = max(vec3(0.0), abs(tile.aabbCenter - spherePos) - tile.aabbExtents);
+bool aabbContainsSphere(vec3 spherePos, float sphereRadius) {
+    vec3 vDelta = max(vec3(0.0), abs(tileAABB.center - spherePos) - tileAABB.extents);
 
     float fDistSq = dot(vDelta, vDelta);
 
     return fDistSq <= sphereRadius * sphereRadius;
 }
 
-bool frustumContainsOBB(in LightingTile tile, vec3 boxSize, mat4 transform) {
+bool frustumContainsOBB(vec3 boxSize, mat4 transform) {
     // We can determine if the frustum contains an OBB by checking if it contains
     // any vertices of the OBB.
 
@@ -108,7 +117,7 @@ bool frustumContainsOBB(in LightingTile tile, vec3 boxSize, mat4 transform) {
         for (int j = 0; j < 8; j++) {
             vec3 v = vec3(j % 2 == 0 ? -1.0 : 1.0, (j >> 1) % 2 == 0 ? -1.0 : 1.0, j < 4 ? -1.0 : 1.0);
             v = (transform * vec4(v * boxSize, 1.0)).xyz;
-            outside += (dot(tile.frustumPlanes[i], vec4(v, 1.0)) < 0.0) ? 1 : 0;
+            outside += (dot(tileFrustum.planes[i], vec4(v, 1.0)) < 0.0) ? 1 : 0;
         }
 
         if (outside == 8) return false;
@@ -121,7 +130,7 @@ vec3 aabbPoint(int index, vec3 min, vec3 max) {
     return vec3(index % 2 == 0 ? min.x : max.x, (index >> 1) % 2 == 0 ? min.y : max.y, index < 4 ? min.z : max.z);
 }
 
-bool frustumContainsAABB(in LightingTile tile, vec3 min, vec3 max) {
+bool frustumContainsAABB(vec3 min, vec3 max) {
     vec3 points[8] = vec3[](
         min,
         vec3(max.x, min.y, min.z),
@@ -137,7 +146,7 @@ bool frustumContainsAABB(in LightingTile tile, vec3 min, vec3 max) {
         bool inside = false;
 
         for (int j = 0; j < 8; j++) {
-            if (dot(tile.frustumPlanes[i], vec4(points[j], 1.0)) > 0.0) {
+            if (dot(tileFrustum.planes[i], vec4(points[j], 1.0)) > 0.0) {
                 inside = true;
                 break;
             }
@@ -162,17 +171,9 @@ bool frustumContainsAABB(in LightingTile tile, vec3 min, vec3 max) {
     return true;
 }
 
-vec3 getTileMin(in LightingTile tile) {
-    return min(tile.aabbCenter + tile.aabbExtents, tile.aabbCenter - tile.aabbExtents);
-}
-
-vec3 getTileMax(in LightingTile tile) {
-    return max(tile.aabbCenter + tile.aabbExtents, tile.aabbCenter - tile.aabbExtents);
-}
-
-bool aabbContainsAABB(in LightingTile tile, vec3 min, vec3 max) {
-    vec3 tileMin = getTileMin(tile);
-    vec3 tileMax = getTileMax(tile);
+bool aabbContainsAABB(vec3 min, vec3 max) {
+    vec3 tileMin = tileAABB.center - tileAABB.extents;
+    vec3 tileMax = tileAABB.center + tileAABB.extents;
 
     for (int i = 0; i < 3; i++) {
         if (!(tileMin[i] <= max[i] && tileMax[i] >= min[i])) {
@@ -183,10 +184,17 @@ bool aabbContainsAABB(in LightingTile tile, vec3 min, vec3 max) {
     return true;
 }
 
+vec3 getTileMin() {
+    return min(tileAABB.center + tileAABB.extents, tileAABB.center - tileAABB.extents);
+}
 
-bool aabbContainsPoint(in LightingTile tile, vec3 point) {
-    vec3 mi = getTileMin(tile);
-    vec3 ma = getTileMax(tile);
+vec3 getTileMax() {
+    return max(tileAABB.center + tileAABB.extents, tileAABB.center - tileAABB.extents);
+}
+
+bool aabbContainsPoint(vec3 point) {
+    vec3 mi = getTileMin();
+    vec3 ma = getTileMax();
 
     return
         point.x >= mi.x && point.x <= ma.x &&
@@ -195,32 +203,32 @@ bool aabbContainsPoint(in LightingTile tile, vec3 point) {
 }
 
 // Calculates frustum planes from the set of frustum points
-void setupTileFrustum(inout LightingTile tile, vec3 frustumPoints[8]) {
+void setupTileFrustum(vec3 frustumPoints[8]) {
     vec3 camPos = viewPos[eyeIdx].xyz;
 
     for (int i = 0; i < 4; i++) {
         vec3 planeNormal = cross(frustumPoints[i] - camPos, frustumPoints[i + 1] - camPos);
         planeNormal = normalize(planeNormal);
-        tile.frustumPlanes[i] = vec4(planeNormal, -dot(planeNormal, frustumPoints[i]));
+        tileFrustum.planes[i] = vec4(planeNormal, -dot(planeNormal, frustumPoints[i]));
     }
 
     // Near plane
     {
         vec3 planeNormal = cross(frustumPoints[1] - frustumPoints[0], frustumPoints[3] - frustumPoints[0]);
         planeNormal = normalize(planeNormal);
-        tile.frustumPlanes[4] = vec4(planeNormal, -dot(planeNormal, frustumPoints[0]));
+        tileFrustum.planes[4] = vec4(planeNormal, -dot(planeNormal, frustumPoints[0]));
     }
 
     // Far plane
     {
         vec3 planeNormal = cross(frustumPoints[7] - frustumPoints[4], frustumPoints[5] - frustumPoints[4]);
         planeNormal = normalize(planeNormal);
-        tile.frustumPlanes[5] = vec4(planeNormal, -dot(planeNormal, frustumPoints[4]));
+        tileFrustum.planes[5] = vec4(planeNormal, -dot(planeNormal, frustumPoints[4]));
     }
 }
 
 // Calculates the tile's AABB from the set of frustum points
-void setupTileAABB(inout LightingTile tile, vec3 frustumPoints[8]) {
+void setupTileAABB(vec3 frustumPoints[8]) {
     // Calculate tile AABB
     vec3 aabbMax = vec3(0.0f);
     vec3 aabbMin = vec3(10000000.0f);
@@ -230,16 +238,16 @@ void setupTileAABB(inout LightingTile tile, vec3 frustumPoints[8]) {
         aabbMin = min(aabbMin, frustumPoints[i]);
     }
 
-    tile.aabbCenter = (aabbMax + aabbMin) * 0.5;
-    tile.aabbExtents = (aabbMax - aabbMin) * 0.5;
+    tileAABB.center = (aabbMax + aabbMin) * 0.5;
+    tileAABB.extents = (aabbMax - aabbMin) * 0.5;
 }
 
 void setupTile(uint tileIndex, uint x, uint y) {
-    LightingTile tile = buf_LightTiles.tiles[tileIndex];
     vec3 camPos = viewPos[eyeIdx].xyz;
-    float minDepth = uintBitsToFloat(tile.minDepthU);
-    float maxDepth = uintBitsToFloat(tile.maxDepthU);
+    float minDepth = uintBitsToFloat(minDepthU);
+    float maxDepth = uintBitsToFloat(maxDepthU);
 
+    buf_LightTileLightCounts.tileLightCounts[tileIndex] = 0;
     float tileSize = buf_LightTileInfo.tileSize;
     vec2 ndcTileSize = 2.0f * vec2(tileSize, -tileSize) / vec2(screenWidth, screenHeight);
 
@@ -276,9 +284,22 @@ void setupTile(uint tileIndex, uint x, uint y) {
         frustumPoints[i + 4] = vec3(projected) / projected.w;
     }
 
-    setupTileFrustum(tile, frustumPoints);
-    setupTileAABB(tile, frustumPoints);
-    buf_LightTiles.tiles[tileIndex] = tile;
+    setupTileFrustum(frustumPoints);
+    setupTileAABB(frustumPoints);
+}
+
+void clearBuffers(uint tileIndex) {
+    if (gl_LocalInvocationIndex.x == 0) {
+        minDepthU = floatBitsToUint(1.0);
+        maxDepthU = 0u;
+    }
+
+    // Clear light values. This is doing a bunch of unnecessary writes, but I'm unsure if
+    // that really matters in terms of performance.
+    buf_LightTiles.tiles[tileIndex].lightIdMasks[gl_LocalInvocationIndex % 8] = 0u;
+    buf_LightTiles.tiles[tileIndex].aoSphereIdMasks[gl_LocalInvocationIndex % 2] = 0u;
+    buf_LightTiles.tiles[tileIndex].aoBoxIdMasks[gl_LocalInvocationIndex % 2] = 0u;
+    buf_LightTiles.tiles[tileIndex].cubemapIdMasks[gl_LocalInvocationIndex & 2] = 0u;
 }
 
 void cullLights(uint tileIndex) {
@@ -286,7 +307,6 @@ void cullLights(uint tileIndex) {
     // one invocation = one light. Since the light array is always
     // tightly packed, we can just check if the index is less than
     // the light count.
-    LightingTile tile = buf_LightTiles.tiles[tileIndex];
     if (gl_LocalInvocationIndex < buf_Lights.lightCount) {
         uint lightIndex = gl_LocalInvocationIndex;
         Light light = buf_Lights.lights[lightIndex];
@@ -302,9 +322,9 @@ void cullLights(uint tileIndex) {
         float lightRadius = buf_Lights.lights[lightIndex].distanceCutoff;
 
 #ifdef CULL_AABB
-        bool inFrustum = frustumContainsSphere(tile, lightPosition, lightRadius) && aabbContainsSphere(tile, lightPosition, lightRadius);
+        bool inFrustum = frustumContainsSphere(lightPosition, lightRadius) && aabbContainsSphere(lightPosition, lightRadius);
 #else
-        bool inFrustum = frustumContainsSphere(tile, lightPosition, lightRadius);
+        bool inFrustum = frustumContainsSphere(lightPosition, lightRadius);
 #endif
 
         uint bucketIdx = lightIndex / 32;
@@ -330,15 +350,14 @@ void cullLights(uint tileIndex) {
 #endif
 
 #ifdef DEBUG
-        //if (inFrustum)
-            //atomicAdd(buf_LightTileLightCounts.tileLightCounts[tileIndex], 1);
+        if (inFrustum)
+            atomicAdd(buf_LightTileLightCounts.tileLightCounts[tileIndex], 1);
 #endif
     }
 }
 
 void cullAO(uint tileIndex) {
     // Stage 3: Cull AO spheres against the frustum
-    LightingTile tile = buf_LightTiles.tiles[tileIndex];
     if (gl_LocalInvocationIndex < buf_Lights.aoSphereCount) {
         uint sphereIndex = gl_LocalInvocationIndex;
         AOSphere sph = buf_Lights.aoSphere[sphereIndex];
@@ -346,9 +365,9 @@ void cullAO(uint tileIndex) {
         float cullRadius = sph.radius + 1.0f;
 
 #ifdef CULL_AABB
-        bool inFrustum = frustumContainsSphere(tile, spherePos, cullRadius) && aabbContainsSphere(tile, spherePos, cullRadius);
+        bool inFrustum = frustumContainsSphere(spherePos, cullRadius) && aabbContainsSphere(spherePos, cullRadius);
 #else
-        bool inFrustum = frustumContainsSphere(tile, spherePos, cullRadius);
+        bool inFrustum = frustumContainsSphere(spherePos, cullRadius);
 #endif
 
         uint bucketIdx = sphereIndex / 32;
@@ -373,7 +392,7 @@ void cullAO(uint tileIndex) {
         vec3 scale = getBoxScale(box) + vec3(0.5);
         mat4 transform = getBoxInverseTransform(box);
 
-        bool inFrustum = frustumContainsOBB(tile, scale, transform);
+        bool inFrustum = frustumContainsOBB(scale, transform);
 
         uint bucketIdx = boxIdx / 32;
         uint bucketBit = boxIdx % 32;
@@ -391,14 +410,13 @@ void cullAO(uint tileIndex) {
 }
 
 void cullCubemaps(uint tileIndex) {
-    LightingTile tile = buf_LightTiles.tiles[tileIndex];
     if (gl_LocalInvocationIndex < buf_Lights.cubemapCount && gl_LocalInvocationIndex > 0) {
         uint cubemapIdx = gl_LocalInvocationIndex;
         Cubemap c = buf_Lights.cubemaps[cubemapIdx];
 
         vec3 mi = c.position - c.extent;
         vec3 ma = c.position + c.extent;
-        bool inFrustum = frustumContainsAABB(tile, mi, ma);
+        bool inFrustum = frustumContainsAABB(mi, ma);
 
         uint bucketIdx = cubemapIdx / 32;
         uint bucketBit = cubemapIdx % 32;
@@ -407,42 +425,21 @@ void cullCubemaps(uint tileIndex) {
         // Subgroup fun again
         for (int i = 0; i <= maxBucketId; i++) {
             if (i == bucketIdx) {
-                uint setBits = subgroupOr(uint(inFrustum) << bucketBit);
-                if (subgroupElect())
-                    atomicOr(buf_LightTiles.tiles[tileIndex].cubemapIdMasks[bucketIdx], setBits);
+                //uint setBits = subgroupBroadcastFirst(subgroupOr(uint(inFrustum) << bucketBit));
+                //if (subgroupElect())
+                    atomicOr(buf_LightTiles.tiles[tileIndex].cubemapIdMasks[bucketIdx], uint(inFrustum) << bucketBit);
             }
         }
     }
 }
 
-void clearTile(uint tileIndex) {
-    LightingTile tile = buf_LightTiles.tiles[tileIndex];
-    for (int i = 0; i < 8; i++) {
-        tile.lightIdMasks[i] = 0u;
-    }
-    for (int i = 0; i < 2; i++) {
-        tile.aoSphereIdMasks[i] = 0u;
-        tile.aoBoxIdMasks[i] = 0u;
-        tile.cubemapIdMasks[i] = 0u;
-    }
+void main() {
+    uint x = gl_WorkGroupID.x;
+    uint y = gl_WorkGroupID.y;
+    uint tileIndex = ((y * buf_LightTileInfo.numTilesX) + x) + (eyeIdx * buf_LightTileInfo.tilesPerEye);
 
-    tile.minDepthU = floatBitsToUint(1.0);
-    tile.maxDepthU = 0u;
-    buf_LightTiles.tiles[tileIndex] = tile;
-    buf_LightTileLightCounts.tileLightCounts[tileIndex] = 0;
+    clearBuffers(tileIndex);
 
-    // We don't need to clear the other values in the tile, because they're
-    // always written to.
-}
-
-#ifdef TILE_DEPTH_SHADER
-float minIfInBounds(float depthAtCurrent, ivec2 bounds, ivec2 coord) {
-    if (coord.x < bounds.x && coord.y < bounds.y) {
-        return min(depthAtCurrent, texelFetch(depthBuffer, ivec3(coord, eyeIdx), 0).x);
-    }
-    return depthAtCurrent;
-}
-void calcTileDepth(uint tileIndex) {
     // Stage 1: Determine the depth bounds of the tile using atomics.
     // THIS ONLY WORKS FOR 16x16 TILES.
     // Changing the tile size means that there's no longer a 1:1 correlation between threads
@@ -450,31 +447,16 @@ void calcTileDepth(uint tileIndex) {
     //
     // NOTE: When MSAA is on, the last parameter refers to the MSAA sample to load. When MSAA is
     // off, it refers to the mipmap level to load from.
-#ifdef MSAA
-    ivec2 bounds = textureSize(depthBuffer).xy;
-#else
-    ivec2 bounds = textureSize(depthBuffer, 0).xy;
-#endif
-
 //#define TILES_16
 #ifdef TILES_16
     float depthAtCurrent = texelFetch(depthBuffer, ivec3(gl_GlobalInvocationID.xy, eyeIdx), 0).x;
 #else
     float depthAtCurrent = 1.0;
     ivec2 coord = ivec2(gl_GlobalInvocationID.xy * 2);
-    //depthAtCurrent = min(depthAtCurrent, texelFetch(depthBuffer, ivec3(coord, eyeIdx), 0).x);
-    //depthAtCurrent = min(depthAtCurrent, texelFetch(depthBuffer, ivec3(coord + ivec2(0, 1), eyeIdx), 0).x);
-    //depthAtCurrent = min(depthAtCurrent, texelFetch(depthBuffer, ivec3(coord + ivec2(1, 1), eyeIdx), 0).x);
-    //depthAtCurrent = min(depthAtCurrent, texelFetch(depthBuffer, ivec3(coord + ivec2(1, 0), eyeIdx), 0).x);
-
-    if (coord.x >= bounds.x || coord.y >= bounds.y) {
-        return;
-    }
-
-    depthAtCurrent = minIfInBounds(depthAtCurrent, bounds, coord);
-    depthAtCurrent = minIfInBounds(depthAtCurrent, bounds, coord + ivec2(0, 1));
-    depthAtCurrent = minIfInBounds(depthAtCurrent, bounds, coord + ivec2(1, 1));
-    depthAtCurrent = minIfInBounds(depthAtCurrent, bounds, coord + ivec2(1, 0));
+    depthAtCurrent = min(depthAtCurrent, texelFetch(depthBuffer, ivec3(coord, eyeIdx), 0).x);
+    depthAtCurrent = min(depthAtCurrent, texelFetch(depthBuffer, ivec3(coord + ivec2(0, 1), eyeIdx), 0).x);
+    depthAtCurrent = min(depthAtCurrent, texelFetch(depthBuffer, ivec3(coord + ivec2(1, 1), eyeIdx), 0).x);
+    depthAtCurrent = min(depthAtCurrent, texelFetch(depthBuffer, ivec3(coord + ivec2(1, 0), eyeIdx), 0).x);
 #endif
     uint depthAsUint = floatBitsToUint(depthAtCurrent);
 
@@ -482,57 +464,24 @@ void calcTileDepth(uint tileIndex) {
     // Since the skybox can't receive lighting, there's no point in increasing
     // the depth bounds of the tile to receive the lighting.
     if (depthAtCurrent > 0.0f) {
-        //uint sgMinDepth = subgroupMin(depthAsUint);
-        //uint sgMaxDepth = subgroupMax(depthAsUint);
-
-        //if (subgroupElect()) {
-        //    atomicMin(buf_LightTiles.tiles[tileIndex].minDepthU, sgMinDepth);
-        //    atomicMax(buf_LightTiles.tiles[tileIndex].maxDepthU, sgMaxDepth);
-        //}
-        atomicMin(buf_LightTiles.tiles[tileIndex].minDepthU, depthAsUint);
-        atomicMax(buf_LightTiles.tiles[tileIndex].maxDepthU, depthAsUint);
-        buf_LightTileLightCounts.tileLightCounts[tileIndex] = uint(uintBitsToFloat(buf_LightTiles.tiles[tileIndex].maxDepthU) * 200.0);
-
+        uint sgMinDepth = subgroupMin(depthAsUint);
+        uint sgMaxDepth = subgroupMax(depthAsUint);
+        if (subgroupElect()) {
+            atomicMin(minDepthU, sgMinDepth);
+            atomicMax(maxDepthU, sgMaxDepth);
+        }
     }
-}
-#endif
 
-void main() {
-#if defined(CLEAR_SHADER)
-    uint x = gl_GlobalInvocationID.x;
-    uint y = gl_GlobalInvocationID.y;
-    uint tileIndex = ((y * buf_LightTileInfo.numTilesX) + x) + (eyeIdx * buf_LightTileInfo.tilesPerEye);
+    barrier();
 
-    if (x >= buf_LightTileInfo.numTilesX || y >= buf_LightTileInfo.numTilesY) return;
+    // Stage 2: Calculate frustum points.
+    if (gl_LocalInvocationIndex == 0) {
+        setupTile(tileIndex, x, y);
+    }
 
-    clearTile(tileIndex);
-#elif defined(TILE_DEPTH_SHADER)
-    uint x = gl_WorkGroupID.x;
-    uint y = gl_WorkGroupID.y;
-    uint tileIndex = ((y * buf_LightTileInfo.numTilesX) + x) + (eyeIdx * buf_LightTileInfo.tilesPerEye);
+    barrier();
 
-    if (x >= buf_LightTileInfo.numTilesX || y >= buf_LightTileInfo.numTilesY) return;
-
-    calcTileDepth(tileIndex);
-#elif defined(TILE_SETUP_SHADER)
-    uint x = gl_GlobalInvocationID.x;
-    uint y = gl_GlobalInvocationID.y;
-    uint tileIndex = ((y * buf_LightTileInfo.numTilesX) + x) + (eyeIdx * buf_LightTileInfo.tilesPerEye);
-
-    if (x >= buf_LightTileInfo.numTilesX || y >= buf_LightTileInfo.numTilesY) return;
-
-    setupTile(tileIndex, x, y);
-#elif defined(TILE_CULL_SHADER)
-    uint x = gl_WorkGroupID.x;
-    uint y = gl_WorkGroupID.y;
-    uint tileIndex = ((y * buf_LightTileInfo.numTilesX) + x) + (eyeIdx * buf_LightTileInfo.tilesPerEye);
-
-    if (x >= buf_LightTileInfo.numTilesX || y >= buf_LightTileInfo.numTilesY) return;
-
-    cullLights(tileIndex);
     cullAO(tileIndex);
     cullCubemaps(tileIndex);
-#else
-#error What???
-#endif
+    cullLights(tileIndex);
 }

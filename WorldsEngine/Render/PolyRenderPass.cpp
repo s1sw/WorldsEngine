@@ -398,7 +398,7 @@ namespace worlds {
         uiPass->setup(ctx, renderPass, descriptorPool);
 
         lightCullPass = new LightCullPass(handles, depthResource);
-        lightCullPass->setup(ctx, lightsUB, lightTileInfoBuffer.buffer(), lightTilesBuffer, lightTileLightCountBuffer.buffer(), descriptorPool);
+        lightCullPass->setup(ctx, lightsUB, lightTileInfoBuffer.buffer(), lightTilesBuffer.buffer(), lightTileLightCountBuffer.buffer(), descriptorPool);
 
         mainPass = new MainPass(handles, pipelineLayout);
 
@@ -463,7 +463,7 @@ namespace worlds {
         updateDescriptorSets(ctx);
 
         bloomPass->resizeInternalBuffers(ctx);
-        lightCullPass->changeLightTileBuffers(ctx, lightTilesBuffer, lightTileLightCountBuffer.buffer());
+        lightCullPass->changeLightTileBuffers(ctx, lightTilesBuffer.buffer(), lightTileLightCountBuffer.buffer());
         lightCullPass->resizeInternalBuffers(ctx);
     }
 

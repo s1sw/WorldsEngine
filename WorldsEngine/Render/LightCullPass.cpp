@@ -30,7 +30,7 @@ namespace worlds {
         }
     }
 
-    void LightCullPass::changeLightTileBuffers(RenderContext& ctx, vku::GenericBuffer& lightTileBuffer, VkBuffer lightTileLightCountBuffer) {
+    void LightCullPass::changeLightTileBuffers(RenderContext& ctx, VkBuffer lightTilesBuffer, VkBuffer lightTileLightCountBuffer) {
         vku::DescriptorSetUpdater dsu;
         for (VkDescriptorSet ds : descriptorSet) {
             dsu.beginDescriptorSet(ds);
@@ -47,21 +47,17 @@ namespace worlds {
             dsu.buffer(lightTileLightCountBuffer, 0, sizeof(uint32_t) * numLightTiles);
 
             dsu.beginBuffers(5, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-            dsu.buffer(lightTileBuffer.buffer(), 0, sizeof(LightingTile) * numLightTiles);
+            dsu.buffer(lightTilesBuffer, 0, sizeof(LightingTile) * numLightTiles);
 
             dsu.update(handles->device);
         }
-
-        this->lightTileBuffer = &lightTileBuffer;
     }
 
     void LightCullPass::setup(
             RenderContext& ctx,
             std::vector<vku::GenericBuffer>& lightBuffers, VkBuffer lightTileInfoBuffer,
-            vku::GenericBuffer& lightTileBuffer, VkBuffer lightTileLightCountBuffer,
+            VkBuffer lightTilesBuffer, VkBuffer lightTileLightCountBuffer,
             VkDescriptorPool descriptorPool) {
-
-        this->lightTileBuffer = &lightTileBuffer;
 
         int tileSize = LightUB::LIGHT_TILE_SIZE;
         const int xTiles = (ctx.passWidth + (tileSize - 1)) / tileSize;
@@ -71,47 +67,27 @@ namespace worlds {
         if (ctx.passSettings.enableVr)
             numLightTiles *= 2;
 
-        AssetID depthShaderMsaa = AssetDB::pathToId("Shaders/light_cull_tile_depth.comp.spv");
-        AssetID depthShaderNoMsaa = AssetDB::pathToId("Shaders/light_cull_tile_depth_nomsaa.comp.spv");
-        AssetID depthShaderID = ctx.passSettings.msaaLevel > 1 ? depthShaderMsaa : depthShaderNoMsaa;
+        AssetID shaderMsaa = AssetDB::pathToId("Shaders/light_cull.comp.spv");
+        AssetID shaderNoMsaa = AssetDB::pathToId("Shaders/light_cull_nomsaa.comp.spv");
+        AssetID shaderID = ctx.passSettings.msaaLevel > 1 ? shaderMsaa : shaderNoMsaa;
 
-        ShaderReflector reflector{depthShaderID};
+        ShaderReflector reflector{shaderID};
         dsl = reflector.createDescriptorSetLayout(handles->device, 0);
+
 
         vku::PipelineLayoutMaker plm;
         plm.descriptorSetLayout(dsl);
         plm.pushConstantRange(VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(LightCullPushConstants));
         pipelineLayout = plm.create(handles->device);
 
+        shader = ShaderCache::getModule(handles->device, shaderID);
+
         vku::SamplerMaker sm;
         sampler = sm.create(handles->device);
 
-        {
-            AssetID clearShader = AssetDB::pathToId("Shaders/light_cull_tile_clear.comp.spv");
-            vku::ComputePipelineMaker pm;
-            pm.shader(VK_SHADER_STAGE_COMPUTE_BIT, ShaderCache::getModule(handles->device, clearShader));
-            clearPipeline = pm.create(handles->device, handles->pipelineCache, pipelineLayout);
-        }
-
-        {
-            vku::ComputePipelineMaker pm;
-            pm.shader(VK_SHADER_STAGE_COMPUTE_BIT, ShaderCache::getModule(handles->device, depthShaderID));
-            depthPipeline = pm.create(handles->device, handles->pipelineCache, pipelineLayout);
-        }
-
-        {
-            AssetID setupShader = AssetDB::pathToId("Shaders/light_cull_tile_setup.comp.spv");
-            vku::ComputePipelineMaker pm;
-            pm.shader(VK_SHADER_STAGE_COMPUTE_BIT, ShaderCache::getModule(handles->device, setupShader));
-            setupPipeline = pm.create(handles->device, handles->pipelineCache, pipelineLayout);
-        }
-
-        {
-            AssetID cullShader = AssetDB::pathToId("Shaders/light_cull_tile_cull.comp.spv");
-            vku::ComputePipelineMaker pm;
-            pm.shader(VK_SHADER_STAGE_COMPUTE_BIT, ShaderCache::getModule(handles->device, cullShader));
-            cullPipeline = pm.create(handles->device, handles->pipelineCache, pipelineLayout);
-        }
+        vku::ComputePipelineMaker pm;
+        pm.shader(VK_SHADER_STAGE_COMPUTE_BIT, shader);
+        pipeline = pm.create(handles->device, handles->pipelineCache, pipelineLayout);
 
         vku::DescriptorSetMaker dsm;
         dsm.layout(dsl);
@@ -139,7 +115,7 @@ namespace worlds {
             dsu.buffer(lightTileLightCountBuffer, 0, sizeof(uint32_t) * numLightTiles);
 
             dsu.beginBuffers(5, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-            dsu.buffer(lightTileBuffer.buffer(), 0, sizeof(LightingTile) * numLightTiles);
+            dsu.buffer(lightTilesBuffer, 0, sizeof(LightingTile) * numLightTiles);
             idx++;
         }
 
@@ -161,6 +137,7 @@ namespace worlds {
             VK_ACCESS_SHADER_READ_BIT, VK_IMAGE_ASPECT_DEPTH_BIT);
 
         vkCmdBindDescriptorSets(cmdBuf, VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, 0, 1, &descriptorSet[ctx.frameIndex], 0, nullptr);
+        vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline);
 
         LightCullPushConstants lcpc{
             .invViewProj = (ctx.projMatrices[0] * ctx.viewMatrices[0]),
@@ -170,45 +147,10 @@ namespace worlds {
         };
 
         vkCmdPushConstants(cmdBuf, pipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(lcpc), &lcpc);
+
         const int xTiles = (ctx.passWidth + (tileSize - 1)) / tileSize;
         const int yTiles = (ctx.passHeight + (tileSize - 1)) / tileSize;
-        const int xTilesDispatch = ((xTiles + 15) / 16) + 1;
-        const int yTilesDispatch = ((yTiles + 15) / 16) + 1;
 
-        // 1. Clear shader
-        vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_COMPUTE, clearPipeline);
-        vkCmdDispatch(cmdBuf, xTilesDispatch, yTilesDispatch, 1);
-        lightTileBuffer->barrier(
-            cmdBuf,
-            VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-            VK_DEPENDENCY_BY_REGION_BIT,
-            VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT,
-            VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED
-        );
-
-        vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_COMPUTE, depthPipeline);
-        vkCmdDispatch(cmdBuf, xTiles, yTiles, 1);
-
-        lightTileBuffer->barrier(
-            cmdBuf,
-            VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-            VK_DEPENDENCY_BY_REGION_BIT,
-            VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT,
-            VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED
-        );
-
-        vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_COMPUTE, setupPipeline);
-        vkCmdDispatch(cmdBuf, xTilesDispatch, yTilesDispatch, 1);
-
-        lightTileBuffer->barrier(
-            cmdBuf,
-            VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-            VK_DEPENDENCY_BY_REGION_BIT,
-            VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT,
-            VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED
-        );
-
-        vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_COMPUTE, cullPipeline);
         vkCmdDispatch(cmdBuf, xTiles, yTiles, 1);
 
         if (ctx.passSettings.enableVr) {
