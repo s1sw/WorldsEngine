@@ -21,10 +21,6 @@ const customArgs = {
         { stage: "comp", defines: ["MSAA"], outFile: "tonemap.comp.spv" },
         { stage: "comp", defines: [], outFile: "tonemap_nomsaa.comp.spv" }
     ],
-    "light_cull.comp.glsl": [
-        { stage: "comp", defines: ["MSAA"], outFile: "light_cull.comp.spv" },
-        { stage: "comp", defines: [], outFile: "light_cull_nomsaa.comp.spv" }
-    ],
     "ui.glsl": [
         { stage: "frag", defines: ["FRAGMENT"], outFile: "ui.frag.spv" },
         { stage: "vert", defines: ["VERTEX"], outFile: "ui.vert.spv" }
@@ -38,6 +34,13 @@ const customArgs = {
         { stage: "comp", defines: ["UPSAMPLE"], outFile: "bloom_blur_upsample.comp.spv" },
         { stage: "comp", defines: [], outFile: "bloom_blur.comp.spv" }
     ],
+    "light_cull.comp.glsl": [
+        { stage: "comp", defines: ["CLEAR_SHADER"], outFile: "light_cull_tile_clear.comp.spv"},
+        { stage: "comp", defines: ["TILE_DEPTH_SHADER"], outFile: "light_cull_tile_depth_nomsaa.comp.spv"},
+        { stage: "comp", defines: ["TILE_DEPTH_SHADER","MSAA"], outFile: "light_cull_tile_depth.comp.spv"},
+        { stage: "comp", defines: ["TILE_SETUP_SHADER"], outFile: "light_cull_tile_setup.comp.spv"},
+        { stage: "comp", defines: ["TILE_CULL_SHADER"], outFile: "light_cull_tile_cull.comp.spv"}
+    ]
 };
 
 function findSourceFiles(dir) {
