@@ -22,7 +22,7 @@ class CircularMotion : Component, IThinkingComponent, IStartListener
         const float Radius = 5.0f;
 
         WorldLight light = Registry.GetComponent<WorldLight>(Entity);
-        light.Intensity = (float)Math.Sin(Time.CurrentTime + _offset) + 3.5f;
+        //light.Intensity = (float)Math.Sin(Time.CurrentTime + _offset) + 3.5f;
         Transform nextT = _initialTransform;
         nextT.Position = _initialTransform.Position + new Vector3(
             (float)Math.Sin((Time.CurrentTime + _offset) * 2.0) * Radius,
