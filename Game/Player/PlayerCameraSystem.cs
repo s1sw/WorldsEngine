@@ -35,7 +35,7 @@ public class PlayerCameraSystem : ISystem
 
         if (!VR.Enabled)
         {
-            return (bodyDpa.Pose.Position) + _toFloor + new Vector3(0.0f, 1.85f, 0.0f);
+            return (bodyDpa.Pose.Position) + _toFloor + new Vector3(0.0f, 1.7f, 0.0f);
         }
         else
         {
@@ -61,7 +61,7 @@ public class PlayerCameraSystem : ISystem
             else
             {
                 Transform bodyTransform = Registry.GetTransform(LocalPlayerSystem.PlayerBody);
-                return bodyTransform.Position + _toFloor + new Vector3(0.0f, 1.85f, 0.0f);
+                return bodyTransform.Position + _toFloor + new Vector3(0.0f, 1.7f, 0.0f);
             }
         }
     }
@@ -124,7 +124,7 @@ public class PlayerCameraSystem : ISystem
                 Camera.Main.Rotation = cameraRotation;
                 Transform bodyTransform = Registry.GetTransform(LocalPlayerSystem.PlayerBody);
                 Vector3 manualBpos = Vector3.Lerp(_lastLastBodyPos, _lastBodyPos, Time.InterpolationAlpha);
-                Camera.Main.Position = manualBpos + _toFloor + new Vector3(0.0f, 1.85f, 0.0f);
+                Camera.Main.Position = manualBpos + _toFloor + new Vector3(0.0f, 1.7f, 0.0f);
             }
         }
         else
