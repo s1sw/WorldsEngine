@@ -4,13 +4,6 @@ using WorldsEngine.Math;
 
 namespace Game.Util;
 
-public struct TwoBoneIKSolveResult
-{
-    public Quaternion UpperRotation;
-    public Quaternion LowerRotation;
-    public Vector3 LowerPosition;
-}
-
 public class TwoBoneIK
 {
     public readonly float UpperLength;
@@ -37,9 +30,8 @@ public class TwoBoneIK
         _lowerDisplacement = lowerDisplacement;
     }
 
-    public TwoBoneIKSolveResult Solve(Transform upper, Transform lower, Transform target, Vector3 pole)
+    public Quaternion GetUpperRotation(Transform upper, Transform target, Vector3 pole)
     {
-        Log.Msg($"up: {upper.Position}");
         float a = UpperLength;
         float b = upper.Position.DistanceTo(target.Position);
         float c = LowerLength;
@@ -47,14 +39,13 @@ public class TwoBoneIK
         Quaternion upperRotation = Quaternion.LookAt(target.Position - upper.Position, pole);
         upperRotation = Quaternion.AngleAxis(CosineRule(a, b, c), -pole) * upperRotation;
 
-        lower.Position = upper.Position + (upperRotation * _lowerDisplacement);
+        return upperRotation;
+    }
 
+    public Quaternion GetLowerRotation(Transform lower, Transform target, Vector3 pole)
+    {
         Quaternion lowerRotation = Quaternion.LookAt(target.Position - lower.Position, pole);
 
-        return new TwoBoneIKSolveResult() {
-            UpperRotation = upperRotation,
-            LowerRotation = lowerRotation,
-            LowerPosition = lower.Position
-        };
+        return lowerRotation;
     }
 }
