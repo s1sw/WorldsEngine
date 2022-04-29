@@ -644,7 +644,7 @@ namespace worlds {
     void drawPhysicsCapsule(const Transform& actorTransform, const PhysicsShape& ps) {
         Transform shapeTransform{ps.pos * actorTransform.scale, ps.rot};
         shapeTransform = shapeTransform.transformBy(actorTransform);
-        drawCapsule(shapeTransform.position, glm::quat{glm::vec3{glm::half_pi<float>(), 0.0f, 0.0f}} * shapeTransform.rotation, ps.capsule.height * 0.5f, ps.capsule.radius, physShapeColor);
+        drawCapsule(shapeTransform.position, shapeTransform.rotation * glm::quat{glm::vec3{0.0f, 0.0f, glm::half_pi<float>()}}, ps.capsule.height * 0.5f, ps.capsule.radius, physShapeColor);
     }
 
     void drawPhysicsMesh(const Transform& actorTransform, const PhysicsShape& ps) {
