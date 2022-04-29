@@ -91,6 +91,10 @@ namespace worlds {
     void drawCapsule(glm::vec3 center, glm::quat rotation, float height, float radius, glm::vec4 color) {
         drawSphere(center + rotation * glm::vec3(0.0f, height, 0.0f), rotation, radius, color);
         drawSphere(center - rotation * glm::vec3(0.0f, height, 0.0f), rotation, radius, color);
+        drawLine(center + rotation * glm::vec3(0.0f, height, radius), center + rotation * glm::vec3(0.0f, -height, radius), color);
+        drawLine(center + rotation * glm::vec3(0.0f, height, -radius), center + rotation * glm::vec3(0.0f, -height, -radius), color);
+        drawLine(center + rotation * glm::vec3(radius, height, 0.0f), center + rotation * glm::vec3(radius, -height, 0.0f), color);
+        drawLine(center + rotation * glm::vec3(-radius, height, 0.0f), center + rotation * glm::vec3(-radius, -height, 0.0f), color);
     }
 
     const DebugLine* swapDebugLineBuffer(size_t& numLines) {
