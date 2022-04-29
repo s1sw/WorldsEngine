@@ -19,6 +19,8 @@ namespace WorldsEngine.Math
             }
         }
 
+        public float MaxComponent => MathF.Max(x, y);
+
         public float x, y;
 
         public Vector2(float x, float y)
