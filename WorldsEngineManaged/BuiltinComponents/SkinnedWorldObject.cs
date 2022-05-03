@@ -97,9 +97,14 @@ namespace WorldsEngine
             skinnedWorldObject_setBoneTransform(regPtr, entityId, boneIdx, ref t);
         }
 
-        public void SetBoneWorldSpaceTransform(uint boneIdx, Transform t, Transform componentTransform)
+        public void SetBoneWorldSpaceTransform(uint boneIdx, Transform t)
         {
-            SetBoneTransform(boneIdx, t.TransformByInverse(componentTransform).TransformByInverse(GetBoneComponentSpaceTransform((uint)MeshManager.GetMesh(Mesh).GetBone((int)boneIdx).Parent)));
+            SetBoneTransform(boneIdx, t.TransformByInverse(Registry.GetTransform(new Entity(entityId))).TransformByInverse(GetBoneComponentSpaceTransform((uint)MeshManager.GetMesh(Mesh).GetBone((int)boneIdx).Parent)));
+        }
+
+        public Transform GetBoneWorldSpaceTransform(uint boneIdx)
+        {
+            return GetBoneComponentSpaceTransform(boneIdx).TransformBy(Registry.GetTransform(new Entity(entityId)));
         }
     }
 }

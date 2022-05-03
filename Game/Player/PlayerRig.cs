@@ -16,8 +16,10 @@ namespace Game.Player;
 [EditorFriendlyName("Player Rig")]
 public class PlayerRig : Component, IThinkingComponent, IStartListener
 {
-    public const float NormalMoveSpeed = 5.0f;
-    public const float SprintMoveSpeed = 8.0f;
+    public const float NormalMoveSpeed = 3.0f;
+    public const float SprintMoveSpeed = 6.0f;
+
+    public bool Grounded => _grounded;
 
     private bool _grounded = false;
     private bool _groundedLast = false;

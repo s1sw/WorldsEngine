@@ -17,6 +17,8 @@ public class PlayerSkeletonMatch : Component, IStartListener, IUpdateableCompone
     private TwoBoneIK _rightHandIK;
     private TwoBoneIK _legIK;
 
+    private static Vector3 groundOffset = new(0.0f, -0.95f, -0.23f);
+
     public void Start()
     {
         var swo = Entity.GetComponent<SkinnedWorldObject>();
@@ -26,13 +28,8 @@ public class PlayerSkeletonMatch : Component, IStartListener, IUpdateableCompone
         var mesh = MeshManager.GetMesh(swo.Mesh);
         var lh = mesh.GetBone("hand_L");
         var rh = mesh.GetBone("hand_R");
-        Log.Msg($"lh id: {lh.ID}");
-        Log.Msg($"lh name: {lh.Name}");
-        Log.Msg($"rh id: {rh.ID}");
-        Log.Msg($"rh name: {rh.Name}");
 
         int parentIdx = (int)lh.Parent;
-        Log.Msg($"{lh.RestPose.Rotation}  {swo.GetBoneTransform((uint)lh.ID).Rotation}");
 
         while (parentIdx != -1)
         {
@@ -64,7 +61,7 @@ public class PlayerSkeletonMatch : Component, IStartListener, IUpdateableCompone
     {
         var swo = Entity.GetComponent<SkinnedWorldObject>();
         var root = MeshManager.GetBoneIndex(swo.Mesh, "root");
-        var rootTransform = new Transform(Vector3.Down * 0.9f + Vector3.Backward * 0.23f, _initialT.Rotation);
+        var rootTransform = new Transform(groundOffset, _initialT.Rotation);
         swo.SetBoneTransform(MeshManager.GetBoneIndex(swo.Mesh, "root"), rootTransform);
 
         LeftArmUpdate();
@@ -81,16 +78,18 @@ public class PlayerSkeletonMatch : Component, IStartListener, IUpdateableCompone
         var wsTarget = LocalPlayerSystem.LeftHand.Transform;
         var targetTransform = wsTarget.TransformByInverse(Entity.Transform);
         // Fix rotation
-        targetTransform.Rotation *= new Quaternion(new Vector3(MathF.PI * 0.25f, 0f, -MathF.PI * 0.25f));
+        targetTransform.Rotation *= new Quaternion(new Vector3(MathF.PI * 0.5f, 0f, -MathF.PI * 0.5f));
         targetTransform = targetTransform.TransformBy(Entity.Transform);
 
         var mesh = MeshManager.GetMesh(swo.Mesh);
         var lowerArm = mesh.GetBone("lowerarm_L");
         var upperArm = mesh.GetBone("upperarm_L");
         var hand = mesh.GetBone("hand_L");
-        swo.SetBoneWorldSpaceTransform(hand.ID, targetTransform, Entity.Transform);
 
         var upperArmWS = swo.GetBoneComponentSpaceTransform(upperArm.ID).TransformBy(Entity.Transform);
+
+        targetTransform.Position = upperArmWS.Position + (targetTransform.Position - upperArmWS.Position).ClampMagnitude(_leftHandIK.LowerLength + _leftHandIK.UpperLength);
+        swo.SetBoneWorldSpaceTransform(hand.ID, targetTransform);
 
         // Calculate pole
         Vector3 poleCandidate1 = wsTarget.TransformDirection(Vector3.Right);
@@ -100,14 +99,14 @@ public class PlayerSkeletonMatch : Component, IStartListener, IUpdateableCompone
         Vector3 pole = Vector3.Cross(upperArmWS.Position.DirectionTo(wsTarget.Position), perpendicularPole);
 
         var upperRotation = _leftHandIK.GetUpperRotation(upperArmWS, wsTarget, pole);
-        upperArmWS.Rotation = upperRotation * new Quaternion(new Vector3(MathF.PI * 0.25f, 0f, MathF.PI * 0.25f));
+        upperArmWS.Rotation = upperRotation * new Quaternion(new Vector3(MathF.PI * 0.5f, 0f, MathF.PI * 0.5f));
 
-        swo.SetBoneWorldSpaceTransform(upperArm.ID, upperArmWS, Entity.Transform);
+        swo.SetBoneWorldSpaceTransform(upperArm.ID, upperArmWS);
 
         var lowerArmWS = swo.GetBoneComponentSpaceTransform(lowerArm.ID).TransformBy(Entity.Transform);
         var lowerRotation = _leftHandIK.GetLowerRotation(lowerArmWS, wsTarget, pole);
-        lowerArmWS.Rotation = lowerRotation * new Quaternion(new Vector3(MathF.PI * 0.25f, 0f, MathF.PI * 0.25f));
-        swo.SetBoneWorldSpaceTransform(lowerArm.ID, lowerArmWS, Entity.Transform);
+        lowerArmWS.Rotation = lowerRotation * new Quaternion(new Vector3(MathF.PI * 0.5f, 0f, MathF.PI * 0.5f));
+        swo.SetBoneWorldSpaceTransform(lowerArm.ID, lowerArmWS);
     }
 
     private void RightArmUpdate()
@@ -116,7 +115,7 @@ public class PlayerSkeletonMatch : Component, IStartListener, IUpdateableCompone
         var wsTarget = LocalPlayerSystem.RightHand.Transform;
         var targetTransform = wsTarget.TransformByInverse(Entity.Transform);
         // Fix rotation
-        targetTransform.Rotation *= new Quaternion(new Vector3(MathF.PI * 0.25f, 0f, MathF.PI * 0.25f));
+        targetTransform.Rotation *= new Quaternion(new Vector3(MathF.PI * 0.5f, 0f, MathF.PI * 0.5f));
         targetTransform = targetTransform.TransformBy(Entity.Transform);
 
         var mesh = MeshManager.GetMesh(swo.Mesh);
@@ -124,9 +123,11 @@ public class PlayerSkeletonMatch : Component, IStartListener, IUpdateableCompone
         var upperArm = mesh.GetBone("upperarm_R");
         var hand = mesh.GetBone("hand_R");
 
-        swo.SetBoneWorldSpaceTransform(hand.ID, targetTransform, Entity.Transform);
+        var upperArmWS = swo.GetBoneWorldSpaceTransform(upperArm.ID);
 
-        var upperArmWS = swo.GetBoneComponentSpaceTransform(upperArm.ID).TransformBy(Entity.Transform);
+        targetTransform.Position = upperArmWS.Position + (targetTransform.Position - upperArmWS.Position).ClampMagnitude(_rightHandIK.LowerLength + _rightHandIK.UpperLength);
+        swo.SetBoneWorldSpaceTransform(hand.ID, targetTransform);
+
 
         // Calculate pole
         Vector3 poleCandidate1 = wsTarget.TransformDirection(Vector3.Left);
@@ -136,14 +137,14 @@ public class PlayerSkeletonMatch : Component, IStartListener, IUpdateableCompone
         Vector3 pole = Vector3.Cross(upperArmWS.Position.DirectionTo(wsTarget.Position), perpendicularPole);
 
         var upperRotation = _leftHandIK.GetUpperRotation(upperArmWS, wsTarget, pole);
-        upperArmWS.Rotation = upperRotation * new Quaternion(new Vector3(MathF.PI * 0.25f, 0f, MathF.PI * 0.25f));
+        upperArmWS.Rotation = upperRotation * new Quaternion(new Vector3(MathF.PI * 0.5f, 0f, MathF.PI * 0.5f));
 
-        swo.SetBoneWorldSpaceTransform(upperArm.ID, upperArmWS, Entity.Transform);
+        swo.SetBoneWorldSpaceTransform(upperArm.ID, upperArmWS);
 
         var lowerArmWS = swo.GetBoneComponentSpaceTransform(lowerArm.ID).TransformBy(Entity.Transform);
         var lowerRotation = _leftHandIK.GetLowerRotation(lowerArmWS, wsTarget, pole);
-        lowerArmWS.Rotation = lowerRotation * new Quaternion(new Vector3(MathF.PI * 0.25f, 0f, MathF.PI * 0.25f));
-        swo.SetBoneWorldSpaceTransform(lowerArm.ID, lowerArmWS, Entity.Transform);
+        lowerArmWS.Rotation = lowerRotation * new Quaternion(new Vector3(MathF.PI * 0.5f, 0f, MathF.PI * 0.5f));
+        swo.SetBoneWorldSpaceTransform(lowerArm.ID, lowerArmWS);
     }
 
     private Vector3 _leftFootTarget = new();
@@ -153,11 +154,6 @@ public class PlayerSkeletonMatch : Component, IStartListener, IUpdateableCompone
     private Vector3 _nextRightStep;
     private float _leftStepProgress = 0.0f;
     private float _rightStepProgress = 0.0f;
-
-    private float PhaseOffset(float v)
-    {
-        return (v + 0.5f) % 1f;
-    }
 
     private Vector3 _oldLpos;
     private Vector3 _oldRpos;
@@ -172,16 +168,21 @@ public class PlayerSkeletonMatch : Component, IStartListener, IUpdateableCompone
 
     private void UpdateFeetTargets()
     {
-        Vector3 groundOffset = new(0.0f, -0.9f, -0.23f);
-
         const float footX = 0.19f;
         const float stepTime = 0.1f;
 
         Vector3 localLF = groundOffset + Vector3.Left * footX;
         Vector3 localRF = groundOffset + Vector3.Right * footX;
         Vector3 velocity = Entity.GetComponent<DynamicPhysicsActor>().Velocity;
-        float stride = 5f * stepTime * 2f;
-        ImGuiNET.ImGui.Text($"stride: {stride}");
+        float stride = _legIK.LowerLength + _legIK.UpperLength;
+        bool grounded = Entity.GetComponent<PlayerRig>().Grounded;
+
+        if (!grounded)
+        {
+            _leftFootTarget = Entity.Transform.TransformPoint(localLF) + Vector3.Up * 0.2f;
+            _rightFootTarget = Entity.Transform.TransformPoint(localRF) + Vector3.Up * 0.2f;
+            return;
+        }
 
         if (velocity.Length < 0.1f)
         {
@@ -193,14 +194,13 @@ public class PlayerSkeletonMatch : Component, IStartListener, IUpdateableCompone
             _timeSinceMovement = 0.0f;
             _timeSinceMovementStart += Time.DeltaTime;
         }
-        ImGuiNET.ImGui.Text($"tsms: {_timeSinceMovementStart}");
 
         Vector3 movementDir = Entity.Transform.InverseTransformDirection(velocity.Normalized);
 
         if (_timeSinceMovement > 0f && !_standingStraight)
         {
             _leftStepProgress = 0.0f;
-            _oldLpos = _nextLeftStep;
+            _oldLpos = _leftFootTarget;
             _nextLeftStep = Entity.Transform.TransformPoint(localLF);
             _leftStep = true;
 
@@ -214,9 +214,13 @@ public class PlayerSkeletonMatch : Component, IStartListener, IUpdateableCompone
         else if (_timeSinceMovementStart > 0f && _standingStraight)
         {
             _standingStraight = false;
-            _wasLastStepLeft = false;
-        }
 
+            _leftStepProgress = 0.0f;
+            _oldLpos = _leftFootTarget;
+            _nextLeftStep = Entity.Transform.TransformPoint(localLF + movementDir * stride);
+            _leftStep = true;
+            _wasLastStepLeft = true;
+        }
 
         if (Entity.Transform.TransformPoint(groundOffset).DistanceTo(_lastGroundPos) > stride)
         {
@@ -249,7 +253,7 @@ public class PlayerSkeletonMatch : Component, IStartListener, IUpdateableCompone
             if (_leftStepProgress >= 1f)
             {
                 _leftStep = false;
-                Audio.PlayOneShotEvent("event:/Player/Walking", Vector3.Zero);
+                Audio.PlayOneShotEvent("event:/Player/Walking", _leftFootTarget);
             }
         }
 
@@ -263,7 +267,7 @@ public class PlayerSkeletonMatch : Component, IStartListener, IUpdateableCompone
             if (_rightStepProgress >= 1f)
             {
                 _rightStep = false;
-                Audio.PlayOneShotEvent("event:/Player/Walking", Vector3.Zero);
+                Audio.PlayOneShotEvent("event:/Player/Walking", _rightFootTarget);
             }
         }
     }
@@ -274,7 +278,7 @@ public class PlayerSkeletonMatch : Component, IStartListener, IUpdateableCompone
         var mesh = MeshManager.GetMesh(swo.Mesh);
         var calf = mesh.GetBone("calf_R");
         var thigh = mesh.GetBone("thigh_R");
-        var hand = mesh.GetBone("foot_R");
+        var foot = mesh.GetBone("foot_R");
 
         var wsTarget = new Transform(_rightFootTarget, Quaternion.Identity);
 
@@ -283,17 +287,21 @@ public class PlayerSkeletonMatch : Component, IStartListener, IUpdateableCompone
         // Calculate pole
         Vector3 pole = Entity.Transform.TransformDirection(Vector3.Right);
 
-        var upperRotation = _legIK.GetUpperRotation(upperArmWS, wsTarget, pole);
+        var upperRotation = _legIK.GetUpperRotation(upperArmWS, wsTarget, -pole);
         //upperRotation = upperRotation * Quaternion.AngleAxis(MathF.PI, Vector3.Forward);
-        upperArmWS.Rotation = upperRotation * new Quaternion(new Vector3(MathF.PI * 0.25f, 0f, MathF.PI * 0.25f));
+        upperArmWS.Rotation = upperRotation * new Quaternion(new Vector3(MathF.PI * 0.5f, 0f, -MathF.PI * 0.5f));
 
-        swo.SetBoneWorldSpaceTransform(thigh.ID, upperArmWS, Entity.Transform);
+        swo.SetBoneWorldSpaceTransform(thigh.ID, upperArmWS);
 
         var lowerArmWS = swo.GetBoneComponentSpaceTransform(calf.ID).TransformBy(Entity.Transform);
         var lowerRotation = _legIK.GetLowerRotation(lowerArmWS, wsTarget, pole);
         //lowerRotation = lowerRotation * Quaternion.AngleAxis(MathF.PI, Vector3.Forward);
-        lowerArmWS.Rotation = lowerRotation * new Quaternion(new Vector3(MathF.PI * 0.25f, 0f, MathF.PI * 0.25f));
-        swo.SetBoneWorldSpaceTransform(calf.ID, lowerArmWS, Entity.Transform);
+        lowerArmWS.Rotation = lowerRotation * new Quaternion(new Vector3(MathF.PI * 0.5f, 0f, MathF.PI * 0.5f));
+        swo.SetBoneWorldSpaceTransform(calf.ID, lowerArmWS);
+
+        var footws = swo.GetBoneComponentSpaceTransform(foot.ID).TransformBy(Entity.Transform);
+        footws.Rotation = Entity.Transform.Rotation * new Quaternion(new Vector3(-MathF.PI * 0.5f, MathF.PI, 0f));
+        swo.SetBoneWorldSpaceTransform(foot.ID, footws);
     }
 
     private void LeftLegUpdate()
@@ -302,7 +310,7 @@ public class PlayerSkeletonMatch : Component, IStartListener, IUpdateableCompone
         var mesh = MeshManager.GetMesh(swo.Mesh);
         var calf = mesh.GetBone("calf_L");
         var thigh = mesh.GetBone("thigh_L");
-        var hand = mesh.GetBone("foot_L");
+        var foot = mesh.GetBone("foot_L");
 
         var wsTarget = new Transform(_leftFootTarget, Quaternion.Identity);
 
@@ -313,15 +321,19 @@ public class PlayerSkeletonMatch : Component, IStartListener, IUpdateableCompone
 
         var upperRotation = _legIK.GetUpperRotation(upperArmWS, wsTarget, pole);
         upperRotation = upperRotation * Quaternion.AngleAxis(MathF.PI, Vector3.Forward);
-        upperArmWS.Rotation = upperRotation * new Quaternion(new Vector3(MathF.PI * 0.25f, 0.0f, MathF.PI * 0.25f));
+        upperArmWS.Rotation = upperRotation * new Quaternion(new Vector3(MathF.PI * 0.5f, 0.0f, MathF.PI * 0.5f));
 
-        swo.SetBoneWorldSpaceTransform(thigh.ID, upperArmWS, Entity.Transform);
+        swo.SetBoneWorldSpaceTransform(thigh.ID, upperArmWS);
 
         var lowerArmWS = swo.GetBoneComponentSpaceTransform(calf.ID).TransformBy(Entity.Transform);
         var lowerRotation = _legIK.GetLowerRotation(lowerArmWS, wsTarget, pole);
         lowerRotation = lowerRotation * Quaternion.AngleAxis(MathF.PI, Vector3.Forward);
-        upperArmWS.Rotation = upperRotation * new Quaternion(new Vector3(MathF.PI * 0.25f, 0.0f, MathF.PI * 0.25f));
-        lowerArmWS.Rotation = lowerRotation * new Quaternion(new Vector3(MathF.PI * 0.25f, 0f, MathF.PI * 0.25f));
-        swo.SetBoneWorldSpaceTransform(calf.ID, lowerArmWS, Entity.Transform);
+        upperArmWS.Rotation = upperRotation * new Quaternion(new Vector3(MathF.PI * 0.5f, 0.0f, MathF.PI * 0.5f));
+        lowerArmWS.Rotation = lowerRotation * new Quaternion(new Vector3(MathF.PI * 0.5f, 0f, MathF.PI * 0.5f));
+        swo.SetBoneWorldSpaceTransform(calf.ID, lowerArmWS);
+
+        var footws = swo.GetBoneComponentSpaceTransform(foot.ID).TransformBy(Entity.Transform);
+        footws.Rotation = Entity.Transform.Rotation * new Quaternion(new Vector3(-MathF.PI * 0.5f, MathF.PI, 0f));
+        swo.SetBoneWorldSpaceTransform(foot.ID, footws);
     }
 }
