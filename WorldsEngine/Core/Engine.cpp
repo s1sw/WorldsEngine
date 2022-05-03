@@ -1334,7 +1334,7 @@ namespace worlds {
 
             float alpha = simAccumulator / simStepTime.getFloat();
 
-            if (disableSimInterp.getInt())
+            if (disableSimInterp.getInt() || simStepTime.getFloat() < deltaTime)
                 alpha = 1.0f;
 
             registry.view<DynamicPhysicsActor, Transform>().each([&](entt::entity ent, DynamicPhysicsActor& dpa, Transform& transform) {
