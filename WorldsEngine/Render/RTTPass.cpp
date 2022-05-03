@@ -498,6 +498,7 @@ namespace worlds {
         for (int i = 0; i < 2; i++) {
             vp.projections[i] = rCtx.projMatrices[i];
             vp.views[i] = rCtx.viewMatrices[i];
+            vp.inverseVP[i] = glm::inverse(rCtx.projMatrices[i] * rCtx.viewMatrices[i]);
             vp.viewPos[i] = glm::inverse(vp.views[i])[3];
         }
 

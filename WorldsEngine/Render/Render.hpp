@@ -37,6 +37,7 @@ namespace worlds {
     struct MultiVP {
         glm::mat4 views[2];
         glm::mat4 projections[2];
+        glm::mat4 inverseVP[2];
         glm::vec4 viewPos[2];
     };
 
