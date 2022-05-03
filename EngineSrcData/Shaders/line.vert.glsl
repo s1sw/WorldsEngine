@@ -10,6 +10,7 @@ layout (location = 0) out vec4 outCol;
 layout(binding = 0) uniform MultiVP {
     mat4 view[2];
     mat4 projection[2];
+    mat4 inverseVP[2];
     vec4 viewPos[2];
 };
 
