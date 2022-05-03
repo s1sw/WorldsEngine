@@ -1,6 +1,7 @@
 using System;
 using WorldsEngine;
 using WorldsEngine.Math;
+using WorldsEngine.Audio;
 using WorldsEngine.Util;
 using Game.Util;
 
@@ -166,18 +167,20 @@ public class PlayerSkeletonMatch : Component, IStartListener, IUpdateableCompone
     private float _timeSinceMovement = 0.0f;
     private float _timeSinceMovementStart = 0.0f;
     private bool _standingStraight = false;
+    private bool _wasLastStepLeft = false;
+    private Vector3 _lastGroundPos;
 
     private void UpdateFeetTargets()
     {
         Vector3 groundOffset = new(0.0f, -0.9f, -0.23f);
 
         const float footX = 0.19f;
-        const float stepTime = 0.15f;
+        const float stepTime = 0.1f;
 
         Vector3 localLF = groundOffset + Vector3.Left * footX;
         Vector3 localRF = groundOffset + Vector3.Right * footX;
         Vector3 velocity = Entity.GetComponent<DynamicPhysicsActor>().Velocity;
-        float stride = velocity.Length * stepTime * 2f;
+        float stride = 5f * stepTime * 2f;
         ImGuiNET.ImGui.Text($"stride: {stride}");
 
         if (velocity.Length < 0.1f)
@@ -194,13 +197,7 @@ public class PlayerSkeletonMatch : Component, IStartListener, IUpdateableCompone
 
         Vector3 movementDir = Entity.Transform.InverseTransformDirection(velocity.Normalized);
 
-        bool funnyStep = false;
-        if (_standingStraight && velocity.Length > 0.1f)
-        {
-            funnyStep = true;
-        }
-
-        if (_timeSinceMovement > 0.1f && !_standingStraight)
+        if (_timeSinceMovement > 0f && !_standingStraight)
         {
             _leftStepProgress = 0.0f;
             _oldLpos = _nextLeftStep;
@@ -214,51 +211,59 @@ public class PlayerSkeletonMatch : Component, IStartListener, IUpdateableCompone
 
             _standingStraight = true;
         }
-        else if (_timeSinceMovement < 0.1f)
+        else if (_timeSinceMovementStart > 0f && _standingStraight)
         {
             _standingStraight = false;
+            _wasLastStepLeft = false;
         }
 
 
-        if (Entity.Transform.TransformPoint(localLF).DistanceTo(_nextLeftStep) > stride || funnyStep)
+        if (Entity.Transform.TransformPoint(groundOffset).DistanceTo(_lastGroundPos) > stride)
         {
-            _leftStepProgress = 0.0f;
-            _oldLpos = _nextLeftStep;
-            _nextLeftStep = Entity.Transform.TransformPoint(localLF + movementDir * stride * 0.5f);
-            _leftStep = true;
-
-            if (funnyStep) _leftStepProgress = 1f;
+            if (_wasLastStepLeft)
+            {
+                _rightStepProgress = 0.0f;
+                _oldRpos = _nextRightStep;
+                _nextRightStep = Entity.Transform.TransformPoint(localRF + movementDir * stride);
+                _rightStep = true;
+                _wasLastStepLeft = false;
+            }
+            else
+            {
+                _wasLastStepLeft = false;
+                _leftStepProgress = 0.0f;
+                _oldLpos = _nextLeftStep;
+                _nextLeftStep = Entity.Transform.TransformPoint(localLF + movementDir * stride);
+                _leftStep = true;
+                _wasLastStepLeft = true;
+            }
+            _lastGroundPos = Entity.Transform.TransformPoint(groundOffset);
         }
 
         if (_leftStep)
         {
             _leftStepProgress += Time.DeltaTime / stepTime;
             _leftFootTarget = Vector3.Lerp(_oldLpos, _nextLeftStep, _leftStepProgress);
-            _leftFootTarget.y += MathF.Sin(_leftStepProgress * MathF.PI) * 0.2f;
+            _leftFootTarget.y += MathF.Sin(_leftStepProgress * MathF.PI) * 0.25f;
 
             if (_leftStepProgress >= 1f)
             {
                 _leftStep = false;
+                Audio.PlayOneShotEvent("event:/Player/Walking", Vector3.Zero);
             }
         }
 
-        if (Entity.Transform.TransformPoint(localRF).DistanceTo(_nextRightStep) > stride)
-        {
-            _rightStepProgress = 0.0f;
-            _oldRpos = _nextRightStep;
-            _nextRightStep = Entity.Transform.TransformPoint(localRF + movementDir * stride * 0.5f);
-            _rightStep = true;
-        }
 
         if (_rightStep)
         {
             _rightStepProgress += Time.DeltaTime / stepTime;
             _rightFootTarget = Vector3.Lerp(_oldRpos, _nextRightStep, _rightStepProgress);
-            _rightFootTarget.y += MathF.Sin(_rightStepProgress * MathF.PI) * 0.2f;
+            _rightFootTarget.y += MathF.Sin(_rightStepProgress * MathF.PI) * 0.25f;
 
             if (_rightStepProgress >= 1f)
             {
                 _rightStep = false;
+                Audio.PlayOneShotEvent("event:/Player/Walking", Vector3.Zero);
             }
         }
     }

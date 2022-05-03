@@ -73,7 +73,7 @@ public class PlayerRig : Component, IThinkingComponent, IStartListener
             _footstepTimer += Time.DeltaTime * inputDirCS.Length;
             if (_footstepTimer >= 0.45f)
             {
-                Audio.PlayOneShotEvent("event:/Player/Walking", Vector3.Zero);
+                //Audio.PlayOneShotEvent("event:/Player/Walking", Vector3.Zero);
                 _footstepTimer = 0f;
             }
         }
