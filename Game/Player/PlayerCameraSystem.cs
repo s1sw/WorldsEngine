@@ -124,7 +124,8 @@ public class PlayerCameraSystem : ISystem
                 Camera.Main.Rotation = cameraRotation;
                 Transform bodyTransform = Registry.GetTransform(LocalPlayerSystem.PlayerBody);
                 Vector3 manualBpos = Vector3.Lerp(_lastLastBodyPos, _lastBodyPos, Time.InterpolationAlpha);
-                Camera.Main.Position = manualBpos + _toFloor + new Vector3(0.0f, 1.7f, 0.0f);
+                //Camera.Main.Position = manualBpos + _toFloor + new Vector3(0.0f, 1.7f, 0.0f);
+                Camera.Main.Position = bodyTransform.Position + _toFloor + new Vector3(0.0f, 1.7f, 0.0f);
             }
         }
         else
