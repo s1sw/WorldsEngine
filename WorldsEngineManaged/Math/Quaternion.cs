@@ -71,6 +71,7 @@ namespace WorldsEngine.Math
 
         public Quaternion(Vector3 eulerAngles)
         {
+            eulerAngles *= 0.5f;
             Vector3 c = new(MathF.Cos(eulerAngles.x), MathF.Cos(eulerAngles.y), MathF.Cos(eulerAngles.z));
             Vector3 s = new(MathF.Sin(eulerAngles.x), MathF.Sin(eulerAngles.y), MathF.Sin(eulerAngles.z));
 
