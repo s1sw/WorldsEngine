@@ -50,14 +50,13 @@ public class ExplodeOnDeath : Component, IStartListener
                 Registry.Destroy(entity);
         }
 
-        for (int x = -2; x < 2; x++) {
-        for (int y = -2; y < 2; y++) {
+        for (int i = 0; i < 100; i++)
+        {
             var spawnTransform = transform;
             var pos = spawnTransform.Position;
-            pos += new Vector3(x * 0.1f, y * 0.1f, 0.0f);
+            pos += new Vector3(0.0f, 1f + (i * 0.15f), 0.0f);
             spawnTransform.Position = pos;
-            DestroyAfter(5000, SpawnCube(spawnTransform));
-        }
+            DestroyAfter(7000, SpawnCube(spawnTransform));
         }
 
         Registry.Destroy(e);
