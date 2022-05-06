@@ -338,8 +338,9 @@ public class HandGrab : Component
         float timeWaiting = 0.0f;
         while (_bringingTowards)
         {
-            await Task.Delay(10);
-            timeWaiting += 0.01f;
+            await Awaitables.NextSimulationTick;
+
+            timeWaiting += Time.DeltaTime;
 
             //gripInObjectSpace = CurrentGrip.GetAttachTransform(handDpa.Pose, grabbedDpa.Pose, IsRightHand);
 

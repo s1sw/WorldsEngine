@@ -155,6 +155,7 @@ namespace WorldsEngine
                 }
 
                 Registry.RunUpdateOnComponents();
+                Awaitables.NextFrame.Wrapped.Run();
             }
             catch (Exception e)
             {
@@ -187,6 +188,7 @@ namespace WorldsEngine
                 }
 
                 Registry.RunSimulateOnComponents();
+                Awaitables.NextSimulationTick.Wrapped.Run();
             }
             catch (Exception e)
             {
