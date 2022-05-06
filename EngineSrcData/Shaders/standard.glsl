@@ -167,6 +167,13 @@ vec3 sampleCubemap(Cubemap cubemap, vec3 dir, float mip) {
     return textureLod(cubemapSampler[cubemap.texture], dir, mip).rgb;
 }
 
+vec3 sampleCubemapWithoutPC(Cubemap cubemap, vec3 dir, float mip) {
+    dir.x = -dir.x;
+    dir = normalize(dir);
+
+    return textureLod(cubemapSampler[cubemap.texture], dir, mip).rgb;
+}
+
 float calcBlendWeight(Cubemap c) {
     vec3 t = abs(inWorldPos.xyz - c.position);
     const float blendDist = 1.0;
@@ -250,22 +257,22 @@ vec3 calcAmbient(vec3 f0, float roughness, vec3 viewDir, float metallic, vec3 al
             Cubemap c = cubemaps[realIndex];
             float blendWeight = calcBlendWeight(c) / weightSum;
             specularAmbient += sampleCubemap(c, R, specMipLevel) * blendWeight;
-            diffuseAmbient += sampleCubemap(c, R, 7.0) * blendWeight;
+            diffuseAmbient += sampleCubemapWithoutPC(c, R, 12.0) * blendWeight;
         }
     }
 
     if (weightSum == 0.0) {
         specularAmbient = sampleCubemap(cubemaps[0], R, specMipLevel);
-        diffuseAmbient = sampleCubemap(cubemaps[0], R, 7.0);
+        diffuseAmbient = sampleCubemap(cubemaps[0], R, 12.0);
     }
 
-#ifdef BRDF_APPROX
-    vec3 specularColor = EnvBRDFApprox(F, roughness, max(dot(normal, viewDir), 0.0));
-#else
+//#ifdef BRDF_APPROX
+//    vec3 specularColor = EnvBRDFApprox(F, roughness, max(dot(normal, viewDir), 0.0));
+//#else
     vec2 coord = vec2(roughness, max(dot(normal, viewDir), 0.0));
     vec2 brdf = textureLod(brdfLutSampler, coord, 0.0).rg;
     vec3 specularColor = F * (brdf.x + brdf.y);
-#endif
+//#endif
 
     vec3 totalAmbient = specularAmbient * specularColor;
 

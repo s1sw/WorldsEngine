@@ -217,18 +217,18 @@ bool frustumContainsAABB(float3 min, float3 max) {
         if (!inside) return false;
     }
 
-    //int outside[6] = int[](0, 0, 0, 0, 0, 0);
-    //for (int i = 0; i < 8; i++) {
-    //    // on each axis...
-    //    for (int j = 0; j < 3; j++) {
-    //        outside[j] += int(points[i][j] > max[j]);
-    //        outside[j + 3] += int(points[i][j] < min[j]);
-    //    }
-    //}
+    int outside[6] = { 0, 0, 0, 0, 0, 0 };
+    for (int i = 0; i < 8; i++) {
+        // on each axis...
+        for (int j = 0; j < 3; j++) {
+            outside[j] += int(points[i][j] > max[j]);
+            outside[j + 3] += int(points[i][j] < min[j]);
+        }
+    }
 
-    //for (int i = 0; i < 6; i++) {
-    //    if (outside[i] == 8) return false;
-    //}
+    for (int i = 0; i < 6; i++) {
+        if (outside[i] == 8) return false;
+    }
 
     return true;
 }
