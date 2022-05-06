@@ -28,6 +28,9 @@ public class DroneAI : Component, IStartListener, IThinkingComponent
     [WorldsEngine.Editor.EditRelativeTransform]
     public Transform FirePoint = new();
 
+    public float FloatHeight = 2.0f;
+    public float KeepDistance = 7.0f;
+
     private float timeSinceLastBurst = 0.0f;
     private bool burstInProgress = false;
     private bool currentlyFiring = false;
@@ -124,7 +127,7 @@ public class DroneAI : Component, IStartListener, IThinkingComponent
         Vector3 playerDirection = pose.Position.DirectionTo(targetLocation);
 
         float oldY = targetLocation.y;
-        targetLocation -= playerDirection * 7f;
+        targetLocation -= playerDirection * KeepDistance;
         targetLocation.y = oldY;
 
         Quaternion targetRotation = Quaternion.SafeLookAt(firePlayerDirection);
@@ -325,13 +328,13 @@ public class DroneAI : Component, IStartListener, IThinkingComponent
         else
         {
             Vector3 targetPoint = _navigationPath[_pathPointIdx];
-            Vector3 currentPointOnNM = (pose.Position - Vector3.Up * 2.0f);
+            Vector3 currentPointOnNM = (pose.Position - Vector3.Up * FloatHeight);
             float dist = currentPointOnNM.DistanceTo(targetPoint);
 
             if (dist < 1.0f && _pathPointIdx < _navigationPath.NumPoints - 1)
                 _pathPointIdx++;
 
-            targetPose.Position = _navigationPath[_pathPointIdx] + Vector3.Up * 2.0f;
+            targetPose.Position = _navigationPath[_pathPointIdx] + Vector3.Up * FloatHeight;
         }
 
         AvoidOtherDrones(ref targetPose.Position);
