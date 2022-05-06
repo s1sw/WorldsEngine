@@ -115,7 +115,7 @@ namespace worlds {
         updater.buffer(lightTilesBuffer.buffer(), 0, sizeof(LightingTile) * numLightTiles);
 
         updater.beginBuffers(12, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-        updater.buffer(skinningMatrixUB.buffer(), 0, sizeof(glm::mat4) * 512);
+        updater.buffer(ctx.resources.skinningBuffers[dsIdx].buffer(), 0, sizeof(glm::mat4) * 512);
 
         updater.beginBuffers(13, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
         updater.buffer(pickingBuffer.buffer(), 0, sizeof(PickingBuffer));
@@ -206,13 +206,6 @@ namespace worlds {
             sizeof(uint32_t) * numLightTiles, VMA_MEMORY_USAGE_GPU_ONLY, "Light Tile Light Counts"
         );
 
-        skinningMatrixUB = vku::GenericBuffer(
-            handles->device, handles->allocator,
-            VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
-            sizeof(glm::mat4) * 512, VMA_MEMORY_USAGE_CPU_TO_GPU, "Skinning Matrices"
-        );
-
-
         for (int i = 0; i < ctx.maxSimultaneousFrames; i++) {
             modelMatrixUB.push_back(vku::GenericBuffer(
                 handles->device, handles->allocator,
@@ -238,8 +231,6 @@ namespace worlds {
         }
 
         lightTileInfoMapped = (LightTileInfoBuffer*)lightTileInfoBuffer.map(handles->device);
-
-        skinningMatricesMapped = (glm::mat4*)skinningMatrixUB.map(handles->device);
 
         pickEvent = vku::Event{handles->device};
 
@@ -467,24 +458,9 @@ namespace worlds {
         lightCullPass->resizeInternalBuffers(ctx);
     }
 
-    glm::mat4 getBoneTransform(LoadedMeshData& meshData, Pose& pose, int boneIdx) {
-        glm::mat4 transform = pose.boneTransforms[boneIdx];
-
-        uint32_t parentId = meshData.meshBones[boneIdx].parentIdx;
-
-        while (parentId != ~0u) {
-            transform = pose.boneTransforms[parentId] * transform;
-            parentId = meshData.meshBones[parentId].parentIdx;
-        }
-
-        return transform;
-    }
-
-    void updateSkinningMatrices(LoadedMeshData& meshData, Pose& pose, glm::mat4* skinningMatricesMapped, int skinningOffset) {
-        for (int i = 0; i < meshData.meshBones.size(); i++) {
-            skinningMatricesMapped[i + skinningOffset] = getBoneTransform(meshData, pose, i) * meshData.meshBones[i].inverseBindPose;
-        }
-    }
+    struct SkinningOffset {
+        int offset;
+    };
 
     void PolyRenderPass::generateDrawInfo(RenderContext& ctx) {
         ZoneScoped;
@@ -690,7 +666,6 @@ namespace worlds {
             matrixIdx++;
             });
 
-        int skinningOffset = 0;
         ctx.registry.view<Transform, SkinnedWorldObject>().each([&](entt::entity ent, Transform& t, SkinnedWorldObject& wo) {
             if (ctx.passSettings.staticsOnly && !enumHasFlag(wo.staticFlags, StaticFlags::Rendering)) return;
             auto meshPos = resources.meshes.find(wo.mesh);
@@ -708,8 +683,6 @@ namespace worlds {
                 logWarn(WELogCategoryRender, "Missing mesh");
                 return;
             }
-
-            updateSkinningMatrices(meshPos->second, wo.currentPose, skinningMatricesMapped, skinningOffset);
 
             modelMatricesMapped[ctx.frameIndex]->modelMatrices[matrixIdx] = t.getMatrix();
 
@@ -745,7 +718,7 @@ namespace worlds {
                 sdi.ent = ent;
                 sdi.skinned = true;
                 sdi.boneVB = meshPos->second.vertexSkinWeights.buffer();
-                sdi.boneMatrixOffset = skinningOffset;
+                sdi.boneMatrixOffset = ctx.registry.get<SkinningOffset>(ent).offset;
                 auto& packedMat = resources.materials[sdi.materialIdx];
                 sdi.opaque = packedMat.getCutoff() < 0.004f;
 
@@ -818,7 +791,6 @@ namespace worlds {
 
                 drawInfo.add(std::move(sdi));
             }
-            skinningOffset += meshPos->second.meshBones.size();
             matrixIdx++;
 
             });
@@ -1224,7 +1196,6 @@ namespace worlds {
         }
 
         lightTileInfoBuffer.unmap(handles->device);
-        skinningMatrixUB.unmap(handles->device);
 
         delete dbgLinesPass;
         delete skyboxPass;

@@ -15,31 +15,37 @@ namespace worlds {
     struct ShadowPushConstants {
         glm::mat4 mvp;
         uint32_t materialIdx;
+        uint32_t skinningOffset;
     };
 
     AdditionalShadowsPass::AdditionalShadowsPass(VulkanHandles* handles) : handles(handles) {
     }
 
     void AdditionalShadowsPass::updateDescriptorSet(RenderResources resources) {
-        vku::DescriptorSetUpdater dsu{1, 256};
-        dsu.beginDescriptorSet(descriptorSet);
+        vku::DescriptorSetUpdater dsu{4, 512};
+        for (int i = 0; i < descriptorSets.size(); i++) {
+            dsu.beginDescriptorSet(descriptorSets[i]);
 
-        for (uint32_t i = 0; i < resources.textures.size(); i++) {
-            if (resources.textures.isSlotPresent(i)) {
-                dsu.beginImages(0, i, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-                dsu.image(sampler, resources.textures[i].imageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+            for (uint32_t i = 0; i < resources.textures.size(); i++) {
+                if (resources.textures.isSlotPresent(i)) {
+                    dsu.beginImages(0, i, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+                    dsu.image(sampler, resources.textures[i].imageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+                }
             }
+
+            dsu.beginBuffers(1, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+            dsu.buffer(resources.materialBuffer->buffer(), 0, resources.materialBuffer->size());
+
+            dsu.beginBuffers(2, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+            dsu.buffer(resources.skinningBuffers[i].buffer(), 0, sizeof(glm::mat4) * 512);
+
         }
-
-        dsu.beginBuffers(1, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-        dsu.buffer(resources.materialBuffer->buffer(), 0, resources.materialBuffer->size());
-
         dsu.update(handles->device);
 
         dsUpdateNeeded = false;
     }
 
-    void AdditionalShadowsPass::setup(RenderResources ctx) {
+    void AdditionalShadowsPass::setup(RenderResources resources, int maxFramesInFlight) {
         vku::RenderpassMaker rpm;
 
         rpm.attachmentBegin(VK_FORMAT_D32_SFLOAT);
@@ -73,11 +79,13 @@ namespace worlds {
         dslm.image(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, NUM_TEX_SLOTS);
         dslm.bindFlag(0, VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT);
         dslm.buffer(1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, 1);
+        dslm.buffer(2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, 1);
         dsl = dslm.create(handles->device);
 
         vku::DescriptorSetMaker dsm;
-        dsm.layout(dsl);
-        descriptorSet = dsm.create(handles->device, handles->descriptorPool)[0];
+        for (int i = 0; i < maxFramesInFlight; i++)
+            dsm.layout(dsl);
+        descriptorSets = dsm.create(handles->device, handles->descriptorPool);
 
         vku::PipelineLayoutMaker plm{};
         plm.pushConstantRange(VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(ShadowPushConstants));
@@ -106,6 +114,28 @@ namespace worlds {
             pm.dynamicState(VK_DYNAMIC_STATE_SCISSOR);
 
             pipeline = pm.create(handles->device, handles->pipelineCache, pipelineLayout, renderPass);
+        }
+
+        {
+            vku::PipelineMaker pm{ spotRes, spotRes };
+            pm.shader(VK_SHADER_STAGE_FRAGMENT_BIT, shadowFragmentShader);
+            AssetID skinnedVertexId = AssetDB::pathToId("Shaders/shadowmap_skinned.vert.spv");
+            pm.shader(VK_SHADER_STAGE_VERTEX_BIT, ShaderCache::getModule(handles->device, skinnedVertexId));
+            pm.vertexBinding(0, (uint32_t)sizeof(Vertex));
+            pm.vertexAttribute(0, 0, VK_FORMAT_R32G32B32_SFLOAT, (uint32_t)offsetof(Vertex, position));
+            pm.vertexAttribute(1, 0, VK_FORMAT_R32G32_SFLOAT, (uint32_t)offsetof(Vertex, uv));
+            pm.vertexBinding(1, (uint32_t)sizeof(VertSkinningInfo));
+            pm.vertexAttribute(2, 1, VK_FORMAT_R32G32B32A32_SFLOAT, (uint32_t)offsetof(VertSkinningInfo, weights));
+            pm.vertexAttribute(3, 1, VK_FORMAT_R32G32B32A32_UINT, (uint32_t)offsetof(VertSkinningInfo, boneIds));
+            pm.cullMode(VK_CULL_MODE_BACK_BIT);
+            pm.depthWriteEnable(true).depthTestEnable(true).depthCompareOp(VK_COMPARE_OP_GREATER);
+            pm.depthBiasEnable(true);
+            pm.depthBiasConstantFactor(-1.4f);
+            pm.depthBiasSlopeFactor(-1.75f);
+            pm.dynamicState(VK_DYNAMIC_STATE_VIEWPORT);
+            pm.dynamicState(VK_DYNAMIC_STATE_SCISSOR);
+
+            skinnedPipeline = pm.create(handles->device, handles->pipelineCache, pipelineLayout, renderPass);
         }
 
         {
@@ -155,7 +185,7 @@ namespace worlds {
             VKCHECK(vku::createFramebuffer(handles->device, &fci, &fbs[i]));
         }
 
-        updateDescriptorSet(ctx);
+        updateDescriptorSet(resources);
     }
 
     void AdditionalShadowsPass::prePass(RenderContext& ctx) {
@@ -195,6 +225,10 @@ namespace worlds {
         }
     }
 
+    struct SkinningOffset {
+        int offset;
+    };
+
     void AdditionalShadowsPass::execute(RenderContext& ctx) {
         ZoneScoped;
         TracyVkZone((*ctx.debugContext.tracyContexts)[ctx.frameIndex], ctx.cmdBuf, "Additional Shadows");
@@ -210,8 +244,7 @@ namespace worlds {
         label.color[3] = 1.0f;
         vkCmdBeginDebugUtilsLabelEXT(cmdBuf, &label);
 
-        vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-        vkCmdBindDescriptorSets(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
+        vkCmdBindDescriptorSets(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[ctx.frameIndex], 0, nullptr);
         for (int i = 0; i < NUM_SHADOW_LIGHTS; i++) {
             if (!renderIdx[i]) {
                 continue;
@@ -251,6 +284,7 @@ namespace worlds {
             rpbi.pNext = &attachmentBeginInfo;
             vkCmdBeginRenderPass(cmdBuf, &rpbi, VK_SUBPASS_CONTENTS_INLINE);
 
+            vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
             ctx.registry.view<Transform, WorldObject>().each([&](auto ent, Transform& transform, WorldObject& obj) {
                 if (ctx.passSettings.staticsOnly && !enumHasFlag(obj.staticFlags, StaticFlags::Rendering)) return;
                 if (!obj.castShadows) return;
@@ -312,6 +346,48 @@ namespace worlds {
                 }
             });
 
+            vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, skinnedPipeline);
+            ctx.registry.view<Transform, SkinnedWorldObject>().each([&](auto ent, Transform& transform, SkinnedWorldObject& obj) {
+                if (ctx.passSettings.staticsOnly && !enumHasFlag(obj.staticFlags, StaticFlags::Rendering)) return;
+                if (!obj.castShadows) return;
+                auto meshPos = ctx.resources.meshes.find(obj.mesh);
+
+                if (meshPos == ctx.resources.meshes.end()) {
+                    // Haven't loaded the mesh yet
+                    return;
+                }
+
+                glm::mat4 mvp = shadowMatrices[i] * transform.getMatrix();
+
+                for (int i = 0; i < meshPos->second.numSubmeshes; i++) {
+                    auto& currSubmesh = meshPos->second.submeshes[i];
+                    uint32_t materialIdx;
+                    if (obj.presentMaterials[i])
+                        materialIdx = ctx.resources.materials.get(obj.materials[i]);
+                    else
+                        materialIdx = ctx.resources.materials.get(obj.materials[0]);
+
+                    ShadowPushConstants spc{
+                        .mvp = mvp,
+                        .materialIdx = materialIdx,
+                        .skinningOffset = (uint32_t)ctx.registry.get<SkinningOffset>(ent).offset
+                    };
+                    vkCmdPushConstants(cmdBuf, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(spc), &spc);
+
+                    bool opaque = ctx.resources.materials[spc.materialIdx].getCutoff() == 0.0f;
+
+                    VkBuffer vb = meshPos->second.vb.buffer();
+                    VkDeviceSize offset = 0;
+                    vkCmdBindVertexBuffers(cmdBuf, 0, 1, &vb, &offset);
+                    VkBuffer vswVb = meshPos->second.vertexSkinWeights.buffer();
+                    vkCmdBindVertexBuffers(cmdBuf, 1, 1, &vswVb, &offset);
+                    vkCmdBindIndexBuffer(cmdBuf, meshPos->second.ib.buffer(), 0, meshPos->second.indexType);
+                    vkCmdDrawIndexed(cmdBuf, currSubmesh.indexCount, 1, currSubmesh.indexOffset, 0, 0);
+                    ctx.debugContext.stats->numDrawCalls++;
+                    ctx.debugContext.stats->numTriangles += currSubmesh.indexCount / 3;
+                }
+            });
+
             vkCmdEndRenderPass(cmdBuf);
             ctx.resources.additionalShadowImages[i]->image().setCurrentLayout(
                 VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
@@ -323,6 +399,7 @@ namespace worlds {
     }
 
     AdditionalShadowsPass::~AdditionalShadowsPass() {
-        DeletionQueue::queueDescriptorSetFree(handles->descriptorPool, descriptorSet);
+        for (VkDescriptorSet ds : descriptorSets)
+            DeletionQueue::queueDescriptorSetFree(handles->descriptorPool, ds);
     }
 }
