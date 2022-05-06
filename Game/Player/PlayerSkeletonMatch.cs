@@ -164,7 +164,6 @@ public class PlayerSkeletonMatch : Component, IStartListener, IUpdateableCompone
     private float _timeSinceMovementStart = 0.0f;
     private bool _standingStraight = false;
     private bool _wasLastStepLeft = false;
-    private float _lastPlaceAngle = 0.0f;
     private Vector3 _lastGroundPos;
 
     private void UpdateFeetTargets()
@@ -324,7 +323,7 @@ public class PlayerSkeletonMatch : Component, IStartListener, IUpdateableCompone
 
         var footws = swo.GetBoneComponentSpaceTransform(foot.ID).TransformBy(Entity.Transform);
         footws.Rotation = Entity.Transform.Rotation * new Quaternion(new Vector3(-MathF.PI * 0.5f, MathF.PI, 0f));
-        swo.SetBoneWorldSpaceTransform(foot.ID, footws);
+        //swo.SetBoneWorldSpaceTransform(foot.ID, footws);
     }
 
     private void LeftLegUpdate()
@@ -357,6 +356,6 @@ public class PlayerSkeletonMatch : Component, IStartListener, IUpdateableCompone
 
         var footws = swo.GetBoneComponentSpaceTransform(foot.ID).TransformBy(Entity.Transform);
         footws.Rotation = Entity.Transform.Rotation * new Quaternion(new Vector3(-MathF.PI * 0.5f, MathF.PI, 0f));
-        swo.SetBoneWorldSpaceTransform(foot.ID, footws);
+        //swo.SetBoneWorldSpaceTransform(foot.ID, footws);
     }
 }
