@@ -164,17 +164,18 @@ public class PlayerSkeletonMatch : Component, IStartListener, IUpdateableCompone
     private float _timeSinceMovementStart = 0.0f;
     private bool _standingStraight = false;
     private bool _wasLastStepLeft = false;
+    private float _lastPlaceAngle = 0.0f;
     private Vector3 _lastGroundPos;
 
     private void UpdateFeetTargets()
     {
         const float footX = 0.19f;
-        const float stepTime = 0.1f;
+        const float stepTime = 0.15f;
 
         Vector3 localLF = groundOffset + Vector3.Left * footX;
         Vector3 localRF = groundOffset + Vector3.Right * footX;
         Vector3 velocity = Entity.GetComponent<DynamicPhysicsActor>().Velocity;
-        float stride = _legIK.LowerLength + _legIK.UpperLength;
+        float stride = _legIK.LowerLength + _legIK.UpperLength * velocity.Length / 3.0f;
         bool grounded = Entity.GetComponent<PlayerRig>().Grounded;
 
         if (!grounded)
@@ -205,7 +206,7 @@ public class PlayerSkeletonMatch : Component, IStartListener, IUpdateableCompone
             _leftStep = true;
 
             _rightStepProgress = 0.0f;
-            _oldRpos = _nextRightStep;
+            _oldRpos = _rightFootTarget;
             _nextRightStep = Entity.Transform.TransformPoint(localRF);
             _rightStep = true;
 
@@ -220,6 +221,28 @@ public class PlayerSkeletonMatch : Component, IStartListener, IUpdateableCompone
             _nextLeftStep = Entity.Transform.TransformPoint(localLF + movementDir * stride);
             _leftStep = true;
             _wasLastStepLeft = true;
+        }
+
+        if (_standingStraight)
+        {
+            float leftDist = Entity.Transform.TransformPoint(localLF).DistanceTo(_leftFootTarget);
+            float rightDist = Entity.Transform.TransformPoint(localRF).DistanceTo(_rightFootTarget);
+
+            if (rightDist > 0.3f && !_rightStep)
+            {
+                _rightStepProgress = 0.0f;
+                _oldRpos = _rightFootTarget;
+                _nextRightStep = Entity.Transform.TransformPoint(localRF);
+                _rightStep = true;
+            }
+
+            if (leftDist > 0.3f && !_leftStep)
+            {
+                _leftStepProgress = 0.0f;
+                _oldLpos = _leftFootTarget;
+                _nextLeftStep = Entity.Transform.TransformPoint(localLF);
+                _leftStep = true;
+            }
         }
 
         if (Entity.Transform.TransformPoint(groundOffset).DistanceTo(_lastGroundPos) > stride)
