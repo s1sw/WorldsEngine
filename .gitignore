@@ -347,8 +347,8 @@ healthchecksdb
 /GameData/LevelCubemaps
 /log.txt
 
-build
-build_*
+build/
+build_*/
 
 /subprojects/SDL2-*
 /subprojects/enet-*
