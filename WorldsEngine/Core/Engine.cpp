@@ -616,8 +616,6 @@ namespace worlds {
         }
 
         if (runAsEditor) {
-            //disableSimInterp.setValue("1");
-            lockSimToRefresh.setValue("1");
             createStartupScene();
         }
 
