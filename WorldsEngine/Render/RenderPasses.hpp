@@ -224,7 +224,6 @@ namespace worlds {
         std::vector<LightUB*> lightBufferMaps;
         LightTileInfoBuffer* lightTileInfoMapped;
         std::vector<ModelMatrices*> modelMatricesMapped;
-        glm::mat4* skinningMatricesMapped;
 
         std::vector<vku::GenericBuffer> lightsUB;
         vku::GenericBuffer lightTileInfoBuffer;
@@ -233,7 +232,6 @@ namespace worlds {
 
         std::vector<vku::GenericBuffer> modelMatrixUB;
         vku::GenericBuffer pickingBuffer;
-        vku::GenericBuffer skinningMatrixUB;
 
         VkShaderModule fragmentShader;
         VkShaderModule vertexShader;
@@ -321,9 +319,10 @@ namespace worlds {
         vku::Framebuffer fbs[NUM_SHADOW_LIGHTS];
         vku::Pipeline pipeline;
         vku::Pipeline alphaTestPipeline;
+        vku::Pipeline skinnedPipeline;
         vku::PipelineLayout pipelineLayout;
         vku::DescriptorSetLayout dsl;
-        VkDescriptorSet descriptorSet;
+        std::vector<VkDescriptorSet> descriptorSets;
         vku::Sampler sampler;
         VulkanHandles* handles;
         glm::mat4 shadowMatrices[NUM_SHADOW_LIGHTS];
@@ -333,7 +332,7 @@ namespace worlds {
     public:
         AdditionalShadowsPass(VulkanHandles* handles);
         void reuploadDescriptors() { dsUpdateNeeded = true; }
-        void setup(RenderResources resources);
+        void setup(RenderResources resources, int framesInFlight);
         void prePass(RenderContext& ctx);
         void execute(RenderContext& ctx);
         ~AdditionalShadowsPass();

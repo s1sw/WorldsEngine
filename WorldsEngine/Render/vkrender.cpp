@@ -844,7 +844,7 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
 
         delete additionalShadowsPass;
         additionalShadowsPass = new AdditionalShadowsPass(&handles);
-        additionalShadowsPass->setup(getResources());
+        additionalShadowsPass->setup(getResources(), presentSubmitManager->numFramesInFlight());
         for (VKRTTPass* rttPass : rttPasses) {
             rttPass->prp->reuploadDescriptors();
         }
@@ -869,12 +869,15 @@ VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
 
     MaterialsUB materials{};
     materialUB.upload(device, commandPool, queues.graphics, &materials, sizeof(materials));
+    skinningMatricesManager = new SkinningMatricesManager(&handles, presentSubmitManager->numFramesInFlight());
 
     shadowCascadePass = new ShadowCascadePass(vrInterface, &handles, shadowmapImage);
     shadowCascadePass->setup();
 
     additionalShadowsPass = new AdditionalShadowsPass(&handles);
-    additionalShadowsPass->setup(getResources());
+
+    additionalShadowsPass->setup(getResources(), presentSubmitManager->numFramesInFlight());
+
     VKCHECK(vkDeviceWaitIdle(device));
     DeletionQueue::cleanupFrame(0);
 }
@@ -1274,6 +1277,7 @@ void VKRenderer::writeCmdBuf(VkCommandBuffer cmdBuf, uint32_t imageIndex, Camera
             rCtx.viewMatrices[0] = rCtx.camera.getViewMatrix();
         }
 
+        skinningMatricesManager->updateBuffer(rCtx);
         additionalShadowsPass->prePass(rCtx);
         p->prePass(frameIdx, reg);
 
@@ -1782,6 +1786,7 @@ RenderResources VKRenderer::getResources() {
         &blueNoiseTexture,
         &materialUB,
         &vpBuffer,
+        skinningMatricesManager->getBuffers(),
         shadowmapImage,
         shadowImages,
         numDebugLines,

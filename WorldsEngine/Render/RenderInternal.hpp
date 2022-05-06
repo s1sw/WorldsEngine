@@ -285,6 +285,8 @@ namespace worlds {
         vku::GenericImage* blueNoiseTexture;
         vku::GenericBuffer* materialBuffer;
         vku::GenericBuffer* vpMatrixBuffer;
+        // skinningBuffer_s_! there are multiple for each frame in flight
+        vku::GenericBuffer* skinningBuffers;
         RenderResource* shadowCascades;
         RenderResource** additionalShadowImages;
         size_t numDebugLines;
@@ -382,6 +384,18 @@ namespace worlds {
 
         static void processObjectDeletion(const ObjectDeletion& od);
         static void processMemoryFree(const MemoryFree& mf);
+    };
+
+    class SkinningMatricesManager {
+    public:
+        SkinningMatricesManager(VulkanHandles* handles, int framesInFlight);
+        VkBuffer getBuffer(int frameIndex);
+        void updateBuffer(RenderContext& ctx);
+        vku::GenericBuffer* getBuffers();
+        ~SkinningMatricesManager();
+    private:
+        std::vector<vku::GenericBuffer> matrixBuffers;
+        std::vector<glm::mat4*> mappedBuffers;
     };
 
     class VKRTTPass : public RTTPass {
@@ -535,6 +549,7 @@ namespace worlds {
         AdditionalShadowsPass* additionalShadowsPass;
         void* rdocApi;
         VKUITextureManager* uiTextureMan;
+        SkinningMatricesManager* skinningMatricesManager;
 
         size_t numDebugLines;
         const DebugLine* debugLineBuffer;
