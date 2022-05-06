@@ -50,6 +50,7 @@
 #include <UI/WorldTextComponent.hpp>
 #include <Editor/GuiUtil.hpp>
 #include <Render/DebugLines.hpp>
+#include <Core/HierarchyUtil.hpp>
 #undef min
 #undef max
 
@@ -343,6 +344,19 @@ namespace worlds {
     bool screenPassIsVR = false;
     float screenPassResScale = 1.0f;
 
+    void handleDestroyedChild(entt::registry& r, entt::entity ent) {
+        auto& cc = r.get<ChildComponent>(ent);
+        // This will get called both when the child entity is destroyed
+        // and when the component is just removed, so return
+        // if the parent has already been set to null by
+        // removeEntityParent.
+        if (!r.valid(cc.parent)) return;
+
+        // Make sure to not delete the ChildComponent, becuase entt
+        // removes it for us
+        HierarchyUtil::removeEntityParent(r, ent, false);
+    }
+
     WorldsEngine::WorldsEngine(EngineInitOptions initOptions, char* argv0)
         : pauseSim{ false }
         , running{ true }
@@ -386,6 +400,7 @@ namespace worlds {
         g_jobSys = new JobSystem{ workerThreadOverride == -1 ? std::max(SDL_GetCPUCount(), 2) : workerThreadOverride };
 
         registry.set<SceneInfo>("Untitled", ~0u);
+        registry.on_destroy<ChildComponent>().connect<&handleDestroyedChild>();
 
         if (!dedicatedServer && runAsEditor)
             splashWindow->changeOverlay("loading assetdb");
@@ -959,6 +974,7 @@ namespace worlds {
         registry.view<ChildComponent, Transform>().each([&](ChildComponent& c, Transform& t) {
             if (!registry.valid(c.parent)) return;
             t = c.offset.transformBy(registry.get<Transform>(c.parent));
+            t.scale = c.offset.scale * registry.get<Transform>(c.parent).scale;
             });
 
         if (!dedicatedServer) {

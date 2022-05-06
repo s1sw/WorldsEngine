@@ -15,7 +15,6 @@
 #include <Core/Engine.hpp>
 #include "Core/NameComponent.hpp"
 #include <Core/JobSystem.hpp>
-#include "ObjectParentSystem.hpp"
 #include "Util/VKImGUIUtil.hpp"
 #include "MathsUtil.hpp"
 #include <Input/Input.hpp>
@@ -46,7 +45,6 @@ namespace lg {
         reg = &registry;
 
         worlds::g_console->registerCommand(cmdToggleVsync, "r_toggleVsync", "Toggles Vsync.", renderer);
-        interfaces.engine->addSystem(new ObjectParentSystem);
 
         new DebugArrows(registry);
 

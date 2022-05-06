@@ -5,6 +5,8 @@
 #include <ImGui/imgui_stdlib.h>
 #include <algorithm>
 #include <Core/Log.hpp>
+#include <Core/WorldComponents.hpp>
+#include <Core/HierarchyUtil.hpp>
 
 namespace worlds {
     void showFolderButtons(entt::entity e, EntityFolder& folder, int counter) {
@@ -20,7 +22,7 @@ namespace worlds {
 
     void EntityList::draw(entt::registry& reg) {
         static std::string searchText;
-        static std::vector<entt::entity> filteredEntities;
+        static std::vector<entt::entity> filteredEntities; 
         static size_t numNamedEntities;
         static bool showUnnamed = false;
         static bool folderView = true;
@@ -81,7 +83,7 @@ namespace worlds {
 
             bool openEntityContextMenu = false;
 
-            auto forEachEnt = [&](entt::entity ent) {
+            std::function<void(entt::entity)> forEachEnt = [&](entt::entity ent) {
                 ImGui::PushID((int)ent);
                 auto nc = reg.try_get<NameComponent>(ent);
                 float lineHeight = ImGui::CalcTextSize("w").y;
@@ -113,6 +115,32 @@ namespace worlds {
                     }
                 }
 
+                // Parent drag/drop
+                ImGuiDragDropFlags entityDropFlags = 0
+                    | ImGuiDragDropFlags_SourceNoDisableHover
+                    | ImGuiDragDropFlags_SourceNoHoldToOpenOthers
+                    | ImGuiDragDropFlags_SourceAllowNullID;
+
+                if (ImGui::BeginDragDropSource(entityDropFlags)) {
+                    if (nc == nullptr) {
+                        ImGui::Text("Entity %u", static_cast<uint32_t>(ent));
+                    } else {
+                        ImGui::TextUnformatted(nc->name.c_str());
+                    }
+
+                    ImGui::SetDragDropPayload("HIERARCHY_ENTITY", &ent, sizeof(entt::entity));
+                    ImGui::EndDragDropSource();
+                }
+
+                if (ImGui::BeginDragDropTarget()) {
+                    if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("HIERARCHY_ENTITY")) {
+                        assert(payload->DataSize == sizeof(entt::entity));
+                        entt::entity droppedEntity = *reinterpret_cast<entt::entity*>(payload->Data);
+                        HierarchyUtil::setEntityParent(reg, ent, droppedEntity);
+                    }
+                    ImGui::EndDragDropTarget();
+                }
+
                 if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0)) {
                     currentlyRenaming = ent;
 
@@ -134,6 +162,24 @@ namespace worlds {
                     } else {
                         editor->multiSelect(ent);
                     }
+                }
+
+                if (reg.has<ParentComponent>(ent)) {
+                    auto& pc = reg.get<ParentComponent>(ent);
+                    
+                    entt::entity currentChild = pc.firstChild;
+
+                    ImGui::Indent();
+
+                    while (reg.valid(currentChild)) {
+                        auto& childComponent = reg.get<ChildComponent>(currentChild);
+
+                        forEachEnt(currentChild);
+
+                        currentChild = childComponent.nextChild;
+                    }
+
+                    ImGui::Unindent();
                 }
                 ImGui::PopID();
             };
@@ -212,7 +258,7 @@ namespace worlds {
                         if (showUnnamed) {
                             reg.each(forEachEnt);
                         } else {
-                            reg.view<NameComponent>().each([&](auto ent, NameComponent) {
+                            reg.view<NameComponent>(entt::exclude_t<ChildComponent>{}).each([&](auto ent, NameComponent) {
                                 forEachEnt(ent);
                             });
                         }

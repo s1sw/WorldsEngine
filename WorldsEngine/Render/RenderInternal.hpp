@@ -99,8 +99,8 @@ namespace worlds {
     };
 
     struct ModelMatrices {
-        static const uint32_t SIZE = 2048;
-        glm::mat4 modelMatrices[2048];
+        static const uint32_t SIZE = 4096;
+        glm::mat4 modelMatrices[SIZE];
     };
 
     struct MaterialsUB {

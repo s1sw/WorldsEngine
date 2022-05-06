@@ -1,5 +1,6 @@
 #include "WorldComponents.hpp"
 #include "MeshManager.hpp"
+#include <entt/entity/entity.hpp>
 
 namespace worlds {
     SkinnedWorldObject::SkinnedWorldObject(AssetID material, AssetID mesh)
@@ -14,5 +15,10 @@ namespace worlds {
         for (const Bone& b : lm.bones) {
             currentPose.boneTransforms.push_back(b.restPose);
         }
+    }
+
+    ChildComponent::ChildComponent() {
+        nextChild = entt::null;
+        prevChild = entt::null;
     }
 }

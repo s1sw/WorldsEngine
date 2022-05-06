@@ -23,13 +23,14 @@
 #include <nlohmann/json.hpp>
 #include <Util/JsonUtil.hpp>
 #include <UI/WorldTextComponent.hpp>
+#include <Core/HierarchyUtil.hpp>
+#include <Render/DebugLines.hpp>
+#include <glm/gtc/constants.hpp>
 
 // Janky workaround to fix static constructors not being called
 // (static constructors are only required to be called before the first function in the translation unit)
 // (yay for typical c++ specification bullshittery)
 #include "D6JointEditor.hpp"
-#include "Render/DebugLines.hpp"
-#include "glm/gtc/constants.hpp"
 
 using json = nlohmann::json;
 
@@ -1627,7 +1628,11 @@ namespace worlds {
         const char* getName() override { return "ChildComponent"; }
 
         void create(entt::entity ent, entt::registry& reg) override {
-            reg.emplace<ChildComponent>(ent, ChildComponent { Transform{}, entt::null });
+            reg.emplace<ChildComponent>(ent);
+        }
+
+        bool allowInspectorAdd() override {
+            return false;
         }
 
         void edit(entt::entity entity, entt::registry& reg, Editor* ed) override {
@@ -1668,9 +1673,10 @@ namespace worlds {
         }
 
         void fromJson(entt::entity ent, entt::registry& reg, EntityIDMap& idMap, const json& j) override {
-            ChildComponent& c = reg.emplace<ChildComponent>(ent);
             if (!j.is_object()) return;
-            c.parent = (entt::entity)idMap[j["parent"]];
+            HierarchyUtil::setEntityParent(reg, ent, (entt::entity)idMap[j["parent"]]);
+
+            auto& c = reg.get<ChildComponent>(ent);
             c.offset.position = j.value("position", glm::vec3(0.0f));
             c.offset.rotation = j.value("rotation", glm::quat{1.0f, 0.0f, 0.0f, 0.0f});
             c.offset.scale = glm::vec3(1.0f);
