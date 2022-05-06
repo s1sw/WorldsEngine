@@ -3,12 +3,10 @@ sources = [
     'Main.cpp',
     'MathsUtil.cpp',
     'DebugArrow.cpp',
-    'ObjectParentSystem.cpp',
 
     'DebugArrow.hpp',
     'EventHandler.hpp',
     'MathsUtil.hpp',
-    'ObjectParentSystem.hpp',
 ]
 
 crash_handler_deps = []

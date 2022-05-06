@@ -129,7 +129,16 @@ namespace worlds {
     struct KeepOnSceneLoad {};
 
     struct ChildComponent {
+        ChildComponent();
         Transform offset;
+
         entt::entity parent;
+
+        entt::entity nextChild;
+        entt::entity prevChild;
+    };
+
+    struct ParentComponent {
+        entt::entity firstChild;
     };
 }
