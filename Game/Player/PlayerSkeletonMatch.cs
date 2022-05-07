@@ -17,7 +17,7 @@ public class PlayerSkeletonMatch : Component, IStartListener, IUpdateableCompone
     private TwoBoneIK _rightHandIK;
     private TwoBoneIK _legIK;
 
-    private static Vector3 groundOffset = new(0.0f, -0.95f, -0.23f);
+    private static Vector3 groundOffset = new(0.0f, -0.95f, -0.28f);
 
     public void Start()
     {
