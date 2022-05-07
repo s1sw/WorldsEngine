@@ -37,7 +37,7 @@ namespace worlds {
             mousePos.x -= vpOffset.x;
             mousePos.y -= vpOffset.y;
 
-            if (mousePos.x > barWidth - 45.0f && mousePos.y < barHeight) {
+            if (mousePos.x > barWidth - 45.0f && mousePos.y < barHeight && ImGui::IsWindowHovered()) {
                 if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
                     interfaces.engine->quit();
                 }
@@ -50,7 +50,7 @@ namespace worlds {
             Window& window = interfaces.engine->getMainWindow();
             glm::vec2 maximiseCenter(barWidth - 45.0f - 22.0f, menuBarCenter.y);
             maximiseCenter += vpOffset;
-            if (mousePos.x > barWidth - 90.0f && mousePos.x < barWidth - 45.0f && mousePos.y < barHeight) {
+            if (mousePos.x > barWidth - 90.0f && mousePos.x < barWidth - 45.0f && mousePos.y < barHeight && ImGui::IsWindowHovered()) {
                 if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
                     if (window.isMaximised())
                         window.restore();
@@ -88,7 +88,7 @@ namespace worlds {
 
             glm::vec2 minimiseCenter(barWidth - 90.0f - 22.0f, menuBarCenter.y);
             minimiseCenter += vpOffset;
-            if (mousePos.x > barWidth - 135.0f && mousePos.x < barWidth - 90.0f && mousePos.y < barHeight) {
+            if (mousePos.x > barWidth - 135.0f && mousePos.x < barWidth - 90.0f && mousePos.y < barHeight && ImGui::IsWindowHovered()) {
                 if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
 
                     if (window.isMinimised())
