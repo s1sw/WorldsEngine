@@ -347,7 +347,7 @@ public class LocalPlayerSystem : ISystem
         }
     }
 
-    public void OnSceneStart()
+    public async void OnSceneStart()
     {
         PlayerResources.Metal = 0;
         MovementInput = Vector2.Zero;
@@ -379,6 +379,9 @@ public class LocalPlayerSystem : ISystem
 
         _leftHandEntity.GetComponent<DynamicPhysicsActor>().UseContactMod = true;
         _rightHandEntity.GetComponent<DynamicPhysicsActor>().UseContactMod = true;
+
+        await Task.Delay(2000);
+        Log.Msg("tada!!");
     }
 
     public void OnUpdate()
