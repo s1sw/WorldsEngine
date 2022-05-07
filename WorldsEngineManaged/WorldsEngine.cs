@@ -117,6 +117,8 @@ namespace WorldsEngine
 
             Registry.OverrideTransformToDPAPose = true;
 
+            SynchronizationContext.SetSynchronizationContext(simulateSyncContext);
+
             foreach (var system in HotloadManager.Systems)
             {
                 try
