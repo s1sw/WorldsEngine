@@ -166,9 +166,15 @@ namespace WorldsEngine
 
             IComponentStorage storage = AssureStorage(type);
 
-            // Deserialization should never fail - this isn't untrusted JSON, it's serialized in C++
-            var deserialized = JsonSerializer.Deserialize(jsonStr, type, serializerOptions)!;
-            SetComponent(entity, type, deserialized);
+            try
+            {
+                var deserialized = JsonSerializer.Deserialize(jsonStr, type, serializerOptions)!;
+                SetComponent(entity, type, deserialized);
+            }
+            catch (JsonException e)
+            {
+                Log.Error($"Error while loading scene: {e.Message}");
+            }
         }
 
         [UsedImplicitly]
