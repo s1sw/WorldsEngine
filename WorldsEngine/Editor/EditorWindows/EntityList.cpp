@@ -78,6 +78,17 @@ namespace worlds {
                     emptyT.position = cam.position + cam.rotation * glm::vec3(0.0f, 0.0f, 1.0f);
                     ImGui::CloseCurrentPopup();
                 }
+
+                if (ImGui::Button("Light")) {
+                    auto emptyEnt = reg.create();
+                    Transform& emptyT = reg.emplace<Transform>(emptyEnt);
+                    reg.emplace<NameComponent>(emptyEnt).name = "Empty";
+                    editor->select(emptyEnt);
+                    Camera& cam = editor->getFirstSceneView()->getCamera();
+                    emptyT.position = cam.position + cam.rotation * glm::vec3(0.0f, 0.0f, 1.0f);
+                    reg.emplace<WorldLight>(emptyEnt);
+                    ImGui::CloseCurrentPopup();
+                }
                 ImGui::EndPopup();
             }
 

@@ -436,7 +436,7 @@ namespace worlds {
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();
         ImGuiIO& io = ImGui::GetIO();
-        io.ConfigFlags |= ImGuiConfigFlags_DockingEnable | ImGuiConfigFlags_ViewportsEnable;
+        io.ConfigFlags |= ImGuiConfigFlags_DockingEnable; //| ImGuiConfigFlags_ViewportsEnable;
         io.IniFilename = runAsEditor ? "imgui_editor.ini" : "imgui.ini";
         io.Fonts->TexDesiredWidth = 512;
 

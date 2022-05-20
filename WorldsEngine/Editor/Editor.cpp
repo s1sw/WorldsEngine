@@ -798,9 +798,13 @@ namespace worlds {
 
         bool anyFocused = false;
 
-        for (ImGuiViewport* v : ImGui::GetPlatformIO().Viewports) {
-            bool focus = ImGui::GetPlatformIO().Platform_GetWindowFocus(v);
-            if (focus) anyFocused = true;
+        if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
+            for (ImGuiViewport* v : ImGui::GetPlatformIO().Viewports) {
+                bool focus = ImGui::GetPlatformIO().Platform_GetWindowFocus(v);
+                if (focus) anyFocused = true;
+            }
+        } else {
+            anyFocused = interfaces.engine->getMainWindow().isFocused();
         }
 
         for (EditorSceneView* esv : sceneViews) {
