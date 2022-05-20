@@ -411,8 +411,8 @@ void cullLights(uint tileIndex, uint groupIndex) {
 #endif
 
 #ifdef DEBUG
-        //if (inFrustum)
-            //InterlockedAdd(tileLightCounts[tileIndex], 1);
+        if (inFrustum || lightType == LightType.Directional)
+            InterlockedAdd(tileLightCounts[tileIndex], 1);
 #endif
     }
 }
