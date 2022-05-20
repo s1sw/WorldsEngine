@@ -457,25 +457,25 @@ namespace worlds {
             case LightType::Spot:
                 {
                     float cutoff = glm::degrees(worldLight.spotCutoff);
-                    ImGui::DragFloat("Spot Cutoff", &cutoff);
+                    ImGui::DragFloat("Spot Cutoff", &cutoff, 1.0f, 0.0f, 90.0f);
                     worldLight.spotCutoff = glm::radians(cutoff);
                     ImGui::Checkbox("Enable Shadows", &worldLight.enableShadows);
 
                     if (worldLight.enableShadows) {
-                        ImGui::DragFloat("Near Plane", &worldLight.shadowNear);
-                        ImGui::DragFloat("Far Plane", &worldLight.shadowFar);
+                        ImGui::DragFloat("Near Plane", &worldLight.shadowNear, 0.1f, 0.001f, FLT_MAX);
+                        ImGui::DragFloat("Far Plane", &worldLight.shadowFar, 1.0f, worldLight.shadowNear, FLT_MAX);
                     }
                 }
                 break;
             case LightType::Sphere:
                 {
-                    ImGui::DragFloat("Sphere Radius", &worldLight.spotCutoff);
+                    ImGui::DragFloat("Sphere Radius", &worldLight.spotCutoff, 1.0f, 0.0f, FLT_MAX);
                 }
                 break;
             case LightType::Tube:
                 {
-                    ImGui::DragFloat("Tube Length", &worldLight.tubeLength);
-                    ImGui::DragFloat("Tube Radius", &worldLight.tubeRadius);
+                    ImGui::DragFloat("Tube Length", &worldLight.tubeLength, 0.1f, 0.0f, FLT_MAX);
+                    ImGui::DragFloat("Tube Radius", &worldLight.tubeRadius, 0.1f, 0.0f, FLT_MAX);
                 }
                 break;
             default: break;
