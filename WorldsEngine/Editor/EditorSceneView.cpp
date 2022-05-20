@@ -106,13 +106,14 @@ namespace worlds {
 
                 int currentDbgDrawMode = g_console->getConVar("r_dbgdrawmode")->getInt();
 
-                ImGui::PushItemWidth(100.0f);
+                float scale = ImGui::GetFontSize() / 20.0f;
+                ImGui::PushItemWidth(100.0f * scale);
                 if (ImGui::Combo("Debug Draw", &currentDbgDrawMode, dbgDrawModes, IM_ARRAYSIZE(dbgDrawModes))) {
                     g_console->executeCommandStr("r_dbgDrawMode " + std::to_string(currentDbgDrawMode), false);
                 }
                 ImGui::PopItemWidth();
 
-                ImGui::SetCursorPos(ImGui::GetCursorStartPos() + animatedOffset + ImGui::GetStyle().WindowPadding + ImVec2(200.0f, 0.0f));
+                ImGui::SetCursorPos(ImGui::GetCursorStartPos() + animatedOffset + ImGui::GetStyle().WindowPadding + ImVec2(200.0f * scale, 0.0f));
 
                 ConVar* bloomConvar = g_console->getConVar("r_forcedisablebloom");
                 bool enableBloom = bloomConvar->getInt() == 0;
