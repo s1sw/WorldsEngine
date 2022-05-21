@@ -50,6 +50,12 @@ namespace worlds {
         auto hiddenL = vr::VRSystem()->GetHiddenAreaMesh(vr::EVREye::Eye_Left);
         auto hiddenR = vr::VRSystem()->GetHiddenAreaMesh(vr::EVREye::Eye_Right);
 
+        if (hiddenL.unTriangleCount == 0 || hiddenR.unTriangleCount == 0)
+        {
+            totalVertCount = 0;
+            return;
+        }
+
         size_t totalSize = (hiddenL.unTriangleCount + hiddenR.unTriangleCount) * 2 * 3 * sizeof(float);
 
         float* combinedBuf = (float*)std::malloc(totalSize);
@@ -79,6 +85,8 @@ namespace worlds {
     }
 
     void VRCullMeshRenderer::draw(VkCommandBuffer& cmdBuf) {
+        if (totalVertCount == 0)
+            return;
         VertPushConstants vpc;
         vpc.viewOffset = leftVertCount;
         vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
