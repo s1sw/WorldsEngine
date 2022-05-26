@@ -388,7 +388,7 @@ namespace worlds {
         SDL_VERSION(&wmInfo.version);
         SDL_GetWindowWMInfo(window, &wmInfo);
         HWND hwnd = wmInfo.info.win.window;
-        MARGINS m { 0, 0, -5, 0 };
+        MARGINS m { -1 };
         DwmExtendFrameIntoClientArea(hwnd, &m);
         #endif
     }
