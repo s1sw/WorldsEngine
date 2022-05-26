@@ -436,7 +436,7 @@ namespace worlds {
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();
         ImGuiIO& io = ImGui::GetIO();
-        io.ConfigFlags |= ImGuiConfigFlags_DockingEnable; //| ImGuiConfigFlags_ViewportsEnable;
+        io.ConfigFlags |= ImGuiConfigFlags_DockingEnable | ImGuiConfigFlags_ViewportsEnable;
         io.IniFilename = runAsEditor ? "imgui_editor.ini" : "imgui.ini";
         io.Fonts->TexDesiredWidth = 512;
 
@@ -792,10 +792,10 @@ namespace worlds {
         inFrame = true;
 
         ImVec2 newFrameDisplaySize(windowWidth, windowHeight);
-        if (window->isMaximised()) {
-            newFrameDisplaySize.x -= 16;
-            newFrameDisplaySize.y -= 16;
-        }
+        //if (window->isMaximised()) {
+        //    newFrameDisplaySize.x -= 16;
+        //    newFrameDisplaySize.y -= 16;
+        //}
 
         //ImGui::GetIO().DisplaySize = newFrameDisplaySize;
         ImGui::GetMainViewport()->Size = newFrameDisplaySize;
@@ -1094,7 +1094,7 @@ namespace worlds {
             }
 
             if (window->isMaximised()) {
-                renderThreadDrawData.DisplayPos += ImVec2(-9, -9);
+                //renderThreadDrawData.DisplayPos += ImVec2(-8, -8);
             }
 
             ImGui::UpdatePlatformWindows();
