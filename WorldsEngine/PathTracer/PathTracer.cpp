@@ -168,7 +168,7 @@ namespace worlds {
 
             glm::vec3 albedo{0.8f};
 
-            const float bias = 0.0002f;
+            const float bias = 0.0005f;
             reg.view<WorldLight, Transform>().each([&](WorldLight& wl, Transform& t) {
                 if (!wl.enabled) return;
                 if (wl.type == LightType::Directional) {
@@ -214,7 +214,7 @@ namespace worlds {
                         localDir.x * b.y + localDir.y * norm.y + localDir.z * t.y,
                         localDir.x * b.z + localDir.y * norm.z + localDir.z * t.z,
                     };
-                    PathTraceResult indirectResult = pathTrace(pos, dir, depth + 1);
+                    PathTraceResult indirectResult = pathTrace(pos + dir * bias, dir, depth + 1);
 
                     glm::vec3 overallResult = ptrToCol(indirectResult);
                     indirect += r1 * overallResult * albedo;
@@ -223,7 +223,7 @@ namespace worlds {
                 result.indirect = indirect;
             }
         } else {
-            result.direct = glm::vec3(0.0f);
+            result.direct = glm::vec3(0.1f);
             result.indirect = glm::vec3(0.0f);
         }
 
@@ -275,8 +275,8 @@ namespace worlds {
 
         float exposure = g_console->getConVar("r_exposure")->getFloat();
 
-        //JobList& jl = g_jobSys->getFreeJobList();
-        //jl.begin();
+        JobList& jl = g_jobSys->getFreeJobList();
+        jl.begin();
         int numXTiles = ((IMAGE_WIDTH + TILE_SIZE - 1) / TILE_SIZE);
         int numYTiles = ((IMAGE_HEIGHT + TILE_SIZE - 1) / TILE_SIZE);
         int numTiles = numXTiles * numYTiles; 
@@ -295,13 +295,13 @@ namespace worlds {
                     rt.imageAspectRatio = imageAspectRatio;
                     traceTile(rt);
                 }};
-                j.function();
-                //jl.addJob(std::move(j));
+                //j.function();
+                jl.addJob(std::move(j));
             }
         }
-        //jl.end();
-        //g_jobSys->signalJobListAvailable();
-        //jl.wait();
+        jl.end();
+        g_jobSys->signalJobListAvailable();
+        jl.wait();
 
         stbi_write_png("trace.png", IMAGE_WIDTH, IMAGE_HEIGHT, 3, outputBuffer, 0);
 
