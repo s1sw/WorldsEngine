@@ -24,25 +24,25 @@ namespace WorldsEngine
 
     public class WorldObject : BuiltinComponent
     {
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern uint worldObject_getMesh(IntPtr registryPtr, uint entityId);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern void worldObject_setMesh(IntPtr registryPtr, uint entityId, uint meshId);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern uint worldObject_getMaterial(IntPtr registryPtr, uint entityId, uint materialIndex);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern void worldObject_setMaterial(IntPtr registryPtr, uint entityId, uint materialIndex, uint material);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern char worldObject_exists(IntPtr registryPtr, uint entityId);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern byte worldObject_getStaticFlags(IntPtr registryPtr, uint entityId);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern void worldObject_setStaticFlags(IntPtr registryPtr, uint entityId, byte flags);
 
         internal static ComponentMetadata Metadata

@@ -12,29 +12,29 @@ namespace WorldsEngine.ComponentMeta
 {
     internal class NativeMetadataAPI
     {
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         internal static extern int componentmeta_getDataCount();
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         internal static extern IntPtr componentmeta_getName(int index);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         internal static extern void componentmeta_editIfNecessary(IntPtr registry, uint entity, int index);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         internal static extern void componentmeta_create(IntPtr registry, uint entity, int index);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         internal static extern void componentmeta_destroy(IntPtr registry, uint entity, int index);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         internal static extern void componentmeta_clone(IntPtr registry, uint from, uint to, int index);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         [return: MarshalAs(UnmanagedType.I1)]
         internal static extern bool componentmeta_hasComponent(IntPtr registry, uint entity, int index);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         [return: MarshalAs(UnmanagedType.I1)]
         internal static extern bool componentmeta_allowInspectorAdd(int index);
     }
@@ -207,8 +207,8 @@ namespace WorldsEngine.ComponentMeta
 
             metadata.AddRange(nativeMetadata);
 
-            WorldsEngine.AssemblyLoadManager.OnAssemblyLoad += RegisterComponentsForAssembly;
-            WorldsEngine.AssemblyLoadManager.OnAssemblyUnload += ClearManagedMetadata;
+            Engine.AssemblyLoadManager.OnAssemblyLoad += RegisterComponentsForAssembly;
+            Engine.AssemblyLoadManager.OnAssemblyUnload += ClearManagedMetadata;
         }
 
         private static void ClearManagedMetadata()

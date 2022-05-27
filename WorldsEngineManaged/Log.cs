@@ -14,7 +14,7 @@ namespace WorldsEngine
 
     public static class Log
     {
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern void logging_log(int severity, string message);
 
         public static void LogWithSeverity(MessageSeverity severity, string message)
@@ -51,7 +51,7 @@ namespace WorldsEngine
 
     public class Logger
     {
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern void logging_log(int severity, string message);
 
         public static void LogMessage(MessageSeverity severity, string str)

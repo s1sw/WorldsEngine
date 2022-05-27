@@ -14,40 +14,40 @@ namespace WorldsEngine
 {
     internal class NativeRegistry
     {
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         public static extern void registry_getTransform(IntPtr regPtr, uint entityId, IntPtr transformPtr);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         public static extern void registry_setTransform(IntPtr regPtr, uint entityId, IntPtr transformPtr);
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         public delegate void EntityCallbackDelegate(uint entityId);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         public static extern void registry_eachTransform(IntPtr regPtr, EntityCallbackDelegate del);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         public static extern uint registry_getEntityNameLength(IntPtr regPtr, uint entityId);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         public static extern void registry_getEntityName(IntPtr regPtr, uint entityId, StringBuilder str);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         public static extern void registry_setEntityName(IntPtr regPtr, uint entityId, string str);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         public static extern void registry_destroy(IntPtr regPtr, uint entityId);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         public static extern uint registry_create(IntPtr regPtr);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         public static extern void registry_setSerializedEntityInfo(IntPtr serializationContext, IntPtr key, IntPtr value);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         public static extern uint registry_createPrefab(IntPtr regPtr, uint assetId);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         public static extern bool registry_valid(IntPtr regPtr, uint entityId);
     }
 
@@ -132,7 +132,7 @@ namespace WorldsEngine
             string idStr = Marshal.PtrToStringAnsi(idPtr)!;
             string jsonStr = Marshal.PtrToStringAnsi(jsonPtr)!;
 
-            Type? type = WorldsEngine.AssemblyLoadManager.GetTypeFromAssemblies(idStr);
+            Type? type = Engine.AssemblyLoadManager.GetTypeFromAssemblies(idStr);
 
             if (type == null)
             {
@@ -141,7 +141,7 @@ namespace WorldsEngine
                 string[] split = idStr.Split(".");
                 string typename = split[split.Length - 1];
 
-                foreach (var la in WorldsEngine.AssemblyLoadManager.LoadedAssemblies)
+                foreach (var la in Engine.AssemblyLoadManager.LoadedAssemblies)
                 {
                     if (!la.Loaded) continue;
 

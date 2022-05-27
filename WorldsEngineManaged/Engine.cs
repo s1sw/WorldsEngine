@@ -15,7 +15,7 @@ using WorldsEngine.Input;
 
 namespace WorldsEngine
 {
-    internal class WorldsEngine
+    internal class Engine
     {
         internal const string NativeModule = "WorldsEngineNative";
 
@@ -62,7 +62,7 @@ namespace WorldsEngine
 
         static void ActualInit(IntPtr registryPtr, bool editorActive)
         {
-            NativeLibrary.SetDllImportResolver(typeof(WorldsEngine).Assembly, ImportResolver);
+            NativeLibrary.SetDllImportResolver(typeof(Engine).Assembly, ImportResolver);
             Registry.nativeRegistryPtr = registryPtr;
 
             MetadataManager.Initialise();

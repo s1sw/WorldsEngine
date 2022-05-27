@@ -22,7 +22,7 @@ namespace WorldsEngine
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         private delegate void CommandCallbackDelegate(IntPtr obj, string args);
 
-        [DllImport(WorldsEngine.NativeModule, CharSet = CharSet.Ansi)]
+        [DllImport(Engine.NativeModule, CharSet = CharSet.Ansi)]
         private static extern void console_registerCommand(CommandCallbackDelegate cmdDelegate, string name, string? help, IntPtr obj);
 
         private static readonly CommandCallbackDelegate callbackDelegate;
@@ -37,8 +37,8 @@ namespace WorldsEngine
 
         internal static void Initialise()
         {
-            WorldsEngine.AssemblyLoadManager.OnAssemblyLoad += RegisterCommands;
-            WorldsEngine.AssemblyLoadManager.OnAssemblyUnload += PrepareForUnload;
+            Engine.AssemblyLoadManager.OnAssemblyLoad += RegisterCommands;
+            Engine.AssemblyLoadManager.OnAssemblyUnload += PrepareForUnload;
         }
 
         private static void CommandCallback(IntPtr obj, string args)

@@ -16,90 +16,90 @@ namespace WorldsEngine
 
     public class DynamicPhysicsActor : BuiltinComponent
     {
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern int dynamicpa_getShapeCount(IntPtr registryPtr, uint entityId);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern void dynamicpa_getShape(IntPtr registryPtr, uint entityId, int shapeIndex, ref PhysicsShapeInternal psi);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern void dynamicpa_setShapeCount(IntPtr registryPtr, uint entityId, int shapeCount);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern void dynamicpa_setShape(IntPtr registryPtr, uint entityId, int shapeIndex, ref PhysicsShapeInternal psi);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern void dynamicpa_updateShapes(IntPtr registryPtr, uint entityId);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern void dynamicpa_addForce(IntPtr registryPtr, uint entityId, Vector3 force, int forceMode);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern void dynamicpa_addTorque(IntPtr registryPtr, uint entityId, Vector3 force, int forceMode);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern void dynamicpa_addForceAtPosition(IntPtr registryPtr, uint entityId, Vector3 force, Vector3 pos, int forceMode);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern void dynamicpa_getPose(IntPtr registryPtr, uint entityId, ref Transform pose);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern void dynamicpa_setPose(IntPtr registryPtr, uint entityId, ref Transform pose);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern void dynamicpa_getLinearVelocity(IntPtr registryPtr, uint entityId, ref Vector3 velocity);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern void dynamicpa_setLinearVelocity(IntPtr registryPtr, uint entityId, Vector3 vel);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern void dynamicpa_getAngularVelocity(IntPtr registryPtr, uint entityId, ref Vector3 velocity);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern void dynamicpa_setAngularVelocity(IntPtr registryPtr, uint entityId, Vector3 vel);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern float dynamicpa_getMass(IntPtr registryPtr, uint entityId);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern void dynamicpa_setMass(IntPtr registryPtr, uint entityId, float mass);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern void dynamicpa_getCenterOfMassLocalPose(IntPtr reg, uint entity, ref Transform pose);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern void dynamicpa_getMassSpaceInertiaTensor(IntPtr reg, uint entity, ref Vector3 tensor);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern void dynamicpa_setMaxAngularVelocity(IntPtr reg, uint entity, float vel);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern float dynamicpa_getMaxAngularVelocity(IntPtr reg, uint entity);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern void dynamicpa_setMaxLinearVelocity(IntPtr reg, uint entity, float vel);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern float dynamicpa_getMaxLinearVelocity(IntPtr reg, uint entity);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         [return: MarshalAs(UnmanagedType.I1)]
         private static extern bool dynamicpa_getKinematic(IntPtr reg, uint entity);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern void dynamicpa_setKinematic(IntPtr reg, uint entity, [MarshalAs(UnmanagedType.I1)] bool kinematic);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         [return: MarshalAs(UnmanagedType.I1)]
         private static extern bool dynamicpa_getUseContactMod(IntPtr reg, uint entity);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern void dynamicpa_setUseContactMod(IntPtr reg, uint entity, [MarshalAs(UnmanagedType.I1)] bool useContactMod);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern float dynamicpa_getContactOffset(IntPtr reg, uint entity);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern void dynamicpa_setContactOffset(IntPtr reg, uint entity, float val);
 
         internal static ComponentMetadata Metadata

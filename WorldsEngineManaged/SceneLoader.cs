@@ -4,10 +4,10 @@ namespace WorldsEngine
 {
     public static class SceneLoader
     {
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern void sceneloader_loadScene(uint id);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern uint sceneloader_getCurrentSceneID();
 
         public static void LoadScene(AssetID id) => sceneloader_loadScene(id.ID);

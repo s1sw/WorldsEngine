@@ -16,22 +16,22 @@ namespace WorldsEngine.Audio
 
     public static class Audio
     {
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern void audio_playOneShot(uint clipId, ref Vector3 location, [MarshalAs(UnmanagedType.I1)] bool spatialise, float volume, uint channel);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern void audio_playOneShotEvent(string eventPath, ref Vector3 location, float volume);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern void audio_playOneShotAttachedEvent(string eventPath, ref Vector3 location, uint entity, float volume);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern void audio_loadBank(string bankPath);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern void audio_stopEverything(IntPtr regPtr);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern void audio_updateAudioScene(IntPtr regPtr);
 
         [Obsolete("Use PlayOneShotEvent")]

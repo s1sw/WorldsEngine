@@ -17,37 +17,37 @@ namespace WorldsEngine
 
     public class PhysicsMaterial : IDisposable
     {
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern IntPtr physicsmaterial_new(float staticFriction, float dynamicFriction, float restitution);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern void physicsmaterial_acquireReference(IntPtr material);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern void physicsmaterial_release(IntPtr material);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern float physicsmaterial_getStaticFriction(IntPtr material);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern float physicsmaterial_getDynamicFriction(IntPtr material);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern float physicsmaterial_getRestitution(IntPtr material);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern void physicsmaterial_setStaticFriction(IntPtr material, float val);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern void physicsmaterial_setDynamicFriction(IntPtr material, float val);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern void physicsmaterial_setRestitution(IntPtr material, float val);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern void physicsmaterial_setFrictionCombineMode(IntPtr material, CombineMode mode);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern CombineMode physicsmaterial_getFrictionCombineMode(IntPtr material);
 
         public float StaticFriction

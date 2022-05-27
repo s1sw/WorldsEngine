@@ -17,17 +17,17 @@ namespace WorldsEngine.Input
 
     public static class Mouse
     {
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern void input_getMousePosition(out Vector2 pos);
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern void input_setMousePosition(ref Vector2 pos);
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern void input_getMouseDelta(out Vector2 pos);
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern bool input_getMouseButtonPressed(MouseButton button);
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern bool input_getMouseButtonReleased(MouseButton button);
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern bool input_getMouseButtonHeld(MouseButton button);
 
         public static Vector2 Position

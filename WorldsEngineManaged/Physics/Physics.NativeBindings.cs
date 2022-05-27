@@ -6,7 +6,7 @@ namespace WorldsEngine
 {
     public class ContactModPairArray
     {
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern int ContactModifyPair_getSize();
 
         public readonly uint Count;
@@ -57,49 +57,49 @@ namespace WorldsEngine
 
     public class ModifiableContact
     {
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern void ContactSet_getTargetVelocity(IntPtr ptr, int idx, out Vector3 value);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern void ContactSet_setTargetVelocity(IntPtr ptr, int idx, Vector3 value);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern void ContactSet_getNormal(IntPtr ptr, int idx, out Vector3 value);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern void ContactSet_setNormal(IntPtr ptr, int idx, Vector3 value);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern float ContactSet_getMaxImpulse(IntPtr ptr, int idx);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern void ContactSet_setMaxImpulse(IntPtr ptr, int idx, float impulse);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern float ContactSet_getDynamicFriction(IntPtr ptr, int idx);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern void ContactSet_setDynamicFriction(IntPtr ptr, int idx, float val);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern float ContactSet_getStaticFriction(IntPtr ptr, int idx);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern void ContactSet_setStaticFriction(IntPtr ptr, int idx, float val);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern float ContactSet_getRestitution(IntPtr ptr, int idx);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern void ContactSet_setRestitution(IntPtr ptr, int idx, float val);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern float ContactSet_getSeparation(IntPtr ptr, int idx);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern void ContactSet_setSeparation(IntPtr ptr, int idx, float val);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern void ContactSet_getPoint(IntPtr ptr, int idx, out Vector3 value);
 
         private readonly IntPtr _contactSetPtr;
@@ -180,7 +180,7 @@ namespace WorldsEngine
         private IntPtr _nativePtr;
         private ModifiableContact _contactDummy;
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern uint ContactSet_getCount(IntPtr ptr);
 
         public int Count => (int)ContactSet_getCount(_nativePtr);
@@ -211,13 +211,13 @@ namespace WorldsEngine
 
     public struct ContactModifyPair
     {
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern uint ContactModifyPair_getEntity(IntPtr pair, int idx);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern void ContactModifyPair_getTransform(IntPtr pair, int idx, out Transform t);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern IntPtr ContactModifyPair_getContactSetPointer(IntPtr pair);
 
         private IntPtr _nativePtr;
@@ -263,29 +263,29 @@ namespace WorldsEngine
 
     public static partial class Physics
     {
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern bool physics_raycast(Vector3 origin, Vector3 direction, float maxDist, uint excludeLayerMask, out RaycastHit hit);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern bool physics_overlapSphere(Vector3 origin, float radius, out uint overlappedEntity);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static unsafe extern uint physics_overlapSphereMultiple(Vector3 origin, float radius, uint maxTouchCount, Entity* entityBuffer, uint excludeLayerMask);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         [return: MarshalAs(UnmanagedType.I1)]
         private static unsafe extern bool physics_sweepSphere(Vector3 origin, float radius, Vector3 direction, float distance, out RaycastHit hit, uint excludeLayerMask);
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         private delegate void NativeCollisionDelegate(uint entityId, uint id, ref PhysicsContactInfo contactInfo);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern void physics_addEventHandler(NativeCollisionDelegate collisionDelegate);
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         private delegate void NativeContactModCallback(IntPtr ctx, IntPtr pairs, uint count);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern void physics_setContactModCallback(IntPtr ctx, NativeContactModCallback? callback);
     }
 }

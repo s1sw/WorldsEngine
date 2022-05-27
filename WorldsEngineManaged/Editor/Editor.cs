@@ -19,16 +19,16 @@ namespace WorldsEngine.Editor
     public static class Editor
     {
         #region Native Imports
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern uint editor_getCurrentlySelected();
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern void editor_select(uint entity);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern void editor_addNotification(string notification, NotificationType type);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern void editor_overrideHandle(uint entity);
         #endregion
 
@@ -135,7 +135,7 @@ namespace WorldsEngine.Editor
 
                 if (ImGui.Button("Force Reload Assembly"))
                 {
-                    WorldsEngine.AssemblyLoadManager.ReloadAll();
+                    Engine.AssemblyLoadManager.ReloadAll();
                 }
 
                 if (ImGui.Button("Destroy Far-Away Objects"))

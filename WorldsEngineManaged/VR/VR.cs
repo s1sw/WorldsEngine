@@ -17,7 +17,7 @@ namespace WorldsEngine
     public class BoneTransforms
     {
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern void vr_getHandBoneTransform(VRHand hand, int boneIdx, ref Transform transform);
 
         internal VRHand _hand;
@@ -40,17 +40,17 @@ namespace WorldsEngine
 
     public static class VR
     {
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         [return: MarshalAs(UnmanagedType.I1)]
         private static extern bool vr_enabled();
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern void vr_getHeadTransform(float predictionTime, ref Transform transform);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern void vr_getHandTransform(VRHand hand, ref Transform transform);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern void vr_getHandVelocity(VRHand hand, ref Vector3 velocity);
 		
 		private static bool _enabled = false;

@@ -101,41 +101,41 @@ namespace WorldsEngine
 
     public class D6Joint : BuiltinComponent
     {
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern void d6joint_setTarget(IntPtr regPtr, uint d6ent, uint target);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern uint d6joint_getTarget(IntPtr regPtr, uint d6ent);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern void d6joint_setAxisMotion(IntPtr regPtr, uint d6ent, D6Axis axis, D6Motion motion);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern void d6joint_getLocalPose(IntPtr regPtr, uint d6ent, uint actorIndex, out Transform pose);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern void d6joint_setLocalPose(IntPtr regPtr, uint d6ent, uint actorIndex, ref Transform pose);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern void d6joint_setLinearLimit(IntPtr regPtr, uint d6ent, D6Axis axis, ref JointLinearLimitPair limit);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern void d6joint_setDrive(IntPtr regPtr, uint d6ent, D6Drive drive, ref D6JointDrive jointDrive);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern void d6joint_setBreakForce(IntPtr regPtr, uint d6ent, float breakForce);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern float d6joint_getBreakForce(IntPtr regPtr, uint d6ent);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         [return: MarshalAs(UnmanagedType.I1)]
         private static extern bool d6joint_isBroken(IntPtr regPtr, uint d6ent);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern uint d6joint_getAttached(IntPtr regPtr, uint d6ent);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern void d6joint_setAttached(IntPtr regPtr, uint d6ent, uint attachedEnt);
 
         internal static ComponentMetadata Metadata
