@@ -429,6 +429,7 @@ namespace worlds {
         _cooking = PxCreateCooking(PX_PHYSICS_VERSION, *foundation, physx::PxCookingParams(tolerancesScale));
         physx::PxCookingParams params(tolerancesScale);
         params.meshPreprocessParams |= PxMeshPreprocessingFlag::eWELD_VERTICES;
+        params.meshWeldTolerance = 0.00001f;
 
         _cooking->setParams(params);
         physx::PxSceneDesc desc(tolerancesScale);
