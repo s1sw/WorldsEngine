@@ -70,6 +70,7 @@ static const Uint32 SDL_WINDOW_VULKAN = 0x10000000;
 #endif
 
 #ifdef _WIN32
+#include <dwmapi.h>
 #pragma comment(lib, "imm32.lib")
 #endif
 
@@ -527,6 +528,8 @@ static void ImGui_ImplSDL2_CreateWindow(ImGuiViewport* viewport) {
     SDL_VERSION(&info.version);
     if (SDL_GetWindowWMInfo(data->Window, &info))
         viewport->PlatformHandleRaw = info.info.win.window;
+    BOOL disable = TRUE;
+    DwmSetWindowAttribute(info.info.win.window, DWMWA_TRANSITIONS_FORCEDISABLED, &disable, sizeof(disable));
 #endif
 }
 
@@ -562,6 +565,7 @@ static void ImGui_ImplSDL2_ShowWindow(ImGuiViewport* viewport) {
         ::ShowWindow(hwnd, SW_SHOWNA);
         return;
     }
+
 #endif
 
     SDL_ShowWindow(data->Window);
