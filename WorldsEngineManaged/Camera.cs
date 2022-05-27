@@ -10,17 +10,17 @@ namespace WorldsEngine
 {
     public class Camera
     {
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern void camera_getPosition(IntPtr camPtr, out Vector3 pos);
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private unsafe static extern void camera_setPosition(IntPtr camPtr, Vector3* pos);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern void camera_getRotation(IntPtr camPtr, out Quaternion rotation);
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private unsafe static extern void camera_setRotation(IntPtr camPtr, Quaternion* rotation);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern IntPtr camera_getMain();
 
         public static Camera Main { get; private set; }

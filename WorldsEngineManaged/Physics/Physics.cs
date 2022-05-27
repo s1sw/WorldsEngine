@@ -131,7 +131,7 @@ namespace WorldsEngine
 
         static Physics()
         {
-            WorldsEngine.AssemblyLoadManager.OnAssemblyUnload += () =>
+            Engine.AssemblyLoadManager.OnAssemblyUnload += () =>
             {
                 if (_callback == null) return;
 
@@ -145,7 +145,7 @@ namespace WorldsEngine
                 _callback = null;
             };
 
-            WorldsEngine.AssemblyLoadManager.OnAssemblyLoad += (Assembly asm) =>
+            Engine.AssemblyLoadManager.OnAssemblyLoad += (Assembly asm) =>
             { 
                 Log.Msg("Physics OnAssemblyLoad");
                 if (_lastContactModCallback == null) return;

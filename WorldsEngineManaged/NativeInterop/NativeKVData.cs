@@ -42,7 +42,7 @@ namespace WorldsEngine.NativeInterop
 
     internal class NativeKVData
     {
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static unsafe extern NativeKVValue* nativekv_getValue(IntPtr kvObject, IntPtr utf8Key);
     }
 }

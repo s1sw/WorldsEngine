@@ -5,16 +5,16 @@ namespace WorldsEngine;
 
 public static class DebugShapes
 {
-    [DllImport(WorldsEngine.NativeModule)]
+    [DllImport(Engine.NativeModule)]
     private static extern void debugshapes_drawLine(Vector3 p0, Vector3 p1, Vector4 color);
     
-    [DllImport(WorldsEngine.NativeModule)]
+    [DllImport(Engine.NativeModule)]
     private static extern void debugshapes_drawCircle(Vector3 center, float radius, Quaternion rotation, Vector4 color);
     
-    [DllImport(WorldsEngine.NativeModule)]
+    [DllImport(Engine.NativeModule)]
     private static extern void debugshapes_drawSphere(Vector3 center, Quaternion rotation, float radius, Vector4 color);
     
-    [DllImport(WorldsEngine.NativeModule)]
+    [DllImport(Engine.NativeModule)]
     private static extern void debugshapes_drawBox(Vector3 center, Quaternion rotation, Vector3 halfExtents);
 
     public static void DrawLine(Vector3 p0, Vector3 p1, Vector4 color)

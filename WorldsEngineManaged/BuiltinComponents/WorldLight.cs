@@ -15,35 +15,35 @@ namespace WorldsEngine
     
     public class WorldLight : BuiltinComponent
     {
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         [return: MarshalAs(UnmanagedType.I1)]
         private static extern bool worldlight_getEnabled(IntPtr registryPtr, uint entityId);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern void worldlight_setEnabled(IntPtr registryPtr, uint entityId, [MarshalAs(UnmanagedType.I1)] bool enabled);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern float worldlight_getIntensity(IntPtr registryPtr, uint entityId);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern void worldlight_setIntensity(IntPtr registryPtr, uint entityId, float intensity);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern void worldlight_setColor(IntPtr registryPtr, uint entityId, Vector3 color);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern Vector3 worldlight_getColor(IntPtr registryPtr, uint entityId);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern float worldlight_getRadius(IntPtr registryPtr, uint entityId);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern void worldlight_setRadius(IntPtr registryPtr, uint entityId, float radius);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern LightType worldlight_getType(IntPtr registryPtr, uint entityId);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern void worldlight_setType(IntPtr registryPtr, uint entityId, LightType type);
 
         public bool Enabled

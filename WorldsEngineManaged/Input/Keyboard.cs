@@ -9,11 +9,11 @@ namespace WorldsEngine.Input
 {
     public static class Keyboard
     {
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern bool input_getKeyHeld(KeyCode code);
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern bool input_getKeyPressed(KeyCode code);
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern bool input_getKeyReleased(KeyCode code);
 
         public static bool KeyHeld(KeyCode code)

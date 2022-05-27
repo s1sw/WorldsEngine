@@ -19,7 +19,7 @@ namespace WorldsEngine
 
     public struct Bone
     {
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern IntPtr meshmanager_getBonePointer(uint meshId, uint boneId);
 
         public unsafe uint ID
@@ -45,23 +45,23 @@ namespace WorldsEngine
 
     public class LoadedMesh
     {
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         [return : MarshalAs(UnmanagedType.I1)]
         private static extern bool meshmanager_isMeshSkinned(uint id);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern uint meshmanager_getBoneId(uint meshId, string name);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern void meshmanager_getBoneRestTransform(uint meshId, uint boneId, ref Transform t);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern void meshmanager_getBoneRelativeTransform(uint meshId, uint boneId, ref Transform t);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern uint meshmanager_getBoneCount(uint meshId);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern float meshmanager_getSphereBoundRadius(uint meshId);
 
 
@@ -81,23 +81,23 @@ namespace WorldsEngine
 
     public static class MeshManager
     {
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         [return : MarshalAs(UnmanagedType.I1)]
         private static extern bool meshmanager_isMeshSkinned(uint id);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern uint meshmanager_getBoneId(uint meshId, string name);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern void meshmanager_getBoneRestTransform(uint meshId, uint boneId, ref Transform t);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern void meshmanager_getBoneRelativeTransform(uint meshId, uint boneId, ref Transform t);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern uint meshmanager_getBoneCount(uint meshId);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern float meshmanager_getSphereBoundRadius(uint meshId);
 
         public static bool IsMeshSkinned(AssetID id) => meshmanager_isMeshSkinned(id.ID);

@@ -10,25 +10,25 @@ namespace WorldsEngine
 {
     public class VRAction
     {
-        [DllImport(WorldsEngine.NativeModule, CharSet = CharSet.Ansi)]
+        [DllImport(Engine.NativeModule, CharSet = CharSet.Ansi)]
         private static extern ulong vr_getActionHandle(string actionPath);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         [return: MarshalAs(UnmanagedType.I1)]
         private static extern bool vr_getActionHeld(ulong handle);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         [return: MarshalAs(UnmanagedType.I1)]
         private static extern bool vr_getActionPressed(ulong handle);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         [return: MarshalAs(UnmanagedType.I1)]
         private static extern bool vr_getActionReleased(ulong handle);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern void vr_getActionVector2(ulong handle, out Vector2 vec);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern void vr_triggerHaptics(ulong handle, float timeFromNow, float duration, float frequency, float amplitude);
 
         private readonly ulong _actionHandle;

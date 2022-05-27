@@ -42,7 +42,7 @@ public enum ControllerAxis : int
 
 public static class Controller
 {
-    [DllImport(WorldsEngine.NativeModule)]
+    [DllImport(Engine.NativeModule)]
     private static extern void input_triggerControllerHaptics(ushort leftIntensity, ushort rightIntensity, uint duration);
 
     public static bool ButtonHeld(ControllerButton button) => _heldButtons[(int)button];

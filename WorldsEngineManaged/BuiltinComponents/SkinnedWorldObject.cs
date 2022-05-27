@@ -6,25 +6,25 @@ namespace WorldsEngine
 {
     public class SkinnedWorldObject : BuiltinComponent
     {
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern uint skinnedWorldObject_getMesh(IntPtr registryPtr, uint entityId);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern void skinnedWorldObject_setMesh(IntPtr registryPtr, uint entityId, uint meshId);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern uint skinnedWorldObject_getMaterial(IntPtr registryPtr, uint entityId, uint materialIndex);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern void skinnedWorldObject_setMaterial(IntPtr registryPtr, uint entityId, uint materialIndex, uint material);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern char skinnedWorldObject_exists(IntPtr registryPtr, uint entityId);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern void skinnedWorldObject_getBoneTransform(IntPtr registryPtr, uint entityId, uint boneIdx, ref Transform t);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern void skinnedWorldObject_setBoneTransform(IntPtr registryPtr, uint entityId, uint boneIdx, ref Transform t);
 
         internal static ComponentMetadata Metadata

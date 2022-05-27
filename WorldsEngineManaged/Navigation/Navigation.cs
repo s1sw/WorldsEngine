@@ -10,7 +10,7 @@ namespace WorldsEngine.Navigation
 {
     public class NavigationPath
     {
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern void navigation_deletePath(IntPtr path);
 
         [StructLayout(LayoutKind.Sequential)]
@@ -50,10 +50,10 @@ namespace WorldsEngine.Navigation
     }
     public static class NavigationSystem
     {
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern IntPtr navigation_findPath(Vector3 startPos, Vector3 endPos);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         [return: MarshalAs(UnmanagedType.I1)]
         private static extern bool navigation_getClosestPointOnMesh(Vector3 point, ref Vector3 outPoint, Vector3 searchExtent);
 

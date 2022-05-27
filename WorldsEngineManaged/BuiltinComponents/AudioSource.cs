@@ -21,16 +21,16 @@ namespace WorldsEngine
 
     public class AudioSource : BuiltinComponent
     {
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern void audiosource_start(IntPtr regPtr, uint entity);
 
-        [DllImport(WorldsEngine.NativeModule)] 
+        [DllImport(Engine.NativeModule)] 
         private static extern void audiosource_stop(IntPtr regPtr, uint entity, StopMode stopMode);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern PlaybackState audiosource_getPlayState(IntPtr regPtr, uint entity);
 
-        [DllImport(WorldsEngine.NativeModule)]
+        [DllImport(Engine.NativeModule)]
         private static extern void audiosource_setParameter(IntPtr regPtr, uint entity, string parameterName, float value);
 
         internal static ComponentMetadata Metadata
