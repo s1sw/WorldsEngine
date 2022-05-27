@@ -66,11 +66,6 @@ namespace WorldsEngine
         private readonly static List<IComponentStorage> _collisionHandlers = new();
         private readonly static List<IComponentStorage> _startListeners = new();
 
-        static Registry()
-        {
-            GameAssemblyManager.OnAssemblyLoad += DeserializeStorages;
-        }
-
         [UsedImplicitly]
         [SuppressMessage("CodeQuality", "IDE0051:Remove unused private members",
             Justification = "Called from native C++")]
@@ -137,24 +132,24 @@ namespace WorldsEngine
             string idStr = Marshal.PtrToStringAnsi(idPtr)!;
             string jsonStr = Marshal.PtrToStringAnsi(jsonPtr)!;
 
-            if (HotloadSerialization.CurrentGameAssembly == null)
-            {
-                Log.Error("Game assembly isn't loaded!");
-                return;
-            }
-
-            Type? type = HotloadSerialization.CurrentGameAssembly.GetType(idStr);
+            Type? type = WorldsEngine.AssemblyLoadManager.GetTypeFromAssemblies(idStr);
 
             if (type == null)
             {
                 Log.Warn($"Failed to find type with ID {idStr}. Trying with fuzzier search in case the namespace changed.");
+
                 string[] split = idStr.Split(".");
                 string typename = split[split.Length - 1];
 
-                foreach (Type candidate in HotloadSerialization.CurrentGameAssembly.GetTypes())
+                foreach (var la in WorldsEngine.AssemblyLoadManager.LoadedAssemblies)
                 {
-                    if (candidate.Name == typename)
-                        type = candidate;
+                    if (!la.Loaded) continue;
+
+                    foreach (Type candidate in la.LoadedAs!.GetTypes())
+                    {
+                        if (candidate.Name == typename)
+                            type = candidate;
+                    }
                 }
 
                 if (type == null)
@@ -189,40 +184,6 @@ namespace WorldsEngine
             }
         }
 
-        internal static void SerializeStorages()
-        {
-            for (int i = 0; i < ComponentPoolCount; i++)
-            {
-                if (componentStorages[i] == null) continue;
-                if (componentStorages[i]!.Type.Assembly == Assembly.GetExecutingAssembly()) continue;
-                componentStorages[i]!.SerializeForHotload();
-                componentStorages[i] = null;
-            }
-
-            _collisionHandlers.Clear();
-            _startListeners.Clear();
-        }
-
-        private static void DeserializeStorages(Assembly gameAssembly)
-        {
-            List<string> componentTypes = new List<string>();
-
-            foreach (KeyValuePair<string, SerializedComponentStorage> kvp in ComponentTypeLookup.serializedComponents)
-            {
-                componentTypes.Add(kvp.Value.FullTypeName);
-            }
-
-            foreach (string typename in componentTypes)
-            {
-                Type? componentType = gameAssembly.GetType(typename);
-
-                if (componentType == null)
-                    Log.Warn($"Component type {typename} no longer exists");
-                else
-                    AssureStorage(componentType);
-            }
-        }
-
         private static IComponentStorage AssureStorage(Type type)
         {
             if (!ComponentTypeLookup.typeIndices.ContainsKey(type.FullName!) || componentStorages[ComponentTypeLookup.typeIndices[type.FullName!]] == null)
@@ -235,9 +196,7 @@ namespace WorldsEngine
                 if (index >= ComponentPoolCount)
                     throw new ArgumentOutOfRangeException("Out of component pools. Oops.");
 
-                bool hotload = ComponentTypeLookup.serializedComponents.ContainsKey(type.FullName!);
-
-                componentStorages[index] = (IComponentStorage)Activator.CreateInstance(storageType, BindingFlags.Public | BindingFlags.Instance, null, new object[] { hotload }, null)!;
+                componentStorages[index] = (IComponentStorage)Activator.CreateInstance(storageType, BindingFlags.Public | BindingFlags.Instance, null, null, null)!;
 
                 if (typeof(ICollisionHandler).IsAssignableFrom(type))
                     _collisionHandlers.Add(componentStorages[index]!);
@@ -258,12 +217,10 @@ namespace WorldsEngine
             if (typeIndex >= ComponentPoolCount)
                 throw new ArgumentOutOfRangeException("Out of component pools. Oops.");
 
-            bool hotload = ComponentTypeLookup.serializedComponents.ContainsKey(typeof(T).FullName!);
-
             if (componentStorages[typeIndex] == null)
             {
                 Log.Msg($"Creating storage for {typeof(T).FullName}, index {typeIndex}");
-                componentStorages[typeIndex] = new ComponentStorage<T>(hotload);
+                componentStorages[typeIndex] = new ComponentStorage<T>();
                 if (typeof(ICollisionHandler).IsAssignableFrom(typeof(T)))
                     _collisionHandlers.Add(componentStorages[typeIndex]!);
 

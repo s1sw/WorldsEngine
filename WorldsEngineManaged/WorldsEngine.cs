@@ -10,6 +10,8 @@ using WorldsEngine.Math;
 using JetBrains.Annotations;
 using System.Diagnostics.CodeAnalysis;
 using WorldsEngine.Editor;
+using WorldsEngine.Hotloading;
+using WorldsEngine.Input;
 
 namespace WorldsEngine
 {
@@ -48,7 +50,7 @@ namespace WorldsEngine
         }
 #endif
 
-        internal static HotloadManager HotloadManager = new();
+        internal static AssemblyLoadManager AssemblyLoadManager = new();
         static readonly EngineSynchronizationContext updateSyncContext = new();
         static readonly EngineSynchronizationContext simulateSyncContext = new();
         static readonly EngineSynchronizationContext editorUpdateSyncContext = new();
@@ -63,24 +65,10 @@ namespace WorldsEngine
             NativeLibrary.SetDllImportResolver(typeof(WorldsEngine).Assembly, ImportResolver);
             Registry.nativeRegistryPtr = registryPtr;
 
-            // These depend on game assembly metadata so
-            // initialise them explicitly before loading the assembly.
             MetadataManager.Initialise();
             Console.Initialise();
 
-            HotloadManager.Active = editorActive;
-            HotloadManager.Initialize();
-
-            GameAssemblyManager.OnAssemblyUnload += () =>
-            {
-                updateSyncContext.ClearCallbacks();
-                simulateSyncContext.ClearCallbacks();
-            };
-
-            GameAssemblyManager.OnAssemblyLoad += (Assembly) =>
-            {
-                Editor.Editor.Notify("Assembly loaded");
-            };
+            AssemblyLoadManager.RegisterAssembly(Path.GetDirectoryName(System.Diagnostics.Process.GetCurrentProcess().MainModule!.FileName) + @"\GameAssemblies\Game.dll");
         }
 
         [UsedImplicitly]
@@ -119,7 +107,7 @@ namespace WorldsEngine
 
             SynchronizationContext.SetSynchronizationContext(simulateSyncContext);
 
-            foreach (var system in HotloadManager.Systems)
+            foreach (var system in AssemblyLoadManager.Systems)
             {
                 try
                 {
@@ -132,7 +120,6 @@ namespace WorldsEngine
             }
 
             Registry.OnSceneStart();
-
             Registry.OverrideTransformToDPAPose = false;
         }
 
@@ -141,7 +128,6 @@ namespace WorldsEngine
             Justification = "Called from native C++")]
         static void Update(float deltaTime, float interpAlpha)
         {
-            HotloadManager.ReloadIfNecessary();
             SynchronizationContext.SetSynchronizationContext(updateSyncContext);
             Time.DeltaTime = deltaTime;
             Time.InterpolationAlpha = interpAlpha;
@@ -151,9 +137,14 @@ namespace WorldsEngine
             {
                 updateSyncContext.RunCallbacks();
 
-                for (int i = 0; i < HotloadManager.Systems.Count; i++)
+                if (Keyboard.KeyPressed(KeyCode.NumberRow5))
                 {
-                    HotloadManager.Systems[i].OnUpdate();
+                    AssemblyLoadManager.ReloadAll();
+                }
+
+                foreach (ISystem system in AssemblyLoadManager.Systems)
+                {
+                    system.OnUpdate();
                 }
 
                 Registry.RunUpdateOnComponents();
@@ -184,9 +175,9 @@ namespace WorldsEngine
                 Physics.FlushCollisionQueue();
                 simulateSyncContext.RunCallbacks();
 
-                for (int i = 0; i < HotloadManager.Systems.Count; i++)
+                foreach (ISystem system in AssemblyLoadManager.Systems)
                 {
-                    HotloadManager.Systems[i].OnSimulate();
+                    system.OnSimulate();
                 }
 
                 Registry.RunSimulateOnComponents();
@@ -208,7 +199,6 @@ namespace WorldsEngine
             Justification = "Called from native C++")]
         static void EditorUpdate()
         {
-            HotloadManager.ReloadIfNecessary();
             SynchronizationContext.SetSynchronizationContext(editorUpdateSyncContext);
             Physics.ClearCollisionQueue();
 

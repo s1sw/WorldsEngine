@@ -135,7 +135,7 @@ namespace WorldsEngine.Editor
 
                 if (ImGui.Button("Force Reload Assembly"))
                 {
-                    WorldsEngine.HotloadManager.ForceReload();
+                    WorldsEngine.AssemblyLoadManager.ReloadAll();
                 }
 
                 if (ImGui.Button("Destroy Far-Away Objects"))

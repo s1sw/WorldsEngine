@@ -1,5 +1,6 @@
 using System;
 using System.Runtime.InteropServices;
+using System.Text;
 
 namespace WorldsEngine
 {
@@ -24,6 +25,17 @@ namespace WorldsEngine
         public static void Msg(string str)
         {
             LogWithSeverity(MessageSeverity.Info, str);
+        }
+        
+        public static void MsgIndented(int indent, string str)
+        {
+            StringBuilder sb = new();
+            for (int i = 0; i < indent; i++)
+            {
+                sb.Append("  ");
+            }
+            sb.Append(str);
+            LogWithSeverity(MessageSeverity.Info, sb.ToString());
         }
 
         public static void Warn(string str)
