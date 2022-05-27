@@ -207,8 +207,8 @@ namespace WorldsEngine.ComponentMeta
 
             metadata.AddRange(nativeMetadata);
 
-            GameAssemblyManager.OnAssemblyLoad += RegisterComponentsForAssembly;
-            GameAssemblyManager.OnAssemblyUnload += ClearManagedMetadata;
+            WorldsEngine.AssemblyLoadManager.OnAssemblyLoad += RegisterComponentsForAssembly;
+            WorldsEngine.AssemblyLoadManager.OnAssemblyUnload += ClearManagedMetadata;
         }
 
         private static void ClearManagedMetadata()

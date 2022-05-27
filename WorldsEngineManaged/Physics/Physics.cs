@@ -91,7 +91,7 @@ namespace WorldsEngine
                 physics_setContactModCallback(IntPtr.Zero, _nativeContactModCallback);
             }
         }
-        
+
         private static ContactModCallback? _callback;
         private static NativeContactModCallback _nativeContactModCallback = new(CallbackWrapper);
 
@@ -100,7 +100,14 @@ namespace WorldsEngine
             if (_callback == null) return;
 
             ContactModPairArray pairArray = new(pairs, count);
-            _callback(pairArray);
+            try
+            {
+                _callback(pairArray);
+            }
+            catch (Exception e)
+            {
+                Log.Error($"Caught exception in contact mod callback! {e}");
+            }
         }
 
         struct OldCallback
@@ -118,13 +125,13 @@ namespace WorldsEngine
 
             flags |= info.IsStatic ? BindingFlags.Static : BindingFlags.Instance;
             flags |= info.IsPublic ? BindingFlags.Public : BindingFlags.NonPublic;
-            
+
             return flags;
         }
 
         static Physics()
         {
-            GameAssemblyManager.OnAssemblyUnload += () =>
+            WorldsEngine.AssemblyLoadManager.OnAssemblyUnload += () =>
             {
                 if (_callback == null) return;
 
@@ -138,7 +145,7 @@ namespace WorldsEngine
                 _callback = null;
             };
 
-            GameAssemblyManager.OnAssemblyLoad += (Assembly asm) =>
+            WorldsEngine.AssemblyLoadManager.OnAssemblyLoad += (Assembly asm) =>
             { 
                 Log.Msg("Physics OnAssemblyLoad");
                 if (_lastContactModCallback == null) return;

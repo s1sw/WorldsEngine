@@ -12,7 +12,6 @@ namespace WorldsEngine.ECS
         Type Type { get; }
         bool IsThinking { get; }
         bool IsUpdateable { get; }
-        void SerializeForHotload();
         object GetBoxed(Entity entity);
         void SetBoxed(Entity entity, object val);
         bool Contains(Entity entity);
@@ -27,13 +26,11 @@ namespace WorldsEngine.ECS
         public string FullTypeName;
         public List<Entity> Packed;
         public SparseStorage SparseStorage;
-        public List<SerializedObject> Components;
     }
 
     internal class ComponentTypeLookup
     {
         public static Dictionary<string, int> typeIndices = new();
-        public static Dictionary<string, SerializedComponentStorage> serializedComponents = new();
     }
 
     public class ComponentStorage<T> : IComponentStorage, IEnumerable
@@ -61,34 +58,13 @@ namespace WorldsEngine.ECS
                typeIndex = Interlocked.Increment(ref Registry.typeCounter);
                ComponentTypeLookup.typeIndices.Add(type.FullName!, typeIndex);
             }
+            Log.Msg($"ComponentStorage registered {type.FullName!} as {typeIndex}");
         }
 
-        public ComponentStorage(bool hotload = false)
+        public ComponentStorage()
         {
             IsThinking = Type.IsAssignableTo(typeof(IThinkingComponent));
             IsUpdateable = Type.IsAssignableTo(typeof(IUpdateableComponent));
-
-            if (!hotload || !ComponentTypeLookup.serializedComponents.ContainsKey(type.FullName!))
-                return;
-
-            var serializedStorage = ComponentTypeLookup.serializedComponents[type.FullName!];
-
-            _sparseStorage = serializedStorage.SparseStorage;
-            packedEntities = serializedStorage.Packed;
-            components = serializedStorage.Components.Select(x => (T)HotloadSerialization.Deserialize(x)!).ToList();
-
-            if (typeof(T).IsSubclassOf(typeof(Component)))
-            {
-                int i = 0;
-                foreach (T comp in components)
-                {
-                    if (comp != null)
-                        ((Component)(object)comp).Entity = packedEntities[i];
-                    i++;
-                }
-            }
-
-            ComponentTypeLookup.serializedComponents.Remove(type.FullName!);
         }
 
         public bool Contains(Entity entity)
@@ -160,19 +136,6 @@ namespace WorldsEngine.ECS
             
             packedEntities.RemoveAt(lastIndex);
             components.RemoveAt(lastIndex);
-        }
-
-        public void SerializeForHotload()
-        {
-            var serializedStorage = new SerializedComponentStorage()
-            {
-                Packed = packedEntities,
-                SparseStorage = _sparseStorage,
-                Components = components.Select(x => HotloadSerialization.Serialize(x)).ToList(),
-                FullTypeName = Type.FullName!
-            };
-
-            ComponentTypeLookup.serializedComponents.Add(type.FullName!, serializedStorage);
         }
 
         private int GetIndexOf(Entity entity)

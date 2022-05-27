@@ -37,8 +37,8 @@ namespace WorldsEngine
 
         internal static void Initialise()
         {
-            GameAssemblyManager.OnAssemblyLoad += RegisterCommands;
-            GameAssemblyManager.OnAssemblyUnload += PrepareForUnload;
+            WorldsEngine.AssemblyLoadManager.OnAssemblyLoad += RegisterCommands;
+            WorldsEngine.AssemblyLoadManager.OnAssemblyUnload += PrepareForUnload;
         }
 
         private static void CommandCallback(IntPtr obj, string args)
