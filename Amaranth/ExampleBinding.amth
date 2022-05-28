@@ -1,0 +1,11 @@
+Include "Editor/Editor.hpp";
+
+// This is a comment
+CppType worlds::GameProject
+{
+    method std::string_view name() -> property Name;
+    method std::string_view root() -> property Root;
+    method std::string_view sourceData() -> property SourceData;
+    method std::string_view builtData() -> property BuildData;
+    method std::string_view rawData() -> property RawData;
+}
