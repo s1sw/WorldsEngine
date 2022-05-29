@@ -68,7 +68,8 @@ namespace WorldsEngine
             MetadataManager.Initialise();
             Console.Initialise();
 
-            AssemblyLoadManager.RegisterAssembly(Path.GetDirectoryName(System.Diagnostics.Process.GetCurrentProcess().MainModule!.FileName) + @"\GameAssemblies\Game.dll");
+            if (!editorActive)
+                AssemblyLoadManager.RegisterAssembly(Path.GetDirectoryName(System.Diagnostics.Process.GetCurrentProcess().MainModule!.FileName) + @"\GameAssemblies\Game.dll");
         }
 
         [UsedImplicitly]

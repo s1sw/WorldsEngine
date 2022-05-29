@@ -71,6 +71,7 @@ EngineInterfaces const* csharpInterfaces;
 #include "WorldTextBindings.hpp"
 #include "NavigationSystemBindings.hpp"
 #include "DebugShapeBindings.hpp"
+#include "GameProjectBindings.hpp"
 
 entt::registry* sceneLoaderBindReg;
 extern "C" {

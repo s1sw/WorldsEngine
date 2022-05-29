@@ -267,6 +267,9 @@ namespace worlds {
         Transform* overrideTransform;
         entt::entity handleOverrideEntity = entt::null;
 
+        void(*gameProjectSelectedCallback)(GameProject* project) = nullptr;
+        void(*gameProjectClosedCallback)() = nullptr;
+
         EditorSettings settings;
         EngineInterfaces& interfaces;
         InputManager& inputManager;
