@@ -158,21 +158,20 @@ namespace worlds {
 
         // C# bools are always 4 bytes
         uint32_t(*initFunc)(entt::registry* reg, uint32_t editorActive);
-        createManagedDelegate("WorldsEngine.WorldsEngine", "Init", (void**)&initFunc);
+        createManagedDelegate("WorldsEngine.Engine", "Init", (void**)&initFunc);
 
         if (!initFunc(&reg, interfaces.engine->runAsEditor))
             return false;
 
-        createManagedDelegate("WorldsEngine.WorldsEngine", "Update", (void**)&updateFunc);
-        createManagedDelegate("WorldsEngine.WorldsEngine", "Simulate", (void**)&simulateFunc);
-        createManagedDelegate("WorldsEngine.WorldsEngine", "OnSceneStart", (void**)&sceneStartFunc);
-        createManagedDelegate("WorldsEngine.WorldsEngine", "EditorUpdate", (void**)&editorUpdateFunc);
+        createManagedDelegate("WorldsEngine.Engine", "Update", (void**)&updateFunc);
+        createManagedDelegate("WorldsEngine.Engine", "Simulate", (void**)&simulateFunc);
+        createManagedDelegate("WorldsEngine.Engine", "OnSceneStart", (void**)&sceneStartFunc);
+        createManagedDelegate("WorldsEngine.Engine", "EditorUpdate", (void**)&editorUpdateFunc);
         createManagedDelegate("WorldsEngine.Registry", "OnNativeEntityDestroy", (void**)&nativeEntityDestroyFunc);
         createManagedDelegate("WorldsEngine.Registry", "SerializeManagedComponents", (void**)&serializeComponentsFunc);
         createManagedDelegate("WorldsEngine.Registry", "DeserializeManagedComponent", (void**)&deserializeComponentFunc);
         createManagedDelegate("WorldsEngine.Physics", "HandleCollisionFromNative", (void**)&physicsContactFunc);
         createManagedDelegate("WorldsEngine.Registry", "CopyManagedComponents", (void**)&copyManagedComponentsFunc);
-
 
         reg.on_destroy<Transform>().connect<&DotNetScriptEngine::onTransformDestroy>(*this);
 
