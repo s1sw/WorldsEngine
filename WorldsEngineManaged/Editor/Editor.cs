@@ -6,6 +6,8 @@ using System.Runtime.InteropServices;
 using ImGuiNET;
 using System.Text;
 using System.Threading.Tasks;
+using WorldsEngine.Hotloading;
+using System.IO;
 
 namespace WorldsEngine.Editor
 {
@@ -225,6 +227,30 @@ namespace WorldsEngine.Editor
                 if (window.IsOpen)
                     window.Draw();
             }
+        }
+
+        private static string? lastAssemblyPath;
+
+        private static void OnGameProjectSelected(IntPtr nativeProject)
+        {
+            GameProject gp = new(nativeProject);
+
+            Log.Msg($"project selected: {gp.Name}");
+            Log.Msg($"root: {gp.Root}");
+
+            lastAssemblyPath = gp.Root + "/CompiledCode/Game.dll";
+
+            Log.Msg($"Loading assembly {lastAssemblyPath}");
+
+            Engine.AssemblyLoadManager.RegisterAssembly(lastAssemblyPath);
+        }
+
+        private static void OnGameProjectClosed()
+        {
+            if (lastAssemblyPath == null) return;
+
+            Engine.AssemblyLoadManager.UnregisterAssembly(lastAssemblyPath);
+            lastAssemblyPath = null;
         }
     }
 }

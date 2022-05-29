@@ -383,6 +383,7 @@ namespace worlds {
         EditorActions::bindAction("editor.openActionSearch", ActionKeybind{SDL_SCANCODE_SPACE, ModifierFlags::Control});
         EditorActions::bindAction("editor.openAssetSearch", ActionKeybind{SDL_SCANCODE_SPACE, ModifierFlags::Control | ModifierFlags::Shift});
 
+
         #ifdef _WIN32
         SDL_SysWMinfo wmInfo;
         SDL_VERSION(&wmInfo.version);
@@ -733,6 +734,9 @@ namespace worlds {
         SDL_free(prefPath);
 
         AudioSystem::getInstance()->loadMasterBanks();
+        if (gameProjectSelectedCallback == nullptr)
+            interfaces.scriptEngine->createManagedDelegate("WorldsEngine.Editor.Editor", "OnGameProjectSelected", (void**)&gameProjectSelectedCallback);
+        gameProjectSelectedCallback(project.get());
     }
 
     void Editor::update(float deltaTime) {
@@ -1074,8 +1078,15 @@ namespace worlds {
                 if (ImGui::MenuItem("Close Project")) {
                     project->unmountPaths();
                     project.reset();
+
                     interfaces.engine->createStartupScene();
                     interfaces.renderer->reloadContent(worlds::ReloadFlags::All);
+
+                    if (gameProjectClosedCallback == nullptr) {
+                        interfaces.scriptEngine->createManagedDelegate("WorldsEngine.Editor.Editor", "OnGameProjectClosed", (void**)&gameProjectClosedCallback);
+                    }
+
+                    gameProjectClosedCallback();
                 }
 
                 if (ImGui::MenuItem("Quit")) {
@@ -1178,7 +1189,9 @@ namespace worlds {
         }
         queuedKeydowns.clear();
         EditorActions::reenable();
-        project->assetCompiler().updateCompilation();
+
+        if (project)
+            project->assetCompiler().updateCompilation();
 
         entityEyedropperActive = false;
         handleOverrideEntity = entt::null;

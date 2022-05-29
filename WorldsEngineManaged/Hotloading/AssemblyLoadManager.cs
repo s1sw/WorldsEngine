@@ -41,6 +41,7 @@ namespace WorldsEngine.Hotloading
             LoadedAs = LoadContext.LoadFromAssemblyPath(Path);
 
             Log.Msg($"Loaded assembly {Path}");
+            Loaded = true;
         }
 
         public void Unload()
@@ -52,6 +53,7 @@ namespace WorldsEngine.Hotloading
             EnsureAssemblyIsUnloaded(weakRef);
 
             Log.Msg($"Unloaded assembly {Path}");
+            Loaded = false;
         }
 
         public void SwapReload()
@@ -119,7 +121,6 @@ namespace WorldsEngine.Hotloading
         public IReadOnlyList<LoadedAssembly> LoadedAssemblies => loadedAssemblies;
 
         public event Action<Assembly>? OnAssemblyLoad;
-        public event Action? OnAssemblyReload;
         public event Action? OnAssemblyUnload;
 
         private List<LoadedAssembly> loadedAssemblies = new();
