@@ -21,13 +21,6 @@ namespace WorldsEngine.ECS
         List<Entity>.Enumerator GetEnumerator();
     }
 
-    struct SerializedComponentStorage
-    {
-        public string FullTypeName;
-        public List<Entity> Packed;
-        public SparseStorage SparseStorage;
-    }
-
     internal class ComponentTypeLookup
     {
         public static Dictionary<string, int> typeIndices = new();
@@ -58,7 +51,6 @@ namespace WorldsEngine.ECS
                typeIndex = Interlocked.Increment(ref Registry.typeCounter);
                ComponentTypeLookup.typeIndices.Add(type.FullName!, typeIndex);
             }
-            Log.Msg($"ComponentStorage registered {type.FullName!} as {typeIndex}");
         }
 
         public ComponentStorage()
