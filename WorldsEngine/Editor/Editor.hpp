@@ -234,7 +234,10 @@ namespace worlds {
         void overrideHandle(Transform* t);
         void overrideHandle(entt::entity entity);
         bool entityEyedropper(entt::entity& picked);
+
+        void openProject(std::string projectPath);
         GameProject& currentProject() { return *project; }
+
         void saveOpenWindows();
         void loadOpenWindows();
         EditorSceneView* getFirstSceneView();
@@ -248,7 +251,6 @@ namespace worlds {
         void handleTools(Transform& t, ImVec2 wPos, ImVec2 wSize, Camera& camera);
         std::string generateWindowTitle();
         void updateWindowTitle();
-        void openProject(std::string projectPath);
         void eyedropperSelect(entt::entity ent);
         Tool currentTool;
         bool toolLocalSpace = false;

@@ -37,18 +37,20 @@
 #include <Libs/pcg_basic.h>
 #include <Core/Window.hpp>
 #include <Editor/EditorActions.hpp>
-#include <Editor/Widgets/LogoWidget.hpp>
 #include <Editor/ProjectAssetCompiler.hpp>
+#include <Editor/Widgets/EditorStartScreen.hpp>
 #ifdef _WIN32
 #include <SDL_syswm.h>
 #include <dwmapi.h>
 #endif
+#include <slib/Subprocess.hpp>
 
 namespace worlds {
     std::unordered_map<ENTT_ID_TYPE, ComponentEditor*> ComponentMetadataManager::metadata;
     std::vector<ComponentEditor*> ComponentMetadataManager::sorted;
     std::unordered_map<ENTT_ID_TYPE, ComponentEditor*> ComponentMetadataManager::bySerializedID;
     std::unordered_map<std::string, ComponentEditor*> ComponentMetadataManager::byName;
+    slib::Subprocess* dotnetWatchProcess = nullptr;
     static ConVar ed_saveAsJson { "ed_saveAsJson", "0", "Save scene files as JSON rather than MessagePack." };
 
     const char* toolStr(Tool tool) {
@@ -396,6 +398,11 @@ namespace worlds {
 
     Editor::~Editor() {
         saveOpenWindows();
+
+        if (dotnetWatchProcess) {
+            dotnetWatchProcess->kill();
+            delete dotnetWatchProcess;
+        }
     }
 
     void Editor::select(entt::entity entity) {
@@ -737,6 +744,8 @@ namespace worlds {
         if (gameProjectSelectedCallback == nullptr)
             interfaces.scriptEngine->createManagedDelegate("WorldsEngine.Editor.Editor", "OnGameProjectSelected", (void**)&gameProjectSelectedCallback);
         gameProjectSelectedCallback(project.get());
+
+        dotnetWatchProcess = new slib::Subprocess("dotnet watch build", (std::string(project->root()) + "/Code").c_str());
     }
 
     void Editor::update(float deltaTime) {
@@ -818,38 +827,6 @@ namespace worlds {
         AudioSystem::getInstance()->stopEverything(reg);
 
         if (!project) {
-            struct RecentProject {
-                std::string name;
-                std::string path;
-                ImTextureID badge = nullptr;
-            };
-
-            static std::vector<RecentProject> recentProjects;
-            static bool loadedRecentProjects = false;
-            static LogoWidget logo{interfaces};
-
-            if (!loadedRecentProjects) {
-                loadedRecentProjects = true;
-                char* prefPath = SDL_GetPrefPath("Someone Somewhere", "Worlds Engine");
-                std::ifstream recentProjectsStream(prefPath + std::string{ "recentProjects.txt" });
-
-                if (recentProjectsStream.good()) {
-                    std::string currLine;
-
-                    while (std::getline(recentProjectsStream, currLine)) {
-                        nlohmann::json pj = nlohmann::json::parse(std::ifstream(currLine));
-                        RecentProject rp { pj["projectName"], currLine };
-
-                        std::filesystem::path badgePath = std::filesystem::path(currLine).parent_path() / "Editor" / "badge.png";
-                        if (std::filesystem::exists(badgePath)) {
-                        }
-                        recentProjects.push_back({ pj["projectName"], currLine });
-                    }
-                }
-
-                SDL_free(prefPath);
-            }
-
             updateWindowTitle();
 
             ImVec2 menuBarSize;
@@ -863,83 +840,8 @@ namespace worlds {
                 ImGui::EndMainMenuBar();
             }
 
-            ImGuiViewport* viewport = ImGui::GetMainViewport();
-            glm::vec2 projectWinSize = viewport->Size - glm::vec2(0.0f, menuBarSize.y);
-            ImGui::SetNextWindowPos(viewport->Pos + ImVec2(0.0f, menuBarSize.y));
-            ImGui::SetNextWindowSize(projectWinSize);
-            ImGui::SetNextWindowViewport(viewport->ID);
-            ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
-            ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
-            ImGui::Begin("ProjectWindow", 0,
-                ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse |
-                ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
-                ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoBringToFrontOnFocus);
-            ImGui::PopStyleVar(2);
-
-            glm::vec2 initialCpos = ImGui::GetCursorScreenPos();
-            ImGui::GetWindowDrawList()->AddLine(initialCpos + glm::vec2(490.0f, 0.0f), initialCpos + glm::vec2(490.0f, projectWinSize.y - ImGui::GetStyle().WindowPadding.y * 2.0f), ImGui::GetColorU32(ImGuiCol_Separator), 2.0f);
-
-            ImGui::Columns(2, nullptr, false);
-            ImGui::SetColumnWidth(0, 500.0f);
-
-            logo.draw();
-            ImGui::Text("Select a project.");
-
-            openFileFullFSModal("Open Project", [&](const char* path) {
-                openProject(path);
-                });
-
-            if (ImGui::BeginPopupModal("Create Project")) {
-                static slib::String projectName;
-                ImGui::InputText("Name", &projectName);
-
-                static slib::String projectPath;
-                ImGui::InputText("Path", &projectPath);
-
-                if (ImGui::Button("Create")) {
-                    ImGui::CloseCurrentPopup();
-                }
-                ImGui::EndPopup();
-            }
-
-            if (ImGui::Button("Open")) {
-                ImGui::OpenPopup("Open Project");
-            }
-
-            if (ImGui::Button("Create New")) {
-                ImGui::OpenPopup("Create Project");
-            }
-
-            ImGui::NextColumn();
-
-            for (RecentProject& project : recentProjects) {
-                const ImVec2 widgetSize{600.0f, 200.0f};
-                ImGui::PushID(project.path.c_str());
-                ImDrawList* dl = ImGui::GetWindowDrawList();
-                dl->AddRect(ImGui::GetCursorScreenPos(), ImGui::GetCursorScreenPos() + widgetSize, ImColor(ImGui::GetStyleColorVec4(ImGuiCol_FrameBg)), 5.0f, 0, 3.0f);
-                ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5.0f, 5.0f));
-                if (ImGui::BeginChild(ImGui::GetID("project"), widgetSize, true, ImGuiWindowFlags_AlwaysUseWindowPadding)) {
-                    pushBoldFont();
-                    ImGui::TextUnformatted(project.name.c_str());
-                    ImGui::PopFont();
-                    ImGui::SameLine();
-                    ImGui::TextUnformatted(project.path.c_str());
-                    
-                    if (ImGui::Button("Open Project")) {
-                        openProject(project.path);
-                    }
-                }
-                ImGui::EndChild();
-
-                ImGui::PopStyleVar();
-                ImGui::PopID();
-                ImGui::Dummy(ImVec2(0.0f, ImGui::GetTextLineHeightWithSpacing()));
-            }
-
-            ImGui::Dummy(ImVec2(0.0f, glm::max(projectWinSize.y - ImGui::GetCursorPosY() - ImGui::GetStyle().WindowPadding.y, 0.0f)));
-
-            ImGui::End();
-
+            static EditorStartScreen startScreen{interfaces};
+            startScreen.draw(this);
             return;
         }
 
@@ -1081,6 +983,11 @@ namespace worlds {
 
                     interfaces.engine->createStartupScene();
                     interfaces.renderer->reloadContent(worlds::ReloadFlags::All);
+
+                    if (dotnetWatchProcess) {
+                        dotnetWatchProcess->kill();
+                        delete dotnetWatchProcess;
+                    }
 
                     if (gameProjectClosedCallback == nullptr) {
                         interfaces.scriptEngine->createManagedDelegate("WorldsEngine.Editor.Editor", "OnGameProjectClosed", (void**)&gameProjectClosedCallback);
