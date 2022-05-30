@@ -21,15 +21,50 @@ namespace WorldsEngine.Hotloading
 
     internal class LoadedAssembly
     {
-        public readonly string Path;
+        private static string AssemblyTempDir;
+
+        public readonly string AssemblyPath;
         public Assembly? LoadedAs { get; private set; }
         public AssemblyLoadContext? LoadContext { get; private set; }
-
         public bool Loaded { get; private set; }
+        public bool NeedsReload => needsReload;
 
-        public LoadedAssembly(string path)
+        private FileSystemWatcher? watcher;
+        private bool needsReload = false;
+        private int loadCounter = 0;
+
+        static LoadedAssembly()
         {
-            Path = path;
+            AssemblyTempDir = Path.Join(Path.GetTempPath(), "WorldsEngineTempAssemblies");
+
+            Directory.CreateDirectory(AssemblyTempDir);
+
+            foreach (string file in Directory.EnumerateFiles(AssemblyTempDir))
+            {
+                File.Delete(file);
+            }
+        }
+
+        public LoadedAssembly(string path, bool watch = false)
+        {
+            AssemblyPath = path;
+
+            if (watch)
+            {
+                watcher = new FileSystemWatcher(Path.GetDirectoryName(path)!);
+
+                watcher.NotifyFilter = NotifyFilters.Attributes
+                             | NotifyFilters.CreationTime
+                             | NotifyFilters.LastAccess
+                             | NotifyFilters.LastWrite
+                             | NotifyFilters.Size;
+
+
+                watcher.Changed += OnAssemblyChanged;
+                watcher.Filter = "";
+
+                watcher.EnableRaisingEvents = true;
+            }
         }
 
         public void Load()
@@ -37,10 +72,11 @@ namespace WorldsEngine.Hotloading
             if (Loaded)
                 throw new InvalidOperationException("Cannot load an assembly that is already loaded.");
 
-            LoadContext = new AssemblyLoadContext(Path, true);
-            LoadedAs = LoadContext.LoadFromAssemblyPath(Path);
+            LoadContext = new AssemblyLoadContext(AssemblyPath, true);
+            string tempName = CopyTempAssembly();
+            LoadedAs = LoadContext.LoadFromAssemblyPath(tempName);
 
-            Log.Msg($"Loaded assembly {Path}");
+            Log.Msg($"Loaded assembly {AssemblyPath} (really {tempName})");
             Loaded = true;
         }
 
@@ -52,7 +88,7 @@ namespace WorldsEngine.Hotloading
             WeakReference weakRef = ClearLoadContext();
             EnsureAssemblyIsUnloaded(weakRef);
 
-            Log.Msg($"Unloaded assembly {Path}");
+            Log.Msg($"Unloaded assembly {AssemblyPath}");
             Loaded = false;
         }
 
@@ -63,6 +99,19 @@ namespace WorldsEngine.Hotloading
 
             WeakReference weakRef = LoadSwap();
             EnsureAssemblyIsUnloaded(weakRef);
+        }
+
+        public void ReloadIfNecessary()
+        {
+            if (needsReload)
+            {
+                if (Loaded)
+                    SwapReload();
+                else
+                    Load();
+
+                needsReload = false;
+            }
         }
 
         private WeakReference ClearLoadContext()
@@ -87,7 +136,7 @@ namespace WorldsEngine.Hotloading
             if (loadContext.IsAlive)
             {
                 throw new AssemblyUnloadFailedException(
-                    $"Failed to unload assembly {Path} after 20 iterations! " +
+                    $"Failed to unload assembly {AssemblyPath} after 20 iterations! " +
                     "There are likely still live references hiding somewhere."
                 );
             }
@@ -99,8 +148,9 @@ namespace WorldsEngine.Hotloading
         // context on the stack prevent it from unloading properly.
         private WeakReference LoadSwap()
         {
-            AssemblyLoadContext newAlc = new(Path, true);
-            Assembly newAssembly = newAlc.LoadFromAssemblyPath(Path);
+            AssemblyLoadContext newAlc = new(AssemblyPath, true);
+            string tempName = CopyTempAssembly();
+            Assembly newAssembly = newAlc.LoadFromAssemblyPath(tempName);
 
             HotloadSwapper swapper = new(LoadedAs!, newAssembly);
             swapper.SwapReferences();
@@ -111,6 +161,20 @@ namespace WorldsEngine.Hotloading
             LoadContext = newAlc;
 
             return weakRef;
+        }
+
+        private string CopyTempAssembly()
+        {
+            string copyName = Path.Join(AssemblyTempDir, $"{Path.GetFileNameWithoutExtension(AssemblyPath)}-{loadCounter}.dll");
+            loadCounter++;
+
+            File.Copy(AssemblyPath, copyName);
+            return copyName;
+        }
+
+        private void OnAssemblyChanged(object sender, FileSystemEventArgs e)
+        {
+            needsReload = true;
         }
     }
 
@@ -124,15 +188,19 @@ namespace WorldsEngine.Hotloading
         public event Action? OnAssemblyUnload;
 
         private List<LoadedAssembly> loadedAssemblies = new();
+
         private List<ISystem> systems = new();
 
         public void RegisterAssembly(string path)
         {
-            LoadedAssembly la = new(path);
-            la.Load();
+            LoadedAssembly la = new(path, true);
+            if (File.Exists(path))
+            {
+                la.Load();
+                OnAssemblyLoad?.Invoke(la.LoadedAs!);
+            }
             loadedAssemblies.Add(la);
 
-            OnAssemblyLoad?.Invoke(la.LoadedAs!);
             RediscoverSystems();
         }
 
@@ -140,7 +208,7 @@ namespace WorldsEngine.Hotloading
         {
             OnAssemblyUnload?.Invoke();
             LoadedAssembly la = 
-                loadedAssemblies.Where((LoadedAssembly a) => a.Path == path).First();
+                loadedAssemblies.Where((LoadedAssembly a) => a.AssemblyPath == path).First();
             
             systems.RemoveAll((ISystem system) => system.GetType().Assembly == la.LoadedAs);
 
@@ -160,6 +228,36 @@ namespace WorldsEngine.Hotloading
             }
             RediscoverSystems();
             Editor.Editor.Notify($"Reloaded {loadedAssemblies.Count} assembl{(loadedAssemblies.Count == 1 ? "y" : "ies")}");
+        }
+
+        public void ReloadIfNecessary()
+        {
+            bool reloadHappening = false;
+            foreach (LoadedAssembly la in loadedAssemblies)
+            {
+                if (la.NeedsReload)
+                    reloadHappening = true;
+            }
+
+            if (reloadHappening)
+            {
+                OnAssemblyUnload?.Invoke();
+            }
+
+            foreach (LoadedAssembly la in loadedAssemblies)
+            {
+                if (la.NeedsReload)
+                {
+                    la.ReloadIfNecessary();
+                    OnAssemblyLoad?.Invoke(la.LoadedAs!);
+                }
+            }
+
+            if (reloadHappening)
+            {
+                RediscoverSystems();
+                Editor.Editor.Notify($"Reloaded {loadedAssemblies.Count} assembl{(loadedAssemblies.Count == 1 ? "y" : "ies")}");
+            }
         }
 
         public Type? GetTypeFromAssemblies(string idStr)

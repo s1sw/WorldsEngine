@@ -134,14 +134,11 @@ namespace WorldsEngine
             Time.InterpolationAlpha = interpAlpha;
             Time.CurrentTime = _updateTime;
 
+            AssemblyLoadManager.ReloadIfNecessary();
+
             try
             {
                 updateSyncContext.RunCallbacks();
-
-                if (Keyboard.KeyPressed(KeyCode.NumberRow5))
-                {
-                    AssemblyLoadManager.ReloadAll();
-                }
 
                 foreach (ISystem system in AssemblyLoadManager.Systems)
                 {
@@ -201,6 +198,7 @@ namespace WorldsEngine
         static void EditorUpdate()
         {
             SynchronizationContext.SetSynchronizationContext(editorUpdateSyncContext);
+            AssemblyLoadManager.ReloadIfNecessary();
             Physics.ClearCollisionQueue();
 
             Editor.Editor.Update();
