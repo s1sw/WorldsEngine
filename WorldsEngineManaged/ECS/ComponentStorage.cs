@@ -55,7 +55,7 @@ namespace WorldsEngine.ECS
 
         public ComponentStorage()
         {
-            IsThinking = Type.IsAssignableTo(typeof(IThinkingComponent));
+            IsThinking = Type.IsAssignableTo(typeof(ISimulatedComponent));
             IsUpdateable = Type.IsAssignableTo(typeof(IUpdateableComponent));
         }
 
@@ -154,7 +154,7 @@ namespace WorldsEngine.ECS
         {
             foreach (Entity entity in packedEntities)
             {
-                ((IThinkingComponent)components[GetIndexOf(entity)]!).Think();
+                ((ISimulatedComponent)components[GetIndexOf(entity)]!).Simulate();
             }
         }
 
