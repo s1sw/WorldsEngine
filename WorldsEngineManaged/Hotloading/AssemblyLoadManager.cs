@@ -31,7 +31,7 @@ namespace WorldsEngine.Hotloading
 
         private FileSystemWatcher? watcher;
         private bool needsReload = false;
-        private int loadCounter = 0;
+        private static int loadCounter = 0;
 
         static LoadedAssembly()
         {
@@ -276,6 +276,9 @@ namespace WorldsEngine.Hotloading
 
         private void RediscoverSystems()
         {
+            // If the system type can't be found then
+            // hotloading sets it to null.
+            systems.RemoveAll((ISystem sys) => sys == null);
             foreach (LoadedAssembly la in loadedAssemblies)
             {
                 Assembly? asm = la.LoadedAs;
