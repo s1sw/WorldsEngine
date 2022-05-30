@@ -93,17 +93,11 @@ namespace WorldsEngine.Hotloading
                         continue;
                     }
 
-                    if (fieldInfo.FieldType.IsAssignableTo(typeof(Delegate)))
-                    {
-                        Log.Error("events aren't supported yet");
-                        continue;
-                    }
-
                     if (fieldInfo.IsInitOnly)
                     {
                         // We can ignore the return value of RewriteObject here
                         // as we can't set the field's value anyway
-                        Log.Error("STATIC READONLY FIELDS NOT SUPPORTED YET!!!");
+                        RewriteObject(fieldInfo.GetValue(null));
                     }
                     else if (!fieldInfo.IsLiteral)
                     {
@@ -185,17 +179,19 @@ namespace WorldsEngine.Hotloading
 
                 if (del == null) return;
 
+                if (del.Method != null && del.Method.DeclaringType != null && del.Method.DeclaringType.Assembly != oldAssembly) return;
+
                 Type? newDelegateType = FindNewType(from.FieldType);
                 if (newDelegateType == null)
                     throw new HotloadSwapFailedException($"Couldn't find new type for delegate type {from.FieldType.FullName}");
 
-                Delegate newDel;
+                Delegate? newDel = null;
 
-                if (del.Target != null)
+                if (del.Target != null && del.Method != null)
                 {
                     newDel = Delegate.CreateDelegate(newDelegateType, RewriteObject(del.Target)!, del.Method.Name, false);
                 }
-                else
+                else if (del.Method != null)
                 {
                     newDel = Delegate.CreateDelegate(newDelegateType, del.Method, true)!;
                 }
@@ -267,6 +263,21 @@ namespace WorldsEngine.Hotloading
                 return newArray;
             }
 
+            if (oldType == typeof(Type))
+            {
+                Type objAsType = (Type)oldObject;
+
+                if (objAsType.Assembly == oldAssembly)
+                {
+                    Type? newlyFoundType = newAssembly.GetType(objAsType.FullName!);
+
+                    if (newlyFoundType == null) throw new HotloadSwapFailedException($"Couldn't find type {objAsType.FullName}");
+
+                    return newlyFoundType;
+                }
+
+                return objAsType;
+            }
 
             if (IsDependentOnAssembly(oldType))
             {
