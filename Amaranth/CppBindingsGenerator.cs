@@ -11,9 +11,8 @@ class CppBindingsGenerator
         cppType = type;
     }
 
-    public string GenerateBindings()
+    public void GenerateBindings(StringBuilder sb)
     {
-        StringBuilder sb = new();
         foreach (ExposedProperty ep in cppType.ExposedProperties)
         {
             ITypeConverter? converter = TypeConverters.GetConverterFor(ep.NativeType);
@@ -35,7 +34,19 @@ class CppBindingsGenerator
             sb.Append(";\n");
             sb.Append("}\n\n");
         }
+    }
+}
 
-        return sb.ToString();
+class CppCsBindingsGenerator
+{
+    private CsType csType;
+
+    public CppCsBindingsGenerator(CsType type)
+    {
+        csType = type;
+    }
+
+    public void GenerateBindings(StringBuilder sb)
+    {
     }
 }

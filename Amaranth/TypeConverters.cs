@@ -44,12 +44,11 @@ static class TypeConverters
         }
     }
 
-    public static ITypeConverter? GetConverterFor(QualifiedIdentifier nativeType)
+    public static ITypeConverter? GetConverterFor(string nativeType)
     {
-        string typeStr = nativeType.ToString();
-        if (!converters.ContainsKey(typeStr)) return null;
+        if (!converters.ContainsKey(nativeType)) return null;
 
-        return converters[typeStr];
+        return converters[nativeType];
     }
 }
 
@@ -67,7 +66,7 @@ class StdStringViewConverter : ITypeConverter
 
     public string GetManagedGlueCode(string retValRef)
     {
-        return $"string t = Marshal.PtrToStringUTF8({retValRef});\nMarshal.FreeHGlobal({retValRef});\nreturn t;";
+        return $"string t = Marshal.PtrToStringUTF8({retValRef})!;\nMarshal.FreeHGlobal({retValRef});\nreturn t;";
     }
 }
 

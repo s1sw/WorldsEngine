@@ -6,6 +6,7 @@ public enum TokenType
 {
     Include,
     CppType,
+    CsType,
     StringLiteral,
     Identifier,
     OpenParenthesis,
@@ -17,7 +18,10 @@ public enum TokenType
     Semicolon,
     NamespaceSeparator,
     Method,
-    Property
+    StaticMethod,
+    Property,
+    Function,
+    Period
 }
 
 public class Token
@@ -83,6 +87,7 @@ public class BindingFileLexer
     {
         new TokenDef("^Include", TokenType.Include),
         new TokenDef("^CppType", TokenType.CppType),
+        new TokenDef("^CsType", TokenType.CsType),
         new TokenDef("^\\(", TokenType.OpenParenthesis),
         new TokenDef("^\\)", TokenType.CloseParenthesis),
         new TokenDef("^{", TokenType.OpenBrace),
@@ -92,9 +97,12 @@ public class BindingFileLexer
         new TokenDef("^;", TokenType.Semicolon),
         new TokenDef("^::", TokenType.NamespaceSeparator),
         new TokenDef("^method", TokenType.Method),
-        new TokenDef("^property", TokenType.Property)
-
+        new TokenDef("^staticmethod", TokenType.StaticMethod),
+        new TokenDef("^property", TokenType.Property),
+        new TokenDef("^function", TokenType.Function),
+        new TokenDef("^\\.", TokenType.Period)
     };
+
     private string lexingString;
     private static Regex stringLiteralRegex = new("^\\\"(.*)\\\"", RegexOptions.Compiled);
     private static Regex identifierRegex = new("^([A-z]+)", RegexOptions.Compiled);

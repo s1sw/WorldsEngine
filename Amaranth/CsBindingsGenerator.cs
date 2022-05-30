@@ -2,11 +2,11 @@ using System.Text;
 
 namespace Amaranth;
 
-class CsBindingsGenerator
+class CsCppBindingsGenerator
 {
     private CppType cppType;
 
-    public CsBindingsGenerator(CppType type)
+    public CsCppBindingsGenerator(CppType type)
     {
         cppType = type;
     }
@@ -14,34 +14,31 @@ class CsBindingsGenerator
     public string GenerateBindings()
     {
         StringBuilder sb = new();
-        sb.Append("using System.Runtime.InteropServices;\n");
-        sb.Append("class ");
-        sb.Append(cppType.Identifier.NamePart);
-        sb.Append("\n{\n");
-        sb.Append("private IntPtr nativeInstance;\n");
+        string className = IdentifierUtil.GetNamePart(cppType.Identifier);
+        sb.AppendLine($"class {className}");
+        sb.AppendLine("{");
+        sb.AppendLine("private IntPtr nativeInstance;");
+
+        sb.Append($"public {className}(IntPtr instance)");
+        sb.AppendLine("{");
+        sb.AppendLine("nativeInstance = instance;");
+        sb.AppendLine("}");
         foreach (ExposedProperty ep in cppType.ExposedProperties)
         {
             ITypeConverter? converter = TypeConverters.GetConverterFor(ep.NativeType);
             if (converter == null) throw new InvalidOperationException("oops");
 
-            sb.Append("[DllImport(Engine.NativeModule)]\n");
-            sb.Append("private static extern ");
-            sb.Append(converter.ManagedGlueType);
-            sb.Append(" ");
-            sb.Append(ep.GetNativeMethodName(cppType.Identifier));
-            sb.Append("(IntPtr inst);\n");
+            sb.AppendLine("[DllImport(Engine.NativeModule)]");
+            sb.AppendLine($"private static extern {converter.ManagedGlueType} {ep.GetNativeMethodName(cppType.Identifier)}(IntPtr inst);");
 
-            sb.Append("public ");
-            sb.Append(converter.ManagedExposedType);
-            sb.Append(" ");
-            sb.Append(ep.ExposedAs);
-            sb.Append("\n{\nget\n{\n");
-            sb.Append(converter.ManagedGlueType);
-            sb.Append(" tmp = ");
-            sb.Append(ep.GetNativeMethodName(cppType.Identifier));
-            sb.Append("(nativeInstance);\n");
-            sb.Append(converter.GetManagedGlueCode("tmp"));
-            sb.Append("\n}\n}\n");
+            sb.AppendLine($"public {converter.ManagedExposedType} {ep.ExposedAs}");
+            sb.AppendLine("{");
+            sb.AppendLine("get");
+            sb.AppendLine("{");
+            sb.AppendLine($"{converter.ManagedGlueType} tmp = {ep.GetNativeMethodName(cppType.Identifier)}(nativeInstance);");
+            sb.AppendLine(converter.GetManagedGlueCode("tmp"));
+            sb.AppendLine("}");
+            sb.AppendLine("}");
         }
         sb.Append("}");
 
