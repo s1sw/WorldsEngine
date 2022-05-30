@@ -267,9 +267,9 @@ namespace WorldsEngine.Hotloading
             {
                 Type objAsType = (Type)oldObject;
 
-                if (objAsType.Assembly == oldAssembly)
+                if (IsDependentOnAssembly(objAsType))
                 {
-                    Type? newlyFoundType = newAssembly.GetType(objAsType.FullName!);
+                    Type? newlyFoundType = FindNewType(objAsType);
 
                     if (newlyFoundType == null) throw new HotloadSwapFailedException($"Couldn't find type {objAsType.FullName}");
 
@@ -277,6 +277,26 @@ namespace WorldsEngine.Hotloading
                 }
 
                 return objAsType;
+            }
+
+            if (oldType == typeof(FieldInfo))
+            {
+                FieldInfo objAsFieldInfo = (FieldInfo)oldObject;
+                Type? declaringType = objAsFieldInfo.DeclaringType;
+
+                if (declaringType != null && IsDependentOnAssembly(declaringType))
+                {
+                    Type? newType = FindNewType(declaringType);
+
+                    if (newType == null) throw new HotloadSwapFailedException($"Couldn't find type {declaringType.FullName}");
+
+                    // Find the equivalent field on the new type
+                    FieldInfo? newFieldInfo = newType.GetField(objAsFieldInfo.Name);
+
+                    return newFieldInfo;
+                }
+
+                return objAsFieldInfo;
             }
 
             if (IsDependentOnAssembly(oldType))
