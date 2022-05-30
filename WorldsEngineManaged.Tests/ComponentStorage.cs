@@ -11,11 +11,11 @@ namespace WorldsEngine.Tests
     }
 
     [Component]
-    public class ThinkingComponent : IThinkingComponent
+    public class ThinkingComponent : ISimulatedComponent
     {
         public bool HasThought = false;
 
-        public void Think()
+        public void Simulate()
         {
             HasThought = true;
         }

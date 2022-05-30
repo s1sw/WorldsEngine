@@ -6,8 +6,8 @@ using System.Threading.Tasks;
 
 namespace WorldsEngine
 {
-    public interface IThinkingComponent
+    public interface ISimulatedComponent
     {
-        void Think();
+        void Simulate();
     }
 }
