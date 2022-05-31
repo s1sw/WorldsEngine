@@ -22,7 +22,7 @@ namespace worlds {
     void FixedJoint::setTarget(entt::entity newTargetEnt, entt::registry& reg) {
         targetEntity = newTargetEnt;
         auto* pa = reg.try_get<PhysicsActor>(newTargetEnt);
-        auto* dpa = reg.try_get<DynamicPhysicsActor>(newTargetEnt);
+        auto* dpa = reg.try_get<RigidBody>(newTargetEnt);
 
         if (!(pa || dpa)) {
             logErr("Tried to set a D6 joint's target to an entity with neither a physics actor or dynamic physics actor");

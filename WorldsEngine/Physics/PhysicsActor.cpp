@@ -3,75 +3,75 @@
 #include <Physics/Physics.hpp>
 
 namespace worlds {
-    glm::vec3 DynamicPhysicsActor::linearVelocity() const {
+    glm::vec3 RigidBody::linearVelocity() const {
         return px2glm(actor->getLinearVelocity());
     }
 
-    glm::vec3 DynamicPhysicsActor::angularVelocity() const {
+    glm::vec3 RigidBody::angularVelocity() const {
         return px2glm(actor->getAngularVelocity());
     }
 
-    void DynamicPhysicsActor::setLinearVelocity(glm::vec3 vel) {
+    void RigidBody::setLinearVelocity(glm::vec3 vel) {
         actor->setLinearVelocity(glm2px(vel));
     }
 
-    void DynamicPhysicsActor::setAngularVelocity(glm::vec3 vel) {
+    void RigidBody::setAngularVelocity(glm::vec3 vel) {
         actor->setAngularVelocity(glm2px(vel));
     }
 
-    void DynamicPhysicsActor::addForce(glm::vec3 force, ForceMode forceMode) {
+    void RigidBody::addForce(glm::vec3 force, ForceMode forceMode) {
         physx::PxForceMode::Enum pxForceMode = (physx::PxForceMode::Enum)forceMode;
         actor->addForce(glm2px(force), pxForceMode);
     }
 
-    void DynamicPhysicsActor::addTorque(glm::vec3 torque, ForceMode forceMode) {
+    void RigidBody::addTorque(glm::vec3 torque, ForceMode forceMode) {
         physx::PxForceMode::Enum pxForceMode = (physx::PxForceMode::Enum)forceMode;
         actor->addTorque(glm2px(torque), pxForceMode);
     }
 
-    void DynamicPhysicsActor::addForceAtPosition(glm::vec3 force, glm::vec3 position, ForceMode forceMode) {
+    void RigidBody::addForceAtPosition(glm::vec3 force, glm::vec3 position, ForceMode forceMode) {
         physx::PxForceMode::Enum pxForceMode = (physx::PxForceMode::Enum)forceMode;
 
         physx::PxRigidBodyExt::addForceAtPos(*actor, glm2px(force), glm2px(position), pxForceMode);
     }
 
-    Transform DynamicPhysicsActor::pose() const {
+    Transform RigidBody::pose() const {
         return px2glm(actor->getGlobalPose());
     }
 
-    void DynamicPhysicsActor::setPose(const Transform& t) {
+    void RigidBody::setPose(const Transform& t) {
         actor->setGlobalPose(glm2px(t));
     }
 
-    DPALockFlags DynamicPhysicsActor::lockFlags() const {
+    DPALockFlags RigidBody::lockFlags() const {
         return (DPALockFlags)(uint32_t)actor->getRigidDynamicLockFlags();
     }
 
-    void DynamicPhysicsActor::setLockFlags(DPALockFlags flags) {
+    void RigidBody::setLockFlags(DPALockFlags flags) {
         actor->setRigidDynamicLockFlags((physx::PxRigidDynamicLockFlag::Enum)flags);
     }
 
-    float DynamicPhysicsActor::maxAngularVelocity() const {
+    float RigidBody::maxAngularVelocity() const {
         return actor->getMaxAngularVelocity();
     }
 
-    void DynamicPhysicsActor::setMaxAngularVelocity(float vel) {
+    void RigidBody::setMaxAngularVelocity(float vel) {
         actor->setMaxAngularVelocity(vel);
     }
 
-    float DynamicPhysicsActor::maxLinearVelocity() const {
+    float RigidBody::maxLinearVelocity() const {
         return actor->getMaxLinearVelocity();
     }
 
-    void DynamicPhysicsActor::setMaxLinearVelocity(float vel) {
+    void RigidBody::setMaxLinearVelocity(float vel) {
         actor->setMaxLinearVelocity(vel);
     }
 
-    void DynamicPhysicsActor::setEnabled(bool enabled) {
+    void RigidBody::setEnabled(bool enabled) {
         actor->setActorFlag(physx::PxActorFlag::eDISABLE_SIMULATION, !enabled);
     }
 
-    bool DynamicPhysicsActor::enabled() const {
+    bool RigidBody::enabled() const {
         return (actor->getActorFlags() & physx::PxActorFlag::eDISABLE_SIMULATION) == (physx::PxActorFlag::Enum)0;
     }
 }

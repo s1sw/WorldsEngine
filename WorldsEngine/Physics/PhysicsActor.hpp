@@ -111,8 +111,8 @@ namespace worlds {
         return (DPALockFlags)((uint32_t)a & (uint32_t)b);
     }
 
-    struct DynamicPhysicsActor {
-        DynamicPhysicsActor(physx::PxRigidActor* actor) : actor((physx::PxRigidDynamic*)actor), mass(1.0f) {}
+    struct RigidBody {
+        RigidBody(physx::PxRigidActor* actor) : actor((physx::PxRigidDynamic*)actor), mass(1.0f) {}
         physx::PxRigidDynamic* actor;
         float mass;
         bool enableGravity = true;
