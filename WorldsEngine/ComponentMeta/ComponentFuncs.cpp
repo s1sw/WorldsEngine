@@ -75,6 +75,45 @@ namespace worlds {
 
             return glm::quat {w, x, y, z};
         }
+        
+        void showTransformControls(entt::registry& reg, Transform& selectedTransform, Editor* ed) {
+            glm::vec3 pos = selectedTransform.position;
+            if (ImGui::DragFloat3("Position", &pos.x)) {
+                ed->undo.pushState(reg);
+                selectedTransform.position = pos;
+            }
+
+            glm::vec3 eulerRot = glm::degrees(getEulerAngles(selectedTransform.rotation));
+            if (ImGui::DragFloat3("Rotation", glm::value_ptr(eulerRot))) {
+                ed->undo.pushState(reg);
+                selectedTransform.rotation = eulerQuat(glm::radians(eulerRot));
+            }
+
+            glm::vec3 scale = selectedTransform.scale;
+            if (ImGui::DragFloat3("Scale", &scale.x) && !glm::any(glm::equal(scale, glm::vec3{0.0f}))) {
+                selectedTransform.scale = scale;
+            }
+
+            if (ImGui::Button("Snap to world grid")) {
+                ed->undo.pushState(reg);
+                selectedTransform.position = glm::round(selectedTransform.position);
+                selectedTransform.scale = glm::round(selectedTransform.scale);
+                eulerRot = glm::round(eulerRot / 15.0f) * 15.0f;
+                selectedTransform.rotation = glm::radians(eulerRot);
+            }
+
+            ImGui::SameLine();
+
+            if (ImGui::Button("Snap Rotation")) {
+                ed->undo.pushState(reg);
+                //eulerRot = glm::round(eulerRot / 15.0f) * 15.0f;
+                glm::vec3 radEuler = glm::eulerAngles(selectedTransform.rotation);
+                const float ROUND_TO = glm::half_pi<float>() * 0.25f;
+                radEuler = glm::round(radEuler / ROUND_TO) * ROUND_TO;
+                selectedTransform.rotation = radEuler;
+            }
+        }
+
     public:
         int getSortID() override {
             return -1;
@@ -91,40 +130,17 @@ namespace worlds {
         void edit(entt::entity ent, entt::registry& reg, Editor* ed) override {
             if (ImGui::CollapsingHeader(ICON_FA_ARROWS_ALT u8" Transform")) {
                 auto& selectedTransform = reg.get<Transform>(ent);
-                glm::vec3 pos = selectedTransform.position;
-                if (ImGui::DragFloat3("Position", &pos.x)) {
-                    ed->undo.pushState(reg);
-                    selectedTransform.position = pos;
-                }
 
-                glm::vec3 eulerRot = glm::degrees(getEulerAngles(selectedTransform.rotation));
-                if (ImGui::DragFloat3("Rotation", glm::value_ptr(eulerRot))) {
-                    ed->undo.pushState(reg);
-                    selectedTransform.rotation = eulerQuat(glm::radians(eulerRot));
-                }
+                if (!reg.has<ChildComponent>(ent)) {
+                    showTransformControls(reg, selectedTransform, ed);
+                } else {
+                    auto& cc = reg.get<ChildComponent>(ent);
+                    showTransformControls(reg, cc.offset, ed);
 
-                glm::vec3 scale = selectedTransform.scale;
-                if (ImGui::DragFloat3("Scale", &scale.x) && !glm::any(glm::equal(scale, glm::vec3{0.0f}))) {
-                    selectedTransform.scale = scale;
-                }
-
-                if (ImGui::Button("Snap to world grid")) {
-                    ed->undo.pushState(reg);
-                    selectedTransform.position = glm::round(selectedTransform.position);
-                    selectedTransform.scale = glm::round(selectedTransform.scale);
-                    eulerRot = glm::round(eulerRot / 15.0f) * 15.0f;
-                    selectedTransform.rotation = glm::radians(eulerRot);
-                }
-
-                ImGui::SameLine();
-
-                if (ImGui::Button("Snap Rotation")) {
-                    ed->undo.pushState(reg);
-                    //eulerRot = glm::round(eulerRot / 15.0f) * 15.0f;
-                    glm::vec3 radEuler = glm::eulerAngles(selectedTransform.rotation);
-                    const float ROUND_TO = glm::half_pi<float>() * 0.25f;
-                    radEuler = glm::round(radEuler / ROUND_TO) * ROUND_TO;
-                    selectedTransform.rotation = radEuler;
+                    if (ImGui::TreeNode("World Space Transform")) {
+                        showTransformControls(reg, selectedTransform, ed);
+                        ImGui::TreePop();
+                    }
                 }
 
                 ImGui::Separator();
@@ -924,7 +940,7 @@ namespace worlds {
         }
     };
 
-    class DynamicPhysicsActorEditor : public BasicComponentUtil<DynamicPhysicsActor> {
+    class RigidBodyEditor : public BasicComponentUtil<RigidBody> {
     public:
         int getSortID() override { return 1; }
 
@@ -938,18 +954,18 @@ namespace worlds {
             actor->setSolverIterationCounts(32, 6);
             actor->setMaxDepenetrationVelocity(10.0f);
             actor->setMaxAngularVelocity(1000.0f);
-            reg.emplace<DynamicPhysicsActor>(ent, actor);
+            reg.emplace<RigidBody>(ent, actor);
             interfaces->physics->scene()->addActor(*actor);
         }
 
         void clone(entt::entity from, entt::entity to, entt::registry& reg) override {
             auto& t = reg.get<Transform>(from);
-            auto& oldDpa = reg.get<DynamicPhysicsActor>(from);
+            auto& oldDpa = reg.get<RigidBody>(from);
 
             physx::PxTransform pTf(glm2px(t.position), glm2px(t.rotation));
             auto* actor = interfaces->physics->physics()->createRigidDynamic(pTf);
 
-            auto& newPhysActor = reg.emplace<DynamicPhysicsActor>(to, actor);
+            auto& newPhysActor = reg.emplace<RigidBody>(to, actor);
             newPhysActor.mass = oldDpa.mass;
             newPhysActor.actor = actor;
             newPhysActor.physicsShapes = oldDpa.physicsShapes;
@@ -965,10 +981,10 @@ namespace worlds {
         }
 
         void edit(entt::entity ent, entt::registry& reg, Editor* ed) override {
-            auto& pa = reg.get<DynamicPhysicsActor>(ent);
+            auto& pa = reg.get<RigidBody>(ent);
             if (ImGui::CollapsingHeader(ICON_FA_SHAPES u8" Dynamic Physics Actor")) {
                 if (ImGui::Button("Remove##DPA")) {
-                    reg.remove<DynamicPhysicsActor>(ent);
+                    reg.remove<RigidBody>(ent);
                 } else {
                     if (ImGui::TreeNode("Lock Flags")) {
                         uint32_t flags = (uint32_t)pa.lockFlags();
@@ -1010,7 +1026,7 @@ namespace worlds {
         }
 
         void toJson(entt::entity ent, entt::registry& reg, json& j) override {
-            auto& pa = reg.get<DynamicPhysicsActor>(ent);
+            auto& pa = reg.get<RigidBody>(ent);
             json shapeArray;
 
             for (auto& shape : pa.physicsShapes) {
@@ -1060,7 +1076,7 @@ namespace worlds {
             pActor->setMaxAngularVelocity(1000.0f);
             interfaces->physics->scene()->addActor(*pActor);
 
-            auto& pa = reg.emplace<DynamicPhysicsActor>(ent, pActor);
+            auto& pa = reg.emplace<RigidBody>(ent, pActor);
             pa.scaleShapes = j.value("scaleShapes", true);
 
             for (auto& shape : j["shapes"]) {
@@ -1668,7 +1684,8 @@ namespace worlds {
             j = {
                 { "parent", (uint32_t)c.parent },
                 { "position", c.offset.position },
-                { "rotation", c.offset.rotation }
+                { "rotation", c.offset.rotation },
+                { "scale", c.offset.scale }
             };
         }
 
@@ -1679,7 +1696,7 @@ namespace worlds {
             auto& c = reg.get<ChildComponent>(ent);
             c.offset.position = j.value("position", glm::vec3(0.0f));
             c.offset.rotation = j.value("rotation", glm::quat{1.0f, 0.0f, 0.0f, 0.0f});
-            c.offset.scale = glm::vec3(1.0f);
+            c.offset.scale = j.value("scale", glm::vec3(1.0f));
         }
     };
 
@@ -1688,7 +1705,7 @@ namespace worlds {
     SkinnedWorldObjectEditor skWorldObjEd;
     WorldLightEditor worldLightEd;
     PhysicsActorEditor paEd;
-    DynamicPhysicsActorEditor dpaEd;
+    RigidBodyEditor dpaEd;
     NameComponentEditor ncEd;
     AudioSourceEditor asEd;
     WorldCubemapEditor wcEd;

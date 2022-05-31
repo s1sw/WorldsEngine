@@ -108,7 +108,7 @@ namespace worlds {
         void edit(entt::entity ent, entt::registry& reg, Editor* ed) override {
             auto& j = reg.get<D6Joint>(ent);
 
-            auto* dpa = reg.try_get<DynamicPhysicsActor>(ent);
+            auto* dpa = reg.try_get<RigidBody>(ent);
             auto* pxj = j.pxJoint;
 
             if (ImGui::CollapsingHeader(ICON_FA_ATOM u8" D6 Joint")) {
@@ -274,7 +274,7 @@ namespace worlds {
         }
 
         void clone(entt::entity from, entt::entity to, entt::registry& reg) override {
-            assert(reg.has<DynamicPhysicsActor>(to));
+            assert(reg.has<RigidBody>(to));
             auto& newD6 = reg.emplace<D6Joint>(to);
             auto& oldD6 = reg.get<D6Joint>(from);
 
