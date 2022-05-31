@@ -77,12 +77,12 @@ namespace worlds {
 
         j.pxJoint = pxj;
 
-        if (!reg.has<DynamicPhysicsActor>(ent)) {
+        if (!reg.has<RigidBody>(ent)) {
             logWarn("D6 joint added to entity without a dynamic physics actor");
             return;
         }
 
-        auto& dpa = reg.get<DynamicPhysicsActor>(ent);
+        auto& dpa = reg.get<RigidBody>(ent);
         j.thisActor = dpa.actor;
         j.originalThisActor = dpa.actor;
         j.updateJointActors();
@@ -98,12 +98,12 @@ namespace worlds {
     void PhysicsSystem::setupFixedJoint(entt::registry& reg, entt::entity ent) {
         auto& j = reg.get<FixedJoint>(ent);
 
-        if (!reg.has<DynamicPhysicsActor>(ent)) {
+        if (!reg.has<RigidBody>(ent)) {
             logErr("Fixed joint added to entity without a dynamic physics actor");
             return;
         }
 
-        auto& dpa = reg.get<DynamicPhysicsActor>(ent);
+        auto& dpa = reg.get<RigidBody>(ent);
         j.pxJoint = physx::PxFixedJointCreate(*_physics, dpa.actor, physx::PxTransform{ physx::PxIdentity }, nullptr, physx::PxTransform{ physx::PxIdentity });
         j.pxJoint->setInvMassScale0(1.0f);
         j.pxJoint->setInvMassScale1(1.0f);
@@ -250,7 +250,7 @@ namespace worlds {
     }
 
     template void PhysicsSystem::updatePhysicsShapes<PhysicsActor>(PhysicsActor& pa, glm::vec3 scale);
-    template void PhysicsSystem::updatePhysicsShapes<DynamicPhysicsActor>(DynamicPhysicsActor& pa, glm::vec3 scale);
+    template void PhysicsSystem::updatePhysicsShapes<RigidBody>(RigidBody& pa, glm::vec3 scale);
 
     uint32_t physicsLayerMask[32] =
     {
@@ -448,9 +448,9 @@ namespace worlds {
         _scene->setContactModifyCallback(contactModCallback);
 
         reg.on_destroy<PhysicsActor>().connect<&destroyPhysXActor<PhysicsActor>>();
-        reg.on_destroy<DynamicPhysicsActor>().connect<&destroyPhysXActor<DynamicPhysicsActor>>();
+        reg.on_destroy<RigidBody>().connect<&destroyPhysXActor<RigidBody>>();
         reg.on_construct<PhysicsActor>().connect<&setPhysXActorUserdata<PhysicsActor>>();
-        reg.on_construct<DynamicPhysicsActor>().connect<&setPhysXActorUserdata<DynamicPhysicsActor>>();
+        reg.on_construct<RigidBody>().connect<&setPhysXActorUserdata<RigidBody>>();
 
         reg.on_construct<D6Joint>().connect<&PhysicsSystem::setupD6Joint>(this);
         reg.on_destroy<D6Joint>().connect<&PhysicsSystem::destroyD6Joint>(this);
@@ -489,7 +489,7 @@ namespace worlds {
             updatePhysicsShapes(pa, t.scale);
         });
 
-        reg.view<DynamicPhysicsActor, Transform>().each([this](DynamicPhysicsActor& pa, Transform& t) {
+        reg.view<RigidBody, Transform>().each([this](RigidBody& pa, Transform& t) {
             updatePhysicsShapes(pa, t.scale);
         });
     }

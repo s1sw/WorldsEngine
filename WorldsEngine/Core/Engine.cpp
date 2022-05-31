@@ -1291,7 +1291,7 @@ namespace worlds {
     void WorldsEngine::updateSimulation(float& interpAlpha, double deltaTime) {
         ZoneScoped;
         if (lockSimToRefresh.getInt() || disableSimInterp.getInt() || (editor && editor->active)) {
-            registry.view<DynamicPhysicsActor, Transform>().each([](DynamicPhysicsActor& dpa, Transform& transform) {
+            registry.view<RigidBody, Transform>().each([](RigidBody& dpa, Transform& transform) {
                 auto curr = dpa.actor->getGlobalPose();
 
                 if (curr.p != glm2px(transform.position) || curr.q != glm2px(transform.rotation)) {
@@ -1312,14 +1312,14 @@ namespace worlds {
         if (!lockSimToRefresh.getInt()) {
             simAccumulator += deltaTime;
 
-            if (registry.view<DynamicPhysicsActor>().size() != currentState.size()) {
+            if (registry.view<RigidBody>().size() != currentState.size()) {
                 currentState.clear();
                 previousState.clear();
 
-                currentState.reserve(registry.view<DynamicPhysicsActor>().size());
-                previousState.reserve(registry.view<DynamicPhysicsActor>().size());
+                currentState.reserve(registry.view<RigidBody>().size());
+                previousState.reserve(registry.view<RigidBody>().size());
 
-                registry.view<DynamicPhysicsActor>().each([&](auto ent, DynamicPhysicsActor& dpa) {
+                registry.view<RigidBody>().each([&](auto ent, RigidBody& dpa) {
                     auto startTf = dpa.actor->getGlobalPose();
                     currentState.insert({ ent, startTf });
                     previousState.insert({ ent, startTf });
@@ -1342,7 +1342,7 @@ namespace worlds {
                     simAccumulator = 0.0;
             }
 
-            registry.view<DynamicPhysicsActor>().each([&](auto ent, DynamicPhysicsActor& dpa) {
+            registry.view<RigidBody>().each([&](auto ent, RigidBody& dpa) {
                 currentState[ent] = dpa.actor->getGlobalPose();
             });
 
@@ -1351,7 +1351,7 @@ namespace worlds {
             if (disableSimInterp.getInt() || simStepTime.getFloat() < deltaTime)
                 alpha = 1.0f;
 
-            registry.view<DynamicPhysicsActor, Transform>().each([&](entt::entity ent, DynamicPhysicsActor& dpa, Transform& transform) {
+            registry.view<RigidBody, Transform>().each([&](entt::entity ent, RigidBody& dpa, Transform& transform) {
                 if (!previousState.contains(ent)) {
                     transform.position = px2glm(currentState[ent].p);
                     transform.rotation = px2glm(currentState[ent].q);
@@ -1375,7 +1375,7 @@ namespace worlds {
                 doSimStep(deltaTime);
             }
 
-            registry.view<DynamicPhysicsActor, Transform>().each([&](entt::entity, DynamicPhysicsActor& dpa, Transform& transform) {
+            registry.view<RigidBody, Transform>().each([&](entt::entity, RigidBody& dpa, Transform& transform) {
                 transform.position = px2glm(dpa.actor->getGlobalPose().p);
                 transform.rotation = px2glm(dpa.actor->getGlobalPose().q);
             });

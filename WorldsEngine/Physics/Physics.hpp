@@ -41,7 +41,7 @@ namespace worlds {
         return physx::PxTransform(glm2px(t.position), glm2px(t.rotation));
     }
 
-    inline void updateMass(DynamicPhysicsActor& pa) {
+    inline void updateMass(RigidBody& pa) {
         physx::PxRigidBodyExt::setMassAndUpdateInertia(*(physx::PxRigidBody*)pa.actor, pa.mass);
         pa.actor->setActorFlag(physx::PxActorFlag::eDISABLE_GRAVITY, !pa.enableGravity);
         pa.actor->setRigidBodyFlag(physx::PxRigidBodyFlag::eENABLE_CCD, pa.enableCCD);

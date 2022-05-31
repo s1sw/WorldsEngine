@@ -28,7 +28,7 @@ namespace worlds {
 
     physx::PxRigidActor* getSuitablePhysicsActor(entt::entity ent, entt::registry& reg) {
         auto* pa = reg.try_get<PhysicsActor>(ent);
-        auto* dpa = reg.try_get<DynamicPhysicsActor>(ent);
+        auto* dpa = reg.try_get<RigidBody>(ent);
 
         if (!(pa || dpa)) {
             return nullptr;
@@ -40,7 +40,7 @@ namespace worlds {
     void D6Joint::setTarget(entt::entity newTargetEnt, entt::registry& reg) {
         targetEntity = newTargetEnt;
         auto* pa = reg.try_get<PhysicsActor>(newTargetEnt);
-        auto* dpa = reg.try_get<DynamicPhysicsActor>(newTargetEnt);
+        auto* dpa = reg.try_get<RigidBody>(newTargetEnt);
 
         if (!(pa || dpa)) {
             logErr("Tried to set a D6 joint's target to an entity with neither a physics actor or dynamic physics actor");

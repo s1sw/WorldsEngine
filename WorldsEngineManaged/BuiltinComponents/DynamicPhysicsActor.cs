@@ -14,7 +14,7 @@ namespace WorldsEngine
         Acceleration
     }
 
-    public class DynamicPhysicsActor : BuiltinComponent
+    public class RigidBody : BuiltinComponent
     {
         [DllImport(Engine.NativeModule)]
         private static extern int dynamicpa_getShapeCount(IntPtr registryPtr, uint entityId);
@@ -101,6 +101,12 @@ namespace WorldsEngine
 
         [DllImport(Engine.NativeModule)]
         private static extern void dynamicpa_setContactOffset(IntPtr reg, uint entity, float val);
+
+        [DllImport(Engine.NativeModule)]
+        private static extern float dynamicpa_getSleepThreshold(IntPtr reg, uint entity);
+
+        [DllImport(Engine.NativeModule)]
+        private static extern void dynamicpa_setSleepThreshold(IntPtr reg, uint entity, float val);
 
         internal static ComponentMetadata Metadata
         {
@@ -234,7 +240,13 @@ namespace WorldsEngine
             }
         }
 
-        internal DynamicPhysicsActor(IntPtr regPtr, uint entityId) : base(regPtr, entityId)
+        public float SleepThreshold
+        {
+            get => dynamicpa_getSleepThreshold(regPtr, entityId);
+            set => dynamicpa_setSleepThreshold(regPtr, entityId, value);
+        }
+
+        internal RigidBody(IntPtr regPtr, uint entityId) : base(regPtr, entityId)
         {
         }
 
