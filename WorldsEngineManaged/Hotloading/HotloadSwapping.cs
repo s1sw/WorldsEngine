@@ -93,6 +93,7 @@ namespace WorldsEngine.Hotloading
                         continue;
                     }
 
+
                     if (fieldInfo.IsInitOnly)
                     {
                         // We can ignore the return value of RewriteObject here
@@ -106,7 +107,6 @@ namespace WorldsEngine.Hotloading
                 }
             }
         }
-
 
         private Type? FindNewType(Type oldType)
         {
@@ -173,32 +173,6 @@ namespace WorldsEngine.Hotloading
             if (val == null) return;
 
             // Some special handling is required for events/delegates
-            if (from.FieldType.IsAssignableTo(typeof(Delegate)))
-            {
-                Delegate? del = (Delegate?)from.GetValue(oldInstance);
-
-                if (del == null) return;
-
-                if (del.Method != null && del.Method.DeclaringType != null && del.Method.DeclaringType.Assembly != oldAssembly) return;
-
-                Type? newDelegateType = FindNewType(from.FieldType);
-                if (newDelegateType == null)
-                    throw new HotloadSwapFailedException($"Couldn't find new type for delegate type {from.FieldType.FullName}");
-
-                Delegate? newDel = null;
-
-                if (del.Target != null && del.Method != null)
-                {
-                    newDel = Delegate.CreateDelegate(newDelegateType, RewriteObject(del.Target)!, del.Method.Name, false);
-                }
-                else if (del.Method != null)
-                {
-                    newDel = Delegate.CreateDelegate(newDelegateType, del.Method, true)!;
-                }
-
-                to.SetValue(newInstance, newDel);
-                return;
-            }
 
             object? newVal = RewriteObject(val);
             to.SetValue(newInstance, newVal);
@@ -225,6 +199,65 @@ namespace WorldsEngine.Hotloading
             if (oldType.IsPrimitive)
                 return oldObject;
 
+            if (oldType.IsAssignableTo(typeof(Delegate)))
+            {
+                Delegate del = (Delegate)oldObject;
+
+                Log.Msg($"Delegate type {oldType.FullName}");
+
+                if (del.Method != null)
+                {
+                    Log.Msg($"Method: {del.Method.Name}");
+                    Log.Msg($"Declaring type: {del.Method.DeclaringType}");
+                }
+                else
+                {
+                    Log.Msg("Method: null");
+                }
+
+                if (del.Target != null)
+                {
+                    Log.Msg($"Target: {del.Target.GetType().FullName}");
+                }
+                else
+                {
+                    Log.Msg("Target: null");
+                }
+
+                Log.Msg($"invoc list length {del.GetInvocationList().Length}");
+
+                if (del.Method != null && del.Method.DeclaringType != null && del.Method.DeclaringType.Assembly != oldAssembly) return oldObject;
+
+                Type? newDelegateType = FindNewType(oldType);
+                if (newDelegateType == null)
+                    throw new HotloadSwapFailedException($"Couldn't find new type for delegate type {oldType.FullName}");
+
+
+                Delegate? newDel = null;
+
+                if (del.Target != null && del.Method != null)
+                {
+                    newDel = Delegate.CreateDelegate(newDelegateType, RewriteObject(del.Target)!, del.Method.Name, false);
+                }
+                else if (del.Method != null)
+                {
+                    if (del.Method.DeclaringType != null)
+                    {
+                        MethodInfo? newMi = FindNewType(del.Method.DeclaringType)!.GetMethod(del.Method.Name!);
+
+                        if (newMi == null) throw new HotloadSwapFailedException("oops oops");
+
+                        newDel = Delegate.CreateDelegate(newDelegateType, newMi, true)!;
+                    }
+                    else
+                    {
+                        newDel = Delegate.CreateDelegate(newDelegateType, del.Method, true)!;
+                    }
+                }
+
+                return newDel;
+            }
+
             if (oldType.IsArray)
             {
                 // Copy elements of the array
@@ -241,16 +274,8 @@ namespace WorldsEngine.Hotloading
 
                     if (arrayValue == null) continue;
 
-                    if (IsDependentOnAssembly(arrayValue.GetType()))
-                    {
-                        newArray.SetValue(RewriteObject(arrayValue), i);
-                    }
-                    else
-                    {
-                        newArray.SetValue(arrayValue, i);
-                    }
+                    newArray.SetValue(RewriteObject(arrayValue), i);
                 }
-
 
                 // If the types are equal, there's no need to exchange the array
                 if (newArrayType == oldType)
