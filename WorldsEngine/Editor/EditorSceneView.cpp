@@ -146,7 +146,11 @@ namespace worlds {
                 if (childComponent) {
                     if (reg.valid(childComponent->parent)) {
                         Transform& parentTransform = reg.get<Transform>(childComponent->parent);
+
+                        // preserve scale!!!
+                        glm::vec3 scale = childComponent->offset.scale;
                         childComponent->offset = selectedTransform.transformByInverse(parentTransform);
+                        childComponent->offset.scale = scale;
                     }
                 }
 

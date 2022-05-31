@@ -468,9 +468,9 @@ namespace WorldsEngine
 
             if (OverrideTransformToDPAPose)
             {
-                if (HasComponent<DynamicPhysicsActor>(entity))
+                if (HasComponent<RigidBody>(entity))
                 {
-                    Transform pose = GetComponent<DynamicPhysicsActor>(entity).Pose;
+                    Transform pose = GetComponent<RigidBody>(entity).Pose;
                     t.Position = pose.Position;
                     t.Rotation = pose.Rotation;
                 }
@@ -480,7 +480,7 @@ namespace WorldsEngine
 
         public static void SetTransform(Entity entity, Transform t)
         {
-            if (OverrideTransformToDPAPose && TryGetComponent<DynamicPhysicsActor>(entity, out var dpa))
+            if (OverrideTransformToDPAPose && TryGetComponent<RigidBody>(entity, out var dpa))
             {
                 dpa.Pose = t;
             }
