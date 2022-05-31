@@ -310,6 +310,8 @@ namespace WorldsEngine.Hotloading
                     systems.Add((ISystem)Activator.CreateInstance(systemType)!);
                 }
             }
+
+            systems.OrderBy(s => s.GetType().GetCustomAttribute<SystemUpdateOrderAttribute>()?.Priority ?? 0);
         }
     }
 }
