@@ -3,6 +3,7 @@
 #include "../ImGui/imgui.h"
 #include <functional>
 #include "../ImGui/imgui_stdlib.h"
+#include <entt/entity/lw_fwd.hpp>
 
 namespace worlds {
     typedef uint32_t AssetID;
@@ -37,6 +38,7 @@ namespace worlds {
     bool selectRawAssetPopup(const char* title, AssetID& id, bool open);
     void tooltipHover(const char* desc);
     void pushBoldFont();
+    void selectSceneEntity(const char* title, entt::registry& reg, std::function<void(entt::entity)> callback);
 
     namespace EditorUI {
         void centeredText(const char* text);
