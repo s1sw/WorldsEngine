@@ -12,6 +12,8 @@
 #ifdef _WIN32
 #include <slib/Win32Util.hpp>
 #endif
+#include <Core/NameComponent.hpp>
+#include <entt/entity/registry.hpp>
 
 namespace worlds {
     ImFont* boldFont;
@@ -708,6 +710,23 @@ namespace worlds {
 
     void pushBoldFont() {
         ImGui::PushFont(boldFont);
+    }
+
+    void selectSceneEntity(const char* title, entt::registry& reg, std::function<void(entt::entity)> callback) {
+        if (ImGui::BeginPopup(title)) {
+            reg.view<NameComponent>().each([&](entt::entity ent, NameComponent& nc) {
+                ImGui::PushID(static_cast<uint32_t>(ent));
+
+                if (ImGui::Button(nc.name.c_str())) {
+                    callback(ent);
+                    ImGui::CloseCurrentPopup();
+                }
+
+                ImGui::PopID();
+            });
+
+            ImGui::EndPopup();
+        }
     }
 
     namespace EditorUI {
