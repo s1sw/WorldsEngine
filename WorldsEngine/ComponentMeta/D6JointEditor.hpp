@@ -127,18 +127,30 @@ namespace worlds {
                     } else {
                         ImGui::Text("Connected to %u", (uint32_t)target);
                     }
+
+                    Transform t1 = px2glm(j.pxJoint->getLocalPose(physx::PxJointActorIndex::eACTOR0));
+                    Transform t2 = px2glm(j.pxJoint->getLocalPose(physx::PxJointActorIndex::eACTOR1));
+                    Transform goal = t2.transformBy(reg.get<Transform>(target)).transformByInverse(t1);
+
+                    drawSphere(goal.position, goal.rotation, 0.1f);
                 } else {
                     ImGui::Text("Not connected");
                 }
 
-                ImGui::Text("target: %u", (uint32_t)j.getTarget());
+                ImGui::SameLine();
+
+                if (ImGui::Button("Choose")) {
+                    ImGui::OpenPopup("Connect D6 joint to...");
+                }
+
+                selectSceneEntity("Connect D6 joint to...", reg, [&](entt::entity e) { j.setTarget(e, reg); });
 
                 ImGui::SameLine();
 
                 static bool changingTarget = false;
 
                 if (!changingTarget) {
-                    if (ImGui::Button("Change")) {
+                    if (ImGui::Button("Pick")) {
                         changingTarget = true;
                     }
                 }
@@ -240,6 +252,63 @@ namespace worlds {
                     ImGui::TreePop();
                 }
 
+                if (ImGui::TreeNode("Angular Limits")) {
+                    if (ImGui::TreeNode("Swing Limit")) {
+                        auto lim = j.pxJoint->getSwingLimit();
+
+                        lim.yAngle = glm::degrees(lim.yAngle);
+                        lim.zAngle = glm::degrees(lim.zAngle);
+
+                        ImGui::DragFloat("Y Angle", &lim.yAngle, 15.0f, 0.0f, 180.0f);
+                        ImGui::DragFloat("Z Angle", &lim.zAngle, 15.0f, 0.0f, 180.0f);
+
+                        lim.yAngle = glm::radians(lim.yAngle);
+                        lim.zAngle = glm::radians(lim.zAngle);
+
+                        ImGui::DragFloat("Stiffness", &lim.stiffness);
+                        tooltipHover("If greater than zero, the limit is soft, i.e. a spring pulls the joint back to the limit");
+                        ImGui::DragFloat("Damping", &lim.damping);
+                        ImGui::DragFloat("Contact Distance", &lim.contactDistance);
+                        tooltipHover("The distance inside the limit value at which the limit will be considered to be active by the solver.");
+                        ImGui::DragFloat("Bounce Threshold", &lim.bounceThreshold);
+                        tooltipHover("The minimum velocity for which the limit will bounce.");
+                        ImGui::DragFloat("Restitution", &lim.restitution);
+                        tooltipHover("Controls the amount of bounce when the joint hits a limit.");
+
+                        j.pxJoint->setSwingLimit(lim);
+
+                        ImGui::TreePop();
+                    }
+
+                    if (ImGui::TreeNode("Twist Limit")) {
+                        auto lim = j.pxJoint->getTwistLimit();
+
+                        lim.lower = glm::degrees(lim.lower);
+                        lim.upper = glm::degrees(lim.upper);
+
+                        ImGui::DragFloat("Lower", &lim.lower, 1.0f, -360.0f, lim.upper);
+                        ImGui::DragFloat("Upper", &lim.upper, 1.0f, lim.lower, 360.0f);
+
+                        lim.lower = glm::radians(lim.lower);
+                        lim.upper = glm::radians(lim.upper);
+
+                        ImGui::DragFloat("Stiffness", &lim.stiffness);
+                        tooltipHover("If greater than zero, the limit is soft, i.e. a spring pulls the joint back to the limit");
+                        ImGui::DragFloat("Damping", &lim.damping);
+                        ImGui::DragFloat("Contact Distance", &lim.contactDistance);
+                        tooltipHover("The distance inside the limit value at which the limit will be considered to be active by the solver.");
+                        ImGui::DragFloat("Bounce Threshold", &lim.bounceThreshold);
+                        tooltipHover("The minimum velocity for which the limit will bounce.");
+                        ImGui::DragFloat("Restitution", &lim.restitution);
+                        tooltipHover("Controls the amount of bounce when the joint hits a limit.");
+
+                        j.pxJoint->setTwistLimit(lim);
+                        ImGui::TreePop();
+                    }
+
+                    ImGui::TreePop();
+                }
+
                 float localMassScale = 1.0f / j.pxJoint->getInvMassScale0();
                 if (ImGui::DragFloat("Local Mass Scale", &localMassScale)) {
                     j.pxJoint->setInvMassScale0(1.0f / localMassScale);
@@ -299,6 +368,9 @@ namespace worlds {
                 auto actualAxis = (physx::PxD6Axis::Enum)axis;
                 newJ->setLinearLimit(actualAxis, oldJ->getLinearLimit(actualAxis));
             }
+
+            newJ->setTwistLimit(oldJ->getTwistLimit());
+            newJ->setSwingLimit(oldJ->getSwingLimit());
         }
 
         void toJson(entt::entity ent, entt::registry& reg, json& j) override {
@@ -358,6 +430,32 @@ namespace worlds {
 
             j["breakForce"] = breakForce;
             j["breakTorque"] = breakTorque;
+
+            auto swingLimit = px->getSwingLimit();
+            json swingLimitJ = {
+                { "yAngle", swingLimit.yAngle },
+                { "zAngle", swingLimit.zAngle },
+                { "restitution", swingLimit.restitution },
+                { "bounceThreshold", swingLimit.bounceThreshold },
+                { "stiffness", swingLimit.stiffness },
+                { "damping", swingLimit.damping },
+                { "contactDistance", swingLimit.contactDistance }
+            };
+
+            j["swingLimit"] = swingLimitJ;
+
+            auto twistLimit = px->getTwistLimit();
+            json twistLimitJ = {
+                { "lower", twistLimit.lower },
+                { "upper", twistLimit.upper },
+                { "restitution", twistLimit.restitution },
+                { "bounceThreshold", twistLimit.bounceThreshold },
+                { "stiffness", twistLimit.stiffness },
+                { "damping", twistLimit.damping },
+                { "contactDistance", twistLimit.contactDistance }
+            };
+
+            j["twistLimit"] = twistLimitJ;
         }
 
         void fromJson(entt::entity ent, entt::registry& reg, EntityIDMap& idMap, const json& j) override {
@@ -391,6 +489,33 @@ namespace worlds {
                 l.contactDistance = lJson["contactDistance"];
 
                 px->setLinearLimit(axis, l);
+            }
+
+            if (j.contains("swingLimit")) {
+                auto swingLJ = j["swingLimit"];
+                physx::PxJointLimitCone swingLimit{
+                    swingLJ.value("yAngle", glm::half_pi<float>()),
+                    swingLJ.value("zAngle", glm::half_pi<float>()),
+                    swingLJ.value("contactDistance", 0.1f)
+                };
+                swingLimit.stiffness = swingLJ.value("stiffness", 0.0f);
+                swingLimit.damping = swingLJ.value("damping", 0.0f);
+                swingLimit.restitution = swingLJ.value("restitution", 0.0f);
+                swingLimit.bounceThreshold = swingLJ.value("bounceThreshold", 0.5f);
+                px->setSwingLimit(swingLimit);
+            }
+
+            if (j.contains("twistLimit")) {
+                auto twistLJ = j["twistLimit"];
+                
+                physx::PxJointAngularLimitPair l{twistLJ["lower"], twistLJ["upper"]};
+                l.restitution = twistLJ["restitution"];
+                l.bounceThreshold = twistLJ["bounceThreshold"];
+                l.stiffness = twistLJ["stiffness"];
+                l.damping = twistLJ["damping"];
+                l.contactDistance = twistLJ["contactDistance"];
+
+                px->setTwistLimit(l);
             }
 
             px->setInvMassScale0(j["inverseMassScale0"]);
