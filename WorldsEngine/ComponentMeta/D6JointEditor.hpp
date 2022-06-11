@@ -130,6 +130,10 @@ namespace worlds {
 
                     Transform t1 = px2glm(j.pxJoint->getLocalPose(physx::PxJointActorIndex::eACTOR0));
                     Transform t2 = px2glm(j.pxJoint->getLocalPose(physx::PxJointActorIndex::eACTOR1));
+                    t2.rotation = glm::quat{1.f, 0.f, 0.f, 0.f};
+                    t1.rotation = glm::quat{1.f, 0.f, 0.f, 0.f};
+                    // TODO: this ignores rotations. can we do better??
+                    // idk, and my brain is fried so i leave this to future you
                     Transform goal = t2.transformBy(reg.get<Transform>(target)).transformByInverse(t1);
 
                     drawSphere(goal.position, goal.rotation, 0.1f);
@@ -162,9 +166,9 @@ namespace worlds {
                     }
                 }
 
-                if (dpa)
+                if (dpa) {
                     dpa->actor->is<physx::PxRigidDynamic>()->wakeUp();
-                else {
+                } else {
                     if (reg.valid(j.getAttached())) {
                         NameComponent* nc = reg.try_get<NameComponent>(j.getAttached());
 

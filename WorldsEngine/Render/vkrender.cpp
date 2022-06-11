@@ -1095,14 +1095,17 @@ void VKRenderer::submitToOpenVR() {
         .m_nSampleCount = 1
     };
 
+    vr::TrackedDevicePose_t hmdPose;
+    vr::VRSystem()->GetDeviceToAbsoluteTrackingPose(vr::TrackingUniverseStanding, vrPredictAmount, &hmdPose, 1);
     // Image submission with validation layers turned on causes a crash
     // If we really want the validation layers, don't submit anything
     if (!vrValidationLayers) {
-        vr::Texture_t texture = { &vulkanData, vr::TextureType_Vulkan, vr::ColorSpace_Auto };
-        vr::VRCompositor()->Submit(vr::Eye_Left, &texture, &bounds);
+        vr::VRTextureWithPose_t texture = { &vulkanData, vr::TextureType_Vulkan, vr::ColorSpace_Auto };
+        texture.mDeviceToAbsoluteTracking = hmdPose.mDeviceToAbsoluteTracking;
+        vr::VRCompositor()->Submit(vr::Eye_Left, &texture, &bounds, vr::EVRSubmitFlags::Submit_TextureWithPose);
 
         vulkanData.m_nImage = (uint64_t)(VkImage)rightEye->image().image();
-        vr::VRCompositor()->Submit(vr::Eye_Right, &texture, &bounds);
+        vr::VRCompositor()->Submit(vr::Eye_Right, &texture, &bounds, vr::EVRSubmitFlags::Submit_TextureWithPose);
     }
 }
 
@@ -1524,6 +1527,15 @@ void VKRenderer::frame(Camera& cam, entt::registry& reg) {
         presentSubmitManager->present();
     }
 
+    rttPasses.erase(std::remove_if(rttPasses.begin(), rttPasses.end(), [](VKRTTPass* pass) { 
+        if (pass->markedForDeletion) {
+            delete pass;
+            return true;
+        } else {
+            return false;
+        }
+    }), rttPasses.end());
+
     std::array<std::uint64_t, 2> timeStamps = { {0} };
 
     VkResult queryRes = vkGetQueryPoolResults(
@@ -1814,13 +1826,8 @@ VKRTTPass* VKRenderer::createRTTPass(RTTPassCreateInfo& ci) {
 
 void VKRenderer::destroyRTTPass(RTTPass* pass) {
     std::lock_guard<std::mutex> lg { *apiMutex };
-    DeletionQueue::queueCustomDeletion([this, pass]() {
-        rttPasses.erase(
-            std::remove(rttPasses.begin(), rttPasses.end(), pass),
-            rttPasses.end());
 
-        delete (VKRTTPass*)pass;
-    });
+    static_cast<VKRTTPass*>(pass)->markedForDeletion = true;
 }
 
 void VKRenderer::triggerRenderdocCapture() {

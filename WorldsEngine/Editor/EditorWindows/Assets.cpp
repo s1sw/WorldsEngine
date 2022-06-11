@@ -172,7 +172,7 @@ namespace worlds {
                         AssetID compiledAsset = getOutputAsset(assetContextMenu);
                         Camera& editorCam = editor->getFirstSceneView()->getCamera();
                         glm::vec3 pos = editorCam.position + editorCam.rotation * glm::vec3(0.0f, 0.0f, 1.0f);
-                        createModelObject(reg, pos, glm::quat{1.0f, 0.0f, 0.0f, 0.0f}, compiledAsset, AssetDB::pathToId("Materials/dev.json"));
+                        createModelObject(reg, pos, glm::quat{1.0f, 0.0f, 0.0f, 0.0f}, compiledAsset, AssetDB::pathToId("Materials/DevTextures/dev_blue.json"));
                     }
                 }
 

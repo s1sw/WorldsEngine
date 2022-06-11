@@ -132,19 +132,19 @@ void main(uint3 threadID : SV_DispatchThreadID)
     bloom = max(bloom, float3(0.0));
 
     AMDReversibleTonemapper reversibleTonemap;
+#ifdef MSAA
     for (int i = 0; i < texSettings.msaaSamples; i++)
     {
-#ifdef MSAA
         float3 raw = hdrImage.Load(int3(threadID.xy, idx), i).xyz;
-#else
-        float3 raw = hdrImage.Load(int4(threadID.xy, idx, 0)).xyz;
-#endif
 
         accumulator += reversibleTonemap.Tonemap(lerp(raw, bloom, 0.2));
     }
 
     accumulator *= rcp(texSettings.msaaSamples);
     accumulator = reversibleTonemap.TonemapInvert(accumulator);
+#else
+    accumulator = hdrImage.Load(int4(threadID.xy, idx, 0)).xyz;
+#endif
 
     ITonemapper tonemapper = Uncharted2Tonemapper();
     accumulator = saturate(tonemapper.Tonemap(accumulator, exposureBias));

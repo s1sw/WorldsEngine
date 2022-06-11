@@ -159,6 +159,18 @@ namespace worlds {
             .ulActionSet = actionSet
         };
         vr::VRInput()->UpdateActionState(&activeActionSet, sizeof(activeActionSet), 1);
+
+        vr::VREvent_t vrEvent;
+        while (vr::VRSystem()->PollNextEvent(&vrEvent, sizeof(vrEvent))) {
+            switch (vrEvent.eventType) {
+                case vr::EVREventType::VREvent_InputFocusCaptured:
+                    hasInputFocus = true;
+                    break;
+                case vr::EVREventType::VREvent_InputFocusReleased:
+                    hasInputFocus = false;
+                    break;
+            }
+        }
     }
 
     bool OpenVRInterface::getHandTransform(Hand hand, Transform& t) {

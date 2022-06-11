@@ -48,8 +48,20 @@ namespace worlds {
             logErr(WELogCategoryRender, "Reflecting unsupported shader type!");
         }
 
+        // Shaders might decide to alias descriptors so don't put them in multiple times
+        std::vector<bool> presentBindings;
+        int maxBinding = 0;
+
+        for (auto binding : bindings) {
+            maxBinding = binding->binding > maxBinding ? binding->binding : maxBinding;
+        }
+
+        presentBindings.resize(maxBinding + 1);
+
         for (auto binding : bindings) {
             if (binding->set != setIndex) continue;
+            if (presentBindings[binding->binding]) continue;
+            presentBindings[binding->binding] = true;
 
             VkDescriptorSetLayoutBinding vkBinding{
                 .binding = binding->binding,

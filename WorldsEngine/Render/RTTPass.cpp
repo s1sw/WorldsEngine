@@ -384,7 +384,7 @@ namespace worlds {
             .passSettings = passSettings,
             .registry = r,
             .renderer = renderer,
-            .camera = *cam,
+            .camera = cam ? *cam : Camera{},
             .passWidth = (uint32_t)width,
             .passHeight = (uint32_t)height,
             .frameIndex = 0

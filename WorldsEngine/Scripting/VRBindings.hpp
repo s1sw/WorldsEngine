@@ -1,5 +1,6 @@
 #include "Export.hpp"
 #include "VR/IVRInterface.hpp"
+#include "VR/OpenVRInterface.hpp"
 
 using namespace worlds;
 IVRInterface* csharpVrInterface;
@@ -47,5 +48,9 @@ extern "C" {
 
     EXPORT void vr_getHandBoneTransform(Hand hand, int boneIdx, Transform* transform) {
         *transform = csharpVrInterface->getHandBoneTransform(hand, boneIdx);
+    }
+
+    EXPORT bool vr_hasInputFocus() {
+        return static_cast<OpenVRInterface*>(csharpVrInterface)->hasFocus();
     }
 }

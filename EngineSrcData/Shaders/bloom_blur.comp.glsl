@@ -1,7 +1,11 @@
 #version 450
 layout (local_size_x = 16, local_size_y = 16) in;
 #ifdef SEED
-layout (binding = 0) uniform sampler2DMSArray inputTexture;
+    #ifdef MSAA
+        layout (binding = 0) uniform sampler2DMSArray inputTexture;
+    #else
+        layout (binding = 0) uniform sampler2DArray inputTexture;
+    #endif
 #else
 layout (binding = 0) uniform sampler2D inputTexture;
 #endif
@@ -22,12 +26,16 @@ vec4 samp(vec2 uv) {
 #ifdef SEED
     int nSamples = numMsaaSamples;
     vec3 acc = vec3(0.0);
+#ifdef MSAA
     for (int i = 0; i < nSamples; i++) {
         vec3 sampl = texelFetch(inputTexture, ivec3(gl_GlobalInvocationID.xy, inputArrayIdx), i).xyz;
         acc += Tonemap(sampl);
     }
     acc /= float(nSamples);
     acc = TonemapInvert(acc);
+#else
+    acc = texelFetch(inputTexture, ivec3(gl_GlobalInvocationID.xy, inputArrayIdx), 0).xyz;
+#endif
     return vec4(acc, 0.0);
 
 #else
