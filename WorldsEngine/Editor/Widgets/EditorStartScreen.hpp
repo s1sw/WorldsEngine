@@ -82,10 +82,6 @@ namespace worlds {
             logo.draw();
             ImGui::Text("Select a project.");
 
-            openFileFullFSModal("Open Project", [&](const char* path) {
-                ed->openProject(path);
-                });
-
             bool open = true;
             if (ImGui::BeginPopupModal("Create Project", &open)) {
                 static std::string projectName;
@@ -124,7 +120,11 @@ namespace worlds {
             }
 
             if (ImGui::Button("Open")) {
-                ImGui::OpenPopup("Open Project");
+                slib::String path = slib::Win32Util::openFile("WorldsProject.json");
+
+                if (!path.empty()) {
+                    ed->openProject(path.cStr());
+                }
             }
 
             if (ImGui::Button("Create New")) {

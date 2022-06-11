@@ -108,6 +108,9 @@ namespace WorldsEngine
         [DllImport(Engine.NativeModule)]
         private static extern void dynamicpa_setSleepThreshold(IntPtr reg, uint entity, float val);
 
+        [DllImport(Engine.NativeModule)]
+        private static extern bool dynamicpa_getEnabled(IntPtr reg, uint entity);
+
         internal static ComponentMetadata Metadata
         {
             get

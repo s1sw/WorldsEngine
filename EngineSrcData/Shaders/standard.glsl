@@ -651,6 +651,7 @@ mat3 cotangent_frame( vec3 N, vec3 p, vec2 uv ) {
 }
 
 #define MATERIAL_FLAG_PACKED_PBR (1 << 8)
+#define MATERIAL_FLAG_EMISSIVE_ALBEDO (1 << 10)
 void unpackMaterial(inout ShadeInfo si, vec2 tCoord, mat3 tbn) {
     Material mat = materials[matIdx];
     si.metallic = mat.metallic;
@@ -699,6 +700,9 @@ void unpackMaterial(inout ShadeInfo si, vec2 tCoord, mat3 tbn) {
     //si.roughness = getAntiAliasedRoughness(si.roughness, si.normal);
     si.alpha = albedoColor.a;
     si.emissive = mat.emissiveColor;
+
+    if ((mat.cutoffFlags & MATERIAL_FLAG_EMISSIVE_ALBEDO) == MATERIAL_FLAG_EMISSIVE_ALBEDO)
+        si.emissive *= albedoColor.rgb;
 }
 
 void main() {

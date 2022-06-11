@@ -186,7 +186,7 @@ namespace worlds {
 
         void create(entt::entity ent, entt::registry& reg) override {
             auto cubeId = AssetDB::pathToId("model.obj");
-            auto matId = AssetDB::pathToId("Materials/dev.json");
+            auto matId = AssetDB::pathToId("Materials/DevTextures/dev_blue.json");
             reg.emplace<WorldObject>(ent, matId, cubeId);
         }
 
@@ -341,7 +341,7 @@ namespace worlds {
 
         void create(entt::entity ent, entt::registry& reg) override {
             auto cubeId = AssetDB::pathToId("model.obj");
-            auto matId = AssetDB::pathToId("Materials/dev.json");
+            auto matId = AssetDB::pathToId("Materials/DevTextures/dev_blue.json");
             reg.emplace<SkinnedWorldObject>(ent, matId, cubeId);
         }
 

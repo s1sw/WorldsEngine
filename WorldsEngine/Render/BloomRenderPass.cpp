@@ -128,7 +128,7 @@ namespace worlds {
         cpm.shader(VK_SHADER_STAGE_COMPUTE_BIT, ShaderCache::getModule(handles->device, shaderId));
         blurPipeline = cpm.create(handles->device, handles->pipelineCache, blurPipelineLayout);
 
-        AssetID seedShaderId = AssetDB::pathToId("Shaders/bloom_blur_seed.comp.spv");
+        AssetID seedShaderId = ctx.passSettings.msaaLevel > 1 ? AssetDB::pathToId("Shaders/bloom_blur_seed.comp.spv") : AssetDB::pathToId("Shaders/bloom_blur_seed_nomsaa.comp.spv");
 
         vku::ComputePipelineMaker cpm2;
         cpm2.shader(VK_SHADER_STAGE_COMPUTE_BIT, ShaderCache::getModule(handles->device, seedShaderId));

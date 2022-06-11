@@ -1,6 +1,7 @@
 using System;
 using System.Runtime.InteropServices;
 using WorldsEngine.ComponentMeta;
+using WorldsEngine.Math;
 
 namespace WorldsEngine
 {
@@ -45,6 +46,18 @@ namespace WorldsEngine
         [DllImport(Engine.NativeModule)]
         private static extern void worldObject_setStaticFlags(IntPtr registryPtr, uint entityId, byte flags);
 
+        [DllImport(Engine.NativeModule)]
+        private static extern void worldObject_getUvOffset(IntPtr registryPtr, uint entityId, ref Vector2 offset);
+
+        [DllImport(Engine.NativeModule)]
+        private static extern void worldObject_setUvOffset(IntPtr registryPtr, uint entityId, ref Vector2 offset);
+
+        [DllImport(Engine.NativeModule)]
+        private static extern void worldObject_getUvScale(IntPtr registryPtr, uint entityId, ref Vector2 scale);
+
+        [DllImport(Engine.NativeModule)]
+        private static extern void worldObject_setUvScale(IntPtr registryPtr, uint entityId, ref Vector2 scale);
+
         internal static ComponentMetadata Metadata
         {
             get
@@ -70,6 +83,30 @@ namespace WorldsEngine
         {
             get => (StaticFlags)worldObject_getStaticFlags(regPtr, entityId);
             set => worldObject_setStaticFlags(regPtr, entityId, (byte)value);
+        }
+
+        public Vector2 UVScale
+        {
+            get
+            {
+                Vector2 scale = new();
+                worldObject_getUvScale(regPtr, entityId, ref scale);
+                return scale;
+            }
+
+            set => worldObject_setUvScale(regPtr, entityId, ref value);
+        }
+
+        public Vector2 UVOffset
+        {
+            get
+            {
+                Vector2 scale = new();
+                worldObject_getUvOffset(regPtr, entityId, ref scale);
+                return scale;
+            }
+
+            set => worldObject_setUvOffset(regPtr, entityId, ref value);
         }
 
         internal WorldObject(IntPtr regPtr, uint entityId) : base(regPtr, entityId)

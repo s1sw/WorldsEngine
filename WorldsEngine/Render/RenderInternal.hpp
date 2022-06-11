@@ -431,6 +431,7 @@ namespace worlds {
         RTTPassCreateInfo createInfo;
         GraphicsSettings passSettings;
         ShadowCascadeInfo cascadeInfo;
+        bool markedForDeletion = false;
 
         friend class VKRenderer;
     };

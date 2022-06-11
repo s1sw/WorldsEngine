@@ -99,6 +99,10 @@ namespace worlds {
             auto wireframeIt = j.find("wireframe");
             extraDat.wireframe = wireframeIt != j.end();
 
+            if (j.value("emissiveAlbedo", false)) {
+                mat.setFlags(mat.getFlags() | MaterialFlags::UseAlbedoEmissive);
+            }
+
             if (j.contains("fragmentShader")) {
                 extraDat.overrideShader = AssetDB::pathToId(j["fragmentShader"].get<std::string>());
             } else {
