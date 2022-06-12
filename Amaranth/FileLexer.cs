@@ -6,6 +6,7 @@ public enum TokenType
 {
     Include,
     CppType,
+    CppComponent,
     CsType,
     StringLiteral,
     Identifier,
@@ -21,7 +22,8 @@ public enum TokenType
     StaticMethod,
     Property,
     Function,
-    Period
+    Period,
+    Field
 }
 
 public class Token
@@ -87,6 +89,7 @@ public class BindingFileLexer
     {
         new TokenDef("^Include", TokenType.Include),
         new TokenDef("^CppType", TokenType.CppType),
+        new TokenDef("^CppComponent", TokenType.CppComponent),
         new TokenDef("^CsType", TokenType.CsType),
         new TokenDef("^\\(", TokenType.OpenParenthesis),
         new TokenDef("^\\)", TokenType.CloseParenthesis),
@@ -100,7 +103,8 @@ public class BindingFileLexer
         new TokenDef("^staticmethod", TokenType.StaticMethod),
         new TokenDef("^property", TokenType.Property),
         new TokenDef("^function", TokenType.Function),
-        new TokenDef("^\\.", TokenType.Period)
+        new TokenDef("^\\.", TokenType.Period),
+        new TokenDef("^field", TokenType.Field)
     };
 
     private string lexingString;

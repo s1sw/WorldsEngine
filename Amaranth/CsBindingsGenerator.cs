@@ -36,11 +36,11 @@ class CsCppBindingsGenerator
             sb.AppendLine("get");
             sb.AppendLine("{");
             sb.AppendLine($"{converter.ManagedGlueType} tmp = {ep.GetNativeMethodName(cppType.Identifier)}(nativeInstance);");
-            sb.AppendLine(converter.GetManagedGlueCode("tmp"));
+            sb.AppendLine(converter.GlueToManaged("tmp"));
             sb.AppendLine("}");
             sb.AppendLine("}");
         }
-        sb.Append("}");
+        sb.AppendLine("}");
 
         return sb.ToString();
     }
