@@ -6,11 +6,13 @@ interface ITypeConverter
 {
     public string ManagedExposedType { get; }
     public string ManagedGlueType { get; }
-
     public string NativeGlueType { get; }
 
-    public string GetNativeGlueCode(string varAccess);
-    public string GetManagedGlueCode(string retValRef);
+    public bool PassByRef { get; }
+
+    public string NativeToGlue(string varAccess);
+    public string GlueToNative(string varAccess);
+    public string GlueToManaged(string retValRef);
 }
 
 [AttributeUsage(AttributeTargets.Class)]
@@ -58,15 +60,21 @@ class StdStringViewConverter : ITypeConverter
     public string ManagedExposedType => "string";
     public string ManagedGlueType => "IntPtr";
     public string NativeGlueType => "char*";
+    public bool PassByRef => false;
 
-    public string GetNativeGlueCode(string varAccess)
+    public string NativeToGlue(string varAccess)
     {
         return $"strdup(std::string({varAccess}).c_str())";
     }
 
-    public string GetManagedGlueCode(string retValRef)
+    public string GlueToManaged(string retValRef)
     {
         return $"string t = Marshal.PtrToStringUTF8({retValRef})!;\nMarshal.FreeHGlobal({retValRef});\nreturn t;";
+    }
+
+    public string GlueToNative(string varAccess)
+    {
+        throw new NotImplementedException();
     }
 }
 
@@ -76,16 +84,35 @@ class IntConverter : ITypeConverter
     public string ManagedExposedType => "int";
     public string ManagedGlueType => "int";
     public string NativeGlueType => "int";
+    public bool PassByRef => false;
 
-    public string GetNativeGlueCode(string varAccess)
+    public string NativeToGlue(string varAccess)
     {
         return varAccess;
     }
 
-    public string GetManagedGlueCode(string retValRef)
+    public string GlueToManaged(string retValRef)
     {
         return $"return {retValRef};";
     }
+
+    public string GlueToNative(string varAccess)
+    {
+        return varAccess;
+    }
+}
+
+[TypeConverter("bool")]
+class BoolConverter : ITypeConverter
+{
+    public string ManagedExposedType => "bool";
+    public string ManagedGlueType => "byte";
+    public string NativeGlueType => "bool";
+    public bool PassByRef => false;
+
+    public string NativeToGlue(string varAccess) => varAccess;
+    public string GlueToManaged(string retValRef) => $"return (bool){retValRef};";
+    public string GlueToNative(string varAccess) => varAccess;
 }
 
 [TypeConverter("std::string")]
@@ -94,14 +121,22 @@ class StdStringConverter : ITypeConverter
     public string ManagedExposedType => "string";
     public string ManagedGlueType => "IntPtr";
     public string NativeGlueType => "char*";
+    public bool PassByRef => false;
 
-    public string GetNativeGlueCode(string varAccess)
-    {
-        return $"{varAccess}.c_str()";
-    }
+    public string NativeToGlue(string varAccess) => $"{varAccess}.c_str()";
+    public string GlueToManaged(string retValRef) => $"return Marshal.PtrToStringUTF8({retValRef})!;";
+    public string GlueToNative(string varAccess) => $"std::string({varAccess})";
+}
 
-    public string GetManagedGlueCode(string retValRef)
-    {
-        return $"return Marshal.PtrToStringUTF8({retValRef})!;";
-    }
+[TypeConverter("glm::vec3")]
+class Vector3Converter : ITypeConverter
+{
+    public string ManagedExposedType => "WorldsEngine.Math.Vector3";
+    public string ManagedGlueType => "WorldsEngine.Math.Vector3";
+    public string NativeGlueType => "glm::vec3";
+    public bool PassByRef => true;
+
+    public string NativeToGlue(string varAccess) => $"&{varAccess}";
+    public string GlueToManaged(string retValRef) => $"return {retValRef};";
+    public string GlueToNative(string varAcces) => "";
 }
