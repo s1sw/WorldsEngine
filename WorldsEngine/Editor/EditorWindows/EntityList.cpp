@@ -25,7 +25,7 @@ namespace worlds {
         static std::vector<entt::entity> filteredEntities; 
         static size_t numNamedEntities;
         static bool showUnnamed = false;
-        static bool folderView = true;
+        static bool folderView = false;
         static entt::entity currentlyRenaming = entt::null;
         static entt::entity popupOpenFor = entt::null;
 
@@ -147,7 +147,9 @@ namespace worlds {
                     if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("HIERARCHY_ENTITY")) {
                         assert(payload->DataSize == sizeof(entt::entity));
                         entt::entity droppedEntity = *reinterpret_cast<entt::entity*>(payload->Data);
-                        HierarchyUtil::setEntityParent(reg, ent, droppedEntity);
+
+                        if (!HierarchyUtil::isEntityChildOf(reg, droppedEntity, ent))
+                            HierarchyUtil::setEntityParent(reg, droppedEntity, ent);
                     }
                     ImGui::EndDragDropTarget();
                 }

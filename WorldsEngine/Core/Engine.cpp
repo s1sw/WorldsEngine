@@ -51,6 +51,7 @@
 #include <Editor/GuiUtil.hpp>
 #include <Render/DebugLines.hpp>
 #include <Core/HierarchyUtil.hpp>
+#include <Core/NameComponent.hpp>
 #undef min
 #undef max
 
@@ -719,14 +720,17 @@ namespace worlds {
         AssetID monkeyId = AssetDB::pathToId("Models/monkey.wmdl");
         renderer->preloadMesh(modelId);
         renderer->preloadMesh(monkeyId);
-        createModelObject(registry, glm::vec3(0.0f, -2.0f, 0.0f), glm::quat(), modelId, grassMatId, glm::vec3(5.0f, 1.0f, 5.0f));
-
-        createModelObject(registry, glm::vec3(0.0f, 0.0f, 0.0f), glm::quat(), monkeyId, devMatId);
+        entt::entity ground = createModelObject(registry, glm::vec3(0.0f, -2.0f, 0.0f), glm::quat(), modelId, grassMatId, glm::vec3(5.0f, 1.0f, 5.0f));
+        entt::entity monkey = createModelObject(registry, glm::vec3(0.0f, 0.0f, 0.0f), glm::quat(), monkeyId, devMatId);
 
         entt::entity dirLightEnt = registry.create();
         registry.emplace<WorldLight>(dirLightEnt, LightType::Directional);
         registry.emplace<Transform>(dirLightEnt, glm::vec3(0.0f), glm::angleAxis(glm::radians(90.01f), glm::vec3(1.0f, 0.0f, 0.0f)));
         registry.set<SceneInfo>("Untitled", INVALID_ASSET);
+        
+        registry.emplace<NameComponent>(dirLightEnt, "Light");
+        registry.emplace<NameComponent>(ground, "Ground");
+        registry.emplace<NameComponent>(monkey, "Monkey");
     }
 
     void WorldsEngine::mainLoop() {
@@ -792,16 +796,14 @@ namespace worlds {
         inFrame = true;
 
         ImVec2 newFrameDisplaySize(windowWidth, windowHeight);
-        //if (window->isMaximised()) {
-        //    newFrameDisplaySize.x -= 16;
-        //    newFrameDisplaySize.y -= 16;
-        //}
-
-        //ImGui::GetIO().DisplaySize = newFrameDisplaySize;
-        ImGui::GetMainViewport()->Size = newFrameDisplaySize;
+        if (window->isMaximised()) {
+            newFrameDisplaySize.x -= 16;
+            newFrameDisplaySize.y -= 16;
+            ImGui::GetIO().DisplaySize = newFrameDisplaySize;
+            ImGui::GetIO().DisplayOffset = ImVec2(8.0f, 8.0f);
+        }
 
         ImGui::NewFrame();
-        ImGui::GetMainViewport()->Size = newFrameDisplaySize;
 
         inputManager->update();
 
@@ -1094,7 +1096,7 @@ namespace worlds {
             }
 
             if (window->isMaximised()) {
-                //renderThreadDrawData.DisplayPos += ImVec2(-8, -8);
+                renderThreadDrawData.RenderOffset = ImVec2(8, 8);
             }
 
             ImGui::UpdatePlatformWindows();

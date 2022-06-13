@@ -39,10 +39,6 @@
 #include <Editor/EditorActions.hpp>
 #include <Editor/ProjectAssetCompiler.hpp>
 #include <Editor/Widgets/EditorStartScreen.hpp>
-#ifdef _WIN32
-#include <SDL_syswm.h>
-#include <dwmapi.h>
-#endif
 #include <slib/Subprocess.hpp>
 
 namespace worlds {
@@ -118,6 +114,14 @@ namespace worlds {
         if (p->x > menuButtonsExtent && p->x < w - 135 && p->y < 20 && p->y > 0) {
             return SDL_HITTEST_DRAGGABLE;
         }
+
+        float maximiseXCenter = w - 45.0f - 22.0f;
+        float maximiseRight = maximiseXCenter + 6.0f;
+        float maximiseLeft = maximiseXCenter - 6.0f;
+
+        if (p->x > w - 90.0f && p->x < w - 45.0f && p->y < 24.0f) {
+            return SDL_HITTEST_MAXIMIZE;
+        } 
 
 
         enum BorderFlags {
@@ -195,6 +199,7 @@ namespace worlds {
         AssetEditors::initialise(interfaces);
         SDL_Window* window = interfaces.engine->getMainWindow().getWrappedHandle();
         SDL_SetHint("SDL_BORDERLESS_WINDOWED_STYLE", "1");
+        SDL_SetHint("SDL_BORDERLESS_RESIZABLE_STYLE", "1");
         SDL_SetWindowBordered(window, SDL_FALSE);
         SDL_SetWindowResizable(window, SDL_TRUE);
         SDL_SetWindowHitTest(window, hitTest, nullptr);
@@ -384,16 +389,6 @@ namespace worlds {
         EditorActions::bindAction("editor.unpause", ActionKeybind{SDL_SCANCODE_P, ModifierFlags::Control | ModifierFlags::Shift});
         EditorActions::bindAction("editor.openActionSearch", ActionKeybind{SDL_SCANCODE_SPACE, ModifierFlags::Control});
         EditorActions::bindAction("editor.openAssetSearch", ActionKeybind{SDL_SCANCODE_SPACE, ModifierFlags::Control | ModifierFlags::Shift});
-
-
-        #ifdef _WIN32
-        SDL_SysWMinfo wmInfo;
-        SDL_VERSION(&wmInfo.version);
-        SDL_GetWindowWMInfo(window, &wmInfo);
-        HWND hwnd = wmInfo.info.win.window;
-        MARGINS m { -1 };
-        DwmExtendFrameIntoClientArea(hwnd, &m);
-        #endif
     }
 
     Editor::~Editor() {
