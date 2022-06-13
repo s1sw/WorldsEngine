@@ -5,7 +5,9 @@
 #include <ImGui/imgui.h>
 #include <Editor/Editor.hpp>
 #ifdef _WIN32
+#include <SDL_syswm.h>
 #include <slib/Win32Util.hpp>
+#include <dwmapi.h>
 #endif
 
 namespace worlds {
@@ -24,7 +26,7 @@ namespace worlds {
         if (integratedMenuBar.getInt()) {
             drawList->AddText(vpOffset + glm::vec2(menuBarCenter.x - (textSize.x * 0.5f), ImGui::GetWindowHeight() * 0.15f), ImColor(255, 255, 255), windowTitle);
 
-            SDL_SetWindowBordered(interfaces.engine->getMainWindow().getWrappedHandle(), SDL_FALSE);
+            //SDL_SetWindowBordered(interfaces.engine->getMainWindow().getWrappedHandle(), SDL_FALSE);
             float barWidth = ImGui::GetWindowWidth();
             float barHeight = ImGui::GetWindowHeight();
             const float crossSize = 6.0f;
@@ -84,6 +86,7 @@ namespace worlds {
                     maximiseCenter + glm::vec2(crossSize - 3, crossSize),
                     ImColor(255, 255, 255)
                 );
+
             }
 
             glm::vec2 minimiseCenter(barWidth - 90.0f - 22.0f, menuBarCenter.y);
@@ -107,22 +110,59 @@ namespace worlds {
             #ifdef _WIN32
             glm::vec2 ws{windowSize};
             ws += vpOffset;
+            uint8_t borderR;
+            uint8_t borderG;
+            uint8_t borderB;
             if (interfaces.editor->getCurrentState() == GameState::Editing) {
                 //if (!interfaces.engine->getMainWindow().isMaximised()) {
                     uint8_t r, g, b;
                     slib::Win32Util::getAccentColor(r, g, b);
                     if (interfaces.engine->getMainWindow().isFocused()) {
+                        borderR = r;
+                        borderG = g;
+                        borderB = b;
                         ImGui::GetForegroundDrawList()->AddRect(vpOffset, ws, ImColor(r, g, b));
                     } else {
-                        ImGui::GetForegroundDrawList()->AddRect(vpOffset, ws, ImColor(90, 90, 90));
+                        borderR = 90;
+                        borderG = 90;
+                        borderB = 90;
                     }
                 //}
             } else {
                 if (interfaces.editor->getCurrentState() == GameState::Playing) {
-                    ImGui::GetForegroundDrawList()->AddRect(vpOffset, ws, ImColor(50, 127, 50));
+                    borderR = 50;
+                    borderG = 127;
+                    borderB = 50;
                 } else {
-                    ImGui::GetForegroundDrawList()->AddRect(vpOffset, ws, ImColor(127, 50, 50));
+                    borderR = 127;
+                    borderG = 50;
+                    borderB = 50;
                 }
+            }
+            
+            ImGui::GetForegroundDrawList()->AddRect(vpOffset, ws, ImColor(borderR, borderG, borderB));
+
+            Window& mainWindow = interfaces.engine->getMainWindow();
+
+            SDL_SysWMinfo wmInfo;
+            SDL_VERSION(&wmInfo.version);
+            SDL_GetWindowWMInfo(mainWindow.getWrappedHandle(), &wmInfo);
+            HWND hwnd = wmInfo.info.win.window;
+            COLORREF border = RGB(borderR, borderG, borderB);
+
+            const DWORD DWMWA_BORDER_COLOR = 34;
+            DwmSetWindowAttribute(hwnd, DWMWA_BORDER_COLOR, &border, sizeof(border));
+
+            //DWMNCRENDERINGPOLICY policy = DWMNCRP_DISABLED;
+            //DwmSetWindowAttribute(hwnd, DWMWA_NCRENDERING_POLICY, &policy, sizeof(policy));
+            //BOOL ncr = FALSE;
+            //DwmSetWindowAttribute(hwnd, DWMWA_NCRENDERING_ENABLED, &ncr, sizeof(ncr));
+
+            MARGINS m { -1 };
+            DwmExtendFrameIntoClientArea(hwnd, &m);
+
+            if (mainWindow.isMaximised())
+            {
             }
             #endif
         } else {

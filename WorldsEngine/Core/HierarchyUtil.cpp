@@ -4,6 +4,25 @@
 #include <assert.h>
 
 namespace worlds {
+    bool HierarchyUtil::isEntityChildOf(entt::registry& reg, entt::entity object, entt::entity parent) {
+        ParentComponent* pc = reg.try_get<ParentComponent>(parent);
+
+        if (pc == nullptr) return false;
+
+        entt::entity currentChild = pc->firstChild;
+        while (currentChild != entt::null)
+        {
+            if (currentChild == object) return true;
+            ChildComponent& cc = reg.get<ChildComponent>(currentChild);
+
+            if (isEntityChildOf(reg, object, currentChild)) return true;
+
+            currentChild = cc.nextChild;
+        }
+
+        return false;
+    }
+
     void HierarchyUtil::setEntityParent(entt::registry& reg, entt::entity object, entt::entity parent) {
         if (reg.has<ChildComponent>(object)) {
             removeEntityParent(reg, object);
@@ -12,6 +31,8 @@ namespace worlds {
         if (parent == entt::null) return;
 
         auto& childComponent = reg.emplace<ChildComponent>(object);
+        childComponent.offset = reg.get<Transform>(object).transformByInverse(reg.get<Transform>(parent));
+        childComponent.offset.scale = reg.get<Transform>(object).scale;
         childComponent.parent = parent;
 
         if (reg.has<ParentComponent>(parent)) {

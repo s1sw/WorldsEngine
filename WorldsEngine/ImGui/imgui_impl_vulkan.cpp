@@ -376,8 +376,8 @@ static void ImGui_ImplVulkan_SetupRenderState(ImDrawData* draw_data, VkCommandBu
     // Setup viewport:
     {
         VkViewport viewport;
-        viewport.x = 0;
-        viewport.y = 0;
+        viewport.x = draw_data->RenderOffset.x;
+        viewport.y = draw_data->RenderOffset.y;
         viewport.width = (float)fb_width;
         viewport.height = (float)fb_height;
         viewport.minDepth = 0.0f;
@@ -506,8 +506,8 @@ void ImGui_ImplVulkan_RenderDrawData(ImDrawData* draw_data, VkCommandBuffer comm
 
                     // Apply scissor/clipping rectangle
                     VkRect2D scissor;
-                    scissor.offset.x = (int32_t)(clip_rect.x);
-                    scissor.offset.y = (int32_t)(clip_rect.y);
+                    scissor.offset.x = (int32_t)(clip_rect.x + draw_data->RenderOffset.x);
+                    scissor.offset.y = (int32_t)(clip_rect.y + draw_data->RenderOffset.y);
                     scissor.extent.width = (uint32_t)(clip_rect.z - clip_rect.x);
                     scissor.extent.height = (uint32_t)(clip_rect.w - clip_rect.y);
                     vkCmdSetScissor(command_buffer, 0, 1, &scissor);
