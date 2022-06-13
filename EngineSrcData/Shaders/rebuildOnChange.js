@@ -33,7 +33,8 @@ const customArgs = {
         { stage: "vert", defines: ["SKINNED"], outFile: "depth_prepass_skinned.vert.spv" }
     ],
     "bloom_blur.comp.glsl": [
-        { stage: "comp", defines: ["SEED"], outFile: "bloom_blur_seed.comp.spv" },
+        { stage: "comp", defines: ["SEED", "MSAA"], outFile: "bloom_blur_seed.comp.spv" },
+        { stage: "comp", defines: ["SEED"], outFile: "bloom_blur_seed_nomsaa.comp.spv" },
         { stage: "comp", defines: ["UPSAMPLE"], outFile: "bloom_blur_upsample.comp.spv" },
         { stage: "comp", defines: [], outFile: "bloom_blur.comp.spv" }
     ],

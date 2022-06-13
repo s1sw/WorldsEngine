@@ -196,35 +196,14 @@ namespace WorldsEngine.Hotloading
 
             var oldType = oldObject.GetType();
 
+            if (oldType == typeof(Assembly) || oldType == typeof(LoadedAssembly)) return oldObject;
+
             if (oldType.IsPrimitive)
                 return oldObject;
 
             if (oldType.IsAssignableTo(typeof(Delegate)))
             {
                 Delegate del = (Delegate)oldObject;
-
-                Log.Msg($"Delegate type {oldType.FullName}");
-
-                if (del.Method != null)
-                {
-                    Log.Msg($"Method: {del.Method.Name}");
-                    Log.Msg($"Declaring type: {del.Method.DeclaringType}");
-                }
-                else
-                {
-                    Log.Msg("Method: null");
-                }
-
-                if (del.Target != null)
-                {
-                    Log.Msg($"Target: {del.Target.GetType().FullName}");
-                }
-                else
-                {
-                    Log.Msg("Target: null");
-                }
-
-                Log.Msg($"invoc list length {del.GetInvocationList().Length}");
 
                 if (del.Method != null && del.Method.DeclaringType != null && del.Method.DeclaringType.Assembly != oldAssembly) return oldObject;
 
@@ -328,6 +307,12 @@ namespace WorldsEngine.Hotloading
             {
                 var newType = FindNewType(oldType);
                 if (newType == null) return null;
+
+                if (Nullable.GetUnderlyingType(oldType) != null)
+                {
+                    // OOF OOF OOF
+                    return null;
+                }
 
                 var newObject = FormatterServices.GetUninitializedObject(newType);
                 var oldFields = oldType.GetFields(HotloadFieldBindingFlags);

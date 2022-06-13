@@ -35,4 +35,31 @@ extern "C" {
     EXPORT void worldObject_setStaticFlags(entt::registry* registry, entt::entity entity, uint8_t staticFlags) {
         registry->get<WorldObject>(entity).staticFlags = (StaticFlags)staticFlags;
     }
+
+    EXPORT void worldObject_getUvOffset(entt::registry* registry, entt::entity entity, glm::vec2& offset) {
+        glm::vec4 tso = registry->get<WorldObject>(entity).texScaleOffset;
+        offset = glm::vec2(tso.z, tso.w);
+    }
+
+    EXPORT void worldObject_setUvOffset(entt::registry* registry, entt::entity entity, glm::vec2& offset) {
+        WorldObject& wo = registry->get<WorldObject>(entity);
+        glm::vec4 tso = wo.texScaleOffset;
+        tso.z = offset.x;
+        tso.w = offset.y;
+        wo.texScaleOffset = tso;
+    }
+
+    EXPORT void worldObject_getUvScale(entt::registry* registry, entt::entity entity, glm::vec2& scale) {
+        WorldObject& wo = registry->get<WorldObject>(entity);
+        glm::vec4 tso = wo.texScaleOffset;
+        scale = glm::vec2(tso.x, tso.y);
+        wo.texScaleOffset = tso;
+    }
+
+    EXPORT void worldObject_setUvScale(entt::registry* registry, entt::entity entity, glm::vec2& scale) {
+        WorldObject& wo = registry->get<WorldObject>(entity);
+        glm::vec4 tso = wo.texScaleOffset;
+        tso.x = scale.x;
+        tso.y = scale.y;
+    }
 }

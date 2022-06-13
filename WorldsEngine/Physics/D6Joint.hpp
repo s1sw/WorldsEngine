@@ -1,6 +1,6 @@
 #pragma once
-#include <entt/entity/entity.hpp>
 #include <entt/entity/fwd.hpp>
+#include <glm/vec3.hpp>
 
 namespace physx {
     class PxD6Joint;
@@ -33,6 +33,7 @@ namespace worlds {
         entt::entity getAttached();
         void setAttached(entt::entity entity, entt::registry& reg);
 
+
         ~D6Joint();
     private:
         void updateJointActors();
@@ -42,6 +43,6 @@ namespace worlds {
         physx::PxRigidActor* originalThisActor = nullptr;
         physx::PxRigidActor* targetActor = nullptr;
         entt::entity targetEntity;
-        entt::entity replaceThis = entt::null;
+        entt::entity replaceThis;
     };
 }

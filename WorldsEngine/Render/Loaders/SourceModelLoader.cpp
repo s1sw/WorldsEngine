@@ -730,7 +730,7 @@ namespace worlds {
                             wObj.materials[numSubmeshes] = AssetDB::pathToId(path);
                         } else {
                             logWarn("MISSING SOURCE MATERIAL %s", path.c_str());
-                            wObj.materials[numSubmeshes] = AssetDB::pathToId("Materials/dev.json");
+                            wObj.materials[numSubmeshes] = AssetDB::pathToId("Materials/DevTextures/dev_blue.json");
                         }
 
                         wObj.presentMaterials[numSubmeshes] = true;

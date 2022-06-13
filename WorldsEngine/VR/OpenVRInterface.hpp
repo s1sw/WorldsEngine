@@ -34,6 +34,8 @@ namespace worlds {
         uint32_t handBoneCount;
         vr::VRBoneTransform_t* lhandBoneArray;
         vr::VRBoneTransform_t* rhandBoneArray;
+
+        bool hasInputFocus = true;
     public:
         void init();
 
@@ -59,6 +61,7 @@ namespace worlds {
 
         bool getJumpInput() override;
         bool getSprintInput() override;
+        bool hasFocus() { return hasInputFocus; }
         InputActionHandle getActionHandle(std::string actionPath) override;
         bool getActionHeld(InputActionHandle handle) override;
         bool getActionPressed(InputActionHandle handle) override;

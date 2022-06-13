@@ -149,9 +149,11 @@ struct LightBufferLoader
     }
 }
 
-bool frustumContainsSphere(float3 spherePos, float sphereRadius) {
+bool frustumContainsSphere(float3 spherePos, float sphereRadius)
+{
     bool inside = true;
-    for (int i = 0; i < 6; i++) {
+    for (int i = 0; i < 6; i++)
+    {
         float dist = dot(spherePos, tileFrustum.planes[i].xyz) + tileFrustum.planes[i].w;
 
         if (dist < -sphereRadius)
@@ -161,7 +163,8 @@ bool frustumContainsSphere(float3 spherePos, float sphereRadius) {
     return inside;
 }
 
-bool aabbContainsSphere(float3 spherePos, float sphereRadius) {
+bool aabbContainsSphere(float3 spherePos, float sphereRadius)
+{
     float3 vDelta = max(float3(0.0), abs(tileAABB.center - spherePos) - tileAABB.extents);
 
     float fDistSq = dot(vDelta, vDelta);
@@ -169,14 +172,17 @@ bool aabbContainsSphere(float3 spherePos, float sphereRadius) {
     return fDistSq <= sphereRadius * sphereRadius;
 }
 
-bool frustumContainsOBB(float3 boxSize, float4x4 transform) {
+bool frustumContainsOBB(float3 boxSize, float4x4 transform)
+{
     // We can determine if the frustum contains an OBB by checking if it contains
     // any vertices of the OBB.
 
-    for (int i = 0; i < 6; i++) {
+    for (int i = 0; i < 6; i++)
+    {
         int outside = 0;
 
-        for (int j = 0; j < 8; j++) {
+        for (int j = 0; j < 8; j++)
+        {
             float3 v = float3(j % 2 == 0 ? -1.0 : 1.0, (j >> 1) % 2 == 0 ? -1.0 : 1.0, j < 4 ? -1.0 : 1.0);
             v = mul(transform, float4(v * boxSize, 1.0)).xyz;
             outside += (dot(tileFrustum.planes[i], float4(v, 1.0)) < 0.0) ? 1 : 0;
@@ -188,12 +194,15 @@ bool frustumContainsOBB(float3 boxSize, float4x4 transform) {
     return true;
 }
 
-float3 aabbPoint(int index, float3 min, float3 max) {
+float3 aabbPoint(int index, float3 min, float3 max)
+{
     return float3(index % 2 == 0 ? min.x : max.x, (index >> 1) % 2 == 0 ? min.y : max.y, index < 4 ? min.z : max.z);
 }
 
-bool frustumContainsAABB(float3 min, float3 max) {
-    float3 points[8] = { 
+bool frustumContainsAABB(float3 min, float3 max)
+{
+    float3 points[8] =
+    { 
         min,
         float3(max.x, min.y, min.z),
         float3(min.x, max.y, min.z),
@@ -204,11 +213,14 @@ bool frustumContainsAABB(float3 min, float3 max) {
         float3(max.x, max.y, max.z)
     };
 
-    for (int i = 0; i < 6; i++) {
+    for (int i = 0; i < 6; i++)
+    {
         bool inside = false;
 
-        for (int j = 0; j < 8; j++) {
-            if (dot(tileFrustum.planes[i], float4(points[j], 1.0)) > 0.0) {
+        for (int j = 0; j < 8; j++)
+        {
+            if (dot(tileFrustum.planes[i], float4(points[j], 1.0)) > 0.0)
+            {
                 inside = true;
                 break;
             }
@@ -218,22 +230,26 @@ bool frustumContainsAABB(float3 min, float3 max) {
     }
 
     int outside[6] = { 0, 0, 0, 0, 0, 0 };
-    for (int i = 0; i < 8; i++) {
+    for (int i = 0; i < 8; i++)
+    {
         // on each axis...
-        for (int j = 0; j < 3; j++) {
+        for (int j = 0; j < 3; j++)
+        {
             outside[j] += int(points[i][j] > max[j]);
             outside[j + 3] += int(points[i][j] < min[j]);
         }
     }
 
-    for (int i = 0; i < 6; i++) {
+    for (int i = 0; i < 6; i++)
+    {
         if (outside[i] == 8) return false;
     }
 
     return true;
 }
 
-bool aabbContainsAABB(float3 min, float3 max) {
+bool aabbContainsAABB(float3 min, float3 max)
+{
     float3 tileMin = tileAABB.center - tileAABB.extents;
     float3 tileMax = tileAABB.center + tileAABB.extents;
 
@@ -246,15 +262,18 @@ bool aabbContainsAABB(float3 min, float3 max) {
     return true;
 }
 
-float3 getTileMin() {
+float3 getTileMin()
+{
     return min(tileAABB.center + tileAABB.extents, tileAABB.center - tileAABB.extents);
 }
 
-float3 getTileMax() {
+float3 getTileMax()
+{
     return max(tileAABB.center + tileAABB.extents, tileAABB.center - tileAABB.extents);
 }
 
-bool aabbContainsPoint(float3 point) {
+bool aabbContainsPoint(float3 point)
+{
     float3 mi = getTileMin();
     float3 ma = getTileMax();
 
@@ -265,10 +284,12 @@ bool aabbContainsPoint(float3 point) {
 }
 
 // Calculates frustum planes from the set of frustum points
-void setupTileFrustum(float3 frustumPoints[8]) {
+void setupTileFrustum(float3 frustumPoints[8])
+{
     float3 camPos = viewPos[eyeIdx].xyz;
 
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < 4; i++)
+    {
         float3 planeNormal = cross(frustumPoints[i] - camPos, frustumPoints[i + 1] - camPos);
         planeNormal = normalize(planeNormal);
         tileFrustum.planes[i] = float4(planeNormal, -dot(planeNormal, frustumPoints[i]));
@@ -290,12 +311,14 @@ void setupTileFrustum(float3 frustumPoints[8]) {
 }
 
 // Calculates the tile's AABB from the set of frustum points
-void setupTileAABB(float3 frustumPoints[8]) {
+void setupTileAABB(float3 frustumPoints[8])
+{
     // Calculate tile AABB
     float3 aabbMax = float3(0.0f);
     float3 aabbMin = float3(10000000.0f);
 
-    for (int i = 0; i < 8; i++) {
+    for (int i = 0; i < 8; i++)
+    {
         aabbMax = max(aabbMax, frustumPoints[i]);
         aabbMin = min(aabbMin, frustumPoints[i]);
     }
@@ -304,7 +327,8 @@ void setupTileAABB(float3 frustumPoints[8]) {
     tileAABB.extents = (aabbMax - aabbMin) * 0.5;
 }
 
-void setupTile(uint tileIndex, uint x, uint y) {
+void setupTile(uint tileIndex, uint x, uint y)
+{
     float3 camPos = viewPos[eyeIdx].xyz;
     float minDepth = asfloat(minDepthU);
     float maxDepth = asfloat(maxDepthU);
@@ -317,7 +341,8 @@ void setupTile(uint tileIndex, uint x, uint y) {
     float2 ndcTopLeftCorner = float2(-1.0f, 1.0f);
     float2 tileCoords = float2(x, y);
 
-    float2 ndcTileCorners[4] = {
+    float2 ndcTileCorners[4] =
+    {
         ndcTopLeftCorner + ndcTileSize * tileCoords, // Top left
         ndcTopLeftCorner + ndcTileSize * (tileCoords + float2(1, 0)), // Top right
         ndcTopLeftCorner + ndcTileSize * (tileCoords + float2(1, 1)), // Bottom right
@@ -336,12 +361,14 @@ void setupTile(uint tileIndex, uint x, uint y) {
 #endif
 
     // Find the points on the near plane
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < 4; i++)
+    {
         float4 projected = mul(invVP, float4(ndcTileCorners[i], nearZ, 1.0f));
         frustumPoints[i] = projected.xyz / projected.w;
     }
 
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < 4; i++)
+    {
         float4 projected = mul(invVP, float4(ndcTileCorners[i], farZ, 1.0f));
         frustumPoints[i + 4] = projected.xyz / projected.w;
     }
@@ -350,8 +377,10 @@ void setupTile(uint tileIndex, uint x, uint y) {
     setupTileAABB(frustumPoints);
 }
 
-void clearBuffers(uint tileIndex, uint groupIndex) {
-    if (groupIndex == 0) {
+void clearBuffers(uint tileIndex, uint groupIndex)
+{
+    if (groupIndex == 0)
+    {
         minDepthU = asuint(1.0);
         maxDepthU = 0u;
     }
@@ -364,24 +393,52 @@ void clearBuffers(uint tileIndex, uint groupIndex) {
     buf_LightTiles[tileIndex].cubemapIdMasks[groupIndex & 2] = 0u;
 }
 
-void cullLights(uint tileIndex, uint groupIndex) {
+float4 spotBoundingSphere(in float3 origin, in float3 forward, in float size, in float cosAngle)
+{
+    float4 boundingSphere;
+    if(cosAngle < 0.70710678118)
+    {
+        boundingSphere.xyz = origin + cosAngle * size * forward;
+        boundingSphere.w   = sqrt(1 - (cosAngle * cosAngle)) * size;
+    }
+    else
+    {
+        boundingSphere.xyz = origin + size / (2.0f * cosAngle) * forward;
+        boundingSphere.w   = size / (2.0f * cosAngle);
+    }
+ 
+    return boundingSphere;
+}
+
+void cullLights(uint tileIndex, uint groupIndex)
+{
     // Stage 3: Cull lights against the frustum. At this point,
     // one invocation = one light. Since the light array is always
     // tightly packed, we can just check if the index is less than
     // the light count.
-    if (groupIndex < LightBufferLoader.GetLightCount()) {
+    if (groupIndex < LightBufferLoader.GetLightCount())
+    {
         uint lightIndex = groupIndex;
         Light light = LightBufferLoader.GetLight(lightIndex);
         float3 lightPosition = light.pack2.xyz;
 
         LightType lightType = light.Type;
 
-        if (lightType == LightType.Tube) {
+        if (lightType == LightType.Tube)
+        {
             // Take the average position of the two end points
             lightPosition = (light.pack1.xyz + light.pack2.xyz) * 0.5;
         }
 
         float lightRadius = light.DistanceCutoff;
+
+        // Shrink the bounding sphere to better fit the cone of a spotlight
+        if (lightType == LightType.Spot)
+        {
+            float4 sphere = spotBoundingSphere(lightPosition, -light.pack1.xyz, light.DistanceCutoff, light.pack1.w);
+            lightPosition = sphere.xyz;
+            lightRadius = sphere.w;
+        }
 
 #ifdef CULL_AABB
         bool inFrustum = frustumContainsSphere(lightPosition, lightRadius) && aabbContainsSphere(lightPosition, lightRadius);
@@ -398,8 +455,10 @@ void cullLights(uint tileIndex, uint groupIndex) {
         // This results in a *tiny* performance uplift.
 #ifdef USE_SUBGROUPS
         uint maxBucketId = WaveActiveMax(bucketIdx);
-        for (int i = 0; i <= maxBucketId; i++) {
-            if (i == bucketIdx) {
+        for (int i = 0; i <= maxBucketId; i++)
+        {
+            if (i == bucketIdx)
+            {
                 uint setBits = WaveReadLaneFirst(WaveActiveBitOr(uint(inFrustum || lightType == LightType.Directional) << bucketBit));
                 if (WaveIsFirstLane())
                     InterlockedOr(buf_LightTiles[tileIndex].lightIdMasks[i], setBits);
@@ -417,9 +476,11 @@ void cullLights(uint tileIndex, uint groupIndex) {
     }
 }
 
-void cullAO(uint tileIndex, uint groupIndex) {
+void cullAO(uint tileIndex, uint groupIndex)
+{
     // Stage 3: Cull AO spheres against the frustum
-    if (groupIndex < LightBufferLoader.GetAOSphereCount()) {
+    if (groupIndex < LightBufferLoader.GetAOSphereCount())
+    {
         uint sphereIndex = groupIndex;
         AOSphere sph = LightBufferLoader.GetAOSphere(sphereIndex);
         float3 spherePos = sph.Position;
@@ -436,8 +497,10 @@ void cullAO(uint tileIndex, uint groupIndex) {
         uint maxBucketId = WaveActiveMax(bucketIdx);
 
         // Subgroup fun again
-        for (int i = 0; i <= maxBucketId; i++) {
-            if (i == bucketIdx) {
+        for (int i = 0; i <= maxBucketId; i++)
+        {
+            if (i == bucketIdx)
+            {
                 uint setBits = WaveReadLaneFirst(WaveActiveBitOr(uint(inFrustum) << bucketBit));
                 if (WaveIsFirstLane())
                     InterlockedOr(buf_LightTiles[tileIndex].aoSphereIdMasks[bucketIdx], setBits);
@@ -446,7 +509,8 @@ void cullAO(uint tileIndex, uint groupIndex) {
     }
 
     // Stage 4: Cull AO boxes against the frustum
-    if (groupIndex < LightBufferLoader.GetAOBoxCount() && groupIndex < 64) {
+    if (groupIndex < LightBufferLoader.GetAOBoxCount() && groupIndex < 64)
+    {
         uint boxIdx = groupIndex;
         AOBox box = LightBufferLoader.GetAOBox(boxIdx);
 
@@ -460,8 +524,10 @@ void cullAO(uint tileIndex, uint groupIndex) {
         uint maxBucketId = WaveActiveMax(bucketIdx);
 
         // Subgroup fun again
-        for (int i = 0; i <= maxBucketId; i++) {
-            if (i == bucketIdx) {
+        for (int i = 0; i <= maxBucketId; i++)
+        {
+            if (i == bucketIdx)
+            {
                 uint setBits = WaveReadLaneFirst(WaveActiveBitOr(uint(inFrustum) << bucketBit));
                 if (WaveIsFirstLane())
                     InterlockedOr(buf_LightTiles[tileIndex].aoBoxIdMasks[bucketIdx], setBits);
@@ -470,8 +536,10 @@ void cullAO(uint tileIndex, uint groupIndex) {
     }
 }
 
-void cullCubemaps(uint tileIndex, uint groupIndex) {
-    if (groupIndex < LightBufferLoader.GetCubemapCount() && groupIndex > 0) {
+void cullCubemaps(uint tileIndex, uint groupIndex)
+{
+    if (groupIndex < LightBufferLoader.GetCubemapCount() && groupIndex > 0) 
+    {
         uint cubemapIdx = groupIndex;
         Cubemap c = LightBufferLoader.GetCubemap(cubemapIdx);
 
@@ -484,32 +552,50 @@ void cullCubemaps(uint tileIndex, uint groupIndex) {
         uint maxBucketId = WaveActiveMax(bucketIdx);
 
         // Subgroup fun again
-        for (int i = 0; i <= maxBucketId; i++) {
-            if (i == bucketIdx) {
-                //uint setBits = subgroupBroadcastFirst(subgroupOr(uint(inFrustum) << bucketBit));
-                //if (subgroupElect())
+        for (int i = 0; i <= maxBucketId; i++)
+        {
+            if (i == bucketIdx)
+            {
+                //uint setBits = WaveReadLaneFirst(WaveActiveBitOr(uint(inFrustum) << bucketBit));
+                //if (WaveIsFirstLane())
                     InterlockedOr(buf_LightTiles[tileIndex].cubemapIdMasks[bucketIdx], uint(inFrustum) << bucketBit);
             }
         }
     }
 }
 
-float depthBufferLoad(int2 coord) {
+float depthBufferLoad(int2 coord, int msaaSample)
+{
 #ifdef MSAA
-    return depthBuffer.Load(int3(coord, eyeIdx), 0).x;
+    return depthBuffer.Load(int3(coord, eyeIdx), msaaSample).x;
 #else
     return depthBuffer.Load(int4(coord, eyeIdx, 0)).x;
 #endif
 }
 
+uint getDepthBufferSamples()
+{
+    #ifdef MSAA
+    uint w, h, arrayCount, samples;
+    depthBuffer.GetDimensions(w, h, arrayCount, samples);
+    #else
+    uint samples = 1;
+    #endif
+
+    return samples;
+}
+
 [shader("compute")]
 [numthreads(16, 16, 1)]
-void main(uint3 groupID : SV_GroupID, uint groupIndex : SV_GroupIndex, uint3 dispatchID : SV_DispatchThreadID) {
+void main(uint3 groupID : SV_GroupID, uint groupIndex : SV_GroupIndex, uint3 dispatchID : SV_DispatchThreadID)
+{
     uint x = groupID.x;
     uint y = groupID.y;
     uint tileIndex = ((y * buf_LightTileInfo.numTilesX) + x) + (eyeIdx * buf_LightTileInfo.tilesPerEye);
 
     clearBuffers(tileIndex, groupIndex);
+
+    uint samples = getDepthBufferSamples();
 
     // Stage 1: Determine the depth bounds of the tile using atomics.
     // THIS ONLY WORKS FOR 16x16 TILES.
@@ -518,26 +604,40 @@ void main(uint3 groupID : SV_GroupID, uint groupIndex : SV_GroupIndex, uint3 dis
     //
     // NOTE: When MSAA is on, the last parameter refers to the MSAA sample to load. When MSAA is
     // off, it refers to the mipmap level to load from.
-//#define TILES_16
-#ifdef TILES_16
-    float depthAtCurrent = texelFetch(depthBuffer, int3(dispatchID.xy, eyeIdx), 0).x;
-#else
-    float depthAtCurrent = 1.0;
+    float minDepthAtCurrent = 1.0;
+    float maxDepthAtCurrent = 0.0;
     int2 coord = int2(dispatchID.xy * 2);
-    depthAtCurrent = min(depthAtCurrent, depthBufferLoad(coord));
-    depthAtCurrent = min(depthAtCurrent, depthBufferLoad(coord + int2(0, 1)));
-    depthAtCurrent = min(depthAtCurrent, depthBufferLoad(coord + int2(1, 1)));
-    depthAtCurrent = min(depthAtCurrent, depthBufferLoad(coord + int2(1, 0)));
-#endif
-    uint depthAsUint = asuint(depthAtCurrent);
+
+    for (int samp = 0; samp < samples; samp++)
+    {
+        float d1 = depthBufferLoad(coord, samp);
+        float d2 = depthBufferLoad(coord + int2(0, 1), samp);
+        float d3 = depthBufferLoad(coord + int2(1, 1), samp);
+        float d4 = depthBufferLoad(coord + int2(1, 0), samp);
+
+        minDepthAtCurrent = min(minDepthAtCurrent, d1);
+        minDepthAtCurrent = min(minDepthAtCurrent, d2);
+        minDepthAtCurrent = min(minDepthAtCurrent, d3);
+        minDepthAtCurrent = min(minDepthAtCurrent, d4);
+
+        maxDepthAtCurrent = max(maxDepthAtCurrent, d1);
+        maxDepthAtCurrent = max(maxDepthAtCurrent, d2);
+        maxDepthAtCurrent = max(maxDepthAtCurrent, d3);
+        maxDepthAtCurrent = max(maxDepthAtCurrent, d4);
+    }
+
+    uint minDepthAsUint = asuint(minDepthAtCurrent);
+    uint maxDepthAsUint = asuint(maxDepthAtCurrent);
 
     // A depth of 0 only occurs when the skybox is visible.
     // Since the skybox can't receive lighting, there's no point in increasing
     // the depth bounds of the tile to receive the lighting.
-    if (depthAtCurrent > 0.0f) {
-        uint sgMinDepth = WaveActiveMin(depthAsUint);
-        uint sgMaxDepth = WaveActiveMax(depthAsUint);
-        if (WaveIsFirstLane()) {
+    if (minDepthAtCurrent > 0.0f)
+    {
+        uint sgMinDepth = WaveActiveMin(minDepthAsUint);
+        uint sgMaxDepth = WaveActiveMax(maxDepthAsUint);
+        if (WaveIsFirstLane())
+        {
             InterlockedMin(minDepthU, sgMinDepth);
             InterlockedMax(maxDepthU, sgMaxDepth);
         }
@@ -546,7 +646,8 @@ void main(uint3 groupID : SV_GroupID, uint groupIndex : SV_GroupIndex, uint3 dis
     GroupMemoryBarrierWithGroupSync();
 
     // Stage 2: Calculate frustum points.
-    if (groupIndex == 0) {
+    if (groupIndex == 0)
+    {
         setupTile(tileIndex, x, y);
     }
 

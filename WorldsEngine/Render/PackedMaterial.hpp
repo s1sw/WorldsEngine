@@ -5,7 +5,8 @@ namespace worlds {
 	enum class MaterialFlags {
 		None = 0,
 		UsePackedPBR = 1,
-		UsePackedHeightmap = 2
+		UsePackedHeightmap = 2,
+		UseAlbedoEmissive = 4
 	};
 
 	inline MaterialFlags operator | (MaterialFlags lhs, MaterialFlags rhs) {

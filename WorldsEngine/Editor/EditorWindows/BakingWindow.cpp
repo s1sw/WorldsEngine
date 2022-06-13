@@ -78,7 +78,10 @@ namespace worlds {
         AssetID cubemapId = AssetDB::pathToId(jsonPath);
         auto resources = renderer->getResources();
 
-        bool isCubemapLoaded = resources.cubemaps.isLoaded(cubemapId);
+        uint32_t missingSlot = resources.cubemaps.get(AssetDB::pathToId("Cubemaps/missing.json"));
+        uint32_t cubemapSlot = resources.cubemaps.get(cubemapId);
+        bool isMissing = cubemapSlot != missingSlot;
+        bool isCubemapLoaded = resources.cubemaps.isLoaded(cubemapId) && !isMissing;
 
         VulkanHandles* vkHandles = renderer->getHandles();
         VkQueue queue;
@@ -197,6 +200,10 @@ namespace worlds {
         PHYSFS_close(file);
 
         renderer->destroyRTTPass(rttPass);
+
+        if (isMissing) {
+            resources.cubemaps.unload(cubemapSlot);
+        }
     }
 
     void BakingWindow::draw(entt::registry& reg) {

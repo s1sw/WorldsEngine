@@ -823,7 +823,9 @@ namespace worlds {
                 openvrInterface->getRenderResolution(&w, &h);
             }
 
-            if (screenPassIsVR != lastIsVR || w != screenRTTPass->width || h != screenRTTPass->height) {
+            if (w != screenRTTPass->width || h != screenRTTPass->height) {
+                screenRTTPass->resize(w, h);
+            } else if (screenPassIsVR != lastIsVR) {
                 renderer->destroyRTTPass(screenRTTPass);
 
                 RTTPassCreateInfo screenRTTCI {
@@ -929,28 +931,6 @@ namespace worlds {
             drawList->AddText(pos, ImColor(1.0f, 1.0f, 1.0f), buf);
         }
 
-        if (enableOpenVR) {
-            auto vrSys = vr::VRSystem();
-
-            float secondsSinceLastVsync;
-            vrSys->GetTimeSinceLastVsync(&secondsSinceLastVsync, NULL);
-
-            float hmdFrequency = vrSys->GetFloatTrackedDeviceProperty(
-                vr::k_unTrackedDeviceIndex_Hmd,
-                vr::Prop_DisplayFrequency_Float
-            );
-
-            float frameDuration = 1.f / hmdFrequency;
-            float vsyncToPhotons = vrSys->GetFloatTrackedDeviceProperty(
-                vr::k_unTrackedDeviceIndex_Hmd,
-                vr::Prop_SecondsFromVsyncToPhotons_Float
-            );
-
-            float predictAmount = frameDuration - secondsSinceLastVsync + vsyncToPhotons;
-
-            // Not sure why we predict an extra frame here, but it feels like crap without it
-            renderer->setVRPredictAmount(predictAmount + frameDuration);
-        }
 
         if (glm::any(glm::isnan(cam.position))) {
             cam.position = glm::vec3{ 0.0f };
@@ -1104,6 +1084,28 @@ namespace worlds {
         }
 
         renderThreadCamera = cam;
+
+        if (enableOpenVR) {
+            auto vrSys = vr::VRSystem();
+
+            float secondsSinceLastVsync;
+            vrSys->GetTimeSinceLastVsync(&secondsSinceLastVsync, NULL);
+
+            float hmdFrequency = vrSys->GetFloatTrackedDeviceProperty(
+                vr::k_unTrackedDeviceIndex_Hmd,
+                vr::Prop_DisplayFrequency_Float
+            );
+
+            float frameDuration = 1.f / hmdFrequency;
+            float vsyncToPhotons = vrSys->GetFloatTrackedDeviceProperty(
+                vr::k_unTrackedDeviceIndex_Hmd,
+                vr::Prop_SecondsFromVsyncToPhotons_Float
+            );
+
+            float predictAmount = frameDuration - secondsSinceLastVsync + vsyncToPhotons;
+
+            renderer->setVRPredictAmount(predictAmount);
+        }
 
         renderThreadWorkReady = true;
 
