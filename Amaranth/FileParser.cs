@@ -117,36 +117,70 @@ class BindingFileParser
     }
 
     private TokenType NextTokenType => tokens[tokenIdx + 1].Type;
+    
+    private void ParseCppTypeMethod(CppType cppType)
+    {
+        ConsumeToken(TokenType.Method);
+        string returnType = ConsumeQualifiedIdentifier();
 
-    private CppType ParseCppType()
+        var methodName = (IdentifierToken)ConsumeToken(TokenType.Identifier);
+
+        ConsumeToken(TokenType.OpenParenthesis);
+
+        ConsumeParameterList();
+
+        ConsumeToken(TokenType.CloseParenthesis);
+        ConsumeToken(TokenType.Arrow);
+        ConsumeToken(TokenType.Property);
+
+        var exposeAs = (IdentifierToken)ConsumeToken(TokenType.Identifier);
+
+        ConsumeToken(TokenType.Semicolon);
+
+        ExposedProperty ep = new(exposeAs.Identifier, methodName.Identifier, returnType);
+        cppType.ExposedProperties.Add(ep);
+    }
+
+    private void ParseCppTypeField(CppType cppType)
+    {
+        ConsumeToken(TokenType.Field);
+        string returnType = ConsumeQualifiedIdentifier();
+
+        var fieldName = (IdentifierToken)ConsumeToken(TokenType.Identifier);
+
+        ConsumeToken(TokenType.Arrow);
+        ConsumeToken(TokenType.Property);
+
+        var exposeAs = (IdentifierToken)ConsumeToken(TokenType.Identifier);
+
+        ConsumeToken(TokenType.Semicolon);
+
+        ExposedField ef = new(exposeAs.Identifier, fieldName.Identifier, returnType);
+        cppType.ExposedFields.Add(ef);
+    }
+
+    private CppType ParseCppType(bool isComponent)
     {
         string classIdentifier = ConsumeQualifiedIdentifier();
         ConsumeToken(TokenType.OpenBrace);
 
         CppType cppType = new(classIdentifier);
 
+        cppType.IsComponent = isComponent;
+
         while (true)
         {
             if (NextTokenType == TokenType.CloseBrace) break;
-            ConsumeToken(TokenType.Method);
-            string returnType = ConsumeQualifiedIdentifier();
-
-            var methodName = (IdentifierToken)ConsumeToken(TokenType.Identifier);
-
-            ConsumeToken(TokenType.OpenParenthesis);
-
-            ConsumeParameterList();
-
-            ConsumeToken(TokenType.CloseParenthesis);
-            ConsumeToken(TokenType.Arrow);
-            ConsumeToken(TokenType.Property);
-
-            var exposeAs = (IdentifierToken)ConsumeToken(TokenType.Identifier);
-
-            ConsumeToken(TokenType.Semicolon);
-
-            ExposedProperty ep = new(exposeAs.Identifier, methodName.Identifier, returnType);
-            cppType.ExposedProperties.Add(ep);
+            
+            switch (NextTokenType)
+            {
+            case TokenType.Method:
+                ParseCppTypeMethod(cppType);
+                break;
+            case TokenType.Field:
+                ParseCppTypeField(cppType);
+                break;
+            }
         }
 
         ConsumeToken(TokenType.CloseBrace);
@@ -198,8 +232,11 @@ class BindingFileParser
                 ConsumeToken(TokenType.Semicolon);
                 bf.Includes.Add(includeLoc.Content);
                 break;
+            case TokenType.CppComponent:
+                bf.CppTypes.Add(ParseCppType(true));
+                break;
             case TokenType.CppType:
-                bf.CppTypes.Add(ParseCppType());
+                bf.CppTypes.Add(ParseCppType(false));
                 break;
             case TokenType.CsType:
                 ParseCsType();

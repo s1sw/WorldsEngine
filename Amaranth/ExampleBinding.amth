@@ -1,4 +1,5 @@
 Include "Editor/Editor.hpp";
+Include "Physics/PhysicsActor.hpp";
 
 // This is a comment
 CppType worlds::GameProject
@@ -8,4 +9,9 @@ CppType worlds::GameProject
     method std::string_view sourceData() -> property SourceData;
     method std::string_view builtData() -> property BuildData;
     method std::string_view rawData() -> property RawData;
+}
+
+CppComponent worlds::RigidBody
+{
+    field bool enabled -> property Enabled;
 }

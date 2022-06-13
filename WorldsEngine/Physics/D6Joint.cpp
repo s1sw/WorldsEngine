@@ -6,9 +6,15 @@
 #include "PhysicsActor.hpp"
 #include "../Core/Log.hpp"
 #include <Physics/Physics.hpp>
+#include <Util/MathsUtil.hpp>
 
 namespace worlds {
-    D6Joint::D6Joint() : pxJoint{ nullptr }, thisActor{ nullptr }, targetEntity{ entt::null } {}
+    D6Joint::D6Joint() 
+        : pxJoint{ nullptr }
+        , thisActor{ nullptr }
+        , targetEntity{ entt::null }
+        , replaceThis{ entt::null }
+        {}
 
     D6Joint::D6Joint(D6Joint&& other) noexcept {
         pxJoint = other.pxJoint; other.pxJoint = nullptr;

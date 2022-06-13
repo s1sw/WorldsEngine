@@ -157,4 +157,12 @@ extern "C" {
     EXPORT void dynamicpa_setSleepThreshold(entt::registry* reg, entt::entity entity, float value) {
         reg->get<RigidBody>(entity).actor->setSleepThreshold(value);
     }
+
+    EXPORT bool dynamicpa_getEnabled(entt::registry* reg, entt::entity entity) {
+        return reg->get<RigidBody>(entity).enabled();
+    }
+
+    EXPORT void dynamicpa_setEnabled(entt::registry* reg, entt::entity entity, bool value) {
+        reg->get<RigidBody>(entity).setEnabled(value);
+    }
 }

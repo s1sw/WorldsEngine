@@ -131,7 +131,7 @@ namespace vku {
         submit.pCommandBuffers = &cb;
 
         VKCHECK(vkQueueSubmit(queue, 1, &submit, VK_NULL_HANDLE));
-        vkDeviceWaitIdle(device);
+        VKCHECK(vkDeviceWaitIdle(device));
 
         vkFreeCommandBuffers(device, commandPool, 1, &cb);
     }

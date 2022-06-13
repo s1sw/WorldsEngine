@@ -45,6 +45,10 @@ namespace WorldsEngine
         private static extern bool vr_enabled();
 
         [DllImport(Engine.NativeModule)]
+        [return: MarshalAs(UnmanagedType.I1)]
+        private static extern bool vr_hasInputFocus();
+
+        [DllImport(Engine.NativeModule)]
         private static extern void vr_getHeadTransform(float predictionTime, ref Transform transform);
 
         [DllImport(Engine.NativeModule)]
@@ -52,9 +56,9 @@ namespace WorldsEngine
 
         [DllImport(Engine.NativeModule)]
         private static extern void vr_getHandVelocity(VRHand hand, ref Vector3 velocity);
-		
+
 		private static bool _enabled = false;
-		
+
 		static VR()
 		{
 			_enabled = vr_enabled();
@@ -73,6 +77,8 @@ namespace WorldsEngine
         }
 
         public static bool Enabled => _enabled;
+
+        public static bool HasInputFocus => vr_hasInputFocus();
 
         public static Transform LeftHandTransform
         {

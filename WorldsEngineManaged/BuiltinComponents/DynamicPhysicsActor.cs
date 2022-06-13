@@ -108,6 +108,13 @@ namespace WorldsEngine
         [DllImport(Engine.NativeModule)]
         private static extern void dynamicpa_setSleepThreshold(IntPtr reg, uint entity, float val);
 
+        [DllImport(Engine.NativeModule)]
+        [return: MarshalAs(UnmanagedType.I1)]
+        private static extern bool dynamicpa_getEnabled(IntPtr reg, uint entity);
+
+        [DllImport(Engine.NativeModule)]
+        private static extern bool dynamicpa_setEnabled(IntPtr reg, uint entity, [MarshalAs(UnmanagedType.I1)] bool val);
+
         internal static ComponentMetadata Metadata
         {
             get
@@ -216,6 +223,12 @@ namespace WorldsEngine
         {
             get => dynamicpa_getKinematic(regPtr, entityId);
             set => dynamicpa_setKinematic(regPtr, entityId, value);
+        }
+
+        public bool Enabled
+        {
+            get => dynamicpa_getEnabled(regPtr, entityId);
+            set => dynamicpa_setEnabled(regPtr, entityId, value);
         }
 
         public bool UseContactMod
