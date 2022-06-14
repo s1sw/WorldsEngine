@@ -101,6 +101,10 @@ namespace worlds {
         PHYSFS_close(file);
     }
 
+    bool TextureEditor::hasUnsavedChanges() {
+        return unsavedChanges;
+    }
+
     TextureEditor::~TextureEditor() {
     }
 

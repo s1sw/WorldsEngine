@@ -34,7 +34,7 @@ namespace worlds {
             std::to_string(value.x) + ", " + std::to_string(value.y) + ", " + std::to_string(value.z) + "]";
     }
 
-    void assetButton(AssetID& id, const char* title, IUITextureManager& texMan) {
+    bool assetButton(AssetID& id, const char* title, IUITextureManager& texMan) {
         std::string buttonLabel = "Set##";
         buttonLabel += title;
 
@@ -49,7 +49,7 @@ namespace worlds {
             open = ImGui::ImageButton(cacheTextures.at(id), ImVec2(128, 128));
         }
 
-        selectAssetPopup(title, id, open);
+        return selectAssetPopup(title, id, open);
     }
 
     void saveMaterial(EditableMaterial& mat, AssetID matId) {
@@ -180,12 +180,6 @@ namespace worlds {
         }
     }
 
-    void MaterialEditor::save() {
-        saveMaterial(mat, editingID);
-        interfaces.renderer->reloadContent(ReloadFlags::Materials);
-        rttPass->active = true;
-    }
-
     void MaterialEditor::draw() {
         ImGui::BeginChild("mat", ImVec2(0.0f, -ImGui::GetTextLineHeightWithSpacing() * 1.5f), false);
         ImGui::Columns(2);
@@ -193,14 +187,14 @@ namespace worlds {
         previewRegistry.get<WorldObject>(previewEntity).materials[0] = editingID;
 
         ImGui::BeginChild("materialSettings");
-        ImGui::SliderFloat("Metallic", &mat.metallic, 0.0f, 1.0f);
-        ImGui::SliderFloat("Roughness", &mat.roughness, 0.0f, 1.0f);
+        unsavedChanges |= ImGui::SliderFloat("Metallic", &mat.metallic, 0.0f, 1.0f);
+        unsavedChanges |= ImGui::SliderFloat("Roughness", &mat.roughness, 0.0f, 1.0f);
 
         if (mat.heightMap != ~0u)
-            ImGui::SliderFloat("Heightmap Scale", &mat.heightmapScale, 0.0f, 0.1f);
+            unsavedChanges |= ImGui::SliderFloat("Heightmap Scale", &mat.heightmapScale, 0.0f, 0.1f);
 
-        ImGui::ColorEdit3("Albedo Color", &mat.albedoColor.x);
-        ImGui::ColorEdit3("Emissive Color", &mat.emissiveColor.x, ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
+        unsavedChanges |= ImGui::ColorEdit3("Albedo Color", &mat.albedoColor.x);
+        unsavedChanges |= ImGui::ColorEdit3("Emissive Color", &mat.emissiveColor.x, ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
 
         auto& texMan = interfaces.renderer->uiTextureManager();
         if (mat.albedo != ~0u) {
@@ -208,23 +202,23 @@ namespace worlds {
         } else {
             ImGui::TextColored(ImVec4(1, 0, 0, 1), "Invalid albedo map");
         }
-        assetButton(mat.albedo, "Albedo", texMan);
+        unsavedChanges |= assetButton(mat.albedo, "Albedo", texMan);
 
         if (mat.normalMap != ~0u) {
             ImGui::Text("Current normal map path: %s", AssetDB::idToPath(mat.normalMap).c_str());
         } else {
             ImGui::Text("No normal map set");
         }
-        assetButton(mat.normalMap, "Normal map", texMan);
+        unsavedChanges |= assetButton(mat.normalMap, "Normal map", texMan);
 
         if (mat.heightMap != ~0u) {
             ImGui::Text("Current height map path: %s", AssetDB::idToPath(mat.heightMap).c_str());
         } else {
             ImGui::Text("No height map set");
         }
-        assetButton(mat.heightMap, "Height map", texMan);
+        unsavedChanges |= assetButton(mat.heightMap, "Height map", texMan);
 
-        ImGui::Checkbox("Use packed PBR map", &mat.usePBRMap);
+        unsavedChanges |= ImGui::Checkbox("Use packed PBR map", &mat.usePBRMap);
         if (mat.usePBRMap) {
             if (mat.pbrMap != ~0u) {
                 ImGui::Text("Current PBR map path: %s", AssetDB::idToPath(mat.pbrMap).c_str());
@@ -232,7 +226,7 @@ namespace worlds {
                 ImGui::Text("No PBR map set");
             }
 
-            assetButton(mat.pbrMap, "PBR Map", texMan);
+            unsavedChanges |= assetButton(mat.pbrMap, "PBR Map", texMan);
         } else {
             if (mat.metalMap != ~0u) {
                 ImGui::Text("Current metallic map path: %s", AssetDB::idToPath(mat.metalMap).c_str());
@@ -240,7 +234,7 @@ namespace worlds {
                 ImGui::Text("No metallic map set");
             }
 
-            assetButton(mat.metalMap, "Metal Map", texMan);
+            unsavedChanges |= assetButton(mat.metalMap, "Metal Map", texMan);
 
             if (mat.roughMap != ~0u) {
                 ImGui::Text("Current roughness map path: %s", AssetDB::idToPath(mat.roughMap).c_str());
@@ -248,13 +242,13 @@ namespace worlds {
                 ImGui::Text("No roughness map set");
             }
 
-            assetButton(mat.roughMap, "Rough Map", texMan);
+            unsavedChanges |= assetButton(mat.roughMap, "Rough Map", texMan);
         }
 
-        ImGui::Checkbox("Alpha Test", &mat.useAlphaTest);
+        unsavedChanges |= ImGui::Checkbox("Alpha Test", &mat.useAlphaTest);
 
         if (mat.useAlphaTest) {
-            ImGui::DragFloat("Alpha Cutoff", &mat.alphaCutoff);
+            unsavedChanges |= ImGui::DragFloat("Alpha Cutoff", &mat.alphaCutoff);
         }
 
         if (ImGui::BeginPopup("Open Material from folder + mat name")) {
@@ -274,6 +268,7 @@ namespace worlds {
                 setIfExists(matPath + "_Normal_forcelin.wtex", mat.normalMap);
                 setIfExists(matPath + "_PBRPack.wtex", mat.pbrMap);
                 mat.usePBRMap = true;
+                unsavedChanges = true;
                 ImGui::CloseCurrentPopup();
             }
             ImGui::EndPopup();
@@ -371,6 +366,17 @@ namespace worlds {
 
         ImGui::EndColumns();
         ImGui::EndChild();
+    }
+
+    void MaterialEditor::save() {
+        saveMaterial(mat, editingID);
+        interfaces.renderer->reloadContent(ReloadFlags::Materials);
+        rttPass->active = true;
+        unsavedChanges = false;
+    }
+
+    bool MaterialEditor::hasUnsavedChanges() {
+        return unsavedChanges;
     }
 
     MaterialEditor::~MaterialEditor() {
