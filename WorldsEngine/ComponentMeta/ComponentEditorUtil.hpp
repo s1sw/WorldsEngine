@@ -18,9 +18,9 @@ namespace worlds {
         }
     public:
         void create(entt::entity ent, entt::registry& reg) override {
-            if constexpr (std::is_default_constructible<T>::value)
+            if constexpr (std::is_default_constructible<T>::value) {
                 createInternal(ent, reg);
-            else {
+            } else {
                 assert(false);
             }
         }
