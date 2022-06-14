@@ -31,6 +31,7 @@ namespace worlds {
         MaterialEditor(AssetID id, EngineInterfaces interfaces);
         void draw() override;
         void save() override;
+        bool hasUnsavedChanges() override;
         ~MaterialEditor();
     private:
         AssetID editingID = INVALID_ASSET;
@@ -45,6 +46,7 @@ namespace worlds {
         float lx;
         float ly;
         float dist;
+        bool unsavedChanges = false;
     };
 
     class MaterialEditorMeta : public IAssetEditorMeta {

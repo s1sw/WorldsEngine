@@ -9,10 +9,12 @@ namespace worlds {
         TextureEditor(AssetID id);
         void draw() override;
         void save() override;
+        bool hasUnsavedChanges() override;
         ~TextureEditor();
     private:
         TextureAssetSettings currentAssetSettings;
         AssetID editingID = INVALID_ASSET;
+        bool unsavedChanges = false;
     };
 
     class TextureEditorMeta : public IAssetEditorMeta {
