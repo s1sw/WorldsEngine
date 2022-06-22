@@ -22,6 +22,7 @@ namespace worlds {
 
         glm::vec2 vpOffset = ImGui::GetMainViewport()->Pos;
 
+        static bool extendedFrame = false;
         ImDrawList* drawList = ImGui::GetWindowDrawList();
         if (integratedMenuBar.getInt()) {
             drawList->AddText(vpOffset + glm::vec2(menuBarCenter.x - (textSize.x * 0.5f), ImGui::GetWindowHeight() * 0.15f), ImColor(255, 255, 255), windowTitle);
@@ -147,33 +148,31 @@ namespace worlds {
             SDL_SysWMinfo wmInfo;
             SDL_VERSION(&wmInfo.version);
             SDL_GetWindowWMInfo(mainWindow.getWrappedHandle(), &wmInfo);
+
             HWND hwnd = wmInfo.info.win.window;
             COLORREF border = RGB(borderR, borderG, borderB);
 
+            static bool supportsBorderColor = true;
+
             const DWORD DWMWA_BORDER_COLOR = 34;
-            DwmSetWindowAttribute(hwnd, DWMWA_BORDER_COLOR, &border, sizeof(border));
+            if (supportsBorderColor) {
+                HRESULT result = DwmSetWindowAttribute(hwnd, DWMWA_BORDER_COLOR, &border, sizeof(border));
+                if (result == E_INVALIDARG) {
+                    supportsBorderColor = false;
+                }
+            }
 
-            //DWMNCRENDERINGPOLICY policy = DWMNCRP_DISABLED;
-            //DwmSetWindowAttribute(hwnd, DWMWA_NCRENDERING_POLICY, &policy, sizeof(policy));
-            //BOOL ncr = FALSE;
-            //DwmSetWindowAttribute(hwnd, DWMWA_NCRENDERING_ENABLED, &ncr, sizeof(ncr));
-
-            MARGINS m { -1 };
-            DwmExtendFrameIntoClientArea(hwnd, &m);
-
-            static bool maximisedLast = false;
-            if (mainWindow.isMaximised() && !maximisedLast) {
-                HRGN region = CreateRectRgn(8, 8, windowSize.x - 8, windowSize.y - 10);
-                SetWindowRgn(hwnd, region, TRUE);
-                maximisedLast = true;
-                SetProp(hwnd, "NonRudeHWND", reinterpret_cast<HANDLE>(TRUE));
-            } else if (maximisedLast) {
-                SetWindowRgn(hwnd, nullptr, TRUE);
-                maximisedLast = false;
+            if (!mainWindow.isMaximised() && !extendedFrame) {
+                MARGINS m { -1 };
+                DwmExtendFrameIntoClientArea(hwnd, &m);
+                BOOL ncr = TRUE;
+                DwmSetWindowAttribute(hwnd, DWMWA_ALLOW_NCPAINT, &ncr, sizeof(ncr));
+                extendedFrame = true;
             }
             #endif
         } else {
             SDL_SetWindowBordered(interfaces.engine->getMainWindow().getWrappedHandle(), SDL_TRUE);
+            extendedFrame = false;
         }
     }
 }
