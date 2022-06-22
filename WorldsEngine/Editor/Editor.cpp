@@ -200,7 +200,7 @@ namespace worlds {
         SDL_SetWindowHitTest(window, hitTest, nullptr);
         sceneViews.add(new EditorSceneView{ interfaces, this });
 
-        titleBarIcon = interfaces.renderer->uiTextureManager().loadOrGet(AssetDB::pathToId("UI/Editor/Images/logo_no_background.png"));
+        titleBarIcon = interfaces.renderer->uiTextureManager().loadOrGet(AssetDB::pathToId("UI/Editor/Images/logo_no_background_small.png"));
 
         EntityFolders folders;
 
@@ -756,6 +756,7 @@ namespace worlds {
 
             if (ImGui::BeginMainMenuBar()) {
                 ImGui::Image(titleBarIcon, ImVec2(24, 24));
+
                 if (ImGui::MenuItem("Stop Playing")) {
                     g_console->executeCommandStr("reloadAndEdit");
                 }
@@ -821,8 +822,15 @@ namespace worlds {
 
             ImVec2 menuBarSize;
             if (ImGui::BeginMainMenuBar()) {
-                if (g_console->getConVar("ed_integratedmenubar")->getInt())
+                if (g_console->getConVar("ed_integratedmenubar")->getInt()) {
+                    float menuBarHeight = ImGui::GetWindowHeight();
+                    float spacing = (menuBarHeight - 24) / 2.0f;
+                    float prevCursorY = ImGui::GetCursorPosY();
+                    ImGui::SetCursorPosY(prevCursorY + spacing);
                     ImGui::Image(titleBarIcon, ImVec2(24, 24));
+                    ImGui::SetCursorPosY(prevCursorY);
+                }
+
                 menuButtonsExtent = 24;
 
                 menuBarSize = ImGui::GetWindowSize();
@@ -941,8 +949,14 @@ namespace worlds {
         std::string popupToOpen;
 
         if (ImGui::BeginMainMenuBar()) {
-            if (g_console->getConVar("ed_integratedmenubar")->getInt())
+            if (g_console->getConVar("ed_integratedmenubar")->getInt()) {
+                float menuBarHeight = ImGui::GetWindowHeight();
+                float spacing = (menuBarHeight - 24) / 2.0f;
+                float prevCursorY = ImGui::GetCursorPosY();
+                ImGui::SetCursorPosY(prevCursorY + spacing);
                 ImGui::Image(titleBarIcon, ImVec2(24, 24));
+                ImGui::SetCursorPosY(prevCursorY);
+            }
 
             if (ImGui::BeginMenu("File")) {
                 for (auto& window : editorWindows) {
@@ -953,15 +967,15 @@ namespace worlds {
                     }
                 }
 
-                if (ImGui::MenuItem("New")) {
+                if (ImGui::MenuItem("New", "Ctrl+N")) {
                     EditorActions::findAction("scene.new").function(this, reg);
                 }
 
-                if (ImGui::MenuItem("Open")) {
+                if (ImGui::MenuItem("Open", "Ctrl+O")) {
                     EditorActions::findAction("scene.open").function(this, reg);
                 }
 
-                if (ImGui::MenuItem("Save")) {
+                if (ImGui::MenuItem("Save", "Ctrl+S")) {
                     EditorActions::findAction("scene.save").function(this, reg);
                 }
 
@@ -993,6 +1007,16 @@ namespace worlds {
             }
 
             if (ImGui::BeginMenu("Edit")) {
+                if (ImGui::MenuItem("Undo", "Ctrl+Z")) {
+                    undo.undo(reg);
+                }
+
+                if (ImGui::MenuItem("Redo", "Ctrl+Shift+Z")) {
+                    undo.redo(reg);
+                }
+
+                ImGui::Separator();
+
                 for (auto& window : editorWindows) {
                     if (window->menuSection() == EditorMenu::Edit) {
                         if (ImGui::MenuItem(window->getName())) {
@@ -1003,23 +1027,16 @@ namespace worlds {
 
                 ImGui::Separator();
 
+                if (ImGui::MenuItem("New Scene View")) {
+                    sceneViews.add(new EditorSceneView{ interfaces, this });
+                }
 
                 if (ImGui::MenuItem("Create Prefab", nullptr, false, reg.valid(currentSelectedEntity))) {
                     popupToOpen = "Save Prefab";
                 }
 
-                if (ImGui::MenuItem("New Scene View")) {
-                    sceneViews.add(new EditorSceneView{ interfaces, this });
-                }
-
                 if (ImGui::MenuItem("Add Static Physics", nullptr, false, reg.valid(currentSelectedEntity) && reg.has<WorldObject>(currentSelectedEntity))) {
-                    WorldObject& wo = reg.get<WorldObject>(currentSelectedEntity);
-                    ComponentMetadataManager::byName["Physics Actor"]->create(currentSelectedEntity, reg);
-                    PhysicsActor& pa = reg.get<PhysicsActor>(currentSelectedEntity);
-                    PhysicsShape ps;
-                    ps.type = PhysicsShapeType::Mesh;
-                    ps.mesh.mesh = wo.mesh;
-                    pa.physicsShapes.push_back(std::move(ps));
+                    EditorActions::findAction("editor.addStaticPhysics").function(this, reg);
                 }
 
                 ImGui::EndMenu();

@@ -85,6 +85,10 @@ namespace worlds {
         PHYSFS_close(file);
     }
 
+    bool ModelEditor::hasUnsavedChanges() {
+        return unsavedChanges;
+    }
+
     void ModelEditorMeta::importAsset(std::string filePath, std::string newAssetPath) {
         AssetID id = AssetDB::createAsset(newAssetPath);
         PHYSFS_File* f = PHYSFS_openWrite(("SourceData/" + newAssetPath).c_str());

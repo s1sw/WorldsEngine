@@ -7,6 +7,7 @@ namespace worlds {
     public:
         virtual void draw() = 0;
         virtual void save() = 0;
+        virtual bool hasUnsavedChanges() = 0;
         virtual ~IAssetEditor() {}
     };
 
