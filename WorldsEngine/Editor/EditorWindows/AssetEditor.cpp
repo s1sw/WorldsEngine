@@ -21,7 +21,13 @@ namespace worlds {
         std::string path = AssetDB::idToPath(assetId);
         ImGui::SetNextWindowPos(glm::vec2(ImGui::GetMainViewport()->GetCenter()) - glm::vec2(640.0f, 480.0f) * 0.5f, ImGuiCond_Once);
         ImGui::SetNextWindowSize(ImVec2(640, 480), ImGuiCond_Once);
-        if (ImGui::Begin(path.c_str(), &active)) {
+        bool isUnsaved = false;
+
+        if (assetEditor) {
+            isUnsaved = assetEditor->hasUnsavedChanges();
+        }
+
+        if (ImGui::Begin(path.c_str(), &active, isUnsaved ? ImGuiWindowFlags_UnsavedDocument : 0)) {
             if (ImGui::IsWindowFocused() && ImGui::GetIO().KeysDownDuration[SDL_SCANCODE_ESCAPE] == 0.0f) {
                 active = false;
             }
