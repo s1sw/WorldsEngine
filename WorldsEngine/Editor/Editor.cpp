@@ -119,11 +119,6 @@ namespace worlds {
         float maximiseRight = maximiseXCenter + 6.0f;
         float maximiseLeft = maximiseXCenter - 6.0f;
 
-        if (p->x > w - 90.0f && p->x < w - 45.0f && p->y < 24.0f) {
-            return SDL_HITTEST_MAXIMIZE;
-        } 
-
-
         enum BorderFlags {
             None = 0,
             Left = 1,
@@ -193,6 +188,7 @@ namespace worlds {
         ADD_EDITOR_WINDOW(SceneSettingsWindow);
         ADD_EDITOR_WINDOW(RawAssets);
         ADD_EDITOR_WINDOW(AssetCompilationManager);
+        ADD_EDITOR_WINDOW(NodeEditorTest);
 
 #undef ADD_EDITOR_WINDOW
         AssetCompilers::initialise();
