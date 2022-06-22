@@ -161,8 +161,15 @@ namespace worlds {
             MARGINS m { -1 };
             DwmExtendFrameIntoClientArea(hwnd, &m);
 
-            if (mainWindow.isMaximised())
-            {
+            static bool maximisedLast = false;
+            if (mainWindow.isMaximised() && !maximisedLast) {
+                HRGN region = CreateRectRgn(8, 8, windowSize.x - 8, windowSize.y - 10);
+                SetWindowRgn(hwnd, region, TRUE);
+                maximisedLast = true;
+                SetProp(hwnd, "NonRudeHWND", reinterpret_cast<HANDLE>(TRUE));
+            } else if (maximisedLast) {
+                SetWindowRgn(hwnd, nullptr, TRUE);
+                maximisedLast = false;
             }
             #endif
         } else {
