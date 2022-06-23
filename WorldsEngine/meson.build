@@ -153,7 +153,7 @@ worlds = static_library('worlds', worlds_sources + ['tracy/TracyClient.cpp'],
     discord_sdk_dep,
     slib_dep, platform_deps, #steam_audio_dep,
     recast_dep, detour_dep,
-    freetype_dep, embree_dep
+    freetype_dep, embree_dep, r2_dep
     ],
   link_args: ['-rdynamic'],
   cpp_args: worlds_cpp_args

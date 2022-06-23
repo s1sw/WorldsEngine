@@ -7,7 +7,7 @@
 #include <tracy/TracyVulkan.hpp>
 #include <robin_hood.h>
 #include <deque>
-#include <mutex>
+#include <Render/R2/PublicInclude/R2/R2.hpp>
 
 struct ImDrawData;
 
@@ -487,92 +487,10 @@ namespace worlds {
     };
 
     class VKRenderer : public Renderer {
-        VkInstance instance;
-        VkPhysicalDevice physicalDevice;
-        VkDevice device;
-        VkPipelineCache pipelineCache;
-        VkDescriptorPool descriptorPool;
-
-        Queues queues;
-
-        VkSurfaceKHR surface;
-        vku::DebugCallback dbgCallback;
-
-        uint32_t width, height;
-        VkSampleCountFlagBits msaaSamples;
-        int32_t numMSAASamples;
-        std::vector<vku::Framebuffer> framebuffers;
-        VkCommandPool commandPool;
-
-        std::unique_ptr<VKPresentSubmitManager> presentSubmitManager;
-        VmaAllocator allocator;
-        vku::GenericBuffer materialUB;
-        vku::GenericBuffer vpBuffer;
-        VulkanHandles handles;
-
-        RenderResource* finalPrePresent;
-
-        RenderResource* leftEye;
-        RenderResource* rightEye;
-
-        RenderResource* shadowmapImage;
-        RenderResource* shadowImages[NUM_SHADOW_LIGHTS];
-        RenderResource* imguiImage;
-
-        SDL_Window* window;
-        VkQueryPool queryPool;
-        uint64_t lastRenderTimeTicks;
-        float timestampPeriod;
-
-        std::vector<VKRTTPass*> rttPasses;
-        robin_hood::unordered_map<AssetID, LoadedMeshData> loadedMeshes;
-        std::vector<TracyVkCtx> tracyContexts;
-        std::unique_ptr<TextureSlots> texSlots;
-        std::unique_ptr<MaterialSlots> matSlots;
-        std::unique_ptr<CubemapSlots> cubemapSlots;
-
-        uint32_t shadowmapRes;
-        bool enableVR;
-        ImGuiRenderPass* irp;
-        uint32_t vrWidth, vrHeight;
-        IVRInterface* vrInterface;
-        VrApi vrApi;
-        float vrPredictAmount;
-        bool isMinimised;
-        bool useVsync;
-        vku::GenericImage brdfLut;
-        vku::GenericImage blueNoiseTexture;
-        std::shared_ptr<CubemapConvoluter> cubemapConvoluter;
-        bool swapchainRecreated;
-        RenderDebugStats dbgStats;
-        uint32_t frameIdx, lastFrameIdx;
-        ShadowCascadePass* shadowCascadePass;
-        AdditionalShadowsPass* additionalShadowsPass;
-        void* rdocApi;
-        VKUITextureManager* uiTextureMan;
-        SkinningMatricesManager* skinningMatricesManager;
-
-        size_t numDebugLines;
-        const DebugLine* debugLineBuffer;
-
-        void createFramebuffers();
-        void createSCDependents();
-        vku::ShaderModule loadShaderAsset(AssetID id);
-        void createInstance(const RendererInitInfo& initInfo);
-        void submitToOpenVR();
-        void writeCmdBuf(VkCommandBuffer cmdBuf, uint32_t imageIndex, Camera& cam, entt::registry& reg);
-        void reuploadMaterials();
-        ImDrawData* imDrawData;
-        std::mutex* apiMutex;
-        void recreateSwapchainInternal(int newWidth = -1, int newHeight = -1);
-        void createSpotShadowImages();
-        void createCascadeShadowImages();
-        void uploadSceneAssetsForReg(entt::registry& reg, bool& reuploadMats, bool& dsUpdateNeeded);
-
-        friend class VKRTTPass;
-        friend class VKUITextureManager;
+        R2::VK::Core* core;
     public:
         VKRenderer(const RendererInitInfo& initInfo, bool* success);
+
         void recreateSwapchain(int newWidth = -1, int newHeight = -1) override;
         void frame(Camera& cam, entt::registry& reg) override;
 
@@ -584,18 +502,13 @@ namespace worlds {
         void setVRPredictAmount(float amt) override { vrPredictAmount = amt; }
         void setVsync(bool vsync) override;
         bool getVsync() const override { return useVsync; }
-        VulkanHandles* getHandles() { return &handles; }
         const RenderDebugStats& getDebugStats() const override { return dbgStats; }
         void uploadSceneAssets(entt::registry& reg) override;
-        RenderResources getResources();
 
         void setImGuiDrawData(void* drawData) override;
 
         VKRTTPass* createRTTPass(RTTPassCreateInfo& ci) override;
         void destroyRTTPass(RTTPass* pass) override;
-
-        RenderResource* createTextureResource(TextureResourceCreateInfo resourceCreateInfo, const char* debugName = nullptr);
-        void updateTextureResource(RenderResource* resource, TextureResourceCreateInfo newCreateInfo);
 
         void triggerRenderdocCapture() override;
         void startRdocCapture() override;

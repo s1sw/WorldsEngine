@@ -1,0 +1,19 @@
+r2_sources += [
+    'Source/Renderer.cpp',
+    'Source/VK/VKAllocCallbacks.cpp',
+    'Source/VK/VKBuffer.cpp',
+    'Source/VK/VKCommandBuffer.cpp',
+    'Source/VK/VKCore.cpp',
+    'Source/VK/VKCoreInitialization.cpp',
+    'Source/VK/VKDeletionQueue.cpp',
+    'Source/VK/VKDescriptorSet.cpp',
+    'Source/VK/VKPipeline.cpp',
+    'Source/VK/VKRenderPass.cpp',
+    'Source/VK/VKSampler.cpp',
+    'Source/VK/VKSwapchain.cpp',
+    'Source/VK/VKSyncPrims.cpp',
+    'Source/VK/VKTexture.cpp',
+    'Source/VK/VKUtil.cpp',
+    'Source/VK/VMAImplementation.cpp',
+    'Source/VK/volk.c'
+]
