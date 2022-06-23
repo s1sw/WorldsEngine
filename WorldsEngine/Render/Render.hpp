@@ -221,7 +221,7 @@ namespace worlds {
         virtual void frame() = 0;
 
         //! Gets time spent rendering the scene on the GPU.
-        virtual float getLastRenderTime() const = 0;
+        virtual float getLastGPUTime() const = 0;
         //! Sets the prediction amount used on head transforms for VR.
         virtual void setVRPredictAmount(float amt) = 0;
 
@@ -230,25 +230,10 @@ namespace worlds {
 
         virtual const RenderDebugStats& getDebugStats() const = 0;
 
-        //! Load all materials, textures, models and cubemaps referenced in the scene.
-        virtual void uploadSceneAssets(entt::registry& reg) = 0;
-        //! Loads a specified mesh.
-        virtual void preloadMesh(AssetID id) = 0;
-        //! Unloads any materials, textures, models and cubemaps not referenced in the scene.
-        //! Reloads the assets specified by the flags.
-        virtual void unloadUnusedAssets(entt::registry& reg) = 0;
-        virtual void reloadContent(ReloadFlags flags) = 0;
-
         virtual void setImGuiDrawData(void* drawData) = 0;
 
         virtual RTTPass* createRTTPass(RTTPassCreateInfo& ci) = 0;
         virtual void destroyRTTPass(RTTPass* pass) = 0;
-
-        virtual void triggerRenderdocCapture() = 0;
-        virtual void startRdocCapture() = 0;
-        virtual void endRdocCapture() = 0;
-
-        virtual IUITextureManager& uiTextureManager() = 0;
 
         virtual ~Renderer() {}
     };

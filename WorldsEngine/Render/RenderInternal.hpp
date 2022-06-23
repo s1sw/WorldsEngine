@@ -9,7 +9,15 @@ struct ImDrawData;
 
 namespace R2::VK {
     class Swapchain;
+    class Fence;
 }
+
+typedef struct VkPhysicalDeviceProperties VkPhysicalDeviceProperties;
+typedef struct VkPipelineCacheCreateInfo VkPipelineCacheCreateInfo;
+#define VK_DEFINE_HANDLE(object) typedef struct object##_T* object;
+VK_DEFINE_HANDLE(VkPipelineCache)
+VK_DEFINE_HANDLE(VkDevice)
+#undef VK_DEFINE_HANDLE
 
 namespace worlds {
     class VKRenderer;
@@ -132,7 +140,7 @@ namespace worlds {
         ~VKUITextureManager();
     private:
         struct UITexInfo {
-            VkDescriptorSet ds;
+            //VkDescriptorSet ds;
         };
 
         UITexInfo* load(AssetID id);
@@ -143,36 +151,29 @@ namespace worlds {
     class VKRenderer : public Renderer {
         R2::VK::Core* core;
         R2::VK::Swapchain* swapchain;
+        R2::VK::Fence* frameFence;
+
+        ImDrawData* imguiDrawData;
+
+        RenderDebugStats debugStats;
     public:
         VKRenderer(const RendererInitInfo& initInfo, bool* success);
+        ~VKRenderer();
 
         void frame() override;
 
-        void preloadMesh(AssetID id) override;
-        void unloadUnusedAssets(entt::registry& reg) override;
-        void reloadContent(ReloadFlags flags) override;
-
-        float getLastRenderTime() const override;
+        float getLastGPUTime() const override;
         void setVRPredictAmount(float amt) override;
 
         void setVsync(bool vsync) override;
         bool getVsync() const override;
 
         const RenderDebugStats& getDebugStats() const override;
-        void uploadSceneAssets(entt::registry& reg) override;
 
         void setImGuiDrawData(void* drawData) override;
 
         RTTPass* createRTTPass(RTTPassCreateInfo& ci) override;
         void destroyRTTPass(RTTPass* pass) override;
-
-        void triggerRenderdocCapture() override;
-        void startRdocCapture() override;
-        void endRdocCapture() override;
-
-        IUITextureManager& uiTextureManager() override;
-
-        ~VKRenderer();
     };
 
     enum class ShaderVariantFlags : uint32_t {
@@ -194,7 +195,7 @@ namespace worlds {
         bool enablePicking;
         int msaaSamples;
         ShaderVariantFlags flags;
-        AssetID overrideFS = INVALID_ASSET;
+        AssetID overrideFS = ~0u;
 
         uint32_t hash();
     };

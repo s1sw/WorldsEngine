@@ -1,16 +1,21 @@
 #include "ShaderCache.hpp"
-#include "Core/Fatal.hpp"
+#include <Core/Fatal.hpp>
+#include <Core/Log.hpp>
 #include <Core/AssetDB.hpp>
 #include <string>
+#include <R2/VKCore.hpp>
+#include <R2/VKPipeline.hpp>
+
+using namespace R2;
 
 namespace worlds {
-    std::unordered_map<AssetID, VkShaderModule> ShaderCache::modules;
-    VkDevice ShaderCache::device;
-    VkShaderModule ShaderCache::getModule(VkDevice& dev, AssetID id) {
+    std::unordered_map<AssetID, VK::ShaderModule*> ShaderCache::modules;
+    VK::Core* ShaderCache::core;
+    VK::ShaderModule& ShaderCache::getModule(AssetID id) {
         auto it = modules.find(id);
 
         if (it != modules.end())
-            return it->second;
+            return *it->second;
 
         PHYSFS_File* file = worlds::AssetDB::openAssetFileRead(id);
 
@@ -28,29 +33,18 @@ namespace worlds {
         }
         PHYSFS_close(file);
 
-        VkShaderModuleCreateInfo smci{ VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO };
-        smci.codeSize = size;
-        smci.pCode = (const uint32_t*)buffer;
-
-        VkShaderModule mod;
-        VKCHECK(vkCreateShaderModule(dev, &smci, nullptr, &mod));
-
-        std::string path = AssetDB::idToPath(id);
-
-        vku::setObjectName(device, (uint64_t)mod, VK_OBJECT_TYPE_SHADER_MODULE, path.c_str());
+        modules.insert({id, new VK::ShaderModule{core->GetHandles(), static_cast<uint32_t*>(buffer), size}});
 
         std::free(buffer);
 
-        modules.insert({ id, mod });
-
         logVrb(WELogCategoryRender, "loading shader %s from disk", AssetDB::idToPath(id).c_str());
 
-        return mod;
+        return *it->second;
     }
 
     void ShaderCache::clear() {
         for (auto& p : modules) {
-            vkDestroyShaderModule(device, p.second, nullptr);
+            delete p.second;
         }
 
         modules.clear();

@@ -14,7 +14,6 @@
 #include "robin_hood.h"
 #include <Core/Engine.hpp>
 #include <Util/CreateModelObject.hpp>
-#include <Util/VKImGUIUtil.hpp>
 #include <Util/MathsUtil.hpp>
 
 namespace worlds {
@@ -34,20 +33,20 @@ namespace worlds {
             std::to_string(value.x) + ", " + std::to_string(value.y) + ", " + std::to_string(value.z) + "]";
     }
 
-    bool assetButton(AssetID& id, const char* title, IUITextureManager& texMan) {
+    bool assetButton(AssetID& id, const char* title) {
         std::string buttonLabel = "Set##";
         buttonLabel += title;
 
         bool open = false;
 
-        if (id == ~0u || !AssetDB::exists(id))
+        //if (id == ~0u || !AssetDB::exists(id))
             open = ImGui::Button(buttonLabel.c_str());
-        else {
-            if (!cacheTextures.contains(id))
-                cacheTextures.insert({ id, texMan.loadOrGet(id) });
+        //else {
+        //    if (!cacheTextures.contains(id))
+        //        cacheTextures.insert({ id, texMan.loadOrGet(id) });
 
-            open = ImGui::ImageButton(cacheTextures.at(id), ImVec2(128, 128));
-        }
+        //    open = ImGui::ImageButton(cacheTextures.at(id), ImVec2(128, 128));
+        //}
 
         return selectAssetPopup(title, id, open);
     }
@@ -138,8 +137,8 @@ namespace worlds {
         previewEntity = createModelObject(previewRegistry, glm::vec3(0.0f), glm::quat(1.0f, 0.0f, 0.0f, 0.0f),
             AssetDB::pathToId("Models/sphere.wmdl"), AssetDB::pathToId("Materials/DevTextures/dev_metal.json"));
 
-        previewPassTex = (ImTextureID)VKImGUIUtil::createDescriptorSetFor(
-            static_cast<VKRTTPass*>(rttPass)->sdrFinalTarget->image(), static_cast<VKRenderer*>(interfaces.renderer)->getHandles());
+        //previewPassTex = (ImTextureID)VKImGUIUtil::createDescriptorSetFor(
+        //    static_cast<VKRTTPass*>(rttPass)->sdrFinalTarget->image(), static_cast<VKRenderer*>(interfaces.renderer)->getHandles());
 
         previewCam.position = glm::vec3(0.0f, 0.0f, -1.0f);
         previewCam.rotation = glm::angleAxis(0.0f, glm::vec3(0.0f, 1.0f, 0.0f)) * glm::angleAxis(0.0f, glm::vec3(1.0f, 0.0f, 0.0f));
@@ -196,27 +195,27 @@ namespace worlds {
         unsavedChanges |= ImGui::ColorEdit3("Albedo Color", &mat.albedoColor.x);
         unsavedChanges |= ImGui::ColorEdit3("Emissive Color", &mat.emissiveColor.x, ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
 
-        auto& texMan = interfaces.renderer->uiTextureManager();
+        //auto& texMan = interfaces.renderer->uiTextureManager();
         if (mat.albedo != ~0u) {
             ImGui::Text("Current albedo path: %s", AssetDB::idToPath(mat.albedo).c_str());
         } else {
             ImGui::TextColored(ImVec4(1, 0, 0, 1), "Invalid albedo map");
         }
-        unsavedChanges |= assetButton(mat.albedo, "Albedo", texMan);
+        unsavedChanges |= assetButton(mat.albedo, "Albedo");
 
         if (mat.normalMap != ~0u) {
             ImGui::Text("Current normal map path: %s", AssetDB::idToPath(mat.normalMap).c_str());
         } else {
             ImGui::Text("No normal map set");
         }
-        unsavedChanges |= assetButton(mat.normalMap, "Normal map", texMan);
+        unsavedChanges |= assetButton(mat.normalMap, "Normal map");
 
         if (mat.heightMap != ~0u) {
             ImGui::Text("Current height map path: %s", AssetDB::idToPath(mat.heightMap).c_str());
         } else {
             ImGui::Text("No height map set");
         }
-        unsavedChanges |= assetButton(mat.heightMap, "Height map", texMan);
+        unsavedChanges |= assetButton(mat.heightMap, "Height map");
 
         unsavedChanges |= ImGui::Checkbox("Use packed PBR map", &mat.usePBRMap);
         if (mat.usePBRMap) {
@@ -226,7 +225,7 @@ namespace worlds {
                 ImGui::Text("No PBR map set");
             }
 
-            unsavedChanges |= assetButton(mat.pbrMap, "PBR Map", texMan);
+            unsavedChanges |= assetButton(mat.pbrMap, "PBR Map");
         } else {
             if (mat.metalMap != ~0u) {
                 ImGui::Text("Current metallic map path: %s", AssetDB::idToPath(mat.metalMap).c_str());
@@ -234,7 +233,7 @@ namespace worlds {
                 ImGui::Text("No metallic map set");
             }
 
-            unsavedChanges |= assetButton(mat.metalMap, "Metal Map", texMan);
+            unsavedChanges |= assetButton(mat.metalMap, "Metal Map");
 
             if (mat.roughMap != ~0u) {
                 ImGui::Text("Current roughness map path: %s", AssetDB::idToPath(mat.roughMap).c_str());
@@ -242,7 +241,7 @@ namespace worlds {
                 ImGui::Text("No roughness map set");
             }
 
-            unsavedChanges |= assetButton(mat.roughMap, "Rough Map", texMan);
+            unsavedChanges |= assetButton(mat.roughMap, "Rough Map");
         }
 
         unsavedChanges |= ImGui::Checkbox("Alpha Test", &mat.useAlphaTest);
@@ -286,7 +285,7 @@ namespace worlds {
         bool resized = false;
         if (previewSize.x != lastPreviewSize.x || previewSize.y != lastPreviewSize.y) {
             rttPass->resize(std::max(16, (int)previewSize.x), std::max(16, (int)previewSize.y));
-            VKImGUIUtil::updateDescriptorSet((VkDescriptorSet)previewPassTex, static_cast<VKRTTPass*>(rttPass)->sdrFinalTarget->image());
+            //VKImGUIUtil::updateDescriptorSet((VkDescriptorSet)previewPassTex, static_cast<VKRTTPass*>(rttPass)->sdrFinalTarget->image());
             lastPreviewSize = previewSize;
             resized = true;
             rttPass->active = true;
@@ -370,7 +369,7 @@ namespace worlds {
 
     void MaterialEditor::save() {
         saveMaterial(mat, editingID);
-        interfaces.renderer->reloadContent(ReloadFlags::Materials);
+        //interfaces.renderer->reloadContent(ReloadFlags::Materials);
         rttPass->active = true;
         unsavedChanges = false;
     }
@@ -383,9 +382,9 @@ namespace worlds {
         EngineInterfaces interfaces = this->interfaces;
         RTTPass* rPass = rttPass;
         rPass->active = false;
-        for (auto& p : cacheTextures) {
-            interfaces.renderer->uiTextureManager().unload(p.first);
-        }
+        //for (auto& p : cacheTextures) {
+        //    interfaces.renderer->uiTextureManager().unload(p.first);
+        //}
 
         cacheTextures.clear();
         interfaces.renderer->destroyRTTPass(rPass);

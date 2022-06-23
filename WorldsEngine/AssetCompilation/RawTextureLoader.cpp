@@ -2,7 +2,6 @@
 #include <vector>
 
 #include <Core/AssetDB.hpp>
-#include <Core/LogCategories.hpp>
 #include <Core/Log.hpp>
 #include <stb_image.h>
 #include <tracy/Tracy.hpp>

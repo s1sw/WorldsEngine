@@ -108,8 +108,13 @@ namespace R2::VK
     private:
         const Handles* handles;
 
+        struct ShaderStageCreateInfo {
+            ShaderModule& module;
+            ShaderStage stage;
+        };
+
         std::vector<TextureFormat> attachmentFormats;
-        std::vector<VkPipelineShaderStageCreateInfo> shaderStages;
+        std::vector<ShaderStageCreateInfo> shaderStages;
         std::vector<VertexBinding> vertexBindings;
         Topology topology;
         VK::CullMode cullMode;

@@ -27,7 +27,6 @@
 #include <Serialization/SceneSerialization.hpp>
 #include <Render/Render.hpp>
 #include <Util/TimingUtil.hpp>
-#include <Util/VKImGUIUtil.hpp>
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include <ImGui/imgui_internal.h>
 #include <Util/CreateModelObject.hpp>
@@ -51,6 +50,7 @@
 #include <Render/DebugLines.hpp>
 #include <Core/HierarchyUtil.hpp>
 #include <Core/NameComponent.hpp>
+#include <Render/RenderInternal.hpp>
 #undef min
 #undef max
 
@@ -582,26 +582,21 @@ namespace worlds {
 
             console->registerCommand([&](void*, const char*) {
                 MeshManager::reloadMeshes();
-                renderer->reloadContent(ReloadFlags::All);
                 physicsSystem->resetMeshCache();
             }, "reloadContent", "Reloads all content.");
 
             console->registerCommand([&](void*, const char*) {
-                renderer->reloadContent(ReloadFlags::Textures);
             }, "reloadTextures", "Reloads textures.");
 
             console->registerCommand([&](void*, const char*) {
-                renderer->reloadContent(ReloadFlags::Materials);
             }, "reloadMaterials", "Reloads materials.");
 
             console->registerCommand([&](void*, const char*) {
                 MeshManager::reloadMeshes();
-                renderer->reloadContent(ReloadFlags::Meshes);
                 physicsSystem->resetMeshCache();
             }, "reloadMeshes", "Reloads meshes.");
 
             console->registerCommand([&](void*, const char*) {
-                renderer->reloadContent(ReloadFlags::Cubemaps);
             }, "reloadCubemaps", "Reloads cubemaps.", nullptr);
         }
 
@@ -717,8 +712,6 @@ namespace worlds {
 
         AssetID modelId = AssetDB::pathToId("Models/cube.wmdl");
         AssetID monkeyId = AssetDB::pathToId("Models/monkey.wmdl");
-        renderer->preloadMesh(modelId);
-        renderer->preloadMesh(monkeyId);
         entt::entity ground = createModelObject(registry, glm::vec3(0.0f, -2.0f, 0.0f), glm::quat(), modelId, grassMatId, glm::vec3(5.0f, 1.0f, 5.0f));
         entt::entity monkey = createModelObject(registry, glm::vec3(0.0f, 0.0f, 0.0f), glm::quat(), monkeyId, devMatId);
 
@@ -810,7 +803,7 @@ namespace worlds {
             openvrInterface->updateInput();
 
         if (!dedicatedServer) {
-            screenRTTPass->active = !runAsEditor || !editor->active;
+            //screenRTTPass->active = !runAsEditor || !editor->active;
         }
 
         if (enableOpenVR) {
@@ -841,7 +834,7 @@ namespace worlds {
             }
         }
 
-        screenRTTPass->setResolutionScale(screenPassResScale);
+        //screenRTTPass->setResolutionScale(screenPassResScale);
 
         float interpAlpha = 1.0f;
 
@@ -989,10 +982,7 @@ namespace worlds {
             std::unique_lock<std::mutex> lg{rendererLock};
             renderThreadCV.wait(lg, []{ return renderThreadAvailable; });
 
-            if (renderer) {
-                renderer->uploadSceneAssets(registry);
-                renderer->unloadUnusedAssets(registry);
-            }
+            // TODO: Load content here
 
             if (evtHandler && (!runAsEditor || !editor->active)) {
                 evtHandler->onSceneStart(registry);
@@ -1166,14 +1156,6 @@ namespace worlds {
                     ImGui::Text("Frame: %i", timeInfo.frameCounter);
                     ImGui::Text("Cam pos: %.3f, %.3f, %.3f", cam.position.x, cam.position.y, cam.position.z);
                     ImGui::Text("Current scene: %s (%u)", registry.ctx<SceneInfo>().name.c_str(), registry.ctx<SceneInfo>().id);
-
-                    if (ImGui::Button("Unload Unused Assets")) {
-                        renderer->unloadUnusedAssets(registry);
-                    }
-
-                    if (ImGui::Button("Reload Materials and Textures")) {
-                        renderer->reloadContent(ReloadFlags::Textures | ReloadFlags::Materials);
-                    }
                 }
 
                 if (ImGui::CollapsingHeader(ICON_FA_PENCIL_ALT u8" Render Stats")) {
@@ -1193,7 +1175,7 @@ namespace worlds {
                     ImGui::Text("- Waiting for image fence: %.3fms", dbgStats.imgFenceWaitTime);
                     ImGui::Text("- Waiting for command buffer fence: %.3fms", dbgStats.imgFenceWaitTime);
                     ImGui::Text("- Writing command buffer: %.3fms", dbgStats.cmdBufWriteTime);
-                    ImGui::Text("GPU render time: %.3fms", renderer->getLastRenderTime() / 1000.0f / 1000.0f);
+                    ImGui::Text("GPU render time: %.3fms", renderer->getLastGPUTime() / 1000.0f / 1000.0f);
                     ImGui::Text("V-Sync status: %s", renderer->getVsync() ? "On" : "Off");
                     ImGui::Text("Triangles: %u", dbgStats.numTriangles);
                     ImGui::Text("Lights in view: %i", dbgStats.numLightsInView);

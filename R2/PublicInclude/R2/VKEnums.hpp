@@ -5,7 +5,8 @@ namespace R2::VK
     enum class ShaderStage
     {
         Vertex = 0x1,
-        Fragment = 0x10
+        Fragment = 0x10,
+        Compute = 0x20
     };
 
     inline ShaderStage operator|(const ShaderStage& a, const ShaderStage& b)

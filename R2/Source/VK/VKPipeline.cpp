@@ -92,11 +92,7 @@ namespace R2::VK
 
     PipelineBuilder& PipelineBuilder::AddShader(ShaderStage stage, ShaderModule& mod)
     {
-        VkPipelineShaderStageCreateInfo pssci{ VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO };
-        pssci.module = mod.GetNativeHandle();
-        pssci.stage = convertShaderStage(stage);
-        pssci.pName = "main";
-        shaderStages.push_back(pssci);
+        shaderStages.emplace_back(mod, stage);
         return *this;
     }
 
@@ -239,10 +235,21 @@ namespace R2::VK
         viewportStateCI.pViewports = &viewport;
         viewportStateCI.viewportCount = 1;
 
+        std::vector<VkPipelineShaderStageCreateInfo> vkShaderStages;
+        vkShaderStages.reserve(shaderStages.size());
+
+        for (const ShaderStageCreateInfo& stage : shaderStages) {
+            VkPipelineShaderStageCreateInfo vkStage{VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO};
+            vkStage.stage = convertShaderStage(stage.stage);
+            vkStage.module = stage.module.GetNativeHandle();
+            vkStage.pName = "main";
+            vkShaderStages.push_back(vkStage);
+        }
+
         VkGraphicsPipelineCreateInfo pci{ VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO };
         pci.renderPass = VK_NULL_HANDLE;
-        pci.pStages = &shaderStages[0];
-        pci.stageCount = (uint32_t)shaderStages.size();
+        pci.pStages = vkShaderStages.data();
+        pci.stageCount = (uint32_t)vkShaderStages.size();
         pci.pVertexInputState = &vertexInputStateCI;
         pci.pInputAssemblyState = &inputAssemblyStateCI;
         pci.pRasterizationState = &rasterizationStateCI;

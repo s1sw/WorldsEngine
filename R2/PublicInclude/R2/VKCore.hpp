@@ -37,7 +37,7 @@ namespace R2::VK
 		VulkanException(VkResult result) : Result(result) {}
 	};
 
-#define VKCHECK(res) if (res != VK_SUCCESS) { printf("RESULT: %i (file %s, line %i)", res, __FILE__, __LINE__); throw VulkanException(res); }
+#define VKCHECK(res) if (res != VK_SUCCESS) { printf("RESULT: %i (file %s, line %i)", res, __FILE__, __LINE__); throw R2::VK::VulkanException(res); }
 	struct Queues
 	{
 		uint32_t GraphicsFamilyIndex;

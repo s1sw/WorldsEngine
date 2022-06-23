@@ -1,8 +1,7 @@
 #include <SDL_audio.h>
 #include <Core/Log.hpp>
 #include "Audio.hpp"
-#include "Core/Engine.hpp"
-#include "Core/LogCategories.hpp"
+#include <Core/Engine.hpp>
 #include <glm/glm.hpp>
 #include <glm/ext/scalar_constants.hpp>
 #include <Util/TimingUtil.hpp>

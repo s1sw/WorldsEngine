@@ -1,6 +1,10 @@
 #include "ShaderReflector.hpp"
+#include <Core/Log.hpp>
 #include <IO/IOUtil.hpp>
-#include <Render/vku/DescriptorSetUtil.hpp>
+#include <R2/VKDescriptorSet.hpp>
+#include <R2/VKCore.hpp>
+
+using namespace R2;
 
 namespace worlds {
     ShaderReflector::ShaderReflector(AssetID shaderId) {
@@ -28,7 +32,7 @@ namespace worlds {
         }
     }
 
-    vku::DescriptorSetLayout ShaderReflector::createDescriptorSetLayout(VkDevice device, uint32_t setIndex) {
+    R2::VK::DescriptorSetLayout* ShaderReflector::createDescriptorSetLayout(VK::Core* core, uint32_t setIndex) {
         uint32_t numBindings;
         std::vector<SpvReflectDescriptorBinding*> bindings;
         spvReflectEnumerateDescriptorBindings(&mod, &numBindings, nullptr);
@@ -36,14 +40,12 @@ namespace worlds {
         spvReflectEnumerateDescriptorBindings(&mod, &numBindings, bindings.data());
 
         bool useBindFlags = false;
-        std::vector<VkDescriptorSetLayoutBinding> dslBindings;
-        std::vector<VkDescriptorBindingFlags> bindFlags;
 
-        VkShaderStageFlags stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_VERTEX_BIT;
+        VK::ShaderStage stageFlags = VK::ShaderStage::Fragment | VK::ShaderStage::Vertex;
 
         if (mod.shader_stage == SPV_REFLECT_SHADER_STAGE_FRAGMENT_BIT || mod.shader_stage == SPV_REFLECT_SHADER_STAGE_VERTEX_BIT) {
         } else if (mod.shader_stage == SPV_REFLECT_SHADER_STAGE_COMPUTE_BIT) {
-            stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+            stageFlags = VK::ShaderStage::Compute;
         } else {
             logErr(WELogCategoryRender, "Reflecting unsupported shader type!");
         }
@@ -58,52 +60,27 @@ namespace worlds {
 
         presentBindings.resize(maxBinding + 1);
 
+        R2::VK::DescriptorSetLayoutBuilder dslb{core->GetHandles()};
+
         for (auto binding : bindings) {
             if (binding->set != setIndex) continue;
             if (presentBindings[binding->binding]) continue;
             presentBindings[binding->binding] = true;
 
-            VkDescriptorSetLayoutBinding vkBinding{
-                .binding = binding->binding,
-                .descriptorType = (VkDescriptorType)binding->descriptor_type,
-                .descriptorCount = binding->count,
-                .stageFlags = stageFlags,
-                .pImmutableSamplers = nullptr
-            };
+            dslb.Binding(binding->binding, static_cast<VK::DescriptorType>(binding->descriptor_type), binding->count, stageFlags);
 
             if (binding->count > 1) {
-                bindFlags.push_back(VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT);
-                useBindFlags = true;
-            } else {
-                bindFlags.push_back({});
+                dslb.PartiallyBound();
             }
-
-            dslBindings.push_back(vkBinding);
         }
 
-        assert(bindFlags.size() == dslBindings.size());
-
-        VkDescriptorSetLayoutCreateInfo dslci { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
-        dslci.bindingCount = dslBindings.size();
-        dslci.pBindings = dslBindings.data();
-
-        VkDescriptorSetLayoutBindingFlagsCreateInfo dslbfci{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO };
-        if (useBindFlags) {
-            dslbfci.bindingCount = bindFlags.size();
-            dslbfci.pBindingFlags = bindFlags.data();
-            dslci.pNext = &dslbfci;
-        }
-
-        VkDescriptorSetLayout layout;
-        VKCHECK(vkCreateDescriptorSetLayout(device, &dslci, nullptr, &layout));
-
-        return layout;
+        return dslb.Build();
     }
 
     VertexAttributeBindings ShaderReflector::getVertexAttributeBindings() {
         VertexAttributeBindings bindings{ -1, -1, -1, -1, -1, -1, -1 };
 
-        if (mod.shader_stage != VK_SHADER_STAGE_VERTEX_BIT) {
+        if (mod.shader_stage != SPV_REFLECT_SHADER_STAGE_VERTEX_BIT) {
             return bindings;
         }
 

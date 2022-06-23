@@ -60,6 +60,7 @@ namespace R2::VK
     public:
         DescriptorSetLayoutBuilder(const Handles* handles);
         DescriptorSetLayoutBuilder& Binding(uint32_t binding, DescriptorType type, uint32_t count, ShaderStage stage);
+        DescriptorSetLayoutBuilder& PartiallyBound();
         DescriptorSetLayout* Build();
     private:
         struct DescriptorBinding
@@ -68,6 +69,7 @@ namespace R2::VK
             DescriptorType Type;
             uint32_t Count;
             ShaderStage Stage;
+            bool PartiallyBound;
         };
 
         std::vector<DescriptorBinding> bindings;

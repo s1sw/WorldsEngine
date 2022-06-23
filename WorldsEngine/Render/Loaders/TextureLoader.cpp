@@ -12,6 +12,8 @@
 #include <mutex>
 #include <WTex.hpp>
 
+using namespace R2;
+
 namespace worlds {
     std::mutex vkMutex;
 
@@ -51,20 +53,20 @@ namespace worlds {
 
         crn_format fundamentalFormat = crnd::crnd_get_fundamental_dxt_format(texInfo.m_format);
 
-        VkFormat format{};
+        VK::TextureFormat format{};
 
         switch (fundamentalFormat) {
         case crn_format::cCRNFmtDXT1:
-            format = isSRGB ? VK_FORMAT_BC1_RGBA_SRGB_BLOCK : VK_FORMAT_BC1_RGBA_UNORM_BLOCK;
+            format = isSRGB ? VK::TextureFormat::BC1_RGBA_SRGB_BLOCK : VK::TextureFormat::BC1_RGBA_UNORM_BLOCK;
             break;
         case crn_format::cCRNFmtDXT5:
-            format = isSRGB ? VK_FORMAT_BC3_SRGB_BLOCK : VK_FORMAT_BC3_UNORM_BLOCK;
+            format = isSRGB ? VK::TextureFormat::BC3_SRGB_BLOCK : VK::TextureFormat::BC3_UNORM_BLOCK;
             break;
         case crn_format::cCRNFmtDXN_XY:
-            format = VK_FORMAT_BC5_UNORM_BLOCK;
+            format = VK::TextureFormat::BC5_UNORM_BLOCK;
             break;
         default:
-            format = VK_FORMAT_UNDEFINED;
+            format = VK::TextureFormat::UNDEFINED;
             break;
         }
 
@@ -128,11 +130,11 @@ namespace worlds {
         td.width = (uint32_t)x;
         td.height = (uint32_t)y;
         if (hdr)
-            td.format = VK_FORMAT_R32G32B32A32_SFLOAT;
+            td.format = VK::TextureFormat::R32G32B32A32_SFLOAT;
         else if (!forceLinear)
-            td.format = VK_FORMAT_R8G8B8A8_SRGB;
+            td.format = VK::TextureFormat::R8G8B8A8_SRGB;
         else
-            td.format = VK_FORMAT_R8G8B8A8_UNORM;
+            td.format = VK::TextureFormat::R8G8B8A8_UNORM;
         td.name = AssetDB::idToPath(id);
         td.totalDataSize = hdr ? x * y * 4 * sizeof(float) : x * y * 4;
         return td;

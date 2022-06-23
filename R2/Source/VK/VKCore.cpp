@@ -22,6 +22,7 @@ size_t operator""_MB(size_t sz)
 namespace R2::VK
 {
 	const uint32_t NUM_FRAMES_IN_FLIGHT = 2;
+	const size_t STAGING_BUFFER_SIZE = 16_MB;
 
 	Core::Core(IDebugOutputReceiver* dbgOutRecv)
 		: inFrame(false)
@@ -58,7 +59,7 @@ namespace R2::VK
 
 			BufferCreateInfo stagingCreateInfo{};
 			// 8MB staging buffer
-			stagingCreateInfo.Size = 8_MB;
+			stagingCreateInfo.Size = STAGING_BUFFER_SIZE;
 			stagingCreateInfo.Usage = BufferUsage::Storage;
 			stagingCreateInfo.Mappable = true;
 			perFrameResources[i].StagingBuffer = CreateBuffer(stagingCreateInfo);
@@ -195,6 +196,8 @@ namespace R2::VK
 		PerFrameResources& frameResources = perFrameResources[frameIndex];
 
 		uint64_t uploadedOffset = frameResources.StagingOffset;
+		if (dataSize + uploadedOffset >= STAGING_BUFFER_SIZE) abort();
+
 		memcpy(frameResources.StagingMapped + uploadedOffset, data, dataSize);
 
 		frameResources.BufferToTextureCopies.emplace_back(frameResources.StagingBuffer, texture, uploadedOffset);
