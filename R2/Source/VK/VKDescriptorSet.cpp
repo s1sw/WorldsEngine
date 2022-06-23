@@ -57,7 +57,9 @@ namespace R2::VK
     DescriptorSetLayout* DescriptorSetLayoutBuilder::Build()
     {
         std::vector<VkDescriptorSetLayoutBinding> layoutBindings;
+        std::vector<VkDescriptorBindingFlags> bindingFlags;
         layoutBindings.reserve(bindings.size());
+        bindingFlags.reserve(bindings.size());
 
         for (DescriptorBinding& db : bindings)
         {
@@ -68,6 +70,15 @@ namespace R2::VK
             lb.stageFlags = static_cast<VkShaderStageFlags>(db.Stage);
 
             layoutBindings.push_back(lb);
+
+            VkDescriptorBindingFlags thisBindFlags = 0;
+
+            if (db.PartiallyBound)
+            {
+                thisBindFlags |= VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT;
+            }
+
+            bindingFlags.push_back(thisBindFlags);
         }
 
         VkDescriptorSetLayoutCreateInfo dslci{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };

@@ -3,7 +3,7 @@
 #include "ImGuiFS.h"
 #include "ImGuiVS.h"
 #include <R2/VKBuffer.hpp>
-#include <R2/VKRenderer.hpp>
+#include <R2/VKCore.hpp>
 #include <R2/VKPipeline.hpp>
 #include <R2/VKDescriptorSet.hpp>
 #include <R2/VKRenderPass.hpp>
@@ -27,7 +27,7 @@ struct R2ImplState
     size_t vertexBufferCapacity = 0;
     VK::Buffer* indexBuffer = nullptr;
     size_t indexBufferCapacity = 0;
-    VK::Renderer* renderer = nullptr;
+    VK::Core* core = nullptr;
     VkPipelineLayout pipelineLayout = nullptr;
     VK::DescriptorSetLayout* dsl = nullptr;
     VK::Pipeline* pipeline = nullptr;
@@ -43,14 +43,14 @@ R2ImplState* getImplState()
 
 void ImGui_ImplR2_CreateFontTextureAndDS();
 
-bool ImGui_ImplR2_Init(VK::Renderer* renderer)
+bool ImGui_ImplR2_Init(VK::Core* renderer)
 {
     ImGuiIO& io = ImGui::GetIO();
     io.BackendRendererName = "R2";
     io.BackendFlags |= ImGuiBackendFlags_RendererHasVtxOffset;
 
     R2ImplState* s = new R2ImplState{};
-    s->renderer = renderer;
+    s->core = renderer;
     io.BackendRendererUserData = s;
 
     VK::DescriptorSetLayoutBuilder dslb{ renderer->GetHandles() };
@@ -64,9 +64,9 @@ bool ImGui_ImplR2_Init(VK::Renderer* renderer)
 
     VK::VertexBinding vertexBinding{};
     vertexBinding.Binding = 0;
-    vertexBinding.Attributes.add(VK::VertexAttribute{ 0, VK::TextureFormat::R32G32_SFLOAT, offsetof(ImDrawVert, pos) });
-    vertexBinding.Attributes.add(VK::VertexAttribute{ 1, VK::TextureFormat::R32G32_SFLOAT, offsetof(ImDrawVert, uv) });
-    vertexBinding.Attributes.add(VK::VertexAttribute{ 2, VK::TextureFormat::R8G8B8A8_UNORM, offsetof(ImDrawVert, col) });
+    vertexBinding.Attributes.push_back(VK::VertexAttribute{ 0, VK::TextureFormat::R32G32_SFLOAT, offsetof(ImDrawVert, pos) });
+    vertexBinding.Attributes.push_back(VK::VertexAttribute{ 1, VK::TextureFormat::R32G32_SFLOAT, offsetof(ImDrawVert, uv) });
+    vertexBinding.Attributes.push_back(VK::VertexAttribute{ 2, VK::TextureFormat::R8G8B8A8_UNORM, offsetof(ImDrawVert, col) });
     vertexBinding.Size = sizeof(ImDrawVert);
 
     VK::ShaderModule fsm{ renderer->GetHandles(), ImGuiFS, sizeof(ImGuiFS) };
@@ -92,11 +92,11 @@ bool ImGui_ImplR2_Init(VK::Renderer* renderer)
 void ImGui_ImplR2_Shutdown()
 {
     R2ImplState* s = getImplState();
-    s->renderer->DestroyBuffer(s->indexBuffer);
-    s->renderer->DestroyBuffer(s->vertexBuffer);
+    s->core->DestroyBuffer(s->indexBuffer);
+    s->core->DestroyBuffer(s->vertexBuffer);
     delete s->dsl;
     delete s->pipeline;
-    s->renderer->DestroyTexture(s->fontTexture);
+    s->core->DestroyTexture(s->fontTexture);
     delete s->ds;
     //s->pipelineLayout;
     delete s->sampler;
@@ -116,15 +116,15 @@ void ImGui_ImplR2_CreateFontTextureAndDS()
     io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
 
     VK::TextureCreateInfo tci = VK::TextureCreateInfo::Texture2D(VK::TextureFormat::R8G8B8A8_UNORM, width, height);
-    s->fontTexture = s->renderer->CreateTexture(tci);
+    s->fontTexture = s->core->CreateTexture(tci);
 
-    s->renderer->QueueTextureUpload(s->fontTexture, pixels, 4 * width * height);
+    s->core->QueueTextureUpload(s->fontTexture, pixels, 4 * width * height);
 
     ImGui::MemFree(pixels);
 
-    s->ds = s->renderer->CreateDescriptorSet(s->dsl);
+    s->ds = s->core->CreateDescriptorSet(s->dsl);
 
-    VK::SamplerBuilder sb{ s->renderer->GetHandles() };
+    VK::SamplerBuilder sb{ s->core->GetHandles() };
     s->sampler = sb
         .AddressMode(VK::SamplerAddressMode::Repeat)
         .MagFilter(VK::Filter::Linear)
@@ -132,12 +132,12 @@ void ImGui_ImplR2_CreateFontTextureAndDS()
         .MipmapMode(VK::SamplerMipmapMode::Linear)
         .Build();
 
-    VK::DescriptorSetUpdater dsu{ s->renderer->GetHandles(), s->ds };
+    VK::DescriptorSetUpdater dsu{ s->core->GetHandles(), s->ds };
     dsu.AddTexture(0, 0, VK::DescriptorType::CombinedImageSampler, s->fontTexture, s->sampler)
         .Update();
 }
 
-void ImGui_ImplR2_RenderDrawData(ImDrawData * drawData, VK::CommandBuffer& cb)
+void ImGui_ImplR2_RenderDrawData(ImDrawData* drawData, VK::CommandBuffer& cb)
 {
     R2ImplState* s = getImplState();
 
@@ -145,7 +145,7 @@ void ImGui_ImplR2_RenderDrawData(ImDrawData * drawData, VK::CommandBuffer& cb)
     {
         if (s->vertexBuffer)
         {
-            s->renderer->DestroyBuffer(s->vertexBuffer);
+            s->core->DestroyBuffer(s->vertexBuffer);
         }
 
         s->vertexBufferCapacity = drawData->TotalVtxCount + 5000;
@@ -155,14 +155,14 @@ void ImGui_ImplR2_RenderDrawData(ImDrawData * drawData, VK::CommandBuffer& cb)
         bci.Size = s->vertexBufferCapacity * sizeof(ImDrawVert);
         bci.Usage = VK::BufferUsage::Vertex;
         
-        s->vertexBuffer = s->renderer->CreateBuffer(bci);
+        s->vertexBuffer = s->core->CreateBuffer(bci);
     }
 
     if (!s->indexBuffer || s->indexBufferCapacity < drawData->TotalIdxCount)
     {
         if (s->indexBuffer)
         {
-            s->renderer->DestroyBuffer(s->indexBuffer);
+            s->core->DestroyBuffer(s->indexBuffer);
         }
 
         s->indexBufferCapacity = drawData->TotalIdxCount + 10000;
@@ -172,7 +172,7 @@ void ImGui_ImplR2_RenderDrawData(ImDrawData * drawData, VK::CommandBuffer& cb)
         bci.Size = s->indexBufferCapacity * sizeof(ImDrawIdx);
         bci.Usage = VK::BufferUsage::Index;
 
-        s->indexBuffer = s->renderer->CreateBuffer(bci);
+        s->indexBuffer = s->core->CreateBuffer(bci);
     }
 
     ImDrawVert* verts = static_cast<ImDrawVert*>(s->vertexBuffer->Map());
@@ -240,13 +240,6 @@ void ImGui_ImplR2_RenderDrawData(ImDrawData * drawData, VK::CommandBuffer& cb)
                 VK::ScissorRect sr{ clip_min.x, clip_min.y, clip_max.x - clip_min.x, clip_max.y - clip_min.y };
                 cb.SetScissor(sr);
 
-                //const D3D11_RECT r = { (LONG)clip_min.x, (LONG)clip_min.y, (LONG)clip_max.x, (LONG)clip_max.y };
-                //ctx->RSSetScissorRects(1, &r);
-                //
-                //// Bind texture, Draw
-                //ID3D11ShaderResourceView* texture_srv = (ID3D11ShaderResourceView*)pcmd->GetTexID();
-                //ctx->PSSetShaderResources(0, 1, &texture_srv);
-                //ctx->DrawIndexed(pcmd->ElemCount, pcmd->IdxOffset + global_idx_offset, pcmd->VtxOffset + global_vtx_offset);
                 cb.DrawIndexed(pcmd->ElemCount, 1, pcmd->IdxOffset + global_idx_offset, pcmd->VtxOffset + global_vtx_offset, 0);
             }
         }

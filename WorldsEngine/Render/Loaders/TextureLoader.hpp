@@ -1,7 +1,8 @@
 #pragma once
 #include <cstdint>
-#include "../../Core/AssetDB.hpp"
+#include <Core/AssetDB.hpp>
 #include <string>
+#include <R2/VKTexture.hpp>
 
 namespace worlds {
     struct TextureData {
@@ -9,7 +10,7 @@ namespace worlds {
         uint32_t width, height;
         uint32_t numMips;
         uint32_t totalDataSize;
-        VkFormat format;
+        R2::VK::TextureFormat format;
         std::string name;
     };
 

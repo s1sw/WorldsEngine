@@ -3,13 +3,12 @@
 #include <SDL_log.h>
 #include <chrono>
 #include <ctime>
-#include "../ImGui/imgui.h"
-#include "../ImGui/imgui_stdlib.h"
+#include <ImGui/imgui.h>
+#include <ImGui/imgui_stdlib.h>
 #include <iostream>
 #include "Engine.hpp"
-#include "../IO/IOUtil.hpp"
+#include <IO/IOUtil.hpp>
 #include <sstream>
-#include "LogCategories.hpp"
 #if defined(_WIN32) && !defined(__MINGW32__)
 #define _AMD64_
 #include <debugapi.h>

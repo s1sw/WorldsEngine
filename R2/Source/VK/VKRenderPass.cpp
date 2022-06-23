@@ -61,8 +61,7 @@ namespace R2::VK
 
     RenderPass& RenderPass::ColorAttachmentClearValue(ClearValue cv)
     {
-        colorAttachments[numColorAttachments].ClearValue = cv;
-        numColorAttachments++;
+        colorAttachments[numColorAttachments - 1].ClearValue = cv;
 
         return *this;
     }
@@ -87,9 +86,9 @@ namespace R2::VK
 
     void RenderPass::Begin(CommandBuffer cb)
     {
-        for (const AttachmentInfo& info : colorAttachments)
+        for (int i = 0; i < numColorAttachments; i++)
         {
-            info.Texture->WriteLayoutTransition(cb, ImageLayout::AttachmentOptimal);
+            colorAttachments[i].Texture->WriteLayoutTransition(cb, ImageLayout::AttachmentOptimal);
         }
 
         if (depthAttachment.Texture)

@@ -39,6 +39,17 @@ namespace R2::VK
     {
         ClearColorValue           Color;
         ClearDepthStencilValue    DepthStencil;
+
+        static ClearValue FloatColorClear(float r, float g, float b, float a)
+        {
+            ClearValue cv;
+            cv.Color.Float32[0] = r;
+            cv.Color.Float32[1] = g;
+            cv.Color.Float32[2] = b;
+            cv.Color.Float32[3] = a;
+
+            return cv;
+        }
     };
 
     class CommandBuffer;

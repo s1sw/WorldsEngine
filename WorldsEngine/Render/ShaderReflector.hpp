@@ -1,7 +1,11 @@
 #pragma once
 #include <cstdint>
-#include <Render/vku/vku.hpp>
 #include <Libs/spirv_reflect.h>
+
+namespace R2::VK {
+    class DescriptorSetLayout;
+    class Core;
+}
 
 namespace worlds {
     typedef uint32_t AssetID;
@@ -20,7 +24,7 @@ namespace worlds {
     public:
         ShaderReflector(AssetID shaderId);
         ~ShaderReflector();
-        vku::DescriptorSetLayout createDescriptorSetLayout(VkDevice device, uint32_t setIndex);
+        R2::VK::DescriptorSetLayout* createDescriptorSetLayout(R2::VK::Core* device, uint32_t setIndex);
         VertexAttributeBindings getVertexAttributeBindings();
     private:
         SpvReflectShaderModule mod;

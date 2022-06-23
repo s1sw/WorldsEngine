@@ -12,10 +12,10 @@ namespace worlds {
 
     void AboutWindow::setActive(bool active) {
         this->active = active;
-        auto& texMan = interfaces.renderer->uiTextureManager();
-        bgId = texMan.loadOrGet(AssetDB::pathToId("UI/Editor/Images/worlds_no_logo.png"));
-        bradnoId = texMan.loadOrGet(AssetDB::pathToId("UI/Editor/Images/bradno.png"));
-        someoneId = texMan.loadOrGet(AssetDB::pathToId("UI/Editor/Images/someone_avatar.png"));
+        //auto& texMan = interfaces.renderer->uiTextureManager();
+        //bgId = texMan.loadOrGet(AssetDB::pathToId("UI/Editor/Images/worlds_no_logo.png"));
+        //bradnoId = texMan.loadOrGet(AssetDB::pathToId("UI/Editor/Images/bradno.png"));
+        //someoneId = texMan.loadOrGet(AssetDB::pathToId("UI/Editor/Images/someone_avatar.png"));
     }
 
     ImVec2 rotatePoint(ImVec2 p, float angle) {

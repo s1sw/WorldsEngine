@@ -10,7 +10,9 @@
 #endif
 
 #if defined(WIN32) && !defined(CRNLIB_ANSI_CPLUSPLUS)
-   #define NOMINMAX
+   #ifndef NOMINMAX
+      #define NOMINMAX
+   #endif
 
    #define CRNLIB_USE_WIN32_API 1
 

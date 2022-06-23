@@ -2,7 +2,6 @@
 #include "Editor/EditorActions.hpp"
 #include "ImGui/ImGuizmo.h"
 #include "Render/RenderInternal.hpp"
-#include "Util/VKImGUIUtil.hpp"
 #include "Libs/IconsFontAwesome5.h"
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include "ImGui/imgui_internal.h"
@@ -19,10 +18,10 @@ namespace worlds {
         currentHeight = 256;
         cam = *interfaces.mainCamera;
         recreateRTT();
-        auto& texMan = interfaces.renderer->uiTextureManager();
-        audioSourceIcon = texMan.loadOrGet(AssetDB::pathToId("UI/Editor/Images/Audio Source.png"));
-        worldLightIcon   = texMan.loadOrGet(AssetDB::pathToId("UI/Editor/Images/WorldLight.png"));
-        worldCubemapIcon = texMan.loadOrGet(AssetDB::pathToId("UI/Editor/Images/Cubemap.png"));
+        //auto& texMan = interfaces.renderer->uiTextureManager();
+        //audioSourceIcon = texMan.loadOrGet(AssetDB::pathToId("UI/Editor/Images/Audio Source.png"));
+        //worldLightIcon   = texMan.loadOrGet(AssetDB::pathToId("UI/Editor/Images/WorldLight.png"));
+        //worldCubemapIcon = texMan.loadOrGet(AssetDB::pathToId("UI/Editor/Images/Cubemap.png"));
     }
 
     void EditorSceneView::drawWindow(int uniqueId) {
@@ -43,7 +42,7 @@ namespace worlds {
                 currentWidth  = contentRegion.x;
                 currentHeight = contentRegion.y;
                 sceneViewPass->resize(currentWidth, currentHeight);
-                VKImGUIUtil::updateDescriptorSet(sceneViewDS, static_cast<VKRTTPass*>(sceneViewPass)->sdrFinalTarget->image());
+                //VKImGUIUtil::updateDescriptorSet(sceneViewDS, static_cast<VKRTTPass*>(sceneViewPass)->sdrFinalTarget->image());
             }
             cam.verticalFOV = interfaces.mainCamera->verticalFOV;
 
@@ -378,7 +377,7 @@ namespace worlds {
     }
 
     void EditorSceneView::recreateRTT() {
-        auto vkCtx = static_cast<VKRenderer*>(interfaces.renderer)->getHandles();
+        //auto vkCtx = static_cast<VKRenderer*>(interfaces.renderer)->getHandles();
 
         if (sceneViewPass)
             interfaces.renderer->destroyRTTPass(sceneViewPass);
@@ -395,13 +394,13 @@ namespace worlds {
 
         sceneViewPass = interfaces.renderer->createRTTPass(sceneViewPassCI);
 
-        if (sceneViewDS) {
-            vkFreeDescriptorSets(vkCtx->device, vkCtx->descriptorPool, 1, &sceneViewDS);
-        }
+        //if (sceneViewDS) {
+        //    vkFreeDescriptorSets(vkCtx->device, vkCtx->descriptorPool, 1, &sceneViewDS);
+        //}
 
-        sceneViewDS = VKImGUIUtil::createDescriptorSetFor(
-            static_cast<VKRTTPass*>(sceneViewPass)->sdrFinalTarget->image(), vkCtx);
-        sceneViewPass->active = true;
+        //sceneViewDS = VKImGUIUtil::createDescriptorSetFor(
+        //    static_cast<VKRTTPass*>(sceneViewPass)->sdrFinalTarget->image(), vkCtx);
+        //sceneViewPass->active = true;
     }
 
     void EditorSceneView::setShadowsEnabled(bool enabled) {
@@ -411,7 +410,7 @@ namespace worlds {
 
     void EditorSceneView::setViewportActive(bool active) {
         viewportActive = active;
-        sceneViewPass->active = active;
+        //sceneViewPass->active = active;
     }
 
     Camera& EditorSceneView::getCamera() {
@@ -520,9 +519,9 @@ namespace worlds {
     }
 
     EditorSceneView::~EditorSceneView() {
-        auto vkCtx = static_cast<VKRenderer*>(interfaces.renderer)->getHandles();
+        //auto vkCtx = static_cast<VKRenderer*>(interfaces.renderer)->getHandles();
 
-        DeletionQueue::queueDescriptorSetFree(vkCtx->descriptorPool, sceneViewDS);
+        //DeletionQueue::queueDescriptorSetFree(vkCtx->descriptorPool, sceneViewDS);
 
         interfaces.renderer->destroyRTTPass(sceneViewPass);
     }

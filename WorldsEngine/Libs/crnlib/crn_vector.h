@@ -4,8 +4,10 @@
 
 namespace crnlib
 {
+#ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wclass-memaccess"
+#endif
    struct elemental_vector
    {
       void* m_p;
@@ -707,5 +709,7 @@ namespace crnlib
    }
 
 } // namespace crnlib
+#ifdef __GNUC__
 #pragma GCC diagnostic pop
+#endif
 

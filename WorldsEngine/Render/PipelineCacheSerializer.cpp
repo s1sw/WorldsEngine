@@ -1,5 +1,9 @@
 #include "RenderInternal.hpp"
 #include <SDL_filesystem.h>
+#include <Core/Log.hpp>
+#include "../../R2/PrivateInclude/volk.h" // AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+#include <R2/R2.hpp>
+#include <R2/VKCore.hpp>
 
 namespace worlds {
     // adapted from https://zeux.io/2019/07/17/serializing-pipeline-cache/

@@ -201,7 +201,7 @@ namespace worlds {
         SDL_SetWindowHitTest(window, hitTest, nullptr);
         sceneViews.add(new EditorSceneView{ interfaces, this });
 
-        titleBarIcon = interfaces.renderer->uiTextureManager().loadOrGet(AssetDB::pathToId("UI/Editor/Images/logo_no_background_small.png"));
+        //titleBarIcon = interfaces.renderer->uiTextureManager().loadOrGet(AssetDB::pathToId("UI/Editor/Images/logo_no_background_small.png"));
 
         EntityFolders folders;
 
@@ -702,7 +702,7 @@ namespace worlds {
 
         project = std::make_unique<GameProject>(path);
         project->mountPaths();
-        interfaces.renderer->reloadContent(ReloadFlags::All);
+        //interfaces.renderer->reloadContent(ReloadFlags::All);
 
         // Update recent projects list
         std::vector<std::string> recentProjects;
@@ -766,7 +766,7 @@ namespace worlds {
                     g_console->executeCommandStr("pauseAndEdit");
                 }
 
-                menuButtonsExtent = ImGui::GetCursorPosX();
+                menuButtonsExtent = (int)ImGui::GetCursorPosX();
 
                 menubar.draw();
                 ImGui::EndMainMenuBar();
@@ -987,7 +987,7 @@ namespace worlds {
                     project.reset();
 
                     interfaces.engine->createStartupScene();
-                    interfaces.renderer->reloadContent(worlds::ReloadFlags::All);
+                    //interfaces.renderer->reloadContent(worlds::ReloadFlags::All);
 
                     if (dotnetWatchProcess) {
                         dotnetWatchProcess->kill();
@@ -1067,7 +1067,7 @@ namespace worlds {
                 ImGui::EndMenu();
             }
 
-            menuButtonsExtent = ImGui::GetCursorPosX();
+            menuButtonsExtent = (int)ImGui::GetCursorPosX();
 
             menubar.draw();
 
