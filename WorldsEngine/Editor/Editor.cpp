@@ -188,6 +188,7 @@ namespace worlds {
         ADD_EDITOR_WINDOW(SceneSettingsWindow);
         ADD_EDITOR_WINDOW(RawAssets);
         ADD_EDITOR_WINDOW(AssetCompilationManager);
+        ADD_EDITOR_WINDOW(NodeEditorTest);
 
 #undef ADD_EDITOR_WINDOW
         AssetCompilers::initialise();
