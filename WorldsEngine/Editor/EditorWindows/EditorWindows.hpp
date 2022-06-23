@@ -106,4 +106,13 @@ namespace worlds {
         const char* getName() override { return "Asset Compilation Manager"; }
         ~AssetCompilationManager() {}
     };
+
+    class NodeEditorTest : public EditorWindow {
+    public:
+        NodeEditorTest(EngineInterfaces interfaces, Editor* editor) : EditorWindow{ interfaces, editor } { active = false; }
+        void draw(entt::registry&) override;
+        EditorMenu menuSection() override { return EditorMenu::Help; }
+        const char* getName() override { return "Node Editor Test"; }
+        ~NodeEditorTest() {}
+    };
 }
