@@ -1,27 +1,17 @@
 #pragma once
-#include "Render.hpp"
+#include <Render/Render.hpp>
 #include <Render/DebugLines.hpp>
-#include <Render/vku/vku.hpp>
-#include <Render/vku/DebugCallback.hpp>
-#include <Render/ResourceSlots.hpp>
 #include <tracy/TracyVulkan.hpp>
 #include <robin_hood.h>
-#include <deque>
-#include <Render/R2/PublicInclude/R2/R2.hpp>
+#include <R2/R2.hpp>
 
 struct ImDrawData;
 
-namespace std {
-    class mutex;
+namespace R2::VK {
+    class Swapchain;
 }
 
 namespace worlds {
-    class PolyRenderPass;
-    class ImGuiRenderPass;
-    class TonemapFXRenderPass;
-    class ShadowCascadePass;
-    class AdditionalShadowsPass;
-    class GTAORenderPass;
     class VKRenderer;
 
     struct AOBox {
@@ -103,10 +93,6 @@ namespace worlds {
         glm::mat4 modelMatrices[SIZE];
     };
 
-    struct MaterialsUB {
-        PackedMaterial materials[NUM_MAT_SLOTS];
-    };
-
     struct ShadowCascadeInfo {
         bool shadowCascadeNeeded = false;
         glm::mat4 matrices[4];
@@ -132,382 +118,52 @@ namespace worlds {
         float weights[4];
     };
 
-    struct LoadedMeshData {
-        vku::VertexBuffer vb;
-        vku::IndexBuffer ib;
-
-        bool isSkinned;
-        vku::VertexBuffer vertexSkinWeights;
-        std::vector<MeshBone> meshBones;
-
-        uint32_t indexCount;
-        VkIndexType indexType;
-        SubmeshInfo submeshes[NUM_SUBMESH_MATS];
-        uint8_t numSubmeshes;
-        float sphereRadius;
-        glm::vec3 aabbMin;
-        glm::vec3 aabbMax;
-    };
-
-    struct QueueFamilies {
-        uint32_t graphics;
-        uint32_t present;
-        uint32_t asyncCompute;
-    };
-
-    struct Queues {
-        VkQueue graphics;
-        VkQueue present;
-        VkQueue asyncCompute;
-
-        uint32_t graphicsIdx;
-        uint32_t presentIdx;
-        uint32_t asyncComputeIdx;
-    };
-
-    class Swapchain {
-    public:
-        Swapchain(VkPhysicalDevice&, VkDevice, VkSurfaceKHR&, const Queues& queues, bool fullscreen, VkSwapchainKHR oldSwapchain = VkSwapchainKHR(), VkPresentModeKHR presentMode = VK_PRESENT_MODE_FIFO_KHR);
-        ~Swapchain();
-        void getSize(uint32_t* x, uint32_t* y) { *x = width; *y = height; }
-        VkResult acquireImage(VkDevice device, VkSemaphore semaphore, uint32_t* imageIndex);
-        VkSwapchainKHR& getSwapchain() { return swapchain; }
-        VkFormat imageFormat() { return format; }
-        std::vector<VkImage> images;
-        std::vector<VkImageView> imageViews;
-    private:
-        VkDevice device;
-        VkSwapchainKHR swapchain;
-        VkFormat format;
-        uint32_t width;
-        uint32_t height;
-    };
-
-    // Holds handles to useful Vulkan objects
-    struct VulkanHandles {
-        VKVendor vendor;
-        bool hasOutOfOrderRasterization;
-        VkPhysicalDevice physicalDevice;
-        VkDevice device;
-        VkPipelineCache pipelineCache;
-        VkDescriptorPool descriptorPool;
-        VkCommandPool commandPool;
-        VkInstance instance;
-        VmaAllocator allocator;
-        uint32_t graphicsQueueFamilyIdx;
-        GraphicsSettings graphicsSettings;
-        uint32_t width, height;
-        uint32_t vrWidth, vrHeight;
-    };
-
-    enum class TextureType {
-        T1D,
-        T2D,
-        T2DArray,
-        T3D,
-        TCube
-    };
-
-    enum class SharingMode {
-        Exclusive,
-        Concurrent
-    };
-
-    struct TextureResourceCreateInfo {
-        TextureResourceCreateInfo() {}
-
-        TextureResourceCreateInfo(TextureType type, VkFormat format,
-            int width, int height, VkImageUsageFlags usage)
-            : type(type)
-            , format(format)
-            , width(width)
-            , height(height)
-            , usage(usage)
-            , initialLayout(VK_IMAGE_LAYOUT_UNDEFINED) {
-
-            if (format > 124 && format < 130) {
-                aspectFlags = (VkImageAspectFlags)0;
-                if (format != VK_FORMAT_S8_UINT)
-                    aspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT;
-
-                if (format >= 127)
-                    aspectFlags &= VK_IMAGE_ASPECT_STENCIL_BIT;
-            } else {
-                aspectFlags = VK_IMAGE_ASPECT_COLOR_BIT;
-            }
-        }
-
-        TextureType type;
-        VkFormat format;
-
-        int width;
-        int height;
-        int depth = 1;
-        int mipLevels = 1;
-        int layers = 1;
-        int samples = 1;
-
-        VkImageUsageFlags usage;
-        VkImageLayout initialLayout;
-        SharingMode sharingMode = SharingMode::Exclusive;
-
-        VkImageAspectFlags aspectFlags;
-    };
-
-    enum class ResourceType {
-        Buffer,
-        Image
-    };
-
-    // A class for either a buffer or an image.
-    struct RenderResource {
-        ResourceType type;
-        std::unique_ptr<vku::Resource> resource;
-        std::string name;
-
-        vku::GenericImage& image() {
-            vku::Resource* raw = resource.get();
-            return *static_cast<vku::GenericImage*>(raw);
-        }
-
-        vku::GenericBuffer& buffer() {
-            vku::Resource* raw = resource.get();
-            return *static_cast<vku::GenericBuffer*>(raw);
-        }
-    };
-
-    struct RenderResources {
-        TextureSlots& textures;
-        CubemapSlots& cubemaps;
-        MaterialSlots& materials;
-        robin_hood::unordered_map<AssetID, LoadedMeshData>& meshes;
-        vku::GenericImage* brdfLut;
-        vku::GenericImage* blueNoiseTexture;
-        vku::GenericBuffer* materialBuffer;
-        vku::GenericBuffer* vpMatrixBuffer;
-        // skinningBuffer_s_! there are multiple for each frame in flight
-        vku::GenericBuffer* skinningBuffers;
-        RenderResource* shadowCascades;
-        RenderResource** additionalShadowImages;
-        size_t numDebugLines;
-        const DebugLine* debugLineBuffer;
-    };
-
-    struct RenderContext {
-        RenderResources resources;
-        ShadowCascadeInfo cascadeInfo;
-        RenderDebugContext debugContext;
-        GraphicsSettings passSettings;
-        entt::registry& registry;
-        VKRenderer* renderer;
-        Camera camera;
-
-        glm::mat4 projMatrices[2];
-        glm::mat4 viewMatrices[2];
-
-        VkCommandBuffer cmdBuf;
-        uint32_t passWidth;
-        uint32_t passHeight;
-        uint32_t frameIndex;
-        int maxSimultaneousFrames;
-    };
-
-    class BRDFLUTRenderer {
-    public:
-        BRDFLUTRenderer(VulkanHandles& ctx);
-        void render(VulkanHandles& ctx, vku::GenericImage& target);
-    private:
-        vku::RenderPass renderPass;
-        vku::Pipeline pipeline;
-        vku::PipelineLayout pipelineLayout;
-
-        vku::ShaderModule vs;
-        vku::ShaderModule fs;
-    };
-
-    class CubemapConvoluter {
-    public:
-        CubemapConvoluter(std::shared_ptr<VulkanHandles> ctx);
-        void convolute(vku::TextureImageCube& cubemap);
-    private:
-        vku::ShaderModule cs;
-        vku::Pipeline pipeline;
-        vku::PipelineLayout pipelineLayout;
-        vku::DescriptorSetLayout dsl;
-        std::shared_ptr<VulkanHandles> vkCtx;
-        vku::Sampler sampler;
-    };
-
     class PipelineCacheSerializer {
     public:
         static void loadPipelineCache(const VkPhysicalDeviceProperties&, VkPipelineCacheCreateInfo&);
         static void savePipelineCache(const VkPhysicalDeviceProperties&, const VkPipelineCache&, const VkDevice&);
     };
 
-    class DeletionQueue {
-    public:
-        static void intitialize(VkDevice, VmaAllocator);
-        static void queueObjectDeletion(void* object, VkObjectType type);
-        static void queueMemoryFree(VmaAllocation allocation);
-        static void queueDescriptorSetFree(VkDescriptorPool dPool, VkDescriptorSet ds);
-        static void queueCustomDeletion(std::function<void()> func);
-        static void setCurrentFrame(uint32_t frame);
-        static void cleanupFrame(uint32_t frame);
-        static void resize(uint32_t maxFrames);
-    private:
-        static VkDevice deletionDevice;
-        static VmaAllocator deletionAllocator;
-
-        struct ObjectDeletion {
-            void* object;
-            VkObjectType type;
-        };
-
-        struct MemoryFree {
-            VmaAllocation allocation;
-        };
-
-        struct DescriptorSetFree {
-            VkDescriptorPool desciptorPool;
-            VkDescriptorSet descriptorSet;
-        };
-
-        struct DQueue {
-            std::deque<ObjectDeletion> objectDeletions;
-            std::deque<MemoryFree> memoryFrees;
-            std::deque<DescriptorSetFree> dsFrees;
-            std::deque<std::function<void()>> customDeletions;
-        };
-
-        static std::vector<DQueue> deletionQueues;
-        static uint32_t currentFrameIndex;
-
-        static void processObjectDeletion(const ObjectDeletion& od);
-        static void processMemoryFree(const MemoryFree& mf);
-    };
-
-    class SkinningMatricesManager {
-    public:
-        SkinningMatricesManager(VulkanHandles* handles, int framesInFlight);
-        VkBuffer getBuffer(int frameIndex);
-        void updateBuffer(RenderContext& ctx);
-        vku::GenericBuffer* getBuffers();
-        ~SkinningMatricesManager();
-    private:
-        std::vector<vku::GenericBuffer> matrixBuffers;
-        std::vector<glm::mat4*> mappedBuffers;
-    };
-
-    class VKRTTPass : public RTTPass {
-    public:
-        void drawNow(entt::registry& world) override;
-        RenderResource* hdrTarget;
-        RenderResource* sdrFinalTarget;
-        RenderResource* depthTarget;
-        RenderResource* bloomTarget;
-        void requestPick(int x, int y) override;
-        bool getPickResult(uint32_t* result) override;
-        float* getHDRData() override;
-        void resize(int newWidth, int newHeight) override;
-        void setResolutionScale(float newResolutionScale) override;
-    private:
-        VKRTTPass(const RTTPassCreateInfo& ci, VKRenderer* renderer, IVRInterface* vrInterface, uint32_t frameIdx, RenderDebugStats* dbgStats);
-        ~VKRTTPass();
-        void create(VKRenderer* renderer, IVRInterface* vrInterface, uint32_t frameIdx, RenderDebugStats* dbgStats);
-        void destroy();
-        PolyRenderPass* prp;
-        TonemapFXRenderPass* trp;
-        bool isVr;
-        bool outputToScreen;
-        bool enableShadows;
-        Camera* cam;
-        VKRenderer* renderer;
-        IVRInterface* vrInterface;
-        RenderDebugStats* dbgStats;
-        void prePass(uint32_t frameIdx, entt::registry& world);
-        void writeCmds(uint32_t frameIdx, VkCommandBuffer buf, entt::registry& world);
-        void setFinalPrePresents();
-        vku::DescriptorPool descriptorPool;
-        RTTPassCreateInfo createInfo;
-        GraphicsSettings passSettings;
-        ShadowCascadeInfo cascadeInfo;
-        bool markedForDeletion = false;
-
-        friend class VKRenderer;
-    };
-
     class VKUITextureManager : public IUITextureManager {
     public:
-        VKUITextureManager(VKRenderer* renderer, const VulkanHandles& handles);
+        VKUITextureManager(VKRenderer* renderer);
         ImTextureID loadOrGet(AssetID id) override;
         void unload(AssetID id) override;
         ~VKUITextureManager();
     private:
         struct UITexInfo {
             VkDescriptorSet ds;
-            vku::TextureImage2D image;
         };
 
         UITexInfo* load(AssetID id);
-        const VulkanHandles& handles;
         VKRenderer* renderer;
         robin_hood::unordered_map<AssetID, UITexInfo*> texInfo;
     };
 
-    class VKPresentSubmitManager {
-    public:
-        VKPresentSubmitManager(SDL_Window* window, VkSurfaceKHR surface, VulkanHandles* handles, Queues* queues, RenderDebugStats* dbgStats);
-        ~VKPresentSubmitManager();
-        void recreateSwapchain(bool useVsync, uint32_t& width, uint32_t& height);
-        int acquireFrame(VkCommandBuffer& cmdBuf, int& imageIndex);
-        void submit();
-        void present();
-        void presentNothing();
-        int numFramesInFlight();
-        Swapchain& currentSwapchain();
-#ifdef TRACY_ENABLE
-        void setupTracyContexts(std::vector<TracyVkCtx>& tracyContexts);
-#endif
-    private:
-        std::vector<VkCommandBuffer> cmdBufs;
-        int maxFramesInFlight = 2;
-        int currentFrame = 0;
-        int currentImage = 0;
-        std::vector<VkSemaphore> cmdBufferSemaphores;
-        std::vector<VkSemaphore> imgAvailable;
-        std::vector<VkFence> cmdBufFences;
-        std::vector<VkFence> imgFences;
-        Swapchain* sc;
-        RenderDebugStats* dbgStats;
-        VulkanHandles* handles;
-        Queues* queues;
-        SDL_Window* window;
-        VkSurfaceKHR surface;
-        std::mutex swapchainMutex;
-    };
-
     class VKRenderer : public Renderer {
         R2::VK::Core* core;
+        R2::VK::Swapchain* swapchain;
     public:
         VKRenderer(const RendererInitInfo& initInfo, bool* success);
 
-        void recreateSwapchain(int newWidth = -1, int newHeight = -1) override;
-        void frame(Camera& cam, entt::registry& reg) override;
+        void frame() override;
 
         void preloadMesh(AssetID id) override;
         void unloadUnusedAssets(entt::registry& reg) override;
         void reloadContent(ReloadFlags flags) override;
 
-        float getLastRenderTime() const override { return lastRenderTimeTicks * timestampPeriod; }
-        void setVRPredictAmount(float amt) override { vrPredictAmount = amt; }
+        float getLastRenderTime() const override;
+        void setVRPredictAmount(float amt) override;
+
         void setVsync(bool vsync) override;
-        bool getVsync() const override { return useVsync; }
-        const RenderDebugStats& getDebugStats() const override { return dbgStats; }
+        bool getVsync() const override;
+
+        const RenderDebugStats& getDebugStats() const override;
         void uploadSceneAssets(entt::registry& reg) override;
 
         void setImGuiDrawData(void* drawData) override;
 
-        VKRTTPass* createRTTPass(RTTPassCreateInfo& ci) override;
+        RTTPass* createRTTPass(RTTPassCreateInfo& ci) override;
         void destroyRTTPass(RTTPass* pass) override;
 
         void triggerRenderdocCapture() override;
@@ -542,31 +198,4 @@ namespace worlds {
 
         uint32_t hash();
     };
-
-    class VKPipelineVariants {
-    public:
-        VKPipelineVariants(VulkanHandles* handles, bool depthOnly, VkPipelineLayout layout, VkRenderPass renderPass);
-        VkPipeline getPipeline(PipelineKey k);
-    private:
-
-        robin_hood::unordered_map<uint32_t, vku::Pipeline> cache;
-
-        AssetID getFS(ShaderVariantFlags flags);
-        AssetID getVS(ShaderVariantFlags flags);
-        VulkanHandles* handles;
-        bool depthOnly;
-        VkPipelineLayout layout;
-        VkRenderPass renderPass;
-    };
-
-    inline void addDebugLabel(VkCommandBuffer cmdBuf, const char* name, float r, float g, float b, float a) {
-        VkDebugUtilsLabelEXT label{ VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT };
-        label.pLabelName = name;
-        label.color[0] = r;
-        label.color[1] = g;
-        label.color[2] = b;
-        label.color[3] = a;
-
-        vkCmdBeginDebugUtilsLabelEXT(cmdBuf, &label);
-    }
 }

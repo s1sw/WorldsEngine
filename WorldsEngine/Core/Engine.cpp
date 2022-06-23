@@ -9,7 +9,6 @@
 #include <ImGui/imgui.h>
 #include <physfs.h>
 #include <ImGui/imgui_impl_sdl.h>
-#include <ImGui/imgui_impl_vulkan.h>
 #include <entt/entt.hpp>
 #include <Scripting/NetVM.hpp>
 #include "Transform.hpp"
@@ -292,7 +291,7 @@ namespace worlds {
             if (!_this->running) break;
 
             _this->renderer->setImGuiDrawData(&renderThreadDrawData);
-            _this->renderer->frame(renderThreadCamera, renderRegistry);
+            _this->renderer->frame();
 
             for (int i = 0; i < renderThreadDrawData.CmdListsCount; i++) {
                 IM_DELETE(renderThreadDrawData.CmdLists[i]);
@@ -316,7 +315,7 @@ namespace worlds {
                 _this->windowWidth = evt->window.data1;
                 _this->windowHeight = evt->window.data2;
 
-                renderer->recreateSwapchain(evt->window.data1, evt->window.data2);
+                //renderer->recreateSwapchain(evt->window.data1, evt->window.data2);
             }
 
             {
@@ -520,7 +519,7 @@ namespace worlds {
         };
 
         if (!dedicatedServer) {
-            VKImGUIUtil::createObjects(static_cast<VKRenderer*>(renderer.get())->getHandles());
+            //VKImGUIUtil::createObjects(static_cast<VKRenderer*>(renderer.get())->getHandles());
         }
 
         scriptEngine = std::make_unique<DotNetScriptEngine>(registry, interfaces);
@@ -738,7 +737,7 @@ namespace worlds {
         interFrameInfo.lastPerfCounter = SDL_GetPerformanceCounter();
         interFrameInfo.lastUpdateTime = 0.0;
 
-        renderer->recreateSwapchain();
+        //renderer->recreateSwapchain();
         while (running) {
             runSingleFrame(true);
         }
@@ -790,7 +789,7 @@ namespace worlds {
         if (!dedicatedServer) {
             tickRichPresence();
 
-            ImGui_ImplVulkan_NewFrame();
+            //ImGui_ImplVulkan_NewFrame();
             ImGui_ImplSDL2_NewFrame(window->getWrappedHandle());
         }
         inFrame = true;
@@ -883,7 +882,7 @@ namespace worlds {
 
         if (inputManager->keyPressed(SDL_SCANCODE_F3, true)) {
             ShaderCache::clear();
-            renderer->recreateSwapchain();
+            //renderer->recreateSwapchain();
         }
 
         if (inputManager->keyPressed(SDL_SCANCODE_F11, true)) {
@@ -1179,23 +1178,6 @@ namespace worlds {
 
                 if (ImGui::CollapsingHeader(ICON_FA_PENCIL_ALT u8" Render Stats")) {
                     const auto& dbgStats = renderer->getDebugStats();
-                    auto vkCtx = static_cast<VKRenderer*>(renderer.get())->getHandles();
-
-                    VmaBudget budget[16];
-                    vmaGetBudget(vkCtx->allocator, budget);
-                    const VkPhysicalDeviceMemoryProperties* memProps;
-                    vmaGetMemoryProperties(vkCtx->allocator, &memProps);
-
-                    size_t totalUsage = 0;
-                    size_t totalBlockBytes = 0;
-                    size_t totalBudget = 0;
-
-                    for (uint32_t i = 0; i < memProps->memoryHeapCount; i++) {
-                        if (budget->budget == UINT64_MAX) continue;
-                        totalUsage += budget->allocationBytes;
-                        totalBlockBytes += budget->blockBytes;
-                        totalBudget += budget->budget;
-                    }
 
                     if (!enableOpenVR)
                         ImGui::Text("Internal render resolution: %ix%i", screenRTTPass->width, screenRTTPass->height);
@@ -1205,10 +1187,6 @@ namespace worlds {
                     ImGui::Text("Draw calls: %i", dbgStats.numDrawCalls);
                     ImGui::Text("%i pipeline switches", dbgStats.numPipelineSwitches);
                     ImGui::Text("Frustum culled objects: %i", dbgStats.numCulledObjs);
-                    ImGui::Text("GPU memory usage: %.3fMB (%.3fMB allocated, %.3fMB available)",
-                        (double)totalUsage / 1024.0 / 1024.0,
-                        (double)totalBlockBytes / 1024.0 / 1024.0,
-                        (double)totalBudget / 1024.0 / 1024.0);
                     ImGui::Text("Active RTT passes: %i/%i", dbgStats.numActiveRTTPasses, dbgStats.numRTTPasses);
                     ImGui::Text("Time spent in renderer: %.3fms", (timeInfo.deltaTime - timeInfo.lastUpdateTime) * 1000.0);
                     ImGui::Text("- Acquiring image: %.3f", dbgStats.imgAcquisitionTime);
@@ -1236,22 +1214,6 @@ namespace worlds {
 #endif
                     ImGui::Separator();
                     ImGui::Text("GPU:");
-                    auto vkCtx = static_cast<VKRenderer*>(renderer.get())->getHandles();
-
-                    VmaBudget budget[16];
-                    vmaGetBudget(vkCtx->allocator, budget);
-                    const VkPhysicalDeviceMemoryProperties* memProps;
-                    vmaGetMemoryProperties(vkCtx->allocator, &memProps);
-
-                    for (uint32_t i = 0; i < memProps->memoryHeapCount; i++) {
-                        if (ImGui::TreeNode((void*)(uintptr_t)i, "Heap %u", i)) {
-                            ImGui::Text("Available: %.3fMB", budget[i].budget / 1024.0 / 1024.0);
-                            ImGui::Text("Used: %.3fMB", budget[i].allocationBytes / 1024.0 / 1024.0);
-                            ImGui::Text("Actually allocated: %.3fMB", budget[i].usage / 1024.0 / 1024.0);
-
-                            ImGui::TreePop();
-                        }
-                    }
                 }
 
                 if (ImGui::CollapsingHeader(ICON_FA_SHAPES u8" Physics Stats")) {
@@ -1418,8 +1380,8 @@ namespace worlds {
         if (!dedicatedServer) {
             shutdownRichPresence();
 
-            auto vkCtx = static_cast<VKRenderer*>(renderer.get())->getHandles();
-            VKImGUIUtil::destroyObjects(vkCtx);
+            //auto vkCtx = static_cast<VKRenderer*>(renderer.get())->getHandles();
+            //VKImGUIUtil::destroyObjects(vkCtx);
             renderer.reset();
         }
 

@@ -56,10 +56,7 @@ namespace R2::VK
         , renderer(renderer)
         , swapchain(VK_NULL_HANDLE)
     {
-        VkWin32SurfaceCreateInfoKHR surfaceCreateInfo{ VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR };
-        surfaceCreateInfo.hwnd = createInfo.hwnd;
-        VKCHECK(vkCreateWin32SurfaceKHR(handles->Instance, &surfaceCreateInfo, handles->AllocCallbacks, &surface));
-
+        surface = createInfo.surface;
         vsyncEnabled = true;
 
         recreate();
@@ -68,7 +65,6 @@ namespace R2::VK
     Swapchain::~Swapchain()
     {
         destroySwapchain();
-        vkDestroySurfaceKHR(handles->Instance, surface, handles->AllocCallbacks);
     }
 
     void Swapchain::SetVsync(bool vsync)

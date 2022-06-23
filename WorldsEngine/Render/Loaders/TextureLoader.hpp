@@ -1,6 +1,5 @@
 #pragma once
 #include <cstdint>
-#include "../vku/vku.hpp"
 #include "../../Core/AssetDB.hpp"
 #include <string>
 
@@ -17,7 +16,4 @@ namespace worlds {
     struct VulkanHandles;
 
     TextureData loadTexData(AssetID id);
-    TextureData loadVtfTexture(void* fileData, size_t fileLen, AssetID id);
-    vku::TextureImage2D uploadTextureVk(const VulkanHandles& ctx, TextureData& td, bool generateMips = true);
-    vku::TextureImage2D uploadTextureVk(const VulkanHandles& ctx, TextureData& td, VkCommandBuffer cb, uint32_t imageIndex);
 }

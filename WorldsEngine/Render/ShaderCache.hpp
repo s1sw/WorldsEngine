@@ -1,5 +1,4 @@
 #pragma once
-#include "vku/vku.hpp"
 #include <unordered_map>
 
 namespace worlds {

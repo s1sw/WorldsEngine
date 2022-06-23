@@ -20,7 +20,7 @@ namespace R2::VK
 
     struct SwapchainCreateInfo
     {
-        HWND hwnd;
+        VkSurfaceKHR surface;
     };
 
     class Swapchain
