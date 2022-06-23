@@ -552,6 +552,7 @@ namespace worlds {
             hitInfo->worldPos = px2glm(hitBuf.block.position);
             hitInfo->entity = (entt::entity)(uintptr_t)hitBuf.block.actor->userData;
             hitInfo->distance = glm::dot(direction, px2glm(hitBuf.block.position) - position);
+            hitInfo->hitLayer = slib::Intrinsics::bitScanForward(hitBuf.block.shape->getQueryFilterData().word0);
         }
 
         return hit;

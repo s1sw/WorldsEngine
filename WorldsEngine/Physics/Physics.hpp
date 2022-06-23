@@ -53,6 +53,7 @@ namespace worlds {
         glm::vec3 normal;
         glm::vec3 worldPos;
         float distance;
+        uint32_t hitLayer;
     };
 
     typedef void (*ContactModCallback)(void* ctx, physx::PxContactModifyPair* pairs, uint32_t count);
