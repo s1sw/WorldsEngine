@@ -22,10 +22,19 @@ namespace WorldsEngine
         public Vector3 WorldHitPos;
         [FieldOffset(28)]
         public float Distance;
+        [FieldOffset(32)]
+        public uint HitLayer;
+    }
+
+    public enum PhysicsLayer
+    {
+        Default = 0,
+        Player = 1,
+        NoCollision = 2
     }
 
     [Flags]
-    public enum PhysicsLayers
+    public enum PhysicsLayerMask
     {
         None = 0,
         Default = 1,
@@ -45,10 +54,10 @@ namespace WorldsEngine
 
     public static partial class Physics
     {
-        public static bool Raycast(Vector3 origin, Vector3 direction, float maxDist = float.MaxValue, PhysicsLayers excludeLayerMask = PhysicsLayers.None)
+        public static bool Raycast(Vector3 origin, Vector3 direction, float maxDist = float.MaxValue, PhysicsLayerMask excludeLayerMask = PhysicsLayerMask.None)
             => physics_raycast(origin, direction, maxDist, (uint)excludeLayerMask, out RaycastHit _);
 
-        public static bool Raycast(Vector3 origin, Vector3 direction, out RaycastHit hit, float maxDist = float.MaxValue, PhysicsLayers excludeLayerMask = PhysicsLayers.None)
+        public static bool Raycast(Vector3 origin, Vector3 direction, out RaycastHit hit, float maxDist = float.MaxValue, PhysicsLayerMask excludeLayerMask = PhysicsLayerMask.None)
             => physics_raycast(origin, direction, maxDist, (uint)excludeLayerMask, out hit);
 
         public static bool OverlapSphere(Vector3 origin, float radius, out Entity entity)
@@ -60,7 +69,7 @@ namespace WorldsEngine
             return overlapped;
         }
 
-        public static unsafe uint OverlapSphereMultiple(Vector3 origin, float radius, uint maxTouchCount, Span<Entity> entityBuffer, PhysicsLayers excludeLayerMask = PhysicsLayers.None)
+        public static unsafe uint OverlapSphereMultiple(Vector3 origin, float radius, uint maxTouchCount, Span<Entity> entityBuffer, PhysicsLayerMask excludeLayerMask = PhysicsLayerMask.None)
         {
             uint count;
 
@@ -72,7 +81,7 @@ namespace WorldsEngine
             return count;
         }
 
-        public static bool SweepSphere(Vector3 origin, float radius, Vector3 direction, float distance, out RaycastHit hit, PhysicsLayers excludeLayerMask = PhysicsLayers.None)
+        public static bool SweepSphere(Vector3 origin, float radius, Vector3 direction, float distance, out RaycastHit hit, PhysicsLayerMask excludeLayerMask = PhysicsLayerMask.None)
             => physics_sweepSphere(origin, radius, direction, distance, out hit, (uint)excludeLayerMask);
 
 
