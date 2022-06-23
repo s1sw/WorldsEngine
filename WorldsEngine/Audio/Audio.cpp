@@ -323,6 +323,7 @@ namespace worlds {
                         iplSourceAdd(source, simulator);
                         system->sourcesToAdd.pop();
                     }
+                    iplSimulatorCommit(simulator);
 
                     while(!system->sourcesToRemove.empty()) {
                         IPLSource source = system->sourcesToRemove.front();
