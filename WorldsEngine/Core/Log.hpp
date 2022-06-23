@@ -1,6 +1,17 @@
 #pragma once
 #include <SDL_log.h>
-#include "LogCategories.hpp"
+
+namespace worlds {
+    enum LogCategory {
+        WELogCategoryEngine = SDL_LOG_CATEGORY_CUSTOM,
+        WELogCategoryAudio,
+        WELogCategoryRender,
+        WELogCategoryUI,
+        WELogCategoryApp,
+        WELogCategoryScripting,
+        WELogCategoryPhysics
+    };
+}
 
 #if defined(__clang__) || defined(__GNUC__)
 #define PRINTF_FMT(idx) __attribute__((__format__ (__printf__, idx, 0)))

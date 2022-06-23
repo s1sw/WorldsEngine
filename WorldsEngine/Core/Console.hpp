@@ -5,7 +5,7 @@
 
 #include <SDL_log.h>
 
-#include <Core/LogCategories.hpp>
+#include <Core/Log.hpp>
 #include <Core/Engine.hpp>
 #include <Core/ConVar.hpp>
 

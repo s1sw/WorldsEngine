@@ -71,6 +71,9 @@ namespace R2::VK
         void PushConstants(const T& data, ShaderStage stage, VkPipelineLayout pipelineLayout) { PushConstants(&data, sizeof(data), stage, pipelineLayout); }
         void PushConstants(const void* data, size_t dataSize, ShaderStage stages, VkPipelineLayout pipelineLayout);
 
+        void BeginDebugLabel(const char* label, float r, float g, float b);
+        void EndDebugLabel();
+
         VkCommandBuffer GetNativeHandle();
     private:
         VkCommandBuffer cb;

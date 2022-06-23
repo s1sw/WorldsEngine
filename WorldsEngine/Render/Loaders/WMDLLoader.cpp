@@ -1,4 +1,5 @@
 #include "WMDLLoader.hpp"
+#include <Core/Log.hpp>
 #include <WMDL.hpp>
 
 namespace worlds {

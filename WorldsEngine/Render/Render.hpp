@@ -218,8 +218,7 @@ namespace worlds {
      */
     class Renderer {
     public:
-        virtual void recreateSwapchain(int newWidth = -1, int newHeight = -1) = 0;
-        virtual void frame(Camera& cam, entt::registry& reg) = 0;
+        virtual void frame() = 0;
 
         //! Gets time spent rendering the scene on the GPU.
         virtual float getLastRenderTime() const = 0;

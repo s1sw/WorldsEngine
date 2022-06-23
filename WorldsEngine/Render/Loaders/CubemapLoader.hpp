@@ -8,7 +8,5 @@ namespace worlds {
     };
 
     CubemapData loadCubemapData(AssetID id);
-    vku::TextureImageCube uploadCubemapVk(VulkanHandles& ctx, CubemapData& cd, VkCommandBuffer cb, uint32_t imageIndex);
-    vku::TextureImageCube uploadCubemapVk(VulkanHandles& ctx, CubemapData& cd);
     void destroyTempCubemapBuffers(uint32_t imageIndex);
 }
