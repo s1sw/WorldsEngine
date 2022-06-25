@@ -20,7 +20,7 @@ namespace worlds {
 
         if (!ImGui_ImplR2_Init(core)) return;
 
-        frameFence = new VK::Fence(core->GetHandles(), VK::FenceFlags::None);
+        frameFence = new VK::Fence(core->GetHandles(), VK::FenceFlags::CreateSignaled);
 
         *success = true;
     }
@@ -33,6 +33,8 @@ namespace worlds {
     }
 
     void VKRenderer::frame() {
+        frameFence->WaitFor();
+        frameFence->Reset();
         VK::Texture* swapchainImage = swapchain->Acquire(frameFence);
         ImGui_ImplR2_NewFrame();
 
@@ -45,7 +47,7 @@ namespace worlds {
 
         VK::RenderPass rp;
         rp.ColorAttachment(swapchainImage, VK::LoadOp::Clear, VK::StoreOp::Store);
-        rp.ColorAttachmentClearValue(VK::ClearValue::FloatColorClear(0.f, 0.f, 0.f, 1.f));
+        rp.ColorAttachmentClearValue(VK::ClearValue::FloatColorClear(0.f, 0.f, 0.f, 1.0f));
         rp.RenderArea(width, height);
 
         VK::CommandBuffer cb = core->GetFrameCommandBuffer();
@@ -85,9 +87,10 @@ namespace worlds {
     }
 
     RTTPass* VKRenderer::createRTTPass(RTTPassCreateInfo& ci) {   
-        return nullptr;
+        return new VKRTTPass(this);
     }
 
     void VKRenderer::destroyRTTPass(RTTPass* pass) {
+        delete static_cast<VKRTTPass*>(pass);
     }
 }

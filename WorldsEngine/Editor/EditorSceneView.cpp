@@ -103,7 +103,7 @@ namespace worlds {
                     "Lights Per Tile"
                 };
 
-                int currentDbgDrawMode = g_console->getConVar("r_dbgdrawmode")->getInt();
+                int currentDbgDrawMode = 0;//g_console->getConVar("r_dbgdrawmode")->getInt();
 
                 float scale = ImGui::GetFontSize() / 20.0f;
                 ImGui::PushItemWidth(100.0f * scale);
@@ -114,10 +114,10 @@ namespace worlds {
 
                 ImGui::SetCursorPos(ImGui::GetCursorStartPos() + animatedOffset + ImGui::GetStyle().WindowPadding + ImVec2(200.0f * scale, 0.0f));
 
-                ConVar* bloomConvar = g_console->getConVar("r_forcedisablebloom");
-                bool enableBloom = bloomConvar->getInt() == 0;
+                //ConVar* bloomConvar = g_console->getConVar("r_forcedisablebloom");
+                bool enableBloom = false;//bloomConvar->getInt() == 0;
                 if (ImGui::Checkbox("Bloom", &enableBloom)) {
-                    bloomConvar->setValue(enableBloom ? "0" : "1");
+                    //bloomConvar->setValue(enableBloom ? "0" : "1");
                 }
 
                 ImGui::SetCursorPos(ImGui::GetCursorStartPos());

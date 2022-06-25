@@ -26,6 +26,7 @@ namespace R2::VK
 
 	Core::Core(IDebugOutputReceiver* dbgOutRecv)
 		: inFrame(false)
+		, frameIndex(0)
 	{
 		setAllocCallbacks();
 		createInstance(true);
@@ -39,6 +40,7 @@ namespace R2::VK
 
 		for (uint32_t i = 0; i < NUM_FRAMES_IN_FLIGHT; i++)
 		{
+			perFrameResources[i] = PerFrameResources{};
 			VkCommandBufferAllocateInfo cbai{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO };
 			cbai.commandBufferCount = 1;
 			cbai.commandPool = handles.CommandPool;

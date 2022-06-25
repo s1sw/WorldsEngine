@@ -54,6 +54,16 @@ namespace R2::VK
         return *this;
     }
 
+    DescriptorSetLayoutBuilder& DescriptorSetLayoutBuilder::PartiallyBound()
+    {
+        bindings.front().PartiallyBound = true;
+    }
+
+    DescriptorSetLayoutBuilder& DescriptorSetLayoutBuilder::UpdateAfterBind()
+    {
+        bindings.front().UpdateAfterBind = true;
+    }
+
     DescriptorSetLayout* DescriptorSetLayoutBuilder::Build()
     {
         std::vector<VkDescriptorSetLayoutBinding> layoutBindings;
@@ -76,6 +86,11 @@ namespace R2::VK
             if (db.PartiallyBound)
             {
                 thisBindFlags |= VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT;
+            }
+
+            if (db.UpdateAfterBind)
+            {
+                thisBindFlags |= VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT;
             }
 
             bindingFlags.push_back(thisBindFlags);
