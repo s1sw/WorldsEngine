@@ -148,6 +148,22 @@ namespace worlds {
         robin_hood::unordered_map<AssetID, UITexInfo*> texInfo;
     };
 
+    class VKRTTPass : public RTTPass {
+        friend class VKRenderer;
+
+        VKRenderer* renderer;
+        VKRTTPass(VKRenderer* renderer);
+        ~VKRTTPass();
+    public:
+        void drawNow(entt::registry& world) override;
+
+        void requestPick(int x, int y) override;
+        bool getPickResult(uint32_t* result) override;
+        float* getHDRData() override;
+        void resize(int newWidth, int newHeight) override;
+        void setResolutionScale(float newScale) override;
+    };
+
     class VKRenderer : public Renderer {
         R2::VK::Core* core;
         R2::VK::Swapchain* swapchain;

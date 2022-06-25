@@ -788,12 +788,12 @@ namespace worlds {
         inFrame = true;
 
         ImVec2 newFrameDisplaySize(windowWidth, windowHeight);
-        if (window->isMaximised()) {
-            newFrameDisplaySize.x -= 16;
-            newFrameDisplaySize.y -= 16;
-            ImGui::GetIO().DisplaySize = newFrameDisplaySize;
-            ImGui::GetIO().DisplayOffset = ImVec2(8.0f, 8.0f);
-        }
+        //if (window->isMaximised()) {
+        //    newFrameDisplaySize.x -= 16;
+        //    newFrameDisplaySize.y -= 16;
+        //    ImGui::GetIO().DisplaySize = newFrameDisplaySize;
+        //    ImGui::GetIO().DisplayOffset = ImVec2(8.0f, 8.0f);
+        //}
 
         ImGui::NewFrame();
 

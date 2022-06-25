@@ -1,4 +1,4 @@
-#include "R2ImGui.hpp"
+#include "../R2ImGui.hpp"
 #include <stdint.h>
 #include "ImGuiFS.h"
 #include "ImGuiVS.h"
@@ -115,7 +115,7 @@ void ImGui_ImplR2_CreateFontTextureAndDS()
     int width, height;
     io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
 
-    VK::TextureCreateInfo tci = VK::TextureCreateInfo::Texture2D(VK::TextureFormat::R8G8B8A8_UNORM, width, height);
+    VK::TextureCreateInfo tci = VK::TextureCreateInfo::Texture2D(VK::TextureFormat::R8G8B8A8_SRGB, width, height);
     s->fontTexture = s->core->CreateTexture(tci);
 
     s->core->QueueTextureUpload(s->fontTexture, pixels, 4 * width * height);
