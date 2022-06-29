@@ -1,79 +1,87 @@
 #include <R2/BindlessTextureManager.hpp>
+#include <R2/VKCore.hpp>
+#include <R2/VKDescriptorSet.hpp>
+#include <assert.h>
 
 namespace R2
 {
-    BindlessTextureManager::BindlessTextureManager(const VK::Handles* handles)
-        : handles(handles)
+    BindlessTextureManager::BindlessTextureManager(VK::Core* core)
+        : core(core)
     {
+        VK::DescriptorSetLayoutBuilder dslb{core->GetHandles()};
+
+        dslb.Binding(0, VK::DescriptorType::CombinedImageSampler, NUM_TEXTURES, 
+            VK::ShaderStage::Vertex | VK::ShaderStage::Fragment | VK::ShaderStage::Compute)
+            .PartiallyBound()
+            .UpdateAfterBind();
+
+        textureDescriptorSetLayout = dslb.Build();
+
+        textureDescriptors = core->CreateDescriptorSet(textureDescriptorSetLayout);
     }
 
     BindlessTextureManager::~BindlessTextureManager()
     {
-
     }
 
-    uint32_t BindlessTextureManager::AllocateTextureHandle()
+    uint32_t BindlessTextureManager::FindFreeSlot()
     {
-        if (freeLocation == ~0u)
+        for (uint32_t i = 0; i < NUM_TEXTURES; i++)
         {
-            textures.push_back(nullptr);
-            return textures.size() - 1;
+            if (!presentTextures[i])
+                return i;
         }
-        else
-        {
-            // follow the chain!!
 
-            uint32_t freeSlot = freeLocation;
-            VK::Texture* slotValue = textures[freeSlot];
+        return ~0u;
+    }
 
-            // if the freeLocation is the only free slot, just use that
-            // handled separately because we have to reset freeLocation
-            if (slotValue == nullptr)
-            {
-                freeLocation = ~0u;
-                return freeSlot;
-            }
-
-            uint32_t lastSlot = ~0u;
-
-            // otherwise follow the chain of slots to find the final free slot
-            // (will have a null pointer)
-            while (slotValue != nullptr)
-            {
-                lastSlot = freeSlot;
-                freeSlot = reinterpret_cast<uintptr_t>(slotValue);
-                slotValue = textures[freeSlot];
-            }
-
-            textures[lastSlot] = nullptr;
-
-            return freeSlot;
-        }
+    uint32_t BindlessTextureManager::AllocateTextureHandle(VK::Texture* tex)
+    {
+        uint32_t freeSlot = FindFreeSlot();
+        textures[freeSlot] = tex;
+        descriptorsNeedUpdate = true;
+        return freeSlot;
     }
 
     void BindlessTextureManager::SetTextureAt(uint32_t handle, VK::Texture* tex)
     {
+        assert(presentTextures[handle]);
         textures[handle] = tex;
+        descriptorsNeedUpdate = true;
     }
 
     void BindlessTextureManager::FreeTextureHandle(uint32_t handle)
     {
-        if (freeLocation == ~0u)
+        textures[handle] = nullptr;
+        presentTextures[handle] = false;
+        descriptorsNeedUpdate = true;
+    }
+
+    VK::DescriptorSet& BindlessTextureManager::GetTextureDescriptorSet()
+    {
+        return *textureDescriptors;
+    }
+
+    VK::DescriptorSetLayout& BindlessTextureManager::GetTextureDescriptorSetLayout()
+    {
+        return *textureDescriptorSetLayout;
+    }
+
+    void BindlessTextureManager::UpdateDescriptorsIfNecessary()
+    {
+        if (descriptorsNeedUpdate)
         {
-            freeLocation = handle;
-            textures[handle] = nullptr;
-            return;
+            VK::DescriptorSetUpdater dsu{core->GetHandles(), textureDescriptors};
+
+            for (int i = 0; i < NUM_TEXTURES; i++)
+            {
+                if (!presentTextures[i]) continue;
+
+                // TODO: Sampler
+                dsu.AddTexture(0, i, VK::DescriptorType::CombinedImageSampler, textures[i], nullptr);
+            }
+
+            dsu.Update();
         }
-
-        uint32_t freeSlot = freeLocation;
-        VK::Texture* slotValue = textures[freeSlot];
-
-        while (slotValue != nullptr)
-        {
-            freeSlot = reinterpret_cast<uintptr_t>(slotValue);
-            slotValue = textures[freeSlot];
-        }
-
-        textures[freeSlot] = reinterpret_cast<VK::Texture*>(handle);
     }
 }
