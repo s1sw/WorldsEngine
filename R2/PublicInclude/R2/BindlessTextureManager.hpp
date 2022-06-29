@@ -1,28 +1,41 @@
 #pragma once
 #include <stdint.h>
-#include <vector>
+#include <array>
+#include <bitset>
 
 namespace R2
 {
     namespace VK
     {
+        class Core;
         class Texture;
         class DescriptorSet;
-        struct Handles;
+        class DescriptorSetLayout;
     }
 
     class BindlessTextureManager
     {
-        uint32_t freeLocation = ~0u;
-        std::vector<VK::Texture*> textures;
+        static const uint32_t NUM_TEXTURES = 64;
+
+        std::array<VK::Texture*, NUM_TEXTURES> textures;
+        std::bitset<NUM_TEXTURES> presentTextures;
+
         VK::DescriptorSet* textureDescriptors;
-        const VK::Handles* handles;
+        VK::DescriptorSetLayout* textureDescriptorSetLayout;
+        VK::Core* core;
+        bool descriptorsNeedUpdate = false;
+
+        uint32_t FindFreeSlot();
     public:
-        BindlessTextureManager(const VK::Handles* handles);
+        BindlessTextureManager(VK::Core* core);
         ~BindlessTextureManager();
-        uint32_t AllocateTextureHandle();
+
+        uint32_t AllocateTextureHandle(VK::Texture* tex);
         void SetTextureAt(uint32_t handle, VK::Texture* tex);
         void FreeTextureHandle(uint32_t handle);
+
         VK::DescriptorSet& GetTextureDescriptorSet();
+        VK::DescriptorSetLayout& GetTextureDescriptorSetLayout();
+        void UpdateDescriptorsIfNecessary();
     };
 }
