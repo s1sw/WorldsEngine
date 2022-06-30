@@ -12,42 +12,48 @@ namespace worlds {
     }
 
     void loadToLM(LoadedMesh& lm, AssetID id) {
-        //std::vector<VertSkinningInfo> vertSkinning;
-        //LoadedMeshData lmd;
-        //std::vector<uint16_t> indices16;
-        //loadWorldsModel(id, lm.vertices, lm.indices, indices16, vertSkinning, lmd);
+        LoadedMeshData lmd;
 
-        //if (indices16.size() > 0) {
-        //    lm.indices.resize(indices16.size());
-        //    for (size_t i = 0; i < indices16.size(); i++) {
-        //        lm.indices[i] = indices16[i];
-        //    }
-        //}
+        loadWorldsModel(id, lmd);
 
-        //lm.numSubmeshes = lmd.numSubmeshes;
-        //lm.skinned = lmd.isSkinned;
-        //lm.bones.resize(lmd.meshBones.size());
+        if (lmd.indexType == IndexType::Uint16) {
+            lm.indices.resize(lmd.indices16.size());
+            for (size_t i = 0; i < lmd.indices16.size(); i++) {
+                lm.indices[i] = lmd.indices16[i];
+            }
+        } else {
+            lm.indices = std::move(lmd.indices32);
+        }
 
-        //for (size_t i = 0; i < lmd.meshBones.size(); i++) {
-        //    Bone& b = lm.bones[i];
-        //    b.id = i;
-        //    b.name = lmd.meshBones[i].name.c_str();
-        //    b.parentId = lmd.meshBones[i].parentIdx;
-        //    b.restPose = lmd.meshBones[i].transform;
-        //}
+        lm.vertices = std::move(lmd.vertices);
 
-        //for (int i = 0; i < lmd.numSubmeshes; i++) {
-        //    lm.submeshes[i] = lmd.submeshes[i];
-        //}
+        lm.numSubmeshes = lmd.submeshes.size();
+        lm.skinned = lmd.isSkinned;
+        lm.bones.resize(lmd.bones.size());
 
-        //lm.sphereBoundRadius = 0.0f;
-        //lm.aabbMax = glm::vec3(0.0f);
-        //lm.aabbMin = glm::vec3(std::numeric_limits<float>::max());
-        //for (auto& vtx : lm.vertices) {
-        //    lm.sphereBoundRadius = glm::max(glm::length(vtx.position), lm.sphereBoundRadius);
-        //    lm.aabbMax = glm::max(lm.aabbMax, vtx.position);
-        //    lm.aabbMin = glm::min(lm.aabbMin, vtx.position);
-        //}
+        for (size_t i = 0; i < lmd.bones.size(); i++) {
+            Bone& b = lm.bones[i];
+            b.id = i;
+            b.name = lmd.bones[i].name.c_str();
+            b.parentId = lmd.bones[i].parentIdx;
+            b.restPose = lmd.bones[i].transform;
+        }
+
+        for (int i = 0; i < lmd.submeshes.size(); i++) {
+            const LoadedSubmesh& ls = lmd.submeshes[i];
+            lm.submeshes[i].materialIndex = ls.materialIndex;
+            lm.submeshes[i].indexOffset = ls.indexOffset;
+            lm.submeshes[i].indexCount = ls.indexCount;
+        }
+
+        lm.sphereBoundRadius = 0.0f;
+        lm.aabbMax = glm::vec3(0.0f);
+        lm.aabbMin = glm::vec3(std::numeric_limits<float>::max());
+        for (auto& vtx : lm.vertices) {
+            lm.sphereBoundRadius = glm::max(glm::length(vtx.position), lm.sphereBoundRadius);
+            lm.aabbMax = glm::max(lm.aabbMax, vtx.position);
+            lm.aabbMin = glm::min(lm.aabbMin, vtx.position);
+        }
     }
 
     const LoadedMesh& MeshManager::loadOrGet(AssetID id) {
