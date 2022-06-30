@@ -79,6 +79,8 @@ namespace R2::VK
         layoutBindings.reserve(bindings.size());
         bindingFlags.reserve(bindings.size());
 
+        bool hasUpdateAfterBind = false;
+
         for (DescriptorBinding& db : bindings)
         {
             VkDescriptorSetLayoutBinding lb{};
@@ -99,6 +101,7 @@ namespace R2::VK
             if (db.UpdateAfterBind)
             {
                 thisBindFlags |= VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT;
+                hasUpdateAfterBind = true;
             }
 
             if (db.VariableDescriptorCount)
@@ -112,6 +115,10 @@ namespace R2::VK
         VkDescriptorSetLayoutCreateInfo dslci{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
         dslci.bindingCount = (uint32_t)layoutBindings.size();
         dslci.pBindings = layoutBindings.data();
+        if (hasUpdateAfterBind)
+        {
+            dslci.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
+        }
 
         VkDescriptorSetLayoutBindingFlagsCreateInfo bindFlagsCreateInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO };
         bindFlagsCreateInfo.pBindingFlags = bindingFlags.data();

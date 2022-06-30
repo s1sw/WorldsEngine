@@ -83,10 +83,17 @@ namespace R2::VK
 		virtual void DebugMessage(const char* message) = 0;
 	};
 
+	struct GraphicsDeviceInfo
+	{
+		char Name[256];
+	};
+
 	class Core
 	{
 	public:
 		Core(IDebugOutputReceiver* dbgOutRecv = nullptr);
+
+		GraphicsDeviceInfo GetDeviceInfo();
 
 		Texture* CreateTexture(const TextureCreateInfo& createInfo);
 		void DestroyTexture(Texture* tex);
