@@ -99,6 +99,7 @@ namespace R2::VK
 		void DestroySwapchain(Swapchain* swapchain);
 
 		DescriptorSet* CreateDescriptorSet(DescriptorSetLayout* dsl);
+		DescriptorSet* CreateDescriptorSet(DescriptorSetLayout* dsl, uint32_t maxVariableDescriptors);
 
 		void BeginFrame();
 		CommandBuffer GetFrameCommandBuffer();
@@ -106,6 +107,7 @@ namespace R2::VK
 		void QueueBufferUpload(Buffer* buffer, void* data, uint64_t dataSize, uint64_t dataOffset);
 		void QueueBufferToTextureCopy(Buffer* buffer, Texture* texture, uint64_t bufferOffset = 0);
 		void QueueTextureUpload(Texture* texture, void* data, uint64_t dataSize);
+		uint32_t GetFrameIndex() const;
 		void EndFrame();
 
 		void WaitIdle();

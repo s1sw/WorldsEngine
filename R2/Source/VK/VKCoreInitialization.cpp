@@ -197,6 +197,7 @@ namespace R2::VK
         features12.descriptorIndexing = true;
         features12.descriptorBindingPartiallyBound = true;
         features12.descriptorBindingVariableDescriptorCount = true;
+        features12.runtimeDescriptorArray = true;
         features13.synchronization2 = true;
         features13.dynamicRendering = true;
 
@@ -327,7 +328,7 @@ namespace R2::VK
         dpci.maxSets = 10;
         VkDescriptorPoolSize poolSizes[] =
         {
-            { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 50 }
+            { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 500 }
         };
 
         dpci.pPoolSizes = poolSizes;

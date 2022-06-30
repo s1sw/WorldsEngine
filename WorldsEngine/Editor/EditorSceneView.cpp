@@ -18,10 +18,10 @@ namespace worlds {
         currentHeight = 256;
         cam = *interfaces.mainCamera;
         recreateRTT();
-        //auto& texMan = interfaces.renderer->uiTextureManager();
-        //audioSourceIcon = texMan.loadOrGet(AssetDB::pathToId("UI/Editor/Images/Audio Source.png"));
-        //worldLightIcon   = texMan.loadOrGet(AssetDB::pathToId("UI/Editor/Images/WorldLight.png"));
-        //worldCubemapIcon = texMan.loadOrGet(AssetDB::pathToId("UI/Editor/Images/Cubemap.png"));
+        IUITextureManager* texMan = interfaces.renderer->getUITextureManager();
+        audioSourceIcon  = texMan->loadOrGet(AssetDB::pathToId("UI/Editor/Images/Audio Source.png"));
+        worldLightIcon   = texMan->loadOrGet(AssetDB::pathToId("UI/Editor/Images/WorldLight.png"));
+        worldCubemapIcon = texMan->loadOrGet(AssetDB::pathToId("UI/Editor/Images/Cubemap.png"));
     }
 
     void EditorSceneView::drawWindow(int uniqueId) {

@@ -123,6 +123,24 @@ namespace R2::VK
 		return new DescriptorSet(GetHandles(), ds);
 	}
 
+	DescriptorSet* Core::CreateDescriptorSet(DescriptorSetLayout* dsl, uint32_t maxVariableDescriptors)
+	{
+		VkDescriptorSet ds;
+		VkDescriptorSetVariableDescriptorCountAllocateInfo variableCountInfo { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO };
+		variableCountInfo.descriptorSetCount = 1;
+		variableCountInfo.pDescriptorCounts = &maxVariableDescriptors;
+
+		VkDescriptorSetAllocateInfo dsai{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
+		dsai.descriptorSetCount = 1;
+		VkDescriptorSetLayout vdsl = dsl->GetNativeHandle();
+		dsai.pSetLayouts = &vdsl;
+		dsai.descriptorPool = handles.DescriptorPool;
+		dsai.pNext = &variableCountInfo;
+
+		VKCHECK(vkAllocateDescriptorSets(handles.Device, &dsai, &ds));
+		return new DescriptorSet(GetHandles(), ds);
+	}
+
 	// Gets the index of the last frame. Loops back round on frame 0
 	int getPreviousFrameIndex(int current)
 	{
@@ -205,6 +223,11 @@ namespace R2::VK
 		frameResources.BufferToTextureCopies.emplace_back(frameResources.StagingBuffer, texture, uploadedOffset);
 
 		frameResources.StagingOffset += dataSize;
+	}
+
+	uint32_t Core::GetFrameIndex() const
+	{
+		return frameIndex;
 	}
 
 	void Core::EndFrame()

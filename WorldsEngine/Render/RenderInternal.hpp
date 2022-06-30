@@ -7,9 +7,14 @@
 
 struct ImDrawData;
 
+namespace R2 {
+    class BindlessTextureManager;
+}
+
 namespace R2::VK {
     class Swapchain;
     class Fence;
+    class Texture;
 }
 
 typedef struct VkPhysicalDeviceProperties VkPhysicalDeviceProperties;
@@ -134,18 +139,20 @@ namespace worlds {
 
     class VKUITextureManager : public IUITextureManager {
     public:
-        VKUITextureManager(VKRenderer* renderer);
+        VKUITextureManager(R2::VK::Core* core, R2::BindlessTextureManager* textureManager);
+        ~VKUITextureManager();
         ImTextureID loadOrGet(AssetID id) override;
         void unload(AssetID id) override;
-        ~VKUITextureManager();
     private:
         struct UITexInfo {
-            //VkDescriptorSet ds;
+            R2::VK::Texture* tex;
+            uint32_t bindlessId;
         };
 
-        UITexInfo* load(AssetID id);
-        VKRenderer* renderer;
-        robin_hood::unordered_map<AssetID, UITexInfo*> texInfo;
+        uint32_t load(AssetID id);
+        R2::VK::Core* core;
+        R2::BindlessTextureManager* textureManager;
+        robin_hood::unordered_map<AssetID, UITexInfo> textureIds;
     };
 
     class VKRTTPass : public RTTPass {
@@ -168,10 +175,13 @@ namespace worlds {
         R2::VK::Core* core;
         R2::VK::Swapchain* swapchain;
         R2::VK::Fence* frameFence;
+        R2::BindlessTextureManager* textureManager;
+        VKUITextureManager* uiTextureManager;
 
         ImDrawData* imguiDrawData;
 
         RenderDebugStats debugStats;
+        float lastGPUTime;
     public:
         VKRenderer(const RendererInitInfo& initInfo, bool* success);
         ~VKRenderer();
@@ -185,6 +195,7 @@ namespace worlds {
         bool getVsync() const override;
 
         const RenderDebugStats& getDebugStats() const override;
+        IUITextureManager* getUITextureManager() override;
 
         void setImGuiDrawData(void* drawData) override;
 

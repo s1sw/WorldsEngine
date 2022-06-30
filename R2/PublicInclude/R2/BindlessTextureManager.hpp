@@ -11,6 +11,7 @@ namespace R2
         class Texture;
         class DescriptorSet;
         class DescriptorSetLayout;
+        class Sampler;
     }
 
     class BindlessTextureManager
@@ -23,6 +24,7 @@ namespace R2
         VK::DescriptorSet* textureDescriptors;
         VK::DescriptorSetLayout* textureDescriptorSetLayout;
         VK::Core* core;
+        VK::Sampler* sampler;
         bool descriptorsNeedUpdate = false;
 
         uint32_t FindFreeSlot();
