@@ -65,12 +65,23 @@ namespace worlds {
         core->BeginFrame();
         textureManager->UpdateDescriptorsIfNecessary();
 
+        VK::CommandBuffer cb = core->GetFrameCommandBuffer();
+
+        for (VKRTTPass* pass : rttPasses)
+        {
+            VK::RenderPass r;
+            r.ColorAttachment(pass->sdrTarget, VK::LoadOp::Clear, VK::StoreOp::Store);
+            r.ColorAttachmentClearValue(VK::ClearValue::FloatColorClear(1.f, 0.f, 1.f, 1.f));
+            r.RenderArea(pass->width, pass->height);
+            r.Begin(cb);
+            r.End(cb);
+        }
+
         VK::RenderPass rp;
         rp.ColorAttachment(swapchainImage, VK::LoadOp::Clear, VK::StoreOp::Store);
         rp.ColorAttachmentClearValue(VK::ClearValue::FloatColorClear(0.f, 0.f, 0.f, 1.0f));
         rp.RenderArea(width, height);
 
-        VK::CommandBuffer cb = core->GetFrameCommandBuffer();
 
         swapchainImage->WriteLayoutTransition(core->GetFrameCommandBuffer(), VK::ImageLayout::PresentSrc, VK::ImageLayout::AttachmentOptimal);
 
@@ -115,10 +126,13 @@ namespace worlds {
     }
 
     RTTPass* VKRenderer::createRTTPass(RTTPassCreateInfo& ci) {   
-        return new VKRTTPass(this);
+        VKRTTPass* pass = new VKRTTPass(this, ci);
+        rttPasses.push_back(pass);
+        return pass;
     }
 
     void VKRenderer::destroyRTTPass(RTTPass* pass) {
         delete static_cast<VKRTTPass*>(pass);
+        rttPasses.erase(std::remove(rttPasses.begin(), rttPasses.end(), pass), rttPasses.end());
     }
 }

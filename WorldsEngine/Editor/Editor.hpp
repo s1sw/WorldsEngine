@@ -14,9 +14,6 @@
 #include "EditorAssetSearchPopup.hpp"
 #include <memory>
 
-struct VkDescriptorSet_T;
-typedef VkDescriptorSet_T* VkDescriptorSet;
-
 namespace worlds {
     typedef uint32_t AssetID;
     class RTTPass;
@@ -183,7 +180,6 @@ namespace worlds {
     private:
         void updateCamera(float deltaTime);
         uint32_t currentWidth, currentHeight;
-        VkDescriptorSet sceneViewDS = nullptr;
         RTTPass* sceneViewPass = nullptr;
         Camera cam;
         EngineInterfaces interfaces;

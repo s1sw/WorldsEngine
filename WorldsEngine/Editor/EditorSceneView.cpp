@@ -42,12 +42,11 @@ namespace worlds {
                 currentWidth  = contentRegion.x;
                 currentHeight = contentRegion.y;
                 sceneViewPass->resize(currentWidth, currentHeight);
-                //VKImGUIUtil::updateDescriptorSet(sceneViewDS, static_cast<VKRTTPass*>(sceneViewPass)->sdrFinalTarget->image());
             }
             cam.verticalFOV = interfaces.mainCamera->verticalFOV;
 
             auto wSize = ImGui::GetContentRegionAvail();
-            ImGui::Image((ImTextureID)sceneViewDS, ImVec2(currentWidth, currentHeight));
+            ImGui::Image(sceneViewPass->getUITextureID(), ImVec2(currentWidth, currentHeight));
 
             ImGui::SetCursorPos(ImGui::GetCursorStartPos());
 
@@ -377,8 +376,6 @@ namespace worlds {
     }
 
     void EditorSceneView::recreateRTT() {
-        //auto vkCtx = static_cast<VKRenderer*>(interfaces.renderer)->getHandles();
-
         if (sceneViewPass)
             interfaces.renderer->destroyRTTPass(sceneViewPass);
 
@@ -393,14 +390,7 @@ namespace worlds {
         };
 
         sceneViewPass = interfaces.renderer->createRTTPass(sceneViewPassCI);
-
-        //if (sceneViewDS) {
-        //    vkFreeDescriptorSets(vkCtx->device, vkCtx->descriptorPool, 1, &sceneViewDS);
-        //}
-
-        //sceneViewDS = VKImGUIUtil::createDescriptorSetFor(
-        //    static_cast<VKRTTPass*>(sceneViewPass)->sdrFinalTarget->image(), vkCtx);
-        //sceneViewPass->active = true;
+        sceneViewPass->active = true;
     }
 
     void EditorSceneView::setShadowsEnabled(bool enabled) {

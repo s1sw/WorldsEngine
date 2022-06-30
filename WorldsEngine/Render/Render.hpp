@@ -186,6 +186,7 @@ namespace worlds {
         virtual float* getHDRData() = 0;
         virtual void resize(int newWidth, int newHeight) = 0;
         virtual void setResolutionScale(float newScale) = 0;
+        virtual ImTextureID getUITextureID() = 0;
     protected:
         virtual ~RTTPass() {}
         friend class Renderer;

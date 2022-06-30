@@ -201,7 +201,7 @@ namespace worlds {
         SDL_SetWindowHitTest(window, hitTest, nullptr);
         sceneViews.add(new EditorSceneView{ interfaces, this });
 
-        //titleBarIcon = interfaces.renderer->uiTextureManager().loadOrGet(AssetDB::pathToId("UI/Editor/Images/logo_no_background_small.png"));
+        titleBarIcon = interfaces.renderer->getUITextureManager()->loadOrGet(AssetDB::pathToId("UI/Editor/Images/logo_no_background_small.png"));
 
         EntityFolders folders;
 
