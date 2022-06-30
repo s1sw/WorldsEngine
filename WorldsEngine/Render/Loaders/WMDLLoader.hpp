@@ -1,7 +1,37 @@
 #pragma once
-#include "../../Core/Engine.hpp"
-#include "../RenderInternal.hpp"
+#include <Core/Engine.hpp>
+#include <Render/RenderInternal.hpp>
+#include <vector>
 
 namespace worlds {
-    //void loadWorldsModel(AssetID wmdlId, std::vector<Vertex>& vertices, std::vector<uint32_t>& indices, std::vector<uint16_t>& indices16, std::vector<VertSkinningInfo>& skinningInfos, LoadedMeshData& lmd);
+    struct LoadedMeshBone {
+        glm::mat4 inverseBindPose;
+        glm::mat4 transform;
+        uint32_t parentIdx;
+        std::string name;
+    };
+
+    struct LoadedSubmesh {
+        uint32_t indexCount;
+        uint32_t indexOffset;
+        uint32_t materialIndex;
+    };
+
+    enum class IndexType {
+        Uint16,
+        Uint32
+    };
+
+    struct LoadedMeshData {
+        bool isSkinned;
+        std::vector<LoadedMeshBone> bones;
+        std::vector<LoadedSubmesh> submeshes;
+        IndexType indexType;
+        std::vector<uint16_t> indices16;
+        std::vector<uint32_t> indices32;
+        std::vector<Vertex> vertices;
+        std::vector<VertSkinningInfo> skinningInfos;
+    };
+
+    void loadWorldsModel(AssetID wmdlId, LoadedMeshData& lmd);
 }
