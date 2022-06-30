@@ -159,8 +159,11 @@ namespace worlds {
         friend class VKRenderer;
 
         VKRenderer* renderer;
-        VKRTTPass(VKRenderer* renderer);
+        VKRTTPass(VKRenderer* renderer, const RTTPassCreateInfo& ci);
         ~VKRTTPass();
+
+        R2::VK::Texture* sdrTarget;
+        uint32_t sdrTargetId;
     public:
         void drawNow(entt::registry& world) override;
 
@@ -169,6 +172,7 @@ namespace worlds {
         float* getHDRData() override;
         void resize(int newWidth, int newHeight) override;
         void setResolutionScale(float newScale) override;
+        ImTextureID getUITextureID() override;
     };
 
     class VKRenderer : public Renderer {
@@ -178,10 +182,13 @@ namespace worlds {
         R2::BindlessTextureManager* textureManager;
         VKUITextureManager* uiTextureManager;
 
+        std::vector<VKRTTPass*> rttPasses;
+
         ImDrawData* imguiDrawData;
 
         RenderDebugStats debugStats;
         float lastGPUTime;
+        friend class VKRTTPass;
     public:
         VKRenderer(const RendererInitInfo& initInfo, bool* success);
         ~VKRenderer();
