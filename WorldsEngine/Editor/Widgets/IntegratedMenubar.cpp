@@ -22,12 +22,20 @@ namespace worlds {
 
         glm::vec2 vpOffset = ImGui::GetMainViewport()->Pos;
 
+        Window& mainWindow = interfaces.engine->getMainWindow();
+
+        SDL_SysWMinfo wmInfo;
+        SDL_VERSION(&wmInfo.version);
+        SDL_GetWindowWMInfo(mainWindow.getWrappedHandle(), &wmInfo);
+
+        HWND hwnd = wmInfo.info.win.window;
+
         static bool extendedFrame = false;
         ImDrawList* drawList = ImGui::GetWindowDrawList();
         if (integratedMenuBar.getInt()) {
             drawList->AddText(vpOffset + glm::vec2(menuBarCenter.x - (textSize.x * 0.5f), ImGui::GetWindowHeight() * 0.15f), ImColor(255, 255, 255), windowTitle);
 
-            //SDL_SetWindowBordered(interfaces.engine->getMainWindow().getWrappedHandle(), SDL_FALSE);
+            SDL_SetWindowBordered(interfaces.engine->getMainWindow().getWrappedHandle(), SDL_FALSE);
             float barWidth = ImGui::GetWindowWidth();
             float barHeight = ImGui::GetWindowHeight();
             const float crossSize = 6.0f;
@@ -143,36 +151,29 @@ namespace worlds {
             
             ImGui::GetForegroundDrawList()->AddRect(vpOffset, ws, ImColor(borderR, borderG, borderB));
 
-            Window& mainWindow = interfaces.engine->getMainWindow();
-
-            SDL_SysWMinfo wmInfo;
-            SDL_VERSION(&wmInfo.version);
-            SDL_GetWindowWMInfo(mainWindow.getWrappedHandle(), &wmInfo);
-
-            HWND hwnd = wmInfo.info.win.window;
             COLORREF border = RGB(borderR, borderG, borderB);
 
             static bool supportsBorderColor = true;
 
             const DWORD DWMWA_BORDER_COLOR = 34;
-            if (supportsBorderColor) {
-                HRESULT result = DwmSetWindowAttribute(hwnd, DWMWA_BORDER_COLOR, &border, sizeof(border));
-                if (result == E_INVALIDARG) {
-                    supportsBorderColor = false;
-                }
-            }
+            //if (supportsBorderColor) {
+            //    HRESULT result = DwmSetWindowAttribute(hwnd, DWMWA_BORDER_COLOR, &border, sizeof(border));
+            //    if (result == E_INVALIDARG) {
+            //        supportsBorderColor = false;
+            //    }
+            //}
 
             if (!mainWindow.isMaximised() && !extendedFrame) {
                 MARGINS m { -1 };
                 DwmExtendFrameIntoClientArea(hwnd, &m);
-                BOOL ncr = TRUE;
-                DwmSetWindowAttribute(hwnd, DWMWA_ALLOW_NCPAINT, &ncr, sizeof(ncr));
                 extendedFrame = true;
             }
             #endif
         } else {
             SDL_SetWindowBordered(interfaces.engine->getMainWindow().getWrappedHandle(), SDL_TRUE);
             extendedFrame = false;
+            MARGINS m {};
+            DwmExtendFrameIntoClientArea(hwnd, &m);
         }
     }
 }
