@@ -72,6 +72,17 @@ namespace R2::VK
 		this->dbgOutRecv = dbgOutRecv;
 	}
 
+	GraphicsDeviceInfo Core::GetDeviceInfo()
+	{
+		GraphicsDeviceInfo deviceInfo{};
+		VkPhysicalDeviceProperties deviceProps{};
+		vkGetPhysicalDeviceProperties(handles.PhysicalDevice, &deviceProps);
+
+		strncpy(deviceInfo.Name, deviceProps.deviceName, 256);
+
+		return deviceInfo;
+	}
+
 	Texture* Core::CreateTexture(const TextureCreateInfo& createInfo)
 	{
 		return new Texture(GetHandles(), createInfo);

@@ -38,6 +38,9 @@ namespace worlds {
 
         if (!ImGui_ImplR2_Init(core, textureManager)) return;
 
+        R2::VK::GraphicsDeviceInfo deviceInfo = core->GetDeviceInfo();
+        logMsg(WELogCategoryRender, "Device name: %s", deviceInfo.Name);
+
         *success = true;
     }
 

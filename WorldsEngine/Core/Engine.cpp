@@ -309,23 +309,23 @@ namespace worlds {
 
     int WorldsEngine::eventFilter(void* enginePtr, SDL_Event* evt) {
         WorldsEngine* _this = (WorldsEngine*)enginePtr;
-        if (evt->type == SDL_WINDOWEVENT && SDL_GetWindowFromID(evt->window.windowID) == _this->window->getWrappedHandle() && (evt->window.event == SDL_WINDOWEVENT_RESIZED || evt->window.event == SDL_WINDOWEVENT_MOVED)) {
-            if (evt->window.event == SDL_WINDOWEVENT_RESIZED) {
-                Renderer* renderer = _this->renderer.get();
-                _this->windowWidth = evt->window.data1;
-                _this->windowHeight = evt->window.data2;
+        //if (evt->type == SDL_WINDOWEVENT && SDL_GetWindowFromID(evt->window.windowID) == _this->window->getWrappedHandle() && (evt->window.event == SDL_WINDOWEVENT_RESIZED || evt->window.event == SDL_WINDOWEVENT_MOVED)) {
+        //    if (evt->window.event == SDL_WINDOWEVENT_RESIZED) {
+        //        Renderer* renderer = _this->renderer.get();
+        //        _this->windowWidth = evt->window.data1;
+        //        _this->windowHeight = evt->window.data2;
 
-                //renderer->recreateSwapchain(evt->window.data1, evt->window.data2);
-            }
+        //        //renderer->recreateSwapchain(evt->window.data1, evt->window.data2);
+        //    }
 
-            {
-                std::unique_lock<std::mutex> lg(rendererLock);
-                renderThreadCV.wait(lg, []{return renderThreadAvailable;});
-            }
+        //    {
+        //        std::unique_lock<std::mutex> lg(rendererLock);
+        //        renderThreadCV.wait(lg, []{return renderThreadAvailable;});
+        //    }
 
-            if (!inFrame)
-                _this->runSingleFrame(false);
-        }
+        //    if (!inFrame)
+        //        _this->runSingleFrame(false);
+        //}
         return 1;
     }
 

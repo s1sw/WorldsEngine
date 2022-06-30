@@ -84,36 +84,8 @@ namespace R2::VK
 
         VKCHECK(vkEnumeratePhysicalDevices(handles.Instance, &deviceCount, devices));
 
-        for (int i = 0; i < static_cast<int>(deviceCount); i++)
-        {
-            VkPhysicalDeviceProperties props;
-            vkGetPhysicalDeviceProperties(devices[i], &props);
-
-            if (props.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
-            {
-                deviceScores[i]++;
-            }
-
-            if (!checkFeatures(devices[i]))
-            {
-                deviceScores[i] -= 100;
-            }
-        }
-
-        int highestScore = -10000;
-
-        for (int i = 0; i < static_cast<int>(deviceCount); i++)
-        {
-            if (deviceScores[i] < highestScore) continue;
-
-            handles.PhysicalDevice = devices[i];
-            highestScore = deviceScores[i];
-        }
-
-        VkPhysicalDeviceProperties props;
-        vkGetPhysicalDeviceProperties(handles.PhysicalDevice, &props);
-
-        printf("Selected physical device: %s (score was %i)\n", props.deviceName, highestScore);
+        // Most of the time, we just want to pick the first device.
+        handles.PhysicalDevice = devices[0];
     }
 
     void Core::findQueueFamilies()
@@ -197,6 +169,7 @@ namespace R2::VK
         features12.descriptorIndexing = true;
         features12.descriptorBindingPartiallyBound = true;
         features12.descriptorBindingVariableDescriptorCount = true;
+        features12.descriptorBindingSampledImageUpdateAfterBind = true;
         features12.runtimeDescriptorArray = true;
         features13.synchronization2 = true;
         features13.dynamicRendering = true;
@@ -268,8 +241,6 @@ namespace R2::VK
         {
             vkGetDeviceQueue(handles.Device, handles.Queues.AsyncComputeFamilyIndex, 0, &handles.Queues.AsyncCompute);
         }
-
-        printf("Created and loaded device!\n");
     }
 
     void Core::createCommandPool()
@@ -333,6 +304,7 @@ namespace R2::VK
 
         dpci.pPoolSizes = poolSizes;
         dpci.poolSizeCount = sizeof(poolSizes) / sizeof(VkDescriptorPoolSize);
+        dpci.flags = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT;
         
         VKCHECK(vkCreateDescriptorPool(handles.Device, &dpci, handles.AllocCallbacks, &handles.DescriptorPool));
     }
