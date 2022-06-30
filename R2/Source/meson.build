@@ -1,4 +1,5 @@
 r2_sources += [
+    'Source/BindlessTextureManager.cpp',
     'Source/Renderer.cpp',
     'Source/VK/VKAllocCallbacks.cpp',
     'Source/VK/VKBuffer.cpp',
@@ -13,6 +14,7 @@ r2_sources += [
     'Source/VK/VKSwapchain.cpp',
     'Source/VK/VKSyncPrims.cpp',
     'Source/VK/VKTexture.cpp',
+    'Source/VK/VKTimestampPool.cpp',
     'Source/VK/VKUtil.cpp',
     'Source/VK/VMAImplementation.cpp',
     'Source/VK/volk.c'

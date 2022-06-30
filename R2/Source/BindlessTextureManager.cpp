@@ -1,6 +1,7 @@
 #include <R2/BindlessTextureManager.hpp>
 #include <R2/VKCore.hpp>
 #include <R2/VKDescriptorSet.hpp>
+#include <R2/VKSampler.hpp>
 #include <assert.h>
 
 namespace R2
@@ -13,11 +14,20 @@ namespace R2
         dslb.Binding(0, VK::DescriptorType::CombinedImageSampler, NUM_TEXTURES, 
             VK::ShaderStage::Vertex | VK::ShaderStage::Fragment | VK::ShaderStage::Compute)
             .PartiallyBound()
-            .UpdateAfterBind();
+            .UpdateAfterBind()
+            .VariableDescriptorCount();
 
         textureDescriptorSetLayout = dslb.Build();
 
-        textureDescriptors = core->CreateDescriptorSet(textureDescriptorSetLayout);
+        textureDescriptors = core->CreateDescriptorSet(textureDescriptorSetLayout, NUM_TEXTURES);
+
+        VK::SamplerBuilder sb{core->GetHandles()};
+        sampler = sb
+            .AddressMode(VK::SamplerAddressMode::Repeat)
+            .MinFilter(VK::Filter::Linear)
+            .MagFilter(VK::Filter::Linear)
+            .MipmapMode(VK::SamplerMipmapMode::Linear)
+            .Build();
     }
 
     BindlessTextureManager::~BindlessTextureManager()
@@ -39,6 +49,7 @@ namespace R2
     {
         uint32_t freeSlot = FindFreeSlot();
         textures[freeSlot] = tex;
+        presentTextures[freeSlot] = true;
         descriptorsNeedUpdate = true;
         return freeSlot;
     }
@@ -77,11 +88,11 @@ namespace R2
             {
                 if (!presentTextures[i]) continue;
 
-                // TODO: Sampler
-                dsu.AddTexture(0, i, VK::DescriptorType::CombinedImageSampler, textures[i], nullptr);
+                dsu.AddTexture(0, i, VK::DescriptorType::CombinedImageSampler, textures[i], sampler);
             }
 
             dsu.Update();
+            descriptorsNeedUpdate = false;
         }
     }
 }

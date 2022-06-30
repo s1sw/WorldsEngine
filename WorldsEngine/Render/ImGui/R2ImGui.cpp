@@ -10,6 +10,7 @@
 #include <R2/VKCommandBuffer.hpp>
 #include <R2/VKTexture.hpp>
 #include <R2/VKSampler.hpp>
+#include <R2/BindlessTextureManager.hpp>
 
 using namespace R2;
 
@@ -19,6 +20,7 @@ struct ImGuiPCs
     float scaleY;
     float translateX;
     float translateY;
+    uint32_t textureID;
 };
 
 struct R2ImplState
@@ -32,8 +34,9 @@ struct R2ImplState
     VK::DescriptorSetLayout* dsl = nullptr;
     VK::Pipeline* pipeline = nullptr;
     VK::Texture* fontTexture = nullptr;
-    VK::DescriptorSet* ds = nullptr;
+    uint32_t fontTextureID = ~0u;
     VK::Sampler* sampler = nullptr;
+    BindlessTextureManager* textureManager = nullptr;
 };
 
 R2ImplState* getImplState()
@@ -43,7 +46,7 @@ R2ImplState* getImplState()
 
 void ImGui_ImplR2_CreateFontTextureAndDS();
 
-bool ImGui_ImplR2_Init(VK::Core* renderer)
+bool ImGui_ImplR2_Init(VK::Core* renderer, BindlessTextureManager* btm)
 {
     ImGuiIO& io = ImGui::GetIO();
     io.BackendRendererName = "R2";
@@ -51,15 +54,12 @@ bool ImGui_ImplR2_Init(VK::Core* renderer)
 
     R2ImplState* s = new R2ImplState{};
     s->core = renderer;
+    s->textureManager = btm;
     io.BackendRendererUserData = s;
 
-    VK::DescriptorSetLayoutBuilder dslb{ renderer->GetHandles() };
-    dslb.Binding(0, VK::DescriptorType::CombinedImageSampler, 1, VK::ShaderStage::Fragment);
-    s->dsl = dslb.Build();
-
     VK::PipelineLayoutBuilder plb{ renderer->GetHandles() };
-    plb.PushConstants(VK::ShaderStage::Vertex, 0, sizeof(ImGuiPCs))
-       .DescriptorSet(s->dsl);
+    plb.PushConstants(VK::ShaderStage::Vertex | VK::ShaderStage::Fragment, 0, sizeof(ImGuiPCs))
+       .DescriptorSet(&btm->GetTextureDescriptorSetLayout());
     s->pipelineLayout = plb.Build();
 
     VK::VertexBinding vertexBinding{};
@@ -97,7 +97,6 @@ void ImGui_ImplR2_Shutdown()
     delete s->dsl;
     delete s->pipeline;
     s->core->DestroyTexture(s->fontTexture);
-    delete s->ds;
     //s->pipelineLayout;
     delete s->sampler;
 }
@@ -122,7 +121,8 @@ void ImGui_ImplR2_CreateFontTextureAndDS()
 
     ImGui::MemFree(pixels);
 
-    s->ds = s->core->CreateDescriptorSet(s->dsl);
+    s->fontTextureID = s->textureManager->AllocateTextureHandle(s->fontTexture);
+    io.Fonts->SetTexID((ImTextureID)s->fontTextureID);
 
     VK::SamplerBuilder sb{ s->core->GetHandles() };
     s->sampler = sb
@@ -131,10 +131,6 @@ void ImGui_ImplR2_CreateFontTextureAndDS()
         .MinFilter(VK::Filter::Linear)
         .MipmapMode(VK::SamplerMipmapMode::Linear)
         .Build();
-
-    VK::DescriptorSetUpdater dsu{ s->core->GetHandles(), s->ds };
-    dsu.AddTexture(0, 0, VK::DescriptorType::CombinedImageSampler, s->fontTexture, s->sampler)
-        .Update();
 }
 
 void ImGui_ImplR2_RenderDrawData(ImDrawData* drawData, VK::CommandBuffer& cb)
@@ -202,12 +198,12 @@ void ImGui_ImplR2_RenderDrawData(ImDrawData* drawData, VK::CommandBuffer& cb)
     pcs.translateX = -1.0f - drawData->DisplayPos.x * pcs.scaleX;
     pcs.translateY = -1.0f - drawData->DisplayPos.y * pcs.scaleY;
 
-    cb.PushConstants(pcs, VK::ShaderStage::Vertex, s->pipelineLayout);
+    cb.PushConstants(pcs, VK::ShaderStage::Vertex | VK::ShaderStage::Fragment, s->pipelineLayout);
 
     int global_idx_offset = 0;
     int global_vtx_offset = 0;
     ImVec2 clip_off = drawData->DisplayPos;
-    cb.BindGraphicsDescriptorSet(s->pipelineLayout, s->ds->GetNativeHandle(), 0);
+    cb.BindGraphicsDescriptorSet(s->pipelineLayout, s->textureManager->GetTextureDescriptorSet().GetNativeHandle(), 0);
     cb.BindIndexBuffer(s->indexBuffer, 0, VK::IndexType::Uint16);
     cb.BindVertexBuffer(0, s->vertexBuffer, 0);
     cb.BindPipeline(s->pipeline);
@@ -236,6 +232,9 @@ void ImGui_ImplR2_RenderDrawData(ImDrawData* drawData, VK::CommandBuffer& cb)
                     continue;
 
                 // Apply scissor/clipping rectangle
+
+                pcs.textureID = (uint32_t)pcmd->GetTexID();
+                cb.PushConstants(pcs, VK::ShaderStage::Vertex | VK::ShaderStage::Fragment, s->pipelineLayout);
 
                 VK::ScissorRect sr{ clip_min.x, clip_min.y, clip_max.x - clip_min.x, clip_max.y - clip_min.y };
                 cb.SetScissor(sr);

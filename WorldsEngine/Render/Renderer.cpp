@@ -4,23 +4,39 @@
 #include <R2/VKRenderPass.hpp>
 #include <R2/VKCommandBuffer.hpp>
 #include <R2/VKSyncPrims.hpp>
+#include <R2/VKTexture.hpp>
+#include <R2/BindlessTextureManager.hpp>
 #include <SDL_vulkan.h>
 #include <Render/R2ImGui.hpp>
+#include <Core/Log.hpp>
 
 using namespace R2;
 
 namespace worlds {
+    class LogDebugOutputReceiver : public VK::IDebugOutputReceiver {
+    public:
+        void DebugMessage(const char* msg) override {
+            logErr("VK: %s", msg);
+        }
+    };
+
     VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success) {
-        core = new VK::Core;
+        core = new VK::Core(new LogDebugOutputReceiver);
         VK::SwapchainCreateInfo sci{};
 
         SDL_Vulkan_CreateSurface(initInfo.window, core->GetHandles()->Instance, &sci.surface);
         
         swapchain = new VK::Swapchain(core, sci);
 
-        if (!ImGui_ImplR2_Init(core)) return;
 
         frameFence = new VK::Fence(core->GetHandles(), VK::FenceFlags::CreateSignaled);
+
+        debugStats = RenderDebugStats{};
+
+        textureManager = new R2::BindlessTextureManager(core);
+        uiTextureManager = new VKUITextureManager(core, textureManager);
+
+        if (!ImGui_ImplR2_Init(core, textureManager)) return;
 
         *success = true;
     }
@@ -44,6 +60,7 @@ namespace worlds {
         swapchain->GetSize(width, height);
 
         core->BeginFrame();
+        textureManager->UpdateDescriptorsIfNecessary();
 
         VK::RenderPass rp;
         rp.ColorAttachment(swapchainImage, VK::LoadOp::Clear, VK::StoreOp::Store);
@@ -52,18 +69,22 @@ namespace worlds {
 
         VK::CommandBuffer cb = core->GetFrameCommandBuffer();
 
+        swapchainImage->WriteLayoutTransition(core->GetFrameCommandBuffer(), VK::ImageLayout::PresentSrc, VK::ImageLayout::AttachmentOptimal);
+
         rp.Begin(cb);
 
         ImGui_ImplR2_RenderDrawData(imguiDrawData, cb);
 
         rp.End(core->GetFrameCommandBuffer());
 
+        swapchainImage->WriteLayoutTransition(core->GetFrameCommandBuffer(), VK::ImageLayout::AttachmentOptimal, VK::ImageLayout::PresentSrc);
+
         core->EndFrame();
         swapchain->Present();
     }
 
     float VKRenderer::getLastGPUTime() const {
-        return 1337.0f;
+        return lastGPUTime;
     }
 
     void VKRenderer::setVRPredictAmount(float amt) {
@@ -80,6 +101,10 @@ namespace worlds {
 
     const RenderDebugStats& VKRenderer::getDebugStats() const {
         return debugStats;
+    }
+
+    IUITextureManager* VKRenderer::getUITextureManager() {
+        return uiTextureManager;
     }
 
     void VKRenderer::setImGuiDrawData(void* drawData) {

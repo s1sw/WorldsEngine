@@ -12,10 +12,10 @@ namespace worlds {
 
     void AboutWindow::setActive(bool active) {
         this->active = active;
-        //auto& texMan = interfaces.renderer->uiTextureManager();
-        //bgId = texMan.loadOrGet(AssetDB::pathToId("UI/Editor/Images/worlds_no_logo.png"));
-        //bradnoId = texMan.loadOrGet(AssetDB::pathToId("UI/Editor/Images/bradno.png"));
-        //someoneId = texMan.loadOrGet(AssetDB::pathToId("UI/Editor/Images/someone_avatar.png"));
+        IUITextureManager* texMan = interfaces.renderer->getUITextureManager();
+        bgId = texMan->loadOrGet(AssetDB::pathToId("UI/Editor/Images/worlds_no_logo.png"));
+        bradnoId = texMan->loadOrGet(AssetDB::pathToId("UI/Editor/Images/bradno.png"));
+        someoneId = texMan->loadOrGet(AssetDB::pathToId("UI/Editor/Images/someone_avatar.png"));
     }
 
     ImVec2 rotatePoint(ImVec2 p, float angle) {
@@ -94,7 +94,6 @@ namespace worlds {
             ImGui::Text(" - PhysX");
             ImGui::Text(" - Dear ImGUI");
             ImGui::Text(" - stb_image");
-            ImGui::Text(" - stb_vorbis");
             ImGui::Text(" - sajson");
             ImGui::Text(" - crunch");
             ImGui::Text(" - VulkanMemoryAllocator");
@@ -102,11 +101,8 @@ namespace worlds {
             ImGui::Text(" - tinyobjloader");
             ImGui::Text(" - MikkTSpace");
             ImGui::Text(" - SDL2");
-            ImGui::Text(" - Wren");
-            ImGui::Text(" - ENet");
             ImGui::Text(" - PhysFS");
             ImGui::Text(" - Tracy Profiler");
-            ImGui::Text(" - Vookoo (sorta, it's been rewritten by now :P)");
 
             auto cursorX = ImGui::GetCursorStartPos().x + 375;
 

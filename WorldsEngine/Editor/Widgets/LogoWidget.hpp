@@ -8,8 +8,8 @@ namespace worlds {
     class LogoWidget {
     public:
         LogoWidget(EngineInterfaces interfaces) {
-            //auto& texMan = interfaces.renderer->uiTextureManager();
-            //background = texMan.loadOrGet(AssetDB::pathToId("UI/Editor/Images/worlds_no_logo.png"));
+            auto texMan = interfaces.renderer->getUITextureManager();
+            background = texMan->loadOrGet(AssetDB::pathToId("UI/Editor/Images/worlds_no_logo.png"));
         }
 
         void draw() {
@@ -18,7 +18,7 @@ namespace worlds {
             auto corner = screenCursorPos + logoSize;
             auto* drawList = ImGui::GetWindowDrawList();
 
-            //drawList->AddImage(background, screenCursorPos, corner);
+            drawList->AddImage(background, screenCursorPos, corner);
 
             // draw orbit circles
             auto center = screenCursorPos + glm::vec2(174, 60);

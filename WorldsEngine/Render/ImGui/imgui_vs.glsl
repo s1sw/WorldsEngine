@@ -11,7 +11,9 @@ layout (push_constant) uniform PC
 {
     vec2 Scale;
     vec2 Translate;
+    uint TextureID;
 };
+
 vec4 toLinear(vec4 sRGB)
 {
     bvec3 cutoff = lessThan(sRGB.rgb, vec3(0.04045));

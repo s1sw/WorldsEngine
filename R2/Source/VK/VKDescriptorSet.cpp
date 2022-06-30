@@ -57,11 +57,19 @@ namespace R2::VK
     DescriptorSetLayoutBuilder& DescriptorSetLayoutBuilder::PartiallyBound()
     {
         bindings.front().PartiallyBound = true;
+        return *this;
     }
 
     DescriptorSetLayoutBuilder& DescriptorSetLayoutBuilder::UpdateAfterBind()
     {
         bindings.front().UpdateAfterBind = true;
+        return *this;
+    }
+
+    DescriptorSetLayoutBuilder& DescriptorSetLayoutBuilder::VariableDescriptorCount()
+    {
+        bindings.front().VariableDescriptorCount = true;
+        return *this;
     }
 
     DescriptorSetLayout* DescriptorSetLayoutBuilder::Build()
@@ -93,12 +101,23 @@ namespace R2::VK
                 thisBindFlags |= VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT;
             }
 
+            if (db.VariableDescriptorCount)
+            {
+                thisBindFlags |= VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT;
+            }
+
             bindingFlags.push_back(thisBindFlags);
         }
 
         VkDescriptorSetLayoutCreateInfo dslci{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
         dslci.bindingCount = (uint32_t)layoutBindings.size();
         dslci.pBindings = layoutBindings.data();
+
+        VkDescriptorSetLayoutBindingFlagsCreateInfo bindFlagsCreateInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO };
+        bindFlagsCreateInfo.pBindingFlags = bindingFlags.data();
+        bindFlagsCreateInfo.bindingCount = bindingFlags.size();
+
+        dslci.pNext = &bindFlagsCreateInfo;
 
         VkDescriptorSetLayout dsl;
         VKCHECK(vkCreateDescriptorSetLayout(handles->Device, &dslci, handles->AllocCallbacks, &dsl));
