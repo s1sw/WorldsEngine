@@ -17,5 +17,15 @@
     {
         "path": "light_cull.comp.slang",
         "outputPath": "light_cull_nomsaa.comp.spv"
+    },
+    {
+        "path": "standard.slang",
+        "outputPath": "standard.vert.spv",
+        "stage": "vert"
+    },
+    {
+        "path": "standard.slang",
+        "outputPath": "standard.frag.spv",
+        "stage": "frag"
     }
 ]

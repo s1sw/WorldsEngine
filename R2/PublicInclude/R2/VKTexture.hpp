@@ -17,6 +17,7 @@ namespace R2::VK
 {
     struct Handles;
     class CommandBuffer;
+    class Core;
 
     enum class TextureDimension
     {
@@ -390,8 +391,8 @@ namespace R2::VK
     class Texture
     {
     public:
-        Texture(const Handles* handles, const TextureCreateInfo& createInfo);
-        Texture(const Handles* handles, VkImage image, const TextureCreateInfo& createInfo);
+        Texture(Core* core, const TextureCreateInfo& createInfo);
+        Texture(Core* core, VkImage image, const TextureCreateInfo& createInfo);
         VkImage GetNativeHandle();
         VkImage ReleaseHandle();
         VkImageView GetView();
@@ -415,7 +416,7 @@ namespace R2::VK
         int samples;
 
         VkImageAspectFlags getAspectFlags() const;
-        const Handles* handles;
+        Core* core;
         VkImage image;
         VkImageView imageView;
         VmaAllocation allocation;

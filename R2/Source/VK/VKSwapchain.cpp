@@ -182,7 +182,7 @@ namespace R2::VK
 
         for (VkImage image : images)
         {
-            imageTextures.push_back(new Texture(handles, image, swapTexInfo));
+            imageTextures.push_back(new Texture(renderer, image, swapTexInfo));
         }
 
         this->width = createInfo.imageExtent.width;

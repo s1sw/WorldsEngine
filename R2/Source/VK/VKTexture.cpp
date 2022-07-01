@@ -63,7 +63,8 @@ namespace R2::VK
         return false;
     }
 
-    Texture::Texture(const Handles* handles, const TextureCreateInfo& createInfo) : handles(handles)
+    Texture::Texture(Core* core, const TextureCreateInfo& createInfo)
+        : core(core)
     {
         VkImageCreateInfo ici{ VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
         ici.extent.width = createInfo.Width;
@@ -102,6 +103,8 @@ namespace R2::VK
 
         ici.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
+        const Handles* handles = core->GetHandles();
+
         VmaAllocationCreateInfo vaci{};
         vaci.usage = VMA_MEMORY_USAGE_AUTO;
         VKCHECK(vmaCreateImage(handles->Allocator, &ici, &vaci, &image, &allocation, nullptr));
@@ -129,9 +132,10 @@ namespace R2::VK
         VKCHECK(vkCreateImageView(handles->Device, &ivci, handles->AllocCallbacks, &imageView));
     }
 
-    Texture::Texture(const Handles* handles, VkImage image, const TextureCreateInfo& createInfo)
+    Texture::Texture(Core* core, VkImage image, const TextureCreateInfo& createInfo)
         : image(image)
         , allocation(nullptr)
+        , core(core)
     {
         // Now copy everything...
         width = createInfo.Width;
@@ -153,8 +157,8 @@ namespace R2::VK
         ivci.subresourceRange.layerCount = layers;
         ivci.subresourceRange.levelCount = numMips;
 
+        const Handles* handles = core->GetHandles();
         VKCHECK(vkCreateImageView(handles->Device, &ivci, handles->AllocCallbacks, &imageView));
-        this->handles = handles;
     }
 
     VkImage Texture::GetNativeHandle()
@@ -165,6 +169,7 @@ namespace R2::VK
     VkImage Texture::ReleaseHandle()
     {
         assert(allocation == nullptr);
+        const Handles* handles = core->GetHandles();
         vkDestroyImageView(handles->Device, imageView, handles->AllocCallbacks);
         VkImage tmp = image;
         image = VK_NULL_HANDLE;
@@ -238,6 +243,7 @@ namespace R2::VK
 
     Texture::~Texture()
     {
+        const Handles* handles = core->GetHandles();
         if (allocation)
         {
             vmaDestroyImage(handles->Allocator, image, allocation);

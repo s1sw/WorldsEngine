@@ -12,10 +12,10 @@ if (buildDebugShaders) {
 
 const customArgs = {
     "standard.glsl": [
-        { stage: "frag", defines: ["FRAGMENT", "EFT"], outFile: "standard.frag.spv" },
+        //{ stage: "frag", defines: ["FRAGMENT", "EFT"], outFile: "standard.frag.spv" },
         //{ stage: "frag", defines: ["FRAGMENT"], outFile: "standard_alpha_test.frag.spv" },
-        { stage: "vert", defines: ["VERTEX"], outFile: "standard.vert.spv" },
-        { stage: "vert", defines: ["VERTEX", "SKINNED"], outFile: "standard_skinned.vert.spv" }
+        //{ stage: "vert", defines: ["VERTEX"], outFile: "standard.vert.spv" },
+        //{ stage: "vert", defines: ["VERTEX", "SKINNED"], outFile: "standard_skinned.vert.spv" }
     ],
     "hologram.glsl": [
         { stage: "frag", defines: ["FRAGMENT", "EFT"], outFile: "hologram.frag.spv" },

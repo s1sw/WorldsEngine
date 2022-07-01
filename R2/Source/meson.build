@@ -1,6 +1,7 @@
 r2_sources += [
     'Source/BindlessTextureManager.cpp',
     'Source/Renderer.cpp',
+    'Source/SubAllocatedBuffer.cpp',
     'Source/VK/VKAllocCallbacks.cpp',
     'Source/VK/VKBuffer.cpp',
     'Source/VK/VKCommandBuffer.cpp',

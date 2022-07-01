@@ -85,7 +85,7 @@ namespace R2::VK
 
 	Texture* Core::CreateTexture(const TextureCreateInfo& createInfo)
 	{
-		return new Texture(GetHandles(), createInfo);
+		return new Texture(this, createInfo);
 	}
 
 	void Core::DestroyTexture(Texture* t)
