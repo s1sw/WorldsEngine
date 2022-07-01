@@ -17,11 +17,6 @@ namespace worlds {
         uint32_t materialIndex;
     };
 
-    enum class IndexType {
-        Uint16,
-        Uint32
-    };
-
     struct LoadedMeshData {
         bool isSkinned;
         std::vector<LoadedMeshBone> bones;

@@ -27,14 +27,13 @@ namespace worlds {
         SDL_Vulkan_CreateSurface(initInfo.window, core->GetHandles()->Instance, &sci.surface);
         
         swapchain = new VK::Swapchain(core, sci);
-
-
         frameFence = new VK::Fence(core->GetHandles(), VK::FenceFlags::CreateSignaled);
 
         debugStats = RenderDebugStats{};
 
         textureManager = new R2::BindlessTextureManager(core);
         uiTextureManager = new VKUITextureManager(core, textureManager);
+        renderMeshManager = new RenderMeshManager(core);
 
         if (!ImGui_ImplR2_Init(core, textureManager)) return;
 
@@ -48,10 +47,14 @@ namespace worlds {
         delete frameFence;
         delete swapchain;
 
+        delete renderMeshManager;
+        delete uiTextureManager;
+        delete textureManager;
+
         delete core;
     }
 
-    void VKRenderer::frame() {
+    void VKRenderer::frame(entt::registry& reg) {
         frameFence->WaitFor();
         frameFence->Reset();
         VK::Texture* swapchainImage = swapchain->Acquire(frameFence);

@@ -5,21 +5,24 @@
 #include <robin_hood.h>
 #include <R2/R2.hpp>
 
+#define VK_DEFINE_HANDLE(object) typedef struct object##_T* object;
 struct ImDrawData;
 
 namespace R2 {
     class BindlessTextureManager;
+    class SubAllocatedBuffer;
+    VK_DEFINE_HANDLE(SubAllocationHandle)
 }
 
 namespace R2::VK {
     class Swapchain;
     class Fence;
     class Texture;
+    class Buffer;
 }
 
 typedef struct VkPhysicalDeviceProperties VkPhysicalDeviceProperties;
 typedef struct VkPipelineCacheCreateInfo VkPipelineCacheCreateInfo;
-#define VK_DEFINE_HANDLE(object) typedef struct object##_T* object;
 VK_DEFINE_HANDLE(VkPipelineCache)
 VK_DEFINE_HANDLE(VkDevice)
 #undef VK_DEFINE_HANDLE
@@ -137,6 +140,44 @@ namespace worlds {
         static void savePipelineCache(const VkPhysicalDeviceProperties&, const VkPipelineCache&, const VkDevice&);
     };
 
+    enum class IndexType {
+        Uint16,
+        Uint32
+    };
+
+    struct RenderSubmeshInfo {
+        uint32_t indexCount;
+        uint32_t indexOffset;
+        uint8_t materialIndex;
+    };
+
+    struct RenderMeshInfo {
+        R2::SubAllocationHandle vertexAllocationHandle;
+        R2::SubAllocationHandle indexAllocationHandle;
+
+        uint32_t vertsOffset;
+        uint32_t indexOffset;
+
+        IndexType indexType;
+        uint8_t numSubmeshes;
+        RenderSubmeshInfo submeshInfo[NUM_SUBMESH_MATS];
+    };
+
+    class RenderMeshManager {
+        robin_hood::unordered_map<AssetID, RenderMeshInfo> meshes;
+        R2::SubAllocatedBuffer* vertexBuffer;
+        R2::SubAllocatedBuffer* indexBuffer;
+        R2::VK::Core* core;
+    public:
+        RenderMeshManager(R2::VK::Core* core);
+        ~RenderMeshManager();
+
+        R2::VK::Buffer* getVertexBuffer();
+        R2::VK::Buffer* getIndexBuffer();
+
+        RenderMeshInfo& loadOrGet(AssetID id);
+    };
+
     class VKUITextureManager : public IUITextureManager {
     public:
         VKUITextureManager(R2::VK::Core* core, R2::BindlessTextureManager* textureManager);
@@ -181,6 +222,7 @@ namespace worlds {
         R2::VK::Fence* frameFence;
         R2::BindlessTextureManager* textureManager;
         VKUITextureManager* uiTextureManager;
+        RenderMeshManager* renderMeshManager;
 
         std::vector<VKRTTPass*> rttPasses;
 
@@ -193,7 +235,7 @@ namespace worlds {
         VKRenderer(const RendererInitInfo& initInfo, bool* success);
         ~VKRenderer();
 
-        void frame() override;
+        void frame(entt::registry& reg) override;
 
         float getLastGPUTime() const override;
         void setVRPredictAmount(float amt) override;
