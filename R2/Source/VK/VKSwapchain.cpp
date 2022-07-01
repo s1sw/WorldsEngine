@@ -73,6 +73,11 @@ namespace R2::VK
         recreate();
     }
 
+    bool Swapchain::GetVsync() const
+    {
+        return vsyncEnabled;
+    }
+
     void Swapchain::Present()
     {
         VkPresentInfoKHR presentInfo{ VK_STRUCTURE_TYPE_PRESENT_INFO_KHR };

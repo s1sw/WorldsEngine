@@ -268,43 +268,6 @@ namespace worlds {
     };
     ConVar simStepTime{ "sim_stepTime", "0.01" };
 
-    entt::registry renderRegistry;
-    ImDrawData renderThreadDrawData;
-    Camera renderThreadCamera;
-    std::mutex rendererLock;
-    std::condition_variable renderThreadCV;
-    bool renderThreadWorkReady = false;
-    bool renderThreadAvailable = true;
-    ConVar pacingSleepTime{ "pacingSleepTime", "0" };
-
-
-    int WorldsEngine::renderThread(void* data) {
-        WorldsEngine* _this = (WorldsEngine*)data;
-
-        while (_this->running) {
-            ZoneScoped;
-            std::unique_lock<std::mutex> lg {rendererLock};
-            renderThreadCV.wait(lg, [] {return renderThreadWorkReady;});
-            renderThreadWorkReady = false;
-            renderThreadAvailable = false;
-
-            if (!_this->running) break;
-
-            _this->renderer->setImGuiDrawData(&renderThreadDrawData);
-            _this->renderer->frame();
-
-            for (int i = 0; i < renderThreadDrawData.CmdListsCount; i++) {
-                IM_DELETE(renderThreadDrawData.CmdLists[i]);
-            }
-
-            renderThreadAvailable = true;
-            lg.unlock();
-            renderThreadCV.notify_one();
-        }
-
-        return 0;
-    }
-
     bool inFrame = false;
 
     int WorldsEngine::eventFilter(void* enginePtr, SDL_Event* evt) {
@@ -316,11 +279,6 @@ namespace worlds {
                 _this->windowHeight = evt->window.data2;
 
                 //renderer->recreateSwapchain(evt->window.data1, evt->window.data2);
-            }
-
-            {
-                std::unique_lock<std::mutex> lg(rendererLock);
-                renderThreadCV.wait(lg, []{return renderThreadAvailable;});
             }
 
             if (!inFrame)
@@ -340,7 +298,6 @@ namespace worlds {
         }
     }
 
-    SDL_Thread* renderThreadInstance = nullptr;
     bool screenPassIsVR = false;
     float screenPassResScale = 1.0f;
 
@@ -496,8 +453,6 @@ namespace worlds {
 
             bool renderInitSuccess = false;
             renderer = std::make_unique<VKRenderer>(initInfo, &renderInitSuccess);
-
-            renderThreadInstance = SDL_CreateThread(renderThread, "Render Thread", this);
 
             if (!renderInitSuccess) {
                 fatalErr("Failed to initialise renderer");
@@ -744,34 +699,6 @@ namespace worlds {
         interFrameInfo.deltaTime = deltaTicks / (double)SDL_GetPerformanceFrequency();
         gameTime += interFrameInfo.deltaTime;
 
-        if (renderer->getVsync() || enableOpenVR) {
-            double targetTime;
-
-            if (enableOpenVR) {
-                float fDisplayFrequency = vr::VRSystem()->GetFloatTrackedDeviceProperty(vr::k_unTrackedDeviceIndex_Hmd, vr::Prop_DisplayFrequency_Float);
-                targetTime = 1.0 / fDisplayFrequency;
-            } else {
-                int displayIdx = SDL_GetWindowDisplayIndex(window->getWrappedHandle());
-                SDL_DisplayMode displayMode;
-                SDL_GetCurrentDisplayMode(displayIdx, &displayMode);
-                targetTime = 1.0 / displayMode.refresh_rate;
-            }
-
-            // Leave about 3ms of margin just in case
-            targetTime -= 0.003;
-
-            double timeAtStart = (double)SDL_GetPerformanceCounter() / SDL_GetPerformanceFrequency();
-            double throttleTime = pacingSleepTime.getInt() ? pacingSleepTime.getInt() / 1000.0 : glm::clamp(targetTime - interFrameInfo.lastUpdateTime, 0.0, 0.02);
-            double currTime = timeAtStart;
-
-            while (currTime - timeAtStart < throttleTime) {
-                currTime = (double)SDL_GetPerformanceCounter() / SDL_GetPerformanceFrequency();
-                if (currTime - timeAtStart > 0.001) {
-                    SDL_Delay(1);
-                }
-            }
-        }
-
         uint64_t updateStart = SDL_GetPerformanceCounter();
 
         if (processEvents)
@@ -782,7 +709,6 @@ namespace worlds {
         if (!dedicatedServer) {
             tickRichPresence();
 
-            //ImGui_ImplVulkan_NewFrame();
             ImGui_ImplSDL2_NewFrame(window->getWrappedHandle());
         }
         inFrame = true;
@@ -979,9 +905,6 @@ namespace worlds {
             PHYSFS_File* file = AssetDB::openAssetFileRead(queuedSceneID);
             SceneLoader::loadScene(file, registry);
 
-            std::unique_lock<std::mutex> lg{rendererLock};
-            renderThreadCV.wait(lg, []{ return renderThreadAvailable; });
-
             // TODO: Load content here
 
             if (evtHandler && (!runAsEditor || !editor->active)) {
@@ -1024,7 +947,6 @@ namespace worlds {
 
     void WorldsEngine::tickRenderer(bool renderImGui) {
         ZoneScoped;
-        std::unique_lock<std::mutex> lg(rendererLock);
         const physx::PxRenderBuffer& pxRenderBuffer = physicsSystem->scene()->getRenderBuffer();
 
         for (uint32_t i = 0; i < pxRenderBuffer.getNbLines(); i++) {
@@ -1032,47 +954,19 @@ namespace worlds {
             drawLine(px2glm(line.pos0), px2glm(line.pos1), glm::vec4(1.0f, 0.0f, 1.0f, 1.0f));
         }
 
-        {
-            ZoneScopedN("Waiting on CV");
-            renderThreadCV.wait(lg, [this]{return renderThreadAvailable || !running;});
-        }
-
-        {
-            ZoneScopedN("Copying entities and components");
-            renderRegistry.clear();
-            renderRegistry.assign(registry.data(), registry.data() + registry.size(), registry.destroyed());
-            cloneComponent<Transform>(registry, renderRegistry);
-            cloneComponent<WorldObject>(registry, renderRegistry);
-            cloneComponent<SkinnedWorldObject>(registry, renderRegistry);
-            cloneComponent<WorldLight>(registry, renderRegistry);
-            cloneComponent<WorldCubemap>(registry, renderRegistry);
-            cloneComponent<UseWireframe>(registry, renderRegistry);
-            cloneComponent<EditorGlow>(registry, renderRegistry);
-            cloneComponent<ProxyAOComponent>(registry, renderRegistry);
-            cloneComponent<SphereAOProxy>(registry, renderRegistry);
-            cloneComponent<WorldTextComponent>(registry, renderRegistry);
-        }
-
-        renderRegistry.set<SceneSettings>(registry.ctx<SceneSettings>());
-
         if (renderImGui) {
             ZoneScopedN("Copy ImGui data");
             ImGui::Render();
-            renderThreadDrawData = *ImGui::GetDrawData();
-            for (int i = 0; i < renderThreadDrawData.CmdListsCount; i++) {
-                ImDrawList* original = renderThreadDrawData.CmdLists[i];
-                renderThreadDrawData.CmdLists[i] = original->CloneOutput();
-            }
 
             if (window->isMaximised()) {
-                renderThreadDrawData.RenderOffset = ImVec2(8, 8);
+                ImGui::GetDrawData()->RenderOffset = ImVec2(8, 8);
             }
+
+            renderer->setImGuiDrawData(ImGui::GetDrawData());
 
             ImGui::UpdatePlatformWindows();
             ImGui::RenderPlatformWindowsDefault();
         }
-
-        renderThreadCamera = cam;
 
         if (enableOpenVR) {
             auto vrSys = vr::VRSystem();
@@ -1096,10 +990,7 @@ namespace worlds {
             renderer->setVRPredictAmount(predictAmount);
         }
 
-        renderThreadWorkReady = true;
-
-        lg.unlock();
-        renderThreadCV.notify_one();
+        renderer->frame(registry);
     }
 
     template<typename T, size_t sz>
@@ -1344,8 +1235,6 @@ namespace worlds {
     }
 
     WorldsEngine::~WorldsEngine() {
-        SDL_WaitThread(renderThreadInstance, nullptr);
-
         for (auto* system : systems) {
             delete system;
         }

@@ -113,7 +113,6 @@ namespace worlds {
 
         static int eventFilter(void* enginePtr, SDL_Event* evt);
         static int windowThread(void* data);
-        static int renderThread(void* data);
         void setupSDL();
         Window* createWindow();
         void setupPhysfs(char* argv0);

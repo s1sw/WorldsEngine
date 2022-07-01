@@ -30,6 +30,7 @@ namespace R2::VK
         ~Swapchain();
 
         void SetVsync(bool vsync);
+        bool GetVsync() const;
         void Present();
         void Resize();
         void Resize(int width, int height);
