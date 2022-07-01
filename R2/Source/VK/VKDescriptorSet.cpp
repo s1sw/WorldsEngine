@@ -213,7 +213,7 @@ namespace R2::VK
                 bii.offset = 0;
                 bii.range = VK_WHOLE_SIZE;
                 bufferInfos.push_back(bii);
-                vw.pBufferInfo = &bufferInfos[imageInfos.size() - 1];
+                vw.pBufferInfo = &bufferInfos[bufferInfos.size() - 1];
             }
 
             writes.push_back(vw);

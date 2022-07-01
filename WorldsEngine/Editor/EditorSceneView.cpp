@@ -385,8 +385,7 @@ namespace worlds {
             .height = currentHeight,
             .isVr = false,
             .useForPicking = true,
-            .enableShadows = shadowsEnabled,
-            .outputToScreen = false
+            .enableShadows = shadowsEnabled
         };
 
         sceneViewPass = interfaces.renderer->createRTTPass(sceneViewPassCI);

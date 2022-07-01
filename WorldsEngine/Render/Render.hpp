@@ -147,7 +147,6 @@ namespace worlds {
         bool isVr;
         bool useForPicking;
         bool enableShadows;
-        bool outputToScreen;
         bool staticsOnly = false;
         int msaaLevel = 0;
         entt::registry* registryOverride = nullptr;

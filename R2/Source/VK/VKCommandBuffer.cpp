@@ -33,6 +33,11 @@ namespace R2::VK
         vkCmdSetScissor(cb, 0, 1, &vks);
     }
 
+    void CommandBuffer::ClearScissor()
+    {
+        vkCmdSetScissor(cb, 0, 0, nullptr);
+    }
+
     void CommandBuffer::BindVertexBuffer(uint32_t location, Buffer* buffer, uint64_t offset)
     {
         VkBuffer b = buffer->GetNativeHandle();
@@ -67,5 +72,22 @@ namespace R2::VK
     VkCommandBuffer CommandBuffer::GetNativeHandle()
     {
         return cb;
+    }
+
+    void CommandBuffer::BeginDebugLabel(const char* label, float r, float g, float b)
+    {
+        VkDebugUtilsLabelEXT labelObj{VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT};
+        labelObj.pLabelName = label;
+        labelObj.color[0] = r;
+        labelObj.color[1] = g;
+        labelObj.color[2] = b;
+        labelObj.color[3] = 1.0f;
+
+        vkCmdBeginDebugUtilsLabelEXT(cb, &labelObj);
+    }
+
+    void CommandBuffer::EndDebugLabel()
+    {
+        vkCmdEndDebugUtilsLabelEXT(cb);
     }
 }
