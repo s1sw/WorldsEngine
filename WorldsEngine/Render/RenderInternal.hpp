@@ -70,23 +70,6 @@ namespace worlds {
         uint32_t flags;
     };
 
-    struct StandardPushConstants {
-        uint32_t modelMatrixIdx;
-        uint32_t materialIdx;
-        uint32_t vpIdx;
-        uint32_t objectId;
-
-        uint32_t pad0;
-        uint32_t cubemapIdx2;
-        float cubemapBoost;
-        uint32_t skinningOffset;
-
-        glm::vec4 texScaleOffset;
-
-        glm::ivec3 screenSpacePickPos;
-        uint32_t cubemapIdx;
-    };
-
     struct LightUB {
         static const int MAX_LIGHTS = 256;
         static int LIGHT_TILE_SIZE;
@@ -205,6 +188,7 @@ namespace worlds {
 
         R2::VK::Texture* sdrTarget;
         uint32_t sdrTargetId;
+        Camera* cam;
     public:
         void drawNow(entt::registry& world) override;
 

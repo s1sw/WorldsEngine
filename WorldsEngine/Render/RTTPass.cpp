@@ -15,6 +15,7 @@ namespace worlds {
 
         width = ci.width;
         height = ci.height;
+        cam = ci.cam;
     }
 
     VKRTTPass::~VKRTTPass() {

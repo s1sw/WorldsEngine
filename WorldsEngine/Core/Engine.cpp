@@ -624,13 +624,13 @@ namespace worlds {
             }
 
             RTTPassCreateInfo screenRTTCI {
+                .cam = &cam,
                 .width = w,
                 .height = h,
                 .resScale = 1.0f,
                 .isVr = enableOpenVR,
                 .useForPicking = false,
                 .enableShadows = true,
-                .outputToScreen = true,
             };
 
             screenRTTPass = renderer->createRTTPass(screenRTTCI);
@@ -729,7 +729,7 @@ namespace worlds {
             openvrInterface->updateInput();
 
         if (!dedicatedServer) {
-            //screenRTTPass->active = !runAsEditor || !editor->active;
+            screenRTTPass->active = !runAsEditor || !editor->active;
         }
 
         if (enableOpenVR) {
@@ -747,18 +747,20 @@ namespace worlds {
                 renderer->destroyRTTPass(screenRTTPass);
 
                 RTTPassCreateInfo screenRTTCI {
+                    .cam = &cam,
                     .width = w,
                     .height = h,
                     .resScale = screenPassResScale,
                     .isVr = screenPassIsVR,
                     .useForPicking = false,
                     .enableShadows = true,
-                    .outputToScreen = true,
                 };
 
                 screenRTTPass = renderer->createRTTPass(screenRTTCI);
             }
         }
+
+        ImGui::GetBackgroundDrawList()->AddImage(screenRTTPass->getUITextureID(), ImVec2(0.0, 0.0), ImGui::GetIO().DisplaySize);
 
         //screenRTTPass->setResolutionScale(screenPassResScale);
 

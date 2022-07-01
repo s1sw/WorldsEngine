@@ -21,7 +21,7 @@ namespace R2::VK
 
 	void Core::setAllocCallbacks()
 	{
-		VkAllocationCallbacks* callbacks = new VkAllocationCallbacks;
+		VkAllocationCallbacks* callbacks = new VkAllocationCallbacks{0};
 		callbacks->pfnAllocation = vulkanAlloc;
 		callbacks->pfnFree = vulkanFree;
 		callbacks->pfnReallocation = vulkanRealloc;

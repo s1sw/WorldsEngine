@@ -61,6 +61,7 @@ namespace R2::VK
         CommandBuffer(VkCommandBuffer cb);
         void SetViewport(Viewport vp);
         void SetScissor(ScissorRect rect);
+        void ClearScissor();
         void BindVertexBuffer(uint32_t location, Buffer* buffer, uint64_t offset);
         void BindIndexBuffer(Buffer* buffer, uint64_t offset, IndexType indexType);
         void BindPipeline(Pipeline* p);

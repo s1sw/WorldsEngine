@@ -6,7 +6,8 @@ namespace R2::VK
     {
         Vertex = 0x1,
         Fragment = 0x10,
-        Compute = 0x20
+        Compute = 0x20,
+        AllRaster = Vertex | Fragment
     };
 
     inline ShaderStage operator|(const ShaderStage& a, const ShaderStage& b)

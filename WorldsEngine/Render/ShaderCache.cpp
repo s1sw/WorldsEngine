@@ -11,6 +11,11 @@ using namespace R2;
 namespace worlds {
     std::unordered_map<AssetID, VK::ShaderModule*> ShaderCache::modules;
     VK::Core* ShaderCache::core;
+
+    void ShaderCache::setDevice(VK::Core* core) {
+        ShaderCache::core = core;
+    }
+
     VK::ShaderModule& ShaderCache::getModule(AssetID id) {
         auto it = modules.find(id);
 
@@ -38,6 +43,7 @@ namespace worlds {
         std::free(buffer);
 
         logVrb(WELogCategoryRender, "loading shader %s from disk", AssetDB::idToPath(id).c_str());
+        it = modules.find(id);
 
         return *it->second;
     }
