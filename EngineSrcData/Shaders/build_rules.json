@@ -21,11 +21,13 @@
     {
         "path": "standard.slang",
         "outputPath": "standard.vert.spv",
-        "stage": "vert"
+        "stage": "vert",
+        "entryPoint": "VertexShader"
     },
     {
         "path": "standard.slang",
         "outputPath": "standard.frag.spv",
-        "stage": "frag"
+        "stage": "frag",
+        "entryPoint": "FragmentShader"
     }
 ]

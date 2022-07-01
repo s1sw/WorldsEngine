@@ -5,10 +5,13 @@
 #include <R2/VKCommandBuffer.hpp>
 #include <R2/VKSyncPrims.hpp>
 #include <R2/VKTexture.hpp>
+#include <R2/VKPipeline.hpp>
 #include <R2/BindlessTextureManager.hpp>
 #include <SDL_vulkan.h>
 #include <Render/R2ImGui.hpp>
 #include <Core/Log.hpp>
+#include <entt/entity/registry.hpp>
+#include <Render/ShaderCache.hpp>
 
 using namespace R2;
 
@@ -19,6 +22,8 @@ namespace worlds {
             logErr("VK: %s", msg);
         }
     };
+
+    VK::Pipeline* pipeline;
 
     VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success) {
         core = new VK::Core(new LogDebugOutputReceiver);
@@ -40,6 +45,8 @@ namespace worlds {
         R2::VK::GraphicsDeviceInfo deviceInfo = core->GetDeviceInfo();
         logMsg(WELogCategoryRender, "Device name: %s", deviceInfo.Name);
 
+        ShaderCache::setDevice(core);
+
         *success = true;
     }
 
@@ -53,6 +60,7 @@ namespace worlds {
 
         delete core;
     }
+
 
     void VKRenderer::frame(entt::registry& reg) {
         frameFence->WaitFor();
@@ -70,13 +78,16 @@ namespace worlds {
 
         VK::CommandBuffer cb = core->GetFrameCommandBuffer();
 
-        for (VKRTTPass* pass : rttPasses)
-        {
+        for (VKRTTPass* pass : rttPasses) {
             VK::RenderPass r;
             r.ColorAttachment(pass->sdrTarget, VK::LoadOp::Clear, VK::StoreOp::Store);
             r.ColorAttachmentClearValue(VK::ClearValue::FloatColorClear(1.f, 0.f, 1.f, 1.f));
             r.RenderArea(pass->width, pass->height);
             r.Begin(cb);
+
+            reg.view<WorldObject, Transform>().each([&](WorldObject& wo, Transform& t) {
+                RenderMeshInfo& rmi = renderMeshManager->loadOrGet(wo.mesh);
+            });
             r.End(cb);
         }
 
@@ -113,7 +124,7 @@ namespace worlds {
     }
 
     bool VKRenderer::getVsync() const {
-        return true;
+        return swapchain->GetVsync();
     }
 
     const RenderDebugStats& VKRenderer::getDebugStats() const {

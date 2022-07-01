@@ -122,7 +122,7 @@ void ImGui_ImplR2_CreateFontTextureAndDS()
     ImGui::MemFree(pixels);
 
     s->fontTextureID = s->textureManager->AllocateTextureHandle(s->fontTexture);
-    io.Fonts->SetTexID((ImTextureID)s->fontTextureID);
+    io.Fonts->SetTexID((ImTextureID)(uint64_t)s->fontTextureID);
 
     VK::SamplerBuilder sb{ s->core->GetHandles() };
     s->sampler = sb
@@ -233,10 +233,21 @@ void ImGui_ImplR2_RenderDrawData(ImDrawData* drawData, VK::CommandBuffer& cb)
 
                 // Apply scissor/clipping rectangle
 
-                pcs.textureID = (uint32_t)pcmd->GetTexID();
+                pcs.textureID = (uint32_t)(uintptr_t)pcmd->GetTexID();
                 cb.PushConstants(pcs, VK::ShaderStage::Vertex | VK::ShaderStage::Fragment, s->pipelineLayout);
 
-                VK::ScissorRect sr{ clip_min.x, clip_min.y, clip_max.x - clip_min.x, clip_max.y - clip_min.y };
+                int clipX = (int)clip_min.x;
+                int clipY = (int)clip_min.y;
+                uint32_t clipW = (uint32_t)(clip_max.x - clip_min.x);
+                uint32_t clipH = (uint32_t)(clip_max.y - clip_min.y);
+
+                VK::ScissorRect sr{ 
+                    clipX,
+                    clipY,
+                    clipW,
+                    clipH
+                };
+
                 cb.SetScissor(sr);
 
                 cb.DrawIndexed(pcmd->ElemCount, 1, pcmd->IdxOffset + global_idx_offset, pcmd->VtxOffset + global_vtx_offset, 0);
