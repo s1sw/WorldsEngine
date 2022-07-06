@@ -5,6 +5,11 @@
 namespace worlds {
     void loadWorldsModel(AssetID wmdlId, LoadedMeshData& lmd) {
         PHYSFS_File* f = AssetDB::openAssetFileRead(wmdlId);
+
+        if (f == nullptr) {
+            return;
+        }
+
         size_t fileSize = PHYSFS_fileLength(f);
 
         void* buf = malloc(fileSize);

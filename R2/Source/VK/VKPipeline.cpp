@@ -1,6 +1,7 @@
 #include <R2/VKPipeline.hpp>
 #include <R2/VKCore.hpp>
 #include <R2/VKDescriptorSet.hpp>
+#include <R2/VKTexture.hpp>
 #include <volk.h>
 
 namespace R2::VK
@@ -75,7 +76,7 @@ namespace R2::VK
     PipelineBuilder::PipelineBuilder(const Handles* handles)
         : handles(handles)
     {
-
+        depthFormat = TextureFormat::UNDEFINED;
     }
 
     VkShaderStageFlagBits convertShaderStage(ShaderStage stage)
@@ -99,6 +100,12 @@ namespace R2::VK
     PipelineBuilder& PipelineBuilder::ColorAttachmentFormat(TextureFormat format)
     {
         attachmentFormats.push_back(format);
+        return *this;
+    }
+
+    PipelineBuilder& PipelineBuilder::DepthAttachmentFormat(TextureFormat format)
+    {
+        depthFormat = format;
         return *this;
     }
 
@@ -132,12 +139,31 @@ namespace R2::VK
         return *this;
     }
 
+    PipelineBuilder& PipelineBuilder::DepthTest(bool enable)
+    {
+        depthTest = enable;
+        return *this;
+    }
+
+    PipelineBuilder& PipelineBuilder::DepthWrite(bool enable)
+    {
+        depthWrite = enable;
+        return *this;
+    }
+
+    PipelineBuilder& PipelineBuilder::DepthCompareOp(CompareOp op)
+    {
+        depthCompareOp = op;
+        return *this;
+    }
+
     Pipeline* PipelineBuilder::Build()
     {
         // Rendering state
         VkPipelineRenderingCreateInfo renderingCI{ VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO };
         renderingCI.colorAttachmentCount = (uint32_t)attachmentFormats.size();
         renderingCI.pColorAttachmentFormats = reinterpret_cast<VkFormat*>(&attachmentFormats[0]);
+        renderingCI.depthAttachmentFormat = static_cast<VkFormat>(depthFormat);
 
         // Convert vertex bindings
         std::vector<VkVertexInputBindingDescription> bindingDescs;
@@ -188,6 +214,12 @@ namespace R2::VK
         rasterizationStateCI.polygonMode = VK_POLYGON_MODE_FILL;
         rasterizationStateCI.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
         rasterizationStateCI.lineWidth = 1.0f;
+
+        // Depth stencil state
+        VkPipelineDepthStencilStateCreateInfo depthStencilStateCI{ VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO };
+        depthStencilStateCI.depthTestEnable = depthTest;
+        depthStencilStateCI.depthWriteEnable = depthWrite;
+        depthStencilStateCI.depthCompareOp = static_cast<VkCompareOp>(depthCompareOp);
 
         // Multisample state
         VkPipelineMultisampleStateCreateInfo multisampleStateCI{ VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO };
@@ -253,6 +285,7 @@ namespace R2::VK
         pci.pVertexInputState = &vertexInputStateCI;
         pci.pInputAssemblyState = &inputAssemblyStateCI;
         pci.pRasterizationState = &rasterizationStateCI;
+        pci.pDepthStencilState = &depthStencilStateCI;
         pci.pColorBlendState = &colorBlendStateCI;
         pci.pDynamicState = &dynamicStateCI;
         pci.pMultisampleState = &multisampleStateCI;

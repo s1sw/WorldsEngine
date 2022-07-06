@@ -42,9 +42,15 @@ namespace R2::VK
         }
     }
 
-    bool supportsStorage(TextureFormat format)
+    bool supportsStorage(VkPhysicalDevice physicalDevice, TextureFormat format)
     {
-        return format != TextureFormat::R8G8B8A8_SRGB;
+        VkImageFormatProperties formatProps;
+        VkResult result = vkGetPhysicalDeviceImageFormatProperties(
+            physicalDevice, (VkFormat)format, VK_IMAGE_TYPE_2D, VK_IMAGE_TILING_OPTIMAL,
+            VK_IMAGE_USAGE_STORAGE_BIT, 0, &formatProps
+        );
+
+        return result != VK_ERROR_FORMAT_NOT_SUPPORTED;
     }
 
     bool isDimensionCube(TextureDimension dim)
@@ -86,7 +92,7 @@ namespace R2::VK
         ici.tiling = VK_IMAGE_TILING_OPTIMAL;
         ici.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
         
-        if (supportsStorage(createInfo.Format))
+        if (supportsStorage(core->GetHandles()->PhysicalDevice, createInfo.Format))
             ici.usage |= VK_IMAGE_USAGE_STORAGE_BIT;
 
         if (createInfo.IsRenderTarget)

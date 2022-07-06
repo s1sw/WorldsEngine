@@ -375,6 +375,14 @@ namespace R2::VK
             return tci;
         }
 
+        static TextureCreateInfo RenderTarget2D(TextureFormat format, int width, int height)
+        {
+            TextureCreateInfo tci = Texture2D(format, width, height);
+            tci.IsRenderTarget = true;
+
+            return tci;
+        }
+
         void SetFullMipChain();
 
         int Width;

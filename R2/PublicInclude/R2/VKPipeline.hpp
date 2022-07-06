@@ -99,11 +99,15 @@ namespace R2::VK
         PipelineBuilder(const Handles* handles);
         PipelineBuilder& AddShader(ShaderStage stage, ShaderModule& mod);
         PipelineBuilder& ColorAttachmentFormat(TextureFormat format);
+        PipelineBuilder& DepthAttachmentFormat(TextureFormat format);
         PipelineBuilder& AddVertexBinding(VertexBinding&& Binding);
         PipelineBuilder& PrimitiveTopology(Topology topology);
         PipelineBuilder& CullMode(CullMode mode);
         PipelineBuilder& Layout(VkPipelineLayout layout);
         PipelineBuilder& AlphaBlend(bool blend);
+        PipelineBuilder& DepthTest(bool enable);
+        PipelineBuilder& DepthWrite(bool enable);
+        PipelineBuilder& DepthCompareOp(CompareOp op);
         Pipeline* Build();
     private:
         const Handles* handles;
@@ -114,11 +118,15 @@ namespace R2::VK
         };
 
         std::vector<TextureFormat> attachmentFormats;
+        TextureFormat depthFormat;
         std::vector<ShaderStageCreateInfo> shaderStages;
         std::vector<VertexBinding> vertexBindings;
         Topology topology;
         VK::CullMode cullMode;
         VkPipelineLayout layout;
         bool alphaBlend = false;
+        bool depthTest = false;
+        bool depthWrite = false;
+        CompareOp depthCompareOp = CompareOp::Always;
     };
 }

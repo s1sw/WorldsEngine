@@ -24,6 +24,11 @@ namespace worlds {
             valid = false;
             return;
         }
+
+        uint32_t numBindings;
+        spvReflectEnumerateDescriptorBindings(&mod, &numBindings, nullptr);
+        reflectBindings.resize(numBindings);
+        spvReflectEnumerateDescriptorBindings(&mod, &numBindings, reflectBindings.data());
     }
 
     ShaderReflector::~ShaderReflector() {
@@ -33,12 +38,6 @@ namespace worlds {
     }
 
     R2::VK::DescriptorSetLayout* ShaderReflector::createDescriptorSetLayout(VK::Core* core, uint32_t setIndex) {
-        uint32_t numBindings;
-        std::vector<SpvReflectDescriptorBinding*> bindings;
-        spvReflectEnumerateDescriptorBindings(&mod, &numBindings, nullptr);
-        bindings.resize(numBindings);
-        spvReflectEnumerateDescriptorBindings(&mod, &numBindings, bindings.data());
-
         bool useBindFlags = false;
 
         VK::ShaderStage stageFlags = VK::ShaderStage::Fragment | VK::ShaderStage::Vertex;
@@ -54,7 +53,7 @@ namespace worlds {
         std::vector<bool> presentBindings;
         int maxBinding = 0;
 
-        for (auto binding : bindings) {
+        for (auto binding : reflectBindings) {
             maxBinding = binding->binding > maxBinding ? binding->binding : maxBinding;
         }
 
@@ -62,7 +61,7 @@ namespace worlds {
 
         R2::VK::DescriptorSetLayoutBuilder dslb{core->GetHandles()};
 
-        for (auto binding : bindings) {
+        for (auto binding : reflectBindings) {
             if (binding->set != setIndex) continue;
             if (presentBindings[binding->binding]) continue;
             presentBindings[binding->binding] = true;
@@ -75,6 +74,25 @@ namespace worlds {
         }
 
         return dslb.Build();
+    }
+
+    uint32_t ShaderReflector::getBindingIndex(const char* name) {
+        for (SpvReflectDescriptorBinding* binding : reflectBindings) {
+            if (strcmp(binding->name, name) == 0) {
+                return binding->binding;
+            }
+        }
+
+        return ~0u;
+    }
+
+    void ShaderReflector::bindBuffer(R2::VK::DescriptorSetUpdater& dsu, const char* bindPoint, R2::VK::Buffer* buffer) {
+        for (SpvReflectDescriptorBinding* binding : reflectBindings) {
+            if (strcmp(binding->name, bindPoint) == 0) {
+                dsu.AddBuffer(binding->binding, 0, (VK::DescriptorType)binding->descriptor_type, buffer);
+                return;
+            }
+        }
     }
 
     VertexAttributeBindings ShaderReflector::getVertexAttributeBindings() {
