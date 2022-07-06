@@ -5,15 +5,12 @@
 #include <R2/VKCommandBuffer.hpp>
 #include <R2/VKSyncPrims.hpp>
 #include <R2/VKTexture.hpp>
-#include <R2/VKPipeline.hpp>
-#include <R2/VKDescriptorSet.hpp>
-#include <R2/VKBuffer.hpp>
 #include <R2/BindlessTextureManager.hpp>
 #include <SDL_vulkan.h>
 #include <Render/R2ImGui.hpp>
 #include <Core/Log.hpp>
-#include <entt/entity/registry.hpp>
 #include <Render/ShaderCache.hpp>
+#include <Render/FakeLitPipeline.hpp>
 #include <Core/AssetDB.hpp>
 
 using namespace R2;
@@ -24,18 +21,6 @@ namespace worlds {
         void DebugMessage(const char* msg) override {
             logErr("VK: %s", msg);
         }
-    };
-
-    VK::Pipeline* pipeline;
-    VkPipelineLayout pipelineLayout;
-    VK::DescriptorSetLayout* dsl;
-    VK::DescriptorSet* ds;
-    VK::Buffer* multiVP;
-    VK::Buffer* modelMatrices;
-
-    struct StandardPushConstants
-    {
-        uint32_t modelMatrixID;
     };
 
     VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success) {
@@ -60,53 +45,6 @@ namespace worlds {
 
         ShaderCache::setDevice(core);
 
-        VK::BufferCreateInfo vpBci{ VK::BufferUsage::Uniform, sizeof(MultiVP), true };
-        multiVP = core->CreateBuffer(vpBci);
-
-        VK::BufferCreateInfo modelMatrixBci{ VK::BufferUsage::Storage, sizeof(glm::mat4) * 4096, true };
-        modelMatrices = core->CreateBuffer(modelMatrixBci);
-
-        VK::DescriptorSetLayoutBuilder dslb{core->GetHandles()};
-        dslb
-            .Binding(0, VK::DescriptorType::UniformBuffer, 1, VK::ShaderStage::Vertex | VK::ShaderStage::Fragment)
-            .Binding(1, VK::DescriptorType::StorageBuffer, 1, VK::ShaderStage::Vertex | VK::ShaderStage::Fragment);
-        
-        dsl = dslb.Build();
-
-        ds = core->CreateDescriptorSet(dsl);
-
-        VK::DescriptorSetUpdater dsu{core->GetHandles(), ds};
-        dsu
-            .AddBuffer(0, 0, VK::DescriptorType::UniformBuffer, multiVP)
-            .AddBuffer(1, 0, VK::DescriptorType::StorageBuffer, modelMatrices)
-            .Update();
-        
-        VK::PipelineLayoutBuilder plb{core->GetHandles()};
-        plb
-            .PushConstants(VK::ShaderStage::Vertex | VK::ShaderStage::Fragment, 0, sizeof(StandardPushConstants))
-            .DescriptorSet(dsl);
-        pipelineLayout = plb.Build();
-
-        VK::VertexBinding vb;
-        vb.Size = sizeof(Vertex);
-        vb.Binding = 0;
-        vb.Attributes.push_back(VK::VertexAttribute{0, VK::TextureFormat::R32G32B32_SFLOAT, 0});
-        vb.Attributes.push_back(VK::VertexAttribute{1, VK::TextureFormat::R32G32B32_SFLOAT, offsetof(Vertex, normal)});
-
-        VK::ShaderModule& stdVert = ShaderCache::getModule(AssetDB::pathToId("Shaders/standard.vert.spv"));
-        VK::ShaderModule& stdFrag = ShaderCache::getModule(AssetDB::pathToId("Shaders/standard.frag.spv"));
-
-        VK::PipelineBuilder pb{core->GetHandles()};
-        pb
-            .PrimitiveTopology(VK::Topology::TriangleList)
-            .CullMode(VK::CullMode::Back)
-            .Layout(pipelineLayout)
-            .ColorAttachmentFormat(VK::TextureFormat::R8G8B8A8_SRGB)
-            .AddVertexBinding(std::move(vb))
-            .AddShader(VK::ShaderStage::Vertex, stdVert)
-            .AddShader(VK::ShaderStage::Fragment, stdFrag);
-        
-        pipeline = pb.Build();
 
         *success = true;
     }
@@ -123,7 +61,7 @@ namespace worlds {
     }
 
 
-    void VKRenderer::frame(entt::registry& reg) {
+    void VKRenderer::frame(entt::registry& registry) {
         frameFence->WaitFor();
         frameFence->Reset();
         VK::Texture* swapchainImage = swapchain->Acquire(frameFence);
@@ -139,54 +77,13 @@ namespace worlds {
 
         VK::CommandBuffer cb = core->GetFrameCommandBuffer();
 
-        glm::mat4* modelMatricesMapped = (glm::mat4*)modelMatrices->Map();
         for (VKRTTPass* pass : rttPasses) {
             if (!pass->active) continue;
             cb.BeginDebugLabel("RTT Pass", 0.0f, 0.0f, 0.0f);
-
-            VK::RenderPass r;
-            r.ColorAttachment(pass->sdrTarget, VK::LoadOp::Clear, VK::StoreOp::Store);
-            r.ColorAttachmentClearValue(VK::ClearValue::FloatColorClear(1.f, 0.f, 1.f, 1.f));
-            r.RenderArea(pass->width, pass->height);
-            r.Begin(cb);
-            
-            MultiVP multiVPs{};
-            multiVPs.views[0] = pass->cam->getViewMatrix();
-            multiVPs.projections[0] = pass->cam->getProjectionMatrix((float)pass->width / pass->height);
-
-            core->QueueBufferUpload(multiVP, &multiVPs, sizeof(multiVPs), 0);
-
-            uint32_t modelMatrixIndex = 0;
-
-            cb.BindPipeline(pipeline);
-            cb.BindGraphicsDescriptorSet(pipelineLayout, ds->GetNativeHandle(), 0);
-            cb.SetViewport(VK::Viewport::Simple(pass->width, pass->height));
-            cb.SetScissor(VK::ScissorRect::Simple(pass->width, pass->height));
-
-            reg.view<WorldObject, Transform>().each([&](WorldObject& wo, Transform& t) {
-                RenderMeshInfo& rmi = renderMeshManager->loadOrGet(wo.mesh);
-
-                StandardPushConstants spc{};
-                spc.modelMatrixID = modelMatrixIndex;
-                cb.PushConstants(spc, VK::ShaderStage::AllRaster, pipelineLayout);
-
-                modelMatricesMapped[modelMatrixIndex++] = t.getMatrix();
-
-                cb.BindVertexBuffer(0, renderMeshManager->getVertexBuffer(), rmi.vertsOffset);
-
-                VK::IndexType vkIdxType = rmi.indexType == IndexType::Uint32 ? VK::IndexType::Uint32 : VK::IndexType::Uint16;
-                cb.BindIndexBuffer(renderMeshManager->getIndexBuffer(), rmi.indexOffset, vkIdxType);
-                
-                for (int i = 0; i < rmi.numSubmeshes; i++) {
-                    RenderSubmeshInfo& rsi = rmi.submeshInfo[i];
-                    cb.DrawIndexed(rsi.indexCount, 1, rsi.indexOffset, 0, 0);
-                }
-            });
-            r.End(cb);
+            pass->pipeline->draw(registry, cb);
 
             cb.EndDebugLabel();
         }
-        modelMatrices->Unmap();
 
         VK::RenderPass rp;
         rp.ColorAttachment(swapchainImage, VK::LoadOp::Clear, VK::StoreOp::Store);
@@ -238,7 +135,11 @@ namespace worlds {
     }
 
     RTTPass* VKRenderer::createRTTPass(RTTPassCreateInfo& ci) {   
-        VKRTTPass* pass = new VKRTTPass(this, ci);
+        IRenderPipeline* renderPipeline = new FakeLitPipeline(this);
+
+        VKRTTPass* pass = new VKRTTPass(this, ci, renderPipeline);
+        renderPipeline->setup(pass);
+
         rttPasses.push_back(pass);
         return pass;
     }
@@ -246,5 +147,17 @@ namespace worlds {
     void VKRenderer::destroyRTTPass(RTTPass* pass) {
         delete static_cast<VKRTTPass*>(pass);
         rttPasses.erase(std::remove(rttPasses.begin(), rttPasses.end(), pass), rttPasses.end());
+    }
+
+    R2::VK::Core* VKRenderer::getCore() {
+        return core;
+    }
+
+    RenderMeshManager* VKRenderer::getMeshManager() {
+        return renderMeshManager;
+    }
+
+    R2::BindlessTextureManager* VKRenderer::getBindlessTextureManager() {
+        return textureManager;
     }
 }

@@ -19,6 +19,7 @@ namespace R2::VK {
     class Fence;
     class Texture;
     class Buffer;
+    class CommandBuffer;
 }
 
 typedef struct VkPhysicalDeviceProperties VkPhysicalDeviceProperties;
@@ -179,16 +180,18 @@ namespace worlds {
         robin_hood::unordered_map<AssetID, UITexInfo> textureIds;
     };
 
+    class IRenderPipeline;
     class VKRTTPass : public RTTPass {
         friend class VKRenderer;
 
         VKRenderer* renderer;
-        VKRTTPass(VKRenderer* renderer, const RTTPassCreateInfo& ci);
+        VKRTTPass(VKRenderer* renderer, const RTTPassCreateInfo& ci, IRenderPipeline* pipeline);
         ~VKRTTPass();
 
-        R2::VK::Texture* sdrTarget;
-        uint32_t sdrTargetId;
+        R2::VK::Texture* finalTarget;
+        uint32_t finalTargetBindlessID;
         Camera* cam;
+        IRenderPipeline* pipeline;
     public:
         void drawNow(entt::registry& world) override;
 
@@ -198,6 +201,9 @@ namespace worlds {
         void resize(int newWidth, int newHeight) override;
         void setResolutionScale(float newScale) override;
         ImTextureID getUITextureID() override;
+
+        R2::VK::Texture* getFinalTarget();
+        Camera* getCamera();
     };
 
     class VKRenderer : public Renderer {
@@ -234,6 +240,10 @@ namespace worlds {
 
         RTTPass* createRTTPass(RTTPassCreateInfo& ci) override;
         void destroyRTTPass(RTTPass* pass) override;
+
+        R2::VK::Core* getCore();
+        RenderMeshManager* getMeshManager();
+        R2::BindlessTextureManager* getBindlessTextureManager();
     };
 
     enum class ShaderVariantFlags : uint32_t {

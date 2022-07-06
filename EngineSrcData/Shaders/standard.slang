@@ -20,9 +20,7 @@ struct MultiVP
     float4 viewPos[2];
 }
 
-[[vk::binding(0, 0)]]
 ConstantBuffer<MultiVP> VPBuffer;
-[[vk::binding(1, 0)]]
 StructuredBuffer<float4x4> ModelMatrices;
 
 [[vk::push_constant]]
@@ -48,5 +46,7 @@ VertexOutput VertexShader(VertexInput input, uint viewIndex : SV_ViewID)
 [shader("fragment")]
 float4 FragmentShader(VertexOutput input) : SV_TARGET
 {
-    return float4(0.0, saturate(dot(input.Normal, float3(0.0, 1.0, 0.0))), 0.0, 1.0);
+    float3 color = float3(0.713, 0.769, 0.859);
+    color *= clamp(dot(input.Normal, float3(0.0, 1.0, 0.0)), 0.1, 1.0);
+    return float4(color, 1.0);
 }

@@ -1,4 +1,5 @@
 #include <Render/RenderInternal.hpp>
+#include <Render/IRenderPipeline.hpp>
 #include <R2/VKTexture.hpp>
 #include <R2/VKCore.hpp>
 #include <R2/BindlessTextureManager.hpp>
@@ -6,12 +7,13 @@
 using namespace R2::VK;
 
 namespace worlds {
-    VKRTTPass::VKRTTPass(VKRenderer* renderer, const RTTPassCreateInfo& ci)
-        : renderer(renderer) {
+    VKRTTPass::VKRTTPass(VKRenderer* renderer, const RTTPassCreateInfo& ci, IRenderPipeline* pipeline)
+        : renderer(renderer)
+        , pipeline(pipeline) {
         TextureCreateInfo tci = TextureCreateInfo::Texture2D(TextureFormat::R8G8B8A8_SRGB, ci.width, ci.height);
         tci.IsRenderTarget = true;
-        sdrTarget = renderer->core->CreateTexture(tci);
-        sdrTargetId = renderer->textureManager->AllocateTextureHandle(sdrTarget);
+        finalTarget = renderer->core->CreateTexture(tci);
+        finalTargetBindlessID = renderer->textureManager->AllocateTextureHandle(finalTarget);
 
         width = ci.width;
         height = ci.height;
@@ -19,7 +21,8 @@ namespace worlds {
     }
 
     VKRTTPass::~VKRTTPass() {
-        renderer->core->DestroyTexture(sdrTarget);
+        renderer->core->DestroyTexture(finalTarget);
+        delete pipeline;
     }
 
     void VKRTTPass::drawNow(entt::registry& world) {
@@ -37,12 +40,31 @@ namespace worlds {
     }
 
     void VKRTTPass::resize(int newWidth, int newHeight) {
+        TextureCreateInfo tci = TextureCreateInfo::Texture2D(TextureFormat::R8G8B8A8_SRGB, newWidth, newHeight);
+        tci.IsRenderTarget = true;
+        renderer->core->DestroyTexture(finalTarget);
+
+        finalTarget = renderer->core->CreateTexture(tci);
+        renderer->textureManager->SetTextureAt(finalTargetBindlessID, finalTarget);
+
+        width = newWidth;
+        height = newHeight;
+
+        pipeline->onResize(newWidth, newHeight);
     }
 
     void VKRTTPass::setResolutionScale(float newScale) {
     }
 
     ImTextureID VKRTTPass::getUITextureID() {
-        return (ImTextureID)sdrTargetId;
+        return (ImTextureID)finalTargetBindlessID;
+    }
+
+    R2::VK::Texture* VKRTTPass::getFinalTarget() {
+        return finalTarget;
+    }
+
+    Camera* VKRTTPass::getCamera() {
+        return cam;
     }
 }

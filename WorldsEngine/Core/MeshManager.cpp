@@ -12,7 +12,7 @@ namespace worlds {
     }
 
     void loadToLM(LoadedMesh& lm, AssetID id) {
-        LoadedMeshData lmd;
+        LoadedMeshData lmd{};
 
         loadWorldsModel(id, lmd);
 

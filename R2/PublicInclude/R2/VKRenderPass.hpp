@@ -50,6 +50,13 @@ namespace R2::VK
 
             return cv;
         }
+
+        static ClearValue DepthClear(float depth)
+        {
+            ClearValue cv;
+            cv.DepthStencil.Depth = depth;
+            return cv;
+        }
     };
 
     class CommandBuffer;

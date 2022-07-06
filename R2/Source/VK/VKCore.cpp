@@ -284,6 +284,8 @@ namespace R2::VK
 
 		frameResources.BufferToTextureCopies.clear();
 
+		frameResources.StagingOffset = 0;
+
 		VKCHECK(vkEndCommandBuffer(frameResources.UploadCommandBuffer));
 
 		// Submit upload command buffer...
