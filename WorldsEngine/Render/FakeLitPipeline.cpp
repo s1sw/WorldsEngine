@@ -29,7 +29,10 @@ namespace worlds {
         VK::BufferCreateInfo modelMatrixBci{ VK::BufferUsage::Storage, sizeof(glm::mat4) * 4096, true };
         modelMatrixBuffer = core->CreateBuffer(modelMatrixBci);
 
-        ShaderReflector sr{AssetDB::pathToId("Shaders/standard.vert.spv")};
+        AssetID vs = AssetDB::pathToId("Shaders/fake_lit.vert.spv");
+        AssetID fs = AssetDB::pathToId("Shaders/fake_lit.frag.spv");
+
+        ShaderReflector sr{vs};
 
         descriptorSetLayout = sr.createDescriptorSetLayout(core, 0);
         descriptorSet = core->CreateDescriptorSet(descriptorSetLayout);
@@ -43,7 +46,7 @@ namespace worlds {
         plb
             .PushConstants(VK::ShaderStage::Vertex | VK::ShaderStage::Fragment, 0, sizeof(StandardPushConstants))
             .DescriptorSet(descriptorSetLayout);
-        standardPipelineLayout = plb.Build();
+        pipelineLayout = plb.Build();
 
         VK::VertexBinding vb;
         vb.Size = sizeof(Vertex);
@@ -51,14 +54,14 @@ namespace worlds {
         vb.Attributes.push_back(VK::VertexAttribute{0, VK::TextureFormat::R32G32B32_SFLOAT, 0});
         vb.Attributes.push_back(VK::VertexAttribute{1, VK::TextureFormat::R32G32B32_SFLOAT, offsetof(Vertex, normal)});
 
-        VK::ShaderModule& stdVert = ShaderCache::getModule(AssetDB::pathToId("Shaders/standard.vert.spv"));
-        VK::ShaderModule& stdFrag = ShaderCache::getModule(AssetDB::pathToId("Shaders/standard.frag.spv"));
+        VK::ShaderModule& stdVert = ShaderCache::getModule(vs);
+        VK::ShaderModule& stdFrag = ShaderCache::getModule(fs);
 
         VK::PipelineBuilder pb{core->GetHandles()};
         pb
             .PrimitiveTopology(VK::Topology::TriangleList)
             .CullMode(VK::CullMode::Back)
-            .Layout(standardPipelineLayout)
+            .Layout(pipelineLayout)
             .ColorAttachmentFormat(VK::TextureFormat::R8G8B8A8_SRGB)
             .AddVertexBinding(std::move(vb))
             .AddShader(VK::ShaderStage::Vertex, stdVert)
@@ -68,14 +71,14 @@ namespace worlds {
             .DepthCompareOp(VK::CompareOp::Greater)
             .DepthAttachmentFormat(VK::TextureFormat::D32_SFLOAT);
         
-        standardPipeline = pb.Build();
+        pipeline = pb.Build();
     }
 
     FakeLitPipeline::~FakeLitPipeline() {
         VK::Core* core = renderer->getCore();
         core->DestroyBuffer(multiVPBuffer);
         core->DestroyBuffer(modelMatrixBuffer);
-        delete standardPipeline;
+        delete pipeline;
         // TODO: destroy pipeline layout
     }
 
@@ -115,8 +118,8 @@ namespace worlds {
 
         uint32_t modelMatrixIndex = 0;
 
-        cb.BindPipeline(standardPipeline);
-        cb.BindGraphicsDescriptorSet(standardPipelineLayout, descriptorSet->GetNativeHandle(), 0);
+        cb.BindPipeline(pipeline);
+        cb.BindGraphicsDescriptorSet(pipelineLayout, descriptorSet->GetNativeHandle(), 0);
         cb.SetViewport(VK::Viewport::Simple(rttPass->width, rttPass->height));
         cb.SetScissor(VK::ScissorRect::Simple(rttPass->width, rttPass->height));
 
@@ -125,7 +128,7 @@ namespace worlds {
 
             StandardPushConstants spc{};
             spc.modelMatrixID = modelMatrixIndex;
-            cb.PushConstants(spc, VK::ShaderStage::AllRaster, standardPipelineLayout);
+            cb.PushConstants(spc, VK::ShaderStage::AllRaster, pipelineLayout);
 
             modelMatricesMapped[modelMatrixIndex++] = t.getMatrix();
 

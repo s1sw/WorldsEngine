@@ -19,14 +19,14 @@
         "outputPath": "light_cull_nomsaa.comp.spv"
     },
     {
-        "path": "standard.slang",
-        "outputPath": "standard.vert.spv",
+        "path": "fake_lit.slang",
+        "outputPath": "fake_lit.vert.spv",
         "stage": "vert",
         "entryPoint": "VertexShader"
     },
     {
-        "path": "standard.slang",
-        "outputPath": "standard.frag.spv",
+        "path": "fake_lit.slang",
+        "outputPath": "fake_lit.frag.spv",
         "stage": "frag",
         "entryPoint": "FragmentShader"
     }

@@ -71,6 +71,8 @@ namespace worlds {
             if (binding->count > 1) {
                 dslb.PartiallyBound();
             }
+
+            dslb.UpdateAfterBind();
         }
 
         return dslb.Build();

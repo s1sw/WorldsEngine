@@ -588,9 +588,6 @@
     <ClCompile Include="..\LonelyGalaxy\MathsUtil.cpp">
       <Filter>LonelyGalaxy</Filter>
     </ClCompile>
-    <ClCompile Include="..\LonelyGalaxy\ObjectParentSystem.cpp">
-      <Filter>LonelyGalaxy</Filter>
-    </ClCompile>
     <ClCompile Include="..\WorldsEngine\Editor\GameProject.cpp">
       <Filter>Editor</Filter>
     </ClCompile>
@@ -1305,9 +1302,6 @@
       <Filter>LonelyGalaxy</Filter>
     </ClInclude>
     <ClInclude Include="..\LonelyGalaxy\MathsUtil.hpp">
-      <Filter>LonelyGalaxy</Filter>
-    </ClInclude>
-    <ClInclude Include="..\LonelyGalaxy\ObjectParentSystem.hpp">
       <Filter>LonelyGalaxy</Filter>
     </ClInclude>
     <ClInclude Include="..\WorldsEngine\Render\RenderInternal.hpp">

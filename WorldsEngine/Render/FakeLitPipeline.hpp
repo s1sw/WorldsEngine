@@ -9,6 +9,7 @@ namespace R2::VK {
     class DescriptorSetLayout;
     class DescriptorSet;
     class Pipeline;
+    class PipelineLayout;
     class Buffer;
     class Texture;
     class Core;
@@ -20,8 +21,8 @@ namespace worlds {
     class FakeLitPipeline : public IRenderPipeline {
         R2::VK::DescriptorSetLayout* descriptorSetLayout;
         R2::VK::DescriptorSet* descriptorSet;
-        R2::VK::Pipeline* standardPipeline;
-        VkPipelineLayout standardPipelineLayout;
+        R2::VK::Pipeline* pipeline;
+        R2::VK::PipelineLayout* pipelineLayout;
         R2::VK::Buffer* multiVPBuffer;
         R2::VK::Buffer* modelMatrixBuffer;
         R2::VK::Texture* depthBuffer;
