@@ -25,6 +25,20 @@ namespace R2::VK
         return mod;
     }
 
+    PipelineLayout::PipelineLayout(const Handles* handles, VkPipelineLayout layout)
+        : layout(layout)
+    {}
+
+    PipelineLayout::~PipelineLayout()
+    {
+        vkDestroyPipelineLayout(handles->Device, layout, handles->AllocCallbacks);
+    }
+
+    VkPipelineLayout PipelineLayout::GetNativeHandle()
+    {
+        return layout;
+    }
+
     PipelineLayoutBuilder::PipelineLayoutBuilder(const Handles* handles)
         : handles(handles)
     {}
@@ -43,7 +57,7 @@ namespace R2::VK
         return *this;
     }
 
-    VkPipelineLayout PipelineLayoutBuilder::Build()
+    PipelineLayout* PipelineLayoutBuilder::Build()
     {
         static_assert(sizeof(VkPushConstantRange) == sizeof(PushConstantRange));
         VkPipelineLayoutCreateInfo plci{ VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
@@ -55,7 +69,7 @@ namespace R2::VK
         VkPipelineLayout pipelineLayout;
         VKCHECK(vkCreatePipelineLayout(handles->Device, &plci, handles->AllocCallbacks, &pipelineLayout));
 
-        return pipelineLayout;
+        return new PipelineLayout(handles, pipelineLayout);
     }
 
     Pipeline::Pipeline(const Handles* handles, VkPipeline pipeline)
@@ -127,9 +141,9 @@ namespace R2::VK
         return *this;
     }
 
-    PipelineBuilder& PipelineBuilder::Layout(VkPipelineLayout layout)
+    PipelineBuilder& PipelineBuilder::Layout(PipelineLayout* layout)
     {
-        this->layout = layout;
+        this->layout = layout->GetNativeHandle();
         return *this;
     }
 

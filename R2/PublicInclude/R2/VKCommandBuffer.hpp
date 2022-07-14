@@ -65,12 +65,12 @@ namespace R2::VK
         void BindVertexBuffer(uint32_t location, Buffer* buffer, uint64_t offset);
         void BindIndexBuffer(Buffer* buffer, uint64_t offset, IndexType indexType);
         void BindPipeline(Pipeline* p);
-        void BindGraphicsDescriptorSet(VkPipelineLayout pipelineLayout, VkDescriptorSet descriptorSet, uint32_t setNumber);
+        void BindGraphicsDescriptorSet(PipelineLayout* pipelineLayout, VkDescriptorSet descriptorSet, uint32_t setNumber);
         void DrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance);
 
         template <typename T>
-        void PushConstants(const T& data, ShaderStage stage, VkPipelineLayout pipelineLayout) { PushConstants(&data, sizeof(data), stage, pipelineLayout); }
-        void PushConstants(const void* data, size_t dataSize, ShaderStage stages, VkPipelineLayout pipelineLayout);
+        void PushConstants(const T& data, ShaderStage stage, PipelineLayout* pipelineLayout) { PushConstants(&data, sizeof(data), stage, pipelineLayout); }
+        void PushConstants(const void* data, size_t dataSize, ShaderStage stages, PipelineLayout* pipelineLayout);
 
         void BeginDebugLabel(const char* label, float r, float g, float b);
         void EndDebugLabel();

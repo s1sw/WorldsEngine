@@ -54,9 +54,10 @@ namespace R2::VK
         vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, p->GetNativeHandle());
     }
 
-    void CommandBuffer::BindGraphicsDescriptorSet(VkPipelineLayout pipelineLayout, VkDescriptorSet set, uint32_t setNumber)
+    void CommandBuffer::BindGraphicsDescriptorSet(PipelineLayout* pipelineLayout, VkDescriptorSet set, uint32_t setNumber)
     {
-        vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, setNumber, 1, &set, 0, nullptr);
+        vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout->GetNativeHandle(),
+            setNumber, 1, &set, 0, nullptr);
     }
 
     void CommandBuffer::DrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance)
@@ -64,9 +65,10 @@ namespace R2::VK
         vkCmdDrawIndexed(cb, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
     }
 
-    void CommandBuffer::PushConstants(const void* data, size_t dataSize, ShaderStage stages, VkPipelineLayout pipelineLayout)
+    void CommandBuffer::PushConstants(const void* data, size_t dataSize, ShaderStage stages, PipelineLayout* pipelineLayout)
     {
-        vkCmdPushConstants(cb, pipelineLayout, static_cast<VkShaderStageFlagBits>(stages), 0, (uint32_t)dataSize, data);
+        vkCmdPushConstants(cb, pipelineLayout->GetNativeHandle(),
+            static_cast<VkShaderStageFlagBits>(stages), 0, (uint32_t)dataSize, data);
     }
 
     VkCommandBuffer CommandBuffer::GetNativeHandle()

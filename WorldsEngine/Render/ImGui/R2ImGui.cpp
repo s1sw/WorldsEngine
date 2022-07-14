@@ -30,7 +30,7 @@ struct R2ImplState
     VK::Buffer* indexBuffer = nullptr;
     size_t indexBufferCapacity = 0;
     VK::Core* core = nullptr;
-    VkPipelineLayout pipelineLayout = nullptr;
+    VK::PipelineLayout* pipelineLayout = nullptr;
     VK::DescriptorSetLayout* dsl = nullptr;
     VK::Pipeline* pipeline = nullptr;
     VK::Texture* fontTexture = nullptr;

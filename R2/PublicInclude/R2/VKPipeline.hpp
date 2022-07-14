@@ -62,13 +62,24 @@ namespace R2::VK
         const Handles* handles;
     };
 
+    class PipelineLayout
+    {
+    public:
+        PipelineLayout(const Handles* handles, VkPipelineLayout layout);
+        ~PipelineLayout();
+        VkPipelineLayout GetNativeHandle();
+    private:
+        const Handles* handles;
+        VkPipelineLayout layout;
+    };
+
     class PipelineLayoutBuilder
     {
     public:
         PipelineLayoutBuilder(const Handles* handles);
         PipelineLayoutBuilder& PushConstants(ShaderStage stages, uint32_t offset, uint32_t size);
         PipelineLayoutBuilder& DescriptorSet(DescriptorSetLayout* layout);
-        VkPipelineLayout Build();
+        PipelineLayout* Build();
     private:
         struct PushConstantRange
         {
@@ -103,7 +114,7 @@ namespace R2::VK
         PipelineBuilder& AddVertexBinding(VertexBinding&& Binding);
         PipelineBuilder& PrimitiveTopology(Topology topology);
         PipelineBuilder& CullMode(CullMode mode);
-        PipelineBuilder& Layout(VkPipelineLayout layout);
+        PipelineBuilder& Layout(PipelineLayout* layout);
         PipelineBuilder& AlphaBlend(bool blend);
         PipelineBuilder& DepthTest(bool enable);
         PipelineBuilder& DepthWrite(bool enable);
