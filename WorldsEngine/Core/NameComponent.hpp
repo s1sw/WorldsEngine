@@ -5,14 +5,18 @@
 #include <physfs.h>
 #include <string>
 
-namespace worlds {
-    struct NameComponent {
+namespace worlds
+{
+    struct NameComponent
+    {
         std::string name;
 
-        static void save(entt::entity ent, entt::registry& reg, PHYSFS_File* file) {
-            auto& nc = reg.get<NameComponent>(ent);
-            
-            if (nc.name.size() > std::numeric_limits<uint16_t>::max()) {
+        static void save(entt::entity ent, entt::registry &reg, PHYSFS_File *file)
+        {
+            auto &nc = reg.get<NameComponent>(ent);
+
+            if (nc.name.size() > std::numeric_limits<uint16_t>::max())
+            {
                 logWarn("object name is too long (>65536 chars)! saving it truncated...");
                 nc.name = nc.name.substr(0, std::numeric_limits<uint16_t>::max());
             }
@@ -21,8 +25,9 @@ namespace worlds {
             PHYSFS_writeBytes(file, nc.name.data(), nc.name.size());
         }
 
-        static void load(entt::entity ent, entt::registry& reg, PHYSFS_File* file) {
-            auto& nc = reg.get_or_emplace<NameComponent>(ent);
+        static void load(entt::entity ent, entt::registry &reg, PHYSFS_File *file)
+        {
+            auto &nc = reg.get_or_emplace<NameComponent>(ent);
 
             uint16_t size;
             PHYSFS_readULE16(file, &size);

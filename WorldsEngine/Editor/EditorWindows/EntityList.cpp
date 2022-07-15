@@ -1,60 +1,61 @@
 #include "EditorWindows.hpp"
-#include <ImGui/imgui.h>
-#include <Core/NameComponent.hpp>
-#include <Libs/IconsFontAwesome5.h>
-#include <ImGui/imgui_stdlib.h>
-#include <algorithm>
-#include <Core/Log.hpp>
-#include <Core/WorldComponents.hpp>
 #include <Core/HierarchyUtil.hpp>
+#include <Core/Log.hpp>
+#include <Core/NameComponent.hpp>
+#include <Core/WorldComponents.hpp>
+#include <ImGui/imgui.h>
+#include <ImGui/imgui_stdlib.h>
+#include <Libs/IconsFontAwesome5.h>
+#include <algorithm>
 
-namespace worlds {
-    void showFolderButtons(entt::entity e, EntityFolder& folder, int counter) {
-        if (ImGui::Button((folder.name + "##" + std::to_string(counter)).c_str())) {
+namespace worlds
+{
+    void showFolderButtons(entt::entity e, EntityFolder &folder, int counter)
+    {
+        if (ImGui::Button((folder.name + "##" + std::to_string(counter)).c_str()))
+        {
             folder.entities.push_back(e);
             ImGui::CloseCurrentPopup();
         }
 
-        for (EntityFolder& c : folder.children) {
+        for (EntityFolder &c : folder.children)
+        {
             showFolderButtons(e, c, counter++);
         }
     }
 
-    void EntityList::draw(entt::registry& reg) {
+    void EntityList::draw(entt::registry &reg)
+    {
         static std::string searchText;
-        static std::vector<entt::entity> filteredEntities; 
+        static std::vector<entt::entity> filteredEntities;
         static size_t numNamedEntities;
         static bool showUnnamed = false;
         static bool folderView = false;
         static entt::entity currentlyRenaming = entt::null;
         static entt::entity popupOpenFor = entt::null;
 
-        if (ImGui::Begin(ICON_FA_LIST u8" Entity List", &active)) {
+        if (ImGui::Begin(ICON_FA_LIST u8" Entity List", &active))
+        {
             size_t currNamedEntCount = reg.view<NameComponent>().size();
-            bool searchNeedsUpdate = !searchText.empty() &&
-                numNamedEntities != currNamedEntCount;
+            bool searchNeedsUpdate = !searchText.empty() && numNamedEntities != currNamedEntCount;
 
-            if (ImGui::InputText("Search", &searchText) || searchNeedsUpdate) {
+            if (ImGui::InputText("Search", &searchText) || searchNeedsUpdate)
+            {
                 std::string lSearchTxt = searchText;
-                std::transform(
-                    lSearchTxt.begin(), lSearchTxt.end(),
-                    lSearchTxt.begin(),
-                    [](unsigned char c) { return std::tolower(c); }
-                );
+                std::transform(lSearchTxt.begin(), lSearchTxt.end(), lSearchTxt.begin(),
+                               [](unsigned char c) { return std::tolower(c); });
 
                 filteredEntities.clear();
-                reg.view<NameComponent>().each([&](auto ent, NameComponent& nc) {
+                reg.view<NameComponent>().each([&](auto ent, NameComponent &nc) {
                     std::string name = nc.name;
 
-                    std::transform(
-                        name.begin(), name.end(),
-                        name.begin(),
-                        [](unsigned char c) { return std::tolower(c); }
-                    );
+                    std::transform(name.begin(), name.end(), name.begin(),
+                                   [](unsigned char c) { return std::tolower(c); });
 
                     size_t pos = name.find(lSearchTxt);
 
-                    if (pos != std::string::npos) {
+                    if (pos != std::string::npos)
+                    {
                         filteredEntities.push_back(ent);
                     }
                 });
@@ -64,27 +65,31 @@ namespace worlds {
             ImGui::Checkbox("Show Unnamed Entities", &showUnnamed);
             ImGui::Checkbox("Folder View", &folderView);
 
-            if (ImGui::IsWindowHovered() && ImGui::GetIO().MouseClicked[1]) {
+            if (ImGui::IsWindowHovered() && ImGui::GetIO().MouseClicked[1])
+            {
                 ImGui::OpenPopup("AddEntity");
             }
 
-            if (ImGui::BeginPopupContextWindow("AddEntity")) {
-                if (ImGui::Button("Empty")) {
+            if (ImGui::BeginPopupContextWindow("AddEntity"))
+            {
+                if (ImGui::Button("Empty"))
+                {
                     auto emptyEnt = reg.create();
-                    Transform& emptyT = reg.emplace<Transform>(emptyEnt);
+                    Transform &emptyT = reg.emplace<Transform>(emptyEnt);
                     reg.emplace<NameComponent>(emptyEnt).name = "Empty";
                     editor->select(emptyEnt);
-                    Camera& cam = editor->getFirstSceneView()->getCamera();
+                    Camera &cam = editor->getFirstSceneView()->getCamera();
                     emptyT.position = cam.position + cam.rotation * glm::vec3(0.0f, 0.0f, 1.0f);
                     ImGui::CloseCurrentPopup();
                 }
 
-                if (ImGui::Button("Light")) {
+                if (ImGui::Button("Light"))
+                {
                     auto emptyEnt = reg.create();
-                    Transform& emptyT = reg.emplace<Transform>(emptyEnt);
+                    Transform &emptyT = reg.emplace<Transform>(emptyEnt);
                     reg.emplace<NameComponent>(emptyEnt).name = "Empty";
                     editor->select(emptyEnt);
-                    Camera& cam = editor->getFirstSceneView()->getCamera();
+                    Camera &cam = editor->getFirstSceneView()->getCamera();
                     emptyT.position = cam.position + cam.rotation * glm::vec3(0.0f, 0.0f, 1.0f);
                     reg.emplace<WorldLight>(emptyEnt);
                     ImGui::CloseCurrentPopup();
@@ -100,42 +105,54 @@ namespace worlds {
                 float lineHeight = ImGui::CalcTextSize("w").y;
 
                 ImVec2 cursorPos = ImGui::GetCursorPos();
-                ImDrawList* drawList = ImGui::GetWindowDrawList();
+                ImDrawList *drawList = ImGui::GetWindowDrawList();
                 float windowWidth = ImGui::GetWindowWidth();
                 ImVec2 windowPos = ImGui::GetWindowPos();
 
-                if (editor->isEntitySelected(ent)) {
+                if (editor->isEntitySelected(ent))
+                {
                     drawList->AddRectFilled(
                         ImVec2(0.0f + windowPos.x, cursorPos.y + windowPos.y - ImGui::GetScrollY()),
                         ImVec2(windowWidth + windowPos.x, cursorPos.y + lineHeight + windowPos.y - ImGui::GetScrollY()),
-                        ImColor(0, 75, 150)
-                    );
+                        ImColor(0, 75, 150));
                 }
 
-                if (currentlyRenaming != ent) {
-                    if (nc == nullptr) {
+                if (currentlyRenaming != ent)
+                {
+                    if (nc == nullptr)
+                    {
                         ImGui::Text("Entity %u", static_cast<uint32_t>(ent));
-                    } else {
+                    }
+                    else
+                    {
                         ImGui::TextUnformatted(nc->name.c_str());
                     }
-                } else {
-                    if (nc == nullptr) {
+                }
+                else
+                {
+                    if (nc == nullptr)
+                    {
                         currentlyRenaming = entt::null;
-                    } else if (ImGui::InputText("###name", &nc->name, ImGuiInputTextFlags_EnterReturnsTrue)) {
+                    }
+                    else if (ImGui::InputText("###name", &nc->name, ImGuiInputTextFlags_EnterReturnsTrue))
+                    {
                         currentlyRenaming = entt::null;
                     }
                 }
 
                 // Parent drag/drop
-                ImGuiDragDropFlags entityDropFlags = 0
-                    | ImGuiDragDropFlags_SourceNoDisableHover
-                    | ImGuiDragDropFlags_SourceNoHoldToOpenOthers
-                    | ImGuiDragDropFlags_SourceAllowNullID;
+                ImGuiDragDropFlags entityDropFlags = 0 | ImGuiDragDropFlags_SourceNoDisableHover |
+                                                     ImGuiDragDropFlags_SourceNoHoldToOpenOthers |
+                                                     ImGuiDragDropFlags_SourceAllowNullID;
 
-                if (ImGui::BeginDragDropSource(entityDropFlags)) {
-                    if (nc == nullptr) {
+                if (ImGui::BeginDragDropSource(entityDropFlags))
+                {
+                    if (nc == nullptr)
+                    {
                         ImGui::Text("Entity %u", static_cast<uint32_t>(ent));
-                    } else {
+                    }
+                    else
+                    {
                         ImGui::TextUnformatted(nc->name.c_str());
                     }
 
@@ -143,10 +160,12 @@ namespace worlds {
                     ImGui::EndDragDropSource();
                 }
 
-                if (ImGui::BeginDragDropTarget()) {
-                    if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("HIERARCHY_ENTITY")) {
+                if (ImGui::BeginDragDropTarget())
+                {
+                    if (const ImGuiPayload *payload = ImGui::AcceptDragDropPayload("HIERARCHY_ENTITY"))
+                    {
                         assert(payload->DataSize == sizeof(entt::entity));
-                        entt::entity droppedEntity = *reinterpret_cast<entt::entity*>(payload->Data);
+                        entt::entity droppedEntity = *reinterpret_cast<entt::entity *>(payload->Data);
 
                         if (!HierarchyUtil::isEntityChildOf(reg, droppedEntity, ent))
                             HierarchyUtil::setEntityParent(reg, droppedEntity, ent);
@@ -154,38 +173,47 @@ namespace worlds {
                     ImGui::EndDragDropTarget();
                 }
 
-                if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0)) {
+                if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0))
+                {
                     currentlyRenaming = ent;
 
-                    if (nc == nullptr) {
+                    if (nc == nullptr)
+                    {
                         nc = &reg.emplace<NameComponent>(ent);
                         nc->name = "Entity";
                     }
                 }
 
-                if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Right)) {
+                if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Right))
+                {
                     popupOpenFor = ent;
                     openEntityContextMenu = true;
                     ImGui::OpenPopup("Entity Context Menu");
                 }
 
-                if (ImGui::IsItemClicked()) {
-                    if (!interfaces.inputManager->keyHeld(SDL_SCANCODE_LSHIFT)) {
+                if (ImGui::IsItemClicked())
+                {
+                    if (!interfaces.inputManager->keyHeld(SDL_SCANCODE_LSHIFT))
+                    {
                         editor->select(ent);
-                    } else {
+                    }
+                    else
+                    {
                         editor->multiSelect(ent);
                     }
                 }
 
-                if (reg.has<ParentComponent>(ent)) {
-                    auto& pc = reg.get<ParentComponent>(ent);
-                    
+                if (reg.has<ParentComponent>(ent))
+                {
+                    auto &pc = reg.get<ParentComponent>(ent);
+
                     entt::entity currentChild = pc.firstChild;
 
                     ImGui::Indent();
 
-                    while (reg.valid(currentChild)) {
-                        auto& childComponent = reg.get<ChildComponent>(currentChild);
+                    while (reg.valid(currentChild))
+                    {
+                        auto &childComponent = reg.get<ChildComponent>(currentChild);
 
                         forEachEnt(currentChild);
 
@@ -197,10 +225,10 @@ namespace worlds {
                 ImGui::PopID();
             };
 
-
             static uint32_t renamingFolder = 0u;
 
-            std::function<void(EntityFolder&, EntityFolder*)> doFolderEntry = [&](EntityFolder& folder, EntityFolder* parent) {
+            std::function<void(EntityFolder &, EntityFolder *)> doFolderEntry = [&](EntityFolder &folder,
+                                                                                    EntityFolder *parent) {
                 bool thisFolderRenaming = folder.randomId == renamingFolder;
 
                 std::string label;
@@ -213,7 +241,8 @@ namespace worlds {
 
                 ImGuiTreeNodeFlags treeNodeFlags = ImGuiTreeNodeFlags_None;
 
-                if (thisFolderRenaming) {
+                if (thisFolderRenaming)
+                {
                     treeNodeFlags |= ImGuiTreeNodeFlags_AllowItemOverlap;
                 }
 
@@ -222,39 +251,47 @@ namespace worlds {
                 tl = tl + (glm::vec2)ImGui::GetWindowPos();
                 br = br + (glm::vec2)ImGui::GetWindowPos();
 
-                if (ImGui::IsMouseHoveringRect(tl, br) && ImGui::IsMouseClicked(ImGuiMouseButton_Right)) {
+                if (ImGui::IsMouseHoveringRect(tl, br) && ImGui::IsMouseClicked(ImGuiMouseButton_Right))
+                {
                     renamingFolder = folder.randomId;
                 }
 
                 bool showContents = ImGui::TreeNodeEx(label.c_str(), treeNodeFlags);
 
-                if (thisFolderRenaming) {
+                if (thisFolderRenaming)
+                {
                     ImGui::SameLine();
-                    if (ImGui::InputText("##foldername", &folder.name, ImGuiInputTextFlags_EnterReturnsTrue)) {
+                    if (ImGui::InputText("##foldername", &folder.name, ImGuiInputTextFlags_EnterReturnsTrue))
+                    {
                         renamingFolder = 0u;
                     }
                 }
 
-                if (showContents) {
-                    if (parent) {
+                if (showContents)
+                {
+                    if (parent)
+                    {
                         ImGui::SameLine();
-                        if (ImGui::Button("Remove")) {
+                        if (ImGui::Button("Remove"))
+                        {
                             uint32_t id = folder.randomId;
-                            parent->children.erase(
-                                std::remove_if(parent->children.begin(), parent->children.end(), [id](EntityFolder& f) { return f.randomId == id; })
-                            );
+                            parent->children.erase(std::remove_if(parent->children.begin(), parent->children.end(),
+                                                                  [id](EntityFolder &f) { return f.randomId == id; }));
                         }
                     }
 
-                    for (entt::entity ent : folder.entities) {
+                    for (entt::entity ent : folder.entities)
+                    {
                         forEachEnt(ent);
                     }
 
-                    for (EntityFolder& child : folder.children) {
+                    for (EntityFolder &child : folder.children)
+                    {
                         doFolderEntry(child, &folder);
                     }
 
-                    if (ImGui::Button("Add Folder")) {
+                    if (ImGui::Button("Add Folder"))
+                    {
                         folder.children.emplace_back(EntityFolder{"Untitled Entity Folder"});
                     }
                     ImGui::TreePop();
@@ -262,25 +299,33 @@ namespace worlds {
                 ImGui::PopID();
             };
 
-            if (ImGui::BeginChild("Entities")) {
-                if (searchText.empty()) {
-                    if (folderView) {
-                        EntityFolders& folders = reg.ctx<EntityFolders>();
+            if (ImGui::BeginChild("Entities"))
+            {
+                if (searchText.empty())
+                {
+                    if (folderView)
+                    {
+                        EntityFolders &folders = reg.ctx<EntityFolders>();
                         doFolderEntry(folders.rootFolder, 0);
-                    } else {
-                        if (showUnnamed) {
+                    }
+                    else
+                    {
+                        if (showUnnamed)
+                        {
                             reg.each(forEachEnt);
-                        } else {
-                            reg.view<NameComponent>(entt::exclude_t<ChildComponent>{}).each([&](auto ent, NameComponent) {
-                                forEachEnt(ent);
-                            });
+                        }
+                        else
+                        {
+                            reg.view<NameComponent>(entt::exclude_t<ChildComponent>{})
+                                .each([&](auto ent, NameComponent) { forEachEnt(ent); });
                         }
                     }
-                } else {
-                    for (auto& ent : filteredEntities)
+                }
+                else
+                {
+                    for (auto &ent : filteredEntities)
                         forEachEnt(ent);
                 }
-
             }
             ImGui::EndChild();
 
@@ -288,46 +333,53 @@ namespace worlds {
 
             // Using a lambda here for early exit
             auto entityPopup = [&](entt::entity e) {
-                if (!reg.valid(e)) {
+                if (!reg.valid(e))
+                {
                     ImGui::CloseCurrentPopup();
                     return;
                 }
 
-                if (ImGui::Button("Delete")) {
+                if (ImGui::Button("Delete"))
+                {
                     reg.destroy(e);
                     ImGui::CloseCurrentPopup();
                     return;
                 }
 
-                if (ImGui::Button("Rename")) {
+                if (ImGui::Button("Rename"))
+                {
                     currentlyRenaming = e;
                     ImGui::CloseCurrentPopup();
                 }
 
-                if (ImGui::Button("Add to folder")) {
+                if (ImGui::Button("Add to folder"))
+                {
                     ImGui::CloseCurrentPopup();
                     openFolderPopup = true;
                 }
             };
 
-            if (openEntityContextMenu) {
+            if (openEntityContextMenu)
+            {
                 ImGui::OpenPopup("Entity Context Menu");
             }
 
-            if (ImGui::BeginPopup("Entity Context Menu")) {
+            if (ImGui::BeginPopup("Entity Context Menu"))
+            {
                 entityPopup(popupOpenFor);
                 ImGui::EndPopup();
             }
 
             auto folderPopup = [&](entt::entity e) {
-                EntityFolders& folders = reg.ctx<EntityFolders>();
+                EntityFolders &folders = reg.ctx<EntityFolders>();
                 showFolderButtons(e, folders.rootFolder, 0);
             };
 
             if (openFolderPopup)
                 ImGui::OpenPopup("Add to folder");
 
-            if (ImGui::BeginPopup("Add to folder")) {
+            if (ImGui::BeginPopup("Add to folder"))
+            {
                 folderPopup(popupOpenFor);
                 ImGui::EndPopup();
             }

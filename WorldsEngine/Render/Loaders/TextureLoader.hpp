@@ -1,12 +1,14 @@
 #pragma once
-#include <cstdint>
 #include <Core/AssetDB.hpp>
-#include <string>
 #include <R2/VKTexture.hpp>
+#include <cstdint>
+#include <string>
 
-namespace worlds {
-    struct TextureData {
-        uint8_t* data;
+namespace worlds
+{
+    struct TextureData
+    {
+        uint8_t *data;
         uint32_t width, height;
         uint32_t numMips;
         uint32_t totalDataSize;

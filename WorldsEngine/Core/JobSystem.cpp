@@ -8,23 +8,23 @@
 #endif
 #include <Core/Fatal.hpp>
 
-namespace worlds {
-    JobList::JobList()
-        : jobs{ 256 }
-        , completeCV{ nullptr }
-        , completeMutex{ nullptr }
-        , jobCount{ 0 } {
+namespace worlds
+{
+    JobList::JobList() : jobs{256}, completeCV{nullptr}, completeMutex{nullptr}, jobCount{0}
+    {
         completeCV = SDL_CreateCond();
         completeMutex = SDL_CreateMutex();
     }
 
-    void JobList::begin() {
+    void JobList::begin()
+    {
 #ifdef TRACY_ENABLE
         ZoneScoped;
 #endif
     }
 
-    void JobList::addJob(Job&& job) {
+    void JobList::addJob(Job &&job)
+    {
 #ifdef TRACY_ENABLE
         ZoneScoped;
 #endif
@@ -32,34 +32,40 @@ namespace worlds {
         jobCount++;
     }
 
-    void JobList::end() {
+    void JobList::end()
+    {
 #ifdef TRACY_ENABLE
         ZoneScoped;
 #endif
     }
 
-    void JobList::wait() {
+    void JobList::wait()
+    {
 #ifdef TRACY_ENABLE
         ZoneScoped;
 #endif
-        if (jobCount == 0) return;
+        if (jobCount == 0)
+            return;
         SDL_LockMutex(completeMutex);
-        while (jobCount) {
+        while (jobCount)
+        {
             SDL_CondWait(completeCV, completeMutex);
         }
         SDL_UnlockMutex(completeMutex);
     }
 
-    bool JobList::isComplete() {
+    bool JobList::isComplete()
+    {
         return jobCount == 0;
     }
 
-    JobSystem::JobSystem(int numWorkers)
-        : executing(true) {
+    JobSystem::JobSystem(int numWorkers) : executing(true)
+    {
         jobListsMutex.lock();
         currentJobLists = new JobList[NUM_JOB_SLOTS];
 
-        for (int i = 0; i < numWorkers; i++) {
+        for (int i = 0; i < numWorkers; i++)
+        {
             auto t = std::thread(&JobSystem::worker, this, i);
 #ifdef __linux__
             pthread_setname_np(t.native_handle(), "worker thread");
@@ -69,43 +75,54 @@ namespace worlds {
 
         jobListsMutex.unlock();
 
-        do {} while (initialisedWorkerCount != numWorkers);
+        do
+        {
+        } while (initialisedWorkerCount != numWorkers);
     }
 
-    JobSystem::~JobSystem() {
+    JobSystem::~JobSystem()
+    {
         executing = false;
 
-        for (int i = 0; i < NUM_JOB_SLOTS; i++) {
+        for (int i = 0; i < NUM_JOB_SLOTS; i++)
+        {
             SDL_DestroyCond(currentJobLists[i].completeCV);
             SDL_DestroyMutex(currentJobLists[i].completeMutex);
         }
 
         newJobListCV.notify_all();
-        for (auto& w : workers) {
+        for (auto &w : workers)
+        {
             w.join();
         }
 
         delete[] currentJobLists;
     }
 
-    JobList& JobSystem::getFreeJobList() {
+    JobList &JobSystem::getFreeJobList()
+    {
         return currentJobLists[getFreeJobSlot()];
     }
 
-    void JobSystem::signalJobListAvailable() {
+    void JobSystem::signalJobListAvailable()
+    {
         newJobListCV.notify_all();
     }
 
-    void JobSystem::completeFrameJobs() {
-        for (int i = 0; i < NUM_JOB_SLOTS; i++) {
-            JobList& jobList = currentJobLists[i];
+    void JobSystem::completeFrameJobs()
+    {
+        for (int i = 0; i < NUM_JOB_SLOTS; i++)
+        {
+            JobList &jobList = currentJobLists[i];
             if (jobList.jobCount)
                 jobList.wait();
         }
     }
 
-    int JobSystem::getFreeJobSlot() {
-        for (int i = 0; i < NUM_JOB_SLOTS; i++) {
+    int JobSystem::getFreeJobSlot()
+    {
+        for (int i = 0; i < NUM_JOB_SLOTS; i++)
+        {
             if (currentJobLists[i].jobCount == 0)
                 return i;
         }
@@ -113,21 +130,25 @@ namespace worlds {
         return -1;
     }
 
-    void JobSystem::worker(int idx) {
+    void JobSystem::worker(int idx)
+    {
 #ifdef TRACY_ENABLE
         ZoneScoped;
 #endif
         initialisedWorkerCount++;
 
-        while (executing) {
+        while (executing)
+        {
             // Get a job from any of the job lists
             jobListsMutex.lock();
             Job currentJob(nullptr);
-            JobList* pulledFromList = nullptr;
+            JobList *pulledFromList = nullptr;
 
-            for (int i = 0; i < NUM_JOB_SLOTS; i++) {
-                JobList& jobList = currentJobLists[i];
-                if (jobList.jobCount && jobList.jobs.try_dequeue(currentJob)) {
+            for (int i = 0; i < NUM_JOB_SLOTS; i++)
+            {
+                JobList &jobList = currentJobLists[i];
+                if (jobList.jobCount && jobList.jobs.try_dequeue(currentJob))
+                {
                     pulledFromList = &jobList;
                     break;
                 }
@@ -135,7 +156,8 @@ namespace worlds {
             jobListsMutex.unlock();
 
             // No jobs available :(
-            if (pulledFromList == nullptr) {
+            if (pulledFromList == nullptr)
+            {
                 // Wait for any new job lists
                 {
                     std::unique_lock<std::mutex> newJobListLck(newJobListM);
@@ -156,7 +178,8 @@ namespace worlds {
 
             // Decrement the job count and fire completion if necessary
             pulledFromList->jobCount--;
-            if (pulledFromList->jobCount == 0) {
+            if (pulledFromList->jobCount == 0)
+            {
                 SDL_LockMutex(pulledFromList->completeMutex);
                 SDL_CondBroadcast(pulledFromList->completeCV);
                 SDL_UnlockMutex(pulledFromList->completeMutex);

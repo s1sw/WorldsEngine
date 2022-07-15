@@ -2,8 +2,10 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
-namespace worlds {
-    inline glm::quat getMatrixRotation(glm::mat4 matrix) {
+namespace worlds
+{
+    inline glm::quat getMatrixRotation(glm::mat4 matrix)
+    {
         glm::quat Orientation;
 
         glm::vec3 Row[3];
@@ -14,7 +16,8 @@ namespace worlds {
 
         int i, j, k = 0;
         float root, trace = Row[0].x + Row[1].y + Row[2].z;
-        if (trace > 0.0f) {
+        if (trace > 0.0f)
+        {
             root = sqrt(trace + 1.0f);
             Orientation.w = 0.5f * root;
             root = 0.5f / root;
@@ -22,11 +25,14 @@ namespace worlds {
             Orientation.y = root * (Row[2].x - Row[0].z);
             Orientation.z = root * (Row[0].y - Row[1].x);
         } // End if > 0
-        else {
-            static int Next[3] = { 1, 2, 0 };
+        else
+        {
+            static int Next[3] = {1, 2, 0};
             i = 0;
-            if (Row[1].y > Row[0].x) i = 1;
-            if (Row[2].z > Row[i][i]) i = 2;
+            if (Row[1].y > Row[0].x)
+                i = 1;
+            if (Row[2].z > Row[i][i])
+                i = 2;
             j = Next[i];
             k = Next[j];
 
@@ -42,7 +48,8 @@ namespace worlds {
         return Orientation;
     }
 
-    inline glm::vec3 getMatrixTranslation(glm::mat4 matrix) {
+    inline glm::vec3 getMatrixTranslation(glm::mat4 matrix)
+    {
         return matrix[3];
     }
 }

@@ -1,8 +1,10 @@
 #pragma once
 #include "TextureLoader.hpp"
 
-namespace worlds {
-    struct CubemapData {
+namespace worlds
+{
+    struct CubemapData
+    {
         TextureData faceData[6];
         std::string debugName;
     };

@@ -1,19 +1,21 @@
 #pragma once
-#include <glm/glm.hpp>
 #include <SDL_video.h>
 #include <entt/entity/lw_fwd.hpp>
+#include <glm/glm.hpp>
 
-#include <VR/IVRInterface.hpp>
-#include <Core/WorldComponents.hpp>
 #include "Camera.hpp"
 #include "PackedMaterial.hpp"
+#include <Core/WorldComponents.hpp>
+#include <VR/IVRInterface.hpp>
 
-typedef void* ImTextureID;
+typedef void *ImTextureID;
 
-namespace worlds {
+namespace worlds
+{
     const int NUM_SHADOW_LIGHTS = 4;
 #pragma pack(push, 1)
-    struct Vertex {
+    struct Vertex
+    {
         glm::vec3 position;
         glm::vec3 normal;
         glm::vec3 tangent;
@@ -23,25 +25,29 @@ namespace worlds {
     };
 #pragma pack(pop)
 
-    struct MVP {
+    struct MVP
+    {
         glm::mat4 model;
         glm::mat4 view;
         glm::mat4 projection;
     };
 
-    struct VP {
+    struct VP
+    {
         glm::mat4 view;
         glm::mat4 projection;
     };
 
-    struct MultiVP {
+    struct MultiVP
+    {
         glm::mat4 views[2];
         glm::mat4 projections[2];
         glm::mat4 inverseVP[2];
         glm::vec4 viewPos[2];
     };
 
-    struct PackedLight {
+    struct PackedLight
+    {
         // color in linear space
         glm::vec3 color;
         /*
@@ -56,37 +62,38 @@ namespace worlds {
         // xyz: forward direction or first tube point
         // w: sphere/tube radius or spotlight cutoff
         glm::vec4 packedVars;
-        glm::vec3 position; // light position or second tube point
+        glm::vec3 position;   // light position or second tube point
         float distanceCutoff; // distance after which the light isn't visible
 
-        void setLightType(LightType type) {
+        void setLightType(LightType type)
+        {
             packedFlags &= 0b111;
             packedFlags |= (uint32_t)type;
         }
 
-        void setShadowmapIndex(uint32_t shadowmapIdx) {
+        void setShadowmapIndex(uint32_t shadowmapIdx)
+        {
             packedFlags &= ~(0b1111 << 3);
             packedFlags |= (shadowmapIdx & 0b1111) << 3;
         }
     };
 
-
     /**
      * Graphics settings applied to individual RTT passes.
      */
-    struct GraphicsSettings {
-        GraphicsSettings()
-            : msaaLevel(2)
-            , shadowmapRes(1024)
-            , enableVr(false) {}
+    struct GraphicsSettings
+    {
+        GraphicsSettings() : msaaLevel(2), shadowmapRes(1024), enableVr(false)
+        {
+        }
 
         GraphicsSettings(int msaaLevel, int shadowmapRes, bool enableVr)
-            : msaaLevel(msaaLevel)
-            , shadowmapRes(shadowmapRes)
-            , enableVr(enableVr) {}
+            : msaaLevel(msaaLevel), shadowmapRes(shadowmapRes), enableVr(enableVr)
+        {
+        }
 
-        int msaaLevel; //!< MSAA level (1x, 2x, 4x, 8x etc.)
-        int shadowmapRes; //!< Shadowmap resolution for cascade shadows
+        int msaaLevel;               //!< MSAA level (1x, 2x, 4x, 8x etc.)
+        int shadowmapRes;            //!< Shadowmap resolution for cascade shadows
         int spotShadowmapRes = 1024; //!< Shadowmap resolution specifically for spotlights
         bool enableVr;
         bool enableBloom = true;
@@ -97,15 +104,17 @@ namespace worlds {
         float resolutionScale = 1.0f;
     };
 
-    struct SubmeshInfo {
+    struct SubmeshInfo
+    {
         uint32_t indexOffset; //!< The offset of the submesh in the mesh index buffer.
-        uint32_t indexCount; //!< The number of indices in the submesh.
+        uint32_t indexCount;  //!< The number of indices in the submesh.
         int materialIndex;
         glm::vec3 aabbMax;
         glm::vec3 aabbMin;
     };
 
-    struct RenderDebugStats {
+    struct RenderDebugStats
+    {
         int numDrawCalls;
         int numCulledObjs;
         uint64_t vramUsage;
@@ -122,7 +131,8 @@ namespace worlds {
         double imgFenceWaitTime;
     };
 
-    enum class VKVendor {
+    enum class VKVendor
+    {
         AMD,
         Nvidia,
         Intel,
@@ -130,18 +140,20 @@ namespace worlds {
         Other
     };
 
-    struct RendererInitInfo {
-        SDL_Window* window;
+    struct RendererInitInfo
+    {
+        SDL_Window *window;
         std::vector<std::string> additionalInstanceExtensions;
         std::vector<std::string> additionalDeviceExtensions;
         bool enableVR;
         VrApi activeVrApi;
-        IVRInterface* vrInterface;
-        const char* applicationName = nullptr;
+        IVRInterface *vrInterface;
+        const char *applicationName = nullptr;
     };
 
-    struct RTTPassCreateInfo {
-        Camera* cam = nullptr;
+    struct RTTPassCreateInfo
+    {
+        Camera *cam = nullptr;
         uint32_t width, height;
         float resScale = 1.0f;
         bool isVr;
@@ -149,15 +161,16 @@ namespace worlds {
         bool enableShadows;
         bool staticsOnly = false;
         int msaaLevel = 0;
-        entt::registry* registryOverride = nullptr;
+        entt::registry *registryOverride = nullptr;
         bool renderDebugShapes = true;
     };
 
     /**
      * A complete rendering pass, either to the screen or an accessible texture.
      */
-    class RTTPass {
-    public:
+    class RTTPass
+    {
+      public:
         //! Controls the order in which the RTTPasses are executed.
         int drawSortKey = 0;
         uint32_t width, height;
@@ -166,11 +179,17 @@ namespace worlds {
         bool active = false;
         float resScale = 1.0f;
 
-        uint32_t actualWidth() { return (uint32_t)(width * resScale); }
-        uint32_t actualHeight() { return (uint32_t)(height * resScale); }
+        uint32_t actualWidth()
+        {
+            return (uint32_t)(width * resScale);
+        }
+        uint32_t actualHeight()
+        {
+            return (uint32_t)(height * resScale);
+        }
 
         //! Draws the render pass immediately. Slow!!
-        virtual void drawNow(entt::registry& world) = 0;
+        virtual void drawNow(entt::registry &world) = 0;
 
         //! Requests an entity pick at the specified coordinates.
         virtual void requestPick(int x, int y) = 0;
@@ -179,19 +198,23 @@ namespace worlds {
          * \param result The entity ID under the coordinates specified in requestPick.
          * \return True if the pick results were retrieved, false if the results aren't ready yet.
          */
-        virtual bool getPickResult(uint32_t* result) = 0;
+        virtual bool getPickResult(uint32_t *result) = 0;
 
         //! Get a float array of the HDR pass result.
-        virtual float* getHDRData() = 0;
+        virtual float *getHDRData() = 0;
         virtual void resize(int newWidth, int newHeight) = 0;
         virtual void setResolutionScale(float newScale) = 0;
         virtual ImTextureID getUITextureID() = 0;
-    protected:
-        virtual ~RTTPass() {}
+
+      protected:
+        virtual ~RTTPass()
+        {
+        }
         friend class Renderer;
     };
 
-    enum class ReloadFlags {
+    enum class ReloadFlags
+    {
         Textures = 1,
         Materials = 2,
         Cubemaps = 4,
@@ -199,26 +222,31 @@ namespace worlds {
         All = 15
     };
 
-    inline ReloadFlags operator|(ReloadFlags l, ReloadFlags r) {
+    inline ReloadFlags operator|(ReloadFlags l, ReloadFlags r)
+    {
         return (ReloadFlags)((uint32_t)l | (uint32_t)r);
     }
 
     /**
      * Loads and unloads textures to be used in Dear ImGui.
      */
-    class IUITextureManager {
-    public:
+    class IUITextureManager
+    {
+      public:
         virtual ImTextureID loadOrGet(AssetID id) = 0;
         virtual void unload(AssetID id) = 0;
-        virtual ~IUITextureManager() {}
+        virtual ~IUITextureManager()
+        {
+        }
     };
 
     /**
      * Base renderer class that doesn't expose any API-specific details.
      */
-    class Renderer {
-    public:
-        virtual void frame(entt::registry& reg) = 0;
+    class Renderer
+    {
+      public:
+        virtual void frame(entt::registry &reg) = 0;
 
         //! Gets time spent rendering the scene on the GPU.
         virtual float getLastGPUTime() const = 0;
@@ -228,14 +256,16 @@ namespace worlds {
         virtual void setVsync(bool vsync) = 0;
         virtual bool getVsync() const = 0;
 
-        virtual const RenderDebugStats& getDebugStats() const = 0;
-        virtual IUITextureManager* getUITextureManager() = 0;
+        virtual const RenderDebugStats &getDebugStats() const = 0;
+        virtual IUITextureManager *getUITextureManager() = 0;
 
-        virtual void setImGuiDrawData(void* drawData) = 0;
+        virtual void setImGuiDrawData(void *drawData) = 0;
 
-        virtual RTTPass* createRTTPass(RTTPassCreateInfo& ci) = 0;
-        virtual void destroyRTTPass(RTTPass* pass) = 0;
+        virtual RTTPass *createRTTPass(RTTPassCreateInfo &ci) = 0;
+        virtual void destroyRTTPass(RTTPass *pass) = 0;
 
-        virtual ~Renderer() {}
+        virtual ~Renderer()
+        {
+        }
     };
 }

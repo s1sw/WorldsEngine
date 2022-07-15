@@ -3,21 +3,25 @@
 #include <Render/RenderInternal.hpp>
 #include <vector>
 
-namespace worlds {
-    struct LoadedMeshBone {
+namespace worlds
+{
+    struct LoadedMeshBone
+    {
         glm::mat4 inverseBindPose;
         glm::mat4 transform;
         uint32_t parentIdx;
         std::string name;
     };
 
-    struct LoadedSubmesh {
+    struct LoadedSubmesh
+    {
         uint32_t indexCount;
         uint32_t indexOffset;
         uint32_t materialIndex;
     };
 
-    struct LoadedMeshData {
+    struct LoadedMeshData
+    {
         bool isSkinned;
         std::vector<LoadedMeshBone> bones;
         std::vector<LoadedSubmesh> submeshes;
@@ -28,5 +32,5 @@ namespace worlds {
         std::vector<VertSkinningInfo> skinningInfos;
     };
 
-    void loadWorldsModel(AssetID wmdlId, LoadedMeshData& lmd);
+    void loadWorldsModel(AssetID wmdlId, LoadedMeshData &lmd);
 }

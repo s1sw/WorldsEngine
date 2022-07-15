@@ -1,184 +1,187 @@
 #ifndef _INCLUDE_PHYSFS_HPP_
 #define _INCLUDE_PHYSFS_HPP_
 
+#include <iostream>
 #include <physfs.h>
 #include <string>
 #include <vector>
-#include <iostream>
 
-namespace PhysFS {
+namespace PhysFS
+{
 
-typedef enum {
-	READ,
-	WRITE,
-	APPEND
-} mode;
+    typedef enum
+    {
+        READ,
+        WRITE,
+        APPEND
+    } mode;
 
-using std::string;
+    using std::string;
 
-typedef std::vector<string> StringList;
+    typedef std::vector<string> StringList;
 
-typedef PHYSFS_uint8 uint8;
+    typedef PHYSFS_uint8 uint8;
 
-typedef PHYSFS_sint8 sint8;
+    typedef PHYSFS_sint8 sint8;
 
-typedef PHYSFS_uint16 uint16;
+    typedef PHYSFS_uint16 uint16;
 
-typedef PHYSFS_sint16 sint16;
+    typedef PHYSFS_sint16 sint16;
 
-typedef PHYSFS_uint32 uint32;
+    typedef PHYSFS_uint32 uint32;
 
-typedef PHYSFS_sint32 sint32;
+    typedef PHYSFS_sint32 sint32;
 
-typedef PHYSFS_uint64 uint64;
+    typedef PHYSFS_uint64 uint64;
 
-typedef PHYSFS_sint64 sint64;
+    typedef PHYSFS_sint64 sint64;
 
-typedef PHYSFS_StringCallback StringCallback;
+    typedef PHYSFS_StringCallback StringCallback;
 
-typedef PHYSFS_EnumFilesCallback EnumFilesCallback;
+    typedef PHYSFS_EnumFilesCallback EnumFilesCallback;
 
-typedef PHYSFS_Version Version;
+    typedef PHYSFS_Version Version;
 
-typedef PHYSFS_Allocator Allocator;
+    typedef PHYSFS_Allocator Allocator;
 
-typedef PHYSFS_ArchiveInfo ArchiveInfo;
+    typedef PHYSFS_ArchiveInfo ArchiveInfo;
 
-typedef std::vector<ArchiveInfo> ArchiveInfoList;
+    typedef std::vector<ArchiveInfo> ArchiveInfoList;
 
-typedef uint64 size_t;
+    typedef uint64 size_t;
 
-class base_fstream {
-protected:
-	PHYSFS_File * const file;
-public:
-	base_fstream(PHYSFS_File * file);
-	virtual ~base_fstream();
-	size_t length();
-};
+    class base_fstream
+    {
+      protected:
+        PHYSFS_File *const file;
 
-class ifstream : public base_fstream, public std::istream {
-public:
-	ifstream(PHYSFS_File* filePtr);
-	ifstream(string const & filename);
-	virtual ~ifstream();
-};
+      public:
+        base_fstream(PHYSFS_File *file);
+        virtual ~base_fstream();
+        size_t length();
+    };
 
-class ofstream : public base_fstream, public std::ostream {
-public:
-	ofstream(string const & filename, mode writeMode = WRITE);
-	virtual ~ofstream();
-};
+    class ifstream : public base_fstream, public std::istream
+    {
+      public:
+        ifstream(PHYSFS_File *filePtr);
+        ifstream(string const &filename);
+        virtual ~ifstream();
+    };
 
-class fstream : public base_fstream, public std::iostream {
-public:
-	fstream(string const & filename, mode openMode = READ);
-	virtual ~fstream();
-};
+    class ofstream : public base_fstream, public std::ostream
+    {
+      public:
+        ofstream(string const &filename, mode writeMode = WRITE);
+        virtual ~ofstream();
+    };
 
-Version getLinkedVersion();
+    class fstream : public base_fstream, public std::iostream
+    {
+      public:
+        fstream(string const &filename, mode openMode = READ);
+        virtual ~fstream();
+    };
 
-void init(char const * argv0);
+    Version getLinkedVersion();
 
-void deinit();
+    void init(char const *argv0);
 
-ArchiveInfoList supportedArchiveTypes();
+    void deinit();
 
-string getDirSeparator();
+    ArchiveInfoList supportedArchiveTypes();
 
-void permitSymbolicLinks(bool allow);
+    string getDirSeparator();
 
-StringList getCdRomDirs();
+    void permitSymbolicLinks(bool allow);
 
-void getCdRomDirs(StringCallback callback, void * extra);
+    StringList getCdRomDirs();
 
-string getBaseDir();
+    void getCdRomDirs(StringCallback callback, void *extra);
 
-[[deprecated]]
-string getUserDir();
+    string getBaseDir();
 
-string getWriteDir();
+    [[deprecated]] string getUserDir();
 
-void setWriteDir(string const & newDir);
+    string getWriteDir();
 
-[[deprecated]]
-void removeFromSearchPath(string const & oldDir);
+    void setWriteDir(string const &newDir);
 
-StringList getSearchPath();
+    [[deprecated]] void removeFromSearchPath(string const &oldDir);
 
-void getSearchPath(StringCallback callback, void * extra);
+    StringList getSearchPath();
 
-void setSaneConfig(string const & orgName, string const & appName, string const & archiveExt, bool includeCdRoms, bool archivesFirst);
+    void getSearchPath(StringCallback callback, void *extra);
 
-void mkdir(string const & dirName);
+    void setSaneConfig(string const &orgName, string const &appName, string const &archiveExt, bool includeCdRoms,
+                       bool archivesFirst);
 
-void deleteFile(string const & filename);
+    void mkdir(string const &dirName);
 
-string getRealDir(string const & filename);
+    void deleteFile(string const &filename);
 
-StringList enumerateFiles(string const & directory);
+    string getRealDir(string const &filename);
 
-[[deprecated]]
-void enumerateFiles(string const & directory, EnumFilesCallback callback, void * extra);
+    StringList enumerateFiles(string const &directory);
 
-bool exists(string const & filename);
+    [[deprecated]] void enumerateFiles(string const &directory, EnumFilesCallback callback, void *extra);
 
-[[deprecated]]
-bool isDirectory(string const & filename);
+    bool exists(string const &filename);
 
-[[deprecated]]
-bool isSymbolicLink(string const & filename);
+    [[deprecated]] bool isDirectory(string const &filename);
 
-[[deprecated]]
-sint64 getLastModTime(string const & filename);
+    [[deprecated]] bool isSymbolicLink(string const &filename);
 
-bool isInit();
+    [[deprecated]] sint64 getLastModTime(string const &filename);
 
-bool symbolicLinksPermitted();
+    bool isInit();
 
-void setAllocator(Allocator const * allocator);
+    bool symbolicLinksPermitted();
 
-void mount(string const & newDir, string const & mountPoint, bool appendToPath);
+    void setAllocator(Allocator const *allocator);
 
-string getMountPoint(string const & dir);
+    void mount(string const &newDir, string const &mountPoint, bool appendToPath);
 
-namespace Util {
+    string getMountPoint(string const &dir);
 
-sint16 swapSLE16(sint16 value);
+    namespace Util
+    {
 
-uint16 swapULE16(uint16 value);
+        sint16 swapSLE16(sint16 value);
 
-sint32 swapSLE32(sint32 value);
+        uint16 swapULE16(uint16 value);
 
-uint32 swapULE32(uint32 value);
+        sint32 swapSLE32(sint32 value);
 
-sint64 swapSLE64(sint64 value);
+        uint32 swapULE32(uint32 value);
 
-uint64 swapULE64(uint64 value);
+        sint64 swapSLE64(sint64 value);
 
-sint16 swapSBE16(sint16 value);
+        uint64 swapULE64(uint64 value);
 
-uint16 swapUBE16(uint16 value);
+        sint16 swapSBE16(sint16 value);
 
-sint32 swapSBE32(sint32 value);
+        uint16 swapUBE16(uint16 value);
 
-uint32 swapUBE32(uint32 value);
+        sint32 swapSBE32(sint32 value);
 
-sint64 swapSBE64(sint64 value);
+        uint32 swapUBE32(uint32 value);
 
-uint64 swapUBE64(uint64 value);
+        sint64 swapSBE64(sint64 value);
 
-string utf8FromUcs4(uint32 const * src);
+        uint64 swapUBE64(uint64 value);
 
-string utf8ToUcs4(char const * src);
+        string utf8FromUcs4(uint32 const *src);
 
-string utf8FromUcs2(uint16 const * src);
+        string utf8ToUcs4(char const *src);
 
-string utf8ToUcs2(char const * src);
+        string utf8FromUcs2(uint16 const *src);
 
-string utf8FromLatin1(char const * src);
+        string utf8ToUcs2(char const *src);
 
-}
+        string utf8FromLatin1(char const *src);
+
+    }
 
 }
 

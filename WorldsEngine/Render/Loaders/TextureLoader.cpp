@@ -1,23 +1,25 @@
 #define CRND_HEADER_FILE_ONLY
 #include "TextureLoader.hpp"
-#include <Core/Engine.hpp>
-#include "tracy/Tracy.hpp"
 #include "crn_decomp.h"
 #include "stb_image.h"
+#include "tracy/Tracy.hpp"
+#include <Core/Engine.hpp>
+#include <Core/Fatal.hpp>
 #include <Core/Log.hpp>
 #include <Render/RenderInternal.hpp>
-#include <Core/Fatal.hpp>
-#include <physfs.h>
+#include <WTex.hpp>
 #include <algorithm>
 #include <mutex>
-#include <WTex.hpp>
+#include <physfs.h>
 
 using namespace R2;
 
-namespace worlds {
+namespace worlds
+{
     std::mutex vkMutex;
 
-    uint32_t getCrunchTextureSize(crnd::crn_texture_info texInfo, int mip) {
+    uint32_t getCrunchTextureSize(crnd::crn_texture_info texInfo, int mip)
+    {
         const crn_uint32 width = std::max(1U, texInfo.m_width >> mip);
         const crn_uint32 height = std::max(1U, texInfo.m_height >> mip);
         const crn_uint32 blocks_x = std::max(1U, (width + 3) >> 2);
@@ -28,7 +30,8 @@ namespace worlds {
         return total_face_size;
     }
 
-    uint32_t getRowPitch(crnd::crn_texture_info texInfo, int mip) {
+    uint32_t getRowPitch(crnd::crn_texture_info texInfo, int mip)
+    {
         const crn_uint32 width = std::max(1U, texInfo.m_width >> mip);
         const crn_uint32 blocks_x = std::max(1U, (width + 3) >> 2);
         const crn_uint32 row_pitch = blocks_x * crnd::crnd_get_bytes_per_dxt_block(texInfo.m_format);
@@ -36,11 +39,13 @@ namespace worlds {
         return row_pitch;
     }
 
-    inline int getNumMips(int w, int h) {
+    inline int getNumMips(int w, int h)
+    {
         return (int)(1 + floor(log2(glm::max(w, h))));
     }
 
-    TextureData loadCrunchTexture(void* fileData, size_t fileLen, AssetID id) {
+    TextureData loadCrunchTexture(void *fileData, size_t fileLen, AssetID id)
+    {
         ZoneScoped;
 
         crnd::crn_texture_info texInfo;
@@ -55,7 +60,8 @@ namespace worlds {
 
         VK::TextureFormat format{};
 
-        switch (fundamentalFormat) {
+        switch (fundamentalFormat)
+        {
         case crn_format::cCRNFmtDXT1:
             format = isSRGB ? VK::TextureFormat::BC1_RGBA_SRGB_BLOCK : VK::TextureFormat::BC1_RGBA_UNORM_BLOCK;
             break;
@@ -74,16 +80,18 @@ namespace worlds {
         uint32_t y = texInfo.m_height;
 
         size_t totalDataSize = 0;
-        for (uint32_t i = 0; i < texInfo.m_levels; i++) totalDataSize += getCrunchTextureSize(texInfo, i);
+        for (uint32_t i = 0; i < texInfo.m_levels; i++)
+            totalDataSize += getCrunchTextureSize(texInfo, i);
 
-        char* data = (char*)std::malloc(totalDataSize);
+        char *data = (char *)std::malloc(totalDataSize);
         size_t currOffset = 0;
-        for (uint32_t i = 0; i < texInfo.m_levels; i++) {
-            char* dataOffs = &data[currOffset];
+        for (uint32_t i = 0; i < texInfo.m_levels; i++)
+        {
+            char *dataOffs = &data[currOffset];
             uint32_t dataSize = getCrunchTextureSize(texInfo, i);
             currOffset += dataSize;
 
-            if (!crnd::crnd_unpack_level(context, (void**)&dataOffs, dataSize, getRowPitch(texInfo, i), i))
+            if (!crnd::crnd_unpack_level(context, (void **)&dataOffs, dataSize, getRowPitch(texInfo, i), i))
                 fatalErr("Failed to unpack texture");
         }
 
@@ -92,7 +100,7 @@ namespace worlds {
         crnd::crnd_unpack_end(context);
 
         TextureData td;
-        td.data = (uint8_t*)data;
+        td.data = (uint8_t *)data;
         td.numMips = numMips;
         td.width = x;
         td.height = y;
@@ -103,25 +111,31 @@ namespace worlds {
         return td;
     }
 
-    TextureData loadStbTexture(void* fileData, size_t fileLen, AssetID id) {
+    TextureData loadStbTexture(void *fileData, size_t fileLen, AssetID id)
+    {
         ZoneScoped;
         int x, y, channelsInFile;
         bool hdr = false;
         bool forceLinear = false;
-        stbi_uc* dat;
+        stbi_uc *dat;
         std::string path = AssetDB::idToPath(id);
-        if (path.find("forcelin") != std::string::npos) {
+        if (path.find("forcelin") != std::string::npos)
+        {
             forceLinear = true;
         }
-        if (AssetDB::getAssetExtension(id) == ".hdr") {
-            float* fpDat;
-            fpDat = stbi_loadf_from_memory((stbi_uc*)fileData, (int)fileLen, &x, &y, &channelsInFile, 4);
-            dat = (stbi_uc*)fpDat;
+        if (AssetDB::getAssetExtension(id) == ".hdr")
+        {
+            float *fpDat;
+            fpDat = stbi_loadf_from_memory((stbi_uc *)fileData, (int)fileLen, &x, &y, &channelsInFile, 4);
+            dat = (stbi_uc *)fpDat;
             hdr = true;
-        } else {
-            dat = stbi_load_from_memory((stbi_uc*)fileData, (int)fileLen, &x, &y, &channelsInFile, 4);
         }
-        if (dat == nullptr) {
+        else
+        {
+            dat = stbi_load_from_memory((stbi_uc *)fileData, (int)fileLen, &x, &y, &channelsInFile, 4);
+        }
+        if (dat == nullptr)
+        {
             SDL_LogError(worlds::WELogCategoryEngine, "STB Image error\n");
         }
         TextureData td;
@@ -140,18 +154,22 @@ namespace worlds {
         return td;
     }
 
-    TextureData loadTexData(AssetID id) {
+    TextureData loadTexData(AssetID id)
+    {
         ZoneScoped;
 
-        if (!AssetDB::exists(id)) {
-            return TextureData{ nullptr };
+        if (!AssetDB::exists(id))
+        {
+            return TextureData{nullptr};
         }
 
-        PHYSFS_File* file = AssetDB::openAssetFileRead(id);
-        if (!file) {
+        PHYSFS_File *file = AssetDB::openAssetFileRead(id);
+        if (!file)
+        {
             std::string path = AssetDB::idToPath(id);
             auto errCode = PHYSFS_getLastErrorCode();
-            SDL_LogError(worlds::WELogCategoryEngine, "Failed to load texture %s: %s", path.c_str(), PHYSFS_getErrorByCode(errCode));
+            SDL_LogError(worlds::WELogCategoryEngine, "Failed to load texture %s: %s", path.c_str(),
+                         PHYSFS_getErrorByCode(errCode));
             return TextureData{nullptr};
         }
 
@@ -163,26 +181,32 @@ namespace worlds {
 
         std::string ext = AssetDB::getAssetExtension(id);
 
-        if (ext == ".jpg" || ext == ".png" || ext == ".hdr") {
+        if (ext == ".jpg" || ext == ".png" || ext == ".hdr")
+        {
             return loadStbTexture(fileVec.data(), fileLen, id);
         }
 
-        if (fileVec[0] == 'H' && fileVec[1] == 'x') {
+        if (fileVec[0] == 'H' && fileVec[1] == 'x')
+        {
             // old raw crunch texture, load directly
             return loadCrunchTexture(fileVec.data(), fileLen, id);
         }
 
-        wtex::Header* header = reinterpret_cast<wtex::Header*>(fileVec.data());
-        
-        if (!header->verifyMagic()) {
-            return TextureData{ nullptr };
+        wtex::Header *header = reinterpret_cast<wtex::Header *>(fileVec.data());
+
+        if (!header->verifyMagic())
+        {
+            return TextureData{nullptr};
         }
 
-        if (header->containedFormat == wtex::ContainedFormat::Crunch) {
+        if (header->containedFormat == wtex::ContainedFormat::Crunch)
+        {
             return loadCrunchTexture(header->getData(), header->dataSize, id);
-        } else {
+        }
+        else
+        {
             logErr("Unsupported texture containedFormat");
-            return TextureData{ nullptr };
+            return TextureData{nullptr};
         }
     }
 }

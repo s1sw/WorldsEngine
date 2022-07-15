@@ -2,27 +2,33 @@
 #include "Core/AssetDB.hpp"
 #include <string>
 
-namespace worlds {
-    enum class HTextAlign {
+namespace worlds
+{
+    enum class HTextAlign
+    {
         Left,
         Middle,
         Right
     };
 
-    struct WorldTextComponent {
+    struct WorldTextComponent
+    {
         bool dirty = true;
 
-        void setText(std::string newText) {
+        void setText(std::string newText)
+        {
             text = newText;
             dirty = true;
         }
 
-        void setTextScale(float newTextScale) {
+        void setTextScale(float newTextScale)
+        {
             textScale = newTextScale;
             dirty = true;
         }
 
-        void setFont(AssetID newFont) {
+        void setFont(AssetID newFont)
+        {
             font = newFont;
             dirty = true;
         }
