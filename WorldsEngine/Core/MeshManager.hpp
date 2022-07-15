@@ -32,8 +32,8 @@ namespace worlds
     class MeshManager
     {
       public:
-        static const LoadedMesh &get(AssetID id);
-        static const LoadedMesh &loadOrGet(AssetID id);
+        static const LoadedMesh& get(AssetID id);
+        static const LoadedMesh& loadOrGet(AssetID id);
         static void unload(AssetID id);
         static void reloadMeshes();
 

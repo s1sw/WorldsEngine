@@ -14,7 +14,7 @@ namespace worlds
         Unknown
     };
 
-    inline const char *getIOErrorStr(IOError err)
+    inline const char* getIOErrorStr(IOError err)
     {
         switch (err)
         {
@@ -32,8 +32,8 @@ namespace worlds
         return "";
     }
 
-    Result<void *, IOError> LoadFileToBuffer(std::string path, int64_t *fileLength);
+    Result<void*, IOError> LoadFileToBuffer(std::string path, int64_t* fileLength);
     Result<std::string, IOError> LoadFileToString(std::string path);
-    Result<void *, IOError> loadAssetToBuffer(AssetID id, int64_t *fileLength);
+    Result<void*, IOError> loadAssetToBuffer(AssetID id, int64_t* fileLength);
     bool canOpenFile(std::string path);
 }

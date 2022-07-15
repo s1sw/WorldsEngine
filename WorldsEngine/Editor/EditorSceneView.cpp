@@ -12,13 +12,13 @@
 
 namespace worlds
 {
-    EditorSceneView::EditorSceneView(EngineInterfaces interfaces, Editor *ed) : interfaces(interfaces), ed(ed)
+    EditorSceneView::EditorSceneView(EngineInterfaces interfaces, Editor* ed) : interfaces(interfaces), ed(ed)
     {
         currentWidth = 256;
         currentHeight = 256;
         cam = *interfaces.mainCamera;
         recreateRTT();
-        IUITextureManager *texMan = interfaces.renderer->getUITextureManager();
+        IUITextureManager* texMan = interfaces.renderer->getUITextureManager();
         audioSourceIcon = texMan->loadOrGet(AssetDB::pathToId("UI/Editor/Images/Audio Source.png"));
         worldLightIcon = texMan->loadOrGet(AssetDB::pathToId("UI/Editor/Images/WorldLight.png"));
         worldCubemapIcon = texMan->loadOrGet(AssetDB::pathToId("UI/Editor/Images/Cubemap.png"));
@@ -32,7 +32,7 @@ namespace worlds
             ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
 
         ImGui::SetNextWindowSizeConstraints(ImVec2(256.0f, 256.0f), ImVec2(FLT_MAX, FLT_MAX));
-        std::string windowTitle = std::string((char *)ICON_FA_MAP) + " Scene##" + std::to_string(uniqueId);
+        std::string windowTitle = std::string((char*)ICON_FA_MAP) + " Scene##" + std::to_string(uniqueId);
         if (ImGui::Begin(windowTitle.c_str(), &open))
         {
             isSeparateWindow = ImGui::GetWindowViewport() != ImGui::GetMainViewport();
@@ -75,7 +75,7 @@ namespace worlds
 
             drawerAnimationProgress = glm::clamp(drawerAnimationProgress, 0.0f, 1.0f);
 
-            ImDrawList *drawList = ImGui::GetWindowDrawList();
+            ImDrawList* drawList = ImGui::GetWindowDrawList();
             drawList->PushClipRect(ImGui::GetCursorScreenPos(), ImGui::GetCursorScreenPos() + wSize);
             if (drawerAnimationProgress > 0.0f)
             {
@@ -96,7 +96,7 @@ namespace worlds
                 drawList->AddRect(minPos - ImVec2(2.0f, 5.0f), maxPos + ImVec2(2.0f, 0.0f),
                                   ImGui::GetColorU32(ImGuiCol_Border), 0.0f, 0, 2.0f);
 
-                const char *dbgDrawModes[] = {
+                const char* dbgDrawModes[] = {
                     "None",          "Normals", "Metallic",           "Roughness", "Ambient Occlusion", "Normal Map",
                     "Lighting Only", "UVs",     "Shadowmap Cascades", "Albedo",    "Lights Per Tile"};
 
@@ -126,7 +126,7 @@ namespace worlds
             glm::vec2 wPos = glm::vec2(ImGui::GetWindowPos()) + glm::vec2(ImGui::GetCursorStartPos());
             glm::vec2 mPos = ImGui::GetIO().MousePos;
             glm::vec2 localMPos = mPos - wPos;
-            entt::registry &reg = ed->reg;
+            entt::registry& reg = ed->reg;
 
             entt::entity selectedEntity = ed->currentSelectedEntity;
 
@@ -138,21 +138,21 @@ namespace worlds
             {
                 if (reg.valid(ed->handleOverrideEntity))
                 {
-                    auto &t = reg.get<Transform>(ed->handleOverrideEntity);
+                    auto& t = reg.get<Transform>(ed->handleOverrideEntity);
                     ed->handleTools(t, wPos, wSize, cam);
                 }
             }
             else if (reg.valid(ed->currentSelectedEntity))
             {
-                auto &selectedTransform = reg.get<Transform>(ed->currentSelectedEntity);
+                auto& selectedTransform = reg.get<Transform>(ed->currentSelectedEntity);
                 ed->handleTools(selectedTransform, wPos, wSize, cam);
 
-                ChildComponent *childComponent = reg.try_get<ChildComponent>(ed->currentSelectedEntity);
+                ChildComponent* childComponent = reg.try_get<ChildComponent>(ed->currentSelectedEntity);
                 if (childComponent)
                 {
                     if (reg.valid(childComponent->parent))
                     {
-                        Transform &parentTransform = reg.get<Transform>(childComponent->parent);
+                        Transform& parentTransform = reg.get<Transform>(childComponent->parent);
 
                         // preserve scale!!!
                         glm::vec3 scale = childComponent->offset.scale;
@@ -168,7 +168,7 @@ namespace worlds
                     {
                         auto newEnt = reg.create();
 
-                        for (auto &ed : ComponentMetadataManager::sorted)
+                        for (auto& ed : ComponentMetadataManager::sorted)
                         {
                             std::array<ENTT_ID_TYPE, 1> t{ed->getComponentID()};
                             auto rtView = reg.runtime_view(t.begin(), t.end());
@@ -190,7 +190,7 @@ namespace worlds
                         {
                             auto newMultiEnt = reg.create();
 
-                            for (auto &ed : ComponentMetadataManager::sorted)
+                            for (auto& ed : ComponentMetadataManager::sorted)
                             {
                                 std::array<ENTT_ID_TYPE, 1> t{ed->getComponentID()};
                                 auto rtView = reg.runtime_view(t.begin(), t.end());
@@ -231,10 +231,10 @@ namespace worlds
 
             updateCamera(ImGui::GetIO().DeltaTime);
 
-            ImGuiStyle &style = ImGui::GetStyle();
+            ImGuiStyle& style = ImGui::GetStyle();
             const ImColor popupBg = style.Colors[ImGuiCol_WindowBg];
 
-            reg.view<EditorLabel, Transform>().each([&](EditorLabel &label, Transform &t) {
+            reg.view<EditorLabel, Transform>().each([&](EditorLabel& label, Transform& t) {
                 glm::mat4 proj = cam.getProjectionMatrix(contentRegion.x / contentRegion.y);
                 glm::mat4 view = cam.getViewMatrix();
 
@@ -254,7 +254,7 @@ namespace worlds
                     glm::vec2 textSize = ImGui::CalcTextSize(label.label.cStr());
                     glm::vec2 drawPos = ndcObjectPosition + wPos - (textSize * 0.5f);
 
-                    ImDrawList *drawList = ImGui::GetWindowDrawList();
+                    ImDrawList* drawList = ImGui::GetWindowDrawList();
 
                     drawList->AddRectFilled(drawPos - glm::vec2(5.0f, 2.0f), drawPos + textSize + glm::vec2(5.0f, 2.0f),
                                             popupBg, 7.0f);
@@ -264,7 +264,7 @@ namespace worlds
 
             bool mouseOverIcon = false;
 
-            reg.view<AudioSource, Transform>().each([&](entt::entity ent, AudioSource &, Transform &t) {
+            reg.view<AudioSource, Transform>().each([&](entt::entity ent, AudioSource&, Transform& t) {
                 glm::mat4 proj = cam.getProjectionMatrix(contentRegion.x / contentRegion.y);
                 glm::mat4 view = cam.getViewMatrix();
 
@@ -284,7 +284,7 @@ namespace worlds
                     glm::vec2 imgSize{64.0f, 64.0f};
                     glm::vec2 drawPos = ndcObjectPosition + wPos - (imgSize * 0.5f);
 
-                    ImDrawList *drawList = ImGui::GetWindowDrawList();
+                    ImDrawList* drawList = ImGui::GetWindowDrawList();
                     drawList->AddImage(audioSourceIcon, drawPos, drawPos + imgSize);
                     if (ImGui::IsMouseHoveringRect(drawPos, drawPos + imgSize))
                     {
@@ -296,7 +296,7 @@ namespace worlds
                 }
             });
 
-            reg.view<WorldLight, Transform>().each([&](entt::entity ent, WorldLight &, Transform &t) {
+            reg.view<WorldLight, Transform>().each([&](entt::entity ent, WorldLight&, Transform& t) {
                 glm::mat4 proj = cam.getProjectionMatrix(contentRegion.x / contentRegion.y);
                 glm::mat4 view = cam.getViewMatrix();
 
@@ -317,7 +317,7 @@ namespace worlds
                     glm::vec2 imgSize{64.0f, 64.0f};
                     glm::vec2 drawPos = ndcObjectPosition + wPos - (imgSize * 0.5f);
 
-                    ImDrawList *drawList = ImGui::GetWindowDrawList();
+                    ImDrawList* drawList = ImGui::GetWindowDrawList();
                     drawList->AddImage(worldLightIcon, drawPos, drawPos + (imgSize));
 
                     if (ImGui::IsMouseHoveringRect(drawPos, drawPos + imgSize))
@@ -330,7 +330,7 @@ namespace worlds
                 }
             });
 
-            reg.view<WorldCubemap, Transform>().each([&](entt::entity ent, WorldCubemap &, Transform &t) {
+            reg.view<WorldCubemap, Transform>().each([&](entt::entity ent, WorldCubemap&, Transform& t) {
                 glm::mat4 proj = cam.getProjectionMatrix(contentRegion.x / contentRegion.y);
                 glm::mat4 view = cam.getViewMatrix();
 
@@ -350,7 +350,7 @@ namespace worlds
                     glm::vec2 imgSize{64.0f, 64.0f};
                     glm::vec2 drawPos = ndcObjectPosition + wPos - (imgSize * 0.5f);
 
-                    ImDrawList *drawList = ImGui::GetWindowDrawList();
+                    ImDrawList* drawList = ImGui::GetWindowDrawList();
                     drawList->AddImage(worldCubemapIcon, drawPos, drawPos + (imgSize));
 
                     if (ImGui::IsMouseHoveringRect(drawPos, drawPos + imgSize))
@@ -440,7 +440,7 @@ namespace worlds
         // sceneViewPass->active = active;
     }
 
-    Camera &EditorSceneView::getCamera()
+    Camera& EditorSceneView::getCamera()
     {
         return cam;
     }
@@ -455,7 +455,7 @@ namespace worlds
 
         static int origMouseX, origMouseY = 0;
 
-        InputManager &inputManager = *interfaces.inputManager;
+        InputManager& inputManager = *interfaces.inputManager;
 
         if (inputManager.mouseButtonPressed(MouseButton::Right, true))
         {
@@ -553,7 +553,7 @@ namespace worlds
 
         if (ed->reg.valid(ed->currentSelectedEntity) && inputManager.keyPressed(SDL_SCANCODE_F))
         {
-            auto &t = ed->reg.get<Transform>(ed->currentSelectedEntity);
+            auto& t = ed->reg.get<Transform>(ed->currentSelectedEntity);
 
             glm::vec3 dirVec = glm::normalize(cam.position - t.position);
             float dist = 5.0f;

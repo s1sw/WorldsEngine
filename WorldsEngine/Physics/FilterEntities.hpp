@@ -11,13 +11,13 @@ namespace worlds
         uint32_t ents[8] = {0};
         uint32_t numFilterEnts = 0;
 
-        physx::PxQueryHitType::Enum preFilter(const physx::PxFilterData &, const physx::PxShape *,
-                                              const physx::PxRigidActor *, physx::PxHitFlags &) override
+        physx::PxQueryHitType::Enum preFilter(const physx::PxFilterData&, const physx::PxShape*,
+                                              const physx::PxRigidActor*, physx::PxHitFlags&) override
         {
             return physx::PxQueryHitType::eBLOCK;
         }
 
-        physx::PxQueryHitType::Enum postFilter(const physx::PxFilterData &, const physx::PxQueryHit &hit) override
+        physx::PxQueryHitType::Enum postFilter(const physx::PxFilterData&, const physx::PxQueryHit& hit) override
         {
             for (uint32_t i = 0; i < numFilterEnts; i++)
             {
@@ -30,20 +30,20 @@ namespace worlds
 
     template <typename T> class FilterComponent : public physx::PxQueryFilterCallback
     {
-        entt::registry &registry;
+        entt::registry& registry;
 
       public:
-        FilterComponent(entt::registry &registry) : registry(registry)
+        FilterComponent(entt::registry& registry) : registry(registry)
         {
         }
 
-        physx::PxQueryHitType::Enum preFilter(const physx::PxFilterData &, const physx::PxShape *,
-                                              const physx::PxRigidActor *, physx::PxHitFlags &) override
+        physx::PxQueryHitType::Enum preFilter(const physx::PxFilterData&, const physx::PxShape*,
+                                              const physx::PxRigidActor*, physx::PxHitFlags&) override
         {
             return physx::PxQueryHitType::eBLOCK;
         }
 
-        physx::PxQueryHitType::Enum postFilter(const physx::PxFilterData &, const physx::PxQueryHit &hit) override
+        physx::PxQueryHitType::Enum postFilter(const physx::PxFilterData&, const physx::PxQueryHit& hit) override
         {
             entt::entity ent = (entt::entity)(uint32_t)(uintptr_t)hit.actor->userData;
             if (!registry.has<T>(ent))

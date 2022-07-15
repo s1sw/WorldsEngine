@@ -36,7 +36,7 @@ namespace worlds
         }
     }
 
-    void SplashWindow::changeOverlay(const std::string &overlay)
+    void SplashWindow::changeOverlay(const std::string& overlay)
     {
         this->overlay = overlay;
     }
@@ -50,12 +50,12 @@ namespace worlds
         if (overlaySurface)
         {
             SDL_DestroyTexture(overlayTexture);
-            void *overlaySurfData = overlaySurface->pixels;
+            void* overlaySurfData = overlaySurface->pixels;
             SDL_FreeSurface(overlaySurface);
             free(overlaySurfData);
         }
 
-        void *dataPtr = bgSurface->pixels;
+        void* dataPtr = bgSurface->pixels;
 
         SDL_DestroyTexture(bgTexture);
         SDL_DestroyRenderer(renderer);
@@ -120,7 +120,7 @@ namespace worlds
                     {
                         SDL_DestroyTexture(overlayTexture);
 
-                        void *overlaySurfData = overlaySurface->pixels;
+                        void* overlaySurfData = overlaySurface->pixels;
                         SDL_FreeSurface(overlaySurface);
                         free(overlaySurfData);
                     }

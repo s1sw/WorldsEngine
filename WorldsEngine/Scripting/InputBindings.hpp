@@ -3,7 +3,7 @@
 
 using namespace worlds;
 
-InputManager *csharpInputManager;
+InputManager* csharpInputManager;
 
 extern "C"
 {
@@ -22,17 +22,17 @@ extern "C"
         return csharpInputManager->keyReleased((SDL_Scancode)keyCode);
     }
 
-    EXPORT void input_getMousePosition(glm::vec2 *posOut)
+    EXPORT void input_getMousePosition(glm::vec2* posOut)
     {
         *posOut = csharpInputManager->getMousePosition();
     }
 
-    EXPORT void input_setMousePosition(glm::vec2 *pos)
+    EXPORT void input_setMousePosition(glm::vec2* pos)
     {
         csharpInputManager->warpMouse(*pos);
     }
 
-    EXPORT void input_getMouseDelta(glm::vec2 *deltaOut)
+    EXPORT void input_getMouseDelta(glm::vec2* deltaOut)
     {
         *deltaOut = csharpInputManager->getMouseDelta();
     }

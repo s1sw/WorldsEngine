@@ -14,7 +14,7 @@ namespace worlds::nodes
     struct Port
     {
         std::string name;
-        DataType *type;
+        DataType* type;
     };
 
     struct NodeType
@@ -26,15 +26,15 @@ namespace worlds::nodes
 
     struct Node
     {
-        NodeType *type;
+        NodeType* type;
         glm::vec2 position;
         glm::vec2 size;
     };
 
     struct Connection
     {
-        Node *from;
-        Node *to;
+        Node* from;
+        Node* to;
         uint32_t fromPort;
         uint32_t toPort;
     };
@@ -43,8 +43,8 @@ namespace worlds::nodes
     {
       public:
         NodeEditor();
-        void registerDataType(DataType *type);
-        void registerNodeType(NodeType *type);
+        void registerDataType(DataType* type);
+        void registerNodeType(NodeType* type);
         void draw();
         void addConnection(Connection c);
 

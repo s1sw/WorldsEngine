@@ -98,16 +98,16 @@ namespace worlds
     class ProjectAssets
     {
       public:
-        ProjectAssets(const GameProject &project);
+        ProjectAssets(const GameProject& project);
         std::vector<AssetFile> assetFiles;
         void checkForAssetChanges();
-        void checkForAssetChange(AssetFile &file);
+        void checkForAssetChange(AssetFile& file);
         void enumerateAssets();
         slib::List<AssetID> searchForAssets(slib::String pattern);
 
       private:
-        void enumerateForAssets(const char *path);
-        const GameProject &project;
+        void enumerateForAssets(const char* path);
+        const GameProject& project;
     };
 
     class GameProject
@@ -119,8 +119,8 @@ namespace worlds
         std::string_view sourceData() const;
         std::string_view builtData() const;
         std::string_view rawData() const;
-        ProjectAssets &assets();
-        ProjectAssetCompiler &assetCompiler();
+        ProjectAssets& assets();
+        ProjectAssetCompiler& assetCompiler();
         void mountPaths();
         void unmountPaths();
 
@@ -138,7 +138,7 @@ namespace worlds
     class EditorWindow
     {
       public:
-        EditorWindow(EngineInterfaces interfaces, Editor *editor) : interfaces(interfaces), editor(editor), active(true)
+        EditorWindow(EngineInterfaces interfaces, Editor* editor) : interfaces(interfaces), editor(editor), active(true)
         {
         }
 
@@ -150,26 +150,26 @@ namespace worlds
         {
             this->active = active;
         }
-        virtual void draw(entt::registry &reg) = 0;
+        virtual void draw(entt::registry& reg) = 0;
         virtual EditorMenu menuSection()
         {
             return EditorMenu::Window;
         }
-        virtual const char *getName() = 0;
+        virtual const char* getName() = 0;
         virtual ~EditorWindow(){};
 
       protected:
         EngineInterfaces interfaces;
-        Editor *editor;
+        Editor* editor;
         bool active;
     };
 
     class EditorUndo
     {
       public:
-        void pushState(entt::registry &reg);
-        void undo(entt::registry &reg);
-        void redo(entt::registry &reg);
+        void pushState(entt::registry& reg);
+        void undo(entt::registry& reg);
+        void redo(entt::registry& reg);
         void clear();
         uint32_t modificationCount()
         {
@@ -184,12 +184,12 @@ namespace worlds
     class EditorSceneView
     {
       public:
-        EditorSceneView(EngineInterfaces interfaces, Editor *ed);
+        EditorSceneView(EngineInterfaces interfaces, Editor* ed);
         void drawWindow(int unqiueId);
         void recreateRTT();
         void setShadowsEnabled(bool enabled);
         void setViewportActive(bool active);
-        Camera &getCamera();
+        Camera& getCamera();
         bool open = true;
         bool isSeparateWindow = false;
         ~EditorSceneView();
@@ -197,10 +197,10 @@ namespace worlds
       private:
         void updateCamera(float deltaTime);
         uint32_t currentWidth, currentHeight;
-        RTTPass *sceneViewPass = nullptr;
+        RTTPass* sceneViewPass = nullptr;
         Camera cam;
         EngineInterfaces interfaces;
-        Editor *ed;
+        Editor* ed;
         float lookX = 0.0f;
         float lookY = 0.0f;
         bool shadowsEnabled = true;
@@ -237,7 +237,7 @@ namespace worlds
     class Editor
     {
       public:
-        Editor(entt::registry &reg, EngineInterfaces &interfaces);
+        Editor(entt::registry& reg, EngineInterfaces& interfaces);
         ~Editor();
         void select(entt::entity entity);
         void multiSelect(entt::entity entity);
@@ -247,26 +247,26 @@ namespace worlds
         {
             return currentSelectedEntity;
         }
-        const slib::List<entt::entity> &getSelectedEntities() const
+        const slib::List<entt::entity>& getSelectedEntities() const
         {
             return selectedEntities;
         }
         bool isEntitySelected(entt::entity ent) const;
         EditorUndo undo;
         bool active = true;
-        void overrideHandle(Transform *t);
+        void overrideHandle(Transform* t);
         void overrideHandle(entt::entity entity);
-        bool entityEyedropper(entt::entity &picked);
+        bool entityEyedropper(entt::entity& picked);
 
         void openProject(std::string projectPath);
-        GameProject &currentProject()
+        GameProject& currentProject()
         {
             return *project;
         }
 
         void saveOpenWindows();
         void loadOpenWindows();
-        EditorSceneView *getFirstSceneView();
+        EditorSceneView* getFirstSceneView();
         void openAsset(AssetID id);
         GameState getCurrentState()
         {
@@ -278,13 +278,13 @@ namespace worlds
         EditorAssetSearchPopup assetSearch;
         std::unique_ptr<GameProject> project;
         ImTextureID titleBarIcon;
-        void handleTools(Transform &t, ImVec2 wPos, ImVec2 wSize, Camera &camera);
+        void handleTools(Transform& t, ImVec2 wPos, ImVec2 wSize, Camera& camera);
         std::string generateWindowTitle();
         void updateWindowTitle();
         void eyedropperSelect(entt::entity ent);
         Tool currentTool;
         bool toolLocalSpace = false;
-        entt::registry &reg;
+        entt::registry& reg;
         slib::List<entt::entity> selectedEntities;
         entt::entity currentSelectedEntity;
         Transform originalObjectTransform;
@@ -296,18 +296,18 @@ namespace worlds
         bool entityEyedropperActive = false;
         entt::entity eyedroppedEntity = entt::null;
         uint32_t lastSaveModificationCount = 0;
-        Transform *overrideTransform;
+        Transform* overrideTransform;
         entt::entity handleOverrideEntity = entt::null;
 
-        void (*gameProjectSelectedCallback)(GameProject *project) = nullptr;
+        void (*gameProjectSelectedCallback)(GameProject* project) = nullptr;
         void (*gameProjectClosedCallback)() = nullptr;
 
         EditorSettings settings;
-        EngineInterfaces &interfaces;
-        InputManager &inputManager;
+        EngineInterfaces& interfaces;
+        InputManager& inputManager;
         slib::List<std::unique_ptr<EditorWindow>> editorWindows;
-        slib::List<EditorSceneView *> sceneViews;
-        slib::List<AssetEditorWindow *> assetEditors;
+        slib::List<EditorSceneView*> sceneViews;
+        slib::List<AssetEditorWindow*> assetEditors;
         struct QueuedKeydown
         {
             SDL_Scancode scancode;

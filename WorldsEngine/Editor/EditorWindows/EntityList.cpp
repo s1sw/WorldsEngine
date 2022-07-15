@@ -10,7 +10,7 @@
 
 namespace worlds
 {
-    void showFolderButtons(entt::entity e, EntityFolder &folder, int counter)
+    void showFolderButtons(entt::entity e, EntityFolder& folder, int counter)
     {
         if (ImGui::Button((folder.name + "##" + std::to_string(counter)).c_str()))
         {
@@ -18,13 +18,13 @@ namespace worlds
             ImGui::CloseCurrentPopup();
         }
 
-        for (EntityFolder &c : folder.children)
+        for (EntityFolder& c : folder.children)
         {
             showFolderButtons(e, c, counter++);
         }
     }
 
-    void EntityList::draw(entt::registry &reg)
+    void EntityList::draw(entt::registry& reg)
     {
         static std::string searchText;
         static std::vector<entt::entity> filteredEntities;
@@ -46,7 +46,7 @@ namespace worlds
                                [](unsigned char c) { return std::tolower(c); });
 
                 filteredEntities.clear();
-                reg.view<NameComponent>().each([&](auto ent, NameComponent &nc) {
+                reg.view<NameComponent>().each([&](auto ent, NameComponent& nc) {
                     std::string name = nc.name;
 
                     std::transform(name.begin(), name.end(), name.begin(),
@@ -75,10 +75,10 @@ namespace worlds
                 if (ImGui::Button("Empty"))
                 {
                     auto emptyEnt = reg.create();
-                    Transform &emptyT = reg.emplace<Transform>(emptyEnt);
+                    Transform& emptyT = reg.emplace<Transform>(emptyEnt);
                     reg.emplace<NameComponent>(emptyEnt).name = "Empty";
                     editor->select(emptyEnt);
-                    Camera &cam = editor->getFirstSceneView()->getCamera();
+                    Camera& cam = editor->getFirstSceneView()->getCamera();
                     emptyT.position = cam.position + cam.rotation * glm::vec3(0.0f, 0.0f, 1.0f);
                     ImGui::CloseCurrentPopup();
                 }
@@ -86,10 +86,10 @@ namespace worlds
                 if (ImGui::Button("Light"))
                 {
                     auto emptyEnt = reg.create();
-                    Transform &emptyT = reg.emplace<Transform>(emptyEnt);
+                    Transform& emptyT = reg.emplace<Transform>(emptyEnt);
                     reg.emplace<NameComponent>(emptyEnt).name = "Empty";
                     editor->select(emptyEnt);
-                    Camera &cam = editor->getFirstSceneView()->getCamera();
+                    Camera& cam = editor->getFirstSceneView()->getCamera();
                     emptyT.position = cam.position + cam.rotation * glm::vec3(0.0f, 0.0f, 1.0f);
                     reg.emplace<WorldLight>(emptyEnt);
                     ImGui::CloseCurrentPopup();
@@ -105,7 +105,7 @@ namespace worlds
                 float lineHeight = ImGui::CalcTextSize("w").y;
 
                 ImVec2 cursorPos = ImGui::GetCursorPos();
-                ImDrawList *drawList = ImGui::GetWindowDrawList();
+                ImDrawList* drawList = ImGui::GetWindowDrawList();
                 float windowWidth = ImGui::GetWindowWidth();
                 ImVec2 windowPos = ImGui::GetWindowPos();
 
@@ -162,10 +162,10 @@ namespace worlds
 
                 if (ImGui::BeginDragDropTarget())
                 {
-                    if (const ImGuiPayload *payload = ImGui::AcceptDragDropPayload("HIERARCHY_ENTITY"))
+                    if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("HIERARCHY_ENTITY"))
                     {
                         assert(payload->DataSize == sizeof(entt::entity));
-                        entt::entity droppedEntity = *reinterpret_cast<entt::entity *>(payload->Data);
+                        entt::entity droppedEntity = *reinterpret_cast<entt::entity*>(payload->Data);
 
                         if (!HierarchyUtil::isEntityChildOf(reg, droppedEntity, ent))
                             HierarchyUtil::setEntityParent(reg, droppedEntity, ent);
@@ -205,7 +205,7 @@ namespace worlds
 
                 if (reg.has<ParentComponent>(ent))
                 {
-                    auto &pc = reg.get<ParentComponent>(ent);
+                    auto& pc = reg.get<ParentComponent>(ent);
 
                     entt::entity currentChild = pc.firstChild;
 
@@ -213,7 +213,7 @@ namespace worlds
 
                     while (reg.valid(currentChild))
                     {
-                        auto &childComponent = reg.get<ChildComponent>(currentChild);
+                        auto& childComponent = reg.get<ChildComponent>(currentChild);
 
                         forEachEnt(currentChild);
 
@@ -227,8 +227,8 @@ namespace worlds
 
             static uint32_t renamingFolder = 0u;
 
-            std::function<void(EntityFolder &, EntityFolder *)> doFolderEntry = [&](EntityFolder &folder,
-                                                                                    EntityFolder *parent) {
+            std::function<void(EntityFolder&, EntityFolder*)> doFolderEntry = [&](EntityFolder& folder,
+                                                                                  EntityFolder* parent) {
                 bool thisFolderRenaming = folder.randomId == renamingFolder;
 
                 std::string label;
@@ -276,7 +276,7 @@ namespace worlds
                         {
                             uint32_t id = folder.randomId;
                             parent->children.erase(std::remove_if(parent->children.begin(), parent->children.end(),
-                                                                  [id](EntityFolder &f) { return f.randomId == id; }));
+                                                                  [id](EntityFolder& f) { return f.randomId == id; }));
                         }
                     }
 
@@ -285,7 +285,7 @@ namespace worlds
                         forEachEnt(ent);
                     }
 
-                    for (EntityFolder &child : folder.children)
+                    for (EntityFolder& child : folder.children)
                     {
                         doFolderEntry(child, &folder);
                     }
@@ -305,7 +305,7 @@ namespace worlds
                 {
                     if (folderView)
                     {
-                        EntityFolders &folders = reg.ctx<EntityFolders>();
+                        EntityFolders& folders = reg.ctx<EntityFolders>();
                         doFolderEntry(folders.rootFolder, 0);
                     }
                     else
@@ -323,7 +323,7 @@ namespace worlds
                 }
                 else
                 {
-                    for (auto &ent : filteredEntities)
+                    for (auto& ent : filteredEntities)
                         forEachEnt(ent);
                 }
             }
@@ -371,7 +371,7 @@ namespace worlds
             }
 
             auto folderPopup = [&](entt::entity e) {
-                EntityFolders &folders = reg.ctx<EntityFolders>();
+                EntityFolders& folders = reg.ctx<EntityFolders>();
                 showFolderButtons(e, folders.rootFolder, 0);
             };
 

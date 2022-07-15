@@ -43,14 +43,14 @@
 
 namespace worlds
 {
-    std::unordered_map<ENTT_ID_TYPE, ComponentEditor *> ComponentMetadataManager::metadata;
-    std::vector<ComponentEditor *> ComponentMetadataManager::sorted;
-    std::unordered_map<ENTT_ID_TYPE, ComponentEditor *> ComponentMetadataManager::bySerializedID;
-    std::unordered_map<std::string, ComponentEditor *> ComponentMetadataManager::byName;
-    slib::Subprocess *dotnetWatchProcess = nullptr;
+    std::unordered_map<ENTT_ID_TYPE, ComponentEditor*> ComponentMetadataManager::metadata;
+    std::vector<ComponentEditor*> ComponentMetadataManager::sorted;
+    std::unordered_map<ENTT_ID_TYPE, ComponentEditor*> ComponentMetadataManager::bySerializedID;
+    std::unordered_map<std::string, ComponentEditor*> ComponentMetadataManager::byName;
+    slib::Subprocess* dotnetWatchProcess = nullptr;
     static ConVar ed_saveAsJson{"ed_saveAsJson", "0", "Save scene files as JSON rather than MessagePack."};
 
-    const char *toolStr(Tool tool)
+    const char* toolStr(Tool tool)
     {
         switch (tool)
         {
@@ -107,7 +107,7 @@ namespace worlds
 
     static int menuButtonsExtent = 0;
 
-    SDL_HitTestResult hitTest(SDL_Window *win, const SDL_Point *p, void *v)
+    SDL_HitTestResult hitTest(SDL_Window* win, const SDL_Point* p, void* v)
     {
         int w, h;
         SDL_GetWindowSize(win, &w, &h);
@@ -186,7 +186,7 @@ namespace worlds
         randomId = pcg32_random();
     }
 
-    Editor::Editor(entt::registry &reg, EngineInterfaces &interfaces)
+    Editor::Editor(entt::registry& reg, EngineInterfaces& interfaces)
         : active(true), actionSearch(this, reg), assetSearch(this), currentTool(Tool::Translate), reg(reg),
           currentSelectedEntity(entt::null), lookX(0.0f), lookY(0.0f), cameraSpeed(5.0f), imguiMetricsOpen(false),
           settings(), interfaces(interfaces), inputManager(*interfaces.inputManager)
@@ -210,7 +210,7 @@ namespace worlds
 #undef ADD_EDITOR_WINDOW
         AssetCompilers::initialise();
         AssetEditors::initialise(interfaces);
-        SDL_Window *window = interfaces.engine->getMainWindow().getWrappedHandle();
+        SDL_Window* window = interfaces.engine->getMainWindow().getWrappedHandle();
         SDL_SetHint("SDL_BORDERLESS_WINDOWED_STYLE", "1");
         SDL_SetHint("SDL_BORDERLESS_RESIZABLE_STYLE", "1");
         SDL_SetWindowBordered(window, SDL_FALSE);
@@ -241,7 +241,7 @@ namespace worlds
         });
 
         g_console->registerCommand(
-            [&](void *, const char *) {
+            [&](void*, const char*) {
                 if (currentState != GameState::Editing)
                     return;
                 active = false;
@@ -254,7 +254,7 @@ namespace worlds
             "play", "play.");
 
         g_console->registerCommand(
-            [&](void *, const char *) {
+            [&](void*, const char*) {
                 if (currentState != GameState::Playing)
                     return;
                 active = true;
@@ -266,7 +266,7 @@ namespace worlds
             "pauseAndEdit", "pause and edit.");
 
         g_console->registerCommand(
-            [&](void *, const char *) {
+            [&](void*, const char*) {
                 active = true;
 
                 if (reg.ctx<SceneInfo>().id != ~0u)
@@ -279,7 +279,7 @@ namespace worlds
             "reloadAndEdit", "reload and edit.");
 
         g_console->registerCommand(
-            [&](void *, const char *) {
+            [&](void*, const char*) {
                 active = false;
                 interfaces.engine->pauseSim = false;
                 currentState = GameState::Playing;
@@ -287,7 +287,7 @@ namespace worlds
             "unpause", "unpause and go back to play mode.");
 
         EditorActions::addAction({"scene.save",
-                                  [&](Editor *ed, entt::registry &reg) {
+                                  [&](Editor* ed, entt::registry& reg) {
                                       if (reg.ctx<SceneInfo>().id != ~0u && !inputManager.shiftHeld())
                                       {
                                           AssetID sceneId = reg.ctx<SceneInfo>().id;
@@ -306,11 +306,11 @@ namespace worlds
                                   "Save Scene"});
 
         EditorActions::addAction(
-            {"scene.open", [](Editor *ed, entt::registry &reg) { ImGui::OpenPopup("Open Scene"); }, "Open Scene"});
+            {"scene.open", [](Editor* ed, entt::registry& reg) { ImGui::OpenPopup("Open Scene"); }, "Open Scene"});
 
         EditorActions::addAction(
             {"scene.new",
-             [](Editor *ed, entt::registry &reg) {
+             [](Editor* ed, entt::registry& reg) {
                  messageBoxModal("New Scene", "Are you sure you want to clear the current scene and create a new one?",
                                  [=](bool result) {
                                      if (result)
@@ -322,31 +322,31 @@ namespace worlds
              },
              "New Scene"});
 
-        EditorActions::addAction({"editor.undo", [](Editor *ed, entt::registry &reg) { ed->undo.undo(reg); }, "Undo"});
+        EditorActions::addAction({"editor.undo", [](Editor* ed, entt::registry& reg) { ed->undo.undo(reg); }, "Undo"});
 
-        EditorActions::addAction({"editor.redo", [](Editor *ed, entt::registry &reg) { ed->undo.redo(reg); }, "Redo"});
+        EditorActions::addAction({"editor.redo", [](Editor* ed, entt::registry& reg) { ed->undo.redo(reg); }, "Redo"});
 
         EditorActions::addAction({"editor.togglePlay",
-                                  [](Editor *ed, entt::registry &reg) { g_console->executeCommandStr("play"); },
+                                  [](Editor* ed, entt::registry& reg) { g_console->executeCommandStr("play"); },
                                   "Play"});
 
         EditorActions::addAction({"editor.unpause",
-                                  [](Editor *ed, entt::registry &reg) { g_console->executeCommandStr("unpause"); },
+                                  [](Editor* ed, entt::registry& reg) { g_console->executeCommandStr("unpause"); },
                                   "Unpause"});
 
         EditorActions::addAction({"editor.toggleImGuiMetrics",
-                                  [](Editor *ed, entt::registry &) { ed->imguiMetricsOpen = !ed->imguiMetricsOpen; },
+                                  [](Editor* ed, entt::registry&) { ed->imguiMetricsOpen = !ed->imguiMetricsOpen; },
                                   "Toggle ImGUI Metrics"});
 
         EditorActions::addAction(
-            {"editor.openActionSearch", [](Editor *ed, entt::registry &) { ed->actionSearch.show(); }});
+            {"editor.openActionSearch", [](Editor* ed, entt::registry&) { ed->actionSearch.show(); }});
 
         EditorActions::addAction(
-            {"editor.openAssetSearch", [](Editor *ed, entt::registry &) { ed->assetSearch.show(); }});
+            {"editor.openAssetSearch", [](Editor* ed, entt::registry&) { ed->assetSearch.show(); }});
 
         EditorActions::addAction(
             {"editor.addStaticPhysics",
-             [](Editor *ed, entt::registry &reg) {
+             [](Editor* ed, entt::registry& reg) {
                  if (!reg.valid(ed->currentSelectedEntity))
                  {
                      addNotification("Nothing selected to add physics to!", NotificationType::Error);
@@ -359,9 +359,9 @@ namespace worlds
                      return;
                  }
 
-                 WorldObject &wo = reg.get<WorldObject>(ed->currentSelectedEntity);
+                 WorldObject& wo = reg.get<WorldObject>(ed->currentSelectedEntity);
                  ComponentMetadataManager::byName["Physics Actor"]->create(ed->currentSelectedEntity, reg);
-                 PhysicsActor &pa = reg.get<PhysicsActor>(ed->currentSelectedEntity);
+                 PhysicsActor& pa = reg.get<PhysicsActor>(ed->currentSelectedEntity);
                  PhysicsShape ps;
                  ps.type = PhysicsShapeType::Mesh;
                  ps.mesh.mesh = wo.mesh;
@@ -370,47 +370,47 @@ namespace worlds
              "Add static physics"});
 
         EditorActions::addAction({"editor.createPrefab",
-                                  [](Editor *, entt::registry &reg) { ImGui::OpenPopup("Save Prefab"); },
+                                  [](Editor*, entt::registry& reg) { ImGui::OpenPopup("Save Prefab"); },
                                   "Create prefab"});
 
         EditorActions::addAction({"editor.roundScale",
-                                  [](Editor *ed, entt::registry &reg) {
+                                  [](Editor* ed, entt::registry& reg) {
                                       if (!reg.valid(ed->currentSelectedEntity))
                                           return;
-                                      Transform &t = reg.get<Transform>(ed->currentSelectedEntity);
+                                      Transform& t = reg.get<Transform>(ed->currentSelectedEntity);
                                       t.scale = glm::round(t.scale);
 
                                       for (entt::entity e : ed->selectedEntities)
                                       {
-                                          Transform &t = reg.get<Transform>(e);
+                                          Transform& t = reg.get<Transform>(e);
                                           t.scale = glm::round(t.scale);
                                       }
                                   },
                                   "Round selection scale"});
 
         EditorActions::addAction({"editor.clearScale",
-                                  [](Editor *ed, entt::registry &reg) {
+                                  [](Editor* ed, entt::registry& reg) {
                                       if (!reg.valid(ed->currentSelectedEntity))
                                           return;
-                                      Transform &t = reg.get<Transform>(ed->currentSelectedEntity);
+                                      Transform& t = reg.get<Transform>(ed->currentSelectedEntity);
                                       t.scale = glm::vec3(1.0f);
 
                                       for (entt::entity e : ed->selectedEntities)
                                       {
-                                          Transform &t = reg.get<Transform>(e);
+                                          Transform& t = reg.get<Transform>(e);
                                           t.scale = glm::vec3(1.0f);
                                       }
                                   },
                                   "Clear selection scale"});
 
         EditorActions::addAction({"editor.setStatic",
-                                  [](Editor *ed, entt::registry &reg) {
+                                  [](Editor* ed, entt::registry& reg) {
                                       if (!reg.valid(ed->currentSelectedEntity))
                                           return;
                                       StaticFlags allFlags =
                                           (StaticFlags)((int)StaticFlags::Audio | (int)StaticFlags::Rendering |
                                                         (int)StaticFlags::Navigation);
-                                      WorldObject &wo = reg.get<WorldObject>(ed->currentSelectedEntity);
+                                      WorldObject& wo = reg.get<WorldObject>(ed->currentSelectedEntity);
                                       wo.staticFlags = allFlags;
                                       for (entt::entity e : ed->getSelectedEntities())
                                       {
@@ -420,7 +420,7 @@ namespace worlds
                                   "Set selected object as static"});
 
         EditorActions::addAction({"assets.refresh",
-                                  [](Editor *ed, entt::registry &reg) {
+                                  [](Editor* ed, entt::registry& reg) {
                                       ed->currentProject().assets().enumerateAssets();
                                       ed->currentProject().assets().checkForAssetChanges();
                                       ed->currentProject().assetCompiler().startCompiling();
@@ -587,7 +587,7 @@ namespace worlds
         }
     }
 
-    void Editor::overrideHandle(Transform *t)
+    void Editor::overrideHandle(Transform* t)
     {
         handleOverriden = true;
         overrideTransform = t;
@@ -598,7 +598,7 @@ namespace worlds
         handleOverrideEntity = e;
     }
 
-    bool Editor::entityEyedropper(entt::entity &picked)
+    bool Editor::entityEyedropper(entt::entity& picked)
     {
         entityEyedropperActive = true;
 
@@ -615,12 +615,12 @@ namespace worlds
 
     void Editor::saveOpenWindows()
     {
-        char *prefPath = SDL_GetPrefPath("Someone Somewhere", "Worlds Engine");
+        char* prefPath = SDL_GetPrefPath("Someone Somewhere", "Worlds Engine");
         std::string openWindowPath = prefPath + std::string("openWindows.json");
 
         nlohmann::json j;
 
-        for (auto &window : editorWindows)
+        for (auto& window : editorWindows)
         {
             j[window->getName()] = {{"open", window->isActive()}};
         }
@@ -632,7 +632,7 @@ namespace worlds
 
     void Editor::loadOpenWindows()
     {
-        char *prefPath = SDL_GetPrefPath("Someone Somewhere", "Worlds Engine");
+        char* prefPath = SDL_GetPrefPath("Someone Somewhere", "Worlds Engine");
         std::string openWindowPath = prefPath + std::string("openWindows.json");
 
         nlohmann::json j;
@@ -644,10 +644,10 @@ namespace worlds
         i >> j;
         i.close();
 
-        for (auto &p : j.items())
+        for (auto& p : j.items())
         {
             std::string name = p.key();
-            for (auto &win : editorWindows)
+            for (auto& win : editorWindows)
             {
                 if (win->getName() == name)
                 {
@@ -657,7 +657,7 @@ namespace worlds
         }
     }
 
-    EditorSceneView *Editor::getFirstSceneView()
+    EditorSceneView* Editor::getFirstSceneView()
     {
         return sceneViews[0];
     }
@@ -679,19 +679,19 @@ namespace worlds
                 float dist = 1.0f;
                 if (reg.has<WorldObject>(ent))
                 {
-                    WorldObject &wo = reg.get<WorldObject>(ent);
-                    const LoadedMesh &lm = MeshManager::loadOrGet(wo.mesh);
+                    WorldObject& wo = reg.get<WorldObject>(ent);
+                    const LoadedMesh& lm = MeshManager::loadOrGet(wo.mesh);
                     dist = lm.sphereBoundRadius + 1.0f;
                 }
 
-                Transform &t = reg.get<Transform>(ent);
-                Camera &cam = getFirstSceneView()->getCamera();
+                Transform& t = reg.get<Transform>(ent);
+                Camera& cam = getFirstSceneView()->getCamera();
                 t.position = cam.position + cam.rotation * glm::vec3(0.0f, 0.0f, dist);
             }
             return;
         }
 
-        AssetEditorWindow *editor = new AssetEditorWindow(id, interfaces, this);
+        AssetEditorWindow* editor = new AssetEditorWindow(id, interfaces, this);
         editor->setActive(true);
         assetEditors.add(editor);
     }
@@ -701,7 +701,7 @@ namespace worlds
         eyedroppedEntity = picked;
     }
 
-    void Editor::handleTools(Transform &t, ImVec2 wPos, ImVec2 wSize, Camera &camera)
+    void Editor::handleTools(Transform& t, ImVec2 wPos, ImVec2 wSize, Camera& camera)
     {
         // Convert selected transform position from world space to screen space
         glm::vec4 ndcObjPosPreDivide =
@@ -799,7 +799,7 @@ namespace worlds
         {
             for (auto ent : selectedEntities)
             {
-                auto &msTransform = reg.get<Transform>(ent);
+                auto& msTransform = reg.get<Transform>(ent);
                 msTransform.fromMatrix(deltaMatrix * msTransform.getMatrix());
             }
         }
@@ -816,7 +816,7 @@ namespace worlds
         // Update recent projects list
         std::vector<std::string> recentProjects;
 
-        char *prefPath = SDL_GetPrefPath("Someone Somewhere", "Worlds Engine");
+        char* prefPath = SDL_GetPrefPath("Someone Somewhere", "Worlds Engine");
         std::ifstream recentProjectsStream(prefPath + std::string{"recentProjects.txt"});
 
         if (recentProjectsStream.good())
@@ -836,7 +836,7 @@ namespace worlds
 
         if (recentProjectsOutStream.good())
         {
-            for (std::string &path : recentProjects)
+            for (std::string& path : recentProjects)
             {
                 recentProjectsOutStream << path << "\n";
             }
@@ -847,7 +847,7 @@ namespace worlds
         AudioSystem::getInstance()->loadMasterBanks();
         if (gameProjectSelectedCallback == nullptr)
             interfaces.scriptEngine->createManagedDelegate("WorldsEngine.Editor.Editor", "OnGameProjectSelected",
-                                                           (void **)&gameProjectSelectedCallback);
+                                                           (void**)&gameProjectSelectedCallback);
         gameProjectSelectedCallback(project.get());
 
         dotnetWatchProcess =
@@ -862,7 +862,7 @@ namespace worlds
         if (!active)
         {
             drawPopupNotifications();
-            for (EditorSceneView *esv : sceneViews)
+            for (EditorSceneView* esv : sceneViews)
             {
                 esv->setViewportActive(false);
             }
@@ -894,7 +894,7 @@ namespace worlds
             }
 
             int sceneViewIndex = 0;
-            for (EditorSceneView *esv : sceneViews)
+            for (EditorSceneView* esv : sceneViews)
             {
                 if (esv->isSeparateWindow)
                 {
@@ -910,7 +910,7 @@ namespace worlds
         }
 
         sceneViews.erase(std::remove_if(sceneViews.begin(), sceneViews.end(),
-                                        [](EditorSceneView *esv) {
+                                        [](EditorSceneView* esv) {
                                             if (!esv->open)
                                             {
                                                 delete esv;
@@ -921,7 +921,7 @@ namespace worlds
                          sceneViews.end());
 
         assetEditors.erase(std::remove_if(assetEditors.begin(), assetEditors.end(),
-                                          [](AssetEditorWindow *ae) {
+                                          [](AssetEditorWindow* ae) {
                                               if (!ae->isActive())
                                               {
                                                   delete ae;
@@ -936,7 +936,7 @@ namespace worlds
 
         if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
         {
-            for (ImGuiViewport *v : ImGui::GetPlatformIO().Viewports)
+            for (ImGuiViewport* v : ImGui::GetPlatformIO().Viewports)
             {
                 bool focus = ImGui::GetPlatformIO().Platform_GetWindowFocus(v);
                 if (focus)
@@ -948,7 +948,7 @@ namespace worlds
             anyFocused = interfaces.engine->getMainWindow().isFocused();
         }
 
-        for (EditorSceneView *esv : sceneViews)
+        for (EditorSceneView* esv : sceneViews)
         {
             esv->setViewportActive(anyFocused);
         }
@@ -989,7 +989,7 @@ namespace worlds
         updateWindowTitle();
 
         // Create global dock space
-        ImGuiViewport *viewport = ImGui::GetMainViewport();
+        ImGuiViewport* viewport = ImGui::GetMainViewport();
         ImGui::SetNextWindowPos(viewport->Pos);
         ImGui::SetNextWindowSize(viewport->Size);
         ImGui::SetNextWindowViewport(viewport->ID);
@@ -1050,7 +1050,7 @@ namespace worlds
             ImGui::InputFloat("Scene icon distance", &settings.sceneIconDrawDistance);
             if (ImGui::Checkbox("Shadows", &settings.enableShadows))
             {
-                for (EditorSceneView *esv : sceneViews)
+                for (EditorSceneView* esv : sceneViews)
                 {
                     esv->setShadowsEnabled(settings.enableShadows);
                 }
@@ -1058,7 +1058,7 @@ namespace worlds
         }
         ImGui::End();
 
-        for (auto &edWindow : editorWindows)
+        for (auto& edWindow : editorWindows)
         {
             if (edWindow->isActive())
             {
@@ -1066,7 +1066,7 @@ namespace worlds
             }
         }
 
-        for (AssetEditorWindow *ae : assetEditors)
+        for (AssetEditorWindow* ae : assetEditors)
         {
             ae->draw(reg);
         }
@@ -1079,31 +1079,31 @@ namespace worlds
 
         if (inputManager.keyPressed(SDL_SCANCODE_V) && inputManager.ctrlHeld() && SDL_HasClipboardText())
         {
-            const char *txt = SDL_GetClipboardText();
+            const char* txt = SDL_GetClipboardText();
             try
             {
                 select(JsonSceneSerializer::jsonToEntity(reg, txt));
                 addNotification("Entity pasted! :)");
             }
-            catch (nlohmann::detail::exception &e)
+            catch (nlohmann::detail::exception& e)
             {
                 logErr("Failed to deserialize clipboard entity: %s", e.what());
                 addNotification("Sorry, we couldn't paste that into the scene.", NotificationType::Error);
             }
         }
 
-        saveFileModal("Save Scene", [this](const char *path) {
+        saveFileModal("Save Scene", [this](const char* path) {
             AssetID sceneId = AssetDB::createAsset(path);
             JsonSceneSerializer::saveScene(sceneId, reg);
             lastSaveModificationCount = undo.modificationCount();
             interfaces.engine->loadScene(sceneId);
         });
 
-        const char *sceneFileExts[2] = {".escn", ".wscn"};
+        const char* sceneFileExts[2] = {".escn", ".wscn"};
 
         openFileModalOffset(
             "Open Scene",
-            [this](const char *path) {
+            [this](const char* path) {
                 interfaces.engine->loadScene(AssetDB::pathToId(path));
                 updateWindowTitle();
                 undo.clear();
@@ -1126,7 +1126,7 @@ namespace worlds
 
             if (ImGui::BeginMenu("File"))
             {
-                for (auto &window : editorWindows)
+                for (auto& window : editorWindows)
                 {
                     if (window->menuSection() == EditorMenu::File)
                     {
@@ -1171,7 +1171,7 @@ namespace worlds
                     if (gameProjectClosedCallback == nullptr)
                     {
                         interfaces.scriptEngine->createManagedDelegate(
-                            "WorldsEngine.Editor.Editor", "OnGameProjectClosed", (void **)&gameProjectClosedCallback);
+                            "WorldsEngine.Editor.Editor", "OnGameProjectClosed", (void**)&gameProjectClosedCallback);
                     }
 
                     gameProjectClosedCallback();
@@ -1198,7 +1198,7 @@ namespace worlds
 
                 ImGui::Separator();
 
-                for (auto &window : editorWindows)
+                for (auto& window : editorWindows)
                 {
                     if (window->menuSection() == EditorMenu::Edit)
                     {
@@ -1232,7 +1232,7 @@ namespace worlds
 
             if (ImGui::BeginMenu("Window"))
             {
-                for (auto &window : editorWindows)
+                for (auto& window : editorWindows)
                 {
                     if (window->menuSection() == EditorMenu::Window)
                     {
@@ -1248,7 +1248,7 @@ namespace worlds
 
             if (ImGui::BeginMenu("Help"))
             {
-                for (auto &window : editorWindows)
+                for (auto& window : editorWindows)
                 {
                     if (window->menuSection() == EditorMenu::Help)
                     {
@@ -1269,15 +1269,15 @@ namespace worlds
             ImGui::EndMainMenuBar();
         }
 
-        saveFileModal("Save Prefab", [&](const char *path) {
-            PHYSFS_File *file = PHYSFS_openWrite(path);
+        saveFileModal("Save Prefab", [&](const char* path) {
+            PHYSFS_File* file = PHYSFS_openWrite(path);
             JsonSceneSerializer::saveEntity(file, reg, currentSelectedEntity);
         });
 
         interfaces.scriptEngine->onEditorUpdate(deltaTime);
 
         int sceneViewIndex = 0;
-        for (EditorSceneView *sceneView : sceneViews)
+        for (EditorSceneView* sceneView : sceneViews)
         {
             sceneView->drawWindow(sceneViewIndex++);
         }
@@ -1295,7 +1295,7 @@ namespace worlds
         drawPopupNotifications();
         updateWindowTitle();
 
-        for (QueuedKeydown &qd : queuedKeydowns)
+        for (QueuedKeydown& qd : queuedKeydowns)
         {
             EditorActions::triggerBoundActions(this, reg, qd.scancode, qd.modifiers);
         }

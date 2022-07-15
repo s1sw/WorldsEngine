@@ -3,9 +3,9 @@
 
 namespace worlds
 {
-    static nodes::NodeEditor *ne = nullptr;
+    static nodes::NodeEditor* ne = nullptr;
 
-    void NodeEditorTest::draw(entt::registry &reg)
+    void NodeEditorTest::draw(entt::registry& reg)
     {
         if (!ne)
         {

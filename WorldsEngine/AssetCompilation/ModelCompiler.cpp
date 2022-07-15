@@ -53,7 +53,7 @@ namespace worlds
         class PrintfStream : public LogStream
         {
           public:
-            void write(const char *msg) override
+            void write(const char* msg) override
             {
                 printf("assimp: %s\n", msg);
             }
@@ -61,54 +61,54 @@ namespace worlds
 
         struct TangentCalcCtx
         {
-            const std::vector<wmdl::Vertex2> &verts;
-            std::vector<wmdl::Vertex2> &outVerts;
-            const std::vector<wmdl::VertexSkinningInfo> &skinInfo;
-            std::vector<wmdl::VertexSkinningInfo> &outSkinInfo;
+            const std::vector<wmdl::Vertex2>& verts;
+            std::vector<wmdl::Vertex2>& outVerts;
+            const std::vector<wmdl::VertexSkinningInfo>& skinInfo;
+            std::vector<wmdl::VertexSkinningInfo>& outSkinInfo;
         };
 
-        void getPosition(const SMikkTSpaceContext *ctx, float outPos[3], const int face, const int vertIdx)
+        void getPosition(const SMikkTSpaceContext* ctx, float outPos[3], const int face, const int vertIdx)
         {
-            auto *tcc = (TangentCalcCtx *)ctx->m_pUserData;
+            auto* tcc = (TangentCalcCtx*)ctx->m_pUserData;
 
             int baseIndexIndex = face * 3;
 
-            const wmdl::Vertex2 &vert = tcc->verts[baseIndexIndex + vertIdx];
+            const wmdl::Vertex2& vert = tcc->verts[baseIndexIndex + vertIdx];
 
             outPos[0] = vert.position.x;
             outPos[1] = vert.position.y;
             outPos[2] = vert.position.z;
         }
 
-        void getNormal(const SMikkTSpaceContext *ctx, float outNorm[3], const int face, const int vertIdx)
+        void getNormal(const SMikkTSpaceContext* ctx, float outNorm[3], const int face, const int vertIdx)
         {
-            auto *tcc = (TangentCalcCtx *)ctx->m_pUserData;
+            auto* tcc = (TangentCalcCtx*)ctx->m_pUserData;
 
             int baseIndexIndex = face * 3;
 
-            const wmdl::Vertex2 &vert = tcc->verts[baseIndexIndex + vertIdx];
+            const wmdl::Vertex2& vert = tcc->verts[baseIndexIndex + vertIdx];
 
             outNorm[0] = vert.normal.x;
             outNorm[1] = vert.normal.y;
             outNorm[2] = vert.normal.z;
         }
 
-        void getTexCoord(const SMikkTSpaceContext *ctx, float outTC[2], const int face, const int vertIdx)
+        void getTexCoord(const SMikkTSpaceContext* ctx, float outTC[2], const int face, const int vertIdx)
         {
-            auto *tcc = (TangentCalcCtx *)ctx->m_pUserData;
+            auto* tcc = (TangentCalcCtx*)ctx->m_pUserData;
 
             int baseIndexIndex = face * 3;
 
-            const wmdl::Vertex2 &vert = tcc->verts[baseIndexIndex + vertIdx];
+            const wmdl::Vertex2& vert = tcc->verts[baseIndexIndex + vertIdx];
 
             outTC[0] = vert.uv.x;
             outTC[1] = vert.uv.y;
         }
 
-        void setTSpace(const SMikkTSpaceContext *ctx, const float fvTangent[], const float fSign, const int iFace,
+        void setTSpace(const SMikkTSpaceContext* ctx, const float fvTangent[], const float fSign, const int iFace,
                        const int iVert)
         {
-            auto *tcc = (TangentCalcCtx *)ctx->m_pUserData;
+            auto* tcc = (TangentCalcCtx*)ctx->m_pUserData;
 
             int baseIndexIndex = iFace * 3;
 
@@ -121,23 +121,23 @@ namespace worlds
                 tcc->outSkinInfo[(iFace * 3) + iVert] = tcc->skinInfo[baseIndexIndex + iVert];
         }
 
-        int getNumFaces(const SMikkTSpaceContext *ctx)
+        int getNumFaces(const SMikkTSpaceContext* ctx)
         {
-            auto *tcc = (TangentCalcCtx *)ctx->m_pUserData;
+            auto* tcc = (TangentCalcCtx*)ctx->m_pUserData;
 
             return tcc->verts.size() / 3;
         }
 
         // We only support loading triangles so don't worry about anything else
-        int getNumVertsOfFace(const SMikkTSpaceContext *, const int)
+        int getNumVertsOfFace(const SMikkTSpaceContext*, const int)
         {
             return 3;
         }
 
         struct IntermediateBone
         {
-            aiBone *bone;
-            aiBone *parentBone;
+            aiBone* bone;
+            aiBone* parentBone;
         };
 
         struct Mesh
@@ -145,18 +145,18 @@ namespace worlds
             std::vector<wmdl::Vertex2> verts;
             std::vector<uint32_t> indices;
             std::vector<wmdl::VertexSkinningInfo> vertSkins;
-            std::vector<aiBone *> bones;
+            std::vector<aiBone*> bones;
             uint32_t indexOffsetInFile;
             uint32_t materialIdx;
         };
 
-        glm::mat4 convMtx(const aiMatrix4x4 &aiMat)
+        glm::mat4 convMtx(const aiMatrix4x4& aiMat)
         {
             return {aiMat.a1, aiMat.b1, aiMat.c1, aiMat.d1, aiMat.a2, aiMat.b2, aiMat.c2, aiMat.d2,
                     aiMat.a3, aiMat.b3, aiMat.c3, aiMat.d3, aiMat.a4, aiMat.b4, aiMat.c4, aiMat.d4};
         }
 
-        Mesh processAiMesh(aiMesh *aiMesh, aiNode *node, aiMatrix4x4 hierarchyTransform)
+        Mesh processAiMesh(aiMesh* aiMesh, aiNode* node, aiMatrix4x4 hierarchyTransform)
         {
             bool hasBones = aiMesh->mNumBones > 0;
 
@@ -182,7 +182,7 @@ namespace worlds
             for (unsigned int i = 0; i < aiMesh->mNumBones; i++)
             {
                 uint32_t boneIdx = 0;
-                aiBone *aiBone = aiMesh->mBones[i];
+                aiBone* aiBone = aiMesh->mBones[i];
 
                 if (!boneIds.contains(aiBone->mName.C_Str()))
                 {
@@ -204,7 +204,7 @@ namespace worlds
                     if (weight == 0.0f)
                         continue;
 
-                    wmdl::VertexSkinningInfo &skinInfo = mesh.vertSkins[vertexId];
+                    wmdl::VertexSkinningInfo& skinInfo = mesh.vertSkins[vertexId];
 
                     // Find the first bone index with 0 weight
                     uint32_t freeIdx = ~0u;
@@ -282,7 +282,7 @@ namespace worlds
             std::vector<int> remapTable;
             remapTable.resize(mikkTSpaceOut.size());
             mesh.verts.resize(mikkTSpaceOut.size());
-            int finalVertCount = WeldMesh(remapTable.data(), (float *)mesh.verts.data(), (float *)mikkTSpaceOut.data(),
+            int finalVertCount = WeldMesh(remapTable.data(), (float*)mesh.verts.data(), (float*)mikkTSpaceOut.data(),
                                           mikkTSpaceOut.size(), sizeof(wmdl::Vertex2) / sizeof(float));
             mesh.verts.resize(finalVertCount);
 
@@ -316,9 +316,9 @@ namespace worlds
             return mesh;
         }
 
-        robin_hood::unordered_map<std::string, aiNode *> nodeLookup;
+        robin_hood::unordered_map<std::string, aiNode*> nodeLookup;
 
-        void processNode(aiNode *node, std::vector<Mesh> &meshes, const aiScene *scene, aiMatrix4x4 parentTransform,
+        void processNode(aiNode* node, std::vector<Mesh>& meshes, const aiScene* scene, aiMatrix4x4 parentTransform,
                          int depth = 0)
         {
             char indentBuf[16] = {0};
@@ -332,7 +332,7 @@ namespace worlds
 
             for (int i = 0; i < node->mNumMeshes; i++)
             {
-                aiMesh *mesh = scene->mMeshes[node->mMeshes[i]];
+                aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
                 if (mesh->mPrimitiveTypes != aiPrimitiveType_TRIANGLE)
                     continue;
                 meshes.push_back(processAiMesh(mesh, node, parentTransform));
@@ -346,8 +346,8 @@ namespace worlds
             }
         }
 
-        ErrorCodes convertAssimpModel(AssetCompileOperation *compileOp, PHYSFS_File *outFile, void *data,
-                                      size_t dataSize, const char *extension, ConversionSettings settings)
+        ErrorCodes convertAssimpModel(AssetCompileOperation* compileOp, PHYSFS_File* outFile, void* data,
+                                      size_t dataSize, const char* extension, ConversionSettings settings)
         {
             const int NUM_STEPS = 5;
             const float PROGRESS_PER_STEP = 1.0f / NUM_STEPS;
@@ -372,7 +372,7 @@ namespace worlds
 
             if (settings.removeRedundantMaterials)
                 processFlags |= aiProcess_RemoveRedundantMaterials;
-            const aiScene *scene = importer.ReadFileFromMemory(data, dataSize, processFlags, extension);
+            const aiScene* scene = importer.ReadFileFromMemory(data, dataSize, processFlags, extension);
 
             compileOp->progress = PROGRESS_PER_STEP;
 
@@ -423,7 +423,7 @@ namespace worlds
             {
                 robin_hood::unordered_map<uint32_t, std::vector<uint32_t>> materialMeshes;
                 uint32_t meshIndex = 0;
-                for (Mesh &m : meshes)
+                for (Mesh& m : meshes)
                 {
                     if (!materialMeshes.contains(m.materialIdx))
                     {
@@ -436,13 +436,13 @@ namespace worlds
                 std::vector<Mesh> oldMeshes;
                 oldMeshes.swap(meshes);
 
-                for (auto &pair : materialMeshes)
+                for (auto& pair : materialMeshes)
                 {
                     Mesh newMesh;
                     newMesh.materialIdx = pair.first;
                     for (uint32_t mIdx : pair.second)
                     {
-                        Mesh &m = oldMeshes[mIdx];
+                        Mesh& m = oldMeshes[mIdx];
 
                         newMesh.indices.reserve(newMesh.indices.size() + m.indices.size());
                         for (uint32_t idx : m.indices)
@@ -466,18 +466,18 @@ namespace worlds
             for (uint32_t i = 0; i < meshes.size(); i++)
             {
                 compileOp->progress = (PROGRESS_PER_STEP * 2) + (perMeshProgress * i);
-                auto &mesh = meshes[i];
+                auto& mesh = meshes[i];
 
                 mesh.indexOffsetInFile = combinedIndices.size();
 
-                for (auto &idx : mesh.indices)
+                for (auto& idx : mesh.indices)
                 {
                     combinedIndices.push_back(idx + combinedVerts.size());
                 }
 
                 if (hasBones)
                 {
-                    for (auto &bone : mesh.bones)
+                    for (auto& bone : mesh.bones)
                     {
                         if (combinedBoneIds.contains(bone->mName.C_Str()))
                             continue;
@@ -486,17 +486,17 @@ namespace worlds
                         wBone.setName(bone->mName.C_Str());
                         wBone.inverseBindPose = convMtx(bone->mOffsetMatrix);
 
-                        aiNode *boneNode = nodeLookup.at(bone->mName.C_Str());
+                        aiNode* boneNode = nodeLookup.at(bone->mName.C_Str());
                         wBone.transform = convMtx(bone->mNode->mTransformation);
 
                         combinedBoneIds.insert({wBone.name, combinedBones.size()});
                         combinedBones.push_back(wBone);
                     }
 
-                    for (auto &bone : mesh.bones)
+                    for (auto& bone : mesh.bones)
                     {
-                        aiNode *boneNode = bone->mNode;
-                        aiNode *parentNode = boneNode->mParent;
+                        aiNode* boneNode = bone->mNode;
+                        aiNode* parentNode = boneNode->mParent;
                         uint32_t combinedId = combinedBoneIds.at(bone->mName.C_Str());
 
                         if (combinedBoneIds.contains(parentNode->mName.C_Str()))
@@ -506,7 +506,7 @@ namespace worlds
                     }
 
                     int vertIdx = 0;
-                    for (auto &skinInfo : mesh.vertSkins)
+                    for (auto& skinInfo : mesh.vertSkins)
                     {
                         for (int j = 0; j < 4; j++)
                         {
@@ -520,7 +520,7 @@ namespace worlds
                     }
                 }
 
-                for (auto &vtx : mesh.verts)
+                for (auto& vtx : mesh.verts)
                 {
                     combinedVerts.push_back(vtx);
                 }
@@ -553,7 +553,7 @@ namespace worlds
                               combinedVertSkinningInfo.size() * sizeof(wmdl::VertexSkinningInfo));
 
             int i = 0;
-            for (auto &mesh : meshes)
+            for (auto& mesh : meshes)
             {
                 compileOp->progress = (PROGRESS_PER_STEP * 3) + (perMeshProgress * i);
                 wmdl::SubmeshInfo submeshInfo;
@@ -617,9 +617,9 @@ namespace worlds
             bool isModelSkinned;
             robin_hood::unordered_node_map<int, ConvertedGltfNode> convertedNodes;
 
-            ConvertedGltfNode &convertNode(int nodeIdx, ConvertedGltfNode *parent)
+            ConvertedGltfNode& convertNode(int nodeIdx, ConvertedGltfNode* parent)
             {
-                const tinygltf::Node &n = model.nodes[nodeIdx];
+                const tinygltf::Node& n = model.nodes[nodeIdx];
                 robin_hood::unordered_node_map<int, ConvertedGltfNode>::iterator convertedIterator;
 
                 {
@@ -673,23 +673,23 @@ namespace worlds
                     convertedIterator = result.first;
                 }
 
-                ConvertedGltfNode &convertedNode = convertedIterator->second;
+                ConvertedGltfNode& convertedNode = convertedIterator->second;
 
                 if (n.mesh > -1)
                 {
-                    const tinygltf::Mesh &mesh = model.meshes[n.mesh];
+                    const tinygltf::Mesh& mesh = model.meshes[n.mesh];
                     for (size_t primIdx = 0; primIdx < mesh.primitives.size(); primIdx++)
                     {
-                        const tinygltf::Primitive &prim = mesh.primitives[primIdx];
+                        const tinygltf::Primitive& prim = mesh.primitives[primIdx];
                         uint32_t indexOffset = verts.size();
 
                         // Get the buffers for the various attributes
-                        const glm::vec3 *positions = nullptr;
-                        const glm::vec3 *normals = nullptr;
-                        const glm::vec2 *uvs = nullptr;
-                        const void *skindices = nullptr;
+                        const glm::vec3* positions = nullptr;
+                        const glm::vec3* normals = nullptr;
+                        const glm::vec2* uvs = nullptr;
+                        const void* skindices = nullptr;
                         int skindicesType = 0;
-                        const glm::vec4 *weights = nullptr;
+                        const glm::vec4* weights = nullptr;
 
                         positions = getAttributeData<glm::vec3>(model, prim, "POSITION");
                         normals = getAttributeData<glm::vec3>(model, prim, "NORMAL");
@@ -698,7 +698,7 @@ namespace worlds
 
                         if (hasAttribute(prim, "JOINTS_0"))
                         {
-                            const tinygltf::Accessor &accessor =
+                            const tinygltf::Accessor& accessor =
                                 model.accessors[prim.attributes.find("JOINTS_0")->second];
                             skindicesType = accessor.componentType;
                             skindices = getAttributeData<void>(model, prim, "JOINTS_0");
@@ -713,16 +713,16 @@ namespace worlds
                         // Load indices into vectors
                         std::vector<uint32_t> primIndices;
 
-                        const tinygltf::Accessor &indicesAccessor = model.accessors[prim.indices];
-                        const tinygltf::BufferView &bufferView = model.bufferViews[indicesAccessor.bufferView];
-                        const tinygltf::Buffer &buffer = model.buffers[bufferView.buffer];
+                        const tinygltf::Accessor& indicesAccessor = model.accessors[prim.indices];
+                        const tinygltf::BufferView& bufferView = model.bufferViews[indicesAccessor.bufferView];
+                        const tinygltf::Buffer& buffer = model.buffers[bufferView.buffer];
 
                         // We always use 32 bit uint indices, but glTF supports a few different types so convert
-                        const void *indexBufferPtr = &buffer.data[indicesAccessor.byteOffset + bufferView.byteOffset];
+                        const void* indexBufferPtr = &buffer.data[indicesAccessor.byteOffset + bufferView.byteOffset];
                         switch (indicesAccessor.componentType)
                         {
                         case TINYGLTF_PARAMETER_TYPE_UNSIGNED_INT: {
-                            const uint32_t *buffer = reinterpret_cast<const uint32_t *>(indexBufferPtr);
+                            const uint32_t* buffer = reinterpret_cast<const uint32_t*>(indexBufferPtr);
 
                             for (size_t idx = 0; idx < indicesAccessor.count; idx++)
                             {
@@ -731,7 +731,7 @@ namespace worlds
                         }
                         break;
                         case TINYGLTF_PARAMETER_TYPE_UNSIGNED_SHORT: {
-                            const uint16_t *buffer = reinterpret_cast<const uint16_t *>(indexBufferPtr);
+                            const uint16_t* buffer = reinterpret_cast<const uint16_t*>(indexBufferPtr);
 
                             for (size_t idx = 0; idx < indicesAccessor.count; idx++)
                             {
@@ -740,7 +740,7 @@ namespace worlds
                         }
                         break;
                         case TINYGLTF_PARAMETER_TYPE_UNSIGNED_BYTE: {
-                            const uint8_t *buffer = reinterpret_cast<const uint8_t *>(indexBufferPtr);
+                            const uint8_t* buffer = reinterpret_cast<const uint8_t*>(indexBufferPtr);
 
                             for (size_t idx = 0; idx < indicesAccessor.count; idx++)
                             {
@@ -786,9 +786,9 @@ namespace worlds
                                 for (int i = 0; i < 4; i++)
                                 {
                                     if (skindicesType == TINYGLTF_PARAMETER_TYPE_UNSIGNED_BYTE)
-                                        skinfo.boneId[i] = reinterpret_cast<const uint8_t *>(skindices)[v * 4 + i];
+                                        skinfo.boneId[i] = reinterpret_cast<const uint8_t*>(skindices)[v * 4 + i];
                                     else if (skindicesType == TINYGLTF_PARAMETER_TYPE_UNSIGNED_SHORT)
-                                        skinfo.boneId[i] = reinterpret_cast<const uint16_t *>(skindices)[v * 4 + i];
+                                        skinfo.boneId[i] = reinterpret_cast<const uint16_t*>(skindices)[v * 4 + i];
 
                                     skinfo.boneWeight[i] = weights[v][i];
                                 }
@@ -824,7 +824,7 @@ namespace worlds
                         // Re-weld the mesh to convert back to indices
                         // Also automatically joins identical vertices
                         int finalVertCount =
-                            WeldMesh(remapTable.data(), (float *)primVerts.data(), (float *)mikkTSpaceOut.data(),
+                            WeldMesh(remapTable.data(), (float*)primVerts.data(), (float*)mikkTSpaceOut.data(),
                                      mikkTSpaceOut.size(), sizeof(wmdl::Vertex2) / sizeof(float));
                         primVerts.resize(finalVertCount);
 
@@ -879,40 +879,40 @@ namespace worlds
             }
 
             template <typename T>
-            const T *getAttributeData(const tinygltf::Model &model, const tinygltf::Primitive &prim,
-                                      const char *attribute)
+            const T* getAttributeData(const tinygltf::Model& model, const tinygltf::Primitive& prim,
+                                      const char* attribute)
             {
-                const tinygltf::Accessor &accessor = model.accessors[prim.attributes.find(attribute)->second];
-                const tinygltf::BufferView &bufferView = model.bufferViews[accessor.bufferView];
+                const tinygltf::Accessor& accessor = model.accessors[prim.attributes.find(attribute)->second];
+                const tinygltf::BufferView& bufferView = model.bufferViews[accessor.bufferView];
                 size_t totalOffset = accessor.byteOffset + bufferView.byteOffset;
-                return reinterpret_cast<const T *>(&model.buffers[bufferView.buffer].data[totalOffset]);
+                return reinterpret_cast<const T*>(&model.buffers[bufferView.buffer].data[totalOffset]);
             }
 
-            size_t getAttributeCount(const tinygltf::Model &model, const tinygltf::Primitive &prim,
-                                     const char *attribute)
+            size_t getAttributeCount(const tinygltf::Model& model, const tinygltf::Primitive& prim,
+                                     const char* attribute)
             {
-                const tinygltf::Accessor &accessor = model.accessors[prim.attributes.find(attribute)->second];
+                const tinygltf::Accessor& accessor = model.accessors[prim.attributes.find(attribute)->second];
                 return accessor.count;
             }
 
-            bool hasAttribute(const tinygltf::Primitive &prim, const char *attribute)
+            bool hasAttribute(const tinygltf::Primitive& prim, const char* attribute)
             {
                 return prim.attributes.contains(attribute);
             }
 
           public:
-            ErrorCodes convertGltfModel(AssetCompileOperation *compileOp, PHYSFS_File *outFile, void *data,
+            ErrorCodes convertGltfModel(AssetCompileOperation* compileOp, PHYSFS_File* outFile, void* data,
                                         size_t dataSize, ConversionSettings settings)
             {
                 // Load the actual model
                 std::string errString;
                 std::string warnString;
-                gltfContext.LoadBinaryFromMemory(&model, &errString, &warnString, (uint8_t *)data, dataSize);
+                gltfContext.LoadBinaryFromMemory(&model, &errString, &warnString, (uint8_t*)data, dataSize);
                 isModelSkinned = model.skins.size() > 0;
                 logMsg("skins: %i", model.skins.size());
 
                 // For now, just assume there's one scene
-                const tinygltf::Scene &scene = model.scenes[0];
+                const tinygltf::Scene& scene = model.scenes[0];
 
                 for (size_t i = 0; i < scene.nodes.size(); i++)
                 {
@@ -921,11 +921,11 @@ namespace worlds
 
                 std::vector<wmdl::Bone> bones;
 
-                for (const tinygltf::Skin &skin : model.skins)
+                for (const tinygltf::Skin& skin : model.skins)
                 {
-                    const tinygltf::Accessor &accessor = model.accessors[skin.inverseBindMatrices];
-                    const tinygltf::BufferView &bufferView = model.bufferViews[accessor.bufferView];
-                    const tinygltf::Buffer &buffer = model.buffers[bufferView.buffer];
+                    const tinygltf::Accessor& accessor = model.accessors[skin.inverseBindMatrices];
+                    const tinygltf::BufferView& bufferView = model.bufferViews[accessor.bufferView];
+                    const tinygltf::Buffer& buffer = model.buffers[bufferView.buffer];
 
                     std::vector<glm::mat4> inverseBindMatrices;
                     inverseBindMatrices.resize(accessor.count);
@@ -936,7 +936,7 @@ namespace worlds
                     size_t i = 0;
                     for (int jointIdx : skin.joints)
                     {
-                        ConvertedGltfNode &jointNode = convertedNodes.at(jointIdx);
+                        ConvertedGltfNode& jointNode = convertedNodes.at(jointIdx);
                         nodeToJoint.insert({jointNode.index, i});
                         glm::mat4 transform = convertedNodes.at(jointIdx).localTransform;
 
@@ -952,7 +952,7 @@ namespace worlds
                         i++;
                     }
 
-                    for (wmdl::Bone &b : bones)
+                    for (wmdl::Bone& b : bones)
                     {
                         if (nodeToJoint.contains(b.parentBone))
                             b.parentBone = nodeToJoint[b.parentBone];
@@ -1016,7 +1016,7 @@ namespace worlds
         AssetCompilers::registerCompiler(this);
     }
 
-    AssetCompileOperation *ModelCompiler::compile(std::string_view projectRoot, AssetID src)
+    AssetCompileOperation* ModelCompiler::compile(std::string_view projectRoot, AssetID src)
     {
         std::string inputPath = AssetDB::idToPath(src);
         auto jsonContents = LoadFileToString(inputPath);
@@ -1037,7 +1037,7 @@ namespace worlds
 
         int64_t fileLen;
         auto result = LoadFileToBuffer(modelSourcePath, &fileLen);
-        AssetCompileOperation *compileOp = new AssetCompileOperation;
+        AssetCompileOperation* compileOp = new AssetCompileOperation;
 
         if (result.error != IOError::None)
         {
@@ -1065,7 +1065,7 @@ namespace worlds
         settings.uniformScale = j.value("uniformScale", 1.0f);
 
         std::thread([compileOp, outputPath, fullSourcePath, path, result, fileLen, settings]() {
-            PHYSFS_File *outFile = PHYSFS_openWrite(outputPath.c_str());
+            PHYSFS_File* outFile = PHYSFS_openWrite(outputPath.c_str());
             slib::Path p = path;
             if (p.fileExtension() == ".glb")
             {
@@ -1085,14 +1085,14 @@ namespace worlds
                 slib::Subprocess sb{commandString};
                 sb.waitForFinish();
 
-                FILE *glbFile = fopen("blender_model_import.glb", "rb");
+                FILE* glbFile = fopen("blender_model_import.glb", "rb");
 
                 if (glbFile)
                 {
                     fseek(glbFile, 0, SEEK_END);
                     size_t size = ftell(glbFile);
                     fseek(glbFile, 0, SEEK_SET);
-                    char *glbData = new char[size];
+                    char* glbData = new char[size];
                     fread(glbData, 1, size, glbFile);
                     fclose(glbFile);
                     mc_internal::GltfModelConverter converter;
@@ -1119,7 +1119,7 @@ namespace worlds
         return compileOp;
     }
 
-    void ModelCompiler::getFileDependencies(AssetID src, std::vector<std::string> &out)
+    void ModelCompiler::getFileDependencies(AssetID src, std::vector<std::string>& out)
     {
         std::string inputPath = AssetDB::idToPath(src);
         auto jsonContents = LoadFileToString(inputPath);
@@ -1134,12 +1134,12 @@ namespace worlds
         out.push_back(j["srcPath"]);
     }
 
-    const char *ModelCompiler::getSourceExtension()
+    const char* ModelCompiler::getSourceExtension()
     {
         return ".wmdlj";
     }
 
-    const char *ModelCompiler::getCompiledExtension()
+    const char* ModelCompiler::getCompiledExtension()
     {
         return ".wmdl";
     }

@@ -9,20 +9,20 @@
 
 namespace worlds
 {
-    discord::Core *discordCore;
+    discord::Core* discordCore;
 
     SDL_TimerID presenceUpdateTimer;
 
-    WorldsEngine *engine;
+    WorldsEngine* engine;
 
 #ifdef DISCORD_RPC
-    void onDiscordReady(discord::User &user)
+    void onDiscordReady(discord::User& user)
     {
         logMsg("Rich presence ready for %s", user.GetUsername());
 
         presenceUpdateTimer = SDL_AddTimer(
             1000,
-            [](uint32_t interval, void *) {
+            [](uint32_t interval, void*) {
                 std::string state =
                     "what"; //((engine->runAsEditor ? "Editing " : "On ") + engine->getCurrentSceneInfo().name);
 #ifndef NDEBUG
@@ -31,13 +31,13 @@ namespace worlds
                 discord::Activity activity{};
                 activity.SetState(state.c_str());
                 activity.SetType(discord::ActivityType::Playing);
-                auto &actAssets = activity.GetAssets();
+                auto& actAssets = activity.GetAssets();
                 actAssets.SetLargeImage("logo");
                 actAssets.SetLargeText("Private");
 
                 if (!engine->runAsEditor)
                 {
-                    auto &party = activity.GetParty();
+                    auto& party = activity.GetParty();
                     party.SetId("1365");
                     party.GetSize().SetMaxSize(256);
                     party.GetSize().SetCurrentSize(1);
@@ -70,7 +70,7 @@ namespace worlds
             return;
         }
 
-        discordCore->SetLogHook(discord::LogLevel::Debug, [](discord::LogLevel level, const char *msg) {
+        discordCore->SetLogHook(discord::LogLevel::Debug, [](discord::LogLevel level, const char* msg) {
             SDL_LogPriority priority = SDL_LOG_PRIORITY_DEBUG;
             switch (level)
             {

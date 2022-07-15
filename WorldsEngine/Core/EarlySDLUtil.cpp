@@ -4,7 +4,7 @@
 
 namespace worlds
 {
-    SDL_Surface *loadDataFileToSurface(std::string fName)
+    SDL_Surface* loadDataFileToSurface(std::string fName)
     {
         int width, height, channels;
 
@@ -16,7 +16,7 @@ namespace worlds
         basePath += '/';
 #endif
         basePath += fName;
-        unsigned char *imgDat = stbi_load(basePath.c_str(), &width, &height, &channels, STBI_rgb_alpha);
+        unsigned char* imgDat = stbi_load(basePath.c_str(), &width, &height, &channels, STBI_rgb_alpha);
 
         Uint32 rmask, gmask, bmask, amask;
 #if SDL_BYTEORDER == SDL_BIG_ENDIAN
@@ -31,10 +31,10 @@ namespace worlds
         bmask = 0x00ff0000;
         amask = 0xff000000;
 #endif
-        return SDL_CreateRGBSurfaceFrom((void *)imgDat, width, height, 32, 4 * width, rmask, gmask, bmask, amask);
+        return SDL_CreateRGBSurfaceFrom((void*)imgDat, width, height, 32, 4 * width, rmask, gmask, bmask, amask);
     }
 
-    void setWindowIcon(SDL_Window *win, const char *iconName)
+    void setWindowIcon(SDL_Window* win, const char* iconName)
     {
         auto surf = loadDataFileToSurface(iconName);
         SDL_SetWindowIcon(win, surf);

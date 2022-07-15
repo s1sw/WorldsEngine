@@ -11,23 +11,23 @@
 
 namespace worlds
 {
-    bool RawTextureLoader::loadStbTexture(void *fileData, size_t fileLen, AssetID id, RawTextureData &texData)
+    bool RawTextureLoader::loadStbTexture(void* fileData, size_t fileLen, AssetID id, RawTextureData& texData)
     {
         ZoneScoped;
         int x, y, channelsInFile;
         bool hdr = false;
-        stbi_uc *dat;
+        stbi_uc* dat;
 
         if (AssetDB::getAssetExtension(id) == ".hdr")
         {
-            float *fpDat;
-            fpDat = stbi_loadf_from_memory((stbi_uc *)fileData, (int)fileLen, &x, &y, &channelsInFile, 4);
-            dat = (stbi_uc *)fpDat;
+            float* fpDat;
+            fpDat = stbi_loadf_from_memory((stbi_uc*)fileData, (int)fileLen, &x, &y, &channelsInFile, 4);
+            dat = (stbi_uc*)fpDat;
             hdr = true;
         }
         else
         {
-            dat = stbi_load_from_memory((stbi_uc *)fileData, (int)fileLen, &x, &y, &channelsInFile, 4);
+            dat = stbi_load_from_memory((stbi_uc*)fileData, (int)fileLen, &x, &y, &channelsInFile, 4);
         }
 
         if (dat == nullptr)
@@ -45,14 +45,14 @@ namespace worlds
         return true;
     }
 
-    bool RawTextureLoader::loadExrTexture(void *fileData, size_t fileLen, AssetID id, RawTextureData &texData)
+    bool RawTextureLoader::loadExrTexture(void* fileData, size_t fileLen, AssetID id, RawTextureData& texData)
     {
         ZoneScoped;
 
-        float *data;
+        float* data;
         int width, height;
-        const char *err;
-        int result = LoadEXRFromMemory(&data, &width, &height, (uint8_t *)fileData, fileLen, &err);
+        const char* err;
+        int result = LoadEXRFromMemory(&data, &width, &height, (uint8_t*)fileData, fileLen, &err);
 
         if (result != TINYEXR_SUCCESS)
         {
@@ -60,7 +60,7 @@ namespace worlds
             return false;
         }
 
-        texData.data = (uint8_t *)data;
+        texData.data = (uint8_t*)data;
         texData.width = width;
         texData.height = height;
         texData.format = RawTextureFormat::RGBA32F;
@@ -69,7 +69,7 @@ namespace worlds
         return true;
     }
 
-    bool RawTextureLoader::loadRawTexture(AssetID id, RawTextureData &texData)
+    bool RawTextureLoader::loadRawTexture(AssetID id, RawTextureData& texData)
     {
         ZoneScoped;
 
@@ -78,7 +78,7 @@ namespace worlds
             return false;
         }
 
-        PHYSFS_File *file = AssetDB::openAssetFileRead(id);
+        PHYSFS_File* file = AssetDB::openAssetFileRead(id);
         if (!file)
         {
             std::string path = AssetDB::idToPath(id);

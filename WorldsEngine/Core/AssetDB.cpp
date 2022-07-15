@@ -21,7 +21,7 @@ namespace worlds
         robin_hood::unordered_map<AssetID, std::string> extensions;
     };
 
-    const char *ASSET_DB_PATH = "assetDB.wdb";
+    const char* ASSET_DB_PATH = "assetDB.wdb";
     const char ASSET_DB_MAGIC[] = {'W', 'A', 'D', 'B'};
     const uint8_t ASSET_DB_VER = 1;
     ADBStorage storage;
@@ -34,7 +34,7 @@ namespace worlds
             return;
         }
         std::lock_guard<std::mutex> lg{storage.mutex};
-        PHYSFS_File *dbFile = PHYSFS_openRead(ASSET_DB_PATH);
+        PHYSFS_File* dbFile = PHYSFS_openRead(ASSET_DB_PATH);
 
         char magicBuf[5];
 
@@ -84,12 +84,12 @@ namespace worlds
     void AssetDB::save()
     {
         std::lock_guard<std::mutex> lg{storage.mutex};
-        PHYSFS_File *dbFile = PHYSFS_openWrite(ASSET_DB_PATH);
+        PHYSFS_File* dbFile = PHYSFS_openWrite(ASSET_DB_PATH);
         PHYSFS_writeBytes(dbFile, ASSET_DB_MAGIC, sizeof(ASSET_DB_MAGIC));
         PHYSFS_writeBytes(dbFile, &ASSET_DB_VER, sizeof(ASSET_DB_VER));
         PHYSFS_writeULE32(dbFile, (uint32_t)storage.paths.size());
 
-        for (auto &p : storage.paths)
+        for (auto& p : storage.paths)
         {
             PHYSFS_writeULE16(dbFile, (uint16_t)p.second.size());
             PHYSFS_writeBytes(dbFile, p.second.data(), p.second.size());
@@ -99,13 +99,13 @@ namespace worlds
         PHYSFS_close(dbFile);
     }
 
-    PHYSFS_File *AssetDB::openAssetFileRead(AssetID id)
+    PHYSFS_File* AssetDB::openAssetFileRead(AssetID id)
     {
         std::lock_guard<std::mutex> lg{storage.mutex};
         return PHYSFS_openRead(storage.paths.at(id).c_str());
     }
 
-    PHYSFS_File *AssetDB::openAssetFileWrite(AssetID id)
+    PHYSFS_File* AssetDB::openAssetFileWrite(AssetID id)
     {
         std::lock_guard<std::mutex> lg{storage.mutex};
         return PHYSFS_openWrite(storage.paths.at(id).c_str());

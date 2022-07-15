@@ -17,15 +17,15 @@ namespace worlds
     class PathTracer
     {
       private:
-        entt::registry &reg;
+        entt::registry& reg;
         RTCDevice device;
         RTCScene scene;
-        bool traceRay(glm::vec3 pos, glm::vec3 dir, RTCRayHit &rayHit);
+        bool traceRay(glm::vec3 pos, glm::vec3 dir, RTCRayHit& rayHit);
         PathTraceResult pathTrace(glm::vec3 pos, glm::vec3 dir, int depth = 0);
-        void traceTile(RenderTile &rt);
+        void traceTile(RenderTile& rt);
 
       public:
-        PathTracer(entt::registry &reg);
+        PathTracer(entt::registry& reg);
         ~PathTracer();
         void buildAS();
         void trace(Camera cam, slib::String imagePath);

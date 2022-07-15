@@ -6,7 +6,7 @@
 
 namespace worlds
 {
-    VKUITextureManager::VKUITextureManager(R2::VK::Core *core, R2::BindlessTextureManager *textureManager)
+    VKUITextureManager::VKUITextureManager(R2::VK::Core* core, R2::BindlessTextureManager* textureManager)
         : core(core), textureManager(textureManager)
     {
         //
@@ -41,7 +41,7 @@ namespace worlds
             fatalErr("Failed to load UI texture");
 
         R2::VK::TextureCreateInfo tci = R2::VK::TextureCreateInfo::Texture2D(td.format, td.width, td.height);
-        R2::VK::Texture *t = core->CreateTexture(tci);
+        R2::VK::Texture* t = core->CreateTexture(tci);
 
         uint32_t handle = textureManager->AllocateTextureHandle(t);
 

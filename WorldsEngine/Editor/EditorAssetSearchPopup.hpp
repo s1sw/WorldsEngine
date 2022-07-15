@@ -8,7 +8,7 @@ namespace worlds
     class EditorAssetSearchPopup : SearchPopup<AssetID>
     {
       public:
-        EditorAssetSearchPopup(Editor *ed);
+        EditorAssetSearchPopup(Editor* ed);
         void show();
         void draw();
 
@@ -18,6 +18,6 @@ namespace worlds
         void updateCandidates() override;
 
       private:
-        Editor *editor;
+        Editor* editor;
     };
 }

@@ -11,10 +11,10 @@ namespace worlds
 
     void SkinnedWorldObject::resetPose()
     {
-        const LoadedMesh &lm = MeshManager::loadOrGet(mesh);
+        const LoadedMesh& lm = MeshManager::loadOrGet(mesh);
         currentPose.boneTransforms.clear();
 
-        for (const Bone &b : lm.bones)
+        for (const Bone& b : lm.bones)
         {
             currentPose.boneTransforms.push_back(b.restPose);
         }

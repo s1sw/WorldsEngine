@@ -7,16 +7,16 @@ namespace worlds
     class ProjectAssetCompiler
     {
       public:
-        ProjectAssetCompiler(GameProject &project);
+        ProjectAssetCompiler(GameProject& project);
         bool isCompiling();
         void startCompiling();
         void updateCompilation();
-        AssetCompileOperation *currentOperation();
+        AssetCompileOperation* currentOperation();
 
       private:
         std::vector<AssetFile>::iterator assetFileCompileIterator;
         bool _isCompiling = false;
-        AssetCompileOperation *currentCompileOp = nullptr;
-        GameProject &project;
+        AssetCompileOperation* currentCompileOp = nullptr;
+        GameProject& project;
     };
 }

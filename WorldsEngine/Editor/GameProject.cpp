@@ -27,7 +27,7 @@ namespace worlds
         _compiledDataPath = ((slib::String)rootPath + "/Data").cStr();
         _rawPath = ((slib::String)rootPath + "/Raw").cStr();
 
-        for (auto &dir : j["copyDirectories"])
+        for (auto& dir : j["copyDirectories"])
         {
             _copyDirs.push_back(dir);
         }
@@ -70,12 +70,12 @@ namespace worlds
         return _srcDataPath;
     }
 
-    ProjectAssets &GameProject::assets()
+    ProjectAssets& GameProject::assets()
     {
         return *_projectAssets;
     }
 
-    ProjectAssetCompiler &GameProject::assetCompiler()
+    ProjectAssetCompiler& GameProject::assetCompiler()
     {
         return *_assetCompiler;
     }
@@ -91,7 +91,7 @@ namespace worlds
         PHYSFS_mount((_root + "/Temp").c_str(), "/Temp", 0);
         PHYSFS_setWriteDir(_root.c_str());
 
-        for (const std::string &dir : _copyDirs)
+        for (const std::string& dir : _copyDirs)
         {
             std::string dirPath = _srcDataPath + "/" + dir;
             logVrb("Mounting %s as %s", dirPath.c_str(), dir.c_str());
@@ -112,7 +112,7 @@ namespace worlds
         PHYSFS_unmount(_rawPath.c_str());
         PHYSFS_unmount((_root + "/Temp").c_str());
 
-        for (const std::string &dir : _copyDirs)
+        for (const std::string& dir : _copyDirs)
         {
             std::string dirPath = _srcDataPath + "/" + dir;
             if (PHYSFS_unmount(dirPath.c_str()) == 0)

@@ -18,10 +18,10 @@ namespace worlds
     class InputManager
     {
       public:
-        InputManager(SDL_Window *window);
-        void setScriptEngine(DotNetScriptEngine *);
+        InputManager(SDL_Window* window);
+        void setScriptEngine(DotNetScriptEngine*);
         void update();
-        void processEvent(const SDL_Event &evt);
+        void processEvent(const SDL_Event& evt);
         void endFrame();
         bool mouseButtonHeld(MouseButton button, bool ignoreImGui = false) const;
         bool mouseButtonPressed(MouseButton button, bool ignoreImGui = false) const;
@@ -42,7 +42,7 @@ namespace worlds
 
       private:
         slib::List<std::function<void(SDL_Scancode)>> keydownHandlers;
-        SDL_Window *window;
+        SDL_Window* window;
         uint32_t mouseButtonFlags;
         uint32_t lastMouseButtonFlags;
         Uint8 keyState[SDL_NUM_SCANCODES];
@@ -50,9 +50,9 @@ namespace worlds
         glm::ivec2 mouseDelta;
         glm::ivec2 mousePos;
         bool mouseLocked = false;
-        DotNetScriptEngine *scriptEngine = nullptr;
+        DotNetScriptEngine* scriptEngine = nullptr;
         struct NativeInputEvent;
-        void (*processNativeEvent)(NativeInputEvent *) = nullptr;
+        void (*processNativeEvent)(NativeInputEvent*) = nullptr;
         void (*managedEndFrame)() = nullptr;
     };
 }

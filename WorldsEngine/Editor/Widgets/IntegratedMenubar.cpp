@@ -19,14 +19,14 @@ namespace worlds
 
     void IntegratedMenubar::draw()
     {
-        const char *windowTitle = interfaces.engine->getMainWindow().getTitle();
+        const char* windowTitle = interfaces.engine->getMainWindow().getTitle();
         glm::vec2 textSize = ImGui::CalcTextSize(windowTitle);
         glm::vec2 menuBarCenter = ImGui::GetWindowSize();
         menuBarCenter *= 0.5f;
 
         glm::vec2 vpOffset = ImGui::GetMainViewport()->Pos;
 
-        Window &mainWindow = interfaces.engine->getMainWindow();
+        Window& mainWindow = interfaces.engine->getMainWindow();
 
         SDL_SysWMinfo wmInfo;
         SDL_VERSION(&wmInfo.version);
@@ -35,7 +35,7 @@ namespace worlds
         HWND hwnd = wmInfo.info.win.window;
 
         static bool extendedFrame = false;
-        ImDrawList *drawList = ImGui::GetWindowDrawList();
+        ImDrawList* drawList = ImGui::GetWindowDrawList();
         if (integratedMenuBar.getInt())
         {
             drawList->AddText(vpOffset +
@@ -70,7 +70,7 @@ namespace worlds
             drawList->AddLine(crossCenter + glm::vec2(+crossSize, -crossSize),
                               crossCenter + glm::vec2(-crossSize, +crossSize), crossColor, 1.0f);
 
-            Window &window = interfaces.engine->getMainWindow();
+            Window& window = interfaces.engine->getMainWindow();
             glm::vec2 maximiseCenter(barWidth - 45.0f - 22.0f, menuBarCenter.y);
             maximiseCenter += vpOffset;
             if (mousePos.x > barWidth - 90.0f && mousePos.x < barWidth - 45.0f && mousePos.y < barHeight &&

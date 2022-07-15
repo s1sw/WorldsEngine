@@ -3,7 +3,7 @@
 
 namespace worlds
 {
-    void EditorUndo::pushState(entt::registry &reg)
+    void EditorUndo::pushState(entt::registry& reg)
     {
         // Serialize to file
         std::string savedPath = "Temp/" + std::to_string(currentPos) + ".json";
@@ -12,25 +12,25 @@ namespace worlds
         currentPos++;
     }
 
-    void EditorUndo::undo(entt::registry &reg)
+    void EditorUndo::undo(entt::registry& reg)
     {
         if (currentPos == 0)
             return;
         currentPos--;
         std::string path = "Temp/" + std::to_string(currentPos) + ".json";
-        PHYSFS_File *file = PHYSFS_openRead(path.c_str());
+        PHYSFS_File* file = PHYSFS_openRead(path.c_str());
         reg.clear();
         JsonSceneSerializer::loadScene(file, reg);
         PHYSFS_close(file);
     }
 
-    void EditorUndo::redo(entt::registry &reg)
+    void EditorUndo::redo(entt::registry& reg)
     {
         std::string path = "Temp/" + std::to_string(currentPos + 1) + ".json";
         if (!PHYSFS_exists(path.c_str()) || currentPos == highestSaved)
             return;
         currentPos++;
-        PHYSFS_File *file = PHYSFS_openRead(path.c_str());
+        PHYSFS_File* file = PHYSFS_openRead(path.c_str());
         reg.clear();
         JsonSceneSerializer::loadScene(file, reg);
     }
@@ -42,8 +42,8 @@ namespace worlds
 
         PHYSFS_enumerate(
             "Temp",
-            [](void *data, const char *, const char *name) {
-                char *buf = new char[strlen("Temp/") + strlen(name) + 1];
+            [](void* data, const char*, const char* name) {
+                char* buf = new char[strlen("Temp/") + strlen(name) + 1];
                 buf[0] = 0;
                 strcat(buf, "Temp/");
                 strcat(buf, name);

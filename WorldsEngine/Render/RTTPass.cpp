@@ -8,7 +8,7 @@ using namespace R2::VK;
 
 namespace worlds
 {
-    VKRTTPass::VKRTTPass(VKRenderer *renderer, const RTTPassCreateInfo &ci, IRenderPipeline *pipeline)
+    VKRTTPass::VKRTTPass(VKRenderer* renderer, const RTTPassCreateInfo& ci, IRenderPipeline* pipeline)
         : renderer(renderer), pipeline(pipeline)
     {
         TextureCreateInfo tci = TextureCreateInfo::Texture2D(TextureFormat::R8G8B8A8_SRGB, ci.width, ci.height);
@@ -27,7 +27,7 @@ namespace worlds
         delete pipeline;
     }
 
-    void VKRTTPass::drawNow(entt::registry &world)
+    void VKRTTPass::drawNow(entt::registry& world)
     {
     }
 
@@ -35,12 +35,12 @@ namespace worlds
     {
     }
 
-    bool VKRTTPass::getPickResult(uint32_t *result)
+    bool VKRTTPass::getPickResult(uint32_t* result)
     {
         return false;
     }
 
-    float *VKRTTPass::getHDRData()
+    float* VKRTTPass::getHDRData()
     {
         return nullptr;
     }
@@ -69,12 +69,12 @@ namespace worlds
         return (ImTextureID)finalTargetBindlessID;
     }
 
-    R2::VK::Texture *VKRTTPass::getFinalTarget()
+    R2::VK::Texture* VKRTTPass::getFinalTarget()
     {
         return finalTarget;
     }
 
-    Camera *VKRTTPass::getCamera()
+    Camera* VKRTTPass::getCamera()
     {
         return cam;
     }

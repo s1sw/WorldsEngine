@@ -23,7 +23,7 @@ namespace worlds
 #endif
     }
 
-    void JobList::addJob(Job &&job)
+    void JobList::addJob(Job&& job)
     {
 #ifdef TRACY_ENABLE
         ZoneScoped;
@@ -91,7 +91,7 @@ namespace worlds
         }
 
         newJobListCV.notify_all();
-        for (auto &w : workers)
+        for (auto& w : workers)
         {
             w.join();
         }
@@ -99,7 +99,7 @@ namespace worlds
         delete[] currentJobLists;
     }
 
-    JobList &JobSystem::getFreeJobList()
+    JobList& JobSystem::getFreeJobList()
     {
         return currentJobLists[getFreeJobSlot()];
     }
@@ -113,7 +113,7 @@ namespace worlds
     {
         for (int i = 0; i < NUM_JOB_SLOTS; i++)
         {
-            JobList &jobList = currentJobLists[i];
+            JobList& jobList = currentJobLists[i];
             if (jobList.jobCount)
                 jobList.wait();
         }
@@ -142,11 +142,11 @@ namespace worlds
             // Get a job from any of the job lists
             jobListsMutex.lock();
             Job currentJob(nullptr);
-            JobList *pulledFromList = nullptr;
+            JobList* pulledFromList = nullptr;
 
             for (int i = 0; i < NUM_JOB_SLOTS; i++)
             {
-                JobList &jobList = currentJobLists[i];
+                JobList& jobList = currentJobLists[i];
                 if (jobList.jobCount && jobList.jobs.try_dequeue(currentJob))
                 {
                     pulledFromList = &jobList;

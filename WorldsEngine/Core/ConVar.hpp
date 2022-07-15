@@ -6,7 +6,7 @@ namespace worlds
     class ConVar
     {
       public:
-        ConVar(const char *name, const char *defaultValue, const char *help = nullptr);
+        ConVar(const char* name, const char* defaultValue, const char* help = nullptr);
         ~ConVar();
         float getFloat() const
         {
@@ -16,15 +16,15 @@ namespace worlds
         {
             return parsedInt;
         }
-        const char *getString() const
+        const char* getString() const
         {
             return value.c_str();
         }
-        const char *getName() const
+        const char* getName() const
         {
             return name;
         }
-        const char *getHelp() const
+        const char* getHelp() const
         {
             return help;
         }
@@ -39,8 +39,8 @@ namespace worlds
         }
 
       private:
-        const char *help;
-        const char *name;
+        const char* help;
+        const char* name;
         std::string value;
         int parsedInt;
         float parsedFloat;

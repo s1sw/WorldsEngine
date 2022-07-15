@@ -39,7 +39,7 @@ namespace worlds
 #define WRITE_FIELD(file, field) PHYSFS_writeBytes(file, &field, sizeof(field))
 #define READ_FIELD(file, field) PHYSFS_readBytes(file, &field, sizeof(field))
 
-    ComponentEditorLink *ComponentEditor::first = nullptr;
+    ComponentEditorLink* ComponentEditor::first = nullptr;
 
     ComponentEditor::ComponentEditor()
     {
@@ -50,7 +50,7 @@ namespace worlds
         }
         else
         {
-            ComponentEditorLink *next = first;
+            ComponentEditorLink* next = first;
             first = new ComponentEditorLink;
             first->next = next;
         }
@@ -86,7 +86,7 @@ namespace worlds
             return glm::quat{w, x, y, z};
         }
 
-        void showTransformControls(entt::registry &reg, Transform &selectedTransform, Editor *ed)
+        void showTransformControls(entt::registry& reg, Transform& selectedTransform, Editor* ed)
         {
             glm::vec3 pos = selectedTransform.position;
             if (ImGui::DragFloat3("Position", &pos.x))
@@ -136,7 +136,7 @@ namespace worlds
             return -1;
         }
 
-        const char *getName() override
+        const char* getName() override
         {
             return "Transform";
         }
@@ -146,11 +146,11 @@ namespace worlds
             return false;
         }
 
-        void edit(entt::entity ent, entt::registry &reg, Editor *ed) override
+        void edit(entt::entity ent, entt::registry& reg, Editor* ed) override
         {
             if (ImGui::CollapsingHeader(ICON_FA_ARROWS_ALT u8" Transform"))
             {
-                auto &selectedTransform = reg.get<Transform>(ent);
+                auto& selectedTransform = reg.get<Transform>(ent);
 
                 if (!reg.has<ChildComponent>(ent))
                 {
@@ -158,7 +158,7 @@ namespace worlds
                 }
                 else
                 {
-                    auto &cc = reg.get<ChildComponent>(ent);
+                    auto& cc = reg.get<ChildComponent>(ent);
                     showTransformControls(reg, cc.offset, ed);
 
                     if (ImGui::TreeNode("World Space Transform"))
@@ -172,42 +172,42 @@ namespace worlds
             }
         }
 
-        void toJson(entt::entity ent, entt::registry &reg, nlohmann::json &j) override
+        void toJson(entt::entity ent, entt::registry& reg, nlohmann::json& j) override
         {
-            const auto &t = reg.get<Transform>(ent);
+            const auto& t = reg.get<Transform>(ent);
             j = {{"position", t.position}, {"rotation", t.rotation}, {"scale", t.scale}};
         }
 
-        void fromJson(entt::entity ent, entt::registry &reg, EntityIDMap &, const nlohmann::json &j) override
+        void fromJson(entt::entity ent, entt::registry& reg, EntityIDMap&, const nlohmann::json& j) override
         {
-            auto &t = reg.emplace<Transform>(ent);
+            auto& t = reg.emplace<Transform>(ent);
             t.position = j["position"].get<glm::vec3>();
             t.rotation = j["rotation"].get<glm::quat>();
             t.scale = j["scale"].get<glm::vec3>();
         }
     };
 
-    const robin_hood::unordered_flat_map<StaticFlags, const char *> flagNames = {
+    const robin_hood::unordered_flat_map<StaticFlags, const char*> flagNames = {
         {StaticFlags::Audio, "Audio"}, {StaticFlags::Rendering, "Rendering"}, {StaticFlags::Navigation, "Navigation"}};
 
-    const char *uvOverrideNames[] = {"None", "XY", "XZ", "ZY", "Pick Best"};
+    const char* uvOverrideNames[] = {"None", "XY", "XZ", "ZY", "Pick Best"};
 
     class WorldObjectEditor : public BasicComponentUtil<WorldObject>
     {
       public:
-        const char *getName() override
+        const char* getName() override
         {
             return "World Object";
         }
 
-        void create(entt::entity ent, entt::registry &reg) override
+        void create(entt::entity ent, entt::registry& reg) override
         {
             auto cubeId = AssetDB::pathToId("model.obj");
             auto matId = AssetDB::pathToId("Materials/DevTextures/dev_blue.json");
             reg.emplace<WorldObject>(ent, matId, cubeId);
         }
 
-        void edit(entt::entity ent, entt::registry &reg, Editor *ed) override
+        void edit(entt::entity ent, entt::registry& reg, Editor* ed) override
         {
             if (ImGui::CollapsingHeader(ICON_FA_PENCIL_ALT u8" WorldObject"))
             {
@@ -217,7 +217,7 @@ namespace worlds
                 }
                 else
                 {
-                    auto &worldObject = reg.get<WorldObject>(ent);
+                    auto& worldObject = reg.get<WorldObject>(ent);
                     if (ImGui::TreeNode("Static Flags"))
                     {
                         for (int i = 1; i < 8; i <<= 1)
@@ -236,7 +236,7 @@ namespace worlds
                     if (ImGui::BeginCombo("UV Override", uvOverrideNames[(int)worldObject.uvOverride]))
                     {
                         int i = 0;
-                        for (auto &p : uvOverrideNames)
+                        for (auto& p : uvOverrideNames)
                         {
                             bool isSelected = (int)worldObject.uvOverride == i;
                             if (ImGui::Selectable(p, &isSelected))
@@ -331,9 +331,9 @@ namespace worlds
             }
         }
 
-        void toJson(entt::entity ent, entt::registry &reg, json &j) override
+        void toJson(entt::entity ent, entt::registry& reg, json& j) override
         {
-            auto &wo = reg.get<WorldObject>(ent);
+            auto& wo = reg.get<WorldObject>(ent);
 
             uint32_t materialCount = wo.presentMaterials.count();
             nlohmann::json matArray;
@@ -350,9 +350,9 @@ namespace worlds
                  {"staticFlags", wo.staticFlags}};
         }
 
-        void fromJson(entt::entity ent, entt::registry &reg, EntityIDMap &, const json &j) override
+        void fromJson(entt::entity ent, entt::registry& reg, EntityIDMap&, const json& j) override
         {
-            auto &wo = reg.emplace<WorldObject>(ent, 0, 0);
+            auto& wo = reg.emplace<WorldObject>(ent, 0, 0);
             std::string meshPath = j["mesh"];
             wo.mesh = AssetDB::pathToId(meshPath);
             wo.texScaleOffset = j["texScaleOffset"];
@@ -361,7 +361,7 @@ namespace worlds
 
             uint32_t matIdx = 0;
 
-            for (auto &v : j["materials"])
+            for (auto& v : j["materials"])
             {
                 wo.presentMaterials[matIdx] = true;
                 if (v.is_number())
@@ -379,19 +379,19 @@ namespace worlds
     class SkinnedWorldObjectEditor : public BasicComponentUtil<SkinnedWorldObject>
     {
       public:
-        const char *getName() override
+        const char* getName() override
         {
             return "Skinned World Object";
         }
 
-        void create(entt::entity ent, entt::registry &reg) override
+        void create(entt::entity ent, entt::registry& reg) override
         {
             auto cubeId = AssetDB::pathToId("model.obj");
             auto matId = AssetDB::pathToId("Materials/DevTextures/dev_blue.json");
             reg.emplace<SkinnedWorldObject>(ent, matId, cubeId);
         }
 
-        void edit(entt::entity ent, entt::registry &reg, Editor *ed) override
+        void edit(entt::entity ent, entt::registry& reg, Editor* ed) override
         {
             if (ImGui::CollapsingHeader(ICON_FA_PENCIL_ALT u8" SkinnedWorldObject"))
             {
@@ -401,7 +401,7 @@ namespace worlds
                 }
                 else
                 {
-                    auto &worldObject = reg.get<SkinnedWorldObject>(ent);
+                    auto& worldObject = reg.get<SkinnedWorldObject>(ent);
                     if (ImGui::TreeNode("Static Flags"))
                     {
                         for (int i = 1; i < 8; i <<= 1)
@@ -420,7 +420,7 @@ namespace worlds
                     if (ImGui::BeginCombo("UV Override", uvOverrideNames[(int)worldObject.uvOverride]))
                     {
                         int i = 0;
-                        for (auto &p : uvOverrideNames)
+                        for (auto& p : uvOverrideNames)
                         {
                             bool isSelected = (int)worldObject.uvOverride == i;
                             if (ImGui::Selectable(p, &isSelected))
@@ -478,9 +478,9 @@ namespace worlds
             }
         }
 
-        void toJson(entt::entity ent, entt::registry &reg, json &j) override
+        void toJson(entt::entity ent, entt::registry& reg, json& j) override
         {
-            auto &wo = reg.get<SkinnedWorldObject>(ent);
+            auto& wo = reg.get<SkinnedWorldObject>(ent);
 
             uint32_t materialCount = wo.presentMaterials.count();
             nlohmann::json matArray;
@@ -497,11 +497,11 @@ namespace worlds
                  {"staticFlags", wo.staticFlags}};
         }
 
-        void fromJson(entt::entity ent, entt::registry &reg, EntityIDMap &, const json &j) override
+        void fromJson(entt::entity ent, entt::registry& reg, EntityIDMap&, const json& j) override
         {
             std::string meshPath = j["mesh"];
             AssetID mesh = AssetDB::pathToId(meshPath);
-            auto &wo = reg.emplace<SkinnedWorldObject>(ent, INVALID_ASSET, mesh);
+            auto& wo = reg.emplace<SkinnedWorldObject>(ent, INVALID_ASSET, mesh);
 
             wo.texScaleOffset = j["texScaleOffset"];
             wo.uvOverride = j["uvOverride"];
@@ -509,7 +509,7 @@ namespace worlds
 
             uint32_t matIdx = 0;
 
-            for (auto &v : j["materials"])
+            for (auto& v : j["materials"])
             {
                 wo.presentMaterials[matIdx] = true;
                 if (v.is_number())
@@ -524,16 +524,16 @@ namespace worlds
         }
     };
 
-    const std::unordered_map<LightType, const char *> lightTypeNames = {{LightType::Directional, "Directional"},
-                                                                        {LightType::Point, "Point"},
-                                                                        {LightType::Spot, "Spot"},
-                                                                        {LightType::Sphere, "Sphere"},
-                                                                        {LightType::Tube, "Tube"}};
+    const std::unordered_map<LightType, const char*> lightTypeNames = {{LightType::Directional, "Directional"},
+                                                                       {LightType::Point, "Point"},
+                                                                       {LightType::Spot, "Spot"},
+                                                                       {LightType::Sphere, "Sphere"},
+                                                                       {LightType::Tube, "Tube"}};
 
     class WorldLightEditor : public BasicComponentUtil<WorldLight>
     {
       private:
-        void showTypeSpecificControls(WorldLight &worldLight)
+        void showTypeSpecificControls(WorldLight& worldLight)
         {
             // Show options specific to certain types of light
             switch (worldLight.type)
@@ -566,12 +566,12 @@ namespace worlds
         }
 
       public:
-        const char *getName() override
+        const char* getName() override
         {
             return "World Light";
         }
 
-        void edit(entt::entity ent, entt::registry &reg, Editor *ed) override
+        void edit(entt::entity ent, entt::registry& reg, Editor* ed) override
         {
             if (ImGui::CollapsingHeader(ICON_FA_LIGHTBULB u8" Light"))
             {
@@ -581,8 +581,8 @@ namespace worlds
                 }
                 else
                 {
-                    WorldLight &worldLight = reg.get<WorldLight>(ent);
-                    Transform &transform = reg.get<Transform>(ent);
+                    WorldLight& worldLight = reg.get<WorldLight>(ent);
+                    Transform& transform = reg.get<Transform>(ent);
 
                     ImGui::Checkbox("Enabled", &worldLight.enabled);
                     ImGui::ColorEdit3("Color", &worldLight.color.x, ImGuiColorEditFlags_Float);
@@ -595,7 +595,7 @@ namespace worlds
 
                     if (ImGui::BeginCombo("Light Type", lightTypeNames.at(worldLight.type)))
                     {
-                        for (auto &p : lightTypeNames)
+                        for (auto& p : lightTypeNames)
                         {
                             bool isSelected = worldLight.type == p.first;
                             if (ImGui::Selectable(p.second, &isSelected))
@@ -635,9 +635,9 @@ namespace worlds
             }
         }
 
-        void toJson(entt::entity ent, entt::registry &reg, json &j) override
+        void toJson(entt::entity ent, entt::registry& reg, json& j) override
         {
-            auto &wl = reg.get<WorldLight>(ent);
+            auto& wl = reg.get<WorldLight>(ent);
 
             j = {{"type", wl.type},
                  {"color", wl.color},
@@ -652,9 +652,9 @@ namespace worlds
                  {"shadowFar", wl.shadowFar}};
         }
 
-        void fromJson(entt::entity ent, entt::registry &reg, EntityIDMap &, const json &j) override
+        void fromJson(entt::entity ent, entt::registry& reg, EntityIDMap&, const json& j) override
         {
-            auto &wl = reg.emplace<WorldLight>(ent);
+            auto& wl = reg.emplace<WorldLight>(ent);
 
             wl.type = j["type"];
             wl.color = j["color"];
@@ -679,7 +679,7 @@ namespace worlds
         }
     };
 
-    const char *shapeTypeNames[(int)PhysicsShapeType::Count] = {"Sphere", "Box", "Capsule", "Mesh", "Convex Mesh"};
+    const char* shapeTypeNames[(int)PhysicsShapeType::Count] = {"Sphere", "Box", "Capsule", "Mesh", "Convex Mesh"};
 
     PhysicsShapeType valToShapeType(std::string str)
     {
@@ -689,9 +689,9 @@ namespace worlds
             return PhysicsShapeType::Sphere;
     }
 
-    std::vector<PhysicsShape> loadColliderJson(const char *path)
+    std::vector<PhysicsShape> loadColliderJson(const char* path)
     {
-        auto *file = PHYSFS_openRead(path);
+        auto* file = PHYSFS_openRead(path);
         auto len = PHYSFS_fileLength(file);
 
         std::string str;
@@ -705,7 +705,7 @@ namespace worlds
         std::vector<PhysicsShape> shapes;
         shapes.reserve(j.size());
 
-        for (const auto &el : j)
+        for (const auto& el : j)
         {
             PhysicsShape shape;
             // const auto& typeval = el.get_value_of_key(sajson::string{ "type", 4 });
@@ -732,7 +732,7 @@ namespace worlds
 
     glm::vec4 physShapeColor{0.f, 1.f, 0.f, 1.f};
     // Draws a box shape using lines.
-    void drawPhysicsBox(const Transform &actorTransform, const PhysicsShape &ps)
+    void drawPhysicsBox(const Transform& actorTransform, const PhysicsShape& ps)
     {
         Transform shapeTransform{ps.pos * actorTransform.scale, ps.rot};
         shapeTransform = shapeTransform.transformBy(actorTransform);
@@ -740,14 +740,14 @@ namespace worlds
                 physShapeColor);
     }
 
-    void drawPhysicsSphere(const Transform &actorTransform, const PhysicsShape &ps)
+    void drawPhysicsSphere(const Transform& actorTransform, const PhysicsShape& ps)
     {
         Transform shapeTransform{ps.pos * actorTransform.scale, ps.rot};
         shapeTransform = shapeTransform.transformBy(actorTransform);
         drawSphere(shapeTransform.position, shapeTransform.rotation, ps.sphere.radius, physShapeColor);
     }
 
-    void drawPhysicsCapsule(const Transform &actorTransform, const PhysicsShape &ps)
+    void drawPhysicsCapsule(const Transform& actorTransform, const PhysicsShape& ps)
     {
         Transform shapeTransform{ps.pos * actorTransform.scale, ps.rot};
         shapeTransform = shapeTransform.transformBy(actorTransform);
@@ -756,10 +756,10 @@ namespace worlds
                     ps.capsule.height * 0.5f, ps.capsule.radius, physShapeColor);
     }
 
-    void drawPhysicsMesh(const Transform &actorTransform, const PhysicsShape &ps)
+    void drawPhysicsMesh(const Transform& actorTransform, const PhysicsShape& ps)
     {
         AssetID meshId = ps.type == PhysicsShapeType::ConvexMesh ? ps.convexMesh.mesh : ps.mesh.mesh;
-        const LoadedMesh &lm = MeshManager::loadOrGet(meshId);
+        const LoadedMesh& lm = MeshManager::loadOrGet(meshId);
 
         for (size_t i = 0; i < lm.indices.size(); i += 3)
         {
@@ -777,7 +777,7 @@ namespace worlds
     }
 
     // Draws the given shape using lines.
-    void drawPhysicsShape(const Transform &actorTransform, const PhysicsShape &ps)
+    void drawPhysicsShape(const Transform& actorTransform, const PhysicsShape& ps)
     {
         switch (ps.type)
         {
@@ -799,7 +799,7 @@ namespace worlds
         }
     }
 
-    template <typename T> void editPhysicsShapes(T &actor, Transform &actorTransform, worlds::Editor *ed)
+    template <typename T> void editPhysicsShapes(T& actor, Transform& actorTransform, worlds::Editor* ed)
     {
         static size_t currentShapeIdx = 0;
         static bool transformingShape = false;
@@ -809,9 +809,9 @@ namespace worlds
             ImGui::OpenPopup("Collider JSON");
         }
 
-        const char *extension = ".json";
+        const char* extension = ".json";
         openFileModalOffset(
-            "Collider JSON", [&](const char *p) { actor.physicsShapes = loadColliderJson(p); }, "SourceData/",
+            "Collider JSON", [&](const char* p) { actor.physicsShapes = loadColliderJson(p); }, "SourceData/",
             &extension, 1, "ColliderJsons");
 
         ImGui::Text("Shapes: %zu", actor.physicsShapes.size());
@@ -930,29 +930,29 @@ namespace worlds
     class PhysicsActorEditor : public BasicComponentUtil<PhysicsActor>
     {
       public:
-        const char *getName() override
+        const char* getName() override
         {
             return "Physics Actor";
         }
 
-        void create(entt::entity ent, entt::registry &reg) override
+        void create(entt::entity ent, entt::registry& reg) override
         {
-            auto &t = reg.get<Transform>(ent);
+            auto& t = reg.get<Transform>(ent);
 
             physx::PxTransform pTf(glm2px(t.position), glm2px(t.rotation));
-            auto *actor = interfaces->physics->physics()->createRigidStatic(pTf);
+            auto* actor = interfaces->physics->physics()->createRigidStatic(pTf);
             reg.emplace<PhysicsActor>(ent, actor);
             interfaces->physics->scene()->addActor(*actor);
         }
 
-        void clone(entt::entity from, entt::entity to, entt::registry &reg) override
+        void clone(entt::entity from, entt::entity to, entt::registry& reg) override
         {
-            auto &t = reg.get<Transform>(from);
+            auto& t = reg.get<Transform>(from);
 
             physx::PxTransform pTf(glm2px(t.position), glm2px(t.rotation));
-            auto *actor = interfaces->physics->physics()->createRigidStatic(pTf);
+            auto* actor = interfaces->physics->physics()->createRigidStatic(pTf);
 
-            auto &newPhysActor = reg.emplace<PhysicsActor>(to, actor);
+            auto& newPhysActor = reg.emplace<PhysicsActor>(to, actor);
             newPhysActor.physicsShapes = reg.get<PhysicsActor>(from).physicsShapes;
 
             interfaces->physics->scene()->addActor(*actor);
@@ -960,9 +960,9 @@ namespace worlds
             interfaces->physics->updatePhysicsShapes(newPhysActor, t.scale);
         }
 
-        void edit(entt::entity ent, entt::registry &reg, Editor *ed) override
+        void edit(entt::entity ent, entt::registry& reg, Editor* ed) override
         {
-            auto &pa = reg.get<PhysicsActor>(ent);
+            auto& pa = reg.get<PhysicsActor>(ent);
             if (ImGui::CollapsingHeader(ICON_FA_SHAPES u8" Physics Actor"))
             {
                 if (ImGui::Button("Remove##PA"))
@@ -976,7 +976,7 @@ namespace worlds
                         interfaces->physics->updatePhysicsShapes(pa, reg.get<Transform>(ent).scale);
                     }
 
-                    auto &t = reg.get<Transform>(ent);
+                    auto& t = reg.get<Transform>(ent);
                     editPhysicsShapes(pa, t, ed);
                 }
 
@@ -984,12 +984,12 @@ namespace worlds
             }
         }
 
-        void toJson(entt::entity ent, entt::registry &reg, json &j) override
+        void toJson(entt::entity ent, entt::registry& reg, json& j) override
         {
-            auto &pa = reg.get<PhysicsActor>(ent);
+            auto& pa = reg.get<PhysicsActor>(ent);
             json shapeArray;
 
-            for (auto &shape : pa.physicsShapes)
+            for (auto& shape : pa.physicsShapes)
             {
                 json jShape = {{"type", shape.type}, {"position", shape.pos}, {"rotation", shape.rot}};
 
@@ -1020,14 +1020,14 @@ namespace worlds
             j["layer"] = pa.layer;
         }
 
-        void fromJson(entt::entity ent, entt::registry &reg, EntityIDMap &, const json &j) override
+        void fromJson(entt::entity ent, entt::registry& reg, EntityIDMap&, const json& j) override
         {
-            auto *pActor = interfaces->physics->physics()->createRigidStatic(glm2px(reg.get<Transform>(ent)));
+            auto* pActor = interfaces->physics->physics()->createRigidStatic(glm2px(reg.get<Transform>(ent)));
             interfaces->physics->scene()->addActor(*pActor);
 
-            PhysicsActor &pa = reg.emplace<PhysicsActor>(ent, pActor);
+            PhysicsActor& pa = reg.emplace<PhysicsActor>(ent, pActor);
 
-            for (auto &shape : j["shapes"])
+            for (auto& shape : j["shapes"])
             {
                 PhysicsShape ps;
 
@@ -1064,7 +1064,7 @@ namespace worlds
             if (pa.layer == 0)
                 pa.layer = 1;
 
-            auto &t = reg.get<Transform>(ent);
+            auto& t = reg.get<Transform>(ent);
 
             interfaces->physics->updatePhysicsShapes(pa, t.scale);
         }
@@ -1078,17 +1078,17 @@ namespace worlds
             return 1;
         }
 
-        const char *getName() override
+        const char* getName() override
         {
             return "Dynamic Physics Actor";
         }
 
-        void create(entt::entity ent, entt::registry &reg) override
+        void create(entt::entity ent, entt::registry& reg) override
         {
-            auto &t = reg.get<Transform>(ent);
+            auto& t = reg.get<Transform>(ent);
 
             physx::PxTransform pTf(glm2px(t.position), glm2px(t.rotation));
-            auto *actor = interfaces->physics->physics()->createRigidDynamic(pTf);
+            auto* actor = interfaces->physics->physics()->createRigidDynamic(pTf);
             actor->setSolverIterationCounts(32, 6);
             actor->setMaxDepenetrationVelocity(10.0f);
             actor->setMaxAngularVelocity(1000.0f);
@@ -1096,15 +1096,15 @@ namespace worlds
             interfaces->physics->scene()->addActor(*actor);
         }
 
-        void clone(entt::entity from, entt::entity to, entt::registry &reg) override
+        void clone(entt::entity from, entt::entity to, entt::registry& reg) override
         {
-            auto &t = reg.get<Transform>(from);
-            auto &oldDpa = reg.get<RigidBody>(from);
+            auto& t = reg.get<Transform>(from);
+            auto& oldDpa = reg.get<RigidBody>(from);
 
             physx::PxTransform pTf(glm2px(t.position), glm2px(t.rotation));
-            auto *actor = interfaces->physics->physics()->createRigidDynamic(pTf);
+            auto* actor = interfaces->physics->physics()->createRigidDynamic(pTf);
 
-            auto &newPhysActor = reg.emplace<RigidBody>(to, actor);
+            auto& newPhysActor = reg.emplace<RigidBody>(to, actor);
             newPhysActor.mass = oldDpa.mass;
             newPhysActor.actor = actor;
             newPhysActor.physicsShapes = oldDpa.physicsShapes;
@@ -1119,9 +1119,9 @@ namespace worlds
             interfaces->physics->updatePhysicsShapes(newPhysActor, t.scale);
         }
 
-        void edit(entt::entity ent, entt::registry &reg, Editor *ed) override
+        void edit(entt::entity ent, entt::registry& reg, Editor* ed) override
         {
-            auto &pa = reg.get<RigidBody>(ent);
+            auto& pa = reg.get<RigidBody>(ent);
             if (ImGui::CollapsingHeader(ICON_FA_SHAPES u8" Dynamic Physics Actor"))
             {
                 if (ImGui::Button("Remove##DPA"))
@@ -1159,12 +1159,12 @@ namespace worlds
                     ImGui::Checkbox("Enable CCD", &pa.enableCCD);
                     if (ImGui::Button("Update Collisions##DPA"))
                     {
-                        auto &t = reg.get<Transform>(ent);
+                        auto& t = reg.get<Transform>(ent);
                         interfaces->physics->updatePhysicsShapes(pa, t.scale);
                         updateMass(pa);
                     }
 
-                    auto &t = reg.get<Transform>(ent);
+                    auto& t = reg.get<Transform>(ent);
                     editPhysicsShapes(pa, t, ed);
                 }
 
@@ -1172,12 +1172,12 @@ namespace worlds
             }
         }
 
-        void toJson(entt::entity ent, entt::registry &reg, json &j) override
+        void toJson(entt::entity ent, entt::registry& reg, json& j) override
         {
-            auto &pa = reg.get<RigidBody>(ent);
+            auto& pa = reg.get<RigidBody>(ent);
             json shapeArray;
 
-            for (auto &shape : pa.physicsShapes)
+            for (auto& shape : pa.physicsShapes)
             {
                 json jShape = {{"type", shape.type}, {"position", shape.pos}, {"rotation", shape.rot}};
 
@@ -1215,19 +1215,19 @@ namespace worlds
                 j["enabled"] = false;
         }
 
-        void fromJson(entt::entity ent, entt::registry &reg, EntityIDMap &, const json &j) override
+        void fromJson(entt::entity ent, entt::registry& reg, EntityIDMap&, const json& j) override
         {
-            auto *pActor = interfaces->physics->physics()->createRigidDynamic(glm2px(reg.get<Transform>(ent)));
+            auto* pActor = interfaces->physics->physics()->createRigidDynamic(glm2px(reg.get<Transform>(ent)));
             pActor->setSolverIterationCounts(32, 6);
             pActor->setSleepThreshold(0.005f);
             pActor->setMaxDepenetrationVelocity(10.0f);
             pActor->setMaxAngularVelocity(1000.0f);
             interfaces->physics->scene()->addActor(*pActor);
 
-            auto &pa = reg.emplace<RigidBody>(ent, pActor);
+            auto& pa = reg.emplace<RigidBody>(ent, pActor);
             pa.scaleShapes = j.value("scaleShapes", true);
 
-            for (auto &shape : j["shapes"])
+            for (auto& shape : j["shapes"])
             {
                 PhysicsShape ps;
 
@@ -1263,7 +1263,7 @@ namespace worlds
             if (pa.layer == 0)
                 pa.layer = 1;
 
-            auto &t = reg.get<Transform>(ent);
+            auto& t = reg.get<Transform>(ent);
 
             interfaces->physics->updatePhysicsShapes(pa, t.scale);
             pa.mass = j["mass"];
@@ -1287,14 +1287,14 @@ namespace worlds
             return -2;
         }
 
-        const char *getName() override
+        const char* getName() override
         {
             return "Name Component";
         }
 
-        void edit(entt::entity ent, entt::registry &registry, Editor *ed) override
+        void edit(entt::entity ent, entt::registry& registry, Editor* ed) override
         {
-            auto &nc = registry.get<NameComponent>(ent);
+            auto& nc = registry.get<NameComponent>(ent);
 
             ImGui::InputText("Name", &nc.name);
             ImGui::SameLine();
@@ -1305,15 +1305,15 @@ namespace worlds
             ImGui::Separator();
         }
 
-        void toJson(entt::entity ent, entt::registry &reg, json &j) override
+        void toJson(entt::entity ent, entt::registry& reg, json& j) override
         {
-            auto &nc = reg.get<NameComponent>(ent);
+            auto& nc = reg.get<NameComponent>(ent);
             j = {{"name", nc.name}};
         }
 
-        void fromJson(entt::entity ent, entt::registry &reg, EntityIDMap &, const json &j) override
+        void fromJson(entt::entity ent, entt::registry& reg, EntityIDMap&, const json& j) override
         {
-            auto &nc = reg.emplace<NameComponent>(ent);
+            auto& nc = reg.emplace<NameComponent>(ent);
             nc.name = j["name"];
         }
     };
@@ -1321,19 +1321,19 @@ namespace worlds
     class AudioSourceEditor : public BasicComponentUtil<OldAudioSource>
     {
       public:
-        const char *getName() override
+        const char* getName() override
         {
             return "Audio Source";
         }
 
-        void create(entt::entity ent, entt::registry &reg) override
+        void create(entt::entity ent, entt::registry& reg) override
         {
             reg.emplace<OldAudioSource>(ent, AssetDB::pathToId("Audio/SFX/dlgsound.ogg"));
         }
 
-        void edit(entt::entity ent, entt::registry &registry, Editor *ed) override
+        void edit(entt::entity ent, entt::registry& registry, Editor* ed) override
         {
-            auto &as = registry.get<OldAudioSource>(ent);
+            auto& as = registry.get<OldAudioSource>(ent);
 
             if (ImGui::CollapsingHeader(ICON_FAD_SPEAKER u8" Audio Source"))
             {
@@ -1358,19 +1358,19 @@ namespace worlds
             }
         }
 
-        void toJson(entt::entity ent, entt::registry &reg, json &j) override
+        void toJson(entt::entity ent, entt::registry& reg, json& j) override
         {
-            auto &as = reg.get<OldAudioSource>(ent);
+            auto& as = reg.get<OldAudioSource>(ent);
 
             j = {{"clipPath", AssetDB::idToPath(as.clipId)}, {"channel", as.channel},       {"loop", as.loop},
                  {"playOnSceneOpen", as.playOnSceneOpen},    {"spatialise", as.spatialise}, {"volume", as.volume}};
         }
 
-        void fromJson(entt::entity ent, entt::registry &reg, EntityIDMap &, const json &j) override
+        void fromJson(entt::entity ent, entt::registry& reg, EntityIDMap&, const json& j) override
         {
             std::string clipPath = j["clipPath"];
             AssetID id = AssetDB::pathToId(clipPath);
-            auto &as = reg.emplace<OldAudioSource>(ent, id);
+            auto& as = reg.emplace<OldAudioSource>(ent, id);
 
             as.channel = j["channel"];
             as.loop = j["loop"];
@@ -1383,19 +1383,19 @@ namespace worlds
     class FMODAudioSourceEditor : public BasicComponentUtil<AudioSource>
     {
       public:
-        const char *getName() override
+        const char* getName() override
         {
             return "FMOD Audio Source";
         }
 
-        void create(entt::entity ent, entt::registry &reg) override
+        void create(entt::entity ent, entt::registry& reg) override
         {
             reg.emplace<AudioSource>(ent);
         }
 
-        void edit(entt::entity ent, entt::registry &registry, Editor *ed) override
+        void edit(entt::entity ent, entt::registry& registry, Editor* ed) override
         {
-            auto &as = registry.get<AudioSource>(ent);
+            auto& as = registry.get<AudioSource>(ent);
 
             if (ImGui::CollapsingHeader(ICON_FAD_SPEAKER u8" Audio Source"))
             {
@@ -1441,18 +1441,18 @@ namespace worlds
             }
         }
 
-        void toJson(entt::entity ent, entt::registry &reg, json &j) override
+        void toJson(entt::entity ent, entt::registry& reg, json& j) override
         {
-            auto &as = reg.get<AudioSource>(ent);
+            auto& as = reg.get<AudioSource>(ent);
             std::string evtPath;
             evtPath.assign(as.eventPath());
 
             j = {{"eventPath", evtPath}, {"playOnSceneStart", as.playOnSceneStart}};
         }
 
-        void fromJson(entt::entity ent, entt::registry &reg, EntityIDMap &, const json &j) override
+        void fromJson(entt::entity ent, entt::registry& reg, EntityIDMap&, const json& j) override
         {
-            auto &as = reg.emplace<AudioSource>(ent);
+            auto& as = reg.emplace<AudioSource>(ent);
             as.changeEventPath(j["eventPath"].get<std::string>());
             as.playOnSceneStart = j["playOnSceneStart"];
         }
@@ -1461,22 +1461,22 @@ namespace worlds
     class WorldCubemapEditor : public BasicComponentUtil<WorldCubemap>
     {
       public:
-        const char *getName() override
+        const char* getName() override
         {
             return "World Cubemap";
         }
 
-        void create(entt::entity ent, entt::registry &reg) override
+        void create(entt::entity ent, entt::registry& reg) override
         {
-            auto &wc = reg.emplace<WorldCubemap>(ent);
+            auto& wc = reg.emplace<WorldCubemap>(ent);
 
             wc.cubemapId = AssetDB::pathToId("envmap_miramar/miramar.json");
             wc.extent = glm::vec3{1.0f};
         }
 
-        void edit(entt::entity ent, entt::registry &reg, Editor *ed) override
+        void edit(entt::entity ent, entt::registry& reg, Editor* ed) override
         {
-            auto &wc = reg.get<WorldCubemap>(ent);
+            auto& wc = reg.get<WorldCubemap>(ent);
             wc.cubemapId = AssetDB::pathToId("LevelData/Cubemaps/" + reg.ctx<SceneInfo>().name + "/" +
                                              reg.get<NameComponent>(ent).name + ".json");
 
@@ -1502,9 +1502,9 @@ namespace worlds
             }
         }
 
-        void toJson(entt::entity ent, entt::registry &reg, json &j) override
+        void toJson(entt::entity ent, entt::registry& reg, json& j) override
         {
-            auto &wc = reg.get<WorldCubemap>(ent);
+            auto& wc = reg.get<WorldCubemap>(ent);
 
             j = {{"useCubeParallax", wc.cubeParallax},
                  {"extent", wc.extent},
@@ -1513,9 +1513,9 @@ namespace worlds
                  {"captureOffset", wc.captureOffset}};
         }
 
-        void fromJson(entt::entity ent, entt::registry &reg, EntityIDMap &, const json &j) override
+        void fromJson(entt::entity ent, entt::registry& reg, EntityIDMap&, const json& j) override
         {
-            auto &wc = reg.emplace<WorldCubemap>(ent);
+            auto& wc = reg.emplace<WorldCubemap>(ent);
 
             wc.cubemapId = AssetDB::pathToId("LevelData/Cubemaps/" + reg.ctx<SceneInfo>().name + "/" +
                                              reg.get<NameComponent>(ent).name + ".json");
@@ -1530,19 +1530,19 @@ namespace worlds
     class ScriptComponentEditor : public BasicComponentUtil<ScriptComponent>
     {
       public:
-        const char *getName() override
+        const char* getName() override
         {
             return "Script";
         }
 
-        void create(entt::entity ent, entt::registry &reg) override
+        void create(entt::entity ent, entt::registry& reg) override
         {
             reg.emplace<ScriptComponent>(ent, AssetDB::pathToId("Scripts/nothing.wren"));
         }
 
-        void edit(entt::entity ent, entt::registry &reg, Editor *ed) override
+        void edit(entt::entity ent, entt::registry& reg, Editor* ed) override
         {
-            auto &sc = reg.get<ScriptComponent>(ent);
+            auto& sc = reg.get<ScriptComponent>(ent);
 
             if (ImGui::CollapsingHeader(ICON_FA_SCROLL u8" Script"))
             {
@@ -1556,20 +1556,20 @@ namespace worlds
                     AssetID id = sc.script;
                     if (selectAssetPopup("Script Path", id, ImGui::Button("Change")))
                     {
-                        reg.patch<ScriptComponent>(ent, [&](ScriptComponent &sc) { sc.script = id; });
+                        reg.patch<ScriptComponent>(ent, [&](ScriptComponent& sc) { sc.script = id; });
                     }
                     ImGui::Separator();
                 }
             }
         }
 
-        void toJson(entt::entity ent, entt::registry &reg, json &j) override
+        void toJson(entt::entity ent, entt::registry& reg, json& j) override
         {
-            auto &sc = reg.get<ScriptComponent>(ent);
+            auto& sc = reg.get<ScriptComponent>(ent);
             j = {{"path", AssetDB::idToPath(sc.script)}};
         }
 
-        void fromJson(entt::entity ent, entt::registry &reg, EntityIDMap &, const json &j) override
+        void fromJson(entt::entity ent, entt::registry& reg, EntityIDMap&, const json& j) override
         {
             std::string path = j["path"];
             AssetID scriptID = AssetDB::pathToId(path);
@@ -1580,12 +1580,12 @@ namespace worlds
     class ReverbProbeBoxEditor : public BasicComponentUtil<ReverbProbeBox>
     {
       public:
-        const char *getName() override
+        const char* getName() override
         {
             return "Reverb Probe Box";
         }
 
-        void edit(entt::entity ent, entt::registry &reg, Editor *ed) override
+        void edit(entt::entity ent, entt::registry& reg, Editor* ed) override
         {
             if (ImGui::CollapsingHeader("Reverb Probe Box"))
             {
@@ -1593,12 +1593,12 @@ namespace worlds
             }
         }
 
-        void toJson(entt::entity ent, entt::registry &reg, json &j) override
+        void toJson(entt::entity ent, entt::registry& reg, json& j) override
         {
             j = {};
         }
 
-        void fromJson(entt::entity ent, entt::registry &reg, EntityIDMap &, const json &j) override
+        void fromJson(entt::entity ent, entt::registry& reg, EntityIDMap&, const json& j) override
         {
             reg.emplace<ReverbProbeBox>(ent);
         }
@@ -1607,14 +1607,14 @@ namespace worlds
     class AudioTriggerEditor : public BasicComponentUtil<AudioTrigger>
     {
       public:
-        const char *getName() override
+        const char* getName() override
         {
             return "Audio Trigger";
         }
 
-        void edit(entt::entity ent, entt::registry &reg, Editor *ed) override
+        void edit(entt::entity ent, entt::registry& reg, Editor* ed) override
         {
-            auto &trigger = reg.get<AudioTrigger>(ent);
+            auto& trigger = reg.get<AudioTrigger>(ent);
 
             if (ImGui::CollapsingHeader("Audio Trigger"))
             {
@@ -1629,16 +1629,16 @@ namespace worlds
             }
         }
 
-        void toJson(entt::entity ent, entt::registry &reg, json &j) override
+        void toJson(entt::entity ent, entt::registry& reg, json& j) override
         {
-            auto &at = reg.get<AudioTrigger>(ent);
+            auto& at = reg.get<AudioTrigger>(ent);
 
             j = {{"playOnce", at.playOnce}};
         }
 
-        void fromJson(entt::entity ent, entt::registry &reg, EntityIDMap &, const json &j) override
+        void fromJson(entt::entity ent, entt::registry& reg, EntityIDMap&, const json& j) override
         {
-            auto &at = reg.emplace<AudioTrigger>(ent);
+            auto& at = reg.emplace<AudioTrigger>(ent);
 
             at.playOnce = j["playOnce"];
         }
@@ -1647,14 +1647,14 @@ namespace worlds
     class ProxyAOEditor : public BasicComponentUtil<ProxyAOComponent>
     {
       public:
-        const char *getName() override
+        const char* getName() override
         {
             return "AO Proxy";
         }
 
-        void edit(entt::entity ent, entt::registry &reg, Editor *ed) override
+        void edit(entt::entity ent, entt::registry& reg, Editor* ed) override
         {
-            auto &pac = reg.get<ProxyAOComponent>(ent);
+            auto& pac = reg.get<ProxyAOComponent>(ent);
 
             if (ImGui::CollapsingHeader("AO Proxy"))
             {
@@ -1668,16 +1668,16 @@ namespace worlds
             }
         }
 
-        void toJson(entt::entity ent, entt::registry &reg, json &j) override
+        void toJson(entt::entity ent, entt::registry& reg, json& j) override
         {
-            auto &pac = reg.get<ProxyAOComponent>(ent);
+            auto& pac = reg.get<ProxyAOComponent>(ent);
 
             j = {{"bounds", pac.bounds}};
         }
 
-        void fromJson(entt::entity ent, entt::registry &reg, EntityIDMap &, const json &j) override
+        void fromJson(entt::entity ent, entt::registry& reg, EntityIDMap&, const json& j) override
         {
-            auto &pac = reg.emplace<ProxyAOComponent>(ent);
+            auto& pac = reg.emplace<ProxyAOComponent>(ent);
 
             pac.bounds = j["bounds"];
         }
@@ -1686,14 +1686,14 @@ namespace worlds
     class WorldTextComponentEditor : public BasicComponentUtil<WorldTextComponent>
     {
       public:
-        const char *getName() override
+        const char* getName() override
         {
             return "World Text Component";
         }
 
-        void edit(entt::entity ent, entt::registry &reg, Editor *ed) override
+        void edit(entt::entity ent, entt::registry& reg, Editor* ed) override
         {
-            auto &wtc = reg.get<WorldTextComponent>(ent);
+            auto& wtc = reg.get<WorldTextComponent>(ent);
 
             if (ImGui::CollapsingHeader("World Text Component"))
             {
@@ -1716,9 +1716,9 @@ namespace worlds
             }
         }
 
-        void toJson(entt::entity ent, entt::registry &reg, json &j) override
+        void toJson(entt::entity ent, entt::registry& reg, json& j) override
         {
-            auto &wtc = reg.get<WorldTextComponent>(ent);
+            auto& wtc = reg.get<WorldTextComponent>(ent);
 
             j = {{"text", wtc.text}, {"textScale", wtc.textScale}};
 
@@ -1726,9 +1726,9 @@ namespace worlds
                 j["font"] = AssetDB::idToPath(wtc.font);
         }
 
-        void fromJson(entt::entity ent, entt::registry &reg, EntityIDMap &, const json &j) override
+        void fromJson(entt::entity ent, entt::registry& reg, EntityIDMap&, const json& j) override
         {
-            auto &wtc = reg.emplace<WorldTextComponent>(ent);
+            auto& wtc = reg.emplace<WorldTextComponent>(ent);
 
             wtc.text = j["text"];
             wtc.textScale = j["textScale"];
@@ -1741,14 +1741,14 @@ namespace worlds
     class PrefabInstanceEditor : public BasicComponentUtil<PrefabInstanceComponent>
     {
       public:
-        const char *getName() override
+        const char* getName() override
         {
             return "Prefab Instance";
         }
 
-        void edit(entt::entity ent, entt::registry &reg, Editor *ed) override
+        void edit(entt::entity ent, entt::registry& reg, Editor* ed) override
         {
-            auto &pic = reg.get<PrefabInstanceComponent>(ent);
+            auto& pic = reg.get<PrefabInstanceComponent>(ent);
 
             if (ImGui::CollapsingHeader("Prefab Instance"))
             {
@@ -1767,7 +1767,7 @@ namespace worlds
                     {
                         path = "SourceData/" + path;
                     }
-                    PHYSFS_File *file = PHYSFS_openWrite(path.c_str());
+                    PHYSFS_File* file = PHYSFS_openWrite(path.c_str());
                     JsonSceneSerializer::saveEntity(file, reg, ent);
                     PHYSFS_close(file);
                 }
@@ -1776,12 +1776,12 @@ namespace worlds
             }
         }
 
-        void toJson(entt::entity ent, entt::registry &reg, json &j) override
+        void toJson(entt::entity ent, entt::registry& reg, json& j) override
         {
             j = nullptr;
         }
 
-        void fromJson(entt::entity ent, entt::registry &reg, EntityIDMap &, const json &j) override
+        void fromJson(entt::entity ent, entt::registry& reg, EntityIDMap&, const json& j) override
         {
         }
     };
@@ -1789,14 +1789,14 @@ namespace worlds
     class SphereAOProxyEditor : public BasicComponentUtil<SphereAOProxy>
     {
       public:
-        const char *getName() override
+        const char* getName() override
         {
             return "Sphere AO Proxy";
         }
 
-        void edit(entt::entity entity, entt::registry &reg, Editor *ed) override
+        void edit(entt::entity entity, entt::registry& reg, Editor* ed) override
         {
-            auto &proxy = reg.get<SphereAOProxy>(entity);
+            auto& proxy = reg.get<SphereAOProxy>(entity);
 
             if (ImGui::CollapsingHeader("Sphere AO Proxy"))
             {
@@ -1810,16 +1810,16 @@ namespace worlds
             }
         }
 
-        void toJson(entt::entity ent, entt::registry &reg, json &j) override
+        void toJson(entt::entity ent, entt::registry& reg, json& j) override
         {
-            auto &proxy = reg.get<SphereAOProxy>(ent);
+            auto& proxy = reg.get<SphereAOProxy>(ent);
 
             j = {{"radius", proxy.radius}};
         }
 
-        void fromJson(entt::entity ent, entt::registry &reg, EntityIDMap &, const json &j) override
+        void fromJson(entt::entity ent, entt::registry& reg, EntityIDMap&, const json& j) override
         {
-            auto &proxy = reg.emplace<SphereAOProxy>(ent);
+            auto& proxy = reg.emplace<SphereAOProxy>(ent);
 
             proxy.radius = j["radius"];
         }
@@ -1828,14 +1828,14 @@ namespace worlds
     class EditorLabelEditor : public BasicComponentUtil<EditorLabel>
     {
       public:
-        const char *getName() override
+        const char* getName() override
         {
             return "Editor Label";
         }
 
-        void edit(entt::entity entity, entt::registry &reg, Editor *ed) override
+        void edit(entt::entity entity, entt::registry& reg, Editor* ed) override
         {
-            auto &label = reg.get<EditorLabel>(entity);
+            auto& label = reg.get<EditorLabel>(entity);
 
             if (ImGui::CollapsingHeader("Editor Label"))
             {
@@ -1849,16 +1849,16 @@ namespace worlds
             }
         }
 
-        void toJson(entt::entity ent, entt::registry &reg, json &j) override
+        void toJson(entt::entity ent, entt::registry& reg, json& j) override
         {
-            auto &label = reg.get<EditorLabel>(ent);
+            auto& label = reg.get<EditorLabel>(ent);
 
             j = {{"label", label.label}};
         }
 
-        void fromJson(entt::entity ent, entt::registry &reg, EntityIDMap &, const json &j) override
+        void fromJson(entt::entity ent, entt::registry& reg, EntityIDMap&, const json& j) override
         {
-            auto &label = reg.emplace<EditorLabel>(ent);
+            auto& label = reg.emplace<EditorLabel>(ent);
 
             label.label = j["label"];
         }
@@ -1867,12 +1867,12 @@ namespace worlds
     class AudioListenerOverrideEditor : public BasicComponentUtil<AudioListenerOverride>
     {
       public:
-        const char *getName() override
+        const char* getName() override
         {
             return "AudioListenerOverride";
         }
 
-        void edit(entt::entity entity, entt::registry &reg, Editor *ed) override
+        void edit(entt::entity entity, entt::registry& reg, Editor* ed) override
         {
             if (ImGui::CollapsingHeader("AudioListenerOverride"))
             {
@@ -1884,12 +1884,12 @@ namespace worlds
             }
         }
 
-        void toJson(entt::entity ent, entt::registry &reg, json &j) override
+        void toJson(entt::entity ent, entt::registry& reg, json& j) override
         {
             j = {};
         }
 
-        void fromJson(entt::entity ent, entt::registry &reg, EntityIDMap &, const json &j) override
+        void fromJson(entt::entity ent, entt::registry& reg, EntityIDMap&, const json& j) override
         {
             reg.emplace<AudioListenerOverride>(ent);
         }
@@ -1898,12 +1898,12 @@ namespace worlds
     class ChildComponentEditor : public BasicComponentUtil<ChildComponent>
     {
       public:
-        const char *getName() override
+        const char* getName() override
         {
             return "ChildComponent";
         }
 
-        void create(entt::entity ent, entt::registry &reg) override
+        void create(entt::entity ent, entt::registry& reg) override
         {
             reg.emplace<ChildComponent>(ent);
         }
@@ -1913,7 +1913,7 @@ namespace worlds
             return false;
         }
 
-        void edit(entt::entity entity, entt::registry &reg, Editor *ed) override
+        void edit(entt::entity entity, entt::registry& reg, Editor* ed) override
         {
             static bool changingTarget = false;
 
@@ -1925,7 +1925,7 @@ namespace worlds
                     return;
                 }
 
-                ChildComponent &cc = reg.get<ChildComponent>(entity);
+                ChildComponent& cc = reg.get<ChildComponent>(entity);
 
                 if (!changingTarget)
                 {
@@ -1949,9 +1949,9 @@ namespace worlds
             }
         }
 
-        void toJson(entt::entity ent, entt::registry &reg, json &j) override
+        void toJson(entt::entity ent, entt::registry& reg, json& j) override
         {
-            ChildComponent &c = reg.get<ChildComponent>(ent);
+            ChildComponent& c = reg.get<ChildComponent>(ent);
 
             j = {{"parent", (uint32_t)c.parent},
                  {"position", c.offset.position},
@@ -1959,13 +1959,13 @@ namespace worlds
                  {"scale", c.offset.scale}};
         }
 
-        void fromJson(entt::entity ent, entt::registry &reg, EntityIDMap &idMap, const json &j) override
+        void fromJson(entt::entity ent, entt::registry& reg, EntityIDMap& idMap, const json& j) override
         {
             if (!j.is_object())
                 return;
             HierarchyUtil::setEntityParent(reg, ent, (entt::entity)idMap[j["parent"]]);
 
-            auto &c = reg.get<ChildComponent>(ent);
+            auto& c = reg.get<ChildComponent>(ent);
             c.offset.position = j.value("position", glm::vec3(0.0f));
             c.offset.rotation = j.value("rotation", glm::quat{1.0f, 0.0f, 0.0f, 0.0f});
             c.offset.scale = j.value("scale", glm::vec3(1.0f));

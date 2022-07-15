@@ -9,19 +9,19 @@ namespace worlds
     {
       private:
         template <typename = typename std::is_default_constructible<T>::type>
-        void createInternal(entt::entity ent, entt::registry &reg)
+        void createInternal(entt::entity ent, entt::registry& reg)
         {
             reg.emplace<T>(ent);
         }
 
         template <typename = typename std::is_copy_constructible<T>::type>
-        void cloneInternal(entt::entity from, entt::entity to, entt::registry &reg)
+        void cloneInternal(entt::entity from, entt::entity to, entt::registry& reg)
         {
             reg.emplace<T>(to, reg.get<T>(from));
         }
 
       public:
-        void create(entt::entity ent, entt::registry &reg) override
+        void create(entt::entity ent, entt::registry& reg) override
         {
             if constexpr (std::is_default_constructible<T>::value)
             {
@@ -33,12 +33,12 @@ namespace worlds
             }
         }
 
-        void destroy(entt::entity ent, entt::registry &reg) override
+        void destroy(entt::entity ent, entt::registry& reg) override
         {
             reg.remove_if_exists<T>(ent);
         }
 
-        void clone(entt::entity from, entt::entity to, entt::registry &r) override
+        void clone(entt::entity from, entt::entity to, entt::registry& r) override
         {
             if constexpr (std::is_copy_constructible<T>::value && !std::is_empty<T>::value)
                 cloneInternal(from, to, r);

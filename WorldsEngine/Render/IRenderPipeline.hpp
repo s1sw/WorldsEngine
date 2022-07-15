@@ -13,9 +13,9 @@ namespace worlds
     class IRenderPipeline
     {
       public:
-        virtual void setup(VKRTTPass *rttPass) = 0;
+        virtual void setup(VKRTTPass* rttPass) = 0;
         virtual void onResize(int width, int height) = 0;
-        virtual void draw(entt::registry &reg, R2::VK::CommandBuffer &cb) = 0;
+        virtual void draw(entt::registry& reg, R2::VK::CommandBuffer& cb) = 0;
         virtual ~IRenderPipeline() = default;
     };
 }

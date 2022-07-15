@@ -13,8 +13,8 @@ namespace PhysFS
     class fbuf : public streambuf
     {
       private:
-        fbuf(const fbuf &other);
-        fbuf &operator=(const fbuf &other);
+        fbuf(const fbuf& other);
+        fbuf& operator=(const fbuf& other);
 
         int_type underflow()
         {
@@ -99,17 +99,17 @@ namespace PhysFS
             return overflow();
         }
 
-        char *buffer;
+        char* buffer;
         size_t const bufferSize;
 
       protected:
-        PHYSFS_File *const file;
+        PHYSFS_File* const file;
 
       public:
-        fbuf(PHYSFS_File *file, std::size_t bufferSize = 2048) : bufferSize(bufferSize), file(file)
+        fbuf(PHYSFS_File* file, std::size_t bufferSize = 2048) : bufferSize(bufferSize), file(file)
         {
             buffer = new char[bufferSize];
-            char *end = buffer + bufferSize;
+            char* end = buffer + bufferSize;
             setg(end, end, end);
             setp(buffer, end);
         }
@@ -121,7 +121,7 @@ namespace PhysFS
         }
     };
 
-    base_fstream::base_fstream(PHYSFS_File *file) : file(file)
+    base_fstream::base_fstream(PHYSFS_File* file) : file(file)
     {
         if (file == NULL)
         {
@@ -139,9 +139,9 @@ namespace PhysFS
         return PHYSFS_fileLength(file);
     }
 
-    PHYSFS_File *openWithMode(char const *filename, mode openMode)
+    PHYSFS_File* openWithMode(char const* filename, mode openMode)
     {
-        PHYSFS_File *file = NULL;
+        PHYSFS_File* file = NULL;
         switch (openMode)
         {
         case WRITE:
@@ -160,12 +160,12 @@ namespace PhysFS
         return file;
     }
 
-    ifstream::ifstream(const string &filename)
+    ifstream::ifstream(const string& filename)
         : base_fstream(openWithMode(filename.c_str(), READ)), std::istream(new fbuf(file))
     {
     }
 
-    ifstream::ifstream(PHYSFS_File *filePtr) : base_fstream(filePtr), std::istream(new fbuf(file))
+    ifstream::ifstream(PHYSFS_File* filePtr) : base_fstream(filePtr), std::istream(new fbuf(file))
     {
     }
 
@@ -174,7 +174,7 @@ namespace PhysFS
         delete rdbuf();
     }
 
-    ofstream::ofstream(const string &filename, mode writeMode)
+    ofstream::ofstream(const string& filename, mode writeMode)
         : base_fstream(openWithMode(filename.c_str(), writeMode)), std::ostream(new fbuf(file))
     {
     }
@@ -184,7 +184,7 @@ namespace PhysFS
         delete rdbuf();
     }
 
-    fstream::fstream(const string &filename, mode openMode)
+    fstream::fstream(const string& filename, mode openMode)
         : base_fstream(openWithMode(filename.c_str(), openMode)), std::iostream(new fbuf(file))
     {
     }
@@ -201,7 +201,7 @@ namespace PhysFS
         return version;
     }
 
-    void init(const char *argv0)
+    void init(const char* argv0)
     {
         PHYSFS_init(argv0);
     }
@@ -214,7 +214,7 @@ namespace PhysFS
     ArchiveInfoList supportedArchiveTypes()
     {
         ArchiveInfoList list;
-        for (const ArchiveInfo **archiveType = PHYSFS_supportedArchiveTypes(); *archiveType != NULL; archiveType++)
+        for (const ArchiveInfo** archiveType = PHYSFS_supportedArchiveTypes(); *archiveType != NULL; archiveType++)
         {
             list.push_back(**archiveType);
         }
@@ -234,8 +234,8 @@ namespace PhysFS
     StringList getCdRomDirs()
     {
         StringList dirs;
-        char **dirBegin = PHYSFS_getCdRomDirs();
-        for (char **dir = dirBegin; *dir != NULL; dir++)
+        char** dirBegin = PHYSFS_getCdRomDirs();
+        for (char** dir = dirBegin; *dir != NULL; dir++)
         {
             dirs.push_back(*dir);
         }
@@ -243,7 +243,7 @@ namespace PhysFS
         return dirs;
     }
 
-    void getCdRomDirs(StringCallback callback, void *extra)
+    void getCdRomDirs(StringCallback callback, void* extra)
     {
         PHYSFS_getCdRomDirsCallback(callback, extra);
     }
@@ -263,12 +263,12 @@ namespace PhysFS
         return PHYSFS_getWriteDir();
     }
 
-    void setWriteDir(const string &newDir)
+    void setWriteDir(const string& newDir)
     {
         PHYSFS_setWriteDir(newDir.c_str());
     }
 
-    [[deprecated]] void removeFromSearchPath(const string &oldDir)
+    [[deprecated]] void removeFromSearchPath(const string& oldDir)
     {
         PHYSFS_removeFromSearchPath(oldDir.c_str());
     }
@@ -276,8 +276,8 @@ namespace PhysFS
     StringList getSearchPath()
     {
         StringList pathList;
-        char **pathBegin = PHYSFS_getSearchPath();
-        for (char **path = pathBegin; *path != NULL; path++)
+        char** pathBegin = PHYSFS_getSearchPath();
+        for (char** path = pathBegin; *path != NULL; path++)
         {
             pathList.push_back(*path);
         }
@@ -285,37 +285,37 @@ namespace PhysFS
         return pathList;
     }
 
-    void getSearchPath(StringCallback callback, void *extra)
+    void getSearchPath(StringCallback callback, void* extra)
     {
         PHYSFS_getSearchPathCallback(callback, extra);
     }
 
-    void setSaneConfig(const string &orgName, const string &appName, const string &archiveExt, bool includeCdRoms,
+    void setSaneConfig(const string& orgName, const string& appName, const string& archiveExt, bool includeCdRoms,
                        bool archivesFirst)
     {
         PHYSFS_setSaneConfig(orgName.c_str(), appName.c_str(), archiveExt.c_str(), includeCdRoms, archivesFirst);
     }
 
-    void mkdir(const string &dirName)
+    void mkdir(const string& dirName)
     {
         PHYSFS_mkdir(dirName.c_str());
     }
 
-    void deleteFile(const string &filename)
+    void deleteFile(const string& filename)
     {
         PHYSFS_delete(filename.c_str());
     }
 
-    string getRealDir(const string &filename)
+    string getRealDir(const string& filename)
     {
         return PHYSFS_getRealDir(filename.c_str());
     }
 
-    StringList enumerateFiles(const string &directory)
+    StringList enumerateFiles(const string& directory)
     {
         StringList files;
-        char **listBegin = PHYSFS_enumerateFiles(directory.c_str());
-        for (char **file = listBegin; *file != NULL; file++)
+        char** listBegin = PHYSFS_enumerateFiles(directory.c_str());
+        for (char** file = listBegin; *file != NULL; file++)
         {
             files.push_back(*file);
         }
@@ -323,27 +323,27 @@ namespace PhysFS
         return files;
     }
 
-    [[deprecated]] void enumerateFiles(const string &directory, EnumFilesCallback callback, void *extra)
+    [[deprecated]] void enumerateFiles(const string& directory, EnumFilesCallback callback, void* extra)
     {
         PHYSFS_enumerateFilesCallback(directory.c_str(), callback, extra);
     }
 
-    bool exists(const string &filename)
+    bool exists(const string& filename)
     {
         return PHYSFS_exists(filename.c_str());
     }
 
-    [[deprecated]] bool isDirectory(const string &filename)
+    [[deprecated]] bool isDirectory(const string& filename)
     {
         return PHYSFS_isDirectory(filename.c_str());
     }
 
-    [[deprecated]] bool isSymbolicLink(const string &filename)
+    [[deprecated]] bool isSymbolicLink(const string& filename)
     {
         return PHYSFS_isSymbolicLink(filename.c_str());
     }
 
-    [[deprecated]] sint64 getLastModTime(const string &filename)
+    [[deprecated]] sint64 getLastModTime(const string& filename)
     {
         return PHYSFS_getLastModTime(filename.c_str());
     }
@@ -358,17 +358,17 @@ namespace PhysFS
         return PHYSFS_symbolicLinksPermitted();
     }
 
-    void setAllocator(const Allocator *allocator)
+    void setAllocator(const Allocator* allocator)
     {
         PHYSFS_setAllocator(allocator);
     }
 
-    void mount(const string &newDir, const string &mountPoint, bool appendToPath)
+    void mount(const string& newDir, const string& mountPoint, bool appendToPath)
     {
         PHYSFS_mount(newDir.c_str(), mountPoint.c_str(), appendToPath);
     }
 
-    string getMountPoint(const string &dir)
+    string getMountPoint(const string& dir)
     {
         return PHYSFS_getMountPoint(dir.c_str());
     }
@@ -433,51 +433,51 @@ namespace PhysFS
         return PHYSFS_swapUBE64(value);
     }
 
-    string Util::utf8FromUcs4(const uint32 *src)
+    string Util::utf8FromUcs4(const uint32* src)
     {
         string value;
-        std::size_t length = strlen((char *)src);
-        char *buffer = new char[length]; // will be smaller than len
+        std::size_t length = strlen((char*)src);
+        char* buffer = new char[length]; // will be smaller than len
         PHYSFS_utf8FromUcs4(src, buffer, length);
         value.append(buffer);
         return value;
     }
 
-    string Util::utf8ToUcs4(const char *src)
+    string Util::utf8ToUcs4(const char* src)
     {
         string value;
         std::size_t length = strlen(src) * 4;
-        char *buffer = new char[length]; // will be smaller than len
-        PHYSFS_utf8ToUcs4(src, (uint32 *)buffer, length);
+        char* buffer = new char[length]; // will be smaller than len
+        PHYSFS_utf8ToUcs4(src, (uint32*)buffer, length);
         value.append(buffer);
         return value;
     }
 
-    string Util::utf8FromUcs2(const uint16 *src)
+    string Util::utf8FromUcs2(const uint16* src)
     {
         string value;
-        std::size_t length = strlen((char *)src);
-        char *buffer = new char[length]; // will be smaller than len
+        std::size_t length = strlen((char*)src);
+        char* buffer = new char[length]; // will be smaller than len
         PHYSFS_utf8FromUcs2(src, buffer, length);
         value.append(buffer);
         return value;
     }
 
-    string Util::utf8ToUcs2(const char *src)
+    string Util::utf8ToUcs2(const char* src)
     {
         string value;
         std::size_t length = strlen(src) * 2;
-        char *buffer = new char[length]; // will be smaller than len
-        PHYSFS_utf8ToUcs2(src, (uint16 *)buffer, length);
+        char* buffer = new char[length]; // will be smaller than len
+        PHYSFS_utf8ToUcs2(src, (uint16*)buffer, length);
         value.append(buffer);
         return value;
     }
 
-    string Util::utf8FromLatin1(const char *src)
+    string Util::utf8FromLatin1(const char* src)
     {
         string value;
-        std::size_t length = strlen((char *)src) * 2;
-        char *buffer = new char[length]; // will be smaller than len
+        std::size_t length = strlen((char*)src) * 2;
+        char* buffer = new char[length]; // will be smaller than len
         PHYSFS_utf8FromLatin1(src, buffer, length);
         value.append(buffer);
         return value;

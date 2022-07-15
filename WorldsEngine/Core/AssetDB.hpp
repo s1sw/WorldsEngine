@@ -14,8 +14,8 @@ namespace worlds
       public:
         static void load();
         static void save();
-        static PHYSFS_File *openAssetFileRead(AssetID id);
-        static PHYSFS_File *openAssetFileWrite(AssetID id);
+        static PHYSFS_File* openAssetFileRead(AssetID id);
+        static PHYSFS_File* openAssetFileWrite(AssetID id);
 
         static AssetID createAsset(std::string_view path);
         static std::string getAssetExtension(AssetID id);

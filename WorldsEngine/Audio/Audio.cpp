@@ -31,7 +31,7 @@ const bool BREAK_ON_ERR = false;
 
 namespace worlds
 {
-    void checkFmodErr(FMOD_RESULT result, const char *file, int line)
+    void checkFmodErr(FMOD_RESULT result, const char* file, int line)
     {
         if (result != FMOD_OK)
         {
@@ -50,11 +50,11 @@ namespace worlds
     }
 
 #ifdef ENABLE_STEAM_AUDIO
-    void checkSteamAudioErr(IPLerror result, const char *file, int line)
+    void checkSteamAudioErr(IPLerror result, const char* file, int line)
     {
         if (result != IPLerror::IPL_STATUS_SUCCESS)
         {
-            const char *iplErrs[] = {"The operation completed successfully.", "An unspecified error occurred.",
+            const char* iplErrs[] = {"The operation completed successfully.", "An unspecified error occurred.",
                                      "The system ran out of memory."
                                      "An error occurred while initializing an external dependency."};
 
@@ -80,9 +80,9 @@ namespace worlds
         }
     }
 
-    FMOD_RESULT F_CALL fileOpenCallback(const char *name, unsigned int *filesize, void **handle, void *userdata)
+    FMOD_RESULT F_CALL fileOpenCallback(const char* name, unsigned int* filesize, void** handle, void* userdata)
     {
-        PHYSFS_File *file = PHYSFS_openRead(name);
+        PHYSFS_File* file = PHYSFS_openRead(name);
 
         if (file == nullptr)
         {
@@ -97,18 +97,18 @@ namespace worlds
         return FMOD_OK;
     }
 
-    FMOD_RESULT F_CALL fileCloseCallback(void *handle, void *userdata)
+    FMOD_RESULT F_CALL fileCloseCallback(void* handle, void* userdata)
     {
-        if (PHYSFS_close((PHYSFS_File *)handle) == 0)
+        if (PHYSFS_close((PHYSFS_File*)handle) == 0)
             return convertPhysFSError(PHYSFS_getLastErrorCode());
         else
             return FMOD_OK;
     }
 
-    FMOD_RESULT F_CALL fileReadCallback(void *handle, void *buffer, uint32_t sizeBytes, uint32_t *bytesRead,
-                                        void *userdata)
+    FMOD_RESULT F_CALL fileReadCallback(void* handle, void* buffer, uint32_t sizeBytes, uint32_t* bytesRead,
+                                        void* userdata)
     {
-        int64_t result = PHYSFS_readBytes((PHYSFS_File *)handle, buffer, sizeBytes);
+        int64_t result = PHYSFS_readBytes((PHYSFS_File*)handle, buffer, sizeBytes);
         if (result == -1)
         {
             PHYSFS_ErrorCode err = PHYSFS_getLastErrorCode();
@@ -123,15 +123,15 @@ namespace worlds
         }
     }
 
-    FMOD_RESULT F_CALL fileSeekCallback(void *handle, uint32_t pos, void *userdata)
+    FMOD_RESULT F_CALL fileSeekCallback(void* handle, uint32_t pos, void* userdata)
     {
-        if (PHYSFS_seek((PHYSFS_File *)handle, pos) == 0)
+        if (PHYSFS_seek((PHYSFS_File*)handle, pos) == 0)
             return convertPhysFSError(PHYSFS_getLastErrorCode());
         else
             return FMOD_OK;
     }
 
-    AudioSystem *AudioSystem::instance;
+    AudioSystem* AudioSystem::instance;
 
 #ifdef ENABLE_STEAM_AUDIO
     typedef void (*PFN_iplFMODInitialize)(IPLContext context);
@@ -140,8 +140,8 @@ namespace worlds
     typedef void (*PFN_iplFMODSetReverbSource)(IPLSource reverbSource);
 #endif
 
-    FMOD_RESULT F_CALL fmodDebugCallback(FMOD_DEBUG_FLAGS flags, const char *file, int line, const char *func,
-                                         const char *message)
+    FMOD_RESULT F_CALL fmodDebugCallback(FMOD_DEBUG_FLAGS flags, const char* file, int line, const char* func,
+                                         const char* message)
     {
         if (flags & FMOD_DEBUG_LEVEL_ERROR)
         {
@@ -162,12 +162,12 @@ namespace worlds
     }
 
 #ifdef ENABLE_STEAM_AUDIO
-    void IPLCALL steamAudioDebugCallback(IPLLogLevel logLevel, const char *message)
+    void IPLCALL steamAudioDebugCallback(IPLLogLevel logLevel, const char* message)
     {
         logMsg(WELogCategoryAudio, "%s", message);
     }
 
-    void *IPLCALL steamAudioAllocAligned(IPLsize size, IPLsize alignment)
+    void* IPLCALL steamAudioAllocAligned(IPLsize size, IPLsize alignment)
     {
 #ifdef _WIN32
         return _aligned_malloc(size, alignment);
@@ -176,7 +176,7 @@ namespace worlds
 #endif
     }
 
-    void IPLCALL steamAudioFreeAligned(void *memBlock)
+    void IPLCALL steamAudioFreeAligned(void* memBlock)
     {
 #ifdef _WIN32
         _aligned_free(memBlock);
@@ -185,9 +185,9 @@ namespace worlds
 #endif
     }
 
-    FMOD_RESULT findSteamAudioDSP(FMOD::Studio::EventInstance *instance, FMOD::DSP **dsp)
+    FMOD_RESULT findSteamAudioDSP(FMOD::Studio::EventInstance* instance, FMOD::DSP** dsp)
     {
-        FMOD::ChannelGroup *channelGroup;
+        FMOD::ChannelGroup* channelGroup;
         FMOD_RESULT res = instance->getChannelGroup(&channelGroup);
 
         if (res != FMOD_OK)
@@ -198,7 +198,7 @@ namespace worlds
         if (res != FMOD_OK)
             return res;
 
-        FMOD::DSP *spatializerDsp;
+        FMOD::DSP* spatializerDsp;
         bool found = false;
         for (int i = 0; i < numDsps; i++)
         {
@@ -224,18 +224,18 @@ namespace worlds
         return FMOD_OK;
     }
 
-    FMOD_RESULT audioSourcePhononEventCallback(FMOD_STUDIO_EVENT_CALLBACK_TYPE type, FMOD_STUDIO_EVENTINSTANCE *cevent,
-                                               void *param)
+    FMOD_RESULT audioSourcePhononEventCallback(FMOD_STUDIO_EVENT_CALLBACK_TYPE type, FMOD_STUDIO_EVENTINSTANCE* cevent,
+                                               void* param)
     {
         if (type != FMOD_STUDIO_EVENT_CALLBACK_CREATED)
             return FMOD_OK;
 
-        FMOD::Studio::EventInstance *event = (FMOD::Studio::EventInstance *)cevent;
+        FMOD::Studio::EventInstance* event = (FMOD::Studio::EventInstance*)cevent;
 
         IPLSource source;
 
-        FMCHECK(event->getUserData((void **)&source));
-        FMOD::DSP *dsp;
+        FMCHECK(event->getUserData((void**)&source));
+        FMOD::DSP* dsp;
         FMCHECK(findSteamAudioDSP(event, &dsp));
 
         // The FMOD plugin says here that it wants the simulation outputs.
@@ -247,11 +247,11 @@ namespace worlds
     }
 #endif
 
-    void AudioSource::changeEventPath(const std::string_view &eventPath)
+    void AudioSource::changeEventPath(const std::string_view& eventPath)
     {
-        FMOD::Studio::EventDescription *desc;
+        FMOD::Studio::EventDescription* desc;
 
-        AudioSystem *_this = AudioSystem::getInstance();
+        AudioSystem* _this = AudioSystem::getInstance();
 
         FMOD_RESULT result;
         result = _this->studioSystem->getEvent(eventPath.data(), &desc);
@@ -296,7 +296,7 @@ namespace worlds
             IPLSourceSettings sourceSettings{
                 (IPLSimulationFlags)(IPL_SIMULATIONFLAGS_REFLECTIONS | IPL_SIMULATIONFLAGS_DIRECT)};
 
-            AudioSystem *as = AudioSystem::getInstance();
+            AudioSystem* as = AudioSystem::getInstance();
             SACHECK(iplSourceCreate(as->simulator, &sourceSettings, &phononSource));
             as->sourcesToAdd.push(phononSource);
             as->needsSimCommit = true;
@@ -317,7 +317,7 @@ namespace worlds
     class AudioSystem::SteamAudioSimThread
     {
       public:
-        SteamAudioSimThread(IPLSimulator simulator, AudioSystem *system) : simulator{simulator}, system(system)
+        SteamAudioSimThread(IPLSimulator simulator, AudioSystem* system) : simulator{simulator}, system(system)
         {
             thread = std::thread([this]() { actualThread(); });
         }
@@ -400,7 +400,7 @@ namespace worlds
         std::thread thread;
         std::atomic<bool> threadAlive = true;
         IPLSimulator simulator;
-        AudioSystem *system;
+        AudioSystem* system;
         double lastRunTime = 0.0;
     };
 
@@ -409,7 +409,7 @@ namespace worlds
     AudioSystem::AudioSystem()
     {
         instance = this;
-        const char *phononPluginName;
+        const char* phononPluginName;
 
 #ifdef _WIN32
         phononPluginName = "phonon_fmod.dll";
@@ -538,11 +538,11 @@ namespace worlds
         lastListenerPos = glm::vec3(0.0f, 0.0f, 0.0f);
     }
 
-    void AudioSystem::initialise(entt::registry &worldState)
+    void AudioSystem::initialise(entt::registry& worldState)
     {
         worldState.on_destroy<AudioSource>().connect<&AudioSystem::onAudioSourceDestroy>(*this);
         g_console->registerCommand(
-            [&](void *, const char *arg) {
+            [&](void*, const char* arg) {
                 if (!available)
                 {
                     logErr(WELogCategoryAudio, "Audio subsystem is unavailable");
@@ -562,7 +562,7 @@ namespace worlds
             "a_setMasterVolume", "Sets the master audio volume.");
 
         g_console->registerCommand(
-            [&](void *, const char *) {
+            [&](void*, const char*) {
                 if (!available)
                 {
                     logErr(WELogCategoryAudio, "Audio subsystem is unavailable");
@@ -574,16 +574,16 @@ namespace worlds
             "a_forceUpdateAudioScene", "Forces an update of the Steam Audio scene.");
 
 #ifdef ENABLE_STEAM_AUDIO
-        g_console->registerCommand([&](void *, const char *) { iplSceneSaveOBJ(scene, "audioScene.obj"); },
-                                   "a_dumpToObj", "Dumps the Steam Audio scene to an obj file.");
+        g_console->registerCommand([&](void*, const char*) { iplSceneSaveOBJ(scene, "audioScene.obj"); }, "a_dumpToObj",
+                                   "Dumps the Steam Audio scene to an obj file.");
 #endif
     }
 
-    void AudioSystem::onAudioSourceDestroy(entt::registry &reg, entt::entity entity)
+    void AudioSystem::onAudioSourceDestroy(entt::registry& reg, entt::entity entity)
     {
         if (!available)
             return;
-        AudioSource &as = reg.get<AudioSource>(entity);
+        AudioSource& as = reg.get<AudioSource>(entity);
 
         if (as.eventInstance)
         {
@@ -629,7 +629,7 @@ namespace worlds
 #endif
 
     ConVar a_phononUpdateRate{"a_phononUpdateRate", "0.1"};
-    void AudioSystem::updateSteamAudio(entt::registry &registry, float deltaTime, glm::vec3 listenerPos,
+    void AudioSystem::updateSteamAudio(entt::registry& registry, float deltaTime, glm::vec3 listenerPos,
                                        glm::quat listenerRot)
     {
 #ifdef ENABLE_STEAM_AUDIO
@@ -653,14 +653,14 @@ namespace worlds
 
         iplSourceSetInputs(listenerCentricSource, simFlags, &inputs);
 
-        for (AttachedOneshot *oneshot : attachedOneshots)
+        for (AttachedOneshot* oneshot : attachedOneshots)
         {
             if (oneshot->phononSource == nullptr)
                 continue;
             if (!registry.valid(oneshot->entity))
                 continue;
 
-            Transform &t = registry.get<Transform>(oneshot->entity);
+            Transform& t = registry.get<Transform>(oneshot->entity);
             IPLSimulationInputs inputs{};
             inputs.flags = simFlags;
             inputs.source.right = convVecSA(t.rotation * glm::vec3(1.0f, 0.0f, 0.0f));
@@ -679,7 +679,7 @@ namespace worlds
             iplSourceSetInputs(oneshot->phononSource, simFlags, &inputs);
         }
 
-        registry.view<AudioSource, Transform>().each([simFlags](AudioSource &as, Transform &t) {
+        registry.view<AudioSource, Transform>().each([simFlags](AudioSource& as, Transform& t) {
             if (!as.eventInstance->isValid())
                 return;
 
@@ -733,7 +733,7 @@ namespace worlds
 #endif
     }
 
-    void AudioSystem::update(entt::registry &worldState, glm::vec3 listenerPos, glm::quat listenerRot, float deltaTime)
+    void AudioSystem::update(entt::registry& worldState, glm::vec3 listenerPos, glm::quat listenerRot, float deltaTime)
     {
         if (!available)
             return;
@@ -755,7 +755,7 @@ namespace worlds
 
         updateSteamAudio(worldState, deltaTime, listenerPos, listenerRot);
 
-        worldState.view<AudioSource, Transform>().each([](AudioSource &as, Transform &t) {
+        worldState.view<AudioSource, Transform>().each([](AudioSource& as, Transform& t) {
             if (as.eventInstance == nullptr)
                 return;
 
@@ -769,7 +769,7 @@ namespace worlds
 
         FMCHECK(studioSystem->setListenerAttributes(0, &listenerAttributes, &listenerAttributes.position));
 
-        for (AttachedOneshot *ao : attachedOneshots)
+        for (AttachedOneshot* ao : attachedOneshots)
         {
             if (!worldState.valid(ao->entity))
             {
@@ -789,7 +789,7 @@ namespace worlds
                 continue;
             }
 
-            Transform &t = worldState.get<Transform>(ao->entity);
+            Transform& t = worldState.get<Transform>(ao->entity);
 
             FMOD_3D_ATTRIBUTES sourceAttributes{};
             sourceAttributes.position = convVec(t.position);
@@ -803,7 +803,7 @@ namespace worlds
         }
 
         attachedOneshots.erase(std::remove_if(attachedOneshots.begin(), attachedOneshots.end(),
-                                              [this](AttachedOneshot *ao) {
+                                              [this](AttachedOneshot* ao) {
                                                   bool marked = ao->markForRemoval;
                                                   if (marked)
                                                   {
@@ -847,18 +847,18 @@ namespace worlds
         }
     }
 
-    void AudioSystem::stopEverything(entt::registry &reg)
+    void AudioSystem::stopEverything(entt::registry& reg)
     {
         if (!available)
             return;
-        reg.view<AudioSource>().each([](AudioSource &as) { as.eventInstance->stop(FMOD_STUDIO_STOP_IMMEDIATE); });
+        reg.view<AudioSource>().each([](AudioSource& as) { as.eventInstance->stop(FMOD_STUDIO_STOP_IMMEDIATE); });
     }
 
     void AudioSystem::playOneShotClip(AssetID id, glm::vec3 location, bool spatialise, float volume, MixerChannel)
     {
         if (!available)
             return;
-        FMOD::Sound *sound;
+        FMOD::Sound* sound;
 
         if (sounds.contains(id))
         {
@@ -880,7 +880,7 @@ namespace worlds
             sounds.insert({id, sound});
         }
 
-        FMOD::Channel *channel;
+        FMOD::Channel* channel;
         FMCHECK(system->playSound(sound, nullptr, false, &channel));
 
         if (spatialise)
@@ -891,21 +891,21 @@ namespace worlds
         }
     }
 
-    void AudioSystem::playOneShotEvent(const char *eventPath, glm::vec3 location, float volume)
+    void AudioSystem::playOneShotEvent(const char* eventPath, glm::vec3 location, float volume)
     {
         playOneShotAttachedEvent(eventPath, location, entt::null, volume);
     }
 
     FMOD_RESULT AudioSystem::phononEventInstanceCallback(FMOD_STUDIO_EVENT_CALLBACK_TYPE type,
-                                                         FMOD_STUDIO_EVENTINSTANCE *cevent, void *param)
+                                                         FMOD_STUDIO_EVENTINSTANCE* cevent, void* param)
     {
         if (type != FMOD_STUDIO_EVENT_CALLBACK_CREATED)
             return FMOD_OK;
 
-        FMOD::Studio::EventInstance *event = (FMOD::Studio::EventInstance *)cevent;
+        FMOD::Studio::EventInstance* event = (FMOD::Studio::EventInstance*)cevent;
 
-        AttachedOneshot *ao;
-        FMCHECK(event->getUserData((void **)&ao));
+        AttachedOneshot* ao;
+        FMCHECK(event->getUserData((void**)&ao));
 #ifdef ENABLE_STEAM_AUDIO
         FMCHECK(findSteamAudioDSP(event, &ao->phononDsp));
 
@@ -919,7 +919,7 @@ namespace worlds
         return FMOD_OK;
     }
 
-    void AudioSystem::playOneShotAttachedEvent(const char *eventPath, glm::vec3 location, entt::entity attachedEntity,
+    void AudioSystem::playOneShotAttachedEvent(const char* eventPath, glm::vec3 location, entt::entity attachedEntity,
                                                float volume)
     {
         if (!available)
@@ -927,7 +927,7 @@ namespace worlds
         FMOD_RESULT result;
 
         bool createPhononSource = true;
-        FMOD::Studio::EventDescription *desc;
+        FMOD::Studio::EventDescription* desc;
         result = studioSystem->getEvent(eventPath, &desc);
 
         if (result != FMOD_OK)
@@ -957,7 +957,7 @@ namespace worlds
             return;
         }
 
-        FMOD::Studio::EventInstance *instance;
+        FMOD::Studio::EventInstance* instance;
 
         result = desc->createInstance(&instance);
         if (result != FMOD_OK)
@@ -982,7 +982,7 @@ namespace worlds
             FMCHECK(instance->release());
         else
         {
-            AttachedOneshot *attachedOneshot =
+            AttachedOneshot* attachedOneshot =
                 new AttachedOneshot{.instance = instance, .entity = attachedEntity, .lastPosition = location};
 
 #ifdef ENABLE_STEAM_AUDIO
@@ -1005,7 +1005,7 @@ namespace worlds
         }
     }
 
-    void AudioSystem::shutdown(entt::registry &worldState)
+    void AudioSystem::shutdown(entt::registry& worldState)
     {
         if (!available)
             return;
@@ -1017,13 +1017,13 @@ namespace worlds
         FMCHECK(studioSystem->release());
     }
 
-    FMOD::Studio::Bank *AudioSystem::loadBank(const char *path)
+    FMOD::Studio::Bank* AudioSystem::loadBank(const char* path)
     {
         if (!available)
             return nullptr;
 
         PHYSFS_getLastErrorCode();
-        FMOD::Studio::Bank *bank;
+        FMOD::Studio::Bank* bank;
 
         if (loadedBanks.contains(path))
             return loadedBanks.at(path);
@@ -1037,14 +1037,14 @@ namespace worlds
         return bank;
     }
 
-    void AudioSystem::bakeProbes(entt::registry &registry)
+    void AudioSystem::bakeProbes(entt::registry& registry)
     {
 #ifdef ENABLE_STEAM_AUDIO
         IPLProbeBatch probeBatch = nullptr;
         SACHECK(iplProbeBatchCreate(phononContext, &probeBatch));
 
         std::vector<IPLProbeArray> probeArrays;
-        registry.view<ReverbProbeBox, Transform>().each([&](Transform &t) {
+        registry.view<ReverbProbeBox, Transform>().each([&](Transform& t) {
             IPLMatrix4x4 iplMat{};
             glm::mat4 tMat = glm::transpose(t.getMatrix());
             memcpy(iplMat.elements, glm::value_ptr(tMat), sizeof(float) * 16);
@@ -1063,7 +1063,7 @@ namespace worlds
 #endif
     }
 
-    void AudioSystem::saveAudioScene(entt::registry &reg, const char *path)
+    void AudioSystem::saveAudioScene(entt::registry& reg, const char* path)
     {
 #ifdef ENABLE_STEAM_AUDIO
         IPLSerializedObjectSettings settings{0};
@@ -1075,14 +1075,14 @@ namespace worlds
         iplSceneSave(newScene, serializedObject);
         iplSceneRelease(&newScene);
 
-        PHYSFS_File *file = PHYSFS_openWrite(path);
+        PHYSFS_File* file = PHYSFS_openWrite(path);
         PHYSFS_writeBytes(file, iplSerializedObjectGetData(serializedObject),
                           iplSerializedObjectGetSize(serializedObject));
         PHYSFS_close(file);
 #endif
     }
 
-    void AudioSystem::updateAudioScene(entt::registry &reg)
+    void AudioSystem::updateAudioScene(entt::registry& reg)
     {
         ZoneScoped;
 
@@ -1118,7 +1118,7 @@ namespace worlds
     };
     robin_hood::unordered_map<AssetID, CacheableMeshInfo> cachedMeshes;
 #endif
-    IPLScene AudioSystem::createScene(entt::registry &reg)
+    IPLScene AudioSystem::createScene(entt::registry& reg)
     {
         ZoneScoped;
 
@@ -1129,7 +1129,7 @@ namespace worlds
         IPLScene scene = nullptr;
         SACHECK(iplSceneCreate(phononContext, &sceneSettings, &scene));
 
-        reg.view<WorldObject, Transform>().each([&](WorldObject &wo, Transform &t) {
+        reg.view<WorldObject, Transform>().each([&](WorldObject& wo, Transform& t) {
             if (!enumHasFlag(wo.staticFlags, StaticFlags::Audio))
                 return;
             glm::mat4 tMat = t.getMatrix();
@@ -1138,7 +1138,7 @@ namespace worlds
             IPLMaterial mat{{0.1f, 0.2f, 0.3f}, 0.05f, {0.1f, 0.05f, 0.03f}};
             std::vector<IPLVector3> verts;
 
-            const LoadedMesh &lm = MeshManager::loadOrGet(wo.mesh);
+            const LoadedMesh& lm = MeshManager::loadOrGet(wo.mesh);
 
             if (!cachedMeshes.contains(wo.mesh))
             {
@@ -1159,7 +1159,7 @@ namespace worlds
                 cachedMeshes.insert({wo.mesh, std::move(cmi)});
             }
 
-            CacheableMeshInfo &cmi = cachedMeshes.at(wo.mesh);
+            CacheableMeshInfo& cmi = cachedMeshes.at(wo.mesh);
 
             verts.resize(lm.vertices.size());
 
@@ -1193,13 +1193,13 @@ namespace worlds
 #endif
     }
 
-    IPLScene AudioSystem::loadScene(const char *path)
+    IPLScene AudioSystem::loadScene(const char* path)
     {
 #ifdef ENABLE_STEAM_AUDIO
-        PHYSFS_File *file = PHYSFS_openRead(path);
+        PHYSFS_File* file = PHYSFS_openRead(path);
 
         size_t dataSize = PHYSFS_fileLength(file);
-        uint8_t *buffer = new uint8_t[dataSize];
+        uint8_t* buffer = new uint8_t[dataSize];
 
         PHYSFS_readBytes(file, buffer, dataSize);
         PHYSFS_close(file);

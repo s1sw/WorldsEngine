@@ -5,7 +5,7 @@
 #include <robin_hood.h>
 #include <tracy/TracyVulkan.hpp>
 
-#define VK_DEFINE_HANDLE(object) typedef struct object##_T *object;
+#define VK_DEFINE_HANDLE(object) typedef struct object##_T* object;
 struct ImDrawData;
 
 namespace R2
@@ -115,9 +115,9 @@ namespace worlds
 
     struct RenderDebugContext
     {
-        RenderDebugStats *stats;
+        RenderDebugStats* stats;
 #ifdef TRACY_ENABLE
-        std::vector<TracyVkCtx> *tracyContexts;
+        std::vector<TracyVkCtx>* tracyContexts;
 #endif
     };
 
@@ -138,8 +138,8 @@ namespace worlds
     class PipelineCacheSerializer
     {
       public:
-        static void loadPipelineCache(const VkPhysicalDeviceProperties &, VkPipelineCacheCreateInfo &);
-        static void savePipelineCache(const VkPhysicalDeviceProperties &, const VkPipelineCache &, const VkDevice &);
+        static void loadPipelineCache(const VkPhysicalDeviceProperties&, VkPipelineCacheCreateInfo&);
+        static void savePipelineCache(const VkPhysicalDeviceProperties&, const VkPipelineCache&, const VkDevice&);
     };
 
     enum class IndexType
@@ -171,24 +171,24 @@ namespace worlds
     class RenderMeshManager
     {
         robin_hood::unordered_map<AssetID, RenderMeshInfo> meshes;
-        R2::SubAllocatedBuffer *vertexBuffer;
-        R2::SubAllocatedBuffer *indexBuffer;
-        R2::VK::Core *core;
+        R2::SubAllocatedBuffer* vertexBuffer;
+        R2::SubAllocatedBuffer* indexBuffer;
+        R2::VK::Core* core;
 
       public:
-        RenderMeshManager(R2::VK::Core *core);
+        RenderMeshManager(R2::VK::Core* core);
         ~RenderMeshManager();
 
-        R2::VK::Buffer *getVertexBuffer();
-        R2::VK::Buffer *getIndexBuffer();
+        R2::VK::Buffer* getVertexBuffer();
+        R2::VK::Buffer* getIndexBuffer();
 
-        RenderMeshInfo &loadOrGet(AssetID id);
+        RenderMeshInfo& loadOrGet(AssetID id);
     };
 
     class VKUITextureManager : public IUITextureManager
     {
       public:
-        VKUITextureManager(R2::VK::Core *core, R2::BindlessTextureManager *textureManager);
+        VKUITextureManager(R2::VK::Core* core, R2::BindlessTextureManager* textureManager);
         ~VKUITextureManager();
         ImTextureID loadOrGet(AssetID id) override;
         void unload(AssetID id) override;
@@ -196,13 +196,13 @@ namespace worlds
       private:
         struct UITexInfo
         {
-            R2::VK::Texture *tex;
+            R2::VK::Texture* tex;
             uint32_t bindlessId;
         };
 
         uint32_t load(AssetID id);
-        R2::VK::Core *core;
-        R2::BindlessTextureManager *textureManager;
+        R2::VK::Core* core;
+        R2::BindlessTextureManager* textureManager;
         robin_hood::unordered_map<AssetID, UITexInfo> textureIds;
     };
 
@@ -211,51 +211,51 @@ namespace worlds
     {
         friend class VKRenderer;
 
-        VKRenderer *renderer;
-        VKRTTPass(VKRenderer *renderer, const RTTPassCreateInfo &ci, IRenderPipeline *pipeline);
+        VKRenderer* renderer;
+        VKRTTPass(VKRenderer* renderer, const RTTPassCreateInfo& ci, IRenderPipeline* pipeline);
         ~VKRTTPass();
 
-        R2::VK::Texture *finalTarget;
+        R2::VK::Texture* finalTarget;
         uint32_t finalTargetBindlessID;
-        Camera *cam;
-        IRenderPipeline *pipeline;
+        Camera* cam;
+        IRenderPipeline* pipeline;
 
       public:
-        void drawNow(entt::registry &world) override;
+        void drawNow(entt::registry& world) override;
 
         void requestPick(int x, int y) override;
-        bool getPickResult(uint32_t *result) override;
-        float *getHDRData() override;
+        bool getPickResult(uint32_t* result) override;
+        float* getHDRData() override;
         void resize(int newWidth, int newHeight) override;
         void setResolutionScale(float newScale) override;
         ImTextureID getUITextureID() override;
 
-        R2::VK::Texture *getFinalTarget();
-        Camera *getCamera();
+        R2::VK::Texture* getFinalTarget();
+        Camera* getCamera();
     };
 
     class VKRenderer : public Renderer
     {
-        R2::VK::Core *core;
-        R2::VK::Swapchain *swapchain;
-        R2::VK::Fence *frameFence;
-        R2::BindlessTextureManager *textureManager;
-        VKUITextureManager *uiTextureManager;
-        RenderMeshManager *renderMeshManager;
+        R2::VK::Core* core;
+        R2::VK::Swapchain* swapchain;
+        R2::VK::Fence* frameFence;
+        R2::BindlessTextureManager* textureManager;
+        VKUITextureManager* uiTextureManager;
+        RenderMeshManager* renderMeshManager;
 
-        std::vector<VKRTTPass *> rttPasses;
+        std::vector<VKRTTPass*> rttPasses;
 
-        ImDrawData *imguiDrawData;
+        ImDrawData* imguiDrawData;
 
         RenderDebugStats debugStats;
         float lastGPUTime;
         friend class VKRTTPass;
 
       public:
-        VKRenderer(const RendererInitInfo &initInfo, bool *success);
+        VKRenderer(const RendererInitInfo& initInfo, bool* success);
         ~VKRenderer();
 
-        void frame(entt::registry &reg) override;
+        void frame(entt::registry& reg) override;
 
         float getLastGPUTime() const override;
         void setVRPredictAmount(float amt) override;
@@ -263,17 +263,17 @@ namespace worlds
         void setVsync(bool vsync) override;
         bool getVsync() const override;
 
-        const RenderDebugStats &getDebugStats() const override;
-        IUITextureManager *getUITextureManager() override;
+        const RenderDebugStats& getDebugStats() const override;
+        IUITextureManager* getUITextureManager() override;
 
-        void setImGuiDrawData(void *drawData) override;
+        void setImGuiDrawData(void* drawData) override;
 
-        RTTPass *createRTTPass(RTTPassCreateInfo &ci) override;
-        void destroyRTTPass(RTTPass *pass) override;
+        RTTPass* createRTTPass(RTTPassCreateInfo& ci) override;
+        void destroyRTTPass(RTTPass* pass) override;
 
-        R2::VK::Core *getCore();
-        RenderMeshManager *getMeshManager();
-        R2::BindlessTextureManager *getBindlessTextureManager();
+        R2::VK::Core* getCore();
+        RenderMeshManager* getMeshManager();
+        R2::BindlessTextureManager* getBindlessTextureManager();
     };
 
     enum class ShaderVariantFlags : uint32_t
@@ -289,7 +289,7 @@ namespace worlds
         return static_cast<ShaderVariantFlags>(static_cast<uint32_t>(a) | static_cast<uint32_t>(b));
     }
 
-    inline ShaderVariantFlags operator|=(ShaderVariantFlags &a, ShaderVariantFlags b)
+    inline ShaderVariantFlags operator|=(ShaderVariantFlags& a, ShaderVariantFlags b)
     {
         return (a = a | b);
     }

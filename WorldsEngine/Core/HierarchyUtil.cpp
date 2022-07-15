@@ -5,9 +5,9 @@
 
 namespace worlds
 {
-    bool HierarchyUtil::isEntityChildOf(entt::registry &reg, entt::entity object, entt::entity parent)
+    bool HierarchyUtil::isEntityChildOf(entt::registry& reg, entt::entity object, entt::entity parent)
     {
-        ParentComponent *pc = reg.try_get<ParentComponent>(parent);
+        ParentComponent* pc = reg.try_get<ParentComponent>(parent);
 
         if (pc == nullptr)
             return false;
@@ -17,7 +17,7 @@ namespace worlds
         {
             if (currentChild == object)
                 return true;
-            ChildComponent &cc = reg.get<ChildComponent>(currentChild);
+            ChildComponent& cc = reg.get<ChildComponent>(currentChild);
 
             if (isEntityChildOf(reg, object, currentChild))
                 return true;
@@ -28,7 +28,7 @@ namespace worlds
         return false;
     }
 
-    void HierarchyUtil::setEntityParent(entt::registry &reg, entt::entity object, entt::entity parent)
+    void HierarchyUtil::setEntityParent(entt::registry& reg, entt::entity object, entt::entity parent)
     {
         if (reg.has<ChildComponent>(object))
         {
@@ -38,17 +38,17 @@ namespace worlds
         if (parent == entt::null)
             return;
 
-        auto &childComponent = reg.emplace<ChildComponent>(object);
+        auto& childComponent = reg.emplace<ChildComponent>(object);
         childComponent.offset = reg.get<Transform>(object).transformByInverse(reg.get<Transform>(parent));
         childComponent.offset.scale = reg.get<Transform>(object).scale;
         childComponent.parent = parent;
 
         if (reg.has<ParentComponent>(parent))
         {
-            auto &parentComponent = reg.get<ParentComponent>(parent);
+            auto& parentComponent = reg.get<ParentComponent>(parent);
             childComponent.nextChild = parentComponent.firstChild;
 
-            auto &oldChildComponent = reg.get<ChildComponent>(parentComponent.firstChild);
+            auto& oldChildComponent = reg.get<ChildComponent>(parentComponent.firstChild);
             oldChildComponent.prevChild = object;
 
             parentComponent.firstChild = object;
@@ -59,17 +59,17 @@ namespace worlds
         }
     }
 
-    void HierarchyUtil::removeEntityParent(entt::registry &reg, entt::entity object, bool removeChildComponent)
+    void HierarchyUtil::removeEntityParent(entt::registry& reg, entt::entity object, bool removeChildComponent)
     {
         assert(reg.has<ChildComponent>(object));
 
-        auto &childComponent = reg.get<ChildComponent>(object);
+        auto& childComponent = reg.get<ChildComponent>(object);
         childComponent.parent = entt::null;
 
         entt::entity parent = childComponent.parent;
         if (!reg.has<ParentComponent>(parent))
             return;
-        auto &parentComponent = reg.get<ParentComponent>(parent);
+        auto& parentComponent = reg.get<ParentComponent>(parent);
 
         if (childComponent.nextChild == entt::null && childComponent.prevChild == entt::null)
         {
@@ -91,13 +91,13 @@ namespace worlds
 
         if (childComponent.nextChild != entt::null)
         {
-            auto &nextChildComponent = reg.get<ChildComponent>(childComponent.nextChild);
+            auto& nextChildComponent = reg.get<ChildComponent>(childComponent.nextChild);
             nextChildComponent.prevChild = childComponent.prevChild;
         }
 
         if (childComponent.prevChild != entt::null)
         {
-            auto &prevChildComponent = reg.get<ChildComponent>(childComponent.prevChild);
+            auto& prevChildComponent = reg.get<ChildComponent>(childComponent.prevChild);
             prevChildComponent.nextChild = childComponent.nextChild;
         }
 

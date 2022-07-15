@@ -8,7 +8,7 @@
 
 namespace worlds
 {
-    EditorAssetSearchPopup::EditorAssetSearchPopup(Editor *ed) : editor(ed)
+    EditorAssetSearchPopup::EditorAssetSearchPopup(Editor* ed) : editor(ed)
     {
     }
 

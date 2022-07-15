@@ -14,11 +14,11 @@ namespace worlds
     class EditorStartScreen
     {
       public:
-        EditorStartScreen(const EngineInterfaces &interfaces) : interfaces(interfaces)
+        EditorStartScreen(const EngineInterfaces& interfaces) : interfaces(interfaces)
         {
         }
 
-        void draw(Editor *ed)
+        void draw(Editor* ed)
         {
             struct RecentProject
             {
@@ -34,7 +34,7 @@ namespace worlds
             if (!loadedRecentProjects)
             {
                 loadedRecentProjects = true;
-                char *prefPath = SDL_GetPrefPath("Someone Somewhere", "Worlds Engine");
+                char* prefPath = SDL_GetPrefPath("Someone Somewhere", "Worlds Engine");
                 std::ifstream recentProjectsStream(prefPath + std::string{"recentProjects.txt"});
 
                 if (recentProjectsStream.good())
@@ -73,7 +73,7 @@ namespace worlds
                 ImGui::EndMainMenuBar();
             }
 
-            ImGuiViewport *viewport = ImGui::GetMainViewport();
+            ImGuiViewport* viewport = ImGui::GetMainViewport();
             glm::vec2 projectWinSize = (glm::vec2)viewport->Size - glm::vec2(0.0f, menuBarSize.y);
             ImGui::SetNextWindowPos((glm::vec2)viewport->Pos + glm::vec2(0.0f, menuBarSize.y));
             ImGui::SetNextWindowSize(projectWinSize);
@@ -160,12 +160,12 @@ namespace worlds
 
             ImGui::NextColumn();
 
-            for (RecentProject &project : recentProjects)
+            for (RecentProject& project : recentProjects)
             {
                 const glm::vec2 widgetSize{600.0f, 200.0f};
                 ImGui::PushID(project.path.c_str());
 
-                ImDrawList *dl = ImGui::GetWindowDrawList();
+                ImDrawList* dl = ImGui::GetWindowDrawList();
                 dl->AddRect(ImGui::GetCursorScreenPos(), (glm::vec2)ImGui::GetCursorScreenPos() + widgetSize,
                             ImColor(ImGui::GetStyleColorVec4(ImGuiCol_FrameBg)), 5.0f, 0, 3.0f);
 
@@ -214,7 +214,7 @@ namespace worlds
             s.close();
         }
 
-        void replaceAll(std::string &str, const std::string &from, const std::string &to)
+        void replaceAll(std::string& str, const std::string& from, const std::string& to)
         {
             size_t start_pos = 0;
             while ((start_pos = str.find(from, start_pos)) != std::string::npos)
@@ -224,6 +224,6 @@ namespace worlds
             }
         }
 
-        const EngineInterfaces &interfaces;
+        const EngineInterfaces& interfaces;
     };
 }

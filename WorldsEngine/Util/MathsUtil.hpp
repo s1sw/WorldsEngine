@@ -20,7 +20,7 @@ namespace worlds
         return glm::normalize(v3) * glm::min(l, maxMagnitude);
     }
 
-    inline void decomposePosRot(const glm::mat4 &mat, glm::vec3 &pos, glm::quat &rot)
+    inline void decomposePosRot(const glm::mat4& mat, glm::vec3& pos, glm::quat& rot)
     {
         glm::vec3 sc, sk;
         glm::vec4 persp;

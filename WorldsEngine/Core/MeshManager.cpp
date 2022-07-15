@@ -8,12 +8,12 @@ namespace worlds
 {
     robin_hood::unordered_node_map<AssetID, LoadedMesh> MeshManager::loadedMeshes;
     LoadedMesh errorMesh{.numSubmeshes = 0};
-    const LoadedMesh &MeshManager::get(AssetID id)
+    const LoadedMesh& MeshManager::get(AssetID id)
     {
         return loadedMeshes.at(id);
     }
 
-    void loadToLM(LoadedMesh &lm, AssetID id)
+    void loadToLM(LoadedMesh& lm, AssetID id)
     {
         LoadedMeshData lmd{};
 
@@ -40,7 +40,7 @@ namespace worlds
 
         for (size_t i = 0; i < lmd.bones.size(); i++)
         {
-            Bone &b = lm.bones[i];
+            Bone& b = lm.bones[i];
             b.id = i;
             b.name = lmd.bones[i].name.c_str();
             b.parentId = lmd.bones[i].parentIdx;
@@ -49,7 +49,7 @@ namespace worlds
 
         for (int i = 0; i < lmd.submeshes.size(); i++)
         {
-            const LoadedSubmesh &ls = lmd.submeshes[i];
+            const LoadedSubmesh& ls = lmd.submeshes[i];
             lm.submeshes[i].materialIndex = ls.materialIndex;
             lm.submeshes[i].indexOffset = ls.indexOffset;
             lm.submeshes[i].indexCount = ls.indexCount;
@@ -58,7 +58,7 @@ namespace worlds
         lm.sphereBoundRadius = 0.0f;
         lm.aabbMax = glm::vec3(0.0f);
         lm.aabbMin = glm::vec3(std::numeric_limits<float>::max());
-        for (auto &vtx : lm.vertices)
+        for (auto& vtx : lm.vertices)
         {
             lm.sphereBoundRadius = glm::max(glm::length(vtx.position), lm.sphereBoundRadius);
             lm.aabbMax = glm::max(lm.aabbMax, vtx.position);
@@ -66,7 +66,7 @@ namespace worlds
         }
     }
 
-    const LoadedMesh &MeshManager::loadOrGet(AssetID id)
+    const LoadedMesh& MeshManager::loadOrGet(AssetID id)
     {
         if (loadedMeshes.contains(id))
             return loadedMeshes.at(id);
@@ -94,7 +94,7 @@ namespace worlds
     {
         // We rely on references to meshes being stable, so
         // rewrite the mesh data in place
-        for (auto &pair : loadedMeshes)
+        for (auto& pair : loadedMeshes)
         {
             loadToLM(pair.second, pair.first);
         }

@@ -15,7 +15,7 @@ namespace worlds
         }
 
       protected:
-        void drawPopup(const char *title);
+        void drawPopup(const char* title);
         virtual void candidateSelected(size_t index) = 0;
         virtual void drawCandidate(size_t index) = 0;
         virtual void updateCandidates() = 0;

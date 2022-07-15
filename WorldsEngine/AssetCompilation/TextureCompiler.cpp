@@ -42,7 +42,7 @@ namespace worlds
         std::string inputPath;
         std::string outputPath;
         std::string_view projectRoot;
-        AssetCompileOperation *compileOp;
+        AssetCompileOperation* compileOp;
     };
 
     TextureAssetType getAssetType(std::string typeStr)
@@ -107,7 +107,7 @@ namespace worlds
         }
     }
 
-    void loadCrunchSettings(TextureAssetSettings &settings, nlohmann::json &j)
+    void loadCrunchSettings(TextureAssetSettings& settings, nlohmann::json& j)
     {
         settings.crunch.isNormalMap = j.value("isNormalMap", false);
         settings.crunch.qualityLevel = j.value("qualityLevel", 127);
@@ -118,13 +118,13 @@ namespace worlds
             settings.crunch.sourceTexture = INVALID_ASSET;
     }
 
-    void loadRGBASettings(TextureAssetSettings &settings, nlohmann::json &j)
+    void loadRGBASettings(TextureAssetSettings& settings, nlohmann::json& j)
     {
         settings.rgba.sourceTexture = AssetDB::pathToId(j["sourceTexture"].get<std::string>());
         settings.rgba.isSrgb = j.value("isSrgb", true);
     }
 
-    void loadPBRSettings(TextureAssetSettings &settings, nlohmann::json &j)
+    void loadPBRSettings(TextureAssetSettings& settings, nlohmann::json& j)
     {
         settings.pbr.defaultMetallic = j.value("defaultMetallic", 0.0f);
         settings.pbr.defaultRoughness = j.value("defaultRoughness", 0.0f);
@@ -153,7 +153,7 @@ namespace worlds
         settings.pbr.qualityLevel = j.value("qualityLevel", 127);
     }
 
-    TextureAssetSettings TextureAssetSettings::fromJson(nlohmann::json &j)
+    TextureAssetSettings TextureAssetSettings::fromJson(nlohmann::json& j)
     {
         TextureAssetSettings s{};
 
@@ -175,18 +175,18 @@ namespace worlds
         return s;
     }
 
-    void saveCrunchSettings(TextureAssetSettings &settings, nlohmann::json &j)
+    void saveCrunchSettings(TextureAssetSettings& settings, nlohmann::json& j)
     {
-        CrunchTextureSettings &cts = settings.crunch;
+        CrunchTextureSettings& cts = settings.crunch;
         j["isNormalMap"] = cts.isNormalMap;
         j["qualityLevel"] = cts.qualityLevel;
         j["isSrgb"] = cts.isSrgb;
         j["sourceTexture"] = AssetDB::idToPath(cts.sourceTexture);
     }
 
-    void savePBRSettings(TextureAssetSettings &settings, nlohmann::json &j)
+    void savePBRSettings(TextureAssetSettings& settings, nlohmann::json& j)
     {
-        PBRTextureSettings &pbs = settings.pbr;
+        PBRTextureSettings& pbs = settings.pbr;
         j["defaultMetallic"] = pbs.defaultMetallic;
         j["defaultRoughness"] = pbs.defaultRoughness;
 
@@ -209,7 +209,7 @@ namespace worlds
         j["qualityLevel"] = pbs.qualityLevel;
     }
 
-    void TextureAssetSettings::toJson(nlohmann::json &j)
+    void TextureAssetSettings::toJson(nlohmann::json& j)
     {
         j["type"] = getAssetTypeString(type);
 
@@ -226,13 +226,13 @@ namespace worlds
         }
     }
 
-    AssetCompileOperation *TextureCompiler::compile(std::string_view projectRoot, AssetID src)
+    AssetCompileOperation* TextureCompiler::compile(std::string_view projectRoot, AssetID src)
     {
         std::string inputPath = AssetDB::idToPath(src);
         std::string outputPath = getOutputPath(inputPath);
 
         auto jsonContents = LoadFileToString(inputPath);
-        AssetCompileOperation *compileOp = new AssetCompileOperation;
+        AssetCompileOperation* compileOp = new AssetCompileOperation;
 
         if (jsonContents.error != IOError::None)
         {
@@ -244,7 +244,7 @@ namespace worlds
 
         nlohmann::json j = nlohmann::json::parse(jsonContents.value);
         compileOp->outputId = AssetDB::pathToId(outputPath);
-        TexCompileThreadInfo *tcti = new TexCompileThreadInfo;
+        TexCompileThreadInfo* tcti = new TexCompileThreadInfo;
         tcti->assetSettings = TextureAssetSettings::fromJson(j);
         tcti->inputPath = inputPath;
         tcti->outputPath = outputPath;
@@ -260,7 +260,7 @@ namespace worlds
         return compileOp;
     }
 
-    void TextureCompiler::getFileDependencies(AssetID src, std::vector<std::string> &out)
+    void TextureCompiler::getFileDependencies(AssetID src, std::vector<std::string>& out)
     {
         std::string inputPath = AssetDB::idToPath(src);
         auto jsonContents = LoadFileToString(inputPath);
@@ -293,27 +293,27 @@ namespace worlds
         }
     }
 
-    const char *TextureCompiler::getSourceExtension()
+    const char* TextureCompiler::getSourceExtension()
     {
         return ".wtexj";
     }
 
-    const char *TextureCompiler::getCompiledExtension()
+    const char* TextureCompiler::getCompiledExtension()
     {
         return ".wtex";
     }
 
     crn_bool progressCallback(crn_uint32 phaseIndex, crn_uint32 totalPhases, crn_uint32 subphaseIndex,
-                              crn_uint32 totalSubphases, void *data)
+                              crn_uint32 totalSubphases, void* data)
     {
-        AssetCompileOperation *compileOp = (AssetCompileOperation *)data;
+        AssetCompileOperation* compileOp = (AssetCompileOperation*)data;
         compileOp->progress = ((float)phaseIndex + ((float)subphaseIndex / totalSubphases)) / totalPhases;
         return true;
     }
 
-    void TextureCompiler::compileCrunch(TexCompileThreadInfo *tcti)
+    void TextureCompiler::compileCrunch(TexCompileThreadInfo* tcti)
     {
-        const CrunchTextureSettings &cts = tcti->assetSettings.crunch;
+        const CrunchTextureSettings& cts = tcti->assetSettings.crunch;
         AssetID sourceId = cts.sourceTexture;
         bool isSrgb = cts.isSrgb;
         RawTextureData inTexData;
@@ -332,7 +332,7 @@ namespace worlds
         compParams.set_flag(cCRNCompFlagPerceptual, isSrgb);
         compParams.m_file_type = cCRNFileTypeCRN;
         compParams.m_format = cts.isNormalMap ? cCRNFmtDXN_XY : cCRNFmtDXT5;
-        compParams.m_pImages[0][0] = (crn_uint32 *)inTexData.data;
+        compParams.m_pImages[0][0] = (crn_uint32*)inTexData.data;
         compParams.m_quality_level = cts.qualityLevel;
         compParams.m_num_helper_threads = SDL_GetCPUCount() - 1;
         compParams.m_pProgress_func = progressCallback;
@@ -343,7 +343,7 @@ namespace worlds
         if (inTexData.format == RawTextureFormat::RGBA32F)
         {
             // Need to convert to an array of u8s
-            uint8_t *newData = (uint8_t *)malloc(inTexData.width * inTexData.height * 4);
+            uint8_t* newData = (uint8_t*)malloc(inTexData.width * inTexData.height * 4);
 
             for (int x = 0; x < inTexData.width; x++)
             {
@@ -353,12 +353,12 @@ namespace worlds
                     for (int c = 0; c < 4; c++)
                     {
                         int realIndex = c + pixelIndex * 4;
-                        newData[realIndex] = ((float *)inTexData.data)[realIndex] * 255.f;
+                        newData[realIndex] = ((float*)inTexData.data)[realIndex] * 255.f;
                     }
                 }
             }
 
-            compParams.m_pImages[0][0] = (crn_uint32 *)newData;
+            compParams.m_pImages[0][0] = (crn_uint32*)newData;
         }
 
         crn_mipmap_params mipParams;
@@ -369,7 +369,7 @@ namespace worlds
         float actualBitrate;
         crn_uint32 actualQualityLevel;
 
-        void *outData = crn_compress(compParams, mipParams, outputSize, &actualQualityLevel, &actualBitrate);
+        void* outData = crn_compress(compParams, mipParams, outputSize, &actualQualityLevel, &actualBitrate);
         logMsg("Compressed %s with actual quality of %u and bitrate of %f", tcti->inputPath.c_str(), actualQualityLevel,
                actualBitrate);
 
@@ -387,14 +387,14 @@ namespace worlds
         if (inTexData.format == RawTextureFormat::RGBA32F)
         {
             // Free the previously allocated temp array
-            free((void *)compParams.m_pImages[0][0]);
+            free((void*)compParams.m_pImages[0][0]);
         }
     }
 
-    void TextureCompiler::compilePBR(TexCompileThreadInfo *tcti)
+    void TextureCompiler::compilePBR(TexCompileThreadInfo* tcti)
     {
         assert(tcti->assetSettings.type == TextureAssetType::PBR);
-        const PBRTextureSettings &pts = tcti->assetSettings.pbr;
+        const PBRTextureSettings& pts = tcti->assetSettings.pbr;
 
         RawTextureData roughnessData;
         RawTextureData metallicData;
@@ -448,7 +448,7 @@ namespace worlds
                 logErr("Metallic texture size doesn't match!");
         }
 
-        uint8_t *layeredData = new uint8_t[outWidth * outHeight * 4];
+        uint8_t* layeredData = new uint8_t[outWidth * outHeight * 4];
 
         for (int x = 0; x < outWidth; x++)
         {
@@ -458,19 +458,19 @@ namespace worlds
 
                 // Red channel - Metallic
                 if (useMetallic)
-                    layeredData[baseIdx + 0] = static_cast<uint8_t *>(metallicData.data)[baseIdx + 0];
+                    layeredData[baseIdx + 0] = static_cast<uint8_t*>(metallicData.data)[baseIdx + 0];
                 else
                     layeredData[baseIdx + 0] = 255 * pts.defaultMetallic;
 
                 // Green channel - Roughness
                 if (useRoughness)
-                    layeredData[baseIdx + 1] = static_cast<uint8_t *>(roughnessData.data)[baseIdx + 1];
+                    layeredData[baseIdx + 1] = static_cast<uint8_t*>(roughnessData.data)[baseIdx + 1];
                 else
                     layeredData[baseIdx + 1] = 255 * pts.defaultRoughness;
 
                 // Red channel - Occlusion
                 if (useOcclusion)
-                    layeredData[baseIdx + 2] = static_cast<uint8_t *>(occlusionData.data)[baseIdx + 2];
+                    layeredData[baseIdx + 2] = static_cast<uint8_t*>(occlusionData.data)[baseIdx + 2];
                 else
                     layeredData[baseIdx + 2] = 255;
 
@@ -485,7 +485,7 @@ namespace worlds
         compParams.set_flag(cCRNCompFlagPerceptual, false);
         compParams.m_file_type = cCRNFileTypeCRN;
         compParams.m_format = cCRNFmtDXT5;
-        compParams.m_pImages[0][0] = (crn_uint32 *)layeredData;
+        compParams.m_pImages[0][0] = (crn_uint32*)layeredData;
         compParams.m_quality_level = pts.qualityLevel;
         compParams.m_num_helper_threads = SDL_GetCPUCount() - 1;
         compParams.m_pProgress_func = progressCallback;
@@ -501,7 +501,7 @@ namespace worlds
         float actualBitrate;
         crn_uint32 actualQualityLevel;
 
-        void *outData = crn_compress(compParams, mipParams, outputSize, &actualQualityLevel, &actualBitrate);
+        void* outData = crn_compress(compParams, mipParams, outputSize, &actualQualityLevel, &actualBitrate);
         logMsg("Compressed %s with actual quality of %u and bitrate of %f", tcti->inputPath.c_str(), actualQualityLevel,
                actualBitrate);
 
@@ -518,8 +518,8 @@ namespace worlds
         tcti->compileOp->result = CompilationResult::Success;
     }
 
-    void TextureCompiler::writeCrunchedWtex(TexCompileThreadInfo *tcti, bool isSrgb, int width, int height, int nMips,
-                                            void *data, size_t dataSize)
+    void TextureCompiler::writeCrunchedWtex(TexCompileThreadInfo* tcti, bool isSrgb, int width, int height, int nMips,
+                                            void* data, size_t dataSize)
     {
         wtex::Header header{};
         header.containedFormat = wtex::ContainedFormat::Crunch;
@@ -537,13 +537,13 @@ namespace worlds
 
         std::filesystem::create_directories(fullPath);
 
-        PHYSFS_File *outFile = PHYSFS_openWrite(tcti->outputPath.c_str());
+        PHYSFS_File* outFile = PHYSFS_openWrite(tcti->outputPath.c_str());
         PHYSFS_writeBytes(outFile, &header, sizeof(header));
         PHYSFS_writeBytes(outFile, data, dataSize);
         PHYSFS_close(outFile);
     }
 
-    void TextureCompiler::compileInternal(TexCompileThreadInfo *tcti)
+    void TextureCompiler::compileInternal(TexCompileThreadInfo* tcti)
     {
         switch (tcti->assetSettings.type)
         {

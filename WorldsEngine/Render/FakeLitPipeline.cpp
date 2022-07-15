@@ -21,9 +21,9 @@ namespace worlds
         uint32_t modelMatrixID;
     };
 
-    FakeLitPipeline::FakeLitPipeline(VKRenderer *renderer) : renderer(renderer)
+    FakeLitPipeline::FakeLitPipeline(VKRenderer* renderer) : renderer(renderer)
     {
-        VK::Core *core = renderer->getCore();
+        VK::Core* core = renderer->getCore();
 
         VK::BufferCreateInfo vpBci{VK::BufferUsage::Uniform, sizeof(MultiVP), true};
         multiVPBuffer = core->CreateBuffer(vpBci);
@@ -55,8 +55,8 @@ namespace worlds
         vb.Attributes.push_back(VK::VertexAttribute{0, VK::TextureFormat::R32G32B32_SFLOAT, 0});
         vb.Attributes.push_back(VK::VertexAttribute{1, VK::TextureFormat::R32G32B32_SFLOAT, offsetof(Vertex, normal)});
 
-        VK::ShaderModule &stdVert = ShaderCache::getModule(vs);
-        VK::ShaderModule &stdFrag = ShaderCache::getModule(fs);
+        VK::ShaderModule& stdVert = ShaderCache::getModule(vs);
+        VK::ShaderModule& stdFrag = ShaderCache::getModule(fs);
 
         VK::PipelineBuilder pb{core->GetHandles()};
         pb.PrimitiveTopology(VK::Topology::TriangleList)
@@ -76,14 +76,14 @@ namespace worlds
 
     FakeLitPipeline::~FakeLitPipeline()
     {
-        VK::Core *core = renderer->getCore();
+        VK::Core* core = renderer->getCore();
         core->DestroyBuffer(multiVPBuffer);
         core->DestroyBuffer(modelMatrixBuffer);
         delete pipeline;
         // TODO: destroy pipeline layout
     }
 
-    void FakeLitPipeline::setup(VKRTTPass *rttPass)
+    void FakeLitPipeline::setup(VKRTTPass* rttPass)
     {
         this->rttPass = rttPass;
         VK::TextureCreateInfo depthBufferCI =
@@ -99,12 +99,12 @@ namespace worlds
         depthBuffer = renderer->getCore()->CreateTexture(depthBufferCI);
     }
 
-    void FakeLitPipeline::draw(entt::registry &reg, R2::VK::CommandBuffer &cb)
+    void FakeLitPipeline::draw(entt::registry& reg, R2::VK::CommandBuffer& cb)
     {
-        VK::Core *core = renderer->getCore();
-        RenderMeshManager *meshManager = renderer->getMeshManager();
+        VK::Core* core = renderer->getCore();
+        RenderMeshManager* meshManager = renderer->getMeshManager();
 
-        glm::mat4 *modelMatricesMapped = (glm::mat4 *)modelMatrixBuffer->Map();
+        glm::mat4* modelMatricesMapped = (glm::mat4*)modelMatrixBuffer->Map();
 
         VK::RenderPass r;
         r.ColorAttachment(rttPass->getFinalTarget(), VK::LoadOp::Clear, VK::StoreOp::Store)
@@ -114,7 +114,7 @@ namespace worlds
             .RenderArea(rttPass->width, rttPass->height)
             .Begin(cb);
 
-        Camera *camera = rttPass->getCamera();
+        Camera* camera = rttPass->getCamera();
 
         MultiVP multiVPs{};
         multiVPs.views[0] = camera->getViewMatrix();
@@ -129,8 +129,8 @@ namespace worlds
         cb.SetViewport(VK::Viewport::Simple(rttPass->width, rttPass->height));
         cb.SetScissor(VK::ScissorRect::Simple(rttPass->width, rttPass->height));
 
-        reg.view<WorldObject, Transform>().each([&](WorldObject &wo, Transform &t) {
-            RenderMeshInfo &rmi = meshManager->loadOrGet(wo.mesh);
+        reg.view<WorldObject, Transform>().each([&](WorldObject& wo, Transform& t) {
+            RenderMeshInfo& rmi = meshManager->loadOrGet(wo.mesh);
 
             StandardPushConstants spc{};
             spc.modelMatrixID = modelMatrixIndex;
@@ -146,7 +146,7 @@ namespace worlds
 
             for (int i = 0; i < rmi.numSubmeshes; i++)
             {
-                RenderSubmeshInfo &rsi = rmi.submeshInfo[i];
+                RenderSubmeshInfo& rsi = rmi.submeshInfo[i];
                 cb.DrawIndexed(rsi.indexCount, 1, rsi.indexOffset, 0, 0);
             }
         });

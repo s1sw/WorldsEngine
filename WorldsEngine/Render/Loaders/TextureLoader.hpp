@@ -8,7 +8,7 @@ namespace worlds
 {
     struct TextureData
     {
-        uint8_t *data;
+        uint8_t* data;
         uint32_t width, height;
         uint32_t numMips;
         uint32_t totalDataSize;

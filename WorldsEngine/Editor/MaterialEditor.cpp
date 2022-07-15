@@ -20,23 +20,23 @@ namespace worlds
 {
     robin_hood::unordered_map<AssetID, ImTextureID> cacheTextures;
 
-    template <typename T> std::string getJson(const std::string &key, T val)
+    template <typename T> std::string getJson(const std::string& key, T val)
     {
         return "    \"" + key + "\"" + " : " + std::to_string(val);
     }
 
-    std::string getJson(const std::string &key, std::string value)
+    std::string getJson(const std::string& key, std::string value)
     {
         return "    \"" + key + "\"" + " : \"" + value + '"';
     }
 
-    std::string getJson(const std::string &key, glm::vec3 value)
+    std::string getJson(const std::string& key, glm::vec3 value)
     {
         return "    \"" + key + "\"" + " : [" + std::to_string(value.x) + ", " + std::to_string(value.y) + ", " +
                std::to_string(value.z) + "]";
     }
 
-    bool assetButton(AssetID &id, const char *title)
+    bool assetButton(AssetID& id, const char* title)
     {
         std::string buttonLabel = "Set##";
         buttonLabel += title;
@@ -55,7 +55,7 @@ namespace worlds
         return selectAssetPopup(title, id, open);
     }
 
-    void saveMaterial(EditableMaterial &mat, AssetID matId)
+    void saveMaterial(EditableMaterial& mat, AssetID matId)
     {
         std::string j = "{\n";
 
@@ -108,7 +108,7 @@ namespace worlds
 
         logMsg("%s", j.c_str());
 
-        PHYSFS_File *file = AssetDB::openAssetFileWrite(matId);
+        PHYSFS_File* file = AssetDB::openAssetFileWrite(matId);
         if (file != nullptr)
         {
             PHYSFS_writeBytes(file, j.data(), j.size());
@@ -120,7 +120,7 @@ namespace worlds
         }
     }
 
-    void setIfExists(const std::string &path, AssetID &toSet)
+    void setIfExists(const std::string& path, AssetID& toSet)
     {
         if (PHYSFS_exists(path.c_str()))
         {
@@ -128,7 +128,7 @@ namespace worlds
         }
     }
 
-    AssetID getAssetId(const nlohmann::json &j, const char *key)
+    AssetID getAssetId(const nlohmann::json& j, const char* key)
     {
         if (!j.contains(key))
             return ~0u;
@@ -165,7 +165,7 @@ namespace worlds
         this->interfaces = interfaces;
         editingID = id;
 
-        auto *f = AssetDB::openAssetFileRead(editingID);
+        auto* f = AssetDB::openAssetFileRead(editingID);
         size_t fileSize = PHYSFS_fileLength(f);
         std::string str;
         str.resize(fileSize);
@@ -410,7 +410,7 @@ namespace worlds
         ImGui::SameLine();
 
         bool openSkyboxPopup = false;
-        auto &sceneSettings = previewRegistry.ctx<SceneSettings>();
+        auto& sceneSettings = previewRegistry.ctx<SceneSettings>();
 
         if (ImGui::Button("Change Background"))
         {
@@ -444,7 +444,7 @@ namespace worlds
     MaterialEditor::~MaterialEditor()
     {
         EngineInterfaces interfaces = this->interfaces;
-        RTTPass *rPass = rttPass;
+        RTTPass* rPass = rttPass;
         rPass->active = false;
         // for (auto& p : cacheTextures) {
         //    interfaces.renderer->uiTextureManager().unload(p.first);
@@ -461,18 +461,18 @@ namespace worlds
 
     void MaterialEditorMeta::create(std::string path)
     {
-        PHYSFS_File *f = PHYSFS_openWrite(path.c_str());
+        PHYSFS_File* f = PHYSFS_openWrite(path.c_str());
         const char emptyJson[] = "{}";
         PHYSFS_writeBytes(f, emptyJson, sizeof(emptyJson));
         PHYSFS_close(f);
     }
 
-    IAssetEditor *MaterialEditorMeta::createEditorFor(AssetID id)
+    IAssetEditor* MaterialEditorMeta::createEditorFor(AssetID id)
     {
         return new MaterialEditor(id, interfaces);
     }
 
-    const char *MaterialEditorMeta::getHandledExtension()
+    const char* MaterialEditorMeta::getHandledExtension()
     {
         return ".json";
     }

@@ -4,9 +4,9 @@
 
 namespace worlds
 {
-    void loadWorldsModel(AssetID wmdlId, LoadedMeshData &lmd)
+    void loadWorldsModel(AssetID wmdlId, LoadedMeshData& lmd)
     {
-        PHYSFS_File *f = AssetDB::openAssetFileRead(wmdlId);
+        PHYSFS_File* f = AssetDB::openAssetFileRead(wmdlId);
 
         if (f == nullptr)
         {
@@ -15,12 +15,12 @@ namespace worlds
 
         size_t fileSize = PHYSFS_fileLength(f);
 
-        void *buf = malloc(fileSize);
+        void* buf = malloc(fileSize);
 
         PHYSFS_readBytes(f, buf, fileSize);
         PHYSFS_close(f);
 
-        wmdl::Header *wHdr = (wmdl::Header *)buf;
+        wmdl::Header* wHdr = (wmdl::Header*)buf;
 
         if (!wHdr->verifyMagic())
         {
@@ -33,11 +33,11 @@ namespace worlds
         lmd.isSkinned = wHdr->isSkinned();
         if (wHdr->isSkinned())
         {
-            wmdl::SkinningInfoBlock *skinInfoBlock = wHdr->getSkinningInfoBlock();
+            wmdl::SkinningInfoBlock* skinInfoBlock = wHdr->getSkinningInfoBlock();
             logVrb("wmdl is skinned: %i bones", wHdr->getSkinningInfoBlock()->numBones);
             lmd.bones.resize(skinInfoBlock->numBones);
 
-            wmdl::Bone *bones = wHdr->getBones();
+            wmdl::Bone* bones = wHdr->getBones();
             for (wmdl::CountType i = 0; i < skinInfoBlock->numBones; i++)
             {
                 lmd.bones[i].inverseBindPose = bones[i].inverseBindPose;
@@ -47,7 +47,7 @@ namespace worlds
             }
         }
 
-        wmdl::SubmeshInfo *submeshBlock = wHdr->getSubmeshBlock();
+        wmdl::SubmeshInfo* submeshBlock = wHdr->getSubmeshBlock();
         uint32_t numSubmeshes = wHdr->numSubmeshes;
         if (numSubmeshes > NUM_SUBMESH_MATS)
         {

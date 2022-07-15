@@ -29,7 +29,7 @@ namespace worlds
             return max - min;
         }
 
-        bool intersects(AABB &other)
+        bool intersects(AABB& other)
         {
             bool isects = true;
 

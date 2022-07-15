@@ -53,7 +53,7 @@ namespace worlds
         drawCircle(center, radius, rotation, color);
     }
 
-    void drawTransformedLine(const Transform &transform, glm::vec3 p0, glm::vec3 p1, glm::vec4 color)
+    void drawTransformedLine(const Transform& transform, glm::vec3 p0, glm::vec3 p1, glm::vec4 color)
     {
         drawLine(transform.transformPoint(p0), transform.transformPoint(p1), color);
     }
@@ -110,10 +110,10 @@ namespace worlds
                  center + rotation * glm::vec3(-radius, -height, 0.0f), color);
     }
 
-    const DebugLine *swapDebugLineBuffer(size_t &numLines)
+    const DebugLine* swapDebugLineBuffer(size_t& numLines)
     {
         numLines = buffers[currentBuffer].size();
-        const DebugLine *dbgLines = buffers[currentBuffer].data();
+        const DebugLine* dbgLines = buffers[currentBuffer].data();
 
         currentBuffer++;
 

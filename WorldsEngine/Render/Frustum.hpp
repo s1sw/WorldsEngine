@@ -61,22 +61,22 @@ namespace worlds
         void fromVPMatrix(glm::mat4 vp)
         {
             glm::mat4 tVP = glm::transpose(vp);
-            Plane &left = planes[FrustumPlane::Left];
+            Plane& left = planes[FrustumPlane::Left];
             left = Plane{tVP[3] + tVP[0]};
 
-            Plane &right = planes[FrustumPlane::Right];
+            Plane& right = planes[FrustumPlane::Right];
             right = Plane{tVP[3] - tVP[0]};
 
-            Plane &bottom = planes[FrustumPlane::Bottom];
+            Plane& bottom = planes[FrustumPlane::Bottom];
             bottom = Plane{tVP[3] + tVP[1]};
 
-            Plane &top = planes[FrustumPlane::Top];
+            Plane& top = planes[FrustumPlane::Top];
             top = Plane{tVP[3] - tVP[1]};
 
-            Plane &near = planes[FrustumPlane::Near];
+            Plane& near = planes[FrustumPlane::Near];
             near = Plane{tVP[3] + tVP[2]};
 
-            Plane &far = planes[FrustumPlane::Far];
+            Plane& far = planes[FrustumPlane::Far];
             far = Plane{tVP[3] - tVP[2]};
 
             for (int i = 0; i < 6; i++)
@@ -137,7 +137,7 @@ namespace worlds
         {
             for (int i = 0; i < 6; i++)
             {
-                const Plane &plane = planes[i];
+                const Plane& plane = planes[i];
                 float distance = glm::dot(center, plane.normal()) + plane.d;
                 if (distance < -radius)
                     return false;

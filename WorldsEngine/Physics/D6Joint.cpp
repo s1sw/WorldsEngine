@@ -14,7 +14,7 @@ namespace worlds
     {
     }
 
-    D6Joint::D6Joint(D6Joint &&other) noexcept
+    D6Joint::D6Joint(D6Joint&& other) noexcept
     {
         pxJoint = other.pxJoint;
         other.pxJoint = nullptr;
@@ -28,7 +28,7 @@ namespace worlds
         other.originalThisActor = nullptr;
     }
 
-    void D6Joint::operator=(D6Joint &&other)
+    void D6Joint::operator=(D6Joint&& other)
     {
         pxJoint = other.pxJoint;
         other.pxJoint = nullptr;
@@ -42,10 +42,10 @@ namespace worlds
         other.originalThisActor = nullptr;
     }
 
-    physx::PxRigidActor *getSuitablePhysicsActor(entt::entity ent, entt::registry &reg)
+    physx::PxRigidActor* getSuitablePhysicsActor(entt::entity ent, entt::registry& reg)
     {
-        auto *pa = reg.try_get<PhysicsActor>(ent);
-        auto *dpa = reg.try_get<RigidBody>(ent);
+        auto* pa = reg.try_get<PhysicsActor>(ent);
+        auto* dpa = reg.try_get<RigidBody>(ent);
 
         if (!(pa || dpa))
         {
@@ -55,11 +55,11 @@ namespace worlds
         return pa ? pa->actor : dpa->actor;
     }
 
-    void D6Joint::setTarget(entt::entity newTargetEnt, entt::registry &reg)
+    void D6Joint::setTarget(entt::entity newTargetEnt, entt::registry& reg)
     {
         targetEntity = newTargetEnt;
-        auto *pa = reg.try_get<PhysicsActor>(newTargetEnt);
-        auto *dpa = reg.try_get<RigidBody>(newTargetEnt);
+        auto* pa = reg.try_get<PhysicsActor>(newTargetEnt);
+        auto* dpa = reg.try_get<RigidBody>(newTargetEnt);
 
         if (!(pa || dpa))
         {
@@ -103,7 +103,7 @@ namespace worlds
         return replaceThis;
     }
 
-    void D6Joint::setAttached(entt::entity ent, entt::registry &reg)
+    void D6Joint::setAttached(entt::entity ent, entt::registry& reg)
     {
         replaceThis = ent;
 

@@ -48,7 +48,7 @@ namespace worlds
         return px2glm(actor->getGlobalPose());
     }
 
-    void RigidBody::setPose(const Transform &t)
+    void RigidBody::setPose(const Transform& t)
     {
         actor->setGlobalPose(glm2px(t));
     }

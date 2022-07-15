@@ -34,21 +34,21 @@ namespace worlds
     struct EditorAction
     {
         slib::String id;
-        std::function<void(Editor *ed, entt::registry &reg)> function;
+        std::function<void(Editor* ed, entt::registry& reg)> function;
         slib::String friendlyString;
     };
 
     class EditorActions
     {
       public:
-        static void addAction(EditorAction &&action);
-        static const EditorAction &findAction(const char *id);
-        static void bindAction(const char *id, ActionKeybind keybind);
+        static void addAction(EditorAction&& action);
+        static const EditorAction& findAction(const char* id);
+        static void bindAction(const char* id, ActionKeybind keybind);
         static void disableForThisFrame();
         static void reenable();
-        static void triggerBoundActions(Editor *ed, entt::registry &reg, SDL_Scancode scancode,
+        static void triggerBoundActions(Editor* ed, entt::registry& reg, SDL_Scancode scancode,
                                         ModifierFlags modifiers);
-        static const EditorAction &getActionByHash(uint32_t hash);
+        static const EditorAction& getActionByHash(uint32_t hash);
         static slib::List<uint32_t> searchForActions(slib::String pattern);
 
       private:

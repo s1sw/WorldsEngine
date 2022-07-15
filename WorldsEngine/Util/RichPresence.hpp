@@ -7,7 +7,7 @@ namespace discord
 
 namespace worlds
 {
-    extern discord::Core *discordCore;
+    extern discord::Core* discordCore;
     void initRichPresence(EngineInterfaces interfaces);
     void tickRichPresence();
     void shutdownRichPresence();

@@ -4,11 +4,11 @@
 
 namespace worlds
 {
-    void SceneSettingsWindow::draw(entt::registry &reg)
+    void SceneSettingsWindow::draw(entt::registry& reg)
     {
         if (ImGui::Begin("Scene Settings", &active))
         {
-            auto &settings = reg.ctx<SceneSettings>();
+            auto& settings = reg.ctx<SceneSettings>();
 
             ImGui::Text("Current Skybox: %s", AssetDB::idToPath(settings.skybox).c_str());
             ImGui::SameLine();

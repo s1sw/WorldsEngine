@@ -53,10 +53,10 @@ namespace PhysFS
     class base_fstream
     {
       protected:
-        PHYSFS_File *const file;
+        PHYSFS_File* const file;
 
       public:
-        base_fstream(PHYSFS_File *file);
+        base_fstream(PHYSFS_File* file);
         virtual ~base_fstream();
         size_t length();
     };
@@ -64,28 +64,28 @@ namespace PhysFS
     class ifstream : public base_fstream, public std::istream
     {
       public:
-        ifstream(PHYSFS_File *filePtr);
-        ifstream(string const &filename);
+        ifstream(PHYSFS_File* filePtr);
+        ifstream(string const& filename);
         virtual ~ifstream();
     };
 
     class ofstream : public base_fstream, public std::ostream
     {
       public:
-        ofstream(string const &filename, mode writeMode = WRITE);
+        ofstream(string const& filename, mode writeMode = WRITE);
         virtual ~ofstream();
     };
 
     class fstream : public base_fstream, public std::iostream
     {
       public:
-        fstream(string const &filename, mode openMode = READ);
+        fstream(string const& filename, mode openMode = READ);
         virtual ~fstream();
     };
 
     Version getLinkedVersion();
 
-    void init(char const *argv0);
+    void init(char const* argv0);
 
     void deinit();
 
@@ -97,7 +97,7 @@ namespace PhysFS
 
     StringList getCdRomDirs();
 
-    void getCdRomDirs(StringCallback callback, void *extra);
+    void getCdRomDirs(StringCallback callback, void* extra);
 
     string getBaseDir();
 
@@ -105,44 +105,44 @@ namespace PhysFS
 
     string getWriteDir();
 
-    void setWriteDir(string const &newDir);
+    void setWriteDir(string const& newDir);
 
-    [[deprecated]] void removeFromSearchPath(string const &oldDir);
+    [[deprecated]] void removeFromSearchPath(string const& oldDir);
 
     StringList getSearchPath();
 
-    void getSearchPath(StringCallback callback, void *extra);
+    void getSearchPath(StringCallback callback, void* extra);
 
-    void setSaneConfig(string const &orgName, string const &appName, string const &archiveExt, bool includeCdRoms,
+    void setSaneConfig(string const& orgName, string const& appName, string const& archiveExt, bool includeCdRoms,
                        bool archivesFirst);
 
-    void mkdir(string const &dirName);
+    void mkdir(string const& dirName);
 
-    void deleteFile(string const &filename);
+    void deleteFile(string const& filename);
 
-    string getRealDir(string const &filename);
+    string getRealDir(string const& filename);
 
-    StringList enumerateFiles(string const &directory);
+    StringList enumerateFiles(string const& directory);
 
-    [[deprecated]] void enumerateFiles(string const &directory, EnumFilesCallback callback, void *extra);
+    [[deprecated]] void enumerateFiles(string const& directory, EnumFilesCallback callback, void* extra);
 
-    bool exists(string const &filename);
+    bool exists(string const& filename);
 
-    [[deprecated]] bool isDirectory(string const &filename);
+    [[deprecated]] bool isDirectory(string const& filename);
 
-    [[deprecated]] bool isSymbolicLink(string const &filename);
+    [[deprecated]] bool isSymbolicLink(string const& filename);
 
-    [[deprecated]] sint64 getLastModTime(string const &filename);
+    [[deprecated]] sint64 getLastModTime(string const& filename);
 
     bool isInit();
 
     bool symbolicLinksPermitted();
 
-    void setAllocator(Allocator const *allocator);
+    void setAllocator(Allocator const* allocator);
 
-    void mount(string const &newDir, string const &mountPoint, bool appendToPath);
+    void mount(string const& newDir, string const& mountPoint, bool appendToPath);
 
-    string getMountPoint(string const &dir);
+    string getMountPoint(string const& dir);
 
     namespace Util
     {
@@ -171,15 +171,15 @@ namespace PhysFS
 
         uint64 swapUBE64(uint64 value);
 
-        string utf8FromUcs4(uint32 const *src);
+        string utf8FromUcs4(uint32 const* src);
 
-        string utf8ToUcs4(char const *src);
+        string utf8ToUcs4(char const* src);
 
-        string utf8FromUcs2(uint16 const *src);
+        string utf8FromUcs2(uint16 const* src);
 
-        string utf8ToUcs2(char const *src);
+        string utf8ToUcs2(char const* src);
 
-        string utf8FromLatin1(char const *src);
+        string utf8FromLatin1(char const* src);
 
     }
 
