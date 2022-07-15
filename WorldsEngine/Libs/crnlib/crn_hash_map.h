@@ -14,8 +14,10 @@
 
 namespace crnlib
 {
+#ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wclass-memaccess"
+#endif
    template <typename T>
    struct hasher
    {
@@ -876,5 +878,6 @@ namespace crnlib
    extern void hash_map_test();
 
 } // namespace crnlib
+#ifdef __GNUC__
 #pragma GCC diagnostic pop
-
+#endif
