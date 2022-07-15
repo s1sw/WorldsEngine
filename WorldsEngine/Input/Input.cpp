@@ -37,9 +37,9 @@ namespace worlds
         };
     };
 
-    SDL_GameController *controller;
+    SDL_GameController* controller;
     int controllerIndex;
-    InputManager::InputManager(SDL_Window *window) : window(window), mouseButtonFlags(0), lastMouseButtonFlags(0)
+    InputManager::InputManager(SDL_Window* window) : window(window), mouseButtonFlags(0), lastMouseButtonFlags(0)
     {
         memset(keyState, 0, sizeof(keyState));
 
@@ -66,12 +66,12 @@ namespace worlds
         }
     }
 
-    void InputManager::setScriptEngine(DotNetScriptEngine *scriptEngine)
+    void InputManager::setScriptEngine(DotNetScriptEngine* scriptEngine)
     {
         this->scriptEngine = scriptEngine;
         scriptEngine->createManagedDelegate("WorldsEngine.Input.InputSystem", "ProcessNativeEvent",
-                                            (void **)&processNativeEvent);
-        scriptEngine->createManagedDelegate("WorldsEngine.Input.InputSystem", "EndFrame", (void **)&managedEndFrame);
+                                            (void**)&processNativeEvent);
+        scriptEngine->createManagedDelegate("WorldsEngine.Input.InputSystem", "EndFrame", (void**)&managedEndFrame);
     }
 
     void InputManager::update()
@@ -95,7 +95,7 @@ namespace worlds
 #endif
     }
 
-    void InputManager::processEvent(const SDL_Event &evt)
+    void InputManager::processEvent(const SDL_Event& evt)
     {
         NativeInputEvent nativeEvent{NEInvalid};
         switch (evt.type)
@@ -106,7 +106,7 @@ namespace worlds
             nativeEvent.eventKind = NEKeyDown;
             nativeEvent.scancode = scancode;
 
-            for (auto &handler : keydownHandlers)
+            for (auto& handler : keydownHandlers)
             {
                 handler(scancode);
             }
@@ -222,7 +222,7 @@ namespace worlds
 
     void InputManager::endFrame()
     {
-        memcpy(reinterpret_cast<void *>(lastKeyState), keyState, SDL_NUM_SCANCODES);
+        memcpy(reinterpret_cast<void*>(lastKeyState), keyState, SDL_NUM_SCANCODES);
         if (managedEndFrame)
             managedEndFrame();
     }

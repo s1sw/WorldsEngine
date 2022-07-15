@@ -12,7 +12,7 @@ namespace worlds
     {
       public:
         SplashWindow(bool small);
-        void changeOverlay(const std::string &overlay);
+        void changeOverlay(const std::string& overlay);
         ~SplashWindow();
 
       private:
@@ -24,13 +24,13 @@ namespace worlds
         volatile bool windowCreated = false;
         bool running = true;
 
-        SDL_Window *win = nullptr;
-        SDL_Renderer *renderer;
-        SDL_Surface *bgSurface;
-        SDL_Texture *bgTexture;
+        SDL_Window* win = nullptr;
+        SDL_Renderer* renderer;
+        SDL_Surface* bgSurface;
+        SDL_Texture* bgTexture;
 
-        SDL_Surface *overlaySurface;
-        SDL_Texture *overlayTexture;
+        SDL_Surface* overlaySurface;
+        SDL_Texture* overlayTexture;
 
         std::thread winThread;
         std::string overlay;

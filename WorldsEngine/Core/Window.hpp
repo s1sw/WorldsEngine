@@ -11,14 +11,14 @@ namespace worlds
     class Window
     {
       public:
-        Window(const char *title, int w, int h, bool startHidden = false);
-        Window(Window &other) = delete;
+        Window(const char* title, int w, int h, bool startHidden = false);
+        Window(Window& other) = delete;
         ~Window();
 
-        void bindInputManager(InputManager *manager);
+        void bindInputManager(InputManager* manager);
         void processEvents();
 
-        void addFileDropHandler(std::function<void(const char *)> handler);
+        void addFileDropHandler(std::function<void(const char*)> handler);
         void show();
         void hide();
         void raise();
@@ -26,23 +26,23 @@ namespace worlds
         void minimise();
         void restore();
         void resize(int width, int height);
-        void setTitle(const char *title);
+        void setTitle(const char* title);
         void setFullscreen(bool fullscreen);
 
-        const char *getTitle();
+        const char* getTitle();
         bool shouldQuit();
         bool isMaximised();
         bool isMinimised();
         bool isFocused();
-        void getSize(int *width, int *height);
-        SDL_Window *getWrappedHandle();
+        void getSize(int* width, int* height);
+        SDL_Window* getWrappedHandle();
 
       private:
-        std::vector<std::function<void(const char *)>> fileDropHandlers;
-        void processEvent(SDL_Event &evt);
+        std::vector<std::function<void(const char*)>> fileDropHandlers;
+        void processEvent(SDL_Event& evt);
         bool hasFlag(uint32_t flag);
-        InputManager *inputManager;
-        SDL_Window *window;
+        InputManager* inputManager;
+        SDL_Window* window;
         bool _shouldQuit;
     };
 }

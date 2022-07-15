@@ -20,10 +20,10 @@ namespace worlds
 
 namespace worlds
 {
-    AssetEditors::StaticLink *AssetEditors::staticLink;
+    AssetEditors::StaticLink* AssetEditors::staticLink;
 
-    slib::List<IAssetEditorMeta *> assetEditors;
-    robin_hood::unordered_flat_map<uint32_t, IAssetEditorMeta *> assetEditorMap;
+    slib::List<IAssetEditorMeta*> assetEditors;
+    robin_hood::unordered_flat_map<uint32_t, IAssetEditorMeta*> assetEditorMap;
 
     IAssetEditorMeta::IAssetEditorMeta()
     {
@@ -37,7 +37,7 @@ namespace worlds
 
     void AssetEditors::initialise(EngineInterfaces interfaces)
     {
-        StaticLink *current = staticLink;
+        StaticLink* current = staticLink;
         while (current)
         {
             assetEditors.add(current->editor);
@@ -46,24 +46,24 @@ namespace worlds
 
             current->editor->setInterfaces(interfaces);
 
-            StaticLink *tmp = current;
+            StaticLink* tmp = current;
             current = current->next;
             delete tmp;
         }
     }
 
-    void AssetEditors::registerAssetEditor(IAssetEditorMeta *editor)
+    void AssetEditors::registerAssetEditor(IAssetEditorMeta* editor)
     {
-        StaticLink *sl = new StaticLink{.editor = editor, .next = staticLink};
+        StaticLink* sl = new StaticLink{.editor = editor, .next = staticLink};
         staticLink = sl;
     }
 
-    IAssetEditorMeta *AssetEditors::getEditorFor(AssetID asset)
+    IAssetEditorMeta* AssetEditors::getEditorFor(AssetID asset)
     {
         return getEditorFor(AssetDB::getAssetExtension(asset));
     }
 
-    IAssetEditorMeta *AssetEditors::getEditorFor(std::string_view extension)
+    IAssetEditorMeta* AssetEditors::getEditorFor(std::string_view extension)
     {
         uint32_t hash = FnvHash(extension);
         auto it = assetEditorMap.find(hash);

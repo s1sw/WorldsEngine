@@ -25,8 +25,8 @@ namespace worlds
       public:
         void importAsset(std::string filePath, std::string newAssetPath) override;
         void create(std::string path) override;
-        IAssetEditor *createEditorFor(AssetID id) override;
-        const char *getHandledExtension() override;
+        IAssetEditor* createEditorFor(AssetID id) override;
+        const char* getHandledExtension() override;
 
       private:
     };

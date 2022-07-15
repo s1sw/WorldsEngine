@@ -50,7 +50,7 @@ namespace worlds
         }
 
       protected:
-        void doLog(const rcLogCategory category, const char *msg, const int len) override
+        void doLog(const rcLogCategory category, const char* msg, const int len) override
         {
             switch (category)
             {
@@ -69,10 +69,10 @@ namespace worlds
       private:
     };
 
-    dtNavMesh *NavigationSystem::navMesh = nullptr;
-    dtNavMeshQuery *NavigationSystem::navMeshQuery = nullptr;
+    dtNavMesh* NavigationSystem::navMesh = nullptr;
+    dtNavMeshQuery* NavigationSystem::navMeshQuery = nullptr;
 
-    void NavigationSystem::setupFromNavMeshData(uint8_t *data, size_t dataSize)
+    void NavigationSystem::setupFromNavMeshData(uint8_t* data, size_t dataSize)
     {
         if (data == nullptr || dataSize == 0)
             return;
@@ -109,11 +109,11 @@ namespace worlds
         }
     }
 
-    void NavigationSystem::loadNavMeshFromFile(const char *path)
+    void NavigationSystem::loadNavMeshFromFile(const char* path)
     {
-        PHYSFS_File *file = PHYSFS_openRead(path);
+        PHYSFS_File* file = PHYSFS_openRead(path);
         size_t navmeshSize = PHYSFS_fileLength(file);
-        uint8_t *navmeshData = new uint8_t[navmeshSize];
+        uint8_t* navmeshData = new uint8_t[navmeshSize];
 
         if (navmeshSize != PHYSFS_readBytes(file, navmeshData, navmeshSize))
         {
@@ -123,7 +123,7 @@ namespace worlds
         setupFromNavMeshData(navmeshData, navmeshSize);
     }
 
-    void NavigationSystem::buildNavMesh(entt::registry &registry, uint8_t *&dataOut, size_t &dataSizeOut)
+    void NavigationSystem::buildNavMesh(entt::registry& registry, uint8_t*& dataOut, size_t& dataSizeOut)
     {
         dataOut = nullptr;
         dataSizeOut = 0;
@@ -134,16 +134,16 @@ namespace worlds
         uint32_t numVertices = 0;
 
         PerfTimer pt;
-        registry.view<Transform, WorldObject>().each([&](Transform &t, WorldObject &o) {
+        registry.view<Transform, WorldObject>().each([&](Transform& t, WorldObject& o) {
             if (!enumHasFlag(o.staticFlags, StaticFlags::Navigation))
                 return;
 
             glm::mat4 tMat = t.getMatrix();
-            auto &mesh = MeshManager::loadOrGet(o.mesh);
+            auto& mesh = MeshManager::loadOrGet(o.mesh);
             numTriangles += mesh.indices.size() / 3;
             numVertices += mesh.vertices.size();
 
-            for (const Vertex &v : mesh.vertices)
+            for (const Vertex& v : mesh.vertices)
             {
                 glm::vec3 transformedPosition = tMat * glm::vec4(v.position, 1.0f);
                 bbMin = glm::min(transformedPosition, bbMin);
@@ -166,10 +166,10 @@ namespace worlds
         std::vector<glm::vec3> recastVertices;
         recastVertices.reserve(numVertices);
 
-        registry.view<Transform, WorldObject>().each([&](Transform &t, WorldObject &o) {
+        registry.view<Transform, WorldObject>().each([&](Transform& t, WorldObject& o) {
             if (!enumHasFlag(o.staticFlags, StaticFlags::Navigation))
                 return;
-            auto &mesh = MeshManager::loadOrGet(o.mesh);
+            auto& mesh = MeshManager::loadOrGet(o.mesh);
             glm::mat4 mat = t.getMatrix();
 
             for (uint32_t idx : mesh.indices)
@@ -186,7 +186,7 @@ namespace worlds
                 recastTriNormals.push_back(faceNormal);
             }
 
-            for (const Vertex &v : mesh.vertices)
+            for (const Vertex& v : mesh.vertices)
             {
                 glm::vec3 transformedPosition = mat * glm::vec4(v.position, 1.0f);
                 recastVertices.push_back(transformedPosition);
@@ -199,7 +199,7 @@ namespace worlds
             recastConfig.bmax[i] = bbMax[i];
         }
 
-        CustomRCContext *ctx = new CustomRCContext();
+        CustomRCContext* ctx = new CustomRCContext();
 
         ctx->resetTimers();
         ctx->startTimer(RC_TIMER_TOTAL);
@@ -207,7 +207,7 @@ namespace worlds
         rcCalcGridSize(recastConfig.bmin, recastConfig.bmax, recastConfig.cs, &recastConfig.width,
                        &recastConfig.height);
 
-        rcHeightfield *heightfield = rcAllocHeightfield();
+        rcHeightfield* heightfield = rcAllocHeightfield();
 
         bool lastResult = rcCreateHeightfield(ctx, *heightfield, recastConfig.width, recastConfig.height,
                                               recastConfig.bmin, recastConfig.bmax, recastConfig.cs, recastConfig.ch);
@@ -218,12 +218,12 @@ namespace worlds
             return;
         }
 
-        uint8_t *triareas = new uint8_t[numTriangles];
+        uint8_t* triareas = new uint8_t[numTriangles];
         memset(triareas, 0, numTriangles);
 
-        rcMarkWalkableTriangles(ctx, recastConfig.walkableSlopeAngle, (float *)recastVertices.data(), numVertices,
+        rcMarkWalkableTriangles(ctx, recastConfig.walkableSlopeAngle, (float*)recastVertices.data(), numVertices,
                                 recastTriangles.data(), numTriangles, triareas);
-        lastResult = rcRasterizeTriangles(ctx, (float *)recastVertices.data(), numVertices, recastTriangles.data(),
+        lastResult = rcRasterizeTriangles(ctx, (float*)recastVertices.data(), numVertices, recastTriangles.data(),
                                           triareas, numTriangles, *heightfield, recastConfig.walkableClimb);
 
         if (!lastResult)
@@ -238,7 +238,7 @@ namespace worlds
         rcFilterLedgeSpans(ctx, recastConfig.walkableHeight, recastConfig.walkableClimb, *heightfield);
         rcFilterWalkableLowHeightSpans(ctx, recastConfig.walkableHeight, *heightfield);
 
-        rcCompactHeightfield *compactHeightfield = rcAllocCompactHeightfield();
+        rcCompactHeightfield* compactHeightfield = rcAllocCompactHeightfield();
         lastResult = rcBuildCompactHeightfield(ctx, recastConfig.walkableHeight, recastConfig.walkableClimb,
                                                *heightfield, *compactHeightfield);
 
@@ -255,14 +255,14 @@ namespace worlds
         rcBuildRegions(ctx, *compactHeightfield, recastConfig.borderSize, recastConfig.minRegionArea,
                        recastConfig.mergeRegionArea);
 
-        rcContourSet *contourSet = rcAllocContourSet();
+        rcContourSet* contourSet = rcAllocContourSet();
         rcBuildContours(ctx, *compactHeightfield, recastConfig.maxSimplificationError, recastConfig.maxEdgeLen,
                         *contourSet);
 
-        rcPolyMesh *polyMesh = rcAllocPolyMesh();
+        rcPolyMesh* polyMesh = rcAllocPolyMesh();
         rcBuildPolyMesh(ctx, *contourSet, recastConfig.maxVertsPerPoly, *polyMesh);
 
-        rcPolyMeshDetail *polyMeshDetail = rcAllocPolyMeshDetail();
+        rcPolyMeshDetail* polyMeshDetail = rcAllocPolyMeshDetail();
         rcBuildPolyMeshDetail(ctx, *polyMesh, *compactHeightfield, recastConfig.detailSampleDist,
                               recastConfig.detailSampleMaxError, *polyMeshDetail);
 
@@ -304,7 +304,7 @@ namespace worlds
         params.ch = recastConfig.ch;
         params.buildBvTree = true;
 
-        uint8_t *navMeshData;
+        uint8_t* navMeshData;
         int navMeshDataSize;
         if (!dtCreateNavMeshData(&params, &navMeshData, &navMeshDataSize))
         {
@@ -319,13 +319,13 @@ namespace worlds
         dataSizeOut = static_cast<size_t>(navMeshDataSize);
     }
 
-    void NavigationSystem::buildAndSave(entt::registry &registry, const char *path)
+    void NavigationSystem::buildAndSave(entt::registry& registry, const char* path)
     {
-        uint8_t *data;
+        uint8_t* data;
         size_t dataSize;
         buildNavMesh(registry, data, dataSize);
 
-        PHYSFS_File *file = PHYSFS_openWrite(path);
+        PHYSFS_File* file = PHYSFS_openWrite(path);
 
         if (file == nullptr)
         {
@@ -338,7 +338,7 @@ namespace worlds
         free(data);
     }
 
-    void NavigationSystem::updateNavMesh(entt::registry &reg)
+    void NavigationSystem::updateNavMesh(entt::registry& reg)
     {
         std::string savedPath = "LevelData/Navmeshes/" + reg.ctx<SceneInfo>().name + ".bin";
 
@@ -349,13 +349,13 @@ namespace worlds
         }
         logWarn("Scene %s doesn't have baked navmesh data", reg.ctx<SceneInfo>().name.c_str());
 
-        uint8_t *navMeshData;
+        uint8_t* navMeshData;
         size_t navMeshDataSize;
         buildNavMesh(reg, navMeshData, navMeshDataSize);
         setupFromNavMeshData(navMeshData, navMeshDataSize);
     }
 
-    void NavigationSystem::findPath(glm::vec3 startPos, glm::vec3 endPos, NavigationPath &path)
+    void NavigationSystem::findPath(glm::vec3 startPos, glm::vec3 endPos, NavigationPath& path)
     {
         path.valid = false;
         if (navMeshQuery == nullptr)
@@ -419,7 +419,7 @@ namespace worlds
         }
     }
 
-    bool NavigationSystem::getClosestPointOnMesh(glm::vec3 point, glm::vec3 &outPoint, glm::vec3 searchExtent)
+    bool NavigationSystem::getClosestPointOnMesh(glm::vec3 point, glm::vec3& outPoint, glm::vec3 searchExtent)
     {
         if (glm::length2(searchExtent) == 0.0f)
         {

@@ -6,7 +6,7 @@ using namespace worlds;
 
 extern "C"
 {
-    EXPORT void assetDB_idToPath(uint32_t id, uint32_t *length, char *outBuffer)
+    EXPORT void assetDB_idToPath(uint32_t id, uint32_t* length, char* outBuffer)
     {
         std::string path = AssetDB::idToPath(id);
 
@@ -19,7 +19,7 @@ extern "C"
         }
     }
 
-    EXPORT uint32_t assetDB_pathToId(char *path)
+    EXPORT uint32_t assetDB_pathToId(char* path)
     {
         return AssetDB::pathToId(path);
     }
@@ -29,17 +29,17 @@ extern "C"
         return AssetDB::exists(id);
     }
 
-    EXPORT PHYSFS_File *assetDB_openAssetRead(uint32_t id)
+    EXPORT PHYSFS_File* assetDB_openAssetRead(uint32_t id)
     {
         return AssetDB::openAssetFileRead(id);
     }
 
-    EXPORT PHYSFS_File *assetDB_openAssetWrite(uint32_t id)
+    EXPORT PHYSFS_File* assetDB_openAssetWrite(uint32_t id)
     {
         return AssetDB::openAssetFileWrite(id);
     }
 
-    EXPORT uint32_t assetDB_createAsset(const char *path)
+    EXPORT uint32_t assetDB_createAsset(const char* path)
     {
         return AssetDB::createAsset(path);
     }

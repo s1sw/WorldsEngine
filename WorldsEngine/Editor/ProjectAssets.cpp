@@ -9,19 +9,19 @@
 
 namespace worlds
 {
-    ProjectAssets::ProjectAssets(const GameProject &project) : project(project)
+    ProjectAssets::ProjectAssets(const GameProject& project) : project(project)
     {
     }
 
     void ProjectAssets::checkForAssetChanges()
     {
-        for (AssetFile &af : assetFiles)
+        for (AssetFile& af : assetFiles)
         {
             checkForAssetChange(af);
         }
     }
 
-    void ProjectAssets::checkForAssetChange(AssetFile &file)
+    void ProjectAssets::checkForAssetChange(AssetFile& file)
     {
         if (!PHYSFS_exists(file.compiledPath.c_str()))
         {
@@ -38,12 +38,12 @@ namespace worlds
         if (compiledStat.modtime < file.lastModified)
             file.needsCompile = true;
 
-        IAssetCompiler *compiler = AssetCompilers::getCompilerFor(file.sourceAssetId);
+        IAssetCompiler* compiler = AssetCompilers::getCompilerFor(file.sourceAssetId);
         std::vector<std::string> dependencies;
         compiler->getFileDependencies(file.sourceAssetId, dependencies);
 
         file.dependenciesExist = true;
-        for (auto &dependency : dependencies)
+        for (auto& dependency : dependencies)
         {
             if (!PHYSFS_exists(dependency.c_str()))
             {
@@ -65,13 +65,13 @@ namespace worlds
         enumerateForAssets("SourceData");
     }
 
-    void ProjectAssets::enumerateForAssets(const char *path)
+    void ProjectAssets::enumerateForAssets(const char* path)
     {
-        char **list = PHYSFS_enumerateFiles(path);
+        char** list = PHYSFS_enumerateFiles(path);
 
-        for (char **p = list; *p != nullptr; p++)
+        for (char** p = list; *p != nullptr; p++)
         {
-            char *subpath = *p;
+            char* subpath = *p;
             std::string fullPath = std::string(path) + '/' + subpath;
 
             PHYSFS_Stat stat;
@@ -120,7 +120,7 @@ namespace worlds
     {
         std::vector<AssetSearchCandidate> candidates;
 
-        for (AssetFile &af : assetFiles)
+        for (AssetFile& af : assetFiles)
         {
             int score;
             if (fts::fuzzy_match(pattern.cStr(), af.path.c_str(), score))
@@ -130,12 +130,12 @@ namespace worlds
         }
 
         std::sort(candidates.begin(), candidates.end(),
-                  [](const AssetSearchCandidate &a, const AssetSearchCandidate &b) { return a.score > b.score; });
+                  [](const AssetSearchCandidate& a, const AssetSearchCandidate& b) { return a.score > b.score; });
 
         slib::List<AssetID> orderedIds;
         orderedIds.reserve(candidates.size());
 
-        for (AssetSearchCandidate &sc : candidates)
+        for (AssetSearchCandidate& sc : candidates)
         {
             orderedIds.add(sc.assetId);
         }

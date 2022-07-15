@@ -34,7 +34,7 @@ enum CSMessageSeverity
 using namespace worlds;
 extern "C"
 {
-    EXPORT void logging_log(CSMessageSeverity severity, const char *text)
+    EXPORT void logging_log(CSMessageSeverity severity, const char* text)
     {
         switch (severity)
         {
@@ -54,7 +54,7 @@ extern "C"
     }
 }
 
-EngineInterfaces const *csharpInterfaces;
+EngineInterfaces const* csharpInterfaces;
 #include "AssetDBBindings.hpp"
 #include "AudioBindings.hpp"
 #include "AudioSourceBindings.hpp"
@@ -77,7 +77,7 @@ EngineInterfaces const *csharpInterfaces;
 #include "WorldObjectBindings.hpp"
 #include "WorldTextBindings.hpp"
 
-entt::registry *sceneLoaderBindReg;
+entt::registry* sceneLoaderBindReg;
 extern "C"
 {
     EXPORT void sceneloader_loadScene(AssetID id)
@@ -93,7 +93,7 @@ extern "C"
 
 namespace worlds
 {
-    DotNetScriptEngine::DotNetScriptEngine(entt::registry &reg, const EngineInterfaces &interfaces)
+    DotNetScriptEngine::DotNetScriptEngine(entt::registry& reg, const EngineInterfaces& interfaces)
         : interfaces(interfaces), reg(reg)
     {
         csharpInputManager = interfaces.inputManager;
@@ -101,7 +101,7 @@ namespace worlds
         csharpInterfaces = &interfaces;
     }
 
-    bool DotNetScriptEngine::initialise(Editor *editor)
+    bool DotNetScriptEngine::initialise(Editor* editor)
     {
         ZoneScoped;
         igGET_FLT_MAX();
@@ -135,13 +135,13 @@ namespace worlds
 
         logMsg("exePath: %s", exePath);
 
-        const char *propertyKeys[] = {"TRUSTED_PLATFORM_ASSEMBLIES"};
+        const char* propertyKeys[] = {"TRUSTED_PLATFORM_ASSEMBLIES"};
 
         using recursive_directory_iterator = std::filesystem::recursive_directory_iterator;
 
         std::string tpaList = "";
 
-        for (const auto &dirEntry : recursive_directory_iterator(std::filesystem::current_path() / "NetAssemblies"))
+        for (const auto& dirEntry : recursive_directory_iterator(std::filesystem::current_path() / "NetAssemblies"))
         {
             if (dirEntry.is_regular_file() && dirEntry.path().extension() == ".dll")
             {
@@ -154,7 +154,7 @@ namespace worlds
             }
         }
 
-        const char *propertyValues[] = {tpaList.c_str()};
+        const char* propertyValues[] = {tpaList.c_str()};
 
         csharpEditor = editor;
         csharpMainCamera = interfaces.mainCamera;
@@ -170,21 +170,21 @@ namespace worlds
 
         // C# bools are always 4 bytes
         uint32_t (*initFunc)(entt::registry * reg, uint32_t editorActive);
-        createManagedDelegate("WorldsEngine.Engine", "Init", (void **)&initFunc);
+        createManagedDelegate("WorldsEngine.Engine", "Init", (void**)&initFunc);
 
         if (!initFunc(&reg, interfaces.engine->runAsEditor))
             return false;
 
-        createManagedDelegate("WorldsEngine.Engine", "Update", (void **)&updateFunc);
-        createManagedDelegate("WorldsEngine.Engine", "Simulate", (void **)&simulateFunc);
-        createManagedDelegate("WorldsEngine.Engine", "OnSceneStart", (void **)&sceneStartFunc);
-        createManagedDelegate("WorldsEngine.Engine", "EditorUpdate", (void **)&editorUpdateFunc);
-        createManagedDelegate("WorldsEngine.Registry", "OnNativeEntityDestroy", (void **)&nativeEntityDestroyFunc);
-        createManagedDelegate("WorldsEngine.Registry", "SerializeManagedComponents", (void **)&serializeComponentsFunc);
+        createManagedDelegate("WorldsEngine.Engine", "Update", (void**)&updateFunc);
+        createManagedDelegate("WorldsEngine.Engine", "Simulate", (void**)&simulateFunc);
+        createManagedDelegate("WorldsEngine.Engine", "OnSceneStart", (void**)&sceneStartFunc);
+        createManagedDelegate("WorldsEngine.Engine", "EditorUpdate", (void**)&editorUpdateFunc);
+        createManagedDelegate("WorldsEngine.Registry", "OnNativeEntityDestroy", (void**)&nativeEntityDestroyFunc);
+        createManagedDelegate("WorldsEngine.Registry", "SerializeManagedComponents", (void**)&serializeComponentsFunc);
         createManagedDelegate("WorldsEngine.Registry", "DeserializeManagedComponent",
-                              (void **)&deserializeComponentFunc);
-        createManagedDelegate("WorldsEngine.Physics", "HandleCollisionFromNative", (void **)&physicsContactFunc);
-        createManagedDelegate("WorldsEngine.Registry", "CopyManagedComponents", (void **)&copyManagedComponentsFunc);
+                              (void**)&deserializeComponentFunc);
+        createManagedDelegate("WorldsEngine.Physics", "HandleCollisionFromNative", (void**)&physicsContactFunc);
+        createManagedDelegate("WorldsEngine.Registry", "CopyManagedComponents", (void**)&copyManagedComponentsFunc);
 
         reg.on_destroy<Transform>().connect<&DotNetScriptEngine::onTransformDestroy>(*this);
 
@@ -199,7 +199,7 @@ namespace worlds
         netFuncs.shutdown(hostHandle, domainId);
     }
 
-    void DotNetScriptEngine::onTransformDestroy(entt::registry &reg, entt::entity ent)
+    void DotNetScriptEngine::onTransformDestroy(entt::registry& reg, entt::entity ent)
     {
         nativeEntityDestroyFunc((uint32_t)ent);
     }
@@ -232,17 +232,17 @@ namespace worlds
         simulateFunc(deltaTime);
     }
 
-    void DotNetScriptEngine::handleCollision(entt::entity entity, PhysicsContactInfo *contactInfo)
+    void DotNetScriptEngine::handleCollision(entt::entity entity, PhysicsContactInfo* contactInfo)
     {
         physicsContactFunc((uint32_t)entity, contactInfo);
     }
 
-    void DotNetScriptEngine::serializeManagedComponents(nlohmann::json &entityJson, entt::entity entity)
+    void DotNetScriptEngine::serializeManagedComponents(nlohmann::json& entityJson, entt::entity entity)
     {
-        serializeComponentsFunc((void *)&entityJson, (uint32_t)entity);
+        serializeComponentsFunc((void*)&entityJson, (uint32_t)entity);
     }
 
-    void DotNetScriptEngine::deserializeManagedComponent(const char *id, const nlohmann::json &componentJson,
+    void DotNetScriptEngine::deserializeManagedComponent(const char* id, const nlohmann::json& componentJson,
                                                          entt::entity entity)
     {
         std::string cJsonStr = componentJson.dump();
@@ -254,7 +254,7 @@ namespace worlds
         copyManagedComponentsFunc(from, to);
     }
 
-    void DotNetScriptEngine::createManagedDelegate(const char *typeName, const char *methodName, void **func)
+    void DotNetScriptEngine::createManagedDelegate(const char* typeName, const char* methodName, void** func)
     {
         int ret = netFuncs.createDelegate(hostHandle, domainId, "WorldsEngineManaged", typeName, methodName, func);
         if (ret < 0)

@@ -14,9 +14,9 @@ namespace worlds
     class ComponentEditor
     {
       public:
-        static ComponentEditorLink *first;
+        static ComponentEditorLink* first;
         ComponentEditor();
-        void setInterfaces(EngineInterfaces *interfaces)
+        void setInterfaces(EngineInterfaces* interfaces)
         {
             this->interfaces = interfaces;
         }
@@ -24,23 +24,23 @@ namespace worlds
         {
             return 0;
         }
-        virtual const char *getName() = 0;
+        virtual const char* getName() = 0;
         virtual uint32_t getSerializedID() = 0;
         virtual bool allowInspectorAdd() = 0;
         virtual ENTT_ID_TYPE getComponentID() = 0;
-        virtual void create(entt::entity ent, entt::registry &reg) = 0;
-        virtual void destroy(entt::entity ent, entt::registry &reg) = 0;
-        virtual void clone(entt::entity from, entt::entity to, entt::registry &reg) = 0;
-        virtual void edit(entt::entity ent, entt::registry &reg, Editor *ed) = 0;
-        virtual void toJson(entt::entity ent, entt::registry &reg, nlohmann::json &j) = 0;
-        virtual void fromJson(entt::entity ent, entt::registry &reg, EntityIDMap &entityRemap,
-                              const nlohmann::json &j) = 0;
+        virtual void create(entt::entity ent, entt::registry& reg) = 0;
+        virtual void destroy(entt::entity ent, entt::registry& reg) = 0;
+        virtual void clone(entt::entity from, entt::entity to, entt::registry& reg) = 0;
+        virtual void edit(entt::entity ent, entt::registry& reg, Editor* ed) = 0;
+        virtual void toJson(entt::entity ent, entt::registry& reg, nlohmann::json& j) = 0;
+        virtual void fromJson(entt::entity ent, entt::registry& reg, EntityIDMap& entityRemap,
+                              const nlohmann::json& j) = 0;
         virtual ~ComponentEditor()
         {
         }
 
       protected:
-        EngineInterfaces *interfaces;
+        EngineInterfaces* interfaces;
     };
 
     struct ComponentEditorLink
@@ -48,7 +48,7 @@ namespace worlds
         ComponentEditorLink() : editor(nullptr), next(nullptr)
         {
         }
-        ComponentEditor *editor;
-        ComponentEditorLink *next;
+        ComponentEditor* editor;
+        ComponentEditorLink* next;
     };
 }

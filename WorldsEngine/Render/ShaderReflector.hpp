@@ -31,14 +31,14 @@ namespace worlds
       public:
         ShaderReflector(AssetID shaderId);
         ~ShaderReflector();
-        R2::VK::DescriptorSetLayout *createDescriptorSetLayout(R2::VK::Core *device, uint32_t setIndex);
-        uint32_t getBindingIndex(const char *name);
-        void bindBuffer(R2::VK::DescriptorSetUpdater &dsu, const char *bindPoint, R2::VK::Buffer *buffer);
+        R2::VK::DescriptorSetLayout* createDescriptorSetLayout(R2::VK::Core* device, uint32_t setIndex);
+        uint32_t getBindingIndex(const char* name);
+        void bindBuffer(R2::VK::DescriptorSetUpdater& dsu, const char* bindPoint, R2::VK::Buffer* buffer);
         VertexAttributeBindings getVertexAttributeBindings();
 
       private:
         SpvReflectShaderModule mod;
         bool valid = true;
-        std::vector<SpvReflectDescriptorBinding *> reflectBindings;
+        std::vector<SpvReflectDescriptorBinding*> reflectBindings;
     };
 }

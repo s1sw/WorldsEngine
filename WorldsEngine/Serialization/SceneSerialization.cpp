@@ -10,10 +10,10 @@
 
 namespace worlds
 {
-    void clearEntities(entt::registry &reg)
+    void clearEntities(entt::registry& reg)
     {
         std::vector<entt::entity> entitiesToClear;
-        reg.view<Transform>(entt::exclude_t<KeepOnSceneLoad>{}).each([&](entt::entity e, Transform &) {
+        reg.view<Transform>(entt::exclude_t<KeepOnSceneLoad>{}).each([&](entt::entity e, Transform&) {
             entitiesToClear.push_back(e);
         });
 
@@ -25,7 +25,7 @@ namespace worlds
 
     // Do basic checks on the first byte to determine
     // the most appropriate scene serializer to call.
-    void SceneLoader::loadScene(PHYSFS_File *file, entt::registry &reg, bool additive)
+    void SceneLoader::loadScene(PHYSFS_File* file, entt::registry& reg, bool additive)
     {
         ZoneScoped;
         if (PHYSFS_fileLength(file) <= 4)
@@ -82,12 +82,12 @@ namespace worlds
         NavigationSystem::updateNavMesh(reg);
     }
 
-    entt::entity SceneLoader::loadEntity(PHYSFS_File *file, entt::registry &reg)
+    entt::entity SceneLoader::loadEntity(PHYSFS_File* file, entt::registry& reg)
     {
         return JsonSceneSerializer::loadEntity(file, reg);
     }
 
-    entt::entity SceneLoader::createPrefab(AssetID id, entt::registry &reg)
+    entt::entity SceneLoader::createPrefab(AssetID id, entt::registry& reg)
     {
         if (id == INVALID_ASSET)
         {
@@ -98,7 +98,7 @@ namespace worlds
         entt::entity ent = JsonSceneSerializer::loadEntity(id, reg);
         if (reg.valid(ent))
         {
-            PrefabInstanceComponent &pic = reg.emplace<PrefabInstanceComponent>(ent);
+            PrefabInstanceComponent& pic = reg.emplace<PrefabInstanceComponent>(ent);
             pic.prefab = id;
         }
         return ent;

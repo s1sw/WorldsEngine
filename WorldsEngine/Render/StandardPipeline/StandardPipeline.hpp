@@ -18,5 +18,12 @@ namespace worlds
 
     class StandardPipeline : public IRenderPipeline
     {
+      public:
+        StandardPipeline(VKRenderer* renderer);
+        ~StandardPipeline();
+
+        void setup(VKRTTPass* rttPass);
+        void onResize(int width, int height) override;
+        void draw(entt::registry& reg, R2::VK::CommandBuffer& cb) override;
     };
 }

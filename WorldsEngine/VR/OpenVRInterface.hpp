@@ -23,7 +23,7 @@ namespace worlds
 {
     class OpenVRInterface : public IVRInterface
     {
-        vr::IVRSystem *system;
+        vr::IVRSystem* system;
         vr::VRActionHandle_t movementAction;
         vr::VRActionHandle_t leftHand;
         vr::VRActionHandle_t rightHand;
@@ -34,8 +34,8 @@ namespace worlds
         vr::VRActionSetHandle_t actionSet;
 
         uint32_t handBoneCount;
-        vr::VRBoneTransform_t *lhandBoneArray;
-        vr::VRBoneTransform_t *rhandBoneArray;
+        vr::VRBoneTransform_t* lhandBoneArray;
+        vr::VRBoneTransform_t* rhandBoneArray;
 
         bool hasInputFocus = true;
 
@@ -45,7 +45,7 @@ namespace worlds
         std::vector<std::string> getVulkanInstanceExtensions() override;
         std::vector<std::string> getVulkanDeviceExtensions(VkPhysicalDevice physDevice) override;
 
-        void getRenderResolution(uint32_t *x, uint32_t *y);
+        void getRenderResolution(uint32_t* x, uint32_t* y);
 
         static glm::mat4 toMat4(vr::HmdMatrix34_t mat);
         static glm::mat4 toMat4(vr::HmdMatrix44_t mat);
@@ -55,8 +55,8 @@ namespace worlds
         glm::mat4 getEyeProjectionMatrix(Eye eye, float near, float far) override;
 
         void updateInput() override;
-        bool getHandTransform(Hand hand, Transform &t) override;
-        bool getHandVelocity(Hand hand, glm::vec3 &velocity) override;
+        bool getHandTransform(Hand hand, Transform& t) override;
+        bool getHandVelocity(Hand hand, glm::vec3& velocity) override;
         glm::mat4 getHeadTransform(float predictionTime) override;
         glm::vec2 getLocomotionInput() override;
 

@@ -10,14 +10,14 @@
 
 namespace worlds
 {
-    AssetEditorWindow::AssetEditorWindow(AssetID id, EngineInterfaces interfaces, Editor *editor)
+    AssetEditorWindow::AssetEditorWindow(AssetID id, EngineInterfaces interfaces, Editor* editor)
         : EditorWindow(interfaces, editor), assetId(id), currCompileOp(nullptr)
     {
-        IAssetEditorMeta *assetEditorMeta = AssetEditors::getEditorFor(id);
+        IAssetEditorMeta* assetEditorMeta = AssetEditors::getEditorFor(id);
         assetEditor = assetEditorMeta->createEditorFor(id);
     }
 
-    void AssetEditorWindow::draw(entt::registry &reg)
+    void AssetEditorWindow::draw(entt::registry& reg)
     {
         std::string path = AssetDB::idToPath(assetId);
         ImGui::SetNextWindowPos(glm::vec2(ImGui::GetMainViewport()->GetCenter()) - glm::vec2(640.0f, 480.0f) * 0.5f,

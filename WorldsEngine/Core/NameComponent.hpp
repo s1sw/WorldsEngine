@@ -11,9 +11,9 @@ namespace worlds
     {
         std::string name;
 
-        static void save(entt::entity ent, entt::registry &reg, PHYSFS_File *file)
+        static void save(entt::entity ent, entt::registry& reg, PHYSFS_File* file)
         {
-            auto &nc = reg.get<NameComponent>(ent);
+            auto& nc = reg.get<NameComponent>(ent);
 
             if (nc.name.size() > std::numeric_limits<uint16_t>::max())
             {
@@ -25,9 +25,9 @@ namespace worlds
             PHYSFS_writeBytes(file, nc.name.data(), nc.name.size());
         }
 
-        static void load(entt::entity ent, entt::registry &reg, PHYSFS_File *file)
+        static void load(entt::entity ent, entt::registry& reg, PHYSFS_File* file)
         {
-            auto &nc = reg.get_or_emplace<NameComponent>(ent);
+            auto& nc = reg.get_or_emplace<NameComponent>(ent);
 
             uint16_t size;
             PHYSFS_readULE16(file, &size);

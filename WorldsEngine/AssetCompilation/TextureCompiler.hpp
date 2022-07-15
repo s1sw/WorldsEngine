@@ -47,26 +47,26 @@ namespace worlds
         };
 
         void initialiseForType(TextureAssetType t);
-        static TextureAssetSettings fromJson(nlohmann::json &j);
-        void toJson(nlohmann::json &j);
+        static TextureAssetSettings fromJson(nlohmann::json& j);
+        void toJson(nlohmann::json& j);
     };
 
     class TextureCompiler : public IAssetCompiler
     {
       public:
         TextureCompiler();
-        AssetCompileOperation *compile(std::string_view projectRoot, AssetID src) override;
-        void getFileDependencies(AssetID src, std::vector<std::string> &out) override;
-        const char *getSourceExtension() override;
-        const char *getCompiledExtension() override;
+        AssetCompileOperation* compile(std::string_view projectRoot, AssetID src) override;
+        void getFileDependencies(AssetID src, std::vector<std::string>& out) override;
+        const char* getSourceExtension() override;
+        const char* getCompiledExtension() override;
 
       private:
         struct TexCompileThreadInfo;
-        void compileCrunch(TexCompileThreadInfo *);
-        void compileRGBA(TexCompileThreadInfo *);
-        void compilePBR(TexCompileThreadInfo *);
-        void writeCrunchedWtex(TexCompileThreadInfo *tcti, bool isSrgb, int width, int height, int nMips, void *data,
+        void compileCrunch(TexCompileThreadInfo*);
+        void compileRGBA(TexCompileThreadInfo*);
+        void compilePBR(TexCompileThreadInfo*);
+        void writeCrunchedWtex(TexCompileThreadInfo* tcti, bool isSrgb, int width, int height, int nMips, void* data,
                                size_t dataSize);
-        void compileInternal(TexCompileThreadInfo *);
+        void compileInternal(TexCompileThreadInfo*);
     };
 }

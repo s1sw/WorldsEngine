@@ -19,19 +19,19 @@ namespace std
 namespace worlds
 {
     class Console;
-    extern Console *g_console;
+    extern Console* g_console;
 
-    typedef std::function<void(void *obj, const char *argString)> CommandFuncPtr;
+    typedef std::function<void(void* obj, const char* argString)> CommandFuncPtr;
 
     class Console
     {
       public:
         Console(bool openConsoleWindow, bool asyncStdinConsole = false);
-        void registerCommand(CommandFuncPtr funcPtr, const char *name, const char *help, void *obj = nullptr);
+        void registerCommand(CommandFuncPtr funcPtr, const char* name, const char* help, void* obj = nullptr);
         void drawWindow();
         void setShowState(bool show);
         void executeCommandStr(std::string cmdStr, bool log = true);
-        ConVar *getConVar(const char *name)
+        ConVar* getConVar(const char* name)
         {
             return conVars.at(name);
         }
@@ -43,9 +43,9 @@ namespace worlds
         struct Command
         {
             CommandFuncPtr func;
-            const char *name;
-            const char *help;
-            void *obj;
+            const char* name;
+            const char* help;
+            void* obj;
         };
 
         struct ConsoleMsg
@@ -60,19 +60,19 @@ namespace worlds
         std::string currentCommand;
         std::vector<ConsoleMsg> msgs;
         std::vector<std::string> previousCommands;
-        std::unordered_map<std::string, ConVar *> conVars;
+        std::unordered_map<std::string, ConVar*> conVars;
         std::unordered_map<std::string, Command> commands;
-        FILE *logFile;
-        std::thread *asyncConsoleThread;
+        FILE* logFile;
+        std::thread* asyncConsoleThread;
         bool asyncCommandReady;
         std::string asyncCommand;
 
         void logConsoleResponse();
 
-        static int inputTextCallback(ImGuiInputTextCallbackData *data);
-        static void logCallback(void *con, int category, SDL_LogPriority priority, const char *msg);
-        static void cmdHelp(void *con, const char *argString);
-        static void cmdExec(void *con, const char *argString);
+        static int inputTextCallback(ImGuiInputTextCallbackData* data);
+        static void logCallback(void* con, int category, SDL_LogPriority priority, const char* msg);
+        static void cmdHelp(void* con, const char* argString);
+        static void cmdExec(void* con, const char* argString);
         friend class ConVar;
         friend void asyncConsole();
     };

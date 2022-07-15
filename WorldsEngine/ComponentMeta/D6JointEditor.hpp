@@ -19,27 +19,27 @@ using json = nlohmann::json;
 
 namespace physx
 {
-    inline void to_json(json &j, const PxTransform &t)
+    inline void to_json(json& j, const PxTransform& t)
     {
         j = {{"position", {t.p.x, t.p.y, t.p.z}}, {"rotation", {t.q.x, t.q.y, t.q.z, t.q.w}}};
     }
 
-    inline void from_json(const json &j, PxTransform &t)
+    inline void from_json(const json& j, PxTransform& t)
     {
-        const auto &pos = j["position"];
-        const auto &rot = j["rotation"];
+        const auto& pos = j["position"];
+        const auto& rot = j["rotation"];
 
         t.p = PxVec3(pos[0], pos[1], pos[2]);
         t.q = PxQuat(rot[0], rot[1], rot[2], rot[3]);
     }
 
-    inline void to_json(json &j, const PxJointLinearLimit &l)
+    inline void to_json(json& j, const PxJointLinearLimit& l)
     {
         j = {{"value", l.value},         {"restitution", l.restitution}, {"bounceThreshold", l.bounceThreshold},
              {"stiffness", l.stiffness}, {"damping", l.damping},         {"contactDistance", l.contactDistance}};
     }
 
-    inline void from_json(const json &j, PxJointLinearLimit &l)
+    inline void from_json(const json& j, PxJointLinearLimit& l)
     {
         l.value = j["value"];
         l.restitution = j["restitution"];
@@ -52,12 +52,12 @@ namespace physx
 
 namespace worlds
 {
-    const char *motionNames[3] = {"Locked", "Limited", "Free"};
+    const char* motionNames[3] = {"Locked", "Limited", "Free"};
 
-    const char *motionAxisLabels[physx::PxD6Axis::eCOUNT] = {"X Motion",     "Y Motion",       "Z Motion",
+    const char* motionAxisLabels[physx::PxD6Axis::eCOUNT] = {"X Motion",     "Y Motion",       "Z Motion",
                                                              "Twist Motion", "Swing 1 Motion", "Swing 2 Motion"};
 
-    bool motionDropdown(const char *label, physx::PxD6Motion::Enum &val)
+    bool motionDropdown(const char* label, physx::PxD6Motion::Enum& val)
     {
         bool ret = false;
         if (ImGui::BeginCombo(label, motionNames[(int)val]))
@@ -81,7 +81,7 @@ namespace worlds
         return ret;
     }
 
-    float readFloat(PHYSFS_File *file)
+    float readFloat(PHYSFS_File* file)
     {
         float f;
         PHYSFS_readBytes(file, &f, sizeof(f));
@@ -95,22 +95,22 @@ namespace worlds
         {
             return 2;
         }
-        const char *getName() override
+        const char* getName() override
         {
             return "D6 Joint";
         }
 
-        void create(entt::entity ent, entt::registry &reg) override
+        void create(entt::entity ent, entt::registry& reg) override
         {
             reg.emplace<D6Joint>(ent);
         }
 
-        void edit(entt::entity ent, entt::registry &reg, Editor *ed) override
+        void edit(entt::entity ent, entt::registry& reg, Editor* ed) override
         {
-            auto &j = reg.get<D6Joint>(ent);
+            auto& j = reg.get<D6Joint>(ent);
 
-            auto *dpa = reg.try_get<RigidBody>(ent);
-            auto *pxj = j.pxJoint;
+            auto* dpa = reg.try_get<RigidBody>(ent);
+            auto* pxj = j.pxJoint;
 
             if (ImGui::CollapsingHeader(ICON_FA_ATOM u8" D6 Joint"))
             {
@@ -124,7 +124,7 @@ namespace worlds
 
                 if (reg.valid(target))
                 {
-                    NameComponent *nc = reg.try_get<NameComponent>(target);
+                    NameComponent* nc = reg.try_get<NameComponent>(target);
 
                     if (nc)
                     {
@@ -188,7 +188,7 @@ namespace worlds
                 {
                     if (reg.valid(j.getAttached()))
                     {
-                        NameComponent *nc = reg.try_get<NameComponent>(j.getAttached());
+                        NameComponent* nc = reg.try_get<NameComponent>(j.getAttached());
 
                         if (nc)
                         {
@@ -254,7 +254,7 @@ namespace worlds
                 {
                     if (ImGui::Button("Set Connected Offset"))
                     {
-                        auto &t = reg.get<Transform>(ent);
+                        auto& t = reg.get<Transform>(ent);
                         auto p = glm2px(t);
                         j.pxJoint->setLocalPose(physx::PxJointActorIndex::eACTOR1, p);
                     }
@@ -398,14 +398,14 @@ namespace worlds
             }
         }
 
-        void clone(entt::entity from, entt::entity to, entt::registry &reg) override
+        void clone(entt::entity from, entt::entity to, entt::registry& reg) override
         {
             assert(reg.has<RigidBody>(to));
-            auto &newD6 = reg.emplace<D6Joint>(to);
-            auto &oldD6 = reg.get<D6Joint>(from);
+            auto& newD6 = reg.emplace<D6Joint>(to);
+            auto& oldD6 = reg.get<D6Joint>(from);
 
-            auto *newJ = newD6.pxJoint;
-            auto *oldJ = oldD6.pxJoint;
+            auto* newJ = newD6.pxJoint;
+            auto* oldJ = oldD6.pxJoint;
 
             if (reg.valid(oldD6.getTarget()))
                 newD6.setTarget(oldD6.getTarget(), reg);
@@ -432,10 +432,10 @@ namespace worlds
             newJ->setSwingLimit(oldJ->getSwingLimit());
         }
 
-        void toJson(entt::entity ent, entt::registry &reg, json &j) override
+        void toJson(entt::entity ent, entt::registry& reg, json& j) override
         {
-            auto &d6 = reg.get<D6Joint>(ent);
-            auto *px = d6.pxJoint;
+            auto& d6 = reg.get<D6Joint>(ent);
+            auto* px = d6.pxJoint;
 
             json axisMotions;
             for (int axisInt = physx::PxD6Axis::eX; axisInt < physx::PxD6Axis::eCOUNT; axisInt++)
@@ -514,10 +514,10 @@ namespace worlds
             j["twistLimit"] = twistLimitJ;
         }
 
-        void fromJson(entt::entity ent, entt::registry &reg, EntityIDMap &idMap, const json &j) override
+        void fromJson(entt::entity ent, entt::registry& reg, EntityIDMap& idMap, const json& j) override
         {
-            auto &d6 = reg.emplace<D6Joint>(ent);
-            auto *px = d6.pxJoint;
+            auto& d6 = reg.emplace<D6Joint>(ent);
+            auto* px = d6.pxJoint;
 
             for (int axisInt = physx::PxD6Axis::eX; axisInt < physx::PxD6Axis::eCOUNT; axisInt++)
             {

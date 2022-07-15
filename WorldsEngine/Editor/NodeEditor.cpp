@@ -4,30 +4,30 @@
 
 namespace worlds::nodes
 {
-    Node *currentNode;
+    Node* currentNode;
 
     NodeEditor::NodeEditor() : scrollOffset(0.0f)
     {
-        DataType *dt = new DataType;
+        DataType* dt = new DataType;
         dt->color = static_cast<ImU32>(ImColor(255, 0, 0));
         dt->name = "Test Datatype";
 
-        NodeType *nt = new NodeType();
+        NodeType* nt = new NodeType();
         nt->name = "Test Node #1";
         nt->inPorts.add(Port{"Test Port", dt});
         nt->inPorts.add(Port{"Test Port", dt});
         nt->inPorts.add(Port{"Test Port", dt});
 
-        Node *n = new Node();
+        Node* n = new Node();
         n->type = nt;
         n->position = glm::vec2(0.0f);
         n->size = glm::vec2(300, 400);
         currentNode = n;
     }
 
-    void drawNode(Node *node, glm::vec2 offset)
+    void drawNode(Node* node, glm::vec2 offset)
     {
-        ImDrawList *dl = ImGui::GetWindowDrawList();
+        ImDrawList* dl = ImGui::GetWindowDrawList();
 
         glm::vec2 position = node->position + offset;
         glm::vec2 size = node->size;
@@ -53,7 +53,7 @@ namespace worlds::nodes
             ImGui::PopFont();
 
             ImGui::Indent(5.0f);
-            for (const Port &p : node->type->inPorts)
+            for (const Port& p : node->type->inPorts)
             {
                 glm::vec2 circlePos = ImGui::GetCursorScreenPos();
                 circlePos.y += ImGui::GetTextLineHeight() * 0.5f;
@@ -88,7 +88,7 @@ namespace worlds::nodes
                 scrollOffset += static_cast<glm::vec2>(ImGui::GetIO().MouseDelta);
             }
 
-            ImDrawList *dl = ImGui::GetWindowDrawList();
+            ImDrawList* dl = ImGui::GetWindowDrawList();
 
             const float gridSpacing = 2.0f * ImGui::GetTextLineHeight();
 

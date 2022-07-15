@@ -40,7 +40,7 @@ namespace worlds
       private:
         AssetID editingID = INVALID_ASSET;
         EngineInterfaces interfaces;
-        RTTPass *rttPass;
+        RTTPass* rttPass;
         Camera previewCam;
         entt::entity previewEntity;
         entt::registry previewRegistry;
@@ -58,7 +58,7 @@ namespace worlds
       public:
         void importAsset(std::string filePath, std::string newAssetPath) override;
         void create(std::string path) override;
-        IAssetEditor *createEditorFor(AssetID id) override;
-        const char *getHandledExtension() override;
+        IAssetEditor* createEditorFor(AssetID id) override;
+        const char* getHandledExtension() override;
     };
 }

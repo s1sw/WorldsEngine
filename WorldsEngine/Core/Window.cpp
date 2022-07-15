@@ -10,7 +10,7 @@
 
 namespace worlds
 {
-    Window::Window(const char *title, int w, int h, bool startHidden) : inputManager(nullptr), _shouldQuit(false)
+    Window::Window(const char* title, int w, int h, bool startHidden) : inputManager(nullptr), _shouldQuit(false)
     {
         uint32_t flags = SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI;
 
@@ -22,7 +22,7 @@ namespace worlds
         window = SDL_CreateWindow(title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, w, h, flags);
     }
 
-    void Window::bindInputManager(InputManager *manager)
+    void Window::bindInputManager(InputManager* manager)
     {
         inputManager = manager;
     }
@@ -36,7 +36,7 @@ namespace worlds
         }
     }
 
-    void Window::processEvent(SDL_Event &evt)
+    void Window::processEvent(SDL_Event& evt)
     {
         if (evt.type == SDL_QUIT)
         {
@@ -48,7 +48,7 @@ namespace worlds
         {
             logMsg("file dropped: %s", evt.drop.file);
 
-            for (auto &handler : fileDropHandlers)
+            for (auto& handler : fileDropHandlers)
             {
                 handler(evt.drop.file);
             }
@@ -69,7 +69,7 @@ namespace worlds
             ImGui_ImplSDL2_ProcessEvent(&evt);
     }
 
-    void Window::addFileDropHandler(std::function<void(const char *)> handler)
+    void Window::addFileDropHandler(std::function<void(const char*)> handler)
     {
         fileDropHandlers.push_back(handler);
     }
@@ -129,7 +129,7 @@ namespace worlds
         SDL_SetWindowSize(window, width, height);
     }
 
-    void Window::setTitle(const char *title)
+    void Window::setTitle(const char* title)
     {
         SDL_SetWindowTitle(window, title);
     }
@@ -139,7 +139,7 @@ namespace worlds
         SDL_SetWindowFullscreen(window, fullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
     }
 
-    const char *Window::getTitle()
+    const char* Window::getTitle()
     {
         return SDL_GetWindowTitle(window);
     }
@@ -164,7 +164,7 @@ namespace worlds
         return hasFlag(SDL_WINDOW_INPUT_FOCUS);
     }
 
-    void Window::getSize(int *width, int *height)
+    void Window::getSize(int* width, int* height)
     {
         SDL_GetWindowSize(window, width, height);
         if (isMaximised())
@@ -174,7 +174,7 @@ namespace worlds
         }
     }
 
-    SDL_Window *Window::getWrappedHandle()
+    SDL_Window* Window::getWrappedHandle()
     {
         return window;
     }

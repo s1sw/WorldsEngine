@@ -12,23 +12,23 @@ namespace worlds
     {
     }
 
-    FixedJoint::FixedJoint(FixedJoint &&other) noexcept
+    FixedJoint::FixedJoint(FixedJoint&& other) noexcept
     {
         pxJoint = other.pxJoint;
         other.pxJoint = nullptr;
     }
 
-    void FixedJoint::operator=(FixedJoint &&other)
+    void FixedJoint::operator=(FixedJoint&& other)
     {
         pxJoint = other.pxJoint;
         other.pxJoint = nullptr;
     }
 
-    void FixedJoint::setTarget(entt::entity newTargetEnt, entt::registry &reg)
+    void FixedJoint::setTarget(entt::entity newTargetEnt, entt::registry& reg)
     {
         targetEntity = newTargetEnt;
-        auto *pa = reg.try_get<PhysicsActor>(newTargetEnt);
-        auto *dpa = reg.try_get<RigidBody>(newTargetEnt);
+        auto* pa = reg.try_get<PhysicsActor>(newTargetEnt);
+        auto* dpa = reg.try_get<RigidBody>(newTargetEnt);
 
         if (!(pa || dpa))
         {

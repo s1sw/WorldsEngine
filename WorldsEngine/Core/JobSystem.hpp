@@ -12,7 +12,7 @@
 namespace worlds
 {
     class JobSystem;
-    extern JobSystem *g_jobSys;
+    extern JobSystem* g_jobSys;
     typedef std::function<void()> JobFunc;
     typedef void (*JobCompleteFuncPtr)();
 
@@ -40,7 +40,7 @@ namespace worlds
         JobList();
 
         void begin();
-        void addJob(Job &&job);
+        void addJob(Job&& job);
         void end();
         void wait();
 
@@ -49,8 +49,8 @@ namespace worlds
       private:
         moodycamel::ConcurrentQueue<Job> jobs;
         std::atomic<int> jobCount;
-        SDL_cond *completeCV;
-        SDL_mutex *completeMutex;
+        SDL_cond* completeCV;
+        SDL_mutex* completeMutex;
         friend class JobSystem;
     };
 
@@ -59,7 +59,7 @@ namespace worlds
       public:
         JobSystem(int numWorkers);
         ~JobSystem();
-        JobList &getFreeJobList();
+        JobList& getFreeJobList();
         void signalJobListAvailable();
         void completeFrameJobs();
 
@@ -71,7 +71,7 @@ namespace worlds
         std::mutex newJobListM;
         std::condition_variable newJobListCV;
 
-        JobList *currentJobLists;
+        JobList* currentJobLists;
         std::vector<std::thread> workers;
         std::atomic<int> initialisedWorkerCount;
     };

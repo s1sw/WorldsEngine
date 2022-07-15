@@ -12,7 +12,7 @@ namespace worlds
     robin_hood::unordered_map<uint32_t, EditorAction> EditorActions::registeredActions;
     slib::List<EditorAction> EditorActions::actionList;
 
-    void EditorActions::addAction(EditorAction &&action)
+    void EditorActions::addAction(EditorAction&& action)
     {
         uint32_t idHash = FnvHash(action.id.cStr());
 
@@ -28,14 +28,14 @@ namespace worlds
         registeredActions.insert({idHash, std::move(action)});
     }
 
-    const EditorAction &EditorActions::findAction(const char *id)
+    const EditorAction& EditorActions::findAction(const char* id)
     {
         uint32_t idHash = FnvHash(id);
 
         return registeredActions.at(idHash);
     }
 
-    void EditorActions::bindAction(const char *id, ActionKeybind keybind)
+    void EditorActions::bindAction(const char* id, ActionKeybind keybind)
     {
         if (!actionBindings.contains(keybind.key))
         {
@@ -43,7 +43,7 @@ namespace worlds
             actionBindings.insert({keybind.key, KeyBindings{{}, {}, 0}});
         }
 
-        KeyBindings &keyBindings = actionBindings.at(keybind.key);
+        KeyBindings& keyBindings = actionBindings.at(keybind.key);
 
         int idx = keyBindings.numBinds++;
         keyBindings.modifiers[idx] = keybind.flags;
@@ -62,13 +62,13 @@ namespace worlds
         disabled = false;
     }
 
-    void EditorActions::triggerBoundActions(Editor *ed, entt::registry &reg, SDL_Scancode scancode,
+    void EditorActions::triggerBoundActions(Editor* ed, entt::registry& reg, SDL_Scancode scancode,
                                             ModifierFlags modifiers)
     {
         if (disabled || !actionBindings.contains(scancode))
             return;
 
-        KeyBindings &bindings = actionBindings.at(scancode);
+        KeyBindings& bindings = actionBindings.at(scancode);
         for (int i = 0; i < bindings.numBinds; i++)
         {
             if (bindings.modifiers[i] == modifiers)
@@ -76,7 +76,7 @@ namespace worlds
         }
     }
 
-    const EditorAction &EditorActions::getActionByHash(uint32_t hash)
+    const EditorAction& EditorActions::getActionByHash(uint32_t hash)
     {
         return registeredActions.at(hash);
     }
@@ -91,7 +91,7 @@ namespace worlds
     {
         std::vector<SearchCandidate> candidates;
 
-        for (EditorAction &action : actionList)
+        for (EditorAction& action : actionList)
         {
             int score;
             if (fts::fuzzy_match(pattern.cStr(), action.friendlyString.cStr(), score))
@@ -101,12 +101,12 @@ namespace worlds
         }
 
         std::sort(candidates.begin(), candidates.end(),
-                  [](const SearchCandidate &a, const SearchCandidate &b) { return a.score > b.score; });
+                  [](const SearchCandidate& a, const SearchCandidate& b) { return a.score > b.score; });
 
         slib::List<uint32_t> orderedHashes;
         orderedHashes.reserve(candidates.size());
 
-        for (SearchCandidate &sc : candidates)
+        for (SearchCandidate& sc : candidates)
         {
             orderedHashes.add(sc.actionHash);
         }

@@ -19,7 +19,7 @@ namespace worlds
         Count
     };
 
-    inline PhysicsShapeType &operator++(PhysicsShapeType &type)
+    inline PhysicsShapeType& operator++(PhysicsShapeType& type)
     {
         PhysicsShapeType newType = (PhysicsShapeType)(((int)type) + 1);
 
@@ -60,9 +60,9 @@ namespace worlds
         };
         glm::vec3 pos;
         glm::quat rot;
-        physx::PxMaterial *material;
+        physx::PxMaterial* material;
 
-        static PhysicsShape sphereShape(float radius, physx::PxMaterial *mat = nullptr)
+        static PhysicsShape sphereShape(float radius, physx::PxMaterial* mat = nullptr)
         {
             PhysicsShape shape;
             shape.type = PhysicsShapeType::Sphere;
@@ -71,7 +71,7 @@ namespace worlds
             return shape;
         }
 
-        static PhysicsShape boxShape(glm::vec3 halfExtents, physx::PxMaterial *mat = nullptr)
+        static PhysicsShape boxShape(glm::vec3 halfExtents, physx::PxMaterial* mat = nullptr)
         {
             PhysicsShape shape;
             shape.type = PhysicsShapeType::Box;
@@ -80,7 +80,7 @@ namespace worlds
             return shape;
         }
 
-        static PhysicsShape capsuleShape(float radius, float height, physx::PxMaterial *mat = nullptr)
+        static PhysicsShape capsuleShape(float radius, float height, physx::PxMaterial* mat = nullptr)
         {
             PhysicsShape shape;
             shape.type = PhysicsShapeType::Capsule;
@@ -93,10 +93,10 @@ namespace worlds
 
     struct PhysicsActor
     {
-        PhysicsActor(physx::PxRigidActor *actor) : actor(actor)
+        PhysicsActor(physx::PxRigidActor* actor) : actor(actor)
         {
         }
-        physx::PxRigidActor *actor;
+        physx::PxRigidActor* actor;
         std::vector<PhysicsShape> physicsShapes;
         bool scaleShapes = true;
         uint32_t layer = 1;
@@ -129,10 +129,10 @@ namespace worlds
 
     struct RigidBody
     {
-        RigidBody(physx::PxRigidActor *actor) : actor((physx::PxRigidDynamic *)actor), mass(1.0f)
+        RigidBody(physx::PxRigidActor* actor) : actor((physx::PxRigidDynamic*)actor), mass(1.0f)
         {
         }
-        physx::PxRigidDynamic *actor;
+        physx::PxRigidDynamic* actor;
         float mass;
         bool enableGravity = true;
         bool enableCCD = false;
@@ -166,6 +166,6 @@ namespace worlds
         bool enabled() const;
 
         Transform pose() const;
-        void setPose(const Transform &t);
+        void setPose(const Transform& t);
     };
 }

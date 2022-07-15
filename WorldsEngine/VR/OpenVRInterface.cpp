@@ -14,7 +14,7 @@ namespace worlds
             return vr::EVREye::Eye_Right;
     }
 
-    void checkErr(vr::EVRInputError err, const char *file, int line)
+    void checkErr(vr::EVRInputError err, const char* file, int line)
     {
         if (err != vr::VRInputError_None)
         {
@@ -34,12 +34,12 @@ namespace worlds
             fatalErr(errMsg.c_str());
         }
 
-        const char *basePath = SDL_GetBasePath();
+        const char* basePath = SDL_GetBasePath();
 
         std::string actionsPathStr = basePath;
         actionsPathStr += "actions.json";
 
-        const char *actionsPath = actionsPathStr.c_str();
+        const char* actionsPath = actionsPathStr.c_str();
         logMsg("Using %s as actionsPath", actionsPath);
         auto vrInput = vr::VRInput();
         vrInput->SetActionManifestPath(actionsPath);
@@ -59,8 +59,8 @@ namespace worlds
 
         // VRCHECK(vrInput->GetBoneCount(leftHandSkeletal, &handBoneCount));
         handBoneCount = 31;
-        rhandBoneArray = (vr::VRBoneTransform_t *)malloc(sizeof(vr::VRBoneTransform_t) * handBoneCount);
-        lhandBoneArray = (vr::VRBoneTransform_t *)malloc(sizeof(vr::VRBoneTransform_t) * handBoneCount);
+        rhandBoneArray = (vr::VRBoneTransform_t*)malloc(sizeof(vr::VRBoneTransform_t) * handBoneCount);
+        lhandBoneArray = (vr::VRBoneTransform_t*)malloc(sizeof(vr::VRBoneTransform_t) * handBoneCount);
 
         g_console->registerCommand(
             [&](auto, auto) {
@@ -116,7 +116,7 @@ namespace worlds
         return extensions;
     }
 
-    void composeProjection(float fLeft, float fRight, float fTop, float fBottom, float zNear, glm::mat4 &p)
+    void composeProjection(float fLeft, float fRight, float fTop, float fBottom, float zNear, glm::mat4& p)
     {
         float idx = 1.0f / (fRight - fLeft);
         float idy = 1.0f / (fBottom - fTop);
@@ -141,7 +141,7 @@ namespace worlds
         p[3][3] = 0;
     }
 
-    void OpenVRInterface::getRenderResolution(uint32_t *x, uint32_t *y)
+    void OpenVRInterface::getRenderResolution(uint32_t* x, uint32_t* y)
     {
         vr::VRSystem()->GetRecommendedRenderTargetSize(x, y);
     }
@@ -200,7 +200,7 @@ namespace worlds
         }
     }
 
-    bool OpenVRInterface::getHandTransform(Hand hand, Transform &t)
+    bool OpenVRInterface::getHandTransform(Hand hand, Transform& t)
     {
         vr::InputPoseActionData_t pose;
 
@@ -217,7 +217,7 @@ namespace worlds
 
         retVal = vr::VRInput()->GetSkeletalActionData(skeletalAction, &skeletalActionData, sizeof(skeletalActionData));
 
-        vr::VRBoneTransform_t *boneArray = hand == Hand::LeftHand ? lhandBoneArray : rhandBoneArray;
+        vr::VRBoneTransform_t* boneArray = hand == Hand::LeftHand ? lhandBoneArray : rhandBoneArray;
 
         glm::mat4 matrix = toMat4(pose.pose.mDeviceToAbsoluteTracking);
 
@@ -233,7 +233,7 @@ namespace worlds
         return true;
     }
 
-    bool OpenVRInterface::getHandVelocity(Hand hand, glm::vec3 &vel)
+    bool OpenVRInterface::getHandVelocity(Hand hand, glm::vec3& vel)
     {
         vr::InputPoseActionData_t pose;
 
@@ -280,14 +280,14 @@ namespace worlds
 
     Transform OpenVRInterface::getHandBoneTransform(Hand hand, int boneIdx)
     {
-        vr::VRBoneTransform_t *arr = hand == Hand::LeftHand ? lhandBoneArray : rhandBoneArray;
+        vr::VRBoneTransform_t* arr = hand == Hand::LeftHand ? lhandBoneArray : rhandBoneArray;
         vr::VRBoneTransform_t bt = arr[boneIdx];
 
         return Transform{glm::vec3{bt.position.v[0], bt.position.v[1], bt.position.v[2]},
                          glm::quat{bt.orientation.w, bt.orientation.x, bt.orientation.y, bt.orientation.z}};
     }
 
-    const char *inputErrorStrings[] = {"None",
+    const char* inputErrorStrings[] = {"None",
                                        "NameNotFound",
                                        "WrongType",
                                        "InvalidHandle",

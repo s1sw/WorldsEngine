@@ -19,7 +19,7 @@
 
 namespace worlds
 {
-    void RawAssets::draw(entt::registry &reg)
+    void RawAssets::draw(entt::registry& reg)
     {
         static std::string currentDir = "";
 
@@ -51,7 +51,7 @@ namespace worlds
 
             ImGui::Separator();
 
-            char **files = PHYSFS_enumerateFiles(("Raw/" + currentDir).c_str());
+            char** files = PHYSFS_enumerateFiles(("Raw/" + currentDir).c_str());
 
             if (*files == nullptr)
             {
@@ -64,7 +64,7 @@ namespace worlds
             }
             std::string assetContextMenuPath;
 
-            for (char **currFile = files; *currFile != nullptr; currFile++)
+            for (char** currFile = files; *currFile != nullptr; currFile++)
             {
                 slib::Path path{*currFile};
                 std::string origDirStr = "Raw/" + currentDir;
@@ -85,7 +85,7 @@ namespace worlds
 
                 if (stat.filetype == PHYSFS_FILETYPE_DIRECTORY || stat.filetype == PHYSFS_FILETYPE_SYMLINK)
                 {
-                    slib::String buttonLabel{(const char *)ICON_FA_FOLDER};
+                    slib::String buttonLabel{(const char*)ICON_FA_FOLDER};
                     buttonLabel += " ";
                     buttonLabel += *currFile;
                     if (ImGui::Button(buttonLabel.cStr()))
@@ -105,7 +105,7 @@ namespace worlds
                 {
                     slib::Path p{fullPath.c_str()};
                     auto ext = p.fileExtension();
-                    const char *icon = getIcon(ext.cStr());
+                    const char* icon = getIcon(ext.cStr());
                     slib::String buttonLabel = icon;
                     buttonLabel += *currFile;
 
@@ -121,7 +121,7 @@ namespace worlds
                 }
             }
 
-            static IAssetEditorMeta *newAssetEditor = nullptr;
+            static IAssetEditorMeta* newAssetEditor = nullptr;
             static std::string newAssetName;
 
             if (ImGui::BeginPopup("New Asset Name"))
@@ -156,7 +156,7 @@ namespace worlds
                 ImGui::OpenPopup("ContextMenu");
 
                 isTextureFolder = true;
-                for (char **currFile = files; *currFile != nullptr; currFile++)
+                for (char** currFile = files; *currFile != nullptr; currFile++)
                 {
                     slib::Path path{*currFile};
                     std::string origDirStr = "Raw/" + currentDir;
@@ -178,9 +178,9 @@ namespace worlds
                     if (stat.filetype == PHYSFS_FILETYPE_REGULAR)
                     {
                         bool isFileTexture = false;
-                        std::array<const char *, 3> textureExtensions = {".png", ".jpg", ".tga"};
+                        std::array<const char*, 3> textureExtensions = {".png", ".jpg", ".tga"};
 
-                        for (const char *ext : textureExtensions)
+                        for (const char* ext : textureExtensions)
                         {
                             if (path.fileExtension() == ext)
                             {
@@ -260,7 +260,7 @@ namespace worlds
                 {
                     if (ImGui::Button("Import folder"))
                     {
-                        for (char **currFile = files; *currFile != nullptr; currFile++)
+                        for (char** currFile = files; *currFile != nullptr; currFile++)
                         {
                             slib::Path path{*currFile};
                             std::string origDirStr = currentDir;
@@ -331,7 +331,7 @@ namespace worlds
 
                 for (size_t i = 0; i < AssetCompilers::registeredCompilerCount(); i++)
                 {
-                    IAssetCompiler *compiler = AssetCompilers::registeredCompilers()[i];
+                    IAssetCompiler* compiler = AssetCompilers::registeredCompilers()[i];
                     if (ImGui::Button(compiler->getSourceExtension()))
                     {
                         newAssetEditor = AssetEditors::getEditorFor(compiler->getSourceExtension());

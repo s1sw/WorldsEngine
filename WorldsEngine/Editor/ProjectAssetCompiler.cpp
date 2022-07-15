@@ -6,7 +6,7 @@
 
 namespace worlds
 {
-    ProjectAssetCompiler::ProjectAssetCompiler(GameProject &project) : project(project)
+    ProjectAssetCompiler::ProjectAssetCompiler(GameProject& project) : project(project)
     {
     }
 
@@ -26,7 +26,7 @@ namespace worlds
 
     void ProjectAssetCompiler::updateCompilation()
     {
-        const ProjectAssets &assets = project.assets();
+        const ProjectAssets& assets = project.assets();
         if (_isCompiling)
         {
             if (currentCompileOp == nullptr)
@@ -71,7 +71,7 @@ namespace worlds
         }
     }
 
-    AssetCompileOperation *ProjectAssetCompiler::currentOperation()
+    AssetCompileOperation* ProjectAssetCompiler::currentOperation()
     {
         return currentCompileOp;
     }

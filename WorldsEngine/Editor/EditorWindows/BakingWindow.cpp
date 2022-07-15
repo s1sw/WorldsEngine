@@ -19,9 +19,9 @@
 
 namespace worlds
 {
-    void stbiWriteFunc(void *ctx, void *data, int bytes)
+    void stbiWriteFunc(void* ctx, void* data, int bytes)
     {
-        PHYSFS_writeBytes((PHYSFS_File *)ctx, data, bytes);
+        PHYSFS_writeBytes((PHYSFS_File*)ctx, data, bytes);
     }
 
     // void bakeCubemap(Editor* ed, glm::vec3 pos, worlds::VKRenderer* renderer,
@@ -208,7 +208,7 @@ namespace worlds
     //    }
     //}
 
-    void BakingWindow::draw(entt::registry &reg)
+    void BakingWindow::draw(entt::registry& reg)
     {
         if (ImGui::Begin(ICON_FA_COOKIE u8" Baking", &active))
         {
@@ -216,7 +216,7 @@ namespace worlds
             {
                 uint32_t staticAudioGeomCount = 0;
 
-                reg.view<WorldObject>().each([&](auto, WorldObject &wo) {
+                reg.view<WorldObject>().each([&](auto, WorldObject& wo) {
                     if (enumHasFlag(wo.staticFlags, StaticFlags::Audio))
                         staticAudioGeomCount++;
                 });
@@ -246,7 +246,7 @@ namespace worlds
                 static int numIterations = 1;
                 ImGui::DragInt("Iterations", &numIterations);
                 reg.view<Transform, WorldCubemap, NameComponent>().each(
-                    [&](Transform &t, WorldCubemap &wc, NameComponent &nc) {
+                    [&](Transform& t, WorldCubemap& wc, NameComponent& nc) {
                         ImGui::Text("%s (%.2f, %.2f, %.2f)", nc.name.c_str(), t.position.x, t.position.y, t.position.z);
                         ImGui::SameLine();
                         ImGui::PushID(nc.name.c_str());
@@ -264,13 +264,13 @@ namespace worlds
             {
                 glm::vec3 bbMin{FLT_MAX};
                 glm::vec3 bbMax{-FLT_MAX};
-                reg.view<Transform, WorldObject>().each([&](Transform &t, WorldObject &o) {
+                reg.view<Transform, WorldObject>().each([&](Transform& t, WorldObject& o) {
                     if (!enumHasFlag(o.staticFlags, StaticFlags::Navigation))
                         return;
 
                     glm::mat4 tMat = t.getMatrix();
-                    auto &mesh = MeshManager::loadOrGet(o.mesh);
-                    for (const Vertex &v : mesh.vertices)
+                    auto& mesh = MeshManager::loadOrGet(o.mesh);
+                    for (const Vertex& v : mesh.vertices)
                     {
                         glm::vec3 transformedPosition = tMat * glm::vec4(v.position, 1.0f);
                         bbMin = glm::min(transformedPosition, bbMin);

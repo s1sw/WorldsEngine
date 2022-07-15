@@ -7,9 +7,9 @@
 
 namespace worlds
 {
-    Result<void *, IOError> LoadFileToBuffer(std::string path, int64_t *fileLength)
+    Result<void*, IOError> LoadFileToBuffer(std::string path, int64_t* fileLength)
     {
-        PHYSFS_File *file = PHYSFS_openRead(path.c_str());
+        PHYSFS_File* file = PHYSFS_openRead(path.c_str());
 
         if (file == nullptr)
         {
@@ -35,7 +35,7 @@ namespace worlds
             return IOError::CouldntStat;
         }
 
-        void *buf = std::malloc(diskFileLength);
+        void* buf = std::malloc(diskFileLength);
 
         PHYSFS_sint64 readBytes = PHYSFS_readBytes(file, buf, diskFileLength);
 
@@ -64,14 +64,14 @@ namespace worlds
         {
             return res.error;
         }
-        std::string r(static_cast<char *>(res.value), length);
+        std::string r(static_cast<char*>(res.value), length);
         std::free(res.value);
         return r;
     }
 
     bool canOpenFile(std::string path)
     {
-        PHYSFS_File *f = PHYSFS_openRead(path.c_str());
+        PHYSFS_File* f = PHYSFS_openRead(path.c_str());
         if (f == nullptr)
             return false;
 
@@ -82,9 +82,9 @@ namespace worlds
         return true;
     }
 
-    Result<void *, IOError> loadAssetToBuffer(AssetID asset, int64_t *fileLength)
+    Result<void*, IOError> loadAssetToBuffer(AssetID asset, int64_t* fileLength)
     {
-        PHYSFS_File *file = AssetDB::openAssetFileRead(asset);
+        PHYSFS_File* file = AssetDB::openAssetFileRead(asset);
 
         if (file == nullptr)
         {
@@ -110,7 +110,7 @@ namespace worlds
             return IOError::CouldntStat;
         }
 
-        void *buf = std::malloc(diskFileLength);
+        void* buf = std::malloc(diskFileLength);
 
         PHYSFS_sint64 readBytes = PHYSFS_readBytes(file, buf, diskFileLength);
 

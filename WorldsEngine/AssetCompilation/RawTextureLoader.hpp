@@ -17,17 +17,17 @@ namespace worlds
         RawTextureFormat format;
         int width;
         int height;
-        void *data;
+        void* data;
         size_t totalDataSize;
     };
 
     class RawTextureLoader
     {
       public:
-        static bool loadRawTexture(AssetID id, RawTextureData &texData);
+        static bool loadRawTexture(AssetID id, RawTextureData& texData);
 
       private:
-        static bool loadStbTexture(void *fileData, size_t fileLen, AssetID id, RawTextureData &texData);
-        static bool loadExrTexture(void *fileData, size_t fileLen, AssetID id, RawTextureData &texData);
+        static bool loadStbTexture(void* fileData, size_t fileLen, AssetID id, RawTextureData& texData);
+        static bool loadExrTexture(void* fileData, size_t fileLen, AssetID id, RawTextureData& texData);
     };
 }

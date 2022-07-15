@@ -20,13 +20,13 @@ namespace worlds
     class LogDebugOutputReceiver : public VK::IDebugOutputReceiver
     {
       public:
-        void DebugMessage(const char *msg) override
+        void DebugMessage(const char* msg) override
         {
             logErr("VK: %s", msg);
         }
     };
 
-    VKRenderer::VKRenderer(const RendererInitInfo &initInfo, bool *success)
+    VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     {
         core = new VK::Core(new LogDebugOutputReceiver);
         VK::SwapchainCreateInfo sci{};
@@ -65,11 +65,11 @@ namespace worlds
         delete core;
     }
 
-    void VKRenderer::frame(entt::registry &registry)
+    void VKRenderer::frame(entt::registry& registry)
     {
         frameFence->WaitFor();
         frameFence->Reset();
-        VK::Texture *swapchainImage = swapchain->Acquire(frameFence);
+        VK::Texture* swapchainImage = swapchain->Acquire(frameFence);
         ImGui_ImplR2_NewFrame();
 
         int width;
@@ -82,7 +82,7 @@ namespace worlds
 
         VK::CommandBuffer cb = core->GetFrameCommandBuffer();
 
-        for (VKRTTPass *pass : rttPasses)
+        for (VKRTTPass* pass : rttPasses)
         {
             if (!pass->active)
                 continue;
@@ -134,49 +134,49 @@ namespace worlds
         return swapchain->GetVsync();
     }
 
-    const RenderDebugStats &VKRenderer::getDebugStats() const
+    const RenderDebugStats& VKRenderer::getDebugStats() const
     {
         return debugStats;
     }
 
-    IUITextureManager *VKRenderer::getUITextureManager()
+    IUITextureManager* VKRenderer::getUITextureManager()
     {
         return uiTextureManager;
     }
 
-    void VKRenderer::setImGuiDrawData(void *drawData)
+    void VKRenderer::setImGuiDrawData(void* drawData)
     {
-        imguiDrawData = (ImDrawData *)drawData;
+        imguiDrawData = (ImDrawData*)drawData;
     }
 
-    RTTPass *VKRenderer::createRTTPass(RTTPassCreateInfo &ci)
+    RTTPass* VKRenderer::createRTTPass(RTTPassCreateInfo& ci)
     {
-        IRenderPipeline *renderPipeline = new FakeLitPipeline(this);
+        IRenderPipeline* renderPipeline = new FakeLitPipeline(this);
 
-        VKRTTPass *pass = new VKRTTPass(this, ci, renderPipeline);
+        VKRTTPass* pass = new VKRTTPass(this, ci, renderPipeline);
         renderPipeline->setup(pass);
 
         rttPasses.push_back(pass);
         return pass;
     }
 
-    void VKRenderer::destroyRTTPass(RTTPass *pass)
+    void VKRenderer::destroyRTTPass(RTTPass* pass)
     {
-        delete static_cast<VKRTTPass *>(pass);
+        delete static_cast<VKRTTPass*>(pass);
         rttPasses.erase(std::remove(rttPasses.begin(), rttPasses.end(), pass), rttPasses.end());
     }
 
-    R2::VK::Core *VKRenderer::getCore()
+    R2::VK::Core* VKRenderer::getCore()
     {
         return core;
     }
 
-    RenderMeshManager *VKRenderer::getMeshManager()
+    RenderMeshManager* VKRenderer::getMeshManager()
     {
         return renderMeshManager;
     }
 
-    R2::BindlessTextureManager *VKRenderer::getBindlessTextureManager()
+    R2::BindlessTextureManager* VKRenderer::getBindlessTextureManager()
     {
         return textureManager;
     }

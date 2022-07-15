@@ -24,19 +24,19 @@ namespace worlds
     struct D6Joint
     {
         D6Joint();
-        D6Joint(const D6Joint &) = delete;
-        D6Joint(D6Joint &&other) noexcept;
-        void operator=(D6Joint &&other);
-        physx::PxD6Joint *pxJoint = nullptr;
+        D6Joint(const D6Joint&) = delete;
+        D6Joint(D6Joint&& other) noexcept;
+        void operator=(D6Joint&& other);
+        physx::PxD6Joint* pxJoint = nullptr;
         bool reverseJoint = false;
 
-        void setTarget(entt::entity newTargetEnt, entt::registry &reg);
+        void setTarget(entt::entity newTargetEnt, entt::registry& reg);
         void setAllLinearMotion(D6Motion motion);
         void setAllAngularMotion(D6Motion motion);
         entt::entity getTarget();
 
         entt::entity getAttached();
-        void setAttached(entt::entity entity, entt::registry &reg);
+        void setAttached(entt::entity entity, entt::registry& reg);
 
         ~D6Joint();
 
@@ -44,9 +44,9 @@ namespace worlds
         void updateJointActors();
         friend class PhysicsSystem;
         friend class D6JointEditor;
-        physx::PxRigidActor *thisActor = nullptr;
-        physx::PxRigidActor *originalThisActor = nullptr;
-        physx::PxRigidActor *targetActor = nullptr;
+        physx::PxRigidActor* thisActor = nullptr;
+        physx::PxRigidActor* originalThisActor = nullptr;
+        physx::PxRigidActor* targetActor = nullptr;
         entt::entity targetEntity;
         entt::entity replaceThis;
     };

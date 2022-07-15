@@ -6,7 +6,7 @@
 
 namespace worlds
 {
-    RenderMeshManager::RenderMeshManager(R2::VK::Core *core) : core(core)
+    RenderMeshManager::RenderMeshManager(R2::VK::Core* core) : core(core)
     {
         R2::VK::BufferCreateInfo createInfo{};
         createInfo.Size = 16 * 1000 * 1000; // 16MB
@@ -30,17 +30,17 @@ namespace worlds
         delete vertexBuffer;
     }
 
-    R2::VK::Buffer *RenderMeshManager::getVertexBuffer()
+    R2::VK::Buffer* RenderMeshManager::getVertexBuffer()
     {
         return vertexBuffer->GetBuffer();
     }
 
-    R2::VK::Buffer *RenderMeshManager::getIndexBuffer()
+    R2::VK::Buffer* RenderMeshManager::getIndexBuffer()
     {
         return indexBuffer->GetBuffer();
     }
 
-    RenderMeshInfo &RenderMeshManager::loadOrGet(AssetID asset)
+    RenderMeshInfo& RenderMeshManager::loadOrGet(AssetID asset)
     {
         if (meshes.contains(asset))
         {

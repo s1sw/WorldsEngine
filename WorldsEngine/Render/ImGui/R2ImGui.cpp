@@ -25,34 +25,34 @@ struct ImGuiPCs
 
 struct R2ImplState
 {
-    VK::Buffer *vertexBuffer = nullptr;
+    VK::Buffer* vertexBuffer = nullptr;
     size_t vertexBufferCapacity = 0;
-    VK::Buffer *indexBuffer = nullptr;
+    VK::Buffer* indexBuffer = nullptr;
     size_t indexBufferCapacity = 0;
-    VK::Core *core = nullptr;
-    VK::PipelineLayout *pipelineLayout = nullptr;
-    VK::DescriptorSetLayout *dsl = nullptr;
-    VK::Pipeline *pipeline = nullptr;
-    VK::Texture *fontTexture = nullptr;
+    VK::Core* core = nullptr;
+    VK::PipelineLayout* pipelineLayout = nullptr;
+    VK::DescriptorSetLayout* dsl = nullptr;
+    VK::Pipeline* pipeline = nullptr;
+    VK::Texture* fontTexture = nullptr;
     uint32_t fontTextureID = ~0u;
-    VK::Sampler *sampler = nullptr;
-    BindlessTextureManager *textureManager = nullptr;
+    VK::Sampler* sampler = nullptr;
+    BindlessTextureManager* textureManager = nullptr;
 };
 
-R2ImplState *getImplState()
+R2ImplState* getImplState()
 {
-    return static_cast<R2ImplState *>(ImGui::GetIO().BackendRendererUserData);
+    return static_cast<R2ImplState*>(ImGui::GetIO().BackendRendererUserData);
 }
 
 void ImGui_ImplR2_CreateFontTextureAndDS();
 
-bool ImGui_ImplR2_Init(VK::Core *renderer, BindlessTextureManager *btm)
+bool ImGui_ImplR2_Init(VK::Core* renderer, BindlessTextureManager* btm)
 {
-    ImGuiIO &io = ImGui::GetIO();
+    ImGuiIO& io = ImGui::GetIO();
     io.BackendRendererName = "R2";
     io.BackendFlags |= ImGuiBackendFlags_RendererHasVtxOffset;
 
-    R2ImplState *s = new R2ImplState{};
+    R2ImplState* s = new R2ImplState{};
     s->core = renderer;
     s->textureManager = btm;
     io.BackendRendererUserData = s;
@@ -93,7 +93,7 @@ bool ImGui_ImplR2_Init(VK::Core *renderer, BindlessTextureManager *btm)
 
 void ImGui_ImplR2_Shutdown()
 {
-    R2ImplState *s = getImplState();
+    R2ImplState* s = getImplState();
     s->core->DestroyBuffer(s->indexBuffer);
     s->core->DestroyBuffer(s->vertexBuffer);
     delete s->dsl;
@@ -109,10 +109,10 @@ void ImGui_ImplR2_NewFrame()
 
 void ImGui_ImplR2_CreateFontTextureAndDS()
 {
-    R2ImplState *s = getImplState();
+    R2ImplState* s = getImplState();
 
-    ImGuiIO &io = ImGui::GetIO();
-    uint8_t *pixels;
+    ImGuiIO& io = ImGui::GetIO();
+    uint8_t* pixels;
     int width, height;
     io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
 
@@ -134,9 +134,9 @@ void ImGui_ImplR2_CreateFontTextureAndDS()
                      .Build();
 }
 
-void ImGui_ImplR2_RenderDrawData(ImDrawData *drawData, VK::CommandBuffer &cb)
+void ImGui_ImplR2_RenderDrawData(ImDrawData* drawData, VK::CommandBuffer& cb)
 {
-    R2ImplState *s = getImplState();
+    R2ImplState* s = getImplState();
 
     if (!s->vertexBuffer || s->vertexBufferCapacity < drawData->TotalVtxCount)
     {
@@ -172,12 +172,12 @@ void ImGui_ImplR2_RenderDrawData(ImDrawData *drawData, VK::CommandBuffer &cb)
         s->indexBuffer = s->core->CreateBuffer(bci);
     }
 
-    ImDrawVert *verts = static_cast<ImDrawVert *>(s->vertexBuffer->Map());
-    ImDrawIdx *indices = static_cast<ImDrawIdx *>(s->indexBuffer->Map());
+    ImDrawVert* verts = static_cast<ImDrawVert*>(s->vertexBuffer->Map());
+    ImDrawIdx* indices = static_cast<ImDrawIdx*>(s->indexBuffer->Map());
 
     for (int i = 0; i < drawData->CmdListsCount; i++)
     {
-        const ImDrawList *cmdList = drawData->CmdLists[i];
+        const ImDrawList* cmdList = drawData->CmdLists[i];
 
         memcpy(verts, cmdList->VtxBuffer.Data, cmdList->VtxBuffer.Size * sizeof(ImDrawVert));
         memcpy(indices, cmdList->IdxBuffer.Data, cmdList->IdxBuffer.Size * sizeof(ImDrawIdx));
@@ -211,10 +211,10 @@ void ImGui_ImplR2_RenderDrawData(ImDrawData *drawData, VK::CommandBuffer &cb)
 
     for (int n = 0; n < drawData->CmdListsCount; n++)
     {
-        const ImDrawList *cmd_list = drawData->CmdLists[n];
+        const ImDrawList* cmd_list = drawData->CmdLists[n];
         for (int cmd_i = 0; cmd_i < cmd_list->CmdBuffer.Size; cmd_i++)
         {
-            const ImDrawCmd *pcmd = &cmd_list->CmdBuffer[cmd_i];
+            const ImDrawCmd* pcmd = &cmd_list->CmdBuffer[cmd_i];
             if (pcmd->UserCallback != NULL)
             {
                 // User callback, registered via ImDrawList::AddCallback()

@@ -16,7 +16,7 @@ namespace worlds
         ZoneScoped;
         PerfTimer timer;
 
-        PHYSFS_File *f = AssetDB::openAssetFileRead(asset);
+        PHYSFS_File* f = AssetDB::openAssetFileRead(asset);
         size_t fileSize = PHYSFS_fileLength(f);
         std::string str;
         str.resize(fileSize);
@@ -38,7 +38,7 @@ namespace worlds
         }
 
         CubemapData cd;
-        JobList &jl = g_jobSys->getFreeJobList();
+        JobList& jl = g_jobSys->getFreeJobList();
         jl.begin();
         for (int i = 0; i < 6; i++)
         {

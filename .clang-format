@@ -3,5 +3,7 @@ BasedOnStyle: Microsoft
 FixNamespaceComments: 'false'
 NamespaceIndentation: All
 SortIncludes: false
+DerivePointerAlignment: false
+PointerAlignment: Left
 
 ...

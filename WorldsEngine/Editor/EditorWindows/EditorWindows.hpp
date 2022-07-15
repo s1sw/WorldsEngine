@@ -9,11 +9,11 @@ namespace worlds
     class EntityList : public EditorWindow
     {
       public:
-        EntityList(EngineInterfaces interfaces, Editor *editor) : EditorWindow(interfaces, editor)
+        EntityList(EngineInterfaces interfaces, Editor* editor) : EditorWindow(interfaces, editor)
         {
         }
-        void draw(entt::registry &reg) override;
-        const char *getName() override
+        void draw(entt::registry& reg) override;
+        const char* getName() override
         {
             return "EntityList";
         }
@@ -25,11 +25,11 @@ namespace worlds
     class Assets : public EditorWindow
     {
       public:
-        Assets(EngineInterfaces interfaces, Editor *editor) : EditorWindow(interfaces, editor)
+        Assets(EngineInterfaces interfaces, Editor* editor) : EditorWindow(interfaces, editor)
         {
         }
-        void draw(entt::registry &reg) override;
-        const char *getName() override
+        void draw(entt::registry& reg) override;
+        const char* getName() override
         {
             return "Assets";
         }
@@ -41,11 +41,11 @@ namespace worlds
     class RawAssets : public EditorWindow
     {
       public:
-        RawAssets(EngineInterfaces interfaces, Editor *editor) : EditorWindow(interfaces, editor)
+        RawAssets(EngineInterfaces interfaces, Editor* editor) : EditorWindow(interfaces, editor)
         {
         }
-        void draw(entt::registry &reg) override;
-        const char *getName() override
+        void draw(entt::registry& reg) override;
+        const char* getName() override
         {
             return "Raw Assets";
         }
@@ -57,12 +57,12 @@ namespace worlds
     class GameControls : public EditorWindow
     {
       public:
-        GameControls(EngineInterfaces interfaces, Editor *editor) : EditorWindow(interfaces, editor)
+        GameControls(EngineInterfaces interfaces, Editor* editor) : EditorWindow(interfaces, editor)
         {
             active = false;
         }
-        void draw(entt::registry &reg) override;
-        const char *getName() override
+        void draw(entt::registry& reg) override;
+        const char* getName() override
         {
             return "GameControls";
         }
@@ -74,12 +74,12 @@ namespace worlds
     class StyleEditor : public EditorWindow
     {
       public:
-        StyleEditor(EngineInterfaces interfaces, Editor *editor) : EditorWindow(interfaces, editor)
+        StyleEditor(EngineInterfaces interfaces, Editor* editor) : EditorWindow(interfaces, editor)
         {
             active = false;
         }
-        void draw(entt::registry &reg) override;
-        const char *getName() override
+        void draw(entt::registry& reg) override;
+        const char* getName() override
         {
             return "Style Editor";
         }
@@ -91,16 +91,16 @@ namespace worlds
     class MaterialEditorMeta : public EditorWindow
     {
       public:
-        MaterialEditorMeta(EngineInterfaces interfaces, Editor *editor);
-        void draw(entt::registry &reg) override;
-        const char *getName() override
+        MaterialEditorMeta(EngineInterfaces interfaces, Editor* editor);
+        void draw(entt::registry& reg) override;
+        const char* getName() override
         {
             return "Material Editor";
         }
         ~MaterialEditorMeta();
 
       private:
-        RTTPass *rttPass;
+        RTTPass* rttPass;
         Camera previewCam;
         entt::entity previewEntity;
     };
@@ -108,17 +108,17 @@ namespace worlds
     class AboutWindow : public EditorWindow
     {
       public:
-        AboutWindow(EngineInterfaces interfaces, Editor *editor) : EditorWindow{interfaces, editor}
+        AboutWindow(EngineInterfaces interfaces, Editor* editor) : EditorWindow{interfaces, editor}
         {
             active = false;
         }
-        void draw(entt::registry &) override;
+        void draw(entt::registry&) override;
         EditorMenu menuSection() override
         {
             return EditorMenu::Help;
         }
         void setActive(bool active) override;
-        const char *getName() override
+        const char* getName() override
         {
             return "About";
         }
@@ -130,16 +130,16 @@ namespace worlds
     class BakingWindow : public EditorWindow
     {
       public:
-        BakingWindow(EngineInterfaces interfaces, Editor *editor) : EditorWindow{interfaces, editor}
+        BakingWindow(EngineInterfaces interfaces, Editor* editor) : EditorWindow{interfaces, editor}
         {
             active = false;
         }
-        void draw(entt::registry &) override;
+        void draw(entt::registry&) override;
         EditorMenu menuSection() override
         {
             return EditorMenu::Edit;
         }
-        const char *getName() override
+        const char* getName() override
         {
             return "Baking";
         }
@@ -151,16 +151,16 @@ namespace worlds
     class SceneSettingsWindow : public EditorWindow
     {
       public:
-        SceneSettingsWindow(EngineInterfaces interfaces, Editor *editor) : EditorWindow{interfaces, editor}
+        SceneSettingsWindow(EngineInterfaces interfaces, Editor* editor) : EditorWindow{interfaces, editor}
         {
             active = false;
         }
-        void draw(entt::registry &) override;
+        void draw(entt::registry&) override;
         EditorMenu menuSection() override
         {
             return EditorMenu::Edit;
         }
-        const char *getName() override
+        const char* getName() override
         {
             return "Scene Settings";
         }
@@ -172,13 +172,13 @@ namespace worlds
     class AssetEditorWindow : public EditorWindow
     {
       public:
-        AssetEditorWindow(AssetID id, EngineInterfaces interfaces, Editor *editor);
-        void draw(entt::registry &) override;
+        AssetEditorWindow(AssetID id, EngineInterfaces interfaces, Editor* editor);
+        void draw(entt::registry&) override;
         EditorMenu menuSection() override
         {
             return EditorMenu::Edit;
         }
-        const char *getName() override
+        const char* getName() override
         {
             return "Asset Editor";
         }
@@ -186,23 +186,23 @@ namespace worlds
 
       private:
         AssetID assetId;
-        AssetCompileOperation *currCompileOp;
-        IAssetEditor *assetEditor;
+        AssetCompileOperation* currCompileOp;
+        IAssetEditor* assetEditor;
     };
 
     class AssetCompilationManager : public EditorWindow
     {
       public:
-        AssetCompilationManager(EngineInterfaces interfaces, Editor *editor) : EditorWindow{interfaces, editor}
+        AssetCompilationManager(EngineInterfaces interfaces, Editor* editor) : EditorWindow{interfaces, editor}
         {
             active = false;
         }
-        void draw(entt::registry &) override;
+        void draw(entt::registry&) override;
         EditorMenu menuSection() override
         {
             return EditorMenu::Edit;
         }
-        const char *getName() override
+        const char* getName() override
         {
             return "Asset Compilation Manager";
         }
@@ -214,16 +214,16 @@ namespace worlds
     class NodeEditorTest : public EditorWindow
     {
       public:
-        NodeEditorTest(EngineInterfaces interfaces, Editor *editor) : EditorWindow{interfaces, editor}
+        NodeEditorTest(EngineInterfaces interfaces, Editor* editor) : EditorWindow{interfaces, editor}
         {
             active = false;
         }
-        void draw(entt::registry &) override;
+        void draw(entt::registry&) override;
         EditorMenu menuSection() override
         {
             return EditorMenu::Help;
         }
-        const char *getName() override
+        const char* getName() override
         {
             return "Node Editor Test";
         }

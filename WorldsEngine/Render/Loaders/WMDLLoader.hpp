@@ -32,5 +32,5 @@ namespace worlds
         std::vector<VertSkinningInfo> skinningInfos;
     };
 
-    void loadWorldsModel(AssetID wmdlId, LoadedMeshData &lmd);
+    void loadWorldsModel(AssetID wmdlId, LoadedMeshData& lmd);
 }

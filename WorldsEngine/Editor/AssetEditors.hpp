@@ -22,8 +22,8 @@ namespace worlds
         void setInterfaces(EngineInterfaces interfaces);
         virtual void importAsset(std::string filePath, std::string newAssetPath) = 0;
         virtual void create(std::string path) = 0;
-        virtual IAssetEditor *createEditorFor(AssetID id) = 0;
-        virtual const char *getHandledExtension() = 0;
+        virtual IAssetEditor* createEditorFor(AssetID id) = 0;
+        virtual const char* getHandledExtension() = 0;
         virtual ~IAssetEditorMeta()
         {
         }
@@ -36,17 +36,17 @@ namespace worlds
     {
       public:
         static void initialise(EngineInterfaces interfaces);
-        static void registerAssetEditor(IAssetEditorMeta *editor);
-        static IAssetEditorMeta *getEditorFor(AssetID asset);
-        static IAssetEditorMeta *getEditorFor(std::string_view extension);
+        static void registerAssetEditor(IAssetEditorMeta* editor);
+        static IAssetEditorMeta* getEditorFor(AssetID asset);
+        static IAssetEditorMeta* getEditorFor(std::string_view extension);
 
       private:
         struct StaticLink
         {
-            IAssetEditorMeta *editor;
-            StaticLink *next;
+            IAssetEditorMeta* editor;
+            StaticLink* next;
         };
 
-        static StaticLink *staticLink;
+        static StaticLink* staticLink;
     };
 }

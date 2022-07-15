@@ -8,7 +8,7 @@
 #include <Core/WorldComponents.hpp>
 #include <VR/IVRInterface.hpp>
 
-typedef void *ImTextureID;
+typedef void* ImTextureID;
 
 namespace worlds
 {
@@ -142,18 +142,18 @@ namespace worlds
 
     struct RendererInitInfo
     {
-        SDL_Window *window;
+        SDL_Window* window;
         std::vector<std::string> additionalInstanceExtensions;
         std::vector<std::string> additionalDeviceExtensions;
         bool enableVR;
         VrApi activeVrApi;
-        IVRInterface *vrInterface;
-        const char *applicationName = nullptr;
+        IVRInterface* vrInterface;
+        const char* applicationName = nullptr;
     };
 
     struct RTTPassCreateInfo
     {
-        Camera *cam = nullptr;
+        Camera* cam = nullptr;
         uint32_t width, height;
         float resScale = 1.0f;
         bool isVr;
@@ -161,7 +161,7 @@ namespace worlds
         bool enableShadows;
         bool staticsOnly = false;
         int msaaLevel = 0;
-        entt::registry *registryOverride = nullptr;
+        entt::registry* registryOverride = nullptr;
         bool renderDebugShapes = true;
     };
 
@@ -189,7 +189,7 @@ namespace worlds
         }
 
         //! Draws the render pass immediately. Slow!!
-        virtual void drawNow(entt::registry &world) = 0;
+        virtual void drawNow(entt::registry& world) = 0;
 
         //! Requests an entity pick at the specified coordinates.
         virtual void requestPick(int x, int y) = 0;
@@ -198,10 +198,10 @@ namespace worlds
          * \param result The entity ID under the coordinates specified in requestPick.
          * \return True if the pick results were retrieved, false if the results aren't ready yet.
          */
-        virtual bool getPickResult(uint32_t *result) = 0;
+        virtual bool getPickResult(uint32_t* result) = 0;
 
         //! Get a float array of the HDR pass result.
-        virtual float *getHDRData() = 0;
+        virtual float* getHDRData() = 0;
         virtual void resize(int newWidth, int newHeight) = 0;
         virtual void setResolutionScale(float newScale) = 0;
         virtual ImTextureID getUITextureID() = 0;
@@ -246,7 +246,7 @@ namespace worlds
     class Renderer
     {
       public:
-        virtual void frame(entt::registry &reg) = 0;
+        virtual void frame(entt::registry& reg) = 0;
 
         //! Gets time spent rendering the scene on the GPU.
         virtual float getLastGPUTime() const = 0;
@@ -256,13 +256,13 @@ namespace worlds
         virtual void setVsync(bool vsync) = 0;
         virtual bool getVsync() const = 0;
 
-        virtual const RenderDebugStats &getDebugStats() const = 0;
-        virtual IUITextureManager *getUITextureManager() = 0;
+        virtual const RenderDebugStats& getDebugStats() const = 0;
+        virtual IUITextureManager* getUITextureManager() = 0;
 
-        virtual void setImGuiDrawData(void *drawData) = 0;
+        virtual void setImGuiDrawData(void* drawData) = 0;
 
-        virtual RTTPass *createRTTPass(RTTPassCreateInfo &ci) = 0;
-        virtual void destroyRTTPass(RTTPass *pass) = 0;
+        virtual RTTPass* createRTTPass(RTTPassCreateInfo& ci) = 0;
+        virtual void destroyRTTPass(RTTPass* pass) = 0;
 
         virtual ~Renderer()
         {

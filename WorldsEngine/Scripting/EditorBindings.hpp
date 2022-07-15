@@ -4,7 +4,7 @@
 
 using namespace worlds;
 
-extern Editor *csharpEditor;
+extern Editor* csharpEditor;
 extern "C"
 {
     EXPORT uint32_t editor_getCurrentlySelected()
@@ -17,7 +17,7 @@ extern "C"
         csharpEditor->select((entt::entity)ent);
     }
 
-    EXPORT void editor_addNotification(const char *notification, NotificationType type)
+    EXPORT void editor_addNotification(const char* notification, NotificationType type)
     {
         addNotification(notification, type);
     }

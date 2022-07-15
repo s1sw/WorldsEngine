@@ -22,7 +22,7 @@ namespace worlds
             uniformScale = j.value("uniformScale", 1.0f);
             removeRedundantMaterials = j.value("removeRedundantMaterials", true);
         }
-        catch (nlohmann::detail::exception &except)
+        catch (nlohmann::detail::exception& except)
         {
             addNotification(("Error opening " + AssetDB::idToPath(id)), NotificationType::Error);
             srcModel = INVALID_ASSET;
@@ -53,7 +53,7 @@ namespace worlds
                     MeshManager::unload(outputAsset);
                 }
 
-                const LoadedMesh &lm = MeshManager::loadOrGet(outputAsset);
+                const LoadedMesh& lm = MeshManager::loadOrGet(outputAsset);
                 ImGui::Text("%i submeshes", lm.numSubmeshes);
 
                 glm::vec3 aabbCenter = (lm.aabbMin + lm.aabbMax) * 0.5f;
@@ -72,7 +72,7 @@ namespace worlds
 
                 if (ImGui::TreeNode("Bones"))
                 {
-                    for (const Bone &v : lm.bones)
+                    for (const Bone& v : lm.bones)
                     {
                         ImGui::Text("%s", v.name.cStr());
                     }
@@ -92,7 +92,7 @@ namespace worlds
 
         std::string s = j.dump(4);
         std::string path = AssetDB::idToPath(editingID);
-        PHYSFS_File *file = PHYSFS_openWrite(path.c_str());
+        PHYSFS_File* file = PHYSFS_openWrite(path.c_str());
         PHYSFS_writeBytes(file, s.data(), s.size());
         PHYSFS_close(file);
     }
@@ -105,7 +105,7 @@ namespace worlds
     void ModelEditorMeta::importAsset(std::string filePath, std::string newAssetPath)
     {
         AssetID id = AssetDB::createAsset(newAssetPath);
-        PHYSFS_File *f = PHYSFS_openWrite(("SourceData/" + newAssetPath).c_str());
+        PHYSFS_File* f = PHYSFS_openWrite(("SourceData/" + newAssetPath).c_str());
         nlohmann::json j = {{"srcPath", filePath}};
         std::string serializedJson = j.dump(4);
         PHYSFS_writeBytes(f, serializedJson.data(), serializedJson.size());
@@ -115,18 +115,18 @@ namespace worlds
     void ModelEditorMeta::create(std::string path)
     {
         AssetID id = AssetDB::createAsset(path);
-        PHYSFS_File *f = PHYSFS_openWrite(path.c_str());
+        PHYSFS_File* f = PHYSFS_openWrite(path.c_str());
         const char emptyJson[] = "{}";
         PHYSFS_writeBytes(f, emptyJson, sizeof(emptyJson));
         PHYSFS_close(f);
     }
 
-    IAssetEditor *ModelEditorMeta::createEditorFor(AssetID id)
+    IAssetEditor* ModelEditorMeta::createEditorFor(AssetID id)
     {
         return new ModelEditor(id);
     }
 
-    const char *ModelEditorMeta::getHandledExtension()
+    const char* ModelEditorMeta::getHandledExtension()
     {
         return ".wmdlj";
     }

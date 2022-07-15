@@ -14,7 +14,7 @@ namespace worlds
     void AboutWindow::setActive(bool active)
     {
         this->active = active;
-        IUITextureManager *texMan = interfaces.renderer->getUITextureManager();
+        IUITextureManager* texMan = interfaces.renderer->getUITextureManager();
         bgId = texMan->loadOrGet(AssetDB::pathToId("UI/Editor/Images/worlds_no_logo.png"));
         bradnoId = texMan->loadOrGet(AssetDB::pathToId("UI/Editor/Images/bradno.png"));
         someoneId = texMan->loadOrGet(AssetDB::pathToId("UI/Editor/Images/someone_avatar.png"));
@@ -38,7 +38,7 @@ namespace worlds
     float lastBradnoTime = 0.0f;
     bool showBradno = false;
 
-    void AboutWindow::draw(entt::registry &)
+    void AboutWindow::draw(entt::registry&)
     {
         // ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
         if (ImGui::Begin("About", &active))
@@ -66,7 +66,7 @@ namespace worlds
             auto screenCursorPos =
                 ImGui::GetCursorScreenPos() + ImVec2(ImGui::GetWindowWidth() / 2.0f - logoSize.x / 2.0f, 0.0f);
             auto corner = screenCursorPos + logoSize;
-            auto *drawList = ImGui::GetWindowDrawList();
+            auto* drawList = ImGui::GetWindowDrawList();
 
             drawList->AddImage(bgId, screenCursorPos, corner);
 

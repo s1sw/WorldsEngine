@@ -55,13 +55,13 @@
 #undef max
 
 #ifdef CHECK_NEW_DELETE
-robin_hood::unordered_map<void *, size_t> allocatedPtrs;
+robin_hood::unordered_map<void*, size_t> allocatedPtrs;
 size_t allocatedMem = 0;
 size_t liveAllocations = 0;
 
-void *operator new(size_t count)
+void* operator new(size_t count)
 {
-    void *ptr = malloc(count);
+    void* ptr = malloc(count);
 #ifdef TRACY_ENABLE
     TracyAlloc(ptr, count);
 #endif
@@ -71,7 +71,7 @@ void *operator new(size_t count)
     return ptr;
 }
 
-void operator delete(void *ptr) noexcept
+void operator delete(void* ptr) noexcept
 {
     if (ptr == nullptr)
         return;
@@ -109,7 +109,7 @@ namespace worlds
         SDL_Init(SDL_INIT_GAMECONTROLLER | SDL_INIT_EVENTS | SDL_INIT_VIDEO | SDL_INIT_TIMER);
     }
 
-    Window *WorldsEngine::createWindow()
+    Window* WorldsEngine::createWindow()
     {
         windowWidth = 1600;
         windowHeight = 900;
@@ -124,9 +124,9 @@ namespace worlds
     // I would put it through the job system, but thanks to Windows
     // weirdness SDL_PollEvent will not work on other threads.
     // Thanks Microsoft.
-    int WorldsEngine::windowThread(void *data)
+    int WorldsEngine::windowThread(void* data)
     {
-        WorldsEngine *_this = (WorldsEngine *)data;
+        WorldsEngine* _this = (WorldsEngine*)data;
 
         _this->window = _this->createWindow();
         if (_this->window == nullptr)
@@ -153,10 +153,10 @@ namespace worlds
         return 0;
     }
 
-    ImFont *addImGuiFont(std::string fontPath, float size, ImFontConfig *config = nullptr,
-                         const ImWchar *ranges = nullptr)
+    ImFont* addImGuiFont(std::string fontPath, float size, ImFontConfig* config = nullptr,
+                         const ImWchar* ranges = nullptr)
     {
-        PHYSFS_File *ttfFile = PHYSFS_openRead(fontPath.c_str());
+        PHYSFS_File* ttfFile = PHYSFS_openRead(fontPath.c_str());
         if (ttfFile == nullptr)
         {
             logWarn("Couldn't open font file");
@@ -172,7 +172,7 @@ namespace worlds
             return nullptr;
         }
 
-        void *buf = std::malloc(fileLength);
+        void* buf = std::malloc(fileLength);
         auto readBytes = PHYSFS_readBytes(ttfFile, buf, fileLength);
 
         if (readBytes != fileLength)
@@ -202,17 +202,17 @@ namespace worlds
         return ImGui::GetIO().Fonts->AddFontFromMemoryTTF(buf, (int)readBytes, size, config, ranges);
     }
 
-    JobSystem *g_jobSys;
+    JobSystem* g_jobSys;
 
     robin_hood::unordered_map<entt::entity, physx::PxTransform> currentState;
     robin_hood::unordered_map<entt::entity, physx::PxTransform> previousState;
 
-    void WorldsEngine::setupPhysfs(char *argv0)
+    void WorldsEngine::setupPhysfs(char* argv0)
     {
-        const char *dataFolder = "GameData";
-        const char *engineDataFolder = "EngineData";
-        const char *dataSrc = "SrcData";
-        const char *basePath = SDL_GetBasePath();
+        const char* dataFolder = "GameData";
+        const char* engineDataFolder = "EngineData";
+        const char* dataSrc = "SrcData";
+        const char* basePath = SDL_GetBasePath();
 
         std::string dataStr(basePath);
         dataStr += dataFolder;
@@ -223,7 +223,7 @@ namespace worlds
         std::string srcDataStr(basePath);
         srcDataStr += dataSrc;
 
-        SDL_free((void *)basePath);
+        SDL_free((void*)basePath);
 
         PHYSFS_init(argv0);
         logVrb("Mounting %s", dataStr.c_str());
@@ -238,7 +238,7 @@ namespace worlds
     }
 
     extern void loadDefaultUITheme();
-    extern ImFont *boldFont;
+    extern ImFont* boldFont;
 
     void setupUIFonts(float dpiScale)
     {
@@ -290,16 +290,16 @@ namespace worlds
 
     bool inFrame = false;
 
-    int WorldsEngine::eventFilter(void *enginePtr, SDL_Event *evt)
+    int WorldsEngine::eventFilter(void* enginePtr, SDL_Event* evt)
     {
-        WorldsEngine *_this = (WorldsEngine *)enginePtr;
+        WorldsEngine* _this = (WorldsEngine*)enginePtr;
         if (evt->type == SDL_WINDOWEVENT &&
             SDL_GetWindowFromID(evt->window.windowID) == _this->window->getWrappedHandle() &&
             (evt->window.event == SDL_WINDOWEVENT_RESIZED || evt->window.event == SDL_WINDOWEVENT_MOVED))
         {
             if (evt->window.event == SDL_WINDOWEVENT_RESIZED)
             {
-                Renderer *renderer = _this->renderer.get();
+                Renderer* renderer = _this->renderer.get();
                 _this->windowWidth = evt->window.data1;
                 _this->windowHeight = evt->window.data2;
 
@@ -312,7 +312,7 @@ namespace worlds
         return 1;
     }
 
-    template <typename T> void cloneComponent(entt::registry &src, entt::registry &dst)
+    template <typename T> void cloneComponent(entt::registry& src, entt::registry& dst)
     {
         auto view = src.view<T>();
 
@@ -329,9 +329,9 @@ namespace worlds
     bool screenPassIsVR = false;
     float screenPassResScale = 1.0f;
 
-    void handleDestroyedChild(entt::registry &r, entt::entity ent)
+    void handleDestroyedChild(entt::registry& r, entt::entity ent)
     {
-        auto &cc = r.get<ChildComponent>(ent);
+        auto& cc = r.get<ChildComponent>(ent);
         // This will get called both when the child entity is destroyed
         // and when the component is just removed, so return
         // if the parent has already been set to null by
@@ -344,7 +344,7 @@ namespace worlds
         HierarchyUtil::removeEntityParent(r, ent, false);
     }
 
-    WorldsEngine::WorldsEngine(EngineInitOptions initOptions, char *argv0)
+    WorldsEngine::WorldsEngine(EngineInitOptions initOptions, char* argv0)
         : pauseSim{false}, running{true}, simAccumulator{0.0}
     {
         ZoneScoped;
@@ -357,7 +357,7 @@ namespace worlds
 
         // Initialisation Stuffs
         // =====================
-        ISplashScreen *splashWindow = nullptr;
+        ISplashScreen* splashWindow = nullptr;
 
         if (!dedicatedServer)
         {
@@ -425,7 +425,7 @@ namespace worlds
 
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();
-        ImGuiIO &io = ImGui::GetIO();
+        ImGuiIO& io = ImGui::GetIO();
         io.ConfigFlags |= ImGuiConfigFlags_DockingEnable | ImGuiConfigFlags_ViewportsEnable;
         io.IniFilename = runAsEditor ? "imgui_editor.ini" : "imgui.ini";
         io.Fonts->TexDesiredWidth = 512;
@@ -476,7 +476,7 @@ namespace worlds
             activeApi = VrApi::OpenVR;
         }
 
-        IVRInterface *vrInterface = openvrInterface.get();
+        IVRInterface* vrInterface = openvrInterface.get();
 
         if (!dedicatedServer && runAsEditor)
             splashWindow->changeOverlay("initialising renderer");
@@ -547,7 +547,7 @@ namespace worlds
             initRichPresence(interfaces);
 
         console->registerCommand(
-            [&](void *, const char *arg) {
+            [&](void*, const char* arg) {
                 if (!PHYSFS_exists(arg))
                 {
                     logErr(WELogCategoryEngine,
@@ -559,7 +559,7 @@ namespace worlds
             "scene", "Loads a scene.", nullptr);
 
         console->registerCommand(
-            [&](void *, const char *arg) {
+            [&](void*, const char* arg) {
                 uint32_t id = (uint32_t)std::atoll(arg);
                 if (AssetDB::exists(id))
                     logVrb("Asset %u: %s", id, AssetDB::idToPath(id).c_str());
@@ -568,47 +568,47 @@ namespace worlds
             },
             "adb_lookupID", "Looks up an asset ID.", nullptr);
 
-        console->registerCommand([&](void *, const char *arg) { timeScale = atof(arg); }, "setTimeScale",
+        console->registerCommand([&](void*, const char* arg) { timeScale = atof(arg); }, "setTimeScale",
                                  "Sets the current time scale.", nullptr);
 
         if (!dedicatedServer)
         {
-            console->registerCommand([&](void *, const char *) { screenPassIsVR = (!screenRTTPass) && enableOpenVR; },
+            console->registerCommand([&](void*, const char*) { screenPassIsVR = (!screenRTTPass) && enableOpenVR; },
                                      "toggleVRRendering", "Toggle whether the screen RTT pass has VR enabled.");
 
             if (runAsEditor)
             {
 
-                console->registerCommand([&](void *, const char *arg) { screenPassResScale = std::atof(arg); },
+                console->registerCommand([&](void*, const char* arg) { screenPassResScale = std::atof(arg); },
                                          "setGameResScale", "Sets the resolution scale of the game view.");
             }
 
             console->registerCommand(
-                [&](void *, const char *) {
+                [&](void*, const char*) {
                     MeshManager::reloadMeshes();
                     physicsSystem->resetMeshCache();
                 },
                 "reloadContent", "Reloads all content.");
 
-            console->registerCommand([&](void *, const char *) {}, "reloadTextures", "Reloads textures.");
+            console->registerCommand([&](void*, const char*) {}, "reloadTextures", "Reloads textures.");
 
-            console->registerCommand([&](void *, const char *) {}, "reloadMaterials", "Reloads materials.");
+            console->registerCommand([&](void*, const char*) {}, "reloadMaterials", "Reloads materials.");
 
             console->registerCommand(
-                [&](void *, const char *) {
+                [&](void*, const char*) {
                     MeshManager::reloadMeshes();
                     physicsSystem->resetMeshCache();
                 },
                 "reloadMeshes", "Reloads meshes.");
 
-            console->registerCommand([&](void *, const char *) {}, "reloadCubemaps", "Reloads cubemaps.", nullptr);
+            console->registerCommand([&](void*, const char*) {}, "reloadCubemaps", "Reloads cubemaps.", nullptr);
         }
 
-        console->registerCommand([&](void *, const char *) { running = false; }, "exit", "Shuts down the engine.",
+        console->registerCommand([&](void*, const char*) { running = false; }, "exit", "Shuts down the engine.",
                                  nullptr);
 
         console->registerCommand(
-            [this](void *, const char *arg) {
+            [this](void*, const char* arg) {
                 std::string argS = arg;
                 size_t xPos = argS.find("x");
 
@@ -624,7 +624,7 @@ namespace worlds
             "setWindowSize", "Sets size of the window.", nullptr);
 
         console->registerCommand(
-            [this](void *, const char *arg) { MessagePackSceneSerializer::saveScene("msgpack_test.wscn", registry); },
+            [this](void*, const char* arg) { MessagePackSceneSerializer::saveScene("msgpack_test.wscn", registry); },
             "saveMsgPack", "Saves the current scene in MessagePack format.");
 
         if (enableOpenVR)
@@ -663,7 +663,7 @@ namespace worlds
             {
                 evtHandler->onSceneStart(registry);
 
-                for (auto *system : systems)
+                for (auto* system : systems)
                     system->onSceneStart(registry);
 
                 scriptEngine->onSceneStart();
@@ -703,9 +703,9 @@ namespace worlds
         if (dedicatedServer)
         {
             // do a lil' dance to make dear imgui happy
-            auto &io = ImGui::GetIO();
+            auto& io = ImGui::GetIO();
             io.DisplaySize = ImVec2(800.0f, 600.0f);
-            unsigned char *outPixels;
+            unsigned char* outPixels;
             int w, h;
             io.Fonts->GetTexDataAsAlpha8(&outPixels, &w, &h);
 
@@ -843,7 +843,7 @@ namespace worlds
         {
             evtHandler->preSimUpdate(registry, interFrameInfo.deltaTime);
 
-            for (auto *system : systems)
+            for (auto* system : systems)
                 system->preSimUpdate(registry, interFrameInfo.deltaTime);
         }
 
@@ -857,7 +857,7 @@ namespace worlds
 
         if (evtHandler != nullptr && !(runAsEditor && editor->active))
         {
-            for (auto *system : systems)
+            for (auto* system : systems)
                 system->update(registry, interFrameInfo.deltaTime * timeScale, interpAlpha);
 
             evtHandler->update(registry, interFrameInfo.deltaTime * timeScale, interpAlpha);
@@ -955,7 +955,7 @@ namespace worlds
 
         console->drawWindow();
 
-        registry.view<ChildComponent, Transform>().each([&](ChildComponent &c, Transform &t) {
+        registry.view<ChildComponent, Transform>().each([&](ChildComponent& c, Transform& t) {
             if (!registry.valid(c.parent))
                 return;
             t = c.offset.transformBy(registry.get<Transform>(c.parent));
@@ -973,7 +973,7 @@ namespace worlds
 
         inputManager->endFrame();
 
-        for (auto &e : nextFrameKillList)
+        for (auto& e : nextFrameKillList)
         {
             if (registry.valid(e))
                 registry.destroy(e);
@@ -988,10 +988,10 @@ namespace worlds
                 vr::VRCompositor()->FadeGrid(0.1f, true);
             }
             sceneLoadQueued = false;
-            SceneInfo &si = registry.ctx<SceneInfo>();
+            SceneInfo& si = registry.ctx<SceneInfo>();
             si.name = std::filesystem::path(AssetDB::idToPath(queuedSceneID)).stem().string();
             si.id = queuedSceneID;
-            PHYSFS_File *file = AssetDB::openAssetFileRead(queuedSceneID);
+            PHYSFS_File* file = AssetDB::openAssetFileRead(queuedSceneID);
             SceneLoader::loadScene(file, registry);
 
             // TODO: Load content here
@@ -1000,20 +1000,20 @@ namespace worlds
             {
                 evtHandler->onSceneStart(registry);
 
-                for (auto *system : systems)
+                for (auto* system : systems)
                     system->onSceneStart(registry);
 
                 scriptEngine->onSceneStart();
             }
 
-            registry.view<OldAudioSource>().each([](OldAudioSource &as) {
+            registry.view<OldAudioSource>().each([](OldAudioSource& as) {
                 if (as.playOnSceneOpen)
                 {
                     as.isPlaying = true;
                 }
             });
 
-            registry.view<AudioSource>().each([](AudioSource &as) {
+            registry.view<AudioSource>().each([](AudioSource& as) {
                 if (as.playOnSceneStart)
                     as.eventInstance->start();
             });
@@ -1041,11 +1041,11 @@ namespace worlds
     void WorldsEngine::tickRenderer(bool renderImGui)
     {
         ZoneScoped;
-        const physx::PxRenderBuffer &pxRenderBuffer = physicsSystem->scene()->getRenderBuffer();
+        const physx::PxRenderBuffer& pxRenderBuffer = physicsSystem->scene()->getRenderBuffer();
 
         for (uint32_t i = 0; i < pxRenderBuffer.getNbLines(); i++)
         {
-            const physx::PxDebugLine &line = pxRenderBuffer.getLines()[i];
+            const physx::PxDebugLine& line = pxRenderBuffer.getLines()[i];
             drawLine(px2glm(line.pos0), px2glm(line.pos1), glm::vec4(1.0f, 0.0f, 1.0f, 1.0f));
         }
 
@@ -1151,7 +1151,7 @@ namespace worlds
 
                 if (ImGui::CollapsingHeader(ICON_FA_PENCIL_ALT u8" Render Stats"))
                 {
-                    const auto &dbgStats = renderer->getDebugStats();
+                    const auto& dbgStats = renderer->getDebugStats();
 
                     if (!enableOpenVR)
                         ImGui::Text("Internal render resolution: %ix%i", screenRTTPass->width, screenRTTPass->height);
@@ -1195,7 +1195,7 @@ namespace worlds
 
                 if (ImGui::CollapsingHeader(ICON_FA_SHAPES u8" Physics Stats"))
                 {
-                    physx::PxScene *scene = physicsSystem->scene();
+                    physx::PxScene* scene = physicsSystem->scene();
                     uint32_t nDynamic = scene->getNbActors(physx::PxActorTypeFlag::eRIGID_DYNAMIC);
                     uint32_t nStatic = scene->getNbActors(physx::PxActorTypeFlag::eRIGID_STATIC);
                     uint32_t nTotal = nDynamic + nStatic;
@@ -1224,7 +1224,7 @@ namespace worlds
         {
             evtHandler->simulate(registry, deltaTime);
 
-            for (auto *system : systems)
+            for (auto* system : systems)
                 system->simulate(registry, deltaTime);
         }
 
@@ -1236,12 +1236,12 @@ namespace worlds
         physicsSystem->stepSimulation(deltaTime);
     }
 
-    void WorldsEngine::updateSimulation(float &interpAlpha, double deltaTime)
+    void WorldsEngine::updateSimulation(float& interpAlpha, double deltaTime)
     {
         ZoneScoped;
         if (lockSimToRefresh.getInt() || disableSimInterp.getInt() || (editor && editor->active))
         {
-            registry.view<RigidBody, Transform>().each([](RigidBody &dpa, Transform &transform) {
+            registry.view<RigidBody, Transform>().each([](RigidBody& dpa, Transform& transform) {
                 auto curr = dpa.actor->getGlobalPose();
 
                 if (curr.p != glm2px(transform.position) || curr.q != glm2px(transform.rotation))
@@ -1252,7 +1252,7 @@ namespace worlds
             });
         }
 
-        registry.view<PhysicsActor, Transform>().each([](PhysicsActor &pa, Transform &transform) {
+        registry.view<PhysicsActor, Transform>().each([](PhysicsActor& pa, Transform& transform) {
             auto curr = pa.actor->getGlobalPose();
             if (curr.p != glm2px(transform.position) || curr.q != glm2px(transform.rotation))
             {
@@ -1273,7 +1273,7 @@ namespace worlds
                 currentState.reserve(registry.view<RigidBody>().size());
                 previousState.reserve(registry.view<RigidBody>().size());
 
-                registry.view<RigidBody>().each([&](auto ent, RigidBody &dpa) {
+                registry.view<RigidBody>().each([&](auto ent, RigidBody& dpa) {
                     auto startTf = dpa.actor->getGlobalPose();
                     currentState.insert({ent, startTf});
                     previousState.insert({ent, startTf});
@@ -1298,14 +1298,14 @@ namespace worlds
             }
 
             registry.view<RigidBody>().each(
-                [&](auto ent, RigidBody &dpa) { currentState[ent] = dpa.actor->getGlobalPose(); });
+                [&](auto ent, RigidBody& dpa) { currentState[ent] = dpa.actor->getGlobalPose(); });
 
             float alpha = simAccumulator / simStepTime.getFloat();
 
             if (disableSimInterp.getInt() || simStepTime.getFloat() < deltaTime)
                 alpha = 1.0f;
 
-            registry.view<RigidBody, Transform>().each([&](entt::entity ent, RigidBody &dpa, Transform &transform) {
+            registry.view<RigidBody, Transform>().each([&](entt::entity ent, RigidBody& dpa, Transform& transform) {
                 if (!previousState.contains(ent))
                 {
                     transform.position = px2glm(currentState[ent].p);
@@ -1343,7 +1343,7 @@ namespace worlds
                 doSimStep(deltaTime);
             }
 
-            registry.view<RigidBody, Transform>().each([&](entt::entity, RigidBody &dpa, Transform &transform) {
+            registry.view<RigidBody, Transform>().each([&](entt::entity, RigidBody& dpa, Transform& transform) {
                 transform.position = px2glm(dpa.actor->getGlobalPose().p);
                 transform.rotation = px2glm(dpa.actor->getGlobalPose().q);
             });
@@ -1356,19 +1356,19 @@ namespace worlds
         queuedSceneID = scene;
     }
 
-    void WorldsEngine::addSystem(ISystem *system)
+    void WorldsEngine::addSystem(ISystem* system)
     {
         systems.push_back(system);
     }
 
-    bool WorldsEngine::hasCommandLineArg(const char *arg)
+    bool WorldsEngine::hasCommandLineArg(const char* arg)
     {
         return EngineArguments::hasArgument(arg);
     }
 
     WorldsEngine::~WorldsEngine()
     {
-        for (auto *system : systems)
+        for (auto* system : systems)
         {
             delete system;
         }

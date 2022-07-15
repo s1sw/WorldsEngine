@@ -10,7 +10,7 @@
 
 namespace worlds
 {
-    const char *textureTypeNames[] = {"Crunch", "RGBA", "Packed PBR Map"};
+    const char* textureTypeNames[] = {"Crunch", "RGBA", "Packed PBR Map"};
 
     TextureEditor::TextureEditor(AssetID id)
     {
@@ -26,7 +26,7 @@ namespace worlds
         if (ImGui::BeginCombo("Type", textureTypeNames[(int)currentAssetSettings.type]))
         {
             int i = 0;
-            for (const char *name : textureTypeNames)
+            for (const char* name : textureTypeNames)
             {
                 bool isSelected = (int)currentAssetSettings.type == i;
 
@@ -48,7 +48,7 @@ namespace worlds
 
         if (currentAssetSettings.type == TextureAssetType::Crunch)
         {
-            CrunchTextureSettings &cts = currentAssetSettings.crunch;
+            CrunchTextureSettings& cts = currentAssetSettings.crunch;
             ImGui::Checkbox("Is SRGB", &cts.isSrgb);
             ImGui::Checkbox("Is Normal Map", &cts.isNormalMap);
             ImGui::SliderInt("Quality Level", &cts.qualityLevel, 0, 255);
@@ -63,7 +63,7 @@ namespace worlds
         }
         else if (currentAssetSettings.type == TextureAssetType::PBR)
         {
-            PBRTextureSettings &pts = currentAssetSettings.pbr;
+            PBRTextureSettings& pts = currentAssetSettings.pbr;
 
             ImGui::DragFloat("Default Metallic", &pts.defaultMetallic);
             ImGui::DragFloat("Default Roughness", &pts.defaultRoughness);
@@ -112,7 +112,7 @@ namespace worlds
 
         std::string s = j.dump(4);
         std::string path = AssetDB::idToPath(editingID);
-        PHYSFS_file *file = PHYSFS_openWrite(path.c_str());
+        PHYSFS_file* file = PHYSFS_openWrite(path.c_str());
         PHYSFS_writeBytes(file, s.data(), s.size());
         PHYSFS_close(file);
     }
@@ -130,7 +130,7 @@ namespace worlds
     {
         newAssetPath = "SourceData/" + newAssetPath;
 
-        PHYSFS_File *f = PHYSFS_openWrite(newAssetPath.c_str());
+        PHYSFS_File* f = PHYSFS_openWrite(newAssetPath.c_str());
         nlohmann::json j = {{"sourceTexture", filePath}, {"type", "crunch"}, {"isSrgb", true}, {"isNormalMap", false}};
 
         std::string sourceFileName = std::filesystem::path{filePath}.filename().string();
@@ -158,18 +158,18 @@ namespace worlds
 
     void TextureEditorMeta::create(std::string path)
     {
-        PHYSFS_File *f = PHYSFS_openWrite(path.c_str());
+        PHYSFS_File* f = PHYSFS_openWrite(path.c_str());
         const char emptyJson[] = "{}";
         PHYSFS_writeBytes(f, emptyJson, sizeof(emptyJson));
         PHYSFS_close(f);
     }
 
-    IAssetEditor *TextureEditorMeta::createEditorFor(AssetID id)
+    IAssetEditor* TextureEditorMeta::createEditorFor(AssetID id)
     {
         return new TextureEditor(id);
     }
 
-    const char *TextureEditorMeta::getHandledExtension()
+    const char* TextureEditorMeta::getHandledExtension()
     {
         return ".wtexj";
     }

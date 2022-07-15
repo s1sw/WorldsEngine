@@ -14,7 +14,7 @@ namespace worlds
             return I == 1 ? (OFFSET_BASIS ^ str[0]) * FNV_PRIME : (fnvHashConst(str, I - 1) ^ str[I - 1]) * FNV_PRIME;
         }
 
-        static unsigned int fnvHash(const char *str)
+        static unsigned int fnvHash(const char* str)
         {
             const size_t length = strlen(str) + 1;
             unsigned int hash = OFFSET_BASIS;
@@ -28,13 +28,13 @@ namespace worlds
 
         struct Wrapper
         {
-            Wrapper(const char *str) : str(str)
+            Wrapper(const char* str) : str(str)
             {
             }
-            Wrapper(const std::string_view &view) : str(view.data())
+            Wrapper(const std::string_view& view) : str(view.data())
             {
             }
-            const char *str;
+            const char* str;
         };
 
         unsigned int hash_value;

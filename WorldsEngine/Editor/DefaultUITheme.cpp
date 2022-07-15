@@ -4,7 +4,7 @@ namespace worlds
 {
     void loadDefaultUITheme()
     {
-        ImVec4 *colors = ImGui::GetStyle().Colors;
+        ImVec4* colors = ImGui::GetStyle().Colors;
         colors[ImGuiCol_Text] = ImVec4(1.00f, 1.00f, 1.00f, 1.00f);
         colors[ImGuiCol_TextDisabled] = ImVec4(0.50f, 0.50f, 0.50f, 1.00f);
         colors[ImGuiCol_WindowBg] = ImVec4(0.08f, 0.08f, 0.09f, 1.00f);
@@ -57,7 +57,7 @@ namespace worlds
         colors[ImGuiCol_NavWindowingDimBg] = ImVec4(0.80f, 0.80f, 0.80f, 0.20f);
         colors[ImGuiCol_ModalWindowDimBg] = ImVec4(0.80f, 0.80f, 0.80f, 0.35f);
 
-        ImGuiStyle &style = ImGui::GetStyle();
+        ImGuiStyle& style = ImGui::GetStyle();
         style.WindowBorderSize = 1.0f;
         style.PopupBorderSize = 0.0f;
         style.FrameRounding = 6.0f;

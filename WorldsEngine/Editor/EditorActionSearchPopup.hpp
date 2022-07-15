@@ -7,7 +7,7 @@ namespace worlds
     class EditorActionSearchPopup : SearchPopup<uint32_t>
     {
       public:
-        EditorActionSearchPopup(Editor *ed, entt::registry &reg);
+        EditorActionSearchPopup(Editor* ed, entt::registry& reg);
         void show();
         void draw();
 
@@ -17,7 +17,7 @@ namespace worlds
         void updateCandidates() override;
 
       private:
-        Editor *ed;
-        entt::registry &reg;
+        Editor* ed;
+        entt::registry& reg;
     };
 }

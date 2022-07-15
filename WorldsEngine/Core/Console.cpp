@@ -25,17 +25,17 @@ namespace worlds
     // that's added to the console when it is initialised.
     struct ConvarLink
     {
-        ConVar *var;
-        ConvarLink *next;
+        ConVar* var;
+        ConvarLink* next;
     };
 
     ConVar logToStdout{"logToStdOut", "1", "Log to stdout in addition to the file and the console."};
 
     ConVar popupConsoleMessages{"popupConsoleMessages", "0"};
 
-    ConvarLink *firstLink = nullptr;
+    ConvarLink* firstLink = nullptr;
     const int CONSOLE_RESPONSE_CATEGORY = 255;
-    Console *g_console;
+    Console* g_console;
     std::mutex consoleMutex;
 
     const std::unordered_map<SDL_LogPriority, ImColor> priorityColors = {
@@ -46,28 +46,28 @@ namespace worlds
         {SDL_LOG_PRIORITY_WARN, ImColor(1.0f, 1.0f, 0.0f)},
         {SDL_LOG_PRIORITY_ERROR, ImColor(1.0f, 0.0f, 0.0f)}};
 
-    const std::unordered_map<int, const char *> categories = {{SDL_LOG_CATEGORY_APPLICATION, "SDL Application"},
-                                                              {SDL_LOG_CATEGORY_AUDIO, "SDL Audio"},
-                                                              {SDL_LOG_CATEGORY_ASSERT, "SDL Assert"},
-                                                              {SDL_LOG_CATEGORY_ERROR, "SDL Error"},
-                                                              {SDL_LOG_CATEGORY_INPUT, "SDL Input"},
-                                                              {SDL_LOG_CATEGORY_RENDER, "SDL Render"},
-                                                              {WELogCategoryEngine, "Engine"},
-                                                              {WELogCategoryAudio, "Audio"},
-                                                              {WELogCategoryRender, "Render"},
-                                                              {WELogCategoryUI, "UI"},
-                                                              {WELogCategoryApp, "Application"},
-                                                              {WELogCategoryScripting, "Scripting"},
-                                                              {WELogCategoryPhysics, "Physics"},
-                                                              {CONSOLE_RESPONSE_CATEGORY, "Console Response"}};
+    const std::unordered_map<int, const char*> categories = {{SDL_LOG_CATEGORY_APPLICATION, "SDL Application"},
+                                                             {SDL_LOG_CATEGORY_AUDIO, "SDL Audio"},
+                                                             {SDL_LOG_CATEGORY_ASSERT, "SDL Assert"},
+                                                             {SDL_LOG_CATEGORY_ERROR, "SDL Error"},
+                                                             {SDL_LOG_CATEGORY_INPUT, "SDL Input"},
+                                                             {SDL_LOG_CATEGORY_RENDER, "SDL Render"},
+                                                             {WELogCategoryEngine, "Engine"},
+                                                             {WELogCategoryAudio, "Audio"},
+                                                             {WELogCategoryRender, "Render"},
+                                                             {WELogCategoryUI, "UI"},
+                                                             {WELogCategoryApp, "Application"},
+                                                             {WELogCategoryScripting, "Scripting"},
+                                                             {WELogCategoryPhysics, "Physics"},
+                                                             {CONSOLE_RESPONSE_CATEGORY, "Console Response"}};
 
-    const std::unordered_map<SDL_LogPriority, const char *> priorities = {
+    const std::unordered_map<SDL_LogPriority, const char*> priorities = {
         {SDL_LOG_PRIORITY_CRITICAL, "Critical"}, {SDL_LOG_PRIORITY_DEBUG, "Debug"},  {SDL_LOG_PRIORITY_INFO, "Info"},
         {SDL_LOG_PRIORITY_VERBOSE, "Verbose"},   {SDL_LOG_PRIORITY_WARN, "Warning"}, {SDL_LOG_PRIORITY_ERROR, "Error"}};
 
-    const char *priorityLabels[] = {"Verbose", "Debug", "Info", "Warn", "Error", "Critical"};
+    const char* priorityLabels[] = {"Verbose", "Debug", "Info", "Warn", "Error", "Critical"};
 
-    ConVar::ConVar(const char *name, const char *defaultValue, const char *help)
+    ConVar::ConVar(const char* name, const char* defaultValue, const char* help)
         : help(help), name(name), value(defaultValue)
     {
 
@@ -76,10 +76,10 @@ namespace worlds
 
         if (g_console == nullptr)
         {
-            ConvarLink *thisLink = new ConvarLink{this, nullptr};
+            ConvarLink* thisLink = new ConvarLink{this, nullptr};
             if (firstLink)
             {
-                ConvarLink *next = firstLink;
+                ConvarLink* next = firstLink;
                 while (next->next != nullptr)
                 {
                     next = next->next;
@@ -95,7 +95,7 @@ namespace worlds
         else
         {
             std::string nameLower = name;
-            for (auto &c : nameLower)
+            for (auto& c : nameLower)
                 c = std::tolower(c);
 
             g_console->conVars.insert({nameLower, this});
@@ -110,7 +110,7 @@ namespace worlds
             parsedFloat = (float)std::stof(value);
             this->value = value;
         }
-        catch (const std::invalid_argument &)
+        catch (const std::invalid_argument&)
         {
             logErr("Invalid convar value %s", value.c_str());
         }
@@ -173,7 +173,7 @@ namespace worlds
         registerCommand(cmdHelp, "help", "Displays help about all commands.", this);
         registerCommand(cmdExec, "exec", "Executes a command file.", this);
 
-        for (auto &cPair : categories)
+        for (auto& cPair : categories)
         {
 #if defined(__linux__)
             if (cPair.first == SDL_LOG_CATEGORY_ERROR)
@@ -186,13 +186,13 @@ namespace worlds
 
         if (firstLink != nullptr)
         {
-            ConvarLink *curr = firstLink;
+            ConvarLink* curr = firstLink;
 
             while (curr != nullptr)
             {
-                ConvarLink *next = curr->next;
+                ConvarLink* next = curr->next;
                 std::string nameLower = curr->var->name;
-                for (auto &c : nameLower)
+                for (auto& c : nameLower)
                 {
                     c = std::tolower(c);
                 }
@@ -217,7 +217,7 @@ namespace worlds
                 SetConsoleTitleA(s.c_str());
             }
 
-            FILE *fDummy;
+            FILE* fDummy;
             freopen_s(&fDummy, "CONIN$", "r", stdin);
             freopen_s(&fDummy, "CONOUT$", "w", stderr);
             freopen_s(&fDummy, "CONOUT$", "w", stdout);
@@ -257,30 +257,30 @@ namespace worlds
             goToSecondaryScreen();
         }
 
-        registerCommand([](void *, const char *arg) { logMsg("%s", arg); }, "echo", "Echos the argument to the screen.",
+        registerCommand([](void*, const char* arg) { logMsg("%s", arg); }, "echo", "Echos the argument to the screen.",
                         nullptr);
     }
 
-    void Console::registerCommand(CommandFuncPtr cmd, const char *name, const char *help, void *obj)
+    void Console::registerCommand(CommandFuncPtr cmd, const char* name, const char* help, void* obj)
     {
         std::string nameLower = name;
-        for (auto &c : nameLower)
+        for (auto& c : nameLower)
             c = std::tolower(c);
         commands.insert({nameLower, Command{cmd, name, help, obj}});
     }
 
-    void Console::cmdHelp(void *con, const char *)
+    void Console::cmdHelp(void* con, const char*)
     {
-        auto *console = reinterpret_cast<Console *>(con);
+        auto* console = reinterpret_cast<Console*>(con);
         SDL_LogInfo(CONSOLE_RESPONSE_CATEGORY, "Commands:");
-        for (auto &cmd : console->commands)
+        for (auto& cmd : console->commands)
         {
             SDL_LogInfo(CONSOLE_RESPONSE_CATEGORY, "%s: %s", cmd.second.name, cmd.second.help);
         }
 
         SDL_LogInfo(CONSOLE_RESPONSE_CATEGORY, "ConVars:");
 
-        for (auto &conVar : console->conVars)
+        for (auto& conVar : console->conVars)
         {
             if (conVar.second->getHelp() == nullptr)
                 SDL_LogInfo(CONSOLE_RESPONSE_CATEGORY, "%s=%s", conVar.second->getName(), conVar.second->getString());
@@ -292,9 +292,9 @@ namespace worlds
         }
     }
 
-    void Console::cmdExec(void *con, const char *argString)
+    void Console::cmdExec(void* con, const char* argString)
     {
-        auto *console = reinterpret_cast<Console *>(con);
+        auto* console = reinterpret_cast<Console*>(con);
 
         auto loadRes = LoadFileToString(argString + std::string(".txt"));
 
@@ -326,16 +326,16 @@ namespace worlds
         }
     }
 
-    bool strCompare(const char *a, const char *b)
+    bool strCompare(const char* a, const char* b)
     {
         return strcmp(a, b) < 0;
     }
 
-    int Console::inputTextCallback(ImGuiInputTextCallbackData *data)
+    int Console::inputTextCallback(ImGuiInputTextCallbackData* data)
     {
         static int completionPos = 0;
         static bool completionsCached = false;
-        static std::vector<const char *> completions;
+        static std::vector<const char*> completions;
 
         switch (data->EventFlag)
         {
@@ -367,11 +367,11 @@ namespace worlds
                 completionPos = 0;
                 completions.clear();
                 std::string lowerified = data->Buf;
-                for (auto &c : lowerified)
+                for (auto& c : lowerified)
                     c = std::tolower(c);
 
                 // search for commands
-                for (auto &pair : g_console->commands)
+                for (auto& pair : g_console->commands)
                 {
                     if (pair.first.starts_with(lowerified))
                     {
@@ -380,7 +380,7 @@ namespace worlds
                 }
 
                 // search for convars
-                for (auto &pair : g_console->conVars)
+                for (auto& pair : g_console->conVars)
                 {
                     if (pair.first.starts_with(lowerified))
                     {
@@ -396,7 +396,7 @@ namespace worlds
                 {
                     g_console->msgs.push_back(
                         ConsoleMsg{SDL_LOG_PRIORITY_INFO, "completions: ", CONSOLE_RESPONSE_CATEGORY});
-                    for (auto &completion : completions)
+                    for (auto& completion : completions)
                     {
                         g_console->msgs.push_back(
                             ConsoleMsg{SDL_LOG_PRIORITY_INFO, completion, CONSOLE_RESPONSE_CATEGORY});
@@ -450,8 +450,8 @@ namespace worlds
         }
 
         float popupMessageY = ImGui::GetTextLineHeight();
-        ImDrawList *popupDrawlist = ImGui::GetForegroundDrawList();
-        for (PopupMessage &pm : popupMessages)
+        ImDrawList* popupDrawlist = ImGui::GetForegroundDrawList();
+        for (PopupMessage& pm : popupMessages)
         {
             pm.shownFor += ImGui::GetIO().DeltaTime;
             popupDrawlist->AddText(ImVec2(0.0f, popupMessageY), priorityColors.at(pm.priority), pm.contents.c_str());
@@ -459,7 +459,7 @@ namespace worlds
         }
 
         popupMessages.erase(std::remove_if(popupMessages.begin(), popupMessages.end(),
-                                           [](PopupMessage &pm) { return pm.shownFor > 5.0f; }),
+                                           [](PopupMessage& pm) { return pm.shownFor > 5.0f; }),
                             popupMessages.end());
 
         if (ImGui::GetIO().KeysDownDuration[SDL_SCANCODE_GRAVE] == 0.0f)
@@ -490,7 +490,7 @@ namespace worlds
             ImGui::PopItemWidth();
             currentPriorityLevel += 1;
 
-            const char *filterableCategories[] = {"Engine", "Audio", "Render", "UI", "App", "Scripting", "Physics"};
+            const char* filterableCategories[] = {"Engine", "Audio", "Render", "UI", "App", "Scripting", "Physics"};
 
             ImGui::SameLine();
             ImGui::PushItemWidth(200.0f);
@@ -504,7 +504,7 @@ namespace worlds
                                           ? !filterByCategory
                                           : (filteredCategory == i - 1 + SDL_LOG_CATEGORY_CUSTOM && filterByCategory);
 
-                    const char *itemText = i == 0 ? "None" : filterableCategories[i - 1];
+                    const char* itemText = i == 0 ? "None" : filterableCategories[i - 1];
 
                     if (ImGui::Selectable(itemText, &isSelected))
                     {
@@ -567,7 +567,7 @@ namespace worlds
                     float scroll = ImGui::GetScrollY();
                     float scrollMax = scroll + scrollRegionY;
 
-                    for (auto &msg : (searchString.empty() ? msgs : filteredMsgs))
+                    for (auto& msg : (searchString.empty() ? msgs : filteredMsgs))
                     {
                         if (msg.priority < currentPriorityLevel)
                             continue;
@@ -587,7 +587,7 @@ namespace worlds
                             {
                                 ImGui::TableNextColumn();
 
-                                ImDrawList *drawList = ImGui::GetWindowDrawList();
+                                ImDrawList* drawList = ImGui::GetWindowDrawList();
                                 ImVec2 topLeft = ImGui::GetCursorScreenPos();
 
                                 const float priorityBackgroundOffset = 63.0f;
@@ -680,7 +680,7 @@ namespace worlds
         size_t firstSpace = cmdStr.find_first_of(' ');
         if (firstSpace == std::string::npos)
         {
-            for (auto &c : cmdStr)
+            for (auto& c : cmdStr)
                 c = std::tolower(c);
             auto convarPos = conVars.find(cmdStr);
             auto cmdPos = commands.find(cmdStr);
@@ -706,7 +706,7 @@ namespace worlds
         {
             std::string argString = cmdStr.substr(firstSpace + 1);
             std::string cmdString = cmdStr.substr(0, firstSpace);
-            for (auto &c : cmdString)
+            for (auto& c : cmdString)
                 c = std::tolower(c);
 
             auto convarPos = conVars.find(cmdString);
@@ -746,9 +746,9 @@ namespace worlds
         return std::string(ts);
     }
 
-    void Console::logCallback(void *conVP, int category, SDL_LogPriority priority, const char *msg)
+    void Console::logCallback(void* conVP, int category, SDL_LogPriority priority, const char* msg)
     {
-        Console *con = (Console *)conVP;
+        Console* con = (Console*)conVP;
         std::string outStr = "[" + getDateTimeString() + "]" + "[" + categories.at(category) + "]" + "[" +
                              priorities.at(priority) + "] " + msg;
 
@@ -761,7 +761,7 @@ namespace worlds
         {
             if (enableVT100)
             {
-                const char *clearLineCode = "\033[2K";
+                const char* clearLineCode = "\033[2K";
 
                 std::cout << "\r" << clearLineCode << "\033[38;2;" << r << ";" << g << ";" << b << "m" << outStr
                           << "\n";

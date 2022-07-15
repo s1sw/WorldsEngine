@@ -20,7 +20,7 @@
 
 namespace worlds
 {
-    void Assets::draw(entt::registry &reg)
+    void Assets::draw(entt::registry& reg)
     {
         static std::string currentDir = "";
 
@@ -52,7 +52,7 @@ namespace worlds
 
             ImGui::Separator();
 
-            char **files = PHYSFS_enumerateFiles(("SourceData/" + currentDir).c_str());
+            char** files = PHYSFS_enumerateFiles(("SourceData/" + currentDir).c_str());
 
             if (*files == nullptr)
             {
@@ -65,7 +65,7 @@ namespace worlds
             }
             std::string assetContextMenuPath;
 
-            for (char **currFile = files; *currFile != nullptr; currFile++)
+            for (char** currFile = files; *currFile != nullptr; currFile++)
             {
                 slib::Path path{*currFile};
                 std::string origDirStr = "SourceData/" + currentDir;
@@ -86,7 +86,7 @@ namespace worlds
 
                 if (stat.filetype == PHYSFS_FILETYPE_DIRECTORY || stat.filetype == PHYSFS_FILETYPE_SYMLINK)
                 {
-                    slib::String buttonLabel{(const char *)ICON_FA_FOLDER};
+                    slib::String buttonLabel{(const char*)ICON_FA_FOLDER};
                     buttonLabel += " ";
                     buttonLabel += *currFile;
                     if (ImGui::Button(buttonLabel.cStr()))
@@ -106,7 +106,7 @@ namespace worlds
                 {
                     slib::Path p{fullPath.c_str()};
                     auto ext = p.fileExtension();
-                    const char *icon = getIcon(ext.cStr());
+                    const char* icon = getIcon(ext.cStr());
                     slib::String buttonLabel = icon;
                     buttonLabel += *currFile;
 
@@ -127,7 +127,7 @@ namespace worlds
                 }
             }
 
-            static IAssetEditorMeta *newAssetEditor = nullptr;
+            static IAssetEditorMeta* newAssetEditor = nullptr;
             static std::string newAssetName;
 
             if (ImGui::BeginPopup("New Asset Name"))
@@ -160,7 +160,7 @@ namespace worlds
                 if (ImGui::InputText("Name", &newMaterialName, ImGuiInputTextFlags_EnterReturnsTrue))
                 {
                     std::string p = "SourceData/" + currentDir + "/" + newMaterialName;
-                    PHYSFS_File *f = PHYSFS_openWrite(p.c_str());
+                    PHYSFS_File* f = PHYSFS_openWrite(p.c_str());
                     const char emptyJson[] = "{}";
                     PHYSFS_writeBytes(f, emptyJson, sizeof(emptyJson));
                     PHYSFS_close(f);
@@ -200,7 +200,7 @@ namespace worlds
                     if (ImGui::Button("Create in scene"))
                     {
                         AssetID compiledAsset = getOutputAsset(assetContextMenu);
-                        Camera &editorCam = editor->getFirstSceneView()->getCamera();
+                        Camera& editorCam = editor->getFirstSceneView()->getCamera();
                         glm::vec3 pos = editorCam.position + editorCam.rotation * glm::vec3(0.0f, 0.0f, 1.0f);
                         createModelObject(reg, pos, glm::quat{1.0f, 0.0f, 0.0f, 0.0f}, compiledAsset,
                                           AssetDB::pathToId("Materials/DevTextures/dev_blue.json"));
@@ -227,7 +227,7 @@ namespace worlds
 
                 for (size_t i = 0; i < AssetCompilers::registeredCompilerCount(); i++)
                 {
-                    IAssetCompiler *compiler = AssetCompilers::registeredCompilers()[i];
+                    IAssetCompiler* compiler = AssetCompilers::registeredCompilers()[i];
                     if (ImGui::Button(compiler->getSourceExtension()))
                     {
                         newAssetEditor = AssetEditors::getEditorFor(compiler->getSourceExtension());

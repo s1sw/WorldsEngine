@@ -5,12 +5,12 @@ namespace worlds
 {
     robin_hood::unordered_map<std::string, std::string> args;
 
-    bool isSwitch(char *arg)
+    bool isSwitch(char* arg)
     {
         return arg[0] == '-' && arg[1] == '-';
     }
 
-    void EngineArguments::parseArguments(int argc, char **argv)
+    void EngineArguments::parseArguments(int argc, char** argv)
     {
         for (int i = 1; i < argc; i++)
         {
@@ -21,8 +21,8 @@ namespace worlds
             if (!isSwitch(argv[i]))
                 continue;
 
-            char *arg = argv[i] + 2;
-            const char *val = nullptr;
+            char* arg = argv[i] + 2;
+            const char* val = nullptr;
 
             if (i < argc - 1 && !isSwitch(argv[i + 1]))
                 val = argv[i + 1];
@@ -33,17 +33,17 @@ namespace worlds
         }
     }
 
-    void EngineArguments::addArgument(const char *arg, const char *value)
+    void EngineArguments::addArgument(const char* arg, const char* value)
     {
         args.insert({arg, value});
     }
 
-    bool EngineArguments::hasArgument(const char *arg)
+    bool EngineArguments::hasArgument(const char* arg)
     {
         return args.contains(arg);
     }
 
-    std::string_view EngineArguments::argumentValue(const char *arg)
+    std::string_view EngineArguments::argumentValue(const char* arg)
     {
         return args.at(arg);
     }

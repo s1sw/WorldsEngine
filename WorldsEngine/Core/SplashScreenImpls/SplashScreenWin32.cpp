@@ -55,14 +55,14 @@ namespace worlds
     struct SplashScreenImplWin32::State
     {
         HWND hwnd;
-        std::thread *t;
-        Gdiplus::Image *background;
-        Gdiplus::Image *foreground = nullptr;
+        std::thread* t;
+        Gdiplus::Image* background;
+        Gdiplus::Image* foreground = nullptr;
         std::mutex mutex;
         int width, height;
     };
 
-    SplashScreenImplWin32::State *SplashScreenImplWin32::s;
+    SplashScreenImplWin32::State* SplashScreenImplWin32::s;
 
     void checkWinErr()
     {
@@ -82,11 +82,11 @@ namespace worlds
         }
     }
 
-    Gdiplus::Image *createImageFromFile(const char *fname)
+    Gdiplus::Image* createImageFromFile(const char* fname)
     {
-        char *basePath = SDL_GetBasePath();
+        char* basePath = SDL_GetBasePath();
 
-        char *buf = (char *)alloca(strlen(fname) + strlen(basePath) + 12 + 1);
+        char* buf = (char*)alloca(strlen(fname) + strlen(basePath) + 12 + 1);
         buf[0] = 0;
         strcat(buf, basePath);
         strcat(buf, "EngineData/");
@@ -94,11 +94,11 @@ namespace worlds
 
         SDL_free(basePath);
 
-        wchar_t *wbuf = (wchar_t *)alloca((strlen(fname) + strlen(basePath) + 12 + 1) * sizeof(wchar_t));
+        wchar_t* wbuf = (wchar_t*)alloca((strlen(fname) + strlen(basePath) + 12 + 1) * sizeof(wchar_t));
 
         mbstowcs(wbuf, buf, (strlen(fname) + strlen(basePath) + 12 + 1) * sizeof(wchar_t));
 
-        Gdiplus::Image *img = new Gdiplus::Image(wbuf);
+        Gdiplus::Image* img = new Gdiplus::Image(wbuf);
 
         return img;
     }
@@ -108,7 +108,7 @@ namespace worlds
         s = new State;
 
         s->t = new std::thread([this, small] {
-            const char *CLASS_NAME = "WorldsSplashScreen";
+            const char* CLASS_NAME = "WorldsSplashScreen";
 
             Gdiplus::GdiplusStartupInput gdiplusStartupInput;
             ULONG_PTR gdiplusToken;
@@ -158,16 +158,16 @@ namespace worlds
         });
     }
 
-    void SplashScreenImplWin32::changeOverlay(const char *overlay)
+    void SplashScreenImplWin32::changeOverlay(const char* overlay)
     {
         s->mutex.lock();
 
-        char *basePath = SDL_GetBasePath();
+        char* basePath = SDL_GetBasePath();
 
-        const char *splashTextDir = "EngineData/SplashText/";
-        const char *ext = ".png";
+        const char* splashTextDir = "EngineData/SplashText/";
+        const char* ext = ".png";
 
-        char *buf = (char *)alloca(strlen(overlay) + strlen(basePath) + strlen(splashTextDir) + strlen(ext) + 1);
+        char* buf = (char*)alloca(strlen(overlay) + strlen(basePath) + strlen(splashTextDir) + strlen(ext) + 1);
         buf[0] = 0;
         strcat(buf, basePath);
         strcat(buf, splashTextDir);
@@ -176,7 +176,7 @@ namespace worlds
 
         SDL_free(basePath);
 
-        wchar_t *wbuf = (wchar_t *)alloca(
+        wchar_t* wbuf = (wchar_t*)alloca(
             (strlen(overlay) + strlen(basePath) + strlen(splashTextDir) + strlen(ext) + 1) * sizeof(wchar_t));
 
         mbstowcs(wbuf, buf,
@@ -189,7 +189,7 @@ namespace worlds
 
     void SplashScreenImplWin32::eventLoop()
     {
-        State *statePtr = s;
+        State* statePtr = s;
         MSG msg;
         while (GetMessageW(&msg, nullptr, 0, 0) == TRUE)
         {

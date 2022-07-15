@@ -28,9 +28,9 @@ namespace worlds
         uint8_t uuid[VK_UUID_SIZE]; // equal to VkPhysicalDeviceProperties::pipelineCacheUUID
     };
 
-    std::string getPipelineCachePath(const VkPhysicalDeviceProperties &physDevProps)
+    std::string getPipelineCachePath(const VkPhysicalDeviceProperties& physDevProps)
     {
-        char *base_path = SDL_GetPrefPath("Someone Somewhere", "Worlds Engine");
+        char* base_path = SDL_GetPrefPath("Someone Somewhere", "Worlds Engine");
         std::string ret = base_path + std::string(physDevProps.deviceName) + "-pipelinecache.wplc";
 
         SDL_free(base_path);
@@ -38,14 +38,14 @@ namespace worlds
         return ret;
     }
 
-    void PipelineCacheSerializer::loadPipelineCache(const VkPhysicalDeviceProperties &physDevProps,
-                                                    VkPipelineCacheCreateInfo &pcci)
+    void PipelineCacheSerializer::loadPipelineCache(const VkPhysicalDeviceProperties& physDevProps,
+                                                    VkPipelineCacheCreateInfo& pcci)
     {
         std::string pipelineCachePath = getPipelineCachePath(physDevProps);
 
         pcci.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
 
-        FILE *f = fopen(pipelineCachePath.c_str(), "rb");
+        FILE* f = fopen(pipelineCachePath.c_str(), "rb");
 
         if (f)
         {
@@ -73,12 +73,12 @@ namespace worlds
 
             pcci.pInitialData = std::malloc(cacheDataHeader.dataSize);
             pcci.initialDataSize = cacheDataHeader.dataSize;
-            readBytes = fread((void *)pcci.pInitialData, 1, cacheDataHeader.dataSize, f);
+            readBytes = fread((void*)pcci.pInitialData, 1, cacheDataHeader.dataSize, f);
 
             if (readBytes != cacheDataHeader.dataSize)
             {
                 logErr(WELogCategoryRender, "Error while loading pipeline cache: couldn't read data");
-                std::free((void *)pcci.pInitialData);
+                std::free((void*)pcci.pInitialData);
                 pcci.pInitialData = nullptr;
                 pcci.initialDataSize = 0;
                 fclose(f);
@@ -91,13 +91,13 @@ namespace worlds
         }
     }
 
-    void PipelineCacheSerializer::savePipelineCache(const VkPhysicalDeviceProperties &physDevProps,
-                                                    const VkPipelineCache &cache, const VkDevice &dev)
+    void PipelineCacheSerializer::savePipelineCache(const VkPhysicalDeviceProperties& physDevProps,
+                                                    const VkPipelineCache& cache, const VkDevice& dev)
     {
         size_t pipelineCacheSize;
         VKCHECK(vkGetPipelineCacheData(dev, cache, &pipelineCacheSize, nullptr));
 
-        void *dat = malloc(pipelineCacheSize);
+        void* dat = malloc(pipelineCacheSize);
         VKCHECK(vkGetPipelineCacheData(dev, cache, &pipelineCacheSize, dat));
 
         PipelineCacheDataHeader pipelineCacheHeader{};
@@ -108,7 +108,7 @@ namespace worlds
         memcpy(pipelineCacheHeader.uuid, physDevProps.pipelineCacheUUID, VK_UUID_SIZE);
 
         std::string pipelineCachePath = getPipelineCachePath(physDevProps);
-        FILE *f = fopen(pipelineCachePath.c_str(), "wb");
+        FILE* f = fopen(pipelineCachePath.c_str(), "wb");
         fwrite(&pipelineCacheHeader, sizeof(pipelineCacheHeader), 1, f);
 
         fwrite(dat, pipelineCacheSize, 1, f);

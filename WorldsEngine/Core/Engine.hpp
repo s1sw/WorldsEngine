@@ -14,8 +14,8 @@
 #include <Render/Camera.hpp>
 
 #ifdef CHECK_NEW_DELETE
-void *operator new(size_t count);
-void operator delete(void *ptr) noexcept;
+void* operator new(size_t count);
+void operator delete(void* ptr) noexcept;
 #endif
 
 namespace worlds
@@ -53,8 +53,8 @@ namespace worlds
         bool runAsEditor;
         bool enableVR;
         bool dedicatedServer;
-        IGameEventHandler *eventHandler;
-        const char *gameName;
+        IGameEventHandler* eventHandler;
+        const char* gameName;
     };
 
     struct SceneSettings
@@ -71,36 +71,36 @@ namespace worlds
     class EngineArguments
     {
       public:
-        static void parseArguments(int argc, char **argv);
-        static void addArgument(const char *arg, const char *value = nullptr);
-        static bool hasArgument(const char *arg);
-        static std::string_view argumentValue(const char *arg);
+        static void parseArguments(int argc, char** argv);
+        static void addArgument(const char* arg, const char* value = nullptr);
+        static bool hasArgument(const char* arg);
+        static std::string_view argumentValue(const char* arg);
     };
 
     class WorldsEngine;
     struct EngineInterfaces
     {
-        IVRInterface *vrInterface;
-        Renderer *renderer;
-        Camera *mainCamera;
-        InputManager *inputManager;
-        WorldsEngine *engine;
-        DotNetScriptEngine *scriptEngine;
-        PhysicsSystem *physics;
-        Editor *editor;
+        IVRInterface* vrInterface;
+        Renderer* renderer;
+        Camera* mainCamera;
+        InputManager* inputManager;
+        WorldsEngine* engine;
+        DotNetScriptEngine* scriptEngine;
+        PhysicsSystem* physics;
+        Editor* editor;
     };
 
     class WorldsEngine
     {
       public:
-        WorldsEngine(EngineInitOptions initOptions, char *argv0);
+        WorldsEngine(EngineInitOptions initOptions, char* argv0);
         ~WorldsEngine();
 
         void mainLoop();
         void loadScene(AssetID scene);
         void createStartupScene();
-        void addSystem(ISystem *system);
-        Window &getMainWindow() const
+        void addSystem(ISystem* system);
+        Window& getMainWindow() const
         {
             return *window;
         }
@@ -118,7 +118,7 @@ namespace worlds
         {
             return gameTime;
         }
-        [[deprecated("Use EngineArguments")]] bool hasCommandLineArg(const char *arg);
+        [[deprecated("Use EngineArguments")]] bool hasCommandLineArg(const char* arg);
 
       private:
         struct DebugTimeInfo
@@ -130,26 +130,26 @@ namespace worlds
             int frameCounter;
         };
 
-        static int eventFilter(void *enginePtr, SDL_Event *evt);
-        static int windowThread(void *data);
+        static int eventFilter(void* enginePtr, SDL_Event* evt);
+        static int windowThread(void* data);
         void setupSDL();
-        Window *createWindow();
-        void setupPhysfs(char *argv0);
+        Window* createWindow();
+        void setupPhysfs(char* argv0);
         void drawDebugInfoWindow(DebugTimeInfo timeInfo);
-        void updateSimulation(float &interpAlpha, double deltaTime);
+        void updateSimulation(float& interpAlpha, double deltaTime);
         void doSimStep(float deltaTime);
         void tickRenderer(bool renderImgui = false);
         void runSingleFrame(bool processEvents);
 
-        Window *window;
+        Window* window;
         int windowWidth, windowHeight;
 
         bool running;
         bool dedicatedServer;
         entt::registry registry;
 
-        IGameEventHandler *evtHandler;
-        RTTPass *screenRTTPass;
+        IGameEventHandler* evtHandler;
+        RTTPass* screenRTTPass;
         Camera cam;
 
         bool sceneLoadQueued = false;
@@ -169,7 +169,7 @@ namespace worlds
         std::unique_ptr<OpenVRInterface> openvrInterface;
         std::unique_ptr<PhysicsSystem> physicsSystem;
 
-        std::vector<ISystem *> systems;
+        std::vector<ISystem*> systems;
         std::vector<entt::entity> nextFrameKillList;
 
         struct InterFrameInfo

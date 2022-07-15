@@ -20,5 +20,5 @@ namespace worlds
     };
 
     // Swaps the buffer used for drawing and return the previously filled buffer
-    const DebugLine *swapDebugLineBuffer(size_t &numLines);
+    const DebugLine* swapDebugLineBuffer(size_t& numLines);
 }

@@ -9,7 +9,7 @@
 
 namespace worlds
 {
-    EditorActionSearchPopup::EditorActionSearchPopup(Editor *ed, entt::registry &reg) : ed(ed), reg(reg)
+    EditorActionSearchPopup::EditorActionSearchPopup(Editor* ed, entt::registry& reg) : ed(ed), reg(reg)
     {
     }
 

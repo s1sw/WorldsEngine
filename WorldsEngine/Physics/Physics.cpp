@@ -29,7 +29,7 @@ namespace worlds
     class PhysErrCallback : public physx::PxErrorCallback
     {
       public:
-        virtual void reportError(physx::PxErrorCode::Enum code, const char *msg, const char *file, int line)
+        virtual void reportError(physx::PxErrorCode::Enum code, const char* msg, const char* file, int line)
         {
             switch (code)
             {
@@ -56,32 +56,32 @@ namespace worlds
 
     bool started = false;
 
-    void *entToPtr(entt::entity ent)
+    void* entToPtr(entt::entity ent)
     {
-        return (void *)(uintptr_t)(uint32_t)ent;
+        return (void*)(uintptr_t)(uint32_t)ent;
     }
 
-    entt::entity ptrToEnt(void *ptr)
+    entt::entity ptrToEnt(void* ptr)
     {
         return (entt::entity)(uint32_t)(uintptr_t)ptr;
     }
 
-    template <typename T> void destroyPhysXActor(entt::registry &reg, entt::entity ent)
+    template <typename T> void destroyPhysXActor(entt::registry& reg, entt::entity ent)
     {
-        auto &pa = reg.get<T>(ent);
+        auto& pa = reg.get<T>(ent);
         pa.actor->release();
     }
 
-    template <typename T> void setPhysXActorUserdata(entt::registry &reg, entt::entity ent)
+    template <typename T> void setPhysXActorUserdata(entt::registry& reg, entt::entity ent)
     {
-        auto &pa = reg.get<T>(ent);
+        auto& pa = reg.get<T>(ent);
         pa.actor->userData = entToPtr(ent);
     }
 
-    void PhysicsSystem::setupD6Joint(entt::registry &reg, entt::entity ent)
+    void PhysicsSystem::setupD6Joint(entt::registry& reg, entt::entity ent)
     {
-        auto &j = reg.get<D6Joint>(ent);
-        auto *pxj = physx::PxD6JointCreate(*_physics, dummyBody, physx::PxTransform{physx::PxIdentity}, nullptr,
+        auto& j = reg.get<D6Joint>(ent);
+        auto* pxj = physx::PxD6JointCreate(*_physics, dummyBody, physx::PxTransform{physx::PxIdentity}, nullptr,
                                            physx::PxTransform{physx::PxIdentity});
 
         j.pxJoint = pxj;
@@ -92,24 +92,24 @@ namespace worlds
             return;
         }
 
-        auto &dpa = reg.get<RigidBody>(ent);
+        auto& dpa = reg.get<RigidBody>(ent);
         j.thisActor = dpa.actor;
         j.originalThisActor = dpa.actor;
         j.updateJointActors();
     }
 
-    void PhysicsSystem::destroyD6Joint(entt::registry &reg, entt::entity ent)
+    void PhysicsSystem::destroyD6Joint(entt::registry& reg, entt::entity ent)
     {
-        auto &j = reg.get<D6Joint>(ent);
+        auto& j = reg.get<D6Joint>(ent);
         if (j.pxJoint)
         {
             j.pxJoint->release();
         }
     }
 
-    void PhysicsSystem::setupFixedJoint(entt::registry &reg, entt::entity ent)
+    void PhysicsSystem::setupFixedJoint(entt::registry& reg, entt::entity ent)
     {
-        auto &j = reg.get<FixedJoint>(ent);
+        auto& j = reg.get<FixedJoint>(ent);
 
         if (!reg.has<RigidBody>(ent))
         {
@@ -117,7 +117,7 @@ namespace worlds
             return;
         }
 
-        auto &dpa = reg.get<RigidBody>(ent);
+        auto& dpa = reg.get<RigidBody>(ent);
         j.pxJoint = physx::PxFixedJointCreate(*_physics, dpa.actor, physx::PxTransform{physx::PxIdentity}, nullptr,
                                               physx::PxTransform{physx::PxIdentity});
         j.pxJoint->setInvMassScale0(1.0f);
@@ -125,21 +125,21 @@ namespace worlds
         j.thisActor = dpa.actor;
     }
 
-    void PhysicsSystem::destroyFixedJoint(entt::registry &reg, entt::entity ent)
+    void PhysicsSystem::destroyFixedJoint(entt::registry& reg, entt::entity ent)
     {
-        auto &j = reg.get<FixedJoint>(ent);
+        auto& j = reg.get<FixedJoint>(ent);
         if (j.pxJoint)
         {
             j.pxJoint->release();
         }
     }
 
-    robin_hood::unordered_map<AssetID, physx::PxTriangleMesh *> physicsTriMesh;
+    robin_hood::unordered_map<AssetID, physx::PxTriangleMesh*> physicsTriMesh;
 
-    template <typename T> void PhysicsSystem::updatePhysicsShapes(T &pa, glm::vec3 scale)
+    template <typename T> void PhysicsSystem::updatePhysicsShapes(T& pa, glm::vec3 scale)
     {
         uint32_t nShapes = pa.actor->getNbShapes();
-        physx::PxShape **buf = (physx::PxShape **)std::malloc(nShapes * sizeof(physx::PxShape *));
+        physx::PxShape** buf = (physx::PxShape**)std::malloc(nShapes * sizeof(physx::PxShape*));
         pa.actor->getShapes(buf, nShapes);
 
         for (uint32_t i = 0; i < nShapes; i++)
@@ -152,10 +152,10 @@ namespace worlds
 
         std::free(buf);
 
-        for (PhysicsShape &ps : pa.physicsShapes)
+        for (PhysicsShape& ps : pa.physicsShapes)
         {
-            physx::PxShape *shape;
-            physx::PxMaterial *mat = ps.material ? ps.material : _defaultMaterial;
+            physx::PxShape* shape;
+            physx::PxMaterial* mat = ps.material ? ps.material : _defaultMaterial;
 
             switch (ps.type)
             {
@@ -180,7 +180,7 @@ namespace worlds
                 }
                 if (!physicsTriMesh.contains(ps.mesh.mesh))
                 {
-                    const LoadedMesh &lm = MeshManager::loadOrGet(ps.mesh.mesh);
+                    const LoadedMesh& lm = MeshManager::loadOrGet(ps.mesh.mesh);
 
                     std::vector<physx::PxVec3> points;
                     points.resize(lm.vertices.size());
@@ -200,7 +200,7 @@ namespace worlds
                     meshDesc.triangles.data = lm.indices.data();
                     meshDesc.triangles.stride = sizeof(uint32_t) * 3;
 
-                    physx::PxTriangleMesh *triMesh =
+                    physx::PxTriangleMesh* triMesh =
                         _cooking->createTriangleMesh(meshDesc, _physics->getPhysicsInsertionCallback());
                     physicsTriMesh.insert({ps.mesh.mesh, triMesh});
                 }
@@ -217,7 +217,7 @@ namespace worlds
                     continue;
                 }
 
-                const LoadedMesh &lm = MeshManager::loadOrGet(ps.convexMesh.mesh);
+                const LoadedMesh& lm = MeshManager::loadOrGet(ps.convexMesh.mesh);
 
                 std::vector<physx::PxVec3> points;
                 points.resize(lm.vertices.size());
@@ -244,7 +244,7 @@ namespace worlds
                 }
 
                 physx::PxDefaultMemoryInputData input(buf.getData(), buf.getSize());
-                physx::PxConvexMesh *convexMesh = _physics->createConvexMesh(input);
+                physx::PxConvexMesh* convexMesh = _physics->createConvexMesh(input);
 
                 shape = _physics->createShape(physx::PxConvexMeshGeometry(convexMesh), *mat);
             }
@@ -264,14 +264,14 @@ namespace worlds
         }
     }
 
-    template void PhysicsSystem::updatePhysicsShapes<PhysicsActor>(PhysicsActor &pa, glm::vec3 scale);
-    template void PhysicsSystem::updatePhysicsShapes<RigidBody>(RigidBody &pa, glm::vec3 scale);
+    template void PhysicsSystem::updatePhysicsShapes<PhysicsActor>(PhysicsActor& pa, glm::vec3 scale);
+    template void PhysicsSystem::updatePhysicsShapes<RigidBody>(RigidBody& pa, glm::vec3 scale);
 
     uint32_t physicsLayerMask[32] = {0xFFFFFFFF, 0xFFFFFFFD, 0x00000000, 0xFFFFFFFF};
 
     static physx::PxFilterFlags filterShader(physx::PxFilterObjectAttributes attributes1, physx::PxFilterData data1,
                                              physx::PxFilterObjectAttributes attributes2, physx::PxFilterData data2,
-                                             physx::PxPairFlags &pairFlags, const void *, physx::PxU32)
+                                             physx::PxPairFlags& pairFlags, const void*, physx::PxU32)
     {
 
         int layer1 = slib::Intrinsics::bitScanForward(data1.word0);
@@ -292,28 +292,28 @@ namespace worlds
         return physx::PxFilterFlags();
     }
 
-    DotNetScriptEngine *physScriptEngine;
+    DotNetScriptEngine* physScriptEngine;
 
     class SimulationCallback : public PxSimulationEventCallback
     {
       public:
-        SimulationCallback(entt::registry &reg) : reg{reg}
+        SimulationCallback(entt::registry& reg) : reg{reg}
         {
         }
 
-        void onConstraintBreak(PxConstraintInfo *constraints, uint32_t count) override
+        void onConstraintBreak(PxConstraintInfo* constraints, uint32_t count) override
         {
         }
 
-        void onWake(PxActor **actors, uint32_t count) override
+        void onWake(PxActor** actors, uint32_t count) override
         {
         }
 
-        void onSleep(PxActor **actors, uint32_t count) override
+        void onSleep(PxActor** actors, uint32_t count) override
         {
         }
 
-        void onContact(const PxContactPairHeader &pairHeader, const PxContactPair *pairs, uint32_t nbPairs) override
+        void onContact(const PxContactPairHeader& pairHeader, const PxContactPair* pairs, uint32_t nbPairs) override
         {
             entt::entity a = ptrToEnt(pairHeader.actors[0]->userData);
             entt::entity b = ptrToEnt(pairHeader.actors[1]->userData);
@@ -345,7 +345,7 @@ namespace worlds
 
             for (uint32_t i = 0; i < nbPairs; i++)
             {
-                auto &pair = pairs[i];
+                auto& pair = pairs[i];
                 PxU32 nbContacts = pair.extractContacts(contacts, contactBufSize);
 
                 for (uint32_t j = 0; j < nbContacts; j++)
@@ -391,28 +391,28 @@ namespace worlds
             }
         }
 
-        void onTrigger(PxTriggerPair *pairs, uint32_t count) override
+        void onTrigger(PxTriggerPair* pairs, uint32_t count) override
         {
         }
 
-        void onAdvance(const PxRigidBody *const *bodyBuffer, const PxTransform *poseBuffer, uint32_t count) override
+        void onAdvance(const PxRigidBody* const* bodyBuffer, const PxTransform* poseBuffer, uint32_t count) override
         {
         }
 
       private:
-        entt::registry &reg;
+        entt::registry& reg;
     };
 
     class ContactModificationCallback : public PxContactModifyCallback
     {
       public:
-        void onContactModify(PxContactModifyPair *const pairs, uint32_t count) override
+        void onContactModify(PxContactModifyPair* const pairs, uint32_t count) override
         {
             if (callback)
                 callback(callbackCtx, pairs, count);
         }
 
-        void setCallback(void *ctx, ContactModCallback callback)
+        void setCallback(void* ctx, ContactModCallback callback)
         {
             this->callback = callback;
             callbackCtx = ctx;
@@ -420,19 +420,19 @@ namespace worlds
 
       private:
         ContactModCallback callback;
-        void *callbackCtx;
+        void* callbackCtx;
     };
 
-    SimulationCallback *simCallback;
-    ContactModificationCallback *contactModCallback;
+    SimulationCallback* simCallback;
+    ContactModificationCallback* contactModCallback;
 
-    PhysicsSystem::PhysicsSystem(const EngineInterfaces &interfaces, entt::registry &reg) : reg(reg)
+    PhysicsSystem::PhysicsSystem(const EngineInterfaces& interfaces, entt::registry& reg) : reg(reg)
     {
         errorCallback = new PhysErrCallback;
         foundation = PxCreateFoundation(PX_PHYSICS_VERSION, allocator, *errorCallback);
         physScriptEngine = interfaces.scriptEngine;
 
-        physx::PxPvd *pvd = nullptr;
+        physx::PxPvd* pvd = nullptr;
 #if ENABLE_PVD
         g_pvd = PxCreatePvd(*g_physFoundation);
         // g_pvdTransport = physx::PxDefaultPvdSocketTransportCreate("127.0.0.1", 5425, 10);
@@ -484,14 +484,14 @@ namespace worlds
         reg.on_destroy<FixedJoint>().connect<&PhysicsSystem::destroyFixedJoint>(this);
 
         g_console->registerCommand(
-            [&](void *, const char *) {
+            [&](void*, const char*) {
                 float currentScale = _scene->getVisualizationParameter(physx::PxVisualizationParameter::eSCALE);
 
                 _scene->setVisualizationParameter(physx::PxVisualizationParameter::eSCALE, 1.0f - currentScale);
             },
             "phys_toggleVis", "Toggles all physics visualisations.", nullptr);
         g_console->registerCommand(
-            [&](void *, const char *) {
+            [&](void*, const char*) {
                 float currentVal =
                     _scene->getVisualizationParameter(physx::PxVisualizationParameter::eCOLLISION_SHAPES);
 
@@ -514,17 +514,17 @@ namespace worlds
 
     void PhysicsSystem::resetMeshCache()
     {
-        for (auto &kv : physicsTriMesh)
+        for (auto& kv : physicsTriMesh)
         {
             kv.second->release();
         }
         physicsTriMesh.clear();
 
         reg.view<PhysicsActor, Transform>().each(
-            [this](PhysicsActor &pa, Transform &t) { updatePhysicsShapes(pa, t.scale); });
+            [this](PhysicsActor& pa, Transform& t) { updatePhysicsShapes(pa, t.scale); });
 
         reg.view<RigidBody, Transform>().each(
-            [this](RigidBody &pa, Transform &t) { updatePhysicsShapes(pa, t.scale); });
+            [this](RigidBody& pa, Transform& t) { updatePhysicsShapes(pa, t.scale); });
     }
 
     PhysicsSystem::~PhysicsSystem()
@@ -539,7 +539,7 @@ namespace worlds
         foundation->release();
     }
 
-    void PhysicsSystem::setContactModCallback(void *ctx, ContactModCallback callback)
+    void PhysicsSystem::setContactModCallback(void* ctx, ContactModCallback callback)
     {
         contactModCallback->setCallback(ctx, callback);
     }
@@ -548,15 +548,15 @@ namespace worlds
     {
       public:
         uint32_t excludeLayerMask;
-        PxQueryHitType::Enum postFilter(const PxFilterData &, const PxQueryHit &) override
+        PxQueryHitType::Enum postFilter(const PxFilterData&, const PxQueryHit&) override
         {
             return PxQueryHitType::eBLOCK;
         }
 
-        PxQueryHitType::Enum preFilter(const PxFilterData &filterData, const PxShape *shape, const PxRigidActor *actor,
-                                       PxHitFlags &queryFlags) override
+        PxQueryHitType::Enum preFilter(const PxFilterData& filterData, const PxShape* shape, const PxRigidActor* actor,
+                                       PxHitFlags& queryFlags) override
         {
-            const auto &shapeFilterData = shape->getQueryFilterData();
+            const auto& shapeFilterData = shape->getQueryFilterData();
 
             if ((shapeFilterData.word0 & excludeLayerMask) != 0)
             {
@@ -567,7 +567,7 @@ namespace worlds
         }
     };
 
-    bool PhysicsSystem::raycast(glm::vec3 position, glm::vec3 direction, float maxDist, RaycastHitInfo *hitInfo,
+    bool PhysicsSystem::raycast(glm::vec3 position, glm::vec3 direction, float maxDist, RaycastHitInfo* hitInfo,
                                 uint32_t excludeLayerMask)
     {
         physx::PxRaycastBuffer hitBuf;
@@ -599,9 +599,9 @@ namespace worlds
     }
 
     uint32_t PhysicsSystem::overlapSphereMultiple(glm::vec3 origin, float radius, uint32_t maxTouchCount,
-                                                  entt::entity *hitEntityBuffer, uint32_t excludeLayerMask)
+                                                  entt::entity* hitEntityBuffer, uint32_t excludeLayerMask)
     {
-        physx::PxOverlapHit *hitMem = (physx::PxOverlapHit *)alloca(maxTouchCount * sizeof(physx::PxOverlapHit));
+        physx::PxOverlapHit* hitMem = (physx::PxOverlapHit*)alloca(maxTouchCount * sizeof(physx::PxOverlapHit));
         physx::PxSphereGeometry sphereGeo{radius};
         physx::PxOverlapBuffer hit{hitMem, maxTouchCount};
         physx::PxQueryFilterData filterData;
@@ -620,7 +620,7 @@ namespace worlds
 
         for (uint32_t i = 0; i < hit.getNbTouches(); i++)
         {
-            const physx::PxOverlapHit &overlap = hit.getTouch(i);
+            const physx::PxOverlapHit& overlap = hit.getTouch(i);
             hitEntityBuffer[i] = ptrToEnt(overlap.actor->userData);
         }
 
@@ -628,7 +628,7 @@ namespace worlds
     }
 
     bool PhysicsSystem::sweepSphere(glm::vec3 origin, float radius, glm::vec3 direction, float distance,
-                                    RaycastHitInfo *hitInfo, uint32_t excludeLayerMask)
+                                    RaycastHitInfo* hitInfo, uint32_t excludeLayerMask)
     {
         physx::PxSweepBuffer hitBuf;
         physx::PxSphereGeometry sphere{radius};

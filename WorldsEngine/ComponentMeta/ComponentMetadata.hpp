@@ -12,14 +12,14 @@ namespace worlds
     class ComponentMetadataManager
     {
       public:
-        static std::unordered_map<ENTT_ID_TYPE, ComponentEditor *> metadata;
-        static std::vector<ComponentEditor *> sorted;
-        static std::unordered_map<ENTT_ID_TYPE, ComponentEditor *> bySerializedID;
-        static std::unordered_map<std::string, ComponentEditor *> byName;
+        static std::unordered_map<ENTT_ID_TYPE, ComponentEditor*> metadata;
+        static std::vector<ComponentEditor*> sorted;
+        static std::unordered_map<ENTT_ID_TYPE, ComponentEditor*> bySerializedID;
+        static std::unordered_map<std::string, ComponentEditor*> byName;
 
-        static void setupLookup(EngineInterfaces *interfaces)
+        static void setupLookup(EngineInterfaces* interfaces)
         {
-            ComponentEditorLink *curr = ComponentEditor::first;
+            ComponentEditorLink* curr = ComponentEditor::first;
 
             while (curr)
             {
@@ -32,7 +32,7 @@ namespace worlds
             }
 
             std::sort(sorted.begin(), sorted.end(),
-                      [](ComponentEditor *a, ComponentEditor *b) { return a->getSortID() < b->getSortID(); });
+                      [](ComponentEditor* a, ComponentEditor* b) { return a->getSortID() < b->getSortID(); });
         }
     };
 }

@@ -15,12 +15,12 @@ struct Transform
     glm::quat rotation;
     glm::vec3 scale;
 
-    Transform transformBy(const Transform &other) const
+    Transform transformBy(const Transform& other) const
     {
         return Transform{other.position + (other.rotation * position), other.rotation * rotation};
     }
 
-    Transform transformByInverse(const Transform &other) const
+    Transform transformByInverse(const Transform& other) const
     {
         return Transform{glm::inverse(other.rotation) * (position - other.position),
                          glm::inverse(other.rotation) * rotation};

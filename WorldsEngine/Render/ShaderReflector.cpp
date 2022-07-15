@@ -43,7 +43,7 @@ namespace worlds
         }
     }
 
-    R2::VK::DescriptorSetLayout *ShaderReflector::createDescriptorSetLayout(VK::Core *core, uint32_t setIndex)
+    R2::VK::DescriptorSetLayout* ShaderReflector::createDescriptorSetLayout(VK::Core* core, uint32_t setIndex)
     {
         bool useBindFlags = false;
 
@@ -97,9 +97,9 @@ namespace worlds
         return dslb.Build();
     }
 
-    uint32_t ShaderReflector::getBindingIndex(const char *name)
+    uint32_t ShaderReflector::getBindingIndex(const char* name)
     {
-        for (SpvReflectDescriptorBinding *binding : reflectBindings)
+        for (SpvReflectDescriptorBinding* binding : reflectBindings)
         {
             if (strcmp(binding->name, name) == 0)
             {
@@ -110,9 +110,9 @@ namespace worlds
         return ~0u;
     }
 
-    void ShaderReflector::bindBuffer(R2::VK::DescriptorSetUpdater &dsu, const char *bindPoint, R2::VK::Buffer *buffer)
+    void ShaderReflector::bindBuffer(R2::VK::DescriptorSetUpdater& dsu, const char* bindPoint, R2::VK::Buffer* buffer)
     {
-        for (SpvReflectDescriptorBinding *binding : reflectBindings)
+        for (SpvReflectDescriptorBinding* binding : reflectBindings)
         {
             if (strcmp(binding->name, bindPoint) == 0)
             {
@@ -132,12 +132,12 @@ namespace worlds
         }
 
         uint32_t numInputVariables;
-        std::vector<SpvReflectInterfaceVariable *> inVars;
+        std::vector<SpvReflectInterfaceVariable*> inVars;
         spvReflectEnumerateInputVariables(&mod, &numInputVariables, nullptr);
         inVars.resize(numInputVariables);
         spvReflectEnumerateInputVariables(&mod, &numInputVariables, inVars.data());
 
-        for (SpvReflectInterfaceVariable *iv : inVars)
+        for (SpvReflectInterfaceVariable* iv : inVars)
         {
             if (strcmp(iv->name, "inPosition") == 0)
             {

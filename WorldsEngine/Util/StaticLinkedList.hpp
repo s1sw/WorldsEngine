@@ -11,19 +11,19 @@ namespace worlds
             Node() : ptr{nullptr}, next{nullptr}
             {
             }
-            T *ptr;
-            Node *next;
+            T* ptr;
+            Node* next;
         };
 
       public:
-        void add(T *val)
+        void add(T* val)
         {
-            auto *newNode = new Node;
+            auto* newNode = new Node;
             newNode->ptr = val;
             newNode->next = first;
             first = newNode;
         }
 
-        Node *first = nullptr;
+        Node* first = nullptr;
     };
 }

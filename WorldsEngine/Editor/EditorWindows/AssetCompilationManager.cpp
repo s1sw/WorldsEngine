@@ -9,10 +9,10 @@
 
 namespace worlds
 {
-    void AssetCompilationManager::draw(entt::registry &)
+    void AssetCompilationManager::draw(entt::registry&)
     {
-        ProjectAssets &assets = editor->currentProject().assets();
-        ProjectAssetCompiler &assetCompiler = editor->currentProject().assetCompiler();
+        ProjectAssets& assets = editor->currentProject().assets();
+        ProjectAssetCompiler& assetCompiler = editor->currentProject().assetCompiler();
 
         if (ImGui::Begin("Asset Compilation Manager", &active))
         {
@@ -37,13 +37,13 @@ namespace worlds
             {
                 if (assetCompiler.currentOperation())
                 {
-                    AssetCompileOperation *currentOp = assetCompiler.currentOperation();
+                    AssetCompileOperation* currentOp = assetCompiler.currentOperation();
                     ImGui::Text("Compiling %s", AssetDB::idToPath(currentOp->outputId).c_str());
                     ImGui::ProgressBar(currentOp->progress);
                 }
             }
 
-            for (auto &file : assets.assetFiles)
+            for (auto& file : assets.assetFiles)
             {
                 if (!file.isCompiled)
                     continue;

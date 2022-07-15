@@ -17,12 +17,12 @@
 
 namespace worlds
 {
-    ImFont *boldFont;
-    const char8_t *ICONSTR_MODEL = ICON_FA_SHAPES u8" ";
-    const char8_t *ICONSTR_SCENE = ICON_FA_MAP u8" ";
-    const char8_t *ICONSTR_TEXTURE = ICON_FA_IMAGE u8" ";
+    ImFont* boldFont;
+    const char8_t* ICONSTR_MODEL = ICON_FA_SHAPES u8" ";
+    const char8_t* ICONSTR_SCENE = ICON_FA_MAP u8" ";
+    const char8_t* ICONSTR_TEXTURE = ICON_FA_IMAGE u8" ";
 
-    const robin_hood::unordered_map<std::string, const char8_t *> extensionIcons = {
+    const robin_hood::unordered_map<std::string, const char8_t*> extensionIcons = {
         {".wscn", ICONSTR_SCENE},  {".wtexj", ICONSTR_TEXTURE}, {".wmdlj", ICONSTR_MODEL},
 
         {".wmdl", ICONSTR_MODEL},  {".wtex", ICONSTR_TEXTURE},
@@ -31,11 +31,11 @@ namespace worlds
 
         {".fbx", ICONSTR_MODEL},   {".obj", ICONSTR_MODEL},     {".glb", ICONSTR_MODEL}};
 
-    const char *getIcon(const std::string &extension)
+    const char* getIcon(const std::string& extension)
     {
         if (extensionIcons.contains(extension))
         {
-            return reinterpret_cast<const char *>(extensionIcons.at(extension));
+            return reinterpret_cast<const char*>(extensionIcons.at(extension));
         }
 
         return "      ";
@@ -54,15 +54,15 @@ namespace worlds
             }
         }
 
-        char **files = PHYSFS_enumerateFiles(path.c_str());
+        char** files = PHYSFS_enumerateFiles(path.c_str());
 
-        std::vector<char *> fileVec;
-        for (char **currFile = files; *currFile != nullptr; currFile++)
+        std::vector<char*> fileVec;
+        for (char** currFile = files; *currFile != nullptr; currFile++)
         {
             fileVec.push_back(*currFile);
         }
 
-        std::sort(fileVec.begin(), fileVec.end(), [&](const char *pathA, const char *pathB) {
+        std::sort(fileVec.begin(), fileVec.end(), [&](const char* pathA, const char* pathB) {
             std::string absPathA = path.empty() ? pathA : (path + "/" + pathA);
             PHYSFS_Stat statA;
             PHYSFS_stat(absPathA.c_str(), &statA);
@@ -95,11 +95,11 @@ namespace worlds
             PHYSFS_stat(absPath.c_str(), &stat);
             std::string extension = std::filesystem::path(currFile).extension().string();
 
-            const char *icon = "  ";
+            const char* icon = "  ";
 
             if (stat.filetype == PHYSFS_FILETYPE_DIRECTORY)
             {
-                icon = (const char *)(ICON_FA_FOLDER u8" ");
+                icon = (const char*)(ICON_FA_FOLDER u8" ");
             }
             else
                 icon = getIcon(extension);
@@ -135,7 +135,7 @@ namespace worlds
         return ImGui::GetMainViewport()->Pos + (halfWinSize - halfPopupSize);
     }
 
-    void saveFileModal(const char *title, std::function<void(const char *)> saveCallback)
+    void saveFileModal(const char* title, std::function<void(const char*)> saveCallback)
     {
         ImVec2 popupSize(windowSize.x - 50.0f, windowSize.y - 50.0f);
         ImGui::SetNextWindowPos(getPopupPosition(popupSize));
@@ -143,9 +143,8 @@ namespace worlds
 
         if (ImGui::BeginPopupModal(title, nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove))
         {
-            std::string *currentFile = (std::string *)ImGui::GetStateStorage()->GetVoidPtr(ImGui::GetID("file"));
-            std::string *currentDirectory =
-                (std::string *)ImGui::GetStateStorage()->GetVoidPtr(ImGui::GetID("savedir"));
+            std::string* currentFile = (std::string*)ImGui::GetStateStorage()->GetVoidPtr(ImGui::GetID("file"));
+            std::string* currentDirectory = (std::string*)ImGui::GetStateStorage()->GetVoidPtr(ImGui::GetID("savedir"));
 
             if (currentFile == nullptr)
             {
@@ -209,14 +208,14 @@ namespace worlds
         }
     }
 
-    void openFileModal(const char *title, std::function<void(const char *)> openCallback, const char **fileExtensions,
-                       int fileExtensionCount, const char *startingDir)
+    void openFileModal(const char* title, std::function<void(const char*)> openCallback, const char** fileExtensions,
+                       int fileExtensionCount, const char* startingDir)
     {
         openFileModalOffset(title, openCallback, "", fileExtensions, fileExtensionCount, startingDir);
     }
 
-    void openFileModalOffset(const char *title, std::function<void(const char *)> openCallback, const char *rootOffset,
-                             const char **fileExtensions, int fileExtensionCount, const char *startingDir)
+    void openFileModalOffset(const char* title, std::function<void(const char*)> openCallback, const char* rootOffset,
+                             const char** fileExtensions, int fileExtensionCount, const char* startingDir)
     {
         ImVec2 popupSize(windowSize.x - 50.0f, windowSize.y - 50.0f);
         ImGui::SetNextWindowPos(getPopupPosition(popupSize));
@@ -224,9 +223,8 @@ namespace worlds
 
         if (ImGui::BeginPopupModal(title, nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove))
         {
-            std::string *fullFilePath = (std::string *)ImGui::GetStateStorage()->GetVoidPtr(ImGui::GetID("savepath"));
-            std::string *currentDirectory =
-                (std::string *)ImGui::GetStateStorage()->GetVoidPtr(ImGui::GetID("savedir"));
+            std::string* fullFilePath = (std::string*)ImGui::GetStateStorage()->GetVoidPtr(ImGui::GetID("savepath"));
+            std::string* currentDirectory = (std::string*)ImGui::GetStateStorage()->GetVoidPtr(ImGui::GetID("savedir"));
 
             if (fullFilePath == nullptr)
             {
@@ -246,7 +244,7 @@ namespace worlds
 
             ImGui::BeginChild("Stuffs", ImVec2(ImGui::GetWindowWidth() - 17.0f, ImGui::GetWindowHeight() - 90.0f),
                               true);
-            char **files = PHYSFS_enumerateFiles((std::string(rootOffset) + *currentDirectory).c_str());
+            char** files = PHYSFS_enumerateFiles((std::string(rootOffset) + *currentDirectory).c_str());
 
             std::string titleDoesntExist = "File Doesn't Exist##";
             titleDoesntExist += title;
@@ -261,13 +259,13 @@ namespace worlds
                 }
             }
 
-            std::vector<char *> fileVec;
-            for (char **currFile = files; *currFile != nullptr; currFile++)
+            std::vector<char*> fileVec;
+            for (char** currFile = files; *currFile != nullptr; currFile++)
             {
                 fileVec.push_back(*currFile);
             }
 
-            std::sort(fileVec.begin(), fileVec.end(), [&](const char *pathA, const char *pathB) {
+            std::sort(fileVec.begin(), fileVec.end(), [&](const char* pathA, const char* pathB) {
                 std::string absPathA = currentDirectory->empty() ? pathA : (*currentDirectory + "/" + pathA);
                 PHYSFS_Stat statA;
                 PHYSFS_stat(absPathA.c_str(), &statA);
@@ -303,11 +301,11 @@ namespace worlds
                 if (!hasExtension && stat.filetype == PHYSFS_FILETYPE_REGULAR)
                     continue;
 
-                const char *icon = "  ";
+                const char* icon = "  ";
 
                 if (stat.filetype == PHYSFS_FILETYPE_DIRECTORY)
                 {
-                    icon = (const char *)(ICON_FA_FOLDER u8" ");
+                    icon = (const char*)(ICON_FA_FOLDER u8" ");
                 }
                 else
                     icon = getIcon(extension);
@@ -389,7 +387,7 @@ namespace worlds
         }
     }
 
-    void openFileFullFSModal(const char *title, std::function<void(const char *)> openCallback)
+    void openFileFullFSModal(const char* title, std::function<void(const char*)> openCallback)
     {
         ImVec2 popupSize(windowSize.x - 50.0f, windowSize.y - 50.0f);
         ImGui::SetNextWindowPos(getPopupPosition(popupSize));
@@ -397,9 +395,8 @@ namespace worlds
 
         if (ImGui::BeginPopupModal(title, nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove))
         {
-            std::string *fullFilePath = (std::string *)ImGui::GetStateStorage()->GetVoidPtr(ImGui::GetID("savepath"));
-            std::string *currentDirectory =
-                (std::string *)ImGui::GetStateStorage()->GetVoidPtr(ImGui::GetID("savedir"));
+            std::string* fullFilePath = (std::string*)ImGui::GetStateStorage()->GetVoidPtr(ImGui::GetID("savepath"));
+            std::string* currentDirectory = (std::string*)ImGui::GetStateStorage()->GetVoidPtr(ImGui::GetID("savedir"));
 
             if (fullFilePath == nullptr)
             {
@@ -445,14 +442,14 @@ namespace worlds
                     std::vector<std::filesystem::directory_entry> fileVec;
                     std::filesystem::path currentPath{*currentDirectory};
 
-                    for (auto &entry : std::filesystem::directory_iterator{currentPath})
+                    for (auto& entry : std::filesystem::directory_iterator{currentPath})
                     {
                         fileVec.push_back(entry);
                     }
 
                     std::sort(fileVec.begin(), fileVec.end(),
-                              [&](const std::filesystem::directory_entry &entryA,
-                                  const std::filesystem::directory_entry &entryB) {
+                              [&](const std::filesystem::directory_entry& entryA,
+                                  const std::filesystem::directory_entry& entryB) {
                                   if (entryB.is_directory() && !entryA.is_directory())
                                       return false;
                                   else if (entryA.is_directory() && !entryB.is_directory())
@@ -468,7 +465,7 @@ namespace worlds
                                       return entryA.path() < entryB.path();
                               });
 
-                    for (auto &currFile : fileVec)
+                    for (auto& currFile : fileVec)
                     {
                         std::string absPath = currFile.path().string();
                         std::string extension = currFile.path().extension().string();
@@ -479,11 +476,11 @@ namespace worlds
                             continue;
 #endif
 
-                        const char *icon = "  ";
+                        const char* icon = "  ";
 
                         if (currFile.is_directory())
                         {
-                            icon = (const char *)(ICON_FA_FOLDER u8" ");
+                            icon = (const char*)(ICON_FA_FOLDER u8" ");
                         }
                         else
                             icon = getIcon(extension);
@@ -527,8 +524,8 @@ namespace worlds
             {
 #ifdef _WIN32
                 slib::Win32Util::enumerateDriveLetters(
-                    [](char letter, void *dirPtr) {
-                        std::string *currentDirectory = (std::string *)dirPtr;
+                    [](char letter, void* dirPtr) {
+                        std::string* currentDirectory = (std::string*)dirPtr;
 
                         ImGui::Text("%c", letter);
 
@@ -581,8 +578,8 @@ namespace worlds
         }
     }
 
-    void openFileModal(const char *title, std::function<void(const char *)> openCallback, const char *fileExtension,
-                       const char *startingDir)
+    void openFileModal(const char* title, std::function<void(const char*)> openCallback, const char* fileExtension,
+                       const char* startingDir)
     {
         int extCount = fileExtension != nullptr;
         openFileModal(title, openCallback, &fileExtension, extCount, startingDir);
@@ -590,22 +587,22 @@ namespace worlds
 
     struct MessageBox
     {
-        const char *title;
-        const char *desc;
+        const char* title;
+        const char* desc;
         std::function<void(bool)> callback;
         MessageBoxType type;
         bool opened = false;
 
         void destroy()
         {
-            free((void *)title);
-            free((void *)desc);
+            free((void*)title);
+            free((void*)desc);
         }
     };
 
     std::vector<MessageBox> messageBoxes;
 
-    void messageBoxModal(const char *title, const char *desc, std::function<void(bool)> callback, MessageBoxType type)
+    void messageBoxModal(const char* title, const char* desc, std::function<void(bool)> callback, MessageBoxType type)
     {
         MessageBox mbox{.title = strdup(title), .desc = strdup(desc), .callback = callback, .type = type};
 
@@ -616,7 +613,7 @@ namespace worlds
     {
         if (messageBoxes.size() == 0)
             return;
-        MessageBox &mbox = messageBoxes.back();
+        MessageBox& mbox = messageBoxes.back();
 
         ImVec2 popupSize(500.0f, 150.0f);
         ImVec2 popupCorner = (ImVec2(windowSize) * 0.5f) - (popupSize * 0.5f);
@@ -697,8 +694,8 @@ namespace worlds
 
     ImColor getNotificationBorderColor(NotificationType type)
     {
-        ImGuiStyle &style = ImGui::GetStyle();
-        ImVec4 *colors = style.Colors;
+        ImGuiStyle& style = ImGui::GetStyle();
+        ImVec4* colors = style.Colors;
         switch (type)
         {
         default:
@@ -718,19 +715,19 @@ namespace worlds
 
     void drawPopupNotifications()
     {
-        ImGuiViewport *vp = ImGui::GetMainViewport();
-        ImDrawList *drawList = ImGui::GetForegroundDrawList();
+        ImGuiViewport* vp = ImGui::GetMainViewport();
+        ImDrawList* drawList = ImGui::GetForegroundDrawList();
 
         ImVec2 popupSize(300, 45);
 
         ImVec2 popupCorner = vp->Pos + (vp->Size) - popupSize - ImVec2(15, 15);
-        ImGuiStyle &style = ImGui::GetStyle();
+        ImGuiStyle& style = ImGui::GetStyle();
         const ImColor popupBg = style.Colors[ImGuiCol_WindowBg];
         const float popupDuration = 5.0f;
 
         for (auto it = popupNotifications.rbegin(); it != popupNotifications.rend(); it++)
         {
-            PopupNotification &notification = *it;
+            PopupNotification& notification = *it;
             ImVec2 thisPopupSize = popupSize;
             ImVec2 textSize = ImGui::CalcTextSize(notification.text.c_str());
             thisPopupSize.x = glm::max(textSize.x, thisPopupSize.x);
@@ -761,13 +758,13 @@ namespace worlds
         }
 
         popupNotifications.erase(std::remove_if(popupNotifications.begin(), popupNotifications.end(),
-                                                [popupDuration](PopupNotification &notification) {
+                                                [popupDuration](PopupNotification& notification) {
                                                     return notification.shownFor > popupDuration;
                                                 }),
                                  popupNotifications.end());
     }
 
-    bool selectAssetPopup(const char *title, AssetID &id, bool open, bool source)
+    bool selectAssetPopup(const char* title, AssetID& id, bool open, bool source)
     {
         static std::string path;
         bool changed = false;
@@ -777,7 +774,7 @@ namespace worlds
 
         openFileModalOffset(
             title,
-            [&](const char *path) {
+            [&](const char* path) {
                 id = AssetDB::pathToId(path);
                 changed = true;
             },
@@ -795,7 +792,7 @@ namespace worlds
         return changed;
     }
 
-    bool selectRawAssetPopup(const char *title, AssetID &id, bool open)
+    bool selectRawAssetPopup(const char* title, AssetID& id, bool open)
     {
         static std::string path;
         bool changed = false;
@@ -808,7 +805,7 @@ namespace worlds
 
         openFileModalOffset(
             title,
-            [&](const char *path) {
+            [&](const char* path) {
                 id = AssetDB::pathToId(path);
                 changed = true;
             },
@@ -827,7 +824,7 @@ namespace worlds
     }
 
     // Based on code from the ImGui demo
-    void tooltipHover(const char *desc)
+    void tooltipHover(const char* desc)
     {
         if (ImGui::IsItemHovered())
         {
@@ -844,11 +841,11 @@ namespace worlds
         ImGui::PushFont(boldFont);
     }
 
-    void selectSceneEntity(const char *title, entt::registry &reg, std::function<void(entt::entity)> callback)
+    void selectSceneEntity(const char* title, entt::registry& reg, std::function<void(entt::entity)> callback)
     {
         if (ImGui::BeginPopup(title))
         {
-            reg.view<NameComponent>().each([&](entt::entity ent, NameComponent &nc) {
+            reg.view<NameComponent>().each([&](entt::entity ent, NameComponent& nc) {
                 ImGui::PushID(static_cast<uint32_t>(ent));
 
                 if (ImGui::Button(nc.name.c_str()))
@@ -866,7 +863,7 @@ namespace worlds
 
     namespace EditorUI
     {
-        void centeredText(const char *text)
+        void centeredText(const char* text)
         {
             float windowWidth = ImGui::GetWindowSize().x;
             float textWidth = ImGui::CalcTextSize(text).x;

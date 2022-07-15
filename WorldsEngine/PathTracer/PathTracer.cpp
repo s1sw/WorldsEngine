@@ -40,10 +40,10 @@ namespace worlds
     struct GeomData
     {
         glm::mat4 transform;
-        const LoadedMesh &lm;
+        const LoadedMesh& lm;
     };
 
-    PathTracer::PathTracer(entt::registry &reg) : reg(reg), scene(nullptr)
+    PathTracer::PathTracer(entt::registry& reg) : reg(reg), scene(nullptr)
     {
         device = rtcNewDevice(nullptr);
     }
@@ -65,19 +65,19 @@ namespace worlds
 
         scene = rtcNewScene(device);
 
-        reg.view<WorldObject, Transform>().each([&](WorldObject &wo, Transform &t) {
+        reg.view<WorldObject, Transform>().each([&](WorldObject& wo, Transform& t) {
             RTCGeometry geom = rtcNewGeometry(device, RTC_GEOMETRY_TYPE_TRIANGLE);
             glm::mat4 tMat = t.getMatrix();
 
-            const LoadedMesh &lm = MeshManager::loadOrGet(wo.mesh);
-            GeomData *gd = new GeomData{tMat, lm};
-            rtcSetGeometryUserData(geom, (void *)gd);
+            const LoadedMesh& lm = MeshManager::loadOrGet(wo.mesh);
+            GeomData* gd = new GeomData{tMat, lm};
+            rtcSetGeometryUserData(geom, (void*)gd);
 
-            float *verts = (float *)rtcSetNewGeometryBuffer(geom, RTC_BUFFER_TYPE_VERTEX, 0, RTC_FORMAT_FLOAT3,
-                                                            3 * sizeof(float), lm.vertices.size());
+            float* verts = (float*)rtcSetNewGeometryBuffer(geom, RTC_BUFFER_TYPE_VERTEX, 0, RTC_FORMAT_FLOAT3,
+                                                           3 * sizeof(float), lm.vertices.size());
 
-            uint32_t *indices = (uint32_t *)rtcSetNewGeometryBuffer(geom, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3,
-                                                                    3 * sizeof(uint32_t), lm.indices.size() / 3);
+            uint32_t* indices = (uint32_t*)rtcSetNewGeometryBuffer(geom, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3,
+                                                                   3 * sizeof(uint32_t), lm.indices.size() / 3);
 
             for (uint32_t i = 0; i < lm.vertices.size(); i++)
             {
@@ -97,7 +97,7 @@ namespace worlds
         rtcCommitScene(scene);
     }
 
-    bool PathTracer::traceRay(glm::vec3 pos, glm::vec3 dir, RTCRayHit &rayHit)
+    bool PathTracer::traceRay(glm::vec3 pos, glm::vec3 dir, RTCRayHit& rayHit)
     {
         RTCRay ray;
         ray.org_x = pos.x;
@@ -130,7 +130,7 @@ namespace worlds
         return glm::vec3(x, r1, z);
     }
 
-    void buildCoordinateSystem(glm::vec3 normal, glm::vec3 &t, glm::vec3 &b)
+    void buildCoordinateSystem(glm::vec3 normal, glm::vec3& t, glm::vec3& b)
     {
         if (glm::abs(normal.x) > glm::abs(normal.y))
         {
@@ -154,7 +154,7 @@ namespace worlds
     std::default_random_engine generator;
     std::uniform_real_distribution<float> distribution{0.0f, 1.0f};
 
-    glm::vec3 ptrToCol(const PathTraceResult &ptr)
+    glm::vec3 ptrToCol(const PathTraceResult& ptr)
     {
         return ptr.indirect + ptr.direct;
     }
@@ -172,14 +172,14 @@ namespace worlds
 
         if (hitAnything)
         {
-            RTCHit &hit = rayHit.hit;
+            RTCHit& hit = rayHit.hit;
             RTCGeometry geom = rtcGetGeometry(scene, rayHit.hit.geomID);
-            GeomData *gd = reinterpret_cast<GeomData *>(rtcGetGeometryUserData(geom));
-            const LoadedMesh &lm = gd->lm;
+            GeomData* gd = reinterpret_cast<GeomData*>(rtcGetGeometryUserData(geom));
+            const LoadedMesh& lm = gd->lm;
 
-            const Vertex &v0 = lm.vertices[lm.indices[hit.primID * 3 + 0]];
-            const Vertex &v1 = lm.vertices[lm.indices[hit.primID * 3 + 1]];
-            const Vertex &v2 = lm.vertices[lm.indices[hit.primID * 3 + 2]];
+            const Vertex& v0 = lm.vertices[lm.indices[hit.primID * 3 + 0]];
+            const Vertex& v1 = lm.vertices[lm.indices[hit.primID * 3 + 1]];
+            const Vertex& v2 = lm.vertices[lm.indices[hit.primID * 3 + 2]];
             glm::vec3 norm = glm::normalize(v1.normal * hit.u + v2.normal * hit.v + v0.normal * (1.0f - hit.v - hit.u));
 
             glm::vec3 pos;
@@ -188,7 +188,7 @@ namespace worlds
             glm::vec3 albedo{0.8f};
 
             const float bias = 0.0005f;
-            reg.view<WorldLight, Transform>().each([&](WorldLight &wl, Transform &t) {
+            reg.view<WorldLight, Transform>().each([&](WorldLight& wl, Transform& t) {
                 if (!wl.enabled)
                     return;
                 if (wl.type == LightType::Directional)
@@ -265,15 +265,15 @@ namespace worlds
         int yMin;
         int xMax;
         int yMax;
-        Camera &cam;
-        uint8_t *outputBuffer;
+        Camera& cam;
+        uint8_t* outputBuffer;
         float imageAspectRatio;
     };
 
-    void PathTracer::traceTile(RenderTile &rt)
+    void PathTracer::traceTile(RenderTile& rt)
     {
         glm::vec3 whiteScale = 1.0f / tonemap::Uncharted2Tonemap(glm::vec3(tonemap::W));
-        Camera &cam = rt.cam;
+        Camera& cam = rt.cam;
         float exposure = g_console->getConVar("r_exposure")->getFloat();
 
         for (int x = rt.xMin; x < rt.xMax; x++)
@@ -302,14 +302,14 @@ namespace worlds
     const int TILE_SIZE = 16;
     void PathTracer::trace(Camera cam, slib::String imagePath)
     {
-        uint8_t *outputBuffer = new uint8_t[IMAGE_WIDTH * IMAGE_HEIGHT * 3];
+        uint8_t* outputBuffer = new uint8_t[IMAGE_WIDTH * IMAGE_HEIGHT * 3];
         float imageAspectRatio = (float)IMAGE_WIDTH / IMAGE_HEIGHT; // assuming width > height
 
         glm::vec3 whiteScale = 1.0f / tonemap::Uncharted2Tonemap(glm::vec3(tonemap::W));
 
         float exposure = g_console->getConVar("r_exposure")->getFloat();
 
-        JobList &jl = g_jobSys->getFreeJobList();
+        JobList& jl = g_jobSys->getFreeJobList();
         jl.begin();
         int numXTiles = ((IMAGE_WIDTH + TILE_SIZE - 1) / TILE_SIZE);
         int numYTiles = ((IMAGE_HEIGHT + TILE_SIZE - 1) / TILE_SIZE);
