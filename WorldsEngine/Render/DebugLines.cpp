@@ -1,24 +1,28 @@
 #include "DebugLines.hpp"
 #include "Core/Transform.hpp"
+#include <Util/MathsUtil.hpp>
+#include <glm/ext/scalar_constants.hpp>
 #include <glm/gtx/norm.hpp>
 #include <glm/trigonometric.hpp>
-#include <glm/ext/scalar_constants.hpp>
 #include <vector>
-#include <Util/MathsUtil.hpp>
 
-namespace worlds {
-    std::vector<DebugLine> buffers[2] = {{}, {}}; 
+namespace worlds
+{
+    std::vector<DebugLine> buffers[2] = {{}, {}};
     int currentBuffer = 0;
 
-    void drawLine(glm::vec3 p0, glm::vec3 p1, glm::vec4 color) {
+    void drawLine(glm::vec3 p0, glm::vec3 p1, glm::vec4 color)
+    {
         buffers[currentBuffer].emplace_back(p0, p1, color);
     }
 
-    void drawCircle(glm::vec3 center, float radius, glm::quat rotation, glm::vec4 color, int detail) {
+    void drawCircle(glm::vec3 center, float radius, glm::quat rotation, glm::vec4 color, int detail)
+    {
         int numPoints = detail == 0 ? 32 : detail;
         glm::vec3 prevPoint;
 
-        for (int i = 0; i < numPoints; i++) {
+        for (int i = 0; i < numPoints; i++)
+        {
             float angle = glm::pi<float>() * 2.0f * ((float)i / numPoints);
 
             float xOffset = glm::cos(angle);
@@ -26,7 +30,8 @@ namespace worlds {
 
             glm::vec3 point = center + (rotation * glm::vec3(xOffset * radius, 0.0f, yOffset * radius));
 
-            if (i != 0) {
+            if (i != 0)
+            {
                 drawLine(prevPoint, point, color);
             }
 
@@ -36,7 +41,8 @@ namespace worlds {
         drawLine(prevPoint, center + (rotation * glm::vec3(radius, 0.0f, 0.0f)), color);
     }
 
-    void drawSphere(glm::vec3 center, glm::quat rotation, float radius, glm::vec4 color) {
+    void drawSphere(glm::vec3 center, glm::quat rotation, float radius, glm::vec4 color)
+    {
         // We can't really draw a sphere with just lines, so draw two circles
         // perpendicular to eachother
 
@@ -47,12 +53,14 @@ namespace worlds {
         drawCircle(center, radius, rotation, color);
     }
 
-    void drawTransformedLine(const Transform& transform, glm::vec3 p0, glm::vec3 p1, glm::vec4 color) {
+    void drawTransformedLine(const Transform &transform, glm::vec3 p0, glm::vec3 p1, glm::vec4 color)
+    {
         drawLine(transform.transformPoint(p0), transform.transformPoint(p1), color);
     }
 
     // Draws a box shape using lines.
-    void drawBox(glm::vec3 center, glm::quat rotation, glm::vec3 halfExtents, glm::vec4 color) {
+    void drawBox(glm::vec3 center, glm::quat rotation, glm::vec3 halfExtents, glm::vec4 color)
+    {
         glm::vec3 max = halfExtents;
         glm::vec3 min = -halfExtents;
 
@@ -61,7 +69,7 @@ namespace worlds {
         //                      y
         //      _____           ^
         //     /    /|          |   ^ z
-        //max /----/ |          |  /
+        // max /----/ |          |  /
         //    |    | |          | /
         //    |    | / min      |/
         //    |----|/           ---------> x
@@ -88,18 +96,24 @@ namespace worlds {
         drawTransformedLine(overallTransform, glm::vec3(min.x, min.y, max.z), glm::vec3(min.x, min.y, min.z), color);
     }
 
-    void drawCapsule(glm::vec3 center, glm::quat rotation, float height, float radius, glm::vec4 color) {
+    void drawCapsule(glm::vec3 center, glm::quat rotation, float height, float radius, glm::vec4 color)
+    {
         drawSphere(center + rotation * glm::vec3(0.0f, height, 0.0f), rotation, radius, color);
         drawSphere(center - rotation * glm::vec3(0.0f, height, 0.0f), rotation, radius, color);
-        drawLine(center + rotation * glm::vec3(0.0f, height, radius), center + rotation * glm::vec3(0.0f, -height, radius), color);
-        drawLine(center + rotation * glm::vec3(0.0f, height, -radius), center + rotation * glm::vec3(0.0f, -height, -radius), color);
-        drawLine(center + rotation * glm::vec3(radius, height, 0.0f), center + rotation * glm::vec3(radius, -height, 0.0f), color);
-        drawLine(center + rotation * glm::vec3(-radius, height, 0.0f), center + rotation * glm::vec3(-radius, -height, 0.0f), color);
+        drawLine(center + rotation * glm::vec3(0.0f, height, radius),
+                 center + rotation * glm::vec3(0.0f, -height, radius), color);
+        drawLine(center + rotation * glm::vec3(0.0f, height, -radius),
+                 center + rotation * glm::vec3(0.0f, -height, -radius), color);
+        drawLine(center + rotation * glm::vec3(radius, height, 0.0f),
+                 center + rotation * glm::vec3(radius, -height, 0.0f), color);
+        drawLine(center + rotation * glm::vec3(-radius, height, 0.0f),
+                 center + rotation * glm::vec3(-radius, -height, 0.0f), color);
     }
 
-    const DebugLine* swapDebugLineBuffer(size_t& numLines) {
+    const DebugLine *swapDebugLineBuffer(size_t &numLines)
+    {
         numLines = buffers[currentBuffer].size();
-        const DebugLine* dbgLines = buffers[currentBuffer].data();
+        const DebugLine *dbgLines = buffers[currentBuffer].data();
 
         currentBuffer++;
 

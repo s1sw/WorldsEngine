@@ -1,22 +1,27 @@
 #pragma once
-#include <ImGui/imgui.h>
-#include <Core/IGameEventHandler.hpp>
-#include <Render/Render.hpp>
 #include <Core/AssetDB.hpp>
+#include <Core/IGameEventHandler.hpp>
+#include <ImGui/imgui.h>
+#include <Render/Render.hpp>
 
-namespace worlds {
-    class LogoWidget {
-    public:
-        LogoWidget(EngineInterfaces interfaces) {
+namespace worlds
+{
+    class LogoWidget
+    {
+      public:
+        LogoWidget(EngineInterfaces interfaces)
+        {
             auto texMan = interfaces.renderer->getUITextureManager();
             background = texMan->loadOrGet(AssetDB::pathToId("UI/Editor/Images/worlds_no_logo.png"));
         }
 
-        void draw() {
+        void draw()
+        {
             glm::vec2 logoSize{494, 174};
-            glm::vec2 screenCursorPos = (glm::vec2)ImGui::GetCursorScreenPos() + glm::vec2(ImGui::GetContentRegionAvailWidth() / 2.0f - logoSize.x / 2.0f, 0.0f);
+            glm::vec2 screenCursorPos = (glm::vec2)ImGui::GetCursorScreenPos() +
+                                        glm::vec2(ImGui::GetContentRegionAvailWidth() / 2.0f - logoSize.x / 2.0f, 0.0f);
             auto corner = screenCursorPos + logoSize;
-            auto* drawList = ImGui::GetWindowDrawList();
+            auto *drawList = ImGui::GetWindowDrawList();
 
             drawList->AddImage(background, screenCursorPos, corner);
 
@@ -38,7 +43,8 @@ namespace worlds {
             drawList->AddCircleFilled(outerPos, 4.0f, ImColor(1.0f, 1.0f, 1.0f), 32);
             ImGui::Dummy(logoSize);
         }
-    private:
+
+      private:
         ImTextureID background;
     };
 }

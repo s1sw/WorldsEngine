@@ -1,0 +1,7 @@
+﻿---
+BasedOnStyle: Microsoft
+FixNamespaceComments: 'false'
+NamespaceIndentation: All
+SortIncludes: false
+
+...

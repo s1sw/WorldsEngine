@@ -1,24 +1,26 @@
 #pragma once
-#include <Editor/EditorActions.hpp>
-#include <entt/entt.hpp>
-#include <Input/Input.hpp>
-#include <Render/Camera.hpp>
-#include <Core/Transform.hpp>
-#include <Core/IGameEventHandler.hpp>
-#include <ImGui/imgui.h>
-#include <deque>
-#include <slib/List.hpp>
-#include <string>
 #include "AssetCompilation/AssetCompilers.hpp"
 #include "EditorActionSearchPopup.hpp"
 #include "EditorAssetSearchPopup.hpp"
+#include <Core/IGameEventHandler.hpp>
+#include <Core/Transform.hpp>
+#include <Editor/EditorActions.hpp>
+#include <ImGui/imgui.h>
+#include <Input/Input.hpp>
+#include <Render/Camera.hpp>
+#include <deque>
+#include <entt/entt.hpp>
 #include <memory>
+#include <slib/List.hpp>
+#include <string>
 
-namespace worlds {
+namespace worlds
+{
     typedef uint32_t AssetID;
     class RTTPass;
 
-    enum class Tool {
+    enum class Tool
+    {
         None = 0,
         Translate = 1,
         Rotate = 2,
@@ -26,7 +28,8 @@ namespace worlds {
         Bounds = 8
     };
 
-    enum class AxisFlagBits {
+    enum class AxisFlagBits
+    {
         None = 0,
         X = 1,
         Y = 2,
@@ -34,42 +37,33 @@ namespace worlds {
         All = 7
     };
 
-    inline AxisFlagBits operator |(AxisFlagBits lhs, AxisFlagBits rhs) {
-        return static_cast<AxisFlagBits> (
-            static_cast<unsigned>(lhs) |
-            static_cast<unsigned>(rhs)
-        );
+    inline AxisFlagBits operator|(AxisFlagBits lhs, AxisFlagBits rhs)
+    {
+        return static_cast<AxisFlagBits>(static_cast<unsigned>(lhs) | static_cast<unsigned>(rhs));
     }
 
-    inline AxisFlagBits operator &(AxisFlagBits lhs, AxisFlagBits rhs) {
-        return static_cast<AxisFlagBits> (
-            static_cast<unsigned>(lhs) &
-            static_cast<unsigned>(rhs)
-        );
+    inline AxisFlagBits operator&(AxisFlagBits lhs, AxisFlagBits rhs)
+    {
+        return static_cast<AxisFlagBits>(static_cast<unsigned>(lhs) & static_cast<unsigned>(rhs));
     }
 
-    inline AxisFlagBits operator ^(AxisFlagBits lhs, AxisFlagBits rhs) {
-        return static_cast<AxisFlagBits> (
-            static_cast<unsigned>(lhs) ^
-            static_cast<unsigned>(rhs)
-        );
+    inline AxisFlagBits operator^(AxisFlagBits lhs, AxisFlagBits rhs)
+    {
+        return static_cast<AxisFlagBits>(static_cast<unsigned>(lhs) ^ static_cast<unsigned>(rhs));
     }
 
-    inline Tool operator |(Tool lhs, Tool rhs) {
-        return static_cast<Tool>(
-            static_cast<unsigned>(lhs) |
-            static_cast<unsigned>(rhs)
-        );
+    inline Tool operator|(Tool lhs, Tool rhs)
+    {
+        return static_cast<Tool>(static_cast<unsigned>(lhs) | static_cast<unsigned>(rhs));
     }
 
-    inline Tool operator &(Tool lhs, Tool rhs) {
-        return static_cast<Tool> (
-            static_cast<unsigned>(lhs) &
-            static_cast<unsigned>(rhs)
-        );
+    inline Tool operator&(Tool lhs, Tool rhs)
+    {
+        return static_cast<Tool>(static_cast<unsigned>(lhs) & static_cast<unsigned>(rhs));
     }
 
-    struct EditorSettings {
+    struct EditorSettings
+    {
         bool objectSnapGlobal = false;
         float snapIncrement = 0.1f;
         float angularSnapIncrement = 15.0f;
@@ -79,14 +73,16 @@ namespace worlds {
 
     class Editor;
 
-    enum class EditorMenu {
+    enum class EditorMenu
+    {
         File,
         Edit,
         Window,
         Help
     };
 
-    struct AssetFile {
+    struct AssetFile
+    {
         AssetID sourceAssetId;
         std::string path;
         int64_t lastModified;
@@ -99,32 +95,36 @@ namespace worlds {
     class GameProject;
     class ProjectAssetCompiler;
 
-    class ProjectAssets {
-    public:
-        ProjectAssets(const GameProject& project);
+    class ProjectAssets
+    {
+      public:
+        ProjectAssets(const GameProject &project);
         std::vector<AssetFile> assetFiles;
         void checkForAssetChanges();
-        void checkForAssetChange(AssetFile& file);
+        void checkForAssetChange(AssetFile &file);
         void enumerateAssets();
         slib::List<AssetID> searchForAssets(slib::String pattern);
-    private:
-        void enumerateForAssets(const char* path);
-        const GameProject& project;
+
+      private:
+        void enumerateForAssets(const char *path);
+        const GameProject &project;
     };
 
-    class GameProject {
-    public:
+    class GameProject
+    {
+      public:
         GameProject(std::string path);
         std::string_view name() const;
         std::string_view root() const;
         std::string_view sourceData() const;
         std::string_view builtData() const;
         std::string_view rawData() const;
-        ProjectAssets& assets();
-        ProjectAssetCompiler& assetCompiler();
+        ProjectAssets &assets();
+        ProjectAssetCompiler &assetCompiler();
         void mountPaths();
         void unmountPaths();
-    private:
+
+      private:
         std::string _name;
         std::string _root;
         std::string _srcDataPath;
@@ -135,55 +135,72 @@ namespace worlds {
         std::unique_ptr<ProjectAssetCompiler> _assetCompiler;
     };
 
-    class EditorWindow {
-    public:
-        EditorWindow(EngineInterfaces interfaces, Editor* editor)
-            : interfaces(interfaces)
-            , editor(editor)
-            , active(true) {}
+    class EditorWindow
+    {
+      public:
+        EditorWindow(EngineInterfaces interfaces, Editor *editor) : interfaces(interfaces), editor(editor), active(true)
+        {
+        }
 
-        virtual bool isActive() { return active; }
-        virtual void setActive(bool active) { this->active = active; }
-        virtual void draw(entt::registry& reg) = 0;
-        virtual EditorMenu menuSection() { return EditorMenu::Window; }
-        virtual const char* getName() = 0;
-        virtual ~EditorWindow() {};
-    protected:
+        virtual bool isActive()
+        {
+            return active;
+        }
+        virtual void setActive(bool active)
+        {
+            this->active = active;
+        }
+        virtual void draw(entt::registry &reg) = 0;
+        virtual EditorMenu menuSection()
+        {
+            return EditorMenu::Window;
+        }
+        virtual const char *getName() = 0;
+        virtual ~EditorWindow(){};
+
+      protected:
         EngineInterfaces interfaces;
-        Editor* editor;
+        Editor *editor;
         bool active;
     };
 
-    class EditorUndo {
-    public:
-        void pushState(entt::registry& reg);
-        void undo(entt::registry& reg);
-        void redo(entt::registry& reg);
+    class EditorUndo
+    {
+      public:
+        void pushState(entt::registry &reg);
+        void undo(entt::registry &reg);
+        void redo(entt::registry &reg);
         void clear();
-        uint32_t modificationCount() { return currentPos; }
-    private:
+        uint32_t modificationCount()
+        {
+            return currentPos;
+        }
+
+      private:
         uint32_t highestSaved = 0;
         uint32_t currentPos = 0;
     };
 
-    class EditorSceneView {
-    public:
-        EditorSceneView(EngineInterfaces interfaces, Editor* ed);
+    class EditorSceneView
+    {
+      public:
+        EditorSceneView(EngineInterfaces interfaces, Editor *ed);
         void drawWindow(int unqiueId);
         void recreateRTT();
         void setShadowsEnabled(bool enabled);
         void setViewportActive(bool active);
-        Camera& getCamera();
+        Camera &getCamera();
         bool open = true;
         bool isSeparateWindow = false;
         ~EditorSceneView();
-    private:
+
+      private:
         void updateCamera(float deltaTime);
         uint32_t currentWidth, currentHeight;
-        RTTPass* sceneViewPass = nullptr;
+        RTTPass *sceneViewPass = nullptr;
         Camera cam;
         EngineInterfaces interfaces;
-        Editor* ed;
+        Editor *ed;
         float lookX = 0.0f;
         float lookY = 0.0f;
         bool shadowsEnabled = true;
@@ -194,7 +211,8 @@ namespace worlds {
         ImTextureID worldCubemapIcon;
     };
 
-    struct EntityFolder {
+    struct EntityFolder
+    {
         EntityFolder(std::string name);
         std::string name;
         uint32_t randomId;
@@ -202,55 +220,71 @@ namespace worlds {
         std::vector<entt::entity> entities;
     };
 
-    struct EntityFolders {
-        EntityFolder rootFolder{ "Root" };
+    struct EntityFolders
+    {
+        EntityFolder rootFolder{"Root"};
     };
 
     class AssetEditorWindow;
 
-    enum class GameState {
+    enum class GameState
+    {
         Editing,
         Playing,
         Paused
     };
 
-    class Editor {
-    public:
-        Editor(entt::registry& reg, EngineInterfaces& interfaces);
+    class Editor
+    {
+      public:
+        Editor(entt::registry &reg, EngineInterfaces &interfaces);
         ~Editor();
         void select(entt::entity entity);
         void multiSelect(entt::entity entity);
         void update(float deltaTime);
         void activateTool(Tool newTool);
-        entt::entity getSelectedEntity() { return currentSelectedEntity; }
-        const slib::List<entt::entity>& getSelectedEntities() const { return selectedEntities; }
+        entt::entity getSelectedEntity()
+        {
+            return currentSelectedEntity;
+        }
+        const slib::List<entt::entity> &getSelectedEntities() const
+        {
+            return selectedEntities;
+        }
         bool isEntitySelected(entt::entity ent) const;
         EditorUndo undo;
         bool active = true;
-        void overrideHandle(Transform* t);
+        void overrideHandle(Transform *t);
         void overrideHandle(entt::entity entity);
-        bool entityEyedropper(entt::entity& picked);
+        bool entityEyedropper(entt::entity &picked);
 
         void openProject(std::string projectPath);
-        GameProject& currentProject() { return *project; }
+        GameProject &currentProject()
+        {
+            return *project;
+        }
 
         void saveOpenWindows();
         void loadOpenWindows();
-        EditorSceneView* getFirstSceneView();
+        EditorSceneView *getFirstSceneView();
         void openAsset(AssetID id);
-        GameState getCurrentState() { return currentState; }
-    private:
+        GameState getCurrentState()
+        {
+            return currentState;
+        }
+
+      private:
         EditorActionSearchPopup actionSearch;
         EditorAssetSearchPopup assetSearch;
         std::unique_ptr<GameProject> project;
         ImTextureID titleBarIcon;
-        void handleTools(Transform& t, ImVec2 wPos, ImVec2 wSize, Camera& camera);
+        void handleTools(Transform &t, ImVec2 wPos, ImVec2 wSize, Camera &camera);
         std::string generateWindowTitle();
         void updateWindowTitle();
         void eyedropperSelect(entt::entity ent);
         Tool currentTool;
         bool toolLocalSpace = false;
-        entt::registry& reg;
+        entt::registry &reg;
         slib::List<entt::entity> selectedEntities;
         entt::entity currentSelectedEntity;
         Transform originalObjectTransform;
@@ -262,19 +296,20 @@ namespace worlds {
         bool entityEyedropperActive = false;
         entt::entity eyedroppedEntity = entt::null;
         uint32_t lastSaveModificationCount = 0;
-        Transform* overrideTransform;
+        Transform *overrideTransform;
         entt::entity handleOverrideEntity = entt::null;
 
-        void(*gameProjectSelectedCallback)(GameProject* project) = nullptr;
-        void(*gameProjectClosedCallback)() = nullptr;
+        void (*gameProjectSelectedCallback)(GameProject *project) = nullptr;
+        void (*gameProjectClosedCallback)() = nullptr;
 
         EditorSettings settings;
-        EngineInterfaces& interfaces;
-        InputManager& inputManager;
+        EngineInterfaces &interfaces;
+        InputManager &inputManager;
         slib::List<std::unique_ptr<EditorWindow>> editorWindows;
-        slib::List<EditorSceneView*> sceneViews;
-        slib::List<AssetEditorWindow*> assetEditors;
-        struct QueuedKeydown {
+        slib::List<EditorSceneView *> sceneViews;
+        slib::List<AssetEditorWindow *> assetEditors;
+        struct QueuedKeydown
+        {
             SDL_Scancode scancode;
             ModifierFlags modifiers;
         };
@@ -284,4 +319,3 @@ namespace worlds {
         friend class EditorSceneView;
     };
 }
-

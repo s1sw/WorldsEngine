@@ -1,11 +1,14 @@
 #include "../../Core/Engine.hpp"
-#include "EditorWindows.hpp"
 #include "../GuiUtil.hpp"
+#include "EditorWindows.hpp"
 
-namespace worlds {
-    void SceneSettingsWindow::draw(entt::registry& reg) {
-        if (ImGui::Begin("Scene Settings", &active)) {
-            auto& settings = reg.ctx<SceneSettings>();
+namespace worlds
+{
+    void SceneSettingsWindow::draw(entt::registry &reg)
+    {
+        if (ImGui::Begin("Scene Settings", &active))
+        {
+            auto &settings = reg.ctx<SceneSettings>();
 
             ImGui::Text("Current Skybox: %s", AssetDB::idToPath(settings.skybox).c_str());
             ImGui::SameLine();

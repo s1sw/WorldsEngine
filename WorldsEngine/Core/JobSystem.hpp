@@ -1,63 +1,69 @@
 #pragma once
+#include "concurrentqueue.h"
+#include "tracy/Tracy.hpp"
+#include <SDL_mutex.h>
+#include <atomic>
 #include <condition_variable>
+#include <functional>
 #include <mutex>
 #include <queue>
 #include <thread>
-#include <atomic>
-#include <SDL_mutex.h>
-#include <functional>
-#include "tracy/Tracy.hpp"
-#include "concurrentqueue.h"
 
-namespace worlds {
+namespace worlds
+{
     class JobSystem;
-    extern JobSystem* g_jobSys;
+    extern JobSystem *g_jobSys;
     typedef std::function<void()> JobFunc;
     typedef void (*JobCompleteFuncPtr)();
 
-    struct Job {
+    struct Job
+    {
         Job(JobFunc function, JobCompleteFuncPtr completeFunc = nullptr)
-            : function(function)
-            , completeFunc(completeFunc) {
+            : function(function), completeFunc(completeFunc)
+        {
         }
 
         JobFunc function;
         JobCompleteFuncPtr completeFunc;
     };
 
-    enum class QueueType {
+    enum class QueueType
+    {
         PerFrame,
         Background
     };
     const int NUM_JOB_SLOTS = 3;
 
-    class JobList{
-    public:
+    class JobList
+    {
+      public:
         JobList();
 
         void begin();
-        void addJob(Job&& job);
+        void addJob(Job &&job);
         void end();
         void wait();
 
         bool isComplete();
-    private:
+
+      private:
         moodycamel::ConcurrentQueue<Job> jobs;
         std::atomic<int> jobCount;
-        SDL_cond* completeCV;
-        SDL_mutex* completeMutex;
+        SDL_cond *completeCV;
+        SDL_mutex *completeMutex;
         friend class JobSystem;
     };
 
-    class JobSystem {
-    public:
+    class JobSystem
+    {
+      public:
         JobSystem(int numWorkers);
         ~JobSystem();
-        JobList& getFreeJobList();
+        JobList &getFreeJobList();
         void signalJobListAvailable();
         void completeFrameJobs();
 
-    private:
+      private:
         int getFreeJobSlot();
         void worker(int idx);
         bool executing;
@@ -65,7 +71,7 @@ namespace worlds {
         std::mutex newJobListM;
         std::condition_variable newJobListCV;
 
-        JobList* currentJobLists;
+        JobList *currentJobLists;
         std::vector<std::thread> workers;
         std::atomic<int> initialisedWorkerCount;
     };

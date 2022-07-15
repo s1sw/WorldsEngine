@@ -1,28 +1,30 @@
 #pragma once
 #include <Core/Transform.hpp>
+#include <entt/entity/lw_fwd.hpp>
 #include <stdint.h>
 #include <vector>
-#include <entt/entity/lw_fwd.hpp>
 
-#include <glm/ext/scalar_constants.hpp>
 #include <glm/ext/matrix_float4x4.hpp>
+#include <glm/ext/scalar_constants.hpp>
 #include <glm/ext/vector_float4.hpp>
 #include <slib/Bitset.hpp>
 #include <slib/String.hpp>
 
-
-namespace worlds {
+namespace worlds
+{
     typedef uint32_t AssetID;
     const int NUM_SUBMESH_MATS = 32;
 
-    enum class StaticFlags : uint8_t {
+    enum class StaticFlags : uint8_t
+    {
         None = 0,
         Audio = 1,
         Rendering = 2,
         Navigation = 4
     };
 
-    enum class UVOverride {
+    enum class UVOverride
+    {
         None,
         XY,
         XZ,
@@ -30,13 +32,14 @@ namespace worlds {
         PickBest
     };
 
-    struct WorldObject {
+    struct WorldObject
+    {
         WorldObject(AssetID material, AssetID mesh)
-            : staticFlags(StaticFlags::None)
-            , mesh(mesh)
-            , texScaleOffset(1.0f, 1.0f, 0.0f, 0.0f)
-            , uvOverride(UVOverride::None) {
-            for (int i = 0; i < NUM_SUBMESH_MATS; i++) {
+            : staticFlags(StaticFlags::None), mesh(mesh), texScaleOffset(1.0f, 1.0f, 0.0f, 0.0f),
+              uvOverride(UVOverride::None)
+        {
+            for (int i = 0; i < NUM_SUBMESH_MATS; i++)
+            {
                 materials[i] = material;
                 presentMaterials[i] = false;
             }
@@ -52,20 +55,25 @@ namespace worlds {
         bool castShadows = true;
     };
 
-    class Pose {
-    public:
+    class Pose
+    {
+      public:
         std::vector<glm::mat4> boneTransforms;
     };
 
-    struct SkinnedWorldObject : public WorldObject {
+    struct SkinnedWorldObject : public WorldObject
+    {
         SkinnedWorldObject(AssetID material, AssetID mesh);
         void resetPose();
         Pose currentPose;
     };
 
-    struct UseWireframe {};
+    struct UseWireframe
+    {
+    };
 
-    enum class LightType {
+    enum class LightType
+    {
         Point,
         Spot,
         Directional,
@@ -73,9 +81,14 @@ namespace worlds {
         Tube
     };
 
-    struct WorldLight {
-        WorldLight() {}
-        WorldLight(LightType type) : type(type) {}
+    struct WorldLight
+    {
+        WorldLight()
+        {
+        }
+        WorldLight(LightType type) : type(type)
+        {
+        }
 
         // Whether the light should be actually rendered
         bool enabled = true;
@@ -101,7 +114,8 @@ namespace worlds {
         uint32_t lightIdx = 0u;
     };
 
-    struct WorldCubemap {
+    struct WorldCubemap
+    {
         glm::vec3 extent{0.0f};
         bool cubeParallax = false;
         int priority = 0;
@@ -111,24 +125,36 @@ namespace worlds {
         uint32_t renderIdx = 0u;
     };
 
-    struct ProxyAOComponent {
+    struct ProxyAOComponent
+    {
         glm::vec3 bounds;
     };
 
-    struct SphereAOProxy {
+    struct SphereAOProxy
+    {
         float radius;
     };
 
-    struct EditorLabel {
+    struct EditorLabel
+    {
         slib::String label;
     };
 
-    struct DontSerialize {};
-    struct HideFromEditor {};
-    struct EditorGlow {};
-    struct KeepOnSceneLoad {};
+    struct DontSerialize
+    {
+    };
+    struct HideFromEditor
+    {
+    };
+    struct EditorGlow
+    {
+    };
+    struct KeepOnSceneLoad
+    {
+    };
 
-    struct ChildComponent {
+    struct ChildComponent
+    {
         ChildComponent();
         Transform offset;
 
@@ -138,7 +164,8 @@ namespace worlds {
         entt::entity prevChild;
     };
 
-    struct ParentComponent {
+    struct ParentComponent
+    {
         entt::entity firstChild;
     };
 }

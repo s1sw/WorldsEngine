@@ -1,24 +1,27 @@
 #include "EditorWindows.hpp"
 #include "ImGui/imgui.h"
 #define IMGUI_DEFINE_MATH_OPERATORS
-#include "ImGui/imgui_internal.h"
 #include "Audio/Audio.hpp"
+#include "ImGui/imgui_internal.h"
 #include "Render/Render.hpp"
 
-namespace worlds {
+namespace worlds
+{
     ImTextureID bgId = nullptr;
     ImTextureID bradnoId = nullptr;
     ImTextureID someoneId = nullptr;
 
-    void AboutWindow::setActive(bool active) {
+    void AboutWindow::setActive(bool active)
+    {
         this->active = active;
-        IUITextureManager* texMan = interfaces.renderer->getUITextureManager();
+        IUITextureManager *texMan = interfaces.renderer->getUITextureManager();
         bgId = texMan->loadOrGet(AssetDB::pathToId("UI/Editor/Images/worlds_no_logo.png"));
         bradnoId = texMan->loadOrGet(AssetDB::pathToId("UI/Editor/Images/bradno.png"));
         someoneId = texMan->loadOrGet(AssetDB::pathToId("UI/Editor/Images/someone_avatar.png"));
     }
 
-    ImVec2 rotatePoint(ImVec2 p, float angle) {
+    ImVec2 rotatePoint(ImVec2 p, float angle)
+    {
         float s = sin(angle);
         float c = cos(angle);
 
@@ -28,41 +31,42 @@ namespace worlds {
         return ImVec2(xnew, ynew);
     }
 
-    const SDL_Scancode bradnoCode[] = {
-        SDL_SCANCODE_B,
-        SDL_SCANCODE_R,
-        SDL_SCANCODE_A,
-        SDL_SCANCODE_D,
-        SDL_SCANCODE_N,
-        SDL_SCANCODE_O
-    };
+    const SDL_Scancode bradnoCode[] = {SDL_SCANCODE_B, SDL_SCANCODE_R, SDL_SCANCODE_A,
+                                       SDL_SCANCODE_D, SDL_SCANCODE_N, SDL_SCANCODE_O};
 
     int bradnoPosition = 0;
     float lastBradnoTime = 0.0f;
     bool showBradno = false;
 
-    void AboutWindow::draw(entt::registry&) {
-        //ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
-        if (ImGui::Begin("About", &active)) {
-            if (ImGui::GetTime() - lastBradnoTime > 7.0f) {
+    void AboutWindow::draw(entt::registry &)
+    {
+        // ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
+        if (ImGui::Begin("About", &active))
+        {
+            if (ImGui::GetTime() - lastBradnoTime > 7.0f)
+            {
                 bradnoPosition = 0;
                 showBradno = false;
             }
 
-            if (ImGui::GetIO().KeysDownDuration[bradnoCode[bradnoPosition]] == 0.0f) {
+            if (ImGui::GetIO().KeysDownDuration[bradnoCode[bradnoPosition]] == 0.0f)
+            {
                 lastBradnoTime = ImGui::GetTime();
                 bradnoPosition++;
-                if (bradnoPosition >= (int)sizeof(bradnoCode) / (int)sizeof(bradnoCode[0])) {
+                if (bradnoPosition >= (int)sizeof(bradnoCode) / (int)sizeof(bradnoCode[0]))
+                {
                     showBradno = true;
-                    AudioSystem::getInstance()->playOneShotClip(AssetDB::pathToId("Audio/SFX/smooch.ogg"), glm::vec3{0.0f}, false, 0.4f);
+                    AudioSystem::getInstance()->playOneShotClip(AssetDB::pathToId("Audio/SFX/smooch.ogg"),
+                                                                glm::vec3{0.0f}, false, 0.4f);
                     bradnoPosition = 0;
                 }
             }
 
             ImVec2 logoSize{494, 174};
-            auto screenCursorPos = ImGui::GetCursorScreenPos() + ImVec2(ImGui::GetWindowWidth() / 2.0f - logoSize.x / 2.0f, 0.0f);
+            auto screenCursorPos =
+                ImGui::GetCursorScreenPos() + ImVec2(ImGui::GetWindowWidth() / 2.0f - logoSize.x / 2.0f, 0.0f);
             auto corner = screenCursorPos + logoSize;
-            auto* drawList = ImGui::GetWindowDrawList();
+            auto *drawList = ImGui::GetWindowDrawList();
 
             drawList->AddImage(bgId, screenCursorPos, corner);
 
@@ -106,7 +110,8 @@ namespace worlds {
 
             auto cursorX = ImGui::GetCursorStartPos().x + 375;
 
-            ImGui::SetCursorPos(ImGui::GetCursorStartPos() + ImVec2(375, 174 + 5 + ImGui::GetTextLineHeightWithSpacing()));
+            ImGui::SetCursorPos(ImGui::GetCursorStartPos() +
+                                ImVec2(375, 174 + 5 + ImGui::GetTextLineHeightWithSpacing()));
             ImGui::Text("Thanks to:");
 
             {
@@ -120,8 +125,10 @@ namespace worlds {
                 ImGui::Text(" - Tabloid for motivation");
             }
 
-            if (showBradno) {
-                for (int i = 0; i < 15; i++) {
+            if (showBradno)
+            {
+                for (int i = 0; i < 15; i++)
+                {
                     ImGui::SetCursorPosX(cursorX);
                     ImGui::Text("- bradno");
                 }
@@ -142,9 +149,8 @@ namespace worlds {
 
             if (showBradno)
                 drawList->AddImageQuad(bradnoId, p1, p2, p3, p4);
-
         }
         ImGui::End();
-        //ImGui::PopStyleColor();
+        // ImGui::PopStyleColor();
     }
 }

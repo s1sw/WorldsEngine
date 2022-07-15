@@ -1,28 +1,30 @@
-#include <Core/Engine.hpp>
 #include "EditorWindows.hpp"
 #include "Navigation/Navigation.hpp"
+#include <Core/Engine.hpp>
+#include <Core/Log.hpp>
+#include <Core/NameComponent.hpp>
 #include <ImGui/imgui.h>
 #include <Libs/IconsFontAwesome5.h>
 #include <Libs/IconsFontaudio.h>
-#include <Util/EnumUtil.hpp>
 #include <Render/RenderInternal.hpp>
-#include <Core/NameComponent.hpp>
-#include <Core/Log.hpp>
+#include <Util/EnumUtil.hpp>
 #include <glm/gtc/quaternion.hpp>
 #define STB_IMAGE_WRITE_IMPLEMENTATION
-#include <stb_image_write.h>
-#include <Editor/GuiUtil.hpp>
 #include <Audio/Audio.hpp>
-#include <Recast.h>
 #include <Core/MeshManager.hpp>
+#include <Editor/GuiUtil.hpp>
+#include <Recast.h>
 #include <filesystem>
+#include <stb_image_write.h>
 
-namespace worlds {
-    void stbiWriteFunc(void* ctx, void* data, int bytes) {
-        PHYSFS_writeBytes((PHYSFS_File*)ctx, data, bytes);
+namespace worlds
+{
+    void stbiWriteFunc(void *ctx, void *data, int bytes)
+    {
+        PHYSFS_writeBytes((PHYSFS_File *)ctx, data, bytes);
     }
 
-    //void bakeCubemap(Editor* ed, glm::vec3 pos, worlds::VKRenderer* renderer,
+    // void bakeCubemap(Editor* ed, glm::vec3 pos, worlds::VKRenderer* renderer,
     //    std::string name, entt::registry& world, int resolution, int iterations = 1) {
     //    // create RTT pass
     //    RTTPassCreateInfo rtci;
@@ -118,13 +120,13 @@ namespace worlds {
     //                VkImageBlit ib;
     //                ib.dstSubresource = VkImageSubresourceLayers{ VK_IMAGE_ASPECT_COLOR_BIT, 0, (uint32_t)i, 1 };
     //                ib.dstOffsets[0] = VkOffset3D{ 0, 0, 0 };
-    //                ib.dstOffsets[1] = VkOffset3D{ (int)loadedCube.extent().width, (int)loadedCube.extent().height, 1 };
-    //                ib.srcSubresource = VkImageSubresourceLayers{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 };
+    //                ib.dstOffsets[1] = VkOffset3D{ (int)loadedCube.extent().width, (int)loadedCube.extent().height, 1
+    //                }; ib.srcSubresource = VkImageSubresourceLayers{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 };
     //                ib.srcOffsets[0] = VkOffset3D{ 0, 0, 0 };
     //                ib.srcOffsets[1] = VkOffset3D{ (int)rttPass->width, (int)rttPass->height, 1 };
 
-
-    //                vku::executeImmediately(vkHandles->device, vkHandles->commandPool, queue, [&](VkCommandBuffer cb) {
+    //                vku::executeImmediately(vkHandles->device, vkHandles->commandPool, queue, [&](VkCommandBuffer cb)
+    //                {
     //                    vku::GenericImage& srcImg = rttPass->hdrTarget->image();
 
     //                    loadedCube.setLayout(cb, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
@@ -206,67 +208,80 @@ namespace worlds {
     //    }
     //}
 
-    void BakingWindow::draw(entt::registry& reg) {
-        if (ImGui::Begin(ICON_FA_COOKIE u8" Baking", &active)) {
-            if (ImGui::CollapsingHeader(ICON_FAD_SPEAKER u8" Audio")) {
+    void BakingWindow::draw(entt::registry &reg)
+    {
+        if (ImGui::Begin(ICON_FA_COOKIE u8" Baking", &active))
+        {
+            if (ImGui::CollapsingHeader(ICON_FAD_SPEAKER u8" Audio"))
+            {
                 uint32_t staticAudioGeomCount = 0;
 
-                reg.view<WorldObject>().each([&](auto, WorldObject& wo) {
+                reg.view<WorldObject>().each([&](auto, WorldObject &wo) {
                     if (enumHasFlag(wo.staticFlags, StaticFlags::Audio))
                         staticAudioGeomCount++;
-                    });
+                });
 
-                if (staticAudioGeomCount > 0) {
+                if (staticAudioGeomCount > 0)
+                {
                     ImGui::Text("%u static geometry objects", staticAudioGeomCount);
                 }
-                else {
+                else
+                {
                     ImGui::TextColored(ImColor(1.0f, 0.0f, 0.0f),
-                        "There aren't any objects marked as audio static in the scene.");
+                                       "There aren't any objects marked as audio static in the scene.");
                 }
 
-                //if (ImGui::Button("Bake")) {
+                // if (ImGui::Button("Bake")) {
                 //    AudioSystem::getInstance()->bakeProbes(reg);
                 //}
-                if (ImGui::Button("Bake Geometry")) {
+                if (ImGui::Button("Bake Geometry"))
+                {
                     std::string savedPath = "Data/LevelData/PhononScenes/" + reg.ctx<SceneInfo>().name + ".bin";
                     AudioSystem::getInstance()->saveAudioScene(reg, savedPath.c_str());
                 }
             }
 
-            if (ImGui::CollapsingHeader(ICON_FA_CUBE u8" Cubemaps")) {
+            if (ImGui::CollapsingHeader(ICON_FA_CUBE u8" Cubemaps"))
+            {
                 static int numIterations = 1;
                 ImGui::DragInt("Iterations", &numIterations);
-                reg.view<Transform, WorldCubemap, NameComponent>().each([&](
-                    Transform& t, WorldCubemap& wc, NameComponent& nc) {
-                        ImGui::Text("%s (%.2f, %.2f, %.2f)", nc.name.c_str(),
-                            t.position.x, t.position.y, t.position.z);
+                reg.view<Transform, WorldCubemap, NameComponent>().each(
+                    [&](Transform &t, WorldCubemap &wc, NameComponent &nc) {
+                        ImGui::Text("%s (%.2f, %.2f, %.2f)", nc.name.c_str(), t.position.x, t.position.y, t.position.z);
                         ImGui::SameLine();
                         ImGui::PushID(nc.name.c_str());
-                        if (ImGui::Button("Bake")) {
-                            //bakeCubemap(editor, t.position + wc.captureOffset, static_cast<worlds::VKRenderer*>(interfaces.renderer), nc.name, reg, wc.resolution, numIterations);
+                        if (ImGui::Button("Bake"))
+                        {
+                            // bakeCubemap(editor, t.position + wc.captureOffset,
+                            // static_cast<worlds::VKRenderer*>(interfaces.renderer), nc.name, reg, wc.resolution,
+                            // numIterations);
                         }
                         ImGui::PopID();
                     });
             }
 
-            if (ImGui::CollapsingHeader(ICON_FA_MAP u8" Navigation")) {
+            if (ImGui::CollapsingHeader(ICON_FA_MAP u8" Navigation"))
+            {
                 glm::vec3 bbMin{FLT_MAX};
-                glm::vec3 bbMax{ -FLT_MAX };
-                reg.view<Transform, WorldObject>().each([&](
-                    Transform& t, WorldObject& o) {
-                        if (!enumHasFlag(o.staticFlags, StaticFlags::Navigation)) return;
+                glm::vec3 bbMax{-FLT_MAX};
+                reg.view<Transform, WorldObject>().each([&](Transform &t, WorldObject &o) {
+                    if (!enumHasFlag(o.staticFlags, StaticFlags::Navigation))
+                        return;
 
-                        glm::mat4 tMat = t.getMatrix();
-                        auto& mesh = MeshManager::loadOrGet(o.mesh);
-                        for (const Vertex& v : mesh.vertices) {
-                            glm::vec3 transformedPosition = tMat * glm::vec4(v.position, 1.0f);
-                            bbMin = glm::min(transformedPosition, bbMin);
-                            bbMax = glm::max(transformedPosition, bbMax);
-                        }
-                    });
-                ImGui::Text("World Bounds: (%.3f, %.3f, %.3f) to (%.3f, %.3f, %.3f)", bbMin.x, bbMin.y, bbMin.z, bbMax.x, bbMax.y, bbMax.z);
-                
-                if (ImGui::Button("Bake")) {
+                    glm::mat4 tMat = t.getMatrix();
+                    auto &mesh = MeshManager::loadOrGet(o.mesh);
+                    for (const Vertex &v : mesh.vertices)
+                    {
+                        glm::vec3 transformedPosition = tMat * glm::vec4(v.position, 1.0f);
+                        bbMin = glm::min(transformedPosition, bbMin);
+                        bbMax = glm::max(transformedPosition, bbMax);
+                    }
+                });
+                ImGui::Text("World Bounds: (%.3f, %.3f, %.3f) to (%.3f, %.3f, %.3f)", bbMin.x, bbMin.y, bbMin.z,
+                            bbMax.x, bbMax.y, bbMax.z);
+
+                if (ImGui::Button("Bake"))
+                {
                     std::string savedPath = "Data/LevelData/Navmeshes/" + reg.ctx<SceneInfo>().name + ".bin";
                     NavigationSystem::buildAndSave(reg, savedPath.c_str());
                 }

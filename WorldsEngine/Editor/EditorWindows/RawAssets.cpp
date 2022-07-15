@@ -1,15 +1,15 @@
 #include "EditorWindows.hpp"
-#include <ImGui/imgui.h>
-#include <filesystem>
-#include <Util/CreateModelObject.hpp>
-#include <Core/Console.hpp>
-#include <Libs/IconsFontAwesome5.h>
-#include <Editor/GuiUtil.hpp>
-#include <slib/Path.hpp>
 #include <AssetCompilation/AssetCompilers.hpp>
-#include <Editor/AssetEditors.hpp>
-#include <Serialization/SceneSerialization.hpp>
+#include <Core/Console.hpp>
 #include <Core/Log.hpp>
+#include <Editor/AssetEditors.hpp>
+#include <Editor/GuiUtil.hpp>
+#include <ImGui/imgui.h>
+#include <Libs/IconsFontAwesome5.h>
+#include <Serialization/SceneSerialization.hpp>
+#include <Util/CreateModelObject.hpp>
+#include <filesystem>
+#include <slib/Path.hpp>
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -17,26 +17,32 @@
 #elif defined(__linux__)
 #endif
 
-namespace worlds {
-    void RawAssets::draw(entt::registry& reg) {
+namespace worlds
+{
+    void RawAssets::draw(entt::registry &reg)
+    {
         static std::string currentDir = "";
 
-        static ConVar showExts{ "editor_rawAssetExtDbg", "0", "Shows parsed file extensions in brackets." };
-        if (ImGui::Begin(ICON_FA_FOLDER u8" Raw Assets", &active)) {
+        static ConVar showExts{"editor_rawAssetExtDbg", "0", "Shows parsed file extensions in brackets."};
+        if (ImGui::Begin(ICON_FA_FOLDER u8" Raw Assets", &active))
+        {
             ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1);
             ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0.0f);
             ImGui::InputText("###lol", &currentDir);
             ImGui::PopStyleVar(2);
 
-            if (!currentDir.empty()) {
+            if (!currentDir.empty())
+            {
                 ImGui::SameLine();
-                if (ImGui::Button(ICON_FA_ARROW_UP)) {
-                    std::filesystem::path p{ currentDir };
+                if (ImGui::Button(ICON_FA_ARROW_UP))
+                {
+                    std::filesystem::path p{currentDir};
                     currentDir = p.parent_path().string();
                     if (currentDir == "/")
                         currentDir = "";
 
-                    if (currentDir[0] == '/') {
+                    if (currentDir[0] == '/')
+                    {
                         currentDir = currentDir.substr(1);
                     }
                     logMsg("Navigated to %s", currentDir.c_str());
@@ -45,21 +51,25 @@ namespace worlds {
 
             ImGui::Separator();
 
-            char** files = PHYSFS_enumerateFiles(("Raw/" + currentDir).c_str());
+            char **files = PHYSFS_enumerateFiles(("Raw/" + currentDir).c_str());
 
-            if (*files == nullptr) {
+            if (*files == nullptr)
+            {
                 ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "Invalid path");
 
-                if (currentDir.find('\\') != std::string::npos) {
+                if (currentDir.find('\\') != std::string::npos)
+                {
                     ImGui::Text("(Paths should use forward slashes rather than backslashes)");
                 }
             }
             std::string assetContextMenuPath;
 
-            for (char** currFile = files; *currFile != nullptr; currFile++) {
-                slib::Path path{ *currFile };
+            for (char **currFile = files; *currFile != nullptr; currFile++)
+            {
+                slib::Path path{*currFile};
                 std::string origDirStr = "Raw/" + currentDir;
-                if (origDirStr[0] == '/') {
+                if (origDirStr[0] == '/')
+                {
                     origDirStr = origDirStr.substr(1);
                 }
 
@@ -73,42 +83,51 @@ namespace worlds {
                 PHYSFS_Stat stat;
                 PHYSFS_stat(fullPath.c_str(), &stat);
 
-                if (stat.filetype == PHYSFS_FILETYPE_DIRECTORY || stat.filetype == PHYSFS_FILETYPE_SYMLINK) {
-                    slib::String buttonLabel{ (const char*)ICON_FA_FOLDER };
+                if (stat.filetype == PHYSFS_FILETYPE_DIRECTORY || stat.filetype == PHYSFS_FILETYPE_SYMLINK)
+                {
+                    slib::String buttonLabel{(const char *)ICON_FA_FOLDER};
                     buttonLabel += " ";
                     buttonLabel += *currFile;
-                    if (ImGui::Button(buttonLabel.cStr())) {
+                    if (ImGui::Button(buttonLabel.cStr()))
+                    {
                         if (currentDir != "/")
                             currentDir += "/";
                         currentDir += *currFile;
 
-                        if (currentDir[0] == '/') {
+                        if (currentDir[0] == '/')
+                        {
                             currentDir = currentDir.substr(1);
                         }
                         logMsg("Navigated to %s", currentDir.c_str());
                     }
-                } else {
-                    slib::Path p{ fullPath.c_str() };
+                }
+                else
+                {
+                    slib::Path p{fullPath.c_str()};
                     auto ext = p.fileExtension();
-                    const char* icon = getIcon(ext.cStr());
+                    const char *icon = getIcon(ext.cStr());
                     slib::String buttonLabel = icon;
                     buttonLabel += *currFile;
 
                     ImGui::Text("%s", buttonLabel.cStr());
 
-                    if (ImGui::IsItemHovered()) {
-                        if (ImGui::IsMouseClicked(ImGuiMouseButton_Right)) {
+                    if (ImGui::IsItemHovered())
+                    {
+                        if (ImGui::IsMouseClicked(ImGuiMouseButton_Right))
+                        {
                             assetContextMenuPath = fullPath;
                         }
                     }
                 }
             }
 
-            static IAssetEditorMeta* newAssetEditor = nullptr;
+            static IAssetEditorMeta *newAssetEditor = nullptr;
             static std::string newAssetName;
 
-            if (ImGui::BeginPopup("New Asset Name")) {
-                if (ImGui::InputText("Name", &newAssetName, ImGuiInputTextFlags_EnterReturnsTrue)) {
+            if (ImGui::BeginPopup("New Asset Name"))
+            {
+                if (ImGui::InputText("Name", &newAssetName, ImGuiInputTextFlags_EnterReturnsTrue))
+                {
                     std::string newAssetPath = "Raw/" + currentDir + "/" + newAssetName;
                     logMsg("Creating new asset in %s", newAssetPath.c_str());
                     newAssetEditor->create(newAssetPath);
@@ -117,9 +136,11 @@ namespace worlds {
                 ImGui::EndPopup();
             }
 
-            if (ImGui::BeginPopup("New Folder")) {
+            if (ImGui::BeginPopup("New Folder"))
+            {
                 static std::string newFolderName;
-                if (ImGui::InputText("Folder Name", &newFolderName, ImGuiInputTextFlags_EnterReturnsTrue)) {
+                if (ImGui::InputText("Folder Name", &newFolderName, ImGuiInputTextFlags_EnterReturnsTrue))
+                {
                     std::string newFolderPath = "Raw/" + currentDir + "/" + newFolderName;
                     std::filesystem::create_directories(newFolderPath);
                     ImGui::CloseCurrentPopup();
@@ -129,15 +150,18 @@ namespace worlds {
 
             static std::string assetContextMenu;
             static bool isTextureFolder = false;
-            if (ImGui::IsMouseClicked(ImGuiMouseButton_Right) && ImGui::IsWindowHovered()) {
+            if (ImGui::IsMouseClicked(ImGuiMouseButton_Right) && ImGui::IsWindowHovered())
+            {
                 assetContextMenu = assetContextMenuPath;
                 ImGui::OpenPopup("ContextMenu");
 
                 isTextureFolder = true;
-                for (char** currFile = files; *currFile != nullptr; currFile++) {
-                    slib::Path path{ *currFile };
+                for (char **currFile = files; *currFile != nullptr; currFile++)
+                {
+                    slib::Path path{*currFile};
                     std::string origDirStr = "Raw/" + currentDir;
-                    if (origDirStr[0] == '/') {
+                    if (origDirStr[0] == '/')
+                    {
                         origDirStr = origDirStr.substr(1);
                     }
 
@@ -151,12 +175,15 @@ namespace worlds {
                     PHYSFS_Stat stat;
                     PHYSFS_stat(fullPath.c_str(), &stat);
 
-                    if (stat.filetype == PHYSFS_FILETYPE_REGULAR) {
+                    if (stat.filetype == PHYSFS_FILETYPE_REGULAR)
+                    {
                         bool isFileTexture = false;
-                        std::array<const char*, 3> textureExtensions = { ".png", ".jpg", ".tga" };
+                        std::array<const char *, 3> textureExtensions = {".png", ".jpg", ".tga"};
 
-                        for (const char* ext : textureExtensions) {
-                            if (path.fileExtension() == ext) {
+                        for (const char *ext : textureExtensions)
+                        {
+                            if (path.fileExtension() == ext)
+                            {
                                 isFileTexture = true;
                             }
                         }
@@ -168,26 +195,32 @@ namespace worlds {
 
             bool openAssetNamePopup = false;
             bool openNewFolderPopup = false;
-            if (ImGui::BeginPopup("ContextMenu")) {
-                if (!assetContextMenu.empty()) {
-                    slib::Path p{ assetContextMenu.c_str() };
+            if (ImGui::BeginPopup("ContextMenu"))
+            {
+                if (!assetContextMenu.empty())
+                {
+                    slib::Path p{assetContextMenu.c_str()};
                     auto ext = p.fileExtension();
 
-                    if (ext == ".png" || ext == ".jpg" || ext == ".exr") {
-                        if (ImGui::Button("Create corresponding wtex")) {
+                    if (ext == ".png" || ext == ".jpg" || ext == ".exr")
+                    {
+                        if (ImGui::Button("Create corresponding wtex"))
+                        {
                             std::string path = assetContextMenu;
                             // path will be something like Raw/Textures/whatever/something.png
                             std::string removeStr = "Raw/";
 
                             size_t pos = path.find(removeStr);
-                            if (pos != std::string::npos) {
+                            if (pos != std::string::npos)
+                            {
                                 path.erase(pos, removeStr.size());
                                 // now something like Textures/whatever/something.png
                                 pos = path.find(ext.cStr());
                                 path.erase(pos, ext.byteLength());
                                 path += ".wtexj";
                                 // now something like Textures/whatever/something.wtexj
-                                slib::String fullPath = slib::String(editor->currentProject().sourceData().data()) + '/' + slib::Path{ path.c_str() }.parentPath();
+                                slib::String fullPath = slib::String(editor->currentProject().sourceData().data()) +
+                                                        '/' + slib::Path{path.c_str()}.parentPath();
 
                                 std::filesystem::create_directories(fullPath.cStr());
                                 AssetEditors::getEditorFor(".wtexj")->importAsset(assetContextMenu, path);
@@ -195,20 +228,24 @@ namespace worlds {
                         }
                     }
 
-                    if (ext == ".fbx" || ext == ".glb" || ext == ".blend") {
-                        if (ImGui::Button("Import model")) {
+                    if (ext == ".fbx" || ext == ".glb" || ext == ".blend")
+                    {
+                        if (ImGui::Button("Import model"))
+                        {
                             std::string path = assetContextMenu;
                             std::string removeStr = "Raw/";
 
                             size_t pos = path.find(removeStr);
-                            if (pos != std::string::npos) {
+                            if (pos != std::string::npos)
+                            {
                                 path.erase(pos, removeStr.size());
                                 pos = path.find(ext.cStr());
                                 path.erase(pos, ext.byteLength());
                                 path += ".wmdlj";
-                                slib::Path assetPath{ path.c_str()};
+                                slib::Path assetPath{path.c_str()};
                                 assetPath = assetPath.parentPath();
-                                slib::String fullPath = slib::String(editor->currentProject().sourceData().data()) + '/' + assetPath;
+                                slib::String fullPath =
+                                    slib::String(editor->currentProject().sourceData().data()) + '/' + assetPath;
                                 logMsg("Creating %s", fullPath.cStr());
 
                                 std::filesystem::create_directories(fullPath.cStr());
@@ -219,12 +256,16 @@ namespace worlds {
                     ImGui::Separator();
                 }
 
-                if (isTextureFolder) {
-                    if (ImGui::Button("Import folder")) {
-                        for (char** currFile = files; *currFile != nullptr; currFile++) {
-                            slib::Path path{ *currFile };
+                if (isTextureFolder)
+                {
+                    if (ImGui::Button("Import folder"))
+                    {
+                        for (char **currFile = files; *currFile != nullptr; currFile++)
+                        {
+                            slib::Path path{*currFile};
                             std::string origDirStr = currentDir;
-                            if (origDirStr[0] == '/') {
+                            if (origDirStr[0] == '/')
+                            {
                                 origDirStr = origDirStr.substr(1);
                             }
 
@@ -238,12 +279,14 @@ namespace worlds {
                             PHYSFS_Stat stat;
                             PHYSFS_stat(fullPath.c_str(), &stat);
 
-                            if (stat.filetype == PHYSFS_FILETYPE_REGULAR) {
+                            if (stat.filetype == PHYSFS_FILETYPE_REGULAR)
+                            {
                                 std::string strPath = fullPath;
                                 std::string removeStr = "Raw/";
 
                                 size_t pos = strPath.find(removeStr);
-                                if (pos != std::string::npos) {
+                                if (pos != std::string::npos)
+                                {
                                     slib::String ext = path.fileExtension();
                                     strPath.erase(pos, removeStr.size());
                                     pos = strPath.find(ext.cStr());
@@ -259,33 +302,38 @@ namespace worlds {
                                 }
                             }
                         }
-
                     }
                     ImGui::Separator();
                 }
 
-                if (ImGui::Button("New Folder")) {
+                if (ImGui::Button("New Folder"))
+                {
                     ImGui::CloseCurrentPopup();
                     openNewFolderPopup = true;
                 }
 
 #ifdef _WIN32
-                if (ImGui::Button("Open Folder in Explorer")) {
+                if (ImGui::Button("Open Folder in Explorer"))
+                {
                     ImGui::CloseCurrentPopup();
                     std::string rawAssetDir = std::string(editor->currentProject().root()) + "/Raw/" + currentDir;
                     logMsg("opening %s", rawAssetDir.c_str());
                     ShellExecuteA(nullptr, "open", rawAssetDir.c_str(), nullptr, nullptr, SW_SHOW);
                 }
 #elif defined(__linux__)
-                if (ImGui::Button("Open Folder in File Manager")) {
-                    std::string cmd = std::string("xdg-open ") + std::string(editor->currentProject().root()) + "/Raw/" + currentDir;
+                if (ImGui::Button("Open Folder in File Manager"))
+                {
+                    std::string cmd =
+                        std::string("xdg-open ") + std::string(editor->currentProject().root()) + "/Raw/" + currentDir;
                     system(cmd.c_str());
                 }
 #endif
 
-                for (size_t i = 0; i < AssetCompilers::registeredCompilerCount(); i++) {
-                    IAssetCompiler* compiler = AssetCompilers::registeredCompilers()[i];
-                    if (ImGui::Button(compiler->getSourceExtension())) {
+                for (size_t i = 0; i < AssetCompilers::registeredCompilerCount(); i++)
+                {
+                    IAssetCompiler *compiler = AssetCompilers::registeredCompilers()[i];
+                    if (ImGui::Button(compiler->getSourceExtension()))
+                    {
                         newAssetEditor = AssetEditors::getEditorFor(compiler->getSourceExtension());
                         newAssetName = std::string("New Asset") + compiler->getSourceExtension();
                         ImGui::CloseCurrentPopup();

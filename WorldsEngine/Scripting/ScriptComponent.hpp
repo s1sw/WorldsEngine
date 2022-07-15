@@ -1,12 +1,15 @@
 #pragma once
 #include <cstdint>
 
-namespace worlds {
+namespace worlds
+{
     typedef uint32_t AssetID;
 
-    struct ScriptComponent {
-        ScriptComponent(AssetID script)
-            : script{ script } {}
+    struct ScriptComponent
+    {
+        ScriptComponent(AssetID script) : script{script}
+        {
+        }
         AssetID script;
     };
 }

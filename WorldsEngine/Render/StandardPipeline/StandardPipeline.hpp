@@ -1,7 +1,8 @@
 #pragma once
 #include <Render/IRenderPipeline.hpp>
 
-namespace R2::VK {
+namespace R2::VK
+{
     class DescriptorSetLayout;
     class DescriptorSet;
     class Pipeline;
@@ -11,9 +12,11 @@ namespace R2::VK {
     class Core;
 }
 
-namespace worlds {
+namespace worlds
+{
     class VKRenderer;
 
-    class StandardPipeline : public IRenderPipeline {
+    class StandardPipeline : public IRenderPipeline
+    {
     };
 }

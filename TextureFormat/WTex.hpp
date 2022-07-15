@@ -2,16 +2,19 @@
 #include <stddef.h>
 #include <stdint.h>
 
-namespace wtex {
+namespace wtex
+{
     typedef uint64_t OffsetType;
 
-    enum class ContainedFormat {
+    enum class ContainedFormat
+    {
         RGBA,
         Crunch
     };
 
 #pragma pack(push, 1)
-    struct Header {
+    struct Header
+    {
         char magic[4] = {'W', 'T', 'E', 'X'};
         int32_t version = 1;
         ContainedFormat containedFormat;
@@ -22,18 +25,18 @@ namespace wtex {
         uint64_t dataSize;
         OffsetType dataOffset;
 
-        bool verifyMagic() {
-            return magic[0] == 'W' &&
-                   magic[1] == 'T' &&
-                   magic[2] == 'E' &&
-                   magic[3] == 'X';
+        bool verifyMagic()
+        {
+            return magic[0] == 'W' && magic[1] == 'T' && magic[2] == 'E' && magic[3] == 'X';
         }
 
-        void* getRelPtr(OffsetType offset) {
-            return ((char*)this) + offset;
+        void *getRelPtr(OffsetType offset)
+        {
+            return ((char *)this) + offset;
         }
 
-        void* getData() {
+        void *getData()
+        {
             return getRelPtr(dataOffset);
         }
     };

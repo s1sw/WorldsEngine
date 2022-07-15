@@ -2,9 +2,11 @@
 #include "../Util/Result.hpp"
 #include <string>
 
-namespace worlds {
+namespace worlds
+{
     typedef uint32_t AssetID;
-    enum class IOError {
+    enum class IOError
+    {
         None,
         FileNotFound,
         CouldntStat,
@@ -12,8 +14,10 @@ namespace worlds {
         Unknown
     };
 
-    inline const char* getIOErrorStr(IOError err) {
-        switch (err) {
+    inline const char *getIOErrorStr(IOError err)
+    {
+        switch (err)
+        {
         case IOError::None:
             return "none";
         case IOError::FileNotFound:
@@ -28,8 +32,8 @@ namespace worlds {
         return "";
     }
 
-    Result<void*, IOError> LoadFileToBuffer(std::string path, int64_t* fileLength);
+    Result<void *, IOError> LoadFileToBuffer(std::string path, int64_t *fileLength);
     Result<std::string, IOError> LoadFileToString(std::string path);
-    Result<void*, IOError> loadAssetToBuffer(AssetID id, int64_t* fileLength);
+    Result<void *, IOError> loadAssetToBuffer(AssetID id, int64_t *fileLength);
     bool canOpenFile(std::string path);
 }

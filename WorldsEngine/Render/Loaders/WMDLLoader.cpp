@@ -2,24 +2,28 @@
 #include <Core/Log.hpp>
 #include <WMDL.hpp>
 
-namespace worlds {
-    void loadWorldsModel(AssetID wmdlId, LoadedMeshData& lmd) {
-        PHYSFS_File* f = AssetDB::openAssetFileRead(wmdlId);
+namespace worlds
+{
+    void loadWorldsModel(AssetID wmdlId, LoadedMeshData &lmd)
+    {
+        PHYSFS_File *f = AssetDB::openAssetFileRead(wmdlId);
 
-        if (f == nullptr) {
+        if (f == nullptr)
+        {
             return;
         }
 
         size_t fileSize = PHYSFS_fileLength(f);
 
-        void* buf = malloc(fileSize);
+        void *buf = malloc(fileSize);
 
         PHYSFS_readBytes(f, buf, fileSize);
         PHYSFS_close(f);
 
-        wmdl::Header* wHdr = (wmdl::Header*)buf;
+        wmdl::Header *wHdr = (wmdl::Header *)buf;
 
-        if (!wHdr->verifyMagic()) {
+        if (!wHdr->verifyMagic())
+        {
             logErr("Failed to load %s: invalid magic", AssetDB::idToPath(wmdlId).c_str());
             return;
         }
@@ -27,13 +31,15 @@ namespace worlds {
         logVrb("loading wmdl: %i submeshes, small indices: %i", wHdr->numSubmeshes, wHdr->useSmallIndices);
 
         lmd.isSkinned = wHdr->isSkinned();
-        if (wHdr->isSkinned()) {
-            wmdl::SkinningInfoBlock* skinInfoBlock = wHdr->getSkinningInfoBlock();
+        if (wHdr->isSkinned())
+        {
+            wmdl::SkinningInfoBlock *skinInfoBlock = wHdr->getSkinningInfoBlock();
             logVrb("wmdl is skinned: %i bones", wHdr->getSkinningInfoBlock()->numBones);
             lmd.bones.resize(skinInfoBlock->numBones);
 
-            wmdl::Bone* bones = wHdr->getBones();
-            for (wmdl::CountType i = 0; i < skinInfoBlock->numBones; i++) {
+            wmdl::Bone *bones = wHdr->getBones();
+            for (wmdl::CountType i = 0; i < skinInfoBlock->numBones; i++)
+            {
                 lmd.bones[i].inverseBindPose = bones[i].inverseBindPose;
                 lmd.bones[i].transform = bones[i].transform;
                 lmd.bones[i].parentIdx = bones[i].parentBone;
@@ -41,16 +47,18 @@ namespace worlds {
             }
         }
 
-        wmdl::SubmeshInfo* submeshBlock = wHdr->getSubmeshBlock();
+        wmdl::SubmeshInfo *submeshBlock = wHdr->getSubmeshBlock();
         uint32_t numSubmeshes = wHdr->numSubmeshes;
-        if (numSubmeshes > NUM_SUBMESH_MATS) {
+        if (numSubmeshes > NUM_SUBMESH_MATS)
+        {
             logWarn("WMDL has more submeshes than possible");
             numSubmeshes = NUM_SUBMESH_MATS;
         }
 
         lmd.submeshes.resize(numSubmeshes);
 
-        for (wmdl::CountType i = 0; i < numSubmeshes; i++) {
+        for (wmdl::CountType i = 0; i < numSubmeshes; i++)
+        {
             lmd.submeshes[i].indexCount = submeshBlock[i].numIndices;
             lmd.submeshes[i].indexOffset = submeshBlock[i].indexOffset;
             lmd.submeshes[i].materialIndex = submeshBlock[i].materialIndex;
@@ -63,35 +71,42 @@ namespace worlds {
         else
             lmd.indices32.resize(wHdr->numIndices);
 
-        if (wHdr->version == 1) {
+        if (wHdr->version == 1)
+        {
             lmd.vertices.reserve(wHdr->numVertices);
 
-            for (wmdl::CountType i = 0; i < wHdr->numVertices; i++) {
+            for (wmdl::CountType i = 0; i < wHdr->numVertices; i++)
+            {
                 wmdl::Vertex v = wHdr->getVertexBlock()[i];
-                lmd.vertices.emplace_back(Vertex {
-                    .position = v.position,
-                    .normal = v.normal,
-                    .tangent = v.tangent,
-                    .bitangentSign = 1.0f,
-                    .uv = v.uv,
-                    .uv2 = v.uv2
-                });
+                lmd.vertices.emplace_back(Vertex{.position = v.position,
+                                                 .normal = v.normal,
+                                                 .tangent = v.tangent,
+                                                 .bitangentSign = 1.0f,
+                                                 .uv = v.uv,
+                                                 .uv2 = v.uv2});
             }
-        } else {
+        }
+        else
+        {
             lmd.vertices.resize(wHdr->numVertices);
 
             memcpy(lmd.vertices.data(), wHdr->getVertex2Block(), wHdr->numVertices * sizeof(wmdl::Vertex2));
         }
 
-        if (wHdr->isSkinned()) {
+        if (wHdr->isSkinned())
+        {
             lmd.skinningInfos.resize(wHdr->numVertices);
-            memcpy(lmd.skinningInfos.data(), wHdr->getVertexSkinningInfo(), wHdr->numVertices * sizeof(wmdl::VertexSkinningInfo));
+            memcpy(lmd.skinningInfos.data(), wHdr->getVertexSkinningInfo(),
+                   wHdr->numVertices * sizeof(wmdl::VertexSkinningInfo));
         }
 
-        if (wHdr->useSmallIndices) {
+        if (wHdr->useSmallIndices)
+        {
             lmd.indexType = IndexType::Uint16;
             memcpy(lmd.indices16.data(), wHdr->getIndexBlock(), wHdr->numIndices * sizeof(uint16_t));
-        } else {
+        }
+        else
+        {
             lmd.indexType = IndexType::Uint32;
             memcpy(lmd.indices32.data(), wHdr->getIndexBlock(), wHdr->numIndices * sizeof(uint32_t));
         }

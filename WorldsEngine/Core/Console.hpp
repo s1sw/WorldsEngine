@@ -1,46 +1,55 @@
 #pragma once
+#include <functional>
 #include <string>
 #include <unordered_map>
-#include <functional>
 
 #include <SDL_log.h>
 
-#include <Core/Log.hpp>
-#include <Core/Engine.hpp>
 #include <Core/ConVar.hpp>
+#include <Core/Engine.hpp>
+#include <Core/Log.hpp>
 
 struct ImGuiInputTextCallbackData;
 
-namespace std {
+namespace std
+{
     class thread;
 }
 
-namespace worlds {
+namespace worlds
+{
     class Console;
-    extern Console* g_console;
+    extern Console *g_console;
 
-    typedef std::function<void(void* obj, const char* argString)> CommandFuncPtr;
+    typedef std::function<void(void *obj, const char *argString)> CommandFuncPtr;
 
-    class Console {
-    public:
+    class Console
+    {
+      public:
         Console(bool openConsoleWindow, bool asyncStdinConsole = false);
-        void registerCommand(CommandFuncPtr funcPtr, const char* name, const char* help, void* obj = nullptr);
+        void registerCommand(CommandFuncPtr funcPtr, const char *name, const char *help, void *obj = nullptr);
         void drawWindow();
         void setShowState(bool show);
         void executeCommandStr(std::string cmdStr, bool log = true);
-        ConVar* getConVar(const char* name) { return conVars.at(name); }
+        ConVar *getConVar(const char *name)
+        {
+            return conVars.at(name);
+        }
         ~Console();
-    private:
+
+      private:
         bool show;
         bool setKeyboardFocus;
-        struct Command {
+        struct Command
+        {
             CommandFuncPtr func;
-            const char* name;
-            const char* help;
-            void* obj;
+            const char *name;
+            const char *help;
+            void *obj;
         };
 
-        struct ConsoleMsg {
+        struct ConsoleMsg
+        {
             SDL_LogPriority priority;
             std::string msg;
             int category;
@@ -51,19 +60,19 @@ namespace worlds {
         std::string currentCommand;
         std::vector<ConsoleMsg> msgs;
         std::vector<std::string> previousCommands;
-        std::unordered_map<std::string, ConVar*> conVars;
+        std::unordered_map<std::string, ConVar *> conVars;
         std::unordered_map<std::string, Command> commands;
-        FILE* logFile;
-        std::thread* asyncConsoleThread;
+        FILE *logFile;
+        std::thread *asyncConsoleThread;
         bool asyncCommandReady;
         std::string asyncCommand;
 
         void logConsoleResponse();
 
-        static int inputTextCallback(ImGuiInputTextCallbackData* data);
-        static void logCallback(void* con, int category, SDL_LogPriority priority, const char* msg);
-        static void cmdHelp(void* con, const char* argString);
-        static void cmdExec(void* con, const char* argString);
+        static int inputTextCallback(ImGuiInputTextCallbackData *data);
+        static void logCallback(void *con, int category, SDL_LogPriority priority, const char *msg);
+        static void cmdHelp(void *con, const char *argString);
+        static void cmdExec(void *con, const char *argString);
         friend class ConVar;
         friend void asyncConsole();
     };

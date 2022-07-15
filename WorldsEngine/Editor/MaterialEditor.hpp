@@ -6,16 +6,18 @@
 #include <Core/IGameEventHandler.hpp>
 #include <entt/entity/registry.hpp>
 
-namespace worlds {
-    struct EditableMaterial {
+namespace worlds
+{
+    struct EditableMaterial
+    {
         AssetID albedo = ~0u;
         AssetID normalMap = ~0u;
         AssetID metalMap = ~0u;
         AssetID roughMap = ~0u;
         AssetID heightMap = ~0u;
         AssetID pbrMap = ~0u;
-        glm::vec3 albedoColor = glm::vec3{ 1.0f, 1.0f, 1.0f };
-        glm::vec3 emissiveColor = glm::vec3{ 0.0f, 0.0f, 0.0f };
+        glm::vec3 albedoColor = glm::vec3{1.0f, 1.0f, 1.0f};
+        glm::vec3 emissiveColor = glm::vec3{0.0f, 0.0f, 0.0f};
         float metallic = 0.0f;
         float roughness = 0.75f;
         float alphaCutoff = 0.0f;
@@ -26,17 +28,19 @@ namespace worlds {
         bool useAlphaTest = false;
     };
 
-    class MaterialEditor : public IAssetEditor {
-    public:
+    class MaterialEditor : public IAssetEditor
+    {
+      public:
         MaterialEditor(AssetID id, EngineInterfaces interfaces);
         void draw() override;
         void save() override;
         bool hasUnsavedChanges() override;
         ~MaterialEditor();
-    private:
+
+      private:
         AssetID editingID = INVALID_ASSET;
         EngineInterfaces interfaces;
-        RTTPass* rttPass;
+        RTTPass *rttPass;
         Camera previewCam;
         entt::entity previewEntity;
         entt::registry previewRegistry;
@@ -49,11 +53,12 @@ namespace worlds {
         bool unsavedChanges = false;
     };
 
-    class MaterialEditorMeta : public IAssetEditorMeta {
-    public:
+    class MaterialEditorMeta : public IAssetEditorMeta
+    {
+      public:
         void importAsset(std::string filePath, std::string newAssetPath) override;
         void create(std::string path) override;
-        IAssetEditor* createEditorFor(AssetID id) override;
-        const char* getHandledExtension() override;
+        IAssetEditor *createEditorFor(AssetID id) override;
+        const char *getHandledExtension() override;
     };
 }
