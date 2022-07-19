@@ -29,5 +29,17 @@
         "outputPath": "fake_lit.frag.spv",
         "stage": "frag",
         "entryPoint": "FragmentShader"
+    },
+    {
+        "path": "standard.slang",
+        "outputPath": "standard.vert.spv",
+        "stage": "vert",
+        "entryPoint": "VertexShader"
+    },
+    {
+        "path": "standard.slang",
+        "outputPath": "standard.frag.spv",
+        "stage": "frag",
+        "entryPoint": "FragmentShader"
     }
 ]

@@ -1,8 +1,10 @@
 #include "ShaderReflector.hpp"
 #include <Core/Log.hpp>
+#include <Core/Fatal.hpp>
 #include <IO/IOUtil.hpp>
 #include <R2/VKCore.hpp>
 #include <R2/VKDescriptorSet.hpp>
+#include <R2/VKPipeline.hpp>
 
 using namespace R2;
 
@@ -33,6 +35,11 @@ namespace worlds
         spvReflectEnumerateDescriptorBindings(&mod, &numBindings, nullptr);
         reflectBindings.resize(numBindings);
         spvReflectEnumerateDescriptorBindings(&mod, &numBindings, reflectBindings.data());
+
+        uint32_t numInterfaceVars;
+        spvReflectEnumerateInputVariables(&mod, &numInterfaceVars, nullptr);
+        interfaceVars.resize(numInterfaceVars);
+        spvReflectEnumerateInputVariables(&mod, &numInterfaceVars, interfaceVars.data());
     }
 
     ShaderReflector::~ShaderReflector()
@@ -122,6 +129,25 @@ namespace worlds
         }
     }
 
+    void ShaderReflector::bindVertexAttribute(VK::VertexBinding& vb, const char* attribute, VK::TextureFormat format, uint32_t offset)
+    {
+        if (mod.shader_stage != SPV_REFLECT_SHADER_STAGE_VERTEX_BIT)
+        {
+            fatalErr("Can't bind a vertex attribute on a non-vertex shader");
+        }
+
+        for (SpvReflectInterfaceVariable* iv : interfaceVars)
+        {
+            if (strcmp(iv->name, attribute) == 0)
+            {
+                vb.Attributes.emplace_back(iv->location, format, offset);
+                break;
+            }
+        }
+
+        fatalErr("Failed to find vertex attribute");
+    }
+
     VertexAttributeBindings ShaderReflector::getVertexAttributeBindings()
     {
         VertexAttributeBindings bindings{-1, -1, -1, -1, -1, -1, -1};
@@ -131,13 +157,7 @@ namespace worlds
             return bindings;
         }
 
-        uint32_t numInputVariables;
-        std::vector<SpvReflectInterfaceVariable*> inVars;
-        spvReflectEnumerateInputVariables(&mod, &numInputVariables, nullptr);
-        inVars.resize(numInputVariables);
-        spvReflectEnumerateInputVariables(&mod, &numInputVariables, inVars.data());
-
-        for (SpvReflectInterfaceVariable* iv : inVars)
+        for (SpvReflectInterfaceVariable* iv : interfaceVars)
         {
             if (strcmp(iv->name, "inPosition") == 0)
             {
