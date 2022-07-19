@@ -1,4 +1,4 @@
-#include <Render/FakeLitPipeline.hpp>
+#include "StandardPipeline.hpp"
 #include <Core/AssetDB.hpp>
 #include <R2/VKBuffer.hpp>
 #include <R2/VKCommandBuffer.hpp>
@@ -8,8 +8,8 @@
 #include <R2/VKRenderPass.hpp>
 #include <R2/VKTexture.hpp>
 #include <Render/RenderInternal.hpp>
-#include <Render/ShaderCache.hpp>
 #include <Render/ShaderReflector.hpp>
+#include <Render/ShaderCache.hpp>
 #include <entt/entity/registry.hpp>
 
 using namespace R2;
@@ -21,10 +21,10 @@ namespace worlds
         uint32_t modelMatrixID;
     };
 
-    FakeLitPipeline::FakeLitPipeline(VKRenderer* renderer) : renderer(renderer)
+    StandardPipeline::StandardPipeline(VKRenderer* renederer) : renderer(renderer)
     {
         VK::Core* core = renderer->getCore();
-
+        
         VK::BufferCreateInfo vpBci{VK::BufferUsage::Uniform, sizeof(MultiVP), true};
         multiVPBuffer = core->CreateBuffer(vpBci);
 
@@ -52,12 +52,11 @@ namespace worlds
         VK::VertexBinding vb;
         vb.Size = sizeof(Vertex);
         vb.Binding = 0;
-        // TODO: This doesn't work because Slang doesn't preserve vertex attribute names
-        //sr.bindVertexAttribute(vb, "Position", VK::TextureFormat::R32G32B32_SFLOAT, offsetof(Vertex, position));
-        //sr.bindVertexAttribute(vb, "Normal", VK::TextureFormat::R32G32B32_SFLOAT, offsetof(Vertex, normal));
-
         vb.Attributes.emplace_back(0, VK::TextureFormat::R32G32B32_SFLOAT, offsetof(Vertex, position));
-        vb.Attributes.emplace_back(1, VK::TextureFormat::R32G32B32_SFLOAT, offsetof(Vertex, position));
+        vb.Attributes.emplace_back(1, VK::TextureFormat::R32G32B32_SFLOAT, offsetof(Vertex, normal));
+        vb.Attributes.emplace_back(2, VK::TextureFormat::R32G32B32_SFLOAT, offsetof(Vertex, tangent));
+        vb.Attributes.emplace_back(3, VK::TextureFormat::R32_SFLOAT, offsetof(Vertex, bitangentSign));
+        vb.Attributes.emplace_back(4, VK::TextureFormat::R32G32_SFLOAT, offsetof(Vertex, uv));
 
         VK::ShaderModule& stdVert = ShaderCache::getModule(vs);
         VK::ShaderModule& stdFrag = ShaderCache::getModule(fs);
@@ -66,7 +65,7 @@ namespace worlds
         pb.PrimitiveTopology(VK::Topology::TriangleList)
             .CullMode(VK::CullMode::Back)
             .Layout(pipelineLayout)
-            .ColorAttachmentFormat(VK::TextureFormat::R8G8B8A8_SRGB)
+            .ColorAttachmentFormat(VK::TextureFormat::R16G16B16A16_SFLOAT)
             .AddVertexBinding(std::move(vb))
             .AddShader(VK::ShaderStage::Vertex, stdVert)
             .AddShader(VK::ShaderStage::Fragment, stdFrag)
@@ -78,32 +77,36 @@ namespace worlds
         pipeline = pb.Build();
     }
 
-    FakeLitPipeline::~FakeLitPipeline()
+    void StandardPipeline::setup(VKRTTPass* rttPass)
     {
         VK::Core* core = renderer->getCore();
-        core->DestroyBuffer(multiVPBuffer);
-        core->DestroyBuffer(modelMatrixBuffer);
-        delete pipeline;
-        delete pipelineLayout;
-    }
-
-    void FakeLitPipeline::setup(VKRTTPass* rttPass)
-    {
         this->rttPass = rttPass;
+
         VK::TextureCreateInfo depthBufferCI =
             VK::TextureCreateInfo::RenderTarget2D(VK::TextureFormat::D32_SFLOAT, rttPass->width, rttPass->height);
-        depthBuffer = renderer->getCore()->CreateTexture(depthBufferCI);
+        depthBuffer = core->CreateTexture(depthBufferCI);
+
+        VK::TextureCreateInfo colorBufferCI =
+            VK::TextureCreateInfo::RenderTarget2D(VK::TextureFormat::R16G16B16A16_SFLOAT, rttPass->width, rttPass->height);
+        colorBuffer = core->CreateTexture(colorBufferCI);
     }
 
-    void FakeLitPipeline::onResize(int width, int height)
+    void StandardPipeline::onResize(int width, int height)
     {
-        renderer->getCore()->DestroyTexture(depthBuffer);
+        VK::Core* core = renderer->getCore();
+        core->DestroyTexture(depthBuffer);
+        core->DestroyTexture(colorBuffer);
+
         VK::TextureCreateInfo depthBufferCI =
             VK::TextureCreateInfo::RenderTarget2D(VK::TextureFormat::D32_SFLOAT, rttPass->width, rttPass->height);
-        depthBuffer = renderer->getCore()->CreateTexture(depthBufferCI);
+        depthBuffer = core->CreateTexture(depthBufferCI);
+
+        VK::TextureCreateInfo colorBufferCI =
+            VK::TextureCreateInfo::RenderTarget2D(VK::TextureFormat::R16G16B16A16_SFLOAT, rttPass->width, rttPass->height);
+        colorBuffer = core->CreateTexture(colorBufferCI);
     }
 
-    void FakeLitPipeline::draw(entt::registry& reg, R2::VK::CommandBuffer& cb)
+    void StandardPipeline::draw(entt::registry& reg, R2::VK::CommandBuffer& cb)
     {
         VK::Core* core = renderer->getCore();
         RenderMeshManager* meshManager = renderer->getMeshManager();

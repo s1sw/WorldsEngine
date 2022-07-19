@@ -18,6 +18,17 @@ namespace worlds
 
     class StandardPipeline : public IRenderPipeline
     {
+        R2::VK::DescriptorSetLayout* descriptorSetLayout;
+        R2::VK::DescriptorSet* descriptorSet;
+        R2::VK::Pipeline* pipeline;
+        R2::VK::PipelineLayout* pipelineLayout;
+        R2::VK::Buffer* multiVPBuffer;
+        R2::VK::Buffer* modelMatrixBuffer;
+        R2::VK::Texture* depthBuffer;
+        R2::VK::Texture* colorBuffer;
+
+        VKRenderer* renderer;
+        VKRTTPass* rttPass;
       public:
         StandardPipeline(VKRenderer* renderer);
         ~StandardPipeline();
