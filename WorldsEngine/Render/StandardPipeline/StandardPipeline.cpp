@@ -184,6 +184,39 @@ namespace worlds
                 cb.DrawIndexed(rsi.indexCount, 1, rsi.indexOffset, 0, 0);
             }
         });
+
+        reg.view<SkinnedWorldObject, Transform>().each([&](SkinnedWorldObject& wo, Transform& t)
+        {
+            RenderMeshInfo& rmi = meshManager->loadOrGet(wo.mesh);
+
+            modelMatricesMapped[modelMatrixIndex++] = t.getMatrix();
+            cb.BindVertexBuffer(0, meshManager->getVertexBuffer(), rmi.vertsOffset);
+
+            VK::IndexType vkIdxType =
+                rmi.indexType == IndexType::Uint32 ? VK::IndexType::Uint32 : VK::IndexType::Uint16;
+            cb.BindIndexBuffer(meshManager->getIndexBuffer(), rmi.indexOffset, vkIdxType);
+
+            for (int i = 0; i < rmi.numSubmeshes; i++)
+            {
+                RenderSubmeshInfo& rsi = rmi.submeshInfo[i];
+
+                StandardPushConstants spc{};
+                spc.modelMatrixID = modelMatrixIndex-1;
+                uint8_t materialIndex = rsi.materialIndex;
+
+                if (!wo.presentMaterials[materialIndex])
+                {
+                    materialIndex = 0;
+                }
+
+                AssetID albedoId = AssetDB::pathToId(materialManager->loadOrGet(wo.materials[materialIndex])["albedoPath"]);
+                spc.textureID = textureManager->loadOrGet(albedoId);
+                cb.PushConstants(spc, VK::ShaderStage::AllRaster, pipelineLayout);
+
+                cb.DrawIndexed(rsi.indexCount, 1, rsi.indexOffset, 0, 0);
+            }
+        });
+
         r.End(cb);
 
         modelMatrixBuffer->Unmap();
