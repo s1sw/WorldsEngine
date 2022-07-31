@@ -88,11 +88,11 @@ namespace R2::VK
     {
         for (int i = 0; i < numColorAttachments; i++)
         {
-            colorAttachments[i].Texture->WriteLayoutTransition(cb, ImageLayout::AttachmentOptimal);
+            colorAttachments[i].Texture->Acquire(cb, ImageLayout::AttachmentOptimal, AccessFlags::ColorAttachmentReadWrite);
         }
 
         if (depthAttachment.Texture)
-            depthAttachment.Texture->WriteLayoutTransition(cb, ImageLayout::AttachmentOptimal);
+            depthAttachment.Texture->Acquire(cb, ImageLayout::AttachmentOptimal, AccessFlags::DepthStencilAttachmentReadWrite);
 
         VkRenderingInfo renderInfo{ VK_STRUCTURE_TYPE_RENDERING_INFO };
         renderInfo.renderArea = VkRect2D{ { 0, 0 }, { width, height }, };
