@@ -26,7 +26,8 @@ namespace R2::VK
     }
 
     PipelineLayout::PipelineLayout(const Handles* handles, VkPipelineLayout layout)
-        : layout(layout)
+        : handles(handles)
+        , layout(layout)
     {}
 
     PipelineLayout::~PipelineLayout()
