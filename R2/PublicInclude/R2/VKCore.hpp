@@ -147,6 +147,8 @@ namespace R2::VK
 			char* StagingMapped;
 		};
 
+		void writeFrameUploadCommands(uint32_t index);
+
 		void setAllocCallbacks();
 		void createInstance(bool enableValidation);
 		void selectPhysicalDevice();
