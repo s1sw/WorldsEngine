@@ -15,8 +15,10 @@ namespace R2::VK
         void* pUserData)
     {
         Core* r = static_cast<Core*>(pUserData);
-        if (r->dbgOutRecv) r->dbgOutRecv->DebugMessage(pCallbackData->pMessage);
-        printf("vk: %s\n", pCallbackData->pMessage);
+        if (r->dbgOutRecv)
+            r->dbgOutRecv->DebugMessage(pCallbackData->pMessage);
+        else
+            printf("vk: %s\n", pCallbackData->pMessage);
         return VK_FALSE;
     }
 
