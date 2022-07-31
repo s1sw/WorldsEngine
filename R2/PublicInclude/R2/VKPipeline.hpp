@@ -140,4 +140,17 @@ namespace R2::VK
         bool depthWrite = false;
         CompareOp depthCompareOp = CompareOp::Always;
     };
+
+    class ComputePipelineBuilder
+    {
+    public:
+        ComputePipelineBuilder(const Handles* handles);
+        ComputePipelineBuilder& SetShader(ShaderModule& mod);
+        ComputePipelineBuilder& Layout(PipelineLayout* layout);
+        Pipeline* Build();
+    private:
+        const Handles* handles;
+        ShaderModule* shaderModule;
+        VkPipelineLayout pipelineLayout;
+    };
 }

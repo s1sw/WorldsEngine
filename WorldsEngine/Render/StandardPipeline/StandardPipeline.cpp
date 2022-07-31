@@ -1,5 +1,6 @@
 #include "StandardPipeline.hpp"
 #include <Core/AssetDB.hpp>
+#include <R2/BindlessTextureManager.hpp>
 #include <R2/VKBuffer.hpp>
 #include <R2/VKCommandBuffer.hpp>
 #include <R2/VKCore.hpp>
@@ -7,6 +8,7 @@
 #include <R2/VKPipeline.hpp>
 #include <R2/VKRenderPass.hpp>
 #include <R2/VKTexture.hpp>
+#include <Render/MaterialManager.hpp>
 #include <Render/RenderInternal.hpp>
 #include <Render/ShaderReflector.hpp>
 #include <Render/ShaderCache.hpp>
@@ -19,9 +21,10 @@ namespace worlds
     struct StandardPushConstants
     {
         uint32_t modelMatrixID;
+        uint32_t textureID;
     };
 
-    StandardPipeline::StandardPipeline(VKRenderer* renederer) : renderer(renderer)
+    StandardPipeline::StandardPipeline(VKRenderer* renderer) : renderer(renderer)
     {
         VK::Core* core = renderer->getCore();
         
@@ -31,8 +34,8 @@ namespace worlds
         VK::BufferCreateInfo modelMatrixBci{VK::BufferUsage::Storage, sizeof(glm::mat4) * 4096, true};
         modelMatrixBuffer = core->CreateBuffer(modelMatrixBci);
 
-        AssetID vs = AssetDB::pathToId("Shaders/fake_lit.vert.spv");
-        AssetID fs = AssetDB::pathToId("Shaders/fake_lit.frag.spv");
+        AssetID vs = AssetDB::pathToId("Shaders/standard.vert.spv");
+        AssetID fs = AssetDB::pathToId("Shaders/standard.frag.spv");
 
         ShaderReflector sr{vs};
 
@@ -46,7 +49,8 @@ namespace worlds
 
         VK::PipelineLayoutBuilder plb{core->GetHandles()};
         plb.PushConstants(VK::ShaderStage::Vertex | VK::ShaderStage::Fragment, 0, sizeof(StandardPushConstants))
-            .DescriptorSet(descriptorSetLayout);
+            .DescriptorSet(descriptorSetLayout)
+            .DescriptorSet(&renderer->getBindlessTextureManager()->GetTextureDescriptorSetLayout());
         pipelineLayout = plb.Build();
 
         VK::VertexBinding vb;
@@ -65,7 +69,7 @@ namespace worlds
         pb.PrimitiveTopology(VK::Topology::TriangleList)
             .CullMode(VK::CullMode::Back)
             .Layout(pipelineLayout)
-            .ColorAttachmentFormat(VK::TextureFormat::R16G16B16A16_SFLOAT)
+            .ColorAttachmentFormat(VK::TextureFormat::R8G8B8A8_SRGB)
             .AddVertexBinding(std::move(vb))
             .AddShader(VK::ShaderStage::Vertex, stdVert)
             .AddShader(VK::ShaderStage::Fragment, stdFrag)
@@ -75,6 +79,15 @@ namespace worlds
             .DepthAttachmentFormat(VK::TextureFormat::D32_SFLOAT);
 
         pipeline = pb.Build();
+    }
+
+    StandardPipeline::~StandardPipeline()
+    {
+        // todo
+        delete pipeline;
+        delete pipelineLayout;
+        delete multiVPBuffer;
+        delete modelMatrixBuffer;
     }
 
     void StandardPipeline::setup(VKRTTPass* rttPass)
@@ -110,6 +123,9 @@ namespace worlds
     {
         VK::Core* core = renderer->getCore();
         RenderMeshManager* meshManager = renderer->getMeshManager();
+        MaterialManager* materialManager = renderer->getMaterialManager();
+        BindlessTextureManager* btm = renderer->getBindlessTextureManager();
+        VKTextureManager* textureManager = renderer->getTextureManager();
 
         glm::mat4* modelMatricesMapped = (glm::mat4*)modelMatrixBuffer->Map();
 
@@ -133,18 +149,15 @@ namespace worlds
 
         cb.BindPipeline(pipeline);
         cb.BindGraphicsDescriptorSet(pipelineLayout, descriptorSet->GetNativeHandle(), 0);
-        cb.SetViewport(VK::Viewport::Simple(rttPass->width, rttPass->height));
+        cb.BindGraphicsDescriptorSet(pipelineLayout, btm->GetTextureDescriptorSet().GetNativeHandle(), 1);
+        cb.SetViewport(VK::Viewport::Simple((float)rttPass->width, (float)rttPass->height));
         cb.SetScissor(VK::ScissorRect::Simple(rttPass->width, rttPass->height));
 
-        reg.view<WorldObject, Transform>().each([&](WorldObject& wo, Transform& t) {
+        reg.view<WorldObject, Transform>().each([&](WorldObject& wo, Transform& t)
+        {
             RenderMeshInfo& rmi = meshManager->loadOrGet(wo.mesh);
 
-            StandardPushConstants spc{};
-            spc.modelMatrixID = modelMatrixIndex;
-            cb.PushConstants(spc, VK::ShaderStage::AllRaster, pipelineLayout);
-
             modelMatricesMapped[modelMatrixIndex++] = t.getMatrix();
-
             cb.BindVertexBuffer(0, meshManager->getVertexBuffer(), rmi.vertsOffset);
 
             VK::IndexType vkIdxType =
@@ -154,6 +167,20 @@ namespace worlds
             for (int i = 0; i < rmi.numSubmeshes; i++)
             {
                 RenderSubmeshInfo& rsi = rmi.submeshInfo[i];
+
+                StandardPushConstants spc{};
+                spc.modelMatrixID = modelMatrixIndex-1;
+                uint8_t materialIndex = rsi.materialIndex;
+
+                if (!wo.presentMaterials[materialIndex])
+                {
+                    materialIndex = 0;
+                }
+
+                AssetID albedoId = AssetDB::pathToId(materialManager->loadOrGet(wo.materials[materialIndex])["albedoPath"]);
+                spc.textureID = textureManager->loadOrGet(albedoId);
+                cb.PushConstants(spc, VK::ShaderStage::AllRaster, pipelineLayout);
+
                 cb.DrawIndexed(rsi.indexCount, 1, rsi.indexOffset, 0, 0);
             }
         });

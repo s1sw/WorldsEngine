@@ -175,7 +175,7 @@ namespace worlds
         R2::SubAllocatedBuffer* indexBuffer;
         R2::VK::Core* core;
 
-      public:
+    public:
         RenderMeshManager(R2::VK::Core* core);
         ~RenderMeshManager();
 
@@ -185,16 +185,16 @@ namespace worlds
         RenderMeshInfo& loadOrGet(AssetID id);
     };
 
-    class VKUITextureManager : public IUITextureManager
+    class VKTextureManager
     {
-      public:
-        VKUITextureManager(R2::VK::Core* core, R2::BindlessTextureManager* textureManager);
-        ~VKUITextureManager();
-        ImTextureID loadOrGet(AssetID id) override;
-        void unload(AssetID id) override;
+    public:
+        VKTextureManager(R2::VK::Core* core, R2::BindlessTextureManager* textureManager);
+        ~VKTextureManager();
+        uint32_t loadOrGet(AssetID id);
+        void unload(AssetID id);
 
-      private:
-        struct UITexInfo
+    private:
+        struct TexInfo
         {
             R2::VK::Texture* tex;
             uint32_t bindlessId;
@@ -203,7 +203,16 @@ namespace worlds
         uint32_t load(AssetID id);
         R2::VK::Core* core;
         R2::BindlessTextureManager* textureManager;
-        robin_hood::unordered_map<AssetID, UITexInfo> textureIds;
+        robin_hood::unordered_map<AssetID, TexInfo> textureIds;
+    };
+
+    class VKUITextureManager : public IUITextureManager
+    {
+        VKTextureManager* texMan;
+    public:
+        VKUITextureManager(VKTextureManager* texMan);
+        ImTextureID loadOrGet(AssetID id) override;
+        void unload(AssetID id) override;
     };
 
     class IRenderPipeline;
@@ -234,14 +243,18 @@ namespace worlds
         Camera* getCamera();
     };
 
+    class MaterialManager;
+
     class VKRenderer : public Renderer
     {
         R2::VK::Core* core;
         R2::VK::Swapchain* swapchain;
         R2::VK::Fence* frameFence;
-        R2::BindlessTextureManager* textureManager;
+        R2::BindlessTextureManager* bindlessTextureManager;
         VKUITextureManager* uiTextureManager;
+        VKTextureManager* textureManager;
         RenderMeshManager* renderMeshManager;
+        MaterialManager* materialManager;
 
         std::vector<VKRTTPass*> rttPasses;
 
@@ -273,7 +286,9 @@ namespace worlds
 
         R2::VK::Core* getCore();
         RenderMeshManager* getMeshManager();
+        MaterialManager* getMaterialManager();
         R2::BindlessTextureManager* getBindlessTextureManager();
+        VKTextureManager* getTextureManager();
     };
 
     enum class ShaderVariantFlags : uint32_t
