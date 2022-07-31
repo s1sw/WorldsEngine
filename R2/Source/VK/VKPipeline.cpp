@@ -312,4 +312,37 @@ namespace R2::VK
 
         return new Pipeline(handles, pipeline);
     }
+
+    ComputePipelineBuilder::ComputePipelineBuilder(const Handles* handles)
+        : handles(handles)
+    {
+    }
+
+    ComputePipelineBuilder& ComputePipelineBuilder::SetShader(ShaderModule& mod)
+    {
+        shaderModule = &mod;
+        return *this;
+    }
+
+    ComputePipelineBuilder& ComputePipelineBuilder::Layout(PipelineLayout* pl)
+    {
+        pipelineLayout = pl->GetNativeHandle();
+        return *this;
+    }
+
+    Pipeline* ComputePipelineBuilder::Build()
+    {
+        VkPipelineShaderStageCreateInfo sci{VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO};
+        sci.pName = "main";
+        sci.module = shaderModule->GetNativeHandle();
+        sci.stage = VK_SHADER_STAGE_COMPUTE_BIT;
+        VkComputePipelineCreateInfo cpci{VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO};
+        cpci.stage = sci;
+        cpci.layout = pipelineLayout;
+
+        VkPipeline pipeline;
+        VKCHECK(vkCreateComputePipelines(handles->Device, nullptr, 1, &cpci, handles->AllocCallbacks, &pipeline));
+
+        return new Pipeline(handles, pipeline);
+    }
 }

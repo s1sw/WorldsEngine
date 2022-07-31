@@ -1,6 +1,7 @@
 #include <R2/VKTexture.hpp>
 #include <R2/VKCore.hpp>
 #include <R2/VKCommandBuffer.hpp>
+#include <R2/VKDeletionQueue.hpp>>
 #include <volk.h>
 #include <vk_mem_alloc.h>
 #include <assert.h>
@@ -250,15 +251,26 @@ namespace R2::VK
     Texture::~Texture()
     {
         const Handles* handles = core->GetHandles();
+        DeletionQueue* dq;
+
+        if (core->inFrame)
+        {
+            dq = core->perFrameResources[core->frameIndex].DeletionQueue;
+        }
+        else
+        {
+            dq = core->perFrameResources[core->GetNextFrameIndex()].DeletionQueue;
+        }
+
         if (allocation)
         {
-            vmaDestroyImage(handles->Allocator, image, allocation);
-            vkDestroyImageView(handles->Device, imageView, handles->AllocCallbacks);
+            dq->QueueMemoryFree(allocation);
         }
-        else if (image)
+
+        if (image)
         {
-            vkDestroyImage(handles->Device, image, handles->AllocCallbacks);
-            vkDestroyImageView(handles->Device, imageView, handles->AllocCallbacks);
+            dq->QueueObjectDeletion(image, VK_OBJECT_TYPE_IMAGE);
+            dq->QueueObjectDeletion(imageView, VK_OBJECT_TYPE_IMAGE_VIEW);
         }
     }
 

@@ -241,6 +241,11 @@ namespace R2::VK
 		return frameIndex;
 	}
 
+	uint32_t Core::GetNextFrameIndex() const
+	{
+		return getNextFrameIndex(frameIndex);
+	}
+
 	void Core::EndFrame()
 	{
 		PerFrameResources& frameResources = perFrameResources[frameIndex];

@@ -170,6 +170,7 @@ namespace R2::VK
         features12.descriptorBindingPartiallyBound = true;
         features12.descriptorBindingVariableDescriptorCount = true;
         features12.descriptorBindingSampledImageUpdateAfterBind = true;
+        features12.descriptorBindingUniformBufferUpdateAfterBind = true;
         features12.runtimeDescriptorArray = true;
         features13.synchronization2 = true;
         features13.dynamicRendering = true;

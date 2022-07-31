@@ -30,13 +30,6 @@ enum VkDebugUtilsMessageSeverityFlagBitsEXT;
 
 namespace R2::VK
 {
-	struct VulkanException
-	{
-	public:
-		VkResult Result;
-		VulkanException(VkResult result) : Result(result) {}
-	};
-
 #define VKCHECK(res) if (res != VK_SUCCESS) { printf("RESULT: %i (file %s, line %i)", res, __FILE__, __LINE__); abort(); }
 	struct Queues
 	{
@@ -115,6 +108,7 @@ namespace R2::VK
 		void QueueBufferToTextureCopy(Buffer* buffer, Texture* texture, uint64_t bufferOffset = 0);
 		void QueueTextureUpload(Texture* texture, void* data, uint64_t dataSize);
 		uint32_t GetFrameIndex() const;
+		uint32_t GetNextFrameIndex() const;
 		void EndFrame();
 
 		void WaitIdle();

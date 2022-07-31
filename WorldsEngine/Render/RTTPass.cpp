@@ -14,7 +14,7 @@ namespace worlds
         TextureCreateInfo tci = TextureCreateInfo::Texture2D(TextureFormat::R8G8B8A8_SRGB, ci.width, ci.height);
         tci.IsRenderTarget = true;
         finalTarget = renderer->core->CreateTexture(tci);
-        finalTargetBindlessID = renderer->textureManager->AllocateTextureHandle(finalTarget);
+        finalTargetBindlessID = renderer->bindlessTextureManager->AllocateTextureHandle(finalTarget);
 
         width = ci.width;
         height = ci.height;
@@ -52,7 +52,7 @@ namespace worlds
         renderer->core->DestroyTexture(finalTarget);
 
         finalTarget = renderer->core->CreateTexture(tci);
-        renderer->textureManager->SetTextureAt(finalTargetBindlessID, finalTarget);
+        renderer->bindlessTextureManager->SetTextureAt(finalTargetBindlessID, finalTarget);
 
         width = newWidth;
         height = newHeight;

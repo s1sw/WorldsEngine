@@ -7,7 +7,7 @@ struct VertexInput
     [[vk::location(2)]]
     float3 Tangent : TANGENT;
     [[vk::location(3)]]
-    float TangentSign : TANGENTSIGN;
+    float BitangentSign : BITANGENTSIGN;
     [[vk::location(4)]]
     float2 UV : TEXCOORD;
 }
@@ -31,10 +31,14 @@ struct MultiVP
 ConstantBuffer<MultiVP> VPBuffer;
 StructuredBuffer<float4x4> ModelMatrices;
 
+[[vk::binding(0, 1)]]
+Sampler2D<float4> Textures[];
+
 [[vk::push_constant]]
 cbuffer PushConstants
 {
     uint ModelMatrixID;
+    uint TextureID;
 }
 
 [shader("vertex")]
@@ -46,7 +50,7 @@ VertexOutput VertexShader(VertexInput input, uint viewIndex : SV_ViewID)
     float4x4 mvp = mul(VPBuffer.ProjectionMatrices[viewIndex], mul(VPBuffer.ViewMatrices[viewIndex], model));
     output.Position = mul(mvp, float4(input.Position, 1.0));
     output.Normal = mul(model, float4(input.Normal, 0.0)).xyz;
-    output.Tangent = float4(mul(model, float4(input.Tangent, 0.0)).xyz, input.bitangentSign);
+    output.TangentWithSign = float4(mul(model, float4(input.Tangent, 0.0)).xyz, input.BitangentSign);
     output.UV = input.UV;
     output.Position.y = -output.Position.y;
 
@@ -59,5 +63,5 @@ float4 FragmentShader(VertexOutput input) : SV_TARGET
     float3 color = float3(0.713, 0.769, 0.859);
     color *= clamp(dot(input.Normal, float3(0.0, 1.0, 0.0)), 0.1, 1.0);
 
-    return float4(color, 1.0);
+    return float4(color * Textures[TextureID].Sample(input.UV).xyz, 1.0);
 }

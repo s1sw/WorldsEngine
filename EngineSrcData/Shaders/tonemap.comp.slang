@@ -131,8 +131,9 @@ void main(uint3 threadID : SV_DispatchThreadID)
     float3 bloom = bloomImage.Sample(float3(uv * resolutionScale, idx)).xyz;
     bloom = max(bloom, float3(0.0));
 
-    AMDReversibleTonemapper reversibleTonemap;
 #ifdef MSAA
+    // If we're using MSAA, resolve using the reversible tonemapper
+    AMDReversibleTonemapper reversibleTonemap;
     for (int i = 0; i < texSettings.msaaSamples; i++)
     {
         float3 raw = hdrImage.Load(int3(threadID.xy, idx), i).xyz;
@@ -143,12 +144,15 @@ void main(uint3 threadID : SV_DispatchThreadID)
     accumulator *= rcp(texSettings.msaaSamples);
     accumulator = reversibleTonemap.TonemapInvert(accumulator);
 #else
+    // Otherwise just load it directly
     accumulator = hdrImage.Load(int4(threadID.xy, idx, 0)).xyz;
 #endif
 
+    // Tonemap
     ITonemapper tonemapper = Uncharted2Tonemapper();
     accumulator = saturate(tonemapper.Tonemap(accumulator, exposureBias));
 
+    // Apply circular vignette
     float2 centerVec = (uv - float2(0.5, 0.5));
     float smoothness = 0.2;
     float vig = smoothstep(vignetteRadius, vignetteRadius - vignetteSoftness, length(centerVec));

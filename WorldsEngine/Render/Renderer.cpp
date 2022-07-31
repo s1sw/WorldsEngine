@@ -8,9 +8,11 @@
 #include <R2/VKSyncPrims.hpp>
 #include <R2/VKTexture.hpp>
 #include <Render/FakeLitPipeline.hpp>
+#include <Render/MaterialManager.hpp>
 #include <Render/R2ImGui.hpp>
 #include <Render/RenderInternal.hpp>
 #include <Render/ShaderCache.hpp>
+#include <Render/StandardPipeline/StandardPipeline.hpp>
 #include <SDL_vulkan.h>
 
 using namespace R2;
@@ -38,11 +40,13 @@ namespace worlds
 
         debugStats = RenderDebugStats{};
 
-        textureManager = new R2::BindlessTextureManager(core);
-        uiTextureManager = new VKUITextureManager(core, textureManager);
+        materialManager = new MaterialManager();
+        bindlessTextureManager = new R2::BindlessTextureManager(core);
+        textureManager = new VKTextureManager(core, bindlessTextureManager);
+        uiTextureManager = new VKUITextureManager(textureManager);
         renderMeshManager = new RenderMeshManager(core);
 
-        if (!ImGui_ImplR2_Init(core, textureManager))
+        if (!ImGui_ImplR2_Init(core, bindlessTextureManager))
             return;
 
         R2::VK::GraphicsDeviceInfo deviceInfo = core->GetDeviceInfo();
@@ -61,6 +65,7 @@ namespace worlds
         delete renderMeshManager;
         delete uiTextureManager;
         delete textureManager;
+        delete bindlessTextureManager;
 
         delete core;
     }
@@ -78,7 +83,7 @@ namespace worlds
         swapchain->GetSize(width, height);
 
         core->BeginFrame();
-        textureManager->UpdateDescriptorsIfNecessary();
+        bindlessTextureManager->UpdateDescriptorsIfNecessary();
 
         VK::CommandBuffer cb = core->GetFrameCommandBuffer();
 
@@ -151,7 +156,7 @@ namespace worlds
 
     RTTPass* VKRenderer::createRTTPass(RTTPassCreateInfo& ci)
     {
-        IRenderPipeline* renderPipeline = new FakeLitPipeline(this);
+        IRenderPipeline* renderPipeline = new StandardPipeline(this);
 
         VKRTTPass* pass = new VKRTTPass(this, ci, renderPipeline);
         renderPipeline->setup(pass);
@@ -176,7 +181,17 @@ namespace worlds
         return renderMeshManager;
     }
 
+    MaterialManager* VKRenderer::getMaterialManager()
+    {
+        return materialManager;
+    }
+
     R2::BindlessTextureManager* VKRenderer::getBindlessTextureManager()
+    {
+        return bindlessTextureManager;
+    }
+
+    VKTextureManager* VKRenderer::getTextureManager()
     {
         return textureManager;
     }
