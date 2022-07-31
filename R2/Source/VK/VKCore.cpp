@@ -227,13 +227,31 @@ namespace R2::VK
 		PerFrameResources& frameResources = perFrameResources[frameIndex];
 
 		uint64_t uploadedOffset = frameResources.StagingOffset;
-		if (dataSize + uploadedOffset >= STAGING_BUFFER_SIZE) abort();
+		uint64_t requiredPadding = uploadedOffset % 16;
 
-		memcpy(frameResources.StagingMapped + uploadedOffset, data, dataSize);
+		if (dataSize + uploadedOffset + requiredPadding >= STAGING_BUFFER_SIZE)
+		{
+			this->dbgOutRecv->DebugMessage("Flushing staged texture uploads!!! THIS IS A STALL");
+			writeFrameUploadCommands(frameIndex);
 
-		frameResources.BufferToTextureCopies.emplace_back(frameResources.StagingBuffer, texture, uploadedOffset);
+			VkSubmitInfo uploadSubmitInfo{ VK_STRUCTURE_TYPE_SUBMIT_INFO };
 
-		frameResources.StagingOffset += dataSize;
+			uploadSubmitInfo.commandBufferCount = 1;
+			uploadSubmitInfo.pCommandBuffers = &frameResources.UploadCommandBuffer;
+			uploadSubmitInfo.pSignalSemaphores = &frameResources.UploadSemaphore;
+			uploadSubmitInfo.signalSemaphoreCount = 0;
+
+			VKCHECK(vkQueueSubmit(handles.Queues.Graphics, 1, &uploadSubmitInfo, VK_NULL_HANDLE));
+			WaitIdle();
+			uploadedOffset = 0;
+			requiredPadding = 0;
+		}
+
+		memcpy(frameResources.StagingMapped + uploadedOffset + requiredPadding, data, dataSize);
+
+		frameResources.BufferToTextureCopies.emplace_back(frameResources.StagingBuffer, texture, uploadedOffset + requiredPadding);
+
+		frameResources.StagingOffset += dataSize + requiredPadding;
 	}
 
 	uint32_t Core::GetFrameIndex() const
@@ -251,47 +269,7 @@ namespace R2::VK
 		PerFrameResources& frameResources = perFrameResources[frameIndex];
 		VKCHECK(vkEndCommandBuffer(frameResources.CommandBuffer));
 
-		VKCHECK(vkResetCommandBuffer(frameResources.UploadCommandBuffer, 0));
-
-		// Record upload command buffer
-		VkCommandBufferBeginInfo cbbi{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
-		cbbi.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-		VKCHECK(vkBeginCommandBuffer(frameResources.UploadCommandBuffer, &cbbi));
-
-		// Handle pending buffer uploads
-		for (BufferUpload& bu : frameResources.BufferUploads)
-		{
-			frameResources.StagingBuffer->CopyTo(frameResources.UploadCommandBuffer, 
-				bu.Buffer, bu.DataSize, bu.StagingOffset, bu.DataOffset);
-		}
-
-		frameResources.BufferUploads.clear();
-
-		for (BufferToTextureCopy& bttc : frameResources.BufferToTextureCopies)
-		{
-			VkBufferImageCopy vbic{};
-			vbic.imageSubresource.layerCount = 1;
-			vbic.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-			vbic.imageExtent.width = bttc.Texture->GetWidth();
-			vbic.imageExtent.height = bttc.Texture->GetHeight();
-			vbic.imageExtent.depth = 1;
-			vbic.bufferOffset = bttc.BufferOffset;
-
-			bttc.Texture->WriteLayoutTransition(frameResources.UploadCommandBuffer, ImageLayout::TransferDstOptimal);
-
-			vkCmdCopyBufferToImage(frameResources.UploadCommandBuffer, bttc.Buffer->GetNativeHandle(),
-				bttc.Texture->GetNativeHandle(),
-				VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &vbic);
-
-			bttc.Texture->WriteLayoutTransition(frameResources.UploadCommandBuffer,
-				ImageLayout::TransferDstOptimal, ImageLayout::ReadOnlyOptimal);
-		}
-
-		frameResources.BufferToTextureCopies.clear();
-
-		frameResources.StagingOffset = 0;
-
-		VKCHECK(vkEndCommandBuffer(frameResources.UploadCommandBuffer));
+		writeFrameUploadCommands(frameIndex);
 
 		// Submit upload command buffer...
 		VkSubmitInfo uploadSubmitInfo{ VK_STRUCTURE_TYPE_SUBMIT_INFO };
@@ -357,5 +335,51 @@ namespace R2::VK
 	const Handles* Core::GetHandles() const
 	{
 		return &handles;
+	}
+
+	void Core::writeFrameUploadCommands(uint32_t index)
+	{
+		PerFrameResources& frameResources = perFrameResources[index];
+
+		VKCHECK(vkResetCommandBuffer(frameResources.UploadCommandBuffer, 0));
+
+		// Record upload command buffer
+		VkCommandBufferBeginInfo cbbi{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
+		cbbi.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+		VKCHECK(vkBeginCommandBuffer(frameResources.UploadCommandBuffer, &cbbi));
+
+		// Handle pending buffer uploads
+		for (BufferUpload& bu : frameResources.BufferUploads)
+		{
+			frameResources.StagingBuffer->CopyTo(frameResources.UploadCommandBuffer, 
+				bu.Buffer, bu.DataSize, bu.StagingOffset, bu.DataOffset);
+		}
+
+		for (BufferToTextureCopy& bttc : frameResources.BufferToTextureCopies)
+		{
+			VkBufferImageCopy vbic{};
+			vbic.imageSubresource.layerCount = 1;
+			vbic.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			vbic.imageExtent.width = bttc.Texture->GetWidth();
+			vbic.imageExtent.height = bttc.Texture->GetHeight();
+			vbic.imageExtent.depth = 1;
+			vbic.bufferOffset = bttc.BufferOffset;
+
+			bttc.Texture->WriteLayoutTransition(frameResources.UploadCommandBuffer, ImageLayout::TransferDstOptimal);
+
+			vkCmdCopyBufferToImage(frameResources.UploadCommandBuffer, bttc.Buffer->GetNativeHandle(),
+				bttc.Texture->GetNativeHandle(),
+				VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &vbic);
+
+			bttc.Texture->WriteLayoutTransition(frameResources.UploadCommandBuffer,
+				ImageLayout::TransferDstOptimal, ImageLayout::ReadOnlyOptimal);
+		}
+
+		// Reset the queue
+		frameResources.BufferUploads.clear();
+		frameResources.BufferToTextureCopies.clear();
+		frameResources.StagingOffset = 0;
+
+		VKCHECK(vkEndCommandBuffer(frameResources.UploadCommandBuffer));
 	}
 }
