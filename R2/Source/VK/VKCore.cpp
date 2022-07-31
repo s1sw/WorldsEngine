@@ -226,6 +226,62 @@ namespace R2::VK
 	{
 		PerFrameResources& frameResources = perFrameResources[frameIndex];
 
+		if (dataSize >= STAGING_BUFFER_SIZE)
+		{
+			this->dbgOutRecv->DebugMessage("Queued texture too big to go in staging buffer! THIS IS A STALL");
+
+			VkBufferCreateInfo bci{ VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
+			bci.size = dataSize;
+			bci.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+
+			VmaAllocationCreateInfo vaci{};
+			vaci.usage = VMA_MEMORY_USAGE_AUTO;
+			vaci.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+			VkBuffer tempBuffer;
+			VmaAllocation tempAlloc;
+			VmaAllocationInfo tempAllocInfo{};
+			VKCHECK(vmaCreateBuffer(handles.Allocator, &bci, &vaci, &tempBuffer, &tempAlloc, &tempAllocInfo));
+
+			memcpy(tempAllocInfo.pMappedData, data, dataSize);
+
+			VKCHECK(vkResetCommandBuffer(frameResources.UploadCommandBuffer, 0));
+
+			// Record upload command buffer
+			VkCommandBufferBeginInfo cbbi{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
+			cbbi.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+			VKCHECK(vkBeginCommandBuffer(frameResources.UploadCommandBuffer, &cbbi));
+
+			VkBufferImageCopy vbic{};
+			vbic.imageSubresource.layerCount = 1;
+			vbic.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			vbic.imageExtent.width = texture->GetWidth();
+			vbic.imageExtent.height = texture->GetHeight();
+			vbic.imageExtent.depth = 1;
+			vbic.bufferOffset = 0;
+
+			texture->Acquire(frameResources.UploadCommandBuffer, ImageLayout::TransferDstOptimal, AccessFlags::TransferWrite);
+
+			vkCmdCopyBufferToImage(frameResources.UploadCommandBuffer, tempBuffer,
+				texture->GetNativeHandle(),
+				VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &vbic);
+
+			texture->Acquire(frameResources.UploadCommandBuffer, ImageLayout::ReadOnlyOptimal, AccessFlags::MemoryRead);
+
+			VKCHECK(vkEndCommandBuffer(frameResources.UploadCommandBuffer));
+
+			VkSubmitInfo uploadSubmitInfo{ VK_STRUCTURE_TYPE_SUBMIT_INFO };
+
+			uploadSubmitInfo.commandBufferCount = 1;
+			uploadSubmitInfo.pCommandBuffers = &frameResources.UploadCommandBuffer;
+
+			VKCHECK(vkQueueSubmit(handles.Queues.Graphics, 1, &uploadSubmitInfo, VK_NULL_HANDLE));
+			WaitIdle();
+
+			vmaDestroyBuffer(handles.Allocator, tempBuffer, tempAlloc);
+
+			return;
+		}
+
 		uint64_t uploadedOffset = frameResources.StagingOffset;
 		uint64_t requiredPadding = uploadedOffset % 16;
 
@@ -238,8 +294,6 @@ namespace R2::VK
 
 			uploadSubmitInfo.commandBufferCount = 1;
 			uploadSubmitInfo.pCommandBuffers = &frameResources.UploadCommandBuffer;
-			uploadSubmitInfo.pSignalSemaphores = &frameResources.UploadSemaphore;
-			uploadSubmitInfo.signalSemaphoreCount = 0;
 
 			VKCHECK(vkQueueSubmit(handles.Queues.Graphics, 1, &uploadSubmitInfo, VK_NULL_HANDLE));
 			WaitIdle();
@@ -365,14 +419,13 @@ namespace R2::VK
 			vbic.imageExtent.depth = 1;
 			vbic.bufferOffset = bttc.BufferOffset;
 
-			bttc.Texture->WriteLayoutTransition(frameResources.UploadCommandBuffer, ImageLayout::TransferDstOptimal);
+			bttc.Texture->Acquire(frameResources.UploadCommandBuffer, ImageLayout::TransferDstOptimal, AccessFlags::TransferWrite);
 
 			vkCmdCopyBufferToImage(frameResources.UploadCommandBuffer, bttc.Buffer->GetNativeHandle(),
 				bttc.Texture->GetNativeHandle(),
 				VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &vbic);
 
-			bttc.Texture->WriteLayoutTransition(frameResources.UploadCommandBuffer,
-				ImageLayout::TransferDstOptimal, ImageLayout::ReadOnlyOptimal);
+			bttc.Texture->Acquire(frameResources.UploadCommandBuffer, ImageLayout::ReadOnlyOptimal, AccessFlags::MemoryRead);
 		}
 
 		// Reset the queue

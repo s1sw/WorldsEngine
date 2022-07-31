@@ -187,7 +187,7 @@ namespace R2::VK
 
         for (VkImage image : images)
         {
-            imageTextures.push_back(new Texture(renderer, image, swapTexInfo));
+            imageTextures.push_back(new Texture(renderer, image, ImageLayout::Undefined, swapTexInfo));
         }
 
         this->width = createInfo.imageExtent.width;
@@ -196,7 +196,7 @@ namespace R2::VK
         VkCommandBuffer cb = Utils::AcquireImmediateCommandBuffer();
         for (Texture* tex : imageTextures)
         {
-            tex->WriteLayoutTransition(VK::CommandBuffer(cb), ImageLayout::PresentSrc);
+            tex->Acquire(cb, ImageLayout::PresentSrc, AccessFlags::MemoryRead);
         }
         Utils::ExecuteImmediateCommandBuffer();
     }

@@ -102,8 +102,7 @@ namespace worlds
         rp.ColorAttachmentClearValue(VK::ClearValue::FloatColorClear(0.f, 0.f, 0.f, 1.0f));
         rp.RenderArea(width, height);
 
-        swapchainImage->WriteLayoutTransition(core->GetFrameCommandBuffer(), VK::ImageLayout::PresentSrc,
-                                              VK::ImageLayout::AttachmentOptimal);
+        swapchainImage->Acquire(cb, VK::ImageLayout::AttachmentOptimal, VK::AccessFlags::ColorAttachmentWrite);
 
         rp.Begin(cb);
 
@@ -113,8 +112,7 @@ namespace worlds
 
         rp.End(core->GetFrameCommandBuffer());
 
-        swapchainImage->WriteLayoutTransition(core->GetFrameCommandBuffer(), VK::ImageLayout::AttachmentOptimal,
-                                              VK::ImageLayout::PresentSrc);
+        swapchainImage->Acquire(cb, VK::ImageLayout::PresentSrc, VK::AccessFlags::MemoryRead);
 
         core->EndFrame();
         swapchain->Present();

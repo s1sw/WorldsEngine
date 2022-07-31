@@ -1,7 +1,7 @@
 #include <R2/VKTexture.hpp>
 #include <R2/VKCore.hpp>
 #include <R2/VKCommandBuffer.hpp>
-#include <R2/VKDeletionQueue.hpp>>
+#include <R2/VKDeletionQueue.hpp>
 #include <volk.h>
 #include <vk_mem_alloc.h>
 #include <assert.h>
@@ -72,6 +72,8 @@ namespace R2::VK
 
     Texture::Texture(Core* core, const TextureCreateInfo& createInfo)
         : core(core)
+        , lastLayout(ImageLayout::Undefined)
+        , lastAccess(AccessFlags::None)
     {
         VkImageCreateInfo ici{ VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
         ici.extent.width = createInfo.Width;
@@ -139,10 +141,12 @@ namespace R2::VK
         VKCHECK(vkCreateImageView(handles->Device, &ivci, handles->AllocCallbacks, &imageView));
     }
 
-    Texture::Texture(Core* core, VkImage image, const TextureCreateInfo& createInfo)
+    Texture::Texture(Core* core, VkImage image, ImageLayout layout, const TextureCreateInfo& createInfo)
         : image(image)
         , allocation(nullptr)
         , core(core)
+        , lastLayout(layout)
+        , lastAccess(AccessFlags::MemoryRead | AccessFlags::MemoryWrite)
     {
         // Now copy everything...
         width = createInfo.Width;
@@ -206,6 +210,66 @@ namespace R2::VK
     TextureFormat Texture::GetFormat()
     {
         return format;
+    }
+
+    bool hasAF(AccessFlags access, AccessFlags test)
+    {
+        return ((uint64_t)access & (uint64_t)test) != 0;
+    }
+
+    VkPipelineStageFlags2 getPipelineStage(AccessFlags access)
+    {
+        VkPipelineStageFlags2 pFlags = 0;
+
+        if (hasAF(access, AccessFlags::ColorAttachmentReadWrite))
+        {
+            pFlags |= VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
+        }
+
+        if (hasAF(access, AccessFlags::DepthStencilAttachmentReadWrite))
+        {
+            pFlags |= VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT;
+        }
+
+        if (hasAF(access, AccessFlags::ShaderRead) || hasAF(access, AccessFlags::ShaderWrite))
+        {
+            pFlags |= VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
+        }
+
+        if (hasAF(access, AccessFlags::IndexRead))
+        {
+            pFlags |= VK_PIPELINE_STAGE_2_INDEX_INPUT_BIT;
+        }
+
+        if (pFlags == 0)
+        {
+            pFlags = VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT;
+        }
+
+        return pFlags;
+    }
+
+    void Texture::Acquire(CommandBuffer cb, ImageLayout layout, AccessFlags access)
+    {
+        VkImageMemoryBarrier2 imb{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2 };
+        imb.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        imb.newLayout = (VkImageLayout)layout;
+        imb.subresourceRange = VkImageSubresourceRange{ getAspectFlags(), 0, (uint32_t)numMips, 0, (uint32_t)layers };
+        imb.image = image;
+        imb.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        imb.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        imb.srcAccessMask = (VkAccessFlags2)lastAccess;
+        imb.dstAccessMask = (VkAccessFlags2)access;
+
+        imb.srcStageMask = (VkPipelineStageFlags2)getPipelineStage(lastAccess);
+        imb.dstStageMask = (VkPipelineStageFlags2)getPipelineStage(access);
+
+        VkDependencyInfo depInfo{ VK_STRUCTURE_TYPE_DEPENDENCY_INFO };
+        depInfo.imageMemoryBarrierCount = 1;
+        depInfo.pImageMemoryBarriers = &imb;
+        depInfo.dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+
+        vkCmdPipelineBarrier2(cb.GetNativeHandle(), &depInfo);
     }
 
     void Texture::WriteLayoutTransition(CommandBuffer cb, ImageLayout layout)
