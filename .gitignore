@@ -376,3 +376,5 @@ WorldsEngine/Serialization/meson.build
 WorldsEngine/UI/meson.build
 WorldsEngine/Util/meson.build
 WorldsEngine/VR/meson.build
+.vscode/
+EngineSrcData/Shaders/BuildTools/slang-stdlib.bin
