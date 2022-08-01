@@ -129,6 +129,30 @@ namespace worlds
         }
     }
 
+    void ShaderReflector::bindSampledTexture(R2::VK::DescriptorSetUpdater& dsu, const char* bindPoint, R2::VK::Texture* texture, R2::VK::Sampler* sampler)
+    {
+        for (SpvReflectDescriptorBinding* binding : reflectBindings)
+        {
+            if (strcmp(binding->name, bindPoint) == 0)
+            {
+                dsu.AddTexture(binding->binding, 0, (VK::DescriptorType)binding->descriptor_type, texture, sampler);
+                return;
+            }
+        }
+    }
+
+    void ShaderReflector::bindStorageTexture(R2::VK::DescriptorSetUpdater& dsu, const char* bindPoint, R2::VK::Texture* texture)
+    {
+        for (SpvReflectDescriptorBinding* binding : reflectBindings)
+        {
+            if (strcmp(binding->name, bindPoint) == 0)
+            {
+                dsu.AddTexture(binding->binding, 0, (VK::DescriptorType)binding->descriptor_type, texture);
+                return;
+            }
+        }
+    }
+
     void ShaderReflector::bindVertexAttribute(VK::VertexBinding& vb, const char* attribute, VK::TextureFormat format, uint32_t offset)
     {
         if (mod.shader_stage != SPV_REFLECT_SHADER_STAGE_VERTEX_BIT)
@@ -146,6 +170,18 @@ namespace worlds
         }
 
         fatalErr("Failed to find vertex attribute");
+    }
+
+    bool ShaderReflector::usesPushConstants()
+    {
+        return mod.push_constant_block_count > 0;
+    }
+
+    uint32_t ShaderReflector::getPushConstantsSize()
+    {
+        if (!usesPushConstants()) return 0;
+
+        return mod.push_constant_blocks[0].padded_size;
     }
 
     VertexAttributeBindings ShaderReflector::getVertexAttributeBindings()

@@ -68,6 +68,10 @@ namespace R2::VK
         void BindGraphicsDescriptorSet(PipelineLayout* pipelineLayout, VkDescriptorSet descriptorSet, uint32_t setNumber);
         void DrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance);
 
+        void BindComputePipeline(Pipeline* p);
+        void BindComputeDescriptorSet(PipelineLayout* pipelineLayout, VkDescriptorSet descriptorSet, uint32_t setNumber);
+        void Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ);
+
         template <typename T>
         void PushConstants(const T& data, ShaderStage stage, PipelineLayout* pipelineLayout) { PushConstants(&data, sizeof(data), stage, pipelineLayout); }
         void PushConstants(const void* data, size_t dataSize, ShaderStage stages, PipelineLayout* pipelineLayout);

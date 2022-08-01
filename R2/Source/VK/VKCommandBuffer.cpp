@@ -65,6 +65,22 @@ namespace R2::VK
         vkCmdDrawIndexed(cb, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
     }
 
+    void CommandBuffer::BindComputePipeline(Pipeline* p)
+    {
+        vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_COMPUTE, p->GetNativeHandle());
+    }
+
+    void CommandBuffer::BindComputeDescriptorSet(PipelineLayout* pipelineLayout, VkDescriptorSet set, uint32_t setNumber)
+    {
+        vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout->GetNativeHandle(),
+            setNumber, 1, &set, 0, nullptr);
+    }
+
+    void CommandBuffer::Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
+    {
+        vkCmdDispatch(cb, groupCountX, groupCountY, groupCountZ);
+    }
+
     void CommandBuffer::PushConstants(const void* data, size_t dataSize, ShaderStage stages, PipelineLayout* pipelineLayout)
     {
         vkCmdPushConstants(cb, pipelineLayout->GetNativeHandle(),

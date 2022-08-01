@@ -12,6 +12,7 @@
 #include <Render/RenderInternal.hpp>
 #include <Render/ShaderReflector.hpp>
 #include <Render/ShaderCache.hpp>
+#include <Render/StandardPipeline/Tonemapper.hpp>
 #include <entt/entity/registry.hpp>
 
 using namespace R2;
@@ -23,6 +24,8 @@ namespace worlds
         uint32_t modelMatrixID;
         uint32_t textureID;
     };
+
+    const VK::TextureFormat colorBufferFormat = VK::TextureFormat::R16G16B16A16_SFLOAT;
 
     StandardPipeline::StandardPipeline(VKRenderer* renderer) : renderer(renderer)
     {
@@ -69,7 +72,7 @@ namespace worlds
         pb.PrimitiveTopology(VK::Topology::TriangleList)
             .CullMode(VK::CullMode::Back)
             .Layout(pipelineLayout)
-            .ColorAttachmentFormat(VK::TextureFormat::R8G8B8A8_SRGB)
+            .ColorAttachmentFormat(colorBufferFormat)
             .AddVertexBinding(std::move(vb))
             .AddShader(VK::ShaderStage::Vertex, stdVert)
             .AddShader(VK::ShaderStage::Fragment, stdFrag)
@@ -88,6 +91,9 @@ namespace worlds
         delete pipelineLayout;
         delete multiVPBuffer;
         delete modelMatrixBuffer;
+        delete tonemapper;
+        delete depthBuffer;
+        delete colorBuffer;
     }
 
     void StandardPipeline::setup(VKRTTPass* rttPass)
@@ -100,8 +106,10 @@ namespace worlds
         depthBuffer = core->CreateTexture(depthBufferCI);
 
         VK::TextureCreateInfo colorBufferCI =
-            VK::TextureCreateInfo::RenderTarget2D(VK::TextureFormat::R16G16B16A16_SFLOAT, rttPass->width, rttPass->height);
+            VK::TextureCreateInfo::RenderTarget2D(colorBufferFormat, rttPass->width, rttPass->height);
         colorBuffer = core->CreateTexture(colorBufferCI);
+
+        tonemapper = new Tonemapper(core, colorBuffer, rttPass->getFinalTarget());
     }
 
     void StandardPipeline::onResize(int width, int height)
@@ -115,8 +123,11 @@ namespace worlds
         depthBuffer = core->CreateTexture(depthBufferCI);
 
         VK::TextureCreateInfo colorBufferCI =
-            VK::TextureCreateInfo::RenderTarget2D(VK::TextureFormat::R16G16B16A16_SFLOAT, rttPass->width, rttPass->height);
+            VK::TextureCreateInfo::RenderTarget2D(colorBufferFormat, rttPass->width, rttPass->height);
         colorBuffer = core->CreateTexture(colorBufferCI);
+
+        delete tonemapper;
+        tonemapper = new Tonemapper(core, colorBuffer, rttPass->getFinalTarget());
     }
 
     void StandardPipeline::draw(entt::registry& reg, R2::VK::CommandBuffer& cb)
@@ -130,7 +141,7 @@ namespace worlds
         glm::mat4* modelMatricesMapped = (glm::mat4*)modelMatrixBuffer->Map();
 
         VK::RenderPass r;
-        r.ColorAttachment(rttPass->getFinalTarget(), VK::LoadOp::Clear, VK::StoreOp::Store)
+        r.ColorAttachment(colorBuffer, VK::LoadOp::Clear, VK::StoreOp::Store)
             .ColorAttachmentClearValue(VK::ClearValue::FloatColorClear(1.f, 0.f, 1.f, 1.f))
             .DepthAttachment(depthBuffer, VK::LoadOp::Clear, VK::StoreOp::Store)
             .DepthAttachmentClearValue(VK::ClearValue::DepthClear(0.0f))
@@ -220,5 +231,7 @@ namespace worlds
         r.End(cb);
 
         modelMatrixBuffer->Unmap();
+
+        tonemapper->Execute(cb);
     }
 }
