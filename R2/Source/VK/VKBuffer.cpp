@@ -96,15 +96,8 @@ namespace R2::VK
 
     Buffer::~Buffer()
     {
-        if (renderer->inFrame)
-        {
-            DeletionQueue* dq = renderer->perFrameResources[renderer->frameIndex].DeletionQueue;
-            dq->QueueObjectDeletion(buffer, VK_OBJECT_TYPE_BUFFER);
-            dq->QueueMemoryFree(allocation);
-        }
-        else
-        {
-            vmaDestroyBuffer(renderer->handles.Allocator, buffer, allocation);
-        }
+        DeletionQueue* dq = renderer->perFrameResources[renderer->frameIndex].DeletionQueue;
+        dq->QueueObjectDeletion(buffer, VK_OBJECT_TYPE_BUFFER);
+        dq->QueueMemoryFree(allocation);
     }
 }

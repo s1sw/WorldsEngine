@@ -301,15 +301,17 @@ namespace R2::VK
     void Core::createDescriptorPool()
     {
         VkDescriptorPoolCreateInfo dpci{ VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
-        dpci.maxSets = 10;
+        dpci.maxSets = 1000;
         VkDescriptorPoolSize poolSizes[] =
         {
-            { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 500 }
+            { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 500 },
+            { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 500 },
+            { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 500 }
         };
 
         dpci.pPoolSizes = poolSizes;
         dpci.poolSizeCount = sizeof(poolSizes) / sizeof(VkDescriptorPoolSize);
-        dpci.flags = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT;
+        dpci.flags = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT | VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
         
         VKCHECK(vkCreateDescriptorPool(handles.Device, &dpci, handles.AllocCallbacks, &handles.DescriptorPool));
     }

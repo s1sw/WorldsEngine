@@ -17,6 +17,7 @@ namespace R2::VK
     struct Handles;
     enum class TextureFormat;
     class DescriptorSetLayout;
+    class Core;
 
     struct VertexAttribute
     {
@@ -96,18 +97,18 @@ namespace R2::VK
     class Pipeline
     {
     public:
-        Pipeline(const Handles* handles, VkPipeline pipeline);
+        Pipeline(Core* core, VkPipeline pipeline);
         ~Pipeline();
         VkPipeline GetNativeHandle();
     private:
-        const Handles* handles;
+        Core* core;
         VkPipeline pipeline;
     };
 
     class PipelineBuilder
     {
     public:
-        PipelineBuilder(const Handles* handles);
+        PipelineBuilder(Core* core);
         PipelineBuilder& AddShader(ShaderStage stage, ShaderModule& mod);
         PipelineBuilder& ColorAttachmentFormat(TextureFormat format);
         PipelineBuilder& DepthAttachmentFormat(TextureFormat format);
@@ -121,7 +122,7 @@ namespace R2::VK
         PipelineBuilder& DepthCompareOp(CompareOp op);
         Pipeline* Build();
     private:
-        const Handles* handles;
+        Core* core;
 
         struct ShaderStageCreateInfo {
             ShaderModule& module;
@@ -144,12 +145,12 @@ namespace R2::VK
     class ComputePipelineBuilder
     {
     public:
-        ComputePipelineBuilder(const Handles* handles);
+        ComputePipelineBuilder(Core* core);
         ComputePipelineBuilder& SetShader(ShaderModule& mod);
         ComputePipelineBuilder& Layout(PipelineLayout* layout);
         Pipeline* Build();
     private:
-        const Handles* handles;
+        Core* core;
         ShaderModule* shaderModule;
         VkPipelineLayout pipelineLayout;
     };

@@ -1,5 +1,6 @@
 #include <R2/VKPipeline.hpp>
 #include <R2/VKCore.hpp>
+#include <R2/VKDeletionQueue.hpp>
 #include <R2/VKDescriptorSet.hpp>
 #include <R2/VKTexture.hpp>
 #include <volk.h>
@@ -73,14 +74,15 @@ namespace R2::VK
         return new PipelineLayout(handles, pipelineLayout);
     }
 
-    Pipeline::Pipeline(const Handles* handles, VkPipeline pipeline)
-        : handles(handles)
+    Pipeline::Pipeline(Core* core, VkPipeline pipeline)
+        : core(core)
         , pipeline(pipeline)
     {}
 
     Pipeline::~Pipeline()
     {
-        vkDestroyPipeline(handles->Device, pipeline, handles->AllocCallbacks);
+        DeletionQueue* dq = core->perFrameResources[core->frameIndex].DeletionQueue;
+        dq->QueueObjectDeletion(pipeline, VK_OBJECT_TYPE_PIPELINE);
     }
 
     VkPipeline Pipeline::GetNativeHandle()
@@ -88,8 +90,8 @@ namespace R2::VK
         return pipeline;
     }
 
-    PipelineBuilder::PipelineBuilder(const Handles* handles)
-        : handles(handles)
+    PipelineBuilder::PipelineBuilder(Core* core)
+        : core(core)
     {
         depthFormat = TextureFormat::UNDEFINED;
     }
@@ -309,13 +311,13 @@ namespace R2::VK
         pci.layout = layout;
 
         VkPipeline pipeline;
-        VKCHECK(vkCreateGraphicsPipelines(handles->Device, nullptr, 1, &pci, handles->AllocCallbacks, &pipeline));
+        VKCHECK(vkCreateGraphicsPipelines(core->GetHandles()->Device, nullptr, 1, &pci, core->GetHandles()->AllocCallbacks, &pipeline));
 
-        return new Pipeline(handles, pipeline);
+        return new Pipeline(core, pipeline);
     }
 
-    ComputePipelineBuilder::ComputePipelineBuilder(const Handles* handles)
-        : handles(handles)
+    ComputePipelineBuilder::ComputePipelineBuilder(Core* core)
+        : core(core)
     {
     }
 
@@ -342,8 +344,8 @@ namespace R2::VK
         cpci.layout = pipelineLayout;
 
         VkPipeline pipeline;
-        VKCHECK(vkCreateComputePipelines(handles->Device, nullptr, 1, &cpci, handles->AllocCallbacks, &pipeline));
+        VKCHECK(vkCreateComputePipelines(core->GetHandles()->Device, nullptr, 1, &cpci, core->GetHandles()->AllocCallbacks, &pipeline));
 
-        return new Pipeline(handles, pipeline);
+        return new Pipeline(core, pipeline);
     }
 }

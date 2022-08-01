@@ -131,7 +131,7 @@ namespace R2::VK
 		dsai.descriptorPool = handles.DescriptorPool;
 
 		VKCHECK(vkAllocateDescriptorSets(handles.Device, &dsai, &ds));
-		return new DescriptorSet(GetHandles(), ds);
+		return new DescriptorSet(this, ds);
 	}
 
 	DescriptorSet* Core::CreateDescriptorSet(DescriptorSetLayout* dsl, uint32_t maxVariableDescriptors)
@@ -149,7 +149,7 @@ namespace R2::VK
 		dsai.pNext = &variableCountInfo;
 
 		VKCHECK(vkAllocateDescriptorSets(handles.Device, &dsai, &ds));
-		return new DescriptorSet(GetHandles(), ds);
+		return new DescriptorSet(this, ds);
 	}
 
 	// Gets the index of the last frame. Loops back round on frame 0
@@ -185,12 +185,12 @@ namespace R2::VK
 		VKCHECK(vkWaitForFences(handles.Device, 1, &frameResources.Fence, VK_TRUE, UINT64_MAX));
 		VKCHECK(vkResetFences(handles.Device, 1, &frameResources.Fence));
 
+		// Prepare the command buffer for recording
+		VKCHECK(vkResetCommandBuffer(frameResources.CommandBuffer, 0));
+
 		// Now we know that the command buffer has finished executing, so we can
 		// go through the deletion queue and clean up
 		frameResources.DeletionQueue->Cleanup();
-
-		// Prepare the command buffer for recording
-		VKCHECK(vkResetCommandBuffer(frameResources.CommandBuffer, 0));
 
 		VkCommandBufferBeginInfo cbbi{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
 		cbbi.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
@@ -210,6 +210,65 @@ namespace R2::VK
 	void Core::QueueBufferUpload(Buffer* buffer, void* data, uint64_t dataSize, uint64_t dataOffset)
 	{
 		PerFrameResources& frameResources = perFrameResources[frameIndex];
+
+		if (dataSize >= STAGING_BUFFER_SIZE)
+		{
+			this->dbgOutRecv->DebugMessage("Queued buffer too big to go in staging buffer! THIS IS A STALL");
+			VkBufferCreateInfo bci{ VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
+			bci.size = dataSize;
+			bci.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+
+			VmaAllocationCreateInfo vaci{};
+			vaci.usage = VMA_MEMORY_USAGE_AUTO;
+			vaci.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+			VkBuffer tempBuffer;
+			VmaAllocation tempAlloc;
+			VmaAllocationInfo tempAllocInfo{};
+			VKCHECK(vmaCreateBuffer(handles.Allocator, &bci, &vaci, &tempBuffer, &tempAlloc, &tempAllocInfo));
+
+			memcpy(tempAllocInfo.pMappedData, data, dataSize);
+
+			VKCHECK(vkResetCommandBuffer(frameResources.UploadCommandBuffer, 0));
+
+			// Record upload command buffer
+			VkCommandBufferBeginInfo cbbi{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
+			cbbi.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+			VKCHECK(vkBeginCommandBuffer(frameResources.UploadCommandBuffer, &cbbi));
+
+			VkBufferCopy bc{};
+			bc.size = dataSize;
+			bc.dstOffset = dataOffset;
+			vkCmdCopyBuffer(frameResources.UploadCommandBuffer, tempBuffer, buffer->GetNativeHandle(), 1, &bc);
+
+			VKCHECK(vkEndCommandBuffer(frameResources.UploadCommandBuffer));
+
+			VkSubmitInfo uploadSubmitInfo{ VK_STRUCTURE_TYPE_SUBMIT_INFO };
+
+			uploadSubmitInfo.commandBufferCount = 1;
+			uploadSubmitInfo.pCommandBuffers = &frameResources.UploadCommandBuffer;
+
+			VKCHECK(vkQueueSubmit(handles.Queues.Graphics, 1, &uploadSubmitInfo, VK_NULL_HANDLE));
+			WaitIdle();
+
+			vmaDestroyBuffer(handles.Allocator, tempBuffer, tempAlloc);
+
+			return;
+		}
+
+		if (dataSize + frameResources.StagingOffset >= STAGING_BUFFER_SIZE)
+		{
+			this->dbgOutRecv->DebugMessage("Flushing staged uploads!!! THIS IS A STALL");
+			writeFrameUploadCommands(frameIndex);
+
+			VkSubmitInfo uploadSubmitInfo{ VK_STRUCTURE_TYPE_SUBMIT_INFO };
+
+			uploadSubmitInfo.commandBufferCount = 1;
+			uploadSubmitInfo.pCommandBuffers = &frameResources.UploadCommandBuffer;
+
+			VKCHECK(vkQueueSubmit(handles.Queues.Graphics, 1, &uploadSubmitInfo, VK_NULL_HANDLE));
+			WaitIdle();
+		}
+
 		memcpy(frameResources.StagingMapped + frameResources.StagingOffset, data, dataSize);
 
 		frameResources.BufferUploads.emplace_back(buffer, frameResources.StagingOffset, dataSize, dataOffset);
@@ -283,11 +342,11 @@ namespace R2::VK
 		}
 
 		uint64_t uploadedOffset = frameResources.StagingOffset;
-		uint64_t requiredPadding = uploadedOffset % 16;
+		uint64_t requiredPadding = 16 - (uploadedOffset % 16);
 
 		if (dataSize + uploadedOffset + requiredPadding >= STAGING_BUFFER_SIZE)
 		{
-			this->dbgOutRecv->DebugMessage("Flushing staged texture uploads!!! THIS IS A STALL");
+			this->dbgOutRecv->DebugMessage("Flushing staged uploads!!! THIS IS A STALL");
 			writeFrameUploadCommands(frameIndex);
 
 			VkSubmitInfo uploadSubmitInfo{ VK_STRUCTURE_TYPE_SUBMIT_INFO };

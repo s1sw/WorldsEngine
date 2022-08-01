@@ -35,17 +35,17 @@ namespace worlds
         descriptorSetLayout = sr.createDescriptorSetLayout(core, 0);
 
         VK::PipelineLayoutBuilder plb{core->GetHandles()};
-        plb.DescriptorSet(descriptorSetLayout);
+        plb.DescriptorSet(descriptorSetLayout.Get());
         plb.PushConstants(VK::ShaderStage::Compute, 0, sizeof(TonemapSettings));
         pipelineLayout = plb.Build();
 
-        VK::ComputePipelineBuilder cpb{core->GetHandles()};
-        cpb .Layout(pipelineLayout)
+        VK::ComputePipelineBuilder cpb{core};
+        cpb .Layout(pipelineLayout.Get())
             .SetShader(ShaderCache::getModule(tonemapShader));
 
         pipeline = cpb.Build();
 
-        descriptorSet = core->CreateDescriptorSet(descriptorSetLayout);
+        descriptorSet = core->CreateDescriptorSet(descriptorSetLayout.Get());
 
         VK::SamplerBuilder sb{core->GetHandles()};
         sampler = sb.AddressMode(VK::SamplerAddressMode::Repeat)
@@ -54,8 +54,8 @@ namespace worlds
         .MipmapMode(VK::SamplerMipmapMode::Linear)
         .Build();
 
-        VK::DescriptorSetUpdater dsu{core->GetHandles(), descriptorSet};
-        sr.bindSampledTexture(dsu, "hdrImage_0", colorBuffer, sampler);
+        VK::DescriptorSetUpdater dsu{core->GetHandles(), descriptorSet.Get()};
+        sr.bindSampledTexture(dsu, "hdrImage_0", colorBuffer, sampler.Get());
         sr.bindStorageTexture(dsu, "resultImage_0", target);
 
         dsu.Update();
@@ -71,9 +71,9 @@ namespace worlds
         ts.resolutionScale = 1.0f;
         ts.vignetteRadius = 1.0f;
 
-        cb.BindComputeDescriptorSet(pipelineLayout, descriptorSet->GetNativeHandle(), 0);
-        cb.BindComputePipeline(pipeline);
-        cb.PushConstants(ts, VK::ShaderStage::Compute, pipelineLayout);
+        cb.BindComputeDescriptorSet(pipelineLayout.Get(), descriptorSet->GetNativeHandle(), 0);
+        cb.BindComputePipeline(pipeline.Get());
+        cb.PushConstants(ts, VK::ShaderStage::Compute, pipelineLayout.Get());
         cb.Dispatch((target->GetWidth() + 15) / 16, (target->GetHeight() + 15) / 16, 1);
     }
 }

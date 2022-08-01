@@ -334,14 +334,7 @@ namespace R2::VK
         const Handles* handles = core->GetHandles();
         DeletionQueue* dq;
 
-        if (core->inFrame)
-        {
-            dq = core->perFrameResources[core->frameIndex].DeletionQueue;
-        }
-        else
-        {
-            dq = core->perFrameResources[core->GetNextFrameIndex()].DeletionQueue;
-        }
+        dq = core->perFrameResources[core->frameIndex].DeletionQueue;
 
         if (allocation)
         {

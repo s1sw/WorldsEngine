@@ -75,7 +75,7 @@ bool ImGui_ImplR2_Init(VK::Core* renderer, BindlessTextureManager* btm)
     VK::ShaderModule fsm{renderer->GetHandles(), ImGuiFS, sizeof(ImGuiFS)};
     VK::ShaderModule vsm{renderer->GetHandles(), ImGuiVS, sizeof(ImGuiVS)};
 
-    VK::PipelineBuilder pb{renderer->GetHandles()};
+    VK::PipelineBuilder pb{renderer};
     s->pipeline = pb.PrimitiveTopology(VK::Topology::TriangleList)
                       .CullMode(VK::CullMode::None)
                       .Layout(s->pipelineLayout)

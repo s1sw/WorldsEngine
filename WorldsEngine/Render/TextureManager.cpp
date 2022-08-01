@@ -58,7 +58,7 @@ namespace worlds
         TextureData td = loadTexData(id);
 
         if (td.data == nullptr)
-            fatalErr("Failed to load UI texture");
+            fatalErr("Failed to load texture");
 
         R2::VK::TextureCreateInfo tci = R2::VK::TextureCreateInfo::Texture2D(td.format, td.width, td.height);
         R2::VK::Texture* t = core->CreateTexture(tci);

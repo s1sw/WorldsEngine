@@ -43,16 +43,16 @@ namespace worlds
         ShaderReflector sr{vs};
 
         descriptorSetLayout = sr.createDescriptorSetLayout(core, 0);
-        descriptorSet = core->CreateDescriptorSet(descriptorSetLayout);
+        descriptorSet = core->CreateDescriptorSet(descriptorSetLayout.Get());
 
-        VK::DescriptorSetUpdater dsu{core->GetHandles(), descriptorSet};
-        sr.bindBuffer(dsu, "VPBuffer_0", multiVPBuffer);
-        sr.bindBuffer(dsu, "ModelMatrices_0", modelMatrixBuffer);
+        VK::DescriptorSetUpdater dsu{core->GetHandles(), descriptorSet.Get()};
+        sr.bindBuffer(dsu, "VPBuffer_0", multiVPBuffer.Get());
+        sr.bindBuffer(dsu, "ModelMatrices_0", modelMatrixBuffer.Get());
         dsu.Update();
 
         VK::PipelineLayoutBuilder plb{core->GetHandles()};
         plb.PushConstants(VK::ShaderStage::Vertex | VK::ShaderStage::Fragment, 0, sizeof(StandardPushConstants))
-            .DescriptorSet(descriptorSetLayout)
+            .DescriptorSet(descriptorSetLayout.Get())
             .DescriptorSet(&renderer->getBindlessTextureManager()->GetTextureDescriptorSetLayout());
         pipelineLayout = plb.Build();
 
@@ -68,10 +68,10 @@ namespace worlds
         VK::ShaderModule& stdVert = ShaderCache::getModule(vs);
         VK::ShaderModule& stdFrag = ShaderCache::getModule(fs);
 
-        VK::PipelineBuilder pb{core->GetHandles()};
+        VK::PipelineBuilder pb{core};
         pb.PrimitiveTopology(VK::Topology::TriangleList)
             .CullMode(VK::CullMode::Back)
-            .Layout(pipelineLayout)
+            .Layout(pipelineLayout.Get())
             .ColorAttachmentFormat(colorBufferFormat)
             .AddVertexBinding(std::move(vb))
             .AddShader(VK::ShaderStage::Vertex, stdVert)
@@ -86,14 +86,6 @@ namespace worlds
 
     StandardPipeline::~StandardPipeline()
     {
-        // todo
-        delete pipeline;
-        delete pipelineLayout;
-        delete multiVPBuffer;
-        delete modelMatrixBuffer;
-        delete tonemapper;
-        delete depthBuffer;
-        delete colorBuffer;
     }
 
     void StandardPipeline::setup(VKRTTPass* rttPass)
@@ -109,14 +101,14 @@ namespace worlds
             VK::TextureCreateInfo::RenderTarget2D(colorBufferFormat, rttPass->width, rttPass->height);
         colorBuffer = core->CreateTexture(colorBufferCI);
 
-        tonemapper = new Tonemapper(core, colorBuffer, rttPass->getFinalTarget());
+        tonemapper = new Tonemapper(core, colorBuffer.Get(), rttPass->getFinalTarget());
     }
 
     void StandardPipeline::onResize(int width, int height)
     {
         VK::Core* core = renderer->getCore();
-        core->DestroyTexture(depthBuffer);
-        core->DestroyTexture(colorBuffer);
+        depthBuffer.Reset();
+        colorBuffer.Reset();
 
         VK::TextureCreateInfo depthBufferCI =
             VK::TextureCreateInfo::RenderTarget2D(VK::TextureFormat::D32_SFLOAT, rttPass->width, rttPass->height);
@@ -126,8 +118,7 @@ namespace worlds
             VK::TextureCreateInfo::RenderTarget2D(colorBufferFormat, rttPass->width, rttPass->height);
         colorBuffer = core->CreateTexture(colorBufferCI);
 
-        delete tonemapper;
-        tonemapper = new Tonemapper(core, colorBuffer, rttPass->getFinalTarget());
+        tonemapper = new Tonemapper(core, colorBuffer.Get(), rttPass->getFinalTarget());
     }
 
     void StandardPipeline::draw(entt::registry& reg, R2::VK::CommandBuffer& cb)
@@ -141,9 +132,9 @@ namespace worlds
         glm::mat4* modelMatricesMapped = (glm::mat4*)modelMatrixBuffer->Map();
 
         VK::RenderPass r;
-        r.ColorAttachment(colorBuffer, VK::LoadOp::Clear, VK::StoreOp::Store)
+        r.ColorAttachment(colorBuffer.Get(), VK::LoadOp::Clear, VK::StoreOp::Store)
             .ColorAttachmentClearValue(VK::ClearValue::FloatColorClear(1.f, 0.f, 1.f, 1.f))
-            .DepthAttachment(depthBuffer, VK::LoadOp::Clear, VK::StoreOp::Store)
+            .DepthAttachment(depthBuffer.Get(), VK::LoadOp::Clear, VK::StoreOp::Store)
             .DepthAttachmentClearValue(VK::ClearValue::DepthClear(0.0f))
             .RenderArea(rttPass->width, rttPass->height)
             .Begin(cb);
@@ -154,13 +145,13 @@ namespace worlds
         multiVPs.views[0] = camera->getViewMatrix();
         multiVPs.projections[0] = camera->getProjectionMatrix((float)rttPass->width / rttPass->height);
 
-        core->QueueBufferUpload(multiVPBuffer, &multiVPs, sizeof(multiVPs), 0);
+        core->QueueBufferUpload(multiVPBuffer.Get(), &multiVPs, sizeof(multiVPs), 0);
 
         uint32_t modelMatrixIndex = 0;
 
-        cb.BindPipeline(pipeline);
-        cb.BindGraphicsDescriptorSet(pipelineLayout, descriptorSet->GetNativeHandle(), 0);
-        cb.BindGraphicsDescriptorSet(pipelineLayout, btm->GetTextureDescriptorSet().GetNativeHandle(), 1);
+        cb.BindPipeline(pipeline.Get());
+        cb.BindGraphicsDescriptorSet(pipelineLayout.Get(), descriptorSet->GetNativeHandle(), 0);
+        cb.BindGraphicsDescriptorSet(pipelineLayout.Get(), btm->GetTextureDescriptorSet().GetNativeHandle(), 1);
         cb.SetViewport(VK::Viewport::Simple((float)rttPass->width, (float)rttPass->height));
         cb.SetScissor(VK::ScissorRect::Simple(rttPass->width, rttPass->height));
 
@@ -190,7 +181,7 @@ namespace worlds
 
                 AssetID albedoId = AssetDB::pathToId(materialManager->loadOrGet(wo.materials[materialIndex])["albedoPath"]);
                 spc.textureID = textureManager->loadOrGet(albedoId);
-                cb.PushConstants(spc, VK::ShaderStage::AllRaster, pipelineLayout);
+                cb.PushConstants(spc, VK::ShaderStage::AllRaster, pipelineLayout.Get());
 
                 cb.DrawIndexed(rsi.indexCount, 1, rsi.indexOffset, 0, 0);
             }
@@ -222,7 +213,7 @@ namespace worlds
 
                 AssetID albedoId = AssetDB::pathToId(materialManager->loadOrGet(wo.materials[materialIndex])["albedoPath"]);
                 spc.textureID = textureManager->loadOrGet(albedoId);
-                cb.PushConstants(spc, VK::ShaderStage::AllRaster, pipelineLayout);
+                cb.PushConstants(spc, VK::ShaderStage::AllRaster, pipelineLayout.Get());
 
                 cb.DrawIndexed(rsi.indexCount, 1, rsi.indexOffset, 0, 0);
             }
