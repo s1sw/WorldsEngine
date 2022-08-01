@@ -22,7 +22,7 @@ cc = meson.get_compiler('cpp')
 
 extern_dir = meson.source_root() + '/External'
 
-lib_dir = extern_dir + '/Lib/' + host_machine.system() + '64rel'
+lib_dir = extern_dir + '/Lib/' + host_machine.system() + '64dbg'
 
 if get_option('buildtype').startswith('release')
   lib_dir = extern_dir + '/Lib/' + host_machine.system() + '64rel'
