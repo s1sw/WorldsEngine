@@ -3,12 +3,13 @@
 #include <R2/VKBuffer.hpp>
 #include <R2/VKCore.hpp>
 #include <R2/VKSampler.hpp>
+#include <R2/VKDeletionQueue.hpp>
 #include <volk.h>
 
 namespace R2::VK
 {
-    DescriptorSet::DescriptorSet(const Handles* handles, VkDescriptorSet set)
-        : handles(handles)
+    DescriptorSet::DescriptorSet(Core* core, VkDescriptorSet set)
+        : core(core)
         , set(set)
     {}
 
@@ -19,7 +20,8 @@ namespace R2::VK
 
     DescriptorSet::~DescriptorSet()
     {
-
+        DeletionQueue* dq = core->perFrameResources[core->frameIndex].DeletionQueue;
+        dq->QueueDescriptorSetFree(core->GetHandles()->DescriptorPool, set);
     }
 
     DescriptorSetLayout::DescriptorSetLayout(const Handles* handles, VkDescriptorSetLayout layout)

@@ -1,5 +1,6 @@
 #pragma once
 #include <Render/IRenderPipeline.hpp>
+#include <Util/UniquePtr.hpp>
 
 namespace R2::VK
 {
@@ -19,16 +20,17 @@ namespace worlds
 
     class StandardPipeline : public IRenderPipeline
     {
-        R2::VK::DescriptorSetLayout* descriptorSetLayout;
-        R2::VK::DescriptorSet* descriptorSet;
-        R2::VK::Pipeline* pipeline;
-        R2::VK::PipelineLayout* pipelineLayout;
-        R2::VK::Buffer* multiVPBuffer;
-        R2::VK::Buffer* modelMatrixBuffer;
-        R2::VK::Texture* depthBuffer;
-        R2::VK::Texture* colorBuffer;
+        UniquePtr<R2::VK::DescriptorSetLayout> descriptorSetLayout;
+        UniquePtr<R2::VK::DescriptorSet> descriptorSet;
+        UniquePtr<R2::VK::Pipeline> pipeline;
+        UniquePtr<R2::VK::PipelineLayout> pipelineLayout;
+        UniquePtr<R2::VK::Buffer> multiVPBuffer;
+        UniquePtr<R2::VK::Buffer> modelMatrixBuffer;
+        UniquePtr<R2::VK::Buffer> materialBuffer;
+        UniquePtr<R2::VK::Texture> depthBuffer;
+        UniquePtr<R2::VK::Texture> colorBuffer;
 
-        Tonemapper* tonemapper;
+        UniquePtr<Tonemapper> tonemapper;
 
         VKRenderer* renderer;
         VKRTTPass* rttPass;

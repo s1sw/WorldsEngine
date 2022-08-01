@@ -62,7 +62,7 @@ namespace worlds
         VK::ShaderModule& stdVert = ShaderCache::getModule(vs);
         VK::ShaderModule& stdFrag = ShaderCache::getModule(fs);
 
-        VK::PipelineBuilder pb{core->GetHandles()};
+        VK::PipelineBuilder pb{core};
         pb.PrimitiveTopology(VK::Topology::TriangleList)
             .CullMode(VK::CullMode::Back)
             .Layout(pipelineLayout)

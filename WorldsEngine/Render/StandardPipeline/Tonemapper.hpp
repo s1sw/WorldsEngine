@@ -1,4 +1,5 @@
 #pragma once
+#include <Util/UniquePtr.hpp>
 
 namespace R2::VK
 {
@@ -19,11 +20,11 @@ namespace worlds
         R2::VK::Core* core;
         R2::VK::Texture* colorBuffer;
         R2::VK::Texture* target;
-        R2::VK::PipelineLayout* pipelineLayout;
-        R2::VK::Pipeline* pipeline;
-        R2::VK::DescriptorSetLayout* descriptorSetLayout;
-        R2::VK::DescriptorSet* descriptorSet;
-        R2::VK::Sampler* sampler;
+        UniquePtr<R2::VK::PipelineLayout> pipelineLayout;
+        UniquePtr<R2::VK::Pipeline> pipeline;
+        UniquePtr<R2::VK::DescriptorSetLayout> descriptorSetLayout;
+        UniquePtr<R2::VK::DescriptorSet> descriptorSet;
+        UniquePtr<R2::VK::Sampler> sampler;
     public:
         Tonemapper(R2::VK::Core* core, R2::VK::Texture* colorBuffer, R2::VK::Texture* target);
         void Execute(R2::VK::CommandBuffer& cb);

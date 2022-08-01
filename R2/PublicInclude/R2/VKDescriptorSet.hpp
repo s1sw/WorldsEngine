@@ -12,6 +12,7 @@ VK_DEFINE_HANDLE(VkDescriptorSetLayout)
 namespace R2::VK
 {
     struct Handles;
+    class Core;
     class Texture;
     class Buffer;
     class Sampler;
@@ -19,11 +20,11 @@ namespace R2::VK
     class DescriptorSet
     {
     public:
-        DescriptorSet(const Handles* handles, VkDescriptorSet set);
+        DescriptorSet(Core* core, VkDescriptorSet set);
         ~DescriptorSet();
         VkDescriptorSet GetNativeHandle();
     private:
-        const Handles* handles;
+        Core* core;
         VkDescriptorSet set;
     };
 

@@ -174,5 +174,7 @@ namespace R2::VK
 
 		friend class Buffer;
 		friend class Texture;
+		friend class DescriptorSet;
+		friend class Pipeline;
 	};
 }
