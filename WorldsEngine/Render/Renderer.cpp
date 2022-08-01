@@ -94,6 +94,8 @@ namespace worlds
             cb.BeginDebugLabel("RTT Pass", 0.0f, 0.0f, 0.0f);
             pass->pipeline->draw(registry, cb);
 
+            pass->getFinalTarget()->Acquire(cb, VK::ImageLayout::ShaderReadOnlyOptimal, VK::AccessFlags::ShaderSampledRead);
+
             cb.EndDebugLabel();
         }
 
@@ -165,6 +167,7 @@ namespace worlds
 
     void VKRenderer::destroyRTTPass(RTTPass* pass)
     {
+        pass->active = false;
         delete static_cast<VKRTTPass*>(pass);
         rttPasses.erase(std::remove(rttPasses.begin(), rttPasses.end(), pass), rttPasses.end());
     }

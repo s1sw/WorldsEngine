@@ -1,22 +1,22 @@
 [
     {
         "path": "tonemap.comp.slang",
+        "outputPath": "tonemap_msaa.comp.spv",
         "defines": ["MSAA"]
     },
     {
-        "path": "tonemap.comp.slang",
-        "outputPath": "tonemap_nomsaa.comp.spv"
+        "path": "tonemap.comp.slang"
     },
     {
         "path": "vr_hidden.vert.slang"
     },
     {
         "path": "light_cull.comp.slang",
+        "outputPath": "light_cull_msaa.comp.spv",
         "defines": ["MSAA"]
     },
     {
-        "path": "light_cull.comp.slang",
-        "outputPath": "light_cull_nomsaa.comp.spv"
+        "path": "light_cull.comp.slang"
     },
     {
         "path": "fake_lit.slang",

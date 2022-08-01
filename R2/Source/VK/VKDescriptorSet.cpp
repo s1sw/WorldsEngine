@@ -200,9 +200,16 @@ namespace R2::VK
             if (dw.Texture)
             {
                 VkDescriptorImageInfo dii{};
-                dii.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+                if (dw.Type != DescriptorType::StorageImage)
+                    dii.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+                else
+                    dii.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+
                 dii.imageView = dw.Texture->GetView();
-                dii.sampler = dw.Sampler->GetNativeHandle();
+
+                if (dw.Sampler != nullptr)
+                    dii.sampler = dw.Sampler->GetNativeHandle();
+
                 imageInfos.push_back(dii);
                 vw.pImageInfo = &imageInfos[imageInfos.size() - 1];
             }

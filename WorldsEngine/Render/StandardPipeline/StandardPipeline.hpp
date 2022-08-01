@@ -15,6 +15,7 @@ namespace R2::VK
 namespace worlds
 {
     class VKRenderer;
+    class Tonemapper;
 
     class StandardPipeline : public IRenderPipeline
     {
@@ -26,6 +27,8 @@ namespace worlds
         R2::VK::Buffer* modelMatrixBuffer;
         R2::VK::Texture* depthBuffer;
         R2::VK::Texture* colorBuffer;
+
+        Tonemapper* tonemapper;
 
         VKRenderer* renderer;
         VKRTTPass* rttPass;

@@ -3,10 +3,10 @@ RWTexture2D<float4> resultImage;
 #ifdef MSAA
 Sampler2DMSArray hdrImage;
 #else
-Sampler2DArray hdrImage;
+Sampler2D hdrImage;
 #endif
 
-Sampler2DArray bloomImage;
+//Sampler2DArray bloomImage;
 
 [[vk::push_constant]]
 cbuffer TonemapSettings
@@ -109,13 +109,23 @@ TonemapTextureSettings GetTextureSettings()
 #ifdef MSAA
     hdrImage.GetDimensions(w, h, arrayCount, samples);
 #else
-    hdrImage.GetDimensions(w, h, arrayCount);
+    hdrImage.GetDimensions(w, h);
 #endif
     ts.hdrWidth = w;
     ts.hdrHeight = h;
     ts.msaaSamples = samples;
 
     return ts;
+}
+
+float3 ConvertToSRGB(float3 col)
+{
+    bool3 cutoff = col > 0.0031308;
+
+    float3 high = 1.055 * (pow(col, float3(1.0 / 2.4))) - 0.055;
+    float3 low = 12.92 * col;
+
+    return lerp(low, high, cutoff);
 }
 
 
@@ -128,8 +138,9 @@ void main(uint3 threadID : SV_DispatchThreadID)
     float3 accumulator = 0.0;
     float2 uv = (float2(threadID.xy) + 0.5) / (texSettings.HDRResolution / resolutionScale);
 
-    float3 bloom = bloomImage.Sample(float3(uv * resolutionScale, idx)).xyz;
-    bloom = max(bloom, float3(0.0));
+    //float3 bloom = bloomImage.Sample(float3(uv * resolutionScale, idx)).xyz;
+    //bloom = max(bloom, float3(0.0));
+    float3 bloom = 0.0;
 
 #ifdef MSAA
     // If we're using MSAA, resolve using the reversible tonemapper
@@ -145,7 +156,7 @@ void main(uint3 threadID : SV_DispatchThreadID)
     accumulator = reversibleTonemap.TonemapInvert(accumulator);
 #else
     // Otherwise just load it directly
-    accumulator = hdrImage.Load(int4(threadID.xy, idx, 0)).xyz;
+    accumulator = hdrImage.Load(int3(threadID.xy, 0)).xyz;
 #endif
 
     // Tonemap
@@ -163,5 +174,5 @@ void main(uint3 threadID : SV_DispatchThreadID)
         1.0 / 2.2
     );
 
-    resultImage[threadID.xy] = float4(final, 1.0);
+    resultImage[threadID.xy] = float4(ConvertToSRGB(accumulator), 1.0);
 }

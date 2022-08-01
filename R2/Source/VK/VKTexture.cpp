@@ -98,6 +98,12 @@ namespace R2::VK
         if (supportsStorage(core->GetHandles()->PhysicalDevice, createInfo.Format))
             ici.usage |= VK_IMAGE_USAGE_STORAGE_BIT;
 
+        if (createInfo.Format == TextureFormat::R8G8B8A8_SRGB)
+        {
+            ici.flags |= VK_IMAGE_CREATE_EXTENDED_USAGE_BIT;
+            ici.usage |= VK_IMAGE_USAGE_STORAGE_BIT;
+        }
+
         if (createInfo.IsRenderTarget)
         {
             if (isFormatDepth(createInfo.Format))
@@ -128,15 +134,23 @@ namespace R2::VK
         dimension = createInfo.Dimension;
         samples = createInfo.Samples;
 
+
         VkImageViewCreateInfo ivci{ VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
         ivci.image = image;
         ivci.viewType = convertViewType(createInfo.Dimension);
-        ivci.format = ici.format;
+        ivci.format = static_cast<VkFormat>(createInfo.Format);
         ivci.subresourceRange.aspectMask = getAspectFlags();
         ivci.subresourceRange.baseArrayLayer = 0;
         ivci.subresourceRange.baseMipLevel = 0;
         ivci.subresourceRange.layerCount = layers;
         ivci.subresourceRange.levelCount = numMips;
+
+        VkImageViewUsageCreateInfo usageCI{ VK_STRUCTURE_TYPE_IMAGE_VIEW_USAGE_CREATE_INFO };
+        usageCI.usage = ici.usage & ~VK_IMAGE_USAGE_STORAGE_BIT;
+        if (!supportsStorage(core->GetHandles()->PhysicalDevice, createInfo.Format))
+        {
+            ivci.pNext = &usageCI;
+        }
 
         VKCHECK(vkCreateImageView(handles->Device, &ivci, handles->AllocCallbacks, &imageView));
     }
@@ -252,7 +266,7 @@ namespace R2::VK
     void Texture::Acquire(CommandBuffer cb, ImageLayout layout, AccessFlags access)
     {
         VkImageMemoryBarrier2 imb{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2 };
-        imb.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        imb.oldLayout = (VkImageLayout)lastLayout;
         imb.newLayout = (VkImageLayout)layout;
         imb.subresourceRange = VkImageSubresourceRange{ getAspectFlags(), 0, (uint32_t)numMips, 0, (uint32_t)layers };
         imb.image = image;
@@ -270,6 +284,9 @@ namespace R2::VK
         depInfo.dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 
         vkCmdPipelineBarrier2(cb.GetNativeHandle(), &depInfo);
+
+        lastLayout = layout;
+        lastAccess = access;
     }
 
     void Texture::WriteLayoutTransition(CommandBuffer cb, ImageLayout layout)
