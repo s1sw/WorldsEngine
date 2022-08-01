@@ -8,6 +8,10 @@ class GameProject
     {
         nativeInstance = instance;
     }
+
+    [DllImport(Engine.NativeModule)]
+    private static extern void worlds__free(IntPtr ptr);
+
     [DllImport(Engine.NativeModule)]
     private static extern IntPtr worlds__GameProject_name(IntPtr inst);
     public string Name
@@ -16,7 +20,7 @@ class GameProject
         {
             IntPtr tmp = worlds__GameProject_name(nativeInstance);
             string t = Marshal.PtrToStringUTF8(tmp)!;
-            Marshal.FreeHGlobal(tmp);
+            worlds__free(tmp);
             return t;
         }
     }
@@ -28,7 +32,7 @@ class GameProject
         {
             IntPtr tmp = worlds__GameProject_root(nativeInstance);
             string t = Marshal.PtrToStringUTF8(tmp)!;
-            Marshal.FreeHGlobal(tmp);
+            worlds__free(tmp);
             return t;
         }
     }
@@ -40,7 +44,7 @@ class GameProject
         {
             IntPtr tmp = worlds__GameProject_sourceData(nativeInstance);
             string t = Marshal.PtrToStringUTF8(tmp)!;
-            Marshal.FreeHGlobal(tmp);
+            worlds__free(tmp);
             return t;
         }
     }
@@ -52,7 +56,7 @@ class GameProject
         {
             IntPtr tmp = worlds__GameProject_builtData(nativeInstance);
             string t = Marshal.PtrToStringUTF8(tmp)!;
-            Marshal.FreeHGlobal(tmp);
+            worlds__free(tmp);
             return t;
         }
     }
@@ -64,7 +68,7 @@ class GameProject
         {
             IntPtr tmp = worlds__GameProject_rawData(nativeInstance);
             string t = Marshal.PtrToStringUTF8(tmp)!;
-            Marshal.FreeHGlobal(tmp);
+            worlds__free(tmp);
             return t;
         }
     }

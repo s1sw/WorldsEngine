@@ -3,6 +3,11 @@
 
 extern "C"
 {
+    EXPORT void worlds__free(void* ptr)
+    {
+        free(ptr);
+    }
+
     EXPORT char* worlds__GameProject_name(worlds::GameProject* inst)
     {
         return strdup(std::string((inst->name())).c_str());
