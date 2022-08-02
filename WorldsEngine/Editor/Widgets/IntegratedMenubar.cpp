@@ -12,7 +12,7 @@
 
 namespace worlds
 {
-    static ConVar integratedMenuBar{"ed_integratedMenuBar", "1"};
+    static ConVar integratedMenuBar{"ed_integratedMenuBar", "0"};
     IntegratedMenubar::IntegratedMenubar(EngineInterfaces interfaces) : interfaces(interfaces)
     {
     }

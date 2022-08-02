@@ -285,6 +285,37 @@ namespace R2::VK
 		frameResources.BufferToTextureCopies.emplace_back(buffer, texture, bufferOffset);
 	}
 
+	struct TextureBlockInfo
+	{
+		uint8_t BlockWidth;
+		uint8_t BlockHeight;
+		uint8_t BytesPerBlock;
+	};
+
+	TextureBlockInfo getBlockInfo(TextureFormat format)
+	{
+		switch (format)
+		{
+			case TextureFormat::BC3_SRGB_BLOCK:
+			case TextureFormat::BC3_UNORM_BLOCK:
+			case TextureFormat::BC5_UNORM_BLOCK:
+			case TextureFormat::BC5_SNORM_BLOCK:
+				return TextureBlockInfo { 4, 4, 16 };
+			default:
+				return TextureBlockInfo { 1, 1, 1 };
+		}
+	}
+
+	uint64_t calculateTextureByteSize(TextureFormat format, uint32_t width, uint32_t height)
+	{
+		TextureBlockInfo blockInfo = getBlockInfo(format);
+
+		uint32_t blocksX = (width + blockInfo.BlockWidth - 1) / blockInfo.BlockWidth;
+		uint32_t blocksY = (height + blockInfo.BlockHeight - 1) / blockInfo.BlockHeight;
+		//return blockInfo.BytesPerBlock * blocksX * blocksY;
+		return ((blockInfo.BytesPerBlock + 3) & ~3) * ((width / blockInfo.BlockWidth) * (height / blockInfo.BlockHeight));
+	}
+
 	void Core::QueueTextureUpload(Texture* texture, void* data, uint64_t dataSize)
 	{
 		PerFrameResources& frameResources = perFrameResources[frameIndex];
@@ -314,19 +345,31 @@ namespace R2::VK
 			cbbi.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 			VKCHECK(vkBeginCommandBuffer(frameResources.UploadCommandBuffer, &cbbi));
 
-			VkBufferImageCopy vbic{};
-			vbic.imageSubresource.layerCount = 1;
-			vbic.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-			vbic.imageExtent.width = texture->GetWidth();
-			vbic.imageExtent.height = texture->GetHeight();
-			vbic.imageExtent.depth = 1;
-			vbic.bufferOffset = 0;
-
 			texture->Acquire(frameResources.UploadCommandBuffer, ImageLayout::TransferDstOptimal, AccessFlags::TransferWrite);
 
-			vkCmdCopyBufferToImage(frameResources.UploadCommandBuffer, tempBuffer,
-				texture->GetNativeHandle(),
-				VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &vbic);
+			uint64_t offset = 0;
+			int currWidth = texture->GetWidth();
+			int currHeight = texture->GetHeight();
+			for (int i = 0; i < texture->GetNumMips(); i++)
+			{
+				VkBufferImageCopy vbic{};
+				vbic.imageSubresource.layerCount = 1;
+				vbic.imageSubresource.mipLevel = i;
+				vbic.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+				vbic.imageExtent.width = currWidth;
+				vbic.imageExtent.height = currHeight;
+				vbic.imageExtent.depth = 1;
+				vbic.bufferOffset = offset;
+
+				vkCmdCopyBufferToImage(frameResources.UploadCommandBuffer, tempBuffer,
+					texture->GetNativeHandle(),
+					VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &vbic);
+
+				offset += calculateTextureByteSize(texture->GetFormat(), currWidth, currHeight);
+				
+				currWidth /= 2;
+				currHeight /= 2;
+			}
 
 			texture->Acquire(frameResources.UploadCommandBuffer, ImageLayout::ReadOnlyOptimal, AccessFlags::MemoryRead);
 
@@ -475,19 +518,31 @@ namespace R2::VK
 
 		for (BufferToTextureCopy& bttc : frameResources.BufferToTextureCopies)
 		{
-			VkBufferImageCopy vbic{};
-			vbic.imageSubresource.layerCount = 1;
-			vbic.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-			vbic.imageExtent.width = bttc.Texture->GetWidth();
-			vbic.imageExtent.height = bttc.Texture->GetHeight();
-			vbic.imageExtent.depth = 1;
-			vbic.bufferOffset = bttc.BufferOffset;
-
 			bttc.Texture->Acquire(frameResources.UploadCommandBuffer, ImageLayout::TransferDstOptimal, AccessFlags::TransferWrite);
 
-			vkCmdCopyBufferToImage(frameResources.UploadCommandBuffer, bttc.Buffer->GetNativeHandle(),
-				bttc.Texture->GetNativeHandle(),
-				VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &vbic);
+			uint64_t offset = 0;
+			int currWidth = bttc.Texture->GetWidth();
+			int currHeight = bttc.Texture->GetHeight();
+			for (int i = 0; i < bttc.Texture->GetNumMips(); i++)
+			{
+				VkBufferImageCopy vbic{};
+				vbic.imageSubresource.layerCount = 1;
+				vbic.imageSubresource.mipLevel = i;
+				vbic.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+				vbic.imageExtent.width = currWidth;
+				vbic.imageExtent.height = currHeight;
+				vbic.imageExtent.depth = 1;
+				vbic.bufferOffset = bttc.BufferOffset + offset;
+
+				vkCmdCopyBufferToImage(frameResources.UploadCommandBuffer, bttc.Buffer->GetNativeHandle(),
+					bttc.Texture->GetNativeHandle(),
+					VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &vbic);
+
+				offset += calculateTextureByteSize(bttc.Texture->GetFormat(), currWidth, currHeight);
+				
+				currWidth /= 2;
+				currHeight /= 2;
+			}
 
 			bttc.Texture->Acquire(frameResources.UploadCommandBuffer, ImageLayout::ReadOnlyOptimal, AccessFlags::MemoryRead);
 		}

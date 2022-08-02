@@ -32,7 +32,7 @@ namespace worlds
         UniquePtr<R2::VK::PipelineLayout> pipelineLayout;
         UniquePtr<R2::VK::Buffer> multiVPBuffer;
         UniquePtr<R2::VK::Buffer> modelMatrixBuffer;
-        UniquePtr<R2::SubAllocatedBuffer> materialBuffer;
+        UniquePtr<R2::VK::Buffer> lightBuffer;
         UniquePtr<R2::VK::Texture> depthBuffer;
         UniquePtr<R2::VK::Texture> colorBuffer;
 

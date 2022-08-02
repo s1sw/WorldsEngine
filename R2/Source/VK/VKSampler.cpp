@@ -60,6 +60,11 @@ namespace R2::VK
         VkSamplerCreateInfo sci{ VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO };
         memcpy(&sci.magFilter, &ci, sizeof(SamplerCreateInfo));
 
+        sci.minLod = 0.0f;
+        sci.maxLod = VK_LOD_CLAMP_NONE;
+        sci.anisotropyEnable = true;
+        sci.maxAnisotropy = 16.0f;
+
         VkSampler vsamp;
         VKCHECK(vkCreateSampler(handles->Device, &sci, handles->AllocCallbacks, &vsamp));
 
