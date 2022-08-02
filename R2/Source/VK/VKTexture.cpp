@@ -216,6 +216,11 @@ namespace R2::VK
         return height;
     }
 
+    int Texture::GetNumMips()
+    {
+        return numMips;
+    }
+
     int Texture::GetLayers()
     {
         return layers;

@@ -440,6 +440,7 @@ namespace R2::VK
         int GetWidth();
         int GetHeight();
         int GetLayers();
+        int GetNumMips();
         TextureFormat GetFormat();
 
         void Acquire(CommandBuffer cb, ImageLayout layout, AccessFlags access);

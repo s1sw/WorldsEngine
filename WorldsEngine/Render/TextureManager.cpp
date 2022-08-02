@@ -61,6 +61,7 @@ namespace worlds
             fatalErr("Failed to load texture");
 
         R2::VK::TextureCreateInfo tci = R2::VK::TextureCreateInfo::Texture2D(td.format, td.width, td.height);
+        tci.NumMips = td.numMips;
         R2::VK::Texture* t = core->CreateTexture(tci);
 
         uint32_t handle = textureManager->AllocateTextureHandle(t);

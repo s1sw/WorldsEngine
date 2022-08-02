@@ -21,6 +21,14 @@ struct Light
         {
             return LightType(asuint(pack0.w) & 7);
         }
+
+        set
+        {
+            uint wVal = asuint(pack0.w);
+            wVal &= ~7;
+            wVal |= uint(newValue);
+            pack0.w = asfloat(wVal);
+        }
     }
 
     property uint ShadowmapIndex
@@ -28,6 +36,32 @@ struct Light
         get
         {
             return (asuint(pack0.w) >> 3) & 0xF;
+        }
+    }
+
+    property float3 Radiance
+    {
+        get
+        {
+            return pack0.xyz;
+        }
+
+        set
+        {
+            pack0.xyz = newValue;
+        }
+    }
+
+    property float3 DirectionalDir
+    {
+        get
+        {
+            return pack1.xyz;
+        }
+
+        set
+        {
+            pack1.xyz = newValue;
         }
     }
 

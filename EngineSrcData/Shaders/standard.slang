@@ -1,5 +1,8 @@
 import Math;
 import NormalMapUtils;
+import PBRShade;
+import PBRUtil;
+import Light;
 
 struct VertexInput
 {
@@ -18,10 +21,11 @@ struct VertexInput
 struct VertexOutput
 {
     float4 Position : SV_Position;
+    float3 WorldPosition : WORLDPOS;
     float3 Normal : NORMAL;
     float4 TangentWithSign : TANGENT;
     float2 UV : TEXCOORD;
-};
+}
 
 struct MultiVP
 {
@@ -35,6 +39,9 @@ struct PBRMaterial
 {
     uint AlbedoTexture;
     uint NormalTexture;
+    uint MRATexture;
+    float DefaultRoughness;
+    float DefaultMetallic;
 
     float3 GetNormal(float2 uv, float3x3 tbn)
     {
@@ -51,11 +58,26 @@ struct PBRMaterial
 
         return mul(tbn, n);
     }
+
+    void LoadPBRInfo(inout ShadeInfo si, float2 uv)
+    {
+        if (MRATexture == ~0u)
+        {
+            si.metallic = DefaultMetallic;
+            si.roughness = DefaultRoughness;
+            return;
+        }
+
+        float3 texVals = Textures[MRATexture].Sample(uv).xyz;
+        si.metallic = texVals.r;
+        si.roughness = texVals.g;
+    }
 }
 
 ConstantBuffer<MultiVP> VPBuffer;
 StructuredBuffer<float4x4> ModelMatrices;
 ByteAddressBuffer MaterialBuffer;
+StructuredBuffer<Light> LightBuffer;
 
 [[vk::binding(0, 1)]]
 Sampler2D<float4> Textures[];
@@ -65,6 +87,9 @@ cbuffer PushConstants
 {
     uint ModelMatrixID;
     uint MaterialOffset;
+    uint LightCount;
+    uint pad;
+    float2 TextureOffset;
 }
 
 [shader("vertex")]
@@ -75,9 +100,10 @@ VertexOutput VertexShader(VertexInput input, uint viewIndex : SV_ViewID)
     float4x4 model = ModelMatrices[ModelMatrixID];
     float4x4 mvp = mul(VPBuffer.ProjectionMatrices[viewIndex], mul(VPBuffer.ViewMatrices[viewIndex], model));
     output.Position = mul(mvp, float4(input.Position, 1.0));
-    output.Normal = mul(adjoint(model), input.Normal);
+    output.WorldPosition = mul(model, float4(input.Position, 1.0)).xyz;
+    output.Normal = normalize(mul(adjoint(model), input.Normal));
     output.TangentWithSign = float4(mul(adjoint(model), input.Tangent).xyz, input.BitangentSign);
-    output.UV = input.UV;
+    output.UV = input.UV + TextureOffset;
     output.Position.y = -output.Position.y;
 
     return output;
@@ -100,8 +126,18 @@ float4 FragmentShader(VertexOutput input) : SV_TARGET
     float3x3 tbn = ConstructTBN(input);
     float3 normal = material.GetNormal(input.UV, tbn);
 
-    float3 color = Textures[material.AlbedoTexture].Sample(input.UV).xyz;
-    color *= clamp(dot(normal, float3(0.0, 1.0, 0.0)), 0.1, 1.0);
+    ShadeInfo shadeInfo;
+    shadeInfo.albedoColor = Textures[material.AlbedoTexture].Sample(input.UV).xyz;
+    shadeInfo.normal = normalize(normal);
+    shadeInfo.viewDir = normalize(VPBuffer.viewPos[0].xyz - input.WorldPosition.xyz);
 
-    return float4(color, 1.0);
+    material.LoadPBRInfo(shadeInfo, input.UV);
+
+    float3 lo = 0.0f;
+    for (uint i = 0; i < LightCount; i++)
+    {
+        lo += calculateLighting(LightBuffer[i], shadeInfo, input.WorldPosition.xyz);
+    }
+
+    return float4(lo, 1.0);
 }

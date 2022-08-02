@@ -61,13 +61,14 @@ namespace worlds
 
         // xyz: forward direction or first tube point
         // w: sphere/tube radius or spotlight cutoff
-        glm::vec4 packedVars;
+        glm::vec3 direction;
+        float spotCutoff;
         glm::vec3 position;   // light position or second tube point
         float distanceCutoff; // distance after which the light isn't visible
 
         void setLightType(LightType type)
         {
-            packedFlags &= 0b111;
+            packedFlags &= ~0b111;
             packedFlags |= (uint32_t)type;
         }
 
