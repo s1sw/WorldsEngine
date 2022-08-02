@@ -19,6 +19,8 @@ size_t operator""_MB(size_t sz)
 	return sz * 1000 * 1000;
 }
 
+extern R2::VK::IDebugOutputReceiver* vmaDebugOutputRecv;
+
 namespace R2::VK
 {
 	const uint32_t NUM_FRAMES_IN_FLIGHT = 2;
@@ -28,6 +30,8 @@ namespace R2::VK
 		: inFrame(false)
 		, frameIndex(0)
 	{
+		vmaDebugOutputRecv = dbgOutRecv;
+
 		setAllocCallbacks();
 		createInstance(true);
 		findQueueFamilies();
@@ -421,17 +425,18 @@ namespace R2::VK
 
 		for (uint32_t i = 0; i < NUM_FRAMES_IN_FLIGHT; i++)
 		{
+			frameIndex = i;
 			vkFreeCommandBuffers(handles.Device, handles.CommandPool, 1, &perFrameResources[i].CommandBuffer);
 			vkFreeCommandBuffers(handles.Device, handles.CommandPool, 1, &perFrameResources[i].UploadCommandBuffer);
 
 			vkDestroySemaphore(handles.Device, perFrameResources[i].Completion, handles.AllocCallbacks);
 			vkDestroyFence(handles.Device, perFrameResources[i].Fence, handles.AllocCallbacks);
-			perFrameResources[i].DeletionQueue->Cleanup();
-			delete perFrameResources[i].DeletionQueue;
-
-			vkDestroySemaphore(handles.Device, perFrameResources[i].UploadSemaphore, handles.AllocCallbacks);
 			perFrameResources[i].StagingBuffer->Unmap();
 			delete perFrameResources[i].StagingBuffer;
+			vkDestroySemaphore(handles.Device, perFrameResources[i].UploadSemaphore, handles.AllocCallbacks);
+
+			perFrameResources[i].DeletionQueue->Cleanup();
+			delete perFrameResources[i].DeletionQueue;
 		}
 
 		if (messenger)

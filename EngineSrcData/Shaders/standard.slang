@@ -1,3 +1,6 @@
+import Math;
+import NormalMapUtils;
+
 struct VertexInput
 {
     [[vk::location(0)]]
@@ -28,8 +31,31 @@ struct MultiVP
     float4 viewPos[2];
 }
 
+struct PBRMaterial
+{
+    uint AlbedoTexture;
+    uint NormalTexture;
+
+    float3 GetNormal(float2 uv, float3x3 tbn)
+    {
+        float3 n;
+
+        if (NormalTexture != ~0u)
+        {
+            n = DecodeNormalMap(Textures[NormalTexture].Sample(uv).xy);
+        }
+        else
+        {
+            n = float3(0.0, 0.0, 1.0);
+        }
+
+        return mul(tbn, n);
+    }
+}
+
 ConstantBuffer<MultiVP> VPBuffer;
 StructuredBuffer<float4x4> ModelMatrices;
+ByteAddressBuffer MaterialBuffer;
 
 [[vk::binding(0, 1)]]
 Sampler2D<float4> Textures[];
@@ -38,7 +64,7 @@ Sampler2D<float4> Textures[];
 cbuffer PushConstants
 {
     uint ModelMatrixID;
-    uint TextureID;
+    uint MaterialOffset;
 }
 
 [shader("vertex")]
@@ -49,19 +75,33 @@ VertexOutput VertexShader(VertexInput input, uint viewIndex : SV_ViewID)
     float4x4 model = ModelMatrices[ModelMatrixID];
     float4x4 mvp = mul(VPBuffer.ProjectionMatrices[viewIndex], mul(VPBuffer.ViewMatrices[viewIndex], model));
     output.Position = mul(mvp, float4(input.Position, 1.0));
-    output.Normal = mul(model, float4(input.Normal, 0.0)).xyz;
-    output.TangentWithSign = float4(mul(model, float4(input.Tangent, 0.0)).xyz, input.BitangentSign);
+    output.Normal = mul(adjoint(model), input.Normal);
+    output.TangentWithSign = float4(mul(adjoint(model), input.Tangent).xyz, input.BitangentSign);
     output.UV = input.UV;
     output.Position.y = -output.Position.y;
 
     return output;
 }
 
+float3x3 ConstructTBN(VertexOutput input)
+{
+    float3 tangent = input.TangentWithSign.xyz;
+    float3 bitangent = cross(input.Normal, tangent) * input.TangentWithSign.w;
+
+    return transpose(float3x3(tangent, bitangent, input.Normal));
+}
+
+
 [shader("fragment")]
 float4 FragmentShader(VertexOutput input) : SV_TARGET
 {
-    float3 color = float3(0.713, 0.769, 0.859);
-    color *= clamp(dot(input.Normal, float3(0.0, 1.0, 0.0)), 0.1, 1.0);
+    PBRMaterial material = MaterialBuffer.Load<PBRMaterial>(MaterialOffset);
 
-    return float4(color * Textures[TextureID].Sample(input.UV).xyz, 1.0);
+    float3x3 tbn = ConstructTBN(input);
+    float3 normal = material.GetNormal(input.UV, tbn);
+
+    float3 color = Textures[material.AlbedoTexture].Sample(input.UV).xyz;
+    color *= clamp(dot(normal, float3(0.0, 1.0, 0.0)), 0.1, 1.0);
+
+    return float4(color, 1.0);
 }

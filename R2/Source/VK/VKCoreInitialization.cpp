@@ -304,7 +304,7 @@ namespace R2::VK
         dpci.maxSets = 1000;
         VkDescriptorPoolSize poolSizes[] =
         {
-            { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 500 },
+            { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 5000 },
             { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 500 },
             { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 500 }
         };

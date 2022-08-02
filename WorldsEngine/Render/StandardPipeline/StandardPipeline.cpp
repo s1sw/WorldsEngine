@@ -1,6 +1,7 @@
 #include "StandardPipeline.hpp"
 #include <Core/AssetDB.hpp>
 #include <R2/BindlessTextureManager.hpp>
+#include <R2/SubAllocatedBuffer.hpp>
 #include <R2/VKBuffer.hpp>
 #include <R2/VKCommandBuffer.hpp>
 #include <R2/VKCore.hpp>
@@ -22,10 +23,57 @@ namespace worlds
     struct StandardPushConstants
     {
         uint32_t modelMatrixID;
-        uint32_t textureID;
+        uint32_t materialID;
+    };
+
+    struct StandardPBRMaterial
+    {
+        uint32_t albedoTexture;
+        uint32_t normalTexture;
     };
 
     const VK::TextureFormat colorBufferFormat = VK::TextureFormat::R16G16B16A16_SFLOAT;
+
+    struct MaterialAllocInfo
+    {
+        size_t offset;
+        SubAllocationHandle handle;
+    };
+
+    robin_hood::unordered_map<AssetID, MaterialAllocInfo> allocedMaterials;
+
+    size_t loadOrGetMaterial(VKRenderer* renderer, SubAllocatedBuffer* materialBuffer, AssetID id)
+    {
+        if (allocedMaterials.contains(id))
+        {
+            return allocedMaterials[id].offset;
+        }
+
+        MaterialManager* materialManager = renderer->getMaterialManager();
+        BindlessTextureManager* btm = renderer->getBindlessTextureManager();
+        VKTextureManager* tm = renderer->getTextureManager();
+
+        MaterialAllocInfo mai{};
+
+        auto& j = materialManager->loadOrGet(id);
+
+        mai.offset = materialBuffer->Allocate(sizeof(StandardPBRMaterial), mai.handle);
+
+        StandardPBRMaterial material{};
+        material.albedoTexture = tm->loadOrGet(AssetDB::pathToId(j["albedoPath"]));
+        material.normalTexture = ~0u;
+
+        if (j.contains("normalMapPath"))
+        {
+            material.normalTexture = tm->loadOrGet(AssetDB::pathToId(j["normalMapPath"]));
+        }
+
+        renderer->getCore()->QueueBufferUpload(materialBuffer->GetBuffer(), &material, sizeof(material), mai.offset);
+
+        allocedMaterials.insert({ id, mai });
+
+        return mai.offset;
+    }
 
     StandardPipeline::StandardPipeline(VKRenderer* renderer) : renderer(renderer)
     {
@@ -37,17 +85,24 @@ namespace worlds
         VK::BufferCreateInfo modelMatrixBci{VK::BufferUsage::Storage, sizeof(glm::mat4) * 4096, true};
         modelMatrixBuffer = core->CreateBuffer(modelMatrixBci);
 
+        VK::BufferCreateInfo materialBci{ VK::BufferUsage::Storage, sizeof(uint32_t) * 4 * 64, true };
+        materialBuffer = new SubAllocatedBuffer(core, materialBci);
+
         AssetID vs = AssetDB::pathToId("Shaders/standard.vert.spv");
         AssetID fs = AssetDB::pathToId("Shaders/standard.frag.spv");
 
-        ShaderReflector sr{vs};
+        VK::DescriptorSetLayoutBuilder dslb{core->GetHandles()};
+        dslb.Binding(0, VK::DescriptorType::UniformBuffer, 1, VK::ShaderStage::AllRaster);
+        dslb.Binding(1, VK::DescriptorType::StorageBuffer, 1, VK::ShaderStage::AllRaster);
+        dslb.Binding(2, VK::DescriptorType::StorageBuffer, 1, VK::ShaderStage::AllRaster);
+        descriptorSetLayout = dslb.Build();
 
-        descriptorSetLayout = sr.createDescriptorSetLayout(core, 0);
         descriptorSet = core->CreateDescriptorSet(descriptorSetLayout.Get());
 
         VK::DescriptorSetUpdater dsu{core->GetHandles(), descriptorSet.Get()};
-        sr.bindBuffer(dsu, "VPBuffer_0", multiVPBuffer.Get());
-        sr.bindBuffer(dsu, "ModelMatrices_0", modelMatrixBuffer.Get());
+        dsu.AddBuffer(0, 0, VK::DescriptorType::UniformBuffer, multiVPBuffer.Get());
+        dsu.AddBuffer(1, 0, VK::DescriptorType::StorageBuffer, modelMatrixBuffer.Get());
+        dsu.AddBuffer(2, 0, VK::DescriptorType::StorageBuffer, materialBuffer->GetBuffer());
         dsu.Update();
 
         VK::PipelineLayoutBuilder plb{core->GetHandles()};
@@ -179,8 +234,7 @@ namespace worlds
                     materialIndex = 0;
                 }
 
-                AssetID albedoId = AssetDB::pathToId(materialManager->loadOrGet(wo.materials[materialIndex])["albedoPath"]);
-                spc.textureID = textureManager->loadOrGet(albedoId);
+                spc.materialID = loadOrGetMaterial(renderer, materialBuffer.Get(), wo.materials[materialIndex]);
                 cb.PushConstants(spc, VK::ShaderStage::AllRaster, pipelineLayout.Get());
 
                 cb.DrawIndexed(rsi.indexCount, 1, rsi.indexOffset, 0, 0);
@@ -211,8 +265,7 @@ namespace worlds
                     materialIndex = 0;
                 }
 
-                AssetID albedoId = AssetDB::pathToId(materialManager->loadOrGet(wo.materials[materialIndex])["albedoPath"]);
-                spc.textureID = textureManager->loadOrGet(albedoId);
+                spc.materialID = loadOrGetMaterial(renderer, materialBuffer.Get(), wo.materials[materialIndex]);
                 cb.PushConstants(spc, VK::ShaderStage::AllRaster, pipelineLayout.Get());
 
                 cb.DrawIndexed(rsi.indexCount, 1, rsi.indexOffset, 0, 0);

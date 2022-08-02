@@ -48,6 +48,8 @@ namespace R2
     uint32_t BindlessTextureManager::AllocateTextureHandle(VK::Texture* tex)
     {
         uint32_t freeSlot = FindFreeSlot();
+
+        assert(freeSlot != ~0u);
         textures[freeSlot] = tex;
         presentTextures[freeSlot] = true;
         descriptorsNeedUpdate = true;
