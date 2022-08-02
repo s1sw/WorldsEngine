@@ -15,6 +15,7 @@
 #include <Render/ShaderCache.hpp>
 #include <Render/StandardPipeline/Tonemapper.hpp>
 #include <entt/entity/registry.hpp>
+#include <Util/JsonUtil.hpp>
 
 using namespace R2;
 
@@ -36,6 +37,7 @@ namespace worlds
         uint32_t mraTexture;
         float defaultRoughness;
         float defaultMetallic;
+        glm::vec3 emissiveColor;
     };
 
     const VK::TextureFormat colorBufferFormat = VK::TextureFormat::R16G16B16A16_SFLOAT;
@@ -83,6 +85,10 @@ namespace worlds
 
         material.defaultMetallic = j.value("metallic", 0.0f);
         material.defaultRoughness = j.value("roughness", 0.5f);
+        if (j.contains("emissiveColor"))
+            material.emissiveColor = j["emissiveColor"].get<glm::vec3>();
+        else
+            material.emissiveColor = glm::vec3(0.0f);
 
         renderer->getCore()->QueueBufferUpload(materialBuffer->GetBuffer(), &material, sizeof(material), mai.offset);
 
@@ -223,14 +229,29 @@ namespace worlds
         reg.view<WorldLight, Transform>().each([&](WorldLight& wl, const Transform& t)
         {
             if (!wl.enabled) return;
-            if (wl.type == LightType::Tube || wl.type == LightType::Sphere) return;
+            if (wl.type == LightType::Sphere) return;
+
+            glm::vec3 lightForward = glm::normalize(t.transformDirection(glm::vec3(0.0f, 0.0f, -1.0f)));
+
             PackedLight pl;
             pl.color = toLinear(wl.color) * wl.intensity;
             pl.setLightType(wl.type);
             pl.distanceCutoff = wl.maxDistance;
-            pl.direction = glm::normalize(t.transformDirection(glm::vec3(0.0f, 0.0f, -1.0f)));
+            pl.direction = lightForward;
             pl.spotCutoff = glm::cos(wl.spotCutoff);
             pl.position = t.position;
+
+            // Tube lights are packed in a weird way
+            if (wl.type == LightType::Tube)
+            {
+                glm::vec3 tubeP0 = t.position + lightForward * wl.tubeLength;
+                glm::vec3 tubeP1 = t.position - lightForward * wl.tubeLength;
+
+                pl.direction = tubeP0;
+                pl.spotCutoff = wl.tubeRadius;
+                pl.position = tubeP1;
+            }
+
             lMapped[lightCount] = pl;
             lightCount++;
         });
