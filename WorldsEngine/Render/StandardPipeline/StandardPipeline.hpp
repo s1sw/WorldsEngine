@@ -2,6 +2,11 @@
 #include <Render/IRenderPipeline.hpp>
 #include <Util/UniquePtr.hpp>
 
+namespace R2
+{
+    class SubAllocatedBuffer;
+}
+
 namespace R2::VK
 {
     class DescriptorSetLayout;
@@ -9,6 +14,7 @@ namespace R2::VK
     class Pipeline;
     class PipelineLayout;
     class Buffer;
+    class SubAllocatedBuffer;
     class Texture;
     class Core;
 }
@@ -26,7 +32,7 @@ namespace worlds
         UniquePtr<R2::VK::PipelineLayout> pipelineLayout;
         UniquePtr<R2::VK::Buffer> multiVPBuffer;
         UniquePtr<R2::VK::Buffer> modelMatrixBuffer;
-        UniquePtr<R2::VK::Buffer> materialBuffer;
+        UniquePtr<R2::SubAllocatedBuffer> materialBuffer;
         UniquePtr<R2::VK::Texture> depthBuffer;
         UniquePtr<R2::VK::Texture> colorBuffer;
 

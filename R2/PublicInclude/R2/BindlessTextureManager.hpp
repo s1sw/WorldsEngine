@@ -16,7 +16,7 @@ namespace R2
 
     class BindlessTextureManager
     {
-        static const uint32_t NUM_TEXTURES = 64;
+        static const uint32_t NUM_TEXTURES = 1024;
 
         std::array<VK::Texture*, NUM_TEXTURES> textures;
         std::bitset<NUM_TEXTURES> presentTextures;
