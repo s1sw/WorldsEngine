@@ -42,6 +42,7 @@ struct PBRMaterial
     uint MRATexture;
     float DefaultRoughness;
     float DefaultMetallic;
+    float3 EmissiveColor;
 
     float3 GetNormal(float2 uv, float3x3 tbn)
     {
@@ -139,5 +140,5 @@ float4 FragmentShader(VertexOutput input) : SV_TARGET
         lo += calculateLighting(LightBuffer[i], shadeInfo, input.WorldPosition.xyz);
     }
 
-    return float4(lo, 1.0);
+    return float4(lo + material.EmissiveColor, 1.0);
 }

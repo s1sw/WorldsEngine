@@ -66,6 +66,37 @@ LightShadeInfo calcLightShadeInfo(Light light, ShadeInfo shadeInfo, float3 world
         float cutoffDist = light.DistanceCutoff;
         lsi.radiance *= calculateFalloff(length(lToFrag), cutoffDist);
     }
+    else if (light.Type == LightType.Tube)
+    {
+        float3 p0 = light.pack1.xyz;
+        float3 p1 = light.pack2.xyz;
+        float3 center = (p0 + p1) * 0.5;
+        float3 r = reflect(-shadeInfo.viewDir, shadeInfo.normal);
+        float tubeRadius = light.pack1.w;
+
+        float3 l0 = p0 - worldPos;
+        float3 l1 = p1 - worldPos;
+
+        float3 Ldist = l1 - l0;
+        float RoLd = dot( r, Ldist);
+        float distLd2 = dot(Ldist, Ldist);
+        float t = ( dot( r, l0 ) * RoLd - dot( l0, Ldist) ) / ( distLd2 - RoLd * RoLd );
+
+        float3 closestPoint = l0 + Ldist * saturate(t);
+        float3 centerToRay = dot(closestPoint, r) * r - closestPoint;
+        closestPoint = closestPoint + centerToRay * saturate(tubeRadius / length(centerToRay));
+        float3 L = normalize(closestPoint);
+        float distLight = length(closestPoint);
+
+        lsi.L = L;
+        float falloff = tubeRadius * tubeRadius / max(tubeRadius * tubeRadius, distLight * distLight);
+        float cutoffDist = light.DistanceCutoff;
+
+        falloff *= max((1.0f - (distance(center, worldPos) / cutoffDist)), 0.0);
+        lsi.radiance *= falloff;
+        lsi.lightDist = distLight;
+    }
+
 
     return lsi;
 }
@@ -85,7 +116,16 @@ float3 calculateLighting(Light light, ShadeInfo shadeInfo, float3 worldPos)
 
     float cosLo = max(0.0f, dot(norm, shadeInfo.viewDir));
 
-    float NDF = ndfGGX(cosLh, shadeInfo.roughness);
+    float NDF;
+    
+    if (light.Type != LightType.Tube)
+    {
+        NDF = ndfGGX(cosLh, shadeInfo.roughness);
+    }
+    else
+    {
+        NDF = ndfGGXSphereLight(cosLh, shadeInfo.roughness, light.pack1.w, lsi.lightDist);
+    }
 
     float3 f0 = lerp(float3(0.04), shadeInfo.albedoColor, shadeInfo.metallic);
 
