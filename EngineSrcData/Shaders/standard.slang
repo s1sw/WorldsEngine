@@ -3,6 +3,7 @@ import NormalMapUtils;
 import PBRShade;
 import PBRUtil;
 import Light;
+import LightBuffer;
 
 struct VertexInput
 {
@@ -78,7 +79,7 @@ struct PBRMaterial
 ConstantBuffer<MultiVP> VPBuffer;
 StructuredBuffer<float4x4> ModelMatrices;
 ByteAddressBuffer MaterialBuffer;
-StructuredBuffer<Light> LightBuffer;
+ByteAddressBuffer RawLightBuffer;
 
 [[vk::binding(0, 1)]]
 Sampler2D<float4> Textures[];
@@ -88,8 +89,7 @@ cbuffer PushConstants
 {
     uint ModelMatrixID;
     uint MaterialOffset;
-    uint LightCount;
-    uint pad;
+    float2 TextureScale;
     float2 TextureOffset;
 }
 
@@ -104,7 +104,7 @@ VertexOutput VertexShader(VertexInput input, uint viewIndex : SV_ViewID)
     output.WorldPosition = mul(model, float4(input.Position, 1.0)).xyz;
     output.Normal = normalize(mul(adjoint(model), input.Normal));
     output.TangentWithSign = float4(mul(adjoint(model), input.Tangent).xyz, input.BitangentSign);
-    output.UV = input.UV + TextureOffset;
+    output.UV = (input.UV * TextureScale) + TextureOffset;
     output.Position.y = -output.Position.y;
 
     return output;
@@ -134,10 +134,13 @@ float4 FragmentShader(VertexOutput input) : SV_TARGET
 
     material.LoadPBRInfo(shadeInfo, input.UV);
 
+    LightBufferLoader lbl;
+    lbl.rawLightBuffer = RawLightBuffer;
+
     float3 lo = 0.0f;
-    for (uint i = 0; i < LightCount; i++)
+    for (uint i = 0; i < lbl.GetLightCount(); i++)
     {
-        lo += calculateLighting(LightBuffer[i], shadeInfo, input.WorldPosition.xyz);
+        lo += calculateLighting(lbl.GetLight(i), shadeInfo, input.WorldPosition.xyz);
     }
 
     return float4(lo + material.EmissiveColor, 1.0);

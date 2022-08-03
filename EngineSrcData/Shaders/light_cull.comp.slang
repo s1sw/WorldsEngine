@@ -2,6 +2,7 @@ import Light;
 import AOBox;
 import AOSphere;
 import Cubemap;
+import LightBuffer;
 
 struct LightingTile
 {
@@ -21,32 +22,7 @@ struct LightTileInfo
 
 ConstantBuffer<LightTileInfo> buf_LightTileInfo;
 
-struct LightBuffer
-{
-    // 0
-    float4x4 otherShadowMatrices[4];
 
-    // 256
-    uint lightCount;
-    uint aoBoxCount;
-    uint aoSphereCount;
-    uint cubemapCount;
-
-    // 272
-    float4 cascadeTexelsPerUnit;
-    float4x4 dirShadowMatrices[4];
-
-    // 544
-    Light lights[256];
-    // 12832
-    AOBox aoBox[128];
-    // 21024
-    AOSphere aoSphere[16];
-    // 21280
-    uint sphereIds[16];
-    // 21344
-    Cubemap cubemaps[64];
-}
 
 ByteAddressBuffer rawLightBuffer;
 
@@ -96,58 +72,6 @@ groupshared Frustum tileFrustum;
 groupshared AABB tileAABB;
 groupshared uint minDepthU;
 groupshared uint maxDepthU;
-
-
-// HLSL can't load individual fields from a buffer, so we
-// have to do alllllll of this to load just what we need
-// from a ByteAddressBuffer otherwise performance is terrible
-struct LightBufferLoader
-{
-    static uint GetLightCount()
-    {
-        return rawLightBuffer.Load(256);
-    }
-
-    static Light GetLight(int lightIndex)
-    {
-        return rawLightBuffer.Load<Light>(544 + LIGHT_SIZE * lightIndex);
-    }
-    
-    static uint GetAOBoxCount()
-    {
-        return rawLightBuffer.Load(260);
-    }
-
-    static AOBox GetAOBox(int boxIndex)
-    {
-        return rawLightBuffer.Load<AOBox>(12832 + AOBOX_SIZE * boxIndex);
-    }
-
-    static uint GetAOSphereCount()
-    {
-        return rawLightBuffer.Load(264);
-    }
-
-    static AOSphere GetAOSphere(int sphereIndex)
-    {
-        return rawLightBuffer.Load<AOSphere>(21024 + AOSPHERE_SIZE * sphereIndex);
-    }
-
-    static uint GetSphereID(int sphereIndex)
-    {
-        return rawLightBuffer.Load(21280 + sphereIndex * 4);
-    }
-
-    static uint GetCubemapCount()
-    {
-        return rawLightBuffer.Load(268);
-    }
-
-    static Cubemap GetCubemap(int cubemapIndex)
-    {
-        return rawLightBuffer.Load<Cubemap>(21344 + CUBEMAP_SIZE * cubemapIndex);
-    }
-}
 
 bool frustumContainsSphere(float3 spherePos, float sphereRadius)
 {
@@ -412,14 +336,17 @@ float4 spotBoundingSphere(in float3 origin, in float3 forward, in float size, in
 
 void cullLights(uint tileIndex, uint groupIndex)
 {
+    LightBufferLoader lbl;
+    lbl.rawLightBuffer = rawLightBuffer;
+
     // Stage 3: Cull lights against the frustum. At this point,
     // one invocation = one light. Since the light array is always
     // tightly packed, we can just check if the index is less than
     // the light count.
-    if (groupIndex < LightBufferLoader.GetLightCount())
+    if (groupIndex < lbl.GetLightCount())
     {
         uint lightIndex = groupIndex;
-        Light light = LightBufferLoader.GetLight(lightIndex);
+        Light light = lbl.GetLight(lightIndex);
         float3 lightPosition = light.pack2.xyz;
 
         LightType lightType = light.Type;
@@ -478,11 +405,14 @@ void cullLights(uint tileIndex, uint groupIndex)
 
 void cullAO(uint tileIndex, uint groupIndex)
 {
+    LightBufferLoader lbl;
+    lbl.rawLightBuffer = rawLightBuffer;
+
     // Stage 3: Cull AO spheres against the frustum
-    if (groupIndex < LightBufferLoader.GetAOSphereCount())
+    if (groupIndex < lbl.GetAOSphereCount())
     {
         uint sphereIndex = groupIndex;
-        AOSphere sph = LightBufferLoader.GetAOSphere(sphereIndex);
+        AOSphere sph = lbl.GetAOSphere(sphereIndex);
         float3 spherePos = sph.Position;
         float cullRadius = sph.Radius + 1.0;
 
@@ -509,10 +439,10 @@ void cullAO(uint tileIndex, uint groupIndex)
     }
 
     // Stage 4: Cull AO boxes against the frustum
-    if (groupIndex < LightBufferLoader.GetAOBoxCount() && groupIndex < 64)
+    if (groupIndex < lbl.GetAOBoxCount() && groupIndex < 64)
     {
         uint boxIdx = groupIndex;
-        AOBox box = LightBufferLoader.GetAOBox(boxIdx);
+        AOBox box = lbl.GetAOBox(boxIdx);
 
         float3 scale = box.Scale + float3(0.5);
         float4x4 transform = box.InverseTransform;
@@ -538,10 +468,13 @@ void cullAO(uint tileIndex, uint groupIndex)
 
 void cullCubemaps(uint tileIndex, uint groupIndex)
 {
-    if (groupIndex < LightBufferLoader.GetCubemapCount() && groupIndex > 0) 
+    LightBufferLoader lbl;
+    lbl.rawLightBuffer = rawLightBuffer;
+
+    if (groupIndex < lbl.GetCubemapCount() && groupIndex > 0) 
     {
         uint cubemapIdx = groupIndex;
-        Cubemap c = LightBufferLoader.GetCubemap(cubemapIdx);
+        Cubemap c = lbl.GetCubemap(cubemapIdx);
 
         float3 mi = c.Position - c.Extent;
         float3 ma = c.Position + c.Extent;

@@ -228,6 +228,7 @@ namespace worlds
         uint32_t finalTargetBindlessID;
         Camera* cam;
         IRenderPipeline* pipeline;
+        RTTPassCreateInfo settings;
 
       public:
         void drawNow(entt::registry& world) override;
@@ -238,6 +239,7 @@ namespace worlds
         void resize(int newWidth, int newHeight) override;
         void setResolutionScale(float newScale) override;
         ImTextureID getUITextureID() override;
+        const RTTPassCreateInfo& getSettings();
 
         R2::VK::Texture* getFinalTarget();
         Camera* getCamera();

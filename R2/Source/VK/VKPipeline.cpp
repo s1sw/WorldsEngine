@@ -174,6 +174,12 @@ namespace R2::VK
         return *this;
     }
 
+    PipelineBuilder& PipelineBuilder::MSAASamples(int numSamples)
+    {
+        this->numSamples = numSamples;
+        return *this;
+    }
+
     Pipeline* PipelineBuilder::Build()
     {
         // Rendering state
@@ -240,7 +246,7 @@ namespace R2::VK
 
         // Multisample state
         VkPipelineMultisampleStateCreateInfo multisampleStateCI{ VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO };
-        multisampleStateCI.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+        multisampleStateCI.rasterizationSamples = (VkSampleCountFlagBits)numSamples;
 
         // Attachment blend states
         std::vector<VkPipelineColorBlendAttachmentState> attachmentBlendStates;

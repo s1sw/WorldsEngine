@@ -1,7 +1,7 @@
 RWTexture2D<float4> resultImage;
 
 #ifdef MSAA
-Sampler2DMSArray hdrImage;
+Sampler2DMS hdrImage;
 #else
 Sampler2D hdrImage;
 #endif
@@ -107,7 +107,7 @@ TonemapTextureSettings GetTextureSettings()
     TonemapTextureSettings ts;
     uint w, h, arrayCount, samples;
 #ifdef MSAA
-    hdrImage.GetDimensions(w, h, arrayCount, samples);
+    hdrImage.GetDimensions(w, h, samples);
 #else
     hdrImage.GetDimensions(w, h);
 #endif
@@ -147,7 +147,7 @@ void main(uint3 threadID : SV_DispatchThreadID)
     AMDReversibleTonemapper reversibleTonemap;
     for (int i = 0; i < texSettings.msaaSamples; i++)
     {
-        float3 raw = hdrImage.Load(int3(threadID.xy, idx), i).xyz;
+        float3 raw = hdrImage.Load(threadID.xy, i).xyz;
 
         accumulator += reversibleTonemap.Tonemap(lerp(raw, bloom, 0.2));
     }

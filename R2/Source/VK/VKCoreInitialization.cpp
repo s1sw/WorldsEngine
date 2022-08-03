@@ -163,10 +163,12 @@ namespace R2::VK
 
         // Features
         // ========
+        VkPhysicalDeviceFeatures2 features { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2 };
         VkPhysicalDeviceVulkan11Features features11{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES };
         VkPhysicalDeviceVulkan12Features features12{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES };
         VkPhysicalDeviceVulkan13Features features13{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES };
 
+        features.features.samplerAnisotropy = true;
         features11.multiview = true;
         features12.descriptorIndexing = true;
         features12.descriptorBindingPartiallyBound = true;
@@ -179,7 +181,8 @@ namespace R2::VK
         features13.synchronization2 = true;
         features13.dynamicRendering = true;
 
-        dci.pNext = &features11;
+        dci.pNext = &features;
+        features.pNext = &features11;
         features11.pNext = &features12;
         features12.pNext = &features13;
 

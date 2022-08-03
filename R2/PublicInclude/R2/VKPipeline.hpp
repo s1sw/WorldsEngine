@@ -120,6 +120,7 @@ namespace R2::VK
         PipelineBuilder& DepthTest(bool enable);
         PipelineBuilder& DepthWrite(bool enable);
         PipelineBuilder& DepthCompareOp(CompareOp op);
+        PipelineBuilder& MSAASamples(int sampleCount);
         Pipeline* Build();
     private:
         Core* core;
@@ -140,6 +141,7 @@ namespace R2::VK
         bool depthTest = false;
         bool depthWrite = false;
         CompareOp depthCompareOp = CompareOp::Always;
+        int numSamples = 1;
     };
 
     class ComputePipelineBuilder

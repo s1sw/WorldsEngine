@@ -157,7 +157,6 @@ namespace worlds
         Camera* cam = nullptr;
         uint32_t width, height;
         float resScale = 1.0f;
-        bool isVr;
         bool useForPicking;
         bool enableShadows;
         bool staticsOnly = false;

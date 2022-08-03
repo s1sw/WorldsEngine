@@ -25,8 +25,7 @@ namespace worlds
     {
         uint32_t modelMatrixID;
         uint32_t materialID;
-        uint32_t lightCount;
-        uint32_t pad;
+        glm::vec2 textureScale;
         glm::vec2 textureOffset;
     };
 
@@ -99,7 +98,16 @@ namespace worlds
 
     StandardPipeline::StandardPipeline(VKRenderer* renderer) : renderer(renderer)
     {
+    }
+
+    StandardPipeline::~StandardPipeline()
+    {
+    }
+
+    void StandardPipeline::setup(VKRTTPass* rttPass)
+    {
         VK::Core* core = renderer->getCore();
+        this->rttPass = rttPass;
         
         VK::BufferCreateInfo vpBci{VK::BufferUsage::Uniform, sizeof(MultiVP), true};
         multiVPBuffer = core->CreateBuffer(vpBci);
@@ -109,11 +117,11 @@ namespace worlds
 
         if (materialBuffer == nullptr)
         {
-            VK::BufferCreateInfo materialBci{ VK::BufferUsage::Storage, sizeof(uint32_t) * 4 * 64, true };
+            VK::BufferCreateInfo materialBci{ VK::BufferUsage::Storage, sizeof(uint32_t) * 4 * 128, true };
             materialBuffer = new SubAllocatedBuffer(core, materialBci);
         }
 
-        VK::BufferCreateInfo lightBci{ VK::BufferUsage::Storage, sizeof(PackedLight) * 64, true };
+        VK::BufferCreateInfo lightBci{ VK::BufferUsage::Storage, sizeof(LightUB), true };
         lightBuffer = core->CreateBuffer(lightBci);
 
         AssetID vs = AssetDB::pathToId("Shaders/standard.vert.spv");
@@ -164,26 +172,21 @@ namespace worlds
             .DepthTest(true)
             .DepthWrite(true)
             .DepthCompareOp(VK::CompareOp::Greater)
-            .DepthAttachmentFormat(VK::TextureFormat::D32_SFLOAT);
+            .DepthAttachmentFormat(VK::TextureFormat::D32_SFLOAT)
+            .MSAASamples(rttPass->getSettings().msaaLevel);
 
         pipeline = pb.Build();
-    }
-
-    StandardPipeline::~StandardPipeline()
-    {
-    }
-
-    void StandardPipeline::setup(VKRTTPass* rttPass)
-    {
-        VK::Core* core = renderer->getCore();
-        this->rttPass = rttPass;
 
         VK::TextureCreateInfo depthBufferCI =
             VK::TextureCreateInfo::RenderTarget2D(VK::TextureFormat::D32_SFLOAT, rttPass->width, rttPass->height);
+
+        depthBufferCI.Samples = rttPass->getSettings().msaaLevel;
         depthBuffer = core->CreateTexture(depthBufferCI);
 
         VK::TextureCreateInfo colorBufferCI =
             VK::TextureCreateInfo::RenderTarget2D(colorBufferFormat, rttPass->width, rttPass->height);
+
+        colorBufferCI.Samples = rttPass->getSettings().msaaLevel;
         colorBuffer = core->CreateTexture(colorBufferCI);
 
         tonemapper = new Tonemapper(core, colorBuffer.Get(), rttPass->getFinalTarget());
@@ -197,10 +200,14 @@ namespace worlds
 
         VK::TextureCreateInfo depthBufferCI =
             VK::TextureCreateInfo::RenderTarget2D(VK::TextureFormat::D32_SFLOAT, rttPass->width, rttPass->height);
+
+        depthBufferCI.Samples = rttPass->getSettings().msaaLevel;
         depthBuffer = core->CreateTexture(depthBufferCI);
 
         VK::TextureCreateInfo colorBufferCI =
             VK::TextureCreateInfo::RenderTarget2D(colorBufferFormat, rttPass->width, rttPass->height);
+
+        colorBufferCI.Samples = rttPass->getSettings().msaaLevel;
         colorBuffer = core->CreateTexture(colorBufferCI);
 
         tonemapper = new Tonemapper(core, colorBuffer.Get(), rttPass->getFinalTarget());
@@ -223,7 +230,7 @@ namespace worlds
         BindlessTextureManager* btm = renderer->getBindlessTextureManager();
         VKTextureManager* textureManager = renderer->getTextureManager();
 
-        PackedLight* lMapped = (PackedLight*)lightBuffer->Map();
+        LightUB* lMapped = (LightUB*)lightBuffer->Map();
 
         uint32_t lightCount = 0;
         reg.view<WorldLight, Transform>().each([&](WorldLight& wl, const Transform& t)
@@ -252,9 +259,11 @@ namespace worlds
                 pl.position = tubeP1;
             }
 
-            lMapped[lightCount] = pl;
+            lMapped->lights[lightCount] = pl;
             lightCount++;
         });
+
+        lMapped->lightCount = lightCount;
 
         lightBuffer->Unmap();
 
@@ -302,7 +311,7 @@ namespace worlds
 
                 StandardPushConstants spc{};
                 spc.modelMatrixID = modelMatrixIndex-1;
-                spc.lightCount = lightCount;
+                spc.textureScale = glm::vec2(wo.texScaleOffset.x, wo.texScaleOffset.y);
                 spc.textureOffset = glm::vec2(wo.texScaleOffset.z, wo.texScaleOffset.w);
                 uint8_t materialIndex = rsi.materialIndex;
 
@@ -335,7 +344,6 @@ namespace worlds
 
                 StandardPushConstants spc{};
                 spc.modelMatrixID = modelMatrixIndex-1;
-                spc.lightCount = lightCount;
                 uint8_t materialIndex = rsi.materialIndex;
 
                 if (!wo.presentMaterials[materialIndex])
@@ -344,6 +352,8 @@ namespace worlds
                 }
 
                 spc.materialID = loadOrGetMaterial(renderer, wo.materials[materialIndex]);
+                spc.textureScale = glm::vec2(wo.texScaleOffset.x, wo.texScaleOffset.y);
+                spc.textureOffset = glm::vec2(wo.texScaleOffset.z, wo.texScaleOffset.w);
                 cb.PushConstants(spc, VK::ShaderStage::AllRaster, pipelineLayout.Get());
 
                 cb.DrawIndexed(rsi.indexCount, 1, rsi.indexOffset, 0, 0);

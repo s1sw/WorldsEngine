@@ -29,7 +29,7 @@ namespace worlds
         , colorBuffer(colorBuffer)
         , target(target)
     {
-        AssetID tonemapShader = AssetDB::pathToId("Shaders/tonemap.comp.spv");
+        AssetID tonemapShader = colorBuffer->GetSamples() == 1 ? AssetDB::pathToId("Shaders/tonemap.comp.spv") : AssetDB::pathToId("Shaders/tonemap_msaa.comp.spv");
         ShaderReflector sr{tonemapShader};
 
         descriptorSetLayout = sr.createDescriptorSetLayout(core, 0);

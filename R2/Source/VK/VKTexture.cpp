@@ -226,6 +226,11 @@ namespace R2::VK
         return layers;
     }
 
+    int Texture::GetSamples()
+    {
+        return samples;
+    }
+
     TextureFormat Texture::GetFormat()
     {
         return format;
