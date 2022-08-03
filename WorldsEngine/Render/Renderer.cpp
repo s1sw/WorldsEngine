@@ -156,6 +156,11 @@ namespace worlds
 
     RTTPass* VKRenderer::createRTTPass(RTTPassCreateInfo& ci)
     {
+        if (ci.msaaLevel == 0)
+        {
+            ci.msaaLevel = 1;
+        }
+
         IRenderPipeline* renderPipeline = new StandardPipeline(this);
 
         VKRTTPass* pass = new VKRTTPass(this, ci, renderPipeline);

@@ -686,7 +686,6 @@ namespace worlds
                 .width = w,
                 .height = h,
                 .resScale = 1.0f,
-                .isVr = enableOpenVR,
                 .useForPicking = false,
                 .enableShadows = true,
             };
@@ -823,7 +822,6 @@ namespace worlds
                     .width = w,
                     .height = h,
                     .resScale = screenPassResScale,
-                    .isVr = screenPassIsVR,
                     .useForPicking = false,
                     .enableShadows = true,
                 };

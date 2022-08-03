@@ -16,9 +16,10 @@ namespace worlds
         finalTarget = renderer->core->CreateTexture(tci);
         finalTargetBindlessID = renderer->bindlessTextureManager->AllocateTextureHandle(finalTarget);
 
-        width = ci.width;
-        height = ci.height;
-        cam = ci.cam;
+        settings = ci;
+        width = settings.width;
+        height = settings.height;
+        cam = settings.cam;
     }
 
     VKRTTPass::~VKRTTPass()
@@ -54,8 +55,10 @@ namespace worlds
         finalTarget = renderer->core->CreateTexture(tci);
         renderer->bindlessTextureManager->SetTextureAt(finalTargetBindlessID, finalTarget);
 
-        width = newWidth;
-        height = newHeight;
+        settings.width = newWidth;
+        settings.height = newHeight;
+        width = settings.width;
+        height = settings.height;
 
         pipeline->onResize(newWidth, newHeight);
     }
@@ -67,6 +70,11 @@ namespace worlds
     ImTextureID VKRTTPass::getUITextureID()
     {
         return (ImTextureID)finalTargetBindlessID;
+    }
+
+    const RTTPassCreateInfo& VKRTTPass::getSettings()
+    {
+        return settings;
     }
 
     R2::VK::Texture* VKRTTPass::getFinalTarget()

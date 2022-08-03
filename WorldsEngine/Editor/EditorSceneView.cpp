@@ -420,9 +420,9 @@ namespace worlds
         RTTPassCreateInfo sceneViewPassCI{.cam = &cam,
                                           .width = currentWidth,
                                           .height = currentHeight,
-                                          .isVr = false,
                                           .useForPicking = true,
-                                          .enableShadows = shadowsEnabled};
+                                          .enableShadows = shadowsEnabled,
+                                          .msaaLevel = 4 };
 
         sceneViewPass = interfaces.renderer->createRTTPass(sceneViewPassCI);
         sceneViewPass->active = true;
