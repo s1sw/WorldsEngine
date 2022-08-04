@@ -161,6 +161,7 @@ namespace worlds
         bool enableShadows;
         bool staticsOnly = false;
         int msaaLevel = 0;
+        int numViews = 1;
         entt::registry* registryOverride = nullptr;
         bool renderDebugShapes = true;
     };
@@ -188,6 +189,8 @@ namespace worlds
             return (uint32_t)(height * resScale);
         }
 
+        void setView(int viewIndex, glm::mat4 viewProjection);
+
         //! Draws the render pass immediately. Slow!!
         virtual void drawNow(entt::registry& world) = 0;
 
@@ -206,10 +209,12 @@ namespace worlds
         virtual void setResolutionScale(float newScale) = 0;
         virtual ImTextureID getUITextureID() = 0;
 
-      protected:
+    protected:
         virtual ~RTTPass()
-        {
-        }
+        {}
+
+        std::vector<glm::mat4> overrideViews;
+
         friend class Renderer;
     };
 

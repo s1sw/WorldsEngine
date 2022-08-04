@@ -1,9 +1,17 @@
 RWTexture2D<float4> resultImage;
 
 #ifdef MSAA
-Sampler2DMS hdrImage;
+    #ifdef MULTIVP
+        Sampler2DMSArray hdrImage;
+    #else
+        Sampler2DMS hdrImage;
+    #endif
 #else
-Sampler2D hdrImage;
+    #ifdef MULTIVP
+        Sampler2DArray hdrImage;
+    #else
+        Sampler2D hdrImage;
+    #endif
 #endif
 
 //Sampler2DArray bloomImage;
@@ -107,9 +115,17 @@ TonemapTextureSettings GetTextureSettings()
     TonemapTextureSettings ts;
     uint w, h, arrayCount, samples;
 #ifdef MSAA
+#ifdef MULTIVP
+    hdrImage.GetDimensions(w, h, arrayCount, samples);
+#else
     hdrImage.GetDimensions(w, h, samples);
+#endif
+#else
+#ifdef MULTIVP
+    hdrImage.GetDimensions(w, h, arrayCount);
 #else
     hdrImage.GetDimensions(w, h);
+#endif
 #endif
     ts.hdrWidth = w;
     ts.hdrHeight = h;
@@ -147,7 +163,11 @@ void main(uint3 threadID : SV_DispatchThreadID)
     AMDReversibleTonemapper reversibleTonemap;
     for (int i = 0; i < texSettings.msaaSamples; i++)
     {
+#ifdef MULTIVP
+        float3 raw = hdrImage.Load(int3(threadID.xy, idx), i).xyz;
+#else
         float3 raw = hdrImage.Load(threadID.xy, i).xyz;
+#endif
 
         accumulator += reversibleTonemap.Tonemap(lerp(raw, bloom, 0.2));
     }
@@ -156,7 +176,11 @@ void main(uint3 threadID : SV_DispatchThreadID)
     accumulator = reversibleTonemap.TonemapInvert(accumulator);
 #else
     // Otherwise just load it directly
+#ifdef MULTIVP
+    accumulator = hdrImage.Load(int4(threadID.xy, idx, 0)).xyz;
+#else
     accumulator = hdrImage.Load(int3(threadID.xy, 0)).xyz;
+#endif
 #endif
 
     // Tonemap
