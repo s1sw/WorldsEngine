@@ -8,6 +8,16 @@
         "path": "tonemap.comp.slang"
     },
     {
+        "path": "tonemap.comp.slang",
+        "outputPath": "tonemap_multivp.comp.spv",
+        "defines": ["MULTIVP"]
+    },
+    {
+        "path": "tonemap.comp.slang",
+        "outputPath": "tonemap_msaa_multivp.comp.spv",
+        "defines": ["MSAA", "MULTIVP"]
+    },
+    {
         "path": "vr_hidden.vert.slang"
     },
     {
