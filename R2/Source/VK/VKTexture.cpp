@@ -97,6 +97,8 @@ namespace R2::VK
         
         if (supportsStorage(core->GetHandles()->PhysicalDevice, createInfo.Format))
             ici.usage |= VK_IMAGE_USAGE_STORAGE_BIT;
+        else if (ici.samples != 1)
+            ici.usage |= VK_IMAGE_USAGE_STORAGE_BIT;
 
         if (createInfo.Format == TextureFormat::R8G8B8A8_SRGB)
         {
@@ -147,7 +149,7 @@ namespace R2::VK
 
         VkImageViewUsageCreateInfo usageCI{ VK_STRUCTURE_TYPE_IMAGE_VIEW_USAGE_CREATE_INFO };
         usageCI.usage = ici.usage & ~VK_IMAGE_USAGE_STORAGE_BIT;
-        if (!supportsStorage(core->GetHandles()->PhysicalDevice, createInfo.Format))
+        if (!supportsStorage(core->GetHandles()->PhysicalDevice, createInfo.Format) && samples == 1)
         {
             ivci.pNext = &usageCI;
         }

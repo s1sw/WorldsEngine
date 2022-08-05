@@ -168,6 +168,7 @@ namespace R2::VK
         VkPhysicalDeviceVulkan12Features features12{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES };
         VkPhysicalDeviceVulkan13Features features13{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES };
 
+        features.features.shaderStorageImageMultisample = true;
         features.features.samplerAnisotropy = true;
         features11.multiview = true;
         features12.descriptorIndexing = true;
