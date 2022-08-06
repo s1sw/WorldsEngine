@@ -1,6 +1,7 @@
 #include <R2/VKRenderPass.hpp>
-#include <R2/VKTexture.hpp>
 #include <R2/VKCommandBuffer.hpp>
+#include <R2/VKEnums.hpp>
+#include <R2/VKTexture.hpp>
 #include <volk.h>
 #include <malloc.h>
 

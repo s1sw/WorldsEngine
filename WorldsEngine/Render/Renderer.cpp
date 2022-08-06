@@ -1,12 +1,9 @@
 #include <Core/AssetDB.hpp>
 #include <Core/Log.hpp>
 #include <R2/BindlessTextureManager.hpp>
-#include <R2/VKCommandBuffer.hpp>
-#include <R2/VKCore.hpp>
-#include <R2/VKRenderPass.hpp>
+#include <R2/VK.hpp>
 #include <R2/VKSwapchain.hpp>
 #include <R2/VKSyncPrims.hpp>
-#include <R2/VKTexture.hpp>
 #include <Render/FakeLitPipeline.hpp>
 #include <Render/MaterialManager.hpp>
 #include <Render/R2ImGui.hpp>

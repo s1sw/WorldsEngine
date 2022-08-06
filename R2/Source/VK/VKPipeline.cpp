@@ -185,7 +185,8 @@ namespace R2::VK
         // Rendering state
         VkPipelineRenderingCreateInfo renderingCI{ VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO };
         renderingCI.colorAttachmentCount = (uint32_t)attachmentFormats.size();
-        renderingCI.pColorAttachmentFormats = reinterpret_cast<VkFormat*>(&attachmentFormats[0]);
+        if (attachmentFormats.size() > 0)
+            renderingCI.pColorAttachmentFormats = reinterpret_cast<VkFormat*>(&attachmentFormats[0]);
         renderingCI.depthAttachmentFormat = static_cast<VkFormat>(depthFormat);
 
         // Convert vertex bindings

@@ -1,4 +1,5 @@
 #pragma once
+#include <stdint.h>
 
 #define VK_DEFINE_HANDLE(object) typedef struct object##_T* object;
 VK_DEFINE_HANDLE(VkCommandBuffer)
@@ -18,4 +19,8 @@ namespace R2::VK
         static const Handles* handles;
         static VkCommandBuffer immediateCommandBuffer;
     };
+
+    enum class AccessFlags : uint64_t;
+    enum class PipelineStageFlags : uint64_t;
+    PipelineStageFlags getPipelineStage(AccessFlags access);
 }

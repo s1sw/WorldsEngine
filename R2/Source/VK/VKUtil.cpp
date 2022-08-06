@@ -1,5 +1,6 @@
 #include <R2/VKUtil.hpp>
 #include <R2/VKCore.hpp>
+#include <R2/VKEnums.hpp>
 #include <volk.h>
 
 namespace R2::VK
@@ -37,5 +38,52 @@ namespace R2::VK
 
         VKCHECK(vkQueueSubmit(handles->Queues.Graphics, 1, &submitInfo, VK_NULL_HANDLE));
         vkDeviceWaitIdle(handles->Device);
+    }
+
+    bool hasAF(AccessFlags access, AccessFlags test)
+    {
+        return ((uint64_t)access & (uint64_t)test) != 0;
+    }
+
+    PipelineStageFlags getPipelineStage(AccessFlags access)
+    {
+        PipelineStageFlags pFlags = PipelineStageFlags::None;
+
+        if (hasAF(access, AccessFlags::ColorAttachmentReadWrite))
+        {
+            pFlags |= PipelineStageFlags::ColorAttachmentOutput;
+        }
+
+        if (hasAF(access, AccessFlags::DepthStencilAttachmentReadWrite))
+        {
+            pFlags |= PipelineStageFlags::EarlyFragmentTests | PipelineStageFlags::LateFragmentTests;
+        }
+
+        if (hasAF(access, AccessFlags::ShaderRead | AccessFlags::ShaderWrite))
+        {
+            pFlags |= PipelineStageFlags::VertexShader | PipelineStageFlags::FragmentShader | PipelineStageFlags::ComputeShader;
+        }
+
+        if (hasAF(access, AccessFlags::IndexRead))
+        {
+            pFlags |= PipelineStageFlags::IndexInput;
+        }
+
+        if (hasAF(access, AccessFlags::HostRead | AccessFlags::HostWrite))
+        {
+            pFlags |= PipelineStageFlags::Host;
+        }
+
+        if (hasAF(access, AccessFlags::TransferRead | AccessFlags::TransferWrite))
+        {
+            pFlags |= PipelineStageFlags::Transfer;
+        }
+
+        if (pFlags == PipelineStageFlags::None)
+        {
+            pFlags = PipelineStageFlags::AllGraphics;
+        }
+
+        return pFlags;
     }
 }

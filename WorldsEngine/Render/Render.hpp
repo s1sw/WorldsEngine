@@ -44,6 +44,8 @@ namespace worlds
         glm::mat4 projections[2];
         glm::mat4 inverseVP[2];
         glm::vec4 viewPos[2];
+        int screenWidth;
+        int screenHeight;
     };
 
     struct PackedLight
