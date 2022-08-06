@@ -2,6 +2,8 @@
 #include <R2/VKCore.hpp>
 #include <R2/VKCommandBuffer.hpp>
 #include <R2/VKDeletionQueue.hpp>
+#include <R2/VKEnums.hpp>
+#include <R2/VKUtil.hpp>
 #include <volk.h>
 #include <vk_mem_alloc.h>
 #include <assert.h>
@@ -97,8 +99,6 @@ namespace R2::VK
         
         if (supportsStorage(core->GetHandles()->PhysicalDevice, createInfo.Format))
             ici.usage |= VK_IMAGE_USAGE_STORAGE_BIT;
-        else if (ici.samples != 1)
-            ici.usage |= VK_IMAGE_USAGE_STORAGE_BIT;
 
         if (createInfo.Format == TextureFormat::R8G8B8A8_SRGB)
         {
@@ -149,7 +149,7 @@ namespace R2::VK
 
         VkImageViewUsageCreateInfo usageCI{ VK_STRUCTURE_TYPE_IMAGE_VIEW_USAGE_CREATE_INFO };
         usageCI.usage = ici.usage & ~VK_IMAGE_USAGE_STORAGE_BIT;
-        if (!supportsStorage(core->GetHandles()->PhysicalDevice, createInfo.Format) && samples == 1)
+        if (!supportsStorage(core->GetHandles()->PhysicalDevice, createInfo.Format))
         {
             ivci.pNext = &usageCI;
         }
@@ -236,43 +236,6 @@ namespace R2::VK
     TextureFormat Texture::GetFormat()
     {
         return format;
-    }
-
-    bool hasAF(AccessFlags access, AccessFlags test)
-    {
-        return ((uint64_t)access & (uint64_t)test) != 0;
-    }
-
-    VkPipelineStageFlags2 getPipelineStage(AccessFlags access)
-    {
-        VkPipelineStageFlags2 pFlags = 0;
-
-        if (hasAF(access, AccessFlags::ColorAttachmentReadWrite))
-        {
-            pFlags |= VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
-        }
-
-        if (hasAF(access, AccessFlags::DepthStencilAttachmentReadWrite))
-        {
-            pFlags |= VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT;
-        }
-
-        if (hasAF(access, AccessFlags::ShaderRead) || hasAF(access, AccessFlags::ShaderWrite))
-        {
-            pFlags |= VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
-        }
-
-        if (hasAF(access, AccessFlags::IndexRead))
-        {
-            pFlags |= VK_PIPELINE_STAGE_2_INDEX_INPUT_BIT;
-        }
-
-        if (pFlags == 0)
-        {
-            pFlags = VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT;
-        }
-
-        return pFlags;
     }
 
     void Texture::Acquire(CommandBuffer cb, ImageLayout layout, AccessFlags access)

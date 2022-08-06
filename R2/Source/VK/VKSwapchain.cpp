@@ -1,9 +1,10 @@
 #include <R2/VKSwapchain.hpp>
 #include <R2/VKCore.hpp>
-#include <R2/VKTexture.hpp>
-#include <R2/VKSyncPrims.hpp>
-#include <R2/VKUtil.hpp>
 #include <R2/VKCommandBuffer.hpp>
+#include <R2/VKEnums.hpp>
+#include <R2/VKSyncPrims.hpp>
+#include <R2/VKTexture.hpp>
+#include <R2/VKUtil.hpp>
 #include <volk.h>
 #include <vector>
 

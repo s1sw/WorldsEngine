@@ -11,6 +11,7 @@ namespace R2::VK
 {
     struct Handles;
     class Core;
+    class CommandBuffer;
 
     enum class BufferUsage : uint32_t
     {
@@ -25,6 +26,9 @@ namespace R2::VK
     {
         return (BufferUsage)((uint32_t)a | (uint32_t)b);
     }
+
+    enum class AccessFlags : uint64_t;
+    enum class PipelineStageFlags : uint64_t;
 
     struct BufferCreateInfo
     {
@@ -44,6 +48,8 @@ namespace R2::VK
         void* Map();
         void Unmap();
         void CopyTo(VkCommandBuffer cb, Buffer* other, uint64_t numBytes, uint64_t srcOffset, uint64_t dstOffset);
+        void Acquire(CommandBuffer cb, AccessFlags access);
+        void Acquire(CommandBuffer cb, AccessFlags access, PipelineStageFlags stage);
 
         ~Buffer();
     private:
@@ -53,5 +59,8 @@ namespace R2::VK
 
         uint64_t size;
         BufferUsage usage;
+        
+        AccessFlags lastAccess;
+        PipelineStageFlags lastPipelineStage;
     };
 }

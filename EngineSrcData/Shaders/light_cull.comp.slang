@@ -3,28 +3,7 @@ import AOBox;
 import AOSphere;
 import Cubemap;
 import LightBuffer;
-
-struct LightingTile
-{
-    uint lightIdMasks[8];
-    uint cubemapIdMasks[2];
-    uint aoBoxIdMasks[2];
-    uint aoSphereIdMasks[2];
-}
-
-struct LightTileInfo
-{
-    uint tileSize;
-    uint tilesPerEye;
-    uint numTilesX;
-    uint numTilesY;
-}
-
-ConstantBuffer<LightTileInfo> buf_LightTileInfo;
-
-
-
-ByteAddressBuffer rawLightBuffer;
+import LightTiles;
 
 cbuffer MultiVP
 {
@@ -32,24 +11,30 @@ cbuffer MultiVP
     float4x4 projection[2];
     float4x4 inverseVP[2];
     float4 viewPos[2];
+    int screenWidth;
+    int screenHeight;
 }
 
 #ifdef MSAA
-Sampler2DMSArray depthBuffer;
+    #ifdef MULTIVP
+        Sampler2DMSArray depthBuffer;
+    #else
+        Sampler2DMS depthBuffer;
+    #endif
 #else
-Sampler2DArray depthBuffer;
+    #ifdef MULTIVP
+        Sampler2DArray depthBuffer;
+    #else
+        Sampler2D depthBuffer;
+    #endif
 #endif
-#define DEBUG
 
-RWStructuredBuffer<uint> tileLightCounts;
+ByteAddressBuffer rawLightBuffer;
 RWStructuredBuffer<LightingTile> buf_LightTiles;
 
 [[vk::push_constant]]
 cbuffer PC
 {
-    float4x4 invViewProj;
-    uint screenWidth;
-    uint screenHeight;
     uint eyeIdx;
 }
 
@@ -251,14 +236,12 @@ void setupTileAABB(float3 frustumPoints[8])
     tileAABB.extents = (aabbMax - aabbMin) * 0.5;
 }
 
-void setupTile(uint tileIndex, uint x, uint y)
+void setupTile(uint tileIndex, uint x, uint y, int tileSize)
 {
     float3 camPos = viewPos[eyeIdx].xyz;
     float minDepth = asfloat(minDepthU);
     float maxDepth = asfloat(maxDepthU);
 
-    tileLightCounts[tileIndex] = 0;
-    float tileSize = buf_LightTileInfo.tileSize;
     float2 ndcTileSize = 2.0f * float2(tileSize, -tileSize) / float2(screenWidth, screenHeight);
 
     // Calculate frustum
@@ -395,11 +378,6 @@ void cullLights(uint tileIndex, uint groupIndex)
         uint setBits = uint(inFrustum || lightType == LightType.Directional) << bucketBit;
         InterlockedOr(buf_LightTiles[tileIndex].lightIdMasks[bucketIdx], setBits);
 #endif
-
-#ifdef DEBUG
-        if (inFrustum || lightType == LightType.Directional)
-            InterlockedAdd(tileLightCounts[tileIndex], 1);
-#endif
     }
 }
 
@@ -500,19 +478,31 @@ void cullCubemaps(uint tileIndex, uint groupIndex)
 float depthBufferLoad(int2 coord, int msaaSample)
 {
 #ifdef MSAA
-    return depthBuffer.Load(int3(coord, eyeIdx), msaaSample).x;
+    #ifdef MULTIVP
+        return depthBuffer.Load(int3(coord, eyeIdx), msaaSample).x;
+    #else
+        return depthBuffer.Load(int2(coord), msaaSample).x;
+    #endif
 #else
-    return depthBuffer.Load(int4(coord, eyeIdx, 0)).x;
+    #ifdef MULTIVP
+        return depthBuffer.Load(int4(coord, eyeIdx, 0)).x;
+    #else
+        return depthBuffer.Load(int3(coord, 0)).x;
+    #endif
 #endif
 }
 
 uint getDepthBufferSamples()
 {
     #ifdef MSAA
-    uint w, h, arrayCount, samples;
-    depthBuffer.GetDimensions(w, h, arrayCount, samples);
+        uint w, h, arrayCount, samples;
+        #ifdef MULTIVP
+            depthBuffer.GetDimensions(w, h, arrayCount, samples);
+        #else
+            depthBuffer.GetDimensions(w, h, samples);
+        #endif
     #else
-    uint samples = 1;
+        uint samples = 1;
     #endif
 
     return samples;
@@ -522,18 +512,17 @@ uint getDepthBufferSamples()
 [numthreads(16, 16, 1)]
 void main(uint3 groupID : SV_GroupID, uint groupIndex : SV_GroupIndex, uint3 dispatchID : SV_DispatchThreadID)
 {
+    LightTileInfo tileInfo = CalculateTileInfo(screenWidth, screenHeight);
     uint x = groupID.x;
     uint y = groupID.y;
-    uint tileIndex = ((y * buf_LightTileInfo.numTilesX) + x) + (eyeIdx * buf_LightTileInfo.tilesPerEye);
+    uint tileIndex = ((y * tileInfo.numTilesX) + x) + (eyeIdx * tileInfo.tilesPerEye);
 
     clearBuffers(tileIndex, groupIndex);
 
     uint samples = getDepthBufferSamples();
 
     // Stage 1: Determine the depth bounds of the tile using atomics.
-    // THIS ONLY WORKS FOR 16x16 TILES.
-    // Changing the tile size means that there's no longer a 1:1 correlation between threads
-    // and tile pixels, so this atomic depth read won't work.
+    // THIS ONLY WORKS FOR 32x32 TILES.
     //
     // NOTE: When MSAA is on, the last parameter refers to the MSAA sample to load. When MSAA is
     // off, it refers to the mipmap level to load from.
@@ -581,7 +570,7 @@ void main(uint3 groupID : SV_GroupID, uint groupIndex : SV_GroupIndex, uint3 dis
     // Stage 2: Calculate frustum points.
     if (groupIndex == 0)
     {
-        setupTile(tileIndex, x, y);
+        setupTile(tileIndex, x, y, tileInfo.tileSize);
     }
 
     GroupMemoryBarrierWithGroupSync();

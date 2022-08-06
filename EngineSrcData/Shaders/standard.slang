@@ -4,6 +4,7 @@ import PBRShade;
 import PBRUtil;
 import Light;
 import LightBuffer;
+import LightTiles;
 
 struct VertexInput
 {
@@ -34,6 +35,8 @@ struct MultiVP
     float4x4 ProjectionMatrices[2];
     float4x4 inverseVP[2];
     float4 viewPos[2];
+    int screenWidth;
+    int screenHeight;
 }
 
 struct PBRMaterial
@@ -80,6 +83,7 @@ ConstantBuffer<MultiVP> VPBuffer;
 StructuredBuffer<float4x4> ModelMatrices;
 ByteAddressBuffer MaterialBuffer;
 ByteAddressBuffer RawLightBuffer;
+StructuredBuffer<LightingTile> LightTiles;
 
 [[vk::binding(0, 1)]]
 Sampler2D<float4> Textures[];
@@ -120,7 +124,7 @@ float3x3 ConstructTBN(VertexOutput input)
 
 
 [shader("fragment")]
-float4 FragmentShader(VertexOutput input) : SV_TARGET
+float4 FragmentShader(VertexOutput input, float2 fragCoord : SV_Position) : SV_TARGET
 {
     PBRMaterial material = MaterialBuffer.Load<PBRMaterial>(MaterialOffset);
 
@@ -137,11 +141,41 @@ float4 FragmentShader(VertexOutput input) : SV_TARGET
     LightBufferLoader lbl;
     lbl.rawLightBuffer = RawLightBuffer;
 
+    int tileIdxX = int(fragCoord.x / 32);
+    int tileIdxY = int(fragCoord.y / 32);
+
+    LightTileInfo lti = CalculateTileInfo(VPBuffer.screenWidth, VPBuffer.screenHeight);
+
+    uint tileIdx = ((tileIdxY * lti.numTilesX) + tileIdxX);
+
     float3 lo = 0.0f;
-    for (uint i = 0; i < lbl.GetLightCount(); i++)
+    //for (uint i = 0; i < lbl.GetLightCount(); i++)
+    //{
+    //    lo += calculateLighting(lbl.GetLight(i), shadeInfo, input.WorldPosition.xyz);
+    //}
+
+    for (int i = 0; i < 8; i++)
     {
-        lo += calculateLighting(lbl.GetLight(i), shadeInfo, input.WorldPosition.xyz);
+        //uint lightBits = readFirstInvocationARB(subgroupOr(buf_LightTiles.tiles[tileIdx].lightIdMasks[i]));
+        uint lightBits = LightTiles[tileIdx].lightIdMasks[i];
+
+        while (lightBits != 0)
+        {
+            // find the next set light bit
+            uint lightBitIndex = firstbitlow(lightBits);
+
+            // remove it from the mask with an XOR
+            lightBits ^= 1 << lightBitIndex;
+
+            uint realIndex = lightBitIndex + (32 * i);
+            lo += calculateLighting(lbl.GetLight(int(realIndex)), shadeInfo, input.WorldPosition.xyz);
+        }
     }
 
     return float4(lo + material.EmissiveColor, 1.0);
+}
+
+[shader("fragment")]
+void EmptyFragShader(VertexOutput input)
+{
 }

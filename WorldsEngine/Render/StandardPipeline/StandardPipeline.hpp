@@ -23,23 +23,29 @@ namespace worlds
 {
     class VKRenderer;
     class Tonemapper;
+    class LightCull;
 
     class StandardPipeline : public IRenderPipeline
     {
         UniquePtr<R2::VK::DescriptorSetLayout> descriptorSetLayout;
         UniquePtr<R2::VK::DescriptorSet> descriptorSet;
         UniquePtr<R2::VK::Pipeline> pipeline;
+        UniquePtr<R2::VK::Pipeline> depthPrePipeline;
         UniquePtr<R2::VK::PipelineLayout> pipelineLayout;
         UniquePtr<R2::VK::Buffer> multiVPBuffer;
         UniquePtr<R2::VK::Buffer> modelMatrixBuffer;
         UniquePtr<R2::VK::Buffer> lightBuffer;
+        UniquePtr<R2::VK::Buffer> lightTileBuffer;
         UniquePtr<R2::VK::Texture> depthBuffer;
         UniquePtr<R2::VK::Texture> colorBuffer;
 
         UniquePtr<Tonemapper> tonemapper;
+        UniquePtr<LightCull> lightCull;
 
         VKRenderer* renderer;
         VKRTTPass* rttPass;
+
+        void drawLoop(entt::registry& reg, R2::VK::CommandBuffer& cb, bool writeMatrices);
       public:
         StandardPipeline(VKRenderer* renderer);
         ~StandardPipeline();

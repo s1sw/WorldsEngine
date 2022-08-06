@@ -21,9 +21,22 @@
         "path": "vr_hidden.vert.slang"
     },
     {
+        "path": "light_cull.comp.slang"
+    },
+    {
+        "path": "light_cull.comp.slang",
+        "outputPath": "light_cull_multivp.comp.spv",
+        "defines": ["MULTIVP"]
+    },
+    {
         "path": "light_cull.comp.slang",
         "outputPath": "light_cull_msaa.comp.spv",
         "defines": ["MSAA"]
+    },
+    {
+        "path": "light_cull.comp.slang",
+        "outputPath": "light_cull_msaa_multivp.comp.spv",
+        "defines": ["MSAA", "MULTIVP"]
     },
     {
         "path": "light_cull.comp.slang"
@@ -49,6 +62,12 @@
     {
         "path": "standard.slang",
         "outputPath": "standard.frag.spv",
+        "stage": "frag",
+        "entryPoint": "FragmentShader"
+    },
+    {
+        "path": "standard.slang",
+        "outputPath": "standard_empty.frag.spv",
         "stage": "frag",
         "entryPoint": "FragmentShader"
     }

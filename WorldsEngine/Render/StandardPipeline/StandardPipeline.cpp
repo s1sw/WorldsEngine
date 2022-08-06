@@ -13,6 +13,7 @@
 #include <Render/RenderInternal.hpp>
 #include <Render/ShaderReflector.hpp>
 #include <Render/ShaderCache.hpp>
+#include <Render/StandardPipeline/LightCull.hpp>
 #include <Render/StandardPipeline/Tonemapper.hpp>
 #include <entt/entity/registry.hpp>
 #include <Util/JsonUtil.hpp>
@@ -37,6 +38,14 @@ namespace worlds
         float defaultRoughness;
         float defaultMetallic;
         glm::vec3 emissiveColor;
+    };
+
+    struct LightTile
+    {
+        uint32_t lightIdMasks[8];
+        uint32_t cubemapIdMasks[2];
+        uint32_t aoBoxIdMasks[2];
+        uint32_t aoSphereIdMasks[2];
     };
 
     const VK::TextureFormat colorBufferFormat = VK::TextureFormat::R16G16B16A16_SFLOAT;
@@ -124,14 +133,20 @@ namespace worlds
         VK::BufferCreateInfo lightBci{ VK::BufferUsage::Storage, sizeof(LightUB), true };
         lightBuffer = core->CreateBuffer(lightBci);
 
+        VK::BufferCreateInfo lightTileBci{ VK::BufferUsage::Storage, sizeof(LightTile) * ((rttPass->width + 31) / 32) * ((rttPass->height + 31) / 32), true };
+        lightTileBuffer = core->CreateBuffer(lightTileBci);
+
         AssetID vs = AssetDB::pathToId("Shaders/standard.vert.spv");
         AssetID fs = AssetDB::pathToId("Shaders/standard.frag.spv");
+        AssetID depthFS = AssetDB::pathToId("Shaders/standard_empty.frag.spv");
 
         VK::DescriptorSetLayoutBuilder dslb{core->GetHandles()};
         dslb.Binding(0, VK::DescriptorType::UniformBuffer, 1, VK::ShaderStage::AllRaster);
         dslb.Binding(1, VK::DescriptorType::StorageBuffer, 1, VK::ShaderStage::AllRaster);
         dslb.Binding(2, VK::DescriptorType::StorageBuffer, 1, VK::ShaderStage::AllRaster);
         dslb.Binding(3, VK::DescriptorType::StorageBuffer, 1, VK::ShaderStage::AllRaster);
+        dslb.Binding(4, VK::DescriptorType::StorageBuffer, 1, VK::ShaderStage::AllRaster);
+        dslb.UpdateAfterBind();
         descriptorSetLayout = dslb.Build();
 
         descriptorSet = core->CreateDescriptorSet(descriptorSetLayout.Get());
@@ -141,6 +156,7 @@ namespace worlds
         dsu.AddBuffer(1, 0, VK::DescriptorType::StorageBuffer, modelMatrixBuffer.Get());
         dsu.AddBuffer(2, 0, VK::DescriptorType::StorageBuffer, materialBuffer->GetBuffer());
         dsu.AddBuffer(3, 0, VK::DescriptorType::StorageBuffer, lightBuffer.Get());
+        dsu.AddBuffer(4, 0, VK::DescriptorType::StorageBuffer, lightTileBuffer.Get());
         dsu.Update();
 
         VK::PipelineLayoutBuilder plb{core->GetHandles()};
@@ -160,6 +176,7 @@ namespace worlds
 
         VK::ShaderModule& stdVert = ShaderCache::getModule(vs);
         VK::ShaderModule& stdFrag = ShaderCache::getModule(fs);
+        VK::ShaderModule& depthFrag = ShaderCache::getModule(depthFS);
 
         VK::PipelineBuilder pb{core};
         pb.PrimitiveTopology(VK::Topology::TriangleList)
@@ -170,12 +187,27 @@ namespace worlds
             .AddShader(VK::ShaderStage::Vertex, stdVert)
             .AddShader(VK::ShaderStage::Fragment, stdFrag)
             .DepthTest(true)
+            .DepthWrite(false)
+            .DepthCompareOp(VK::CompareOp::Equal)
+            .DepthAttachmentFormat(VK::TextureFormat::D32_SFLOAT)
+            .MSAASamples(rttPass->getSettings().msaaLevel);
+
+        pipeline = pb.Build();
+
+        VK::PipelineBuilder pb2{core};
+        pb2.PrimitiveTopology(VK::Topology::TriangleList)
+            .CullMode(VK::CullMode::Back)
+            .Layout(pipelineLayout.Get())
+            .AddVertexBinding(std::move(vb))
+            .AddShader(VK::ShaderStage::Vertex, stdVert)
+            .AddShader(VK::ShaderStage::Fragment, depthFrag)
+            .DepthTest(true)
             .DepthWrite(true)
             .DepthCompareOp(VK::CompareOp::Greater)
             .DepthAttachmentFormat(VK::TextureFormat::D32_SFLOAT)
             .MSAASamples(rttPass->getSettings().msaaLevel);
 
-        pipeline = pb.Build();
+        depthPrePipeline = pb2.Build();
 
         VK::TextureCreateInfo depthBufferCI =
             VK::TextureCreateInfo::RenderTarget2D(VK::TextureFormat::D32_SFLOAT, rttPass->width, rttPass->height);
@@ -190,6 +222,7 @@ namespace worlds
         colorBuffer = core->CreateTexture(colorBufferCI);
 
         tonemapper = new Tonemapper(core, colorBuffer.Get(), rttPass->getFinalTarget());
+        lightCull = new LightCull(core, depthBuffer.Get(), lightBuffer.Get(), lightTileBuffer.Get(), multiVPBuffer.Get());
     }
 
     void StandardPipeline::onResize(int width, int height)
@@ -210,7 +243,16 @@ namespace worlds
         colorBufferCI.Samples = rttPass->getSettings().msaaLevel;
         colorBuffer = core->CreateTexture(colorBufferCI);
 
+        VK::BufferCreateInfo lightTileBci{ VK::BufferUsage::Storage, sizeof(LightTile) * ((rttPass->width + 31) / 32) * ((rttPass->height + 31) / 32), true };
+        lightTileBuffer = core->CreateBuffer(lightTileBci);
+
+        VK::DescriptorSetUpdater dsu{core->GetHandles(), descriptorSet.Get()};
+        dsu.AddBuffer(4, 0, VK::DescriptorType::StorageBuffer, lightTileBuffer.Get());
+        dsu.Update();
+
         tonemapper = new Tonemapper(core, colorBuffer.Get(), rttPass->getFinalTarget());
+        lightCull = new LightCull(core, depthBuffer.Get(), lightBuffer.Get(), lightTileBuffer.Get(), multiVPBuffer.Get());
+
     }
 
     glm::vec3 toLinear(glm::vec3 sRGB)
@@ -220,6 +262,94 @@ namespace worlds
         glm::vec3 lower = sRGB / 12.92f;
 
         return mix(higher, lower, cutoff);
+    }
+
+    void StandardPipeline::drawLoop(entt::registry& reg, R2::VK::CommandBuffer& cb, bool writeMatrices)
+    {
+        RenderMeshManager* meshManager = renderer->getMeshManager();
+
+        uint32_t modelMatrixIndex = 0;
+        glm::mat4* modelMatricesMapped;
+
+        if (writeMatrices)
+            modelMatricesMapped = (glm::mat4*)modelMatrixBuffer->Map();
+
+        reg.view<WorldObject, Transform>().each([&](WorldObject& wo, Transform& t)
+        {
+            RenderMeshInfo& rmi = meshManager->loadOrGet(wo.mesh);
+
+            if (writeMatrices)
+                modelMatricesMapped[modelMatrixIndex++] = t.getMatrix();
+            else
+                modelMatrixIndex++;
+
+            cb.BindVertexBuffer(0, meshManager->getVertexBuffer(), rmi.vertsOffset);
+
+            VK::IndexType vkIdxType =
+                rmi.indexType == IndexType::Uint32 ? VK::IndexType::Uint32 : VK::IndexType::Uint16;
+            cb.BindIndexBuffer(meshManager->getIndexBuffer(), rmi.indexOffset, vkIdxType);
+
+            for (int i = 0; i < rmi.numSubmeshes; i++)
+            {
+                RenderSubmeshInfo& rsi = rmi.submeshInfo[i];
+
+                StandardPushConstants spc{};
+                spc.modelMatrixID = modelMatrixIndex-1;
+                spc.textureScale = glm::vec2(wo.texScaleOffset.x, wo.texScaleOffset.y);
+                spc.textureOffset = glm::vec2(wo.texScaleOffset.z, wo.texScaleOffset.w);
+                uint8_t materialIndex = rsi.materialIndex;
+
+                if (!wo.presentMaterials[materialIndex])
+                {
+                    materialIndex = 0;
+                }
+
+                spc.materialID = loadOrGetMaterial(renderer, wo.materials[materialIndex]);
+                cb.PushConstants(spc, VK::ShaderStage::AllRaster, pipelineLayout.Get());
+
+                cb.DrawIndexed(rsi.indexCount, 1, rsi.indexOffset, 0, 0);
+            }
+        });
+
+        reg.view<SkinnedWorldObject, Transform>().each([&](SkinnedWorldObject& wo, Transform& t)
+        {
+            RenderMeshInfo& rmi = meshManager->loadOrGet(wo.mesh);
+
+            if (writeMatrices)
+                modelMatricesMapped[modelMatrixIndex++] = t.getMatrix();
+            else
+                modelMatrixIndex++;
+
+            cb.BindVertexBuffer(0, meshManager->getVertexBuffer(), rmi.vertsOffset);
+
+            VK::IndexType vkIdxType =
+                rmi.indexType == IndexType::Uint32 ? VK::IndexType::Uint32 : VK::IndexType::Uint16;
+            cb.BindIndexBuffer(meshManager->getIndexBuffer(), rmi.indexOffset, vkIdxType);
+
+            for (int i = 0; i < rmi.numSubmeshes; i++)
+            {
+                RenderSubmeshInfo& rsi = rmi.submeshInfo[i];
+
+                StandardPushConstants spc{};
+                spc.modelMatrixID = modelMatrixIndex-1;
+                uint8_t materialIndex = rsi.materialIndex;
+
+                if (!wo.presentMaterials[materialIndex])
+                {
+                    materialIndex = 0;
+                }
+
+                spc.materialID = loadOrGetMaterial(renderer, wo.materials[materialIndex]);
+                spc.textureScale = glm::vec2(wo.texScaleOffset.x, wo.texScaleOffset.y);
+                spc.textureOffset = glm::vec2(wo.texScaleOffset.z, wo.texScaleOffset.w);
+                cb.PushConstants(spc, VK::ShaderStage::AllRaster, pipelineLayout.Get());
+
+                cb.DrawIndexed(rsi.indexCount, 1, rsi.indexOffset, 0, 0);
+            }
+        });
+
+        if (writeMatrices)
+            modelMatrixBuffer->Unmap();
     }
 
     void StandardPipeline::draw(entt::registry& reg, R2::VK::CommandBuffer& cb)
@@ -267,11 +397,9 @@ namespace worlds
 
         lightBuffer->Unmap();
 
-        glm::mat4* modelMatricesMapped = (glm::mat4*)modelMatrixBuffer->Map();
-
-        VK::RenderPass r;
-        r.ColorAttachment(colorBuffer.Get(), VK::LoadOp::Clear, VK::StoreOp::Store)
-            .ColorAttachmentClearValue(VK::ClearValue::FloatColorClear(1.f, 0.f, 1.f, 1.f))
+        cb.BindPipeline(depthPrePipeline.Get());
+        VK::RenderPass depthPass;
+        depthPass
             .DepthAttachment(depthBuffer.Get(), VK::LoadOp::Clear, VK::StoreOp::Store)
             .DepthAttachmentClearValue(VK::ClearValue::DepthClear(0.0f))
             .RenderArea(rttPass->width, rttPass->height)
@@ -280,89 +408,36 @@ namespace worlds
         Camera* camera = rttPass->getCamera();
 
         MultiVP multiVPs{};
+        multiVPs.screenWidth = rttPass->width;
+        multiVPs.screenHeight = rttPass->height;
         multiVPs.views[0] = camera->getViewMatrix();
         multiVPs.projections[0] = camera->getProjectionMatrix((float)rttPass->width / rttPass->height);
+        multiVPs.inverseVP[0] =  glm::inverse(multiVPs.projections[0] * multiVPs.views[0]);
         multiVPs.viewPos[0] = glm::vec4(camera->position, 0.0f);
 
         core->QueueBufferUpload(multiVPBuffer.Get(), &multiVPs, sizeof(multiVPs), 0);
 
-        uint32_t modelMatrixIndex = 0;
-
-        cb.BindPipeline(pipeline.Get());
         cb.BindGraphicsDescriptorSet(pipelineLayout.Get(), descriptorSet->GetNativeHandle(), 0);
         cb.BindGraphicsDescriptorSet(pipelineLayout.Get(), btm->GetTextureDescriptorSet().GetNativeHandle(), 1);
         cb.SetViewport(VK::Viewport::Simple((float)rttPass->width, (float)rttPass->height));
         cb.SetScissor(VK::ScissorRect::Simple(rttPass->width, rttPass->height));
 
-        reg.view<WorldObject, Transform>().each([&](WorldObject& wo, Transform& t)
-        {
-            RenderMeshInfo& rmi = meshManager->loadOrGet(wo.mesh);
+        drawLoop(reg, cb, true);
+        depthPass.End(cb);
 
-            modelMatricesMapped[modelMatrixIndex++] = t.getMatrix();
-            cb.BindVertexBuffer(0, meshManager->getVertexBuffer(), rmi.vertsOffset);
+        lightCull->Execute(cb);
 
-            VK::IndexType vkIdxType =
-                rmi.indexType == IndexType::Uint32 ? VK::IndexType::Uint32 : VK::IndexType::Uint16;
-            cb.BindIndexBuffer(meshManager->getIndexBuffer(), rmi.indexOffset, vkIdxType);
+        lightTileBuffer->Acquire(cb, VK::AccessFlags::ShaderRead, VK::PipelineStageFlags::FragmentShader);
+        cb.BindPipeline(pipeline.Get());
+        VK::RenderPass colorPass;
+        colorPass.ColorAttachment(colorBuffer.Get(), VK::LoadOp::Clear, VK::StoreOp::Store)
+            .ColorAttachmentClearValue(VK::ClearValue::FloatColorClear(glm::pow(0.392f, 2.2f), glm::pow(0.584f, 2.2f), glm::pow(0.929f, 2.2f), 1.0f))
+            .DepthAttachment(depthBuffer.Get(), VK::LoadOp::Load, VK::StoreOp::Store)
+            .RenderArea(rttPass->width, rttPass->height)
+            .Begin(cb);
 
-            for (int i = 0; i < rmi.numSubmeshes; i++)
-            {
-                RenderSubmeshInfo& rsi = rmi.submeshInfo[i];
-
-                StandardPushConstants spc{};
-                spc.modelMatrixID = modelMatrixIndex-1;
-                spc.textureScale = glm::vec2(wo.texScaleOffset.x, wo.texScaleOffset.y);
-                spc.textureOffset = glm::vec2(wo.texScaleOffset.z, wo.texScaleOffset.w);
-                uint8_t materialIndex = rsi.materialIndex;
-
-                if (!wo.presentMaterials[materialIndex])
-                {
-                    materialIndex = 0;
-                }
-
-                spc.materialID = loadOrGetMaterial(renderer, wo.materials[materialIndex]);
-                cb.PushConstants(spc, VK::ShaderStage::AllRaster, pipelineLayout.Get());
-
-                cb.DrawIndexed(rsi.indexCount, 1, rsi.indexOffset, 0, 0);
-            }
-        });
-
-        reg.view<SkinnedWorldObject, Transform>().each([&](SkinnedWorldObject& wo, Transform& t)
-        {
-            RenderMeshInfo& rmi = meshManager->loadOrGet(wo.mesh);
-
-            modelMatricesMapped[modelMatrixIndex++] = t.getMatrix();
-            cb.BindVertexBuffer(0, meshManager->getVertexBuffer(), rmi.vertsOffset);
-
-            VK::IndexType vkIdxType =
-                rmi.indexType == IndexType::Uint32 ? VK::IndexType::Uint32 : VK::IndexType::Uint16;
-            cb.BindIndexBuffer(meshManager->getIndexBuffer(), rmi.indexOffset, vkIdxType);
-
-            for (int i = 0; i < rmi.numSubmeshes; i++)
-            {
-                RenderSubmeshInfo& rsi = rmi.submeshInfo[i];
-
-                StandardPushConstants spc{};
-                spc.modelMatrixID = modelMatrixIndex-1;
-                uint8_t materialIndex = rsi.materialIndex;
-
-                if (!wo.presentMaterials[materialIndex])
-                {
-                    materialIndex = 0;
-                }
-
-                spc.materialID = loadOrGetMaterial(renderer, wo.materials[materialIndex]);
-                spc.textureScale = glm::vec2(wo.texScaleOffset.x, wo.texScaleOffset.y);
-                spc.textureOffset = glm::vec2(wo.texScaleOffset.z, wo.texScaleOffset.w);
-                cb.PushConstants(spc, VK::ShaderStage::AllRaster, pipelineLayout.Get());
-
-                cb.DrawIndexed(rsi.indexCount, 1, rsi.indexOffset, 0, 0);
-            }
-        });
-
-        r.End(cb);
-
-        modelMatrixBuffer->Unmap();
+        drawLoop(reg, cb, false);
+        colorPass.End(cb);
 
         tonemapper->Execute(cb);
     }

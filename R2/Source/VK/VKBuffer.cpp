@@ -1,6 +1,9 @@
 #include <R2/VKBuffer.hpp>
 #include <R2/VKCore.hpp>
+#include <R2/VKCommandBuffer.hpp>
 #include <R2/VKDeletionQueue.hpp>
+#include <R2/VKEnums.hpp>
+#include <R2/VKUtil.hpp>
 #include <volk.h>
 #include <vk_mem_alloc.h>
 
@@ -35,6 +38,8 @@ namespace R2::VK
 
     Buffer::Buffer(Core* renderer, const BufferCreateInfo& createInfo)
         : renderer(renderer)
+        , lastAccess(AccessFlags::HostWrite)
+        , lastPipelineStage(PipelineStageFlags::Host)
     {
         size = createInfo.Size;
         usage = createInfo.Usage;
@@ -92,6 +97,44 @@ namespace R2::VK
         bufferCopy.srcOffset = srcOffset;
         bufferCopy.size = numBytes;
         vkCmdCopyBuffer(cb, buffer, other->buffer, 1, &bufferCopy);
+    }
+
+    void Buffer::Acquire(CommandBuffer cb, AccessFlags access)
+    {
+        VkBufferMemoryBarrier2 bmb { VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2 };
+        bmb.buffer = buffer;
+        bmb.offset = 0;
+        bmb.size = VK_WHOLE_SIZE;
+        bmb.srcAccessMask = (VkAccessFlags2)lastAccess;
+        bmb.srcStageMask = (VkPipelineStageFlags2)lastPipelineStage;
+        bmb.dstAccessMask = (VkAccessFlags2)access;
+        bmb.dstStageMask = (VkPipelineStageFlags2)getPipelineStage(access);
+
+        VkDependencyInfo di { VK_STRUCTURE_TYPE_DEPENDENCY_INFO };
+        di.pBufferMemoryBarriers = &bmb;
+        di.bufferMemoryBarrierCount = 1;
+        vkCmdPipelineBarrier2(cb.GetNativeHandle(), &di);
+        lastAccess = access;
+        lastPipelineStage = getPipelineStage(access);
+    }
+
+    void Buffer::Acquire(CommandBuffer cb, AccessFlags access, PipelineStageFlags stage)
+    {
+        VkBufferMemoryBarrier2 bmb { VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2 };
+        bmb.buffer = buffer;
+        bmb.offset = 0;
+        bmb.size = VK_WHOLE_SIZE;
+        bmb.srcAccessMask = (VkAccessFlags2)lastAccess;
+        bmb.srcStageMask = (VkPipelineStageFlags2)lastPipelineStage;
+        bmb.dstAccessMask = (VkAccessFlags2)access;
+        bmb.dstStageMask = (VkPipelineStageFlags2)stage;
+
+        VkDependencyInfo di { VK_STRUCTURE_TYPE_DEPENDENCY_INFO };
+        di.pBufferMemoryBarriers = &bmb;
+        di.bufferMemoryBarrierCount = 1;
+        vkCmdPipelineBarrier2(cb.GetNativeHandle(), &di);
+        lastAccess = access;
+        lastPipelineStage = stage;
     }
 
     Buffer::~Buffer()
