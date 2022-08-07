@@ -24,6 +24,7 @@ namespace worlds
     class VKRenderer;
     class Tonemapper;
     class LightCull;
+    class VKTextureManager;
 
     class StandardPipeline : public IRenderPipeline
     {
@@ -46,6 +47,7 @@ namespace worlds
         VKRTTPass* rttPass;
 
         void drawLoop(entt::registry& reg, R2::VK::CommandBuffer& cb, bool writeMatrices);
+        void fillLightBuffer(entt::registry& reg, VKTextureManager* textureManager);
       public:
         StandardPipeline(VKRenderer* renderer);
         ~StandardPipeline();

@@ -406,6 +406,7 @@ namespace R2::VK
         VkImage GetNativeHandle();
         VkImage ReleaseHandle();
         VkImageView GetView();
+        void SetDebugName(const char* name);
 
         int GetWidth();
         int GetHeight();

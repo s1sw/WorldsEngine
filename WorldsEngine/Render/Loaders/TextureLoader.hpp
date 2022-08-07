@@ -12,6 +12,7 @@ namespace worlds
         uint32_t width, height;
         uint32_t numMips;
         uint32_t totalDataSize;
+        bool isCubemap;
         R2::VK::TextureFormat format;
         std::string name;
     };
