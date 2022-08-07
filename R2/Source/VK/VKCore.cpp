@@ -353,7 +353,7 @@ namespace R2::VK
 			for (int i = 0; i < texture->GetNumMips(); i++)
 			{
 				VkBufferImageCopy vbic{};
-				vbic.imageSubresource.layerCount = 1;
+				vbic.imageSubresource.layerCount = texture->GetLayers();
 				vbic.imageSubresource.mipLevel = i;
 				vbic.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 				vbic.imageExtent.width = currWidth;
@@ -526,7 +526,7 @@ namespace R2::VK
 			for (int i = 0; i < bttc.Texture->GetNumMips(); i++)
 			{
 				VkBufferImageCopy vbic{};
-				vbic.imageSubresource.layerCount = 1;
+				vbic.imageSubresource.layerCount = bttc.Texture->GetLayers();
 				vbic.imageSubresource.mipLevel = i;
 				vbic.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 				vbic.imageExtent.width = currWidth;

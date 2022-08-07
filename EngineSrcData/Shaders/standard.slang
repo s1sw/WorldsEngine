@@ -5,6 +5,7 @@ import PBRUtil;
 import Light;
 import LightBuffer;
 import LightTiles;
+import Cubemap;
 
 struct VertexInput
 {
@@ -88,6 +89,9 @@ StructuredBuffer<LightingTile> LightTiles;
 [[vk::binding(0, 1)]]
 Sampler2D<float4> Textures[];
 
+[[vk::binding(0, 1)]]
+SamplerCube<float4> Cubemaps[];
+
 [[vk::push_constant]]
 cbuffer PushConstants
 {
@@ -122,6 +126,157 @@ float3x3 ConstructTBN(VertexOutput input)
     return transpose(float3x3(tangent, bitangent, input.Normal));
 }
 
+float3 ComputeIncomingLight(ShadeInfo shadeInfo, float2 fragCoord, float3 worldPos)
+{
+    LightBufferLoader lbl;
+    lbl.rawLightBuffer = RawLightBuffer;
+
+    int tileIdxX = int(fragCoord.x / 32);
+    int tileIdxY = int(fragCoord.y / 32);
+
+    LightTileInfo lti = CalculateTileInfo(VPBuffer.screenWidth, VPBuffer.screenHeight);
+
+    uint tileIdx = ((tileIdxY * lti.numTilesX) + tileIdxX);
+
+    float3 lo = 0.0f;
+    for (int i = 0; i < 8; i++)
+    {
+        //uint lightBits = readFirstInvocationARB(subgroupOr(buf_LightTiles.tiles[tileIdx].lightIdMasks[i]));
+        uint lightBits = LightTiles[tileIdx].lightIdMasks[i];
+
+        while (lightBits != 0)
+        {
+            // find the next set light bit
+            uint lightBitIndex = firstbitlow(lightBits);
+
+            // remove it from the mask with an XOR
+            lightBits ^= 1 << lightBitIndex;
+
+            uint realIndex = lightBitIndex + (32 * i);
+            lo += calculateLighting(lbl.GetLight(int(realIndex)), shadeInfo, worldPos);
+        }
+    }
+
+    return lo;
+}
+
+float3 EnvBRDFApprox(vec3 F, float roughness, float NoV)
+{
+    const float4 c0 = { -1, -0.0275, -0.572, 0.022 };
+    const float4 c1 = { 1, 0.0425, 1.04, -0.04 };
+
+    float4 r = roughness * c0 + c1;
+    float a004 = min(r.x * r.x, exp2( -9.28 * NoV )) * r.x + r.y;
+    float2 AB = vec2(-1.04, 1.04) * a004 + r.zw;
+
+    return F * AB.x + AB.y;
+}
+
+float3 sampleCubemap(Cubemap cubemap, float3 dir, float mip, float3 worldPos)
+{
+    if (cubemap.Flags != CubemapFlags.None)
+    {
+        dir = parallaxCorrectCubemap(dir, cubemap.Position, cubemap.Position + cubemap.Extent, cubemap.Position - cubemap.Extent, worldPos);
+    }
+
+    dir.x = -dir.x;
+    dir = normalize(dir);
+
+    if (cubemap.TextureID == ~0u) return float3(1.0f, 0.0f, 1.0f);
+    return Cubemaps[NonUniformResourceIndex(cubemap.TextureID)].SampleLevel(dir, mip).rgb;
+}
+
+float calcBlendWeight(Cubemap c, float3 worldPos)
+{
+    float3 t = abs(worldPos - c.Position);
+    const float blendDist = 1.0;
+    t = (t - (c.Extent - float3(blendDist))) / (float3(blendDist));
+    return 1.0 - saturate(max(t.x, max(t.y, t.z)));
+}
+
+float3 ComputeAmbient(ShadeInfo shadeInfo, float2 fragCoord, float3 worldPos)
+{
+    const float MAX_REFLECTION_LOD = 6.0;
+    float3 R = reflect(-shadeInfo.viewDir, shadeInfo.normal);
+    float3 f0 = lerp(0.04, shadeInfo.albedoColor, shadeInfo.metallic);
+
+    float3 F = fresnelSchlickRoughness(saturate(dot(shadeInfo.normal, shadeInfo.viewDir)), f0, shadeInfo.roughness);
+    float3 specularAmbient = float3(0.0);
+    float3 diffuseAmbient = float3(0.0);
+
+    int tileIdxX = int(fragCoord.x / 32);
+    int tileIdxY = int(fragCoord.y / 32);
+
+    LightTileInfo lti = CalculateTileInfo(VPBuffer.screenWidth, VPBuffer.screenHeight);
+    uint tileIdx = ((tileIdxY * lti.numTilesX) + tileIdxX);
+
+    float specMipLevel = shadeInfo.roughness * MAX_REFLECTION_LOD;
+
+    LightBufferLoader lbl;
+    lbl.rawLightBuffer = RawLightBuffer;
+
+    int numCubemaps = 0;
+    float weightSum = 0.0;
+    for (int i = 0; i < 2; i++)
+    {
+        uint cubemapBits = LightTiles[tileIdx].cubemapIdMasks[i];
+
+        while (cubemapBits != 0)
+        {
+            // find the next set sphere bit
+            uint cubemapBitIndex = firstbitlow(cubemapBits);
+
+            // remove it from the mask with an XOR
+            cubemapBits ^= 1 << cubemapBitIndex;
+
+            uint realIndex = cubemapBitIndex + (32 * i);
+            Cubemap c = lbl.GetCubemap(realIndex);
+            numCubemaps++;
+            weightSum += calcBlendWeight(c, worldPos);
+        }
+    }
+
+    for (int i = 0; i < 2; i++)
+    {
+        uint cubemapBits = LightTiles[tileIdx].cubemapIdMasks[i];
+
+        while (cubemapBits != 0)
+        {
+            // find the next set sphere bit
+            uint cubemapBitIndex = firstbitlow(cubemapBits);
+
+            // remove it from the mask with an XOR
+            cubemapBits ^= 1 << cubemapBitIndex;
+
+            uint realIndex = cubemapBitIndex + (32 * i);
+            Cubemap c = lbl.GetCubemap(realIndex);
+            float blendWeight = calcBlendWeight(c, worldPos) / weightSum;
+            specularAmbient += sampleCubemap(c, R, specMipLevel, worldPos) * blendWeight;
+            diffuseAmbient += sampleCubemap(c, R, 12.0) * blendWeight;
+        }
+    }
+
+    if (weightSum == 0.0)
+    {
+        specularAmbient = sampleCubemap(lbl.GetCubemap(0), R, specMipLevel, worldPos);
+        diffuseAmbient = sampleCubemap(cubemaps[0], R, 12.0);
+    }
+
+    //float2 coord = float2(roughness, max(dot(normal, viewDir), 0.0));
+    //float2 brdf = textureLod(brdfLutSampler, coord, 0.0).rg;
+    //float3 specularColor = F * (brdf.x + brdf.y);
+    float3 specularColor = EnvBRDFApprox(F, roughness, max(dot(normal, viewDir), 0.0));
+
+    float3 totalAmbient = specularAmbient * specularColor;
+
+    if (metallic < 1.0)
+    {
+        float3 kD = (1.0 - F) * (1.0 - metallic);
+        totalAmbient += kD * diffuseAmbient * albedoColor;
+    }
+
+    return totalAmbient;
+}
 
 [shader("fragment")]
 float4 FragmentShader(VertexOutput input, float2 fragCoord : SV_Position) : SV_TARGET
@@ -138,41 +293,10 @@ float4 FragmentShader(VertexOutput input, float2 fragCoord : SV_Position) : SV_T
 
     material.LoadPBRInfo(shadeInfo, input.UV);
 
-    LightBufferLoader lbl;
-    lbl.rawLightBuffer = RawLightBuffer;
+    float3 lo = ComputeIncomingLight(shadeInfo, fragCoord, input.WorldPosition.xyz);
+    float3 ambient = ComputeAmbient(shadeInfo, fragCoord, input.WorldPosition.xyz);
 
-    int tileIdxX = int(fragCoord.x / 32);
-    int tileIdxY = int(fragCoord.y / 32);
-
-    LightTileInfo lti = CalculateTileInfo(VPBuffer.screenWidth, VPBuffer.screenHeight);
-
-    uint tileIdx = ((tileIdxY * lti.numTilesX) + tileIdxX);
-
-    float3 lo = 0.0f;
-    //for (uint i = 0; i < lbl.GetLightCount(); i++)
-    //{
-    //    lo += calculateLighting(lbl.GetLight(i), shadeInfo, input.WorldPosition.xyz);
-    //}
-
-    for (int i = 0; i < 8; i++)
-    {
-        //uint lightBits = readFirstInvocationARB(subgroupOr(buf_LightTiles.tiles[tileIdx].lightIdMasks[i]));
-        uint lightBits = LightTiles[tileIdx].lightIdMasks[i];
-
-        while (lightBits != 0)
-        {
-            // find the next set light bit
-            uint lightBitIndex = firstbitlow(lightBits);
-
-            // remove it from the mask with an XOR
-            lightBits ^= 1 << lightBitIndex;
-
-            uint realIndex = lightBitIndex + (32 * i);
-            lo += calculateLighting(lbl.GetLight(int(realIndex)), shadeInfo, input.WorldPosition.xyz);
-        }
-    }
-
-    return float4(lo + material.EmissiveColor, 1.0);
+    return float4(ambient + lo + material.EmissiveColor, 1.0);
 }
 
 [shader("fragment")]

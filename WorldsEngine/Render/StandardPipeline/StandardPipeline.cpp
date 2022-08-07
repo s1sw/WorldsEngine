@@ -352,14 +352,8 @@ namespace worlds
             modelMatrixBuffer->Unmap();
     }
 
-    void StandardPipeline::draw(entt::registry& reg, R2::VK::CommandBuffer& cb)
+    void StandardPipeline::fillLightBuffer(entt::registry& reg, VKTextureManager* textureManager)
     {
-        VK::Core* core = renderer->getCore();
-        RenderMeshManager* meshManager = renderer->getMeshManager();
-        MaterialManager* materialManager = renderer->getMaterialManager();
-        BindlessTextureManager* btm = renderer->getBindlessTextureManager();
-        VKTextureManager* textureManager = renderer->getTextureManager();
-
         LightUB* lMapped = (LightUB*)lightBuffer->Map();
 
         uint32_t lightCount = 0;
@@ -395,7 +389,33 @@ namespace worlds
 
         lMapped->lightCount = lightCount;
 
+        uint32_t cubemapIdx = 1;
+        lMapped->cubemaps[0] = GPUCubemap { glm::vec3{100000.0f}, ~0u, glm::vec3{0.0f}, 0 };
+        reg.view<WorldCubemap, Transform>().each([&](WorldCubemap& wc, Transform& t) {
+            GPUCubemap gc{};
+            gc.extent = wc.extent;
+            gc.position = t.position;
+            gc.flags = wc.cubeParallax;
+            gc.texture = textureManager->loadOrGet(wc.cubemapId);
+            lMapped->cubemaps[cubemapIdx] = gc;
+            wc.renderIdx = cubemapIdx;
+            cubemapIdx++;
+        });
+
+        lMapped->cubemapCount = cubemapIdx;
+
         lightBuffer->Unmap();
+    }
+
+    void StandardPipeline::draw(entt::registry& reg, R2::VK::CommandBuffer& cb)
+    {
+        VK::Core* core = renderer->getCore();
+        RenderMeshManager* meshManager = renderer->getMeshManager();
+        MaterialManager* materialManager = renderer->getMaterialManager();
+        BindlessTextureManager* btm = renderer->getBindlessTextureManager();
+        VKTextureManager* textureManager = renderer->getTextureManager();
+
+        fillLightBuffer(reg, textureManager);
 
         cb.BindPipeline(depthPrePipeline.Get());
         VK::RenderPass depthPass;

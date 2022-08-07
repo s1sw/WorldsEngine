@@ -32,3 +32,18 @@ float3x3 adjoint(float4x4 m)
                     cross(m[2].xyz, m[0].xyz), 
                     cross(m[0].xyz, m[1].xyz));
 }
+
+float3 parallaxCorrectCubemap(float3 v, float3 center, float3 ma, float3 mi, float3 pos)
+{
+    float3 dir = normalize(v);
+    float3 rbmax = (ma - pos) / dir;
+    float3 rbmin = (mi - pos) / dir;
+
+    float3 rbminmax = max(rbmax, rbmin);
+
+    float dist = min(min(rbminmax.x, rbminmax.y), rbminmax.z);
+
+    float3 intersection = pos + dir * dist;
+
+    return intersection - center;
+}

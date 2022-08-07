@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <mutex>
 #include <physfs.h>
+#include <nlohmann/json.hpp>
 
 using namespace R2;
 
@@ -99,7 +100,8 @@ namespace worlds
 
         crnd::crnd_unpack_end(context);
 
-        TextureData td;
+        TextureData td{};
+
         td.data = (uint8_t*)data;
         td.numMips = numMips;
         td.width = x;
@@ -134,24 +136,100 @@ namespace worlds
         {
             dat = stbi_load_from_memory((stbi_uc*)fileData, (int)fileLen, &x, &y, &channelsInFile, 4);
         }
+
         if (dat == nullptr)
         {
-            SDL_LogError(worlds::WELogCategoryEngine, "STB Image error\n");
+            logErr("STB Image error");
         }
-        TextureData td;
+
+        TextureData td{};
+
         td.data = dat;
         td.numMips = 1;
         td.width = (uint32_t)x;
         td.height = (uint32_t)y;
+
         if (hdr)
             td.format = VK::TextureFormat::R32G32B32A32_SFLOAT;
         else if (!forceLinear)
             td.format = VK::TextureFormat::R8G8B8A8_SRGB;
         else
             td.format = VK::TextureFormat::R8G8B8A8_UNORM;
+
         td.name = AssetDB::idToPath(id);
         td.totalDataSize = hdr ? x * y * 4 * sizeof(float) : x * y * 4;
+
         return td;
+    }
+
+    TextureData loadCubemapTexture(void* fileData, size_t fileLen, AssetID id)
+    {
+        // Cubemaps are just json files containing the paths to each individual face
+        uint8_t* charData = (uint8_t*)fileData;
+        nlohmann::json j = nlohmann::json::parse(charData, charData + fileLen);
+
+        if (!j.is_array() || j.is_discarded() || j.size() != 6)
+        {
+            logErr("Cubemap %s is not a valid JSON array", AssetDB::idToPath(id).c_str());
+            return TextureData { nullptr };
+        }
+
+        TextureData faces[6];
+
+        for (int i = 0; i < 6; i++)
+        {
+            faces[i] = loadTexData(AssetDB::pathToId(j[i]));
+        }
+
+        VK::TextureFormat textureFormat = faces[0].format;
+        int resolution = faces[0].width;
+        int pixelSize = textureFormat == VK::TextureFormat::R32G32B32A32_SFLOAT ? sizeof(float) * 4 : 4;
+        size_t faceSize = resolution * resolution * pixelSize;
+
+        for (int i = 0; i < 6; i++)
+        {
+            if (faces[i].format != textureFormat)
+            {
+                logErr("Faces of cubemap %s are not all the same format", AssetDB::idToPath(id).c_str());
+                return TextureData { nullptr };
+            }
+
+            if (faces[i].width != resolution || faces[i].height != resolution)
+            {
+                logErr("Faces of cubemap %s differ in resolution", AssetDB::idToPath(id).c_str());
+                return TextureData { nullptr };
+            }
+
+            if (faces[i].totalDataSize != faceSize)
+            {
+                logErr("Faces of cubemap %s differ in data size", AssetDB::idToPath(id).c_str());
+                return TextureData{ nullptr };
+            }
+        }
+
+        TextureData finalData{};
+        finalData.isCubemap = true;
+        finalData.numMips = 1;
+        finalData.totalDataSize = faceSize * 6;
+        finalData.height = resolution;
+        finalData.width = resolution;
+        finalData.name = AssetDB::idToPath(id);
+        finalData.format = textureFormat;
+
+        // allocate a single large buffer and put all the faces in there
+        uint8_t* finalBuffer = (uint8_t*)malloc(finalData.totalDataSize);
+
+        uint8_t* destination = finalBuffer;
+        for (int i = 0; i < 6; i++)
+        {
+            memcpy(destination, faces[i].data, faceSize);
+            free(faces[i].data);
+            destination += faceSize;
+        }
+
+        finalData.data = finalBuffer;
+
+        return finalData;
     }
 
     TextureData loadTexData(AssetID id)
@@ -192,10 +270,16 @@ namespace worlds
             return loadCrunchTexture(fileVec.data(), fileLen, id);
         }
 
+        if (fileVec[0] == '[' && fileVec[fileVec.size() - 1] == ']')
+        {
+            return loadCubemapTexture(fileVec.data(), fileLen, id);
+        }
+
         wtex::Header* header = reinterpret_cast<wtex::Header*>(fileVec.data());
 
         if (!header->verifyMagic())
         {
+            logErr("Unknown texture format");
             return TextureData{nullptr};
         }
 
