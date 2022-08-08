@@ -55,7 +55,7 @@ struct PBRMaterial
 
         if (NormalTexture != ~0u)
         {
-            n = DecodeNormalMap(Textures[NormalTexture].Sample(uv).xy);
+            n = DecodeNormalMap(Textures[NonUniformResourceIndex(NormalTexture)].Sample(uv).xy);
         }
         else
         {
@@ -74,7 +74,7 @@ struct PBRMaterial
             return;
         }
 
-        float3 texVals = Textures[MRATexture].Sample(uv).xyz;
+        float3 texVals = Textures[NonUniformResourceIndex(MRATexture)].Sample(uv).xyz;
         si.metallic = texVals.r;
         si.roughness = texVals.g;
     }
@@ -160,14 +160,14 @@ float3 ComputeIncomingLight(ShadeInfo shadeInfo, float2 fragCoord, float3 worldP
     return lo;
 }
 
-float3 EnvBRDFApprox(vec3 F, float roughness, float NoV)
+float3 EnvBRDFApprox(float3 F, float roughness, float NoV)
 {
     const float4 c0 = { -1, -0.0275, -0.572, 0.022 };
     const float4 c1 = { 1, 0.0425, 1.04, -0.04 };
 
     float4 r = roughness * c0 + c1;
     float a004 = min(r.x * r.x, exp2( -9.28 * NoV )) * r.x + r.y;
-    float2 AB = vec2(-1.04, 1.04) * a004 + r.zw;
+    float2 AB = float2(-1.04, 1.04) * a004 + r.zw;
 
     return F * AB.x + AB.y;
 }
@@ -252,30 +252,66 @@ float3 ComputeAmbient(ShadeInfo shadeInfo, float2 fragCoord, float3 worldPos)
             Cubemap c = lbl.GetCubemap(realIndex);
             float blendWeight = calcBlendWeight(c, worldPos) / weightSum;
             specularAmbient += sampleCubemap(c, R, specMipLevel, worldPos) * blendWeight;
-            diffuseAmbient += sampleCubemap(c, R, 12.0) * blendWeight;
+            diffuseAmbient += sampleCubemap(c, R, 12.0, worldPos) * blendWeight;
         }
     }
 
     if (weightSum == 0.0)
     {
         specularAmbient = sampleCubemap(lbl.GetCubemap(0), R, specMipLevel, worldPos);
-        diffuseAmbient = sampleCubemap(cubemaps[0], R, 12.0);
+        diffuseAmbient = sampleCubemap(lbl.GetCubemap(0), R, 12.0, worldPos);
     }
 
     //float2 coord = float2(roughness, max(dot(normal, viewDir), 0.0));
     //float2 brdf = textureLod(brdfLutSampler, coord, 0.0).rg;
     //float3 specularColor = F * (brdf.x + brdf.y);
-    float3 specularColor = EnvBRDFApprox(F, roughness, max(dot(normal, viewDir), 0.0));
+    float3 specularColor = EnvBRDFApprox(F, shadeInfo.roughness, max(dot(shadeInfo.normal, shadeInfo.viewDir), 0.0));
 
     float3 totalAmbient = specularAmbient * specularColor;
 
-    if (metallic < 1.0)
+    if (shadeInfo.metallic < 1.0)
     {
-        float3 kD = (1.0 - F) * (1.0 - metallic);
-        totalAmbient += kD * diffuseAmbient * albedoColor;
+        float3 kD = (1.0 - F) * (1.0 - shadeInfo.metallic);
+        //totalAmbient += kD * diffuseAmbient * shadeInfo.albedoColor;
     }
 
     return totalAmbient;
+}
+
+uint GetCubemapTileCount(float2 fragCoord)
+{
+    int tileIdxX = int(fragCoord.x / 32);
+    int tileIdxY = int(fragCoord.y / 32);
+
+    LightTileInfo lti = CalculateTileInfo(VPBuffer.screenWidth, VPBuffer.screenHeight);
+    uint tileIdx = ((tileIdxY * lti.numTilesX) + tileIdxX);
+    uint numCubemaps = 0;
+    for (int i = 0; i < 2; i++)
+    {
+        uint cubemapBits = LightTiles[tileIdx].cubemapIdMasks[i];
+        numCubemaps += countbits(cubemapBits);
+    }
+
+    return numCubemaps;
+}
+
+float3 GetHeatmapColor(uint number, float2 fragCoord)
+{
+    float3 heatmapCol = float3(saturate((number - 8.0) / 4.0), saturate(number / 4.0), saturate((number - 4.0) / 4.0));
+
+    if (int(fragCoord.x) % 32 == 0 || int(fragCoord.y) % int(32) == 0)
+        heatmapCol.z = 1.0;
+
+    return heatmapCol;
+}
+
+float getAntiAliasedRoughness(float inRoughness, float3 normal)
+{
+    float3 ddxN = ddx(normal);
+    float3 ddyN = ddy(normal);
+
+    float geoRoughness = pow(saturate(max(dot(ddxN.xyz, ddxN.xyz), dot(ddyN.xyz, ddyN.xyz))), 0.333);
+    return max(inRoughness, geoRoughness);
 }
 
 [shader("fragment")]
@@ -287,16 +323,19 @@ float4 FragmentShader(VertexOutput input, float2 fragCoord : SV_Position) : SV_T
     float3 normal = material.GetNormal(input.UV, tbn);
 
     ShadeInfo shadeInfo;
-    shadeInfo.albedoColor = Textures[material.AlbedoTexture].Sample(input.UV).xyz;
+    shadeInfo.albedoColor = Textures[NonUniformResourceIndex(material.AlbedoTexture)].Sample(input.UV).xyz;
     shadeInfo.normal = normalize(normal);
     shadeInfo.viewDir = normalize(VPBuffer.viewPos[0].xyz - input.WorldPosition.xyz);
 
     material.LoadPBRInfo(shadeInfo, input.UV);
 
+    shadeInfo.roughness = getAntiAliasedRoughness(shadeInfo.roughness, shadeInfo.normal);
+
     float3 lo = ComputeIncomingLight(shadeInfo, fragCoord, input.WorldPosition.xyz);
     float3 ambient = ComputeAmbient(shadeInfo, fragCoord, input.WorldPosition.xyz);
 
     return float4(ambient + lo + material.EmissiveColor, 1.0);
+    //return float4(GetHeatmapColor(GetCubemapTileCount(fragCoord), fragCoord), 1.0);
 }
 
 [shader("fragment")]

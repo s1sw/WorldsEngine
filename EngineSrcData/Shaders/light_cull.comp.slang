@@ -297,7 +297,7 @@ void clearBuffers(uint tileIndex, uint groupIndex)
     buf_LightTiles[tileIndex].lightIdMasks[groupIndex % 8] = 0u;
     buf_LightTiles[tileIndex].aoSphereIdMasks[groupIndex % 2] = 0u;
     buf_LightTiles[tileIndex].aoBoxIdMasks[groupIndex % 2] = 0u;
-    buf_LightTiles[tileIndex].cubemapIdMasks[groupIndex & 2] = 0u;
+    buf_LightTiles[tileIndex].cubemapIdMasks[groupIndex % 2] = 0u;
 }
 
 float4 spotBoundingSphere(in float3 origin, in float3 forward, in float size, in float cosAngle)

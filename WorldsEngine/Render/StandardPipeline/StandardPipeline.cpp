@@ -18,6 +18,8 @@
 #include <entt/entity/registry.hpp>
 #include <Util/JsonUtil.hpp>
 
+#include <deque>
+
 using namespace R2;
 
 namespace worlds
@@ -352,6 +354,8 @@ namespace worlds
             modelMatrixBuffer->Unmap();
     }
 
+    std::deque<AssetID> convoluteQueue;
+
     void StandardPipeline::fillLightBuffer(entt::registry& reg, VKTextureManager* textureManager)
     {
         LightUB* lMapped = (LightUB*)lightBuffer->Map();
@@ -396,6 +400,10 @@ namespace worlds
             gc.extent = wc.extent;
             gc.position = t.position;
             gc.flags = wc.cubeParallax;
+            if (!textureManager->isLoaded(wc.cubemapId))
+            {
+                convoluteQueue.push_back(wc.cubemapId);
+            }
             gc.texture = textureManager->loadOrGet(wc.cubemapId);
             lMapped->cubemaps[cubemapIdx] = gc;
             wc.renderIdx = cubemapIdx;
@@ -416,6 +424,14 @@ namespace worlds
         VKTextureManager* textureManager = renderer->getTextureManager();
 
         fillLightBuffer(reg, textureManager);
+
+        if (convoluteQueue.size() > 0)
+        {
+            AssetID convoluteID = convoluteQueue.front();
+            convoluteQueue.pop_front();
+            uint32_t convoluteHandle = textureManager->loadOrGet(convoluteID);
+            VK::Texture* tex = btm->GetTextureAt(convoluteHandle);
+        }
 
         cb.BindPipeline(depthPrePipeline.Get());
         VK::RenderPass depthPass;

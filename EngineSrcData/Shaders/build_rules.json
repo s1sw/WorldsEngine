@@ -70,5 +70,8 @@
         "outputPath": "standard_empty.frag.spv",
         "stage": "frag",
         "entryPoint": "FragmentShader"
+    },
+    {
+        "path": "cubemap_convolute.comp.slang"
     }
 ]

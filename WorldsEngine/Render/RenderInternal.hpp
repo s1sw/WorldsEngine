@@ -191,6 +191,7 @@ namespace worlds
         VKTextureManager(R2::VK::Core* core, R2::BindlessTextureManager* textureManager);
         ~VKTextureManager();
         uint32_t loadOrGet(AssetID id);
+        bool isLoaded(AssetID id);
         void unload(AssetID id);
 
     private:
@@ -285,6 +286,8 @@ namespace worlds
 
         RTTPass* createRTTPass(RTTPassCreateInfo& ci) override;
         void destroyRTTPass(RTTPass* pass) override;
+
+        void reloadShaders() override;
 
         R2::VK::Core* getCore();
         RenderMeshManager* getMeshManager();

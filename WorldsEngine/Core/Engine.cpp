@@ -35,10 +35,8 @@
 #include <ImGui/imgui_internal.h>
 #include <Libs/IconsFontAwesome5.h>
 #include <Libs/IconsFontaudio.h>
-#include <Render/ShaderCache.hpp>
 #include <Util/CreateModelObject.hpp>
 #include <Util/EnumUtil.hpp>
-#include <Util/RichPresence.hpp>
 #ifdef __linux__
 #include "SplashScreenImpls/SplashScreenX11.hpp"
 #else
@@ -302,8 +300,6 @@ namespace worlds
                 Renderer* renderer = _this->renderer.get();
                 _this->windowWidth = evt->window.data1;
                 _this->windowHeight = evt->window.data2;
-
-                // renderer->recreateSwapchain(evt->window.data1, evt->window.data2);
             }
 
             if (!inFrame)
@@ -512,11 +508,6 @@ namespace worlds
                                       .inputManager = inputManager.get(),
                                       .engine = this};
 
-        if (!dedicatedServer)
-        {
-            // VKImGUIUtil::createObjects(static_cast<VKRenderer*>(renderer.get())->getHandles());
-        }
-
         scriptEngine = std::make_unique<DotNetScriptEngine>(registry, interfaces);
         interfaces.scriptEngine = scriptEngine.get();
 
@@ -542,9 +533,6 @@ namespace worlds
 
         if (!runAsEditor)
             pauseSim = false;
-
-        if (!dedicatedServer)
-            initRichPresence(interfaces);
 
         console->registerCommand(
             [&](void*, const char* arg) {
@@ -772,8 +760,6 @@ namespace worlds
 
         if (!dedicatedServer)
         {
-            tickRichPresence();
-
             ImGui_ImplSDL2_NewFrame(window->getWrappedHandle());
         }
         inFrame = true;
@@ -880,8 +866,7 @@ namespace worlds
 
         if (inputManager->keyPressed(SDL_SCANCODE_F3, true))
         {
-            ShaderCache::clear();
-            // renderer->recreateSwapchain();
+            renderer->reloadShaders();
         }
 
         if (inputManager->keyPressed(SDL_SCANCODE_F11, true))
@@ -1382,10 +1367,6 @@ namespace worlds
 
         if (!dedicatedServer)
         {
-            shutdownRichPresence();
-
-            // auto vkCtx = static_cast<VKRenderer*>(renderer.get())->getHandles();
-            // VKImGUIUtil::destroyObjects(vkCtx);
             renderer.reset();
         }
 
