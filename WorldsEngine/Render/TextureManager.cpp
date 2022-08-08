@@ -62,19 +62,25 @@ namespace worlds
 
         R2::VK::TextureCreateInfo tci = R2::VK::TextureCreateInfo::Texture2D(td.format, td.width, td.height);
 
+        tci.NumMips = td.numMips;
+
         if (td.isCubemap)
         {
             tci.Dimension = R2::VK::TextureDimension::Cube;
             tci.Layers = 6;
+            tci.NumMips = 5; // Give cubemaps 5 mips for convolution
         }
 
-        tci.NumMips = td.numMips;
         R2::VK::Texture* t = core->CreateTexture(tci);
         t->SetDebugName(td.name.c_str());
 
         uint32_t handle = textureManager->AllocateTextureHandle(t);
 
-        core->QueueTextureUpload(t, td.data, td.totalDataSize);
+        if (!td.isCubemap)
+            core->QueueTextureUpload(t, td.data, td.totalDataSize);
+        else
+            core->QueueTextureUpload(t, td.data, td.totalDataSize, 1);
+
         free(td.data);
 
         textureIds.insert({id, TexInfo{t, handle}});

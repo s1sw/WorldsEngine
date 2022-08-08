@@ -174,6 +174,18 @@ namespace worlds
         rttPasses.erase(std::remove(rttPasses.begin(), rttPasses.end(), pass), rttPasses.end());
     }
 
+    void VKRenderer::reloadShaders()
+    {
+        ShaderCache::clear();
+
+        for (VKRTTPass* pass : rttPasses)
+        {
+            delete pass->pipeline;
+            pass->pipeline = new StandardPipeline(this);
+            pass->pipeline->setup(pass);
+        }
+    }
+
     R2::VK::Core* VKRenderer::getCore()
     {
         return core;

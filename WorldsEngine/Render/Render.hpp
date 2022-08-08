@@ -271,6 +271,8 @@ namespace worlds
         virtual RTTPass* createRTTPass(RTTPassCreateInfo& ci) = 0;
         virtual void destroyRTTPass(RTTPass* pass) = 0;
 
+        virtual void reloadShaders() = 0;
+
         virtual ~Renderer()
         {
         }
