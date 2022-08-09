@@ -14,6 +14,7 @@ RWTexture2D<float4> resultImage;
     #endif
 #endif
 
+// TODO: Bloom
 //Sampler2DArray bloomImage;
 
 [[vk::push_constant]]
@@ -32,6 +33,9 @@ interface ITonemapper
     float3 Tonemap(float3 color, float exposure);
 }
 
+// haha shader oop go brrr
+
+// adapted from http://filmicworlds.com/blog/filmic-tonemapping-operators/
 struct Uncharted2Tonemapper : ITonemapper
 {
     float3 whiteScale;
@@ -64,6 +68,7 @@ struct Uncharted2Tonemapper : ITonemapper
     }
 }
 
+// adapted from https://github.com/TheRealMJP/BakingLab/blob/master/BakingLab/ACES.hlsl
 struct ACESTonemapper : ITonemapper
 {
     __init() {}
@@ -71,12 +76,65 @@ struct ACESTonemapper : ITonemapper
     float3 Tonemap(float3 color, float exposure)
     {
         float3 x = color * exposure;
-        float a = 2.51f;
-        float b = 0.03f;
-        float c = 2.43f;
-        float d = 0.59f;
-        float e = 0.14f;
-        return saturate((x*(a*x+b))/(x*(c*x+d)+e));
+
+        float3x3 m1 = transpose(float3x3(
+            0.59719, 0.07600, 0.02840,
+            0.35458, 0.90834, 0.13383,
+            0.04823, 0.01566, 0.83777
+        ));
+
+        float3x3 m2 = transpose(float3x3(
+            1.60475, -0.10208, -0.00327,
+            -0.53108,  1.10813, -0.07276,
+            -0.07367, -0.00605,  1.07602
+        ));
+
+        float3 v = mul(m1, x);
+
+        float3 a = v * (v + 0.0245786) - 0.000090537;
+        float3 b = v * (0.983729 * v + 0.4329510) + 0.238081;
+
+        return saturate(mul(m2, a / b));
+    }
+}
+
+// adapted from https://web.archive.org/web/20170226070045/http://www.vocas.nl/webfm_send/964
+struct LogConverter
+{
+    const static float cut = 0.004160;
+    const static float a = 250.0;
+    const static float b = -0.928805;
+    const static float c = 0.244161;
+    const static float d = 0.386036;
+    const static float e = 238.584745;
+    const static float f = -0.839385;
+
+    static float LinToLog(float x)
+    {
+        return (x > cut) ? c * log10(a * x + b) + d : e * x + f;
+    }
+
+    static float3 LinToLog(float3 x)
+    {
+        return float3(
+            LinToLog(x.x),
+            LinToLog(x.y),
+            LinToLog(x.z)
+        );
+    }
+
+    static float LogToLin(float x)
+    {
+        return (x > e * cut + f) ? (pow(10, (x - d) / c) - b) / a : (x - f) / e;
+    }
+
+    static float3 LogToLin(float3 x)
+    {
+        return float3(
+            LogToLin(x.x),
+            LogToLin(x.y),
+            LogToLin(x.z)
+        );
     }
 }
 
@@ -85,6 +143,7 @@ float gmax3(float x, float y, float z)
     return max(x, max(y, z));
 }
 
+// adapted from https://gpuopen.com/learn/optimized-reversible-tonemapper-for-resolve/
 struct AMDReversibleTonemapper
 {
     float3 Tonemap(float3 color)
@@ -115,17 +174,17 @@ TonemapTextureSettings GetTextureSettings()
     TonemapTextureSettings ts;
     uint w, h, arrayCount, samples;
 #ifdef MSAA
-#ifdef MULTIVP
-    hdrImage.GetDimensions(w, h, arrayCount, samples);
+    #ifdef MULTIVP
+        hdrImage.GetDimensions(w, h, arrayCount, samples);
+    #else
+        hdrImage.GetDimensions(w, h, samples);
+    #endif
 #else
-    hdrImage.GetDimensions(w, h, samples);
-#endif
-#else
-#ifdef MULTIVP
-    hdrImage.GetDimensions(w, h, arrayCount);
-#else
-    hdrImage.GetDimensions(w, h);
-#endif
+    #ifdef MULTIVP
+        hdrImage.GetDimensions(w, h, arrayCount);
+    #else
+        hdrImage.GetDimensions(w, h);
+    #endif
 #endif
     ts.hdrWidth = w;
     ts.hdrHeight = h;
@@ -134,14 +193,15 @@ TonemapTextureSettings GetTextureSettings()
     return ts;
 }
 
+// adapted from https://stackoverflow.com/a/34480536
 float3 ConvertToSRGB(float3 col)
 {
     bool3 cutoff = col > 0.0031308;
 
-    float3 high = 1.055 * (pow(col, float3(1.0 / 2.4))) - 0.055;
-    float3 low = 12.92 * col;
+    float3 above = 1.055 * (pow(col, float3(1.0 / 2.4))) - 0.055;
+    float3 below = 12.92 * col;
 
-    return lerp(low, high, cutoff);
+    return lerp(below, above, cutoff);
 }
 
 
@@ -184,19 +244,20 @@ void main(uint3 threadID : SV_DispatchThreadID)
 #endif
 
     // Tonemap
-    ITonemapper tonemapper = Uncharted2Tonemapper();
-    accumulator = saturate(tonemapper.Tonemap(accumulator, exposureBias));
-
-    // Apply circular vignette
-    float2 centerVec = (uv - float2(0.5, 0.5));
-    float smoothness = 0.2;
-    float vig = smoothstep(vignetteRadius, vignetteRadius - vignetteSoftness, length(centerVec));
-    float vigBlend = smoothstep(vignetteRadius * 2, vignetteRadius * 2 - (vignetteSoftness * 5), length(centerVec));
-
-    float3 final = pow(
-        lerp(accumulator, lerp(float3(0.5, 0.0, 0.0), accumulator, vigBlend), 1.0 - vig),
-        1.0 / 2.2
-    );
+    const bool useACES = true;
+    if (useACES)
+    {
+        ITonemapper tonemapper1 = ACESTonemapper();
+        accumulator = LogConverter.LinToLog(accumulator);
+        accumulator = ((accumulator - 0.48) * 0.75) + 0.48;
+        accumulator = LogConverter.LogToLin(accumulator);
+        accumulator = saturate(tonemapper1.Tonemap(accumulator, 6.0));
+    }
+    else
+    {
+        ITonemapper tonemapper = Uncharted2Tonemapper();
+        accumulator = saturate(tonemapper.Tonemap(accumulator, exposureBias));
+    }
 
     resultImage[threadID.xy] = float4(ConvertToSRGB(accumulator), 1.0);
 }

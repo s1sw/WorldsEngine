@@ -126,7 +126,7 @@ void ImGui_ImplR2_CreateFontTextureAndDS()
     s->fontTextureID = s->textureManager->AllocateTextureHandle(s->fontTexture);
     io.Fonts->SetTexID((ImTextureID)(uint64_t)s->fontTextureID);
 
-    VK::SamplerBuilder sb{s->core->GetHandles()};
+    VK::SamplerBuilder sb{s->core};
     s->sampler = sb.AddressMode(VK::SamplerAddressMode::Repeat)
                      .MagFilter(VK::Filter::Linear)
                      .MinFilter(VK::Filter::Linear)

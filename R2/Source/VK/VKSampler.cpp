@@ -2,12 +2,13 @@
 #include <string.h>
 #include <volk.h>
 #include <R2/VKCore.hpp>
+#include <R2/VKDeletionQueue.hpp>
 
 namespace R2::VK
 {
-    Sampler::Sampler(const Handles* handles, VkSampler sampler)
+    Sampler::Sampler(Core* core, VkSampler sampler)
         : sampler(sampler)
-        , handles(handles)
+        , core(core)
     {}
 
     VkSampler Sampler::GetNativeHandle()
@@ -17,11 +18,12 @@ namespace R2::VK
 
     Sampler::~Sampler()
     {
-        vkDestroySampler(handles->Device, sampler, handles->AllocCallbacks);
+        DeletionQueue* dq = core->perFrameResources[core->frameIndex].DeletionQueue;
+        dq->QueueObjectDeletion(sampler, VK_OBJECT_TYPE_SAMPLER);
     }
 
-    SamplerBuilder::SamplerBuilder(const Handles* handles)
-        : handles(handles)
+    SamplerBuilder::SamplerBuilder(Core* core)
+        : core(core)
         , ci{}
     {}
 
@@ -66,8 +68,8 @@ namespace R2::VK
         sci.maxAnisotropy = 16.0f;
 
         VkSampler vsamp;
-        VKCHECK(vkCreateSampler(handles->Device, &sci, handles->AllocCallbacks, &vsamp));
+        VKCHECK(vkCreateSampler(core->GetHandles()->Device, &sci, core->GetHandles()->AllocCallbacks, &vsamp));
 
-        return new Sampler(handles, vsamp);
+        return new Sampler(core, vsamp);
     }
 }

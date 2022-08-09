@@ -7,18 +7,19 @@ VK_DEFINE_HANDLE(VkSampler)
 
 namespace R2::VK
 {
+    class Core;
     struct Handles;
     typedef unsigned int Bool32;
 
     class Sampler
     {
     public:
-        Sampler(const Handles* handles, VkSampler sampler);
+        Sampler(Core* core, VkSampler sampler);
         VkSampler GetNativeHandle();
         ~Sampler();
     private:
         VkSampler sampler;
-        const Handles* handles;
+        Core* core;
     };
 
     enum class Filter : unsigned int
@@ -55,7 +56,7 @@ namespace R2::VK
     class SamplerBuilder
     {
     public:
-        SamplerBuilder(const Handles* handles);
+        SamplerBuilder(Core* core);
 
         SamplerBuilder& MagFilter(Filter filt);
         SamplerBuilder& MinFilter(Filter filt);
@@ -84,6 +85,6 @@ namespace R2::VK
         };
 
         SamplerCreateInfo ci;
-        const Handles* handles;
+        Core* core;
     };
 }

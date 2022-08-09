@@ -47,7 +47,7 @@ namespace worlds
 
         descriptorSet = core->CreateDescriptorSet(descriptorSetLayout.Get());
 
-        VK::SamplerBuilder sb{core->GetHandles()};
+        VK::SamplerBuilder sb{core};
         sampler = sb.AddressMode(VK::SamplerAddressMode::Repeat)
         .MagFilter(VK::Filter::Linear)
         .MinFilter(VK::Filter::Linear)

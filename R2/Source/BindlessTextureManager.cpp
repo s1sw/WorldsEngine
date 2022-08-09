@@ -21,7 +21,7 @@ namespace R2
 
         textureDescriptors = core->CreateDescriptorSet(textureDescriptorSetLayout, NUM_TEXTURES);
 
-        VK::SamplerBuilder sb{core->GetHandles()};
+        VK::SamplerBuilder sb{core};
         sampler = sb
             .AddressMode(VK::SamplerAddressMode::Repeat)
             .MinFilter(VK::Filter::Linear)

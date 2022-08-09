@@ -595,8 +595,6 @@ namespace worlds
                                      ImGuiSliderFlags_AlwaysClamp);
                     tooltipHover("Controls brightness of the light in the scene.");
 
-                    // Move the range sphere to center on the light
-                    drawSphere(transform.position, transform.rotation, worldLight.maxDistance);
 
                     if (ImGui::BeginCombo("Light Type", lightTypeNames.at(worldLight.type)))
                     {
@@ -635,6 +633,14 @@ namespace worlds
                         drawCircle(transform.position + lightForward * worldLight.maxDistance * 0.5f, radiusAtCutoff,
                                    transform.rotation * glm::angleAxis(glm::half_pi<float>(), glm::vec3(1.f, 0.f, 0.f)),
                                    glm::vec4(1.0f));
+                        drawLine(transform.position, transform.position + transform.rotation * glm::vec3(radiusAtCutoff, 0.0f, 0.0f) + lightForward * worldLight.maxDistance * 0.5f, glm::vec4(1.0f));
+                        drawLine(transform.position, transform.position + transform.rotation * glm::vec3(-radiusAtCutoff, 0.0f, 0.0f) + lightForward * worldLight.maxDistance * 0.5f, glm::vec4(1.0f));
+                        drawLine(transform.position, transform.position + transform.rotation * glm::vec3(0.0f, 0.0f, radiusAtCutoff) + lightForward * worldLight.maxDistance * 0.5f, glm::vec4(1.0f));
+                        drawLine(transform.position, transform.position + transform.rotation * glm::vec3(0.0f, 0.0f, -radiusAtCutoff) + lightForward * worldLight.maxDistance * 0.5f, glm::vec4(1.0f));
+                    }
+                    else
+                    {
+                        drawSphere(transform.position, transform.rotation, worldLight.maxDistance);
                     }
                 }
             }

@@ -174,8 +174,9 @@ namespace R2::VK
 			void* pUserData);
 
 		friend class Buffer;
-		friend class Texture;
 		friend class DescriptorSet;
 		friend class Pipeline;
+		friend class Sampler;
+		friend class Texture;
 	};
 }
