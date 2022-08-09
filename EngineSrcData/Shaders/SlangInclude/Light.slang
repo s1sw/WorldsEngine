@@ -65,6 +65,27 @@ struct Light
         }
     }
 
+    property float SpotCutoff
+    {
+        get
+        {
+            return pack1.w;
+        }
+
+        set
+        {
+            pack1.w = newValue;
+        }
+    }
+
+    property float SpotOuterCutoff
+    {
+        get
+        {
+            return (float)((asuint(pack0.w) >> 7) & 0xFF) / 255.0;
+        }
+    }
+
     float3 GetDirection(float3 worldPos)
     {
         switch(Type)

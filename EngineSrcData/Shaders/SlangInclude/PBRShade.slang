@@ -52,15 +52,15 @@ LightShadeInfo calcLightShadeInfo(Light light, ShadeInfo shadeInfo, float3 world
     }
     else if (light.Type == LightType.Spot)
     {
-        const float outerRadius = 0.02f;
-        float cutoff = light.pack1.w;
+        float cutoff = light.SpotCutoff;
+        float outerRadius = light.SpotOuterCutoff;
         float3 lightPos = light.pack2.xyz;
 
         lsi.L = normalize(lightPos - worldPos);
 
         float theta = dot(lsi.L, normalize(light.pack1.xyz));
         float3 lToFrag = lightPos - worldPos;
-        lsi.radiance *= clamp((theta - cutoff - outerRadius) / outerRadius, 0.0f, 1.0f);
+        lsi.radiance *= clamp((theta - outerRadius) / (cutoff - outerRadius), 0.0f, 1.0f);
         float distSq = dot(lToFrag, lToFrag);
 
         float cutoffDist = light.DistanceCutoff;

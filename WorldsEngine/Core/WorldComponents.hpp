@@ -98,6 +98,7 @@ namespace worlds
 
         // Angle of the spotlight cutoff in radians
         float spotCutoff = glm::pi<float>() * 0.5f;
+        float spotOuterCutoff = glm::pi<float>() * 0.6f;
 
         // Physical dimensions of a tube light
         float tubeLength = 0.25f;

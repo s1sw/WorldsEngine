@@ -55,9 +55,10 @@ namespace worlds
         /*
                               light type
                       shadowmap index  |
-                 currently unused   |  |
-                                |   |  |
-         /-----------------------\/--\/-\
+            spotlight outer cutoff  |  |
+         currently unused       |   |  |
+                        |       |   |  |
+         /---------------\/------\/--\/-\
          00000000000000000000000000000000 */
         uint32_t packedFlags;
 
@@ -78,6 +79,13 @@ namespace worlds
         {
             packedFlags &= ~(0b1111 << 3);
             packedFlags |= (shadowmapIdx & 0b1111) << 3;
+        }
+
+        void setOuterCutoff(float outerCutoff)
+        {
+            uint8_t quantized = (glm::clamp(glm::cos(outerCutoff), 0.0f, 1.0f) * 255);
+            packedFlags &= ~(0xFF << 7);
+            packedFlags |= (uint32_t)(quantized & 0xFF) << 7;
         }
     };
 
