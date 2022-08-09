@@ -10,7 +10,7 @@ namespace worlds
     CubemapConvoluter::CubemapConvoluter(R2::VK::Core* core)
         : core(core)
     {
-        VK::SamplerBuilder sb{core->GetHandles()};
+        VK::SamplerBuilder sb{core};
         sb.AddressMode(VK::SamplerAddressMode::Repeat)
         .MagFilter(VK::Filter::Linear)
         .MinFilter(VK::Filter::Linear)

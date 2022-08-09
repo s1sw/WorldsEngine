@@ -21,7 +21,7 @@ namespace worlds
         , lightTiles(lightTiles)
         , multiVPBuffer(multiVPBuffer)
     {
-        VK::SamplerBuilder sb{core->GetHandles()};
+        VK::SamplerBuilder sb{core};
         sampler = sb.Build();
 
         std::string shaderPath = "Shaders/light_cull";

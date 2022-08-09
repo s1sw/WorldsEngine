@@ -395,7 +395,8 @@ namespace worlds
 
         uint32_t cubemapIdx = 1;
         lMapped->cubemaps[0] = GPUCubemap { glm::vec3{100000.0f}, ~0u, glm::vec3{0.0f}, 0 };
-        reg.view<WorldCubemap, Transform>().each([&](WorldCubemap& wc, Transform& t) {
+        reg.view<WorldCubemap, Transform>().each([&](WorldCubemap& wc, Transform& t)
+        {
             GPUCubemap gc{};
             gc.extent = wc.extent;
             gc.position = t.position;
@@ -427,13 +428,18 @@ namespace worlds
 
         if (convoluteQueue.size() > 0)
         {
+            cb.BeginDebugLabel("Cubemap Convolution", 0.1f, 0.1f, 0.1f);
+
             AssetID convoluteID = convoluteQueue.front();
             convoluteQueue.pop_front();
             uint32_t convoluteHandle = textureManager->loadOrGet(convoluteID);
             VK::Texture* tex = btm->GetTextureAt(convoluteHandle);
             cubemapConvoluter->Convolute(cb, tex);
+
+            cb.EndDebugLabel();
         }
 
+        cb.BeginDebugLabel("Depth Pre-Pass", 0.1f, 0.1f, 0.1f);
         cb.BindPipeline(depthPrePipeline.Get());
         VK::RenderPass depthPass;
         depthPass
@@ -462,9 +468,13 @@ namespace worlds
         drawLoop(reg, cb, true);
         depthPass.End(cb);
 
+        cb.EndDebugLabel();
+
         lightCull->Execute(cb);
 
         lightTileBuffer->Acquire(cb, VK::AccessFlags::ShaderRead, VK::PipelineStageFlags::FragmentShader);
+        
+        cb.BeginDebugLabel("Opaque Pass", 0.5f, 0.1f, 0.1f);
         cb.BindPipeline(pipeline.Get());
         VK::RenderPass colorPass;
         colorPass.ColorAttachment(colorBuffer.Get(), VK::LoadOp::Clear, VK::StoreOp::Store)
@@ -477,8 +487,13 @@ namespace worlds
 
         size_t dbgLinesCount;
         const DebugLine* dbgLines = renderer->getCurrentDebugLines(&dbgLinesCount);
+
+        cb.BeginDebugLabel("Debug Lines", 0.1f, 0.1f, 0.1f);
         debugLineDrawer->Execute(cb, dbgLines, dbgLinesCount);
+        cb.EndDebugLabel();
+
         colorPass.End(cb);
+        cb.EndDebugLabel();
 
         tonemapper->Execute(cb);
     }

@@ -305,15 +305,6 @@ float3 GetHeatmapColor(uint number, float2 fragCoord)
     return heatmapCol;
 }
 
-float getAntiAliasedRoughness(float inRoughness, float3 normal)
-{
-    float3 ddxN = ddx(normal);
-    float3 ddyN = ddy(normal);
-
-    float geoRoughness = pow(saturate(max(dot(ddxN.xyz, ddxN.xyz), dot(ddyN.xyz, ddyN.xyz))), 0.333);
-    return max(inRoughness, geoRoughness);
-}
-
 [shader("fragment")]
 float4 FragmentShader(VertexOutput input, float2 fragCoord : SV_Position) : SV_TARGET
 {
@@ -328,8 +319,6 @@ float4 FragmentShader(VertexOutput input, float2 fragCoord : SV_Position) : SV_T
     shadeInfo.viewDir = normalize(VPBuffer.viewPos[0].xyz - input.WorldPosition.xyz);
 
     material.LoadPBRInfo(shadeInfo, input.UV);
-
-    shadeInfo.roughness = getAntiAliasedRoughness(shadeInfo.roughness, shadeInfo.normal);
 
     float3 lo = ComputeIncomingLight(shadeInfo, fragCoord, input.WorldPosition.xyz);
     float3 ambient = ComputeAmbient(shadeInfo, fragCoord, input.WorldPosition.xyz);
