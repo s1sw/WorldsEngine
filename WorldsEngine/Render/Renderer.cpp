@@ -74,6 +74,8 @@ namespace worlds
         VK::Texture* swapchainImage = swapchain->Acquire(frameFence);
         ImGui_ImplR2_NewFrame();
 
+        currentDebugLines = swapDebugLineBuffer(currentDebugLineCount);
+
         int width;
         int height;
 
@@ -209,5 +211,11 @@ namespace worlds
     VKTextureManager* VKRenderer::getTextureManager()
     {
         return textureManager;
+    }
+
+    const DebugLine* VKRenderer::getCurrentDebugLines(size_t* count)
+    {
+        *count = currentDebugLineCount;
+        return currentDebugLines;
     }
 }

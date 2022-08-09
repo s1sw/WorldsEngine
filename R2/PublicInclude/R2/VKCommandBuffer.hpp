@@ -67,6 +67,7 @@ namespace R2::VK
         void BindPipeline(Pipeline* p);
         void BindGraphicsDescriptorSet(PipelineLayout* pipelineLayout, VkDescriptorSet descriptorSet, uint32_t setNumber);
         void DrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance);
+        void Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance);
 
         void BindComputePipeline(Pipeline* p);
         void BindComputeDescriptorSet(PipelineLayout* pipelineLayout, VkDescriptorSet descriptorSet, uint32_t setNumber);

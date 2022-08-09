@@ -83,7 +83,7 @@ namespace worlds
 
         void setOuterCutoff(float outerCutoff)
         {
-            uint8_t quantized = (glm::clamp(glm::cos(outerCutoff), 0.0f, 1.0f) * 255);
+            uint8_t quantized = (uint8_t)(glm::clamp(glm::cos(outerCutoff), 0.0f, 1.0f) * 255);
             packedFlags &= ~(0xFF << 7);
             packedFlags |= (uint32_t)(quantized & 0xFF) << 7;
         }

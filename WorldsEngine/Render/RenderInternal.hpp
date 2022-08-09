@@ -266,6 +266,8 @@ namespace worlds
         RenderDebugStats debugStats;
         float lastGPUTime;
         friend class VKRTTPass;
+        const DebugLine* currentDebugLines;
+        size_t currentDebugLineCount;
 
       public:
         VKRenderer(const RendererInitInfo& initInfo, bool* success);
@@ -294,6 +296,7 @@ namespace worlds
         MaterialManager* getMaterialManager();
         R2::BindlessTextureManager* getBindlessTextureManager();
         VKTextureManager* getTextureManager();
+        const DebugLine* getCurrentDebugLines(size_t* count);
     };
 
     enum class ShaderVariantFlags : uint32_t

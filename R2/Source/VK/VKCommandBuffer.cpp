@@ -65,6 +65,11 @@ namespace R2::VK
         vkCmdDrawIndexed(cb, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
     }
 
+    void CommandBuffer::Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)
+    {
+        vkCmdDraw(cb, vertexCount, instanceCount, firstVertex, firstInstance);
+    }
+
     void CommandBuffer::BindComputePipeline(Pipeline* p)
     {
         vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_COMPUTE, p->GetNativeHandle());

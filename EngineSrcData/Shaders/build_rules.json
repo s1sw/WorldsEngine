@@ -73,5 +73,17 @@
     },
     {
         "path": "cubemap_convolute.comp.slang"
+    },
+    {
+        "path": "debug_line.slang",
+        "outputPath": "debug_line.vert.spv",
+        "stage": "vert",
+        "entryPoint": "VertexShader"
+    },
+    {
+        "path": "debug_line.slang",
+        "outputPath": "debug_line.frag.spv",
+        "stage": "frag",
+        "entryPoint": "FragmentShader"
     }
 ]
